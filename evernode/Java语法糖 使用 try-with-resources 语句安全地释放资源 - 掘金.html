@@ -1,0 +1,251 @@
+<html>
+<head>
+  <title>Java语法糖: 使用 try-with-resources 语句安全地释放资源 - 掘金</title>
+  <basefont face="微软雅黑" size="2" />
+  <meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+  <meta name="exporter-version" content="YXBJ Windows/600718 (zh-CN, DDL); Windows/6.1.1 (Win64);"/>
+  <style>
+    body, td {
+      font-family: 微软雅黑;
+      font-size: 10pt;
+    }
+  </style>
+</head>
+<body>
+<a name="11887"/>
+<h1>Java语法糖: 使用 try-with-resources 语句安全地释放资源 - 掘金</h1>
+<div>
+<table bgcolor="#D4DDE5" border="0">
+<tr><td><b>创建时间：</b></td><td><i>2019/5/14 16:03</i></td></tr>
+<tr><td><b>来源：</b></td><td><a href="https://juejin.im/post/5cd9434ce51d45473d10ff03"><i>https://juejin.im/post/5cd9434ce51d45473d10ff03</i></a></td></tr>
+</table>
+</div>
+<br/>
+
+<div><span><div style="-evernote-webclip:true"><br/><div style="font-size: 16px; display: inline-block;"><div style="font-family:-apple-system, system-ui, BlinkMacSystemFont, &quot;Helvetica Neue&quot;, &quot;PingFang SC&quot;, &quot;Hiragino Sans GB&quot;, &quot;Microsoft YaHei&quot;, Arial, sans-serif;text-size-adjust:100%;font-size:12px;text-rendering:optimizelegibility;color:rgb(51, 51, 51);background-color:rgb(244, 245, 245);word-break:break-word;"><div style="font-size:12px;line-height:normal;word-break:break-word;"><div style="overflow-x:initial;"><div><span><div><div style="box-shadow:rgba(0, 0, 0, 0.05) 0px 1px 2px 0px;background-color:rgb(255, 255, 255);border-radius:2px;box-sizing:border-box;"><div><div></div><div><div></div></div><div style="display:flex;align-items:center;margin-bottom:2rem;"><a href="https://juejin.im/user/5c67bd52e51d451b7f06bb40" rel="" style="margin:initial;background-color:transparent;text-decoration:none;cursor:pointer;color:rgb(144, 144, 144);font-size:0px;" target="_blank"><div style="position:relative;display:inline-block;background-position:50% center;background-size:cover;background-repeat:no-repeat;background-color:rgb(238, 238, 238);flex:0 0 auto;margin-right:1rem;width:3.333rem;height:3.333rem;border-radius:50%;background-image:url('https://juejin.im/post/5cd9434ce51d45473d10ff03&quot;https://user-gold-cdn.xitu.io/2019/2/16/168f541a6023fa4a?imageView2/1/w/100/h/100/q/85/format/webp/interlace/1&quot;');"><span style="position:absolute;top:0px;left:0px;right:0px;bottom:0px;background-color:inherit;border-radius:inherit;transition:opacity 0.2s ease 0s;opacity:0;pointer-events:none;"></span></div></a><div style="min-width:0px;flex-grow:1;"><a href="https://juejin.im/user/5c67bd52e51d451b7f06bb40" rel="" style="margin:initial;background-color:transparent;text-decoration:none;cursor:pointer;color:rgb(51, 51, 51);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:1.3rem;font-weight:700;display:inline-block;max-width:100%;" target="_blank">西召<a href="https://juejin.im/book/5c90640c5188252d7941f5bb/section/5c9065385188252da6320022" rel="" style="margin:initial;margin-left:0.33rem;vertical-align:middle;background-color:transparent;text-decoration:none;cursor:pointer;color:rgb(144, 144, 144);" target="_blank"><a href="Java语法糖 使用 try-with-resources 语句安全地释放资源 - 掘金_files/lv-2.f597b88.svg"><img src="Java语法糖 使用 try-with-resources 语句安全地释放资源 - 掘金_files/e5e342e03a8e49ff7ad44fb692ef01fb.png" alt="lv-2.f597b88.svg"></a></a></a><div style="font-size:1.1rem;color:rgb(144, 144, 144);"><span style="letter-spacing:1px;" title="Mon May 13 2019 18:15:13 GMT+0800 (中国标准时间)">2019年05月13日</span><span style="margin-left:0.5em;">阅读 301</span></div></div></div><div style="position:relative;background-position:50% center;background-size:cover;background-repeat:no-repeat;margin-bottom:2rem;width:100%;background-image:url('https://juejin.im/post/5cd9434ce51d45473d10ff03&quot;https://user-gold-cdn.xitu.io/2019/5/13/16ab0afb4cdfc9ae?imageView2/1/w/1304/h/734/q/85/format/webp/interlace/1&quot;');"><span style="position:absolute;top:0px;left:0px;right:0px;bottom:0px;background-color:inherit;border-radius:inherit;transition:opacity 0.2s ease 0s;opacity:0;pointer-events:none;"></span><span style="display:block;padding-top:56.29%;width:100%;pointer-events:none;"></span></div><h1 style="font-size:2.5rem;margin:0.67em 0px;font-weight:700;line-height:1.5;">Java语法糖: 使用  try-with-resources 语句安全地释放资源</h1><div style="word-break:break-word;line-height:1.75;font-weight:400;font-size:15px;overflow-x:hidden;"><p style="line-height:inherit;margin-top:22px;margin-bottom:22px;">先给出本文的重点：</p>
+<ol style="padding-left:28px;">
+<li style="margin-bottom:0px;list-style:inherit;padding-left:6px;">
+<p style="line-height:inherit;margin-top:22px;margin-bottom:22px;">这里所谓的资源（resource）是指在程序完成后，必须关闭的对象, try-with-resources 语句确保了每个资源在语句结束时关闭;</p>
+</li>
+<li style="margin-bottom:0px;list-style:inherit;padding-left:6px;">
+<p style="line-height:inherit;margin-top:22px;margin-bottom:22px;">使用 Java 7 新增的 try-with-resources 语句 代替 try-finally 语句进行资源关闭，不仅代码更精简而且更安全;</p>
+</li>
+<li style="margin-bottom:0px;list-style:inherit;padding-left:6px;">
+<p style="line-height:inherit;margin-top:22px;margin-bottom:22px;">支持 try-with-resources 语句 的类必须都实现 <code style="font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;font-size:0.87em;padding:0.065em 0.4em;word-break:break-word;color:rgb(255, 80, 44);background-color:rgb(255, 245, 245);border-radius:2px;overflow-x:auto;">AutoCloseable</code>接口，同样的，我们自定义的类也可以实现这个接口来帮助我们进行一些安全的自动化释放资源；</p>
+</li>
+<li style="margin-bottom:0px;list-style:inherit;padding-left:6px;">
+<p style="line-height:inherit;margin-top:22px;margin-bottom:22px;">Java 9 对 try-with-resources 语句进行了改进，如果你有一个资源是 final 或等效于 final 变量, 则可以在 try-with-resources 语句中使用该变量，无需在 try-with-resources 语句中再声明一个新的变量。</p>
+</li>
+</ol>
+<p style="line-height:inherit;margin-top:22px;margin-bottom:22px;">下面就通过几个简单而实用的例子，给大家演示一下 try-with-resources 语句的各种用法。</p>
+<hr style="box-sizing:content-box;height:0px;overflow:visible;border-right:none;border-bottom:none;border-left:none;border-image:initial;border-top:1px solid rgb(221, 221, 221);margin-top:2.7rem;margin-bottom:2.7rem;"/>
+<h3 style="color:rgb(51, 51, 51);line-height:1.5;margin-top:35px;margin-bottom:10px;padding-bottom:0px;font-size:18px;">Java 7 之前的 try-finally 语句</h3>
+<p style="line-height:inherit;margin-top:22px;margin-bottom:22px;">之前操作资源，为了防止因为异常造成无法关闭资源，都是通过 try-finally 语句来关闭资源流的。</p>
+<p style="line-height:inherit;margin-top:22px;margin-bottom:22px;">这样做有两个弊端：</p>
+<ol style="padding-left:28px;">
+<li style="margin-bottom:0px;list-style:inherit;padding-left:6px;">代码丑陋</li>
+<li style="margin-bottom:0px;list-style:inherit;padding-left:6px;">不安全</li>
+</ol>
+<p style="line-height:inherit;margin-top:22px;margin-bottom:22px;">例如下面读写文件的一个方法，需要定义大量的变量，以及反复的异常捕捉和close操作。</p>
+<pre style="font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;font-size:1em;line-height:1.75;overflow:auto;position:relative;"><code lang="java" style="font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;font-size:1rem;padding:18px 15px 12px;word-break:normal;color:rgb(51, 51, 51);border-radius:2px;overflow-x:auto;margin:0px;display:block;background:rgb(248, 248, 248);background-color:rgb(255, 245, 245);"><span style="font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;font-size:1rem;color:rgb(51, 51, 51);position:absolute;right:70px;top:2px;">java</span><span><span style="color:rgb(51, 51, 51);font-weight:700;">public</span> <span style="color:rgb(51, 51, 51);font-weight:700;">static</span> <span style="color:rgb(51, 51, 51);font-weight:700;">void</span> <span style="color:rgb(153, 0, 0);font-weight:700;">method1</span><span>()</span> </span>{
+
+    FileWriter fileWriter = <span style="color:rgb(51, 51, 51);font-weight:700;">null</span>;
+    BufferedWriter bufferedWriter = <span style="color:rgb(51, 51, 51);font-weight:700;">null</span>;
+    FileReader fileReader = <span style="color:rgb(51, 51, 51);font-weight:700;">null</span>;
+    BufferedReader bufferedReader = <span style="color:rgb(51, 51, 51);font-weight:700;">null</span>;
+    File file = <span style="color:rgb(51, 51, 51);font-weight:700;">new</span> File(<span style="color:rgb(221, 17, 68);">&quot;try-with-resources-demo.txt&quot;</span>);
+
+    <span style="color:rgb(51, 51, 51);font-weight:700;">try</span> {
+
+
+        fileWriter = <span style="color:rgb(51, 51, 51);font-weight:700;">new</span> FileWriter(file);
+        bufferedWriter = <span style="color:rgb(51, 51, 51);font-weight:700;">new</span> BufferedWriter(fileWriter);
+
+        fileReader = <span style="color:rgb(51, 51, 51);font-weight:700;">new</span> FileReader(file);
+        bufferedReader = <span style="color:rgb(51, 51, 51);font-weight:700;">new</span> BufferedReader(fileReader);
+
+        bufferedWriter.write(<span style="color:rgb(221, 17, 68);">&quot;now is:&quot;</span> + LocalDateTime.now() + <span style="color:rgb(221, 17, 68);">&quot;\n\r&quot;</span>);
+        bufferedWriter.write(<span style="color:rgb(221, 17, 68);">&quot;availableProcessors are : &quot;</span> + Runtime.getRuntime().availableProcessors() + <span style="color:rgb(221, 17, 68);">&quot;\n\r&quot;</span>);
+        bufferedWriter.write(<span style="color:rgb(221, 17, 68);">&quot;totalMemory is : &quot;</span> + Runtime.getRuntime().totalMemory() + <span style="color:rgb(221, 17, 68);">&quot;\n\r&quot;</span>);
+        bufferedWriter.write(<span style="color:rgb(221, 17, 68);">&quot;maxMemory is : &quot;</span> + Runtime.getRuntime().maxMemory() + <span style="color:rgb(221, 17, 68);">&quot;\n\r&quot;</span>);
+        bufferedWriter.write(<span style="color:rgb(221, 17, 68);">&quot;freeMemory is : &quot;</span> + Runtime.getRuntime().freeMemory() + <span style="color:rgb(221, 17, 68);">&quot;\n\r&quot;</span>);
+        bufferedWriter.flush();
+
+        StringBuffer readResult = <span style="color:rgb(51, 51, 51);font-weight:700;">new</span> StringBuffer(<span style="color:rgb(221, 17, 68);">&quot;&quot;</span>);
+        String oneLine = <span style="color:rgb(51, 51, 51);font-weight:700;">null</span>;
+        <span style="color:rgb(51, 51, 51);font-weight:700;">while</span> (<span style="color:rgb(51, 51, 51);font-weight:700;">null</span> != (oneLine = bufferedReader.readLine())) {
+            readResult.append(oneLine + <span style="color:rgb(221, 17, 68);">&quot;\n\r&quot;</span>);
+        }
+        System.out.println(readResult.toString());
+
+
+    } <span style="color:rgb(51, 51, 51);font-weight:700;">catch</span> (IOException ioe) {
+        <span style="color:rgb(153, 153, 136);">//TODO log: IOException</span>
+        ioe.printStackTrace();
+    } <span style="color:rgb(51, 51, 51);font-weight:700;">finally</span> {
+        <span style="color:rgb(51, 51, 51);font-weight:700;">try</span> {
+            <span style="color:rgb(51, 51, 51);font-weight:700;">if</span> (<span style="color:rgb(51, 51, 51);font-weight:700;">null</span> != fileReader)
+                fileReader.close();
+        } <span style="color:rgb(51, 51, 51);font-weight:700;">catch</span> (IOException ioe) {
+            <span style="color:rgb(153, 153, 136);">//TODO&amp;emsp;log: close stream has an  IOException</span>
+            ioe.printStackTrace();
+        }
+
+        <span style="color:rgb(51, 51, 51);font-weight:700;">try</span> {
+            <span style="color:rgb(51, 51, 51);font-weight:700;">if</span> (<span style="color:rgb(51, 51, 51);font-weight:700;">null</span> != bufferedReader)
+                bufferedReader.close();
+        } <span style="color:rgb(51, 51, 51);font-weight:700;">catch</span> (IOException ioe) {
+            <span style="color:rgb(153, 153, 136);">//TODO&amp;emsp;log: close stream has an  IOException</span>
+            ioe.printStackTrace();
+        }
+
+        <span style="color:rgb(51, 51, 51);font-weight:700;">try</span> {
+            <span style="color:rgb(51, 51, 51);font-weight:700;">if</span> (<span style="color:rgb(51, 51, 51);font-weight:700;">null</span> != fileWriter)
+                fileWriter.close();
+        } <span style="color:rgb(51, 51, 51);font-weight:700;">catch</span> (IOException ioe) {
+            <span style="color:rgb(153, 153, 136);">//TODO&amp;emsp;log: close stream has an  IOException</span>
+            ioe.printStackTrace();
+        }
+
+        <span style="color:rgb(51, 51, 51);font-weight:700;">try</span> {
+            <span style="color:rgb(51, 51, 51);font-weight:700;">if</span> (<span style="color:rgb(51, 51, 51);font-weight:700;">null</span> != bufferedWriter)
+                bufferedWriter.close();
+        } <span style="color:rgb(51, 51, 51);font-weight:700;">catch</span> (IOException ioe) {
+            <span style="color:rgb(153, 153, 136);">//TODO&amp;emsp;log: close stream has an  IOException</span>
+            ioe.printStackTrace();
+        }
+
+    }
+}
+<span style="position:absolute;top:6px;right:15px;font-size:12px;line-height:1;cursor:pointer;color:rgba(140, 140, 140, 0.8);transition:color 0.1s ease 0s;">复制代码</span></code></pre><p style="line-height:inherit;margin-top:22px;margin-bottom:22px;">这样的程序，显然不是有代码洁癖的小伙伴可以接受的。</p>
+<h3 style="color:rgb(51, 51, 51);line-height:1.5;margin-top:35px;margin-bottom:10px;padding-bottom:0px;font-size:18px;">try-with-resources 语句</h3>
+<p style="line-height:inherit;margin-top:22px;margin-bottom:22px;">而使用 try-with-resources 语句实现的话，就简洁了很多。</p>
+<pre style="font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;font-size:1em;line-height:1.75;overflow:auto;position:relative;"><code lang="java" style="font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;font-size:1rem;padding:18px 15px 12px;word-break:normal;color:rgb(51, 51, 51);border-radius:2px;overflow-x:auto;margin:0px;display:block;background:rgb(248, 248, 248);background-color:rgb(255, 245, 245);"><span style="font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;font-size:1rem;color:rgb(51, 51, 51);position:absolute;right:70px;top:2px;">java</span> <span><span style="color:rgb(51, 51, 51);font-weight:700;">public</span> <span style="color:rgb(51, 51, 51);font-weight:700;">static</span> <span style="color:rgb(51, 51, 51);font-weight:700;">void</span> <span style="color:rgb(153, 0, 0);font-weight:700;">method2</span><span>()</span> </span>{
+        File file = <span style="color:rgb(51, 51, 51);font-weight:700;">new</span> File(<span style="color:rgb(221, 17, 68);">&quot;try-with-resources-demo.txt&quot;</span>);
+        <span style="color:rgb(51, 51, 51);font-weight:700;">try</span> (
+                FileWriter fileWriter = <span style="color:rgb(51, 51, 51);font-weight:700;">new</span> FileWriter(file);
+                BufferedWriter bufferedWriter = <span style="color:rgb(51, 51, 51);font-weight:700;">new</span> BufferedWriter(fileWriter);
+                FileReader fileReader = <span style="color:rgb(51, 51, 51);font-weight:700;">new</span> FileReader(file);
+                BufferedReader bufferedReader = <span style="color:rgb(51, 51, 51);font-weight:700;">new</span> BufferedReader(fileReader);
+        ) {
+            bufferedWriter.write(<span style="color:rgb(221, 17, 68);">&quot;now is:&quot;</span> + LocalDateTime.now() + <span style="color:rgb(221, 17, 68);">&quot;\n\r&quot;</span>);
+            bufferedWriter.write(<span style="color:rgb(221, 17, 68);">&quot;availableProcessors are : &quot;</span> + Runtime.getRuntime().availableProcessors() + <span style="color:rgb(221, 17, 68);">&quot;\n\r&quot;</span>);
+            bufferedWriter.write(<span style="color:rgb(221, 17, 68);">&quot;totalMemory is : &quot;</span> + Runtime.getRuntime().totalMemory() + <span style="color:rgb(221, 17, 68);">&quot;\n\r&quot;</span>);
+            bufferedWriter.write(<span style="color:rgb(221, 17, 68);">&quot;maxMemory is : &quot;</span> + Runtime.getRuntime().maxMemory() + <span style="color:rgb(221, 17, 68);">&quot;\n\r&quot;</span>);
+            bufferedWriter.write(<span style="color:rgb(221, 17, 68);">&quot;freeMemory is : &quot;</span> + Runtime.getRuntime().freeMemory() + <span style="color:rgb(221, 17, 68);">&quot;\n\r&quot;</span>);
+            bufferedWriter.flush();
+
+
+            StringBuffer readResult = <span style="color:rgb(51, 51, 51);font-weight:700;">new</span> StringBuffer(<span style="color:rgb(221, 17, 68);">&quot;&quot;</span>);
+            String oneLine = <span style="color:rgb(51, 51, 51);font-weight:700;">null</span>;
+            <span style="color:rgb(51, 51, 51);font-weight:700;">while</span> (<span style="color:rgb(51, 51, 51);font-weight:700;">null</span> != (oneLine = bufferedReader.readLine())) {
+                readResult.append(oneLine + <span style="color:rgb(221, 17, 68);">&quot;\n\r&quot;</span>);
+            }
+            System.out.println(readResult.toString());
+
+        } <span style="color:rgb(51, 51, 51);font-weight:700;">catch</span> (IOException ioe) {
+            <span style="color:rgb(153, 153, 136);">//TODO log: IOException</span>
+            ioe.printStackTrace();
+        }
+    }
+
+
+<span style="position:absolute;top:6px;right:15px;font-size:12px;line-height:1;cursor:pointer;color:rgba(140, 140, 140, 0.8);transition:color 0.1s ease 0s;">复制代码</span></code></pre><h3 style="color:rgb(51, 51, 51);line-height:1.5;margin-top:35px;margin-bottom:10px;padding-bottom:0px;font-size:18px;">实现 AutoCloseable 接口</h3>
+<p style="line-height:inherit;margin-top:22px;margin-bottom:22px;">跟踪源码你会发现，使用 try-with-resources 语句自动关闭资源的类都实现了AutoCloseable 接口。</p>
+<p style="line-height:inherit;margin-top:22px;margin-bottom:22px;">AutoCloseable 接口只有一个无参的<code style="font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;font-size:0.87em;padding:0.065em 0.4em;word-break:break-word;color:rgb(255, 80, 44);background-color:rgb(255, 245, 245);border-radius:2px;overflow-x:auto;">close()</code>方法，使用try-with-resources 语句声明的资源，只要实现了这个方法，就可以在抛出异常之前，调用<code style="font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;font-size:0.87em;padding:0.065em 0.4em;word-break:break-word;color:rgb(255, 80, 44);background-color:rgb(255, 245, 245);border-radius:2px;overflow-x:auto;">close()</code>方法进行资源关闭操作。</p>
+<p style="line-height:inherit;margin-top:22px;margin-bottom:22px;">下面提供了一个使用线程池来执行任务的<code style="font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;font-size:0.87em;padding:0.065em 0.4em;word-break:break-word;color:rgb(255, 80, 44);background-color:rgb(255, 245, 245);border-radius:2px;overflow-x:auto;">ExecutorServiceAutoCloseable</code>，这个类实现了 AutoCloseable 接口的<code style="font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;font-size:0.87em;padding:0.065em 0.4em;word-break:break-word;color:rgb(255, 80, 44);background-color:rgb(255, 245, 245);border-radius:2px;overflow-x:auto;">close()</code>方法，可以在异常抛出以后，关闭线程池，从而达到释放线程资源的目的。</p>
+<pre style="font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;font-size:1em;line-height:1.75;overflow:auto;position:relative;"><code lang="java" style="font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;font-size:1rem;padding:18px 15px 12px;word-break:normal;color:rgb(51, 51, 51);border-radius:2px;overflow-x:auto;margin:0px;display:block;background:rgb(248, 248, 248);background-color:rgb(255, 245, 245);"><span style="font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;font-size:1rem;color:rgb(51, 51, 51);position:absolute;right:70px;top:2px;">java</span><span style="color:rgb(51, 51, 51);font-weight:700;">package</span> net.ijiangtao.tech.designskill.trywithresources;
+
+<span style="color:rgb(51, 51, 51);font-weight:700;">import</span> java.util.concurrent.ExecutorService;
+<span style="color:rgb(51, 51, 51);font-weight:700;">import</span> java.util.concurrent.Executors;
+
+<span style="color:rgb(153, 153, 136);">/**
+ * AutoCloseable Thread pool
+ *
+ * <span style="color:rgb(221, 17, 68);">@author</span> ijiangtao
+ * <span style="color:rgb(221, 17, 68);">@create</span> 2019-05-13 13:08
+ **/</span>
+<span style="color:rgb(51, 51, 51);font-weight:700;">public</span> <span><span style="color:rgb(51, 51, 51);font-weight:700;">class</span> <span style="color:rgb(68, 85, 136);font-weight:700;">ExecutorServiceAutoCloseable</span> <span style="color:rgb(51, 51, 51);font-weight:700;">implements</span> <span style="color:rgb(68, 85, 136);font-weight:700;">AutoCloseable</span> </span>{
+
+    <span style="color:rgb(51, 51, 51);font-weight:700;">private</span> ExecutorService pool;
+    <span style="color:rgb(51, 51, 51);font-weight:700;">private</span> <span style="color:rgb(51, 51, 51);font-weight:700;">int</span> poolSize;
+
+    <span><span style="color:rgb(51, 51, 51);font-weight:700;">public</span> <span style="color:rgb(153, 0, 0);font-weight:700;">ExecutorServiceAutoCloseable</span><span>()</span> </span>{
+        poolSize = Runtime.getRuntime().availableProcessors();
+        pool = Executors.newFixedThreadPool(poolSize);
+    }
+
+    <span><span style="color:rgb(51, 51, 51);font-weight:700;">public</span> <span style="color:rgb(51, 51, 51);font-weight:700;">void</span> <span style="color:rgb(153, 0, 0);font-weight:700;">execute</span><span>(Runnable runnable)</span> </span>{
+        <span style="color:rgb(51, 51, 51);font-weight:700;">if</span> (pool.isShutdown())
+            <span style="color:rgb(51, 51, 51);font-weight:700;">throw</span> <span style="color:rgb(51, 51, 51);font-weight:700;">new</span> UnsupportedOperationException(<span style="color:rgb(221, 17, 68);">&quot;pool isShutdown now&quot;</span>);
+        pool.execute(runnable);
+    }
+
+    <span style="color:rgb(153, 153, 153);font-weight:700;">@Override</span>
+    <span><span style="color:rgb(51, 51, 51);font-weight:700;">public</span> <span style="color:rgb(51, 51, 51);font-weight:700;">void</span> <span style="color:rgb(153, 0, 0);font-weight:700;">close</span><span>()</span> <span style="color:rgb(51, 51, 51);font-weight:700;">throws</span> Exception </span>{
+        System.out.println(<span style="color:rgb(221, 17, 68);">&quot;auto close now !!!!!!!!!!! &quot;</span>);
+        pool.shutdown();
+    }
+
+    <span><span style="color:rgb(51, 51, 51);font-weight:700;">public</span> <span style="color:rgb(51, 51, 51);font-weight:700;">static</span> <span style="color:rgb(51, 51, 51);font-weight:700;">void</span> <span style="color:rgb(153, 0, 0);font-weight:700;">main</span><span>(String[] args)</span> </span>{
+        <span style="color:rgb(51, 51, 51);font-weight:700;">try</span> (ExecutorServiceAutoCloseable executorServiceAutoCloseable = <span style="color:rgb(51, 51, 51);font-weight:700;">new</span> ExecutorServiceAutoCloseable();) {
+            executorServiceAutoCloseable.execute(<span style="color:rgb(51, 51, 51);font-weight:700;">new</span> Runnable() {
+                <span style="color:rgb(153, 153, 153);font-weight:700;">@Override</span>
+                <span><span style="color:rgb(51, 51, 51);font-weight:700;">public</span> <span style="color:rgb(51, 51, 51);font-weight:700;">void</span> <span style="color:rgb(153, 0, 0);font-weight:700;">run</span><span>()</span> </span>{
+                    Integer.parseInt(<span style="color:rgb(221, 17, 68);">&quot;test auto close&quot;</span>);
+                }
+            });
+        } <span style="color:rgb(51, 51, 51);font-weight:700;">catch</span> (Exception e) {
+            e.printStackTrace();
+        }
+
+    }
+}
+
+<span style="position:absolute;top:6px;right:15px;font-size:12px;line-height:1;cursor:pointer;color:rgba(140, 140, 140, 0.8);transition:color 0.1s ease 0s;">复制代码</span></code></pre><p style="line-height:inherit;margin-top:22px;margin-bottom:22px;">下面是输出的结果，可以看到在抛出异常之前，先执行了<code style="font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;font-size:0.87em;padding:0.065em 0.4em;word-break:break-word;color:rgb(255, 80, 44);background-color:rgb(255, 245, 245);border-radius:2px;overflow-x:auto;">close()</code>方法来关闭资源。</p>
+<pre style="font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;font-size:1em;line-height:1.75;overflow:auto;position:relative;"><code lang="java" style="font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;font-size:1rem;padding:18px 15px 12px;word-break:normal;color:rgb(51, 51, 51);border-radius:2px;overflow-x:auto;margin:0px;display:block;background:rgb(248, 248, 248);background-color:rgb(255, 245, 245);"><span style="font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;font-size:1rem;color:rgb(51, 51, 51);position:absolute;right:70px;top:2px;">java</span>auto close now !!!!!!!!!!! 
+Exception in thread <span style="color:rgb(221, 17, 68);">&quot;pool-1-thread-1&quot;</span> java.lang.NumberFormatException: For input string: <span style="color:rgb(221, 17, 68);">&quot;test auto close&quot;</span>
+	at java.lang.NumberFormatException.forInputString(NumberFormatException.java:<span style="color:teal;">65</span>)
+	at java.lang.Integer.parseInt(Integer.java:<span style="color:teal;">580</span>)
+	at java.lang.Integer.parseInt(Integer.java:<span style="color:teal;">615</span>)
+	at net.ijiangtao.tech.designskill.trywithresources.ExecutorServiceAutoCloseable$<span style="color:teal;">1</span>.run(ExecutorServiceAutoCloseable.java:<span style="color:teal;">39</span>)
+	at java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:<span style="color:teal;">1149</span>)
+	at java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:<span style="color:teal;">624</span>)
+	at java.lang.Thread.run(Thread.java:<span style="color:teal;">748</span>)
+
+<span style="position:absolute;top:6px;right:15px;font-size:12px;line-height:1;cursor:pointer;color:rgba(140, 140, 140, 0.8);transition:color 0.1s ease 0s;">复制代码</span></code></pre><p style="line-height:inherit;margin-top:22px;margin-bottom:22px;">这样做的目的是，当程序因为异常而结束的时候，不需要显式地关闭线程池，而可以自动关闭，从而尽快释放线程资源，降低内存消耗。</p>
+<p style="line-height:inherit;margin-top:22px;margin-bottom:22px;">这里要注意的是，程序结束就关闭线程池，这样做的好处是占用内存小，坏处是每次执行程序都要重新创建线程池，这是有一定性能消耗的。</p>
+<p style="line-height:inherit;margin-top:22px;margin-bottom:22px;">因此要根据具体情况而定。通常，如果程序运行频繁，则保留线程池中线程，反复使用，减少因反复创建和销毁线程造成的性能消耗。而如果程序运行结束以后，短时间内不会再次运行，则可以将线程池关闭，释放掉占用的内存。</p>
+<p style="line-height:inherit;margin-top:22px;margin-bottom:22px;">当然也可以通过设置核心线程数和最大线程数，以及过期时间来设置自己的线程管理策略。</p>
+<p style="line-height:inherit;margin-top:22px;margin-bottom:22px;">具体用法可以参考这篇文章：<a href="https://juejin.im/post/5ca21380e51d450ecd7b7f9f" rel="" style="margin:initial;background-color:transparent;color:rgb(2, 105, 200);border-bottom:1px solid rgb(209, 233, 255);text-decoration:none;cursor:pointer;" target="_blank">使用ThreadPoolExecutor构造线程池</a>。</p>
+<h3 style="color:rgb(51, 51, 51);line-height:1.5;margin-top:35px;margin-bottom:10px;padding-bottom:0px;font-size:18px;">Java 9 final 变量</h3>
+<p style="line-height:inherit;margin-top:22px;margin-bottom:22px;">在Java 9 中，对 try-with-resources 语句的语法进行了进一步的精简。</p>
+<p style="line-height:inherit;margin-top:22px;margin-bottom:22px;">如果你有一个资源是 final 或等效于 final 变量, 那么你可以在 try-with-resources 语句中使用该变量，而无需在 try-with-resources 语句中声明一个新变量。</p>
+<p style="line-height:inherit;margin-top:22px;margin-bottom:22px;">Java 7 和 Java 8 中的写法：</p>
+<pre style="font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;font-size:1em;line-height:1.75;overflow:auto;position:relative;"><code lang="java" style="font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;font-size:1rem;padding:18px 15px 12px;word-break:normal;color:rgb(51, 51, 51);border-radius:2px;overflow-x:auto;margin:0px;display:block;background:rgb(248, 248, 248);background-color:rgb(255, 245, 245);"><span style="font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;font-size:1rem;color:rgb(51, 51, 51);position:absolute;right:70px;top:2px;">java</span><span><span style="color:rgb(51, 51, 51);font-weight:700;">private</span> <span style="color:rgb(51, 51, 51);font-weight:700;">static</span> String <span style="color:rgb(153, 0, 0);font-weight:700;">readDataJava7</span><span>(String message)</span> <span style="color:rgb(51, 51, 51);font-weight:700;">throws</span> IOException </span>{
+    Reader reader = <span style="color:rgb(51, 51, 51);font-weight:700;">new</span> StringReader(message);
+    BufferedReader bufferedReader = <span style="color:rgb(51, 51, 51);font-weight:700;">new</span> BufferedReader(reader);
+    <span style="color:rgb(51, 51, 51);font-weight:700;">try</span> (BufferedReader bufferedReader2 = bufferedReader) {
+        <span style="color:rgb(51, 51, 51);font-weight:700;">return</span> bufferedReader2.readLine();
+    }
+}
+
+<span style="position:absolute;top:6px;right:15px;font-size:12px;line-height:1;cursor:pointer;color:rgba(140, 140, 140, 0.8);transition:color 0.1s ease 0s;">复制代码</span></code></pre><p style="line-height:inherit;margin-top:22px;margin-bottom:22px;">Java 9 支持的写法：</p>
+<pre style="font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;font-size:1em;line-height:1.75;overflow:auto;position:relative;"><code lang="java" style="font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;font-size:1rem;padding:18px 15px 12px;word-break:normal;color:rgb(51, 51, 51);border-radius:2px;overflow-x:auto;margin:0px;display:block;background:rgb(248, 248, 248);background-color:rgb(255, 245, 245);"><span style="font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;font-size:1rem;color:rgb(51, 51, 51);position:absolute;right:70px;top:2px;">java</span>    <span><span style="color:rgb(51, 51, 51);font-weight:700;">private</span> <span style="color:rgb(51, 51, 51);font-weight:700;">static</span> String <span style="color:rgb(153, 0, 0);font-weight:700;">readDataJava9</span><span>(String message)</span> <span style="color:rgb(51, 51, 51);font-weight:700;">throws</span> IOException </span>{
+        Reader reader = <span style="color:rgb(51, 51, 51);font-weight:700;">new</span> StringReader(message);
+        BufferedReader bufferedReader = <span style="color:rgb(51, 51, 51);font-weight:700;">new</span> BufferedReader(reader);
+        <span style="color:rgb(51, 51, 51);font-weight:700;">try</span> (bufferedReader) {
+            <span style="color:rgb(51, 51, 51);font-weight:700;">return</span> bufferedReader.readLine();
+        }
+    }
+<span style="position:absolute;top:6px;right:15px;font-size:12px;line-height:1;cursor:pointer;color:rgba(140, 140, 140, 0.8);transition:color 0.1s ease 0s;">复制代码</span></code></pre><h3 style="color:rgb(51, 51, 51);line-height:1.5;margin-top:35px;margin-bottom:10px;padding-bottom:0px;font-size:18px;">总结</h3>
+<p style="line-height:inherit;margin-top:22px;margin-bottom:22px;">通过  try-with-resources 语句的的好处可以总结如下：</p>
+<ol style="padding-left:28px;">
+<li style="margin-bottom:0px;list-style:inherit;padding-left:6px;">try-with-resources 语句可以带来更加简洁的代码</li>
+<li style="margin-bottom:0px;list-style:inherit;padding-left:6px;">try-with-resources 语句可以使得资源释放更加安全</li>
+<li style="margin-bottom:0px;list-style:inherit;padding-left:6px;">自己实现 AutoCloseable 接口并使用 try-with-resources 语句可以实现安全简洁的资源释放</li>
+</ol>
+<hr style="box-sizing:content-box;height:0px;overflow:visible;border-right:none;border-bottom:none;border-left:none;border-image:initial;border-top:1px solid rgb(221, 221, 221);margin-top:2.7rem;margin-bottom:2.7rem;"/>
+<p style="line-height:inherit;margin-top:22px;margin-bottom:22px;"></p><div style="display:block;margin:22px auto;text-align:center;"><img src="Java语法糖 使用 try-with-resources 语句安全地释放资源 - 掘金_files/1.webp" type="image/webp" data-filename="1.webp" alt="Wechat-westcall" height="186" style="width:auto;height:auto;border-style:none;margin:0px;max-width:100%;visibility:visible;background-color:transparent;background-position:50% center;background-repeat:no-repeat;background-image:none;cursor:zoom-in;max-height:none;" width="652"/><div style="display:block;text-align:center;font-size:1rem;line-height:1.6;color:rgb(144, 144, 144);margin-top:2px;"></div></div><p style="line-height:inherit;margin-top:22px;margin-bottom:22px;"></p>
+</div></div></div></div></span></div></div></div></div></div><br/></div></span>
+</div></body></html> 

@@ -1,0 +1,624 @@
+<html>
+<head>
+  <title>（总结）Nginx/LVS/HAProxy负载均衡软件的优缺点详解</title>
+  <basefont face="微软雅黑" size="2" />
+  <meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+  <meta name="exporter-version" content="YXBJ Windows/600718 (zh-CN, DDL); Windows/6.1.1 (Win64);"/>
+  <style>
+    body, td {
+      font-family: 微软雅黑;
+      font-size: 10pt;
+    }
+  </style>
+</head>
+<body>
+<a name="5311"/>
+<h1>（总结）Nginx/LVS/HAProxy负载均衡软件的优缺点详解</h1>
+<div>
+<table bgcolor="#D4DDE5" border="0">
+<tr><td><b>创建时间：</b></td><td><i>2017/6/21 18:18</i></td></tr>
+<tr><td><b>来源：</b></td><td><a href="http://www.ha97.com/5646.html"><i>http://www.ha97.com/5646.html</i></a></td></tr>
+</table>
+</div>
+<br/>
+
+<div><span><div style="-evernote-webclip:true"><br/><div style="font-size: 16px; display: inline-block;"><div><div style="color:rgb(0, 34, 0);font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:76%;line-height:normal;font-family:georgia;background:url(&quot;http://www.ha97.com/wp-content/themes/tes-cn-release/images/tbg.jpg&quot;) 0px 0px repeat scroll transparent;"><div style="text-align:left;"><div style="font-size:15px;overflow:hidden;"><div style="overflow:hidden;text-align:left;">
+			<div style="padding:0px;margin:15px auto 5px;display:block;width:100%;font-size:12px;font-family:Tahoma, sans-serif;">
+			<div style="padding:0px;margin:0px;float:left;">« <a href="http://www.ha97.com/5642.html" rel="prev" style="padding:0px;margin:0px;color:rgb(71, 119, 37);text-decoration:none;">关于云计算基础架构IaaS层的几点看法</a></div>
+			<div style="padding:0px;margin:0px;float:right;"><a href="http://www.ha97.com/5649.html" rel="next" style="padding:0px;margin:0px;color:rgb(71, 119, 37);text-decoration:none;">（原创）RHEL/CentOS/OracleLinux 7.x使用EPEL和REMI第三方yum源</a> »</div>
+		<span style="font-size:12px;font-family:Tahoma, sans-serif;display:block;height:0px;clear:both;visibility:hidden;">.</span></div>
+		<div style="padding:0px;margin:0px;">
+			<div style="padding:0px;margin:0px auto;display:block;padding-top:1px;font-size:0.9em;color:rgb(102, 102, 102);"> 
+<div style="padding:0px 10px 5px 0px;margin:10px 15px 0px 0px;font-family:&quot;Trebuchet MS&quot;, helvetica, sans-serif;float:left;color:rgb(102, 102, 102);border-right:2px solid rgb(224, 224, 224);font-weight:bold;">
+	<div style="padding:0px;margin:5px 0px;text-align:center;font-size:12px;">2014-7</div>
+	<div style="padding:0px;margin:0px;text-align:center;font-size:32px;color:rgb(71, 119, 37);">21</div>
+</div>
+<div style="padding:0px;margin:0px;float:left;width:86%;">	
+	<div style="padding:0px;margin:0px;"><h2 style="padding:0px;margin:0px;font-family:&quot;Trebuchet MS&quot;, helvetica, sans-serif;color:rgb(172, 178, 0);font-size:2em;margin-top:10px;line-height:1em;"><a href="http://www.ha97.com/5646.html" rel="bookmark" style="padding:0px;margin:0px;color:rgb(34, 119, 34);text-decoration:none;border:none;" title="Permalink to （总结）Nginx/LVS/HAProxy负载均衡软件的优缺点详解">（总结）Nginx/LVS/HAProxy负载均衡软件的优缺点详解</a></h2></div>
+		<div style="padding:0px;margin:0px;font-size:12px;margin-top:6px;">发表于: <a href="http://www.ha97.com/category/linux" rel="category tag" style="padding:0px;margin:0px;color:rgb(71, 119, 37);text-decoration:none;border:none;">Linux</a>, <a href="http://www.ha97.com/category/web" rel="category tag" style="padding:0px;margin:0px;color:rgb(71, 119, 37);text-decoration:none;border:none;">Web</a>, <a href="http://www.ha97.com/category/web-server" rel="category tag" style="padding:0px;margin:0px;color:rgb(71, 119, 37);text-decoration:none;border:none;">Web Server</a>, <a href="http://www.ha97.com/category/%e4%b8%aa%e4%ba%ba%e6%97%a5%e8%ae%b0" rel="category tag" style="padding:0px;margin:0px;color:rgb(71, 119, 37);text-decoration:none;border:none;">个人日记</a>, <a href="http://www.ha97.com/category/%e5%8e%9f%e5%88%9b%e6%80%bb%e7%bb%93" rel="category tag" style="padding:0px;margin:0px;color:rgb(71, 119, 37);text-decoration:none;border:none;">原创总结</a>  |  作者:  <a href="http://www.ha97.com/author/admin" rel="author" style="padding:0px;margin:0px;color:rgb(71, 119, 37);text-decoration:none;border:none;" title="由博客教主发布">博客教主</a>	</div>
+		<div style="padding:0px;margin:0px;font-size:12px;margin-top:6px;">标签: <a href="http://www.ha97.com/tag/haproxy" rel="tag" style="padding:0px;margin:0px;color:rgb(71, 119, 37);text-decoration:none;border:none;">Haproxy</a>,<a href="http://www.ha97.com/tag/lvs" rel="tag" style="padding:0px;margin:0px;color:rgb(71, 119, 37);text-decoration:none;border:none;">LVS</a>,<a href="http://www.ha97.com/tag/nginx" rel="tag" style="padding:0px;margin:0px;color:rgb(71, 119, 37);text-decoration:none;border:none;">Nginx</a>,<a href="http://www.ha97.com/tag/%e6%80%bb%e7%bb%93" rel="tag" style="padding:0px;margin:0px;color:rgb(71, 119, 37);text-decoration:none;border:none;">总结</a>,<a href="http://www.ha97.com/tag/%e8%af%a6%e8%a7%a3" rel="tag" style="padding:0px;margin:0px;color:rgb(71, 119, 37);text-decoration:none;border:none;">详解</a>,<a href="http://www.ha97.com/tag/%e8%b4%9f%e8%bd%bd%e5%9d%87%e8%a1%a1" rel="tag" style="padding:0px;margin:0px;color:rgb(71, 119, 37);text-decoration:none;border:none;">负载均衡</a></div>
+			
+		
+</div>
+<span style="font-size:0.9em;color:rgb(102, 102, 102);display:block;height:0px;clear:both;visibility:hidden;">.</span></div>			<div style="padding:0px;margin:25px auto 30px;display:block;">
+				<p style="padding:0px;margin:1.2em 0px;line-height:1.5em;"><strong style="padding:0px;margin:0px;">PS：<a href="http://www.ha97.com/tag/nginx" style="padding:0px;margin:0px;text-decoration:none;color:rgb(0, 102, 0);border-bottom:1px dashed rgb(0, 102, 0);">Nginx</a>/LVS/HAProxy是目前使用最广泛的三种负载均衡软件，本人都在多个项目中实施过，参考了一些资料，结合自己的一些使用经验，总结一下。</strong></p>
+<p style="padding:0px;margin:1.2em 0px;line-height:1.5em;"><span style="padding:0px;margin:0px;color:#ff0000;">一般对负载均衡的使用是随着网站规模的提升根据不同的阶段来使用不同的技术。具体的应用需求还得具体分析，如果是中小型的Web应用，比如日PV小于1000万，用Nginx就完全可以了；如果机器不少，可以用DNS轮询，LVS所耗费的机器还是比较多的；大型网站或重要的服务，且服务器比较多时，可以考虑用LVS。</span></p>
+<p style="padding:0px;margin:1.2em 0px;line-height:1.5em;">一种是通过硬件来进行进行，常见的硬件有比较昂贵的F5和Array等商用的负载均衡器，它的优点就是有专业的维护团队来对这些服务进行维护、缺点就是花销太大，所以对于规模较小的网络服务来说暂时还没有需要使用；另外一种就是类似于Nginx/LVS/HAProxy的基于<a href="http://www.ha97.com/category/linux" style="padding:0px;margin:0px;text-decoration:none;color:rgb(0, 102, 0);border-bottom:1px dashed rgb(0, 102, 0);">Linux</a>的开源免费的负载均衡软件，这些都是通过软件级别来实现，所以费用非常低廉。</p>
+<p style="padding:0px;margin:1.2em 0px;line-height:1.5em;"><span style="padding:0px;margin:0px;color:#ff0000;">目前关于网站架构一般比较合理流行的架构方案：Web前端采用Nginx/HAProxy+Keepalived作负载均衡器；后端采用<a href="http://www.ha97.com/tag/mysql" style="padding:0px;margin:0px;text-decoration:none;color:rgb(0, 102, 0);border-bottom:1px dashed rgb(0, 102, 0);">MySQL</a>数据库一主多从和读写分离，采用LVS+Keepalived的架构。</span>当然要根据项目具体需求制定方案。<br style="padding:0px;margin:0px;"/>
+下面说说各自的特点和适用场合。</p>
+<h2 style="padding:0px;margin:0px;font-family:&quot;Trebuchet MS&quot;, helvetica, sans-serif;font-size:2em;margin-top:10px;line-height:1em;"><strong style="padding:0px;margin:0px;">一、Nginx</strong></h2>
+<p style="padding:0px;margin:1.2em 0px;line-height:1.5em;"><strong style="padding:0px;margin:0px;">Nginx的优点是：</strong></p>
+<p style="padding:0px;margin:1.2em 0px;line-height:1.5em;"><span style="padding:0px;margin:0px;"></span></p>
+<p style="padding:0px;margin:1.2em 0px;line-height:1.5em;">1、工作在网络的7层之上，可以针对http应用做一些分流的策略，比如针对域名、目录结构，它的<strong style="padding:0px;margin:0px;">正则规则</strong>比HAProxy更为强大和灵活，这也是它目前广泛流行的主要原因之一，Nginx单凭这点可利用的场合就远多于LVS了。<br style="padding:0px;margin:0px;"/>
+2、<strong style="padding:0px;margin:0px;">Nginx对网络稳定性的依赖非常小</strong>，理论上能ping通就就能进行负载功能，这个也是它的优势之一；相反LVS对网络稳定性依赖比较大，这点本人深有体会；<br style="padding:0px;margin:0px;"/>
+3、Nginx安装和配置比较简单，测试起来比较方便，它基本能把错误用日志打印出来。LVS的配置、测试就要花比较长的时间了，LVS对网络依赖比较大。<br style="padding:0px;margin:0px;"/>
+3、可以承担高负载压力且稳定，在硬件不差的情况下一般能支撑几万次的并发量，负载度比LVS相对小些。<br style="padding:0px;margin:0px;"/>
+4、Nginx可以通过端口检测到服务器内部的故障，比如根据服务器处理网页返回的状态码、超时等等，并且会把返回错误的请求重新提交到另一个节点，不过其中缺点就是不支持url来检测。比如用户正在上传一个文件，而处理该上传的节点刚好在上传过程中出现故障，Nginx会把上传切到另一台服务器重新处理，而LVS就直接断掉了，如果是上传一个很大的文件或者很重要的文件的话，用户可能会因此而不满。<br style="padding:0px;margin:0px;"/>
+5、Nginx不仅仅是一款优秀的负载均衡器/反向代理软件，它同时也是功能强大的Web应用服务器。LNMP也是近几年非常流行的web架构，在高流量的环境中稳定性也很好。<br style="padding:0px;margin:0px;"/>
+6、Nginx现在作为Web反向加速缓存越来越成熟了，速度比传统的<a href="http://www.ha97.com/tag/squid" style="padding:0px;margin:0px;text-decoration:none;color:rgb(0, 102, 0);border-bottom:1px dashed rgb(0, 102, 0);">Squid</a>服务器更快，可以考虑用其作为反向代理加速器。<br style="padding:0px;margin:0px;"/>
+7、Nginx可作为中层反向代理使用，这一层面Nginx基本上无对手，唯一可以对比Nginx的就只有lighttpd了，不过lighttpd目前还没有做到Nginx完全的功能，配置也不那么清晰易读，社区资料也远远没Nginx活跃。<br style="padding:0px;margin:0px;"/>
+8、Nginx也可作为静态网页和图片服务器，这方面的性能也无对手。还有Nginx社区非常活跃，第三方模块也很多。</p>
+<p style="padding:0px;margin:1.2em 0px;line-height:1.5em;">淘宝的前端使用的Tengine就是基于nginx做的二次开发定制版。</p>
+<p style="padding:0px;margin:1.2em 0px;line-height:1.5em;">Nginx常规的HTTP请求和响应流程图：</p>
+<p style="padding:0px;margin:1.2em 0px;line-height:1.5em;"><img src="（总结）NginxLVSHAProxy负载均衡软件的优缺点详解_files/Image.jpg" type="image/jpeg" data-filename="Image.jpg" alt="nginx" height="345" style="padding:3px;margin:5px 0px;border:1px solid rgb(206, 212, 202);" width="539"/></p>
+<p style="padding:0px;margin:1.2em 0px;line-height:1.5em;"> </p>
+<p style="padding:0px;margin:1.2em 0px;line-height:1.5em;"><strong style="padding:0px;margin:0px;">Nginx的缺点是：</strong><br style="padding:0px;margin:0px;"/>
+1、Nginx仅能支持http、<a href="http://www.ha97.com/tag/https" style="padding:0px;margin:0px;text-decoration:none;color:rgb(0, 102, 0);border-bottom:1px dashed rgb(0, 102, 0);">https</a>和Email协议，这样就在适用范围上面小些，这个是它的缺点。<br style="padding:0px;margin:0px;"/>
+2、<strong style="padding:0px;margin:0px;">对后端服务器的健康检查，只支持通过端口来检测，不支持通过url来检测。</strong>不支持Session的直接保持，但能通过ip_hash来解决。</p>
+<h2 style="padding:0px;margin:0px;font-family:&quot;Trebuchet MS&quot;, helvetica, sans-serif;font-size:2em;margin-top:10px;line-height:1em;">二、LVS</h2>
+<p style="padding:0px;margin:1.2em 0px;line-height:1.5em;">LVS：使用<a href="http://www.ha97.com/tag/linux" style="padding:0px;margin:0px;text-decoration:none;color:rgb(0, 102, 0);border-bottom:1px dashed rgb(0, 102, 0);">Linux</a>内核集群实现一个高性能、高可用的负载均衡服务器，它具有很好的可伸缩性（Scalability)、可靠性（Reliability)和可管理性（Manageability)。</p>
+<p style="padding:0px;margin:1.2em 0px;line-height:1.5em;"><strong style="padding:0px;margin:0px;">LVS的优点是：</strong><br style="padding:0px;margin:0px;"/>
+1、抗负载能力强、是工作在网络4层之上仅作分发之用，<strong style="padding:0px;margin:0px;">没有流量的产生</strong>，这个特点也决定了它在负载均衡软件里的性能最强的，对内存和cpu资源消耗比较低。<br style="padding:0px;margin:0px;"/>
+2、配置性比较低，这是一个缺点也是一个优点，因为没有可太多配置的东西，所以并不需要太多接触，大大减少了人为出错的几率。<br style="padding:0px;margin:0px;"/>
+3、工作稳定，因为其本身抗负载能力很强，自身有完整的双机热备方案，如LVS+Keepalived，不过我们在项目实施中用得最多的还是LVS/DR+Keepalived。<br style="padding:0px;margin:0px;"/>
+4、无流量，LVS只分发请求，而流量并不从它本身出去，这点保证了均衡器IO的性能不会收到大流量的影响。<br style="padding:0px;margin:0px;"/>
+5、应用范围比较广，因为LVS工作在4层，所以它几乎可以对所有应用做负载均衡，包括http、数据库、在线聊天室等等。</p>
+<p style="padding:0px;margin:1.2em 0px;line-height:1.5em;">LVS DR(Direct  Routing)模式的网络流程图：</p>
+<p style="padding:0px;margin:1.2em 0px;line-height:1.5em;"><img src="（总结）NginxLVSHAProxy负载均衡软件的优缺点详解_files/Image [1].jpg" type="image/jpeg" data-filename="Image.jpg" alt="lvs_dr" height="612" style="padding:3px;margin:5px 0px;border:1px solid rgb(206, 212, 202);" width="640"/></p>
+<p style="padding:0px;margin:1.2em 0px;line-height:1.5em;"><strong style="padding:0px;margin:0px;">LVS的缺点是：</strong><br style="padding:0px;margin:0px;"/>
+1、软件本身<strong style="padding:0px;margin:0px;">不支持正则表达式处理，不能做动静分离</strong>；而现在许多网站在这方面都有较强的需求，这个是Nginx/HAProxy+Keepalived的优势所在。<br style="padding:0px;margin:0px;"/>
+2、如果是网站应用比较庞大的话，LVS/DR+Keepalived实施起来就比较复杂了，特别后面有Windows <a href="http://www.ha97.com/tag/server" style="padding:0px;margin:0px;text-decoration:none;color:rgb(0, 102, 0);border-bottom:1px dashed rgb(0, 102, 0);">Server</a>的机器的话，如果实施及配置还有维护过程就比较复杂了，相对而言，Nginx/HAProxy+Keepalived就简单多了。</p>
+<h2 style="padding:0px;margin:0px;font-family:&quot;Trebuchet MS&quot;, helvetica, sans-serif;font-size:2em;margin-top:10px;line-height:1em;">三、HAProxy</h2>
+<p style="padding:0px;margin:1.2em 0px;line-height:1.5em;"><strong style="padding:0px;margin:0px;">HAProxy的特点是：</strong><br style="padding:0px;margin:0px;"/>
+1、HAProxy也是支持虚拟主机的。<br style="padding:0px;margin:0px;"/>
+2、HAProxy的优点能够补充Nginx的一些缺点，比如<strong style="padding:0px;margin:0px;">支持Session的保持，Cookie的引导；同时支持通过获取指定的url来检测后端服务器的状态。</strong><br style="padding:0px;margin:0px;"/>
+3、HAProxy跟LVS类似，本身就只是一款负载均衡软件；单纯从效率上来讲HAProxy会比Nginx有更出色的负载均衡速度，在并发处理上也是优于Nginx的。<br style="padding:0px;margin:0px;"/>
+4、HAProxy<strong style="padding:0px;margin:0px;">支持TCP协议的负载均衡转发</strong>，可以对MySQL读进行负载均衡，对后端的MySQL节点进行检测和负载均衡，大家可以用LVS+Keepalived对MySQL主从做负载均衡。<br style="padding:0px;margin:0px;"/>
+5、HAProxy负载均衡策略非常多，HAProxy的负载均衡算法现在具体有如下8种：<br style="padding:0px;margin:0px;"/>
+① roundrobin，表示简单的轮询，这个不多说，这个是负载均衡基本都具备的；<br style="padding:0px;margin:0px;"/>
+② static-rr，表示根据权重，建议关注；<br style="padding:0px;margin:0px;"/>
+③ leastconn，表示最少连接者先处理，建议关注；<br style="padding:0px;margin:0px;"/>
+④ source，表示根据请求源IP，这个跟Nginx的IP_hash机制类似，我们用其作为解决session问题的一种方法，建议关注；<br style="padding:0px;margin:0px;"/>
+⑤ ri，表示根据请求的URI；<br style="padding:0px;margin:0px;"/>
+⑥ rl_param，表示根据请求的URl参数’balance url_param’ requires an URL parameter name；<br style="padding:0px;margin:0px;"/>
+⑦ hdr(name)，表示根据HTTP请求头来锁定每一次HTTP请求；<br style="padding:0px;margin:0px;"/>
+⑧ rdp-cookie(name)，表示根据据cookie(name)来锁定并哈希每一次TCP请求。</p>
+<h2 style="padding:0px;margin:0px;font-family:&quot;Trebuchet MS&quot;, helvetica, sans-serif;font-size:2em;margin-top:10px;line-height:1em;">四、总结</h2>
+<p style="padding:0px;margin:1.2em 0px;line-height:1.5em;"><strong style="padding:0px;margin:0px;">Nginx和LVS对比的总结：</strong><br style="padding:0px;margin:0px;"/>
+1、Nginx工作在网络的7层，所以它可以针对http应用本身来做分流策略，比如针对域名、目录结构等，相比之下LVS并不具备这样的功能，所以Nginx单凭这点可利用的场合就远多于LVS了；但Nginx有用的这些功能使其可调整度要高于LVS，所以经常要去触碰触碰，触碰多了，人为出问题的几率也就会大。<br style="padding:0px;margin:0px;"/>
+2、Nginx对网络稳定性的依赖较小，理论上只要ping得通，网页访问正常，Nginx就能连得通，这是Nginx的一大优势！Nginx同时还能区分内外网，如果是同时拥有内外网的节点，就相当于单机拥有了备份线路；LVS就比较依赖于网络环境，目前来看服务器在同一网段内并且LVS使用direct方式分流，效果较能得到保证。另外注意，LVS需要向托管商至少申请多一个ip来做Visual IP，貌似是不能用本身的IP来做VIP的。要做好LVS管理员，确实得跟进学习很多有关网络通信方面的知识，就不再是一个HTTP那么简单了。<br style="padding:0px;margin:0px;"/>
+3、Nginx安装和配置比较简单，测试起来也很方便，因为它基本能把错误用日志打印出来。LVS的安装和配置、测试就要花比较长的时间了；LVS对网络依赖比较大，很多时候不能配置成功都是因为网络问题而不是配置问题，出了问题要解决也相应的会麻烦得多。<br style="padding:0px;margin:0px;"/>
+4、Nginx也同样能承受很高负载且稳定，但负载度和稳定度差LVS还有几个等级：Nginx处理所有流量所以受限于机器IO和配置；本身的bug也还是难以避免的。<br style="padding:0px;margin:0px;"/>
+5、Nginx可以检测到服务器内部的故障，比如根据服务器处理网页返回的状态码、超时等等，并且会把返回错误的请求重新提交到另一个节点。目前LVS中 ldirectd也能支持针对服务器内部的情况来监控，但LVS的原理使其不能重发请求。比如用户正在上传一个文件，而处理该上传的节点刚好在上传过程中出现故障，Nginx会把上传切到另一台服务器重新处理，而LVS就直接断掉了，如果是上传一个很大的文件或者很重要的文件的话，用户可能会因此而恼火。<br style="padding:0px;margin:0px;"/>
+6、Nginx对请求的异步处理可以帮助节点服务器减轻负载，假如使用apache直接对外服务，那么出现很多的窄带链接时apache服务器将会占用大 量内存而不能释放，使用多一个Nginx做apache代理的话，这些窄带链接会被Nginx挡住，apache上就不会堆积过多的请求，这样就减少了相当多的资源占用。这点使用squid也有相同的作用，即使squid本身配置为不缓存，对apache还是有很大帮助的。<br style="padding:0px;margin:0px;"/>
+7、Nginx能支持http、https和email（email的功能比较少用），LVS所支持的应用在这点上会比Nginx更多。在使用上，一般最前端所采取的策略应是LVS，也就是DNS的指向应为LVS均衡器，LVS的优点令它非常适合做这个任务。重要的ip地址，最好交由LVS托管，比如数据库的 ip、webservice服务器的ip等等，这些ip地址随着时间推移，使用面会越来越大，如果更换ip则故障会接踵而至。所以将这些重要ip交给 LVS托管是最为稳妥的，这样做的唯一缺点是需要的VIP数量会比较多。Nginx可作为LVS节点机器使用，一是可以利用Nginx的功能，二是可以利用Nginx的性能。当然这一层面也可以直接使用squid，squid的功能方面就比Nginx弱不少了，性能上也有所逊色于Nginx。Nginx也可作为中层代理使用，这一层面Nginx基本上无对手，唯一可以撼动Nginx的就只有lighttpd了，不过lighttpd目前还没有能做到 Nginx完全的功能，配置也不那么清晰易读。另外，中层代理的IP也是重要的，所以中层代理也拥有一个VIP和LVS是最完美的方案了。具体的应用还得具体分析，如果是比较小的网站（日PV小于1000万），用Nginx就完全可以了，如果机器也不少，可以用DNS轮询，LVS所耗费的机器还是比较多的；大型网站或者重要的服务，机器不发愁的时候，要多多考虑利用LVS。</p>
+<p style="padding:0px;margin:1.2em 0px;line-height:1.5em;"><strong style="padding:0px;margin:0px;">现在对网络负载均衡的使用是随着网站规模的提升根据不同的阶段来使用不同的技术：</strong></p>
+<p style="padding:0px;margin:1.2em 0px;line-height:1.5em;">第一阶段：利用Nginx或HAProxy进行单点的负载均衡，这一阶段服务器规模刚脱离开单服务器、单数据库的模式，需要一定的负载均衡，但是仍然规模较小没有专业的维护团队来进行维护，也没有需要进行大规模的网站部署。这样利用Nginx或HAproxy就是第一选择，此时这些东西上手快， 配置容易，在七层之上利用HTTP协议就可以。这时是第一选择。</p>
+<p style="padding:0px;margin:1.2em 0px;line-height:1.5em;">第二阶段：随着网络服务进一步扩大，这时单点的Nginx已经不能满足，这时使用LVS或者商用Array就是首要选择，Nginx此时就作为LVS或者Array的节点来使用，具体LVS或Array的是选择是根据公司规模和预算来选择，<strong style="padding:0px;margin:0px;">Array的应用交付功能非常强大，本人在某项目中使用过，性价比也远高于F5，商用首选！</strong>但是一般来说这阶段相关人才跟不上业务的提升，所以购买商业负载均衡已经成为了必经之路。</p>
+<p style="padding:0px;margin:1.2em 0px;line-height:1.5em;">第三阶段：这时网络服务已经成为主流产品，此时随着公司知名度也进一步扩展，相关人才的能力以及数量也随之提升，这时无论从开发适合自身产品的定制，以及降低成本来讲开源的LVS，已经成为首选，这时LVS会成为主流。<br style="padding:0px;margin:0px;"/>
+最终形成比较理想的基本架构为：<strong style="padding:0px;margin:0px;">Array/LVS — Nginx/Haproxy — Squid/Varnish — AppServer</strong>。</p>							<span style="display:block;height:0px;clear:both;visibility:hidden;">.</span></div>
+
+			<p style="padding:0px;line-height:1.5em;margin:0px;font-size:12px;font-family:verdana;">
+			<a href="http://www.ha97.com/5646.html" rel="bookmark" style="padding:0px;margin:0px;color:rgb(71, 119, 37);text-decoration:none;" title="（总结）Nginx/LVS/HAProxy负载均衡软件的优缺点详解">永久链接</a> : http://www.ha97.com/5646.html			</p>
+		</div>
+	
+
+
+
+	
+	
+	
+
+<div style="display:block;padding:4px 10px;margin:1.2em 0px 0.6em;color:rgb(255, 255, 255);background:url(&quot;http://www.ha97.com/wp-content/themes/tes-cn-release/images/bg.jpg&quot;) 0px -200px repeat-x rgb(218, 231, 180);font-size:14px;margin-bottom:0px;">
+	<div style="padding:0px;margin:0px;float:left;color:rgb(255, 255, 255);font-weight:bold;">本文相关评论 -
+	才 18 条评论 
+	</div><div style="padding:0px;margin:0px;float:right;"><a href="http://www.ha97.com/5646.html/feed" style="padding:0px;margin:0px;color:rgb(255, 255, 255);text-decoration:none;font-size:12px;border:none;margin-right:5px;"><abbr style="padding:0px;margin:0px;" title="Really Simple Syndication">RSS</abbr> for this comments</a> 
+| <a href="http://www.ha97.com/5646.html/trackback" style="padding:0px;margin:0px;color:rgb(255, 255, 255);text-decoration:none;font-size:12px;border:none;margin-right:5px;">Trackback <acronym style="padding:0px;margin:0px;" title="Uniform Resource Identifier">URI</acronym></a>
+</div>
+<span style="color:rgb(255, 255, 255);font-size:14px;display:block;height:0px;clear:both;visibility:hidden;">.</span></div>
+<div style="padding:3px 8px 6px;margin:0px 0px 10px;background:rgb(238, 238, 238);border-top:1px solid rgb(204, 221, 204);font-family:verdana;letter-spacing:0px;">
+		<span style="padding:0px;margin:0px;font-size:12px;font-family:verdana, sans-serif;"> ( <a href="http://www.ha97.com/5646.html#" style="padding:0px;margin:0px;color:rgb(71, 119, 37);text-decoration:none;font-size:12px;border:none;">展开所有评论</a> | <a href="http://www.ha97.com/5646.html#" style="padding:0px;margin:0px;color:rgb(71, 119, 37);text-decoration:none;font-size:12px;border:none;">收起所有评论</a> ) 	<a href="http://www.ha97.com/5646.html#addcomment" style="padding:0px;margin:0px;color:rgb(71, 119, 37);text-decoration:none;font-size:12px;border:none;" title="Leave a comment">立刻发表评论 »</a></span>
+	</div>
+	
+	
+	
+	
+
+ 
+
+
+<div style="padding:0px;margin:0px;">
+			<div style="padding:4px;margin:6px 3px 3px;display:block;position:relative;background-color:rgb(255, 255, 255);border:1px solid rgb(221, 221, 221);">
+				<a name="comment-218068" style="padding:0px;margin:0px;color:rgb(71, 119, 37);text-decoration:none;"></a>
+				<div style="padding:0px;margin:0px;display:block;position:relative;padding-left:5px;">
+					<div style="padding:0px;position:relative;margin:4px 6px 0px 0px;width:11px;height:11px;overflow:hidden;background:url(&quot;http://www.ha97.com/wp-content/themes/tes-cn-release/images/icons.gif&quot;) 0px 0px no-repeat scroll transparent;cursor:pointer;float:left;">
+					</div>
+					<cite style="padding:0px;margin:0px;font-style:normal;font-weight:bold;float:left;">sean<a href="http://www.ha97.com/5646.html#comment-218068" style="padding:0px;margin:0px;color:rgb(71, 119, 37);text-decoration:none;"></a></cite> 
+									
+				<span style="display:block;height:0px;clear:both;visibility:hidden;">.</span></div>
+				<div style="padding:0px;margin:0px;position:relative;padding-left:4px;">
+					<div style="padding:0px;margin:0px;font-size:10px;font-family:tahoma;color:rgb(51, 51, 51);position:relative;">
+						2014-07-22 15:42:32 						
+					</div>					
+					<div style="padding:0px;margin:0px;display:block;position:relative;">
+							<img src="（总结）NginxLVSHAProxy负载均衡软件的优缺点详解_files/90303e38ce1deaf50100615a1c2a994b.png" type="image/png" data-filename="90303e38ce1deaf50100615a1c2a994b.png" alt="" height="32" style="padding:0px;margin:0px;border:none;float:right;margin-right:8px;" width="32"/>						<div style="padding:0px;margin:0px;position:relative;"> <img src="（总结）NginxLVSHAProxy负载均衡软件的优缺点详解_files/Image.png" type="image/png" data-filename="Image.png" alt="Firefox 30.0" height="24" style="padding:0px;margin:0px;border:0px;vertical-align:middle;" title="Firefox 30.0" width="24"/> Firefox 30.0  <img src="（总结）NginxLVSHAProxy负载均衡软件的优缺点详解_files/Image [1].png" type="image/png" data-filename="Image.png" alt="Windows 8.1 x64 Edition" height="24" style="padding:0px;margin:0px;border:0px;vertical-align:middle;" title="Windows 8.1 x64 Edition" width="24"/> Windows 8.1 x64 Edition</div><p style="padding:0px;line-height:1.5em;margin:0.8em 0px;">感谢总结，很棒！</p>
+					<span style="display:block;height:0px;clear:both;visibility:hidden;">.</span></div>
+					<div style="margin:0px;font-size:12px;font-family:verdana, sans-serif;position:relative;padding:0px 6px 6px 0px;text-align:right;">
+						 
+						<a href="http://www.ha97.com/5646.html#" style="padding:0px;margin:0px;color:rgb(71, 119, 37);text-decoration:none;">回复他(她)</a>
+											</div>
+				</div>
+					
+
+			<span style="display:block;height:0px;clear:both;visibility:hidden;">.</span></div>
+			<div style="padding:4px;margin:6px 3px 3px;display:block;position:relative;background-color:rgb(255, 255, 255);border:1px solid rgb(221, 221, 221);">
+				<a name="comment-219159" style="padding:0px;margin:0px;color:rgb(71, 119, 37);text-decoration:none;"></a>
+				<div style="padding:0px;margin:0px;display:block;position:relative;padding-left:5px;">
+					<div style="padding:0px;position:relative;margin:4px 6px 0px 0px;width:11px;height:11px;overflow:hidden;background:url(&quot;http://www.ha97.com/wp-content/themes/tes-cn-release/images/icons.gif&quot;) 0px 0px no-repeat scroll transparent;cursor:pointer;float:left;">
+					</div>
+					<cite style="padding:0px;margin:0px;font-style:normal;font-weight:bold;float:left;"><a href="http://www.rootop.org/" rel="external nofollow" style="padding:0px;margin:0px;color:rgb(71, 119, 37);text-decoration:none;">rootop</a><a href="http://www.ha97.com/5646.html#comment-219159" style="padding:0px;margin:0px;color:rgb(71, 119, 37);text-decoration:none;"></a></cite> 
+									
+				<span style="display:block;height:0px;clear:both;visibility:hidden;">.</span></div>
+				<div style="padding:0px;margin:0px;position:relative;padding-left:4px;">
+					<div style="padding:0px;margin:0px;font-size:10px;font-family:tahoma;color:rgb(51, 51, 51);position:relative;">
+						2014-07-24 09:33:30 						
+					</div>					
+					<div style="padding:0px;margin:0px;display:block;position:relative;">
+							<img src="（总结）NginxLVSHAProxy负载均衡软件的优缺点详解_files/bf241a5ceb175c2d70eb4cdf50c38c63.png" type="image/png" data-filename="bf241a5ceb175c2d70eb4cdf50c38c63.png" alt="" height="32" style="padding:0px;margin:0px;border:none;float:right;margin-right:8px;" width="32"/>						<div style="padding:0px;margin:0px;position:relative;"> <img src="（总结）NginxLVSHAProxy负载均衡软件的优缺点详解_files/Image [2].png" type="image/png" data-filename="Image.png" alt="UC Browser 6.x" height="24" style="padding:0px;margin:0px;border:0px;vertical-align:middle;" title="UC Browser 6.x" width="24"/> UC Browser 6.x  <img src="（总结）NginxLVSHAProxy负载均衡软件的优缺点详解_files/Image [3].png" type="image/png" data-filename="Image.png" alt="Windows 7 x64 Edition" height="24" style="padding:0px;margin:0px;border:0px;vertical-align:middle;" title="Windows 7 x64 Edition" width="24"/> Windows 7 x64 Edition</div><p style="padding:0px;line-height:1.5em;margin:0.8em 0px;">感谢博主的总结，一直都很关注博主博客。受益匪浅。这里貌似有个小笔误。<br style="padding:0px;margin:0px;"/>
+“LVS需要向托管商至少申请多一个ip来做Visual IP” ，应该是virtual IP~~~</p>
+					<span style="display:block;height:0px;clear:both;visibility:hidden;">.</span></div>
+					<div style="margin:0px;font-size:12px;font-family:verdana, sans-serif;position:relative;padding:0px 6px 6px 0px;text-align:right;">
+						 
+						<a href="http://www.ha97.com/5646.html#" style="padding:0px;margin:0px;color:rgb(71, 119, 37);text-decoration:none;">回复他(她)</a>
+											</div>
+				</div>
+					
+
+			<span style="display:block;height:0px;clear:both;visibility:hidden;">.</span></div>
+			<div style="padding:4px;margin:6px 3px 3px;display:block;position:relative;background-color:rgb(255, 255, 255);border:1px solid rgb(221, 221, 221);">
+				<a name="comment-219170" style="padding:0px;margin:0px;color:rgb(71, 119, 37);text-decoration:none;"></a>
+				<div style="padding:0px;margin:0px;display:block;position:relative;padding-left:5px;">
+					<div style="padding:0px;position:relative;margin:4px 6px 0px 0px;width:11px;height:11px;overflow:hidden;background:url(&quot;http://www.ha97.com/wp-content/themes/tes-cn-release/images/icons.gif&quot;) 0px 0px no-repeat scroll transparent;cursor:pointer;float:left;">
+					</div>
+					<cite style="padding:0px;margin:0px;font-style:normal;font-weight:bold;float:left;">Godbach<a href="http://www.ha97.com/5646.html#comment-219170" style="padding:0px;margin:0px;color:rgb(71, 119, 37);text-decoration:none;"></a></cite> 
+									
+				<span style="display:block;height:0px;clear:both;visibility:hidden;">.</span></div>
+				<div style="padding:0px;margin:0px;position:relative;padding-left:4px;">
+					<div style="padding:0px;margin:0px;font-size:10px;font-family:tahoma;color:rgb(51, 51, 51);position:relative;">
+						2014-07-24 09:56:26 						
+					</div>					
+					<div style="padding:0px;margin:0px;display:block;position:relative;">
+							<img src="（总结）NginxLVSHAProxy负载均衡软件的优缺点详解_files/a5ff03cb06e0a6f0a47a0e96ba0ec3f0.png" type="image/png" data-filename="a5ff03cb06e0a6f0a47a0e96ba0ec3f0.png" alt="" height="32" style="padding:0px;margin:0px;border:none;float:right;margin-right:8px;" width="32"/>						<div style="padding:0px;margin:0px;position:relative;"> <img src="（总结）NginxLVSHAProxy负载均衡软件的优缺点详解_files/Image [4].png" type="image/png" data-filename="Image.png" alt="Google Chrome 35.0.1916.153" height="24" style="padding:0px;margin:0px;border:0px;vertical-align:middle;" title="Google Chrome 35.0.1916.153" width="24"/> Google Chrome 35.0.1916.153  <img src="（总结）NginxLVSHAProxy负载均衡软件的优缺点详解_files/Image [5].png" type="image/png" data-filename="Image.png" alt="Windows 7 x64 Edition" height="24" style="padding:0px;margin:0px;border:0px;vertical-align:middle;" title="Windows 7 x64 Edition" width="24"/> Windows 7 x64 Edition</div><p style="padding:0px;line-height:1.5em;margin:0.8em 0px;">好文章。</p>
+<p style="padding:0px;line-height:1.5em;margin:0.8em 0px;">不过对于 HAProxy，static-rr 是简单的轮询，选择 server 的逻辑最为简单。而 roundrobin 其实是高级一点的轮询，支持 HAProxy 运行期间动态修改 server weight。</p>
+<p style="padding:0px;line-height:1.5em;margin:0.8em 0px;">不管是 static-rr， roundrobin 还是 leastconn，都是天然支持 weight 的。只是运行期间，static-rr 的 server weight 不可更改或者更改了也无效。所有 weight 为 1 的情形本身就是 weight-based 负载均衡算法的特例。</p>
+<p style="padding:0px;line-height:1.5em;margin:0.8em 0px;">HAProxy 缺点没有介绍。结合个人对 Nignx 的部分了解，列举一些 HAProxy 不及 Nginx 的地方，仅供参考：<br style="padding:0px;margin:0px;"/>
+1. 不支持 POP/SMTP 协议<br style="padding:0px;margin:0px;"/>
+2. 不支持 SPDY 协议<br style="padding:0px;margin:0px;"/>
+3. 不支持 HTTP cache 功能。现在不少开源的 lb 项目，都或多或少具备 HTTP cache 功能。<br style="padding:0px;margin:0px;"/>
+4. 重载配置的功能需要重启进程，虽然也是 soft restart，但没有 Nginx 的 reaload 更为平滑和友好。<br style="padding:0px;margin:0px;"/>
+5. 多进程模式支持不够好。</p>
+					<span style="display:block;height:0px;clear:both;visibility:hidden;">.</span></div>
+					<div style="margin:0px;font-size:12px;font-family:verdana, sans-serif;position:relative;padding:0px 6px 6px 0px;text-align:right;">
+						 
+						<a href="http://www.ha97.com/5646.html#" style="padding:0px;margin:0px;color:rgb(71, 119, 37);text-decoration:none;">回复他(她)</a>
+											</div>
+				</div>
+					
+
+			<span style="display:block;height:0px;clear:both;visibility:hidden;">.</span></div>
+			<div style="padding:4px;margin:6px 3px 3px;display:block;position:relative;background-color:rgb(255, 255, 255);border:1px solid rgb(221, 221, 221);">
+				<a name="comment-222999" style="padding:0px;margin:0px;color:rgb(71, 119, 37);text-decoration:none;"></a>
+				<div style="padding:0px;margin:0px;display:block;position:relative;padding-left:5px;">
+					<div style="padding:0px;position:relative;margin:4px 6px 0px 0px;width:11px;height:11px;overflow:hidden;background:url(&quot;http://www.ha97.com/wp-content/themes/tes-cn-release/images/icons.gif&quot;) 0px 0px no-repeat scroll transparent;cursor:pointer;float:left;">
+					</div>
+					<cite style="padding:0px;margin:0px;font-style:normal;font-weight:bold;float:left;">crazyxiao<a href="http://www.ha97.com/5646.html#comment-222999" style="padding:0px;margin:0px;color:rgb(71, 119, 37);text-decoration:none;"></a></cite> 
+									
+				<span style="display:block;height:0px;clear:both;visibility:hidden;">.</span></div>
+				<div style="padding:0px;margin:0px;position:relative;padding-left:4px;">
+					<div style="padding:0px;margin:0px;font-size:10px;font-family:tahoma;color:rgb(51, 51, 51);position:relative;">
+						2014-07-31 18:45:17 						
+					</div>					
+					<div style="padding:0px;margin:0px;display:block;position:relative;">
+							<img src="（总结）NginxLVSHAProxy负载均衡软件的优缺点详解_files/c73de094817d871710feaca57f463cd3.png" type="image/png" data-filename="c73de094817d871710feaca57f463cd3.png" alt="" height="32" style="padding:0px;margin:0px;border:none;float:right;margin-right:8px;" width="32"/>						<div style="padding:0px;margin:0px;position:relative;"> <img src="（总结）NginxLVSHAProxy负载均衡软件的优缺点详解_files/Image [6].png" type="image/png" data-filename="Image.png" alt="Google Chrome 36.0.1985.125" height="24" style="padding:0px;margin:0px;border:0px;vertical-align:middle;" title="Google Chrome 36.0.1985.125" width="24"/> Google Chrome 36.0.1985.125  <img src="（总结）NginxLVSHAProxy负载均衡软件的优缺点详解_files/Image [7].png" type="image/png" data-filename="Image.png" alt="Windows XP" height="24" style="padding:0px;margin:0px;border:0px;vertical-align:middle;" title="Windows XP" width="24"/> Windows XP</div><p style="padding:0px;line-height:1.5em;margin:0.8em 0px;">以前项目用的haproxy+nginx，配置确实很好上手</p>
+					<span style="display:block;height:0px;clear:both;visibility:hidden;">.</span></div>
+					<div style="margin:0px;font-size:12px;font-family:verdana, sans-serif;position:relative;padding:0px 6px 6px 0px;text-align:right;">
+						 
+						<a href="http://www.ha97.com/5646.html#" style="padding:0px;margin:0px;color:rgb(71, 119, 37);text-decoration:none;">回复他(她)</a>
+											</div>
+				</div>
+					
+
+			<span style="display:block;height:0px;clear:both;visibility:hidden;">.</span></div>
+			<div style="padding:4px;margin:6px 3px 3px;display:block;position:relative;background-color:rgb(255, 255, 255);border:1px solid rgb(221, 221, 221);">
+				<a name="comment-364797" style="padding:0px;margin:0px;color:rgb(71, 119, 37);text-decoration:none;"></a>
+				<div style="padding:0px;margin:0px;display:block;position:relative;padding-left:5px;">
+					<div style="padding:0px;position:relative;margin:4px 6px 0px 0px;width:11px;height:11px;overflow:hidden;background:url(&quot;http://www.ha97.com/wp-content/themes/tes-cn-release/images/icons.gif&quot;) 0px 0px no-repeat scroll transparent;cursor:pointer;float:left;">
+					</div>
+					<cite style="padding:0px;margin:0px;font-style:normal;font-weight:bold;float:left;">BigBomb<a href="http://www.ha97.com/5646.html#comment-364797" style="padding:0px;margin:0px;color:rgb(71, 119, 37);text-decoration:none;"></a></cite> 
+									
+				<span style="display:block;height:0px;clear:both;visibility:hidden;">.</span></div>
+				<div style="padding:0px;margin:0px;position:relative;padding-left:4px;">
+					<div style="padding:0px;margin:0px;font-size:10px;font-family:tahoma;color:rgb(51, 51, 51);position:relative;">
+						2014-11-12 00:03:51 						
+					</div>					
+					<div style="padding:0px;margin:0px;display:block;position:relative;">
+							<img src="（总结）NginxLVSHAProxy负载均衡软件的优缺点详解_files/1da2c2102ca9197d24c851872ae5f1cd.png" type="image/png" data-filename="1da2c2102ca9197d24c851872ae5f1cd.png" alt="" height="32" style="padding:0px;margin:0px;border:none;float:right;margin-right:8px;" width="32"/>						<div style="padding:0px;margin:0px;position:relative;"> <img src="（总结）NginxLVSHAProxy负载均衡软件的优缺点详解_files/Image [8].png" type="image/png" data-filename="Image.png" alt="Google Chrome 35.0.1916.114" height="24" style="padding:0px;margin:0px;border:0px;vertical-align:middle;" title="Google Chrome 35.0.1916.114" width="24"/> Google Chrome 35.0.1916.114  <img src="（总结）NginxLVSHAProxy负载均衡软件的优缺点详解_files/Image [9].png" type="image/png" data-filename="Image.png" alt="Windows 7 x64 Edition" height="24" style="padding:0px;margin:0px;border:0px;vertical-align:middle;" title="Windows 7 x64 Edition" width="24"/> Windows 7 x64 Edition</div><p style="padding:0px;line-height:1.5em;margin:0.8em 0px;">我是路过顶教主的</p>
+					<span style="display:block;height:0px;clear:both;visibility:hidden;">.</span></div>
+					<div style="margin:0px;font-size:12px;font-family:verdana, sans-serif;position:relative;padding:0px 6px 6px 0px;text-align:right;">
+						 
+						<a href="http://www.ha97.com/5646.html#" style="padding:0px;margin:0px;color:rgb(71, 119, 37);text-decoration:none;">回复他(她)</a>
+											</div>
+				</div>
+					
+
+			<span style="display:block;height:0px;clear:both;visibility:hidden;">.</span></div>
+			<div style="padding:4px;margin:6px 3px 3px;display:block;position:relative;background-color:rgb(255, 255, 255);border:1px solid rgb(221, 221, 221);">
+				<a name="comment-505538" style="padding:0px;margin:0px;color:rgb(71, 119, 37);text-decoration:none;"></a>
+				<div style="padding:0px;margin:0px;display:block;position:relative;padding-left:5px;">
+					<div style="padding:0px;position:relative;margin:4px 6px 0px 0px;width:11px;height:11px;overflow:hidden;background:url(&quot;http://www.ha97.com/wp-content/themes/tes-cn-release/images/icons.gif&quot;) 0px 0px no-repeat scroll transparent;cursor:pointer;float:left;">
+					</div>
+					<cite style="padding:0px;margin:0px;font-style:normal;font-weight:bold;float:left;">疯梦<a href="http://www.ha97.com/5646.html#comment-505538" style="padding:0px;margin:0px;color:rgb(71, 119, 37);text-decoration:none;"></a></cite> 
+									
+				<span style="display:block;height:0px;clear:both;visibility:hidden;">.</span></div>
+				<div style="padding:0px;margin:0px;position:relative;padding-left:4px;">
+					<div style="padding:0px;margin:0px;font-size:10px;font-family:tahoma;color:rgb(51, 51, 51);position:relative;">
+						2015-01-08 16:46:34 						
+					</div>					
+					<div style="padding:0px;margin:0px;display:block;position:relative;">
+							<img src="（总结）NginxLVSHAProxy负载均衡软件的优缺点详解_files/8af9259b74d00f6f565251833e95c013.png" type="image/png" data-filename="8af9259b74d00f6f565251833e95c013.png" alt="" height="32" style="padding:0px;margin:0px;border:none;float:right;margin-right:8px;" width="32"/>						<div style="padding:0px;margin:0px;position:relative;"> <img src="（总结）NginxLVSHAProxy负载均衡软件的优缺点详解_files/Image [10].png" type="image/png" data-filename="Image.png" alt="Google Chrome 31.0.1650.63" height="24" style="padding:0px;margin:0px;border:0px;vertical-align:middle;" title="Google Chrome 31.0.1650.63" width="24"/> Google Chrome 31.0.1650.63  <img src="（总结）NginxLVSHAProxy负载均衡软件的优缺点详解_files/Image [11].png" type="image/png" data-filename="Image.png" alt="Windows 7 x64 Edition" height="24" style="padding:0px;margin:0px;border:0px;vertical-align:middle;" title="Windows 7 x64 Edition" width="24"/> Windows 7 x64 Edition</div><p style="padding:0px;line-height:1.5em;margin:0.8em 0px;">用户上传一个文件，而处理该上传的节点刚好在上传过程中出现故障，Nginx会把上传切到另一台服务器重新处理，而LVS就直接断掉了，如果是上传一个很大的文件或者很重要的文件的话，用户可能会因此而不满。我想要问一下，对于这种情况有没有什么好点的解决办法？</p>
+					<span style="display:block;height:0px;clear:both;visibility:hidden;">.</span></div>
+					<div style="margin:0px;font-size:12px;font-family:verdana, sans-serif;position:relative;padding:0px 6px 6px 0px;text-align:right;">
+						 
+						<a href="http://www.ha97.com/5646.html#" style="padding:0px;margin:0px;color:rgb(71, 119, 37);text-decoration:none;">回复他(她)</a>
+											</div>
+				</div>
+					
+
+			<span style="display:block;height:0px;clear:both;visibility:hidden;">.</span></div>
+			<div style="padding:4px;margin:6px 3px 3px;display:block;position:relative;background-color:rgb(255, 255, 255);border:1px solid rgb(221, 221, 221);">
+				<a name="comment-505551" style="padding:0px;margin:0px;color:rgb(71, 119, 37);text-decoration:none;"></a>
+				<div style="padding:0px;margin:0px;display:block;position:relative;padding-left:5px;">
+					<div style="padding:0px;position:relative;margin:4px 6px 0px 0px;width:11px;height:11px;overflow:hidden;background:url(&quot;http://www.ha97.com/wp-content/themes/tes-cn-release/images/icons.gif&quot;) 0px 0px no-repeat scroll transparent;cursor:pointer;float:left;">
+					</div>
+					<cite style="padding:0px;margin:0px;font-style:normal;font-weight:bold;float:left;">疯梦<a href="http://www.ha97.com/5646.html#comment-505551" style="padding:0px;margin:0px;color:rgb(71, 119, 37);text-decoration:none;"></a></cite> 
+									
+				<span style="display:block;height:0px;clear:both;visibility:hidden;">.</span></div>
+				<div style="padding:0px;margin:0px;position:relative;padding-left:4px;">
+					<div style="padding:0px;margin:0px;font-size:10px;font-family:tahoma;color:rgb(51, 51, 51);position:relative;">
+						2015-01-08 16:55:07 						
+					</div>					
+					<div style="padding:0px;margin:0px;display:block;position:relative;">
+							<img src="（总结）NginxLVSHAProxy负载均衡软件的优缺点详解_files/b0adce17a9b92049fb848b208b0522fa.png" type="image/png" data-filename="b0adce17a9b92049fb848b208b0522fa.png" alt="" height="32" style="padding:0px;margin:0px;border:none;float:right;margin-right:8px;" width="32"/>						<div style="padding:0px;margin:0px;position:relative;"> <img src="（总结）NginxLVSHAProxy负载均衡软件的优缺点详解_files/Image [12].png" type="image/png" data-filename="Image.png" alt="Google Chrome 31.0.1650.63" height="24" style="padding:0px;margin:0px;border:0px;vertical-align:middle;" title="Google Chrome 31.0.1650.63" width="24"/> Google Chrome 31.0.1650.63  <img src="（总结）NginxLVSHAProxy负载均衡软件的优缺点详解_files/Image [13].png" type="image/png" data-filename="Image.png" alt="Windows 7 x64 Edition" height="24" style="padding:0px;margin:0px;border:0px;vertical-align:middle;" title="Windows 7 x64 Edition" width="24"/> Windows 7 x64 Edition</div><p style="padding:0px;line-height:1.5em;margin:0.8em 0px;">用户上传文件，后台rs正好故障，nginx会切换到另一台服务器重新处理，lvs则直接断掉，我也在纠结这个问题，所以想请教下，有没有什么好点的办法？</p>
+					<span style="display:block;height:0px;clear:both;visibility:hidden;">.</span></div>
+					<div style="margin:0px;font-size:12px;font-family:verdana, sans-serif;position:relative;padding:0px 6px 6px 0px;text-align:right;">
+						 
+						<a href="http://www.ha97.com/5646.html#" style="padding:0px;margin:0px;color:rgb(71, 119, 37);text-decoration:none;">回复他(她)</a>
+											</div>
+				</div>
+					
+
+			<span style="display:block;height:0px;clear:both;visibility:hidden;">.</span></div>
+			<div style="padding:4px;margin:6px 3px 3px;display:block;position:relative;background-color:rgb(255, 255, 255);border:1px solid rgb(221, 221, 221);">
+				<a name="comment-507496" style="padding:0px;margin:0px;color:rgb(71, 119, 37);text-decoration:none;"></a>
+				<div style="padding:0px;margin:0px;display:block;position:relative;padding-left:5px;">
+					<div style="padding:0px;position:relative;margin:4px 6px 0px 0px;width:11px;height:11px;overflow:hidden;background:url(&quot;http://www.ha97.com/wp-content/themes/tes-cn-release/images/icons.gif&quot;) 0px 0px no-repeat scroll transparent;cursor:pointer;float:left;">
+					</div>
+					<cite style="padding:0px;margin:0px;font-style:normal;font-weight:bold;float:left;">疯梦<a href="http://www.ha97.com/5646.html#comment-507496" style="padding:0px;margin:0px;color:rgb(71, 119, 37);text-decoration:none;"></a></cite> 
+									
+				<span style="display:block;height:0px;clear:both;visibility:hidden;">.</span></div>
+				<div style="padding:0px;margin:0px;position:relative;padding-left:4px;">
+					<div style="padding:0px;margin:0px;font-size:10px;font-family:tahoma;color:rgb(51, 51, 51);position:relative;">
+						2015-01-09 11:05:12 						
+					</div>					
+					<div style="padding:0px;margin:0px;display:block;position:relative;">
+							<img src="（总结）NginxLVSHAProxy负载均衡软件的优缺点详解_files/80e437aac99a4514fa14f2af75c4be79.png" type="image/png" data-filename="80e437aac99a4514fa14f2af75c4be79.png" alt="" height="32" style="padding:0px;margin:0px;border:none;float:right;margin-right:8px;" width="32"/>						<div style="padding:0px;margin:0px;position:relative;"> <img src="（总结）NginxLVSHAProxy负载均衡软件的优缺点详解_files/Image [14].png" type="image/png" data-filename="Image.png" alt="Google Chrome 31.0.1650.63" height="24" style="padding:0px;margin:0px;border:0px;vertical-align:middle;" title="Google Chrome 31.0.1650.63" width="24"/> Google Chrome 31.0.1650.63  <img src="（总结）NginxLVSHAProxy负载均衡软件的优缺点详解_files/Image [15].png" type="image/png" data-filename="Image.png" alt="Windows 7 x64 Edition" height="24" style="padding:0px;margin:0px;border:0px;vertical-align:middle;" title="Windows 7 x64 Edition" width="24"/> Windows 7 x64 Edition</div><p style="padding:0px;line-height:1.5em;margin:0.8em 0px;">当用户正在上传文件，如果后面RS突然故障，nginx会把请求发放给另一台RS来重新处理，而LVS则直接断掉，对于这种情况，因为我做的不多，请教下博主，有没有什么好点的办法呢？</p>
+					<span style="display:block;height:0px;clear:both;visibility:hidden;">.</span></div>
+					<div style="margin:0px;font-size:12px;font-family:verdana, sans-serif;position:relative;padding:0px 6px 6px 0px;text-align:right;">
+						 
+						<a href="http://www.ha97.com/5646.html#" style="padding:0px;margin:0px;color:rgb(71, 119, 37);text-decoration:none;">回复他(她)</a>
+											</div>
+				</div>
+					
+
+			<span style="display:block;height:0px;clear:both;visibility:hidden;">.</span></div>
+			<div style="padding:4px;margin:6px 3px 3px;display:block;position:relative;background-color:rgb(255, 255, 255);border:1px solid rgb(221, 221, 221);">
+				<a name="comment-542258" style="padding:0px;margin:0px;color:rgb(71, 119, 37);text-decoration:none;"></a>
+				<div style="padding:0px;margin:0px;display:block;position:relative;padding-left:5px;">
+					<div style="padding:0px;position:relative;margin:4px 6px 0px 0px;width:11px;height:11px;overflow:hidden;background:url(&quot;http://www.ha97.com/wp-content/themes/tes-cn-release/images/icons.gif&quot;) 0px 0px no-repeat scroll transparent;cursor:pointer;float:left;">
+					</div>
+					<cite style="padding:0px;margin:0px;font-style:normal;font-weight:bold;float:left;"><a href="http://www.qiuxuewang.cn/?p=94" rel="external nofollow" style="padding:0px;margin:0px;color:rgb(71, 119, 37);text-decoration:none;">求学网 » Nginx、LVS及HAProxy负载均衡软件的优缺点详解</a><a href="http://www.ha97.com/5646.html#comment-542258" style="padding:0px;margin:0px;color:rgb(71, 119, 37);text-decoration:none;"></a></cite> 
+									
+				<span style="display:block;height:0px;clear:both;visibility:hidden;">.</span></div>
+				<div style="padding:0px;margin:0px;position:relative;padding-left:4px;">
+					<div style="padding:0px;margin:0px;font-size:10px;font-family:tahoma;color:rgb(51, 51, 51);position:relative;">
+						2015-01-24 10:52:19 						
+					</div>					
+					<div style="padding:0px;margin:0px;display:block;position:relative;">
+													<div style="padding:0px;margin:0px;position:relative;"> <img src="（总结）NginxLVSHAProxy负载均衡软件的优缺点详解_files/Image [16].png" type="image/png" data-filename="Image.png" alt="WordPress 3.4.1" height="24" style="padding:0px;margin:0px;border:0px;vertical-align:middle;" title="WordPress 3.4.1" width="24"/> WordPress 3.4.1</div><p style="padding:0px;line-height:1.5em;margin:0.8em 0px;">[…] 原文链接： Nginx/LVS/HAProxy负载均衡软件的优缺点详解 （责编/魏伟） […]</p>
+					<span style="display:block;height:0px;clear:both;visibility:hidden;">.</span></div>
+					<div style="margin:0px;font-size:12px;font-family:verdana, sans-serif;position:relative;padding:0px 6px 6px 0px;text-align:right;">
+						 
+						<a href="http://www.ha97.com/5646.html#" style="padding:0px;margin:0px;color:rgb(71, 119, 37);text-decoration:none;">回复他(她)</a>
+											</div>
+				</div>
+					
+
+			<span style="display:block;height:0px;clear:both;visibility:hidden;">.</span></div>
+			<div style="padding:4px;margin:6px 3px 3px;display:block;position:relative;background-color:rgb(255, 255, 255);border:1px solid rgb(221, 221, 221);">
+				<a name="comment-606635" style="padding:0px;margin:0px;color:rgb(71, 119, 37);text-decoration:none;"></a>
+				<div style="padding:0px;margin:0px;display:block;position:relative;padding-left:5px;">
+					<div style="padding:0px;position:relative;margin:4px 6px 0px 0px;width:11px;height:11px;overflow:hidden;background:url(&quot;http://www.ha97.com/wp-content/themes/tes-cn-release/images/icons.gif&quot;) 0px 0px no-repeat scroll transparent;cursor:pointer;float:left;">
+					</div>
+					<cite style="padding:0px;margin:0px;font-style:normal;font-weight:bold;float:left;"><a href="http://fengyingsheng.com/" rel="external nofollow" style="padding:0px;margin:0px;color:rgb(71, 119, 37);text-decoration:none;">eaon</a><a href="http://www.ha97.com/5646.html#comment-606635" style="padding:0px;margin:0px;color:rgb(71, 119, 37);text-decoration:none;"></a></cite> 
+									
+				<span style="display:block;height:0px;clear:both;visibility:hidden;">.</span></div>
+				<div style="padding:0px;margin:0px;position:relative;padding-left:4px;">
+					<div style="padding:0px;margin:0px;font-size:10px;font-family:tahoma;color:rgb(51, 51, 51);position:relative;">
+						2015-03-13 13:32:00 						
+					</div>					
+					<div style="padding:0px;margin:0px;display:block;position:relative;">
+							<img src="（总结）NginxLVSHAProxy负载均衡软件的优缺点详解_files/c8516a464b88c35c188a560e86015943.png" type="image/png" data-filename="c8516a464b88c35c188a560e86015943.png" alt="" height="32" style="padding:0px;margin:0px;border:none;float:right;margin-right:8px;" width="32"/>						<div style="padding:0px;margin:0px;position:relative;"> <img src="（总结）NginxLVSHAProxy负载均衡软件的优缺点详解_files/Image [17].png" type="image/png" data-filename="Image.png" alt="Google Chrome 35.0.1916.114" height="24" style="padding:0px;margin:0px;border:0px;vertical-align:middle;" title="Google Chrome 35.0.1916.114" width="24"/> Google Chrome 35.0.1916.114  <img src="（总结）NginxLVSHAProxy负载均衡软件的优缺点详解_files/Image [18].png" type="image/png" data-filename="Image.png" alt="Windows 7 x64 Edition" height="24" style="padding:0px;margin:0px;border:0px;vertical-align:middle;" title="Windows 7 x64 Edition" width="24"/> Windows 7 x64 Edition</div><p style="padding:0px;line-height:1.5em;margin:0.8em 0px;">学习了，不错。就是感觉比较重复。</p>
+<p style="padding:0px;line-height:1.5em;margin:0.8em 0px;">希望能有具体一些的数据来进行说明！</p>
+<p style="padding:0px;line-height:1.5em;margin:0.8em 0px;">谢谢！</p>
+					<span style="display:block;height:0px;clear:both;visibility:hidden;">.</span></div>
+					<div style="margin:0px;font-size:12px;font-family:verdana, sans-serif;position:relative;padding:0px 6px 6px 0px;text-align:right;">
+						 
+						<a href="http://www.ha97.com/5646.html#" style="padding:0px;margin:0px;color:rgb(71, 119, 37);text-decoration:none;">回复他(她)</a>
+											</div>
+				</div>
+					
+
+			<span style="display:block;height:0px;clear:both;visibility:hidden;">.</span></div>
+			<div style="padding:4px;margin:6px 3px 3px;display:block;position:relative;background-color:rgb(255, 255, 255);border:1px solid rgb(221, 221, 221);">
+				<a name="comment-606636" style="padding:0px;margin:0px;color:rgb(71, 119, 37);text-decoration:none;"></a>
+				<div style="padding:0px;margin:0px;display:block;position:relative;padding-left:5px;">
+					<div style="padding:0px;position:relative;margin:4px 6px 0px 0px;width:11px;height:11px;overflow:hidden;background:url(&quot;http://www.ha97.com/wp-content/themes/tes-cn-release/images/icons.gif&quot;) 0px 0px no-repeat scroll transparent;cursor:pointer;float:left;">
+					</div>
+					<cite style="padding:0px;margin:0px;font-style:normal;font-weight:bold;float:left;"><a href="http://fengyingsheng.com/" rel="external nofollow" style="padding:0px;margin:0px;color:rgb(71, 119, 37);text-decoration:none;">eaon</a><a href="http://www.ha97.com/5646.html#comment-606636" style="padding:0px;margin:0px;color:rgb(71, 119, 37);text-decoration:none;"></a></cite> 
+									
+				<span style="display:block;height:0px;clear:both;visibility:hidden;">.</span></div>
+				<div style="padding:0px;margin:0px;position:relative;padding-left:4px;">
+					<div style="padding:0px;margin:0px;font-size:10px;font-family:tahoma;color:rgb(51, 51, 51);position:relative;">
+						2015-03-13 13:33:15 						
+					</div>					
+					<div style="padding:0px;margin:0px;display:block;position:relative;">
+							<img src="（总结）NginxLVSHAProxy负载均衡软件的优缺点详解_files/c8516a464b88c35c188a560e86015943 [1].png" type="image/png" data-filename="c8516a464b88c35c188a560e86015943.png" alt="" height="32" style="padding:0px;margin:0px;border:none;float:right;margin-right:8px;" width="32"/>						<div style="padding:0px;margin:0px;position:relative;"> <img src="（总结）NginxLVSHAProxy负载均衡软件的优缺点详解_files/Image [19].png" type="image/png" data-filename="Image.png" alt="Google Chrome 35.0.1916.114" height="24" style="padding:0px;margin:0px;border:0px;vertical-align:middle;" title="Google Chrome 35.0.1916.114" width="24"/> Google Chrome 35.0.1916.114  <img src="（总结）NginxLVSHAProxy负载均衡软件的优缺点详解_files/Image [20].png" type="image/png" data-filename="Image.png" alt="Windows 7 x64 Edition" height="24" style="padding:0px;margin:0px;border:0px;vertical-align:middle;" title="Windows 7 x64 Edition" width="24"/> Windows 7 x64 Edition</div><p style="padding:0px;line-height:1.5em;margin:0.8em 0px;">有些重复，希望可以列举写具体的测试数据来进行比较。谢谢！</p>
+					<span style="display:block;height:0px;clear:both;visibility:hidden;">.</span></div>
+					<div style="margin:0px;font-size:12px;font-family:verdana, sans-serif;position:relative;padding:0px 6px 6px 0px;text-align:right;">
+						 
+						<a href="http://www.ha97.com/5646.html#" style="padding:0px;margin:0px;color:rgb(71, 119, 37);text-decoration:none;">回复他(她)</a>
+											</div>
+				</div>
+					
+
+			<span style="display:block;height:0px;clear:both;visibility:hidden;">.</span></div>
+			<div style="padding:4px;margin:6px 3px 3px;display:block;position:relative;background-color:rgb(255, 255, 255);border:1px solid rgb(221, 221, 221);">
+				<a name="comment-656672" style="padding:0px;margin:0px;color:rgb(71, 119, 37);text-decoration:none;"></a>
+				<div style="padding:0px;margin:0px;display:block;position:relative;padding-left:5px;">
+					<div style="padding:0px;position:relative;margin:4px 6px 0px 0px;width:11px;height:11px;overflow:hidden;background:url(&quot;http://www.ha97.com/wp-content/themes/tes-cn-release/images/icons.gif&quot;) 0px 0px no-repeat scroll transparent;cursor:pointer;float:left;">
+					</div>
+					<cite style="padding:0px;margin:0px;font-style:normal;font-weight:bold;float:left;"><a href="http://seanlook.com/" rel="external nofollow" style="padding:0px;margin:0px;color:rgb(71, 119, 37);text-decoration:none;">seanlook</a><a href="http://www.ha97.com/5646.html#comment-656672" style="padding:0px;margin:0px;color:rgb(71, 119, 37);text-decoration:none;"></a></cite> 
+									
+				<span style="display:block;height:0px;clear:both;visibility:hidden;">.</span></div>
+				<div style="padding:0px;margin:0px;position:relative;padding-left:4px;">
+					<div style="padding:0px;margin:0px;font-size:10px;font-family:tahoma;color:rgb(51, 51, 51);position:relative;">
+						2015-05-19 01:19:05 						
+					</div>					
+					<div style="padding:0px;margin:0px;display:block;position:relative;">
+							<img src="（总结）NginxLVSHAProxy负载均衡软件的优缺点详解_files/7df68b291f084ad55bc32df434c4f91c.jpg" type="image/jpeg" data-filename="7df68b291f084ad55bc32df434c4f91c.jpg" alt="" height="32" style="padding:0px;margin:0px;border:none;float:right;margin-right:8px;" width="32"/>						<div style="padding:0px;margin:0px;position:relative;"> <img src="（总结）NginxLVSHAProxy负载均衡软件的优缺点详解_files/Image [21].png" type="image/png" data-filename="Image.png" alt="Safari 8.0.5" height="24" style="padding:0px;margin:0px;border:0px;vertical-align:middle;" title="Safari 8.0.5" width="24"/> Safari 8.0.5  <img src="（总结）NginxLVSHAProxy负载均衡软件的优缺点详解_files/Image [22].png" type="image/png" data-filename="Image.png" alt="Mac OS X 10.10.3" height="24" style="padding:0px;margin:0px;border:0px;vertical-align:middle;" title="Mac OS X 10.10.3" width="24"/> Mac OS X  10.10.3</div><p style="padding:0px;line-height:1.5em;margin:0.8em 0px;">你好，nginx在前端做负载均衡，转发到后端，但我后端tomcat来处理静态文件和上传的图片不太合理把，需要在tomcat前面再加一个nginx或apache来过滤静态文件吗？ 因为像我的图片是上传到tomcat所在服务器的，最前端的nginx没办法访问。</p>
+					<span style="display:block;height:0px;clear:both;visibility:hidden;">.</span></div>
+					<div style="margin:0px;font-size:12px;font-family:verdana, sans-serif;position:relative;padding:0px 6px 6px 0px;text-align:right;">
+						 
+						<a href="http://www.ha97.com/5646.html#" style="padding:0px;margin:0px;color:rgb(71, 119, 37);text-decoration:none;">回复他(她)</a>
+											</div>
+				</div>
+					
+
+			<span style="display:block;height:0px;clear:both;visibility:hidden;">.</span></div>
+			<div style="padding:4px;margin:6px 3px 3px;display:block;position:relative;background-color:rgb(255, 255, 255);border:1px solid rgb(221, 221, 221);">
+				<a name="comment-661421" style="padding:0px;margin:0px;color:rgb(71, 119, 37);text-decoration:none;"></a>
+				<div style="padding:0px;margin:0px;display:block;position:relative;padding-left:5px;">
+					<div style="padding:0px;position:relative;margin:4px 6px 0px 0px;width:11px;height:11px;overflow:hidden;background:url(&quot;http://www.ha97.com/wp-content/themes/tes-cn-release/images/icons.gif&quot;) 0px 0px no-repeat scroll transparent;cursor:pointer;float:left;">
+					</div>
+					<cite style="padding:0px;margin:0px;font-style:normal;font-weight:bold;float:left;"><a href="http://www.paymoon.com/" rel="external nofollow" style="padding:0px;margin:0px;color:rgb(71, 119, 37);text-decoration:none;">yol</a><a href="http://www.ha97.com/5646.html#comment-661421" style="padding:0px;margin:0px;color:rgb(71, 119, 37);text-decoration:none;"></a></cite> 
+									
+				<span style="display:block;height:0px;clear:both;visibility:hidden;">.</span></div>
+				<div style="padding:0px;margin:0px;position:relative;padding-left:4px;">
+					<div style="padding:0px;margin:0px;font-size:10px;font-family:tahoma;color:rgb(51, 51, 51);position:relative;">
+						2015-05-29 11:00:50 						
+					</div>					
+					<div style="padding:0px;margin:0px;display:block;position:relative;">
+							<img src="（总结）NginxLVSHAProxy负载均衡软件的优缺点详解_files/39e6acb355b0b6516b426ad135e8b45e.png" type="image/png" data-filename="39e6acb355b0b6516b426ad135e8b45e.png" alt="" height="32" style="padding:0px;margin:0px;border:none;float:right;margin-right:8px;" width="32"/>						<div style="padding:0px;margin:0px;position:relative;"> <img src="（总结）NginxLVSHAProxy负载均衡软件的优缺点详解_files/Image [23].png" type="image/png" data-filename="Image.png" alt="UC Browser 10.4.1.576" height="24" style="padding:0px;margin:0px;border:0px;vertical-align:middle;" title="UC Browser 10.4.1.576" width="24"/> UC Browser 10.4.1.576  <img src="（总结）NginxLVSHAProxy负载均衡软件的优缺点详解_files/Image [24].png" type="image/png" data-filename="Image.png" alt="Android 4.4.3" height="24" style="padding:0px;margin:0px;border:0px;vertical-align:middle;" title="Android 4.4.3" width="24"/> Android 4.4.3</div><p style="padding:0px;line-height:1.5em;margin:0.8em 0px;">不错，学习了</p>
+					<span style="display:block;height:0px;clear:both;visibility:hidden;">.</span></div>
+					<div style="margin:0px;font-size:12px;font-family:verdana, sans-serif;position:relative;padding:0px 6px 6px 0px;text-align:right;">
+						 
+						<a href="http://www.ha97.com/5646.html#" style="padding:0px;margin:0px;color:rgb(71, 119, 37);text-decoration:none;">回复他(她)</a>
+											</div>
+				</div>
+					
+
+			<span style="display:block;height:0px;clear:both;visibility:hidden;">.</span></div>
+			<div style="padding:4px;margin:6px 3px 3px;display:block;position:relative;background-color:rgb(255, 255, 255);border:1px solid rgb(221, 221, 221);">
+				<a name="comment-687599" style="padding:0px;margin:0px;color:rgb(71, 119, 37);text-decoration:none;"></a>
+				<div style="padding:0px;margin:0px;display:block;position:relative;padding-left:5px;">
+					<div style="padding:0px;position:relative;margin:4px 6px 0px 0px;width:11px;height:11px;overflow:hidden;background:url(&quot;http://www.ha97.com/wp-content/themes/tes-cn-release/images/icons.gif&quot;) 0px 0px no-repeat scroll transparent;cursor:pointer;float:left;">
+					</div>
+					<cite style="padding:0px;margin:0px;font-style:normal;font-weight:bold;float:left;">wonderflow<a href="http://www.ha97.com/5646.html#comment-687599" style="padding:0px;margin:0px;color:rgb(71, 119, 37);text-decoration:none;"></a></cite> 
+									
+				<span style="display:block;height:0px;clear:both;visibility:hidden;">.</span></div>
+				<div style="padding:0px;margin:0px;position:relative;padding-left:4px;">
+					<div style="padding:0px;margin:0px;font-size:10px;font-family:tahoma;color:rgb(51, 51, 51);position:relative;">
+						2015-08-30 20:08:51 						
+					</div>					
+					<div style="padding:0px;margin:0px;display:block;position:relative;">
+							<img src="（总结）NginxLVSHAProxy负载均衡软件的优缺点详解_files/a9ed3aba567b518c4750e7581cc89d82.jpg" type="image/jpeg" data-filename="a9ed3aba567b518c4750e7581cc89d82.jpg" alt="" height="32" style="padding:0px;margin:0px;border:none;float:right;margin-right:8px;" width="32"/>						<div style="padding:0px;margin:0px;position:relative;"> <img src="（总结）NginxLVSHAProxy负载均衡软件的优缺点详解_files/Image [25].png" type="image/png" data-filename="Image.png" alt="Google Chrome 44.0.2403.157" height="24" style="padding:0px;margin:0px;border:0px;vertical-align:middle;" title="Google Chrome 44.0.2403.157" width="24"/> Google Chrome 44.0.2403.157  <img src="（总结）NginxLVSHAProxy负载均衡软件的优缺点详解_files/Image [26].png" type="image/png" data-filename="Image.png" alt="Mac OS X 10.10.4" height="24" style="padding:0px;margin:0px;border:0px;vertical-align:middle;" title="Mac OS X 10.10.4" width="24"/> Mac OS X  10.10.4</div><p style="padding:0px;line-height:1.5em;margin:0.8em 0px;">好文章，受益匪浅，谢谢分享！</p>
+					<span style="display:block;height:0px;clear:both;visibility:hidden;">.</span></div>
+					<div style="margin:0px;font-size:12px;font-family:verdana, sans-serif;position:relative;padding:0px 6px 6px 0px;text-align:right;">
+						 
+						<a href="http://www.ha97.com/5646.html#" style="padding:0px;margin:0px;color:rgb(71, 119, 37);text-decoration:none;">回复他(她)</a>
+											</div>
+				</div>
+					
+
+			<span style="display:block;height:0px;clear:both;visibility:hidden;">.</span></div>
+			<div style="padding:4px;margin:6px 3px 3px;display:block;position:relative;background-color:rgb(255, 255, 255);border:1px solid rgb(221, 221, 221);">
+				<a name="comment-688335" style="padding:0px;margin:0px;color:rgb(71, 119, 37);text-decoration:none;"></a>
+				<div style="padding:0px;margin:0px;display:block;position:relative;padding-left:5px;">
+					<div style="padding:0px;position:relative;margin:4px 6px 0px 0px;width:11px;height:11px;overflow:hidden;background:url(&quot;http://www.ha97.com/wp-content/themes/tes-cn-release/images/icons.gif&quot;) 0px 0px no-repeat scroll transparent;cursor:pointer;float:left;">
+					</div>
+					<cite style="padding:0px;margin:0px;font-style:normal;font-weight:bold;float:left;">sun<a href="http://www.ha97.com/5646.html#comment-688335" style="padding:0px;margin:0px;color:rgb(71, 119, 37);text-decoration:none;"></a></cite> 
+									
+				<span style="display:block;height:0px;clear:both;visibility:hidden;">.</span></div>
+				<div style="padding:0px;margin:0px;position:relative;padding-left:4px;">
+					<div style="padding:0px;margin:0px;font-size:10px;font-family:tahoma;color:rgb(51, 51, 51);position:relative;">
+						2015-09-02 16:46:14 						
+					</div>					
+					<div style="padding:0px;margin:0px;display:block;position:relative;">
+							<img src="（总结）NginxLVSHAProxy负载均衡软件的优缺点详解_files/19ea6373f657b514e84a74ab9a3be454.png" type="image/png" data-filename="19ea6373f657b514e84a74ab9a3be454.png" alt="" height="32" style="padding:0px;margin:0px;border:none;float:right;margin-right:8px;" width="32"/>						<div style="padding:0px;margin:0px;position:relative;"> <img src="（总结）NginxLVSHAProxy负载均衡软件的优缺点详解_files/Image [27].png" type="image/png" data-filename="Image.png" alt="Google Chrome 44.0.2403.125" height="24" style="padding:0px;margin:0px;border:0px;vertical-align:middle;" title="Google Chrome 44.0.2403.125" width="24"/> Google Chrome 44.0.2403.125  <img src="（总结）NginxLVSHAProxy负载均衡软件的优缺点详解_files/Image [28].png" type="image/png" data-filename="Image.png" alt="Windows 10 x64 Edition" height="24" style="padding:0px;margin:0px;border:0px;vertical-align:middle;" title="Windows 10 x64 Edition" width="24"/> Windows 10 x64 Edition</div><p style="padding:0px;line-height:1.5em;margin:0.8em 0px;">楼主分析透着，学有所获！</p>
+					<span style="display:block;height:0px;clear:both;visibility:hidden;">.</span></div>
+					<div style="margin:0px;font-size:12px;font-family:verdana, sans-serif;position:relative;padding:0px 6px 6px 0px;text-align:right;">
+						 
+						<a href="http://www.ha97.com/5646.html#" style="padding:0px;margin:0px;color:rgb(71, 119, 37);text-decoration:none;">回复他(她)</a>
+											</div>
+				</div>
+					
+
+			<span style="display:block;height:0px;clear:both;visibility:hidden;">.</span></div>
+			<div style="padding:4px;margin:6px 3px 3px;display:block;position:relative;background-color:rgb(255, 255, 255);border:1px solid rgb(221, 221, 221);">
+				<a name="comment-691465" style="padding:0px;margin:0px;color:rgb(71, 119, 37);text-decoration:none;"></a>
+				<div style="padding:0px;margin:0px;display:block;position:relative;padding-left:5px;">
+					<div style="padding:0px;position:relative;margin:4px 6px 0px 0px;width:11px;height:11px;overflow:hidden;background:url(&quot;http://www.ha97.com/wp-content/themes/tes-cn-release/images/icons.gif&quot;) 0px 0px no-repeat scroll transparent;cursor:pointer;float:left;">
+					</div>
+					<cite style="padding:0px;margin:0px;font-style:normal;font-weight:bold;float:left;"><a href="http://zhangge.net/" rel="external nofollow" style="padding:0px;margin:0px;color:rgb(71, 119, 37);text-decoration:none;">张戈博客</a><a href="http://www.ha97.com/5646.html#comment-691465" style="padding:0px;margin:0px;color:rgb(71, 119, 37);text-decoration:none;"></a></cite> 
+									
+				<span style="display:block;height:0px;clear:both;visibility:hidden;">.</span></div>
+				<div style="padding:0px;margin:0px;position:relative;padding-left:4px;">
+					<div style="padding:0px;margin:0px;font-size:10px;font-family:tahoma;color:rgb(51, 51, 51);position:relative;">
+						2016-04-26 22:53:34 						
+					</div>					
+					<div style="padding:0px;margin:0px;display:block;position:relative;">
+							<img src="（总结）NginxLVSHAProxy负载均衡软件的优缺点详解_files/5254bdf483b41175ce069def5319e87d.png" type="image/png" data-filename="5254bdf483b41175ce069def5319e87d.png" alt="" height="32" style="padding:0px;margin:0px;border:none;float:right;margin-right:8px;" width="32"/>						<div style="padding:0px;margin:0px;position:relative;"> <img src="（总结）NginxLVSHAProxy负载均衡软件的优缺点详解_files/Image [29].png" type="image/png" data-filename="Image.png" alt="QQbrowser 3.9.3943.400" height="24" style="padding:0px;margin:0px;border:0px;vertical-align:middle;" title="QQbrowser 3.9.3943.400" width="24"/> QQbrowser 3.9.3943.400  <img src="（总结）NginxLVSHAProxy负载均衡软件的优缺点详解_files/Image [30].png" type="image/png" data-filename="Image.png" alt="Mac OS X 10.11.3" height="24" style="padding:0px;margin:0px;border:0px;vertical-align:middle;" title="Mac OS X 10.11.3" width="24"/> Mac OS X  10.11.3</div><p style="padding:0px;line-height:1.5em;margin:0.8em 0px;">经常参考这篇文章，很有用的对比和参考。<br style="padding:0px;margin:0px;"/>
+这里补充下：<br style="padding:0px;margin:0px;"/>
+1.9版本以上Nginx已经支持TCP负载均衡了，UDP负载均衡貌似也有第三方开发了内部模块，遗憾没能弄到测试下。<br style="padding:0px;margin:0px;"/>
+另外，taobao的tengine已经支持url的健康检查，且也有第三方开发的支持健康检查模块</p>
+					<span style="display:block;height:0px;clear:both;visibility:hidden;">.</span></div>
+					<div style="margin:0px;font-size:12px;font-family:verdana, sans-serif;position:relative;padding:0px 6px 6px 0px;text-align:right;">
+						 
+						<a href="http://www.ha97.com/5646.html#" style="padding:0px;margin:0px;color:rgb(71, 119, 37);text-decoration:none;">回复他(她)</a>
+											</div>
+				</div>
+					
+
+			<span style="display:block;height:0px;clear:both;visibility:hidden;">.</span></div>
+			<div style="padding:4px;margin:6px 3px 3px;display:block;position:relative;background-color:rgb(255, 255, 255);border:1px solid rgb(221, 221, 221);">
+				<a name="comment-693065" style="padding:0px;margin:0px;color:rgb(71, 119, 37);text-decoration:none;"></a>
+				<div style="padding:0px;margin:0px;display:block;position:relative;padding-left:5px;">
+					<div style="padding:0px;position:relative;margin:4px 6px 0px 0px;width:11px;height:11px;overflow:hidden;background:url(&quot;http://www.ha97.com/wp-content/themes/tes-cn-release/images/icons.gif&quot;) 0px 0px no-repeat scroll transparent;cursor:pointer;float:left;">
+					</div>
+					<cite style="padding:0px;margin:0px;font-style:normal;font-weight:bold;float:left;"><a href="http://www.wanysys.cc/" rel="external nofollow" style="padding:0px;margin:0px;color:rgb(71, 119, 37);text-decoration:none;">素梅好翔博客</a><a href="http://www.ha97.com/5646.html#comment-693065" style="padding:0px;margin:0px;color:rgb(71, 119, 37);text-decoration:none;"></a></cite> 
+									
+				<span style="display:block;height:0px;clear:both;visibility:hidden;">.</span></div>
+				<div style="padding:0px;margin:0px;position:relative;padding-left:4px;">
+					<div style="padding:0px;margin:0px;font-size:10px;font-family:tahoma;color:rgb(51, 51, 51);position:relative;">
+						2016-05-30 14:02:46 						
+					</div>					
+					<div style="padding:0px;margin:0px;display:block;position:relative;">
+							<img src="（总结）NginxLVSHAProxy负载均衡软件的优缺点详解_files/13eb284cb84b028792cdc9d7cd7e28be.png" type="image/png" data-filename="13eb284cb84b028792cdc9d7cd7e28be.png" alt="" height="32" style="padding:0px;margin:0px;border:none;float:right;margin-right:8px;" width="32"/>						<div style="padding:0px;margin:0px;position:relative;"> <img src="（总结）NginxLVSHAProxy负载均衡软件的优缺点详解_files/Image [31].png" type="image/png" data-filename="Image.png" alt="Google Chrome 31.0.1650.63" height="24" style="padding:0px;margin:0px;border:0px;vertical-align:middle;" title="Google Chrome 31.0.1650.63" width="24"/> Google Chrome 31.0.1650.63  <img src="（总结）NginxLVSHAProxy负载均衡软件的优缺点详解_files/Image [32].png" type="image/png" data-filename="Image.png" alt="Windows 10" height="24" style="padding:0px;margin:0px;border:0px;vertical-align:middle;" title="Windows 10" width="24"/> Windows 10</div><p style="padding:0px;line-height:1.5em;margin:0.8em 0px;">写的很好，学习了，以后还会常来</p>
+					<span style="display:block;height:0px;clear:both;visibility:hidden;">.</span></div>
+					<div style="margin:0px;font-size:12px;font-family:verdana, sans-serif;position:relative;padding:0px 6px 6px 0px;text-align:right;">
+						 
+						<a href="http://www.ha97.com/5646.html#" style="padding:0px;margin:0px;color:rgb(71, 119, 37);text-decoration:none;">回复他(她)</a>
+											</div>
+				</div>
+					
+
+			<span style="display:block;height:0px;clear:both;visibility:hidden;">.</span></div>
+			<div style="padding:4px;margin:6px 3px 3px;display:block;position:relative;background-color:rgb(255, 255, 255);border:1px solid rgb(221, 221, 221);">
+				<a name="comment-695658" style="padding:0px;margin:0px;color:rgb(71, 119, 37);text-decoration:none;"></a>
+				<div style="padding:0px;margin:0px;display:block;position:relative;padding-left:5px;">
+					<div style="padding:0px;position:relative;margin:4px 6px 0px 0px;width:11px;height:11px;overflow:hidden;background:url(&quot;http://www.ha97.com/wp-content/themes/tes-cn-release/images/icons.gif&quot;) 0px 0px no-repeat scroll transparent;cursor:pointer;float:left;">
+					</div>
+					<cite style="padding:0px;margin:0px;font-style:normal;font-weight:bold;float:left;">kaliylinux<a href="http://www.ha97.com/5646.html#comment-695658" style="padding:0px;margin:0px;color:rgb(71, 119, 37);text-decoration:none;"></a></cite> 
+									
+				<span style="display:block;height:0px;clear:both;visibility:hidden;">.</span></div>
+				<div style="padding:0px;margin:0px;position:relative;padding-left:4px;">
+					<div style="padding:0px;margin:0px;font-size:10px;font-family:tahoma;color:rgb(51, 51, 51);position:relative;">
+						2016-07-30 13:42:59 						
+					</div>					
+					<div style="padding:0px;margin:0px;display:block;position:relative;">
+							<img src="（总结）NginxLVSHAProxy负载均衡软件的优缺点详解_files/94f6957c75915031ccf03de8a400f649.png" type="image/png" data-filename="94f6957c75915031ccf03de8a400f649.png" alt="" height="32" style="padding:0px;margin:0px;border:none;float:right;margin-right:8px;" width="32"/>						<div style="padding:0px;margin:0px;position:relative;"> <img src="（总结）NginxLVSHAProxy负载均衡软件的优缺点详解_files/Image [33].png" type="image/png" data-filename="Image.png" alt="Firefox 47.0" height="24" style="padding:0px;margin:0px;border:0px;vertical-align:middle;" title="Firefox 47.0" width="24"/> Firefox 47.0  <img src="（总结）NginxLVSHAProxy负载均衡软件的优缺点详解_files/Image [34].png" type="image/png" data-filename="Image.png" alt="Windows 7 x64 Edition" height="24" style="padding:0px;margin:0px;border:0px;vertical-align:middle;" title="Windows 7 x64 Edition" width="24"/> Windows 7 x64 Edition</div><p style="padding:0px;line-height:1.5em;margin:0.8em 0px;">好博文，博客地址已收藏！</p>
+					<span style="display:block;height:0px;clear:both;visibility:hidden;">.</span></div>
+					<div style="margin:0px;font-size:12px;font-family:verdana, sans-serif;position:relative;padding:0px 6px 6px 0px;text-align:right;">
+						 
+						<a href="http://www.ha97.com/5646.html#" style="padding:0px;margin:0px;color:rgb(71, 119, 37);text-decoration:none;">回复他(她)</a>
+											</div>
+				</div>
+					
+
+			<span style="display:block;height:0px;clear:both;visibility:hidden;">.</span></div>
+</div>
+
+<div style="margin:6px 3px 3px;display:block;position:relative;background-color:rgb(255, 255, 255);border:1px solid rgb(221, 221, 221);padding:10px 20px;">
+<a name="addcommentanchor" style="padding:0px;margin:0px;color:rgb(71, 119, 37);text-decoration:none;"></a>
+	
+	
+	
+
+	
+	
+<div style="padding:0px;margin:0px;">
+<div style="padding:0px;margin:0px;position:relative;">
+	
+	
+		<div style="padding:0px;margin:10px 0px;display:block;position:relative;">
+	<span style="padding:0px;margin:0px;float:left;display:block;width:110px;">
+		昵称 *
+	</span>
+	<div style="padding:0px;margin:0px;position:relative;">
+		
+	</div>
+	<span style="display:block;height:0px;clear:both;visibility:hidden;">.</span></div>
+		
+	<div style="padding:0px;margin:10px 0px;display:block;position:relative;">	
+	<span style="padding:0px;margin:0px;float:left;display:block;width:110px;">
+		电子邮件 *
+	</span>
+	<div style="padding:0px;margin:0px;position:relative;">
+		
+	</div>
+	<span style="display:block;height:0px;clear:both;visibility:hidden;">.</span></div>		
+		
+	<div style="padding:0px;margin:10px 0px;display:block;position:relative;">
+	<span style="padding:0px;margin:0px;float:left;display:block;width:110px;">
+		网站/博客
+	</span>
+	<div style="padding:0px;margin:0px;position:relative;">
+			
+	</div>
+	<span style="display:block;height:0px;clear:both;visibility:hidden;">.</span></div>
+		
+	<div style="padding:0px;margin:0px;position:relative;">
+		
+		
+		
+	</div>
+</div>
+
+</div>
+<span style="display:block;height:0px;clear:both;visibility:hidden;">.</span></div>
+			<div style="padding:0px;margin:15px auto 5px;display:block;width:100%;font-size:12px;font-family:Tahoma, sans-serif;">
+			<div style="padding:0px;margin:0px;float:left;">« <a href="http://www.ha97.com/5642.html" rel="prev" style="padding:0px;margin:0px;color:rgb(71, 119, 37);text-decoration:none;">关于云计算基础架构IaaS层的几点看法</a></div>
+			<div style="padding:0px;margin:0px;float:right;"><a href="http://www.ha97.com/5649.html" rel="next" style="padding:0px;margin:0px;color:rgb(71, 119, 37);text-decoration:none;">（原创）RHEL/CentOS/OracleLinux 7.x使用EPEL和REMI第三方yum源</a> »</div>
+		<span style="font-size:12px;font-family:Tahoma, sans-serif;display:block;height:0px;clear:both;visibility:hidden;">.</span></div>
+		</div></div></div></div></div></div><br/></div></span>
+</div></body></html> 

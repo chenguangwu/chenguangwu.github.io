@@ -1,0 +1,190 @@
+<html>
+<head>
+  <title>Apache +Tomcat的负载均衡与集群配置 - 小菜鸟的天地 - 博客频道 - CSDN.NET</title>
+  <basefont face="微软雅黑" size="2" />
+  <meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+  <meta name="exporter-version" content="YXBJ Windows/600718 (zh-CN, DDL); Windows/6.1.1 (Win64);"/>
+  <style>
+    body, td {
+      font-family: 微软雅黑;
+      font-size: 10pt;
+    }
+  </style>
+</head>
+<body>
+<a name="8519"/>
+<h1>Apache +Tomcat的负载均衡与集群配置 - 小菜鸟的天地 - 博客频道 - CSDN.NET</h1>
+<div>
+<table bgcolor="#D4DDE5" border="0">
+<tr><td><b>创建时间：</b></td><td><i>2017/1/5 10:46</i></td></tr>
+<tr><td><b>来源：</b></td><td><a href="http://blog.csdn.net/zhuying_linux/article/details/6587814"><i>http://blog.csdn.net/zhuying_linux/article/details/6587814</i></a></td></tr>
+</table>
+</div>
+<br/>
+
+<div><span><div style="-evernote-webclip:true"><br/><div style="font-size: 16px; display: inline-block;"><div><div style="color:rgb(51, 51, 51);text-align:center;font-size:12px;font-family:Arial, Console, Verdana, 'Courier New';background:url(&quot;http://static.blog.csdn.net/skin/default/css/../images/body_bg.gif&quot;) 0px 20px repeat-x;"><div style="background:url(&quot;http://static.blog.csdn.net/skin/default/css/../images/head_bg.jpg&quot;) 50% 0% no-repeat;"><div style="overflow:hidden;border-radius:8px;text-align:left;background:rgb(255, 255, 255);"><div style="overflow:hidden;border-radius:4px;"><div><div><div style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:14px;line-height:26px;font-family:Arial;">
+
+ 
+<h1 style="margin:0px;padding:0px;"><span style="font-size:24px;">Apache +Tomcat的负载均衡与集群配置</span></h1>
+<p>实验拓扑图：</p>
+<p><img src="Apache +Tomcat的负载均衡与集群配置 - 小菜鸟的天地 - 博客频道 - CS_files/0_13099295066ZjV.gif.jpg" type="image/jpeg" data-filename="0_13099295066ZjV.gif.jpg" alt="" height="481" style="border:none;max-width:100%;" width="552"/></p>
+<p><strong>一．搭配环境</strong></p>
+<p>（1）。Tomcat的安装和配置</p>
+<p><strong><span style="background-color:#66ff99;">Tomcat_a的ip：192.168.55.229</span></strong></p>
+<p><strong><span style="background-color:#66ff99;">Tomcat_b的ip：192.168.55.231</span></strong></p>
+<p>Tomcat的需要安装jdk和tomcat包（例如apache-tomcat-6.0.30.zip和jdk-6u5-<a href="http://lib.csdn.net/base/linux" style="color:#df3434;text-decoration:none;font-weight:bold;" target="_blank" title="Linux知识库">Linux</a>-x64.bin）</p>
+<p><strong><span style="background-color:#99ffff;">tomcat的安装和配置可以参考我的博客：</span></strong></p>
+<p>http://blog.csdn<a href="http://lib.csdn.net/base/dotnet" style="color:#df3434;text-decoration:none;font-weight:bold;" target="_blank" title=".NET知识库">.NET</a>/zhuying_linux/article/details/6583096</p>
+<p> </p>
+<p><a href="http://lib.csdn.net/base/softwaretest" style="color:#df3434;text-decoration:none;font-weight:bold;" target="_blank" title="软件测试知识库">测试</a>：分别访问http://192.168.55.229:8080和<a href="http://192.168.55.231:8080/" style="color:rgb(51, 102, 153);text-decoration:none;">http://192.168.55.231:8080</a></p>
+<p>如果出现tom猫说明已经成功</p>
+<p> </p>
+<p><strong>（2）。Apache 的安装：(采用源码编译安装的方式)</strong></p>
+<p><strong><span style="background-color:#9999ff;">Apache的地址为：192.168.50.50</span></strong></p>
+<p>#tar xzvf httpd-2.2.17.tar.gz</p>
+<p>            #cd  httpd-2.2.17</p>
+<p>            # ./configure --with-ldap --enable-mods-shared=&quot;all ssl ldap cache proxy authn_alias mem_cache file_cache authnz_ldap charset_lite dav_lock disk_cache&quot;<strong><span style="background-color:#99ff99;">【此选项为编译所有的模块】</span></strong></p>
+<p>1.  测试</p>
+<p><strong><span style="background-color:#99ffff;">/usr/local/apache2/conf/httpd.conf 中设置</span></strong>
+</p>
+<p>ServerName  localhost</p>
+<p>#cd  /usr/local/apache2/bin </p>
+<p>#./apachectl  start</p>
+<p>将出现类似httpd (pid 17040) already running的输出</p>
+<p>访问地址：http://192.168.50.50</p>
+<p><span style="background-color:#ffff00;">It works!hehe...</span></p>
+<p>说明已经成功~\(≧▽≦)/~啦啦啦，(～ o ～)~zZ</p>
+<p> </p>
+<p>二．（1）<strong>mod_proxy负载均衡配置</strong></p>
+<p><span style="background-color:#99ff99;"><strong>1．加载proxy模块</strong></span></p>
+<p>所有需要加载的代理模块为mod_proxy.so，mod_proxy.ajp.so，mod_proxy.http.so，mod_proxy.ftp.so，mod_proxy.connect.so，mod_proxy.balancer.so</p>
+<p>由于已经将所有模块加载，所以不用在配置中做修改，即为/usr/local/apache2/conf/httpd.conf文件中的如下指令：</p>
+<p><strong><span style="background-color:#cccccc;">LoadModule proxy_module modules/mod_proxy.so</span></strong></p>
+<p><strong><span style="background-color:#cccccc;">LoadModule proxy_ftp_module modules/mod_proxy_ftp.so</span></strong></p>
+<p><strong><span style="background-color:#cccccc;">LoadModule proxy_http_module modules/mod_proxy_http.so</span></strong></p>
+<p><strong><span style="background-color:#cccccc;">LoadModule proxy_ajp_module modules/mod_proxy_ajp.so</span></strong></p>
+<p><strong><span style="background-color:#cccccc;">LoadModule proxy_balancer_module modules/mod_proxy_balancer.so</span></strong></p>
+<p><strong><span style="background-color:#99ff99;">2．</span><span style="color:#000000;background-color:#99ff99;">配置虚拟主机proxyblancer</span></strong></p>
+<p>在/usr/local/apache2/conf/httpd.conf尾部添加<strong><span style="background-color:#99ffff;">Include conf/app1.conf</span></strong></p>
+<p>         <strong> 在conf/app1.conf 中添加以下内容：</strong></p>
+<p>Listen 8051<br/>
+&lt;VirtualHost *:8051&gt;</p>
+<p>ServerAdmin angel.zhu@99bill.com<strong># 指定服务器管理员的E-MAIL地址，服务器自动将错误报告给该地址</strong></p>
+<p>ServerName  localhost <strong># web客户端搜索的主机名</strong></p>
+<p>ErrorLog    &quot;/opt/apache_log/app1_error.log&quot;</p>
+<p>CustomLog   &quot;/opt/apache_log/app1_access.log&quot; <strong><span style="color:#000000;background-color:#99ff99;">common</span></strong></p>
+<p>ProxyPass /   balancer://cluster/  stickysession=JSESSIONID|jsessionid nofailover=On lbmethod=byrequests timeout=5 maxattempts=3</p>
+<p>#<strong> balancer： 复制会话的方式，包括</strong><code><strong>JSESSIONID</strong></code><strong>或</strong><code><strong>PHPSESSIONID
+</strong></code><code><strong>；</strong></code><strong>nofailover：<span style="background-color:#99ff99;">on 表示会话在worker出错或停掉时会中断</span>，<span style="background-color:#ffff00;">当后端服务器不支持会话复制时设为on ;</span> lbmethod:<span style="background-color:#99ffff;">选择负载的调度<a href="http://lib.csdn.net/base/datastructure" style="color:#df3434;text-decoration:none;font-weight:bold;" target="_blank" title="算法与数据结构知识库">算法</a></span>，默认</strong><code><strong>byrequests</strong></code><code><strong>表示轮询调度（就是1:1），</strong></code><code><strong><span style="color:#ff0000;background-color:#ffff33;">bytraffic</span></strong></code><code><strong><span style="background-color:#ccccff;">表示加权重的调度</span>，需加</strong></code><strong><span style="color:#ff0000;background-color:#ffff00;">loadfactor</span></strong><code><strong>指定权重值。</strong></code></p>
+<p><strong><span style="color:#ff0000;background-color:#ffff00;">ProxyPassReverse</span></strong> / balancer://cluster/
+<strong>#此指令使Apache调整HTTP重定向应答中Location, Content-Location, URI头里的URL。这样可以避免在Apache作为反向代理使用时，后端服务器的HTTP重定向造成的绕过反向代理的问题。</strong></p>
+<p>#The ProxyRequests directive should usually be set off when using ProxyPass.</p>
+<p>ProxyRequests Off<strong># <span style="background-color:#99ff99;">不允许作为正向代理</span></strong></p>
+<p><strong><span style="color:#ff0000;background-color:#ffff33;">ProxyPreserveHost On</span># 当启用时，此选项将把传入请求的&quot;Host:&quot;行传递给被代理的主机，而不是传递在ProxyPass中指定的主机名。</strong></p>
+<p>&lt;proxy balancer://cluster&gt;</p>
+<p>BalancerMember ajp://192.168.55.229:8009 route=<span style="color:#6633ff;"><strong>tomcat_a</strong></span></p>
+<p>BalancerMember ajp://192.168.55.231:8009 route=<span style="color:#6633ff;"><strong>tomcat_b</strong></span></p>
+<p><strong># rout 值附加在<span style="color:#ff0000;background-color:#ffff33;">session ID</span> 后面</strong></p>
+<p>&lt;/proxy&gt;</p>
+<p>&lt;/VirtualHost&gt;</p>
+<p><strong>此时访问http://192.168.50.50:8051,就出现了tom猫，说明apache已经来自8051端口的访问定向到tomcat服务器上。可是现在并看不出来是哪一台tomcat服务器，下面在两台tomcat中加入测试页面使效果更明显</strong></p>
+<p>2．在tomcat_a上面添加文件/usr/local/apache-tomcat-6.0.30/webapps/ROOT/<strong>test.jsp</strong>,内容为&lt;font color=red&gt;aaaaaaaaaaaaaaaaaa&lt;/font&gt;&lt;b&gt;</p>
+<p> </p>
+<p>另一台tomcat_b上面添加文件：</p>
+<p>/usr/local/apache-tomcat-6.0.30/webapps/ROOT/<strong>test.jsp</strong>,内容为</p>
+<p>&lt;font color=blue&gt;bbbbbbbbbbbbbbbbb&lt;/font&gt;&lt;b&gt;</p>
+<p> </p>
+<p>3．分别修改server.xml文件    &lt;Engine name=&quot;Catalina&quot; defaultHost=&quot;localhost&quot; jvmRoute=&quot;<strong><span style="background-color:#99ff99;">tomcat_a</span></strong>&quot;&gt;</p>
+<p>&lt;Engine name=&quot;Catalina&quot; defaultHost=&quot;localhost&quot; jvmRoute=&quot;<strong><span style="background-color:#66ff99;">tomcat_b</span></strong>&quot;&gt;</p>
+<p>另： 如果是<strong>jetty应用</strong>的话，就修改$jetty_home/etc/jetty.xml</p>
+<p> &lt;!-- =========================================================== --&gt;</p>
+<p>    &lt;Set name=&quot;sessionIdManager&quot;&gt;</p>
+<p>      &lt;New class=&quot;<strong>org.mortbay.jetty.servlet.HashSessionIdManager</strong>&quot;&gt;</p>
+<p>        &lt;Set name=&quot;workerName&quot;&gt;<strong> <span style="background-color:#99ff99;">
+tomcat_a</span></strong> &lt;/Set&gt;</p>
+<p>      &lt;/New&gt;</p>
+<p>    &lt;/Set&gt;</p>
+<p> </p>
+<p><strong>此时在问http://192.168.50.50:8080 /test.jsp,就会交替出现aaaaaaaaaaaaaaaaaa和bbbbbbbbbbbbbbbbb ，则表明测试成功。</strong></p>
+<p><strong>二（2）：mod_jk负载均衡配置</strong></p>
+<p>1.       由于<strong>mod_jk </strong>为第三方模块，需要到tomcat官网下载，url为http://mirror.bjtu.edu.cn/apache//tomcat/tomcat-connectors/jk/source/jk-1.2.31/tomcat-connectors-1.2.31-src.tar.gz 。</p>
+<p>2.       在Apache  Server 上将jk 模块编译进apache中：</p>
+<p>  # tar  xvfz  tomcat-connectors-1.2.31-src.tar.gz</p>
+<p> </p>
+<p>#  cd  tomcat-connectors-1.2.31-src/<strong>native</strong>/</p>
+<p> </p>
+<p>./configure --with-apxs=/usr/local/apache2/bin/apxs --with-<a href="http://lib.csdn.net/base/javase" style="color:#df3434;text-decoration:none;font-weight:bold;" target="_blank" title="Java SE知识库">Java</a>-home=/usr/local/jdk
+</p>
+<p>make &amp;&amp; make install</p>
+<p> </p>
+<p><strong>此时在/usr/local/apache2/modules 下会出现一个<span style="background-color:#99ff99;">mod_jk.so</span>，则已编译成功。</strong></p>
+<p>3.       配置apache 的配置文件</p>
+<p>1  vi  vi /usr/local/apache2/conf/httpd.conf   添加以下内容：</p>
+<p><span style="background-color:#99ff99;"><strong>LoadModule jk_module modules/mod_jk.so</strong></span></p>
+<p> </p>
+<p>&lt;IfModule jk_module&gt; </p>
+<p>JkWorkersFile conf/workers.properties </p>
+<p>JkLogFile logs/mod_jk.log </p>
+<p>JkLogLevel <strong><span style="color:#ff0000;">warn</span></strong></p>
+<p>&lt;/IfModule&gt;</p>
+<p> </p>
+<p><strong><span style="background-color:#33ff33;">Include conf/app2.conf</span></strong></p>
+<p>       2 创建并配置app2.conf文件</p>
+<p>           </p>
+<p>Listen 8052</p>
+<p>&lt;VirtualHost *:8052&gt;</p>
+<p>DocumentRoot &quot;/usr/local/apache2/htdocs&quot;</p>
+<p>ServerName localhost</p>
+<p>ServerAdmin app2.Admin@99bill.com</p>
+<p>ErrorLog &quot;/usr/local/apache2/logs/app2 error_log”</p>
+<p><strong><span style="color:#ff0000;background-color:#ffff00;">TransferLog</span></strong> &quot;/usr/local/apache2/logs/app2 access_log&quot;
+</p>
+<p><span style="color:#000000;background-color:#cccccc;"><strong>JkMount /*</strong></span><span style="color:#ff0000;">
+</span><strong><span style="color:#99ff99;"><span style="color:#ff0000;background-color:#99ff99;">tomcatbalancer</span>
+</span></strong></p>
+<p>&lt;/VirtualHost&gt;</p>
+<p>       3 创建并配置workers.properties文件</p>
+<p><strong><span style="background-color:#99ff99;">worker 是一个Tomcat 实例 ，用来处理从web server 来的servlet 请求，可以一个worker 或 多个worker，来实现加载平衡或网站分区。 每个worker 都向web server 注册其主机的ip 地址，端口号和通信协议。</span></strong></p>
+<p><strong><span style="background-color:#99ff99;"></span></strong> </p>
+<p>vi /usr/local/apache2/conf/<strong><span style="background-color:#99ff99;">workers.properties</span></strong>，添加以下内容：</p>
+<p>       </p>
+<p>worker.list=tomcattest1</p>
+<p>worker.tomcattest1.port=8009</p>
+<p>worker.tomcattest1.host=192.168.55.229</p>
+<p>worker.tomcattest1.type=ajp13</p>
+<p><strong>worker.tomcattest1.lbfactor=2</strong></p>
+<p> </p>
+<p>worker.list=tomcattest2</p>
+<p>worker.tomcattest2.port=8009</p>
+<p>worker.tomcattest2.host=192.168.55.231</p>
+<p>worker.tomcattest2.type=<strong>ajp13</strong></p>
+<p><strong>worker.tomcattest2.lbfactor=1</strong></p>
+<p> </p>
+<p>worker.list=<strong><span style="color:#ff0000;background-color:#99ff99;">tomcatbalancer</span></strong></p>
+<p>worker.tomcatbalancer.type=<strong><span style="background-color:#99ff99;">lb</span></strong></p>
+<p>worker.tomcatbalancer.<strong><span style="color:#000000;background-color:#66ff99;">balance_workers</span></strong>=tomcattest1,tomcattest2</p>
+<p> </p>
+<p> </p>
+<p>1.     分别修改server.xml文件    &lt;Engine name=&quot;Catalina&quot; defaultHost=&quot;localhost&quot; jvmRoute=&quot;<strong><span style="background-color:#99ff99;">tomcat_a</span></strong>&quot;&gt;</p>
+<p>&lt;Engine name=&quot;Catalina&quot; defaultHost=&quot;localhost&quot; jvmRoute=&quot;<strong><span style="background-color:#99ff99;">tomcat_b</span></strong>&quot;&gt;</p>
+<p>另： 如果是jetty应用的话，就修改$jetty_home/etc/jetty.xml</p>
+<p> &lt;!-- =========================================================== --&gt;</p>
+<p>    &lt;Set name=&quot;sessionIdManager&quot;&gt;</p>
+<p>      &lt;New class=&quot;org.mortbay.jetty.servlet.HashSessionIdManager&quot;&gt;</p>
+<p>        &lt;Set name=&quot;workerName&quot;&gt;<strong> tomcat_a</strong> &lt;/Set&gt;</p>
+<p>      &lt;/New&gt;</p>
+<p>    &lt;/Set&gt;</p>
+<p> </p>
+<p>5         测试：</p>
+<p>此时在问http://192.168.50.50:8052/test.jsp,就会交替出现aaaaaaaaaaaaaaaaaa和bbbbbbbbbbbbbbbbb ，并且bbbbbbbbbbbbbbbbb出现的平均次数是的2倍，这是因为<strong>worker.tomcattest2.lbfactor=1</strong></p>
+<p>worker.tomcattest1.lbfactor=2 权重的设置</p>
+<p> </p>
+<p> </p>
+<p><strong></strong> </p>
+<p><strong></strong> </p>
+<p> </p>
+<p> </p>
+<p> </p>
+   
+</div></div></div></div></div></div></div></div></div><br/></div></span>
+</div></body></html> 

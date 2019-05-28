@@ -1,0 +1,196 @@
+<html>
+<head>
+  <title>服务引擎的理解 - Jevo - 博客园</title>
+  <basefont face="微软雅黑" size="2" />
+  <meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+  <meta name="exporter-version" content="YXBJ Windows/600718 (zh-CN, DDL); Windows/6.1.1 (Win64);"/>
+  <style>
+    body, td {
+      font-family: 微软雅黑;
+      font-size: 10pt;
+    }
+  </style>
+</head>
+<body>
+<a name="6213"/>
+<h1>服务引擎的理解 - Jevo - 博客园</h1>
+<div>
+<table bgcolor="#D4DDE5" border="0">
+<tr><td><b>创建时间：</b></td><td><i>2017/3/29 17:05</i></td></tr>
+<tr><td><b>来源：</b></td><td><a href="http://www.cnblogs.com/jevo/archive/2013/03/15/2960489.html"><i>http://www.cnblogs.com/jevo/archive/2013/03/15/2960489.html</i></a></td></tr>
+</table>
+</div>
+<br/>
+
+<div><span><div style="-evernote-webclip:true"><br/><div style="font-size: 16px; display: inline-block;"><div><div style="font-family:&quot;PingFang SC&quot;, &quot;Helvetica Neue&quot;, Helvetica, Arial, sans-serif;color:rgb(0, 0, 0);background:url(&quot;/Skins/coffee/images/bg_body.gif&quot;) left top;line-height:1.5;font-size:14px;"><div style="min-width:auto;"><div style="min-width:auto;text-align:left;"><div style="background:transparent;text-align:left;overflow-x:hidden;"><div style="background:url(&quot;/Skins/coffee/images/bg_left.gif&quot;) left top repeat-x rgb(254, 254, 242);"><div><div style="text-overflow:ellipsis;overflow:hidden;word-break:break-all;"><div>
+		<h1 style="margin:0px;padding:0px;width:100%;clear:both;font-weight:bold;float:left;line-height:1.5;font-size:14px;padding-left:5px;">
+			<a href="http://www.cnblogs.com/jevo/archive/2013/03/15/2960489.html" style="margin:0px;padding:0px;text-decoration:none;color:rgb(7, 93, 179);">服务引擎的理解</a>
+		</h1>
+		<div style="margin:0px;padding:0px;clear:both;"></div>
+		<div style="margin:0px;padding:5px 2px 5px 5px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin-top:5px;">
+			<div style="margin:0px;padding:0px;margin-bottom:20px;word-break:break-word;"><p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">      服务是定义为一段独立的逻辑程序，当多个服务组合在一起时就可以完成不同类型的业务需求。Ofbiz服务能调用其他服务定义，将多个小的服务串联起来实现一个大的任务。服务通过服务定义文件来定义并指派给具体的服务引擎。每个服务引擎通过适当方式来调用服务定义。在Ofbiz服务引擎中，服务需要使用Map传入参数，结果同样从Map中返回。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"><strong style="margin:0px;padding:0px;">常见的几种服务类型</strong></p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">1．Interface服务引擎</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">     interface 服务引擎实现在服务定义时可以共享相同的参数。一个接口服务不能被单独调用，服务功能是在实现服务接口的其他服务定义中实现的。每个接口服务都需要用interface 引擎来定义。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"> 2．ECA（Event Condition Action）</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">     ECA类似一个触发器，当一个服务被调用时，会检查是否为这个事件定义ECAs ，在验证、检验、事件实际调用、输出参数校验、事务提交或者服务返回之前包含进来。每个条件都会被验证，如果全部返回为真，定义的动作将会被执行。一个动作就是一个服务，服务的参数必须是已经存在于服务的上下文中。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">每个ECA可以定义的条件数或者动作数没有限制。（用ServiceEcaRule的静态方法来调用）</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">3．服务组</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">      服务组是由多个服务组成的服务集合，使用组服务定义文件来定义一个组服务，当这个组服务被调用时，组中定义的所有服务都会被调用。(ServiceGroupEngine.java)</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">      组的定义比较简单，包含一个拥有多个 service 元素的 group 元素。group 元素包含一个 name 属性和一个 mode 属性， 其中mode  用来定义服务怎么执行。service  元类似于 ECA  中的action元素，不同之处在于 result-to-context 属性的默认值。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">4．路由服务</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">      路由服务使用路由服务引擎定义。当一个路由服务被调用时，所有定义的 ECA 会在适当事件中被运行。路由服务通过利用ECA服务选项可以路由( 'route') 到其他服务。(RouteEngine.java)</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">5．HTTP服务</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">      HTTP服务是调用定义在其他系统上远程服务的一种方法。远程定义和本地定义是一致的，但其引擎应该是http。location 应该是httpService 事件在远程系统上运行的完全URL，方法是远程系统上被调用运行的服务名。在远程系统上的服务必须将export属性设为true允许远程调用。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">      HTTP 服务本质就是同步的。(HttpEngine.java)</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">6．异步服务</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">      异步服务就是job scheduler异步调用的工作/服务。它包含池化的线程和几个请求线程。thread-pool 标签用来配置每个线程怎么操作。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"> </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"><strong style="margin:0px;padding:0px;">OFBiz</strong><strong style="margin:0px;padding:0px;">中</strong><strong style="margin:0px;padding:0px;">services</strong><strong style="margin:0px;padding:0px;">调用机制</strong></p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">Services的调用是从请求开始的，ControlServlet 就是所有请求过程的核心。当收到一个请求时，servlet 首先会设置系统环境信息，这里会将LocalDispatcher与Delegator设置到HttpServletRequest变量中去。View控制器Controller通过调用LocalDispatcher(实现类GenericDispatcher)将请求转发到ServiceDispatcher上，通过ServiceDispatcher来调用合适的服务引擎GenericEngine。服务引擎调用相应的实体引擎(Delegator的实现类GenericDelegator)来完成业务逻辑。事务管理是在ServiceDispatcher中完成的(异步调用最终也是在Job线程中调用ServiceDispatcher的同步方法)。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">View控制器controller中如下调用服务：</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">LocalDispatcher dispatcher = dctx.getDispatcher();<br style="margin:0px;padding:0px;"/>Map&lt;String, Object&gt; result = dispatcher.runSync(getServiceName(), getContext());</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">服务是声明在service.xml文件中的，声明格式如下：</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">&lt;service name=&quot;createSurveyReport4Receipt&quot; engine=&quot;java&quot;确location=&quot;org.sample.warehouse.shipment.ShipmentReceiptServices&quot; invoke=&quot;createSurveyReport4Receipt&quot;&gt;</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">        &lt;description&gt;Create SurveyReport for ShipmentReceipt&lt;/description&gt;</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">        &lt;attribute name=&quot;receiptId&quot; type=&quot;String&quot; mode=&quot;INOUT&quot; optional=&quot;false&quot;/&gt;</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">        &lt;attribute name=&quot;receiptTypeId&quot; type=&quot;String&quot; mode=&quot;IN&quot; optional=&quot;true&quot;/&gt;</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">        &lt;attribute name=&quot;statusId&quot; type=&quot;String&quot; mode=&quot;IN&quot; optional=&quot;true&quot;/&gt;</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">        &lt;attribute name=&quot;inspectId&quot; type=&quot;String&quot; mode=&quot;OUT&quot; optional=&quot;true&quot;/&gt;</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">&lt;/service&gt;</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">   LocalDispatcher是本地调度器，实现服务的同步异步调度和定时任务的调度。服务最终是通过ServiceDispather分配到适当的服务引擎，最终交由GenericEngine来完成。每个实体引擎代理都有一个具体的 ServiceDispatcher实例(一个ServiceDispatcher实例对应一个实体引擎代理)。每个LocalDispatcher 都是唯一命名并包含自己的一些服务定义。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">      在ServiceDispatcher中，通过调用ServiceEcaUtil.evalRules（）方法来执行ECA检验，并通过调用TransactionUtil方法来完成事务处理。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">      在请求处理过程中，如果遇到service的event，那么EventHandler会使用LocalDispatcher执行service。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"><strong style="margin:0px;padding:0px;">同步调用</strong></p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">通过dispatcher调用runSync方法(即调用GenericDispatcher的runSync方法，最后转为ServiceDispatcher去完成任务- 调用dispatcher-&gt;runSync()方法)：</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">/**<br style="margin:0px;padding:0px;"/>   * @see org.ofbiz.service.LocalDispatcher#runSync(java.lang.String, java.util.Map)<br style="margin:0px;padding:0px;"/>   */</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">public Map&lt;String, Object&gt; runSync(String serviceName, Map&lt;String, ? extends Object&gt; context) <br style="margin:0px;padding:0px;"/>       throws ServiceValidationException, GenericServiceException {<br style="margin:0px;padding:0px;"/>    ModelService service = ctx.getModelService(serviceName);<br style="margin:0px;padding:0px;"/>    return dispatcher.runSync(this.name, service, context); // dispatcher是ServiceDispatcher实例。<br style="margin:0px;padding:0px;"/>}</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">其中，dispatcher实际是ServiceDispatcher对象。ServiceDispatcher的runSync方法有三百多行，比较复杂，但最终调用service的是GenericEngine。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">GenericEngine engine = this.getGenericEngine(modelService.engineName);<br style="margin:0px;padding:0px;"/>    ……<br style="margin:0px;padding:0px;"/>    <br style="margin:0px;padding:0px;"/>    Map&lt;String, Object&gt; invokeResult = engine.runSync(localName, modelService, context); //engine是服务的实现</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">GenericEngine是在其工厂类GenericEngineFactory获取的。从配置文件serviceengine.xml文件中获取相应的engine子类，如java的org.ofbiz.service.engine.StandardJavaEngine、bsh的是org.ofbiz.service.engine.BeanShellEngine。<br style="margin:0px;padding:0px;"/>不同的Engine实现的方式不一样。Java的StandardJavaEnignerunSync方法采用的是反射来执行相应的方法，如下：</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">Class&lt;?&gt; c = cl.loadClass(this.getLocation(modelService));</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">Method m = c.getMethod(modelService.invoke, DispatchContext.class, Map.class);</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">if (Modifier.isStatic(m.getModifiers())) {</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">    result = m.invoke(null, dctx, context);</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">} else {</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">    result = m.invoke(c.newInstance(), dctx, context);</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">}</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">一个标准Java服务实现类代码类似如下：</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">public class  xxxxx {</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">     public static Map doxxx(DispatchContext dctx, Map context) {</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">         GenericDelegator delegator = (GenericDelegator)dctx.getDelegator();</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">          //从context中取出参数</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">          Object param = context.get(…);</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">          //调用实体引擎代理执行数据库业务操作。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">         delegator…..();</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">         //结果保存在result中.</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">         Map results = ServiceUtil.returnSuccess();   </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">         ….</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">         return results;</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">    }</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">}</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">这样在ServiceDispatcher中执行engine.runSync(localName, modelService, context);最终通过具体的服务引擎实现来调用具体的业务逻辑实现。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"><strong style="margin:0px;padding:0px;">异步调用</strong></p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">      实现异步的原理就是启动一个线程来执行相应的业务逻辑，原方法直接返回，从而实现异步。具体实现可以根据实际情况而定，比如将业务逻辑封装成一个任务，再将此任务放到一个任务链中。最终由线程池选择任务进行执行。具体来查看GenericAsyncEngine的runAsync方法就会发现Ofbiz是通过生成一个Job来实现的：</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">job = new GenericServiceJob(dctx, jobId, name, modelService.name, context, requester);<br style="margin:0px;padding:0px;"/>try {<br style="margin:0px;padding:0px;"/>    dispatcher.getJobManager().runJob(job);<br style="margin:0px;padding:0px;"/>} catch (JobManagerException jse) {<br style="margin:0px;padding:0px;"/>    throw new GenericServiceException(&quot;Cannot run job.&quot;, jse);<br style="margin:0px;padding:0px;"/>}</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"><strong style="margin:0px;padding:0px;">OFBiz</strong><strong style="margin:0px;padding:0px;">中</strong><strong style="margin:0px;padding:0px;">Job</strong><strong style="margin:0px;padding:0px;">的运行机制</strong></p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">     OFBiz执行后台任务的类在org.ofbiz.service.job中。JobPoller和JobInvoker是其中主要的两个类，一个负责查询可以执行的Job，另一个执行Job任务。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">在Ofbiz中基本上服务都是以下方式来运行的。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">public void schedule(String jobName, String poolName, String serviceName, Map&lt;String, ? extends Object&gt; context, long startTime, int frequency, int interval, int count, long endTime, int maxRetry) throws GenericServiceException {</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">        Transaction suspendedTransaction = null;</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">        try {</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">            boolean beganTransaction = false;</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">            suspendedTransaction = TransactionUtil.suspend();</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">            try {</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">                beganTransaction = TransactionUtil.begin();</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">                try {</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">                    getJobManager().schedule(jobName, poolName, serviceName, context, startTime, frequency, interval, count, endTime, maxRetry);</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"> </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">                    if (Debug.verboseOn()) {</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">                        Debug.logVerbose(&quot;[LocalDispatcher.schedule] : Current time : &quot; + (new Date()).getTime(), module);</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">                        Debug.logVerbose(&quot;[LocalDispatcher.schedule] : Runtime      : &quot; + startTime, module);</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">                        Debug.logVerbose(&quot;[LocalDispatcher.schedule] : Frequency    : &quot; + frequency, module);</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">                        Debug.logVerbose(&quot;[LocalDispatcher.schedule] : Interval     : &quot; + interval, module);</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">                        Debug.logVerbose(&quot;[LocalDispatcher.schedule] : Count        : &quot; + count, module);</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">                        Debug.logVerbose(&quot;[LocalDispatcher.schedule] : EndTime      : &quot; + endTime, module);</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">                        Debug.logVerbose(&quot;[LocalDispatcher.schedule] : MazRetry     : &quot; + maxRetry, module);</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">                    }</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"> </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">                } catch (JobManagerException jme) {</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">                    throw new GenericServiceException(jme.getMessage(), jme);</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">                }</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">            } catch (Exception e) {</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">                String errMsg = &quot;General error while scheduling job&quot;;</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">                Debug.logError(e, errMsg, module);</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">                try {</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">                    TransactionUtil.rollback(beganTransaction, errMsg, e);</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">                } catch (GenericTransactionException gte1) {</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">                    Debug.logError(gte1, &quot;Unable to rollback transaction&quot;, module);</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">                }</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">            } finally {</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">                try {</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">                    TransactionUtil.commit(beganTransaction);</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">                } catch (GenericTransactionException gte2) {</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">                    Debug.logError(gte2, &quot;Unable to commit scheduled job&quot;, module);</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">                }</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">            }</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">        } catch (GenericTransactionException gte) {</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">            Debug.logError(gte, &quot;Error suspending transaction while scheduling job&quot;, module);</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">        } finally {</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">            if (suspendedTransaction != null) {</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">                try {</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">                    TransactionUtil.resume(suspendedTransaction);</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">                } catch (GenericTransactionException gte3) {</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">                    Debug.logError(gte3, &quot;Error resuming suspended transaction after scheduling job&quot;, module);</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">                }</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">            }</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">        }</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">    }</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"> </p></div>
+<div style="margin:0px;padding:0px;clear:both;"></div>
+<div style="margin:0px;padding:0px;margin-top:20px;">
+<div style="margin:0px;padding:0px;margin-bottom:10px;">分类: <a href="http://www.cnblogs.com/jevo/category/459572.html" style="margin:0px;padding:0px;text-decoration:underline;color:rgb(7, 93, 179);" target="_blank">ofbiz</a></div>
+<div style="margin:0px;padding:0px;font-size:9pt;color:rgb(102, 102, 102);margin-top:0px;"></div>
+<div style="margin:0px;padding:0px;"><div style="margin:0px;padding:10px 0px;margin-bottom:10px;margin-top:10px;border:1px dashed silver;font-size:12px;width:320px;text-align:center;">
+        <a href="#" style="margin-right:10px;margin:0px;border-radius:10px;padding:3px 8px;text-decoration:none;font-weight:bold;cursor:pointer;display:inline-block;vertical-align:middle;box-shadow:rgba(0, 0, 0, 0.498039) 0px 1px 3px;text-shadow:rgba(0, 0, 0, 0.247059) 0px -1px 1px;background:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAAkCAYAAABIdFAMAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAHhJREFUeNo8zjsOxCAMBFB/KEAUFFR0Cbng3nQPw68ArZdAlOZppPFIBhH5EAB8b+Tlt9MYQ6i1BuqFaq1CKSVcxZ2Acs6406KUgpt5/LCKuVgz5BDCSb13ZO99ZOdcZGvt4mJjzMVKqcha68iIePB86GAiOv8CDADlIUQBs7MD3wAAAABJRU5ErkJggg%3D%3D&quot;) repeat-x;background-color:rgb(45, 174, 191);color:rgb(255, 255, 255);border:none;">好文要顶</a>
+            <a href="#" style="margin-right:10px;margin:0px;border-radius:10px;padding:3px 8px;text-decoration:none;font-weight:bold;cursor:pointer;display:inline-block;vertical-align:middle;box-shadow:rgba(0, 0, 0, 0.498039) 0px 1px 3px;text-shadow:rgba(0, 0, 0, 0.247059) 0px -1px 1px;background:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAAkCAYAAABIdFAMAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAHhJREFUeNo8zjsOxCAMBFB/KEAUFFR0Cbng3nQPw68ArZdAlOZppPFIBhH5EAB8b+Tlt9MYQ6i1BuqFaq1CKSVcxZ2Acs6406KUgpt5/LCKuVgz5BDCSb13ZO99ZOdcZGvt4mJjzMVKqcha68iIePB86GAiOv8CDADlIUQBs7MD3wAAAABJRU5ErkJggg%3D%3D&quot;) repeat-x;background-color:rgb(227, 49, 0);color:rgb(255, 255, 255);border:none;">关注我</a>
+    <a href="#" style="margin-right:10px;margin:0px;border-radius:10px;padding:3px 8px;text-decoration:none;font-weight:bold;cursor:pointer;display:inline-block;vertical-align:middle;box-shadow:rgba(0, 0, 0, 0.498039) 0px 1px 3px;text-shadow:rgba(0, 0, 0, 0.247059) 0px -1px 1px;background:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAAkCAYAAABIdFAMAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAHhJREFUeNo8zjsOxCAMBFB/KEAUFFR0Cbng3nQPw68ArZdAlOZppPFIBhH5EAB8b+Tlt9MYQ6i1BuqFaq1CKSVcxZ2Acs6406KUgpt5/LCKuVgz5BDCSb13ZO99ZOdcZGvt4mJjzMVKqcha68iIePB86GAiOv8CDADlIUQBs7MD3wAAAABJRU5ErkJggg%3D%3D&quot;) repeat-x;background-color:rgb(255, 181, 21);color:rgb(255, 255, 255);border:none;">收藏该文</a>
+    <a href="#" style="margin-right:10px;margin:0px;border-radius:10px;padding:3px 2px;text-decoration:none;font-weight:bold;cursor:pointer;display:inline-block;vertical-align:middle;box-shadow:none;text-shadow:none;background:none;color:rgb(255, 255, 255);border:none;" title="分享至新浪微博"><img src="服务引擎的理解 - Jevo - 博客园_files/icon_weibo_24.png" type="image/png" data-filename="icon_weibo_24.png" alt="" height="24" style="margin:0px;padding:0px;height:auto;border:none;vertical-align:middle;margin-left:5px;box-shadow:none;max-width:300px;" width="24"/></a>
+    <a href="#" style="margin-right:10px;margin:0px;border-radius:10px;padding:3px 2px;text-decoration:none;font-weight:bold;cursor:pointer;display:inline-block;vertical-align:middle;box-shadow:none;text-shadow:none;background:none;color:rgb(255, 255, 255);border:none;" title="分享至微信"><img src="服务引擎的理解 - Jevo - 博客园_files/wechat.png" type="image/png" data-filename="wechat.png" alt="" height="24" style="margin:0px;padding:0px;border:medium none;width:24px;height:24px;box-shadow:none;margin-left:5px;vertical-align:middle;max-width:300px;" width="24"/></a>
+</div>
+<div style="margin:0px;padding:0px;float:left;width:280px;margin-top:0px;margin-bottom:10px;color:rgb(0, 0, 0);margin-left:0px;font-size:12px;">
+    <div style="margin:0px;padding:0px;float:left;line-height:18px;">
+            <a href="http://home.cnblogs.com/u/jevo/" style="margin:0px;padding:0px;text-decoration:underline;color:rgb(7, 93, 179);" target="_blank"><img src="服务引擎的理解 - Jevo - 博客园_files/sample_face.gif" type="image/gif" data-filename="sample_face.gif" alt="" height="46" style="margin:0px;padding:0px;height:auto;border:0px;vertical-align:top;float:left;margin-right:5px;padding-top:5px;padding-left:2px;max-width:300px;" width="47"/></a>
+        <div style="margin:0px;padding:0px;float:left;line-height:18px;">
+            <a href="http://home.cnblogs.com/u/jevo/" style="margin:0px;padding:0px;text-decoration:underline;color:rgb(7, 93, 179);">Jevo</a><br style="margin:0px;padding:0px;"/>
+            <a href="http://home.cnblogs.com/u/jevo/followees" style="margin:0px;padding:0px;text-decoration:underline;color:rgb(7, 93, 179);">关注 - 0</a><br style="margin:0px;padding:0px;"/>
+            <a href="http://home.cnblogs.com/u/jevo/followers" style="margin:0px;padding:0px;text-decoration:underline;color:rgb(7, 93, 179);">粉丝 - 21</a>
+        </div>
+    </div>
+    <div style="margin:0px;padding:0px;clear:both;"></div>
+    <div style="margin:0px;padding:0px;"></div>
+    <div style="margin:0px;padding:0px;">
+                <a href="#" style="margin:0px;padding:0px;text-decoration:underline;color:rgb(7, 93, 179);">+加关注</a>
+    </div>
+</div>
+<div style="margin:0px;padding:0px;float:right;margin-bottom:10px;margin-right:30px;font-size:12px;width:125px;text-align:center;margin-top:10px;">
+    <div style="margin:0px;padding:0px;float:left;width:46px;height:52px;background:url(&quot;http://static.cnblogs.com/images/upup.gif&quot;) no-repeat;text-align:center;cursor:pointer;margin-top:2px;padding-top:5px;">
+        <span style="margin:0px;padding:0px;font-size:14px;color:rgb(7, 93, 179);font-family:Verdana;line-height:1.5em;">0</span>
+    </div>
+    <div style="text-align:center;padding:0px;margin:0px;height:52px;background:url(&quot;http://static.cnblogs.com/images/downdown.gif&quot;) no-repeat;margin-left:20px;cursor:pointer;margin-top:2px;padding-top:5px;width:46px;float:right;">
+        <span style="margin:0px;padding:0px;font-size:14px;color:rgb(7, 93, 179);font-family:Verdana;line-height:1.5em;">0</span>
+    </div>
+    <div style="margin:0px;padding:0px;clear:both;"></div>
+    <div style="margin:0px;padding:0px;margin-top:5px;margin-left:0px;font-size:12px;color:gray;">
+    </div>
+</div>
+</div>
+<div style="margin:0px;padding:0px;clear:both;"></div>
+<div style="margin:0px;padding:0px;line-height:1.8;font-size:12px;"><a href="http://www.cnblogs.com/jevo/archive/2013/03/14/2960549.html" style="margin:0px;padding:0px;color:rgb(7, 93, 179);text-decoration:none;">« </a> 上一篇：<a href="http://www.cnblogs.com/jevo/archive/2013/03/14/2960549.html" style="margin:0px;padding:0px;text-decoration:underline;color:rgb(7, 93, 179);" title="发布于2013-03-14 23:11">性能调优综述</a><br style="margin:0px;padding:0px;"/><a href="http://www.cnblogs.com/jevo/archive/2013/03/16/2964954.html" style="margin:0px;padding:0px;color:rgb(7, 93, 179);text-decoration:none;">» </a> 下一篇：<a href="http://www.cnblogs.com/jevo/archive/2013/03/16/2964954.html" style="margin:0px;padding:0px;text-decoration:underline;color:rgb(7, 93, 179);" title="发布于2013-03-16 22:13">一般性能指标</a><br style="margin:0px;padding:0px;"/></div>
+</div>
+
+
+		</div>
+		<div style="margin:0px;padding:0px;clear:both;font-size:12px;float:right;width:100%;text-align:right;padding-right:5px;color:rgb(102, 102, 102);margin-top:5px;">posted @ <span style="margin:0px;padding:0px;">2013-03-15 22:35</span> <a href="http://www.cnblogs.com/jevo/" style="margin:0px;padding:0px;text-decoration:none;color:rgb(7, 93, 179);">Jevo</a> 阅读(<span style="margin:0px;padding:0px;">192</span>) 评论(<span style="margin:0px;padding:0px;">0</span>)  <a href="https://i.cnblogs.com/EditPosts.aspx?postid=2960489" rel="nofollow" style="margin:0px;padding:0px;text-decoration:none;color:rgb(7, 93, 179);">编辑</a> <a href="http://www.cnblogs.com/jevo/archive/2013/03/15/2960489.html#" style="margin:0px;padding:0px;text-decoration:none;color:rgb(7, 93, 179);">收藏</a></div>
+	</div></div></div></div></div></div></div></div></div></div><br/></div></span>
+</div></body></html> 

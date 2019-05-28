@@ -1,0 +1,174 @@
+<html>
+<head>
+  <title>关于connect by 误区讲解，纯属个人心得和经验，有图有文字 - 追逐繁星 - 博客园</title>
+  <basefont face="微软雅黑" size="2" />
+  <meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+  <meta name="exporter-version" content="YXBJ Windows/600718 (zh-CN, DDL); Windows/6.1.1 (Win64);"/>
+  <style>
+    body, td {
+      font-family: 微软雅黑;
+      font-size: 10pt;
+    }
+  </style>
+</head>
+<body>
+<a name="4742"/>
+<h1>关于connect by 误区讲解，纯属个人心得和经验，有图有文字 - 追逐繁星 - 博客园</h1>
+<div>
+<table bgcolor="#D4DDE5" border="0">
+<tr><td><b>创建时间：</b></td><td><i>2018/6/21 16:44</i></td></tr>
+<tr><td><b>来源：</b></td><td><a href="https://www.cnblogs.com/king-xg/p/6927541.html"><i>https://www.cnblogs.com/king-xg/p/6927541.html</i></a></td></tr>
+</table>
+</div>
+<br/>
+
+<div><span>
+  <div>
+<div style="font-size: 16px; display: inline-block; min-width: 100%;position: relative;"><div><div style="font-family:&quot;PingFang SC&quot;, &quot;Helvetica Neue&quot;, Helvetica, Arial, sans-serif;color:rgb(0, 0, 0);background-color:rgb(230, 230, 230);font-size:14px;"><div style="background-color:rgb(255, 255, 255);box-shadow:rgba(100, 100, 100, 0.298039) 0px 2px 6px;"><div style="text-align:left;"><div style="text-overflow:ellipsis;overflow:hidden;"><div><div><div style="text-overflow:ellipsis;overflow:hidden;"><div>
+		<h1 style="float:left;margin:0px;padding:0px;border-left:3px solid rgb(33, 117, 155);margin-bottom:10px;clear:both;font-weight:bold;font-size:130%;width:auto;border:0px;line-height:1.5;padding-left:5px;">
+			<a href="https://www.cnblogs.com/king-xg/p/6927541.html" style="margin:0px;padding:0px;outline:none;text-decoration:none;color:rgb(33, 117, 155);transition:all 0.4s linear 0s;">关于connect by 误区讲解，纯属个人心得和经验，有图有文字</a>
+		</h1>
+		<div style="margin:0px;padding:0px;clear:both;"></div>
+		<div style="margin:0px;padding:0px;color:rgb(0, 0, 0);line-height:1.7;font-size:14px;">
+			<div style="margin:0px;padding:0px;margin-bottom:20px;word-break:break-word;"><p style="padding:0px;margin:10px auto;text-indent:0px;"> 　　<span style="margin:0px;padding:0px;font-family:Calibri;"><span style="margin:0px;padding:0px;color:#ff6600;">本博客是自己在学习和工作途中的积累与总结，仅供自己参考，也欢迎大家转载，转载时请注明出处。</span></span></p>
+<p style="padding:0px;margin:10px auto;text-indent:0px;"><span style="margin:0px;padding:0px;font-family:Calibri;"><span style="margin:0px;padding:0px;color:#ff6600;">　　http://www.cnblogs.com/king-xg/p/6927541.html</span></span></p>
+<p style="padding:0px;margin:10px auto;text-indent:0px;"><span style="margin:0px;padding:0px;font-family:Calibri;"><span style="margin:0px;padding:0px;color:#ff6600;">　　<span style="margin:0px;padding:0px;font-family:Calibri;"><span style="margin:0px;padding:0px;color:#ff6600;">如果觉得对您有帮助，请点击推荐或收藏本博客，谢谢。</span></span></span></span></p>
+<p style="padding:0px;margin:10px auto;text-indent:0px;">1. 使用了connect by 的人，大多会存在一些疑问:</p>
+<p style="padding:0px;margin:10px auto;text-indent:0px;">　　a. start with 后接的节点不同导致查询的方向(上或下)不同?</p>
+<p style="padding:0px;margin:10px auto;text-indent:0px;">　　b. prior 关键字理解?</p>
+<p style="padding:0px;margin:10px auto;text-indent:0px;">　　c. 突然出现的诸多冗余数据是怎么来的?</p>
+<p style="padding:0px;margin:10px auto;text-indent:0px;"> </p>
+<p style="padding:0px;margin:10px auto;text-indent:0px;">案例数据集就拿我上一篇博客的案例表来用了(删掉了循环列)</p>
+<p style="padding:0px;margin:10px auto;text-indent:0px;"><img src="关于connect by 误区讲解，纯属个人心得和经验，有图有文字 - 追逐繁星 - 博客_files/1096947-20170601103055086-180641757.png" type="image/png" data-filename="1096947-20170601103055086-180641757.png" height="156" style="margin:0px;padding:0px;border:0px;height:auto;max-width:300px;" width="416"/></p>
+<p style="padding:0px;margin:10px auto;text-indent:0px;"> </p>
+<p style="padding:0px;margin:10px auto;text-indent:0px;">树形展示图:</p>
+<p style="padding:0px;margin:10px auto;text-indent:0px;"><img src="关于connect by 误区讲解，纯属个人心得和经验，有图有文字 - 追逐繁星 - 博客_files/1096947-20170601103939149-1750018813.png" type="image/png" data-filename="1096947-20170601103939149-1750018813.png" height="277" style="margin:0px;padding:0px;border:0px;height:auto;max-width:300px;" width="683"/></p>
+<p style="padding:0px;margin:10px auto;text-indent:0px;">　　</p>
+<p style="padding:0px;margin:10px auto;text-indent:0px;">　　问题解答:</p>
+<p style="padding:0px;margin:10px auto;text-indent:0px;">　　　　答: <strong style="margin:0px;padding:0px;"> 1. start with 仅仅只是指定从那个节点开始，并不是上下查询的判断</strong></p>
+<p style="padding:0px;margin:10px auto;text-indent:0px;"><strong style="margin:0px;padding:0px;">　　　　　　 2. <strong style="margin:0px;padding:0px;">start with </strong>在向下查询时，仅有一点不同，后接子节点列则查询会比后接父节点列多一条记录，多出来的一条记录就是起始节点列，即，后接子节点列会查出起始行，后接父节点列则不会查询出起始行 </strong></p>
+<p style="padding:0px;margin:10px auto;text-indent:0px;"><strong style="margin:0px;padding:0px;">　　　　　　  3. 只有connect by语句中的prior关键字的位置决定了上下查询的方向，补充一下，如何判断上下查询</strong></p>
+<p style="padding:0px;margin:10px auto;text-indent:0px;"><strong style="margin:0px;padding:0px;">　　　　　　　　　　(a). 死记 prior 子节点列 = 父节点列 [向下查询]，prior 父节点列 = 子节点列 [向上查询]</strong></p>
+<p style="padding:0px;margin:10px auto;text-indent:0px;"><strong style="margin:0px;padding:0px;">　　　　　　　　　　(b). 另一种更方便一点，“<strong style="margin:0px;padding:0px;">prior 子节点列 = 父节点列 [向下查询]</strong>”  就把proir 翻译成&quot;以...为查询条件&quot;,那么就是这样翻译的&quot;以子节点列为查询条件，查询父节点列&quot;，举例:&quot;prior emp_id = lead_id&quot; 翻译之后就是&quot;以emp_id为查询条件查询lead_id&quot;，即向下查询，这样理解起来是不是感觉很简单了;</strong></p>
+<p style="padding:0px;margin:10px auto;text-indent:0px;"><strong style="margin:0px;padding:0px;">　　　　　　　　4. 向上查询的两种特殊情况，(1). 后接子节点列   (2). 后接父节点列</strong></p>
+<p style="padding:0px;margin:10px auto;text-indent:0px;"><strong style="margin:0px;padding:0px;"><strong style="margin:0px;padding:0px;">　　　　　　　　5.多出的冗余数据会在如下情况中出现</strong></strong></p>
+<p style="padding:0px;margin:10px auto;text-indent:0px;"><strong style="margin:0px;padding:0px;">　　　　　　　　(a). 向上查询且start with 后接父节点列时</strong></p>
+<p style="padding:0px;margin:10px auto;text-indent:0px;"><strong style="margin:0px;padding:0px;">　　　　　　　　(b). sql语句中不包含start with 关键字时</strong></p>
+<p style="padding:0px;margin:10px auto;text-indent:0px;"><strong style="margin:0px;padding:0px;">　　　　讲解:</strong></p>
+<p style="padding:0px;margin:10px auto;text-indent:0px;"><strong style="margin:0px;padding:0px;">　　　　　　问题-<strong style="margin:0px;padding:0px;">向上查询的两种特殊情况</strong>:</strong></p>
+<p style="padding:0px;margin:10px auto;text-indent:0px;"><strong style="margin:0px;padding:0px;">　　　　　　　　向下查询且后接子节点列与向下查询且后接父节点列查询的结果集:</strong></p>
+<div style="background-color:rgb(245, 245, 245);border:1px solid rgb(204, 204, 204);padding:5px;overflow:auto;margin:5px 0px;color:rgb(0, 0, 0);font-family:&quot;Courier New&quot;;font-size:12px;">
+<pre style="margin:0px;padding:0px;margin-top:0px;margin-bottom:0px;word-wrap:break-word;white-space:pre-wrap;font-family:&quot;Courier New&quot;;font-size:12px;"><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#0000ff;">select</span> emp_id,lead_id,emp_name,prior emp_name <span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#0000ff;">as</span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#000000;"> lead_name,salary
+     </span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#0000ff;">from</span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#000000;"> employee
+     start with  emp_id</span>=<span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#800080;">1</span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#000000;">
+     connect by  prior emp_id </span>=  lead_id ;</pre>
+</div>
+<p style="padding:0px;margin:10px auto;text-indent:0px;"><img src="关于connect by 误区讲解，纯属个人心得和经验，有图有文字 - 追逐繁星 - 博客_files/1096947-20170601111956164-1703265348.png" type="image/png" data-filename="1096947-20170601111956164-1703265348.png" height="156" style="margin:0px;padding:0px;border:0px;height:auto;max-width:300px;" width="401"/></p>
+<div style="background-color:rgb(245, 245, 245);border:1px solid rgb(204, 204, 204);padding:5px;overflow:auto;margin:5px 0px;color:rgb(0, 0, 0);font-family:&quot;Courier New&quot;;font-size:12px;">
+<pre style="margin:0px;padding:0px;margin-top:0px;margin-bottom:0px;word-wrap:break-word;white-space:pre-wrap;font-family:&quot;Courier New&quot;;font-size:12px;"> <span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#0000ff;">select</span> emp_id,lead_id,emp_name,prior emp_name <span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#0000ff;">as</span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#000000;"> lead_name,salary
+     </span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#0000ff;">from</span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#000000;"> employee
+     start with  lead_id</span>=<span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#800080;">1</span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#000000;">
+     connect by prior emp_id </span>=  lead_id ;</pre>
+</div>
+<p style="padding:0px;margin:10px auto;text-indent:0px;"><img src="关于connect by 误区讲解，纯属个人心得和经验，有图有文字 - 追逐繁星 - 博客_files/1096947-20170601114145836-2072285319.png" type="image/png" data-filename="1096947-20170601114145836-2072285319.png" height="145" style="margin:0px;padding:0px;border:0px;height:auto;max-width:300px;" width="512"/></p>
+<p style="padding:0px;margin:10px auto;text-indent:0px;"><strong style="margin:0px;padding:0px;">少了一行记起始记录，当然也可以使结果集不缺少记录，前提是其实行需定位到同一行</strong></p>
+<div style="background-color:rgb(245, 245, 245);border:1px solid rgb(204, 204, 204);padding:5px;overflow:auto;margin:5px 0px;color:rgb(0, 0, 0);font-family:&quot;Courier New&quot;;font-size:12px;">
+<pre style="margin:0px;padding:0px;margin-top:0px;margin-bottom:0px;word-wrap:break-word;white-space:pre-wrap;font-family:&quot;Courier New&quot;;font-size:12px;"> <span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#0000ff;">select</span> emp_id,lead_id,emp_name,prior emp_name <span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#0000ff;">as</span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#000000;"> lead_name,salary
+     </span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#0000ff;">from</span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#000000;"> employee
+     start with  lead_id</span>=<span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#800080;">0</span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#000000;">
+     connect by prior emp_id </span>=  lead_id ;</pre>
+</div>
+<p style="padding:0px;margin:10px auto;text-indent:0px;"><strong style="margin:0px;padding:0px;">解释： lead_id=0和emp_id=1指向的是同一行</strong></p>
+<p style="padding:0px;margin:10px auto;text-indent:0px;"><strong style="margin:0px;padding:0px;">　　　　　　　　</strong></p>
+<p style="padding:0px;margin:10px auto;text-indent:0px;"> 　　　<strong style="margin:0px;padding:0px;">问题-<strong style="margin:0px;padding:0px;">冗余数据的产生情况</strong>:　　　　　</strong></p>
+<p style="padding:0px;margin:10px auto;text-indent:0px;"><strong style="margin:0px;padding:0px;">　　　　(1). 向上查询且后接父节点列时    <br style="margin:0px;padding:0px;"/></strong></p>
+<p style="padding:0px;margin:10px auto;text-indent:0px;"><strong style="margin:0px;padding:0px;">　　　</strong></p>
+<div style="background-color:rgb(245, 245, 245);border:1px solid rgb(204, 204, 204);padding:5px;overflow:auto;margin:5px 0px;color:rgb(0, 0, 0);font-family:&quot;Courier New&quot;;font-size:12px;">
+<pre style="margin:0px;padding:0px;margin-top:0px;margin-bottom:0px;word-wrap:break-word;white-space:pre-wrap;font-family:&quot;Courier New&quot;;font-size:12px;">  <span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#0000ff;">select</span> emp_id,lead_id,emp_name <span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#0000ff;">as</span> lead_name,prior emp_name <span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#0000ff;">as</span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#000000;"> emp_name,salary
+     </span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#0000ff;">from</span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#000000;"> employee
+     start with  lead_id</span>=<span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#800080;">2</span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#000000;">
+     connect by emp_id </span>=<span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#000000;"> prior lead_id 
+     order by lead_id;</span></pre>
+</div>
+<p style="padding:0px;margin:10px auto;text-indent:0px;"><img src="关于connect by 误区讲解，纯属个人心得和经验，有图有文字 - 追逐繁星 - 博客_files/1096947-20170601141953196-876889271.png" type="image/png" data-filename="1096947-20170601141953196-876889271.png" height="142" style="margin:0px;padding:0px;border:0px;height:auto;max-width:300px;" width="441"/></p>
+<p style="padding:0px;margin:10px auto;text-indent:0px;"><strong style="margin:0px;padding:0px;">多了两条冗余记录，其实根据数据不难看出冗余的是起始节点记录的所有父节点和祖先节点的记录行</strong></p>
+<p style="padding:0px;margin:10px auto;text-indent:0px;"><strong style="margin:0px;padding:0px;">画图分析:</strong></p>
+<p style="padding:0px;margin:10px auto;text-indent:0px;"><strong style="margin:0px;padding:0px;"><img src="关于connect by 误区讲解，纯属个人心得和经验，有图有文字 - 追逐繁星 - 博客_files/1096947-20170601143023899-1371278859.png" type="image/png" data-filename="1096947-20170601143023899-1371278859.png" height="517" style="margin:0px;padding:0px;border:0px;height:auto;max-width:300px;" width="700"/></strong></p>
+<p style="padding:0px;margin:10px auto;text-indent:0px;"><img src="关于connect by 误区讲解，纯属个人心得和经验，有图有文字 - 追逐繁星 - 博客_files/1096947-20170601143038586-735797791.png" type="image/png" data-filename="1096947-20170601143038586-735797791.png" height="204" style="margin:0px;padding:0px;border:0px;height:auto;max-width:300px;" width="700"/></p>
+<p style="padding:0px;margin:10px auto;text-indent:0px;">所以一般不建议向上查询时start with后接父节点列，这样会造成很多冗余数据行，拖慢了查询速度。</p>
+<p style="padding:0px;margin:10px auto;text-indent:0px;"><strong style="margin:0px;padding:0px;">强烈建议: 需要查询父节点行或祖先记录行时，可以用向上查询且后接子节点列</strong></p>
+<p style="padding:0px;margin:10px auto;text-indent:0px;"> 举例:</p>
+<div style="background-color:rgb(245, 245, 245);border:1px solid rgb(204, 204, 204);padding:5px;overflow:auto;margin:5px 0px;color:rgb(0, 0, 0);font-family:&quot;Courier New&quot;;font-size:12px;">
+<pre style="margin:0px;padding:0px;margin-top:0px;margin-bottom:0px;word-wrap:break-word;white-space:pre-wrap;font-family:&quot;Courier New&quot;;font-size:12px;">  <span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#0000ff;">select</span> emp_id,lead_id,emp_name <span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#0000ff;">as</span> lead_name,prior emp_name <span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#0000ff;">as</span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#000000;"> emp_name,salary
+     </span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#0000ff;">from</span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#000000;"> employee
+     start with  emp_id</span>=<span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#800080;">2</span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#000000;">
+     connect by emp_id </span>=<span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#000000;"> prior lead_id 
+     order by lead_id;
+     </span></pre>
+</div>
+<p style="padding:0px;margin:10px auto;text-indent:0px;"><img src="关于connect by 误区讲解，纯属个人心得和经验，有图有文字 - 追逐繁星 - 博客_files/1096947-20170601144016133-291549438.png" type="image/png" data-filename="1096947-20170601144016133-291549438.png" height="133" style="margin:0px;padding:0px;border:0px;height:auto;max-width:300px;" width="506"/></p>
+<p style="padding:0px;margin:10px auto;text-indent:0px;">　　　　　　<strong style="margin:0px;padding:0px;">（2）. <strong style="margin:0px;padding:0px;">sql语句中不包含start with 关键字时，同样也会产生冗余数据行，而且比上面的更多原因就在下面:</strong></strong></p>
+<p style="padding:0px;margin:10px auto;text-indent:0px;"><strong style="margin:0px;padding:0px;"><strong style="margin:0px;padding:0px;">　　举例: <br style="margin:0px;padding:0px;"/></strong></strong></p>
+<p style="padding:0px;margin:10px auto;text-indent:0px;"><strong style="margin:0px;padding:0px;"><strong style="margin:0px;padding:0px;">　　</strong></strong></p>
+<div style="background-color:rgb(245, 245, 245);border:1px solid rgb(204, 204, 204);padding:5px;overflow:auto;margin:5px 0px;color:rgb(0, 0, 0);font-family:&quot;Courier New&quot;;font-size:12px;">
+<pre style="margin:0px;padding:0px;margin-top:0px;margin-bottom:0px;word-wrap:break-word;white-space:pre-wrap;font-family:&quot;Courier New&quot;;font-size:12px;">  <span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#000000;">select emp_id,lead_id,emp_name,prior emp_name as lead_name,salary
+     </span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#0000ff;">from</span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#000000;"> employee
+     connect by prior emp_id </span>=  lead_id </pre>
+</div>
+<p style="padding:0px;margin:10px auto;text-indent:0px;"><img src="关于connect by 误区讲解，纯属个人心得和经验，有图有文字 - 追逐繁星 - 博客_files/1096947-20170601150523821-1647955409.png" type="image/png" data-filename="1096947-20170601150523821-1647955409.png" height="332" style="margin:0px;padding:0px;border:0px;height:auto;max-width:300px;" width="443"/></p>
+<p style="padding:0px;margin:10px auto;text-indent:0px;"> </p>
+<p style="padding:0px;margin:10px auto;text-indent:0px;">产生了10条冗余数据行，为什么呢?</p>
+<p style="padding:0px;margin:10px auto;text-indent:0px;">其实很简单，由于缺少start with 指定起始行，那么oracle会根据proir修饰的字段进行一个内部的动态指定起始行位置，规则是由上至下，由左至右。</p>
+<p style="padding:0px;margin:10px auto;text-indent:0px;">首先，指定起始节点为根节点(king)，向下查询，然后指定子节点之一(jack)为起始节点，再向下查询,然后指定子节点之一(arise)为起始节点，再向下查询，....循环往复，直到到达最右侧最下方的叶子节点为止。</p>
+<p style="padding:0px;margin:10px auto;text-indent:0px;">这里大家可能就会想，为什么是向下查询，而不是向上呢，原因就在于proir 的为止或者说他所修饰的列是子节点列还是父节点列有关，翻译一下就是&quot;以子节点列为匹配条件，查询父节点&quot;，这么一看知道是向下查询喽。</p>
+<p style="padding:0px;margin:10px auto;text-indent:0px;">同理，connect by  emp_id = prior  lead_id 这个表示向上查询，其他同理~_~</p>
+<p style="padding:0px;margin:10px auto;text-indent:0px;"> </p></div>
+<div style="margin:0px;padding:0px;clear:both;"></div>
+<div style="margin:0px;padding:0px;margin-top:20px;">
+<div style="margin:0px;padding:0px;margin-bottom:10px;color:rgb(102, 102, 102);"></div>
+<div style="margin:0px;padding:0px;color:rgb(102, 102, 102);margin-top:0px;">标签: <a href="http://www.cnblogs.com/king-xg/tag/oracle/" style="outline:none;margin:2px 5px 0px;padding:3px 14px;text-decoration:none;height:20px;line-height:20px;border-radius:10px;background:rgb(231, 231, 231);color:rgb(102, 102, 102);">oracle</a>, <a href="http://www.cnblogs.com/king-xg/tag/connect%20by/" style="outline:none;margin:2px 5px 0px;padding:3px 14px;text-decoration:none;height:20px;line-height:20px;border-radius:10px;background:rgb(231, 231, 231);color:rgb(102, 102, 102);">connect by</a></div>
+<div style="margin:0px;padding:0px;"><div style="margin:0px;padding:10px 0px;margin-bottom:10px;margin-top:10px;border:1px dashed silver;font-size:12px;width:320px;text-align:center;">
+        <a href="#" style="border-radius:10px;outline:none;margin:0px;box-shadow:rgba(0, 0, 0, 0.498039) 0px 1px 3px;background:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAAkCAYAAABIdFAMAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAHhJREFUeNo8zjsOxCAMBFB/KEAUFFR0Cbng3nQPw68ArZdAlOZppPFIBhH5EAB8b+Tlt9MYQ6i1BuqFaq1CKSVcxZ2Acs6406KUgpt5/LCKuVgz5BDCSb13ZO99ZOdcZGvt4mJjzMVKqcha68iIePB86GAiOv8CDADlIUQBs7MD3wAAAABJRU5ErkJggg%3D%3D) repeat-x;font-weight:bold;cursor:pointer;margin-right:10px;display:inline-block;text-decoration:none;text-shadow:rgba(0, 0, 0, 0.247059) 0px -1px 1px;vertical-align:middle;padding:3px 8px;background-color:rgb(45, 174, 191);border:none;color:rgb(255, 255, 255);">好文要顶</a>
+            <a href="#" style="border-radius:10px;outline:none;margin:0px;box-shadow:rgba(0, 0, 0, 0.498039) 0px 1px 3px;background:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAAkCAYAAABIdFAMAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAHhJREFUeNo8zjsOxCAMBFB/KEAUFFR0Cbng3nQPw68ArZdAlOZppPFIBhH5EAB8b+Tlt9MYQ6i1BuqFaq1CKSVcxZ2Acs6406KUgpt5/LCKuVgz5BDCSb13ZO99ZOdcZGvt4mJjzMVKqcha68iIePB86GAiOv8CDADlIUQBs7MD3wAAAABJRU5ErkJggg%3D%3D) repeat-x;font-weight:bold;cursor:pointer;margin-right:10px;display:inline-block;text-decoration:none;text-shadow:rgba(0, 0, 0, 0.247059) 0px -1px 1px;vertical-align:middle;padding:3px 8px;background-color:rgb(227, 49, 0);border:none;color:rgb(255, 255, 255);">关注我</a>
+    <a href="#" style="border-radius:10px;outline:none;margin:0px;box-shadow:rgba(0, 0, 0, 0.498039) 0px 1px 3px;background:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAAkCAYAAABIdFAMAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAHhJREFUeNo8zjsOxCAMBFB/KEAUFFR0Cbng3nQPw68ArZdAlOZppPFIBhH5EAB8b+Tlt9MYQ6i1BuqFaq1CKSVcxZ2Acs6406KUgpt5/LCKuVgz5BDCSb13ZO99ZOdcZGvt4mJjzMVKqcha68iIePB86GAiOv8CDADlIUQBs7MD3wAAAABJRU5ErkJggg%3D%3D) repeat-x;font-weight:bold;cursor:pointer;margin-right:10px;display:inline-block;text-decoration:none;text-shadow:rgba(0, 0, 0, 0.247059) 0px -1px 1px;vertical-align:middle;padding:3px 8px;background-color:rgb(255, 181, 21);border:none;color:rgb(255, 255, 255);">收藏该文</a>
+    <a href="#" style="margin-right:10px;outline:none;margin:0px;box-shadow:none;background:none;font-weight:bold;cursor:pointer;display:inline-block;border-radius:10px;text-decoration:none;text-shadow:none;vertical-align:middle;padding:3px 2px;border:none;color:rgb(255, 255, 255);" title="分享至新浪微博"><img src="关于connect by 误区讲解，纯属个人心得和经验，有图有文字 - 追逐繁星 - 博客_files/icon_weibo_24.png" type="image/png" data-filename="icon_weibo_24.png" height="24" style="margin:0px;padding:0px;height:auto;border:none;vertical-align:middle;margin-left:5px;box-shadow:none;max-width:300px;" width="24"/></a>
+    <a href="#" style="margin-right:10px;outline:none;margin:0px;box-shadow:none;background:none;font-weight:bold;cursor:pointer;display:inline-block;border-radius:10px;text-decoration:none;text-shadow:none;vertical-align:middle;padding:3px 2px;border:none;color:rgb(255, 255, 255);" title="分享至微信"><img src="关于connect by 误区讲解，纯属个人心得和经验，有图有文字 - 追逐繁星 - 博客_files/wechat.png" type="image/png" data-filename="wechat.png" height="24" style="margin:0px;padding:0px;border:medium none;width:24px;height:24px;box-shadow:none;margin-left:5px;vertical-align:middle;max-width:300px;" width="24"/></a>
+</div>
+<div style="margin:0px;padding:0px;float:left;width:280px;margin-top:0px;margin-bottom:10px;color:rgb(0, 0, 0);margin-left:0px;font-size:12px;">
+    <div style="margin:0px;padding:0px;float:left;line-height:18px;">
+            <a href="http://home.cnblogs.com/u/king-xg/" style="margin:0px;padding:0px;outline:none;color:black;text-decoration:underline;" target="_blank"><img src="关于connect by 误区讲解，纯属个人心得和经验，有图有文字 - 追逐繁星 - 博客_files/20180109113837.png" type="image/jpeg" data-filename="20180109113837.png" height="48" style="margin:0px;padding:0px;height:auto;border:0px;vertical-align:top;float:left;margin-right:5px;padding-top:5px;padding-left:2px;max-width:300px;" width="48"/></a>
+        <div style="margin:0px;padding:0px;float:left;line-height:18px;">
+            <a href="http://home.cnblogs.com/u/king-xg/" style="margin:0px;padding:0px;outline:none;color:black;text-decoration:underline;">追逐繁星</a><br style="margin:0px;padding:0px;"/>
+            <a href="http://home.cnblogs.com/u/king-xg/followees" style="margin:0px;padding:0px;outline:none;color:black;text-decoration:underline;">关注 - 11</a><br style="margin:0px;padding:0px;"/>
+            <a href="http://home.cnblogs.com/u/king-xg/followers" style="margin:0px;padding:0px;outline:none;color:black;text-decoration:underline;">粉丝 - 2</a>
+        </div>
+    </div>
+    <div style="margin:0px;padding:0px;clear:both;"></div>
+    <div style="margin:0px;padding:0px;"></div>
+    <div style="margin:0px;padding:0px;">
+                <a href="#" style="margin:0px;padding:0px;outline:none;color:black;text-decoration:underline;">+加关注</a>
+    </div>
+</div>
+<div style="margin:0px;padding:0px;float:right;margin-bottom:10px;margin-right:30px;font-size:12px;width:125px;text-align:center;margin-top:10px;">
+    <div style="margin:0px;padding:0px;float:left;width:46px;height:52px;background:url(//static.cnblogs.com/images/upup.gif) no-repeat;text-align:center;cursor:pointer;margin-top:2px;padding-top:5px;">
+        <span style="margin:0px;padding:0px;font-size:14px;color:rgb(7, 93, 179);font-family:Verdana;line-height:1.5em;">0</span>
+    </div>
+    <div style="text-align:center;padding:0px;margin:0px;height:52px;background:url(//static.cnblogs.com/images/downdown.gif) no-repeat;margin-left:20px;cursor:pointer;margin-top:2px;padding-top:5px;width:46px;float:right;">
+        <span style="margin:0px;padding:0px;font-size:14px;color:rgb(7, 93, 179);font-family:Verdana;line-height:1.5em;">0</span>
+    </div>
+    <div style="margin:0px;padding:0px;clear:both;"></div>
+    <div style="margin:0px;padding:0px;margin-top:5px;margin-left:0px;font-size:12px;color:gray;">
+    </div>
+</div>
+</div>
+<div style="margin:0px;padding:0px;clear:both;"></div>
+<div style="margin:0px;padding:0px;line-height:1.8;font-size:12px;"><a href="http://www.cnblogs.com/king-xg/p/6797119.html" style="margin:0px;padding:0px;outline:none;color:black;text-decoration:none;">« </a> 上一篇：<a href="http://www.cnblogs.com/king-xg/p/6797119.html" style="margin:0px;padding:0px;outline:none;color:black;text-decoration:underline;" title="发布于2017-05-26 14:58">oracle进阶之分析函数</a><br style="margin:0px;padding:0px;"/><a href="http://www.cnblogs.com/king-xg/p/6951345.html" style="margin:0px;padding:0px;outline:none;color:black;text-decoration:none;">» </a> 下一篇：<a href="http://www.cnblogs.com/king-xg/p/6951345.html" style="margin:0px;padding:0px;outline:none;color:black;text-decoration:underline;" title="发布于2017-06-06 14:22">笔记  jquery 的一个bug解决方法积累</a><br style="margin:0px;padding:0px;"/></div>
+</div>
+
+
+		</div>
+		<div style="width:100%;margin:0px;padding:0px;float:left;font-size:13px;clear:both;padding-right:5px;line-height:1.5;background:none;color:rgb(102, 102, 102);text-align:left;padding-left:0px;margin-top:5px;">posted @ <span style="margin:0px;padding:0px;">2017-06-01 15:18</span> <a href="http://www.cnblogs.com/king-xg/" style="margin:0px;padding:0px;outline:none;text-decoration:none;color:rgb(102, 102, 102);">追逐繁星</a> 阅读(<span style="margin:0px;padding:0px;">1562</span>) 评论(<span style="margin:0px;padding:0px;">0</span>)  <a href="https://i.cnblogs.com/EditPosts.aspx?postid=6927541" rel="nofollow" style="margin:0px;padding:0px;outline:none;text-decoration:none;color:rgb(102, 102, 102);">编辑</a> <a href="https://www.cnblogs.com/king-xg/p/6927541.html#" style="margin:0px;padding:0px;outline:none;text-decoration:none;color:rgb(102, 102, 102);">收藏</a></div>
+	</div></div></div></div></div></div></div></div></div></div>
+</div>
+</span>
+</div></body></html> 

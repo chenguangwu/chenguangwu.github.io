@@ -1,0 +1,134 @@
+<html>
+<head>
+  <title>利用scrapy-splash爬取JS生成的动态页面 - 清水汪汪 - 博客园</title>
+  <basefont face="微软雅黑" size="2" />
+  <meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+  <meta name="exporter-version" content="YXBJ Windows/600718 (zh-CN, DDL); Windows/6.1.1 (Win64);"/>
+  <style>
+    body, td {
+      font-family: 微软雅黑;
+      font-size: 10pt;
+    }
+  </style>
+</head>
+<body>
+<a name="9471"/>
+<h1>利用scrapy-splash爬取JS生成的动态页面 - 清水汪汪 - 博客园</h1>
+<div>
+<table bgcolor="#D4DDE5" border="0">
+<tr><td><b>创建时间：</b></td><td><i>2017/8/8 11:09</i></td></tr>
+<tr><td><b>来源：</b></td><td><a href="http://www.cnblogs.com/zhonghuasong/p/5976003.html"><i>http://www.cnblogs.com/zhonghuasong/p/5976003.html</i></a></td></tr>
+</table>
+</div>
+<br/>
+
+<div><span><div style="-evernote-webclip:true"><br/><div style="font-size: 16px; display: inline-block;"><div><div style="font-family:&quot;PingFang SC&quot;, &quot;Helvetica Neue&quot;, Helvetica, Arial, sans-serif;background:url(&quot;images/body_bg.png&quot;) 0px 0px repeat-x scroll rgb(240, 238, 245);color:rgb(125, 139, 141);line-height:25px;font-size:14px;"><div><div><div style="background:none;overflow:visible;text-overflow:ellipsis;word-break:break-all;"><div><div><div style="background:rgb(255, 255, 255);overflow:hidden;"><div>
+		<h1 style="margin:0px;padding:0px;font-size:28px;font-weight:400;margin-bottom:20px;line-height:1.8;color:rgb(51, 51, 51);">
+			<a href="http://www.cnblogs.com/zhonghuasong/p/5976003.html" style="margin:0px;padding:0px;text-decoration:none;color:rgb(51, 51, 51);">利用scrapy-splash爬取JS生成的动态页面</a>
+		</h1>
+		<div style="margin:0px;padding:0px;clear:both;"></div>
+		<div style="margin:0px;padding:0px;">
+			<div style="margin:0px;padding:0px;margin-bottom:20px;word-break:break-word;color:rgb(51, 51, 51);line-height:1.8;"><p style="padding:0px;margin:10px auto;text-indent:0px;">目前，为了加速页面的加载速度，页面的很多部分都是用JS生成的，而对于用scrapy爬虫来说就是一个很大的问题，因为scrapy没有JS engine，所以爬取的都是静态页面，对于JS生成的动态页面都无法获得。</p>
+<p style="padding:0px;margin:10px auto;text-indent:0px;"><strong style="margin:0px;padding:0px;">解决方案：</strong></p>
+<ul style="margin:0px 0px 1em 40px;padding:0px;">
+<li style="margin:0px;padding:0px;list-style-type:disc;">利用第三方中间件来提供JS渲染服务： <a href="https://github.com/scrapy-plugins/scrapy-splash" style="margin:0px;padding:0px;color:rgb(0, 0, 0);text-decoration:underline;">scrapy-splash</a> 等。</li>
+<li style="margin:0px;padding:0px;list-style-type:disc;">利用webkit或者基于webkit库</li>
+</ul>
+<p style="padding:0px;margin:10px auto;text-indent:0px;"><strong style="margin:0px;padding:0px;">Splash是一个Javascript渲染服务。它是一个实现了HTTP API的轻量级浏览器，Splash是用Python实现的，同时使用Twisted和QT。Twisted（QT）用来让服务具有异步处理能力，以发挥webkit的并发能力。</strong></p>
+<hr style="margin:0px;padding:0px;"/>
+<p style="padding:0px;margin:10px auto;text-indent:0px;">下面就来讲一下如何使用scrapy-splash：</p>
+<ol style="margin:0px 0px 1em 40px;padding:0px;">
+<li style="margin:0px;padding:0px;list-style-type:decimal;">利用pip安装scrapy-splash库：<br style="margin:0px;padding:0px;"/>
+<code style="line-height:1.8;margin:1px 5px;vertical-align:middle;display:inline-block;font-family:&quot;Courier New&quot;, sans-serif;font-size:12px;background-color:rgb(245, 245, 245);border:1px solid rgb(204, 204, 204);padding:0px 5px;border-radius:3px;">$ pip install scrapy-splash</code></li>
+<li style="margin:0px;padding:0px;list-style-type:decimal;">scrapy-splash使用的是Splash HTTP API， 所以需要一个splash instance，一般采用docker运行splash，所以需要安装<a href="http://splash.readthedocs.io/en/latest/install.html" style="margin:0px;padding:0px;color:rgb(0, 0, 0);text-decoration:underline;">docker</a>。<br style="margin:0px;padding:0px;"/>
+</li>
+<li style="margin:0px;padding:0px;list-style-type:decimal;">安装<a href="https://www.docker.com/" style="margin:0px;padding:0px;color:rgb(0, 0, 0);text-decoration:underline;">docker</a>, 安装好后运行docker。</li>
+<li style="margin:0px;padding:0px;list-style-type:decimal;">拉取镜像(pull the image)：<br style="margin:0px;padding:0px;"/>
+<code style="line-height:1.8;margin:1px 5px;vertical-align:middle;display:inline-block;font-family:&quot;Courier New&quot;, sans-serif;font-size:12px;background-color:rgb(245, 245, 245);border:1px solid rgb(204, 204, 204);padding:0px 5px;border-radius:3px;">$ docker pull scrapinghub/splash</code></li>
+<li style="margin:0px;padding:0px;list-style-type:decimal;">用docker运行scrapinghub/splash：<br style="margin:0px;padding:0px;"/>
+<code style="line-height:1.8;margin:1px 5px;vertical-align:middle;display:inline-block;font-family:&quot;Courier New&quot;, sans-serif;font-size:12px;background-color:rgb(245, 245, 245);border:1px solid rgb(204, 204, 204);padding:0px 5px;border-radius:3px;">$ docker run -p 8050:8050 scrapinghub/splash</code></li>
+<li style="margin:0px;padding:0px;list-style-type:decimal;"><p style="padding:0px;margin:10px auto;text-indent:0px;">配置splash服务（以下操作全部在settings.py）：</p>
+<p style="padding:0px;margin:10px auto;text-indent:0px;">1）添加splash服务器地址：</p>
+<div style="margin:0px;padding:0px;"><pre style="margin:0px;padding:0px;white-space:pre-wrap;word-wrap:break-word;margin-top:10px;margin-bottom:10px;"><code style="vertical-align:middle;height:auto;margin:auto;font-family:&quot;Courier New&quot;, sans-serif;background:rgb(255, 255, 255);color:rgb(0, 0, 0);overflow-x:auto;display:block;background-color:rgb(245, 245, 245);border:1px solid rgb(204, 204, 204);border-radius:3px;padding:5px;line-height:1.5;font-size:12px;">SPLASH_URL <span style="margin:0px;padding:0px;">=</span> <span style="margin:0px;padding:0px;"><span style="margin:0px;padding:0px;color:rgb(163, 21, 21);">'http://localhost:8050'</span></span>  </code></pre></div>
+<p style="padding:0px;margin:10px auto;text-indent:0px;">2）将splash middleware添加到DOWNLOADER_MIDDLEWARE中：</p>
+<div style="margin:0px;padding:0px;"><pre style="margin:0px;padding:0px;white-space:pre-wrap;word-wrap:break-word;margin-top:10px;margin-bottom:10px;"><code style="vertical-align:middle;height:auto;margin:auto;font-family:&quot;Courier New&quot;, sans-serif;background:rgb(255, 255, 255);color:rgb(0, 0, 0);overflow-x:auto;display:block;background-color:rgb(245, 245, 245);border:1px solid rgb(204, 204, 204);border-radius:3px;padding:5px;line-height:1.5;font-size:12px;">DOWNLOADER_MIDDLEWARES <span style="margin:0px;padding:0px;">=</span> {
+<span style="margin:0px;padding:0px;"><span style="margin:0px;padding:0px;color:rgb(163, 21, 21);">'scrapy_splash.SplashCookiesMiddleware'</span></span>: <span style="margin:0px;padding:0px;"><span style="margin:0px;padding:0px;">723</span></span>,
+<span style="margin:0px;padding:0px;"><span style="margin:0px;padding:0px;color:rgb(163, 21, 21);">'scrapy_splash.SplashMiddleware'</span></span>: <span style="margin:0px;padding:0px;"><span style="margin:0px;padding:0px;">725</span></span>,
+<span style="margin:0px;padding:0px;"><span style="margin:0px;padding:0px;color:rgb(163, 21, 21);">'scrapy.downloadermiddlewares.httpcompression.HttpCompressionMiddleware'</span></span>: <span style="margin:0px;padding:0px;"><span style="margin:0px;padding:0px;">810</span></span>,
+}</code></pre></div>
+<p style="padding:0px;margin:10px auto;text-indent:0px;">3)Enable SplashDeduplicateArgsMiddleware:</p>
+<div style="margin:0px;padding:0px;"><pre style="margin:0px;padding:0px;white-space:pre-wrap;word-wrap:break-word;margin-top:10px;margin-bottom:10px;"><code style="vertical-align:middle;height:auto;margin:auto;font-family:&quot;Courier New&quot;, sans-serif;background:rgb(255, 255, 255);color:rgb(0, 0, 0);overflow-x:auto;display:block;background-color:rgb(245, 245, 245);border:1px solid rgb(204, 204, 204);border-radius:3px;padding:5px;line-height:1.5;font-size:12px;">SPIDER_MIDDLEWARES <span style="margin:0px;padding:0px;">=</span> {
+<span style="margin:0px;padding:0px;"><span style="margin:0px;padding:0px;color:rgb(163, 21, 21);">'scrapy_splash.SplashDeduplicateArgsMiddleware'</span></span>: <span style="margin:0px;padding:0px;"><span style="margin:0px;padding:0px;">100</span></span>,
+}</code></pre></div>
+<p style="padding:0px;margin:10px auto;text-indent:0px;">4)Set a custom DUPEFILTER_CLASS:</p>
+<div style="margin:0px;padding:0px;"><pre style="margin:0px;padding:0px;white-space:pre-wrap;word-wrap:break-word;margin-top:10px;margin-bottom:10px;"><code style="vertical-align:middle;height:auto;margin:auto;font-family:&quot;Courier New&quot;, sans-serif;background:rgb(255, 255, 255);color:rgb(0, 0, 0);overflow-x:auto;display:block;background-color:rgb(245, 245, 245);border:1px solid rgb(204, 204, 204);border-radius:3px;padding:5px;line-height:1.5;font-size:12px;">DUPEFILTER_CLASS <span style="margin:0px;padding:0px;">=</span> <span style="margin:0px;padding:0px;"><span style="margin:0px;padding:0px;color:rgb(163, 21, 21);">'scrapy_splash.SplashAwareDupeFilter'</span></span></code></pre></div>
+<p style="padding:0px;margin:10px auto;text-indent:0px;">5)a custom cache storage backend:</p>
+<div style="margin:0px;padding:0px;"><pre style="margin:0px;padding:0px;white-space:pre-wrap;word-wrap:break-word;margin-top:10px;margin-bottom:10px;"><code style="vertical-align:middle;height:auto;margin:auto;font-family:&quot;Courier New&quot;, sans-serif;background:rgb(255, 255, 255);color:rgb(0, 0, 0);overflow-x:auto;display:block;background-color:rgb(245, 245, 245);border:1px solid rgb(204, 204, 204);border-radius:3px;padding:5px;line-height:1.5;font-size:12px;">HTTPCACHE_STORAGE <span style="margin:0px;padding:0px;">=</span> <span style="margin:0px;padding:0px;"><span style="margin:0px;padding:0px;color:rgb(163, 21, 21);">'scrapy_splash.SplashAwareFSCacheStorage'</span></span></code></pre></div></li>
+<li style="margin:0px;padding:0px;list-style-type:decimal;"><p style="padding:0px;margin:10px auto;text-indent:0px;">例子<br style="margin:0px;padding:0px;"/>
+获取HTML内容：</p></li>
+</ol>
+<div style="margin:0px;padding:0px;"><pre style="margin:0px;padding:0px;white-space:pre-wrap;word-wrap:break-word;margin-top:10px;margin-bottom:10px;"><code style="vertical-align:middle;height:auto;margin:auto;font-family:&quot;Courier New&quot;, sans-serif;background:rgb(255, 255, 255);color:rgb(0, 0, 0);overflow-x:auto;display:block;background-color:rgb(245, 245, 245);border:1px solid rgb(204, 204, 204);border-radius:3px;padding:5px;line-height:1.5;font-size:12px;"><span style="margin:0px;padding:0px;"><span style="margin:0px;padding:0px;color:rgb(0, 0, 255);">import</span></span> scrapy
+<span style="margin:0px;padding:0px;"><span style="margin:0px;padding:0px;color:rgb(0, 0, 255);">from</span></span> scrapy_splash <span style="margin:0px;padding:0px;"><span style="margin:0px;padding:0px;color:rgb(0, 0, 255);">import</span></span> SplashRequest
+
+<span style="margin:0px;padding:0px;"><span style="margin:0px;padding:0px;"><span style="margin:0px;padding:0px;color:rgb(0, 0, 255);">class</span></span></span><span style="margin:0px;padding:0px;"> <span style="margin:0px;padding:0px;color:rgb(163, 21, 21);">MySpider</span><span style="margin:0px;padding:0px;">(scrapy.Spider)</span>:</span>
+    start_urls <span style="margin:0px;padding:0px;">=</span> [<span style="margin:0px;padding:0px;"><span style="margin:0px;padding:0px;color:rgb(163, 21, 21);">&quot;http://example.com&quot;</span></span>, <span style="margin:0px;padding:0px;"><span style="margin:0px;padding:0px;color:rgb(163, 21, 21);">&quot;http://example.com/foo&quot;</span></span>]
+
+    <span style="margin:0px;padding:0px;"><span style="margin:0px;padding:0px;"><span style="margin:0px;padding:0px;color:rgb(0, 0, 255);">def</span></span></span><span style="margin:0px;padding:0px;"> <span style="margin:0px;padding:0px;color:rgb(163, 21, 21);">start_requests</span><span style="margin:0px;padding:0px;">(</span></span><span style="margin:0px;padding:0px;"><span style="margin:0px;padding:0px;"><span style="margin:0px;padding:0px;">self</span></span></span><span style="margin:0px;padding:0px;"><span style="margin:0px;padding:0px;">)</span>:</span>
+        <span style="margin:0px;padding:0px;"><span style="margin:0px;padding:0px;color:rgb(0, 0, 255);">for</span></span> url <span style="margin:0px;padding:0px;"><span style="margin:0px;padding:0px;color:rgb(0, 0, 255);">in</span></span> <span style="margin:0px;padding:0px;">self</span>.start_urls:
+            <span style="margin:0px;padding:0px;"><span style="margin:0px;padding:0px;color:rgb(0, 0, 255);">yield</span></span> SplashRequest(url, <span style="margin:0px;padding:0px;">self</span>.parse, args<span style="margin:0px;padding:0px;">=</span>{<span style="margin:0px;padding:0px;"><span style="margin:0px;padding:0px;color:rgb(163, 21, 21);">'wait'</span></span>: <span style="margin:0px;padding:0px;"><span style="margin:0px;padding:0px;">0.5</span></span>})
+
+    <span style="margin:0px;padding:0px;"><span style="margin:0px;padding:0px;"><span style="margin:0px;padding:0px;color:rgb(0, 0, 255);">def</span></span></span><span style="margin:0px;padding:0px;"> <span style="margin:0px;padding:0px;color:rgb(163, 21, 21);">parse</span><span style="margin:0px;padding:0px;">(</span></span><span style="margin:0px;padding:0px;"><span style="margin:0px;padding:0px;"><span style="margin:0px;padding:0px;">self</span></span></span><span style="margin:0px;padding:0px;"><span style="margin:0px;padding:0px;">, response)</span>:</span>
+        <span style="margin:0px;padding:0px;"><span style="margin:0px;padding:0px;color:green;"># response.body is a result of render.html call; it</span></span>
+        <span style="margin:0px;padding:0px;"><span style="margin:0px;padding:0px;color:green;"># contains HTML processed by a browser.</span></span>
+        <span style="margin:0px;padding:0px;"><span style="margin:0px;padding:0px;color:green;"># ...        </span></span></code></pre></div>
+<p style="padding:0px;margin:10px auto;text-indent:0px;">参考链接：<br style="margin:0px;padding:0px;"/>
+<a href="https://github.com/scrapy-plugins/scrapy-splash" style="margin:0px;padding:0px;color:rgb(0, 0, 0);text-decoration:underline;">scrapy_splash教程</a><br style="margin:0px;padding:0px;"/>
+<a href="http://ae.yyuap.com/pages/viewpage.action?pageId=919763" style="margin:0px;padding:0px;color:rgb(0, 0, 0);text-decoration:underline;">Scrapy爬虫中使用Splash处理页面JS</a></p>
+</div>
+<div style="margin:0px;padding:0px;clear:both;"></div>
+<div style="margin:0px;padding:0px;margin-top:20px;">
+<div style="margin:0px;padding:0px;margin-bottom:10px;">分类: <a href="http://www.cnblogs.com/zhonghuasong/category/896881.html" style="margin:0px;padding:0px;color:rgb(0, 0, 0);text-decoration:none;margin-left:10px;" target="_blank">爬虫</a></div>
+<div style="margin:0px;padding:0px;font-size:14px;color:rgb(126, 140, 141);font-weight:bold;margin-top:0px;"></div>
+<div style="margin:0px;padding:0px;"><div style="margin:0px;padding:10px 0px;margin-bottom:10px;margin-top:10px;border:1px dashed silver;font-size:12px;width:320px;text-align:center;">
+        <a href="#" style="margin-right:10px;margin:0px;border-radius:10px;padding:3px 8px;text-decoration:none;font-weight:bold;cursor:pointer;display:inline-block;vertical-align:middle;box-shadow:rgba(0, 0, 0, 0.498039) 0px 1px 3px;text-shadow:rgba(0, 0, 0, 0.247059) 0px -1px 1px;background:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAAkCAYAAABIdFAMAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAHhJREFUeNo8zjsOxCAMBFB/KEAUFFR0Cbng3nQPw68ArZdAlOZppPFIBhH5EAB8b+Tlt9MYQ6i1BuqFaq1CKSVcxZ2Acs6406KUgpt5/LCKuVgz5BDCSb13ZO99ZOdcZGvt4mJjzMVKqcha68iIePB86GAiOv8CDADlIUQBs7MD3wAAAABJRU5ErkJggg%3D%3D&quot;) repeat-x;background-color:rgb(45, 174, 191);color:rgb(255, 255, 255);border:none;">好文要顶</a>
+            <a href="#" style="margin-right:10px;margin:0px;border-radius:10px;padding:3px 8px;text-decoration:none;font-weight:bold;cursor:pointer;display:inline-block;vertical-align:middle;box-shadow:rgba(0, 0, 0, 0.498039) 0px 1px 3px;text-shadow:rgba(0, 0, 0, 0.247059) 0px -1px 1px;background:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAAkCAYAAABIdFAMAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAHhJREFUeNo8zjsOxCAMBFB/KEAUFFR0Cbng3nQPw68ArZdAlOZppPFIBhH5EAB8b+Tlt9MYQ6i1BuqFaq1CKSVcxZ2Acs6406KUgpt5/LCKuVgz5BDCSb13ZO99ZOdcZGvt4mJjzMVKqcha68iIePB86GAiOv8CDADlIUQBs7MD3wAAAABJRU5ErkJggg%3D%3D&quot;) repeat-x;background-color:rgb(227, 49, 0);color:rgb(255, 255, 255);border:none;">关注我</a>
+    <a href="#" style="margin-right:10px;margin:0px;border-radius:10px;padding:3px 8px;text-decoration:none;font-weight:bold;cursor:pointer;display:inline-block;vertical-align:middle;box-shadow:rgba(0, 0, 0, 0.498039) 0px 1px 3px;text-shadow:rgba(0, 0, 0, 0.247059) 0px -1px 1px;background:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAAkCAYAAABIdFAMAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAHhJREFUeNo8zjsOxCAMBFB/KEAUFFR0Cbng3nQPw68ArZdAlOZppPFIBhH5EAB8b+Tlt9MYQ6i1BuqFaq1CKSVcxZ2Acs6406KUgpt5/LCKuVgz5BDCSb13ZO99ZOdcZGvt4mJjzMVKqcha68iIePB86GAiOv8CDADlIUQBs7MD3wAAAABJRU5ErkJggg%3D%3D&quot;) repeat-x;background-color:rgb(255, 181, 21);color:rgb(255, 255, 255);border:none;">收藏该文</a>
+    <a href="#" style="margin-right:10px;margin:0px;border-radius:10px;padding:3px 2px;text-decoration:none;font-weight:bold;cursor:pointer;display:inline-block;vertical-align:middle;box-shadow:none;text-shadow:none;background:none;color:rgb(255, 255, 255);border:none;" title="分享至新浪微博"><img src="利用scrapy-splash爬取JS生成的动态页面 - 清水汪汪 - 博客园_files/icon_weibo_24.png" type="image/png" data-filename="icon_weibo_24.png" alt="" height="24" style="margin:0px;padding:0px;height:auto;border:none;vertical-align:middle;margin-left:5px;box-shadow:none;max-width:300px;" width="24"/></a>
+    <a href="#" style="margin-right:10px;margin:0px;border-radius:10px;padding:3px 2px;text-decoration:none;font-weight:bold;cursor:pointer;display:inline-block;vertical-align:middle;box-shadow:none;text-shadow:none;background:none;color:rgb(255, 255, 255);border:none;" title="分享至微信"><img src="利用scrapy-splash爬取JS生成的动态页面 - 清水汪汪 - 博客园_files/wechat.png" type="image/png" data-filename="wechat.png" alt="" height="24" style="margin:0px;padding:0px;border:medium none;width:24px;height:24px;box-shadow:none;margin-left:5px;vertical-align:middle;max-width:300px;" width="24"/></a>
+</div>
+<div style="margin:0px;padding:0px;float:left;width:280px;margin-top:0px;margin-bottom:10px;color:rgb(0, 0, 0);margin-left:0px;font-size:12px;">
+    <div style="margin:0px;padding:0px;float:left;line-height:18px;">
+            <a href="http://home.cnblogs.com/u/zhonghuasong/" style="margin:0px;padding:0px;color:rgb(0, 0, 0);text-decoration:none;" target="_blank"><img src="利用scrapy-splash爬取JS生成的动态页面 - 清水汪汪 - 博客园_files/20151006231030.png.jpg" type="image/jpeg" data-filename="20151006231030.png.jpg" alt="" height="48" style="margin:0px;padding:0px;height:auto;border:0px;vertical-align:top;float:left;margin-right:5px;padding-top:5px;padding-left:2px;max-width:300px;" width="48"/></a>
+        <div style="margin:0px;padding:0px;float:left;line-height:18px;">
+            <a href="http://home.cnblogs.com/u/zhonghuasong/" style="margin:0px;padding:0px;color:rgb(0, 0, 0);text-decoration:none;">清水汪汪</a><br style="margin:0px;padding:0px;"/>
+            <a href="http://home.cnblogs.com/u/zhonghuasong/followees" style="margin:0px;padding:0px;color:rgb(0, 0, 0);text-decoration:none;">关注 - 0</a><br style="margin:0px;padding:0px;"/>
+            <a href="http://home.cnblogs.com/u/zhonghuasong/followers" style="margin:0px;padding:0px;color:rgb(0, 0, 0);text-decoration:none;">粉丝 - 3</a>
+        </div>
+    </div>
+    <div style="margin:0px;padding:0px;clear:both;"></div>
+    <div style="margin:0px;padding:0px;"></div>
+    <div style="margin:0px;padding:0px;">
+                <a href="#" style="margin:0px;padding:0px;color:rgb(0, 0, 0);text-decoration:none;">+加关注</a>
+    </div>
+</div>
+<div style="margin:0px;padding:0px;float:right;margin-bottom:10px;margin-right:30px;font-size:12px;width:125px;text-align:center;margin-top:10px;">
+    <div style="margin:0px;padding:0px;float:left;width:46px;height:52px;background:url(&quot;http://static.cnblogs.com/images/upup.gif&quot;) no-repeat;text-align:center;cursor:pointer;margin-top:2px;padding-top:5px;">
+        <span style="margin:0px;padding:0px;font-size:14px;color:rgb(7, 93, 179);font-family:Verdana;line-height:1.5em;">2</span>
+    </div>
+    <div style="text-align:center;padding:0px;margin:0px;height:52px;background:url(&quot;http://static.cnblogs.com/images/downdown.gif&quot;) no-repeat;margin-left:20px;cursor:pointer;margin-top:2px;padding-top:5px;width:46px;float:right;">
+        <span style="margin:0px;padding:0px;font-size:14px;color:rgb(7, 93, 179);font-family:Verdana;line-height:1.5em;">0</span>
+    </div>
+    <div style="margin:0px;padding:0px;clear:both;"></div>
+    <div style="margin:0px;padding:0px;margin-top:5px;margin-left:0px;font-size:12px;color:gray;">
+    </div>
+</div>
+</div>
+<div style="margin:0px;padding:0px;clear:both;"></div>
+<div style="padding:0px;line-height:200%;font-size:14px;margin:10px 0px;"><a href="http://www.cnblogs.com/zhonghuasong/p/5975999.html" style="margin:0px;padding:0px;color:rgb(51, 51, 51);text-decoration:none;">« </a> 上一篇：<a href="http://www.cnblogs.com/zhonghuasong/p/5975999.html" style="margin:0px;padding:0px;text-decoration:none;color:rgb(51, 51, 51);" title="发布于2016-10-19 09:12">scrapy基础教程</a><br style="margin:0px;padding:0px;"/><a href="http://www.cnblogs.com/zhonghuasong/p/6115745.html" style="margin:0px;padding:0px;color:rgb(51, 51, 51);text-decoration:none;">» </a> 下一篇：<a href="http://www.cnblogs.com/zhonghuasong/p/6115745.html" style="margin:0px;padding:0px;text-decoration:none;color:rgb(51, 51, 51);" title="发布于2016-11-29 22:39">LeetCode——Letter Combinations of a Phone Number</a><br style="margin:0px;padding:0px;"/></div>
+</div>
+
+
+		</div>
+		<div style="padding:0px;clear:both;float:none;text-align:left;margin:10px 0px;color:rgb(119, 119, 119);line-height:200%;font-size:14px;">posted @ <span style="margin:0px;padding:0px;">2016-10-19 09:13</span> <a href="http://www.cnblogs.com/zhonghuasong/" style="margin:0px;padding:0px;color:rgb(153, 153, 153);text-decoration:none;">清水汪汪</a> 阅读(<span style="margin:0px;padding:0px;">6524</span>) 评论(<span style="margin:0px;padding:0px;">0</span>)  <a href="https://i.cnblogs.com/EditPosts.aspx?postid=5976003" rel="nofollow" style="margin:0px;padding:0px;color:rgb(153, 153, 153);text-decoration:none;">编辑</a> <a href="http://www.cnblogs.com/zhonghuasong/p/5976003.html#" style="margin:0px;padding:0px;color:rgb(153, 153, 153);text-decoration:none;">收藏</a></div>
+	</div></div></div></div></div></div></div></div></div></div><br/></div></span>
+</div></body></html> 

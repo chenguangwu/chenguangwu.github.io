@@ -1,0 +1,167 @@
+<html>
+<head>
+  <title>mysql show processlist 显示mysql查询进程_Mysql_脚本之家</title>
+  <basefont face="微软雅黑" size="2" />
+  <meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+  <meta name="exporter-version" content="YXBJ Windows/600718 (zh-CN, DDL); Windows/6.1.1 (Win64);"/>
+  <style>
+    body, td {
+      font-family: 微软雅黑;
+      font-size: 10pt;
+    }
+  </style>
+</head>
+<body>
+<a name="7460"/>
+<h1>mysql show processlist 显示mysql查询进程_Mysql_脚本之家</h1>
+<div>
+<table bgcolor="#D4DDE5" border="0">
+<tr><td><b>创建时间：</b></td><td><i>2016/3/22 10:36</i></td></tr>
+<tr><td><b>来源：</b></td><td><a href="http://www.jb51.net/article/29820.htm"><i>http://www.jb51.net/article/29820.htm</i></a></td></tr>
+</table>
+</div>
+<br/>
+
+<div><span><br/><div><div><div><div><h1>mysql show processlist 显示mysql查询进程</h1><div><div></div></div></div>
+            <p>作者：  字体：[<a href="#" target="_blank">增加</a> <a href="#" target="_blank">减小</a>] 类型：转载 时间：2012-03-01<a href="http://www.jb51.net/article/29820.htm#comments" target="_blank"> 我要评论</a></p>
+        
+        <div><div>processlist命令的输出结果显示了有哪些线程在运行，可以帮助识别出有问题的查询语句，两种方式使用这个命令</div></div>
+        
+        
+1.进入mysql/bin目录下输入mysqladmin processlist; <br/>2.启动mysql，输入show processlist; <br/>如果有 SUPER 权限，则可以看到全部的线程，否则，只能看到自己发起的线程（这是指，当前对应的MySQL帐户运行的线程）。 <br/>得到数据形式如下（只截取了三条）： <br/>mysql&gt; show processlist; <br/>+-----+-------------+--------------------+-------+---------+-------+----------------------------------+---------- <br/>| Id | User | Host | db | Command | Time| State | Info <br/>+-----+-------------+--------------------+-------+---------+-------+----------------------------------+---------- <br/>|207|root |192.168.0.20:51718 |mytest | Sleep | 5 | | NULL <br/>|208|root |192.168.0.20:51719 |mytest | Sleep | 5 | | NULL <br/>|220|root |192.168.0.20:51731 |mytest |Query | 84 | Locked | <br/>select bookname,culture,value,type from book where id=001 <br/>先简单说一下各列的含义和用途，第一列，id，不用说了吧，一个标识，你要kill一个语句的时候很有用。user列，显示单前用户，如果不是root，这个命令就只显示你权限范围内的sql语句。host列，显示这个语句是从哪个ip的哪个端口上发出的。呵呵，可以用来追踪出问题语句的用户。db列，显示这个进程目前连接的是哪个数据库。command列，显示当前连接的执行的命令，一般就是休眠（sleep），查询（query），连接（connect）。time列，此这个状态持续的时间，单位是秒。state列，显示使用当前连接的sql语句的状态，很重要的列，后续会有所有的状态的描述，请注意，state只是语句执行中的某一个状态，一个sql语句，已查询为例，可能需要经过copying to tmp table，Sorting result，Sending data等状态才可以完成，info列，显示这个sql语句 <br/><br/>如果你在一个容量大的表中执行增删改字段或执行一个复杂的sql 查询导致mysql线程挂起.可用此命令查看出是哪些sql挂起,用kill命令把他K掉 <br/><br/>kill命令使用方法 <br/><br/>kill pid <br/><br/>如上例中我们想kill掉id为207的线程则执行 <br/><br/>kill 207即可.<br/><br/><strong>mysql show processlist命令 详解</strong> <p>SHOW PROCESSLIST显示哪些线程正在运行。您也可以使用mysqladmin processlist语句得到此信息。如果您有SUPER权限，您可以看到所有线程。否则，您只能看到您自己的线程（也就是，与您正在使用的MySQL账户相关的线程）。请参见13.5.5.3节，“KILL语法”。如果您不使用关键词，则只显示每个查询的前个字符。</p>
+<p>本语句报告TCP/IP连接的主机名称（采用<i>host_name</i>:<i>client_port</i>格式），以方便地判定哪个客户端正在做什么。</p>
+<p>如果您得到“too many connections”错误信息，并且想要了解正在发生的情况，本语句是非常有用的。MySQL保留一个额外的连接，让拥有SUPER权限的 账户使用，以确保管理员能够随时连接和检查系统（假设您没有把此权限给予所有的用户）。</p>
+<p>这个命令中最关键的就是state列，mysql列出的状态主要有以下几种：</p>
+<p><b>Checking table<br/></b>　正在检查数据表（这是自动的）。<br/><b>Closing tables</b><br/>　正在将表中修改的数据刷新到磁盘中，同时正在关闭已经用完的表。这是一个很快的操作，如果不是这样的话，就应该确认磁盘空间是否已经满了或者磁盘是否正处于重负中。<br/><b>Connect Out</b><br/>　复制从服务器正在连接主服务器。<br/><b>Copying to tmp table on disk</b><br/>　由于临时结果集大于tmp_table_size，正在将临时表从内存存储转为磁盘存储以此节省内存。<br/><b>Creating tmp table</b><br/>　正在创建临时表以存放部分查询结果。<br/><b>deleting from main table</b><br/>　服务器正在执行多表删除中的第一部分，刚删除第一个表。<br/><b>deleting from reference tables<br/></b>　服务器正在执行多表删除中的第二部分，正在删除其他表的记录。<br/><b>Flushing tables<br/></b>　正在执行FLUSH TABLES，等待其他线程关闭数据表。<br/><b>Killed<br/></b>　发送了一个kill请求给某线程，那么这个线程将会检查kill标志位，同时会放弃下一个kill请求。MySQL会在每次的主循环中检查kill标志位，不过有些情况下该线程可能会过一小段才能死掉。如果该线程程被其他线程锁住了，那么kill请求会在锁释放时马上生效。<br/><b>Locked</b><br/>　被其他查询锁住了。<br/><b>Sending data</b><br/>　正在处理SELECT查询的记录，同时正在把结果发送给客户端。<br/><b>Sorting for group<br/></b>　正在为GROUP BY做排序。<br/>　Sorting for order<br/>　正在为ORDER BY做排序。<br/><b>Opening tables</b><br/>　这个过程应该会很快，除非受到其他因素的干扰。例如，在执ALTER TABLE或LOCK TABLE语句行完以前，数据表无法被其他线程打开。正尝试打开一个表。<br/><b>Removing duplicates</b><br/>　正在执行一个SELECT DISTINCT方式的查询，但是MySQL无法在前一个阶段优化掉那些重复的记录。因此，MySQL需要再次去掉重复的记录，然后再把结果发送给客户端。<br/><b>Reopen table</b><br/>　获得了对一个表的锁，但是必须在表结构修改之后才能获得这个锁。已经释放锁，关闭数据表，正尝试重新打开数据表。<br/><b>Repair by sorting</b><br/>　修复指令正在排序以创建索引。<br/><b>Repair with keycache</b><br/>　修复指令正在利用索引缓存一个一个地创建新索引。它会比Repair by sorting慢些。<br/><b>Searching rows for update<br/></b>　正在讲符合条件的记录找出来以备更新。它必须在UPDATE要修改相关的记录之前就完成了。<br/><b>Sleeping</b><br/>　正在等待客户端发送新请求.<br/><b>System lock</b><br/>　正在等待取得一个外部的系统锁。如果当前没有运行多个mysqld服务器同时请求同一个表，那么可以通过增加--skip-external-locking参数来禁止外部系统锁。<br/><b>Upgrading lock</b><br/>　INSERT DELAYED正在尝试取得一个锁表以插入新记录。<br/><b>Updating</b><br/>　正在搜索匹配的记录，并且修改它们。<br/><b>User Lock</b><br/>　正在等待GET_LOCK()。<br/><b>Waiting for tables<br/></b>　该线程得到通知，数据表结构已经被修改了，需要重新打开数据表以取得新的结构。然后，为了能的重新打开数据表，必须等到所有其他线程关闭这个表。以下几种情况下会产生这个通知：FLUSH TABLES tbl_name, ALTER TABLE, RENAME TABLE, REPAIR TABLE, ANALYZE TABLE,或OPTIMIZE TABLE。<br/><b>waiting for handler insert</b><br/>　INSERT DELAYED已经处理完了所有待处理的插入操作，正在等待新的请求。<br/>　大部分状态对应很快的操作，只要有一个线程保持同一个状态好几秒钟，那么可能是有问题发生了，需要检查一下。<br/>　还有其他的状态没在上面中列出来，不过它们大部分只是在查看服务器是否有存在错误是才用得着。</p>
+<p><b>mysql 查看当前连接数</b></p>
+<p>命令： show processlist; <br/>如果是root帐号，你能看到所有用户的当前连接。如果是其它普通帐号，只能看到自己占用的连接。 <br/>show processlist;只列出前100条，如果想全列出请使用show full processlist; <br/>mysql&gt; show processlist;</p>
+<p>命令： show status;</p>
+<p>Aborted_clients 由于客户没有正确关闭连接已经死掉，已经放弃的连接数量。 <br/>Aborted_connects 尝试已经失败的MySQL服务器的连接的次数。 <br/>Connections 试图连接MySQL服务器的次数。 <br/>Created_tmp_tables 当执行语句时，已经被创造了的隐含临时表的数量。 <br/>Delayed_insert_threads 正在使用的延迟插入处理器线程的数量。 <br/>Delayed_writes 用INSERT DELAYED写入的行数。 <br/>Delayed_errors 用INSERT DELAYED写入的发生某些错误(可能重复键值)的行数。 <br/>Flush_commands 执行FLUSH命令的次数。 <br/>Handler_delete 请求从一张表中删除行的次数。 <br/>Handler_read_first 请求读入表中第一行的次数。 <br/>Handler_read_key 请求数字基于键读行。 <br/>Handler_read_next 请求读入基于一个键的一行的次数。 <br/>Handler_read_rnd 请求读入基于一个固定位置的一行的次数。 <br/>Handler_update 请求更新表中一行的次数。 <br/>Handler_write 请求向表中插入一行的次数。 <br/>Key_blocks_used 用于关键字缓存的块的数量。 <br/>Key_read_requests 请求从缓存读入一个键值的次数。 <br/>Key_reads 从磁盘物理读入一个键值的次数。 <br/>Key_write_requests 请求将一个关键字块写入缓存次数。 <br/>Key_writes 将一个键值块物理写入磁盘的次数。 <br/>Max_used_connections 同时使用的连接的最大数目。 <br/>Not_flushed_key_blocks 在键缓存中已经改变但是还没被清空到磁盘上的键块。 <br/>Not_flushed_delayed_rows 在INSERT DELAY队列中等待写入的行的数量。 <br/>Open_tables 打开表的数量。 <br/>Open_files 打开文件的数量。 <br/>Open_streams 打开流的数量(主要用于日志记载） <br/>Opened_tables 已经打开的表的数量。 <br/>Questions 发往服务器的查询的数量。 <br/>Slow_queries 要花超过long_query_time时间的查询数量。 <br/>Threads_connected 当前打开的连接的数量。 <br/>Threads_running 不在睡眠的线程数量。 <br/>Uptime 服务器工作了多少秒。</p>
+<p><b>After create</b></p>
+<p>This occurs when the thread creates a table (including internal temporary tables), at the end of the function that creates the table. This state is used even if the table could not be created due to some error.</p>
+<p><b>Analyzing</b></p>
+<p>The thread is calculating a MyISAM table key distributions (for example, for ANALYZE TABLE).</p>
+<p><b>checking permissions</b></p>
+<p>The thread is checking whether the server has the required privileges to execute the statement.</p>
+<p><b>Checking table</b></p>
+<p>The thread is performing a table check operation.</p>
+<p><b>cleaning up</b></p>
+<p>The thread has processed one command and is preparing to free memory and reset certain state variables.</p>
+<p><b>closing tables</b></p>
+<p>The thread is flushing the changed table data to disk and closing the used tables. This should be a fast operation. If not, you should verify that you do not have a full disk and that the disk is not in very heavy use.</p>
+<p><b>converting HEAP to MyISAM</b></p>
+<p>The thread is converting an internal temporary table from a MEMORY table to an on-disk MyISAM table.</p>
+<p><b>copy to tmp table</b></p>
+<p>The thread is processing an ALTER TABLE statement. This state occurs after the table with the new structure has been created but before rows are copied into it.</p>
+<p><b>Copying to group table</b></p>
+<p>If a statement has different ORDER BY and GROUP BY criteria, the rows are sorted by group and copied to a temporary table.</p>
+<p><b>Copying to tmp table</b></p>
+<p>The server is copying to a temporary table in memory.</p>
+<p><b>Copying to tmp table on disk</b></p>
+<p>The server is copying to a temporary table on disk. The temporary result set was larger than tmp_table_size and the thread is changing the temporary table from in-memory to disk-based format to save memory.</p>
+<p><b>Creating index</b></p>
+<p>The thread is processing ALTER TABLE ... ENABLE KEYS for a MyISAM table.</p>
+<p><b>Creating sort index</b></p>
+<p>The thread is processing a SELECT that is resolved using an internal temporary table.</p>
+<p><b>creating table</b></p>
+<p>The thread is creating a table. This includes creation of temporary tables.</p>
+<p><b>Creating tmp table</b></p>
+<p>The thread is creating a temporary table in memory or on disk. If the table is created in memory but later is converted to an on-disk table, the state during that operation will be Copying to tmp table on disk.</p>
+<p><b>deleting from main table</b></p>
+<p>The server is executing the first part of a multiple-table delete. It is deleting only from the first table, and saving columns and offsets to be used for deleting from the other (reference) tables.</p>
+<p><b>deleting from reference tables</b></p>
+<p>The server is executing the second part of a multiple-table delete and deleting the matched rows from the other tables.</p>
+<p><b>discard_or_import_tablespace</b></p>
+<p>The thread is processing an ALTER TABLE ... DISCARD TABLESPACE or ALTER TABLE ... IMPORT TABLESPACE statement.</p>
+<p><b>end</b></p>
+<p>This occurs at the end but before the cleanup of ALTER TABLE, CREATE VIEW, DELETE, INSERT, SELECT, or UPDATE statements.</p>
+<p><b>executing</b></p>
+<p>The thread has begun executing a statement.</p>
+<p><b>Execution of init_command</b></p>
+<p>The thread is executing statements in the value of the init_command system variable.</p>
+<p><b>freeing items</b></p>
+<p>The thread has executed a command. This state is usually followed by cleaning up.</p>
+<p><b>Flushing tables</b></p>
+<p>The thread is executing FLUSH TABLES and is waiting for all threads to close their tables.</p>
+<p><b>FULLTEXT initialization</b></p>
+<p>The server is preparing to perform a natural-language full-text search.</p>
+<p><b>init</b></p>
+<p>This occurs before the initialization of ALTER TABLE, DELETE, INSERT, SELECT, or UPDATE statements.</p>
+<p><b>Killed</b></p>
+<p>Someone has sent a KILL statement to the thread and it should abort next time it checks the kill flag. The flag is checked in each major loop in MySQL, but in some cases it might still take a short time for the thread to die. If the thread is locked by some other thread, the kill takes effect as soon as the other thread releases its lock.</p>
+<p><b>Locked</b></p>
+<p>The query is locked by another query.</p>
+<p><b>logging slow query</b></p>
+<p>The thread is writing a statement to the slow-query log.</p>
+<p><b>NULL</b></p>
+<p>This state is used for the SHOW PROCESSLIST state.</p>
+<p><b>login</b></p>
+<p>The initial state for a connection thread until the client has been authenticated successfully.</p>
+<p><b>Opening tables, Opening table</b></p>
+<p>The thread is trying to open a table. This is should be very fast procedure, unless something prevents opening. For example, an ALTER TABLE or a LOCK TABLE statement can prevent opening a table until the statement is finished.</p>
+<p><b>preparing</b></p>
+<p>This state occurs during query optimization.</p>
+<p><b>Purging old relay logs</b></p>
+<p>The thread is removing unneeded relay log files.</p>
+<p><b>query end</b></p>
+<p>This state occurs after processing a query but before the freeing items state.</p>
+<p><b>Reading from net</b></p>
+<p>The server is reading a packet from the network.</p>
+<p><b>Removing duplicates</b></p>
+<p>The query was using SELECT DISTINCT in such a way that MySQL could not optimize away the distinct operation at an early stage. Because of this, MySQL requires an extra stage to remove all duplicated rows before sending the result to the client.</p>
+<p><b>removing tmp table</b></p>
+<p>The thread is removing an internal temporary table after processing a SELECT statement. This state is not used if no temporary table was created.</p>
+<p><b>rename</b></p>
+<p>The thread is renaming a table.</p>
+<p><b>rename result table</b></p>
+<p>The thread is processing an ALTER TABLE statement, has created the new table, and is renaming it to replace the original table.</p>
+<p><b>Reopen tables</b></p>
+<p>The thread got a lock for the table, but noticed after getting the lock that the underlying table structure changed. It has freed the lock, closed the table, and is trying to reopen it.</p>
+<p><b>Repair by sorting</b></p>
+<p>The repair code is using a sort to create indexes.</p>
+<p><b>Repair done</b></p>
+<p>The thread has completed a multi-threaded repair for a MyISAM table.</p>
+<p><b>Repair with keycache</b></p>
+<p>The repair code is using creating keys one by one through the key cache. This is much slower than Repair by sorting.</p>
+<p><b>Rolling back</b></p>
+<p>The thread is rolling back a transaction.</p>
+<p><b>Saving state</b></p>
+<p>For MyISAM table operations such as repair or analysis, the thread is saving the new table state to the .MYI file header. State includes information such as number of rows, the AUTO_INCREMENT counter, and key distributions.</p>
+<p><b>Searching rows for update</b></p>
+<p>The thread is doing a first phase to find all matching rows before updating them. This has to be done if the UPDATE is changing the index that is used to find the involved rows.</p>
+<p><b>Sending data</b></p>
+<p>The thread is processing rows for a SELECT statement and also is sending data to the client.</p>
+<p><b>setup</b></p>
+<p>The thread is beginning an ALTER TABLE operation.</p>
+<p><b>Sorting for group</b></p>
+<p>The thread is doing a sort to satisfy a GROUP BY.</p>
+<p><b>Sorting for order</b></p>
+<p>The thread is doing a sort to satisfy a ORDER BY.</p>
+<p><b>Sorting index</b></p>
+<p>The thread is sorting index pages for more efficient access during a MyISAM table optimization operation.</p>
+<p><b>Sorting result</b></p>
+<p>For a SELECT statement, this is similar to Creating sort index, but for nontemporary tables.</p>
+<p><b>statistics</b></p>
+<p>The server is calculating statistics to develop a query execution plan.</p>
+<p><b>System lock</b></p>
+<p>The thread is going to request or is waiting for an internal or external system lock for the table. If this state is being caused by requests for external locks and you are not using multiple mysqld servers that are accessing the same tables, you can disable external system locks with the --skip-external-locking option. However, external locking is disabled by default, so it is likely that this option will have no effect. For SHOW PROFILE, this state means the thread is requesting the lock (not waiting for it).</p>
+<p><b>Table lock</b></p>
+<p>The next thread state after System lock. The thread has acquired an external lock and is going to request an internal table lock.</p>
+<p><b>Updating</b></p>
+<p>The thread is searching for rows to update and is updating them.</p>
+<p><b>updating main table</b></p>
+<p>The server is executing the first part of a multiple-table update. It is updating only the first table, and saving columns and offsets to be used for updating the other (reference) tables.</p>
+<p><b>updating reference tables</b></p>
+<p>The server is executing the second part of a multiple-table update and updating the matched rows from the other tables.</p>
+<p><b>User lock</b></p>
+<p>The thread is going to request or is waiting for an advisory lock requested with a GET_LOCK() call. For SHOW PROFILE, this state means the thread is requesting the lock (not waiting for it).</p>
+<p><b>Waiting for tables, Waiting for table</b></p>
+<p>The thread got a notification that the underlying structure for a table has changed and it needs to reopen the table to get the new structure. However, to reopen the table, it must wait until all other threads have closed the table in question.</p>
+<p>This notification takes place if another thread has used FLUSH TABLES or one of the following statements on the table in question: FLUSH TABLES tbl_name, ALTER TABLE, RENAME TABLE, REPAIR TABLE, ANALYZE TABLE, or OPTIMIZE TABLE.</p>
+<p><b>Waiting on cond</b></p>
+<p>A generic state in which the thread is waiting for a condition to become true. No specific state information is available.</p>
+<p><b>Writing to net</b></p>
+<p>The server is writing a packet to the network.</p>
+
+</div></div></div><br/></span>
+</div></body></html> 

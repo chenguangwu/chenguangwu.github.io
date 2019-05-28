@@ -1,0 +1,187 @@
+<html>
+<head>
+  <title>Oracle中Merge into用法总结 - 可笑痴狂 - 博客园</title>
+  <basefont face="微软雅黑" size="2" />
+  <meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+  <meta name="exporter-version" content="YXBJ Windows/600718 (zh-CN, DDL); Windows/6.1.1 (Win64);"/>
+  <style>
+    body, td {
+      font-family: 微软雅黑;
+      font-size: 10pt;
+    }
+  </style>
+</head>
+<body>
+<a name="4779"/>
+<h1>Oracle中Merge into用法总结 - 可笑痴狂 - 博客园</h1>
+<div>
+<table bgcolor="#D4DDE5" border="0">
+<tr><td><b>创建时间：</b></td><td><i>2018/6/19 10:18</i></td></tr>
+<tr><td><b>来源：</b></td><td><a href="https://www.cnblogs.com/dongsheng/p/4384754.html"><i>https://www.cnblogs.com/dongsheng/p/4384754.html</i></a></td></tr>
+</table>
+</div>
+<br/>
+
+<div><span>
+  <div>
+<div style="font-size: 16px; display: inline-block; min-width: 100%;position: relative;"><div><div style="font-family:&quot;PingFang SC&quot;, &quot;Helvetica Neue&quot;, Helvetica, Arial, sans-serif;line-height:1.6;background:rgb(238, 251, 236);font-size:14px;"><div>
+	
+<div>
+
+<div style="border:1px dotted rgb(185, 236, 174);background:url(images/bg_post.jpg) right top no-repeat white;padding:20px;color:rgb(75, 75, 75);">
+	<div style="font-size:14.7px;font-weight:bold;margin-bottom:10px;">
+		<a href="https://www.cnblogs.com/dongsheng/p/4384754.html" style="text-decoration:none;color:rgb(100, 100, 100);">Oracle中Merge into用法总结</a>
+	</div>
+	<div style="margin-bottom:20px;word-break:break-word;"><p style="margin:10px auto;text-indent:0px;"><span style="line-height:1.5;font-size:18px;"><strong>起因</strong>：</span></p>
+<p style="margin:10px auto;text-indent:0px;">　　<span style="line-height:1.5;font-size:16px;">前段时间，因为涉及到一张表的大数据操作，要同时进行增删改，我跟师傅想了很多优化办法，结果都不尽人意。刚开始用的就是原始算法，先更新现有记录，再插入满足要求的其他记录，最后再删除多余记录，但是少量数据还可以，10W条数据就不行了，前台的超时时间是60s，远远无法满足要求。之后又想办法将任务进行拆分，根据每条记录流水号尾字符不同进行拆分，用多个线程同时执行，一直拆分成10个任务（尾字符分别为0、1、2、3 ... 9），用十个线程同时去执行，但是时间还是很慢，最多处理13W条数据左右，50W条数据就让人无法忍受了。最后无奈只好把之前的优化全部铲掉，改为merge into操作，再做了一些优化，将50W条数据的单线程耗时缩短到三十多秒，特此，将merge into的用法总结如下：<span style="line-height:1.5;font-size:12px;">（</span></span><span style="line-height:1.5;font-size:12px;">http://blog.csdn.net/yuzhic/article/details/1896878）</span></p>
+<p style="margin:10px auto;text-indent:0px;"><span style="line-height:1.5;font-size:16px;">　　</span><span style="line-height:1.5;font-size:16px;">有一个表T，有两个字段a、b，我们想在表T中做Insert/Update，如果条件满足，则更新T中b的值，否则在T中插入一条记录。在Microsoft的SQL语法中，很简单的一句判断就可以了，SQL Server中的语法如下：</span><span style="line-height:1.5;font-size:16px;">　　</span></p>
+<div style="background-color:rgb(245, 245, 245);border:1px solid rgb(204, 204, 204);padding:5px;overflow:auto;margin:5px 0px;color:rgb(0, 0, 0);font-family:&quot;Courier New&quot;;font-size:12px;">
+<pre style="margin-top:0px;margin-bottom:0px;word-wrap:break-word;white-space:pre-wrap;font-family:&quot;Courier New&quot;;font-size:12px;"><span style="font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#0000ff;">if</span> <span style="font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#808080;">exists</span>(<span style="font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#0000ff;">select</span> <span style="font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#800000;font-weight:bold;">1</span> <span style="font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#0000ff;">from</span> T <span style="font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#0000ff;">where</span> T.a<span style="font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#808080;">=</span><span style="font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#ff0000;">'</span><span style="font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#ff0000;">1001</span><span style="font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#ff0000;">'</span><span style="font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#000000;"> )
+    </span><span style="font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#0000ff;">update</span> T <span style="font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#0000ff;">set</span> T.b<span style="font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#808080;">=</span><span style="font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#800000;font-weight:bold;">2</span> <span style="font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#0000ff;">Where</span> T.a<span style="font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#808080;">=</span><span style="font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#ff0000;">'</span><span style="font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#ff0000;">1001</span><span style="font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#ff0000;">'</span> 
+<span style="font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#0000ff;">else</span> 
+    <span style="font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#0000ff;">insert</span> <span style="font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#0000ff;">into</span> T(a,b) <span style="font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#0000ff;">values</span>(<span style="font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#ff0000;">'</span><span style="font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#ff0000;">1001</span><span style="font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#ff0000;">'</span>,<span style="font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#800000;font-weight:bold;">2</span>); </pre>
+</div>
+<p style="margin:10px auto;text-indent:0px;">　<span style="line-height:1.5;font-size:16px;">　Oracle中，要实现相同的功能，要用到Merge into来实现（Oracle 9i引入的功能），其语法如下：<br/></span></p>
+<div style="background-color:rgb(245, 245, 245);border:1px solid rgb(204, 204, 204);padding:5px;overflow:auto;margin:5px 0px;color:rgb(0, 0, 0);font-family:&quot;Courier New&quot;;font-size:12px;"><div style="margin-top:5px;background-color:rgb(245, 245, 245);"><span style="padding-right:5px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;"><a href="#" style="color:rgb(111, 188, 76);background-color:rgb(245, 245, 245);border:none;" title="复制代码"><img src="Oracle中Merge into用法总结 - 可笑痴狂 - 博客园_files/copycode.gif" type="image/gif" data-filename="copycode.gif" height="20" style="height:auto;max-width:300px;border:none;background-color:rgb(245, 245, 245);" width="20"/></a></span></div>
+<pre style="margin-top:0px;margin-bottom:0px;word-wrap:break-word;white-space:pre-wrap;font-family:&quot;Courier New&quot;;font-size:12px;">MERGE <span style="font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#0000ff;">INTO</span><span style="font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#000000;"> table_name alias1 
+USING (</span><span style="font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#0000ff;">table</span><span style="font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#808080;">|</span><span style="font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#0000ff;">view</span><span style="font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#808080;">|</span><span style="font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#000000;">sub_query) alias2
+</span><span style="font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#0000ff;">ON</span> (<span style="font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#808080;">join</span><span style="font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#000000;"> condition) 
+</span><span style="font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#0000ff;">WHEN</span> MATCHED <span style="font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#0000ff;">THEN</span> 
+    <span style="font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#0000ff;">UPDATE</span><span style="font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#000000;"> table_name 
+    </span><span style="font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#0000ff;">SET</span> col1 <span style="font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#808080;">=</span><span style="font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#000000;"> col_val1, 
+           col2 </span><span style="font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#808080;">=</span><span style="font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#000000;"> col_val2 
+</span><span style="font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#0000ff;">WHEN</span> <span style="font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#808080;">NOT</span> MATCHED <span style="font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#0000ff;">THEN</span> 
+    <span style="font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#0000ff;">INSERT</span> (column_list) <span style="font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#0000ff;">VALUES</span> (column_values); </pre>
+<div style="margin-top:5px;background-color:rgb(245, 245, 245);"><span style="padding-right:5px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;"><a href="#" style="color:rgb(111, 188, 76);background-color:rgb(245, 245, 245);border:none;" title="复制代码"><img src="Oracle中Merge into用法总结 - 可笑痴狂 - 博客园_files/copycode [1].gif" type="image/gif" data-filename="copycode.gif" height="20" style="height:auto;max-width:300px;border:none;background-color:rgb(245, 245, 245);" width="20"/></a></span></div></div>
+<p style="margin:10px auto;text-indent:0px;">　　<span style="line-height:1.5;font-size:16px;">严格意义上讲，<strong><span style="line-height:1.5;color:#ff0000;">”在一个同时存在Insert和Update语法的Merge语句中，总共Insert/Update的记录数，就是Using语句中alias2的记录数”。</span></strong>所以，要实现上面的功能，可以这样写：</span></p>
+<div style="background-color:rgb(245, 245, 245);border:1px solid rgb(204, 204, 204);padding:5px;overflow:auto;margin:5px 0px;color:rgb(0, 0, 0);font-family:&quot;Courier New&quot;;font-size:12px;"><div style="margin-top:5px;background-color:rgb(245, 245, 245);"><span style="padding-right:5px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;"><a href="#" style="color:rgb(111, 188, 76);background-color:rgb(245, 245, 245);border:none;" title="复制代码"><img src="Oracle中Merge into用法总结 - 可笑痴狂 - 博客园_files/copycode [2].gif" type="image/gif" data-filename="copycode.gif" height="20" style="height:auto;max-width:300px;border:none;background-color:rgb(245, 245, 245);" width="20"/></a></span></div>
+<pre style="margin-top:0px;margin-bottom:0px;word-wrap:break-word;white-space:pre-wrap;font-family:&quot;Courier New&quot;;font-size:12px;">MERGE <span style="font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#0000ff;">INTO</span><span style="font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#000000;"> T T1
+USING (</span><span style="font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#0000ff;">SELECT</span> <span style="font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#ff0000;">'</span><span style="font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#ff0000;">1001</span><span style="font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#ff0000;">'</span> <span style="font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#0000ff;">AS</span> a,<span style="font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#800000;font-weight:bold;">2</span> <span style="font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#0000ff;">AS</span> b <span style="font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#0000ff;">FROM</span><span style="font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#000000;"> dual) T2
+</span><span style="font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#0000ff;">ON</span> ( T1.a<span style="font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#808080;">=</span><span style="font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#000000;">T2.a)
+</span><span style="font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#0000ff;">WHEN</span> MATCHED <span style="font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#0000ff;">THEN</span>
+    <span style="font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#0000ff;">UPDATE</span> <span style="font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#0000ff;">SET</span> T1.b <span style="font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#808080;">=</span><span style="font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#000000;"> T2.b
+</span><span style="font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#0000ff;">WHEN</span> <span style="font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#808080;">NOT</span> MATCHED <span style="font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#0000ff;">THEN</span> 
+    <span style="font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#0000ff;">INSERT</span> (a,b) <span style="font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#0000ff;">VALUES</span>(T2.a,T2.b);</pre>
+<div style="margin-top:5px;background-color:rgb(245, 245, 245);"><span style="padding-right:5px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;"><a href="#" style="color:rgb(111, 188, 76);background-color:rgb(245, 245, 245);border:none;" title="复制代码"><img src="Oracle中Merge into用法总结 - 可笑痴狂 - 博客园_files/copycode [3].gif" type="image/gif" data-filename="copycode.gif" height="20" style="height:auto;max-width:300px;border:none;background-color:rgb(245, 245, 245);" width="20"/></a></span></div></div>
+<p style="margin:10px auto;text-indent:0px;"> </p>
+<p style="margin:10px auto;text-indent:0px;"> </p>
+<p style="margin:10px auto;text-indent:0px;"><span style="line-height:1.5;font-size:16px;"><br/>　　<br/></span></p></div><div style="display:block;">功不成，身已退</div>
+<div style="clear:both;"></div>
+<div style="margin-top:20px;">
+<div style="margin-bottom:10px;">分类: <a href="http://www.cnblogs.com/dongsheng/category/549253.html" style="color:rgb(111, 188, 76);" target="_blank">数据库</a></div>
+<div style="margin-top:0px;">标签: <a href="http://www.cnblogs.com/dongsheng/tag/Oracle/" style="color:rgb(111, 188, 76);">Oracle</a>, <a href="http://www.cnblogs.com/dongsheng/tag/merge%20into/" style="color:rgb(111, 188, 76);">merge into</a></div>
+<div><div style="padding:10px 0px;margin-bottom:10px;margin-top:10px;border:1px dashed silver;font-size:12px;width:320px;text-align:center;">
+        <a href="#" style="margin-right:10px;background:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAAkCAYAAABIdFAMAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAHhJREFUeNo8zjsOxCAMBFB/KEAUFFR0Cbng3nQPw68ArZdAlOZppPFIBhH5EAB8b+Tlt9MYQ6i1BuqFaq1CKSVcxZ2Acs6406KUgpt5/LCKuVgz5BDCSb13ZO99ZOdcZGvt4mJjzMVKqcha68iIePB86GAiOv8CDADlIUQBs7MD3wAAAABJRU5ErkJggg%3D%3D) repeat-x;padding:3px 8px;vertical-align:middle;text-decoration:none;font-weight:bold;cursor:pointer;display:inline-block;border-radius:10px;box-shadow:rgba(0, 0, 0, 0.498039) 0px 1px 3px;text-shadow:rgba(0, 0, 0, 0.247059) 0px -1px 1px;background-color:rgb(45, 174, 191);color:rgb(255, 255, 255);border:none;">好文要顶</a>
+            <a href="#" style="margin-right:10px;background:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAAkCAYAAABIdFAMAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAHhJREFUeNo8zjsOxCAMBFB/KEAUFFR0Cbng3nQPw68ArZdAlOZppPFIBhH5EAB8b+Tlt9MYQ6i1BuqFaq1CKSVcxZ2Acs6406KUgpt5/LCKuVgz5BDCSb13ZO99ZOdcZGvt4mJjzMVKqcha68iIePB86GAiOv8CDADlIUQBs7MD3wAAAABJRU5ErkJggg%3D%3D) repeat-x;padding:3px 8px;vertical-align:middle;text-decoration:none;font-weight:bold;cursor:pointer;display:inline-block;border-radius:10px;box-shadow:rgba(0, 0, 0, 0.498039) 0px 1px 3px;text-shadow:rgba(0, 0, 0, 0.247059) 0px -1px 1px;background-color:rgb(227, 49, 0);color:rgb(255, 255, 255);border:none;">关注我</a>
+    <a href="#" style="margin-right:10px;background:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAAkCAYAAABIdFAMAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAHhJREFUeNo8zjsOxCAMBFB/KEAUFFR0Cbng3nQPw68ArZdAlOZppPFIBhH5EAB8b+Tlt9MYQ6i1BuqFaq1CKSVcxZ2Acs6406KUgpt5/LCKuVgz5BDCSb13ZO99ZOdcZGvt4mJjzMVKqcha68iIePB86GAiOv8CDADlIUQBs7MD3wAAAABJRU5ErkJggg%3D%3D) repeat-x;padding:3px 8px;vertical-align:middle;text-decoration:none;font-weight:bold;cursor:pointer;display:inline-block;border-radius:10px;box-shadow:rgba(0, 0, 0, 0.498039) 0px 1px 3px;text-shadow:rgba(0, 0, 0, 0.247059) 0px -1px 1px;background-color:rgb(255, 181, 21);color:rgb(255, 255, 255);border:none;">收藏该文</a>
+    <a href="#" style="cursor:pointer;background:none;padding:3px 2px;vertical-align:middle;text-decoration:none;font-weight:bold;display:inline-block;margin-right:10px;border-radius:10px;box-shadow:none;text-shadow:none;color:rgb(255, 255, 255);border:none;" title="分享至新浪微博"><img src="Oracle中Merge into用法总结 - 可笑痴狂 - 博客园_files/icon_weibo_24.png" type="image/png" data-filename="icon_weibo_24.png" height="24" style="height:auto;border:none;vertical-align:middle;margin-left:5px;box-shadow:none;max-width:300px;" width="24"/></a>
+    <a href="#" style="cursor:pointer;background:none;padding:3px 2px;vertical-align:middle;text-decoration:none;font-weight:bold;display:inline-block;margin-right:10px;border-radius:10px;box-shadow:none;text-shadow:none;color:rgb(255, 255, 255);border:none;" title="分享至微信"><img src="Oracle中Merge into用法总结 - 可笑痴狂 - 博客园_files/wechat.png" type="image/png" data-filename="wechat.png" height="24" style="border:medium none;width:24px;height:24px;box-shadow:none;margin-left:5px;vertical-align:middle;max-width:300px;" width="24"/></a>
+</div>
+<div style="float:left;width:280px;margin-top:0px;margin-bottom:10px;color:rgb(0, 0, 0);margin-left:0px;font-size:12px;">
+    <div style="float:left;line-height:18px;">
+            <a href="http://home.cnblogs.com/u/dongsheng/" style="color:rgb(111, 188, 76);" target="_blank"><img src="Oracle中Merge into用法总结 - 可笑痴狂 - 博客园_files/u414226.jpg" type="image/jpeg" data-filename="u414226.jpg" height="48" style="height:auto;border:0px;vertical-align:top;float:left;margin-right:5px;padding-top:5px;padding-left:2px;max-width:300px;" width="48"/></a>
+        <div style="float:left;line-height:18px;">
+            <a href="http://home.cnblogs.com/u/dongsheng/" style="color:rgb(111, 188, 76);">可笑痴狂</a><br/>
+            <a href="http://home.cnblogs.com/u/dongsheng/followees" style="color:rgb(111, 188, 76);">关注 - 35</a><br/>
+            <a href="http://home.cnblogs.com/u/dongsheng/followers" style="color:rgb(111, 188, 76);">粉丝 - 198</a>
+        </div>
+    </div>
+    <div style="clear:both;"></div>
+    <div></div>
+    <div>
+                <a href="#" style="color:rgb(111, 188, 76);">+加关注</a>
+    </div>
+</div>
+<div style="float:right;margin-bottom:10px;margin-right:30px;font-size:12px;width:125px;text-align:center;margin-top:10px;">
+    <div style="float:left;width:46px;height:52px;background:url(//static.cnblogs.com/images/upup.gif) no-repeat;text-align:center;cursor:pointer;margin-top:2px;padding-top:5px;">
+        <span style="font-size:14px;color:rgb(7, 93, 179);font-family:Verdana;line-height:1.5em;">11</span>
+    </div>
+    <div style="float:right;margin-left:20px;width:46px;height:52px;background:url(//static.cnblogs.com/images/downdown.gif) no-repeat;text-align:center;cursor:pointer;margin-top:2px;padding-top:5px;">
+        <span style="font-size:14px;color:rgb(7, 93, 179);font-family:Verdana;line-height:1.5em;">0</span>
+    </div>
+    <div style="clear:both;"></div>
+    <div style="margin-top:5px;margin-left:0px;font-size:12px;color:gray;">
+    </div>
+</div>
+</div>
+<div style="clear:both;"></div>
+<div style="line-height:1.8;font-size:12px;"><a href="http://www.cnblogs.com/dongsheng/p/4383516.html" style="color:rgb(111, 188, 76);text-decoration:none;">« </a> 上一篇：<a href="http://www.cnblogs.com/dongsheng/p/4383516.html" style="color:rgb(111, 188, 76);" title="发布于2015-04-01 12:24">URLEncode与URLDecode总结与实现</a><br/><a href="http://www.cnblogs.com/dongsheng/p/4387069.html" style="color:rgb(111, 188, 76);text-decoration:none;">» </a> 下一篇：<a href="http://www.cnblogs.com/dongsheng/p/4387069.html" style="color:rgb(111, 188, 76);" title="发布于2015-04-02 15:24">GBK、UTF8、UNICODE编码转换</a><br/></div>
+</div>
+
+
+	<div style="color:rgb(48, 48, 48);margin-top:10px;text-align:right;">posted on <span style="line-height:1.5;">2015-04-02 15:20</span> <a href="http://www.cnblogs.com/dongsheng/" style="color:rgb(111, 188, 76);">可笑痴狂</a> 阅读(<span style="line-height:1.5;">148935</span>) 评论(<span style="line-height:1.5;">4</span>)  <a href="https://i.cnblogs.com/EditPosts.aspx?postid=4384754" rel="nofollow" style="color:rgb(111, 188, 76);">编辑</a> <a href="https://www.cnblogs.com/dongsheng/p/4384754.html#" style="color:rgb(111, 188, 76);">收藏</a></div>
+</div>
+
+
+</div><a name="!comments"></a><div><div></div>
+
+<br/>
+<b>FeedBack:</b>
+<div style="margin-bottom:0px;margin-top:20px;line-height:2;"></div>
+	
+
+		<div style="margin-bottom:0px;margin-top:20px;line-height:2;">
+			<div style="position:absolute;font-size:9px;padding:5px 5px 5px 7px;color:black;"><a href="https://www.cnblogs.com/dongsheng/p/4384754.html#3720638" style="color:rgb(111, 188, 76);">#1楼</a><a name="3720638"></a></div>
+			<div style="background-color:white;color:black;padding:5px 7px 5px 5px;border:1px dotted rgb(185, 236, 174);text-align:right;margin-bottom:8px;margin-right:10px;">
+				 <span style="line-height:1.5;">2017-06-22 14:51</span> | <a href="http://www.cnblogs.com/zxboy2895/" style="color:rgb(111, 188, 76);" target="_blank">按桌的拉北鼻</a> <a href="http://msg.cnblogs.com/send/%E6%8C%89%E6%A1%8C%E7%9A%84%E6%8B%89%E5%8C%97%E9%BC%BB" style="color:rgb(111, 188, 76);font-size:12px;text-decoration:none;background:url(/images/icoMsg.gif) left top no-repeat;padding-left:20px;" title="发送站内短消息"> </a><br/>
+				<div align="left"><div style="word-wrap:break-word;overflow:hidden;">这个写的不错</div><div style="text-align:right;"><a href="#" style="padding-left:10px;color:rgb(111, 188, 76);text-decoration:none;">支持(0)</a><a href="#" style="padding-left:10px;color:rgb(111, 188, 76);text-decoration:none;">反对(0)</a></div>  <span style="line-height:1.5;"></span></div>
+			</div>
+			
+			
+		</div>
+	
+		<div style="margin-bottom:0px;margin-top:20px;line-height:2;">
+			<div style="position:absolute;font-size:9px;padding:5px 5px 5px 7px;color:black;"><a href="https://www.cnblogs.com/dongsheng/p/4384754.html#3747895" style="color:rgb(111, 188, 76);">#2楼</a><a name="3747895"></a></div>
+			<div style="background-color:white;color:black;padding:5px 7px 5px 5px;border:1px dotted rgb(185, 236, 174);text-align:right;margin-bottom:8px;margin-right:10px;">
+				 <span style="line-height:1.5;">2017-08-01 08:14</span> | <a href="http://www.cnblogs.com/Ultramund/" style="color:rgb(111, 188, 76);" target="_blank">正版夜猫</a> <a href="http://msg.cnblogs.com/send/%E6%AD%A3%E7%89%88%E5%A4%9C%E7%8C%AB" style="color:rgb(111, 188, 76);font-size:12px;text-decoration:none;background:url(/images/icoMsg.gif) left top no-repeat;padding-left:20px;" title="发送站内短消息"> </a><br/>
+				<div align="left"><div style="word-wrap:break-word;overflow:hidden;">SQL SERVER也是用MERGE，而且其MERGE比ORACLE强大多了</div><div style="text-align:right;"><a href="#" style="padding-left:10px;color:rgb(111, 188, 76);text-decoration:none;">支持(0)</a><a href="#" style="padding-left:10px;color:rgb(111, 188, 76);text-decoration:none;">反对(0)</a></div>  <span style="line-height:1.5;"></span></div>
+			</div>
+			
+			
+		</div>
+	
+		<div style="margin-bottom:0px;margin-top:20px;line-height:2;">
+			<div style="position:absolute;font-size:9px;padding:5px 5px 5px 7px;color:black;"><a href="https://www.cnblogs.com/dongsheng/p/4384754.html#3753325" style="color:rgb(111, 188, 76);">#3楼</a><a name="3753325"></a></div>
+			<div style="background-color:white;color:black;padding:5px 7px 5px 5px;border:1px dotted rgb(185, 236, 174);text-align:right;margin-bottom:8px;margin-right:10px;">
+				 <span style="line-height:1.5;">2017-08-08 23:22</span> | <a href="http://www.cnblogs.com/shenyou768/" style="color:rgb(111, 188, 76);" target="_blank">神游768</a> <a href="http://msg.cnblogs.com/send/%E7%A5%9E%E6%B8%B8768" style="color:rgb(111, 188, 76);font-size:12px;text-decoration:none;background:url(/images/icoMsg.gif) left top no-repeat;padding-left:20px;" title="发送站内短消息"> </a><br/>
+				<div align="left"><div style="word-wrap:break-word;overflow:hidden;">谢谢分享，学习了merge into</div><div style="text-align:right;"><a href="#" style="padding-left:10px;color:rgb(111, 188, 76);text-decoration:none;">支持(0)</a><a href="#" style="padding-left:10px;color:rgb(111, 188, 76);text-decoration:none;">反对(0)</a></div>  <span style="line-height:1.5;"></span></div>
+			</div>
+			
+			
+		</div>
+	
+		<div style="margin-bottom:0px;margin-top:20px;line-height:2;">
+			<div style="position:absolute;font-size:9px;padding:5px 5px 5px 7px;color:black;"><a href="https://www.cnblogs.com/dongsheng/p/4384754.html#3881361" style="color:rgb(111, 188, 76);">#4楼</a><a name="3881361"></a></div>
+			<div style="background-color:white;color:black;padding:5px 7px 5px 5px;border:1px dotted rgb(185, 236, 174);text-align:right;margin-bottom:8px;margin-right:10px;">
+				 <span style="line-height:1.5;">2018-01-04 14:40</span> | <a href="http://www.cnblogs.com/shangrongyiweng/" style="color:rgb(111, 188, 76);" target="_blank">尚荣伊翁</a> <a href="http://msg.cnblogs.com/send/%E5%B0%9A%E8%8D%A3%E4%BC%8A%E7%BF%81" style="color:rgb(111, 188, 76);font-size:12px;text-decoration:none;background:url(/images/icoMsg.gif) left top no-repeat;padding-left:20px;" title="发送站内短消息"> </a><br/>
+				<div align="left"><div style="word-wrap:break-word;overflow:hidden;"><a href="http://www.tdxh.club/" style="color:rgb(111, 188, 76);" target="_blank">总结的挺好，解决我遇到的问题</a></div><div style="text-align:right;"><a href="#" style="padding-left:10px;color:rgb(111, 188, 76);text-decoration:none;">支持(0)</a><a href="#" style="padding-left:10px;color:rgb(111, 188, 76);text-decoration:none;">反对(0)</a></div>  <span style="line-height:1.5;"></span></div>
+			</div>
+			
+			
+		</div>
+	
+
+
+
+<div></div></div>
+<div style="margin-left:10px;">
+<a name="commentform"></a>
+<div></div>
+<div style="text-align:right;"><span style="line-height:1.5;"></span><a href="#" style="color:rgb(111, 188, 76);padding-left:10px;">刷新评论</a><a href="https://www.cnblogs.com/dongsheng/p/4384754.html#" style="color:rgb(111, 188, 76);padding-left:10px;">刷新页面</a><a href="https://www.cnblogs.com/dongsheng/p/4384754.html#top" style="color:rgb(111, 188, 76);padding-left:10px;">返回顶部</a></div>
+<div><div style="background-image:url(//static.cnblogs.com/images/icon_addcomment.gif);background-repeat:no-repeat;margin-top:10px;padding:0px 0px 10px 25px;font-weight:bold;">注册用户登录后才能发表评论，请 <a href="#" rel="nofollow" style="color:rgb(111, 188, 76);text-decoration:underline;">登录</a> 或 <a href="#" rel="nofollow" style="color:rgb(111, 188, 76);text-decoration:underline;">注册</a>，<a href="http://www.cnblogs.com/" style="color:rgb(111, 188, 76);text-decoration:underline;">访问</a>网站首页。</div></div>
+<div style="margin-top:5px;margin-bottom:5px;"></div>
+<div style="margin-top:5px;line-height:1.8;"><a href="http://www.ucancode.com/index.htm" style="color:rgb(111, 188, 76);margin-right:10px;" target="_blank">【推荐】超50万VC++源码: 大型组态工控、电力仿真CAD与GIS源码库！</a><br/><a href="https://dnspod.cloud.tencent.com/act/yearendsales?from=IT&amp;fromSource=gwzcw.951778.951778.951778" style="color:rgb(111, 188, 76);margin-right:10px;" target="_blank">【推荐】腾讯云新注册用户域名抢购1元起</a><br/><a href="http://clickc.admaster.com.cn/c/a105960,b2436453,c1705,i0,m101,8a1,8b2,h" style="color:rgb(111, 188, 76);margin-right:10px;" target="_blank">【活动】华为云社区全云总动员，华为云女郎邀您为她打call！</a><br/><a href="https://www.upyun.com/products/prismcdn?utm_source=cnblogs&amp;utm_medium=banner&amp;utm_campaign=prismcdn&amp;utm_content=0614" style="color:rgb(111, 188, 76);margin-right:10px;" target="_blank">【推荐】又拍云强势推出超低价、低延时、超强兼容的 P2P-CDN！</a><br/><a href="http://challenge.xfyun.cn/?ch=bk" style="color:rgb(111, 188, 76);margin-right:10px;" target="_blank">【大赛】2018首届“顶天立地”AI开发者大赛</a><br/></div>
+<div style="line-height:1.8;"></div>
+<div style="margin-top:10px;line-height:1.5;text-align:center;"><a href="https://cloud.tencent.com/freetier?fromSource=gwzcw.1027255.1027255.1027255" style="color:rgb(111, 188, 76);" target="_blank"><img src="Oracle中Merge into用法总结 - 可笑痴狂 - 博客园_files/24442-20180611171134854-1629599186.jpg" type="image/jpeg" data-filename="24442-20180611171134854-1629599186.jpg" height="250" style="border:0px;height:auto;max-width:300px;" width="300"/></a></div>
+<div><div style="line-height:1.5;margin-top:10px;"><b>最新IT新闻</b>:<br/> ·  <a href="https://news.cnblogs.com/n/599519/" style="color:rgb(111, 188, 76);" target="_blank">独角兽排队上市背后的战略逻辑：经济转向以创新驱动</a><br/> ·  <a href="https://news.cnblogs.com/n/599518/" style="color:rgb(111, 188, 76);" target="_blank">多地开放路测， 为自动驾驶产业集群“铺路”</a><br/> ·  <a href="https://news.cnblogs.com/n/599499/" style="color:rgb(111, 188, 76);" target="_blank">2018年俄罗斯世界杯，运用了哪些「智能硬件」？</a><br/> ·  <a href="https://news.cnblogs.com/n/599511/" style="color:rgb(111, 188, 76);" target="_blank">京东物流国际化全面升级，搭建48小时双通中国物流网络</a><br/> ·  <a href="https://news.cnblogs.com/n/599517/" style="color:rgb(111, 188, 76);" target="_blank">小米：推迟CDR发行申请 先在香港上市</a><br/>» <a href="http://news.cnblogs.com/" style="color:rgb(111, 188, 76);" target="_blank" title="IT新闻">更多新闻...</a></div></div>
+<div style="margin-top:10px;line-height:1.5;text-align:center;"></div>
+<div><div style="line-height:1.5;margin-top:10px;"><b>最新知识库文章</b>:<br/><div> ·  <a href="http://kb.cnblogs.com/page/522513/" style="color:rgb(111, 188, 76);" target="_blank">如何提升你的能力？给年轻程序员的几条建议</a><br/> ·  <a href="http://kb.cnblogs.com/page/553361/" style="color:rgb(111, 188, 76);" target="_blank">程序员的那些反模式</a><br/> ·  <a href="http://kb.cnblogs.com/page/598335/" style="color:rgb(111, 188, 76);" target="_blank">程序员的宇宙时间线</a><br/> ·  <a href="http://kb.cnblogs.com/page/597877/" style="color:rgb(111, 188, 76);" target="_blank">突破程序员思维</a><br/> ·  <a href="http://kb.cnblogs.com/page/597631/" style="color:rgb(111, 188, 76);" target="_blank">云、雾和霭计算如何一起工作</a><br/></div>» <a href="http://kb.cnblogs.com/" style="color:rgb(111, 188, 76);" target="_blank">更多知识库文章...</a></div></div>
+<div style="margin-top:10px;line-height:1.5;"></div>
+
+</div>
+
+
+</div></div></div></div>
+</div>
+</span>
+</div></body></html> 

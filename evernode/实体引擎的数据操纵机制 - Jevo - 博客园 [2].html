@@ -1,0 +1,305 @@
+<html>
+<head>
+  <title>实体引擎的数据操纵机制 - Jevo - 博客园</title>
+  <basefont face="微软雅黑" size="2" />
+  <meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+  <meta name="exporter-version" content="YXBJ Windows/600718 (zh-CN, DDL); Windows/6.1.1 (Win64);"/>
+  <style>
+    body, td {
+      font-family: 微软雅黑;
+      font-size: 10pt;
+    }
+  </style>
+</head>
+<body>
+<a name="6217"/>
+<h1>实体引擎的数据操纵机制 - Jevo - 博客园</h1>
+<div>
+<table bgcolor="#D4DDE5" border="0">
+<tr><td><b>创建时间：</b></td><td><i>2017/3/29 17:05</i></td></tr>
+<tr><td><b>来源：</b></td><td><a href="http://www.cnblogs.com/jevo/archive/2013/03/13/2958505.html"><i>http://www.cnblogs.com/jevo/archive/2013/03/13/2958505.html</i></a></td></tr>
+</table>
+</div>
+<br/>
+
+<div><span><div style="-evernote-webclip:true"><br/><div style="font-size: 16px; display: inline-block;"><div><div style="font-family:&quot;PingFang SC&quot;, &quot;Helvetica Neue&quot;, Helvetica, Arial, sans-serif;color:rgb(0, 0, 0);background:url(&quot;/Skins/coffee/images/bg_body.gif&quot;) left top;line-height:1.5;font-size:14px;"><div style="min-width:auto;"><div style="min-width:auto;text-align:left;"><div style="background:transparent;text-align:left;overflow-x:hidden;"><div style="background:url(&quot;/Skins/coffee/images/bg_left.gif&quot;) left top repeat-x rgb(254, 254, 242);"><div><div style="text-overflow:ellipsis;overflow:hidden;word-break:break-all;"><div>
+		<h1 style="margin:0px;padding:0px;width:100%;clear:both;font-weight:bold;float:left;line-height:1.5;font-size:14px;padding-left:5px;">
+			<a href="http://www.cnblogs.com/jevo/archive/2013/03/13/2958505.html" style="margin:0px;padding:0px;text-decoration:none;color:rgb(7, 93, 179);">实体引擎的数据操纵机制</a>
+		</h1>
+		<div style="margin:0px;padding:0px;clear:both;"></div>
+		<div style="margin:0px;padding:5px 2px 5px 5px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin-top:5px;">
+			<div style="margin:0px;padding:0px;margin-bottom:20px;word-break:break-word;"><p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">实体引擎的一个主要目标是尽可能提供一种通用的代码结构，来消除各模块中事务处理过程中的相近或相似的代码。这种抽象在于数据库数据操作逻辑的提取。它可以大大减少应用系统的开发费用和潜在的事务处理bug。<br style="margin:0px;padding:0px;"/>在Ofbiz的实体引擎中，将存储实体属性值的类结构设计成通用的数据结构，使用一个MAP对象来作为数据载体来存取实体的所有属性值。实体引擎和应用系统之间的接口体现在实体结构定义文件和SQL字段类型与Java数据类型映射关系定义中（以XML文件方式进行描述）。基于这个抽象层，使用实体引擎提供的API来处理实体持久化操作。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">取代编写特定的代码，实体的定义是在entitymodel*.XML文件中完成的，并由实体引擎强制规定应用系统和数据源之间的访问规则。在实体文件entitymodel*.XML中定义了实体和实体的关系，包含一个相关联的数据库表和关系类型（one or many），以及关系的关键字值对。关系可以定义一个标识来区别实体关系中的其他关系。</p>
+<h2 style="padding:0px;font-size:21px;font-weight:bold;line-height:1.5;margin:10px 0px;">SQL语句执行引擎</h2>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">实体引擎中的一个重要组成部分就是SQL语句的执行引擎。在Ofbiz中，SQL语句执行引擎的中心是SQLProcessor类，每一个GenericDAO执行一个Add/Update/Delete操作时，都会创建一个SQLProcessor执行器，SQLProcessor执行器会从ConnectionFactory中取得一个数据库连接。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"><img src="实体引擎的数据操纵机制 - Jevo - 博客园 [2]_files/13173508-182f686ab02040bdbdeea6af88cf2f4b.jpg" type="image/jpeg" data-filename="13173508-182f686ab02040bdbdeea6af88cf2f4b.jpg" alt="" height="214" style="margin:0px;padding:0px;border:0px;height:auto;max-width:300px;" width="609"/></p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">在上图中，SqlJDBCUtil描述了数据库类型与Java类型间的映射关系，以及建立表间关系或View的方法。TransactionUtil则提供了一系列事务管理的静态方法。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">数据库连接是由一个数据库连接池来进行管理，如下图：</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"><img src="实体引擎的数据操纵机制 - Jevo - 博客园 [2]_files/13173422-fce584812a014fe5b5c412738756d9f0.jpg" type="image/jpeg" data-filename="13173422-fce584812a014fe5b5c412738756d9f0.jpg" alt="" height="176" style="margin:0px;padding:0px;border:0px;height:auto;max-width:300px;" width="613"/></p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"> </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"> </p>
+<h2 style="padding:0px;font-size:21px;font-weight:bold;line-height:1.5;margin:10px 0px;">接口定义</h2>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">我的理解，Ofbiz中的数据模型应是充血模型，在Domain Object中包含了业务逻辑和持久化，GenericDAO仅作为基础设施层，实现对业务对象的持久化的作用。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">数据模型定义如下：</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"><img src="实体引擎的数据操纵机制 - Jevo - 博客园 [2]_files/13173650-616290d577ca44cd934f8834cce0f7dc.jpg" type="image/jpeg" data-filename="13173650-616290d577ca44cd934f8834cce0f7dc.jpg" alt="" height="212" style="margin:0px;padding:0px;border:0px;height:auto;max-width:300px;" width="619"/></p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"> </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">GenericPK类是模型的描述，它联系entitymodel.xml文件中所描述的模型转为应用中的类型定义。entitymodel.xml中的模型描述信息装载在ModelEntity类中。GenericValue则是模型对象的一个实例。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">GenericHelperDAO是GenericHelper接口的一个实现，实现了DAO层功能。具体应用GenericDAO类来执行SQL。在GenericDAO类中引用了一个SQLPrococessor类来完成与DB的交互。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">Delegator则是一个服务层代表。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">实体引擎的过滤功能实现：由三个部分组成：EntityConditionValue、EntityOperator、EntityCondition。这些过滤类将在GenericDAO中被转化为相应的SQL语句执行。</p>
+<h2 style="padding:0px;font-size:21px;font-weight:bold;line-height:1.5;margin:10px 0px;">主键生成策略</h2>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">主键是通过SequenceUtil来生成的，它仅在GenericDelegator中被使用。实现机制是在内存中保存表的当前序列号，当创建新的ID时，依据当前序列通过计算得到下一条序列。当出现错误时，强制重新从表中查询出当前序列号保存在内存中，作为下一次计算的依据。  </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">算法如下：</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">private synchronized Long getNextSeqId(long staggerMax) {</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">            long stagger = 1;</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">            if (staggerMax &gt; 1) {</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">                stagger = Math.round(Math.random() * staggerMax);</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">                if (stagger == 0) stagger = 1;</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">            }</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"> </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">            if ((curSeqId + stagger) &lt;= maxSeqId) {</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">                Long retSeqId = Long.valueOf(curSeqId);</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">                curSeqId += stagger;</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">                return retSeqId;</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">            } else {</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">                fillBank(stagger);</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">                if ((curSeqId + stagger) &lt;= maxSeqId) {</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">                    Long retSeqId = Long.valueOf(curSeqId);</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">                    curSeqId += stagger;</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">                    return retSeqId;</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">                } else {</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">                    Debug.logError(&quot;[SequenceUtil.SequenceBank.getNextSeqId] Fill bank failed, returning null&quot;, module);</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">                    return null;</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">                }</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">            }</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">        }</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"> </p>
+<h2 style="padding:0px;font-size:21px;font-weight:bold;line-height:1.5;margin:10px 0px;">流程</h2>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">实体引擎动作示意图：</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"> <img src="实体引擎的数据操纵机制 - Jevo - 博客园 [2]_files/13174355-cf5738165d06477b96553b0645c10ecf.jpg" type="image/jpeg" data-filename="13174355-cf5738165d06477b96553b0645c10ecf.jpg" alt="" height="555" style="margin:0px;padding:0px;border:0px;height:auto;max-width:300px;" width="900"/></p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">每个特定的GenericHelper的配置信息都在entityengine.xml文件的datsource元素指定。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">GenericDelegator是实体引擎服务中最主要的访问接入点。每个服务请求被分派到和实体对应的帮助类，服务被请求用来和这个实体的实体组通信。OFBiz实体模型默认的实体组XML文件可以在ofbiz/mmonapp/entitydef/entitygroup.xml.中找到。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">GenericDelegator通过一个使用一个包含delegator名称的String类型的参数的工厂类方法产生(DelegatorFactory)。delegator名称用来在entityengine.xml文件中查找delegator标签，其中包含相应的数据源信息。每个delegator使用一个实体模型和一个实体模型加载器(entitymodelreader)和一个实体组加载器(entitygroupreader)，来加载相关的实体信息。</p>
+<h2 style="padding:0px;font-size:21px;font-weight:bold;line-height:1.5;margin:10px 0px;"> 实体引擎的事务</h2>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">最有用处的事务工厂类是org.ofbiz.core.entity.transaction.JNDIFactory类。这个类使用entityengine.xml中附加元素来定位JNDI中的UserTransaction和TransactionManager对象。<br style="margin:0px;padding:0px;"/>user-transaction-jndi和transaction-manager-jndi标签用来指定对象在JNDI中的名称以及要使用JNDI服务的名称。两个标签都有两个必须的属性：jndi-server-name和jndi-name。一个例子：UserTransaction对象的jndi-name值为java:comp/UserTransaction，TransactionManager对象的jndi-name值为java:comp/TransactionManager。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">另一个事务工厂类是GeronimoTransactionFactory，它使用apache.geronimo的事务管理来实现。同时提供了一个TransactionFactory的工厂类来得到已存在的事务管理器和数据库连接。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">事务的应用是放在TransactionUtil中来应用的（TransactionUtil中提供一系统的静态方法来实现事务管理）。在实体引擎中，TransactionUtil会被GenericDelegator中应用，它同时会被其他地方显示使用。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">在TransactionUtil中使用ThreadLocal实现线程安全，并通过编程方式实现了事务管理能力。主要代码结构如下：</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">public static synchronized boolean begin(int timeout) throws GenericTransactionException { //事务开始</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">        UserTransaction ut = TransactionFactory.getUserTransaction(); //根据不同的实现得到不同的UserTransaction接口，这里有两个实现：GeronimoTransactionFactory和JNDIFactory两个。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">        if (ut != null) {</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">            try {</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">                //检查当前线程是否绑定了事务</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">                int currentStatus = ut.getStatus();</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">                if (currentStatus == Status.STATUS_ACTIVE) {</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">                    Debug.logVerbose(&quot;[TransactionUtil.begin] active transaction in place, so no transaction begun&quot;, module);</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">                    return false;</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">                } else if (currentStatus == Status.STATUS_MARKED_ROLLBACK) {</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">                    Exception e = getTransactionBeginStack();</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">                    if (e != null) {</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">                        Debug.logWarning(e, &quot;[TransactionUtil.begin] active transaction marked for rollback in place, so no transaction begun; this stack trace shows when the exception began: &quot;, module);</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">                    } else {</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">                        Debug.logWarning(&quot;[TransactionUtil.begin] active transaction marked for rollback in place, so no transaction begun&quot;, module);</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">                    }</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"> </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">                    RollbackOnlyCause roc = getSetRollbackOnlyCause();</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">                    // do we have a cause? if so, throw special exception</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">                    if (roc != null &amp;&amp; !roc.isEmpty()) {</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">                        throw new GenericTransactionException(&quot;The current transaction is marked for rollback, not beginning a new transaction and aborting current operation; the rollbackOnly was caused by: &quot; + roc.getCauseMessage(), roc.getCauseThrowable());</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">                    } else {</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">                        return false;</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">                    }</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">                }</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"> </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">                // set the timeout for THIS transaction</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">                if (timeout &gt; 0) {</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">                    ut.setTransactionTimeout(timeout);</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">                    Debug.logVerbose(&quot;[TransactionUtil.begin] set transaction timeout to : &quot; + timeout + &quot; seconds&quot;, module);</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">                }</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"> </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">                // begin the transaction开始事务</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">                ut.begin();</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"> </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">                // reset the timeout to the default</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">                if (timeout &gt; 0) {</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">                    ut.setTransactionTimeout(0);</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">                }</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">                 …..</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">                 return true;</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">            } catch (NotSupportedException e) {</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">                 throw new GenericTransactionException(&quot;Not Supported error, could not begin transaction (probably a nesting problem)&quot;, e);</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">            } catch (SystemException e) {</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">                 throw new GenericTransactionException(&quot;System error, could not begin transaction&quot;, e);</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">            }</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">        } else {</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">            return false;</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">        }</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">    }</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"> </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"> </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">public static void commit() throws GenericTransactionException { //事务提交</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">        UserTransaction ut = TransactionFactory.getUserTransaction();</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">        if (ut != null) {</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">            try {</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">                int status = ut.getStatus();</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">                if (status != STATUS_NO_TRANSACTION &amp;&amp; status != STATUS_COMMITTING &amp;&amp; status != STATUS_COMMITTED &amp;&amp; status != STATUS_ROLLING_BACK &amp;&amp; status != STATUS_ROLLEDBACK) {</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">                    ut.commit();</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">                    ……</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">                } else {</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">                    Debug.logWarning(&quot;[TransactionUtil.commit] Not committing transaction, status is &quot; + getStatusString(), module);</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">                }</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">            } catch (RollbackException e) {</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">                ….</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">            } catch (IllegalStateException e) {</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">                ….</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">            } catch (HeuristicMixedException e) {</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">                ….</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">            } catch (HeuristicRollbackException e) {</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">                ….</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">            } catch (SystemException e) {</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">                ….</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">            }</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">        } else {</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">            Debug.logInfo(&quot;[TransactionUtil.commit] UserTransaction is null, not commiting&quot;, module);</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">        }</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">    }</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"> </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"> </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">public static void rollback(Throwable causeThrowable) throws GenericTransactionException {  //事务回滚</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">        UserTransaction ut = TransactionFactory.getUserTransaction();</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">        if (ut != null) {</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">            try {</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">                int status = ut.getStatus();</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">                if (status != STATUS_NO_TRANSACTION) { //这是唯一的一个方法确定上下文中没有事务。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">                    if (causeThrowable == null &amp;&amp; Debug.infoOn()) {</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">                        Exception newE = new Exception(&quot;Stack Trace&quot;);</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">                    }</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">                     ……….</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">                    ut.rollback();</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">                } else {</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">                }</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">            } catch (IllegalStateException e) {</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">                     ……….</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">            } catch (SystemException e) {</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">                     ……….</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">            }</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">        } else {</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">            Debug.logInfo(&quot;[TransactionUtil.rollback] No UserTransaction, transaction not rolled back&quot;, module);</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">        }</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">    }</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"> </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">public static Transaction suspend() throws GenericTransactionException {   //事务挂起</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">        try {</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">            if (TransactionUtil.getStatus() != STATUS_NO_TRANSACTION) {</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">                TransactionManager txMgr = TransactionFactory.getTransactionManager();</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">                if (txMgr != null) {</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">                    pushTransactionBeginStackSave(clearTransactionBeginStack());</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">                    pushSetRollbackOnlyCauseSave(clearSetRollbackOnlyCause());</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">                    Transaction trans = txMgr.suspend();</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">                    pushSuspendedTransaction(trans);</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">                    return trans;</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">                } else {</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">                    return null;</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">                }</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">            } else {</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">                return null;</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">            }</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">        } catch (SystemException e) {</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">            throw new GenericTransactionException(&quot;System error, could not suspend transaction&quot;, e);</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">        }</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">    }</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"> </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">    public static void resume(Transaction parentTx) throws GenericTransactionException {  //事务恢复</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">        if (parentTx == null) return;</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">        try {</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">            TransactionManager txMgr = TransactionFactory.getTransactionManager();</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">            if (txMgr != null) {</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">                setTransactionBeginStack(popTransactionBeginStackSave());</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">                setSetRollbackOnlyCause(popSetRollbackOnlyCauseSave());</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">                txMgr.resume(parentTx);</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">                removeSuspendedTransaction(parentTx);</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">            }</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">        } catch (InvalidTransactionException e) {</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">            /* NOTE: uncomment this for Weblogic Application Server</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">            // this is a work-around for non-standard Weblogic functionality; for more information see: http://www.onjava.com/pub/a/onjava/2005/07/20/transactions.html?page=3</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">            if (parentTx instanceof weblogic.transaction.ClientTransactionManager) {</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">                // WebLogic 8 and above</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">                ((weblogic.transaction.ClientTransactionManager) parentTx).forceResume(transaction);</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">            } else if (parentTx instanceof weblogic.transaction.TransactionManager) {</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">                // WebLogic 7</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">                ((weblogic.transaction.TransactionManager) parentTx).forceResume(transaction);</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">            } else {</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">                throw new GenericTransactionException(&quot;System error, could not resume transaction&quot;, e);</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">            }</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">            */</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">            throw new GenericTransactionException(&quot;System error, could not resume transaction&quot;, e);</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">        } catch (SystemException e) {</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">            throw new GenericTransactionException(&quot;System error, could not resume transaction&quot;, e);</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">        }</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">    }</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"> </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">[注] Mysql事务隔离级别：</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">•   未提交读(Read Uncommitted)：允许脏读，也就是可能读取到其他会话中未提交事务修改的数据</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">•   提交读(Read Committed)：只能读取到已经提交的数据。Oracle等多数数据库默认都是该级别</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">•   可重复读(Repeated Read)：可重复读。在同一个事务内的查询都是事务开始时刻一致的，InnoDB默认级别。在SQL标准中，该隔离级别消除了不可重复读，但是还存在幻象读</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">•   串行读(Serializable)：完全串行化的读，每次读都需要获得表级共享锁，读写相互都会阻塞</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">事务隔离定义可参见：java.sql.Connection中的定义</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">事务界定选择的考虑：<br style="margin:0px;padding:0px;"/>    1.    使用 JDBC API 进行事务界定：<br style="margin:0px;padding:0px;"/>       &gt;  事务界定代码应嵌入在 DAO 类中<br style="margin:0px;padding:0px;"/>       &gt;  DAO类调用者不能界定事务。 <br style="margin:0px;padding:0px;"/>       &gt;  事务范围局限于单个 JDBC 连接。 <br style="margin:0px;padding:0px;"/>    2.    使用JTA进行事务界定<br style="margin:0px;padding:0px;"/>       &gt;  事务用 JTA 界定，事务界定代码从 DAO 中分离出来。 <br style="margin:0px;padding:0px;"/>       &gt;  DAO类调用者负责界定事务。 <br style="margin:0px;padding:0px;"/>       &gt;  DAO 加入一个全局事务。 <br style="margin:0px;padding:0px;"/>JDBC 事务并不总是适合复杂的企业应用程序，如果事务需要跨越多个 DAO 或者多个数据库，那么应该选择使用JTA界定。</p>
+<h2 style="padding:0px;font-size:21px;font-weight:bold;line-height:1.5;margin:10px 0px;">实体引擎的访问</h2>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">ofbiz中对实体的访问（数据库）是通过delegate对象来进行的，而delegate对象是GenericDelegator类的一个实例，包含有关实体操作的方法和属性。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">    •  在JSP中使用</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">          &lt;jsp:useBeanid=&quot;delegator&quot;type=&quot;org.ofbiz.core.entity.GenericDelegator&quot;scope=&quot;request&quot;/&gt;</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">    •   在severlet或event中使用</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">          GenericDelegator delegator = (GenericDelegator) request.getAttribute(&quot;delegator&quot;);</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">    •   通过一个已知的数值对象获取delegator，方法为</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">          GenericDelegator delegator = entity.getDelegator();</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">    •   手工建立</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">          GenericDelegator delegator = GenericDelegator.getGenericDelegator(&quot;default&quot;)</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"> </p></div>
+<div style="margin:0px;padding:0px;clear:both;"></div>
+<div style="margin:0px;padding:0px;margin-top:20px;">
+<div style="margin:0px;padding:0px;margin-bottom:10px;">分类: <a href="http://www.cnblogs.com/jevo/category/459572.html" style="margin:0px;padding:0px;text-decoration:underline;color:rgb(7, 93, 179);" target="_blank">ofbiz</a></div>
+<div style="margin:0px;padding:0px;font-size:9pt;color:rgb(102, 102, 102);margin-top:0px;"></div>
+<div style="margin:0px;padding:0px;"><div style="margin:0px;padding:10px 0px;margin-bottom:10px;margin-top:10px;border:1px dashed silver;font-size:12px;width:320px;text-align:center;">
+        <a href="#" style="margin-right:10px;margin:0px;border-radius:10px;padding:3px 8px;text-decoration:none;font-weight:bold;cursor:pointer;display:inline-block;vertical-align:middle;box-shadow:rgba(0, 0, 0, 0.498039) 0px 1px 3px;text-shadow:rgba(0, 0, 0, 0.247059) 0px -1px 1px;background:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAAkCAYAAABIdFAMAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAHhJREFUeNo8zjsOxCAMBFB/KEAUFFR0Cbng3nQPw68ArZdAlOZppPFIBhH5EAB8b+Tlt9MYQ6i1BuqFaq1CKSVcxZ2Acs6406KUgpt5/LCKuVgz5BDCSb13ZO99ZOdcZGvt4mJjzMVKqcha68iIePB86GAiOv8CDADlIUQBs7MD3wAAAABJRU5ErkJggg%3D%3D&quot;) repeat-x;background-color:rgb(45, 174, 191);color:rgb(255, 255, 255);border:none;">好文要顶</a>
+            <a href="#" style="margin-right:10px;margin:0px;border-radius:10px;padding:3px 8px;text-decoration:none;font-weight:bold;cursor:pointer;display:inline-block;vertical-align:middle;box-shadow:rgba(0, 0, 0, 0.498039) 0px 1px 3px;text-shadow:rgba(0, 0, 0, 0.247059) 0px -1px 1px;background:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAAkCAYAAABIdFAMAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAHhJREFUeNo8zjsOxCAMBFB/KEAUFFR0Cbng3nQPw68ArZdAlOZppPFIBhH5EAB8b+Tlt9MYQ6i1BuqFaq1CKSVcxZ2Acs6406KUgpt5/LCKuVgz5BDCSb13ZO99ZOdcZGvt4mJjzMVKqcha68iIePB86GAiOv8CDADlIUQBs7MD3wAAAABJRU5ErkJggg%3D%3D&quot;) repeat-x;background-color:rgb(227, 49, 0);color:rgb(255, 255, 255);border:none;">关注我</a>
+    <a href="#" style="margin-right:10px;margin:0px;border-radius:10px;padding:3px 8px;text-decoration:none;font-weight:bold;cursor:pointer;display:inline-block;vertical-align:middle;box-shadow:rgba(0, 0, 0, 0.498039) 0px 1px 3px;text-shadow:rgba(0, 0, 0, 0.247059) 0px -1px 1px;background:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAAkCAYAAABIdFAMAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAHhJREFUeNo8zjsOxCAMBFB/KEAUFFR0Cbng3nQPw68ArZdAlOZppPFIBhH5EAB8b+Tlt9MYQ6i1BuqFaq1CKSVcxZ2Acs6406KUgpt5/LCKuVgz5BDCSb13ZO99ZOdcZGvt4mJjzMVKqcha68iIePB86GAiOv8CDADlIUQBs7MD3wAAAABJRU5ErkJggg%3D%3D&quot;) repeat-x;background-color:rgb(255, 181, 21);color:rgb(255, 255, 255);border:none;">收藏该文</a>
+    <a href="#" style="margin-right:10px;margin:0px;border-radius:10px;padding:3px 2px;text-decoration:none;font-weight:bold;cursor:pointer;display:inline-block;vertical-align:middle;box-shadow:none;text-shadow:none;background:none;color:rgb(255, 255, 255);border:none;" title="分享至新浪微博"><img src="实体引擎的数据操纵机制 - Jevo - 博客园 [2]_files/icon_weibo_24.png" type="image/png" data-filename="icon_weibo_24.png" alt="" height="24" style="margin:0px;padding:0px;height:auto;border:none;vertical-align:middle;margin-left:5px;box-shadow:none;max-width:300px;" width="24"/></a>
+    <a href="#" style="margin-right:10px;margin:0px;border-radius:10px;padding:3px 2px;text-decoration:none;font-weight:bold;cursor:pointer;display:inline-block;vertical-align:middle;box-shadow:none;text-shadow:none;background:none;color:rgb(255, 255, 255);border:none;" title="分享至微信"><img src="实体引擎的数据操纵机制 - Jevo - 博客园 [2]_files/wechat.png" type="image/png" data-filename="wechat.png" alt="" height="24" style="margin:0px;padding:0px;border:medium none;width:24px;height:24px;box-shadow:none;margin-left:5px;vertical-align:middle;max-width:300px;" width="24"/></a>
+</div>
+<div style="margin:0px;padding:0px;float:left;width:280px;margin-top:0px;margin-bottom:10px;color:rgb(0, 0, 0);margin-left:0px;font-size:12px;">
+    <div style="margin:0px;padding:0px;float:left;line-height:18px;">
+            <a href="http://home.cnblogs.com/u/jevo/" style="margin:0px;padding:0px;text-decoration:underline;color:rgb(7, 93, 179);" target="_blank"><img src="实体引擎的数据操纵机制 - Jevo - 博客园 [2]_files/sample_face.gif" type="image/gif" data-filename="sample_face.gif" alt="" height="46" style="margin:0px;padding:0px;height:auto;border:0px;vertical-align:top;float:left;margin-right:5px;padding-top:5px;padding-left:2px;max-width:300px;" width="47"/></a>
+        <div style="margin:0px;padding:0px;float:left;line-height:18px;">
+            <a href="http://home.cnblogs.com/u/jevo/" style="margin:0px;padding:0px;text-decoration:underline;color:rgb(7, 93, 179);">Jevo</a><br style="margin:0px;padding:0px;"/>
+            <a href="http://home.cnblogs.com/u/jevo/followees" style="margin:0px;padding:0px;text-decoration:underline;color:rgb(7, 93, 179);">关注 - 0</a><br style="margin:0px;padding:0px;"/>
+            <a href="http://home.cnblogs.com/u/jevo/followers" style="margin:0px;padding:0px;text-decoration:underline;color:rgb(7, 93, 179);">粉丝 - 21</a>
+        </div>
+    </div>
+    <div style="margin:0px;padding:0px;clear:both;"></div>
+    <div style="margin:0px;padding:0px;"></div>
+    <div style="margin:0px;padding:0px;">
+                <a href="#" style="margin:0px;padding:0px;text-decoration:underline;color:rgb(7, 93, 179);">+加关注</a>
+    </div>
+</div>
+<div style="margin:0px;padding:0px;float:right;margin-bottom:10px;margin-right:30px;font-size:12px;width:125px;text-align:center;margin-top:10px;">
+    <div style="margin:0px;padding:0px;float:left;width:46px;height:52px;background:url(&quot;http://static.cnblogs.com/images/upup.gif&quot;) no-repeat;text-align:center;cursor:pointer;margin-top:2px;padding-top:5px;">
+        <span style="margin:0px;padding:0px;font-size:14px;color:rgb(7, 93, 179);font-family:Verdana;line-height:1.5em;">0</span>
+    </div>
+    <div style="text-align:center;padding:0px;margin:0px;height:52px;background:url(&quot;http://static.cnblogs.com/images/downdown.gif&quot;) no-repeat;margin-left:20px;cursor:pointer;margin-top:2px;padding-top:5px;width:46px;float:right;">
+        <span style="margin:0px;padding:0px;font-size:14px;color:rgb(7, 93, 179);font-family:Verdana;line-height:1.5em;">0</span>
+    </div>
+    <div style="margin:0px;padding:0px;clear:both;"></div>
+    <div style="margin:0px;padding:0px;margin-top:5px;margin-left:0px;font-size:12px;color:gray;">
+    </div>
+</div>
+</div>
+<div style="margin:0px;padding:0px;clear:both;"></div>
+<div style="margin:0px;padding:0px;line-height:1.8;font-size:12px;"><a href="http://www.cnblogs.com/jevo/archive/2013/03/14/2958986.html" style="margin:0px;padding:0px;color:rgb(7, 93, 179);text-decoration:none;">» </a> 下一篇：<a href="http://www.cnblogs.com/jevo/archive/2013/03/14/2958986.html" style="margin:0px;padding:0px;text-decoration:underline;color:rgb(7, 93, 179);" title="发布于2013-03-14 11:15">Ofbiz模块热部署原理</a><br style="margin:0px;padding:0px;"/></div>
+</div>
+
+
+		</div>
+		<div style="margin:0px;padding:0px;clear:both;font-size:12px;float:right;width:100%;text-align:right;padding-right:5px;color:rgb(102, 102, 102);margin-top:5px;">posted @ <span style="margin:0px;padding:0px;">2013-03-13 23:05</span> <a href="http://www.cnblogs.com/jevo/" style="margin:0px;padding:0px;text-decoration:none;color:rgb(7, 93, 179);">Jevo</a> 阅读(<span style="margin:0px;padding:0px;">345</span>) 评论(<span style="margin:0px;padding:0px;">0</span>)  <a href="https://i.cnblogs.com/EditPosts.aspx?postid=2958505" rel="nofollow" style="margin:0px;padding:0px;text-decoration:none;color:rgb(7, 93, 179);">编辑</a> <a href="http://www.cnblogs.com/jevo/archive/2013/03/13/2958505.html#" style="margin:0px;padding:0px;text-decoration:none;color:rgb(7, 93, 179);">收藏</a></div>
+	</div></div></div></div></div></div></div></div></div></div><br/></div></span>
+</div></body></html> 

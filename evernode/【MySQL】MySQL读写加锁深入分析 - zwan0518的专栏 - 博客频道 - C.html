@@ -1,0 +1,580 @@
+<html>
+<head>
+  <title>【MySQL】MySQL读写加锁深入分析 - zwan0518的专栏 - 博客频道 - CSDN.NET</title>
+  <basefont face="微软雅黑" size="2" />
+  <meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+  <meta name="exporter-version" content="YXBJ Windows/600718 (zh-CN, DDL); Windows/6.1.1 (Win64);"/>
+  <style>
+    body, td {
+      font-family: 微软雅黑;
+      font-size: 10pt;
+    }
+  </style>
+</head>
+<body>
+<a name="6552"/>
+<h1>【MySQL】MySQL读写加锁深入分析 - zwan0518的专栏 - 博客频道 - CSDN.NET</h1>
+<div>
+<table bgcolor="#D4DDE5" border="0">
+<tr><td><b>创建时间：</b></td><td><i>2017/3/20 11:09</i></td></tr>
+<tr><td><b>来源：</b></td><td><a href="http://blog.csdn.net/zwan0518/article/details/17316931"><i>http://blog.csdn.net/zwan0518/article/details/17316931</i></a></td></tr>
+</table>
+</div>
+<br/>
+
+<div><span><div style="-evernote-webclip:true"><br/><div style="font-size: 16px; display: inline-block;"><div><div style="background:url(&quot;http://static.blog.csdn.net/skin/default/css/../images/body_bg.gif&quot;) 0px 20px repeat-x;color:rgb(51, 51, 51);text-align:center;font-size:12px;font-family:Arial, Console, Verdana, &quot;Courier New&quot;;"><div style="background:url(&quot;http://static.blog.csdn.net/skin/default/css/../images/head_bg.jpg&quot;) center top no-repeat;"><div style="overflow:hidden;background:rgb(255, 255, 255);border-radius:8px;text-align:left;"><div style="overflow:hidden;border-radius:4px;"><div><div>
+    <div style="display:block;margin:5px 0px;color:rgb(0, 0, 0);font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:20px;line-height:30px;font-family:&quot;Microsoft YaHei&quot;;">   
+         <span style="display:inline-block;width:19px;height:19px;margin:0px 2px 0px 0px;background:url(&quot;http://static.blog.csdn.net/skin/default/css/../../../images/ico_Repost.gif&quot;) 0px 0px no-repeat;vertical-align:middle;"></span>
+
+
+    <h1 style="font-size:20px;padding:0px;margin:0px;font-weight:normal;font-stretch:normal;font-style:normal;line-height:30px;font-family:&quot;Microsoft YaHei&quot;;vertical-align:middle;font-variant:normal;display:inline;">
+        <span><a href="http://blog.csdn.net/zwan0518/article/details/17316931" style="text-decoration:none;color:rgb(0, 0, 0);">
+        【MySQL】MySQL读写加锁深入分析            
+        </a></span>
+    </h1>
+<span style="color:rgb(0, 0, 0);font-style:normal;font-variant:normal;font-weight:normal;font-size:20px;line-height:30px;font-family:&quot;Microsoft YaHei&quot;;display:block;height:0px;clear:both;visibility:hidden;">.</span></div>
+
+   
+
+        <div style="line-height:22px;padding:0px 20px 5px;font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:12px;color:rgb(153, 153, 153);font-family:Arial;text-align:right;display:block;border-bottom:1px solid rgb(237, 237, 237);margin:0px -20px;overflow:hidden;">
+        <div style="width:100%;float:left;">
+            <span style="margin:0px 5px;float:left;">
+            标签：
+              <a href="http://www.csdn.net/tag/mysql" style="color:rgb(51, 102, 153);text-decoration:none;display:inline-block;margin-right:10px;" target="_blank">mysql</a><a href="http://www.csdn.net/tag/INNODB" style="color:rgb(51, 102, 153);text-decoration:none;display:inline-block;margin-right:10px;" target="_blank">INNODB</a><a href="http://www.csdn.net/tag/%e5%8a%a0%e9%94%81" style="color:rgb(51, 102, 153);text-decoration:none;display:inline-block;margin-right:10px;" target="_blank">加锁</a>
+            </span>
+        </div>
+        <div>
+            <span style="margin:0px 5px 0px 0px;">2013-12-14 11:36</span>
+            <span style="margin:0px 5px;padding:0px 0px 0px 14px;background:url(&quot;http://static.blog.csdn.net/css/../../../images/ico_view.png&quot;) left center no-repeat;" title="阅读次数">2190人阅读</span>
+            <span style="margin:0px 5px;padding:0px 0px 0px 14px;background:url(&quot;http://static.blog.csdn.net/css/../../../images/ico_comm.png&quot;) left center no-repeat;" title="评论次数"> <a href="http://blog.csdn.net/zwan0518/article/details/17316931#comments" style="color:rgb(51, 102, 153);text-decoration:none;">评论</a>(1)</span>
+            <span style="margin:0px 5px;"> <a href="#" style="color:rgb(51, 102, 153);text-decoration:none;" title="收藏">收藏</a></span>
+             <span style="margin:0px 5px;"> <a href="http://blog.csdn.net/zwan0518/article/details/17316931#report" style="color:rgb(51, 102, 153);text-decoration:none;" title="举报">举报</a></span>
+
+        </div>
+    <span style="color:rgb(153, 153, 153);font-style:normal;font-variant:normal;font-weight:normal;font-size:12px;line-height:22px;font-family:Arial;text-align:right;display:block;height:0px;clear:both;visibility:hidden;">.</span></div>
+    
+    
+    
+      <div style="display:block;margin:0px -20px;border-bottom:1px solid rgb(237, 237, 237);padding:5px 20px;">
+        <div style="display:inline-block;font-size:14px;color:rgb(51, 51, 51);width:70px;float:left;line-height:28px;">
+           <img src="【MySQL】MySQL读写加锁深入分析 - zwan0518的专栏 - 博客频道 - C_files/category_icon.jpg" type="image/jpeg" data-filename="category_icon.jpg" height="13" style="border:none;vertical-align:middle;" width="15"/>
+            <span style="display:inline-block;vertical-align:middle;">分类：</span>
+        </div>
+        <div style="display:inline-block;font-size:14px;color:rgb(223, 52, 52);float:left;width:90%;">
+                    <span style="display:inline-block;margin-left:15px;cursor:pointer;line-height:28px;position:relative;">
+                        <span>服务器<em style="font-style:normal;">（11）</em></span>
+                      <img src="【MySQL】MySQL读写加锁深入分析 - zwan0518的专栏 - 博客频道 - C_files/arrow_triangle _down.jpg" type="image/jpeg" data-filename="arrow_triangle _down.jpg" height="5" style="border:none;display:inline;" width="10"/>
+                      
+                        
+                    </span>                    
+        </div>
+    <span style="display:block;height:0px;clear:both;visibility:hidden;">.</span></div>
+      
+
+  
+
+  
+  
+     
+
+<div style="clear:both;"></div><div style="border:solid 1px #ccc;background:#eee;float:left;min-width:200px;padding:4px 10px;"><p style="text-align:right;margin:0;"><span style="float:left;">目录<a href="http://blog.csdn.net/zwan0518/article/details/17316931#" style="color:rgb(51, 102, 153);text-decoration:none;" title="系统根据文章中H1到H6标签自动生成文章目录">(?)</a></span><a href="http://blog.csdn.net/zwan0518/article/details/17316931#" style="color:rgb(51, 102, 153);text-decoration:none;" title="展开">[+]</a></p></div><div style="clear:both;"></div><div style="margin:20px 0px 0px;font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:14px;line-height:26px;font-family:Arial;">
+
+<ol>
+<li>
+<div style="text-align:justify;">
+<h1 style="margin:0px;padding:0px;"><a name="t0" style="color:rgb(51, 102, 153);text-decoration:none;"></a><strong>背景</strong></h1>
+</div>
+</li></ol>
+<p> </p>
+<p><a href="http://lib.csdn.net/base/mysql" style="color:#df3434;text-decoration:none;font-weight:bold;" target="_blank" title="MySQL知识库">MySQL</a>/InnoDB的加锁分析，一直是一个比较困难的话题。我在工作过程中，经常会有同事咨询这方面的问题。同时，微博上也经常会收到MySQL锁相关的私信，让我帮助解决一些死锁的问题。本文，准备就MySQL/InnoDB的加锁问题，展开较为深入的分析与讨论，主要是介绍一种思路，运用此思路，拿到任何一条SQL语句，都能完整的分析出这条语句会加什么锁？会有什么样的使用风险？甚至是分析线上的一个死锁场景，了解死锁产生的原因。</p>
+<p> </p>
+<p><span style="color:#ff0000;"><strong>注：</strong></span>MySQL是一个支持插件式存储引擎的<a href="http://lib.csdn.net/base/mysql" style="color:#df3434;text-decoration:none;font-weight:bold;" target="_blank" title="MySQL知识库">数据库</a>系统。本文下面的所有介绍，都是基于InnoDB存储引擎，其他引擎的表现，会有较大的区别。</p>
+<p><span style="font-weight:bold;text-align:justify;"><br/>
+</span></p>
+<h1 style="margin:0px;padding:0px;"><a name="t1" style="color:rgb(51, 102, 153);text-decoration:none;"></a><span style="font-weight:bold;text-align:justify;">MVCC：Snapshot Read vs Current Read</span></h1>
+<p><span></span></p>
+<p> </p>
+<p>MySQL InnoDB存储引擎，实现的是基于多版本的并发控制协议——MVCC (<a href="http://en.wikipedia.org/wiki/Multiversion_concurrency_control" style="color:rgb(51, 102, 153);text-decoration:none;" target="_blank">Multi-Version Concurrency Control</a>) (注：与MVCC相对的，是基于锁的并发控制，Lock-Based Concurrency Control)。MVCC最大的好处，相信也是耳熟能详：读不加锁，读写不冲突。在读多写少的OLTP应用中，读写不冲突是非常重要的，极大的增加了系统的并发性能，这也是为什么现阶段，几乎所有的RDBMS，都支持了MVCC。</p>
+<p> </p>
+<p>在MVCC并发控制中，读操作可以分成两类：快照读 (snapshot read)与当前读 (current read)。快照读，读取的是记录的可见版本 (有可能是历史版本)，不用加锁。当前读，读取的是记录的最新版本，并且，当前读返回的记录，都会加上锁，保证其他事务不会再并发修改这条记录。</p>
+<p> </p>
+<p>在一个支持MVCC并发控制的系统中，哪些读操作是快照读？哪些操作又是当前读呢？以MySQL InnoDB为例：</p>
+<p> </p>
+<ul>
+<li>
+<div style="text-align:justify;"><span style="font-size:10pt;"><span style="color:#ff0000;"><strong>快照读：</strong></span>简单的select操作，属于快照读，不加锁。(当然，也有例外，下面会分析)<br/>
+</span></div>
+<ul>
+<li>
+<div style="text-align:justify;"><span style="font-size:10pt;">select * from table where ?;<br/>
+</span></div>
+</li></ul>
+<p style="text-align:justify;"></p>
+</li><li>
+<div style="text-align:justify;"><span style="font-size:10pt;"><span style="color:#ff0000;"><strong>当前读：</strong></span>特殊的读操作，插入/更新/删除操作，属于当前读，需要加锁。<br/>
+</span></div>
+<ul>
+<li>
+<div style="text-align:justify;"><span style="color:#00b050;font-size:10pt;">select * from table where ? lock in share mode;<br/>
+</span></div>
+</li><li>
+<div style="text-align:justify;"><span style="font-size:10pt;">select * from table where ? for update;<br/>
+</span></div>
+</li><li>
+<div style="text-align:justify;"><span style="font-size:10pt;">insert into table values (…);<br/>
+</span></div>
+</li><li>
+<div style="text-align:justify;"><span style="font-size:10pt;">update table set ? where ?;<br/>
+</span></div>
+</li><li>
+<div style="text-align:justify;"><span style="font-size:10pt;">delete from table where ?;<br/>
+</span></div>
+</li></ul>
+<p>所有以上的语句，都属于当前读，读取记录的最新版本。并且，读取之后，还需要保证其他并发事务不能修改当前记录，对读取记录加锁。其中，除了第一条语句，对读取记录加S锁 (共享锁)外，其他的操作，都加的是X锁 (排它锁)。</p>
+<p> </p>
+</li></ul>
+<p>为什么将 插入/更新/删除 操作，都归为当前读？可以看看下面这个 更新 操作，在数据库中的执行流程：</p>
+<p style="text-align:center;"><a href="http://www.yupoo.com/photos/hedengcheng/90010766/" style="color:rgb(51, 102, 153);text-decoration:none;" target="_blank" title="update 执行流程"><img src="【MySQL】MySQL读写加锁深入分析 - zwan0518的专栏 - 博客频道 - C_files/medish.jpg" type="image/jpeg" data-filename="medish.jpg" alt="update 执行流程" border="0" height="424" style="border:none;max-width:100%;" width="500"/></a></p>
+<p>从图中，可以看到，一个Update操作的具体流程。当Update SQL被发给MySQL后，MySQL Server会根据where条件，读取第一条满足条件的记录，然后InnoDB引擎会将第一条记录返回，并加锁 (current read)。待MySQL Server收到这条加锁的记录之后，会再发起一个Update请求，更新这条记录。一条记录操作完成，再读取下一条记录，直至没有满足条件的记录为止。因此，Update操作内部，就包含了一个当前读。同理，Delete操作也一样。Insert操作会稍微有些不同，简单来说，就是Insert操作可能会触发Unique
+ Key的冲突检查，也会进行一个当前读。</p>
+<p> </p>
+<p><span style="color:#ff0000;"><strong>注</strong>：</span>根据上图的交互，针对一条当前读的SQL语句，InnoDB与MySQL Server的交互，是一条一条进行的，因此，加锁也是一条一条进行的。先对一条满足条件的记录加锁，返回给MySQL Server，做一些DML操作；然后在读取下一条加锁，直至读取完毕。</p>
+<h2 style="margin:0px;padding:0px;"><a name="t2" style="color:rgb(51, 102, 153);text-decoration:none;"></a> <span style="font-weight:bold;text-align:justify;">Cluster Index：聚簇索引</span></h2>
+<p> </p>
+<p>InnoDB存储引擎的数据组织方式，是聚簇索引表：完整的记录，存储在主键索引中，通过主键索引，就可以获取记录所有的列。关于聚簇索引表的组织方式，可以参考MySQL的官方文档：<a href="http://dev.mysql.com/doc/refman/5.0/en/innodb-index-types.html" style="color:rgb(51, 102, 153);text-decoration:none;" target="_blank">Clustered and Secondary Indexes</a> 。本文假设读者对这个，已经有了一定的认识，就不再做具体的介绍。接下来的部分，主键索引/聚簇索引
+ 两个名称，会有一些混用，望读者知晓。</p>
+<h2 style="margin:0px;padding:0px;"><a name="t3" style="color:rgb(51, 102, 153);text-decoration:none;"></a> <span style="text-align:justify;">2PL：Two-Phase Locking</span></h2>
+<p> </p>
+<p>传统RDBMS加锁的一个原则，就是2PL (二阶段锁)：<a href="http://en.wikipedia.org/wiki/Two-phase_locking" style="color:rgb(51, 102, 153);text-decoration:none;" target="_blank">Two-Phase Locking</a>。相对而言，2PL比较容易理解，说的是锁操作分为两个阶段：加锁阶段与解锁阶段，并且保证加锁阶段与解锁阶段不相交。下面，仍旧以MySQL为例，来简单看看2PL在MySQL中的实现。</p>
+<p> </p>
+<p style="text-align:center;"><a href="http://www.yupoo.com/photos/hedengcheng/90010758/" style="color:rgb(51, 102, 153);text-decoration:none;" target="_blank" title="2PL"><img src="【MySQL】MySQL读写加锁深入分析 - zwan0518的专栏 - 博客频道 - C_files/medish [1].jpg" type="image/jpeg" data-filename="medish.jpg" alt="2PL" border="0" height="475" style="border:none;max-width:100%;" width="500"/></a></p>
+<p>从上图可以看出，2PL就是将加锁/解锁分为两个完全不相交的阶段。加锁阶段：只加锁，不放锁。解锁阶段：只放锁，不加锁。</p>
+<h2 style="margin:0px;padding:0px;"><a name="t4" style="color:rgb(51, 102, 153);text-decoration:none;"></a> <span style="text-align:justify;">Isolation Level</span></h2>
+<p> </p>
+<p>隔离级别：<a href="http://en.wikipedia.org/wiki/Isolation_%28database_systems%29" style="color:rgb(51, 102, 153);text-decoration:none;" target="_blank">Isolation Level</a>，也是RDBMS的一个关键特性。相信对数据库有所了解的朋友，对于4种隔离级别：Read Uncommited，Read Committed，Repeatable Read，Serializable，都有了深入的认识。本文不打算讨论数据库理论中，是如何定义这4种隔离级别的含义的，而是跟大家介绍一下MySQL/InnoDB是如何定义这4种隔离级别的。</p>
+<p> </p>
+<p>MySQL/InnoDB定义的4种隔离级别：</p>
+<ul>
+<li>
+<div style="text-align:justify;"><span style="font-size:10pt;"><strong><span style="color:#ff0000;">Read Uncommited</span><br/>
+</strong></span></div>
+<p style="text-align:justify;"><span style="font-size:10pt;">可以读取未提交记录。此隔离级别，不会使用，忽略。<br/>
+</span></p>
+</li><li>
+<div style="text-align:justify;"><span style="font-size:10pt;"><strong><span style="color:#ff0000;">Read Committed (RC)</span><br/>
+</strong></span></div>
+<p style="text-align:justify;"><span style="font-size:10pt;">快照读忽略，本文不考虑。<br/>
+</span></p>
+<p style="text-align:justify;"><span style="font-size:10pt;">针对当前读，<strong>RC隔离级别保证对读取到的记录加锁 (记录锁)</strong>，存在幻读现象。<br/>
+</span></p>
+</li><li>
+<div style="text-align:justify;"><span style="font-size:10pt;"><strong><span style="color:#ff0000;">Repeatable Read (RR)</span><br/>
+</strong></span></div>
+<p style="text-align:justify;"><span style="font-size:10pt;">快照读忽略，本文不考虑。<br/>
+</span></p>
+<p style="text-align:justify;"><span style="font-size:10pt;">针对当前读，<strong>RR隔离级别保证对读取到的记录加锁 (记录锁)，同时保证对读取的范围加锁，新的满足查询条件的记录不能够插入 (间隙锁)</strong>，不存在幻读现象。<br/>
+</span></p>
+</li><li>
+<div style="text-align:justify;"><span style="font-size:10pt;"><strong><span style="color:#ff0000;">Serializable</span><br/>
+</strong></span></div>
+<p style="text-align:justify;"><span style="font-size:10pt;">从MVCC并发控制退化为基于锁的并发控制。部分快照读与当前读，所有的读操作均为当前读，读加读锁 (S锁)，写加写锁 (X锁)。<br/>
+</span></p>
+<p style="text-align:justify;"><span style="font-size:10pt;">Serializable隔离级别下，读写冲突，因此并发度急剧下降，在MySQL/InnoDB下不建议使用。<strong><br/>
+</strong></span></p>
+</li></ul>
+<h1 style="margin:0px;padding:0px;"><a name="t5" style="color:rgb(51, 102, 153);text-decoration:none;"></a> <span style="font-weight:bold;text-align:justify;">一条简单SQL的加锁实现分析</span></h1>
+<p> </p>
+<p>在介绍完一些背景知识之后，本文接下来将选择几个有代表性的例子，来详细分析MySQL的加锁处理。当然，还是从最简单的例子说起。经常有朋友发给我一个SQL，然后问我，这个SQL加什么锁？就如同下面两条简单的SQL，他们加什么锁？</p>
+<p> </p>
+<ul>
+<li>
+<div style="text-align:justify;"><span style="font-size:10pt;"><strong>SQL1：</strong>select * from t1 where id = 10;<br/>
+</span></div>
+</li><li>
+<div style="text-align:justify;"><span style="font-size:10pt;"><strong>SQL2：</strong>delete from t1 where id = 10;<br/>
+</span></div>
+</li></ul>
+<p> </p>
+<p>针对这个问题，该怎么回答？我能想象到的一个答案是：</p>
+<p> </p>
+<ul>
+<li>
+<div style="text-align:justify;"><span style="font-size:10pt;"><strong>SQL1：</strong>不加锁。因为MySQL是使用多版本并发控制的，读不加锁。<br/>
+</span></div>
+</li><li>
+<div style="text-align:justify;"><span style="font-size:10pt;"><strong>SQL2：</strong>对id = 10的记录加写锁 (走主键索引)。<br/>
+</span></div>
+</li></ul>
+<p> </p>
+<p>这个答案对吗？说不上来。即可能是正确的，也有可能是错误的，已知条件不足，这个问题没有答案。如果让我来回答这个问题，我必须还要知道以下的一些前提，前提不同，我能给出的答案也就不同。要回答这个问题，还缺少哪些前提条件？</p>
+<p> </p>
+<ul>
+<li>
+<div style="text-align:justify;"><span style="font-size:10pt;"><span style="color:#ff0000;"><strong>前提一：</strong></span>id列是不是主键？<br/>
+</span></div>
+</li></ul>
+<p> </p>
+<ul>
+<li>
+<div style="text-align:justify;"><span style="font-size:10pt;"><span style="color:#ff0000;"><strong>前提二：</strong></span>当前系统的隔离级别是什么？<br/>
+</span></div>
+</li></ul>
+<ul>
+<li>
+<div style="text-align:justify;"><span style="font-size:10pt;"><span style="color:#ff0000;"><strong>前提三：</strong></span>id列如果不是主键，那么id列上有索引吗？<br/>
+</span></div>
+</li></ul>
+<ul>
+<li>
+<div style="text-align:justify;"><span style="font-size:10pt;"><span style="color:#ff0000;"><strong>前提四：</strong></span>id列上如果有二级索引，那么这个索引是唯一索引吗？<br/>
+</span></div>
+</li></ul>
+<ul>
+<li>
+<div style="text-align:justify;"><span style="font-size:10pt;"><span style="color:#ff0000;"><strong>前提五：</strong></span>两个SQL的执行计划是什么？索引扫描？全表扫描？<br/>
+</span></div>
+</li></ul>
+<p> </p>
+<p>没有这些前提，直接就给定一条SQL，然后问这个SQL会加什么锁，都是很业余的表现。而当这些问题有了明确的答案之后，给定的SQL会加什么锁，也就一目了然。下面，我将这些问题的答案进行组合，然后按照从易到难的顺序，逐个分析每种组合下，对应的SQL会加哪些锁？</p>
+<p> </p>
+<p><span style="color:#ff0000;"><strong>注：</strong></span>下面的这些组合，我做了一个前提假设，也就是有索引时，执行计划一定会选择使用索引进行过滤 (索引扫描)。但实际情况会复杂很多，真正的执行计划，还是需要根据MySQL输出的为准。</p>
+<p> </p>
+<ul>
+<li>
+<div style="text-align:justify;"><span style="font-size:10pt;"><strong><span style="color:red;">组合一</span>：</strong>id列是主键，RC隔离级别<br/>
+</span></div>
+</li><li>
+<div style="text-align:justify;"><span style="font-size:10pt;"><strong><span style="color:red;">组合二</span>：</strong>id列是二级唯一索引，RC隔离级别<br/>
+</span></div>
+</li><li>
+<div style="text-align:justify;"><span style="font-size:10pt;"><strong><span style="color:red;">组合三</span>：</strong>id列是二级非唯一索引，RC隔离级别<br/>
+</span></div>
+</li><li>
+<div style="text-align:justify;"><span style="font-size:10pt;"><strong><span style="color:red;">组合四</span>：</strong>id列上没有索引，RC隔离级别<br/>
+</span></div>
+</li><li>
+<div style="text-align:justify;"><span style="font-size:10pt;"><strong><span style="color:red;">组合五</span>：</strong>id列是主键，RR隔离级别<br/>
+</span></div>
+</li><li>
+<div style="text-align:justify;"><span style="font-size:10pt;"><strong><span style="color:red;">组合六</span>：</strong>id列是二级唯一索引，RR隔离级别<br/>
+</span></div>
+</li><li>
+<div style="text-align:justify;"><span style="font-size:10pt;"><strong><span style="color:red;">组合七</span>：</strong>id列是二级非唯一索引，RR隔离级别<br/>
+</span></div>
+</li><li>
+<div style="text-align:justify;"><span style="font-size:10pt;"><strong><span style="color:red;">组合八</span>：</strong>id列上没有索引，RR隔离级别<br/>
+</span></div>
+</li><li>
+<div style="text-align:justify;"><span style="font-size:10pt;"><strong><span style="color:red;">组合九</span>：</strong>Serializable隔离级别<br/>
+</span></div>
+</li></ul>
+<p> </p>
+<p>排列组合还没有列举完全，但是看起来，已经很多了。真的有必要这么复杂吗？事实上，要分析加锁，就是需要这么复杂。但是从另一个角度来说，只要你选定了一种组合，SQL需要加哪些锁，其实也就确定了。接下来，就让我们来逐个分析这9种组合下的SQL加锁策略。</p>
+<p> </p>
+<p>注：在前面八种组合下，也就是RC，RR隔离级别下，SQL1：select操作均不加锁，采用的是快照读，因此在下面的讨论中就忽略了，主要讨论SQL2：delete操作的加锁。</p>
+<p> </p>
+<ol>
+<li>
+<div style="text-align:justify;">
+<h2 style="margin:0px;padding:0px;"><a name="t6" style="color:rgb(51, 102, 153);text-decoration:none;"></a><strong>组合一：id主键+RC</strong></h2>
+</div>
+</li></ol>
+<p> </p>
+<p>这个组合，是最简单，最容易分析的组合。id是主键，Read Committed隔离级别，给定SQL：delete from t1 where id = 10; 只需要将主键上，id = 10的记录加上X锁即可。如下图所示：</p>
+<p style="text-align:center;"><a href="http://www.yupoo.com/photos/hedengcheng/90010765/" style="color:rgb(51, 102, 153);text-decoration:none;" target="_blank" title="id主键+rc"><img src="【MySQL】MySQL读写加锁深入分析 - zwan0518的专栏 - 博客频道 - C_files/medish [2].jpg" type="image/jpeg" data-filename="medish.jpg" alt="id主键+rc" border="0" height="440" style="border:none;max-width:100%;" width="500"/></a></p>
+<p><span style="color:#ff0000;"><strong>结论：</strong></span>id是主键时，此SQL只需要在id=10这条记录上加X锁即可。</p>
+<p> </p>
+<ol>
+<li>
+<div style="text-align:justify;">
+<h2 style="margin:0px;padding:0px;"><a name="t7" style="color:rgb(51, 102, 153);text-decoration:none;"></a><strong>组合二：id唯一索引+RC</strong></h2>
+</div>
+</li></ol>
+<p> </p>
+<p>这个组合，id不是主键，而是一个Unique的二级索引键值。那么在RC隔离级别下，delete from t1 where id = 10; 需要加什么锁呢？见下图：</p>
+<p style="text-align:center;"><a href="http://www.yupoo.com/photos/hedengcheng/90010759/" style="color:rgb(51, 102, 153);text-decoration:none;" target="_blank" title="id unique+rc"><img src="【MySQL】MySQL读写加锁深入分析 - zwan0518的专栏 - 博客频道 - C_files/medish [3].jpg" type="image/jpeg" data-filename="medish.jpg" alt="id unique+rc" border="0" height="440" style="border:none;max-width:100%;" width="500"/></a></p>
+<p>此组合中，id是unique索引，而主键是name列。此时，加锁的情况由于组合一有所不同。由于id是unique索引，因此delete语句会选择走id列的索引进行where条件的过滤，在找到id=10的记录后，首先会将unique索引上的id=10索引记录加上X锁，同时，会根据读取到的name列，回主键索引(聚簇索引)，然后将聚簇索引上的name = ‘d’ 对应的主键索引项加X锁。为什么聚簇索引上的记录也要加锁？试想一下，如果并发的一个SQL，是通过主键索引来更新：update t1 set id =
+ 100 where name = ‘d’; 此时，如果delete语句没有将主键索引上的记录加锁，那么并发的update就会感知不到delete语句的存在，违背了同一记录上的更新/删除需要串行执行的约束。</p>
+<p> </p>
+<p><span style="color:#ff0000;"><strong>结论</strong>：</span>若id列是unique列，其上有unique索引。那么SQL需要加两个X锁，一个对应于id unique索引上的id = 10的记录，另一把锁对应于聚簇索引上的[name='d',id=10]的记录。</p>
+<p> </p>
+<ol>
+<li>
+<div style="text-align:justify;">
+<h2 style="margin:0px;padding:0px;"><a name="t8" style="color:rgb(51, 102, 153);text-decoration:none;"></a><strong>组合三：id非唯一索引+RC</strong></h2>
+</div>
+</li></ol>
+<p> </p>
+<p>相对于组合一、二，组合三又发生了变化，隔离级别仍旧是RC不变，但是id列上的约束又降低了，id列不再唯一，只有一个普通的索引。假设delete from t1 where id = 10; 语句，仍旧选择id列上的索引进行过滤where条件，那么此时会持有哪些锁？同样见下图：</p>
+<p style="text-align:center;"><a href="http://www.yupoo.com/photos/hedengcheng/90010762/" style="color:rgb(51, 102, 153);text-decoration:none;" target="_blank" title="id 非唯一索引+rc"><img src="【MySQL】MySQL读写加锁深入分析 - zwan0518的专栏 - 博客频道 - C_files/medish [4].jpg" type="image/jpeg" data-filename="medish.jpg" alt="id 非唯一索引+rc" border="0" height="440" style="border:none;max-width:100%;" width="500"/></a></p>
+<p>根据此图，可以看到，首先，id列索引上，满足id = 10查询条件的记录，均已加锁。同时，这些记录对应的主键索引上的记录也都加上了锁。与组合二唯一的区别在于，组合二最多只有一个满足等值查询的记录，而组合三会将所有满足查询条件的记录都加锁。</p>
+<p> </p>
+<p><span style="color:#ff0000;"><strong>结论</strong>：</span>若id列上有非唯一索引，那么对应的所有满足SQL查询条件的记录，都会被加锁。同时，这些记录在主键索引上的记录，也会被加锁。</p>
+<p> </p>
+<ol>
+<li>
+<div style="text-align:justify;">
+<h2 style="margin:0px;padding:0px;"><a name="t9" style="color:rgb(51, 102, 153);text-decoration:none;"></a><strong>组合四：id无索引+RC</strong></h2>
+</div>
+</li></ol>
+<p> </p>
+<p>相对于前面三个组合，这是一个比较特殊的情况。id列上没有索引，where id = 10;这个过滤条件，没法通过索引进行过滤，那么只能走全表扫描做过滤。对应于这个组合，SQL会加什么锁？或者是换句话说，全表扫描时，会加什么锁？这个答案也有很多：有人说会在表上加X锁；有人说会将聚簇索引上，选择出来的id = 10;的记录加上X锁。那么实际情况呢？请看下图：</p>
+<p style="text-align:center;"><a href="http://www.yupoo.com/photos/hedengcheng/90010763/" style="color:rgb(51, 102, 153);text-decoration:none;" target="_blank" title="id 无索引+rc"><img src="【MySQL】MySQL读写加锁深入分析 - zwan0518的专栏 - 博客频道 - C_files/medish [5].jpg" type="image/jpeg" data-filename="medish.jpg" alt="id 无索引+rc" border="0" height="440" style="border:none;max-width:100%;" width="500"/></a></p>
+<p>由于id列上没有索引，因此只能走聚簇索引，进行全部扫描。从图中可以看到，满足删除条件的记录有两条，但是，聚簇索引上所有的记录，都被加上了X锁。无论记录是否满足条件，全部被加上X锁。既不是加表锁，也不是在满足条件的记录上加行锁。</p>
+<p> </p>
+<p>有人可能会问？为什么不是只在满足条件的记录上加锁呢？这是由于MySQL的实现决定的。如果一个条件无法通过索引快速过滤，那么存储引擎层面就会将所有记录加锁后返回，然后由MySQL Server层进行过滤。因此也就把所有的记录，都锁上了。</p>
+<p> </p>
+<p>注：在实际的实现中，MySQL有一些改进，在MySQL Server过滤条件，发现不满足后，会调用unlock_row方法，把不满足条件的记录放锁 (违背了2PL的约束)。这样做，保证了最后只会持有满足条件记录上的锁，但是每条记录的加锁操作还是不能省略的。</p>
+<p> </p>
+<p><span style="color:#ff0000;"><strong>结论：</strong></span>若id列上没有索引，SQL会走聚簇索引的全扫描进行过滤，由于过滤是由MySQL Server层面进行的。因此每条记录，无论是否满足条件，都会被加上X锁。但是，为了效率考量，MySQL做了优化，对于不满足条件的记录，会在判断后放锁，最终持有的，是满足条件的记录上的锁，但是不满足条件的记录上的加锁/放锁动作不会省略。同时，优化也违背了2PL的约束。</p>
+<p> </p>
+<ol>
+<li>
+<div style="text-align:justify;">
+<h2 style="margin:0px;padding:0px;"><a name="t10" style="color:rgb(51, 102, 153);text-decoration:none;"></a><strong>组合五：id主键+RR</strong></h2>
+</div>
+</li></ol>
+<p> </p>
+<p>上面的四个组合，都是在Read Committed隔离级别下的加锁行为，接下来的四个组合，是在Repeatable Read隔离级别下的加锁行为。</p>
+<p> </p>
+<p>组合五，id列是主键列，Repeatable Read隔离级别，针对delete from t1 where id = 10; 这条SQL，加锁与组合一：[<a href="http://hedengcheng.com/?p=771#_%E7%BB%84%E5%90%88%E4%B8%80%EF%BC%9Aid%E4%B8%BB%E9%94%AE+RC" style="color:rgb(51, 102, 153);text-decoration:none;" target="_blank">id主键，Read Committed</a>]一致。</p>
+<p> </p>
+<ol>
+<li>
+<div style="text-align:justify;">
+<h2 style="margin:0px;padding:0px;"><a name="t11" style="color:rgb(51, 102, 153);text-decoration:none;"></a><strong>组合六：id唯一索引+RR</strong></h2>
+</div>
+</li></ol>
+<p> </p>
+<p>与组合五类似，组合六的加锁，与组合二：[<a href="http://hedengcheng.com/?p=771#_%E7%BB%84%E5%90%88%E4%BA%8C%EF%BC%9Aid%E5%94%AF%E4%B8%80%E7%B4%A2%E5%BC%95+RC" style="color:rgb(51, 102, 153);text-decoration:none;" target="_blank">id唯一索引，Read Committed</a>]一致。两个X锁，id唯一索引满足条件的记录上一个，对应的聚簇索引上的记录一个。</p>
+<p> </p>
+<ol>
+<li>
+<div style="text-align:justify;">
+<h2 style="margin:0px;padding:0px;"><a name="t12" style="color:rgb(51, 102, 153);text-decoration:none;"></a><strong>组合七：id非唯一索引+RR</strong></h2>
+</div>
+</li></ol>
+<p> </p>
+<p>还记得前面提到的MySQL的四种隔离级别的区别吗？RC隔离级别允许幻读，而RR隔离级别，不允许存在幻读。但是在组合五、组合六中，加锁行为又是与RC下的加锁行为完全一致。那么RR隔离级别下，如何防止幻读呢？问题的答案，就在组合七中揭晓。</p>
+<p> </p>
+<p>组合七，Repeatable Read隔离级别，id上有一个非唯一索引，执行delete from t1 where id = 10; 假设选择id列上的索引进行条件过滤，最后的加锁行为，是怎么样的呢？同样看下面这幅图：</p>
+<p style="text-align:center;"><a href="http://www.yupoo.com/photos/hedengcheng/90010761/" style="color:rgb(51, 102, 153);text-decoration:none;" target="_blank" title="id 非唯一索引 + rr"><img src="【MySQL】MySQL读写加锁深入分析 - zwan0518的专栏 - 博客频道 - C_files/medish [6].jpg" type="image/jpeg" data-filename="medish.jpg" alt="id 非唯一索引 + rr" border="0" height="440" style="border:none;max-width:100%;" width="500"/></a></p>
+<p>此图，相对于组合三：[<a href="http://hedengcheng.com/?p=771#_%E7%BB%84%E5%90%88%E4%B8%89%EF%BC%9Aid%E9%9D%9E%E5%94%AF%E4%B8%80%E7%B4%A2%E5%BC%95+RC" style="color:rgb(51, 102, 153);text-decoration:none;" target="_blank">id列上非唯一锁，Read Committed</a>]看似相同，其实却有很大的区别。最大的区别在于，这幅图中多了一个GAP锁，而且GAP锁看起来也不是加在记录上的，倒像是加载两条记录之间的位置，GAP锁有何用？</p>
+<p> </p>
+<p>其实这个多出来的GAP锁，就是RR隔离级别，相对于RC隔离级别，不会出现幻读的关键。确实，GAP锁锁住的位置，也不是记录本身，而是两条记录之间的GAP。所谓幻读，就是同一个事务，连续做两次当前读 (例如：select * from t1 where id = 10 for update;)，那么这两次当前读返回的是完全相同的记录 (记录数量一致，记录本身也一致)，第二次的当前读，不会比第一次返回更多的记录 (幻象)。</p>
+<p> </p>
+<p>如何保证两次当前读返回一致的记录，那就需要在第一次当前读与第二次当前读之间，其他的事务不会插入新的满足条件的记录并提交。为了实现这个功能，GAP锁应运而生。</p>
+<p> </p>
+<p>如图中所示，有哪些位置可以插入新的满足条件的项 (id = 10)，考虑到B+树索引的有序性，满足条件的项一定是连续存放的。记录[6,c]之前，不会插入id=10的记录；<a name="OLE_LINK1" style="color:rgb(51, 102, 153);text-decoration:none;" target="_blank"></a>[6,c]与[10,b]间可以插入[10, aa]；[10,b]与[10,d]间，可以插入新的[10,bb],[10,c]等；[10,d]与[11,f]间可以插入满足条件的[10,e],[10,z]等；而[11,f]之后也不会插入满足条件的记录。因此，为了保证[6,c]与[10,b]间，[10,b]与[10,d]间，[10,d]与[11,f]不会插入新的满足条件的记录，MySQL选择了用GAP锁，将这三个GAP给锁起来。</p>
+<p> </p>
+<p>Insert操作，如insert [10,aa]，首先会定位到[6,c]与[10,b]间，然后在插入前，会检查这个GAP是否已经被锁上，如果被锁上，则Insert不能插入记录。因此，通过第一遍的当前读，不仅将满足条件的记录锁上 (X锁)，与组合三类似。同时还是增加3把GAP锁，将可能插入满足条件记录的3个GAP给锁上，保证后续的Insert不能插入新的id=10的记录，也就杜绝了同一事务的第二次当前读，出现幻象的情况。</p>
+<p> </p>
+<p>有心的朋友看到这儿，可以会问：既然防止幻读，需要靠GAP锁的保护，为什么组合五、组合六，也是RR隔离级别，去不需要加GAP锁呢？</p>
+<p> </p>
+<p>首先，这是一个好问题。其次，回答这个问题，也很简单。GAP锁的目的，是为了防止同一事务的两次当前读，出现幻读的情况。而组合五，id是主键；组合六，id是unique键，都能够保证唯一性。一个等值查询，最多只能返回一条记录，而且新的相同取值的记录，一定不会在新插入进来，因此也就避免了GAP锁的使用。其实，针对此问题，还有一个更深入的问题：<span style="color:red;">如果组合五、组合六下，针对SQL：select * from t1 where id = 10 for update; 第一次查询，没有找到满足查询条件的记录，那么GAP锁是否还能够省略？</span>此问题留给大家思考。</p>
+<p> </p>
+<p><span style="color:#ff0000;"><strong>结论：</strong></span>Repeatable Read隔离级别下，id列上有一个非唯一索引，对应SQL：delete from t1 where id = 10; 首先，通过id索引定位到第一条满足查询条件的记录，加记录上的X锁，加GAP上的GAP锁，然后加主键聚簇索引上的记录X锁，然后返回；然后读取下一条，重复进行。直至进行到第一条不满足条件的记录[11,f]，此时，不需要加记录X锁，但是仍旧需要加GAP锁，最后返回结束。</p>
+<p> </p>
+<ol>
+<li>
+<div style="text-align:justify;">
+<h2 style="margin:0px;padding:0px;"><a name="t13" style="color:rgb(51, 102, 153);text-decoration:none;"></a><strong>组合八：id无索引+RR</strong></h2>
+</div>
+</li></ol>
+<p> </p>
+<p>组合八，Repeatable Read隔离级别下的最后一种情况，id列上没有索引。此时SQL：delete from t1 where id = 10; 没有其他的路径可以选择，只能进行全表扫描。最终的加锁情况，如下图所示：</p>
+<p style="text-align:center;"><a href="http://www.yupoo.com/photos/hedengcheng/90010764/" style="color:rgb(51, 102, 153);text-decoration:none;" target="_blank" title="id 无索引+rr"><img src="【MySQL】MySQL读写加锁深入分析 - zwan0518的专栏 - 博客频道 - C_files/medish [7].jpg" type="image/jpeg" data-filename="medish.jpg" alt="id 无索引+rr" border="0" height="475" style="border:none;max-width:100%;" width="500"/></a></p>
+<p>如图，这是一个很恐怖的现象。首先，聚簇索引上的所有记录，都被加上了X锁。其次，聚簇索引每条记录间的间隙(GAP)，也同时被加上了GAP锁。这个示例表，只有6条记录，一共需要6个记录锁，7个GAP锁。试想，如果表上有1000万条记录呢？</p>
+<p> </p>
+<p>在这种情况下，这个表上，除了不加锁的快照度，其他任何加锁的并发SQL，均不能执行，不能更新，不能删除，不能插入，全表被锁死。</p>
+<p> </p>
+<p>当然，跟组合四：[<a href="http://hedengcheng.com/?p=771#_%E7%BB%84%E5%90%88%E5%9B%9B%EF%BC%9Aid%E6%97%A0%E7%B4%A2%E5%BC%95+RC" style="color:rgb(51, 102, 153);text-decoration:none;" target="_blank">id无索引, Read Committed</a>]类似，这个情况下，MySQL也做了一些优化，就是所谓的semi-consistent read。semi-consistent read开启的情况下，对于不满足查询条件的记录，MySQL会提前放锁。针对上面的这个用例，就是除了记录[d,10]，[g,10]之外，所有的记录锁都会被释放，同时不加GAP锁。semi-consistent
+ read如何触发：要么是read committed隔离级别；要么是Repeatable Read隔离级别，但是设置了 <a href="http://dev.mysql.com/doc/refman/5.5/en/innodb-parameters.html" style="color:rgb(51, 102, 153);text-decoration:none;" target="_blank">
+innodb_locks_unsafe_for_binlog</a> 参数。更详细的关于semi-consistent read的介绍，可参考我之前的一篇博客：<a href="http://hedengcheng.com/?p=220" style="color:rgb(51, 102, 153);text-decoration:none;" target="_blank">MySQL+InnoDB semi-consitent read原理及实现分析</a> 。</p>
+<p> </p>
+<p><span style="color:#ff0000;"><strong>结论：</strong></span>在Repeatable Read隔离级别下，如果进行全表扫描的当前读，那么会锁上表中的所有记录，同时会锁上聚簇索引内的所有GAP，杜绝所有的并发 更新/删除/插入 操作。当然，也可以通过触发semi-consistent read，来缓解加锁开销与并发影响，但是semi-consistent read本身也会带来其他问题，不建议使用。</p>
+<p> </p>
+<ol>
+<li>
+<div style="text-align:justify;">
+<h2 style="margin:0px;padding:0px;"><a name="t14" style="color:rgb(51, 102, 153);text-decoration:none;"></a><strong>组合九：Serializable</strong></h2>
+</div>
+</li></ol>
+<p> </p>
+<p>针对前面提到的简单的SQL，最后一个情况：Serializable隔离级别。对于SQL2：delete from t1 where id = 10; 来说，Serializable隔离级别与Repeatable Read隔离级别完全一致，因此不做介绍。</p>
+<p> </p>
+<p>Serializable隔离级别，影响的是SQL1：select * from t1 where id = 10; 这条SQL，在RC，RR隔离级别下，都是快照读，不加锁。但是在Serializable隔离级别，SQL1会加读锁，也就是说快照读不复存在，MVCC并发控制降级为Lock-Based CC。</p>
+<p> </p>
+<p><strong>结论：</strong>在MySQL/InnoDB中，所谓的读不加锁，并不适用于所有的情况，而是隔离级别相关的。Serializable隔离级别，读不加锁就不再成立，所有的读操作，都是当前读。</p>
+<p> </p>
+<ol>
+<li>
+<div style="text-align:justify;">
+<h1 style="margin:0px;padding:0px;"><a name="t15" style="color:rgb(51, 102, 153);text-decoration:none;"></a><strong>一条复杂的SQL</strong></h1>
+</div>
+</li></ol>
+<p> </p>
+<p>写到这里，其实MySQL的加锁实现也已经介绍的八八九九。只要将本文上面的分析思路，大部分的SQL，都能分析出其会加哪些锁。而这里，再来看一个稍微复杂点的SQL，用于说明MySQL加锁的另外一个逻辑。SQL用例如下：</p>
+<p style="text-align:center;"><a href="http://www.yupoo.com/photos/hedengcheng/90010767/" style="color:rgb(51, 102, 153);text-decoration:none;" target="_blank" title="复杂SQL"><img src="【MySQL】MySQL读写加锁深入分析 - zwan0518的专栏 - 博客频道 - C_files/medish [8].jpg" type="image/jpeg" data-filename="medish.jpg" alt="复杂SQL" border="0" height="480" style="border:none;max-width:100%;" width="500"/></a></p>
+<p>如图中的SQL，会加什么锁？假定在Repeatable Read隔离级别下 (Read Committed隔离级别下的加锁情况，留给读者分析。)，同时，假设SQL走的是idx_t1_pu索引。</p>
+<p> </p>
+<p>在详细分析这条SQL的加锁情况前，还需要有一个知识储备，那就是一个SQL中的where条件如何拆分？具体的介绍，建议阅读我之前的一篇文章：<a href="http://hedengcheng.com/?p=577" style="color:rgb(51, 102, 153);text-decoration:none;" target="_blank">SQL中的where条件，在数据库中提取与应用浅析</a> 。在这里，我直接给出分析后的结果：</p>
+<p> </p>
+<ul>
+<li>
+<div style="text-align:justify;"><span style="font-size:10pt;"><span style="color:#ff0000;"><strong>Index key：</strong></span>pubtime &gt; 1 and puptime &lt; 20。此条件，用于确定SQL在idx_t1_pu索引上的查询范围。<br/>
+</span></div>
+<p style="text-align:justify;"></p>
+</li><li>
+<div style="text-align:justify;"><span style="font-size:10pt;"><span style="color:#ff0000;"><strong>Index Filter：</strong></span>userid = ‘hdc’ 。此条件，可以在idx_t1_pu索引上进行过滤，但不属于Index Key。<br/>
+</span></div>
+</li></ul>
+<ul>
+<li>
+<div style="text-align:justify;"><span style="font-size:10pt;"><span style="color:#ff0000;"><strong>Table Filter：</strong></span>comment is not NULL。此条件，在idx_t1_pu索引上无法过滤，只能在聚簇索引上过滤。<br/>
+</span></div>
+</li></ul>
+<p> </p>
+<p>在分析出SQL where条件的构成之后，再来看看这条SQL的加锁情况 (RR隔离级别)，如下图所示：</p>
+<p style="text-align:center;"><a href="http://www.yupoo.com/photos/hedengcheng/90010768/" style="color:rgb(51, 102, 153);text-decoration:none;" target="_blank" title="SQL加锁"><img src="【MySQL】MySQL读写加锁深入分析 - zwan0518的专栏 - 博客频道 - C_files/medish [9].jpg" type="image/jpeg" data-filename="medish.jpg" alt="SQL加锁" border="0" height="480" style="border:none;max-width:100%;" width="500"/></a></p>
+<p>从图中可以看出，在Repeatable Read隔离级别下，由Index Key所确定的范围，被加上了GAP锁；Index Filter锁给定的条件 (userid = ‘hdc’)何时过滤，视MySQL的版本而定，在MySQL 5.6版本之前，不支持<a href="http://dev.mysql.com/doc/refman/5.6/en/index-condition-pushdown-optimization.html" style="color:rgb(51, 102, 153);text-decoration:none;" target="_blank">Index
+ Condition Pushdown</a>(ICP)，因此Index Filter在MySQL Server层过滤，在5.6后支持了Index Condition Pushdown，则在index上过滤。若不支持ICP，不满足Index Filter的记录，也需要加上记录X锁，若支持ICP，则不满足Index Filter的记录，无需加记录X锁 (图中，用红色箭头标出的X锁，是否要加，视是否支持ICP而定)；而Table Filter对应的过滤条件，则在聚簇索引中读取后，在MySQL Server层面过滤，因此聚簇索引上也需要X锁。最后，选取出了一条满足条件的记录[8,hdc,d,5,good]，但是加锁的数量，要远远大于满足条件的记录数量。</p>
+<p> </p>
+<p><span style="color:#ff0000;"><strong>结论：</strong></span>在Repeatable Read隔离级别下，针对一个复杂的SQL，首先需要提取其where条件。Index Key确定的范围，需要加上GAP锁；Index Filter过滤条件，视MySQL版本是否支持ICP，若支持ICP，则不满足Index Filter的记录，不加X锁，否则需要X锁；Table Filter过滤条件，无论是否满足，都需要加X锁。</p>
+<p> </p>
+<ol>
+<li>
+<div style="text-align:justify;">
+<h1 style="margin:0px;padding:0px;"><a name="t16" style="color:rgb(51, 102, 153);text-decoration:none;"></a><strong>死锁原理与分析</strong></h1>
+</div>
+</li></ol>
+<p> </p>
+<p>本文前面的部分，基本上已经涵盖了MySQL/InnoDB所有的加锁规则。深入理解MySQL如何加锁，有两个比较重要的作用：</p>
+<p> </p>
+<ul>
+<li>
+<div style="text-align:justify;"><span style="font-size:10pt;">可以根据MySQL的加锁规则，写出不会发生死锁的SQL；<br/>
+</span></div>
+<p style="text-align:justify;"></p>
+</li><li>
+<div style="text-align:justify;"><span style="font-size:10pt;">可以根据MySQL的加锁规则，定位出线上产生死锁的原因；<br/>
+</span></div>
+</li></ul>
+<p>下面，来看看两个死锁的例子 (一个是两个Session的两条SQL产生死锁；另一个是两个Session的一条SQL，产生死锁)：</p>
+<p style="text-align:center;"><a href="http://www.yupoo.com/photos/hedengcheng/90010769/" style="color:rgb(51, 102, 153);text-decoration:none;" target="_blank" title="死锁用例"><img src="【MySQL】MySQL读写加锁深入分析 - zwan0518的专栏 - 博客频道 - C_files/medish [10].jpg" type="image/jpeg" data-filename="medish.jpg" alt="死锁用例" border="0" height="350" style="border:none;max-width:100%;" width="500"/></a></p>
+<p style="text-align:center;"><a href="http://www.yupoo.com/photos/hedengcheng/90010770/" style="color:rgb(51, 102, 153);text-decoration:none;" target="_blank" title="死锁用例2"><img src="【MySQL】MySQL读写加锁深入分析 - zwan0518的专栏 - 博客频道 - C_files/medish [11].jpg" type="image/jpeg" data-filename="medish.jpg" alt="死锁用例2" border="0" height="400" style="border:none;max-width:100%;" width="500"/></a></p>
+<p>上面的两个死锁用例。第一个非常好理解，也是最常见的死锁，每个事务执行两条SQL，分别持有了一把锁，然后加另一把锁，产生死锁。</p>
+<p> </p>
+<p>第二个用例，虽然每个Session都只有一条语句，仍旧会产生死锁。要分析这个死锁，首先必须用到本文前面提到的MySQL加锁的规则。针对Session 1，从name索引出发，读到的[hdc, 1]，[hdc, 6]均满足条件，不仅会加name索引上的记录X锁，而且会加聚簇索引上的记录X锁，加锁顺序为先[1,hdc,100]，后[6,hdc,10]。而Session 2，从pubtime索引出发，[10,6],[100,1]均满足过滤条件，同样也会加聚簇索引上的记录X锁，加锁顺序为[6,hdc,10]，后[1,hdc,100]。发现没有，跟Session
+ 1的加锁顺序正好相反，如果两个Session恰好都持有了第一把锁，请求加第二把锁，死锁就发生了。</p>
+<p> </p>
+<p><span style="color:#ff0000;"><strong>结论：</strong></span>死锁的发生与否，并不在于事务中有多少条SQL语句，<strong>死锁的关键在于</strong>：两个(或以上)的Session<span style="color:#ff0000;"><strong>加锁的顺序</strong></span>不一致。而使用本文上面提到的，分析MySQL每条SQL语句的加锁规则，分析出每条语句的加锁顺序，然后检查多个并发SQL间是否存在以相反的顺序加锁的情况，就可以分析出各种潜在的死锁情况，也可以分析出线上死锁发生的原因。</p>
+<p> </p>
+<ol>
+<li>
+<div style="text-align:justify;">
+<h1 style="margin:0px;padding:0px;"><a name="t17" style="color:rgb(51, 102, 153);text-decoration:none;"></a><strong>总结</strong></h1>
+</div>
+</li></ol>
+<p> </p>
+<p>写到这儿，本文也告一段落，做一个简单的总结，要做的完全掌握MySQL/InnoDB的加锁规则，甚至是其他任何数据库的加锁规则，需要具备以下的一些知识点：</p>
+<p> </p>
+<ul>
+<li>
+<div style="text-align:justify;"><span style="font-size:10pt;">了解数据库的一些基本理论知识：数据的存储格式 (堆组织表 vs 聚簇索引表)；并发控制协议 (MVCC vs Lock-Based CC)；Two-Phase Locking；数据库的隔离级别定义 (Isolation Level)；<br/>
+</span></div>
+</li><li>
+<div style="text-align:justify;"><span style="font-size:10pt;">了解SQL本身的执行计划 (主键扫描 vs 唯一键扫描 vs 范围扫描 vs 全表扫描)；<br/>
+</span></div>
+</li><li>
+<div style="text-align:justify;"><span style="font-size:10pt;">了解数据库本身的一些实现细节 (过滤条件提取；Index Condition Pushdown；Semi-Consistent Read)；<br/>
+</span></div>
+</li><li>
+<div style="text-align:justify;"><span style="font-size:10pt;">了解死锁产生的原因及分析的方法 (加锁顺序不一致；分析每个SQL的加锁顺序)</span></div>
+</li></ul>
+<p>转载：<a href="http://hedengcheng.com/?p=771" style="color:rgb(51, 102, 153);text-decoration:none;" target="_blank">http://hedengcheng.com/?p=771</a><br/>
+</p>
+   
+</div>
+
+
+
+
+
+
+
+
+
+<div style="zoom:1;float:right;">
+<a href="http://blog.csdn.net/zwan0518/article/details/17316931#" style="padding-left:17px;color:rgb(51, 51, 51);background-image:url('http://bdimg.share.baidu.com/static/api/img/share/icons_0_16.png?v=d754dcc0.png') !important;background-position:0 0 !important;float:left;font-size:12px;text-decoration:none;line-height:16px;height:16px;background-repeat:no-repeat;cursor:pointer;margin:6px 6px 6px 0px;"></a>
+<a href="http://blog.csdn.net/zwan0518/article/details/17316931#" style="line-height:16px;color:rgb(51, 102, 153);background-position:0 -52px !important;text-decoration:none;font-size:12px;padding-left:17px;float:left;height:16px;background-image:url(&quot;http://bdimg.share.baidu.com/static/api/css/../img/share/icons_0_16.png?v=91362611.png&quot;);background-repeat:no-repeat;cursor:pointer;margin:6px 6px 6px 0px;" title="分享到QQ空间"></a>
+<a href="http://blog.csdn.net/zwan0518/article/details/17316931#" style="line-height:16px;color:rgb(51, 102, 153);background-position:0 -104px !important;text-decoration:none;font-size:12px;padding-left:17px;float:left;height:16px;background-image:url(&quot;http://bdimg.share.baidu.com/static/api/css/../img/share/icons_0_16.png?v=91362611.png&quot;);background-repeat:no-repeat;cursor:pointer;margin:6px 6px 6px 0px;" title="分享到新浪微博"></a>
+<a href="http://blog.csdn.net/zwan0518/article/details/17316931#" style="line-height:16px;color:rgb(51, 102, 153);background-position:0 -260px !important;text-decoration:none;font-size:12px;padding-left:17px;float:left;height:16px;background-image:url(&quot;http://bdimg.share.baidu.com/static/api/css/../img/share/icons_0_16.png?v=91362611.png&quot;);background-repeat:no-repeat;cursor:pointer;margin:6px 6px 6px 0px;" title="分享到腾讯微博"></a>
+<a href="http://blog.csdn.net/zwan0518/article/details/17316931#" style="line-height:16px;color:rgb(51, 102, 153);background-position:0 -208px !important;text-decoration:none;font-size:12px;padding-left:17px;float:left;height:16px;background-image:url(&quot;http://bdimg.share.baidu.com/static/api/css/../img/share/icons_0_16.png?v=91362611.png&quot;);background-repeat:no-repeat;cursor:pointer;margin:6px 6px 6px 0px;" title="分享到人人网"></a>
+<a href="http://blog.csdn.net/zwan0518/article/details/17316931#" style="line-height:16px;color:rgb(51, 102, 153);background-position:0 -1612px !important;text-decoration:none;font-size:12px;padding-left:17px;float:left;height:16px;background-image:url(&quot;http://bdimg.share.baidu.com/static/api/css/../img/share/icons_0_16.png?v=91362611.png&quot;);background-repeat:no-repeat;cursor:pointer;margin:6px 6px 6px 0px;" title="分享到微信"></a>
+<span style="visibility:hidden;display:block;height:0px;clear:both;">.</span></div>
+
+
+
+   
+
+    
+
+
+
+
+
+
+
+
+ 
+
+
+        <div style="display:block;clear:both;width:182px;margin:0px auto;padding:30px 0px 15px;text-align:center;">
+            <dl style="display:inline-block;float:left;width:72px;height:72px;overflow:hidden;margin:0px 2px;background:rgb(153, 153, 153);text-align:center;color:rgb(255, 255, 255);">
+               
+                 <dt style="margin:0px;padding:12px 0px 3px;color:rgb(255, 255, 255);font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:27px;line-height:30px;font-family:&quot;Microsoft YaHei&quot;;">顶</dt>
+                <dd style="margin:0px;color:rgb(255, 255, 255);font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:12px;line-height:22px;font-family:Arial;">0</dd>
+            </dl>
+           
+              
+            <dl style="display:inline-block;float:left;width:72px;height:72px;overflow:hidden;margin:0px 2px;background:rgb(153, 153, 153);text-align:center;color:rgb(255, 255, 255);">
+              
+                  <dt style="margin:0px;padding:12px 0px 3px;color:rgb(255, 255, 255);font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:27px;line-height:30px;font-family:&quot;Microsoft YaHei&quot;;">踩</dt>
+                <dd style="margin:0px;color:rgb(255, 255, 255);font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:12px;line-height:22px;font-family:Arial;">0</dd>               
+            </dl>
+            
+        <span style="text-align:center;display:block;height:0px;clear:both;visibility:hidden;">.</span></div>
+     <div><a href="#" style="color:rgb(51, 102, 153);text-decoration:none;"> </a>   </div>
+    <div> <a href="#" style="color:rgb(51, 102, 153);text-decoration:none;"> </a></div>
+    
+
+   <ul style="line-height:24px;display:block;font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:14px;color:rgb(102, 102, 102);font-family:&quot;Microsoft YaHei&quot;, Arial, Helvetica, sans-serif;clear:both;float:left;margin:0px 0px 5px;padding:10px 0px 0px;margin-top:30px;">
+                <li style="list-style-type:none;clear:both;padding:0px 0px 3px;overflow:hidden;"><span style="color:rgb(255, 255, 255);display:block;width:52px;padding:0px 0px 0px 27px;height:26px;background-color:rgb(153, 153, 153);float:left;font-size:14px;margin-right:7px;background-image:url(&quot;http://static.blog.csdn.net/skin/default/css/../images/blog-page-arr.png&quot;);background-repeat:no-repeat;background-position:9px 8px;">上一篇</span><a href="http://blog.csdn.net/zwan0518/article/details/17301119" style="text-decoration:none;display:block;float:left;font-size:14px;color:rgb(51, 51, 51);">【Python】Python http编程：urllib包与http包详解</a></li>
+                <li style="list-style-type:none;clear:both;padding:0px 0px 3px;overflow:hidden;"><span style="color:rgb(255, 255, 255);display:block;width:52px;padding:0px 0px 0px 27px;height:26px;background-color:rgb(153, 153, 153);float:left;font-size:14px;margin-right:7px;background-image:url(&quot;http://static.blog.csdn.net/skin/default/css/../images/blog-page-arr.png&quot;);background-repeat:no-repeat;background-position:9px -22px;">下一篇</span><a href="http://blog.csdn.net/zwan0518/article/details/17751959" style="text-decoration:none;display:block;float:left;font-size:14px;color:rgb(51, 51, 51);">分布式计算框架综述</a></li>
+    <span style="color:rgb(102, 102, 102);font-style:normal;font-variant:normal;font-weight:normal;font-size:14px;line-height:24px;font-family:&quot;Microsoft YaHei&quot;, Arial, Helvetica, sans-serif;display:block;height:0px;clear:both;visibility:hidden;">.</span></ul>
+
+    <div style="clear:both;height:10px;"></div>
+
+
+        <div style="overflow:hidden;">
+                <h4 style="margin:0px;padding:0px;font-size:16px;color:rgb(51, 51, 51);">我的同类文章</h4>
+                <div style="border:1px solid rgb(187, 187, 187);margin:20px 0px 0px 0px;">
+                    <div style="line-height:45px;border-bottom:1px solid rgb(220, 220, 220);">
+                                <span style="display:inline-block;margin-left:25px;font-size:16px;color:rgb(102, 102, 102);font-weight:bold;">
+                                    <span style="cursor:pointer;">服务器<em style="font-style:normal;">（11）</em></span>
+                                </span>
+                    </div>
+                   
+                    <div style="background:rgb(252, 252, 252);max-height:195px;overflow-y:auto;padding:10px 20px;">
+                        
+                        <ul style="float:left;width:49%;list-style:none;margin:0px;padding:0px;"><li style="list-style:none;line-height:30px;"><em style="font-style:normal;display:inline-block;vertical-align:middle;margin-right:10px;">•</em><a href="http://blog.csdn.net/s120922718/article/details/50281175" style="text-decoration:none;color:rgb(51, 51, 51);display:inline-block;width:50%;text-overflow:ellipsis;white-space:nowrap;overflow:hidden;vertical-align:middle;" target="_blank" title="【Redis】redis介绍-启动过程">【Redis】redis介绍-启动过程</a><span style="font-size:12px;color:rgb(187, 187, 187);display:inline-block;margin-left:9px;">2015-12-13</span><span style="font-size:12px;color:rgb(187, 187, 187);display:inline-block;margin-left:9px;"><i style="font-weight:normal;font-style:normal;">阅读</i><b style="font-weight:normal;font-style:normal;margin-left:5px;">481</b></span></li> <li style="list-style:none;line-height:30px;"><em style="font-style:normal;display:inline-block;vertical-align:middle;margin-right:10px;">•</em><a href="http://blog.csdn.net/s120922718/article/details/46973647" style="text-decoration:none;color:rgb(51, 51, 51);display:inline-block;width:50%;text-overflow:ellipsis;white-space:nowrap;overflow:hidden;vertical-align:middle;" target="_blank" title="【nginx】nginx介绍-集成lua">【nginx】nginx介绍-集成lua</a><span style="font-size:12px;color:rgb(187, 187, 187);display:inline-block;margin-left:9px;">2015-07-20</span><span style="font-size:12px;color:rgb(187, 187, 187);display:inline-block;margin-left:9px;"><i style="font-weight:normal;font-style:normal;">阅读</i><b style="font-weight:normal;font-style:normal;margin-left:5px;">649</b></span></li> <li style="list-style:none;line-height:30px;"><em style="font-style:normal;display:inline-block;vertical-align:middle;margin-right:10px;">•</em><a href="http://blog.csdn.net/s120922718/article/details/21240151" style="text-decoration:none;color:rgb(51, 51, 51);display:inline-block;width:50%;text-overflow:ellipsis;white-space:nowrap;overflow:hidden;vertical-align:middle;" target="_blank" title="【MySQL】Windows中MySQL安装全指南">【MySQL】Windows中MySQL安装全指南</a><span style="font-size:12px;color:rgb(187, 187, 187);display:inline-block;margin-left:9px;">2014-03-14</span><span style="font-size:12px;color:rgb(187, 187, 187);display:inline-block;margin-left:9px;"><i style="font-weight:normal;font-style:normal;">阅读</i><b style="font-weight:normal;font-style:normal;margin-left:5px;">782</b></span></li> <li style="list-style:none;line-height:30px;"><em style="font-style:normal;display:inline-block;vertical-align:middle;margin-right:10px;">•</em><a href="http://blog.csdn.net/s120922718/article/details/11972853" style="text-decoration:none;color:rgb(51, 51, 51);display:inline-block;width:50%;text-overflow:ellipsis;white-space:nowrap;overflow:hidden;vertical-align:middle;" target="_blank" title="【MySQL】MySQL中针对大数据量常用技术">【MySQL】MySQL中针对大数据量常用技术</a><span style="font-size:12px;color:rgb(187, 187, 187);display:inline-block;margin-left:9px;">2013-09-24</span><span style="font-size:12px;color:rgb(187, 187, 187);display:inline-block;margin-left:9px;"><i style="font-weight:normal;font-style:normal;">阅读</i><b style="font-weight:normal;font-style:normal;margin-left:5px;">6560</b></span></li> <li style="list-style:none;line-height:30px;"><em style="font-style:normal;display:inline-block;vertical-align:middle;margin-right:10px;">•</em><a href="http://blog.csdn.net/s120922718/article/details/8928822" style="text-decoration:none;color:rgb(51, 51, 51);display:inline-block;width:50%;text-overflow:ellipsis;white-space:nowrap;overflow:hidden;vertical-align:middle;" target="_blank" title="【MySQL】MySQL数据模型、字符编码介绍与使用场景分析">【MySQL】MySQL数据模型、字符编码介绍与使用场景分析</a><span style="font-size:12px;color:rgb(187, 187, 187);display:inline-block;margin-left:9px;">2013-05-15</span><span style="font-size:12px;color:rgb(187, 187, 187);display:inline-block;margin-left:9px;"><i style="font-weight:normal;font-style:normal;">阅读</i><b style="font-weight:normal;font-style:normal;margin-left:5px;">1503</b></span></li> </ul>
+
+                        <ul style="float:right;width:49%;list-style:none;margin:0px;padding:0px;"><li style="list-style:none;line-height:30px;"><em style="font-style:normal;display:inline-block;vertical-align:middle;margin-right:10px;">•</em><a href="http://blog.csdn.net/s120922718/article/details/49851273" style="text-decoration:none;color:rgb(51, 51, 51);display:inline-block;width:50%;text-overflow:ellipsis;white-space:nowrap;overflow:hidden;vertical-align:middle;" target="_blank" title="【nginx】nginx介绍-信号处理">【nginx】nginx介绍-信号处理</a><span style="font-size:12px;color:rgb(187, 187, 187);display:inline-block;margin-left:9px;">2015-11-15</span><span style="font-size:12px;color:rgb(187, 187, 187);display:inline-block;margin-left:9px;"><i style="font-weight:normal;font-style:normal;">阅读</i><b style="font-weight:normal;font-style:normal;margin-left:5px;">583</b></span></li> <li style="list-style:none;line-height:30px;"><em style="font-style:normal;display:inline-block;vertical-align:middle;margin-right:10px;">•</em><a href="http://blog.csdn.net/s120922718/article/details/44724607" style="text-decoration:none;color:rgb(51, 51, 51);display:inline-block;width:50%;text-overflow:ellipsis;white-space:nowrap;overflow:hidden;vertical-align:middle;" target="_blank" title="【Redis】redis介绍-订阅推送（pub/sub）模式">【Redis】redis介绍-订阅推送（pub/sub）模式</a><span style="font-size:12px;color:rgb(187, 187, 187);display:inline-block;margin-left:9px;">2015-03-29</span><span style="font-size:12px;color:rgb(187, 187, 187);display:inline-block;margin-left:9px;"><i style="font-weight:normal;font-style:normal;">阅读</i><b style="font-weight:normal;font-style:normal;margin-left:5px;">2414</b></span></li> <li style="list-style:none;line-height:30px;"><em style="font-style:normal;display:inline-block;vertical-align:middle;margin-right:10px;">•</em><a href="http://blog.csdn.net/s120922718/article/details/13293501" style="text-decoration:none;color:rgb(51, 51, 51);display:inline-block;width:50%;text-overflow:ellipsis;white-space:nowrap;overflow:hidden;vertical-align:middle;" target="_blank" title="【MySQL】MySQL常用操作集合">【MySQL】MySQL常用操作集合</a><span style="font-size:12px;color:rgb(187, 187, 187);display:inline-block;margin-left:9px;">2013-10-28</span><span style="font-size:12px;color:rgb(187, 187, 187);display:inline-block;margin-left:9px;"><i style="font-weight:normal;font-style:normal;">阅读</i><b style="font-weight:normal;font-style:normal;margin-left:5px;">1076</b></span></li> <li style="list-style:none;line-height:30px;"><em style="font-style:normal;display:inline-block;vertical-align:middle;margin-right:10px;">•</em><a href="http://blog.csdn.net/s120922718/article/details/8973260" style="text-decoration:none;color:rgb(51, 51, 51);display:inline-block;width:50%;text-overflow:ellipsis;white-space:nowrap;overflow:hidden;vertical-align:middle;" target="_blank" title="【MySQL】MySQL中链接查询inner join与left join使用">【MySQL】MySQL中链接查询inner join与left join使用</a><span style="font-size:12px;color:rgb(187, 187, 187);display:inline-block;margin-left:9px;">2013-05-25</span><span style="font-size:12px;color:rgb(187, 187, 187);display:inline-block;margin-left:9px;"><i style="font-weight:normal;font-style:normal;">阅读</i><b style="font-weight:normal;font-style:normal;margin-left:5px;">3126</b></span></li> <li style="list-style:none;line-height:30px;"><em style="font-style:normal;display:inline-block;vertical-align:middle;margin-right:10px;">•</em><a href="http://blog.csdn.net/s120922718/article/details/8883128" style="text-decoration:none;color:rgb(51, 51, 51);display:inline-block;width:50%;text-overflow:ellipsis;white-space:nowrap;overflow:hidden;vertical-align:middle;" target="_blank" title="【MySQL】MySQL存储引擎MyISAM与Innodb的那些事">【MySQL】MySQL存储引擎MyISAM与Innodb的那些事</a><span style="font-size:12px;color:rgb(187, 187, 187);display:inline-block;margin-left:9px;">2013-05-04</span><span style="font-size:12px;color:rgb(187, 187, 187);display:inline-block;margin-left:9px;"><i style="font-weight:normal;font-style:normal;">阅读</i><b style="font-weight:normal;font-style:normal;margin-left:5px;">2236</b></span></li> </ul>
+                    <a href="http://blog.csdn.net/s120922718/article/category/1388103" style="text-decoration:none;color:rgb(102, 102, 102);clear:both;display:block;height:35px;line-height:35px;background:rgb(252, 252, 252);font-size:12px;text-align:center;">更多文章</a></div>
+                </div>
+            </div>    
+    
+      
+</div></div></div></div></div></div></div></div><br/></div></span>
+</div></body></html> 

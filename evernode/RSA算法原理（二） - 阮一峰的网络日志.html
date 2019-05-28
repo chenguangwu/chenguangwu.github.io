@@ -1,0 +1,445 @@
+<html>
+<head>
+  <title>RSA算法原理（二） - 阮一峰的网络日志</title>
+  <basefont face="微软雅黑" size="2" />
+  <meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+  <meta name="exporter-version" content="YXBJ Windows/600718 (zh-CN, DDL); Windows/6.1.1 (Win64);"/>
+  <style>
+    body, td {
+      font-family: 微软雅黑;
+      font-size: 10pt;
+    }
+  </style>
+</head>
+<body>
+<a name="8567"/>
+<h1>RSA算法原理（二） - 阮一峰的网络日志</h1>
+<div>
+<table bgcolor="#D4DDE5" border="0">
+<tr><td><b>创建时间：</b></td><td><i>2018/3/15 16:37</i></td></tr>
+<tr><td><b>来源：</b></td><td><a href="http://www.ruanyifeng.com/blog/2013/07/rsa_algorithm_part_two.html"><i>http://www.ruanyifeng.com/blog/2013/07/rsa_algorithm_part_two.html</i></a></td></tr>
+</table>
+</div>
+<br/>
+
+<div><span><div style="-evernote-webclip:true"><br/><div style="font-size: 16px; display: inline-block;"><div style="list-style-type:none;text-align:left;text-decoration:none;font-weight:normal;font-style:normal;color:rgb(17, 17, 17);"><div style="background-color:rgb(245, 245, 213);list-style-type:none;text-decoration:none;font-weight:normal;font-style:normal;color:rgb(17, 17, 17);text-align:left;font-family:Georgia, serif;letter-spacing:-0.01em;word-spacing:0.2em;line-height:1.8em;font-size:62.5%;"><div style="list-style-type:none;text-align:left;text-decoration:none;font-weight:normal;font-style:normal;color:rgb(17, 17, 17);background-color:rgb(245, 245, 213);min-width:640px;"><div style="list-style-type:none;text-align:left;text-decoration:none;font-weight:normal;font-style:normal;color:rgb(17, 17, 17);"><div style="list-style-type:none;text-align:left;text-decoration:none;font-weight:normal;font-style:normal;color:rgb(17, 17, 17);"><div style="list-style-type:none;text-align:left;text-decoration:none;font-weight:normal;font-style:normal;color:rgb(17, 17, 17);"><div style="list-style-type:none;text-align:left;text-decoration:none;font-weight:normal;font-style:normal;color:rgb(17, 17, 17);"><div style="list-style-type:none;text-align:left;text-decoration:none;font-weight:normal;font-style:normal;color:rgb(17, 17, 17);"><div style="list-style-type:none;text-align:left;text-decoration:none;font-weight:normal;font-style:normal;color:rgb(17, 17, 17);"><div>
+                                    <h1 style="border:none;margin:0.4em 0px 0.2em;list-style-type:none;text-align:left;text-decoration:none;font-weight:500;font-style:normal;padding:0px 0px 0.2em;color:rgb(0, 0, 0);font-size:2.88em;letter-spacing:-0.03em;border-bottom:1px solid rgb(211, 211, 211);line-height:250%;font-family:&quot;Trebuchet MS&quot;, Arial, &quot;Lucida Grande&quot;, Verdana, Lucida, Helvetica, sans-serif;">RSA算法原理（二）</h1>
+                                            <div style="font-style:normal;margin:0px;list-style-type:none;text-align:left;text-decoration:none;font-weight:normal;padding:0px;border:none;color:rgb(17, 17, 17);float:right;padding-right:2em;padding-top:1em;">
+<a href="http://www.bshare.cn/share" style="font-variant:normal;margin:0px;list-style-type:none;text-align:left;text-decoration:none;font-weight:normal;font-style:normal;border:none;color:rgb(85, 102, 119);background:none;padding:0px;font-stretch:normal;font-size:12px;font-family:Helvetica, Calibri, Tahoma, Arial, 宋体, sans-serif;line-height:18px;overflow:hidden;height:21px;padding-left:0px;display:block;width:51px;"><div style="color:#333;margin:0px;list-style-type:none;text-align:center;text-decoration:none;font-weight:bold;font-style:normal;border:none;padding:0px;zoom:1;display:inline-block;background:transparent url('http://static.bshare.cn/frame/images/button_custom10-zh-Orange.gif') no-repeat;line-height:1.2;cursor:pointer;height:21px;width:51px;"></div><div style="border:none;margin:0px;list-style-type:none;text-align:left;text-decoration:none;font-weight:normal;font-style:normal;padding:0px;color:rgb(17, 17, 17);zoom:1;display:inline-block;background:none;line-height:1.2;clear:both;"></div></a>
+
+
+
+
+
+</div>
+
+<div style="padding:0px;list-style-type:none;text-align:left;text-decoration:none;font-weight:normal;font-style:normal;border:none;color:rgb(17, 17, 17);margin:1.5em auto 2em;line-height:0.8;">
+                                        
+
+                                            <p style="font-style:normal;margin:0px;list-style-type:none;text-align:left;text-decoration:none;font-weight:normal;padding:0px;border:none;font-size:1.6em;line-height:180%;margin-top:1em;margin-left:0.8em;color:rgb(85, 102, 119);">作者： <a href="http://www.ruanyifeng.com/" style="margin:0px;padding:0px;list-style-type:none;text-align:left;text-decoration:none;font-weight:normal;font-style:normal;border:none;color:rgb(85, 102, 119);">阮一峰</a></p>
+                                    <p style="font-style:normal;margin:0px;list-style-type:none;text-align:left;text-decoration:none;font-weight:normal;padding:0px;border:none;font-size:1.6em;line-height:180%;margin-top:1em;margin-left:0.8em;color:rgb(85, 102, 119);">日期： <a href="http://www.ruanyifeng.com/blog/2013/07/" style="margin:0px;padding:0px;list-style-type:none;text-align:left;text-decoration:none;font-weight:normal;font-style:normal;border:none;color:rgb(85, 102, 119);"><abbr style="margin:0px;padding:0px;list-style-type:none;text-align:left;text-decoration:none;font-weight:normal;font-style:normal;border:none;color:rgb(85, 102, 119);" title="2013-07-04T12:07:22+08:00">2013年7月 4日</abbr></a></p>
+
+
+                                    
+</div>
+
+                    
+<div style="font-weight:normal;margin:0px;list-style-type:none;text-align:left;text-decoration:none;padding:0px;font-style:normal;border:1px solid #c6c6c6;color:rgb(17, 17, 17);border-radius:4px;background-color:#f5f2f0;">
+<p style="font-style:normal;margin:0px;list-style-type:none;text-align:left;text-decoration:none;font-weight:normal;padding:0px;border:none;color:rgb(17, 17, 17);font-size:1.6em;line-height:180%;margin-top:1em;margin-left:0.8em;">
+<a href="http://www.zhufengpeixun.cn/main/course/guide.html?ref=ruanyifeng.com" style="margin:0px;padding:0px;list-style-type:none;text-align:left;text-decoration:none;font-weight:normal;font-style:normal;border:none;color:rgb(85, 102, 119);" target="_blank" title="珠峰培训">
+<img src="RSA算法原理（二） - 阮一峰的网络日志_files/Image.png" type="image/png" data-filename="Image.png" alt="珠峰培训" height="65" style="border:none;margin:0px;list-style-type:none;text-align:left;text-decoration:none;font-weight:normal;font-style:normal;padding:0px;color:rgb(17, 17, 17);windth:90%;max-width:90%;display:inline-block;margin-top:-0.5rem;margin-bottom:0.5rem;" width="738"/>
+</a>
+</p>
+</div>
+
+
+                                
+                                <div style="margin:0px;padding:0px;list-style-type:none;text-align:left;text-decoration:none;font-weight:normal;font-style:normal;border:none;color:rgb(17, 17, 17);">
+
+                                    
+                                        <p style="font-style:normal;margin:0px;list-style-type:none;text-align:left;text-decoration:none;font-weight:normal;padding:0px;border:none;color:rgb(17, 17, 17);font-size:1.6em;line-height:180%;margin-top:1em;margin-left:0.8em;">上一次，我介绍了一些<a href="http://www.ruanyifeng.com/blog/2013/06/rsa_algorithm_part_one.html" style="margin:0px;padding:0px;list-style-type:none;text-align:left;font-weight:normal;font-style:normal;border:none;text-decoration:underline;color:rgb(34, 52, 114);" target="_blank">数论知识</a>。</p>
+                                    
+
+
+                                    
+                                        <p style="font-style:normal;margin:0px;list-style-type:none;text-align:left;text-decoration:none;font-weight:normal;padding:0px;border:none;color:rgb(17, 17, 17);font-size:1.6em;line-height:180%;margin-top:1em;margin-left:0.8em;">有了这些知识，我们就可以看懂<a href="http://zh.wikipedia.org/wiki/RSA%E7%AE%97%E6%B3%95" style="margin:0px;padding:0px;list-style-type:none;text-align:left;font-weight:normal;font-style:normal;border:none;text-decoration:underline;color:rgb(34, 52, 114);" target="_blank">RSA算法</a>。这是目前地球上最重要的加密算法。</p>
+
+<p style="font-style:normal;margin:0px;list-style-type:none;text-align:left;text-decoration:none;font-weight:normal;padding:0px;border:none;color:rgb(17, 17, 17);font-size:1.6em;line-height:180%;margin-top:1em;margin-left:0.8em;"><img src="RSA算法原理（二） - 阮一峰的网络日志_files/Image [1].png" type="image/png" data-filename="Image.png" height="237" style="margin:0px;padding:0px;list-style-type:none;text-align:left;text-decoration:none;font-weight:normal;font-style:normal;color:rgb(17, 17, 17);border:0.3em solid rgb(224, 223, 204);border-radius:1em;" width="459"/></p>
+
+<p style="font-style:normal;margin:0px;list-style-type:none;text-align:left;text-decoration:none;font-weight:normal;padding:0px;border:none;color:rgb(17, 17, 17);font-size:1.6em;line-height:180%;margin-top:1em;margin-left:0.8em;"><strong style="font-weight:800;">六、密钥生成的步骤</strong></p>
+
+<p style="font-style:normal;margin:0px;list-style-type:none;text-align:left;text-decoration:none;font-weight:normal;padding:0px;border:none;color:rgb(17, 17, 17);font-size:1.6em;line-height:180%;margin-top:1em;margin-left:0.8em;">我们通过一个例子，来理解RSA算法。假设<a href="http://zh.wikipedia.org/wiki/%E7%88%B1%E4%B8%BD%E4%B8%9D%E4%B8%8E%E9%B2%8D%E4%BC%AF" style="margin:0px;padding:0px;list-style-type:none;text-align:left;font-weight:normal;font-style:normal;border:none;text-decoration:underline;color:rgb(34, 52, 114);" target="_blank">爱丽丝</a>要与鲍勃进行加密通信，她该怎么生成公钥和私钥呢？</p>
+
+<p style="font-style:normal;margin:0px;list-style-type:none;text-align:left;text-decoration:none;font-weight:normal;padding:0px;border:none;color:rgb(17, 17, 17);font-size:1.6em;line-height:180%;margin-top:1em;margin-left:0.8em;"><img src="RSA算法原理（二） - 阮一峰的网络日志_files/Image [2].png" type="image/png" data-filename="Image.png" height="335" style="margin:0px;padding:0px;list-style-type:none;text-align:left;text-decoration:none;font-weight:normal;font-style:normal;color:rgb(17, 17, 17);border:0.3em solid rgb(224, 223, 204);border-radius:1em;" width="500"/></p>
+
+<p style="font-style:normal;margin:0px;list-style-type:none;text-align:left;text-decoration:none;font-weight:normal;padding:0px;border:none;color:rgb(17, 17, 17);font-size:1.6em;line-height:180%;margin-top:1em;margin-left:0.8em;"><strong style="font-weight:800;">第一步，随机选择两个不相等的质数p和q。</strong></p>
+
+<p style="font-style:normal;margin:0px;list-style-type:none;text-align:left;text-decoration:none;font-weight:normal;padding:0px;border:none;color:rgb(17, 17, 17);font-size:1.6em;line-height:180%;margin-top:1em;margin-left:0.8em;">爱丽丝选择了61和53。（实际应用中，这两个质数越大，就越难破解。）</p>
+
+<p style="font-style:normal;margin:0px;list-style-type:none;text-align:left;text-decoration:none;font-weight:normal;padding:0px;border:none;color:rgb(17, 17, 17);font-size:1.6em;line-height:180%;margin-top:1em;margin-left:0.8em;"><strong style="font-weight:800;">第二步，计算p和q的乘积n。</strong></p>
+
+<p style="font-style:normal;margin:0px;list-style-type:none;text-align:left;text-decoration:none;font-weight:normal;padding:0px;border:none;color:rgb(17, 17, 17);font-size:1.6em;line-height:180%;margin-top:1em;margin-left:0.8em;">爱丽丝就把61和53相乘。</p>
+
+<blockquote style="color:rgb(17, 17, 17);margin:2em;list-style-type:none;text-align:left;text-decoration:none;font-weight:normal;font-style:normal;border:none;padding:1em;background-color:rgb(245, 242, 240);border-radius:1em;font-family:Consolas, Monaco, &quot;Andale Mono&quot;, monospace;border-width:0.3em;border-color:rgb(224, 223, 204);border-style:solid;text-shadow:white 0px 1px;overflow:auto;">
+
+<p style="font-style:normal;margin:0px;list-style-type:none;text-align:left;text-decoration:none;font-weight:normal;padding:0px;border:none;color:rgb(17, 17, 17);font-size:1.6em;line-height:180%;margin-top:1em;margin-left:0.8em;">　　n = 61×53 = 3233</p>
+
+</blockquote>
+
+<p style="font-style:normal;margin:0px;list-style-type:none;text-align:left;text-decoration:none;font-weight:normal;padding:0px;border:none;color:rgb(17, 17, 17);font-size:1.6em;line-height:180%;margin-top:1em;margin-left:0.8em;">n的长度就是密钥长度。3233写成二进制是110010100001，一共有12位，所以这个密钥就是12位。实际应用中，RSA密钥一般是1024位，重要场合则为2048位。</p>
+
+<p style="font-style:normal;margin:0px;list-style-type:none;text-align:left;text-decoration:none;font-weight:normal;padding:0px;border:none;color:rgb(17, 17, 17);font-size:1.6em;line-height:180%;margin-top:1em;margin-left:0.8em;"><strong style="font-weight:800;">第三步，计算n的欧拉函数φ(n)。</strong></p>
+
+<p style="font-style:normal;margin:0px;list-style-type:none;text-align:left;text-decoration:none;font-weight:normal;padding:0px;border:none;color:rgb(17, 17, 17);font-size:1.6em;line-height:180%;margin-top:1em;margin-left:0.8em;">根据公式：</p>
+
+<blockquote style="color:rgb(17, 17, 17);margin:2em;list-style-type:none;text-align:left;text-decoration:none;font-weight:normal;font-style:normal;border:none;padding:1em;background-color:rgb(245, 242, 240);border-radius:1em;font-family:Consolas, Monaco, &quot;Andale Mono&quot;, monospace;border-width:0.3em;border-color:rgb(224, 223, 204);border-style:solid;text-shadow:white 0px 1px;overflow:auto;">
+
+<p style="font-style:normal;margin:0px;list-style-type:none;text-align:left;text-decoration:none;font-weight:normal;padding:0px;border:none;color:rgb(17, 17, 17);font-size:1.6em;line-height:180%;margin-top:1em;margin-left:0.8em;">　　φ(n) = (p-1)(q-1)</p>
+
+</blockquote>
+
+<p style="font-style:normal;margin:0px;list-style-type:none;text-align:left;text-decoration:none;font-weight:normal;padding:0px;border:none;color:rgb(17, 17, 17);font-size:1.6em;line-height:180%;margin-top:1em;margin-left:0.8em;">爱丽丝算出φ(3233)等于60×52，即3120。</p>
+
+<p style="font-style:normal;margin:0px;list-style-type:none;text-align:left;text-decoration:none;font-weight:normal;padding:0px;border:none;color:rgb(17, 17, 17);font-size:1.6em;line-height:180%;margin-top:1em;margin-left:0.8em;"><strong style="font-weight:800;">第四步，随机选择一个整数e，条件是1&lt; e &lt; φ(n)，且e与φ(n) 互质。</strong></p>
+
+<p style="font-style:normal;margin:0px;list-style-type:none;text-align:left;text-decoration:none;font-weight:normal;padding:0px;border:none;color:rgb(17, 17, 17);font-size:1.6em;line-height:180%;margin-top:1em;margin-left:0.8em;">爱丽丝就在1到3120之间，随机选择了17。（实际应用中，常常选择65537。）</p>
+
+<p style="font-style:normal;margin:0px;list-style-type:none;text-align:left;text-decoration:none;font-weight:normal;padding:0px;border:none;color:rgb(17, 17, 17);font-size:1.6em;line-height:180%;margin-top:1em;margin-left:0.8em;"><strong style="font-weight:800;">第五步，计算e对于φ(n)的模反元素d。</strong></p>
+
+<p style="font-style:normal;margin:0px;list-style-type:none;text-align:left;text-decoration:none;font-weight:normal;padding:0px;border:none;color:rgb(17, 17, 17);font-size:1.6em;line-height:180%;margin-top:1em;margin-left:0.8em;">所谓<a href="http://zh.wikipedia.org/wiki/%E6%A8%A1%E5%8F%8D%E5%85%83%E7%B4%A0" style="margin:0px;padding:0px;list-style-type:none;text-align:left;font-weight:normal;font-style:normal;border:none;text-decoration:underline;color:rgb(34, 52, 114);" target="_blank">&quot;模反元素&quot;</a>就是指有一个整数d，可以使得ed被φ(n)除的余数为1。</p>
+
+<blockquote style="color:rgb(17, 17, 17);margin:2em;list-style-type:none;text-align:left;text-decoration:none;font-weight:normal;font-style:normal;border:none;padding:1em;background-color:rgb(245, 242, 240);border-radius:1em;font-family:Consolas, Monaco, &quot;Andale Mono&quot;, monospace;border-width:0.3em;border-color:rgb(224, 223, 204);border-style:solid;text-shadow:white 0px 1px;overflow:auto;">
+
+<p style="font-style:normal;margin:0px;list-style-type:none;text-align:left;text-decoration:none;font-weight:normal;padding:0px;border:none;color:rgb(17, 17, 17);font-size:1.6em;line-height:180%;margin-top:1em;margin-left:0.8em;">　　ed ≡ 1 (mod φ(n))</p>
+
+</blockquote>
+
+<p style="font-style:normal;margin:0px;list-style-type:none;text-align:left;text-decoration:none;font-weight:normal;padding:0px;border:none;color:rgb(17, 17, 17);font-size:1.6em;line-height:180%;margin-top:1em;margin-left:0.8em;">这个式子等价于</p>
+
+<blockquote style="color:rgb(17, 17, 17);margin:2em;list-style-type:none;text-align:left;text-decoration:none;font-weight:normal;font-style:normal;border:none;padding:1em;background-color:rgb(245, 242, 240);border-radius:1em;font-family:Consolas, Monaco, &quot;Andale Mono&quot;, monospace;border-width:0.3em;border-color:rgb(224, 223, 204);border-style:solid;text-shadow:white 0px 1px;overflow:auto;">
+
+<p style="font-style:normal;margin:0px;list-style-type:none;text-align:left;text-decoration:none;font-weight:normal;padding:0px;border:none;color:rgb(17, 17, 17);font-size:1.6em;line-height:180%;margin-top:1em;margin-left:0.8em;">　　ed - 1 = kφ(n)</p>
+
+</blockquote>
+
+<p style="font-style:normal;margin:0px;list-style-type:none;text-align:left;text-decoration:none;font-weight:normal;padding:0px;border:none;color:rgb(17, 17, 17);font-size:1.6em;line-height:180%;margin-top:1em;margin-left:0.8em;">于是，找到模反元素d，实质上就是对下面这个二元一次方程求解。</p>
+
+<blockquote style="color:rgb(17, 17, 17);margin:2em;list-style-type:none;text-align:left;text-decoration:none;font-weight:normal;font-style:normal;border:none;padding:1em;background-color:rgb(245, 242, 240);border-radius:1em;font-family:Consolas, Monaco, &quot;Andale Mono&quot;, monospace;border-width:0.3em;border-color:rgb(224, 223, 204);border-style:solid;text-shadow:white 0px 1px;overflow:auto;">
+
+<p style="font-style:normal;margin:0px;list-style-type:none;text-align:left;text-decoration:none;font-weight:normal;padding:0px;border:none;color:rgb(17, 17, 17);font-size:1.6em;line-height:180%;margin-top:1em;margin-left:0.8em;">　　ex + φ(n)y = 1</p>
+
+</blockquote>
+
+<p style="font-style:normal;margin:0px;list-style-type:none;text-align:left;text-decoration:none;font-weight:normal;padding:0px;border:none;color:rgb(17, 17, 17);font-size:1.6em;line-height:180%;margin-top:1em;margin-left:0.8em;">已知 e=17, φ(n)=3120，</p>
+
+<blockquote style="color:rgb(17, 17, 17);margin:2em;list-style-type:none;text-align:left;text-decoration:none;font-weight:normal;font-style:normal;border:none;padding:1em;background-color:rgb(245, 242, 240);border-radius:1em;font-family:Consolas, Monaco, &quot;Andale Mono&quot;, monospace;border-width:0.3em;border-color:rgb(224, 223, 204);border-style:solid;text-shadow:white 0px 1px;overflow:auto;">
+
+<p style="font-style:normal;margin:0px;list-style-type:none;text-align:left;text-decoration:none;font-weight:normal;padding:0px;border:none;color:rgb(17, 17, 17);font-size:1.6em;line-height:180%;margin-top:1em;margin-left:0.8em;">　　17x + 3120y = 1</p>
+
+</blockquote>
+
+<p style="font-style:normal;margin:0px;list-style-type:none;text-align:left;text-decoration:none;font-weight:normal;padding:0px;border:none;color:rgb(17, 17, 17);font-size:1.6em;line-height:180%;margin-top:1em;margin-left:0.8em;">这个方程可以用<a href="http://zh.wikipedia.org/wiki/%E6%89%A9%E5%B1%95%E6%AC%A7%E5%87%A0%E9%87%8C%E5%BE%97%E7%AE%97%E6%B3%95" style="margin:0px;padding:0px;list-style-type:none;text-align:left;font-weight:normal;font-style:normal;border:none;text-decoration:underline;color:rgb(34, 52, 114);" target="_blank">&quot;扩展欧几里得算法&quot;</a>求解，此处省略具体过程。总之，爱丽丝算出一组整数解为 (x,y)=(2753,-15)，即 d=2753。</p>
+
+<p style="font-style:normal;margin:0px;list-style-type:none;text-align:left;text-decoration:none;font-weight:normal;padding:0px;border:none;color:rgb(17, 17, 17);font-size:1.6em;line-height:180%;margin-top:1em;margin-left:0.8em;">至此所有计算完成。</p>
+
+<p style="font-style:normal;margin:0px;list-style-type:none;text-align:left;text-decoration:none;font-weight:normal;padding:0px;border:none;color:rgb(17, 17, 17);font-size:1.6em;line-height:180%;margin-top:1em;margin-left:0.8em;"><strong style="font-weight:800;">第六步，将n和e封装成公钥，n和d封装成私钥。  </strong> </p>
+
+<p style="font-style:normal;margin:0px;list-style-type:none;text-align:left;text-decoration:none;font-weight:normal;padding:0px;border:none;color:rgb(17, 17, 17);font-size:1.6em;line-height:180%;margin-top:1em;margin-left:0.8em;">在爱丽丝的例子中，n=3233，e=17，d=2753，所以公钥就是 (3233,17)，私钥就是（3233, 2753）。</p>
+
+<p style="font-style:normal;margin:0px;list-style-type:none;text-align:left;text-decoration:none;font-weight:normal;padding:0px;border:none;color:rgb(17, 17, 17);font-size:1.6em;line-height:180%;margin-top:1em;margin-left:0.8em;">实际应用中，公钥和私钥的数据都采用<a href="http://zh.wikipedia.org/zh-cn/ASN.1" style="margin:0px;padding:0px;list-style-type:none;text-align:left;font-weight:normal;font-style:normal;border:none;text-decoration:underline;color:rgb(34, 52, 114);" target="_blank">ASN.1</a>格式表达（<a href="http://hi.baidu.com/mathack/item/d0ad4cc1514a3663f7c95da2" style="margin:0px;padding:0px;list-style-type:none;text-align:left;font-weight:normal;font-style:normal;border:none;text-decoration:underline;color:rgb(34, 52, 114);" target="_blank">实例</a>）。</p>
+
+<p style="font-style:normal;margin:0px;list-style-type:none;text-align:left;text-decoration:none;font-weight:normal;padding:0px;border:none;color:rgb(17, 17, 17);font-size:1.6em;line-height:180%;margin-top:1em;margin-left:0.8em;"><strong style="font-weight:800;">七、RSA算法的可靠性</strong></p>
+
+<p style="font-style:normal;margin:0px;list-style-type:none;text-align:left;text-decoration:none;font-weight:normal;padding:0px;border:none;color:rgb(17, 17, 17);font-size:1.6em;line-height:180%;margin-top:1em;margin-left:0.8em;">回顾上面的密钥生成步骤，一共出现六个数字：</p>
+
+<blockquote style="color:rgb(17, 17, 17);margin:2em;list-style-type:none;text-align:left;text-decoration:none;font-weight:normal;font-style:normal;border:none;padding:1em;background-color:rgb(245, 242, 240);border-radius:1em;font-family:Consolas, Monaco, &quot;Andale Mono&quot;, monospace;border-width:0.3em;border-color:rgb(224, 223, 204);border-style:solid;text-shadow:white 0px 1px;overflow:auto;">
+
+<p style="font-style:normal;margin:0px;list-style-type:none;text-align:left;text-decoration:none;font-weight:normal;padding:0px;border:none;color:rgb(17, 17, 17);font-size:1.6em;line-height:180%;margin-top:1em;margin-left:0.8em;">　　p<br/>
+　　q<br/>
+　　n<br/>
+　　φ(n)<br/>
+　　e<br/>
+　　d</p>
+
+</blockquote>
+
+<p style="font-style:normal;margin:0px;list-style-type:none;text-align:left;text-decoration:none;font-weight:normal;padding:0px;border:none;color:rgb(17, 17, 17);font-size:1.6em;line-height:180%;margin-top:1em;margin-left:0.8em;">这六个数字之中，公钥用到了两个（n和e），其余四个数字都是不公开的。其中最关键的是d，因为n和d组成了私钥，一旦d泄漏，就等于私钥泄漏。</p>
+
+<p style="font-style:normal;margin:0px;list-style-type:none;text-align:left;text-decoration:none;font-weight:normal;padding:0px;border:none;color:rgb(17, 17, 17);font-size:1.6em;line-height:180%;margin-top:1em;margin-left:0.8em;"><strong style="font-weight:800;">那么，有无可能在已知n和e的情况下，推导出d？</strong></p>
+
+<blockquote style="color:rgb(17, 17, 17);margin:2em;list-style-type:none;text-align:left;text-decoration:none;font-weight:normal;font-style:normal;border:none;padding:1em;background-color:rgb(245, 242, 240);border-radius:1em;font-family:Consolas, Monaco, &quot;Andale Mono&quot;, monospace;border-width:0.3em;border-color:rgb(224, 223, 204);border-style:solid;text-shadow:white 0px 1px;overflow:auto;">
+
+<p style="font-style:normal;margin:0px;list-style-type:none;text-align:left;text-decoration:none;font-weight:normal;padding:0px;border:none;color:rgb(17, 17, 17);font-size:1.6em;line-height:180%;margin-top:1em;margin-left:0.8em;">　　（1）ed≡1 (mod φ(n))。只有知道e和φ(n)，才能算出d。</p>
+
+<p style="font-style:normal;margin:0px;list-style-type:none;text-align:left;text-decoration:none;font-weight:normal;padding:0px;border:none;color:rgb(17, 17, 17);font-size:1.6em;line-height:180%;margin-top:1em;margin-left:0.8em;">　　（2）φ(n)=(p-1)(q-1)。只有知道p和q，才能算出φ(n)。</p>
+
+<p style="font-style:normal;margin:0px;list-style-type:none;text-align:left;text-decoration:none;font-weight:normal;padding:0px;border:none;color:rgb(17, 17, 17);font-size:1.6em;line-height:180%;margin-top:1em;margin-left:0.8em;">　　（3）n=pq。只有将n因数分解，才能算出p和q。</p>
+
+</blockquote>
+
+<p style="font-style:normal;margin:0px;list-style-type:none;text-align:left;text-decoration:none;font-weight:normal;padding:0px;border:none;color:rgb(17, 17, 17);font-size:1.6em;line-height:180%;margin-top:1em;margin-left:0.8em;"><strong style="font-weight:800;">结论：如果n可以被因数分解，d就可以算出，也就意味着私钥被破解。</strong></p>
+
+<p style="font-style:normal;margin:0px;list-style-type:none;text-align:left;text-decoration:none;font-weight:normal;padding:0px;border:none;color:rgb(17, 17, 17);font-size:1.6em;line-height:180%;margin-top:1em;margin-left:0.8em;">可是，大整数的因数分解，是一件非常困难的事情。目前，除了暴力破解，还没有发现别的有效方法。维基百科这样写道：</p>
+
+<blockquote style="color:rgb(17, 17, 17);margin:2em;list-style-type:none;text-align:left;text-decoration:none;font-weight:normal;font-style:normal;border:none;padding:1em;background-color:rgb(245, 242, 240);border-radius:1em;font-family:Consolas, Monaco, &quot;Andale Mono&quot;, monospace;border-width:0.3em;border-color:rgb(224, 223, 204);border-style:solid;text-shadow:white 0px 1px;overflow:auto;">
+
+<p style="font-style:normal;margin:0px;list-style-type:none;text-align:left;text-decoration:none;font-weight:normal;padding:0px;border:none;color:rgb(17, 17, 17);font-size:1.6em;line-height:180%;margin-top:1em;margin-left:0.8em;">　　&quot;对极大整数做因数分解的难度决定了RSA算法的可靠性。换言之，对一极大整数做因数分解愈困难，RSA算法愈可靠。</p>
+
+<p style="font-style:normal;margin:0px;list-style-type:none;text-align:left;text-decoration:none;font-weight:normal;padding:0px;border:none;color:rgb(17, 17, 17);font-size:1.6em;line-height:180%;margin-top:1em;margin-left:0.8em;">　　假如有人找到一种快速因数分解的算法，那么RSA的可靠性就会极度下降。但找到这样的算法的可能性是非常小的。今天只有短的RSA密钥才可能被暴力破解。到2008年为止，世界上还没有任何可靠的攻击RSA算法的方式。</p>
+
+<p style="font-style:normal;margin:0px;list-style-type:none;text-align:left;text-decoration:none;font-weight:normal;padding:0px;border:none;color:rgb(17, 17, 17);font-size:1.6em;line-height:180%;margin-top:1em;margin-left:0.8em;">　　只要密钥长度足够长，用RSA加密的信息实际上是不能被解破的。&quot;</p>
+
+</blockquote>
+
+<p style="font-style:normal;margin:0px;list-style-type:none;text-align:left;text-decoration:none;font-weight:normal;padding:0px;border:none;color:rgb(17, 17, 17);font-size:1.6em;line-height:180%;margin-top:1em;margin-left:0.8em;">举例来说，你可以对3233进行因数分解（61×53），但是你没法对下面这个整数进行因数分解。</p>
+
+<blockquote style="color:rgb(17, 17, 17);margin:2em;list-style-type:none;text-align:left;text-decoration:none;font-weight:normal;font-style:normal;border:none;padding:1em;background-color:rgb(245, 242, 240);border-radius:1em;font-family:Consolas, Monaco, &quot;Andale Mono&quot;, monospace;border-width:0.3em;border-color:rgb(224, 223, 204);border-style:solid;text-shadow:white 0px 1px;overflow:auto;">
+
+<p style="font-style:normal;margin:0px;list-style-type:none;text-align:left;text-decoration:none;font-weight:normal;padding:0px;border:none;color:rgb(17, 17, 17);font-size:1.6em;line-height:180%;margin-top:1em;margin-left:0.8em;">　　12301866845301177551304949<br/>
+　　58384962720772853569595334<br/>
+　　79219732245215172640050726<br/>
+　　36575187452021997864693899<br/>
+　　56474942774063845925192557<br/>
+　　32630345373154826850791702<br/>
+　　61221429134616704292143116<br/>
+　　02221240479274737794080665<br/>
+　　351419597459856902143413</p>
+
+</blockquote>
+
+<p style="font-style:normal;margin:0px;list-style-type:none;text-align:left;text-decoration:none;font-weight:normal;padding:0px;border:none;color:rgb(17, 17, 17);font-size:1.6em;line-height:180%;margin-top:1em;margin-left:0.8em;">它等于这样两个质数的乘积：</p>
+
+<blockquote style="color:rgb(17, 17, 17);margin:2em;list-style-type:none;text-align:left;text-decoration:none;font-weight:normal;font-style:normal;border:none;padding:1em;background-color:rgb(245, 242, 240);border-radius:1em;font-family:Consolas, Monaco, &quot;Andale Mono&quot;, monospace;border-width:0.3em;border-color:rgb(224, 223, 204);border-style:solid;text-shadow:white 0px 1px;overflow:auto;">
+
+<p style="font-style:normal;margin:0px;list-style-type:none;text-align:left;text-decoration:none;font-weight:normal;padding:0px;border:none;color:rgb(17, 17, 17);font-size:1.6em;line-height:180%;margin-top:1em;margin-left:0.8em;">　　33478071698956898786044169<br/>
+　　84821269081770479498371376<br/>
+　　85689124313889828837938780<br/>
+　　02287614711652531743087737<br/>
+　　814467999489<br/>
+　　　　×<br/>
+　　36746043666799590428244633<br/>
+　　79962795263227915816434308<br/>
+　　76426760322838157396665112<br/>
+　　79233373417143396810270092<br/>
+　　798736308917</p>
+
+</blockquote>
+
+<p style="font-style:normal;margin:0px;list-style-type:none;text-align:left;text-decoration:none;font-weight:normal;padding:0px;border:none;color:rgb(17, 17, 17);font-size:1.6em;line-height:180%;margin-top:1em;margin-left:0.8em;">事实上，这大概是人类已经分解的最大整数（232个十进制位，768个二进制位）。比它更大的因数分解，还没有被报道过，因此目前被破解的最长RSA密钥就是768位。</p>
+
+<p style="font-style:normal;margin:0px;list-style-type:none;text-align:left;text-decoration:none;font-weight:normal;padding:0px;border:none;color:rgb(17, 17, 17);font-size:1.6em;line-height:180%;margin-top:1em;margin-left:0.8em;"><strong style="font-weight:800;">八、加密和解密</strong></p>
+
+<p style="font-style:normal;margin:0px;list-style-type:none;text-align:left;text-decoration:none;font-weight:normal;padding:0px;border:none;color:rgb(17, 17, 17);font-size:1.6em;line-height:180%;margin-top:1em;margin-left:0.8em;">有了公钥和密钥，就能进行加密和解密了。</p>
+
+<p style="font-style:normal;margin:0px;list-style-type:none;text-align:left;text-decoration:none;font-weight:normal;padding:0px;border:none;color:rgb(17, 17, 17);font-size:1.6em;line-height:180%;margin-top:1em;margin-left:0.8em;"><strong style="font-weight:800;">（1）加密要用公钥 (n,e)</strong></p>
+
+<p style="font-style:normal;margin:0px;list-style-type:none;text-align:left;text-decoration:none;font-weight:normal;padding:0px;border:none;color:rgb(17, 17, 17);font-size:1.6em;line-height:180%;margin-top:1em;margin-left:0.8em;">假设鲍勃要向爱丽丝发送加密信息m，他就要用爱丽丝的公钥 (n,e) 对m进行加密。这里需要注意，m必须是整数（字符串可以取ascii值或unicode值），且m必须小于n。</p>
+
+<p style="font-style:normal;margin:0px;list-style-type:none;text-align:left;text-decoration:none;font-weight:normal;padding:0px;border:none;color:rgb(17, 17, 17);font-size:1.6em;line-height:180%;margin-top:1em;margin-left:0.8em;">所谓&quot;加密&quot;，就是算出下式的c：</p>
+
+<blockquote style="color:rgb(17, 17, 17);margin:2em;list-style-type:none;text-align:left;text-decoration:none;font-weight:normal;font-style:normal;border:none;padding:1em;background-color:rgb(245, 242, 240);border-radius:1em;font-family:Consolas, Monaco, &quot;Andale Mono&quot;, monospace;border-width:0.3em;border-color:rgb(224, 223, 204);border-style:solid;text-shadow:white 0px 1px;overflow:auto;">
+
+<p style="font-style:normal;margin:0px;list-style-type:none;text-align:left;text-decoration:none;font-weight:normal;padding:0px;border:none;color:rgb(17, 17, 17);font-size:1.6em;line-height:180%;margin-top:1em;margin-left:0.8em;">　　m<sup>e</sup> ≡ c (mod n)</p>
+
+</blockquote>
+
+<p style="font-style:normal;margin:0px;list-style-type:none;text-align:left;text-decoration:none;font-weight:normal;padding:0px;border:none;color:rgb(17, 17, 17);font-size:1.6em;line-height:180%;margin-top:1em;margin-left:0.8em;">爱丽丝的公钥是 (3233, 17)，鲍勃的m假设是65，那么可以算出下面的等式：</p>
+
+<blockquote style="color:rgb(17, 17, 17);margin:2em;list-style-type:none;text-align:left;text-decoration:none;font-weight:normal;font-style:normal;border:none;padding:1em;background-color:rgb(245, 242, 240);border-radius:1em;font-family:Consolas, Monaco, &quot;Andale Mono&quot;, monospace;border-width:0.3em;border-color:rgb(224, 223, 204);border-style:solid;text-shadow:white 0px 1px;overflow:auto;">
+
+<p style="font-style:normal;margin:0px;list-style-type:none;text-align:left;text-decoration:none;font-weight:normal;padding:0px;border:none;color:rgb(17, 17, 17);font-size:1.6em;line-height:180%;margin-top:1em;margin-left:0.8em;">　　65<sup>17</sup> ≡ 2790 (mod 3233)</p>
+
+</blockquote>
+
+<p style="font-style:normal;margin:0px;list-style-type:none;text-align:left;text-decoration:none;font-weight:normal;padding:0px;border:none;color:rgb(17, 17, 17);font-size:1.6em;line-height:180%;margin-top:1em;margin-left:0.8em;">于是，c等于2790，鲍勃就把2790发给了爱丽丝。</p>
+
+<p style="font-style:normal;margin:0px;list-style-type:none;text-align:left;text-decoration:none;font-weight:normal;padding:0px;border:none;color:rgb(17, 17, 17);font-size:1.6em;line-height:180%;margin-top:1em;margin-left:0.8em;"><strong style="font-weight:800;">（2）解密要用私钥(n,d)</strong></p>
+
+<p style="font-style:normal;margin:0px;list-style-type:none;text-align:left;text-decoration:none;font-weight:normal;padding:0px;border:none;color:rgb(17, 17, 17);font-size:1.6em;line-height:180%;margin-top:1em;margin-left:0.8em;">爱丽丝拿到鲍勃发来的2790以后，就用自己的私钥(3233, 2753) 进行解密。可以证明，下面的等式一定成立：</p>
+
+<blockquote style="color:rgb(17, 17, 17);margin:2em;list-style-type:none;text-align:left;text-decoration:none;font-weight:normal;font-style:normal;border:none;padding:1em;background-color:rgb(245, 242, 240);border-radius:1em;font-family:Consolas, Monaco, &quot;Andale Mono&quot;, monospace;border-width:0.3em;border-color:rgb(224, 223, 204);border-style:solid;text-shadow:white 0px 1px;overflow:auto;">
+
+<p style="font-style:normal;margin:0px;list-style-type:none;text-align:left;text-decoration:none;font-weight:normal;padding:0px;border:none;color:rgb(17, 17, 17);font-size:1.6em;line-height:180%;margin-top:1em;margin-left:0.8em;">　　c<sup>d</sup> ≡ m (mod n)</p>
+
+</blockquote>
+
+<p style="font-style:normal;margin:0px;list-style-type:none;text-align:left;text-decoration:none;font-weight:normal;padding:0px;border:none;color:rgb(17, 17, 17);font-size:1.6em;line-height:180%;margin-top:1em;margin-left:0.8em;">也就是说，c的d次方除以n的余数为m。现在，c等于2790，私钥是(3233, 2753)，那么，爱丽丝算出</p>
+
+<blockquote style="color:rgb(17, 17, 17);margin:2em;list-style-type:none;text-align:left;text-decoration:none;font-weight:normal;font-style:normal;border:none;padding:1em;background-color:rgb(245, 242, 240);border-radius:1em;font-family:Consolas, Monaco, &quot;Andale Mono&quot;, monospace;border-width:0.3em;border-color:rgb(224, 223, 204);border-style:solid;text-shadow:white 0px 1px;overflow:auto;">
+
+<p style="font-style:normal;margin:0px;list-style-type:none;text-align:left;text-decoration:none;font-weight:normal;padding:0px;border:none;color:rgb(17, 17, 17);font-size:1.6em;line-height:180%;margin-top:1em;margin-left:0.8em;">　　2790<sup>2753</sup> ≡ 65 (mod 3233)</p>
+
+</blockquote>
+
+<p style="font-style:normal;margin:0px;list-style-type:none;text-align:left;text-decoration:none;font-weight:normal;padding:0px;border:none;color:rgb(17, 17, 17);font-size:1.6em;line-height:180%;margin-top:1em;margin-left:0.8em;">因此，爱丽丝知道了鲍勃加密前的原文就是65。</p>
+
+<p style="font-style:normal;margin:0px;list-style-type:none;text-align:left;text-decoration:none;font-weight:normal;padding:0px;border:none;color:rgb(17, 17, 17);font-size:1.6em;line-height:180%;margin-top:1em;margin-left:0.8em;">至此，&quot;加密--解密&quot;的整个过程全部完成。</p>
+
+<p style="font-style:normal;margin:0px;list-style-type:none;text-align:left;text-decoration:none;font-weight:normal;padding:0px;border:none;color:rgb(17, 17, 17);font-size:1.6em;line-height:180%;margin-top:1em;margin-left:0.8em;">我们可以看到，如果不知道d，就没有办法从c求出m。而前面已经说过，要知道d就必须分解n，这是极难做到的，所以RSA算法保证了通信安全。</p>
+
+<p style="font-style:normal;margin:0px;list-style-type:none;text-align:left;text-decoration:none;font-weight:normal;padding:0px;border:none;color:rgb(17, 17, 17);font-size:1.6em;line-height:180%;margin-top:1em;margin-left:0.8em;">你可能会问，公钥(n,e) 只能加密小于n的整数m，那么如果要加密大于n的整数，该怎么办？有两种解决方法：一种是把长信息分割成若干段短消息，每段分别加密；另一种是先选择一种&quot;对称性加密算法&quot;（比如<a href="https://zh.wikipedia.org/wiki/%E8%B5%84%E6%96%99%E5%8A%A0%E5%AF%86%E6%A0%87%E5%87%86" style="margin:0px;padding:0px;list-style-type:none;text-align:left;font-weight:normal;font-style:normal;border:none;text-decoration:underline;color:rgb(34, 52, 114);" target="_blank">DES</a>），用这种算法的密钥加密信息，再用RSA公钥加密DES密钥。</p>
+
+<p style="font-style:normal;margin:0px;list-style-type:none;text-align:left;text-decoration:none;font-weight:normal;padding:0px;border:none;color:rgb(17, 17, 17);font-size:1.6em;line-height:180%;margin-top:1em;margin-left:0.8em;"><strong style="font-weight:800;">九、私钥解密的证明</strong></p>
+
+<p style="font-style:normal;margin:0px;list-style-type:none;text-align:left;text-decoration:none;font-weight:normal;padding:0px;border:none;color:rgb(17, 17, 17);font-size:1.6em;line-height:180%;margin-top:1em;margin-left:0.8em;">最后，我们来证明，为什么用私钥解密，一定可以正确地得到m。也就是证明下面这个式子：</p>
+
+<blockquote style="color:rgb(17, 17, 17);margin:2em;list-style-type:none;text-align:left;text-decoration:none;font-weight:normal;font-style:normal;border:none;padding:1em;background-color:rgb(245, 242, 240);border-radius:1em;font-family:Consolas, Monaco, &quot;Andale Mono&quot;, monospace;border-width:0.3em;border-color:rgb(224, 223, 204);border-style:solid;text-shadow:white 0px 1px;overflow:auto;">
+
+<p style="font-style:normal;margin:0px;list-style-type:none;text-align:left;text-decoration:none;font-weight:normal;padding:0px;border:none;color:rgb(17, 17, 17);font-size:1.6em;line-height:180%;margin-top:1em;margin-left:0.8em;">　　c<sup>d</sup> ≡ m (mod n)</p>
+
+</blockquote>
+
+<p style="font-style:normal;margin:0px;list-style-type:none;text-align:left;text-decoration:none;font-weight:normal;padding:0px;border:none;color:rgb(17, 17, 17);font-size:1.6em;line-height:180%;margin-top:1em;margin-left:0.8em;">因为，根据加密规则</p>
+
+<blockquote style="color:rgb(17, 17, 17);margin:2em;list-style-type:none;text-align:left;text-decoration:none;font-weight:normal;font-style:normal;border:none;padding:1em;background-color:rgb(245, 242, 240);border-radius:1em;font-family:Consolas, Monaco, &quot;Andale Mono&quot;, monospace;border-width:0.3em;border-color:rgb(224, 223, 204);border-style:solid;text-shadow:white 0px 1px;overflow:auto;">
+
+<p style="font-style:normal;margin:0px;list-style-type:none;text-align:left;text-decoration:none;font-weight:normal;padding:0px;border:none;color:rgb(17, 17, 17);font-size:1.6em;line-height:180%;margin-top:1em;margin-left:0.8em;">　　ｍ<sup>e</sup> ≡ c (mod n)</p>
+
+</blockquote>
+
+<p style="font-style:normal;margin:0px;list-style-type:none;text-align:left;text-decoration:none;font-weight:normal;padding:0px;border:none;color:rgb(17, 17, 17);font-size:1.6em;line-height:180%;margin-top:1em;margin-left:0.8em;">于是，c可以写成下面的形式：</p>
+
+<blockquote style="color:rgb(17, 17, 17);margin:2em;list-style-type:none;text-align:left;text-decoration:none;font-weight:normal;font-style:normal;border:none;padding:1em;background-color:rgb(245, 242, 240);border-radius:1em;font-family:Consolas, Monaco, &quot;Andale Mono&quot;, monospace;border-width:0.3em;border-color:rgb(224, 223, 204);border-style:solid;text-shadow:white 0px 1px;overflow:auto;">
+
+<p style="font-style:normal;margin:0px;list-style-type:none;text-align:left;text-decoration:none;font-weight:normal;padding:0px;border:none;color:rgb(17, 17, 17);font-size:1.6em;line-height:180%;margin-top:1em;margin-left:0.8em;">　　c = m<sup>e</sup> - kn</p>
+
+</blockquote>
+
+<p style="font-style:normal;margin:0px;list-style-type:none;text-align:left;text-decoration:none;font-weight:normal;padding:0px;border:none;color:rgb(17, 17, 17);font-size:1.6em;line-height:180%;margin-top:1em;margin-left:0.8em;">将c代入要我们要证明的那个解密规则：</p>
+
+<blockquote style="color:rgb(17, 17, 17);margin:2em;list-style-type:none;text-align:left;text-decoration:none;font-weight:normal;font-style:normal;border:none;padding:1em;background-color:rgb(245, 242, 240);border-radius:1em;font-family:Consolas, Monaco, &quot;Andale Mono&quot;, monospace;border-width:0.3em;border-color:rgb(224, 223, 204);border-style:solid;text-shadow:white 0px 1px;overflow:auto;">
+
+<p style="font-style:normal;margin:0px;list-style-type:none;text-align:left;text-decoration:none;font-weight:normal;padding:0px;border:none;color:rgb(17, 17, 17);font-size:1.6em;line-height:180%;margin-top:1em;margin-left:0.8em;">　　(m<sup>e</sup> - kn)<sup>d</sup> ≡ m (mod n)</p>
+
+</blockquote>
+
+<p style="font-style:normal;margin:0px;list-style-type:none;text-align:left;text-decoration:none;font-weight:normal;padding:0px;border:none;color:rgb(17, 17, 17);font-size:1.6em;line-height:180%;margin-top:1em;margin-left:0.8em;">它等同于求证</p>
+
+<blockquote style="color:rgb(17, 17, 17);margin:2em;list-style-type:none;text-align:left;text-decoration:none;font-weight:normal;font-style:normal;border:none;padding:1em;background-color:rgb(245, 242, 240);border-radius:1em;font-family:Consolas, Monaco, &quot;Andale Mono&quot;, monospace;border-width:0.3em;border-color:rgb(224, 223, 204);border-style:solid;text-shadow:white 0px 1px;overflow:auto;">
+
+<p style="font-style:normal;margin:0px;list-style-type:none;text-align:left;text-decoration:none;font-weight:normal;padding:0px;border:none;color:rgb(17, 17, 17);font-size:1.6em;line-height:180%;margin-top:1em;margin-left:0.8em;">　　m<sup>ed</sup> ≡ m (mod n)</p>
+
+</blockquote>
+
+<p style="font-style:normal;margin:0px;list-style-type:none;text-align:left;text-decoration:none;font-weight:normal;padding:0px;border:none;color:rgb(17, 17, 17);font-size:1.6em;line-height:180%;margin-top:1em;margin-left:0.8em;">由于</p>
+
+<blockquote style="color:rgb(17, 17, 17);margin:2em;list-style-type:none;text-align:left;text-decoration:none;font-weight:normal;font-style:normal;border:none;padding:1em;background-color:rgb(245, 242, 240);border-radius:1em;font-family:Consolas, Monaco, &quot;Andale Mono&quot;, monospace;border-width:0.3em;border-color:rgb(224, 223, 204);border-style:solid;text-shadow:white 0px 1px;overflow:auto;">
+
+<p style="font-style:normal;margin:0px;list-style-type:none;text-align:left;text-decoration:none;font-weight:normal;padding:0px;border:none;color:rgb(17, 17, 17);font-size:1.6em;line-height:180%;margin-top:1em;margin-left:0.8em;">　　ed ≡ 1 (mod φ(n))</p>
+
+</blockquote>
+
+<p style="font-style:normal;margin:0px;list-style-type:none;text-align:left;text-decoration:none;font-weight:normal;padding:0px;border:none;color:rgb(17, 17, 17);font-size:1.6em;line-height:180%;margin-top:1em;margin-left:0.8em;">所以</p>
+
+<blockquote style="color:rgb(17, 17, 17);margin:2em;list-style-type:none;text-align:left;text-decoration:none;font-weight:normal;font-style:normal;border:none;padding:1em;background-color:rgb(245, 242, 240);border-radius:1em;font-family:Consolas, Monaco, &quot;Andale Mono&quot;, monospace;border-width:0.3em;border-color:rgb(224, 223, 204);border-style:solid;text-shadow:white 0px 1px;overflow:auto;">
+
+<p style="font-style:normal;margin:0px;list-style-type:none;text-align:left;text-decoration:none;font-weight:normal;padding:0px;border:none;color:rgb(17, 17, 17);font-size:1.6em;line-height:180%;margin-top:1em;margin-left:0.8em;">　　ed = hφ(n)+1</p>
+
+</blockquote>
+
+<p style="font-style:normal;margin:0px;list-style-type:none;text-align:left;text-decoration:none;font-weight:normal;padding:0px;border:none;color:rgb(17, 17, 17);font-size:1.6em;line-height:180%;margin-top:1em;margin-left:0.8em;">将ed代入：</p>
+
+<blockquote style="color:rgb(17, 17, 17);margin:2em;list-style-type:none;text-align:left;text-decoration:none;font-weight:normal;font-style:normal;border:none;padding:1em;background-color:rgb(245, 242, 240);border-radius:1em;font-family:Consolas, Monaco, &quot;Andale Mono&quot;, monospace;border-width:0.3em;border-color:rgb(224, 223, 204);border-style:solid;text-shadow:white 0px 1px;overflow:auto;">
+
+<p style="font-style:normal;margin:0px;list-style-type:none;text-align:left;text-decoration:none;font-weight:normal;padding:0px;border:none;color:rgb(17, 17, 17);font-size:1.6em;line-height:180%;margin-top:1em;margin-left:0.8em;">　　m<sup>hφ(n)+1</sup> ≡ m (mod n)</p>
+
+</blockquote>
+
+<p style="font-style:normal;margin:0px;list-style-type:none;text-align:left;text-decoration:none;font-weight:normal;padding:0px;border:none;color:rgb(17, 17, 17);font-size:1.6em;line-height:180%;margin-top:1em;margin-left:0.8em;">接下来，分成两种情况证明上面这个式子。</p>
+
+<p style="font-style:normal;margin:0px;list-style-type:none;text-align:left;text-decoration:none;font-weight:normal;padding:0px;border:none;color:rgb(17, 17, 17);font-size:1.6em;line-height:180%;margin-top:1em;margin-left:0.8em;"><strong style="font-weight:800;">（1）m与n互质。</strong></p>
+
+<p style="font-style:normal;margin:0px;list-style-type:none;text-align:left;text-decoration:none;font-weight:normal;padding:0px;border:none;color:rgb(17, 17, 17);font-size:1.6em;line-height:180%;margin-top:1em;margin-left:0.8em;">根据欧拉定理，此时</p>
+
+<blockquote style="color:rgb(17, 17, 17);margin:2em;list-style-type:none;text-align:left;text-decoration:none;font-weight:normal;font-style:normal;border:none;padding:1em;background-color:rgb(245, 242, 240);border-radius:1em;font-family:Consolas, Monaco, &quot;Andale Mono&quot;, monospace;border-width:0.3em;border-color:rgb(224, 223, 204);border-style:solid;text-shadow:white 0px 1px;overflow:auto;">
+
+<p style="font-style:normal;margin:0px;list-style-type:none;text-align:left;text-decoration:none;font-weight:normal;padding:0px;border:none;color:rgb(17, 17, 17);font-size:1.6em;line-height:180%;margin-top:1em;margin-left:0.8em;">　　m<sup>φ(n)</sup> ≡ 1 (mod n)</p>
+
+</blockquote>
+
+<p style="font-style:normal;margin:0px;list-style-type:none;text-align:left;text-decoration:none;font-weight:normal;padding:0px;border:none;color:rgb(17, 17, 17);font-size:1.6em;line-height:180%;margin-top:1em;margin-left:0.8em;">得到</p>
+
+<blockquote style="color:rgb(17, 17, 17);margin:2em;list-style-type:none;text-align:left;text-decoration:none;font-weight:normal;font-style:normal;border:none;padding:1em;background-color:rgb(245, 242, 240);border-radius:1em;font-family:Consolas, Monaco, &quot;Andale Mono&quot;, monospace;border-width:0.3em;border-color:rgb(224, 223, 204);border-style:solid;text-shadow:white 0px 1px;overflow:auto;">
+
+<p style="font-style:normal;margin:0px;list-style-type:none;text-align:left;text-decoration:none;font-weight:normal;padding:0px;border:none;color:rgb(17, 17, 17);font-size:1.6em;line-height:180%;margin-top:1em;margin-left:0.8em;">　　(m<sup>φ(n)</sup>)<sup>h</sup> × m ≡ m (mod n)</p>
+
+</blockquote>
+
+<p style="font-style:normal;margin:0px;list-style-type:none;text-align:left;text-decoration:none;font-weight:normal;padding:0px;border:none;color:rgb(17, 17, 17);font-size:1.6em;line-height:180%;margin-top:1em;margin-left:0.8em;">原式得到证明。</p>
+
+<p style="font-style:normal;margin:0px;list-style-type:none;text-align:left;text-decoration:none;font-weight:normal;padding:0px;border:none;color:rgb(17, 17, 17);font-size:1.6em;line-height:180%;margin-top:1em;margin-left:0.8em;"><strong style="font-weight:800;">（2）m与n不是互质关系。</strong></p>
+
+<p style="font-style:normal;margin:0px;list-style-type:none;text-align:left;text-decoration:none;font-weight:normal;padding:0px;border:none;color:rgb(17, 17, 17);font-size:1.6em;line-height:180%;margin-top:1em;margin-left:0.8em;">此时，由于n等于质数p和q的乘积，所以m必然等于kp或kq。</p>
+
+<p style="font-style:normal;margin:0px;list-style-type:none;text-align:left;text-decoration:none;font-weight:normal;padding:0px;border:none;color:rgb(17, 17, 17);font-size:1.6em;line-height:180%;margin-top:1em;margin-left:0.8em;">以 m = kp为例，考虑到这时k与q必然互质，则根据欧拉定理，下面的式子成立：</p>
+
+<blockquote style="color:rgb(17, 17, 17);margin:2em;list-style-type:none;text-align:left;text-decoration:none;font-weight:normal;font-style:normal;border:none;padding:1em;background-color:rgb(245, 242, 240);border-radius:1em;font-family:Consolas, Monaco, &quot;Andale Mono&quot;, monospace;border-width:0.3em;border-color:rgb(224, 223, 204);border-style:solid;text-shadow:white 0px 1px;overflow:auto;">
+
+<p style="font-style:normal;margin:0px;list-style-type:none;text-align:left;text-decoration:none;font-weight:normal;padding:0px;border:none;color:rgb(17, 17, 17);font-size:1.6em;line-height:180%;margin-top:1em;margin-left:0.8em;">　　(kp)<sup>q-1</sup> ≡ 1 (mod q)</p>
+
+</blockquote>
+
+<p style="font-style:normal;margin:0px;list-style-type:none;text-align:left;text-decoration:none;font-weight:normal;padding:0px;border:none;color:rgb(17, 17, 17);font-size:1.6em;line-height:180%;margin-top:1em;margin-left:0.8em;">进一步得到</p>
+
+<blockquote style="color:rgb(17, 17, 17);margin:2em;list-style-type:none;text-align:left;text-decoration:none;font-weight:normal;font-style:normal;border:none;padding:1em;background-color:rgb(245, 242, 240);border-radius:1em;font-family:Consolas, Monaco, &quot;Andale Mono&quot;, monospace;border-width:0.3em;border-color:rgb(224, 223, 204);border-style:solid;text-shadow:white 0px 1px;overflow:auto;">
+
+<p style="font-style:normal;margin:0px;list-style-type:none;text-align:left;text-decoration:none;font-weight:normal;padding:0px;border:none;color:rgb(17, 17, 17);font-size:1.6em;line-height:180%;margin-top:1em;margin-left:0.8em;">　　[(kp)<sup>q-1</sup>]<sup>h(p-1)</sup> × kp ≡ kp (mod q)</p>
+
+</blockquote>
+
+<p style="font-style:normal;margin:0px;list-style-type:none;text-align:left;text-decoration:none;font-weight:normal;padding:0px;border:none;color:rgb(17, 17, 17);font-size:1.6em;line-height:180%;margin-top:1em;margin-left:0.8em;">即</p>
+
+<blockquote style="color:rgb(17, 17, 17);margin:2em;list-style-type:none;text-align:left;text-decoration:none;font-weight:normal;font-style:normal;border:none;padding:1em;background-color:rgb(245, 242, 240);border-radius:1em;font-family:Consolas, Monaco, &quot;Andale Mono&quot;, monospace;border-width:0.3em;border-color:rgb(224, 223, 204);border-style:solid;text-shadow:white 0px 1px;overflow:auto;">
+
+<p style="font-style:normal;margin:0px;list-style-type:none;text-align:left;text-decoration:none;font-weight:normal;padding:0px;border:none;color:rgb(17, 17, 17);font-size:1.6em;line-height:180%;margin-top:1em;margin-left:0.8em;">　　(kp)<sup>ed</sup> ≡ kp (mod q)</p>
+
+</blockquote>
+
+<p style="font-style:normal;margin:0px;list-style-type:none;text-align:left;text-decoration:none;font-weight:normal;padding:0px;border:none;color:rgb(17, 17, 17);font-size:1.6em;line-height:180%;margin-top:1em;margin-left:0.8em;">将它改写成下面的等式</p>
+
+<blockquote style="color:rgb(17, 17, 17);margin:2em;list-style-type:none;text-align:left;text-decoration:none;font-weight:normal;font-style:normal;border:none;padding:1em;background-color:rgb(245, 242, 240);border-radius:1em;font-family:Consolas, Monaco, &quot;Andale Mono&quot;, monospace;border-width:0.3em;border-color:rgb(224, 223, 204);border-style:solid;text-shadow:white 0px 1px;overflow:auto;">
+
+<p style="font-style:normal;margin:0px;list-style-type:none;text-align:left;text-decoration:none;font-weight:normal;padding:0px;border:none;color:rgb(17, 17, 17);font-size:1.6em;line-height:180%;margin-top:1em;margin-left:0.8em;">　　(kp)<sup>ed</sup> = tq + kp</p>
+
+</blockquote>
+
+<p style="font-style:normal;margin:0px;list-style-type:none;text-align:left;text-decoration:none;font-weight:normal;padding:0px;border:none;color:rgb(17, 17, 17);font-size:1.6em;line-height:180%;margin-top:1em;margin-left:0.8em;">这时t必然能被p整除，即 t=t'p</p>
+
+<blockquote style="color:rgb(17, 17, 17);margin:2em;list-style-type:none;text-align:left;text-decoration:none;font-weight:normal;font-style:normal;border:none;padding:1em;background-color:rgb(245, 242, 240);border-radius:1em;font-family:Consolas, Monaco, &quot;Andale Mono&quot;, monospace;border-width:0.3em;border-color:rgb(224, 223, 204);border-style:solid;text-shadow:white 0px 1px;overflow:auto;">
+
+<p style="font-style:normal;margin:0px;list-style-type:none;text-align:left;text-decoration:none;font-weight:normal;padding:0px;border:none;color:rgb(17, 17, 17);font-size:1.6em;line-height:180%;margin-top:1em;margin-left:0.8em;">　　(kp)<sup>ed</sup> = t'pq + kp</p>
+
+</blockquote>
+
+<p style="font-style:normal;margin:0px;list-style-type:none;text-align:left;text-decoration:none;font-weight:normal;padding:0px;border:none;color:rgb(17, 17, 17);font-size:1.6em;line-height:180%;margin-top:1em;margin-left:0.8em;">因为 m=kp，n=pq，所以</p>
+
+<blockquote style="color:rgb(17, 17, 17);margin:2em;list-style-type:none;text-align:left;text-decoration:none;font-weight:normal;font-style:normal;border:none;padding:1em;background-color:rgb(245, 242, 240);border-radius:1em;font-family:Consolas, Monaco, &quot;Andale Mono&quot;, monospace;border-width:0.3em;border-color:rgb(224, 223, 204);border-style:solid;text-shadow:white 0px 1px;overflow:auto;">
+
+<p style="font-style:normal;margin:0px;list-style-type:none;text-align:left;text-decoration:none;font-weight:normal;padding:0px;border:none;color:rgb(17, 17, 17);font-size:1.6em;line-height:180%;margin-top:1em;margin-left:0.8em;">　　m<sup>ed</sup> ≡ m (mod n)</p>
+
+</blockquote>
+
+<p style="font-style:normal;margin:0px;list-style-type:none;text-align:left;text-decoration:none;font-weight:normal;padding:0px;border:none;color:rgb(17, 17, 17);font-size:1.6em;line-height:180%;margin-top:1em;margin-left:0.8em;">原式得到证明。</p>
+
+<p style="font-style:normal;margin:0px;list-style-type:none;text-align:left;text-decoration:none;font-weight:normal;padding:0px;border:none;color:rgb(17, 17, 17);font-size:1.6em;line-height:180%;margin-top:1em;margin-left:0.8em;">（完）<br/>
+</p>
+                                    
+
+                                </div>
+    
+                                <div style="border:1px solid rgb(211, 211, 211);margin:0px 0px 1em;list-style-type:none;text-align:left;text-decoration:none;font-weight:bold;font-style:normal;padding:1.5em;color:rgb(252, 178, 151);border-radius:1em;box-shadow:rgb(238, 238, 238) 0px 1px 0px 0px inset;background:-webkit-gradient(linear, 0% 0%, 0% 100%, color-stop(0.05, rgb(170, 210, 240)), to(rgb(139, 193, 237))) rgb(170, 210, 240);text-shadow:rgb(238, 238, 238) 1px 1px 0px;margin-top:2em;background-color:rgb(222, 235, 247);">
+
+<h3 style="font-style:normal;margin:0.4em 0px 0.2em;list-style-type:none;text-align:left;text-decoration:none;letter-spacing:-0.03em;padding:0px 0px 0.2em;border:none;color:rgb(85, 102, 119);font-size:1.92em;font-weight:bold;border-bottom:1px solid gray;">文档信息</h3>
+<ul style="font-weight:normal;margin:0px;list-style-type:none;text-align:left;text-decoration:none;padding:0px;font-style:normal;border:none;color:rgb(17, 17, 17);padding-left:2em;padding-right:2em;">
+<li style="font-weight:normal;margin:0px;font-size:1.6em;text-align:left;text-decoration:none;padding:0px;font-style:normal;border:none;line-height:220%;list-style-type:square;color:rgb(85, 102, 119);">版权声明：自由转载-非商用-非衍生-保持署名（<a href="http://creativecommons.org/licenses/by-nc-nd/3.0/deed.zh" style="margin:0px;padding:0px;list-style-type:none;text-align:left;text-decoration:none;font-weight:normal;font-style:normal;border:none;color:rgb(85, 102, 119);">创意共享3.0许可证</a>）</li>
+<li style="font-weight:normal;margin:0px;font-size:1.6em;text-align:left;text-decoration:none;padding:0px;font-style:normal;border:none;line-height:220%;list-style-type:square;color:rgb(85, 102, 119);">发表日期： <abbr style="margin:0px;padding:0px;list-style-type:none;text-align:left;text-decoration:none;font-weight:normal;font-style:normal;border:none;color:rgb(61, 61, 61);" title="2013-07-04T12:07:22+08:00">2013年7月 4日</abbr></li>
+<li style="font-weight:normal;margin:0px;font-size:1.6em;text-align:left;text-decoration:none;padding:0px;font-style:normal;border:none;line-height:220%;list-style-type:square;color:rgb(85, 102, 119);">更多内容： <a href="http://www.ruanyifeng.com/blog/archives.html" style="margin:0px;padding:0px;list-style-type:none;text-align:left;text-decoration:none;font-weight:normal;font-style:normal;border:none;color:rgb(85, 102, 119);" target="_blank"> 档案</a>  » 
+<a href="http://www.ruanyifeng.com/blog/computer/" style="margin:0px;padding:0px;list-style-type:none;text-align:left;text-decoration:none;font-weight:normal;font-style:normal;border:none;color:rgb(85, 102, 119);"> 理解计算机</a> 
+</li>
+<li style="font-weight:normal;margin:0px;font-size:1.6em;text-align:left;text-decoration:none;padding:0px;font-style:normal;border:none;line-height:220%;list-style-type:square;color:rgb(85, 102, 119);">文集：<a href="http://www.ruanyifeng.com/road" style="margin:0px;padding:0px;list-style-type:none;text-align:left;text-decoration:none;font-weight:normal;font-style:normal;border:none;color:rgb(85, 102, 119);" target="_blank">《前方的路》</a>，<a href="http://www.ruanyifeng.com/survivor" style="margin:0px;padding:0px;list-style-type:none;text-align:left;text-decoration:none;font-weight:normal;font-style:normal;border:none;color:rgb(85, 102, 119);" target="_blank">《未来世界的幸存者》</a></li>
+<li style="font-weight:normal;margin:0px;font-size:1.6em;text-align:left;text-decoration:none;padding:0px;font-style:normal;border:none;line-height:220%;list-style-type:square;color:rgb(85, 102, 119);">社交媒体：<a href="https://twitter.com/ruanyf" style="margin:0px;padding:0px;list-style-type:none;text-align:left;text-decoration:none;font-weight:normal;font-style:normal;border:none;color:rgb(85, 102, 119);" target="_blank"><img src="RSA算法原理（二） - 阮一峰的网络日志_files/Image [3].png" type="image/png" data-filename="Image.png" height="20" style="margin:0px;padding:0px;list-style-type:none;text-align:left;text-decoration:none;font-weight:normal;font-style:normal;border:0;color:rgb(17, 17, 17);" width="20"/> twitter</a>，<a href="http://weibo.com/ruanyf" style="margin:0px;padding:0px;list-style-type:none;text-align:left;text-decoration:none;font-weight:normal;font-style:normal;border:none;color:rgb(85, 102, 119);" target="_blank"><img src="RSA算法原理（二） - 阮一峰的网络日志_files/Image [4].png" type="image/png" data-filename="Image.png" height="20" style="margin:0px;padding:0px;list-style-type:none;text-align:left;text-decoration:none;font-weight:normal;font-style:normal;border:0;color:rgb(17, 17, 17);" width="20"/> weibo</a></li>
+
+</ul>
+                                </div>
+</div></div></div></div></div></div></div></div></div></div></div><br/></div></span>
+</div></body></html> 

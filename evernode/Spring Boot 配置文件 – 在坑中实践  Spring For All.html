@@ -1,0 +1,268 @@
+<html>
+<head>
+  <title>Spring Boot 配置文件 – 在坑中实践 | Spring For All</title>
+  <basefont face="微软雅黑" size="2" />
+  <meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+  <meta name="exporter-version" content="YXBJ Windows/600718 (zh-CN, DDL); Windows/6.1.1 (Win64);"/>
+  <style>
+    body, td {
+      font-family: 微软雅黑;
+      font-size: 10pt;
+    }
+  </style>
+</head>
+<body>
+<a name="8928"/>
+<h1>Spring Boot 配置文件 – 在坑中实践 | Spring For All</h1>
+<div>
+<table bgcolor="#D4DDE5" border="0">
+<tr><td><b>创建时间：</b></td><td><i>2017/12/8 18:18</i></td></tr>
+<tr><td><b>来源：</b></td><td><a href="http://www.spring4all.com/article/267"><i>http://www.spring4all.com/article/267</i></a></td></tr>
+</table>
+</div>
+<br/>
+
+<div><span><div style="-evernote-webclip:true"><br/><div style="font-size: 16px; display: inline-block;"><div style="box-sizing:border-box;font-family:sans-serif;text-size-adjust:100%;font-size:14px;"><div style="box-sizing:inherit;overflow-x:hidden;min-width:320px;background:rgb(255, 255, 255);font-family:Lato, &quot;Helvetica Neue&quot;, Arial, Helvetica, sans-serif;font-size:14px;line-height:1.4285em;color:rgba(0, 0, 0, 0.870588);background-color:#f3f3f3;"><div style="box-sizing:inherit;"><div style="box-sizing:inherit;"><div style="box-sizing:inherit;-webkit-box-orient:horizontal;-webkit-box-direction:normal;flex-flow:row wrap;-webkit-box-align:stretch;align-items:stretch;"><div style="box-sizing:inherit;vertical-align:top;"><div style="box-sizing:inherit;background:rgb(255, 255, 255);box-shadow:rgba(34, 36, 38, 0.14902) 0px 1px 2px 0px;border-radius:0.285714rem;font-size:1rem;"><div style="box-sizing:inherit;text-size-adjust:100%;color:rgb(51, 51, 51);overflow:auto;font-family:&quot;Microsoft YaHei&quot;, Helvetica, &quot;Meiryo UI&quot;, &quot;Malgun Gothic&quot;, &quot;Segoe UI&quot;, &quot;Trebuchet MS&quot;, Monaco, monospace, Tahoma, STXihei, 华文细黑, STHeiti, &quot;Helvetica Neue&quot;, &quot;Droid Sans&quot;, &quot;wenquanyi micro hei&quot;, FreeSans, Arimo, Arial, SimSun, 宋体, Heiti, 黑体, sans-serif;font-size:14px;line-height:1.6;word-wrap:break-word;text-align:left;background-color:rgb(255, 255, 255);"><div style="box-sizing:border-box;">
+<div style="box-sizing:border-box;">
+<div style="box-sizing:border-box;">
+<div style="box-sizing:border-box;">
+<div style="box-sizing:border-box;">
+<div style="box-sizing:border-box;">
+<div style="box-sizing:border-box;text-align:center;"><span style="box-sizing:border-box;color:#993366;">摘要: 原创出处 www.bysocket.com 「泥瓦匠BYSocket 」欢迎转载，保留摘要，谢谢！</span></div>
+</div>
+<div style="box-sizing:border-box;text-align:center;"></div>
+<div style="box-sizing:border-box;text-align:center;"><strong style="box-sizing:border-box;font-weight:bold;">『 仓廪实而知礼节，衣食足而知荣辱 - 管仲 』</strong></div>
+<div style="box-sizing:border-box;"></div>
+</div><br style="box-sizing:border-box;"/>
+<div style="box-sizing:border-box;"><strong style="box-sizing:border-box;font-weight:bold;">本文提纲</strong></div>
+</div>
+<div style="box-sizing:border-box;">一、自动配置</div>
+<div style="box-sizing:border-box;">
+<div style="box-sizing:border-box;">二、自定义属性</div>
+<div style="box-sizing:border-box;">三、random.* 属性</div>
+<div style="box-sizing:border-box;">四、多环境配置</div>
+<div style="box-sizing:border-box;"></div><br style="box-sizing:border-box;"/>
+<div style="box-sizing:border-box;">
+<div style="box-sizing:border-box;"><strong style="box-sizing:border-box;font-weight:bold;">运行环境</strong>：JDK 7 或 8，Maven 3.0+</div>
+<div style="box-sizing:border-box;">
+
+<strong style="box-sizing:border-box;font-weight:bold;">技术栈</strong>：SpringBoot 1.5+
+
+</div>
+</div>
+<div style="box-sizing:border-box;"></div><br style="box-sizing:border-box;"/><br style="box-sizing:border-box;"/>
+</div>
+</div>
+<h3 style="font-family:Lato, &quot;Helvetica Neue&quot;, Arial, Helvetica, sans-serif;margin:calc(2rem - 0.142857em) 0px 1rem;padding:0px;box-sizing:border-box;line-height:1.43;font-weight:bold;font-size:1.5em;margin-top:1em;margin-bottom:16px;position:relative;">一、自动配置</h3>
+<div style="box-sizing:border-box;">Spring Boot 提供了对应用进行自动化配置。相比以前 XML 配置方式，很多显式方式申明是不需要的。二者，大多数默认的配置足够实现开发功能，从而更快速开发。</div>
+<div style="box-sizing:border-box;"></div>
+<div style="box-sizing:border-box;">什么是<strong style="box-sizing:border-box;font-weight:bold;">自动配置</strong>？</div>
+<div style="box-sizing:border-box;">Spring Boot 提供了默认的配置，如默认的 Bean ，去运行 Spring 应用。它是非侵入式的，只提供一个默认实现。</div>
+<div style="box-sizing:border-box;">大多数情况下，自动配置的 Bean 满足了现有的业务场景，不需要去覆盖。但如果自动配置做的不够好，需要覆盖配置。比如通过命令行动态指定某个 jar ，按不同环境启动（这个例子在第 4 小节介绍）。那怎么办？这里先要考虑到配置的优先级。</div>
+<div style="box-sizing:border-box;">
+<div style="box-sizing:border-box;"></div><br style="box-sizing:border-box;"/>
+<div style="box-sizing:border-box;">Spring Boot 不单单从 application.properties 获取配置，所以我们可以在程序中多种设置配置属性。按照以下列表的优先级排列：</div>
+<div style="box-sizing:border-box;">1.命令行参数</div>
+<div style="box-sizing:border-box;">2.java:comp/env 里的 JNDI 属性</div>
+<div style="box-sizing:border-box;">3.JVM 系统属性</div>
+<div style="box-sizing:border-box;">4.操作系统环境变量</div>
+<div style="box-sizing:border-box;">5.RandomValuePropertySource 属性类生成的 random.* 属性</div>
+<div style="box-sizing:border-box;">6.应用以外的 application.properties（或 yml）文件</div>
+<div style="box-sizing:border-box;">7.打包在应用内的 application.properties（或 yml）文件</div>
+<div style="box-sizing:border-box;">8.在应用 @Configuration 配置类中，用 @PropertySource 注解声明的属性文件</div>
+<div style="box-sizing:border-box;">9.SpringApplication.setDefaultProperties 声明的默认属性</div>
+<div style="box-sizing:border-box;"></div><br style="box-sizing:border-box;"/>
+</div>
+<div style="box-sizing:border-box;">
+<div style="box-sizing:border-box;">可见，命令行参数优先级最高。这个可以根据这个优先级，可以在测试或生产环境中快速地修改配置参数值，而不需要重新打包和部署应用。</div>
+<div style="box-sizing:border-box;">还有第 6 点，根据这个在多 moudle 的项目中，比如常见的项目分 api 、service、dao 等 moudles，往往会加一个 deploy moudle 去打包该业务各个子 moudle，应用以外的配置优先。</div>
+<div style="box-sizing:border-box;"></div><br style="box-sizing:border-box;"/><br style="box-sizing:border-box;"/>
+</div>
+<h3 style="font-family:Lato, &quot;Helvetica Neue&quot;, Arial, Helvetica, sans-serif;margin:calc(2rem - 0.142857em) 0px 1rem;padding:0px;box-sizing:border-box;line-height:1.43;font-weight:bold;font-size:1.5em;margin-top:1em;margin-bottom:16px;position:relative;">二、自定义属性</h3>
+<div style="box-sizing:border-box;">泥瓦匠喜欢按着代码工程来讲解知识。git clone 下载工程 springboot-learning-example ，项目地址见 GitHub - <a href="https://github.com/JeffLi1993/springboot-learning-example" style="box-sizing:border-box;background:transparent;color:rgb(65, 131, 196);text-decoration:none;">https://github.com/JeffLi1993/springboot-learning-example</a>。</div>
+<div style="box-sizing:border-box;">
+<div style="box-sizing:border-box;"></div><br style="box-sizing:border-box;"/>
+<div style="box-sizing:border-box;">a. 编译工程</div>
+<div style="box-sizing:border-box;">在项目根目录 springboot-learning-example，运行 maven 指令：</div>
+<div style="box-sizing:border-box;"></div>
+<pre style="font-weight:normal;box-sizing:border-box;font-stretch:normal;font-family:&quot;YaHei Consolas Hybrid&quot;, Consolas, &quot;Meiryo UI&quot;, &quot;Malgun Gothic&quot;, &quot;Segoe UI&quot;, &quot;Trebuchet MS&quot;, Helvetica, monospace, monospace;margin-top:0px;margin-bottom:16px;font-style:normal;font-variant:normal;overflow:auto;font-size:85%;line-height:1.6;padding:10px;border-radius:3px;word-wrap:normal;border:1px solid rgb(221, 221, 221);background:rgb(246, 246, 246);">cd springboot-learning-example
+mvn clean install</pre>
+<div style="box-sizing:border-box;"></div>
+<div style="box-sizing:border-box;"></div>
+</div><br style="box-sizing:border-box;"/>
+<div style="box-sizing:border-box;">
+<div style="box-sizing:border-box;">b. 运行工程 test 方法</div>
+</div>
+<div style="box-sizing:border-box;">
+<div style="box-sizing:border-box;">
+
+运行 springboot-properties 工程 org.spring.springboot.property.PropertiesTest 测试类的 getHomeProperties 方法。可以在控制台看到输出，这是通过自定义属性获取的值:
+<pre style="font-weight:normal;box-sizing:border-box;font-stretch:normal;font-family:&quot;YaHei Consolas Hybrid&quot;, Consolas, &quot;Meiryo UI&quot;, &quot;Malgun Gothic&quot;, &quot;Segoe UI&quot;, &quot;Trebuchet MS&quot;, Helvetica, monospace, monospace;margin-top:0px;margin-bottom:16px;font-style:normal;font-variant:normal;overflow:auto;font-size:85%;line-height:1.6;padding:10px;border-radius:3px;word-wrap:normal;border:1px solid rgb(221, 221, 221);background:rgb(246, 246, 246);">HomeProperties{province='ZheJiang', city='WenLing', desc='dev: I'm living in ZheJiang WenLing.'}
+</pre>
+</div>
+<div style="box-sizing:border-box;">
+<div style="box-sizing:border-box;"></div>
+<div style="box-sizing:border-box;"></div><br style="box-sizing:border-box;"/>
+<div style="box-sizing:border-box;">怎么定义自定义属性呢？</div>
+<div style="box-sizing:border-box;">
+
+首先项目结构如下：
+<pre style="font-weight:normal;box-sizing:border-box;font-stretch:normal;font-family:&quot;YaHei Consolas Hybrid&quot;, Consolas, &quot;Meiryo UI&quot;, &quot;Malgun Gothic&quot;, &quot;Segoe UI&quot;, &quot;Trebuchet MS&quot;, Helvetica, monospace, monospace;margin-top:0px;margin-bottom:16px;font-style:normal;font-variant:normal;overflow:auto;font-size:85%;line-height:1.6;padding:10px;border-radius:3px;word-wrap:normal;border:1px solid rgb(221, 221, 221);background:rgb(246, 246, 246);">├── pom.xml
+└── src
+    ├── main
+    │   ├── java
+    │   │   └── org
+    │   │       └── spring
+    │   │           └── springboot
+    │   │               ├── Application.java
+    │   │               └── property
+    │   │                   ├── HomeProperties.java
+    │   │                   └── UserProperties.java
+    │   └── resources
+    │       ├── application-dev.properties
+    │       ├── application-prod.properties
+    │       └── application.properties
+    └── test
+        ├── java
+        │   └── org
+        │       └── spring
+        │           └── springboot
+        │               └── property
+        │                   ├── HomeProperties1.java
+        │                   └── PropertiesTest.java
+        └── resouorces
+            └── application.yml</pre>
+</div>
+<div style="box-sizing:border-box;"></div>
+<div style="box-sizing:border-box;"></div><br style="box-sizing:border-box;"/>
+<div style="box-sizing:border-box;">在 application.properties 中对应 HomeProperties 对象字段编写属性的 KV 值：</div>
+<div style="box-sizing:border-box;"></div>
+</div>
+<pre style="font-weight:normal;box-sizing:border-box;font-stretch:normal;font-family:&quot;YaHei Consolas Hybrid&quot;, Consolas, &quot;Meiryo UI&quot;, &quot;Malgun Gothic&quot;, &quot;Segoe UI&quot;, &quot;Trebuchet MS&quot;, Helvetica, monospace, monospace;margin-top:0px;margin-bottom:16px;font-style:normal;font-variant:normal;overflow:auto;font-size:85%;line-height:1.6;padding:10px;border-radius:3px;word-wrap:normal;border:1px solid rgb(221, 221, 221);background:rgb(246, 246, 246);">## 家乡属性 Dev
+home.province=ZheJiang
+home.city=WenLing
+home.desc=dev: I'm living in ${home.province} ${home.city}.</pre>
+<div style="box-sizing:border-box;">这里也可以通过占位符，进行属性之间的引用。</div>
+<div style="box-sizing:border-box;"></div>
+</div><br style="box-sizing:border-box;"/>
+<div style="box-sizing:border-box;">
+
+然后，编写对应的 HomeProperties Java 对象：
+<pre style="font-weight:normal;box-sizing:border-box;font-stretch:normal;font-family:&quot;YaHei Consolas Hybrid&quot;, Consolas, &quot;Meiryo UI&quot;, &quot;Malgun Gothic&quot;, &quot;Segoe UI&quot;, &quot;Trebuchet MS&quot;, Helvetica, monospace, monospace;margin-top:0px;margin-bottom:16px;font-style:normal;font-variant:normal;overflow:auto;font-size:85%;line-height:1.6;padding:10px;border-radius:3px;word-wrap:normal;border:1px solid rgb(221, 221, 221);background:rgb(246, 246, 246);">/**
+ * 家乡属性
+ *
+ * Created by bysocket on 17/04/2017.
+ */
+@Component
+@ConfigurationProperties(prefix = &quot;home&quot;)
+public class HomeProperties {
+
+    /**
+     * 省份
+     */
+    private String province;
+
+    /**
+     * 城市
+     */
+    private String city;
+
+    /**
+     * 描述
+     */
+    private String desc;
+
+    public String getProvince() {
+        return province;
+    }
+
+    public void setProvince(String province) {
+        this.province = province;
+    }
+
+    public String getCity() {
+        return city;
+    }
+
+    public void setCity(String city) {
+        this.city = city;
+    }
+
+    public String getDesc() {
+        return desc;
+    }
+
+    public void setDesc(String desc) {
+        this.desc = desc;
+    }
+
+    @Override
+    public String toString() {
+        return &quot;HomeProperties{&quot; +
+                &quot;province='&quot; + province + '\'' +
+                &quot;, city='&quot; + city + '\'' +
+                &quot;, desc='&quot; + desc + '\'' +
+                '}';
+    }
+}</pre>
+</div>
+<div style="box-sizing:border-box;"></div><br style="box-sizing:border-box;"/>
+</div>
+<div style="box-sizing:border-box;">
+<div style="box-sizing:border-box;">通过 @ConfigurationProperties(prefix = &quot;home”) 注解，将配置文件中以 home 前缀的属性值自动绑定到对应的字段中。同是用 @Component 作为 Bean 注入到 Spring 容器中。</div>
+<div style="box-sizing:border-box;"></div><br style="box-sizing:border-box;"/>
+<div style="box-sizing:border-box;">如果不是用 application.properties 文件，而是用 application.yml 的文件，对应配置如下：</div>
+<div style="box-sizing:border-box;"></div>
+<pre style="font-weight:normal;box-sizing:border-box;font-stretch:normal;font-family:&quot;YaHei Consolas Hybrid&quot;, Consolas, &quot;Meiryo UI&quot;, &quot;Malgun Gothic&quot;, &quot;Segoe UI&quot;, &quot;Trebuchet MS&quot;, Helvetica, monospace, monospace;margin-top:0px;margin-bottom:16px;font-style:normal;font-variant:normal;overflow:auto;font-size:85%;line-height:1.6;padding:10px;border-radius:3px;word-wrap:normal;border:1px solid rgb(221, 221, 221);background:rgb(246, 246, 246);">## 家乡属性
+home:
+  province: 浙江省
+  city: 温岭松门
+  desc: 我家住在${home.province}的${home.city}</pre>
+<div style="box-sizing:border-box;">键值对冒号后面，必须空一格。</div>
+<div style="box-sizing:border-box;"></div><br style="box-sizing:border-box;"/>
+<div style="box-sizing:border-box;">注意这里，就有一个坑了：</div>
+<div style="box-sizing:border-box;">application.properties 配置中文值的时候，读取出来的属性值会出现乱码问题。但是 application.yml 不会出现乱码问题。原因是，Spring Boot 是以 iso-8859 的编码方式读取 application.properties 配置文件。</div>
+</div>
+<div style="box-sizing:border-box;"></div><br style="box-sizing:border-box;"/>
+<div style="box-sizing:border-box;">注意这里，还有一个坑：</div>
+<div style="box-sizing:border-box;">如果定义一个键值对 <a style="box-sizing:border-box;background:transparent;color:rgb(65, 131, 196);text-decoration:none;">user.name=xxx</a> ,这里会读取不到对应写的属性值。为什么呢？Spring Boot 的默认 StandardEnvironment 首先将会加载 “systemEnvironment&quot; 作为首个PropertySource. 而 source 即为System.getProperties().当 getProperty时,按照读取顺序,返回 “systemEnvironment&quot; 的值.即 System.getProperty(&quot;<a style="box-sizing:border-box;background:transparent;color:rgb(65, 131, 196);text-decoration:none;">user.name</a>&quot;)</div>
+<div style="box-sizing:border-box;">（Mac 机子会读自己的登录账号，这里感谢我的死党 <a href="http://rapharino.com/" style="box-sizing:border-box;background:transparent;color:rgb(65, 131, 196);text-decoration:none;">http://rapharino.com/</a>）</div>
+<div style="box-sizing:border-box;"></div><br style="box-sizing:border-box;"/><br style="box-sizing:border-box;"/>
+<div style="box-sizing:border-box;">
+<h3 style="font-family:Lato, &quot;Helvetica Neue&quot;, Arial, Helvetica, sans-serif;margin:calc(2rem - 0.142857em) 0px 1rem;padding:0px;box-sizing:border-box;line-height:1.43;font-weight:bold;font-size:1.5em;margin-top:0px;margin-bottom:16px;position:relative;">三、random.* 属性</h3>
+<div style="box-sizing:border-box;">Spring Boot 通过 RandomValuePropertySource 提供了很多关于随机数的工具类。概括可以生成随机字符串、随机 int 、随机 long、某范围的随机数。</div>
+<div style="box-sizing:border-box;">运行 springboot-properties 工程 org.spring.springboot.property.PropertiesTest 测试类的 randomTestUser 方法。多次运行，可以发现每次输出不同 User 属性值：</div>
+<div style="box-sizing:border-box;">
+<pre style="font-weight:normal;box-sizing:border-box;font-stretch:normal;font-family:&quot;YaHei Consolas Hybrid&quot;, Consolas, &quot;Meiryo UI&quot;, &quot;Malgun Gothic&quot;, &quot;Segoe UI&quot;, &quot;Trebuchet MS&quot;, Helvetica, monospace, monospace;margin-top:0px;margin-bottom:16px;font-style:normal;font-variant:normal;overflow:auto;font-size:85%;line-height:1.6;padding:10px;border-radius:3px;word-wrap:normal;border:1px solid rgb(221, 221, 221);background:rgb(246, 246, 246);">UserProperties{id=-3135706105861091890, age=41, desc='泥瓦匠叫做3cf8fb2507f64e361f62700bcbd17770', uuid='582bcc01-bb7f-41db-94d5-c22aae186cb4'}
+</pre>
+</div>
+<div style="box-sizing:border-box;"></div><br style="box-sizing:border-box;"/>
+<div style="box-sizing:border-box;">application.yml 方式的配置如下（ application.properties 形式这里不写了）：</div>
+<div style="box-sizing:border-box;"></div>
+<pre style="font-weight:normal;box-sizing:border-box;font-stretch:normal;font-family:&quot;YaHei Consolas Hybrid&quot;, Consolas, &quot;Meiryo UI&quot;, &quot;Malgun Gothic&quot;, &quot;Segoe UI&quot;, &quot;Trebuchet MS&quot;, Helvetica, monospace, monospace;margin-top:0px;margin-bottom:16px;font-style:normal;font-variant:normal;overflow:auto;font-size:85%;line-height:1.6;padding:10px;border-radius:3px;word-wrap:normal;border:1px solid rgb(221, 221, 221);background:rgb(246, 246, 246);">## 随机属性
+user:
+  id: ${random.long}
+  age: ${random.int[1,200]}
+  desc: 泥瓦匠叫做${random.value}
+  uuid: ${random.uuid}</pre>
+<div style="box-sizing:border-box;"></div><br style="box-sizing:border-box;"/><br style="box-sizing:border-box;"/>
+<h3 style="font-family:Lato, &quot;Helvetica Neue&quot;, Arial, Helvetica, sans-serif;margin:calc(2rem - 0.142857em) 0px 1rem;padding:0px;box-sizing:border-box;line-height:1.43;font-weight:bold;font-size:1.5em;margin-top:1em;margin-bottom:16px;position:relative;">四、多环境配置</h3>
+<div style="box-sizing:border-box;">很多场景的配置，比如数据库配置、Redis 配置、注册中心和日志配置等。在不同的环境，我们需要不同的包去运行项目。所以看项目结构，有两个环境的配置：</div>
+<div style="box-sizing:border-box;"></div>
+<pre style="font-weight:normal;box-sizing:border-box;font-stretch:normal;font-family:&quot;YaHei Consolas Hybrid&quot;, Consolas, &quot;Meiryo UI&quot;, &quot;Malgun Gothic&quot;, &quot;Segoe UI&quot;, &quot;Trebuchet MS&quot;, Helvetica, monospace, monospace;margin-top:0px;margin-bottom:16px;font-style:normal;font-variant:normal;overflow:auto;font-size:85%;line-height:1.6;padding:10px;border-radius:3px;word-wrap:normal;border:1px solid rgb(221, 221, 221);background:rgb(246, 246, 246);">application-dev.properties：开发环境
+application-prod.properties：生产环境</pre>
+<div style="box-sizing:border-box;"></div><br style="box-sizing:border-box;"/>
+<div style="box-sizing:border-box;">Spring Boot 是通过 application.properties 文件中，设置 spring.profiles.active 属性，比如 ，配置了 dev ,则加载的是 application-dev.properties ：</div>
+<div style="box-sizing:border-box;"></div>
+<pre style="font-weight:normal;box-sizing:border-box;font-stretch:normal;font-family:&quot;YaHei Consolas Hybrid&quot;, Consolas, &quot;Meiryo UI&quot;, &quot;Malgun Gothic&quot;, &quot;Segoe UI&quot;, &quot;Trebuchet MS&quot;, Helvetica, monospace, monospace;margin-top:0px;margin-bottom:16px;font-style:normal;font-variant:normal;overflow:auto;font-size:85%;line-height:1.6;padding:10px;border-radius:3px;word-wrap:normal;border:1px solid rgb(221, 221, 221);background:rgb(246, 246, 246);"># Spring Profiles Active
+spring.profiles.active=dev</pre>
+<div style="box-sizing:border-box;"></div><br style="box-sizing:border-box;"/>
+<div style="box-sizing:border-box;">那运行 springboot-properties 工程中 Application 应用启动类，从控制台中可以看出，是加载了 application-dev.properties 的属性输出：</div>
+<div style="box-sizing:border-box;">
+<pre style="font-weight:normal;box-sizing:border-box;font-stretch:normal;font-family:&quot;YaHei Consolas Hybrid&quot;, Consolas, &quot;Meiryo UI&quot;, &quot;Malgun Gothic&quot;, &quot;Segoe UI&quot;, &quot;Trebuchet MS&quot;, Helvetica, monospace, monospace;margin-top:0px;margin-bottom:16px;font-style:normal;font-variant:normal;overflow:auto;font-size:85%;line-height:1.6;padding:10px;border-radius:3px;word-wrap:normal;border:1px solid rgb(221, 221, 221);background:rgb(246, 246, 246);">HomeProperties{province='ZheJiang', city='WenLing', desc='dev: I'm living in ZheJiang WenLing.'}</pre>
+</div>
+<div style="box-sizing:border-box;"></div><br style="box-sizing:border-box;"/>
+<div style="box-sizing:border-box;">将 spring.profiles.active 设置成 prod，重新运行，可得到 application-prod.properties的属性输出：</div>
+</div>
+</div></div></div></div></div></div></div></div></div></div><br/></div></span>
+</div></body></html> 

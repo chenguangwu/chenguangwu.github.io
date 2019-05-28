@@ -1,0 +1,298 @@
+<html>
+<head>
+  <title>Java8 对多个异步任务进行流水线操作(笔记) - Darcy_wang - 博客园</title>
+  <basefont face="微软雅黑" size="2" />
+  <meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+  <meta name="exporter-version" content="YXBJ Windows/600718 (zh-CN, DDL); Windows/6.1.1 (Win64);"/>
+  <style>
+    body, td {
+      font-family: 微软雅黑;
+      font-size: 10pt;
+    }
+  </style>
+</head>
+<body>
+<a name="8902"/>
+<h1>Java8 对多个异步任务进行流水线操作(笔记) - Darcy_wang - 博客园</h1>
+<div>
+<table bgcolor="#D4DDE5" border="0">
+<tr><td><b>创建时间：</b></td><td><i>2017/12/12 10:27</i></td></tr>
+<tr><td><b>来源：</b></td><td><a href="http://www.cnblogs.com/ten951/p/6590661.html"><i>http://www.cnblogs.com/ten951/p/6590661.html</i></a></td></tr>
+</table>
+</div>
+<br/>
+
+<div><span><div style="-evernote-webclip:true"><br/><div style="font-size: 16px; display: inline-block;"><div><div style="font-family:&quot;PingFang SC&quot;, &quot;Helvetica Neue&quot;, Helvetica, Arial, sans-serif;color:rgb(0, 0, 0);background:rgb(238, 238, 238);font-size:14px;"><div style="min-width:930px;background:url(&quot;images/bg1.png&quot;) 50% 0% no-repeat;"><div style="min-width:950px;text-align:left;"><div style="text-overflow:ellipsis;overflow:hidden;word-break:break-all;"><div><div><div style="background:url(&quot;images/tp.png&quot;);text-overflow:ellipsis;overflow:hidden;word-break:break-all;"><div>
+		<h1 style="line-height:1.5em;margin:0px;padding:0px;clear:both;font-weight:bold;margin-top:20px;float:left;font-size:130%;width:100%;padding-bottom:20px;border-bottom:1px solid rgb(221, 221, 221);padding-left:5px;">
+			<a href="http://www.cnblogs.com/ten951/p/6590661.html" style="margin:0px;padding:0px;text-decoration:none;background:url(&quot;images/titlebg.png&quot;) no-repeat;padding-left:50px;padding-bottom:10px;padding-top:2px;color:rgb(68, 68, 68);">Java8 对多个异步任务进行流水线操作(笔记)</a>
+		</h1>
+		<div style="margin:0px;padding:0px;clear:both;"></div>
+		<div style="margin:0px;padding:10px 20px 20px;line-height:1.5;color:rgb(0, 0, 0);">
+			<div style="margin:0px;padding:0px;margin-bottom:20px;word-break:break-word;font-size:14px;"><div style="background-color:rgb(245, 245, 245);border:1px solid rgb(204, 204, 204);padding:5px;overflow:auto;margin:5px 0px;color:rgb(0, 0, 0);font-family:&quot;Courier New&quot;;font-size:12px;"><div style="margin:0px;padding:0px;margin-top:5px;background-color:rgb(245, 245, 245);"><span style="margin:0px;padding:0px;padding-right:5px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;"><a href="#" style="margin:0px;padding:0px;color:black;text-decoration:underline;background-color:rgb(245, 245, 245);border:none;" title="复制代码"><img src="Java8 对多个异步任务进行流水线操作(笔记) - Darcy_wang - 博客园_files/copycode.gif" type="image/gif" data-filename="copycode.gif" alt="复制代码" height="20" style="margin:0px;padding:0px;height:auto;max-width:300px;border:none;background-color:rgb(245, 245, 245);" width="20"/></a></span></div>
+<pre style="margin:0px;padding:0px;margin-top:0px;margin-bottom:0px;word-wrap:break-word;white-space:pre-wrap;font-family:&quot;Courier New&quot;;font-size:12px;"><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#000000;">     现在我们要对商店商品进行折扣服务.每个折扣代码对应不同的折扣率,使用一个枚举变量Discount.Code来实现这一想法,具体代码如下所示.
+以枚举类型定义的折扣代码
+</span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#008000;">/**</span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#008000;">
+ * 折扣服务api
+ *
+ * </span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#808080;">@author</span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#008000;"> Darcy
+ *         Created by Administrator on 2017/3/17.
+ </span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#008000;">*/</span>
+<span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#0000ff;">public</span> <span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#0000ff;">class</span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#000000;"> Discount {
+    </span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#0000ff;">public</span> <span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#0000ff;">enum</span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#000000;"> Code {
+        NONE(</span>0), SILVER(0), GOLD(10), PLATINUM(15), DIAMOND(20<span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#000000;">);
+        </span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#0000ff;">private</span> <span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#0000ff;">final</span> <span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#0000ff;">int</span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#000000;"> percentage;
+
+        Code(</span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#0000ff;">int</span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#000000;"> percentage) {
+            </span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#0000ff;">this</span>.percentage =<span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#000000;"> percentage;
+        }
+    }
+
+    </span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#0000ff;">public</span> <span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#0000ff;">static</span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#000000;"> String applyDiscount(Quote quote) {
+        </span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#0000ff;">return</span> quote.getShopName() + &quot; price is &quot; +<span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#000000;"> Discount.apply(quote.getPrice(), quote.getDiscountCode());
+    }
+
+    </span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#0000ff;">private</span> <span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#0000ff;">static</span> <span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#0000ff;">double</span> apply(<span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#0000ff;">double</span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#000000;"> price, Code code) {
+        delay();
+        </span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#0000ff;">return</span> price * (100 - code.percentage) / 100<span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#000000;">;
+    }
+
+    </span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#008000;">/**</span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#008000;">
+     * 模拟计算,查询数据库等耗时
+     </span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#008000;">*/</span>
+    <span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#0000ff;">public</span> <span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#0000ff;">static</span> <span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#0000ff;">void</span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#000000;"> delay() {
+        </span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#0000ff;">try</span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#000000;"> {
+            Thread.sleep(</span>1000<span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#000000;">);
+        } </span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#0000ff;">catch</span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#000000;"> (InterruptedException e) {
+            e.printStackTrace();
+        }
+    }
+}
+
+修改商店返回价格的格式:
+
+</span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#0000ff;">public</span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#000000;"> String getPrice(String product) {
+    </span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#0000ff;">double</span> price =<span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#000000;"> calculatePrice(product);
+    Discount.Code code </span>=<span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#000000;"> Discount.Code.values()[
+            random.nextInt(Discount.Code.values().length)];
+    </span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#0000ff;">return</span> String.format(&quot;%s:%.2f:%s&quot;<span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#000000;">, name, price, code);
+}
+
+
+    </span>*<span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#000000;"> 实现折扣服务
+
+我们的商店已经能从不同的商店获得商品价格,解析结果字符串,针对每个字符串,查询折扣服务器取的折扣代码.这个流程决定了请求商品的最终折扣价格.我们将对商店返回的字符串的解析操作封装到了下面的Quote类中:
+</span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#008000;">/**</span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#008000;">
+ * 商店返回消息实体,不可变对象模式 线程安全
+ * </span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#808080;">@author</span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#008000;"> Darcy
+ *         Created by Administrator on 2017/3/17.
+ </span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#008000;">*/</span>
+<span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#0000ff;">public</span> <span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#0000ff;">final</span> <span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#0000ff;">class</span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#000000;"> Quote {
+    </span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#0000ff;">private</span> <span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#0000ff;">final</span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#000000;"> String shopName;
+    </span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#0000ff;">private</span> <span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#0000ff;">final</span> <span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#0000ff;">double</span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#000000;"> price;
+    </span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#0000ff;">private</span> <span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#0000ff;">final</span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#000000;"> Discount.Code discountCode;
+
+    </span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#0000ff;">public</span> Quote(String shopName, <span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#0000ff;">double</span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#000000;"> price, Discount.Code discountCode) {
+        </span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#0000ff;">this</span>.shopName =<span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#000000;"> shopName;
+        </span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#0000ff;">this</span>.price =<span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#000000;"> price;
+        </span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#0000ff;">this</span>.discountCode =<span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#000000;"> discountCode;
+    }
+
+    </span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#0000ff;">public</span> <span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#0000ff;">static</span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#000000;"> Quote parse(String s) {
+        String[] split </span>= s.split(&quot;:&quot;<span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#000000;">);
+        String shopName </span>= split[0<span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#000000;">];
+        </span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#0000ff;">double</span> price = Double.parseDouble(split[1<span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#000000;">]);
+        Discount.Code discountCode </span>= Discount.Code.valueOf(split[2<span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#000000;">]);
+        </span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#0000ff;">return</span> <span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#0000ff;">new</span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#000000;"> Quote(shopName, price, discountCode);
+    }
+
+    </span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#0000ff;">public</span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#000000;"> String getShopName() {
+        </span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#0000ff;">return</span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#000000;"> shopName;
+    }
+
+    </span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#0000ff;">public</span> <span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#0000ff;">double</span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#000000;"> getPrice() {
+        </span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#0000ff;">return</span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#000000;"> price;
+    }
+
+    </span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#0000ff;">public</span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#000000;"> Discount.Code getDiscountCode() {
+        </span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#0000ff;">return</span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#000000;"> discountCode;
+    }
+}
+
+     Discount服务还提供了一个applyDiscount方法,它接收一个Quote对象,返回一个字符串,表示生成该Quote的shop中的折扣价格,代码如下:
+</span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#0000ff;">public</span> <span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#0000ff;">static</span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#000000;"> String applyDiscount(Quote quote) {
+    </span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#0000ff;">return</span> quote.getShopName() + &quot; 商品原价: &quot; + quote.getPrice() + &quot; 折扣后价格: &quot; +<span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#000000;"> Discount.apply(quote.getPrice(), quote.getDiscountCode());
+}
+
+</span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#0000ff;">private</span> <span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#0000ff;">static</span> <span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#0000ff;">double</span> apply(<span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#0000ff;">double</span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#000000;"> price, Code code) {
+    delay();
+    </span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#0000ff;">return</span> price * (100 - code.percentage) / 100<span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#000000;">;
+}
+
+
+    </span>*<span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#000000;"> 使用Discount服务
+
+</span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#008000;">/**</span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#008000;">
+ * 商店折扣价格查询器
+ *
+ * </span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#808080;">@param</span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#008000;"> product 商品
+ * </span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#808080;">@return</span>
+ <span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#008000;">*/</span>
+<span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#0000ff;">public</span> <span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#0000ff;">static</span> List&lt;String&gt;<span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#000000;"> findprices(String product) {
+    </span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#0000ff;">return</span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#000000;"> shops
+            .stream()
+            .map(shop </span>-&gt;<span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#000000;">  shop.getPrice(product))
+            .map(Quote::parse)
+            .map(Discount::applyDiscount)
+            .collect(Collectors.toList());
+}
+
+执行结果:
+<img src="Java8 对多个异步任务进行流水线操作(笔记) - Darcy_wang - 博客园_files/939719-20170320174727768-890577336.png" type="image/png" data-filename="939719-20170320174727768-890577336.png" alt="" height="42" style="margin:0px;padding:0px;border:0px;height:auto;max-width:300px;" width="900"/></span></pre>
+<pre style="margin:0px;padding:0px;margin-top:0px;margin-bottom:0px;word-wrap:break-word;white-space:pre-wrap;font-family:&quot;Courier New&quot;;font-size:12px;"><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#000000;">换成并行流:
+</span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#008000;">/**</span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#008000;">
+ * 商店折扣价格查询器
+ *
+ * </span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#808080;">@param</span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#008000;"> product 商品
+ * </span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#808080;">@return</span>
+ <span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#008000;">*/</span>
+<span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#0000ff;">public</span> <span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#0000ff;">static</span> List&lt;String&gt;<span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#000000;"> findprices(String product) {
+    </span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#0000ff;">return</span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#000000;"> shops
+            .parallelStream()
+            .map(shop </span>-&gt;<span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#000000;">  shop.getPrice(product))
+            .map(Quote::parse)
+            .map(Discount::applyDiscount)
+            .collect(Collectors.toList());
+}
+
+执行结果:<br style="margin:0px;padding:0px;"/><img src="Java8 对多个异步任务进行流水线操作(笔记) - Darcy_wang - 博客园_files/939719-20170320174751674-1767184053.png" type="image/png" data-filename="939719-20170320174751674-1767184053.png" alt="" height="42" style="margin:0px;padding:0px;border:0px;height:auto;max-width:300px;" width="900"/></span></pre>
+<pre style="margin:0px;padding:0px;margin-top:0px;margin-bottom:0px;word-wrap:break-word;white-space:pre-wrap;font-family:&quot;Courier New&quot;;font-size:12px;"><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#000000;">看到差距了吧
+
+
+    </span>*<span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#000000;"> 构建同步和异步操作
+
+我们再次使用ComoletableFuture提供的特性.以异步方式重新实现findPrices方法,详细代码如下:
+</span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#008000;">/**</span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#008000;">
+ * 商店折扣价格查询器(CompletableFuture方式)
+ *
+ * </span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#808080;">@param</span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#008000;"> product 商品
+ * </span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#808080;">@return</span>
+ <span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#008000;">*/</span>
+<span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#0000ff;">public</span> <span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#0000ff;">static</span> List&lt;String&gt;<span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#000000;"> findPrices(String product) {
+    List</span>&lt;CompletableFuture&lt;String&gt;&gt; collect =<span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#000000;"> shops
+            .stream()
+            </span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#008000;">//</span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#008000;">以异步凡是取得每个shop中指定产品的原始价格</span>
+            .map(shop -&gt; CompletableFuture.supplyAsync(() -&gt;<span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#000000;"> shop.getPrice(product), executor))
+            </span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#008000;">//</span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#008000;">Quote对象存在时,对其返回值进行转换</span>
+            .map(future -&gt;<span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#000000;"> future.thenApply(Quote::parse))
+            </span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#008000;">//</span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#008000;">使用另一个异步任务构建期望的Future,申请折扣 thenCompose 将多个future组合 一个一个执行</span>
+            .map(future -&gt; future.thenCompose(quote -&gt; CompletableFuture.supplyAsync(() -&gt;<span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#000000;"> Discount.applyDiscount(quote), executor)))
+            .collect(Collectors.toList());
+    </span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#0000ff;">return</span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#000000;"> collect
+            .stream()
+            </span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#008000;">//</span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#008000;">等待流中所有的future执行完毕,并提取各自的返回值</span>
+<span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#000000;">            .map(CompletableFuture::join)
+            .collect(Collectors.toList());
+}
+
+
+    </span>*<span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#000000;"> 对最佳价格查询器应用的优化
+
+上面的所有例子中都是通过响应之前添加1秒延迟的等待时间模拟方法的远程调用,毫无疑问,现实生活中,你的应用访问各个远程服务器时很可能遭遇无法预知的延迟,触发原因多种多样,从服务器的负荷到网络的延迟,有些甚至是源于远程服务如何评估你应用的商业价值,
+由于这些原因,你希望购买的商品在某些原因的查询速度要比另一些商店更快,我们模拟了操作:
+
+</span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#008000;">/**</span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#008000;">
+ * 模拟不同的商店 延迟不一样的情况
+ </span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#008000;">*/</span>
+<span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#0000ff;">public</span> <span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#0000ff;">static</span> <span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#0000ff;">void</span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#000000;"> randomDelay() {
+    </span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#0000ff;">int</span> delay = 500 + random.nextInt(2000<span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#000000;">);
+    </span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#0000ff;">try</span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#000000;"> {
+        Thread.sleep(delay);
+    } </span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#0000ff;">catch</span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#000000;"> (InterruptedException e) {
+        e.printStackTrace();
+    }
+}
+
+重构findPrices方法 返回一个由Future构成的流:
+</span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#008000;">/**</span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#008000;">
+ * 重构findPrices方法 返回一个由Future构成的流
+ *
+ * </span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#808080;">@param</span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#008000;"> product 商品
+ * </span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#808080;">@return</span>
+ <span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#008000;">*/</span>
+<span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#0000ff;">public</span> <span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#0000ff;">static</span> Stream&lt;CompletableFuture&lt;String&gt;&gt;<span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#000000;"> findProcesStream(String product) {
+    </span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#0000ff;">return</span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#000000;"> shops
+            .stream()
+            </span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#008000;">//</span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#008000;">以异步凡是取得每个shop中指定产品的原始价格</span>
+            .map(shop -&gt; CompletableFuture.supplyAsync(() -&gt;<span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#000000;"> shop.getPrice(product), executor))
+            </span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#008000;">//</span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#008000;">Quote对象存在时,对其返回值进行转换</span>
+            .map(future -&gt;<span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#000000;"> future.thenApply(Quote::parse))
+            </span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#008000;">//</span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#008000;">使用另一个异步任务构建期望的Future,申请折扣 thenCompose 将多个future组合 一个一个执行</span>
+            .map(future -&gt; future.thenCompose(quote -&gt; CompletableFuture.supplyAsync(() -&gt;<span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#000000;"> Discount.applyDiscount(quote), executor)));
+}
+
+付诸实现:
+</span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#0000ff;">long</span> start =<span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#000000;"> System.nanoTime();
+CompletableFuture[] futures </span>= findProcesStream(&quot;myPhones27s&quot;<span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#000000;">)
+        </span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#008000;">//</span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#008000;">Java 8的CompletableFuture通过thenAccept方法  他接收CompletableFuture执行完毕的返回值作为参数.</span>
+        .map(f -&gt;<span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#000000;"> f.thenAccept(
+                s </span>-&gt; System.out.println(s + &quot; (done in &quot; +<span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#000000;">
+                        ((System.nanoTime() </span>- start) / 1_000_000) + &quot; msecs)&quot;<span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#000000;">)))
+        .toArray(CompletableFuture[]::</span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#0000ff;">new</span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#000000;">);
+</span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#008000;">//</span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#008000;">allOf工厂方法接收一个由CompletableFuture构成的数组,数组中所有的CompletableFuture对象执行完毕后,它返回一个
+</span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#008000;">//</span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#008000;">CompletableFuture&lt;Void&gt;对象,这意味着你需要等待最初Stream中所有的CompletableFuture对象执行完毕
+</span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#008000;">//</span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#008000;">angOf该方法接收一个CompletableFuture对象构成的数组,返回由第一个执行完毕的CompletableFuture对象的返回值构成的CompletableFuture&lt;Object&gt;</span>
+<span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#000000;">CompletableFuture.allOf(futures).join();
+System.out.println(</span>&quot;All shops have now responded in  &quot; + ((System.nanoTime() - start) / 1_000_000) + &quot; msecs&quot;<span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#000000;">);
+
+执行结果:<br style="margin:0px;padding:0px;"/><img src="Java8 对多个异步任务进行流水线操作(笔记) - Darcy_wang - 博客园_files/939719-20170320174814502-1470359844.png" type="image/png" data-filename="939719-20170320174814502-1470359844.png" alt="" height="142" style="margin:0px;padding:0px;border:0px;height:auto;max-width:300px;" width="644"/></span></pre>
+<p style="padding:0px;margin:10px auto;text-indent:0px;"> </p>
+<pre style="margin:0px;padding:0px;margin-top:0px;margin-bottom:0px;word-wrap:break-word;white-space:pre-wrap;font-family:&quot;Courier New&quot;;font-size:12px;"><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#000000;"> </span></pre>
+<div style="margin:0px;padding:0px;margin-top:5px;background-color:rgb(245, 245, 245);"><span style="margin:0px;padding:0px;padding-right:5px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;"><a href="#" style="margin:0px;padding:0px;color:black;text-decoration:underline;background-color:rgb(245, 245, 245);border:none;" title="复制代码"><img src="Java8 对多个异步任务进行流水线操作(笔记) - Darcy_wang - 博客园_files/copycode [1].gif" type="image/gif" data-filename="copycode.gif" alt="复制代码" height="20" style="margin:0px;padding:0px;height:auto;max-width:300px;border:none;background-color:rgb(245, 245, 245);" width="20"/></a></span></div></div>
+<p style="padding:0px;margin:10px auto;text-indent:0px;"> </p></div>
+<div style="margin:0px;padding:0px;clear:both;"></div>
+<div style="margin:0px;padding:0px;margin-top:20px;">
+<div style="margin:0px;padding:0px;margin-bottom:10px;color:rgb(0, 0, 0);">分类: <a href="http://www.cnblogs.com/ten951/category/910496.html" style="margin:0px;padding:3px 5px;text-decoration:none;background:rgb(221, 221, 221);margin-left:5px;color:rgb(0, 0, 0);" target="_blank">JAVA</a></div>
+<div style="margin:0px;padding:0px;font-size:9pt;color:rgb(0, 0, 0);margin-top:0px;"></div>
+<div style="margin:0px;padding:0px;"><div style="margin:0px;padding:10px 0px;margin-bottom:10px;margin-top:10px;border:1px dashed silver;font-size:12px;width:320px;text-align:center;">
+        <a href="#" style="margin-right:10px;margin:0px;border-radius:10px;padding:3px 8px;text-decoration:none;font-weight:bold;cursor:pointer;display:inline-block;vertical-align:middle;box-shadow:rgba(0, 0, 0, 0.498039) 0px 1px 3px;text-shadow:rgba(0, 0, 0, 0.247059) 0px -1px 1px;background:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAAkCAYAAABIdFAMAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAHhJREFUeNo8zjsOxCAMBFB/KEAUFFR0Cbng3nQPw68ArZdAlOZppPFIBhH5EAB8b+Tlt9MYQ6i1BuqFaq1CKSVcxZ2Acs6406KUgpt5/LCKuVgz5BDCSb13ZO99ZOdcZGvt4mJjzMVKqcha68iIePB86GAiOv8CDADlIUQBs7MD3wAAAABJRU5ErkJggg%3D%3D&quot;) repeat-x;background-color:rgb(45, 174, 191);color:rgb(255, 255, 255);border:none;">好文要顶</a>
+            <a href="#" style="margin-right:10px;margin:0px;border-radius:10px;padding:3px 8px;text-decoration:none;font-weight:bold;cursor:pointer;display:inline-block;vertical-align:middle;box-shadow:rgba(0, 0, 0, 0.498039) 0px 1px 3px;text-shadow:rgba(0, 0, 0, 0.247059) 0px -1px 1px;background:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAAkCAYAAABIdFAMAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAHhJREFUeNo8zjsOxCAMBFB/KEAUFFR0Cbng3nQPw68ArZdAlOZppPFIBhH5EAB8b+Tlt9MYQ6i1BuqFaq1CKSVcxZ2Acs6406KUgpt5/LCKuVgz5BDCSb13ZO99ZOdcZGvt4mJjzMVKqcha68iIePB86GAiOv8CDADlIUQBs7MD3wAAAABJRU5ErkJggg%3D%3D&quot;) repeat-x;background-color:rgb(227, 49, 0);color:rgb(255, 255, 255);border:none;">关注我</a>
+    <a href="#" style="margin-right:10px;margin:0px;border-radius:10px;padding:3px 8px;text-decoration:none;font-weight:bold;cursor:pointer;display:inline-block;vertical-align:middle;box-shadow:rgba(0, 0, 0, 0.498039) 0px 1px 3px;text-shadow:rgba(0, 0, 0, 0.247059) 0px -1px 1px;background:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAAkCAYAAABIdFAMAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAHhJREFUeNo8zjsOxCAMBFB/KEAUFFR0Cbng3nQPw68ArZdAlOZppPFIBhH5EAB8b+Tlt9MYQ6i1BuqFaq1CKSVcxZ2Acs6406KUgpt5/LCKuVgz5BDCSb13ZO99ZOdcZGvt4mJjzMVKqcha68iIePB86GAiOv8CDADlIUQBs7MD3wAAAABJRU5ErkJggg%3D%3D&quot;) repeat-x;background-color:rgb(255, 181, 21);color:rgb(255, 255, 255);border:none;">收藏该文</a>
+    <a href="#" style="margin-right:10px;margin:0px;border-radius:10px;padding:3px 2px;text-decoration:none;font-weight:bold;cursor:pointer;display:inline-block;vertical-align:middle;box-shadow:none;text-shadow:none;background:none;color:rgb(255, 255, 255);border:none;" title="分享至新浪微博"><img src="Java8 对多个异步任务进行流水线操作(笔记) - Darcy_wang - 博客园_files/icon_weibo_24.png" type="image/png" data-filename="icon_weibo_24.png" alt="" height="24" style="margin:0px;padding:0px;height:auto;border:none;vertical-align:middle;margin-left:5px;box-shadow:none;max-width:300px;" width="24"/></a>
+    <a href="#" style="margin-right:10px;margin:0px;border-radius:10px;padding:3px 2px;text-decoration:none;font-weight:bold;cursor:pointer;display:inline-block;vertical-align:middle;box-shadow:none;text-shadow:none;background:none;color:rgb(255, 255, 255);border:none;" title="分享至微信"><img src="Java8 对多个异步任务进行流水线操作(笔记) - Darcy_wang - 博客园_files/wechat.png" type="image/png" data-filename="wechat.png" alt="" height="24" style="margin:0px;padding:0px;border:medium none;width:24px;height:24px;box-shadow:none;margin-left:5px;vertical-align:middle;max-width:300px;" width="24"/></a>
+</div>
+<div style="margin:0px;padding:0px;float:left;width:280px;margin-top:0px;margin-bottom:10px;color:rgb(0, 0, 0);margin-left:0px;font-size:12px;">
+    <div style="margin:0px;padding:0px;float:left;line-height:18px;">
+            <a href="http://home.cnblogs.com/u/ten951/" style="margin:0px;padding:0px;color:black;text-decoration:underline;" target="_blank"><img src="Java8 对多个异步任务进行流水线操作(笔记) - Darcy_wang - 博客园_files/20161117103709.png.jpg" type="image/jpeg" data-filename="20161117103709.png.jpg" alt="" height="48" style="margin:0px;padding:0px;height:auto;border:0px;vertical-align:top;float:left;margin-right:5px;padding-top:5px;padding-left:2px;max-width:300px;" width="48"/></a>
+        <div style="margin:0px;padding:0px;float:left;line-height:18px;">
+            <a href="http://home.cnblogs.com/u/ten951/" style="margin:0px;padding:0px;color:black;text-decoration:underline;">Darcy_wang</a><br style="margin:0px;padding:0px;"/>
+            <a href="http://home.cnblogs.com/u/ten951/followees" style="margin:0px;padding:0px;color:black;text-decoration:underline;">关注 - 0</a><br style="margin:0px;padding:0px;"/>
+            <a href="http://home.cnblogs.com/u/ten951/followers" style="margin:0px;padding:0px;color:black;text-decoration:underline;">粉丝 - 2</a>
+        </div>
+    </div>
+    <div style="margin:0px;padding:0px;clear:both;"></div>
+    <div style="margin:0px;padding:0px;"></div>
+    <div style="margin:0px;padding:0px;">
+                <a href="#" style="margin:0px;padding:0px;color:black;text-decoration:underline;">+加关注</a>
+    </div>
+</div>
+<div style="margin:0px;padding:0px;float:right;margin-bottom:10px;margin-right:30px;font-size:12px;width:125px;text-align:center;margin-top:10px;">
+    <div style="margin:0px;padding:0px;float:left;width:46px;height:52px;background:url(&quot;http://static.cnblogs.com/images/upup.gif&quot;) no-repeat;text-align:center;cursor:pointer;margin-top:2px;padding-top:5px;">
+        <span style="margin:0px;padding:0px;font-size:14px;color:rgb(7, 93, 179);font-family:Verdana;line-height:1.5em;">0</span>
+    </div>
+    <div style="text-align:center;padding:0px;margin:0px;height:52px;background:url(&quot;http://static.cnblogs.com/images/downdown.gif&quot;) no-repeat;margin-left:20px;cursor:pointer;margin-top:2px;padding-top:5px;width:46px;float:right;">
+        <span style="margin:0px;padding:0px;font-size:14px;color:rgb(7, 93, 179);font-family:Verdana;line-height:1.5em;">0</span>
+    </div>
+    <div style="margin:0px;padding:0px;clear:both;"></div>
+    <div style="margin:0px;padding:0px;margin-top:5px;margin-left:0px;font-size:12px;color:gray;">
+    </div>
+</div>
+</div>
+<div style="margin:0px;padding:0px;clear:both;"></div>
+<div style="margin:0px;padding:0px;line-height:1.8;font-size:12px;"><a href="http://www.cnblogs.com/ten951/p/6590633.html" style="margin:0px;padding:0px;color:black;text-decoration:none;">« </a> 上一篇：<a href="http://www.cnblogs.com/ten951/p/6590633.html" style="margin:0px;padding:0px;color:black;text-decoration:underline;" title="发布于2017-03-20 17:45">Java8 CompletableFuture组合式的编程(笔记)</a><br style="margin:0px;padding:0px;"/></div>
+</div>
+
+
+		</div>
+		<div style="color:rgb(102, 102, 102);margin:0px;padding:0px;clear:both;border-top:1px solid rgb(221, 221, 221);padding-top:1.6em;margin-left:20px;margin-bottom:20px;text-align:right;padding-right:5px;width:100%;margin-top:5px;float:right;">posted @ <span style="margin:0px;padding:0px;">2017-03-20 17:49</span> <a href="http://www.cnblogs.com/ten951/" style="margin:0px;padding:0px;text-decoration:none;color:rgb(102, 102, 102);">Darcy_wang</a> 阅读(<span style="margin:0px;padding:0px;">675</span>) 评论(<span style="margin:0px;padding:0px;">0</span>)  <a href="https://i.cnblogs.com/EditPosts.aspx?postid=6590661" rel="nofollow" style="margin:0px;padding:0px;text-decoration:none;color:rgb(102, 102, 102);">编辑</a> <a href="http://www.cnblogs.com/ten951/p/6590661.html#" style="margin:0px;padding:0px;text-decoration:none;color:rgb(102, 102, 102);">收藏</a></div>
+	</div></div></div></div></div></div></div></div></div></div><br/></div></span>
+</div></body></html> 

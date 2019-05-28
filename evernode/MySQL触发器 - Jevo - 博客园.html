@@ -1,0 +1,383 @@
+<html>
+<head>
+  <title>MySQL触发器 - Jevo - 博客园</title>
+  <basefont face="微软雅黑" size="2" />
+  <meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+  <meta name="exporter-version" content="YXBJ Windows/600718 (zh-CN, DDL); Windows/6.1.1 (Win64);"/>
+  <style>
+    body, td {
+      font-family: 微软雅黑;
+      font-size: 10pt;
+    }
+  </style>
+</head>
+<body>
+<a name="6517"/>
+<h1>MySQL触发器 - Jevo - 博客园</h1>
+<div>
+<table bgcolor="#D4DDE5" border="0">
+<tr><td><b>创建时间：</b></td><td><i>2017/3/29 17:01</i></td></tr>
+<tr><td><b>来源：</b></td><td><a href="http://www.cnblogs.com/jevo/p/3272505.html"><i>http://www.cnblogs.com/jevo/p/3272505.html</i></a></td></tr>
+</table>
+</div>
+<br/>
+
+<div><span><div style="-evernote-webclip:true"><br/><div style="font-size: 16px; display: inline-block;"><div><div style="font-family:&quot;PingFang SC&quot;, &quot;Helvetica Neue&quot;, Helvetica, Arial, sans-serif;color:rgb(0, 0, 0);background:url(&quot;/Skins/coffee/images/bg_body.gif&quot;) left top;line-height:1.5;font-size:14px;"><div style="min-width:auto;"><div style="min-width:auto;text-align:left;"><div style="background:transparent;text-align:left;overflow-x:hidden;"><div style="background:url(&quot;/Skins/coffee/images/bg_left.gif&quot;) left top repeat-x rgb(254, 254, 242);"><div><div style="text-overflow:ellipsis;overflow:hidden;word-break:break-all;"><div>
+		<h1 style="margin:0px;padding:0px;width:100%;clear:both;font-weight:bold;float:left;line-height:1.5;font-size:14px;padding-left:5px;">
+			<a href="http://www.cnblogs.com/jevo/p/3272505.html" style="margin:0px;padding:0px;text-decoration:none;color:rgb(7, 93, 179);">MySQL触发器</a>
+		</h1>
+		<div style="margin:0px;padding:0px;clear:both;"></div>
+		<div style="margin:0px;padding:5px 2px 5px 5px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin-top:5px;">
+			<div style="margin:0px;padding:0px;margin-bottom:20px;word-break:break-word;"><p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">        触发器是一种特殊的存储过程，是嵌入到mysql的一段程序，它在插入，删除或修改特定表中的数据时触发执行。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">        数据库触发器有以下的作用：</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">1．安全性。可以基于数据库的值使用户具有操作数据库的某种权利，允许或限制对表的修改：</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">         # 可以基于时间限制用户的操作，例如不允许下班后和节假日修改数据库数据。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">         # 可以基于数据库中的数据限制用户的操作，例如不允许股票的价格的升幅一次超过10%。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">2．提供审计和日志记录。例：跟踪用户对数据库的操作。   </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">         # 审计用户操作数据库的语句。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">         # 把用户对数据库的更新写入审计表，更新日志记录。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">3．实现复杂的数据完整性规则</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">         # 实现非标准的数据完整性检查和约束。触发器可产生比规则更为复杂的限制。与规则不同，触发器可以引用列或数据库对象。例如，触发器可回退任何企图吃进超过自己保证金的期货。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">          # 提供可变的缺省值。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">4．实现强制数据的一致性规则。触发器可以对数据库中相关的表进行连环更新。例如，在auths表author_code列上的删除触发器可导致相应删除在其它表中的与之匹配的行。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">          # 在修改或删除时级联修改或删除其它表中的与之匹配的行。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">          # 在修改或删除时把其它表中的与之匹配的行设成NULL值。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">          # 在修改或删除时把其它表中的与之匹配的行级联设成缺省值。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">          # 触发器能够拒绝或回退那些破坏相关完整性的变化，取消试图进行数据更新的事务。当插入一个与其主健不匹配的外部键时，这种触发器会起作用。例如，可以在books.author_code 列上生成一个插入触发器，如果新值与auths.author_code列中的某值不匹配时，插入被回退。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">5．同步实时地复制表中的数据。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">6．自动计算数据值，如果数据的值达到了一定的要求，则进行特定的处理。例如，如果公司的帐号上的资金低于5万元则立即给财务人员发送警告数据。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">7．自动派生列，如自增字段</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">8．启动复杂的业务逻辑，防止无效的事务处理</p>
+<table border="1" cellpadding="0" cellspacing="0" style="border-collapse:collapse;font-size:inherit;font-style:inherit;font-variant:inherit;padding:0px;font-weight:inherit;margin:0px;word-break:break-word;border:1px solid silver;display:block;overflow-x:scroll;">
+<tbody style="margin:0px;padding:0px;">
+<tr style="margin:0px;padding:0px;">
+<td style="margin:0px;border:1px solid silver;border-collapse:collapse;padding:3px;white-space:nowrap;" valign="top" width="590">
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"><strong style="margin:0px;padding:0px;">数据完整性（Data Integrity</strong><strong style="margin:0px;padding:0px;">）</strong>是指数据的精确性（Accuracy） 和可靠性（Reliability）。它是应防止数据库中存在不符合语义规定的数据和防止因错误信息的输入输出造成无效操作或错误信息而提出的。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"><strong style="margin:0px;padding:0px;">数据库一致性（Database Consistency</strong><strong style="margin:0px;padding:0px;">）</strong>是指事务执行的结果必须是使数据库从一个一致性状态变到另一个一致性状态。保证数据库一致性是指当事务完成时，必须使所有数据都具有一致的状态。在关系型数据库中，所有的规则必须应用到事务的修改上，以便维护所有数据的完整性。</p>
+</td>
+</tr>
+</tbody>
+</table>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"> </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">通常触发器具有四要素：</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">   • 监视地点：监视的哪个表？</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">   •监视操作：insert,update,delete?</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">   •触发操作：insert,update,delete?</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">   •触发时间：after,before?</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"> </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"><strong style="margin:0px;padding:0px;">Mysql</strong><strong style="margin:0px;padding:0px;">触发器的使用</strong><br style="margin:0px;padding:0px;"/><br style="margin:0px;padding:0px;"/></p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">1）Mysql创建触发器<br style="margin:0px;padding:0px;"/>        create trigger &lt;触发器名称&gt; { before | after} {insert | update | delete} on &lt;表名&gt; for each row &lt;触发器SQL语句&gt;<br style="margin:0px;padding:0px;"/>        create trigger &lt;触发器名称&gt;：创建一个新触发器，并指定触发器的名称。<br style="margin:0px;padding:0px;"/>        { before | after}：用于指定在insert、update或delete语句执行前触发还是在语句执行后触发。<br style="margin:0px;padding:0px;"/>        on &lt;表名&gt;：用于指定响应该触发器的表名。<br style="margin:0px;padding:0px;"/>        for each row：触发器的执行间隔，for each row 通知触发器每隔一行执行一次动作，而不是对整个表执行一次。<br style="margin:0px;padding:0px;"/>        &lt;触发器SQL语句&gt;：触发器要执行的SQL语句，如果该触发器要执行多条SQL语句，要将多条语句放在begin…end块中。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"> </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">2）Mysql查看触发器</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">        如果知道触发器所在数据库，以及触发器名称等具体信息：<br style="margin:0px;padding:0px;"/>              SHOW TRIGGERS from 库名 like &quot;触发器名%&quot;;<br style="margin:0px;padding:0px;"/>         如果不了解触发器的具体的信息，或者需要查看数据库上所有触发器，如下：<br style="margin:0px;padding:0px;"/>                SHOW TRIGGERS;       //查看所有触发器<br style="margin:0px;padding:0px;"/>          用上述方式查看触发器可以看到数据库的所有触发器，也可以通过information_schema.TRIGGERS表查看：(information_schema.TRIGGERS表，存储所有库中的所有触发器)<br style="margin:0px;padding:0px;"/>           select * from information_schema. TRIGGERS where TRIGGER_NAME= '触发器名' \G;<br style="margin:0px;padding:0px;"/><br style="margin:0px;padding:0px;"/>3）删除触发器<br style="margin:0px;padding:0px;"/>           DROP TRIGGER [schema_name.]trigger_name</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"> </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">4）触发器类型</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">        在一个表上最多建立6个触发器，即（1）before insert型、（2）before update型、（3）before delete型、（4）after insert型、（5）after update型、（6）after delete型。<br style="margin:0px;padding:0px;"/>        触发器的一个限制是不能同时在一个表上建立2个相同类型的触发器。这个限制的一个来源是触发器程序体的“begin和end之间允许运行多个语句”（摘自mysql使用手册）。<br style="margin:0px;padding:0px;"/>         另外还有一点需要注意，msyql除了对insert，update，delete基本操作进行定义外，还定义了load data和replace语句，而load data和replace语句也能引起上述6中类型的触发器的触发。<br style="margin:0px;padding:0px;"/>          Load data语句用于将一个文件装入到一个数据表中，相当与一系列insert操作。replace语句一般来说和insert语句很像，只是在表中有 primary key和unique索引时，如果插入的数据和原来primary key和unique索引一致时，会先删除原来的数据，然后增加一条新数据；也就是说，一条replace sql有时候等价于一条insert sql，有时候等价于一条delete sql加上一条insert sql。即是：<br style="margin:0px;padding:0px;"/>    •   Insert型触发器：可能通过insert语句，load data语句，replace语句触发；<br style="margin:0px;padding:0px;"/>    •   Update型触发器：可能通过update语句触发；<br style="margin:0px;padding:0px;"/>    •   Delete型触发器：可能通过delete语句，replace语句触发；</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"> </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">          触发程序不能调用将数据返回客户端的存储程序，也不能使用采用CALL语句的动态SQL<br style="margin:0px;padding:0px;"/>（允许存储程序通过参数将数据返回触发程序）。<br style="margin:0px;padding:0px;"/>          触发程序不能使用以显式或隐式方式开始或结束事务的语句，如START TRANSACTION、<br style="margin:0px;padding:0px;"/>COMMIT或ROLLBACK。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">          使用OLD和NEW关键字，能够访问受触发程序影响的行中的列（OLD和NEW不区分大小写）。<br style="margin:0px;padding:0px;"/>          在INSERT触发程序中，仅能使用NEW.col_name，没有旧行。在DELETE触发程序中，仅能使用OLD.col_name，没有新行。在UPDATE触发程序中，可以使用OLD.col_name来引用更新前的某一行的列，也能使用NEW.col_name来引用更新后的行中的列。<br style="margin:0px;padding:0px;"/>          用OLD命名的列是只读的。你可以引用它，但不能更改它。对于用NEW命名的列，如果具有SELECT权限，可引用它。在<strong style="margin:0px;padding:0px;">BEFORE</strong>触发程序中，如果你具有UPDATE权限，可使用“SET NEW.col_name = value”更改它的值。这意味着，你可以使用触发程序来更改将要插入到新行中的值，或用于更新行的值。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">        在BEFORE触发程序中，AUTO_INCREMENT列的NEW值为0，不是实际插入新记录时将自动生成的序列号。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">        通过使用BEGIN ... END结构，能够定义执行多条语句的触发程序。在BEGIN块中，还能使用存储子程序中允许的其他语法，如条件和循环等。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">例1：在before update中使用NEW和OLD关键字</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">i. 建立触发器:</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">mysql&gt; delimiter //</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">mysql&gt; create trigger trigger_before_tb_update before update on tb for each row</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">    -&gt; begin</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">    -&gt;   insert into tb11 values(1, old.name, 20);</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">    -&gt;   insert into tb11 values(2, new.name, 22);</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">    -&gt; end</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">    -&gt; //</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">mysql&gt; delimiter ;</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"> </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">ii. 查看数据表</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">mysql&gt; select * from tb;</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">+------+------+-----+</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">| id   | Name | Age |</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">+------+------+-----+</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">|    1 | aa   |  20 |</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">| 1001 | dd   |  20 |</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">+------+------+-----+</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">2 rows in set (0.00 sec)</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"> </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">mysql&gt; select * from tb11;</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">Empty set (0.02 sec)</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"> </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">iii. 执行sql:</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">mysql&gt; update tb set name='bb' where id=1;   //触发触发器执行</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">Query OK, 1 row affected (0.06 sec)</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">Rows matched: 1  Changed: 1  Warnings: 0</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"> </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">iv. 再次查看</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">mysql&gt; select * from tb;</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">+------+------+-----+</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">| id   | Name | Age |</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">+------+------+-----+</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">|    1 | bb   |  20 |</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">| 1001 | dd   |  20 |</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">+------+------+-----+</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">2 rows in set (0.00 sec)</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"> </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">mysql&gt; select * from tb11;</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">+------+------+-----+</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">| id   | Name | Age |</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">+------+------+-----+</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">|    1 | aa   |  20 |</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">|    2 | bb   |  22 |</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">+------+------+-----+</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">2 rows in set (0.00 sec)</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"> </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">可以看到，OLD和NEW分别代表执行update操作前后的值。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"> </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">例2：在after update中使用NEW和OLD关键字</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">i. 建立触发器:</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">mysql&gt; delimiter //</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">mysql&gt; create trigger trigger_after_tb_update after update on tb for each row</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">    -&gt; begin</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">    -&gt;   insert into tb11 values(1, old.name, 20);</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">    -&gt;   insert into tb11 values(2, new.name, 22);</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">    -&gt; end</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">    -&gt; //</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">mysql&gt; delimiter ;</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"> </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">ii. 查看数据表</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">mysql&gt; select * from tb;</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">+------+------+-----+</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">| id   | Name | Age |</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">+------+------+-----+</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">|    1 | bb   |  20 |</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">| 1001 | dd   |  20 |</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">+------+------+-----+</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">2 rows in set (0.00 sec)</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"> </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">mysql&gt; select * from tb11;</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">Empty set (0.00 sec)</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"> </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">iii. 执行sql:</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">mysql&gt; update tb set name='aa' where id=1;   //触发触发器执行</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">Query OK, 1 row affected (0.05 sec)</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">Rows matched: 1  Changed: 1  Warnings: 0</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"> </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">iv. 再次查看</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">mysql&gt; select * from tb;</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">+------+------+-----+</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">| id   | Name | Age |</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">+------+------+-----+</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">|    1 | aa   |  20 |</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">| 1001 | dd   |  20 |</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">+------+------+-----+</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">2 rows in set (0.00 sec)</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"> </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">mysql&gt; select * from tb11;</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">+----+------+-----+</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">| id | Name | Age |</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">+----+------+-----+</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">|  1 | bb   |  20 |</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">|  2 | aa   |  22 |</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">+----+------+-----+</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">2 rows in set (0.00 sec)</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"> </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">同样可以看到，OLD和NEW分别代表执行update操作前后的值。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"> </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">例3．在触发器中更改NEW的值</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">i. 建立触发器:</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">mysql&gt; delimiter //</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">mysql&gt; create trigger trigger_before_tb_update before update on tb for each row</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">    -&gt; begin</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">    -&gt;   insert into tb11 values(1, old.name, 20);</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">    -&gt;   set new.name = 'changename';</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">    -&gt;   insert into tb11 values(2, new.name, 22);</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">    -&gt; end</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">    -&gt; //</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">mysql&gt; delimiter ;</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"> </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">ii. 查看数据表</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">mysql&gt; select * from tb;</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">+----+------+-----+</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">| id | Name | Age |</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">+----+------+-----+</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">|  1 | aa   |  20 |</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">+----+------+-----+</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">1 row in set (0.00 sec)</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"> </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">mysql&gt; select * from tb11;</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">Empty set (0.00 sec)</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"> </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">iii. 执行sql:</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">mysql&gt; update tb set name='bb' where id=1;   //触发触发器执行</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">Query OK, 1 row affected (0.06 sec)</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">Rows matched: 1  Changed: 1  Warnings: 0</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"> </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">iv. 再次查看</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">mysql&gt; select * from tb;</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">+----+------------+-----+</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">| id | Name       | Age |</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">+----+------------+-----+</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">|  1 | changename |  20 |</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">+----+------------+-----+</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">1 row in set (0.00 sec)</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"> </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">mysql&gt; select * from tb11;</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">+----+------------+-----+</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">| id | Name       | Age |</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">+----+------------+-----+</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">|  1 | aa         |  20 |</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">|  2 | changename |  22 |</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">+----+------------+-----+</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">2 rows in set (0.00 sec)</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"> </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">可以看到，在触发器中更新NEW的值，将直接影响到触发表中的更新。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"> </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">例4．在after update中尝试修改NEW值</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">i. 建立触发器:</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">mysql&gt; delimiter //</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">mysql&gt; create trigger trigger_after_tb_update after update on tb for each row</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">    -&gt; begin</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">    -&gt;   insert into tb11 values(1, old.name, 20);</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">    -&gt;   set new.name = 'changename';</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">    -&gt;   insert into tb11 values(2, new.name, 22);</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">    -&gt; end</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">    -&gt; //</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">ERROR 1362 (HY000): Updating of NEW row is not allowed in after trigger</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">mysql&gt; delimiter ;</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"> </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">可以看到，在after update类型触发器中不允许修改NEW值。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"> </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"><strong style="margin:0px;padding:0px;">3   Mysql</strong><strong style="margin:0px;padding:0px;">触发器的执行顺序</strong><br style="margin:0px;padding:0px;"/>        先抛出触发器相关的几个问题<br style="margin:0px;padding:0px;"/><strong style="margin:0px;padding:0px;">3.1   </strong><strong style="margin:0px;padding:0px;">如果before</strong><strong style="margin:0px;padding:0px;">类型的触发器程序执行失败，sql</strong><strong style="margin:0px;padding:0px;">会执行成功吗？</strong><br style="margin:0px;padding:0px;"/>实验如下：<br style="margin:0px;padding:0px;"/>1）建立before触发器：</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">mysql&gt; delimiter //</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">mysql&gt; create trigger trigger_before_tb_update before update on tb for each row</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">    -&gt; begin</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">    -&gt; insert into tbx values(2, 'trigger_before', 22);</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">    -&gt; end</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">    -&gt; //</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">mysql&gt; delimiter ;</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"><br style="margin:0px;padding:0px;"/>2）查看：</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">mysql&gt; select * from tb;</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">+------+--------+-----+</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">| id   | Name   | Age |</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">+------+--------+-----+</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">|    1 | tejevo |  20 |</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">| 1001 | dd     |  20 |</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">+------+--------+-----+</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"><br style="margin:0px;padding:0px;"/>3）执行sql：</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">mysql&gt; update tb set name='aa' where id=1;       触发触发器程序;<br style="margin:0px;padding:0px;"/><br style="margin:0px;padding:0px;"/></p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">4）由于不存在tbx，before触发器执行失败，提示：<br style="margin:0px;padding:0px;"/>ERROR 1146 (42S02): Table 'testdb.tbx' doesn't exist</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"><br style="margin:0px;padding:0px;"/>5）再次查看：<br style="margin:0px;padding:0px;"/>mysql&gt; select * from tb where id=1;</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">+----+--------+-----+</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">| id | Name   | Age |</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">+----+--------+-----+</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">|  1 | tejevo |  20 |</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">+----+--------+-----+</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">修改sql未执行成功。即如果before触发器执行失败，sql也会执行失败。<br style="margin:0px;padding:0px;"/><br style="margin:0px;padding:0px;"/></p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"><strong style="margin:0px;padding:0px;">3.2   </strong><strong style="margin:0px;padding:0px;">如果sql</strong><strong style="margin:0px;padding:0px;">执行失败，会执行after</strong><strong style="margin:0px;padding:0px;">类型的触发器程序吗？</strong><br style="margin:0px;padding:0px;"/>实验如下：<br style="margin:0px;padding:0px;"/>1）建立after触发器：<br style="margin:0px;padding:0px;"/>mysql&gt; delimiter //</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">mysql&gt; create trigger trigger_after_tb_update after update on tb for each row</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">    -&gt; begin</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">    -&gt; insert into tb11(id, name, age, sex) values(2, 'bb', 20, m);</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">    -&gt; end</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">    -&gt; //</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">mysql&gt; delimiter ;</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"><br style="margin:0px;padding:0px;"/><br style="margin:0px;padding:0px;"/>2）查看触发表：<br style="margin:0px;padding:0px;"/>mysql&gt; select * from tb11;</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">Empty set (0.05 sec)</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">没有记录</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"><br style="margin:0px;padding:0px;"/>3）执行sql：<br style="margin:0px;padding:0px;"/>mysql&gt; update tb set name='aa' where id=1;       触发触发器程序;<br style="margin:0px;padding:0px;"/><br style="margin:0px;padding:0px;"/>4）由于不存在sex列，提示错误：<br style="margin:0px;padding:0px;"/>ERROR 1054 (42S22): Unknown column 'sex' in 'field list'</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"><br style="margin:0px;padding:0px;"/>5）再次查看触发表：<br style="margin:0px;padding:0px;"/>mysql&gt; select * from tb11;</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">Empty set (0.00 sec)<br style="margin:0px;padding:0px;"/>没有记录。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">sql在执行失败时，after型触发器不会执行。<br style="margin:0px;padding:0px;"/><br style="margin:0px;padding:0px;"/><strong style="margin:0px;padding:0px;">3.3   </strong><strong style="margin:0px;padding:0px;">如果after</strong><strong style="margin:0px;padding:0px;">类型的触发器程序执行失败，sql</strong><strong style="margin:0px;padding:0px;">会回滚吗？</strong><br style="margin:0px;padding:0px;"/>实验如下：<br style="margin:0px;padding:0px;"/>1）建立after触发器：<br style="margin:0px;padding:0px;"/>mysql&gt; select * from tb11;</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">Empty set (0.00 sec)</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"><br style="margin:0px;padding:0px;"/>2）查看：</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">mysql&gt; select * from tb;</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">+------+--------+-----+</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">| id   | Name   | Age |</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">+------+--------+-----+</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">|    1 | tejevo |  20 |</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">| 1001 | dd     |  20 |</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">+------+--------+-----+</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">2 rows in set (0.00 sec)</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"> <br style="margin:0px;padding:0px;"/>3）执行sql：<br style="margin:0px;padding:0px;"/>mysql&gt; update tb set name='aa' where id=1;       触发触发器程序;</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"><br style="margin:0px;padding:0px;"/>4）由于不存在sex列，提示错误：<br style="margin:0px;padding:0px;"/>ERROR 1054 (42S22): Unknown column 'sex' in 'field list'</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"> </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">5）再次查看：<br style="margin:0px;padding:0px;"/>mysql&gt; select * from tb;</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">+------+--------+-----+</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">| id   | Name   | Age |</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">+------+--------+-----+</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">|    1 | tejevo |  20 |</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">| 1001 | dd     |  20 |</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">+------+--------+-----+</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">2 rows in set (0.00 sec)</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">即修改sql未执行成功。即如果after触发器执行失败，sql会回滚。<br style="margin:0px;padding:0px;"/><br style="margin:0px;padding:0px;"/>注：上述实验所使用的mysql引擎是innodb。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">        <strong style="margin:0px;padding:0px;"> “</strong><strong style="margin:0px;padding:0px;">对于事务性表，如果触发程序失败（以及由此导致的整个语句的失败），该语句所执行的所有更改将回滚。对于非事务性表，不能执行这类回滚</strong>”（摘自mysql使用手册）。因而，即使语句失败，失败之前所作的任何更改依然有效，也就是说，<strong style="margin:0px;padding:0px;">对于</strong><strong style="margin:0px;padding:0px;"> innodb</strong><strong style="margin:0px;padding:0px;">引擎上的数据表，如果触发器中的sql</strong><strong style="margin:0px;padding:0px;">或引发触发器的sql</strong><strong style="margin:0px;padding:0px;">执行失效，则事务回滚，所有操作会失效。</strong><br style="margin:0px;padding:0px;"/>        对于事务性表，如果触发程序失败（以及由此导致的整个语句的失败），该语句所执行的所有更改将回滚。对于非事务性表，不能执行这类回滚，因而，即使语句失败，失败之前所作的任何更改依然有效。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"><br style="margin:0px;padding:0px;"/><strong style="margin:0px;padding:0px;">3.4   mysql</strong><strong style="margin:0px;padding:0px;">触发器程序执行的顺序</strong><br style="margin:0px;padding:0px;"/>        当一个表既有before类型的触发器，又有after类型的触发器时；当一条sql语句涉及多个表的update时，sql、触发器的执行顺序经过mysql源码包装过，有时比较复杂。<br style="margin:0px;padding:0px;"/>        可以先看一段mysql的源代码，当SQL中update多表的时候，Mysql的执行过程如下（省去了无关代码）：<br style="margin:0px;padding:0px;"/><br style="margin:0px;padding:0px;"/>/* 遍历要更新的所有表 */<br style="margin:0px;padding:0px;"/>for (cur_table= update_tables; cur_table; cur_table= cur_table-&gt;next_local)<br style="margin:0px;padding:0px;"/>{<br style="margin:0px;padding:0px;"/>    org_updated = updated<br style="margin:0px;padding:0px;"/>    /* 如果有 BEFORE 触发器，则执行；如果执行失败，跳到err2位置 */<br style="margin:0px;padding:0px;"/>    if (table-&gt;triggers &amp;&amp; <br style="margin:0px;padding:0px;"/>table-&gt;triggers-&gt;process_triggers(thd, TRG_EVENT_UPDATE,TRG_ACTION_BEFORE, TRUE))<br style="margin:0px;padding:0px;"/>        goto err2;<br style="margin:0px;padding:0px;"/>    /*执行更新，如果更新失败，跳到err位置*/<br style="margin:0px;padding:0px;"/>    if(local_error=table-&gt;file-&gt;update_row(table-&gt;record[1], table-&gt;record[0])))<br style="margin:0px;padding:0px;"/>        goto err;<br style="margin:0px;padding:0px;"/>    updated++; // 更新计数器<br style="margin:0px;padding:0px;"/>    /* 如果有 AFTER 触发器，则执行；如果执行失败，跳到err2位置*/<br style="margin:0px;padding:0px;"/>    if (table-&gt;triggers &amp;&amp;<br style="margin:0px;padding:0px;"/>table-&gt;triggers-&gt;process_triggers(thd, TRG_EVENT_UPDATE, TRG_ACTION_AFTER, TRUE))<br style="margin:0px;padding:0px;"/>        goto err2;<br style="margin:0px;padding:0px;"/>    err:<br style="margin:0px;padding:0px;"/>    {<br style="margin:0px;padding:0px;"/>        /*标志错误信息，写日志等*/<br style="margin:0px;padding:0px;"/>    }<br style="margin:0px;padding:0px;"/>    err2:<br style="margin:0px;padding:0px;"/>    {<br style="margin:0px;padding:0px;"/>        /*恢复执行过的操作*/<br style="margin:0px;padding:0px;"/>        check_opt_it.rewind();<br style="margin:0px;padding:0px;"/>        /*如果执行了更新，且表是有事务的，做标志*/<br style="margin:0px;padding:0px;"/>        if (updated != org_updated)<br style="margin:0px;padding:0px;"/>        {<br style="margin:0px;padding:0px;"/>            if (table-&gt;file-&gt;has_transactions())<br style="margin:0px;padding:0px;"/>                transactional_tables= 1;<br style="margin:0px;padding:0px;"/>            }<br style="margin:0px;padding:0px;"/>        }<br style="margin:0px;padding:0px;"/>    }<br style="margin:0px;padding:0px;"/><br style="margin:0px;padding:0px;"/>        从上面代码可以找到本章开始时抛出问题的答案。<br style="margin:0px;padding:0px;"/>1）   如果before型触发器执行失败，直接goto跳到err2位置，不会执行后续sql语句；<br style="margin:0px;padding:0px;"/>2）   如果sql执行失败，直接goto跳到err位置，不会执行或许的after型触发器；<br style="margin:0px;padding:0px;"/>3）   如过after触发器执行失败，goto到err2位置，恢复执行过的操作，且在事务型的表上做标记。<br style="margin:0px;padding:0px;"/>        另外，在使用复杂的sql时，由于有些复杂的sql是mysql自己定义的，所以存在不确定性，使用简单的sql比较可控。<br style="margin:0px;padding:0px;"/><br style="margin:0px;padding:0px;"/><strong style="margin:0px;padding:0px;">4   Mysql</strong><strong style="margin:0px;padding:0px;">触发器在数据库同步中的表现</strong><br style="margin:0px;padding:0px;"/><strong style="margin:0px;padding:0px;">4.1   </strong><strong style="margin:0px;padding:0px;">触发器运行失败时，数据库同步会失败吗？</strong><br style="margin:0px;padding:0px;"/>        有同步关系如下dbA?dbB。初始时同步正常。<br style="margin:0px;padding:0px;"/><br style="margin:0px;padding:0px;"/>1）在dbB上建立触发器：</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">mysql&gt; delimiter //</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">mysql&gt; create trigger trigger_before_tb_update before update on tb for each row</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">    -&gt; begin</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">    -&gt; insert into tbx values(2, 'trigger_before', 22);</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">    -&gt; end</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">    -&gt; //</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">mysql&gt; delimiter ;</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"> </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">2) 查看：</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">mysql&gt; select * from dbA.tb;</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">+------+------+-----+</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">| id   | Name | Age |</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">+------+------+-----+</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">|    1 | aa   |  20 |</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">| 1001 | dd   |  20 |</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">+------+------+-----+</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">2 rows in set (0.00 sec)</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"> </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">3）在dbA上执行sql，执行成功；<br style="margin:0px;padding:0px;"/>mysql&gt; update tb set name='bb' where id=1;       触发触发器程序;</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"><br style="margin:0px;padding:0px;"/>4）由于dbB上没有tbx表，触发器会执行失败，这时，检查一下同步状态：</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">Slave_IO_Running: Yes<br style="margin:0px;padding:0px;"/>Slave_SQL_Running: NO<br style="margin:0px;padding:0px;"/>Last_Errno: 1146<br style="margin:0px;padding:0px;"/>Last_Error: Error 'Table 'tbx' doesn't exist' on query. </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"><br style="margin:0px;padding:0px;"/>        可以看到IO线程运行正常，sql线程运行失败，并提示触发器运行失败的错误信息。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">        无论是before部分的触发器还是after类型的触发器，对于innodb引擎，当触发器执行失败时，相应sql也会执行失败，所以数据库同步也会失败。<br style="margin:0px;padding:0px;"/><br style="margin:0px;padding:0px;"/><strong style="margin:0px;padding:0px;">4.2   </strong><strong style="margin:0px;padding:0px;">创建、删除触发器写bin-log</strong><br style="margin:0px;padding:0px;"/>        创建和删除触发器的语句也会写入bin-log里，所以也会如一般的insert，update，delete语句一样同步到下游数据库中，即上游创建触发器，下游也会创建。<br style="margin:0px;padding:0px;"/>        这里再引出两个小问题：有同步关系dbA?dbB，<br style="margin:0px;padding:0px;"/>1）   在dbA上创建一个触发器，如果dbB上已经有同表同类型的触发器，同步状态如何？<br style="margin:0px;padding:0px;"/>2）   在dbB上删除一个触发器，如果dbB上没有对应触发器，同步状态如何？<br style="margin:0px;padding:0px;"/>        这两个问题可以类比同步中的insert语句和delete语句，答案就是<br style="margin:0px;padding:0px;"/>1）   同步失败，因为不允许重复创建同表同类型的触发器；<br style="margin:0px;padding:0px;"/>2）   同步正常，因为drop一个不存在的触发器，不影响运行结果；<br style="margin:0px;padding:0px;"/><br style="margin:0px;padding:0px;"/><strong style="margin:0px;padding:0px;">5   Mysql</strong><strong style="margin:0px;padding:0px;">触发器经典案例</strong><br style="margin:0px;padding:0px;"/>5.1   案例1 一条sql涉及多个表的update时，触发得到update之前的旧值<br style="margin:0px;padding:0px;"/>【现象】表test_info上建有触发器如下：<br style="margin:0px;padding:0px;"/>CREATE /*!50017 DEFINER = 'root'@'localhost' */ TRIGGER trig_test_info_update<br style="margin:0px;padding:0px;"/>AFTER UPDATE<br style="margin:0px;padding:0px;"/>ON FC_Word.test_info FOR EACH ROW<br style="margin:0px;padding:0px;"/>BEGIN<br style="margin:0px;padding:0px;"/>DECLARE tlevel INTEGER DEFAULT 0;<br style="margin:0px;padding:0px;"/>DECLARE ttype INTEGER DEFAULT 0;<br style="margin:0px;padding:0px;"/>SET tlevel = 4;<br style="margin:0px;padding:0px;"/>SET ttype = 33;<br style="margin:0px;padding:0px;"/>INSERT INTO TEST_Output.fcevent (te, le, uid, pid, uid, wid, bi, mbid, wl) SELECT ttype, tlevel, NEW.uid, NEW.pid, NEW.uid, NEW.wid, NEW.bi, NEW.mbid, wl FROM TEST_Word.wext2 where wid = NEW.wid;<br style="margin:0px;padding:0px;"/>/*。。。其余部分逻辑省略*/<br style="margin:0px;padding:0px;"/>END IF;<br style="margin:0px;padding:0px;"/>END;<br style="margin:0px;padding:0px;"/><br style="margin:0px;padding:0px;"/>        这个触发器程序有点长，可以单看飘黄的两句，即更新操作满足第一个条件执行飘黄语句时，触发器的行为。触发器是建立在test_info表上的，飘黄语句中可以看到，也需要查询wext2表。<br style="margin:0px;padding:0px;"/>执行如下sql1： <br style="margin:0px;padding:0px;"/><br style="margin:0px;padding:0px;"/></p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">Update test_info a, wext2 b set a.th=(a.th+1), a.w4=(a.w4&amp;8), b.wl=NULL where a.wid=b.wid and a.wid=142394379;<br style="margin:0px;padding:0px;"/><br style="margin:0px;padding:0px;"/></p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">        可以看到sql中既修改了test_info2表，同时修改了wext2表，程序原意是触发得到wext2表wl字段修改后的新值（即NULL）；不过实验得到，执行上述sql后，触发器程序查询到的wurl是sql修改之前的旧值。<br style="margin:0px;padding:0px;"/><br style="margin:0px;padding:0px;"/>再执行下面类似sql2：<br style="margin:0px;padding:0px;"/><br style="margin:0px;padding:0px;"/>Update wext2 a, test_info2 b set b.th=(b.th+1), b.w4=(b.w4&amp;8), a.wl=NULL where a.wid=b.wid and a.wid=142394379;<br style="margin:0px;padding:0px;"/><br style="margin:0px;padding:0px;"/>        实验的到，执行上述sql后，触发器程序查询到的wurl是sql修改之后的新值。<br style="margin:0px;padding:0px;"/><br style="margin:0px;padding:0px;"/>【原因】原因当然与sql中的别名a，b无关，而是和wext2表和test_info表的书写顺序有关。如本文3.4部分所述，一条sql涉及多个表的 update操作时，数据表字段、触发器执行顺序是mysql源码包装过的。在执行上述sql1时，先执行test_info的更新，然后是after触发器，最后是wext2的更新，也就是说，在执行after触发器时，wext2还没有进行更新，所以触发得到的是旧值。而执行sql2时，先执行 wext2更新，然后是test_info更新，最后是after触发器，也就是说，在执行after触发器时，wext2已经更新完毕，所以出去得到的是新值。<br style="margin:0px;padding:0px;"/>        引起上述现象是顺序关系的，无论该表是否支持事务。在使用复杂的sql时，由于有些复杂的sql是mysql自己定义的，所以存在不确定性，存在风险，使用简单的sql比较可控。<br style="margin:0px;padding:0px;"/><br style="margin:0px;padding:0px;"/>5.2   案例2 mysql5.0.19版本修改表结构后触发器失效<br style="margin:0px;padding:0px;"/>【现象】userpref表上建有after类型触发器，修改userpref表的外键关联后，在userpref表中的新增记录没有触发下来，即触发器失效。<br style="margin:0px;padding:0px;"/>【原因】mysql5.0.19修改表结构是，触发器消失。这是mysql5.0.19的一个bug，在创建触发器时，会把触发器的内容保存在 information_schema.TRIGGERS表中，同时在var目录下创建触发器的数据库目录下创建一个触发器名称为前缀，以TRN为后缀的文件，当修改触发器的表时，information_schema.TRIGGERS表的内容会删除，导致触发器消失。<br style="margin:0px;padding:0px;"/><br style="margin:0px;padding:0px;"/>        在mysql5.0.45版本中，这个bug已经被修复。Mysql5.0.45版本的触发器，无论是修改表的索引、外键，还是改变表字段，触发器都不会失效。<br style="margin:0px;padding:0px;"/><br style="margin:0px;padding:0px;"/>5.3   案例3 删除数据表后触发器失效<br style="margin:0px;padding:0px;"/>【现象】联调环境中存在dbA?dbB，主库dbA上没有触发器，在从库dbB上的FC_Word.wnegative表，FC_Word.wbuget 表上建有触发器；触发器开始运行正常，期间没有对从库的任何直接操作，有一日发现对wnegative表上的修改无法触发。查看从库状态，同步正常；用 select TRIGGER_NAME from information_schema.TRIGGERS发现wnegative表上的触发器消失了；在var/FC_Word目录下也没有 wnegative的.TRN文件，wnegative表上的触发器不见了。<br style="margin:0px;padding:0px;"/><br style="margin:0px;padding:0px;"/>【分析】查找dbB的查询日志，发现有一条：<br style="margin:0px;padding:0px;"/><br style="margin:0px;padding:0px;"/>100223 18:27:45 135939 Query       DROP TABLE IF EXISTS `wnegative`<br style="margin:0px;padding:0px;"/>135939 Query       CREATE TABLE `wnegative` (<br style="margin:0px;padding:0px;"/>KEY `Index_wnegative_planid` (`planid`),<br style="margin:0px;padding:0px;"/>KEY `Index_wnegative_unitid` (`unitid`)<br style="margin:0px;padding:0px;"/>135939 Query       /*!40000 ALTER TABLE `wnegative` DISABLE KEYS */<br style="margin:0px;padding:0px;"/>100223 18:27:46 135939 Query       INSERT INTO `wnegative` VALUES (614,1,289026,2911155,1848481);<br style="margin:0px;padding:0px;"/><br style="margin:0px;padding:0px;"/>        可以看到，在100223 18:27:45时，删除了表wnegative，紧接着有创建表wnegative；查找触发表发现，在100223 18:27:45时间后对wnegative的修改就没有触发了，而在这个之前对wnegative的修改是触发正常的。故，怀疑对wnegative表的删除使wnegative表上的触发器也被删除。对wnegative表的删除是在主库dbA上操作后，被同步到dbB上。<br style="margin:0px;padding:0px;"/><br style="margin:0px;padding:0px;"/>【原因】在删除wnegative表时，mysql同时删除了wegative表上的触发器。<br style="margin:0px;padding:0px;"/>可以通过下面实验证明上述猜测：<br style="margin:0px;padding:0px;"/>1）   首先在wnegative建立after insert型触发器；<br style="margin:0px;padding:0px;"/>2）   增加一条wnegative中记录；<br style="margin:0px;padding:0px;"/>3）   查看结果发现触发器正确触发；<br style="margin:0px;padding:0px;"/>4）   删除wnegative表；<br style="margin:0px;padding:0px;"/>5）   使用select TRIGGER_NAME from information_schema.TRIGGERS查看所有触发器，wnegative表上触发器已经不存在了；同时到var/FC_Word目录下，对应触发器的.TRN文件也不存在了；<br style="margin:0px;padding:0px;"/>6）   重新创建wnegative表，并增加一条wnegative中记录；没有了wnegative表上触发器，自然也不能触发任何结果。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"> </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">本文根据&lt;mysql触发器的实战经验&gt;整理，内容主要来源于该文。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"> </p></div>
+<div style="margin:0px;padding:0px;clear:both;"></div>
+<div style="margin:0px;padding:0px;margin-top:20px;">
+<div style="margin:0px;padding:0px;margin-bottom:10px;">分类: <a href="http://www.cnblogs.com/jevo/category/508868.html" style="margin:0px;padding:0px;text-decoration:underline;color:rgb(7, 93, 179);" target="_blank">database</a>,<a href="http://www.cnblogs.com/jevo/category/489112.html" style="margin:0px;padding:0px;text-decoration:underline;color:rgb(7, 93, 179);" target="_blank">Mysql</a></div>
+<div style="margin:0px;padding:0px;font-size:9pt;color:rgb(102, 102, 102);margin-top:0px;"></div>
+<div style="margin:0px;padding:0px;"><div style="margin:0px;padding:10px 0px;margin-bottom:10px;margin-top:10px;border:1px dashed silver;font-size:12px;width:320px;text-align:center;">
+        <a href="#" style="margin-right:10px;margin:0px;border-radius:10px;padding:3px 8px;text-decoration:none;font-weight:bold;cursor:pointer;display:inline-block;vertical-align:middle;box-shadow:rgba(0, 0, 0, 0.498039) 0px 1px 3px;text-shadow:rgba(0, 0, 0, 0.247059) 0px -1px 1px;background:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAAkCAYAAABIdFAMAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAHhJREFUeNo8zjsOxCAMBFB/KEAUFFR0Cbng3nQPw68ArZdAlOZppPFIBhH5EAB8b+Tlt9MYQ6i1BuqFaq1CKSVcxZ2Acs6406KUgpt5/LCKuVgz5BDCSb13ZO99ZOdcZGvt4mJjzMVKqcha68iIePB86GAiOv8CDADlIUQBs7MD3wAAAABJRU5ErkJggg%3D%3D&quot;) repeat-x;background-color:rgb(45, 174, 191);color:rgb(255, 255, 255);border:none;">好文要顶</a>
+            <a href="#" style="margin-right:10px;margin:0px;border-radius:10px;padding:3px 8px;text-decoration:none;font-weight:bold;cursor:pointer;display:inline-block;vertical-align:middle;box-shadow:rgba(0, 0, 0, 0.498039) 0px 1px 3px;text-shadow:rgba(0, 0, 0, 0.247059) 0px -1px 1px;background:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAAkCAYAAABIdFAMAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAHhJREFUeNo8zjsOxCAMBFB/KEAUFFR0Cbng3nQPw68ArZdAlOZppPFIBhH5EAB8b+Tlt9MYQ6i1BuqFaq1CKSVcxZ2Acs6406KUgpt5/LCKuVgz5BDCSb13ZO99ZOdcZGvt4mJjzMVKqcha68iIePB86GAiOv8CDADlIUQBs7MD3wAAAABJRU5ErkJggg%3D%3D&quot;) repeat-x;background-color:rgb(227, 49, 0);color:rgb(255, 255, 255);border:none;">关注我</a>
+    <a href="#" style="margin-right:10px;margin:0px;border-radius:10px;padding:3px 8px;text-decoration:none;font-weight:bold;cursor:pointer;display:inline-block;vertical-align:middle;box-shadow:rgba(0, 0, 0, 0.498039) 0px 1px 3px;text-shadow:rgba(0, 0, 0, 0.247059) 0px -1px 1px;background:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAAkCAYAAABIdFAMAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAHhJREFUeNo8zjsOxCAMBFB/KEAUFFR0Cbng3nQPw68ArZdAlOZppPFIBhH5EAB8b+Tlt9MYQ6i1BuqFaq1CKSVcxZ2Acs6406KUgpt5/LCKuVgz5BDCSb13ZO99ZOdcZGvt4mJjzMVKqcha68iIePB86GAiOv8CDADlIUQBs7MD3wAAAABJRU5ErkJggg%3D%3D&quot;) repeat-x;background-color:rgb(255, 181, 21);color:rgb(255, 255, 255);border:none;">收藏该文</a>
+    <a href="#" style="margin-right:10px;margin:0px;border-radius:10px;padding:3px 2px;text-decoration:none;font-weight:bold;cursor:pointer;display:inline-block;vertical-align:middle;box-shadow:none;text-shadow:none;background:none;color:rgb(255, 255, 255);border:none;" title="分享至新浪微博"><img src="MySQL触发器 - Jevo - 博客园_files/icon_weibo_24.png" type="image/png" data-filename="icon_weibo_24.png" alt="" height="24" style="margin:0px;padding:0px;height:auto;border:none;vertical-align:middle;margin-left:5px;box-shadow:none;max-width:300px;" width="24"/></a>
+    <a href="#" style="margin-right:10px;margin:0px;border-radius:10px;padding:3px 2px;text-decoration:none;font-weight:bold;cursor:pointer;display:inline-block;vertical-align:middle;box-shadow:none;text-shadow:none;background:none;color:rgb(255, 255, 255);border:none;" title="分享至微信"><img src="MySQL触发器 - Jevo - 博客园_files/wechat.png" type="image/png" data-filename="wechat.png" alt="" height="24" style="margin:0px;padding:0px;border:medium none;width:24px;height:24px;box-shadow:none;margin-left:5px;vertical-align:middle;max-width:300px;" width="24"/></a>
+</div>
+<div style="margin:0px;padding:0px;float:left;width:280px;margin-top:0px;margin-bottom:10px;color:rgb(0, 0, 0);margin-left:0px;font-size:12px;">
+    <div style="margin:0px;padding:0px;float:left;line-height:18px;">
+            <a href="http://home.cnblogs.com/u/jevo/" style="margin:0px;padding:0px;text-decoration:underline;color:rgb(7, 93, 179);" target="_blank"><img src="MySQL触发器 - Jevo - 博客园_files/sample_face.gif" type="image/gif" data-filename="sample_face.gif" alt="" height="46" style="margin:0px;padding:0px;height:auto;border:0px;vertical-align:top;float:left;margin-right:5px;padding-top:5px;padding-left:2px;max-width:300px;" width="47"/></a>
+        <div style="margin:0px;padding:0px;float:left;line-height:18px;">
+            <a href="http://home.cnblogs.com/u/jevo/" style="margin:0px;padding:0px;text-decoration:underline;color:rgb(7, 93, 179);">Jevo</a><br style="margin:0px;padding:0px;"/>
+            <a href="http://home.cnblogs.com/u/jevo/followees" style="margin:0px;padding:0px;text-decoration:underline;color:rgb(7, 93, 179);">关注 - 0</a><br style="margin:0px;padding:0px;"/>
+            <a href="http://home.cnblogs.com/u/jevo/followers" style="margin:0px;padding:0px;text-decoration:underline;color:rgb(7, 93, 179);">粉丝 - 21</a>
+        </div>
+    </div>
+    <div style="margin:0px;padding:0px;clear:both;"></div>
+    <div style="margin:0px;padding:0px;"></div>
+    <div style="margin:0px;padding:0px;">
+                <a href="#" style="margin:0px;padding:0px;text-decoration:underline;color:rgb(7, 93, 179);">+加关注</a>
+    </div>
+</div>
+<div style="margin:0px;padding:0px;float:right;margin-bottom:10px;margin-right:30px;font-size:12px;width:125px;text-align:center;margin-top:10px;">
+    <div style="margin:0px;padding:0px;float:left;width:46px;height:52px;background:url(&quot;http://static.cnblogs.com/images/upup.gif&quot;) no-repeat;text-align:center;cursor:pointer;margin-top:2px;padding-top:5px;">
+        <span style="margin:0px;padding:0px;font-size:14px;color:rgb(7, 93, 179);font-family:Verdana;line-height:1.5em;">0</span>
+    </div>
+    <div style="text-align:center;padding:0px;margin:0px;height:52px;background:url(&quot;http://static.cnblogs.com/images/downdown.gif&quot;) no-repeat;margin-left:20px;cursor:pointer;margin-top:2px;padding-top:5px;width:46px;float:right;">
+        <span style="margin:0px;padding:0px;font-size:14px;color:rgb(7, 93, 179);font-family:Verdana;line-height:1.5em;">0</span>
+    </div>
+    <div style="margin:0px;padding:0px;clear:both;"></div>
+    <div style="margin:0px;padding:0px;margin-top:5px;margin-left:0px;font-size:12px;color:gray;">
+    </div>
+</div>
+</div>
+<div style="margin:0px;padding:0px;clear:both;"></div>
+<div style="margin:0px;padding:0px;line-height:1.8;font-size:12px;"><a href="http://www.cnblogs.com/jevo/p/3271359.html" style="margin:0px;padding:0px;color:rgb(7, 93, 179);text-decoration:none;">« </a> 上一篇：<a href="http://www.cnblogs.com/jevo/p/3271359.html" style="margin:0px;padding:0px;text-decoration:underline;color:rgb(7, 93, 179);" title="发布于2013-08-20 21:25">MySQL存储过程</a><br style="margin:0px;padding:0px;"/><a href="http://www.cnblogs.com/jevo/p/3272670.html" style="margin:0px;padding:0px;color:rgb(7, 93, 179);text-decoration:none;">» </a> 下一篇：<a href="http://www.cnblogs.com/jevo/p/3272670.html" style="margin:0px;padding:0px;text-decoration:underline;color:rgb(7, 93, 179);" title="发布于2013-08-21 22:55">MySQL自定义函数</a><br style="margin:0px;padding:0px;"/></div>
+</div>
+
+
+		</div>
+		<div style="margin:0px;padding:0px;clear:both;font-size:12px;float:right;width:100%;text-align:right;padding-right:5px;color:rgb(102, 102, 102);margin-top:5px;">posted @ <span style="margin:0px;padding:0px;">2013-08-21 21:55</span> <a href="http://www.cnblogs.com/jevo/" style="margin:0px;padding:0px;text-decoration:none;color:rgb(7, 93, 179);">Jevo</a> 阅读(<span style="margin:0px;padding:0px;">1365</span>) 评论(<span style="margin:0px;padding:0px;">0</span>)  <a href="https://i.cnblogs.com/EditPosts.aspx?postid=3272505" rel="nofollow" style="margin:0px;padding:0px;text-decoration:none;color:rgb(7, 93, 179);">编辑</a> <a href="http://www.cnblogs.com/jevo/p/3272505.html#" style="margin:0px;padding:0px;text-decoration:none;color:rgb(7, 93, 179);">收藏</a></div>
+	</div></div></div></div></div></div></div></div></div></div><br/></div></span>
+</div></body></html> 

@@ -1,0 +1,383 @@
+<html>
+<head>
+  <title>mysql数据库开发常见问题及优化 - cyfonly - 博客园</title>
+  <basefont face="微软雅黑" size="2" />
+  <meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+  <meta name="exporter-version" content="YXBJ Windows/600718 (zh-CN, DDL); Windows/6.1.1 (Win64);"/>
+  <style>
+    body, td {
+      font-family: 微软雅黑;
+      font-size: 10pt;
+    }
+  </style>
+</head>
+<body>
+<a name="8382"/>
+<h1>mysql数据库开发常见问题及优化 - cyfonly - 博客园</h1>
+<div>
+<table bgcolor="#D4DDE5" border="0">
+<tr><td><b>创建时间：</b></td><td><i>2017/1/24 11:27</i></td></tr>
+<tr><td><b>来源：</b></td><td><a href="http://www.cnblogs.com/cyfonly/p/5616536.html"><i>http://www.cnblogs.com/cyfonly/p/5616536.html</i></a></td></tr>
+</table>
+</div>
+<br/>
+
+<div><span><div style="-evernote-webclip:true"><br/><div style="font-size: 16px; display: inline-block;"><div style="color:rgb(0, 0, 0);background:rgb(255, 255, 255);"><div style="font-style:normal;font-family:'PingFang SC', 'Helvetica Neue', Helvetica, Arial, sans-serif;background-color:rgb(255, 253, 250);background-repeat:repeat;list-style-type:none;list-style-image:none;background-image:url(&quot;http://images.cnblogs.com/cnblogs_com/juzipi/522632/o_sos.png&quot;);font-variant:normal;font-weight:normal;font-stretch:normal;line-height:1.5;font-size:14px;"><div style="min-width:unset;"><div style="box-shadow:rgb(187, 187, 187) 0px 0px 2px;background-color:rgb(245, 245, 245);min-width:unset;"><div style="overflow:auto;border-radius:6px;background:white;"><div><div><div><div>
+		<h1 style="font-family:微软雅黑;margin:0px;list-style-type:none;list-style-image:none;padding:0px;font-weight:normal;font-size:20px;padding-right:64px;padding-left:10px;border-left-width:3px;border-left-style:solid;border-left-color:rgb(255, 102, 0);">
+			<a href="http://www.cnblogs.com/cyfonly/p/5616536.html" style="text-decoration:none;color:black;font-weight:bold;font-family:Arial, 微软雅黑, 宋体, sans-serif;">mysql数据库开发常见问题及优化</a>
+		</h1>
+		<div style="clear:both;"></div>
+		<div style="clear:both;margin-top:26px;font-size:16px;color:rgb(51, 51, 51);line-height:1.8;">
+			<div style="margin-bottom:20px;word-break:break-word;"><p style="padding:0px;list-style-type:none;list-style-image:none;margin-bottom:18px;margin:10px auto;text-indent:0px;"><span style="font-size:14px;font-family:verdana, geneva;color:#000000;">mysql 数据库是被广泛应用的关系型数据库，其体积小、支持多处理器、开源并免费的特性使其在 Internet 中小型网站中的使用率尤其高。在使用 mysql 的过程中不规范的 SQL 编写、非最优的策略选择都可能导致系统性能甚至功能上的缺陷。</span><br/><span style="font-size:14px;font-family:verdana, geneva;color:#000000;"> 　　　　<img src="mysql数据库开发常见问题及优化 - cyfonly - 博客园_files/897247-20160625162831875-891132194.jpg" type="image/jpeg" data-filename="897247-20160625162831875-891132194.jpg" alt="" height="191" style="border:none;height:auto;margin-top:1px;margin-bottom:1px;max-width:300px;display:block;margin-left:auto;margin-right:auto;" width="360"/></span></p>
+<p style="padding:0px;list-style-type:none;list-style-image:none;margin-bottom:18px;margin:10px auto;text-indent:0px;"><span style="font-size:14px;font-family:verdana, geneva;color:#000000;">恰巧就在前几天，本人所在公司的云事业部举办了一场关于 mysql 的技术交流会，其中一个 part 正是聚焦于开发过程中 mysql 数据库设计及使用的常见问题，并提出相关优化方案。根据会议内容并查阅相关资料，本人对这个 part 进行了一次小结，结合自己的工作经历及理解形成此文以供分享，希望能有助于各位同行解决工作中的相关问题。</span></p>
+<p style="padding:0px;list-style-type:none;list-style-image:none;margin-bottom:18px;margin:10px auto;text-indent:0px;"><span style="font-size:14px;font-family:verdana, geneva;color:#000000;">本文将就以下三个问题进行展开：</span></p>
+<ol style="margin:0px;padding:0px;list-style-type:none;list-style-image:none;list-style:none;margin-left:0px;padding-left:20px;">
+<li style="list-style-type:none;margin:0px;padding:0px;list-style-image:none;"><ol style="margin:0px;padding:0px;list-style-type:none;list-style-image:none;list-style:none;margin-left:0px;padding-left:20px;">
+<li style="margin:0px;padding:0px;list-style-image:none;list-style-type:decimal;"><span style="font-size:14px;font-family:verdana, geneva;color:#000000;">库表设计</span></li>
+<li style="margin:0px;padding:0px;list-style-image:none;list-style-type:decimal;"><span style="font-size:14px;font-family:verdana, geneva;color:#000000;">慢 SQL 问题</span></li>
+<li style="margin:0px;padding:0px;list-style-image:none;list-style-type:decimal;"><span style="font-size:14px;font-family:verdana, geneva;color:#000000;">误操作、程序 bug 时怎么办</span></li>
+
+
+
+
+
+
+
+
+
+
+
+</ol></li>
+
+
+
+
+
+
+
+
+
+
+
+
+</ol>
+<p style="padding:0px;list-style-type:none;list-style-image:none;margin-bottom:18px;margin:10px auto;text-indent:0px;"> </p>
+<h2 style="padding:0px;list-style-type:none;list-style-image:none;font-size:21px;font-weight:bold;line-height:1.5;margin:10px 0px;"><span style="color:#ff0000;font-size:18pt;font-family:verdana, geneva;"><strong>一、库表设计</strong></span></h2>
+<h3 style="padding:0px;list-style-type:none;list-style-image:none;font-size:16px;font-weight:bold;line-height:1.5;margin:10px 0px;"><span style="font-size:14pt;font-family:verdana, geneva;color:#ff0000;"><strong>1.1 引擎选择</strong></span></h3>
+<p style="padding:0px;list-style-type:none;list-style-image:none;margin-bottom:18px;margin:10px auto;text-indent:0px;"><span style="font-size:14px;font-family:verdana, geneva;color:#000000;">在 mysql 5.1 中，引入了新的插件式存储引擎体系结构，允许将存储引擎加载到正在运新的 mysql 服务器中。使用 mysql 插件式存储引擎体系结构，允许数据库专业人员或者设计库表的软件开发人员为特定的应用需求选择专门的存储引擎，完全不需要管理任何特殊的应用编码要求，也无需考虑所有的底层实施细节。因此，尽管不同的存储引擎具有不同的能力，应用程序是与之分离的。此外，使用者可以在服务器、数据库和表格三个层级中存储引擎，提供了极大的灵活性。</span></p>
+<p style="padding:0px;list-style-type:none;list-style-image:none;margin-bottom:18px;margin:10px auto;text-indent:0px;"><span style="font-size:14px;font-family:verdana, geneva;color:#000000;">mysql 常用的存储引擎包括 MYISAM、Innodb 和 Memory，其中各自的特点如下：</span></p>
+<ol style="margin:0px;padding:0px;list-style-type:none;list-style-image:none;list-style:none;margin-left:0px;padding-left:20px;">
+<li style="list-style-type:none;margin:0px;padding:0px;list-style-image:none;"><ol style="margin:0px;padding:0px;list-style-type:none;list-style-image:none;list-style:none;margin-left:0px;padding-left:20px;">
+<li style="margin:0px;padding:0px;list-style-image:none;list-style-type:decimal;"><span style="font-size:14px;font-family:verdana, geneva;color:#000000;">MYISAM : 全表锁，拥有较高的执行速度，一个写请求请阻塞另外相同表格的所有读写请求，并发性能差，占用空间相对较小，mysql 5.5 及以下仅 MYISAM 支持全文索引，不支持事务。</span></li>
+<li style="margin:0px;padding:0px;list-style-image:none;list-style-type:decimal;"><span style="font-size:14px;font-family:verdana, geneva;color:#000000;">Innodb：行级锁（SQL 都走索引查询），并发能力相对强，占用空间是 MYISAM 的 2.5 倍，不支持全文索引（5.6 开始支持），支持事务。</span></li>
+<li style="margin:0px;padding:0px;list-style-image:none;list-style-type:decimal;"><span style="font-size:14px;font-family:verdana, geneva;color:#000000;">Memory : 全表锁，存储在内存当中，速度快，但会占用和数据量成正比的内存空间且数据在 mysql 重启时会丢失。</span></li>
+
+
+
+
+
+
+
+
+
+
+
+</ol></li>
+
+
+
+
+
+
+
+
+
+
+
+
+</ol>
+<blockquote style="width:100%;border:2px solid rgb(239, 239, 239);list-style-image:none;list-style-type:none;margin:0px auto;background:rgb(248, 248, 248);padding:6px 0px 6px 25px;color:rgb(102, 102, 102);position:relative;border-style:none none none solid;border-left-width:4px;border-left-color:rgb(255, 115, 0);"><span style="list-style-type:none;list-style-image:none;color:rgb(255, 255, 255);position:absolute;top:12px;left:-12px;width:20px;height:20px;border-radius:100%;text-align:center;line-height:20px;font-weight:bold;font-family:Dosis, 'Source Sans Pro', 'Helvetica Neue', Arial, sans-serif;font-size:14px;background-color:rgb(255, 115, 0);">!</span>
+<p style="padding:0px;list-style-type:none;list-style-image:none;margin-bottom:18px;margin:10px auto;text-indent:0px;"><span style="font-size:14px;font-family:verdana, geneva;color:#000000;">基于以上特性，建议绝大部份都设置为 innodb 引擎，特殊的业务再考虑选用 MYISAM 或 Memory ，如全文索引支持或极高的执行效率等。</span></p>
+</blockquote>
+<h3 style="padding:0px;list-style-type:none;list-style-image:none;font-size:16px;font-weight:bold;line-height:1.5;margin:10px 0px;"><span style="font-size:14pt;font-family:verdana, geneva;color:#ff0000;"><strong>1.2 分表方法</strong></span></h3>
+<p style="padding:0px;list-style-type:none;list-style-image:none;margin-bottom:18px;margin:10px auto;text-indent:0px;"><span style="font-size:14px;font-family:verdana, geneva;color:#000000;">在数据库表使用过程中，为了减小数据库服务器的负担、缩短查询时间，常常会考虑做分表设计。分表分两种，一种是纵向分表（将本来可以在同一个表的内容，人为划分存储在为多个不同结构的表）和横向分表（把大的表结构，横向切割为同样结构的不同表）。</span></p>
+<p style="padding:0px;list-style-type:none;list-style-image:none;margin-bottom:18px;margin:10px auto;text-indent:0px;"><span style="font-size:14px;font-family:verdana, geneva;color:#000000;">其中，纵向分表常见的方式有根据活跃度分表、根据重要性分表等。其主要解决问题如下：</span></p>
+<ol style="margin:0px;padding:0px;list-style-type:none;list-style-image:none;list-style:none;margin-left:0px;padding-left:20px;">
+<li style="list-style-type:none;margin:0px;padding:0px;list-style-image:none;"><ol style="margin:0px;padding:0px;list-style-type:none;list-style-image:none;list-style:none;margin-left:0px;padding-left:20px;">
+<li style="margin:0px;padding:0px;list-style-image:none;list-style-type:decimal;"><span style="font-size:14px;font-family:verdana, geneva;color:#000000;">表与表之间资源争用问题；</span></li>
+<li style="margin:0px;padding:0px;list-style-image:none;list-style-type:decimal;"><span style="font-size:14px;font-family:verdana, geneva;color:#000000;">锁争用机率小；</span></li>
+<li style="margin:0px;padding:0px;list-style-image:none;list-style-type:decimal;"><span style="font-size:14px;font-family:verdana, geneva;color:#000000;">实现核心与非核心的分级存储，如UDB登陆库拆分成一级二级三级库；</span></li>
+<li style="margin:0px;padding:0px;list-style-image:none;list-style-type:decimal;"><span style="font-size:14px;font-family:verdana, geneva;color:#000000;">解决了数据库同步压力问题。</span></li>
+
+
+
+
+
+
+
+
+
+
+
+</ol></li>
+
+
+
+
+
+
+
+
+
+
+
+
+</ol>
+<p style="padding:0px;list-style-type:none;list-style-image:none;margin-bottom:18px;margin:10px auto;text-indent:0px;"><span style="font-size:14px;font-family:verdana, geneva;color:#000000;">横向分表是指根据某些特定的规则来划分大数据量表，如根据时间分表。其主要解决问题如下：</span></p>
+<ol style="margin:0px;padding:0px;list-style-type:none;list-style-image:none;list-style:none;margin-left:0px;padding-left:20px;">
+<li style="list-style-type:none;margin:0px;padding:0px;list-style-image:none;"><ol style="margin:0px;padding:0px;list-style-type:none;list-style-image:none;list-style:none;margin-left:0px;padding-left:20px;">
+<li style="margin:0px;padding:0px;list-style-image:none;list-style-type:decimal;"><span style="font-size:14px;font-family:verdana, geneva;color:#000000;">单表过大造成的性能问题；</span></li>
+<li style="margin:0px;padding:0px;list-style-image:none;list-style-type:decimal;"><span style="font-size:14px;font-family:verdana, geneva;color:#000000;">单表过大造成的单服务器空间问题。</span></li>
+</ol></li>
+</ol>
+<h3 style="padding:0px;list-style-type:none;list-style-image:none;font-size:16px;font-weight:bold;line-height:1.5;margin:10px 0px;"><span style="font-size:14pt;font-family:verdana, geneva;color:#ff0000;"><strong>1.3 索引问题</strong></span></h3>
+<p style="padding:0px;list-style-type:none;list-style-image:none;margin-bottom:18px;margin:10px auto;text-indent:0px;"><span style="font-size:14px;font-family:verdana, geneva;color:#000000;">索引是对数据库表中一个或多个列的值进行排序的结构，建立索引有助于更快地获取信息。 mysql 有四种不同的索引类型：</span></p>
+<ol style="margin:0px;padding:0px;list-style-type:none;list-style-image:none;list-style:none;margin-left:0px;padding-left:20px;">
+<li style="list-style-type:none;margin:0px;padding:0px;list-style-image:none;"><ol style="margin:0px;padding:0px;list-style-type:none;list-style-image:none;list-style:none;margin-left:0px;padding-left:20px;">
+<li style="margin:0px;padding:0px;list-style-image:none;list-style-type:decimal;"><span style="font-size:14px;font-family:verdana, geneva;color:#000000;">主键索此 ( PRIMARY )</span></li>
+<li style="margin:0px;padding:0px;list-style-image:none;list-style-type:decimal;"><span style="font-size:14px;font-family:verdana, geneva;color:#000000;">唯一索引 ( UNIQUE )</span></li>
+<li style="margin:0px;padding:0px;list-style-image:none;list-style-type:decimal;"><span style="font-size:14px;font-family:verdana, geneva;color:#000000;">普通索引 ( INDEX )</span></li>
+<li style="margin:0px;padding:0px;list-style-image:none;list-style-type:decimal;"><span style="font-size:14px;font-family:verdana, geneva;color:#000000;">全文索引（FULLTEXT , MYISAM 及 mysql 5.6 以上的 Innodb ）</span></li>
+
+
+
+
+
+
+
+
+
+
+
+</ol></li>
+
+
+
+
+
+
+
+
+
+
+
+
+</ol>
+<p style="padding:0px;list-style-type:none;list-style-image:none;margin-bottom:18px;margin:10px auto;text-indent:0px;"><span style="font-size:14px;font-family:verdana, geneva;color:#000000;">建立索引的目的是加快对表中记录的查找或排序，索引也并非越多越好，因为创建索引是要付出代价的：一是增加了数据库的存储空间，二是在插入和修改数据时要花费较多的时间维护索引。</span></p>
+<p style="padding:0px;list-style-type:none;list-style-image:none;margin-bottom:18px;margin:10px auto;text-indent:0px;"><span style="font-size:14px;font-family:verdana, geneva;color:#000000;">在设计表或索引时，常出现以下几个问题：</span></p>
+<ol style="margin:0px;padding:0px;list-style-type:none;list-style-image:none;list-style:none;margin-left:0px;padding-left:20px;">
+<li style="list-style-type:none;margin:0px;padding:0px;list-style-image:none;"><ol style="margin:0px;padding:0px;list-style-type:none;list-style-image:none;list-style:none;margin-left:0px;padding-left:20px;">
+<li style="margin:0px;padding:0px;list-style-image:none;list-style-type:decimal;"><span style="font-size:14px;font-family:verdana, geneva;color:#000000;">少建索引或不建索引。这个问题最突出，建议建表时 DBA 可以一起协助把关。</span></li>
+<li style="margin:0px;padding:0px;list-style-image:none;list-style-type:decimal;"><span style="font-size:14px;font-family:verdana, geneva;color:#000000;">索引滥用。滥用索引将导致写请求变慢，拖慢整体数据库的响应速度（5.5 以下的 mysql 只能用到一个索引)。</span></li>
+<li style="margin:0px;padding:0px;list-style-image:none;list-style-type:decimal;"><span style="font-size:14px;font-family:verdana, geneva;color:#000000;">从不考虑联合索引。实际上联合索引的效率往往要比单列索引的效率更高。</span></li>
+<li style="margin:0px;padding:0px;list-style-image:none;list-style-type:decimal;"><span style="font-size:14px;font-family:verdana, geneva;color:#000000;">非最优列选择。低选择性的字段不适合建单列索引，如 status 类型的字段。</span></li>
+
+
+
+
+
+
+
+
+
+
+
+</ol></li>
+
+
+
+
+
+
+
+
+
+
+
+
+</ol>
+<p style="padding:0px;list-style-type:none;list-style-image:none;margin-bottom:18px;margin:10px auto;text-indent:0px;"> </p>
+<h2 style="padding:0px;list-style-type:none;list-style-image:none;font-size:21px;font-weight:bold;line-height:1.5;margin:10px 0px;"><span style="font-size:18pt;font-family:verdana, geneva;color:#ff0000;"><strong>二、慢 SQL 问题</strong></span></h2>
+<h3 style="padding:0px;list-style-type:none;list-style-image:none;font-size:16px;font-weight:bold;line-height:1.5;margin:10px 0px;"><span style="font-size:14pt;font-family:verdana, geneva;color:#ff0000;"><strong>2.1 导致慢 SQL 的原因</strong></span></h3>
+<p style="padding:0px;list-style-type:none;list-style-image:none;margin-bottom:18px;margin:10px auto;text-indent:0px;"><span style="font-size:14px;font-family:verdana, geneva;color:#000000;">在遇到慢 SQL 情况时，不能简单的把原因归结为 SQL 编写问题(虽然这是最常见的因素)，实际上导致慢 SQL 有很多因素，甚至包括硬件和 mysql 本身的 bug。根据出现的概率从大到小，罗列如下：</span></p>
+<ol style="margin:0px;padding:0px;list-style-type:none;list-style-image:none;list-style:none;margin-left:0px;padding-left:20px;">
+<li style="list-style-type:none;margin:0px;padding:0px;list-style-image:none;"><ol style="margin:0px;padding:0px;list-style-type:none;list-style-image:none;list-style:none;margin-left:0px;padding-left:20px;">
+<li style="margin:0px;padding:0px;list-style-image:none;list-style-type:decimal;"><span style="font-size:14px;font-family:verdana, geneva;color:#000000;">SQL编写问题</span></li>
+<li style="margin:0px;padding:0px;list-style-image:none;list-style-type:decimal;"><span style="font-size:14px;font-family:verdana, geneva;color:#000000;">锁</span></li>
+<li style="margin:0px;padding:0px;list-style-image:none;list-style-type:decimal;"><span style="font-size:14px;font-family:verdana, geneva;color:#000000;">业务实例相互干绕对 IO/CPU 资源争用</span></li>
+<li style="margin:0px;padding:0px;list-style-image:none;list-style-type:decimal;"><span style="font-size:14px;font-family:verdana, geneva;color:#000000;">服务器硬件</span></li>
+<li style="margin:0px;padding:0px;list-style-image:none;list-style-type:decimal;"><span style="font-size:14px;font-family:verdana, geneva;color:#000000;">MYSQL BUG</span></li>
+</ol></li>
+</ol>
+<h3 style="padding:0px;list-style-type:none;list-style-image:none;font-size:16px;font-weight:bold;line-height:1.5;margin:10px 0px;"><span style="font-size:14pt;font-family:verdana, geneva;color:#ff0000;"><strong>2.2 由 SQL 编写导致的慢 SQL 优化</strong></span></h3>
+<p style="padding:0px;list-style-type:none;list-style-image:none;margin-bottom:18px;margin:10px auto;text-indent:0px;"><span style="font-size:14px;font-family:verdana, geneva;color:#000000;">针对SQL编写导致的慢 SQL，优化起来还是相对比较方便的。正如上一节提到的正确的使用索引能加快查询速度，那么我们在编写 SQL 时就需要注意与索引相关的规则：</span></p>
+<ol style="margin:0px;padding:0px;list-style-type:none;list-style-image:none;list-style:none;margin-left:0px;padding-left:20px;">
+<li style="list-style-type:none;margin:0px;padding:0px;list-style-image:none;"><ol style="margin:0px;padding:0px;list-style-type:none;list-style-image:none;list-style:none;margin-left:0px;padding-left:20px;">
+<li style="margin:0px;padding:0px;list-style-image:none;list-style-type:decimal;"><span style="font-size:14px;font-family:verdana, geneva;color:#000000;">字段类型转换导致不用索引，如字符串类型的不用引号，数字类型的用引号等，这有可能会用不到索引导致全表扫描；</span></li>
+<li style="margin:0px;padding:0px;list-style-image:none;list-style-type:decimal;"><span style="font-size:14px;font-family:verdana, geneva;color:#000000;">mysql 不支持函数转换，所以字段前面不能加函数，否则这将用不到索引；</span></li>
+<li style="margin:0px;padding:0px;list-style-image:none;list-style-type:decimal;"><span style="font-size:14px;font-family:verdana, geneva;color:#000000;">不要在字段前面加减运算；</span></li>
+<li style="margin:0px;padding:0px;list-style-image:none;list-style-type:decimal;"><span style="font-size:14px;font-family:verdana, geneva;color:#000000;">字符串比较长的可以考虑索引一部份减少索引文件大小，提高写入效率；</span></li>
+<li style="margin:0px;padding:0px;list-style-image:none;list-style-type:decimal;"><span style="font-size:14px;font-family:verdana, geneva;color:#000000;">like % 在前面用不到索引；</span></li>
+<li style="margin:0px;padding:0px;list-style-image:none;list-style-type:decimal;"><span style="font-size:14px;font-family:verdana, geneva;color:#000000;">根据联合索引的第二个及以后的字段单独查询用不到索引；</span></li>
+<li style="margin:0px;padding:0px;list-style-image:none;list-style-type:decimal;"><span style="font-size:14px;font-family:verdana, geneva;color:#000000;">不要使用 select *；</span></li>
+<li style="margin:0px;padding:0px;list-style-image:none;list-style-type:decimal;"><span style="font-size:14px;font-family:verdana, geneva;color:#000000;">排序请尽量使用升序 ;</span></li>
+<li style="margin:0px;padding:0px;list-style-image:none;list-style-type:decimal;"><span style="font-size:14px;font-family:verdana, geneva;color:#000000;">or 的查询尽量用 union 代替 （Innodb）；</span></li>
+<li style="margin:0px;padding:0px;list-style-image:none;list-style-type:decimal;"><span style="font-size:14px;font-family:verdana, geneva;color:#000000;">复合索引高选择性的字段排在前面；</span></li>
+<li style="margin:0px;padding:0px;list-style-image:none;list-style-type:decimal;"><span style="font-size:14px;font-family:verdana, geneva;color:#000000;">order by / group by 字段包括在索引当中减少排序，效率会更高。</span></li>
+
+
+
+
+
+
+
+
+
+
+
+</ol></li>
+
+
+
+
+
+
+
+
+
+
+
+
+</ol>
+<p style="padding:0px;list-style-type:none;list-style-image:none;margin-bottom:18px;margin:10px auto;text-indent:0px;"><span style="font-size:14px;font-family:verdana, geneva;color:#000000;">除了上述索引使用规则外，SQL 编写时还需要特别注意一下几点：</span></p>
+<ol style="margin:0px;padding:0px;list-style-type:none;list-style-image:none;list-style:none;margin-left:0px;padding-left:20px;">
+<li style="list-style-type:none;margin:0px;padding:0px;list-style-image:none;"><ol style="margin:0px;padding:0px;list-style-type:none;list-style-image:none;list-style:none;margin-left:0px;padding-left:20px;">
+<li style="margin:0px;padding:0px;list-style-image:none;list-style-type:decimal;"><span style="font-size:14px;font-family:verdana, geneva;color:#000000;">尽量规避大事务的 SQL，大事务的 SQL 会影响数据库的并发性能及主从同步；</span></li>
+<li style="margin:0px;padding:0px;list-style-image:none;list-style-type:decimal;"><span style="font-size:14px;font-family:verdana, geneva;color:#000000;">分页语句 limit 的问题；</span></li>
+<li style="margin:0px;padding:0px;list-style-image:none;list-style-type:decimal;"><span style="font-size:14px;font-family:verdana, geneva;color:#000000;">删除表所有记录请用 truncate，不要用 delete；</span></li>
+<li style="margin:0px;padding:0px;list-style-image:none;list-style-type:decimal;"><span style="font-size:14px;font-family:verdana, geneva;color:#000000;">不让 mysql 干多余的事情，如计算；</span></li>
+<li style="margin:0px;padding:0px;list-style-image:none;list-style-type:decimal;"><span style="font-size:14px;font-family:verdana, geneva;color:#000000;">输写 SQL 带字段，以防止后面表变更带来的问题，性能也是比较优的 ( 涉及到数据字典解析，请自行查询资料)；</span></li>
+<li style="margin:0px;padding:0px;list-style-image:none;list-style-type:decimal;"><span style="font-size:14px;font-family:verdana, geneva;color:#000000;">在 Innodb上用 select count(*)，因为 Innodb 会存储统计信息；</span></li>
+<li style="margin:0px;padding:0px;list-style-image:none;list-style-type:decimal;"><span style="font-size:14px;font-family:verdana, geneva;color:#000000;">慎用 Oder by rand()。</span></li>
+
+
+
+
+
+
+
+
+
+
+
+</ol></li>
+
+
+
+
+
+
+
+
+
+
+
+
+</ol>
+<p style="padding:0px;list-style-type:none;list-style-image:none;margin-bottom:18px;margin:10px auto;text-indent:0px;"> </p>
+<h2 style="padding:0px;list-style-type:none;list-style-image:none;font-size:21px;font-weight:bold;line-height:1.5;margin:10px 0px;"><span style="font-size:18pt;font-family:verdana, geneva;color:#ff0000;"><strong>三、分析诊断工具</strong></span></h2>
+<p style="padding:0px;list-style-type:none;list-style-image:none;margin-bottom:18px;margin:10px auto;text-indent:0px;"><span style="font-size:14px;font-family:verdana, geneva;color:#000000;">在日常开发工作中，我们可以做一些工作达到预防慢 SQL 问题，比如在上线前预先用诊断工具对 SQL 进行分析。常用的工具有：</span></p>
+<ol style="margin:0px;padding:0px;list-style-type:none;list-style-image:none;list-style:none;margin-left:0px;padding-left:20px;">
+<li style="list-style-type:none;margin:0px;padding:0px;list-style-image:none;"><ol style="margin:0px;padding:0px;list-style-type:none;list-style-image:none;list-style:none;margin-left:0px;padding-left:20px;">
+<li style="margin:0px;padding:0px;list-style-image:none;list-style-type:decimal;"><span style="font-size:14px;font-family:verdana, geneva;color:#000000;">mysqldumpslow</span></li>
+<li style="margin:0px;padding:0px;list-style-image:none;list-style-type:decimal;"><span style="font-size:14px;font-family:verdana, geneva;color:#000000;">mysql profile</span></li>
+<li style="margin:0px;padding:0px;list-style-image:none;list-style-type:decimal;"><span style="font-size:14px;font-family:verdana, geneva;color:#000000;">mysql explain</span></li>
+
+
+
+
+
+
+
+
+
+
+
+</ol></li>
+
+
+
+
+
+
+
+
+
+
+
+
+</ol>
+<p style="padding:0px;list-style-type:none;list-style-image:none;margin-bottom:18px;margin:10px auto;text-indent:0px;"><span style="font-size:14px;font-family:verdana, geneva;color:#000000;">具体使用及分析方法在此就不赘述，网上有丰富的资源可以参考。</span></p>
+<p style="padding:0px;list-style-type:none;list-style-image:none;margin-bottom:18px;margin:10px auto;text-indent:0px;"> </p>
+<p style="padding:0px;list-style-type:none;list-style-image:none;margin-bottom:18px;margin:10px auto;text-indent:0px;"><span style="font-size:18pt;font-family:verdana, geneva;color:#ff0000;"><strong>四、误操作、程序 bug 时怎么办</strong></span></p>
+<p style="padding:0px;list-style-type:none;list-style-image:none;margin-bottom:18px;margin:10px auto;text-indent:0px;"><span style="font-size:14px;font-family:verdana, geneva;color:#000000;">提出这个问题显然主要是针对刚开始工作的年轻同行们……实际上误操作和程序 bug 导致数据误删或者混乱的问题并非少见，但是刚入行的开发工作者会比较紧张。一个成熟的企业往往会有完善的数据管理规范和较丰富的数据恢复方案（初创公司除外），会进行数据备份和数据容灾。当你发现误操作或程序 bug 导致线上数据被误删或误改动时，一定不能慌乱，应及时与 DBA 联系，第一时间进行数据恢复（严重时直接停止服务），尽可能减少影响和损失。对于重要数据（如资金）的操作，在开发时一定要反复进行测试，确保没有问题后再上线。</span></p>
+<p style="padding:0px;list-style-type:none;list-style-image:none;margin-bottom:18px;margin:10px auto;text-indent:0px;"><span style="font-size:14px;font-family:verdana, geneva;color:#000000;"> </span></p></div><div style="display:block;"><div>作者：<a href="http://www.cnblogs.com/cyfonly/" style="text-decoration:none;color:rgb(255, 115, 0);" target="_blank">cyfonly</a></div>
+<div>出处：<a href="http://www.cnblogs.com/cyfonly/" style="text-decoration:none;color:rgb(255, 115, 0);" target="_blank">http://www.cnblogs.com/cyfonly/</a></div>
+<div>本文版权归作者和博客园共有，欢迎转载，未经同意须保留此段声明，且在文章页面明显位置给出原文连接。欢迎指正与交流。 </div></div>
+<div style="clear:both;"></div>
+<div style="margin-top:20px;">
+<div style="margin-bottom:10px;">分类: <a href="http://www.cnblogs.com/cyfonly/category/845467.html" style="text-decoration:none;color:rgb(255, 115, 0);" target="_blank">数据库</a></div>
+<div style="margin-top:0px;"></div>
+<div><div style="padding:10px 0px;margin-bottom:10px;margin-top:10px;border:1px dashed silver;font-size:12px;width:320px;text-align:center;">
+        <a href="#" style="border-radius:10px;display:inline-block;background:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAAkCAYAAABIdFAMAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAHhJREFUeNo8zjsOxCAMBFB/KEAUFFR0Cbng3nQPw68ArZdAlOZppPFIBhH5EAB8b+Tlt9MYQ6i1BuqFaq1CKSVcxZ2Acs6406KUgpt5/LCKuVgz5BDCSb13ZO99ZOdcZGvt4mJjzMVKqcha68iIePB86GAiOv8CDADlIUQBs7MD3wAAAABJRU5ErkJggg%3D%3D&quot;) repeat-x;text-decoration:none;font-weight:bold;cursor:pointer;margin-right:10px;padding:3px 8px;box-shadow:rgba(0, 0, 0, 0.498039) 0px 1px 3px;text-shadow:rgba(0, 0, 0, 0.247059) 0px -1px 1px;vertical-align:middle;background-color:rgb(45, 174, 191);color:rgb(255, 255, 255);border:none;">好文要顶</a>
+            <a href="#" style="border-radius:10px;display:inline-block;background:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAAkCAYAAABIdFAMAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAHhJREFUeNo8zjsOxCAMBFB/KEAUFFR0Cbng3nQPw68ArZdAlOZppPFIBhH5EAB8b+Tlt9MYQ6i1BuqFaq1CKSVcxZ2Acs6406KUgpt5/LCKuVgz5BDCSb13ZO99ZOdcZGvt4mJjzMVKqcha68iIePB86GAiOv8CDADlIUQBs7MD3wAAAABJRU5ErkJggg%3D%3D&quot;) repeat-x;text-decoration:none;font-weight:bold;cursor:pointer;margin-right:10px;padding:3px 8px;box-shadow:rgba(0, 0, 0, 0.498039) 0px 1px 3px;text-shadow:rgba(0, 0, 0, 0.247059) 0px -1px 1px;vertical-align:middle;background-color:rgb(227, 49, 0);color:rgb(255, 255, 255);border:none;">关注我</a>
+    <a href="#" style="border-radius:10px;display:inline-block;background:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAAkCAYAAABIdFAMAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAHhJREFUeNo8zjsOxCAMBFB/KEAUFFR0Cbng3nQPw68ArZdAlOZppPFIBhH5EAB8b+Tlt9MYQ6i1BuqFaq1CKSVcxZ2Acs6406KUgpt5/LCKuVgz5BDCSb13ZO99ZOdcZGvt4mJjzMVKqcha68iIePB86GAiOv8CDADlIUQBs7MD3wAAAABJRU5ErkJggg%3D%3D&quot;) repeat-x;text-decoration:none;font-weight:bold;cursor:pointer;margin-right:10px;padding:3px 8px;box-shadow:rgba(0, 0, 0, 0.498039) 0px 1px 3px;text-shadow:rgba(0, 0, 0, 0.247059) 0px -1px 1px;vertical-align:middle;background-color:rgb(255, 181, 21);color:rgb(255, 255, 255);border:none;">收藏该文</a>
+    <a href="#" style="margin-right:10px;display:inline-block;vertical-align:middle;text-decoration:none;font-weight:bold;cursor:pointer;border-radius:10px;padding:3px 2px;box-shadow:none;text-shadow:none;background:none;color:rgb(255, 255, 255);border:none;" title="分享至新浪微博"><img src="mysql数据库开发常见问题及优化 - cyfonly - 博客园_files/icon_weibo_24.png" type="image/png" data-filename="icon_weibo_24.png" alt="" height="24" style="height:auto;margin-top:1px;margin-bottom:1px;border:none;vertical-align:middle;margin-left:5px;box-shadow:none;max-width:300px;" width="24"/></a>
+    <a href="#" style="margin-right:10px;display:inline-block;vertical-align:middle;text-decoration:none;font-weight:bold;cursor:pointer;border-radius:10px;padding:3px 2px;box-shadow:none;text-shadow:none;background:none;color:rgb(255, 255, 255);border:none;" title="分享至微信"><img src="mysql数据库开发常见问题及优化 - cyfonly - 博客园_files/wechat.png" type="image/png" data-filename="wechat.png" alt="" height="24" style="margin-top:1px;margin-bottom:1px;border:medium none;width:24px;height:24px;box-shadow:none;margin-left:5px;vertical-align:middle;max-width:300px;" width="24"/></a>
+</div>
+<div style="float:left;width:280px;margin-top:0px;margin-bottom:10px;color:rgb(0, 0, 0);margin-left:0px;font-size:12px;">
+    <div style="float:left;line-height:18px;">
+            <a href="http://home.cnblogs.com/u/cyfonly/" style="text-decoration:none;color:rgb(255, 115, 0);" target="_blank"><img src="mysql数据库开发常见问题及优化 - cyfonly - 博客园_files/20160522165816.png.jpg" type="image/jpeg" data-filename="20160522165816.png.jpg" alt="" height="48" style="height:auto;border:0px;vertical-align:top;float:left;margin-right:5px;padding-top:5px;padding-left:2px;margin-top:1px;margin-bottom:1px;max-width:300px;" width="48"/></a>
+        <div style="float:left;line-height:18px;">
+            <a href="http://home.cnblogs.com/u/cyfonly/" style="text-decoration:none;color:rgb(255, 115, 0);">cyfonly</a><br/>
+            <a href="http://home.cnblogs.com/u/cyfonly/followees" style="text-decoration:none;color:rgb(255, 115, 0);">关注 - 2</a><br/>
+            <a href="http://home.cnblogs.com/u/cyfonly/followers" style="text-decoration:none;color:rgb(255, 115, 0);">粉丝 - 199</a>
+        </div>
+    </div>
+    <div style="clear:both;"></div>
+    <div></div>
+    <div>
+                <a href="#" style="text-decoration:none;color:rgb(255, 115, 0);">+加关注</a>
+    </div>
+</div>
+<div style="float:right;margin-bottom:10px;margin-right:30px;font-size:12px;width:125px;text-align:center;margin-top:10px;">
+    <div style="float:left;width:46px;height:52px;text-align:center;cursor:pointer;margin-top:2px;padding-top:5px;background:url(&quot;http://static.cnblogs.com/images/upup.gif&quot;) no-repeat;">
+        <span style="font-size:14px;color:rgb(7, 93, 179);font-family:Verdana;line-height:1.5em;">7</span>
+    </div>
+    <div style="float:right;margin-left:20px;width:46px;height:52px;text-align:center;cursor:pointer;margin-top:2px;padding-top:5px;background:url(&quot;http://static.cnblogs.com/images/downdown.gif&quot;) no-repeat;">
+        <span style="font-size:14px;color:rgb(7, 93, 179);font-family:Verdana;line-height:1.5em;">0</span>
+    </div>
+    <div style="clear:both;"></div>
+    <div style="margin-top:5px;margin-left:0px;font-size:12px;color:gray;">
+    </div>
+</div>
+</div>
+<div style="clear:both;"></div>
+<div style="line-height:1.8;font-size:12px;"><a href="http://www.cnblogs.com/cyfonly/p/5616489.html" style="color:rgb(255, 115, 0);text-decoration:none;">« </a> 上一篇：<a href="http://www.cnblogs.com/cyfonly/p/5616489.html" style="text-decoration:none;color:rgb(255, 115, 0);" title="发布于2016-06-25 16:15">owner：轻松管理java项目配置</a><br/><a href="http://www.cnblogs.com/cyfonly/p/5626532.html" style="color:rgb(255, 115, 0);text-decoration:none;">» </a> 下一篇：<a href="http://www.cnblogs.com/cyfonly/p/5626532.html" style="text-decoration:none;color:rgb(255, 115, 0);" title="发布于2016-06-30 11:02">构建高可用ZooKeeper集群</a><br/></div>
+</div>
+
+
+		</div>
+		<div style="font-size:12px;color:rgb(153, 153, 153);border-bottom-width:1px;border-bottom-style:dashed;border-bottom-color:rgb(232, 231, 208);text-align:right;margin:20px 0px;padding:5px 0px;">posted @ <span>2016-06-26 08:26</span> <a href="http://www.cnblogs.com/cyfonly/" style="text-decoration:none;color:rgb(255, 115, 0);">cyfonly</a> 阅读(<span>573</span>) 评论(<span>1</span>)  <a href="https://i.cnblogs.com/EditPosts.aspx?postid=5616536" rel="nofollow" style="text-decoration:none;color:rgb(255, 115, 0);">编辑</a> <a href="http://www.cnblogs.com/cyfonly/p/5616536.html#" style="text-decoration:none;color:rgb(255, 115, 0);">收藏</a></div>
+	</div></div></div></div></div></div></div></div></div></div><br/></div></span>
+</div></body></html> 

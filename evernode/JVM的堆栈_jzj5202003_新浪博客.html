@@ -1,0 +1,582 @@
+<html>
+<head>
+  <title>JVM的堆栈_jzj5202003_新浪博客</title>
+  <basefont face="微软雅黑" size="2" />
+  <meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+  <meta name="exporter-version" content="YXBJ Windows/600718 (zh-CN, DDL); Windows/6.1.1 (Win64);"/>
+  <style>
+    body, td {
+      font-family: 微软雅黑;
+      font-size: 10pt;
+    }
+  </style>
+</head>
+<body>
+<a name="7907"/>
+<h1>JVM的堆栈_jzj5202003_新浪博客</h1>
+<div>
+<table bgcolor="#D4DDE5" border="0">
+<tr><td><b>创建时间：</b></td><td><i>2015/8/27 15:49</i></td></tr>
+<tr><td><b>来源：</b></td><td><a href="http://blog.sina.com.cn/s/blog_4779b7f50100bbsy.html"><i>http://blog.sina.com.cn/s/blog_4779b7f50100bbsy.html</i></a></td></tr>
+</table>
+</div>
+<br/>
+
+<div><span><br/><div style="font-size: 16px"><div><div style="list-style:none;font-size:12px;font-family:Verdana, 宋体, sans-serif;color:rgb(70, 70, 70);background-color:rgb(248, 248, 248);"><div style="background-image:url(http://simg.sinajs.cn/blog7newtpl/image/3/3_9/images/sinabloga.jpg);background-position:50% 100%;background-repeat:no-repeat;"><div style="background-image:url(http://simg.sinajs.cn/blog7newtpl/image/3/3_9/images/sinablogb.jpg);background-position:50% 0%;background-repeat:no-repeat;"><div><div style="overflow:hidden;"><div style="text-align:left;overflow:hidden;"><div style="background-image:url(http://simg.sinajs.cn/blog7newtpl/image/3/3_9/images/modelbody.png);background-position:1450px 0px;"><div style="zoom:1;"><div style="font-size:14px;overflow:hidden;font-family:simsun;word-wrap:normal;word-break:normal;line-height:150%;">
+			<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">课前准备：</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">
+本次课程需要你有一个可以在dos窗口里运行起来的tomcat（另外，今天整理的这些是我个人经验，基本上都是我个人的观念，同时今天的内容虽然很简单，但是要想掌握好今天所讲的内容，恐怕不是几年时间能掌握得了的，需要大量别的方面的知识，会随着你的功力渐长有各种意想不到的收获。）</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">步入正题：</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">
+今天讲的不是框架，不是知识，甚至不算是技术，而是一把钥匙，这把钥匙比较特殊，是一把通向大师们的思维的钥匙。很多前辈在java的世界里做了无数贡献，这事实上是一大笔财富，但是我相信对每个人来说，想继承这笔财富，是非常困难的；今天这把钥匙就是打开这笔财富的其中一把钥匙，也是非常重要的一把钥匙。</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">
+一个很简单的事情，例如java开源方面有大量的优秀产品，但是你可能很难明白其中任何一个创作者在做这个产品时，是如何考虑的，今天用其中一个优秀产品做为例子：tomcat。</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">简单介绍一下：tomcat的主要作者是mc
+clanahan，他即是tomcat的架构师，也是tomcat主要实现者；这个人同时也是struts和jsf的架构师和实现者，以及servlet，jsp，jsf规范制定的领导者。（包括我在内，都不可能知道这位大师是怎么考虑构造tomcat的架构，怎么考虑写tomcat代码的，但是可以尝试用今天这把钥匙去探索一下。最后一句闲话：再重点提醒一下，今天讲的东西是一个靠功力积累的事情。随着你的功力渐长，这把钥匙会给你开到各种各样的财富，只要你勤奋）。</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">现在正式开始</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">第一话题：调用</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">大家先看一段简单的代码</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">1 public class A {</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">
+2 <span></span> <span></span> <span></span> <span></span>
+public static void main(String[] args) {</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">
+3 <span></span> <span></span> <span></span> <span></span> <span></span> <span></span> <span></span> <span></span> <span></span> <span></span> <span></span>
+A a = new A();</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">
+4 <span></span> <span></span> <span></span> <span></span> <span></span> <span></span> <span></span> <span></span> <span></span> <span></span> <span></span>
+a.f1(); <span></span> <span></span> <span></span> <span></span> <span></span> <span></span> <span></span> <span></span> <span></span> <span></span> <span></span> <span></span> <span></span> <span></span> <span></span> <span></span> <span></span> <span></span> <span></span> <span></span>
+//----------1</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">
+5 <span></span> <span></span> <span></span> <span></span>
+}</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">
+6 <span></span> <span></span> <span></span> <span></span>
+public void f1() {</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">
+7 <span></span> <span></span> <span></span> <span></span> <span></span> <span></span> <span></span> <span></span> <span></span> <span></span> <span></span>
+f2(); <span></span> <span></span> <span></span> <span></span> <span></span> <span></span> <span></span> <span></span> <span></span> <span></span> <span></span> <span></span> <span></span> <span></span> <span></span> <span></span> <span></span> <span></span> <span></span> <span></span> <span></span> <span></span>
+//-----------2</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">
+8 <span></span> <span></span> <span></span> <span></span>
+}</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">9</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">10 <span></span> <span></span> <span></span> public
+void f2() {</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">
+11 <span></span> <span></span> <span></span> <span></span> <span></span> <span></span> <span></span> <span></span> <span></span> <span></span> <span></span> <span></span> <span></span> <span></span> <span></span>
+System.out.println(&quot;f2&quot;); <span></span> <span></span>
+//-----------3</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">12 <span></span> <span></span> <span></span> }</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">13 }</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">先说一下调用链</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">程序运行到1的时候，调用链就是:</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">main <span></span> --&gt;4</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">main-&gt;4这句可以理解为当前程序正运行到main方法的第4行</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">同样：</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">程序运行到2的时候，调用链就是：</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">f1 <span></span> <span></span> <span></span>
+--&gt;7</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">main <span></span> --&gt;4</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;"> <span></span></p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">程序运行到3的时候，调用链就是：</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">f2 <span></span> <span></span> <span></span>
+--&gt;11</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">f1 <span></span> <span></span> <span></span>
+--&gt;7</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">main <span></span> --&gt;4</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">这些东西都是jvm在运行你的代码，如果获得了当前jvm的所有线程的这些个调用链，你就得到了一个jvm当前运行时刻的快照。</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">
+这里给个定义：堆栈——堆栈就是程序的调用链的集合。（这个定义不用追究字面上准确不准确，明白意思就行了，你愿意叫别的东西也可以，其实了解大师们的思维，就是了解这个调用链，你弄明白为什么大师们要这么调用，就明白了大师们当时在做这段代码的时候是怎么想的了，就明白了为什么会搞出一堆看起来很奇怪的类。）事实上称这个为堆栈，并不是我一个人这么叫，很多人也这么叫的，或者你就叫这个为调用链也可以。</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">现在先把这个钥匙给大家。</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">一个java程序在运行的时候，必须有jvm去解释执行，这把钥匙就是：</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">如果你知道当前jvm在做什么，你就可以获得很多有用的信息，怎么知道jvm在做什么呢？</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">问题：</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">1、【提问】程序运行到2的时候，调用链就是：</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">f1 <span></span> <span></span> <span></span>
+--&gt;7</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">main <span></span> --&gt;4</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">没看懂什么意思？</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">【回答】f1是函数名，7是第7行</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;"> <span></span></p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">2、【提问】堆栈不是针对内存而言的么？怎么会牵涉到调用问题？</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">【回答】今天的定义就是这样，不要考虑内存（云墨竹：记录这个调用，你debug的时候就可以知道这个排序了）</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;"> <span></span></p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">3、【提问】记录这个调用为的是知道把返回结果给谁吗？</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">【回答】不是要知道结果返回给谁，是要准确知道你的程序目前运行的位置，以及是如何调用到这里来的。</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">4、【提问】程序运行到1的时候，调用链就是:</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">main <span></span> --&gt;4</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">A a = new A();怎么不运行？</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">【回答】运行过了new A（）这里了。</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;"> <span></span></p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">jvm提供了这样的接口，并且用起来非常容易，相信很多人可能也知道：</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">
+在windows平台下，在jvm运行的dos窗口按ctrl-break，就可以打印出jvm当前所有线程的状态。在unix平台下，向jvm进程发信号量3，也可以打印出jvm当前所有线程的状态，命令类似：kill
+-3 jvm进程号。</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">
+为了方便演示，大家在dos窗口里，启动一下你的tomcat，然后按ctrl-break，看看打印出来的内容。谁做完了，把自己的结果贴出来，贴个片段就可以了。</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">好，接下来分析一下这些打印出来的东西</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">大家打印出来的，都应该是类似这样的：</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">&quot;http-8080-173&quot; daemon prio=6 tid=0x000000004d10e000 nid=0x12d4
+in Object.wait() [0x000000005b08f000..0x000000005b08f8e0]</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;"> <span></span> <span></span> java.lang.Thread.State:
+WAITING (on object monitor)</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">
+ <span></span> <span></span> <span></span> <span></span> <span></span> <span></span> <span></span>
+at java.lang.Object.wait(Native Method)</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">
+ <span></span> <span></span> <span></span> <span></span> <span></span> <span></span> <span></span>
+at java.lang.Object.wait(Object.java:485)</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">
+ <span></span> <span></span> <span></span> <span></span> <span></span> <span></span> <span></span>
+at
+org.apache.tomcat.util.net.JIoEndpoint$Worker.await(JIoEndpoint.java:416)</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">
+ <span></span> <span></span> <span></span> <span></span> <span></span> <span></span> <span></span>
+- locked &lt;0x000000000f4d3988&gt; (a
+org.apache.tomcat.util.net.JIoEndpoint$Worker)</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">
+ <span></span> <span></span> <span></span> <span></span> <span></span> <span></span> <span></span>
+at
+org.apache.tomcat.util.net.JIoEndpoint$Worker.run(JIoEndpoint.java:442)</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">
+ <span></span> <span></span> <span></span> <span></span> <span></span> <span></span> <span></span>
+at java.lang.Thread.run(Thread.java:619)</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">
+前后都不用看，只看线程的堆栈就可以了，只看类似上面我贴的那样的就可以了；&quot;http-8080-173&quot;这个是这个线程的名字。</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">daemon：表示是以daemon方式运行的线程，这个不解释，今天忽略</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">prio=6：表示线程的级别是6，优先级是6</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">tid=0x000000004d10e000 nid=0x12d4 in Object.wait()
+[0x000000005b08f000..0x000000005b08f8e0]这段不用看，忽略掉,这2个id一个是在jvm里的线程id号，一个是这个线程对应于操作系统的线程id号.</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">下面就是tomcat运行的堆栈</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">java.lang.Thread.State: WAITING (on object
+monitor)这句话表示这个线程当前处于wait状态。</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">在dos下启动weblogic，然后这么打印。</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">
+在堆栈里的线程只有2种状态：waiting和runnable。waiting的线程表示线程目前阻塞在（这个）地方；runnable的线程表示正在运行的线程，是运行到（这个）地方了；（这个）地方指的是哪里？就是接下来的这些话：</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">
+ <span></span> <span></span> <span></span> <span></span> <span></span>
+at java.lang.Object.wait(Native Method)</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">
+ <span></span> <span></span> <span></span> <span></span> <span></span> <span></span> <span></span>
+at java.lang.Object.wait(Object.java:485)</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">
+ <span></span> <span></span> <span></span> <span></span> <span></span> <span></span> <span></span>
+at
+org.apache.tomcat.util.net.JIoEndpoint$Worker.await(JIoEndpoint.java:416)</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">
+ <span></span> <span></span> <span></span> <span></span> <span></span> <span></span> <span></span>
+-locked&lt;0x000000000f4d3988&gt; (a
+org.apache.tomcat.util.net.JIoEndpoint$Worker)</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">
+ <span></span> <span></span> <span></span> <span></span> <span></span> <span></span> <span></span>
+at
+org.apache.tomcat.util.net.JIoEndpoint$Worker.run(JIoEndpoint.java:442)</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">
+ <span></span> <span></span> <span></span> <span></span> <span></span> <span></span> <span></span>
+at java.lang.Thread.run(Thread.java:619)</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">【提问】runnable是可运行的吧，包括正在运行的和将要运行的？</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">【回答】不是可运行，是正在运行</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;"> <span></span></p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">at java.lang.Object.wait(Native Method)</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">
+ <span></span> <span></span> <span></span> <span></span> <span></span> <span></span> <span></span>
+at java.lang.Object.wait(Object.java:485)</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">
+ <span></span> <span></span> <span></span> <span></span> <span></span> <span></span> <span></span>
+at
+org.apache.tomcat.util.net.JIoEndpoint$Worker.await(JIoEndpoint.java:416)</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">
+ <span></span> <span></span> <span></span> <span></span> <span></span> <span></span> <span></span>
+-locked&lt;0x000000000f4d3988&gt; (a
+org.apache.tomcat.util.net.JIoEndpoint$Worker)</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">
+ <span></span> <span></span> <span></span> <span></span> <span></span> <span></span> <span></span>
+at
+org.apache.tomcat.util.net.JIoEndpoint$Worker.run(JIoEndpoint.java:442)</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">
+ <span></span> <span></span> <span></span> <span></span> <span></span> <span></span> <span></span>
+at java.lang.Thread.run(Thread.java:619)</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">
+这段话给个完整的解释：表示当前程序运行到：从Thread.run这个方法的619行，调用到了JIoEndpoint$Worker.run方法的442行，调用到了JIoEndpoint$Worker.await方法的416行，调用到了Object.wait方法的485行</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">用前面我们那种表示方法写出来，就是：</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">
+Object.wait <span></span> <span></span> <span></span> <span></span> <span></span> <span></span> <span></span> <span></span> <span></span> <span></span> <span></span> <span></span> <span></span> <span></span>
+－－》 485</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">JIoEndpoint$Worker.await <span></span> －－》 416</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">
+JIoEndpoint$Worker.run <span></span> <span></span> <span></span>
+－－》 442</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">
+Thread.run <span></span> <span></span> <span></span> <span></span> <span></span> <span></span> <span></span> <span></span> <span></span> <span></span> <span></span> <span></span> <span></span> <span></span> <span></span>
+－－》 619</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">
+好，现在应该明白了吧，这个线程现在就“卡”在Object.wait这个方法上了；其实这个方法跟异常的表达方法完全一样，异常只是多了一个信息，其他都相同。</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">【提问】java.lang.Thread.State: TIMED_WAITING
+(sleeping)，TIMED_WAITING和WAITING有什么区别吗？</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">
+【回答】TIMED_WAITING跟waiting类似，只不过是调用的object的方法不一样，前者是Object.wait(int
+second)这个方法，后者是Object.wait()这个方法。</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">【提问】异常的信息是有异常时生成的还是jvm生成的？</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">【回答】云墨竹：有异常生成的，直接调用堆栈信息到抛异常的地点</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">
+这些东西看起来很简单，但是我前面吹的天花乱坠，说什么这个很重要，什么有很多意想不到的收获等等，估计大家很难凭空看这些能知道什么，先举个例子来用一次堆栈。</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">【问题】实际上不是异常的吧，只不过到了这里阻塞了，等待客户端调用？</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">【回答】你理解这个就是在wait就行了，不用管是否等待用户调用</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">【问题】如果我想单一改变一个线程状态。如何改吖？例如把 runnable 改成 timewaite</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">【提问】调用连什么时候生成的，都运行完了生成有什么用？</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">
+在用之前先说明一个道理：对于一个线程来说，它一定是顺序执行的，虽然中间有if，有循环，但是只要你知道条件，就一定能判断出程序的下一步会执行哪句话，所以，注意了，运行在一个线程里的程序代码段，就像一个河流，顺着河道在流，既然是河道，有的地方就流的快，有的地方就流的慢；这个道理你得好好理解一下，例如满大街的人都朝同一个方向走，有的以声音的速度走，有的以子弹的速度走，有的跟蜗牛的速度一样；这个时候你对着大街拍一张照片，能看到的人，多半就是以蜗牛速度在走的人，这些蜗牛速度的人，就是导致交通拥挤的元凶。大家理解一下这个道理，你对着大街照张像，看到的只有蜗牛速度的人，看不到以子弹速度或者声音速度走的人</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">【提问】那这个程序里的子弹速度应该是被记录下来的吧？</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">
+【回答】不会，只会记录蜗牛的，子弹速度的也记录不下来，因为子弹已经通过这条街道了，但子弹再往前走，可能就变成蜗牛的速度了。</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;"> <span></span></p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">上面这个方法，就是经典的性能分析法。</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">1 File f=new File(&quot;aaa.txt&quot;);</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">...</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">//读取文件中的一行,br是根据f构造的一个BufferedReader。你们自己填充。</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">2 String s = br.readln();</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">这两行代码，显然第2句速度比较慢，因为第二句是个io操作。</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">
+如果你的程序反复执行这2句话，这个时候你照张像，看到的或许1000个只能看到第2句，只有一个能看到第一句；所以总结一下：你看到的，多半就是瓶颈，看到的越频繁，说明这个瓶颈越严重。</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;"> <span></span></p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">【提问】照相的是谁?</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">【回答】堆栈</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">【提问】：如何照相？</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">【回答】用前面那个方法，打印出来的堆栈就是照相</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">【提问】:这二句话应该是顺序执行怎么会照到二个?</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">【回答】按ctrl－break</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">【问题】这个堆栈应该是实时更新的吧</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">【回答】当然是实时更新了</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">【提问】第一个会被记录到堆栈里吗？</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">【回答】会，正好运行在第一句话的时候，你打堆栈就能看到</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">【提问】:这二句话应该是顺序执行怎么会照到二个?</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">【回答】因为第一句话很快就执行过去了，第二句话执行的较慢，用相机一拍，看到的就多半是第二句话</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">【提问】那后面的语句更新就会把他给冲掉是吧？</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">【回答】但是由于第一句话运行的很快，你很难抓到这个时机。记住，这个方法记录的是“当前”jvm的线程状态。</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">【提问】照相的时候记录的是当前正在运行的线程吗？</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">【回答】对，并且是当前jvm里所有运行的线程状态。</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">【提问】是不是每个在dos窗口下运行的java程序，我都能用同样的方法看到调用链</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">【回答】对</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">【提问】照相的时候记录的是当前正在运行的线程吗？</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">【回答】云墨竹：这个堆栈其实是运行线程的堆栈</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">【提问】有没有工具，自动分析jvm找出瓶颈的，手动是不是太麻烦了</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">【提问】意思就是多照相几次 就知道系统的瓶颈了对吗</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">【回答】不一定，发现瓶颈还有个条件，就是需要大街上有很多人正在走，如果没几个人正在走，你照的照片也没什么用</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">【提问】性能测试工具一般都重写了JVM <span></span>
+会实现实时监控 <span></span> <span></span>
+而按照叮当本节课讲述的内容 <span></span> <span></span>
+一般是写一个脚本循环拍照 <span></span> 然后对比线程运行情况进行找到瓶颈？</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">【回答】不是这样，这个课后再解释</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">【提问】那那些自动化测试的工具是不是基于这些原理的？</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">【回答】有关，后面会说到</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">【提问】我想指定一个线程 把它给关闭。好像windows下通过PID把它给kill一样！ 这个如何做到吖？</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">【回答】这个查看Thread这个类的api</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">【提问】有没有工具，自动分析jvm找出瓶颈的，手动是不是太麻烦了</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">【回答】据我所知还没用这样的工具</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">【问题】jconsole主要用来做什么的？</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">【回答】用来连接mbeanserver的；mbeanserver是jmx里的。</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;"> <span></span></p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">
+马上就完了，因为这个话题说实话，是靠功力的，我只能领你们到这个地步，后面的修行还是要靠自己对程序的理解；上面讲的是打印堆栈的一个比较经典的用法</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">【提问】你是看了哪方面的书？还是用多线程做过服务器 ，为什么你这么了解 我却一点不懂</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">【提问】我是做web容器的，这些经常用到，需要进行程序分析。</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">【提问】那在实际中，是怎么操作的？</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">【回答】刚才讲的就是一个实际的用途</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;"> <span></span></p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">
+下面继续说跟压力工具结合；刚才那个用法有个前提，就是所有的线程都跑起来了，如果像大家刚才直接打印tomcat的堆栈，实际上看不出太多东西；也就是说，大街上必须有很多人在跑的时候，你照相才有用，没用人跑，照出来的像只是废品；而压力工具，就是模拟，或者制造这些在街上跑的人，大豆说跟黑客帝国一样，其实对了一点，分析程序的时候，我看这些堆栈就跟黑客帝国里屏幕上流动的绿色的字一样，能看穿系统在做什么事；现在还是举例说一下系统在做什么事</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;"> <span></span></p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">看一下这个堆栈，这个堆栈是海星昨天写的一个程序，通过这个可以知道海星的代码是怎么写的。</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">Full thread dump Java HotSpot(TM) Client VM (1.6.0-b105 mixed
+mode, sharing):</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">&quot;Low Memory Detector&quot; daemon prio=6 tid=0x02b06c00 nid=0x988
+runnable [0x00000000..0x00000000]</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;"> <span></span> <span></span> java.lang.Thread.State:
+RUNNABLE</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">&quot;CompilerThread0&quot; daemon prio=10 tid=0x02b02000 nid=0x8e4
+waiting on condition [0x00000000..0x02d7f81c]</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;"> <span></span> <span></span> java.lang.Thread.State:
+RUNNABLE</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">&quot;Attach Listener&quot; daemon prio=10 tid=0x02b01000 nid=0x970
+runnable [0x00000000..0x00000000]</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;"> <span></span> <span></span> java.lang.Thread.State:
+RUNNABLE</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">&quot;Signal Dispatcher&quot; daemon prio=10 tid=0x02b1dc00 nid=0xa74
+waiting on condition [0x00000000..0x00000000]</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;"> <span></span> <span></span> java.lang.Thread.State:
+RUNNABLE</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">&quot;Finalizer&quot; daemon prio=8 tid=0x02ac1800 nid=0xe54 in
+Object.wait() [0x02c8f000..0x02c8fc94]</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;"> <span></span> <span></span> java.lang.Thread.State:
+WAITING (on object monitor)</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">
+ <span></span> <span></span> <span></span> <span></span> <span></span> <span></span>
+at java.lang.Object.wait(Native Method)</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">
+ <span></span> <span></span> <span></span> <span></span> <span></span> <span></span>
+- waiting on &lt;0x229d0b38&gt; (a
+java.lang.ref.ReferenceQueue$Lock)</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">
+ <span></span> <span></span> <span></span> <span></span> <span></span> <span></span>
+at java.lang.ref.ReferenceQueue.remove(ReferenceQueue.java:116)</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">
+ <span></span> <span></span> <span></span> <span></span> <span></span> <span></span>
+- locked &lt;0x229d0b38&gt; (a
+java.lang.ref.ReferenceQueue$Lock)</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">
+ <span></span> <span></span> <span></span> <span></span> <span></span> <span></span>
+at java.lang.ref.ReferenceQueue.remove(ReferenceQueue.java:132)</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">
+ <span></span> <span></span> <span></span> <span></span> <span></span> <span></span>
+at
+java.lang.ref.Finalizer$FinalizerThread.run(Finalizer.java:159)</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;"> <span></span></p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">&quot;Reference Handler&quot; daemon prio=10 tid=0x02abd400 nid=0xc20 in
+Object.wait() [0x02c3f000..0x02c3fd14]</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;"> <span></span> <span></span> java.lang.Thread.State:
+WAITING (on object monitor)</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">
+ <span></span> <span></span> <span></span> <span></span> <span></span> <span></span>
+at java.lang.Object.wait(Native Method)</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">
+ <span></span> <span></span> <span></span> <span></span> <span></span> <span></span>
+- waiting on &lt;0x229d0a38&gt; (a
+java.lang.ref.Reference$Lock)</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">
+ <span></span> <span></span> <span></span> <span></span> <span></span> <span></span>
+at java.lang.Object.wait(Object.java:485)</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">
+ <span></span> <span></span> <span></span> <span></span> <span></span> <span></span>
+at
+java.lang.ref.Reference$ReferenceHandler.run(Reference.java:116)</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">
+ <span></span> <span></span> <span></span> <span></span> <span></span> <span></span>
+- locked &lt;0x229d0a38&gt; (a
+java.lang.ref.Reference$Lock)</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">&quot;main&quot; prio=6 tid=0x002e6000 nid=0xb1c runnable
+[0x0092f000..0x0092fe54]</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;"> <span></span> <span></span> java.lang.Thread.State:
+RUNNABLE</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">
+ <span></span> <span></span> <span></span> <span></span> <span></span> <span></span>
+at java.net.PlainSocketImpl.socketAccept(Native Method)</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">
+ <span></span> <span></span> <span></span> <span></span> <span></span> <span></span>
+at java.net.PlainSocketImpl.accept(PlainSocketImpl.java:384)</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">
+ <span></span> <span></span> <span></span> <span></span> <span></span> <span></span>
+- locked &lt;0x22a02308&gt; (a
+java.net.SocksSocketImpl)</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">
+ <span></span> <span></span> <span></span> <span></span> <span></span> <span></span>
+at java.net.ServerSocket.implAccept(ServerSocket.java:450)</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">
+ <span></span> <span></span> <span></span> <span></span> <span></span> <span></span>
+at java.net.ServerSocket.accept(ServerSocket.java:421)</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">
+ <span></span> <span></span> <span></span> <span></span> <span></span> <span></span>
+at BlackSocketServer.accept(BlackSocketServer.java:38)</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">
+ <span></span> <span></span> <span></span> <span></span> <span></span> <span></span>
+at
+BlackSocketServer.&lt;init&gt;(BlackSocketServer.java:24)</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">
+ <span></span> <span></span> <span></span> <span></span> <span></span> <span></span>
+at BlackSocketServer.main(BlackSocketServer.java:16)</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">&quot;VM Thread&quot; prio=10 tid=0x02ab4000 nid=0x788 runnable</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">&quot;VM Periodic Task Thread&quot; prio=10 tid=0x02b0b400 nid=0x9c0
+waiting on condition</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">JNI global references: 576</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">
+现在反向分析海星这个程序在做什么事。首先，过滤掉与海星的代码无关的东西，无关的东西，就是系统的线程，系统的线程首先忽略。其实上面这段代码，只有一个线程与海星的代码有关，其他都是系统线程，跟刚才tomcat打印出的堆栈重复的都是系统线程</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">看一下这个堆栈，我放大一下：</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">&quot;main&quot; prio=6 tid=0x002e6000 nid=0xb1c runnable
+[0x0092f000..0x0092fe54]</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;"> <span></span> <span></span> java.lang.Thread.State:
+RUNNABLE</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">
+ <span></span> <span></span> <span></span> <span></span> <span></span> <span></span>
+at java.net.PlainSocketImpl.socketAccept(Native Method)</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">
+ <span></span> <span></span> <span></span> <span></span> <span></span> <span></span>
+at java.net.PlainSocketImpl.accept(PlainSocketImpl.java:384)</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">
+ <span></span> <span></span> <span></span> <span></span> <span></span> <span></span>
+- locked &lt;0x22a02308&gt; (a
+java.net.SocksSocketImpl)</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">
+ <span></span> <span></span> <span></span> <span></span> <span></span> <span></span>
+at java.net.ServerSocket.implAccept(ServerSocket.java:450)</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">
+ <span></span> <span></span> <span></span> <span></span> <span></span> <span></span>
+at java.net.ServerSocket.accept(ServerSocket.java:421)</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">
+ <span></span> <span></span> <span></span> <span></span> <span></span> <span></span>
+at BlackSocketServer.accept(BlackSocketServer.java:38)</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">
+ <span></span> <span></span> <span></span> <span></span> <span></span> <span></span>
+at
+BlackSocketServer.&lt;init&gt;(BlackSocketServer.java:24)</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">
+ <span></span> <span></span> <span></span> <span></span> <span></span> <span></span>
+at BlackSocketServer.main(BlackSocketServer.java:16)</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;"> <span></span></p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">【提问】没有比较的情况下我怎么确定那些是系统线程?</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">【回答】看多了就知道哪些是系统线程了，这个我没法教你了</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;"> <span></span></p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">现在来反向分析海星的这段代码，从下往上看：先看第一句：</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">
+ <span></span> <span></span> <span></span> <span></span> <span></span> <span></span>
+at
+BlackSocketServer.main(BlackSocketServer.java:16)这是这个堆栈最顶层的调用栈；从这个上看，海星写了一个名字叫做BlackSocketServer的类，里面有个main方法，这个main方法第16行，调用了：</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">
+ <span></span> <span></span> <span></span> <span></span> <span></span> <span></span>
+at
+BlackSocketServer.&lt;init&gt;(BlackSocketServer.java:24)</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">考验一下大家，这句是什么意思？猜也能猜出来，这是在调用BlackSocketServer构造方法。</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">然后继续，在这个BlackSocketServer类的构造方法里的第24行，调用了：</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">
+ <span></span> <span></span> <span></span> <span></span> <span></span> <span></span>
+at BlackSocketServer.accept(BlackSocketServer.java:38)</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">
+所以显然这个类第24行类似这样：serverSocket.accept()继续沿着调用链往上看，这个accept方法调用到了</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">
+ <span></span> <span></span> <span></span> <span></span> <span></span> <span></span>
+at
+java.net.ServerSocket.implAccept(ServerSocket.java:450)这一看就是jdk的代码了。</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">
+要是有兴趣，你去查一下这个方法，一般情况下，你至少可以确定出海星用的jdk是什么版本了，不同版本的行号会不一样，通过这个大致可以看出来。</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;"> <span></span></p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">沿着调用链往上再走，这句比较特殊</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">
+ <span></span> <span></span> <span></span> <span></span> <span></span> <span></span>
+- locked &lt;0x22a02308&gt; (a
+java.net.SocksSocketImpl)</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">这句解释一下，这句表明这段代码占用了一个锁，这个锁的hashcode是0x22a02308</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">
+知道这个锁也很有意义，不过我可能没办法解释给你们听明白了，我粗粗的说一下，知道这个锁，可以发现程序里是否有死锁；也可以发现程序里什么地方设计的不合理；这是这个锁最常用到的功能，这个地方看以后你们自己的修行了；我写段代码解释。</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">Object lock=new Object();</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">synchronized(lock) {</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;"> <span></span> <span></span>
+System.out.println(&quot;.....&quot;);</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;"> <span></span> <span></span></p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">}</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">Object lock=new Object();</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">synchronized(lock) {</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;"> <span></span> <span></span>
+System.out.println(&quot;.....&quot;); <span></span> //----------A</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">}</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">程序运行到A的地方的时候，拥有了一把锁，这个锁就是那个对象（lock）</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">这句话提现在堆栈上，就是有一句类似这样的话：</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">
+ <span></span> <span></span> <span></span> <span></span> <span></span> <span></span>
+- locked &lt;lock的hashcode的16进制&gt;
+（。。。）</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">
+沿着刚才那个调用栈再往上走，还有2句，那2句不解释了，跟前面的类似，同理，分析一些经典的程序的时候，也可以用这种方法；例如tomcat，struts，现在贴一个处于运行状态的tomcat的线程。</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">&quot;http-8080-197&quot; daemon prio=6 tid=0x0000000056aeec00 nid=0x7c8
+runnable [0x00000</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">0005c60f000..0x000000005c60f8e0]</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;"> <span></span> <span></span> java.lang.Thread.State:
+RUNNABLE</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">
+ <span></span> <span></span> <span></span> <span></span> <span></span> <span></span> <span></span>
+at java.net.SocketInputStream.socketRead0(Native Method)</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">
+ <span></span> <span></span> <span></span> <span></span> <span></span> <span></span> <span></span>
+at java.net.SocketInputStream.read(SocketInputStream.java:129)</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">
+ <span></span> <span></span> <span></span> <span></span> <span></span> <span></span> <span></span>
+at
+org.apache.coyote.http11.InternalInputBuffer.fill(InternalInputBuffer</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">.java:730)</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">
+ <span></span> <span></span> <span></span> <span></span> <span></span> <span></span> <span></span>
+at
+org.apache.coyote.http11.InternalInputBuffer.parseRequestLine(Interna</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">lInputBuffer.java:366)</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">
+ <span></span> <span></span> <span></span> <span></span> <span></span> <span></span> <span></span>
+at
+org.apache.coyote.http11.Http11Processor.process(Http11Processor.java</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">:806)</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">
+ <span></span> <span></span> <span></span> <span></span> <span></span> <span></span> <span></span>
+at
+org.apache.coyote.http11.Http11Protocol$Http11ConnectionHandler.proce</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">ss(Http11Protocol.java:583)</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">
+ <span></span> <span></span> <span></span> <span></span> <span></span> <span></span> <span></span>
+at
+org.apache.tomcat.util.net.JIoEndpoint$Worker.run(JIoEndpoint.java:44</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">7)</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">
+ <span></span> <span></span> <span></span> <span></span> <span></span> <span></span> <span></span>
+at java.lang.Thread.run(Thread.java:619)</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">这个代码仅供你们看，要想看懂得对tomcat的源码有一定理解，我不解释了，我只告诉你们我只看这段代码分析出的结果</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">at
+org.apache.tomcat.util.net.JIoEndpoint$Worker.run(JIoEndpoint.java:44</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">7)</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">这句话说明这个tomcat是tomcat6，因为我熟知tomcat5没用这个调用过程</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">lxp(49576574) 22:30:26</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">【提问】$是什么意思？</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">【回答】表示JIoEndpoint.java这个文件里有个内部类，叫做Worker</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">at
+org.apache.tomcat.util.net.JIoEndpoint$Worker.run(JIoEndpoint.java:44</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">7)</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">
+这句话说明这个tomcat是tomcat6，因为我熟知tomcat5没用这个调用过程，并且这个请求是通过http端口上来的，因为如果是通过nio端口上来，堆栈不是这个样子。</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;"> <span></span> <span></span> java.lang.Thread.State:
+RUNNABLE</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">
+ <span></span> <span></span> <span></span> <span></span> <span></span> <span></span> <span></span>
+at java.net.SocketInputStream.socketRead0(Native Method)</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">
+从这2句话看，这个线程目前阻塞在读取网络io上，从打印的整个堆栈上看，阻塞在这里的占了90％以上，所以可以判断出，这个系统目前瓶颈在网络io上，网络io已经饱和了，并且同时可以判断出，发送的东西较多，返回的东西很少</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">【提问】90%怎么看出的？</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">【回答】因为我统计了一下，总共100多个线程，多数都在read</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">【提问】你前面有说runnable 是正在运行的线程...怎么这里又是阻塞呢？</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">【回答】说阻塞不准确，准确的说应该是“卡”在这里了</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">【提问】发送的东西较多，返回的东西很少，怎么看出来的？？</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">【回答】如果返回的东西跟发送的东西相当的话，应该一半卡在读，一半卡在写上，还有一个可能，是发送数据的效率不高也会导致这样</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">还有一个看单个线程堆栈的方法：</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">在你的代码里加上这句话：(new Exception(&quot;see see
+stacktrace......&quot;)).printStacktrace();这句话也会打印出这个线程目前运行的调用堆栈</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">
+最后结束一下：其实一个系统的堆栈是非常复杂的，例如weblogic，glassfish等的，看看这些堆栈，会对你的思维很有好处</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">【提问】nio啥意思？</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">【回答】NIO是IO的加强版</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">【提问】通过调用栈如何判断锁是否是死锁。</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">
+【回答】如果你看到2个线程，一个线程占用了锁1，在等待锁2，另一个线程占用了锁2，在等待锁1，就是最简单的死锁了。复杂点的，一个线程占了锁1，2，N，另外若干个线程占用了。。。。。</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">今天讲的那个不是线程的状态，是堆栈里显示的状态，能在堆栈的东西，都不处于加载，销毁的过程了</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">你说堆栈在更新，那么所有的调用记录就没有一个全的还是什么？</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">
+打印就是打印那瞬间的线程运行状态，线程的运行状态不仅仅是wait，run，还包括运行在了哪一点，这个点最终能定位到某一行代码上，而调用顺序是不需要看的，只要知道某个线程运行时各个对象的状态，就可以知道下一步会走到哪里</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">网友月光园对课程的总结：</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">1.链式调用（堆栈）</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">2.线程快照（Ctrl+break/kill -3)</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">3.堆栈中线程只有两种状态waiting runnable</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">4.线程快照的结果是随机的，运行消耗时间长的线程更容易被记录</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">5.压力测试就是模拟线程密集运行时的快照结果</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">6.海星实例，根据实际例子和一些经验来分析问题（如堆栈阻塞规模，程序吞吐流量）</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">7.一个打印线程堆栈的tip</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">
+说说jprofiler，jprofiler是个分析jvm的工具；它主要分析jvm里的对象和内存状态，以及cpu时间占用情况，所以主要用来分析内存泄露，例如你要是看到某个类型的对象所占用的内存一直在涨，总是不减，就能知道这个对象有内存泄露现象，只不过由于java里的对象使用的是引用，所以一般占用内存的东西最终都集中到了byte[]，String上，不容易看出到底是哪个对象的内存泄露导致的</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;"> <span></span></p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">【提问】java的内存泄露怎么定义？</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">【回答】java的内存泄露，大致上意思就是某个对象一直在扩展内存，总是不释放，导致系统内存不足了。</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">【问题】String池应该是放在栈里面的？</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">【回答】云墨竹：那叫常量池</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;"> <span></span></p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">
+jvm的内存划分看你从什么角度区分堆和栈了，站在jvm是c写的角度说，都是堆，没有栈，站在jvm内存管理机制的角度说，程序里的变量属于栈，对象属于堆</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;"> <span></span></p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">【问题】实际应用叮当说的东西就是写个脚本 <span></span> <span></span> 定时去快照
+然后比较线程记录</p>
+<p style="margin:0px;padding:0px;border:0px;list-style:none;word-wrap:normal;word-break:normal;line-height:150%;margin-bottom:5px;">
+【回答】比较是一方面，分析也是一方面，从堆栈里可以分析出很多有意思的东西，例如你做个ejb的调用，看看ejb调用这套栈，然后反过来分析ejb到底是什么，这就很有意思，其中可能会涉及到很多intercepter的概念，很多proxy的东西；不过总体来说，栈越深的程序，代码越复杂，理解起来越困难，可读性越差。<br/>
+</p>							
+		</div></div></div></div></div></div></div></div></div></div></div><br/></span>
+</div></body></html> 

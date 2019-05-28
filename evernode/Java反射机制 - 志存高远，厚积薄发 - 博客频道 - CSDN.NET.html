@@ -1,0 +1,744 @@
+<html>
+<head>
+  <title>Java反射机制 - 志存高远，厚积薄发 - 博客频道 - CSDN.NET</title>
+  <basefont face="微软雅黑" size="2" />
+  <meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+  <meta name="exporter-version" content="YXBJ Windows/600718 (zh-CN, DDL); Windows/6.1.1 (Win64);"/>
+  <style>
+    body, td {
+      font-family: 微软雅黑;
+      font-size: 10pt;
+    }
+  </style>
+</head>
+<body>
+<a name="8041"/>
+<h1>Java反射机制 - 志存高远，厚积薄发 - 博客频道 - CSDN.NET</h1>
+<div>
+<table bgcolor="#D4DDE5" border="0">
+<tr><td><b>创建时间：</b></td><td><i>2015/8/26 21:44</i></td></tr>
+<tr><td><b>来源：</b></td><td><a href="http://blog.csdn.net/jackiehff/article/details/8509075"><i>http://blog.csdn.net/jackiehff/article/details/8509075</i></a></td></tr>
+</table>
+</div>
+<br/>
+
+<div><span><br/><div style="font-size: 16px"><div><div style="font-size:12px;font-family:Arial, Console, Verdana, 'Courier New';background:url(http://static.blog.csdn.net/skin/dark1/images/body_bg.jpg) 50% 0% repeat;padding-bottom:initial;"><div><div style="text-align:left;"><div style="overflow:hidden;"><div style="background:rgb(255, 255, 255);"><div><div style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:14px;line-height:26px;font-family:Arial;">
+
+<p style="margin:0px;padding:0px;"> <span style="font-size:24px;"><strong>前言</strong></span></p>
+<p style="margin:0px;padding:0px;"><span style="font-size:24px;"><strong><span style="font-size:24px;">    <span style="font-size:24px;">
+<span style="font-size:12px;">本文是我整理的Java反射的一些知识，其中大部分内容是翻译<a href="http://tutorials.jenkov.com/java-reflection/index.html" style="color:rgb(202, 0, 0);text-decoration:none;">http://tutorials.jenkov.com/java-reflection/index.html</a>的。</span></span></span></strong></span></p>
+<h1 style="margin:0px;padding:0px;"><a name="t0" style="color:rgb(202, 0, 0);text-decoration:none;"></a>1. Java反射简介</h1>
+<p style="margin:0px;padding:0px;"></p>
+<p style="margin:0px;padding:0px;">JAVA反射机制是在运行状态中，对于任意一个类，都能够知道这个类的所有属性和方法；对于任意一个对象，都能够调用它的任意一个方法；这种动态获取的信息以及动态调用对象的方法的功能称为Java语言的反射机制。</p>
+<p style="margin:0px;padding:0px;">Java反射机制是Java语言被视为“准动态”语言的关键性质。Java反射机制的核心就是允许在运行时通过Java Reflection APIs来取得已知名字的class类的内部信息(包括其modifiers(诸如public, static等等)、superclass(例如Object)、实现interfaces(例如Serializable)，也包括fields和methods的所有信息)，动态地生成此类，并调用其方法或修改其域（甚至是本身声明为private的域或方法）。</p>
+<p style="margin:0px;padding:0px;">Java反射机制主要提供了以下功能：在运行时判断任意一个对象所属的类；在运行时构造任意一个类的对象；在运行时判断任意一个类所具有的成员变量和方法；在运行时调用任意一个对象的方法；生成动态代理。</p>
+<h1 style="margin:0px;padding:0px;"><a name="t1" style="color:rgb(202, 0, 0);text-decoration:none;"></a>2. Class对象</h1>
+<p style="margin:0px;padding:0px;"><span style="color:black;">Class</span><span style="color:black;">对象是</span><span style="color:black;">Java</span><span style="color:black;">反射的基础，它包含了与类相关的信息，事实上，</span><strong><span style="color:red;">Class</span><span style="color:red;">对象就是用来创建类的所有对象的</span></strong><span style="color:black;">。</span><span style="color:black;background:white;">Class</span><span style="color:black;background:white;">对象是</span><strong><span style="color:black;background:white;">java.lang.Class&lt;T&gt;</span></strong><span style="color:black;background:white;">这个类生成的对象，其中</span>类型参数T表示由此
+ Class 对象建模的类的类型。例如，String.class的类型是 Class&lt;String&gt;；如果将被建模的类未知，则使用Class&lt;?&gt;。以下是<code>Java API</code><code>的描述：</code></p>
+<p style="margin:0px;padding:0px;"><code><strong><span style="color:red;">Class</span></strong></code><strong><span style="color:red;">类的实例表示正在运行的</span><span style="color:red;"> Java</span><span style="color:red;">应用程序中的类和接口。枚举是一种类，注释是一种接口。每个数组属于被映射为</span><span style="color:red;">Class</span><span style="color:red;">对象的一个类，所有具有相同元素类型和维数的数组都共享该</span></strong><code><strong><span style="color:red;">Class</span></strong></code><strong><span style="color:red;">对象。基本的</span><span style="color:red;">Java</span><span style="color:red;">类型（</span></strong><code><strong><span style="color:red;">boolean</span></strong></code><strong><span style="color:red;">、</span></strong><code><strong><span style="color:red;">byte</span></strong></code><strong><span style="color:red;">、</span></strong><code><strong><span style="color:red;">char</span></strong></code><strong><span style="color:red;">、</span></strong><code><strong><span style="color:red;">short</span></strong></code><strong><span style="color:red;">、</span></strong><code><strong><span style="color:red;">int</span></strong></code><strong><span style="color:red;">、</span></strong><code><strong><span style="color:red;">long</span></strong></code><strong><span style="color:red;">、</span></strong><code><strong><span style="color:red;">float</span></strong></code><strong><span style="color:red;">和</span></strong><code><strong><span style="color:red;">double</span></strong></code><strong><span style="color:red;">）和关键字</span></strong><code><strong><span style="color:red;">void</span></strong></code><strong><span style="color:red;">也表示为</span></strong><code><strong><span style="color:red;">Class</span></strong></code><strong><span style="color:red;">对象。</span></strong></p>
+<p style="margin:0px;padding:0px;"><code>Class</code>没有公共构造方法。<code>Class</code>对象是在加载类时由Java虚拟机以及通过调用类加载器中的<code>defineClass</code>方法自动构造的。</p>
+<p style="margin:0px;padding:0px;"><span style="color:black;background:white;">实际上，每个类都有一个</span><span style="color:black;background:white;">Class</span><span style="color:black;background:white;">对象。换言之，每当编写并且编译了一个新类，就会产生一个</span><span style="color:black;background:white;">Class</span><span style="color:black;background:white;">对象</span><span style="color:black;background:white;">(</span><span style="color:black;background:white;">更恰当的说，是被保存在一个同名的</span><span style="color:black;background:white;">.class</span><span style="color:black;background:white;">文件中</span><span style="color:black;background:white;">)</span><span style="color:black;background:white;">。如果我们想生成这个类的对象，运行这个程序的</span><span style="color:black;background:white;">Java</span><span style="color:black;background:white;">虚拟机</span><span style="color:black;background:white;">(JVM)</span><span style="color:black;background:white;">将使用类加载器子系统，类加载器首先检查这个类的</span><span style="color:black;background:white;">Class</span><span style="color:black;background:white;">对象是否已经加载。如果尚未加载，默认的类加载器就会根据类名查找</span><span style="color:black;background:white;">.class</span><span style="color:black;background:white;">文件，并将其载入，一旦某个类的</span><span style="color:black;background:white;">Class</span><span style="color:black;background:white;">对象被载入内存，它就被用来创建这个类的所有对象。</span></p>
+<p style="margin:0px;padding:0px;background:white;"><span style="color:black;">获取</span><span style="color:black;">Class</span><span style="color:black;">对象有三种方式：</span></p>
+<p style="margin:0px;padding:0px;background:white;"><span style="color:black;">(1)    </span><span style="color:black;">通过实例变量的</span><span style="color:black;">getClass()</span><span style="color:black;">方法。例如：</span></p>
+<p style="margin:0px;padding:0px;background:white;"><strong><span style="color:red;">Class c1 = new String(&quot;abc&quot;).getClass();</span></strong></p>
+<p style="margin:0px;padding:0px;background:white;"><span style="color:black;">(2)    </span><span style="color:black;">通过</span><span style="color:black;">Class</span><span style="color:black;">类的静态方法</span><span style="color:black;">——forName()</span><span style="color:black;">来实现，例如：</span></p>
+<p style="margin:0px;padding:0px;background:white;"><strong><span style="color:red;">Class class =Class.forName(className);</span></strong></p>
+<p style="margin:0px;padding:0px;background:white;">注意：当使用Class.forName()方法时，你必须提供<strong><span style="color:red;">完全限定类名</span></strong>。即<strong><span style="color:red;">类名要包括所有包</span></strong></p>
+<p style="margin:0px;padding:0px;background:white;"><strong><span style="color:red;">名</span></strong>。例如，如果MyObject是位于包com.jenkov.myapp下,那么类的完全限定名称是com.jenkov.myapp.MyObject。如果在运行时类路径上找不到类，Class.forName()方法会抛出一个ClassNotFoundException。</p>
+<p style="margin:0px;padding:0px;background:white;"><span style="color:black;">(3)  </span><span style="color:black;">使用类字面常量或</span><span style="color:black;">TYPE</span><span style="color:black;">字段，例如：</span></p>
+<p align="left" style="margin:0px;padding:0px;background:white;"><strong><span style="color:red;">Class myObjectClass= MyObject.class</span><span style="color:red;">；</span></strong>(类字面常量不仅可以应用于普通的类，也可以应用</p>
+<p align="left" style="margin:0px;padding:0px;background:white;">于接口、数组以及基本数据类型)，这种方式不仅更简单，而且更安全，因为它在编译时就会受到检查，并且根除了对forName方法的调用，所以也更高效，<strong><span style="color:red;">建议使用“</span><span style="color:red;">.class</span><span style="color:red;">”的形式</span></strong>。</p>
+<p align="left" style="margin:0px;padding:0px;background:white;"><strong><span style="color:red;">Class c = Integer.TYPE</span><span style="color:red;">；</span></strong>（<strong>TYPE是基本数据类型的包装类型的一个标准字段，它是一</strong></p>
+<p align="left" style="margin:0px;padding:0px;background:white;"><strong>个引用，指向对应的基本数据类型的Class对象</strong>），附表如下，两边等价：</p>
+<table border="1" cellpadding="0" cellspacing="0" style="font-size:inherit;font-weight:inherit;font-style:inherit;font-variant:inherit;" width="549">
+<tbody>
+<tr>
+<td valign="top">
+<p style="margin:0px;padding:0px;">boolean.class</p>
+</td>
+<td valign="top">
+<p style="margin:0px;padding:0px;">Boolean.TYPE</p>
+</td>
+</tr>
+<tr>
+<td valign="top">
+<p style="margin:0px;padding:0px;">char.class</p>
+</td>
+<td valign="top">
+<p style="margin:0px;padding:0px;">Character.TYPE</p>
+</td>
+</tr>
+<tr>
+<td valign="top">
+<p style="margin:0px;padding:0px;">byte.class</p>
+</td>
+<td valign="top">
+<p style="margin:0px;padding:0px;">Byte.TYPE</p>
+</td>
+</tr>
+<tr>
+<td valign="top">
+<p style="margin:0px;padding:0px;">short.class</p>
+</td>
+<td valign="top">
+<p style="margin:0px;padding:0px;">Short.TYPE</p>
+</td>
+</tr>
+<tr>
+<td valign="top">
+<p style="margin:0px;padding:0px;">int.class</p>
+</td>
+<td valign="top">
+<p style="margin:0px;padding:0px;">Integer.TYPE</p>
+</td>
+</tr>
+<tr>
+<td valign="top">
+<p style="margin:0px;padding:0px;">long.class</p>
+</td>
+<td valign="top">
+<p style="margin:0px;padding:0px;">Long.TYPE</p>
+</td>
+</tr>
+<tr>
+<td valign="top">
+<p style="margin:0px;padding:0px;">float.class</p>
+</td>
+<td valign="top">
+<p style="margin:0px;padding:0px;">Float.TYPE</p>
+</td>
+</tr>
+<tr>
+<td valign="top">
+<p style="margin:0px;padding:0px;">double.class</p>
+</td>
+<td valign="top">
+<p style="margin:0px;padding:0px;">Double.TYPE</p>
+</td>
+</tr>
+<tr>
+<td valign="top">
+<p style="margin:0px;padding:0px;">void.class</p>
+</td>
+<td valign="top">
+<p style="margin:0px;padding:0px;">Void.TYPE</p>
+</td>
+</tr>
+</tbody>
+</table>
+<p style="margin:0px;padding:0px;"> </p>
+<h1 style="margin:0px;padding:0px;"><a name="t2" style="color:rgb(202, 0, 0);text-decoration:none;"></a>3. 类</h1>
+<p style="margin:0px;padding:0px;">使用Java反射，你可以在运行时检查Java类。检查类是使用反射时经常做的第一件事情。从类中可以获取以下信息：</p>
+<p align="left" style="margin:0px;padding:0px;background:white;">(1) <a href="http://blog.csdn.net/jackiehff/article/details/8509075#_类名" style="color:rgb(202, 0, 0);text-decoration:none;">类名</a></p>
+<p align="left" style="margin:0px;padding:0px;background:white;">(2) <a href="http://tutorials.jenkov.com/java-reflection/classes.html#modifiers" style="color:rgb(202, 0, 0);text-decoration:none;">
+<span style="color:windowtext;">类修饰符</span><span style="color:windowtext;"> (public, private, synchronized</span><span style="color:windowtext;">等</span><span style="color:windowtext;">)</span></a></p>
+<p align="left" style="margin:0px;padding:0px;background:white;">(3) 包信息</p>
+<p align="left" style="margin:0px;padding:0px;background:white;">(4) 父类</p>
+<p align="left" style="margin:0px;padding:0px;background:white;">(5) 实现的接口</p>
+<p align="left" style="margin:0px;padding:0px;background:white;">(6) 构造函数</p>
+<p align="left" style="margin:0px;padding:0px;background:white;">(7) 方法</p>
+<p align="left" style="margin:0px;padding:0px;background:white;">(8) 字段</p>
+<p align="left" style="margin:0px;padding:0px;background:white;">(9) 注解</p>
+<h2 style="margin:0px;padding:0px;"><a name="t3" style="color:rgb(202, 0, 0);text-decoration:none;"></a><a name="_类名" style="color:rgb(202, 0, 0);text-decoration:none;"></a>3.1类名</h2>
+<p style="margin:0px;padding:0px;">    从Class对象中可以获取两个不同的类名。完全限定类名(包括包名)可以使用<span style="color:black;">getName()</span><span style="color:black;">或</span><span style="color:black;">getCanonicalName()</span><span style="color:black;">方法获取</span><span style="color:black;">,</span><span style="color:black;">例如：</span></p>
+<div style="background:#EEEEFF;">
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">Class aClass = MyObject.class;</span></pre>
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:red;">String className = aClass.getName();</span></pre>
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:red;">String className1 = aClass.</span><span style="color:red;">getCanonicalName</span><span style="color:red;">();</span></pre>
+</div>
+<p style="margin:0px;padding:0px;background:white;"><span style="color:black;">如果想要获取不含包名的类名可以使用</span><code><span style="color:black;">getSimpleName()</span></code><span style="color:black;"> </span><span style="color:black;">方法，如下</span><span style="color:black;">:</span></p>
+<div style="background:#EEEEFF;">
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">Class  </span>aClass = MyObject.class;</pre>
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">    </span> <span style="color:red;">String simpleClassName = aClass.getSimpleName();</span></pre>
+</div>
+<h2 style="margin:0px;padding:0px;"><a name="t4" style="color:rgb(202, 0, 0);text-decoration:none;"></a>3.2修饰符</h2>
+<p style="margin:0px;padding:0px;background:white;"><span style="color:black;">使用</span><span style="color:black;">Class</span><span style="color:black;">对象可以获取一个类的修饰符</span><span style="color:black;">.</span><span style="color:black;">类的修饰符即关键字</span><span style="color:black;">&quot;public&quot;,&quot;private&quot;,
+ &quot;static&quot;</span><span style="color:black;">等</span><span style="color:black;">. </span>
+<span style="color:black;">如下：</span></p>
+<div style="background:#EEEEFF;">
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">  </span>  Class aClass = MyObject.class;</pre>
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">  </span>  int modifiers = aClass.getModifiers();</pre>
+</div>
+<p style="margin:0px;padding:0px;background:white;"><span style="color:black;">修饰符被包装进一个</span><span style="color:black;">int</span><code><span style="color:black;">内，</span></code><span style="color:black;">每一个修饰符都是一个标志位</span><span style="color:black;">(</span><span style="color:black;">置位或清零</span><span style="color:black;">)</span><span style="color:black;">。可以使用</span><code><span style="color:black;">java.lang.reflect.Modifier</span></code><code><span style="color:black;">类</span></code><span style="color:black;">中的以下方法来检验修饰符</span><span style="color:black;">:</span></p>
+<div style="background:#EEEEFF;">
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">    </span>Modifier.isAbstract(int modifiers)</pre>
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">    </span>Modifier.isFinal(int modifiers)</pre>
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">    </span>Modifier.isInterface(int modifiers)</pre>
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">    </span>Modifier.isNative(int modifiers)</pre>
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">    </span>Modifier.isPrivate(int modifiers)</pre>
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">    </span>Modifier.isProtected(int modifiers)</pre>
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">    </span>Modifier.isPublic(int modifiers)</pre>
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">    </span>Modifier.isStatic(int modifiers)</pre>
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">    </span>Modifier.isStrict(int modifiers)</pre>
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">    </span>Modifier.isSynchronized(int modifiers)</pre>
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">    </span>Modifier.isTransient(int modifiers)</pre>
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">    </span>Modifier.isVolatile(int modifiers)<a name="package" style="color:rgb(202, 0, 0);text-decoration:none;"></a></pre>
+</div>
+<h2 style="margin:0px;padding:0px;background:white;"><a name="t5" style="color:rgb(202, 0, 0);text-decoration:none;"></a><span style="color:black;">3.3</span><span style="color:black;">包信息</span></h2>
+<p style="margin:0px;padding:0px;background:white;"><span style="color:black;">使用</span><span style="color:black;">Class</span><span style="color:black;">对象可以获取包信息，如下</span><span style="color:black;">:</span></p>
+<div style="background:#EEEEFF;">
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">Class aClass = MyObject.class;</span></pre>
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">Package package = aClass.getPackage();</span></pre>
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">String packageName = package.getname();</span></pre>
+</div>
+<p style="margin:0px;padding:0px;background:white;">从<span style="color:black;">Package</span>对象中你可以访问诸如名字等包信息。您还可以访问类路径上这个包位于JAR文件中Manifest这个文件中指定的信息。例如，你可以在Manifest文件中指定包的版本号。可以在java.lang.Package中了解更多包类信息。</p>
+<h2 style="margin:0px;padding:0px;background:white;"><a name="t6" style="color:rgb(202, 0, 0);text-decoration:none;"></a><a name="superclass" style="color:rgb(202, 0, 0);text-decoration:none;"></a><span style="color:black;">3.4</span><span style="color:black;">父类</span></h2>
+<p style="margin:0px;padding:0px;background:white;"><span style="color:black;">通过</span><code><span style="color:black;">Class</span></code><code><span style="color:black;">对象可以获取类的父类</span></code><span style="color:black;">，如下</span><span style="color:black;">:</span></p>
+<div style="background:#EEEEFF;">
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">Class  </span>aClass = MyObject.class;</pre>
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">Class superclass = aClass.getSuperclass();</span></pre>
+</div>
+<p style="margin:0px;padding:0px;background:white;"><span style="color:black;">父类的</span><span style="color:black;">Class</span><span style="color:black;">对象和其它</span><span style="color:black;">Class</span><span style="color:black;">对象一样是一个</span><span style="color:black;">Class</span><span style="color:black;">对象，可以继续使用反射</span><span style="color:black;">.<a name="interfaces" style="color:rgb(202, 0, 0);text-decoration:none;"></a></span></p>
+<h2 style="margin:0px;padding:0px;background:white;"><a name="t7" style="color:rgb(202, 0, 0);text-decoration:none;"></a><span style="color:black;">3.5</span><span style="color:black;">实现的接口</span></h2>
+<p style="margin:0px;padding:0px;background:white;"><span style="color:black;">通过给定的类可以获取这个类所实现的接口列表，如下</span><span style="color:black;">:</span></p>
+<div style="background:#EEEEFF;">
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">Class aClass = MyObject.class;</span></pre>
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">Class[] interfaces = aClass.getInterfaces();</span></pre>
+</div>
+<p style="margin:0px;padding:0px;background:white;">一个类可以实现多个接口。因此返回一个Class数组。在Java反射机制中，接口也由Class对象表示。</p>
+<p style="margin:0px;padding:0px;background:white;"><span style="color:black;">注意</span><span style="color:black;">:</span><span style="color:black;">只有给定类声明实现的接口才会返回。例如，如果类</span><span style="color:black;">A</span><span style="color:black;">的父类</span><span style="color:black;">B</span><span style="color:black;">实现了一个接口</span><span style="color:black;">C</span><span style="color:black;">，但类</span><span style="color:black;">A</span><span style="color:black;">并没有声明它也实现了</span><span style="color:black;">C</span><span style="color:black;">，那么</span><span style="color:black;">C</span><span style="color:black;">不会被返回到数组中。即使类</span><span style="color:black;">A</span><span style="color:black;">实际上实现了接口</span><span style="color:black;">C</span><span style="color:black;">，因为它的父类</span><span style="color:black;">B</span><span style="color:black;">实现了</span><span style="color:black;">C</span><span style="color:black;">。</span></p>
+<p style="margin:0px;padding:0px;background:white;">为了得到一个给定的类实现接口的完整列表，需要递归访问类和其超类。</p>
+<h2 style="margin:0px;padding:0px;background:white;"><a name="t8" style="color:rgb(202, 0, 0);text-decoration:none;"></a><span style="color:black;">3.6</span><span style="color:black;">构造函数</span></h2>
+<p style="margin:0px;padding:0px;background:white;"><span style="color:black;">使用</span><span style="color:black;">Class</span><span style="color:black;">对象可以获取类的构造函数，如下：</span></p>
+<div style="background:#EEEEFF;">
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;"> </span>    Class aClass = MyObject.class;</pre>
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">Constructor[] constructors = aClass.getConstructors();</span></pre>
+</div>
+<p style="margin:0px;padding:0px;background:white;"><span style="color:black;">关于构造函数更详细信息参见</span><span style="color:black;"> </span><span style="color:black;">构造函数这节。</span><a name="methods" style="color:rgb(202, 0, 0);text-decoration:none;"></a></p>
+<h2 style="margin:0px;padding:0px;background:white;"><a name="t9" style="color:rgb(202, 0, 0);text-decoration:none;"></a><span style="color:black;">3.7</span><span style="color:black;">方法</span></h2>
+<p style="margin:0px;padding:0px;background:white;"><span style="color:black;">使用</span><span style="color:black;">Class</span><span style="color:black;">对象可以获取类的方法，如下</span><span style="color:black;">:</span></p>
+<div style="background:#EEEEFF;">
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;"> </span>    Class aClass = MyObject.class;</pre>
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">Method[] methods = aClass.getMethods();</span></pre>
+</div>
+<p style="margin:0px;padding:0px;background:white;"><span style="color:black;">关于方法更详细信息参见</span><span style="color:black;"><a href="http://tutorials.jenkov.com/java-reflection/methods.html" style="color:rgb(202, 0, 0);text-decoration:none;"><span style="color:black;">方法这节</span></a></span>.<a name="fields" style="color:rgb(202, 0, 0);text-decoration:none;"></a></p>
+<h2 style="margin:0px;padding:0px;background:white;"><a name="t10" style="color:rgb(202, 0, 0);text-decoration:none;"></a><span style="color:black;">3.8</span><span style="color:black;">字段</span></h2>
+<p style="margin:0px;padding:0px;background:white;"><span style="color:black;">使用</span><span style="color:black;">Class</span><span style="color:black;">对象可以获取类的字段</span><span style="color:black;">(</span><span style="color:black;">成员变量</span><span style="color:black;">)</span><span style="color:black;">，如下</span><span style="color:black;">:</span></p>
+<div style="background:#EEEEFF;">
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;"> </span>     Class aClass = MyObject.class;</pre>
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">Field[] fields = aClass.getFields();</span></pre>
+</div>
+<p style="margin:0px;padding:0px;background:white;"><span style="color:black;">关于字段更详细信息参见</span><span style="color:black;"> </span><a href="http://tutorials.jenkov.com/java-reflection/fields.html" style="color:rgb(202, 0, 0);text-decoration:none;">字段这节</a><span style="color:black;">.<a name="annotations" style="color:rgb(202, 0, 0);text-decoration:none;"></a></span></p>
+<h2 style="margin:0px;padding:0px;background:white;"><a name="t11" style="color:rgb(202, 0, 0);text-decoration:none;"></a><span style="color:black;">3.9</span><span style="color:black;">注解</span></h2>
+<p style="margin:0px;padding:0px;background:white;"><span style="color:black;">使用</span><span style="color:black;">Class</span><span style="color:black;">对象可以获取类的注解，如下</span><span style="color:black;">:</span></p>
+<div style="background:#EEEEFF;">
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;"> </span>     Class aClass = MyObject.class;</pre>
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">Annotation[] annotations = aClass.getAnnotations();</span></pre>
+</div>
+<p style="margin:0px;padding:0px;background:white;"><span style="color:black;">关于注解更详细信息参见注解这节</span><span style="color:black;">.</span></p>
+<h1 style="margin:0px;padding:0px;"><a name="t12" style="color:rgb(202, 0, 0);text-decoration:none;"></a>4. 构造函数</h1>
+<p style="margin:0px;padding:0px;">使用Java反射可以在运行时检查类的构造函数并实例化对象。这是通过Java类java.lang.reflect.Constructor来实现的。以下是Java Construcor对象的更多细节：</p>
+<p align="left" style="margin:0px;padding:0px;background:white;">(1) 获取Constructor对象</p>
+<p align="left" style="margin:0px;padding:0px;background:white;">(2) 构造函数参数</p>
+<p align="left" style="margin:0px;padding:0px;background:white;">(3) 使用Constructor对象实例化对象</p>
+<h2 style="margin:0px;padding:0px;"><a name="t13" style="color:rgb(202, 0, 0);text-decoration:none;"></a>4.1获取Constructor对象</h2>
+<p style="margin:0px;padding:0px;background:white;"><span style="color:black;"> </span><code><span style="color:black;">Constructor</span></code><span style="color:black;">类是从</span><span style="color:black;">Class</span><span style="color:black;">对象获取的，举例</span><span style="color:black;">:</span></p>
+<div style="background:#EEEEFF;">
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">Class aClass = MyObject.class;</span></pre>
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">Constructor[] constructors = aClass.getConstructors();</span></pre>
+</div>
+<p style="margin:0px;padding:0px;background:white;"><code><span style="color:black;">Constructor</span></code><code><span style="color:black;">数组为每一个在类中声明的</span></code><code><span style="color:black;">public</span></code><code><span style="color:black;">构造函数保存一个</span></code><code><span style="color:black;">Constructor</span></code><code><span style="color:black;">实例</span></code><span style="color:black;">。</span></p>
+<p style="margin:0px;padding:0px;background:white;">如果知道要访问的构造函数确切的参数类型，可以不获取构造函数数组。本示例将返回给定类中接受一个字符串作为参数的公共构造函数。</p>
+<div style="background:#EEEEFF;">
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">Class aClass = MyObject.class;//MyObject</span><span style="color:black;">有一个参数为字符串的公共构造函数</span></pre>
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">Constructor constructor = aClass.getConstructor(new Class[]{String.class});</span></pre>
+</div>
+<p style="margin:0px;padding:0px;background:white;"><span style="color:black;">如果没有匹配给定的构造函数参数，在这个例子当中是</span><code><span style="color:black;">String.class</span></code><span style="color:black;">，会抛出</span><span style="color:black;"> </span><code><span style="color:black;">NoSuchMethodException</span></code><span style="color:black;"> </span><span style="color:black;">异常</span><span style="color:black;">.</span></p>
+<h2 style="margin:0px;padding:0px;"><a name="t14" style="color:rgb(202, 0, 0);text-decoration:none;"></a>4.2构造函数参数</h2>
+<p style="margin:0px;padding:0px;background:white;"><span style="color:black;">可以知道给定的构造函数接受什么参数，如下</span><span style="color:black;">:</span></p>
+<div style="background:#EEEEFF;">
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">Class aClass = MyObject.class;//MyObject</span><span style="color:black;">有一个参数为字符串的公共构造函数</span></pre>
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">Constructor constructor = aClass.getConstructor(new Class[]{String.class});</span></pre>
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">Class[] parameterTypes = constructor.getParameterTypes();</span></pre>
+</div>
+<h2 style="margin:0px;padding:0px;"><a name="t15" style="color:rgb(202, 0, 0);text-decoration:none;"></a><span style="color:black;">4.3</span>使用Constructor对象实例化对象</h2>
+<p style="margin:0px;padding:0px;background:white;"><span style="color:black;">可以像这样实例化对象</span><span style="color:black;">:</span></p>
+<div style="background:#EEEEFF;">
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">//</span><span style="color:black;">获取使用字符串作为参数的</span><span style="color:black;">constructor</span></pre>
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">Constructor constructor = MyObject.class.getConstructor(String.class);</span></pre>
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">MyObject myObject = (MyObject)constructor.newInstance(&quot;constructor-arg1&quot;);</span></pre>
+</div>
+<p style="margin:0px;padding:0px;background:white;"><code><span style="color:black;">Constructor.newInstance()</span></code><span style="color:black;"> </span><span style="color:black;">方法使用可变长度的参数</span><span style="color:black;">,</span><span style="color:black;">但是在调用构造函数时必须为每一个参数提供一个准确的参量</span><span style="color:black;">.</span><span style="color:black;">在这个例子中构造函数接受一个字符串作为参数，所以必须要提供一个字符串。</span></p>
+<h1 style="margin:0px;padding:0px;"><a name="t16" style="color:rgb(202, 0, 0);text-decoration:none;"></a>5. 字段</h1>
+<p style="margin:0px;padding:0px;background:white;"><span style="color:black;">使用</span><span style="color:black;">Java</span><span style="color:black;">反射你可以在运行时检查类的字段</span><span style="color:black;">(</span><span style="color:black;">成员变量</span><span style="color:black;">)</span><span style="color:black;">并</span><span style="color:black;">
+ get / set</span><span style="color:black;">它们</span><span style="color:black;">.</span><span style="color:black;">这是通过</span><span style="color:black;">Java</span><span style="color:black;">类</span><code><span style="color:black;">java.lang.reflect.Field</span></code><code><span style="color:black;">来完成的</span></code><span style="color:black;">.</span><span style="color:black;">以下是</span><span style="color:black;">Java</span><code><span style="color:black;">Field</span></code><span style="color:black;">对象更多细节</span><span style="color:black;">:</span></p>
+<p align="left" style="margin:0px;padding:0px;background:white;">(1) <a href="http://tutorials.jenkov.com/java-reflection/fields.html#obtaining" style="color:rgb(202, 0, 0);text-decoration:none;">
+获取Field 对象</a></p>
+<p align="left" style="margin:0px;padding:0px;background:white;">(2) 字段名称</p>
+<p align="left" style="margin:0px;padding:0px;background:white;">(3) <a href="http://tutorials.jenkov.com/java-reflection/fields.html#fieldtype" style="color:rgb(202, 0, 0);text-decoration:none;">
+字段类型</a></p>
+<p align="left" style="margin:0px;padding:0px;background:white;">(4) 获取和设置字段<a name="obtaining" style="color:rgb(202, 0, 0);text-decoration:none;"></a>值</p>
+<h2 style="margin:0px;padding:0px;"><a name="t17" style="color:rgb(202, 0, 0);text-decoration:none;"></a>5.1获取Field 对象</h2>
+<p style="margin:0px;padding:0px;background:white;"><span style="color:black;">     </span><code><span style="color:black;">Field</span></code><span style="color:black;">类是从</span><code><span style="color:black;">Class</span></code><span style="color:black;">对象获取的</span><span style="color:black;">.</span><span style="color:black;">举例</span><span style="color:black;">:</span></p>
+<div style="background:#EEEEFF;">
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">Class aClass = MyObject.class;</span></pre>
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:red;">Field[] methods = aClass.getFields();</span></pre>
+</div>
+<p style="margin:0px;padding:0px;background:white;"><code><span style="color:black;">Field</span></code><code><span style="color:black;">数组为类中声明的每一个</span></code><code><strong><span style="color:red;">public</span></strong></code><code><strong><span style="color:red;">字段</span></strong></code><code><span style="color:black;">保存一个</span></code><code><span style="color:black;">Field</span></code><span style="color:black;"> </span><span style="color:black;">实例。</span></p>
+<p style="margin:0px;padding:0px;background:white;"><span style="color:black;">如果知道要访问的字段名称</span><span style="color:black;">,</span><span style="color:black;">可以这样获取它</span><span style="color:black;">:</span></p>
+<div style="background:#EEEEFF;">
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">Class aClass = MyObject.class</span></pre>
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">Field field = aClass.getField(&quot;someField&quot;);</span></pre>
+</div>
+<p style="margin:0px;padding:0px;background:white;"><span style="color:black;">根据下面</span><span style="color:black;"> </span><code><span style="color:black;">MyObject</span></code><span style="color:black;"> </span><span style="color:black;">声明的</span><code><span style="color:black;">someField</span></code><code><span style="color:black;">字段，</span></code><span style="color:black;">以上的例子将返回</span><code><span style="color:black;">Field</span></code><span style="color:black;">实例</span><span style="color:black;">:</span></p>
+<div style="background:#EEEEFF;">
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">public class MyObject{</span></pre>
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">  </span>     public String someField = null;</pre>
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">}</span></pre>
+</div>
+<p style="margin:0px;padding:0px;background:white;"><span style="color:black;">如果不存在</span><span style="color:black;">getField()</span><span style="color:black;">方法中所给参数名字对应的字段</span><span style="color:black;">,</span><span style="color:black;">会抛出</span><code><span style="color:black;">NoSuchFieldException</span></code><code><span style="color:black;">异常</span></code><span style="color:black;">.<a name="fieldname" style="color:rgb(202, 0, 0);text-decoration:none;"></a></span></p>
+<h2 style="margin:0px;padding:0px;"><a name="t18" style="color:rgb(202, 0, 0);text-decoration:none;"></a>5.2字段名称</h2>
+<p style="margin:0px;padding:0px;background:white;"><span style="color:black;">一旦获得一个</span><span style="color:black;"> </span><code><span style="color:black;">Field</span></code><span style="color:black;">实例</span><span style="color:black;">,</span><span style="color:black;">可以使用</span><code><span style="color:black;">Field.getName()</span></code><code><span style="color:black;">方法获取它的字段名字，</span></code><span style="color:black;">如下</span><span style="color:black;">:</span></p>
+<div style="background:#EEEEFF;">
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">Field field = ... //</span><span style="color:black;">获取</span><span style="color:black;"> field </span><span style="color:black;">对象</span></pre>
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">String fieldName = field.getName();<a name="fieldtype" style="color:rgb(202, 0, 0);text-decoration:none;"></a></span></pre>
+</div>
+<h2 style="margin:0px;padding:0px;"><a name="t19" style="color:rgb(202, 0, 0);text-decoration:none;"></a>5.3字段类型</h2>
+<p style="margin:0px;padding:0px;background:white;"><span style="color:black;">你可以使用</span><code><span style="color:black;">Field.getType()</span></code><code><span style="color:black;">方法确定一个字段的类型</span></code><code><span style="color:black;">(</span></code><span style="color:black;">String,int</span><span style="color:black;">等</span><code><span style="color:black;">)</span></code><span style="color:black;">:</span></p>
+<div style="background:#EEEEFF;">
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">Field field = aClass.getField(&quot;someField&quot;);</span></pre>
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">Object fieldType = field.getType();<a name="getset" style="color:rgb(202, 0, 0);text-decoration:none;"></a></span></pre>
+</div>
+<h2 style="margin:0px;padding:0px;"><a name="t20" style="color:rgb(202, 0, 0);text-decoration:none;"></a>5.4<span style="color:black;">获取和设置字段</span><span style="color:black;">值</span></h2>
+<p style="margin:0px;padding:0px;background:white;"><span style="color:black;">一旦获得一个</span><span style="color:black;">Field</span><span style="color:black;">引用，可以使用</span><code><span style="color:black;">Field.get()</span></code><span style="color:black;"> </span><span style="color:black;">和</span><span style="color:black;"> </span><code><span style="color:black;">Field.set()</span></code><code><span style="color:black;">方法获取和设置</span></code><span style="color:black;">它的值，如下</span><span style="color:black;">:</span></p>
+<div style="background:#EEEEFF;">
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">Class aClass = MyObject.class</span></pre>
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">Field field = aClass.getField(&quot;someField&quot;);</span></pre>
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">MyObject objectInstance = new MyObject();</span></pre>
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">Object value = field.get(objectInstance);</span></pre>
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">field.set(objetInstance, value);</span></pre>
+</div>
+<p style="margin:0px;padding:0px;background:white;">传递给get和set方法的对象实例参数应该是拥有该字段的类的一个实例。在上述的例子中使用了MyObject的一个实例，因为someField是MyObject类的一个实例成员。静态字段（<span style="color:black;">public static</span>）给get和set方法传递null作为参数，而不是以上传递的objectInstance参数。</p>
+<h1 style="margin:0px;padding:0px;"><a name="t21" style="color:rgb(202, 0, 0);text-decoration:none;"></a>6. 方法</h1>
+<p style="margin:0px;padding:0px;background:white;"><span style="color:black;">使用</span><span style="color:black;">Java</span><span style="color:black;">反射你可以在运行时检查类的方法并调用它们</span><span style="color:black;">.</span><span style="color:black;">这是通过</span><span style="color:black;">Java</span><span style="color:black;">类</span><code><span style="color:black;">java.lang.reflect.Method</span></code><code><span style="color:black;">来实现的</span></code><span style="color:black;">.</span><span style="color:black;">本章将会更详细的介绍</span><span style="color:black;">
+ Java </span><code><span style="color:black;">Method</span></code><span style="color:black;">对象</span><span style="color:black;">.</span><span style="color:black;">下面是本章所涵盖的主题</span><span style="color:black;">:</span></p>
+<p align="left" style="margin:0px;padding:0px;background:white;">(1) <a href="http://tutorials.jenkov.com/java-reflection/methods.html#obtaining" style="color:rgb(202, 0, 0);text-decoration:none;">
+获取 Method对象</a></p>
+<p align="left" style="margin:0px;padding:0px;background:white;">(2) 方法的参数和返回值类型</p>
+<p align="left" style="margin:0px;padding:0px;background:white;">(3) 使用Method对象调用方法</p>
+<h2 style="margin:0px;padding:0px;"><a name="t22" style="color:rgb(202, 0, 0);text-decoration:none;"></a>6.1<span style="color:black;"><a href="http://tutorials.jenkov.com/java-reflection/methods.html#obtaining" style="color:rgb(202, 0, 0);text-decoration:none;"><span style="color:#002D62;">获取</span></a></span><span style="color:#002D62;">Method</span><span style="color:#002D62;">对象</span></h2>
+<p style="margin:0px;padding:0px;background:white;"><code><span style="color:black;">Method</span></code><span style="color:black;">类是从</span><span style="color:black;"> </span><code><span style="color:black;">Class</span></code><span style="color:black;"> </span><span style="color:black;">对象中获取的</span><span style="color:black;">.</span><span style="color:black;">举例</span><span style="color:black;">:</span></p>
+<div style="background:#EEEEFF;">
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">Class aClass = MyObject.class;</span></pre>
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">Method[] methods = aClass.getMethods();</span></pre>
+</div>
+<p style="margin:0px;padding:0px;background:white;"><span style="color:black;"> </span><code><span style="color:black;">Method</span></code><code><span style="color:black;">数组将为类中声明的每一个</span></code><code><span style="color:black;">public</span></code><code><span style="color:black;">的方法保存一个</span></code><code><span style="color:black;">Method</span></code><code><span style="color:black;">实例</span></code><span style="color:black;">.</span></p>
+<p style="margin:0px;padding:0px;background:white;">如果你知道要访问方法的确切的参数类型，可以不必获取方法数组。本示例返回给定类中接受一个字符串作为参数的公共方法”<span style="color:black;">doSomething</span>”。</p>
+<div style="background:#EEEEFF;">
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">Class  </span>aClass = MyObject.class;</pre>
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">Method method = aClass.getMethod(&quot;doSomething&quot;, new Class[]{String.class});</span></pre>
+</div>
+<p style="margin:0px;padding:0px;background:white;"><span style="color:black;">如果没有方法匹配所给的方法名和参数</span><span style="color:black;">,</span><span style="color:black;">在这个例子中是</span><code><span style="color:black;">String.class</span></code><span style="color:black;">,</span><span style="color:black;">将抛出</span><code><span style="color:black;">NoSuchMethodException</span></code><span style="color:black;">异常</span><span style="color:black;">.</span></p>
+<p style="margin:0px;padding:0px;background:white;"><span style="color:black;">如果你想访问的方法没有参数</span><span style="color:black;">,</span><span style="color:black;">传递</span><span style="color:black;"> </span><code><span style="color:black;">null</span></code><span style="color:black;">作为参数类型数组</span><span style="color:black;">,</span><span style="color:black;">如下</span><span style="color:black;">:</span></p>
+<div style="background:#EEEEFF;">
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">Class  </span>aClass = MyObject.class;</pre>
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">Method method = aClass.getMethod(&quot;doSomething&quot;, null);<a name="parameters" style="color:rgb(202, 0, 0);text-decoration:none;"></a></span></pre>
+</div>
+<h2 style="margin:0px;padding:0px;"><a name="t23" style="color:rgb(202, 0, 0);text-decoration:none;"></a>6.2<span style="color:black;">方法的参数和返回值类型</span></h2>
+<p style="margin:0px;padding:0px;background:white;"><span style="color:black;">使用</span><span style="color:black;">Method</span><span style="color:black;">对象可以获取方法的参数，如下</span><span style="color:black;">:</span></p>
+<div style="background:#EEEEFF;">
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">Method method = ... //</span><span style="color:black;">获取</span><span style="color:black;"> method – </span><span style="color:black;">如上</span></pre>
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><strong><span style="color:red;">Class[] parameterTypes = method.getParameterTypes();</span></strong></pre>
+</div>
+<p style="margin:0px;padding:0px;background:white;"><span style="color:black;">亦可以获取方法的返回值类型，如下</span><span style="color:black;">:</span></p>
+<div style="background:#EEEEFF;">
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">Method method = ... // obtain method - see above</span></pre>
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><strong><span style="color:red;">Class returnType = method.getReturnType();<a name="invoking" style="color:rgb(202, 0, 0);text-decoration:none;"></a></span></strong></pre>
+</div>
+<h2 style="margin:0px;padding:0px;"><a name="t24" style="color:rgb(202, 0, 0);text-decoration:none;"></a>6.3<span style="color:black;">使用</span><span style="color:black;">Method</span><span style="color:black;">对象调用方法</span></h2>
+<p style="margin:0px;padding:0px;background:white;"><span style="color:black;">可以像这样调用方法</span><span style="color:black;">:</span></p>
+<div style="background:#EEEEFF;">
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">//get method that takes a String as argument</span></pre>
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">Method method = MyObject.class.getMethod(&quot;doSomething&quot;, String.class);</span></pre>
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">Object returnValue = method.invoke(null, &quot;parameter-value1&quot;);</span></pre>
+</div>
+<p style="margin:0px;padding:0px;background:white;">空参数是你想要调用该方法的对象。如果该方法是静态的，使用null，而不是一个对象实例。在这个例子中，如果doSomething（String.class）不是静态的，你需要提供<strong><span style="color:red;">有效的</span><span style="color:red;">MyObject</span><span style="color:red;">实例</span></strong>而不是null作为参数;<br/>
+<code><span style="color:black;">    </span>Method.invoke(Object target, Object ...parameters)</code>方法接受<span style="color:black;">可变长度的参数</span>，<span style="color:black;">但是你在调用时必须为每一个参数提供一个准确的参量</span>。在这个例子中，方法以字符串作为参数的，所以必须提供一个字符串。</p>
+<h1 style="margin:0px;padding:0px;background:white;"><a name="t25" style="color:rgb(202, 0, 0);text-decoration:none;"></a><span style="color:black;">7. </span><span style="color:black;">get</span><span style="color:black;">和</span><span style="color:black;">set</span><span style="color:black;">方法</span></h1>
+<p style="margin:0px;padding:0px;background:white;">    使用Java反射可以在运行时检查类的方法并调用它们<span style="color:black;">。</span>这可以用来检测一个给定的类有哪些get和set方法<span style="color:black;">。</span>可以通过扫描一个类的所有方法并检查每个方法是否是get或set方法。</p>
+<p align="left" style="margin:0px;padding:0px;background:white;"><span style="color:black;">下面是一段用来找到类的</span><span style="color:black;">get</span><span style="color:black;">和</span><span style="color:black;">set</span><span style="color:black;">方法的代码</span><span style="color:black;">:</span></p>
+<div style="background:#EEEEFF;">
+<p align="left" style="margin:0px;padding:0px;background:#EEEEFF;"><span style="color:black;">public staticvoid printGettersSetters(Class aClass){</span></p>
+<p align="left" style="margin:0px;padding:0px;background:#EEEEFF;"><span style="color:black;">  </span>      Method[]methods = aClass.getMethods();</p>
+<p align="left" style="margin:0px;padding:0px;background:#EEEEFF;"><span style="color:black;">  </span>      for(Methodmethod : methods){</p>
+<p align="left" style="margin:0px;padding:0px;background:#EEEEFF;"><span style="color:black;">    </span>       if(isGetter(method))System.out.println(&quot;getter: &quot; + method);</p>
+<p align="left" style="margin:0px;padding:0px;background:#EEEEFF;"><span style="color:black;">    </span>       if(isSetter(method))System.out.println(&quot;setter: &quot; + method);</p>
+<p align="left" style="margin:0px;padding:0px;background:#EEEEFF;"><span style="color:black;">  </span>      }</p>
+<p align="left" style="margin:0px;padding:0px;background:#EEEEFF;"><span style="color:black;">}</span></p>
+<p align="left" style="margin:0px;padding:0px;background:#EEEEFF;"><span style="color:black;">public staticboolean isGetter(Method method){</span></p>
+<p align="left" style="margin:0px;padding:0px;background:#EEEEFF;"><span style="color:black;">  </span>      if(!method.getName().startsWith(&quot;get&quot;))      return false;</p>
+<p align="left" style="margin:0px;padding:0px;background:#EEEEFF;"><span style="color:black;">  </span>      if(method.getParameterTypes().length!= 0)   return false; </p>
+<p align="left" style="margin:0px;padding:0px;background:#EEEEFF;"><span style="color:black;">  </span>      if(void.class.equals(method.getReturnType())return false;</p>
+<p align="left" style="margin:0px;padding:0px;background:#EEEEFF;"><span style="color:black;">  </span>      returntrue;</p>
+<p align="left" style="margin:0px;padding:0px;background:#EEEEFF;"><span style="color:black;">}</span></p>
+<p align="left" style="margin:0px;padding:0px;background:#EEEEFF;"><span style="color:black;">public staticboolean isSetter(Method method){</span></p>
+<p align="left" style="margin:0px;padding:0px;background:#EEEEFF;"><span style="color:black;"> </span>       if(!method.getName().startsWith(&quot;set&quot;))return false;</p>
+<p align="left" style="margin:0px;padding:0px;background:#EEEEFF;"><span style="color:black;">  </span>      if(method.getParameterTypes().length!= 1) return false;</p>
+<p align="left" style="margin:0px;padding:0px;background:#EEEEFF;"><span style="color:black;"> </span>       return true;</p>
+<p align="left" style="margin:0px;padding:0px;background:#EEEEFF;"><span style="color:black;">}</span></p>
+</div>
+<h1 style="margin:0px;padding:0px;"><a name="t26" style="color:rgb(202, 0, 0);text-decoration:none;"></a>8. 私有字段和方法</h1>
+<p style="margin:0px;padding:0px;background:white;">可以通过Java反射访问类的私有字段和方法。</p>
+<h2 style="margin:0px;padding:0px;background:white;"><a name="t27" style="color:rgb(202, 0, 0);text-decoration:none;"></a><span style="color:black;">8.1</span><span style="color:black;">访问私有字段</span></h2>
+<p style="margin:0px;padding:0px;background:white;"><span style="color:black;">要想访问私有字段你需要调用</span><code><span style="color:black;">Class.getDeclaredField(Stringname)</span></code><span style="color:black;">或</span><span style="color:black;"> </span><code><span style="color:black;">Class.getDeclaredFields()</span></code><span style="color:black;">方法</span><span style="color:black;">. </span><code><span style="color:black;">Class.getField(String
+ name)</span></code><span style="color:black;"> </span><span style="color:black;">和</span><span style="color:black;"> </span><code><span style="color:black;">Class.getFields()</span></code><span style="color:black;">方法仅返回</span><span style="color:black;">public</span><span style="color:black;">字段。下面是一个简单的示例，类有一个私有字段，代码通过反射来访问这个私有字段</span><span style="color:black;">:</span></p>
+<div style="background:#EEEEFF;">
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">public class PrivateObject {</span></pre>
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">  </span>      private String privateString = null;</pre>
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">  </span>      public PrivateObject(String privateString) {</pre>
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">    </span>       this.privateString = privateString;</pre>
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">  </span>      }</pre>
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">}</span></pre>
+</div>
+<div style="background:#EEEEFF;">
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">PrivateObject privateObject = new PrivateObject(&quot;The Private Value&quot;);</span></pre>
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">Field privateStringField = PrivateObject.class. getDeclaredField(&quot;privateString&quot;);</span></pre>
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><strong><span style="color:black;">privateStringField.setAccessible(true);</span></strong></pre>
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">String fieldValue = (String) privateStringField.get(privateObject);</span></pre>
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">System.out.println(&quot;fieldValue = &quot; + fieldValue);</span></pre>
+</div>
+<p style="margin:0px;padding:0px;background:white;"><span style="color:black;">代码示例输出</span><span style="color:black;">&quot;fieldValue = The Private Value&quot;,</span><span style="color:black;">即代码示例最开始创建的</span><code><span style="color:black;">PrivateObject</span></code><span style="color:black;">实例的私有字段</span><span style="color:black;"> </span><code><span style="color:black;">privateString</span></code><span style="color:black;">的值。</span></p>
+<p style="margin:0px;padding:0px;background:white;"><span style="color:black;">注意</span><code><span style="color:black;">PrivateObject.class.getDeclaredField(&quot;privateString&quot;)</span></code><code><span style="color:black;">的使用</span></code><span style="color:black;">。这个方法仅仅返回特定类声明的字段，而不包括任何父类中声明的字段。</span></p>
+<p style="margin:0px;padding:0px;background:white;"><span style="color:black;">注意粗体代码</span><span style="color:black;">.</span>通过调用Field.setAcessible（true）方法关闭了特定Field实例的访问检查，现在通过反射可以访问它，即使它是私有的，保护的或包范围，甚至调用者不属于这些范围。但编译器不允许使用普通的代码该字段，因为仅适用于反射。</p>
+<h2 style="margin:0px;padding:0px;background:white;"><a name="t28" style="color:rgb(202, 0, 0);text-decoration:none;"></a><span style="color:black;">8.2</span><a href="http://tutorials.jenkov.com/java-reflection/private-fields-and-methods.html#methods" style="color:rgb(202, 0, 0);text-decoration:none;">访问私有方法</a></h2>
+<p style="margin:0px;padding:0px;background:white;"><span style="color:black;">想要访问私有方法需要调用</span><code><span style="color:black;">Class.getDeclaredMethod(String name,Class[] parameterTypes)</span></code><span style="color:black;"> </span><span style="color:black;">或</span><code><span style="color:black;">Class.getDeclaredMethods()</span></code><span style="color:black;"> </span><span style="color:black;">方法</span><span style="color:black;">. </span><code><span style="color:black;">Class.getMethod(String
+ name, Class[]parameterTypes)</span></code><span style="color:black;"> </span><span style="color:black;">和</span><span style="color:black;"> </span><code><span style="color:black;">Class.getMethods()</span></code><span style="color:black;"> </span><span style="color:black;">方法仅返回</span><span style="color:black;">public</span><span style="color:black;">方法。下面是一个简单的示例，类有一个私有方法，代码通过反射来访问这个私有方法</span><span style="color:black;">:</span></p>
+<div style="background:#EEEEFF;">
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">public class PrivateObject {</span></pre>
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">  </span>      private String privateString = null;</pre>
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">  </span>      public PrivateObject(String privateString) {</pre>
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">    </span>       this.privateString = privateString;</pre>
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">       </span> }</pre>
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">  </span>      private String getPrivateString(){</pre>
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">    </span>       return this.privateString;</pre>
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">  </span>      }</pre>
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">}</span></pre>
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">PrivateObject privateObject = new PrivateObject(&quot;The Private Value&quot;);</span></pre>
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">Method privateStringMethod = PrivateObject.class.getDeclaredMethod(&quot;getPrivateString&quot;, null);</span></pre>
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><strong><span style="color:black;">privateStringMethod.setAccessible(true);</span></strong></pre>
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">String returnValue = (String)privateStringMethod.invoke(privateObject, null);</span></pre>
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">System.out.println(&quot;returnValue = &quot; + returnValue);</span></pre>
+</div>
+<p style="margin:0px;padding:0px;background:white;"><span style="color:black;">代码示例输出</span><span style="color:black;">&quot; returnValue = The Private Value &quot;,</span><span style="color:black;">即代码示例最开始创建的</span><code><span style="color:black;">PrivateObject</span></code><span style="color:black;">实例调用的私有方法</span><span style="color:black;"> </span><code><span style="color:black;">getPrivateString()</span></code><span style="color:black;">的返回值。</span></p>
+<p style="margin:0px;padding:0px;background:white;"><span style="color:black;">注意</span><code><span style="color:black;">PrivateObject.class.getDeclaredMethod(&quot;privateString&quot;)</span></code><code><span style="color:black;">方法的使用</span></code><span style="color:black;">。这个方法仅仅返回特定类声明的方法，而不包括任何父类中声明的方法。</span></p>
+<p style="margin:0px;padding:0px;background:white;"><span style="color:black;">注意粗体代码</span><span style="color:black;">.</span>通过调用<code><span style="color:black;">Method</span></code>.setAcessible（true）方法关闭了特定<code><span style="color:black;">Method</span></code>实例的访问检查。现在通过反射可以访问它，即使它是私有的，保护的或包范围，甚至调用者不属于这些范围。但编译器不允许使用普通的代码访问该方法，因为仅适用于反射。</p>
+<h1 style="margin:0px;padding:0px;"><a name="t29" style="color:rgb(202, 0, 0);text-decoration:none;"></a>9. Array</h1>
+<p style="margin:0px;padding:0px;background:white;">在Java反射中使用数组有时候有点棘手，特别是如果你想获得某种类型的数组的Class对象，如int[]等。本节将讨论如何通过Java反射创建数组和Class对象。以下是本章涵盖的主题：</p>
+<p align="left" style="margin:0px;padding:0px;background:white;">(1) <a href="http://tutorials.jenkov.com/java-reflection/arrays.html#Array" style="color:rgb(202, 0, 0);text-decoration:none;">
+java.lang.reflect.Array</a></p>
+<p align="left" style="margin:0px;padding:0px;background:white;">(2) 创建数组</p>
+<p align="left" style="margin:0px;padding:0px;background:white;">(3) <a href="http://tutorials.jenkov.com/java-reflection/arrays.html#accessing" style="color:rgb(202, 0, 0);text-decoration:none;">
+访问数组</a></p>
+<p align="left" style="margin:0px;padding:0px;background:white;">(4) <a href="http://tutorials.jenkov.com/java-reflection/arrays.html#class" style="color:rgb(202, 0, 0);text-decoration:none;">
+获取数组的Class对象</a></p>
+<p align="left" style="margin:0px;padding:0px;background:white;">(5) 获取数组的组件类型<a name="Array" style="color:rgb(202, 0, 0);text-decoration:none;"></a></p>
+<h2 style="margin:0px;padding:0px;background:white;"><a name="t30" style="color:rgb(202, 0, 0);text-decoration:none;"></a><span style="color:black;">9.1 java.lang.reflect.Array</span></h2>
+<p style="margin:0px;padding:0px;background:white;">通过Java反射机制使用数组是由thejava.lang.reflect.Array类完成的。不要把这个类和Java集合框架中的java.util.Arrays类相混淆，java.util.Arrays类包含数组排序，将它们转换为集合等公共方法。<a name="creating" style="color:rgb(202, 0, 0);text-decoration:none;"></a></p>
+<h2 style="margin:0px;padding:0px;background:white;"><a name="t31" style="color:rgb(202, 0, 0);text-decoration:none;"></a><span style="color:black;">9.2 </span><span style="color:black;">创建数组</span></h2>
+<p style="margin:0px;padding:0px;background:white;"><span style="color:black;">通过</span><span style="color:black;">Java</span><span style="color:black;">反射机制创建数组是由</span><code><span style="color:black;">java.lang.reflect.Array</span></code><span style="color:black;">类来完成的，如下</span><span style="color:black;">:</span></p>
+<div style="background:#EEEEFF;">
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">int[] intArray = (int[]) Array.newInstance(int.class, 3);</span></pre>
+</div>
+<p style="margin:0px;padding:0px;background:white;"><span style="color:black;">这行代码创建了一个</span><span style="color:black;">int</span><span style="color:black;">数组。</span><code><span style="color:black;">Array.newInstance()</span></code><code><span style="color:black;">方法的第一个参数告诉我们数组中的元素类型。</span></code><span style="color:black;">第二个参数声明了数组需要为多少个元素分配空间<a name="accessing" style="color:rgb(202, 0, 0);text-decoration:none;"></a>。</span></p>
+<h2 style="margin:0px;padding:0px;background:white;"><a name="t32" style="color:rgb(202, 0, 0);text-decoration:none;"></a><span style="color:black;">9.3 </span><span style="color:black;">访问数组</span></h2>
+<p style="margin:0px;padding:0px;background:white;"><span style="color:black;">使用</span><span style="color:black;">Java</span><span style="color:black;">反射机制可以访问数组的元素。这是通过</span><span style="color:black;"> </span><code><span style="color:black;">Array.get(...)</span></code><span style="color:black;"> </span><span style="color:black;">和</span><span style="color:black;"> </span><code><span style="color:black;">Array.set(...)</span></code><span style="color:black;"> </span><span style="color:black;">方法实现的，如下</span><span style="color:black;">:</span></p>
+<div style="background:#EEEEFF;">
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">int[] intArray = (int[]) Array.newInstance(int.class, 3);</span></pre>
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">Array.set(intArray, 0, 123);</span></pre>
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">Array.set(intArray, 1, 456);</span></pre>
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">Array.set(intArray, 2, 789);</span></pre>
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">System.out.println(&quot;intArray[0] = &quot; + Array.get(intArray, 0));</span></pre>
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">System.out.println(&quot;intArray[1] = &quot; + Array.get(intArray, 1));</span></pre>
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">System.out.println(&quot;intArray[2] = &quot; + Array.get(intArray, 2));</span></pre>
+</div>
+<p style="margin:0px;padding:0px;background:white;"><span style="color:black;">这段代码输出</span><span style="color:black;">:</span></p>
+<div style="background:#EEEEFF;">
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">intArray[0] = 123</span></pre>
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">intArray[1] = 456</span></pre>
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">intArray[2] = 789</span></pre>
+</div>
+<h2 style="margin:0px;padding:0px;background:white;"><a name="t33" style="color:rgb(202, 0, 0);text-decoration:none;"></a><span style="color:black;">9.4 </span><span style="color:black;">获取数组的</span><span style="color:black;">Class</span><span style="color:black;">对象</span></h2>
+<p style="margin:0px;padding:0px;background:white;"><span style="color:black;">获取数组的</span><span style="color:black;">Class</span><span style="color:black;">对象可以使用无反射的代码，如下</span><span style="color:black;">:</span></p>
+<div style="background:#EEEEFF;">
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">Class stringArrayClass = String[].class;</span></pre>
+</div>
+<p style="margin:0px;padding:0px;background:white;"><span style="color:black;">使用</span><span style="color:black;"> </span><code><span style="color:black;">Class.forName()</span></code><code><span style="color:black;">方法</span></code><span style="color:black;">并不易懂。例如，你可以像下面这样获取</span><span style="color:black;">int</span><span style="color:black;">数组的</span><span style="color:black;">Class</span><span style="color:black;">对象</span><span style="color:black;">:</span></p>
+<div style="background:#EEEEFF;">
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">Class intArray = Class.forName(&quot;[I&quot;);</span></pre>
+</div>
+<p style="margin:0px;padding:0px;background:white;"><span style="color:black;">字母</span><span style="color:black;"> </span><code><span style="color:black;">I</span></code><span style="color:black;">在</span><span style="color:black;">JVM</span><span style="color:black;">中代表一个。</span><span style="color:black;">左边的</span><span style="color:black;"> </span><code><span style="color:black;">[</span></code><span style="color:black;"> </span><span style="color:black;">表示它是一个</span><span style="color:black;">int</span><span style="color:black;">数组的</span><span style="color:black;">class</span><span style="color:black;">。这对其它的基本类型也有效。</span></p>
+<p style="margin:0px;padding:0px;background:white;"><span style="color:black;">对于对象，你需要使用一个稍微不同的记号</span><span style="color:black;">:</span></p>
+<div style="background:#EEEEFF;">
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">Class stringArrayClass = Class.forName(&quot;[Ljava.lang.String;&quot;);</span></pre>
+</div>
+<p style="margin:0px;padding:0px;background:white;"><span style="color:black;">注意到左边的</span><span style="color:black;">”</span><code><span style="color:black;"> [L</span></code><span style="color:black;">”</span><span style="color:black;">和右边的</span><span style="color:black;">”  </span><code><span style="color:black;">;</span></code><span style="color:black;"> </span><span style="color:black;">”</span><span style="color:black;">之间的类名。它代表对象数组的给定类型。</span></p>
+<p style="margin:0px;padding:0px;background:white;"><span style="color:black;">另外一个需要注意的是你不能够使用</span><code><span style="color:black;">Class.forName()</span></code><code><span style="color:black;">方法获取基本类型的</span></code><code><span style="color:black;">Class</span></code><code><span style="color:black;">对象</span></code><span style="color:black;">。下面两个例子都会抛出</span><code><span style="color:black;">ClassNotFoundException</span></code><code><span style="color:black;">异常</span></code><span style="color:black;">:</span></p>
+<div style="background:#EEEEFF;">
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">Class intClass1 = Class.forName(&quot;I&quot;);</span></pre>
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">Class intClass2 = Class.forName(&quot;int&quot;);</span></pre>
+</div>
+<p style="margin:0px;padding:0px;background:white;"><span style="color:black;">可以像下面这样获取基本数据类型和对象的</span><span style="color:black;">Class</span><span style="color:black;">名</span><span style="color:black;">:</span></p>
+<div style="background:#EEEEFF;">
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">public Class getClass(String className){</span></pre>
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">  </span>     if(&quot;int&quot; .equals(className)) return int .class;</pre>
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">  </span>     if(&quot;long&quot;.equals(className)) return long.class;</pre>
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">  </span>     ...</pre>
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">  </span>     return Class.forName(className);</pre>
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">}</span></pre>
+</div>
+<p style="margin:0px;padding:0px;background:white;">一旦你获得某个类型的Class对象，有一个简单的方法来获得该类型的数组的Class对象。解决方案是创建所需类型的空数组并从这个空数组获取Class对象，如下：</p>
+<div style="background:#EEEEFF;">
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">Class theClass = getClass(theClassName);</span></pre>
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">Class stringArrayClass = Array.newInstance(theClass, 0).getClass();</span></pre>
+</div>
+<p style="margin:0px;padding:0px;background:white;">这提供了一个单一的、统一的方法来访问任何类型的数组的Class对象。</p>
+<p style="margin:0px;padding:0px;background:white;"><span style="color:black;">要确保</span><span style="color:black;"> </span><code><span style="color:black;">Class</span></code><span style="color:black;">对象是一个数组</span><span style="color:black;">,</span><span style="color:black;">可以使用</span><code><span style="color:black;">Class.isArray()</span></code><span style="color:black;">方法来校验</span><span style="color:black;">:</span></p>
+<div style="background:#EEEEFF;">
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">Class stringArrayClass = Array.newInstance(String.class, 0).getClass();</span></pre>
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">System.out.println(&quot;is array: &quot; + stringArrayClass.isArray());<a name="componenttype" style="color:rgb(202, 0, 0);text-decoration:none;"></a></span></pre>
+</div>
+<h2 style="margin:0px;padding:0px;background:white;"><a name="t34" style="color:rgb(202, 0, 0);text-decoration:none;"></a><span style="color:black;">9.5 </span><span style="color:black;">获取数组的组件类型</span></h2>
+<p style="margin:0px;padding:0px;background:white;"><span style="color:black;">一旦获取到某个数组的</span><span style="color:black;">Class</span><span style="color:black;">对象可以使用</span><span style="color:black;"> </span><code><span style="color:black;">Class.getComponentType()</span></code><span style="color:black;">方法来获取它的组件类型。</span><span style="color:black;">组件类型就是数组中元素的类型。例如，</span><span style="color:black;">int</span><span style="color:black;">数组的组件类型是</span><span style="color:black;"> </span><code><span style="color:black;">int.class
+ Class</span></code><span style="color:black;">对象</span><span style="color:black;">.</span><code><span style="color:black;">String[]</span></code><span style="color:black;">数组的组件类型是</span><span style="color:black;"> </span><code><span style="color:black;">java.lang.String</span></code><span style="color:black;"> </span><code><span style="color:black;">Class</span></code><span style="color:black;">对象。</span></p>
+<p style="margin:0px;padding:0px;background:white;"><span style="color:black;">下面是获取数组的组件类型的示例</span><span style="color:black;">:</span></p>
+<div style="background:#EEEEFF;">
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">String[] strings = new String[3];</span></pre>
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">Class stringArrayClass = strings.getClass();</span></pre>
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">Class stringArrayComponentType = stringArrayClass.getComponentType();</span></pre>
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">System.out.println(stringArrayComponentType);</span></pre>
+</div>
+<p style="margin:0px;padding:0px;background:white;"><span style="color:black;">输出</span><span style="color:black;"> &quot;class java.lang.String&quot;</span><span style="color:black;">即为</span><span style="color:black;">String</span><span style="color:black;">数组的组件类型</span><span style="color:black;">.</span></p>
+<h1 style="margin:0px;padding:0px;"><a name="t35" style="color:rgb(202, 0, 0);text-decoration:none;"></a>10.        注解</h1>
+<p style="margin:0px;padding:0px;background:white;"><span style="color:black;">使用</span><span style="color:black;">Java</span><span style="color:black;">反射你可以在运行时访问</span><span style="color:black;">Java</span><span style="color:black;">类中的注解</span><span style="color:black;">.</span><span style="color:black;">下面是本章涵盖的主题</span><span style="color:black;">:</span></p>
+<p align="left" style="margin:0px;padding:0px;background:white;">(1)什么是Java注解？</p>
+<p align="left" style="margin:0px;padding:0px;background:white;">(2)类注解</p>
+<p align="left" style="margin:0px;padding:0px;background:white;">(3)方法注解</p>
+<p align="left" style="margin:0px;padding:0px;background:white;">(4)参数注解</p>
+<p align="left" style="margin:0px;padding:0px;background:white;">(5)字段注解</p>
+<h2 style="margin:0px;padding:0px;"><a name="t36" style="color:rgb(202, 0, 0);text-decoration:none;"></a>10.1 什么是Java注解?</h2>
+<p style="margin:0px;padding:0px;background:white;">注解是Java5的一个新功能。注解是一种可以在Java代码中插入的注释或元数据。这些注解可以在编译时由预编译工具进行处理，也可以在运行时通过Java反射机制来处理。下面是一个类注解的示例<span style="color:black;">:</span></p>
+<div style="background:#EEEEFF;">
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">@MyAnnotation(name=&quot;someName&quot;,  </span>value = &quot;Hello World&quot;)</pre>
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">public class TheClass {</span></pre>
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">}</span></pre>
+</div>
+<p style="margin:0px;padding:0px;background:white;"><code><span style="color:black;">TheClass</span></code><code><span style="color:black;">类的上面有</span></code><span style="color:black;">  </span><code><span style="color:black;">@MyAnnotation</span></code><span style="color:black;"> </span><span style="color:black;">注解</span><span style="color:black;">.</span><span style="color:black;">注解像接口那样定义。</span><span style="color:black;">下面是</span><code><span style="color:black;">MyAnnotation</span></code><code><span style="color:black;">注解</span></code><span style="color:black;"> </span><span style="color:black;">的定义</span><span style="color:black;">:</span></p>
+<div style="background:#EEEEFF;">
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">@Retention(RetentionPolicy.RUNTIME)</span></pre>
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">@Target(ElementType.TYPE)</span></pre>
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">public @interface MyAnnotation {</span></pre>
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">    </span>    public String name();</pre>
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">    </span>    public String value();</pre>
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">}</span></pre>
+</div>
+<p style="margin:0px;padding:0px;background:white;"><span style="color:black;">在</span><code><span style="color:black;">interface</span></code><span style="color:black;">前面的</span><span style="color:black;">”</span><code><span style="color:black;">@</span></code><span style="color:black;">”</span><span style="color:black;">标志它是一个注解。一旦你定义了那个注解你就可以在代码中使用它，就像上面的例子那样。</span></p>
+<p style="margin:0px;padding:0px;background:white;"><span style="color:black;">在注解中定义的两个指令</span><code><span style="color:black;">@Retention(RetentionPolicy.RUNTIME)</span></code><span style="color:black;">和</span><span style="color:black;"> </span><code><span style="color:black;">@Target(ElementType.TYPE)</span></code><span style="color:black;">表明注解是如何使用的</span></p>
+<p style="margin:0px;padding:0px;background:white;"><code><span style="color:black;">@Retention(RetentionPolicy.RUNTIME)</span></code><code><span style="color:black;">表明在运行时可以使用反射来访问这个注解</span></code><span style="color:black;">。如果没有设置这个指令，在运行时这个注解将不会被保存，因此通过反射访问不到。</span></p>
+<p style="margin:0px;padding:0px;background:white;"><code><span style="color:black;">@Target(ElementType.TYPE)</span></code><span style="color:black;"> </span><span style="color:black;">表明注解仅能用于</span>类、接口（包括注释类型）或枚举声明等类型上<span style="color:black;">。你也可以指定</span><span style="color:black;"> </span><code><span style="color:black;">METHOD</span></code><span style="color:black;"> </span><span style="color:black;">或</span><code><span style="color:black;">FIELD</span></code><span style="color:black;">,</span><span style="color:black;">或者</span><span style="color:black;">@Target</span><span style="color:black;">什么都不指定，这样它可以用在任何程序元素上。</span></p>
+<h2 style="margin:0px;padding:0px;"><a name="t37" style="color:rgb(202, 0, 0);text-decoration:none;"></a>10.2 类注解</h2>
+<p style="margin:0px;padding:0px;background:white;"><span style="color:black;">可以在运行时获取类、方法或字段的注解。下面是获取类注解的示例：</span></p>
+<div style="background:#EEEEFF;">
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">Class aClass = TheClass.class;</span></pre>
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">Annotation[] annotations = aClass.getAnnotations();</span></pre>
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">for(Annotation annotation : annotations){</span></pre>
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">    </span>    if(annotation instanceof MyAnnotation){</pre>
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">        </span>    MyAnnotation myAnnotation = (MyAnnotation) annotation;</pre>
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">        </span>    System.out.println(&quot;name: &quot; + myAnnotation.name());</pre>
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">   </span>         System.out.println(&quot;value: &quot; + myAnnotation.value());</pre>
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">    </span>     }</pre>
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">}</span></pre>
+</div>
+<p style="margin:0px;padding:0px;background:white;"><span style="color:black;">也可以获取指定的类注解，如下：</span></p>
+<div style="background:#EEEEFF;">
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">Class aClass = TheClass.class;</span></pre>
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">Annotation annotation = aClass.getAnnotation(MyAnnotation.class);</span></pre>
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;"> </span></pre>
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">if(annotation instanceof MyAnnotation){</span></pre>
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">    </span>     MyAnnotation myAnnotation = (MyAnnotation) annotation;</pre>
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">    </span>     System.out.println(&quot;name: &quot; + myAnnotation.name());</pre>
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">    </span>     System.out.println(&quot;value: &quot; + myAnnotation.value());</pre>
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">}<a name="method" style="color:rgb(202, 0, 0);text-decoration:none;"></a></span></pre>
+</div>
+<h2 style="margin:0px;padding:0px;"><a name="t38" style="color:rgb(202, 0, 0);text-decoration:none;"></a>10.3 方法注解</h2>
+<p style="margin:0px;padding:0px;background:white;"><span style="color:black;">下面是方法注解的示例</span><span style="color:black;">:</span></p>
+<div style="background:#EEEEFF;">
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">public class TheClass {</span></pre>
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">  </span>       @MyAnnotation(name=&quot;someName&quot;,  value = &quot;Hello World&quot;)</pre>
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">  </span>        public void doSomething(){}</pre>
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">}</span></pre>
+</div>
+<p style="margin:0px;padding:0px;background:white;"><span style="color:black;">获取方法的所有注解，如下：</span></p>
+<div style="background:#EEEEFF;">
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">Method method = ... //obtain method object</span></pre>
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">Annotation[] annotations = method.getDeclaredAnnotations();</span></pre>
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">for(Annotation annotation : annotations){</span></pre>
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">    </span>     if(annotation instanceof MyAnnotation){</pre>
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">        </span>     MyAnnotation myAnnotation = (MyAnnotation) annotation;</pre>
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">        </span>     System.out.println(&quot;name: &quot; + myAnnotation.name());</pre>
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">        </span>     System.out.println(&quot;value: &quot; + myAnnotation.value());</pre>
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">    </span>     }</pre>
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">}</span></pre>
+</div>
+<p style="margin:0px;padding:0px;background:white;"><span style="color:black;">获取方法的特定注解</span><span style="color:black;">:</span></p>
+<div style="background:#EEEEFF;">
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">Method method = ... // obtain method object</span></pre>
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">Annotation annotation = method.getAnnotation(MyAnnotation.class);</span></pre>
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">if(annotation instanceof MyAnnotation){</span></pre>
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">    </span>   MyAnnotation myAnnotation = (MyAnnotation) annotation;</pre>
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">    </span>   System.out.println(&quot;name: &quot; + myAnnotation.name());</pre>
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">    </span>    System.out.println(&quot;value: &quot; + myAnnotation.value());</pre>
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">}<a name="parameter" style="color:rgb(202, 0, 0);text-decoration:none;"></a></span></pre>
+</div>
+<h2 style="margin:0px;padding:0px;"><a name="t39" style="color:rgb(202, 0, 0);text-decoration:none;"></a>10.4 参数注解</h2>
+<p style="margin:0px;padding:0px;background:white;"><span style="color:black;">也可以给方法声明的参数添加注解，如下：</span></p>
+<div style="background:#EEEEFF;">
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">public class TheClass {</span></pre>
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">        </span> public static void doSomethingElse(</pre>
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">        </span>    @MyAnnotation(name=&quot;aName&quot;, value=&quot;aValue&quot;) String parameter){</pre>
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">  </span>       }</pre>
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">}</span></pre>
+</div>
+<p style="margin:0px;padding:0px;background:white;"><span style="color:black;">从</span><span style="color:black;">Method</span><span style="color:black;">对象获取参数注解：</span></p>
+<div style="background:#EEEEFF;">
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">Method method = ... //obtain method object</span></pre>
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">Annotation[][] parameterAnnotations = method.getParameterAnnotations();</span></pre>
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">Class[] parameterTypes = method.getParameterTypes();</span></pre>
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">int i=0;</span></pre>
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">for(Annotation[] annotations : parameterAnnotations){</span></pre>
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">  </span>       Class parameterType = parameterTypes[i++];</pre>
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">  </span>       for(Annotation annotation : annotations){</pre>
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">    </span>        if(annotation instanceof MyAnnotation){</pre>
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">        </span>        MyAnnotation myAnnotation = (MyAnnotation) annotation;</pre>
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">        </span>        System.out.println(&quot;param: &quot; + parameterType.getName());</pre>
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">        </span>        System.out.println(&quot;name : &quot; + myAnnotation.name());</pre>
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">        </span>        System.out.println(&quot;value: &quot; + myAnnotation.value());</pre>
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">    </span>        }</pre>
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">  </span>       }</pre>
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">}</span></pre>
+</div>
+<p style="margin:0px;padding:0px;background:white;"><span style="color:black;">注意</span><span style="color:black;"> </span><code><span style="color:black;">Method.getParameterAnnotations()</span></code><span style="color:black;"> </span><span style="color:black;">方法返回的是二维的</span><code><span style="color:black;">Annotation</span></code><span style="color:black;">数组</span><span style="color:black;">,</span><span style="color:black;">每个方法参数都有一个一维的</span><code><span style="color:black;">Annotation</span></code><code><span style="color:black;">数组</span></code><span style="color:black;">。</span></p>
+<h2 style="margin:0px;padding:0px;"><a name="t40" style="color:rgb(202, 0, 0);text-decoration:none;"></a>10.5 字段注解</h2>
+<p style="margin:0px;padding:0px;background:white;"><span style="color:black;">下面是字段注解示例</span><span style="color:black;">:</span></p>
+<div style="background:#EEEEFF;">
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">public class TheClass {</span></pre>
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">  </span>       @MyAnnotation(name=&quot;someName&quot;,  value = &quot;Hello World&quot;)</pre>
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">  </span>       public String myField = null;</pre>
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">}</span></pre>
+</div>
+<p style="margin:0px;padding:0px;background:white;"><span style="color:black;">获取字段的所有注解，如下：</span></p>
+<div style="background:#EEEEFF;">
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">Field field = ... //obtain field object</span></pre>
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">Annotation[] annotations = field.getDeclaredAnnotations();</span></pre>
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">for(Annotation annotation : annotations){</span></pre>
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">    </span>     if(annotation instanceof MyAnnotation){</pre>
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">        </span>    MyAnnotation myAnnotation = (MyAnnotation) annotation;</pre>
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">        </span>    System.out.println(&quot;name: &quot; + myAnnotation.name());</pre>
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">        </span>    System.out.println(&quot;value: &quot; + myAnnotation.value());</pre>
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">    </span>     }</pre>
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">}</span></pre>
+</div>
+<p style="margin:0px;padding:0px;background:white;"><span style="color:black;">获取指定字段的注解，如下：</span></p>
+<div style="background:#EEEEFF;">
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">Field field = ... // obtain method object</span></pre>
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">Annotation annotation = field.getAnnotation(MyAnnotation.class);</span></pre>
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">if(annotation instanceof MyAnnotation){</span></pre>
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">    </span>     MyAnnotation myAnnotation = (MyAnnotation) annotation;</pre>
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">    </span>     System.out.println(&quot;name: &quot; + myAnnotation.name());</pre>
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">    </span>     System.out.println(&quot;value: &quot; + myAnnotation.value());</pre>
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">}                                                                                      </span></pre>
+</div>
+<h1 style="margin:0px;padding:0px;background:white;"><a name="t41" style="color:rgb(202, 0, 0);text-decoration:none;"></a><span style="color:black;">11.     </span><span style="color:black;">泛型</span></h1>
+<p style="margin:0px;padding:0px;background:white;"><span style="color:black;">经常在文章和论坛里读到说所有</span><span style="color:black;">Java</span><span style="color:black;">泛型信息在编译的时候被擦除了所以在运行时访问不到任何泛型信息。这并不完全正确。</span>在极少数的情况下，在运行时是可以访问泛型信息的。这些情况实际上涵盖一些我们需要的Java泛型信息。本章将解释这些情况。<span style="color:black;">下面是本章涵盖的主题：</span></p>
+<p align="left" style="margin:0px;padding:0px;background:white;">(1) 泛型反射的经验法则</p>
+<p align="left" style="margin:0px;padding:0px;background:white;">(2) 泛型方法的返回值类型</p>
+<p align="left" style="margin:0px;padding:0px;background:white;">(3) <a href="http://tutorials.jenkov.com/java-reflection/generics.html#parametertypes" style="color:rgb(202, 0, 0);text-decoration:none;">
+泛型方法的参数类型</a></p>
+<p align="left" style="margin:0px;padding:0px;background:white;">(4) <a href="http://tutorials.jenkov.com/java-reflection/generics.html#fieldtypes" style="color:rgb(202, 0, 0);text-decoration:none;">
+泛型字段类型</a><a name="general" style="color:rgb(202, 0, 0);text-decoration:none;"></a></p>
+<h2 style="margin:0px;padding:0px;background:white;"><a name="t42" style="color:rgb(202, 0, 0);text-decoration:none;"></a><span style="color:black;">11.1 </span>泛型反射的经验法则</h2>
+<p style="margin:0px;padding:0px;background:white;">使用Java的泛型通常分为两种不同的情况：</p>
+<p align="left" style="margin:0px;padding:0px;background:white;">(1)声明一个可参数化的类/接口<span style="color:black;">。</span></p>
+<p align="left" style="margin:0px;padding:0px;background:white;"><span style="color:black;">(2)</span>使用参数化的类<span style="color:black;">。</span></p>
+<p style="margin:0px;padding:0px;background:white;">当写一个类或接口时，可以指定它应该是可参数化的。<span style="color:black;">就像</span><code><span style="color:black;">java.util.List</span></code><span style="color:black;">接口那样，可以参数化</span><code><span style="color:black;">java.util.List</span></code><span style="color:black;">来创建一个</span><span style="color:black;">String</span><span style="color:black;">列表而不是创建</span><span style="color:black;">Object</span><span style="color:black;">列表。</span></p>
+<p style="margin:0px;padding:0px;background:white;">java.util.List在运行时会检查参数化的类型，但是没有办法知道参数化的是什么类型<span style="color:black;">。</span>这是因为在相同的应用程序中类型可以被参数化为所有的类型。但是，当你检查方法或字段所声明使用的参数化类型，你可以在运行时看到可参数化的类型被参数化为什么类型。总之，你不能在运行时看到类型本身被参数化为什么类型，但你可以在使用和参数化它的字段和方法中看到它。<a name="returntypes" style="color:rgb(202, 0, 0);text-decoration:none;"></a></p>
+<h2 style="margin:0px;padding:0px;background:white;"><a name="t43" style="color:rgb(202, 0, 0);text-decoration:none;"></a><span style="color:black;">11.2 </span>泛型方法的返回值类型</h2>
+<p style="margin:0px;padding:0px;background:white;"><span style="color:black;">如果你获取到一个</span><code><span style="color:black;">java.lang.reflect.Method</span></code><span style="color:black;"> </span><span style="color:black;">对象，可以获取它的返回值类型信息。下面是一个示例，一个类有一个有参数化返回值类型的方法：</span></p>
+<div style="background:#EEEEFF;">
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">public class MyClass {</span></pre>
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">  </span>      protected List&lt;String&gt; stringList = ...;</pre>
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">  </span>      public List&lt;String&gt; getStringList(){</pre>
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">    </span>       return this.stringList;</pre>
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">    </span>    }</pre>
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">}</span></pre>
+</div>
+<p style="margin:0px;padding:0px;background:white;"><span style="color:black;">在这个类中可以获取</span><span style="color:black;"> </span><code><span style="color:black;">getStringList()</span></code><code><span style="color:black;">方法的泛型返回值类型</span></code><span style="color:black;">。换句话说，可以探测到</span><code><span style="color:black;">getStringList()</span></code><code><span style="color:black;">返回的是</span></code><code><span style="color:black;">List&lt;String&gt;</span></code><span style="color:black;"> </span><span style="color:black;">而不仅是一个</span><span style="color:black;"> </span><code><span style="color:black;">List</span></code><span style="color:black;">。如下：</span></p>
+<div style="background:#EEEEFF;">
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">Method method = MyClass.class.getMethod(&quot;getStringList&quot;, null);</span></pre>
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">Type returnType = method.getGenericReturnType();</span></pre>
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">if(returnType instanceof ParameterizedType){</span></pre>
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">    </span>   ParameterizedType type = (ParameterizedType) returnType;</pre>
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">    </span>   Type[] typeArguments = type.getActualTypeArguments();</pre>
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">    </span>   for(Type typeArgument : typeArguments){</pre>
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">        </span>   Class typeArgClass = (Class) typeArgument;</pre>
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">        </span>   System.out.println(&quot;typeArgClass = &quot; + typeArgClass);</pre>
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">    </span>   }</pre>
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">}</span></pre>
+</div>
+<p style="margin:0px;padding:0px;background:white;"><span style="color:black;">代码输出</span><span style="color:black;"> &quot;typeArgClass = class java.lang.String&quot;</span><span style="color:black;">。</span></p>
+<p style="margin:0px;padding:0px;background:white;"><code><span style="color:black;">Type[]</span></code><span style="color:black;">数组</span><span style="color:black;"> </span><code><span style="color:black;">typeArguments</span></code><a name="parametertypes" style="color:rgb(202, 0, 0);text-decoration:none;"></a><span style="color:black;">包含一项</span><span style="color:black;">
+ -</span><span style="color:black;">一个代表类</span><code><span style="color:black;">java.lang.String</span></code><code><span style="color:black;">的</span></code><span style="color:black;"> </span><code><span style="color:black;">Class</span></code><code><span style="color:black;">实例</span></code><span style="color:black;"> </span><span style="color:black;">。</span><span style="color:black;"> </span><code><span style="color:black;">Class</span></code><span style="color:black;">实现了</span><span style="color:black;"> </span><code><span style="color:black;">Type</span></code><span style="color:black;">接口。</span></p>
+<h2 style="margin:0px;padding:0px;background:white;"><a name="t44" style="color:rgb(202, 0, 0);text-decoration:none;"></a><span style="color:black;">11.3 </span><a href="http://tutorials.jenkov.com/java-reflection/generics.html#parametertypes" style="color:rgb(202, 0, 0);text-decoration:none;">泛型方法的参数类型</a></h2>
+<p style="margin:0px;padding:0px;background:white;"><span style="color:black;">通过</span><span style="color:black;">Java</span><span style="color:black;">反射可以在运行时访问参数类型的泛型类型。下面的示例中，类有一个使用参数化的</span><span style="color:black;">List</span><span style="color:black;">作为参数的方法：</span></p>
+<div style="background:#EEEEFF;">
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">public class MyClass {</span></pre>
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">  </span>       protected List&lt;String&gt; stringList = ...;</pre>
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;"> </span></pre>
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">  </span>        public void setStringList(List&lt;String&gt; list){</pre>
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">    </span>         this.stringList = list;</pre>
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">         </span> }</pre>
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">}</span></pre>
+</div>
+<p style="margin:0px;padding:0px;background:white;"><span style="color:black;">可以访问方法参数的泛型参数类型，如下：</span></p>
+<div style="background:#EEEEFF;">
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">Method method = Myclass.class.getMethod(&quot;setStringList&quot;, List.class);</span></pre>
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">Type[] genericParameterTypes = method.getGenericParameterTypes();</span></pre>
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">for(Type genericParameterType : genericParameterTypes){</span></pre>
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">    </span>    if(genericParameterType instanceof ParameterizedType){</pre>
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">        </span>   ParameterizedType aType = (ParameterizedType) genericParameterType;</pre>
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">        </span>   Type[] parameterArgTypes = aType.getActualTypeArguments();</pre>
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">        </span>   for(Type parameterArgType : parameterArgTypes){</pre>
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">            </span>   Class parameterArgClass = (Class) parameterArgType;</pre>
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">            </span>   System.out.println(&quot;parameterArgClass = &quot; + parameterArgClass);</pre>
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">        </span>   }</pre>
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">    </span>     }</pre>
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">}</span></pre>
+</div>
+<p style="margin:0px;padding:0px;background:white;"><span style="color:black;">代码输出</span><span style="color:black;">&quot;parameterArgType= class java.lang.String&quot;</span><span style="color:black;">。</span></p>
+<p style="margin:0px;padding:0px;background:white;"><span style="color:black;"> </span><code><span style="color:black;">Type[]</span></code><span style="color:black;">数组</span><span style="color:black;"> </span><code><span style="color:black;">parameterArgTypes</span></code><span style="color:black;">包含一项</span><span style="color:black;">
+ -</span><span style="color:black;">一个代表类</span><code><span style="color:black;">java.lang.String</span></code><code><span style="color:black;">的</span></code><span style="color:black;"> </span><code><span style="color:black;">Class</span></code><code><span style="color:black;">实例</span></code><span style="color:black;"> </span><span style="color:black;">。</span><span style="color:black;"> </span><code><span style="color:black;">Class</span></code><span style="color:black;">实现了</span><span style="color:black;"> </span><code><span style="color:black;">Type</span></code><span style="color:black;">接口。</span><a name="fieldtypes" style="color:rgb(202, 0, 0);text-decoration:none;"></a></p>
+<h2 style="margin:0px;padding:0px;background:white;"><a name="t45" style="color:rgb(202, 0, 0);text-decoration:none;"></a><span style="color:black;">11.4 </span><a href="http://tutorials.jenkov.com/java-reflection/generics.html#fieldtypes" style="color:rgb(202, 0, 0);text-decoration:none;">泛型字段类型</a></h2>
+<p style="margin:0px;padding:0px;background:white;"><span style="color:black;">可以访问</span><span style="color:black;">public</span><span style="color:black;">字段的泛型类型。字段即类的成员变量</span><span style="color:black;">-</span><span style="color:black;">静态的或实例变量。下面是一个例子，类有一个实例变量</span><code><span style="color:black;">stringList</span></code><span style="color:black;">.</span></p>
+<div style="background:#EEEEFF;">
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">public class MyClass {</span></pre>
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">  </span>       public List&lt;String&gt; stringList = ...;</pre>
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">}</span></pre>
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">Field field = MyClass.class.getField(&quot;stringList&quot;);</span></pre>
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">Type genericFieldType = field.getGenericType();  </span></pre>
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">if(genericFieldType instanceof ParameterizedType){</span></pre>
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">    </span>     ParameterizedType aType = (ParameterizedType) genericFieldType;</pre>
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">    </span>     Type[] fieldArgTypes = aType.getActualTypeArguments();</pre>
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">    </span>     for(Type fieldArgType : fieldArgTypes){</pre>
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">        </span>    Class fieldArgClass = (Class) fieldArgType;</pre>
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">        </span>    System.out.println(&quot;fieldArgClass = &quot; + fieldArgClass);</pre>
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">   </span>       }</pre>
+<pre style="white-space:pre-wrap;word-wrap:break-word;background:#EEEEFF;"><span style="color:black;">}</span></pre>
+</div>
+<p style="margin:0px;padding:0px;background:white;"><span style="color:black;">代码将输出</span><span style="color:black;">&quot;fieldArgClass = class java.lang.String&quot;</span><span style="color:black;">。</span></p>
+<p style="margin:0px;padding:0px;background:white;"><span style="color:black;"> </span><code><span style="color:black;">Type</span></code><code><span style="color:black;">数组</span></code><code><span style="color:black;">fieldArgTypes</span></code><span style="color:black;">包含一项</span><span style="color:black;">
+ – </span><span style="color:black;">一个代表类</span><code><span style="color:black;">java.lang.String</span></code><code><span style="color:black;">的</span></code><span style="color:black;"> </span><code><span style="color:black;">Class</span></code><code><span style="color:black;">实例</span></code><span style="color:black;"> </span><span style="color:black;">。</span><span style="color:black;"> </span><code><span style="color:black;">Class</span></code><span style="color:black;">实现了</span><span style="color:black;"> </span><code><span style="color:black;">Type</span></code><span style="color:black;">接口。</span></p>
+    
+        <div style="padding-top:20px;">         
+            <p style="margin:0px;padding:0px;font-size:12px;">版权声明：本文为博主原创文章，未经博主允许不得转载。</p>
+        </div>
+</div></div></div></div></div></div></div></div></div><br/></span>
+</div></body></html> 

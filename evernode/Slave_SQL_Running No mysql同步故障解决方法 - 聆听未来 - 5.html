@@ -1,0 +1,51 @@
+<html>
+<head>
+  <title>Slave_SQL_Running: No mysql同步故障解决方法 - 聆听未来 - 51CTO技术博客</title>
+  <basefont face="微软雅黑" size="2" />
+  <meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+  <meta name="exporter-version" content="YXBJ Windows/600718 (zh-CN, DDL); Windows/6.1.1 (Win64);"/>
+  <style>
+    body, td {
+      font-family: 微软雅黑;
+      font-size: 10pt;
+    }
+  </style>
+</head>
+<body>
+<a name="5223"/>
+<h1>Slave_SQL_Running: No mysql同步故障解决方法 - 聆听未来 - 51CTO技术博客</h1>
+<div>
+<table bgcolor="#D4DDE5" border="0">
+<tr><td><b>创建时间：</b></td><td><i>2017/7/14 16:05</i></td></tr>
+<tr><td><b>来源：</b></td><td><a href="http://kerry.blog.51cto.com/172631/277414/"><i>http://kerry.blog.51cto.com/172631/277414/</i></a></td></tr>
+</table>
+</div>
+<br/>
+
+<div><span><div style="-evernote-webclip:true"><br/><div style="font-size: 16px; display: inline-block;"><div><div style="font-family:宋体, &quot;Arial Narrow&quot;, arial, serif;background:rgb(108, 193, 199);color:rgb(80, 80, 80);font-size:12px;"><div><div style="overflow:hidden;"><div style="background:rgb(255, 255, 255);"><div><div><div style="line-height:2;font-size:14px;overflow:hidden;word-wrap:break-word;word-break:normal;">
+    		  <div style="padding:0px;margin:0px;">Slave_SQL_Running: No mysql同步故障解决</div>
+<div style="padding:0px;margin:0px;">     今天检查数据库发现一台MySQL Slave未和主机同步，查看Slave状态：<br style="padding:0px;margin:0px;"/>mysql&gt; show slave status\G<br style="padding:0px;margin:0px;"/>Slave_IO_Running: Yes<br style="padding:0px;margin:0px;"/>Slave_SQL_Running: No<br style="padding:0px;margin:0px;"/>Last_Errno: 1062<br style="padding:0px;margin:0px;"/>....<br style="padding:0px;margin:0px;"/>Seconds_Behind_Master:NULL<br style="padding:0px;margin:0px;"/>原因：<br style="padding:0px;margin:0px;"/>1.程序可能在slave上进行了写操作 <br style="padding:0px;margin:0px;"/>2.也可能是slave机器重起后，事务回滚造成的.</div>
+<div style="padding:0px;margin:0px;">解决办法I：<br style="padding:0px;margin:0px;"/>1.首先停掉Slave服务：slave stop</div>
+<div style="padding:0px;margin:0px;">2.到主服务器上查看主机状态：<br style="padding:0px;margin:0px;"/>记录File和Position对应的值。<br style="padding:0px;margin:0px;"/>mysql&gt; show master status;<br style="padding:0px;margin:0px;"/>+------------------+-----------+--------------+------------------+<br style="padding:0px;margin:0px;"/>| File | Position | Binlog_Do_DB | Binlog_Ignore_DB |<br style="padding:0px;margin:0px;"/>+------------------+-----------+--------------+------------------+<br style="padding:0px;margin:0px;"/>| mysql-bin.000020 | 135617781 | | |<br style="padding:0px;margin:0px;"/>+------------------+-----------+--------------+------------------+<br style="padding:0px;margin:0px;"/>1 row in set (0.00 sec)</div>
+<div style="padding:0px;margin:0px;">3.到slave服务器上执行手动同步：<br style="padding:0px;margin:0px;"/>mysql&gt; change master to <br style="padding:0px;margin:0px;"/>&gt; master_host='master_ip',<br style="padding:0px;margin:0px;"/>&gt; master_user='user', <br style="padding:0px;margin:0px;"/>&gt; master_password='pwd', <br style="padding:0px;margin:0px;"/>&gt; master_port=3307, <br style="padding:0px;margin:0px;"/>&gt; master_log_file='mysql-bin.000020', <br style="padding:0px;margin:0px;"/>&gt; master_log_pos=135617781;<br style="padding:0px;margin:0px;"/>1 row in set (0.00 sec)<br style="padding:0px;margin:0px;"/>mysql&gt; slave start;<br style="padding:0px;margin:0px;"/>1 row in set (0.00 sec)<br style="padding:0px;margin:0px;"/>再次查看slave状态发现：<br style="padding:0px;margin:0px;"/>Slave_IO_Running: Yes<br style="padding:0px;margin:0px;"/>Slave_SQL_Running: Yes<br style="padding:0px;margin:0px;"/>...<br style="padding:0px;margin:0px;"/>Seconds_Behind_Master: 0</div>
+<div style="padding:0px;margin:0px;">解决办法II：<br style="padding:0px;margin:0px;"/>mysql&gt; slave stop;<br style="padding:0px;margin:0px;"/>mysql&gt; set GLOBAL SQL_SLAVE_SKIP_COUNTER=1;<br style="padding:0px;margin:0px;"/>mysql&gt; slave start;</div>
+<div style="padding:0px;margin:0px;"> </div>
+<div style="padding:0px;margin:0px;">自己的使用体会:方法一是强制性从某一个点开始同步,会有部分没有同步的数据丢失,后续主服务器上删除记录同步也会有一些错误信息,不会影响使用.方法二不一定会有效果.</div>
+<div style="padding:0px;margin:0px;"> </div>
+<div style="padding:0px;margin:0px;"> </div>
+<div style="padding:0px;margin:0px;">=======================================================================================]</div>
+<div style="padding:0px;margin:0px;">1,主从不能同步:</div>
+<div style="padding:0px;margin:0px;">show slave status;报错:Error xxx dosn't exist<br style="padding:0px;margin:0px;"/>且show slave status\G:<br style="padding:0px;margin:0px;"/>Slave_SQL_Running: NO<br style="padding:0px;margin:0px;"/>Seconds_Behind_Master: NULL</div>
+<div style="padding:0px;margin:0px;">解决方法:<br style="padding:0px;margin:0px;"/>stop slave;<br style="padding:0px;margin:0px;"/>set global sql_slave_skip_counter =1 ;<br style="padding:0px;margin:0px;"/>start slave;</div>
+<div style="padding:0px;margin:0px;">之后Slave会和Master去同步 主要看:</div>
+<div style="padding:0px;margin:0px;">Slave_IO_Running: Yes<br style="padding:0px;margin:0px;"/>Slave_SQL_Running: Yes<br style="padding:0px;margin:0px;"/>Seconds_Behind_Master是否为0，0就是已经同步了</div>
+<div style="padding:0px;margin:0px;">2,还需要做的一些优化与监视:<br style="padding:0px;margin:0px;"/>show full processlist; //查看mysql当前同步线程号<br style="padding:0px;margin:0px;"/>skip-name-resolve       //跳过dns名称查询，有助于加快连接及同步的速度<br style="padding:0px;margin:0px;"/>max_connections=1000    //增大Mysql的连接数目，(默认100)<br style="padding:0px;margin:0px;"/>max_connect_errors=100 //增大Mysql的错误连接数目,(默认10)</div>
+<div style="padding:0px;margin:0px;"> </div>
+<div style="padding:0px;margin:0px;"><br style="padding:0px;margin:0px;"/>查看日志一些命令<br style="padding:0px;margin:0px;"/>1,  show master status\G;<br style="padding:0px;margin:0px;"/>           在这里主要是看log-bin的文件是否相同。<br style="padding:0px;margin:0px;"/>    show slave status\G;<br style="padding:0px;margin:0px;"/>    在这里主要是看:<br style="padding:0px;margin:0px;"/>                   Slave_IO_Running=Yes<br style="padding:0px;margin:0px;"/>                   Slave_SQL_Running=Yes<br style="padding:0px;margin:0px;"/>   如果都是Yes,则说明配置成功.</div>
+<div style="padding:0px;margin:0px;">2,在master上输入show processlist\G;<br style="padding:0px;margin:0px;"/>     mysql&gt; SHOW PROCESSLIST\G<br style="padding:0px;margin:0px;"/>     *************************** 1. row ***************************<br style="padding:0px;margin:0px;"/>       Id: 2<br style="padding:0px;margin:0px;"/>       User: root<br style="padding:0px;margin:0px;"/>       Host: localhost:32931<br style="padding:0px;margin:0px;"/>       db: NULL<br style="padding:0px;margin:0px;"/>       Command: Binlog Dump<br style="padding:0px;margin:0px;"/>       Time: 94<br style="padding:0px;margin:0px;"/>       State: Has sent all binlog to slave; waiting for binlog to<br style="padding:0px;margin:0px;"/>         be updated<br style="padding:0px;margin:0px;"/>       Info: NULL</div>
+<div style="padding:0px;margin:0px;">   如果出现Command: Binlog Dump,则说明配置成功.</div>
+<div style="padding:0px;margin:0px;"> </div>
+<div style="padding:0px;margin:0px;"> </div>
+<div style="padding:0px;margin:0px;">stop slave    #停止同步 <br style="padding:0px;margin:0px;"/>start slave    #开始同步，从日志终止的位置开始更新。 <br style="padding:0px;margin:0px;"/>SET SQL_LOG_BIN=0|1  #主机端运行，需要super权限，用来开停日志，随意开停，会造成主机从机数据不一致，造成错误 <br style="padding:0px;margin:0px;"/>SET GLOBAL SQL_SLAVE_SKIP_COUNTER=n  # 客户端运行，用来跳过几个事件，只有当同步进程出现错误而停止的时候才可以执行。 <br style="padding:0px;margin:0px;"/>RESET MASTER  #主机端运行,清除所有的日志，这条命令就是原来的FLUSH MASTER <br style="padding:0px;margin:0px;"/>RESET SLAVE   #从机运行，清除日志同步位置标志，并重新生成master.info<br style="padding:0px;margin:0px;"/>虽然重新生成了master.info,但是并不起用，最好，将从机的mysql进程重启一下， <br style="padding:0px;margin:0px;"/>LOAD TABLE tblname FROM MASTER #从机运行，从主机端重读指定的表的数据，每次只能读取一个，受timeout时间限制，需要调整timeout时间。执行这个命令需要同步账号有 reload和super权限。以及对相应的库有select权限。如果表比较大，要增加net_read_timeout 和 net_write_timeout的值 <br style="padding:0px;margin:0px;"/>LOAD DATA FROM MASTER  #从机执行，从主机端重新读入所有的数据。执行这个命令需要同步账号有reload和super权限。以及对相应的库有select权限。如果表比较大，要增加net_read_timeout 和 net_write_timeout的值 <br style="padding:0px;margin:0px;"/>CHANGE MASTER TO master_def_list  #在线改变一些主机设置，多个用逗号间隔,比如<br style="padding:0px;margin:0px;"/>CHANGE MASTER TO<br style="padding:0px;margin:0px;"/>  MASTER_HOST='master2.mycompany.com',<br style="padding:0px;margin:0px;"/>  MASTER_USER='replication',<br style="padding:0px;margin:0px;"/>  MASTER_PASSWORD='bigs3cret' <br style="padding:0px;margin:0px;"/>MASTER_POS_WAIT() #从机运行 <br style="padding:0px;margin:0px;"/>SHOW MASTER STATUS #主机运行，看日志导出信息 <br style="padding:0px;margin:0px;"/>SHOW SLAVE HOSTS #主机运行，看连入的从机的情况。 <br style="padding:0px;margin:0px;"/>SHOW SLAVE STATUS (slave) <br style="padding:0px;margin:0px;"/>SHOW MASTER LOGS (master) <br style="padding:0px;margin:0px;"/>SHOW BINLOG EVENTS [ IN 'logname' ] [ FROM pos ] [ LIMIT [offset,] rows ] <br style="padding:0px;margin:0px;"/>PURGE [MASTER] LOGS TO 'logname' ; PURGE [MASTER] LOGS BEFORE 'date' </div><p style="padding:0px;margin:0px;padding-bottom:0px;clear:both;height:auto;overflow:hidden;">本文出自 “<a href="http://kerry.blog.51cto.com/" style="padding:0px;margin:0px;color:rgb(80, 80, 80);text-decoration:none;">聆听未来</a>” 博客，请务必保留此出处<a href="http://kerry.blog.51cto.com/172631/277414" style="padding:0px;margin:0px;color:rgb(80, 80, 80);text-decoration:none;">http://kerry.blog.51cto.com/172631/277414</a></p>
+		  </div></div></div></div></div></div></div></div></div><br/></div></span>
+</div></body></html> 

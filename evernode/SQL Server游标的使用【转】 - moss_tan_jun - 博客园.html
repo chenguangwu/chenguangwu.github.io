@@ -1,0 +1,126 @@
+<html>
+<head>
+  <title>SQL Server游标的使用【转】 - moss_tan_jun - 博客园</title>
+  <basefont face="微软雅黑" size="2" />
+  <meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+  <meta name="exporter-version" content="YXBJ Windows/600718 (zh-CN, DDL); Windows/6.1.1 (Win64);"/>
+  <style>
+    body, td {
+      font-family: 微软雅黑;
+      font-size: 10pt;
+    }
+  </style>
+</head>
+<body>
+<a name="7242"/>
+<h1>SQL Server游标的使用【转】 - moss_tan_jun - 博客园</h1>
+<div>
+<table bgcolor="#D4DDE5" border="0">
+<tr><td><b>创建时间：</b></td><td><i>2015/9/10 16:25</i></td></tr>
+<tr><td><b>来源：</b></td><td><a href="http://www.cnblogs.com/moss_tan_jun/archive/2011/11/26/2263988.html"><i>http://www.cnblogs.com/moss_tan_jun/archive/2011/11/26/2263988.html</i></a></td></tr>
+</table>
+</div>
+<br/>
+
+<div><span><br/><div style="font-size: 16px"><div><div style="font-family:Verdana, 'Lucida Grande', Arial, Helvetica, sans-serif;font-size:12px;background-color:rgb(217, 214, 203);"><table style="font-size:inherit;font-weight:inherit;font-style:inherit;font-variant:inherit;background-color:rgb(255, 255, 255);"><tbody><tr><td style="font-size:12px;vertical-align:top;background-color:rgb(255, 255, 255);"><div><div><div><div style="line-height:1.5;"><div style="word-break:break-word;">    游标是邪恶的！ 
+<p style="margin:10px auto;text-indent:0px;">       在关系数据库中，我们对于查询的思考是面向集合的。而游标打破了这一规则，游标使得我们思考方式变为逐行进行.对于类C的开发人员来着，这样的思考方式会更加舒服。</p>
+<p style="margin:10px auto;text-indent:0px;">       正常面向集合的思维方式是:</p>
+<p style="margin:10px auto;text-indent:0px;">       <a href="http://images.cnblogs.com/cnblogs_com/CareySon/201111/201111011411205240.png" style="color:rgb(29, 88, 209);text-decoration:underline;"><img src="SQL Server游标的使用【转】 - moss_tan_jun - 博客园_files/201111011411225075.png" type="image/png" data-filename="201111011411225075.png" alt="2" border="0" height="232" style="border:0px;border-top-width:0px;display:inline;border-left-width:0px;border-bottom-width:0px;border-right-width:0px;" title="2" width="942"/></a></p>
+<p style="margin:10px auto;text-indent:0px;">       而对于游标来说:</p>
+<p style="margin:10px auto;text-indent:0px;">       <a href="http://images.cnblogs.com/cnblogs_com/CareySon/201111/201111011411247352.png" style="text-decoration:none;color:rgb(29, 88, 209);"><img src="SQL Server游标的使用【转】 - moss_tan_jun - 博客园_files/201111011411256630.png" type="image/png" data-filename="201111011411256630.png" alt="3" border="0" height="249" style="border:0px;border-top-width:0px;display:inline;border-left-width:0px;border-bottom-width:0px;border-right-width:0px;" title="3" width="945"/></a></p>
+<p style="margin:10px auto;text-indent:0px;">      这也是为什么游标是邪恶的，它会使开发人员变懒，懒得去想用面向集合的查询方式实现某些功能.</p>
+<p style="margin:10px auto;text-indent:0px;">      同样的，在性能上，游标会吃更多的内存，减少可用的并发，占用宽带，锁定资源，当然还有更多的代码量……</p>
+<p style="margin:10px auto;text-indent:0px;">      从游标对数据库的读取方式来说，不难看出游标为什么占用更多的资源，打个比方:</p>
+<p style="margin:10px auto;text-indent:0px;">          <a href="http://images.cnblogs.com/cnblogs_com/CareySon/201111/201111011411278973.jpg" style="text-decoration:none;color:rgb(29, 88, 209);"><img src="SQL Server游标的使用【转】 - moss_tan_jun - 博客园_files/201111011411286856.jpg" type="image/jpeg" data-filename="201111011411286856.jpg" alt="1" border="0" height="339" style="border:0px;border-top-width:0px;display:inline;border-left-width:0px;border-bottom-width:0px;border-right-width:0px;" title="1" width="354"/></a></p>
+<p style="margin:10px auto;text-indent:0px;">      <span style="color:#0000ff;">当你从ATM取钱的时候，是一次取1000效率更高呢，还是取10次100？</span></p>
+<p style="margin:10px auto;text-indent:0px;"> </p>
+<p style="margin:10px auto;text-indent:0px;"> </p>
+<h3 style="font-size:16px;font-weight:bold;"><strong><span style="color:#ff8000;">既然游标这么“邪恶”，为什么还要学习游标</span></strong></h3>
+<p style="margin:10px auto;text-indent:0px;">      我个人认为存在既是合理.归结来说，学习游标原因我归纳为以下2点</p>
+<p style="margin:10px auto;text-indent:0px;">    1.现存系统有一些游标，我们查询必须通过游标来实现</p>
+<p style="margin:10px auto;text-indent:0px;">    2.作为一个备用方式，当我们穷尽了while循环,子查询，临时表，表变量,自建函数或其他方式扔来无法实现某些查询的时候，使用游标实现.</p>
+<p style="margin:10px auto;text-indent:0px;"> </p>
+<h3 style="font-size:16px;font-weight:bold;"><strong><span style="color:#ff8000;">T-SQL中游标的生命周期以及实现</span></strong></h3>
+<p style="margin:10px auto;text-indent:0px;">    在T-SQL中，游标的生命周期由5部分组成</p>
+<h4 style="font-size:14px;font-weight:bold;"><strong><span style="color:#0000ff;">1.定义一个游标</span></strong></h4>
+<p style="margin:10px auto;text-indent:0px;">     在T-SQL中，定义一个游标可以是非常简单，也可以相对复杂，取决于游标的参数.而游标的参数设置取决于你对游标原理的了解程度.</p>
+<p style="margin:10px auto;text-indent:0px;">     游标其实可以理解成一个定义在特定<strong>数据集</strong>上的指针，我们可以控制这个指针遍历<strong>数据集</strong>，或者仅仅是指向特定的行，所以游标是定义在以Select开始的数据集上的:</p>
+<p style="margin:10px auto;text-indent:0px;"> </p>
+<p style="margin:10px auto;text-indent:0px;">     <a href="http://images.cnblogs.com/cnblogs_com/CareySon/201111/20111101141130562.png" style="text-decoration:none;color:rgb(29, 88, 209);"><img src="SQL Server游标的使用【转】 - moss_tan_jun - 博客园_files/201111011411328445.png" type="image/png" data-filename="201111011411328445.png" alt="4" border="0" height="243" style="border:0px;border-top-width:0px;display:inline;border-left-width:0px;border-bottom-width:0px;border-right-width:0px;" title="4" width="679"/></a></p>
+<p style="margin:10px auto;text-indent:0px;"> </p>
+<p style="margin:10px auto;text-indent:0px;">     T-SQL中的游标定义在MSDN中如下:</p>
+<p style="margin:10px auto;text-indent:0px;"> </p>
+<div style="padding-bottom:1px;border-right:green 1px dashed;border-top:green 1px dashed;margin-top:5px;padding-left:1px;padding-right:1px;margin-left:15px;border-left:green 2px solid;padding-top:1px;border-bottom:green 1px dashed;margin-buttom:5px;"><pre style="white-space:pre-wrap;word-wrap:break-word;margin:0px 0px 0px 22px;font-size:1em;"><a href="http://search.microsoft.com/default.asp?so=RECCNT&amp;siteid=us%2Fdev&amp;p=1&amp;nq=NEW&amp;qu=DECLARE&amp;IntlSearch=&amp;boolean=PHRASE&amp;ig=01&amp;i=09&amp;i=99" style="color:#0000ff;text-decoration:none;">DECLARE</a> cursor_name <a href="http://search.microsoft.com/default.asp?so=RECCNT&amp;siteid=us%2Fdev&amp;p=1&amp;nq=NEW&amp;qu=CURSOR&amp;IntlSearch=&amp;boolean=PHRASE&amp;ig=01&amp;i=09&amp;i=99" style="color:#0000ff;text-decoration:none;">CURSOR</a> [ <a href="http://search.microsoft.com/default.asp?so=RECCNT&amp;siteid=us%2Fdev&amp;p=1&amp;nq=NEW&amp;qu=LOCAL&amp;IntlSearch=&amp;boolean=PHRASE&amp;ig=01&amp;i=09&amp;i=99" style="color:#0000ff;text-decoration:none;">LOCAL</a> | <a href="http://search.microsoft.com/default.asp?so=RECCNT&amp;siteid=us%2Fdev&amp;p=1&amp;nq=NEW&amp;qu=GLOBAL&amp;IntlSearch=&amp;boolean=PHRASE&amp;ig=01&amp;i=09&amp;i=99" style="color:#0000ff;text-decoration:none;">GLOBAL</a> ] 
+     [ FORWARD_ONLY | <a href="http://search.microsoft.com/default.asp?so=RECCNT&amp;siteid=us%2Fdev&amp;p=1&amp;nq=NEW&amp;qu=SCROLL&amp;IntlSearch=&amp;boolean=PHRASE&amp;ig=01&amp;i=09&amp;i=99" style="color:#0000ff;text-decoration:none;">SCROLL</a> ] 
+     [ STATIC | KEYSET | DYNAMIC | FAST_FORWARD ] 
+     [ READ_ONLY | SCROLL_LOCKS | OPTIMISTIC ] 
+     [ TYPE_WARNING ] 
+     <a href="http://search.microsoft.com/default.asp?so=RECCNT&amp;siteid=us%2Fdev&amp;p=1&amp;nq=NEW&amp;qu=FOR&amp;IntlSearch=&amp;boolean=PHRASE&amp;ig=01&amp;i=09&amp;i=99" style="color:#0000ff;text-decoration:none;">FOR</a> select_statement 
+     [ <a href="http://search.microsoft.com/default.asp?so=RECCNT&amp;siteid=us%2Fdev&amp;p=1&amp;nq=NEW&amp;qu=FOR&amp;IntlSearch=&amp;boolean=PHRASE&amp;ig=01&amp;i=09&amp;i=99" style="color:#0000ff;text-decoration:none;">FOR</a> <a href="http://search.microsoft.com/default.asp?so=RECCNT&amp;siteid=us%2Fdev&amp;p=1&amp;nq=NEW&amp;qu=UPDATE&amp;IntlSearch=&amp;boolean=PHRASE&amp;ig=01&amp;i=09&amp;i=99" style="color:#0000ff;text-decoration:none;">UPDATE</a> [ <a href="http://search.microsoft.com/default.asp?so=RECCNT&amp;siteid=us%2Fdev&amp;p=1&amp;nq=NEW&amp;qu=OF&amp;IntlSearch=&amp;boolean=PHRASE&amp;ig=01&amp;i=09&amp;i=99" style="color:#0000ff;text-decoration:none;">OF</a> column_name [ ,...n ] ] ]
+[;]</pre></div>
+<p style="margin:10px auto;text-indent:0px;">    </p>
+<p style="margin:10px auto;text-indent:0px;"> </p>
+<p style="margin:10px auto;text-indent:0px;"> </p>
+<p style="margin:10px auto;text-indent:0px;">   看起来很让人头痛是吧.下面仔细讲一下如何定义游标:</p>
+<p style="margin:10px auto;text-indent:0px;">   游标分为游标类型和游标变量，对于游标变量来说，遵循T-SQL变量的定义方法（啥，不知道T-SQL变量定义的规则？参考我前面的博文）.游标变量支持两种方式赋值，定义时赋值和先定义后赋值，定义游标变量像定义其他局部变量一样，在游标前加”@”,注意，如果定义全局的游标，只支持定义时直接赋值，并且不能在游标名称前面加“@”，两种定义方式如下:</p>
+<p style="margin:10px auto;text-indent:0px;">    <a href="http://images.cnblogs.com/cnblogs_com/CareySon/201111/201111011411333886.png" style="text-decoration:none;color:rgb(29, 88, 209);"><img src="SQL Server游标的使用【转】 - moss_tan_jun - 博客园_files/201111011411341279.png" type="image/png" data-filename="201111011411341279.png" alt="5" border="0" height="225" style="border:0px;border-top-width:0px;display:inline;border-left-width:0px;border-bottom-width:0px;border-right-width:0px;" title="5" width="435"/></a></p>
+<p style="margin:10px auto;text-indent:0px;">    下面我们来看游标定义的参数:</p>
+<p style="margin:10px auto;text-indent:0px;">     <strong><span style="color:#0000ff;">LOCAL和GLOBAL二选一</span></strong></p>
+<p style="margin:10px auto;text-indent:0px;"><span style="color:#0000ff;"><strong>     </strong><span style="color:#000000;">LOCAL</span></span>意味着游标的生存周期只在批处理或函数或存储过程中可见，而GLOBAL意味着游标对于特定<strong>连接</strong>作为上下文，全局内有效,例如:</p>
+<p style="margin:10px auto;text-indent:0px;">     <a href="http://images.cnblogs.com/cnblogs_com/CareySon/201111/201111011411356130.png" style="text-decoration:none;color:rgb(29, 88, 209);"><img src="SQL Server游标的使用【转】 - moss_tan_jun - 博客园_files/201111011411376521.png" type="image/png" data-filename="201111011411376521.png" alt="6" border="0" height="399" style="border:0px;border-top-width:0px;display:inline;border-left-width:0px;border-bottom-width:0px;border-right-width:0px;" title="6" width="641"/></a></p>
+<p style="margin:10px auto;text-indent:0px;">     如果不指定游标作用域，默认作用域为GLOBAL</p>
+<p style="margin:10px auto;text-indent:0px;"> </p>
+<p style="margin:10px auto;text-indent:0px;">     <strong><span style="color:#0000ff;">FORWARD_ONLY 和 SCROLL 二选一</span></strong></p>
+<p style="margin:10px auto;text-indent:0px;"><span style="color:#0000ff;"><strong>     </strong></span><span style="color:#000000;">FORWARD_ONLY意味着游标只能从数据集开始向数据集结束的方向读取，FETCH NEXT是唯一的选项，而SCROLL支持游标在定义的数据集中向任何方向，或任何位置移动，如下图:</span></p>
+<p style="margin:10px auto;text-indent:0px;">     <a href="http://images.cnblogs.com/cnblogs_com/CareySon/201111/201111011411393258.png" style="text-decoration:none;color:rgb(29, 88, 209);"><img src="SQL Server游标的使用【转】 - moss_tan_jun - 博客园_files/201111011411405045.png" type="image/png" data-filename="201111011411405045.png" alt="7" border="0" height="463" style="border:0px;border-top-width:0px;display:inline;border-left-width:0px;border-bottom-width:0px;border-right-width:0px;" title="7" width="651"/></a></p>
+<p style="margin:10px auto;text-indent:0px;">    </p>
+<p style="margin:10px auto;text-indent:0px;">    <strong><span style="color:#0000ff;">STATIC  KEYSET  DYNAMIC  和 FAST_FORWARD 四选一</span></strong></p>
+<p style="margin:10px auto;text-indent:0px;">    这四个关键字是游标所在数据集所反应的表内数据和游标读取出的数据的关系</p>
+<p style="margin:10px auto;text-indent:0px;">    STATIC意味着，当游标被建立时，将会创建FOR后面的SELECT语句所包含数据集的副本存入tempdb数据库中，任何对于底层表内数据的更改不会影响到游标的内容.</p>
+<p style="margin:10px auto;text-indent:0px;">    DYNAMIC是和STATIC完全相反的选项,当底层数据库更改时，游标的内容也随之得到反映，在下一次fetch中，数据内容会随之改变</p>
+<p style="margin:10px auto;text-indent:0px;">    KEYSET可以理解为介于STATIC和DYNAMIC的折中方案。将游标所在结果集的唯一能确定每一行的主键存入tempdb,当结果集中任何行改变或者删除时，@@FETCH_STATUS会为-2,KEYSET无法探测新加入的数据</p>
+<p style="margin:10px auto;text-indent:0px;">    FAST_FORWARD可以理解成FORWARD_ONLY的优化版本.FORWARD_ONLY执行的是静态计划，而FAST_FORWARD是根据情况进行选择采用动态计划还是静态计划，大多数情况下FAST_FORWARD要比FORWARD_ONLY性能略好.</p>
+<p style="margin:10px auto;text-indent:0px;"> </p>
+<p style="margin:10px auto;text-indent:0px;">    <span style="color:#0000ff;"><strong>READ_ONLY  SCROLL_LOCKS  OPTIMISTIC 三选一 <br/></strong>    </span><span style="color:#000000;">READ_ONLY意味着声明的游标只能读取数据,游标不能做任何更新操作</span></p>
+<p style="margin:10px auto;text-indent:0px;">    SCROLL_LOCKS是另一种极端，将读入游标的所有数据进行锁定，防止其他程序进行更改，以确保更新的绝对成功</p>
+<p style="margin:10px auto;text-indent:0px;">    OPTIMISTIC是相对比较好的一个选择，OPTIMISTIC不锁定任何数据，当需要在游标中更新数据时,如果底层表数据更新，则游标内数据更新不成功，如果，底层表数据未更新，则游标内表数据可以更新</p>
+<p style="margin:10px auto;text-indent:0px;">  </p>
+<p style="margin:10px auto;text-indent:0px;"> </p>
+<p style="margin:10px auto;text-indent:0px;"> </p>
+<h4 style="font-size:14px;font-weight:bold;"><strong><span style="color:#0000ff;">2.打开游标</span></strong></h4>
+<p style="margin:10px auto;text-indent:0px;">    当定义完游标后，游标需要打开后使用，只有简单一行代码:</p>
+<div style="padding-bottom:1px;border-right:green 1px dashed;border-top:green 1px dashed;margin-top:5px;padding-left:1px;padding-right:1px;margin-left:15px;border-left:green 2px solid;padding-top:1px;border-bottom:green 1px dashed;margin-buttom:5px;"><pre style="white-space:pre-wrap;word-wrap:break-word;margin:0px 0px 0px 22px;font-size:1em;"><a href="http://search.microsoft.com/default.asp?so=RECCNT&amp;siteid=us%2Fdev&amp;p=1&amp;nq=NEW&amp;qu=OPEN&amp;IntlSearch=&amp;boolean=PHRASE&amp;ig=01&amp;i=09&amp;i=99" style="color:#0000ff;text-decoration:none;">OPEN</a> test_Cursor</pre></div>
+<p style="margin:10px auto;text-indent:0px;">    注意，当全局游标和局部游标变量重名时，默认会打开局部变量游标</p>
+<h4 style="font-size:14px;font-weight:bold;"><strong><span style="color:#0000ff;">3.使用游标</span></strong></h4>
+<p style="margin:10px auto;text-indent:0px;"> </p>
+<p style="margin:10px auto;text-indent:0px;">   游标的使用分为两部分,一部分是操作游标在数据集内的指向，另一部分是将游标所指向的行的部分或全部内容进行操作</p>
+<p style="margin:10px auto;text-indent:0px;">   只有支持6种移动选项,分别为到第一行（FIRST),最后一行(LAST),下一行(NEXT),上一行(PRIOR),直接跳到某行(ABSOLUTE(n)),相对于目前跳几行(RELATIVE(n)),例如:</p>
+<p style="margin:10px auto;text-indent:0px;">     <a href="http://images.cnblogs.com/cnblogs_com/CareySon/201111/201111011411425371.png" style="text-decoration:none;color:rgb(29, 88, 209);"><img src="SQL Server游标的使用【转】 - moss_tan_jun - 博客园_files/201111011411445762.png" type="image/png" data-filename="201111011411445762.png" alt="8" border="0" height="427" style="border:0px;border-top-width:0px;display:inline;border-left-width:0px;border-bottom-width:0px;border-right-width:0px;" title="8" width="712"/></a></p>
+<p style="margin:10px auto;text-indent:0px;">    对于未指定SCROLL选项的游标来说，只支持NEXT取值.</p>
+<p style="margin:10px auto;text-indent:0px;">    第一步操作完成后，就通过INTO关键字将这行的值传入局部变量:</p>
+<p style="margin:10px auto;text-indent:0px;">    比如下面代码:</p>
+<p style="margin:10px auto;text-indent:0px;">    <a href="http://images.cnblogs.com/cnblogs_com/CareySon/201111/201111011411459010.png" style="text-decoration:none;color:rgb(29, 88, 209);"><img src="SQL Server游标的使用【转】 - moss_tan_jun - 博客园_files/201111011411467483.png" type="image/png" data-filename="201111011411467483.png" alt="10" border="0" height="369" style="border:0px;border-top-width:0px;display:inline;border-left-width:0px;border-bottom-width:0px;border-right-width:0px;" title="10" width="576"/></a></p>
+<p style="margin:10px auto;text-indent:0px;">    <a href="http://images.cnblogs.com/cnblogs_com/CareySon/201111/201111011411474875.png" style="text-decoration:none;color:rgb(29, 88, 209);"><img src="SQL Server游标的使用【转】 - moss_tan_jun - 博客园_files/201111011411487808.png" type="image/png" data-filename="201111011411487808.png" alt="9" border="0" height="139" style="border:0px;border-top-width:0px;display:inline;border-left-width:0px;border-bottom-width:0px;border-right-width:0px;" title="9" width="265"/></a></p>
+<p style="margin:10px auto;text-indent:0px;"> </p>
+<p style="margin:10px auto;text-indent:0px;">     游标经常会和全局变量@@FETCH_STATUS与WHILE循环来共同使用,以达到遍历游标所在数据集的目的,例如：</p>
+<p style="margin:10px auto;text-indent:0px;">    <a href="http://images.cnblogs.com/cnblogs_com/CareySon/201111/201111011411505973.png" style="text-decoration:none;color:rgb(29, 88, 209);"><img src="SQL Server游标的使用【转】 - moss_tan_jun - 博客园_files/201111011411514413.png" type="image/png" data-filename="201111011411514413.png" alt="11" border="0" height="530" style="border:0px;border-top-width:0px;display:inline;border-left-width:0px;border-bottom-width:0px;border-right-width:0px;" title="11" width="497"/></a></p>
+<p style="margin:10px auto;text-indent:0px;"> </p>
+<h4 style="font-size:14px;font-weight:bold;"><strong><span style="color:#0000ff;">4.关闭游标</span></strong></h4>
+<p style="margin:10px auto;text-indent:0px;">    在游标使用完之后，一定要记得关闭,只需要一行代码:CLOSE+游标名称</p>
+<div style="padding-bottom:1px;border-right:green 1px dashed;border-top:green 1px dashed;margin-top:5px;padding-left:1px;padding-right:1px;margin-left:15px;border-left:green 2px solid;padding-top:1px;border-bottom:green 1px dashed;margin-buttom:5px;"><pre style="white-space:pre-wrap;word-wrap:break-word;margin:0px 0px 0px 22px;font-size:1em;"><a href="http://search.microsoft.com/default.asp?so=RECCNT&amp;siteid=us%2Fdev&amp;p=1&amp;nq=NEW&amp;qu=CLOSE&amp;IntlSearch=&amp;boolean=PHRASE&amp;ig=01&amp;i=09&amp;i=99" style="color:#0000ff;text-decoration:none;">CLOSE</a> test_Cursor</pre></div>
+<p style="margin:10px auto;text-indent:0px;"> </p>
+<p style="margin:10px auto;text-indent:0px;"> </p>
+<p style="margin:10px auto;text-indent:0px;"> </p>
+<p style="margin:10px auto;text-indent:0px;"> </p>
+<p style="margin:10px auto;text-indent:0px;"> </p>
+<h4 style="font-size:14px;font-weight:bold;"><strong><span style="color:#0000ff;">5.释放游标</span></strong></h4>
+<p style="margin:10px auto;text-indent:0px;">    当游标不再需要被使用后，释放游标，只需要一行代码:DEALLOCATE+游标名称</p>
+<div style="padding-bottom:1px;border-right:green 1px dashed;border-top:green 1px dashed;margin-top:5px;padding-left:1px;padding-right:1px;margin-left:15px;border-left:green 2px solid;padding-top:1px;border-bottom:green 1px dashed;margin-buttom:5px;"><pre style="white-space:pre-wrap;word-wrap:break-word;margin:0px 0px 0px 22px;font-size:1em;"><a href="http://search.microsoft.com/default.asp?so=RECCNT&amp;siteid=us%2Fdev&amp;p=1&amp;nq=NEW&amp;qu=DEALLOCATE&amp;IntlSearch=&amp;boolean=PHRASE&amp;ig=01&amp;i=09&amp;i=99" style="color:#0000ff;text-decoration:none;">DEALLOCATE</a> test_Cursor</pre></div>
+<p style="margin:10px auto;text-indent:0px;"> </p>
+<h3 style="font-size:16px;font-weight:bold;"><strong><span style="color:#ff8000;">对于游标一些优化建议</span></strong></h3>
+<ul style="list-style-type:disc;margin-left:30px;padding-left:0px;"><li style="list-style:inherit;">     如果能不用游标，尽量不要使用游标</li><li style="list-style:inherit;">     用完用完之后一定要关闭和释放</li><li style="list-style:inherit;">     尽量不要在大量数据上定义游标</li><li style="list-style:inherit;">     尽量不要使用游标上更新数据</li><li style="list-style:inherit;">     尽量不要使用insensitive, static和keyset这些参数定义游标</li><li style="list-style:inherit;">     如果可以，尽量使用FAST_FORWARD关键字定义游标</li><li style="list-style:inherit;">     如果只对数据进行读取，当读取时只用到FETCH NEXT选项，则最好使用FORWARD_ONLY参数 </li></ul>
+<p style="margin:10px auto;text-indent:0px;"> </p>
+<h3 style="font-size:16px;font-weight:bold;"><strong><span style="color:#ff8000;">总结</span></strong></h3>
+<p style="margin:10px auto;text-indent:0px;">     本文从游标的基本概念，到生命周期来谈游标。游标是非常<strong>邪恶</strong>的一种存在，使用游标经常会比使用面向集合的方法慢2-3倍，当游标定义在大数据量时，这个比例还会增加。如果可能，尽量使用while,子查询，临时表，函数，表变量等来替代游标，记住，游标永远只是你最后无奈之下的选择，而不是首选。</p>
+<p style="margin:10px auto;text-indent:0px;">     <strong>游标是邪恶的！</strong></p></div></div></div></div></div></td></tr></tbody></table></div></div></div><br/></span>
+</div></body></html> 

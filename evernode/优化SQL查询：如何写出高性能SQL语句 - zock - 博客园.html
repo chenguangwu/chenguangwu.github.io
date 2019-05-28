@@ -1,0 +1,151 @@
+<html>
+<head>
+  <title>优化SQL查询：如何写出高性能SQL语句 - zock - 博客园</title>
+  <basefont face="微软雅黑" size="2" />
+  <meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+  <meta name="exporter-version" content="YXBJ Windows/600718 (zh-CN, DDL); Windows/6.1.1 (Win64);"/>
+  <style>
+    body, td {
+      font-family: 微软雅黑;
+      font-size: 10pt;
+    }
+  </style>
+</head>
+<body>
+<a name="6910"/>
+<h1>优化SQL查询：如何写出高性能SQL语句 - zock - 博客园</h1>
+<div>
+<table bgcolor="#D4DDE5" border="0">
+<tr><td><b>创建时间：</b></td><td><i>2015/9/22 23:00</i></td></tr>
+<tr><td><b>来源：</b></td><td><a href="http://www.cnblogs.com/ATree/archive/2011/02/13/sql_optimize_1.html"><i>http://www.cnblogs.com/ATree/archive/2011/02/13/sql_optimize_1.html</i></a></td></tr>
+</table>
+</div>
+<br/>
+
+<div><span><br/><div style="font-size: 16px"><div><div style="font-family:Verdana, Geneva, Arial, Helvetica, sans-serif;font-size:13px;word-wrap:break-word;line-height:1.5;background-image:url(http://www.cnblogs.com/blog/customcss/nothing.txt);background-attachment:fixed;"><div><div><div style="color:rgb(75, 75, 75);font-size:14px;background-color:rgb(255, 255, 255);">
+	<h1 style="font-size:16px;font-weight:bold;margin-bottom:10px;"><a href="http://www.cnblogs.com/atree/archive/2011/02/13/sql_optimize_1.html" style="text-decoration:none;color:rgb(26, 139, 200);">优化SQL查询：如何写出高性能SQL语句</a></h1>
+	<div style="margin-bottom:20px;word-break:break-word;"><p style="line-height:1.5;margin:10px auto;text-indent:0px;"><strong>1、 首先要搞明白什么叫执行计划？</strong></p>
+<p style="line-height:1.5;margin:10px auto;text-indent:0px;">执行计划是数据库根据SQL语句和相关表的统计信息作出的一个查询方案，这个方案是由查询优化器自动分析产生的，比如一条SQL语句如果用来从一个 10万条记录的表中查1条记录，那查询优化器会选择“索引查找”方式，如果该表进行了归档，当前只剩下5000条记录了，那查询优化器就会改变方案，采用 “全表扫描”方式。</p>
+<p style="line-height:1.5;margin:10px auto;text-indent:0px;">可见，执行计划并不是固定的，它是“个性化的”。产生一个正确的“执行计划”有两点很重要：</p>
+<p style="line-height:1.5;margin:10px auto;text-indent:0px;">(1)    SQL语句是否清晰地告诉查询优化器它想干什么？</p>
+<p style="line-height:1.5;margin:10px auto;text-indent:0px;">(2)    查询优化器得到的数据库统计信息是否是最新的、正确的？</p>
+<div style="margin:10px 0px;padding:0px;text-align:left;">
+
+</div>
+<p style="line-height:1.5;margin:10px auto;text-indent:0px;"><strong>2、 统一SQL语句的写法</strong></p>
+<p style="line-height:1.5;margin:10px auto;text-indent:0px;">对于以下两句SQL语句，程序员认为是相同的，数据库查询优化器认为是不同的。<span style="line-height:1.5;"><span style="line-height:1.5;"> </span></span></p>
+<div style="border:1px solid rgb(204, 204, 204);padding:5px;overflow:auto;margin:5px 0px;color:rgb(0, 0, 0);background-color:rgb(245, 245, 245);font-family:'Courier New';font-size:12px;">
+<div style="background-color:rgb(245, 245, 245);"><span style="line-height:1.5;font-family:'Courier New';font-size:12px;color:#0000ff;">select</span><span style="line-height:1.5;font-family:'Courier New';font-size:12px;color:#808080;">*</span><span style="line-height:1.5;font-family:'Courier New';font-size:12px;color:#0000ff;">from</span><span style="line-height:1.5;font-family:'Courier New';font-size:12px;color:#000000;"> dual <br/><br/></span><span style="line-height:1.5;font-family:'Courier New';font-size:12px;color:#0000ff;">select</span><span style="line-height:1.5;font-family:'Courier New';font-size:12px;color:#808080;">*</span><span style="line-height:1.5;font-family:'Courier New';font-size:12px;color:#0000ff;">From</span><span style="line-height:1.5;font-family:'Courier New';font-size:12px;color:#000000;"> dual </span></div>
+</div>
+<p style="line-height:1.5;margin:10px auto;text-indent:0px;"> </p>
+<p style="line-height:1.5;margin:10px auto;text-indent:0px;">其实就是大小写不同，查询分析器就认为是两句不同的SQL语句，必须进行两次解析。生成2个执行计划。所以作为程序员，应该保证相同的查询语句在任何地方都一致，多一个空格都不行！</p>
+<p style="line-height:1.5;margin:10px auto;text-indent:0px;"><strong>3、 不要把SQL语句写得太复杂</strong></p>
+<p style="line-height:1.5;margin:10px auto;text-indent:0px;">我经常看到，从数据库中捕捉到的一条SQL语句打印出来有2张A4纸这么长。一般来说这么复杂的语句通常都是有问题的。我拿着这2页长的SQL语句去请教原作者，结果他说时间太长，他一时也看不懂了。可想而知，连原作者都有可能看糊涂的SQL语句，数据库也一样会看糊涂。</p>
+<p style="line-height:1.5;margin:10px auto;text-indent:0px;">一般，将一个Select语句的结果作为子集，然后从该子集中再进行查询，这种一层嵌套语句还是比较常见的，但是根据经验，超过3层嵌套，查询优化器就很容易给出错误的执行计划。因为它被绕晕了。像这种类似人工智能的东西，终究比人的分辨力要差些，如果人都看晕了，我可以保证数据库也会晕的。</p>
+<p style="line-height:1.5;margin:10px auto;text-indent:0px;">另外，执行计划是可以被重用的，越简单的SQL语句被重用的可能性越高。而复杂的SQL语句只要有一个字符发生变化就必须重新解析，然后再把这一大堆垃圾塞在内存里。可想而知，数据库的效率会何等低下。</p>
+<p style="line-height:1.5;margin:10px auto;text-indent:0px;"><strong>4、 使用“临时表”暂存中间结果</strong></p>
+<p style="line-height:1.5;margin:10px auto;text-indent:0px;">简化SQL语句的重要方法就是采用临时表暂存中间结果，但是，临时表的好处远远不止这些，将临时结果暂存在临时表，后面的查询就在tempdb中了，这可以避免程序中多次扫描主表，也大大减少了程序执行中“共享锁”阻塞“更新锁”，减少了阻塞，提高了并发性能。</p>
+<p style="line-height:1.5;margin:10px auto;text-indent:0px;"><strong>5、 OLTP系统SQL语句必须采用绑定变量</strong><span style="line-height:1.5;"><span style="line-height:1.5;"> </span></span></p>
+<div style="border:1px solid rgb(204, 204, 204);padding:5px;overflow:auto;margin:5px 0px;color:rgb(0, 0, 0);background-color:rgb(245, 245, 245);font-family:'Courier New';font-size:12px;">
+<div style="background-color:rgb(245, 245, 245);"><span style="line-height:1.5;font-family:'Courier New';font-size:12px;color:#0000ff;">select</span><span style="line-height:1.5;font-family:'Courier New';font-size:12px;color:#808080;">*</span><span style="line-height:1.5;font-family:'Courier New';font-size:12px;color:#0000ff;">from</span><span style="line-height:1.5;font-family:'Courier New';font-size:12px;color:#000000;"> orderheader </span><span style="line-height:1.5;font-family:'Courier New';font-size:12px;color:#0000ff;">where</span><span style="line-height:1.5;font-family:'Courier New';font-size:12px;color:#000000;"> changetime </span><span style="line-height:1.5;font-family:'Courier New';font-size:12px;color:#808080;">&gt;</span><span style="line-height:1.5;font-family:'Courier New';font-size:12px;color:#ff0000;">'</span><span style="line-height:1.5;font-family:'Courier New';font-size:12px;color:#ff0000;">2010-10-20 00:00:01</span><span style="line-height:1.5;font-family:'Courier New';font-size:12px;color:#ff0000;">'</span><span style="line-height:1.5;font-family:'Courier New';font-size:12px;color:#000000;"> <br/></span><span style="line-height:1.5;font-family:'Courier New';font-size:12px;color:#0000ff;">select</span><span style="line-height:1.5;font-family:'Courier New';font-size:12px;color:#808080;">*</span><span style="line-height:1.5;font-family:'Courier New';font-size:12px;color:#0000ff;">from</span><span style="line-height:1.5;font-family:'Courier New';font-size:12px;color:#000000;"> orderheader </span><span style="line-height:1.5;font-family:'Courier New';font-size:12px;color:#0000ff;">where</span><span style="line-height:1.5;font-family:'Courier New';font-size:12px;color:#000000;"> changetime </span><span style="line-height:1.5;font-family:'Courier New';font-size:12px;color:#808080;">&gt;</span><span style="line-height:1.5;font-family:'Courier New';font-size:12px;color:#ff0000;">'</span><span style="line-height:1.5;font-family:'Courier New';font-size:12px;color:#ff0000;">2010-09-22 00:00:01</span><span style="line-height:1.5;font-family:'Courier New';font-size:12px;color:#ff0000;">'</span></div>
+</div>
+<p style="line-height:1.5;margin:10px auto;text-indent:0px;"><span style="line-height:1.5;"><span style="line-height:1.5;"><br/></span></span><span style="line-height:1.5;"> </span></p>
+<p style="line-height:1.5;margin:10px auto;text-indent:0px;">以上两句语句，查询优化器认为是不同的SQL语句，需要解析两次。如果采用绑定变量</p>
+<div style="border:1px solid rgb(204, 204, 204);padding:5px;overflow:auto;margin:5px 0px;color:rgb(0, 0, 0);background-color:rgb(245, 245, 245);font-family:'Courier New';font-size:12px;">
+<div style="background-color:rgb(245, 245, 245);"><span style="line-height:1.5;font-family:'Courier New';font-size:12px;color:#0000ff;">select</span><span style="line-height:1.5;font-family:'Courier New';font-size:12px;color:#808080;">*</span><span style="line-height:1.5;font-family:'Courier New';font-size:12px;color:#0000ff;">from</span><span style="line-height:1.5;font-family:'Courier New';font-size:12px;color:#000000;"> orderheader </span><span style="line-height:1.5;font-family:'Courier New';font-size:12px;color:#0000ff;">where</span><span style="line-height:1.5;font-family:'Courier New';font-size:12px;color:#000000;"> changetime </span><span style="line-height:1.5;font-family:'Courier New';font-size:12px;color:#808080;">&gt;</span><span style="line-height:1.5;font-family:'Courier New';font-size:12px;color:#008000;">@chgtime</span></div>
+</div>
+<p style="line-height:1.5;margin:10px auto;text-indent:0px;">@chgtime变量可以传入任何值，这样大量的类似查询可以重用该执行计划了，这可以大大降低数据库解析SQL语句的负担。一次解析，多次重用，是提高数据库效率的原则。</p>
+<p style="line-height:1.5;margin:10px auto;text-indent:0px;"><strong>6、 绑定变量窥测</strong></p>
+<p style="line-height:1.5;margin:10px auto;text-indent:0px;">事物都存在两面性，绑定变量对大多数OLTP处理是适用的，但是也有例外。比如在where条件中的字段是“倾斜字段”的时候。</p>
+<p style="line-height:1.5;margin:10px auto;text-indent:0px;">“倾斜字段”指该列中的绝大多数的值都是相同的，比如一张人口调查表，其中“民族”这列，90%以上都是汉族。那么如果一个SQL语句要查询30岁的汉族人口有多少，那“民族”这列必然要被放在where条件中。这个时候如果采用绑定变量@nation会存在很大问题。</p>
+<p style="line-height:1.5;margin:10px auto;text-indent:0px;">试想如果@nation传入的第一个值是“汉族”，那整个执行计划必然会选择表扫描。然后，第二个值传入的是“布依族”，按理说“布依族”占的比例可能只有万分之一，应该采用索引查找。但是，由于重用了第一次解析的“汉族”的那个执行计划，那么第二次也将采用表扫描方式。这个问题就是著名的“绑定变量窥测”，建议对于“倾斜字段”不要采用绑定变量。</p>
+<p style="line-height:1.5;margin:10px auto;text-indent:0px;"><strong>7、 只在必要的情况下才使用begin tran</strong></p>
+<p style="line-height:1.5;margin:10px auto;text-indent:0px;">SQL Server中一句SQL语句默认就是一个事务，在该语句执行完成后也是默认commit的。其实，这就是begin tran的一个最小化的形式，好比在每句语句开头隐含了一个begin tran，结束时隐含了一个commit。</p>
+<p style="line-height:1.5;margin:10px auto;text-indent:0px;">有些情况下，我们需要显式声明begin tran，比如做“插、删、改”操作需要同时修改几个表，要求要么几个表都修改成功，要么都不成功。begin tran 可以起到这样的作用，它可以把若干SQL语句套在一起执行，最后再一起commit。好处是保证了数据的一致性，但任何事情都不是完美无缺的。Begin tran付出的代价是在提交之前，所有SQL语句锁住的资源都不能释放，直到commit掉。</p>
+<p style="line-height:1.5;margin:10px auto;text-indent:0px;">可见，如果Begin tran套住的SQL语句太多，那数据库的性能就糟糕了。在该大事务提交之前，必然会阻塞别的语句，造成block很多。</p>
+<p style="line-height:1.5;margin:10px auto;text-indent:0px;">Begin tran使用的原则是，在保证数据一致性的前提下，begin tran 套住的SQL语句越少越好！有些情况下可以采用触发器同步数据，不一定要用begin tran。</p>
+<p style="line-height:1.5;margin:10px auto;text-indent:0px;"><strong>8、 一些SQL查询语句应加上nolock</strong></p>
+<p style="line-height:1.5;margin:10px auto;text-indent:0px;">在SQL语句中加nolock是提高SQL Server并发性能的重要手段，在oracle中并不需要这样做，因为oracle的结构更为合理，有undo表空间保存“数据前影”，该数据如果在修改中还未commit，那么你读到的是它修改之前的副本，该副本放在undo表空间中。这样，oracle的读、写可以做到互不影响，这也是oracle 广受称赞的地方。SQL Server 的读、写是会相互阻塞的，为了提高并发性能，对于一些查询，可以加上nolock，这样读的时候可以允许写，但缺点是可能读到未提交的脏数据。使用 nolock有3条原则。</p>
+<p style="line-height:1.5;margin:10px auto;text-indent:0px;">(1)    查询的结果用于“插、删、改”的不能加nolock ！</p>
+<p style="line-height:1.5;margin:10px auto;text-indent:0px;">(2)    查询的表属于频繁发生页分裂的，慎用nolock ！</p>
+<p style="line-height:1.5;margin:10px auto;text-indent:0px;">(3)    使用临时表一样可以保存“数据前影”，起到类似oracle的undo表空间的功能，</p>
+<p style="line-height:1.5;margin:10px auto;text-indent:0px;">能采用临时表提高并发性能的，不要用nolock 。</p>
+<p style="line-height:1.5;margin:10px auto;text-indent:0px;"><strong>9、 聚集索引没有建在表的顺序字段上，该表容易发生页分裂</strong></p>
+<p style="line-height:1.5;margin:10px auto;text-indent:0px;">比如订单表，有订单编号orderid，也有客户编号contactid，那么聚集索引应该加在哪个字段上呢？对于该表，订单编号是顺序添加的，如果在orderid上加聚集索引，新增的行都是添加在末尾，这样不容易经常产生页分裂。然而，由于大多数查询都是根据客户编号来查的，因此，将聚集索引加在contactid上才有意义。而contactid对于订单表而言，并非顺序字段。</p>
+<p style="line-height:1.5;margin:10px auto;text-indent:0px;">比如“张三”的“contactid”是001，那么“张三”的订单信息必须都放在这张表的第一个数据页上，如果今天“张三”新下了一个订单，那该订单信息不能放在表的最后一页，而是第一页！如果第一页放满了呢？很抱歉，该表所有数据都要往后移动为这条记录腾地方。</p>
+<p style="line-height:1.5;margin:10px auto;text-indent:0px;">SQL Server的索引和Oracle的索引是不同的，SQL Server的聚集索引实际上是对表按照聚集索引字段的顺序进行了排序，相当于oracle的索引组织表。SQL Server的聚集索引就是表本身的一种组织形式，所以它的效率是非常高的。也正因为此，插入一条记录，它的位置不是随便放的，而是要按照顺序放在该放的数据页，如果那个数据页没有空间了，就引起了页分裂。所以很显然，聚集索引没有建在表的顺序字段上，该表容易发生页分裂。</p>
+<p style="line-height:1.5;margin:10px auto;text-indent:0px;">曾经碰到过一个情况，一位哥们的某张表重建索引后，插入的效率大幅下降了。估计情况大概是这样的。该表的聚集索引可能没有建在表的顺序字段上，该表经常被归档，所以该表的数据是以一种稀疏状态存在的。比如张三下过20张订单，而最近3个月的订单只有5张，归档策略是保留3个月数据，那么张三过去的 15张订单已经被归档，留下15个空位，可以在insert发生时重新被利用。在这种情况下由于有空位可以利用，就不会发生页分裂。但是查询性能会比较低，因为查询时必须扫描那些没有数据的空位。</p>
+<p style="line-height:1.5;margin:10px auto;text-indent:0px;">重建聚集索引后情况改变了，因为重建聚集索引就是把表中的数据重新排列一遍，原来的空位没有了，而页的填充率又很高，插入数据经常要发生页分裂，所以性能大幅下降。</p>
+<p style="line-height:1.5;margin:10px auto;text-indent:0px;">对于聚集索引没有建在顺序字段上的表，是否要给与比较低的页填充率？是否要避免重建聚集索引？是一个值得考虑的问题！</p>
+<p style="line-height:1.5;margin:10px auto;text-indent:0px;"><strong>10、加nolock后查询经常发生页分裂的表，容易产生跳读或重复读</strong></p>
+<p style="line-height:1.5;margin:10px auto;text-indent:0px;">加nolock后可以在“插、删、改”的同时进行查询，但是由于同时发生“插、删、改”，在某些情况下，一旦该数据页满了，那么页分裂不可避免，而此时nolock的查询正在发生，比如在第100页已经读过的记录，可能会因为页分裂而分到第101页，这有可能使得nolock查询在读101页时重复读到该条数据，产生“重复读”。同理，如果在100页上的数据还没被读到就分到99页去了，那nolock查询有可能会漏过该记录，产生“跳读”。</p>
+<p style="line-height:1.5;margin:10px auto;text-indent:0px;">上面提到的哥们，在加了nolock后一些操作出现报错，估计有可能因为nolock查询产生了重复读，2条相同的记录去插入别的表，当然会发生主键冲突。</p>
+<p style="line-height:1.5;margin:10px auto;text-indent:0px;"><strong>11、使用like进行模糊查询时应注意</strong></p>
+<p style="line-height:1.5;margin:10px auto;text-indent:0px;">有的时候会需要进行一些模糊查询比如</p>
+<div style="border:1px solid rgb(204, 204, 204);padding:5px;overflow:auto;margin:5px 0px;color:rgb(0, 0, 0);background-color:rgb(245, 245, 245);font-family:'Courier New';font-size:12px;">
+<div style="background-color:rgb(245, 245, 245);"><span style="line-height:1.5;font-family:'Courier New';font-size:12px;color:#0000ff;">select</span><span style="line-height:1.5;font-family:'Courier New';font-size:12px;color:#808080;">*</span><span style="line-height:1.5;font-family:'Courier New';font-size:12px;color:#0000ff;">from</span><span style="line-height:1.5;font-family:'Courier New';font-size:12px;color:#000000;"> contact </span><span style="line-height:1.5;font-family:'Courier New';font-size:12px;color:#0000ff;">where</span><span style="line-height:1.5;font-family:'Courier New';font-size:12px;color:#000000;"> username </span><span style="line-height:1.5;font-family:'Courier New';font-size:12px;color:#808080;">like</span><span style="line-height:1.5;font-family:'Courier New';font-size:12px;color:#000000;"> ‘</span><span style="line-height:1.5;font-family:'Courier New';font-size:12px;color:#808080;">%</span><span style="line-height:1.5;font-family:'Courier New';font-size:12px;color:#000000;">yue</span><span style="line-height:1.5;font-family:'Courier New';font-size:12px;color:#808080;">%</span><span style="line-height:1.5;font-family:'Courier New';font-size:12px;color:#000000;">’ </span></div>
+</div>
+<p style="line-height:1.5;margin:10px auto;text-indent:0px;"><span style="line-height:1.5;"><span style="line-height:1.5;"> </span></span></p>
+<p style="line-height:1.5;margin:10px auto;text-indent:0px;">关键词%yue%，由于yue前面用到了“%”，因此该查询必然走全表扫描，除非必要，否则不要在关键词前加%，</p>
+<p style="line-height:1.5;margin:10px auto;text-indent:0px;"><strong>12、数据类型的隐式转换对查询效率的影响</strong></p>
+<p style="line-height:1.5;margin:10px auto;text-indent:0px;">sql server2000的数据库，我们的程序在提交sql语句的时候，没有使用强类型提交这个字段的值，由sql server 2000自动转换数据类型，会导致传入的参数与主键字段类型不一致，这个时候sql server 2000可能就会使用全表扫描。Sql2005上没有发现这种问题，但是还是应该注意一下。</p>
+<p style="line-height:1.5;margin:10px auto;text-indent:0px;"><strong>13、SQL Server 表连接的三种方式</strong></p>
+<p style="line-height:1.5;margin:10px auto;text-indent:0px;">(1) Merge Join</p>
+<p style="line-height:1.5;margin:10px auto;text-indent:0px;">(2) Nested Loop Join</p>
+<p style="line-height:1.5;margin:10px auto;text-indent:0px;">(3) Hash Join</p>
+<p style="line-height:1.5;margin:10px auto;text-indent:0px;">SQL Server 2000只有一种join方式——Nested Loop Join，如果A结果集较小，那就默认作为外表，A中每条记录都要去B中扫描一遍，实际扫过的行数相当于A结果集行数x B结果集行数。所以如果两个结果集都很大，那Join的结果很糟糕。</p>
+<p style="line-height:1.5;margin:10px auto;text-indent:0px;">SQL Server 2005新增了Merge Join，如果A表和B表的连接字段正好是聚集索引所在字段，那么表的顺序已经排好，只要两边拼上去就行了，这种join的开销相当于A表的结果集行数加上B表的结果集行数，一个是加，一个是乘，可见merge join 的效果要比Nested Loop Join好多了。</p>
+<p style="line-height:1.5;margin:10px auto;text-indent:0px;">如果连接的字段上没有索引，那SQL2000的效率是相当低的，而SQL2005提供了Hash join，相当于临时给A，B表的结果集加上索引，因此SQL2005的效率比SQL2000有很大提高，我认为，这是一个重要的原因。</p>
+<p style="line-height:1.5;margin:10px auto;text-indent:0px;">总结一下，在表连接时要注意以下几点：</p>
+<p style="line-height:1.5;margin:10px auto;text-indent:0px;">(1)    连接字段尽量选择聚集索引所在的字段</p>
+<p style="line-height:1.5;margin:10px auto;text-indent:0px;">(2)    仔细考虑where条件，尽量减小A、B表的结果集</p>
+<p style="line-height:1.5;margin:10px auto;text-indent:0px;">(3)    如果很多join的连接字段都缺少索引，而你还在用SQL Server 2000，赶紧升级吧。</p>
+<p style="line-height:1.5;margin:10px auto;text-indent:0px;">本文链接：<a href="http://www.cnblogs.com/ATree/archive/2011/02/13/sql_optimize_1.html" style="color:rgb(26, 139, 200);text-decoration:none;" title="优化SQL查询：如何写出高性能SQL语句">http://www.cnblogs.com/ATree/archive/2011/02/13/sql_optimize_1.html</a></p>
+<p style="line-height:1.5;margin:10px auto;text-indent:0px;">转自：51cto</p></div><div style="display:block;"><a href="http://www.cnblogs.com/atree" style="color:rgb(26, 139, 200);text-decoration:none;">《一棵树-博客园》</a> 收集整理，转载请注明出处！</div><div style="width:100%;height:240px;margin:10px 0;overflow:hidden;"><a href="http://s.click.taobao.com/t?e=m%3D2%26s%3DCJZy8IgDqIccQipKwQzePOeEDrYVVa64K7Vc7tFgwiFRAdhuF14FMdbJHZCpqbJTxq3IhSJN6GQTuIl%2Fp51S5jYhX87OoY2OQhduPA%2FLv8Wh9IJVqEkqyILxreknmA6cHiRf3rrkFW9z143fBiO1PSlDn6qKTaJ1KS%2FqHubLW3E%3D" style="color:rgb(26, 139, 200);text-decoration:none;margin-right:10px;" target="_blank"><img src="优化SQL查询：如何写出高性能SQL语句 - zock - 博客园_files/o_430x430q90.jpg" type="image/jpeg" data-filename="o_430x430q90.jpg" height="240px" style="border:0px;" width="240px"/></a><a href="http://s.click.taobao.com/t?e=m%3D2%26s%3DUfUS415urz8cQipKwQzePOeEDrYVVa64pRe%2F8jaAHci5VBFTL4hn2VpfQjePktFwxqmPbz6xcidwIdgMZMDdt6PVc4A%2BX3NwsgKaVhL%2F3IJBX4b8dVDXkc9qWb96r94WIqaz5MK26MZ7LKMBFY%2BHcMYOae24fhW0" style="color:rgb(26, 139, 200);text-decoration:none;margin-right:10px;" target="_blank"><img src="优化SQL查询：如何写出高性能SQL语句 - zock - 博客园_files/o_430x430q903.jpg" type="image/jpeg" data-filename="o_430x430q903.jpg" height="240px" style="border:0px;" width="240px"/></a><a href="http://s.click.taobao.com/t?e=m%3D2%26s%3DPpA%2FN0AJQ%2F8cQipKwQzePOeEDrYVVa64Qih%2F7PxfOKS5VBFTL4hn2bXosDVKg23ktYQMu9Tydq1wIdgMZMDdt6PVc4A%2BX3NwlhNMcuMw4CHgfk5XvsL%2Bm1fgDPQRCBNj963JR4XGoNVra5No5iddEiGFCzYOOqAQ" style="color:rgb(26, 139, 200);text-decoration:none;margin-right:10px;" target="_blank"><img src="优化SQL查询：如何写出高性能SQL语句 - zock - 博客园_files/o_tangmai400x400.jpg" type="image/jpeg" data-filename="o_tangmai400x400.jpg" height="240px" style="border:0px;" width="240px"/></a><a href="http://redirect.simba.taobao.com/rd?w=unionnojs&amp;f=http%3A%2F%2Fai.taobao.com%2Fauction%2Fedetail.htm%3Fe%3D%252FXDae5d%252FV5%252B6k0Or%252B%252BH4tK%252BzEUWYl4XU%252F9zahzjWtwuLltG5xFicOdXrTUTgh9sMDPIwxrc30rjMMEkER9S2vraIkZ0VfpPJF8HWXU1bgowjfQAI7k%252BQ%252FW3abJM7sDg2IjopQVBg5h2C0IkxgGR0iQ%253D%253D%26ptype%3D100010%26from%3Dbasic&amp;k=5ccfdb950740ca16&amp;c=un&amp;b=alimm_0&amp;p=mm_29953836_7680370_29242088" style="color:rgb(26, 139, 200);text-decoration:none;margin-right:10px;" target="_blank"><img src="优化SQL查询：如何写出高性能SQL语句 - zock - 博客园_files/o_430x430.jpg" type="image/jpeg" data-filename="o_430x430.jpg" height="240px" style="border:0px;" width="240px"/></a></div>
+<div style="clear:both;"></div>
+<div style="margin-top:20px;">
+<div style="margin-bottom:10px;">分类: <a href="http://www.cnblogs.com/atree/category/248269.html" style="color:rgb(26, 139, 200);text-decoration:none;">SQL Server</a></div>
+<div style="margin-top:0px;">标签: <a href="http://www.cnblogs.com/atree/tag/SQL/" style="color:rgb(26, 139, 200);text-decoration:none;">SQL</a>, <a href="http://www.cnblogs.com/atree/tag/C%23/" style="color:rgb(26, 139, 200);text-decoration:none;">C#</a>, <a href="http://www.cnblogs.com/atree/tag/Sqlserver2005/" style="color:rgb(26, 139, 200);text-decoration:none;">Sqlserver2005</a></div>
+<div><div style="padding:10px 5px;margin-bottom:10px;margin-top:10px;border:1px dashed silver;font-size:9pt;width:430px;">
+绿色通道：
+<a href="#" style="border-radius:10px;background-color:rgb(45, 174, 191);display:inline-block;padding:3px 8px;font-weight:bold;cursor:pointer;margin-right:10px;text-decoration:none;-webkit-box-shadow:rgba(0, 0, 0, 0.498039) 0px 1px 3px;text-shadow:rgba(0, 0, 0, 0.247059) 0px -1px 1px;font-size:9pt;background:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAAkCAYAAABIdFAMAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAHhJREFUeNo8zjsOxCAMBFB/KEAUFFR0Cbng3nQPw68ArZdAlOZppPFIBhH5EAB8b+Tlt9MYQ6i1BuqFaq1CKSVcxZ2Acs6406KUgpt5/LCKuVgz5BDCSb13ZO99ZOdcZGvt4mJjzMVKqcha68iIePB86GAiOv8CDADlIUQBs7MD3wAAAABJRU5ErkJggg%3D%3D) repeat-x;border:none;color:rgb(255, 255, 255);">好文要顶</a>
+<a href="#" style="border-radius:10px;background-color:rgb(227, 49, 0);display:inline-block;padding:3px 8px;font-weight:bold;cursor:pointer;margin-right:10px;text-decoration:none;-webkit-box-shadow:rgba(0, 0, 0, 0.498039) 0px 1px 3px;text-shadow:rgba(0, 0, 0, 0.247059) 0px -1px 1px;font-size:9pt;background:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAAkCAYAAABIdFAMAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAHhJREFUeNo8zjsOxCAMBFB/KEAUFFR0Cbng3nQPw68ArZdAlOZppPFIBhH5EAB8b+Tlt9MYQ6i1BuqFaq1CKSVcxZ2Acs6406KUgpt5/LCKuVgz5BDCSb13ZO99ZOdcZGvt4mJjzMVKqcha68iIePB86GAiOv8CDADlIUQBs7MD3wAAAABJRU5ErkJggg%3D%3D) repeat-x;border:none;color:rgb(255, 255, 255);">关注我</a>
+<a href="#" style="border-radius:10px;background-color:rgb(255, 181, 21);display:inline-block;padding:3px 8px;font-weight:bold;cursor:pointer;margin-right:10px;text-decoration:none;-webkit-box-shadow:rgba(0, 0, 0, 0.498039) 0px 1px 3px;text-shadow:rgba(0, 0, 0, 0.247059) 0px -1px 1px;font-size:9pt;background:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAAkCAYAAABIdFAMAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAHhJREFUeNo8zjsOxCAMBFB/KEAUFFR0Cbng3nQPw68ArZdAlOZppPFIBhH5EAB8b+Tlt9MYQ6i1BuqFaq1CKSVcxZ2Acs6406KUgpt5/LCKuVgz5BDCSb13ZO99ZOdcZGvt4mJjzMVKqcha68iIePB86GAiOv8CDADlIUQBs7MD3wAAAABJRU5ErkJggg%3D%3D) repeat-x;border:none;color:rgb(255, 255, 255);">收藏该文</a><a href="http://msg.cnblogs.com/send/zock" style="border-radius:10px;background-color:rgb(238, 238, 238);display:inline-block;padding:3px 8px;font-weight:bold;cursor:pointer;margin-right:10px;text-decoration:none;-webkit-box-shadow:rgba(0, 0, 0, 0.498039) 0px 1px 3px;text-shadow:rgba(0, 0, 0, 0.247059) 0px -1px 1px;font-size:9pt;background:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAAkCAYAAABIdFAMAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAHhJREFUeNo8zjsOxCAMBFB/KEAUFFR0Cbng3nQPw68ArZdAlOZppPFIBhH5EAB8b+Tlt9MYQ6i1BuqFaq1CKSVcxZ2Acs6406KUgpt5/LCKuVgz5BDCSb13ZO99ZOdcZGvt4mJjzMVKqcha68iIePB86GAiOv8CDADlIUQBs7MD3wAAAABJRU5ErkJggg%3D%3D) repeat-x;border:none;color:rgb(255, 255, 255);" target="_blank">与我联系</a>
+<a href="#" style="margin-right:10px;color:rgb(255, 255, 255);display:inline-block;padding:3px 2px;font-weight:bold;cursor:pointer;text-decoration:none;border-radius:10px;-webkit-box-shadow:none;text-shadow:none;font-size:9pt;background:none;border:none;" title="分享至新浪微博"><img src="优化SQL查询：如何写出高性能SQL语句 - zock - 博客园_files/icon_weibo_24.png" type="image/png" data-filename="icon_weibo_24.png" height="24" style="border:none;vertical-align:middle;margin-left:5px;box-shadow:none;" width="24"/></a>
+</div>
+<div style="float:left;width:280px;margin-top:0px;margin-bottom:10px;color:rgb(0, 0, 0);margin-left:0px;font-size:12px;">
+<div style="float:left;line-height:18px;">
+<a href="http://home.cnblogs.com/u/atree/" style="color:rgb(26, 139, 200);text-decoration:none;" target="_blank"><img src="优化SQL查询：如何写出高性能SQL语句 - zock - 博客园_files/u124999.jpg" type="image/jpeg" data-filename="u124999.jpg" height="48" style="border:0px;vertical-align:top;float:left;margin-right:5px;padding-top:5px;padding-left:2px;" width="48"/></a>
+<div style="float:left;line-height:18px;">
+<a href="http://home.cnblogs.com/u/atree/" style="color:rgb(26, 139, 200);text-decoration:none;">zock</a><br/>
+<a href="http://home.cnblogs.com/u/atree/followees" style="color:rgb(26, 139, 200);text-decoration:none;">关注 - 13</a><br/>
+<a href="http://home.cnblogs.com/u/atree/followers" style="color:rgb(26, 139, 200);text-decoration:none;">粉丝 - 189</a>
+</div>
+</div>
+<div style="clear:both;"></div>
+<div></div>
+<div>
+    <a href="#" style="color:rgb(26, 139, 200);text-decoration:none;">+加关注</a>
+</div>
+</div>
+<div style="float:right;margin-bottom:10px;margin-right:30px;font-size:12px;width:125px;text-align:center;margin-top:10px;">										
+    <div style="float:left;width:46px;height:52px;text-align:center;cursor:pointer;margin-top:2px;padding-top:5px;background:url(http://static.cnblogs.com/images/upup.gif) no-repeat;">
+        <span style="font-size:14px;color:rgb(7, 93, 179);font-family:Verdana;line-height:1.5em;">14</span>
+    </div>
+	<div style="float:right;margin-left:20px;width:46px;height:52px;text-align:center;cursor:pointer;margin-top:2px;padding-top:5px;background:url(http://static.cnblogs.com/images/downdown.gif) no-repeat;"> 
+		<span style="font-size:14px;color:rgb(7, 93, 179);font-family:Verdana;line-height:1.5em;">0</span>
+	</div>
+	<div style="clear:both;"></div>	
+	<div style="margin-top:5px;margin-left:0px;font-size:12px;color:gray;">
+    (请您对文章做出评价)
+    </div>	
+</div>
+</div>
+<div style="clear:both;"></div>
+<div style="line-height:1.8;font-size:12px;"><a href="http://www.cnblogs.com/atree/archive/2011/01/16/ningbochongqing.html" style="color:rgb(26, 139, 200);text-decoration:none;">« </a> 上一篇：<a href="http://www.cnblogs.com/atree/archive/2011/01/16/ningbochongqing.html" style="color:rgb(26, 139, 200);text-decoration:none;" title="发布于2011-01-16 21:34">海南航空宁波到重庆的&quot;变态&quot;机票</a><br/><a href="http://www.cnblogs.com/atree/archive/2011/02/20/1959075.html" style="color:rgb(26, 139, 200);text-decoration:none;">» </a> 下一篇：<a href="http://www.cnblogs.com/atree/archive/2011/02/20/1959075.html" style="color:rgb(26, 139, 200);text-decoration:none;" title="发布于2011-02-20 15:47">去除Word文档中所有超链接的方法</a><br/></div>
+</div>
+
+
+	<div style="color:rgb(48, 48, 48);margin-top:10px;text-align:right;">posted on <span style="line-height:1.5;">2011-02-13 10:57</span> <a href="http://www.cnblogs.com/atree/" style="color:rgb(26, 139, 200);text-decoration:none;">zock</a> 阅读(<span style="line-height:1.5;">66034</span>) 评论(<span style="line-height:1.5;">12</span>)  <a href="http://i.cnblogs.com/EditPosts.aspx?postid=1953046" rel="nofollow" style="color:rgb(26, 139, 200);text-decoration:none;">编辑</a> <a href="http://www.cnblogs.com/ATree/archive/2011/02/13/sql_optimize_1.html#" style="color:rgb(26, 139, 200);text-decoration:none;">收藏</a></div>
+</div></div></div></div></div></div><br/></span>
+</div></body></html> 

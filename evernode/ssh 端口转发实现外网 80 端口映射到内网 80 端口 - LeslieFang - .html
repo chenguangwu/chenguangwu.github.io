@@ -1,0 +1,106 @@
+<html>
+<head>
+  <title>ssh 端口转发实现外网 80 端口映射到内网 80 端口 - LeslieFang - 博客园</title>
+  <basefont face="微软雅黑" size="2" />
+  <meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+  <meta name="exporter-version" content="YXBJ Windows/600718 (zh-CN, DDL); Windows/6.1.1 (Win64);"/>
+  <style>
+    body, td {
+      font-family: 微软雅黑;
+      font-size: 10pt;
+    }
+  </style>
+</head>
+<body>
+<a name="9325"/>
+<h1>ssh 端口转发实现外网 80 端口映射到内网 80 端口 - LeslieFang - 博客园</h1>
+<div>
+<table bgcolor="#D4DDE5" border="0">
+<tr><td><b>创建时间：</b></td><td><i>2017/8/30 11:01</i></td></tr>
+<tr><td><b>来源：</b></td><td><a href="http://www.cnblogs.com/lesliefang/p/4634408.html"><i>http://www.cnblogs.com/lesliefang/p/4634408.html</i></a></td></tr>
+</table>
+</div>
+<br/>
+
+<div><span><div style="-evernote-webclip:true"><br/><div style="font-size: 16px; display: inline-block;"><div><div style="font-family:&quot;PingFang SC&quot;, &quot;Helvetica Neue&quot;, Helvetica, Arial, sans-serif;color:rgb(0, 0, 0);background:url(&quot;/Skins/coffee/images/bg_body.gif&quot;) left top;line-height:1.5;font-size:14px;"><div style="min-width:auto;"><div style="min-width:auto;text-align:left;"><div style="background:transparent;text-align:left;overflow-x:hidden;"><div style="background:url(&quot;/Skins/coffee/images/bg_left.gif&quot;) left top repeat-x rgb(254, 254, 242);"><div><div style="text-overflow:ellipsis;overflow:hidden;word-break:break-all;"><div>
+		<h1 style="margin:0px;padding:0px;width:100%;clear:both;font-weight:bold;float:left;line-height:1.5;font-size:14px;padding-left:5px;">
+			<a href="http://www.cnblogs.com/lesliefang/p/4634408.html" style="margin:0px;padding:0px;text-decoration:none;color:rgb(7, 93, 179);">ssh 端口转发实现外网 80 端口映射到内网 80 端口</a>
+		</h1>
+		<div style="margin:0px;padding:0px;clear:both;"></div>
+		<div style="margin:0px;padding:5px 2px 5px 5px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin-top:5px;">
+			<div style="margin:0px;padding:0px;margin-bottom:20px;word-break:break-word;"><p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">开发中经常需要外网服务映射到本机内网服务的需要，便于调试。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">以前都是同事帮着配，这两天自己也看了一下 ssh 端口转发。 同事分分钟钟搞定的事情，自己折腾了 2 天， 真是弱爆了。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">最初老想不明白一件事，为什们外网服务器能够找到我的内网机器，现在才明白原来走的是 ssh 隧道。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">需求我的内网机器  192.168.9.100， 我的阿里云外网 123.56.86.52，  现在需要所有对 123.56.86.52  80 端口的访问都映射到  192.168.9.100 的 80 端口。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">显然 123.56.86.52 访问不到  192.168.9.100， 但 192.168.9.100 能访问到 123.56.86.52 ， 所以很简单 ssh 建立一个远程端口转发就行了。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">1  在 192.168.9.100 上执行</p>
+<div style="background-color:rgb(245, 245, 245);border:1px solid rgb(204, 204, 204);padding:5px;overflow:auto;margin:5px 0px;color:rgb(0, 0, 0);font-family:&quot;Courier New&quot;;font-size:12px;">
+<pre style="margin:0px;padding:0px;margin-top:0px;margin-bottom:0px;word-wrap:break-word;white-space:pre-wrap;font-family:&quot;Courier New&quot;;font-size:12px;">ssh -N -v -R 3000:127.0.0.1:80 root@123.56.86.52</pre>
+</div>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">-R 表示远程转发，  这句话的意思是 通过 ssh 连接到 123.56.86.52，让 123.56.86.52 监听自己的 3000 端口， 所有通过 3000 端口的数据都通过 ssh 转发到 127.0.0.1 的 80 端口。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">这里 127.0.0.1 就是 192.168.9.100 这个机器。  在  ssh 连接的时候通道就建立了， 以后所有的通信都走的是这个通道。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">2 既然  123.56.86.52 已经监听在 3000 端口了， 接下来就非常简单了，  服务器上用 nginx 做一个反向代理， 把  80 端口代理到  3000 端口就行了</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">123.56.86.52 上 nginx 配置如下</p>
+<div style="background-color:rgb(245, 245, 245);border:1px solid rgb(204, 204, 204);padding:5px;overflow:auto;margin:5px 0px;color:rgb(0, 0, 0);font-family:&quot;Courier New&quot;;font-size:12px;"><div style="margin:0px;padding:0px;margin-top:5px;background-color:rgb(245, 245, 245);"><span style="margin:0px;padding:0px;padding-right:5px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;"><a href="#" style="margin:0px;padding:0px;text-decoration:underline;color:rgb(7, 93, 179);background-color:rgb(245, 245, 245);border:none;" title="复制代码"><img src="ssh 端口转发实现外网 80 端口映射到内网 80 端口 - LeslieFang - _files/copycode.gif" type="image/gif" data-filename="copycode.gif" alt="复制代码" height="20" style="margin:0px;padding:0px;height:auto;max-width:300px;border:none;background-color:rgb(245, 245, 245);" width="20"/></a></span></div>
+<pre style="margin:0px;padding:0px;margin-top:0px;margin-bottom:0px;word-wrap:break-word;white-space:pre-wrap;font-family:&quot;Courier New&quot;;font-size:12px;">location /<span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#000000;"> {
+        root   </span>/usr/share/nginx/<span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#000000;">html;
+        index  index.html index.htm;
+        proxy_pass http:</span>//127.0.0.1:3000<span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#000000;">;
+        proxy_set_header Host $host:</span>80<span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#000000;">;
+        proxy_set_header X</span>-Real-<span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#000000;">IP $remote_addr;
+        proxy_set_header X</span>-Forwarded-<span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#000000;">For $proxy_add_x_forwarded_for;
+        proxy_set_header Via </span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#800000;">&quot;</span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#800000;">nginx</span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#800000;">&quot;</span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#000000;">;
+ }</span></pre>
+<div style="margin:0px;padding:0px;margin-top:5px;background-color:rgb(245, 245, 245);"><span style="margin:0px;padding:0px;padding-right:5px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;"><a href="#" style="margin:0px;padding:0px;text-decoration:underline;color:rgb(7, 93, 179);background-color:rgb(245, 245, 245);border:none;" title="复制代码"><img src="ssh 端口转发实现外网 80 端口映射到内网 80 端口 - LeslieFang - _files/copycode [1].gif" type="image/gif" data-filename="copycode.gif" alt="复制代码" height="20" style="margin:0px;padding:0px;height:auto;max-width:300px;border:none;background-color:rgb(245, 245, 245);" width="20"/></a></span></div></div>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">现在外网就成功映射到了我的内网机器</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">看着同事们 ssh 各种打洞， 各种玩法， 只能膜拜。  ssh 功能强大，通过 ssh 可以在家里随便访问公司内网电脑， 在公司内网电脑也可以远程操作家里的内网电脑。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">想学好 ssh 的同学推荐一本书  SSH -The Definitive Guide, 2nd Edition.pdf ，抽空我也要好好学一下。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">但最重要的还是要理论结合实际，多看多练。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"> </p></div>
+<div style="margin:0px;padding:0px;clear:both;"></div>
+<div style="margin:0px;padding:0px;margin-top:20px;">
+<div style="margin:0px;padding:0px;margin-bottom:10px;">分类: <a href="http://www.cnblogs.com/lesliefang/category/709725.html" style="margin:0px;padding:0px;text-decoration:underline;color:rgb(7, 93, 179);" target="_blank">ssh</a></div>
+<div style="margin:0px;padding:0px;font-size:9pt;color:rgb(102, 102, 102);margin-top:0px;">标签: <a href="http://www.cnblogs.com/lesliefang/tag/ssh%20%E7%AB%AF%E5%8F%A3%E8%BD%AC%E5%8F%91/" style="margin:0px;padding:0px;text-decoration:underline;margin-left:5px;color:rgb(102, 102, 102);">ssh 端口转发</a></div>
+<div style="margin:0px;padding:0px;"><div style="margin:0px;padding:10px 0px;margin-bottom:10px;margin-top:10px;border:1px dashed silver;font-size:12px;width:320px;text-align:center;">
+        <a href="#" style="margin-right:10px;margin:0px;border-radius:10px;padding:3px 8px;text-decoration:none;font-weight:bold;cursor:pointer;display:inline-block;vertical-align:middle;box-shadow:rgba(0, 0, 0, 0.498039) 0px 1px 3px;text-shadow:rgba(0, 0, 0, 0.247059) 0px -1px 1px;background:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAAkCAYAAABIdFAMAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAHhJREFUeNo8zjsOxCAMBFB/KEAUFFR0Cbng3nQPw68ArZdAlOZppPFIBhH5EAB8b+Tlt9MYQ6i1BuqFaq1CKSVcxZ2Acs6406KUgpt5/LCKuVgz5BDCSb13ZO99ZOdcZGvt4mJjzMVKqcha68iIePB86GAiOv8CDADlIUQBs7MD3wAAAABJRU5ErkJggg%3D%3D&quot;) repeat-x;background-color:rgb(45, 174, 191);color:rgb(255, 255, 255);border:none;">好文要顶</a>
+            <a href="#" style="margin-right:10px;margin:0px;border-radius:10px;padding:3px 8px;text-decoration:none;font-weight:bold;cursor:pointer;display:inline-block;vertical-align:middle;box-shadow:rgba(0, 0, 0, 0.498039) 0px 1px 3px;text-shadow:rgba(0, 0, 0, 0.247059) 0px -1px 1px;background:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAAkCAYAAABIdFAMAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAHhJREFUeNo8zjsOxCAMBFB/KEAUFFR0Cbng3nQPw68ArZdAlOZppPFIBhH5EAB8b+Tlt9MYQ6i1BuqFaq1CKSVcxZ2Acs6406KUgpt5/LCKuVgz5BDCSb13ZO99ZOdcZGvt4mJjzMVKqcha68iIePB86GAiOv8CDADlIUQBs7MD3wAAAABJRU5ErkJggg%3D%3D&quot;) repeat-x;background-color:rgb(227, 49, 0);color:rgb(255, 255, 255);border:none;">关注我</a>
+    <a href="#" style="margin-right:10px;margin:0px;border-radius:10px;padding:3px 8px;text-decoration:none;font-weight:bold;cursor:pointer;display:inline-block;vertical-align:middle;box-shadow:rgba(0, 0, 0, 0.498039) 0px 1px 3px;text-shadow:rgba(0, 0, 0, 0.247059) 0px -1px 1px;background:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAAkCAYAAABIdFAMAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAHhJREFUeNo8zjsOxCAMBFB/KEAUFFR0Cbng3nQPw68ArZdAlOZppPFIBhH5EAB8b+Tlt9MYQ6i1BuqFaq1CKSVcxZ2Acs6406KUgpt5/LCKuVgz5BDCSb13ZO99ZOdcZGvt4mJjzMVKqcha68iIePB86GAiOv8CDADlIUQBs7MD3wAAAABJRU5ErkJggg%3D%3D&quot;) repeat-x;background-color:rgb(255, 181, 21);color:rgb(255, 255, 255);border:none;">收藏该文</a>
+    <a href="#" style="margin-right:10px;margin:0px;border-radius:10px;padding:3px 2px;text-decoration:none;font-weight:bold;cursor:pointer;display:inline-block;vertical-align:middle;box-shadow:none;text-shadow:none;background:none;color:rgb(255, 255, 255);border:none;" title="分享至新浪微博"><img src="ssh 端口转发实现外网 80 端口映射到内网 80 端口 - LeslieFang - _files/icon_weibo_24.png" type="image/png" data-filename="icon_weibo_24.png" alt="" height="24" style="margin:0px;padding:0px;height:auto;border:none;vertical-align:middle;margin-left:5px;box-shadow:none;max-width:300px;" width="24"/></a>
+    <a href="#" style="margin-right:10px;margin:0px;border-radius:10px;padding:3px 2px;text-decoration:none;font-weight:bold;cursor:pointer;display:inline-block;vertical-align:middle;box-shadow:none;text-shadow:none;background:none;color:rgb(255, 255, 255);border:none;" title="分享至微信"><img src="ssh 端口转发实现外网 80 端口映射到内网 80 端口 - LeslieFang - _files/wechat.png" type="image/png" data-filename="wechat.png" alt="" height="24" style="margin:0px;padding:0px;border:medium none;width:24px;height:24px;box-shadow:none;margin-left:5px;vertical-align:middle;max-width:300px;" width="24"/></a>
+</div>
+<div style="margin:0px;padding:0px;float:left;width:280px;margin-top:0px;margin-bottom:10px;color:rgb(0, 0, 0);margin-left:0px;font-size:12px;">
+    <div style="margin:0px;padding:0px;float:left;line-height:18px;">
+            <a href="http://home.cnblogs.com/u/lesliefang/" style="margin:0px;padding:0px;text-decoration:underline;color:rgb(7, 93, 179);" target="_blank"><img src="ssh 端口转发实现外网 80 端口映射到内网 80 端口 - LeslieFang - _files/20140110231637.png.jpg" type="image/jpeg" data-filename="20140110231637.png.jpg" alt="" height="48" style="margin:0px;padding:0px;height:auto;border:0px;vertical-align:top;float:left;margin-right:5px;padding-top:5px;padding-left:2px;max-width:300px;" width="48"/></a>
+        <div style="margin:0px;padding:0px;float:left;line-height:18px;">
+            <a href="http://home.cnblogs.com/u/lesliefang/" style="margin:0px;padding:0px;text-decoration:underline;color:rgb(7, 93, 179);">LeslieFang</a><br style="margin:0px;padding:0px;"/>
+            <a href="http://home.cnblogs.com/u/lesliefang/followees" style="margin:0px;padding:0px;text-decoration:underline;color:rgb(7, 93, 179);">关注 - 3</a><br style="margin:0px;padding:0px;"/>
+            <a href="http://home.cnblogs.com/u/lesliefang/followers" style="margin:0px;padding:0px;text-decoration:underline;color:rgb(7, 93, 179);">粉丝 - 48</a>
+        </div>
+    </div>
+    <div style="margin:0px;padding:0px;clear:both;"></div>
+    <div style="margin:0px;padding:0px;"></div>
+    <div style="margin:0px;padding:0px;">
+                <a href="#" style="margin:0px;padding:0px;text-decoration:underline;color:rgb(7, 93, 179);">+加关注</a>
+    </div>
+</div>
+<div style="margin:0px;padding:0px;float:right;margin-bottom:10px;margin-right:30px;font-size:12px;width:125px;text-align:center;margin-top:10px;">
+    <div style="margin:0px;padding:0px;float:left;width:46px;height:52px;background:url(&quot;http://static.cnblogs.com/images/upup.gif&quot;) no-repeat;text-align:center;cursor:pointer;margin-top:2px;padding-top:5px;">
+        <span style="margin:0px;padding:0px;font-size:14px;color:rgb(7, 93, 179);font-family:Verdana;line-height:1.5em;">0</span>
+    </div>
+    <div style="text-align:center;padding:0px;margin:0px;height:52px;background:url(&quot;http://static.cnblogs.com/images/downdown.gif&quot;) no-repeat;margin-left:20px;cursor:pointer;margin-top:2px;padding-top:5px;width:46px;float:right;">
+        <span style="margin:0px;padding:0px;font-size:14px;color:rgb(7, 93, 179);font-family:Verdana;line-height:1.5em;">0</span>
+    </div>
+    <div style="margin:0px;padding:0px;clear:both;"></div>
+    <div style="margin:0px;padding:0px;margin-top:5px;margin-left:0px;font-size:12px;color:gray;">
+    </div>
+</div>
+</div>
+<div style="margin:0px;padding:0px;clear:both;"></div>
+<div style="margin:0px;padding:0px;line-height:1.8;font-size:12px;"><a href="http://www.cnblogs.com/lesliefang/p/4545921.html" style="margin:0px;padding:0px;color:rgb(7, 93, 179);text-decoration:none;">« </a> 上一篇：<a href="http://www.cnblogs.com/lesliefang/p/4545921.html" style="margin:0px;padding:0px;text-decoration:underline;color:rgb(7, 93, 179);" title="发布于2015-06-02 11:18">pycharm  调试 django 应用</a><br style="margin:0px;padding:0px;"/><a href="http://www.cnblogs.com/lesliefang/p/4640679.html" style="margin:0px;padding:0px;color:rgb(7, 93, 179);text-decoration:none;">» </a> 下一篇：<a href="http://www.cnblogs.com/lesliefang/p/4640679.html" style="margin:0px;padding:0px;text-decoration:underline;color:rgb(7, 93, 179);" title="发布于2015-07-12 11:11">ssh 翻墙</a><br style="margin:0px;padding:0px;"/></div>
+</div>
+
+
+		</div>
+		<div style="margin:0px;padding:0px;clear:both;font-size:12px;float:right;width:100%;text-align:right;padding-right:5px;color:rgb(102, 102, 102);margin-top:5px;">posted @ <span style="margin:0px;padding:0px;">2015-07-09 22:23</span> <a href="http://www.cnblogs.com/lesliefang/" style="margin:0px;padding:0px;text-decoration:none;color:rgb(7, 93, 179);">LeslieFang</a> 阅读(<span style="margin:0px;padding:0px;">4287</span>) 评论(<span style="margin:0px;padding:0px;">0</span>)  <a href="https://i.cnblogs.com/EditPosts.aspx?postid=4634408" rel="nofollow" style="margin:0px;padding:0px;text-decoration:none;color:rgb(7, 93, 179);">编辑</a> <a href="http://www.cnblogs.com/lesliefang/p/4634408.html#" style="margin:0px;padding:0px;text-decoration:none;color:rgb(7, 93, 179);">收藏</a></div>
+	</div></div></div></div></div></div></div></div></div></div><br/></div></span>
+</div></body></html> 

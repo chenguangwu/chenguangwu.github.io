@@ -1,0 +1,272 @@
+<html>
+<head>
+  <title>dao</title>
+  <basefont face="微软雅黑" size="2" />
+  <meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+  <meta name="exporter-version" content="YXBJ Windows/600718 (zh-CN, DDL); Windows/6.1.1 (Win64);"/>
+  <style>
+    body, td {
+      font-family: 微软雅黑;
+      font-size: 10pt;
+    }
+  </style>
+</head>
+<body>
+<a name="8072"/>
+<h1>dao</h1>
+<div>
+<table bgcolor="#D4DDE5" border="0">
+<tr><td><b>创建时间：</b></td><td><i>2015/8/23 14:39</i></td></tr>
+<tr><td><b>更新时间：</b></td><td><i>2015/8/23 14:40</i></td></tr>
+</table>
+</div>
+<br/>
+
+<div>
+<span style="word-wrap: break-word; -webkit-nbsp-mode: space; -webkit-line-break: after-white-space;">
+package com.text.mysql;<br/><br/>
+import java.sql.Connection;<br/>
+import java.sql.DriverManager;<br/>
+import java.sql.PreparedStatement;<br/>
+import java.sql.ResultSet;<br/>
+import java.sql.SQLException;<br/>
+import java.sql.Statement;<br/>
+import java.util.ArrayList;<br/>
+import java.util.List;<br/><br/><br/>
+class Text{<br/>
+     private int id;<br/>
+     private String name;<br/>
+     private String password;<br/>
+     public Text(){<br/>
+          super();<br/>
+     }<br/>
+     public String toString() {<br/>
+        return &quot;id=&quot;+id+&quot; name=&quot;+name+&quot; password&quot;+password;<br/>
+    }<br/>
+     public Text (int id,String name,String password){<br/>
+          super();<br/>
+          this.id=id;<br/>
+          this.name=name;<br/>
+          this.password=password;<br/>
+         <br/>
+     }<br/>
+     public int getId() {<br/>
+          return id;<br/>
+     }<br/>
+     public void setId(int id) {<br/>
+          this.id = id;<br/>
+     }<br/>
+     public String getName() {<br/>
+          return name;<br/>
+     }<br/>
+     public void setName(String name) {<br/>
+          this.name = name;<br/>
+     }<br/>
+     public String getPassword() {<br/>
+          return password;<br/>
+     }<br/>
+     public void setPassword(String password) {<br/>
+          this.password = password;<br/>
+     }<br/>
+    <br/>
+}    <br/>
+    <br/>
+public class Dao {<br/>
+     static {<br/>
+          try {<br/>
+               Class.forName(&quot;com.mysql.jdbc.Driver&quot;);<br/>
+          } catch (ClassNotFoundException e) {<br/>
+               System.out.println(&quot;加载驱动出错&quot;);<br/>
+               e.printStackTrace();<br/>
+          }<br/>
+         <br/>
+     }<br/>
+    <br/>
+     private Connection getConn(){<br/>
+          try {<br/>
+               return DriverManager.getConnection(&quot;jdbc:mysql://localhost:3306/sh&quot;, &quot;root&quot;, &quot;&quot; );<br/>
+          } catch (SQLException e) {<br/>
+               System.out.println(&quot;数据库连接出错&quot;);<br/>
+               e.printStackTrace();<br/>
+          }<br/>
+          return null;<br/>
+     }<br/>
+    <br/>
+     private void release (ResultSet rs,Statement ps,Connection conn){<br/>
+          if(rs!=null){<br/>
+               try {<br/>
+                    rs.close();<br/>
+               } catch (SQLException e) {<br/>
+                    e.printStackTrace();<br/>
+               }<br/>
+          }<br/>
+         <br/>
+          if(ps!=null){<br/>
+               try {<br/>
+                    ps.close();<br/>
+               } catch (SQLException e) {<br/>
+                    e.printStackTrace();<br/>
+               }<br/>
+          }<br/>
+          if(conn!=null){<br/>
+               try {<br/>
+                    conn.close();<br/>
+               } catch (SQLException e) {<br/>
+                    e.printStackTrace();<br/>
+               }<br/>
+          }<br/>
+     }<br/>
+    <br/>
+     public Text getUserById(int id){<br/>
+          ResultSet rs=null;<br/>
+          PreparedStatement ps=null;<br/>
+          Connection conn=null;<br/>
+          Text text=new Text();<br/>
+          String sql=&quot;select * from t_text where id=?&quot;;<br/>
+          try {<br/>
+               conn=this.getConn();<br/>
+               ps=conn.prepareStatement(sql);<br/>
+               ps.setInt(1, id);<br/>
+               rs=ps.executeQuery();<br/>
+               if(rs.next()){<br/>
+                    text=new Text(rs.getInt(id),rs.getString(&quot;name&quot;),rs.getString(&quot;password&quot;));<br/>
+                    System.out.println(text);<br/>
+                    return text;<br/>
+               }<br/>
+          } catch (SQLException e) {<br/>
+               e.printStackTrace();<br/>
+          }finally{<br/>
+               this.release(rs, ps, conn);<br/>
+          }<br/>
+          return null;<br/>
+     }<br/>
+    <br/>
+     public List&lt;Text&gt; getAllUses(){<br/>
+          List&lt;Text&gt; list =new ArrayList&lt;Text&gt;();<br/>
+          ResultSet rs=null;<br/>
+          PreparedStatement ps=null;<br/>
+          Connection conn =null;<br/>
+          String sql =&quot;select * from t_text &quot;;<br/>
+          try {<br/>
+               conn=this.getConn();<br/>
+               ps=conn.prepareStatement(sql);<br/>
+               rs=ps.executeQuery();<br/>
+               while (rs.next()){<br/>
+                    Text text=new Text(rs.getInt(&quot;id&quot;),rs.getString(&quot;name&quot;),rs.getString(&quot;password&quot;));<br/>
+               list.add(text);<br/>
+               }<br/>
+               for(Text user: list){<br/>
+                    System.out.println(user);<br/>
+               }<br/>
+          } catch (SQLException e) {<br/>
+               e.printStackTrace();<br/>
+          }<br/>
+          return list;<br/>
+     }<br/>
+    <br/>
+     public Text updateText(Text text){<br/>
+          int rs=0;<br/>
+          PreparedStatement ps=null;<br/>
+          Connection conn=null;<br/>
+          String sql=&quot;update t_text set name=?,password=? where id=?&quot;;<br/>
+          try {<br/>
+               conn=this.getConn();<br/>
+               conn.setAutoCommit(false);<br/>
+               ps=conn.prepareStatement(sql);<br/>
+               ps.setString(1, text.getName());<br/>
+               ps.setString(2, text.getPassword());<br/>
+               ps.setInt(3,text.getId());<br/>
+               rs=ps.executeUpdate();<br/>
+              <br/>
+               if(rs&gt;0){<br/>
+                    System.out.println(&quot;upok&quot;+rs);<br/>
+                    conn.commit();<br/>
+                    return text;<br/>
+               }<br/>
+              <br/>
+          } catch (SQLException e) {<br/>
+               try {<br/>
+                    conn.rollback();<br/>
+               } catch (SQLException e1) {<br/>
+                    e1.printStackTrace();<br/>
+               }<br/>
+               e.printStackTrace();<br/>
+          }finally{<br/>
+               this.release(null, ps, conn);<br/>
+          }<br/>
+          return null;<br/>
+     }<br/>
+     public boolean deleteText(int id){<br/>
+          int rs=0;<br/>
+          PreparedStatement ps=null;<br/>
+          Connection conn=null;<br/>
+          String sql=&quot;delete from t_text where id=?&quot;;<br/>
+          try {<br/>
+               conn=this.getConn();<br/>
+               conn.setAutoCommit(false);<br/>
+               ps=conn.prepareStatement(sql);<br/>
+               ps.setInt(1,id);<br/>
+               rs=ps.executeUpdate();<br/>
+               if(rs&gt;0){<br/>
+                    System.out.println(&quot;deok&quot;+rs);<br/>
+                    conn.commit();<br/>
+                    return true;<br/>
+               }<br/>
+          } catch (SQLException e) {<br/>
+               try {<br/>
+                    conn.rollback();<br/>
+               } catch (SQLException e1) {<br/>
+                    e1.printStackTrace();<br/>
+               }<br/>
+               e.printStackTrace();<br/>
+          }finally{<br/>
+               this.release(null, ps, conn);<br/>
+          }<br/>
+          return false;<br/>
+     }<br/>
+     public Text insertText(Text text){<br/>
+          PreparedStatement ps=null;<br/>
+          Connection conn=null;<br/>
+          String sql=&quot;insert into t_text values(?,?,?)&quot;;<br/>
+          try {<br/>
+               conn=this.getConn();<br/>
+               conn.setAutoCommit(false);<br/>
+               ps=conn.prepareStatement(sql);<br/>
+               ps.setInt(1,text.getId());<br/>
+               ps.setString(2, text.getName());<br/>
+               ps.setString(3, text.getPassword());<br/>
+               int rs=ps.executeUpdate();<br/>
+               conn.commit();<br/>
+              <br/>
+               if(rs&gt;0){<br/>
+                    System.out.println(&quot;inok&quot;+rs);<br/>
+                    return  new Text(text.getId(),text.getName(),text.getPassword());<br/>
+               }<br/>
+          } catch (SQLException e) {<br/>
+               try {<br/>
+                    conn.rollback();<br/>
+               } catch (SQLException e1) {<br/>
+                    e1.printStackTrace();<br/>
+               }<br/>
+               e.printStackTrace();<br/>
+          }finally{<br/>
+               this.release(null, ps, conn);<br/>
+          }<br/>
+          return null;<br/>
+     }<br/><br/>
+    <br/>
+     public static void main(String[] args) {<br/>
+          Dao dao=new Dao();<br/>
+          Text text=new Text(3,&quot;ddd&quot;,&quot;444&quot;);<br/>
+//          text.setId(2);<br/>
+//          text.setName(&quot;bbb&quot;);<br/>
+//          text.setPassword(&quot;222&quot;);<br/>
+     //dao.insertText(text);<br/>
+//          dao.getUserById(3);<br/>
+//          dao.getAllUses();<br/>
+          dao.deleteText(4);<br/>
+          dao.updateText(text);<br/>
+     }<br/>
+}
+</span>
+</div></body></html> 

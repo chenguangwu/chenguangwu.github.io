@@ -1,0 +1,377 @@
+<html>
+<head>
+  <title>通俗易懂的Redis数据结构基础教程 - 掘金</title>
+  <basefont face="微软雅黑" size="2" />
+  <meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+  <meta name="exporter-version" content="YXBJ Windows/600718 (zh-CN, DDL); Windows/6.1.1 (Win64);"/>
+  <style>
+    body, td {
+      font-family: 微软雅黑;
+      font-size: 10pt;
+    }
+  </style>
+</head>
+<body>
+<a name="1678"/>
+<h1>通俗易懂的Redis数据结构基础教程 - 掘金</h1>
+<div>
+<table bgcolor="#D4DDE5" border="0">
+<tr><td><b>创建时间：</b></td><td><i>2018/12/14 16:19</i></td></tr>
+<tr><td><b>来源：</b></td><td><a href="https://juejin.im/post/5b53ee7e5188251aaa2d2e16"><i>https://juejin.im/post/5b53ee7e5188251aaa2d2e16</i></a></td></tr>
+</table>
+</div>
+<br/>
+
+<div><span>
+  <div>
+<div style="font-size: 16px; display: inline-block; min-width: 100%;"><div style="font-family:-apple-system, &quot;PingFang SC&quot;, &quot;Hiragino Sans GB&quot;, &quot;Microsoft YaHei&quot;, &quot;Helvetica Neue&quot;, Arial, sans-serif;text-size-adjust:100%;font-size:12px;word-break:break-word;text-rendering:optimizeLegibility;color:rgb(51, 51, 51);background-color:rgb(244, 245, 245);"><div style="font-size:12px;line-height:normal;word-break:normal;overflow-x:initial;"><div><div><span><div><div style="box-shadow:rgba(0, 0, 0, 0.05) 0px 1px 2px 0px;background-color:rgb(255, 255, 255);border-radius:2px;box-sizing:border-box;"><div><div></div><div><div></div></div><div style="display:flex;align-items:center;margin-bottom:2rem;"><a href="https://juejin.im/user/5a9c4a13f265da23826d733a" rel="" style="margin:initial;background-color:transparent;text-decoration:none;cursor:pointer;color:rgb(144, 144, 144);font-size:0px;" target="_blank"><div style="flex:0 0 auto;position:relative;background-position:50% center;background-size:cover;background-repeat:no-repeat;background-color:rgb(238, 238, 238);display:inline-block;margin-right:1rem;width:3.333rem;height:3.333rem;border-radius:50%;background-image:url(https://user-gold-cdn.xitu.io/2018/5/16/1636811dc757d981?imageView2/1/w/100/h/100/q/85/format/webp/interlace/1);" title=""><span style="position:absolute;top:0px;left:0px;right:0px;bottom:0px;background-color:inherit;border-radius:inherit;transition:opacity 0.2s;opacity:0;pointer-events:none;"></span></div></a><div style="min-width:0px;"><a href="https://juejin.im/user/5a9c4a13f265da23826d733a" rel="" style="overflow:hidden;margin:initial;text-decoration:none;cursor:pointer;background-color:transparent;white-space:nowrap;text-overflow:ellipsis;color:rgb(51, 51, 51);display:inline-block;max-width:100%;font-size:1.3rem;font-weight:700;" target="_blank">老錢</a><div style="font-size:1.1rem;color:rgb(144, 144, 144);"><span style="letter-spacing:1px;" title="Mon Jul 23 2018 14:26:04 GMT+0800 (中国标准时间)">2018年07月23日</span><span style="margin-left:0.5em;">阅读 13928</span></div></div></div><div style="position:relative;background-position:50% center;background-size:cover;background-repeat:no-repeat;margin-bottom:2rem;width:100%;background-image:url(https://user-gold-cdn.xitu.io/2018/7/23/164c604fac4741c5?imageView2/1/w/1304/h/734/q/85/format/webp/interlace/1);"><span style="position:absolute;top:0px;left:0px;right:0px;bottom:0px;background-color:inherit;border-radius:inherit;transition:opacity 0.2s;opacity:0;pointer-events:none;"></span><span style="display:block;padding-top:56.29%;width:100%;pointer-events:none;"></span></div><h1 style="font-size:2.5rem;margin:0.67em 0px;font-weight:700;line-height:1.5;">通俗易懂的Redis数据结构基础教程</h1><div style="overflow-x:hidden;word-break:break-word;line-height:1.75;font-weight:400;font-size:15px;"><p style="line-height:inherit;margin-top:22px;margin-bottom:22px;"></p><div style="display:block;margin:22px auto;text-align:center;"><img src="通俗易懂的Redis数据结构基础教程 - 掘金_files/1" type="image/webp" data-filename="1" height="111" style="border-style:none;max-height:none;visibility:visible;background-color:transparent;background-position:50% center;background-repeat:no-repeat;background-image:none;margin:0px;cursor:zoom-in;max-width:100%;" width="652"/><div style="display:block;text-align:center;font-size:1rem;line-height:1.6;color:rgb(144, 144, 144);margin-top:2px;"></div></div><p style="line-height:inherit;margin-top:22px;margin-bottom:22px;"></p>
+<p style="line-height:inherit;margin-top:22px;margin-bottom:22px;">Redis有5个基本数据结构，string、list、hash、set和zset。它们是日常开发中使用频率非常高应用最为广泛的数据结构，把这5个数据结构都吃透了，你就掌握了Redis应用知识的一半了。</p>
+<h2 style="color:rgb(51, 51, 51);line-height:1.5;margin-top:35px;margin-bottom:10px;padding-bottom:12px;font-size:24px;border-bottom:1px solid rgb(236, 236, 236);">string</h2>
+<p style="line-height:inherit;margin-top:22px;margin-bottom:22px;"></p><div style="display:block;margin:22px auto;text-align:center;"><img src="通俗易懂的Redis数据结构基础教程 - 掘金_files/1 [1]" type="image/webp" data-filename="1" height="66" style="border-style:none;max-height:none;visibility:visible;background-color:transparent;background-position:50% center;background-repeat:no-repeat;background-image:none;margin:0px;cursor:zoom-in;max-width:100%;" width="652"/><div style="display:block;text-align:center;font-size:1rem;line-height:1.6;color:rgb(144, 144, 144);margin-top:2px;"></div></div><p style="line-height:inherit;margin-top:22px;margin-bottom:22px;"></p>
+<p style="line-height:inherit;margin-top:22px;margin-bottom:22px;">首先我们从string谈起。string表示的是一个可变的字节数组，我们初始化字符串的内容、可以拿到字符串的长度，可以获取string的子串，可以覆盖string的子串内容，可以追加子串。</p>
+<p style="line-height:inherit;margin-top:22px;margin-bottom:22px;"></p><div style="display:block;margin:22px auto;text-align:center;"><img src="通俗易懂的Redis数据结构基础教程 - 掘金_files/1 [2]" type="image/webp" data-filename="1" height="169" style="border-style:none;max-height:none;visibility:visible;background-color:transparent;background-position:50% center;background-repeat:no-repeat;background-image:none;margin:0px;cursor:zoom-in;max-width:100%;" width="572"/><div style="display:block;text-align:center;font-size:1rem;line-height:1.6;color:rgb(144, 144, 144);margin-top:2px;"></div></div><p style="line-height:inherit;margin-top:22px;margin-bottom:22px;"></p>
+<p style="line-height:inherit;margin-top:22px;margin-bottom:22px;">Redis的字符串是动态字符串，是可以修改的字符串，内部结构实现上类似于Java的ArrayList，采用预分配冗余空间的方式来减少内存的频繁分配，如图中所示，内部为当前字符串实际分配的空间capacity一般要高于实际字符串长度len。当字符串长度小于1M时，扩容都是加倍现有的空间，如果超过1M，扩容时一次只会多扩1M的空间。需要注意的是字符串最大长度为512M。</p>
+<p style="line-height:inherit;margin-top:22px;margin-bottom:22px;"><strong style="font-weight:700;">初始化字符串</strong>  需要提供「变量名称」和「变量的内容」</p>
+<pre style="font-size:1em;font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;line-height:1.75;overflow:auto;position:relative;"><code lang="bash" style="border-radius:2px;font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;background-color:rgb(255, 245, 245);word-break:normal;color:rgb(51, 51, 51);font-size:11px;overflow-x:auto;margin:0px;display:block;background:rgb(248, 248, 248);padding:18px 15px 12px;"><span style="font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;font-size:11px;color:rgb(51, 51, 51);position:absolute;right:70px;top:2px;"></span>&gt; <span style="color:rgb(0, 134, 179);">set</span> ireader beijing.zhangyue.keji.gufen.youxian.gongsi
+OK
+<span style="position:absolute;top:6px;right:15px;font-size:12px;line-height:1;cursor:pointer;color:rgba(140, 140, 140, 0.8);transition:color 0.1s;">复制代码</span></code></pre><p style="line-height:inherit;margin-top:22px;margin-bottom:22px;"><strong style="font-weight:700;">获取字符串的内容</strong> 提供「变量名称」</p>
+<pre style="font-size:1em;font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;line-height:1.75;overflow:auto;position:relative;"><code lang="bash" style="border-radius:2px;font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;background-color:rgb(255, 245, 245);word-break:normal;color:rgb(51, 51, 51);font-size:11px;overflow-x:auto;margin:0px;display:block;background:rgb(248, 248, 248);padding:18px 15px 12px;"><span style="font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;font-size:11px;color:rgb(51, 51, 51);position:absolute;right:70px;top:2px;"></span>&gt; get ireader
+<span style="color:rgb(221, 17, 68);">&quot;beijing.zhangyue.keji.gufen.youxian.gongsi&quot;</span>
+<span style="position:absolute;top:6px;right:15px;font-size:12px;line-height:1;cursor:pointer;color:rgba(140, 140, 140, 0.8);transition:color 0.1s;">复制代码</span></code></pre><p style="line-height:inherit;margin-top:22px;margin-bottom:22px;"><strong style="font-weight:700;">获取字符串的长度</strong> 提供「变量名称」</p>
+<pre style="font-size:1em;font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;line-height:1.75;overflow:auto;position:relative;"><code lang="bash" style="border-radius:2px;font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;background-color:rgb(255, 245, 245);word-break:normal;color:rgb(51, 51, 51);font-size:11px;overflow-x:auto;margin:0px;display:block;background:rgb(248, 248, 248);padding:18px 15px 12px;"><span style="font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;font-size:11px;color:rgb(51, 51, 51);position:absolute;right:70px;top:2px;"></span>&gt; strlen ireader
+(<span style="color:rgb(0, 134, 179);">integer</span>) 42
+<span style="position:absolute;top:6px;right:15px;font-size:12px;line-height:1;cursor:pointer;color:rgba(140, 140, 140, 0.8);transition:color 0.1s;">复制代码</span></code></pre><p style="line-height:inherit;margin-top:22px;margin-bottom:22px;"><strong style="font-weight:700;">获取子串</strong> 提供「变量名称」以及开始和结束位置[start, end]</p>
+<pre style="font-size:1em;font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;line-height:1.75;overflow:auto;position:relative;"><code lang="bash" style="border-radius:2px;font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;background-color:rgb(255, 245, 245);word-break:normal;color:rgb(51, 51, 51);font-size:11px;overflow-x:auto;margin:0px;display:block;background:rgb(248, 248, 248);padding:18px 15px 12px;"><span style="font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;font-size:11px;color:rgb(51, 51, 51);position:absolute;right:70px;top:2px;"></span>&gt; getrange ireader 28 34
+<span style="color:rgb(221, 17, 68);">&quot;youxian&quot;</span>
+<span style="position:absolute;top:6px;right:15px;font-size:12px;line-height:1;cursor:pointer;color:rgba(140, 140, 140, 0.8);transition:color 0.1s;">复制代码</span></code></pre><p style="line-height:inherit;margin-top:22px;margin-bottom:22px;"><strong style="font-weight:700;">覆盖子串</strong> 提供「变量名称」以及开始位置和目标子串</p>
+<pre style="font-size:1em;font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;line-height:1.75;overflow:auto;position:relative;"><code lang="bash" style="border-radius:2px;font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;background-color:rgb(255, 245, 245);word-break:normal;color:rgb(51, 51, 51);font-size:11px;overflow-x:auto;margin:0px;display:block;background:rgb(248, 248, 248);padding:18px 15px 12px;"><span style="font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;font-size:11px;color:rgb(51, 51, 51);position:absolute;right:70px;top:2px;"></span>&gt; setrange ireader 28 wooxian
+(<span style="color:rgb(0, 134, 179);">integer</span>) 42  <span style="color:rgb(153, 153, 136);"># 返回长度</span>
+&gt; get ireader
+<span style="color:rgb(221, 17, 68);">&quot;beijing.zhangyue.keji.gufen.wooxian.gongsi&quot;</span>
+<span style="position:absolute;top:6px;right:15px;font-size:12px;line-height:1;cursor:pointer;color:rgba(140, 140, 140, 0.8);transition:color 0.1s;">复制代码</span></code></pre><p style="line-height:inherit;margin-top:22px;margin-bottom:22px;"><strong style="font-weight:700;">追加子串</strong></p>
+<pre style="font-size:1em;font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;line-height:1.75;overflow:auto;position:relative;"><code lang="bash" style="border-radius:2px;font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;background-color:rgb(255, 245, 245);word-break:normal;color:rgb(51, 51, 51);font-size:11px;overflow-x:auto;margin:0px;display:block;background:rgb(248, 248, 248);padding:18px 15px 12px;"><span style="font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;font-size:11px;color:rgb(51, 51, 51);position:absolute;right:70px;top:2px;"></span>&gt; append ireader .hao
+(<span style="color:rgb(0, 134, 179);">integer</span>) 46 <span style="color:rgb(153, 153, 136);"># 返回长度</span>
+&gt; get ireader
+<span style="color:rgb(221, 17, 68);">&quot;beijing.zhangyue.keji.gufen.wooxian.gongsi.hao&quot;</span>
+<span style="position:absolute;top:6px;right:15px;font-size:12px;line-height:1;cursor:pointer;color:rgba(140, 140, 140, 0.8);transition:color 0.1s;">复制代码</span></code></pre><p style="line-height:inherit;margin-top:22px;margin-bottom:22px;">遗憾的是字符串没有提供字串插入方法和子串删除方法。</p>
+<p style="line-height:inherit;margin-top:22px;margin-bottom:22px;"><strong style="font-weight:700;">计数器</strong>
+如果字符串的内容是一个整数，那么还可以将字符串当成计数器来使用。</p>
+<pre style="font-size:1em;font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;line-height:1.75;overflow:auto;position:relative;"><code lang="bash" style="border-radius:2px;font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;background-color:rgb(255, 245, 245);word-break:normal;color:rgb(51, 51, 51);font-size:11px;overflow-x:auto;margin:0px;display:block;background:rgb(248, 248, 248);padding:18px 15px 12px;"><span style="font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;font-size:11px;color:rgb(51, 51, 51);position:absolute;right:70px;top:2px;"></span>&gt; <span style="color:rgb(0, 134, 179);">set</span> ireader 42
+OK
+&gt; get ireader
+<span style="color:rgb(221, 17, 68);">&quot;42&quot;</span>
+&gt; incrby ireader 100
+(<span style="color:rgb(0, 134, 179);">integer</span>) 142
+&gt; get ireader
+<span style="color:rgb(221, 17, 68);">&quot;142&quot;</span>
+&gt; decrby ireader 100
+(<span style="color:rgb(0, 134, 179);">integer</span>) 42
+&gt; get ireader
+<span style="color:rgb(221, 17, 68);">&quot;42&quot;</span>
+&gt; incr ireader  <span style="color:rgb(153, 153, 136);"># 等价于incrby ireader 1</span>
+(<span style="color:rgb(0, 134, 179);">integer</span>) 43
+&gt; decr ireader  <span style="color:rgb(153, 153, 136);"># 等价于decrby ireader 1</span>
+(<span style="color:rgb(0, 134, 179);">integer</span>) 42
+<span style="position:absolute;top:6px;right:15px;font-size:12px;line-height:1;cursor:pointer;color:rgba(140, 140, 140, 0.8);transition:color 0.1s;">复制代码</span></code></pre><p style="line-height:inherit;margin-top:22px;margin-bottom:22px;">计数器是有范围的，它不能超过Long.Max，不能低于Long.MIN</p>
+<pre style="font-size:1em;font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;line-height:1.75;overflow:auto;position:relative;"><code lang="bash" style="border-radius:2px;font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;background-color:rgb(255, 245, 245);word-break:normal;color:rgb(51, 51, 51);font-size:11px;overflow-x:auto;margin:0px;display:block;background:rgb(248, 248, 248);padding:18px 15px 12px;"><span style="font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;font-size:11px;color:rgb(51, 51, 51);position:absolute;right:70px;top:2px;"></span>&gt; <span style="color:rgb(0, 134, 179);">set</span> ireader 9223372036854775807
+OK
+&gt; incr ireader
+(error) ERR increment or decrement would overflow
+&gt; <span style="color:rgb(0, 134, 179);">set</span> ireader -9223372036854775808
+OK
+&gt; decr ireader
+(error) ERR increment or decrement would overflow
+<span style="position:absolute;top:6px;right:15px;font-size:12px;line-height:1;cursor:pointer;color:rgba(140, 140, 140, 0.8);transition:color 0.1s;">复制代码</span></code></pre><p style="line-height:inherit;margin-top:22px;margin-bottom:22px;"><strong style="font-weight:700;">过期和删除</strong> 字符串可以使用del指令进行主动删除，可以使用expire指令设置过期时间，到点会自动删除，这属于被动删除。可以使用ttl指令获取字符串的寿命。</p>
+<pre style="font-size:1em;font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;line-height:1.75;overflow:auto;position:relative;"><code lang="bash" style="border-radius:2px;font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;background-color:rgb(255, 245, 245);word-break:normal;color:rgb(51, 51, 51);font-size:11px;overflow-x:auto;margin:0px;display:block;background:rgb(248, 248, 248);padding:18px 15px 12px;"><span style="font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;font-size:11px;color:rgb(51, 51, 51);position:absolute;right:70px;top:2px;"></span>&gt; expire ireader 60
+(<span style="color:rgb(0, 134, 179);">integer</span>) 1  <span style="color:rgb(153, 153, 136);"># 1表示设置成功，0表示变量ireader不存在</span>
+&gt; ttl ireader
+(<span style="color:rgb(0, 134, 179);">integer</span>) 50  <span style="color:rgb(153, 153, 136);"># 还有50秒的寿命，返回-2表示变量不存在，-1表示没有设置过期时间</span>
+&gt; del ireader
+(<span style="color:rgb(0, 134, 179);">integer</span>) 1  <span style="color:rgb(153, 153, 136);"># 删除成功返回1</span>
+&gt; get ireader
+(nil)  <span style="color:rgb(153, 153, 136);"># 变量ireader没有了</span>
+<span style="position:absolute;top:6px;right:15px;font-size:12px;line-height:1;cursor:pointer;color:rgba(140, 140, 140, 0.8);transition:color 0.1s;">复制代码</span></code></pre><h2 style="color:rgb(51, 51, 51);line-height:1.5;margin-top:35px;margin-bottom:10px;padding-bottom:12px;font-size:24px;border-bottom:1px solid rgb(236, 236, 236);">list</h2>
+<p style="line-height:inherit;margin-top:22px;margin-bottom:22px;"></p><div style="display:block;margin:22px auto;text-align:center;"><img src="通俗易懂的Redis数据结构基础教程 - 掘金_files/1 [3]" type="image/webp" data-filename="1" height="68" style="border-style:none;max-height:none;visibility:visible;background-color:transparent;background-position:50% center;background-repeat:no-repeat;background-image:none;margin:0px;cursor:zoom-in;max-width:100%;" width="652"/><div style="display:block;text-align:center;font-size:1rem;line-height:1.6;color:rgb(144, 144, 144);margin-top:2px;"></div></div><p style="line-height:inherit;margin-top:22px;margin-bottom:22px;"></p>
+<p style="line-height:inherit;margin-top:22px;margin-bottom:22px;">Redis将列表数据结构命名为list而不是array，是因为列表的存储结构用的是链表而不是数组，而且链表还是双向链表。因为它是链表，所以随机定位性能较弱，首尾插入删除性能较优。如果list的列表长度很长，使用时我们一定要关注链表相关操作的时间复杂度。</p>
+<p style="line-height:inherit;margin-top:22px;margin-bottom:22px;"><strong style="font-weight:700;">负下标</strong> 链表元素的位置使用自然数<code style="font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;font-size:0.87em;padding:0.065em 0.4em;word-break:break-word;color:rgb(255, 80, 44);background-color:rgb(255, 245, 245);border-radius:2px;overflow-x:auto;">0,1,2,....n-1</code>表示，还可以使用负数<code style="font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;font-size:0.87em;padding:0.065em 0.4em;word-break:break-word;color:rgb(255, 80, 44);background-color:rgb(255, 245, 245);border-radius:2px;overflow-x:auto;">-1,-2,...-n</code>来表示，<code style="font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;font-size:0.87em;padding:0.065em 0.4em;word-break:break-word;color:rgb(255, 80, 44);background-color:rgb(255, 245, 245);border-radius:2px;overflow-x:auto;">-1</code>表示「倒数第一」，<code style="font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;font-size:0.87em;padding:0.065em 0.4em;word-break:break-word;color:rgb(255, 80, 44);background-color:rgb(255, 245, 245);border-radius:2px;overflow-x:auto;">-2</code>表示「倒数第二」，那么<code style="font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;font-size:0.87em;padding:0.065em 0.4em;word-break:break-word;color:rgb(255, 80, 44);background-color:rgb(255, 245, 245);border-radius:2px;overflow-x:auto;">-n</code>就表示第一个元素，对应的下标为<code style="font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;font-size:0.87em;padding:0.065em 0.4em;word-break:break-word;color:rgb(255, 80, 44);background-color:rgb(255, 245, 245);border-radius:2px;overflow-x:auto;">0</code>。</p>
+<p style="line-height:inherit;margin-top:22px;margin-bottom:22px;"><strong style="font-weight:700;">队列／堆栈</strong> 链表可以从表头和表尾追加和移除元素，结合使用rpush/rpop/lpush/lpop四条指令，可以将链表作为队列或堆栈使用，左向右向进行都可以</p>
+<pre style="font-size:1em;font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;line-height:1.75;overflow:auto;position:relative;"><code lang="bash" style="border-radius:2px;font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;background-color:rgb(255, 245, 245);word-break:normal;color:rgb(51, 51, 51);font-size:11px;overflow-x:auto;margin:0px;display:block;background:rgb(248, 248, 248);padding:18px 15px 12px;"><span style="font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;font-size:11px;color:rgb(51, 51, 51);position:absolute;right:70px;top:2px;"></span><span style="color:rgb(153, 153, 136);"># 右进左出</span>
+&gt; rpush ireader go
+(<span style="color:rgb(0, 134, 179);">integer</span>) 1
+&gt; rpush ireader java python
+(<span style="color:rgb(0, 134, 179);">integer</span>) 3
+&gt; lpop ireader
+<span style="color:rgb(221, 17, 68);">&quot;go&quot;</span>
+&gt; lpop ireader
+<span style="color:rgb(221, 17, 68);">&quot;java&quot;</span>
+&gt; lpop ireader
+<span style="color:rgb(221, 17, 68);">&quot;python&quot;</span>
+<span style="color:rgb(153, 153, 136);"># 左进右出</span>
+&gt; lpush ireader go java python
+(<span style="color:rgb(0, 134, 179);">integer</span>) 3
+&gt; rpop ireader
+<span style="color:rgb(221, 17, 68);">&quot;go&quot;</span>
+...
+<span style="color:rgb(153, 153, 136);"># 右进右出</span>
+&gt; rpush ireader go java python
+(<span style="color:rgb(0, 134, 179);">integer</span>) 3
+&gt; rpop ireader 
+<span style="color:rgb(221, 17, 68);">&quot;python&quot;</span>
+...
+<span style="color:rgb(153, 153, 136);"># 左进左出</span>
+&gt; lpush ireader go java python
+(<span style="color:rgb(0, 134, 179);">integer</span>) 3
+&gt; lpop ireader
+<span style="color:rgb(221, 17, 68);">&quot;python&quot;</span>
+...
+<span style="position:absolute;top:6px;right:15px;font-size:12px;line-height:1;cursor:pointer;color:rgba(140, 140, 140, 0.8);transition:color 0.1s;">复制代码</span></code></pre><p style="line-height:inherit;margin-top:22px;margin-bottom:22px;">在日常应用中，列表常用来作为异步队列来使用。</p>
+<p style="line-height:inherit;margin-top:22px;margin-bottom:22px;"><strong style="font-weight:700;">长度</strong> 使用llen指令获取链表长度</p>
+<pre style="font-size:1em;font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;line-height:1.75;overflow:auto;position:relative;"><code lang="bash" style="border-radius:2px;font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;background-color:rgb(255, 245, 245);word-break:normal;color:rgb(51, 51, 51);font-size:11px;overflow-x:auto;margin:0px;display:block;background:rgb(248, 248, 248);padding:18px 15px 12px;"><span style="font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;font-size:11px;color:rgb(51, 51, 51);position:absolute;right:70px;top:2px;"></span>&gt; rpush ireader go java python
+(<span style="color:rgb(0, 134, 179);">integer</span>) 3
+&gt; llen ireader
+(<span style="color:rgb(0, 134, 179);">integer</span>) 3
+<span style="position:absolute;top:6px;right:15px;font-size:12px;line-height:1;cursor:pointer;color:rgba(140, 140, 140, 0.8);transition:color 0.1s;">复制代码</span></code></pre><p style="line-height:inherit;margin-top:22px;margin-bottom:22px;"><strong style="font-weight:700;">随机读</strong> 可以使用lindex指令访问指定位置的元素，使用lrange指令来获取链表子元素列表，提供start和end下标参数</p>
+<pre style="font-size:1em;font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;line-height:1.75;overflow:auto;position:relative;"><code lang="bash" style="border-radius:2px;font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;background-color:rgb(255, 245, 245);word-break:normal;color:rgb(51, 51, 51);font-size:11px;overflow-x:auto;margin:0px;display:block;background:rgb(248, 248, 248);padding:18px 15px 12px;"><span style="font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;font-size:11px;color:rgb(51, 51, 51);position:absolute;right:70px;top:2px;"></span>&gt; rpush ireader go java python
+(<span style="color:rgb(0, 134, 179);">integer</span>) 3
+&gt; lindex ireader 1
+<span style="color:rgb(221, 17, 68);">&quot;java&quot;</span>
+&gt; lrange ireader 0 2
+1) <span style="color:rgb(221, 17, 68);">&quot;go&quot;</span>
+2) <span style="color:rgb(221, 17, 68);">&quot;java&quot;</span>
+3) <span style="color:rgb(221, 17, 68);">&quot;python&quot;</span>
+&gt; lrange ireader 0 -1  <span style="color:rgb(153, 153, 136);"># -1表示倒数第一</span>
+1) <span style="color:rgb(221, 17, 68);">&quot;go&quot;</span>
+2) <span style="color:rgb(221, 17, 68);">&quot;java&quot;</span>
+3) <span style="color:rgb(221, 17, 68);">&quot;python&quot;</span>
+<span style="position:absolute;top:6px;right:15px;font-size:12px;line-height:1;cursor:pointer;color:rgba(140, 140, 140, 0.8);transition:color 0.1s;">复制代码</span></code></pre><p style="line-height:inherit;margin-top:22px;margin-bottom:22px;">使用lrange获取全部元素时，需要提供end_index，如果没有负下标，就需要首先通过llen指令获取长度，才可以得出end_index的值，有了负下标，使用-1代替end_index就可以达到相同的效果。</p>
+<p style="line-height:inherit;margin-top:22px;margin-bottom:22px;"><strong style="font-weight:700;">修改元素</strong> 使用lset指令在指定位置修改元素。</p>
+<pre style="font-size:1em;font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;line-height:1.75;overflow:auto;position:relative;"><code lang="bash" style="border-radius:2px;font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;background-color:rgb(255, 245, 245);word-break:normal;color:rgb(51, 51, 51);font-size:11px;overflow-x:auto;margin:0px;display:block;background:rgb(248, 248, 248);padding:18px 15px 12px;"><span style="font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;font-size:11px;color:rgb(51, 51, 51);position:absolute;right:70px;top:2px;"></span>&gt; rpush ireader go java python
+(<span style="color:rgb(0, 134, 179);">integer</span>) 3
+&gt; lset ireader 1 javascript
+OK
+&gt; lrange ireader 0 -1
+1) <span style="color:rgb(221, 17, 68);">&quot;go&quot;</span>
+2) <span style="color:rgb(221, 17, 68);">&quot;javascript&quot;</span>
+3) <span style="color:rgb(221, 17, 68);">&quot;python&quot;</span>
+<span style="position:absolute;top:6px;right:15px;font-size:12px;line-height:1;cursor:pointer;color:rgba(140, 140, 140, 0.8);transition:color 0.1s;">复制代码</span></code></pre><p style="line-height:inherit;margin-top:22px;margin-bottom:22px;"><strong style="font-weight:700;">插入元素</strong> 使用linsert指令在列表的中间位置插入元素，有经验的程序员都知道在插入元素时，我们经常搞不清楚是在指定位置的前面插入还是后面插入，所以antirez在linsert指令里增加了方向参数before/after来显示指示前置和后置插入。不过让人意想不到的是linsert指令并不是通过指定位置来插入，而是通过指定具体的值。这是因为在分布式环境下，列表的元素总是频繁变动的，意味着上一时刻计算的元素下标在下一时刻可能就不是你所期望的下标了。</p>
+<pre style="font-size:1em;font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;line-height:1.75;overflow:auto;position:relative;"><code lang="bash" style="border-radius:2px;font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;background-color:rgb(255, 245, 245);word-break:normal;color:rgb(51, 51, 51);font-size:11px;overflow-x:auto;margin:0px;display:block;background:rgb(248, 248, 248);padding:18px 15px 12px;"><span style="font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;font-size:11px;color:rgb(51, 51, 51);position:absolute;right:70px;top:2px;"></span>&gt; rpush ireader go java python
+(<span style="color:rgb(0, 134, 179);">integer</span>) 3
+&gt; linsert ireader before java ruby
+(<span style="color:rgb(0, 134, 179);">integer</span>) 4
+&gt; lrange ireader 0 -1
+1) <span style="color:rgb(221, 17, 68);">&quot;go&quot;</span>
+2) <span style="color:rgb(221, 17, 68);">&quot;ruby&quot;</span>
+3) <span style="color:rgb(221, 17, 68);">&quot;java&quot;</span>
+4) <span style="color:rgb(221, 17, 68);">&quot;python&quot;</span>
+<span style="position:absolute;top:6px;right:15px;font-size:12px;line-height:1;cursor:pointer;color:rgba(140, 140, 140, 0.8);transition:color 0.1s;">复制代码</span></code></pre><p style="line-height:inherit;margin-top:22px;margin-bottom:22px;">到目前位置，我还没有在实际应用中发现插入指定的应用场景。</p>
+<p style="line-height:inherit;margin-top:22px;margin-bottom:22px;"><strong style="font-weight:700;">删除元素</strong> 列表的删除操作也不是通过指定下标来确定元素的，你需要指定删除的最大个数以及元素的值</p>
+<pre style="font-size:1em;font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;line-height:1.75;overflow:auto;position:relative;"><code lang="bash" style="border-radius:2px;font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;background-color:rgb(255, 245, 245);word-break:normal;color:rgb(51, 51, 51);font-size:11px;overflow-x:auto;margin:0px;display:block;background:rgb(248, 248, 248);padding:18px 15px 12px;"><span style="font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;font-size:11px;color:rgb(51, 51, 51);position:absolute;right:70px;top:2px;"></span>&gt; rpush ireader go java python
+(<span style="color:rgb(0, 134, 179);">integer</span>) 3
+&gt; lrem ireader 1 java
+(<span style="color:rgb(0, 134, 179);">integer</span>) 1
+&gt; lrange ireader 0 -1
+1) <span style="color:rgb(221, 17, 68);">&quot;go&quot;</span>
+2) <span style="color:rgb(221, 17, 68);">&quot;python&quot;</span>
+<span style="position:absolute;top:6px;right:15px;font-size:12px;line-height:1;cursor:pointer;color:rgba(140, 140, 140, 0.8);transition:color 0.1s;">复制代码</span></code></pre><p style="line-height:inherit;margin-top:22px;margin-bottom:22px;"><strong style="font-weight:700;">定长列表</strong> 在实际应用场景中，我们有时候会遇到「定长列表」的需求。比如要以走马灯的形式实时显示中奖用户名列表，因为中奖用户实在太多，能显示的数量一般不超过100条，那么这里就会使用到定长列表。维持定长列表的指令是ltrim，需要提供两个参数start和end，表示需要保留列表的下标范围，范围之外的所有元素都将被移除。</p>
+<pre style="font-size:1em;font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;line-height:1.75;overflow:auto;position:relative;"><code lang="bash" style="border-radius:2px;font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;background-color:rgb(255, 245, 245);word-break:normal;color:rgb(51, 51, 51);font-size:11px;overflow-x:auto;margin:0px;display:block;background:rgb(248, 248, 248);padding:18px 15px 12px;"><span style="font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;font-size:11px;color:rgb(51, 51, 51);position:absolute;right:70px;top:2px;"></span>&gt; rpush ireader go java python javascript ruby erlang rust cpp
+(<span style="color:rgb(0, 134, 179);">integer</span>) 8
+&gt; ltrim ireader -3 -1
+OK
+&gt; lrange ireader 0 -1
+1) <span style="color:rgb(221, 17, 68);">&quot;erlang&quot;</span>
+2) <span style="color:rgb(221, 17, 68);">&quot;rust&quot;</span>
+3) <span style="color:rgb(221, 17, 68);">&quot;cpp&quot;</span>
+<span style="position:absolute;top:6px;right:15px;font-size:12px;line-height:1;cursor:pointer;color:rgba(140, 140, 140, 0.8);transition:color 0.1s;">复制代码</span></code></pre><p style="line-height:inherit;margin-top:22px;margin-bottom:22px;">如果指定参数的end对应的真实下标小于start，其效果等价于del指令，因为这样的参数表示需要需要保留列表元素的下标范围为空。</p>
+<p style="line-height:inherit;margin-top:22px;margin-bottom:22px;"><strong style="font-weight:700;">快速列表</strong></p>
+<p style="line-height:inherit;margin-top:22px;margin-bottom:22px;"></p><div style="display:block;margin:22px auto;text-align:center;"><img src="通俗易懂的Redis数据结构基础教程 - 掘金_files/1 [4]" type="image/webp" data-filename="1" height="62" style="border-style:none;max-height:none;visibility:visible;background-color:transparent;background-position:50% center;background-repeat:no-repeat;background-image:none;margin:0px;cursor:zoom-in;max-width:100%;" width="652"/><div style="display:block;text-align:center;font-size:1rem;line-height:1.6;color:rgb(144, 144, 144);margin-top:2px;"></div></div>
+如果再深入一点，你会发现Redis底层存储的还不是一个简单的linkedlist，而是称之为快速链表quicklist的一个结构。首先在列表元素较少的情况下会使用一块连续的内存存储，这个结构是ziplist，也即是压缩列表。它将所有的元素紧挨着一起存储，分配的是一块连续的内存。当数据量比较多的时候才会改成quicklist。因为普通的链表需要的附加指针空间太大，会比较浪费空间。比如这个列表里存的只是int类型的数据，结构上还需要两个额外的指针prev和next。所以Redis将链表和ziplist结合起来组成了quicklist。也就是将多个ziplist使用双向指针串起来使用。这样既满足了快速的插入删除性能，又不会出现太大的空间冗余。<p style="line-height:inherit;margin-top:22px;margin-bottom:22px;"></p>
+<h2 style="color:rgb(51, 51, 51);line-height:1.5;margin-top:35px;margin-bottom:10px;padding-bottom:12px;font-size:24px;border-bottom:1px solid rgb(236, 236, 236);">hash</h2>
+<p style="line-height:inherit;margin-top:22px;margin-bottom:22px;"></p><div style="display:block;margin:22px auto;text-align:center;"><img src="通俗易懂的Redis数据结构基础教程 - 掘金_files/1 [5]" type="image/webp" data-filename="1" height="288" style="border-style:none;max-height:none;visibility:visible;background-color:transparent;background-position:50% center;background-repeat:no-repeat;background-image:none;margin:0px;cursor:zoom-in;max-width:100%;" width="617"/><div style="display:block;text-align:center;font-size:1rem;line-height:1.6;color:rgb(144, 144, 144);margin-top:2px;"></div></div><p style="line-height:inherit;margin-top:22px;margin-bottom:22px;"></p>
+<p style="line-height:inherit;margin-top:22px;margin-bottom:22px;">哈希等价于Java语言的HashMap或者是Python语言的dict，在实现结构上它使用二维结构，第一维是数组，第二维是链表，hash的内容key和value存放在链表中，数组里存放的是链表的头指针。通过key查找元素时，先计算key的hashcode，然后用hashcode对数组的长度进行取模定位到链表的表头，再对链表进行遍历获取到相应的value值，链表的作用就是用来将产生了「hash碰撞」的元素串起来。Java语言开发者会感到非常熟悉，因为这样的结构和HashMap是没有区别的。哈希的第一维数组的长度也是2^n。</p>
+<p style="line-height:inherit;margin-top:22px;margin-bottom:22px;"></p><div style="display:block;margin:22px auto;text-align:center;"><img src="通俗易懂的Redis数据结构基础教程 - 掘金_files/1 [6]" type="image/webp" data-filename="1" height="226" style="border-style:none;max-height:none;visibility:visible;background-color:transparent;background-position:50% center;background-repeat:no-repeat;background-image:none;margin:0px;cursor:zoom-in;max-width:100%;" width="652"/><div style="display:block;text-align:center;font-size:1rem;line-height:1.6;color:rgb(144, 144, 144);margin-top:2px;"></div></div><p style="line-height:inherit;margin-top:22px;margin-bottom:22px;"></p>
+<p style="line-height:inherit;margin-top:22px;margin-bottom:22px;"><strong style="font-weight:700;">增加元素</strong> 可以使用hset一次增加一个键值对，也可以使用hmset一次增加多个键值对</p>
+<pre style="font-size:1em;font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;line-height:1.75;overflow:auto;position:relative;"><code lang="bash" style="border-radius:2px;font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;background-color:rgb(255, 245, 245);word-break:normal;color:rgb(51, 51, 51);font-size:11px;overflow-x:auto;margin:0px;display:block;background:rgb(248, 248, 248);padding:18px 15px 12px;"><span style="font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;font-size:11px;color:rgb(51, 51, 51);position:absolute;right:70px;top:2px;"></span>&gt; hset ireader go fast
+(<span style="color:rgb(0, 134, 179);">integer</span>) 1
+&gt; hmset ireader java fast python slow
+OK
+<span style="position:absolute;top:6px;right:15px;font-size:12px;line-height:1;cursor:pointer;color:rgba(140, 140, 140, 0.8);transition:color 0.1s;">复制代码</span></code></pre><p style="line-height:inherit;margin-top:22px;margin-bottom:22px;"><strong style="font-weight:700;">获取元素</strong> 可以通过hget定位具体key对应的value，可以通过hmget获取多个key对应的value，可以使用hgetall获取所有的键值对，可以使用hkeys和hvals分别获取所有的key列表和value列表。这些操作和Java语言的Map接口是类似的。</p>
+<pre style="font-size:1em;font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;line-height:1.75;overflow:auto;position:relative;"><code lang="bash" style="border-radius:2px;font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;background-color:rgb(255, 245, 245);word-break:normal;color:rgb(51, 51, 51);font-size:11px;overflow-x:auto;margin:0px;display:block;background:rgb(248, 248, 248);padding:18px 15px 12px;"><span style="font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;font-size:11px;color:rgb(51, 51, 51);position:absolute;right:70px;top:2px;"></span>&gt; hmset ireader go fast java fast python slow
+OK
+&gt; hget ireader go
+<span style="color:rgb(221, 17, 68);">&quot;fast&quot;</span>
+&gt; hmget ireader go python
+1) <span style="color:rgb(221, 17, 68);">&quot;fast&quot;</span>
+2) <span style="color:rgb(221, 17, 68);">&quot;slow&quot;</span>
+&gt; hgetall ireader
+1) <span style="color:rgb(221, 17, 68);">&quot;go&quot;</span>
+2) <span style="color:rgb(221, 17, 68);">&quot;fast&quot;</span>
+3) <span style="color:rgb(221, 17, 68);">&quot;java&quot;</span>
+4) <span style="color:rgb(221, 17, 68);">&quot;fast&quot;</span>
+5) <span style="color:rgb(221, 17, 68);">&quot;python&quot;</span>
+6) <span style="color:rgb(221, 17, 68);">&quot;slow&quot;</span>
+&gt; hkeys ireader
+1) <span style="color:rgb(221, 17, 68);">&quot;go&quot;</span>
+2) <span style="color:rgb(221, 17, 68);">&quot;java&quot;</span>
+3) <span style="color:rgb(221, 17, 68);">&quot;python&quot;</span>
+&gt; hvals ireader
+1) <span style="color:rgb(221, 17, 68);">&quot;fast&quot;</span>
+2) <span style="color:rgb(221, 17, 68);">&quot;fast&quot;</span>
+3) <span style="color:rgb(221, 17, 68);">&quot;slow&quot;</span>
+<span style="position:absolute;top:6px;right:15px;font-size:12px;line-height:1;cursor:pointer;color:rgba(140, 140, 140, 0.8);transition:color 0.1s;">复制代码</span></code></pre><p style="line-height:inherit;margin-top:22px;margin-bottom:22px;"><strong style="font-weight:700;">删除元素</strong> 可以使用hdel删除指定key，hdel支持同时删除多个key</p>
+<pre style="font-size:1em;font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;line-height:1.75;overflow:auto;position:relative;"><code lang="bash" style="border-radius:2px;font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;background-color:rgb(255, 245, 245);word-break:normal;color:rgb(51, 51, 51);font-size:11px;overflow-x:auto;margin:0px;display:block;background:rgb(248, 248, 248);padding:18px 15px 12px;"><span style="font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;font-size:11px;color:rgb(51, 51, 51);position:absolute;right:70px;top:2px;"></span>&gt; hmset ireader go fast java fast python slow
+OK
+&gt; hdel ireader go
+(<span style="color:rgb(0, 134, 179);">integer</span>) 1
+&gt; hdel ireader java python
+(<span style="color:rgb(0, 134, 179);">integer</span>) 2
+<span style="position:absolute;top:6px;right:15px;font-size:12px;line-height:1;cursor:pointer;color:rgba(140, 140, 140, 0.8);transition:color 0.1s;">复制代码</span></code></pre><p style="line-height:inherit;margin-top:22px;margin-bottom:22px;"><strong style="font-weight:700;">判断元素是否存在</strong> 通常我们使用hget获得key对应的value是否为空就直到对应的元素是否存在了，不过如果value的字符串长度特别大，通过这种方式来判断元素存在与否就略显浪费，这时可以使用hexists指令。</p>
+<pre style="font-size:1em;font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;line-height:1.75;overflow:auto;position:relative;"><code lang="bash" style="border-radius:2px;font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;background-color:rgb(255, 245, 245);word-break:normal;color:rgb(51, 51, 51);font-size:11px;overflow-x:auto;margin:0px;display:block;background:rgb(248, 248, 248);padding:18px 15px 12px;"><span style="font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;font-size:11px;color:rgb(51, 51, 51);position:absolute;right:70px;top:2px;"></span>&gt; hmset ireader go fast java fast python slow
+OK
+&gt; hexists ireader go
+(<span style="color:rgb(0, 134, 179);">integer</span>) 1
+<span style="position:absolute;top:6px;right:15px;font-size:12px;line-height:1;cursor:pointer;color:rgba(140, 140, 140, 0.8);transition:color 0.1s;">复制代码</span></code></pre><p style="line-height:inherit;margin-top:22px;margin-bottom:22px;"><strong style="font-weight:700;">计数器</strong> hash结构还可以当成计数器来使用，对于内部的每一个key都可以作为独立的计数器。如果value值不是整数，调用hincrby指令会出错。</p>
+<pre style="font-size:1em;font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;line-height:1.75;overflow:auto;position:relative;"><code lang="bash" style="border-radius:2px;font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;background-color:rgb(255, 245, 245);word-break:normal;color:rgb(51, 51, 51);font-size:11px;overflow-x:auto;margin:0px;display:block;background:rgb(248, 248, 248);padding:18px 15px 12px;"><span style="font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;font-size:11px;color:rgb(51, 51, 51);position:absolute;right:70px;top:2px;"></span>&gt; hincrby ireader go 1
+(<span style="color:rgb(0, 134, 179);">integer</span>) 1
+&gt; hincrby ireader python 4
+(<span style="color:rgb(0, 134, 179);">integer</span>) 4
+&gt; hincrby ireader java 4
+(<span style="color:rgb(0, 134, 179);">integer</span>) 4
+&gt; hgetall ireader
+1) <span style="color:rgb(221, 17, 68);">&quot;go&quot;</span>
+2) <span style="color:rgb(221, 17, 68);">&quot;1&quot;</span>
+3) <span style="color:rgb(221, 17, 68);">&quot;python&quot;</span>
+4) <span style="color:rgb(221, 17, 68);">&quot;4&quot;</span>
+5) <span style="color:rgb(221, 17, 68);">&quot;java&quot;</span>
+6) <span style="color:rgb(221, 17, 68);">&quot;4&quot;</span>
+&gt; hset ireader rust good
+(<span style="color:rgb(0, 134, 179);">integer</span>) 1
+&gt; hincrby ireader rust 1
+(error) ERR <span style="color:rgb(0, 134, 179);">hash</span> value is not an <span style="color:rgb(0, 134, 179);">integer</span>
+<span style="position:absolute;top:6px;right:15px;font-size:12px;line-height:1;cursor:pointer;color:rgba(140, 140, 140, 0.8);transition:color 0.1s;">复制代码</span></code></pre><p style="line-height:inherit;margin-top:22px;margin-bottom:22px;"><strong style="font-weight:700;">扩容</strong> 当hash内部的元素比较拥挤时(hash碰撞比较频繁)，就需要进行扩容。扩容需要申请新的两倍大小的数组，然后将所有的键值对重新分配到新的数组下标对应的链表中(rehash)。如果hash结构很大，比如有上百万个键值对，那么一次完整rehash的过程就会耗时很长。这对于单线程的Redis里来说有点压力山大。所以Redis采用了渐进式rehash的方案。它会同时保留两个新旧hash结构，在后续的定时任务以及hash结构的读写指令中将旧结构的元素逐渐迁移到新的结构中。这样就可以避免因扩容导致的线程卡顿现象。</p>
+<p style="line-height:inherit;margin-top:22px;margin-bottom:22px;"><strong style="font-weight:700;">缩容</strong> Redis的hash结构不但有扩容还有缩容，从这一点出发，它要比Java的HashMap要厉害一些，Java的HashMap只有扩容。缩容的原理和扩容是一致的，只不过新的数组大小要比旧数组小一倍。</p>
+<h2 style="color:rgb(51, 51, 51);line-height:1.5;margin-top:35px;margin-bottom:10px;padding-bottom:12px;font-size:24px;border-bottom:1px solid rgb(236, 236, 236);">set</h2>
+<p style="line-height:inherit;margin-top:22px;margin-bottom:22px;">Java程序员都知道HashSet的内部实现使用的是HashMap，只不过所有的value都指向同一个对象。Redis的set结构也是一样，它的内部也使用hash结构，所有的value都指向同一个内部值。</p>
+<p style="line-height:inherit;margin-top:22px;margin-bottom:22px;"><strong style="font-weight:700;">增加元素</strong> 可以一次增加多个元素</p>
+<pre style="font-size:1em;font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;line-height:1.75;overflow:auto;position:relative;"><code lang="bash" style="border-radius:2px;font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;background-color:rgb(255, 245, 245);word-break:normal;color:rgb(51, 51, 51);font-size:11px;overflow-x:auto;margin:0px;display:block;background:rgb(248, 248, 248);padding:18px 15px 12px;"><span style="font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;font-size:11px;color:rgb(51, 51, 51);position:absolute;right:70px;top:2px;"></span>&gt; sadd ireader go java python
+(<span style="color:rgb(0, 134, 179);">integer</span>) 3
+<span style="position:absolute;top:6px;right:15px;font-size:12px;line-height:1;cursor:pointer;color:rgba(140, 140, 140, 0.8);transition:color 0.1s;">复制代码</span></code></pre><p style="line-height:inherit;margin-top:22px;margin-bottom:22px;"><strong style="font-weight:700;">读取元素</strong> 使用smembers列出所有元素，使用scard获取集合长度，使用srandmember获取随机count个元素，如果不提供count参数，默认为1</p>
+<pre style="font-size:1em;font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;line-height:1.75;overflow:auto;position:relative;"><code lang="bash" style="border-radius:2px;font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;background-color:rgb(255, 245, 245);word-break:normal;color:rgb(51, 51, 51);font-size:11px;overflow-x:auto;margin:0px;display:block;background:rgb(248, 248, 248);padding:18px 15px 12px;"><span style="font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;font-size:11px;color:rgb(51, 51, 51);position:absolute;right:70px;top:2px;"></span>&gt; sadd ireader go java python
+(<span style="color:rgb(0, 134, 179);">integer</span>) 3
+&gt; smembers ireader
+1) <span style="color:rgb(221, 17, 68);">&quot;java&quot;</span>
+2) <span style="color:rgb(221, 17, 68);">&quot;python&quot;</span>
+3) <span style="color:rgb(221, 17, 68);">&quot;go&quot;</span>
+&gt; scard ireader
+(<span style="color:rgb(0, 134, 179);">integer</span>) 3
+&gt; srandmember ireader
+<span style="color:rgb(221, 17, 68);">&quot;java&quot;</span>
+<span style="position:absolute;top:6px;right:15px;font-size:12px;line-height:1;cursor:pointer;color:rgba(140, 140, 140, 0.8);transition:color 0.1s;">复制代码</span></code></pre><p style="line-height:inherit;margin-top:22px;margin-bottom:22px;"><strong style="font-weight:700;">删除元素</strong> 使用srem删除一到多个元素，使用spop删除随机一个元素</p>
+<pre style="font-size:1em;font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;line-height:1.75;overflow:auto;position:relative;"><code lang="bash" style="border-radius:2px;font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;background-color:rgb(255, 245, 245);word-break:normal;color:rgb(51, 51, 51);font-size:11px;overflow-x:auto;margin:0px;display:block;background:rgb(248, 248, 248);padding:18px 15px 12px;"><span style="font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;font-size:11px;color:rgb(51, 51, 51);position:absolute;right:70px;top:2px;"></span>&gt; sadd ireader go java python rust erlang
+(<span style="color:rgb(0, 134, 179);">integer</span>) 5
+&gt; srem ireader go java
+(<span style="color:rgb(0, 134, 179);">integer</span>) 2
+&gt; spop ireader
+<span style="color:rgb(221, 17, 68);">&quot;erlang&quot;</span>
+<span style="position:absolute;top:6px;right:15px;font-size:12px;line-height:1;cursor:pointer;color:rgba(140, 140, 140, 0.8);transition:color 0.1s;">复制代码</span></code></pre><p style="line-height:inherit;margin-top:22px;margin-bottom:22px;"><strong style="font-weight:700;">判断元素是否存在</strong> 使用sismember指令，只能接收单个元素</p>
+<pre style="font-size:1em;font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;line-height:1.75;overflow:auto;position:relative;"><code lang="bash" style="border-radius:2px;font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;background-color:rgb(255, 245, 245);word-break:normal;color:rgb(51, 51, 51);font-size:11px;overflow-x:auto;margin:0px;display:block;background:rgb(248, 248, 248);padding:18px 15px 12px;"><span style="font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;font-size:11px;color:rgb(51, 51, 51);position:absolute;right:70px;top:2px;"></span>&gt; sadd ireader go java python rust erlang
+(<span style="color:rgb(0, 134, 179);">integer</span>) 5
+&gt; sismember ireader rust
+(<span style="color:rgb(0, 134, 179);">integer</span>) 1
+&gt; sismember ireader javascript
+(<span style="color:rgb(0, 134, 179);">integer</span>) 0
+<span style="position:absolute;top:6px;right:15px;font-size:12px;line-height:1;cursor:pointer;color:rgba(140, 140, 140, 0.8);transition:color 0.1s;">复制代码</span></code></pre><h2 style="color:rgb(51, 51, 51);line-height:1.5;margin-top:35px;margin-bottom:10px;padding-bottom:12px;font-size:24px;border-bottom:1px solid rgb(236, 236, 236);">sortedset</h2>
+<p style="line-height:inherit;margin-top:22px;margin-bottom:22px;"></p><div style="display:block;margin:22px auto;text-align:center;"><img src="通俗易懂的Redis数据结构基础教程 - 掘金_files/1 [7]" type="image/webp" data-filename="1" height="287" style="border-style:none;max-height:none;visibility:visible;background-color:transparent;background-position:50% center;background-repeat:no-repeat;background-image:none;margin:0px;cursor:zoom-in;max-width:100%;" width="635"/><div style="display:block;text-align:center;font-size:1rem;line-height:1.6;color:rgb(144, 144, 144);margin-top:2px;"></div></div><p style="line-height:inherit;margin-top:22px;margin-bottom:22px;"></p>
+<p style="line-height:inherit;margin-top:22px;margin-bottom:22px;">SortedSet(zset)是Redis提供的一个非常特别的数据结构，一方面它等价于Java的数据结构<code style="font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;font-size:0.87em;padding:0.065em 0.4em;word-break:break-word;color:rgb(255, 80, 44);background-color:rgb(255, 245, 245);border-radius:2px;overflow-x:auto;">Map&lt;String, Double&gt;</code>，可以给每一个元素value赋予一个权重<code style="font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;font-size:0.87em;padding:0.065em 0.4em;word-break:break-word;color:rgb(255, 80, 44);background-color:rgb(255, 245, 245);border-radius:2px;overflow-x:auto;">score</code>，另一方面它又类似于<code style="font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;font-size:0.87em;padding:0.065em 0.4em;word-break:break-word;color:rgb(255, 80, 44);background-color:rgb(255, 245, 245);border-radius:2px;overflow-x:auto;">TreeSet</code>，内部的元素会按照权重score进行排序，可以得到每个元素的名次，还可以通过score的范围来获取元素的列表。</p>
+<p style="line-height:inherit;margin-top:22px;margin-bottom:22px;">zset底层实现使用了两个数据结构，第一个是hash，第二个是跳跃列表，hash的作用就是关联元素value和权重score，保障元素value的唯一性，可以通过元素value找到相应的score值。跳跃列表的目的在于给元素value排序，根据score的范围获取元素列表。</p>
+<p style="line-height:inherit;margin-top:22px;margin-bottom:22px;"><strong style="font-weight:700;">增加元素</strong> 通过zadd指令可以增加一到多个value/score对，score放在前面</p>
+<pre style="font-size:1em;font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;line-height:1.75;overflow:auto;position:relative;"><code lang="bash" style="border-radius:2px;font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;background-color:rgb(255, 245, 245);word-break:normal;color:rgb(51, 51, 51);font-size:11px;overflow-x:auto;margin:0px;display:block;background:rgb(248, 248, 248);padding:18px 15px 12px;"><span style="font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;font-size:11px;color:rgb(51, 51, 51);position:absolute;right:70px;top:2px;"></span>&gt; zadd ireader 4.0 python
+(<span style="color:rgb(0, 134, 179);">integer</span>) 1
+&gt; zadd ireader 4.0 java 1.0 go
+(<span style="color:rgb(0, 134, 179);">integer</span>) 2
+<span style="position:absolute;top:6px;right:15px;font-size:12px;line-height:1;cursor:pointer;color:rgba(140, 140, 140, 0.8);transition:color 0.1s;">复制代码</span></code></pre><p style="line-height:inherit;margin-top:22px;margin-bottom:22px;"><strong style="font-weight:700;">长度</strong> 通过指令zcard可以得到zset的元素个数</p>
+<pre style="font-size:1em;font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;line-height:1.75;overflow:auto;position:relative;"><code lang="bash" style="border-radius:2px;font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;background-color:rgb(255, 245, 245);word-break:normal;color:rgb(51, 51, 51);font-size:11px;overflow-x:auto;margin:0px;display:block;background:rgb(248, 248, 248);padding:18px 15px 12px;"><span style="font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;font-size:11px;color:rgb(51, 51, 51);position:absolute;right:70px;top:2px;"></span>&gt; zcard ireader
+(<span style="color:rgb(0, 134, 179);">integer</span>) 3
+<span style="position:absolute;top:6px;right:15px;font-size:12px;line-height:1;cursor:pointer;color:rgba(140, 140, 140, 0.8);transition:color 0.1s;">复制代码</span></code></pre><p style="line-height:inherit;margin-top:22px;margin-bottom:22px;"><strong style="font-weight:700;">删除元素</strong> 通过指令zrem可以删除zset中的元素，可以一次删除多个</p>
+<pre style="font-size:1em;font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;line-height:1.75;overflow:auto;position:relative;"><code lang="bash" style="border-radius:2px;font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;background-color:rgb(255, 245, 245);word-break:normal;color:rgb(51, 51, 51);font-size:11px;overflow-x:auto;margin:0px;display:block;background:rgb(248, 248, 248);padding:18px 15px 12px;"><span style="font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;font-size:11px;color:rgb(51, 51, 51);position:absolute;right:70px;top:2px;"></span>&gt; zrem ireader go python
+(<span style="color:rgb(0, 134, 179);">integer</span>) 2
+<span style="position:absolute;top:6px;right:15px;font-size:12px;line-height:1;cursor:pointer;color:rgba(140, 140, 140, 0.8);transition:color 0.1s;">复制代码</span></code></pre><p style="line-height:inherit;margin-top:22px;margin-bottom:22px;"><strong style="font-weight:700;">计数器</strong> 同hash结构一样，zset也可以作为计数器使用。</p>
+<pre style="font-size:1em;font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;line-height:1.75;overflow:auto;position:relative;"><code lang="bash" style="border-radius:2px;font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;background-color:rgb(255, 245, 245);word-break:normal;color:rgb(51, 51, 51);font-size:11px;overflow-x:auto;margin:0px;display:block;background:rgb(248, 248, 248);padding:18px 15px 12px;"><span style="font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;font-size:11px;color:rgb(51, 51, 51);position:absolute;right:70px;top:2px;"></span>&gt; zadd ireader 4.0 python 4.0 java 1.0 go
+(<span style="color:rgb(0, 134, 179);">integer</span>) 3
+&gt; zincrby ireader 1.0 python
+<span style="color:rgb(221, 17, 68);">&quot;5&quot;</span>
+<span style="position:absolute;top:6px;right:15px;font-size:12px;line-height:1;cursor:pointer;color:rgba(140, 140, 140, 0.8);transition:color 0.1s;">复制代码</span></code></pre><p style="line-height:inherit;margin-top:22px;margin-bottom:22px;"><strong style="font-weight:700;">获取排名和分数</strong> 通过zscore指令获取指定元素的权重，通过zrank指令获取指定元素的正向排名，通过zrevrank指令获取指定元素的反向排名[倒数第一名]。正向是由小到大，负向是由大到小。</p>
+<pre style="font-size:1em;font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;line-height:1.75;overflow:auto;position:relative;"><code lang="bash" style="border-radius:2px;font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;background-color:rgb(255, 245, 245);word-break:normal;color:rgb(51, 51, 51);font-size:11px;overflow-x:auto;margin:0px;display:block;background:rgb(248, 248, 248);padding:18px 15px 12px;"><span style="font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;font-size:11px;color:rgb(51, 51, 51);position:absolute;right:70px;top:2px;"></span>&gt; zscore ireader python
+<span style="color:rgb(221, 17, 68);">&quot;5&quot;</span>
+&gt; zrank ireader go  <span style="color:rgb(153, 153, 136);"># 分数低的排名考前，rank值小</span>
+(<span style="color:rgb(0, 134, 179);">integer</span>) 0
+&gt; zrank ireader java
+(<span style="color:rgb(0, 134, 179);">integer</span>) 1
+&gt; zrank ireader python
+(<span style="color:rgb(0, 134, 179);">integer</span>) 2
+&gt; zrevrank ireader python
+(<span style="color:rgb(0, 134, 179);">integer</span>) 0
+<span style="position:absolute;top:6px;right:15px;font-size:12px;line-height:1;cursor:pointer;color:rgba(140, 140, 140, 0.8);transition:color 0.1s;">复制代码</span></code></pre><p style="line-height:inherit;margin-top:22px;margin-bottom:22px;"><strong style="font-weight:700;">根据排名范围获取元素列表</strong> 通过zrange指令指定排名范围参数获取对应的元素列表，携带withscores参数可以一并获取元素的权重。通过zrevrange指令按负向排名获取元素列表[倒数]。正向是由小到大，负向是由大到小。</p>
+<pre style="font-size:1em;font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;line-height:1.75;overflow:auto;position:relative;"><code lang="bash" style="border-radius:2px;font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;background-color:rgb(255, 245, 245);word-break:normal;color:rgb(51, 51, 51);font-size:11px;overflow-x:auto;margin:0px;display:block;background:rgb(248, 248, 248);padding:18px 15px 12px;"><span style="font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;font-size:11px;color:rgb(51, 51, 51);position:absolute;right:70px;top:2px;"></span>&gt; zrange ireader 0 -1  <span style="color:rgb(153, 153, 136);"># 获取所有元素</span>
+1) <span style="color:rgb(221, 17, 68);">&quot;go&quot;</span>
+2) <span style="color:rgb(221, 17, 68);">&quot;java&quot;</span>
+3) <span style="color:rgb(221, 17, 68);">&quot;python&quot;</span>
+&gt; zrange ireader 0 -1 withscores
+1) <span style="color:rgb(221, 17, 68);">&quot;go&quot;</span>
+2) <span style="color:rgb(221, 17, 68);">&quot;1&quot;</span>
+3) <span style="color:rgb(221, 17, 68);">&quot;java&quot;</span>
+4) <span style="color:rgb(221, 17, 68);">&quot;4&quot;</span>
+5) <span style="color:rgb(221, 17, 68);">&quot;python&quot;</span>
+6) <span style="color:rgb(221, 17, 68);">&quot;5&quot;</span>
+&gt; zrevrange ireader 0 -1 withscores
+1) <span style="color:rgb(221, 17, 68);">&quot;python&quot;</span>
+2) <span style="color:rgb(221, 17, 68);">&quot;5&quot;</span>
+3) <span style="color:rgb(221, 17, 68);">&quot;java&quot;</span>
+4) <span style="color:rgb(221, 17, 68);">&quot;4&quot;</span>
+5) <span style="color:rgb(221, 17, 68);">&quot;go&quot;</span>
+6) <span style="color:rgb(221, 17, 68);">&quot;1&quot;</span>
+<span style="position:absolute;top:6px;right:15px;font-size:12px;line-height:1;cursor:pointer;color:rgba(140, 140, 140, 0.8);transition:color 0.1s;">复制代码</span></code></pre><p style="line-height:inherit;margin-top:22px;margin-bottom:22px;"><strong style="font-weight:700;">根据score范围获取列表</strong> 通过zrangebyscore指令指定score范围获取对应的元素列表。通过zrevrangebyscore指令获取倒排元素列表。正向是由小到大，负向是由大到小。参数<code style="font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;font-size:0.87em;padding:0.065em 0.4em;word-break:break-word;color:rgb(255, 80, 44);background-color:rgb(255, 245, 245);border-radius:2px;overflow-x:auto;">-inf</code>表示负无穷，<code style="font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;font-size:0.87em;padding:0.065em 0.4em;word-break:break-word;color:rgb(255, 80, 44);background-color:rgb(255, 245, 245);border-radius:2px;overflow-x:auto;">+inf</code>表示正无穷。</p>
+<pre style="font-size:1em;font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;line-height:1.75;overflow:auto;position:relative;"><code lang="bash" style="border-radius:2px;font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;background-color:rgb(255, 245, 245);word-break:normal;color:rgb(51, 51, 51);font-size:11px;overflow-x:auto;margin:0px;display:block;background:rgb(248, 248, 248);padding:18px 15px 12px;"><span style="font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;font-size:11px;color:rgb(51, 51, 51);position:absolute;right:70px;top:2px;"></span>&gt; zrangebyscore ireader 0 5
+1) <span style="color:rgb(221, 17, 68);">&quot;go&quot;</span>
+2) <span style="color:rgb(221, 17, 68);">&quot;java&quot;</span>
+3) <span style="color:rgb(221, 17, 68);">&quot;python&quot;</span>
+&gt; zrangebyscore ireader -inf +inf withscores
+1) <span style="color:rgb(221, 17, 68);">&quot;go&quot;</span>
+2) <span style="color:rgb(221, 17, 68);">&quot;1&quot;</span>
+3) <span style="color:rgb(221, 17, 68);">&quot;java&quot;</span>
+4) <span style="color:rgb(221, 17, 68);">&quot;4&quot;</span>
+5) <span style="color:rgb(221, 17, 68);">&quot;python&quot;</span>
+6) <span style="color:rgb(221, 17, 68);">&quot;5&quot;</span>
+&gt; zrevrangebyscore ireader +inf -inf withscores  <span style="color:rgb(153, 153, 136);"># 注意正负反过来了</span>
+1) <span style="color:rgb(221, 17, 68);">&quot;python&quot;</span>
+2) <span style="color:rgb(221, 17, 68);">&quot;5&quot;</span>
+3) <span style="color:rgb(221, 17, 68);">&quot;java&quot;</span>
+4) <span style="color:rgb(221, 17, 68);">&quot;4&quot;</span>
+5) <span style="color:rgb(221, 17, 68);">&quot;go&quot;</span>
+6) <span style="color:rgb(221, 17, 68);">&quot;1&quot;</span>
+<span style="position:absolute;top:6px;right:15px;font-size:12px;line-height:1;cursor:pointer;color:rgba(140, 140, 140, 0.8);transition:color 0.1s;">复制代码</span></code></pre><p style="line-height:inherit;margin-top:22px;margin-bottom:22px;"><strong style="font-weight:700;">根据范围移除元素列表</strong> 可以通过排名范围，也可以通过score范围来一次性移除多个元素</p>
+<pre style="font-size:1em;font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;line-height:1.75;overflow:auto;position:relative;"><code lang="bash" style="border-radius:2px;font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;background-color:rgb(255, 245, 245);word-break:normal;color:rgb(51, 51, 51);font-size:11px;overflow-x:auto;margin:0px;display:block;background:rgb(248, 248, 248);padding:18px 15px 12px;"><span style="font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;font-size:11px;color:rgb(51, 51, 51);position:absolute;right:70px;top:2px;"></span>&gt; zremrangebyrank ireader 0 1
+(<span style="color:rgb(0, 134, 179);">integer</span>) 2  <span style="color:rgb(153, 153, 136);"># 删掉了2个元素</span>
+&gt; zadd ireader 4.0 java 1.0 go
+(<span style="color:rgb(0, 134, 179);">integer</span>) 2
+&gt; zremrangebyscore ireader -inf 4
+(<span style="color:rgb(0, 134, 179);">integer</span>) 2
+&gt; zrange ireader 0 -1
+1) <span style="color:rgb(221, 17, 68);">&quot;python&quot;</span>
+<span style="position:absolute;top:6px;right:15px;font-size:12px;line-height:1;cursor:pointer;color:rgba(140, 140, 140, 0.8);transition:color 0.1s;">复制代码</span></code></pre><p style="line-height:inherit;margin-top:22px;margin-bottom:22px;"><strong style="font-weight:700;">跳跃列表</strong> zset内部的排序功能是通过「跳跃列表」数据结构来实现的，它的结构非常特殊，也比较复杂。这一块的内容深度读者要有心理准备。</p>
+<p style="line-height:inherit;margin-top:22px;margin-bottom:22px;">因为zset要支持随机的插入和删除，所以它不好使用数组来表示。我们先看一个普通的链表结构。</p>
+<p style="line-height:inherit;margin-top:22px;margin-bottom:22px;"></p><div style="display:block;margin:22px auto;text-align:center;"><img src="通俗易懂的Redis数据结构基础教程 - 掘金_files/1 [8]" type="image/webp" data-filename="1" height="56" style="border-style:none;max-height:none;visibility:visible;background-color:transparent;background-position:50% center;background-repeat:no-repeat;background-image:none;margin:0px;cursor:zoom-in;max-width:100%;" width="652"/><div style="display:block;text-align:center;font-size:1rem;line-height:1.6;color:rgb(144, 144, 144);margin-top:2px;"></div></div><p style="line-height:inherit;margin-top:22px;margin-bottom:22px;"></p>
+<p style="line-height:inherit;margin-top:22px;margin-bottom:22px;">我们需要这个链表按照score值进行排序。这意味着当有新元素需要插入时，需要定位到特定位置的插入点，这样才可以继续保证链表是有序的。通常我们会通过二分查找来找到插入点，但是二分查找的对象必须是数组，只有数组才可以支持快速位置定位，链表做不到，那该怎么办？</p>
+<p style="line-height:inherit;margin-top:22px;margin-bottom:22px;">想想一个创业公司，刚开始只有几个人，团队成员之间人人平等，都是联合创始人。随着公司的成长，人数渐渐变多，团队沟通成本随之增加。这时候就会引入组长制，对团队进行划分。每个团队会有一个组长。开会的时候分团队进行，多个组长之间还会有自己的会议安排。公司规模进一步扩展，需要再增加一个层级——部门，每个部门会从组长列表中推选出一个代表来作为部长。部长们之间还会有自己的高层会议安排。</p>
+<p style="line-height:inherit;margin-top:22px;margin-bottom:22px;">跳跃列表就是类似于这种层级制，最下面一层所有的元素都会串起来。然后每隔几个元素挑选出一个代表来，再将这几个代表使用另外一级指针串起来。然后在这些代表里再挑出二级代表，再串起来。最终就形成了金字塔结构。</p>
+<p style="line-height:inherit;margin-top:22px;margin-bottom:22px;">想想你老家在世界地图中的位置：亚洲--&gt;中国-&gt;安徽省-&gt;安庆市-&gt;枞阳县-&gt;汤沟镇-&gt;田间村-&gt;xxxx号，也是这样一个类似的结构。</p>
+<p style="line-height:inherit;margin-top:22px;margin-bottom:22px;"></p><div style="display:block;margin:22px auto;text-align:center;"><img src="通俗易懂的Redis数据结构基础教程 - 掘金_files/1 [9]" type="image/webp" data-filename="1" height="127" style="border-style:none;max-height:none;visibility:visible;background-color:transparent;background-position:50% center;background-repeat:no-repeat;background-image:none;margin:0px;cursor:zoom-in;max-width:100%;" width="652"/><div style="display:block;text-align:center;font-size:1rem;line-height:1.6;color:rgb(144, 144, 144);margin-top:2px;"></div></div><p style="line-height:inherit;margin-top:22px;margin-bottom:22px;"></p>
+<p style="line-height:inherit;margin-top:22px;margin-bottom:22px;">「跳跃列表」之所以「跳跃」，是因为内部的元素可能「身兼数职」，比如上图中间的这个元素，同时处于L0、L1和L2层，可以快速在不同层次之间进行「跳跃」。</p>
+<p style="line-height:inherit;margin-top:22px;margin-bottom:22px;">定位插入点时，先在顶层进行定位，然后下潜到下一级定位，一直下潜到最底层找到合适的位置，将新元素插进去。你也许会问那新插入的元素如何才有机会「身兼数职」呢？</p>
+<p style="line-height:inherit;margin-top:22px;margin-bottom:22px;">跳跃列表采取一个随机策略来决定新元素可以兼职到第几层，首先L0层肯定是100%了，L1层只有50%的概率，L2层只有25%的概率，L3层只有12.5%的概率，一直随机到最顶层L31层。绝大多数元素都过不了几层，只有极少数元素可以深入到顶层。列表中的元素越多，能够深入的层次就越深，能进入到顶层的概率就会越大。</p>
+<p style="line-height:inherit;margin-top:22px;margin-bottom:22px;">这还挺公平的，能不能进入中央不是靠拼爹，而是看运气。</p>
+<p style="line-height:inherit;margin-top:22px;margin-bottom:22px;"></p><div style="display:block;margin:22px auto;text-align:center;"><img src="通俗易懂的Redis数据结构基础教程 - 掘金_files/1 [10]" type="image/webp" data-filename="1" height="258" style="border-style:none;max-height:none;visibility:visible;background-color:transparent;background-position:50% center;background-repeat:no-repeat;background-image:none;margin:0px;cursor:zoom-in;max-width:100%;" width="258"/><div style="display:block;text-align:center;font-size:1rem;line-height:1.6;color:rgb(144, 144, 144);margin-top:2px;"></div></div><p style="line-height:inherit;margin-top:22px;margin-bottom:22px;"></p>
+<p style="line-height:inherit;margin-top:22px;margin-bottom:22px;">微信扫一扫关注公众号「码洞」，阅读更多精彩文章</p>
+</div></div></div></div></span></div></div></div></div></div>
+</div>
+</span>
+</div></body></html> 

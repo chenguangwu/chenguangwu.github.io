@@ -1,0 +1,423 @@
+<html>
+<head>
+  <title>Spring之事务理解 - Jevo - 博客园</title>
+  <basefont face="微软雅黑" size="2" />
+  <meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+  <meta name="exporter-version" content="YXBJ Windows/600718 (zh-CN, DDL); Windows/6.1.1 (Win64);"/>
+  <style>
+    body, td {
+      font-family: 微软雅黑;
+      font-size: 10pt;
+    }
+  </style>
+</head>
+<body>
+<a name="6181"/>
+<h1>Spring之事务理解 - Jevo - 博客园</h1>
+<div>
+<table bgcolor="#D4DDE5" border="0">
+<tr><td><b>创建时间：</b></td><td><i>2017/3/29 17:06</i></td></tr>
+<tr><td><b>来源：</b></td><td><a href="http://www.cnblogs.com/jevo/archive/2013/03/26/2966999.html"><i>http://www.cnblogs.com/jevo/archive/2013/03/26/2966999.html</i></a></td></tr>
+</table>
+</div>
+<br/>
+
+<div><span><div style="-evernote-webclip:true"><br/><div style="font-size: 16px; display: inline-block;"><div><div style="font-family:&quot;PingFang SC&quot;, &quot;Helvetica Neue&quot;, Helvetica, Arial, sans-serif;color:rgb(0, 0, 0);background:url(&quot;/Skins/coffee/images/bg_body.gif&quot;) left top;line-height:1.5;font-size:14px;"><div style="min-width:auto;"><div style="min-width:auto;text-align:left;"><div style="background:transparent;text-align:left;overflow-x:hidden;"><div style="background:url(&quot;/Skins/coffee/images/bg_left.gif&quot;) left top repeat-x rgb(254, 254, 242);"><div><div style="text-overflow:ellipsis;overflow:hidden;word-break:break-all;"><div>
+		<h1 style="margin:0px;padding:0px;width:100%;clear:both;font-weight:bold;float:left;line-height:1.5;font-size:14px;padding-left:5px;">
+			<a href="http://www.cnblogs.com/jevo/archive/2013/03/26/2966999.html" style="margin:0px;padding:0px;text-decoration:none;color:rgb(7, 93, 179);">Spring之事务理解</a>
+		</h1>
+		<div style="margin:0px;padding:0px;clear:both;"></div>
+		<div style="margin:0px;padding:5px 2px 5px 5px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin-top:5px;">
+			<div style="margin:0px;padding:0px;margin-bottom:20px;word-break:break-word;"><p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">事务管理是保证数据操作的事务性（即原子性、一致性、隔离性、持久性，即所谓的 ACID）。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">Java中的事务类型主要有三种：JDBC事务、JTA(Java Transaction API)事务和容器事务。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">1. JDBC事务</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">JDBC 事务是通过 Connection 接口( java.sql.Connection )控制的。JDBC Connection 接口提供了两种事务模式：自动提交和手工提交，支持五个事务隔离级别，两个锁密度。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">五个事务隔离级别是(Connection中的定义)：</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">          static int TRANSACTION_NONE = 0;      //JDBC驱动不支持事务</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">          static int TRANSACTION_READ_UNCOMMITTED = 1;  //允许脏读、不可重复读和幻读。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">          static int TRANSACTION_READ_COMMITTED = 2;  //禁止脏读，但允许不可重复读和幻读。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">          static int TRANSACTION_REPEATABLE_READ = 4; //禁止脏读和不可重复读，单运行幻读。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">          static int TRANSACTION_SERIALIZABLE = 8; //禁止脏读、不可重复读和幻读。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">2种锁密度是：表锁和行锁。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">JDBC根据数据库提供的默认值来设置事务支持及其加锁，也可以在应用程序中通过Connection的方法手工设置： setTransactionIsolation(Connection.TRANSACTION_READ_UNCOMMITTED); //设置事务隔离级别</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">getTransactionIsolation () ；//查看当前事务隔离级别</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">(手动设置的事务应该是数据库及驱动程序支持的事务，并且不是所有的数据库都有对应的这五个事务隔离级别实现, 在实际工作中，我们极少去修改各个数据库默认的隔离级别。)</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"> JDBC还定义了SavePoint接口，该接口提供在一个更细粒度的事务控制机制。当设置了一个保存点后，可以rollback到该保存点处的状态，而不是rollback整个事务。在Connection接口的setSavepoint和releaseSavepoint方法中可以设置和释放保存点。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">JDBC提供了DatabaseMetaData接口，来查询数据库对一系列JDBC特性支持情况。比如，通过DatabaseMetaData.supportsTransactionIsolationLevel方法来判断对事务隔离级别的支持度，通过DatabaseMetaData.supportsSavepoints方法判断对保存点的支持情况。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"> </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">2．JTA事务</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">JTA(java transaction api)是允许应用程序执行分布式事务处理的API。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">用 JTA 界定事务，需要有一个实现了javax.sql.XADataSource 、 javax.sql.XAConnection 和 javax.sql.XAResource 接口的 JDBC 驱动程序。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">一个 XADataSource 对象就是一个 XAConnection 对象的工厂。 XAConnection 是参与 JTA 事务的 JDBC 连接。XA 连接(XAConnection)与非XA 连接(Connection)不同，XA 连接直接参与了JTA 事务，不支持JDBC 的自动提交功能。故，在应用程序中不能对XA 连接调用 java.sql.Connection.commit() 或者 java.sql.Connection.rollback() 。相反，应用程序应该使用UserTransaction.begin()、 UserTransaction.commit() 和 UserTransaction.rollback()方法。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">JTA是由三个部分组成（这三个接口在jta specification中所描述）：</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">  •  UserTransaction - 提供编程控制事务边界的能力</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">  •  TransactionManager - 高层事务管理接口，允许应用程序服务器控制代表正在管理的应用程序的事务范围。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">  •  XAResource - 基于X/Open CAE规范（分布式事务处理：XA 规范）的工业标准XA接口的Java 映射</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">在分布式事务处理 (DTP) 环境中，XA接口定义了资源管理器和事务管理器之间的协定。JDBC 驱动程序或 JMS 提供者实现此接口，以支持全局事务与数据库或消息服务连接之间的关联。jdbc驱动程序开发者只需要关心XAResource接口实现。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">应用程序在通过多个数据库连接访问数据时，通过事务管理器把每个数据库连接作为事务资源添加到列表中。事务管理器为参与全局事务的每个连接获取XAResource。事务管理器使用start 方法建立全局事务与资源之间的关联，使用end 方法取消事务与资源之间的关联。资源管理器负责将全局事务关联到在start 与 end 方法调用之间对其数据执行的所有工作。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">在事务提交时，事务管理器通知资源管理器根据二阶段提交协议(two - phase commit protocol)准备、提交或回滚事务。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">参见http://doc.java.sun.com/DocWeb/api/javax.transaction.xa.XAResource</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">在第一阶段，事务管理程序轮询所有包含在分布式事务中的资源管理程序（关系数据库管理）查看哪个可以准备提交。如果一个资源管理程序不能提交，它将不响应，并且把事务的特定部分返回，以便数据不被修改。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">在第二阶段，事务管理程序判断否定响应的资源管理程序中是否有能够返回整个事务的。如果没有否定响应的话，翻译管理程序提交整个事务并且返回结果到应用程序中。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">事务管理器建立和维护发生的事务的状态，并以事务上下文的形式完成。 事务上下文是在资源上的事务性操作和调用操作的构件之间的一个关联(Association)。在一个事务执行期间，所有的参与事务的线程共享事务上下文。所以事务上下文在逻辑上封装(Envelop)了在一个事务期间在事务性资源上的完成的所有操作。事务上下文通常由底层的事务管理器透明的维护。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">javax.transaction.Status接口定义了一些用于事务状态码的静态变量。</p>
+<table border="0" cellpadding="0" cellspacing="0" style="border-collapse:collapse;font-size:inherit;font-style:inherit;font-variant:inherit;padding:0px;font-weight:inherit;margin:0px;word-break:break-word;border:1px solid silver;display:block;overflow-x:scroll;">
+<tbody style="margin:0px;padding:0px;">
+<tr style="margin:0px;padding:0px;">
+<td style="margin:0px;border:1px solid silver;border-collapse:collapse;padding:3px;white-space:nowrap;" valign="top" width="590">
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">    int STATUS_ACTIVE = 0;   //与目标对象关联的事务处于活动状态。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">    int STATUS_MARKED_ROLLBACK = 1;  //与目标对象关联的事务已被标记为回滚，也许是setRollbackOnly操作的结果。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">    int STATUS_PREPARED = 2;  //与目标对象关联的事务已准备好。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">    int STATUS_COMMITTED = 3;   //与目标对象关联的事务已被提交。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">    int STATUS_ROLLEDBACK = 4;  // 与目标对象关联的事务被定义为回滚。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">    int STATUS_UNKNOWN = 5;  // 目标对象有关联事务，但当前状态还未定义。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">    int STATUS_NO_TRANSACTION = 6;  // 目标对象目前没有关联事务。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">    int STATUS_PREPARING = 7;  // 与目标对象关联的事务正在准备过程中。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">    int STATUS_COMMITTING = 8;  //与目标对象关联的事务正在提交过程中。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">    int STATUS_ROLLING_BACK = 9;  // 与目标对象关联的事务正在回滚过程中。</p>
+</td>
+</tr>
+</tbody>
+</table>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">JTA的编程程式类似如下：</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">try {</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">    UserTransaction tx = (UserTransaction) (new InitialContext().lookup(&quot;java/tx&quot;));//得到一个UserTransaction对象实例</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">    DataSource ds = //得到数据源</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">    // 开始一个事务</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">    utx.begin();</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">    // 做一些事情</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">    Connection conn = ds.getConnection(); <br style="margin:0px;padding:0px;"/>    pstmt = conn.prepareStatement(&quot;...&quot;); <br style="margin:0px;padding:0px;"/>    pstmt.setString（1， …); <br style="margin:0px;padding:0px;"/>    pstmt.executeUpdate();</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">    // 提交</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">    utx.commit();</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">} catch (Exception ex) {</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">    if (null!=tx){</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">        try {</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">            tx.rollback(); </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">        }catch(Exception e) {}</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">    }</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">}</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"> </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">3．容器事务</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">容器事务主要是J2EE应用服务器提供的，容器事务大多是基于JTA完成，这是一个基于JNDI的，相当复杂的API实现。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"> </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"><strong style="margin:0px;padding:0px;">Spring事务</strong> </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">Spring框架对事务管理的支持改变了传统上认为J2EE应用需要应用服务器的观点，Spring可以将任意Java Bean纳入事务管理, 同时Spring事务管理也不依赖特定的事务资源。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">spring提供了几个关于事务处理的类：</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">◆TransactionDefinition  //事务属性定义, 包含了事务的静态属性，比如：事务传播行为、超时时间等等该类有以下几个重要的接口方法：</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">　　◆intgetPropagationBehavior()：事务的传播行为；</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">　　◆intgetIsolationLevel()：          事务的隔离级别；</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">　　◆intgetTimeout()：                 事务的过期时间；</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">　　◆booleanisReadOnly()：          事务的读写特性。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">　　除了事务的传播行为外，事务的其它特性Spring是借助底层资源的功能来完成的，</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">◆TranscationStatus  //代表了当前的事务，可以提交，回滚。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">◆PlatformTransactionManager  //是spring提供的用于管理事务的基础接口，用于执行具体的事务操作，其下实现有一个抽象类 AbstractPlatformTransactionManager。相关的事务管理类例如DataSourceTransactionManager等都是这个抽象类的子类。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"><strong style="margin:0px;padding:0px;">事务隔离级别</strong></p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">   隔离级别是指若干个并发的事务之间的隔离程度。TransactionDefinition 接口中定义了五个表示隔离级别的常量：</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">    •   TransactionDefinition.ISOLATION_DEFAULT：                   这是默认值，表示使用底层数据库的默认隔离级别。对大部分数据库而言，通常这值就是TransactionDefinition.ISOLATION_READ_COMMITTED。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">    •   TransactionDefinition.ISOLATION_READ_UNCOMMITTED： 该隔离级别表示一个事务可以读取另一个事务修改但还没有提交的数据。该级别不能防止脏读和不可重复读，因此很少使用该隔离级别。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">    •   TransactionDefinition.ISOLATION_READ_COMMITTED：     该隔离级别表示一个事务只能读取另一个事务已经提交的数据。该级别可以防止脏读，这也是大多数情况下的推荐值。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">    •   TransactionDefinition.ISOLATION_REPEATABLE_READ：    该隔离级别表示一个事务在整个过程中可以多次重复执行某个查询，并且每次返回的记录都相同。即使在多次查询之间有新增的数据满足该查询，这些新增的记录也会被忽略。该级别可以防止脏读和不可重复读。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">    •   TransactionDefinition.ISOLATION_SERIALIZABLE：           所有的事务依次逐个执行，这样事务之间就完全不可能产生干扰，也就是说，该级别可以防止脏读、不可重复读以及幻读。但是这将严重影响程序的性能。通常情况下也不会用到该级别。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"> </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"><strong style="margin:0px;padding:0px;">事务传播行为</strong></p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">     事务的传播行为是指，如果在开始当前事务之前，一个事务上下文已经存在，此时有若干选项可以指定一个事务性方法的执行行为。所谓事务传播行为就是多个事务方法相互调用时，事务如何在这些方法间传播。Spring在TransactionDefinition接口中规定了7种类型的事务传播行为，它们规定了事务方法和事务方法发生嵌套调用时事务如何进行传播：</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">PROPAGATION_REQUIRED            如果当前没有事务，就新建一个事务，如果已经存在一个事务中，加入到这个事务中。这是最常见的选择。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">PROPAGATION_SUPPORTS            支持当前事务，如果当前没有事务，就以非事务方式执行。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">PROPAGATION_MANDATORY         使用当前的事务，如果当前没有事务，就抛出异常。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">PROPAGATION_REQUIRES_NEW    新建事务，如果当前存在事务，把当前事务挂起。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">PROPAGATION_NOT_SUPPORTED   以非事务方式执行操作，如果当前存在事务，就把当前事务挂起。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">PROPAGATION_NEVER                  以非事务方式执行，如果当前存在事务，则抛出异常。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">PROPAGATION_NESTED                如果当前存在事务，则在嵌套事务内执行。如果当前没有事务，则执行与PROPAGATION_REQUIRED类似的操作。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">前六个策略类似于EJB CMT，第七个（PROPAGATION_NESTED嵌套事务）是Spring所提供的一个特殊变量。它要求事务管理器或者使用JDBC 3.0 Savepoint API提供嵌套事务行为（如Spring的DataSourceTransactionManager）。以 PROPAGATION_NESTED 启动的事务内嵌于外部事务中（如果存在外部事务的话），此时，内嵌事务并不是一个独立的事务，它依赖于外部事务的存在，只有通过外部的事务提交，才能引起内部事务的提交，嵌套的子事务不能单独提交。（嵌套的子事务实质上就是保存点的一个应用）</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">Spring默认的事务传播行为是PROPAGATION_REQUIRED，它适合于绝大多数的情况。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">在使用过程中需要注意以下几点：</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">   1) 当业务方法被设置为PROPAGATION_MANDATORY时，它就不能被非事务的业务方法调用。如将ForumService#addTopic()设置为PROPAGATION_MANDATORY，如果展现层的Action直接调用addTopic()方法，将引发一个异常。正确的情况是：addTopic()方法必须被另一个带事务的业务方法调用（如ForumService#otherMethod()）。所以PROPAGATION_MANDATORY的方法一般都是被其它业务方法间接调用的。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">   2) 当业务方法被设置为PROPAGATION_NEVER时，它将不能被拥有事务的其它业务方法调用。假设UserService#addCredits()设置为PROPAGATION_NEVER，当ForumService# addTopic()拥有一个事务时，addCredits()方法将抛出异常。所以PROPAGATION_NEVER方法一般是被直接调用的。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">   3)  当方法被设置为PROPAGATION_NOT_SUPPORTED时，外层业务方法的事务会被挂起，当内部方法运行完成后，外层方法的事务重新运行。如果外层方法没有事务，直接运行，不需要做任何其它的事。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">(理解PROPAGATION_REQUIRED，此时内部操作与外部操作同处于一个事务范围内，拥有相同的隔离级别和锁，内部操作与外部操作一起提交或回滚，两个操作是相互关联的；</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">PROPAGATION_REQUIRES_NEW，此时内部操作与外部操作分别处于不同的事务范围中，（并且可能拥有不同的隔离级别和锁），当内部事务（操作）执行时，外部事务（操作）被挂起，当内部事务（操作）执行完成后，外部事务（操作）才继续执行。内部事务的提交/回滚不影响到外部事务的提交/回滚，即内部操作是否成功不影响到外部操作的运行。这两个操作是无关联的；</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">PROPAGATION_NESTED，此时内部操作所属事务作为外部操作所属事务的子事务，当子事务开始执行时，它将保存一个savepoint，当子事务执行失败时，它将回滚到执行前的savepoint，外部事务（父事务）根据配置决定是否提交或回滚。最终父事务提交、回滚才会决定到子事务的提交、回滚。ROPAGATION_NESTED是利用SavePoint特性来支持的。)</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">关于SavePoint的说明：</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">举个例子，假设我们面临这样一种情况，需要执行这样一个事务Tx={methodA-&gt;methodB-&gt;methodC}。没有SavePoint之前，如果methodA执行成功，但methodB失败了，那么methodA所有成果必须回滚，methodC也没机会被执行，因为methodA、methodB、methodC都在同一个Tx事务中；JDBC3.0的SavePoint技术为我们提供了一个无需回滚MethodA的折衷办法，可以让我们在保留methodA的成果的同时，仅仅回滚methodB，然后继续执行methodC。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"><strong style="margin:0px;padding:0px;">事务管理</strong></p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">spring提供的事务管理可以分为两类：编程式的和声明式的。编程式的，比较灵活，但是重复的代码比较多；声明式的比编程式的更灵活。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">◆编程式</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">编程式事务管理直接或间接地使用了底层持久化API（JDBC、Hibernate等），在内部封装资源创建、清理、事务同步以及异常映射等功能。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">Spring提供两种方式的编程式事务管理：直接基于底层API调用（使用 PlatformTransactionManager）和TransactionTemplate模板。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">1．基于底层API的调用</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">基于底层API调用，主要利用PlatformTransactionManager、TransactionDefinition 和 TransactionStatus 三个核心接口。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">一般事务定义步骤如下：</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">//TransactionDefinition可以通过Spring注入，用于定义一个事务</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">TransactionDefinition td = new TransactionDefinition(); </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">//PlatformTransactionManager可通过Spring注入，用于执行事务管理<br style="margin:0px;padding:0px;"/>TransactionStatus ts = transactionManager.getTransaction(td); //启动一个事务<br style="margin:0px;padding:0px;"/>Try {<br style="margin:0px;padding:0px;"/>     //Dao do sth 调用dao的方法<br style="margin:0px;padding:0px;"/>    transactionManager.commit(ts);//提交<br style="margin:0px;padding:0px;"/>}<br style="margin:0px;padding:0px;"/>catch(Exception e){<br style="margin:0px;padding:0px;"/>    transactionManager.rollback(ts);//回<br style="margin:0px;padding:0px;"/>}</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">方法在实施事务管理时，我们需要在方法开始执行前启动一个事务（调用PlatformTransactionManager.getTransaction(...) 方法即启动一个事务）。创建并启动了事务之后，便可以开始编写业务逻辑代码，然后在适当的地方执行事务的提交或者回滚。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"> </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">2．基于TransactionTemplate模板方法</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">TransactionTemplate 采用与Spring中别的模板同样的方法， 如 JdbcTemplate 。它使用回调机制，省略了部分的事务对象定义、启动、提交和回滚等样板代码，只需注入事务管理对象。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">TransactionTemplate 和 TransactionInterceptor 都将真正的事务处理委托给一个 PlatformTransactionManager 实例来处理。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">Spring中的类似模板，还包括JdbcTemplate、HibernateTemplate和JdoTemplate类，这些模板在更低层上有DataSourceUtils（针对JDBC），SessionFactoryUtils（针对Hibernate）等更低层次的类来支撑。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">TransactionTemplate模式方法有两种使用方式：</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">transactionTemplate.execute(new TransactionCallbackWithoutResult() {</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">  protected void doInTransactionWithoutResult(TransactionStatus status) {</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">    try {</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">      updateOperation1();</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">      updateOperation2();</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">    } catch (SomeBusinessExeption ex) {</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">      status.setRollbackOnly();</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">    }</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">  }</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">});</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">或</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">transactionTemplate.execute( new TransactionCallback(){</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">    pulic Object doInTransaction(TransactionStatus ts){</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">       Object result;</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">       try {</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">          result = updateOperation1();</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">       } catch (Exception e) {</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">          status.setRollbackOnly();</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">          result = false;</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">       } </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">       return result;</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">    }</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">});</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">TransactionCallbackWithoutResult 接口主要用于事务过程中不需要返回值的情况。对于不需要返回值的情况，我们也可以使用 TransactionCallback 接口，并在方法中返回任意值。 </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"> </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">◆声明式：</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">声明式事务管理是通过Spring AOP实现的，其中的事务通知由元数据（XML或注解）驱动。这也是我们常采用的事务管理方式。Spring配置文件中关于事务配置总是由三个组成部分，分别是DataSource、TransactionManager和代理机制这三部分，无论哪种配置方式，一般变化的只是代理机制这部分。围绕Poxy的动态代理，能够实现自动的提交和回滚事务。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">由于声明式事务管理是通过Spring AOP来实现的，所以关于Spring AOP相关配置也适用本处。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">1．基于拦截器TransactionInterceptor</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">使用TransactionInterceptor 来定义相关的事务规则，他有两个主要的属性：一个是 transactionManager，用来指定事务管理器，并将具体事务操作委托给它；另一个是transactionAttributes 属性，主要用来定义事务规则，该属性的每一个键值对中，键指定的是方法名(可以使用通配符)，值表示相应方法所应用的事务属性。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">事务属性的取值书写规则如下：</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">       传播行为 [，隔离级别] [，只读属性] [，超时属性] [不影响提交的异常] [，导致回滚的异常]</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">    •   传播行为是唯一必须设置的属性，其他都可以忽略，Spring为我们提供了合理的默认值。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">    •   传播行为的取值必须以“PROPAGATION_”开头，具体包括：PROPAGATION_MANDATORY、PROPAGATION_NESTED、PROPAGATION_NEVER、PROPAGATION_NOT_SUPPORTED、PROPAGATION_REQUIRED、PROPAGATION_REQUIRES_NEW、PROPAGATION_SUPPORTS，共七种取值。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">    •   隔离级别的取值必须以“ISOLATION_”开头，具体包括：ISOLATION_DEFAULT、ISOLATION_READ_COMMITTED、ISOLATION_READ_UNCOMMITTED、ISOLATION_REPEATABLE_READ、ISOLATION_SERIALIZABLE，共五种取值。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">    •   如果事务是只读的，那么我们可以指定只读属性，使用“readOnly”指定。否则我们不需要设置该属性。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">    •   超时属性的取值必须以“TIMEOUT_”开头，后面跟一个int类型的值，表示超时时间，单位是秒。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">    •   不影响提交的异常是指，即使事务中抛出了这些类型的异常，事务任然正常提交。必须在每一个异常的名字前面加上“+”。异常的名字可以是类名的一部分。比如“+RuntimeException”、“+tion”等等。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">    •   导致回滚的异常是指，当事务中抛出这些类型的异常时，事务将回滚。必须在每一个异常的名字前面加上“-”。异常的名字可以是类名的全部或者部分，比如“-RuntimeException”、“-tion”等等。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">配置TransactionInterceptor后，还需要配置一个 ProxyFactoryBean 来组装 target 和advice。这也是典型的 Spring AOP 的做法。通过 ProxyFactoryBean 生成的代理类就是织入了事务管理逻辑后的目标对象类。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">如下：</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">    &lt;!-- 定义事务管理器（声明式的事务） --&gt;  <br style="margin:0px;padding:0px;"/>    &lt;bean id=&quot;transactionManager&quot;<br style="margin:0px;padding:0px;"/>        class=&quot;org.springframework.orm.hibernate3.HibernateTransactionManager&quot;&gt;<br style="margin:0px;padding:0px;"/>        &lt;property name=&quot;sessionFactory&quot; ref=&quot;sessionFactory&quot; /&gt;<br style="margin:0px;padding:0px;"/>    &lt;/bean&gt; <br style="margin:0px;padding:0px;"/>   <br style="margin:0px;padding:0px;"/>    &lt;bean id=&quot;transactionInterceptor&quot;  <br style="margin:0px;padding:0px;"/>        class=&quot;org.springframework.transaction.interceptor.TransactionInterceptor&quot;&gt;  <br style="margin:0px;padding:0px;"/>        &lt;property name=&quot;transactionManager&quot; ref=&quot;transactionManager&quot; /&gt;  <br style="margin:0px;padding:0px;"/>        &lt;!-- 配置事务属性 --&gt;  <br style="margin:0px;padding:0px;"/>        &lt;property name=&quot;transactionAttributes&quot;&gt;  <br style="margin:0px;padding:0px;"/>            &lt;props&gt;  <br style="margin:0px;padding:0px;"/>                &lt;prop key=&quot;*&quot;&gt;PROPAGATION_REQUIRED&lt;/prop&gt;  <br style="margin:0px;padding:0px;"/>            &lt;/props&gt;  <br style="margin:0px;padding:0px;"/>        &lt;/property&gt;  <br style="margin:0px;padding:0px;"/>    &lt;/bean&gt;</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"> </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">    &lt;bean id=&quot;sampleServiceTarget&quot; class=&quot;sample.SampleServiceImpl&quot;&gt;</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">        &lt;property name=&quot;sampleDao&quot; ref=&quot;sampleDao&quot;/&gt;</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">    &lt;/bean&gt;</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">    &lt;bean id=&quot;sampleService&quot; class=&quot;org.springframework.aop.framework.ProxyFactoryBean&quot;&gt;</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">        &lt;property name=&quot;target&quot; ref=&quot;sampleServiceTarget&quot;/&gt;</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">        &lt;property name=&quot;interceptorNames&quot;&gt;</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">            &lt;list&gt;</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">                &lt;idref bean=&quot;transactionInterceptor&quot;/&gt;</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">            &lt;/list&gt;</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">        &lt;/property&gt;</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">    &lt;/bean&gt;</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">或者</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">    &lt;!-- 定义事务管理器（声明式的事务） --&gt;  <br style="margin:0px;padding:0px;"/>    &lt;bean id=&quot;transactionManager&quot;<br style="margin:0px;padding:0px;"/>        class=&quot;org.springframework.orm.hibernate3.HibernateTransactionManager&quot;&gt;<br style="margin:0px;padding:0px;"/>        &lt;property name=&quot;sessionFactory&quot; ref=&quot;sessionFactory&quot; /&gt;<br style="margin:0px;padding:0px;"/>    &lt;/bean&gt; <br style="margin:0px;padding:0px;"/>   <br style="margin:0px;padding:0px;"/>    &lt;bean id=&quot;transactionInterceptor&quot;  <br style="margin:0px;padding:0px;"/>        class=&quot;org.springframework.transaction.interceptor.TransactionInterceptor&quot;&gt;  <br style="margin:0px;padding:0px;"/>        &lt;property name=&quot;transactionManager&quot; ref=&quot;transactionManager&quot; /&gt;  <br style="margin:0px;padding:0px;"/>        &lt;!-- 配置事务属性 --&gt;  <br style="margin:0px;padding:0px;"/>        &lt;property name=&quot;transactionAttributes&quot;&gt;  <br style="margin:0px;padding:0px;"/>            &lt;props&gt;  <br style="margin:0px;padding:0px;"/>                &lt;prop key=&quot;*&quot;&gt;PROPAGATION_REQUIRED&lt;/prop&gt;  <br style="margin:0px;padding:0px;"/>            &lt;/props&gt;  <br style="margin:0px;padding:0px;"/>        &lt;/property&gt;  <br style="margin:0px;padding:0px;"/>    &lt;/bean&gt;<br style="margin:0px;padding:0px;"/>      <br style="margin:0px;padding:0px;"/>    &lt;bean class=&quot;org.springframework.aop.framework.autoproxy.BeanNameAutoProxyCreator&quot;&gt;  <br style="margin:0px;padding:0px;"/>        &lt;property name=&quot;beanNames&quot;&gt;  <br style="margin:0px;padding:0px;"/>            &lt;list&gt;  <br style="margin:0px;padding:0px;"/>                &lt;value&gt;*Service&lt;/value&gt;<br style="margin:0px;padding:0px;"/>            &lt;/list&gt;  <br style="margin:0px;padding:0px;"/>        &lt;/property&gt;  <br style="margin:0px;padding:0px;"/>        &lt;property name=&quot;interceptorNames&quot;&gt;  <br style="margin:0px;padding:0px;"/>            &lt;list&gt;  <br style="margin:0px;padding:0px;"/>                &lt;value&gt;transactionInterceptor&lt;/value&gt;  <br style="margin:0px;padding:0px;"/>            &lt;/list&gt;  <br style="margin:0px;padding:0px;"/>        &lt;/property&gt;  <br style="margin:0px;padding:0px;"/>    &lt;/bean&gt;</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">以ProxyFactoryBean实现了单个代理，该方法只能为单个类配置代理。BeanNameAutoProxyCreator或者 DefaultAdvisorAutoProxyCreator实现自动代理，会自动为所有的增强所匹配的bean创建相应的代理。这两个配置只能选择其中一个创建代理。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">2．使用TransactionProxyFactoryBean</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">TransactionProxyFactoryBean可以将TransactionInterceptor 和 ProxyFactoryBean 的配置合二为一，简化了以上的配置。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">&lt;!-- 定义事务管理器（声明式的事务） --&gt;  <br style="margin:0px;padding:0px;"/>    &lt;bean id=&quot;transactionManager&quot;<br style="margin:0px;padding:0px;"/>        class=&quot;org.springframework.orm.hibernate3.HibernateTransactionManager&quot;&gt;<br style="margin:0px;padding:0px;"/>        &lt;property name=&quot;sessionFactory&quot; ref=&quot;sessionFactory&quot; /&gt;<br style="margin:0px;padding:0px;"/>    &lt;/bean&gt;<br style="margin:0px;padding:0px;"/>    <br style="margin:0px;padding:0px;"/>    &lt;bean id=&quot;sampleServiceTarget&quot; class=&quot;sample.SampleServiceImpl&quot;&gt;</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">       &lt;property name=&quot;sampleDao&quot; ref=&quot;sampleDao&quot;/&gt;</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">    &lt;/bean&gt;</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"> </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">    &lt;bean id=&quot;sampleService&quot;</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">       class=&quot;org.springframework.transaction.interceptor.TransactionProxyFactoryBean&quot;&gt;</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">       &lt;property name=&quot;target&quot; ref=&quot;sampleServiceTarget&quot;/&gt;</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">       &lt;property name=&quot;transactionManager&quot; ref=&quot;transactionManager&quot;/&gt;</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">       &lt;property name=&quot;transactionAttributes&quot;&gt;</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">          &lt;props&gt;</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">            &lt;prop key=&quot;insert*&quot;&gt;PROPAGATION_REQUIRED&lt;/prop&gt;</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">            &lt;prop key=&quot;*&quot;&gt;PROPAGATION_REQUIRED,readOnly&lt;/prop&gt;</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">          &lt;/props&gt;</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">       &lt;/property&gt;</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">    &lt;/bean&gt;</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">以上的配置方式中，每个Bean都只有一个代理，在下面的配置中，我们利用继承关系，使所有被代理的Bean共享一个代理基类，如下：</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">    &lt;!-- 定义事务管理器（声明式的事务） --&gt;  <br style="margin:0px;padding:0px;"/>    &lt;bean id=&quot;transactionManager&quot;<br style="margin:0px;padding:0px;"/>        class=&quot;org.springframework.orm.hibernate3.HibernateTransactionManager&quot;&gt;<br style="margin:0px;padding:0px;"/>        &lt;property name=&quot;sessionFactory&quot; ref=&quot;sessionFactory&quot; /&gt;<br style="margin:0px;padding:0px;"/>    &lt;/bean&gt;<br style="margin:0px;padding:0px;"/>    <br style="margin:0px;padding:0px;"/>    &lt;bean id=&quot;transactionBase&quot;  <br style="margin:0px;padding:0px;"/>            class=&quot;org.springframework.transaction.interceptor.TransactionProxyFactoryBean&quot;  <br style="margin:0px;padding:0px;"/>            lazy-init=&quot;true&quot; abstract=&quot;true&quot;&gt;  <br style="margin:0px;padding:0px;"/>        &lt;!-- 配置事务管理器 --&gt;  <br style="margin:0px;padding:0px;"/>        &lt;property name=&quot;transactionManager&quot; ref=&quot;transactionManager&quot; /&gt;  <br style="margin:0px;padding:0px;"/>        &lt;!-- 配置事务属性 --&gt;  <br style="margin:0px;padding:0px;"/>        &lt;property name=&quot;transactionAttributes&quot;&gt;  <br style="margin:0px;padding:0px;"/>            &lt;props&gt;  <br style="margin:0px;padding:0px;"/>                &lt;prop key=&quot;*&quot;&gt;PROPAGATION_REQUIRED&lt;/prop&gt;  <br style="margin:0px;padding:0px;"/>            &lt;/props&gt;  <br style="margin:0px;padding:0px;"/>        &lt;/property&gt;  <br style="margin:0px;padding:0px;"/>    &lt;/bean&gt;    <br style="margin:0px;padding:0px;"/>   <br style="margin:0px;padding:0px;"/>    &lt;bean id=&quot;sampleServiceTarget&quot; class=&quot;sample.SampleServiceImpl&quot;&gt;</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">        &lt;property name=&quot;sampleDao&quot; ref=&quot;sampleDao&quot;/&gt;</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">    &lt;/bean&gt;<br style="margin:0px;padding:0px;"/>    <br style="margin:0px;padding:0px;"/>    &lt;bean id=&quot;sampleService&quot; parent=&quot;transactionBase&quot; &gt;  <br style="margin:0px;padding:0px;"/>        &lt;property name=&quot;target&quot; ref=&quot;sampleServiceTarget &quot; /&gt;   <br style="margin:0px;padding:0px;"/>    &lt;/bean&gt;</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"> </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">3．基于 &lt;tx&gt; 命名空间的声明式事务管理</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">    &lt;context:annotation-config /&gt;<br style="margin:0px;padding:0px;"/>    &lt;context:component-scan base-package=&quot;sample&quot; /&gt;<br style="margin:0px;padding:0px;"/><br style="margin:0px;padding:0px;"/>    &lt;!-- 定义事务管理器（声明式的事务） --&gt;  <br style="margin:0px;padding:0px;"/>    &lt;bean id=&quot;transactionManager&quot;<br style="margin:0px;padding:0px;"/>        class=&quot;org.springframework.orm.hibernate3.HibernateTransactionManager&quot;&gt;<br style="margin:0px;padding:0px;"/>        &lt;property name=&quot;sessionFactory&quot; ref=&quot;sessionFactory&quot; /&gt;<br style="margin:0px;padding:0px;"/>    &lt;/bean&gt;<br style="margin:0px;padding:0px;"/><br style="margin:0px;padding:0px;"/>    &lt;tx:advice id=&quot;txAdvice&quot; transaction-manager=&quot;transactionManager&quot;&gt;<br style="margin:0px;padding:0px;"/>        &lt;tx:attributes&gt;<br style="margin:0px;padding:0px;"/>            &lt;tx:method name=&quot;*&quot; propagation=&quot;REQUIRED&quot; /&gt;<br style="margin:0px;padding:0px;"/>        &lt;/tx:attributes&gt;<br style="margin:0px;padding:0px;"/>    &lt;/tx:advice&gt;<br style="margin:0px;padding:0px;"/>    <br style="margin:0px;padding:0px;"/>    &lt;aop:config&gt;<br style="margin:0px;padding:0px;"/>        &lt;aop:pointcut id=&quot;interceptorPointCuts&quot; expression=&quot;execution(*sample.*.*(..))&quot; /&gt;<br style="margin:0px;padding:0px;"/>        &lt;aop:advisor advice-ref=&quot;txAdvice&quot; pointcut-ref=&quot;interceptorPointCuts&quot; /&gt;        <br style="margin:0px;padding:0px;"/>    &lt;/aop:config&gt;</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">使用了切点表达式后，就不需要针对每一个业务类创建一个代理对象了。如果配置的事务管理器 Bean 的名字取值为“transactionManager”，还可以省略 &lt;tx:advice&gt; 的 transaction-manager 属性，因为该属性的默认值就是“transactionManager”。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">4．全注解方式</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">具体主要涉及@Transactional 标注。@Transactional 可以作用于类以及类方法上。当作用于类上时，该类的所有 public 方法将都具有该类型的事务属性，如下：</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">package sample;<br style="margin:0px;padding:0px;"/><br style="margin:0px;padding:0px;"/></p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">@Transactional<br style="margin:0px;padding:0px;"/>@Component(&quot;sampleServiceTarget&quot;)<br style="margin:0px;padding:0px;"/>public class SampleServiceImpl extends HibernateDaoSupport implements SampleService {    <br style="margin:0px;padding:0px;"/>    <br style="margin:0px;padding:0px;"/>}</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">Spring 使用 BeanPostProcessor 来处理 Bean 中的标注，因此还需要在配置文件中作如下声明来激活该后处理 Bean，</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">&lt;tx:annotation-driven transaction-manager=&quot;transactionManager&quot;/&gt;</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">transaction-manager 属性的默认值是 transactionManager，如果事务管理器 Bean 的名字即为该值，则可以省略该属性。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">基于 &lt;tx&gt; 命名空间和基于 @Transactional 的事务声明方式各有优缺点。基于 &lt;tx&gt; 的方式的优点是与切点表达式结合，功能强大。利用切点表达式，一个配置可以匹配多个方法，而基于 @Transactional 的方式必须在每一个需要使用事务的方法或者类上用 @Transactional 标注。但同时，基于 @Transactional 的方式使用起来简单明了。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"> </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">参考：</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">Spring事务管理高级应用难点剖析</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">http://www.ibm.com/developerworks/cn/java/j-lo-spring-ts1/index.html</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">http://www.ibm.com/developerworks/cn/java/j-lo-spring-ts2/</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">http://www.ibm.com/developerworks/cn/java/j-lo-spring-ts3/</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">http://www.ibm.com/developerworks/cn/java/j-ts1.html</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">http://www.ibm.com/developerworks/cn/education/opensource/os-cn-spring-trans/section5.html</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"> </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">[注] <strong style="margin:0px;padding:0px;">事务概念：</strong></p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">事务的四个属性：原子性（atomicity）、一致性（consistency）、隔离性（isolation）和持久性（durability）。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">原子性(Atomic)—— 被事务管理的所有方法，要么一起被提交，要么一起回滚。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">一致性（consistency）——如果事务成功地完成，那么系统中所有变化将正确地应用，系统处于新有效状态。如果在事务中出现错误，那么系统中的所有变化将自动地回滚，系统返回到原始状态。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">隔离性（isolation）——如果有两个事务，运行在相同的时间内，执行相同的功能，事务的隔离性将确保每一事务在系统中认为只有该事务在使用系统。这种属性有时称为串行化。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">持久性（durability）——持久性意味着一旦事务执行成功，在系统中产生的所有变化将是永久的。应该存在一些检查点防止在系统失败时丢失信息。甚至硬件本身失败，系统的状态仍能通过在日志中记录事务完成的任务进行重建。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"> </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">在数据库中有两种基本的锁类型：排它锁（Exclusive Locks，即X锁）和共享锁（Share Locks，即S锁）。当数据对象被加上排它锁时，其他的事务不能对它读取和修改。加了共享锁的数据对象可以被其他事务读取，但不能修改。数据库利用这两种基本的锁类型来对数据库的事务进行并发控制。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">    从程序员的角度看,锁分为以下两种类型： </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">    1.乐观锁（Optimistic Lock） </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">乐观锁假定在处理数据时，不需要在应用程序的代码中做任何事情就可以直接在记录上加锁、即完全依靠数据库来管理锁的工作。一般情况下，当执行事务处理时SQL Server会自动对事务处理范围内更新到的表做锁定。 </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">    2.悲观锁（Pessimistic Lock） </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">悲观锁对数据库系统的自动管理不感冒，需要程序员直接管理数据或对象上的加锁处理，并负责获取、共享和放弃正在使用的数据上的任何锁。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"> </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">数据库并发操作存在的异常情况：</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">1. 更新丢失（Lost update）：两个事务都同时更新一行数据，但是第二个事务却中途失败退出导致对数据两个修改都失效了，这是系统没有执行任何锁操作因此并发事务并没有被隔离开来。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">2. 脏读取（Dirty Reads）：一个事务开始读取了某行数据，但是另外一个事务已经更新了此数据，但没有能够及时提交。这是相当危险很可能所有操作都被回滚。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">3. 不可重复读取（Non-repeatable Reads）：一个事务对同一行数据重复读取两次但是却得到了不同结果。例如在两次读取中途有另外一个事务对该行数据进行了修改并提交。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">4. 两次更新问题（Second lost updates problem）：无法重复读取特例，有两个并发事务同时读取同一行数据然后其中一个对它进行修改提交而另一个也进行了修改提交这就会造成第一次写操作失效。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">5. 幻读（Phantom Reads）：也称为幻像（幻影）。事务在操作过程中进行两次查询，第二次查询结果包含了第一次查询中未出现的数据（这里并不要求两次查询SQL语句相同）这是因为在两次查询过程中有另外一个事务插入数据造成的。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"> </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"> SQL规范中定义了4个事务隔离级别：</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">1.未授权读取（Read Uncommitted）：也称未提交读。允许脏读取但不允许更新丢失，如果一个事务已经开始写数据则另外一个数据则不允许同时进行写操作但允许其他事务读此行数据。该隔离级别可以通过“排他写锁”实现。事务隔离的最低级别，仅可保证不读取物理损坏的数据。与READ COMMITTED 隔离级相反，它允许读取已经被其它用户修改但尚未提交确定的数据。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">2. 授权读取（Read Committed）：也称提交读。允许不可重复读取但不允许脏读取。这可以通过“瞬间共享读锁”和“排他写锁”实现，读取数据的事务允许其他事务继续访问该行数据，但是未提交写事务将会禁止其他事务访问该行。SQL Server 默认的级别。在此隔离级下，SELECT 命令不会返回尚未提交（Committed） 的数据，也不能返回脏数据。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">3. 可重复读取（Repeatable Read）：禁止不可重复读取和脏读取。但是有时可能出现幻影数据，这可以通过“共享读锁”和“排他写锁”实现，读取数据事务将会禁止写事务（但允许读事务），写事务则禁止任何其他事务。在此隔离级下，用SELECT 命令读取的数据在整个命令执行过程中不会被更改。此选项会影响系统的效能，非必要情况最好不用此隔离级。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">4. 串行（Serializable）：也称可串行读。提供严格的事务隔离，它要求事务序列化执行，事务只能一个接着一个地执行，但不能并发执行。如果仅仅通过“行级锁”是无法实现事务序列化的，必须通过其他机制保证新插入的数据不会被刚执行查询操作事务访问到。事务隔离的最高级别，事务之间完全隔离。如果事务在可串行读隔离级别上运行，则可以保证任何并发重叠事务均是串行的。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"> </p>
+<table border="1" cellpadding="0" cellspacing="0" style="border-collapse:collapse;font-size:inherit;font-style:inherit;font-variant:inherit;padding:0px;font-weight:inherit;margin:0px;word-break:break-word;border:1px solid silver;display:block;overflow-x:scroll;">
+<tbody style="margin:0px;padding:0px;">
+<tr style="margin:0px;padding:0px;">
+<td style="margin:0px;border:1px solid silver;border-collapse:collapse;padding:3px;white-space:nowrap;" valign="top" width="132">
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">隔离级别</p>
+</td>
+<td style="margin:0px;border:1px solid silver;border-collapse:collapse;padding:3px;white-space:nowrap;" valign="top" width="132">
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">更新丢失</p>
+</td>
+<td style="margin:0px;border:1px solid silver;border-collapse:collapse;padding:3px;white-space:nowrap;" valign="top" width="132">
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">脏读取</p>
+</td>
+<td style="margin:0px;border:1px solid silver;border-collapse:collapse;padding:3px;white-space:nowrap;" valign="top" width="132">
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">重复读取</p>
+</td>
+<td style="margin:0px;border:1px solid silver;border-collapse:collapse;padding:3px;white-space:nowrap;" valign="top" width="133">
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">幻读 </p>
+</td>
+</tr>
+<tr style="margin:0px;padding:0px;">
+<td style="margin:0px;border:1px solid silver;border-collapse:collapse;padding:3px;white-space:nowrap;" valign="top" width="132">
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">未授权读取</p>
+</td>
+<td style="margin:0px;border:1px solid silver;border-collapse:collapse;padding:3px;white-space:nowrap;" valign="top" width="132">
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">N</p>
+</td>
+<td style="margin:0px;border:1px solid silver;border-collapse:collapse;padding:3px;white-space:nowrap;" valign="top" width="132">
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">Y</p>
+</td>
+<td style="margin:0px;border:1px solid silver;border-collapse:collapse;padding:3px;white-space:nowrap;" valign="top" width="132">
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">Y</p>
+</td>
+<td style="margin:0px;border:1px solid silver;border-collapse:collapse;padding:3px;white-space:nowrap;" valign="top" width="133">
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">Y</p>
+</td>
+</tr>
+<tr style="margin:0px;padding:0px;">
+<td style="margin:0px;border:1px solid silver;border-collapse:collapse;padding:3px;white-space:nowrap;" valign="top" width="132">
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">授权读取</p>
+</td>
+<td style="margin:0px;border:1px solid silver;border-collapse:collapse;padding:3px;white-space:nowrap;" valign="top" width="132">
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">N</p>
+</td>
+<td style="margin:0px;border:1px solid silver;border-collapse:collapse;padding:3px;white-space:nowrap;" valign="top" width="132">
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">N</p>
+</td>
+<td style="margin:0px;border:1px solid silver;border-collapse:collapse;padding:3px;white-space:nowrap;" valign="top" width="132">
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">Y</p>
+</td>
+<td style="margin:0px;border:1px solid silver;border-collapse:collapse;padding:3px;white-space:nowrap;" valign="top" width="133">
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">Y</p>
+</td>
+</tr>
+<tr style="margin:0px;padding:0px;">
+<td style="margin:0px;border:1px solid silver;border-collapse:collapse;padding:3px;white-space:nowrap;" valign="top" width="132">
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">可重复读取</p>
+</td>
+<td style="margin:0px;border:1px solid silver;border-collapse:collapse;padding:3px;white-space:nowrap;" valign="top" width="132">
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">N</p>
+</td>
+<td style="margin:0px;border:1px solid silver;border-collapse:collapse;padding:3px;white-space:nowrap;" valign="top" width="132">
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">N</p>
+</td>
+<td style="margin:0px;border:1px solid silver;border-collapse:collapse;padding:3px;white-space:nowrap;" valign="top" width="132">
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">N</p>
+</td>
+<td style="margin:0px;border:1px solid silver;border-collapse:collapse;padding:3px;white-space:nowrap;" valign="top" width="133">
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">Y</p>
+</td>
+</tr>
+<tr style="margin:0px;padding:0px;">
+<td style="margin:0px;border:1px solid silver;border-collapse:collapse;padding:3px;white-space:nowrap;" valign="top" width="132">
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">串行</p>
+</td>
+<td style="margin:0px;border:1px solid silver;border-collapse:collapse;padding:3px;white-space:nowrap;" valign="top" width="132">
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">N</p>
+</td>
+<td style="margin:0px;border:1px solid silver;border-collapse:collapse;padding:3px;white-space:nowrap;" valign="top" width="132">
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">N</p>
+</td>
+<td style="margin:0px;border:1px solid silver;border-collapse:collapse;padding:3px;white-space:nowrap;" valign="top" width="132">
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">N</p>
+</td>
+<td style="margin:0px;border:1px solid silver;border-collapse:collapse;padding:3px;white-space:nowrap;" valign="top" width="133">
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">N</p>
+</td>
+</tr>
+</tbody>
+</table>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"> </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"> </p></div>
+<div style="margin:0px;padding:0px;clear:both;"></div>
+<div style="margin:0px;padding:0px;margin-top:20px;">
+<div style="margin:0px;padding:0px;margin-bottom:10px;">分类: <a href="http://www.cnblogs.com/jevo/category/461036.html" style="margin:0px;padding:0px;text-decoration:underline;color:rgb(7, 93, 179);" target="_blank">spring</a></div>
+<div style="margin:0px;padding:0px;font-size:9pt;color:rgb(102, 102, 102);margin-top:0px;"></div>
+<div style="margin:0px;padding:0px;"><div style="margin:0px;padding:10px 0px;margin-bottom:10px;margin-top:10px;border:1px dashed silver;font-size:12px;width:320px;text-align:center;">
+        <a href="#" style="margin-right:10px;margin:0px;border-radius:10px;padding:3px 8px;text-decoration:none;font-weight:bold;cursor:pointer;display:inline-block;vertical-align:middle;box-shadow:rgba(0, 0, 0, 0.498039) 0px 1px 3px;text-shadow:rgba(0, 0, 0, 0.247059) 0px -1px 1px;background:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAAkCAYAAABIdFAMAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAHhJREFUeNo8zjsOxCAMBFB/KEAUFFR0Cbng3nQPw68ArZdAlOZppPFIBhH5EAB8b+Tlt9MYQ6i1BuqFaq1CKSVcxZ2Acs6406KUgpt5/LCKuVgz5BDCSb13ZO99ZOdcZGvt4mJjzMVKqcha68iIePB86GAiOv8CDADlIUQBs7MD3wAAAABJRU5ErkJggg%3D%3D&quot;) repeat-x;background-color:rgb(45, 174, 191);color:rgb(255, 255, 255);border:none;">好文要顶</a>
+            <a href="#" style="margin-right:10px;margin:0px;border-radius:10px;padding:3px 8px;text-decoration:none;font-weight:bold;cursor:pointer;display:inline-block;vertical-align:middle;box-shadow:rgba(0, 0, 0, 0.498039) 0px 1px 3px;text-shadow:rgba(0, 0, 0, 0.247059) 0px -1px 1px;background:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAAkCAYAAABIdFAMAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAHhJREFUeNo8zjsOxCAMBFB/KEAUFFR0Cbng3nQPw68ArZdAlOZppPFIBhH5EAB8b+Tlt9MYQ6i1BuqFaq1CKSVcxZ2Acs6406KUgpt5/LCKuVgz5BDCSb13ZO99ZOdcZGvt4mJjzMVKqcha68iIePB86GAiOv8CDADlIUQBs7MD3wAAAABJRU5ErkJggg%3D%3D&quot;) repeat-x;background-color:rgb(227, 49, 0);color:rgb(255, 255, 255);border:none;">关注我</a>
+    <a href="#" style="margin-right:10px;margin:0px;border-radius:10px;padding:3px 8px;text-decoration:none;font-weight:bold;cursor:pointer;display:inline-block;vertical-align:middle;box-shadow:rgba(0, 0, 0, 0.498039) 0px 1px 3px;text-shadow:rgba(0, 0, 0, 0.247059) 0px -1px 1px;background:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAAkCAYAAABIdFAMAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAHhJREFUeNo8zjsOxCAMBFB/KEAUFFR0Cbng3nQPw68ArZdAlOZppPFIBhH5EAB8b+Tlt9MYQ6i1BuqFaq1CKSVcxZ2Acs6406KUgpt5/LCKuVgz5BDCSb13ZO99ZOdcZGvt4mJjzMVKqcha68iIePB86GAiOv8CDADlIUQBs7MD3wAAAABJRU5ErkJggg%3D%3D&quot;) repeat-x;background-color:rgb(255, 181, 21);color:rgb(255, 255, 255);border:none;">收藏该文</a>
+    <a href="#" style="margin-right:10px;margin:0px;border-radius:10px;padding:3px 2px;text-decoration:none;font-weight:bold;cursor:pointer;display:inline-block;vertical-align:middle;box-shadow:none;text-shadow:none;background:none;color:rgb(255, 255, 255);border:none;" title="分享至新浪微博"><img src="Spring之事务理解 - Jevo - 博客园_files/icon_weibo_24.png" type="image/png" data-filename="icon_weibo_24.png" alt="" height="24" style="margin:0px;padding:0px;height:auto;border:none;vertical-align:middle;margin-left:5px;box-shadow:none;max-width:300px;" width="24"/></a>
+    <a href="#" style="margin-right:10px;margin:0px;border-radius:10px;padding:3px 2px;text-decoration:none;font-weight:bold;cursor:pointer;display:inline-block;vertical-align:middle;box-shadow:none;text-shadow:none;background:none;color:rgb(255, 255, 255);border:none;" title="分享至微信"><img src="Spring之事务理解 - Jevo - 博客园_files/wechat.png" type="image/png" data-filename="wechat.png" alt="" height="24" style="margin:0px;padding:0px;border:medium none;width:24px;height:24px;box-shadow:none;margin-left:5px;vertical-align:middle;max-width:300px;" width="24"/></a>
+</div>
+<div style="margin:0px;padding:0px;float:left;width:280px;margin-top:0px;margin-bottom:10px;color:rgb(0, 0, 0);margin-left:0px;font-size:12px;">
+    <div style="margin:0px;padding:0px;float:left;line-height:18px;">
+            <a href="http://home.cnblogs.com/u/jevo/" style="margin:0px;padding:0px;text-decoration:underline;color:rgb(7, 93, 179);" target="_blank"><img src="Spring之事务理解 - Jevo - 博客园_files/sample_face.gif" type="image/gif" data-filename="sample_face.gif" alt="" height="46" style="margin:0px;padding:0px;height:auto;border:0px;vertical-align:top;float:left;margin-right:5px;padding-top:5px;padding-left:2px;max-width:300px;" width="47"/></a>
+        <div style="margin:0px;padding:0px;float:left;line-height:18px;">
+            <a href="http://home.cnblogs.com/u/jevo/" style="margin:0px;padding:0px;text-decoration:underline;color:rgb(7, 93, 179);">Jevo</a><br style="margin:0px;padding:0px;"/>
+            <a href="http://home.cnblogs.com/u/jevo/followees" style="margin:0px;padding:0px;text-decoration:underline;color:rgb(7, 93, 179);">关注 - 0</a><br style="margin:0px;padding:0px;"/>
+            <a href="http://home.cnblogs.com/u/jevo/followers" style="margin:0px;padding:0px;text-decoration:underline;color:rgb(7, 93, 179);">粉丝 - 21</a>
+        </div>
+    </div>
+    <div style="margin:0px;padding:0px;clear:both;"></div>
+    <div style="margin:0px;padding:0px;"></div>
+    <div style="margin:0px;padding:0px;">
+                <a href="#" style="margin:0px;padding:0px;text-decoration:underline;color:rgb(7, 93, 179);">+加关注</a>
+    </div>
+</div>
+<div style="margin:0px;padding:0px;float:right;margin-bottom:10px;margin-right:30px;font-size:12px;width:125px;text-align:center;margin-top:10px;">
+    <div style="margin:0px;padding:0px;float:left;width:46px;height:52px;background:url(&quot;http://static.cnblogs.com/images/upup.gif&quot;) no-repeat;text-align:center;cursor:pointer;margin-top:2px;padding-top:5px;">
+        <span style="margin:0px;padding:0px;font-size:14px;color:rgb(7, 93, 179);font-family:Verdana;line-height:1.5em;">0</span>
+    </div>
+    <div style="text-align:center;padding:0px;margin:0px;height:52px;background:url(&quot;http://static.cnblogs.com/images/downdown.gif&quot;) no-repeat;margin-left:20px;cursor:pointer;margin-top:2px;padding-top:5px;width:46px;float:right;">
+        <span style="margin:0px;padding:0px;font-size:14px;color:rgb(7, 93, 179);font-family:Verdana;line-height:1.5em;">0</span>
+    </div>
+    <div style="margin:0px;padding:0px;clear:both;"></div>
+    <div style="margin:0px;padding:0px;margin-top:5px;margin-left:0px;font-size:12px;color:gray;">
+    </div>
+</div>
+</div>
+<div style="margin:0px;padding:0px;clear:both;"></div>
+<div style="margin:0px;padding:0px;line-height:1.8;font-size:12px;"><a href="http://www.cnblogs.com/jevo/archive/2013/03/25/2975301.html" style="margin:0px;padding:0px;color:rgb(7, 93, 179);text-decoration:none;">« </a> 上一篇：<a href="http://www.cnblogs.com/jevo/archive/2013/03/25/2975301.html" style="margin:0px;padding:0px;text-decoration:underline;color:rgb(7, 93, 179);" title="发布于2013-03-25 23:39">Spring MVC使用小结</a><br style="margin:0px;padding:0px;"/><a href="http://www.cnblogs.com/jevo/archive/2013/03/27/2992441.html" style="margin:0px;padding:0px;color:rgb(7, 93, 179);text-decoration:none;">» </a> 下一篇：<a href="http://www.cnblogs.com/jevo/archive/2013/03/27/2992441.html" style="margin:0px;padding:0px;text-decoration:underline;color:rgb(7, 93, 179);" title="发布于2013-03-27 22:57">自定义Java注解</a><br style="margin:0px;padding:0px;"/></div>
+</div>
+
+
+		</div>
+		<div style="margin:0px;padding:0px;clear:both;font-size:12px;float:right;width:100%;text-align:right;padding-right:5px;color:rgb(102, 102, 102);margin-top:5px;">posted @ <span style="margin:0px;padding:0px;">2013-03-26 23:52</span> <a href="http://www.cnblogs.com/jevo/" style="margin:0px;padding:0px;text-decoration:none;color:rgb(7, 93, 179);">Jevo</a> 阅读(<span style="margin:0px;padding:0px;">1076</span>) 评论(<span style="margin:0px;padding:0px;">0</span>)  <a href="https://i.cnblogs.com/EditPosts.aspx?postid=2966999" rel="nofollow" style="margin:0px;padding:0px;text-decoration:none;color:rgb(7, 93, 179);">编辑</a> <a href="http://www.cnblogs.com/jevo/archive/2013/03/26/2966999.html#" style="margin:0px;padding:0px;text-decoration:none;color:rgb(7, 93, 179);">收藏</a></div>
+	</div></div></div></div></div></div></div></div></div></div><br/></div></span>
+</div></body></html> 

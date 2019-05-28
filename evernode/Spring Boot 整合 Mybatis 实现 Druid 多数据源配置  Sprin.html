@@ -1,0 +1,381 @@
+<html>
+<head>
+  <title>Spring Boot 整合 Mybatis 实现 Druid 多数据源配置 | Spring For All</title>
+  <basefont face="微软雅黑" size="2" />
+  <meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+  <meta name="exporter-version" content="YXBJ Windows/600718 (zh-CN, DDL); Windows/6.1.1 (Win64);"/>
+  <style>
+    body, td {
+      font-family: 微软雅黑;
+      font-size: 10pt;
+    }
+  </style>
+</head>
+<body>
+<a name="8952"/>
+<h1>Spring Boot 整合 Mybatis 实现 Druid 多数据源配置 | Spring For All</h1>
+<div>
+<table bgcolor="#D4DDE5" border="0">
+<tr><td><b>创建时间：</b></td><td><i>2017/12/8 17:48</i></td></tr>
+<tr><td><b>来源：</b></td><td><a href="http://www.spring4all.com/article/272"><i>http://www.spring4all.com/article/272</i></a></td></tr>
+</table>
+</div>
+<br/>
+
+<div><span><div style="-evernote-webclip:true"><br/><div style="font-size: 16px; display: inline-block;"><div style="box-sizing:border-box;font-family:sans-serif;text-size-adjust:100%;font-size:14px;"><div style="box-sizing:inherit;overflow-x:hidden;min-width:320px;background:rgb(255, 255, 255);font-family:Lato, &quot;Helvetica Neue&quot;, Arial, Helvetica, sans-serif;font-size:14px;line-height:1.4285em;color:rgba(0, 0, 0, 0.870588);background-color:#f3f3f3;"><div style="box-sizing:inherit;"><div style="box-sizing:inherit;"><div style="box-sizing:inherit;-webkit-box-orient:horizontal;-webkit-box-direction:normal;flex-flow:row wrap;-webkit-box-align:stretch;align-items:stretch;"><div style="box-sizing:inherit;vertical-align:top;"><div style="box-sizing:inherit;background:rgb(255, 255, 255);box-shadow:rgba(34, 36, 38, 0.14902) 0px 1px 2px 0px;border-radius:0.285714rem;font-size:1rem;"><h3 style="font-size:1.28571rem;box-sizing:inherit;border:none;line-height:1.28571em;font-weight:700;padding:0px;font-family:Lato, &quot;Helvetica Neue&quot;, Arial, Helvetica, sans-serif;margin:calc(2rem - 0.142857em) 0px 1rem;text-transform:none;margin-top:-0.142857em;padding-bottom:0.214286rem;border-bottom:2px solid rgb(219, 40, 40);color:rgb(219, 40, 40);"><i style="height:1em;box-sizing:inherit;font-family:Icons;backface-visibility:hidden;-webkit-font-smoothing:antialiased;speak:none;text-align:center;margin:0px 0.25rem 0px 0px;width:1.18em;text-decoration:inherit;font-weight:400;font-style:normal;font-size:1.5em;display:table-cell;vertical-align:middle;padding-top:0.142857em;opacity:1;margin-bottom:0px;"><span style="font-size:1.5em;font-family:Icons;font-style:normal;font-weight:400;text-align:center;background:0px 0px !important;"></span></i> <div style="box-sizing:inherit;display:table-cell;vertical-align:middle;padding-left:0.75rem;">Spring Boot 整合 Mybatis 实现 Druid 多数据源配置</div></h3> <div style="line-height:1.6;box-sizing:inherit;padding:0px;overflow:auto;font-family:&quot;Microsoft YaHei&quot;, Helvetica, &quot;Meiryo UI&quot;, &quot;Malgun Gothic&quot;, &quot;Segoe UI&quot;, &quot;Trebuchet MS&quot;, Monaco, monospace, Tahoma, STXihei, 华文细黑, STHeiti, &quot;Helvetica Neue&quot;, &quot;Droid Sans&quot;, &quot;wenquanyi micro hei&quot;, FreeSans, Arimo, Arial, SimSun, 宋体, Heiti, 黑体, sans-serif;font-size:14px;text-size-adjust:100%;word-wrap:break-word;text-align:left;color:rgb(51, 51, 51);width:100%;background-color:rgb(255, 255, 255);"><p style="margin:0px 0px 1em;line-height:1.4285em;box-sizing:border-box;margin-bottom:16px;margin-top:0px;text-align:center;"><span style="box-sizing:border-box;color:#800080;">摘要: 原创出处:www.bysocket.com 泥瓦匠BYSocket 希望转载，保留摘要，谢谢！</span></p>
+<p style="margin:0px 0px 1em;line-height:1.4285em;box-sizing:border-box;margin-top:0px;margin-bottom:16px;text-align:center;"><strong style="box-sizing:border-box;font-weight:bold;">“清醒时做事，糊涂时跑步，大怒时睡觉，独处时思考”</strong></p>
+<strong style="box-sizing:border-box;font-weight:bold;">本文提纲</strong>
+<strong style="box-sizing:border-box;font-weight:bold;">一、多数据源的应用场景</strong>
+<strong style="box-sizing:border-box;font-weight:bold;"> 二、运行 springboot-mybatis-mutil-datasource 工程案例</strong>
+<strong style="box-sizing:border-box;font-weight:bold;"> 三、springboot-mybatis-mutil-datasource 工程代码配置详解</strong>
+<h3 style="font-family:Lato, &quot;Helvetica Neue&quot;, Arial, Helvetica, sans-serif;margin:calc(2rem - 0.142857em) 0px 1rem;padding:0px;box-sizing:border-box;line-height:1.43;font-weight:bold;font-size:1.5em;margin-top:1em;margin-bottom:16px;position:relative;">一、多数据源的应用场景</h3>
+目前，业界流行的数据操作框架是 Mybatis，那 Druid 是什么呢？
+Druid 是 Java 的数据库连接池组件。Druid 能够提供强大的监控和扩展功能。比如可以监控 SQL ，在监控业务可以查询慢查询 SQL 列表等。Druid 核心主要包括三部分：
+1. DruidDriver 代理 Driver，能够提供基于 Filter－Chain 模式的插件体系。
+2. DruidDataSource 高效可管理的数据库连接池
+3. SQLParser
+
+当业务数据量达到了一定程度，DBA 需要合理配置数据库资源。即配置主库的机器高配置，把核心高频的数据放在主库上；把次要的数据放在从库，低配置。开源节流嘛，就这个意思。把数据放在不同的数据库里，就需要通过不同的数据源进行操作数据。这里我们举个 springboot-mybatis-mutil-datasource 工程案例：
+user 用户表在主库 master 上，地址表 city 在从库 cluster 上。下面实现获取 根据用户名获取用户信息，包括从库的地址信息 REST API，那么需要从主库和从库中分别获取数据，并在业务逻辑层组装返回。逻辑如图：<a href="http://www.bysocket.com/wp-content/uploads/2017/03/WX20170324-144757.png" style="box-sizing:border-box;background:transparent;color:rgb(65, 131, 196);text-decoration:none;"><img src="Spring Boot 整合 Mybatis 实现 Druid 多数据源配置  Sprin_files/WX20170324-144757.png" type="image/png" data-filename="WX20170324-144757.png" alt="" height="494" style="box-sizing:border-box;border:0px;max-width:100%;" width="678"/></a>
+
+下面就运行这个案例。
+
+ 
+<h3 style="font-family:Lato, &quot;Helvetica Neue&quot;, Arial, Helvetica, sans-serif;margin:calc(2rem - 0.142857em) 0px 1rem;padding:0px;box-sizing:border-box;line-height:1.43;font-weight:bold;font-size:1.5em;margin-top:1em;margin-bottom:16px;position:relative;">二、运行 springboot-mybatis-mutil-datasource 工程案例</h3>
+git clone 下载工程 springboot-learning-example ，项目地址见 GitHub - https://github.com/JeffLi1993/springboot-learning-example。下面开始运行工程步骤（Quick Start）：
+<strong style="box-sizing:border-box;font-weight:bold;">1.数据库准备</strong>
+a.创建 cluster 数据库 springbootdb：
+<pre style="font-weight:normal;box-sizing:border-box;font-stretch:normal;font-family:&quot;YaHei Consolas Hybrid&quot;, Consolas, &quot;Meiryo UI&quot;, &quot;Malgun Gothic&quot;, &quot;Segoe UI&quot;, &quot;Trebuchet MS&quot;, Helvetica, monospace, monospace;margin-top:0px;margin-bottom:16px;font-style:normal;font-variant:normal;overflow:auto;font-size:85%;line-height:1.6;padding:10px;border-radius:3px;word-wrap:normal;border:1px solid rgb(221, 221, 221);background:rgb(246, 246, 246);">CREATE DATABASE springbootdb;</pre>
+b.创建表 city ：(因为我喜欢徒步)
+<pre style="font-weight:normal;box-sizing:border-box;font-stretch:normal;font-family:&quot;YaHei Consolas Hybrid&quot;, Consolas, &quot;Meiryo UI&quot;, &quot;Malgun Gothic&quot;, &quot;Segoe UI&quot;, &quot;Trebuchet MS&quot;, Helvetica, monospace, monospace;margin-top:0px;margin-bottom:16px;font-style:normal;font-variant:normal;overflow:auto;font-size:85%;line-height:1.6;padding:10px;border-radius:3px;word-wrap:normal;border:1px solid rgb(221, 221, 221);background:rgb(246, 246, 246);">DROP TABLE IF EXISTS `city`;
+CREATE TABLE `city` (
+`id` int(10) unsigned NOT NULL AUTO_INCREMENT COMMENT '城市编号',
+`province_id` int(10) unsigned NOT NULL COMMENT '省份编号',
+`city_name` varchar(25) DEFAULT NULL COMMENT '城市名称',
+`description` varchar(25) DEFAULT NULL COMMENT '描述',
+PRIMARY KEY (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8;</pre>
+c.插入数据
+<pre style="font-weight:normal;box-sizing:border-box;font-stretch:normal;font-family:&quot;YaHei Consolas Hybrid&quot;, Consolas, &quot;Meiryo UI&quot;, &quot;Malgun Gothic&quot;, &quot;Segoe UI&quot;, &quot;Trebuchet MS&quot;, Helvetica, monospace, monospace;margin-top:0px;margin-bottom:16px;font-style:normal;font-variant:normal;overflow:auto;font-size:85%;line-height:1.6;padding:10px;border-radius:3px;word-wrap:normal;border:1px solid rgb(221, 221, 221);background:rgb(246, 246, 246);">INSERT city VALUES (1 ,1,'温岭市','BYSocket 的家在温岭。');</pre>
+然后，再创建一个 master 数据库
+a.创建数据库 springbootdb_cluster：
+<pre style="font-weight:normal;box-sizing:border-box;font-stretch:normal;font-family:&quot;YaHei Consolas Hybrid&quot;, Consolas, &quot;Meiryo UI&quot;, &quot;Malgun Gothic&quot;, &quot;Segoe UI&quot;, &quot;Trebuchet MS&quot;, Helvetica, monospace, monospace;margin-top:0px;margin-bottom:16px;font-style:normal;font-variant:normal;overflow:auto;font-size:85%;line-height:1.6;padding:10px;border-radius:3px;word-wrap:normal;border:1px solid rgb(221, 221, 221);background:rgb(246, 246, 246);">CREATE DATABASE springbootdb_cluster;</pre>
+b.创建表 user ：
+<pre style="font-weight:normal;box-sizing:border-box;font-stretch:normal;font-family:&quot;YaHei Consolas Hybrid&quot;, Consolas, &quot;Meiryo UI&quot;, &quot;Malgun Gothic&quot;, &quot;Segoe UI&quot;, &quot;Trebuchet MS&quot;, Helvetica, monospace, monospace;margin-top:0px;margin-bottom:16px;font-style:normal;font-variant:normal;overflow:auto;font-size:85%;line-height:1.6;padding:10px;border-radius:3px;word-wrap:normal;border:1px solid rgb(221, 221, 221);background:rgb(246, 246, 246);">DROP TABLE IF EXISTS `city`;
+CREATE TABLE user
+(
+id INT(10) unsigned PRIMARY KEY NOT NULL COMMENT '用户编号' AUTO_INCREMENT,
+user_name VARCHAR(25) COMMENT '用户名称',
+description VARCHAR(25) COMMENT '描述'
+)ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8;</pre>
+c.插入数据
+<pre style="font-weight:normal;box-sizing:border-box;font-stretch:normal;font-family:&quot;YaHei Consolas Hybrid&quot;, Consolas, &quot;Meiryo UI&quot;, &quot;Malgun Gothic&quot;, &quot;Segoe UI&quot;, &quot;Trebuchet MS&quot;, Helvetica, monospace, monospace;margin-top:0px;margin-bottom:16px;font-style:normal;font-variant:normal;overflow:auto;font-size:85%;line-height:1.6;padding:10px;border-radius:3px;word-wrap:normal;border:1px solid rgb(221, 221, 221);background:rgb(246, 246, 246);">INSERT user VALUES (1 ,'泥瓦匠','他有一个小网站 bysocket.com');</pre>
+（以上数据库创建无先后顺序）
+
+<strong style="box-sizing:border-box;font-weight:bold;">2. 项目结构介绍</strong>
+项目结构如下图所示：
+org.spring.springboot.config.ds - 配置层，这里是数据源的配置，包括 master 和 cluster 的数据源配置
+org.spring.springboot.controller - Controller 层
+org.spring.springboot.dao - 数据操作层 DAO，细分了 master 和 cluster 包下的 DAO 操作类
+org.spring.springboot.domain - 实体类
+org.spring.springboot.service - 业务逻辑层
+Application - 应用启动类
+application.properties - 应用配置文件，应用启动会自动读取配置
+
+<strong style="box-sizing:border-box;font-weight:bold;">3.改数据库配置</strong>
+打开 application.properties 文件， 修改相应的主从数据源配置，比如数据源地址、账号、密码等。（如果不是用 MySQL，自行添加连接驱动 pom，然后修改驱动名配置。）
+
+<strong style="box-sizing:border-box;font-weight:bold;">4.编译工程</strong>
+在项目根目录 springboot-learning-example，运行 maven 指令：
+<pre style="font-weight:normal;box-sizing:border-box;font-stretch:normal;font-family:&quot;YaHei Consolas Hybrid&quot;, Consolas, &quot;Meiryo UI&quot;, &quot;Malgun Gothic&quot;, &quot;Segoe UI&quot;, &quot;Trebuchet MS&quot;, Helvetica, monospace, monospace;margin-top:0px;margin-bottom:16px;font-style:normal;font-variant:normal;overflow:auto;font-size:85%;line-height:1.6;padding:10px;border-radius:3px;word-wrap:normal;border:1px solid rgb(221, 221, 221);background:rgb(246, 246, 246);">mvn clean install</pre>
+ 
+
+<strong style="box-sizing:border-box;font-weight:bold;">5.运行工程</strong>
+右键运行 Application 应用启动类（位置：/springboot-learning-example/springboot-mybatis-mutil-datasource/src/main/java/org/spring/springboot/Application.java）的 main 函数，这样就成功启动了 springboot-mybatis-mutil-datasource 案例。
+
+在浏览器打开：
+http://localhost:8080/api/user?userName=泥瓦匠
+浏览器返回 JSON 结果：
+<pre style="font-weight:normal;box-sizing:border-box;font-stretch:normal;font-family:&quot;YaHei Consolas Hybrid&quot;, Consolas, &quot;Meiryo UI&quot;, &quot;Malgun Gothic&quot;, &quot;Segoe UI&quot;, &quot;Trebuchet MS&quot;, Helvetica, monospace, monospace;margin-top:0px;margin-bottom:16px;font-style:normal;font-variant:normal;overflow:auto;font-size:85%;line-height:1.6;padding:10px;border-radius:3px;word-wrap:normal;border:1px solid rgb(221, 221, 221);background:rgb(246, 246, 246);">{
+    &quot;id&quot;: 1,
+    &quot;userName&quot;: &quot;泥瓦匠&quot;,
+    &quot;description&quot;: &quot;他有一个小网站 bysocket.com&quot;,
+    &quot;city&quot;: {
+        &quot;id&quot;: 1,
+        &quot;provinceId&quot;: 1,
+        &quot;cityName&quot;: &quot;温岭市&quot;,
+        &quot;description&quot;: &quot;BYSocket 的家在温岭。&quot;
+    }
+}</pre>
+这里 city 结果体来自 cluster 库，user 结果体来自 master 库。
+
+ 
+<h3 style="font-family:Lato, &quot;Helvetica Neue&quot;, Arial, Helvetica, sans-serif;margin:calc(2rem - 0.142857em) 0px 1rem;padding:0px;box-sizing:border-box;line-height:1.43;font-weight:bold;font-size:1.5em;margin-top:1em;margin-bottom:16px;position:relative;">三、springboot-mybatis-mutil-datasource 工程代码配置详解</h3>
+代码共享在我的 <a href="https://github.com/JeffLi1993/springboot-learning-example/tree/master/springboot-mybatis-mutil-datasource" style="box-sizing:border-box;background:transparent;color:rgb(65, 131, 196);text-decoration:none;">GitHub</a> 上：
+<a href="https://github.com/JeffLi1993/springboot-learning-example/tree/master/springboot-mybatis-mutil-datasource" style="box-sizing:border-box;background:transparent;color:rgb(65, 131, 196);text-decoration:none;">https://github.com/JeffLi1993/springboot-learning-example/tree/master/springboot-mybatis-mutil-datasource</a>
+
+首先代码工程结构如下：
+org.spring.springboot.config.ds 包包含了多数据源的配置，同样有第三个数据源，按照前几个复制即可
+resources/mapper 下面有两个模块，分别是 Mybatis 不同数据源需要扫描的 mapper xml 目录
+<pre style="font-weight:normal;box-sizing:border-box;font-stretch:normal;font-family:&quot;YaHei Consolas Hybrid&quot;, Consolas, &quot;Meiryo UI&quot;, &quot;Malgun Gothic&quot;, &quot;Segoe UI&quot;, &quot;Trebuchet MS&quot;, Helvetica, monospace, monospace;margin-top:0px;margin-bottom:16px;font-style:normal;font-variant:normal;overflow:auto;font-size:85%;line-height:1.6;padding:10px;border-radius:3px;word-wrap:normal;border:1px solid rgb(221, 221, 221);background:rgb(246, 246, 246);">├── pom.xml
+└── src
+    └── main
+        ├── java
+        │   └── org
+        │       └── spring
+        │           └── springboot
+        │               ├── Application.java
+        │               ├── config
+        │               │   └── ds
+        │               │       ├── ClusterDataSourceConfig.java
+        │               │       └── MasterDataSourceConfig.java
+        │               ├── controller
+        │               │   └── UserRestController.java
+        │               ├── dao
+        │               │   ├── cluster
+        │               │   │   └── CityDao.java
+        │               │   └── master
+        │               │       └── UserDao.java
+        │               ├── domain
+        │               │   ├── City.java
+        │               │   └── User.java
+        │               └── service
+        │                   ├── UserService.java
+        │                   └── impl
+        │                       └── UserServiceImpl.java
+        └── resources
+            ├── application.properties
+            └── mapper
+                ├── cluster
+                │   └── CityMapper.xml
+                └── master
+                    └── UserMapper.xml</pre>
+ 
+
+<strong style="box-sizing:border-box;font-weight:bold;">1. 依赖 pom.xml</strong>
+Mybatis 通过 Spring Boot Mybatis Starter 依赖
+Druid 是数据库连接池依赖
+<pre style="font-weight:normal;box-sizing:border-box;font-stretch:normal;font-family:&quot;YaHei Consolas Hybrid&quot;, Consolas, &quot;Meiryo UI&quot;, &quot;Malgun Gothic&quot;, &quot;Segoe UI&quot;, &quot;Trebuchet MS&quot;, Helvetica, monospace, monospace;margin-top:0px;margin-bottom:16px;font-style:normal;font-variant:normal;overflow:auto;font-size:85%;line-height:1.6;padding:10px;border-radius:3px;word-wrap:normal;border:1px solid rgb(221, 221, 221);background:rgb(246, 246, 246);">&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot;?&gt;
+&lt;project xmlns=&quot;http://maven.apache.org/POM/4.0.0&quot; xmlns:xsi=&quot;http://www.w3.org/2001/XMLSchema-instance&quot;
+         xsi:schemaLocation=&quot;http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd&quot;&gt;
+    &lt;modelVersion&gt;4.0.0&lt;/modelVersion&gt;
+
+    &lt;groupId&gt;springboot&lt;/groupId&gt;
+    &lt;artifactId&gt;springboot-mybatis-mutil-datasource&lt;/artifactId&gt;
+    &lt;version&gt;0.0.1-SNAPSHOT&lt;/version&gt;
+    &lt;name&gt;springboot-mybatis-mutil-datasource :: Spring Boot 实现 Mybatis 多数据源配置&lt;/name&gt;
+
+    &lt;!-- Spring Boot 启动父依赖 --&gt;
+    &lt;parent&gt;
+        &lt;groupId&gt;org.springframework.boot&lt;/groupId&gt;
+        &lt;artifactId&gt;spring-boot-starter-parent&lt;/artifactId&gt;
+        &lt;version&gt;1.5.1.RELEASE&lt;/version&gt;
+    &lt;/parent&gt;
+
+    &lt;properties&gt;
+        &lt;mybatis-spring-boot&gt;1.2.0&lt;/mybatis-spring-boot&gt;
+        &lt;mysql-connector&gt;5.1.39&lt;/mysql-connector&gt;
+        &lt;druid&gt;1.0.18&lt;/druid&gt;
+    &lt;/properties&gt;
+
+    &lt;dependencies&gt;
+
+        &lt;!-- Spring Boot Web 依赖 --&gt;
+        &lt;dependency&gt;
+            &lt;groupId&gt;org.springframework.boot&lt;/groupId&gt;
+            &lt;artifactId&gt;spring-boot-starter-web&lt;/artifactId&gt;
+        &lt;/dependency&gt;
+
+        &lt;!-- Spring Boot Test 依赖 --&gt;
+        &lt;dependency&gt;
+            &lt;groupId&gt;org.springframework.boot&lt;/groupId&gt;
+            &lt;artifactId&gt;spring-boot-starter-test&lt;/artifactId&gt;
+            &lt;scope&gt;test&lt;/scope&gt;
+        &lt;/dependency&gt;
+
+        &lt;!-- Spring Boot Mybatis 依赖 --&gt;
+        &lt;dependency&gt;
+            &lt;groupId&gt;org.mybatis.spring.boot&lt;/groupId&gt;
+            &lt;artifactId&gt;mybatis-spring-boot-starter&lt;/artifactId&gt;
+            &lt;version&gt;${mybatis-spring-boot}&lt;/version&gt;
+        &lt;/dependency&gt;
+
+        &lt;!-- MySQL 连接驱动依赖 --&gt;
+        &lt;dependency&gt;
+            &lt;groupId&gt;mysql&lt;/groupId&gt;
+            &lt;artifactId&gt;mysql-connector-java&lt;/artifactId&gt;
+            &lt;version&gt;${mysql-connector}&lt;/version&gt;
+        &lt;/dependency&gt;
+
+        &lt;!-- Druid 数据连接池依赖 --&gt;
+        &lt;dependency&gt;
+            &lt;groupId&gt;com.alibaba&lt;/groupId&gt;
+            &lt;artifactId&gt;druid&lt;/artifactId&gt;
+            &lt;version&gt;${druid}&lt;/version&gt;
+        &lt;/dependency&gt;
+
+        &lt;!-- Junit --&gt;
+        &lt;dependency&gt;
+            &lt;groupId&gt;junit&lt;/groupId&gt;
+            &lt;artifactId&gt;junit&lt;/artifactId&gt;
+            &lt;version&gt;4.12&lt;/version&gt;
+        &lt;/dependency&gt;
+    &lt;/dependencies&gt;
+&lt;/project&gt;
+</pre>
+<strong style="box-sizing:border-box;font-weight:bold;"> 2. application.properties 配置两个数据源配置</strong>
+数据源配置会被数据源数据源配置如下
+<pre style="font-weight:normal;box-sizing:border-box;font-stretch:normal;font-family:&quot;YaHei Consolas Hybrid&quot;, Consolas, &quot;Meiryo UI&quot;, &quot;Malgun Gothic&quot;, &quot;Segoe UI&quot;, &quot;Trebuchet MS&quot;, Helvetica, monospace, monospace;margin-top:0px;margin-bottom:16px;font-style:normal;font-variant:normal;overflow:auto;font-size:85%;line-height:1.6;padding:10px;border-radius:3px;word-wrap:normal;border:1px solid rgb(221, 221, 221);background:rgb(246, 246, 246);">## master 数据源配置
+master.datasource.url=jdbc:mysql://localhost:3306/springbootdb?useUnicode=true&amp;characterEncoding=utf8
+master.datasource.username=root
+master.datasource.password=123456
+master.datasource.driverClassName=com.mysql.jdbc.Driver
+
+## cluster 数据源配置
+cluster.datasource.url=jdbc:mysql://localhost:3306/springbootdb_cluster?useUnicode=true&amp;characterEncoding=utf8
+cluster.datasource.username=root
+cluster.datasource.password=123456
+cluster.datasource.driverClassName=com.mysql.jdbc.Driver</pre>
+<strong style="box-sizing:border-box;font-weight:bold;">3. 数据源配置</strong>
+多数据源配置的时候注意，必须要有一个主数据源，即 MasterDataSourceConfig 配置：
+<pre style="font-weight:normal;box-sizing:border-box;font-stretch:normal;font-family:&quot;YaHei Consolas Hybrid&quot;, Consolas, &quot;Meiryo UI&quot;, &quot;Malgun Gothic&quot;, &quot;Segoe UI&quot;, &quot;Trebuchet MS&quot;, Helvetica, monospace, monospace;margin-top:0px;margin-bottom:16px;font-style:normal;font-variant:normal;overflow:auto;font-size:85%;line-height:1.6;padding:10px;border-radius:3px;word-wrap:normal;border:1px solid rgb(221, 221, 221);background:rgb(246, 246, 246);">@Configuration
+// 扫描 Mapper 接口并容器管理
+@MapperScan(basePackages = MasterDataSourceConfig.PACKAGE, sqlSessionFactoryRef = &quot;masterSqlSessionFactory&quot;)
+public class MasterDataSourceConfig {
+
+    // 精确到 master 目录，以便跟其他数据源隔离
+    static final String PACKAGE = &quot;org.spring.springboot.dao.master&quot;;
+    static final String MAPPER_LOCATION = &quot;classpath:mapper/master/*.xml&quot;;
+
+    @Value(&quot;${master.datasource.url}&quot;)
+    private String url;
+
+    @Value(&quot;${master.datasource.username}&quot;)
+    private String user;
+
+    @Value(&quot;${master.datasource.password}&quot;)
+    private String password;
+
+    @Value(&quot;${master.datasource.driverClassName}&quot;)
+    private String driverClass;
+
+    @Bean(name = &quot;masterDataSource&quot;)
+    @Primary
+    public DataSource masterDataSource() {
+        DruidDataSource dataSource = new DruidDataSource();
+        dataSource.setDriverClassName(driverClass);
+        dataSource.setUrl(url);
+        dataSource.setUsername(user);
+        dataSource.setPassword(password);
+        return dataSource;
+    }
+
+    @Bean(name = &quot;masterTransactionManager&quot;)
+    @Primary
+    public DataSourceTransactionManager masterTransactionManager() {
+        return new DataSourceTransactionManager(masterDataSource());
+    }
+
+    @Bean(name = &quot;masterSqlSessionFactory&quot;)
+    @Primary
+    public SqlSessionFactory masterSqlSessionFactory(@Qualifier(&quot;masterDataSource&quot;) DataSource masterDataSource)
+            throws Exception {
+        final SqlSessionFactoryBean sessionFactory = new SqlSessionFactoryBean();
+        sessionFactory.setDataSource(masterDataSource);
+        sessionFactory.setMapperLocations(new PathMatchingResourcePatternResolver()
+                .getResources(MasterDataSourceConfig.MAPPER_LOCATION));
+        return sessionFactory.getObject();
+    }
+}</pre>
+@Primary 标志这个 Bean 如果在多个同类 Bean 候选时，该 Bean 优先被考虑。「多数据源配置的时候注意，必须要有一个主数据源，用 @Primary 标志该 Bean」
+@MapperScan 扫描 Mapper 接口并容器管理，包路径精确到 master，为了和下面 cluster 数据源做到精确区分
+@Value 获取全局配置文件 application.properties 的 kv 配置,并自动装配
+sqlSessionFactoryRef 表示定义了 key ，表示一个唯一 SqlSessionFactory 实例
+
+同理可得，从数据源 ClusterDataSourceConfig 配置如下：
+<pre style="font-weight:normal;box-sizing:border-box;font-stretch:normal;font-family:&quot;YaHei Consolas Hybrid&quot;, Consolas, &quot;Meiryo UI&quot;, &quot;Malgun Gothic&quot;, &quot;Segoe UI&quot;, &quot;Trebuchet MS&quot;, Helvetica, monospace, monospace;margin-top:0px;margin-bottom:16px;font-style:normal;font-variant:normal;overflow:auto;font-size:85%;line-height:1.6;padding:10px;border-radius:3px;word-wrap:normal;border:1px solid rgb(221, 221, 221);background:rgb(246, 246, 246);">@Configuration
+// 扫描 Mapper 接口并容器管理
+@MapperScan(basePackages = ClusterDataSourceConfig.PACKAGE, sqlSessionFactoryRef = &quot;clusterSqlSessionFactory&quot;)
+public class ClusterDataSourceConfig {
+
+    // 精确到 cluster 目录，以便跟其他数据源隔离
+    static final String PACKAGE = &quot;org.spring.springboot.dao.cluster&quot;;
+    static final String MAPPER_LOCATION = &quot;classpath:mapper/cluster/*.xml&quot;;
+
+    @Value(&quot;${cluster.datasource.url}&quot;)
+    private String url;
+
+    @Value(&quot;${cluster.datasource.username}&quot;)
+    private String user;
+
+    @Value(&quot;${cluster.datasource.password}&quot;)
+    private String password;
+
+    @Value(&quot;${cluster.datasource.driverClassName}&quot;)
+    private String driverClass;
+
+    @Bean(name = &quot;clusterDataSource&quot;)
+    public DataSource clusterDataSource() {
+        DruidDataSource dataSource = new DruidDataSource();
+        dataSource.setDriverClassName(driverClass);
+        dataSource.setUrl(url);
+        dataSource.setUsername(user);
+        dataSource.setPassword(password);
+        return dataSource;
+    }
+
+    @Bean(name = &quot;clusterTransactionManager&quot;)
+    public DataSourceTransactionManager clusterTransactionManager() {
+        return new DataSourceTransactionManager(clusterDataSource());
+    }
+
+    @Bean(name = &quot;clusterSqlSessionFactory&quot;)
+    public SqlSessionFactory clusterSqlSessionFactory(@Qualifier(&quot;clusterDataSource&quot;) DataSource clusterDataSource)
+            throws Exception {
+        final SqlSessionFactoryBean sessionFactory = new SqlSessionFactoryBean();
+        sessionFactory.setDataSource(clusterDataSource);
+        sessionFactory.setMapperLocations(new PathMatchingResourcePatternResolver()
+                .getResources(ClusterDataSourceConfig.MAPPER_LOCATION));
+        return sessionFactory.getObject();
+    }
+}</pre>
+上面数据配置分别扫描 Mapper 接口，org.spring.springboot.dao.master（对应 xml classpath:mapper/master ） 和 org.spring.springboot.dao.cluster（对应 xml classpath:mapper/cluster ） 包中对应的 UserDAO 和 CityDAO 。
+都有 @Mapper 标志为 Mybatis 的并通过容器管理的 Bean。Mybatis 内部会使用反射机制运行去解析相应 SQL。
+
+<strong style="box-sizing:border-box;font-weight:bold;">3.业务层 biz</strong>
+biz 照常注入了两个 DAO，如同以前一样正常工作。不用关心和指定到具体说明数据源。
+<pre style="font-weight:normal;box-sizing:border-box;font-stretch:normal;font-family:&quot;YaHei Consolas Hybrid&quot;, Consolas, &quot;Meiryo UI&quot;, &quot;Malgun Gothic&quot;, &quot;Segoe UI&quot;, &quot;Trebuchet MS&quot;, Helvetica, monospace, monospace;margin-top:0px;margin-bottom:16px;font-style:normal;font-variant:normal;overflow:auto;font-size:85%;line-height:1.6;padding:10px;border-radius:3px;word-wrap:normal;border:1px solid rgb(221, 221, 221);background:rgb(246, 246, 246);">/**
+ * 用户业务实现层
+ *
+ * Created by bysocket on 07/02/2017.
+ */
+@Service
+public class UserServiceImpl implements UserService {
+
+    @Autowired
+    private UserDao userDao; // 主数据源
+
+    @Autowired
+    private CityDao cityDao; // 从数据源
+
+    @Override
+    public User findByName(String userName) {
+        User user = userDao.findByName(userName);
+        City city = cityDao.findByName(&quot;温岭市&quot;);
+        user.setCity(city);
+        return user;
+    }
+}</pre>
+<h3 style="font-family:Lato, &quot;Helvetica Neue&quot;, Arial, Helvetica, sans-serif;margin:calc(2rem - 0.142857em) 0px 1rem;padding:0px;box-sizing:border-box;line-height:1.43;font-weight:bold;font-size:1.5em;margin-top:1em;margin-bottom:16px;position:relative;">四、小结</h3>
+多数据源适合的场景很多。不同的 DataSource ，不同的 SqlSessionFactory 和 不同的 DAO 层，在业务逻辑层做 整合。总结的架构图如下：
+
+<a href="http://www.bysocket.com/wp-content/uploads/2017/03/WX20170324-144830.png" style="box-sizing:border-box;background:transparent;color:rgb(65, 131, 196);text-decoration:none;"><img src="Spring Boot 整合 Mybatis 实现 Druid 多数据源配置  Sprin_files/WX20170324-144830.png" type="image/png" data-filename="WX20170324-144830.png" alt="" height="347" style="box-sizing:border-box;border:0px;max-width:100%;" width="1042"/></a>
+
+同样，如果实战中，大家遇到什么，或者建议《Spring boot 那些事》还需要一起交流的。请点击留言。
+<p style="margin:0px 0px 1em;line-height:1.4285em;box-sizing:border-box;margin-top:0px;margin-bottom:16px;text-align:left;">推荐书《奥黛丽·赫本》一本讲女神的故事。</p>
+<p style="margin:0px 0px 1em;line-height:1.4285em;box-sizing:border-box;margin-top:0px;margin-bottom:16px;text-align:center;">
+欢迎扫一扫我的公众号关注 — 及时得到博客订阅哦！
+— http://www.bysocket.com/ —
+— https://github.com/JeffLi1993 —</p>
+<p style="margin:0px 0px 1em;line-height:1.4285em;box-sizing:border-box;margin-top:0px;margin-bottom:0px;text-align:center;"><a href="http://www.bysocket.com/wp-content/uploads/2017/01/qrcode_for_gh_cd421e7eb7d6_430.jpg" style="box-sizing:border-box;background:transparent;color:rgb(65, 131, 196);text-decoration:none;"><img src="Spring Boot 整合 Mybatis 实现 Druid 多数据源配置  Sprin_files/qrcode_for_gh_cd421e7eb7d6_430.jpg" type="image/jpeg" data-filename="qrcode_for_gh_cd421e7eb7d6_430.jpg" alt="" height="307" style="box-sizing:border-box;border:0px;max-width:100%;" width="307"/></a></p></div></div></div></div></div></div></div></div></div><br/></div></span>
+</div></body></html> 

@@ -1,0 +1,84 @@
+<html>
+<head>
+  <title>jvm YGC和FGC发生的具体场景 - CSDN博客</title>
+  <basefont face="微软雅黑" size="2" />
+  <meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+  <meta name="exporter-version" content="YXBJ Windows/600718 (zh-CN, DDL); Windows/6.1.1 (Win64);"/>
+  <style>
+    body, td {
+      font-family: 微软雅黑;
+      font-size: 10pt;
+    }
+  </style>
+</head>
+<body>
+<a name="3172"/>
+<h1>jvm YGC和FGC发生的具体场景 - CSDN博客</h1>
+<div>
+<table bgcolor="#D4DDE5" border="0">
+<tr><td><b>创建时间：</b></td><td><i>2018/7/27 15:02</i></td></tr>
+<tr><td><b>来源：</b></td><td><a href="https://blog.csdn.net/qq_33919114/article/details/79312612"><i>https://blog.csdn.net/qq_33919114/article/details/79312612</i></a></td></tr>
+</table>
+</div>
+<br/>
+
+<div><span>
+  <div>
+<div style="font-size: 16px; display: inline-block; min-width: 100%;position: relative;"><div style="outline:0px;box-sizing:border-box;"><div style="box-sizing:inherit;outline:0px;font-family:&quot;SF Pro Display&quot;, Roboto, Noto, Arial, &quot;PingFang SC&quot;, &quot;Hiragino Sans GB&quot;, &quot;Microsoft YaHei&quot;, sans-serif;font-size:14px;line-height:1.57143;background-color:rgb(245, 246, 247);color:rgb(51, 51, 51);"><div style="outline:0px;box-sizing:border-box;"><span style="box-sizing:inherit;outline:0px;"><div style="box-sizing:inherit;outline:0px;background:rgb(255, 255, 255);box-shadow:rgba(0, 0, 0, 0.0470588) 0px 2px 4px 0px;">
+	<div style="box-sizing:inherit;outline:0px;padding:0px;margin:0px;margin-bottom:16px;">
+			<span style="border-radius:50%;display:inline-block;width:26px;height:26px;line-height:26px;text-align:center;font-size:12px;outline:0px;box-sizing:inherit;border:1px solid rgb(231, 244, 223);color:rgb(134, 202, 94);margin-right:8px;margin-top:4px;float:left;">转</span>		<h1 style="box-sizing:inherit;outline:0px;padding:0px;margin:0px;font-size:24px;word-break:break-all;">jvm YGC和FGC发生的具体场景</h1>
+	</div>
+	<div style="box-sizing:inherit;outline:0px;padding:0px;margin:0px;padding-bottom:14px;border-bottom:1px solid rgb(227, 227, 227);">
+		<div style="box-sizing:inherit;outline:0px;padding:0px;margin:0px;color:rgb(133, 133, 133);display:flex;">
+												<span style="box-sizing:inherit;outline:0px;margin-right:14px;">2018年02月11日 18:43:35</span>
+			<div style="box-sizing:inherit;outline:0px;padding:0px;margin:0px;margin-left:auto;float:right;">
+				<span style="box-sizing:inherit;outline:0px;margin-right:14px;">阅读数：2609</span>
+											</div>
+		</div>
+	</div>
+	<div style="box-sizing:inherit;outline:0px;display:block;position:relative;padding-top:16px;">
+		<div style="box-sizing:inherit;outline:0px;padding:0px;margin:0px;word-break:break-all;">
+                    
+						<div style="box-sizing:inherit;outline:0px;padding:0px;margin:0px;font-family:-apple-system, &quot;SF UI Text&quot;, Arial, &quot;PingFang SC&quot;, &quot;Hiragino Sans GB&quot;, &quot;Microsoft YaHei&quot;, &quot;WenQuanYi Micro Hei&quot;, sans-serif, SimHei, SimSun;word-break:break-all;">
+                <p style="outline:0px;padding:0px;box-sizing:border-box;margin:0px 0px 16px;font-size:16px;color:rgb(79, 79, 79);font-weight:400;line-height:26px;text-align:justify;word-break:break-all;">1.YGC和FGC是什么 <br style="outline:0px;box-sizing:border-box;word-break:break-all;"/></p><p style="outline:0px;padding:0px;box-sizing:border-box;margin:0px 0px 16px;font-size:16px;color:rgb(79, 79, 79);font-weight:400;line-height:26px;text-align:justify;word-break:break-all;"><span style="outline:0px;box-sizing:border-box;word-break:break-all;font-family:'Comic Sans MS';font-size:14px;">   <span style="outline:0px;box-sizing:border-box;word-break:break-all;background-color:rgb(255,102,102);">YGC</span> ：对新生代堆进行gc。频率比较高，因为大部分对象的存活寿命较短，在新生代里被回收。性能耗费较小。</span></p><p style="outline:0px;padding:0px;box-sizing:border-box;margin:0px 0px 16px;font-size:16px;color:rgb(79, 79, 79);font-weight:400;line-height:26px;text-align:justify;word-break:break-all;"><span style="outline:0px;box-sizing:border-box;word-break:break-all;font-family:'Comic Sans MS';font-size:14px;">  <span style="outline:0px;box-sizing:border-box;word-break:break-all;color:#FF6666;"> FGC</span> ：全堆范围的gc。默认堆空间使用到达80%(可调整)的时候会触发fgc。以我们生产环境为例，一般比较少会触发fgc，有时10天或一周左右会有一次。</span></p><p style="outline:0px;padding:0px;box-sizing:border-box;margin:0px 0px 16px;font-size:16px;color:rgb(79, 79, 79);font-weight:400;line-height:26px;text-align:justify;word-break:break-all;">2.什么时候执行YGC和FGC</p><p style="outline:0px;padding:0px;box-sizing:border-box;margin:0px 0px 16px;font-size:16px;color:rgb(79, 79, 79);font-weight:400;line-height:26px;text-align:justify;word-break:break-all;">   a.<span style="outline:0px;box-sizing:border-box;word-break:break-all;font-family:'Comic Sans MS';font-size:14px;">edn空间不足,执行 young gc</span></p><p style="outline:0px;padding:0px;box-sizing:border-box;margin:0px 0px 16px;font-size:16px;color:rgb(79, 79, 79);font-weight:400;line-height:26px;text-align:justify;word-break:break-all;"><span style="outline:0px;box-sizing:border-box;word-break:break-all;font-family:'Comic Sans MS';font-size:14px;">   b.old空间不足，<span style="outline:0px;box-sizing:border-box;word-break:break-all;font-family:'Comic Sans MS';font-size:14px;">perm空间不足，调用方法<span style="outline:0px;box-sizing:border-box;word-break:break-all;font-family:'Comic Sans MS';font-size:14px;">System.gc() </span></span>，ygc时的悲观策略,<span style="outline:0px;box-sizing:border-box;word-break:break-all;font-family:'Comic Sans MS';font-size:14px;"> dump live的内存信息时(jmap –dump:live)</span>，都会执行full gc</span></p>            </div>
+                <span style="display:block;clear:both;"></span></div>
+				
+        	</div>
+	
+		<div style="box-sizing:inherit;outline:0px;padding:0px;margin:0px;padding-bottom:16px;margin-top:16px;border-bottom:1px solid rgb(227, 227, 227);">
+						<div style="box-sizing:inherit;outline:0px;padding:0px;margin:0px;margin-bottom:8px;font-size:12px;">
+			<span style="box-sizing:inherit;outline:0px;color:rgb(77, 77, 77);">文章标签：</span>
+						<a href="http://so.csdn.net/so/search/s.do?q=jvm&amp;t=blog" style="color:rgb(77, 77, 77);cursor:pointer;text-decoration:none;outline:0px;box-sizing:inherit;display:inline-block;word-break:break-all;border:1px solid rgb(204, 204, 204);border-radius:100px;padding:0px 8px;text-align:center;line-height:24px;min-width:24px;height:24px;margin-right:8px;" target="_blank">jvm						</a>
+		</div>
+						<div style="box-sizing:inherit;outline:0px;padding:0px;margin:0px;margin-bottom:8px;font-size:12px;">
+			<span style="box-sizing:inherit;outline:0px;color:rgb(77, 77, 77);">个人分类：</span>
+						<a href="https://blog.csdn.net/qq_33919114/article/category/7455262" style="box-sizing:inherit;outline:0px;text-decoration:none;cursor:pointer;display:inline-block;margin-right:24px;color:rgb(121, 165, 229);word-break:break-all;" target="_blank">jvm						</a>
+		</div>
+								<div style="box-sizing:inherit;outline:0px;padding:0px;margin:0px;font-size:12px;margin-bottom:0px;">
+			<span style="box-sizing:inherit;outline:0px;color:rgb(77, 77, 77);">相关热词：</span>
+						<a href="https://blog.csdn.net/pangjiuzala/article/details/47083919" style="box-sizing:inherit;outline:0px;text-decoration:none;cursor:pointer;display:inline-block;margin-right:24px;color:rgb(121, 165, 229);word-break:break-all;" target="_blank">
+			在jvm			</a>
+						<a href="https://blog.csdn.net/liugw_768/article/details/69525141" style="box-sizing:inherit;outline:0px;text-decoration:none;cursor:pointer;display:inline-block;margin-right:24px;color:rgb(121, 165, 229);word-break:break-all;" target="_blank">
+			jvm设置jvm			</a>
+						<a href="https://blog.csdn.net/chosen0ne/article/details/7049087" style="box-sizing:inherit;outline:0px;text-decoration:none;cursor:pointer;display:inline-block;margin-right:24px;color:rgb(121, 165, 229);word-break:break-all;" target="_blank">
+			商用jvm			</a>
+						<a href="https://blog.csdn.net/zhengchao1991/article/details/52921690" style="box-sizing:inherit;outline:0px;text-decoration:none;cursor:pointer;display:inline-block;margin-right:24px;color:rgb(121, 165, 229);word-break:break-all;" target="_blank">
+			图解jvm			</a>
+						<a href="https://blog.csdn.net/reggergdsg/article/details/52005360" style="box-sizing:inherit;outline:0px;text-decoration:none;cursor:pointer;display:inline-block;margin-right:24px;color:rgb(121, 165, 229);word-break:break-all;" target="_blank">
+			多态jvm			</a>
+					</div>
+			</div>
+	
+	
+			<div style="outline:0px;white-space:nowrap;text-overflow:ellipsis;overflow:hidden;margin:0px;box-sizing:inherit;padding:0px;line-height:28px;display:inline-block;width:48%;margin-top:18px;margin-right:16px;">
+		<a href="https://blog.csdn.net/qq_33919114/article/details/79312261" style="box-sizing:inherit;outline:0px;color:rgb(51, 51, 51);text-decoration:none;cursor:pointer;">
+			<span style="box-sizing:inherit;outline:0px;margin-right:8px;padding:6px 8px;font-size:12px;border:1px solid rgb(227, 227, 227);color:rgb(77, 77, 77);">上一篇</span>乐观锁和悲观锁的使用		</a>
+	</div>
+				<div style="outline:0px;white-space:nowrap;text-overflow:ellipsis;overflow:hidden;margin:0px;box-sizing:inherit;padding:0px;line-height:28px;display:inline-block;width:48%;margin-bottom:0px;margin-top:0px;">
+		<a href="https://blog.csdn.net/qq_33919114/article/details/80968713" style="box-sizing:inherit;outline:0px;color:rgb(51, 51, 51);text-decoration:none;cursor:pointer;">
+			<span style="box-sizing:inherit;outline:0px;margin-right:8px;padding:6px 8px;font-size:12px;border:1px solid rgb(227, 227, 227);color:rgb(77, 77, 77);">下一篇</span>linux虚拟机配置静态网络，解决centos7网络异常，ping不通		</a>
+	</div>
+	</div></span></div></div></div></div>
+</div>
+</span>
+</div></body></html> 

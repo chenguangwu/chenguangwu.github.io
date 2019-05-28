@@ -1,0 +1,620 @@
+<html>
+<head>
+  <title>MySQL查询优化 - Jevo - 博客园</title>
+  <basefont face="微软雅黑" size="2" />
+  <meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+  <meta name="exporter-version" content="YXBJ Windows/600718 (zh-CN, DDL); Windows/6.1.1 (Win64);"/>
+  <style>
+    body, td {
+      font-family: 微软雅黑;
+      font-size: 10pt;
+    }
+  </style>
+</head>
+<body>
+<a name="6248"/>
+<h1>MySQL查询优化 - Jevo - 博客园</h1>
+<div>
+<table bgcolor="#D4DDE5" border="0">
+<tr><td><b>创建时间：</b></td><td><i>2017/3/29 17:02</i></td></tr>
+<tr><td><b>来源：</b></td><td><a href="http://www.cnblogs.com/jevo/p/3305666.html"><i>http://www.cnblogs.com/jevo/p/3305666.html</i></a></td></tr>
+</table>
+</div>
+<br/>
+
+<div><span><div style="-evernote-webclip:true"><br/><div style="font-size: 16px; display: inline-block;"><div><div style="font-family:&quot;PingFang SC&quot;, &quot;Helvetica Neue&quot;, Helvetica, Arial, sans-serif;color:rgb(0, 0, 0);background:url(&quot;/Skins/coffee/images/bg_body.gif&quot;) left top;line-height:1.5;font-size:14px;"><div style="min-width:auto;"><div style="min-width:auto;text-align:left;"><div style="background:transparent;text-align:left;overflow-x:hidden;"><div style="background:url(&quot;/Skins/coffee/images/bg_left.gif&quot;) left top repeat-x rgb(254, 254, 242);"><div><div style="text-overflow:ellipsis;overflow:hidden;word-break:break-all;"><div>
+		<h1 style="margin:0px;padding:0px;width:100%;clear:both;font-weight:bold;float:left;line-height:1.5;font-size:14px;padding-left:5px;">
+			<a href="http://www.cnblogs.com/jevo/p/3305666.html" style="margin:0px;padding:0px;text-decoration:none;color:rgb(7, 93, 179);">MySQL查询优化</a>
+		</h1>
+		<div style="margin:0px;padding:0px;clear:both;"></div>
+		<div style="margin:0px;padding:5px 2px 5px 5px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin-top:5px;">
+			<div style="margin:0px;padding:0px;margin-bottom:20px;word-break:break-word;"><p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">在分析性能欠佳的查询时，应考虑：</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">        1) 应用程序是否正获取超过需要的数据，即访问了过多的行或列。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">        2) Mysql服务器是否分析了超过需要的行。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"> </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">        如果发现访问的数据行数很大，而生成的结果中数据行很少，那么可以尝试修改，比如使用覆盖索引、更改架构或重写查询让优化器可以以优化的方式执行它。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"> </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">         优化最终集中在减少IO，降低CPU，提高查询速度。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">         一般应用中数据库通常是IO密集型的，大部分数据库操作中超过90%的时间是由IO操作所占用，所以减少IO访问次数是SQL优化中首要考虑的因素。除了IO外，需要再考虑优化CPU的运算量。通常，ORDER BY、GROUP BY、DISTINCT和一些比较运算都是主要消耗CPU的地方。降低CPU计算也就成为优化的重要目标。</p>
+<h2 style="padding:0px;font-size:21px;font-weight:bold;line-height:1.5;margin:10px 0px;">1. 查询优化步骤</h2>
+<h3 style="padding:0px;font-size:16px;font-weight:bold;line-height:1.5;margin:10px 0px;">1）通过 show status和应用特点了解各种 SQL的执行频率</h3>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">       可以通过 SHOW STATUS 提供的服务器状态信息，或使用 mysqladmin extende d-status 命令获得。 SHOW STATUS 可以根据需要显示 session 级别的统计结果和 global级别的统计结果。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">        为了近似于实时知道服务器性能，可以周期性运行SHOW STATUS，并且和前一次的输出进行比较。如：</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">             Mysqladmin extended –r –i 10</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">        因为输出很多，可以把结果导入到grep中，过滤掉自己不想看的变量，也可以使用innotop或其他工具(如mysqlreport)来检查结果。一些值得监控的变量是：</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">             Bytes_received和Bytes_send：和服务器之间来往的流量。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">             Com_*  ：       服务器正在执行的命令</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">             Created_*：    在查询执行期间创建的临时表和文件</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">             Handler_*：    存储引擎操作</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">             Select_*：      不同类型的联接执行计划</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">             Sort_*：          几种排序信息</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">        同时用这种方法还能监视MySQL的内部操作，例如：键访问的次数、为MyISAM从磁盘上进行的键读取、数据访问率、为InnoDB从磁盘上读取的数据，等等。这有助于定位系统中实际的和潜在的瓶颈，而无需调查每一个查询。<br style="margin:0px;padding:0px;"/>       以下几个参数是对 MyISAM 和 InnoDB 存储引擎的计数：</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">         1. Com_select      执行 select 操作的次数，一次查询只累加 1 ；</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">         2. Com_insert      执行 insert 操作的次数，对于批量插入的 insert 操作，只累加一次 ；</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">         3. Com_update    执行 update 操作的次数；</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">         4. Com_delete     执行 delete 操作的次数；</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">        以下几个参数是针对 Innodb 存储引擎计数，累加的算法略有不同：</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">         1. Innodb_rows_read select   查询返回的行数；</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">         2. Innodb_rows_inserted       执行 Insert 操作插入的行数；</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">         3. Innodb_rows_updated       执行 update 操作更新的行数；</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">         4. Innodb_rows_deleted        执行 delete 操作删除的行数；</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">        通过以上几个参数，可以了解到当前数据库的应用是以插入更新为主还 是以查询操作为主，以及各种类型的 SQL大致的执行比例。注意对更新操作的计数是针对执行次数的计数，不论提交还是回滚都会累加。<br style="margin:0px;padding:0px;"/>        对于事务型的应用，通过 Com_commit 和 Com_rollback 可以了解事务提交和回 滚的情况，对于回滚操作非常频繁的数据库，可能意味着应用编写存在问题。此外，以下几个参数便于我们了解数据库的基本情况：</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">         1. Connections       试图连接 Mysql 服务器的次数<br style="margin:0px;padding:0px;"/>         2. Uptime               服务器工作时间<br style="margin:0px;padding:0px;"/>         3. Slow_queries     慢查询的次数</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"> </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">        为找到耗费了最多时间的工作，可以将测试分析建立在任何适合的粒度上：可以整体分析服务器，或者检查单个查询或批查询。得到信息包括：</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">         *  MySQL访问得最多的数据。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">         *  MySQL执行得最多的查询的种类。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">         *  MySQL停留时间最长的状态</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">         *  MySQL用来执行查询的使用得最频繁的子系统</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">         *  MySQL查询过程中访问的数据种类</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">         *  MySQL执行了多少种不同类型的活动，比如索引扫描</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"> </p>
+<h3 style="padding:0px;font-size:16px;font-weight:bold;line-height:1.5;margin:10px 0px;">2）定位执行效率较低的SQL语句</h3>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">        一旦确定查询只获取了所需要的数据，那么接下来不应检查在生成查询结果时是否检查了过多数据，测量指标主要：执行时间、检查行数、返回行数。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">     可以通过以下两种方式定位执行效率较低的 SQL 语句：<br style="margin:0px;padding:0px;"/>     1）.  可以通过慢查询日志定位那些执行效率较低的 sql 语句</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">        用 --log-slow-queries[=file_name] 选项启动时， mysqld 写一个包含所有执行时间超过long_query_time 秒的 SQL 语句的日志文件。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"> </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">        测量的三个指标（执行时间、检查行数、返回行数）都被写入了慢查询日志，故慢查询日志是检索查找过多数据查询的最佳方式。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">        注意：执行时间在不同负载下表现是不一样的；在理想情况下，返回的行和检查的行应该是一样的，但实际上是不可能的，例：使用联接查询时就需访问更多的行来产生一行输出。通常说来，检查的行和返回的行之间的比率通常较小，在1:1到10:1之间。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"><br style="margin:0px;padding:0px;"/>     2）.  使用 show processlist查看当前MySQL的线程</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">         慢查询日志在查询结束以后才纪录，所以在应用反映执行效率出现问题的时候查询慢查询日志并不能有效定位问题，可以使用 show processlist 命令查看当前 MySQL 在进行的线程，包括线程的状态，是否锁表等等，它不仅可以显示哪种查询正在执行，也能看到连接的状态。一些因素，比如大量连接处于锁定状态，是瓶颈的明显线索。。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"> </p>
+<h3 style="padding:0px;font-size:16px;font-weight:bold;line-height:1.5;margin:10px 0px;">3）通过EXPLAIN 分析低效 SQL的执行计划：</h3>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">       通过以上步骤查询到效率低的 SQL 后，我们可以通过 explain 或者 desc 获取MySQL 如何执行 SELECT 语句的信息，包括 select 语句执行过程表如何连接和连接 的次序。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"> </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">        通过EXPLAIN来探知访问类型，访问在扫描表、索引、范围和常量时的速度是不一样的。如果没有得到好的访问类型，那么最好的解决办法是加一个索引。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">        通常说来，MySQL会在3种情况下使用where子句，从最好到最坏依次是：</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">        *  对索引查找应用where子句来消除不匹配的行，这发生在存储引擎层；</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">        *  使用覆盖索引来避免访问行（”Using Index’），并且从索引取得数据后过滤掉不匹配的行。这发生在服务器层</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">        *  从表中检索出数据，然后过滤掉不匹配的行(‘Using Where’)。这发生在服务器端并且要求在过滤之前读取这些行。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"> </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"> </p>
+<h2 style="padding:0px;font-size:21px;font-weight:bold;line-height:1.5;margin:10px 0px;">2. MySQL索引</h2>
+<h3 style="padding:0px;font-size:16px;font-weight:bold;line-height:1.5;margin:10px 0px;">1） mysql如何使用索引    </h3>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">        索引用于快速找出在某个列中有一特定值的行。对相关列使用索引是提高SELECT 操作性能的最佳途径。<br style="margin:0px;padding:0px;"/>       查询要使用索引最主要的条件是查询条件中需要使用索引关键字，如果是多列索引，那么只有查询条件使用了多列关键字最左边的前缀时（前缀索引），才可以使用索引，否则将不能使用索引。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">       下列情况下， Mysql 不会使用已有的索引：<br style="margin:0px;padding:0px;"/>      1、如果 mysql 估计使用索引比全表扫描更慢，则不使用索引。例如：如果 key_part 1均匀分布在 1 和 100 之间，下列查询中使用索引就不是很好：<br style="margin:0px;padding:0px;"/>               SELECT * FROM table_name where key_part1 &gt; 1 and key_part1 &lt; 90<br style="margin:0px;padding:0px;"/>      2、如果使用 heap 表并且 where 条件中不用＝索引列，其他 &gt; 、 &lt; 、 &gt;= 、 &lt;= 均不使 用索引（MyISAM和innodb表使用索引）；</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">     3、查询条件里使用了函数(WHERE DAY(column) = …)或索引字段是表达式的一部分，则不会使用索引。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">      4、使用or分割的条件，如果or前的条件中的列有索引，后面的列中没有索引，那么涉及到的索引都不会使用。<br style="margin:0px;padding:0px;"/>      5、如果创建复合索引，如果条件中使用的列不是索引列的第一部分；（不是前缀索引）<br style="margin:0px;padding:0px;"/>      6、比较操作符LIKE和REGEXP的搜索模板的第一个字符是通配符，如 like 是以％开始时，不使用索引。<br style="margin:0px;padding:0px;"/>      7、对 where 后边条件为字符串的一定要加引号，字符串如果为数字 mysql 会自动转为字符串，但是不使用索引。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"> </p>
+<h3 style="padding:0px;font-size:16px;font-weight:bold;line-height:1.5;margin:10px 0px;">2）查看索引使用情况</h3>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">        通过下面几个参数来了解索引使用情况：</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">              Handler_read_key                    请求数字基于键读行。 </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">              Handler_read_next                   请求读入基于一个键的一行的次数。 </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">        如果索引正在工作， Handler_read_key 的值将很高，这个值代表了一个行被索引值读的次数，很低的值表明增加索引得到的性能改善不高，因为索引并不经常使 用。<br style="margin:0px;padding:0px;"/>        Handler_read_rnd_next 的值高则意味着查询运行低效，并且应该建立索引补救。这个值的含义是在数据文件中读下一行的请求数。如果你正进行大量的表扫描，该值较高。通常说明表索引不正确或写入的查询没有利用索引。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"> </p>
+<h2 style="padding:0px;font-size:21px;font-weight:bold;line-height:1.5;margin:10px 0px;">3．查询语句分析</h2>
+<h3 style="padding:0px;font-size:16px;font-weight:bold;line-height:1.5;margin:10px 0px;">1）使用SHOW STATUS分析查询</h3>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">        我们可以通过FLUSH STATUS和SHOW SESSION STATUS相结合来分析查询或批处理查询。这是一种优化查询的好办法：</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">        首先，运行FLUSH STATUS把会话状态变量设置为零，这样就可以知道MySQL执行查询时做了多少工作：mysql &gt; FLUSH STATUS；</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">        接下来运行查询。我们添上了SQL_NO_CACHE，这样MySQL不会从查询缓存中取得查询结果。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">        首先，运行FLUSH STATUS把会话状态变量设置为零，这样就可以知道MySQL执行查询时做了多少工作：mysql &gt; FLUSH STATUS；</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">        接下来运行查询。我们添上了SQL_NO_CACHE，这样MySQL不会从查询缓存中取得查询结果：</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">mysql&gt; select sql_no_cache id, count(*) from tb inner join tb1 using(id) group by id order by count(*) desc;</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">…</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">4 rows in set (0.72 sec)</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">        现在来分析这条语句的运行？先看看服务器选择的查询计划：</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">mysql&gt; show session status like 'select%';</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">+------------------------+-------+</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">| Variable_name          | Value |</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">+------------------------+-------+</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">| Select_full_join       | 0     |</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">| Select_full_range_join | 0     |</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">| Select_range           | 0     |</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">| Select_range_check     | 0     |</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">| Select_scan            | 2     |</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">+------------------------+-------+</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">5 rows in set (0.00 sec)</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">        看上去MySQL进行了全表扫描。如果查询涉及了多张表，有几个变量的值就会大于零。例如，如果MySQL在后续表中进行了范围扫描，以寻找匹配行，select_full_range_join变会有值，甚至还可以查看查询执行的低层次存储引擎操作：</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">mysql&gt; show session status like 'Handler%';</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">+----------------------------+-------+</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">| Variable_name              | Value |</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">+----------------------------+-------+</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">| Handler_commit             | 1     |</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">| Handler_delete             | 0     |</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">| Handler_discover           | 0     |</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">| Handler_prepare            | 0     |</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">| Handler_read_first         | 1     |                      ---  请求读入表中第一行的次数。 </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">| Handler_read_key           | 12    |                    ---请求数字基于键读行。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">| Handler_read_next          | 0     |                     ---请求读入基于一个键的一行的次数</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">| Handler_read_prev          | 0     |</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">| Handler_read_rnd           | 4     |                     ---请求读入基于一个固定位置的一行的次数</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">| Handler_read_rnd_next      | 14    |</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">| Handler_rollback           | 0     |</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">| Handler_savepoint          | 0     |</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">| Handler_savepoint_rollback | 0     |</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">| Handler_update             | 0     |</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">| Handler_write              | 7     |</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">+----------------------------+-------+</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">15 rows in set (0.02 sec)</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">         “读(read)”操作的值很高，意味着MySQL需要扫描多个表才能满足查询需要。通常，如果MySQL只对一个表使用了全表扫描，我们就会看到Handler_read_rn_next的值较高，并且Handler_read_rnd是零。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">         在这个例子中，多个非零值意味着MySQL必须使用临时表来满足GROUP BY和ORDER BY子句，这是Handler_write和Handler_update不为零的原因：MySQL假定写入临时表，扫描它并进行排序，然后再次进行扫描，输出排序后的结果。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">        再来看看MySQL为排序做了些什么：</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">mysql&gt; show session status like 'Sort%';</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">+-------------------+-------+</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">| Variable_name     | Value |</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">+-------------------+-------+</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">| Sort_merge_passes | 0     |</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">| Sort_range        | 0     |</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">| Sort_rows         | 4     |</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">| Sort_scan         | 1     |</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">+-------------------+-------+</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">4 rows in set (0.01 sec)</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">        正如我们猜测那样，MySQL通过扫描包含输出中所有行的临时表进行排序。如果值多于4行，我们怀疑它在查询执行的过程中在别的地方进行了排序。还能看到MySQL为查询创建了多少临时表：</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">mysql&gt; show session status like 'created%';</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">+-------------------------+-------+</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">| Variable_name           | Value |</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">+-------------------------+-------+</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">| Created_tmp_disk_tables | 0     |</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">| Created_tmp_files       | 0     |</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">| Created_tmp_tables      | 2     |</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">+-------------------------+-------+</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">3 rows in set (0.00 sec)</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">         Create_tmp_disk_tables为0表示不需要使用磁盘上的临时表。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">         我们可以通过将命令运行两次，并将第2次结果减去第1次结果来计算开销，得到精确的结果。这样我们就可以知晓MySQL在执行查询的过程中做了多少工作。这将是我们进行优化的基础。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"> </p>
+<h3 style="padding:0px;font-size:16px;font-weight:bold;line-height:1.5;margin:10px 0px;">2）使用SHOW PROFILE分析查询</h3>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">       在默认情况下，分析是关闭的，但是可以在会话的层面打开。打开它会让服务器收集用于执行查询的资源信息。在开始收集统计信息之前，需要把分析变量设置为1：</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">                   Mysql&gt;set profiling = 1;</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">       现在运行查询：</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">mysql&gt; select sql_no_cache id, count(*) from tb inner join tb1 using(id) group by id order by count(*) desc;</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">+----+----------+</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">| id | count(*) |</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">+----+----------+</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">|  1 |        1 |</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">|  2 |        1 |</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">|  3 |        1 |</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">|  4 |        1 |</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">+----+----------+</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">4 rows in set (0.00 sec)</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">        查询的分析数据被保存在会话中。使用SHOW PROFILES查看已经被分析过后查询：</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">mysql&gt; show profiles\G;</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">*************************** 1. row ***************************</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">Query_ID: 1</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">Duration: 0.00242825</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">   Query: select sql_no_cache id, count(*) from tb inner join tb1 using(id) group by id order by count(*) desc</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">1 row in set (0.00 sec)</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"> </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">ERROR:</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">No query specified</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"> </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">        可以使用SHOW PROFILE命令取得被保存下来的分析数据。如果不加任何参数，它就会显示最近一个命令的状态值和运行时间：</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">mysql&gt; show profile;</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">+----------------------+----------+</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">| Status               | Duration |</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">+----------------------+----------+</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">| starting             | 0.001015 |</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">| Opening tables       | 0.000042 |</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">| System lock          | 0.000013 |</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">| Table lock           | 0.000024 |</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">| init                 | 0.000097 |</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">| optimizing           | 0.000027 |</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">| statistics           | 0.000092 |</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">| preparing            | 0.000036 |</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">| Creating tmp table   | 0.000261 |</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">| executing            | 0.000010 |</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">| Copying to tmp table | 0.000288 |</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">| Sorting result       | 0.000093 |</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">| Sending data         | 0.000048 |</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">| end                  | 0.000006 |</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">| removing tmp table   | 0.000036 |</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">| end                  | 0.000008 |</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">| query end            | 0.000010 |</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">| freeing items        | 0.000202 |</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">| logging slow query   | 0.000011 |</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">| logging slow query   | 0.000098 |</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">| cleaning up          | 0.000013 |</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">+----------------------+----------+</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">21 rows in set (0.00 sec)</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"> </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">        每一行代表了进程的一种变化，以及在这种状态停留的时间。Status列和SHOW FULL PROCESSLIST输出的State列是对应的。它的值来自于thd-&gt;proc_info变量，因此可以直接看到MySQL内部的值。尽管它们的名字都很直观，也不难理解，但是这些变量还是可以从MySQL的手册中找到。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">        可以从SHOW PROFILES的输出中得到特定的Query_ID，并且进行指定的分析，并且还可以定义输出的其余列。例如，为了解执行查询时用户的CPU使用率，可以使用下面的命令：</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">               Mysql&gt; SHOW PROFILE CPU FOR QUERY 1;</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">        SHOW PROFILE很好地揭示了服务器执行查询时所做的事情，并且有助于理解查询在操作上花费时间。它的局限是未实现的特性，不能查看和分析其他联接的查询，以及由于分析带来的开销。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"> </p>
+<h2 style="padding:0px;font-size:21px;font-weight:bold;line-height:1.5;margin:10px 0px;">4．MySQL查询优化器的限制</h2>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">        1）关联子查询(Correlated Subqueries)：MySQL有时把子查询优化得很差，最差的就是在Where子句中使用IN。优化语句需要考虑到执行顺序和缓存：从里向外执行查询是一种优化方式 ，缓存内部查询的结果是另外一种方式。重写查询时应考虑兼顾这两方面。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">        但MySQL不会总是把关联子查询优化得很差，比如Exists在逻辑上表达“有一个匹配”概念，它不会产生任何重复的行，也能够避免使用GROUP BY和DISTINCT操作，有时子查询会比联接快得多。对待子查询不能有绝对的态度，应该用测试来证明。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"> </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">        2）联合的限制：MySQL有时不能把UNION外的一些条件“下推”到UNION的内部，而这些外部条件本来用于限制结果或者产生优化。具体应该把LIMIT子句或ORDER BY子句添加到UNION内部的每一个子句上。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"> </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">        3）索引合并优化：索引合并算法可以在查询中对一个表使用多个索引。查询可以同时扫描多个索引，并且合并结果，这种算法有3种变体，分别是：对OR取并集、对AND取交集、对AND和OR的组合并集。但有时这种算法的缓冲、排序和合并操作使用了大量的CPU和内存资源，对于没有足够区分性的索引，并行扫描会返回大量需要合并操作的列，这种情况就更容易发生。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">       如果查询因为优化器的限制而运行得很慢，那么可以通过IGNORE INDEX命令禁止一些索引，或使用老的UNION策略。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"> </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">        4）相等传递：优化器通过把相应的列拷贝到相关的表里来共享列表。这通常是有用的，因为它让优化器和执行引擎有更多的机会选择执行IN操作的时机。但是如果这个列非常大，它就可能导致较慢的优化和执行。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"> </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">        5）并行执行：MySQL不能在多个CPU上并行执行一个查询。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"> </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">        6）哈希联接（Hash Join）：MySQL还不能真正执行哈希联接。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"> </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">        7）松散索引扫描（Loose Index Scan）：MySQL不支持松散索引扫描，即扫描不连续的索引。MySQL索引扫描通常都需要一个确定的起点和终点，即使查询只需要其中一些不连续的行，MySQL也会扫描起点到终点范围内的所有行。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">        例：假设某表在列(a,b)上有索引，要执行查询：select … from tb1 where b between 2 and 3；因为索引是从a开始，但是Where子句中没有列a，MySQL将会全表扫描并且去掉不匹配的行。Explain中”Using Index for group-by”表示查询使用了松散索引扫描。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"> </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">        8）Min()和Max()：MySQL不能很好地优化MIN()和MAX()。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"> </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">        9）对同一个表进行SELECT和UPDATE：MySQL不会让你在对一个表进行UPDATE的同时运行SELECT。一个变通的方式是衍生表（临时表），这样可以有效地处理两个查询：一是在子查询内部使用SELECT，二是使用表和子查询的结果进行联接，然后进行更新：</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">             mysql&gt; UPDATE tb1 INNER JOIN( </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">                              SELECT type, count(*) AS cnt FROM tb1 GROUP BY type) AS der USING(type)</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">                               SET tb1.cnt = der.cnt;</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"> </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"><strong style="margin:0px;padding:0px;">MySQL</strong><strong style="margin:0px;padding:0px;">能够处理的一些优化类型是：</strong></p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">         》对联接中的表重新排序</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">         》对外联接转换成内联接</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">         》代数等价法则：如5=5 AND a &gt; 5等价于a&gt;5</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">         》优化COUNT()、MIN()和MAX()</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">         》计算和减少常量表达式</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">         》覆盖索引</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">         》子查询优化</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">         》尽早停止：一旦满足查询或某个步骤的条件，MySQL就会立即停止处理该查询或该步骤</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">         》相等传递：</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">         》比较IN()里面的数据：MySQL会对IN()里面的数据进行排序，然后用二分法查找某个值是否在列表中。这个算法效率是O(logn)，而等同的OR 子句的效率是O(N)，在列表很大的时候，OR子句会慢得多。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"> </p>
+<h2 style="padding:0px;font-size:21px;font-weight:bold;line-height:1.5;margin:10px 0px;">5. 具体优化查询语句</h2>
+<h3 style="padding:0px;font-size:16px;font-weight:bold;line-height:1.5;margin:10px 0px;">1. 应尽量避免全表扫描</h3>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">    对查询进行优化，应尽量避免全表扫描，首先应考虑在 where 及 order by 涉及的列上建立索引。相对于使用给定的索引，全表扫描将非常耗时。可以尝试下面的技巧以避免优化器错选了表扫描：</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">       *  使用ANALYZE TABLEtbl_name为扫描的表更新关键字分布。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">       *  对扫描的表使用FORCE INDEX。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">        SELECT * FROM t1, t2 FORCE INDEX (index_for_column)  WHERE t1.col_name=t2.col_name；</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">       *  用--max-seeks-for-key=1000选项启动MySQL或者使用SET max_seeks_for_key=1000告知优化器扫描不会超过1,000次关键字搜索。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"> </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">       虽然对表建立了索引，但表查询仍然可能会使用全表索引。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"><strong style="margin:0px;padding:0px;"> 1)  </strong><strong style="margin:0px;padding:0px;">应尽量避免在 where </strong><strong style="margin:0px;padding:0px;">子句中对字段进行 null </strong><strong style="margin:0px;padding:0px;">值判断</strong></p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">     任何在where子句中使用is null或is not null的语句优化器都是不允许使用索引，相反会进行全表扫描，如：</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">            select fa from tb where fb is null</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">        NULL对于大多数数据库都需要特殊处理，MySQL也不例外，它需要更多的代码，更多的检查和特殊的索引逻辑，只要列中包含有NULL值都将不会被包含在索引中，复合索引中只要有一列含有NULL值，那么这一列对于此复合索引就是无效的。所以我们在数据库设计时不要让字段的默认值为NULL。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"> </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"><strong style="margin:0px;padding:0px;"> 2)  </strong><strong style="margin:0px;padding:0px;">应尽量避免在 where </strong><strong style="margin:0px;padding:0px;">子句中使用!=</strong><strong style="margin:0px;padding:0px;">或&lt;&gt;</strong><strong style="margin:0px;padding:0px;">操作符</strong></p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">     通常MySQL只对&lt;，&lt;=，=，&gt;，&gt;=，BETWEEN，IN，以及某些时候的LIKE才会使用索引。如果查询条件中存在!=或&lt;&gt;符号时，MySQL将无法使用索引而进行全表扫描。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">     对于LIKE语句，只有在不是以通配符（%或者_）开头的查询下才会使用索引。例如:<br style="margin:0px;padding:0px;"/>              SELECT fa FROM  tb WHERE fb LIKE 'Mich%'; #  这个查询将使用索引，<br style="margin:0px;padding:0px;"/>              SELECT fa FROM  tb WHERE fb  LIKE '%ike';   #这个查询不会使用索引。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">      对于TEXT类型，若要提高效率，可考虑全文检索。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"> </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"><strong style="margin:0px;padding:0px;"> 3)  </strong><strong style="margin:0px;padding:0px;">应尽量避免在 where </strong><strong style="margin:0px;padding:0px;">子句中使用 or </strong><strong style="margin:0px;padding:0px;">来连接条件</strong></p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">       WHERE语句中使用OR，且没有使用覆盖索引，会进行全表扫描。如：</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">                  select id from t where num=10 or num=20</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">        可以 使用UNION合并查询：</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">                 select id from t where num=10 union all select id from t where num=20</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">       在某些情况下，or条件可以避免全表扫描的：必须所有的or条件都是独立索引。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"> </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"><strong style="margin:0px;padding:0px;"> 4)  </strong><strong style="margin:0px;padding:0px;">慎用in </strong><strong style="margin:0px;padding:0px;">和 not in</strong><strong style="margin:0px;padding:0px;">，否则会导致全表扫描</strong></p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">       MySQL索引能很好地匹配匹配范围值，但这也只会使用索引第一列，同时也不能跳过索引中的列。对于连续的数值，能用 between 就不要用 in 了： </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">                 select id from t where num between 1 and 3</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">      使用BETWEEN语句时也需注意：MySQL不支持松散索引扫描，即扫描不连续的索引。MySQL索引扫描通常都需要一个确定的起点和终点，即使查询只需要其中一些不连续的行，MySQL也会扫描起点到终点范围内的所有行。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">        例：假设某表在列(a,b)上有索引，要执行查询：select … from tb1 where b between 2 and 3；因为索引是从a开始，但是Where子句中没有列a，MySQL将会全表扫描并且去掉不匹配的行</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"> </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"> <strong style="margin:0px;padding:0px;">5)   </strong><strong style="margin:0px;padding:0px;">如果在 where </strong><strong style="margin:0px;padding:0px;">子句中使用参数，也会导致全表扫描。</strong></p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">        因为SQL只有在运行时才会解析局部变量，但优化程序不能将访问计划的选择推迟到运行时；它必须在编译时进行选择。然而，如果在编译时建立访问计划，变量的值还是未知的，因而无法作为索引选择的输入项。如下面语句将进行全表扫描：</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">               select id from t where num=@num </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">       可以改为强制查询使用索引： select id from t with(index(索引名)) where num=@num</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"> </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"><strong style="margin:0px;padding:0px;"> 6)   </strong><strong style="margin:0px;padding:0px;">应尽量避免在 where </strong><strong style="margin:0px;padding:0px;">子句中对字段进行表达式操作。</strong></p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">       这将导致MySQL放弃使用索引而进行全表扫描。如：</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">                  select id from t where num/2=100</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">       该查询不会使用索引。MySQL不会帮你求解方程，应该养成简化WHERE子句的习惯，这样就会把被索引的列单独放在比较运算符的一边，<strong style="margin:0px;padding:0px;">不要在</strong><strong style="margin:0px;padding:0px;"> where </strong><strong style="margin:0px;padding:0px;">子句中的“=”</strong><strong style="margin:0px;padding:0px;">左边进行函数、算术运算或其他表达式运算。</strong>上句可改为: </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">                  select id from t where num=100*2 或者selece id from t where num=200;</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"> </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"><strong style="margin:0px;padding:0px;">7)  </strong><strong style="margin:0px;padding:0px;">应尽量避免在where</strong><strong style="margin:0px;padding:0px;">子句中对字段进行函数操作，</strong></p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">       这同样会导致MySQL放弃使用索引而进行全表扫描。如：</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">                 SELECT … WHERE TO_DAYS(CURRENT_DATE) – TO_DAYS(date_col) &lt;= 10;</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">        这个查询将会查找date_col值离今天不超过10天的所有行，但是它不会使用索引，因为使用了TO_DAYS()函数。下面是一种较好的方式：</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">                 SELECT … WHERE date_col &gt;= DATE_SUB(CURRENT_DATE, INTERVAL 10 DAY) ;</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">       使用CURRENT_DATE将会阻止查询缓存把结果缓存起来，可以用常量替换CURRENT_DATE的值对上条语句进行改进：</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">                 SELECT … WHERE date_col &gt;=DATE_SUB(‘2008-01-17’, INTERVAL 10 DAY);</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"> </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"><strong style="margin:0px;padding:0px;">8)  </strong><strong style="margin:0px;padding:0px;">索引字段不是复合索引的前缀索引</strong></p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">         通常MySQL索引对于以下类型的查询有用(以下针对B-Tree树索引)：</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">          * 匹配全名：    全键值匹配指和索引中的所有列匹配。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">          * 匹配最左前缀：这仅仅适用了索引中的第一列。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">          * 匹配列前缀：可以匹配某列的值的开头部分</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">         如果查找没有从索引列的最左边开始，它就没有什么用处。如果该索引是复合索引，那么必须使用到该索引中的第一个字段作为条件时才能保证系统使用该索引，否则该索引将不会被使用，并且应尽可能的让字段顺序与索引顺序相一致。例如在表tb上存在索引(fa, fb, fc)，这种索引不能帮助查询存在fb查询条件同时却没有定义fa条件的数据，即这种查询不能使用上索引(fa, fb, fc)。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">        同样查询条件不能跳过索引中的列。同样以上面表tb的索引(fa, fb, fc)，索引也不能帮助查询指定fa、fc条件同时缺没有定义fb查询条件的数据。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">        另外，存储引擎也不能优化访问任何在第一个范围条件右边的列。例如表tb上的索引(fa,fb,fc)，如果查询形如WHERE fa=’….’ AND fb LIKE ‘x%’ AND fc=’….’，那么访问就只能使用索引的头两列(fa, fb)，因为LIKE是范围条件。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">        这些局限都和列顺序有关，所以列顺序极端重要了。对于高性能应用程序，也许要针对相同列以不同顺序创建多个索引，以满足程序要求。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">        这就是说，（A，B）上的索引能被当成（A）上的索引。（这种多余只适合B-Tree索引）。而(B，A)上的索引就不会是多余的，(B)上的索引也不是，因为列B不是列(A，B)的最左前缀。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"> </p>
+<h3 style="padding:0px;font-size:16px;font-weight:bold;line-height:1.5;margin:10px 0px;">2. 其他一些注意优化</h3>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"><strong style="margin:0px;padding:0px;">1)  </strong><strong style="margin:0px;padding:0px;">不要写一些没有意义的查询，</strong></p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">        如生成一个空表结构：</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">                 select col1, col2 into #t from t where 1=0</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">        上面这条语句不会返回任何结果集，但是会消耗系统资源的，应改用： create table #t(...)</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"> </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"><strong style="margin:0px;padding:0px;">2)  </strong><strong style="margin:0px;padding:0px;">很多时候用 exists </strong><strong style="margin:0px;padding:0px;">代替 in </strong><strong style="margin:0px;padding:0px;">是一个好的选择：</strong></p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">        EXISTS用于检查子查询是否至少会返回一行数据，用于检测行的存在，该子查询实际上并不返回任何数据，而是返回值True或False。EXISTS在逻辑上表达“有一个匹配”概念，它不会产生任何重复的行，也能够避免使用GROUP BY和DISTINCT操作：</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">       select num from a where num in(select num from b)</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">                用下面的语句替换： </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">       select num from a where exists(select 1 from b where num=a.num)</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">       关于EXISTS与IN查询的效率，可以网上找‘mysql in和exists性能比较和使用’查看。具体以测试结果为准。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"> </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"><strong style="margin:0px;padding:0px;">3)  </strong><strong style="margin:0px;padding:0px;">并不是所有索引对查询都有效，</strong></p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">       SQL是根据表中数据来进行查询优化的，当索引列有大量数据重复时，SQL查询可能不会去利用索引，如一表中有字段sex，male、female几乎各一半，那么即使在sex上建了索引也对查询效率起不了作用。通常认为在这样字段上不适合于建立索引。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"> </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"><strong style="margin:0px;padding:0px;">4)  </strong><strong style="margin:0px;padding:0px;">索引并不是越多越好</strong></p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">       索引固然可以提高相应的 select 的效率，但同时也降低了 insert 及 update 的效率，因为 insert 或 update 时有可能会重建索引，所以怎样建索引需要慎重考虑，视具体情况而定。一个表的索引数最好不要超过6个，若太多则应考虑一些不常使用到的列上建的索引是否有必要。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">        在任何可能的地方，首先应试着扩展索引，而不是新增索引。通常维护一个多列索引要比维护多个单列索引容易。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"> </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"><strong style="margin:0px;padding:0px;">5)  </strong><strong style="margin:0px;padding:0px;">应尽可能的避免更新 clustered </strong><strong style="margin:0px;padding:0px;">索引数据列</strong></p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">       因为 clustered 索引数据列的顺序就是表记录的物理存储顺序，一旦该列值改变将导致整个表记录的顺序的调整，会耗费相当大的资源。若应用系统需要频繁更新 clustered 索引数据列，那么需要考虑是否应将该索引建为 clustered 索引。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"> </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"><strong style="margin:0px;padding:0px;">6)  </strong><strong style="margin:0px;padding:0px;">尽量使用数字型字段</strong></p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">      若只含数值信息的字段尽量不要设计为字符型，这会降低查询和连接的性能，并会增加存储开销。这是因为引擎在处理查询和连接时会逐个比较字符串中每一个字符，而对于数字型而言只需要比较一次就够了。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">      特别是在作关键字段的类型选择上，要同时考虑存储类型和MySQL如何对它们进行计算和比较。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"> </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"><strong style="margin:0px;padding:0px;">7)  </strong><strong style="margin:0px;padding:0px;">尽可能的使用 varchar/nvarchar </strong><strong style="margin:0px;padding:0px;">代替 char/nchar </strong></p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">         因为首先变长字段存储空间小，可以节省存储空间，其次对于查询来说，在一个相对较小的字段内搜索效率显然要高些。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"> </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"><strong style="margin:0px;padding:0px;">8)   </strong><strong style="margin:0px;padding:0px;">最好不要使用&quot;*&quot;</strong><strong style="margin:0px;padding:0px;">返回所有： select * from t </strong></p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">     若要利用覆盖索引，则应用具体的字段列表代替“*”，不要返回用不到的任何字段。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"> </p>
+<h3 style="padding:0px;font-size:16px;font-weight:bold;line-height:1.5;margin:10px 0px;">3. 临时表的问题</h3>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">临时表一般都很少用，一般是程序中动态创建或者由MySQL内部根据SQL执行计划需要时创建。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">内存表则大多数是当Cache用，随着memcache、NoSQL的流行，内存表也越来越少使用了。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"><strong style="margin:0px;padding:0px;">1)  </strong><strong style="margin:0px;padding:0px;">避免频繁创建和删除临时表，以减少系统表资源的消耗。</strong></p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">       即便在删除临时表数据时，建议使用TRUNCATE TABLE 替代DELETE操作。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"><strong style="margin:0px;padding:0px;">2)  </strong><strong style="margin:0px;padding:0px;">在新建临时表时，如果一次性插入数据量很大，那么可以使用 select into </strong><strong style="margin:0px;padding:0px;">代替 create table</strong><strong style="margin:0px;padding:0px;">，避免造成大量 log </strong><strong style="margin:0px;padding:0px;">，以提高速度；</strong>如果数据量不大，为了缓和系统表的资源，应先create table，然后insert。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"><strong style="margin:0px;padding:0px;">3)   </strong><strong style="margin:0px;padding:0px;">如果使用到了临时表，在存储过程的最后务必将所有的临时表显式删除，先 truncate table </strong><strong style="margin:0px;padding:0px;">，然后 drop table </strong><strong style="margin:0px;padding:0px;">，</strong>这样可以避免系统表的较长时间锁定。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">使用EXPLAIN分析查询语句时，extra列显示“using temporary”即使用了内部临时表。内部临时表的创建条件：</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">        *  group by 和 order by中的列不相同</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">        *  order by的列不是引用from 表列表中 的第一表</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">        *  group by的列不是引用from 表列表中 的第一表</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">        *  使用了sql_small_result选项</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">        *  含有distinct 的 order by语句</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"> </p>
+<h3 style="padding:0px;font-size:16px;font-weight:bold;line-height:1.5;margin:10px 0px;">4. 游标的问题：</h3>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"><strong style="margin:0px;padding:0px;">1)  </strong><strong style="margin:0px;padding:0px;">尽量避免使用游标，</strong></p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">         因为游标的效率较差，如果游标操作的数据超过1万行，那么就应该考虑改写。 Mysql的游标不适合处理大一点的数据量，仅适合用于操作几百上千的小数据量。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"> </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"><strong style="margin:0px;padding:0px;">2)  </strong><strong style="margin:0px;padding:0px;">使用基于游标的方法或临时表方法之前，</strong>应先寻找基于集合的解决方案来解决问题，基于集合的方法通常更有效。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"><strong style="margin:0px;padding:0px;">  </strong>     对小型数据集使用 FAST_FORWARD 游标通常要优于其他逐行处理方法，尤其是在必须引用几个表才能获得所需的数据时。在结果集中包括“合计”的例程通常要比使用游标执行的速度快。如果开发时间允许，基于游标的方法和基于集的方法都可以尝试一下，看哪一种方法的效果更好。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"> </p>
+<h3 style="padding:0px;font-size:16px;font-weight:bold;line-height:1.5;margin:10px 0px;">5. 事务的问题：</h3>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"><strong style="margin:0px;padding:0px;">1)  </strong><strong style="margin:0px;padding:0px;">尽量避免大事务操作，提高系统并发能力。</strong></p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">         innodb在事务下可以锁定行也可以锁定表(MyISAM仅支持表锁)，当然对于应用而言，锁定行是最佳性能，当锁定了表，其他进程对表进行write操作时只能队列等候事务的完成再继续。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"> </p>
+<h3 style="padding:0px;font-size:16px;font-weight:bold;line-height:1.5;margin:10px 0px;">6. 数据量的问题</h3>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"><strong style="margin:0px;padding:0px;">1)  </strong><strong style="margin:0px;padding:0px;">尽量避免向客户端返回大数据量，若数据量过大，应该考虑相应需求是否合理。</strong></p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">        通常避免向客户端返回大数据量的方法是采用分页系统，在分页系统中使用LIMIT和OFFSET很常见，它们通常也会和ORDER BY一起使用。但分页系统中（LIMIT和OFFSET）的一个常见问题是偏移量很大时，可以限制一个分页里访问的页面数目，或者让偏移量很大时查询效率更高。一个提高效率的简单技巧就是在覆盖索引上进行偏移，而不是对全行数据进行偏移。可以将从覆盖索引上提取出来的数据和全行数据进行联接，然后取得需要的列。有时可以把LIMIT转换为位置性查询（bwteen and子句），服务器可以以索引范围扫描的方式来执行。</p>
+<h3 style="padding:0px;font-size:16px;font-weight:bold;line-height:1.5;margin:10px 0px;">7. COUNT优化：</h3>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">        COUNT有两种不同的工作方式：<strong style="margin:0px;padding:0px;">统计值的数量</strong>和<strong style="margin:0px;padding:0px;">统计行的数量</strong>。如果在COUNT()的括号中定义了列名或其它表达式，COUNT就会统计这个表达式有值班的次数。COUNT(*)则统计结果中行的数量。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">       通常说来，使用了COUNT的查询很难优化，因为它们通常需要统计很多行。在MySQL内部优化它的唯一其他选择就是使用覆盖索引。如果这还不够，那么就需要更改应用程序的架构。可以考虑使用汇总表，还可以利用外部缓存系统，比如数据库缓存服务器(MemCached)。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">      1)  InnoDB引擎在统计方面和MyISAM是不同的，MyISAM内置了一个计数器，COUNT(*)在没有查询条件的情况下使用 select count(*) from table 的时候，MyISAM直接可以从计数器中取出数据，而InnoDB必须全表扫描一次方能得到总的数量。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">     2) 但是当有查询条件的时候，两者的查询效率一致。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">     对主键索引作COUNT的时候之所以慢，是因为：</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">     *  InnoDB引擎:</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">       [1]     数据文件和索引文件存储在一个文件中，主键索引默认直接指向数据存储位置。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">       [2]     二级索引存储指定字段的索引，实际的指向位置是主键索引。当我们通过二级索引统计数据的时候，无需扫描数据文件；而通过主键索引统计数据时，由于主键索引与数据文件存放在一起，所以每次都会扫描数据文件，所以主键索引统计没有二级索引效率高。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">      [3]     由于主键索引直接指向实际数据，所以当我们通过主键id查询数据时要比通过二级索引查询数据要快。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">     *  MyISAM引擎</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">      [1]     该引擎把每个表都分为几部分存储，比如用户表，包含user.frm，user.MYD和user.MYI。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">      [2]     User.frm负责存储表结构</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">      [3]     User.MYD负责存储实际的数据记录，所有的用户记录都存储在这个文件中</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">      [4]     User.MYI负责存储用户表的所有索引，这里也包括主键索引。<br style="margin:0px;padding:0px;"/><br style="margin:0px;padding:0px;"/></p>
+<h3 style="padding:0px;font-size:16px;font-weight:bold;line-height:1.5;margin:10px 0px;">8．优化联接：</h3>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">对于JOIN查询，</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">  •   首先确保ON或USING使用的列上有索引。这样，MySQL内部会启动为你优化Join的SQL语句的机制。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">  •   确保GROUP BY或ORDER BY只引用一个表中的列。这样MySQL可以尝试对这些操作使用索引。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">  •   确保被用来Join的字段，应该是相同的类型的。例如：如果你要把 DECIMAL 字段和一个 INT 字段Join在一起，MySQL就无法使用它们的索引。对于那些STRING类型，还需要有相同的字符集才行。（两个表的字符集有可能不一样）</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">  •   要谨慎升级MySQL。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"> </p>
+<h3 style="padding:0px;font-size:16px;font-weight:bold;line-height:1.5;margin:10px 0px;">9．优化子查询：</h3>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">        对子查询重要的建议就是尽可能使用联接。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"> </p>
+<h3 style="padding:0px;font-size:16px;font-weight:bold;line-height:1.5;margin:10px 0px;">10. 优化order by语句</h3>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"><strong style="margin:0px;padding:0px;">基于索引的排序</strong><br style="margin:0px;padding:0px;"/>        MySQL的弱点之一是它的排序。虽然MySQL可以在1秒中查询大约15,000条记录，但由于MySQL在查询时最多只能使用一个索引。因此，如果WHERE条件已经占用了索引，那么在排序中就不使用索引了，这将大大降低查询的速度。我们可以看看如下的SQL语句:<br style="margin:0px;padding:0px;"/>             SELECT * FROM SALES WHERE NAME = “name” ORDER BY SALE_DATE DESC;</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">        在以上的SQL的WHERE子句中已经使用了NAME字段上的索引，因此，在对SALE_DATE进行排序时将不再使用索引。为了解决这个问题，我们可以对SALES表建立复合索引:</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">            ALTER TABLE SALES DROP INDEX NAME, ADD INDEX (NAME, SALE_DATE)</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">        这样再使用上述的SELECT语句进行查询时速度就会大副提升。但要注意，在使用这个方法时，要确保WHERE子句中没有排序字段，在上例中就是不能用SALE_DATE进行查询，否则虽然排序快了，但是SALE_DATE字段上没有单独的索引，因此查询又会慢下来。<br style="margin:0px;padding:0px;"/><br style="margin:0px;padding:0px;"/></p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">        在某些情况中， MySQL可以使用一个索引来满足 ORDER BY子句，而不需要额外的排序。 where条件和order by使用相同的索引，并且order by 的顺序和索引顺序相 同，并且order by的字段都是升序或者都是降序。例如：下列sql可以使用索引。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">         SELECT * FROM t1 ORDER BY key_part1,key_part2,... ;<br style="margin:0px;padding:0px;"/>         SELECT * FROM t1 WHERE key_part1=1 ORDER BY key_part1 DESC, key_part2 DESC;<br style="margin:0px;padding:0px;"/>         SELECT * FROM t1 ORDER BY key_part1 DESC, key_part2 DESC;<br style="margin:0px;padding:0px;"/>    但是以下情况不使用索引：<br style="margin:0px;padding:0px;"/>       SELECT * FROM t1 ORDER BY key_part1 DESC, key_part2 ASC ； --order by 的字段混合 ASC 和 DESC<br style="margin:0px;padding:0px;"/>       SELECT * FROM t1 WHERE key2=constant ORDER BY key1 ；-- 用于查询行的关键字与 ORDER BY 中所使用的不相同<br style="margin:0px;padding:0px;"/>       SELECT * FROM t1 ORDER BY key1, key2 ；-- 对不同的关键字使用 ORDER BY ：</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"> </p>
+<h3 style="padding:0px;font-size:16px;font-weight:bold;line-height:1.5;margin:10px 0px;">11. 优化GROUP BY和DISTINCT</h3>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">        通常说来，索引也是优化它们的最重要手段。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">        当不能使用索引时，MySQL有两种优化GROUP BY的策略：使用临时表或文件排序进行分组。通过使用SQL_SMALL_RESULT强制MySQL选择临时表，或者使用SQL_BIG_RESULT强制它使用文件排序。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">        如果要对联接进行分组，通过对表的ID列进行分组会更加高效。通过配置SQL_MODE参数来禁止SELECT中使用未在GROUP BY中出现的列。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">        分组查询的一个变化就是要求MySQL在结果内部实现超级聚合(Super Aggregation)。可以在GROUP BY后面加上WITH ROLLUP来实现。但也许它没有被很好地优化。可以使用解释器检查执行方法，确认分组是否已经通过文件排序或临时表完成，然后试着移除WITH ROLLUP，并且查看分组方法是否没有变化。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">        默认情况下， MySQL 排序所有 GROUP BY col1 ， col2 ， .... 。查询的方法如同在查询中指定 ORDER BY col1 ， col2 ， ... 。如果显式包括一个包含相同的列的 ORDER BY子句， MySQL 可以毫不减速地对它进行优化，尽管仍然进行排序。如果查询包括 GROUP BY 但你想要避免排序结果的消耗，你可以指定 ORDER BY NULL禁止排序。<br style="margin:0px;padding:0px;"/><br style="margin:0px;padding:0px;"/></p>
+<h3 style="padding:0px;font-size:16px;font-weight:bold;line-height:1.5;margin:10px 0px;">12．优化LIMIT和OFFSET：</h3>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">        在分页系统中使用LIMIT和OFFSET很常见，它们通常也会和ORDER BY一起使用。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">        一个常见问题是偏移量很大时，可以限制一个分页里访问的页面数目，或者让偏移量很大时查询效率更高。一个提高效率的简单技巧就是在覆盖索引上进行偏移，而不是对全行数据进行偏移。可以将从覆盖索引上提取出来的数据和全行数据进行联接，然后取得需要的列。有时可以把LIMIT转换为位置性查询（bwteen and子句），服务器可以以索引范围扫描的方式来执行。             </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">        如果确实需要优化分页系统，也许应该利用预先计算好的汇总数据。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"> </p>
+<h3 style="padding:0px;font-size:16px;font-weight:bold;line-height:1.5;margin:10px 0px;">13．优化联合：</h3>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">        MySQL总是通过创建并填充临时表方式来执行UNION，它不能对UNION进行太多的优化。重要的是始终要使用UNION ALL，除非需要服务器消除重复的行。如果忽略了ALL关键字，MySQL就会向临时表添加distinct选项，它会利用所有行来决定数据的唯一性，这种操作开销很大。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"> </p>
+<h3 style="padding:0px;font-size:16px;font-weight:bold;line-height:1.5;margin:10px 0px;">10. 优化 OR</h3>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">通常情况下，在OR子句中的字段都具有索引的情况下，用UNION子句来替换WHERE子句中的OR将会起到较好的效果。但如果存在没有索引的列，则不应使用UNION子句。对索引列使用OR将造成全表扫描。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">另外，可以使用IN子句来替代OR子句。通过给索引添加越来越多的列，并且使用IN()列表来覆盖那些不存WHERE子句的列。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">对于OR子句，通常MyISAM存储索引可以使用索引来扫描，而InnoDB则不能。为了利用索引，OR子句中的所有条件中的字段都具有单独的索引，否则利用不上索引。</p>
+<h2 style="padding:0px;font-size:21px;font-weight:bold;line-height:1.5;margin:10px 0px;">6．查询优化提示</h2>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">        如果不满意MySQL优化器选择的优化方案，可以使用一些优化提示来控制优化器的行为。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">  •   HIGH_PRIORITY和LOW_PRIORITY：决定访问同一个表的语句相对于其他语句的优先级。HIGH_PRIORITY告诉MySQL将一个SELECT语句放在其他语句的前面，以便它修改数据。LOW_PRIORITY则相反，如果有其他语句需要访问数据，它就将当前语句放到队列的最后。可以将这个选项用于SELECT、INSERT、UPDATE、REPLACE和DELETE。这两个选项只影响服务器对访问表的队列的处理，并不是指在查询上分配较多或较少的资源。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"> </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">  •   DELAYED：用于INSERT和UPDATE。应用这个提示的语句会立即返回并将待插入的列放入缓冲区中，在表空闲的时候再执行插入。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"> </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">  •   STRAIGHT_JOIN：用于SELECT语句中SELECT关键字后，也可用于联接语句。它可强制MySQL按照查询中表出现的顺序来联接表，并当它出现在两个联接表中间时，强制这两个表按照顺序联接。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"> </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">  •   SQL_SMALL_RESULT和SQL_BIG_RESULT：用于SELECT语句。告诉MySQL在GROUP BY或DISTINCT查询中如何并何时使用临时表。SQL_SMALL_RESULT告诉优化器结果集会比较小，可以放在索引过的临时表中，以避免对分组后的数据排序。SQL_BIG_RESULT是结果集很大，最好使用磁盘上的临时表进行排序。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"> </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">  •   SQL_BUFFER_RESULT：将结果放在临时表中，并且尽快释放掉表锁。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"> </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">  •   SQL_CACHE和SQL_NO_CACHE：SQL_CACHE表明查询已经存在缓存中，而SQL_NO_CACHE正好相反。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"> </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">  •   SQL_CALC_FOUND_ROWS：告诉MySQL在有LIMIT子句时计算完整的结果集。（见上述了解为什么不要使用这个提示）</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"> </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">  •   FOR UPDATE和LOCK IN SHARE MODE：SELECT语句使用这两个提示来控制锁定，但只针对有行级锁的存会引擎。它可帮助预先锁定匹配的行。INSERT..SELECT查询不需要这两个提示。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"> </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">  •   USE INDEX、IGNORE INDEX和FORCE INDEX：告诉优化器从表中寻找行时使用或忽略索引。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"> </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">  •   Optimizer_search_depth：这个变量告诉优化器检查执行计划的深度。如果查询在“统计”的状态停留很长时间，就可以考虑减少这个变量的值。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">  •   Optimizer_prune_level：让优化器根据检查的行的数量跳过某些查询计划</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"> </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"> </p>
+<h2 style="padding:0px;font-size:21px;font-weight:bold;line-height:1.5;margin:10px 0px;">7. SQL核心语句(非常实用的几个技巧)</h2>
+<h3 style="padding:0px;font-size:16px;font-weight:bold;line-height:1.5;margin:10px 0px;">1．优化insert语句</h3>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">        如果可以同时从同一客户插入很多行，使用多个值表的INSERT 语句。多个值表的 INSERT 语句 ，可以大大缩减客户端与数据库之间的连接、语法分析等消耗，使得效率比分开执行的单个 INSERT 语句快很多。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">       如批量插入:</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">         INSERT  INTO tb (fa, fb, fc) VALUES ('1', '12', '13'), ('2', '22', '23'), ('3', '32', '33'), </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">        如果从不同客户插入很多行，可以通过使用INSERT DELAYED 语句得到更高的速度。Delayed 的含义是让insert 语句马上执行，其实数据都被放在内存的队列中，并没有真正的写入磁盘；这比每条语句都分别插入要快的多；LOW_PRIORITY刚好相反，在所有其他用户对表的读写完成后才进行插入。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"> </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">将索引文件和数据文件分在不同的磁盘上存放（利用建表中的选项）；</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">如果进行批量插入，可以增加bulk_insert_buffer_size 变量值的方法来提高速度，但是，这只能对myisam表使用</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">当从一个文本文件装载一个表时，使用LOAD DATA INFILE。这通常比使用很多INSERT语句快20倍；</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">根据应用情况使用replace 语句代替insert；</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">根据应用情况使用ignore 关键字忽略重复记录。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"> </p>
+<h3 style="padding:0px;font-size:16px;font-weight:bold;line-height:1.5;margin:10px 0px;">2．大批量插入数据</h3>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">1. 对于Myisam 类型的表，可以通过以下方式快速的导入大量的数据。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">         ALTER TABLE tblname DISABLE KEYS;</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">          loading the data</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">          ALTER TABLE tblname ENABLE KEYS;</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">        这两个命令用来打开或者关闭MyISAM 表非唯一索引的更新。在导入大量的数据到一个非空的Myisam 表时，通过设置这两个命令，可以提高导入的效率。对于导入大量数据到一个空的Myisam 表，默认就是先导入数据然后才创建索引的，所以不用进行设置。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"> </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">2. 而对于Innodb 类型的表，这种方式并不能提高导入数据的效率。对于Innodb 类型的表，我们有以下几种方式可以提高导入的效率：</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">      a.   因为Innodb 类型的表是按照主键的顺序保存的，所以将导入的数据按照主键的顺序排列，可以有效的提高导入数据的效率。如果Innodb 表没有主键，那么系统会默认创建一个内部列作为主键，所以如果可以给表创建一个主键，将可以利用这个优势提高导入数据的效率。<br style="margin:0px;padding:0px;"/> </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">       b.   在导入数据前执行SET UNIQUE_CHECKS=0，关闭唯一性校验，在导入结束后执行SETUNIQUE_CHECKS=1，恢复唯一性校验，可以提高导入的效率。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"> </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">       c.   如果应用使用自动提交的方式，建议在导入前执行SET AUTOCOMMIT=0，关闭自动提交，导入结束后再执行SET AUTOCOMMIT=1，打开自动提交，也可以提高导入的效率。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"> </p>
+<h3 style="padding:0px;font-size:16px;font-weight:bold;line-height:1.5;margin:10px 0px;">3．清空数据表</h3>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">            TRUNCATE TABLE  `mytable`</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">       注意：删除表中的所有记录，应使用TRUNCATE TABLE语句。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"> </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">        TRUNCATE TABLE 与没有 WHERE 子句的 DELETE 语句类似；但是，TRUNCATE TABLE 速度更快，使用的系统资源和事务日志资源更少。这也意味着TRUNCATE TABLE要比DELETE快得多。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">       DELETE 语句每次删除一行，并在事务日志中为所删除的每行记录一个项。TRUNCATE TABLE 通过释放用于存储表数据的数据页来删除数据，并且在事务日志中只记录页释放。 </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">       当使用行锁执行 DELETE 语句时，将锁定表中各行以便删除。TRUNCATE TABLE 始终锁定表和页，而不是锁定各行。 </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">        执行 DELETE 语句后，表仍会包含空页。例如，必须至少使用一个排他 (LCK_M_X) 表锁，才能释放堆中的空表。如果执行删除操作时没有使用表锁，表（堆）中将包含许多空页。对于索引，删除操作会留下一些空页，尽管这些页会通过后台清除进程迅速释放。 </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">        TRUNCATE TABLE 删除表中的所有行，但表结构及其列、约束、索引等保持不变。若要删除表定义及其数据，就需使用 DROP TABLE 语句。 </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"> 需要注意的是，在下列情况下，不能对以下表使用 TRUNCATE TABLE： </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">     *  由 FOREIGN KEY 约束引用的表。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">     *  参与索引视图的表。 </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">     *  通过使用事务复制或合并复制发布的表。 </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">     *  对于具有以上一个或多个特征的表，请使用 DELETE 语句。 </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">     *  TRUNCATE TABLE 不能激活触发器，因为该操作不记录各个行删除。 </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"> </p>
+<h3 style="padding:0px;font-size:16px;font-weight:bold;line-height:1.5;margin:10px 0px;">4．拆分大的 DELETE 或 INSERT 语句</h3>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">        如果你需要在一个在线的网站上去执行一个大的 DELETE 或 INSERT 查询，你需要非常小心，要避免你的操作让你的整个网站停止相应。因为这两个操作是会锁表的，表一锁住了，别的操作都进不来了。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">        Apache 会有很多的子进程或线程。所以，其工作起来相当有效率，而我们的服务器也不希望有太多的子进程，线程和数据库链接，这是极大的占服务器资源的事情，尤其是内存。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">        如果你把你的表锁上一段时间，比如30秒钟，那么对于一个有很高访问量的站点来说，这30秒所积累的访问进程/线程，数据库链接，打开的文件数，可能不仅仅会让你泊WEB服务Crash，还可能会让你的整台服务器马上掛了。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">        所以，如果你有一个大的处理，你定你一定把其拆分，使用 LIMIT 条件是一个好的方法。下面是一个示例：</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"> </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">while (1) { </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">    //每次只做1000条 </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">    mysql_query(&quot;DELETE FROM logs WHERE log_date &lt;= '2009-11-01' LIMIT 1000&quot;); </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">    if (mysql_affected_rows() == 0) { </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">        // 没得可删了，退出！ </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">        break; </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">    } </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">    // 每次都要休息一会儿 </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">    usleep(50000); </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">} </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"> </p>
+<h3 style="padding:0px;font-size:16px;font-weight:bold;line-height:1.5;margin:10px 0px;">5．用SELECT创建记录和表</h3>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">　　INSERT语句与DELETE语句和UPDATE语句有一点不同，它一次只操作一个记录。然而，有一个方法可以使INSERT 语句一次添加多个记录。要作到这一点，你需要把INSERT语句与SELECT语句结合起来，象这样:</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">　　INSERT mytable(first_column,second_column)</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">     　　SELECT another_first,another_second  FROM anothertable WHERE another_first='Copy Me!';</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">　　这个语句从anothertable拷贝记录到mytable.只有表anothertable中字段another_first的值为'Copy Me!'的记录才被拷贝。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">　　当为一个表中的记录建立备份时，这种形式的INSERT语句是非常有用的。在删除一个表中的记录之前，你可以先用这种方法把它们拷贝到另一个表中。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">　　如果你需要拷贝整个表，你可以使用SELECT INTO语句。例如，下面的语句创建了一个名为newtable的新表，该表包含表mytable的所有数据:</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">                SELECT * INTO newtable FROM mytable;</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">　　你也可以指定只有特定的字段被用来创建这个新表。要做到这一点，只需在字段列表中指定你想要拷贝的字段。另外，你可以使用WHERE子句来限制拷贝到新表中的记录。下面的例子只拷贝字段second_columnd的值等于'Copy Me!'的记录的first_column字段。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">           SELECT first_column INTO newtable   FROM mytable</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">                   WHERE second_column='Copy Me!';</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">　　使用SQL修改已经建立的表是很困难的。例如，如果你向一个表中添加了一个字段，没有容易的办法来去除它。另外，如果你不小心把一个字段的数据类型给错了，你将没有办法改变它。但是，使用本节中讲述的SQL语句，你可以绕过这两个问题。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">　　例如，假设你想从一个表中删除一个字段。使用SELECT INTO语句，你可以创建该表的一个拷贝，但不包含要删除的字段。这使你既删除了该字段，又保留了不想删除的数据。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">　　如果你想改变一个字段的数据类型，你可以创建一个包含正确数据类型字段的新表。创建好该表后，你就可以结合使用UPDATE语句和SELECT语句，把原来表中的所有数据拷贝到新表中。通过这种方法，你既可以修改表的结构，又能保存原有的数据。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"> </p>
+<h2 style="padding:0px;font-size:21px;font-weight:bold;line-height:1.5;margin:10px 0px;">8．重构查询的方式</h2>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">        一个重要的查询设计问题就是是否可以把一个复杂查询分解成多个简单的查询。注意的是，在应用程序中如果可以使用简单查询返回结果时仍然需要避免使用太多的查询。（从网络开销与服务器开销作平衡）。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">1） 缩短查询（分治法）：让查询每次执行一小部分，以减少受影响的行数。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">        例：将一次性大量数据的删除细化成多次中等大小的数据删除，得到移除相同数据的目的。对一个高效的查询来说，一次删除10000行数据的任务已经足够大了。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"> </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">2）分解联接：把一个多表联接分解成多个单表查询，然后在应用程序端实现联接操作。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">      这种重构方式的优势：</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">      *  缓存的效率更高：许多程序都直接缓存了表，这样可直接利用上缓存数据。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">      *  对MyISAM表来说，每个表一个查询可以有效地利用表锁。因为查询会在短时间内锁住单个表，而不是把所有表长时间锁住。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">      *  查询本身会更高效。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">      * 可以减少多余的行访问。联接会反复访问同一行数据。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">      * 在某种意义上可以认为这种方式是手工执行了哈希联接，而不是MySQL内部执行联接操作时采用的嵌套循环算法。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"> </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">注意：在什么时候应用程序端进行联接效率会更高：</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">     *  可以缓存早期查询的大量数据。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">     *  使用了多个MyISAM表。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">     *  数据分布在不同的服务器上。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">     *  对于大表使用IN()替换联接。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">     *  一个联接引用了同一个表很多次。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"> </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">3）为查询缓存优化你的查询</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">       大多数的MySQL服务器都开启了查询缓存。这是提高性最有效的方法之一，而且这是被MySQL的数据库引擎处理的。当有很多相同的查询被执行了多次的时候，这些查询结果会被放到一个缓存中，这样，后续的相同的查询就不用操作表而直接访问缓存结果了。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">      这里最主要的问题是，对于程序员来说，这个事情是很容易被忽略的。因为，我们某些查询语句会让MySQL不使用缓存。请看下面的示例：</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">     // 查询缓存不开启 </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">      $r = mysql_query(&quot;SELECT username FROM user WHERE signup_date &gt;= CURDATE()&quot;); </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"> </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">       // 开启查询缓存 </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">       $today = date(&quot;Y-m-d&quot;); </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">      $r = mysql_query(&quot;SELECT username FROM user WHERE signup_date &gt;= '$today'&quot;); </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"> </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">       MySQL还允许改变语句调度的优先级，它可以使来自多个客户端的查询更好地协作，这样单个客户端就不会由于锁定而等待很长时间。改变优先级还可以确保特定类型的查询被处理得更快。</p></div>
+<div style="margin:0px;padding:0px;clear:both;"></div>
+<div style="margin:0px;padding:0px;margin-top:20px;">
+<div style="margin:0px;padding:0px;margin-bottom:10px;">分类: <a href="http://www.cnblogs.com/jevo/category/508868.html" style="margin:0px;padding:0px;text-decoration:underline;color:rgb(7, 93, 179);" target="_blank">database</a>,<a href="http://www.cnblogs.com/jevo/category/489112.html" style="margin:0px;padding:0px;text-decoration:underline;color:rgb(7, 93, 179);" target="_blank">Mysql</a>,<a href="http://www.cnblogs.com/jevo/category/460016.html" style="margin:0px;padding:0px;text-decoration:underline;color:rgb(7, 93, 179);" target="_blank">tuning</a></div>
+<div style="margin:0px;padding:0px;font-size:9pt;color:rgb(102, 102, 102);margin-top:0px;"></div>
+<div style="margin:0px;padding:0px;"><div style="margin:0px;padding:10px 0px;margin-bottom:10px;margin-top:10px;border:1px dashed silver;font-size:12px;width:320px;text-align:center;">
+        <a href="#" style="margin-right:10px;margin:0px;border-radius:10px;padding:3px 8px;text-decoration:none;font-weight:bold;cursor:pointer;display:inline-block;vertical-align:middle;box-shadow:rgba(0, 0, 0, 0.498039) 0px 1px 3px;text-shadow:rgba(0, 0, 0, 0.247059) 0px -1px 1px;background:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAAkCAYAAABIdFAMAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAHhJREFUeNo8zjsOxCAMBFB/KEAUFFR0Cbng3nQPw68ArZdAlOZppPFIBhH5EAB8b+Tlt9MYQ6i1BuqFaq1CKSVcxZ2Acs6406KUgpt5/LCKuVgz5BDCSb13ZO99ZOdcZGvt4mJjzMVKqcha68iIePB86GAiOv8CDADlIUQBs7MD3wAAAABJRU5ErkJggg%3D%3D&quot;) repeat-x;background-color:rgb(45, 174, 191);color:rgb(255, 255, 255);border:none;">好文要顶</a>
+            <a href="#" style="margin-right:10px;margin:0px;border-radius:10px;padding:3px 8px;text-decoration:none;font-weight:bold;cursor:pointer;display:inline-block;vertical-align:middle;box-shadow:rgba(0, 0, 0, 0.498039) 0px 1px 3px;text-shadow:rgba(0, 0, 0, 0.247059) 0px -1px 1px;background:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAAkCAYAAABIdFAMAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAHhJREFUeNo8zjsOxCAMBFB/KEAUFFR0Cbng3nQPw68ArZdAlOZppPFIBhH5EAB8b+Tlt9MYQ6i1BuqFaq1CKSVcxZ2Acs6406KUgpt5/LCKuVgz5BDCSb13ZO99ZOdcZGvt4mJjzMVKqcha68iIePB86GAiOv8CDADlIUQBs7MD3wAAAABJRU5ErkJggg%3D%3D&quot;) repeat-x;background-color:rgb(227, 49, 0);color:rgb(255, 255, 255);border:none;">关注我</a>
+    <a href="#" style="margin-right:10px;margin:0px;border-radius:10px;padding:3px 8px;text-decoration:none;font-weight:bold;cursor:pointer;display:inline-block;vertical-align:middle;box-shadow:rgba(0, 0, 0, 0.498039) 0px 1px 3px;text-shadow:rgba(0, 0, 0, 0.247059) 0px -1px 1px;background:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAAkCAYAAABIdFAMAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAHhJREFUeNo8zjsOxCAMBFB/KEAUFFR0Cbng3nQPw68ArZdAlOZppPFIBhH5EAB8b+Tlt9MYQ6i1BuqFaq1CKSVcxZ2Acs6406KUgpt5/LCKuVgz5BDCSb13ZO99ZOdcZGvt4mJjzMVKqcha68iIePB86GAiOv8CDADlIUQBs7MD3wAAAABJRU5ErkJggg%3D%3D&quot;) repeat-x;background-color:rgb(255, 181, 21);color:rgb(255, 255, 255);border:none;">收藏该文</a>
+    <a href="#" style="margin-right:10px;margin:0px;border-radius:10px;padding:3px 2px;text-decoration:none;font-weight:bold;cursor:pointer;display:inline-block;vertical-align:middle;box-shadow:none;text-shadow:none;background:none;color:rgb(255, 255, 255);border:none;" title="分享至新浪微博"><img src="MySQL查询优化 - Jevo - 博客园_files/icon_weibo_24.png" type="image/png" data-filename="icon_weibo_24.png" alt="" height="24" style="margin:0px;padding:0px;height:auto;border:none;vertical-align:middle;margin-left:5px;box-shadow:none;max-width:300px;" width="24"/></a>
+    <a href="#" style="margin-right:10px;margin:0px;border-radius:10px;padding:3px 2px;text-decoration:none;font-weight:bold;cursor:pointer;display:inline-block;vertical-align:middle;box-shadow:none;text-shadow:none;background:none;color:rgb(255, 255, 255);border:none;" title="分享至微信"><img src="MySQL查询优化 - Jevo - 博客园_files/wechat.png" type="image/png" data-filename="wechat.png" alt="" height="24" style="margin:0px;padding:0px;border:medium none;width:24px;height:24px;box-shadow:none;margin-left:5px;vertical-align:middle;max-width:300px;" width="24"/></a>
+</div>
+<div style="margin:0px;padding:0px;float:left;width:280px;margin-top:0px;margin-bottom:10px;color:rgb(0, 0, 0);margin-left:0px;font-size:12px;">
+    <div style="margin:0px;padding:0px;float:left;line-height:18px;">
+            <a href="http://home.cnblogs.com/u/jevo/" style="margin:0px;padding:0px;text-decoration:underline;color:rgb(7, 93, 179);" target="_blank"><img src="MySQL查询优化 - Jevo - 博客园_files/sample_face.gif" type="image/gif" data-filename="sample_face.gif" alt="" height="46" style="margin:0px;padding:0px;height:auto;border:0px;vertical-align:top;float:left;margin-right:5px;padding-top:5px;padding-left:2px;max-width:300px;" width="47"/></a>
+        <div style="margin:0px;padding:0px;float:left;line-height:18px;">
+            <a href="http://home.cnblogs.com/u/jevo/" style="margin:0px;padding:0px;text-decoration:underline;color:rgb(7, 93, 179);">Jevo</a><br style="margin:0px;padding:0px;"/>
+            <a href="http://home.cnblogs.com/u/jevo/followees" style="margin:0px;padding:0px;text-decoration:underline;color:rgb(7, 93, 179);">关注 - 0</a><br style="margin:0px;padding:0px;"/>
+            <a href="http://home.cnblogs.com/u/jevo/followers" style="margin:0px;padding:0px;text-decoration:underline;color:rgb(7, 93, 179);">粉丝 - 21</a>
+        </div>
+    </div>
+    <div style="margin:0px;padding:0px;clear:both;"></div>
+    <div style="margin:0px;padding:0px;"></div>
+    <div style="margin:0px;padding:0px;">
+                <a href="#" style="margin:0px;padding:0px;text-decoration:underline;color:rgb(7, 93, 179);">+加关注</a>
+    </div>
+</div>
+<div style="margin:0px;padding:0px;float:right;margin-bottom:10px;margin-right:30px;font-size:12px;width:125px;text-align:center;margin-top:10px;">
+    <div style="margin:0px;padding:0px;float:left;width:46px;height:52px;background:url(&quot;http://static.cnblogs.com/images/upup.gif&quot;) no-repeat;text-align:center;cursor:pointer;margin-top:2px;padding-top:5px;">
+        <span style="margin:0px;padding:0px;font-size:14px;color:rgb(7, 93, 179);font-family:Verdana;line-height:1.5em;">1</span>
+    </div>
+    <div style="text-align:center;padding:0px;margin:0px;height:52px;background:url(&quot;http://static.cnblogs.com/images/downdown.gif&quot;) no-repeat;margin-left:20px;cursor:pointer;margin-top:2px;padding-top:5px;width:46px;float:right;">
+        <span style="margin:0px;padding:0px;font-size:14px;color:rgb(7, 93, 179);font-family:Verdana;line-height:1.5em;">0</span>
+    </div>
+    <div style="margin:0px;padding:0px;clear:both;"></div>
+    <div style="margin:0px;padding:0px;margin-top:5px;margin-left:0px;font-size:12px;color:gray;">
+    </div>
+</div>
+</div>
+<div style="margin:0px;padding:0px;clear:both;"></div>
+<div style="margin:0px;padding:0px;line-height:1.8;font-size:12px;"><a href="http://www.cnblogs.com/jevo/p/3305832.html" style="margin:0px;padding:0px;color:rgb(7, 93, 179);text-decoration:none;">« </a> 上一篇：<a href="http://www.cnblogs.com/jevo/p/3305832.html" style="margin:0px;padding:0px;text-decoration:underline;color:rgb(7, 93, 179);" title="发布于2013-09-05 22:17">MySQL索引</a><br style="margin:0px;padding:0px;"/><a href="http://www.cnblogs.com/jevo/p/3314928.html" style="margin:0px;padding:0px;color:rgb(7, 93, 179);text-decoration:none;">» </a> 下一篇：<a href="http://www.cnblogs.com/jevo/p/3314928.html" style="margin:0px;padding:0px;text-decoration:underline;color:rgb(7, 93, 179);" title="发布于2013-09-11 21:51">MySQL更新优化</a><br style="margin:0px;padding:0px;"/></div>
+</div>
+
+
+		</div>
+		<div style="margin:0px;padding:0px;clear:both;font-size:12px;float:right;width:100%;text-align:right;padding-right:5px;color:rgb(102, 102, 102);margin-top:5px;">posted @ <span style="margin:0px;padding:0px;">2013-09-06 22:10</span> <a href="http://www.cnblogs.com/jevo/" style="margin:0px;padding:0px;text-decoration:none;color:rgb(7, 93, 179);">Jevo</a> 阅读(<span style="margin:0px;padding:0px;">895</span>) 评论(<span style="margin:0px;padding:0px;">0</span>)  <a href="https://i.cnblogs.com/EditPosts.aspx?postid=3305666" rel="nofollow" style="margin:0px;padding:0px;text-decoration:none;color:rgb(7, 93, 179);">编辑</a> <a href="http://www.cnblogs.com/jevo/p/3305666.html#" style="margin:0px;padding:0px;text-decoration:none;color:rgb(7, 93, 179);">收藏</a></div>
+	</div></div></div></div></div></div></div></div></div></div><br/></div></span>
+</div></body></html> 

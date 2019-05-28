@@ -1,0 +1,545 @@
+<html>
+<head>
+  <title>MySQL中kill僵死进程的脚本 - mysql数据库栏目 - 红黑联盟</title>
+  <basefont face="微软雅黑" size="2" />
+  <meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+  <meta name="exporter-version" content="YXBJ Windows/600718 (zh-CN, DDL); Windows/6.1.1 (Win64);"/>
+  <style>
+    body, td {
+      font-family: 微软雅黑;
+      font-size: 10pt;
+    }
+  </style>
+</head>
+<body>
+<a name="7543"/>
+<h1>MySQL中kill僵死进程的脚本 - mysql数据库栏目 - 红黑联盟</h1>
+<div>
+<table bgcolor="#D4DDE5" border="0">
+<tr><td><b>创建时间：</b></td><td><i>2016/2/6 10:57</i></td></tr>
+<tr><td><b>来源：</b></td><td><a href="http://www.2cto.com/database/201111/110755.html"><i>http://www.2cto.com/database/201111/110755.html</i></a></td></tr>
+</table>
+</div>
+<br/>
+
+<div><span><br/><div style="font-size: 16px"><div><div style="font-size:12px;font-family:宋体;background:rgb(255, 255, 255);"><div style="list-style:none;overflow:hidden;background:url(http://www.2cto.com/statics/images/box_bg.png) repeat-y;"><div style="list-style:none;overflow:hidden;"><dl style="list-style:none;font-size:14px;color:rgb(51, 51, 51);line-height:28px;"><dd style="list-style:none;">
+		<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	 </p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	MySQL + PHP的模式在大并发压力下经常会导致MySQL中存在大量僵死进程，导致服务挂死。为了自动干掉这些进程，弄了个脚本，放在服务器后台通过crontab自动执行。发现这样做了以后，的确很好的缓解了这个问题。把这个脚本发出来和大家Share.</p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	 </p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	根据自己的实际需要，做了一些修改：</p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	 </p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	SHELL脚本:mysqld_kill_sleep.sh</p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	 </p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	#!/bin/sh</p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	mysql_pwd=”root的密码&quot;</p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	mysqladmin_exec=&quot;/usr/local/bin/mysqladmin&quot;</p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	mysql_exec=&quot;/usr/local/bin/mysql&quot;</p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	mysql_timeout_dir=&quot;/tmp&quot;</p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	mysql_timeout_log=&quot;$mysql_timeout_dir/mysql_timeout.log&quot;</p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	mysql_kill_timeout_sh=&quot;$mysql_timeout_dir/mysql_kill_timeout.sh&quot;</p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	mysql_kill_timeout_log=&quot;$mysql_timeout_dir/mysql_kill_timeout.log&quot;</p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	$mysqladmin_exec -uroot -p&quot;$mysql_pwd&quot; processlist | awk '{ print $12 , $2 ,$4}' | grep -v Time | grep -v '|' | sort -rn &gt; $mysql_timeout_log</p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	awk '{if($1&gt;30 &amp;&amp; $3!=&quot;root&quot;) print &quot;'&quot;&quot;$mysql_exec&quot;&quot;' -e &quot; &quot;/&quot;&quot; &quot;kill&quot;,$2 &quot;/&quot;&quot; &quot; -uroot &quot; &quot;-p&quot;&quot;/&quot;&quot;&quot;'&quot;&quot;$mysql_pwd&quot;&quot;'&quot;&quot;/&quot;&quot; &quot;;&quot; }' $mysql_timeout_log &gt; $mysql_kill_timeout_sh</p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	echo &quot;check start ....&quot; &gt;&gt; $mysql_kill_timeout_log</p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	echo `date` &gt;&gt; $mysql_kill_timeout_log</p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	cat $mysql_kill_timeout_sh</p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	 </p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	把这个写到mysqld_kill_sleep.sh。然后chmod 0 mysqld_kill_sleep.sh,chmod u+rx mysqld_kill_sleep.sh，然后用root账户到cron里面运行即可，时间自己调整。</p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	执行之后显示：</p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	 </p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	 </p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	 </p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	www# ./mysqld_kill_sleep.sh</p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	/usr/local/bin/mysql -e &quot;kill 27549&quot; -uroot -p&quot;mysql root的密码&quot;;</p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	/usr/local/bin/mysql -e &quot;kill 27750&quot; -uroot -p&quot;mysql root的密码&quot;;</p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	/usr/local/bin/mysql -e &quot;kill 27840&quot; -uroot -p&quot;mysql root的密码&quot;;</p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	/usr/local/bin/mysql -e &quot;kill 27867&quot; -uroot -p&quot;mysql root的密码&quot;;</p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	/usr/local/bin/mysql -e &quot;kill 27899&quot; -uroot -p&quot;mysql root的密码&quot;;</p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	/usr/local/bin/mysql -e &quot;kill 27901&quot; -uroot -p&quot;mysql root的密码&quot;;</p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	/usr/local/bin/mysql -e &quot;kill 27758&quot; -uroot -p&quot;mysql root的密码&quot;;</p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	/usr/local/bin/mysql -e &quot;kill 27875&quot; -uroot -p&quot;mysql root的密码&quot;;</p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	/usr/local/bin/mysql -e &quot;kill 27697&quot; -uroot -p&quot;mysql root的密码&quot;;</p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	/usr/local/bin/mysql -e &quot;kill 27888&quot; -uroot -p&quot;mysql root的密码&quot;;</p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	/usr/local/bin/mysql -e &quot;kill 27861&quot; -uroot -p&quot;mysql root的密码&quot;;</p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	 </p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	如果确认没有问题了，把最后的cat修改为sh即可。</p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	 </p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	本人改写了下上面的脚本:</p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	 </p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	#!/bin/bash</p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	mysql_pwd=&quot;密码&quot;</p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	mysql_exec=&quot;/usr/local/mysql/bin/mysql&quot;</p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	mysql_timeout_dir=&quot;/tmp&quot;</p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	mysql_kill_timeout_sh=&quot;$mysql_timeout_dir/mysql_kill_timeout.sh&quot;</p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	mysql_kill_timeout_log=&quot;$mysql_timeout_dir/mysql_kill_timeout.log&quot;</p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	$mysql_exec -uroot -p$mysql_pwd -e &quot;show processlist&quot; | grep -i &quot;Locked&quot; &gt;&gt; $mysql_kill_timeout_log</p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	chmod 777 $mysql_kill_timeout_log</p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	for line in `$mysql_kill_timeout_log  | awk '{print $1}'`</p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	do</p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	echo &quot;$mysql_exec -uroot -p$mysql_pwd -e /&quot;kill $line/&quot;&quot; &gt;&gt; $mysql_kill_timeout_sh</p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	done</p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	chmod 777 $mysql_kill_timeout_sh</p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	cat $mysql_kill_timeout_sh</p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	 </p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	============================================================================</p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	 </p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	很多时候！一不小心就锁表！这里讲解决锁表终极方法！</p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	 </p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	案例一</p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	 </p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	mysql&gt;show processlist;</p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	 </p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	参看sql语句</p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	 </p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	一般少的话</p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	 </p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	mysql&gt;kill thread_id;</p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	 </p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	就可以解决了</p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	 </p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	kill掉第一个锁表的进程, 依然没有改善. 既然不改善, 咱们就想办法将所有锁表的进程kill掉吧, 简单的脚本如下.</p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	 </p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	#!/bin/bash</p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	mysql - u root - e &quot; show processlist &quot; | grep - i &quot; Locked &quot; &gt;&gt; locked_log . txt</p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	 </p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	for line in ` cat locked_log.txt | awk '{print $1 }' `</p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	do</p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	echo &quot; kill $line ; &quot; &gt;&gt; kill_thread_id . sql</p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	done</p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	现在kill_thread_id.sql的内容像这个样子</p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	 </p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	kill 66402982 ;</p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	kill 66402983 ;</p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	kill 66402986 ;</p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	kill 66402991 ;</p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	.....</p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	好了, 我们在mysql的shell中执行, 就可以把所有锁表的进程杀死了.</p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	 </p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	mysql &gt; source kill_thread_id . sql</p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	 </p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	当然了, 也可以一行搞定</p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	for id in `mysqladmin processlist | grep -i locked | awk '{print $1}'`</p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	do</p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	mysqladmin kill ${id}</p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	done</p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	 </p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	案例二</p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	 </p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	如果大批量的操作能够通过一系列的select语句产生，那么理论上就能对这些结果批量处理。</p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	但是mysql并没用提供eval这样的对结果集进行分析操作的功能。所以只能现将select结果保存到临时文件中，然后再执行临时文件中的指令。</p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	具体过程如下：</p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	mysql&gt; SELECT concat('KILL ',id,';') FROM information_schema.processlist WHERE user='root';</p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	+------------------------+</p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	| concat('KILL ',id,';')</p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	+------------------------+</p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	| KILL 3101;            </p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	| KILL 2946;            </p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	+------------------------+</p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	2 rows IN SET (0.00 sec)</p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	mysql&gt; SELECT concat('KILL ',id,';') FROM information_schema.processlist WHERE user='root' INTO OUTFILE '/tmp/a.txt';</p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	Query OK, 2 rows affected (0.00 sec)</p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	mysql&gt; source /tmp/a.txt;</p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	Query OK, 0 rows affected (0.00 sec)</p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	 </p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	 </p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	案例三</p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	 </p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	MySQL + PHP的模式在大并发压力下经常会导致MySQL中存在大量僵死进程，导致服务挂死。为了自动干掉这些进程，弄了个脚本，放在服务器后台通过crontab自动执行。发现这样做了以后，的确很好的缓解了这个问题。把这个脚本发出来和大家Share.</p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	根据自己的实际需要，做了一些修改：</p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	SHELL脚本:mysqld_kill_sleep.sh</p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	#!/bin/sh</p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	mysql_pwd=&quot;root的密码&quot;</p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	mysqladmin_exec=&quot;/usr/local/bin/mysqladmin&quot;</p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	mysql_exec=&quot;/usr/local/bin/mysql&quot;</p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	mysql_timeout_dir=&quot;/tmp&quot;</p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	mysql_timeout_log=&quot;$mysql_timeout_dir/mysql_timeout.log&quot;</p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	mysql_kill_timeout_sh=&quot;$mysql_timeout_dir/mysql_kill_timeout.sh&quot;</p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	mysql_kill_timeout_log=&quot;$mysql_timeout_dir/mysql_kill_timeout.log&quot;</p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	$mysqladmin_exec -uroot -p&quot;$mysql_pwd&quot; processlist | awk '{ print $12 , $2 ,$4}' | grep -v Time | grep -v '|' | sort -rn &gt; $mysql_timeout_log</p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	awk '{if($1&gt;30 &amp;&amp; $3!=&quot;root&quot;) print &quot;'&quot;&quot;$mysql_exec&quot;&quot;' -e &quot; &quot;\&quot;&quot; &quot;kill&quot;,$2 &quot;\&quot;&quot; &quot; -uroot &quot; &quot;-p&quot;&quot;\&quot;&quot;&quot;'&quot;&quot;$mysql_pwd&quot;&quot;'&quot;&quot;\&quot;&quot; &quot;;&quot; }' $mysql_timeout_log &gt; $mysql_kill_timeout_sh</p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	echo &quot;check start ....&quot; &gt;&gt; $mysql_kill_timeout_log</p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	echo `date` &gt;&gt; $mysql_kill_timeout_log</p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	cat $mysql_kill_timeout_sh</p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	把这个写到mysqld_kill_sleep.sh。然后chmod 0 mysqld_kill_sleep.sh,chmod u+rx mysqld_kill_sleep.sh，然后用root账户到cron里面运行即可，时间自己调整。</p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	执行之后显示：</p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	 </p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	www# ./mysqld_kill_sleep.sh</p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	/usr/local/bin/mysql -e &quot;kill 27549&quot; -uroot -p&quot;mysql root的密码&quot;;</p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	/usr/local/bin/mysql -e &quot;kill 27750&quot; -uroot -p&quot;mysql root的密码&quot;;</p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	/usr/local/bin/mysql -e &quot;kill 27840&quot; -uroot -p&quot;mysql root的密码&quot;;</p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	/usr/local/bin/mysql -e &quot;kill 27867&quot; -uroot -p&quot;mysql root的密码&quot;;</p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	/usr/local/bin/mysql -e &quot;kill 27899&quot; -uroot -p&quot;mysql root的密码&quot;;</p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	/usr/local/bin/mysql -e &quot;kill 27901&quot; -uroot -p&quot;mysql root的密码&quot;;</p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	/usr/local/bin/mysql -e &quot;kill 27758&quot; -uroot -p&quot;mysql root的密码&quot;;</p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	/usr/local/bin/mysql -e &quot;kill 27875&quot; -uroot -p&quot;mysql root的密码&quot;;</p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	/usr/local/bin/mysql -e &quot;kill 27697&quot; -uroot -p&quot;mysql root的密码&quot;;</p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	/usr/local/bin/mysql -e &quot;kill 27888&quot; -uroot -p&quot;mysql root的密码&quot;;</p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	/usr/local/bin/mysql -e &quot;kill 27861&quot; -uroot -p&quot;mysql root的密码&quot;;</p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	如果确认没有问题了，把最后的cat修改为sh即可。</p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	 </p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	本人改写了下上面的脚本:</p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	#!/bin/bash</p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	mysql_pwd=&quot;密码&quot;</p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	mysql_exec=&quot;/usr/local/mysql/bin/mysql&quot;</p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	mysql_timeout_dir=&quot;/tmp&quot;</p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	mysql_kill_timeout_sh=&quot;$mysql_timeout_dir/mysql_kill_timeout.sh&quot;</p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	mysql_kill_timeout_log=&quot;$mysql_timeout_dir/mysql_kill_timeout.log&quot;</p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	$mysql_exec -uroot -p$mysql_pwd -e &quot;show processlist&quot; | grep -i &quot;Locked&quot; &gt;&gt; $mysql_kill_timeout_log</p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	chmod 777 $mysql_kill_timeout_log</p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	for line in `$mysql_kill_timeout_log  | awk '{print $1}'`</p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	do</p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	echo &quot;$mysql_exec -uroot -p$mysql_pwd -e \&quot;kill $line\&quot;&quot; &gt;&gt; $mysql_kill_timeout_sh</p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	done</p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	chmod 777 $mysql_kill_timeout_sh</p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	cat $mysql_kill_timeout_sh</p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	 </p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	是不是很方便呢！</p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	=============================================================</p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	 </p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	processlist命令的输出结果显示了有哪些线程在运行，可以帮助识别出有问题的查询语句，两种方式使用这个命令。</p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	 </p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	1. 进入mysql/bin目录下输入mysqladmin processlist;</p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	 </p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	2. 启动mysql，输入show processlist;</p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	 </p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	如果有SUPER权限，则可以看到全部的线程，否则，只能看到自己发起的线程（这是指，当前对应的MySQL帐户运行的线程）。</p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	 </p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	得到数据形式如下（只截取了三条）：</p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	 </p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	mysql&gt; show processlist;</p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	 </p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	+-----+-------------+--------------------+-------+---------+-------+----------------------------------+----------</p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	 </p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	| Id | User | Host | db | Command | Time| State | Info</p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	 </p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	+-----+-------------+--------------------+-------+---------+-------+----------------------------------+----------</p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	 </p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	|207|root |192.168.0.20:51718 |mytest | Sleep | 5 | | NULL</p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	 </p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	|208|root |192.168.0.20:51719 |mytest | Sleep | 5 | | NULL</p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	 </p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	|220|root |192.168.0.20:51731 |mytest |Query | 84 | Locked |</p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	 </p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	select bookname,culture,value,type from book where id=001</p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	 </p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	先简单说一下各列的含义和用途，第一列，id，不用说了吧，一个标识，你要kill一个语句的时候很有用。user列，显示单前用户，如果不是root，这个命令就只显示你权限范围内的sql语句。host列，显示这个语句是从哪个ip的哪个端口上发出的。呵呵，可以用来追踪出问题语句的用户。db列，显示这个进程目前连接的是哪个<a href="http://www.2cto.com/database/" style="text-decoration:none;color:rgb(51, 51, 51);font-size:14px;" target="_blank">数据库</a>。command列，显示当前连接的执行的命令，一般就是休眠（sleep），查询（query），连接（connect）。time列，此这个状态持续的时间，单位是秒。state列，显示使用当前连接的sql语句的状态，很重要的列，后续会有所有的状态的描述，请注意，state只是语句执行中的某一个状态，一个sql语句，已查询为例，可能需要经过copying to tmp table，Sorting result，Sending data等状态才可以完成，info列，显示这个sql语句，因为长度有限，所以长的sql语句就显示不全，但是一个判断问题语句的重要依据。</p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	 </p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	这个命令中最关键的就是state列，mysql列出的状态主要有以下几种：</p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	 </p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	Checking table</p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	正在检查数据表（这是自动的）。</p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	Closing tables</p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	正在将表中修改的数据刷新到磁盘中，同时正在关闭已经用完的表。这是一个很快的操作，如果不是这样的话，就应该确认磁盘空间是否已经满了或者磁盘是否正处于重负中。</p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	Connect Out</p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	复制从服务器正在连接主服务器。</p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	Copying to tmp table on disk</p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	由于临时结果集大于tmp_table_size，正在将临时表从内存存储转为磁盘存储以此节省内存。</p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	Creating tmp table</p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	正在创建临时表以存放部分查询结果。</p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	deleting from main table</p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	服务器正在执行多表删除中的第一部分，刚删除第一个表。</p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	deleting from reference tables</p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	服务器正在执行多表删除中的第二部分，正在删除其他表的记录。</p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	Flushing tables</p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	正在执行FLUSH TABLES，等待其他线程关闭数据表。</p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	Killed</p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	发送了一个kill请求给某线程，那么这个线程将会检查kill标志位，同时会放弃下一个kill请求。MySQL会在每次的主循环中检查kill标志位，不过有些情况下该线程可能会过一小段才能死掉。如果该线程程被其他线程锁住了，那么kill请求会在锁释放时马上生效。</p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	Locked</p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	被其他查询锁住了。</p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	Sending data</p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	正在处理Select查询的记录，同时正在把结果发送给客户端。</p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	Sorting for group</p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	正在为GROUP BY做排序。</p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	Sorting for order</p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	正在为ORDER BY做排序。</p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	Opening tables</p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	这个过程应该会很快，除非受到其他因素的干扰。例如，在执Alter TABLE或LOCK TABLE语句行完以前，数据表无法被其他线程打开。正尝试打开一个表。</p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	Removing duplicates</p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	正在执行一个Select DISTINCT方式的查询，但是MySQL无法在前一个阶段优化掉那些重复的记录。因此，MySQL需要再次去掉重复的记录，然后再把结果发送给客户端。</p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	Reopen table</p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	获得了对一个表的锁，但是必须在表结构修改之后才能获得这个锁。已经释放锁，关闭数据表，正尝试重新打开数据表。</p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	Repair by sorting</p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	修复指令正在排序以创建索引。</p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	Repair with keycache</p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	修复指令正在利用索引缓存一个一个地创建新索引。它会比Repair by sorting慢些。</p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	Searching rows for update</p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	正在讲符合条件的记录找出来以备更新。它必须在Update要修改相关的记录之前就完成了。</p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	Sleeping</p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	正在等待客户端发送新请求.</p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	System lock</p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	正在等待取得一个外部的系统锁。如果当前没有运行多个mysqld服务器同时请求同一个表，那么可以通过增加--skip-external-locking参数来禁止外部系统锁。</p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	Upgrading lock</p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	Insert DELAYED正在尝试取得一个锁表以插入新记录。</p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	Updating</p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	正在搜索匹配的记录，并且修改它们。</p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	User Lock</p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	正在等待GET_LOCK()。</p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	Waiting for tables</p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	该线程得到通知，数据表结构已经被修改了，需要重新打开数据表以取得新的结构。然后，为了能的重新打开数据表，必须等到所有其他线程关闭这个表。以下几种情况下会产生这个通知：FLUSH TABLES tbl_name, Alter TABLE, RENAME TABLE, REPAIR TABLE, ANALYZE TABLE,或OPTIMIZE TABLE。</p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	waiting for handler insert</p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	Insert DELAYED已经处理完了所有待处理的插入操作，正在等待新的请求。</p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	大部分状态对应很快的操作，只要有一个线程保持同一个状态好几秒钟，那么可能是有问题发生了，需要检查一下。</p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	还有其他的状态没在上面中列出来，不过它们大部分只是在查看服务器是否有存在错误是才用得着。</p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	 </p>
+<p style="border-width:0px;padding:0px;margin:0px;list-style:none;text-indent:2em;margin-bottom:8px;">
+	mysql手册里有所有状态的说明，链接如下：http://dev.mysql.com/doc/refman/5.0/en/general-thread-states.<a href="http://www.2cto.com/kf/qianduan/css/" style="text-decoration:none;color:rgb(51, 51, 51);font-size:14px;" target="_blank">html</a></p>
+						</dd></dl></div></div></div></div></div><br/></span>
+</div></body></html> 

@@ -1,0 +1,2009 @@
+<html>
+<head>
+  <title>struts</title>
+  <basefont face="微软雅黑" size="2" />
+  <meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+  <meta name="exporter-version" content="YXBJ Windows/600718 (zh-CN, DDL); Windows/6.1.1 (Win64);"/>
+  <style>
+    body, td {
+      font-family: 微软雅黑;
+      font-size: 10pt;
+    }
+  </style>
+</head>
+<body>
+<a name="7868"/>
+<h1>struts</h1>
+<div>
+<table bgcolor="#D4DDE5" border="0">
+<tr><td><b>创建时间：</b></td><td><i>2015/8/30 21:32</i></td></tr>
+<tr><td><b>更新时间：</b></td><td><i>2015/8/30 21:32</i></td></tr>
+</table>
+</div>
+<br/>
+
+<div>
+<span style="word-wrap: break-word; -webkit-nbsp-mode: space; -webkit-line-break: after-white-space;"><br/>
+一、准备工作及实例<br/>
+1.解压struts-2.1.6-all.zip<br/>
+apps目录:struts2自带的例子程序<br/>
+docs目录：官方文档。<br/>
+lib 目录：存放所有jar文件。<br/>
+Src 目录：源文%件存放地<br/>
+2.六个基本包<br/>
+struts2-core-2.1.6.jar ：开发的核心类库<br/>
+freemarker-2.3.13.jar ：struts2的UI标签的模板使用freemarker编写<br/>
+commons-logging-1.0.4.jar ：日志包<br/>
+ognl-2.6.11.jar ：对象图导航语言，通过它来读写对象属性<br/>
+xwork-2.1.2.jar ：xwork类库，struts2在其上进行构建<br/>
+commons-fileupload-1.2.1.jar：文件上传组件，2.1.6版本后必须加入此jar包<br/>
+特别需要说明的是目前strust2的最新版本是struts-2.1.6，它作为2.1.X的正式版。特别要注意导入commons-fileupload-1.2.1.jar包，%在此jar包中包含了RequestContext类，如果不导入该jar包将会报异常。<br/>
+3.初识struts2配置文件<br/>
+（1）．web.xml文件<br/>
+主要完成对StrutsPrepareAndE%xecuteFilter的配置（在以前的版本中是对FilterDispatcher配置，新版本同样支持用FilterDispatcher配置），它的实质是一个过滤器，它负责初始化整个Struts框架并且处理所有的请求。这个过滤器可以包括一些初始化参数，有的参数指定了要加载哪些额外的xml配置文件，还有的会影响struts框架的行为。除了StrutsPrepareAndExecuteFilter外，Struts还提供了一个ActionContexCleanUp类，它的主要任务是当有其它一些过滤器要访问一个初始化好了的struts框架的时候，负责处理一些特殊的清除任务。<br/>
+（2）．struts.xml文件<br/>
+框架的核心配置文件就是这个默认的str%uts.xml文件，在这个默认的配置文件里面我们可以根据需要再包括其它一些配置文件。在通常的应用开发中，我们可能想为每个不同的模块单独配置一个struts.xml文件，这样也利于管理和维护。这也是我们要配置的主要文件。<br/>
+（3）．struts.properties（参default.properties）<br/>
+在Struts框架使用了很多属性，我们可以通过改变这些属性来满足我们的需求。要改变这些属性，只需在struts.properties文件中指定属性%的key和value即可。属性文件可以放在任何一个包含在classpath中的路径上，但是通常我们都把它放在/WEB-INF/classes目录下面。我们可以在struts-default.properties文件中找到一个属性的列表。<br/>
+（4）struts-default.xml<br/>
+此文件是struts2框架默认加%载的配置文件，它定义了struts2一些核心bean和拦截器，它会自动包含(included)到struts.xml文件中(实质是通过&lt;package  extends=&quot;struts-default&quot;&gt;)，并为我们提供了一些标准的配置。%%%%%%%%%%%%%我们可以在struts2-core.jar中找到这个文件。<br/>
+（5）其它配置文件<br/>
+velocity.properties，struts-default.vm，struts-plugin.xml<br/>
+4.让MyEclipse提示xml信息<br/>
+当我们在编写struts.xml时，%%%%%%%%%%%%发现eclipse并不会给出帮助提示，那是因为MyEclipse默认并不支持struts2，所以我们需要手工导入dtd以支持提示。步骤：[window][preferences][MyEclipse][Files and Editors][XML][xml Catelog]然后在右边点add添加：location为dtd文件所在的位置（struts-2.0.dtd文件struts2-core-2.1.6.jar中可以得到），KeyType选择URI，Key为struts-2.0.dtd文件中文档声明的内容（http://struts.apache.org/dtds/struts-2.0.dtd），在struts.xml文件中也有此key值。<br/>
+5.如何使用alt+/提示<br/>
+在MyEclipse6.5中,默认的提示%%%%%%%%%%%为Ctrl+Space，而它会与我们的输入法切换冲突，使提示失效。找到key，先取消Content Assist命令的绑定，再用“alt+/”来绑定。<br/>
+6.实例<br/>
+步骤一，新建myStruts2项目，并导入struts2的六个基本jar包。<br/>
+步骤二，建立LoginAction文件，主要代码如下：<br/>
+package com.asm;<br/>
+import com.opensymphony.xwork2.Action;<br/>
+public class LoginAction implements Action {<br/>
+     private String username;<br/>
+     private String password;<br/>
+...省略get/set方法<br/><br/>
+     public String execute() throws Exception {<br/>
+          if (username.equals(&quot;struts2&quot;)) {<br/>
+               return &quot;loginSuccess&quot;;<br/>
+          } else {<br/>
+               return &quot;loginFailure&quot;;<br/>
+          }<br/>
+     }<br/>
+}<br/>
+说明：实现了Action接口，主要是为了保证execute的正确定义，其实我们也可以不实现此接口，只要能保证execute方法书写的正确书写（方法名，返回值）。<br/>
+步骤三，在struts.xml文件中注册LoginAction。此配置文件要放在src目录下，实质就是成为classpath环境变量下的文件。主要代码如下：<br/>
+&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot; ?&gt;<br/>
+&lt;!DOCTYPE struts PUBLIC<br/>
+    &quot;-//Apache Software Foundation//DTD Struts Configuration 2.0//EN&quot;<br/>
+    &quot;http://struts.apache.org/dtds/struts-2.0.dtd&quot;&gt;<br/>
+&lt;struts&gt;<br/>
+     &lt;package name=&quot;myFirst&quot; namespace=&quot;/&quot; extends=&quot;struts-default&quot;&gt;<br/>
+          &lt;action name=&quot;login&quot; class=&quot;com.asm.LoginAction&quot;&gt;<br/>
+               &lt;result name=&quot;loginSuccess&quot;&gt;/success.jsp&lt;/result&gt;<br/>
+               &lt;result name=&quot;loginFailure&quot;&gt;/failure.jsp&lt;/result&gt;<br/>
+          &lt;/action&gt;<br/>
+     &lt;/package&gt;<br/>
+&lt;/struts&gt;<br/>
+说明：package后面会有详细说明。action元素中的name属性值指定了此action所指定的请求路径为“login.action”。后面login.jsp中的&lt;form action=...&gt;属性值就会参照此name属性。<br/>
+步骤四、提供jsp页面<br/>
+login.jsp主要代码：<br/>
+&lt;body&gt;<br/>
+          &lt;form action=&quot;&lt;%=request.getContextPath()%&gt;/login.action&quot; method=&quot;get&quot;&gt;<br/>
+          户名：&lt;input type=&quot;text&quot; name=&quot;username&quot;&gt;&lt;br&gt;<br/>
+          密码：&lt;input type=&quot;password&quot; name=&quot;password&quot;&gt;&lt;br&gt;<br/>
+          &lt;input type=&quot;submit&quot; value=&quot;login&quot;&gt;<br/>
+          &lt;/form&gt;<br/>
+&lt;/body&gt;<br/>
+failure.jsp主要代码<br/>
+&lt;%@ page language=&quot;java&quot; import=&quot;java.util.*&quot; pageEncoding=&quot;UTF-8&quot;%&gt;<br/>
+&lt;%@ taglib uri=&quot;/struts-tags&quot; prefix=&quot;s&quot; %&gt;<br/>
+&lt;html&gt;<br/>
+     &lt;body&gt;<br/>
+          登录失败，错误的用户名：&lt;s:property value=&quot;username&quot;/&gt;&lt;br&gt;<br/>
+          &lt;a href=&quot;&lt;%=request.getContextPath()%&gt;/login.jsp&quot;&gt;返回&lt;/a&gt;<br/>
+     &lt;/body&gt;<br/>
+&lt;/html&gt;<br/>
+说明：使用了标签库，在struts2中使用标签库非常简单，只需要像上面那样导入标签库便可以使用所有的struts2的所有标签<br/>
+success.jsp主要代码<br/>
+&lt;body&gt;     登录成功！&lt;/body&gt;<br/>
+步骤五、配置web.xml。完成核心监听器注册。内容如下：<br/>
+&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot;?&gt;<br/>
+&lt;web-app id=&quot;WebApp_9&quot; version=&quot;2.4&quot;<br/>
+     xmlns=&quot;http://java.sun.com/xml/ns/j2ee&quot;<br/>
+     xmlns:xsi=&quot;http://www.w3.org/2001/XMLSchema-instance&quot;<br/>
+     xsi:schemaLocation=&quot;http://java.sun.com/xml/ns/j2ee http://java.sun.com/xml/ns/j2ee/web-app_2_4.xsd&quot;&gt;<br/>
+     &lt;filter&gt;<br/>
+          &lt;filter-name&gt;struts2&lt;/filter-name&gt;<br/>
+          &lt;!-- &lt;filter-class&gt;org.apache.struts2.dispatcher.FilterDispatcher&lt;/filter-class&gt;<br/>
+          --&gt;<br/>
+          &lt;filter-class&gt;               org.apache.struts2.dispatcher.ng.filter.StrutsPrepareAndExecuteFilter<br/>
+          &lt;/filter-class&gt;<br/>
+     &lt;/filter&gt;<br/><br/>
+     &lt;filter-mapping&gt;<br/>
+          &lt;filter-name&gt;struts2&lt;/filter-name&gt;<br/>
+          &lt;url-pattern&gt;/*&lt;/url-pattern&gt;<br/>
+     &lt;/filter-mapping&gt;<br/>
+&lt;/web-app&gt;<br/>
+说明：注释掉的部分为以前2.1.4版本中用的核心filter类。StrutsPrepareAndExecuteFilter类的init方法将会读取类路径下默认的配置文件struts.xml，并以javabean形式存放在内存中，以后struts2对用户的每次请求将使用内存中数据，而不是重读struts.xml文件。<br/>
+步骤六、发布测试。<br/>
+简要分析执行流程：<br/>
+当输入login.jsp访问jsp页面填写完相关信息并提交给login.action时，它会首先被在web.xml中配置的过滤器监听到，过滤器会去查找strust.xml文件，并结合namespace查找名为login的action，查找到此action便交给其处理，LoginAction内部会执行execute方法，并返回结果result（result也是参照的struts.xml中action下的result配置）。 关于表单传参，主要是参照的action中的方法名，而非属性名。<br/>
+7.开启struts2自带的开发模式常量<br/>
+在以前的开发中，当修改一些配置时总是不能及时地更新到服务器，我们总会重新部署或重启来更新改变的内容，在struts2中可以通过一个常量来达到此目的。即在struts.xml中的&lt;struts&gt;元素下增加如下内容：&lt;constant name=&quot;struts.configuration.xml.reload&quot; value=&quot;true&quot; /&gt; 这样配置后，当配置文件修改保存时就会及时更新到服务器中。其它一些常量：<br/>
+&lt;!-- 指定WEB应用的编码集，相当于调用HttpServletRequest.setCharacterEncodint方法，如果使用了velocity或freemarker,它也用于指定输出的编码格式 --&gt;<br/>
+     &lt;constant name=&quot;struts.i18n.encoding&quot; value=&quot;UTF-8&quot; /&gt;<br/>
+     &lt;!-- 指定请求后缀为.action，指定多个请求后缀用逗号分隔 --&gt;<br/>
+     &lt;constant name=&quot;struts.action.extension&quot; value=&quot;action&quot; /&gt;<br/>
+     &lt;!--设置浏览器是否缓存静态内容，建议：开发阶段关闭，运行时开启  --&gt;<br/>
+     &lt;constant name=&quot;struts.serve.static.browserCache&quot; value=&quot;false&quot; /&gt;<br/>
+     &lt;!--当struts.xml配置文件修改后，系统是否重新加载该文件，开发阶段打开此功能  --&gt;<br/>
+     &lt;constant name=&quot;struts.configuration.xml.reload&quot; value=&quot;true&quot; /&gt;<br/>
+     &lt;!--  开发提示：出错时打印更详细的信息--&gt;<br/>
+     &lt;constant name=&quot;struts.devMode&quot; value=&quot;true&quot; /&gt;<br/>
+&lt;!-- 指定请求的后缀可以是.do或.action --&gt;<br/>
+     &lt;constant name=&quot;struts.action.extension&quot; value=&quot;do,action&quot; /&gt;<br/>
+注意：在struts2.1.6版本中存在一个bug：即配置了struts.i18n.encoding常量也不能解决中文乱码问题，原因是此版本在获取请求参数后才调用了setCharacterEncoding()方法进行编码设置。解决此bug的方法是配置一个filter，并在doFilter方法中增加如下代码：request.setCharacterEncoa2.1.8版本中解决了此问题及2.1.6中存在的其它bug，建议新项目使用2.1.8版本。<br/>
+8.vo传参模式<br/>
+Copy上面的myStruts2项目，改名为myStruts2Vo项目。作如下修改：在LoginAction中有两个字段：username,password。把此两个属性重构到com.asm.vo.User类中，然后在LoginAction中提供User对象及相应的get/set方法。现在需要注意的是在login.jsp中会有如下的修改：<br/>
+户名：&lt;input type=&quot;text&quot; name=&quot;user.username&quot;&gt;&lt;br&gt;<br/>
+密码：&lt;input type=&quot;password&quot; name=&quot;user.password&quot;&gt;&lt;br&gt;<br/>
+关键就是改掉name属性值。其它基本无变动。 后话：假如此此User对象并不能和Model层的相应对象完全对应，我们还应借助此User对象在Action中构建出Model层的相应对象，这样，在exectue方法中便能通过构建的Model对象作为参数与Model层交互。<br/>
+9.ModerDriven传参模式(不建议采用)<br/>
+Copy上面的myStruts2Vo项目，改名为myStruts2Model项目。重点是修改LoginAction，修改后的主要内容如下：<br/>
+package com.asm;<br/>
+import com.asm.vo.User;<br/>
+import com.opensymphony.xwork2.Action;<br/>
+import com.opensymphony.xwork2.ModelDriven;<br/>
+public class LoginAction implements Action, ModelDriven&lt;User&gt; {<br/>
+     private User user = new User();<br/>
+     public String execute() throws Exception {<br/>
+          if (user.getUsername().equals(&quot;struts2&quot;)) {<br/>
+               return &quot;loginSuccess&quot;;<br/>
+          } else {<br/>
+               return &quot;loginFailure&quot;;<br/>
+          }<br/>
+     }<br/>
+     public User getModel() {<br/>
+          return user;<br/>
+     }<br/>
+}<br/>
+说明：它实现了ModelDriven接口，并使用了泛性机制（必须），因此要求jdk1.5以上。<br/>
+现在需要注意的是在login.jsp中name属性值为User中两个字段，和第一个实例一样。说明：此方式一般不会使用，在此略作了解。<br/>
+10.为什么要使用struts2代替struts1.x<br/>
+(1)struts2的execute方法中的参数不会依赖于servletAPI,实现了也servlet解耦，是一种无侵入式的设计。<br/>
+(2)struts2提供了拦截器，利用拦截器可以进行AOP编程，实现权限拦截等功能。<br/>
+(3)struts2提供了类型转换器，我们可以很容易地对请求参数转换成需要的类型。<br/>
+(4)提供了同种表现层技术支持，如JSP、freeMarker、velocity等<br/>
+(5)可以对指定的方法进行校验，可以轻松地实现表单校验功能<br/>
+(6)提供了全局范围、包范围和action范围的国际化资源文件管理实现。<br/>
+二、struts.xml配置及例程<br/>
+1.配置文件的优先级<br/>
+在struts2中一些配置（比如常量）可以同时在struts-default.xml（只读性），strtus-plguin.xml（只读性），struts.xml，struts.properties和web.xml文件中配置，它们的优先级逐步升高，即是说后面的配置会覆盖掉前面相同的配置。<br/>
+2.配置形式<br/>
+下面以对struts.i18n.encoding=UTF-8的配置为例进行说明：<br/>
+在struts.xml配置形式如下：<br/>
+     &lt;constant name=&quot;struts.i18n.encoding&quot; value=&quot;gbk&quot;&gt;&lt;/constant&gt;<br/>
+在struts.properties的配置形式如下：<br/>
+struts.i18n.encoding=UTF-8<br/>
+在web.xml中配置如下：<br/>
+&lt;filter&gt;<br/>
+&lt;filter-name&gt;struts2&lt;/filter-name&gt;    <br/>
+&lt;filter-class&gt;     org.apache.struts2.dispatcher.ng.filter.StrutsPrepareAndExecuteFilter<br/>
+     &lt;/filter-class&gt;<br/>
+     &lt;init-param&gt;<br/>
+          &lt;param-name&gt;struts.i18n.encoding&lt;/param-name&gt;<br/>
+          &lt;param-value&gt;UTF-8&lt;/param-value&gt;<br/>
+     &lt;/init-param&gt;<br/>
+&lt;/filter&gt;<br/>
+说明：官方声称配置了此常量可以解决中文乱码问题，但实事上并不能达到目的，在前面的三个项目中，如果我们在表单中输入中文，其结果是会出现乱码。解决此问题参看[一.7的注意]。这是struts2.1.6中的一bug,它的下一版2.1.8已解决此问题。<br/>
+3.package配置相关<br/>
+属性名     是否必须     说明<br/>
+Name     是     Package的唯一标识，不允许同名<br/>
+Extends      否     指定要继承的包<br/>
+Namespace     否     指定名称空间<br/>
+Abstract     否     声明包为抽象否<br/>
+下面我们建立struts2package项目来进行package相关测试：<br/><br/>
+说明：在上面的配置文件中所用到的Test1Action和Test2Action这两个Action都只是继承了com.opensymphony.xwork2.ActionSupport类，而ActionSupport默认返回的就是“success”,所以当点击上面的链接分别转到了forward目录下的test1.jsp和test2.jsp。下面重点来看这个package元素的namespace属性及action的name属性，它们共同定义了action所映射到的实质文件。上图展示了链接地址和action的对应关系，所以当我们要想访问一个action所关联到的jsp文件时，应该用namespace+action的name 关于它的内容测试可以参考struts2package项目。<br/>
+补充：通常情况下，action元素的name是属性值是不能出现“/”的，所以希望通过action中name属性来实现多级映射，需要在sturts.xml中增加如下属性：    <br/>
+&lt;constant name=&quot;struts.enable.SlashesInActionNames&quot; value=&quot;true&quot;/&gt; 这样配置后就可以再action的name元素中使用“/”了。比如：<br/>
+&lt;package name=&quot;tt3&quot; extends=&quot;struts-default&quot;&gt;<br/>
+          &lt;action name=&quot;test3/test3&quot; class=&quot;com.asm.Test3Action&quot;&gt;<br/>
+               &lt;result name=&quot;success&quot;&gt;/forward/test3.jsp&lt;/result&gt;<br/>
+          &lt;/action&gt;<br/>
+&lt;/package&gt;<br/>
+然后输入&lt;a href=&quot;&lt;%=path%&gt;/test3/test3.action&quot;&gt;test3&lt;/a&gt;&lt;br&gt;链接地址就可以访问了<br/>
+强调：namespace默认值“”，即不配置namespace属性。它的意思是：如果action不能进行完整路径匹配，则会来此namespace下进行匹配，比如：.../test/test/test.action，如果参照namespace及action的name不能找到也之完全对应的action，它会再到依次追溯到上级目录中查找，即是说它会以…/test/test.action这样的路径来对应namespace和action的name进行查找。如果返回到最终的目录仍找不到，它就会到namespace=&quot;/&quot;对应的包下查找名为test的action,如果仍找不到，它就会去默认的namespace下查找名为test的action，如果找到则执行此action。另外，namespace也可以配置成namespace=&quot;/&quot;。它代表配置为项目的根。 总结action的名称探索顺序：完全对应、逐步追溯到上级目录查找、&quot;/&quot;下查找、默认namespace下查找。<br/>
+为什么要提出namespace，主要是避免多人共同开发项目出现名字冲突。如果不使用namespace，多个人所写的action中可能出现重名的现象，这样当项目合并时就会出现冲突。而有了namespace可以在项目开发时由项目经理给每一个人分不同的namespace，这样每个开发人员只需要保证自己所写的action不同名即可。<br/>
+namespace引发的链接问题：当我们为action配置了namespace时，访问此action的形式总会是如下形式：.../webappname/xxx/yyy/ActionName.action 而当此action成功执行跳转到某个jsp页面时，如想在此jsp页面写链接，一定要写绝对路径，因为相对路径是相对.../webappname/xxx/yyy/，而如果以后我们修改了action的namespace时，相对路径又要变，所以链接不能写成相对路径。 以下介绍绝对路径的写法：通常用myeclipse开发时建立一个jsp文件，默认总会有如下内容：<br/>
+&lt;%<br/>
+String path = request.getContextPath();<br/>
+String basePath = request.getScheme()+&quot;://&quot;+request.getServerName()+&quot;:&quot;+request.getServerPort()+path+&quot;/&quot;;<br/>
+%&gt;<br/>
+我们写绝对路径可以参此内容。还可以参&lt;head&gt;下的&lt;base href=&quot;&lt;%=basePath%&gt;&quot;&gt; 来完成绝对路径的书写。<br/>
+4.分工合作include:指定多个配置文件<br/>
+比如让jack来单独开发一个action，在jack.xml中的配置文件为：<br/>
+&lt;struts&gt;<br/>
+     &lt;package name=&quot;jack&quot; namespace=&quot;/jack&quot; extends=&quot;struts-default&quot;&gt;<br/>
+          &lt;action name=&quot;test4&quot; class=&quot;com.asm.Test4Action&quot;&gt;<br/>
+               &lt;result name=&quot;success&quot;&gt;/forward/test4.jsp&lt;/result&gt;<br/>
+          &lt;/action&gt;<br/>
+     &lt;/package&gt;    <br/>
+&lt;/struts&gt;<br/>
+然后在struts.xml文件中增加如下内容：&lt;include file=&quot;jack.xml&quot;&gt;&lt;/include&gt; 它实质就是把jack.xml中的&lt;package&gt;及其内容写进struts.xml中的&lt;struts&gt;根元素下。<br/>
+链接：&lt;a href=&quot;&lt;%=path %&gt;/jack/test4.action&quot;&gt;test4&lt;/a&gt; 这样便可以访问到了forward目录下的test4.jsp了。<br/>
+5.tomcat认证访问<br/>
+接上例：namespce的作用除了在前面提到的避免协同开发名字冲突外，还为认证提供一个条件。比如jack开发的东西所关联到的页面需要权限才能被访问。由于多为tomcat中的内容，下面只列出步骤。<br/>
+步骤一，tomcat的conf目录下tomcat-users.xml内容如下：<br/>
+&lt;?xml version='1.0' encoding='utf-8'?&gt;<br/>
+&lt;tomcat-users&gt;<br/>
+  &lt;role rolename=&quot;manager&quot;/&gt;<br/>
+  &lt;role rolename=&quot;admin&quot;/&gt;<br/>
+  &lt;user username=&quot;jack&quot; password=&quot;jack&quot; roles=&quot;admin,manager&quot;/&gt;<br/>
+  &lt;user username=&quot;tom&quot; password=&quot;tom&quot; roles=&quot;manager&quot;/&gt;<br/>
+&lt;/tomcat-users&gt;<br/>
+步骤二，在web.xml中增加如下内容：<br/>
+&lt;security-constraint&gt;<br/>
+          &lt;web-resource-collection&gt;<br/>
+               &lt;web-resource-name&gt;jack&lt;/web-resource-name&gt;<br/>
+               &lt;url-pattern&gt;/jack/*&lt;/url-pattern&gt;<br/>
+               &lt;http-method&gt;POST&lt;/http-method&gt;<br/>
+               &lt;http-method&gt;GET&lt;/http-method&gt;<br/>
+          &lt;/web-resource-collection&gt;<br/>
+          &lt;auth-constraint&gt;<br/>
+               &lt;role-name&gt;admin&lt;/role-name&gt;<br/>
+          &lt;/auth-constraint&gt;<br/>
+     &lt;/security-constraint&gt;<br/><br/>
+     &lt;security-role&gt;<br/>
+          &lt;role-name&gt;admin&lt;/role-name&gt;<br/>
+     &lt;/security-role&gt;<br/><br/>
+     &lt;login-config&gt;<br/>
+          &lt;auth-method&gt;BASIC&lt;/auth-method&gt;<br/>
+          &lt;realm-name&gt;input authentication message&lt;/realm-name&gt;<br/>
+     &lt;/login-config&gt;<br/>
+这样配置完成后，当我们访问.../jack中的任何内容都会要求输入密码认证信息，认证时输入tomcat-users.xml配置的admin权限的用户名和密码即可访问（这里就只有jack用户名可以访问）<br/>
+6.初识拦截器<br/>
+拦截器能在action被调用之前和被调用之后执行一些“代码”。Struts2框架的大部分核心功能都是通过拦截器来实现的，如防止重复提交、类型转换、对象封装、校验、文件上传、页面预装载等等，都是在拦截器的帮助下实现的。每一个拦截器都是独立装载的(pluggable)，我们可以根据实际的需要为每一个action配置它所需要的拦截器。<br/>
+在myStruts2项目下，重新对配置文件作如下修改：<br/>
+&lt;package name=&quot;myFirst&quot; namespace=&quot;/&quot; extends=&quot;struts-default&quot;&gt;<br/>
+&lt;interceptors&gt;<br/>
+&lt;interceptor name=&quot;timer&quot;<br/>
+                    class=&quot;com.opensymphony.xwork2.interceptor.TimerInterceptor&quot; /&gt;<br/><br/>
+     &lt;interceptor name=&quot;params&quot;                                                                                                                 class=&quot;com.opensymphony.xwork2.interceptor.ParametersInterceptor&quot; /&gt;<br/>
+     &lt;/interceptors&gt;<br/><br/>
+          &lt;action name=&quot;login&quot; class=&quot;com.asm.LoginAction&quot;&gt;<br/>
+               &lt;interceptor-ref name=&quot;timer&quot;&gt;&lt;/interceptor-ref&gt;<br/>
+               &lt;interceptor-ref name=&quot;params&quot;&gt;&lt;/interceptor-ref&gt;<br/>
+               &lt;result name=&quot;loginSuccess&quot;&gt;/success.jsp&lt;/result&gt;<br/>
+               &lt;result name=&quot;loginFailure&quot;&gt;/failure.jsp&lt;/result&gt;<br/>
+          &lt;/action&gt;<br/>
+     &lt;/package&gt;<br/>
+首先在package中定义了两个拦截器，然后在login action中引用了这两个拦截器，需要说明的是这里使用的拦截器都是系统自带的拦截器。其实在extends所继承的struts-default中就包含了很多拦截器，也包括我们这里所用的拦截器，但如果在此action中不使用params拦截器，将会报空指针错，因为params拦截器的作用是传递表单参数，如果不使用此拦截器就不能在action中得到表单参数，所以引用时会报空指针错。虽然extends继承的strust-default自带有params拦截器，但是当我们自己引用了拦截器时，继承struts-default将不会再为我们分配默认的拦截器（有点类似构造器），但是我们仍然可以通过&lt;interceptor-ref name=&quot;defaultStack&quot;/&gt;来继续使用struts-defalut的拦截器。补充：由于上面的package继承于struts-default，而我们这里所用到的timer和params都是在struts-defalut中定义过，所以即使我们在&lt;interceptors&gt;中没有定义过这两个拦截器，也可以直接在action中引用。<br/>
+使用&lt;interceptor-stack&gt;组合多个拦截器：比如我们想把上面的params和timer这两个拦截器组合：<br/>
+     &lt;interceptor-stack name=&quot;timer_param&quot;&gt;<br/>
+                    &lt;interceptor-ref name=&quot;timer&quot; /&gt;<br/>
+                    &lt;interceptor-ref name=&quot;params&quot; /&gt;<br/>
+     &lt;/interceptor-stack&gt;<br/>
+然后再在action引用&lt;interceptor-ref name=&quot;timer_param&quot;/&gt;”，效果和分别引用两个是一样的。其实我们使用strtus-default中的&lt;interceptor-ref name=&quot;defaultStack&quot;/&gt;也是使用interceptor-stack方式。<br/><br/>
+(6)为什么我用User来做却不行ModerDriver。<br/>
+7.Action中的method属性<br/>
+在struts1.x中我们知道通过继承DispatchAction可以实现把多个Action进行统一操作，在struts2中实现action的统一操作也很简单。我们以crud操作为例，把crud集中到一个Action中。<br/>
+步骤一、建立CRUDAction，内容如下：<br/>
+package com.asm;<br/>
+import com.opensymphony.xwork2.ActionSupport;<br/>
+public class CRUDAction extends ActionSupport {<br/>
+     public String add() {<br/>
+          return &quot;success&quot;;<br/>
+     }<br/>
+     public String del() {<br/>
+          return &quot;success&quot;;<br/>
+     }<br/>
+     public String update() {<br/>
+          return &quot;success&quot;;<br/>
+     }<br/>
+     public String query() {<br/>
+          return &quot;success&quot;;<br/>
+     }<br/>
+}<br/>
+步骤二、配置此Action,为了清晰明了，专为此Action，建立一个配置文件crud.xml，主要内容如下：<br/>
+&lt;struts&gt;<br/>
+     &lt;package name=&quot;crud&quot; extends=&quot;struts-default&quot; namespace=&quot;/crud&quot;&gt;<br/>
+          &lt;action name=&quot;add&quot; class=&quot;com.asm.CRUDAction&quot; method=&quot;add&quot;&gt;<br/>
+               &lt;result name=&quot;success&quot;&gt;/crud/addSuccess.jsp&lt;/result&gt;<br/>
+          &lt;/action&gt;<br/>
+          &lt;action name=&quot;del&quot; class=&quot;com.asm.CRUDAction&quot; method=&quot;del&quot;&gt;<br/>
+               &lt;result name=&quot;success&quot;&gt;/crud/delSuccess.jsp&lt;/result&gt;<br/>
+          &lt;/action&gt;<br/>
+          &lt;action name=&quot;update&quot; class=&quot;com.asm.CRUDAction&quot; method=&quot;update&quot;&gt;<br/>
+               &lt;result name=&quot;success&quot;&gt;/crud/updateSuccess.jsp&lt;/result&gt;<br/>
+          &lt;/action&gt;<br/>
+          &lt;action name=&quot;query&quot; class=&quot;com.asm.CRUDAction&quot; method=&quot;query&quot;&gt;<br/>
+               &lt;result name=&quot;success&quot;&gt;/crud/querySuccess.jsp&lt;/result&gt;<br/>
+          &lt;/action&gt;<br/>
+     &lt;/package&gt;<br/>
+&lt;/struts&gt;<br/>
+分析：上面的method方法的值来源于CRUDAction中方法的名字，这样当我们访问上面的每一个Action时，它实质是和method指定的方法关联上。<br/>
+步骤三、把crud.xml配置文件并入struts.xml中，只需增加如下代码：<br/>
+&lt;include file=&quot;jack.xml&quot;&gt;&lt;/include&gt;<br/>
+步骤四、编写相应的jsp页面，在此略去crud文件夹下的四个跳转jsp页面（addSuccess.jsp等），重点是crud.jsp页面。内容如下：<br/>
+&lt;html&gt;<br/>
+&lt;%<br/>
+     String path=request.getContextPath();<br/>
+%&gt;<br/>
+     &lt;body&gt;<br/>
+          &lt;a href=&quot;&lt;%=path %&gt;/crud/add.action&quot;&gt;添加数据&lt;/a&gt;&lt;br&gt;<br/>
+          &lt;a href=&quot;&lt;%=path %&gt;/crud/del.action&quot;&gt;删除数据&lt;/a&gt;&lt;br&gt;<br/>
+          &lt;a href=&quot;&lt;%=path %&gt;/crud/query.action&quot;&gt;查询数据&lt;/a&gt;&lt;br&gt;<br/>
+          &lt;a href=&quot;&lt;%=path %&gt;/crud/update.action&quot;&gt;修改数据&lt;/a&gt;&lt;br&gt;<br/>
+     &lt;/body&gt;<br/>
+&lt;/html&gt;<br/>
+步骤五、发布测试。<br/>
+补充扩展，动态调用DMI：不使用method实现统一.我们在crud.xml中增加如下内容：<br/>
+&lt;action name=&quot;op&quot; class=&quot;com.asm.CRUDAction&quot;&gt;<br/>
+               &lt;result name=&quot;success&quot;&gt;/crud/op.jsp&lt;/result&gt;<br/>
+&lt;/action&gt;<br/>
+然后再在crud.jsp中定义如下链接：<br/>
+&lt;a href=&quot;&lt;%=path %&gt;/crud/op!add.action&quot;&gt;添加数据&lt;/a&gt;&lt;br&gt;<br/>
+&lt;a href=&quot;&lt;%=path %&gt;/crud/op!del.action&quot;&gt;删除数据&lt;/a&gt;&lt;br&gt;<br/>
+&lt;a href=&quot;&lt;%=path %&gt;/crud/op!query.action&quot;&gt;查询数据&lt;/a&gt;&lt;br&gt;<br/>
+&lt;a href=&quot;&lt;%=path %&gt;/crud/op!update.action&quot;&gt;修改数据&lt;/a&gt;&lt;br&gt;<br/>
+注意查看上面的链接地址，它们都是针对op action，然后再加地上“！+CRUDAction中相应的方法名”，最后再写上.action即可以访问到统一页面op.jsp。这样做虽然能减少页面，但是由于它们实质用到的是同一个Action，所以这就意味着我们要使用的拦截器相同，相同的跳转result。实际中这种方式很少使用，在此略作了解。如果不想使用动态方法调用，我们可以通过常量来关闭，即在struts.xml中增加如下配置：<br/>
+&lt;constant name=&quot;struts.enable.DynamicMethodInvocation&quot; value=&quot;false&quot;/&gt;<br/>
+扩展2：在CRUDAction中使用do。举例：我们在CRUDAction中增加一个新的方法，内容如下：<br/>
+     public String doMain(){<br/>
+          return &quot;success&quot;;<br/>
+     }<br/>
+然后再在在crud.xml中增加如下内容：<br/>
+&lt;action name=&quot;main&quot; class=&quot;com.asm.CRUDAction&quot; method=&quot;main&quot;&gt;<br/>
+               &lt;result name=&quot;success&quot;&gt;/crud/main.jsp&lt;/result&gt;<br/>
+&lt;/action&gt;<br/>
+注意：配置中method属性值是doMain中去掉do后M小写。然后再在crud.jsp中增加如下链接：<br/>
+&lt;a href=&quot;&lt;%=path %&gt;/crud/main.action&quot;&gt;main页面&lt;/a&gt;&lt;br&gt;<br/>
+随后便可以访问到.../crud/main.jsp页面了。<br/>
+8.使用ForwardAction实现页面屏蔽。<br/>
+我们在jsp页面之间写链接总会是.../xxx.jsp，而如果我们想屏蔽掉具体的jsp,只需要所jsp页面配置成一个ForwardAction即可实现。示例如下：在根目录下有一个index.jsp主页，我们strtus.xml中作如下配置：<br/>
+&lt;package name=&quot;def&quot; extends=&quot;struts-default&quot;&gt;         <br/>
+          &lt;action name=&quot;forward&quot;&gt;<br/>
+               &lt;result &gt;/index.jsp&lt;/result&gt;<br/>
+          &lt;/action&gt;<br/>
+&lt;/package&gt;<br/>
+说明：如果没有未action指定class，默认就是ActionSupport类，如果没有为action指定method属性，则默认执行execute方法，如果没有指定result的name属性，默认值为success。知道了这些再结合ActionSupport的源码就不难理解实现转发的原理了。<br/>
+随后再在前面第7点扩展中用到的op.jsp中增加如下代码：<br/>
+&lt;a href=&quot;&lt;%=request.getContextPath()%&gt;/forward.action&quot;&gt;forward&lt;/a&gt;<br/>
+最后再测试访问op.jsp，在op.jsp中页面中直接点链接便可以跳到index.jsp，观察地址栏发现此时跳到index页面是进行的服务器跳转，如果我们在上面的配置中的result增加type属性变成&lt;result type=&quot;redirect&quot;&gt;/index.jsp&lt;/result&gt;，实现的跳转就是客户端跳转。 补充：像这种forward形式的action实质是执行的ActionSupport 这个Action。因此配置它的result可以参看此类的api文档，比如它常用的result name有：success、login、input等。<br/>
+8.使用default-Action配置统一访问<br/>
+default-action-ref,当访问没有找到对应的action时,默认就会调用default-action-ref指定的action.同样在上面的package中增加如下内容：<br/>
+&lt;default-action-ref name=&quot;error&quot;&gt;&lt;/default-action-ref&gt;<br/>
+          &lt;action name=&quot;error&quot;&gt;<br/>
+               &lt;result&gt;/other/error.jsp&lt;/result&gt;<br/>
+          &lt;/action&gt;<br/>
+上面一段内容就是说当我们访问的action不能被找到时便指向名为error的action中去，接着我们在下面配置了这个error Action。但是要注意,一个package内只配置一个&lt;default-action-ref&gt;,如果配置多个,就无法预测结果了. 此时我们只要输入.../myStruts2/luanFangWen.action这样的形式，它就会去访问这个默认的&lt;default-action-ref&gt;，通常我们会为它配置一个错误页面，以提示用户访问的页面不存在。 在web开发中，我们还可以把这个默认的action访问配置成主页，这样当用户访问一些不存在的action时，总会跳到主页上去。<br/>
+通过此配置，只要是访问一个不存在的action便会转向到.../other目录下的error.jsp页面。但是如果访问是其它的不存在资源则仍是报tomcat所标识的404错误，我们可以在web.xml中作如下配置：<br/>
+&lt;error-page&gt;<br/>
+          &lt;error-code&gt;404&lt;/error-code&gt;<br/>
+          &lt;location&gt;/other/404error.jsp&lt;/location&gt;<br/>
+&lt;/error-page&gt;<br/>
+这样配置后，访问错误页面将跳到.../other/404error.jsp页面中去。补充说明：如果我们用ie访问时，如果选中了[工具][IE选项][高级][浏览][显示友好的http错误信息]，则配置的错误页面将失效，因为找不到资源时会报HTTP404错误，而ie截取到此错误进行了它自身的友好处理，所以我们设置&lt;error-page&gt;就失效。<br/>
+小结Action<br/>
+在struts2中一个普通的java类只要有public String execute()这样的方法都可以配置成一个Action,另外我们可以实现Action接口来使java类成为一个Action，但通常的做法是继承ActionSupport类，这也是以后的项目中惯用的方法，也是推荐的首选方法。 与struts1.x不同的是：在struts2中每一个Action被请求访问时都会new出这个Action对象，所以Action本身不存在线程安全的问题。<br/>
+9.使用通配符<br/>
+建立struts2wildcard项目，此实例基本仿照前面前面第7点的实例改写而成。为了使用通配符，只需要改写配置文件即可。此实例未使用通配时的配置文件如下：<br/>
+&lt;action name=&quot;addUser&quot; class=&quot;com.asm.UserAction&quot; method=&quot;addUser&quot;&gt;<br/>
+               &lt;result name=&quot;success&quot;&gt;/user/addUser.jsp&lt;/result&gt;<br/>
+&lt;/action&gt;<br/>
+&lt;action name=&quot;delUser&quot; class=&quot;com.asm.UserAction&quot; method=&quot;delUser&quot;&gt;<br/>
+               &lt;result name=&quot;success&quot;&gt;/user/delUser.jsp&lt;/result&gt;<br/>
+&lt;/action&gt;<br/>
+&lt;action name=&quot;queryUser&quot; class=&quot;com.asm.UserAction&quot; method=&quot;queryUser&quot;&gt;<br/>
+               &lt;result name=&quot;success&quot;&gt;/user/queryUser.jsp&lt;/result&gt;<br/>
+&lt;/action&gt;<br/>
+&lt;action name=&quot;updateUser&quot; class=&quot;com.asm.UserAction&quot; method=&quot;updateUser&quot;&gt;<br/>
+              &lt;result name=&quot;success&quot;&gt;/user/updateUser.jsp&lt;/result&gt;<br/>
+&lt;/action&gt;<br/>
+我们注释掉上面的配置，使用通配符只需如下内容即可达到相同的效果：<br/>
+&lt;action name=&quot;*User&quot; class=&quot;com.asm.UserAction&quot; method=&quot;{1}User&quot;&gt;<br/>
+               &lt;result name=&quot;success&quot;&gt;/user/{1}User.jsp&lt;/result&gt;<br/>
+&lt;/action&gt;<br/>
+原理：当有.../addUser.action请求时，如果不能在当前应用中找到完全相同的addUser名字的Action时，通配符配置这时就起作用了，按通配原则，它便和上面的name=&quot;*User&quot;相配成功，这里不难明了*此时代指的内容是add，再来看method恰恰是引用第一个*的内容，所以它的method此时的完整名为addUser，它刚好和com.asmUserAction中的addUser方法相对，所以它会去addUser方法，再来看下面的result配置所指代的页面，它也用到了{1}，所以它的完整页面是/addUser.jsp。其实如果我们有良好的编程命名习惯，所有的Action我们都只需要进行一次配置。举例：规定所有的Action类都用XXXAction来命名，类中所有的CRUD方法都用add/del/update/query。Jsp页面也用add/del/update/query_XXX.jsp这样的形式。即配置文件可以写成如下形式：<br/>
+&lt;action name=&quot;*_*&quot; class=&quot;com.asm.{2}Action&quot; method=&quot;{1}&quot;&gt;<br/>
+               &lt;result name=&quot;success&quot;&gt;.../{1}_{2}.jsp&lt;/result&gt;<br/>
+&lt;/action&gt;<br/>
+Name中第一个*代表CRUD操作的名字，第二个*代表类的名字。所以访问链接地址举例如下：<br/>
+.../del_User.action将访问到User类的del方法，成功后跳到del_User.jsp页面。补充说明{0}是代表name中所有的*组合。<br/>
+10.使用0配置：ZERO Annotation<br/><br/><br/><br/><br/><br/><br/>
+11.Result配置详解<br/>
+说明：在前面的许多案例中我们所用到的Action基本都继承自ActionSupport这个类，而在这个类中我们定义了五个字段：SUCCESS，NONE，ERROR，INPUT，LOGING。我们可以直接返回这些字段值，这些字段值实质是被定义成：String SUCCESS=”success”这样的形式，所以我们只要在Result元素中用它们的小写即可。<br/>
+&lt;result&gt;标准完整形式如下：<br/>
+&lt;result name=&quot;success&quot; type=&quot;dispatcher&quot;&gt;<br/>
+          &lt;param name=&quot;location&quot;&gt;/default.jsp&lt;/param&gt;<br/>
+&lt;/result&gt;<br/>
+如果我们都采用默认的形式，最终可以简写成：&lt;result&gt;/default.jsp&lt;/result&gt;<br/>
+探讨type类型：<br/>
+Type类型值     作用说明     对应类<br/>
+chain     用来处理Action链     com.opensymphony.xwork2.ActionChainResult<br/>
+dispatcher     用来转向页面，通常处理JSP     org.apache.struts2.dispatcher.ServletDispatcherResult<br/>
+redirect     重定向到一个URL     org.apache.struts2.dispatcher.ServletRedirectResult<br/>
+redirectAction     重定向到一个Action     org.apache.struts2.dispatcher.ServletActionRedirectResult<br/>
+plainText     显示源文件内容，如文件源码     org.apache.struts2.dispatcher.PlainTextResult<br/>
+freemarker     处理FreeMarker模板     org.apache.struts2.views.freemarker.FreemarkerResult<br/>
+httpheader     控制特殊http行为的结果类型     org.apache.struts2.dispatcher.HttpHeaderResult<br/>
+stream<br/>
+     向浏览器发送InputSream对象，通常用来处理文件下载，还可用于返回AJAX数据。<br/>
+     org.apache.struts2.dispatcher.StreamResult<br/><br/>
+velocity     处理Velocity模板     org.apache.struts2.dispatcher.VelocityResult<br/>
+xslt          处理XML/XLST模板     org.apache.struts2.views.xslt.XSLTResult<br/>
+以上对type类型作简要的说明，下面来看实例：当一个Action处理后要返回的Result是另一个Action时，作如何配置，关键就是配置type类型。下面建立struts2result项目说明<br/>
+步骤一：建立两个Action:TestAction、Test2Action<br/>
+步骤二：web.xml配置省略。struts.xml主要配置内容如下：<br/>
+&lt;struts&gt;<br/>
+     &lt;package name=&quot;resultTest&quot; extends=&quot;struts-default&quot;&gt;<br/>
+          &lt;action name=&quot;test&quot; class=&quot;com.asm.TestAction&quot;&gt;<br/>
+               &lt;result name=&quot;success&quot; type=&quot;chain&quot;&gt;<br/>
+                    &lt;param name=&quot;actionName&quot;&gt;test2&lt;/param&gt;<br/>
+               &lt;/result&gt;<br/>
+          &lt;/action&gt;<br/><br/>
+          &lt;action name=&quot;test2&quot; class=&quot;com.asm.Test2Action&quot;&gt;<br/>
+               &lt;result name=&quot;success&quot;&gt;/test2Suc.jsp&lt;/result&gt;<br/>
+          &lt;/action&gt;    <br/>
+     &lt;/package&gt;<br/>
+&lt;/struts&gt;<br/>
+说明：在名为“test”的action中，我们配置result元素的type类型值为chain，意为将继续把Action传递到下一个名为test2的Action中去，在test2.action中会把页面转向到test2Suc.jsp中去。在type类型为chain时，它的param有4个值可配，除了这里用到的name=”actionName”外（必须配置，否则报错），还有name=namespace|method|skipActions。其中namespace指定要转向到action的名字空间，由于此处是转到Action位于同一个namespace下，而namesapace的默认值the current namespace，所以可以省略不写(需要说明的是如果要跳到别的名称空间的action中去，除了使用namespace指定外，还可以用：/要跳去action所在名称空间的值/要跳去的action的name值)。Method用于指定转向到一个目标action所调用的方法，默认是调用下一个action的execute方法，所以此处仍可以省略。SkipActions是一个可选的属性，一般不用。具体可以参看chain所对应类的api帮助。<br/>
+在本实例中，我们还在TestAction中设定一个username字段，并在execute方法执行为它赋了值，并在test2Suc.jsp中引用了此值。其实这种做法在web开发中还是很有用处，比如可以代替隐藏域。需要注意的是之所以在action的传递中能把设定的这个值保存下去，主要是因为转向都是服务器跳转。如果我们跳转时采取了客户端跳转，比如在test2 action的result中指定type类型为redirect，要想传递参数可以在result指向的jsp页面中附加参数即可，我们可以在test2 action的result中写成：<br/>
+&lt;result name=&quot;success&quot; type=&quot;redirect&quot;&gt;<br/>
+/test2Suc.jsp?username=${username}<br/>
+&lt;/result&gt;   随后在test2Suc.jsp页面中引用时会出现三个问题：1.EL表达式引用失效，（EL表达式应该使用${param.username}形式）。我们也可以使用&lt;%=request.getParameter(&quot;username&quot;)%&gt;获取参数值。  2.由于在前面的TestAction中设定的值为中文，而附加到这里的uri请求的参数后面时会出现乱码问题。（可以使用URI编码再解码解决此问题）3.值栈取值失效：因为每一次request共享同一个值栈，所以服务器端的forward跳转也是能共享同一值栈得。但是着当test action执行后把请求交由test2 action时，test2 action采取的是redirect重定向到test2Suc.jsp页面，这时其实就是重发的一次request,所以在test action保存的值栈内容全部失效。这也就是为什么我们要附加参数的原因。而参数是保存在actionContext中，所以采用了#的方式来取出值。图示说明：<br/>
+    <br/>
+步骤三，编写链接页面index.jsp。发布测试：<br/>
+全局result：<br/>
+如果我们所有的action均有可能跳到相同的页面，则不防使用全局result。为了方便引用我们专门建立一个package来存放公共的result。在会用到个全局的跳转时，只需要把继承自这个公共的package即可。<br/>
+建立公共包，代码如下：<br/>
+&lt;package name=&quot;pubResult&quot; extends=&quot;struts-default&quot; abstract=&quot;true&quot;&gt;<br/>
+          &lt;global-results&gt;<br/>
+               &lt;result name=&quot;error&quot;&gt;/error.jsp&lt;/result&gt;<br/>
+          &lt;/global-results&gt;<br/>
+&lt;/package&gt;<br/>
+由于它下面没的action配置，所以我们可以像默认的struts-default包一样，声明abstract=true，这样声明表示此packgage下不会有action，它一般是用来让别的package继承。随后再在要用到全局result中引用这个公共的package。代码如下：<br/>
+&lt;package name=&quot;testGlobal&quot; extends=&quot;pubResult&quot; &gt;<br/>
+     &lt;action name=&quot;error&quot; class=&quot;com.asm.ErrorAction&quot;&gt;&lt;/action&gt;<br/>
+     &lt;action name=&quot;error2&quot; class=&quot;com.asm.Error2Action&quot;&gt;&lt;/action&gt;<br/>
+&lt;/package&gt;这样操作相当于把全局的result加到了此package下的所有action中去。<br/>
+动态Result:了解<br/>
+步骤一：建立DynaAction，主要代码如下：<br/>
+package com.asm;<br/>
+public class DynaAction extends ActionSupport {<br/>
+     private String username;<br/>
+     private String nextAction;<br/><br/>
+     public String execute() throws Exception {<br/>
+          if (username.equals(&quot;admin&quot;)) {<br/>
+               nextAction = &quot;admin&quot;;<br/>
+          } else if (username.equals(&quot;user&quot;)) {<br/>
+               nextAction = &quot;user&quot;;<br/>
+          } else {<br/>
+               nextAction = ERROR;<br/>
+          }<br/>
+          return SUCCESS;<br/>
+     }<br/>
+     ...省略get/set方法    <br/>
+}<br/>
+步骤二、建立jsp页面dyna.jsp，主要是为了向DynaAction中传递username参数。<br/>
+步骤三、相关配置如下：<br/>
+&lt;package name=&quot;dynaTest&quot; extends=&quot;pubResult&quot;&gt;<br/>
+          &lt;action name=&quot;dyna&quot; class=&quot;com.asm.DynaAction&quot;&gt;<br/>
+               &lt;result name=&quot;success&quot; type=&quot;chain&quot;&gt;${nextAction}&lt;/result&gt;<br/>
+          &lt;/action&gt;<br/><br/>
+          &lt;action name=&quot;admin&quot; &gt;<br/>
+               &lt;result&gt;/admin.jsp&lt;/result&gt;<br/>
+          &lt;/action&gt;<br/><br/>
+          &lt;action name=&quot;user&quot;&gt;<br/>
+               &lt;result&gt;/user.jsp&lt;/result&gt;<br/>
+          &lt;/action&gt;<br/>
+&lt;/package&gt;<br/>
+分析：当dyna.jsp把参数传递到DynaAction中去时，如果传递的值为admin，我们便设定了nextAction的值admin，在配置文件中我们通过${nextAction}（用在struts配置文件中的ognl，其实nextAction的值是存在值栈中，我们通过${}这样的形式取出。在此只作了解）来获取值便为admin，随后再继续把请求传递到下一个Action中去（此时也即admin.action），为了方便我们设定了两个ForwardAction：admin.action和user.action。这样便可以跳到指定的jsp页面。 原理：dyna.action执行后会继续把请求传递给下一个Action，而下一个Action的到底是哪一个Action，是通过DynaAction中动态指定的，比如这里是根据传递的username的值指定。<br/>
+12.异常处理<br/>
+步骤一、建立struts2exception项目下，在该项目下建立登录页面login.jsp。主要代码如下：<br/>
+&lt;form action=&quot;&lt;%=request.getContextPath() %&gt;/login.action&quot;&gt;<br/>
+          username:&lt;input type=&quot;username&quot; name=&quot;username&quot;&gt;&lt;br&gt;<br/>
+          &lt;input type=&quot;submit&quot; value=&quot;login&quot;&gt;<br/>
+&lt;/form&gt;    <br/>
+步骤二、建立LoginAction，代码如下：<br/>
+package com.asm;<br/>
+public class LoginAction extends ActionSupport {<br/>
+     private String username;<br/>
+     public String execute() throws Exception {<br/>
+          if (username.equals(&quot;exception&quot;)) {<br/>
+               throw new ClassNotFoundException(&quot;类未被找到&quot;);<br/>
+          } else if (username.equals(&quot;global&quot;)) {<br/>
+               throw new Exception(&quot;全局异常&quot;);<br/>
+          } else {<br/>
+               return SUCCESS;<br/>
+          }<br/>
+     }<br/>
+     ...省力get/set方法<br/>
+}<br/>
+步骤三、struts.xml配置文件如下：<br/>
+&lt;struts&gt;<br/>
+     &lt;package name=&quot;ex&quot; extends=&quot;def&quot;&gt;<br/>
+          &lt;action name=&quot;login&quot; class=&quot;com.asm.LoginAction&quot;&gt;<br/>
+               &lt;exception-mapping result=&quot;myException&quot;<br/>
+                    exception=&quot;java.lang.ClassNotFoundException&quot;&gt;<br/>
+               &lt;/exception-mapping&gt;<br/>
+               &lt;result name=&quot;myException&quot;&gt;/exception.jsp&lt;/result&gt;<br/>
+               &lt;result name=&quot;success&quot;&gt;/main.jsp&lt;/result&gt;<br/>
+          &lt;/action&gt;<br/>
+     &lt;/package&gt;<br/><br/>
+     &lt;package name=&quot;def&quot; extends=&quot;struts-default&quot; abstract=&quot;true&quot;&gt;<br/>
+          &lt;global-results&gt;<br/>
+               &lt;result name=&quot;myGlobal&quot;&gt;/globalException.jsp&lt;/result&gt;<br/>
+          &lt;/global-results&gt;<br/><br/>
+          &lt;global-exception-mappings&gt;<br/>
+               &lt;exception-mapping result=&quot;myGlobal&quot;<br/>
+                    exception=&quot;java.lang.Exception&quot;&gt;<br/>
+               &lt;/exception-mapping&gt;<br/>
+          &lt;/global-exception-mappings&gt;<br/>
+     &lt;/package&gt;<br/>
+&lt;/struts&gt;<br/>
+分析：异常处理机制较为简单，所以在此只略作说明。当登录时输入“exception”时，在LoginAction中会抛出会一个ClassNotFoundException异常，此异常我们采取的局部异常处理的方式，如果登录时输入“globla”,则会抛出Exception异常，此异常我们采取的是全局异常的处理方式，在ex包中我们继承了全局异常所在的包。提示：&lt;exception-mapping&gt;中的result属性的值来源于&lt;result&gt;元素中的name属性的值。从实例可以看出，我们一般把这种全局性的异常放在一个抽象包中供其实包继承。<br/>
+三、在Action获取Scope对象<br/>
+引言：在前面的Action操作中，关键就是Action中的exectue方法，但是此方法并没有request、session、application等对象作为参数，自然就不能利用这些对象来操作。下面我们建立struts2scope项目，并用四种方式来获取这些对象：<br/>
+方式一、与Servlet解耦合的非IOC方式<br/>
+获取的scope对象与容器无关，通过ActionContext获取。<br/>
+LoginAction代码如下：<br/>
+package com.asm;<br/>
+public class LoginAction extends ActionSupport {<br/>
+     private String username;<br/>
+     ActionContext context;<br/>
+     Map request;<br/>
+     Map session;<br/>
+     Map application;<br/>
+     public String execute() throws Exception {<br/>
+          context=ActionContext.getContext();<br/>
+          request=(Map) context.get(&quot;request&quot;);<br/>
+          session=context.getSession();<br/>
+          application=context.getApplication();<br/>
+         <br/>
+          request.put(&quot;req&quot;, &quot;requst属性&quot;);<br/>
+          session.put(&quot;ses&quot;, &quot;sesion属性&quot;);<br/>
+          application.put(&quot;app&quot;, &quot;application属性&quot;);<br/>
+          return SUCCESS;<br/>
+     }<br/>
+     ...省略username的get/set方法<br/>
+}<br/>
+struts.xml配置如下：<br/>
+&lt;struts&gt;<br/>
+     &lt;package name=&quot;scope&quot; extends=&quot;struts-default&quot;&gt;<br/>
+          &lt;action name=&quot;login&quot; class=&quot;com.asm.LoginAction&quot;&gt;<br/>
+               &lt;result&gt;/loginSuc.jsp&lt;/result&gt;<br/>
+&lt;/action&gt;<br/>
+&lt;/package&gt;         <br/>
+&lt;/struts&gt;<br/>
+login.jsp内容如下：<br/>
+&lt;form action=&quot;&lt;%=request.getContextPath() %&gt;/login.action&quot;&gt;<br/>
+          用户名：&lt;input type=&quot;text&quot; name=&quot;username&quot;&gt;&lt;br&gt;<br/>
+          &lt;input type=&quot;submit&quot; value=&quot;login&quot;&gt;    <br/>
+&lt;/form&gt;<br/>
+loginSuc.jsp的主要内容如下：<br/>
+${requestScope.req}<br/>
+${sessionScope.ses}<br/>
+${applicationScope.app}<br/>
+&lt;h4&gt;以下使用scope.getAttribute的形式来接受&lt;/h4&gt;<br/>
+          request：     &lt;%=request.getAttribute(&quot;req&quot;) %&gt;&lt;br&gt;<br/>
+          session：     &lt;%=session.getAttribute(&quot;ses&quot;) %&gt;&lt;br&gt;<br/>
+          application:&lt;%=application.getAttribute(&quot;app&quot;) %&gt;&lt;br&gt;<br/>
+分析：通过ActionContext的getContext静态方法得到ActionContext对象，然后ActionContext对象调用get方法来获取一个存储在request范围中的对象。我们使用el或通过request.getAttribute这样的方式均可以获取对象值，这说明了这些Map request对象实际是存储在request范围内的对象。<br/>
+方式二、与Servlet解耦合的IOC方式<br/>
+我们建立Login2Action,主要代码如下：<br/>
+package com.asm;<br/>
+public class Login2Action extends ActionSupport implements RequestAware,SessionAware,ApplicationAware {<br/>
+     private String username;<br/>
+     Map request;<br/>
+     Map session;<br/>
+     Map application;<br/>
+     public String execute() throws Exception {<br/>
+          request.put(&quot;req&quot;, &quot;requst属性&quot;);<br/>
+          session.put(&quot;ses&quot;, &quot;sesion属性&quot;);<br/>
+          application.put(&quot;app&quot;, &quot;application属性&quot;);<br/>
+          return SUCCESS;<br/>
+     }<br/>
+     public void setRequest(Map&lt;String, Object&gt; request) {<br/>
+          this.request=request;<br/>
+     }<br/>
+     public void setSession(Map&lt;String, Object&gt; session) {<br/>
+          this.session=session;<br/>
+     }<br/>
+     public void setApplication(Map&lt;String, Object&gt; application) {<br/>
+          this.application=application;<br/>
+     }<br/>
+     ...省略username的get/set方法    <br/>
+}<br/>
+注册此Action的name为login2,随后修改登录提交为.../login2.action。便可以发布测试。说明：此方法其实和方式一很相似，只是在方式一中我们需要手动的为Map request赋值，但是在方式二中它是通过实现接口，在重写接口中的方法中完成对Map requset的赋值，所以称之IOC方式。借助此例，略谈下依赖注入与控制反转：所谓依赖注入就是一个对象自己本身的初始化是依赖其它对象。比如这里Map request这些对象会依赖struts2来给其初始化，称为依赖注入，而依赖注入的就表示，这些对象的控制权不再由此类本身掌握，而是交给了别的对象，即是控制权反转了。 强调：方式二是开发中主要用的方式，应重点掌握<br/>
+方式三、与Servlet耦合的非IOC方式<br/>
+建立Login3Action，代码如下：<br/>
+package com.asm;<br/>
+public class Login3Action extends ActionSupport {<br/>
+     private String username;<br/>
+     HttpServletRequest request;<br/>
+     HttpSession session;<br/>
+     ServletContext application;<br/>
+     public String execute() throws Exception {<br/>
+          request = ServletActionContext.getRequest();<br/>
+          session = request.getSession();<br/>
+          application = ServletActionContext.getServletContext();<br/><br/>
+          request.setAttribute(&quot;req&quot;, &quot;requst属性&quot;);<br/>
+          session.setAttribute(&quot;ses&quot;, &quot;sesion属性&quot;);<br/>
+          application.setAttribute(&quot;app&quot;, &quot;application属性&quot;);<br/>
+          return SUCCESS;<br/>
+     }<br/>
+     ...省略username的get/set方法。<br/>
+}<br/>
+此方法获取的纯粹的Scope对象，它与容器相关，这些Scope对象操作更强。同样只需要注册此Action并修改登录页面便可进行测试。<br/>
+方式四、与Servlet耦合的IOC方式<br/>
+建立Login4Action，代码如下：<br/>
+package com.asm;<br/>
+public class Login4Action extends ActionSupport implements ServletRequestAware,ServletContextAware{<br/>
+     private String username;<br/>
+     ActionContext context;<br/>
+     HttpServletRequest request;<br/>
+     HttpSession session;<br/>
+     ServletContext application;<br/>
+     public String execute() throws Exception {<br/>
+          context=ActionContext.getContext();<br/>
+          session=request.getSession();    <br/>
+          request.setAttribute(&quot;req&quot;, &quot;requst属性&quot;);<br/>
+          session.setAttribute(&quot;ses&quot;, &quot;sesion属性&quot;);<br/>
+          application.setAttribute(&quot;app&quot;, &quot;application属性&quot;);<br/>
+          return SUCCESS;<br/>
+     }<br/>
+    <br/>
+     public void setServletRequest(HttpServletRequest request) {<br/>
+          System.out.println(&quot;测试：&quot;+request);<br/>
+          this.request=request;<br/>
+     }<br/>
+     public void setServletContext(ServletContext application) {<br/>
+          System.out.println(&quot;测试：&quot;+application);<br/>
+          this.application=application;<br/>
+     }<br/>
+     ...省略username的get/set方法<br/>
+}<br/>
+同样只需要注册此Action并修改登录页面便可发布测试<br/>
+四、OGNL与ValueStack(VS)<br/>
+1.值栈入门<br/>
+下面我们建立struts2ognl项目来练习ognl的使用。<br/>
+步骤一、搭建strust2的开发环境<br/>
+步骤二、建立LoginAction，主要代码如下：<br/>
+package com.asm;<br/>
+public class LoginAction extends ActionSupport{<br/>
+     private User user;<br/>
+     public String execute() throws Exception {    <br/>
+               return SUCCESS;<br/>
+     }<br/>
+     ...省略user的get/set方法    <br/>
+}<br/>
+步骤三、配置此Action,struts.xml的主要内容如下：<br/>
+&lt;struts&gt;<br/>
+     &lt;constant name=&quot;struts.devMode&quot; value=&quot;true&quot;&gt;&lt;/constant&gt;<br/>
+     &lt;package name=&quot;ognl&quot; extends=&quot;struts-default&quot;&gt;<br/>
+          &lt;action name=&quot;login&quot; class=&quot;com.asm.LoginAction&quot;&gt;<br/>
+               &lt;result&gt;/loginSuc.jsp&lt;/result&gt;<br/>
+          &lt;/action&gt;<br/>
+     &lt;/package&gt;<br/>
+&lt;/struts&gt;<br/>
+步骤四、编写login.jsp页面，主要代码如下：<br/>
+&lt;body&gt;<br/>
+     &lt;form action=&quot;&lt;%=request.getContextPath()%&gt;/login.action&quot;  method=&quot;get&quot;&gt;<br/>
+          用户名：&lt;input type=&quot;text&quot; name=&quot;user.username&quot;&gt;&lt;br&gt;<br/>
+          密  码：&lt;input type=&quot;password&quot; name=&quot;user.password&quot;&gt;&lt;br&gt;<br/>
+          &lt;input type=&quot;submit&quot; value=&quot;login&quot;&gt;<br/>
+     &lt;/form&gt;<br/>
+&lt;/body&gt;<br/>
+步骤五、编写loginSuc.jsp页面，主要代码如下：<br/>
+&lt;body&gt;<br/>
+          调试：&lt;s:debug&gt;&lt;/s:debug&gt;<br/>
+          获取值栈中的username属性：&lt;s:property value=&quot;user.username&quot;/&gt; &lt;br&gt;<br/>
+&lt;/body&gt;<br/>
+步骤六、发布测试及说明<br/>
+当我们输入用户名并成功跳到logSuc.jsp页面后，会得到登录时输入的用户名信息。下面简要说明这一过程：<br/>
+（1）.login.jsp登录提交登录信息给login.action<br/>
+（2）.struts2监听到客户端的login.action请求，按配置文件要求，把此请求交给LoginAction处理。这表示会去new LoginAction()， 当struts2  new出此Action对象后会把这个对象放在context map中，只是这个Action非常特殊，所以放在值栈中，而放在值栈中的对象是可以直接引用的，放在其它context map中的对象引用时会要求加#。<br/>
+（3）.当new LoginAction时，表示它也会初始化此类中的对象，比如这里会去初始化User对象，但是要注意的是如果我们在用户名和密码什么都不输，再来用debug来看值栈中的user是，发现它仍会new此对象，因为尽管我们没用输入值，但是后台的set方法还是要被调用，所以会new出此对象，但是如果我们直接输入.../struts2ognl/login.action时我们会发现跳转到loginSuc.jsp页面时，用debug来看值栈中此User user，发现它的值为null。第二点要注意的是我们必须为User类提供默认的构造方法，否则将会出现如下错误： java.lang.InstantiationException: com.asm.vo.User<br/>
+总结：1.Action会在请求时被创建，且会把创建的对象放到值栈中。<br/>
+2.Action中的对象字段只有在需要时才会以new 的形式初始化，而且这些对象字段必须提供默认的构造方法。<br/>
+3.ValueStack对象贯穿整个Action的生命周期（每个Action类的对象实例会拥有一个ValueStack对象）。当Struts 2接收到一个.action的请求后，会先建立Action类的对象实例，但并不会调用Action方法，而是先将Action类的相应属性放到ValueStack对象的顶层节点（vs对象相当于一个栈）。<br/>
+补充：值栈（根）对象也可以直接使用EL表达式访问，比如这里可以直接通过${user.username}来获取username的值，我们知道el表达式只能访问四种scope范围内的对象，那为什么这里能访问到值栈对象呢？原因是struts2对HttpServletRequet进行了一次封装，封装的代码主要是重写了getAttribute方法，简述重写此方法的核心代码：首先在原始的HttpServletRequest对象中查找el表达式中的属性，如果找不到再通过ActionContext获取值栈对象，进而再从值栈对象中查找el表达式中要访问的属性。<br/>
+2.OGNL入门<br/>
+下面我们在com.asm.vo.User类中增加一个字段private Address addres;，并提供此字段的get/set方法，随后再在login.jsp中增加如下代码：<br/>
+城  市：&lt;input type=&quot;text&quot; name=&quot;user.addres.city&quot;&gt;&lt;br&gt;<br/>
+然后再在loginSuc.jsp中增加如下代码：<br/>
+获取城市属性：&lt;s:property value=&quot;user.addres.city&quot;/&gt;&lt;br&gt;<br/>
+然后测试，会得到登录时输入的城市信息（中文会有乱码）。下面借助此例谈ognl的定义：在这个例子中，我们的LoginAction中有一个User对象，而在User对象中又有一个Address对象，这些对象之间依靠这种类的字段进行关联，或者说是依靠字段属性进行导航，这也就是OGNL的定义：Object Graph Navigation Language：对象图导航图语言，它是建立在值栈技术之上的一种全新语言。<br/>
+补充：用%{}可以取出存在值堆栈中的Action对象,直接调用它的方法.我们在loginSuc.jsp中增加如下内容调用LoginAction中的get方法：<br/>
+调用值栈对象中的方法：&lt;s:property value=&quot;%{get()}&quot;/&gt;<br/>
+LoginACtion中增加的get方法如下：<br/>
+public String get(){<br/>
+          return &quot;这是User中的get方法&quot;;<br/>
+}<br/>
+3.普通方法访问<br/>
+首先在User中增加一个成员方法，代码如下：<br/>
+public String get(){<br/>
+          return &quot;这是User中的get方法&quot;;<br/>
+}<br/>
+在LoginAction中也有类似的get方法，随后再在loginSuc.jsp中增加如下代码：<br/>
+调用值栈对象中的普通方法(2)：&lt;s:property value=&quot;user.username.length()&quot;/&gt;&lt;br&gt;<br/>
+调用值栈对象中的普通方法(1)：&lt;s:property value=&quot;user.get()&quot;/&gt;&lt;br&gt;<br/>
+调用LoginAction中的普通方法：&lt;s:property value=&quot;get()&quot;/&gt;&lt;br&gt;<br/>
+最后测试，发现这些方法都可以访问到。<br/>
+4.静态方法访问<br/>
+在LoginAction中增加如下方法：<br/>
+public static String getSta() {<br/>
+          return &quot;这是LoginAction中的静态方法&quot;;<br/>
+}<br/>
+然后在loginSuc.jsp中增加如下代码：<br/>
+调用Action中的静态方法：&lt;s:property value=&quot;@com.asm.LoginAction@getSta()&quot;/&gt;&lt;br&gt;<br/>
+调用LoginAction中的静态方_方式(2)：&lt;s:property value=&quot;@vs@getSta()&quot;/&gt;&lt;br&gt;<br/>
+说明：我们在方式二中用到@vs，只有那些值栈中的对象才可以这样写。<br/>
+然后访问，发现访问不到,因为在struts2.1.6的版本中，struts.ognl.allowStaticMethodAccess的默认值为false,我们只需在struts.xml中增加如下内容：<br/>
+&lt;constant name=&quot;struts.ognl.allowStaticMethodAccess&quot; value=&quot;true&quot;/&gt;<br/>
+再来访问时便可以访问到。<br/>
+5.默认类Math的访问<br/>
+在loginSuc.jsp中增加如下代码：<br/>
+调用Math类中的静态方法：&lt;s:property value=&quot;@java.lang.Math@min(1,2)&quot;/&gt;&lt;br&gt;<br/>
+调用Math类中的静态方法_方式（2）：&lt;s:property value=&quot;@@min(1,2)&quot;/&gt;&lt;br&gt;<br/>
+调用Math类中的字段：&lt;s:property value=&quot;@@PI&quot;/&gt;&lt;br&gt;<br/>
+说明：因为是默认的类，所以可以省略类名<br/>
+6.调用普通类的构造方法<br/>
+建立一个新的类：Student，在此省略代码。<br/>
+然后在loginSuc.jsp中增加如下代码：<br/>
+调用普通类中的构造方法  :<br/>
+&lt;s:property value=&quot;new com.asm.vo.Student('jack','20','85.5')&quot;/&gt;&lt;br&gt;<br/>
+调用普通类中的构造方法并访问其字段 :<br/>
+&lt;s:property value=&quot;new com.asm.vo.Student('jack','20','85.5').name&quot;/&gt;<br/>
+说明：第一种是只new出对象，显示的时候其实是调用对象的toString方法。<br/>
+7.集合对象初步<br/>
+首先在LoginAction中增加如下字段并提供相应的get/set方法:<br/>
+private List myList = new ArrayList();<br/>
+private Set mySet = new HashSet();<br/>
+private Map myMap = new HashMap();<br/>
+然后再在execute方法中初始化这些集合对象，代码如下：<br/>
+myList.add(&quot;list1&quot;);<br/>
+myList.add(&quot;list2&quot;);<br/>
+myList.add(&quot;list3&quot;);<br/>
+myList.add(&quot;list4&quot;);<br/><br/>
+mySet.add(&quot;set1&quot;);<br/>
+mySet.add(&quot;set3&quot;);<br/>
+mySet.add(&quot;set1&quot;);<br/>
+mySet.add(&quot;set2&quot;);<br/><br/>
+myMap.put(&quot;m1&quot;, &quot;map1&quot;);<br/>
+myMap.put(&quot;m3&quot;, &quot;map3&quot;);<br/>
+myMap.put(&quot;m2&quot;, &quot;map2&quot;);<br/>
+最后在loginSuc.jsp中增加如下代码：<br/>
+获取List：&lt;s:property value=&quot;myList&quot;/&gt;&lt;br&gt;<br/>
+获取List中的第一个元素：&lt;s:property value=&quot;myList[0]&quot;/&gt;&lt;br&gt;<br/>
+获取Set：&lt;s:property value=&quot;mySet&quot;/&gt;&lt;br&gt;<br/>
+获取Set中的第一个元素(set无序，不能取到)：&lt;s:property value=&quot;mySet[0]&quot;/&gt;&lt;br&gt;<br/>
+获取Map：&lt;s:property value=&quot;myMap&quot;/&gt;&lt;br&gt;<br/>
+获取Map中的key=m1的元素的值：&lt;br&gt;<br/>
+方式一：&lt;s:property value=&quot;myMap.m1&quot;/&gt;<br/>
+方式二：&lt;s:property value=&quot;myMap['m1']&quot;/&gt;&lt;br&gt;&lt;hr&gt;<br/>
+获取List的大小：<br/>
+&lt;s:property value=&quot;myList.size&quot;/&gt;|&lt;s:property value=&quot;myList.size()&quot;/&gt;&lt;br&gt;<br/>
+获取Map中所有键：&lt;s:property value=&quot;myMap.keys&quot;/&gt;&lt;br&gt;<br/>
+获取Map中所有值：&lt;s:property value=&quot;myMap.values&quot;/&gt;&lt;br&gt;<br/>
+最后测试，这些东西不多作解释。<br/>
+8.集合对象进阶<br/>
+首先在LoginAction中增加如下字段并提供相应的get/set方法：<br/>
+private List studentList = new ArrayList();<br/>
+然后再在execute中为其初始化赋值，代码如下：<br/>
+studentList.add(new Student(&quot;jack&quot;, 20, 86.0f));<br/>
+studentList.add(new Student(&quot;lily&quot;, 22, 96.5f));<br/>
+studentList.add(new Student(&quot;tom&quot;, 23, 56.5f));<br/>
+最后在loginSuc.jsp中增加如下代码：<br/>
+获取List中的Student对象：&lt;s:property value=&quot;studentList&quot;/&gt;&lt;br&gt;<br/>
+利用投影获取List中的name属性：&lt;s:property value=&quot;studentList.{name}&quot;/&gt;&lt;br&gt;<br/>
+利用投影获取List中的age属性：&lt;s:property value=&quot;studentList.{age}&quot;/&gt;&lt;br&gt;<br/>
+利用投影获取List中的第一个对象的name属性：&lt;s:property value=&quot;studentList.[0]{name}&quot;/&gt;   或者&lt;s:property value=&quot;studentList.{name}[0]&quot;/&gt;&lt;br&gt;<br/>
+利用选择获取List中grade&gt;60的student信息：<br/>
+&lt;s:property value=&quot;studentList.{?#this.grade&gt;60}&quot;/&gt;&lt;br&gt;<br/>
+利用选择获取List中grade&gt;60的student名字信息：<br/>
+&lt;s:property value=&quot;studentList.{?#this.grade&gt;60}.{name}&quot;/&gt;&lt;br&gt;<br/>
+利用选择获取List中grade&gt;60的第一个student名字信息：<br/>
+&lt;s:property value=&quot;studentList.{?#this.grade&gt;60}.{name}[0]&quot;/&gt;&lt;br&gt;<br/>
+利用选择获取List中grade&gt;60的第一个student名字信息(链表)：<br/>
+&lt;s:property value=&quot;studentList.{^#this.grade&gt;60}.{name}&quot;/&gt;&lt;br&gt;<br/>
+利用选择获取List中grade&gt;60的最后一个student名字信息(链表)：<br/>
+&lt;s:property value=&quot;studentList.{$#this.grade&gt;60}.{name}&quot;/&gt;&lt;br&gt;<br/>
+说明：这里重点是说明?#的使用，结合此例来看，studentList中有许多Stutdent对象,我们可以用条件来限制取哪些对象，这些条件必须以?#开始，并且条件要用{}括起。而this是指在判断studentList中的对象是否符合条件的当前对象。?#是指取出符合条件的所有Student对象，而^#是指取出符合条件的第一个对象，$#是指取出符合条件的最后一个对象。<br/>
+9.N语法top语法<br/>
+我们在loginSuc.jsp中增加如下下代码：<br/>
+N语法[0]：&lt;s:property value=&quot;[0]&quot;/&gt;&lt;br&gt;<br/>
+N语法[1]：&lt;s:property value=&quot;[1]&quot;/&gt;&lt;br&gt;<br/>
+N语法[0].top：&lt;s:property value=&quot;[0].top&quot;/&gt;&lt;br&gt;<br/>
+N语法[1].top：&lt;s:property value=&quot;[1].top&quot;/&gt;&lt;br&gt;<br/>
+N语法top：&lt;s:property value=&quot;top&quot;/&gt;&lt;br&gt;<br/>
+N语法取值：&lt;s:property value=&quot;[0].user.username&quot;/&gt;&lt;br&gt;<br/>
+N语法取值：&lt;s:property value=&quot;top.user.username&quot;/&gt;&lt;br&gt;<br/>
+说明：规定栈顶的对象为[0],而我们只使用[0]的意思是从值栈中第一个对象取，一直取至栈底。N的意思是从值栈中的第N个对象开始，取到栈底为止。如果要想访问某个对象，需要使用[N].top，它的意思是取出符合N语法的栈顶对象，比如在这里，[0]会取出两个对象，而[0].top是取出这两个对象的栈顶对象。纯top可以简洁地取出值栈中的栈顶对象。<br/>
+为什么要提出N语法，当我们通过chain链访问时，值栈中可能有两个以上的Action对象，如果这些对象中存在相同的属性，N便能正确区分他们。通常，这些Action对象的入栈顺序是：先访问先入栈。<br/>
+从上面的N语法取值实例中，我们知道[N]top语法的一个重要作用就是能通过它们引用值栈对象中的属性。结合前面的五种[N]top语法实例，不难理解这里的取值实例。<br/>
+补充：在此实例中，我们用&lt;s:debug&gt;调试会发现，值栈中还有一个DefaultTextProvider对象(因为此Action继承自ActionSupport)，它的作用是获取资源文件中的内容（其实本质是ActionSupport重写了getText()方法），这也就是在国际化问题中我们能直接调用它的getText()方法的原因。<br/>
+10.获取Stack Context中的信息<br/>
+我们知道，除了可以从值栈中获取信息，还可以从Stack Context中获取信息，只是要加上#，下面我们通过scope对象来演示。首先是在LoginAction中增加如下字段：<br/>
+Map myRequest;<br/>
+Map mySession;<br/>
+随后再用前面提到的“在Action中获取Scope对象”的方式二来完成这些对象的初始化。即实现RequestAware和SessionAware接口。然后再在execute方法中增加如下内容：<br/>
+myRequest.put(&quot;req&quot;, &quot;Req属性&quot;);<br/>
+mySession.put(&quot;ses&quot;, &quot;Ses属性&quot;);<br/>
+最后在loginSuc.jsp中增加如下代码：<br/>
+获取Request属性：&lt;s:property value=&quot;#request.req&quot;/&gt;&lt;br&gt;<br/>
+获取Session属性：&lt;s:property value=&quot;#session.ses&quot;/&gt;&lt;br&gt;<br/>
+获取parameters属性：&lt;s:property value=&quot;#parameters.mes&quot;/&gt;<br/>
+说明：我们获取这些对象都用了#，因为这些对象都是存在一般的Context Map中，而不是存在值栈中。别最后一个信息的获取是因为我们在login.jsp中增加了如下代码：<br/>
+&lt;input type=&quot;hidden&quot; name=&quot;mes&quot; value=&quot;the message is transfer by hidden&quot;&gt;<br/>
+关于这些scope的更多信息可以参看下表：<br/>
+名称      作用      例子<br/>
+parameters     包含当前HTTP请求参数的Map     #parameters.id[0]作用相当于request.getParameter(&quot;id&quot;)<br/>
+request     包含当前HttpServletRequest的属性（attribute)的Map      #request.userName相当于request.getAttribute(&quot;userName&quot;)<br/>
+session     包含当前HttpSession的属性（attribute）的Map      #session.userName相当于session.getAttribute(&quot;userName&quot;)<br/>
+application     包含当前应用的ServletContext的属性（attribute）的Map      #application.userName相当于application.getAttribute(&quot;userName&quot;)<br/>
+Attr     用于按request &gt; session &gt; application顺序访问其属性     #application.userName相当于application.getAttribute(&quot;userName&quot;)<br/>
+11.总结$ # %的区别<br/>
+$用于i18n和struts配置文件<br/>
+#取得ActionContext的值<br/>
+%将原来的文本串解析为ognl，对于本来就是ognl的文本不起作用。形式：%{要解析的文本串}<br/>
+12.总结OGNL[重点]<br/>
+OGNL是Object Graphic Navigation Language(对象图导航语言)的缩写，它是一个开源项目。Struts2使用OGNL作为默认的表达式语言。<br/>
+相对于EL表达式，它提供了平时我们需要的一些功能，如：支持对象方法调用，支持各类静态方法调用和值访问，支持操作集合对象。OGNL有一个上下文的概念，这个上下文件实质就是一个Map结构，它实现了java.utils.Map接口，在struts2中上下文的实现为ActionContext，下面是上下文的结构示意图：<br/><br/>
+当struts2接受一个请求时，会迅速创建ActionContext，ValueStack，action。然后把action存放进ValueStack，所以action的实例变量可以接受OGNL访问。<br/>
+访问上下文中的对象需要使用#号标注命名空间，如#application、#session。另外OGNL会设定一个根对象，在struts2中根对象就是ValueStack值栈对象，如果要访问根对象中对象的属性，则可以省略#命名空间，直接访问该对象的属性即可。在struts2中，根对象的实现类为OgnlValueStack，该对象不是我们想象的只存放单个值，而是存放一组对象，在OgnlValueStack类里有一个List类型的变量，就是使用这个List变量来存放一组对象。在root变量（List类型）中处于第一位的对象叫栈顶对象，通常我们在Ognl表达式里直接写上属性的名称即可访问root变量里对象的属性，搜索顺序是从栈顶对象开始寻找，如果栈顶对象不存在该属性，就会从第二个对象寻找，如果没有找到就从第三个对象寻找，依次往下寻找。 注意：struts2中 ，OGNL表达式需要配合struts的标签才可以使用。<br/><br/>
+五、拦截器<br/>
+在前面我们已经初步使用过拦截器，下面继续细细探讨。<br/>
+1.概述strust2中的拦截器<br/>
+拦截器是Struts2框架的核心，它主要完成解析请求参数、将请求参数赋值给Action属性、执行数据校验、文件上传等工作。Struts2设计的灵巧性，拦截器起了关键性的作用，当需要扩展Struts2功能时，只需要提供对应拦截器，并将它配置在Struts2容器中即可；如果不需要该功能时，也只需要取消该拦截器的配置即可。  <br/>
+Struts2内建了大量的拦截器，这些拦截器以name-class对的形式配置在struts-default. xml文件中，其中name是拦截器的名字，就是以后我们使用该拦截器的唯一标识；class则指定了该拦截器的实现类，如果我们定义的package继承了Struts2的默认struts-default包，则可以自由使用它下面定义的拦截器，否则必须自己定义这些拦截器。<br/>
+2.自定义拦截器<br/>
+自定义拦截器需要特别注意的是不要忘记引入struts2默认的拦截器。为了实现某些操作，我们可以自定义拦截器，自定义拦截器有三种方式定义。分别为实现Interceptor接口，继承抽象类AbstractInterceptor，继承MethodFilterInteceptor类。<br/>
+方式一，实现Interceptor接口。<br/>
+准备工作，新建struts2interceptor项目。构建一个登录环境：当我们点登录链接时，便成功登录（为了方便，这里不进行验证）。即在link.jsp页面中写如下链接：&lt;a href=&quot;&lt;%=request.getContextPath()%&gt;/login.action&quot;&gt;登录&lt;/a&gt; 然后，我们点击此链接便可以登录。login.action在strutst.xml中的的配置如下：<br/>
+&lt;package name=&quot;interceptor&quot;     extends=&quot;struts-default&quot;&gt;<br/>
+    &lt;action name=&quot;login&quot; class=&quot;com.asm.LoginAction&quot;&gt;<br/>
+               &lt;result name=&quot;success&quot;&gt;/success.jsp&lt;/result&gt;<br/>
+&lt;/action&gt;<br/>
+&lt;/package&gt;<br/>
+com.asm.LoginAction为了简单，com.asm.LoginAction总是返回SUCCESS；这样请求这个Action总会返回到.../success.jsp页面。<br/>
+编写拦截器：MyInterceptor类,内容如下：<br/>
+package com.asm;<br/>
+import com.opensymphony.xwork2.ActionInvocation;<br/>
+import com.opensymphony.xwork2.interceptor.Interceptor;<br/>
+public class MyInterceptor implements Interceptor {<br/>
+     public void destroy() {<br/>
+     }<br/>
+     public void init() {<br/>
+     }<br/>
+     public String intercept(ActionInvocation invocation) throws Exception {<br/>
+          System.out.println(&quot;开始拦截&quot;);<br/>
+          String result = invocation.invoke();<br/>
+          System.out.println(&quot;结束拦截&quot;);<br/>
+          return result;<br/>
+     }<br/>
+}<br/>
+为了使用此拦截器，我们必须将此拦截器进行注册，随后再在要使用此拦截器的Action中引用。即首先在&lt;package&gt;中注册，内容如下：<br/>
+&lt;interceptors&gt;<br/>
+     &lt;interceptor name=&quot;myIpt&quot; class=&quot;com.asm.MyInterceptor&quot;&gt;&lt;/interceptor&gt;<br/>
+&lt;/interceptors&gt;<br/>
+注册完成后，如果我们要在login.action中使用此拦截器，只需要在&lt;action&gt;中增加如下内容：<br/>
+&lt;interceptor-ref name=&quot;myIpt&quot;&gt;&lt;/interceptor-ref&gt;<br/>
+这样便成功为LoginAction配置了我们自定义的拦截器MyInterceptor，下面只需发布测试。<br/>
+实例流程分析：当我们为LoginAction配置了拦截器时，并且有客户端请求此Action时，会首先被此拦截器拦住，然后执行System.out.println(&quot;开始拦截&quot;),随后我们调用invocation.invoke()方法，它会把请求继续传递给下一个拦截器，下一个拦截器也会继续执行相应代码后再调用invoke方法继续传递，直到请求到达最后一个拦截器，它会把请求传递给Action，比如，我们这里只用到了一个拦截器，当它执行完成后，会把请求直接转交到LoginAction处理，LoginAction处理完成后，它会返回结果给MyInterceptor拦截器。<br/>
+方式二、继承AbstractInterceptor抽象类<br/>
+创建拦截器类MyAbstractInterceptor：主要代码如下：<br/>
+package com.asm;<br/>
+import com.opensymphony.xwork2.ActionInvocation;<br/>
+import com.opensymphony.xwork2.interceptor.AbstractInterceptor;<br/>
+public class MyAbstractInterceptor extends AbstractInterceptor {<br/>
+     public String intercept(ActionInvocation invocation) throws Exception {<br/>
+          System.out.println(&quot;Abs开始拦截&quot;);<br/>
+          String result = invocation.invoke();<br/>
+          System.out.println(&quot;Abs结束拦截&quot;);<br/>
+          return result;<br/>
+     }<br/>
+}<br/>
+然后注册此拦截器，在&lt;interceptors&gt;元素进行进行配置，内容如下：<br/>
+&lt;interceptor name=&quot;myAbs&quot; class=&quot;com.asm.MyAbstractInterceptor&quot;&gt;&lt;/interceptor&gt;<br/>
+随后再在LoginAction中引用此拦截器，即在&lt;action name=&quot;login&quot; ...&gt;配置如下内容：<br/>
+&lt;interceptor-ref name=&quot;myAbs&quot;&gt;&lt;/interceptor-ref&gt;<br/>
+最后发布测试。<br/>
+方式三、继承MethodFilterInteceptor类<br/>
+创建拦截器类MyMethodFilterInterceptor，主要代码如下：<br/>
+package com.asm;<br/>
+import com.opensymphony.xwork2.ActionInvocation;<br/>
+import com.opensymphony.xwork2.interceptor.MethodFilterInterceptor;<br/>
+public class MyMethodFilterInterceptor extends MethodFilterInterceptor{<br/>
+     protected String doIntercept(ActionInvocation invocation) throws Exception {<br/>
+          System.out.println(&quot;method开始拦截&quot;);<br/>
+          String result=invocation.invoke();<br/>
+          System.out.println(&quot;method结束拦截&quot;);<br/>
+          return result;<br/>
+     }<br/>
+}<br/>
+然后注册此拦截器，在&lt;interceptors&gt;元素进行进行配置，内容如下：<br/>
+&lt;interceptor name=&quot;myMet&quot; class=&quot;com.asm.MyMethodFilterInterceptor&quot;&gt;<br/>
+&lt;/interceptor&gt;<br/>
+随后再在LoginAction中引用此拦截器，即在&lt;action name=&quot;login&quot; ...&gt;配置如下内容：<br/>
+&lt;interceptor-ref name=&quot;myMet&quot;&gt;&lt;/interceptor-ref&gt;<br/>
+最后发布测试。<br/>
+分析：当配置到此，实质便为LoginAction配置了三个拦截器，当我们点击登录时会在控制台打印出如下语句：<br/>
+开始拦截<br/>
+Abs开始拦截<br/>
+method开始拦截<br/>
+--先执行拦截器，再执行此Action<br/>
+method结束拦截<br/>
+Abs结束拦截<br/>
+结束拦截<br/>
+其实当我们点击登录时，本来是要访问LoginAction，最后会把LoginAction的执行结果传递给访问者。但是当我们配置了拦截器时，当我们去访问Action时，会首先被拦截，随后拦截器执行一些操作后才会继续把请求传递下去。下面作图说明拦截流程：<br/><br/>
+结合现实理解：比如我们要去某楼层找某人（LoginAction）取一个资源（LoginAction处理后返回的结果，这里表现为success.jsp），（1）进楼层时会被大门保安拦截检查（第一个拦截器：MyInterceptor拦截器），（2）检查通过后再进电梯时会被电梯保安员检查（第二个拦截器：MyAbstractInterceptor拦截器），（3）检查通过后再上到某楼层会被楼层保安员检查（第三个拦截器：MethodAction拦截器<br/>
+），（4）检查通过后会找到某个（LoginAction）,并与某个交谈（LoginAction处理），随后某个人和我们会带着请求的资源出去，（5）出去时，会依次被楼层，电梯，大门保安员检查，最终检查通过。某个人把资源给我们（实质就是返回请求资源给客户端）。 其实拦截器的执行流程和过滤器差不多，所以我们不防用过滤器的眼光来看这些拦截器。<br/>
+注意：我们在为LoginAction配置拦截器时，都没使用默认的拦截器，是原因这里的测试可以不用，但是以后在我们使用自定义的拦截器是，一定要加上默认的拦截器，否则会导致许多不可预知的结果。<br/>
+补充：从上面的图并结合代码，我们可以看出拦截器的核心过程应该是ActionInvocation对这些拦截器回调处理，下面我们建立com.asm.interceptor.simulation来模拟这一过程，具体的代码参源文件，在此略去。在此我们作图分析ActionInvocation的实现过程:<br/><br/>
+补充2：上面分别使用了三种方式来创建自定义的拦截器，第一种方式是最原始的实现方式，第二种方式的好处是我们可以不必重写所有的方法，较常用。第三种方式进行了扩展，下面将会展示它的扩展性能。<br/>
+3.使用来MethodFilterInterceptor灵活拦截<br/>
+步骤一、建立MethodAction，代码如下：<br/>
+package com.asm;<br/>
+import com.opensymphony.xwork2.ActionSupport;<br/>
+public class MethodAction extends ActionSupport{<br/>
+     public String m1(){<br/>
+          return SUCCESS;<br/>
+     }<br/>
+     public String m2(){<br/>
+          return SUCCESS;<br/>
+     }<br/>
+     public String m3(){<br/>
+          return SUCCESS;<br/>
+     }<br/>
+}<br/>
+步骤二、注册此Action，并为此Action配置拦截器。配置内容如下：<br/>
+&lt;action name=&quot;*_*&quot; class=&quot;com.asm.MethodAction&quot; method=&quot;{2}&quot;&gt;<br/>
+          &lt;result name=&quot;success&quot;&gt;/{2}Suc.jsp&lt;/result&gt;<br/>
+          &lt;interceptor-ref name=&quot;myMet&quot;&gt;<br/>
+          &lt;/interceptor-ref&gt;<br/>
+&lt;/action&gt;<br/>
+我们为此Action配置了前面写的MyMethodFilterInterceptor拦截器，并在link.jsp中增加如下链接：<br/>
+&lt;a href=&quot;&lt;%=request.getContextPath()%&gt;/Method_m1.action&quot;&gt;m1&lt;/a&gt;&lt;br&gt;<br/>
+&lt;a href=&quot;&lt;%=request.getContextPath()%&gt;/Method_m2.action&quot;&gt;m2&lt;/a&gt;&lt;br&gt;<br/>
+&lt;a href=&quot;&lt;%=request.getContextPath()%&gt;/Method_m3.action&quot;&gt;m3&lt;/a&gt;&lt;br&gt;<br/>
+当点m1时会访问到m1Suc.jsp页面, 点m2、m3会分别访问到m2Suc.jsp、m3Suc.jsp页面。现在假如我们想访问m2、m3时不被拦截，我们只需修改MyMethodFilterInterceptor注册：修改内容为：<br/>
+&lt;interceptor name=&quot;myMet&quot;      class=&quot;com.asm.MyMethodFilterInterceptor&quot;&gt;<br/>
+                    &lt;param name=&quot;excludeMethods&quot;&gt;m2,m3&lt;/param&gt;<br/>
+&lt;/interceptor&gt;<br/>
+它的作用和增加&lt;param name=&quot;includeMethods&quot;&gt;m1&lt;/param&gt;等价。上面是指定m2,m3方法调用时不被拦截，这里是指定只拦截m1。除了这种在注册拦截器时指定拦截外，还可以在引用拦截器时指定，即如下形式：<br/>
+&lt;interceptor-ref name=&quot;myMet&quot;&gt;<br/>
+                    &lt;param name=&quot;excludeMethods&quot;&gt;m2,m3&lt;/param&gt;<br/>
+                    &lt;param name=&quot;includeMethods&quot;&gt;m1&lt;/param&gt;<br/>
+&lt;/interceptor-ref&gt;<br/>
+上面的两处&lt;param&gt;配置是等价的，但是如果〈param〉配置冲突，谁起作用？即如果我们对m1配置了excludeMethods同时又配置了includeMethods时，谁起作用，我们可以进行这些冲突的验证。以下是验证结果：<br/>
+引用配置（在Action引用拦截器时配置）时，以includeMethods的配置为准。一旦我们为拦截器使用了&lt;param&gt;配置，而对m1这样的方法不配置任何，就不会被拦截。但是如果不使用&lt;param&gt;，它们全部都要被拦截。<br/>
+注册配置时（在注册拦截器时配置），情况和“引用配置”完全一样。<br/>
+引用配置和注册配置冲突时，以引用配置为准。<br/>
+4.使用默认的execAndWait拦截器<br/>
+当我们进行数据库查询等相关的操作时，如果服务器负荷过重可能不能及时把数据查询出来，进而会在状态拦显示“正在打开...”，但却一直转不到相关的页面，这将给客户端带来不便，甚于很多人会因此不愿使用网站的所有服务。对此我们可以在客户提交时，马上转到一个页面，并在该页面显示“您的请求已提交，服务器正在查询，请等待...”的内容，这样客户将不会陷于无赖的等待中。 对于此要求，struts2可以轻松帮我们完成。下面新建struts2wait项目演示此实例。<br/>
+建立LoginAction，代码如下：<br/>
+package com.asm;<br/>
+public class LoginAction extends ActionSupport {<br/>
+     public String execute() throws Exception {<br/>
+          Thread.sleep(5000);<br/>
+          return SUCCESS;<br/>
+     }<br/>
+}<br/>
+说明：为了模拟服务器负荷过重，查询时间要很长。我们在使用了线程休眠的方式。<br/>
+随后配置此Action,配置的主要内容如下：<br/>
+&lt;action name=&quot;login&quot; class=&quot;com.asm.LoginAction&quot;&gt;<br/>
+               &lt;interceptor-ref name=&quot;defaultStack&quot;&gt;&lt;/interceptor-ref&gt;<br/>
+               &lt;interceptor-ref name=&quot;execAndWait&quot;&gt;&lt;/interceptor-ref&gt;<br/>
+               &lt;result name=&quot;wait&quot;&gt;/wait.jsp&lt;/result&gt;<br/>
+               &lt;result name=&quot;success&quot;&gt;/success.jsp&lt;/result&gt;<br/>
+&lt;/action&gt;<br/>
+注意：在配置前我们先是使用了默认的拦截器，再此强调在我们为Action配置拦截器时，应该总是配上默认的拦截器。随后我们使用了execAndWait拦截器，如需要配置此拦截器，此拦截器一定要配置在最后，否则会出现一些难预知的结果。如果使用此拦截器，我们通常还会配置wait的result结果集，因为“On the initial request or any subsequent requests (before the action has completed), the wait result will be returned. The wait result is responsible for issuing a subsequent request back to the action, giving the effect of a self-updating progress meter”，大概意思就是当我们请求的Action在未执行完，就是未返回结果时，会首先把wait result返回，而在wait result所指定的页面中通常会再次发送请求给原始的Action。所以wait.jsp的主要内容如下：<br/>
+&lt;head&gt;<br/>
+     &lt;meta http-equiv=&quot;refresh&quot; content=&quot;1;login.action&quot;&gt;<br/>
+&lt;/head&gt;<br/>
+     &lt;body&gt;          查询请求已提交，正在查询数据，请等待...     &lt;/body&gt;<br/>
+在此页面中，我们指定了每隔1秒便发送请求到login.action中去。这样，客户端便可以及时获取查询结果。结合此实例，我们简要分析流程：当我们发出请求到此Login.Action中去时，首先会被exeAndWait拦截器拦截到，这样它便跳转到wait.jsp页面，在wait.jsp页面中每隔1秒我们会继续发送此Action的请求，当再次请求到达LoginAction时，如果它已经返回，则会跳到此Action返回的页面，如果LoginAction未返回，则继续停留在wait.jsp中，再隔1秒又再次发送请求到LoginAction中去。<br/>
+其实如果服务器能很快查询出结果，我们则不需要用到wait.jsp页面，我们只需在&lt;interceptor-ref name=&quot;execAndWait&quot;&gt;&lt;/interceptor-ref&gt;中增加如下一段配置：<br/>
+&lt;param name=&quot;delay&quot;&gt;6000&lt;/param&gt; 这样便延迟请求到达wait.jsp页面，这样当请求到达时它会在LoginAction中执行6秒时间再到wait.jsp，而6秒LoginAction足以执行完并返回结果，所以当拦截器<br/>
+执行时首先检查到此Action已经返回结果。则拦截器会直接用此返回页面，如果此时发现LoginAction并未执行完，它便会把wait resutl指定的页面返回。需要说明的是，通常我们设定的延迟最多一秒，这里为了演示，设置的很长。图示此拦截器原理：<br/>
+ <br/>
+关于此拦截器的详细的配置及文档说明可以参看ExecuteAndWaitInterceptor类的api信息。<br/>
+5. TokenInterceptor防止表单重复提交。<br/>
+由于某些原因，用户在进行类似表单提交的操作后，以为表单未被提交，会进行多次的重复提交。为了避免用户多次提交给服务器带来负荷。我们会对表单提交这样的操作进行一些处理，以告诉用户不要重复提交。下面我们建立struts2token项目，使用struts2的token拦截器来实现此案例。<br/>
+步骤一，编写login.jsp页面，内容如下：<br/>
+&lt;%@ page language=&quot;java&quot; pageEncoding=&quot;UTF-8&quot;%&gt;<br/>
+&lt;%@ taglib uri=&quot;/struts-tags&quot; prefix=&quot;s&quot; %&gt;<br/>
+&lt;html&gt;<br/>
+     &lt;body&gt;<br/>
+          &lt;form action=&quot;&lt;%=request.getContextPath()%&gt;/login.action&quot; &gt;<br/>
+               姓名:&lt;input type=&quot;text&quot; name=&quot;username&quot;&gt;&lt;br&gt;<br/>
+               密码:&lt;input type=&quot;password&quot; name=&quot;password&quot;&gt;&lt;br&gt;<br/>
+               &lt;input type=&quot;submit&quot; value=&quot;登录&quot;&gt;<br/>
+               &lt;s:token&gt;&lt;/s:token&gt;<br/>
+          &lt;/form&gt;<br/>
+     &lt;/body&gt;<br/>
+&lt;/html&gt;<br/>
+说明，此登录页面中的关键技术就是使用了标签库中的&lt;s:token&gt;&lt;/s:token&gt;标签，它的作用就是在用户访问此页面时会生成一个sessionId，在提交时会服务器会据此验证表单是否已提交。“To set a token in your form, you should use the token tag. This tag is required and must be used in the forms that submit to actions protected by this interceptor”，这句话的大概意思就是我们必须要在提交的表单中使用这个token tag，这样提交到的Action便能配置TokenInterceptor拦截器验证表单是否重复提交。<br/>
+步骤二，编写LoginAction，主要代码如下：<br/>
+package com.asm;<br/>
+public class LoginAction extends ActionSupport {<br/>
+     public String execute() throws Exception {<br/>
+          System.out.println(&quot;----&gt;执行execute方法...&quot;);<br/>
+          return SUCCESS;<br/>
+     }<br/>
+}<br/>
+步骤三，struts.xml主要配置内容如下：<br/>
+&lt;struts&gt;<br/>
+     &lt;package name=&quot;tokenTest&quot; extends=&quot;struts-default&quot;&gt;<br/>
+          &lt;action name=&quot;login&quot; class=&quot;com.asm.LoginAction&quot;&gt;<br/>
+               &lt;result name=&quot;success&quot;&gt;/success.jsp&lt;/result&gt;<br/>
+               &lt;result name=&quot;invalid.token&quot;&gt;/subError.jsp&lt;/result&gt;<br/>
+               &lt;interceptor-ref name=&quot;token&quot;&gt;&lt;/interceptor-ref&gt;<br/>
+               &lt;interceptor-ref name=&quot;defaultStack&quot;&gt;&lt;/interceptor-ref&gt;<br/>
+          &lt;/action&gt;<br/>
+     &lt;/package&gt;<br/>
+&lt;/struts&gt;<br/>
+说明：在此Action下，我们配置了token拦截器，另注意到在此Action下我们还配置了一个“invalid.token”result，因为“This interceptor uses a fairly primitive technique for when an invalid token is found: it returns the result invalid.token, which can be mapped in your action configuration”。它的大概意思就是：提交时服务器如果根据token标签产生的sessionId判断出表单已提交，它则返回invalid.token指向的视图。比如这里，如果重复提交则会转到.../subError.jsp中去。另不要忘记了引入默认的拦截器栈。补充：关于token拦截器更多细节可以访问org.apache.struts2.interceptor.TokenInterceptor类的api说明。<br/>
+步骤四，编写配置中所用到jsp页面，这些页面编写简单，在此省去。<br/>
+步骤五、发布测试，请注意访问login.jsp页面时，查看源文件时会发现增加了两个隐藏域信息。<br/>
+步骤六、更换拦截器：我们还可以使用tokenSession拦截器，它的功能比上面的增强，它能保证持有相同sessionId的并发请求等待第一个完成之后才能被提交处理，但是它返回的是action执行后的result.接着上例，我们只需要在配置中作如下修改：把上面的token拦截器改成&lt;interceptor-ref name=&quot;tokenSession&quot;&gt;&lt;/interceptor-ref&gt; 即可。随后便可以测试，测试时会发现如果我们重复提交，它总是返回到上一次的success.jsp页面，但是它并不是经过LoginAction中的execute处理后返回(我们System.out.print语句在重复提交时并未打印出来)，而是此拦截器判断出是重复后直接返回上一次提交转向的页面。<br/>
+6.使用拦截器实现权限验证<br/>
+为了说明此问题，我们建立struts2auth项目，流程图如下：<br/><br/>
+简短说明：当我们访问main.jsp页面，并试图通过此页面中的链接地址：note.action来访问到.../WEB-INF/note.jsp页面时，由于访问的note.action配置了拦截器，所以会被拦截，如果拦截器判断登录则可以访问，否则会跳到登录页面。如果我们从登录页面直接到main.jsp页面，再来访问note.action时，同样被拦截但是由于登录过，所以可以访问到此action对应的内容。由这里的分析可以看出关键点就登录成功时给出标志提供给拦截器判断是否成功登录。<br/>
+步骤一，搭建好相关的开发环境，并准备好登录页面login.jsp，代码如下：<br/>
+&lt;form action=&quot;&lt;%=request.getContextPath()%&gt;/login.action&quot; method=&quot;post&quot;&gt;<br/>
+          姓名:&lt;input type=&quot;text&quot; name=&quot;username&quot;&gt;&lt;br&gt;<br/>
+          密码:&lt;input type=&quot;password&quot; name=&quot;password&quot;&gt;&lt;br&gt;<br/>
+          &lt;input type=&quot;submit&quot; value=&quot;登录&quot;&gt;<br/>
+&lt;/form&gt;<br/>
+步骤二，建立相应的Action:LoginAction。代码如下：<br/>
+package com.asm;<br/>
+public class LoginAction extends ActionSupport {<br/>
+     private String username;<br/>
+     Map session;<br/>
+     public String execute() throws Exception {<br/>
+          if(username.equals(&quot;admin&quot;)){<br/>
+               session = ActionContext.getContext().getSession();<br/>
+               session.put(&quot;loginSign&quot;, &quot;loginSuccess&quot;);<br/>
+               return SUCCESS;<br/>
+          }else{<br/>
+               return LOGIN;<br/>
+          }<br/>
+}<br/>
+...省略username的get/set方法<br/>
+}<br/>
+说明：我们这里是设定了只有登录用户名为admin时，此Action才设置登录标志。另这里获取Session对象采取的是“与Servlet解耦合的非IOC方式”。<br/>
+步骤三，编写拦截器类，代码如下：<br/>
+package com.asm.interceptor;<br/>
+public class AuthInterceptor extends AbstractInterceptor {<br/>
+     public String intercept(ActionInvocation invocation) throws Exception {<br/>
+          Map session = invocation.getInvocationContext().getSession();<br/>
+          // session=ActionContext.getContext().getSession();<br/>
+          if (session.get(&quot;loginSign&quot;) == null) {<br/>
+               return &quot;login&quot;;<br/>
+          } else {<br/>
+               String result = invocation.invoke();<br/>
+               return result;<br/>
+          }<br/>
+     }<br/>
+}<br/>
+步骤四，配置此Action相关，主要配置内容如下：<br/>
+&lt;struts&gt;<br/>
+     &lt;package name=&quot;tokenTest&quot; extends=&quot;struts-default&quot;&gt;<br/>
+          &lt;interceptors&gt;<br/>
+               &lt;interceptor name=&quot;auth&quot;<br/>
+                    class=&quot;com.asm.interceptor.AuthInterceptor&quot;&gt;<br/>
+               &lt;/interceptor&gt;<br/>
+               &lt;interceptor-stack name=&quot;authStack&quot;&gt;<br/>
+                    &lt;interceptor-ref name=&quot;auth&quot;&gt;&lt;/interceptor-ref&gt;<br/>
+                    &lt;interceptor-ref name=&quot;defaultStack&quot;&gt;&lt;/interceptor-ref&gt;<br/>
+               &lt;/interceptor-stack&gt;<br/>
+          &lt;/interceptors&gt;<br/>
+          &lt;action name=&quot;login&quot; class=&quot;com.asm.LoginAction&quot;&gt;<br/>
+               &lt;result name=&quot;success&quot;&gt;/main.jsp&lt;/result&gt;<br/>
+               &lt;result name=&quot;login&quot;&gt;/login.jsp&lt;/result&gt;<br/>
+          &lt;/action&gt;<br/><br/>
+          &lt;action name=&quot;note&quot;&gt;<br/>
+               &lt;result&gt;/WEB-INF/note.jsp&lt;/result&gt;<br/>
+               &lt;result name=&quot;login&quot;&gt;/login.jsp&lt;/result&gt;<br/>
+               &lt;interceptor-ref name=&quot;authStack&quot;&gt;&lt;/interceptor-ref&gt;<br/>
+          &lt;/action&gt;<br/>
+     &lt;/package&gt;<br/>
+&lt;/struts&gt;<br/>
+说明：结合前面的一些代码来看，当我们为note.action配置了前面写所的AuthInterceptor拦截器时，如果我们要访问note.action，拦截器会首先判断是否登录，如果登录则继续把请求传递下去，如果没有登录则会返回到登录页面。<br/>
+步骤五、编写相关的其它jsp页面，然后发布测试。此实例应重点是进一步掌握拦截器的配置使用。作为“实现资源权限访问”，此实例不具参考价值。<br/>
+7.拦截器中的注解<br/>
+AnnotationWorkflowInterceptor：Invokes any annotated methods on the action。意思是此拦截器可以调用在Action中任何有注解的方法。下面我们来演示它的使用，具体步骤如下：<br/>
+步骤一，建立struts2annotationInt项目，并建立LoginAction类，代码如下：<br/>
+package com.asm;<br/>
+...省略导入的包<br/>
+public class LoginAction extends ActionSupport {<br/>
+     private String username;<br/>
+     @Before<br/>
+     public String myBefore() {<br/>
+          System.out.println(&quot;调用myBefore方法&quot;);<br/>
+          return LOGIN;<br/>
+     }<br/>
+     @After<br/>
+     public void myAfter() throws InterruptedException {<br/>
+          Thread.sleep(5000);<br/>
+          System.out.println(&quot;----调用myAfter方法&quot;);<br/>
+     }<br/>
+     @BeforeResult<br/>
+     public void myBeforeResult() {<br/>
+          System.out.println(&quot;----调用myBeforeResult方法&quot;);<br/>
+     }<br/>
+     public String execute() throws Exception {<br/>
+          System.out.println(&quot;调用execute方法&quot;);<br/>
+          return SUCCESS;<br/>
+     }<br/>
+     public String getUsername() {<br/>
+          return username;<br/>
+     }<br/>
+     public void setUsername(String username) {<br/>
+          System.out.println(&quot;---调用set方法&quot; + username);<br/>
+          this.username = username;<br/>
+     }<br/>
+}<br/>
+说明：要想使用方法成为被拦截器监视的注解方法，只需在方法关加上@...这样的形式并导入相关的类即可。<br/>
+步骤二，编写相关的jsp及配置该Action，主要配置内容如下：<br/>
+&lt;struts&gt;<br/>
+     &lt;package name=&quot;ano&quot; extends=&quot;struts-default&quot;&gt;<br/>
+          &lt;interceptors&gt;<br/>
+               &lt;interceptor name=&quot;anno&quot;                    class=&quot;com.opensymphony.xwork2.interceptor.annotations.AnnotationWorkflowInterceptor&quot;&gt;<br/>
+               &lt;/interceptor&gt;<br/>
+               &lt;interceptor-stack name=&quot;annoStack&quot;&gt;<br/>
+                    &lt;interceptor-ref name=&quot;anno&quot;&gt;&lt;/interceptor-ref&gt;<br/>
+                    &lt;interceptor-ref name=&quot;defaultStack&quot;&gt;&lt;/interceptor-ref&gt;<br/>
+               &lt;/interceptor-stack&gt;<br/>
+          &lt;/interceptors&gt;<br/>
+          &lt;action name=&quot;login&quot; class=&quot;com.asm.LoginAction&quot;&gt;<br/>
+               &lt;result name=&quot;success&quot;&gt;/success.jsp&lt;/result&gt;<br/>
+               &lt;result name=&quot;login&quot;&gt;/login.jsp&lt;/result&gt;<br/>
+               &lt;interceptor-ref name=&quot;annoStack&quot;&gt;&lt;/interceptor-ref&gt;<br/>
+          &lt;/action&gt;<br/>
+     &lt;/package&gt;<br/>
+&lt;/struts&gt;<br/>
+结合配置说明：当我们为LoginAction配置了AnnotationWorkflowInterceptor拦截器时，LoginAction中的所有注解方法才真正生效。下面重点是来讨论这些方法的执行顺序及作用。<br/>
+加@Before注解的方法：will be invoked before the action method. If the returned value is not null, it is returned as the action result code。意思是在action的execute方法执行之前被调用，但是此方法如果返回不为空的话，它的返回结果将是真正的返回结果，比如这里我们return LOGIN，这样无论以什么用户名登录，它总会返回到login result(这里为login.jsp页面) 。但是从执前结果来看，在返回前仍执行了标记为@BeforeResult的方法：will be invoked after the action method but before the result execution。意思是在返回结果集前调用此方法。下面我们把public String myBefore()方法中的return LOGIN注释掉，并让修改此方法的返回类型为void。随后登录测试（注意要重新部署当前项目），可以发现执行结果如下：<br/>
+调用myBefore方法<br/>
+---调用set方法<br/>
+调用execute方法<br/>
+----调用myBeforeResult方法<br/>
+----调用myAfter方法<br/>
+从执行的顺序来看，标记为@After的方法最后执行，并且可以发现：它会延时5秒执行，但是在延时执行时，浏览器并没有成功跳到success.jsp页面，而是在5秒后，控制台打印出myArter方法中的内容同步跳转到success.jsp页面。@After ：will be invoked after the action method and result execution。意为在execute方法执行并且返回结果后此方法被调用。但是从测试来看，标记为@After的方法是会影响到结果的返回（延时返回）。 强调：注意方法的执行顺序，相关的内容可以参看AnnotationWorkflowInterceptor类的api文档。<br/>
+8.使用PreResultListener实现回调<br/>
+在进行本实例前请前复习：五.2自定义拦截器。因为PreResultListener对象一般是绑定在拦截器上使用。<br/>
+下面我们新建struts2PreResultListener项目进行测试。<br/>
+步骤一，建立类，实现PreResultListener接口，主要代码如下：<br/>
+package com.asm;<br/>
+import com.opensymphony.xwork2.ActionInvocation;<br/>
+import com.opensymphony.xwork2.interceptor.PreResultListener;<br/>
+public class MyPreResultListener implements PreResultListener {<br/>
+     public void beforeResult(ActionInvocation invocation, String res) {<br/>
+          // System.out.println(invocation.getAction());<br/>
+          // System.out.println(invocation.getResultCode());<br/>
+          /**回调Action中的方法：<br/>
+          * LoginAction lg = (LoginAction) invocation.getAction(); try {<br/>
+          * lg.execute(); } catch (Exception e) { e.printStackTrace(); }<br/>
+          */<br/>
+          System.out.println(&quot;检验到PreResultListener被执行&quot;);<br/>
+     }<br/>
+}<br/>
+步骤二，copy前面在自定义拦截器中用到的三个拦截器，并绑定MyPreResultListener对象，首先是在MyInterceptor类中，我们只需要修改intercept方法即可，代码如下：<br/>
+public String intercept(ActionInvocation invocation) throws Exception {<br/>
+          invocation.addPreResultListener(new MyPreResultListener());<br/>
+          System.out.println(&quot;开始拦截&quot;);<br/>
+          String result = invocation.invoke();<br/>
+          System.out.println(&quot;结束拦截&quot;);<br/>
+          return result;<br/>
+}<br/>
+随后在MyMethodFilterInterceptor类中作类似修改。为了区别，我们在MyAbstractInterceptor类中不绑定MyPreResultListener对象。<br/>
+步骤三，编写struts.xml文件，主要配置内容如下：<br/>
+&lt;struts&gt;<br/>
+     &lt;package name=&quot;interceptor&quot; extends=&quot;struts-default&quot;&gt;<br/>
+          &lt;interceptors&gt;<br/>
+               &lt;interceptor name=&quot;myIpt&quot; class=&quot;com.asm.MyInterceptor&quot;&gt;<br/>
+               &lt;/interceptor&gt;<br/>
+               &lt;interceptor name=&quot;myAbs&quot;<br/>
+                    class=&quot;com.asm.MyAbstractInterceptor&quot;&gt;<br/>
+               &lt;/interceptor&gt;<br/>
+               &lt;interceptor name=&quot;myMet&quot;<br/>
+                    class=&quot;com.asm.MyMethodFilterInterceptor&quot;&gt;<br/>
+               &lt;/interceptor&gt;<br/>
+          &lt;/interceptors&gt;<br/><br/>
+          &lt;action name=&quot;login&quot; class=&quot;com.asm.LoginAction&quot;&gt;<br/>
+               &lt;interceptor-ref name=&quot;myIpt&quot;&gt;&lt;/interceptor-ref&gt;<br/>
+               &lt;interceptor-ref name=&quot;myAbs&quot;&gt;&lt;/interceptor-ref&gt;<br/>
+               &lt;interceptor-ref name=&quot;myMet&quot;&gt;&lt;/interceptor-ref&gt;<br/>
+               &lt;result name=&quot;success&quot;&gt;/success.jsp&lt;/result&gt;<br/>
+          &lt;/action&gt;                   <br/>
+     &lt;/package&gt;<br/>
+&lt;/struts&gt;<br/>
+步骤四，编写相应的jsp页面，发布测试。<br/>
+说明：此实例的只是简要地演示了PreResultListener的使用，所以相对简单。对于其它相关操作，我们可以从MyPreResultListener类注释掉的内容中找到一此端倪。强调：从执行结果来看，PreResultListener对象会在返回结果前执行，请注意结合拦截器执行的顺序来看。此实例目前作为了解。<br/><br/>
+六、使用标签<br/>
+1.基础表单标签<br/>
+准备工作：建立struts2tag项目，搭建好struts2的开发环境。在html我们常用的基础表单标签主要有文本域、密码域、提交、重置四种。它们在strust2中可以通过标签来生成。下面建立login.jsp页面，与这四种标签相关的内容如下：<br/>
+&lt;%@ page language=&quot;java&quot;  pageEncoding=&quot;utf-8&quot;%&gt;<br/>
+&lt;%@ taglib uri=&quot;/struts-tags&quot; prefix=&quot;s&quot; %&gt;<br/>
+&lt;html&gt;<br/>
+  &lt;body&gt;<br/>
+     &lt;s:form action=&quot;login&quot; method=&quot;post&quot; namespace=&quot;/my&quot;&gt;<br/>
+          &lt;s:textfield label=&quot;用户名&quot; name=&quot;user.username&quot; required=&quot;true&quot; requiredposition=&quot;right&quot;/&gt;<br/>
+&lt;s:password label=&quot;密码&quot; name=&quot;user.password&quot; required=&quot;true&quot; /&gt;    <br/>
+&lt;s:reset value=&quot;重置&quot; align=&quot;left&quot;/&gt;<br/>
+&lt;s:submit value=&quot;注册&quot; align=&quot;left&quot;/&gt;<br/>
+     &lt;/s:form&gt;<br/>
+  &lt;/body&gt;<br/>
+&lt;/html&gt;<br/>
+说明：label中的内容是显示在表单前的提示内容，required设为true,表示此表单项为必填内容。<br/>
+2.单选按钮和复选框：<br/>
+&lt;s:radio list=&quot;#{1:'男',0:'女'}&quot;  value=&quot;1&quot;  label=&quot;性别&quot; name=&quot;user.sex&quot;/&gt;<br/>
+&lt;s:checkboxlist list=&quot;#{1:'足球',2:'排球',3:'蓝球',4:'网球'}&quot; name=&quot;user.love&quot; label=&quot;爱好&quot;/&gt;<br/>
+3.三种方式实现下拉列表<br/>
+&lt;s:bean id=&quot;p&quot; name=&quot;com.asm.NativePlaceFormAction&quot;&gt;&lt;/s:bean&gt;<br/>
+&lt;s:bean name=&quot;com.asm.NativePlaceMapFormAction&quot; id=&quot;pMap&quot;&gt;&lt;/s:bean&gt;<br/>
+&lt;s:bean name=&quot;com.asm.NativePlaceProFormAction&quot; id=&quot;pp&quot;&gt;&lt;/s:bean&gt;<br/><br/>
+&lt;s:select list=&quot;#p.place&quot; label=&quot;籍贯&quot; name=&quot;user.place&quot;/&gt;<br/>
+&lt;s:select list=&quot;#pMap.place&quot; label=&quot;籍贯2&quot; name=&quot;user.place&quot;/&gt;<br/>
+&lt;s:select list=&quot;#pp.place&quot; listKey=&quot;pId&quot; listValue=&quot;pName&quot; label=&quot;籍贯3&quot; name=&quot;user.place&quot; headerKey=&quot;-1&quot; headerValue=&quot;---省---&quot; emptyOption=&quot;true&quot;/&gt;<br/>
+说明：三种方式实现下拉列表分别对应了三个java类，这三个类的内容为：<br/>
+NativePlaceFormAction主要代码为：<br/>
+package com.asm;<br/>
+public class NativePlaceFormAction extends ActionSupport {<br/>
+     private List&lt;String&gt; place;    <br/>
+     public NativePlaceFormAction(){<br/>
+          place=new ArrayList&lt;String&gt;();<br/>
+          place.add(&quot;山东省&quot;);<br/>
+          place.add(&quot;山西省&quot;);<br/>
+          place.add(&quot;河南省&quot;);<br/>
+          place.add(&quot;河北省&quot;);<br/>
+          place.add(&quot;四川省&quot;);<br/>
+          place.add(&quot;云南省&quot;);<br/>
+     }<br/>
+     ...省略place的get/set方法<br/>
+}<br/>
+NativePlaceMapFormAction主要代码为：<br/>
+package com.asm;<br/>
+public class NativePlaceMapFormAction extends ActionSupport {<br/>
+     private Map&lt;Integer, String&gt; place;<br/><br/>
+     public NativePlaceMapFormAction() {<br/>
+          place = new HashMap&lt;Integer, String&gt;();<br/>
+          place.put(1, &quot;山东省&quot;);<br/>
+          place.put(2, &quot;山西省&quot;);<br/>
+          place.put(3, &quot;河南省&quot;);<br/>
+          place.put(4, &quot;河北省&quot;);<br/>
+          place.put(5, &quot;四川省&quot;);<br/>
+          place.put(6, &quot;云南省&quot;);<br/>
+     }<br/>
+     ...省略place的get/set方法<br/>
+}<br/>
+NativePlaceProFormAction主要代码为：<br/>
+package com.asm;<br/>
+public class NativePlaceProFormAction extends ActionSupport {<br/>
+private List&lt;Object&gt; place;    <br/>
+     public NativePlaceProFormAction(){<br/>
+          place=new ArrayList&lt;Object&gt;();<br/>
+          new Province(1,&quot;山东省&quot;,&quot;济南&quot;);<br/>
+          place.add(new Province(1,&quot;山东省&quot;,&quot;济南&quot;));<br/>
+          place.add(new Province(2,&quot;山西省&quot;,&quot;太原&quot;));<br/>
+          place.add(new Province(3,&quot;河南省&quot;,&quot;郑洲&quot;));<br/>
+          place.add(new Province(4,&quot;河北&quot;,&quot;石家庄&quot;));<br/>
+          place.add(new Province(5,&quot;四川&quot;,&quot;成都&quot;));<br/>
+          place.add(new Province(6,&quot;云南&quot;,&quot;昆明&quot;));<br/>
+     }<br/>
+     ...省略place的get/set方法<br/>
+}<br/>
+说明：此三种实现效果一样，但是在它们提交时传递给服务器的参数不同，具体可以参看login.jsp页面的源码。另外，这三种实现其实都依赖了&lt;s:bean&gt;设定的对象，如果我们不希望依赖&lt;s:bean&gt;来设定，可以通过配置action来实现：下面我们以NativePlaceFormAction说明：首先在struts.xml中配置此action，配置内容如下：<br/>
+&lt;action name=&quot;npf&quot; class=&quot;com.asm.NativePlaceFormAction&quot;&gt;<br/>
+               &lt;result&gt;/login2.jsp&lt;/result&gt;<br/>
+&lt;/action&gt;<br/>
+随后，我们在login.jsp中增加如下内容：<br/>
+     &lt;a href=&quot;&lt;%=request.getContextPath()%&gt;/my/npf.action&quot;&gt;另一个注册页面&lt;/a&gt;<br/>
+其中login2.jsp中的关键内容为：<br/>
+          &lt;s:select list=&quot;place&quot; label=&quot;籍贯&quot; name=&quot;user.place&quot;/&gt;<br/>
+我们可以发现：在login2.jsp中填写list的值时并没有用ognl表达式，因为我们通过npf.action来访问时,此Action已经被写入到了值栈中，所以我们可以直接引用。 后面所用到的实例，我们都会把这样的类做成Action，这样如果我们想通过这种方式访问便只需要在struts.xml中配置即可<br/>
+4.二级联动<br/>
+&lt;s:bean name=&quot;com.asm.TwoSelectAction&quot; id=&quot;ts&quot;&gt;&lt;/s:bean&gt;<br/>
+&lt;s:doubleselect<br/>
+                    list=&quot;#ts.place&quot;                   <br/>
+     listKey=&quot;pId&quot; listValue=&quot;pName&quot;<br/>
+name=&quot;user.place&quot;<br/>
+                   <br/>
+                    doubleList=&quot;#ts.citys[top]&quot;<br/>
+                    doubleListKey=&quot;cId&quot;     doubleListValue=&quot;cName&quot;<br/>
+                    doubleName=&quot;user.city&quot;<br/>
+                    label=&quot;籍贯4(二级联动)&quot;&gt;<br/>
+&lt;/s:doubleselect&gt;<br/>
+它所依赖的TwoSelectAction类的主要代码如下：<br/>
+package com.asm;<br/>
+public class TwoSelectAction extends ActionSupport {<br/>
+     private List&lt;Province&gt; place;<br/>
+     private Map&lt;Province,List&lt;City&gt;&gt; citys;<br/>
+     ...省略place 、citys中get/set方法<br/>
+     public TwoSelectAction(){<br/>
+          place= new ArrayList&lt;Province&gt;();<br/>
+          citys=new HashMap&lt;Province,List&lt;City&gt;&gt; ();<br/>
+         <br/>
+          Province p1=new Province(1,&quot;山东省&quot;,&quot;济南&quot;);<br/>
+          Province p2=new Province(2,&quot;山西省&quot;,&quot;太原&quot;);<br/>
+          Province p3=new Province(3,&quot;河南省&quot;,&quot;郑洲&quot;);<br/>
+          Province p4=new Province(4,&quot;河北&quot;,&quot;石家庄&quot;);<br/>
+          Province p5=new Province(5,&quot;四川&quot;,&quot;成都&quot;);<br/>
+          Province p6=new Province(6,&quot;云南&quot;,&quot;昆明&quot;);<br/>
+          place.add(p1);<br/>
+          place.add(p2);<br/>
+          place.add(p3);<br/>
+          place.add(p4);<br/>
+          place.add(p5);<br/>
+          place.add(p6);<br/>
+         <br/>
+          //山东省的市：<br/>
+          City c1=new City(1,&quot;济南&quot;);<br/>
+          City c2=new City(2,&quot;招远市&quot;);<br/>
+          City c3=new City(2,&quot;寿光市&quot;);<br/>
+          List p1City=new ArrayList();<br/>
+          p1City.add(c1);<br/>
+          p1City.add(c2);<br/>
+          p1City.add(c3);<br/>
+         <br/>
+          //山西省的市：<br/>
+          City c4=new City(4,&quot;太原市&quot;);<br/>
+          City c5=new City(5,&quot;大同市&quot;);<br/>
+          City c6=new City(6,&quot;晋中市&quot;);<br/>
+          List p2City=new ArrayList();<br/>
+          p2City.add(c4);<br/>
+          p2City.add(c5);<br/>
+          p2City.add(c6);<br/>
+         <br/>
+          //河南省的市：<br/>
+          City c7=new City(7,&quot;郑州市&quot;);<br/>
+          City c8=new City(8,&quot;卫辉市&quot;);<br/>
+          City c9=new City(8,&quot;信阳市&quot;);<br/>
+          List p3City=new ArrayList();<br/>
+          p3City.add(c7);<br/>
+          p3City.add(c8);<br/>
+          p3City.add(c9);<br/>
+         <br/>
+          //河北省的市：<br/>
+          City c10=new City(10,&quot;石家庄&quot;);<br/>
+          City c11=new City(11,&quot;晋州市&quot;);<br/>
+          City c12=new City(12,&quot;鹿泉市&quot;);<br/>
+          List p4City=new ArrayList();<br/>
+          p4City.add(c10);<br/>
+          p4City.add(c11);<br/>
+          p4City.add(c12);<br/>
+         <br/>
+         <br/>
+          //四川省的市：<br/>
+          City c13=new City(13,&quot;成都&quot;);<br/>
+          City c14=new City(14,&quot;南充&quot;);<br/>
+          City c15=new City(15,&quot;绵阳&quot;);<br/>
+          List p5City=new ArrayList();<br/>
+          p5City.add(c13);<br/>
+          p5City.add(c14);<br/>
+          p5City.add(c15);<br/>
+         <br/>
+          //云南省的市：<br/>
+          City c16=new City(16,&quot;昆明市&quot;);<br/>
+          City c17=new City(17,&quot;安宁市&quot;);<br/>
+          City c18=new City(18,&quot;曲靖市&quot;);<br/>
+          List p6City=new ArrayList();<br/>
+          p6City.add(c16);<br/>
+          p6City.add(c17);<br/>
+          p6City.add(c18);<br/>
+         <br/>
+          citys.put(p1,p1City );<br/>
+          citys.put(p2,p2City );<br/>
+          citys.put(p3,p3City );<br/>
+          citys.put(p4,p4City );<br/>
+          citys.put(p5,p5City );<br/>
+          citys.put(p6,p6City );<br/>
+     }<br/>
+}<br/>
+简要分析：此实例有些繁琐，主要思想：我们的place对象主要为一级列表服务，只要理解了前面的下拉列表，这里不难理解一级列表。而二级列表中我们使用#ts.citys[top]取出的一个List对象，这样也正是下拉列表所要求的对象类型（List,Map），而top是非常关键的，它明确指出我们取出的是栈顶的对象，这样就能根据一级列表的值来动态生成这个List对象。<br/>
+5.其它表单标签<br/>
+&lt;s:select name=&quot;singer&quot;  list=&quot;{}&quot; label=&quot;歌星&quot; headerKey=&quot;0&quot; headerValue=&quot;--歌手名单--&quot; emptyOption=&quot;true&quot;&gt;<br/>
+               &lt;s:optgroup list=&quot;#{1:'任贤齐',2:'刘德华',3:'周杰伦'}&quot; label=&quot;男歌手&quot;/&gt;<br/>
+               &lt;s:optgroup list=&quot;#{1:'萧亚轩',2:'蔡依林',3:'she'}&quot; label=&quot;女歌手&quot;/&gt;<br/>
+&lt;/s:select&gt;<br/>
+         <br/>
+&lt;s:combobox label=&quot;来源调查&quot; list=&quot;{'朋友介绍','电视广告','网络广告'}&quot; name=&quot;from&quot; /&gt;<br/>
+         <br/>
+          &lt;s:updownselect<br/>
+                    list=&quot;{'java','C#','VC','php','vb','vc','python'}&quot;<br/>
+                    moveDownLabel=&quot;下移一位&quot;<br/>
+                    moveUpLabel=&quot;上移一位&quot;<br/>
+                    selectAllLabel=&quot;全部选中&quot;<br/>
+                    label=&quot;您常用编程语言排名&quot;<br/>
+                    /&gt;<br/>
+         <br/>
+          &lt;s:optiontransferselect<br/>
+                    leftTitle=&quot;选择喜欢做的事：&quot;<br/>
+                    list=&quot;{'听歌','看电影','编程','玩游戏','chat'}&quot;<br/>
+                    name=&quot;love&quot;<br/>
+                    headerKey=&quot;0&quot;<br/>
+                    headerValue=&quot;喜欢做的事&quot;<br/>
+                    emptyOption=&quot;true&quot;<br/>
+                   <br/>
+                    rightTitle=&quot;选择讨厌做的事：&quot;<br/>
+                    doubleList=&quot;{'跳舞','唱歌','打篮球','旅游','shopping'}&quot;<br/>
+                    doubleName=&quot;hate&quot;<br/>
+                    doubleHeaderKey=&quot;0&quot;<br/>
+                    doubleHeaderValue=&quot;不喜欢的事&quot;<br/>
+                    doubleEmptyOption=&quot;true&quot;<br/>
+                   <br/>
+                    label=&quot;个人兴趣说明&quot;<br/>
+                   <br/>
+                    leftUpLabel=&quot;上移&quot;<br/>
+                    leftDownLabel=&quot;下移&quot;<br/>
+                    rightUpLabel=&quot;上移&quot;<br/>
+                    rightDownLabel=&quot;下移&quot;<br/>
+                    addToLeftLabel=&quot;＜—添加&quot;<br/>
+                    addToRightLabel=&quot;添加—＞&quot;<br/>
+                    addAllToLeftLabel=&quot;＜—添加(All)&quot;<br/>
+                    addAllToRightLabel=&quot;添加(All)—＞&quot;<br/>
+                    selectAllLabel=&quot;全选&quot;<br/>
+                    /&gt;<br/>
+&lt;s:checkbox label=&quot;接受服务条款&quot; value=&quot;false&quot; name=&quot;user.accept&quot;/&gt;<br/>
+有了前面的标签学习，这些标签很容易理解，只需结合显示效果和查看源码来加深它们的理解。但是特别要注意的是&lt;s:checkbox&gt;标签与&lt;/s:checkboxlist&gt;的区别。<br/>
+补充：使用struts2生成的表单标签会在标签内嵌套一些特殊的格式，在使用了struts2生成的标签所在网页内查看源代码可以发现多了一些如&lt;tr&gt;&lt;td&gt;这样的格式化代码。如果不想struts2增加这些多余的格式化代码，可以在struts.xml中配置如下内容：<br/>
+&lt;!-- struts2生成的表单标签使用默认的主题，即不附加格式化标签 --&gt;<br/>
+&lt;constant name=&quot;struts.ui.theme&quot; value=&quot;simple&quot;/&gt;<br/>
+6.其它常用标签的使用（代码参名为“补充”的文件夹下的tag.jsp）<br/>
+（1）&lt;s:set&gt;标签<br/>
+此标签主要用于设置一些属性值。<br/>
+Scope：指定变量被设置的范围，该属性可以接受application、session、request、page或Action。如果没有设置该属性，则默认放置在OGNL Context中，我们可以通过#号来引用。<br/>
+Value：赋给变量的值，如果没有设置该属性，则将ValueStack栈顶的值赋给变量。<br/>
+Id/name/var：属性的引用名称，id/name均过时，建议用var来取代他们。<br/>
+（2）&lt;s:property&gt;<br/>
+Default：可选属性，如果需要输出的属性值为null，则显示属性指定的值<br/>
+Escape：可选属性，指定是否格式化html代码。<br/>
+Value：可选属性，指定需要输出的属性值，如果没有指定该属性，则默认输出ValueStack栈顶的值<br/>
+Id：可选属性，指定该元素的标识<br/>
+(3)&lt;s:Iterator&gt;<br/>
+Value：可选属性，指定迭代的集合，如果没有指定该属性，则使用ValueStack栈顶的集合<br/>
+Id：可选属性，指定集合里元素的id（已被标记为过时）<br/>
+Status：可选属性，该属性指定迭代时当前迭代对象的一个实例，并把此实例放在ognl的上下文中，我们可以通过#号来引用这个实例。该实例包含如下几下方法：<br/>
+Int  getCount：返回当前迭代了几个元素。<br/>
+Int  getIndex：返回当前被迭代的元素的索引<br/>
+Boolean  isEven：返回当前被迭代的元素的索引是否是偶数<br/>
+Boolean  isOdd：返回当前被迭代的元素的索引是否是奇数<br/>
+Boolean  isFirst：返回当前被迭代的元素是否是第一个元素<br/>
+Boolean  isLast：返回当前被迭代的元素是否是最后一个元素<br/>
+说明：因为iterator会把每次迭代的实例放在值栈的栈顶，而&lt;s:property&gt;默认访问的是值栈的栈顶元素。所以如下代码可行：<br/>
+&lt;s:set var=&quot;list&quot; value=&quot;{'第一个','第二个','第三个'}&quot;/&gt;<br/>
+&lt;!-- iterator迭代的特点：会把迭代的对象放到值栈的栈顶 --&gt;<br/>
+&lt;s:iterator value=&quot;#list&quot;&gt;<br/>
+     &lt;s:property/&gt;<br/>
+&lt;/s:iterator&gt;<br/>
+如果想用status来实现一些功能，可参下面的代码：<br/>
+&lt;br/&gt;-------------------奇数红色，偶数蓝色---------------&lt;br/&gt;<br/>
+&lt;s:iterator value=&quot;#list&quot; status=&quot;i&quot;&gt;<br/>
+     &lt;font color='&lt;s:if test=&quot;#i.even&quot;&gt;blue&lt;/s:if&gt;&lt;s:else&gt;red&lt;/s:else&gt;' &gt;<br/>
+     &lt;s:property/&gt;<br/>
+     &lt;/font&gt;&lt;br/&gt;<br/>
+&lt;/s:iterator&gt;<br/>
+（4）url标签<br/>
+     &lt;br/&gt;&lt;br/&gt;-----------使用url---------------&lt;br/&gt;<br/>
+     &lt;s:set var=&quot;age&quot; value=&quot;25&quot; scope=&quot;request&quot;/&gt;<br/>
+     &lt;s:url action=&quot;asm&quot; namespace=&quot;/&quot; &gt;<br/>
+          &lt;s:param name=&quot;age&quot; value=&quot;#request.age&quot;&gt;&lt;/s:param&gt;<br/>
+     &lt;/s:url&gt;    <br/>
+说明：它会根据action及namespace并附加上下文路径构建一个链接。<br/>
+&lt;br/&gt;&lt;!-- value的值中一定要用单引号引起，这样才表示它的值是一个字串 --&gt;<br/>
+     &lt;s:set var=&quot;bdUrl&quot; value=&quot;'http://www.baidu.com'&quot; /&gt;<br/>
+     &lt;s:url value=&quot;#bdUrl&quot; /&gt; &lt;br/&gt;<br/>
+     &lt;s:url value=&quot;%{#bdUrl}&quot; /&gt; <br/>
+说明：由于url标签的value属性默认不支持ognl，所以我们要使用%{}来表示{}中的#bdUrl是一个ognl表达式。<br/>
+七、国际化<br/>
+尽管国际化不是重点内容，但是也有必要了解它的使用。在struts2中国际化有三种级别：分别是针对某个Action的action级别，针对package的package级别，针对webapp的webapp级别。下面我们建立struts2i18n项目来演示国际化在struts2中的使用。<br/>
+1.action级别下的国际化<br/>
+步骤一、首先是建立login.jsp及LoginAction，由于它们经常使用，在此省去它们的代码。<br/>
+步骤二、建立资源文件，由于LoginAction在com.asm包中，所以我们应在com.asm包下我们建立两个资源文件：一个是中文LoginAction_zh_CN.properties、一个是英文LoginAction_en_US.properties。注意它们的名字相对固定，前面与Action的名字相同，后面是语言和国家代码。<br/>
+英文资源文件内容如下：<br/>
+login_page=login page<br/>
+login_username=userName<br/>
+login_password=password<br/>
+login_sex=sex<br/>
+login_male=male<br/>
+login_female=female<br/>
+login_submit=login<br/>
+login_reset=reset<br/>
+login_suc=Welcome {0}<br/>
+中文资源文件，需要特别注意：我们应使用Myeclipse自带的MyEclipse properties Editer编辑器来打开此资源文件，并在properties视图下进行编辑，这样它会把中文进行编码（我们切换到source视图下可以看到经编码后的中文）。 这一步非常重要，否则会出现乱码。<br/>
+步骤三，修改login.jsp中的内容：<br/>
+&lt;%@ page language=&quot;java&quot; pageEncoding=&quot;utf-8&quot;%&gt;<br/>
+&lt;%@ taglib uri=&quot;/struts-tags&quot; prefix=&quot;s&quot;%&gt;<br/>
+&lt;html&gt;<br/>
+     &lt;body&gt;<br/>
+     &lt;s:text name=&quot;login_page&quot;/&gt;&lt;br&gt;<br/>
+     &lt;s:label key=&quot;login_username&quot;/&gt;<br/>
+          &lt;s:form action=&quot;/login.action&quot; method=&quot;post&quot;&gt;         <br/>
+          &lt;!--<br/>
+               &lt;s:textfield label=&quot;用户名&quot; name=&quot;username&quot; required=&quot;true&quot; /&gt;<br/>
+          --&gt;<br/>
+          &lt;s:textfield label=&quot;%{getText('login_username')}&quot; name=&quot;username&quot; /&gt;<br/>
+              <br/>
+          &lt;!--<br/>
+               &lt;s:password label=&quot;密码&quot; name=&quot;password&quot; required=&quot;true&quot;/&gt;<br/>
+          --&gt;<br/>
+               &lt;s:password key=&quot;login_password&quot; name=&quot;password&quot; /&gt;<br/>
+              <br/>
+          &lt;!--<br/>
+               &lt;s:radio list=&quot;#{1:'男',2:'女'}&quot; value=&quot;1&quot; label=&quot;性别&quot; name=&quot;sex&quot; /&gt;<br/>
+          --&gt;<br/>
+          &lt;s:radio list=&quot;#{1:getText('login_male'),2:getText('login_female')}&quot; value=&quot;1&quot; label=&quot;%{getText('login_sex')}&quot; name=&quot;sex&quot; /&gt;<br/>
+          &lt;s:submit  key=&quot;login_submit&quot; /&gt; &lt;s:reset key=&quot;login_reset&quot;/&gt;<br/>
+          &lt;/s:form&gt;<br/>
+     &lt;/body&gt;<br/>
+&lt;/html&gt;<br/>
+说明：对资源文件的引用，我们采取了两种方式：有的是通过在label中使用%{getText('资源文件中的key')}这样的形式，有的是通过key=资源文件中的key这种形式。需要注意在radio标签中list对资源文件的引用。另外需要注意：    <br/>
+&lt;s:text name=&quot;login_page&quot;/&gt;&lt;br&gt;<br/>
+&lt;s:label key=&quot;login_username&quot;/&gt;<br/>
+它们的区别：前面是纯文本，后者是一个块。我们可以通过查看login.jsp的源码来证明。<br/>
+步骤四、当我们直接访问login.jsp时会报错，因为在login.jsp中用到了资源文件，而资源文件又依赖于LoginAction，所以我们只能通过此Action来跳到login.jsp。但是使用包范围、全局范围的资源文件时，可以直接访问login.jsp文件实现国际化。操作步骤如下：<br/>
+首先在LoginAction中增加一个方法：<br/>
+     public String doGoLogin() {<br/>
+          return LOGIN;<br/>
+     }<br/>
+随后再在struts.xml中配置如下内容：<br/>
+&lt;package name=&quot;i18n&quot; extends=&quot;struts-default&quot; namespace=&quot;/&quot;&gt;<br/>
+          &lt;action name=&quot;login&quot; class=&quot;com.asm.LoginAction&quot;&gt;<br/>
+               &lt;result name=&quot;success&quot;&gt;success.jsp&lt;/result&gt;<br/>
+               &lt;result name=&quot;login&quot;&gt;login.jsp&lt;/result&gt;              <br/>
+          &lt;/action&gt;<br/>
+&lt;/package&gt;<br/>
+接着再编写一个link.jsp页面，内容如下：<br/>
+&lt;a href=&quot;&lt;%=request.getContextPath() %&gt;/login!goLogin.action&quot;&gt;登录&lt;/a&gt;<br/>
+直接访问Action中的方法 格式：doX(大写)xxx ---- ActionName!x（小写）xxx.action  注意此方法和前面二.7中相关方法的区别。 我们通过此Action跳转到login.jsp这样便能成功访问到login.jsp页面。<br/>
+步骤五、在success.jsp中使用资源文件,主要内容如下：<br/>
+&lt;s:text name=&quot;login_suc&quot;&gt;<br/>
+               &lt;s:param value=&quot;%{username}&quot;&gt;&lt;/s:param&gt;<br/>
+&lt;/s:text&gt;<br/>
+说明：在前面的资源文件中，我们配置了login_suc=Welcome {0}，其中{0}表示占位参数，这里我们使用&lt;s:param&gt;来给此参数赋值。<br/>
+步骤六、测试：在ie的internet选项中改变语言实现国际化的访问。<br/>
+2.配置package的资源文件<br/>
+同样在建立com.asm包下建立两个资源文件(package级别的资源文件名必须以package开头)：取名为：package_zh_CN.properties，它的内容为：pack=pack属性值 和package_en_US.properties，它的内容为：pack=packageAttributeValue<br/>
+然后再在login.jsp页面中增加如下内容：<br/>
+&lt;h4&gt;测试包资源文件&lt;/h4&gt;<br/>
+&lt;s:text name=&quot;pack&quot;&gt;&lt;/s:text&gt;<br/>
+这样便完成了package级别的资源文件配置，最后发布测试。<br/>
+3.app级别的资源文件<br/>
+在src目录下建立两个资源文件，取名为myapp_en_US.properties，它的内容为：<br/>
+app=appAttributeValue 和myapp_zh_CN.properties，它的内容为：<br/>
+然后还需要在strust.xml中增加如下配置：<br/>
+&lt;constant name=&quot;struts.custom.i18n.resources&quot; value=&quot;myapp&quot;&gt;&lt;/constant&gt;<br/>
+注意：name是固定值，而value来自于这个资源文件的基名。<br/>
+最后在login.jsp中增加如下内容：<br/>
+&lt;h4&gt;测试app级别资源文件&lt;/h4&gt;<br/>
+&lt;s:text name=&quot;app&quot;&gt;&lt;/s:text&gt;<br/>
+这样便完成了app级别的资源文件配置，随后发布测试。<br/>
+说明：action级的资源文件优先级别最高，app最低。Pack级别的资源文件可作用于同一个包，app级别的资源文件可作用于当前项目。<br/>
+补充：在jsp页面中直接访问某个资源文件，struts2为我们提供了i18n标签，使用此标签我们可以在类路径下直接从某个资源文件中获取国际化数据，而无需任何配置：<br/>
+     &lt;s:i18n name=&quot;XXX&quot;&gt; --xxx为类路径下资源文件的基名<br/>
+          &lt;s:text name=&quot;&quot;&gt;<br/>
+               &lt;s:param&gt;&lt;/s:param&gt;<br/>
+          &lt;/s:text&gt;<br/>
+     &lt;/s:i18n&gt;<br/>
+而如果要访问的资源文件在类路径的某个包下（如action或package级别的资源文件），可以这样访问：<br/>
+&lt;s:i18n name=&quot;com/asm/资源文件基名&quot;&gt;--com.asm为包名<br/>
+4.使用资源文件的原理<br/>
+我们建立ReadResourceFileTest类，代码如下：<br/>
+package com.asm;<br/>
+import java.util.Locale;<br/>
+import java.util.ResourceBundle;<br/>
+public class ReadResourceFileTest {<br/>
+     public static void main(String[] args) {<br/>
+          ResourceBundle rb=ResourceBundle.getBundle(&quot;com.asm.LoginAction&quot;, Locale.US);<br/>
+          System.out.println(rb.getString(&quot;login_suc&quot;));<br/>
+     }<br/>
+}<br/>
+补充：在Action类（必须继承自ActionSupport）中获取资源文件的值的方法，可以使用如下代码：<br/>
+String value = this.getText(&quot;资源文件的键名&quot;); <br/>
+//获取资源文件的对应的值。如果想给资源文件中的占位符赋值，可以使用getText的重载方法。<br/>
+ActionContext.getContext().put(&quot;XXX&quot;,value);//存放在request范围，供jsp获取此值<br/>
+5.选择使用资源文件<br/>
+其实在我们成功访问到login.jsp页面后，只要在地址栏中增加参数request_locale=en_US便可以正确切换到登录页面为英文。当然我们可以再链接根据此参数写这个资源文件的链接。当然我们也可借助一个新Action来实现，操作步骤如下：在login.jsp中增加如下代码：<br/>
+&lt;a href=&quot;change.action?request_locale=zh_CN&quot;&gt;<br/>
+          &lt;s:text name=&quot;chinese&quot;&gt;&lt;/s:text&gt;<br/>
+&lt;/a&gt;<br/>
+&lt;a href=&quot;change.action?request_locale=en_US&quot;&gt;<br/>
+          &lt;s:text name=&quot;english&quot;&gt;&lt;/s:text&gt;<br/>
+&lt;/a&gt;<br/>
+change.action对应的配置为：<br/>
+&lt;action name=&quot;change&quot; class=&quot;com.asm.ChangeLangAction&quot;&gt;<br/>
+               &lt;result&gt;/login.jsp&lt;/result&gt;<br/>
+&lt;/action&gt;<br/>
+ChangeLangAction的主要代码如下：<br/>
+package com.asm;<br/>
+public class ChangeLangAction extends ActionSupport {<br/>
+     public String execute() throws Exception {<br/>
+          return SUCCESS;<br/>
+     }<br/>
+}<br/>
+以上是第一种方法，特别要注意，由于使用了不同Action，所以要资源文件这时只有pack级别和app级别的才起作用，所以这时还应把action级别的资源文件内容增加到app级别的资源文件中去。下面使用第二种方法，原理基本和上面一样，只需在此ChangeLangAction中增加一个新的字段String lang及相应的get/set方法，再增加一个新的方法changeLang，代码如下：<br/>
+public String changeLang() throws Exception {<br/>
+          Locale locale = null;<br/>
+          System.out.println(lang);<br/>
+          if (lang.equals(&quot;zh&quot;)) {<br/>
+               // 显示中文<br/>
+               locale = Locale.CHINA;<br/>
+               System.out.println(&quot;======&quot; + lang+locale);<br/>
+          } else {<br/>
+               // 显示英文<br/>
+               locale = Locale.US;<br/>
+          }<br/>
+          ActionContext.getContext().setLocale(locale);                                             ServletActionContext.getRequest().getSession().setAttribute(&quot;WW_TRANS_I18N_LOCALE&quot;, locale);<br/>
+          return SUCCESS;<br/>
+     }<br/>
+配置内容为：<br/>
+     &lt;action name=&quot;cl&quot; class=&quot;com.asm.ChangeLangAction&quot; method=&quot;changeLang&quot;&gt;<br/>
+               &lt;result&gt;/login.jsp&lt;/result&gt;<br/>
+     &lt;/action&gt;<br/>
+在login.jsp中对应的链接为：<br/>
+&lt;a href=&quot;cl.action?lang=zh&quot;&gt;<br/>
+          &lt;s:text name=&quot;chinese&quot;&gt;&lt;/s:text&gt;<br/>
+&lt;/a&gt;<br/>
+&lt;a href=&quot;cl.action?lang=en&quot;&gt;<br/>
+          &lt;s:text name=&quot;english&quot;&gt;&lt;/s:text&gt;<br/>
+&lt;/a&gt;<br/>
+这样操作后，当我们成功访问到login.jsp后，便可以点击链接来随意切换访问英文或中文页面。<br/>
+八、验证机制<br/>
+注意：要想实现校验，action必须继承自ActionSupport类。<br/>
+1.基于手工编码的校验<br/>
+我们建立struts2validate项目 ，其中reg.jsp页面主要代码如下：<br/>
+&lt;body&gt;<br/>
+     &lt;s:head/&gt;<br/>
+     &lt;h3&gt;注册页面&lt;/h3&gt;<br/>
+     &lt;s:form method=&quot;post&quot; action=&quot;reg&quot; &gt;<br/>
+          &lt;s:bean name=&quot;com.asm.AgeAction&quot; id=&quot;aa&quot;&gt;&lt;/s:bean&gt;<br/>
+          &lt;s:textfield name=&quot;user.username&quot; label=&quot;用户名&quot;/&gt;<br/>
+          &lt;s:property value=&quot;errors.user.username&quot;/&gt;<br/>
+          &lt;s:password name=&quot;user.password&quot; label=&quot;密码&quot;/&gt;<br/>
+          &lt;s:password name=&quot;user.password2&quot; label=&quot;确认密码&quot;/&gt;<br/>
+          &lt;s:select list=&quot;#aa.ageMap&quot; name=&quot;user.age&quot; label=&quot;年龄&quot; headerValue=&quot;填写真实年龄&quot;  headerKey=&quot;0&quot;/&gt;<br/>
+          &lt;s:reset value=&quot;重置&quot; align=&quot;left&quot; /&gt;<br/>
+          &lt;s:submit value=&quot;注册&quot; align=&quot;left&quot;/&gt;<br/>
+     &lt;/s:form&gt;<br/>
+&lt;/body&gt;<br/>
+说明：&lt;s:head/&gt;可以用来对验证信息进行一些美化效果处理，另在此页面中我们用到了一个AgeAction用来动态生成“年龄”表单项，在前面的表单标签中已用过类似的做法。AgeAction的代码如下:<br/>
+package com.asm;<br/>
+public class AgeAction extends ActionSupport {<br/>
+     private Map&lt;Integer, String&gt; ageMap;<br/>
+     public AgeAction() {<br/>
+          ageMap = new HashMap();<br/>
+          for (int i = 1; i &lt;= 120; i++) {<br/>
+               ageMap.put(new Integer(i), i + &quot;&quot;);<br/>
+          }<br/>
+     }<br/>
+     ...省略ageMap的get/set方法    <br/>
+}<br/>
+Reg action的配置如下：<br/>
+     &lt;package name=&quot;validate&quot; extends=&quot;struts-default&quot;&gt;         <br/>
+               &lt;action name=&quot;reg&quot; class=&quot;com.asm.RegAndLoginAction&quot; method=&quot;reg&quot;&gt;<br/>
+                    &lt;result name=&quot;success&quot;&gt;/regSuc.jsp&lt;/result&gt;<br/>
+                    &lt;result name=&quot;login&quot;&gt;/reg.jsp&lt;/result&gt;<br/>
+&lt;/action&gt;<br/>
+&lt;/package&gt;         <br/>
+根据配置，我们来看它的对应Action: RegAndLoginAction,代码如下：<br/>
+package com.asm;<br/>
+public class RegAndLoginAction extends ActionSupport {<br/>
+     private User user;<br/>
+     public String reg() throws Exception {<br/>
+          if (user.getUsername() == null || user.getUsername().equals(&quot;&quot;)) {<br/>
+               this.addFieldError(&quot;user.username&quot;, &quot;用户名不能为空&quot;);<br/>
+          } else if (!Pattern.matches(&quot;^[a-zA-Z][a-zA-Z0-9_]{3,14}$&quot;, user.getUsername())) {<br/>
+               this.addFieldError(&quot;user.username&quot;, &quot;用户名只能是以字母开头，后面可以跟字母、数字或下滑线，长度只能是4-15位&quot;);<br/>
+          } else if (user.getPassword() == null || user.getPassword().equals(&quot;&quot;)) {<br/>
+               this.addFieldError(&quot;user.password&quot;, &quot;密码不能为空&quot;);<br/>
+          } else if (!user.getPassword().equals(user.getPassword2())) {<br/>
+               this.addFieldError(&quot;user.password2&quot;, &quot;两次输入的密码不一致，请重新输入&quot;);<br/>
+          } else if (user.getAge() &lt; 16) {<br/>
+               this.addFieldError(&quot;user.age&quot;, &quot;未满16岁，不能注册&quot;);<br/>
+          }<br/><br/>
+          if (this.hasFieldErrors()) {<br/>
+               return LOGIN;<br/>
+          }<br/>
+          System.out.println(&quot;reg success....&quot;);<br/>
+          return SUCCESS;<br/>
+     }    <br/>
+     ...省略user的get/set方法<br/>
+}<br/>
+说明：当reg.jsp提交给此Action对应的reg方法处理时，它会调用addFieldError把错误信息加到FiledError中去，关于这点，我们可以在前台reg.jsp页面中用&lt;s:debug&gt;调试时，可以看到值栈中的此Action对象中的fieldErrors对应着我们添加的错误信息,因此这点也就为我们取出验证信息提供一个参考，即是说我们可以取出此验证信息，对它进行美化处理，而不是按struts2默认来显示。 后面，我们接着对登录页面用login方法进行了类似的验证(在此省略)，所以此action取名为regAndLoginAction.<br/>
+补充：当我们把login.jsp页面的验证写完后，可以发现reg和login这两个方法显示相当的繁琐，对此我们可以专门把验证分别放在validateReg和validateLogin方法中去。我们新建一个Action来演示，新的RegAndLogin2Action主要代码如下：<br/>
+package com.asm;<br/>
+public class RegAndLogin2Action extends ActionSupport {<br/>
+     private User user;<br/><br/>
+     @Override<br/>
+     public void validate() {<br/>
+     System.out.println(&quot;校验的统一出口，对所有方法进行校验：这里可以放一些公共的验证&quot;);<br/>
+     }<br/><br/>
+     public void validateReg() {<br/>
+          ...省略，对reg方法进行验证<br/>
+     }<br/><br/>
+     public void validateLogin() {<br/>
+          ...省略，对login方法进行验证<br/>
+     }<br/><br/>
+     public String reg() throws Exception {         <br/>
+          System.out.println(&quot;reg success....&quot;);<br/>
+          return SUCCESS;<br/>
+     }<br/><br/>
+     public String login() throws Exception {         <br/>
+          System.out.println(&quot;login success....&quot;);<br/>
+          return SUCCESS;<br/>
+     }<br/>
+     ...省略user的get/set方法<br/>
+}<br/>
+说明：当reg.jsp提交给此Action对应的reg方法处理时，它会首先调用此reg方法专属的验证方法valiadteReg（注意取名规则：validate+方法名&lt;首字母大写&gt;），此方法验证完成后，会调用validate方法，此方法完成后才会调用reg方法。因此一般情况下，我们会把一些公共的验证放在validate方法中，而这些所有的验证方法也只进行验证处理，并把错误信息封装到fieldError字段中（或者其它字段）。reg这些真正执行的方法只进行一些其它处理（比如把注册信息写进数据库）。测试时需要修改把前面的配置注释掉，写上下面的配置：<br/>
+&lt;action name=&quot;login&quot; class=&quot;com.asm.RegAndLogin2Action&quot;     method=&quot;login&quot;&gt;<br/>
+               &lt;result name=&quot;success&quot;&gt;/logSuc.jsp&lt;/result&gt;              <br/>
+               &lt;result name=&quot;input&quot;&gt;/login.jsp&lt;/result&gt;<br/>
+&lt;/action&gt;         <br/>
+&lt;action name=&quot;reg&quot; class=&quot;com.asm.RegAndLogin2Action&quot; method=&quot;reg&quot;&gt;<br/>
+          &lt;result name=&quot;success&quot;&gt;/regSuc.jsp&lt;/result&gt;<br/>
+          &lt;result name=&quot;input&quot;&gt;/reg.jsp&lt;/result&gt;<br/>
+&lt;/action&gt;<br/>
+说明：配置中有一个input result的配置,因为带有validate的方法进行验证时，如果验证失败，会返回input所对应的result结果集。<br/>
+简析校验流程：<br/>
+（1）类型转换器请求参数执行类型转换，并把转换后的值赋给action中属性。<br/>
+（2）如果在执行类型转换过程中出现异常，系统会将异常信息保存到ActionContext，conversionError拦截器将异常信息添加到fieldErrors里，不管类型转换是否出现异常都会进入第（3）步。<br/>
+（3）系统通过反射技术调用action中的validateXxx()方法<br/>
+（4）再调用action中的validate()方法<br/>
+（5）经过上面4步，如果系统中的fieldErrors存在错误信息（即存放错误信息的集合size大于0）,系统自动将请求转发至名为input的视图。如果系统中的fieldErrors没有任何错误信息，系统将执行action中的处理方法。<br/>
+注意：经过以上过程的分析，可以知道如果类型转换失败，也会到input视图。<br/>
+2.基于XML配置形式的校验<br/>
+新建struts2validateXML项目，在此项目中，基本的代码和上面的struts2validate项目相似，只是在上一个项目中我们在Action的具体方法中进行了验证处理，现在先修改RegAndLoginAction的代码如下：<br/>
+package com.asm;<br/>
+public class RegAndLoginAction extends ActionSupport {<br/>
+     private User user;<br/><br/>
+     public String reg() throws Exception {         <br/>
+          System.out.println(&quot;reg success....&quot;);<br/>
+          return SUCCESS;<br/>
+     }<br/><br/>
+     public String login() throws Exception {         <br/>
+          System.out.println(&quot;login success....&quot;);<br/>
+          return SUCCESS;<br/>
+     }<br/>
+     ...省略user的get/set方法<br/>
+}<br/>
+下面我们在action所在的包下建立一个对此Action进行校验的xml文件，文件名为：RegAndLoginAction-validation.xml，取名原则就是actionClassName-validation.xml 。它会对此Action中的所有方法进行校验。主要代码如下：<br/>
+&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot;?&gt;<br/>
+&lt;!DOCTYPE validators PUBLIC<br/>
+            &quot;-//OpenSymphony Group//XWork Validator 1.0.3//EN&quot;<br/>
+            &quot;http://www.opensymphony.com/xwork/xwork-validator-1.0.3.dtd&quot;&gt;<br/>
+&lt;validators&gt;<br/>
+     &lt;field name=&quot;user.username&quot;&gt;<br/>
+          &lt;field-validator type=&quot;requiredstring&quot;&gt;<br/>
+               &lt;message&gt;用户名不能为空&lt;/message&gt;<br/>
+          &lt;/field-validator&gt;<br/>
+          &lt;field-validator type=&quot;regex&quot;&gt;<br/>
+               &lt;param name=&quot;expression&quot;&gt;^[a-zA-Z][a-zA-Z0-9_]{3,14}$&lt;/param&gt;<br/>
+&lt;message&gt;<br/>
+用户名只能是以字母开头，后面可以跟字母、数字或下滑线，长度只能是4-15位<br/>
+&lt;/message&gt;<br/>
+          &lt;/field-validator&gt;<br/>
+     &lt;/field&gt;<br/>
+    <br/>
+     &lt;field name=&quot;user.password&quot;&gt;<br/>
+          &lt;field-validator type=&quot;requiredstring&quot;&gt;<br/>
+               &lt;message&gt;密码不能为空&lt;/message&gt;<br/>
+          &lt;/field-validator&gt;         <br/>
+     &lt;/field&gt;<br/>
+&lt;/validators&gt;<br/>
+进行此配置，相当于在RegAndLoginAciton中增加用validate ()方法进行验证。如果我们想对某个方法进行验证，配置文件应取名为actionClassName-ActionName-validation.xml,比如我们对reg方法进行验证，在前面用到validateReg方法，这里只需增加RegAndLoginAction-reg-validation.xml配置文件即可，它的作用和validateReg方法相同，在此省略此配置文件内容。<br/>
+关于验证的配置文件中用到的验证类型可以参看文档或者叁看压缩包中的配置参照文件,下面对校验器类型进行简单说明：<br/>
+Required-必须校验器:要求field的值不能为null<br/>
+Requiredstring-必须字串校验器:不能为null，用长度大于0，默认情况下会对字串去前后空格<br/>
+int、[long、short、double]：整数值[long型、短整形、double型]型值必须在指定范围。参数min指定最小值，参数max指定最大值<br/>
+date-日期校验器：日期校验类型，符合日期格式，用可以使用min/max来指定日期范围<br/>
+expression-OGNL表达式校验器：expression参数指定ognl表达式，该逻辑表达式基于值栈进行求值，返回true时校验通过，否则不通过，该校验器不可用在字段校验器风格的配置中<br/>
+fieldexpression-字段ognl表达式校验器：要求field满足一个ognl表达式，expression参数指定ognl表达式，该逻辑表达式基于值栈进行求值，返回true校验通过，否则不通过<br/>
+email-邮件地址校验器：非空用为合法的邮件地址<br/>
+url-网址校验器：非空用为合法的url地址<br/>
+visitor-复合属性校验器：它指定一个校验文件用于校验复合属性中的属性<br/>
+conversion-转换校验器：指定在类型转换失败时，提示的错误信息<br/>
+stringlength-字符器长度校验器：要求字段必须在指定的范围内，否则校验失败。minLength参数指定最小长度，maxLength参数指定最大长度。Trim参数指定校验field之前是否去除字串前后的空格<br/>
+regex-正则表达式校验器：校验字段是否与expression参数指定的正则表达式匹配。caseSensitive参数指定进行匹配时是否区分大小写，默认为true，即区分大小写。<br/>
+补充：基于xml校验的一些特点<br/>
+当为某个Action提供了ActionClassName-validation.xml和ActionClassName-ActionName-validation.xml两种规则的校验文件时，系统会按下面的顺序寻找校验文件：（1）ActionClassName-validation.xml (2)ActionClassName-ActionName-validation.xml<br/>
+系统寻找到第一个校验文件时还会继续搜索后面的校验文件，当探索到所有校验文件时，会把校验文件里的所有校验规则汇总，然后全部应用于action方法的校验。如果两个校验文件中指定的校验规则冲突，则会只使用后面文件中的校验规则。<br/>
+当action继承了另一个action，父类action的校验文件会先被搜索到。<br/>
+假定UserAction继承BaseAction:<br/>
+&lt;action name=&quot;user&quot; class=&quot;com.asm.UserAction&quot; method=&quot;execute&quot;&gt;访问上面的action,系统会先搜索父类的校验文件：BaseAction-validation.xml,BaseAction-user-validation.xml，接着搜索子类的校验文件：UserAction-validation.xml，UserAction-user-validation.xml.应用于上面action校验规则为四个文件的总和。<br/>
+九、文件上传下载（了解）<br/>
+首先建立struts2UpDownLoad项目，搭建好struts2基本的开发环境。<br/>
+1.     上传实例<br/>
+2.     步骤一：upload.jsp代码如下：<br/>
+&lt;s:form action=&quot;upload&quot; method=&quot;post&quot; enctype=&quot;multipart/form-data&quot;&gt;<br/>
+          &lt;s:file name=&quot;file&quot; label=&quot;上传的头像（格式：jpg,gif,bmp）&quot;&gt;&lt;/s:file&gt;<br/>
+          &lt;s:submit value=&quot;上传&quot;/&gt;          &lt;s:reset value=&quot;取消&quot;/&gt;<br/>
+     &lt;/s:form&gt;<br/>
+注意：在form标签中我们用到了enctype实体，这是上传时必须用到得。<br/>
+步骤二，建立struts.xml。对upload.action的配置如下：<br/>
+&lt;action name=&quot;upload&quot; class=&quot;com.asm.UploadAction&quot;&gt;<br/>
+               &lt;param name=&quot;savePath&quot;&gt;img&lt;/param&gt;<br/>
+               &lt;result&gt;/upSuc.jsp&lt;/result&gt;<br/>
+               &lt;result name=&quot;input&quot;&gt;upload.jsp&lt;/result&gt;<br/>
+               &lt;interceptor-ref name=&quot;defaultStack&quot;&gt;<br/>
+                    &lt;param name=&quot;fileUpload.maximumSize&quot;&gt;1024*1024&lt;/param&gt;<br/>
+&lt;param name=&quot;fileUpload.allowedTypes&quot;&gt;<br/>
+image/bmp,image/pjpeg,image/gif<br/>
+&lt;/param&gt;<br/>
+               &lt;/interceptor-ref&gt;<br/>
+&lt;/action&gt;    <br/>
+在这里唯一需要说明的是&lt;interceptor-ref&gt;下的参数问题，在以前如果要为某个特定的拦截器传递参数需要在&lt;interceptor&gt;下配置pararm参数，在此处我们用.形式来配置fileUpload拦截器的参数。这用做即可以保证默认的拦截器栈起作用，也可以向fileUpload拦截器传递参数。第一个参数是限制上传图片的大小(除了可以这样限制图片大小，也可以配置一个常量的方法来限制上传文件的大小，配置的内容为：&lt;constant name=&quot;struts.multipart.maxSize&quot; value=&quot;文件大小&quot;/&gt;)，第二个参数是限制上传图片的格式只能为bmp,pjpeg,gif关于这些参数可以参看fileupload拦截器对应类的api文档。<br/>
+另还需注意：在action下的“&lt;param name=&quot;savePath&quot;&gt;img&lt;/param&gt;”代码可以为UploadAction的savePath字段传递值，这样作的好处是在项目正式发布后，我们可以通过修改struts.xml中的配置来灵活给savePath赋值。而如果直接在java源代码中初始化savePath的值，在项目运行后就不能简单修改。这种用法主要是为了给客户提供一个灵活可配的特定初始化方式。<br/>
+步骤三、编写UploadAction，主要代码如下：<br/>
+package com.asm;<br/>
+public class UploadAction extends ActionSupport {<br/>
+     private String savePath;<br/>
+     private File file;<br/>
+     private String fileFileName;<br/>
+     private String fileContentType;<br/><br/>
+     public String execute() throws Exception {<br/>
+          String path=ServletActionContext.getServletContext().getRealPath(savePath);<br/>
+          String savaFileName=path+&quot;\\&quot;+fileFileName;<br/>
+          //System.out.println(savaFileName);<br/>
+         <br/>
+          BufferedInputStream bis=null;<br/>
+          BufferedOutputStream bos=null;<br/>
+          try{<br/>
+          bis=new BufferedInputStream(new FileInputStream(file));<br/>
+          bos=new BufferedOutputStream(new FileOutputStream(savaFileName));<br/>
+         <br/>
+          byte []buf=new byte[(int) file.length()];<br/>
+          int len=0;<br/>
+          while((len=bis.read(buf))!=-1){<br/>
+               bos.write(buf,0,len);<br/>
+          }}catch(Exception e){<br/>
+               e.printStackTrace();<br/>
+          }finally{<br/>
+               if(bis!=null)<br/>
+                    bis.close();<br/>
+               if(bos!=null)<br/>
+                    bos.close();<br/>
+          }<br/>
+          return SUCCESS;<br/>
+     }<br/>
+     ...省略以上四个字段的get/set方法<br/>
+}<br/>
+说明：其实上传的难点就是在此action的处理上。首先是从配置文件中读取文件的保存路径，然后联合fileFileName（命名规则是上传的文件对应的字段名+FileName，如果要得到上传文件的类型，固定的写法应是上传的文件对应的字段名+ContentType，比如这里应为fileContentType）来确定完整的保存路径，并最终为创建BufferedOutputStream作准备。BufferedInputStream是通过前台upload.jsp页面传递的file构建。特别要注意处理流，如果书写不当可能会使上传文件循环写入，使得硬盘容量不够。还要注意对流的关闭问题。 补充：关于文件的操作可以使用commons-io.jar包的FileUtils类下的copyFile方法来进行文件的拷贝，比如这里调用copyFile方法（file,要保存的目录）<br/>
+上传成功后，upSuc.jsp的主要内容如下：<br/>
+&lt;body&gt;<br/>
+&lt;h4&gt;上传成功，以下是你刚上传的图片：&lt;/h4&gt;<br/>
+&lt;img src=&quot;&lt;%=request.getContextPath() %&gt;/&lt;s:property value=&quot;savePath+'/'+fileFileName&quot;/&gt;&quot;&gt;     &lt;br&gt;<br/>
+     保存路径为：&lt;s:property value=&quot;savePath+'/'+fileFileName&quot;/&gt;<br/>
+&lt;/body&gt;<br/>
+说明：当上传成功后，会显示上传的图片。<br/>
+扩展实例：如果想上传多个文件，可以在Action中使用File[] files来接受上传的文件（jsp中对应的上传文件的参数均应为files）。对应的上传文件的名字，使用String[] fileFileName。然后循环files数组保存File文件对象。<br/>
+2.下载实例<br/>
+下载页面的doload.jsp的主要代码如下：<br/>
+&lt;a href=&quot;download.action?downloadName=img/a.bmp&quot;&gt;下载图片&lt;/a&gt;&lt;br&gt;<br/>
+&lt;a href=&quot;download.action?downloadName=img/music.rar&quot;&gt;下载千千静听&lt;/a&gt;&lt;br&gt;<br/>
+对应的download action配置如下：<br/>
+&lt;action name=&quot;download&quot; class=&quot;com.asm.DownloadAction&quot;&gt;<br/>
+               &lt;result name=&quot;success&quot; type=&quot;stream&quot;&gt;<br/>
+&lt;param name=&quot;inputName&quot;&gt;targetFile&lt;/param&gt;<br/>
+               &lt;param name=&quot;contentType&quot;&gt;<br/>
+              image/bmp,application/x-zip-compressed<br/>
+            &lt;/param&gt;                   <br/>
+               &lt;/result&gt;<br/>
+          &lt;/action&gt;<br/>
+说明：type类型指明了结果集为流类型，并且为流类型结果集配置了参数，inputName指定流的来源，这里来源为targetFile，所以在下面的Action中有getTargetFile方法, contentType指明下载时的文件类型。<br/>
+DownloadAction的主要代码如下：<br/>
+package com.asm;<br/>
+public class DownloadAction extends ActionSupport {<br/>
+     private String downloadName;<br/>
+     public String execute() throws Exception {<br/>
+          return SUCCESS;<br/>
+     }<br/><br/>
+public InputStream getTargetFile(){<br/>
+     return ServletActionContext.getServletContext().getResourceAsStream(downloadName);<br/>
+     }<br/><br/>
+     public void setDownloadName(String downloadName) {<br/>
+          this.downloadName = downloadName;<br/>
+     }<br/>
+}<br/>
+说明：下载实例在此略作了解，具体可以借助apache组织提供的上传下载开源项目理解。<br/>
+十、类型转换<br/>
+建立struts2conversion项目，并搭建好struts2的基本开发环境<br/>
+1.基于Action的直接属性转换<br/>
+建立t.jsp页面，内容如下：<br/>
+&lt;s:form action=&quot;phone&quot; method=&quot;post&quot;&gt;<br/>
+          &lt;s:textfield name=&quot;thePhone&quot; label=&quot;电话&quot;/&gt;<br/>
+          &lt;s:submit value=&quot;提交&quot;/&gt;<br/>
+          &lt;s:reset value=&quot;重置&quot;/&gt;<br/>
+&lt;/s:form&gt;<br/>
+此action对应的配置如下：<br/>
+&lt;action name=&quot;phone&quot; class=&quot;com.asm.action.PhoneAction&quot;&gt;<br/>
+          &lt;result name=&quot;success&quot;&gt;tSuc.jsp&lt;/result&gt;<br/>
+          &lt;result name=&quot;input&quot;&gt;/t.jsp&lt;/result&gt;<br/>
+&lt;/action&gt;<br/>
+对应的PhoneAction类的代码如下：<br/>
+package com.asm.action;<br/>
+public class PhoneAction extends ActionSupport {<br/>
+     private Telephone thePhone;<br/>
+     public String execute() throws Exception {<br/>
+          return SUCCESS;<br/>
+     }<br/>
+     ...省略thePhone的get/set方法<br/>
+}<br/>
+说明，如果直接这样执行将会出错，因为前台t.jsp传的String默认是不能被转成这里的Phone对象，所以我们必须使用类型转换，而且我们配置了input result就是告诉我们如果类型转换失败，将会停在t.jsp页面，而且会报错。下面接着看怎么类型转换。在这里我们要把010-123456这样的电话换成：区号：010 电话：123456这样的形式时。具体的操作步骤如下：<br/>
+创建类型转换类TelephoneConversion，代码如下：<br/>
+package com.asm.conversion;<br/>
+public class TelephoneConversion extends StrutsTypeConverter {<br/>
+public Object convertFromString(Map context, String[] values, Class toClass) {<br/>
+          System.out.println(&quot;执行字串到Telephone对象的转换&quot;);<br/>
+          Telephone tp=new Telephone();<br/>
+          String [] tel=values[0].split(&quot;-&quot;);<br/>
+          tp.setSecNum(tel[0]);<br/>
+          tp.setPhone(tel[1]);<br/>
+          return tp;<br/>
+     }<br/><br/>
+     public String convertToString(Map context, Object obj) {<br/>
+          System.out.println(&quot;执行Telephone对象到字串的转换&quot;);<br/>
+          Telephone tp=(Telephone) obj;<br/>
+          return &quot;区号：&quot;+tp.getSecNum()+&quot;\t电话：&quot;+tp.getPhone();<br/>
+     }<br/>
+}<br/>
+说明：类型转换类必须实现TypeConverter接口，而这里的StrutsTypeConverter类便是TypeConverter接口实现类DefaultTypeConverter的子类。此类中有两个方法，一个方法实现把字串转成其它对象，一个方法实现把其它对象转成字串。在convertFromString方法中，我们实现把客户端传递的字串转成Telephone对象，这样就能让PhoneAction的setThePhone方法得以正确执行。而后面的方法是为了我们要取值时进行的处理，比如在tSuc.jsp中我们要得到此值，需要把Telephone对象转换字串。其实如果没有convertToString方法，只要我们重写Telephone的toString方法也能达到目的。<br/>
+写完类类型转换类后，我们还应告知struts2，所以我们还需建立一个properties文件。我们在PhoneAction的同包下建立PhoneAction-conversion.properties文件，它的主要代码如下：<br/>
+thePhone=com.asm.conversion.TelephoneConversion<br/>
+说明：这句话的意思是说我们要把PhoneAction（通过properties文件名可以知道要转换的是此Action）下的thePhone使用TelephoneConversion进行转换。其实我们也可以配置全局的properties文件说明，比如我们在src目录下建立xwork-conversion.properties文件（名字固定），它的内容如下：<br/>
+com.asm.vo.Telephone=com.asm.conversion.TelephoneConversion<br/>
+说明：它的意思是只要遇到Telephone对象，就要用后面的转换器来实行转换。<br/>
+2.基于Action的间接属性vo转换<br/>
+t2.jsp主要内容如下：<br/>
+&lt;s:form action=&quot;up&quot; method=&quot;post&quot;&gt;<br/>
+          &lt;s:textfield name=&quot;user.thePhone&quot; label=&quot;电话&quot;/&gt;<br/>
+          &lt;s:submit value=&quot;提交&quot;/&gt;<br/>
+          &lt;s:reset value=&quot;重置&quot;/&gt;<br/>
+&lt;/s:form&gt;<br/>
+我们建立UserPhoneAction类，它的主要代码如下：<br/>
+package com.asm.action;<br/>
+public class UserPhoneAction extends ActionSupport {<br/>
+     private User user;<br/>
+     public String execute() throws Exception {<br/>
+          return SUCCESS;<br/>
+     }<br/>
+     ...省略user的get/set方法<br/>
+}<br/>
+User类的代码如下：<br/>
+package com.asm.vo;<br/>
+public class User {<br/>
+     private Telephone thePhone;<br/>
+     ...省略thePhone的get/set方法。<br/>
+}<br/>
+说明：通过这两个类及t2.jsp页面，我们知道，前台传递的thePhone对象不时直接传递，而是采用了vo模式，所以当我们配置类型转换时，要特别注意。因为前面我们使用了全局的类型转换，所以这里不会出错，但是当我们去掉前面的全局转换时，配置类型转换的properties文件就应在User类对应的包下配置User-conversion.properties文件，它的主要内容如下：<br/>
+thePhone=com.asm.conversion.TelephoneConversion<br/>
+说明及总结：类型转换的配置文件如果不采用全局的配置时，我们就应以要转换的类型的直接持有类为基准：比如，这里的thePhone的直接持有类为User对象，所以我们就应以User为基准写properties文件名。<br/>
+十一、注解配置<br/>
+在此先略去注解配置的实例，具体可以参看官方提供的文档。其实在熟悉struts及相关的一些内容后，再来看文档是比较容易理解得。只是要注意使用注解Annotition时：（1）要多导入一个jar包：struts2-convention-plugin-2.1.6.jar。（2）需要在web.xml中增加如下内容：<br/>
+&lt;filter&gt;<br/>
+          &lt;filter-name&gt;struts2&lt;/filter-name&gt;    <br/>
+          &lt;filter-class&gt;               org.apache.struts2.dispatcher.ng.filter.StrutsPrepareAndExecuteFilter<br/>
+          &lt;/filter-class&gt;<br/>
+               &lt;!-- 增加了以下内容 --&gt;<br/>
+          &lt;init-param&gt;<br/>
+               &lt;param-name&gt;actionPackages&lt;/param-name&gt;<br/>
+               &lt;param-value&gt;com.struts2.action&lt;/param-value&gt;<br/>
+          &lt;/init-param&gt;<br/>
+     &lt;/filter&gt;<br/>
+十二、总结<br/>
+本教程对struts2的基本知识进行了一些说明，关于struts2的更多详细内容应参看struts2的官方文档及提供的app实例。<br/>
+下面对struts2的基本执行流程作一简要说明，此流程说明可以结合官方提供的struts2结构图来看：<br/>
+     客户端提交一个（HttpServletRequest）请求，如上文在浏览器中输入<br/>
+http://localhost: 8080/appName/...就是提交一个（HttpServletRequest）请求。<br/>
+     请求被提交到一系列（主要是3层）的过滤器（Filter），如（ActionContextCleanUp、其他过滤器（SiteMesh等）、 FilterDispatcher）。注意：这里是有顺序的，先ActionContext CleanUp，再其他过滤器（Othter Filters、SiteMesh等），最后到FilterDispatcher。<br/>
+     FilterDispatcher是控制器的核心，就是MVC的Struts 2中实现控制层（Controller）的核心。(有点struts1.x中ActionServlet的感觉)<br/>
+     FilterDispatcher询问ActionMapper是否需要调用某个Action来处理这个（HttpServlet Request）请求，如果ActionMapper决定需要调用某个Action，FilterDispatcher则把请求的处理交给ActionProxy。<br/>
+     ActionProxy通过Configuration Manager（struts.xml）询问框架的配置文件，找到需要调用的Action类。例如，用户注册示例将找到UserReg类。<br/>
+     ActionProxy创建一个ActionInvocation实例，同时ActionInvocation通过代理模式调用Action。但在调用之前，ActionInvocation会根据配置加载Action相关的所有Interceptor（拦截器）。 关于ActionInvocation的执行过程我们在五、2自定义拦截器最后的补充中已经进行了较详细说明。<br/>
+     一旦Action执行完毕，ActionInvocation负责根据struts.xml中的配置找到对应的返回结果result。<br/><br/>
+http://www.chengxuyuans.com 程序员之家<br/><br/><br/><br/><br/><br/><br/><br/>
+-----------------------------------------------------------------------------------------<br/>
+                   #########################################################################################<br/></span>
+</div></body></html> 

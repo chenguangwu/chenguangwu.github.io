@@ -1,0 +1,468 @@
+<html>
+<head>
+  <title>GeoHash核心原理解析 - zhanlijun - 博客园</title>
+  <basefont face="微软雅黑" size="2" />
+  <meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+  <meta name="exporter-version" content="YXBJ Windows/600718 (zh-CN, DDL); Windows/6.1.1 (Win64);"/>
+  <style>
+    body, td {
+      font-family: 微软雅黑;
+      font-size: 10pt;
+    }
+  </style>
+</head>
+<body>
+<a name="2924"/>
+<h1>GeoHash核心原理解析 - zhanlijun - 博客园</h1>
+<div>
+<table bgcolor="#D4DDE5" border="0">
+<tr><td><b>创建时间：</b></td><td><i>2018/8/1 15:06</i></td></tr>
+<tr><td><b>来源：</b></td><td><a href="https://www.cnblogs.com/LBSer/p/3310455.html"><i>https://www.cnblogs.com/LBSer/p/3310455.html</i></a></td></tr>
+</table>
+</div>
+<br/>
+
+<div><span>
+  <div>
+<div style="font-size: 16px; display: inline-block; min-width: 100%;position: relative;"><div><div style="font-family:&quot;PingFang SC&quot;, &quot;Helvetica Neue&quot;, Helvetica, Arial, sans-serif;color:rgb(0, 0, 0);background:rgb(210, 216, 222);font-size:14px;"><div><div style="text-align:left;overflow:hidden;min-width:auto;"><div style="text-overflow:ellipsis;overflow:hidden;word-break:break-all;"><div><div><div style="text-overflow:ellipsis;overflow:hidden;word-break:break-all;background:rgb(255, 255, 255);border-radius:7px;box-shadow:rgb(167, 168, 173) 1px 1px 2px;"><div>
+		<h1 style="margin:0px;padding:0px;clear:both;font-size:130%;font-weight:bold;border-bottom:1px solid rgb(153, 153, 153);float:left;line-height:2em;width:100%;padding-left:5px;">
+			<a href="https://www.cnblogs.com/LBSer/p/3310455.html" style="margin:0px;padding:0px;text-decoration:none;color:rgb(51, 153, 0);transition:all 0.4s linear 0s;">GeoHash核心原理解析</a>
+		</h1>
+		<div style="margin:0px;padding:0px;clear:both;"></div>
+		<div style="margin:0px;padding:15px 2px 5px 5px;line-height:1.5;color:rgb(0, 0, 0);border-bottom:1px solid rgb(204, 204, 204);">
+			<div style="margin:0px;padding:0px;margin-bottom:20px;word-break:break-word;"><p style="padding:0px;margin:10px auto;text-indent:0px;"><a href="http://www.cnblogs.com/LBSer/p/3310455.html" style="margin:0px;padding:0px;color:black;text-decoration:underline;" target="_blank"><strong style="margin:0px;padding:0px;">http://www.cnblogs.com/LBSer/p/3310455.html</strong></a></p>
+<p style="padding:0px;margin:10px auto;text-indent:0px;"><strong style="margin:0px;padding:0px;">引子</strong></p>
+<p style="padding:0px;margin:10px auto;text-indent:0px;"><span style="margin:0px;padding:0px;">　　机机是个好动又好学的孩子，平日里就喜欢拿着手机地图点点按按来查询一些好玩的东西。某一天机机到北海公园游玩，肚肚饿了，于是乎打开手机地图，搜索北海公园附近的餐馆，并选了其中一家用餐。</span></p>
+<p style="padding:0px;margin:10px auto;text-indent:0px;"><img src="GeoHash核心原理解析 - zhanlijun - 博客园_files/09185116-62c01e9a4d374cf1bd302b9aaa88057f.png" type="image/png" data-filename="09185116-62c01e9a4d374cf1bd302b9aaa88057f.png" height="261" style="margin:0px;padding:0px;border:0px;height:auto;max-width:300px;display:block;margin-left:auto;margin-right:auto;" width="327"/> </p>
+<p style="padding:0px;margin:10px auto;text-indent:0px;"><span style="margin:0px;padding:0px;">　　饭饱之后机机开始反思了，地图后台如何根据自己所在位置查询来查询附近餐馆的呢？苦思冥想了半天，机机想出了个方法：计算所在位置P与北京所有餐馆的距离，然后返回距离&lt;=1000米的餐馆。小得意了一会儿，机机发现北京的餐馆何其多啊，这样计算不得了，于是想了，既然知道经纬度了，那它应该知道自己在西城区，那应该计算所在位置P与西城区所有餐馆的距离啊，机机运用了递归的思想，想到了西城区也很多餐馆啊，应该计算所在位置P与所在街道所有餐馆的距离，这样计算量又小了，效率也提升了。</span></p>
+<p style="padding:0px;margin:10px auto;text-indent:0px;"><span style="margin:0px;padding:0px;">　　机机的计算思想很朴素，就是通过过滤的方法来减小参与计算的餐馆数目，从某种角度上讲，机机在使用索引技术。</span></p>
+<p style="padding:0px;margin:10px auto;text-indent:0px;"><span style="margin:0px;padding:0px;">　　一提到索引，大家脑子里马上浮现出B树索引，因为大量的数据库（如MySQL、oracle、PostgreSQL等）都在使用B树。B树索引本质上是对索引字段进行排序，然后通过类似二分查找的方法进行快速查找，即它要求索引的字段是可排序的，一般而言，可排序的是一维字段，比如时间、年龄、薪水等等。但是对于空间上的一个点（二维，包括经度和纬度），如何排序呢？又如何索引呢？解决的方法很多，下文介绍一种方法来解决这一问题。</span></p>
+<p style="padding:0px;margin:10px auto;text-indent:0px;"><span style="margin:0px;padding:0px;"><strong style="margin:0px;padding:0px;">　　思想：</strong>如果能通过某种方法将二维的点数据转换成一维的数据，那样不就可以继续使用B树索引了嘛。那这种方法真的存在嘛，答案是肯定的。目前很火的GeoHash算法就是运用了上述思想，下面我们就开始GeoHash之旅吧。</span></p>
+<p style="padding:0px;margin:10px auto;text-indent:0px;"><span style="margin:0px;padding:0px;"><strong style="margin:0px;padding:0px;">一、感性认识GeoHash</strong></span></p>
+<p style="padding:0px;margin:10px auto;text-indent:0px;"><span style="margin:0px;padding:0px;">首先来点感性认识，<a href="http://openlocation.org/geohash/geohash-js/" style="margin:0px;padding:0px;color:black;text-decoration:underline;"><span style="margin:0px;padding:0px;">http://openlocation.org/geohash/geohash-js/</span></a> 提供了在地图上显示geohash编码的功能。</span></p>
+<p style="padding:0px;margin:10px auto;text-indent:0px;"><span style="margin:0px;padding:0px;">1）GeoHash将二维的经纬度转换成字符串，比如下图展示了北京9个区域的GeoHash字符串，分别是WX4ER，WX4G2、WX4G3等等，每一个字符串代表了某一矩形区域。也就是说，这个矩形区域内所有的点（经纬度坐标）都共享相同的GeoHash字符串，这样既可以保护隐私（只表示大概区域位置而不是具体的点），又比较容易做缓存，比如左上角这个区域内的用户不断发送位置信息请求餐馆数据，由于这些用户的GeoHash字符串都是WX4ER，所以可以把WX4ER当作key，把该区域的餐馆信息当作value来进行缓存，而如果不使用GeoHash的话，由于区域内的用户传来的经纬度是各不相同的，很难做缓存。</span></p>
+<p style="padding:0px;margin:10px auto;text-indent:0px;"><img src="GeoHash核心原理解析 - zhanlijun - 博客园_files/09185339-add66a56b3da417ab00370e354c74667.png" type="image/png" data-filename="09185339-add66a56b3da417ab00370e354c74667.png" height="237" style="margin:0px;padding:0px;border:0px;height:auto;max-width:300px;display:block;margin-left:auto;margin-right:auto;" width="234"/> </p>
+<p style="padding:0px;margin:10px auto;text-indent:0px;"><span style="margin:0px;padding:0px;">2）字符串越长，表示的范围越精确。如图所示，5位的编码能表示10平方千米范围的矩形区域，而6位编码能表示更精细的区域（约0.34平方千米）</span></p>
+<p style="padding:0px;margin:10px auto;text-indent:0px;"> <img src="GeoHash核心原理解析 - zhanlijun - 博客园_files/09185401-358f8e5e9f1a475f81afaf88f661e4ac.png" type="image/png" data-filename="09185401-358f8e5e9f1a475f81afaf88f661e4ac.png" height="221" style="margin:0px;padding:0px;border:0px;height:auto;max-width:300px;display:block;margin-left:auto;margin-right:auto;" width="323"/></p>
+<p style="padding:0px;margin:10px auto;text-indent:0px;"><span style="margin:0px;padding:0px;">3）字符串相似的表示距离相近（特殊情况后文阐述），这样可以利用字符串的前缀匹配来查询附近的POI信息。如下两个图所示，一个在城区，一个在郊区，城区的GeoHash字符串之间比较相似，郊区的字符串之间也比较相似，而城区和郊区的GeoHash字符串相似程度要低些。</span></p>
+<p style="padding:0px;margin:10px auto;text-indent:0px;"> </p>
+<table style="word-break:break-word;font-size:inherit;font-style:inherit;font-variant:inherit;padding:0px;margin:0px;font-weight:inherit;border-spacing:0px;border-collapse:collapse;border:1px solid silver;display:block;overflow-x:scroll;">
+<tbody style="margin:0px;padding:0px;">
+<tr style="margin:0px;padding:0px;">
+<td align="center" height="100%*" style="margin:0px;border:1px solid silver;border-collapse:collapse;padding:3px;white-space:nowrap;" width="100%*">
+<p align="center" style="padding:0px;margin:10px auto;text-indent:0px;"><span style="margin:0px;padding:0px;"> <img src="GeoHash核心原理解析 - zhanlijun - 博客园_files/09185339-add66a56b3da417ab00370e354c74667 [1].png" type="image/png" data-filename="09185339-add66a56b3da417ab00370e354c74667.png" height="245" style="margin:0px;padding:0px;border:0px;height:auto;max-width:300px;" width="234"/></span></p>
+<p align="center" style="padding:0px;margin:10px auto;text-indent:0px;"><span style="margin:0px;padding:0px;"><span style="margin:0px;padding:0px;">城区</span></span></p>
+</td>
+<td align="center" height="100%*" style="margin:0px;border:1px solid silver;border-collapse:collapse;padding:3px;white-space:nowrap;" width="100%*">
+<p align="center" style="padding:0px;margin:10px auto;text-indent:0px;"><span style="margin:0px;padding:0px;"> <img src="GeoHash核心原理解析 - zhanlijun - 博客园_files/09185600-1461ccd246724de988abba5d31241881.png" type="image/png" data-filename="09185600-1461ccd246724de988abba5d31241881.png" height="244" style="margin:0px;padding:0px;border:0px;height:auto;max-width:300px;" width="216"/></span></p>
+<p style="padding:0px;margin:10px auto;text-indent:0px;text-align:center;"><span style="margin:0px;padding:0px;">郊区</span></p>
+</td>
+</tr>
+</tbody>
+</table>
+<p style="padding:0px;margin:10px auto;text-indent:0px;"> 　　<span style="margin:0px;padding:0px;">通过上面的介绍我们知道了GeoHash就是一种将经纬度转换成字符串的方法，并且使得在大部分情况下，字符串前缀匹配越多的距离越近，回到我们的案例，根据所在位置查询来查询附近餐馆时，只需要将所在位置经纬度转换成GeoHash字符串，并与各个餐馆的GeoHash字符串进行前缀匹配，匹配越多的距离越近。</span></p>
+<p style="padding:0px;margin:10px auto;text-indent:0px;"><span style="margin:0px;padding:0px;"><strong style="margin:0px;padding:0px;">二、GeoHash算法的步骤</strong></span></p>
+<p style="padding:0px;margin:10px auto;text-indent:0px;"><span style="margin:0px;padding:0px;">下面以北海公园为例介绍GeoHash算法的计算步骤</span></p>
+<p style="padding:0px;margin:10px auto;text-indent:0px;text-align:center;"> <img src="GeoHash核心原理解析 - zhanlijun - 博客园_files/09185643-54781d96efc94b9191a3c21134e182d7.png" type="image/png" data-filename="09185643-54781d96efc94b9191a3c21134e182d7.png" height="239" style="margin:0px;padding:0px;border:0px;height:auto;max-width:300px;" width="305"/></p>
+<p style="padding:0px;margin:10px auto;text-indent:0px;"><span style="margin:0px;padding:0px;">2.1. 根据经纬度计算GeoHash二进制编码</span></p>
+<p style="padding:0px;margin:10px auto;text-indent:0px;"><span style="margin:0px;padding:0px;">地球纬度区间是[-90,90]， 北海公园的纬度是39.928167，可以通过下面算法对纬度39.928167进行逼近编码:</span></p>
+<p style="padding:0px;margin:10px auto;text-indent:0px;"><span style="margin:0px;padding:0px;">1）区间[-90,90]进行二分为[-90,0),[0,90]，称为左右区间，可以确定39.928167属于右区间[0,90]，给标记为1；</span></p>
+<p style="padding:0px;margin:10px auto;text-indent:0px;"><span style="margin:0px;padding:0px;">2）接着将区间[0,90]进行二分为 [0,45),[45,90]，可以确定39.928167属于左区间 [0,45)，给标记为0；</span></p>
+<p style="padding:0px;margin:10px auto;text-indent:0px;"><span style="margin:0px;padding:0px;">3）递归上述过程39.928167总是属于某个区间[a,b]。随着每次迭代区间[a,b]总在缩小，并越来越逼近39.928167；</span></p>
+<p style="padding:0px;margin:10px auto;text-indent:0px;"><span style="margin:0px;padding:0px;">4）如果给定的纬度x（39.928167）属于左区间，则记录0，如果属于右区间则记录1，这样随着算法的进行会产生一个序列1011100，序列的长度跟给定的区间划分次数有关。</span></p>
+<p style="padding:0px;margin:10px auto;text-indent:0px;text-align:center;"><span style="margin:0px;padding:0px;">根据纬度算编码</span> </p>
+<table cellpadding="0" cellspacing="0" style="word-break:break-word;font-size:inherit;font-style:inherit;font-variant:inherit;padding:0px;margin:0px;font-weight:inherit;border-spacing:0px;border-collapse:collapse;border:1px solid silver;display:block;overflow-x:scroll;">
+<tbody style="margin:0px;padding:0px;">
+<tr style="margin:0px;padding:0px;">
+<td style="margin:0px;border:1px solid silver;border-collapse:collapse;padding:3px;white-space:nowrap;" valign="top">
+<p style="padding:0px;margin:10px auto;text-indent:0px;"><span style="margin:0px;padding:0px;"><strong style="margin:0px;padding:0px;">bit</strong></span></p>
+</td>
+<td style="margin:0px;border:1px solid silver;border-collapse:collapse;padding:3px;white-space:nowrap;" valign="top">
+<p style="padding:0px;margin:10px auto;text-indent:0px;"><span style="margin:0px;padding:0px;"><strong style="margin:0px;padding:0px;">min</strong></span></p>
+</td>
+<td style="margin:0px;border:1px solid silver;border-collapse:collapse;padding:3px;white-space:nowrap;" valign="top">
+<p style="padding:0px;margin:10px auto;text-indent:0px;"><span style="margin:0px;padding:0px;"><strong style="margin:0px;padding:0px;">mid</strong></span></p>
+</td>
+<td style="margin:0px;border:1px solid silver;border-collapse:collapse;padding:3px;white-space:nowrap;" valign="top">
+<p style="padding:0px;margin:10px auto;text-indent:0px;"><span style="margin:0px;padding:0px;"><strong style="margin:0px;padding:0px;">max</strong></span></p>
+</td>
+</tr>
+<tr style="margin:0px;padding:0px;">
+<td style="margin:0px;border:1px solid silver;border-collapse:collapse;padding:3px;white-space:nowrap;" valign="top">
+<p style="padding:0px;margin:10px auto;text-indent:0px;"><span style="margin:0px;padding:0px;">1</span></p>
+</td>
+<td style="margin:0px;border:1px solid silver;border-collapse:collapse;padding:3px;white-space:nowrap;" valign="top">
+<p style="padding:0px;margin:10px auto;text-indent:0px;"><span style="margin:0px;padding:0px;">-90.000</span></p>
+</td>
+<td style="margin:0px;border:1px solid silver;border-collapse:collapse;padding:3px;white-space:nowrap;" valign="top">
+<p style="padding:0px;margin:10px auto;text-indent:0px;"><span style="margin:0px;padding:0px;">0.000</span></p>
+</td>
+<td style="margin:0px;border:1px solid silver;border-collapse:collapse;padding:3px;white-space:nowrap;" valign="top">
+<p style="padding:0px;margin:10px auto;text-indent:0px;"><span style="margin:0px;padding:0px;">90.000</span></p>
+</td>
+</tr>
+<tr style="margin:0px;padding:0px;">
+<td style="margin:0px;border:1px solid silver;border-collapse:collapse;padding:3px;white-space:nowrap;" valign="top">
+<p style="padding:0px;margin:10px auto;text-indent:0px;"><span style="margin:0px;padding:0px;">0</span></p>
+</td>
+<td style="margin:0px;border:1px solid silver;border-collapse:collapse;padding:3px;white-space:nowrap;" valign="top">
+<p style="padding:0px;margin:10px auto;text-indent:0px;"><span style="margin:0px;padding:0px;">0.000</span></p>
+</td>
+<td style="margin:0px;border:1px solid silver;border-collapse:collapse;padding:3px;white-space:nowrap;" valign="top">
+<p style="padding:0px;margin:10px auto;text-indent:0px;"><span style="margin:0px;padding:0px;">45.000</span></p>
+</td>
+<td style="margin:0px;border:1px solid silver;border-collapse:collapse;padding:3px;white-space:nowrap;" valign="top">
+<p style="padding:0px;margin:10px auto;text-indent:0px;"><span style="margin:0px;padding:0px;">90.000</span></p>
+</td>
+</tr>
+<tr style="margin:0px;padding:0px;">
+<td style="margin:0px;border:1px solid silver;border-collapse:collapse;padding:3px;white-space:nowrap;" valign="top">
+<p style="padding:0px;margin:10px auto;text-indent:0px;"><span style="margin:0px;padding:0px;">1</span></p>
+</td>
+<td style="margin:0px;border:1px solid silver;border-collapse:collapse;padding:3px;white-space:nowrap;" valign="top">
+<p style="padding:0px;margin:10px auto;text-indent:0px;"><span style="margin:0px;padding:0px;">0.000</span></p>
+</td>
+<td style="margin:0px;border:1px solid silver;border-collapse:collapse;padding:3px;white-space:nowrap;" valign="top">
+<p style="padding:0px;margin:10px auto;text-indent:0px;"><span style="margin:0px;padding:0px;">22.500</span></p>
+</td>
+<td style="margin:0px;border:1px solid silver;border-collapse:collapse;padding:3px;white-space:nowrap;" valign="top">
+<p style="padding:0px;margin:10px auto;text-indent:0px;"><span style="margin:0px;padding:0px;">45.000</span></p>
+</td>
+</tr>
+<tr style="margin:0px;padding:0px;">
+<td style="margin:0px;border:1px solid silver;border-collapse:collapse;padding:3px;white-space:nowrap;" valign="top">
+<p style="padding:0px;margin:10px auto;text-indent:0px;"><span style="margin:0px;padding:0px;">1</span></p>
+</td>
+<td style="margin:0px;border:1px solid silver;border-collapse:collapse;padding:3px;white-space:nowrap;" valign="top">
+<p style="padding:0px;margin:10px auto;text-indent:0px;"><span style="margin:0px;padding:0px;">22.500</span></p>
+</td>
+<td style="margin:0px;border:1px solid silver;border-collapse:collapse;padding:3px;white-space:nowrap;" valign="top">
+<p style="padding:0px;margin:10px auto;text-indent:0px;"><span style="margin:0px;padding:0px;">33.750</span></p>
+</td>
+<td style="margin:0px;border:1px solid silver;border-collapse:collapse;padding:3px;white-space:nowrap;" valign="top">
+<p style="padding:0px;margin:10px auto;text-indent:0px;"><span style="margin:0px;padding:0px;">45.000</span></p>
+</td>
+</tr>
+<tr style="margin:0px;padding:0px;">
+<td style="margin:0px;border:1px solid silver;border-collapse:collapse;padding:3px;white-space:nowrap;" valign="top">
+<p style="padding:0px;margin:10px auto;text-indent:0px;"><span style="margin:0px;padding:0px;">1</span></p>
+</td>
+<td style="margin:0px;border:1px solid silver;border-collapse:collapse;padding:3px;white-space:nowrap;" valign="top">
+<p style="padding:0px;margin:10px auto;text-indent:0px;"><span style="margin:0px;padding:0px;">33.7500</span></p>
+</td>
+<td style="margin:0px;border:1px solid silver;border-collapse:collapse;padding:3px;white-space:nowrap;" valign="top">
+<p style="padding:0px;margin:10px auto;text-indent:0px;"><span style="margin:0px;padding:0px;">39.375</span></p>
+</td>
+<td style="margin:0px;border:1px solid silver;border-collapse:collapse;padding:3px;white-space:nowrap;" valign="top">
+<p style="padding:0px;margin:10px auto;text-indent:0px;"><span style="margin:0px;padding:0px;">45.000</span></p>
+</td>
+</tr>
+<tr style="margin:0px;padding:0px;">
+<td style="margin:0px;border:1px solid silver;border-collapse:collapse;padding:3px;white-space:nowrap;" valign="top">
+<p style="padding:0px;margin:10px auto;text-indent:0px;"><span style="margin:0px;padding:0px;">0</span></p>
+</td>
+<td style="margin:0px;border:1px solid silver;border-collapse:collapse;padding:3px;white-space:nowrap;" valign="top">
+<p style="padding:0px;margin:10px auto;text-indent:0px;"><span style="margin:0px;padding:0px;">39.375</span></p>
+</td>
+<td style="margin:0px;border:1px solid silver;border-collapse:collapse;padding:3px;white-space:nowrap;" valign="top">
+<p style="padding:0px;margin:10px auto;text-indent:0px;"><span style="margin:0px;padding:0px;">42.188</span></p>
+</td>
+<td style="margin:0px;border:1px solid silver;border-collapse:collapse;padding:3px;white-space:nowrap;" valign="top">
+<p style="padding:0px;margin:10px auto;text-indent:0px;"><span style="margin:0px;padding:0px;">45.000</span></p>
+</td>
+</tr>
+<tr style="margin:0px;padding:0px;">
+<td style="margin:0px;border:1px solid silver;border-collapse:collapse;padding:3px;white-space:nowrap;" valign="top">
+<p style="padding:0px;margin:10px auto;text-indent:0px;"><span style="margin:0px;padding:0px;">0</span></p>
+</td>
+<td style="margin:0px;border:1px solid silver;border-collapse:collapse;padding:3px;white-space:nowrap;" valign="top">
+<p style="padding:0px;margin:10px auto;text-indent:0px;"><span style="margin:0px;padding:0px;">39.375</span></p>
+</td>
+<td style="margin:0px;border:1px solid silver;border-collapse:collapse;padding:3px;white-space:nowrap;" valign="top">
+<p style="padding:0px;margin:10px auto;text-indent:0px;"><span style="margin:0px;padding:0px;">40.7815</span></p>
+</td>
+<td style="margin:0px;border:1px solid silver;border-collapse:collapse;padding:3px;white-space:nowrap;" valign="top">
+<p style="padding:0px;margin:10px auto;text-indent:0px;"><span style="margin:0px;padding:0px;">42.188</span></p>
+</td>
+</tr>
+<tr style="margin:0px;padding:0px;">
+<td style="margin:0px;border:1px solid silver;border-collapse:collapse;padding:3px;white-space:nowrap;" valign="top">
+<p style="padding:0px;margin:10px auto;text-indent:0px;"><span style="margin:0px;padding:0px;">0</span></p>
+</td>
+<td style="margin:0px;border:1px solid silver;border-collapse:collapse;padding:3px;white-space:nowrap;" valign="top">
+<p style="padding:0px;margin:10px auto;text-indent:0px;"><span style="margin:0px;padding:0px;">39.375</span></p>
+</td>
+<td style="margin:0px;border:1px solid silver;border-collapse:collapse;padding:3px;white-space:nowrap;" valign="top">
+<p style="padding:0px;margin:10px auto;text-indent:0px;"><span style="margin:0px;padding:0px;">40.07825</span></p>
+</td>
+<td style="margin:0px;border:1px solid silver;border-collapse:collapse;padding:3px;white-space:nowrap;" valign="top">
+<p style="padding:0px;margin:10px auto;text-indent:0px;"><span style="margin:0px;padding:0px;">40.7815</span></p>
+</td>
+</tr>
+<tr style="margin:0px;padding:0px;">
+<td style="margin:0px;border:1px solid silver;border-collapse:collapse;padding:3px;white-space:nowrap;" valign="top">
+<p style="padding:0px;margin:10px auto;text-indent:0px;"><span style="margin:0px;padding:0px;">1</span></p>
+</td>
+<td style="margin:0px;border:1px solid silver;border-collapse:collapse;padding:3px;white-space:nowrap;" valign="top">
+<p style="padding:0px;margin:10px auto;text-indent:0px;"><span style="margin:0px;padding:0px;">39.375</span></p>
+</td>
+<td style="margin:0px;border:1px solid silver;border-collapse:collapse;padding:3px;white-space:nowrap;" valign="top">
+<p style="padding:0px;margin:10px auto;text-indent:0px;"><span style="margin:0px;padding:0px;">39.726625</span></p>
+</td>
+<td style="margin:0px;border:1px solid silver;border-collapse:collapse;padding:3px;white-space:nowrap;" valign="top">
+<p style="padding:0px;margin:10px auto;text-indent:0px;"><span style="margin:0px;padding:0px;">40.07825</span></p>
+</td>
+</tr>
+<tr style="margin:0px;padding:0px;">
+<td style="margin:0px;border:1px solid silver;border-collapse:collapse;padding:3px;white-space:nowrap;" valign="top">
+<p style="padding:0px;margin:10px auto;text-indent:0px;"><span style="margin:0px;padding:0px;">1</span></p>
+</td>
+<td style="margin:0px;border:1px solid silver;border-collapse:collapse;padding:3px;white-space:nowrap;" valign="top">
+<p style="padding:0px;margin:10px auto;text-indent:0px;"><span style="margin:0px;padding:0px;">39.726625</span></p>
+</td>
+<td style="margin:0px;border:1px solid silver;border-collapse:collapse;padding:3px;white-space:nowrap;" valign="top">
+<p style="padding:0px;margin:10px auto;text-indent:0px;"><span style="margin:0px;padding:0px;">39.9024375</span></p>
+</td>
+<td style="margin:0px;border:1px solid silver;border-collapse:collapse;padding:3px;white-space:nowrap;" valign="top">
+<p style="padding:0px;margin:10px auto;text-indent:0px;"><span style="margin:0px;padding:0px;">40.07825</span></p>
+</td>
+</tr>
+</tbody>
+</table>
+<p style="padding:0px;margin:10px auto;text-indent:0px;"><span style="margin:0px;padding:0px;">同理，地球经度区间是[-180,180]，可以对经度</span><span style="margin:0px;padding:0px;">116.389550进行编码。</span></p>
+<p style="padding:0px;margin:10px auto;text-indent:0px;text-align:center;"><span style="margin:0px;padding:0px;">根据经度算编码</span></p>
+<table cellpadding="0" cellspacing="0" style="word-break:break-word;font-size:inherit;font-style:inherit;font-variant:inherit;padding:0px;margin:0px;font-weight:inherit;border-spacing:0px;border-collapse:collapse;border:1px solid silver;display:block;overflow-x:scroll;">
+<tbody style="margin:0px;padding:0px;">
+<tr style="margin:0px;padding:0px;">
+<td style="margin:0px;border:1px solid silver;border-collapse:collapse;padding:3px;white-space:nowrap;" valign="top">
+<p style="padding:0px;margin:10px auto;text-indent:0px;"><span style="margin:0px;padding:0px;"><strong style="margin:0px;padding:0px;">bit</strong></span></p>
+</td>
+<td style="margin:0px;border:1px solid silver;border-collapse:collapse;padding:3px;white-space:nowrap;" valign="top">
+<p style="padding:0px;margin:10px auto;text-indent:0px;"><span style="margin:0px;padding:0px;"><strong style="margin:0px;padding:0px;">min</strong></span></p>
+</td>
+<td style="margin:0px;border:1px solid silver;border-collapse:collapse;padding:3px;white-space:nowrap;" valign="top">
+<p style="padding:0px;margin:10px auto;text-indent:0px;"><span style="margin:0px;padding:0px;"><strong style="margin:0px;padding:0px;">mid</strong></span></p>
+</td>
+<td style="margin:0px;border:1px solid silver;border-collapse:collapse;padding:3px;white-space:nowrap;" valign="top">
+<p style="padding:0px;margin:10px auto;text-indent:0px;"><span style="margin:0px;padding:0px;"><strong style="margin:0px;padding:0px;">max</strong></span></p>
+</td>
+</tr>
+<tr style="margin:0px;padding:0px;">
+<td style="margin:0px;border:1px solid silver;border-collapse:collapse;padding:3px;white-space:nowrap;" valign="top">
+<p style="padding:0px;margin:10px auto;text-indent:0px;"><span style="margin:0px;padding:0px;">1</span></p>
+</td>
+<td style="margin:0px;border:1px solid silver;border-collapse:collapse;padding:3px;white-space:nowrap;" valign="top">
+<p style="padding:0px;margin:10px auto;text-indent:0px;"><span style="margin:0px;padding:0px;">-180</span></p>
+</td>
+<td style="margin:0px;border:1px solid silver;border-collapse:collapse;padding:3px;white-space:nowrap;" valign="top">
+<p style="padding:0px;margin:10px auto;text-indent:0px;"><span style="margin:0px;padding:0px;">0.000</span></p>
+</td>
+<td style="margin:0px;border:1px solid silver;border-collapse:collapse;padding:3px;white-space:nowrap;" valign="top">
+<p style="padding:0px;margin:10px auto;text-indent:0px;"><span style="margin:0px;padding:0px;">180</span></p>
+</td>
+</tr>
+<tr style="margin:0px;padding:0px;">
+<td style="margin:0px;border:1px solid silver;border-collapse:collapse;padding:3px;white-space:nowrap;" valign="top">
+<p style="padding:0px;margin:10px auto;text-indent:0px;"><span style="margin:0px;padding:0px;">1</span></p>
+</td>
+<td style="margin:0px;border:1px solid silver;border-collapse:collapse;padding:3px;white-space:nowrap;" valign="top">
+<p style="padding:0px;margin:10px auto;text-indent:0px;"><span style="margin:0px;padding:0px;">0.000</span></p>
+</td>
+<td style="margin:0px;border:1px solid silver;border-collapse:collapse;padding:3px;white-space:nowrap;" valign="top">
+<p style="padding:0px;margin:10px auto;text-indent:0px;"><span style="margin:0px;padding:0px;">90</span></p>
+</td>
+<td style="margin:0px;border:1px solid silver;border-collapse:collapse;padding:3px;white-space:nowrap;" valign="top">
+<p style="padding:0px;margin:10px auto;text-indent:0px;"><span style="margin:0px;padding:0px;">180</span></p>
+</td>
+</tr>
+<tr style="margin:0px;padding:0px;">
+<td style="margin:0px;border:1px solid silver;border-collapse:collapse;padding:3px;white-space:nowrap;" valign="top">
+<p style="padding:0px;margin:10px auto;text-indent:0px;"><span style="margin:0px;padding:0px;">0</span></p>
+</td>
+<td style="margin:0px;border:1px solid silver;border-collapse:collapse;padding:3px;white-space:nowrap;" valign="top">
+<p style="padding:0px;margin:10px auto;text-indent:0px;"><span style="margin:0px;padding:0px;">90</span></p>
+</td>
+<td style="margin:0px;border:1px solid silver;border-collapse:collapse;padding:3px;white-space:nowrap;" valign="top">
+<p style="padding:0px;margin:10px auto;text-indent:0px;"><span style="margin:0px;padding:0px;">135</span></p>
+</td>
+<td style="margin:0px;border:1px solid silver;border-collapse:collapse;padding:3px;white-space:nowrap;" valign="top">
+<p style="padding:0px;margin:10px auto;text-indent:0px;"><span style="margin:0px;padding:0px;">180</span></p>
+</td>
+</tr>
+<tr style="margin:0px;padding:0px;">
+<td style="margin:0px;border:1px solid silver;border-collapse:collapse;padding:3px;white-space:nowrap;" valign="top">
+<p style="padding:0px;margin:10px auto;text-indent:0px;"><span style="margin:0px;padding:0px;">1</span></p>
+</td>
+<td style="margin:0px;border:1px solid silver;border-collapse:collapse;padding:3px;white-space:nowrap;" valign="top">
+<p style="padding:0px;margin:10px auto;text-indent:0px;"><span style="margin:0px;padding:0px;">90</span></p>
+</td>
+<td style="margin:0px;border:1px solid silver;border-collapse:collapse;padding:3px;white-space:nowrap;" valign="top">
+<p style="padding:0px;margin:10px auto;text-indent:0px;"><span style="margin:0px;padding:0px;">112.5</span></p>
+</td>
+<td style="margin:0px;border:1px solid silver;border-collapse:collapse;padding:3px;white-space:nowrap;" valign="top">
+<p style="padding:0px;margin:10px auto;text-indent:0px;"><span style="margin:0px;padding:0px;">135</span></p>
+</td>
+</tr>
+<tr style="margin:0px;padding:0px;">
+<td style="margin:0px;border:1px solid silver;border-collapse:collapse;padding:3px;white-space:nowrap;" valign="top">
+<p style="padding:0px;margin:10px auto;text-indent:0px;"><span style="margin:0px;padding:0px;">0</span></p>
+</td>
+<td style="margin:0px;border:1px solid silver;border-collapse:collapse;padding:3px;white-space:nowrap;" valign="top">
+<p style="padding:0px;margin:10px auto;text-indent:0px;"><span style="margin:0px;padding:0px;">112.5</span></p>
+</td>
+<td style="margin:0px;border:1px solid silver;border-collapse:collapse;padding:3px;white-space:nowrap;" valign="top">
+<p style="padding:0px;margin:10px auto;text-indent:0px;"><span style="margin:0px;padding:0px;">123.75</span></p>
+</td>
+<td style="margin:0px;border:1px solid silver;border-collapse:collapse;padding:3px;white-space:nowrap;" valign="top">
+<p style="padding:0px;margin:10px auto;text-indent:0px;"><span style="margin:0px;padding:0px;">135</span></p>
+</td>
+</tr>
+<tr style="margin:0px;padding:0px;">
+<td style="margin:0px;border:1px solid silver;border-collapse:collapse;padding:3px;white-space:nowrap;" valign="top">
+<p style="padding:0px;margin:10px auto;text-indent:0px;"><span style="margin:0px;padding:0px;">0</span></p>
+</td>
+<td style="margin:0px;border:1px solid silver;border-collapse:collapse;padding:3px;white-space:nowrap;" valign="top">
+<p style="padding:0px;margin:10px auto;text-indent:0px;"><span style="margin:0px;padding:0px;">112.5</span></p>
+</td>
+<td style="margin:0px;border:1px solid silver;border-collapse:collapse;padding:3px;white-space:nowrap;" valign="top">
+<p style="padding:0px;margin:10px auto;text-indent:0px;"><span style="margin:0px;padding:0px;">118.125</span></p>
+</td>
+<td style="margin:0px;border:1px solid silver;border-collapse:collapse;padding:3px;white-space:nowrap;" valign="top">
+<p style="padding:0px;margin:10px auto;text-indent:0px;"><span style="margin:0px;padding:0px;">123.75</span></p>
+</td>
+</tr>
+<tr style="margin:0px;padding:0px;">
+<td style="margin:0px;border:1px solid silver;border-collapse:collapse;padding:3px;white-space:nowrap;" valign="top">
+<p style="padding:0px;margin:10px auto;text-indent:0px;"><span style="margin:0px;padding:0px;">1</span></p>
+</td>
+<td style="margin:0px;border:1px solid silver;border-collapse:collapse;padding:3px;white-space:nowrap;" valign="top">
+<p style="padding:0px;margin:10px auto;text-indent:0px;"><span style="margin:0px;padding:0px;">112.5</span></p>
+</td>
+<td style="margin:0px;border:1px solid silver;border-collapse:collapse;padding:3px;white-space:nowrap;" valign="top">
+<p style="padding:0px;margin:10px auto;text-indent:0px;"><span style="margin:0px;padding:0px;">115.3125</span></p>
+</td>
+<td style="margin:0px;border:1px solid silver;border-collapse:collapse;padding:3px;white-space:nowrap;" valign="top">
+<p style="padding:0px;margin:10px auto;text-indent:0px;"><span style="margin:0px;padding:0px;">118.125</span></p>
+</td>
+</tr>
+<tr style="margin:0px;padding:0px;">
+<td style="margin:0px;border:1px solid silver;border-collapse:collapse;padding:3px;white-space:nowrap;" valign="top">
+<p style="padding:0px;margin:10px auto;text-indent:0px;"><span style="margin:0px;padding:0px;">0</span></p>
+</td>
+<td style="margin:0px;border:1px solid silver;border-collapse:collapse;padding:3px;white-space:nowrap;" valign="top">
+<p style="padding:0px;margin:10px auto;text-indent:0px;"><span style="margin:0px;padding:0px;">115.3125</span></p>
+</td>
+<td style="margin:0px;border:1px solid silver;border-collapse:collapse;padding:3px;white-space:nowrap;" valign="top">
+<p style="padding:0px;margin:10px auto;text-indent:0px;"><span style="margin:0px;padding:0px;">116.71875</span></p>
+</td>
+<td style="margin:0px;border:1px solid silver;border-collapse:collapse;padding:3px;white-space:nowrap;" valign="top">
+<p style="padding:0px;margin:10px auto;text-indent:0px;"><span style="margin:0px;padding:0px;">118.125</span></p>
+</td>
+</tr>
+<tr style="margin:0px;padding:0px;">
+<td style="margin:0px;border:1px solid silver;border-collapse:collapse;padding:3px;white-space:nowrap;" valign="top">
+<p style="padding:0px;margin:10px auto;text-indent:0px;"><span style="margin:0px;padding:0px;">1</span></p>
+</td>
+<td style="margin:0px;border:1px solid silver;border-collapse:collapse;padding:3px;white-space:nowrap;" valign="top">
+<p style="padding:0px;margin:10px auto;text-indent:0px;"><span style="margin:0px;padding:0px;">115.3125</span></p>
+</td>
+<td style="margin:0px;border:1px solid silver;border-collapse:collapse;padding:3px;white-space:nowrap;" valign="top">
+<p style="padding:0px;margin:10px auto;text-indent:0px;"><span style="margin:0px;padding:0px;">116.015625</span></p>
+</td>
+<td style="margin:0px;border:1px solid silver;border-collapse:collapse;padding:3px;white-space:nowrap;" valign="top">
+<p style="padding:0px;margin:10px auto;text-indent:0px;"><span style="margin:0px;padding:0px;">116.71875</span></p>
+</td>
+</tr>
+<tr style="margin:0px;padding:0px;">
+<td style="margin:0px;border:1px solid silver;border-collapse:collapse;padding:3px;white-space:nowrap;" valign="top">
+<p style="padding:0px;margin:10px auto;text-indent:0px;"><span style="margin:0px;padding:0px;">1</span></p>
+</td>
+<td style="margin:0px;border:1px solid silver;border-collapse:collapse;padding:3px;white-space:nowrap;" valign="top">
+<p style="padding:0px;margin:10px auto;text-indent:0px;"><span style="margin:0px;padding:0px;">116.015625</span></p>
+</td>
+<td style="margin:0px;border:1px solid silver;border-collapse:collapse;padding:3px;white-space:nowrap;" valign="top">
+<p style="padding:0px;margin:10px auto;text-indent:0px;"><span style="margin:0px;padding:0px;">116.3671875</span></p>
+</td>
+<td style="margin:0px;border:1px solid silver;border-collapse:collapse;padding:3px;white-space:nowrap;" valign="top">
+<p style="padding:0px;margin:10px auto;text-indent:0px;"><span style="margin:0px;padding:0px;">116.71875</span></p>
+</td>
+</tr>
+</tbody>
+</table>
+<p style="padding:0px;margin:10px auto;text-indent:0px;"> </p>
+<p style="padding:0px;margin:10px auto;text-indent:0px;"><span style="margin:0px;padding:0px;">2.2. 组码</span></p>
+<p style="padding:0px;margin:10px auto;text-indent:0px;"><span style="margin:0px;padding:0px;">　　通过上述计算，纬度产生的编码为10111 00011，经度产生的编码为11010 01011。偶数位放经度，奇数位放纬度，把2串编码组合生成新串：11100 11101 00100 01111。</span></p>
+<p style="padding:0px;margin:10px auto;text-indent:0px;"><span style="margin:0px;padding:0px;">　　最后使用用0-9、b-z（去掉a, i, l, o）这32个字母进行base32编码，首先将11100 11101 00100 01111转成十进制，对应着28、29、4、15，十进制对应的编码就是wx4g。</span><span style="margin:0px;padding:0px;">同理，将编码转换成经纬度的解码算法与之相反，具体不再赘述。</span></p>
+<p style="padding:0px;margin:10px auto;text-indent:0px;text-align:center;"><span style="margin:0px;padding:0px;"><img src="GeoHash核心原理解析 - zhanlijun - 博客园_files/09185841-f7b45cc7e26b45aeac6ff6dc5fa9708c.png" type="image/png" data-filename="09185841-f7b45cc7e26b45aeac6ff6dc5fa9708c.png" height="173" style="margin:0px;padding:0px;border:0px;height:auto;max-width:300px;" width="631"/></span></p>
+<p style="padding:0px;margin:10px auto;text-indent:0px;"><span style="margin:0px;padding:0px;"><strong style="margin:0px;padding:0px;">三、GeoHash Base32编码长度与精度</strong></span></p>
+<p style="padding:0px;margin:10px auto;text-indent:0px;"><span style="margin:0px;padding:0px;">　　下表摘自维基百科：<a href="http://en.wikipedia.org/wiki/Geohash" style="margin:0px;padding:0px;color:black;text-decoration:underline;"><span style="margin:0px;padding:0px;">http://en.wikipedia.org/wiki/Geohash</span></a></span></p>
+<p style="padding:0px;margin:10px auto;text-indent:0px;"><span style="margin:0px;padding:0px;">　　可以看出，当geohash base32编码长度为8时，精度在19米左右，而当编码长度为9时，精度在2米左右，编码长度需要根据数据情况进行选择。</span></p>
+<p style="padding:0px;margin:10px auto;text-indent:0px;"><span style="margin:0px;padding:0px;"><img src="GeoHash核心原理解析 - zhanlijun - 博客园_files/09185913-9f6f65fc3d3c40ecb3328970831c625c.png" type="image/png" data-filename="09185913-9f6f65fc3d3c40ecb3328970831c625c.png" height="348" style="margin:0px;padding:0px;border:0px;height:auto;max-width:300px;display:block;margin-left:auto;margin-right:auto;" width="480"/></span></p>
+<p style="padding:0px;margin:10px auto;text-indent:0px;"><span style="margin:0px;padding:0px;"><strong style="margin:0px;padding:0px;">三、GeoHash算法</strong></span></p>
+<p style="padding:0px;margin:10px auto;text-indent:0px;"><span style="margin:0px;padding:0px;">　　上文讲了GeoHash的计算步骤，仅仅说明是什么而没有说明为什么？为什么分别给经度和维度编码？为什么需要将经纬度两串编码交叉组合成一串编码？本节试图回答这一问题。</span></p>
+<p style="padding:0px;margin:10px auto;text-indent:0px;"><span style="margin:0px;padding:0px;">　　如图所示，我们将二进制编码的结果填写到空间中，当将空间划分为四块时候，编码的顺序分别是左下角00，左上角01，右下脚10，右上角11，也就是类似于Z的曲线，当我们递归的将各个块分解成更小的子块时，编码的顺序是自相似的（分形），每一个子快也形成Z曲线，这种类型的曲线被称为Peano空间填充曲线。</span></p>
+<p style="padding:0px;margin:10px auto;text-indent:0px;"><span style="margin:0px;padding:0px;">　　这种类型的空间填充曲线的优点是将二维空间转换成一维曲线（事实上是分形维），对大部分而言，编码相似的距离也相近， 但Peano空间填充曲线最大的缺点就是突变性，有些编码相邻但距离却相差很远，比如0111与1000，编码是相邻的，但距离相差很大。</span></p>
+<p style="padding:0px;margin:10px auto;text-indent:0px;"><span style="margin:0px;padding:0px;"><img src="GeoHash核心原理解析 - zhanlijun - 博客园_files/09185941-53f7b0f1a9b6407eb5cd06b028d98fb8.png" type="image/png" data-filename="09185941-53f7b0f1a9b6407eb5cd06b028d98fb8.png" height="287" style="margin:0px;padding:0px;border:0px;height:auto;max-width:300px;display:block;margin-left:auto;margin-right:auto;" width="673"/></span></p>
+<p style="padding:0px;margin:10px auto;text-indent:0px;"><span style="margin:0px;padding:0px;">　　</span></p>
+<p style="padding:0px;margin:10px auto;text-indent:0px;"><span style="margin:0px;padding:0px;">　　除Peano空间填充曲线外，还有很多空间填充曲线，如图所示，其中效果公认较好是Hilbert空间填充曲线，相较于Peano曲线而言，Hilbert曲线没有较大的突变。为什么GeoHash不选择Hilbert空间填充曲线呢？可能是Peano曲线思路以及计算上比较简单吧，事实上，Peano曲线就是一种四叉树线性编码方式。</span></p>
+<p style="padding:0px;margin:10px auto;text-indent:0px;"><span style="margin:0px;padding:0px;"><img src="GeoHash核心原理解析 - zhanlijun - 博客园_files/09190057-edd8e085d8b84456ba1afd1b4bf99318.png" type="image/png" data-filename="09190057-edd8e085d8b84456ba1afd1b4bf99318.png" height="306" style="margin:0px;padding:0px;border:0px;height:auto;max-width:300px;display:block;margin-left:auto;margin-right:auto;" width="513"/></span><span style="margin:0px;padding:0px;"><span style="margin:0px;padding:0px;font-size:14px;line-height:1.5;"> </span></span></p>
+<p style="padding:0px;margin:10px auto;text-indent:0px;"><span style="margin:0px;padding:0px;"><strong style="margin:0px;padding:0px;">四、使用注意点</strong></span></p>
+<p style="padding:0px;margin:10px auto;text-indent:0px;"> <span style="margin:0px;padding:0px;">1）由于GeoHash是将区域划分为一个个规则矩形，并对每个矩形进行编码，这样在查询附近POI信息时会导致以下问题，比如红色的点是我们的位置，绿色的两个点分别是附近的两个餐馆，但是在查询的时候会发现距离较远餐馆的GeoHash编码与我们一样（因为在同一个GeoHash区域块上），而较近餐馆的GeoHash编码与我们不一致。这个问题往往产生在边界处。</span></p>
+<p style="padding:0px;margin:10px auto;text-indent:0px;text-align:center;"><span style="margin:0px;padding:0px;"><img src="GeoHash核心原理解析 - zhanlijun - 博客园_files/09190137-edd3b1fe3d754c5d836e2812ac298674.png" type="image/png" data-filename="09190137-edd3b1fe3d754c5d836e2812ac298674.png" height="218" style="margin:0px;padding:0px;border:0px;height:auto;max-width:300px;" width="201"/></span></p>
+<p style="padding:0px;margin:10px auto;text-indent:0px;"><span style="margin:0px;padding:0px;">解决的思路很简单，我们查询时，除了使用定位点的GeoHash编码进行匹配外，还使用周围8个区域的GeoHash编码，这样可以避免这个问题。</span> </p>
+<p style="padding:0px;margin:10px auto;text-indent:0px;"><span style="margin:0px;padding:0px;">2）我们已经知道现有的GeoHash算法使用的是Peano空间填充曲线，这种曲线会产生突变，造成了编码虽然相似但距离可能相差很大的问题，因此在查询附近餐馆时候，首先筛选GeoHash编码相似的POI点，然后进行实际距离计算。</span></p>
+<p style="padding:0px;margin:10px auto;text-indent:0px;"><span style="margin:0px;padding:0px;">      geohash只是空间索引的一种方式，特别适合点数据，而对线、面数据采用R树索引更有优势（可参考：</span><strong style="margin:0px;padding:0px;"><span style="margin:0px;padding:0px;font-size:14px;color:#3366ff;"><a href="http://www.cnblogs.com/LBSer/p/3392491.html" style="margin:0px;padding:0px;color:black;text-decoration:underline;"><span style="margin:0px;padding:0px;color:#3366ff;">深入浅出空间索引：为什么需要空间索引</span></a></span></strong><span style="margin:0px;padding:0px;">）。</span></p>
+<p style="padding:0px;margin:10px auto;text-indent:0px;"> </p>
+<p style="padding:0px;margin:10px auto;text-indent:0px;">参考文献：</p>
+<p style="padding:0px;margin:10px auto;text-indent:0px;"><a href="http://en.wikipedia.org/wiki/Geohash" rel="nofollow" style="margin:0px;padding:0px;color:black;text-decoration:underline;" target="_blank">http://en.wikipedia.org/wiki/Geohash</a></p>
+<p style="padding:0px;margin:10px auto;text-indent:0px;"><span style="margin:0px;padding:0px;"><a href="http://openlocation.org/geohash/geohash-js/" rel="nofollow" style="margin:0px;padding:0px;color:black;text-decoration:underline;" target="_blank">http://openlocation.org/geohash/geohash-js/</a></span><span style="margin:0px;padding:0px;"> </span></p>
+<p style="padding:0px;margin:10px auto;text-indent:0px;"><span style="margin:0px;padding:0px;">Cantor空間填充曲線之演算法探討.pdf</span></p></div><div style="display:block;margin:0px;padding:0px;">转载请标明源地址：http://www.cnblogs.com/LBSer</div>
+<div style="margin:0px;padding:0px;clear:both;"></div>
+<div style="margin:0px;padding:0px;margin-top:20px;">
+<div style="margin:0px;padding:0px;margin-bottom:10px;">分类: <a href="http://www.cnblogs.com/LBSer/category/575692.html" style="margin:0px;padding:0px;color:black;text-decoration:underline;" target="_blank">空间索引原理</a></div>
+<div style="margin:0px;padding:0px;font-size:9pt;color:rgb(102, 102, 102);margin-top:0px;">标签: <a href="http://www.cnblogs.com/LBSer/tag/lbs%20%E5%AE%9A%E4%BD%8D/" style="margin:0px;padding:0px;text-decoration:underline;margin-left:5px;color:rgb(102, 102, 102);">lbs 定位</a>, <a href="http://www.cnblogs.com/LBSer/tag/%E7%B4%A2%E5%BC%95/" style="margin:0px;padding:0px;text-decoration:underline;margin-left:5px;color:rgb(102, 102, 102);">索引</a></div>
+<div style="margin:0px;padding:0px;"><div style="margin:0px;padding:10px 0px;margin-bottom:10px;margin-top:10px;border:1px dashed silver;font-size:12px;width:320px;text-align:center;">
+        <a href="#" style="margin-right:10px;margin:0px;border-radius:10px;padding:3px 8px;text-decoration:none;font-weight:bold;cursor:pointer;display:inline-block;vertical-align:middle;box-shadow:rgba(0, 0, 0, 0.498039) 0px 1px 3px;text-shadow:rgba(0, 0, 0, 0.247059) 0px -1px 1px;background:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAAkCAYAAABIdFAMAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAHhJREFUeNo8zjsOxCAMBFB/KEAUFFR0Cbng3nQPw68ArZdAlOZppPFIBhH5EAB8b+Tlt9MYQ6i1BuqFaq1CKSVcxZ2Acs6406KUgpt5/LCKuVgz5BDCSb13ZO99ZOdcZGvt4mJjzMVKqcha68iIePB86GAiOv8CDADlIUQBs7MD3wAAAABJRU5ErkJggg%3D%3D) repeat-x;background-color:rgb(45, 174, 191);color:rgb(255, 255, 255);border:none;">好文要顶</a>
+            <a href="#" style="margin-right:10px;margin:0px;border-radius:10px;padding:3px 8px;text-decoration:none;font-weight:bold;cursor:pointer;display:inline-block;vertical-align:middle;box-shadow:rgba(0, 0, 0, 0.498039) 0px 1px 3px;text-shadow:rgba(0, 0, 0, 0.247059) 0px -1px 1px;background:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAAkCAYAAABIdFAMAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAHhJREFUeNo8zjsOxCAMBFB/KEAUFFR0Cbng3nQPw68ArZdAlOZppPFIBhH5EAB8b+Tlt9MYQ6i1BuqFaq1CKSVcxZ2Acs6406KUgpt5/LCKuVgz5BDCSb13ZO99ZOdcZGvt4mJjzMVKqcha68iIePB86GAiOv8CDADlIUQBs7MD3wAAAABJRU5ErkJggg%3D%3D) repeat-x;background-color:rgb(227, 49, 0);color:rgb(255, 255, 255);border:none;">关注我</a>
+    <a href="#" style="margin-right:10px;margin:0px;border-radius:10px;padding:3px 8px;text-decoration:none;font-weight:bold;cursor:pointer;display:inline-block;vertical-align:middle;box-shadow:rgba(0, 0, 0, 0.498039) 0px 1px 3px;text-shadow:rgba(0, 0, 0, 0.247059) 0px -1px 1px;background:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAAkCAYAAABIdFAMAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAHhJREFUeNo8zjsOxCAMBFB/KEAUFFR0Cbng3nQPw68ArZdAlOZppPFIBhH5EAB8b+Tlt9MYQ6i1BuqFaq1CKSVcxZ2Acs6406KUgpt5/LCKuVgz5BDCSb13ZO99ZOdcZGvt4mJjzMVKqcha68iIePB86GAiOv8CDADlIUQBs7MD3wAAAABJRU5ErkJggg%3D%3D) repeat-x;background-color:rgb(255, 181, 21);color:rgb(255, 255, 255);border:none;">收藏该文</a>
+    <a href="#" style="margin-right:10px;margin:0px;border-radius:10px;padding:3px 2px;text-decoration:none;font-weight:bold;cursor:pointer;display:inline-block;vertical-align:middle;box-shadow:none;text-shadow:none;background:none;color:rgb(255, 255, 255);border:none;" title="分享至新浪微博"><img src="GeoHash核心原理解析 - zhanlijun - 博客园_files/icon_weibo_24.png" type="image/png" data-filename="icon_weibo_24.png" height="24" style="margin:0px;padding:0px;height:auto;border:none;vertical-align:middle;margin-left:5px;box-shadow:none;max-width:300px;" width="24"/></a>
+    <a href="#" style="margin-right:10px;margin:0px;border-radius:10px;padding:3px 2px;text-decoration:none;font-weight:bold;cursor:pointer;display:inline-block;vertical-align:middle;box-shadow:none;text-shadow:none;background:none;color:rgb(255, 255, 255);border:none;" title="分享至微信"><img src="GeoHash核心原理解析 - zhanlijun - 博客园_files/wechat.png" type="image/png" data-filename="wechat.png" height="24" style="margin:0px;padding:0px;border:medium none;width:24px;height:24px;box-shadow:none;margin-left:5px;vertical-align:middle;max-width:300px;" width="24"/></a>
+</div>
+<div style="margin:0px;padding:0px;float:left;width:280px;margin-top:0px;margin-bottom:10px;color:rgb(0, 0, 0);margin-left:0px;font-size:12px;">
+    <div style="margin:0px;padding:0px;float:left;line-height:18px;">
+            <a href="http://home.cnblogs.com/u/LBSer/" style="margin:0px;padding:0px;color:black;text-decoration:underline;" target="_blank"><img src="GeoHash核心原理解析 - zhanlijun - 博客园_files/20150808185035.png" type="image/png" data-filename="20150808185035.png" height="48" style="margin:0px;padding:0px;height:auto;border:0px;vertical-align:top;float:left;margin-right:5px;padding-top:5px;padding-left:2px;max-width:300px;" width="48"/></a>
+        <div style="margin:0px;padding:0px;float:left;line-height:18px;">
+            <a href="http://home.cnblogs.com/u/LBSer/" style="margin:0px;padding:0px;color:black;text-decoration:underline;">zhanlijun</a><br style="margin:0px;padding:0px;"/>
+            <a href="http://home.cnblogs.com/u/LBSer/followees" style="margin:0px;padding:0px;color:black;text-decoration:underline;">关注 - 5</a><br style="margin:0px;padding:0px;"/>
+            <a href="http://home.cnblogs.com/u/LBSer/followers" style="margin:0px;padding:0px;color:black;text-decoration:underline;">粉丝 - 759</a>
+        </div>
+    </div>
+    <div style="margin:0px;padding:0px;clear:both;"></div>
+    <div style="margin:0px;padding:0px;"></div>
+    <div style="margin:0px;padding:0px;">
+                <a href="#" style="margin:0px;padding:0px;color:black;text-decoration:underline;">+加关注</a>
+    </div>
+</div>
+<div style="margin:0px;padding:0px;float:right;margin-bottom:10px;margin-right:30px;font-size:12px;width:125px;text-align:center;margin-top:10px;">
+    <div style="margin:0px;padding:0px;float:left;width:46px;height:52px;background:url(//static.cnblogs.com/images/upup.gif) no-repeat;text-align:center;cursor:pointer;margin-top:2px;padding-top:5px;">
+        <span style="margin:0px;padding:0px;font-size:14px;color:rgb(7, 93, 179);font-family:Verdana;line-height:1.5em;">14</span>
+    </div>
+    <div style="text-align:center;padding:0px;margin:0px;height:52px;background:url(//static.cnblogs.com/images/downdown.gif) no-repeat;margin-left:20px;cursor:pointer;margin-top:2px;padding-top:5px;width:46px;float:right;">
+        <span style="margin:0px;padding:0px;font-size:14px;color:rgb(7, 93, 179);font-family:Verdana;line-height:1.5em;">0</span>
+    </div>
+    <div style="margin:0px;padding:0px;clear:both;"></div>
+    <div style="margin:0px;padding:0px;margin-top:5px;margin-left:0px;font-size:12px;color:gray;">
+    </div>
+</div>
+</div>
+<div style="margin:0px;padding:0px;clear:both;"></div>
+<div style="margin:0px;padding:0px;line-height:1.8;font-size:12px;"><a href="http://www.cnblogs.com/LBSer/p/3298057.html" style="margin:0px;padding:0px;color:black;text-decoration:none;">« </a> 上一篇：<a href="http://www.cnblogs.com/LBSer/p/3298057.html" style="margin:0px;padding:0px;color:black;text-decoration:underline;" title="发布于2013-09-03 09:32">Geohash距离估算</a><br style="margin:0px;padding:0px;"/><a href="http://www.cnblogs.com/LBSer/p/3322630.html" style="margin:0px;padding:0px;color:black;text-decoration:none;">» </a> 下一篇：<a href="http://www.cnblogs.com/LBSer/p/3322630.html" style="margin:0px;padding:0px;color:black;text-decoration:underline;" title="发布于2013-09-15 15:52">位图索引:原理（BitMap index）</a><br style="margin:0px;padding:0px;"/></div>
+</div>
+
+
+		</div>
+		<div style="margin:0px;padding:0px;clear:both;line-height:2.5em;float:right;width:100%;text-align:right;padding-right:5px;color:rgb(102, 102, 102);margin-top:5px;">posted @ <span style="margin:0px;padding:0px;">2013-09-09 19:03</span> <a href="http://www.cnblogs.com/LBSer/" style="margin:0px;padding:0px;text-decoration:none;color:rgb(102, 102, 102);">zhanlijun</a> 阅读(<span style="margin:0px;padding:0px;">56566</span>) 评论(<span style="margin:0px;padding:0px;">22</span>)  <a href="https://i.cnblogs.com/EditPosts.aspx?postid=3310455" rel="nofollow" style="margin:0px;padding:0px;text-decoration:none;color:rgb(102, 102, 102);">编辑</a> <a href="https://www.cnblogs.com/LBSer/p/3310455.html#" style="margin:0px;padding:0px;text-decoration:none;color:rgb(102, 102, 102);">收藏</a></div>
+	</div></div></div></div></div></div></div></div></div></div>
+</div>
+</span>
+</div></body></html> 

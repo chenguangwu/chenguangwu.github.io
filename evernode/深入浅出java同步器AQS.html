@@ -1,0 +1,263 @@
+<html>
+<head>
+  <title>深入浅出java同步器AQS</title>
+  <basefont face="微软雅黑" size="2" />
+  <meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+  <meta name="exporter-version" content="YXBJ Windows/600718 (zh-CN, DDL); Windows/6.1.1 (Win64);"/>
+  <style>
+    body, td {
+      font-family: 微软雅黑;
+      font-size: 10pt;
+    }
+  </style>
+</head>
+<body>
+<a name="2648"/>
+<h1>深入浅出java同步器AQS</h1>
+<div>
+<table bgcolor="#D4DDE5" border="0">
+<tr><td><b>创建时间：</b></td><td><i>2018/8/8 15:01</i></td></tr>
+<tr><td><b>来源：</b></td><td><a href="https://www.jianshu.com/p/d8eeb31bee5c"><i>https://www.jianshu.com/p/d8eeb31bee5c</i></a></td></tr>
+</table>
+</div>
+<br/>
+
+<div><span>
+  <div>
+<div style="font-size: 16px; display: inline-block; min-width: 100%;position: relative;"><div style="box-sizing:border-box;font-family:sans-serif;text-size-adjust:100%;font-size:10px;-webkit-tap-highlight-color:transparent;"><div style="box-sizing:border-box;font-size:17px;line-height:1.42857;background-color:rgb(255, 255, 255);min-width:768px;color:rgb(51, 51, 51);font-family:-apple-system, &quot;SF UI Text&quot;, Arial, &quot;PingFang SC&quot;, &quot;Hiragino Sans GB&quot;, &quot;Microsoft YaHei&quot;, &quot;WenQuanYi Micro Hei&quot;, sans-serif;"><div style="box-sizing:border-box;"><div style="box-sizing:border-box;"><div style="box-sizing:border-box;">
+        <h1 style="box-sizing:border-box;color:inherit;margin-top:20px;margin-bottom:10px;font-size:34px;margin:20px 0px 0px;font-family:-apple-system, &quot;SF UI Display&quot;, Arial, &quot;PingFang SC&quot;, &quot;Hiragino Sans GB&quot;, &quot;Microsoft YaHei&quot;, &quot;WenQuanYi Micro Hei&quot;, sans-serif;font-weight:700;line-height:1.3;word-break:break-word;">深入浅出java同步器AQS</h1>
+
+        
+        <div style="box-sizing:border-box;margin:30px 0px 40px;">
+          <a href="https://www.jianshu.com/u/90ab66c248e6" style="box-sizing:border-box;background-color:transparent;color:rgb(51, 51, 51);text-decoration:none;cursor:pointer;width:48px;height:48px;display:inline-block;vertical-align:middle;">
+            <img src="深入浅出java同步器AQS_files/96" type="image/png" data-filename="96" height="46" style="box-sizing:border-box;vertical-align:middle;border:1px solid rgb(221, 221, 221);width:100%;height:100%;border-radius:50%;" width="46"/>
+</a>          <div style="box-sizing:border-box;vertical-align:middle;display:inline-block;margin-left:8px;">
+            <span style="box-sizing:border-box;margin-right:3px;font-size:16px;vertical-align:middle;"><a href="https://www.jianshu.com/u/90ab66c248e6" style="box-sizing:border-box;background-color:transparent;color:rgb(51, 51, 51);text-decoration:none;cursor:pointer;">占小狼</a></span>
+              <img src="深入浅出java同步器AQS_files/595a1b60-08f6-4beb-998f-2bf55e230555" type="image/png" data-filename="595a1b60-08f6-4beb-998f-2bf55e230555" height="20" style="box-sizing:border-box;vertical-align:middle;border:0px;margin-right:5px;width:20px;height:20px;border-radius:0px;" title="" width="20"/>
+            
+            <a style="cursor:pointer;box-sizing:border-box;border:1px solid rgba(151, 151, 151, 0.6);text-decoration:none;white-space:nowrap;margin-bottom:0px;text-align:center;vertical-align:middle;touch-action:manipulation;color:rgb(140, 140, 140);display:inline-block;font-weight:400;user-select:none;border-radius:40px;line-height:normal;background:none;font-size:12px;padding:0px 7px 0px 5px;"><i style="box-sizing:border-box;font-size:inherit;font-style:normal;-webkit-font-smoothing:antialiased;font-family:iconfont;font-weight:400;"><span style="font-size:inherit;font-style:normal;font-family:iconfont;font-weight:400;"></span></i><span style="box-sizing:border-box;margin-left:2px;display:inline;">已关注</span></a>
+            
+            <div style="box-sizing:border-box;margin-top:5px;font-size:12px;color:rgb(150, 150, 150);">
+              
+                <span style="box-sizing:border-box;padding-right:5px;" title="">2016.07.11 16:37*</span>
+              <span style="box-sizing:border-box;padding-right:5px;">字数 1375</span>
+            <span style="box-sizing:border-box;padding-right:5px;">阅读 22612</span><span style="box-sizing:border-box;padding-right:5px;">评论 50</span><span style="box-sizing:border-box;padding-right:5px;">喜欢 134</span><span style="box-sizing:border-box;padding-right:5px;">赞赏 2</span></div>
+          </div>
+          
+        </div>
+
+
+        
+        <div style="box-sizing:border-box;color:rgb(47, 47, 47);font-size:16px;font-weight:400;line-height:1.7;word-break:break-word;">
+          <div style="box-sizing:border-box;">
+            <blockquote style="box-sizing:border-box;margin:0px 0px 20px;padding:20px;font-size:16px;border-left:6px solid rgb(180, 180, 180);margin-bottom:25px;background-color:rgb(247, 247, 247);font-weight:400;line-height:30px;word-break:break-word;">
+<p style="box-sizing:border-box;margin:0px 0px 25px;font-size:16px;font-weight:400;line-height:1.7;margin-bottom:0px;word-break:break-word;">简书 <a href="https://www.jianshu.com/users/90ab66c248e6/latest_articles" style="box-sizing:border-box;background-color:transparent;text-decoration:none;cursor:pointer;color:rgb(49, 148, 208);" target="_blank">占小狼</a><br style="box-sizing:border-box;"/>
+转载请注明原创出处，谢谢！</p>
+</blockquote>
+<h3 style="box-sizing:border-box;font-family:inherit;margin-top:20px;margin-bottom:10px;font-weight:700;line-height:1.7;color:rgb(47, 47, 47);font-size:22px;margin:0px 0px 15px;text-rendering:optimizeLegibility;">前言</h3>
+<p style="box-sizing:border-box;margin:0px 0px 25px;word-break:break-word;">在java.util.concurrent.locks包中有很多Lock的实现类，常用的有ReentrantLock、ReadWriteLock（实现类ReentrantReadWriteLock），内部实现都依赖AbstractQueuedSynchronizer类，接下去让我们看看Doug Lea大神是如何使用一个普通类就完成了代码块的并发访问控制。为了方便，本文中使用AQS代替AbstractQueuedSynchronizer。</p>
+<h3 style="box-sizing:border-box;font-family:inherit;margin-top:20px;margin-bottom:10px;font-weight:700;line-height:1.7;color:rgb(47, 47, 47);font-size:22px;margin:0px 0px 15px;text-rendering:optimizeLegibility;">定义</h3>
+<pre style="word-wrap:normal;background-color:rgb(245, 245, 245);border:1px solid rgb(204, 204, 204);box-sizing:border-box;font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;line-height:1.42857;margin:0px 0px 10px;border-radius:4px;padding:15px;display:block;color:rgb(171, 178, 191);font-size:13px;background:rgb(40, 44, 52);margin-bottom:20px;white-space:pre;overflow-x:auto;overflow:auto;word-break:break-word;"><code style="box-sizing:border-box;font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;color:inherit;border-radius:0px;font-size:12px;border:none;vertical-align:middle;background-color:transparent;padding:0px;white-space:pre;"><span style="box-sizing:border-box;color:rgb(198, 120, 221);">public</span> <span style="box-sizing:border-box;color:rgb(198, 120, 221);">abstract</span> <span style="box-sizing:border-box;"><span style="box-sizing:border-box;color:rgb(198, 120, 221);">class</span> <span style="box-sizing:border-box;color:rgb(230, 192, 123);">AbstractQueuedSynchronizer</span> <span style="box-sizing:border-box;color:rgb(198, 120, 221);">extends</span>
+    <span style="box-sizing:border-box;color:rgb(230, 192, 123);">AbstractOwnableSynchronizer</span> <span style="box-sizing:border-box;color:rgb(198, 120, 221);">implements</span> <span style="box-sizing:border-box;color:rgb(230, 192, 123);">java</span>.<span style="box-sizing:border-box;color:rgb(230, 192, 123);">io</span>.<span style="box-sizing:border-box;color:rgb(230, 192, 123);">Serializable</span> </span>{ 
+    <span style="box-sizing:border-box;color:rgb(92, 99, 112);font-style:italic;">//等待队列的头节点</span>
+    <span style="box-sizing:border-box;color:rgb(198, 120, 221);">private</span> <span style="box-sizing:border-box;color:rgb(198, 120, 221);">transient</span> <span style="box-sizing:border-box;color:rgb(198, 120, 221);">volatile</span> Node head;
+    <span style="box-sizing:border-box;color:rgb(92, 99, 112);font-style:italic;">//等待队列的尾节点</span>
+    <span style="box-sizing:border-box;color:rgb(198, 120, 221);">private</span> <span style="box-sizing:border-box;color:rgb(198, 120, 221);">transient</span> <span style="box-sizing:border-box;color:rgb(198, 120, 221);">volatile</span> Node tail;
+    <span style="box-sizing:border-box;color:rgb(92, 99, 112);font-style:italic;">//同步状态</span>
+    <span style="box-sizing:border-box;color:rgb(198, 120, 221);">private</span> <span style="box-sizing:border-box;color:rgb(198, 120, 221);">volatile</span> <span style="box-sizing:border-box;color:rgb(198, 120, 221);">int</span> state;
+    <span style="box-sizing:border-box;"><span style="box-sizing:border-box;color:rgb(198, 120, 221);">protected</span> <span style="box-sizing:border-box;color:rgb(198, 120, 221);">final</span> <span style="box-sizing:border-box;color:rgb(198, 120, 221);">int</span> <span style="box-sizing:border-box;color:rgb(97, 174, 238);">getState</span><span style="box-sizing:border-box;">()</span> </span>{ <span style="box-sizing:border-box;color:rgb(198, 120, 221);">return</span> state;}
+    <span style="box-sizing:border-box;"><span style="box-sizing:border-box;color:rgb(198, 120, 221);">protected</span> <span style="box-sizing:border-box;color:rgb(198, 120, 221);">final</span> <span style="box-sizing:border-box;color:rgb(198, 120, 221);">void</span> <span style="box-sizing:border-box;color:rgb(97, 174, 238);">setState</span><span style="box-sizing:border-box;">(<span style="box-sizing:border-box;color:rgb(198, 120, 221);">int</span> newState)</span> </span>{ state = newState;}
+    ...
+}
+</code></pre>
+<p style="box-sizing:border-box;margin:0px 0px 25px;word-break:break-word;">队列同步器AQS是用来构建锁或其他同步组件的基础框架，内部使用一个int成员变量表示同步状态，通过内置的FIFO队列来完成资源获取线程的排队工作，其中内部状态state，等待队列的头节点head和尾节点head，都是通过volatile修饰，保证了多线程之间的可见。</p>
+<p style="box-sizing:border-box;margin:0px 0px 25px;word-break:break-word;">在深入实现原理之前，我们先看看内部的FIFO队列是如何实现的。</p>
+<pre style="word-wrap:normal;background-color:rgb(245, 245, 245);border:1px solid rgb(204, 204, 204);box-sizing:border-box;font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;line-height:1.42857;margin:0px 0px 10px;border-radius:4px;padding:15px;display:block;color:rgb(171, 178, 191);font-size:13px;background:rgb(40, 44, 52);margin-bottom:20px;white-space:pre;overflow-x:auto;overflow:auto;word-break:break-word;"><code style="box-sizing:border-box;font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;color:inherit;border-radius:0px;font-size:12px;border:none;vertical-align:middle;background-color:transparent;padding:0px;white-space:pre;"><span style="box-sizing:border-box;color:rgb(198, 120, 221);">static</span> <span style="box-sizing:border-box;color:rgb(198, 120, 221);">final</span> <span style="box-sizing:border-box;"><span style="box-sizing:border-box;color:rgb(198, 120, 221);">class</span> <span style="box-sizing:border-box;color:rgb(230, 192, 123);">Node</span> </span>{
+        <span style="box-sizing:border-box;color:rgb(198, 120, 221);">static</span> <span style="box-sizing:border-box;color:rgb(198, 120, 221);">final</span> Node SHARED = <span style="box-sizing:border-box;color:rgb(198, 120, 221);">new</span> Node();
+        <span style="box-sizing:border-box;color:rgb(198, 120, 221);">static</span> <span style="box-sizing:border-box;color:rgb(198, 120, 221);">final</span> Node EXCLUSIVE = <span style="box-sizing:border-box;color:rgb(198, 120, 221);">null</span>;
+        <span style="box-sizing:border-box;color:rgb(198, 120, 221);">static</span> <span style="box-sizing:border-box;color:rgb(198, 120, 221);">final</span> <span style="box-sizing:border-box;color:rgb(198, 120, 221);">int</span> CANCELLED =  <span style="box-sizing:border-box;color:rgb(209, 154, 102);">1</span>;
+        <span style="box-sizing:border-box;color:rgb(198, 120, 221);">static</span> <span style="box-sizing:border-box;color:rgb(198, 120, 221);">final</span> <span style="box-sizing:border-box;color:rgb(198, 120, 221);">int</span> SIGNAL    = -<span style="box-sizing:border-box;color:rgb(209, 154, 102);">1</span>;
+        <span style="box-sizing:border-box;color:rgb(198, 120, 221);">static</span> <span style="box-sizing:border-box;color:rgb(198, 120, 221);">final</span> <span style="box-sizing:border-box;color:rgb(198, 120, 221);">int</span> CONDITION = -<span style="box-sizing:border-box;color:rgb(209, 154, 102);">2</span>;
+        <span style="box-sizing:border-box;color:rgb(198, 120, 221);">static</span> <span style="box-sizing:border-box;color:rgb(198, 120, 221);">final</span> <span style="box-sizing:border-box;color:rgb(198, 120, 221);">int</span> PROPAGATE = -<span style="box-sizing:border-box;color:rgb(209, 154, 102);">3</span>;
+        <span style="box-sizing:border-box;color:rgb(198, 120, 221);">volatile</span> <span style="box-sizing:border-box;color:rgb(198, 120, 221);">int</span> waitStatus;
+        <span style="box-sizing:border-box;color:rgb(198, 120, 221);">volatile</span> Node prev;
+        <span style="box-sizing:border-box;color:rgb(198, 120, 221);">volatile</span> Node next;
+        <span style="box-sizing:border-box;color:rgb(198, 120, 221);">volatile</span> Thread thread;
+        Node nextWaiter;
+        ...
+    }
+</code></pre>
+<p style="box-sizing:border-box;margin:0px 0px 25px;word-break:break-word;">先来一张形象的图（该图其实是网上找的）</p>
+<br style="box-sizing:border-box;"/>
+<div style="box-sizing:border-box;padding-bottom:25px;width:700px;margin-left:-40px;text-align:center;">
+<div style="box-sizing:border-box;z-index:100;position:relative;background-color:transparent;transition:background-color 0.1s linear;margin:0px auto;max-width:525px;max-height:88px;">
+<div style="box-sizing:border-box;z-index:50;padding-bottom:16.76%;"></div>
+<div style="box-sizing:border-box;position:absolute;top:0px;left:0px;width:100%;height:100%;overflow:hidden;"><img src="深入浅出java同步器AQS_files/525" type="image/png" data-filename="525" height="88" style="transition:all 0.15s linear;border:0px;vertical-align:middle;max-width:100%;height:auto;box-sizing:border-box;z-index:100;filter:blur(0px);opacity:1;display:block;cursor:zoom-in;" width="525"/></div>
+</div>
+<div style="padding:10px;box-sizing:border-box;max-width:80%;min-height:22px;display:inline-block;min-width:20%;margin:0px auto;border-bottom:1px solid rgb(217, 217, 217);font-size:14px;color:rgb(150, 150, 150);line-height:1.7;">FIFO.png</div>
+</div><br style="box-sizing:border-box;"/>
+<p style="box-sizing:border-box;margin:0px 0px 25px;word-break:break-word;">黄色节点是默认head节点，其实是一个空节点，我觉得可以理解成代表当前持有锁的线程，每当有线程竞争失败，都是插入到队列的尾节点，tail节点始终指向队列中的最后一个元素。</p>
+
+<p style="box-sizing:border-box;margin:0px 0px 25px;word-break:break-word;">每个节点中， 除了存储了当前线程，前后节点的引用以外，还有一个waitStatus变量，用于描述节点当前的状态。多线程并发执行时，队列中会有多个节点存在，这个waitStatus其实代表对应线程的状态：有的线程可能获取锁因为某些原因放弃竞争；有的线程在等待满足条件，满足之后才能执行等等。一共有4中状态：</p>
+<ol style="box-sizing:border-box;margin-top:0px;margin-bottom:10px;padding:0px;margin:-5px 0px 20px 20px;word-break:break-word;">
+<li style="box-sizing:border-box;line-height:30px;">CANCELLED 取消状态</li>
+<li style="box-sizing:border-box;line-height:30px;">SIGNAL 等待触发状态</li>
+<li style="box-sizing:border-box;line-height:30px;">CONDITION 等待条件状态</li>
+<li style="box-sizing:border-box;line-height:30px;">PROPAGATE 状态需要向后传播</li>
+</ol>
+<p style="box-sizing:border-box;margin:0px 0px 25px;word-break:break-word;">等待队列是FIFO先进先出，只有前一个节点的状态为SIGNAL时，当前节点的线程才能被挂起。</p>
+<h3 style="box-sizing:border-box;font-family:inherit;margin-top:20px;margin-bottom:10px;font-weight:700;line-height:1.7;color:rgb(47, 47, 47);font-size:22px;margin:0px 0px 15px;text-rendering:optimizeLegibility;">实现原理</h3>
+<p style="box-sizing:border-box;margin:0px 0px 25px;word-break:break-word;">子类重写tryAcquire和tryRelease方法通过CAS指令修改状态变量state。</p>
+<pre style="word-wrap:normal;background-color:rgb(245, 245, 245);border:1px solid rgb(204, 204, 204);box-sizing:border-box;font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;line-height:1.42857;margin:0px 0px 10px;border-radius:4px;padding:15px;display:block;color:rgb(171, 178, 191);font-size:13px;background:rgb(40, 44, 52);margin-bottom:20px;white-space:pre;overflow-x:auto;overflow:auto;word-break:break-word;"><code style="box-sizing:border-box;font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;color:inherit;border-radius:0px;font-size:12px;border:none;vertical-align:middle;background-color:transparent;padding:0px;white-space:pre;"><span style="box-sizing:border-box;"><span style="box-sizing:border-box;color:rgb(198, 120, 221);">public</span> <span style="box-sizing:border-box;color:rgb(198, 120, 221);">final</span> <span style="box-sizing:border-box;color:rgb(198, 120, 221);">void</span> <span style="box-sizing:border-box;color:rgb(97, 174, 238);">acquire</span><span style="box-sizing:border-box;">(<span style="box-sizing:border-box;color:rgb(198, 120, 221);">int</span> arg)</span> </span>{   
+ <span style="box-sizing:border-box;color:rgb(198, 120, 221);">if</span> (!tryAcquire(arg) &amp;&amp; acquireQueued(addWaiter(Node.EXCLUSIVE), arg))    
+    selfInterrupt();
+}
+</code></pre>
+<h5 style="box-sizing:border-box;font-family:inherit;margin-top:10px;margin-bottom:10px;font-weight:700;line-height:1.7;color:rgb(47, 47, 47);font-size:18px;margin:0px 0px 15px;text-rendering:optimizeLegibility;">线程获取锁过程</h5>
+<p style="box-sizing:border-box;margin:0px 0px 25px;word-break:break-word;">下列步骤中线程A和B进行竞争。</p>
+<ol style="box-sizing:border-box;margin-top:0px;margin-bottom:10px;padding:0px;margin:-5px 0px 20px 20px;word-break:break-word;">
+<li style="box-sizing:border-box;line-height:30px;">线程A执行CAS执行成功，state值被修改并返回true，线程A继续执行。</li>
+<li style="box-sizing:border-box;line-height:30px;">线程A执行CAS指令失败，说明线程B也在执行CAS指令且成功，这种情况下线程A会执行步骤3。</li>
+<li style="box-sizing:border-box;line-height:30px;">生成新Node节点node，并通过CAS指令插入到等待队列的队尾（同一时刻可能会有多个Node节点插入到等待队列中），如果tail节点为空，则将head节点指向一个空节点（代表线程B），具体实现如下：</li>
+</ol>
+<pre style="word-wrap:normal;background-color:rgb(245, 245, 245);border:1px solid rgb(204, 204, 204);box-sizing:border-box;font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;line-height:1.42857;margin:0px 0px 10px;border-radius:4px;padding:15px;display:block;color:rgb(171, 178, 191);font-size:13px;background:rgb(40, 44, 52);margin-bottom:20px;white-space:pre;overflow-x:auto;overflow:auto;word-break:break-word;"><code style="box-sizing:border-box;font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;color:inherit;border-radius:0px;font-size:12px;border:none;vertical-align:middle;background-color:transparent;padding:0px;white-space:pre;"><span style="box-sizing:border-box;"><span style="box-sizing:border-box;color:rgb(198, 120, 221);">private</span> Node <span style="box-sizing:border-box;color:rgb(97, 174, 238);">addWaiter</span><span style="box-sizing:border-box;">(Node mode)</span> </span>{
+    Node node = <span style="box-sizing:border-box;color:rgb(198, 120, 221);">new</span> Node(Thread.currentThread(), mode);
+    <span style="box-sizing:border-box;color:rgb(92, 99, 112);font-style:italic;">// Try the fast path of enq; backup to full enq on failure</span>
+    Node pred = tail;
+    <span style="box-sizing:border-box;color:rgb(198, 120, 221);">if</span> (pred != <span style="box-sizing:border-box;color:rgb(198, 120, 221);">null</span>) {
+        node.prev = pred;
+        <span style="box-sizing:border-box;color:rgb(198, 120, 221);">if</span> (compareAndSetTail(pred, node)) {
+            pred.next = node;
+            <span style="box-sizing:border-box;color:rgb(198, 120, 221);">return</span> node;
+        }
+    }
+    enq(node);
+    <span style="box-sizing:border-box;color:rgb(198, 120, 221);">return</span> node;
+}
+<span style="box-sizing:border-box;"><span style="box-sizing:border-box;color:rgb(198, 120, 221);">private</span> Node <span style="box-sizing:border-box;color:rgb(97, 174, 238);">enq</span><span style="box-sizing:border-box;">(<span style="box-sizing:border-box;color:rgb(198, 120, 221);">final</span> Node node)</span> </span>{
+    <span style="box-sizing:border-box;color:rgb(198, 120, 221);">for</span> (;;) {
+        Node t = tail;
+        <span style="box-sizing:border-box;color:rgb(198, 120, 221);">if</span> (t == <span style="box-sizing:border-box;color:rgb(198, 120, 221);">null</span>) { <span style="box-sizing:border-box;color:rgb(92, 99, 112);font-style:italic;">// Must initialize</span>
+            <span style="box-sizing:border-box;color:rgb(198, 120, 221);">if</span> (compareAndSetHead(<span style="box-sizing:border-box;color:rgb(198, 120, 221);">new</span> Node()))
+                tail = head;
+        } <span style="box-sizing:border-box;color:rgb(198, 120, 221);">else</span> {
+            node.prev = t;
+            <span style="box-sizing:border-box;color:rgb(198, 120, 221);">if</span> (compareAndSetTail(t, node)) {
+                t.next = node;
+                <span style="box-sizing:border-box;color:rgb(198, 120, 221);">return</span> t;
+            }
+        }
+    }
+}
+</code></pre>
+<ol start="4" style="box-sizing:border-box;margin-top:0px;margin-bottom:10px;padding:0px;margin:-5px 0px 20px 20px;word-break:break-word;">
+<li style="box-sizing:border-box;line-height:30px;">node插入到队尾后，该线程不会立马挂起，会进行自旋操作。因为在node的插入过程，线程B（即之前没有阻塞的线程）可能已经执行完成，所以要判断该node的前一个节点pred是否为head节点（代表线程B），如果pred == head，表明当前节点是队列中第一个“有效的”节点，因此再次尝试tryAcquire获取锁，<br style="box-sizing:border-box;"/>
+1、如果成功获取到锁，表明线程B已经执行完成，线程A不需要挂起。<br style="box-sizing:border-box;"/>
+2、如果获取失败，表示线程B还未完成，至少还未修改state值。进行步骤5。</li>
+</ol>
+<pre style="word-wrap:normal;background-color:rgb(245, 245, 245);border:1px solid rgb(204, 204, 204);box-sizing:border-box;font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;line-height:1.42857;margin:0px 0px 10px;border-radius:4px;padding:15px;display:block;color:rgb(171, 178, 191);font-size:13px;background:rgb(40, 44, 52);margin-bottom:20px;white-space:pre;overflow-x:auto;overflow:auto;word-break:break-word;"><code style="box-sizing:border-box;font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;color:inherit;border-radius:0px;font-size:12px;border:none;vertical-align:middle;background-color:transparent;padding:0px;white-space:pre;"><span style="box-sizing:border-box;"><span style="box-sizing:border-box;color:rgb(198, 120, 221);">final</span> <span style="box-sizing:border-box;color:rgb(198, 120, 221);">boolean</span> <span style="box-sizing:border-box;color:rgb(97, 174, 238);">acquireQueued</span><span style="box-sizing:border-box;">(<span style="box-sizing:border-box;color:rgb(198, 120, 221);">final</span> Node node, <span style="box-sizing:border-box;color:rgb(198, 120, 221);">int</span> arg)</span> </span>{
+    <span style="box-sizing:border-box;color:rgb(198, 120, 221);">boolean</span> failed = <span style="box-sizing:border-box;color:rgb(198, 120, 221);">true</span>;
+    <span style="box-sizing:border-box;color:rgb(198, 120, 221);">try</span> {
+        <span style="box-sizing:border-box;color:rgb(198, 120, 221);">boolean</span> interrupted = <span style="box-sizing:border-box;color:rgb(198, 120, 221);">false</span>;
+        <span style="box-sizing:border-box;color:rgb(198, 120, 221);">for</span> (;;) {
+            <span style="box-sizing:border-box;color:rgb(198, 120, 221);">final</span> Node p = node.predecessor();
+            <span style="box-sizing:border-box;color:rgb(198, 120, 221);">if</span> (p == head &amp;&amp; tryAcquire(arg)) {
+                setHead(node);
+                p.next = <span style="box-sizing:border-box;color:rgb(198, 120, 221);">null</span>; <span style="box-sizing:border-box;color:rgb(92, 99, 112);font-style:italic;">// help GC</span>
+                failed = <span style="box-sizing:border-box;color:rgb(198, 120, 221);">false</span>;
+                <span style="box-sizing:border-box;color:rgb(198, 120, 221);">return</span> interrupted;
+            }
+            <span style="box-sizing:border-box;color:rgb(198, 120, 221);">if</span> (shouldParkAfterFailedAcquire(p, node) &amp;&amp;
+                parkAndCheckInterrupt())
+                interrupted = <span style="box-sizing:border-box;color:rgb(198, 120, 221);">true</span>;
+        }
+    } <span style="box-sizing:border-box;color:rgb(198, 120, 221);">finally</span> {
+        <span style="box-sizing:border-box;color:rgb(198, 120, 221);">if</span> (failed)
+            cancelAcquire(node);
+    }
+}
+</code></pre>
+<ol start="5" style="box-sizing:border-box;margin-top:0px;margin-bottom:10px;padding:0px;margin:-5px 0px 20px 20px;word-break:break-word;">
+<li style="box-sizing:border-box;line-height:30px;">前面我们已经说过只有前一个节点pred的线程状态为SIGNAL时，当前节点的线程才能被挂起。<br style="box-sizing:border-box;"/>
+1、如果pred的waitStatus == 0，则通过CAS指令修改waitStatus为Node.SIGNAL。<br style="box-sizing:border-box;"/>
+2、如果pred的waitStatus &gt; 0，表明pred的线程状态CANCELLED，需从队列中删除。<br style="box-sizing:border-box;"/>
+3、如果pred的waitStatus为Node.SIGNAL，则通过LockSupport.park()方法把线程A挂起，并等待被唤醒，被唤醒后进入步骤6。<br style="box-sizing:border-box;"/>
+具体实现如下：</li>
+</ol>
+<pre style="word-wrap:normal;background-color:rgb(245, 245, 245);border:1px solid rgb(204, 204, 204);box-sizing:border-box;font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;line-height:1.42857;margin:0px 0px 10px;border-radius:4px;padding:15px;display:block;color:rgb(171, 178, 191);font-size:13px;background:rgb(40, 44, 52);margin-bottom:20px;white-space:pre;overflow-x:auto;overflow:auto;word-break:break-word;"><code style="box-sizing:border-box;font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;color:inherit;border-radius:0px;font-size:12px;border:none;vertical-align:middle;background-color:transparent;padding:0px;white-space:pre;"><span style="box-sizing:border-box;"><span style="box-sizing:border-box;color:rgb(198, 120, 221);">private</span> <span style="box-sizing:border-box;color:rgb(198, 120, 221);">static</span> <span style="box-sizing:border-box;color:rgb(198, 120, 221);">boolean</span> <span style="box-sizing:border-box;color:rgb(97, 174, 238);">shouldParkAfterFailedAcquire</span><span style="box-sizing:border-box;">(Node pred, Node node)</span> </span>{
+    <span style="box-sizing:border-box;color:rgb(198, 120, 221);">int</span> ws = pred.waitStatus;
+    <span style="box-sizing:border-box;color:rgb(198, 120, 221);">if</span> (ws == Node.SIGNAL)
+        <span style="box-sizing:border-box;color:rgb(92, 99, 112);font-style:italic;">/*
+         * This node has already set status asking a release
+         * to signal it, so it can safely park.
+         */</span>
+        <span style="box-sizing:border-box;color:rgb(198, 120, 221);">return</span> <span style="box-sizing:border-box;color:rgb(198, 120, 221);">true</span>;
+    <span style="box-sizing:border-box;color:rgb(198, 120, 221);">if</span> (ws &gt; <span style="box-sizing:border-box;color:rgb(209, 154, 102);">0</span>) {
+        <span style="box-sizing:border-box;color:rgb(92, 99, 112);font-style:italic;">/*
+         * Predecessor was cancelled. Skip over predecessors and
+         * indicate retry.
+         */</span>
+        <span style="box-sizing:border-box;color:rgb(198, 120, 221);">do</span> {
+            node.prev = pred = pred.prev;
+        } <span style="box-sizing:border-box;color:rgb(198, 120, 221);">while</span> (pred.waitStatus &gt; <span style="box-sizing:border-box;color:rgb(209, 154, 102);">0</span>);
+        pred.next = node;
+    } <span style="box-sizing:border-box;color:rgb(198, 120, 221);">else</span> {
+        <span style="box-sizing:border-box;color:rgb(92, 99, 112);font-style:italic;">/*
+         * waitStatus must be 0 or PROPAGATE.  Indicate that we
+         * need a signal, but don't park yet.  Caller will need to
+         * retry to make sure it cannot acquire before parking.
+         */</span>
+        compareAndSetWaitStatus(pred, ws, Node.SIGNAL);
+    }
+    <span style="box-sizing:border-box;color:rgb(198, 120, 221);">return</span> <span style="box-sizing:border-box;color:rgb(198, 120, 221);">false</span>;
+}
+</code></pre>
+<ol start="6" style="box-sizing:border-box;margin-top:0px;margin-bottom:10px;padding:0px;margin:-5px 0px 20px 20px;word-break:break-word;">
+<li style="box-sizing:border-box;line-height:30px;">线程每次被唤醒时，都要进行中断检测，如果发现当前线程被中断，那么抛出InterruptedException并退出循环。从无限循环的代码可以看出，并不是被唤醒的线程一定能获得锁，必须调用tryAccquire重新竞争，因为锁是非公平的，有可能被新加入的线程获得，从而导致刚被唤醒的线程再次被阻塞，这个细节充分体现了“非公平”的精髓。</li>
+</ol>
+<hr style="border-left-color:initial;box-sizing:content-box;border-width:1px 0px 0px;border-right-style:initial;border-bottom-style:initial;border-left-style:initial;border-right-color:initial;border-bottom-color:initial;height:0px;border-image:initial;border-top-style:solid;margin-bottom:20px;margin-top:20px;border-top-color:rgb(238, 238, 238);border-top:1px solid rgb(221, 221, 221);margin:0px 0px 20px;"/>
+<h5 style="box-sizing:border-box;font-family:inherit;margin-top:10px;margin-bottom:10px;font-weight:700;line-height:1.7;color:rgb(47, 47, 47);font-size:18px;margin:0px 0px 15px;text-rendering:optimizeLegibility;">线程释放锁过程：</h5>
+<ol style="box-sizing:border-box;margin-top:0px;margin-bottom:10px;padding:0px;margin:-5px 0px 20px 20px;word-break:break-word;">
+<li style="box-sizing:border-box;line-height:30px;">如果头结点head的waitStatus值为-1，则用CAS指令重置为0；</li>
+<li style="box-sizing:border-box;line-height:30px;">找到waitStatus值小于0的节点s，通过LockSupport.unpark(s.thread)唤醒线程。</li>
+</ol>
+<pre style="word-wrap:normal;background-color:rgb(245, 245, 245);border:1px solid rgb(204, 204, 204);box-sizing:border-box;font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;line-height:1.42857;margin:0px 0px 10px;border-radius:4px;padding:15px;display:block;color:rgb(171, 178, 191);font-size:13px;background:rgb(40, 44, 52);margin-bottom:20px;white-space:pre;overflow-x:auto;overflow:auto;word-break:break-word;"><code style="box-sizing:border-box;font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;color:inherit;border-radius:0px;font-size:12px;border:none;vertical-align:middle;background-color:transparent;padding:0px;white-space:pre;">private void unparkSuccessor(Node node) {
+    /*
+     * If status <span style="box-sizing:border-box;color:rgb(198, 120, 221);">is</span> negative (i.e., possibly needing signal) <span style="box-sizing:border-box;color:rgb(198, 120, 221);">try</span>
+     * to clear <span style="box-sizing:border-box;color:rgb(198, 120, 221);">in</span> anticipation of signalling.  It <span style="box-sizing:border-box;color:rgb(198, 120, 221);">is</span> OK <span style="box-sizing:border-box;color:rgb(198, 120, 221);">if</span> this
+     * fails <span style="box-sizing:border-box;color:rgb(198, 120, 221);">or</span> <span style="box-sizing:border-box;color:rgb(198, 120, 221);">if</span> status <span style="box-sizing:border-box;color:rgb(198, 120, 221);">is</span> changed by waiting thread.
+     */
+    int ws = node.waitStatus;
+    <span style="box-sizing:border-box;color:rgb(198, 120, 221);">if</span> (ws &lt; <span style="box-sizing:border-box;color:rgb(209, 154, 102);">0</span>)
+        compareAndSetWaitStatus(node, ws, <span style="box-sizing:border-box;color:rgb(209, 154, 102);">0</span>);
+
+    /*
+     * Thread to unpark <span style="box-sizing:border-box;color:rgb(198, 120, 221);">is</span> held <span style="box-sizing:border-box;color:rgb(198, 120, 221);">in</span> successor, which <span style="box-sizing:border-box;color:rgb(198, 120, 221);">is</span> normally
+     * just the next node.  But <span style="box-sizing:border-box;color:rgb(198, 120, 221);">if</span> cancelled <span style="box-sizing:border-box;color:rgb(198, 120, 221);">or</span> apparently null,
+     * traverse backwards <span style="box-sizing:border-box;color:rgb(198, 120, 221);">from</span> tail to find the actual
+     * non-cancelled successor.
+     */
+    Node s = node.next;
+    <span style="box-sizing:border-box;color:rgb(198, 120, 221);">if</span> (s == null || s.waitStatus &gt; <span style="box-sizing:border-box;color:rgb(209, 154, 102);">0</span>) {
+        s = null;
+        <span style="box-sizing:border-box;color:rgb(198, 120, 221);">for</span> (Node t = tail; t != null &amp;&amp; t != node; t = t.prev)
+            <span style="box-sizing:border-box;color:rgb(198, 120, 221);">if</span> (t.waitStatus &lt;= <span style="box-sizing:border-box;color:rgb(209, 154, 102);">0</span>)
+                s = t;
+    }
+    <span style="box-sizing:border-box;color:rgb(198, 120, 221);">if</span> (s != null)
+        LockSupport.unpark(s.thread);
+}
+</code></pre>
+<h3 style="box-sizing:border-box;font-family:inherit;margin-top:20px;margin-bottom:10px;font-weight:700;line-height:1.7;color:rgb(47, 47, 47);font-size:22px;margin:0px 0px 15px;text-rendering:optimizeLegibility;">总结</h3>
+<p style="box-sizing:border-box;margin:0px 0px 25px;word-break:break-word;">Doug Lea大神的思路跳跃的太快，把CAS指令玩的出神入化，以至于有些逻辑反反复复debug很多次才明白。</p>
+<p style="box-sizing:border-box;margin:0px 0px 25px;word-break:break-word;">END。<br style="box-sizing:border-box;"/>
+我是占小狼。<br style="box-sizing:border-box;"/>
+在魔都艰苦奋斗，白天是上班族，晚上是知识服务工作者。<br style="box-sizing:border-box;"/>
+读完我的文章有收获，记得关注和点赞哦，如果非要打赏，我也是不会拒绝的啦！</p>
+
+          </div>
+        </div>
+    </div></div></div></div></div></div>
+</div>
+</span>
+</div></body></html> 

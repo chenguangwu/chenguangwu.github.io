@@ -1,0 +1,497 @@
+<html>
+<head>
+  <title>CI框架浅析(全篇) - 小小情意 - 博客园</title>
+  <basefont face="微软雅黑" size="2" />
+  <meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+  <meta name="exporter-version" content="YXBJ Windows/600718 (zh-CN, DDL); Windows/6.1.1 (Win64);"/>
+  <style>
+    body, td {
+      font-family: 微软雅黑;
+      font-size: 10pt;
+    }
+  </style>
+</head>
+<body>
+<a name="8455"/>
+<h1>CI框架浅析(全篇) - 小小情意 - 博客园</h1>
+<div>
+<table bgcolor="#D4DDE5" border="0">
+<tr><td><b>创建时间：</b></td><td><i>2018/3/21 9:43</i></td></tr>
+<tr><td><b>来源：</b></td><td><a href="https://www.cnblogs.com/xiaoxiaoqingyi/p/6901654.html"><i>https://www.cnblogs.com/xiaoxiaoqingyi/p/6901654.html</i></a></td></tr>
+</table>
+</div>
+<br/>
+
+<div><span><div style="-evernote-webclip:true"><br/><div style="font-size: 16px; display: inline-block;"><div><div style="font-family:&quot;PingFang SC&quot;, &quot;Helvetica Neue&quot;, Helvetica, Arial, sans-serif;background:url(&quot;images/body_bg.png&quot;) 0px 0px repeat-x scroll rgb(240, 238, 245);color:rgb(125, 139, 141);line-height:25px;font-size:14px;"><div><div><div style="background:none;overflow:visible;text-overflow:ellipsis;word-break:break-all;"><div><div><div style="background:rgb(255, 255, 255);overflow:hidden;"><div>
+		<h1 style="margin:0px;padding:0px;font-size:28px;font-weight:400;margin-bottom:20px;line-height:1.8;color:rgb(51, 51, 51);">
+			<a href="http://www.cnblogs.com/xiaoxiaoqingyi/p/6901654.html" style="margin:0px;padding:0px;text-decoration:none;color:rgb(51, 51, 51);">CI框架浅析(全篇)</a>
+		</h1>
+		<div style="margin:0px;padding:0px;clear:both;"></div>
+		<div style="margin:0px;padding:0px;">
+			<div style="margin:0px;padding:0px;margin-bottom:20px;word-break:break-word;color:rgb(51, 51, 51);line-height:1.8;"><div style="margin:0px;padding:0px;">    业余花了点时间看看CodeIgniter框架（简称CI），CI目前的稳定版本是 3.X，4.0版本已经出来了，但还在测试中，所以我分析的还是 3.x 版本。</div>
+<div style="margin:0px;padding:0px;">CI是一个很轻便的框架，整个下载包也就2M多，而且使用起来方便快捷，适用于一些简单的功能开发，以及做app 接口。</div>
+<div style="margin:0px;padding:0px;"> </div>
+<div style="margin:0px;padding:0px;">    该框架整个流程图如下：</div>
+<div style="margin:0px;padding:0px;"><img src="CI框架浅析(全篇) - 小小情意 - 博客园_files/804587-20170524233717450-1541824943.png" type="image/png" data-filename="804587-20170524233717450-1541824943.png" alt="" height="205" style="border:none;margin:0px;padding:0px;height:auto;max-width:300px;" width="697"/></div>
+
+<div style="margin:0px;padding:0px;">
+<div style="margin:0px;padding:0px;"><ol style="margin:0px 0px 1em 40px;padding:0px;">
+<li style="margin:0px;padding:0px;list-style-type:decimal;">index.php 文件作为前端控制器，初始化运行 CodeIgniter 所需的基本资源；</li>
+<li style="margin:0px;padding:0px;list-style-type:decimal;">Router 检查 HTTP 请求，以确定如何处理该请求；</li>
+<li style="margin:0px;padding:0px;list-style-type:decimal;">如果存在缓存文件，将直接输出到浏览器，不用走下面正常的系统流程；</li>
+<li style="margin:0px;padding:0px;list-style-type:decimal;">在加载应用程序控制器之前，对 HTTP 请求以及任何用户提交的数据进行安全检查；</li>
+<li style="margin:0px;padding:0px;list-style-type:decimal;">控制器加载模型、核心类库、辅助函数以及其他所有处理请求所需的资源；</li>
+<li style="margin:0px;padding:0px;list-style-type:decimal;">最后一步，渲染视图并发送至浏览器，如果开启了缓存，视图被会先缓存起来用于 后续的请求。</li>
+</ol>
+<div style="margin:0px;padding:0px;"> </div>
+<div style="margin:0px;padding:0px;">下载框架源码，解压得到如下代码结构：</div>
+<div style="margin:0px;padding:0px;"><img src="CI框架浅析(全篇) - 小小情意 - 博客园_files/804587-20170524234017654-1450857793.png" type="image/png" data-filename="804587-20170524234017654-1450857793.png" alt="" height="573" style="border:none;margin:0px;padding:0px;height:auto;max-width:300px;" width="181"/></div>
+<div style="margin:0px;padding:0px;"> </div>
+<div style="margin:0px;padding:0px;"> </div>
+</div>
+</div>
+
+<div style="margin:0px;padding:0px;">
+<div style="margin:0px;padding:0px;">
+<p style="padding:0px;margin:10px auto;text-indent:0px;">主要有三个目录</p>
+<p style="padding:0px;margin:10px auto;text-indent:0px;">1、application目录：用于开发者编写相应的配置以及逻辑处理，开发者只需在这个目录下添加自己需要的开发文件。</p>
+<p style="padding:0px;margin:10px auto;text-indent:0px;">2、system目录：框架的系统库，里面包括核心库，类库，辅助类库，数据库等，这些文件，开发者最好不要擅自修改，它是整个框架的龙脉。</p>
+<p style="padding:0px;margin:10px auto;text-indent:0px;">3、user_guide：用户手册。</p>
+</div>
+</div>
+<div style="margin:0px;padding:0px;"> </div>
+<div style="margin:0px;padding:0px;">
+<div style="margin:0px;padding:0px;">
+<div style="margin:0px;padding:0px;"><strong style="margin:0px;padding:0px;"><span style="margin:0px;padding:0px;color:#000000;font-size:16px;">接下来看看源码的请求流程：</span></strong></div>
+<div style="margin:0px;padding:0px;"><span style="margin:0px;padding:0px;color:#000000;font-size:16px;"><img src="CI框架浅析(全篇) - 小小情意 - 博客园_files/804587-20170524234143966-63724447.png" type="image/png" data-filename="804587-20170524234143966-63724447.png" alt="" height="653" style="border:none;margin:0px;padding:0px;height:auto;max-width:300px;" width="800"/></span></div>
+<div style="margin:0px;padding:0px;"> </div>
+<div style="margin:0px;padding:0px;"> </div>
+<div style="margin:0px;padding:0px;">
+<div style="margin:0px;padding:0px;">首先假设有一个 URL 请求，入口就是 index.php，该文件定义了几个常量，应用的路径，以及核心库的路径等。</div>
+<div style="margin:0px;padding:0px;"> </div>
+<div style="margin:0px;padding:0px;">接着引入 核心库system/core下的 CodeIgniter.php文件，该文件初始化核心库system/core里的类库，分别是：</div>
+<div style="margin:0px;padding:0px;">
+<div style="background-color:rgb(245, 245, 245);border:1px solid rgb(204, 204, 204);padding:5px;overflow:auto;margin:5px 0px;color:rgb(0, 0, 0);font-family:&quot;Courier New&quot;;font-size:12px;"><div style="margin:0px;padding:0px;margin-top:5px;background-color:rgb(245, 245, 245);"><span style="margin:0px;padding:0px;padding-right:5px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;"><a href="#" style="margin:0px;padding:0px;color:rgb(0, 0, 0);text-decoration:underline;background-color:rgb(245, 245, 245);border:none;" title="复制代码"><img src="CI框架浅析(全篇) - 小小情意 - 博客园_files/copycode.gif" type="image/gif" data-filename="copycode.gif" alt="复制代码" height="20" style="margin:0px;padding:0px;height:auto;max-width:300px;border:none;background-color:rgb(245, 245, 245);" width="20"/></a></span></div>
+<pre style="margin:0px;padding:0px;margin-top:0px;margin-bottom:0px;word-wrap:break-word;white-space:pre-wrap;font-family:&quot;Courier New&quot;;font-size:12px;"><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#000000;">{
+  ● benchmark: </span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#800000;">&quot;</span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#800000;">Benchmark</span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#800000;">&quot;</span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#000000;">,
+  ● hooks: </span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#800000;">&quot;</span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#800000;">Hooks</span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#800000;">&quot;</span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#000000;">,
+  ● config: </span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#800000;">&quot;</span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#800000;">Config</span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#800000;">&quot;</span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#000000;">,
+  ● log: </span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#800000;">&quot;</span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#800000;">Log</span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#800000;">&quot;</span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#000000;">,
+  ● utf8: </span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#800000;">&quot;</span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#800000;">Utf8</span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#800000;">&quot;</span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#000000;">,
+  ● uri: </span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#800000;">&quot;</span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#800000;">URI</span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#800000;">&quot;</span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#000000;">,
+  ● router: </span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#800000;">&quot;</span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#800000;">Router</span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#800000;">&quot;</span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#000000;">,
+  ● output: </span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#800000;">&quot;</span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#800000;">Output</span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#800000;">&quot;</span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#000000;">,
+  ● security: </span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#800000;">&quot;</span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#800000;">Security</span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#800000;">&quot;</span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#000000;">,
+  ● input: </span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#800000;">&quot;</span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#800000;">Input</span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#800000;">&quot;</span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#000000;">,
+  ● lang: </span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#800000;">&quot;</span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#800000;">Lang</span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#800000;">&quot;</span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#000000;">,
+  ● loader: </span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#800000;">&quot;</span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#800000;">Loader</span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#800000;">&quot;</span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#000000;">
+}</span></pre>
+<div style="margin:0px;padding:0px;margin-top:5px;background-color:rgb(245, 245, 245);"><span style="margin:0px;padding:0px;padding-right:5px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;"><a href="#" style="margin:0px;padding:0px;color:rgb(0, 0, 0);text-decoration:underline;background-color:rgb(245, 245, 245);border:none;" title="复制代码"><img src="CI框架浅析(全篇) - 小小情意 - 博客园_files/copycode [1].gif" type="image/gif" data-filename="copycode.gif" alt="复制代码" height="20" style="margin:0px;padding:0px;height:auto;max-width:300px;border:none;background-color:rgb(245, 245, 245);" width="20"/></a></span></div></div>
+<p style="padding:0px;margin:10px auto;text-indent:0px;">每个类库的注释在上图已有解释。</p>
+<div style="margin:0px;padding:0px;">     同时也加载 应用项目 application/config目录下的配置文件（这些配置文件都是开发者根据自己的需要去添加与配置），</div>
+<div style="margin:0px;padding:0px;">根据判断加载字符串处理库mbstring，添加错误异常预处理方法。在加载的同时，也把钩子部署到了相应位置，如果开发者定义了相应钩子实现方法，就会在相应的位置执行。</div>
+<div style="margin:0px;padding:0px;">    在 CodeIgniter.php 初始化核心库的时候定义了五个钩子，分别如下：</div>
+<div style="margin:0px;padding:0px;"> </div>
+</div>
+</div>
+</div>
+</div>
+
+<div style="margin:0px;padding:0px;">
+<div style="margin:0px;padding:0px;">
+<div style="margin:0px;padding:0px;">
+<ul style="margin:0px 0px 1em 40px;padding:0px;">
+<li style="margin:0px;padding:0px;list-style-type:disc;">pre_system 在系统执行的早期调用，这个时候只有 基准测试类 和 钩子类 被加载了， 还没有执行到路由或其他的流程。</li>
+<li style="margin:0px;padding:0px;list-style-type:disc;">pre_controller 在你的控制器调用之前执行，所有的基础类都已加载，路由和安全检查也已经完成。</li>
+<li style="margin:0px;padding:0px;list-style-type:disc;">post_controller_constructor 在你的控制器实例化之后立即执行，控制器的任何方法都还尚未调用。</li>
+<li style="margin:0px;padding:0px;list-style-type:disc;">post_controller 在你的控制器完全运行结束时执行。</li>
+<li style="margin:0px;padding:0px;list-style-type:disc;">post_system 在最终的页面发送到浏览器之后、在系统的最后期被调用。</li>
+</ul>
+<div style="margin:0px;padding:0px;">然后，实例化 CI_Controller 类：</div>
+<div style="margin:0px;padding:0px;">function &amp;get_instance()</div>
+<div style="margin:0px;padding:0px;">{</div>
+<div style="margin:0px;padding:0px;">      return CI_Controller::get_instance();</div>
+<div style="margin:0px;padding:0px;">}</div>
+<div style="margin:0px;padding:0px;"> </div>
+<div style="margin:0px;padding:0px;">
+<div style="margin:0px;padding:0px;">通过路由 router 及 uri 得到请求的 controller控制器、method方法 以及参数，执行该方法。</div>
+<div style="margin:0px;padding:0px;"> </div>
+<div style="margin:0px;padding:0px;">期间根据开发者在application/config目录下的配置，会加载相应的 librays 类库、 helper辅助函数 及 DB 库。</div>
+<div style="margin:0px;padding:0px;"> </div>
+<div style="margin:0px;padding:0px;">如果你喜欢MVC的开发模式，也可以添加model类，然后加载 model 模型类，处理相应的业务逻辑。</div>
+<div style="margin:0px;padding:0px;"> </div>
+<div style="margin:0px;padding:0px;">最后在自己定义的controller控制器处理好的数据结果渲染在html 页面上，展示给用户。</div>
+<div style="margin:0px;padding:0px;"> </div>
+<div style="margin:0px;padding:0px;"> </div>
+</div>
+</div>
+<div style="margin:0px;padding:0px;"><strong style="margin:0px;padding:0px;">下面看一下CI框架几个重要部分：</strong></div>
+<div style="margin:0px;padding:0px;"> </div>
+<div style="margin:0px;padding:0px;"><strong style="margin:0px;padding:0px;">控制器</strong></div>
+<div style="margin:0px;padding:0px;">    开发者在 application/controller 目录下添加自己的controller 控制器，但是每个控制器都要继承核心库里的基类 CI_Controller，它已获取到整个框架的核心类库对象，通过它基本可以调用CI框架下的核心方法。</div>
+<div style="margin:0px;padding:0px;"> </div>
+<div style="margin:0px;padding:0px;"><strong style="margin:0px;padding:0px;">模型</strong></div>
+<div style="margin:0px;padding:0px;">     模型就是专门用来和数据库打交道的 PHP 类，开发者在 application/models 目录下定义自己的模型类，都要继承 模型基类 CI_Mode。当你在控制下调用模型，只需要下面一行代码就实例化了：</div>
+<div style="margin:0px;padding:0px;">$this-&gt;load-&gt;model('model_name');</div>
+<div style="margin:0px;padding:0px;"> </div>
+<div style="margin:0px;padding:0px;"><strong style="margin:0px;padding:0px;">辅助函数</strong></div>
+<div style="margin:0px;padding:0px;"><span style="margin:0px;padding:0px;">当然开发者也可以创建自己的辅助类，文件存放在 application/helpers 目录下，调用的方式与系统</span></div>
+<div style="margin:0px;padding:0px;">的辅助类一致。</div>
+<div style="margin:0px;padding:0px;"> </div>
+<div style="margin:0px;padding:0px;">
+<div style="margin:0px;padding:0px;">$this-&gt;load 就是 Loader.php 文件CI_Load 类实例， 我们来看看 CI_Load 类下的 helper() 函数：</div>
+<div style="margin:0px;padding:0px;">
+<div style="background-color:rgb(245, 245, 245);border:1px solid rgb(204, 204, 204);padding:5px;overflow:auto;margin:5px 0px;color:rgb(0, 0, 0);font-family:&quot;Courier New&quot;;font-size:12px;"><div style="margin:0px;padding:0px;margin-top:5px;background-color:rgb(245, 245, 245);"><span style="margin:0px;padding:0px;padding-right:5px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;"><a href="#" style="margin:0px;padding:0px;color:rgb(0, 0, 0);text-decoration:underline;background-color:rgb(245, 245, 245);border:none;" title="复制代码"><img src="CI框架浅析(全篇) - 小小情意 - 博客园_files/copycode [2].gif" type="image/gif" data-filename="copycode.gif" alt="复制代码" height="20" style="margin:0px;padding:0px;height:auto;max-width:300px;border:none;background-color:rgb(245, 245, 245);" width="20"/></a></span></div>
+<pre style="margin:0px;padding:0px;margin-top:0px;margin-bottom:0px;word-wrap:break-word;white-space:pre-wrap;font-family:&quot;Courier New&quot;;font-size:12px;"><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#008000;">/*</span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#008000;">*
+     * Helper Loader
+     *
+     * @param    string|string[]    $helpers    Helper name(s)
+     * @return    object
+     </span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#008000;">*/</span>
+    <span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#0000ff;">public</span> <span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#0000ff;">function</span> helper(<span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#800080;">$helpers</span> = <span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#0000ff;">array</span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#000000;">())
+    {
+        </span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#008080;">is_array</span>(<span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#800080;">$helpers</span>) OR <span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#800080;">$helpers</span> = <span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#0000ff;">array</span>(<span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#800080;">$helpers</span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#000000;">);
+        </span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#0000ff;">foreach</span> (<span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#800080;">$helpers</span> <span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#0000ff;">as</span> &amp;<span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#800080;">$helper</span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#000000;">)
+        {
+            </span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#800080;">$filename</span> = <span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#008080;">basename</span>(<span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#800080;">$helper</span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#000000;">);
+            </span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#800080;">$filepath</span> = (<span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#800080;">$filename</span> === <span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#800080;">$helper</span>) ? '' : <span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#008080;">substr</span>(<span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#800080;">$helper</span>, 0, <span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#008080;">strlen</span>(<span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#800080;">$helper</span>) - <span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#008080;">strlen</span>(<span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#800080;">$filename</span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#000000;">));
+            </span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#800080;">$filename</span> = <span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#008080;">strtolower</span>(<span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#008080;">preg_replace</span>('#(_helper)?(\.php)?$#i', '', <span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#800080;">$filename</span>)).'_helper'<span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#000000;">;
+            </span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#800080;">$helper</span>   = <span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#800080;">$filepath</span>.<span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#800080;">$filename</span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#000000;">;
+
+            </span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#0000ff;">if</span> (<span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#0000ff;">isset</span>(<span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#800080;">$this</span>-&gt;_ci_helpers[<span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#800080;">$helper</span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#000000;">]))
+            {
+                </span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#0000ff;">continue</span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#000000;">;
+            }
+
+            </span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#008000;">//</span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#008000;"> Is this a helper extension request?</span>
+            <span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#800080;">$ext_helper</span> = config_item('subclass_prefix').<span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#800080;">$filename</span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#000000;">;
+            </span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#800080;">$ext_loaded</span> = <span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#0000ff;">FALSE</span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#000000;">;
+            </span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#0000ff;">foreach</span> (<span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#800080;">$this</span>-&gt;_ci_helper_paths <span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#0000ff;">as</span> <span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#800080;">$path</span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#000000;">)
+            {
+                </span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#0000ff;">if</span> (<span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#008080;">file_exists</span>(<span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#800080;">$path</span>.'helpers/'.<span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#800080;">$ext_helper</span>.'.php'<span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#000000;">))
+                {
+                    </span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#0000ff;">include_once</span>(<span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#800080;">$path</span>.'helpers/'.<span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#800080;">$ext_helper</span>.'.php'<span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#000000;">);
+                    </span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#800080;">$ext_loaded</span> = <span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#0000ff;">TRUE</span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#000000;">;
+                }
+            }
+
+            </span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#008000;">//</span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#008000;"> If we have loaded extensions - check if the base one is here</span>
+            <span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#0000ff;">if</span> (<span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#800080;">$ext_loaded</span> === <span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#0000ff;">TRUE</span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#000000;">)
+            {
+                </span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#800080;">$base_helper</span> = BASEPATH.'helpers/'.<span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#800080;">$helper</span>.'.php'<span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#000000;">;
+                </span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#0000ff;">if</span> ( ! <span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#008080;">file_exists</span>(<span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#800080;">$base_helper</span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#000000;">))
+                {
+                    show_error(</span>'Unable to load the requested file: helpers/'.<span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#800080;">$helper</span>.'.php'<span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#000000;">);
+                }
+
+                </span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#0000ff;">include_once</span>(<span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#800080;">$base_helper</span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#000000;">);
+                </span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#800080;">$this</span>-&gt;_ci_helpers[<span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#800080;">$helper</span>] = <span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#0000ff;">TRUE</span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#000000;">;
+                log_message(</span>'info', 'Helper loaded: '.<span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#800080;">$helper</span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#000000;">);
+                </span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#0000ff;">continue</span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#000000;">;
+            }
+
+            </span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#008000;">//</span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#008000;"> No extensions found ... try loading regular helpers and/or overrides</span>
+            <span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#0000ff;">foreach</span> (<span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#800080;">$this</span>-&gt;_ci_helper_paths <span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#0000ff;">as</span> <span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#800080;">$path</span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#000000;">)
+            {
+                </span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#0000ff;">if</span> (<span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#008080;">file_exists</span>(<span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#800080;">$path</span>.'helpers/'.<span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#800080;">$helper</span>.'.php'<span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#000000;">))
+                {
+                    </span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#0000ff;">include_once</span>(<span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#800080;">$path</span>.'helpers/'.<span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#800080;">$helper</span>.'.php'<span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#000000;">);
+
+                    </span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#800080;">$this</span>-&gt;_ci_helpers[<span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#800080;">$helper</span>] = <span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#0000ff;">TRUE</span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#000000;">;
+                    log_message(</span>'info', 'Helper loaded: '.<span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#800080;">$helper</span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#000000;">);
+                    </span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#0000ff;">break</span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#000000;">;
+                }
+            }
+
+            </span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#008000;">//</span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#008000;"> unable to load the helper</span>
+            <span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#0000ff;">if</span> ( ! <span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#0000ff;">isset</span>(<span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#800080;">$this</span>-&gt;_ci_helpers[<span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#800080;">$helper</span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#000000;">]))
+            {
+                show_error(</span>'Unable to load the requested file: helpers/'.<span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#800080;">$helper</span>.'.php'<span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#000000;">);
+            }
+        }
+
+        </span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#0000ff;">return</span> <span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#800080;">$this</span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#000000;">;
+    }</span></pre>
+<div style="margin:0px;padding:0px;margin-top:5px;background-color:rgb(245, 245, 245);"><span style="margin:0px;padding:0px;padding-right:5px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;"><a href="#" style="margin:0px;padding:0px;color:rgb(0, 0, 0);text-decoration:underline;background-color:rgb(245, 245, 245);border:none;" title="复制代码"><img src="CI框架浅析(全篇) - 小小情意 - 博客园_files/copycode [3].gif" type="image/gif" data-filename="copycode.gif" alt="复制代码" height="20" style="margin:0px;padding:0px;height:auto;max-width:300px;border:none;background-color:rgb(245, 245, 245);" width="20"/></a></span></div></div>
+<div style="margin:0px;padding:0px;">     这段代码主要是 加载（include_once） system/helpers 与 appliation/helpers 目录下的 $name_helper.php 名称文件，自定义的辅助函数文件需要添加 前缀 来与 系统的辅助函数区分开。当执行完加载函数，就能得到 $this-&gt;name 实例，然后调用它里面的函数。</div>
+<div style="margin:0px;padding:0px;">
+<div style="margin:0px;padding:0px;">所有辅助函数如下：</div>
+<div style="margin:0px;padding:0px;"> </div>
+</div>
+</div>
+</div>
+</div>
+</div>
+
+<div style="margin:0px;padding:0px;">
+<ul style="list-style-type:circle;margin:0px 0px 1em 40px;padding:0px;">
+<li style="font-weight:normal;color:rgb(151, 49, 13);padding:0px;font-style:normal;font-variant:normal;margin:0px;font-stretch:normal;font-size:16px;line-height:normal;font-family:Arial;list-style-type:disc;"><span style="margin:0px;padding:0px;background-color:rgb(252, 252, 252);"><a href="https://codeigniter.org.cn/user_guide/helpers/array_helper.html" style="margin:0px;padding:0px;color:rgb(0, 0, 0);text-decoration:underline;"><span style="margin:0px;padding:0px;text-decoration:underline;">数组辅助函数</span></a></span></li>
+<li style="font-weight:normal;color:rgb(151, 49, 13);padding:0px;font-style:normal;font-variant:normal;margin:0px;font-stretch:normal;font-size:16px;line-height:normal;font-family:Arial;list-style-type:disc;"><span style="margin:0px;padding:0px;background-color:rgb(252, 252, 252);"><a href="https://codeigniter.org.cn/user_guide/helpers/captcha_helper.html" style="margin:0px;padding:0px;color:rgb(0, 0, 0);text-decoration:underline;"><span style="margin:0px;padding:0px;text-decoration:underline;">验证码辅助函数</span></a></span></li>
+<li style="font-weight:normal;color:rgb(151, 49, 13);padding:0px;font-style:normal;font-variant:normal;margin:0px;font-stretch:normal;font-size:16px;line-height:normal;font-family:Arial;list-style-type:disc;"><span style="margin:0px;padding:0px;background-color:rgb(252, 252, 252);"><a href="https://codeigniter.org.cn/user_guide/helpers/cookie_helper.html" style="margin:0px;padding:0px;color:rgb(0, 0, 0);text-decoration:underline;"><span style="margin:0px;padding:0px;text-decoration:underline;">Cookie 辅助函数</span></a></span></li>
+<li style="font-weight:normal;color:rgb(151, 49, 13);padding:0px;font-style:normal;font-variant:normal;margin:0px;font-stretch:normal;font-size:16px;line-height:normal;font-family:Arial;list-style-type:disc;"><span style="margin:0px;padding:0px;background-color:rgb(252, 252, 252);"><a href="https://codeigniter.org.cn/user_guide/helpers/date_helper.html" style="margin:0px;padding:0px;color:rgb(0, 0, 0);text-decoration:underline;"><span style="margin:0px;padding:0px;text-decoration:underline;">日期辅助函数</span></a></span></li>
+<li style="font-weight:normal;color:rgb(151, 49, 13);padding:0px;font-style:normal;font-variant:normal;margin:0px;font-stretch:normal;font-size:16px;line-height:normal;font-family:Arial;list-style-type:disc;"><span style="margin:0px;padding:0px;background-color:rgb(252, 252, 252);"><a href="https://codeigniter.org.cn/user_guide/helpers/directory_helper.html" style="margin:0px;padding:0px;color:rgb(0, 0, 0);text-decoration:underline;"><span style="margin:0px;padding:0px;text-decoration:underline;">目录辅助函数</span></a></span></li>
+<li style="font-weight:normal;color:rgb(151, 49, 13);padding:0px;font-style:normal;font-variant:normal;margin:0px;font-stretch:normal;font-size:16px;line-height:normal;font-family:Arial;list-style-type:disc;"><span style="margin:0px;padding:0px;background-color:rgb(252, 252, 252);"><a href="https://codeigniter.org.cn/user_guide/helpers/download_helper.html" style="margin:0px;padding:0px;color:rgb(0, 0, 0);text-decoration:underline;"><span style="margin:0px;padding:0px;text-decoration:underline;">下载辅助函数</span></a></span></li>
+<li style="font-weight:normal;color:rgb(151, 49, 13);padding:0px;font-style:normal;font-variant:normal;margin:0px;font-stretch:normal;font-size:16px;line-height:normal;font-family:Arial;list-style-type:disc;"><span style="margin:0px;padding:0px;background-color:rgb(252, 252, 252);"><a href="https://codeigniter.org.cn/user_guide/helpers/email_helper.html" style="margin:0px;padding:0px;color:rgb(0, 0, 0);text-decoration:underline;"><span style="margin:0px;padding:0px;text-decoration:underline;">邮件辅助函数</span></a></span></li>
+<li style="font-weight:normal;color:rgb(151, 49, 13);padding:0px;font-style:normal;font-variant:normal;margin:0px;font-stretch:normal;font-size:16px;line-height:normal;font-family:Arial;list-style-type:disc;"><span style="margin:0px;padding:0px;background-color:rgb(252, 252, 252);"><a href="https://codeigniter.org.cn/user_guide/helpers/file_helper.html" style="margin:0px;padding:0px;color:rgb(0, 0, 0);text-decoration:underline;"><span style="margin:0px;padding:0px;text-decoration:underline;">文件辅助函数</span></a></span></li>
+<li style="font-weight:normal;color:rgb(151, 49, 13);padding:0px;font-style:normal;font-variant:normal;margin:0px;font-stretch:normal;font-size:16px;line-height:normal;font-family:Arial;list-style-type:disc;"><span style="margin:0px;padding:0px;background-color:rgb(252, 252, 252);"><a href="https://codeigniter.org.cn/user_guide/helpers/form_helper.html" style="margin:0px;padding:0px;color:rgb(0, 0, 0);text-decoration:underline;"><span style="margin:0px;padding:0px;text-decoration:underline;">表单辅助函数</span></a></span></li>
+<li style="font-weight:normal;color:rgb(151, 49, 13);padding:0px;font-style:normal;font-variant:normal;margin:0px;font-stretch:normal;font-size:16px;line-height:normal;font-family:Arial;list-style-type:disc;"><span style="margin:0px;padding:0px;background-color:rgb(252, 252, 252);"><a href="https://codeigniter.org.cn/user_guide/helpers/html_helper.html" style="margin:0px;padding:0px;color:rgb(0, 0, 0);text-decoration:underline;"><span style="margin:0px;padding:0px;text-decoration:underline;">HTML 辅助函数</span></a></span></li>
+<li style="font-weight:normal;color:rgb(151, 49, 13);padding:0px;font-style:normal;font-variant:normal;margin:0px;font-stretch:normal;font-size:16px;line-height:normal;font-family:Arial;list-style-type:disc;"><span style="margin:0px;padding:0px;background-color:rgb(252, 252, 252);"><a href="https://codeigniter.org.cn/user_guide/helpers/inflector_helper.html" style="margin:0px;padding:0px;color:rgb(0, 0, 0);text-decoration:underline;"><span style="margin:0px;padding:0px;text-decoration:underline;">Inflector 辅助函数</span></a></span></li>
+<li style="font-weight:normal;color:rgb(151, 49, 13);padding:0px;font-style:normal;font-variant:normal;margin:0px;font-stretch:normal;font-size:16px;line-height:normal;font-family:Arial;list-style-type:disc;"><span style="margin:0px;padding:0px;background-color:rgb(252, 252, 252);"><a href="https://codeigniter.org.cn/user_guide/helpers/language_helper.html" style="margin:0px;padding:0px;color:rgb(0, 0, 0);text-decoration:underline;"><span style="margin:0px;padding:0px;text-decoration:underline;">语言辅助函数</span></a></span></li>
+<li style="font-weight:normal;color:rgb(151, 49, 13);padding:0px;font-style:normal;font-variant:normal;margin:0px;font-stretch:normal;font-size:16px;line-height:normal;font-family:Arial;list-style-type:disc;"><span style="margin:0px;padding:0px;background-color:rgb(252, 252, 252);"><a href="https://codeigniter.org.cn/user_guide/helpers/number_helper.html" style="margin:0px;padding:0px;color:rgb(0, 0, 0);text-decoration:underline;"><span style="margin:0px;padding:0px;text-decoration:underline;">数字辅助函数</span></a></span></li>
+<li style="font-weight:normal;color:rgb(151, 49, 13);padding:0px;font-style:normal;font-variant:normal;margin:0px;font-stretch:normal;font-size:16px;line-height:normal;font-family:Arial;list-style-type:disc;"><span style="margin:0px;padding:0px;background-color:rgb(252, 252, 252);"><a href="https://codeigniter.org.cn/user_guide/helpers/path_helper.html" style="margin:0px;padding:0px;color:rgb(0, 0, 0);text-decoration:underline;"><span style="margin:0px;padding:0px;text-decoration:underline;">路径辅助函数</span></a></span></li>
+<li style="font-weight:normal;color:rgb(151, 49, 13);padding:0px;font-style:normal;font-variant:normal;margin:0px;font-stretch:normal;font-size:16px;line-height:normal;font-family:Arial;list-style-type:disc;"><span style="margin:0px;padding:0px;background-color:rgb(252, 252, 252);"><a href="https://codeigniter.org.cn/user_guide/helpers/security_helper.html" style="margin:0px;padding:0px;color:rgb(0, 0, 0);text-decoration:underline;"><span style="margin:0px;padding:0px;text-decoration:underline;">安全辅助函数</span></a></span></li>
+<li style="font-weight:normal;color:rgb(151, 49, 13);padding:0px;font-style:normal;font-variant:normal;margin:0px;font-stretch:normal;font-size:16px;line-height:normal;font-family:Arial;list-style-type:disc;"><span style="margin:0px;padding:0px;background-color:rgb(252, 252, 252);"><a href="https://codeigniter.org.cn/user_guide/helpers/smiley_helper.html" style="margin:0px;padding:0px;color:rgb(0, 0, 0);text-decoration:underline;"><span style="margin:0px;padding:0px;text-decoration:underline;">表情辅助函数</span></a></span></li>
+<li style="font-weight:normal;color:rgb(151, 49, 13);padding:0px;font-style:normal;font-variant:normal;margin:0px;font-stretch:normal;font-size:16px;line-height:normal;font-family:Arial;list-style-type:disc;"><span style="margin:0px;padding:0px;background-color:rgb(252, 252, 252);"><a href="https://codeigniter.org.cn/user_guide/helpers/string_helper.html" style="margin:0px;padding:0px;color:rgb(0, 0, 0);text-decoration:underline;"><span style="margin:0px;padding:0px;text-decoration:underline;">字符串辅助函数</span></a></span></li>
+<li style="font-weight:normal;color:rgb(151, 49, 13);padding:0px;font-style:normal;font-variant:normal;margin:0px;font-stretch:normal;font-size:16px;line-height:normal;font-family:Arial;list-style-type:disc;"><span style="margin:0px;padding:0px;background-color:rgb(252, 252, 252);"><a href="https://codeigniter.org.cn/user_guide/helpers/text_helper.html" style="margin:0px;padding:0px;color:rgb(0, 0, 0);text-decoration:underline;"><span style="margin:0px;padding:0px;text-decoration:underline;">文本辅助函数</span></a></span></li>
+<li style="font-weight:normal;color:rgb(151, 49, 13);padding:0px;font-style:normal;font-variant:normal;margin:0px;font-stretch:normal;font-size:16px;line-height:normal;font-family:Arial;list-style-type:disc;"><span style="margin:0px;padding:0px;background-color:rgb(252, 252, 252);"><a href="https://codeigniter.org.cn/user_guide/helpers/typography_helper.html" style="margin:0px;padding:0px;color:rgb(0, 0, 0);text-decoration:underline;"><span style="margin:0px;padding:0px;text-decoration:underline;">排版辅助函数</span></a></span></li>
+<li style="font-weight:normal;color:rgb(151, 49, 13);padding:0px;font-style:normal;font-variant:normal;margin:0px;font-stretch:normal;font-size:16px;line-height:normal;font-family:Arial;list-style-type:disc;"><span style="margin:0px;padding:0px;background-color:rgb(252, 252, 252);"><a href="https://codeigniter.org.cn/user_guide/helpers/url_helper.html" style="margin:0px;padding:0px;color:rgb(0, 0, 0);text-decoration:underline;"><span style="margin:0px;padding:0px;text-decoration:underline;">URL 辅助函数</span></a></span></li>
+<li style="font-stretch:normal;background-color:rgb(252, 252, 252);padding:0px;font-style:normal;font-variant:normal;font-weight:normal;margin:0px;font-size:16px;line-height:normal;font-family:Arial;color:rgb(158, 74, 47);list-style-type:disc;"><span style="margin:0px;padding:0px;"><span style="margin:0px;padding:0px;text-decoration:underline;"><a href="https://codeigniter.org.cn/user_guide/helpers/xml_helper.html" style="margin:0px;padding:0px;color:rgb(0, 0, 0);text-decoration:underline;">XML 辅助函数</a>  </span></span></li>
+</ul>
+<div style="margin:0px;padding:0px;">CI 类库</div>
+<div style="margin:0px;padding:0px;">
+<div style="margin:0px;padding:0px;"><span style="margin:0px;padding:0px;"><span style="margin:0px;padding:0px;"> </span></span>
+<div style="margin:0px;padding:0px;margin-left:30px;">所有的系统类库都位于 system/libraries/ 目录下，大多数情况下，在使用之前， 你要先在控制器中初始化它，使用下面的方法:</div>
+<div style="margin:0px;padding:0px;margin-left:30px;">$this-&gt;load-&gt;library('class_name');</div>
+<div style="margin:0px;padding:0px;margin-left:30px;">'class_name' 是你想要调用的类库名称，例如，要加载 表单验证类库，你可以这样做:</div>
+<div style="margin:0px;padding:0px;margin-left:30px;">$this-&gt;load-&gt;library('form_validation');</div>
+<div style="margin:0px;padding:0px;margin-left:30px;">一旦类库被载入，你就可以根据该类库的用户指南中介绍的方法去使用它了，这个类似于辅助函数。</div>
+<div style="margin:0px;padding:0px;margin-left:30px;">同样拓展自己的类库也是在application/libraries 目录下。</div>
+<div style="margin:0px;padding:0px;"> </div>
+<div style="margin:0px;padding:0px;margin-left:30px;">一旦加载，你就可以使用小写字母名称来访问你的类，调用方法：</div>
+<div style="margin:0px;padding:0px;margin-left:30px;">$this-&gt;someclass-&gt;some_method();</div>
+<div style="margin:0px;padding:0px;margin-left:30px;">
+<div style="margin:0px;padding:0px;margin-left:30px;"><span style="margin:0px;padding:0px;font-size:medium;">所有的类库如下：</span></div>
+</div>
+</div>
+<ul style="margin:0px 0px 1em 40px;padding:0px;">
+<li style="margin:0px;padding:0px;list-style-type:disc;"><a href="https://codeigniter.org.cn/user_guide/libraries/benchmark.html" style="margin:0px;padding:0px;color:rgb(0, 0, 0);text-decoration:underline;" target="_blank">基准测试类</a></li>
+<li style="margin:0px;padding:0px;list-style-type:disc;"><a href="https://codeigniter.org.cn/user_guide/libraries/caching.html" style="margin:0px;padding:0px;color:rgb(0, 0, 0);text-decoration:underline;" target="_blank">缓存驱动器</a></li>
+<li style="margin:0px;padding:0px;list-style-type:disc;"><a href="https://codeigniter.org.cn/user_guide/libraries/calendar.html" style="margin:0px;padding:0px;color:rgb(0, 0, 0);text-decoration:underline;" target="_blank">日历类</a></li>
+<li style="margin:0px;padding:0px;list-style-type:disc;"><a href="https://codeigniter.org.cn/user_guide/libraries/cart.html" style="margin:0px;padding:0px;color:rgb(0, 0, 0);text-decoration:underline;" target="_blank">购物车类</a></li>
+<li style="margin:0px;padding:0px;list-style-type:disc;"><a href="https://codeigniter.org.cn/user_guide/libraries/config.html" style="margin:0px;padding:0px;color:rgb(0, 0, 0);text-decoration:underline;" target="_blank">配置类</a></li>
+<li style="margin:0px;padding:0px;list-style-type:disc;"><a href="https://codeigniter.org.cn/user_guide/libraries/email.html" style="margin:0px;padding:0px;color:rgb(0, 0, 0);text-decoration:underline;" target="_blank">Email 类</a></li>
+<li style="margin:0px;padding:0px;list-style-type:disc;"><a href="https://codeigniter.org.cn/user_guide/libraries/encrypt.html" style="margin:0px;padding:0px;color:rgb(0, 0, 0);text-decoration:underline;" target="_blank">加密类</a></li>
+<li style="margin:0px;padding:0px;list-style-type:disc;"><a href="https://codeigniter.org.cn/user_guide/libraries/encryption.html" style="margin:0px;padding:0px;color:rgb(0, 0, 0);text-decoration:underline;" target="_blank">加密类（新版）</a></li>
+<li style="margin:0px;padding:0px;list-style-type:disc;"><a href="https://codeigniter.org.cn/user_guide/libraries/file_uploading.html" style="margin:0px;padding:0px;color:rgb(0, 0, 0);text-decoration:underline;" target="_blank">文件上传类</a></li>
+<li style="margin:0px;padding:0px;list-style-type:disc;"><a href="https://codeigniter.org.cn/user_guide/libraries/form_validation.html" style="margin:0px;padding:0px;color:rgb(0, 0, 0);text-decoration:underline;" target="_blank">表单验证类</a></li>
+<li style="margin:0px;padding:0px;list-style-type:disc;"><a href="https://codeigniter.org.cn/user_guide/libraries/ftp.html" style="margin:0px;padding:0px;color:rgb(0, 0, 0);text-decoration:underline;" target="_blank">FTP 类</a></li>
+<li style="margin:0px;padding:0px;list-style-type:disc;"><a href="https://codeigniter.org.cn/user_guide/libraries/image_lib.html" style="margin:0px;padding:0px;color:rgb(0, 0, 0);text-decoration:underline;" target="_blank">图像处理类</a></li>
+<li style="margin:0px;padding:0px;list-style-type:disc;"><a href="https://codeigniter.org.cn/user_guide/libraries/input.html" style="margin:0px;padding:0px;color:rgb(0, 0, 0);text-decoration:underline;" target="_blank">输入类</a></li>
+<li style="margin:0px;padding:0px;list-style-type:disc;"><a href="https://codeigniter.org.cn/user_guide/libraries/javascript.html" style="margin:0px;padding:0px;color:rgb(0, 0, 0);text-decoration:underline;" target="_blank">Javascript 类</a></li>
+<li style="margin:0px;padding:0px;list-style-type:disc;"><a href="https://codeigniter.org.cn/user_guide/libraries/language.html" style="margin:0px;padding:0px;color:rgb(0, 0, 0);text-decoration:underline;" target="_blank">语言类</a></li>
+<li style="margin:0px;padding:0px;list-style-type:disc;"><a href="https://codeigniter.org.cn/user_guide/libraries/loader.html" style="margin:0px;padding:0px;color:rgb(0, 0, 0);text-decoration:underline;" target="_blank">加载器类</a></li>
+<li style="margin:0px;padding:0px;list-style-type:disc;"><a href="https://codeigniter.org.cn/user_guide/libraries/migration.html" style="margin:0px;padding:0px;color:rgb(0, 0, 0);text-decoration:underline;" target="_blank">迁移类</a></li>
+<li style="margin:0px;padding:0px;list-style-type:disc;"><a href="https://codeigniter.org.cn/user_guide/libraries/output.html" style="margin:0px;padding:0px;color:rgb(0, 0, 0);text-decoration:underline;" target="_blank">输出类</a></li>
+<li style="margin:0px;padding:0px;list-style-type:disc;"><a href="https://codeigniter.org.cn/user_guide/libraries/pagination.html" style="margin:0px;padding:0px;color:rgb(0, 0, 0);text-decoration:underline;" target="_blank">分页类</a></li>
+<li style="margin:0px;padding:0px;list-style-type:disc;"><a href="https://codeigniter.org.cn/user_guide/libraries/parser.html" style="margin:0px;padding:0px;color:rgb(0, 0, 0);text-decoration:underline;" target="_blank">模板解析类</a></li>
+<li style="margin:0px;padding:0px;list-style-type:disc;"><a href="https://codeigniter.org.cn/user_guide/libraries/security.html" style="margin:0px;padding:0px;color:rgb(0, 0, 0);text-decoration:underline;" target="_blank">安全类</a></li>
+<li style="margin:0px;padding:0px;list-style-type:disc;"><a href="https://codeigniter.org.cn/user_guide/libraries/sessions.html" style="margin:0px;padding:0px;color:rgb(0, 0, 0);text-decoration:underline;" target="_blank">Session 类</a></li>
+<li style="margin:0px;padding:0px;list-style-type:disc;"><a href="https://codeigniter.org.cn/user_guide/libraries/table.html" style="margin:0px;padding:0px;color:rgb(0, 0, 0);text-decoration:underline;" target="_blank">HTML 表格类</a></li>
+<li style="margin:0px;padding:0px;list-style-type:disc;"><a href="https://codeigniter.org.cn/user_guide/libraries/trackback.html" style="margin:0px;padding:0px;color:rgb(0, 0, 0);text-decoration:underline;" target="_blank">引用通告类</a></li>
+<li style="margin:0px;padding:0px;list-style-type:disc;"><a href="https://codeigniter.org.cn/user_guide/libraries/typography.html" style="margin:0px;padding:0px;color:rgb(0, 0, 0);text-decoration:underline;" target="_blank">排版类</a></li>
+<li style="margin:0px;padding:0px;list-style-type:disc;"><a href="https://codeigniter.org.cn/user_guide/libraries/unit_testing.html" style="margin:0px;padding:0px;color:rgb(0, 0, 0);text-decoration:underline;" target="_blank">单元测试类</a></li>
+<li style="margin:0px;padding:0px;list-style-type:disc;"><a href="https://codeigniter.org.cn/user_guide/libraries/uri.html" style="margin:0px;padding:0px;color:rgb(0, 0, 0);text-decoration:underline;" target="_blank">URI 类</a></li>
+<li style="margin:0px;padding:0px;list-style-type:disc;"><a href="https://codeigniter.org.cn/user_guide/libraries/user_agent.html" style="margin:0px;padding:0px;color:rgb(0, 0, 0);text-decoration:underline;" target="_blank">用户代理类</a></li>
+<li style="margin:0px;padding:0px;list-style-type:disc;"><a href="https://codeigniter.org.cn/user_guide/libraries/xmlrpc.html" style="margin:0px;padding:0px;color:rgb(0, 0, 0);text-decoration:underline;" target="_blank">XML-RPC 与 XML-RPC 服务器类</a></li>
+<li style="margin:0px;padding:0px;list-style-type:disc;"><a href="https://codeigniter.org.cn/user_guide/libraries/zip.html" style="margin:0px;padding:0px;color:rgb(0, 0, 0);text-decoration:underline;" target="_blank">Zip 编码类</a></li>
+</ul>
+<h3 style="padding:0px;font-size:16px;font-weight:bold;line-height:1.5;margin:10px 0px;">数据库</h3>
+<div style="margin:0px;padding:0px;">
+<div style="margin:0px;padding:0px;">     CI框架封装了多种数据库驱动与连接方法，让你轻松配置就能连接上，且封装了一些查询构造器与生成查询结果，让代码看起来方便简洁。</div>
+<div style="margin:0px;padding:0px;">你只需 在application/config/database.php 文件下配置你链接的参数：</div>
+<div style="margin:0px;padding:0px;">
+<div style="background-color:rgb(245, 245, 245);border:1px solid rgb(204, 204, 204);padding:5px;overflow:auto;margin:5px 0px;color:rgb(0, 0, 0);font-family:&quot;Courier New&quot;;font-size:12px;"><div style="margin:0px;padding:0px;margin-top:5px;background-color:rgb(245, 245, 245);"><span style="margin:0px;padding:0px;padding-right:5px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;"><a href="#" style="margin:0px;padding:0px;color:rgb(0, 0, 0);text-decoration:underline;background-color:rgb(245, 245, 245);border:none;" title="复制代码"><img src="CI框架浅析(全篇) - 小小情意 - 博客园_files/copycode [4].gif" type="image/gif" data-filename="copycode.gif" alt="复制代码" height="20" style="margin:0px;padding:0px;height:auto;max-width:300px;border:none;background-color:rgb(245, 245, 245);" width="20"/></a></span></div>
+<pre style="margin:0px;padding:0px;margin-top:0px;margin-bottom:0px;word-wrap:break-word;white-space:pre-wrap;font-family:&quot;Courier New&quot;;font-size:12px;"><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#800080;">$db</span>['default'] = <span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#0000ff;">array</span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#000000;">(
+    </span>'dsn'    =&gt; '',
+    'hostname' =&gt; 'localhost',
+    'username' =&gt; '',
+    'password' =&gt; '',
+    'database' =&gt; '',
+    'dbdriver' =&gt; 'mysqli',
+    'dbprefix' =&gt; '',
+    'pconnect' =&gt; <span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#0000ff;">FALSE</span>,
+    'db_debug' =&gt; (ENVIRONMENT !== 'production'),
+    'cache_on' =&gt; <span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#0000ff;">FALSE</span>,
+    'cachedir' =&gt; '',
+    'char_set' =&gt; 'utf8',
+    'dbcollat' =&gt; 'utf8_general_ci',
+    'swap_pre' =&gt; '',
+    'encrypt' =&gt; <span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#0000ff;">FALSE</span>,
+    'compress' =&gt; <span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#0000ff;">FALSE</span>,
+    'stricton' =&gt; <span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#0000ff;">FALSE</span>,
+    'failover' =&gt; <span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#0000ff;">array</span>(),
+    'save_queries' =&gt; <span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#0000ff;">TRUE</span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#000000;">
+);</span></pre>
+<div style="margin:0px;padding:0px;margin-top:5px;background-color:rgb(245, 245, 245);"><span style="margin:0px;padding:0px;padding-right:5px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;"><a href="#" style="margin:0px;padding:0px;color:rgb(0, 0, 0);text-decoration:underline;background-color:rgb(245, 245, 245);border:none;" title="复制代码"><img src="CI框架浅析(全篇) - 小小情意 - 博客园_files/copycode [5].gif" type="image/gif" data-filename="copycode.gif" alt="复制代码" height="20" style="margin:0px;padding:0px;height:auto;max-width:300px;border:none;background-color:rgb(245, 245, 245);" width="20"/></a></span></div></div>
+</div>
+<div style="margin:0px;padding:0px;">
+<div style="margin:0px;padding:0px;margin-left:30px;">然后在 Controller 里调用一句 ：$this-&gt;load-&gt;database(); 就能连接上数据库。</div>
+<div style="margin:0px;padding:0px;margin-left:30px;">接着，你可以查询你想要的结果：</div>
+<div style="margin:0px;padding:0px;margin-left:30px;">$this-&gt;db-&gt;where('name',$name);</div>
+<div style="margin:0px;padding:0px;margin-left:30px;">$query=$this-&gt;db-&gt;get('mytable',10,20);</div>
+<div style="margin:0px;padding:0px;margin-left:30px;">// Executes: SELECT * FROM mytable where name=$nameLIMIT 20, 10</div>
+</div>
+<div style="margin:0px;padding:0px;margin-left:30px;">
+<div style="margin:0px;padding:0px;">CI框架也提供了数据库的事务处理，如：</div>
+<div style="margin:0px;padding:0px;">$this-&gt;db-&gt;trans_start();$this-&gt;db-&gt;query('AN SQL QUERY...');$this-&gt;db-&gt;query('ANOTHER QUERY...');$this-&gt;db-&gt;query('AND YET ANOTHER QUERY...');$this-&gt;db-&gt;trans_complete();</div>
+<div style="margin:0px;padding:0px;"> </div>
+<div style="margin:0px;padding:0px;">
+<h3 style="padding:0px;font-size:16px;font-weight:bold;line-height:1.5;margin:10px 0px;">提供了简单的查询缓存：</h3>
+<div style="margin:0px;padding:0px;">将查询结果对象会被序列化并保存到服务器上的一个文本文件中。 当下次再访问该页面时，会直接使用缓存文件而不用访问数据库了。只有读类型（SELECT）的查询可以被缓存。 这个相对应 Java 的hibernate 数据库映射 就弱化了很多，Java提供了三级的缓存方式，而且在查询数据库的时候，并不会每次都断开，再连接。</div>
+<div style="margin:0px;padding:0px;"> </div>
+<div style="margin:0px;padding:0px;">
+<div style="margin:0px;padding:0px;">以上都是CI框架提供的重要组成部分，也许它可能满足不了你所有的需求，但也提供了一些给你拓展的方式，如在application/core目录下添加你的核心类，这都是CI框架已考虑到的问题。当然它在处理一些繁杂的业务逻辑的时候，还是比较薄弱的，比如说权限使用，模块灵活增删等。</div>
+<div style="margin:0px;padding:0px;">CI框架主要是以轻便，快捷上手为主要的优势，让你去处理一些简单的项目。它介于一个没有框架与一个比较笨重的框架之间，所以一个框架好不好用，还要基于你的需求。</div>
+<div style="margin:0px;padding:0px;"> </div>
+<div style="margin:0px;padding:0px;">
+<div style="margin:0px;padding:0px;">CI框架还提供了一些其它便捷的开发帮助，它有有自己的模板引擎，也有程序分析：</div>
+<div style="margin:0px;padding:0px;">你可以在你的 控制器 方法的任何位置添加一行下面的代码:</div>
+<div style="margin:0px;padding:0px;">$this-&gt;output-&gt;enable_profiler(TRUE);</div>
+<div style="margin:0px;padding:0px;"> </div>
+<div style="margin:0px;padding:0px;">
+<div style="margin:0px;padding:0px;"><strong style="margin:0px;padding:0px;">设置基准测试点</strong></div>
+<div style="margin:0px;padding:0px;">$this-&gt;benchmark-&gt;mark('code_start');// Some code happens here$this-&gt;benchmark-&gt;mark('code_end');echo$this-&gt;benchmark-&gt;elapsed_time('code_start','code_end');</div>
+<div style="margin:0px;padding:0px;"> </div>
+<div style="margin:0px;padding:0px;"><strong style="margin:0px;padding:0px;">最后输出分析的信息：</strong></div>
+<div style="margin:0px;padding:0px;">$sections=array('config'=&gt;TRUE,'queries'=&gt;TRUE);</div>
+<div style="margin:0px;padding:0px;">$this-&gt;output-&gt;set_profiler_sections($sections);</div>
+<div style="margin:0px;padding:0px;"> </div>
+</div>
+<div style="margin:0px;padding:0px;"><strong style="margin:0px;padding:0px;">下表列出了可用的分析器字段和用来访问这些字段的 key :</strong></div>
+<div style="margin:0px;padding:0px;">
+<table border="1" cellpadding="0" cellspacing="0" style="padding:0px;font-size:inherit;font-style:inherit;font-variant:inherit;height:255px;width:583px;font-weight:inherit;margin:0px;border-spacing:0px;max-width:850px;word-break:break-word;border-collapse:collapse;border:1px solid silver;display:block;overflow-x:scroll;float:left;">
+<tbody style="margin:0px;padding:0px;">
+<tr style="margin:0px;padding:0px;">
+<td style="margin:0px;border:1px solid silver;border-collapse:collapse;padding:3px;white-space:nowrap;text-align:left;">Key</td>
+<td style="margin:0px;border:1px solid silver;border-collapse:collapse;padding:3px;white-space:nowrap;">Description</td>
+<td style="margin:0px;border:1px solid silver;border-collapse:collapse;padding:3px;white-space:nowrap;">Default</td>
+</tr>
+<tr style="margin:0px;padding:0px;">
+<td style="margin:0px;border:1px solid silver;border-collapse:collapse;padding:3px;white-space:nowrap;">benchmarks</td>
+<td style="margin:0px;border:1px solid silver;border-collapse:collapse;padding:3px;white-space:nowrap;">在各个计时点花费的时间以及总时间 TRUE</td>
+<td style="margin:0px;border:1px solid silver;border-collapse:collapse;padding:3px;white-space:nowrap;"> </td>
+</tr>
+<tr style="margin:0px;padding:0px;">
+<td style="margin:0px;border:1px solid silver;border-collapse:collapse;padding:3px;white-space:nowrap;">config</td>
+<td style="margin:0px;border:1px solid silver;border-collapse:collapse;padding:3px;white-space:nowrap;">CodeIgniter 配置变量 TRUE</td>
+<td style="margin:0px;border:1px solid silver;border-collapse:collapse;padding:3px;white-space:nowrap;"> </td>
+</tr>
+<tr style="margin:0px;padding:0px;">
+<td style="margin:0px;border:1px solid silver;border-collapse:collapse;padding:3px;white-space:nowrap;">controller_info</td>
+<td style="margin:0px;border:1px solid silver;border-collapse:collapse;padding:3px;white-space:nowrap;">被请求的控制器类和调用的方法 TRUE</td>
+<td style="margin:0px;border:1px solid silver;border-collapse:collapse;padding:3px;white-space:nowrap;"> </td>
+</tr>
+<tr style="margin:0px;padding:0px;">
+<td style="margin:0px;border:1px solid silver;border-collapse:collapse;padding:3px;white-space:nowrap;">get</td>
+<td style="margin:0px;border:1px solid silver;border-collapse:collapse;padding:3px;white-space:nowrap;">请求中的所有 GET 数据 TRUE</td>
+<td style="margin:0px;border:1px solid silver;border-collapse:collapse;padding:3px;white-space:nowrap;"> </td>
+</tr>
+<tr style="margin:0px;padding:0px;">
+<td style="margin:0px;border:1px solid silver;border-collapse:collapse;padding:3px;white-space:nowrap;">http_headers</td>
+<td style="margin:0px;border:1px solid silver;border-collapse:collapse;padding:3px;white-space:nowrap;">本次请求的 HTTP 头部 TRUE</td>
+<td style="margin:0px;border:1px solid silver;border-collapse:collapse;padding:3px;white-space:nowrap;"> </td>
+</tr>
+<tr style="margin:0px;padding:0px;">
+<td style="margin:0px;border:1px solid silver;border-collapse:collapse;padding:3px;white-space:nowrap;">memory_usage</td>
+<td style="margin:0px;border:1px solid silver;border-collapse:collapse;padding:3px;white-space:nowrap;">本次请求消耗的内存（单位字节） TRUE</td>
+<td style="margin:0px;border:1px solid silver;border-collapse:collapse;padding:3px;white-space:nowrap;"> </td>
+</tr>
+<tr style="margin:0px;padding:0px;">
+<td style="margin:0px;border:1px solid silver;border-collapse:collapse;padding:3px;white-space:nowrap;">post</td>
+<td style="margin:0px;border:1px solid silver;border-collapse:collapse;padding:3px;white-space:nowrap;">请求中的所有 POST 数据 TRUE</td>
+<td style="margin:0px;border:1px solid silver;border-collapse:collapse;padding:3px;white-space:nowrap;"> </td>
+</tr>
+<tr style="margin:0px;padding:0px;">
+<td style="margin:0px;border:1px solid silver;border-collapse:collapse;padding:3px;white-space:nowrap;">queries</td>
+<td style="margin:0px;border:1px solid silver;border-collapse:collapse;padding:3px;white-space:nowrap;">列出所有执行的数据库查询，以及执行时间 TRUE</td>
+<td style="margin:0px;border:1px solid silver;border-collapse:collapse;padding:3px;white-space:nowrap;"> </td>
+</tr>
+<tr style="margin:0px;padding:0px;">
+<td style="margin:0px;border:1px solid silver;border-collapse:collapse;padding:3px;white-space:nowrap;">uri_string</td>
+<td style="margin:0px;border:1px solid silver;border-collapse:collapse;padding:3px;white-space:nowrap;">本次请求的 URI TRUE</td>
+<td style="margin:0px;border:1px solid silver;border-collapse:collapse;padding:3px;white-space:nowrap;"> </td>
+</tr>
+<tr style="margin:0px;padding:0px;">
+<td style="margin:0px;border:1px solid silver;border-collapse:collapse;padding:3px;white-space:nowrap;">session_data</td>
+<td style="margin:0px;border:1px solid silver;border-collapse:collapse;padding:3px;white-space:nowrap;">当前会话中存储的数据 TRUE</td>
+<td style="margin:0px;border:1px solid silver;border-collapse:collapse;padding:3px;white-space:nowrap;"> </td>
+</tr>
+<tr style="margin:0px;padding:0px;">
+<td style="margin:0px;border:1px solid silver;border-collapse:collapse;padding:3px;white-space:nowrap;">query_toggle_count</td>
+<td style="margin:0px;border:1px solid silver;border-collapse:collapse;padding:3px;white-space:nowrap;">指定显示多少个数据库查询，剩下的则默认折叠起来 25</td>
+<td style="margin:0px;border:1px solid silver;border-collapse:collapse;padding:3px;white-space:nowrap;"> </td>
+</tr>
+</tbody>
+</table>
+</div>
+<div style="margin:0px;padding:0px;"> </div>
+<div style="margin:0px;padding:0px;"> </div>
+<div style="margin:0px;padding:0px;"> </div>
+<div style="margin:0px;padding:0px;"> </div>
+<div style="margin:0px;padding:0px;"> </div>
+<div style="margin:0px;padding:0px;"> </div>
+<div style="margin:0px;padding:0px;"> </div>
+<div style="margin:0px;padding:0px;"> </div>
+<div style="margin:0px;padding:0px;"> </div>
+<div style="margin:0px;padding:0px;"> </div>
+<div style="margin:0px;padding:0px;"> </div>
+<div style="margin:0px;padding:0px;"> </div>
+<div style="margin:0px;padding:0px;"> </div>
+<div style="margin:0px;padding:0px;"> </div>
+<div style="margin:0px;padding:0px;">以上是我对CI框架大致的了解与分析，我做php的经验不多，这是我第一个尝试去深入了解的php框架，请大家多多指教。</div>
+<div style="margin:0px;padding:0px;"> </div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<span style="margin:0px;padding:0px;"><span style="margin:0px;padding:0px;"><br style="margin:0px;padding:0px;"/></span></span></div>
+
+</div></div>
+<div style="margin:0px;padding:0px;clear:both;"></div>
+<div style="margin:0px;padding:0px;margin-top:20px;">
+<div style="margin:0px;padding:0px;margin-bottom:10px;"></div>
+<div style="margin:0px;padding:0px;font-size:14px;color:rgb(126, 140, 141);font-weight:bold;margin-top:0px;">标签: <a href="http://www.cnblogs.com/xiaoxiaoqingyi/tag/CI%E6%A1%86%E6%9E%B6%E3%80%81codeigniter%E3%80%81CI%E6%A1%86%E6%9E%B6%E8%AE%BE%E8%AE%A1%E3%80%81CI%E6%A1%86%E6%9E%B6%E5%88%86%E6%9E%90/" style="margin:0px;padding:0px;color:rgb(159, 164, 164);text-decoration:none;font-weight:normal;margin-left:10px;">CI框架、codeigniter、CI框架设计、CI框架分析</a></div>
+<div style="margin:0px;padding:0px;"><div style="margin:0px;padding:10px 0px;margin-bottom:10px;margin-top:10px;border:1px dashed silver;font-size:12px;width:320px;text-align:center;">
+        <a href="#" style="margin-right:10px;margin:0px;border-radius:10px;padding:3px 8px;text-decoration:none;font-weight:bold;cursor:pointer;display:inline-block;vertical-align:middle;box-shadow:rgba(0, 0, 0, 0.498039) 0px 1px 3px;text-shadow:rgba(0, 0, 0, 0.247059) 0px -1px 1px;background:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAAkCAYAAABIdFAMAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAHhJREFUeNo8zjsOxCAMBFB/KEAUFFR0Cbng3nQPw68ArZdAlOZppPFIBhH5EAB8b+Tlt9MYQ6i1BuqFaq1CKSVcxZ2Acs6406KUgpt5/LCKuVgz5BDCSb13ZO99ZOdcZGvt4mJjzMVKqcha68iIePB86GAiOv8CDADlIUQBs7MD3wAAAABJRU5ErkJggg%3D%3D&quot;) repeat-x;background-color:rgb(45, 174, 191);color:rgb(255, 255, 255);border:none;">好文要顶</a>
+            <a href="#" style="margin-right:10px;margin:0px;border-radius:10px;padding:3px 8px;text-decoration:none;font-weight:bold;cursor:pointer;display:inline-block;vertical-align:middle;box-shadow:rgba(0, 0, 0, 0.498039) 0px 1px 3px;text-shadow:rgba(0, 0, 0, 0.247059) 0px -1px 1px;background:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAAkCAYAAABIdFAMAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAHhJREFUeNo8zjsOxCAMBFB/KEAUFFR0Cbng3nQPw68ArZdAlOZppPFIBhH5EAB8b+Tlt9MYQ6i1BuqFaq1CKSVcxZ2Acs6406KUgpt5/LCKuVgz5BDCSb13ZO99ZOdcZGvt4mJjzMVKqcha68iIePB86GAiOv8CDADlIUQBs7MD3wAAAABJRU5ErkJggg%3D%3D&quot;) repeat-x;background-color:rgb(227, 49, 0);color:rgb(255, 255, 255);border:none;">关注我</a>
+    <a href="#" style="margin-right:10px;margin:0px;border-radius:10px;padding:3px 8px;text-decoration:none;font-weight:bold;cursor:pointer;display:inline-block;vertical-align:middle;box-shadow:rgba(0, 0, 0, 0.498039) 0px 1px 3px;text-shadow:rgba(0, 0, 0, 0.247059) 0px -1px 1px;background:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAAkCAYAAABIdFAMAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAHhJREFUeNo8zjsOxCAMBFB/KEAUFFR0Cbng3nQPw68ArZdAlOZppPFIBhH5EAB8b+Tlt9MYQ6i1BuqFaq1CKSVcxZ2Acs6406KUgpt5/LCKuVgz5BDCSb13ZO99ZOdcZGvt4mJjzMVKqcha68iIePB86GAiOv8CDADlIUQBs7MD3wAAAABJRU5ErkJggg%3D%3D&quot;) repeat-x;background-color:rgb(255, 181, 21);color:rgb(255, 255, 255);border:none;">收藏该文</a>
+    <a href="#" style="margin-right:10px;margin:0px;border-radius:10px;padding:3px 2px;text-decoration:none;font-weight:bold;cursor:pointer;display:inline-block;vertical-align:middle;box-shadow:none;text-shadow:none;background:none;color:rgb(255, 255, 255);border:none;" title="分享至新浪微博"><img src="CI框架浅析(全篇) - 小小情意 - 博客园_files/icon_weibo_24.png" type="image/png" data-filename="icon_weibo_24.png" alt="" height="24" style="margin:0px;padding:0px;height:auto;border:none;vertical-align:middle;margin-left:5px;box-shadow:none;max-width:300px;" width="24"/></a>
+    <a href="#" style="margin-right:10px;margin:0px;border-radius:10px;padding:3px 2px;text-decoration:none;font-weight:bold;cursor:pointer;display:inline-block;vertical-align:middle;box-shadow:none;text-shadow:none;background:none;color:rgb(255, 255, 255);border:none;" title="分享至微信"><img src="CI框架浅析(全篇) - 小小情意 - 博客园_files/wechat.png" type="image/png" data-filename="wechat.png" alt="" height="24" style="margin:0px;padding:0px;border:medium none;width:24px;height:24px;box-shadow:none;margin-left:5px;vertical-align:middle;max-width:300px;" width="24"/></a>
+</div>
+<div style="margin:0px;padding:0px;float:left;width:280px;margin-top:0px;margin-bottom:10px;color:rgb(0, 0, 0);margin-left:0px;font-size:12px;">
+    <div style="margin:0px;padding:0px;float:left;line-height:18px;">
+            <a href="http://home.cnblogs.com/u/xiaoxiaoqingyi/" style="margin:0px;padding:0px;color:rgb(0, 0, 0);text-decoration:none;" target="_blank"><img src="CI框架浅析(全篇) - 小小情意 - 博客园_files/20151207151617.png.jpg" type="image/jpeg" data-filename="20151207151617.png.jpg" alt="" height="48" style="margin:0px;padding:0px;height:auto;border:0px;vertical-align:top;float:left;margin-right:5px;padding-top:5px;padding-left:2px;max-width:300px;" width="48"/></a>
+        <div style="margin:0px;padding:0px;float:left;line-height:18px;">
+            <a href="http://home.cnblogs.com/u/xiaoxiaoqingyi/" style="margin:0px;padding:0px;color:rgb(0, 0, 0);text-decoration:none;">小小情意</a><br style="margin:0px;padding:0px;"/>
+            <a href="http://home.cnblogs.com/u/xiaoxiaoqingyi/followees" style="margin:0px;padding:0px;color:rgb(0, 0, 0);text-decoration:none;">关注 - 35</a><br style="margin:0px;padding:0px;"/>
+            <a href="http://home.cnblogs.com/u/xiaoxiaoqingyi/followers" style="margin:0px;padding:0px;color:rgb(0, 0, 0);text-decoration:none;">粉丝 - 25</a>
+        </div>
+    </div>
+    <div style="margin:0px;padding:0px;clear:both;"></div>
+    <div style="margin:0px;padding:0px;"></div>
+    <div style="margin:0px;padding:0px;">
+                <a href="#" style="margin:0px;padding:0px;color:rgb(0, 0, 0);text-decoration:none;">+加关注</a>
+    </div>
+</div>
+<div style="margin:0px;padding:0px;float:right;margin-bottom:10px;margin-right:30px;font-size:12px;width:125px;text-align:center;margin-top:10px;">
+    <div style="margin:0px;padding:0px;float:left;width:46px;height:52px;background:url(&quot;//static.cnblogs.com/images/upup.gif&quot;) no-repeat;text-align:center;cursor:pointer;margin-top:2px;padding-top:5px;">
+        <span style="margin:0px;padding:0px;font-size:14px;color:rgb(7, 93, 179);font-family:Verdana;line-height:1.5em;">7</span>
+    </div>
+    <div style="text-align:center;padding:0px;margin:0px;height:52px;background:url(&quot;//static.cnblogs.com/images/downdown.gif&quot;) no-repeat;margin-left:20px;cursor:pointer;margin-top:2px;padding-top:5px;width:46px;float:right;">
+        <span style="margin:0px;padding:0px;font-size:14px;color:rgb(7, 93, 179);font-family:Verdana;line-height:1.5em;">0</span>
+    </div>
+    <div style="margin:0px;padding:0px;clear:both;"></div>
+    <div style="margin:0px;padding:0px;margin-top:5px;margin-left:0px;font-size:12px;color:gray;">
+    </div>
+</div>
+</div>
+<div style="margin:0px;padding:0px;clear:both;"></div>
+<div style="padding:0px;line-height:200%;font-size:14px;margin:10px 0px;"><a href="http://www.cnblogs.com/xiaoxiaoqingyi/p/6738108.html" style="margin:0px;padding:0px;color:rgb(51, 51, 51);text-decoration:none;">« </a> 上一篇：<a href="http://www.cnblogs.com/xiaoxiaoqingyi/p/6738108.html" style="margin:0px;padding:0px;text-decoration:none;color:rgb(51, 51, 51);" title="发布于2017-04-20 12:24">Android 代码库（自定义一套 Dialog通用提示框 ）</a><br style="margin:0px;padding:0px;"/><a href="http://www.cnblogs.com/xiaoxiaoqingyi/p/6932008.html" style="margin:0px;padding:0px;color:rgb(51, 51, 51);text-decoration:none;">» </a> 下一篇：<a href="http://www.cnblogs.com/xiaoxiaoqingyi/p/6932008.html" style="margin:0px;padding:0px;text-decoration:none;color:rgb(51, 51, 51);" title="发布于2017-06-02 10:05">简单VR照片 使用陀螺仪、姿态角（Roll、Pitch、Yaw ）、四元数</a><br style="margin:0px;padding:0px;"/></div>
+</div>
+
+
+		</div>
+		<div style="padding:0px;clear:both;float:none;text-align:left;margin:10px 0px;color:rgb(119, 119, 119);line-height:200%;font-size:14px;">posted @ <span style="margin:0px;padding:0px;">2017-05-24 23:57</span> <a href="http://www.cnblogs.com/xiaoxiaoqingyi/" style="margin:0px;padding:0px;color:rgb(153, 153, 153);text-decoration:none;">小小情意</a> 阅读(<span style="margin:0px;padding:0px;">7942</span>) 评论(<span style="margin:0px;padding:0px;">4</span>)  <a href="https://i.cnblogs.com/EditPosts.aspx?postid=6901654" rel="nofollow" style="margin:0px;padding:0px;color:rgb(153, 153, 153);text-decoration:none;">编辑</a> <a href="https://www.cnblogs.com/xiaoxiaoqingyi/p/6901654.html#" style="margin:0px;padding:0px;color:rgb(153, 153, 153);text-decoration:none;">收藏</a></div>
+	</div></div></div></div></div></div></div></div></div></div><br/></div></span>
+</div></body></html> 

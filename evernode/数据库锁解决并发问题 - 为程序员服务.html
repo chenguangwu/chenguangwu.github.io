@@ -1,0 +1,204 @@
+<html>
+<head>
+  <title>数据库锁解决并发问题 - 为程序员服务</title>
+  <basefont face="微软雅黑" size="2" />
+  <meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+  <meta name="exporter-version" content="YXBJ Windows/600718 (zh-CN, DDL); Windows/6.1.1 (Win64);"/>
+  <style>
+    body, td {
+      font-family: 微软雅黑;
+      font-size: 10pt;
+    }
+  </style>
+</head>
+<body>
+<a name="4041"/>
+<h1>数据库锁解决并发问题 - 为程序员服务</h1>
+<div>
+<table bgcolor="#D4DDE5" border="0">
+<tr><td><b>创建时间：</b></td><td><i>2018/9/30 9:45</i></td></tr>
+<tr><td><b>来源：</b></td><td><a href="http://ju.outofmemory.cn/entry/194502"><i>http://ju.outofmemory.cn/entry/194502</i></a></td></tr>
+</table>
+</div>
+<br/>
+
+<div><span>
+  <div>
+<div style="font-size: 16px; display: inline-block; min-width: 100%;"><div><div style="font:100%/1 &quot;Helvetica Neue&quot;, Helvetica, STHeiTi, &quot;Microsoft YaHei&quot;;"><div><div style="line-height:1.6em;font-size:1.06em;"><h1 style="font-size:1.25em;line-height:1.36em;padding:0.2em 0px 0.2em 0.5em;word-break:break-all;word-wrap:break-word;border-bottom:1px solid rgb(240, 240, 240);margin:0.1em 0px 0px 0.1em;">数据库锁解决并发问题</h1>
+<div style="font-size:0.8em;text-align:right;padding-right:0.8em;float:right;line-height:35px;">
+    <a href="http://ju.outofmemory.cn/feed/3128/" style="text-decoration:none;" title="Lei Huang"><i style="background:url(http://outofmemory.cn/v5/s/imgs/sprite.png?17.1) no-repeat transparent;height:16px;width:16px;display:inline-block;position:relative;top:2px;background-position:-29px -81px;"></i>Lei Huang</a>
+    <span style="color:black;"><i style="background:url(http://outofmemory.cn/v5/s/imgs/sprite.png?17.1) no-repeat transparent;height:16px;width:16px;display:inline-block;position:relative;top:2px;background-position:-29px -99px;"></i>2015-07-22</span>
+    <span style="color:rgb(139, 0, 0);"><b>1023</b> 阅读</span>
+</div>
+<div style="margin:0px;padding:0px;">
+<a href="http://ju.outofmemory.cn/tag/%E6%95%B0%E6%8D%AE%E5%BA%93/" style="text-decoration:none;color:rgb(62, 109, 142);background-color:rgb(224, 234, 241);border-bottom:1px solid rgb(179, 206, 225);border-right:1px solid rgb(179, 206, 225);padding:3px 4px;margin:2px 2px 2px 0px;font-size:0.9em;line-height:2.4;white-space:nowrap;">数据库</a>
+
+<a href="http://ju.outofmemory.cn/tag/%E5%B9%B6%E5%8F%91/" style="text-decoration:none;color:rgb(62, 109, 142);background-color:rgb(224, 234, 241);border-bottom:1px solid rgb(179, 206, 225);border-right:1px solid rgb(179, 206, 225);padding:3px 4px;margin:2px 2px 2px 0px;font-size:0.9em;line-height:2.4;white-space:nowrap;">并发</a>
+
+<a href="http://ju.outofmemory.cn/tag/%E9%94%81/" style="text-decoration:none;color:rgb(62, 109, 142);background-color:rgb(224, 234, 241);border-bottom:1px solid rgb(179, 206, 225);border-right:1px solid rgb(179, 206, 225);padding:3px 4px;margin:2px 2px 2px 0px;font-size:0.9em;line-height:2.4;white-space:nowrap;">锁</a>
+
+</div>
+
+
+<blockquote style="margin:0.8em 0.5em;border-width:1px 1px 1px 4px;border-style:solid;border-color:rgb(240, 240, 240) rgb(240, 240, 240) rgb(240, 240, 240) rgb(102, 153, 204);border-image:initial;padding:2px 2px 4px 5px;">
+ <p style="line-height:1.6em;margin:1em 0px;">
+  <strong>
+   问题描述：
+  </strong>
+  一个优惠券活动，用户可以领取优惠券，但是一个优惠券活动领取数量有限制，所以用户在领取的时候就需要先统计一下以领用的优惠券数量。
+然后在生成这张优惠券领取记录。那么此时就会出现并发问题，当多个用户领取同一个优惠券活动的时候，他们统计的优惠券已领数量小于限定可领取数量，所以都可以执行生成
+优惠券领取记录的操作，但是剩下的可领取数量可能小于这些用户数量。
+ </p>
+</blockquote>
+<p style="line-height:1.6em;margin:1em 0px;">
+ 如何来解决这个问题呢，首先我们会想到，在程序中使用synchronized关键字来锁住领取优惠券的方法，那么就可以实现，当一个人在领取优惠券的时候其他人等待，但是程序
+都是分发到多台服务器的，在分布式的情况下，这种方法并没有效果，因为程序中所能做到的只是锁住单台服务器上面的操作。
+</p>
+<p style="line-height:1.6em;margin:1em 0px;">
+ 既然程序中无法实现，那么我们就想到利用数据库来实现，因为我现在做的这个项目，数据库是没用从库的，只有一台数据库服务器，如果数据库也分布式了，那就要另求它法了。
+</p>
+<p style="line-height:1.6em;margin:1em 0px;">
+ 想到用数据库解决后，首先想到的是利用事务的原子性来解决，就是统计已领用数量的操作和生成优惠券记录的操作合成为一个事务，表面上感觉可以了，但其实这样做也是错误的。
+因为多个事务同时处理时，情况也是一样的，同样会出现并发问题。
+</p>
+<p style="line-height:1.6em;margin:1em 0px;">
+ 所以单单利用事务还是不行的，还必须使用数据库的锁机制。
+</p>
+<p style="line-height:1.6em;margin:1em 0px;">
+ InnoDB实现了以下两种类型的行锁。
+</p>
+<ul>
+ <li>
+  <p style="line-height:1.6em;margin:1em 0px;">
+   共享锁（S）：允许一个事务去读一行，阻止其他事务获得相同数据集的排他锁(可以读不能写)。
+  </p>
+ </li>
+ <li>
+  <p style="line-height:1.6em;margin:1em 0px;">
+   排他锁（X)：允许获得排他锁的事务更新数据，阻止其他事务取得相同数据集的共享读锁和排他写锁(不能读也不能写)。
+  </p>
+ </li>
+</ul>
+<p style="line-height:1.6em;margin:1em 0px;">
+ 锁的范围:行锁: 对某行记录加上锁 ; 表锁: 对整个表加上锁
+</p>
+<p style="line-height:1.6em;margin:1em 0px;">
+ 此处我们需要使用的是排它锁，就是当一个事物在进行操作的时候，其他事物不能去统计已经领取优惠券的数量，只有领取完成之后才能统计。锁的范围是行。
+</p>
+<p style="line-height:1.6em;margin:1em 0px;">
+ 使用排他锁的方法其实是悲观锁机制，我们还有乐观锁，接下来就先介绍下二者区别。
+</p>
+<p style="line-height:1.6em;margin:1em 0px;">
+ <strong>
+  悲观锁：假定会发生并发冲突，屏蔽一切可能违反数据完整性的操作。
+ </strong>
+</p>
+<p style="line-height:1.6em;margin:1em 0px;">
+ 悲观锁假定其他用户企图访问或者改变你正在访问、更改的对象的概率是很高的，因此在悲观锁的环境中，在你开始改变此对象之前就将该对象锁住，并且直到你提交了所作的更改之后才释放锁。
+悲观的缺陷是不论是页锁还是行锁，加锁的时间可能会很长，这样可能会长时间的限制其他用户的访问，也就是说悲观锁的并发访问性不好。
+</p>
+<p style="line-height:1.6em;margin:1em 0px;">
+ <strong>
+  乐观锁：假设不会发生并发冲突，只在提交操作时检查是否违反数据完整性。
+ </strong>
+</p>
+<p style="line-height:1.6em;margin:1em 0px;">
+ 乐观锁不能解决脏读的问题。 乐观锁则认为其他用户企图改变你正在更改的对象的概率是很小的，因此乐观锁直到你准备提交所作的更改时才将对象锁住，当你读取以及改变该对象时并不加锁。
+可见乐观锁加锁的时间要比悲观锁短，乐观锁可以用较大的锁粒度获得较好的并发访问性能。但是如果第二个用户恰好在第一个用户提交更改之前读取了该对象，那么当他完成了自己的更改进行提交时，
+数据库就会发现该对象已经变化了，这样，第二个用户不得不重新读取该对象并作出更改。这说明在乐观锁环境中，会增加并发用户读取对象的次数。
+</p>
+<p style="line-height:1.6em;margin:1em 0px;">
+ 如果使用乐观锁的方式，我们就需要给数据库有当前优惠券活动已领取数量的字段，每次我们修改这个字段的值时对其就行判断，如果他小于可领取数量，那么久可以插入
+这条优惠券记录。这样判断和更新是在同一条sql中，这样就利用一条sql的原子性，避免并发冲突。
+</p>
+<p style="line-height:1.6em;margin:1em 0px;">
+ reference：
+</p>
+<ul>
+ <li>
+  <p style="line-height:1.6em;margin:1em 0px;">
+   <a href="http://www.phpxs.com/post/3498" rel="nofollow external" style="text-decoration:none;">
+    MySQL中SELECT+UPDATE处理并发更新问题解决方案
+   </a>
+  </p>
+ </li>
+ <li>
+  <p style="line-height:1.6em;margin:1em 0px;">
+   <a href="http://netkiller.github.io/database/postgresql/sql.transactional.html" rel="nofollow external" style="text-decoration:none;">
+    事务处理和锁定语句
+   </a>
+  </p>
+ </li>
+</ul>
+<div style="background:rgb(34, 34, 136);float:right;margin:5px 2em 5px 0px;width:70px;height:38px;border:1px solid lightblue;line-height:38px;padding:0px 20px;text-align:center;">
+    <a href="#" rel="nofollow" style="text-decoration:none;display:block;height:32px;background:url(http://outofmemory.cn/v5/s/imgs/sprite.png?17.1) -23px -133px no-repeat transparent;text-indent:22px;color:white;" target="_self">点赞</a>
+</div>
+<div style="margin:0px;padding:0px;">
+<a href="http://ju.outofmemory.cn/tag/%E6%95%B0%E6%8D%AE%E5%BA%93/" style="text-decoration:none;color:rgb(62, 109, 142);background-color:rgb(224, 234, 241);border-bottom:1px solid rgb(179, 206, 225);border-right:1px solid rgb(179, 206, 225);padding:3px 4px;margin:2px 2px 2px 0px;font-size:0.9em;line-height:2.4;white-space:nowrap;">数据库</a>
+
+<a href="http://ju.outofmemory.cn/tag/%E5%B9%B6%E5%8F%91/" style="text-decoration:none;color:rgb(62, 109, 142);background-color:rgb(224, 234, 241);border-bottom:1px solid rgb(179, 206, 225);border-right:1px solid rgb(179, 206, 225);padding:3px 4px;margin:2px 2px 2px 0px;font-size:0.9em;line-height:2.4;white-space:nowrap;">并发</a>
+
+<a href="http://ju.outofmemory.cn/tag/%E9%94%81/" style="text-decoration:none;color:rgb(62, 109, 142);background-color:rgb(224, 234, 241);border-bottom:1px solid rgb(179, 206, 225);border-right:1px solid rgb(179, 206, 225);padding:3px 4px;margin:2px 2px 2px 0px;font-size:0.9em;line-height:2.4;white-space:nowrap;">锁</a>
+
+</div>
+
+<div style="padding:4px;margin:40px 0px 30px;border:1px solid rgb(211, 211, 211);text-align:center;border-radius:4px;">
+    <span style="background:rgb(255, 255, 255);padding:0px 10px;top:-17px;display:inline-block;position:relative;z-index:1;">作者：<a href="http://ju.outofmemory.cn/feed/3128/" style="text-decoration:none;" title="Lei Huang">Lei Huang</a></span>
+    <div style="margin:-1em auto 0.6em;text-align:center;width:128px;height:128px;">
+        <a href="http://ju.outofmemory.cn/feed/3128/" style="text-decoration:none;border:1px solid rgb(231, 231, 231);display:table-cell;vertical-align:middle;border-radius:64px;width:128px;height:128px;overflow:hidden;">
+            <img src="数据库锁解决并发问题 - 为程序员服务_files/Image.png" type="image/png" data-filename="Image.png" align="center" height="128" width="128"/>
+        </a>
+    </div>
+    <div style="font-size:0.8em;margin:-1em 0px 0.6em;">
+        I practice three hours a day,so that when I meet a pirate,I can kill it!
+    </div>
+    <div style="font-size:0.8em;margin:-1em 0px 0.6em;">原文地址：<a href="http://leihuang.org/2015/07/22/concurrence-lock/" rel="nofollow external" style="text-decoration:none;" target="_blank">数据库锁解决并发问题</a>, 感谢原作者分享。</div>
+</div>
+
+<div style="overflow:auto;zoom:1;width:100%;">
+    <span style="font-size:0.9em;float:right;width:50%;display:block;text-align:right;"><span style="font-size:0.9em;font-family:serif;background:transparent;">→</span><a href="http://ju.outofmemory.cn/entry/199937" style="text-decoration:none;font-size:0.9em;">MySQL更新死锁问题</a></span>
+    <span style="font-size:0.9em;float:left;width:50%;display:block;"><span style="font-size:0.9em;font-family:serif;background:transparent;">←</span><a href="http://ju.outofmemory.cn/entry/194501" style="text-decoration:none;font-size:0.9em;">MySQL开发规范</a></span>
+</div>
+<div style="width:968px;text-align:center;overflow:hidden;border:1px solid transparent;border-radius:2px;">
+
+<div style="box-sizing:content-box;text-align:center;display:block;font-size:0px;width:100%;height:67px;"><div style="box-sizing:content-box;width:662px;height:67px;position:relative;margin:0 auto;"><div align="center,center" style="border:0;vertical-align:bottom;margin:0;width:662px;height:67px;"></div></div></div>
+</div>
+
+<div>
+<a name="comments" style="text-decoration:none;"></a>
+<h3 style="font-size:1.2em;margin:0.2em 0px 0.4em;padding:0.2em;border-bottom:1px solid rgb(240, 240, 240);">评论</h3>
+<ul>
+<li><a name="comment-660" style="text-decoration:none;"></a>
+    <div><p style="line-height:1.6em;margin:1em 0px;">优惠券剩余数量可以放在 Redis 缓存中，简单高效</p></div>
+    <div>
+        <a href="http://ju.outofmemory.cn/entry/194502#newComment" style="text-decoration:none;">回复</a>   |  
+        <a href="http://ju.outofmemory.cn/user/51184" style="text-decoration:none;">EdwardLee03</a> 发表于 <span title="2016-08-12 11:36:03">2年前</span>
+    </div>
+</li>
+</ul>
+
+
+
+</div>
+
+
+<div><a name="newComment" style="text-decoration:none;"></a>
+<h3 style="font-size:1.2em;margin:0.2em 0px 0.4em;padding:0.2em;border-bottom:1px solid rgb(240, 240, 240);">发表评论</h3>
+<div>
+    
+    
+    
+    
+    <p style="line-height:1.6em;margin:1em 0px;">
+        <span></span>
+    </p>
+</div>
+</div>
+
+
+
+
+</div></div></div></div></div>
+</div>
+</span>
+</div></body></html> 

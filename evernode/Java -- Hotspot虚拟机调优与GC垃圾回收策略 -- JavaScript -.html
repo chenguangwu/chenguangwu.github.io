@@ -1,0 +1,86 @@
+<html>
+<head>
+  <title>Java -- Hotspot虚拟机调优与GC垃圾回收策略 -- JavaScript -- IT技术博客大学习 -- 共学习 共进步！</title>
+  <basefont face="微软雅黑" size="2" />
+  <meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+  <meta name="exporter-version" content="YXBJ Windows/600718 (zh-CN, DDL); Windows/6.1.1 (Win64);"/>
+  <style>
+    body, td {
+      font-family: 微软雅黑;
+      font-size: 10pt;
+    }
+  </style>
+</head>
+<body>
+<a name="11864"/>
+<h1>Java -- Hotspot虚拟机调优与GC垃圾回收策略 -- JavaScript -- IT技术博客大学习 -- 共学习 共进步！</h1>
+<div>
+<table bgcolor="#D4DDE5" border="0">
+<tr><td><b>创建时间：</b></td><td><i>2019/5/14 16:38</i></td></tr>
+<tr><td><b>来源：</b></td><td><a href="https://blogread.cn/it/article/8034"><i>https://blogread.cn/it/article/8034</i></a></td></tr>
+</table>
+</div>
+<br/>
+
+<div><span><div style="-evernote-webclip:true"><br/><div style="font-size: 16px; display: inline-block;"><div><div style="background:rgb(214, 234, 247);font-size:14px;text-align:center;font-family:&quot;Microsoft Yahei&quot;, &quot;Helvetica Neue&quot;, &quot;Luxi Sans&quot;, &quot;DejaVu Sans&quot;, Tahoma, &quot;Hiragino Sans GB&quot;, STHeiti;"><div><div style="text-align:left;overflow:hidden;"><div><div style="background:rgb(255, 255, 255);overflow:hidden;border-radius:5px;">
+				<div style="padding:1px 0px;text-align:center;"><h2>Java -- Hotspot虚拟机调优与GC垃圾回收策略</h2></div>
+				<div style="text-align:right;padding-right:5px;line-height:25px;font-size:12px;">
+											<div></div>
+															浏览:391次  <a href="https://blogread.cn/it/article/8034?f=wb_blogread#original" style="text-decoration:none;">出处信息</a>
+				</div>
+
+				<div style="background:rgb(255, 255, 255);line-height:25px;padding:15px 5px;font-size:16px;">
+										<div style="float:right;margin:4px;">
+
+												
+						
+						<ins style="display:inline-block;width:336px;height:280px;"><ins style="display:inline-table;border:none;height:280px;margin:0;padding:0;position:relative;visibility:visible;width:336px;background-color:transparent;"><ins style="display:block;border:none;height:280px;margin:0;padding:0;position:relative;visibility:visible;width:336px;background-color:transparent;"><div style="left:0;position:absolute;top:0;border:0px;width:336px;height:280px;"></div></ins></ins></ins>
+						
+												
+					</div>
+					
+					<p>(<strong><em>先扯扯Java，热热身</em></strong>) 论坛上，经常看到有些人讨论c、c++、java哪个更快，哪个更主流等的口水贴，吵的乐此不疲。其实个人感觉Java 1.6之后性能和开发效率都提高了不少，虽然不像直接编译成机器码的语言一样，但是Java特有的JVM动态优化器、JIT即时编译器对热点代码都提供了动态编译和即时优化，而且开源的库也比较多，开发效率也比较高。<br/></p><p>不过，Java在高性能IO、大内存使用上还是有些自己的弱点(个人观点，有进一步见解的可留言讨论)，不过大部分系统开发还是可以应付的，Hadoop、Hbase也都是java写的。所以必要过分的挣这些，<strong>应用的场景、底层相关度、团队开发的熟悉语言反而显得比较重要</strong>。</p><p>回到正题哈，Java相对于c/c++来说，是比较“动态”的语言，在运行时期，也有扩展性和可优化性(不像c/c++直接编译成机器码)。所以，针对JVM和GC的一些优化策略就显得尤为重要，提供给程序员的灵活性也会相应的增加。这两天着手于Java后端进程的优化，对jvm和gc进行了一些研究。做了一些简单的总结：</p><p><br/></p><ul><li><p><span style="font-size:18px;">虚拟机的内存</span></p></li><li><p><span style="font-size:18px;">GC回收算法、策略</span></p></li><li><p><span style="font-size:18px;">jvm启动参数优化</span></p></li><li><p><span style="font-size:18px;">性能优化 Tips</span></p></li></ul><div><span style="font-size:18px;"><br/></span></div><h2><strong>1、虚拟机的内存 :</strong></h2><p>熟悉c的同学，一定知道c对内存进行分区的管理：栈+堆+静态存储+mmap等。同样Java亦是如此。不过Java绝大多数对象都是new出来得，所以Java与&quot;堆内存&quot;联系更紧密。也是吃内存的大户，对“堆内存”的分区方式有些不同，Java把堆分成了四大部分：</p><p><br/></p><p>   <strong> Eden(新生代) + S0/S1(Survivor区域) + Old(老年代) + Perm(持久代)</strong><br/></p><p><strong><br/></strong></p><p><strong><img src="Java -- Hotspot虚拟机调优与GC垃圾回收策略 -- JavaScript -_files/Center.jpg" type="image/jpeg" data-filename="Center.jpg" border="0" height="190" hspace="0" style="width:650px;height:190px;float:none;" vspace="0" width="650"/><br/></strong></p><p><strong>Eden</strong> : Eden主要存储一些“新对象”，<strong>比如刚刚被new出来的(就像伊甸园的新生人类一样)</strong>。大部分生命周期比较短的对象，都是在这个区域里徘徊。<br/></p><p><strong>S0/S1</strong> : 又称为from和to是两个同等大小的区域，<strong>在使用“复制”回收算法时，作为DoubleBuffer(双缓冲见博客之前的文章)</strong>，起内存整理的作用(具体作用后面gc算法时会提到)。<br/></p><p>        <strong>Old </strong>: 老年代主要存储一些生存时间特别长的对象，比如伴随服务进程时刻一直存在的对象，还有进入Eden后，长时间没被清理的对象，也会进去老年代。或者超大的对象无法直接在新生代分配的对象。</p><p><strong>Perm</strong> : 存放代码，字符串常量池，静态变量等，可以持久化的数据。(包含String.intern()方法放入字符串常量池的容量)。Perm区不同于&quot;方法区&quot;，方法区按Java规范属于Non-Heap，只是SunJDK把它实现在了Perm区，用Perm区来存储(后续SunJDK正在逐步移出)。</p><p>Java New IO (<strong>NIO</strong>)为了获得更高的效率，防止jvm的堆内存和系统内存做多一层的映射，<strong>使用了DirectMemory的方式</strong>。例如NIO中的MappedByteBuffer，DirectByteBuffer。直接从操作系统分配内存，也成为“<strong>堆外内存</strong>”。这部分内存不受GC的直接管理，但是效率很高。使用时要比较小心，否则有可能堆内存还剩很多的时候，却抛出了OutOfMemory的异常(无法分配内存了)。</p><p><br/></p><h2> <strong>2、GC回收算法、策略 :</strong><strong style="font-size:16px;">     </strong></h2><p>   Garbage Collection时时刻刻伴随这你写的代码，帮你回收着不会再使用的对象。在c/c++中，malloc/free和new/delete总是要成对的出现(自己的东西自己收拾)。在Java GC伴随中写代码的程序员，<strong>基本上不用考虑自己“收拾”了，也基本上不用担心哪里忘了&quot;free&quot;内存</strong>。注意，是“基本上”，因为有时候错误的使用，也会造成Java的内存泄漏。<br/></p><p><strong>      </strong>  试想一下，如果你自己写一个垃圾回收器，你会怎么做？(拓展一下思维哈)</p><p><strong>      </strong>  首先，我们需要明确，什么是垃圾对象？什么是内存的泄漏？狭义的理解，可以简单的认为，如果一个对象，我们以后不可能在用了，不想要了(就像丢掉生活中的垃圾)，<em>把这个对象的“引用”赋值一个null，哇！世界清静了，再也找不到那个对象了</em>。泄漏，顾名思义，那个被你丢弃的对象，那块内存被你扔掉了，但是却没人能接着复用，就像从内存中扣除去了一样。所以，可以基本看出gc的简单的流程：<br/></p><p><strong>      </strong>  <strong>遍历内存中所有的对象 --&gt;  找到那些你不在需要的(引用为null) --&gt; 清理那块内存(不保证一定) --&gt; 放入未使用的内存供其他地方用</strong></p><p><strong>      </strong>  这就是GC的大致流程，当然其中的很多不同的算法细节造就了不同的结构、效果：</p><h3><strong>      </strong> </h3><h3>一、遍历对象，找到“垃圾”所使用的方法：</h3><div></div><h4>*  <strong>引用计数法(经典，但是Sun Java未使用)：</strong></h4><p><strong>                </strong>引用计数很好理解，就是为每一个对象维护一个计数器，存储引用这个对象的个数，如：</p><p><strong>              </strong>  A a = new A();  // new出来的这个对象“X”的引用就为1<br/></p><p><strong>              </strong>  A b = a ;  // “X”引用+1<br/></p><p><strong>              </strong>  a = null;  // “X”引用-1</p><p><span style="font-weight:bold;white-space:pre;"><strong>              </strong>  </span>当对象“X”的引用为0，说明没人再引用它，它就没用了。</p><p><strong>              </strong>  <br/></p><h4><strong>              </strong>  *   <strong>根搜索法(Sun Java使用)：</strong></h4><div><strong>     </strong></div><p><strong>              </strong>  此算法中，所有的Java对象构成一颗近似“搜索树”的结构，有一个root根节点，每次从root出发向下搜索，当整个树遍历完成后，那些不在其中的变量则视为&quot;垃圾&quot;。<br/></p><p><strong>              </strong>  如下对象可作为root可达的对象：<br/></p><p><strong>    <em>  </em></strong><em>  <strong>      </strong>  </em><em><strong>      </strong>  </em><em>Java虚拟机栈中变量所引用的对象(比如A a = new A()，a即为栈中变量)  -- 最主要的</em></p><p><em><strong>              </strong>  <strong>      </strong>  方法区中静态属性引用的对象<br/></em></p><p><em><strong>              </strong>  <strong>      </strong>  方法区中常量引用的对象</em></p><p><em><strong>              </strong>  <strong>      </strong>  JNI Native方法引用的对象<br/></em></p><p><br/></p><h3>二、回收算法：</h3><h4><span style="font-size:12px;">标记-清除 算法 (Mark-Sweep算法)</span></h4><div>分为两个阶段：标记和清除，标记就是利用上述方法先找到所有人为是垃圾的对象，然后进入清除阶段，清理每块内存。是所有算法中最基本的，其他算法都是在它基础上演进的。可以看出它所存在的问题：</div><div>1、效率不高，遍历过程需要Hung住整个JVM(暂停进程执行) </div><div>                2、会产生碎片，因为清理过程较简单，只是回收不会把不连续内存合并，有可能利用不了两块内存中间的空隙容量(如下图，灰色之间的白色区域不够新分配)</div><div><br/></div><div><img src="Java -- Hotspot虚拟机调优与GC垃圾回收策略 -- JavaScript -_files/Center [1].jpg" type="image/jpeg" data-filename="Center.jpg" height="244" width="591"/><br/></div><div><br/></div><div><h4>复制算法 (Eden、S0/S1使用的算法)</h4><div></div><div>该方法分配两块大小相同的内存A和B，同一时刻只用A或者B，另外一块作为Buffer，不写入数据。写满回收时，将仍然“活着”的对象从A移入B，移入的时候，可以将所有对象“整齐”的排放，相当于一次整理，然后一次性的清理整个A内存，B代替A的地位寸处对象，A作为Buffer等待下次交替。<br/></div><div>可以避免碎片的问题，效率也不错，不过会浪费1/2的内存块，因为要作为buffer不能使用。所以这种方法不适合老年代这种大内存的地方，而且不适合长生命周期的对象，因为需要在两块内存之间拷贝多次。适合新生代这种比较小的内存块，不久之后将被回收，这就是就是S0/S1的实现方法。<br/></div><div><img src="Java -- Hotspot虚拟机调优与GC垃圾回收策略 -- JavaScript -_files/Center [2].jpg" type="image/jpeg" data-filename="Center.jpg" height="306" width="585"/><br/></div><div><br/></div></div><p><br/></p><h4>标记-整理 算法 (Mark-Compact)</h4><div></div><div>该方法第一步与标记-清除类似，第二步整理时，不直接清除内存，而是把所有存活的对象向一个固定地方聚齐(整理)，就像收拾屋子一样，妈妈总是会把孩子们先喊到屋子一角，然后开始打扫。</div><div>整理过程不需要另外一块内存buffer的参与，而且不会由于长时间存活的对象而造成频繁移动拷贝。所以适合老年代。<br/></div><div><br/></div><p><img src="Java -- Hotspot虚拟机调优与GC垃圾回收策略 -- JavaScript -_files/Center [3].jpg" type="image/jpeg" data-filename="Center.jpg" height="331" width="634"/><br/></p><p><br/></p><p><br/></p><p><br/></p><h4>  <strong><span style="font-size:12px;">  概念整理：</span></strong></h4><p>   <strong> FullGC </strong>: 老年代的触发的GC，可回收老年代和Perm代</p><p><strong>YoungGC </strong>: 年轻代的GC，又称为MinorGC</p><p>MinorGC可能比较频繁一般多一些没关系，<strong>FullGC需要Hung住进程，发生多了影响响应时间，所以应该尽量避免</strong>。<br/></p><p>可以通过设置-Xms(初始化内存大小)和-Xmx(最大内存大小)使堆定长，这样就会发生收缩和扩张，可以避免GC的发生。<br/></p><p><br/></p><p>  <strong>  GC总览：</strong></p><p><strong><br/></strong></p><p><img src="Java -- Hotspot虚拟机调优与GC垃圾回收策略 -- JavaScript -_files/Center [4].jpg" type="image/jpeg" data-filename="Center.jpg" border="0" height="394" hspace="0" style="width:650px;height:394px;float:none;" vspace="0" width="650"/><br/></p><p><br/></p><p><br/></p><h2>jvm启动参数优化</h2><p>几种算法各有各的优势，并且根据内存分区不同而选择不同的算法，下面给出一些JVM和GC启动时候的参数，可以帮助调优程序对内存的使用：</p><p><br/></p><p><strong>-XX:-DisableExplicitGC</strong>禁止调用System.gc()，可避免强制的无用GC</p><p><strong>-XX:+ScavengeBeforeFullGC       </strong>新生代GC优先于Full GC执行<br/>   <strong> -XX:+UseConcMarkSweepGC     </strong>对老生代采用并发标记清除算法进行GC<br/><strong>-XX:+UseParallelGC                       </strong>启用并行GC<br/>   <strong> -XX:+UseParallelOldGC                 </strong>对Full GC启用并行，当-XX:-UseParallelGC启用时该项自动启用<br/><strong>-XX:+UseSerialGC</strong>                         启用串行GC</p><p>   <strong> -XX:+PrintGC  </strong>                               每次GC时打印相关信息<br/>  <strong>  -XX:+PrintGC Details</strong>                 每次GC时打印详细信息</p><p><strong>-Xloggc:gc.log    </strong>                             GC打印文件</p><p><strong>-XX:+HeapDumpOnOutOfMemoryError</strong>  内存溢出时dump文件，可供分析<br/></p><p><br/></p><p> <span style="font-size:18px;">--server </span>  以server模式启动(默认client)，会触发很多优化机制(JIT编译、优化器)，适合启动时间长，运行响应快的后端进程。<strong>建议后端都开启。</strong><br/><br/></p><h2>性能优化Tips</h2><p> 1、在适合的场景中选择合适的GC算法，优先使用并发GC，如CMS(-XX:+UseConcMarkSweepGC)，性能好于并行GC，好于串行GC。</p><p> 2、新对象在Eden和S0/S1经过15次YoungGC后，一次GC长一岁，进入Old。所以尽可能的释放无用的引用和资源。</p><p> 3、Java String的subString和split方法由潜在的浪费内存的诟病，大量字符串操作情况下，自行用while和new String方式替换。</p><p> 4、多使用并发数据结构(java.util.concurrenc)，提高并发性能。</p><p> 5、多线程下谨慎使用volatile 关键字，避免内存栅和内存的一致性访问<br/></p><p> 6、大数据量，高性能访问可以使用或借鉴Google Guava库</p><p> 7、对直接数据类型，比如int、long大量操作时，避免与Integer、Long转换带来的装箱拆箱消耗</p><p> 8、在高IO场景下，使用NIO代替原来的stream io</p><p> 9、jvm喜欢可以重复调用的代码，可以做JIT即时编译和优化<br/></p><p><span style="line-height:20px;"> 10、构造HashMap如果元素个数可预先预估，比如cache，最好通过构造函数传入预估大小、调节负载因子防止rehash过于频繁。</span></p><p><span style="line-height:20px;"> 11、rehash代价比较高，如果需要自己实现的话，可以参考一下redis的rehash方式，利用了double buffer，可实现动态rehashing过程。</span></p><div></div>
+						
+										<div>
+						
+						
+						<ins style="display:inline-block;width:728px;height:90px;"><ins style="display:inline-table;border:none;height:90px;margin:0;padding:0;position:relative;visibility:visible;width:728px;background-color:transparent;"><ins style="display:block;border:none;height:90px;margin:0;padding:0;position:relative;visibility:visible;width:728px;background-color:transparent;"><div style="left:0;position:absolute;top:0;border:0px;width:728px;height:90px;"></div></ins></ins></ins>
+						
+					</div>
+										
+										<div style="margin:10px 0px;padding:10px;background:#F3F781;text-align:center;-moz-border-radius:5px;border-radius:5px;">
+					觉得文章有用？立即：
+<div></div>
+						和朋友一起 <strong>共学习 共进步！</strong>
+						
+										</div>
+										
+										<h3>建议继续学习：</h3>
+					<ol>
+													<li><a href="https://blogread.cn/it/article/3520?f=sa" style="text-decoration:none;">深入理解PHP原理之Session Gc的一个小概率Notice    <span style="font-size:14px;">(阅读：2723)</span></a></li>
+													<li><a href="https://blogread.cn/it/article/3594?f=sa" style="text-decoration:none;">jvm垃圾回收    <span style="font-size:14px;">(阅读：2342)</span></a></li>
+													<li><a href="https://blogread.cn/it/article/7601?f=sa" style="text-decoration:none;">JAVA虚拟机简介    <span style="font-size:14px;">(阅读：1983)</span></a></li>
+													<li><a href="https://blogread.cn/it/article/4025?f=sa" style="text-decoration:none;">浅谈PHP5中垃圾回收算法(Garbage Collection)的演化    <span style="font-size:14px;">(阅读：1880)</span></a></li>
+													<li><a href="https://blogread.cn/it/article/3869?f=sa" style="text-decoration:none;">把 lua 的 gc 移到独立线程    <span style="font-size:14px;">(阅读：1762)</span></a></li>
+													<li><a href="https://blogread.cn/it/article/1070?f=sa" style="text-decoration:none;">在 C++ 中引入 gc 后的对象初始化    <span style="font-size:14px;">(阅读：1740)</span></a></li>
+													<li><a href="https://blogread.cn/it/article/5380?f=sa" style="text-decoration:none;">xen虚拟机的迁移类型    <span style="font-size:14px;">(阅读：1420)</span></a></li>
+													<li><a href="https://blogread.cn/it/article/5278?f=sa" style="text-decoration:none;">Erlang虚拟机基础设施dtrace探测点介绍和使用    <span style="font-size:14px;">(阅读：1301)</span></a></li>
+													<li><a href="https://blogread.cn/it/article/7009?f=sa" style="text-decoration:none;">VirtualBox 虚拟机镜像文件 UUID 已存在问题    <span style="font-size:14px;">(阅读：762)</span></a></li>
+													<li><a href="https://blogread.cn/it/article/6768?f=sa" style="text-decoration:none;">MooseFS之虚拟机惹的祸    <span style="font-size:14px;">(阅读：580)</span></a></li>
+												
+					</ol>
+										
+					
+					
+					
+					<div style="margin:10px 0px;padding:10px;text-align:center;-moz-border-radius:5px;border-radius:5px;">
+						QQ技术交流群：445447336，欢迎加入！<br/>
+						<b>扫一扫订阅我的微信号：IT技术博客大学习</b><br/>
+						<div style="height:258px;position:relative;"><div style="font-size: 16px; display: inline-block;"><div><div style="margin:0px;"><img src="Java -- Hotspot虚拟机调优与GC垃圾回收策略 -- JavaScript -_files/Image.jpg" type="image/jpeg" data-filename="Image.jpg" height="258" style="-webkit-user-select:none;" width="258"/></div></div></div></div>
+					</div>
+					
+
+				</div>
+
+			</div></div></div></div></div></div></div><br/></div></span>
+</div></body></html> 

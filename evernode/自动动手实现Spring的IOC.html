@@ -1,0 +1,221 @@
+<html>
+<head>
+  <title>自动动手实现Spring的IOC</title>
+  <basefont face="微软雅黑" size="2" />
+  <meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+  <meta name="exporter-version" content="YXBJ Windows/600718 (zh-CN, DDL); Windows/6.1.1 (Win64);"/>
+  <style>
+    body, td {
+      font-family: 微软雅黑;
+      font-size: 10pt;
+    }
+  </style>
+</head>
+<body>
+<a name="5703"/>
+<h1>自动动手实现Spring的IOC</h1>
+<div>
+<table bgcolor="#D4DDE5" border="0">
+<tr><td><b>创建时间：</b></td><td><i>2018/5/11 10:31</i></td></tr>
+<tr><td><b>更新时间：</b></td><td><i>2019/1/27 12:57</i></td></tr>
+<tr><td><b>来源：</b></td><td><a href="https://mp.weixin.qq.com/s/QouQJK3YBg-od93wvUDqkg"><i>https://mp.weixin.qq.com/s/QouQJK3YBg-od93wvUDqkg</i></a></td></tr>
+</table>
+</div>
+<br/>
+
+<div><span>
+  <div>
+<div style="font-size: 16px; display: inline-block; min-width: 100%; position: relative;"><div style="text-size-adjust:100%;line-height:1.6;"><div style="font-family:-apple-system-font, BlinkMacSystemFont, &quot;Helvetica Neue&quot;, &quot;PingFang SC&quot;, &quot;Hiragino Sans GB&quot;, &quot;Microsoft YaHei UI&quot;, &quot;Microsoft YaHei&quot;, Arial, sans-serif;color:rgb(51, 51, 51);letter-spacing:0.034em;background-color:rgb(255, 255, 255);"><div><div style="word-wrap:break-word;"><div style="background-color:rgb(255, 255, 255);"><div><div style="overflow:hidden;color:rgb(51, 51, 51);font-size:17px;">
+                    
+
+                    
+
+                    
+                    
+                    <p style="margin:0px;padding:0px;clear:both;min-height:1em;max-width:100%;box-sizing:border-box;word-wrap:break-word;"><img src="自动动手实现Spring的IOC_files/640" type="image/gif" data-filename="640" height="198" style="margin:0px;padding:0px;max-width:100%;box-sizing:border-box;word-wrap:break-word;height:auto !important;width:auto !important;visibility:visible !important;" width="600"/></p><h2 style="margin:0px;padding:0px;font-weight:400;font-size:16px;max-width:100%;box-sizing:border-box;word-wrap:break-word;">一、IOC基本概念<br style="margin:0px;padding:0px;max-width:100%;box-sizing:border-box;word-wrap:break-word;"/></h2><p style="margin:0px;padding:0px;max-width:100%;box-sizing:border-box;clear:both;min-height:1em;word-wrap:break-word;margin-bottom:16px;text-indent:30px;color:rgb(68, 68, 68);">IoC(Inversion of Control)，直观地讲，就是对象创建或查找对象依赖的控制权由应用代码转到了外部容器，控制权的转移是所谓反转。使用Ioc，一个对象依赖的其它对象会通过被动的方式传递进来，而不是这个对象自己创建或者查找依赖对象。</p><h2 style="margin:0px;padding:0px;font-weight:400;font-size:16px;max-width:100%;box-sizing:border-box;word-wrap:break-word;">二、IOC场景举例</h2><p style="margin:0px;padding:0px;max-width:100%;box-sizing:border-box;clear:both;min-height:1em;word-wrap:break-word;margin-bottom:16px;text-indent:30px;color:rgb(68, 68, 68);">丽萨已经老大不小了，一直没有男朋友，看着别人恩恩爱爱的，也不禁想找个BoyFriend。摆在她面前的有3种方案：主动“邂逅” Or 同事介绍 或者父母包办。她会选择哪种呢？</p><p style="margin:0px;padding:0px;max-width:100%;box-sizing:border-box;clear:both;min-height:1em;word-wrap:break-word;margin-bottom:16px;text-indent:30px;color:rgb(68, 68, 68);"><img src="自动动手实现Spring的IOC_files/640 [1]" type="image/webp" data-filename="640" height="176" style="border-color:initial;margin:0px;width:auto !important;box-sizing:border-box;text-align:center;height:auto !important;border-width:0px;border-style:initial;padding:0px;vertical-align:middle;margin-right:auto;margin-left:auto;display:block;word-wrap:break-word;max-width:100%;visibility:visible !important;" width="657"/>第二方案，同事介绍 或者父母包办，</p><p style="margin:0px;padding:0px;max-width:100%;box-sizing:border-box;clear:both;min-height:1em;word-wrap:break-word;margin-bottom:16px;text-indent:30px;color:rgb(68, 68, 68);"><img src="自动动手实现Spring的IOC_files/640 [2]" type="image/webp" data-filename="640" height="312" style="border-color:initial;margin:0px;width:auto !important;box-sizing:border-box;text-align:center;height:auto !important;border-width:0px;border-style:initial;padding:0px;vertical-align:middle;margin-right:auto;margin-left:auto;display:block;word-wrap:break-word;max-width:100%;visibility:visible !important;" width="789"/></p><p style="margin:0px;padding:0px;max-width:100%;box-sizing:border-box;clear:both;min-height:1em;word-wrap:break-word;margin-bottom:16px;text-indent:30px;color:rgb(68, 68, 68);">虽然在现实生活中我们都希望与自己的另一半来场完美的邂逅，但在Spring世界里，跟丽萨一样，选择的却是父母包办，它就是控制反转，而这里具有控制力的父母，就是Spring所谓的容器概念。</p><h2 style="margin:0px;padding:0px;font-weight:400;font-size:16px;max-width:100%;box-sizing:border-box;word-wrap:break-word;">三、IOC代码实现</h2><p style="margin:0px;padding:0px;max-width:100%;box-sizing:border-box;clear:both;min-height:1em;word-wrap:break-word;margin-bottom:16px;text-indent:30px;color:rgb(68, 68, 68);">代码结构如下图所示</p><p style="margin:0px;padding:0px;max-width:100%;box-sizing:border-box;clear:both;min-height:1em;word-wrap:break-word;margin-bottom:16px;text-indent:30px;color:rgb(68, 68, 68);"><img src="自动动手实现Spring的IOC_files/640 [3]" type="image/webp" data-filename="640" height="320" style="border-width:0px;margin:5px auto;max-width:100%;box-sizing:border-box;word-wrap:break-word;height:auto !important;padding:0px;border-style:initial;border-color:initial;vertical-align:middle;display:block;width:auto !important;visibility:visible !important;" width="321"/></p><p style="margin:0px;padding:0px;max-width:100%;box-sizing:border-box;clear:both;min-height:1em;word-wrap:break-word;margin-bottom:16px;text-indent:30px;color:rgb(68, 68, 68);">定义POJO类</p><pre style="margin:0px;padding:0px;max-width:100%;box-sizing:border-box;word-wrap:break-word;overflow:auto;">package org.<span style="margin:0px;padding:0px;max-width:100%;box-sizing:border-box;word-wrap:break-word;">springioc</span>;
+public class Student {
+
+ private String name;
+ private String add;
+ 
+ public void selfIntroDuction(){
+ System.out.println(&quot;我的姓名是 &quot; + name + &quot; 我来自 &quot; + add);
+ 
+ }
+ 
+ public String getName() {
+ return name;
+ }
+
+ public void setName(String name) {
+ this.name = name;
+ }
+
+ public String getAdd() {
+ return add;
+ }
+
+ public void setAdd(String add) {
+ this.add = add;
+ }
+ 
+}</pre><p style="margin:0px;padding:0px;max-width:100%;box-sizing:border-box;clear:both;min-height:1em;word-wrap:break-word;margin-bottom:16px;text-indent:30px;color:rgb(68, 68, 68);">定义Service服务</p><pre style="margin:0px;padding:0px;max-width:100%;box-sizing:border-box;word-wrap:break-word;overflow:auto;">package org.springioc;
+
+public class StudentService {
+ private Student student;
+
+public Student getStudent() {
+ return student;
+}
+
+public void setStudent(Student student) {
+ this.student = student;
+}
+ 
+}</pre><p style="margin:0px;padding:0px;max-width:100%;box-sizing:border-box;clear:both;min-height:1em;word-wrap:break-word;margin-bottom:16px;text-indent:30px;color:rgb(68, 68, 68);">定义配置文件，将上述2个类信息写入进入</p><pre style="margin:0px;padding:0px;max-width:100%;box-sizing:border-box;word-wrap:break-word;overflow:auto;">&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot;?&gt;
+
+&lt;beans&gt;
+ &lt;bean id=&quot;Student&quot; class=&quot;org.springioc.Student&quot;&gt;
+ &lt;property name=&quot;name&quot; value=&quot;Hover&quot;/&gt;
+ &lt;property name=&quot;add&quot; value=&quot;China&quot;/&gt;
+ &lt;/bean&gt;
+
+ &lt;bean id=&quot;StudentService&quot; class=&quot;org.springioc.StudentService&quot;&gt;
+ &lt;property ref=&quot;Student&quot;/&gt;
+ &lt;/bean&gt;
+&lt;/beans&gt;</pre><p style="margin:0px;padding:0px;max-width:100%;box-sizing:border-box;clear:both;min-height:1em;word-wrap:break-word;margin-bottom:16px;text-indent:30px;color:rgb(68, 68, 68);">定义ApplicationContext接口</p><pre style="margin:0px;padding:0px;max-width:100%;box-sizing:border-box;word-wrap:break-word;overflow:auto;">package org.springioc;
+
+public interface ApplicationContext {
+ /**
+ * 获取bean
+ * @param string
+ * @return
+ */
+ Object getBean(String string);
+
+}</pre><p style="margin:0px;padding:0px;max-width:100%;box-sizing:border-box;clear:both;min-height:1em;word-wrap:break-word;margin-bottom:16px;text-indent:30px;color:rgb(68, 68, 68);">接口的实现类，加载配置文件，并且解析xml,将bean注入到map</p><pre style="margin:0px;padding:0px;max-width:100%;box-sizing:border-box;word-wrap:break-word;overflow:auto;">package org.springioc;
+
+import java.io.File;
+import java.lang.reflect.Method;
+import java.net.URL;
+import java.util.Iterator;
+import java.util.List;
+import java.util.concurrent.ConcurrentHashMap;
+
+import org.jdom.Document;
+import org.jdom.Element;
+import org.jdom.input.SAXBuilder;
+import org.jdom.xpath.XPath;
+
+public class ClassPathXMLApplicationContext implements ApplicationContext{
+ //文件加载
+ private File file;
+ //bean容器
+ private ConcurrentHashMap&lt;String, Object&gt; map = new ConcurrentHashMap&lt;String, Object&gt;();
+ //构造函数
+ public ClassPathXMLApplicationContext(String config_file) {
+ URL url = this.getClass().getClassLoader().getResource(config_file);
+ try {
+ file = new File(url.toURI());
+ XMLParsing();
+ } catch (Exception e) {
+ e.printStackTrace();
+ }
+ 
+ }
+ /**
+ * 解析xml，并且将bean 注册到map
+ * @throws Exception
+ */
+ private void XMLParsing() throws Exception { 
+ SAXBuilder builder = new SAXBuilder();
+ Document doc = builder.build(file);
+ XPath xpath = XPath.newInstance(&quot;//bean&quot;);
+ List beans = xpath.selectNodes(doc);
+ Iterator i = beans.iterator();
+ while (i.hasNext()) {
+ Element bean = (Element) i.next();
+ String id = bean.getAttributeValue(&quot;id&quot;);
+ String cls = bean.getAttributeValue(&quot;class&quot;);
+ Object obj = Class.forName(cls).newInstance();
+ Method[] method = obj.getClass().getDeclaredMethods();
+ List&lt;Element&gt; list = bean.getChildren(&quot;property&quot;);
+ for (Element el : list) {
+ for (int n = 0; n &lt; method.length; n++) {
+ String name = method[n].getName();
+ String temp = null;
+ if (name.startsWith(&quot;set&quot;)) {
+ temp = name.substring(3, name.length()).toLowerCase();
+ if (el.getAttribute(&quot;name&quot;) != null) {
+ if (temp.equals(el.getAttribute(&quot;name&quot;).getValue())) {
+ method[n].invoke(obj, el.getAttribute(&quot;value&quot;).getValue());
+ }
+ } else {
+ method[n].invoke(obj,map.get(el.getAttribute(&quot;ref&quot;).getValue()));
+ }
+ }
+ }
+ }
+ map.put(id, obj);
+ }
+ }
+
+ public Object getBean(String name) {
+ return map.get(name);
+ }
+
+}</pre><p style="margin:0px;padding:0px;max-width:100%;box-sizing:border-box;clear:both;min-height:1em;word-wrap:break-word;margin-bottom:16px;text-indent:30px;color:rgb(68, 68, 68);">POM.xml配置文件</p><pre style="margin:0px;padding:0px;max-width:100%;box-sizing:border-box;word-wrap:break-word;overflow:auto;">&lt;?xml version=&quot;1.0&quot;?&gt;
+&lt;project xsi:schemaLocation=&quot;http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd&quot; xmlns=&quot;http://maven.apache.org/POM/4.0.0&quot;
+ xmlns:xsi=&quot;http://www.w3.org/2001/XMLSchema-instance&quot;&gt;
+ &lt;modelVersion&gt;4.0.0&lt;/modelVersion&gt;
+ &lt;parent&gt;
+ &lt;groupId&gt;cn.maxap&lt;/groupId&gt;
+ &lt;artifactId&gt;search-parent&lt;/artifactId&gt;
+ &lt;version&gt;0.0.1-SNAPSHOT&lt;/version&gt;
+ &lt;/parent&gt;
+ &lt;groupId&gt;cn.maxap&lt;/groupId&gt;
+ &lt;artifactId&gt;springioc&lt;/artifactId&gt;
+ &lt;version&gt;0.0.1-SNAPSHOT&lt;/version&gt;
+ &lt;name&gt;springioc&lt;/name&gt;
+ &lt;url&gt;http://maven.apache.org&lt;/url&gt;
+ &lt;properties&gt;
+ &lt;project.build.sourceEncoding&gt;UTF-8&lt;/project.build.sourceEncoding&gt;
+ &lt;/properties&gt;
+ &lt;dependencies&gt;
+ &lt;dependency&gt;
+ &lt;groupId&gt;junit&lt;/groupId&gt;
+ &lt;artifactId&gt;junit&lt;/artifactId&gt;
+ &lt;version&gt;3.8.1&lt;/version&gt;
+ &lt;scope&gt;test&lt;/scope&gt;
+ &lt;/dependency&gt;
+ &lt;!-- https://mvnrepository.com/artifact/jdom/jdom --&gt;
+&lt;dependency&gt;
+ &lt;groupId&gt;jdom&lt;/groupId&gt;
+ &lt;artifactId&gt;jdom&lt;/artifactId&gt;
+ &lt;version&gt;1.1&lt;/version&gt;
+&lt;/dependency&gt;
+&lt;!-- https://mvnrepository.com/artifact/jaxen/jaxen --&gt;
+&lt;dependency&gt;
+ &lt;groupId&gt;jaxen&lt;/groupId&gt;
+ &lt;artifactId&gt;jaxen&lt;/artifactId&gt;
+&lt;/dependency&gt;
+
+ 
+ &lt;/dependencies&gt;
+&lt;/project&gt;</pre><p style="margin:0px;padding:0px;max-width:100%;box-sizing:border-box;clear:both;min-height:1em;word-wrap:break-word;margin-bottom:16px;text-indent:30px;color:rgb(68, 68, 68);">测试类</p><pre style="margin:0px;padding:0px;max-width:100%;box-sizing:border-box;word-wrap:break-word;overflow:auto;">package org.springioc;
+
+public class Test {
+ public static void main(String[] args) {
+ //加载资源文件，并且解析bean到map里面
+ ApplicationContext context = new ClassPathXMLApplicationContext(&quot;application.xml&quot;);
+ //获取bean
+ StudentService stuServ = (StudentService) context.getBean(&quot;StudentService&quot;);
+ //调用方法
+ stuServ.getStudent().selfIntroDuction();
+ }
+ 
+}</pre><p style="margin:0px;padding:0px;max-width:100%;box-sizing:border-box;clear:both;min-height:1em;word-wrap:break-word;margin-bottom:16px;text-indent:30px;color:rgb(68, 68, 68);">输出结果</p><blockquote style="border-top:1px solid rgb(230, 230, 230);margin:15px auto;max-width:100%;box-sizing:border-box;word-wrap:break-word;padding-left:10px;border-left:3px solid rgb(219, 219, 219);font-size:14px;padding:15px 27px 10px;border-right:1px solid rgb(230, 230, 230);border-bottom:1px solid rgb(230, 230, 230);border-left-color:rgb(230, 230, 230);background-color:rgb(251, 251, 251);line-height:20px;clear:both;color:rgb(68, 68, 68);"><p style="margin:0px;padding:0px;max-width:100%;box-sizing:border-box;clear:both;min-height:1em;word-wrap:break-word;margin-bottom:5px;line-height:20px;">我的姓名是 Hover 我来自 China</p></blockquote><p style="margin:0px;padding:0px;max-width:100%;box-sizing:border-box;clear:both;min-height:1em;word-wrap:break-word;margin-bottom:16px;text-indent:30px;color:rgb(68, 68, 68);">项目代码已经上传到https://gitee.com/jxuasea/maxap/tree/master/springioc</p><p style="margin:0px;padding:0px;clear:both;min-height:1em;max-width:100%;box-sizing:border-box;word-wrap:break-word;"><em style="margin:0px;padding:0px;max-width:100%;box-sizing:border-box;font-style:italic;word-wrap:break-word;color:rgb(68, 68, 68);"></em></p><p style="margin:0px;padding:0px;clear:both;min-height:1em;max-width:100%;box-sizing:border-box;word-wrap:break-word;"><img src="自动动手实现Spring的IOC_files/640 [4]" type="image/webp" data-filename="640" height="250" style="margin:0px;padding:0px;max-width:100%;box-sizing:border-box;word-wrap:break-word;height:auto !important;width:auto !important;visibility:visible !important;" width="640"/></p><p style="margin:0px;padding:0px;clear:both;min-height:1em;max-width:100%;box-sizing:border-box;word-wrap:break-word;"><em style="margin:0px;padding:0px;max-width:100%;box-sizing:border-box;font-style:italic;word-wrap:break-word;color:rgb(68, 68, 68);"></em></p>
+                </div></div></div></div></div></div></div></div>
+</div>
+</span>
+</div></body></html> 

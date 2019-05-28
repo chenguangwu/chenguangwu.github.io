@@ -1,0 +1,1115 @@
+<html>
+<head>
+  <title>Java URL协议扩展实现 - Mercy Blog - ITeye技术网站</title>
+  <basefont face="微软雅黑" size="2" />
+  <meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+  <meta name="exporter-version" content="YXBJ Windows/600718 (zh-CN, DDL); Windows/6.1.1 (Win64);"/>
+  <style>
+    body, td {
+      font-family: 微软雅黑;
+      font-size: 10pt;
+    }
+  </style>
+</head>
+<body>
+<a name="7821"/>
+<h1>Java URL协议扩展实现 - Mercy Blog - ITeye技术网站</h1>
+<div>
+<table bgcolor="#D4DDE5" border="0">
+<tr><td><b>创建时间：</b></td><td><i>2015/11/10 14:45</i></td></tr>
+<tr><td><b>来源：</b></td><td><a href="http://mercyblitz.iteye.com/blog/735529"><i>http://mercyblitz.iteye.com/blog/735529</i></a></td></tr>
+</table>
+</div>
+<br/>
+
+<div><span><br/><div style="font-size: 16px"><div><div style="text-align:center;font-family:Helvetica, Tahoma, Arial, sans-serif;font-size:12px;line-height:1.5;color:black;background-color:white;"><div style="background-color:rgb(239, 250, 255);text-align:center;"><div style="text-align:left;"><div style="overflow:hidden;background-color:white;"><div style="background-color:white;"><div style="font-size:14px;line-height:1.8em;">
+    <p style="margin:0px;padding:0px;"><span style="font-size:small;"><span><span><span style="font-weight:normal;">     </span>
+</span>
+</span>
+</span>
+<span><span style="font-size:x-small;"><span style="font-weight:normal;">
+ </span>
+</span>
+</span>
+<span style="font-size:small;"><span><span>在信息交互系统设计中，不乏有自定义通讯协议设计。本章会介绍如何利用</span>
+</span>
+<span><span>java.net.URL</span>
+</span>
+<span><span>类来自定义协议。</span>
+</span>
+</span>
+</p>
+<p style="margin:0px;padding:0px;"> </p>
+<p style="margin:0px;padding:0px;margin-bottom:0.11in;font-weight:normal;"><span style="font-size:small;"><span><span><span style="font-weight:normal;">     	</span>
+</span>
+</span>
+<span><span>	</span>
+</span>
+<span><span>一般而言，</span>
+</span>
+<span><span>URL</span>
+</span>
+<span><span>的格式是：</span>
+</span>
+<span><span>protocol://[authority]hostname:port/resource?queryString</span>
+</span>
+<span><span>。</span>
+</span>
+<span><span>URL</span>
+</span>
+<span><span>类能够解析出</span>
+</span>
+<span><span>protocol</span>
+</span>
+<span><span>、</span>
+</span>
+<span><span>hostname</span>
+</span>
+<span><span>、</span>
+</span>
+<span><span>port</span>
+</span>
+<span><span>等信息。</span>
+</span>
+<span><span>	Protocol</span>
+</span>
+<span><span>决定了交互规范，通用的协议，比如</span>
+</span>
+<span><span>HTTP</span>
+</span>
+<span><span>、</span>
+</span>
+<span><span>File</span>
+</span>
+<span><span>、</span>
+</span>
+<span><span>FTP</span>
+</span>
+<span><span>等协议，</span>
+</span>
+<span><span>JDK</span>
+</span>
+<span><span>自带了默认的通讯实现。当然，自定义实现是允许的。</span>
+</span>
+<span><span>Hostname</span>
+</span>
+<span><span>和</span>
+</span>
+<span><span>port</span>
+</span>
+<span><span>一般用于</span>
+</span>
+<span><span>Socket</span>
+</span>
+<span><span>或者基于</span>
+</span>
+<span><span>Socket</span>
+</span>
+<span><span>其他协议通讯方式。</span>
+</span>
+<span><span>Resource</span>
+</span>
+<span><span>即资源上下文。可能读者利用</span>
+</span>
+<span><span>URL</span>
+</span>
+<span><span>，通过指定协议（</span>
+</span>
+<span><span>protocol</span>
+</span>
+<span><span>）来获取指定资源的读写，比如</span>
+</span>
+<span><span>JDK</span>
+</span>
+<span><span>内置了</span>
+</span>
+<span><span>HTTP</span>
+</span>
+<span><span>、</span>
+</span>
+<span><span>File</span>
+</span>
+<span><span>、</span>
+</span>
+<span><span>FTP</span>
+</span>
+<span><span>等协议的处理方法。哪么</span>
+</span>
+<span><span>URL</span>
+</span>
+<span><span>的工作原理到底是怎么样的呢？</span>
+</span>
+</span>
+
+
+
+</p>
+<p style="margin:0px;padding:0px;margin-bottom:0.11in;"><span style="font-size:small;"><span><span><span style="font-weight:normal;">     	</span>
+</span>
+</span>
+<span><span><span style="font-weight:normal;">在成功地构造</span>
+</span>
+</span>
+<span><span><span style="font-weight:normal;">URL</span>
+</span>
+</span>
+<span><span><span style="font-weight:normal;">实例之后，</span>
+</span>
+</span>
+<span><span><span style="font-weight:normal;">URL
+API</span>
+</span>
+</span>
+<span><span><span style="font-weight:normal;">中定义了一个</span>
+</span>
+</span>
+<span><span><span style="font-weight:normal;">openConnection()</span>
+</span>
+</span>
+<span><span><span style="font-weight:normal;">方法，返回一个</span>
+</span>
+</span>
+<span><span><span style="font-weight:normal;">java.net.URLConnection</span>
+</span>
+</span>
+<span><span><span style="font-weight:normal;">抽象类型的实例。不过，这里</span>
+</span>
+</span>
+<span><span><span style="font-weight:normal;">URL</span>
+</span>
+</span>
+<span><span><span style="font-weight:normal;">对象是代理对象（组合了</span>
+<span style="color:#000000;"><span style="font-weight:normal;">其</span>
+</span>
+<span style="font-weight:normal;">对象），实际调用的是，</span>
+</span>
+</span>
+<span><span><span style="color:#000000;"><span style="font-weight:normal;">java.net.URLStreamHandler</span>
+</span>
+</span>
+</span>
+<span><span><span style="font-weight:normal;">对象的</span>
+</span>
+</span>
+<span><span><span style="font-weight:normal;">openConnection()</span>
+</span>
+</span>
+<span><span><span style="font-weight:normal;">方法。</span>
+</span>
+</span>
+</span>
+
+</p>
+<p style="margin:0px;padding:0px;margin-bottom:0.11in;"><span style="font-size:small;"><span><span><span style="font-weight:normal;">     	</span>
+<span style="color:#000000;"><span style="font-weight:normal;">java.net.URLStreamHandler</span>
+</span>
+</span>
+</span>
+<span><span><span style="color:#000000;"><span style="font-weight:normal;">对象可以有两条途径得到：实现</span>
+</span>
+</span>
+</span>
+<span><span><span style="color:#000000;"><span style="font-weight:normal;">java.net.URLStreamHandler</span>
+</span>
+</span>
+</span>
+<span><span><span style="color:#000000;"><span style="font-weight:normal;">，或者实现</span>
+</span>
+</span>
+</span>
+<span><span><span style="color:#000000;"><span style="font-weight:normal;">java.net.URLStreamHandlerFactory</span>
+</span>
+</span>
+</span>
+<span><span><span style="color:#000000;"><span style="font-weight:normal;">。</span>
+</span>
+</span>
+</span>
+<span><span><span style="color:#000000;"><span style="font-weight:normal;">	</span>
+</span>
+</span>
+</span>
+</span>
+
+</p>
+<p style="margin:0px;padding:0px;margin-bottom:0.11in;font-weight:normal;"><span style="font-size:small;"><span><span><span style="font-weight:normal;">     	</span>
+
+</span>
+</span>
+</span>
+<span style="color:#000000;font-size:small;"><span><span>java.net.URLStreamHandler</span>
+</span>
+<span><span>是一个工厂类，通过</span>
+</span>
+<span><span>openConnection(java.net.URL)</span>
+</span>
+<span><span>方法来创建</span>
+</span>
+<span><span>java.net.URLConnection</span>
+</span>
+<span><span>的实例。</span>
+</span>
+<span><span>java.net.URLStreamHandler</span>
+</span>
+<span><span>实现灵活度很大，既可以通过不同</span>
+</span>
+<span><span>protocol</span>
+</span>
+<span><span>的</span>
+</span>
+<span><span>URL</span>
+</span>
+<span><span>实例，产生</span>
+</span>
+<span><span>java.net.URLConnection</span>
+</span>
+<span><span>对象。还可以通过相同</span>
+</span>
+<span><span>protocol</span>
+</span>
+<span><span>的多个</span>
+</span>
+<span><span>URL</span>
+</span>
+<span><span>对象，来产生对象。通用性实现，一种协议对应一个</span>
+</span>
+<span><span>java.net.URLStreamHandler</span>
+</span>
+<span><span>实现。比如，在</span>
+</span>
+<span><span>SUN
+JDK</span>
+</span>
+<span><span>中</span>
+</span>
+<span><span>sun.net.www.protocol</span>
+</span>
+<span><span>子包下面的多个</span>
+</span>
+<span><span>Handler</span>
+</span>
+<span><span>类就是很好的例子。如果读者有兴趣，可以去看看相关实现。</span>
+</span>
+</span>
+</p>
+<p style="margin:0px;padding:0px;margin-bottom:0.11in;font-weight:normal;"><span><span style="font-size:x-small;"><span style="font-weight:normal;">    <span style="font-size:medium;"> 	</span>
+</span>
+
+</span>
+</span>
+<span style="color:#000000;font-size:medium;"><span><span><span><strong style="font-weight:bold;">1.</strong>
+</span>
+</span>
+</span>
+<span><span><span><strong style="font-weight:bold;">通过</strong>
+</span>
+</span>
+</span>
+<span><span><span><strong style="font-weight:bold;">java.net.URLStreamHandlerFactory</strong>
+</span>
+</span>
+</span>
+<span><span><span><strong style="font-weight:bold;">机制</strong>
+</span>
+</span>
+</span>
+</span>
+</p>
+<p style="margin:0px;padding:0px;margin-bottom:0.11in;font-weight:normal;"><span><span style="font-size:x-small;"><span style="font-weight:normal;">    <span style="font-size:small;"> 	</span>
+</span>
+
+</span>
+</span>
+<span style="color:#000000;font-size:small;"><span><span>java.net.URLStreamHandlerFactory</span>
+</span>
+<span><span>，顾名思义，它是</span>
+</span>
+<span><span>java.net.URLStreamHandler</span>
+</span>
+<span><span>的工厂，即抽类工厂接口。通过调用</span>
+</span>
+<span><span>createURLStreamHandler(String
+protocol)</span>
+</span>
+<span><span>来创建</span>
+</span>
+<span><span>java.net.URLStreamHandler</span>
+</span>
+<span><span>对象。因此，建议
+</span>
+</span>
+<span><span>java.net.URLStreamHandlerFactory
+</span>
+</span>
+<span><span>实现类应该采用
+</span>
+</span>
+<span><span>one
+protocol one hander</span>
+</span>
+<span><span>的模式，</span>
+</span>
+<span><span>SUN
+JDK</span>
+</span>
+<span><span>也采用该模式。</span>
+</span>
+</span>
+</p>
+<p style="margin:0px;padding:0px;margin-bottom:0.11in;font-weight:normal;"><span style="font-size:small;"><span><span><span style="font-weight:normal;">     </span>
+</span>
+</span>
+</span>
+<span style="color:#000000;font-size:small;"><span><span>大致解了他们关系之后，再通过</span>
+</span>
+<span><span>UML
+Class diagram</span>
+</span>
+<span><span>来熟悉下：</span>
+</span>
+</span>
+<span style="font-size:small;">
+    </span>
+</p>
+<p style="margin:0px;padding:0px;text-align:center;"><img src="Java URL协议扩展实现 - Mercy Blog - ITeye技术网站_files/6b1c9d1b-646c-34e6-91d5-5b7f37add93f.jpg" type="image/jpeg" data-filename="6b1c9d1b-646c-34e6-91d5-5b7f37add93f.jpg" height="332" style="border:0px;" width="544"/></p>
+<p style="margin:0px;padding:0px;margin-bottom:0.11in;font-weight:normal;"> </p>
+<p style="margin:0px;padding:0px;margin-bottom:0.11in;"><span><span style="font-size:xx-small;">（图</span>
+</span>
+<span><span style="font-size:xx-small;">1</span>
+</span>
+<span><span style="font-size:xx-small;">）</span>
+</span>
+</p>
+<p style="margin:0px;padding:0px;margin-bottom:0.11in;text-align:left;"> </p>
+<p style="margin:0px;padding:0px;margin-bottom:0.11in;font-weight:normal;"><span style="font-size:small;"><span><span><span style="font-weight:normal;">     </span>
+</span>
+</span>
+</span>
+<span style="color:#000000;font-size:small;"><span><span>图</span>
+</span>
+<span><span>1</span>
+</span>
+<span><span>所示，</span>
+</span>
+<span><span>URL</span>
+</span>
+<span><span>包含了名为</span>
+</span>
+<span><span>factory</span>
+</span>
+<span><span>的</span>
+</span>
+<span><span>URLStreamHandlerFactory</span>
+</span>
+<span><span>类对象和</span>
+</span>
+<span><span>handler</span>
+</span>
+<span><span>的</span>
+</span>
+<span><span>URLStreamHandler</span>
+</span>
+<span><span>的实例对象。对于</span>
+</span>
+<span><span>URL</span>
+</span>
+<span><span>而言，</span>
+</span>
+<span><span>handler</span>
+</span>
+<span><span>对象是必须的，因为前面说到实际处理</span>
+</span>
+<span><span>openConnection()</span>
+</span>
+<span><span>方法是</span>
+</span>
+<span><span>handler</span>
+</span>
+<span><span>对象，而</span>
+</span>
+<span><span>factory</span>
+</span>
+<span><span>并不是必须的。接下来，来分析这两个对象是如何和</span>
+</span>
+<span><span>URL</span>
+</span>
+<span><span>交互的。</span>
+</span>
+</span>
+</p>
+<p style="margin:0px;padding:0px;margin-bottom:0.11in;"><span style="font-size:small;"><span><span><span style="font-weight:normal;">     </span>
+</span>
+</span>
+</span>
+<span style="font-size:small;"><span><span>
+</span>
+</span>
+<span><span><span style="color:#000000;"><span style="font-weight:normal;">在</span>
+</span>
+</span>
+</span>
+<span><span><span style="color:#000000;"><span style="font-weight:normal;">URL</span>
+</span>
+</span>
+</span>
+<span><span><span style="color:#000000;"><span style="font-weight:normal;">的构造方法中，暂时不用关心协议字符串等参数，更多的关注于</span>
+</span>
+</span>
+</span>
+<span><span><span style="color:#000000;"><span style="font-weight:normal;">URL
+context</span>
+</span>
+</span>
+</span>
+<span><span><span style="color:#000000;"><span style="font-weight:normal;">和</span>
+</span>
+</span>
+</span>
+<span><span><span style="color:#000000;"><span style="font-weight:normal;">URLStreamHandler</span>
+</span>
+</span>
+</span>
+<span><span><span style="color:#000000;"><span style="font-weight:normal;">参数。</span>
+</span>
+</span>
+</span>
+<span><span><span style="color:#000000;"><span style="font-weight:normal;">URL</span>
+</span>
+</span>
+</span>
+<span><span><span style="color:#000000;"><span style="font-weight:normal;">实例能够依赖于</span>
+</span>
+</span>
+</span>
+<span><span><span style="color:#000000;"><span style="font-weight:normal;">URL
+context</span>
+</span>
+</span>
+</span>
+<span><span><span style="color:#000000;"><span style="font-weight:normal;">，当</span>
+</span>
+</span>
+</span>
+<span><span><span style="color:#000000;"><span style="font-weight:normal;">URLStreamHandler</span>
+</span>
+</span>
+</span>
+<span><span><span style="color:#000000;"><span style="font-weight:normal;">参数为空的情况下，当前</span>
+</span>
+</span>
+</span>
+<span><span><span style="color:#000000;"><span style="font-weight:normal;">URL</span>
+</span>
+</span>
+</span>
+<span><span><span style="color:#000000;"><span style="font-weight:normal;">实例将会采用</span>
+</span>
+</span>
+</span>
+<span><span><span style="color:#000000;"><span style="font-weight:normal;">URL
+context</span>
+</span>
+</span>
+</span>
+<span><span><span style="color:#000000;"><span style="font-weight:normal;">的</span>
+</span>
+</span>
+</span>
+<span><span><span style="color:#000000;"><span style="font-weight:normal;">URLStreamHandler</span>
+</span>
+</span>
+</span>
+<span><span><span style="color:#000000;"><span style="font-weight:normal;">成员对象。当</span>
+</span>
+</span>
+</span>
+<span><span><span style="color:#000000;"><span style="font-weight:normal;">Context</span>
+</span>
+</span>
+</span>
+<span><span><span style="color:#000000;"><span style="font-weight:normal;">和</span>
+</span>
+</span>
+</span>
+<span><span><span style="color:#000000;"><span style="font-weight:normal;">URLStreamHandler</span>
+</span>
+</span>
+</span>
+<span><span><span style="color:#000000;"><span style="font-weight:normal;">参数都为空的时。</span>
+</span>
+</span>
+</span>
+<span><span><span style="color:#000000;"><span style="font-weight:normal;">URL</span>
+</span>
+</span>
+</span>
+<span><span><span style="color:#000000;"><span style="font-weight:normal;">会调用</span>
+</span>
+</span>
+</span>
+<span><span><span style="color:#000000;"><span style="font-weight:normal;">getURLStreamHandler</span>
+</span>
+</span>
+</span>
+<span><span><span style="color:#000000;"><span style="font-weight:normal;">（</span>
+</span>
+</span>
+</span>
+<span><span><span style="color:#000000;"><span style="font-weight:normal;">String)</span>
+</span>
+</span>
+</span>
+<span><span><span style="color:#000000;"><span style="font-weight:normal;">方法，从而根据协议</span>
+</span>
+</span>
+</span>
+<span><span><span style="color:#000000;"><span style="font-weight:normal;">(protocol)</span>
+</span>
+</span>
+</span>
+<span><span><span style="color:#000000;"><span style="font-weight:normal;">获得协议</span>
+</span>
+</span>
+</span>
+<span><span><span style="color:#000000;"><span style="font-weight:normal;">URLStreamHandler</span>
+</span>
+</span>
+</span>
+<span><span><span style="color:#000000;"><span style="font-weight:normal;">对象。</span>
+</span>
+</span>
+</span>
+</span>
+
+
+
+</p>
+<p style="margin:0px;padding:0px;margin-bottom:0.11in;"><span style="font-size:small;"><span><span><span style="font-weight:normal;">     </span>
+</span>
+</span>
+</span>
+<span style="font-size:small;"><span><span><span style="color:#000000;"><span style="font-weight:normal;">在</span>
+</span>
+</span>
+</span>
+<span><span><span style="color:#000000;"><span style="font-weight:normal;">URL</span>
+</span>
+</span>
+</span>
+<span><span><span style="color:#000000;"><span style="font-weight:normal;">底层实现中，最初会初始化一个</span>
+</span>
+</span>
+</span>
+<span><span><span style="color:#000000;"><span style="font-weight:normal;">protocol</span>
+</span>
+</span>
+</span>
+<span><span><span style="color:#000000;"><span style="font-weight:normal;">和</span>
+</span>
+</span>
+</span>
+<span><span><span style="color:#000000;"><span style="font-weight:normal;">hander</span>
+</span>
+</span>
+</span>
+<span><span><span style="color:#000000;"><span style="font-weight:normal;">键值关系的</span>
+</span>
+</span>
+</span>
+<span><span><span style="color:#000000;"><span style="font-weight:normal;">Map</span>
+</span>
+</span>
+</span>
+<span><span><span style="color:#000000;"><span style="font-weight:normal;">映射。如果找到已有的映射关系，立即返回</span>
+</span>
+</span>
+</span>
+<span><span><span style="color:#000000;"><span style="font-weight:normal;">URLStreamHandler</span>
+</span>
+</span>
+</span>
+<span><span><span style="color:#000000;"><span style="font-weight:normal;">对象（第一次是取不到</span>
+</span>
+</span>
+</span>
+<span><span><span style="color:#000000;"><span style="font-weight:normal;">URLStreamHandler</span>
+</span>
+</span>
+</span>
+<span><span><span style="color:#000000;"><span style="font-weight:normal;">对象的）。</span>
+</span>
+</span>
+</span>
+</span>
+
+</p>
+<p style="margin:0px;padding:0px;margin-bottom:0.11in;"><span style="font-size:small;"><span><span><span style="font-weight:normal;">     </span>
+</span>
+</span>
+</span>
+<span style="font-size:small;"><span><span><span style="color:#000000;"><span style="font-weight:normal;">如果找不到的话，并且</span>
+</span>
+</span>
+</span>
+<span><span><span style="color:#000000;"><span style="font-weight:normal;">URL</span>
+</span>
+</span>
+</span>
+<span><span><span style="color:#000000;"><span style="font-weight:normal;">类中的类成员</span>
+</span>
+</span>
+</span>
+<span><span><span style="color:#000000;"><span style="font-weight:normal;">URLStreamHandlerFactory
+</span>
+</span>
+</span>
+</span>
+<span><span><span style="color:#000000;"><span style="font-weight:normal;">实例不为空的情况下，这个实例通过</span>
+</span>
+</span>
+</span>
+<span><span><span style="color:#000000;"><span style="font-weight:normal;">URL#setURLStreamHandlerFactory</span>
+</span>
+</span>
+</span>
+<span><span><span style="color:#000000;"><span style="font-weight:normal;">方法来注册。</span>
+</span>
+</span>
+</span>
+<span><span><span style="color:#000000;"><span style="font-weight:normal;">getURLStreamHandler</span>
+</span>
+</span>
+</span>
+<span><span><span style="color:#000000;"><span style="font-weight:normal;">方法会调用这个类成员的
+</span>
+</span>
+</span>
+</span>
+<span><span><span style="color:#000000;"><span style="font-weight:normal;">createURLStreamHandler(String)</span>
+</span>
+</span>
+</span>
+<span><span><span style="color:#000000;"><span style="font-weight:normal;">方法来创建</span>
+</span>
+</span>
+</span>
+<span><span><span style="color:#000000;"><span style="font-weight:normal;">URLStreamHandler</span>
+</span>
+</span>
+</span>
+<span><span><span style="color:#000000;"><span style="font-weight:normal;">实例。</span>
+</span>
+</span>
+</span>
+</span>
+
+</p>
+<p style="margin:0px;padding:0px;"> </p>
+<p style="margin:0px;padding:0px;"> </p>
+<p style="margin:0px;padding:0px;"> </p>
+<div style="font-family:Monaco, 'DejaVu Sans Mono', 'Bitstream Vera Sans Mono', Consolas, 'Courier New', monospace;font-size:12px;background-color:transparent;width:97%;overflow:auto;margin-left:9px;padding:1px;word-break:break-all;word-wrap:break-word;"><div><div style="padding:3px;text-align:left;margin:0px;color:black;font-weight:bold;">Java代码 <div></div> <a href="#" style="color:rgb(16, 138, 198);text-decoration:underline;" title="收藏这段代码"><img src="Java URL协议扩展实现 - Mercy Blog - ITeye技术网站_files/Image.png" type="image/png" data-filename="Image.png" alt="收藏代码" height="14" style="border:0px;" width="15"/></a></div></div><ol start="1" style="font-size:1em;line-height:1.4em;margin:0px 0px 1px;padding:2px 0px;border:1px solid rgb(209, 215, 220);list-style:decimal;background-color:rgb(255, 255, 255);color:rgb(43, 145, 175);"><li style="font-size:1em;padding:0px;margin:0px 0px 0px 38px;border-left-width:1px;border-left-style:solid;border-left-color:rgb(209, 215, 220);background-color:rgb(250, 250, 250);padding-left:10px;line-height:18px;"><span style="color:black;"><span style="color:black;">URL.setURLStreamHandlerFactory(</span><span style="color:rgb(127, 0, 85);font-weight:bold;">new</span><span style="color:black;"> MyURLStreamHandlerFactory());  </span></span></li></ol></div>
+<p style="margin:0px;padding:0px;margin-bottom:0.11in;font-weight:normal;"><span style="color:#000000;"><span><span style="font-size:xx-small;">（代码</span>
+</span>
+<span><span style="font-size:xx-small;">1</span>
+</span>
+<span><span style="font-size:xx-small;">）</span>
+</span>
+</span>
+</p>
+<div style="font-family:Monaco, 'DejaVu Sans Mono', 'Bitstream Vera Sans Mono', Consolas, 'Courier New', monospace;font-size:12px;background-color:transparent;width:97%;overflow:auto;margin-left:9px;padding:1px;word-break:break-all;word-wrap:break-word;"><div><div style="padding:3px;text-align:left;margin:0px;color:black;font-weight:bold;">Java代码 <div></div> <a href="#" style="color:rgb(16, 138, 198);text-decoration:underline;" title="收藏这段代码"><img src="Java URL协议扩展实现 - Mercy Blog - ITeye技术网站_files/Image [1].png" type="image/png" data-filename="Image.png" alt="收藏代码" height="14" style="border:0px;" width="15"/></a></div></div><ol start="1" style="font-size:1em;line-height:1.4em;margin:0px 0px 1px;padding:2px 0px;border:1px solid rgb(209, 215, 220);list-style:decimal;background-color:rgb(255, 255, 255);color:rgb(43, 145, 175);"><li style="font-size:1em;padding:0px;margin:0px 0px 0px 38px;border-left-width:1px;border-left-style:solid;border-left-color:rgb(209, 215, 220);background-color:rgb(250, 250, 250);padding-left:10px;line-height:18px;"><span style="color:black;"><span style="color:rgb(127, 0, 85);font-weight:bold;">class</span><span style="color:black;"> MyURLStreamHandlerFactory </span><span style="color:rgb(127, 0, 85);font-weight:bold;">implements</span><span style="color:black;"> URLStreamHandlerFactory{  </span></span></li><li style="font-size:1em;padding:0px;margin:0px 0px 0px 38px;border-left-width:1px;border-left-style:solid;border-left-color:rgb(209, 215, 220);background-color:rgb(250, 250, 250);padding-left:10px;line-height:18px;"><span style="color:black;">        <span style="color:rgb(100, 100, 100);">@Override</span><span style="color:black;">  </span></span></li><li style="font-size:1em;padding:0px;margin:0px 0px 0px 38px;border-left-width:1px;border-left-style:solid;border-left-color:rgb(209, 215, 220);background-color:rgb(250, 250, 250);padding-left:10px;line-height:18px;"><span style="color:black;">        <span style="color:rgb(127, 0, 85);font-weight:bold;">public</span><span style="color:black;"> URLStreamHandler createURLStreamHandler(String protocol) {  </span></span></li><li style="font-size:1em;padding:0px;margin:0px 0px 0px 38px;border-left-width:1px;border-left-style:solid;border-left-color:rgb(209, 215, 220);background-color:rgb(250, 250, 250);padding-left:10px;line-height:18px;"><span style="color:black;">            <span style="color:rgb(127, 0, 85);font-weight:bold;">return</span><span style="color:black;"> </span><span style="color:rgb(127, 0, 85);font-weight:bold;">null</span><span style="color:black;">;  </span></span></li><li style="font-size:1em;padding:0px;margin:0px 0px 0px 38px;border-left-width:1px;border-left-style:solid;border-left-color:rgb(209, 215, 220);background-color:rgb(250, 250, 250);padding-left:10px;line-height:18px;"><span style="color:black;">        }   </span></li><li style="font-size:1em;padding:0px;margin:0px 0px 0px 38px;border-left-width:1px;border-left-style:solid;border-left-color:rgb(209, 215, 220);background-color:rgb(250, 250, 250);padding-left:10px;line-height:18px;"><span style="color:black;">          </span></li><li style="font-size:1em;padding:0px;margin:0px 0px 0px 38px;border-left-width:1px;border-left-style:solid;border-left-color:rgb(209, 215, 220);background-color:rgb(250, 250, 250);padding-left:10px;line-height:18px;"><span style="color:black;">}  </span></li></ol></div>
+<p style="margin:0px;padding:0px;margin-bottom:0.11in;font-weight:normal;"><span style="color:#000000;"><span><span style="font-size:xx-small;">（代码</span>
+</span>
+<span><span style="font-size:xx-small;">2</span>
+</span>
+<span><span style="font-size:xx-small;">）</span>
+</span>
+</span>
+</p>
+<p style="margin:0px;padding:0px;"> </p>
+<p style="margin:0px;padding:0px;margin-bottom:0.11in;font-weight:normal;"> </p>
+<p style="margin:0px;padding:0px;margin-bottom:0.11in;text-align:left;"> </p>
+<p style="margin:0px;padding:0px;margin-bottom:0.11in;"><span style="font-size:small;"><span><span><span style="font-weight:normal;">     </span>
+</span>
+</span>
+</span>
+<span style="font-size:small;"><span><span><span style="color:#000000;"><span style="font-weight:normal;">当
+</span>
+</span>
+</span>
+</span>
+<span><span><span style="color:#000000;"><span style="font-weight:normal;">createURLStreamHandler</span>
+</span>
+</span>
+</span>
+<span><span><span style="color:#000000;"><span style="font-weight:normal;">方法返回</span>
+</span>
+</span>
+</span>
+<span><span><span style="color:#000000;"><span style="font-weight:normal;">null</span>
+</span>
+</span>
+</span>
+<span><span><span style="color:#000000;"><span style="font-weight:normal;">的时候，</span>
+</span>
+</span>
+</span>
+<span><span><span style="color:#000000;"><span style="font-weight:normal;">URL</span>
+</span>
+</span>
+</span>
+<span><span><span style="color:#000000;"><span style="font-weight:normal;">的</span>
+</span>
+</span>
+</span>
+<span><span><span style="color:#000000;"><span style="font-weight:normal;">getURLStreamHandler</span>
+</span>
+</span>
+</span>
+<span><span><span style="color:#000000;"><span style="font-weight:normal;">方法会采用</span>
+</span>
+</span>
+</span>
+<span><span><span style="color:#000000;"><span style="font-weight:normal;">URLStreamHandler</span>
+</span>
+</span>
+</span>
+<span><span><span style="color:#000000;"><span style="font-weight:normal;">处理机制。</span>
+</span>
+</span>
+</span>
+</span>
+
+</p>
+<p style="margin:0px;padding:0px;"> </p>
+<p style="margin:0px;padding:0px;margin-bottom:0.11in;"> </p>
+<p style="margin:0px;padding:0px;margin-bottom:0.11in;">      <span style="color:#000000;"><span><span style="font-size:small;"><strong style="font-weight:bold;">2.</strong>
+</span>
+</span>
+<span style="font-family:DejaVu Sans;"><span><span style="font-size:small;"><strong style="font-weight:bold;">通过</strong>
+</span>
+</span>
+</span>
+</span>
+<span style="color:#000000;"><span><span style="font-size:small;"><strong style="font-weight:bold;">java.net.URLStreamHandler</strong>
+</span>
+</span>
+<span style="font-family:DejaVu Sans;"><span><span style="font-size:small;"><strong style="font-weight:bold;">机制</strong>
+</span>
+</span>
+</span>
+</span>
+</p>
+<p style="margin:0px;padding:0px;margin-bottom:0.11in;font-weight:normal;"> <span style="font-size:small;">    </span>
+<span style="font-size:small;"> </span>
+<span style="color:#000000;font-size:small;"><span><span>	2.1.</span>
+</span>
+<span><span>实现类包路径定义</span>
+</span>
+</span>
+</p>
+<p style="margin:0px;padding:0px;margin-bottom:0.11in;"><span style="font-size:small;"><span><span><span style="font-weight:normal;">     </span>
+</span>
+</span>
+</span>
+<span style="font-size:small;"><span><span><span style="color:#000000;"><span style="font-weight:normal;"> </span>
+</span>
+</span>
+</span>
+<span><span><span style="color:#000000;"><span style="font-weight:normal;">通过</span>
+</span>
+</span>
+</span>
+<span><span><span style="color:#000000;"><span style="font-weight:normal;">JVM</span>
+</span>
+</span>
+</span>
+<span><span><span style="color:#000000;"><span style="font-weight:normal;">启动参数</span>
+</span>
+</span>
+</span>
+<span><span><span style="color:#000000;"><span style="font-weight:normal;">-D</span>
+</span>
+<span style="color:#2a00ff;"><span style="font-family:Monospace;"><span><span style="font-weight:normal;">java.protocol.handler.pkgs</span>
+</span>
+</span>
+</span>
+</span>
+</span>
+<span><span><span style="color:#000000;"><span style="font-weight:normal;">来设置</span>
+</span>
+</span>
+</span>
+<span><span><span style="color:#000000;"><span style="font-weight:normal;">URLStreamHandler</span>
+</span>
+</span>
+</span>
+<span><span><span style="color:#000000;"><span style="font-weight:normal;">实现类的包路径，例如</span>
+</span>
+</span>
+</span>
+<span><span><span style="color:#000000;"><span style="font-weight:normal;">-D</span>
+</span>
+<span style="color:#2a00ff;"><span style="font-family:Monospace;"><span><span style="font-weight:normal;">java.protocol.handler.pkgs=com.acme.protocol</span>
+</span>
+</span>
+</span>
+</span>
+</span>
+<span><span><span style="color:#2a00ff;"><span style="font-family:Monospace;"><span><span style="font-weight:normal;">，</span>
+</span>
+</span>
+</span>
+<span style="color:#000000;"><span style="font-weight:normal;">代表处理实现类皆在这个包下。如果需要多个包的话，那么使用“</span>
+</span>
+</span>
+</span>
+<span><span><span style="color:#000000;"><span style="font-weight:normal;">|”</span>
+</span>
+</span>
+</span>
+<span><span><span style="color:#000000;"><span style="font-weight:normal;">分割。比如
+</span>
+</span>
+</span>
+</span>
+<span><span><span style="color:#000000;"><span style="font-weight:normal;">-D</span>
+</span>
+<span style="color:#2a00ff;"><span style="font-family:Monospace;"><span><span style="font-weight:normal;">java.protocol.handler.pkgs=com.acme.protocol|com.acme.protocol2
+</span>
+</span>
+</span>
+</span>
+</span>
+</span>
+<span><span><span style="color:#2a00ff;"><span style="font-family:Monospace;"><span><span style="font-weight:normal;">。</span>
+</span>
+</span>
+</span>
+</span>
+</span>
+<span><span><span style="color:#000000;"><span style="font-weight:normal;">SUN</span>
+</span>
+</span>
+</span>
+<span><span><span style="color:#000000;"><span style="font-weight:normal;">的</span>
+</span>
+</span>
+</span>
+<span><span><span style="color:#000000;"><span style="font-weight:normal;">JDK</span>
+</span>
+</span>
+</span>
+<span><span><span style="color:#000000;"><span style="font-weight:normal;">内部实现类均是在</span>
+</span>
+</span>
+</span>
+<span><span><span style="color:#000000;"><span style="font-weight:normal;">sun.net.www.protocol.</span>
+</span>
+</span>
+</span>
+<span><span><span style="color:#000000;"><span style="font-weight:normal;">包下，不必设置。</span>
+</span>
+<span style="color:#000000;"><strong style="font-weight:bold;">路径下的协议实现类，采用先定义先选择的原则</strong>
+</span>
+<span style="color:#000000;"><span style="font-weight:normal;">。</span>
+</span>
+</span>
+</span>
+</span>
+
+
+</p>
+<p style="margin:0px;padding:0px;margin-bottom:0.11in;font-weight:normal;"><span style="font-size:small;">      </span>
+<span style="color:#000000;font-size:small;"><span><span>	2.2.</span>
+</span>
+<span><span>实现类的命名模式</span>
+</span>
+</span>
+</p>
+<p style="margin:0px;padding:0px;margin-bottom:0.11in;"><span style="font-size:small;"><span><span><span style="color:#000000;"><span style="font-weight:normal;">	</span>
+</span>
+</span>
+</span>
+      <span><span><span style="color:#000000;"><span style="font-weight:normal;">类的命名模式为</span>
+</span>
+</span>
+</span>
+<span><span><span style="color:#000000;"><span style="font-weight:normal;">[package_path].[protocol].Handler</span>
+</span>
+</span>
+</span>
+<span><span><span style="color:#000000;"><span style="font-weight:normal;">，比如默认实现”</span>
+</span>
+</span>
+</span>
+<span><span><span style="color:#000000;"><span style="font-weight:normal;">sun.net.www.protocol.[protocol].Handler”,</span>
+</span>
+</span>
+</span>
+<span><span><span style="color:#000000;"><span style="font-weight:normal;">比如</span>
+</span>
+</span>
+</span>
+<span><span><span style="color:#000000;"><span style="font-weight:normal;">HTTP</span>
+</span>
+</span>
+</span>
+<span><span><span style="color:#000000;"><span style="font-weight:normal;">协议的对应的处理类名为</span>
+</span>
+</span>
+</span>
+<span><span><span style="color:#000000;"><span style="font-weight:normal;">-sun.net.</span>
+</span>
+www.protocol.http.Handler
+</span>
+</span>
+<span><span><span style="color:#000000;"><span style="font-weight:normal;">。同样，自定义实现的处理类，例如，</span>
+</span>
+</span>
+</span>
+<span><span><span style="color:#000000;"><span style="font-weight:normal;">JDNI</span>
+</span>
+</span>
+</span>
+<span><span><span style="color:#000000;"><span style="font-weight:normal;">协议实现类命名</span>
+</span>
+</span>
+</span>
+<span><span><span style="color:#000000;"><span style="font-weight:normal;">com.acme.protocol.jndi.Handler</span>
+</span>
+</span>
+</span>
+<span><span><span style="color:#000000;"><span style="font-weight:normal;">。</span>
+</span>
+</span>
+</span>
+</span>
+
+</p>
+<p style="margin:0px;padding:0px;margin-bottom:0.11in;font-weight:normal;"><span style="font-size:small;">      </span>
+<span style="color:#000000;font-size:small;"><span><span>	2.3.</span>
+</span>
+<span><span>实现类必须又默认构造器。</span>
+</span>
+</span>
+</p>
+<p style="margin:0px;padding:0px;margin-bottom:0.11in;font-weight:normal;"><span style="font-size:small;">      </span>
+<span style="color:#000000;font-size:small;"><span><span>结合代码分析，如下：</span>
+</span>
+</span>
+</p>
+<div style="font-family:Monaco, 'DejaVu Sans Mono', 'Bitstream Vera Sans Mono', Consolas, 'Courier New', monospace;font-size:12px;background-color:transparent;width:97%;overflow:auto;margin-left:9px;padding:1px;word-break:break-all;word-wrap:break-word;"><div><div style="padding:3px;text-align:left;margin:0px;color:black;font-weight:bold;">Java代码 <div></div> <a href="#" style="color:rgb(16, 138, 198);text-decoration:underline;" title="收藏这段代码"><img src="Java URL协议扩展实现 - Mercy Blog - ITeye技术网站_files/Image [2].png" type="image/png" data-filename="Image.png" alt="收藏代码" height="14" style="border:0px;" width="15"/></a></div></div><ol start="1" style="font-size:1em;line-height:1.4em;margin:0px 0px 1px;padding:2px 0px;border:1px solid rgb(209, 215, 220);list-style:decimal;background-color:rgb(255, 255, 255);color:rgb(43, 145, 175);"><li style="font-size:1em;padding:0px;margin:0px 0px 0px 38px;border-left-width:1px;border-left-style:solid;border-left-color:rgb(209, 215, 220);background-color:rgb(250, 250, 250);padding-left:10px;line-height:18px;"><span style="color:black;"><span style="color:black;">URL httpURL = </span><span style="color:rgb(127, 0, 85);font-weight:bold;">new</span><span style="color:black;"> URL(</span><span style="color:rgb(127, 0, 85);font-weight:bold;">null</span><span style="color:black;">, </span><span style="color:blue;">&quot;http://www.google.com&quot;</span><span style="color:black;">,URLStreamHandler)</span><span style="color:rgb(127, 0, 85);font-weight:bold;">null</span><span style="color:black;">);  </span></span></li><li style="font-size:1em;padding:0px;margin:0px 0px 0px 38px;border-left-width:1px;border-left-style:solid;border-left-color:rgb(209, 215, 220);background-color:rgb(250, 250, 250);padding-left:10px;line-height:18px;"><span style="color:black;">URLConnection urlConn = httpURL.openConnection();  </span></li></ol></div>
+<p style="margin:0px;padding:0px;"> </p>
+<p style="margin:0px;padding:0px;margin-bottom:0in;"><span style="color:#000000;"><span style="font-family:Monospace;"><span style="font-size:xx-small;">（代码</span>
+</span>
+<span style="font-family:Monospace;"><span style="font-size:xx-small;">3</span>
+</span>
+<span style="font-family:Monospace;"><span style="font-size:xx-small;">）</span>
+</span>
+</span>
+</p>
+<p style="margin:0px;padding:0px;margin-bottom:0in;text-align:left;"> </p>
+<p style="margin:0px;padding:0px;margin-bottom:0.11in;">    <span style="font-size:small;">  <span><span><span style="color:#000000;"><span style="font-weight:normal;">代码</span>
+</span>
+</span>
+</span>
+<span><span><span style="color:#000000;"><span style="font-weight:normal;">3</span>
+</span>
+</span>
+</span>
+<span><span><span style="color:#000000;"><span style="font-weight:normal;">中没有配置</span>
+</span>
+</span>
+</span>
+<span><span><span style="color:#000000;"><span style="font-weight:normal;">URLStreamHandler</span>
+</span>
+</span>
+</span>
+<span><span><span style="color:#000000;"><span style="font-weight:normal;">的类，并且代码</span>
+</span>
+</span>
+</span>
+<span><span><span style="color:#000000;"><span style="font-weight:normal;">2</span>
+</span>
+</span>
+</span>
+<span><span><span style="color:#000000;"><span style="font-weight:normal;">中工厂类没有实现了</span>
+</span>
+</span>
+</span>
+<span><span><span style="color:#000000;"><span style="font-weight:normal;">HTTP</span>
+</span>
+</span>
+</span>
+<span><span><span style="color:#000000;"><span style="font-weight:normal;">协议。这样，</span>
+</span>
+</span>
+</span>
+<span><span><span style="color:#000000;"><span style="font-weight:normal;">URL</span>
+</span>
+</span>
+</span>
+<span><span><span style="color:#000000;"><span style="font-weight:normal;">会获取默认的</span>
+</span>
+</span>
+</span>
+<span><span><span style="color:#000000;"><span style="font-weight:normal;">HTTP</span>
+</span>
+</span>
+</span>
+<span><span><span style="color:#000000;"><span style="font-weight:normal;">处理类</span>
+</span>
+</span>
+</span>
+<span><span><span style="color:#000000;"><span style="font-weight:normal;">sun.net.</span>
+</span>
+www.protocol.http.Handler
+</span>
+</span>
+<span><span><span style="color:#000000;"><span style="font-family:Monospace;"><span style="font-weight:normal;">。</span>
+</span>
+</span>
+</span>
+</span>
+</span>
+
+</p>
+<p style="margin:0px;padding:0px;margin-bottom:0.11in;"><span style="font-size:small;">      </span>
+<span style="color:#000000;font-size:small;"><span><span><span style="font-weight:normal;">Java
+1.5</span>
+</span>
+</span>
+<span style="font-family:DejaVu Sans;"><span style="font-family:Monospace;"><span><span style="font-weight:normal;">开始支持网络代理的操作，因此</span>
+</span>
+</span>
+</span>
+</span>
+<span style="color:#000000;font-size:small;"><span><span><span style="font-weight:normal;">URLStreamHandler</span>
+</span>
+</span>
+<span style="font-family:DejaVu Sans;"><span><span><span style="font-weight:normal;">实现类尽量覆盖</span>
+</span>
+</span>
+</span>
+</span>
+<span style="color:#000000;font-size:small;"><span><span><span style="font-weight:normal;">openConnection(URL)</span>
+</span>
+</span>
+<span style="font-family:DejaVu Sans;"><span><span><span style="font-weight:normal;">和</span>
+</span>
+</span>
+</span>
+</span>
+<span style="color:#000000;font-size:small;"><span><span><span style="font-weight:normal;">openConnection(URL,Proxy)</span>
+</span>
+</span>
+<span style="font-family:DejaVu Sans;"><span><span><span style="font-weight:normal;">两个方法。</span>
+</span>
+</span>
+</span>
+</span>
+</p>
+<p style="margin:0px;padding:0px;margin-bottom:0.11in;">(EOF)<img src="Java URL协议扩展实现 - Mercy Blog - ITeye技术网站_files/icon_arrow.gif" type="image/gif" data-filename="icon_arrow.gif" height="19" style="border:0px;" width="19"/></p>
+<p style="margin:0px;padding:0px;"> </p>
+  </div></div></div></div></div></div></div></div><br/></span>
+</div></body></html> 

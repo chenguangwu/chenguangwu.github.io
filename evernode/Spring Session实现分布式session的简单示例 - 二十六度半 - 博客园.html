@@ -1,0 +1,132 @@
+<html>
+<head>
+  <title>Spring Session实现分布式session的简单示例 - 二十六度半 - 博客园</title>
+  <basefont face="微软雅黑" size="2" />
+  <meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+  <meta name="exporter-version" content="YXBJ Windows/600718 (zh-CN, DDL); Windows/6.1.1 (Win64);"/>
+  <style>
+    body, td {
+      font-family: 微软雅黑;
+      font-size: 10pt;
+    }
+  </style>
+</head>
+<body>
+<a name="5880"/>
+<h1>Spring Session实现分布式session的简单示例 - 二十六度半 - 博客园</h1>
+<div>
+<table bgcolor="#D4DDE5" border="0">
+<tr><td><b>创建时间：</b></td><td><i>2018/5/7 11:48</i></td></tr>
+<tr><td><b>来源：</b></td><td><a href="https://www.cnblogs.com/gdufs/p/6833270.html"><i>https://www.cnblogs.com/gdufs/p/6833270.html</i></a></td></tr>
+</table>
+</div>
+<br/>
+
+<div><span>
+  <div>
+<div style="font-size: 16px; display: inline-block; min-width: 100%; position: relative;"><div><div style="font-family:&quot;PingFang SC&quot;, &quot;Helvetica Neue&quot;, Helvetica, Arial, sans-serif;background-color:rgb(255, 255, 255);color:rgb(64, 64, 64);font-weight:normal;line-height:18px;font-size:14px;"><div style="min-width:unset;"><div style="min-width:unset;text-align:left;"><div style="text-overflow:ellipsis;overflow:auto;word-break:break-all;"><div><div><div style="text-overflow:ellipsis;overflow:hidden;word-break:break-all;"><div style="background-color:rgb(245, 245, 245);border-radius:6px;">
+		<h1 style="margin:0px;padding:0px;font-size:110%;font-weight:bold;float:right;line-height:1.5;width:100%;clear:both;color:rgb(68, 68, 68);">
+			<a href="http://www.cnblogs.com/gdufs/p/6833270.html" style="margin:0px;padding:0px;font-weight:inherit;line-height:inherit;text-decoration:none;color:rgb(68, 68, 68);">Spring Session实现分布式session的简单示例</a>
+		</h1>
+		<div style="margin:0px;padding:0px;clear:both;"></div>
+		<div style="margin:0px;padding:5px 2px 5px 5px;line-height:1.5;color:rgb(0, 0, 0);border-bottom:1px solid black;">
+			<div style="margin:0px;padding:0px;margin-bottom:20px;word-break:break-word;"><hr style="margin:0px;padding:0px;"/>
+<p style="padding:0px;margin:10px auto;text-indent:0px;">     前面有用 tomcat-redis-session-manager来实现分布式session管理，但是它有一定的局限性，主要是跟tomcat绑定太紧了，这里改成用Spring Session来管理分布式session，Spring Session就完全实现了与具体的容器无关，如果需要了解如何用tomcat-redis-session-manager实现分分布式session，请看我之前的文章，下面正式进入主题，Spring Session项目搭建。</p>
+<p style="padding:0px;margin:10px auto;text-indent:0px;"> </p>
+<p style="padding:0px;margin:10px auto;text-indent:0px;"><strong style="margin:0px;padding:0px;">1. 引入Spring Session maven依赖</strong></p>
+<div style="background-color:rgb(245, 245, 245);border:1px solid rgb(204, 204, 204);padding:5px;overflow:auto;margin:5px 0px;color:rgb(0, 0, 0);font-family:&quot;Courier New&quot;;font-size:12px;"><div style="margin:0px;padding:0px;margin-top:5px;background-color:rgb(245, 245, 245);"><span style="margin:0px;padding:0px;padding-right:5px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;"><a href="#" style="margin:0px;padding:0px;color:rgb(0, 105, 214);font-weight:inherit;line-height:inherit;text-decoration:underline;background-color:rgb(245, 245, 245);border:none;" title="复制代码"><img src="Spring Session实现分布式session的简单示例 - 二十六度半 - 博客园_files/copycode.gif" type="image/gif" data-filename="copycode.gif" height="20" style="margin:0px;padding:0px;height:auto;max-width:300px;border:none;background-color:rgb(245, 245, 245);" width="20"/></a></span></div>
+<pre style="margin:0px;padding:0px;margin-top:0px;margin-bottom:0px;word-wrap:break-word;white-space:pre-wrap;font-family:&quot;Courier New&quot;;font-size:12px;">        &lt;!-- spring session begin --&gt;
+        &lt;dependency&gt;
+            &lt;groupId&gt;redis.clients&lt;/groupId&gt;
+            &lt;artifactId&gt;jedis&lt;/artifactId&gt;
+            &lt;version&gt;2.9.0&lt;/version&gt;
+        &lt;/dependency&gt;
+        &lt;dependency&gt;
+            &lt;groupId&gt;org.springframework.data&lt;/groupId&gt;
+            &lt;artifactId&gt;spring-data-redis&lt;/artifactId&gt;
+            &lt;version&gt;1.5.2.RELEASE&lt;/version&gt;
+        &lt;/dependency&gt;
+        &lt;dependency&gt;
+            &lt;groupId&gt;org.springframework.session&lt;/groupId&gt;
+            &lt;artifactId&gt;spring-session&lt;/artifactId&gt;
+            &lt;version&gt;1.3.1.RELEASE&lt;/version&gt;
+        &lt;/dependency&gt;
+        &lt;!-- spring session end --&gt;            </pre>
+<div style="margin:0px;padding:0px;margin-top:5px;background-color:rgb(245, 245, 245);"><span style="margin:0px;padding:0px;padding-right:5px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;"><a href="#" style="margin:0px;padding:0px;color:rgb(0, 105, 214);font-weight:inherit;line-height:inherit;text-decoration:underline;background-color:rgb(245, 245, 245);border:none;" title="复制代码"><img src="Spring Session实现分布式session的简单示例 - 二十六度半 - 博客园_files/copycode [1].gif" type="image/gif" data-filename="copycode.gif" height="20" style="margin:0px;padding:0px;height:auto;max-width:300px;border:none;background-color:rgb(245, 245, 245);" width="20"/></a></span></div></div>
+<p style="padding:0px;margin:10px auto;text-indent:0px;"> </p>
+<p style="padding:0px;margin:10px auto;text-indent:0px;"><strong style="margin:0px;padding:0px;">2. Spring配置文件中添加Spring Session相关配置（这里重点体现Spring Session，因此并没有列出redis相关配置，需要可参考实例代码）</strong></p>
+<div style="background-color:rgb(245, 245, 245);border:1px solid rgb(204, 204, 204);padding:5px;overflow:auto;margin:5px 0px;color:rgb(0, 0, 0);font-family:&quot;Courier New&quot;;font-size:12px;">
+<pre style="margin:0px;padding:0px;margin-top:0px;margin-bottom:0px;word-wrap:break-word;white-space:pre-wrap;font-family:&quot;Courier New&quot;;font-size:12px;">    &lt;!-- Spring Session begin --&gt;
+    &lt;bean id=&quot;redisHttpSessionConfiguration&quot;
+        <span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#0000ff;">class</span>=&quot;org.springframework.session.data.redis.config.annotation.web.http.RedisHttpSessionConfiguration&quot;&gt;
+        &lt;property name=&quot;maxInactiveIntervalInSeconds&quot; value=&quot;1800&quot; /&gt;
+    &lt;/bean&gt;
+    &lt;!-- Spring Session end --&gt;</pre>
+</div>
+<p style="padding:0px;margin:10px auto;text-indent:0px;"> </p>
+<p style="padding:0px;margin:10px auto;text-indent:0px;"><strong style="margin:0px;padding:0px;">3. 在web.xml中配置Spring Session的Filter，它必须放在所有Filter的前面</strong></p>
+<div style="background-color:rgb(245, 245, 245);border:1px solid rgb(204, 204, 204);padding:5px;overflow:auto;margin:5px 0px;color:rgb(0, 0, 0);font-family:&quot;Courier New&quot;;font-size:12px;"><div style="margin:0px;padding:0px;margin-top:5px;background-color:rgb(245, 245, 245);"><span style="margin:0px;padding:0px;padding-right:5px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;"><a href="#" style="margin:0px;padding:0px;color:rgb(0, 105, 214);font-weight:inherit;line-height:inherit;text-decoration:underline;background-color:rgb(245, 245, 245);border:none;" title="复制代码"><img src="Spring Session实现分布式session的简单示例 - 二十六度半 - 博客园_files/copycode [2].gif" type="image/gif" data-filename="copycode.gif" height="20" style="margin:0px;padding:0px;height:auto;max-width:300px;border:none;background-color:rgb(245, 245, 245);" width="20"/></a></span></div>
+<pre style="margin:0px;padding:0px;margin-top:0px;margin-bottom:0px;word-wrap:break-word;white-space:pre-wrap;font-family:&quot;Courier New&quot;;font-size:12px;">    &lt;!-- 添加一个session代理filter,来包装Servlet的getSession,需要放在所有filter链最前面 --&gt;
+    &lt;filter&gt;
+        &lt;filter-name&gt;springSessionRepositoryFilter&lt;/filter-name&gt;
+        &lt;filter-<span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#0000ff;">class</span>&gt;org.springframework.web.filter.DelegatingFilterProxy&lt;/filter-<span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#0000ff;">class</span>&gt;
+    &lt;/filter&gt;
+    &lt;filter-mapping&gt;
+        &lt;filter-name&gt;springSessionRepositoryFilter&lt;/filter-name&gt;
+        &lt;url-pattern&gt;<span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#008000;">/*</span><span style="margin:0px;padding:0px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;color:#008000;">&lt;/url-pattern&gt;
+    &lt;/filter-mapping&gt;</span></pre>
+<div style="margin:0px;padding:0px;margin-top:5px;background-color:rgb(245, 245, 245);"><span style="margin:0px;padding:0px;padding-right:5px;font-family:&quot;Courier New&quot;;font-size:12px;line-height:1.5;"><a href="#" style="margin:0px;padding:0px;color:rgb(0, 105, 214);font-weight:inherit;line-height:inherit;text-decoration:underline;background-color:rgb(245, 245, 245);border:none;" title="复制代码"><img src="Spring Session实现分布式session的简单示例 - 二十六度半 - 博客园_files/copycode [3].gif" type="image/gif" data-filename="copycode.gif" height="20" style="margin:0px;padding:0px;height:auto;max-width:300px;border:none;background-color:rgb(245, 245, 245);" width="20"/></a></span></div></div>
+<p style="padding:0px;margin:10px auto;text-indent:0px;"> </p>
+<p style="padding:0px;margin:10px auto;text-indent:0px;">这几乎就是所有的步骤了，是不是感觉很简单呢？赶快自己动手试一试吧，看起来高大上的分布式Session就这样被Spring Session搞定了！</p>
+<p style="padding:0px;margin:10px auto;text-indent:0px;">下面是我的github源码地址：</p>
+<p style="padding:0px;margin:10px auto;text-indent:0px;">https://github.com/13babybear/bounter-springsession</p>
+<p style="padding:0px;margin:10px auto;text-indent:0px;">欢迎提供你宝贵的意见！</p></div>
+<div style="margin:0px;padding:0px;clear:both;"></div>
+<div style="margin:0px;padding:0px;margin-top:20px;">
+<div style="margin:0px;padding:0px;margin-bottom:10px;"></div>
+<div style="margin:0px;padding:0px;font-size:9pt;color:rgb(102, 102, 102);margin-top:0px;">标签: <a href="http://www.cnblogs.com/gdufs/tag/%E5%88%86%E5%B8%83%E5%BC%8Fsession%E5%A4%84%E7%90%86/" style="margin:0px;padding:0px;font-weight:inherit;line-height:inherit;text-decoration:underline;margin-left:5px;color:rgb(102, 102, 102);">分布式session处理</a></div>
+<div style="margin:0px;padding:0px;"><div style="margin:0px;padding:10px 0px;margin-bottom:10px;margin-top:10px;border:1px dashed silver;font-size:12px;width:320px;text-align:center;">
+        <a href="#" style="border-radius:10px;line-height:inherit;margin:0px;box-shadow:rgba(0, 0, 0, 0.498039) 0px 1px 3px;background:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAAkCAYAAABIdFAMAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAHhJREFUeNo8zjsOxCAMBFB/KEAUFFR0Cbng3nQPw68ArZdAlOZppPFIBhH5EAB8b+Tlt9MYQ6i1BuqFaq1CKSVcxZ2Acs6406KUgpt5/LCKuVgz5BDCSb13ZO99ZOdcZGvt4mJjzMVKqcha68iIePB86GAiOv8CDADlIUQBs7MD3wAAAABJRU5ErkJggg%3D%3D) repeat-x;font-weight:bold;cursor:pointer;margin-right:10px;display:inline-block;text-decoration:none;text-shadow:rgba(0, 0, 0, 0.247059) 0px -1px 1px;vertical-align:middle;padding:3px 8px;background-color:rgb(45, 174, 191);border:none;color:rgb(255, 255, 255);">好文要顶</a>
+            <a href="#" style="border-radius:10px;line-height:inherit;margin:0px;box-shadow:rgba(0, 0, 0, 0.498039) 0px 1px 3px;background:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAAkCAYAAABIdFAMAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAHhJREFUeNo8zjsOxCAMBFB/KEAUFFR0Cbng3nQPw68ArZdAlOZppPFIBhH5EAB8b+Tlt9MYQ6i1BuqFaq1CKSVcxZ2Acs6406KUgpt5/LCKuVgz5BDCSb13ZO99ZOdcZGvt4mJjzMVKqcha68iIePB86GAiOv8CDADlIUQBs7MD3wAAAABJRU5ErkJggg%3D%3D) repeat-x;font-weight:bold;cursor:pointer;margin-right:10px;display:inline-block;text-decoration:none;text-shadow:rgba(0, 0, 0, 0.247059) 0px -1px 1px;vertical-align:middle;padding:3px 8px;background-color:rgb(227, 49, 0);border:none;color:rgb(255, 255, 255);">关注我</a>
+    <a href="#" style="border-radius:10px;line-height:inherit;margin:0px;box-shadow:rgba(0, 0, 0, 0.498039) 0px 1px 3px;background:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAAkCAYAAABIdFAMAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAHhJREFUeNo8zjsOxCAMBFB/KEAUFFR0Cbng3nQPw68ArZdAlOZppPFIBhH5EAB8b+Tlt9MYQ6i1BuqFaq1CKSVcxZ2Acs6406KUgpt5/LCKuVgz5BDCSb13ZO99ZOdcZGvt4mJjzMVKqcha68iIePB86GAiOv8CDADlIUQBs7MD3wAAAABJRU5ErkJggg%3D%3D) repeat-x;font-weight:bold;cursor:pointer;margin-right:10px;display:inline-block;text-decoration:none;text-shadow:rgba(0, 0, 0, 0.247059) 0px -1px 1px;vertical-align:middle;padding:3px 8px;background-color:rgb(255, 181, 21);border:none;color:rgb(255, 255, 255);">收藏该文</a>
+    <a href="#" style="margin-right:10px;line-height:inherit;margin:0px;box-shadow:none;background:none;font-weight:bold;cursor:pointer;display:inline-block;border-radius:10px;text-decoration:none;text-shadow:none;vertical-align:middle;padding:3px 2px;border:none;color:rgb(255, 255, 255);" title="分享至新浪微博"><img src="Spring Session实现分布式session的简单示例 - 二十六度半 - 博客园_files/icon_weibo_24.png" type="image/png" data-filename="icon_weibo_24.png" height="24" style="margin:0px;padding:0px;height:auto;border:none;vertical-align:middle;margin-left:5px;box-shadow:none;max-width:300px;" width="24"/></a>
+    <a href="#" style="margin-right:10px;line-height:inherit;margin:0px;box-shadow:none;background:none;font-weight:bold;cursor:pointer;display:inline-block;border-radius:10px;text-decoration:none;text-shadow:none;vertical-align:middle;padding:3px 2px;border:none;color:rgb(255, 255, 255);" title="分享至微信"><img src="Spring Session实现分布式session的简单示例 - 二十六度半 - 博客园_files/wechat.png" type="image/png" data-filename="wechat.png" height="24" style="margin:0px;padding:0px;border:medium none;width:24px;height:24px;box-shadow:none;margin-left:5px;vertical-align:middle;max-width:300px;" width="24"/></a>
+</div>
+<div style="margin:0px;padding:0px;float:left;width:280px;margin-top:0px;margin-bottom:10px;color:rgb(0, 0, 0);margin-left:0px;font-size:12px;">
+    <div style="margin:0px;padding:0px;float:left;line-height:18px;">
+            <a href="http://home.cnblogs.com/u/gdufs/" style="margin:0px;padding:0px;color:rgb(0, 105, 214);font-weight:inherit;line-height:inherit;text-decoration:underline;" target="_blank"><img src="Spring Session实现分布式session的简单示例 - 二十六度半 - 博客园_files/20170216201012.png" type="image/jpeg" data-filename="20170216201012.png" height="48" style="margin:0px;padding:0px;height:auto;border:0px;vertical-align:top;float:left;margin-right:5px;padding-top:5px;padding-left:2px;max-width:300px;" width="48"/></a>
+        <div style="margin:0px;padding:0px;float:left;line-height:18px;">
+            <a href="http://home.cnblogs.com/u/gdufs/" style="margin:0px;padding:0px;color:rgb(0, 105, 214);font-weight:inherit;line-height:inherit;text-decoration:underline;">二十六度半</a><br style="margin:0px;padding:0px;"/>
+            <a href="http://home.cnblogs.com/u/gdufs/followees" style="margin:0px;padding:0px;color:rgb(0, 105, 214);font-weight:inherit;line-height:inherit;text-decoration:underline;">关注 - 3</a><br style="margin:0px;padding:0px;"/>
+            <a href="http://home.cnblogs.com/u/gdufs/followers" style="margin:0px;padding:0px;color:rgb(0, 105, 214);font-weight:inherit;line-height:inherit;text-decoration:underline;">粉丝 - 3</a>
+        </div>
+    </div>
+    <div style="margin:0px;padding:0px;clear:both;"></div>
+    <div style="margin:0px;padding:0px;"></div>
+    <div style="margin:0px;padding:0px;">
+                <a href="#" style="margin:0px;padding:0px;color:rgb(0, 105, 214);font-weight:inherit;line-height:inherit;text-decoration:underline;">+加关注</a>
+    </div>
+</div>
+<div style="margin:0px;padding:0px;float:right;margin-bottom:10px;margin-right:30px;font-size:12px;width:125px;text-align:center;margin-top:10px;">
+    <div style="margin:0px;padding:0px;float:left;width:46px;height:52px;background:url(//static.cnblogs.com/images/upup.gif) no-repeat;text-align:center;cursor:pointer;margin-top:2px;padding-top:5px;">
+        <span style="margin:0px;padding:0px;font-size:14px;color:rgb(7, 93, 179);font-family:Verdana;line-height:1.5em;">0</span>
+    </div>
+    <div style="text-align:center;padding:0px;margin:0px;height:52px;background:url(//static.cnblogs.com/images/downdown.gif) no-repeat;margin-left:20px;cursor:pointer;margin-top:2px;padding-top:5px;width:46px;float:right;">
+        <span style="margin:0px;padding:0px;font-size:14px;color:rgb(7, 93, 179);font-family:Verdana;line-height:1.5em;">0</span>
+    </div>
+    <div style="margin:0px;padding:0px;clear:both;"></div>
+    <div style="margin:0px;padding:0px;margin-top:5px;margin-left:0px;font-size:12px;color:gray;">
+    </div>
+</div>
+</div>
+<div style="margin:0px;padding:0px;clear:both;"></div>
+<div style="margin:0px;padding:0px;line-height:1.8;font-size:12px;"><a href="http://www.cnblogs.com/gdufs/p/6831685.html" style="margin:0px;padding:0px;color:rgb(0, 105, 214);font-weight:inherit;line-height:inherit;text-decoration:none;">« </a> 上一篇：<a href="http://www.cnblogs.com/gdufs/p/6831685.html" style="margin:0px;padding:0px;color:rgb(0, 105, 214);font-weight:inherit;line-height:inherit;text-decoration:underline;" title="发布于2017-05-09 17:31">图解串行、并行和异步</a><br style="margin:0px;padding:0px;"/><a href="http://www.cnblogs.com/gdufs/p/6845570.html" style="margin:0px;padding:0px;color:rgb(0, 105, 214);font-weight:inherit;line-height:inherit;text-decoration:none;">» </a> 下一篇：<a href="http://www.cnblogs.com/gdufs/p/6845570.html" style="margin:0px;padding:0px;color:rgb(0, 105, 214);font-weight:inherit;line-height:inherit;text-decoration:underline;" title="发布于2017-05-12 14:54">JMS消息队列之ActiveMQ简单示例</a><br style="margin:0px;padding:0px;"/></div>
+</div>
+
+
+		</div>
+		<div style="margin:0px;padding:0px;clear:both;float:right;width:100%;text-align:right;padding-right:5px;color:rgb(102, 102, 102);margin-top:5px;">posted @ <span style="margin:0px;padding:0px;">2017-05-09 23:12</span> <a href="http://www.cnblogs.com/gdufs/" style="margin:0px;line-height:inherit;text-decoration:none;padding:1px 3px 2px;color:rgb(255, 255, 255);font-weight:bold;background-color:rgb(98, 207, 252);border-radius:3px;font-size:9.75px;text-shadow:none;">二十六度半</a> 阅读(<span style="margin:0px;padding:0px;">2506</span>) 评论(<span style="margin:0px;padding:0px;">0</span>)  <a href="https://i.cnblogs.com/EditPosts.aspx?postid=6833270" rel="nofollow" style="margin:0px;line-height:inherit;text-decoration:none;padding:1px 3px 2px;color:rgb(255, 255, 255);font-weight:bold;background-color:rgb(98, 207, 252);border-radius:3px;font-size:9.75px;text-shadow:none;">编辑</a> <a href="https://www.cnblogs.com/gdufs/p/6833270.html#" style="margin:0px;line-height:inherit;text-decoration:none;padding:1px 3px 2px;color:rgb(255, 255, 255);font-weight:bold;background-color:rgb(98, 207, 252);border-radius:3px;font-size:9.75px;text-shadow:none;">收藏</a></div>
+	</div></div></div></div></div></div></div></div></div></div>
+</div>
+</span>
+</div></body></html> 

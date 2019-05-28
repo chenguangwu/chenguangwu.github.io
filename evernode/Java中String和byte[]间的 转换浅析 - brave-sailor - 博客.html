@@ -1,0 +1,306 @@
+<html>
+<head>
+  <title>Java中String和byte[]间的 转换浅析 - brave-sailor - 博客园</title>
+  <basefont face="微软雅黑" size="2" />
+  <meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+  <meta name="exporter-version" content="YXBJ Windows/600718 (zh-CN, DDL); Windows/6.1.1 (Win64);"/>
+  <style>
+    body, td {
+      font-family: 微软雅黑;
+      font-size: 10pt;
+    }
+  </style>
+</head>
+<body>
+<a name="8669"/>
+<h1>Java中String和byte[]间的 转换浅析 - brave-sailor - 博客园</h1>
+<div>
+<table bgcolor="#D4DDE5" border="0">
+<tr><td><b>创建时间：</b></td><td><i>2018/3/14 9:54</i></td></tr>
+<tr><td><b>来源：</b></td><td><a href="https://www.cnblogs.com/Free-Thinker/p/6530311.html"><i>https://www.cnblogs.com/Free-Thinker/p/6530311.html</i></a></td></tr>
+</table>
+</div>
+<br/>
+
+<div><span><div style="-evernote-webclip:true"><br/><div style="font-size: 16px; display: inline-block;"><div><div style="font-family:&quot;PingFang SC&quot;, &quot;Helvetica Neue&quot;, Helvetica, Arial, sans-serif;background:url(&quot;images/body_bg.png&quot;) 0px 0px repeat-x scroll rgb(240, 238, 245);color:rgb(125, 139, 141);line-height:25px;font-size:14px;"><div><div><div style="background:none;overflow:visible;text-overflow:ellipsis;word-break:break-all;"><div><div><div style="background:rgb(255, 255, 255);overflow:hidden;"><div>
+		<h1 style="margin:0px;padding:0px;font-size:28px;font-weight:400;margin-bottom:20px;line-height:1.8;color:rgb(51, 51, 51);">
+			<a href="http://www.cnblogs.com/Free-Thinker/p/6530311.html" style="margin:0px;padding:0px;text-decoration:none;color:rgb(51, 51, 51);">Java中String和byte[]间的 转换浅析</a>
+		</h1>
+		<div style="margin:0px;padding:0px;clear:both;"></div>
+		<div style="margin:0px;padding:0px;">
+			<div style="margin:0px;padding:0px;margin-bottom:20px;word-break:break-word;color:rgb(51, 51, 51);line-height:1.8;"><p style="padding:0px;margin:10px auto;text-indent:0px;">Java语言中字符串类型和字节数组类型相互之间的转换经常发生，网上的分析及代码也比较多，本文将分析总结常规的byte[]和String间的转换以及十六进制String和byte[]间相互转换的原理及实现。</p>
+<h3 style="padding:0px;font-size:16px;font-weight:bold;line-height:1.5;margin:10px 0px;">1. String转byte[]</h3>
+<p style="padding:0px;margin:10px auto;text-indent:0px;">首先我们来分析一下常规的String转byte[]的方法，代码如下：</p>
+<pre style="margin:0px;padding:0px;margin-top:0px;margin-bottom:0px;white-space:pre-wrap;word-wrap:break-word;"><code style="margin:0px;padding:0px;"><span style="margin:0px;padding:0px;color:rgb(0, 0, 255);">public <span style="margin:0px;padding:0px;color:rgb(0, 0, 255);">static <span style="margin:0px;padding:0px;color:rgb(0, 0, 255);">byte[] strToByteArray(String str) {
+    <span style="margin:0px;padding:0px;color:rgb(0, 0, 255);">if (str == <span style="margin:0px;padding:0px;color:rgb(0, 0, 255);">null) {
+        <span style="margin:0px;padding:0px;color:rgb(0, 0, 255);">return <span style="margin:0px;padding:0px;color:rgb(0, 0, 255);">null;
+    }
+    <span style="margin:0px;padding:0px;color:rgb(0, 0, 255);">byte[] byteArray = str.getBytes();
+    <span style="margin:0px;padding:0px;color:rgb(0, 0, 255);">return byteArray;
+}</span></span></span></span></span></span></span></span></span></code></pre>
+<p style="padding:0px;margin:10px auto;text-indent:0px;">很简单，就是调用String类的getBytes()方法。看JDK源码可以发现该方法最终调用了String类如下的方法。</p>
+<pre style="margin:0px;padding:0px;margin-top:0px;margin-bottom:0px;white-space:pre-wrap;word-wrap:break-word;"><code style="margin:0px;padding:0px;"><span style="margin:0px;padding:0px;color:green;">/**
+ * JDK source code
+ */
+<span style="margin:0px;padding:0px;color:rgb(0, 0, 255);">public <span style="margin:0px;padding:0px;color:rgb(0, 0, 255);">byte[] getBytes(Charset charset) {
+    String canonicalCharsetName = charset.name();
+    <span style="margin:0px;padding:0px;color:rgb(0, 0, 255);">if (canonicalCharsetName.equals(<span style="margin:0px;padding:0px;color:rgb(163, 21, 21);">&quot;UTF-8&quot;)) {
+        <span style="margin:0px;padding:0px;color:rgb(0, 0, 255);">return Charsets.toUtf8Bytes(value, offset, count);
+    } <span style="margin:0px;padding:0px;color:rgb(0, 0, 255);">else <span style="margin:0px;padding:0px;color:rgb(0, 0, 255);">if (canonicalCharsetName.equals(<span style="margin:0px;padding:0px;color:rgb(163, 21, 21);">&quot;ISO-8859-1&quot;)) {
+        <span style="margin:0px;padding:0px;color:rgb(0, 0, 255);">return Charsets.toIsoLatin1Bytes(value, offset, count);
+    } <span style="margin:0px;padding:0px;color:rgb(0, 0, 255);">else <span style="margin:0px;padding:0px;color:rgb(0, 0, 255);">if (canonicalCharsetName.equals(<span style="margin:0px;padding:0px;color:rgb(163, 21, 21);">&quot;US-ASCII&quot;)) {
+        <span style="margin:0px;padding:0px;color:rgb(0, 0, 255);">return Charsets.toAsciiBytes(value, offset, count);
+    } <span style="margin:0px;padding:0px;color:rgb(0, 0, 255);">else <span style="margin:0px;padding:0px;color:rgb(0, 0, 255);">if (canonicalCharsetName.equals(<span style="margin:0px;padding:0px;color:rgb(163, 21, 21);">&quot;UTF-16BE&quot;)) {
+        <span style="margin:0px;padding:0px;color:rgb(0, 0, 255);">return Charsets.toBigEndianUtf16Bytes(value, offset, count);
+    } <span style="margin:0px;padding:0px;color:rgb(0, 0, 255);">else {
+        CharBuffer chars = CharBuffer.wrap(<span style="margin:0px;padding:0px;color:rgb(0, 0, 255);">this.value, <span style="margin:0px;padding:0px;color:rgb(0, 0, 255);">this.offset, <span style="margin:0px;padding:0px;color:rgb(0, 0, 255);">this.count);
+        ByteBuffer buffer = charset.encode(chars.asReadOnlyBuffer());
+        <span style="margin:0px;padding:0px;color:rgb(0, 0, 255);">byte[] bytes = <span style="margin:0px;padding:0px;color:rgb(0, 0, 255);">new <span style="margin:0px;padding:0px;color:rgb(0, 0, 255);">byte[buffer.limit()];
+        buffer.get(bytes);
+        <span style="margin:0px;padding:0px;color:rgb(0, 0, 255);">return bytes;
+    }
+}</span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></code></pre>
+<p style="padding:0px;margin:10px auto;text-indent:0px;">上述代码其实就是根据给定的编码方式进行编码。如果调用的是不带参数的getBytes()方法，则使用默认的编码方式，如下代码所示：</p>
+<pre style="margin:0px;padding:0px;margin-top:0px;margin-bottom:0px;white-space:pre-wrap;word-wrap:break-word;"><code style="margin:0px;padding:0px;"><span style="margin:0px;padding:0px;color:green;">/**
+ * JDK source code
+ */
+<span style="margin:0px;padding:0px;"><span style="margin:0px;padding:0px;color:rgb(0, 0, 255);">private <span style="margin:0px;padding:0px;color:rgb(0, 0, 255);">static Charset <span style="margin:0px;padding:0px;color:rgb(163, 21, 21);">getDefaultCharset<span style="margin:0px;padding:0px;">() {
+    String encoding = System.getProperty(<span style="margin:0px;padding:0px;color:rgb(163, 21, 21);">&quot;file.encoding&quot;, <span style="margin:0px;padding:0px;color:rgb(163, 21, 21);">&quot;UTF-8&quot;);
+    <span style="margin:0px;padding:0px;color:rgb(0, 0, 255);">try {
+        <span style="margin:0px;padding:0px;color:rgb(0, 0, 255);">return Charset.forName(encoding);
+    } <span style="margin:0px;padding:0px;color:rgb(0, 0, 255);">catch (UnsupportedCharsetException e) {
+        <span style="margin:0px;padding:0px;color:rgb(0, 0, 255);">return Charset.forName(<span style="margin:0px;padding:0px;color:rgb(163, 21, 21);">&quot;UTF-8&quot;);
+    }
+}</span></span></span></span></span></span></span></span></span></span></span></span></span></code></pre>
+<p style="padding:0px;margin:10px auto;text-indent:0px;">关于默认的编码方式，Java API是这样说的：</p>
+<blockquote style="background:none;border:2px solid rgb(239, 239, 239);padding:5px 10px;margin:0px;border-top:none;border-right:none;border-bottom:none;border-image:initial;border-left:5px solid rgb(221, 221, 221);padding-left:10px;">
+<p style="text-indent:0px;margin:0px;padding:0px;color:rgb(119, 119, 119);">The default charset is determined during virtual-machine startup and typically depends upon the locale and charset of the underlying operating system.</p>
+</blockquote>
+<p style="padding:0px;margin:10px auto;text-indent:0px;">同样，由上述代码可以看出，默认编码方式是由System类的&quot;file.encoding&quot;属性决定的，经过测试，在简体中文Windows操作系统下，默认编码方式为&quot;GBK&quot;，在Android平台上，默认编码方式为&quot;UTF-8&quot;。</p>
+<h3 style="padding:0px;font-size:16px;font-weight:bold;line-height:1.5;margin:10px 0px;">2. byte[]转String</h3>
+<p style="padding:0px;margin:10px auto;text-indent:0px;">接下来分析一下常规的byte[]转为String的方法，代码如下：</p>
+<pre style="margin:0px;padding:0px;margin-top:0px;margin-bottom:0px;white-space:pre-wrap;word-wrap:break-word;"><code style="margin:0px;padding:0px;"><span style="margin:0px;padding:0px;"><span style="margin:0px;padding:0px;color:rgb(0, 0, 255);">public <span style="margin:0px;padding:0px;color:rgb(0, 0, 255);">static String <span style="margin:0px;padding:0px;color:rgb(163, 21, 21);">byteArrayToStr<span style="margin:0px;padding:0px;">(<span style="margin:0px;padding:0px;color:rgb(0, 0, 255);">byte[] byteArray) {
+    <span style="margin:0px;padding:0px;color:rgb(0, 0, 255);">if (byteArray == <span style="margin:0px;padding:0px;color:rgb(0, 0, 255);">null) {
+        <span style="margin:0px;padding:0px;color:rgb(0, 0, 255);">return <span style="margin:0px;padding:0px;color:rgb(0, 0, 255);">null;
+    }
+    String str = <span style="margin:0px;padding:0px;color:rgb(0, 0, 255);">new String(byteArray);
+    <span style="margin:0px;padding:0px;color:rgb(0, 0, 255);">return str;
+}</span></span></span></span></span></span></span></span></span></span></span></span></code></pre>
+<p style="padding:0px;margin:10px auto;text-indent:0px;">很简单，就是String的构造方法之一。那我们分析Java中String的源码，可以看出所有以byte[]为参数的构造方法最终都调用了如下代码所示的构造方法。需要注意的是Java中String类的数据是Unicode类型的，因此上述的getBytes()方法是把Unicode类型转化为指定编码方式的byte数组；而这里的Charset为读取该byte数组时所使用的编码方式。</p>
+<pre style="margin:0px;padding:0px;margin-top:0px;margin-bottom:0px;white-space:pre-wrap;word-wrap:break-word;"><code style="margin:0px;padding:0px;"><span style="margin:0px;padding:0px;color:green;">/**
+ * JDK source code
+ */
+<span style="margin:0px;padding:0px;"><span style="margin:0px;padding:0px;color:rgb(0, 0, 255);">public <span style="margin:0px;padding:0px;color:rgb(163, 21, 21);">String<span style="margin:0px;padding:0px;">(<span style="margin:0px;padding:0px;color:rgb(0, 0, 255);">byte[] data, <span style="margin:0px;padding:0px;color:rgb(0, 0, 255);">int offset, <span style="margin:0px;padding:0px;color:rgb(0, 0, 255);">int byteCount, Charset charset) {
+    <span style="margin:0px;padding:0px;color:rgb(0, 0, 255);">if ((offset | byteCount) &lt; <span style="margin:0px;padding:0px;">0 || byteCount &gt; data.length - offset) { 
+        <span style="margin:0px;padding:0px;color:rgb(0, 0, 255);">throw failedBoundsCheck(data.length, offset, byteCount);
+    }
+    <span style="margin:0px;padding:0px;color:green;">// We inline UTF-8, ISO-8859-1, and US-ASCII decoders for speed and because
+    <span style="margin:0px;padding:0px;color:green;">// 'count' and 'value' are final.
+    String canonicalCharsetName = charset.name();
+    <span style="margin:0px;padding:0px;color:rgb(0, 0, 255);">if (canonicalCharsetName.equals(<span style="margin:0px;padding:0px;color:rgb(163, 21, 21);">&quot;UTF-8&quot;)) {
+        <span style="margin:0px;padding:0px;color:rgb(0, 0, 255);">byte[] d = data;
+        <span style="margin:0px;padding:0px;color:rgb(0, 0, 255);">char[] v = <span style="margin:0px;padding:0px;color:rgb(0, 0, 255);">new <span style="margin:0px;padding:0px;color:rgb(0, 0, 255);">char[byteCount];
+        <span style="margin:0px;padding:0px;color:rgb(0, 0, 255);">int idx = offset;
+        <span style="margin:0px;padding:0px;color:rgb(0, 0, 255);">int last = offset + byteCount;
+        <span style="margin:0px;padding:0px;color:rgb(0, 0, 255);">int s = <span style="margin:0px;padding:0px;">0;
+        outer:
+        <span style="margin:0px;padding:0px;color:rgb(0, 0, 255);">while (idx &lt; last) {
+            <span style="margin:0px;padding:0px;color:rgb(0, 0, 255);">byte b0 = d[idx++];
+            <span style="margin:0px;padding:0px;color:rgb(0, 0, 255);">if ((b0 &amp; <span style="margin:0px;padding:0px;">0x80) == <span style="margin:0px;padding:0px;">0) {
+                <span style="margin:0px;padding:0px;color:green;">// 0xxxxxxx
+                <span style="margin:0px;padding:0px;color:green;">// Range:  U-00000000 - U-0000007F
+                <span style="margin:0px;padding:0px;color:rgb(0, 0, 255);">int val = b0 &amp; <span style="margin:0px;padding:0px;">0xff;
+                v[s++] = (<span style="margin:0px;padding:0px;color:rgb(0, 0, 255);">char) val;
+            } <span style="margin:0px;padding:0px;color:rgb(0, 0, 255);">else <span style="margin:0px;padding:0px;color:rgb(0, 0, 255);">if (((b0 &amp; <span style="margin:0px;padding:0px;">0xe0) == <span style="margin:0px;padding:0px;">0xc0) || ((b0 &amp; <span style="margin:0px;padding:0px;">0xf0) == <span style="margin:0px;padding:0px;">0xe0) ||
+                ((b0 &amp; <span style="margin:0px;padding:0px;">0xf8) == <span style="margin:0px;padding:0px;">0xf0) || ((b0 &amp; <span style="margin:0px;padding:0px;">0xfc) == <span style="margin:0px;padding:0px;">0xf8) || ((b0 &amp; <span style="margin:0px;padding:0px;">0xfe)
+                == <span style="margin:0px;padding:0px;">0xfc)) {
+                <span style="margin:0px;padding:0px;color:rgb(0, 0, 255);">int utfCount = <span style="margin:0px;padding:0px;">1;
+                <span style="margin:0px;padding:0px;color:rgb(0, 0, 255);">if ((b0 &amp; <span style="margin:0px;padding:0px;">0xf0) == <span style="margin:0px;padding:0px;">0xe0) utfCount = <span style="margin:0px;padding:0px;">2;
+                <span style="margin:0px;padding:0px;color:rgb(0, 0, 255);">else <span style="margin:0px;padding:0px;color:rgb(0, 0, 255);">if ((b0 &amp; <span style="margin:0px;padding:0px;">0xf8) == <span style="margin:0px;padding:0px;">0xf0) utfCount = <span style="margin:0px;padding:0px;">3;
+                <span style="margin:0px;padding:0px;color:rgb(0, 0, 255);">else <span style="margin:0px;padding:0px;color:rgb(0, 0, 255);">if ((b0 &amp; <span style="margin:0px;padding:0px;">0xfc) == <span style="margin:0px;padding:0px;">0xf8) utfCount = <span style="margin:0px;padding:0px;">4;
+                <span style="margin:0px;padding:0px;color:rgb(0, 0, 255);">else <span style="margin:0px;padding:0px;color:rgb(0, 0, 255);">if ((b0 &amp; <span style="margin:0px;padding:0px;">0xfe) == <span style="margin:0px;padding:0px;">0xfc) utfCount = <span style="margin:0px;padding:0px;">5;
+                <span style="margin:0px;padding:0px;color:green;">// 110xxxxx (10xxxxxx)+
+                <span style="margin:0px;padding:0px;color:green;">// Range:  U-00000080 - U-000007FF (count == 1)
+                <span style="margin:0px;padding:0px;color:green;">// Range:  U-00000800 - U-0000FFFF (count == 2)
+                <span style="margin:0px;padding:0px;color:green;">// Range:  U-00010000 - U-001FFFFF (count == 3)
+                <span style="margin:0px;padding:0px;color:green;">// Range:  U-00200000 - U-03FFFFFF (count == 4)
+                <span style="margin:0px;padding:0px;color:green;">// Range:  U-04000000 - U-7FFFFFFF (count == 5)
+                <span style="margin:0px;padding:0px;color:rgb(0, 0, 255);">if (idx + utfCount &gt; last) {
+                    v[s++] = REPLACEMENT_CHAR;
+                    <span style="margin:0px;padding:0px;color:rgb(0, 0, 255);">continue;
+                }
+                <span style="margin:0px;padding:0px;color:green;">// Extract usable bits from b0
+                <span style="margin:0px;padding:0px;color:rgb(0, 0, 255);">int val = b0 &amp; (<span style="margin:0px;padding:0px;">0x1f &gt;&gt; (utfCount - <span style="margin:0px;padding:0px;">1));
+                <span style="margin:0px;padding:0px;color:rgb(0, 0, 255);">for (<span style="margin:0px;padding:0px;color:rgb(0, 0, 255);">int i = <span style="margin:0px;padding:0px;">0; i &lt; utfCount; ++i) {
+                    <span style="margin:0px;padding:0px;color:rgb(0, 0, 255);">byte b = d[idx++];
+                    <span style="margin:0px;padding:0px;color:rgb(0, 0, 255);">if ((b &amp; <span style="margin:0px;padding:0px;">0xc0) != <span style="margin:0px;padding:0px;">0x80) {
+                        v[s++] = REPLACEMENT_CHAR;
+                        idx--; <span style="margin:0px;padding:0px;color:green;">// Put the input char back
+                        <span style="margin:0px;padding:0px;color:rgb(0, 0, 255);">continue outer;
+                    }
+                    <span style="margin:0px;padding:0px;color:green;">// Push new bits in from the right side
+                    val &lt;&lt;= <span style="margin:0px;padding:0px;">6;
+                    val |= b &amp; <span style="margin:0px;padding:0px;">0x3f;
+                }
+                <span style="margin:0px;padding:0px;color:green;">// Note: Java allows overlong char
+                <span style="margin:0px;padding:0px;color:green;">// specifications To disallow, check that val
+                <span style="margin:0px;padding:0px;color:green;">// is greater than or equal to the minimum
+                <span style="margin:0px;padding:0px;color:green;">// value for each count:
+                <span style="margin:0px;padding:0px;color:green;">//
+                <span style="margin:0px;padding:0px;color:green;">// count    min value
+                <span style="margin:0px;padding:0px;color:green;">// -----   ----------
+                <span style="margin:0px;padding:0px;color:green;">//   1           0x80
+                <span style="margin:0px;padding:0px;color:green;">//   2          0x800
+                <span style="margin:0px;padding:0px;color:green;">//   3        0x10000
+                <span style="margin:0px;padding:0px;color:green;">//   4       0x200000
+                <span style="margin:0px;padding:0px;color:green;">//   5      0x4000000
+                <span style="margin:0px;padding:0px;color:green;">// Allow surrogate values (0xD800 - 0xDFFF) to
+                <span style="margin:0px;padding:0px;color:green;">// be specified using 3-byte UTF values only
+                <span style="margin:0px;padding:0px;color:rgb(0, 0, 255);">if ((utfCount != <span style="margin:0px;padding:0px;">2) &amp;&amp; (val &gt;= <span style="margin:0px;padding:0px;">0xD800) &amp;&amp; (val &lt;= <span style="margin:0px;padding:0px;">0xDFFF)) {
+                    v[s++] = REPLACEMENT_CHAR;
+                    <span style="margin:0px;padding:0px;color:rgb(0, 0, 255);">continue;
+                }
+                <span style="margin:0px;padding:0px;color:green;">// Reject chars greater than the Unicode maximum of U+10FFFF.
+                <span style="margin:0px;padding:0px;color:rgb(0, 0, 255);">if (val &gt; <span style="margin:0px;padding:0px;">0x10FFFF) {
+                    v[s++] = REPLACEMENT_CHAR;
+                    <span style="margin:0px;padding:0px;color:rgb(0, 0, 255);">continue;
+                }
+                <span style="margin:0px;padding:0px;color:green;">// Encode chars from U+10000 up as surrogate pairs
+                <span style="margin:0px;padding:0px;color:rgb(0, 0, 255);">if (val &lt; <span style="margin:0px;padding:0px;">0x10000) {
+                    v[s++] = (<span style="margin:0px;padding:0px;color:rgb(0, 0, 255);">char) val;
+                } <span style="margin:0px;padding:0px;color:rgb(0, 0, 255);">else {
+                    <span style="margin:0px;padding:0px;color:rgb(0, 0, 255);">int x = val &amp; <span style="margin:0px;padding:0px;">0xffff;
+                    <span style="margin:0px;padding:0px;color:rgb(0, 0, 255);">int u = (val &gt;&gt; <span style="margin:0px;padding:0px;">16) &amp; <span style="margin:0px;padding:0px;">0x1f;
+                    <span style="margin:0px;padding:0px;color:rgb(0, 0, 255);">int w = (u - <span style="margin:0px;padding:0px;">1) &amp; <span style="margin:0px;padding:0px;">0xffff;
+                    <span style="margin:0px;padding:0px;color:rgb(0, 0, 255);">int hi = <span style="margin:0px;padding:0px;">0xd800 | (w &lt;&lt; <span style="margin:0px;padding:0px;">6) | (x &gt;&gt; <span style="margin:0px;padding:0px;">10);
+                    <span style="margin:0px;padding:0px;color:rgb(0, 0, 255);">int lo = <span style="margin:0px;padding:0px;">0xdc00 | (x &amp; <span style="margin:0px;padding:0px;">0x3ff);
+                    v[s++] = (<span style="margin:0px;padding:0px;color:rgb(0, 0, 255);">char) hi;
+                    v[s++] = (<span style="margin:0px;padding:0px;color:rgb(0, 0, 255);">char) lo;
+                }
+            } <span style="margin:0px;padding:0px;color:rgb(0, 0, 255);">else {
+                <span style="margin:0px;padding:0px;color:green;">// Illegal values 0x8*, 0x9*, 0xa*, 0xb*, 0xfd-0xff
+                v[s++] = REPLACEMENT_CHAR;
+            }
+        }
+        <span style="margin:0px;padding:0px;color:rgb(0, 0, 255);">if (s == byteCount) {
+            <span style="margin:0px;padding:0px;color:green;">// We guessed right, so we can use our temporary array as-is.
+            <span style="margin:0px;padding:0px;color:rgb(0, 0, 255);">this.offset = <span style="margin:0px;padding:0px;">0;
+            <span style="margin:0px;padding:0px;color:rgb(0, 0, 255);">this.value = v;
+            <span style="margin:0px;padding:0px;color:rgb(0, 0, 255);">this.count = s;
+        } <span style="margin:0px;padding:0px;color:rgb(0, 0, 255);">else {
+            <span style="margin:0px;padding:0px;color:green;">// Our temporary array was too big, so reallocate and copy.
+            <span style="margin:0px;padding:0px;color:rgb(0, 0, 255);">this.offset = <span style="margin:0px;padding:0px;">0;
+            <span style="margin:0px;padding:0px;color:rgb(0, 0, 255);">this.value = <span style="margin:0px;padding:0px;color:rgb(0, 0, 255);">new <span style="margin:0px;padding:0px;color:rgb(0, 0, 255);">char[s];
+            <span style="margin:0px;padding:0px;color:rgb(0, 0, 255);">this.count = s;
+            System.arraycopy(v, <span style="margin:0px;padding:0px;">0, value, <span style="margin:0px;padding:0px;">0, s);
+        }
+    } <span style="margin:0px;padding:0px;color:rgb(0, 0, 255);">else <span style="margin:0px;padding:0px;color:rgb(0, 0, 255);">if (canonicalCharsetName.equals(<span style="margin:0px;padding:0px;color:rgb(163, 21, 21);">&quot;ISO-8859-1&quot;)) {
+        <span style="margin:0px;padding:0px;color:rgb(0, 0, 255);">this.offset = <span style="margin:0px;padding:0px;">0;
+        <span style="margin:0px;padding:0px;color:rgb(0, 0, 255);">this.value = <span style="margin:0px;padding:0px;color:rgb(0, 0, 255);">new <span style="margin:0px;padding:0px;color:rgb(0, 0, 255);">char[byteCount];
+        <span style="margin:0px;padding:0px;color:rgb(0, 0, 255);">this.count = byteCount;
+        Charsets.isoLatin1BytesToChars(data, offset, byteCount, value);
+    } <span style="margin:0px;padding:0px;color:rgb(0, 0, 255);">else <span style="margin:0px;padding:0px;color:rgb(0, 0, 255);">if (canonicalCharsetName.equals(<span style="margin:0px;padding:0px;color:rgb(163, 21, 21);">&quot;US-ASCII&quot;)) {
+        <span style="margin:0px;padding:0px;color:rgb(0, 0, 255);">this.offset = <span style="margin:0px;padding:0px;">0;
+        <span style="margin:0px;padding:0px;color:rgb(0, 0, 255);">this.value = <span style="margin:0px;padding:0px;color:rgb(0, 0, 255);">new <span style="margin:0px;padding:0px;color:rgb(0, 0, 255);">char[byteCount];
+        <span style="margin:0px;padding:0px;color:rgb(0, 0, 255);">this.count = byteCount;
+        Charsets.asciiBytesToChars(data, offset, byteCount, value);
+    } <span style="margin:0px;padding:0px;color:rgb(0, 0, 255);">else {
+        CharBuffer cb = charset.decode(ByteBuffer.wrap(data, offset, byteCount));
+        <span style="margin:0px;padding:0px;color:rgb(0, 0, 255);">this.offset = <span style="margin:0px;padding:0px;">0;
+        <span style="margin:0px;padding:0px;color:rgb(0, 0, 255);">this.count = cb.length();
+        <span style="margin:0px;padding:0px;color:rgb(0, 0, 255);">if (count &gt; <span style="margin:0px;padding:0px;">0) {
+            <span style="margin:0px;padding:0px;color:green;">// We could use cb.array() directly, but that would mean we'd have to trust
+            <span style="margin:0px;padding:0px;color:green;">// the CharsetDecoder doesn't hang on to the CharBuffer and mutate it later,
+            <span style="margin:0px;padding:0px;color:green;">// which would break String's immutability guarantee. It would also tend to
+            <span style="margin:0px;padding:0px;color:green;">// mean that we'd be wasting memory because CharsetDecoder doesn't trim the
+            <span style="margin:0px;padding:0px;color:green;">// array. So we copy.
+            <span style="margin:0px;padding:0px;color:rgb(0, 0, 255);">this.value = <span style="margin:0px;padding:0px;color:rgb(0, 0, 255);">new <span style="margin:0px;padding:0px;color:rgb(0, 0, 255);">char[count];
+            System.arraycopy(cb.array(), <span style="margin:0px;padding:0px;">0, value, <span style="margin:0px;padding:0px;">0, count);
+        } <span style="margin:0px;padding:0px;color:rgb(0, 0, 255);">else {
+            <span style="margin:0px;padding:0px;color:rgb(0, 0, 255);">this.value = EmptyArray.CHAR;
+        }
+    }
+}</span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></code></pre>
+<p style="padding:0px;margin:10px auto;text-indent:0px;">具体的转换过程较为复杂，其实就是将byte数组的一个或多个元素按指定的Charset类型读取并转换为char类型（char本身就是以Unicode编码方式存储的），因为String类的核心是其内部维护的char数组。因此有兴趣的同学可以研究下各种编码方式的编码规则，然后才能看懂具体的转换过程。</p>
+<h3 style="padding:0px;font-size:16px;font-weight:bold;line-height:1.5;margin:10px 0px;">3. byte[]转十六进制String</h3>
+<p style="padding:0px;margin:10px auto;text-indent:0px;">所谓十六进制String，就是字符串里面的字符都是十六进制形式，因为一个byte是八位，可以用两个十六进制位来表示，因此，byte数组中的每个元素可以转换为两个十六进制形式的char，所以最终的HexString的长度是byte数组长度的两倍。闲话少说上代码：</p>
+<pre style="margin:0px;padding:0px;margin-top:0px;margin-bottom:0px;white-space:pre-wrap;word-wrap:break-word;"><code style="margin:0px;padding:0px;"><span style="margin:0px;padding:0px;"><span style="margin:0px;padding:0px;color:rgb(0, 0, 255);">public <span style="margin:0px;padding:0px;color:rgb(0, 0, 255);">static String <span style="margin:0px;padding:0px;color:rgb(163, 21, 21);">byteArrayToHexStr<span style="margin:0px;padding:0px;">(<span style="margin:0px;padding:0px;color:rgb(0, 0, 255);">byte[] byteArray) {
+    <span style="margin:0px;padding:0px;color:rgb(0, 0, 255);">if (byteArray == <span style="margin:0px;padding:0px;color:rgb(0, 0, 255);">null){
+        <span style="margin:0px;padding:0px;color:rgb(0, 0, 255);">return <span style="margin:0px;padding:0px;color:rgb(0, 0, 255);">null;
+    }
+    <span style="margin:0px;padding:0px;color:rgb(0, 0, 255);">char[] hexArray = <span style="margin:0px;padding:0px;color:rgb(163, 21, 21);">&quot;0123456789ABCDEF&quot;.toCharArray();
+    <span style="margin:0px;padding:0px;color:rgb(0, 0, 255);">char[] hexChars = <span style="margin:0px;padding:0px;color:rgb(0, 0, 255);">new <span style="margin:0px;padding:0px;color:rgb(0, 0, 255);">char[byteArray.length * <span style="margin:0px;padding:0px;">2];
+    <span style="margin:0px;padding:0px;color:rgb(0, 0, 255);">for (<span style="margin:0px;padding:0px;color:rgb(0, 0, 255);">int j = <span style="margin:0px;padding:0px;">0; j &lt; byteArray.length; j++) {
+        <span style="margin:0px;padding:0px;color:rgb(0, 0, 255);">int v = byteArray[j] &amp; <span style="margin:0px;padding:0px;">0xFF;
+        hexChars[j * <span style="margin:0px;padding:0px;">2] = hexArray[v &gt;&gt;&gt; <span style="margin:0px;padding:0px;">4];
+        hexChars[j * <span style="margin:0px;padding:0px;">2 + <span style="margin:0px;padding:0px;">1] = hexArray[v &amp; <span style="margin:0px;padding:0px;">0x0F];
+    }
+    <span style="margin:0px;padding:0px;color:rgb(0, 0, 255);">return <span style="margin:0px;padding:0px;color:rgb(0, 0, 255);">new String(hexChars);
+}</span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></code></pre>
+<p style="padding:0px;margin:10px auto;text-indent:0px;">上述代码中，之所以要将byte数值和0xFF按位与，是因为我们为了方便后面的无符号移位操作（无符号右移运算符&gt;&gt;&gt;只对32位和64位的值有意义），要将byte数据转换为int类型，而如果直接转换就会出现问题。因为java里面二进制是以补码形式存在的，如果直接转换，位扩展会产生问题，如值为-1的byte存储的二进制形式为其补码11111111，而转换为int后为11111111111111111111111111111111，直接使用该值结果就不对了。而0xFF默认是int类型，即0x000000FF，一个byte值跟0xFF相与会先将那个byte值转化成int类型运算，这样，相与的结果中高的24个比特就总会被清0，后面的运算才会正确。</p>
+<h3 style="padding:0px;font-size:16px;font-weight:bold;line-height:1.5;margin:10px 0px;">4. 十六进制String转byte[]</h3>
+<p style="padding:0px;margin:10px auto;text-indent:0px;">没什么好说的了，就是byte[]转十六进制String的逆过程，放代码：</p>
+<pre style="margin:0px;padding:0px;margin-top:0px;margin-bottom:0px;white-space:pre-wrap;word-wrap:break-word;"><code style="margin:0px;padding:0px;"><span style="margin:0px;padding:0px;color:rgb(0, 0, 255);">public <span style="margin:0px;padding:0px;color:rgb(0, 0, 255);">static <span style="margin:0px;padding:0px;color:rgb(0, 0, 255);">byte[] hexStrToByteArray(String str)
+{
+    <span style="margin:0px;padding:0px;color:rgb(0, 0, 255);">if (str == <span style="margin:0px;padding:0px;color:rgb(0, 0, 255);">null) {
+        <span style="margin:0px;padding:0px;color:rgb(0, 0, 255);">return <span style="margin:0px;padding:0px;color:rgb(0, 0, 255);">null;
+    }
+    <span style="margin:0px;padding:0px;color:rgb(0, 0, 255);">if (str.length() == <span style="margin:0px;padding:0px;">0) {
+        <span style="margin:0px;padding:0px;color:rgb(0, 0, 255);">return <span style="margin:0px;padding:0px;color:rgb(0, 0, 255);">new <span style="margin:0px;padding:0px;color:rgb(0, 0, 255);">byte[<span style="margin:0px;padding:0px;">0];
+    }
+    <span style="margin:0px;padding:0px;color:rgb(0, 0, 255);">byte[] byteArray = <span style="margin:0px;padding:0px;color:rgb(0, 0, 255);">new <span style="margin:0px;padding:0px;color:rgb(0, 0, 255);">byte[str.length() / <span style="margin:0px;padding:0px;">2];
+    <span style="margin:0px;padding:0px;color:rgb(0, 0, 255);">for (<span style="margin:0px;padding:0px;color:rgb(0, 0, 255);">int i = <span style="margin:0px;padding:0px;">0; i &lt; byteArray.length; i++){
+        String subStr = str.substring(<span style="margin:0px;padding:0px;">2 * i, <span style="margin:0px;padding:0px;">2 * i + <span style="margin:0px;padding:0px;">2);
+        byteArray[i] = ((<span style="margin:0px;padding:0px;color:rgb(0, 0, 255);">byte)Integer.parseInt(subStr, <span style="margin:0px;padding:0px;">16));
+    }
+    <span style="margin:0px;padding:0px;color:rgb(0, 0, 255);">return byteArray;
+}</span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></code></pre>
+<p style="padding:0px;margin:10px auto;text-indent:0px;">文中所有代码可以在<a href="https://github.com/GuoJinyu/AndroidUtils/tree/master" style="margin:0px;padding:0px;color:rgb(0, 0, 0);text-decoration:underline;" target="_blank">个人github主页</a>查看和下载。</p>
+<p style="padding:0px;margin:10px auto;text-indent:0px;">另，<a href="http://guojinyu.github.io/" style="margin:0px;padding:0px;color:rgb(0, 0, 0);text-decoration:underline;" target="_blank">个人技术博客</a>，同步更新，欢迎关注！转载请注明出处！文中若有什么错误希望大家探讨指正！</p></div>
+<div style="margin:0px;padding:0px;clear:both;"></div>
+<div style="margin:0px;padding:0px;margin-top:20px;">
+<div style="margin:0px;padding:0px;margin-bottom:10px;">分类: <a href="http://www.cnblogs.com/Free-Thinker/category/507473.html" style="margin:0px;padding:0px;color:rgb(0, 0, 0);text-decoration:none;margin-left:10px;" target="_blank">android提高篇</a>,<a href="http://www.cnblogs.com/Free-Thinker/category/507475.html" style="margin:0px;padding:0px;color:rgb(0, 0, 0);text-decoration:none;margin-left:10px;" target="_blank">java提高篇</a></div>
+<div style="margin:0px;padding:0px;font-size:14px;color:rgb(126, 140, 141);font-weight:bold;margin-top:0px;"></div>
+<div style="margin:0px;padding:0px;"><div style="margin:0px;padding:10px 0px;margin-bottom:10px;margin-top:10px;border:1px dashed silver;font-size:12px;width:320px;text-align:center;">
+        <a href="#" style="margin-right:10px;margin:0px;border-radius:10px;padding:3px 8px;text-decoration:none;font-weight:bold;cursor:pointer;display:inline-block;vertical-align:middle;box-shadow:rgba(0, 0, 0, 0.498039) 0px 1px 3px;text-shadow:rgba(0, 0, 0, 0.247059) 0px -1px 1px;background:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAAkCAYAAABIdFAMAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAHhJREFUeNo8zjsOxCAMBFB/KEAUFFR0Cbng3nQPw68ArZdAlOZppPFIBhH5EAB8b+Tlt9MYQ6i1BuqFaq1CKSVcxZ2Acs6406KUgpt5/LCKuVgz5BDCSb13ZO99ZOdcZGvt4mJjzMVKqcha68iIePB86GAiOv8CDADlIUQBs7MD3wAAAABJRU5ErkJggg%3D%3D&quot;) repeat-x;background-color:rgb(45, 174, 191);color:rgb(255, 255, 255);border:none;">好文要顶</a>
+            <a href="#" style="margin-right:10px;margin:0px;border-radius:10px;padding:3px 8px;text-decoration:none;font-weight:bold;cursor:pointer;display:inline-block;vertical-align:middle;box-shadow:rgba(0, 0, 0, 0.498039) 0px 1px 3px;text-shadow:rgba(0, 0, 0, 0.247059) 0px -1px 1px;background:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAAkCAYAAABIdFAMAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAHhJREFUeNo8zjsOxCAMBFB/KEAUFFR0Cbng3nQPw68ArZdAlOZppPFIBhH5EAB8b+Tlt9MYQ6i1BuqFaq1CKSVcxZ2Acs6406KUgpt5/LCKuVgz5BDCSb13ZO99ZOdcZGvt4mJjzMVKqcha68iIePB86GAiOv8CDADlIUQBs7MD3wAAAABJRU5ErkJggg%3D%3D&quot;) repeat-x;background-color:rgb(227, 49, 0);color:rgb(255, 255, 255);border:none;">关注我</a>
+    <a href="#" style="margin-right:10px;margin:0px;border-radius:10px;padding:3px 8px;text-decoration:none;font-weight:bold;cursor:pointer;display:inline-block;vertical-align:middle;box-shadow:rgba(0, 0, 0, 0.498039) 0px 1px 3px;text-shadow:rgba(0, 0, 0, 0.247059) 0px -1px 1px;background:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAAkCAYAAABIdFAMAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAHhJREFUeNo8zjsOxCAMBFB/KEAUFFR0Cbng3nQPw68ArZdAlOZppPFIBhH5EAB8b+Tlt9MYQ6i1BuqFaq1CKSVcxZ2Acs6406KUgpt5/LCKuVgz5BDCSb13ZO99ZOdcZGvt4mJjzMVKqcha68iIePB86GAiOv8CDADlIUQBs7MD3wAAAABJRU5ErkJggg%3D%3D&quot;) repeat-x;background-color:rgb(255, 181, 21);color:rgb(255, 255, 255);border:none;">收藏该文</a>
+    <a href="#" style="margin-right:10px;margin:0px;border-radius:10px;padding:3px 2px;text-decoration:none;font-weight:bold;cursor:pointer;display:inline-block;vertical-align:middle;box-shadow:none;text-shadow:none;background:none;color:rgb(255, 255, 255);border:none;" title="分享至新浪微博"><img src="Java中String和byte[]间的 转换浅析 - brave-sailor - 博客_files/icon_weibo_24.png" type="image/png" data-filename="icon_weibo_24.png" alt="" height="24" style="margin:0px;padding:0px;height:auto;border:none;vertical-align:middle;margin-left:5px;box-shadow:none;max-width:300px;" width="24"/></a>
+    <a href="#" style="margin-right:10px;margin:0px;border-radius:10px;padding:3px 2px;text-decoration:none;font-weight:bold;cursor:pointer;display:inline-block;vertical-align:middle;box-shadow:none;text-shadow:none;background:none;color:rgb(255, 255, 255);border:none;" title="分享至微信"><img src="Java中String和byte[]间的 转换浅析 - brave-sailor - 博客_files/wechat.png" type="image/png" data-filename="wechat.png" alt="" height="24" style="margin:0px;padding:0px;border:medium none;width:24px;height:24px;box-shadow:none;margin-left:5px;vertical-align:middle;max-width:300px;" width="24"/></a>
+</div>
+<div style="margin:0px;padding:0px;float:left;width:280px;margin-top:0px;margin-bottom:10px;color:rgb(0, 0, 0);margin-left:0px;font-size:12px;">
+    <div style="margin:0px;padding:0px;float:left;line-height:18px;">
+            <a href="http://home.cnblogs.com/u/Free-Thinker/" style="margin:0px;padding:0px;color:rgb(0, 0, 0);text-decoration:none;" target="_blank"><img src="Java中String和byte[]间的 转换浅析 - brave-sailor - 博客_files/sample_face.gif" type="image/gif" data-filename="sample_face.gif" alt="" height="48" style="margin:0px;padding:0px;height:auto;border:0px;vertical-align:top;float:left;margin-right:5px;padding-top:5px;padding-left:2px;max-width:300px;" width="48"/></a>
+        <div style="margin:0px;padding:0px;float:left;line-height:18px;">
+            <a href="http://home.cnblogs.com/u/Free-Thinker/" style="margin:0px;padding:0px;color:rgb(0, 0, 0);text-decoration:none;">brave-sailor</a><br style="margin:0px;padding:0px;"/>
+            <a href="http://home.cnblogs.com/u/Free-Thinker/followees" style="margin:0px;padding:0px;color:rgb(0, 0, 0);text-decoration:none;">关注 - 1</a><br style="margin:0px;padding:0px;"/>
+            <a href="http://home.cnblogs.com/u/Free-Thinker/followers" style="margin:0px;padding:0px;color:rgb(0, 0, 0);text-decoration:none;">粉丝 - 68</a>
+        </div>
+    </div>
+    <div style="margin:0px;padding:0px;clear:both;"></div>
+    <div style="margin:0px;padding:0px;"></div>
+    <div style="margin:0px;padding:0px;">
+                <a href="#" style="margin:0px;padding:0px;color:rgb(0, 0, 0);text-decoration:none;">+加关注</a>
+    </div>
+</div>
+<div style="margin:0px;padding:0px;float:right;margin-bottom:10px;margin-right:30px;font-size:12px;width:125px;text-align:center;margin-top:10px;">
+    <div style="margin:0px;padding:0px;float:left;width:46px;height:52px;background:url(&quot;//static.cnblogs.com/images/upup.gif&quot;) no-repeat;text-align:center;cursor:pointer;margin-top:2px;padding-top:5px;">
+        <span style="margin:0px;padding:0px;font-size:14px;color:rgb(7, 93, 179);font-family:Verdana;line-height:1.5em;">1</span>
+    </div>
+    <div style="text-align:center;padding:0px;margin:0px;height:52px;background:url(&quot;//static.cnblogs.com/images/downdown.gif&quot;) no-repeat;margin-left:20px;cursor:pointer;margin-top:2px;padding-top:5px;width:46px;float:right;">
+        <span style="margin:0px;padding:0px;font-size:14px;color:rgb(7, 93, 179);font-family:Verdana;line-height:1.5em;">0</span>
+    </div>
+    <div style="margin:0px;padding:0px;clear:both;"></div>
+    <div style="margin:0px;padding:0px;margin-top:5px;margin-left:0px;font-size:12px;color:gray;">
+    </div>
+</div>
+</div>
+<div style="margin:0px;padding:0px;clear:both;"></div>
+<div style="padding:0px;line-height:200%;font-size:14px;margin:10px 0px;"><a href="http://www.cnblogs.com/Free-Thinker/p/6530280.html" style="margin:0px;padding:0px;color:rgb(51, 51, 51);text-decoration:none;">« </a> 上一篇：<a href="http://www.cnblogs.com/Free-Thinker/p/6530280.html" style="margin:0px;padding:0px;text-decoration:none;color:rgb(51, 51, 51);" title="发布于2017-03-10 13:41">Java中String和byte[]间的转换浅析</a><br style="margin:0px;padding:0px;"/><a href="http://www.cnblogs.com/Free-Thinker/p/6544064.html" style="margin:0px;padding:0px;color:rgb(51, 51, 51);text-decoration:none;">» </a> 下一篇：<a href="http://www.cnblogs.com/Free-Thinker/p/6544064.html" style="margin:0px;padding:0px;text-decoration:none;color:rgb(51, 51, 51);" title="发布于2017-03-13 17:34">关于着色器LinearGradient的使用</a><br style="margin:0px;padding:0px;"/></div>
+</div>
+
+
+		</div>
+		<div style="padding:0px;clear:both;float:none;text-align:left;margin:10px 0px;color:rgb(119, 119, 119);line-height:200%;font-size:14px;">posted @ <span style="margin:0px;padding:0px;">2017-03-10 13:47</span> <a href="http://www.cnblogs.com/Free-Thinker/" style="margin:0px;padding:0px;color:rgb(153, 153, 153);text-decoration:none;">brave-sailor</a> 阅读(<span style="margin:0px;padding:0px;">17986</span>) 评论(<span style="margin:0px;padding:0px;">0</span>)  <a href="https://i.cnblogs.com/EditPosts.aspx?postid=6530311" rel="nofollow" style="margin:0px;padding:0px;color:rgb(153, 153, 153);text-decoration:none;">编辑</a> <a href="https://www.cnblogs.com/Free-Thinker/p/6530311.html#" style="margin:0px;padding:0px;color:rgb(153, 153, 153);text-decoration:none;">收藏</a></div>
+	</div></div></div></div></div></div></div></div></div></div><br/></div></span>
+</div></body></html> 

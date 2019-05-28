@@ -1,0 +1,442 @@
+<html>
+<head>
+  <title>域名劫持资源重加载方案</title>
+  <basefont face="微软雅黑" size="2" />
+  <meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+  <meta name="exporter-version" content="YXBJ Windows/600718 (zh-CN, DDL); Windows/6.1.1 (Win64);"/>
+  <style>
+    body, td {
+      font-family: 微软雅黑;
+      font-size: 10pt;
+    }
+  </style>
+</head>
+<body>
+<a name="5475"/>
+<h1>域名劫持资源重加载方案</h1>
+<div>
+<table bgcolor="#D4DDE5" border="0">
+<tr><td><b>创建时间：</b></td><td><i>2017/5/25 13:15</i></td></tr>
+<tr><td><b>来源：</b></td><td><a href="https://techblog.toutiao.com/2017/05/09/cdn/"><i>https://techblog.toutiao.com/2017/05/09/cdn/</i></a></td></tr>
+</table>
+</div>
+<br/>
+
+<div><span><div style="-evernote-webclip:true"><br/><div style="font-size: 16px; display: inline-block;"><div style="outline:0px;font-weight:inherit;font-style:inherit;font-family:inherit;font-size:100%;vertical-align:baseline;"><div style="line-height:normal;outline:0px;font-style:normal;font-family:&quot;Helvetica Neue&quot;, Helvetica, Arial, sans-serif;font-size:14px;vertical-align:baseline;font-weight:normal;color:rgb(0, 0, 0);background:rgb(255, 255, 255);font-variant:normal;font-stretch:normal;text-size-adjust:100%;"><div style="outline:0px;font-weight:inherit;font-style:inherit;font-family:inherit;font-size:100%;vertical-align:baseline;"><div style="outline:0px;font-weight:inherit;font-style:inherit;font-family:inherit;font-size:100%;vertical-align:baseline;transition:0.2s ease-out;background-color:rgb(255, 255, 255);"><div style="outline:0px;font-weight:inherit;font-style:inherit;font-family:inherit;font-size:100%;vertical-align:baseline;"><div><div><div style="outline:0px;font-weight:inherit;font-style:inherit;font-family:inherit;font-size:100%;vertical-align:baseline;overflow:hidden;">
+            <div style="padding:1.2em;border-left:5px solid rgb(44, 166, 203);">
+                <h1 style="font-family:inherit;margin:0px;border:0px;outline:0px;font-weight:inherit;font-style:inherit;padding:0px;vertical-align:baseline;font-size:1.4em;text-decoration:none;color:rgb(64, 101, 153);line-height:1.1em;transition:color 0.2s;">
+                    域名劫持资源重加载方案
+                </h1>
+            </div>
+            <div style="margin:0px;border:0px;outline:0px;font-weight:inherit;font-style:inherit;font-family:inherit;font-size:100%;vertical-align:baseline;padding:0px 1.2em;color:rgb(85, 85, 85);"><span style="font-weight:inherit;font-style:inherit;font-family:inherit;font-size:100%;color:rgb(85, 85, 85);display:table;"></span>
+                <p style="font-style:inherit;margin:1.6em 0px;border:0px;outline:0px;font-weight:inherit;padding:0px;font-family:inherit;font-size:14px;vertical-align:baseline;line-height:1.6em;color:rgb(80, 80, 80);"><strong style="margin:0px;padding:0px;border:0px;outline:0px;font-style:inherit;font-family:inherit;font-size:100%;vertical-align:baseline;font-weight:bold;">痛点：</strong></p>
+
+<p style="font-style:inherit;margin:1.6em 0px;border:0px;outline:0px;font-weight:inherit;padding:0px;font-family:inherit;font-size:14px;vertical-align:baseline;line-height:1.6em;color:rgb(80, 80, 80);">​    在部分用户的网络环境中，页面CDN域名被劫持，导致前端资源无法正常加载，而页面主域名正常，导致页面可以访问，但是功能不正常。</p>
+
+<p style="font-style:inherit;margin:1.6em 0px;border:0px;outline:0px;font-weight:inherit;padding:0px;font-family:inherit;font-size:14px;vertical-align:baseline;line-height:1.6em;color:rgb(80, 80, 80);"><strong style="margin:0px;padding:0px;border:0px;outline:0px;font-style:inherit;font-family:inherit;font-size:100%;vertical-align:baseline;font-weight:bold;">背景：</strong></p>
+
+<p style="font-style:inherit;margin:1.6em 0px;border:0px;outline:0px;font-weight:inherit;padding:0px;font-family:inherit;font-size:14px;vertical-align:baseline;line-height:1.6em;color:rgb(80, 80, 80);">​    通常来说，主域名一般都是众所周知的域名，运营商一般不会劫持（本文特指劫持后导致无法加载，注入这些不在本文考虑范围内），主域名被劫持的可能性小。因为被劫持后，用户无法访问自然能够很明显感知到这是网络问题（鉴于挂掉情况可能性较小）。而CDN域名一般鲜为人知，运营商由于商业目的可能会劫持部分域名，于是就会导致页面html结构出来了，样式和交互都不正常，用户可能会认为这是产品的问题，很少会认为这是网络问题。</p>
+
+<p style="font-style:inherit;margin:1.6em 0px;border:0px;outline:0px;font-weight:inherit;padding:0px;font-family:inherit;font-size:14px;vertical-align:baseline;line-height:1.6em;color:rgb(80, 80, 80);"><strong style="margin:0px;padding:0px;border:0px;outline:0px;font-style:inherit;font-family:inherit;font-size:100%;vertical-align:baseline;font-weight:bold;">解决方案：</strong></p>
+
+<p style="font-style:inherit;margin:1.6em 0px;border:0px;outline:0px;font-weight:inherit;padding:0px;font-family:inherit;font-size:14px;vertical-align:baseline;line-height:1.6em;color:rgb(80, 80, 80);">​    CDN和主域名都同时承载资源，优先CDN加载，在CDN加载失败的情况下，切换到主域名再次加载资源。</p>
+
+<p style="font-style:inherit;margin:1.6em 0px;border:0px;outline:0px;font-weight:inherit;padding:0px;font-family:inherit;font-size:14px;vertical-align:baseline;line-height:1.6em;color:rgb(80, 80, 80);"><strong style="margin:0px;padding:0px;border:0px;outline:0px;font-style:inherit;font-family:inherit;font-size:100%;vertical-align:baseline;font-weight:bold;">难点：</strong></p>
+
+<ul style="font-family:inherit;margin:0px 20px;border:0px;outline:0px;font-weight:inherit;font-style:inherit;padding:0px;font-size:100%;vertical-align:baseline;list-style:disc;line-height:1.6em;margin-top:1.6em;margin-bottom:1.6em;">
+<li style="margin:0px;padding:0px;border:0px;outline:0px;font-weight:inherit;font-style:inherit;font-family:inherit;font-size:100%;vertical-align:baseline;">如何捕捉资源404、503等加载错误。</li>
+<li style="margin:0px;padding:0px;border:0px;outline:0px;font-weight:inherit;font-style:inherit;font-family:inherit;font-size:100%;vertical-align:baseline;">js 如何准确重加载（与其说是难点，倒不如说是可讨论的地方）。</li>
+</ul>
+
+<h2 style="padding:0px;border:0px;outline:0px;font-style:inherit;font-family:inherit;vertical-align:baseline;margin:1.1em 0px;font-weight:bold;font-size:1.5em;line-height:1.1em;">1. 如何捕捉资源404、503等加载错误</h2>
+
+<h3 style="padding:0px;border:0px;outline:0px;font-style:inherit;font-family:inherit;vertical-align:baseline;margin:1.1em 0px;font-weight:bold;font-size:1.3em;line-height:1.1em;">1.1 在script或者link加onerror捕捉</h3>
+
+<p style="font-style:inherit;margin:1.6em 0px;border:0px;outline:0px;font-weight:inherit;padding:0px;font-family:inherit;font-size:14px;vertical-align:baseline;line-height:1.6em;color:rgb(80, 80, 80);">在每个script或者link标签中添加onerror属性，捕捉加载错误。</p>
+
+<pre style="vertical-align:baseline;margin:0px -1.2em;border:0px;outline:0px;font-weight:inherit;font-style:inherit;font-family:&quot;Source Code Pro&quot;, Consolas, Monaco, Menlo, Consolas, monospace;font-size:100%;padding:15px 1.2em;background:rgb(45, 45, 45);border-style:solid;border-color:rgb(221, 221, 221);border-width:1px 0px;overflow:auto;color:rgb(204, 204, 204);line-height:22.4px;"><code style="font-style:inherit;margin:0px;border:0px;outline:0px;font-weight:inherit;vertical-align:baseline;font-size:100%;font-family:&quot;Source Code Pro&quot;, Consolas, Monaco, Menlo, Consolas, monospace;padding:0px;background:none;text-shadow:none;">&lt;script onerror=&quot;catachError(this)&quot;&gt;&lt;/script&gt;  
+</code></pre>
+
+<blockquote style="font-family:inherit;margin:0px;border:0px;outline:0px;font-weight:inherit;font-style:inherit;vertical-align:baseline;font-size:100%;padding:1px 20px;border-left:4px solid rgb(221, 221, 221);position:relative;margin-left:45px;"><span style="font-weight:inherit;font-style:inherit;font-family:FontAwesome;font-size:25px;position:absolute;left:-45px;top:20px;width:25px;height:25px;text-align:center;color:rgb(221, 221, 221);"></span>
+  <p style="font-style:inherit;margin:1.6em 0px;border:0px;outline:0px;font-weight:inherit;padding:0px;font-family:inherit;font-size:14px;vertical-align:baseline;line-height:1.6em;color:rgb(80, 80, 80);">注：window全局onerror是无法捕捉404、503等script或者link加载错误的，因为onerror事件并不会冒泡上传。</p>
+</blockquote>
+
+<p style="font-style:inherit;margin:1.6em 0px;border:0px;outline:0px;font-weight:inherit;padding:0px;font-family:inherit;font-size:14px;vertical-align:baseline;line-height:1.6em;color:rgb(80, 80, 80);"><strong style="margin:0px;padding:0px;border:0px;outline:0px;font-style:inherit;font-family:inherit;font-size:100%;vertical-align:baseline;font-weight:bold;">优点</strong>：能够准确捕捉资源加载失败的场景，并及时处理。</p>
+
+<p style="font-style:inherit;margin:1.6em 0px;border:0px;outline:0px;font-weight:inherit;padding:0px;font-family:inherit;font-size:14px;vertical-align:baseline;line-height:1.6em;color:rgb(80, 80, 80);"><strong style="margin:0px;padding:0px;border:0px;outline:0px;font-style:inherit;font-family:inherit;font-size:100%;vertical-align:baseline;font-weight:bold;">缺点</strong>：代码入侵性强，不能够很好的复用。对于fis利用占位来添加css或者js的方式支持比较困难。</p>
+
+<h3 style="padding:0px;border:0px;outline:0px;font-style:inherit;font-family:inherit;vertical-align:baseline;margin:1.1em 0px;font-weight:bold;font-size:1.3em;line-height:1.1em;">1.2 使用 HTTP HEAD 请求 检测资源是否存在</h3>
+
+<p style="font-style:inherit;margin:1.6em 0px;border:0px;outline:0px;font-weight:inherit;padding:0px;font-family:inherit;font-size:14px;vertical-align:baseline;line-height:1.6em;color:rgb(80, 80, 80);">在html最后加一段js，使用 HEAD 请求对所需要检测的资源进行检测，如果返回404或者503，则触发加载失败重新加载机制。</p>
+
+<p style="font-style:inherit;margin:1.6em 0px;border:0px;outline:0px;font-weight:inherit;padding:0px;font-family:inherit;font-size:14px;vertical-align:baseline;line-height:1.6em;color:rgb(80, 80, 80);">注意：由于是用XHR发送HEAD请求，需要CDN方面支持跨域。</p>
+
+<ul style="font-family:inherit;margin:0px 20px;border:0px;outline:0px;font-weight:inherit;font-style:inherit;padding:0px;font-size:100%;vertical-align:baseline;list-style:disc;line-height:1.6em;margin-top:1.6em;margin-bottom:1.6em;">
+<li style="margin:0px;padding:0px;border:0px;outline:0px;font-weight:inherit;font-style:inherit;font-family:inherit;font-size:100%;vertical-align:baseline;"><p style="font-style:inherit;margin:1.6em 0px;border:0px;outline:0px;font-weight:inherit;padding:0px;font-family:inherit;font-size:14px;vertical-align:baseline;line-height:1.6em;color:rgb(80, 80, 80);">这么多资源，这么多检测请求会不会带来额外的流量消耗和延迟？</p>
+
+<p style="font-style:inherit;margin:1.6em 0px;border:0px;outline:0px;font-weight:inherit;padding:0px;font-family:inherit;font-size:14px;vertical-align:baseline;line-height:1.6em;color:rgb(80, 80, 80);">资源一般来说都加了缓存，在正常网络下，HEAD请求会从本地缓存中返回结果，不会真正发送http请求到服务器，不会有额外消耗流量，增大延迟。</p>
+
+<p style="font-style:inherit;margin:1.6em 0px;border:0px;outline:0px;font-weight:inherit;padding:0px;font-family:inherit;font-size:14px;vertical-align:baseline;line-height:1.6em;color:rgb(80, 80, 80);">但是资源加载失败的情况下，会消耗额外的流量、增大延迟。<strong style="margin:0px;padding:0px;border:0px;outline:0px;font-style:inherit;font-family:inherit;font-size:100%;vertical-align:baseline;font-weight:bold;">尤其是在网络返回延迟比较大的情况下，延迟会比较大。（但是这种情况，挽救的意义不大）</strong></p></li>
+<li style="margin:0px;padding:0px;border:0px;outline:0px;font-weight:inherit;font-style:inherit;font-family:inherit;font-size:100%;vertical-align:baseline;"><p style="font-style:inherit;margin:1.6em 0px;border:0px;outline:0px;font-weight:inherit;padding:0px;font-family:inherit;font-size:14px;vertical-align:baseline;line-height:1.6em;color:rgb(80, 80, 80);">错误捕捉一定准确吗？</p>
+
+<p style="font-style:inherit;margin:1.6em 0px;border:0px;outline:0px;font-weight:inherit;padding:0px;font-family:inherit;font-size:14px;vertical-align:baseline;line-height:1.6em;color:rgb(80, 80, 80);">在资源加载完成和检测之间，如果网络情况出现变化，就有可能导致误判。</p>
+
+<p style="font-style:inherit;margin:1.6em 0px;border:0px;outline:0px;font-weight:inherit;padding:0px;font-family:inherit;font-size:14px;vertical-align:baseline;line-height:1.6em;color:rgb(80, 80, 80);"><img src="域名劫持资源重加载方案_files/head-error-1_598bbcf4dd5c704653a1a64d2bf88700.png" type="image/png" data-filename="head-error-1_598bbcf4dd5c704653a1a64d2bf88700.png" alt="HEAD-error" height="59" style="font-family:inherit;margin:auto;border:0px;outline:0px;font-weight:inherit;font-style:inherit;padding:0px;font-size:100%;vertical-align:baseline;max-width:100%;height:auto;display:block;" title="" width="726"/></p>
+
+<p style="font-style:inherit;margin:1.6em 0px;border:0px;outline:0px;font-weight:inherit;padding:0px;font-family:inherit;font-size:14px;vertical-align:baseline;line-height:1.6em;color:rgb(80, 80, 80);">当资源在加载时成功返回，而在检测时加载失败时会导致资源加载两次，仅仅针对<strong style="margin:0px;padding:0px;border:0px;outline:0px;font-style:inherit;font-family:inherit;font-size:100%;vertical-align:baseline;font-weight:bold;">无缓存资源</strong>而言。对于有缓存资源，加载完成之后，网络情况出现变化，HEAD请求已经感知不到了，因为HEAD请求就会走本地缓存，而不会发送到网络当中。</p>
+
+<p style="font-style:inherit;margin:1.6em 0px;border:0px;outline:0px;font-weight:inherit;padding:0px;font-family:inherit;font-size:14px;vertical-align:baseline;line-height:1.6em;color:rgb(80, 80, 80);"><img src="域名劫持资源重加载方案_files/head-error-2_9ea47001d1abeb38be612237fa86453a.png" type="image/png" data-filename="head-error-2_9ea47001d1abeb38be612237fa86453a.png" alt="HEAD-error" height="59" style="font-family:inherit;margin:auto;border:0px;outline:0px;font-weight:inherit;font-style:inherit;padding:0px;font-size:100%;vertical-align:baseline;max-width:100%;height:auto;display:block;" title="" width="726"/></p>
+
+<p style="font-style:inherit;margin:1.6em 0px;border:0px;outline:0px;font-weight:inherit;padding:0px;font-family:inherit;font-size:14px;vertical-align:baseline;line-height:1.6em;color:rgb(80, 80, 80);">当资源在加载时加载失败，而在检测时成功返回时，检测无效。以上情况出现概率比较小，需要出现在资源加载成功与失败之间的微小时差中产生，几乎可以忽略不计。</p></li>
+</ul>
+
+<p style="font-style:inherit;margin:1.6em 0px;border:0px;outline:0px;font-weight:inherit;padding:0px;font-family:inherit;font-size:14px;vertical-align:baseline;line-height:1.6em;color:rgb(80, 80, 80);"><strong style="margin:0px;padding:0px;border:0px;outline:0px;font-style:inherit;font-family:inherit;font-size:100%;vertical-align:baseline;font-weight:bold;">优点</strong>：检测代码能够和业务代码很好的分离，能够检测到绝大部分资源加载失败的场景。 </p>
+
+<p style="font-style:inherit;margin:1.6em 0px;border:0px;outline:0px;font-weight:inherit;padding:0px;font-family:inherit;font-size:14px;vertical-align:baseline;line-height:1.6em;color:rgb(80, 80, 80);"><strong style="margin:0px;padding:0px;border:0px;outline:0px;font-style:inherit;font-family:inherit;font-size:100%;vertical-align:baseline;font-weight:bold;">缺点</strong>：</p>
+
+<ul style="font-family:inherit;margin:0px 20px;border:0px;outline:0px;font-weight:inherit;font-style:inherit;padding:0px;font-size:100%;vertical-align:baseline;list-style:disc;line-height:1.6em;margin-top:1.6em;margin-bottom:1.6em;">
+<li style="margin:0px;padding:0px;border:0px;outline:0px;font-weight:inherit;font-style:inherit;font-family:inherit;font-size:100%;vertical-align:baseline;">有一定可能造成误判。</li>
+<li style="margin:0px;padding:0px;border:0px;outline:0px;font-weight:inherit;font-style:inherit;font-family:inherit;font-size:100%;vertical-align:baseline;">倘若网络情况比较差且资源加载失败的情况下，延迟比较大。</li>
+</ul>
+
+<h3 style="padding:0px;border:0px;outline:0px;font-style:inherit;font-family:inherit;vertical-align:baseline;margin:1.1em 0px;font-weight:bold;font-size:1.3em;line-height:1.1em;">1.3 使用 加载器 加载资源</h3>
+
+<p style="font-style:inherit;margin:1.6em 0px;border:0px;outline:0px;font-weight:inherit;padding:0px;font-family:inherit;font-size:14px;vertical-align:baseline;line-height:1.6em;color:rgb(80, 80, 80);">编写类似labjs、requirejs但是<strong style="margin:0px;padding:0px;border:0px;outline:0px;font-style:inherit;font-family:inherit;font-size:100%;vertical-align:baseline;font-weight:bold;">支持fallback切换其他域名</strong>的加载器来加载资源，能够在js中利用onerror来准确捕捉加载错误，并且能够比较好的协调资源加载。</p>
+
+<pre style="vertical-align:baseline;margin:0px -1.2em;border:0px;outline:0px;font-weight:inherit;font-style:inherit;font-family:&quot;Source Code Pro&quot;, Consolas, Monaco, Menlo, Consolas, monospace;font-size:100%;padding:15px 1.2em;background:rgb(45, 45, 45);border-style:solid;border-color:rgb(221, 221, 221);border-width:1px 0px;overflow:auto;color:rgb(204, 204, 204);line-height:22.4px;"><code style="font-style:inherit;margin:0px;border:0px;outline:0px;font-weight:inherit;vertical-align:baseline;font-size:100%;font-family:&quot;Source Code Pro&quot;, Consolas, Monaco, Menlo, Consolas, monospace;padding:0px;background:none;text-shadow:none;">load('mp.toutiao.com', 'cdn.com', [  
+  'a.js',
+  'b.js',
+  'c.js'
+]);
+</code></pre>
+
+<p style="font-style:inherit;margin:1.6em 0px;border:0px;outline:0px;font-weight:inherit;padding:0px;font-family:inherit;font-size:14px;vertical-align:baseline;line-height:1.6em;color:rgb(80, 80, 80);">以下为简要代码，以做理解，<strong style="margin:0px;padding:0px;border:0px;outline:0px;font-style:inherit;font-family:inherit;font-size:100%;vertical-align:baseline;font-weight:bold;">使用该方案时请根据各自业务而定</strong></p>
+
+<pre style="vertical-align:baseline;margin:0px -1.2em;border:0px;outline:0px;font-weight:inherit;font-style:inherit;font-family:&quot;Source Code Pro&quot;, Consolas, Monaco, Menlo, Consolas, monospace;font-size:100%;padding:15px 1.2em;background:rgb(45, 45, 45);border-style:solid;border-color:rgb(221, 221, 221);border-width:1px 0px;overflow:auto;color:rgb(204, 204, 204);line-height:22.4px;"><code style="font-style:inherit;margin:0px;border:0px;outline:0px;font-weight:inherit;vertical-align:baseline;font-size:100%;font-family:&quot;Source Code Pro&quot;, Consolas, Monaco, Menlo, Consolas, monospace;padding:0px;background:none;text-shadow:none;">const loadScript = (url) =&gt; {  
+  return new Promise((resolve, reject) =&gt; {
+    const script = document.createElement('script');
+    script.src = url;
+    script.onload = () =&gt; {
+      resolve();
+    };
+    script.onerror = () =&gt; {
+      reject();
+    };
+    document.appendChild(script);
+  });
+};
+
+const loadOne = (mainDomain, secondaryDomain, url) =&gt; {  
+  return loadScript(`//:${mainDomain}/${url}`)
+      .then(() =&gt; {}, () =&gt; {
+      return loadScript(`//:${secondaryDomain}/${url}`);
+      });
+}
+
+const load = (mainDomain, secondaryDomain, urls) =&gt; {  
+  const promise = new Promise((resolve, reject) =&gt; resolve());
+  urls.forEach(url =&gt; {
+    promise.then(() =&gt; loadOne(mainDomain, secondaryDomain, url));
+  });
+};
+</code></pre>
+
+<p style="font-style:inherit;margin:1.6em 0px;border:0px;outline:0px;font-weight:inherit;padding:0px;font-family:inherit;font-size:14px;vertical-align:baseline;line-height:1.6em;color:rgb(80, 80, 80);">但和labjs和requirejs不同的是，labjs和requirejs一般用于管理依赖以及按需加载，而针对检测错误重加载的加载器用于检测加载错误并切换源重新加载，有更好的加载错误重新加载机制，需要覆盖页面中所有的css、js等资源。</p>
+
+<p style="font-style:inherit;margin:1.6em 0px;border:0px;outline:0px;font-weight:inherit;padding:0px;font-family:inherit;font-size:14px;vertical-align:baseline;line-height:1.6em;color:rgb(80, 80, 80);"><strong style="margin:0px;padding:0px;border:0px;outline:0px;font-style:inherit;font-family:inherit;font-size:100%;vertical-align:baseline;font-weight:bold;">优点</strong>：能够准确捕捉错误，且能够在加载失败并重试新域名的情况下保证正确的js执行顺序。</p>
+
+<p style="font-style:inherit;margin:1.6em 0px;border:0px;outline:0px;font-weight:inherit;padding:0px;font-family:inherit;font-size:14px;vertical-align:baseline;line-height:1.6em;color:rgb(80, 80, 80);"><strong style="margin:0px;padding:0px;border:0px;outline:0px;font-style:inherit;font-family:inherit;font-size:100%;vertical-align:baseline;font-weight:bold;">缺点</strong>：</p>
+
+<ul style="font-family:inherit;margin:0px 20px;border:0px;outline:0px;font-weight:inherit;font-style:inherit;padding:0px;font-size:100%;vertical-align:baseline;list-style:disc;line-height:1.6em;margin-top:1.6em;margin-bottom:1.6em;">
+<li style="margin:0px;padding:0px;border:0px;outline:0px;font-weight:inherit;font-style:inherit;font-family:inherit;font-size:100%;vertical-align:baseline;"><p style="font-style:inherit;margin:1.6em 0px;border:0px;outline:0px;font-weight:inherit;padding:0px;font-family:inherit;font-size:14px;vertical-align:baseline;line-height:1.6em;color:rgb(80, 80, 80);"><strong style="margin:0px;padding:0px;border:0px;outline:0px;font-style:inherit;font-family:inherit;font-size:100%;vertical-align:baseline;font-weight:bold;">有可能导致白屏时间变长，资源加载时间会变长</strong></p>
+
+<p style="font-style:inherit;margin:1.6em 0px;border:0px;outline:0px;font-weight:inherit;padding:0px;font-family:inherit;font-size:14px;vertical-align:baseline;line-height:1.6em;color:rgb(80, 80, 80);">css、js的加载都会在加载器执行后再进行加载，而且浏览器无法识别将要加载哪些资源，不能进行并行预加载，导致css、js加载比较慢。且对于js而言，需要按顺序执行，加载器只能按顺序串行加载，加载完一个再加载另一个，相对于浏览器的自动并行加载，js加载时间会变长。</p></li>
+<li style="margin:0px;padding:0px;border:0px;outline:0px;font-weight:inherit;font-style:inherit;font-family:inherit;font-size:100%;vertical-align:baseline;"><p style="font-style:inherit;margin:1.6em 0px;border:0px;outline:0px;font-weight:inherit;padding:0px;font-family:inherit;font-size:14px;vertical-align:baseline;line-height:1.6em;color:rgb(80, 80, 80);"><strong style="margin:0px;padding:0px;border:0px;outline:0px;font-style:inherit;font-family:inherit;font-size:100%;vertical-align:baseline;font-weight:bold;">对于后端吐模板的页面，会出现暂时性布局乱和闪屏的情况</strong></p>
+
+<p style="font-style:inherit;margin:1.6em 0px;border:0px;outline:0px;font-weight:inherit;padding:0px;font-family:inherit;font-size:14px;vertical-align:baseline;line-height:1.6em;color:rgb(80, 80, 80);">后端吐模板的页面，一般来说，页面响应之后，html大致结构就出来了。如果使用加载器加载，css的加载会晚于页面显示的时间，会导致暂时性的页面布局没有样式只有html结构的情况。</p>
+
+<p style="font-style:inherit;margin:1.6em 0px;border:0px;outline:0px;font-weight:inherit;padding:0px;font-family:inherit;font-size:14px;vertical-align:baseline;line-height:1.6em;color:rgb(80, 80, 80);">普通页面来说，css一般放在<code style="font-style:inherit;margin:0px;border:0px;outline:0px;font-weight:inherit;vertical-align:baseline;font-size:100%;font-family:&quot;Source Code Pro&quot;, Consolas, Monaco, Menlo, Consolas, monospace;padding:0px 0.3em;background:rgb(238, 238, 238);text-shadow:rgb(255, 255, 255) 0px 1px;">head</code>里，当浏览器解析页面的时候，解析到<code style="font-style:inherit;margin:0px;border:0px;outline:0px;font-weight:inherit;vertical-align:baseline;font-size:100%;font-family:&quot;Source Code Pro&quot;, Consolas, Monaco, Menlo, Consolas, monospace;padding:0px 0.3em;background:rgb(238, 238, 238);text-shadow:rgb(255, 255, 255) 0px 1px;">link</code>的时候，浏览器会去加载资源，同时继续解析html，生成DOM树，等到css加载完成、Style Rules树也完成后，页面才会render，你就会看见一个有样式的页面。</p>
+
+<p style="font-style:inherit;margin:1.6em 0px;border:0px;outline:0px;font-weight:inherit;padding:0px;font-family:inherit;font-size:14px;vertical-align:baseline;line-height:1.6em;color:rgb(80, 80, 80);">而对于加载器加载css的情况，在css加载完成之前，页面就显示了，就是一丢丢没有样式的html。等到css加载完成后，页面在repaint/reflow一下，闪屏一下，页面才显示正常。</p></li>
+<li style="margin:0px;padding:0px;border:0px;outline:0px;font-weight:inherit;font-style:inherit;font-family:inherit;font-size:100%;vertical-align:baseline;"><p style="font-style:inherit;margin:1.6em 0px;border:0px;outline:0px;font-weight:inherit;padding:0px;font-family:inherit;font-size:14px;vertical-align:baseline;line-height:1.6em;color:rgb(80, 80, 80);">对于没有采用labjs、requirejs等加载器的项目而言，改动成本比较大。</p></li>
+</ul>
+
+<h3 style="padding:0px;border:0px;outline:0px;font-style:inherit;font-family:inherit;vertical-align:baseline;margin:1.1em 0px;font-weight:bold;font-size:1.3em;line-height:1.1em;">1.4 使用 Resource Timing API 来检测</h3>
+
+<blockquote style="font-family:inherit;margin:0px;border:0px;outline:0px;font-weight:inherit;font-style:inherit;vertical-align:baseline;font-size:100%;padding:1px 20px;border-left:4px solid rgb(221, 221, 221);position:relative;margin-left:45px;"><span style="font-weight:inherit;font-style:inherit;font-family:FontAwesome;font-size:25px;position:absolute;left:-45px;top:20px;width:25px;height:25px;text-align:center;color:rgb(221, 221, 221);"></span>
+  <p style="font-style:inherit;margin:1.6em 0px;border:0px;outline:0px;font-weight:inherit;padding:0px;font-family:inherit;font-size:14px;vertical-align:baseline;line-height:1.6em;color:rgb(80, 80, 80);">Resource Timing API（chrome和firefox等）不能检测到加载失败的资源，只能获取到加载成功的资源的加载时间数据。  </p>
+</blockquote>
+
+<p style="font-style:inherit;margin:1.6em 0px;border:0px;outline:0px;font-weight:inherit;padding:0px;font-family:inherit;font-size:14px;vertical-align:baseline;line-height:1.6em;color:rgb(80, 80, 80);">既然Resource Timing API 不能检测到加载失败的资源，那么不能被检测到的，自然就是加载失败的资源。通过这个原理可以准确捕捉到所有加载失败的场景。</p>
+
+<pre style="vertical-align:baseline;margin:0px -1.2em;border:0px;outline:0px;font-weight:inherit;font-style:inherit;font-family:&quot;Source Code Pro&quot;, Consolas, Monaco, Menlo, Consolas, monospace;font-size:100%;padding:15px 1.2em;background:rgb(45, 45, 45);border-style:solid;border-color:rgb(221, 221, 221);border-width:1px 0px;overflow:auto;color:rgb(204, 204, 204);line-height:22.4px;"><code style="font-style:inherit;margin:0px;border:0px;outline:0px;font-weight:inherit;vertical-align:baseline;font-size:100%;font-family:&quot;Source Code Pro&quot;, Consolas, Monaco, Menlo, Consolas, monospace;padding:0px;background:none;text-shadow:none;">// 所有css+js资源
+var allResources = Array.from(document.getElementsByTagName('script'))  
+    .map(script =&gt; script.src)    
+    .concat(
+        Array.from(document.getElementsByTagName('link'))
+            .filter((link) =&gt; link.rel === 'stylesheet')
+            .map((link) =&gt; link.href)
+    );
+// 加载成功的css+js资源
+var loadedResources = performance.getEntriesByType('resource')  
+    .filter((res) =&gt; {
+        var url = res.name;
+        var urlWithoutParam = url.split('?')[0];
+        return ['script', 'link'].indexOf(res.initiatorType) !== -1 &amp;&amp;
+            [/\.css$/, /\.js$/].some((reg)  =&gt; reg.test(urlWithoutParam));
+    })).map((res) =&gt; res.name);
+// 加载失败的css+js资源
+var failedResources = allResources.filter((url) =&gt; loadedResources.indexOf(url) === -1);  
+</code></pre>
+
+<h4 style="padding:0px;border:0px;outline:0px;font-style:inherit;font-family:inherit;vertical-align:baseline;margin:1.1em 0px;font-weight:bold;font-size:1.2em;line-height:1.1em;">至于IE</h4>
+
+<p style="font-style:inherit;margin:1.6em 0px;border:0px;outline:0px;font-weight:inherit;padding:0px;font-family:inherit;font-size:14px;vertical-align:baseline;line-height:1.6em;color:rgb(80, 80, 80);">​    IE并不支持这个方案，因为在IE中，加载失败的资源会被包含在<code style="font-style:inherit;margin:0px;border:0px;outline:0px;font-weight:inherit;vertical-align:baseline;font-size:100%;font-family:&quot;Source Code Pro&quot;, Consolas, Monaco, Menlo, Consolas, monospace;padding:0px 0.3em;background:rgb(238, 238, 238);text-shadow:rgb(255, 255, 255) 0px 1px;">PerformanceResourceTiming</code>中，而chrome、firefox等其他浏览器大部分并不包含。<strong style="margin:0px;padding:0px;border:0px;outline:0px;font-style:inherit;font-family:inherit;font-size:100%;vertical-align:baseline;font-weight:bold;">且并不能很好地区分加载失败和加载成功的资源（尤其是404）。</strong> <br/>
+​    详情请看<a href="https://github.com/w3c/resource-timing/issues/12" style="font-style:inherit;margin:0px;border:0px;outline:0px;font-weight:inherit;padding:0px;font-family:inherit;font-size:100%;vertical-align:baseline;color:rgb(64, 101, 153);text-decoration:none;">Clarify presence of requests that don't return a response</a> <br/>
+​    翻了下<a href="https://www.w3.org/TR/resource-timing-1/#resources-included" style="font-style:inherit;margin:0px;border:0px;outline:0px;font-weight:inherit;padding:0px;font-family:inherit;font-size:100%;vertical-align:baseline;color:rgb(64, 101, 153);text-decoration:none;">W3C文档 resource-timing-1</a></p>
+
+<blockquote style="font-family:inherit;margin:0px;border:0px;outline:0px;font-weight:inherit;font-style:inherit;vertical-align:baseline;font-size:100%;padding:1px 20px;border-left:4px solid rgb(221, 221, 221);position:relative;margin-left:45px;"><span style="font-weight:inherit;font-style:inherit;font-family:FontAwesome;font-size:25px;position:absolute;left:-45px;top:20px;width:25px;height:25px;text-align:center;color:rgb(221, 221, 221);"></span>
+  <p style="font-style:inherit;margin:1.6em 0px;border:0px;outline:0px;font-weight:inherit;padding:0px;font-family:inherit;font-size:14px;vertical-align:baseline;line-height:1.6em;color:rgb(80, 80, 80);">Aborted requests or requests that don't return a response <strong style="margin:0px;padding:0px;border:0px;outline:0px;font-style:inherit;font-family:inherit;font-size:100%;vertical-align:baseline;font-weight:bold;">may</strong> be included as PerformanceResourceTiming objects in the Performance Timeline of the relevant context.  </p>
+</blockquote>
+
+<p style="font-style:inherit;margin:1.6em 0px;border:0px;outline:0px;font-weight:inherit;padding:0px;font-family:inherit;font-size:14px;vertical-align:baseline;line-height:1.6em;color:rgb(80, 80, 80);">​    注意里面有一个<strong style="margin:0px;padding:0px;border:0px;outline:0px;font-style:inherit;font-family:inherit;font-size:100%;vertical-align:baseline;font-weight:bold;">may</strong>，这就很尴尬了。</p>
+
+<p style="font-style:inherit;margin:1.6em 0px;border:0px;outline:0px;font-weight:inherit;padding:0px;font-family:inherit;font-size:14px;vertical-align:baseline;line-height:1.6em;color:rgb(80, 80, 80);"><strong style="margin:0px;padding:0px;border:0px;outline:0px;font-style:inherit;font-family:inherit;font-size:100%;vertical-align:baseline;font-weight:bold;">优点</strong>：准确率高，代码也比较容易分离，无延迟。</p>
+
+<p style="font-style:inherit;margin:1.6em 0px;border:0px;outline:0px;font-weight:inherit;padding:0px;font-family:inherit;font-size:14px;vertical-align:baseline;line-height:1.6em;color:rgb(80, 80, 80);"><strong style="margin:0px;padding:0px;border:0px;outline:0px;font-style:inherit;font-family:inherit;font-size:100%;vertical-align:baseline;font-weight:bold;">缺点</strong>：对于Safari以及IE 11一下不支持。</p>
+
+<h3 style="padding:0px;border:0px;outline:0px;font-style:inherit;font-family:inherit;vertical-align:baseline;margin:1.1em 0px;font-weight:bold;font-size:1.3em;line-height:1.1em;">1.5  CSS资源可通过rules来检测</h3>
+
+<pre style="vertical-align:baseline;margin:0px -1.2em;border:0px;outline:0px;font-weight:inherit;font-style:inherit;font-family:&quot;Source Code Pro&quot;, Consolas, Monaco, Menlo, Consolas, monospace;font-size:100%;padding:15px 1.2em;background:rgb(45, 45, 45);border-style:solid;border-color:rgb(221, 221, 221);border-width:1px 0px;overflow:auto;color:rgb(204, 204, 204);line-height:22.4px;"><code style="font-style:inherit;margin:0px;border:0px;outline:0px;font-weight:inherit;vertical-align:baseline;font-size:100%;font-family:&quot;Source Code Pro&quot;, Consolas, Monaco, Menlo, Consolas, monospace;padding:0px;background:none;text-shadow:none;">var links = document.queryAllSelector('link');  
+var failedCss = Array.from(links)  
+    .map((link) =&gt; link.sheet &amp;&amp; link.sheet.rules.length === 0);
+</code></pre>
+
+<p style="font-style:inherit;margin:1.6em 0px;border:0px;outline:0px;font-weight:inherit;padding:0px;font-family:inherit;font-size:14px;vertical-align:baseline;line-height:1.6em;color:rgb(80, 80, 80);"><strong style="margin:0px;padding:0px;border:0px;outline:0px;font-style:inherit;font-family:inherit;font-size:100%;vertical-align:baseline;font-weight:bold;">优点：</strong> 准确率高，浏览器兼容性好</p>
+
+<p style="font-style:inherit;margin:1.6em 0px;border:0px;outline:0px;font-weight:inherit;padding:0px;font-family:inherit;font-size:14px;vertical-align:baseline;line-height:1.6em;color:rgb(80, 80, 80);"><strong style="margin:0px;padding:0px;border:0px;outline:0px;font-style:inherit;font-family:inherit;font-size:100%;vertical-align:baseline;font-weight:bold;">缺点：</strong>仅仅适用于css资源，且对于跨域无效。</p>
+
+<h3 style="padding:0px;border:0px;outline:0px;font-style:inherit;font-family:inherit;vertical-align:baseline;margin:1.1em 0px;font-weight:bold;font-size:1.3em;line-height:1.1em;">1.6 使用window.addEventListener来捕获加载错误</h3>
+
+<p style="font-style:inherit;margin:1.6em 0px;border:0px;outline:0px;font-weight:inherit;padding:0px;font-family:inherit;font-size:14px;vertical-align:baseline;line-height:1.6em;color:rgb(80, 80, 80);">当你看到此方法的标题时，或许你会觉得这个方法和1.1没什么区别。全局onerror不能捕捉到加载错误的原因1.1已经提及，那为什么window.addEventListener却能捕获加载错误呢？</p>
+
+<p style="font-style:inherit;margin:1.6em 0px;border:0px;outline:0px;font-weight:inherit;padding:0px;font-family:inherit;font-size:14px;vertical-align:baseline;line-height:1.6em;color:rgb(80, 80, 80);">HTML中事件传播机制有两种，一个是冒泡，另一种是<strong style="margin:0px;padding:0px;border:0px;outline:0px;font-style:inherit;font-family:inherit;font-size:100%;vertical-align:baseline;font-weight:bold;">捕获</strong>。</p>
+
+<p style="font-style:inherit;margin:1.6em 0px;border:0px;outline:0px;font-weight:inherit;padding:0px;font-family:inherit;font-size:14px;vertical-align:baseline;line-height:1.6em;color:rgb(80, 80, 80);">通过捕获，能够在全局捕获到加载错误。</p>
+
+<pre style="vertical-align:baseline;margin:0px -1.2em;border:0px;outline:0px;font-weight:inherit;font-style:inherit;font-family:&quot;Source Code Pro&quot;, Consolas, Monaco, Menlo, Consolas, monospace;font-size:100%;padding:15px 1.2em;background:rgb(45, 45, 45);border-style:solid;border-color:rgb(221, 221, 221);border-width:1px 0px;overflow:auto;color:rgb(204, 204, 204);line-height:22.4px;"><code style="font-style:inherit;margin:0px;border:0px;outline:0px;font-weight:inherit;vertical-align:baseline;font-size:100%;font-family:&quot;Source Code Pro&quot;, Consolas, Monaco, Menlo, Consolas, monospace;padding:0px;background:none;text-shadow:none;">window.addEventListener('error', () =&gt; {  
+  // to do your things.
+}, true);
+</code></pre>
+
+<p style="font-style:inherit;margin:1.6em 0px;border:0px;outline:0px;font-weight:inherit;padding:0px;font-family:inherit;font-size:14px;vertical-align:baseline;line-height:1.6em;color:rgb(80, 80, 80);">从Webkit源码来解释一下为什么</p>
+
+<pre style="vertical-align:baseline;margin:0px -1.2em;border:0px;outline:0px;font-weight:inherit;font-style:inherit;font-family:&quot;Source Code Pro&quot;, Consolas, Monaco, Menlo, Consolas, monospace;font-size:100%;padding:15px 1.2em;background:rgb(45, 45, 45);border-style:solid;border-color:rgb(221, 221, 221);border-width:1px 0px;overflow:auto;color:rgb(204, 204, 204);line-height:22.4px;"><code style="font-style:inherit;margin:0px;border:0px;outline:0px;font-weight:inherit;vertical-align:baseline;font-size:100%;font-family:&quot;Source Code Pro&quot;, Consolas, Monaco, Menlo, Consolas, monospace;padding:0px;background:none;text-shadow:none;">// Source/WebCore/dom/ScriptElement.cpp
+void ScriptElement::dispatchErrorEvent()  
+{
+    m_element.dispatchEvent(Event::create(eventNames().errorEvent, false, false));
+}
+
+// Source/WebCore/dom/Event.h
+class Event : public ScriptWrappable, public RefCounted&lt;Event&gt; {  
+public:  
+// ... 省略部分代码
+    static Ref&lt;Event&gt; create(const AtomicString&amp; type, bool canBubble, bool cancelable)
+    {
+        return adoptRef(*new Event(type, canBubble, cancelable));
+    }
+// ... 省略部分代码
+}
+</code></pre>
+
+<p style="font-style:inherit;margin:1.6em 0px;border:0px;outline:0px;font-weight:inherit;padding:0px;font-family:inherit;font-size:14px;vertical-align:baseline;line-height:1.6em;color:rgb(80, 80, 80);">可以看到，加载错误的event中 canBubble: false, cancelable: false。自然用通常的冒泡机制不能捕捉加载错误，需要用捕获的方式来捕捉加载错误。同理代码也可以在HTMLLinkElement.cpp等资源加载的场景中看到。</p>
+
+<p style="font-style:inherit;margin:1.6em 0px;border:0px;outline:0px;font-weight:inherit;padding:0px;font-family:inherit;font-size:14px;vertical-align:baseline;line-height:1.6em;color:rgb(80, 80, 80);">仅仅能够捕获加载错误还是不够的，还需要<strong style="margin:0px;padding:0px;border:0px;outline:0px;font-style:inherit;font-family:inherit;font-size:100%;vertical-align:baseline;font-weight:bold;">区分加载错误和其他错误</strong>，因为该方法也能够捕捉语法错误等一系列错误事件。</p>
+
+<p style="font-style:inherit;margin:1.6em 0px;border:0px;outline:0px;font-weight:inherit;padding:0px;font-family:inherit;font-size:14px;vertical-align:baseline;line-height:1.6em;color:rgb(80, 80, 80);">细心的你可能会发现，普通的错误会有message错误信息，而加载错误是没有message错误信息。</p>
+
+<pre style="vertical-align:baseline;margin:0px -1.2em;border:0px;outline:0px;font-weight:inherit;font-style:inherit;font-family:&quot;Source Code Pro&quot;, Consolas, Monaco, Menlo, Consolas, monospace;font-size:100%;padding:15px 1.2em;background:rgb(45, 45, 45);border-style:solid;border-color:rgb(221, 221, 221);border-width:1px 0px;overflow:auto;color:rgb(204, 204, 204);line-height:22.4px;"><code style="font-style:inherit;margin:0px;border:0px;outline:0px;font-weight:inherit;vertical-align:baseline;font-size:100%;font-family:&quot;Source Code Pro&quot;, Consolas, Monaco, Menlo, Consolas, monospace;padding:0px;background:none;text-shadow:none;">// Source/WebCore/dom/ErrorEvent.cpp
+ErrorEvent::ErrorEvent(ExecState&amp; state, const AtomicString&amp; type, const Init&amp; initializer, IsTrusted isTrusted)  
+    : Event(type, initializer, isTrusted)
+    , m_message(initializer.message)
+    , m_fileName(initializer.filename)
+    , m_lineNumber(initializer.lineno)
+    , m_columnNumber(initializer.colno)
+    , m_error(state.vm(), initializer.error)
+{
+}
+
+ErrorEvent::ErrorEvent(const String&amp; message, const String&amp; fileName, unsigned lineNumber, unsigned columnNumber, JSC::Strong&lt;JSC::Unknown&gt; error)  
+    : Event(eventNames().errorEvent, false, true)
+    , m_message(message)
+    , m_fileName(fileName)
+    , m_lineNumber(lineNumber)
+    , m_columnNumber(columnNumber)
+    , m_error(error)
+{
+}
+</code></pre>
+
+<pre style="vertical-align:baseline;margin:0px -1.2em;border:0px;outline:0px;font-weight:inherit;font-style:inherit;font-family:&quot;Source Code Pro&quot;, Consolas, Monaco, Menlo, Consolas, monospace;font-size:100%;padding:15px 1.2em;background:rgb(45, 45, 45);border-style:solid;border-color:rgb(221, 221, 221);border-width:1px 0px;overflow:auto;color:rgb(204, 204, 204);line-height:22.4px;"><code style="font-style:inherit;margin:0px;border:0px;outline:0px;font-weight:inherit;vertical-align:baseline;font-size:100%;font-family:&quot;Source Code Pro&quot;, Consolas, Monaco, Menlo, Consolas, monospace;padding:0px;background:none;text-shadow:none;">// Source/WebCode/dom/ScriptExecutionContext.cpp
+bool ScriptExecutionContext::dispatchErrorEvent(const String&amp; errorMessage, int lineNumber, int columnNumber, const String&amp; sourceURL, JSC::Exception* exception, CachedScript* cachedScript)  
+{
+// ... 省略部分代码
+    Ref&lt;ErrorEvent&gt; errorEvent = ErrorEvent::create(message, sourceName, line, column, error);
+// ... 省略部分代码
+}
+</code></pre>
+
+<p style="font-style:inherit;margin:1.6em 0px;border:0px;outline:0px;font-weight:inherit;padding:0px;font-family:inherit;font-size:14px;vertical-align:baseline;line-height:1.6em;color:rgb(80, 80, 80);">由以上代码联系js代码可以看出，ErrorEvent继承与Event是显然的，而且ErrorEvent比Event多了message、filename、lineno、colno、error这些信息。执行错误、语法错误以及自定义抛出的异常错误，都源自ErrorEvent，都包含了message等错误信息。而加载错误并不是源自ErrorEvent，而是直接源自Event，不包含message等错误信息。由<code style="font-style:inherit;margin:0px;border:0px;outline:0px;font-weight:inherit;vertical-align:baseline;font-size:100%;font-family:&quot;Source Code Pro&quot;, Consolas, Monaco, Menlo, Consolas, monospace;padding:0px 0.3em;background:rgb(238, 238, 238);text-shadow:rgb(255, 255, 255) 0px 1px;">!e instanceof ErrorEvent</code>即可辨别出加载错误。再来看看W3C的说明</p>
+
+<p style="font-style:inherit;margin:1.6em 0px;border:0px;outline:0px;font-weight:inherit;padding:0px;font-family:inherit;font-size:14px;vertical-align:baseline;line-height:1.6em;color:rgb(80, 80, 80);"><a href="https://www.w3.org/TR/html5/document-metadata.html#the-link-element" style="font-style:inherit;margin:0px;border:0px;outline:0px;font-weight:inherit;padding:0px;font-family:inherit;font-size:100%;vertical-align:baseline;color:rgb(64, 101, 153);text-decoration:none;">https://www.w3.org/TR/html5/document-metadata.html#the-link-element</a></p>
+
+<blockquote style="font-family:inherit;margin:0px;border:0px;outline:0px;font-weight:inherit;font-style:inherit;vertical-align:baseline;font-size:100%;padding:1px 20px;border-left:4px solid rgb(221, 221, 221);position:relative;margin-left:45px;"><span style="font-weight:inherit;font-style:inherit;font-family:FontAwesome;font-size:25px;position:absolute;left:-45px;top:20px;width:25px;height:25px;text-align:center;color:rgb(221, 221, 221);"></span>
+  <p style="font-style:inherit;margin:1.6em 0px;border:0px;outline:0px;font-weight:inherit;padding:0px;font-family:inherit;font-size:14px;vertical-align:baseline;line-height:1.6em;color:rgb(80, 80, 80);">Once the attempts to obtain the resource and its <a href="https://www.w3.org/TR/html5/infrastructure.html#critical-subresources" style="font-style:inherit;margin:0px;border:0px;outline:0px;font-weight:inherit;padding:0px;font-family:inherit;font-size:100%;vertical-align:baseline;color:rgb(64, 101, 153);text-decoration:none;">critical subresources</a> are complete, the user agent must, if the loads were successful, <a href="https://www.w3.org/TR/html5/webappapis.html#queue-a-task" style="font-style:inherit;margin:0px;border:0px;outline:0px;font-weight:inherit;padding:0px;font-family:inherit;font-size:100%;vertical-align:baseline;color:rgb(64, 101, 153);text-decoration:none;">queue a task</a> to <a href="https://www.w3.org/TR/html5/webappapis.html#fire-a-simple-event" style="font-style:inherit;margin:0px;border:0px;outline:0px;font-weight:inherit;padding:0px;font-family:inherit;font-size:100%;vertical-align:baseline;color:rgb(64, 101, 153);text-decoration:none;">fire a simple event</a> named <code style="font-style:inherit;margin:0px;border:0px;outline:0px;font-weight:inherit;vertical-align:baseline;font-size:100%;font-family:&quot;Source Code Pro&quot;, Consolas, Monaco, Menlo, Consolas, monospace;padding:0px 0.3em;background:rgb(238, 238, 238);text-shadow:rgb(255, 255, 255) 0px 1px;">load</code> at the <code style="font-style:inherit;margin:0px;border:0px;outline:0px;font-weight:inherit;vertical-align:baseline;font-size:100%;font-family:&quot;Source Code Pro&quot;, Consolas, Monaco, Menlo, Consolas, monospace;padding:0px 0.3em;background:rgb(238, 238, 238);text-shadow:rgb(255, 255, 255) 0px 1px;">link</code> element, or, if the resource or one of its <a href="https://www.w3.org/TR/html5/infrastructure.html#critical-subresources" style="font-style:inherit;margin:0px;border:0px;outline:0px;font-weight:inherit;padding:0px;font-family:inherit;font-size:100%;vertical-align:baseline;color:rgb(64, 101, 153);text-decoration:none;">critical subresources</a> failed to completely load for any reason (e.g. DNS error, HTTP 404 response, a connection being prematurely closed, unsupported Content-Type), <a href="https://www.w3.org/TR/html5/webappapis.html#queue-a-task" style="font-style:inherit;margin:0px;border:0px;outline:0px;font-weight:inherit;padding:0px;font-family:inherit;font-size:100%;vertical-align:baseline;color:rgb(64, 101, 153);text-decoration:none;">queue a task</a> to <em style="margin:0px;padding:0px;border:0px;outline:0px;font-weight:inherit;font-family:inherit;font-size:100%;vertical-align:baseline;font-style:italic;">*<a href="https://www.w3.org/TR/html5/webappapis.html#fire-a-simple-event" style="font-style:inherit;margin:0px;border:0px;outline:0px;font-weight:inherit;padding:0px;font-family:inherit;font-size:100%;vertical-align:baseline;color:rgb(64, 101, 153);text-decoration:none;">fire a simple event</a> named <code style="font-style:inherit;margin:0px;border:0px;outline:0px;font-weight:inherit;vertical-align:baseline;font-size:100%;font-family:&quot;Source Code Pro&quot;, Consolas, Monaco, Menlo, Consolas, monospace;padding:0px 0.3em;background:rgb(238, 238, 238);text-shadow:rgb(255, 255, 255) 0px 1px;">error</code> at the <code style="font-style:inherit;margin:0px;border:0px;outline:0px;font-weight:inherit;vertical-align:baseline;font-size:100%;font-family:&quot;Source Code Pro&quot;, Consolas, Monaco, Menlo, Consolas, monospace;padding:0px 0.3em;background:rgb(238, 238, 238);text-shadow:rgb(255, 255, 255) 0px 1px;">link</code> element *</em>. Non-network errors in processing the resource or its subresources (e.g. CSS parse errors, PNG decoding errors) are not failures for the purposes of this paragraph.</p>
+</blockquote>
+
+<p style="font-style:inherit;margin:1.6em 0px;border:0px;outline:0px;font-weight:inherit;padding:0px;font-family:inherit;font-size:14px;vertical-align:baseline;line-height:1.6em;color:rgb(80, 80, 80);"><a href="https://www.w3.org/TR/html5/scripting-1.html#the-script-element" style="font-style:inherit;margin:0px;border:0px;outline:0px;font-weight:inherit;padding:0px;font-family:inherit;font-size:100%;vertical-align:baseline;color:rgb(64, 101, 153);text-decoration:none;">https://www.w3.org/TR/html5/scripting-1.html#the-script-element</a></p>
+
+<blockquote style="font-family:inherit;margin:0px;border:0px;outline:0px;font-weight:inherit;font-style:inherit;vertical-align:baseline;font-size:100%;padding:1px 20px;border-left:4px solid rgb(221, 221, 221);position:relative;margin-left:45px;"><span style="font-weight:inherit;font-style:inherit;font-family:FontAwesome;font-size:25px;position:absolute;left:-45px;top:20px;width:25px;height:25px;text-align:center;color:rgb(221, 221, 221);"></span>
+  <p style="font-style:inherit;margin:1.6em 0px;border:0px;outline:0px;font-weight:inherit;padding:0px;font-family:inherit;font-size:14px;vertical-align:baseline;line-height:1.6em;color:rgb(80, 80, 80);">If the load resulted in an error (for example a DNS error, or an HTTP 404 error)</p>
+  
+  <p style="font-style:inherit;margin:1.6em 0px;border:0px;outline:0px;font-weight:inherit;padding:0px;font-family:inherit;font-size:14px;vertical-align:baseline;line-height:1.6em;color:rgb(80, 80, 80);">Executing the script block must just consist of <em style="margin:0px;padding:0px;border:0px;outline:0px;font-weight:inherit;font-family:inherit;font-size:100%;vertical-align:baseline;font-style:italic;">*<a href="https://www.w3.org/TR/html5/webappapis.html#fire-a-simple-event" style="font-style:inherit;margin:0px;border:0px;outline:0px;font-weight:inherit;padding:0px;font-family:inherit;font-size:100%;vertical-align:baseline;color:rgb(64, 101, 153);text-decoration:none;">firing a simple event</a> named <code style="font-style:inherit;margin:0px;border:0px;outline:0px;font-weight:inherit;vertical-align:baseline;font-size:100%;font-family:&quot;Source Code Pro&quot;, Consolas, Monaco, Menlo, Consolas, monospace;padding:0px 0.3em;background:rgb(238, 238, 238);text-shadow:rgb(255, 255, 255) 0px 1px;">error</code> *</em>at the element.</p>
+</blockquote>
+
+<p style="font-style:inherit;margin:1.6em 0px;border:0px;outline:0px;font-weight:inherit;padding:0px;font-family:inherit;font-size:14px;vertical-align:baseline;line-height:1.6em;color:rgb(80, 80, 80);"><a href="https://www.w3.org/TR/html5/webappapis.html#fire-a-simple-event" style="font-style:inherit;margin:0px;border:0px;outline:0px;font-weight:inherit;padding:0px;font-family:inherit;font-size:100%;vertical-align:baseline;color:rgb(64, 101, 153);text-decoration:none;">firing a simple event</a>:</p>
+
+<blockquote style="font-family:inherit;margin:0px;border:0px;outline:0px;font-weight:inherit;font-style:inherit;vertical-align:baseline;font-size:100%;padding:1px 20px;border-left:4px solid rgb(221, 221, 221);position:relative;margin-left:45px;"><span style="font-weight:inherit;font-style:inherit;font-family:FontAwesome;font-size:25px;position:absolute;left:-45px;top:20px;width:25px;height:25px;text-align:center;color:rgb(221, 221, 221);"></span>
+  <p style="font-style:inherit;margin:1.6em 0px;border:0px;outline:0px;font-weight:inherit;padding:0px;font-family:inherit;font-size:14px;vertical-align:baseline;line-height:1.6em;color:rgb(80, 80, 80);">Firing a simple event named e means that a <a href="https://www.w3.org/TR/html5/infrastructure.html#concept-events-trusted" style="font-style:inherit;margin:0px;border:0px;outline:0px;font-weight:inherit;padding:0px;font-family:inherit;font-size:100%;vertical-align:baseline;color:rgb(64, 101, 153);text-decoration:none;">trusted</a> event with the name e, which does not bubble (except where otherwise stated) and is not cancelable (except where otherwise stated), and which uses the <code style="font-style:inherit;margin:0px;border:0px;outline:0px;font-weight:inherit;vertical-align:baseline;font-size:100%;font-family:&quot;Source Code Pro&quot;, Consolas, Monaco, Menlo, Consolas, monospace;padding:0px 0.3em;background:rgb(238, 238, 238);text-shadow:rgb(255, 255, 255) 0px 1px;">Event</code> interface, must be created and <a href="https://www.w3.org/TR/html5/infrastructure.html#concept-event-dispatch" style="font-style:inherit;margin:0px;border:0px;outline:0px;font-weight:inherit;padding:0px;font-family:inherit;font-size:100%;vertical-align:baseline;color:rgb(64, 101, 153);text-decoration:none;">dispatched</a> at the given target.</p>
+</blockquote>
+
+<p style="font-style:inherit;margin:1.6em 0px;border:0px;outline:0px;font-weight:inherit;padding:0px;font-family:inherit;font-size:14px;vertical-align:baseline;line-height:1.6em;color:rgb(80, 80, 80);">注意firing a simple event named <code style="font-style:inherit;margin:0px;border:0px;outline:0px;font-weight:inherit;vertical-align:baseline;font-size:100%;font-family:&quot;Source Code Pro&quot;, Consolas, Monaco, Menlo, Consolas, monospace;padding:0px 0.3em;background:rgb(238, 238, 238);text-shadow:rgb(255, 255, 255) 0px 1px;">error</code> 。通过搜索查阅W3C文档，named error event都是由于资源加载失败而抛出的，根据文件类型过滤出来css和js即可。</p>
+
+<p style="font-style:inherit;margin:1.6em 0px;border:0px;outline:0px;font-weight:inherit;padding:0px;font-family:inherit;font-size:14px;vertical-align:baseline;line-height:1.6em;color:rgb(80, 80, 80);">由此可见，可以区分加载错误和其他错误。</p>
+
+<p style="font-style:inherit;margin:1.6em 0px;border:0px;outline:0px;font-weight:inherit;padding:0px;font-family:inherit;font-size:14px;vertical-align:baseline;line-height:1.6em;color:rgb(80, 80, 80);"><strong style="margin:0px;padding:0px;border:0px;outline:0px;font-style:inherit;font-family:inherit;font-size:100%;vertical-align:baseline;font-weight:bold;">优点</strong>：准确</p>
+
+<p style="font-style:inherit;margin:1.6em 0px;border:0px;outline:0px;font-weight:inherit;padding:0px;font-family:inherit;font-size:14px;vertical-align:baseline;line-height:1.6em;color:rgb(80, 80, 80);"><strong style="margin:0px;padding:0px;border:0px;outline:0px;font-style:inherit;font-family:inherit;font-size:100%;vertical-align:baseline;font-weight:bold;">缺点</strong>：低版本IE浏览器存在兼容性问题，但大部分浏览器支持情况较好</p>
+
+<h3 style="padding:0px;border:0px;outline:0px;font-style:inherit;font-family:inherit;vertical-align:baseline;margin:1.1em 0px;font-weight:bold;font-size:1.3em;line-height:1.1em;">综上所述</h3>
+
+<p style="font-style:inherit;margin:1.6em 0px;border:0px;outline:0px;font-weight:inherit;padding:0px;font-family:inherit;font-size:14px;vertical-align:baseline;line-height:1.6em;color:rgb(80, 80, 80);">对比以上情况，拟采用<strong style="margin:0px;padding:0px;border:0px;outline:0px;font-style:inherit;font-family:inherit;font-size:100%;vertical-align:baseline;font-weight:bold;">window.addEventListener捕获</strong>的方法来实现检测资源加载失败的情况。</p>
+
+<ul style="font-family:inherit;margin:0px 20px;border:0px;outline:0px;font-weight:inherit;font-style:inherit;padding:0px;font-size:100%;vertical-align:baseline;list-style:disc;line-height:1.6em;margin-top:1.6em;margin-bottom:1.6em;">
+<li style="margin:0px;padding:0px;border:0px;outline:0px;font-weight:inherit;font-style:inherit;font-family:inherit;font-size:100%;vertical-align:baseline;">css加载失败，则直接在原位置直接切换到主域名重加载</li>
+<li style="margin:0px;padding:0px;border:0px;outline:0px;font-weight:inherit;font-style:inherit;font-family:inherit;font-size:100%;vertical-align:baseline;">js加载失败，则加载原位置之后（包含该js）的所有js资源切换到主域名重加载</li>
+</ul>
+
+<h3 style="padding:0px;border:0px;outline:0px;font-style:inherit;font-family:inherit;vertical-align:baseline;margin:1.1em 0px;font-weight:bold;font-size:1.3em;line-height:1.1em;">要做的不仅仅是这些</h3>
+
+<p style="font-style:inherit;margin:1.6em 0px;border:0px;outline:0px;font-weight:inherit;padding:0px;font-family:inherit;font-size:14px;vertical-align:baseline;line-height:1.6em;color:rgb(80, 80, 80);">再把场景扩大一点，我们可能希望支持更多场景：</p>
+
+<ul style="font-family:inherit;margin:0px 20px;border:0px;outline:0px;font-weight:inherit;font-style:inherit;padding:0px;font-size:100%;vertical-align:baseline;list-style:disc;line-height:1.6em;margin-top:1.6em;margin-bottom:1.6em;">
+<li style="margin:0px;padding:0px;border:0px;outline:0px;font-weight:inherit;font-style:inherit;font-family:inherit;font-size:100%;vertical-align:baseline;">忽略某些js的加载错误或者在重新加载的时候忽略某些js</li>
+<li style="margin:0px;padding:0px;border:0px;outline:0px;font-weight:inherit;font-style:inherit;font-family:inherit;font-size:100%;vertical-align:baseline;">可能某个js加载失败了，不需要加载剩余的全部js，只需要加载某个js，或者其他不在页面中的js。</li>
+</ul>
+
+<p style="font-style:inherit;margin:1.6em 0px;border:0px;outline:0px;font-weight:inherit;padding:0px;font-family:inherit;font-size:14px;vertical-align:baseline;line-height:1.6em;color:rgb(80, 80, 80);">总的来说，就是支持自定义重加载关系。</p>
+
+<h2 style="padding:0px;border:0px;outline:0px;font-style:inherit;font-family:inherit;vertical-align:baseline;margin:1.1em 0px;font-weight:bold;font-size:1.5em;line-height:1.1em;">2. js 如何准确重加载</h2>
+
+<p style="font-style:inherit;margin:1.6em 0px;border:0px;outline:0px;font-weight:inherit;padding:0px;font-family:inherit;font-size:14px;vertical-align:baseline;line-height:1.6em;color:rgb(80, 80, 80);">要做到准确重加载需要做到两步：</p>
+
+<ul style="font-family:inherit;margin:0px 20px;border:0px;outline:0px;font-weight:inherit;font-style:inherit;padding:0px;font-size:100%;vertical-align:baseline;list-style:disc;line-height:1.6em;margin-top:1.6em;margin-bottom:1.6em;">
+<li style="margin:0px;padding:0px;border:0px;outline:0px;font-weight:inherit;font-style:inherit;font-family:inherit;font-size:100%;vertical-align:baseline;">正确解析js依赖关系</li>
+<li style="margin:0px;padding:0px;border:0px;outline:0px;font-weight:inherit;font-style:inherit;font-family:inherit;font-size:100%;vertical-align:baseline;">按照依赖顺序准确加载js</li>
+</ul>
+
+<h3 style="padding:0px;border:0px;outline:0px;font-style:inherit;font-family:inherit;vertical-align:baseline;margin:1.1em 0px;font-weight:bold;font-size:1.3em;line-height:1.1em;">2.1 正确解析js依赖关系</h3>
+
+<p style="font-style:inherit;margin:1.6em 0px;border:0px;outline:0px;font-weight:inherit;padding:0px;font-family:inherit;font-size:14px;vertical-align:baseline;line-height:1.6em;color:rgb(80, 80, 80);">如果只是简单的重新加载剩余的js，这个倒不是什么问题。但是如果要支持自定义重加载关系，那这里就有点文章。资源依赖关系交叉了如何解决？有以下依赖关系:</p>
+
+<p style="font-style:inherit;margin:1.6em 0px;border:0px;outline:0px;font-weight:inherit;padding:0px;font-family:inherit;font-size:14px;vertical-align:baseline;line-height:1.6em;color:rgb(80, 80, 80);"><img src="域名劫持资源重加载方案_files/dep-chain_81176200236ed79abfc6c308f34f9daf.png" type="image/png" data-filename="dep-chain_81176200236ed79abfc6c308f34f9daf.png" alt="交叉资源" height="131" style="font-family:inherit;margin:auto;border:0px;outline:0px;font-weight:inherit;font-style:inherit;padding:0px;font-size:100%;vertical-align:baseline;max-width:100%;height:auto;display:block;" width="635"/></p>
+
+<blockquote style="font-family:inherit;margin:0px;border:0px;outline:0px;font-weight:inherit;font-style:inherit;vertical-align:baseline;font-size:100%;padding:1px 20px;border-left:4px solid rgb(221, 221, 221);position:relative;margin-left:45px;"><span style="font-weight:inherit;font-style:inherit;font-family:FontAwesome;font-size:25px;position:absolute;left:-45px;top:20px;width:25px;height:25px;text-align:center;color:rgb(221, 221, 221);"></span>
+  <p style="font-style:inherit;margin:1.6em 0px;border:0px;outline:0px;font-weight:inherit;padding:0px;font-family:inherit;font-size:14px;vertical-align:baseline;line-height:1.6em;color:rgb(80, 80, 80);">箭头表示依赖链关系，例如a-&gt;b，则说明b依赖于a，a需要在b之前执行。</p>
+</blockquote>
+
+<p style="font-style:inherit;margin:1.6em 0px;border:0px;outline:0px;font-weight:inherit;padding:0px;font-family:inherit;font-size:14px;vertical-align:baseline;line-height:1.6em;color:rgb(80, 80, 80);">很显然a、b、e要d之前加载，且f要在d之前加载。这并不是简简单单的去重这么简单，在红线链中，c在第3个位置，而在蓝线中，c在第2个位置。如果各自都按照顺序加载，那么就会造成b和c同时加载。</p>
+
+<p style="font-style:inherit;margin:1.6em 0px;border:0px;outline:0px;font-weight:inherit;padding:0px;font-family:inherit;font-size:14px;vertical-align:baseline;line-height:1.6em;color:rgb(80, 80, 80);">那么解析依赖关系的过程中应该标记一个层级关系。对于重复的依赖，比较依赖层级，选择大者，并且更新子依赖的层级。</p>
+
+<p style="font-style:inherit;margin:1.6em 0px;border:0px;outline:0px;font-weight:inherit;padding:0px;font-family:inherit;font-size:14px;vertical-align:baseline;line-height:1.6em;color:rgb(80, 80, 80);"><img src="域名劫持资源重加载方案_files/dep-process_6a12d46b95962717af013269962c2adb.png" type="image/png" data-filename="dep-process_6a12d46b95962717af013269962c2adb.png" alt="处理流程" height="567" style="font-family:inherit;margin:auto;border:0px;outline:0px;font-weight:inherit;font-style:inherit;padding:0px;font-size:100%;vertical-align:baseline;max-width:100%;height:auto;display:block;" width="861"/></p>
+
+<blockquote style="font-family:inherit;margin:0px;border:0px;outline:0px;font-weight:inherit;font-style:inherit;vertical-align:baseline;font-size:100%;padding:1px 20px;border-left:4px solid rgb(221, 221, 221);position:relative;margin-left:45px;"><span style="font-weight:inherit;font-style:inherit;font-family:FontAwesome;font-size:25px;position:absolute;left:-45px;top:20px;width:25px;height:25px;text-align:center;color:rgb(221, 221, 221);"></span>
+  <p style="font-style:inherit;margin:1.6em 0px;border:0px;outline:0px;font-weight:inherit;padding:0px;font-family:inherit;font-size:14px;vertical-align:baseline;line-height:1.6em;color:rgb(80, 80, 80);">注：[n]表示层级n，层级递增排序组成加载队列，每个层级包含一个资源数组，层级内资源无先后顺序。</p>
+</blockquote>
+
+<p style="font-style:inherit;margin:1.6em 0px;border:0px;outline:0px;font-weight:inherit;padding:0px;font-family:inherit;font-size:14px;vertical-align:baseline;line-height:1.6em;color:rgb(80, 80, 80);"><img src="域名劫持资源重加载方案_files/parse-dep_113ceccbf82ba25a640856073ab25af5.png" type="image/png" data-filename="parse-dep_113ceccbf82ba25a640856073ab25af5.png" alt="parse-dep" height="701" style="font-family:inherit;margin:auto;border:0px;outline:0px;font-weight:inherit;font-style:inherit;padding:0px;font-size:100%;vertical-align:baseline;max-width:100%;height:auto;display:block;" width="831"/></p>
+
+<p style="font-style:inherit;margin:1.6em 0px;border:0px;outline:0px;font-weight:inherit;padding:0px;font-family:inherit;font-size:14px;vertical-align:baseline;line-height:1.6em;color:rgb(80, 80, 80);">处理完成后，只需要对层级进行排个序，按照层级顺序加载，依赖自然就OK了。从以上例子来说，a和e可并行加载，两者先后顺序并无相互影响，其次是b、c等。</p>
+
+<h3 style="padding:0px;border:0px;outline:0px;font-style:inherit;font-family:inherit;vertical-align:baseline;margin:1.1em 0px;font-weight:bold;font-size:1.3em;line-height:1.1em;">2.2 按照依赖顺序准确加载js</h3>
+
+<p style="font-style:inherit;margin:1.6em 0px;border:0px;outline:0px;font-weight:inherit;padding:0px;font-family:inherit;font-size:14px;vertical-align:baseline;line-height:1.6em;color:rgb(80, 80, 80);">加载一个script很简单，加载很多script也很简单，加载很多有顺序关系的script就有点文章了。</p>
+
+<h4 style="padding:0px;border:0px;outline:0px;font-style:inherit;font-family:inherit;vertical-align:baseline;margin:1.1em 0px;font-weight:bold;font-size:1.2em;line-height:1.1em;">promise+script src加载</h4>
+
+<p style="font-style:inherit;margin:1.6em 0px;border:0px;outline:0px;font-weight:inherit;padding:0px;font-family:inherit;font-size:14px;vertical-align:baseline;line-height:1.6em;color:rgb(80, 80, 80);">显然这不是什么难点，promise化连续加载就好了。</p>
+
+<p style="font-style:inherit;margin:1.6em 0px;border:0px;outline:0px;font-weight:inherit;padding:0px;font-family:inherit;font-size:14px;vertical-align:baseline;line-height:1.6em;color:rgb(80, 80, 80);">但是问题也接着来了。</p>
+
+<ul style="font-family:inherit;margin:0px 20px;border:0px;outline:0px;font-weight:inherit;font-style:inherit;padding:0px;font-size:100%;vertical-align:baseline;list-style:disc;line-height:1.6em;margin-top:1.6em;margin-bottom:1.6em;">
+<li style="margin:0px;padding:0px;border:0px;outline:0px;font-weight:inherit;font-style:inherit;font-family:inherit;font-size:100%;vertical-align:baseline;">引入promise代码量成本太高，大大增加体积，自己写回调代码量更少。</li>
+<li style="margin:0px;padding:0px;border:0px;outline:0px;font-weight:inherit;font-style:inherit;font-family:inherit;font-size:100%;vertical-align:baseline;">串行加载，串行执行，自然想到了，浏览器的并行加载，串行执行。promise加载一个资源的过程中，并不能同时加载另一个资源（其实有办法，看下文），加载速度自然就是一个短板。</li>
+</ul>
+
+<p style="font-style:inherit;margin:1.6em 0px;border:0px;outline:0px;font-weight:inherit;padding:0px;font-family:inherit;font-size:14px;vertical-align:baseline;line-height:1.6em;color:rgb(80, 80, 80);">以上，用promise是不值得的。考虑第一个问题，自己写回调不就好了嘛。但是写回调第二个问题也依然存在。</p>
+
+<h4 style="padding:0px;border:0px;outline:0px;font-style:inherit;font-family:inherit;vertical-align:baseline;margin:1.1em 0px;font-weight:bold;font-size:1.2em;line-height:1.1em;">XMLHttpRequest加载+eval执行</h4>
+
+<p style="font-style:inherit;margin:1.6em 0px;border:0px;outline:0px;font-weight:inherit;padding:0px;font-family:inherit;font-size:14px;vertical-align:baseline;line-height:1.6em;color:rgb(80, 80, 80);">模拟浏览器加载和执行js的方案，把加载和执行分开，用XmlRequest并行加载资源，然后用eval按依赖顺序执行代码。<strong style="margin:0px;padding:0px;border:0px;outline:0px;font-style:inherit;font-family:inherit;font-size:100%;vertical-align:baseline;font-weight:bold;">比较头疼的是，302、301就尴尬了，还得自己处理。加上跨域，就更头疼了（跨域需静态资源提供方配合解决）。</strong></p>
+
+<h4 style="padding:0px;border:0px;outline:0px;font-style:inherit;font-family:inherit;vertical-align:baseline;margin:1.1em 0px;font-weight:bold;font-size:1.2em;line-height:1.1em;">document.write</h4>
+
+<p style="font-style:inherit;margin:1.6em 0px;border:0px;outline:0px;font-weight:inherit;padding:0px;font-family:inherit;font-size:14px;vertical-align:baseline;line-height:1.6em;color:rgb(80, 80, 80);">哎，浏览器本来就有一套加载的方案，还得自己用xml http request写一套多麻烦，何不直接document.write呢，执行顺序也不用管了，浏览器都包了。</p>
+
+<pre style="vertical-align:baseline;margin:0px -1.2em;border:0px;outline:0px;font-weight:inherit;font-style:inherit;font-family:&quot;Source Code Pro&quot;, Consolas, Monaco, Menlo, Consolas, monospace;font-size:100%;padding:15px 1.2em;background:rgb(45, 45, 45);border-style:solid;border-color:rgb(221, 221, 221);border-width:1px 0px;overflow:auto;color:rgb(204, 204, 204);line-height:22.4px;"><code style="font-style:inherit;margin:0px;border:0px;outline:0px;font-weight:inherit;vertical-align:baseline;font-size:100%;font-family:&quot;Source Code Pro&quot;, Consolas, Monaco, Menlo, Consolas, monospace;padding:0px;background:none;text-shadow:none;">const load = (deps) =&gt; {  
+    document.write(
+        deps
+            .map(dep =&gt; `&lt;script src=&quot;${dep}&quot;&gt;&lt;/script&gt;`)
+            .join('')
+    );
+};
+</code></pre>
+
+<p style="font-style:inherit;margin:1.6em 0px;border:0px;outline:0px;font-weight:inherit;padding:0px;font-family:inherit;font-size:14px;vertical-align:baseline;line-height:1.6em;color:rgb(80, 80, 80);"><strong style="margin:0px;padding:0px;border:0px;outline:0px;font-style:inherit;font-family:inherit;font-size:100%;vertical-align:baseline;font-weight:bold;">但是，一定要确保在DomContentLoaded之前，否则你将看到白刷刷的一片。</strong>那问题就来了，如何确保在loaded之前检测完错误，并write依赖到body中。</p>
+
+<p style="font-style:inherit;margin:1.6em 0px;border:0px;outline:0px;font-weight:inherit;padding:0px;font-family:inherit;font-size:14px;vertical-align:baseline;line-height:1.6em;color:rgb(80, 80, 80);">那么addEventListener则需要放到head里的最开始的地方（在任何资源加载之前即可），在body末尾插入依赖解析和加载。在html解析开始的时候开始监听加载错误事件，在html解析将结束时开始依赖解析和加载。</p>
+
+<pre style="vertical-align:baseline;margin:0px -1.2em;border:0px;outline:0px;font-weight:inherit;font-style:inherit;font-family:&quot;Source Code Pro&quot;, Consolas, Monaco, Menlo, Consolas, monospace;font-size:100%;padding:15px 1.2em;background:rgb(45, 45, 45);border-style:solid;border-color:rgb(221, 221, 221);border-width:1px 0px;overflow:auto;color:rgb(204, 204, 204);line-height:22.4px;"><code style="font-style:inherit;margin:0px;border:0px;outline:0px;font-weight:inherit;vertical-align:baseline;font-size:100%;font-family:&quot;Source Code Pro&quot;, Consolas, Monaco, Menlo, Consolas, monospace;padding:0px;background:none;text-shadow:none;">&lt;html&gt;  
+  &lt;head&gt;
+    &lt;script&gt;
+          const errors = [];
+        window.addEventListener('error', (e) =&gt; {
+          if (!(e instanceof ErrorEvent)) {
+            errors.push(e);
+          }
+        }, true);
+    &lt;/script&gt;
+  &lt;/head&gt;
+  &lt;body&gt;
+    &lt;script&gt;
+          // 解析错误，提取依赖，write依赖
+    &lt;/script&gt;
+  &lt;/body&gt;
+&lt;/html&gt;  
+</code></pre>
+
+<h2 style="padding:0px;border:0px;outline:0px;font-style:inherit;font-family:inherit;vertical-align:baseline;margin:1.1em 0px;font-weight:bold;font-size:1.5em;line-height:1.1em;">以上</h2>
+
+<p style="font-style:inherit;margin:1.6em 0px;border:0px;outline:0px;font-weight:inherit;padding:0px;font-family:inherit;font-size:14px;vertical-align:baseline;line-height:1.6em;color:rgb(80, 80, 80);"><strong style="margin:0px;padding:0px;border:0px;outline:0px;font-style:inherit;font-family:inherit;font-size:100%;vertical-align:baseline;font-weight:bold;">最终实现方案：</strong> window.addEventListener捕获方式来完成检测，document.write来完成加载和执行。</p>
+            <span style="font-weight:inherit;font-style:inherit;font-family:inherit;font-size:100%;color:rgb(85, 85, 85);display:table;clear:both;"></span></div>
+            <div style="font-size:0.85em;line-height:1.6em;border-bottom:1px solid rgb(221, 221, 221);padding:1.6em 0px;margin:0px 1.2em 1.2em;position:relative;"><span style="font-size:0.85em;line-height:1.6em;display:table;"></span>
+                <ul style="margin:0px;padding:0px;border:0px;outline:0px;font-weight:inherit;font-style:inherit;font-family:inherit;font-size:100%;vertical-align:baseline;list-style:none;">
+                    <li style="font-style:inherit;margin:0px;border:0px;outline:0px;font-weight:inherit;padding:0px;font-family:inherit;font-size:100%;vertical-align:baseline;float:left;margin-right:10px;"><span style="font-weight:inherit;font-style:inherit;font-family:FontAwesome;font-size:100%;margin-right:4px;color:rgb(204, 204, 204);"></span><a href="https://techblog.toutiao.com/tag/qian-duan/" style="font-style:inherit;margin:0px;border:0px;outline:0px;font-weight:inherit;padding:0px;font-family:inherit;font-size:100%;vertical-align:baseline;color:rgb(212, 212, 212);text-decoration:none;">前端</a></li>
+                </ul>
+                <span style="margin:0px;padding:0px;border:0px;outline:0px;font-weight:inherit;font-style:inherit;font-family:inherit;font-size:100%;vertical-align:baseline;color:rgb(212, 212, 212);">
+                    更新日期:<span>2017-05-09</span>
+                </span>
+            <span style="font-size:0.85em;line-height:1.6em;display:table;clear:both;position:absolute;bottom:-2px;width:6px;height:2px;color:rgb(255, 255, 255);background-image:url(&quot;//p0.pstatp.com/origin/dd30001a58f4a7df046&quot;);"></span></div>
+        </div></div></div></div></div></div></div></div></div><br/></div></span>
+</div></body></html> 

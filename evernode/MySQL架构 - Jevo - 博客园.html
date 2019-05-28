@@ -1,0 +1,106 @@
+<html>
+<head>
+  <title>MySQL架构 - Jevo - 博客园</title>
+  <basefont face="微软雅黑" size="2" />
+  <meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+  <meta name="exporter-version" content="YXBJ Windows/600718 (zh-CN, DDL); Windows/6.1.1 (Win64);"/>
+  <style>
+    body, td {
+      font-family: 微软雅黑;
+      font-size: 10pt;
+    }
+  </style>
+</head>
+<body>
+<a name="6276"/>
+<h1>MySQL架构 - Jevo - 博客园</h1>
+<div>
+<table bgcolor="#D4DDE5" border="0">
+<tr><td><b>创建时间：</b></td><td><i>2017/3/29 17:02</i></td></tr>
+<tr><td><b>来源：</b></td><td><a href="http://www.cnblogs.com/jevo/p/3284832.html"><i>http://www.cnblogs.com/jevo/p/3284832.html</i></a></td></tr>
+</table>
+</div>
+<br/>
+
+<div><span><div style="-evernote-webclip:true"><br/><div style="font-size: 16px; display: inline-block;"><div><div style="font-family:&quot;PingFang SC&quot;, &quot;Helvetica Neue&quot;, Helvetica, Arial, sans-serif;color:rgb(0, 0, 0);background:url(&quot;/Skins/coffee/images/bg_body.gif&quot;) left top;line-height:1.5;font-size:14px;"><div style="min-width:auto;"><div style="min-width:auto;text-align:left;"><div style="background:transparent;text-align:left;overflow-x:hidden;"><div style="background:url(&quot;/Skins/coffee/images/bg_left.gif&quot;) left top repeat-x rgb(254, 254, 242);"><div><div style="text-overflow:ellipsis;overflow:hidden;word-break:break-all;"><div><div style="line-height:1.5;color:rgb(0, 0, 0);font-size:13px;"><div style="word-break:break-word;"><h1 style="padding:0px;font-size:28px;font-weight:bold;line-height:1.5;margin:10px 0px;"><span style="margin:0px;padding:0px;line-height:1.5;font-size:13px;"><strong style="margin:0px;padding:0px;">一．MySQL逻辑架构</strong></span></h1>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"><img src="MySQL架构 - Jevo - 博客园_files/28212005-08228a06d6b54835a942cf763dd0f87f.jpg" type="image/jpeg" data-filename="28212005-08228a06d6b54835a942cf763dd0f87f.jpg" alt="" height="458" style="margin:0px;padding:0px;border:0px;height:auto;max-width:300px;" width="347"/></p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"><strong style="margin:0px;padding:0px;">        </strong><strong style="margin:0px;padding:0px;">第一层，即最上一层</strong>，所包含的服务并不是MySQL所独有的技术。它们都是服务于C/S程序或者是这些程序所需要的 ：连接处理，身份验证，安全性等等。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"><strong style="margin:0px;padding:0px;">        </strong><strong style="margin:0px;padding:0px;">第二层值得关注</strong>。这是MySQL的核心部分。通常叫做 SQL Layer。在 MySQL据库系统处理底层数据之前的所有工作都是在这一层完成的，包括权限判断， sql解析，行计划优化， query cache 的处理以及所有内置的函数(如日期,时间,数学运算,加密)等等。各个存储引擎提供的功能都集中在这一层，如存储过程，触发器，视 图等。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"><strong style="margin:0px;padding:0px;">        </strong><strong style="margin:0px;padding:0px;">第三层包括了存储引擎</strong>。通常叫做StorEngine Layer ，也就是底层数据存取操作实现部分，由多种存储引擎共同组成。它们负责存储和获取所有存储在MySQL中的数据。就像Linux众多的文件系统 一样。每个存储引擎都有自己的优点和缺陷。服务器是通过存储引擎API来与它们交互的。这个接口隐藏 了各个存储引擎不同的地方。对于查询层尽可能的透明。这个API包含了很多底层的操作。如开始一个事 物，或者取出有特定主键的行。存储引擎不能解析SQL，互相之间也不能通信。仅仅是简单的响应服务器 的请求。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"> </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"><strong style="margin:0px;padding:0px;">二．逻辑模块组成</strong></p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">        总的来说，MySQL可以看成是二层架构，第一层我们通常叫做SQL Layer，在MySQL数据库系统处理底层数据之前的所有工作都是在这一层完成的，包括权限判断，sql解析，执行计划优化，query cache的处理等等；第二层就是存储引擎层，我们通常叫做Storage Engine Layer，也就是底层数据存取操作实现部分，由多种存储引擎共同组成。所以，可以用如下一张最简单的架构示意图来表示MySQL的基本架构，如图所示：</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"> <img src="MySQL架构 - Jevo - 博客园_files/28212025-9661b59a090840bd9dba62a34a7ac348.jpg" type="image/jpeg" data-filename="28212025-9661b59a090840bd9dba62a34a7ac348.jpg" alt="" height="254" style="margin:0px;padding:0px;border:0px;height:auto;max-width:300px;" width="454"/></p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"> SQL Layer 中包含了多个子模块：</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"> </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">1、初始化模块</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">        初始化模块就是在MySQLServer启动的时候，对整个系统做各种各样的初始化操作，比如各种buffer，cache结构的初始化和内存空间的申请，各种系统变量的初始化设定，各种存储引擎的初始化设置，等等。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"> </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">2、核心API</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">        核心API模块主要是为了提供一些需要非常高效的底层操作功能的优化实现，包括各种底层数据结构的实现，特殊算法的实现，字符串处理，数字处理等，小文件I/O，格式化输出，以及最重要的内存管理部分。核心API模块的所有源代码都集中在mysys和strings文件夹下面。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"> </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">3、网络交互模块</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">        底层网络交互模块抽象出底层网络交互所使用的接口api，实现底层网络数据的接收与发送，以方便其他各个模块调用，以及对这一部分的维护。所有源码都在vio文件夹下面。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"> </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">4、Client&amp;Server交互协议模块</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">        任何C/S结构的软件系统，都肯定会有自己独有的信息交互协议，MySQL也不例外。MySQL的Client&amp;Server交互协议模块部分，实现了客户端与MySQL交互过程中的所有协议。当然这些协议都是建立在现有的OS和网络协议之上的，如TCP/IP以及Unix Socket。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"> </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">5、用户模块</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">        用户模块所实现的功能，主要包括用户的登录连接权限控制和用户的授权管理。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"> </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">6、访问控制模块</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">         访问控制模块实现的功能就是根据用户模块中各用户的授权信息，以及数据库自身特有的各种约束，来控制用户对数据的访问。用户模块和访问控制模块两者结合起来，组成了MySQL整个数据库系统的权限安全管理的功能。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"> </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">7、连接管理、连接线程和线程管理</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">        连接管理模块负责监听对MySQL Server的各种请求，接收连接请求，转发所有连接请求到线程管理模块。每一个连接上MySQL Server的客户端请求都会被分配（或创建）一个连接线程为其单独服务。而连接线程的主要工作就是负责MySQL Server与客户端的通信，接受客户端的命令请求，传递Server端的结果信息等。线程管理模块则负责管理维护这些连接线程。包括线程的创建，线程的cache等。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"> </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">8、Query解析和转发模块</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">        在MySQL中我们习惯将所有Client端发送给Server端的命令都称为query，在MySQL Server里面，连接线程接收到客户端的一个Query后，会直接将该query传递给专门负责将各种Query进行分类然后转发给各个对应的处理模块，这个模块就是query解析和转发模块。其主要工作就是将query语句进行语义和语法的分析，然后按照不同的操作类型进行分类，然后做出针对性的转发。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"> </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">9、Query Cache 模块</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">        Query Cache模块的主要功能是将客户端提交给MySQL的Select类query请求的返回结果集cache到内存中，与该query的一个hash值做一个对应。该Query所取数据的基表发生任何数据的变化之后，MySQL会自动使该query的Cache失效。在读写比例非常高的应用系统中，Query Cache对性能的提高是非常显著的。当然它对内存的消耗也是非常大的。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"> </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">10、Query优化器模块</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">        Query优化器是优化客户端请求的query，根据客户端请求的query语句，和数据库中的一些统计信息，在一系列算法的基础上进行分析，得出一个最优的策略，告诉后面的程序如何取得这个query语句的结果。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"> </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">11、表变更管理模块</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">       表变更管理模块主要是负责完成一些DML和DDL的query，如：update，delte，insert，createtable，altertable等语句的处理。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"> </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">12、表维护模块</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">        表的状态检查，错误修复，以及优化和分析等工作都是表维护模块需要做的事情。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"> </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">13、系统状态管理模块</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">        系统状态管理模块负责在客户端请求系统状态的时候，将各种状态数据返回给用户，像DBA常用的各种show status命令，show variables命令等，所得到的结果都是由这个模块返回的。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"> </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">14、表管理器</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">        这个模块从名字上看来很容易和上面的表变更和表维护模块相混淆，但是其功能与变更及维护模块却完全不同。大家知道，每一个MySQL的表都有一个表的定义文件，也就是*.frm文件。表管理器的工作主要就是维护这些文件，以及一个cache，该cache中的主要内容是各个表的结构信息。此外它还维护table级别的锁管理。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"> </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">15、日志记录模块</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">        日志记录模块主要负责整个系统级别的逻辑层的日志的记录，包括error log，binary log，slow query log等。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"> </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">16、复制模块</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">        复制模块又可分为Master模块和Slave模块两部分，Master模块主要负责在Replication环境中读取Master端的binary日志，以及与Slave端的I/O线程交互等工作。Slave模块比Master模块所要做的事情稍多一些，在系统中主要体现在两个线程上面。一个是负责从Master请求和接受binary日志，并写入本地relaylog中的I/O线程。另外一个是负责从relaylog中读取相关日志事件，然后解析成可以在Slave端正确执行并得到和Master端完全相同的结果的命令并再交给Slave执行的SQL线程。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"> </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">17、存储引擎接口模块</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">        存储引擎接口模块可以说是MySQL数据库中最有特色的一点了。目前各种数据库产品中，基本上只有MySQL可以实现其底层数据存储引擎的插件式管理。这个模块实际上只是一个抽象类，但正是因为它成功地将各种数据处理高度抽象化，才成就了今天MySQL可插拔存储引擎的特色。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"> </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"><strong style="margin:0px;padding:0px;">三、各模块工作配合</strong></p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">       在了解了MySQL的各个模块之后，我们再看看MySQL各个模块间是如何相互协同工作的。接下来，我们通过启动MySQL，客户端连接，请求query，得到返回结果，最后退出，这样一整个过程来进行分析。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">        当我们执行启动MySQL命令之后，MySQL的初始化模块就从系统配置文件中读取系统参数和命令行参数，并按照参数来初始化整个系统，如申请并分配buffer，初始化全局变量，以及各种结构等。同时各个存储引擎也被启动，并进行各自的初始化工作。当整个系统初始化结束后，由连接管理模块接手。连接管理模块会启动处理客户端连接请求的监听程序，包括tcp/ip的网络监听，还有unix的socket。这时候，MySQL Server就基本启动完成，准备好接受客户端请求了。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">       当连接管理模块监听到客户端的连接请求（借助网络交互模块的相关功能），双方通过Client&amp;Server交互协议模块所定义的协议“寒暄”几句之后，连接管理模块就会将连接请求转发给线程管理模块，去请求一个连接线程。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">        线程管理模块马上又会将控制交给连接线程模块，告诉连接线程模块：现在我这边有连接请求过来了，需要建立连接，你赶快处理一下。连接线程模块在接到连接请求后，首先会检查当前连接线程池中是否有被cache的空闲连接线程，如果有，就取出一个和客户端请求连接上，如果没有空闲的连接线程，则建立一个新的连接线程与客户端请求连接。当然，连接线程模块并不是在收到连接请求后马上就会取出一个连接线程连和客户端连接，而是首先通过调用用户模块进行授权检查，只有客户端请求通过了授权检查后，他才会将客户端请求和负责请求的连接线程连上。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">       在MySQL中，将客户端请求分为了两种类型：一种是query，需要调用Parser也就是Query解析和转发模块的解析才能够执行的请求；一种是command，不需要调用Parser就可以直接执行的请求。如果我们的初始化配置中打开了Full Query Logging的功能，那么Query解析与转发模块会调用日志记录模块将请求计入日志，不管是一个Query类型的请求还是一个command类型的请求，都会被记录进入日志，所以出于性能考虑，一般很少打开Full Query Logging的功能。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">       当客户端请求和连接线程“互换暗号（互通协议）”接上头之后，连接线程就开始处理客户端请求发送过来的各种命令（或者query），接受相关请求。它将收到的query语句转给Query解析和转发模块，Query解析器先对Query进行基本的语义和语法解析，然后根据命令类型的不同，有些会直接处理，有些会分发给其他模块来处理。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">       如果是一个Query类型的请求，会将控制权交给Query解析器。Query解析器首先分析看是不是一个select类型的query，如果是，则调用查询缓存模块，让它检查该query在query cache中是否已经存在。如果有，则直接将cache中的数据返回给连接线程模块，然后通过与客户端的连接的线程将数据传输给客户端。如果不是一个可以被cache的query类型，或者cache中没有该query的数据，那么query将被继续传回query解析器，让query解析器进行相应处理，再通过query分发器分发给相关处理模块。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">       如果解析器解析结果是一条未被cache的select语句，则将控制权交给Optimizer，也就是Query优化器模块，如果是DML或者是DDL语句，则会交给表变更管理模块，如果是一些更新统计信息、检测、修复和整理类的query则会交给表维护模块去处理，复制相关的query则转交给复制模块去进行相应的处理，请求状态的query则转交给了状态收集报告模块。实际上表变更管理模块根据所对应的处理请求的不同，是分别由insert处理器、delete处理器、update处理器、create处理器，以及alter处理器这些小模块来负责不同的DML和DDL的。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">       在各个模块收到Query解析与分发模块分发过来的请求后，首先会通过访问控制模块检查连接用户是否有访问目标表以及目标字段的权限，如果有，就会调用表管理模块请求相应的表，并获取对应的锁。表管理模块首先会查看该表是否已经存在于table cache中，如果已经打开则直接进行锁相关的处理，如果没有在cache中，则需要再打开表文件获取锁，然后将打开的表交给表变更管理模块。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">       当表变更管理模块“获取”打开的表之后，就会根据该表的相关meta信息，判断表的存储引擎类型和其他相关信息。根据表的存储引擎类型，提交请求给存储引擎接口模块，调用对应的存储引擎实现模块，进行相应处理。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">       不过，对于表变更管理模块来说，可见的仅是存储引擎接口模块所提供的一系列“标准”接口，底层存储引擎实现模块的具体实现，对于表变更管理模块来说是透明的。他只需要调用对应的接口，并指明表类型，接口模块会根据表类型调用正确的存储引擎来进行相应的处理。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">       当一条query或者一个command处理完成（成功或者失败）之后，控制权都会交还给连接线程模块。如果处理成功，则将处理结果（可能是一个Resultset，也可能是成功或者失败的标识）通过连接线程反馈给客户端。如果处理过程中发生错误，也会将相应的错误信息发送给客户端，然后连接线程模块会进行相应的清理工作，并继续等待后面的请求，重复上面提到的过程，或者完成客户端断开连接的请求。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">       如果在上面的过程中，相关模块使数据库中的数据发生了变化，而且MySQL打开了bin-log功能，则对应的处理模块还会调用日志处理模块将相应的变更语句以更新事件的形式记录到相关参数指定的二进制日志文件中。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">       在上面各个模块的处理过程中，各自的核心运算处理功能部分都会高度依赖整个MySQL的核心API模块，比如内存管理，文件I/O，数字和字符串处理等等。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">       了解到整个处理过程之后，我们可以将以上各个模块画成如图2-2的关系图：</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">  <img src="MySQL架构 - Jevo - 博客园_files/28212047-a1817405624242afa36efd31007ef3f6.jpg" type="image/jpeg" data-filename="28212047-a1817405624242afa36efd31007ef3f6.jpg" alt="" height="823" style="margin:0px;padding:0px;border:0px;height:auto;max-width:300px;" width="556"/></p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">内容来源：《MySQL性能调优与架构》、《高性能MySQL》</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"> </p></div></div></div></div></div></div></div></div></div></div></div></div><br/></div></span>
+</div></body></html> 

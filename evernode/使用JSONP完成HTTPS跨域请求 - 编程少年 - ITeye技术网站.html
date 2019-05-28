@@ -1,0 +1,160 @@
+<html>
+<head>
+  <title>使用JSONP完成HTTPS跨域请求 - 编程少年 - ITeye技术网站</title>
+  <basefont face="微软雅黑" size="2" />
+  <meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+  <meta name="exporter-version" content="YXBJ Windows/600718 (zh-CN, DDL); Windows/6.1.1 (Win64);"/>
+  <style>
+    body, td {
+      font-family: 微软雅黑;
+      font-size: 10pt;
+    }
+  </style>
+</head>
+<body>
+<a name="9845"/>
+<h1>使用JSONP完成HTTPS跨域请求 - 编程少年 - ITeye技术网站</h1>
+<div>
+<table bgcolor="#D4DDE5" border="0">
+<tr><td><b>创建时间：</b></td><td><i>2016/4/9 21:02</i></td></tr>
+<tr><td><b>来源：</b></td><td><a href="http://vincents.iteye.com/blog/1473279"><i>http://vincents.iteye.com/blog/1473279</i></a></td></tr>
+</table>
+</div>
+<br/>
+
+<div><span><br/><div><div><div><div><h1>使用JSONP完成HTTPS跨域请求 - 编程少年 - ITeye技术网站</h1><div><div></div></div></div>
+    使用JSONP完成HTTPS跨域请求
+<br/>前提条件
+<br/>1.	已配置本机java环境
+<br/>2.	已安装tomcat6.0
+<br/><br/>第一步   使用HTTPS协议前期准备
+<br/>进入命令提示符窗口(cmd) 输入以下命令
+<br/>1.	为服务器生成安全证书    
+<br/>命令：
+<br/>Keytool -genkey -v -alias tomcat -keyalg  RSA  -keystore server.keystore
+<br/>输入新密码:123456
+<br/>您的名字与姓氏是什么？
+<br/>  [Unknown]：这里填写服务器所在的域名(如：www.baidu.com 本机为localhost)
+<br/>您的组织单位名称是什么？
+<br/> [Unknown]：  ysb
+<br/>您的组织名称是什么？
+<br/> [Unknown]：  portal
+<br/>您所在的城市或区域名称是什么？
+<br/> [Unknown]：  nj
+<br/>您所在的州或省份名称是什么？
+<br/> [Unknown]：  js
+<br/>该单位的两字母国家代码是什么
+<br/> [Unknown]：  en
+<br/>N=localhost, OU=ysb, O=portal, L=js, ST=nj, C=en 正确吗？
+<br/>  [否]：如果跟你填写的信息一致  则输入 “Y“ 反之则为“N”。
+<br/><br/>说明： tomcat：别名
+<br/>RSA：使用的加密方式
+<br/>server.keystore：生成的服务器证书名(必须以’.keystore’为后缀名)
+<br/><br/>注意：这样服务器证书就生成了如果使用单向认证，那么下面生成客户端证书的步骤就不用了。如果使用单向认证下面2，3，4步就不用了。
+<br/><br/>2.	为客户端生成安全证书      
+<br/>命令：
+<br/>Keytool -genkey -v -alias mykey  -keyalg RSA  -storetype PKCS12 -keystore client.p12 
+<br/>输入keystore密码：设置密码 如：123456
+<br/>再次输入新密码:123456
+<br/>您的名字与姓氏是什么？
+<br/>  [Unknown]：  localhost
+<br/>您的组织单位名称是什么？
+<br/>  [Unknown]：  ysb
+<br/>您的组织名称是什么？
+<br/>  [Unknown]：  ysb
+<br/>您所在的城市或区域名称是什么？
+<br/>  [Unknown]：  nj
+<br/>您所在的州或省份名称是什么？
+<br/>  [Unknown]：  js
+<br/>该单位的两字母国家代码是什么
+<br/>  [Unknown]：  en
+<br/>CN=localhost, OU=ysb, O=ysb, L=nj, ST=js, C=en 正确吗？
+<br/>  [否]：如果跟你填写的信息一致  则输入 “Y“ 反之则为“N”。
+<br/><br/>说明：mykey：别名
+<br/>PKCS12：以PKCS121格式生成文件
+<br/>client.p12：生成的客户端证书文件
+<br/>localhost：这里填本地IP或者localhost
+<br/><br/>3.	将证书导出到证书文件。 
+<br/>命令:
+<br/>Keytool -export -v -alias mykey -keystore client.p12 -storetype PKCS12 -storepass password -rfc -file client.cer
+<br/><br/>说明： password：为客户端生成证书的证书密码。
+<br/>client.cer：导出后缀名为‘.cer’的证书文件(方便将客户端证书导入到服务器添加信任)
+<br/><br/>4.	通过以上命令，客户端证书就被我们导出到“client.cer”文件了。下一步，是将该文件导入到服务器的证书库，添加为一个信任证书：
+<br/>Keytool import -v -file client.cer -keystore server.keystore
+<br/>输入keystore密码：客户端证书密码
+<br/>再次输入新密码:重复
+<br/>所有者:CN=localhost, OU=ysb, O=ysb, L=nj, ST=js, C=en
+<br/>签发人:CN=localhost, OU=ysb, O=ysb, L=nj, ST=js, C=en
+<br/>序列号:4d9d7980
+<br/>有效期: Thu Apr 07 16:44:48 CST 2011 至Wed Jul 06 16:44:48 CST 2011
+<br/>证书指纹:
+<br/>        MD5:72:2D:DD:20:2A:CA:3B:D0:E8:E3:5E:BF:90:FE:D0:83
+<br/>        SHA1:77:9E:35:98:83:C8:F4:64:7E:ED:A2:91:C7:4A:27:0A:C0:18:BE:4D
+<br/>        签名算法名称:SHA1withRSA
+<br/>        版本: 3
+<br/>信任这个认证？ [否]：  y
+<br/>认证已添加至keystore中
+<br/>正在存储 server.keystore]
+<br/><br/>说明： 
+<br/>client.cer：导出后缀名为‘.cer’的证书文件(方便将客户端证书导入到服务器添加信任)
+<br/>client.cer：转换后的客户端证书文件
+<br/>server.keystore：服务器证书文件
+<br/><br/>注意：如果是单向认证则只需生成服务器证书即可
+<br/><br/>5.	打开Tomcat根目录下的/conf/server.xml，找到如下配置段
+<br/>&lt;Connector port=&quot;8443&quot; protocol=&quot;HTTP/1.1&quot; SSLEnabled=&quot;true&quot;
+<br/>    maxThreads=&quot;150&quot; scheme=&quot;https&quot; secure=&quot;true&quot;
+<br/>    clientAuth=&quot;false&quot; sslProtocol=&quot;TLS&quot;
+<br/>/&gt;
+<br/><br/>注意：属性clientAuth的属性值 如果是双向认证则为true如果是单向认证则我false 默认为false
+<br/><br/>添加属性
+<br/>	  单向认证：
+<br/>      	keystoreFile=&quot;tomcat.keystore&quot; keystorePass=&quot;password&quot;
+<br/>   	   双向认证：
+<br/>keystoreFile=&quot;tomcat.keystore&quot; keystorePass=&quot;password&quot;
+<br/>  		truststoreFile=&quot;tomcat.keystore&quot; truststorePass=&quot;password&quot;
+<br/><br/>注意：双向认证双击client.p12文件按提示将证书导入浏览器
+<br/><br/>完成以上步骤就可以使用HTTPS协议了
+<br/>测试：将访问项目的地址的协议手动改成HTTPS，端口改成8443。
+<br/><br/>说明：8443：在tomcat里https默认端口是8443（ 可以自己修改）
+<br/>	  tomcat.keystore：生成的服务器证书存放路径
+<br/>	  password：为服务器证书的密码
+<br/><br/>第二步   使用JSONP完成跨域访问
+<br/><br/>使用Jquery的jQuery.getJSON(url, [data], [callback])函数发送跨域请求
+<br/><br/>例：
+<br/>使用http协议时 请求为：
+<br/>$.post(&quot;http://localhost:8080/rcs/userAction!login.action&quot;,{account:cfg.account,password:cfg.password},cfg.callback,&quot;json&quot;);
+<br/><br/>使用jsonp发送https协议请求
+<br/>$.getJSON(&quot;https://localhost:8443/rcs/userAction!login.action?callback=?&quot;,{account:cfg.account,password:cfg.password},cfg.callback);
+<br/><br/>注意：使用jQuery.getJSON(url, [data], [callback])发送跨域请求后，在返回json数据时必须以callback({“result”:”result”})这样的格式才能被解析，所以必须在后台手动编码将数据组装成这样的格式
+<br/>如：
+<br/>	response.setContentType(&quot;application/json;charset=UTF-8&quot;);
+<br/>	String callback = request.getparmeter(“callback”);
+<br/>               PrintWriter out1 = response.getWriter();
+<br/>           out1.print(callback + &quot;({\&quot;result\&quot;:\&quot;&quot; + result + &quot;\&quot;})&quot;);
+<br/>格式为：jsonp1302167636138({&quot;result&quot;:&quot;0&quot;})
+<br/><br/>说明：jQuery.getJSON(url, [data], [callback])：在 jQuery  中，您可以通过使用JSONP形式的回调函数来加载其他网域的JSON数据，如 &quot;myurl?callback=?&quot;。jQuery 将自动替换 ? 为正确的函数名，以执行回调函数。
+<br/>Callback：为请求时jsonp的名如：callback=?
+<br/>jsonp1302167636138：为jsonp自动生成的用于替换“？”的。
+<br/><br/><br/>第三步   自动将证书导入浏览器
+<br/><br/>在第一次使用jsonp发送HTTPS协议请求时IE浏览器会提示导入证书，但是火狐和其它浏览器会直接请求失败不会给予提示，所以需要在第一次发送请求之前就将证书导入到浏览器。
+<br/><br/>参考实现方式：
+<br/>在第一次访问项目时在请求入口(如：struts2的拦截器)将该请求重定向为HTTPS协议请求，这样在第一次访问时就会提示导入证书，重定向为HTTPS请求后浏览器会一直使用这协议发送请求，这样会影响系统的运行效率，所以我们在完成证书导入后还需要将请求协议重定向回HTTP。
+<br/>如：
+<br/>String reqUrl = request.getRequestURL();
+<br/>If(reqUrl.indexOf(“http”)&gt;=0 &amp;&amp; requrl.indexOf(“index.action”)&gt;=0){
+<br/>	response.sendRedirect(“https://localhost:8443/rcs/index.action”);
+<br/>}else{
+<br/>	If(reqUrl.indexOf(“https”)&gt;=0 &amp;&amp; requrl.indexOf(“login.action”)&gt;=0){
+<br/>		response.sendRedirect(“http://localhost:8080/rcs/login.action”);
+<br/>}
+<br/>}
+<br/>注意：重定向时的请求不能是ajax的（如：userAction！login.action）。
+<br/><br/>这样在第一次访问项目时浏览器就会提示添加信任。
+<br/>步骤如下：
+<br/>火狐浏览器: 
+<br/>   不能贴图片，请查看附件
+<br/>IE浏览器：
+<br/>   不能贴图片，请查看附件
+<br/><br/><br/>
+  </div></div></div><br/></span>
+</div></body></html> 

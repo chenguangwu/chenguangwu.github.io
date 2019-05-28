@@ -1,0 +1,787 @@
+<html>
+<head>
+  <title>验证IDcard</title>
+  <basefont face="微软雅黑" size="2" />
+  <meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+  <meta name="exporter-version" content="YXBJ Windows/600718 (zh-CN, DDL); Windows/6.1.1 (Win64);"/>
+  <style>
+    body, td {
+      font-family: 微软雅黑;
+      font-size: 10pt;
+    }
+  </style>
+</head>
+<body>
+<a name="7449"/>
+<h1>验证IDcard</h1>
+<div>
+<table bgcolor="#D4DDE5" border="0">
+<tr><td><b>创建时间：</b></td><td><i>2016/3/28 13:59</i></td></tr>
+<tr><td><b>更新时间：</b></td><td><i>2016/3/28 14:05</i></td></tr>
+<tr><td><b>来源：</b></td><td><a href="http://b2badmin.meiya.com/Scripts/base.js?v=20151001"><i>http://b2badmin.meiya.com/Scripts/base.js?v=20151001</i></a></td></tr>
+</table>
+</div>
+<br/>
+
+<div>
+<span><div style="color: rgb(0, 0, 0); font-style: normal; font-variant: normal; font-weight: normal; letter-spacing: normal; orphans: auto; text-align: start; text-indent: 0px; text-transform: none; widows: 1; word-spacing: 0px; -webkit-text-stroke-width: 0px;">/*<br/>
+Copyright (c) 2008, Meiya! Inc. All rights reserved.<br/>
+version: 1.0<br/>
+created:songzm<br/>
+date:2011-11-05<br/>
+*/<br/><br/>
+/*浏览器判断*/<br/>
+var <br/>
+gsAgent = navigator.userAgent.toLowerCase(),<br/>
+gsAppVer = navigator.appVersion.toLowerCase(),<br/>
+gsAppName = navigator.appName.toLowerCase(),<br/><br/>
+gbIsOpera = gsAgent.indexOf(&quot;opera&quot;) &gt; -1,<br/>
+gbIsWebKit = gsAgent.indexOf(&quot;applewebkit&quot;) &gt; -1,<br/>
+gbIsKHTML = gsAgent.indexOf(&quot;khtml&quot;) &gt; -1<br/>
+|| gsAgent.indexOf(&quot;konqueror&quot;) &gt; -1 || gbIsWebKit,<br/>
+gbIsChrome = gbIsWebKit &amp;&amp; gsAgent.indexOf(&quot;chrome&quot;) &gt; -1,<br/>
+gbIsSafari = gbIsWebKit &amp;&amp; !gbIsChrome,<br/>
+gbIsIE = (gsAgent.indexOf(&quot;compatible&quot;) &gt; -1 &amp;&amp; !gbIsOpera)<br/>
+|| gsAgent.indexOf(&quot;msie&quot;) &gt; -1,<br/>
+gbIsTT = gbIsIE ? (gsAppVer.indexOf(&quot;tencenttraveler&quot;) != -1 ? 1 : 0) : 0,<br/>
+gbIsQBWebKit = gbIsWebKit ? (gsAppVer.indexOf(&quot;qqbrowser&quot;) != -1 ? 1 : 0) : 0,<br/>
+gbIsQBIE = gbIsIE,<br/>
+gbIsFF = gsAgent.indexOf(&quot;gecko&quot;) &gt; -1 &amp;&amp; !gbIsKHTML,<br/>
+gbIsNS = !gbIsIE &amp;&amp; !gbIsOpera &amp;&amp; !gbIsKHTML &amp;&amp; (gsAgent.indexOf(&quot;mozilla&quot;) == 0)<br/>
+&amp;&amp; (gsAppName == &quot;netscape&quot;),<br/>
+gbIsAgentErr = !(gbIsOpera || gbIsKHTML || gbIsSafari || gbIsIE || gbIsTT<br/>
+|| gbIsFF || gbIsNS),<br/>
+gbIsWin = gsAgent.indexOf(&quot;windows&quot;) &gt; -1 || gsAgent.indexOf(&quot;win32&quot;) &gt; -1,<br/>
+gbIsVista = gbIsWin &amp;&amp; (gsAgent.indexOf(&quot;nt 6.0&quot;) &gt; -1 || gsAgent.indexOf(&quot;windows vista&quot;) &gt; -1),<br/>
+gbIsWin7 = gbIsWin &amp;&amp; gsAgent.indexOf(&quot;nt 6.1&quot;) &gt; -1,<br/>
+gbIsMac = gsAgent.indexOf(&quot;macintosh&quot;) &gt; -1 || gsAgent.indexOf(&quot;mac os x&quot;) &gt; -1,<br/>
+gbIsLinux = gsAgent.indexOf(&quot;linux&quot;) &gt; -1,<br/>
+gbIsAir = gsAgent.indexOf(&quot;adobeair&quot;) &gt; -1;<br/><br/>
+String.prototype.trim = function () { return this.replace(/(^\s*)|(\s*$)/g, &quot;&quot;); }<br/>
+String.prototype.isInt = function () { return new RegExp('^[\\d]+$').test(this) ? true : false; }<br/>
+String.prototype.toNumber = function () { return Number(this); }<br/>
+String.prototype.isChar = function () { return new RegExp('^[A-Za-z]+$').test(this) ? true : false; }<br/>
+String.prototype.isPhone = function () { return new RegExp('^0[1-9]{1,2}[0-9]{1}-[1-9]{1}[0-9]{6,7}$').test(this) ? true : false; }<br/>
+String.prototype.isMobile = function () { return new RegExp('^1[358]{1}[0-9]{1}[0-9]{8}$').test(this) ? true : false; }<br/>
+String.prototype.getLength = function () {<br/>
+    var len = 0;<br/>
+    for (var i = 0; i &lt; this.length; i++) {<br/>
+        if (this.charCodeAt(i) &gt; 256)<br/>
+            len += 2;<br/>
+        else<br/>
+            len++;<br/>
+    }<br/>
+    return len;<br/>
+}<br/>
+String.prototype.isIdcard = function () {<br/>
+    var Errors = new Array(&quot;true&quot;, &quot;身份证号码位数不对!&quot;, &quot;身份证号码出生日期超出范围或含有非法字符!&quot;, &quot;身份证号码校验码错误!&quot;, &quot;身份证地区非法!&quot;);<br/>
+    var area = { 11: &quot;北京&quot;, 12: &quot;天津&quot;, 13: &quot;河北&quot;, 14: &quot;山西&quot;, 15: &quot;内蒙古&quot;, 21: &quot;辽宁&quot;, 22: &quot;吉林&quot;, 23: &quot;黑龙江&quot;, 31: &quot;上海&quot;, 32: &quot;江苏&quot;, 33: &quot;浙江&quot;, 34: &quot;安徽&quot;, 35: &quot;福建&quot;, 36: &quot;江西&quot;, 37: &quot;山东&quot;, 41: &quot;河南&quot;, 42: &quot;湖北&quot;, 43: &quot;湖南&quot;, 44: &quot;广东&quot;, 45: &quot;广西&quot;, 46: &quot;海南&quot;, 50: &quot;重庆&quot;, 51: &quot;四川&quot;, 52: &quot;贵州&quot;, 53: &quot;云南&quot;, 54: &quot;西藏&quot;, 61: &quot;陕西&quot;, 62: &quot;甘肃&quot;, 63: &quot;青海&quot;, 64: &quot;宁夏&quot;, 65: &quot;新疆&quot;, 71: &quot;台湾&quot;, 81: &quot;香港&quot;, 82: &quot;澳门&quot;, 91: &quot;国外&quot; }<br/>
+    var idcard = this, Y, JYM;<br/>
+    var S, M;<br/>
+    var idcard_array = new Array();<br/>
+    idcard_array = idcard.split(&quot;&quot;);<br/>
+    //地区检验<br/>
+    if (area[parseInt(idcard.substr(0, 2))] == null) return Errors[4];<br/>
+    //身份号码位数及格式检验<br/>
+    switch (idcard.length) {<br/>
+        case 15:<br/>
+            if ((parseInt(idcard.substr(6, 2)) + 1900) % 4 == 0 || ((parseInt(idcard.substr(6, 2)) + 1900) % 100 == 0 &amp;&amp; (parseInt(idcard.substr(6, 2)) + 1900) % 4 == 0)) {<br/>
+                ereg = /^[1-9][0-9]{5}[0-9]{2}((01|03|05|07|08|10|12)(0[1-9]|[1-2][0-9]|3[0-1])|(04|06|09|11)(0[1-9]|[1-2][0-9]|30)|02(0[1-9]|[1-2][0-9]))[0-9]{3}$/;<br/>
+                //测试出生日期的合法性<br/>
+            } else {<br/>
+                ereg = /^[1-9][0-9]{5}[0-9]{2}((01|03|05|07|08|10|12)(0[1-9]|[1-2][0-9]|3[0-1])|(04|06|09|11)(0[1-9]|[1-2][0-9]|30)|02(0[1-9]|1[0-9]|2[0-8]))[0-9]{3}$/;<br/>
+                //测试出生日期的合法性<br/>
+            }<br/>
+            if (ereg.test(idcard)) return Errors[0];<br/>
+            else return Errors[2];<br/>
+            break;<br/>
+        case 18:<br/>
+            //18位身份号码检测<br/>
+            //出生日期的合法性检查<br/>
+            //闰年月日:((01|03|05|07|08|10|12)(0[1-9]|[1-2][0-9]|3[0-1])|(04|06|09|11)(0[1-9]|[1-2][0-9]|30)|02(0[1-9]|[1-2][0-9]))<br/>
+            //平年月日:((01|03|05|07|08|10|12)(0[1-9]|[1-2][0-9]|3[0-1])|(04|06|09|11)(0[1-9]|[1-2][0-9]|30)|02(0[1-9]|1[0-9]|2[0-8]))<br/>
+            if (parseInt(idcard.substr(6, 4)) % 4 == 0 || (parseInt(idcard.substr(6, 4)) % 100 == 0 &amp;&amp; parseInt(idcard.substr(6, 4)) % 4 == 0)) {<br/>
+                ereg = /^[1-9][0-9]{5}(19|20)[0-9]{2}((01|03|05|07|08|10|12)(0[1-9]|[1-2][0-9]|3[0-1])|(04|06|09|11)(0[1-9]|[1-2][0-9]|30)|02(0[1-9]|[1-2][0-9]))[0-9]{3}[0-9Xx]$/;<br/>
+                //闰年出生日期的合法性正则表达式<br/>
+            } else {<br/>
+                ereg = /^[1-9][0-9]{5}(19|20)[0-9]{2}((01|03|05|07|08|10|12)(0[1-9]|[1-2][0-9]|3[0-1])|(04|06|09|11)(0[1-9]|[1-2][0-9]|30)|02(0[1-9]|1[0-9]|2[0-8]))[0-9]{3}[0-9Xx]$/;<br/>
+                //平年出生日期的合法性正则表达式<br/>
+            }<br/>
+            if (ereg.test(idcard)) {//测试出生日期的合法性<br/>
+                //计算校验位<br/>
+                S = (parseInt(idcard_array[0]) + parseInt(idcard_array[10])) * 7<br/>
+                        + (parseInt(idcard_array[1]) + parseInt(idcard_array[11])) * 9<br/>
+                        + (parseInt(idcard_array[2]) + parseInt(idcard_array[12])) * 10<br/>
+                        + (parseInt(idcard_array[3]) + parseInt(idcard_array[13])) * 5<br/>
+                        + (parseInt(idcard_array[4]) + parseInt(idcard_array[14])) * 8<br/>
+                        + (parseInt(idcard_array[5]) + parseInt(idcard_array[15])) * 4<br/>
+                        + (parseInt(idcard_array[6]) + parseInt(idcard_array[16])) * 2<br/>
+                        + parseInt(idcard_array[7]) * 1<br/>
+                        + parseInt(idcard_array[8]) * 6<br/>
+                        + parseInt(idcard_array[9]) * 3;<br/>
+                Y = S % 11;<br/>
+                M = &quot;F&quot;;<br/>
+                JYM = &quot;10X98765432&quot;;<br/>
+                M = JYM.substr(Y, 1);<br/>
+                //判断校验位<br/>
+                if (M == idcard_array[17].toUpperCase()) return Errors[0]; //检测ID的校验位<br/>
+                else return Errors[3];<br/>
+            }<br/>
+            else return Errors[2];<br/>
+            break;<br/>
+        default:<br/>
+            return Errors[1];<br/>
+            break;<br/>
+    }<br/>
+}<br/><br/>
+jQuery.extend(<br/>
+ {<br/>
+     /**<br/>
+     * @see  将javascript数据类型转换为json字符串<br/>
+     * @param 待转换对象,支持object,array,string,function,number,boolean,regexp<br/>
+     * @return 返回json字符串<br/>
+     */<br/>
+     toJSON: function (object) {<br/>
+         var type = typeof object;<br/>
+         if ('object' == type) {<br/>
+             if (Array == object.constructor)<br/>
+                 type = 'array';<br/>
+             else if (RegExp == object.constructor)<br/>
+                 type = 'regexp';<br/>
+             else<br/>
+                 type = 'object';<br/>
+         }<br/>
+         switch (type) {<br/>
+             case 'undefined':<br/>
+             case 'unknown':<br/>
+                 return;<br/>
+                 break;<br/>
+             case 'function':<br/>
+             case 'boolean':<br/>
+             case 'regexp':<br/>
+                 return object.toString();<br/>
+                 break;<br/>
+             case 'number':<br/>
+                 return isFinite(object) ? object.toString() : 'null';<br/>
+                 break;<br/>
+             case 'string':<br/>
+                 return '&quot;' + object.replace(/(\\|\&quot;)/g, &quot;\\$1&quot;).replace(/\n|\r|\t/g,<br/>
+       function () {<br/>
+           var a = arguments[0];<br/>
+           return (a == '\n') ? '\\n' :<br/>
+                       (a == '\r') ? '\\r' :<br/>
+                       (a == '\t') ? '\\t' : &quot;&quot;<br/>
+       }) + '&quot;';<br/>
+                 break;<br/>
+             case 'object':<br/>
+                 if (object === null) return 'null';<br/>
+                 var results = [];<br/>
+                 for (var property in object) {<br/>
+                     var value = jQuery.toJSON(object[property]);<br/>
+                     if (value !== undefined)<br/>
+                         results.push(jQuery.toJSON(property) + ':' + value);<br/>
+                 }<br/>
+                 return '{' + results.join(',') + '}';<br/>
+                 break;<br/>
+             case 'array':<br/>
+                 var results = [];<br/>
+                 for (var i = 0; i &lt; object.length; i++) {<br/>
+                     var value = jQuery.toJSON(object[i]);<br/>
+                     if (value !== undefined) results.push(value);<br/>
+                 }<br/>
+                 return '[' + results.join(',') + ']';<br/>
+                 break;<br/>
+         }<br/>
+     }<br/>
+ });<br/><br/><br/>
+var Meiya = {};<br/>
+Meiya.PlugIn = {};<br/><br/>
+/*遮罩使用方式：<br/>
+显示：Meiya.PlugIn.Mask.show();<br/>
+关闭: Meiya.PlugIn.Mash.hide();<br/>
+*/<br/>
+Meiya.PlugIn.Mask = {<br/>
+    show: function () {<br/>
+        if (!document.getElementById('mask_layer')) {<br/>
+            var div = document.createElement('div');<br/>
+            div.id = 'mask_layer';<br/>
+            div.style.backgroundColor = &quot;#FFFF00&quot;;<br/>
+            div.style.display = &quot;none&quot;;<br/>
+            div.innerHTML = &quot;&lt;iframe id='maskBgfrm' frameborder='1' style='z-index:10;position: absolute;left:0px;top:-1px;width:100%;height:100px;filter:Alpha(Opacity=30);-moz-opacity:0.4;opacity:0.4' scrolling='no' src=''&gt;&lt;/iframe&gt;&quot;;<br/>
+            document.body.appendChild(div);<br/>
+            //$('#mask_layer').addClass(&quot;maskbg&quot;);<br/>
+            $(&quot;#mask_layer&quot;).css({ &quot;background&quot;: &quot;#000000 none repeat scroll 0 0&quot;, &quot;height&quot;: &quot;100%&quot;, &quot;left&quot;: &quot;0&quot;, &quot;opacity&quot;: &quot;0.2&quot;, &quot;position&quot;: &quot;absolute&quot;, &quot;top&quot;: &quot;0&quot;, &quot;width&quot;: &quot;100%&quot;, &quot;z-index&quot;: &quot;11&quot; });<br/>
+        }<br/><br/>
+        $('#mask_layer').height($(document).height());<br/>
+        $('#maskBgfrm').height($(document).height());<br/>
+        $('#mask_layer').css(&quot;filter&quot;, &quot;Alpha(Opacity=30)&quot;);<br/>
+        $('#mask_layer').css(&quot;-moz-opacity&quot;, &quot;0.3&quot;);<br/>
+        $('#mask_layer').css(&quot;opacity&quot;, &quot;0.3&quot;);<br/>
+        $('#mask_layer').show();<br/>
+    },<br/>
+    hide: function () {<br/>
+        if (document.getElementById('mask_layer'))<br/>
+            $('#mask_layer').hide();<br/>
+    }<br/>
+}<br/><br/>
+/*<br/>
+弹出提示框调用方式：<br/>
+打开：<br/>
+Meiya.PlugIn.Pop.show(params);<br/>
+params参数格式为:<br/>
+{<br/>
+title:&quot;温馨提示&quot;,//提示标题<br/>
+Content:&quot;内容&quot;,//提示内容<br/>
+IsClose:false,//是否有关闭按钮<br/>
+IsEnter:false,//是否有确定按钮<br/>
+IsCancel:false,//是否有取消按钮<br/>
+Data:'sssss',//传递到按钮事件中的数据参数<br/>
+CallBack:{<br/>
+Close:function(){},//绑定到关闭按钮上的事件<br/>
+Enter:function(){},//绑定到确定按钮上的事件<br/>
+Cancel:function(){}//绑定到取消按钮上的事件<br/>
+}<br/>
+}<br/><br/>
+关闭:<br/>
+Meiya.PlugIn.Pop.hide();<br/>
+*/<br/>
+Meiya.PlugIn.Pop = {<br/>
+    HTML: function (params) {<br/>
+        var html = [];<br/>
+        html.push('&lt;div class=&quot;popUp&quot;&gt;');<br/>
+        html.push('     &lt;h2&gt;{0}{1}&lt;span title=&quot;最小化后点击右下角还原按钮可恢复&quot; onclick=\'$(&quot;.popUp&quot;).hide();$(&quot;#mini&quot;).show()\'&gt;最小化&lt;/span&gt;&lt;/h2&gt;');<br/>
+        html.push('     &lt;div class=&quot;tipsinfo&quot;&gt;');<br/>
+        html.push('             &lt;p &gt;{2}&lt;/p&gt;');<br/>
+        html.push('             &lt;p class=&quot;caozuo&quot;&gt;');<br/>
+        html.push('                     {3}'); //&lt;input type=&quot;button&quot; value=&quot;确 定&quot; name=&quot;&quot; /&gt;<br/>
+        html.push('                     {4}'); //&lt;input type=&quot;button&quot; value=&quot;取 消&quot; name=&quot;&quot; /&gt;<br/>
+        html.push('                     {5}'); //&lt;input type=&quot;button&quot; value=&quot;关 闭&quot; name=&quot;&quot; /&gt;<br/>
+        html.push('             &lt;/p&gt;');<br/>
+        html.push('     &lt;/div&gt;');<br/>
+        html.push('&lt;/div&gt;');<br/><br/>
+        if (params.title) html[1] = html[1].replace(&quot;{1}&quot;, params.title);<br/>
+        if (params.Content) html[3] = html[3].replace(&quot;{2}&quot;, params.Content);<br/><br/>
+        var btnEnterText = &quot;确 定&quot;, btnCancelText = &quot;取 消&quot;, btnCloseText = &quot;关 闭&quot;;<br/>
+        if (params.BtnEnterText &amp;&amp; params.BtnEnterText.length &gt; 0) {<br/>
+            btnEnterText = params.BtnEnterText;<br/>
+        }<br/>
+        if (params.BtnCancelText &amp;&amp; params.BtnCancelText.length &gt; 0) {<br/>
+            btnCancelText = params.BtnCancelText;<br/>
+        }<br/>
+        if (params.BtnCloseText &amp;&amp; params.BtnCloseText.length &gt; 0) {<br/>
+            btnCloseText = params.BtnCloseText;<br/>
+        }<br/><br/>
+        if (params.IsClose) {<br/>
+            html[1] = html[1].replace(&quot;{0}&quot;, '&lt;a href=&quot;javascript:void(0)&quot; id=&quot;aClose&quot; title=&quot;关闭&quot;&gt;&lt;/a&gt;');<br/>
+            html[7] = html[7].replace(&quot;{5}&quot;, '&lt;input type=&quot;button&quot; id=&quot;btnClose&quot; value=&quot;' + btnCloseText + '&quot; name=&quot;&quot; /&gt;');<br/>
+        }<br/>
+        else {<br/>
+            html[1] = html[1].replace(&quot;{0}&quot;, '');<br/>
+            html[7] = html[7].replace(&quot;{5}&quot;, '');<br/>
+        }<br/>
+        if (params.IsEnter) {<br/>
+            html[5] = html[5].replace(&quot;{3}&quot;, '&lt;input type=&quot;button&quot; id=&quot;btnEnter&quot; value=&quot;' + btnEnterText + '&quot; name=&quot;&quot; /&gt;');<br/>
+        }<br/>
+        else {<br/>
+            html[5] = html[5].replace(&quot;{3}&quot;, '');<br/>
+        }<br/>
+        if (params.IsCancel) {<br/>
+            html[6] = html[6].replace(&quot;{4}&quot;, '&lt;input type=&quot;button&quot; id=&quot;btnCancel&quot; value=&quot;' + btnCancelText + '&quot; name=&quot;&quot; /&gt;');<br/>
+        }<br/>
+        else {<br/>
+            html[6] = html[6].replace(&quot;{4}&quot;, '');<br/>
+        }<br/><br/>
+        return html.join(&quot;&quot;);<br/>
+    },<br/>
+    show: function (params) {<br/>
+        if (!params) {<br/>
+            params = {};<br/>
+        }<br/><br/>
+        params.title = params.title ? params.title : &quot;温馨提示&quot;;<br/>
+        params.IsClose = params.IsClose ? params.IsClose : false;<br/>
+        params.IsEnter = params.IsEnter ? params.IsEnter : false;<br/>
+        params.IsCancel = params.IsCancel ? params.IsCancel : false;<br/>
+        params.Content = params.Content ? params.Content : &quot;......&quot;;<br/>
+        params.CallBack = params.CallBack ? params.CallBack : false;<br/>
+        params.Data = params.Data ? params.Data : &quot;&quot;;<br/><br/>
+        if ($(&quot;.popUp&quot;).length &gt; 0) $(&quot;div&quot;).remove(&quot;.popUp&quot;);<br/><br/>
+        $(document.body).append(Meiya.PlugIn.Pop.HTML(params));<br/><br/>
+        $(&quot;.popUp&quot;).css(&quot;top&quot;, ($(document).scrollTop() + 260) + &quot;px&quot;);<br/>
+        $(&quot;.popUp&quot;).css(&quot;left&quot;, ($(&quot;body&quot;).width() - $(&quot;.popUp&quot;).width()) / 2);<br/><br/>
+        if (params.IsClose) {<br/>
+            $(&quot;#aClose,#btnClose&quot;).bind(&quot;click&quot;, params.Data, params.CallBack.Close);<br/>
+        }<br/><br/>
+        if (params.IsCancel) {<br/>
+            $(&quot;#btnCancel&quot;).bind(&quot;click&quot;, params.Data, params.CallBack.Cancel);<br/>
+        }<br/><br/>
+        if (params.IsEnter) {<br/>
+            $(&quot;#btnEnter&quot;).bind(&quot;click&quot;, params.Data, params.CallBack.Enter);<br/>
+        }<br/><br/>
+        $(&quot;.popUp&quot;).show();<br/>
+    },<br/>
+    hide: function () {<br/>
+        $(&quot;.popUp&quot;).hide();<br/><br/>
+        if ($(&quot;#btnEnter&quot;).length &gt; 0)<br/>
+            $(&quot;#btnEnter&quot;).unbind();<br/><br/>
+        if ($(&quot;#btnCancel&quot;).length &gt; 0)<br/>
+            $(&quot;#btnCancel&quot;).unbind();<br/><br/>
+        if ($(&quot;#btnClose&quot;).length &gt; 0)<br/>
+            $(&quot;#btnClose,#aClose&quot;).unbind();<br/>
+    },<br/>
+    SetTips: function (msg) {<br/>
+        $(&quot;.tipsinfo &gt; p:first-child&quot;).html(msg);<br/>
+    },<br/>
+    Reset: function (params) {<br/>
+        $(&quot;div&quot;).remove(&quot;.popUp&quot;);<br/>
+        Meiya.PlugIn.Pop.show(params);<br/>
+    }<br/>
+}<br/><br/>
+//登录弹出框调用方式：Meiya.PlugIn.Login.show({ CallBack: 回调函数名 });<br/>
+Meiya.PlugIn.Login = {<br/>
+    HTML: function () {<br/>
+        var html = [];<br/>
+        html.push('&lt;div class=&quot;popLoginBox&quot;&gt;');<br/>
+        html.push('     &lt;h2&gt;&lt;/h2&gt;');<br/>
+        html.push('     &lt;div class=&quot;popLogin&quot;&gt;');<br/>
+        html.push('             &lt;ul&gt;');<br/>
+        html.push('               &lt;li&gt;');<br/>
+        html.push('                     &lt;span&gt;用户名：&lt;/span&gt;');<br/>
+        html.push('                     &lt;input type=&quot;text&quot; value=&quot;&quot; id=&quot;txtLoginName&quot; class=&quot;right_color&quot;  maxlength=20/&gt;');<br/>
+        html.push('               &lt;/li&gt;');<br/>
+        html.push('               &lt;li&gt;');<br/>
+        html.push('                     &lt;span&gt;密 码：&lt;/span&gt;');<br/>
+        html.push('                     &lt;input type=&quot;password&quot; value=&quot;&quot; id=&quot;txtLoginPwd&quot; class=&quot;&quot; maxlength=20/&gt;');<br/>
+        html.push('               &lt;/li&gt;');<br/>
+        html.push('               &lt;li&gt;');<br/>
+        html.push('                     &lt;span&gt;验证码：&lt;/span&gt;');<br/>
+        html.push('                     &lt;input type=&quot;text&quot; maxlength=5 id=&quot;txtValidCode&quot; class=&quot;validate&quot; /&gt;');<br/>
+        html.push('                 &lt;span class=&quot;validateImg&quot;&gt;&lt;img id=&quot;imgvcode&quot; src=&quot;/code.aspx?r=' + new Date().getTime() + '&quot; /&gt;&lt;/span&gt;');<br/>
+        html.push('                 &lt;a href=&quot;javascript:void(0)&quot; onclick=&quot;$(\'#imgvcode\').attr(\'src\',\'/code.aspx?r=\' + new Date().getTime());return false;&quot; class=&quot;change&quot;&gt;换一张&lt;/a&gt;');<br/>
+        html.push('       &lt;/li&gt;');<br/>
+        html.push('       &lt;li&gt;');<br/>
+        html.push('             &lt;span&gt;&amp;nbsp;&lt;/span&gt;');<br/>
+        html.push('             &lt;input type=&quot;button&quot; id=&quot;btnPopLogin&quot; value=&quot;&quot; class=&quot;login_icon&quot; /&gt;');<br/>
+        html.push('       &lt;/li&gt;');<br/>
+        html.push('     &lt;/ul&gt;');<br/>
+        html.push('  &lt;/div&gt;');<br/>
+        html.push('&lt;/div&gt;');<br/><br/>
+        return html.join(&quot;&quot;);<br/>
+    },<br/>
+    show: function (params) {<br/>
+        Meiya.PlugIn.Mask.show();<br/><br/>
+        if ($(&quot;.popLoginBox&quot;).length == 0) {<br/>
+            $(document.body).append(Meiya.PlugIn.Login.HTML());<br/>
+        }<br/><br/>
+        $(&quot;.popLoginBox&quot;).css(&quot;top&quot;, ($(document).scrollTop() + 200) + &quot;px&quot;);<br/>
+        $(&quot;.popLoginBox&quot;).css(&quot;left&quot;, ($(&quot;body&quot;).width() - $(&quot;.popLoginBox&quot;).width()) / 2);<br/><br/>
+        $(&quot;#btnPopLogin&quot;).bind(&quot;click&quot;, { CallBack: params.CallBack }, Meiya.PlugIn.Login.login);<br/><br/>
+        $(&quot;.popLoginBox&quot;).show();<br/>
+    },<br/>
+    hide: function () {<br/>
+        $(&quot;.popLoginBox&quot;).hide();<br/>
+    },<br/>
+    login: function (d) {<br/>
+        var data = {<br/>
+            name: $(&quot;#txtLoginName&quot;).val(),<br/>
+            pwd: $(&quot;#txtLoginPwd&quot;).val(),<br/>
+            code: $.trim($(&quot;#txtValidCode&quot;).val())<br/>
+        }<br/><br/>
+        if (data.name == &quot;&quot;) {<br/>
+            alert(&quot;请输入用户名。&quot;); $(&quot;#txtLoginName&quot;).select(); return;<br/>
+        }<br/><br/>
+        if (data.pwd == &quot;&quot;) {<br/>
+            alert(&quot;请输入登录密码。&quot;); $(&quot;#txtLoginPwd&quot;).select(); return;<br/>
+        }<br/><br/>
+        if (data.code == &quot;&quot;) {<br/>
+            alert(&quot;请输入验证码。&quot;); $(&quot;#txtValidCode&quot;).select(); return;<br/>
+        }<br/><br/>
+        $.ajax({<br/>
+            type: 'POST',<br/>
+            url: &quot;/Login.aspx&quot;,<br/>
+            //contentType: &quot;application/json&quot;,<br/>
+            dataType: 'json',<br/>
+            data: &quot;name=&quot; + data.name + &quot;&amp;pwd=&quot; + data.pwd + &quot;&amp;code=&quot; + data.code,<br/>
+            success: function (json) {<br/>
+                if (json.Success) {<br/>
+                    Meiya.PlugIn.Login.hide();<br/>
+                    d.data.CallBack(false); //回调后续的操作<br/>
+                }<br/>
+                else {<br/>
+                    alert(json.Info);<br/>
+                }<br/>
+            },<br/>
+            error: function (e) {<br/>
+                alert(e.responseText);<br/>
+            }<br/>
+        });<br/>
+    }<br/>
+}<br/><br/>
+//获取CheckBox的所选值<br/>
+function getCheckBoxVal(name) {<br/>
+    var rValue = '';<br/>
+    $(&quot;input[name='&quot; + name + &quot;']&quot;).each(function () {<br/>
+        if ($(this).attr(&quot;checked&quot;)) {<br/>
+            rValue += &quot;,&quot; + $(this).attr(&quot;value&quot;);<br/>
+        }<br/>
+    })<br/>
+    return rValue.substr(1);<br/>
+}<br/><br/>
+//CheckBox全选<br/>
+function checkAll(ojb, name, isReverse) {<br/>
+    var checked = $(ojb).attr(&quot;checked&quot;);<br/>
+    $(&quot;input[name='&quot; + name + &quot;']&quot;).each(function () {<br/>
+        if (isReverse) {<br/>
+            if ($(this).attr(&quot;checked&quot;))<br/>
+                $(this).attr(&quot;checked&quot;, false);<br/>
+            else<br/>
+                $(this).attr(&quot;checked&quot;, true);<br/>
+            $(ojb).parent().find(&quot;input&quot;).eq(0).attr(&quot;checked&quot;, false);<br/>
+        }<br/>
+        else {<br/>
+            $(this).attr(&quot;checked&quot;, checked);<br/>
+        }<br/>
+    })<br/>
+}<br/><br/><br/>
+//日期校验<br/>
+function validateCNDate(date,time) {<br/>
+    var strDate = date;<br/>
+    var result = strDate.match(/((^((1[8-9]\d{2})|([2-9]\d{3}))(-)(10|12|0?[13578])(-)(3[01]|[12][0-9]|0?[1-9])$)|(^((1[8-9]\d{2})|([2-9]\d{3}))(-)(11|0?[469])(-)(30|[12][0-9]|0?[1-9])$)|(^((1[8-9]\d{2})|([2-9]\d{3}))(-)(0?2)(-)(2[0-8]|1[0-9]|0?[1-9])$)|(^([2468][048]00)(-)(0?2)(-)(29)$)|(^([3579][26]00)(-)(0?2)(-)(29)$)|(^([1][89][0][48])(-)(0?2)(-)(29)$)|(^([2-9][0-9][0][48])(-)(0?2)(-)(29)$)|(^([1][89][2468][048])(-)(0?2)(-)(29)$)|(^([2-9][0-9][2468][048])(-)(0?2)(-)(29)$)|(^([1][89][13579][26])(-)(0?2)(-)(29)$)|(^([2-9][0-9][13579][26])(-)(0?2)(-)(29)$))/);<br/>
+    if (time)<br/>
+        result = strDate.match(/^((([0-9]{3}[1-9]|[0-9]{2}[1-9][0-9]{1}|[0-9]{1}[1-9][0-9]{2}|[1-9][0-9]{3})-(((0[13578]|1[02])-(0[1-9]|[12][0-9]|3[01]))|((0[469]|11)-(0[1-9]|[12][0-9]|30))|(02-(0[1-9]|[1][0-9]|2[0-8]))))|((([0-9]{2})(0[48]|[2468][048]|[13579][26])|((0[48]|[2468][048]|[3579][26])00))-02-29))\s+([0-1]?[0-9]|2[0-3]):([0-5][0-9])$/); //:([0-5][0-9])<br/>
+    if (result == null) {<br/>
+        return false;<br/>
+    }<br/>
+    return true;<br/>
+}<br/><br/>
+//保留两位小数           <br/>
+//功能：将浮点数四舍五入，取小数点后2位         <br/>
+function toDecimal(x) {<br/>
+    var f = parseFloat(x);<br/>
+    if (isNaN(f)) {<br/>
+        return 0;<br/>
+    }<br/>
+    f = Math.round(x * 100) / 100;<br/>
+    return f;<br/>
+}<br/><br/><br/>
+//正则表达式判断 yyyy-MM-dd HH:mm 时间格式<br/>
+function checkDate(obj) {<br/>
+    var str = obj<br/>
+    var re = /^(\d{4})-(\d{2})-(\d{2})\s(\d{2}):(\d{2})$/<br/>
+    if (!re.test(str))<br/>
+        return false;<br/>
+    var strYear = RegExp.$1;<br/>
+    var strMonth = RegExp.$2;<br/>
+    strMonth = parseInt(strMonth, 10) - 1<br/>
+    var strDate = RegExp.$3;<br/>
+    strDate = parseInt(strDate, 10)<br/>
+    var strHour = RegExp.$4;<br/>
+    strHour = parseInt(strHour, 10)<br/>
+    var strMinute = RegExp.$5;<br/>
+    strMinute = parseInt(strMinute, 10)<br/>
+    var tempDate = new Date(strYear, strMonth, strDate, strHour, strMinute, 0)<br/>
+    if ((tempDate.getFullYear() == strYear) &amp;&amp; (tempDate.getMonth() == strMonth) &amp;&amp; (tempDate.getDate() == strDate) &amp;&amp; (tempDate.getHours() == strHour) &amp;&amp; (tempDate.getMinutes() == strMinute) == true) {<br/>
+        return true;<br/>
+    }<br/>
+    return false;<br/>
+}<br/><br/>
+function compareDate(begainDate, endDate) {<br/>
+    var re = /^(\d{4})-(\d{1,2})-(\d{1,2})(\s(\d{1,2}):(\d{1,2})(:(\d{1,2}))?)?$/<br/>
+    if (!re.test(begainDate)) return -1;<br/>
+    var bYear = RegExp.$1;<br/>
+    var bMonth = parseInt(RegExp.$2, 10) - 1;<br/>
+    var bDay = parseInt(RegExp.$3, 10);<br/>
+    var bHour = isNaN(parseInt(RegExp.$5, 10)) ? &quot;0&quot; : parseInt(RegExp.$5, 10);<br/>
+    var bMinute = isNaN(parseInt(RegExp.$6, 10)) ? &quot;0&quot; : parseInt(RegExp.$6, 10);<br/>
+    var bSecond = isNaN(parseInt(RegExp.$8, 10)) ? &quot;0&quot; : parseInt(RegExp.$8, 10);<br/><br/>
+    var bDate = new Date(bYear, bMonth, bDay, bHour, bMinute, bSecond);<br/><br/>
+    if (!re.test(endDate)) return -2;<br/>
+    var eYear = RegExp.$1;<br/>
+    var eMonth = parseInt(RegExp.$2, 10) - 1;<br/>
+    var eDay = parseInt(RegExp.$3, 10);<br/>
+    var eHour = isNaN(parseInt(RegExp.$5, 10)) ? &quot;0&quot; : parseInt(RegExp.$5, 10);<br/>
+    var eMinute = isNaN(parseInt(RegExp.$6, 10)) ? &quot;0&quot; : parseInt(RegExp.$6, 10);<br/>
+    var eSecond = isNaN(parseInt(RegExp.$8, 10)) ? &quot;0&quot; : parseInt(RegExp.$8, 10);<br/><br/>
+    var eDate = new Date(eYear, eMonth, eDay, eHour, eMinute, eSecond);<br/><br/>
+    return eDate - bDate;<br/>
+}<br/><br/>
+$(function () {<br/>
+    var $f_tr = $(&quot;table.f_info &gt; tbody &gt; tr&quot;);<br/>
+    var $p_tr = $(&quot;table.p_info &gt; tbody &gt; tr&quot;);<br/>
+    $(&quot;table.f_info &gt; tbody &gt; tr:odd&quot;).addClass(&quot;odd&quot;);<br/>
+    $f_tr.mouseover(function () {<br/>
+        $(this).addClass(&quot;bgcolor&quot;);<br/>
+    }).mouseout(function () {<br/>
+        $(this).removeClass(&quot;bgcolor&quot;);<br/>
+    });<br/><br/>
+    $(&quot;table.p_info &gt; tbody &gt; tr:odd&quot;).addClass(&quot;odd&quot;);<br/>
+    $p_tr.mouseover(function () {<br/>
+        $(this).addClass(&quot;bgcolor&quot;);<br/>
+    }).mouseout(function () {<br/>
+        $(this).removeClass(&quot;bgcolor&quot;);<br/>
+    });<br/>
+});<br/><br/>
+function openNewPage(subtitle, url) {<br/>
+    window.parent.openPage(subtitle, url, &quot;_blank&quot;);<br/>
+}<br/><br/>
+function openInSelfPage(subtitle, url) {<br/>
+    window.parent.openPage(subtitle, url);<br/>
+}<br/><br/>
+function closeCurrentTab() {<br/>
+    window.parent.closeCurrentTab();<br/>
+}<br/><br/><br/>
+//获取url参数值<br/>
+function getQueryString(name) {<br/>
+    var reg = new RegExp(&quot;(^|&amp;)&quot; + name + &quot;=([^&amp;]*)(&amp;|$)&quot;, &quot;i&quot;);<br/>
+    var r = window.location.search.substr(1).match(reg);<br/>
+    if (r != null) {<br/>
+        // return unescape(r[2]);<br/>
+        return decodeURI(r[2]);<br/>
+    }<br/>
+    return null;<br/>
+}<br/><br/><br/>
+function isTel(s) {<br/>
+    var patrn = /^[0-9\-]+$/;<br/>
+    if (patrn.exec(s) == null) return false;<br/>
+    return true;<br/>
+}<br/><br/>
+function isLetter(s) {<br/>
+    var patrn = /^[a-z\sA-Z]+$/;<br/>
+    if (patrn.exec(s) == null) return false;<br/>
+    return true;<br/>
+}<br/>
+function isMobile(s) {<br/>
+    var patrn = /^0?1[0-9]{10}$/;<br/>
+    if (patrn.exec(s) == null) return false;<br/>
+    return true;<br/>
+}<br/>
+function isEmail(s) {<br/>
+    var patrn = /^(\w)+(\.\w+)*@(\w)+((\.\w+)+)$/;<br/>
+    if (patrn.exec(s) == null) return false;<br/>
+    return true;<br/>
+}<br/>
+function isDigit(s) {<br/>
+    var patrn = /^\d+$/;<br/>
+    if (patrn.exec(s) == null) return false;<br/>
+    return true;<br/>
+}<br/><br/>
+function isAirline(s) {<br/>
+    var patrn = /^[0-9a-zA-Z]{2}$/;<br/>
+    if (patrn.exec(s) == null) return false;<br/>
+    return true;<br/>
+}<br/><br/>
+function isTime(s) {<br/>
+    var patrn = /^(([0-1][0-9])|([2][0-3])):?([0-5][0-9])$/;<br/>
+    if (patrn.exec(s) == null) return false;<br/>
+    return true;<br/>
+}<br/><br/>
+//设置cookie<br/>
+function setCookie(name, value, expires, path, domain, secure) {<br/>
+    var today = new Date();<br/>
+    today.setTime(today.getTime());<br/>
+    if (expires) {<br/>
+        expires = expires * 1000 * 60 * 60 * 24;<br/>
+    }<br/>
+    var expires_date = new Date(today.getTime() + (expires));<br/>
+    document.cookie = name + &quot;=&quot; + escape(value) + ((expires) ? &quot;;expires=&quot; +<br/>
+            expires_date.toGMTString() : &quot;&quot;) + ((path) ? &quot;;path=&quot; +<br/>
+            path : &quot;&quot;) + ((domain) ? &quot;;domain=&quot; + domain : &quot;&quot;) +<br/>
+            ((secure) ? &quot;;secure&quot; : &quot;&quot;);<br/>
+}<br/><br/>
+//获取cookie<br/>
+function getCookie(name) {<br/>
+    var start = document.cookie.indexOf(name + &quot;=&quot;);<br/>
+    var len = start + name.length + 1;<br/>
+    if ((!start) &amp;&amp; (name != document.cookie.substring(0, name.length))) {<br/>
+        return null;<br/>
+    }<br/>
+    if (start == -1) {<br/>
+        return null;<br/>
+    }<br/>
+    var end = document.cookie.indexOf(&quot;;&quot;, len);<br/>
+    if (end == -1) {<br/>
+        end = document.cookie.length;<br/>
+    }<br/>
+    return unescape(document.cookie.substring(len, end));<br/>
+}<br/><br/>
+//删除cookie<br/>
+function deleteCookie(name, path, domain) {<br/>
+    var self = this;<br/>
+    if (self.getCookie(name)) {<br/>
+        document.cookie = name + &quot;=&quot; + ((path) ? &quot;;path=&quot; + path : &quot;&quot;) +<br/>
+                ((domain) ? &quot;;domain=&quot; + domain : &quot;&quot;) +<br/>
+                &quot;;expires=Thu,01-Jan-1970 00:00:01 GMT&quot;;<br/>
+    }<br/>
+}<br/><br/>
+//日期格式化<br/>
+Date.prototype.format = function (format) //author: meizz<br/>
+{<br/>
+    var o = {<br/>
+        &quot;M+&quot;: this.getMonth() + 1, //month<br/>
+        &quot;d+&quot;: this.getDate(), //day<br/>
+        &quot;h+&quot;: this.getHours(), //hour<br/>
+        &quot;m+&quot;: this.getMinutes(), //minute<br/>
+        &quot;s+&quot;: this.getSeconds(), //second<br/>
+        &quot;q+&quot;: Math.floor((this.getMonth() + 3) / 3), //quarter<br/>
+        &quot;S&quot;: this.getMilliseconds() //millisecond<br/>
+    }<br/>
+    if (/(y+)/.test(format)) format = format.replace(RegExp.$1,<br/>
+    (this.getFullYear() + &quot;&quot;).substr(4 - RegExp.$1.length));<br/>
+    for (var k in o) if (new RegExp(&quot;(&quot; + k + &quot;)&quot;).test(format))<br/>
+        format = format.replace(RegExp.$1,<br/>
+      RegExp.$1.length == 1 ? o[k] :<br/>
+        (&quot;00&quot; + o[k]).substr((&quot;&quot; + o[k]).length));<br/>
+    return format;<br/>
+}<br/><br/>
+//精确加法<br/>
+function accAdd(arg1, arg2) {<br/>
+    arg1 = $.trim(arg1);<br/>
+    arg2 = $.trim(arg2);<br/>
+    var r1, r2, m, c;<br/>
+    try {<br/>
+        r1 = arg1.toString().split(&quot;.&quot;)[1].length;<br/>
+    }<br/>
+    catch (e) {<br/>
+        r1 = 0;<br/>
+    }<br/>
+    try {<br/>
+        r2 = arg2.toString().split(&quot;.&quot;)[1].length;<br/>
+    }<br/>
+    catch (e) {<br/>
+        r2 = 0;<br/>
+    }<br/>
+    c = Math.abs(r1 - r2);<br/>
+    m = Math.pow(10, Math.max(r1, r2));<br/>
+    if (c &gt; 0) {<br/>
+        var cm = Math.pow(10, c);<br/>
+        if (r1 &gt; r2) {<br/>
+            arg1 = Number(arg1.toString().replace(&quot;.&quot;, &quot;&quot;));<br/>
+            arg2 = Number(arg2.toString().replace(&quot;.&quot;, &quot;&quot;)) * cm;<br/>
+        } else {<br/>
+            arg1 = Number(arg1.toString().replace(&quot;.&quot;, &quot;&quot;)) * cm;<br/>
+            arg2 = Number(arg2.toString().replace(&quot;.&quot;, &quot;&quot;));<br/>
+        }<br/>
+    } else {<br/>
+        arg1 = Number(arg1.toString().replace(&quot;.&quot;, &quot;&quot;));<br/>
+        arg2 = Number(arg2.toString().replace(&quot;.&quot;, &quot;&quot;));<br/>
+    }<br/>
+    return (arg1 + arg2) / m;<br/>
+}<br/><br/>
+//精确减法<br/>
+function accSub(arg1, arg2) {<br/>
+    arg1 = $.trim(arg1);<br/>
+    arg2 = $.trim(arg2);<br/>
+    var r1, r2, m, n;<br/>
+    try {<br/>
+        r1 = arg1.toString().split(&quot;.&quot;)[1].length;<br/>
+    }<br/>
+    catch (e) {<br/>
+        r1 = 0;<br/>
+    }<br/>
+    try {<br/>
+        r2 = arg2.toString().split(&quot;.&quot;)[1].length;<br/>
+    }<br/>
+    catch (e) {<br/>
+        r2 = 0;<br/>
+    }<br/>
+    m = Math.pow(10, Math.max(r1, r2)); //last modify by deeka //动态控制精度长度<br/>
+    n = (r1 &gt;= r2) ? r1 : r2;<br/>
+    return ((arg1 * m - arg2 * m) / m).toFixed(n);<br/>
+}<br/><br/>
+//精确乘法<br/>
+function accMul(arg1, arg2) {<br/>
+    arg1 = $.trim(arg1);<br/>
+    arg2 = $.trim(arg2);<br/>
+    var m = 0, s1 = arg1.toString(), s2 = arg2.toString();<br/>
+    try { m += s1.split(&quot;.&quot;)[1].length } catch (e) { }<br/>
+    try { m += s2.split(&quot;.&quot;)[1].length } catch (e) { }<br/>
+    return Number(s1.replace(&quot;.&quot;, &quot;&quot;)) * Number(s2.replace(&quot;.&quot;, &quot;&quot;)) / Math.pow(10, m)<br/>
+}<br/><br/>
+//精确除法<br/>
+function accDiv(arg1, arg2) {<br/>
+    arg1 = $.trim(arg1);<br/>
+    arg2 = $.trim(arg2);<br/>
+    var t1 = 0, t2 = 0, r1, r2;<br/>
+    try { t1 = arg1.toString().split(&quot;.&quot;)[1].length } catch (e) { }<br/>
+    try { t2 = arg2.toString().split(&quot;.&quot;)[1].length } catch (e) { }<br/>
+    with (Math) {<br/>
+        r1 = Number(arg1.toString().replace(&quot;.&quot;, &quot;&quot;));<br/>
+        r2 = Number(arg2.toString().replace(&quot;.&quot;, &quot;&quot;));<br/>
+        return (r1 / r2) * pow(10, t2 - t1);<br/>
+    }<br/>
+}<br/><br/>
+/*<br/>
+保留两位小数，第三位直接舍去 <br/>
+*/<br/>
+function keepTwoDecimal(num) {<br/>
+    if (num &gt; 0) {<br/>
+        return accDiv(parseInt(accMul(accAdd(num, 0.00999999), 100)), 100);<br/>
+    }<br/>
+    else {<br/>
+        return accDiv(parseInt(accMul(num, 100)), 100);<br/>
+    }<br/>
+}<br/><br/>
+/*<br/>
+保留两位小数，第三位四舍五入<br/>
+*/<br/>
+function mathRound(num) {<br/>
+    return Math.round(num * 100) / 100;<br/>
+}<br/><br/>
+/*<br/>
+返回值：返回大于或等于x，并且与之最接近的整数。<br/>
+注：如果x是正数，则把小数“入”；如果x是负数，则把小数“舍”。<br/>
+*/<br/>
+function mathCeil(num) {<br/>
+    return Math.ceil(num * 100) / 100;<br/>
+}<br/><br/>
+/*<br/>
+返回值：返回小于或等于x，并且与之最接近的整数。<br/>
+注：如果x是正数，则把小数“舍”；如果x是负数，则把小数“入”。<br/>
+*/<br/>
+function mathFloor(num) {<br/>
+    return Math.floor(num * 100) / 100;<br/>
+}<br/><br/><br/><br/>
+function closeCurrentTabAndrefreshTab(refreshTabTitle) {<br/>
+    //刷新列表页面<br/>
+    window.parent.refreshTab(refreshTabTitle);<br/>
+    //关闭当前页面<br/>
+    window.parent.closeCurrentTab();<br/>
+}<br/><br/>
+/*<br/>
+保留整数，小数位进1 <br/>
+*/<br/>
+function keepInt(num) {<br/>
+    if (num &gt; 0) {<br/>
+        return parseInt(accAdd(num, 0.99999999));<br/>
+    }<br/>
+    else {<br/>
+        return parseInt(num);<br/>
+    }<br/>
+}<br/><br/>
+function meiya_alert(content, callback) {<br/>
+    Meiya.PlugIn.Mask.show();<br/>
+    Meiya.PlugIn.Pop.Reset({ title: &quot;&quot;, Content: content, IsEnter: true, CallBack: { Enter: function () {<br/>
+        if (typeof (callback) == &quot;function&quot;) {<br/>
+            callback();<br/>
+        }<br/>
+        Meiya.PlugIn.Mask.hide();<br/>
+        Meiya.PlugIn.Pop.hide();<br/>
+    }<br/>
+    }<br/>
+    });<br/>
+}<br/><br/>
+function jsonDateFormat(jsonDate) {//json日期格式转换为正常格式<br/>
+    try {//出自http://www.cnblogs.com/ahjesus 尊重作者辛苦劳动成果,转载请注明出处,谢谢!<br/>
+        var date = new Date(parseInt(jsonDate.replace(&quot;/Date(&quot;, &quot;&quot;).replace(&quot;)/&quot;, &quot;&quot;), 10));<br/>
+        var month = date.getMonth() + 1 &lt; 10 ? &quot;0&quot; + (date.getMonth() + 1) : date.getMonth() + 1;<br/>
+        var day = date.getDate() &lt; 10 ? &quot;0&quot; + date.getDate() : date.getDate();<br/>
+        //        var hours = date.getHours();<br/>
+        //        var minutes = date.getMinutes();<br/>
+        //        var seconds = date.getSeconds();<br/>
+        //        var milliseconds = date.getMilliseconds();<br/>
+        return date.getFullYear() + &quot;-&quot; + month + &quot;-&quot; + day;<br/>
+        //return date.getFullYear() + &quot;-&quot; + month + &quot;-&quot; + day + &quot; &quot; + hours + &quot;:&quot; + minutes + &quot;:&quot; + seconds + &quot;.&quot; + milliseconds;<br/>
+    } catch (ex) {//出自http://www.cnblogs.com/ahjesus 尊重作者辛苦劳动成果,转载请注明出处,谢谢!<br/>
+        return &quot;&quot;;<br/>
+    }<br/>
+}<br/></div></span>
+</div></body></html> 

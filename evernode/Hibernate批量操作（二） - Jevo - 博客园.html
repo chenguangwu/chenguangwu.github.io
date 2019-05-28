@@ -1,0 +1,234 @@
+<html>
+<head>
+  <title>Hibernate批量操作（二） - Jevo - 博客园</title>
+  <basefont face="微软雅黑" size="2" />
+  <meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+  <meta name="exporter-version" content="YXBJ Windows/600718 (zh-CN, DDL); Windows/6.1.1 (Win64);"/>
+  <style>
+    body, td {
+      font-family: 微软雅黑;
+      font-size: 10pt;
+    }
+  </style>
+</head>
+<body>
+<a name="6156"/>
+<h1>Hibernate批量操作（二） - Jevo - 博客园</h1>
+<div>
+<table bgcolor="#D4DDE5" border="0">
+<tr><td><b>创建时间：</b></td><td><i>2017/3/29 17:06</i></td></tr>
+<tr><td><b>来源：</b></td><td><a href="http://www.cnblogs.com/jevo/archive/2013/04/10/3039211.html"><i>http://www.cnblogs.com/jevo/archive/2013/04/10/3039211.html</i></a></td></tr>
+</table>
+</div>
+<br/>
+
+<div><span><div style="-evernote-webclip:true"><br/><div style="font-size: 16px; display: inline-block;"><div><div style="font-family:&quot;PingFang SC&quot;, &quot;Helvetica Neue&quot;, Helvetica, Arial, sans-serif;color:rgb(0, 0, 0);background:url(&quot;/Skins/coffee/images/bg_body.gif&quot;) left top;line-height:1.5;font-size:14px;"><div style="min-width:auto;"><div style="min-width:auto;text-align:left;"><div style="background:transparent;text-align:left;overflow-x:hidden;"><div style="background:url(&quot;/Skins/coffee/images/bg_left.gif&quot;) left top repeat-x rgb(254, 254, 242);"><div><div style="text-overflow:ellipsis;overflow:hidden;word-break:break-all;"><div>
+		<h1 style="margin:0px;padding:0px;width:100%;clear:both;font-weight:bold;float:left;line-height:1.5;font-size:14px;padding-left:5px;">
+			<a href="http://www.cnblogs.com/jevo/archive/2013/04/10/3039211.html" style="margin:0px;padding:0px;text-decoration:none;color:rgb(7, 93, 179);">Hibernate批量操作（二）</a>
+		</h1>
+		<div style="margin:0px;padding:0px;clear:both;"></div>
+		<div style="margin:0px;padding:5px 2px 5px 5px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin-top:5px;">
+			<div style="margin:0px;padding:0px;margin-bottom:20px;word-break:break-word;"><p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">Hibernate提供了一系列的查询接口，这些接口在实现上又有所不同。这里对Hibernate中的查询接口进行一个小结。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">我们首先来看一下session加载实体对象的过程：Session在调用数据库查询前，首先会在缓存中进行查询。如果在内部缓存中通过实体类型和id进行查找并命中，数据状态合法，则直接返回。如果内部缓存中未发现有效数据，则查询第二级缓存，如果第二级缓存命中，则返回。如在第二级缓存中没有命中，则发起数据库查询操作（Select SQL），根据映射配置和Select SQL得到的ResultSet，创建对应的数据对象。将其数据对象纳入当前Session实体管理容器（一级缓存）。执行Interceptor.onLoad方法（如果有对应的Interceptor），将数据对象纳入二级缓存。如果数据对象实现了LifeCycle接口，则调用数据对象的onLoad方法。返回数据对象。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">利用缓存可以使查询性能得到了大幅提高，但Hibernate的实现中并非所有的接口都利用了缓存机制。Session2的find/iterator方法均可根据指定条件查询并返回符合查询条件的实体对象集。Hibernate3中的查询接口Query中的list/iterate方法也实现了相同的功能(Hibernate3.x版本中淘汰了find()方法，使用Query查询接口)。从实现机制上，这两个接口没有本质差别。从缓存方面上，find/ list方法通过一条select sql实现查询操作，而iterate则执行1+ N次查询, 首先执行select sql获取满足条件的id，再根据每个id获取对应的记录。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">但是，find方法（hibernate2）/Query的list（hibernate3）实际上不利用缓存，它对缓存只写不读。find方法将执行Select从数据库中获得所有符合条件的记录并构造相应的实体对象，实体对象构建完毕之后，就将其纳入缓存中。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">而iterate方法（hibernate2）/Query的iterate（hibernate3）则充分利用了缓存中的数据，iterate方法执行时，它首先会执行一条Select SQL以获得所有满足查询条件的数据id，然后再从内部缓存中根据id查找对应的实体对象（类似Session.load方法），如果缓存中存在对应的数据，则直接以此数据对象作为查询结果，如果没有找到，则再执行相应的Select语句从数据库中获得对应的记录，并构建相应的数据对象作为查询结果，并且该结果也被纳入缓存中。这样，如果查询数据只读或者读取相对较为频繁，通过这种机制可以大大减少性能上的损耗。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">另一个方面，我们知道内部缓存容量并没有限制，在查询过程中，大量的数据对象被纳入内部缓存中，从而带来了相应的内存消耗。为了控制内部缓存的大小，可以手动清除hibernate的缓存。也可结合iterator方法和evict方法逐条对数据对象进行处理，将内存消耗在可接受的范围之内。如下：</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">String hql = &quot;from XXX&quot;;</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">Query query = session.createQuery(hql);</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">Iterator iter = query.iterate();</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">while(iter.hasNext()){</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">    Object obj = iter.next();</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">    session.evict(obj);</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">}</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">所以数据量过大时， 应该避免使用find（list），推荐使用iterate（iterate）。实际应用开发中，对于大批量数据处理，还是推荐采用SQL或存储过程实现，以获得较高性能。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"> </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">使用基于游标的数据遍历操作也是一个好的查询方法，通过游标，可以逐条获取数据，从而使得内存处于较为稳定的使用状态。如下：</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">String hql = &quot;from XXX&quot;;</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">Query query = session.createQuery(hql);</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">ScrollableResults scres = query.scroll();</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">while(scRes.next()) {</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">   Object obj = scRes.get(0);</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">    //。。。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">}</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"> </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">此外，Hibernate还提供了一种从Criteria对象中增加查询条件的实现。Criteria Query通过面向对象化的设计，将数据查询条件封装为一个对象。简单来讲，Criteria Query可以看作是传统SQL的对象化表示，如：</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">Criteria criteria = session.createCriteria(TUser.class);</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">criteria.add(Expression.eq(&quot;name&quot;,&quot;Erica&quot;));</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">criteria.add(Expression.eq(&quot;sex&quot;,new Integer(1)));</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">criteria.addOrder(Order.asc(&quot;name&quot;)); //增加排序</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">这里的criteria 实例实际上是SQL “Select * from t_user where name=’Erica’ and sex=1”的封装。Hibernate 在运行期会根据Criteria 中指定的查询条件（也就是上面代码中通过criteria.add方法添加的查询表达式）生成相应的SQL语句。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"> </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">对于大量数据的查询，可以利用分页来控制每次查询返回记录的数量。在Hibernate中，通过Criteria(或者Query)接口的setFirstResult, setMaxResults 方法来限制一次查询返回的记录范围。下面是一个在Spring模板中使用Query接口分页的示例。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">public &lt;T&gt; List&lt;T&gt; findByPage(final String hql, final Object[] values, final int offset, final int pageSize) {</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">        List&lt;T&gt; list = getHibernateTemplate().executeFind(// 通过一个HibernateCallback对象来执行查询</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">                new HibernateCallback() {</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">                    // 实现HibernateCallback接口必须实现的方法</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">                    public Object doInHibernate(Session session) throws HibernateException, SQLException {</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">                        // 执行Hibernate分页查询</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">                        Query query = session.createQuery(hql);</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">                        if (values != null) {</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">                            // 为hql语句传入参数</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">                            for (int i = 0; i &lt; values.length; i++) {</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">                                query.setParameter(i, values[i]);</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">                            }</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">                        }</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">                        List&lt;T&gt; result = query.setFirstResult(offset).setMaxResults(pageSize).list();</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">                        return result;</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">                    }</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">                });</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">        return list;</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">    }</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">分页通常与排序相关，Hibernate中主要有两种排序方式：1)Sort、2）order-by。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">sort ：Hibernate中提供了可排序Set，它实现了java.util.SortedSet .  在set元素中可配置sort属性(sort='natural', 指定采用Java默认排序机制，通过调用数据类型的compareTo方法。可以自定义java.util.Comparator接口的实现实现自定义的排序算法，来作为sort的属性值。Map类型与Set基本一致。但Bag和List不支持sort排序。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">order-by：在元素中增加order-by属性(比如order-by=&quot;address desc&quot; )可以实现数据库排序. 该特性利用了JDK1.4+ 中的LinkedHashSet以及LinkedHashMap, 由此必须在环境JDK1.4以上才可成功。Set, Map, Bag支持, List不支持该特性.</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">配置示例：映像文件中设定sort属性，例如若为Set，则如下设定：</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">&lt;set name=&quot;addrs&quot; table=&quot;ADDRS&quot; sort=&quot;natural&quot;&gt;</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">        &lt;key column=&quot;USER_ID&quot;/&gt;</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">        &lt;element type=&quot;string&quot; column=&quot;ADDRESS&quot; not-null=&quot;true&quot;/&gt;</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">&lt;/set&gt;</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">如果是Map的话，则如下设定：</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">&lt;map name=&quot;files&quot; table=&quot;FILES&quot; sort=&quot;natural&quot;&gt;</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">    &lt;key column=&quot;USER_ID&quot;/&gt;</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">    &lt;index column=&quot;DESCRIPTION&quot; type=&quot;string&quot;/&gt;</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">    &lt;element type=&quot;string&quot; column=&quot;FILENAME&quot; not-null=&quot;true&quot;/&gt;</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">&lt;/map&gt;</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">在Set中是这么设定的：</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">&lt;set name=&quot;addrs&quot; table=&quot;ADDRS&quot; order-by=&quot;ADDRESS desc&quot;&gt;</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">        &lt;key column=&quot;USER_ID&quot;/&gt;</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">        &lt;element type=&quot;string&quot; column=&quot;ADDRESS&quot; not-null=&quot;true&quot;/&gt;</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">&lt;/set&gt;</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">在Map中也是相同的设定方式，您也可以利用数据库中的函式功能，例如：</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">&lt;map name=&quot;files&quot; table=&quot;FILES&quot; order-by=&quot;lower(FILENAME)&quot;&gt;</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">    &lt;key column=&quot;USER_ID&quot;/&gt;</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">    &lt;index column=&quot;DESCRIPTION&quot; type=&quot;string&quot;/&gt;</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">    &lt;element type=&quot;string&quot; column=&quot;FILENAME&quot; not-null=&quot;true&quot;/&gt;</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">&lt;/map&gt;</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"> </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">在查询中，还需要考虑的一个问题： 在设定了1 对多这种关系之后， 查询将会出现n +1 问题。 <br style="margin:0px;padding:0px;"/>1 ）1 对多，在1 方查找得到了n个对象， 那么又需要将n 个对象关联的集合取出，于是本来的一条sql查询变成了n +1 条 <br style="margin:0px;padding:0px;"/>2）多对1 ，在多方查询得到了m个对象，那么也会将m个对象对应的1 方的对象取出， 也变成了m+1</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">解决n+1问题的思路是利用Hibernate提供的两种检索策略：延迟检索策略和迫切左外连接检索策略。延迟检索策略能避免加载应用程序不需要访问的关联对象，迫切左外连接检索策略则充分利用了SQL的外连接查询功能，减少select语句的数目。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">•   利用延迟检索策略，则在配置中将lazy设置为true，lazy=true时不会立刻查询关联对象，只有当需要关联对象（访问其属性，非id字段）时才会发生查询动作。使用注释方式，则在本类DTO中有关联外表的表对象的声明，在其的get方法上面加上一个@fetch=fetchtype.lazy。（Hibernate3默认是lazy=true）。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">虽然利用延迟检索可以避免执行多余的select语句加载应用程序不需要访问的对象，因此能提高检索性能，并且节省了内存空间；但是，应用程序如果希望访问游离状态代理类实例，必须保证数据对象在持久化状态时已经被初始化。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"> </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">•   利用左外连接检索策略，则在配置中设置outer-join=true，（或采用注解方式：@ManyToOne() @Fetch(FetchMode.JOIN)</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">左外连接检索策略对应用程序完全透明，不管对象处于持久化状态，还是游离状态，应用程序都可以方便地从一个对象导航到与它关联的对象。同时由于使用了外连接，select语句数目得到了减少；但左连接也可能会加载应用程序不需要访问的对象浪费许多内存空间，并且复杂的数据库表连接也会影响检索性能，不利用进行SQL优化；</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">对于迫切左外连接检索，query的集合检索并不适用，它会采用立即检索策略，同时，我们还需要通过 hibernate.max_fetch_depth属性来控制外连接的深度，由于外连接使select语句的复杂度提高，多表之间的关联将是很耗时的操作，而且关联越深查询的性能会急速下降。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"> </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">其他的思路还有：利用二级缓存，如果数据在二级缓存中被命中，则不会再引起SQL查询。也可以在关联类上设置@BatchSize(size=2)，此时就只发生两条语句。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">(@org.hibernate.annotations.BatchSize 允许你定义批量获取该实体的实例数量(如：@BatchSize(size=4)). 当加载一特定的实体时,Hibernate将加载在持久上下文中未经初始化的同类型实体,直至批量数量(上限))<br style="margin:0px;padding:0px;"/>在Criteria接口也可以通过设置setFetchMode来设置检索策略。在网上看到一篇&lt;Hibernate 3如何解决n+1 selects问题&gt;的文章中(如此嵌套没有尝试过)，提到嵌套多张外键关联表时，如四张表（one,two,three,four）从one一直外键关联到four，用Session中得到One，并从One里一直取到Four里的内容的做法。代码摘下：</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">session = sessionFactory.openSession();</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">Criteria criteria = session.createCriteria(One.class);</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">criteria.add(Expression.eq(&quot;COneId&quot;,new Integer(1)));</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">one = (One)criteria.setFetchMode(&quot;twos&quot;,FetchMode.JOIN).setFetchMode(&quot;twos.threes&quot;,FetchMode.JOIN).setFetchMode(&quot;twos.threes.fours&quot;,FetchMode.JOIN).uniqueResult();</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">session.close();</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">在用Criteria之前先设置FetchMode，应为Criteria是动态生成sql语句的，所以生成的sql就是一层层Join下去的。 </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">setFetchMode（String，Mode）第一个参数是association path，用&quot;.&quot;来表示路径。这一点具体的例子很少，文档也没有写清楚。我也是试了很久才试出来的。 </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">就这个例子来所把因为取道第四层，所以要进行三次setFetchMode </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">第一次的路径是twos，一位one中有two的Set。这个具体要更具hbm.xml的配置来定。 </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">第二个路径就是twos.threes </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">第三个就是twos.threes.fours </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">一次类推，一层层增加的。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"> </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">此外，还可直接使用SQL来查询，写SQL语句时就写成联合查询的形式。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"> </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"> </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"> </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">附：以下参考自http://www.blogjava.net/dreamstone/archive/2007/07/29/133071.html</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">回顾一下Hibernate实体对象的状态。在Hibernate中，一个对象定义了三种状态：transient(瞬态或者自由态)、persistent(持久化状态)、detached(脱管状态或者游离态)。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">    •   瞬时状态(transient)：刚刚用new语句建立，还没有被持久化，不处于session的缓存中，在数据库中无相应记录。处于临时状态的java对象称之为临时对象。<br style="margin:0px;padding:0px;"/>    •   持久化对象（persistent)：已经被持久化，加入到session的缓存中，在数据库中有相应记录。处于持久化状态的java对象被称之为持久化对象，会被session根据持久化对象的属性变化，自动同步更新数据库。<br style="margin:0px;padding:0px;"/>    •   托管(游离)状态(detached)：持久化对象关联的session关闭后处于托管状态，没在Session缓存中，如果没有其他程序删除其对应的纪录，那么数据库中应该有其纪录。可以继续修改然后关联到新的session上，再次成为持久化对象，托管期间的修改会被持久化到DB。这使长时间操作成为可能。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"> </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">这三种状态可以通过Session的一些API调用实现互相转化：</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">    •   处于游离状态的实例可以通过调用save()、persist()或者saveOrUpdate()方法进行持久化。<br style="margin:0px;padding:0px;"/>    •   持久化的实例可以通过调用 delete()变成脱管状态。通过get()或load()方法得到的实例都是持久化状态的。<br style="margin:0px;padding:0px;"/>    •   脱管状态的实例可以通过调用 update()、saveOrUpdate()、lock()或者replicate()进行持久化。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">    •   save()和persist()将会触发SQL的INSERT操作，delete()会触发SQL DELETE，而update()或merge()会触发SQL UPDATE。对持久化（persistent）实例的修改在刷新提交的时候会被检测到，它也会引起SQL UPDATE。saveOrUpdate()或者replicate()会引发SQL INSERT或者UPDATE</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"> </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">这些API的区别如下：</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"><strong style="margin:0px;padding:0px;">save </strong><strong style="margin:0px;padding:0px;">和update</strong><strong style="margin:0px;padding:0px;">：</strong><br style="margin:0px;padding:0px;"/>        save是把一个新的对象进行保存；update则是对一个脱管状态的对象进行保存。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"> </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"><strong style="margin:0px;padding:0px;">update </strong><strong style="margin:0px;padding:0px;">和saveOrUpdate</strong><strong style="margin:0px;padding:0px;">：</strong><br style="margin:0px;padding:0px;"/>        update()方法操作的对象必须是持久化了的对象，当持久化的对象发生变化时进行保存，如果该对象在数据库中不存在，则会抛出异常。saveOrUpdate()方法操作的对象既可以使持久化了的，也可以使没有持久化的对象。如果是持久化了的对象调用saveOrUpdate()会更新数据库中的对象；如果是未持久化的对象，则save到数据库中，相当于新增了一个对象。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"> </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"><strong style="margin:0px;padding:0px;">persist</strong><strong style="margin:0px;padding:0px;">和save</strong><strong style="margin:0px;padding:0px;">：</strong><br style="margin:0px;padding:0px;"/>        参考<a href="http://opensource.atlassian.com/projects/hibernate/browse/HHH-1682" style="margin:0px;padding:0px;text-decoration:underline;color:rgb(7, 93, 179);">http://opensource.atlassian.com/projects/hibernate/browse/HHH-1682</a>中的一个说明：</p>
+<table border="1" cellpadding="0" cellspacing="0" style="border-collapse:collapse;font-size:inherit;font-style:inherit;font-variant:inherit;padding:0px;font-weight:inherit;margin:0px;word-break:break-word;border:1px solid silver;display:block;overflow-x:scroll;">
+<tbody style="margin:0px;padding:0px;">
+<tr style="margin:0px;padding:0px;">
+<td style="margin:0px;border:1px solid silver;border-collapse:collapse;padding:3px;white-space:nowrap;" valign="top" width="590">
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">I found that a lot of people have the same doubt. To help to solve this issue <br style="margin:0px;padding:0px;"/>I'm quoting Christian Bauer:<br style="margin:0px;padding:0px;"/>&quot;In case anybody finds this thread...</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">persist() is well defined. It makes a transient instance persistent. However, <br style="margin:0px;padding:0px;"/>it doesn't guarantee that the identifier value will be assigned to the persistent <br style="margin:0px;padding:0px;"/>instance immediately, the assignment might happen at flush time. The spec doesn't say <br style="margin:0px;padding:0px;"/>that, which is the problem I have with persist().</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">persist() also guarantees that it will not execute an INSERT statement if it is <br style="margin:0px;padding:0px;"/>called outside of transaction boundaries. This is useful in long-running conversations <br style="margin:0px;padding:0px;"/>with an extended Session/persistence context.A method like persist() is required.</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">save() does not guarantee the same, it returns an identifier, and if an INSERT <br style="margin:0px;padding:0px;"/>has to be executed to get the identifier (e.g. &quot;identity&quot; generator, not &quot;sequence&quot;), <br style="margin:0px;padding:0px;"/>this INSERT happens immediately, no matter if you are inside or outside of a transaction. This is not good in a long-running conversation with an extended Session/persistence context.&quot;</p>
+</td>
+</tr>
+</tbody>
+</table>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">简单翻译一下上边的句子的主要内容：<br style="margin:0px;padding:0px;"/>        1，persist把一个瞬态的实例持久化，但是并&quot;不保证&quot;标识符被立刻填入到持久化实例中，标识符的填入可能被推迟到flush的时间。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">        2，persist&quot;保证&quot;，当它在一个transaction外部被调用的时候并不触发一个Sql Insert，这个功能是很有用的，当我们通过继承Session/persistence context来封装一个长会话流程的时候，一个persist这样的函数是需要的。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">        3，save&quot;不保证&quot;第2条,它要返回标识符，所以它会立即执行Sql insert，不管是不是在transaction内部还是外部</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"> </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"><strong style="margin:0px;padding:0px;">saveOrUpdateCopy</strong><strong style="margin:0px;padding:0px;">、merge</strong><strong style="margin:0px;padding:0px;">和update</strong><strong style="margin:0px;padding:0px;">：</strong><br style="margin:0px;padding:0px;"/>       merge是用来代替saveOrUpdateCopy的，参考<br style="margin:0px;padding:0px;"/><a href="http://www.blogjava.net/dreamstone/archive/2007/07/28/133053.html" style="margin:0px;padding:0px;text-decoration:underline;color:rgb(7, 93, 179);">http://www.blogjava.net/dreamstone/archive/2007/07/28/133053.html</a><br style="margin:0px;padding:0px;"/>。Merge：将当前对象的状态保存到数据库中，并不会把该对象转换成持久化状态。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">      Merge与update的区别在于：当我们使用update的时候，执行完成后，我们提供的对象A的状态变成持久化状态，但当我们使用merge的时候，执行完成，我们提供的对象A还是脱管状态，hibernate或者new了一个B，或者检索到一个持久对象B，并把我们提供的对象A的所有的值拷贝到这个B，执行完成后B是持久状态，而我们提供的A还是托管状态。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"> </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"><strong style="margin:0px;padding:0px;">flush</strong><strong style="margin:0px;padding:0px;">和update</strong><strong style="margin:0px;padding:0px;">：</strong><br style="margin:0px;padding:0px;"/>        update操作的是在脱管状态的对象，而flush是操作的在持久状态的对象。<br style="margin:0px;padding:0px;"/>        默认情况下，一个持久状态的对象是不需要update的，只要你更改了对象的值，等待hibernate flush就自动保存到数据库了。hibernate flush发生再几种情况下：<br style="margin:0px;padding:0px;"/>        1，调用某些查询的时候<br style="margin:0px;padding:0px;"/>        2，transaction commit的时候<br style="margin:0px;padding:0px;"/>        3，手动调用flush的时候 </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"> </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"><strong style="margin:0px;padding:0px;">lock</strong><strong style="margin:0px;padding:0px;">和update</strong><strong style="margin:0px;padding:0px;">：</strong><br style="margin:0px;padding:0px;"/>        update是把一个已经更改过的脱管状态的对象变成持久状态；lock是把一个没有更改过的脱管状态的对象变成持久状态。<br style="margin:0px;padding:0px;"/>        对应更改一个记录的内容，两个的操作不同：<br style="margin:0px;padding:0px;"/>        update的操作步骤是：<br style="margin:0px;padding:0px;"/>        （1）更改脱管的对象-&gt;调用update<br style="margin:0px;padding:0px;"/>        lock的操作步骤是：<br style="margin:0px;padding:0px;"/>         (2)调用lock把对象从脱管状态变成持久状态--&gt;更改持久状态的对象的内容--&gt;等待flush或者手动flush</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"> </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"><strong style="margin:0px;padding:0px;">load</strong><strong style="margin:0px;padding:0px;">和get</strong><strong style="margin:0px;padding:0px;">：</strong></p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">区别1：Session.load/get方法均可以根据指定的实体类和id从数据库读取记录，并返回与之对应的实体对象。其区别在于：<br style="margin:0px;padding:0px;"/>如果未能发现符合条件的记录，get方法返回null，而load方法会抛出一个ObjectNotFoundException；load方法可返回实体的代理类实例，而get方法永远直接返回实体类；load方法可以充分利用内部缓存和二级缓存中的现有数据，而get方法则仅仅在内部缓存中进行数据查找，如没有发现对应数据，将越过二级缓存，直接调用SQL完成数据读取。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">区别2：load支持延迟加载，get不支持延迟加载。load 在加载的时候会根据加载策略来加载东西，加载策略默认为延迟加载，即只加载id.,如果需要用其它数据，必须在session关闭之前，去加载某一 个属性。lazy=&quot;true&quot; or &quot;false&quot; 如果加载策略是立即加载，那么它在加载时会把数据信息全部加载，这个时候即使，关闭session,因为数据已经全部加载了，也能取得数据。get 会直接采用立即加载策略加载数据，不管你配置的是延迟加载还是立即加载。关于立即加载和延迟加载 不仅只对自己这张表，将来表与表之间有关系时，一样会起作用。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">无论是get还是load，都会首先查找缓存（一级缓存），如果没有，才会去数据库查找，调用clear()方法，可以强制清除session缓存，调用flush()方法可以强制进行从内存到数据库的同步。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"> </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">Query的list和iterator方法的不同：</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">list不会使用缓存，而iterate会先取数据库select id出来，然后一个id一个id的load，如果在缓存里面有，就从缓存取，没有的话就去数据库load。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">不管是list方法还是iterate方法，第一次查询的时候，它们的查询方式很它们平时的方式是一样的，list执行一条sql，iterate执行1+N条，多出来的行为是它们填充了缓存查询缓存需要打开相关类的class缓存。list和iterate方法第一次执行的时候，都是既填充查询缓存又填充class缓存的。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">这里还有一个很容易被忽视的重要问题，即打开查询缓存以后，即使是list方法也可能遇到1+N的问题！</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">a&gt;list取出所有</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">b&gt;iterate取出id，等要用的时候再根据id取出对象</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">c&gt;session中的list第二次发出，仍然会到数据库查询</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">d&gt;iterate第二次，首先找session级缓存</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">getCurrentSession()一定要在事务中使用！！！</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"> </p></div>
+<div style="margin:0px;padding:0px;clear:both;"></div>
+<div style="margin:0px;padding:0px;margin-top:20px;">
+<div style="margin:0px;padding:0px;margin-bottom:10px;">分类: <a href="http://www.cnblogs.com/jevo/category/461908.html" style="margin:0px;padding:0px;text-decoration:underline;color:rgb(7, 93, 179);" target="_blank">hibernate</a></div>
+<div style="margin:0px;padding:0px;font-size:9pt;color:rgb(102, 102, 102);margin-top:0px;"></div>
+<div style="margin:0px;padding:0px;"><div style="margin:0px;padding:10px 0px;margin-bottom:10px;margin-top:10px;border:1px dashed silver;font-size:12px;width:320px;text-align:center;">
+        <a href="#" style="margin-right:10px;margin:0px;border-radius:10px;padding:3px 8px;text-decoration:none;font-weight:bold;cursor:pointer;display:inline-block;vertical-align:middle;box-shadow:rgba(0, 0, 0, 0.498039) 0px 1px 3px;text-shadow:rgba(0, 0, 0, 0.247059) 0px -1px 1px;background:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAAkCAYAAABIdFAMAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAHhJREFUeNo8zjsOxCAMBFB/KEAUFFR0Cbng3nQPw68ArZdAlOZppPFIBhH5EAB8b+Tlt9MYQ6i1BuqFaq1CKSVcxZ2Acs6406KUgpt5/LCKuVgz5BDCSb13ZO99ZOdcZGvt4mJjzMVKqcha68iIePB86GAiOv8CDADlIUQBs7MD3wAAAABJRU5ErkJggg%3D%3D&quot;) repeat-x;background-color:rgb(45, 174, 191);color:rgb(255, 255, 255);border:none;">好文要顶</a>
+            <a href="#" style="margin-right:10px;margin:0px;border-radius:10px;padding:3px 8px;text-decoration:none;font-weight:bold;cursor:pointer;display:inline-block;vertical-align:middle;box-shadow:rgba(0, 0, 0, 0.498039) 0px 1px 3px;text-shadow:rgba(0, 0, 0, 0.247059) 0px -1px 1px;background:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAAkCAYAAABIdFAMAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAHhJREFUeNo8zjsOxCAMBFB/KEAUFFR0Cbng3nQPw68ArZdAlOZppPFIBhH5EAB8b+Tlt9MYQ6i1BuqFaq1CKSVcxZ2Acs6406KUgpt5/LCKuVgz5BDCSb13ZO99ZOdcZGvt4mJjzMVKqcha68iIePB86GAiOv8CDADlIUQBs7MD3wAAAABJRU5ErkJggg%3D%3D&quot;) repeat-x;background-color:rgb(227, 49, 0);color:rgb(255, 255, 255);border:none;">关注我</a>
+    <a href="#" style="margin-right:10px;margin:0px;border-radius:10px;padding:3px 8px;text-decoration:none;font-weight:bold;cursor:pointer;display:inline-block;vertical-align:middle;box-shadow:rgba(0, 0, 0, 0.498039) 0px 1px 3px;text-shadow:rgba(0, 0, 0, 0.247059) 0px -1px 1px;background:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAAkCAYAAABIdFAMAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAHhJREFUeNo8zjsOxCAMBFB/KEAUFFR0Cbng3nQPw68ArZdAlOZppPFIBhH5EAB8b+Tlt9MYQ6i1BuqFaq1CKSVcxZ2Acs6406KUgpt5/LCKuVgz5BDCSb13ZO99ZOdcZGvt4mJjzMVKqcha68iIePB86GAiOv8CDADlIUQBs7MD3wAAAABJRU5ErkJggg%3D%3D&quot;) repeat-x;background-color:rgb(255, 181, 21);color:rgb(255, 255, 255);border:none;">收藏该文</a>
+    <a href="#" style="margin-right:10px;margin:0px;border-radius:10px;padding:3px 2px;text-decoration:none;font-weight:bold;cursor:pointer;display:inline-block;vertical-align:middle;box-shadow:none;text-shadow:none;background:none;color:rgb(255, 255, 255);border:none;" title="分享至新浪微博"><img src="Hibernate批量操作（二） - Jevo - 博客园_files/icon_weibo_24.png" type="image/png" data-filename="icon_weibo_24.png" alt="" height="24" style="margin:0px;padding:0px;height:auto;border:none;vertical-align:middle;margin-left:5px;box-shadow:none;max-width:300px;" width="24"/></a>
+    <a href="#" style="margin-right:10px;margin:0px;border-radius:10px;padding:3px 2px;text-decoration:none;font-weight:bold;cursor:pointer;display:inline-block;vertical-align:middle;box-shadow:none;text-shadow:none;background:none;color:rgb(255, 255, 255);border:none;" title="分享至微信"><img src="Hibernate批量操作（二） - Jevo - 博客园_files/wechat.png" type="image/png" data-filename="wechat.png" alt="" height="24" style="margin:0px;padding:0px;border:medium none;width:24px;height:24px;box-shadow:none;margin-left:5px;vertical-align:middle;max-width:300px;" width="24"/></a>
+</div>
+<div style="margin:0px;padding:0px;float:left;width:280px;margin-top:0px;margin-bottom:10px;color:rgb(0, 0, 0);margin-left:0px;font-size:12px;">
+    <div style="margin:0px;padding:0px;float:left;line-height:18px;">
+            <a href="http://home.cnblogs.com/u/jevo/" style="margin:0px;padding:0px;text-decoration:underline;color:rgb(7, 93, 179);" target="_blank"><img src="Hibernate批量操作（二） - Jevo - 博客园_files/sample_face.gif" type="image/gif" data-filename="sample_face.gif" alt="" height="46" style="margin:0px;padding:0px;height:auto;border:0px;vertical-align:top;float:left;margin-right:5px;padding-top:5px;padding-left:2px;max-width:300px;" width="47"/></a>
+        <div style="margin:0px;padding:0px;float:left;line-height:18px;">
+            <a href="http://home.cnblogs.com/u/jevo/" style="margin:0px;padding:0px;text-decoration:underline;color:rgb(7, 93, 179);">Jevo</a><br style="margin:0px;padding:0px;"/>
+            <a href="http://home.cnblogs.com/u/jevo/followees" style="margin:0px;padding:0px;text-decoration:underline;color:rgb(7, 93, 179);">关注 - 0</a><br style="margin:0px;padding:0px;"/>
+            <a href="http://home.cnblogs.com/u/jevo/followers" style="margin:0px;padding:0px;text-decoration:underline;color:rgb(7, 93, 179);">粉丝 - 21</a>
+        </div>
+    </div>
+    <div style="margin:0px;padding:0px;clear:both;"></div>
+    <div style="margin:0px;padding:0px;"></div>
+    <div style="margin:0px;padding:0px;">
+                <a href="#" style="margin:0px;padding:0px;text-decoration:underline;color:rgb(7, 93, 179);">+加关注</a>
+    </div>
+</div>
+<div style="margin:0px;padding:0px;float:right;margin-bottom:10px;margin-right:30px;font-size:12px;width:125px;text-align:center;margin-top:10px;">
+    <div style="margin:0px;padding:0px;float:left;width:46px;height:52px;background:url(&quot;http://static.cnblogs.com/images/upup.gif&quot;) no-repeat;text-align:center;cursor:pointer;margin-top:2px;padding-top:5px;">
+        <span style="margin:0px;padding:0px;font-size:14px;color:rgb(7, 93, 179);font-family:Verdana;line-height:1.5em;">0</span>
+    </div>
+    <div style="text-align:center;padding:0px;margin:0px;height:52px;background:url(&quot;http://static.cnblogs.com/images/downdown.gif&quot;) no-repeat;margin-left:20px;cursor:pointer;margin-top:2px;padding-top:5px;width:46px;float:right;">
+        <span style="margin:0px;padding:0px;font-size:14px;color:rgb(7, 93, 179);font-family:Verdana;line-height:1.5em;">0</span>
+    </div>
+    <div style="margin:0px;padding:0px;clear:both;"></div>
+    <div style="margin:0px;padding:0px;margin-top:5px;margin-left:0px;font-size:12px;color:gray;">
+    </div>
+</div>
+</div>
+<div style="margin:0px;padding:0px;clear:both;"></div>
+<div style="margin:0px;padding:0px;line-height:1.8;font-size:12px;"><a href="http://www.cnblogs.com/jevo/archive/2013/04/09/3007329.html" style="margin:0px;padding:0px;color:rgb(7, 93, 179);text-decoration:none;">« </a> 上一篇：<a href="http://www.cnblogs.com/jevo/archive/2013/04/09/3007329.html" style="margin:0px;padding:0px;text-decoration:underline;color:rgb(7, 93, 179);" title="发布于2013-04-09 20:55">Hibernate批量操作（一）</a><br style="margin:0px;padding:0px;"/><a href="http://www.cnblogs.com/jevo/archive/2013/04/11/3015023.html" style="margin:0px;padding:0px;color:rgb(7, 93, 179);text-decoration:none;">» </a> 下一篇：<a href="http://www.cnblogs.com/jevo/archive/2013/04/11/3015023.html" style="margin:0px;padding:0px;text-decoration:underline;color:rgb(7, 93, 179);" title="发布于2013-04-11 23:05">Java异步调用模式</a><br style="margin:0px;padding:0px;"/></div>
+</div>
+
+
+		</div>
+		<div style="margin:0px;padding:0px;clear:both;font-size:12px;float:right;width:100%;text-align:right;padding-right:5px;color:rgb(102, 102, 102);margin-top:5px;">posted @ <span style="margin:0px;padding:0px;">2013-04-10 23:08</span> <a href="http://www.cnblogs.com/jevo/" style="margin:0px;padding:0px;text-decoration:none;color:rgb(7, 93, 179);">Jevo</a> 阅读(<span style="margin:0px;padding:0px;">336</span>) 评论(<span style="margin:0px;padding:0px;">0</span>)  <a href="https://i.cnblogs.com/EditPosts.aspx?postid=3039211" rel="nofollow" style="margin:0px;padding:0px;text-decoration:none;color:rgb(7, 93, 179);">编辑</a> <a href="http://www.cnblogs.com/jevo/archive/2013/04/10/3039211.html#" style="margin:0px;padding:0px;text-decoration:none;color:rgb(7, 93, 179);">收藏</a></div>
+	</div></div></div></div></div></div></div></div></div></div><br/></div></span>
+</div></body></html> 

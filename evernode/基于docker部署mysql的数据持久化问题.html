@@ -1,0 +1,169 @@
+<html>
+<head>
+  <title>基于docker部署mysql的数据持久化问题</title>
+  <basefont face="微软雅黑" size="2" />
+  <meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+  <meta name="exporter-version" content="YXBJ Windows/600718 (zh-CN, DDL); Windows/6.1.1 (Win64);"/>
+  <style>
+    body, td {
+      font-family: 微软雅黑;
+      font-size: 10pt;
+    }
+  </style>
+</head>
+<body>
+<a name="8741"/>
+<h1>基于docker部署mysql的数据持久化问题</h1>
+<div>
+<table bgcolor="#D4DDE5" border="0">
+<tr><td><b>创建时间：</b></td><td><i>2018/3/2 11:42</i></td></tr>
+<tr><td><b>来源：</b></td><td><a href="https://www.jianshu.com/p/530d00f97cbf"><i>https://www.jianshu.com/p/530d00f97cbf</i></a></td></tr>
+</table>
+</div>
+<br/>
+
+<div><span><div style="-evernote-webclip:true"><br/><div style="font-size: 16px; display: inline-block;"><div style="box-sizing:border-box;font-family:sans-serif;text-size-adjust:100%;font-size:10px;-webkit-tap-highlight-color:transparent;"><div style="box-sizing:border-box;font-size:17px;line-height:1.42857;color:rgb(51, 51, 51);background-color:rgb(255, 255, 255);min-width:768px;font-family:-apple-system, &quot;SF UI Text&quot;, Arial, &quot;PingFang SC&quot;, &quot;Hiragino Sans GB&quot;, &quot;Microsoft YaHei&quot;, &quot;WenQuanYi Micro Hei&quot;, sans-serif;"><div style="box-sizing:border-box;"><div style="box-sizing:border-box;"><div style="box-sizing:border-box;">
+        <h1 style="box-sizing:border-box;color:inherit;font-size:34px;margin:20px 0px 0px;font-family:-apple-system, &quot;SF UI Display&quot;, Arial, &quot;PingFang SC&quot;, &quot;Hiragino Sans GB&quot;, &quot;Microsoft YaHei&quot;, &quot;WenQuanYi Micro Hei&quot;, sans-serif;font-weight:700;line-height:1.3;word-break:break-word;">基于docker部署mysql的数据持久化问题</h1>
+
+        
+        <div style="box-sizing:border-box;margin:30px 0px 40px;">
+          <a href="https://www.jianshu.com/u/a540ae19b89b" style="box-sizing:border-box;background-color:transparent;color:rgb(51, 51, 51);text-decoration:none;cursor:pointer;width:48px;height:48px;display:inline-block;vertical-align:middle;">
+            <img src="基于docker部署mysql的数据持久化问题_files/96.jpg" type="image/jpeg" data-filename="96.jpg" alt="96" height="46" style="box-sizing:border-box;vertical-align:middle;border:1px solid rgb(221, 221, 221);width:100%;height:100%;border-radius:50%;" width="46"/>
+</a>          <div style="box-sizing:border-box;vertical-align:middle;display:inline-block;margin-left:8px;">
+            <span style="box-sizing:border-box;margin-right:3px;font-size:16px;vertical-align:middle;"><a href="https://www.jianshu.com/u/a540ae19b89b" style="box-sizing:border-box;background-color:transparent;color:rgb(51, 51, 51);text-decoration:none;cursor:pointer;">SawyerZhou</a></span>
+            
+            <a style="cursor:pointer;background-color:rgb(66, 192, 46);color:rgb(255, 255, 255);text-decoration:none;display:inline-block;margin-bottom:0px;font-weight:400;text-align:center;vertical-align:middle;touch-action:manipulation;box-sizing:border-box;background-image:none;border:1px solid transparent;white-space:nowrap;user-select:none;border-radius:40px;line-height:normal;border-color:rgb(66, 192, 46);font-size:12px;padding:0px 7px 0px 5px;"><i style="box-sizing:border-box;font-size:inherit;font-style:normal;-webkit-font-smoothing:antialiased;font-family:iconfont;font-weight:400;"><span style="font-size:inherit;font-style:normal;font-family:iconfont;font-weight:400;"></span></i><span style="box-sizing:border-box;margin-left:2px;display:inline;">关注</span></a>
+            
+            <div style="box-sizing:border-box;margin-top:5px;font-size:12px;color:rgb(150, 150, 150);">
+              
+                <span style="box-sizing:border-box;padding-right:5px;" title="">2017.12.09 13:16*</span>
+              <span style="box-sizing:border-box;padding-right:5px;">字数 2198</span>
+            <span style="box-sizing:border-box;padding-right:5px;">阅读 364</span><span style="box-sizing:border-box;padding-right:5px;">评论 0</span><span style="box-sizing:border-box;padding-right:5px;">喜欢 3</span></div>
+          </div>
+          
+        </div>
+
+        
+        <div style="box-sizing:border-box;color:rgb(47, 47, 47);font-size:16px;font-weight:400;line-height:1.7;word-break:break-word;">
+          <div style="box-sizing:border-box;">
+            <p style="box-sizing:border-box;margin:0px 0px 25px;word-break:break-word;">本人最近在使用docker部署mysql时，在持久化mysql数据时遇到了一个有趣的问题，将排查过程及思考记录在这里，以备后查。</p>
+<p style="box-sizing:border-box;margin:0px 0px 25px;word-break:break-word;">先简单描述下我遇到的问题：在mysql容器中创建了两个数据库，然后使用docker commit想要保存容器的修改为新的镜像，发现只保存下来了新建的一个数据库，而另一个并没有被保存下来。最终通过查看docker文档和自己的实验，发现是mysql镜像中指定了volume为mysql数据路径所致。</p>
+<p style="box-sizing:border-box;margin:0px 0px 25px;word-break:break-word;">具体讲一下我遇到的问题及排查过程：首先我从dockerHub里拉取了最新的mysql镜像来部署</p>
+<pre style="word-break:break-word;text-size-adjust:none;background:rgb(246, 246, 246);box-sizing:border-box;display:block;border:1px solid rgb(204, 204, 204);margin:0px 0px 10px;line-height:1.42857;font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;color:rgb(101, 123, 131);word-wrap:normal;padding:15px;border-radius:0px;margin-bottom:20px;white-space:pre;font-size:13px;overflow:auto;"><code style="box-sizing:border-box;font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;border-radius:0px;font-size:12px;color:rgb(101, 123, 131);border:none;background-color:transparent;padding:0px;white-space:pre;">docker pull mysql
+</code></pre>
+<p style="box-sizing:border-box;margin:0px 0px 25px;word-break:break-word;">然后基于这个镜像创建一个容器</p>
+<pre style="word-break:break-word;text-size-adjust:none;background:rgb(246, 246, 246);box-sizing:border-box;display:block;border:1px solid rgb(204, 204, 204);margin:0px 0px 10px;line-height:1.42857;font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;color:rgb(101, 123, 131);word-wrap:normal;padding:15px;border-radius:0px;margin-bottom:20px;white-space:pre;font-size:13px;overflow:auto;"><code style="box-sizing:border-box;font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;border-radius:0px;font-size:12px;color:rgb(101, 123, 131);border:none;background-color:transparent;padding:0px;white-space:pre;">docker run --name mysqldock -e MYSQL_ROOT_PASSWORD=admin -e MYSQL_DATABASE=inst1 -d -p 3066:3066 mysql
+</code></pre>
+<p style="box-sizing:border-box;margin:0px 0px 25px;word-break:break-word;">这里的MYSQL_ROOT_PASSWORD指定了root账号的密码，MYSQL_DATABASE指定了在容器创建时同时创建的数据库命。MYSQL_DATABASE可以不提供，这样不会预创建数据库。创建好名为<code style="box-sizing:border-box;font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;border-radius:4px;font-size:12px;color:rgb(101, 123, 131);background-color:rgb(246, 246, 246);padding:2px 4px;border:none;white-space:pre-wrap;">mysqldock</code>的容器后，使用</p>
+<pre style="word-break:break-word;text-size-adjust:none;background:rgb(246, 246, 246);box-sizing:border-box;display:block;border:1px solid rgb(204, 204, 204);margin:0px 0px 10px;line-height:1.42857;font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;color:rgb(101, 123, 131);word-wrap:normal;padding:15px;border-radius:0px;margin-bottom:20px;white-space:pre;font-size:13px;overflow:auto;"><code style="box-sizing:border-box;font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;border-radius:0px;font-size:12px;color:rgb(101, 123, 131);border:none;background-color:transparent;padding:0px;white-space:pre;">docker <span style="box-sizing:border-box;color:rgb(38, 139, 210);">exec</span> -it mysqldock bash
+</code></pre>
+<p style="box-sizing:border-box;margin:0px 0px 25px;word-break:break-word;">进入容器，执行mysql客户端命令，查看mysql的库，发现inst1已经建好：</p>
+<div style="box-sizing:border-box;padding-bottom:25px;width:700px;margin-left:-40px;text-align:center;">
+<div style="box-sizing:border-box;z-index:100;position:relative;background-color:transparent;transition:background-color 0.1s linear;margin:0px auto;max-width:585px;max-height:429px;">
+<div style="box-sizing:border-box;z-index:50;padding-bottom:73.33%;"></div>
+<div style="box-sizing:border-box;position:absolute;top:0px;left:0px;width:100%;height:100%;overflow:hidden;"><img src="基于docker部署mysql的数据持久化问题_files/585.png" type="image/png" data-filename="585.png" height="429" style="box-sizing:border-box;border:0px;vertical-align:middle;max-width:100%;height:auto;transition:all 0.15s linear;z-index:100;filter:blur(0px);opacity:1;cursor:zoom-in;" width="585"/></div>
+</div>
+<div style="padding:10px;box-sizing:border-box;max-width:80%;min-height:22px;display:inline-block;min-width:20%;margin:0px auto;border-bottom:1px solid rgb(217, 217, 217);font-size:14px;color:rgb(150, 150, 150);line-height:1.7;">inst1在容器初始化的时候已经创建</div>
+</div>
+<p style="box-sizing:border-box;margin:0px 0px 25px;word-break:break-word;">然后手动创建数据库inst2，并且在两个库中创建一些表：</p>
+<div style="box-sizing:border-box;padding-bottom:25px;width:700px;margin-left:-40px;text-align:center;">
+<div style="box-sizing:border-box;z-index:100;position:relative;background-color:transparent;transition:background-color 0.1s linear;margin:0px auto;max-width:610px;max-height:659px;">
+<div style="box-sizing:border-box;z-index:50;padding-bottom:108.03%;"></div>
+<div style="box-sizing:border-box;position:absolute;top:0px;left:0px;width:100%;height:100%;overflow:hidden;"><img src="基于docker部署mysql的数据持久化问题_files/610.png" type="image/png" data-filename="610.png" height="659" style="box-sizing:border-box;border:0px;vertical-align:middle;max-width:100%;height:auto;transition:all 0.15s linear;z-index:100;filter:blur(0px);opacity:1;cursor:zoom-in;" width="610"/></div>
+</div>
+<div style="padding:10px;box-sizing:border-box;max-width:80%;min-height:22px;display:inline-block;min-width:20%;margin:0px auto;border-bottom:1px solid rgb(217, 217, 217);font-size:14px;color:rgb(150, 150, 150);line-height:1.7;">手动创建inst2及两个库中的表</div>
+</div>
+<p style="box-sizing:border-box;margin:0px 0px 25px;word-break:break-word;">这时，我想把目前为止对mysqldock容器做的变更保存下来，所以就想到了使用<code style="box-sizing:border-box;font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;border-radius:4px;font-size:12px;color:rgb(101, 123, 131);background-color:rgb(246, 246, 246);padding:2px 4px;border:none;white-space:pre-wrap;">docker commit</code>指令</p>
+<pre style="word-break:break-word;text-size-adjust:none;background:rgb(246, 246, 246);box-sizing:border-box;display:block;border:1px solid rgb(204, 204, 204);margin:0px 0px 10px;line-height:1.42857;font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;color:rgb(101, 123, 131);word-wrap:normal;padding:15px;border-radius:0px;margin-bottom:20px;white-space:pre;font-size:13px;overflow:auto;"><code style="box-sizing:border-box;font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;border-radius:0px;font-size:12px;color:rgb(101, 123, 131);border:none;background-color:transparent;padding:0px;white-space:pre;">docker commit mysqldock
+</code></pre>
+<p style="box-sizing:border-box;margin:0px 0px 25px;word-break:break-word;">docker commit 命令会将docker容器的变更保存下来，并且生成新的镜像。生成新的镜像后，我想看看之前创建的库和表还在不在，就使用新的镜像创建了新的容器<code style="box-sizing:border-box;font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;border-radius:4px;font-size:12px;color:rgb(101, 123, 131);background-color:rgb(246, 246, 246);padding:2px 4px;border:none;white-space:pre-wrap;">mysqlnew</code>，并且进入容器查看mysql情况，神奇的现象出现了，mysql中竟然只有inst1库，而没有inst2，同时inst1里面是空的，我们创建的表也消失了：</p>
+<div style="box-sizing:border-box;padding-bottom:25px;width:700px;margin-left:-40px;text-align:center;">
+<div style="box-sizing:border-box;z-index:100;position:relative;background-color:transparent;transition:background-color 0.1s linear;margin:0px auto;max-width:655px;max-height:767px;">
+<div style="box-sizing:border-box;z-index:50;padding-bottom:109.62%;"></div>
+<div style="box-sizing:border-box;position:absolute;top:0px;left:0px;width:100%;height:100%;overflow:hidden;"><img src="基于docker部署mysql的数据持久化问题_files/655.png" type="image/png" data-filename="655.png" height="718" style="box-sizing:border-box;border:0px;vertical-align:middle;max-width:100%;height:auto;transition:all 0.15s linear;z-index:100;filter:blur(0px);opacity:1;cursor:zoom-in;" width="655"/></div>
+</div>
+<div style="padding:10px;box-sizing:border-box;max-width:80%;min-height:22px;display:inline-block;min-width:20%;margin:0px auto;border-bottom:1px solid rgb(217, 217, 217);font-size:14px;color:rgb(150, 150, 150);line-height:1.7;">消失了的inst2和表</div>
+</div>
+<p style="box-sizing:border-box;margin:0px 0px 25px;word-break:break-word;">这就让我疑惑了，查看了下docker commit命令的说明：</p>
+<div style="box-sizing:border-box;padding-bottom:25px;width:700px;margin-left:-40px;text-align:center;">
+<div style="box-sizing:border-box;z-index:100;position:relative;background-color:transparent;transition:background-color 0.1s linear;margin:0px auto;max-width:605px;max-height:206px;">
+<div style="box-sizing:border-box;z-index:50;padding-bottom:34.050000000000004%;"></div>
+<div style="box-sizing:border-box;position:absolute;top:0px;left:0px;width:100%;height:100%;overflow:hidden;"><img src="基于docker部署mysql的数据持久化问题_files/605.png" type="image/png" data-filename="605.png" height="206" style="box-sizing:border-box;border:0px;vertical-align:middle;max-width:100%;height:auto;transition:all 0.15s linear;z-index:100;filter:blur(0px);opacity:1;cursor:zoom-in;" width="605"/></div>
+</div>
+<div style="padding:10px;box-sizing:border-box;max-width:80%;min-height:22px;display:inline-block;min-width:20%;margin:0px auto;border-bottom:1px solid rgb(217, 217, 217);font-size:14px;color:rgb(150, 150, 150);line-height:1.7;">docker commit 说明</div>
+</div><br style="box-sizing:border-box;"/>
+<p style="box-sizing:border-box;margin:0px 0px 25px;word-break:break-word;">没毛病啊，基于容器的变化创建一个新的镜像。为了验证docker commit 命令的可用性，我在mysqldock中创建一个新的文件，再commit成新镜像，再创建容器，查看发现新的容器的确是包含了新创建的文件，也就是说docker commit的确能够基于容器的变化创建新的镜像：</p>
+
+<div style="box-sizing:border-box;padding-bottom:25px;width:700px;margin-left:-40px;text-align:center;">
+<div style="box-sizing:border-box;z-index:100;position:relative;background-color:transparent;transition:background-color 0.1s linear;margin:0px auto;max-width:683px;max-height:244px;">
+<div style="box-sizing:border-box;z-index:50;padding-bottom:35.72%;"></div>
+<div style="box-sizing:border-box;position:absolute;top:0px;left:0px;width:100%;height:100%;overflow:hidden;"><img src="基于docker部署mysql的数据持久化问题_files/683.png" type="image/png" data-filename="683.png" height="244" style="box-sizing:border-box;border:0px;vertical-align:middle;max-width:100%;height:auto;transition:all 0.15s linear;z-index:100;filter:blur(0px);opacity:1;cursor:zoom-in;" width="683"/></div>
+</div>
+<div style="padding:10px;box-sizing:border-box;max-width:80%;min-height:22px;display:inline-block;min-width:20%;margin:0px auto;border-bottom:1px solid rgb(217, 217, 217);font-size:14px;color:rgb(150, 150, 150);line-height:1.7;">新建文件出现在了新的镜像中</div>
+</div>
+<p style="box-sizing:border-box;margin:0px 0px 25px;word-break:break-word;">那我就丈二和尚摸不着头脑了，为啥新建的文件可以保存下来，新建的库就不行呢，新建的库不也是在mysql数据文件路径下新建的文件么？是时候求助官方文档了，查阅了docker commit的官方文档说明后，发现了在扩展说明中有这么一句话：</p>
+<blockquote style="box-sizing:border-box;margin:0px 0px 20px;padding:20px;font-size:16px;border-left:6px solid rgb(180, 180, 180);margin-bottom:25px;background-color:rgb(247, 247, 247);font-weight:400;line-height:30px;word-break:break-word;">
+<p style="box-sizing:border-box;margin:0px 0px 25px;font-size:16px;font-weight:400;line-height:1.7;margin-bottom:0px;word-break:break-word;">The commit operation will not include any data contained in volumes mounted inside the container.</p>
+</blockquote>
+<p style="box-sizing:border-box;margin:0px 0px 25px;word-break:break-word;">意思是commit操作并不会包含容器内挂载数据卷中的数据变化。难道是因为mysql容器的挂载数据卷引起的？（这里我就要吐槽一下了，docker --help好歹详细点啊，这么重要的信息竟然都没有显示。）通过</p>
+<pre style="word-break:break-word;text-size-adjust:none;background:rgb(246, 246, 246);box-sizing:border-box;display:block;border:1px solid rgb(204, 204, 204);margin:0px 0px 10px;line-height:1.42857;font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;color:rgb(101, 123, 131);word-wrap:normal;padding:15px;border-radius:0px;margin-bottom:20px;white-space:pre;font-size:13px;overflow:auto;"><code style="box-sizing:border-box;font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;border-radius:0px;font-size:12px;color:rgb(101, 123, 131);border:none;background-color:transparent;padding:0px;white-space:pre;">docker inspect mysqlsock
+</code></pre>
+<p style="box-sizing:border-box;margin:0px 0px 25px;word-break:break-word;">查看mysqldock的属性，发现<code style="box-sizing:border-box;font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;border-radius:4px;font-size:12px;color:rgb(101, 123, 131);background-color:rgb(246, 246, 246);padding:2px 4px;border:none;white-space:pre-wrap;">Mounts</code>里有这样的信息：</p>
+<div style="box-sizing:border-box;padding-bottom:25px;width:700px;margin-left:-40px;text-align:center;">
+<div style="box-sizing:border-box;z-index:100;position:relative;background-color:transparent;transition:background-color 0.1s linear;margin:0px auto;max-width:700px;max-height:208px;">
+<div style="box-sizing:border-box;z-index:50;padding-bottom:25.09%;"></div>
+<div style="box-sizing:border-box;position:absolute;top:0px;left:0px;width:100%;height:100%;overflow:hidden;"><img src="基于docker部署mysql的数据持久化问题_files/700.png" type="image/png" data-filename="700.png" height="176" style="box-sizing:border-box;border:0px;vertical-align:middle;max-width:100%;height:auto;transition:all 0.15s linear;z-index:100;filter:blur(0px);opacity:1;cursor:zoom-in;" width="700"/></div>
+</div>
+<div style="padding:10px;box-sizing:border-box;max-width:80%;min-height:22px;display:inline-block;min-width:20%;margin:0px auto;border-bottom:1px solid rgb(217, 217, 217);font-size:14px;color:rgb(150, 150, 150);line-height:1.7;">Mounts</div>
+</div>
+<p style="box-sizing:border-box;margin:0px 0px 25px;word-break:break-word;">这说明了这个容器将容器内的/var/lib/mysql路径作为volume挂载。查看容器内的该路径发现的确是mysql数据库的数据文件，这点在mysql的dockerHub<a href="https://link.jianshu.com/?t=https://hub.docker.com/_/mysql/" rel="nofollow" style="box-sizing:border-box;background-color:transparent;text-decoration:none;cursor:pointer;color:rgb(49, 148, 208);" target="_blank">主页</a>也能发现：</p>
+<div style="box-sizing:border-box;padding-bottom:25px;width:700px;margin-left:-40px;text-align:center;">
+<div style="box-sizing:border-box;z-index:100;position:relative;background-color:transparent;transition:background-color 0.1s linear;margin:0px auto;max-width:700px;max-height:86px;">
+<div style="box-sizing:border-box;z-index:50;padding-bottom:9.180000000000001%;"></div>
+<div style="box-sizing:border-box;position:absolute;top:0px;left:0px;width:100%;height:100%;overflow:hidden;"><img src="基于docker部署mysql的数据持久化问题_files/700 [1].png" type="image/png" data-filename="700.png" height="64" style="box-sizing:border-box;border:0px;vertical-align:middle;max-width:100%;height:auto;transition:all 0.15s linear;z-index:100;filter:blur(0px);opacity:1;cursor:zoom-in;" width="700"/></div>
+</div>
+<div style="padding:10px;box-sizing:border-box;max-width:80%;min-height:22px;display:inline-block;min-width:20%;margin:0px auto;border-bottom:1px solid rgb(217, 217, 217);font-size:14px;color:rgb(150, 150, 150);line-height:1.7;">/var/lib/mysql下的数据</div>
+</div>
+<p style="box-sizing:border-box;margin:0px 0px 25px;word-break:break-word;">我马上试了一下在该文件下新建一个文件，并且docker commit，然后用新的镜像创建新容器，文件果然不见了！</p>
+<p style="box-sizing:border-box;margin:0px 0px 25px;word-break:break-word;">那么问题来了，<del style="box-sizing:border-box;">学习挖掘机到底哪家强?</del>为何commit之后inst2没有了，但inst1还在？深究起来，连mysql root密码也没有变，还是之前设置的admin。发现没有？数据库inst1及root密码都是我在创建mysqldock容器时通过-e参数指定的，莫非是在容器创建时通过-e创建的，就算是在volume里的也可以保存么？继续研究docker commit命令的官方文档，在扩展说明里发现了这么一句：</p>
+<blockquote style="box-sizing:border-box;margin:0px 0px 20px;padding:20px;font-size:16px;border-left:6px solid rgb(180, 180, 180);margin-bottom:25px;background-color:rgb(247, 247, 247);font-weight:400;line-height:30px;word-break:break-word;">
+<p style="box-sizing:border-box;margin:0px 0px 25px;font-size:16px;font-weight:400;line-height:1.7;margin-bottom:0px;word-break:break-word;">It can be useful to commit a container’s file changes or settings into a new image.</p>
+</blockquote>
+<p style="box-sizing:border-box;margin:0px 0px 25px;word-break:break-word;">看到了么，file changes or <strong style="box-sizing:border-box;font-weight:700;">settings</strong>。文件变更和设置，-e的不就是设置么，这点也可以通过docker inspect发现，在Config下的Env参数中：</p>
+<div style="box-sizing:border-box;padding-bottom:25px;width:700px;margin-left:-40px;text-align:center;">
+<div style="box-sizing:border-box;z-index:100;position:relative;background-color:transparent;transition:background-color 0.1s linear;margin:0px auto;max-width:700px;max-height:102px;">
+<div style="box-sizing:border-box;z-index:50;padding-bottom:13.77%;"></div>
+<div style="box-sizing:border-box;position:absolute;top:0px;left:0px;width:100%;height:100%;overflow:hidden;"><img src="基于docker部署mysql的数据持久化问题_files/700 [2].png" type="image/png" data-filename="700.png" height="96" style="box-sizing:border-box;border:0px;vertical-align:middle;max-width:100%;height:auto;transition:all 0.15s linear;z-index:100;filter:blur(0px);opacity:1;cursor:zoom-in;" width="700"/></div>
+</div>
+<div style="padding:10px;box-sizing:border-box;max-width:80%;min-height:22px;display:inline-block;min-width:20%;margin:0px auto;border-bottom:1px solid rgb(217, 217, 217);font-size:14px;color:rgb(150, 150, 150);line-height:1.7;">mysqldock和mysqlnew有一样的env参数</div>
+</div>
+<p style="box-sizing:border-box;margin:0px 0px 25px;word-break:break-word;">这么说就说得通了，虽然文件的确是发生了变化，但是由于文件是在容器挂载的数据卷中，所以这些变化没有被commit，然而由于在创建mysqldock容器的时候设置了-e参数，这些设置被容器保留了下来，commit命令使用这些设置构建了新的镜像。排查到这里，我们的问题是找到原因了，可怎么解决呢？我们该如何将mysql docker中修改的数据保存下来呢？通过查看mysql dockerHub<a href="https://link.jianshu.com/?t=https://hub.docker.com/_/mysql/" rel="nofollow" style="box-sizing:border-box;background-color:transparent;text-decoration:none;cursor:pointer;color:rgb(49, 148, 208);" target="_blank">主页</a>Where to Store Data一节中的说明，我们可以通过docker提供的数据挂载来实现。</p>
+<p style="box-sizing:border-box;margin:0px 0px 25px;word-break:break-word;">docker的数据挂载分为三种，volume, bind mount和tmpfs，关于三种的具体说明，强烈推荐大家看一下官网的<a href="https://link.jianshu.com/?t=https://docs.docker.com/engine/admin/volumes/" rel="nofollow" style="box-sizing:border-box;background-color:transparent;text-decoration:none;cursor:pointer;color:rgb(49, 148, 208);" target="_blank">文档</a>。这边简单说明一下：<br style="box-sizing:border-box;"/>
+<strong style="box-sizing:border-box;font-weight:700;">volume</strong>是由docker默认及推荐的挂载方式，volume由docker直接管理，同一个volume可以共享给多个容器使用，volume和容器的生命周期完全独立，容器删除时volume仍然存在，除非使用<code style="box-sizing:border-box;font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;border-radius:4px;font-size:12px;color:rgb(101, 123, 131);background-color:rgb(246, 246, 246);padding:2px 4px;border:none;white-space:pre-wrap;">docker volume</code>相应命令删除volume；缺点是volume在宿主机上比较难定位，在宿主机上直接操作volume比较困难。<br style="box-sizing:border-box;"/>
+<strong style="box-sizing:border-box;font-weight:700;">bind mount</strong>是直接将宿主机文件系统上的文件路径映射到容器中，两边双向同步，显而易见，有缺点也有优点，优点是可以直接访问，也可以被别的程序使用，比如我们打包一个本地应用到本地/target路径，我们就可以把这个路径使用bind mount的方式挂在到依赖他的应用的docker容器中，这样本地应用打包后，docker里的数据卷也会同时更新；缺点也是显而易见的，因为你可以把任何文件路径使用bind mount的方式绑定到容器中，这样有可能一些安全问题，比如把宿主机的系统文件绑定到容器中。<br style="box-sizing:border-box;"/>
+<strong style="box-sizing:border-box;font-weight:700;">tmpfs</strong>这种方式是使用宿主机的内存作为存储，不会写到宿主机的文件系统中，和前两种区别较大。</p>
+<p style="box-sizing:border-box;margin:0px 0px 25px;word-break:break-word;">mysql dockerHub<a href="https://link.jianshu.com/?t=https://hub.docker.com/_/mysql/" rel="nofollow" style="box-sizing:border-box;background-color:transparent;text-decoration:none;cursor:pointer;color:rgb(49, 148, 208);" target="_blank">主页</a>中的推荐方式是在宿主机中新建一个专门用来存放mysql docker数据的文件路径，同时在新建容器的时候将该路径映射到容器中，也就是使用bind mount的方式，之所以不使用volume的方式是因为volume是由docker管理，在宿主机上比较难定位。</p>
+<p style="box-sizing:border-box;margin:0px 0px 25px;word-break:break-word;">那对于我的情况，既已经有一个容器使用了volume，想把volume里的数据在新的容器中使用bind mount方式挂载该怎么办呢？我们可以先把mysqldock容器中所需要的文件拷贝出来到本地的/var/own/mysqldata，通过</p>
+<pre style="word-break:break-word;text-size-adjust:none;background:rgb(246, 246, 246);box-sizing:border-box;display:block;border:1px solid rgb(204, 204, 204);margin:0px 0px 10px;line-height:1.42857;font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;color:rgb(101, 123, 131);word-wrap:normal;padding:15px;border-radius:0px;margin-bottom:20px;white-space:pre;font-size:13px;overflow:auto;"><code style="box-sizing:border-box;font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;border-radius:0px;font-size:12px;color:rgb(101, 123, 131);border:none;background-color:transparent;padding:0px;white-space:pre;">docker cp mysqldock:<span style="box-sizing:border-box;color:rgb(42, 161, 152);">/var/</span>lib/mysql /<span style="box-sizing:border-box;color:rgb(133, 153, 0);">var</span>/own/mysqldata
+</code></pre>
+<p style="box-sizing:border-box;margin:0px 0px 25px;word-break:break-word;">然后在创建新的mysql容器时，挂载该文件即可</p>
+<pre style="word-break:break-word;text-size-adjust:none;background:rgb(246, 246, 246);box-sizing:border-box;display:block;border:1px solid rgb(204, 204, 204);margin:0px 0px 10px;line-height:1.42857;font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;color:rgb(101, 123, 131);word-wrap:normal;padding:15px;border-radius:0px;margin-bottom:20px;white-space:pre;font-size:13px;overflow:auto;"><code style="box-sizing:border-box;font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;border-radius:0px;font-size:12px;color:rgb(101, 123, 131);border:none;background-color:transparent;padding:0px;white-space:pre;">docker run -v /<span style="box-sizing:border-box;color:rgb(133, 153, 0);">var</span>/own/mysqldata:<span style="box-sizing:border-box;color:rgb(42, 161, 152);">/var/</span>lib/mysql --name mysqlnew -d mysql
+</code></pre>
+<p style="box-sizing:border-box;margin:0px 0px 25px;word-break:break-word;">这样新的容器就可以保留mysqldock中的数据了，问题解决！当然，我们也可以使用docker推荐的volume方式挂载，首先找到mysqldock的volume，然后在运行新容器时指定该volume进行挂载就行了：</p>
+<div style="box-sizing:border-box;padding-bottom:25px;width:700px;margin-left:-40px;text-align:center;">
+<div style="box-sizing:border-box;z-index:100;position:relative;background-color:transparent;transition:background-color 0.1s linear;margin:0px auto;max-width:700px;max-height:104px;">
+<div style="box-sizing:border-box;z-index:50;padding-bottom:12.94%;"></div>
+<div style="box-sizing:border-box;position:absolute;top:0px;left:0px;width:100%;height:100%;overflow:hidden;"><img src="基于docker部署mysql的数据持久化问题_files/700 [3].png" type="image/png" data-filename="700.png" height="91" style="box-sizing:border-box;border:0px;vertical-align:middle;max-width:100%;height:auto;transition:all 0.15s linear;z-index:100;filter:blur(0px);opacity:1;cursor:zoom-in;" width="700"/></div>
+</div>
+<div style="padding:10px;box-sizing:border-box;max-width:80%;min-height:22px;display:inline-block;min-width:20%;margin:0px auto;border-bottom:1px solid rgb(217, 217, 217);font-size:14px;color:rgb(150, 150, 150);line-height:1.7;">使用volume进行挂载</div>
+</div>
+<p style="box-sizing:border-box;margin:0px 0px 25px;word-break:break-word;">这种方式繁琐？别急，还有更简单的，在创建容器的时候，可以指定使用其他容器的volume，也就是共享其他容器的volume，使用--volumes-from参数</p>
+<pre style="word-break:break-word;text-size-adjust:none;background:rgb(246, 246, 246);box-sizing:border-box;display:block;border:1px solid rgb(204, 204, 204);margin:0px 0px 10px;line-height:1.42857;font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;color:rgb(101, 123, 131);word-wrap:normal;padding:15px;border-radius:0px;margin-bottom:20px;white-space:pre;font-size:13px;overflow:auto;"><code style="box-sizing:border-box;font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;border-radius:0px;font-size:12px;color:rgb(101, 123, 131);border:none;background-color:transparent;padding:0px;white-space:pre;">docker run --name mysqlvolumn2 --volumes-<span style="box-sizing:border-box;color:rgb(133, 153, 0);">from</span> mysqldock -d mysql
+</code></pre>
+<p style="box-sizing:border-box;margin:0px 0px 25px;word-break:break-word;">其实volume还可以在创建的时候进行命名，从而是查找起来不那么繁琐，具体的参数就请大家参考官网或者--help了，其实官方更加推荐的是使用--mount代替-v参数，官网上有详尽的例子，大家也可以自行进行尝试。</p>
+<p style="box-sizing:border-box;margin:0px 0px 25px;word-break:break-word;">当然啦，纯粹把docker作成数据容器其实并没有太大意义，这里只是借这个问题窥探一下docker数据卷的一些用法。</p>
+
+          </div>
+        </div>
+    </div></div></div></div></div></div><br/></div></span>
+</div></body></html> 

@@ -1,0 +1,256 @@
+<html>
+<head>
+  <title>Java线程：线程的同步与锁 - 熔 岩 - 51CTO技术博客</title>
+  <basefont face="微软雅黑" size="2" />
+  <meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+  <meta name="exporter-version" content="YXBJ Windows/600718 (zh-CN, DDL); Windows/6.1.1 (Win64);"/>
+  <style>
+    body, td {
+      font-family: 微软雅黑;
+      font-size: 10pt;
+    }
+  </style>
+</head>
+<body>
+<a name="8071"/>
+<h1>Java线程：线程的同步与锁 - 熔 岩 - 51CTO技术博客</h1>
+<div>
+<table bgcolor="#D4DDE5" border="0">
+<tr><td><b>创建时间：</b></td><td><i>2015/8/23 15:41</i></td></tr>
+<tr><td><b>来源：</b></td><td><a href="http://lavasoft.blog.51cto.com/62575/99155/"><i>http://lavasoft.blog.51cto.com/62575/99155/</i></a></td></tr>
+</table>
+</div>
+<br/>
+
+<div><span><br/><div><div><div><div><h1>Java线程：线程的同步与锁 - 熔 岩 - 51CTO技术博客</h1><div><div></div></div></div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+	
+
+
+
+
+
+
+
+
+
+
+
+
+
+			
+	<br/><br/>
+	
+	
+   	  
+       
+   	  
+      
+      
+
+ 
+    		<div>
+    		  <div>
+              <div>
+
+             
+
+
+    		    Java线程：线程的同步与锁
+                </div>
+  		    </div>
+   		    </div>
+    
+
+	
+
+			<div>
+			版权声明：原创作品，如需转载，请与作者联系。否则将追究法律责任。
+            </div>
+
+
+            
+    		
+    		  <div><strong>Java线程：线程的同步与锁</strong></div>
+
+
+
+<div><strong>一、同步问题提出</strong></div>
+
+<div>线程的同步是为了防止多个线程访问一个数据对象时，对数据造成的破坏。</div>
+<div>例如：两个线程ThreadA、ThreadB都操作同一个对象Foo对象，并修改Foo对象上的数据。</div>
+
+<div>
+<div>
+<div>public class Foo { <br/>    private int x = 100; <br/><br/>public int getX() { <br/>        return x; <br/>    } <br/><br/>public int fix(int y) { <br/>        x = x - y; <br/>        return x; <br/>    } <br/>}</div></div></div>
+
+<div>
+<div>
+<div>public class MyRunnable implements Runnable { <br/>    private Foo foo = new Foo(); <br/><br/>public static void main(String[] args) { <br/>        MyRunnable r = new MyRunnable(); <br/>        Thread ta = new Thread(r, &quot;Thread-A&quot;); <br/>        Thread tb = new Thread(r, &quot;Thread-B&quot;); <br/>        ta.start(); <br/>        tb.start(); <br/>    } <br/><br/>public void run() { <br/>        for (int i = 0; i &lt; 3; i++) { <br/>            this.fix(30); <br/>            try { <br/>                Thread.sleep(1); <br/>            } catch (InterruptedException e) { <br/>                e.printStackTrace(); <br/>            } <br/>            System.out.println(Thread.currentThread().getName() + &quot; : 当前foo对象的x值= &quot; + foo.getX()); <br/>        } <br/>    } <br/><br/>public int fix(int y) { <br/>        return foo.fix(y); <br/>    } <br/>}</div></div></div>
+
+<div>运行结果：</div>
+<div>
+<div>
+<div>Thread-A : 当前foo对象的x值= 40 <br/>Thread-B : 当前foo对象的x值= 40 <br/>Thread-B : 当前foo对象的x值= -20 <br/>Thread-A : 当前foo对象的x值= -50 <br/>Thread-A : 当前foo对象的x值= -80 <br/>Thread-B : 当前foo对象的x值= -80 <br/><br/>Process finished with exit code 0</div></div></div>
+
+<div>从结果发现，这样的输出值明显是不合理的。原因是两个线程不加控制的访问Foo对象并修改其数据所致。</div>
+
+<div>如果要保持结果的合理性，只需要达到一个目的，就是将对Foo的访问加以限制，每次只能有一个线程在访问。这样就能保证Foo对象中数据的合理性了。</div>
+
+<div>在具体的Java代码中需要完成一下两个操作：</div>
+<div>把竞争访问的资源类Foo变量x标识为private；</div>
+<div>同步哪些修改变量的代码，使用synchronized关键字同步方法或代码。</div>
+
+<div><strong>二、同步和锁定</strong></div>
+
+<div>1、锁的原理</div>
+
+<div>Java中每个对象都有一个内置锁</div>
+
+<div>当程序运行到非静态的synchronized同步方法上时，自动获得与正在执行代码类的当前实例（this实例）有关的锁。获得一个对象的锁也称为获取锁、锁定对象、在对象上锁定或在对象上同步。</div>
+
+<div>当程序运行到synchronized同步方法或代码块时才该对象锁才起作用。</div>
+
+<div>一个对象只有一个锁。所以，如果一个线程获得该锁，就没有其他线程可以获得锁，直到第一个线程释放（或返回）锁。这也意味着任何其他线程都不能进入该对象上的synchronized方法或代码块，直到该锁被释放。</div>
+
+<div>释放锁是指持锁线程退出了synchronized同步方法或代码块。</div>
+
+<div>关于锁和同步，有一下几个要点：</div>
+<div>1）、只能同步方法，而不能同步变量和类；</div>
+<div>2）、每个对象只有一个锁；当提到同步时，应该清楚在什么上同步？也就是说，在哪个对象上同步？</div>
+<div>3）、不必同步类中所有的方法，类可以同时拥有同步和非同步方法。</div>
+<div>4）、如果两个线程要执行一个类中的synchronized方法，并且两个线程使用相同的实例来调用方法，那么一次只能有一个线程能够执行方法，另一个需要等待，直到锁被释放。也就是说：如果一个线程在对象上获得一个锁，就没有任何其他线程可以进入（该对象的）类中的任何一个同步方法。</div>
+<div>5）、如果线程拥有同步和非同步方法，则非同步方法可以被多个线程自由访问而不受锁的限制。</div>6）、线程睡眠时，它所持的任何锁都不会释放。 
+<div>7）、线程可以获得多个锁。比如，在一个对象的同步方法里面调用另外一个对象的同步方法，则获取了两个对象的同步锁。</div>
+<div>8）、同步损害并发性，应该尽可能缩小同步范围。同步不但可以同步整个方法，还可以同步方法中一部分代码块。</div>
+<div>9）、在使用同步代码块时候，应该指定在哪个对象上同步，也就是说要获取哪个对象的锁。例如：</div>
+<div>    public int fix(int y) {<br/>        synchronized (this) {<br/>            x = x - y;<br/>        }<br/>        return x;<br/>    }</div>
+
+<div>当然，同步方法也可以改写为非同步方法，但功能完全一样的，例如：</div>
+<div>    public synchronized int getX() {<br/>        return x++;<br/>    }</div>
+
+<div>    public int getX() {<br/>        synchronized (this) {<br/>            return x;<br/>        }<br/>    }</div>
+<div>效果是完全一样的。</div>
+
+<div><strong>三、静态方法同步</strong></div>
+
+<div>要同步静态方法，需要一个用于整个类对象的锁，这个对象是就是这个类（XXX.class)。</div>
+
+<div>public static synchronized int setName(String name){</div>
+<div>      Xxx.name = name;</div>
+
+<div>等价于<br/>public static int setName(String name){<br/>      synchronized(Xxx.class){<br/>            Xxx.name = name;<br/>      }<br/>}</div>
+
+<div><strong>四、如果线程不能不能获得锁会怎么样</strong></div>
+
+<div>如果线程试图进入同步方法，而其锁已经被占用，则线程在该对象上被阻塞。实质上，线程进入该对象的的一种池中，必须在哪里等待，直到其锁被释放，该线程再次变为可运行或运行为止。</div>
+
+<div>当考虑阻塞时，一定要注意哪个对象正被用于锁定：</div>
+<div>1、调用同一个对象中非静态同步方法的线程将彼此阻塞。如果是不同对象，则每个线程有自己的对象的锁，线程间彼此互不干预。</div>
+
+<div>2、调用同一个类中的静态同步方法的线程将彼此阻塞，它们都是锁定在相同的Class对象上。</div>
+
+<div>3、静态同步方法和非静态同步方法将永远不会彼此阻塞，因为静态方法锁定在Class对象上，非静态方法锁定在该类的对象上。</div>
+
+<div>4、对于同步代码块，要看清楚什么对象已经用于锁定（synchronized后面括号的内容）。在同一个对象上进行同步的线程将彼此阻塞，在不同对象上锁定的线程将永远不会彼此阻塞。</div>
+
+<div><strong>五、何时需要同步</strong></div>
+
+<div>在多个线程同时访问互斥（可交换）数据时，应该同步以保护数据，确保两个线程不会同时修改更改它。</div>
+
+<div>对于非静态字段中可更改的数据，通常使用非静态方法访问。</div>
+<div>
+<div>对于静态字段中可更改的数据，通常使用静态方法访问。</div>
+
+<div>如果需要在非静态方法中使用静态字段，或者在静态字段中调用非静态方法，问题将变得非常复杂。已经超出SJCP考试范围了。</div>
+
+<div><strong>六、线程安全类</strong></div>
+
+<div>当一个类已经很好的同步以保护它的数据时，这个类就称为“线程安全的”。</div>
+
+<div>即使是线程安全类，也应该特别小心，因为操作的线程是间仍然不一定安全。</div>
+
+<div>举个形象的例子，比如一个集合是线程安全的，有两个线程在操作同一个集合对象，当第一个线程查询集合非空后，删除集合中所有元素的时候。第二个线程也来执行与第一个线程相同的操作，也许在第一个线程查询后，第二个线程也查询出集合非空，但是当第一个执行清除后，第二个再执行删除显然是不对的，因为此时集合已经为空了。</div>
+<div>看个代码：</div>
+
+<div>
+<div>
+<div>public class NameList { <br/>    private List nameList = Collections.synchronizedList(new LinkedList()); <br/><br/>public void add(String name) { <br/>        nameList.add(name); <br/>    } <br/><br/>public String removeFirst() { <br/>        if (nameList.size() &gt; 0) { <br/>            return (String) nameList.remove(0); <br/>        } else { <br/>            return null; <br/>        } <br/>    } <br/>}</div></div></div>
+
+<div>
+<div>
+<div>public class Test { <br/>    public static void main(String[] args) { <br/>        final NameList nl = new NameList(); <br/>        nl.add(&quot;aaa&quot;); <br/>        class NameDropper extends Thread{ <br/>            public void run(){ <br/>                String name = nl.removeFirst(); <br/>                System.out.println(name); <br/>            } <br/>        } <br/><br/>Thread t1 = new NameDropper(); <br/>        Thread t2 = new NameDropper(); <br/>        t1.start(); <br/>        t2.start(); <br/>    } <br/>}</div></div></div>
+
+<div>虽然集合对象</div>
+<div>    private List nameList = Collections.synchronizedList(new LinkedList());<br/>是同步的，但是程序还不是线程安全的。</div>
+<div>出现这种事件的原因是，上例中一个线程操作列表过程中无法阻止另外一个线程对列表的其他操作。</div>
+
+<div>解决上面问题的办法是，在操作集合对象的NameList上面做一个同步。改写后的代码如下：</div>
+<div>
+<div>
+<div>public class NameList { <br/>    private List nameList = Collections.synchronizedList(new LinkedList()); <br/><br/>public synchronized void add(String name) { <br/>        nameList.add(name); <br/>    } <br/><br/>public synchronized String removeFirst() { <br/>        if (nameList.size() &gt; 0) { <br/>            return (String) nameList.remove(0); <br/>        } else { <br/>            return null; <br/>        } <br/>    } <br/>}</div></div></div>
+</div>
+<div>这样，当一个线程访问其中一个同步方法时，其他线程只有等待。</div>
+
+<div><strong>七、线程死锁</strong></div>
+
+<div>死锁对Java程序来说，是很复杂的，也很难发现问题。当两个线程被阻塞，每个线程在等待另一个线程时就发生死锁。</div>
+
+<div>还是看一个比较直观的死锁例子：</div>
+
+<div>
+<div>
+<div>public class DeadlockRisk { <br/>    private static class Resource { <br/>        public int value; <br/>    } <br/><br/>private Resource resourceA = new Resource(); <br/>    private Resource resourceB = new Resource(); <br/><br/>public int read() { <br/>        synchronized (resourceA) { <br/>            synchronized (resourceB) { <br/>                return resourceB.value + resourceA.value; <br/>            } <br/>        } <br/>    } <br/><br/>public void write(int a, int b) { <br/>        synchronized (resourceB) { <br/>            synchronized (resourceA) { <br/>                resourceA.value = a; <br/>                resourceB.value = b; <br/>            } <br/>        } <br/>    } <br/>}</div></div></div>
+
+<div>假设read()方法由一个线程启动，write()方法由另外一个线程启动。读线程将拥有resourceA锁，写线程将拥有resourceB锁，两者都坚持等待的话就出现死锁。</div>
+
+<div>实际上，上面这个例子发生死锁的概率很小。因为在代码内的某个点，CPU必须从读线程切换到写线程，所以，死锁基本上不能发生。</div>
+
+<div>但是，无论代码中发生死锁的概率有多小，一旦发生死锁，程序就死掉。有一些设计方法能帮助避免死锁，包括始终按照预定义的顺序获取锁这一策略。已经超出SCJP的考试范围。</div>
+
+<div><strong>八、线程同步小结</strong></div>
+
+<div>1、线程同步的目的是为了保护多个线程反问一个资源时对资源的破坏。</div>
+<div>2、线程同步方法是通过锁来实现，每个对象都有切仅有一个锁，这个锁与一个特定的对象关联，线程一旦获取了对象锁，其他访问该对象的线程就无法再访问该对象的其他同步方法。</div>
+<div>3、对于静态同步方法，锁是针对这个类的，锁对象是该类的Class对象。静态和非静态方法的锁互不干预。一个线程获得锁，当在一个同步方法中访问另外对象上的同步方法时，会获取这两个对象锁。</div>
+<div>4、对于同步，要时刻清醒在哪个对象上同步，这是关键。</div>
+<div>5、编写线程安全的类，需要时刻注意对多个线程竞争访问资源的逻辑和安全做出正确的判断，对“原子”操作做出分析，并保证原子操作期间别的线程无法访问竞争资源。</div>
+<div>6、当多个线程等待一个对象锁时，没有获取到锁的线程将发生阻塞。</div>
+<div>7、死锁是线程间相互等待锁锁造成的，在实际中发生的概率非常的小。真让你写个死锁程序，不一定好使，呵呵。但是，一旦程序发生死锁，程序将死掉。</div>
+<p>本文出自 “<a href="http://lavasoft.blog.51cto.com/" target="_blank">熔  岩</a>” 博客，转载请与作者联系！</p>
+    		</div></div></div><br/></span>
+</div></body></html> 

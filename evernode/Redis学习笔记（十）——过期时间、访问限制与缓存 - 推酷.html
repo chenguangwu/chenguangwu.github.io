@@ -1,0 +1,251 @@
+<html>
+<head>
+  <title>Redis学习笔记（十）——过期时间、访问限制与缓存 - 推酷</title>
+  <basefont face="微软雅黑" size="2" />
+  <meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+  <meta name="exporter-version" content="YXBJ Windows/600718 (zh-CN, DDL); Windows/6.1.1 (Win64);"/>
+  <style>
+    body, td {
+      font-family: 微软雅黑;
+      font-size: 10pt;
+    }
+  </style>
+</head>
+<body>
+<a name="5473"/>
+<h1>Redis学习笔记（十）——过期时间、访问限制与缓存 - 推酷</h1>
+<div>
+<table bgcolor="#D4DDE5" border="0">
+<tr><td><b>创建时间：</b></td><td><i>2017/5/27 16:56</i></td></tr>
+<tr><td><b>来源：</b></td><td><a href="http://www.tuicool.com/articles/baaUJ3"><i>http://www.tuicool.com/articles/baaUJ3</i></a></td></tr>
+</table>
+</div>
+<br/>
+
+<div><span><div style="-evernote-webclip:true"><br/><div style="font-size: 16px; display: inline-block;"><div style="font-size:14px;text-size-adjust:100%;background-color:rgb(244, 246, 248);"><div style="font-family:&quot;Helvetica Neue&quot;, Helvetica, Tahoma, Arial, STXihei, &quot;Microsoft YaHei&quot;, 微软雅黑, sans-serif;font-size:1em;line-height:1.5em;color:rgb(51, 51, 51);background-color:rgb(244, 246, 248);box-shadow:none;"><div><div><div style="background:white;box-shadow:rgba(0, 0, 0, 0.0980392) 0px 4px 10px;box-sizing:border-box;background-color:rgb(254, 254, 254);">
+        <h1 style="margin:0px 0px 0.5em;font-family:inherit;font-weight:normal;line-height:1.5em;color:inherit;text-rendering:optimizeLegibility;font-size:24px;margin-bottom:5px;">Redis学习笔记（十）——过期时间、访问限制与缓存</h1>
+        <div style="color:rgb(153, 153, 153);padding-bottom:8px;border-bottom:1px dashed rgb(211, 211, 211);font-size:14px;">
+            <div style="margin-bottom:5px;">
+            <span style="margin-right:5px;">时间 2014-08-15 15:10:09
+            </span>
+            <span style="margin-right:5px;">
+                <i style="height:auto;font-family:FontAwesome;font-style:normal;text-decoration:inherit;-webkit-font-smoothing:antialiased;display:inline;width:auto;font-weight:normal;line-height:normal;vertical-align:baseline;background-image:none;background-position:0px 0px;background-repeat:repeat;margin-top:0px;margin-right:0px;"><span style="font-family:FontAwesome;font-weight:normal;font-style:normal;line-height:normal;text-decoration:inherit;display:inline-block;speak:none;"></span></i>
+                    <a href="http://www.tuicool.com/sites/RjiENj" style="text-decoration:none;transition:0.25s;outline:none 0px;overflow:hidden;white-space:nowrap;word-break:keep-all;text-overflow:ellipsis;max-width:28%;color:rgb(51, 51, 51);display:inline;" target="_blank">赵伊凡's Blog
+                    </a>
+            </span>
+            </div>
+            <div>
+                <i style="font-style:normal;float:left;">原文</i>  
+                <a href="http://irfen.me/redis-learn-10-time-expire-limit-cache/?utm_source=tuicool&amp;utm_medium=referral" style="color:rgb(51, 51, 51);text-decoration:none;transition:0.25s;outline:none 0px;overflow:hidden;white-space:nowrap;word-break:keep-all;text-overflow:ellipsis;max-width:69%;display:inline-block;">http://irfen.me/redis-learn-10-time-expire-limit-cache/</a>
+            </div>
+            <div>
+                <span style="margin-right:5px;">主题</span>
+                <a href="http://www.tuicool.com/topics/11030032" style="color:rgb(51, 51, 51);text-decoration:none;transition:0.25s;outline:none 0px;" target="_blank">
+                    <span style="display:inline-block;padding:2px 4px;font-size:0.9em;line-height:16px;vertical-align:baseline;white-space:nowrap;background-color:rgb(242, 242, 242);color:rgb(120, 120, 120);text-decoration:none;margin-right:5px;">Redis</span>
+                </a>
+            </div>
+        </div>
+        <div style="padding:20px 5px 25px;margin-bottom:0px;overflow-x:hidden;word-wrap:break-word;word-break:break-all;min-height:340px;font-size:16px;line-height:1.7em;">
+            <div style="font-size:16px;line-height:1.7em;">
+  <h2 style="margin:0px 0px 0.5em;font-family:inherit;color:inherit;text-rendering:optimizeLegibility;font-weight:bold;line-height:1.6em;font-size:18px;text-indent:1em;">过期时间</h2>
+  <p style="margin:0px 0px 0.75em;font-size:16px;line-height:1.7em;text-indent:1em;">
+    之前应该提到过    <span>
+      <a href="http://irfen.me/tag/redis" rel="nofollow,noindex" style="transition:0.25s;outline:none 0px;color:rgb(148, 148, 148);text-decoration:none;border-bottom:1px dashed rgb(148, 148, 148);font-style:italic;font-weight:bold;" target="_blank" title="redis">redis</a>
+    </span>
+    的特性之一是可以设置键的超时时间。命令是expire。  </p>
+
+    <table style="font-weight:inherit;font-style:inherit;font-variant:inherit;background-color:transparent;border-collapse:collapse;border-spacing:0px;font-size:14px;max-width:100%;line-height:1.3em;width:100%;">
+      <tbody><tr style="font-size:14px;line-height:1.3em;">
+        <td style="font-size:14px;line-height:1.3em;">
+          <pre style="line-height:1.5em;padding:0.25em;border:1px solid rgba(0, 0, 0, 0.14902);border-radius:4px;background-color:rgb(245, 245, 245);margin:0px 0px 0.75em;font-size:1em;font-family:Monaco, Menlo, Consolas, &quot;Courier New&quot;, monospace;word-break:break-all;word-wrap:break-word;display:block;color:rgb(68, 68, 68);overflow-x:auto;white-space:pre;margin-bottom:0px;"><span style="color:rgb(51, 51, 51);font-weight:700;">redis</span> <span style="color:#000000;font-weight:bold;">&gt;</span> <span style="color:rgb(51, 51, 51);font-weight:700;">SET</span> <span style="color:rgb(51, 51, 51);font-weight:700;">session</span><span style="color:rgb(188, 96, 96);">:27e7a</span> <span style="color:rgb(51, 51, 51);font-weight:700;">id1234</span>
+<span style="color:rgb(51, 51, 51);font-weight:700;">OK</span>
+<span style="color:rgb(51, 51, 51);font-weight:700;">redis</span> <span style="color:#000000;font-weight:bold;">&gt;</span> <span style="color:rgb(51, 51, 51);font-weight:700;">EXPIRE</span> <span style="color:rgb(51, 51, 51);font-weight:700;">session</span><span style="color:rgb(188, 96, 96);">:27e7a</span> <span style="color:#000000;"><span style="color:rgb(51, 51, 51);font-weight:700;">1200</span></span>
+<span style="color:#7a0874;font-weight:bold;">(</span>integer<span style="color:#7a0874;font-weight:bold;">)</span> <span style="color:#000000;"><span style="color:rgb(51, 51, 51);font-weight:700;">1</span></span></pre>
+        </td>
+      </tr>
+    </tbody></table>
+    <p style="margin:0px 0px 0.75em;font-size:16px;line-height:1.7em;text-indent:1em;">EXPIRE命令返回1表示成功，返回0表示键值不存在或设置失败。</p>
+  <p style="margin:0px 0px 0.75em;font-size:16px;line-height:1.7em;text-indent:1em;">同时这里还有一个比较常用的命令是ttl，用于查看一个键还有多久时间会被删除。返回的是剩余时间（秒数）。</p>
+  <p style="margin:0px 0px 0.75em;font-size:16px;line-height:1.7em;text-indent:1em;">这里就不贴代码了，有一点需要说明的是，ttl命令在键不存在或被删除之后，会返回-2，在没有为键设置生存时间（即永久存在，建一个键之后的默认情况）时返回的是-1。大家可以亲自操作一把。</p>
+  <p style="margin:0px 0px 0.75em;font-size:16px;line-height:1.7em;text-indent:1em;">如果想要把一个设置过过期时间的键取消过期时间设置，则需要使用persist命令。</p>
+
+    <table style="font-weight:inherit;font-style:inherit;font-variant:inherit;background-color:transparent;border-collapse:collapse;border-spacing:0px;font-size:14px;max-width:100%;line-height:1.3em;width:100%;">
+      <tbody><tr style="font-size:14px;line-height:1.3em;">
+        <td style="font-size:14px;line-height:1.3em;">
+          <pre style="line-height:1.5em;padding:0.25em;border:1px solid rgba(0, 0, 0, 0.14902);border-radius:4px;background-color:rgb(245, 245, 245);margin:0px 0px 0.75em;font-size:1em;font-family:Monaco, Menlo, Consolas, &quot;Courier New&quot;, monospace;word-break:break-all;word-wrap:break-word;display:block;color:rgb(68, 68, 68);overflow-x:auto;white-space:pre;margin-bottom:0px;"><span style="color:rgb(51, 51, 51);font-weight:700;">redis</span> <span style="color:#000000;font-weight:bold;">&gt;</span> <span style="color:rgb(51, 51, 51);font-weight:700;">SET</span> <span style="color:rgb(51, 51, 51);font-weight:700;">session</span><span style="color:rgb(188, 96, 96);">:27e7a</span> <span style="color:rgb(51, 51, 51);font-weight:700;">id1234</span>
+<span style="color:rgb(51, 51, 51);font-weight:700;">OK</span>
+<span style="color:rgb(51, 51, 51);font-weight:700;">redis</span> <span style="color:#000000;font-weight:bold;">&gt;</span> <span style="color:rgb(51, 51, 51);font-weight:700;">EXPIRE</span> <span style="color:rgb(51, 51, 51);font-weight:700;">session</span><span style="color:rgb(188, 96, 96);">:27e7a</span> <span style="color:#000000;"><span style="color:rgb(51, 51, 51);font-weight:700;">1200</span></span>
+<span style="color:#7a0874;font-weight:bold;">(</span>integer<span style="color:#7a0874;font-weight:bold;">)</span> <span style="color:#000000;"><span style="color:rgb(51, 51, 51);font-weight:700;">1</span></span>
+<span style="color:rgb(51, 51, 51);font-weight:700;">redis</span> <span style="color:#000000;font-weight:bold;">&gt;</span> <span style="color:rgb(51, 51, 51);font-weight:700;">TTL</span> <span style="color:rgb(51, 51, 51);font-weight:700;">session</span><span style="color:rgb(188, 96, 96);">:27e7a</span>
+<span style="color:#7a0874;font-weight:bold;">(</span>integer<span style="color:#7a0874;font-weight:bold;">)</span> <span style="color:#000000;"><span style="color:rgb(51, 51, 51);font-weight:700;">1092</span></span>
+<span style="color:rgb(51, 51, 51);font-weight:700;">redis</span> <span style="color:#000000;font-weight:bold;">&gt;</span> <span style="color:rgb(51, 51, 51);font-weight:700;">PERSIST</span> <span style="color:rgb(51, 51, 51);font-weight:700;">session</span><span style="color:rgb(188, 96, 96);">:27e7a</span>
+<span style="color:#7a0874;font-weight:bold;">(</span>integer<span style="color:#7a0874;font-weight:bold;">)</span> <span style="color:#000000;"><span style="color:rgb(51, 51, 51);font-weight:700;">1</span></span>
+<span style="color:rgb(51, 51, 51);font-weight:700;">redis</span> <span style="color:#000000;font-weight:bold;">&gt;</span> <span style="color:rgb(51, 51, 51);font-weight:700;">TTL</span> <span style="color:rgb(51, 51, 51);font-weight:700;">session</span><span style="color:rgb(188, 96, 96);">:27e7a</span>
+<span style="color:#7a0874;font-weight:bold;">(</span>integer<span style="color:#7a0874;font-weight:bold;">)</span> <span style="color:#660033;"><span style="color:rgb(51, 51, 51);font-weight:700;">-1</span></span></pre>
+        </td>
+      </tr>
+    </tbody></table>
+    <p style="margin:0px 0px 0.75em;font-size:16px;line-height:1.7em;text-indent:1em;">这里需要说明一点的是，除了使用persist命令外，使用set、getset命令为键赋值，也会同时消除键的生存时间，如果需要可以重新使用expire命令为键设置生存时间。而其他对键的操作命令（如incr、lpush、hset、zrem）都不会影响键的生存时间。</p>
+  <p style="margin:0px 0px 0.75em;font-size:16px;line-height:1.7em;text-indent:1em;">expire命令的单位是秒，而且这个参数必须为整数，如果需要更精准的时间的话，需要使用pexpire命令设置，其单位为毫秒，同理也需要用pttl命令来看键的剩余毫秒数。当然使用expire命令设置的过期时间也是可以用pttl看键的剩余毫秒数的。</p>
+  <h2 style="margin:0px 0px 0.5em;font-family:inherit;color:inherit;text-rendering:optimizeLegibility;font-weight:bold;line-height:1.6em;font-size:18px;text-indent:1em;">访问限制</h2>
+  <p style="margin:0px 0px 0.75em;font-size:16px;line-height:1.7em;text-indent:1em;">有时候我们会有一个需求是需要限制一个用户对一个资源的访问频率，我们假定一个用户（用IP作为判断）每分钟对一个资源访问次数不能超过10次。</p>
+  <p style="margin:0px 0px 0.75em;font-size:16px;line-height:1.7em;text-indent:1em;">我们可以使用一个键，每次用户访问则把值加1，当值加到10的时候，我们设定键的过期时间为60秒，并且禁止访问。这时候下次访问发现值为10，则不让访问了，然后60秒后键被删除，这时候再次创建键。这样就可以解决，但是其实这样时间并不精准，问题还是挺大的。</p>
+  <p style="margin:0px 0px 0.75em;font-size:16px;line-height:1.7em;text-indent:1em;">
+    我们还有一个方案：使用队列。前面的章节也说到了，使用列表类型可以用作队列。  </p>
+  <p style="margin:0px 0px 0.75em;font-size:16px;line-height:1.7em;text-indent:1em;">我们设定一个队列rate.limiting.192.168.1.1（假定是这个IP），我们把每次的访问时间都添加到队列中，当队列长度达到10以后，判断当前时间与队列第一个值的时间差是否小于60，如果小于60则说明60秒内访问次数超过10次，不允许访问；否则说明可以访问，则把队列头的值删除，队列尾增加当前访问时间。</p>
+  <p style="margin:0px 0px 0.75em;font-size:16px;line-height:1.7em;text-indent:1em;">这种方法可以比较精准的实现访问限制，但是当限制的次数比较大时，这种方法占用的存储空间也会比较大。</p>
+  <h2 style="margin:0px 0px 0.5em;font-family:inherit;color:inherit;text-rendering:optimizeLegibility;font-weight:bold;line-height:1.6em;font-size:18px;text-indent:1em;">缓存</h2>
+  <p style="margin:0px 0px 0.75em;font-size:16px;line-height:1.7em;text-indent:1em;">有时候会把一些对CPU或IO资源消耗比较大的操作结果缓存起来，并设置一定时间的自动过期。比如我们设定一个微博外链的最热站点缓存放于新浪微博的首页，这样我们不可能每次访问都重新计算最热的外链站点，所以我们可以设定两小时更新一次。每次访问是判断这个键有没有，如果存在则直接返回，如果没有则通过计算把内容存入键中，并设定两小时的过期时间。</p>
+  <p style="margin:0px 0px 0.75em;font-size:16px;line-height:1.7em;text-indent:1em;">然而在很多场合这种方法会很恐怖，当服务器内存有限的时候，大量使用缓存切设置生存时间过长就会导致redis占用太多内存，而redis有时候会把系统内存都吃掉，导致系统崩溃。但是设置时间过短又会导致缓存的命中太低。</p>
+  <p style="margin:0px 0px 0.75em;font-size:16px;line-height:1.7em;text-indent:1em;">所以我们最好的办法是设定缓存的淘汰规则。这种方式比较适用于将redis用作缓存系统的时候比较好。</p>
+  <p style="margin:0px 0px 0.75em;font-size:16px;line-height:1.7em;text-indent:1em;">具体就是：修改配置文件中的maxmemory参数，限制redis的最大内存，当超出后会按照maxmemory-policy参数指定的策略删除不需要的键，直到redis占用的内存小于设定值。</p>
+  <table border="1" cellpadding="0" cellspacing="0" style="border-top-style:solid;font-size:14px;font-style:inherit;font-variant:inherit;max-width:100%;background-color:transparent;border-collapse:separate;border-spacing:0px;width:100%;margin-bottom:1.5em;border-width:1px 1px 1px 0px;font-weight:inherit;border-right-style:solid;border-bottom-style:solid;border-top-color:rgb(221, 221, 221);border-right-color:rgb(221, 221, 221);border-bottom-color:rgb(221, 221, 221);border-image:initial;border-left-style:initial;border-left-color:initial;border-radius:4px;line-height:1.3em;">
+    <tbody>
+      <tr style="font-size:14px;line-height:1.3em;">
+        <td style="padding:8px;line-height:1.5em;text-align:left;vertical-align:top;border-left:1px solid rgb(221, 221, 221);font-size:14px;border-top:0px;border-top-left-radius:4px;" valign="top" width="187">
+          <p style="margin:0px 0px 0.75em;font-size:16px;line-height:1.7em;text-indent:1em;">规则</p>
+        </td>
+        <td style="padding:8px;line-height:1.5em;text-align:left;vertical-align:top;border-left:1px solid rgb(221, 221, 221);font-size:14px;border-top:0px;border-top-right-radius:4px;" valign="top">
+          <p style="margin:0px 0px 0.75em;font-size:16px;line-height:1.7em;text-indent:1em;">说明</p>
+        </td>
+      </tr>
+      <tr style="font-size:14px;line-height:1.3em;">
+        <td style="padding:8px;line-height:1.5em;text-align:left;vertical-align:top;border-top:1px solid rgb(221, 221, 221);border-left:1px solid rgb(221, 221, 221);font-size:14px;" valign="top" width="187">
+          <p style="margin:0px 0px 0.75em;font-size:16px;line-height:1.7em;text-indent:1em;">volatile-lru</p>
+        </td>
+        <td style="padding:8px;line-height:1.5em;text-align:left;vertical-align:top;border-top:1px solid rgb(221, 221, 221);border-left:1px solid rgb(221, 221, 221);font-size:14px;" valign="top">
+          使用LRU          <span>
+            <a href="http://irfen.me/tag/%e7%ae%97%e6%b3%95" rel="nofollow,noindex" style="transition:0.25s;outline:none 0px;color:rgb(148, 148, 148);text-decoration:none;border-bottom:1px dashed rgb(148, 148, 148);font-style:italic;font-weight:bold;" target="_blank" title="算法">算法</a>
+          </span>
+          删除一个键（只对设置了生存时间的键）        </td>
+      </tr>
+      <tr style="font-size:14px;line-height:1.3em;">
+        <td style="padding:8px;line-height:1.5em;text-align:left;vertical-align:top;border-top:1px solid rgb(221, 221, 221);border-left:1px solid rgb(221, 221, 221);font-size:14px;" valign="top" width="187">
+          <p style="margin:0px 0px 0.75em;font-size:16px;line-height:1.7em;text-indent:1em;">allkeys-lru</p>
+        </td>
+        <td style="padding:8px;line-height:1.5em;text-align:left;vertical-align:top;border-top:1px solid rgb(221, 221, 221);border-left:1px solid rgb(221, 221, 221);font-size:14px;" valign="top">使用LRU算法删除一个键</td>
+      </tr>
+      <tr style="font-size:14px;line-height:1.3em;">
+        <td style="padding:8px;line-height:1.5em;text-align:left;vertical-align:top;border-top:1px solid rgb(221, 221, 221);border-left:1px solid rgb(221, 221, 221);font-size:14px;" valign="top" width="187">
+          <p style="margin:0px 0px 0.75em;font-size:16px;line-height:1.7em;text-indent:1em;">volatile-random</p>
+        </td>
+        <td style="padding:8px;line-height:1.5em;text-align:left;vertical-align:top;border-top:1px solid rgb(221, 221, 221);border-left:1px solid rgb(221, 221, 221);font-size:14px;" valign="top">随机删除一个键（只对设置了生存时间的键）</td>
+      </tr>
+      <tr style="font-size:14px;line-height:1.3em;">
+        <td style="padding:8px;line-height:1.5em;text-align:left;vertical-align:top;border-top:1px solid rgb(221, 221, 221);border-left:1px solid rgb(221, 221, 221);font-size:14px;" valign="top" width="187">
+          <p style="margin:0px 0px 0.75em;font-size:16px;line-height:1.7em;text-indent:1em;">allkeys- random</p>
+        </td>
+        <td style="padding:8px;line-height:1.5em;text-align:left;vertical-align:top;border-top:1px solid rgb(221, 221, 221);border-left:1px solid rgb(221, 221, 221);font-size:14px;" valign="top">随机删除一个键</td>
+      </tr>
+      <tr style="font-size:14px;line-height:1.3em;">
+        <td style="padding:8px;line-height:1.5em;text-align:left;vertical-align:top;border-top:1px solid rgb(221, 221, 221);border-left:1px solid rgb(221, 221, 221);font-size:14px;" valign="top" width="187">
+          <p style="margin:0px 0px 0.75em;font-size:16px;line-height:1.7em;text-indent:1em;">volatile-ttl</p>
+        </td>
+        <td style="padding:8px;line-height:1.5em;text-align:left;vertical-align:top;border-top:1px solid rgb(221, 221, 221);border-left:1px solid rgb(221, 221, 221);font-size:14px;" valign="top">删除生存时间最近的一个键</td>
+      </tr>
+      <tr style="font-size:14px;line-height:1.3em;">
+        <td style="padding:8px;line-height:1.5em;text-align:left;vertical-align:top;border-top:1px solid rgb(221, 221, 221);border-left:1px solid rgb(221, 221, 221);font-size:14px;border-bottom-left-radius:4px;" valign="top" width="187">
+          <p style="margin:0px 0px 0.75em;font-size:16px;line-height:1.7em;text-indent:1em;">noeviction</p>
+        </td>
+        <td style="padding:8px;line-height:1.5em;text-align:left;vertical-align:top;border-top:1px solid rgb(221, 221, 221);border-left:1px solid rgb(221, 221, 221);font-size:14px;border-bottom-right-radius:4px;" valign="top">不删除键，只返回错误</td>
+      </tr>
+    </tbody>
+  </table>
+  <p style="margin:0px 0px 0.75em;font-size:16px;line-height:1.7em;text-indent:1em;">其中的LRU算法即是【最近最少使用】。</p>
+  <p style="margin:0px 0px 0.75em;font-size:16px;line-height:1.7em;text-indent:1em;">
+    这里提一句，实际上redis根本就不会准确的将整个    <span>
+      <a href="http://irfen.me/tag/%e6%95%b0%e6%8d%ae%e5%ba%93" rel="nofollow,noindex" style="transition:0.25s;outline:none 0px;color:rgb(148, 148, 148);text-decoration:none;border-bottom:1px dashed rgb(148, 148, 148);font-style:italic;font-weight:bold;" target="_blank" title="数据库">数据库</a>
+    </span>
+    中最久未被使用的键删除，而是每次从数据库中随机取3个键并删除这3个键里最久未被使用的键。上面提到的所有的随机的操作实际上都是这样的，这个3可以用过redis的配置文件中的maxmemeory-samples参数配置。  </p>
+  <p style="margin:0px 0px 0.75em;font-size:16px;line-height:1.7em;text-indent:1em;">
+    本文发表自    <span>
+      <a href="http://irfen.me/" rel="nofollow,noindex" style="transition:0.25s;outline:none 0px;color:rgb(148, 148, 148);text-decoration:none;border-bottom:1px dashed rgb(148, 148, 148);font-style:italic;font-weight:bold;" target="_blank" title="赵伊凡BLOG">赵伊凡BLOG</a>
+    </span>
+  </p>
+</div>
+
+        </div>
+        <div style="margin-bottom:10px;">
+         <div style="width:70px;height:70px;margin:0px auto;">
+    <div style="width:70px;height:70px;border-radius:50%;outline:none 0px;-webkit-tap-highlight-color:rgba(0, 0, 0, 0);text-align:center;vertical-align:middle;border:1px solid rgb(222, 222, 222);background:url(&quot;http://static0.tuicool.com/images/social_share.png&quot;) 0px -80px no-repeat;">  </div>
+
+</div>
+        
+<div style="height:32px;margin-top:35px;margin-bottom:20px;">
+    <div style="float:left;">
+        <span style="margin-left:15px;color:rgb(120, 120, 120);vertical-align:middle;font-size:14px;margin-right:5px;">分享</span>
+        
+        
+        
+    </div>
+    <div style="float:right;">
+        
+        
+    </div>
+</div>
+
+
+
+            <div style="display:inline-block;text-align:center;margin:0px auto;"><span style="text-align:center;display:table;line-height:0;"></span>
+                    <a href="https://sspaas.com/" style="color:rgb(51, 51, 51);text-decoration:none;transition:0.25s;outline:none 0px;" target="_blank"></a>
+
+            <span style="text-align:center;display:table;line-height:0;clear:both;height:0px;visibility:hidden;"></span></div>
+        </div>
+        <div style="clear:both;">
+              <div style="border-bottom:1px solid rgb(227, 227, 227);color:rgb(0, 0, 0);font-size:18px;padding-bottom:5px;font-weight:bold;margin-left:6px;margin-right:6px;padding-left:5px;">
+                <span style="text-decoration:none;display:inline-block;">推荐文章</span>
+              </div>
+          <ul style="padding:0px;margin:0px 0px 0.75em 25px;list-style-type:none;margin-left:5px;">
+                <li style="line-height:1.5em;list-style-type:none;padding-top:4px;padding-bottom:4px;font-size:14px;padding-left:0px;border-bottom:1px dashed rgb(204, 204, 204);">
+                    1.<a href="http://www.tuicool.com/articles/F3Erii2" style="text-decoration:none;transition:0.25s;outline:none 0px;color:rgb(22, 160, 133);font-size:1.1em;" target="_blank" title="redis持久化策略浅析">
+                    redis持久化策略浅析
+                    </a>
+                </li>
+                <li style="line-height:1.5em;list-style-type:none;padding-top:4px;padding-bottom:4px;font-size:14px;padding-left:0px;border-bottom:1px dashed rgb(204, 204, 204);">
+                    2.<a href="http://www.tuicool.com/articles/nAniam" style="text-decoration:none;transition:0.25s;outline:none 0px;color:rgb(22, 160, 133);font-size:1.1em;" target="_blank" title="NoSQL数据库的主主备份">
+                    NoSQL数据库的主主备份
+                    </a>
+                </li>
+                <li style="line-height:1.5em;list-style-type:none;padding-top:4px;padding-bottom:4px;font-size:14px;padding-left:0px;border-bottom:1px dashed rgb(204, 204, 204);">
+                    3.<a href="http://www.tuicool.com/articles/ZnMnEry" style="text-decoration:none;transition:0.25s;outline:none 0px;color:rgb(22, 160, 133);font-size:1.1em;" target="_blank" title="elasticsearch技术手册 v1.0">
+                    elasticsearch技术手册 v1.0
+                    </a>
+                </li>
+                <li style="line-height:1.5em;list-style-type:none;padding-top:4px;padding-bottom:4px;font-size:14px;padding-left:0px;border-bottom:1px dashed rgb(204, 204, 204);">
+                    4.<a href="http://www.tuicool.com/articles/FrUzyuN" style="text-decoration:none;transition:0.25s;outline:none 0px;color:rgb(22, 160, 133);font-size:1.1em;" target="_blank" title="MongoDB学习笔记(一)">
+                    MongoDB学习笔记(一)
+                    </a>
+                </li>
+                <li style="line-height:1.5em;list-style-type:none;padding-top:4px;padding-bottom:4px;font-size:14px;padding-left:0px;border-bottom:1px dashed rgb(204, 204, 204);">
+                    5.<a href="http://www.tuicool.com/articles/faaUFz7" style="text-decoration:none;transition:0.25s;outline:none 0px;color:rgb(22, 160, 133);font-size:1.1em;" target="_blank" title="系统重构，性能优化的几点心得">
+                    系统重构，性能优化的几点心得
+                    </a>
+                </li>
+                <li style="line-height:1.5em;list-style-type:none;padding-top:4px;padding-bottom:4px;font-size:14px;padding-left:0px;border-bottom:1px dashed rgb(204, 204, 204);">
+                    6.<a href="http://www.tuicool.com/articles/UJv6J3U" style="text-decoration:none;transition:0.25s;outline:none 0px;color:rgb(22, 160, 133);font-size:1.1em;" target="_blank" title="容错虚拟机分布式系统的设计">
+                    容错虚拟机分布式系统的设计
+                    </a>
+                </li>
+          </ul>
+        </div>
+        <div style="padding-left:5px;margin-bottom:10px;"> <div style="border-bottom:1px solid rgb(227, 227, 227);color:rgb(0, 0, 0);font-size:18px;padding-bottom:5px;font-weight:bold;margin-left:6px;margin-right:6px;padding-left:5px;"> <span style="text-decoration:none;display:inline-block;">相关推刊</span></div><div style="margin:0px auto;"><ul style="padding:0px;list-style-type:none;display:inline-block;margin:0px 0px 0px 5px;width:auto;padding-top:3px;"><span style="list-style-type:none;display:table;line-height:0;"></span>          <li style="line-height:1.5em;list-style-type:none;float:left;margin:5px;border:1px solid rgb(221, 221, 221);width:166px;height:170px;padding:7px;background:rgb(247, 247, 247);">            <a href="http://www.tuicool.com/kans/1919540993" style="text-decoration:none;transition:0.25s;outline:none 0px;position:relative;color:rgb(0, 0, 0);text-align:center;display:block;margin-top:0px;" target="_blank">              <small style="font-size:85%;display:block;position:absolute;bottom:0px;width:100%;text-align:center;color:rgb(255, 255, 255);background:rgba(92, 92, 92, 0.8);">by 进击的萝卜</small>              <img src="Redis学习笔记（十）——过期时间、访问限制与缓存 - 推酷_files/22eUvq.jpg!kan.jpg" type="image/jpeg" data-filename="22eUvq.jpg!kan.jpg" height="180" style="max-width:100%;vertical-align:middle;border:0px;width:165px;height:150px;" width="190"/>            </a>            <span style="font-size:13px;display:block;width:auto;margin-top:5px;text-align:left;">              <a href="http://www.tuicool.com/kans/1919540993" style="overflow:hidden;color:rgb(0, 0, 0);transition:0.25s;outline:none 0px;text-decoration:none;margin-left:5px;max-width:140px;white-space:nowrap;word-break:keep-all;text-overflow:ellipsis;display:inline-block;" target="_blank">《缓存》</a>              <i style="font-style:normal;float:right;margin-right:5px;font-weight:bold;color:rgb(153, 153, 153);">10</i>            </span>          </li>        <span style="list-style-type:none;display:table;line-height:0;clear:both;height:0px;visibility:hidden;"></span></ul></div><i style="font-style:normal;display:block;clear:both;height:0px;"><span style="font-style:normal;display:table;line-height:0;"></span><span style="font-style:normal;display:table;line-height:0;clear:both;height:0px;visibility:hidden;"></span></i></div>
+        
+        <div style="float:left;width:100%;padding-top:20px;">
+    <div>
+    <div style="padding:10px;background:rgb(241, 241, 241);">
+        <h5 style="margin:0px 0px 0.5em;font-family:inherit;font-weight:bold;line-height:1.5em;color:inherit;text-rendering:optimizeLegibility;font-size:18px;margin-left:10px;">我来评几句</h5>
+        
+            
+            <span style="cursor:pointer;display:inline-block;margin-bottom:0px;font-size:14px;line-height:20px;outline:none 0px;text-align:center;text-shadow:rgba(255, 255, 255, 0.74902) 0px 1px 1px;vertical-align:top;background:rgb(255, 255, 255);border-width:1px;border-style:solid;border-image:initial;border-color:rgb(204, 204, 204);box-shadow:rgba(255, 255, 255, 0.2) 0px 1px 0px inset, rgba(0, 0, 0, 0.0470588) 0px 1px 2px;padding:5px 10px;float:right;color:rgb(102, 102, 102);border-radius:0px;">登录后评论</span>
+        <p style="margin:0px 0px 0.75em;margin-top:5px;margin-left:10px;">
+            已发表评论数(<span style="font-weight:bold;">0</span>)
+        </p>
+    </div>
+    
+    
+    
+    </div>
+</div>
+
+    </div></div></div></div></div></div><br/></div></span>
+</div></body></html> 

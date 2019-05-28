@@ -1,0 +1,511 @@
+<html>
+<head>
+  <title>Spring @Transactional （一） - - ITeye技术网站</title>
+  <basefont face="微软雅黑" size="2" />
+  <meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+  <meta name="exporter-version" content="YXBJ Windows/600718 (zh-CN, DDL); Windows/6.1.1 (Win64);"/>
+  <style>
+    body, td {
+      font-family: 微软雅黑;
+      font-size: 10pt;
+    }
+  </style>
+</head>
+<body>
+<a name="9090"/>
+<h1>Spring @Transactional （一） - - ITeye技术网站</h1>
+<div>
+<table bgcolor="#D4DDE5" border="0">
+<tr><td><b>创建时间：</b></td><td><i>2016/9/23 9:46</i></td></tr>
+<tr><td><b>来源：</b></td><td><a href="http://robinsoncrusoe.iteye.com/blog/825531"><i>http://robinsoncrusoe.iteye.com/blog/825531</i></a></td></tr>
+</table>
+</div>
+<br/>
+
+<div><span><div style="-evernote-webclip:true"><br/><div style="font-size: 16px"><div><div style="text-align:center;font-family:Helvetica, Tahoma, Arial, sans-serif;font-size:12px;line-height:1.5;color:black;background:white;"><div style="text-align:center;background:white;background-color:rgb(239, 250, 255);"><div style="text-align:left;"><div style="overflow:hidden;background-color:white;"><div style="background-color:white;"><div style="font-size:14px;line-height:1.8em;">
+    Spring事务的传播行为
+<br/>
+<br/>在service类前加上@Transactional，声明这个service所有方法需要事务管理。每一个业务方法开始时都会打开一个事务。 
+<br/>
+<br/>Spring默认情况下会对运行期例外(RunTimeException)进行事务回滚。这个例外是unchecked 
+<br/>
+<br/>如果遇到checked意外就不回滚。 
+<br/>
+<br/>如何改变默认规则： 
+<br/>
+<br/>1 让checked例外也回滚：在整个方法前加上 @Transactional(rollbackFor=Exception.class) 
+<br/>
+<br/>2 让unchecked例外不回滚： @Transactional(notRollbackFor=RunTimeException.class) 
+<br/>
+<br/>3 不需要事务管理的(只查询的)方法：@Transactional(propagation=Propagation.NOT_SUPPORTED) 
+<br/>
+<br/>在整个方法运行前就不会开启事务 
+<br/>
+<br/>       还可以加上：@Transactional(propagation=Propagation.NOT_SUPPORTED,readOnly=true)，这样就做成一个只读事务，可以提高效率。 
+<br/>
+<br/>       各种属性的意义： 
+<br/>
+<br/>       REQUIRED:业务方法需要在一个容器里运行。如果方法运行时，已经处在一个事务中，那么加入到这个事务，否则自己新建一个新的事务。 
+<br/>
+<br/>       NOT_SUPPORTED:声明方法不需要事务。如果方法没有关联到一个事务，容器不会为他开启事务，如果方法在一个事务中被调用，该事务会被挂起，调用结束后，原先的事务会恢复执行。 
+<br/>
+<br/>       REQUIRESNEW:不管是否存在事务，该方法总汇为自己发起一个新的事务。如果方法已经运行在一个事务中，则原有事务挂起，新的事务被创建。 
+<br/>
+<br/>       MANDATORY：该方法只能在一个已经存在的事务中执行，业务方法不能发起自己的事务。如果在没有事务的环境下被调用，容器抛出例外。 
+<br/>
+<br/>       SUPPORTS:该方法在某个事务范围内被调用，则方法成为该事务的一部分。如果方法在该事务范围外被调用，该方法就在没有事务的环境下执行。 
+<br/>
+<br/>       NEVER：该方法绝对不能在事务范围内执行。如果在就抛例外。只有该方法没有关联到任何事务，才正常执行。 
+<br/>
+<br/>       NESTED:如果一个活动的事务存在，则运行在一个嵌套的事务中。如果没有活动事务，则按REQUIRED属性执行。它使用了一个单独的事务，这个事务拥有多个可以回滚的保存点。内部事务的回滚不会对外部事务造成影响。它只对DataSourceTransactionManager事务管理器起效。 
+<br/>
+<br/>事务陷阱-1
+<br/>
+<br/>清单 1. 使用 JDBC 的简单数据库插入
+<br/>
+<br/>view plaincopy to clipboardprint?
+<br/>@Stateless 
+<br/>public class TradingServiceImpl implements TradingService {   
+<br/>   @Resource SessionContext ctx;   
+<br/>   @Resource(mappedName=&quot;java:jdbc/tradingDS&quot;) DataSource ds;   
+<br/>
+<br/>   public long insertTrade(TradeData trade) throws Exception {   
+<br/>      Connection dbConnection = ds.getConnection();   
+<br/>      try {   
+<br/>         Statement sql = dbConnection.createStatement();   
+<br/>         String stmt =   
+<br/>            &quot;INSERT INTO TRADE (ACCT_ID, SIDE, SYMBOL, SHARES, PRICE, STATE)&quot; 
+<br/>          + &quot;VALUES (&quot; 
+<br/>          + trade.getAcct() + &quot;','&quot; 
+<br/>          + trade.getAction() + &quot;','&quot; 
+<br/>          + trade.getSymbol() + &quot;',&quot; 
+<br/>          + trade.getShares() + &quot;,&quot; 
+<br/>          + trade.getPrice() + &quot;,'&quot; 
+<br/>          + trade.getState() + &quot;')&quot;;   
+<br/>         sql.executeUpdate(stmt, Statement.RETURN_GENERATED_KEYS);   
+<br/>         ResultSet rs = sql.getGeneratedKeys();   
+<br/>         if (rs.next()) {   
+<br/>            return rs.getBigDecimal(1).longValue();   
+<br/>         } else {   
+<br/>            throw new Exception(&quot;Trade Order Insert Failed&quot;);   
+<br/>         }   
+<br/>      } finally {   
+<br/>         if (dbConnection != null) dbConnection.close();   
+<br/>      }   
+<br/>   }   
+<br/>} 
+<br/>@Stateless
+<br/>public class TradingServiceImpl implements TradingService {
+<br/>   @Resource SessionContext ctx;
+<br/>   @Resource(mappedName=&quot;java:jdbc/tradingDS&quot;) DataSource ds;
+<br/>public long insertTrade(TradeData trade) throws Exception {
+<br/>      Connection dbConnection = ds.getConnection();
+<br/>      try {
+<br/>         Statement sql = dbConnection.createStatement();
+<br/>         String stmt =
+<br/>            &quot;INSERT INTO TRADE (ACCT_ID, SIDE, SYMBOL, SHARES, PRICE, STATE)&quot;
+<br/>          + &quot;VALUES (&quot;
+<br/>          + trade.getAcct() + &quot;','&quot;
+<br/>          + trade.getAction() + &quot;','&quot;
+<br/>          + trade.getSymbol() + &quot;',&quot;
+<br/>          + trade.getShares() + &quot;,&quot;
+<br/>          + trade.getPrice() + &quot;,'&quot;
+<br/>          + trade.getState() + &quot;')&quot;;
+<br/>         sql.executeUpdate(stmt, Statement.RETURN_GENERATED_KEYS);
+<br/>         ResultSet rs = sql.getGeneratedKeys();
+<br/>         if (rs.next()) {
+<br/>            return rs.getBigDecimal(1).longValue();
+<br/>         } else {
+<br/>            throw new Exception(&quot;Trade Order Insert Failed&quot;);
+<br/>         }
+<br/>      } finally {
+<br/>         if (dbConnection != null) dbConnection.close();
+<br/>      }
+<br/>   }
+<br/>}
+<br/>
+<br/>清单 1 中的 JDBC 代码没有包含任何事务逻辑，它只是在数据库中保存 TRADE 表中的交易订单。在本例中，数据库处理事务逻辑。
+<br/>
+<br/>在 LUW 中，这是一个不错的单个数据库维护操作。但是如果需要在向数据库插入交易订单的同时更新帐户余款呢？如清单 2 所示：
+<br/>
+<br/>
+<br/>清单 2. 在同一方法中执行多次表更新
+<br/>
+<br/>view plaincopy to clipboardprint?
+<br/>public TradeData placeTrade(TradeData trade) throws Exception {   
+<br/>   try {   
+<br/>      insertTrade(trade);   
+<br/>      updateAcct(trade);   
+<br/>      return trade;   
+<br/>   } catch (Exception up) {   
+<br/>      //log the error   
+<br/>      throw up;   
+<br/>   }   
+<br/>} 
+<br/>public TradeData placeTrade(TradeData trade) throws Exception {
+<br/>   try {
+<br/>      insertTrade(trade);
+<br/>      updateAcct(trade);
+<br/>      return trade;
+<br/>   } catch (Exception up) {
+<br/>      //log the error
+<br/>      throw up;
+<br/>   }
+<br/>}
+<br/>
+<br/>在本例中，insertTrade() 和 updateAcct() 方法使用不带事务的标准 JDBC 代码。insertTrade() 方法结束后，数据库保存（并提交了）交易订单。如果 updateAcct() 方法由于任意原因失败，交易订单仍然会在 placeTrade() 方法结束时保存在 TRADE 表内，这会导致数据库出现不一致的数据。如果 placeTrade() 方法使用了事务，这两个活动都会包含在一个 LUW 中，如果帐户更新失败，交易订单就会回滚。
+<br/>
+<br/>事务陷阱-2
+<br/>
+<br/>随着 Java 持久性框架的不断普及，如 Hibernate、TopLink 和 Java 持久性 API（Java Persistence API，JPA），我们很少再会去编写简单的 JDBC 代码。更常见的情况是，我们使用更新的对象关系映射（ORM）框架来减轻工作，即用几个简单的方法调用替换所有麻烦的 JDBC 代码。例如，要插入 清单 1 中 JDBC 代码示例的交易订单，使用带有 JPA 的 Spring Framework，就可以将 TradeData 对象映射到 TRADE 表，并用清单 3 中的 JPA 代码替换所有 JDBC 代码：
+<br/>
+<br/>
+<br/>清单 3. 使用 JPA 的简单插入
+<br/>
+<br/>view plaincopy to clipboardprint?
+<br/>public class TradingServiceImpl {   
+<br/>    @PersistenceContext(unitName=&quot;trading&quot;) EntityManager em;   
+<br/>
+<br/>    public long insertTrade(TradeData trade) throws Exception {   
+<br/>       em.persist(trade);   
+<br/>       return trade.getTradeId();   
+<br/>    }   
+<br/>} 
+<br/>public class TradingServiceImpl {
+<br/>    @PersistenceContext(unitName=&quot;trading&quot;) EntityManager em;
+<br/>
+<br/>    public long insertTrade(TradeData trade) throws Exception {
+<br/>       em.persist(trade);
+<br/>       return trade.getTradeId();
+<br/>    }
+<br/>}
+<br/>注意，清单 3 在 EntityManager 上调用了 persist() 方法来插入交易订单。很简单，是吧？其实不然。这段代码不会像预期那样向 TRADE 表插入交易订单，也不会抛出异常。它只是返回一个值 0 作为交易订单的键，而不会更改数据库。这是事务处理的主要陷阱之一：基于 ORM 的框架需要一个事务来触发对象缓存与数据库之间的同步。这通过一个事务提交完成，其中会生成 SQL 代码，数据库会执行需要的操作（即插入、更新、删除）。没有事务，就不会触发 ORM 去生成 SQL 代码和保存更改，因此只会终止方法 — 没有异常，没有更新。如果使用基于 ORM 的框架，就必须利用事务。您不再依赖数据库来管理连接和提交工作。
+<br/>
+<br/>这些简单的示例应该清楚地说明，为了维护数据完整性和一致性，必须使用事务。不过对于在 Java 平台中实现事务的复杂性和陷阱而言，这些示例只是涉及了冰山一角。
+<br/>
+<br/>Spring Framework @Transactional 注释陷阱-3
+<br/>
+<br/>清单 4. 使用 @Transactional 注释
+<br/>
+<br/>view plaincopy to clipboardprint?
+<br/>public class TradingServiceImpl {   
+<br/>   @PersistenceContext(unitName=&quot;trading&quot;) EntityManager em;   
+<br/>
+<br/>   @Transactional 
+<br/>   public long insertTrade(TradeData trade) throws Exception {   
+<br/>      em.persist(trade);   
+<br/>      return trade.getTradeId();   
+<br/>   }   
+<br/>} 
+<br/>public class TradingServiceImpl {
+<br/>   @PersistenceContext(unitName=&quot;trading&quot;) EntityManager em;
+<br/>
+<br/>   @Transactional
+<br/>   public long insertTrade(TradeData trade) throws Exception {
+<br/>      em.persist(trade);
+<br/>      return trade.getTradeId();
+<br/>   }
+<br/>}
+<br/>
+<br/>现在重新测试代码，您发现上述方法仍然不能工作。问题在于您必须告诉 Spring Framework，您正在对事务管理应用注释。除非您进行充分的单元测试，否则有时候很难发现这个陷阱。这通常只会导致开发人员在 Spring 配置文件中简单地添加事务逻辑，而不会使用注释。
+<br/>
+<br/>要在 Spring 中使用 @Transactional 注释，必须在 Spring 配置文件中添加以下代码行：
+<br/>
+<br/>view plaincopy to clipboardprint?
+<br/>&lt;tx:annotation-driven transaction-manager=&quot;transactionManager&quot;/&gt; 
+<br/>&lt;tx:annotation-driven transaction-manager=&quot;transactionManager&quot;/&gt;
+<br/>
+<br/>transaction-manager 属性保存一个对在 Spring 配置文件中定义的事务管理器 bean 的引用。这段代码告诉 Spring 在应用事务拦截器时使用 @Transaction 注释。如果没有它，就会忽略 @Transactional 注释，导致代码不会使用任何事务。
+<br/>
+<br/>让基本的 @Transactional 注释在 清单 4 的代码中工作仅仅是开始。注意，清单 4 使用 @Transactional 注释时没有指定任何额外的注释参数。我发现许多开发人员在使用 @Transactional 注释时并没有花时间理解它的作用。例如，像我一样在清单 4 中单独使用 @Transactional 注释时，事务传播模式被设置成什么呢？只读标志被设置成什么呢？事务隔离级别的设置是怎样的？更重要的是，事务应何时回滚工作？理解如何使用这个注释对于确保在应用程序中获得合适的事务支持级别非常重要。回答我刚才提出的问题：在单独使用不带任何参数的 @Transactional 注释时，传播模式要设置为 REQUIRED，只读标志设置为 false，事务隔离级别设置为 READ_COMMITTED，而且事务不会针对受控异常（checked exception）回滚。
+<br/>
+<br/>@Transactional 只读标志陷阱
+<br/>
+<br/>我在工作中经常碰到的一个常见陷阱是 Spring @Transactional 注释中的只读标志没有得到恰当使用。这里有一个快速测试方法：在使用标准 JDBC 代码获得 Java 持久性时，如果只读标志设置为 true，传播模式设置为 SUPPORTS，清单 5 中的 @Transactional 注释的作用是什么呢？
+<br/>
+<br/>
+<br/>清单 5. 将只读标志与 SUPPORTS 传播模式结合使用 — JDBC
+<br/>
+<br/>view plaincopy to clipboardprint?
+<br/>@Transactional(readOnly = true, propagation=Propagation.SUPPORTS)   
+<br/>public long insertTrade(TradeData trade) throws Exception {   
+<br/>   //JDBC Code...   
+<br/>} 
+<br/>@Transactional(readOnly = true, propagation=Propagation.SUPPORTS)
+<br/>public long insertTrade(TradeData trade) throws Exception {
+<br/>   //JDBC Code...
+<br/>}
+<br/>
+<br/>当执行清单 5 中的 insertTrade() 方法时，猜一猜会得到下面哪一种结果：
+<br/>抛出一个只读连接异常 
+<br/>正确插入交易订单并提交数据 
+<br/>什么也不做，因为传播级别被设置为 SUPPORTS 
+<br/>是哪一个呢？正确答案是 B。交易订单会被正确地插入到数据库中，即使只读标志被设置为 true，且事务传播模式被设置为 SUPPORTS。但这是如何做到的呢？由于传播模式被设置为 SUPPORTS，所以不会启动任何事物，因此该方法有效地利用了一个本地（数据库）事务。只读标志只在事务启动时应用。在本例中，因为没有启动任何事务，所以只读标志被忽略。
+<br/>
+<br/>Spring Framework @Transactional 注释陷阱-4
+<br/>
+<br/>清单 6 中的 @Transactional 注释在设置了只读标志且传播模式被设置为 REQUIRED 时，它的作用是什么呢？
+<br/>
+<br/>
+<br/>清单 6. 将只读标志与 REQUIRED 传播模式结合使用 — JDBC
+<br/>
+<br/>view plaincopy to clipboardprint?
+<br/>@Transactional(readOnly = true, propagation=Propagation.REQUIRED)   
+<br/>public long insertTrade(TradeData trade) throws Exception {   
+<br/>   //JDBC code...   
+<br/>} 
+<br/>@Transactional(readOnly = true, propagation=Propagation.REQUIRED)
+<br/>public long insertTrade(TradeData trade) throws Exception {
+<br/>   //JDBC code...
+<br/>}
+<br/>
+<br/>执行清单 6 中的 insertTrade() 方法会得到下面哪一种结果呢：
+<br/>
+<br/>抛出一个只读连接异常 
+<br/>正确插入交易订单并提交数据 
+<br/>什么也不做，因为只读标志被设置为 true 
+<br/>根据前面的解释，这个问题应该很好回答。正确的答案是 A。会抛出一个异常，表示您正在试图对一个只读连接执行更新。因为启动了一个事务（REQUIRED），所以连接被设置为只读。毫无疑问，在试图执行 SQL 语句时，您会得到一个异常，告诉您该连接是一个只读连接。
+<br/>
+<br/>关于只读标志很奇怪的一点是：要使用它，必须启动一个事务。如果只是读取数据，需要事务吗？答案是根本不需要。启动一个事务来执行只读操作会增加处理线程的开销，并会导致数据库发生共享读取锁定（具体取决于使用的数据库类型和设置的隔离级别）。总的来说，在获取基于 JDBC 的 Java 持久性时，使用只读标志有点毫无意义，并会启动不必要的事务而增加额外的开销。
+<br/>
+<br/>使用基于 ORM 的框架会怎样呢？按照上面的测试，如果在结合使用 JPA 和 Hibernate 时调用 insertTrade() 方法，清单 7 中的 @Transactional 注释会得到什么结果？
+<br/>
+<br/>
+<br/>清单 7. 将只读标志与 REQUIRED 传播模式结合使用 — JPA
+<br/>
+<br/>view plaincopy to clipboardprint?
+<br/>@Transactional(readOnly = true, propagation=Propagation.REQUIRED)   
+<br/>public long insertTrade(TradeData trade) throws Exception {   
+<br/>   em.persist(trade);   
+<br/>   return trade.getTradeId();   
+<br/>} 
+<br/>@Transactional(readOnly = true, propagation=Propagation.REQUIRED)
+<br/>public long insertTrade(TradeData trade) throws Exception {
+<br/>   em.persist(trade);
+<br/>   return trade.getTradeId();
+<br/>}
+<br/>
+<br/>清单 7 中的 insertTrade() 方法会得到下面哪一种结果：
+<br/>
+<br/>抛出一个只读连接异常 
+<br/>正确插入交易订单并提交数据 
+<br/>什么也不做，因为 readOnly 标志被设置为 true 
+<br/>正确的答案是 B。交易订单会被准确无误地插入数据库中。请注意，上一示例表明，在使用 REQUIRED 传播模式时，会抛出一个只读连接异常。使用 JDBC 时是这样。使用基于 ORM 的框架时，只读标志只是对数据库的一个提示，并且一条基于 ORM 框架的指令（本例中是 Hibernate）将对象缓存的 flush 模式设置为 NEVER，表示在这个工作单元中，该对象缓存不应与数据库同步。不过，REQUIRED 传播模式会覆盖所有这些内容，允许事务启动并工作，就好像没有设置只读标志一样。
+<br/>
+<br/>这令我想到了另一个我经常碰到的主要陷阱。阅读了前面的所有内容后，您认为如果只对 @Transactional 注释设置只读标志，清单 8 中的代码会得到什么结果呢？
+<br/>
+<br/>
+<br/>清单 8. 使用只读标志 — JPA
+<br/>
+<br/>view plaincopy to clipboardprint?
+<br/>@Transactional(readOnly = true)   
+<br/>public TradeData getTrade(long tradeId) throws Exception {   
+<br/>   return em.find(TradeData.class, tradeId);   
+<br/>} 
+<br/>@Transactional(readOnly = true)
+<br/>public TradeData getTrade(long tradeId) throws Exception {
+<br/>   return em.find(TradeData.class, tradeId);
+<br/>}
+<br/>
+<br/>清单 8 中的 getTrade() 方法会执行以下哪一种操作？
+<br/>
+<br/>启动一个事务，获取交易订单，然后提交事务 
+<br/>获取交易订单，但不启动事务 
+<br/>正确的答案是 A。一个事务会被启动并提交。不要忘了，@Transactional 注释的默认传播模式是 REQUIRED。这意味着事务会在不必要的情况下启动。根据使用的数据库，这会引起不必要的共享锁，可能会使数据库中出现死锁的情况。此外，启动和停止事务将消耗不必要的处理时间和资源。总的来说，在使用基于 ORM 的框架时，只读标志基本上毫无用处，在大多数情况下会被忽略。但如果您坚持使用它，请记得将传播模式设置为 SUPPORTS（如清单 9 所示），这样就不会启动事务：
+<br/>清单 9. 使用只读标志和 SUPPORTS 传播模式进行选择操作
+<br/>
+<br/>view plaincopy to clipboardprint?
+<br/>@Transactional(readOnly = true, propagation=Propagation.SUPPORTS)   
+<br/>public TradeData getTrade(long tradeId) throws Exception {   
+<br/>   return em.find(TradeData.class, tradeId);   
+<br/>} 
+<br/>@Transactional(readOnly = true, propagation=Propagation.SUPPORTS)
+<br/>public TradeData getTrade(long tradeId) throws Exception {
+<br/>   return em.find(TradeData.class, tradeId);
+<br/>}
+<br/>
+<br/>另外，在执行读取操作时，避免使用 @Transactional 注释，如清单 10 所示：
+<br/>
+<br/>清单 10. 删除 @Transactional 注释进行选择操作
+<br/>
+<br/>view plaincopy to clipboardprint?
+<br/>public TradeData getTrade(long tradeId) throws Exception {   
+<br/>   return em.find(TradeData.class, tradeId);   
+<br/>} 
+<br/>public TradeData getTrade(long tradeId) throws Exception {
+<br/>   return em.find(TradeData.class, tradeId);
+<br/>}
+<br/>
+<br/>REQUIRES_NEW 事务属性陷阱
+<br/>
+<br/>不管是使用 Spring Framework，还是使用 EJB，使用 REQUIRES_NEW 事务属性都会得到不好的结果并导致数据损坏和不一致。REQUIRES_NEW 事务属性总是会在启动方法时启动一个新的事务。许多开发人员都错误地使用 REQUIRES_NEW 属性，认为它是确保事务启动的正确方法。
+<br/>
+<br/>Spring Framework @Transactional 注释陷阱-5
+<br/>
+<br/>清单 11. 使用 REQUIRES_NEW 事务属性
+<br/>
+<br/>view plaincopy to clipboardprint?
+<br/>@Transactional(propagation=Propagation.REQUIRES_NEW)   
+<br/>public long insertTrade(TradeData trade) throws Exception {...}   
+<br/>
+<br/>@Transactional(propagation=Propagation.REQUIRES_NEW)   
+<br/>public void updateAcct(TradeData trade) throws Exception {...} 
+<br/>@Transactional(propagation=Propagation.REQUIRES_NEW)
+<br/>public long insertTrade(TradeData trade) throws Exception {...}
+<br/>
+<br/>@Transactional(propagation=Propagation.REQUIRES_NEW)
+<br/>public void updateAcct(TradeData trade) throws Exception {...}
+<br/>
+<br/>注意，清单 11 中的两个方法都是公共方法，这意味着它们可以单独调用。当使用 REQUIRES_NEW 属性的几个方法通过服务间通信或编排在同一逻辑工作单元内调用时，该属性就会出现问题。例如，假设在清单 11 中，您可以独立于一些用例中的任何其他方法来调用 updateAcct() 方法，但也有在 insertTrade() 方法中调用 updateAcct() 方法的情况。现在如果调用 updateAcct() 方法后抛出异常，交易订单就会回滚，但帐户更新将会提交给数据库，如清单 12 所示：
+<br/>
+<br/>
+<br/>清单 12. 使用 REQUIRES_NEW 事务属性的多次更新
+<br/>
+<br/>view plaincopy to clipboardprint?
+<br/>@Transactional(propagation=Propagation.REQUIRES_NEW)   
+<br/>public long insertTrade(TradeData trade) throws Exception {   
+<br/>   em.persist(trade);   
+<br/>   updateAcct(trade);   
+<br/>   //exception occurs here! Trade rolled back but account update is not!   
+<br/>   ...   
+<br/>} 
+<br/>@Transactional(propagation=Propagation.REQUIRES_NEW)
+<br/>public long insertTrade(TradeData trade) throws Exception {
+<br/>   em.persist(trade);
+<br/>   updateAcct(trade);
+<br/>   //exception occurs here! Trade rolled back but account update is not!
+<br/>   ...
+<br/>}
+<br/>
+<br/>之所以会发生这种情况是因为 updateAcct() 方法中启动了一个新事务，所以在 updateAcct() 方法结束后，事务将被提交。使用 REQUIRES_NEW 事务属性时，如果存在现有事务上下文，当前的事务会被挂起并启动一个新事务。方法结束后，新的事务被提交，原来的事务继续执行。
+<br/>
+<br/>由于这种行为，只有在被调用方法中的数据库操作需要保存到数据库中，而不管覆盖事务的结果如何时，才应该使用 REQUIRES_NEW 事务属性。比如，假设尝试的所有股票交易都必须被记录在一个审计数据库中。出于验证错误、资金不足或其他原因，不管交易是否失败，这条信息都需要被持久化。如果没有对审计方法使用 REQUIRES_NEW 属性，审计记录就会连同尝试执行的交易一起回滚。使用 REQUIRES_NEW 属性可以确保不管初始事务的结果如何，审计数据都会被保存。这里要注意的一点是，要始终使用 MANDATORY 或 REQUIRED 属性，而不是 REQUIRES_NEW，除非您有足够的理由来使用它，类似审计示例中的那些理由。
+<br/>
+<br/>事务回滚陷阱
+<br/>
+<br/>我将最常见的事务陷阱留到最后来讲。遗憾的是，我在生产代码中多次遇到这个错误。我首先从 Spring Framework 开始，然后介绍 EJB 3。
+<br/>
+<br/>到目前为止，您研究的代码类似清单 13 所示：
+<br/>
+<br/>
+<br/>清单 13. 没有回滚支持
+<br/>
+<br/>view plaincopy to clipboardprint?
+<br/>@Transactional(propagation=Propagation.REQUIRED)   
+<br/>public TradeData placeTrade(TradeData trade) throws Exception {   
+<br/>   try {   
+<br/>      insertTrade(trade);   
+<br/>      updateAcct(trade);   
+<br/>      return trade;   
+<br/>   } catch (Exception up) {   
+<br/>      //log the error   
+<br/>      throw up;   
+<br/>   }   
+<br/>} 
+<br/>@Transactional(propagation=Propagation.REQUIRED)
+<br/>public TradeData placeTrade(TradeData trade) throws Exception {
+<br/>   try {
+<br/>      insertTrade(trade);
+<br/>      updateAcct(trade);
+<br/>      return trade;
+<br/>   } catch (Exception up) {
+<br/>      //log the error
+<br/>      throw up;
+<br/>   }
+<br/>}
+<br/>假设帐户中没有足够的资金来购买需要的股票，或者还没有准备购买或出售股票，并抛出了一个受控异常（例如 FundsNotAvailableException），那么交易订单会保存在数据库中吗？还是整个逻辑工作单元将执行回滚？答案出乎意料：根据受控异常（不管是在 Spring Framework 中还是在 EJB 中），事务会提交它还未提交的所有工作。使用清单 13，这意味着，如果在执行 updateAcct() 方法期间抛出受控异常，就会保存交易订单，但不会更新帐户来反映交易情况。
+<br/>
+<br/>这可能是在使用事务时出现的主要数据完整性和一致性问题了。运行时异常（即非受控异常）自动强制执行整个逻辑工作单元的回滚，但受控异常不会。因此，清单 13 中的代码从事务角度来说毫无用处；尽管看上去它使用事务来维护原子性和一致性，但事实上并没有。
+<br/>
+<br/>尽管这种行为看起来很奇怪，但这样做自有它的道理。首先，不是所有受控异常都是不好的；它们可用于事件通知或根据某些条件重定向处理。但更重要的是，应用程序代码会对某些类型的受控异常采取纠正操作，从而使事务全部完成。例如，考虑下面一种场景：您正在为在线书籍零售商编写代码。要完成图书的订单，您需要将电子邮件形式的确认函作为订单处理的一部分发送。如果电子邮件服务器关闭，您将发送某种形式的 SMTP 受控异常，表示邮件无法发送。如果受控异常引起自动回滚，整个图书订单就会由于电子邮件服务器的关闭全部回滚。通过禁止自动回滚受控异常，您可以捕获该异常并执行某种纠正操作（如向挂起队列发送消息），然后提交剩余的订单。
+<br/>
+<br/>Spring Framework @Transactional 注释陷阱-6
+<br/>
+<br/>使用 Declarative 事务模式时，必须指定容器或框架应该如何处理受控异常。在 Spring Framework 中，通过 @Transactional 注释中的 rollbackFor 参数进行指定，如清单 14 所示：
+<br/>
+<br/>
+<br/>清单 14. 添加事务回滚支持 — Spring
+<br/>
+<br/>view plaincopy to clipboardprint?
+<br/>@Transactional(propagation=Propagation.REQUIRED, rollbackFor=Exception.class)   
+<br/>public TradeData placeTrade(TradeData trade) throws Exception {   
+<br/>   try {   
+<br/>      insertTrade(trade);   
+<br/>      updateAcct(trade);   
+<br/>      return trade;   
+<br/>   } catch (Exception up) {   
+<br/>      //log the error   
+<br/>      throw up;   
+<br/>   }   
+<br/>} 
+<br/>@Transactional(propagation=Propagation.REQUIRED, rollbackFor=Exception.class)
+<br/>public TradeData placeTrade(TradeData trade) throws Exception {
+<br/>   try {
+<br/>      insertTrade(trade);
+<br/>      updateAcct(trade);
+<br/>      return trade;
+<br/>   } catch (Exception up) {
+<br/>      //log the error
+<br/>      throw up;
+<br/>   }
+<br/>}
+<br/>
+<br/>注意，@Transactional 注释中使用了 rollbackFor 参数。这个参数接受一个单一异常类或一组异常类，您也可以使用 rollbackForClassName 参数将异常的名称指定为 Java String 类型。还可以使用此属性的相反形式（noRollbackFor）指定除某些异常以外的所有异常应该强制回滚。通常大多数开发人员指定 Exception.class 作为值，表示该方法中的所有异常应该强制回滚。
+<br/>
+<br/>在回滚事务这一点上，EJB 的工作方式与 Spring Framework 稍微有点不同。EJB 3.0 规范中的 @TransactionAttribute 注释不包含指定回滚行为的指令。必须使用 SessionContext.setRollbackOnly() 方法将事务标记为执行回滚，如清单 15 所示：
+<br/>
+<br/>
+<br/>清单 15. 添加事务回滚支持 — EJB
+<br/>
+<br/>view plaincopy to clipboardprint?
+<br/>@TransactionAttribute(TransactionAttributeType.REQUIRED)   
+<br/>public TradeData placeTrade(TradeData trade) throws Exception {   
+<br/>   try {   
+<br/>      insertTrade(trade);   
+<br/>      updateAcct(trade);   
+<br/>      return trade;   
+<br/>   } catch (Exception up) {   
+<br/>      //log the error   
+<br/>      sessionCtx.setRollbackOnly();   
+<br/>      throw up;   
+<br/>   }   
+<br/>} 
+<br/>@TransactionAttribute(TransactionAttributeType.REQUIRED)
+<br/>public TradeData placeTrade(TradeData trade) throws Exception {
+<br/>   try {
+<br/>      insertTrade(trade);
+<br/>      updateAcct(trade);
+<br/>      return trade;
+<br/>   } catch (Exception up) {
+<br/>      //log the error
+<br/>      sessionCtx.setRollbackOnly();
+<br/>      throw up;
+<br/>   }
+<br/>}
+<br/>调用 setRollbackOnly() 方法后，就不能改变主意了；惟一可能的结果是在启动事务的方法完成后回滚事务。本系列后续文章中描述的事务策略将介绍何时、何处使用回滚指令，以及何时使用 REQUIRED 与 MANDATORY 事务属性。
+<br/>
+<br/>Isolation Level(事务隔离等级)
+<br/>
+<br/>1、Serializable：最严格的级别，事务串行执行，资源消耗最大；
+<br/>2、REPEATABLE READ：保证了一个事务不会修改已经由另一个事务读取但未提交（回滚）的数据。避免了“脏读取”和“不可重复读取”的情况，但是带来了更多的性能损失。
+<br/>3、READ COMMITTED:大多数主流数据库的默认事务等级，保证了一个事务不会读到另一个并行事务已修改但未提交的数据，避免了“脏读取”。该级别适用于大多数系统。
+<br/>4、Read Uncommitted：保证了读取过程中不会读取到非法数据。隔离级别在于处理多事务的并发问题。
+<br/>我们知道并行可以提高数据库的吞吐量和效率，但是并不是所有的并发事务都可以并发运行。
+<br/>我们首先说并发中可能发生的3中不讨人喜欢的事情
+<br/>1： Dirty reads--读脏数据。也就是说，比如事务A的未提交（还依然缓存）的数据被事务B读走，如果事务A失败回滚，会导致事务B所读取的的数据是错误的。
+<br/>2： non-repeatable reads--数据不可重复读。比如事务A中两处读取数据-total-的值。在第一读的时候，total是100，然后事务B就把total的数据改成 200，事务A再读一次，结果就发现，total竟然就变成200了，造成事务A数据混乱。
+<br/>3： phantom reads--幻象读数据，这个和non-repeatable reads相似，也是同一个事务中多次读不一致的问题。但是non-repeatable reads的不一致是因为他所要取的数据集被改变了（比如total的数据），但是phantom reads所要读的数据的不一致却不是他所要读的数据集改变，而是他的条件数据集改变。比如Select account.id where account.name=&quot;ppgogo*&quot;,第一次读去了6个符合条件的id，第二次读取的时候，由于事务b把一个帐号的名字由&quot;dd&quot;改成&quot;ppgogo1&quot;，结果取出来了7个数据。 
+<br/>
+<br/> Dirty reads non-repeatable reads phantom reads 
+<br/>Serializable 不会 不会 不会 
+<br/>REPEATABLE READ  不会 不会 会 
+<br/>READ COMMITTED 不会 会 会 
+<br/>Read Uncommitted 会 会 会 
+<br/>
+<br/>readOnly
+<br/>事务属性中的readOnly标志表示对应的事务应该被最优化为只读事务。
+<br/>
+<br/>
+<br/>本文来自CSDN博客，转载请标明出处：http://blog.csdn.net/cuker919/archive/2010/10/21/5957209.aspx
+  </div></div></div></div></div></div></div></div><br/></div></span>
+</div></body></html> 

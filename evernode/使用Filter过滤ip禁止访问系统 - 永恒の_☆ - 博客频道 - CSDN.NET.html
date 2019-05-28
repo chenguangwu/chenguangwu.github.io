@@ -1,0 +1,135 @@
+<html>
+<head>
+  <title>使用Filter过滤ip禁止访问系统 - 永恒の_☆ - 博客频道 - CSDN.NET</title>
+  <basefont face="微软雅黑" size="2" />
+  <meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+  <meta name="exporter-version" content="YXBJ Windows/600718 (zh-CN, DDL); Windows/6.1.1 (Win64);"/>
+  <style>
+    body, td {
+      font-family: 微软雅黑;
+      font-size: 10pt;
+    }
+  </style>
+</head>
+<body>
+<a name="8122"/>
+<h1>使用Filter过滤ip禁止访问系统 - 永恒の_☆ - 博客频道 - CSDN.NET</h1>
+<div>
+<table bgcolor="#D4DDE5" border="0">
+<tr><td><b>创建时间：</b></td><td><i>2015/8/16 20:58</i></td></tr>
+<tr><td><b>来源：</b></td><td><a href="http://blog.csdn.net/chenghui0317/article/details/9822981"><i>http://blog.csdn.net/chenghui0317/article/details/9822981</i></a></td></tr>
+</table>
+</div>
+<br/>
+
+<div><span><br/><div><div><div><div><h1> 使用Filter过滤ip禁止访问系统 </h1><div><div></div></div></div>
+
+   
+
+    <div>
+        
+    <span>2013-08-07 21:46</span>
+    
+    <span><a href="http://blog.csdn.net/chenghui0317/article/details/9822981#comments" target="_blank">评论</a>(3)</span>
+    
+    <span><a href="http://blog.csdn.net/chenghui0317/article/details/9822981#report" target="_blank" title="举报">举报</a></span>
+    
+</div>
+
+
+  
+
+  
+  
+     
+
+
+
+
+<p>在实际应用中，部署的项目如果收到恶意攻击，那么就需要将收到请求的ip过滤掉，现在以Filter过滤器为例讲解实现方式：</p>
+<p>    1、自定义Filter过滤器，继承自javax.servlet.Filter 这个接口，实现它里面的三个方法；</p>
+<p>    2、在init() 方法中接收配置的禁止访问的ip,以逗号分隔；</p>
+<p>    3、在doFilter() 中进行业务处理，取出当前访问的ip 与系统中配置的ip匹配，如果存在则跳转到禁止访问的页面，如果没有就放行；</p>
+<p>    4、在web.xml中配置该过滤器，指定拦截方式为所有请求，然后添加初始化参数指定禁止访问的ip。</p>
+<p>具体代码如下：</p>
+<div><ol><li>package com.chenghui.util;  </li><li>import java.io.IOException;  </li><li>import javax.servlet.Filter;  </li><li>import javax.servlet.FilterChain;  </li><li>import javax.servlet.FilterConfig;  </li><li>import javax.servlet.ServletException;  </li><li>import javax.servlet.ServletRequest;  </li><li>import javax.servlet.ServletResponse;  </li><li>import javax.servlet.http.HttpServletRequest;  </li><li>import javax.servlet.http.HttpServletResponse;  </li><li> * 定义IpFilter过滤器，过滤掉自己配置的ip列表禁止访问系统 </li><li> * ip列表在配置的filter中加入初始化参数即可。 </li><li> * @author Administrator </li><li>publicclass IpFilter implements Filter{  </li><li>    String [] forbidIps = </li><li>    @Override</li><li>    public destroy() {  </li><li>        // TODO Auto-generated method stub</li><li>    @Override</li><li>    public doFilter(ServletRequest request, ServletResponse response,  </li><li>            FilterChain filterChain) throws IOException, ServletException {  </li><li>        //由于拦截器定义的拦截规范是/* ,所以所有的请求都会被拦截，为了防止死循环 开一个特例显示具体的访问结果</li><li>        (((HttpServletRequest)request).getRequestURI().contains(&quot;forbid.jsp&quot;</li><li>            filterChain.doFilter(request, response);  </li><li>            return//不加return 会继续执行请求。</li><li>        String remoteAddr = request.getRemoteAddr();  </li><li>        (forbidIps!=</li><li>            ; i&lt;forbidIps.length; i++) {  </li><li>                (forbidIps[i].equals(remoteAddr)){  </li><li>                    //如果访问的ip与配置的ip相等 则直接过滤掉。</li><li>                    ((HttpServletResponse)response).sendRedirect(&quot;forbid.jsp&quot;</li><li>                    return</li><li>        filterChain.doFilter(request, response);  </li><li>    @Override</li><li>    public init(FilterConfig filterConfig) throws ServletException {  </li><li>        //获取在web.xml中配置的&lt;filter&gt;的初始化参数</li><li>        String initParamter = filterConfig.getInitParameter(&quot;forbidIps&quot;</li><li>        (initParamter != </li><li>            forbidIps = initParamter.split(</li></ol></div><pre>package com.chenghui.util;
+
+import java.io.IOException;
+
+import javax.servlet.Filter;
+import javax.servlet.FilterChain;
+import javax.servlet.FilterConfig;
+import javax.servlet.ServletException;
+import javax.servlet.ServletRequest;
+import javax.servlet.ServletResponse;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
+/**
+ * 定义IpFilter过滤器，过滤掉自己配置的ip列表禁止访问系统
+ * ip列表在配置的filter中加入初始化参数即可。
+ * @author Administrator
+ *
+ */
+public class IpFilter implements Filter{
+
+	String [] forbidIps = null;
+	@Override
+	public void destroy() {
+		// TODO Auto-generated method stub
+	}
+
+	@Override
+	public void doFilter(ServletRequest request, ServletResponse response,
+			FilterChain filterChain) throws IOException, ServletException {
+		//由于拦截器定义的拦截规范是/* ,所以所有的请求都会被拦截，为了防止死循环 开一个特例显示具体的访问结果
+		if(((HttpServletRequest)request).getRequestURI().contains(&quot;forbid.jsp&quot;)){
+			filterChain.doFilter(request, response);
+			return;//不加return 会继续执行请求。
+		}
+		
+		String remoteAddr = request.getRemoteAddr();
+		if(forbidIps!=null){
+			for (int i=0; i&lt;forbidIps.length; i++) {
+				if(forbidIps[i].equals(remoteAddr)){
+					//如果访问的ip与配置的ip相等 则直接过滤掉。
+					((HttpServletResponse)response).sendRedirect(&quot;forbid.jsp&quot;);
+					return;
+				}
+			}
+		}
+		filterChain.doFilter(request, response);
+	}
+
+	@Override
+	public void init(FilterConfig filterConfig) throws ServletException {
+		//获取在web.xml中配置的&lt;filter&gt;的初始化参数
+		String initParamter = filterConfig.getInitParameter(&quot;forbidIps&quot;);
+		if(initParamter != null){
+			forbidIps = initParamter.split(&quot;,&quot;);
+		}
+	}
+
+}
+</pre>
+<p>web.xml中的配置如下：</p>
+<div><ol><li>&lt;!-- ip过滤器 --&gt;</li><li>filter</li><li>    filter-nameipFilter&lt;/filter-name</li><li>    filter-classcom.chenghui.util.IpFilter&lt;/filter-class</li><li>    init-param</li><li>        param-nameforbidIps&lt;/param-name</li><li>        param-value192.168.1.108,192.168.6.89,192.168.6.99&lt;/param-value</li><li>    &lt;/init-param</li><li>&lt;/filter</li><li>filter-mapping</li><li>    filter-nameipFilter&lt;/filter-name</li><li>    url-pattern&lt;/url-pattern</li><li>&lt;/filter-mapping</li></ol></div><pre>  &lt;!-- ip过滤器 --&gt;
+  &lt;filter&gt;
+  	&lt;filter-name&gt;ipFilter&lt;/filter-name&gt;
+  	&lt;filter-class&gt;com.chenghui.util.IpFilter&lt;/filter-class&gt;
+  	&lt;init-param&gt;
+  		&lt;param-name&gt;forbidIps&lt;/param-name&gt;
+  		&lt;param-value&gt;192.168.1.108,192.168.6.89,192.168.6.99&lt;/param-value&gt;
+  	&lt;/init-param&gt;
+  &lt;/filter&gt;
+  &lt;filter-mapping&gt;
+  	&lt;filter-name&gt;ipFilter&lt;/filter-name&gt;
+  	&lt;url-pattern&gt;/*&lt;/url-pattern&gt;
+  &lt;/filter-mapping&gt;</pre><br/>
+好了，IpFilter过滤器定义完毕了，然后部署项目，在浏览器中运行试试看，效果如下：
+<p></p><div><img src="使用Filter过滤ip禁止访问系统 - 永恒の_☆ - 博客频道 - CSDN.NET_files/SouthEast.jpg" type="image/jpeg" data-filename="SouthEast.jpg" height="185" width="576"/></div><p></p>
+<div>         
+            <p>版权声明：本文为博主原创文章，未经博主允许不得转载。</p>
+        </div>
+</div></div></div><br/></span>
+</div></body></html> 

@@ -1,0 +1,120 @@
+<html>
+<head>
+  <title>关于Hibernate延迟加载 - Jevo - 博客园</title>
+  <basefont face="微软雅黑" size="2" />
+  <meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+  <meta name="exporter-version" content="YXBJ Windows/600718 (zh-CN, DDL); Windows/6.1.1 (Win64);"/>
+  <style>
+    body, td {
+      font-family: 微软雅黑;
+      font-size: 10pt;
+    }
+  </style>
+</head>
+<body>
+<a name="6142"/>
+<h1>关于Hibernate延迟加载 - Jevo - 博客园</h1>
+<div>
+<table bgcolor="#D4DDE5" border="0">
+<tr><td><b>创建时间：</b></td><td><i>2017/3/29 17:07</i></td></tr>
+<tr><td><b>来源：</b></td><td><a href="http://www.cnblogs.com/jevo/archive/2013/04/15/3039228.html"><i>http://www.cnblogs.com/jevo/archive/2013/04/15/3039228.html</i></a></td></tr>
+</table>
+</div>
+<br/>
+
+<div><span><div style="-evernote-webclip:true"><br/><div style="font-size: 16px; display: inline-block;"><div><div style="font-family:&quot;PingFang SC&quot;, &quot;Helvetica Neue&quot;, Helvetica, Arial, sans-serif;color:rgb(0, 0, 0);background:url(&quot;/Skins/coffee/images/bg_body.gif&quot;) left top;line-height:1.5;font-size:14px;"><div style="min-width:auto;"><div style="min-width:auto;text-align:left;"><div style="background:transparent;text-align:left;overflow-x:hidden;"><div style="background:url(&quot;/Skins/coffee/images/bg_left.gif&quot;) left top repeat-x rgb(254, 254, 242);"><div><div style="text-overflow:ellipsis;overflow:hidden;word-break:break-all;"><div>
+		<h1 style="margin:0px;padding:0px;width:100%;clear:both;font-weight:bold;float:left;line-height:1.5;font-size:14px;padding-left:5px;">
+			<a href="http://www.cnblogs.com/jevo/archive/2013/04/15/3039228.html" style="margin:0px;padding:0px;text-decoration:none;color:rgb(7, 93, 179);">关于Hibernate延迟加载</a>
+		</h1>
+		<div style="margin:0px;padding:0px;clear:both;"></div>
+		<div style="margin:0px;padding:5px 2px 5px 5px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin-top:5px;">
+			<div style="margin:0px;padding:0px;margin-bottom:20px;word-break:break-word;"><p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">延迟加载就是在当真正需要数据的时候去执行数据加载操作，从而避免一些多余的性能开销（数据库查询）。在Hibernate3中提供了对实体对象、集合和属性的延迟加载。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">1．实体对象的延迟加载</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">延迟加载实体对象只需在实体映射关系中将lazy属性设置为true，如下：</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">    &lt;class name=”xxx” table=”xxx” lazy=”true”&gt;   <br style="margin:0px;padding:0px;"/>        ……   <br style="margin:0px;padding:0px;"/>    &lt;/class&gt;   </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">通过一个中间代理对象，Hibernate实现了实体的延迟加载，只有当用户真正发起获得实体对象属性的动作时，才真正会发起数据库查询操作。所以实体的延迟加载是用通过中间代理类完成的，所以只有session.load()方法才会利用实体延迟加载，因为只有session.load()方法才会返回实体类的代理类对象。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">实体对象的延迟加载是通过代理类来实现的，当调用session.load()时，首先返回实体对象的一个代理类，当访问该实体的方法或属性时才真正执行数据加载。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"> </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">2．集合类型的延迟加载</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">集合类型的延迟加载在实际应用中比较常见，比如在一对多关联中定义的集合属性，如下：</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">&lt;class name=”net.sample.entity.Product” table=”product”&gt;   <br style="margin:0px;padding:0px;"/>        …..   </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">    &lt;set name=&quot;productAttributes&quot; table=&quot;PRODUCT_ATTRIBUTE&quot; inverse=&quot;true&quot; lazy=&quot;true&quot;&gt;</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">        &lt;cache usage=”read-only”/&gt;   </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">        &lt;key column=”product_id”/&gt;</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">        &lt;one-to-many class=&quot;net.sample.entity.ProductAttribute&quot;/&gt;</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">    &lt;/set&gt;   <br style="margin:0px;padding:0px;"/>&lt;/class&gt;   </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">通过将&lt;set&gt;元素的lazy属性设置为true就打开了集合类型的延迟加载特性。此时当访问实体对象时，Hibernate不会立即加载关联对象的数据集，只有当访问关联对象集合中的对象时，Hibernate才会加载相应的关联对象实体。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">在Hibernate中，集合类型的缓存是分两部分进行的，首先是实体的ID列表（即数据索引），然后才是实体对象。Hibermate在加载集合类型时，先查在缓存中查找数据索引，如果没有找到对应的数据索引就会发起一条Select语句的查询，取得符合条件的数据组装成实体对象集合和数据索引，并纳入缓存中，并返回实体对象集合。如果能找到数据索引，Hibernate就会从数据索引中取到ID列表，然后根据ID在缓存中取得相应的实体，如果缓存中不存在该实体，则发起select查询。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">在上面的配置中，我们采用了&lt;cache usage=”read-only”/&gt;配置，在这种策略下Hibernate将只会对数据索引进行缓存，而不会对集合中的实体对象进行缓存。那么在第二次再次加载关联实体时，Hibernate找到了对应实体的数据索引，但根据数据索引，却无法在缓存中找到对应的实体，此时Hibernate就会根据找到的数据索引再发起select SQL的查询操作，以取得相对应的实体对象。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">如果我们需要对集合类型中的实体也进行缓存，那么应该将cache设置为&lt;cache usage=”read-write”/&gt; ，此时Hibernate不光缓存了数据索引，同时还缓存在集合中的实体对象。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"> </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">3．属性延迟加载</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">这个机制主要是为提高大数据对象的查询，比如表中存在java.sql.Clob类型字段，其中存放的是一个大数据量的信息，这种大数据对象的读取本身会带来一定的性能开销，而应用中却不是时常在使用该信息。此时，我们就可以通过属性延迟加载机制，来使我们只有当真正需要操作这个字段时，才去读取这个字段的数据。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">&lt;class name=”net.sample.entity.Product” table=”product”&gt;   <br style="margin:0px;padding:0px;"/>        …..   <br style="margin:0px;padding:0px;"/>        &lt;property name=”productDescription” type=”java.sql.Clob” column=”product_description” lazy=”true”/&gt;   </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">&lt;/class&gt;   </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">通过对&lt;property&gt;元素的lazy属性设置true来开启属性的延迟加载。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"> </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">我们也可以使用注解方式来实现延迟加载，如下例，示例了属性和集合延迟加载：</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">    @Basic(fetch = FetchType.LAZY)</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">    @Column(name = &quot; product_description&quot;, columnDefinition = &quot;&quot;)</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">    protected byte[]productDescription;</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"> </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">    @OneToMany(fetch = FetchType.LAZY)</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">    @Column(name = &quot; PRODUCT_ATTRIBUTE &quot;)</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">    public Set getCategory() {</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">        return this. productAttributes;</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">    }</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"> </p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">延迟加载虽然可以带来更好的性能，但这种技术的有一个缺点：就它要求 Hibernate  Session要在对象使用的时候保持打开状态。所以在Spring+Hibernate的Web 应用中使用延迟加载时经常会遇上LazyInitializationException异常。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">Spring 提供了 OpenSessionInViewFilter 和 OpenSessionInViewInterceptor 来解决Web表现层延迟加载的情况。这两个类实现了相同的功能，不同的是OpenSessionInViewInterceptor在 Spring 容器中运行并被配置在 web 应用的上下文中，而OpenSessionInViewFilter在 Spring 之前运行并被配置在 web.xml 中。这两个类都实现了在一个页面请求时打开 Hibernate的Session，并一直保持这个Session，直到这个请求结束。请求结束时， Hibernate 会话就会在 Filter 的 doFilter 方法或者 Interceptor 的 postHandle 方法中被关闭。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">Interceptor的配置:<br style="margin:0px;padding:0px;"/>&lt;bean id=&quot;urlMapping&quot; class=&quot;org.springframework.web.servlet.handler.SimpleUrlHandlerMapping&quot;&gt;<br style="margin:0px;padding:0px;"/>  &lt;property name=&quot;interceptors&quot;&gt;<br style="margin:0px;padding:0px;"/>    &lt;list&gt;<br style="margin:0px;padding:0px;"/>        &lt;ref bean=&quot;openSessionInViewInterceptor&quot;/&gt;<br style="margin:0px;padding:0px;"/>    &lt;/list&gt;<br style="margin:0px;padding:0px;"/>  &lt;/property&gt;<br style="margin:0px;padding:0px;"/>  &lt;property name=&quot;mappings&quot;&gt;<br style="margin:0px;padding:0px;"/>&lt;/bean&gt;<br style="margin:0px;padding:0px;"/>&lt;bean name=&quot;openSessionInViewInterceptor&quot; class=&quot;org.springframework.orm.hibernate.support.OpenSessionInViewInterceptor&quot;&gt;<br style="margin:0px;padding:0px;"/>    &lt;property name=&quot;sessionFactory&quot;&gt;&lt;ref bean=&quot;sessionFactory&quot;/&gt;&lt;/property&gt;<br style="margin:0px;padding:0px;"/>&lt;/bean&gt;<br style="margin:0px;padding:0px;"/><br style="margin:0px;padding:0px;"/>Filter的配置<br style="margin:0px;padding:0px;"/>  &lt;filter&gt;<br style="margin:0px;padding:0px;"/>    &lt;filter-name&gt;hibernateFilter&lt;/filter-name&gt;<br style="margin:0px;padding:0px;"/>  &lt;filter-class&gt;<br style="margin:0px;padding:0px;"/>    org.springframework.orm.hibernate.support.OpenSessionInViewFilter<br style="margin:0px;padding:0px;"/>  &lt;/filter-class&gt;<br style="margin:0px;padding:0px;"/>&lt;/filter&gt;<br style="margin:0px;padding:0px;"/>&lt;filter-mapping&gt;<br style="margin:0px;padding:0px;"/>  &lt;filter-name&gt;hibernateFilter&lt;/filter-name&gt;<br style="margin:0px;padding:0px;"/>  &lt;url-pattern&gt;*.c&lt;/url-pattern&gt;<br style="margin:0px;padding:0px;"/>&lt;/filter-mapping&gt;<br style="margin:0px;padding:0px;"/><br style="margin:0px;padding:0px;"/></p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">Spring框架中还提供了通过AOP拦截器HibernateInterceptor方式来支持延迟加载。这个拦截器在进入方法调用之前为当前线程绑定一个新的Hibernate Session实例，在方法执行完毕之后关闭并移除。所以拦截器可以拦截业务对象的调用，在调用前打开hibernate session，在调用结束时关闭这个session。见下例子：<br style="margin:0px;padding:0px;"/>public interface BaseService{ <br style="margin:0px;padding:0px;"/>     …… <br style="margin:0px;padding:0px;"/>}<br style="margin:0px;padding:0px;"/><br style="margin:0px;padding:0px;"/>public class BusinessService implements BaseService {<br style="margin:0px;padding:0px;"/>    public void invoke() {<br style="margin:0px;padding:0px;"/>        // call the business logic<br style="margin:0px;padding:0px;"/>        // Access the DAO to get the data Objects<br style="margin:0px;padding:0px;"/>        // data objects lazily<br style="margin:0px;padding:0px;"/>    }<br style="margin:0px;padding:0px;"/>}<br style="margin:0px;padding:0px;"/>在Spring上下文配置中，我们可以通过HibernateInterceptor拦截对BusinessService的调用来支持延迟访问数据对象。如下：<br style="margin:0px;padding:0px;"/>    &lt;bean id=&quot;hibernateInterceptor&quot; class=&quot; org.springframework.orm.hibernate3.HibernateInterceptor&quot;&gt;<br style="margin:0px;padding:0px;"/>         &lt;property name=&quot;sessionFactory&quot;&gt;<br style="margin:0px;padding:0px;"/>           &lt;ref bean=&quot;sessionFactory&quot;/&gt;<br style="margin:0px;padding:0px;"/>         &lt;/property&gt;<br style="margin:0px;padding:0px;"/>    &lt;/bean&gt;<br style="margin:0px;padding:0px;"/>    &lt;bean id=&quot; businessSerivceTarget&quot; class=&quot;org.sample.BusinessService&quot;&gt;<br style="margin:0px;padding:0px;"/>       &lt;property name=&quot;baseDAO&quot;&gt;&lt;ref bean=&quot;baseDAO&quot;/&gt;&lt;/property&gt;<br style="margin:0px;padding:0px;"/>    &lt;/bean&gt;<br style="margin:0px;padding:0px;"/>    &lt;bean id=&quot;businessSerivce&quot; class=&quot;org.springframework.aop.framework.ProxyFactoryBean&quot;&gt;<br style="margin:0px;padding:0px;"/>         &lt;property name=&quot;target&quot;&gt;&lt;ref bean=&quot;businessSerivceTarget&quot;/&gt;&lt;/property&gt;<br style="margin:0px;padding:0px;"/>         &lt;property name=&quot;proxyInterfaces&quot;&gt;<br style="margin:0px;padding:0px;"/>           &lt;value&gt;org.sample.BaseService&lt;/value&gt;<br style="margin:0px;padding:0px;"/>         &lt;/property&gt;<br style="margin:0px;padding:0px;"/>         &lt;property name=&quot;interceptorNames&quot;&gt;<br style="margin:0px;padding:0px;"/>           &lt;list&gt;<br style="margin:0px;padding:0px;"/>              &lt;value&gt;hibernateInterceptor&lt;/value&gt;<br style="margin:0px;padding:0px;"/>           &lt;/list&gt;<br style="margin:0px;padding:0px;"/>         &lt;/property&gt;<br style="margin:0px;padding:0px;"/>     &lt;/bean&gt;            <br style="margin:0px;padding:0px;"/>&lt;/beans&gt;<br style="margin:0px;padding:0px;"/>当businessSerivce的实例被引用时，HibernateInterceptor就会打开一个hibernate session。当BusinessService执行完成后，HibernateInterceptor将关闭这个session。调用者不需要知道持久层的细节就可以使用延迟加载访问数据对象。</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;">参考：Hibernate和Spring的延迟加载和DAO模式</p>
+<p style="padding:0px;line-height:1.5;color:rgb(0, 0, 0);font-size:13px;margin:10px auto;text-indent:0px;"> </p></div>
+<div style="margin:0px;padding:0px;clear:both;"></div>
+<div style="margin:0px;padding:0px;margin-top:20px;">
+<div style="margin:0px;padding:0px;margin-bottom:10px;">分类: <a href="http://www.cnblogs.com/jevo/category/461908.html" style="margin:0px;padding:0px;text-decoration:underline;color:rgb(7, 93, 179);" target="_blank">hibernate</a></div>
+<div style="margin:0px;padding:0px;font-size:9pt;color:rgb(102, 102, 102);margin-top:0px;"></div>
+<div style="margin:0px;padding:0px;"><div style="margin:0px;padding:10px 0px;margin-bottom:10px;margin-top:10px;border:1px dashed silver;font-size:12px;width:320px;text-align:center;">
+        <a href="#" style="margin-right:10px;margin:0px;border-radius:10px;padding:3px 8px;text-decoration:none;font-weight:bold;cursor:pointer;display:inline-block;vertical-align:middle;box-shadow:rgba(0, 0, 0, 0.498039) 0px 1px 3px;text-shadow:rgba(0, 0, 0, 0.247059) 0px -1px 1px;background:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAAkCAYAAABIdFAMAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAHhJREFUeNo8zjsOxCAMBFB/KEAUFFR0Cbng3nQPw68ArZdAlOZppPFIBhH5EAB8b+Tlt9MYQ6i1BuqFaq1CKSVcxZ2Acs6406KUgpt5/LCKuVgz5BDCSb13ZO99ZOdcZGvt4mJjzMVKqcha68iIePB86GAiOv8CDADlIUQBs7MD3wAAAABJRU5ErkJggg%3D%3D&quot;) repeat-x;background-color:rgb(45, 174, 191);color:rgb(255, 255, 255);border:none;">好文要顶</a>
+            <a href="#" style="margin-right:10px;margin:0px;border-radius:10px;padding:3px 8px;text-decoration:none;font-weight:bold;cursor:pointer;display:inline-block;vertical-align:middle;box-shadow:rgba(0, 0, 0, 0.498039) 0px 1px 3px;text-shadow:rgba(0, 0, 0, 0.247059) 0px -1px 1px;background:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAAkCAYAAABIdFAMAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAHhJREFUeNo8zjsOxCAMBFB/KEAUFFR0Cbng3nQPw68ArZdAlOZppPFIBhH5EAB8b+Tlt9MYQ6i1BuqFaq1CKSVcxZ2Acs6406KUgpt5/LCKuVgz5BDCSb13ZO99ZOdcZGvt4mJjzMVKqcha68iIePB86GAiOv8CDADlIUQBs7MD3wAAAABJRU5ErkJggg%3D%3D&quot;) repeat-x;background-color:rgb(227, 49, 0);color:rgb(255, 255, 255);border:none;">关注我</a>
+    <a href="#" style="margin-right:10px;margin:0px;border-radius:10px;padding:3px 8px;text-decoration:none;font-weight:bold;cursor:pointer;display:inline-block;vertical-align:middle;box-shadow:rgba(0, 0, 0, 0.498039) 0px 1px 3px;text-shadow:rgba(0, 0, 0, 0.247059) 0px -1px 1px;background:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAAkCAYAAABIdFAMAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAHhJREFUeNo8zjsOxCAMBFB/KEAUFFR0Cbng3nQPw68ArZdAlOZppPFIBhH5EAB8b+Tlt9MYQ6i1BuqFaq1CKSVcxZ2Acs6406KUgpt5/LCKuVgz5BDCSb13ZO99ZOdcZGvt4mJjzMVKqcha68iIePB86GAiOv8CDADlIUQBs7MD3wAAAABJRU5ErkJggg%3D%3D&quot;) repeat-x;background-color:rgb(255, 181, 21);color:rgb(255, 255, 255);border:none;">收藏该文</a>
+    <a href="#" style="margin-right:10px;margin:0px;border-radius:10px;padding:3px 2px;text-decoration:none;font-weight:bold;cursor:pointer;display:inline-block;vertical-align:middle;box-shadow:none;text-shadow:none;background:none;color:rgb(255, 255, 255);border:none;" title="分享至新浪微博"><img src="关于Hibernate延迟加载 - Jevo - 博客园_files/icon_weibo_24.png" type="image/png" data-filename="icon_weibo_24.png" alt="" height="24" style="margin:0px;padding:0px;height:auto;border:none;vertical-align:middle;margin-left:5px;box-shadow:none;max-width:300px;" width="24"/></a>
+    <a href="#" style="margin-right:10px;margin:0px;border-radius:10px;padding:3px 2px;text-decoration:none;font-weight:bold;cursor:pointer;display:inline-block;vertical-align:middle;box-shadow:none;text-shadow:none;background:none;color:rgb(255, 255, 255);border:none;" title="分享至微信"><img src="关于Hibernate延迟加载 - Jevo - 博客园_files/wechat.png" type="image/png" data-filename="wechat.png" alt="" height="24" style="margin:0px;padding:0px;border:medium none;width:24px;height:24px;box-shadow:none;margin-left:5px;vertical-align:middle;max-width:300px;" width="24"/></a>
+</div>
+<div style="margin:0px;padding:0px;float:left;width:280px;margin-top:0px;margin-bottom:10px;color:rgb(0, 0, 0);margin-left:0px;font-size:12px;">
+    <div style="margin:0px;padding:0px;float:left;line-height:18px;">
+            <a href="http://home.cnblogs.com/u/jevo/" style="margin:0px;padding:0px;text-decoration:underline;color:rgb(7, 93, 179);" target="_blank"><img src="关于Hibernate延迟加载 - Jevo - 博客园_files/sample_face.gif" type="image/gif" data-filename="sample_face.gif" alt="" height="46" style="margin:0px;padding:0px;height:auto;border:0px;vertical-align:top;float:left;margin-right:5px;padding-top:5px;padding-left:2px;max-width:300px;" width="47"/></a>
+        <div style="margin:0px;padding:0px;float:left;line-height:18px;">
+            <a href="http://home.cnblogs.com/u/jevo/" style="margin:0px;padding:0px;text-decoration:underline;color:rgb(7, 93, 179);">Jevo</a><br style="margin:0px;padding:0px;"/>
+            <a href="http://home.cnblogs.com/u/jevo/followees" style="margin:0px;padding:0px;text-decoration:underline;color:rgb(7, 93, 179);">关注 - 0</a><br style="margin:0px;padding:0px;"/>
+            <a href="http://home.cnblogs.com/u/jevo/followers" style="margin:0px;padding:0px;text-decoration:underline;color:rgb(7, 93, 179);">粉丝 - 21</a>
+        </div>
+    </div>
+    <div style="margin:0px;padding:0px;clear:both;"></div>
+    <div style="margin:0px;padding:0px;"></div>
+    <div style="margin:0px;padding:0px;">
+                <a href="#" style="margin:0px;padding:0px;text-decoration:underline;color:rgb(7, 93, 179);">+加关注</a>
+    </div>
+</div>
+<div style="margin:0px;padding:0px;float:right;margin-bottom:10px;margin-right:30px;font-size:12px;width:125px;text-align:center;margin-top:10px;">
+    <div style="margin:0px;padding:0px;float:left;width:46px;height:52px;background:url(&quot;http://static.cnblogs.com/images/upup.gif&quot;) no-repeat;text-align:center;cursor:pointer;margin-top:2px;padding-top:5px;">
+        <span style="margin:0px;padding:0px;font-size:14px;color:rgb(7, 93, 179);font-family:Verdana;line-height:1.5em;">0</span>
+    </div>
+    <div style="text-align:center;padding:0px;margin:0px;height:52px;background:url(&quot;http://static.cnblogs.com/images/downdown.gif&quot;) no-repeat;margin-left:20px;cursor:pointer;margin-top:2px;padding-top:5px;width:46px;float:right;">
+        <span style="margin:0px;padding:0px;font-size:14px;color:rgb(7, 93, 179);font-family:Verdana;line-height:1.5em;">0</span>
+    </div>
+    <div style="margin:0px;padding:0px;clear:both;"></div>
+    <div style="margin:0px;padding:0px;margin-top:5px;margin-left:0px;font-size:12px;color:gray;">
+    </div>
+</div>
+</div>
+<div style="margin:0px;padding:0px;clear:both;"></div>
+<div style="margin:0px;padding:0px;line-height:1.8;font-size:12px;"><a href="http://www.cnblogs.com/jevo/archive/2013/04/12/3017518.html" style="margin:0px;padding:0px;color:rgb(7, 93, 179);text-decoration:none;">« </a> 上一篇：<a href="http://www.cnblogs.com/jevo/archive/2013/04/12/3017518.html" style="margin:0px;padding:0px;text-decoration:underline;color:rgb(7, 93, 179);" title="发布于2013-04-12 23:04">Java消息机制</a><br style="margin:0px;padding:0px;"/><a href="http://www.cnblogs.com/jevo/archive/2013/04/17/3007333.html" style="margin:0px;padding:0px;color:rgb(7, 93, 179);text-decoration:none;">» </a> 下一篇：<a href="http://www.cnblogs.com/jevo/archive/2013/04/17/3007333.html" style="margin:0px;padding:0px;text-decoration:underline;color:rgb(7, 93, 179);" title="发布于2013-04-17 21:57">Hibernate缓存</a><br style="margin:0px;padding:0px;"/></div>
+</div>
+
+
+		</div>
+		<div style="margin:0px;padding:0px;clear:both;font-size:12px;float:right;width:100%;text-align:right;padding-right:5px;color:rgb(102, 102, 102);margin-top:5px;">posted @ <span style="margin:0px;padding:0px;">2013-04-15 23:02</span> <a href="http://www.cnblogs.com/jevo/" style="margin:0px;padding:0px;text-decoration:none;color:rgb(7, 93, 179);">Jevo</a> 阅读(<span style="margin:0px;padding:0px;">252</span>) 评论(<span style="margin:0px;padding:0px;">0</span>)  <a href="https://i.cnblogs.com/EditPosts.aspx?postid=3039228" rel="nofollow" style="margin:0px;padding:0px;text-decoration:none;color:rgb(7, 93, 179);">编辑</a> <a href="http://www.cnblogs.com/jevo/archive/2013/04/15/3039228.html#" style="margin:0px;padding:0px;text-decoration:none;color:rgb(7, 93, 179);">收藏</a></div>
+	</div></div></div></div></div></div></div></div></div></div><br/></div></span>
+</div></body></html> 
