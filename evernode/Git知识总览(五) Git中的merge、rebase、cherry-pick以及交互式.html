@@ -1,0 +1,373 @@
+<html>
+<head>
+  <title>Git知识总览(五) Git中的merge、rebase、cherry-pick以及交互式rebase - 青玉伏案 - 博客园</title>
+  <basefont face="微软雅黑" size="2" />
+  <meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+  <meta name="exporter-version" content="YXBJ Windows/601935 (zh-CN, DDL); Windows/10.0.0 (Win64); EDAMVersion=V2;"/>
+  <style>
+    body, td {
+      font-family: 微软雅黑;
+      font-size: 10pt;
+    }
+  </style>
+</head>
+<body>
+<a name="12517"/>
+<h1>Git知识总览(五) Git中的merge、rebase、cherry-pick以及交互式rebase - 青玉伏案 - 博客园</h1>
+<div>
+<table bgcolor="#D4DDE5" border="0">
+<tr><td><b>创建时间：</b></td><td><i>2019/7/4 16:08</i></td></tr>
+<tr><td><b>来源：</b></td><td><a href="https://www.cnblogs.com/ludashi/p/8213550.html"><i>https://www.cnblogs.com/ludashi/p/8213550.html</i></a></td></tr>
+</table>
+</div>
+<br/>
+
+<div><span><div style="-evernote-webclip:true"><br/><div style="font-size: 16px; display: inline-block;"><div><div style="font-family:&quot;PingFang SC&quot;, &quot;Helvetica Neue&quot;, Helvetica, Arial, sans-serif;background:url(&quot;images/body_bg.png&quot;) 0px 0px repeat-x scroll rgb(240, 238, 245);color:rgb(125, 139, 141);font-size:14px;line-height:25px;text-size-adjust:none;"><div><div><div style="background:none;overflow:visible;text-overflow:ellipsis;word-break:break-all;"><div><div><div style="background:rgb(255, 255, 255);overflow:hidden;"><div>
+		<h1 style="margin:0px;padding:0px;font-size:28px;font-weight:400;margin-bottom:20px;line-height:1.8;color:rgb(51, 51, 51);">
+			<a href="https://www.cnblogs.com/ludashi/p/8213550.html" style="margin:0px;padding:0px;color:rgb(51, 51, 51);text-decoration:none;">Git知识总览(五) Git中的merge、rebase、cherry-pick以及交互式rebase</a>
+		</h1>
+		<div style="clear:both;margin:0px;padding:0px;"></div>
+		<div style="margin:0px;padding:0px;">
+			<div style="margin-bottom:20px;word-break:break-word;margin:0px;padding:0px;color:rgb(51, 51, 51);line-height:1.8;"><p style="margin:10px auto;text-indent:0px;padding:0px;">上篇博客聊了《<span style="margin:0px;padding:0px;color:#ff0000;"><a href="http://www.cnblogs.com/ludashi/p/8116434.html" style="margin:0px;padding:0px;color:rgb(0, 0, 0);text-decoration:underline;"><span style="margin:0px;padding:0px;color:#ff0000;">git分支管理之rebase 以及 cherry-pick相关操作</span></a></span>》本篇博客我们就以Learning Git中的关卡进行展开。下方列举了LearningGit中的 merge、rebase、reset、revert、cherry-pick 以及交互式rebase相关关卡的操作以及对应的解析。后边在聊交互式rebase操作是，不单单给出了LearningGit中的内容，而且给出了真正的Git分支在交互式rebase操作时的具体案例。</p>
+<p style="margin:10px auto;text-indent:0px;padding:0px;">learngitbranching的地址为：<span style="margin:0px;padding:0px;color:#ff0000;"><a href="https://learngitbranching.js.org/" style="margin:0px;padding:0px;color:rgb(0, 0, 0);text-decoration:underline;" target="_blank"><span style="margin:0px;padding:0px;color:#ff0000;">https://learngitbranching.js.org/</span></a></span></p>
+<p style="margin:10px auto;text-indent:0px;padding:0px;"> </p>
+<p style="margin:10px auto;text-indent:0px;padding:0px;"><span style="margin:0px;padding:0px;font-size:14pt;color:#008080;"><strong style="margin:0px;padding:0px;">一、代码合并</strong></span></p>
+<p style="margin:10px auto;text-indent:0px;padding:0px;">在下方示例中所有目标的初始化状态是下方这样的，然后我们要按照目最终目标，使用相关的git命令来达到相关的目标。</p>
+<p style="margin:10px auto;text-indent:0px;padding:0px;"><img src="Git知识总览(五) Git中的merge、rebase、cherry-pick以及交互式_files/545446-20180106101450846-99677121.png" type="image/png" data-filename="545446-20180106101450846-99677121.png" alt="" height="141" style="border:none;max-width:300px;height:auto;margin:0px;padding:0px;" width="193"/></p>
+<p style="margin:10px auto;text-indent:0px;padding:0px;"> </p>
+<p style="margin:10px auto;text-indent:0px;padding:0px;"> <span style="margin:0px;padding:0px;font-size:16px;"><strong style="margin:0px;padding:0px;"><span style="margin:0px;padding:0px;color:#008080;">1、git merge</span></strong></span></p>
+<p style="margin:10px auto;text-indent:0px;padding:0px;">下方就是我们要达到的目标，下方是我们达到下方目标所要做的事情：</p>
+<ul style="margin:0px 0px 1em 40px;padding:0px;">
+<li style="list-style-type:disc;margin:0px;padding:0px;">
+<blockquote style="background:none;border:2px solid rgb(239, 239, 239);padding:5px 10px;margin:0px;border-top:none;border-right:none;border-bottom:none;border-image:initial;border-left:5px solid rgb(221, 221, 221);padding-left:10px;">首先需要做的就是创建一个新的分支bugFix, 并切换到该分支上，然后进行一次C2的提交。</blockquote>
+</li>
+<li style="list-style-type:disc;margin:0px;padding:0px;">
+<blockquote style="background:none;border:2px solid rgb(239, 239, 239);padding:5px 10px;margin:0px;border-top:none;border-right:none;border-bottom:none;border-image:initial;border-left:5px solid rgb(221, 221, 221);padding-left:10px;">然后再切回到master分支上，进行一次新的提交（C3）。</blockquote>
+</li>
+<li style="list-style-type:disc;margin:0px;padding:0px;">
+<blockquote style="background:none;border:2px solid rgb(239, 239, 239);padding:5px 10px;margin:0px;border-top:none;border-right:none;border-bottom:none;border-image:initial;border-left:5px solid rgb(221, 221, 221);padding-left:10px;">最后要做的就是在master分支上执行一次合并操作，将bugFix分支上的提交合并到master分支上，C4就是合并后的节点。</blockquote>
+</li>
+</ul>
+<p style="margin:10px auto;text-indent:0px;padding:0px;">　　<img src="Git知识总览(五) Git中的merge、rebase、cherry-pick以及交互式_files/545446-20180106101418174-937230406.png" type="image/png" data-filename="545446-20180106101418174-937230406.png" alt="" height="355" style="border:none;max-width:300px;height:auto;margin:0px;padding:0px;" width="240"/></p>
+<p style="margin:10px auto;text-indent:0px;padding:0px;"> </p>
+<p style="margin:10px auto;text-indent:0px;padding:0px;">下方对应的就是我们实现上述目标所对应的命令操作，具体如下所示：</p>
+<ul style="margin:0px 0px 1em 40px;padding:0px;">
+<li style="list-style-type:disc;margin:0px;padding:0px;">
+<blockquote style="background:none;border:2px solid rgb(239, 239, 239);padding:5px 10px;margin:0px;border-top:none;border-right:none;border-bottom:none;border-image:initial;border-left:5px solid rgb(221, 221, 221);padding-left:10px;">首先使用<strong style="margin:0px;padding:0px;"> git checkout -b bugFix</strong>, 新建并切换到bugFix分支上，并且使用<strong style="margin:0px;padding:0px;"> git commit</strong> 命令进行一次提交生成C2节点。</blockquote>
+</li>
+<li style="list-style-type:disc;margin:0px;padding:0px;">
+<blockquote style="background:none;border:2px solid rgb(239, 239, 239);padding:5px 10px;margin:0px;border-top:none;border-right:none;border-bottom:none;border-image:initial;border-left:5px solid rgb(221, 221, 221);padding-left:10px;">然后使用 <strong style="margin:0px;padding:0px;">git checkout master</strong> 命令切换到master分支上，并且使用 git commit 命令进行一次提交生成C3节点。</blockquote>
+</li>
+<li style="list-style-type:disc;margin:0px;padding:0px;">
+<blockquote style="background:none;border:2px solid rgb(239, 239, 239);padding:5px 10px;margin:0px;border-top:none;border-right:none;border-bottom:none;border-image:initial;border-left:5px solid rgb(221, 221, 221);padding-left:10px;">最后的话，就是在 master 分支上执行 <strong style="margin:0px;padding:0px;">git merge bugFix</strong>命令，将bugFix分支合并到master分支上，合并后会生成一个新的C4节点。具体如下所示：</blockquote>
+</li>
+</ul>
+<p style="margin:10px auto;text-indent:0px;padding:0px;">　　<img src="Git知识总览(五) Git中的merge、rebase、cherry-pick以及交互式_files/545446-20180106101934065-2059124043.gif" type="image/gif" data-filename="545446-20180106101934065-2059124043.gif" alt="" height="398" style="border:none;max-width:300px;height:auto;margin:0px;padding:0px;" width="517"/></p>
+<p style="margin:10px auto;text-indent:0px;padding:0px;"> </p>
+<p style="margin:10px auto;text-indent:0px;padding:0px;"><strong style="margin:0px;padding:0px;"><span style="margin:0px;padding:0px;font-size:16px;color:#008080;"> 2、git rebase </span></strong></p>
+<p style="margin:10px auto;text-indent:0px;padding:0px;">闯完git merge的关，我们来看一下git rebase的关。下方就是我们最终要实现的目标。实现下方目标和上面的merge操作差不多，只不过最后一步不是使用合并操作，而是在bugFix上执行变基操作，具体分析如下：</p>
+<ul style="margin:0px 0px 1em 40px;padding:0px;">
+<li style="list-style-type:disc;margin:0px;padding:0px;">
+<blockquote style="background:none;border:2px solid rgb(239, 239, 239);padding:5px 10px;margin:0px;border-top:none;border-right:none;border-bottom:none;border-image:initial;border-left:5px solid rgb(221, 221, 221);padding-left:10px;">首先需要做的就是创建一个新的分支bugFix, 并切换到该分支上，然后进行一次C2的提交。</blockquote>
+</li>
+<li style="list-style-type:disc;margin:0px;padding:0px;">
+<blockquote style="background:none;border:2px solid rgb(239, 239, 239);padding:5px 10px;margin:0px;border-top:none;border-right:none;border-bottom:none;border-image:initial;border-left:5px solid rgb(221, 221, 221);padding-left:10px;">然后再切回到master分支上，进行一次新的提交（C3）。</blockquote>
+</li>
+<li style="list-style-type:disc;margin:0px;padding:0px;">
+<blockquote style="background:none;border:2px solid rgb(239, 239, 239);padding:5px 10px;margin:0px;border-top:none;border-right:none;border-bottom:none;border-image:initial;border-left:5px solid rgb(221, 221, 221);padding-left:10px;">然后在切换到 bugFix 分支上，执行变基操作，将bugFix的父节点变成master分支，之前的C2节点就被新的提交C2`所替代了。</blockquote>
+</li>
+</ul>
+<p style="margin:10px auto;text-indent:0px;padding:0px;">　　<img src="Git知识总览(五) Git中的merge、rebase、cherry-pick以及交互式_files/545446-20180106101324831-1559882284.png" type="image/png" data-filename="545446-20180106101324831-1559882284.png" alt="" height="281" style="border:none;max-width:300px;height:auto;margin:0px;padding:0px;" width="245"/></p>
+<p style="margin:10px auto;text-indent:0px;padding:0px;"> </p>
+<p style="margin:10px auto;text-indent:0px;padding:0px;">下方是我们的具体命令操作：</p>
+<ul style="margin:0px 0px 1em 40px;padding:0px;">
+<li style="list-style-type:disc;margin:0px;padding:0px;">
+<blockquote style="background:none;border:2px solid rgb(239, 239, 239);padding:5px 10px;margin:0px;border-top:none;border-right:none;border-bottom:none;border-image:initial;border-left:5px solid rgb(221, 221, 221);padding-left:10px;">首先使用 <strong style="margin:0px;padding:0px;">git checkout -b bugFix</strong>, 新建并切换到bugFix分支上，并且使用 git commit 命令进行一次提交生成C2节点。</blockquote>
+</li>
+<li style="list-style-type:disc;margin:0px;padding:0px;">
+<blockquote style="background:none;border:2px solid rgb(239, 239, 239);padding:5px 10px;margin:0px;border-top:none;border-right:none;border-bottom:none;border-image:initial;border-left:5px solid rgb(221, 221, 221);padding-left:10px;">然后使用 <strong style="margin:0px;padding:0px;">git checkout master</strong> 命令切换到master分支上，并且使用 git commit 命令进行一次提交生成C3节点。</blockquote>
+</li>
+<li style="list-style-type:disc;margin:0px;padding:0px;">
+<blockquote style="background:none;border:2px solid rgb(239, 239, 239);padding:5px 10px;margin:0px;border-top:none;border-right:none;border-bottom:none;border-image:initial;border-left:5px solid rgb(221, 221, 221);padding-left:10px;">然后再使用<strong style="margin:0px;padding:0px;"> git checkout bugFix</strong> 命令切回到 bugFix 分支上。</blockquote>
+</li>
+<li style="list-style-type:disc;margin:0px;padding:0px;">
+<blockquote style="background:none;border:2px solid rgb(239, 239, 239);padding:5px 10px;margin:0px;border-top:none;border-right:none;border-bottom:none;border-image:initial;border-left:5px solid rgb(221, 221, 221);padding-left:10px;">最后在bugFix分支上执行 <strong style="margin:0px;padding:0px;">git rebase master</strong> 命令，经其父类变成master。执行变基后，C2会和C3节点的内容进行合并生成新的节点C2`，而bugFix分支的指针也会从C2节点移动到C2`上，移动后bugFix之前的分支就会被废弃掉，取而代之的是从master延续下来的新分支。</blockquote>
+</li>
+</ul>
+<p style="margin:10px auto;text-indent:0px;padding:0px;">　　<img src="Git知识总览(五) Git中的merge、rebase、cherry-pick以及交互式_files/545446-20180106102643768-1369527032.gif" type="image/gif" data-filename="545446-20180106102643768-1369527032.gif" alt="" height="426" style="border:none;max-width:300px;height:auto;margin:0px;padding:0px;" width="554"/> </p>
+<p style="margin:10px auto;text-indent:0px;padding:0px;"> </p>
+<p style="margin:10px auto;text-indent:0px;padding:0px;"><strong style="margin:0px;padding:0px;"><span style="margin:0px;padding:0px;color:#008080;font-size:14pt;">二、分离HEAD</span></strong></p>
+<p style="margin:10px auto;text-indent:0px;padding:0px;"><strong style="margin:0px;padding:0px;"><span style="margin:0px;padding:0px;color:#008080;font-size:16px;">1、移动HEAD指针</span></strong></p>
+<p style="margin:10px auto;text-indent:0px;padding:0px;">HEAD指针是指向当前所在的操作分支，比如我们现在是在master分支，那么HEAD就指向master分支，然后master分支指向的是我们的commit号。分离的 HEAD 就是让其指向了某个具体的提交记录而不是分支名。下方左边的图就是我们要完成的目标，右边是我们分支的初始化状态。</p>
+<p style="margin:10px auto;text-indent:0px;padding:0px;">　　<img src="Git知识总览(五) Git中的merge、rebase、cherry-pick以及交互式_files/545446-20180106103638971-1966055369.png" type="image/png" data-filename="545446-20180106103638971-1966055369.png" alt="" height="327" style="border:none;max-width:300px;height:auto;margin:0px;padding:0px;" width="457"/></p>
+<p style="margin:10px auto;text-indent:0px;padding:0px;"> </p>
+<p style="margin:10px auto;text-indent:0px;padding:0px;">实现上述目标一行命令足矣，可以使用 git checkout C3 命令就可以将HEAD命令指向C3提交上。<strong style="margin:0px;padding:0px;"><span style="margin:0px;padding:0px;color:#ff0000;">git checkout HEAD^</span> </strong>命令可以将HEAD指针向上移动一个距离，git checkout HEAD~3 则可以将HEAD向上移动三个距离。具体操作如下所示：</p>
+<p style="margin:10px auto;text-indent:0px;padding:0px;">　　<img src="Git知识总览(五) Git中的merge、rebase、cherry-pick以及交互式_files/545446-20180106110959956-1562810706.gif" type="image/gif" data-filename="545446-20180106110959956-1562810706.gif" alt="" height="313" style="border:none;max-width:300px;height:auto;margin:0px;padding:0px;" width="457"/></p>
+<p style="margin:10px auto;text-indent:0px;padding:0px;"> </p>
+<p style="margin:10px auto;text-indent:0px;padding:0px;"><span style="margin:0px;padding:0px;color:#008080;font-size:16px;"><strong style="margin:0px;padding:0px;">2、在提交树上移动分支</strong></span></p>
+<p style="margin:10px auto;text-indent:0px;padding:0px;">下方要完成的不单单是HEAD指针的移动，而是分支指针的移动，在Git上可以移动你所创建分支的指向，使其指向任意提交过的分支上。下方就来看一下如何在git上移动分支指针，下方左边是我们要完成的目标，右边是分支的初始化状态。需要做的事情如下：</p>
+<ul style="margin:0px 0px 1em 40px;padding:0px;">
+<li style="list-style-type:disc;margin:0px;padding:0px;">
+<blockquote style="background:none;border:2px solid rgb(239, 239, 239);padding:5px 10px;margin:0px;border-top:none;border-right:none;border-bottom:none;border-image:initial;border-left:5px solid rgb(221, 221, 221);padding-left:10px;">将 bugFix 分支移动到C0上。</blockquote>
+</li>
+<li style="list-style-type:disc;margin:0px;padding:0px;">
+<blockquote style="background:none;border:2px solid rgb(239, 239, 239);padding:5px 10px;margin:0px;border-top:none;border-right:none;border-bottom:none;border-image:initial;border-left:5px solid rgb(221, 221, 221);padding-left:10px;">然后将master分支移动到C6上。</blockquote>
+</li>
+<li style="list-style-type:disc;margin:0px;padding:0px;">
+<blockquote style="background:none;border:2px solid rgb(239, 239, 239);padding:5px 10px;margin:0px;border-top:none;border-right:none;border-bottom:none;border-image:initial;border-left:5px solid rgb(221, 221, 221);padding-left:10px;">最后将HEAD分支上移。</blockquote>
+</li>
+</ul>
+<p style="margin:10px auto;text-indent:0px;padding:0px;">　　<img src="Git知识总览(五) Git中的merge、rebase、cherry-pick以及交互式_files/545446-20180106111903018-63219675.png" type="image/png" data-filename="545446-20180106111903018-63219675.png" alt="" height="289" style="border:none;max-width:300px;height:auto;margin:0px;padding:0px;" width="506"/></p>
+<p style="margin:10px auto;text-indent:0px;padding:0px;"> </p>
+<p style="margin:10px auto;text-indent:0px;padding:0px;">需要操作的命令如下所示:</p>
+<ul style="margin:0px 0px 1em 40px;padding:0px;">
+<li style="list-style-type:disc;margin:0px;padding:0px;">
+<blockquote style="background:none;border:2px solid rgb(239, 239, 239);padding:5px 10px;margin:0px;border-top:none;border-right:none;border-bottom:none;border-image:initial;border-left:5px solid rgb(221, 221, 221);padding-left:10px;">首先使用 <strong style="margin:0px;padding:0px;">git branch -f bugFix C0</strong> 命令将bugFix指向C0节点。（C0表示的是相关提交的哈希值）。</blockquote>
+</li>
+<li style="list-style-type:disc;margin:0px;padding:0px;">
+<blockquote style="background:none;border:2px solid rgb(239, 239, 239);padding:5px 10px;margin:0px;border-top:none;border-right:none;border-bottom:none;border-image:initial;border-left:5px solid rgb(221, 221, 221);padding-left:10px;">然后使用 <strong style="margin:0px;padding:0px;">git branch -f master C6</strong> 命令将master分支指向C6节点。</blockquote>
+</li>
+<li style="list-style-type:disc;margin:0px;padding:0px;">
+<blockquote style="background:none;border:2px solid rgb(239, 239, 239);padding:5px 10px;margin:0px;border-top:none;border-right:none;border-bottom:none;border-image:initial;border-left:5px solid rgb(221, 221, 221);padding-left:10px;">最后使用 <strong style="margin:0px;padding:0px;">git checkout HEAD^</strong> 命令将分离的HEAD指针进行上移。</blockquote>
+</li>
+</ul>
+<p style="margin:10px auto;text-indent:0px;padding:0px;">　　<img src="Git知识总览(五) Git中的merge、rebase、cherry-pick以及交互式_files/545446-20180106112612706-269334125.gif" type="image/gif" data-filename="545446-20180106112612706-269334125.gif" alt="" height="350" style="border:none;max-width:300px;height:auto;margin:0px;padding:0px;" width="511"/></p>
+<p style="margin:10px auto;text-indent:0px;padding:0px;"> </p>
+<p style="margin:10px auto;text-indent:0px;padding:0px;"><span style="margin:0px;padding:0px;color:#008080;font-size:16px;"><strong style="margin:0px;padding:0px;">3、撤销操作</strong></span></p>
+<p style="margin:10px auto;text-indent:0px;padding:0px;">接下来我们来看一下撤销操作，同样左边是我们要完成的目标，右边是初始状态。从下方的目标中我们可以看出 local 分支的撤销操作是使用的 git reset 操作的, 因为是在本地来向上移动的，进行reset后是不可以push到远端的。而push分支使用的是revert操作，撤销了C2的提交后，再C2的基础上又生成了一个新的提交。reset 操作是不可以被push到远端的，而revert则可以，稍后会进行实验。下方会有具体的操作。</p>
+<p style="margin:10px auto;text-indent:0px;padding:0px;">　　<img src="Git知识总览(五) Git中的merge、rebase、cherry-pick以及交互式_files/545446-20180106214413049-173541814.png" type="image/png" data-filename="545446-20180106214413049-173541814.png" alt="" height="322" style="border:none;max-width:300px;height:auto;margin:0px;padding:0px;" width="407"/></p>
+<p style="margin:10px auto;text-indent:0px;padding:0px;"> </p>
+<p style="margin:10px auto;text-indent:0px;padding:0px;">下方就是我们为了完成目标而又的具体的操作：</p>
+<ul style="margin:0px 0px 1em 40px;padding:0px;">
+<li style="list-style-type:disc;margin:0px;padding:0px;">
+<blockquote style="background:none;border:2px solid rgb(239, 239, 239);padding:5px 10px;margin:0px;border-top:none;border-right:none;border-bottom:none;border-image:initial;border-left:5px solid rgb(221, 221, 221);padding-left:10px;">首先在 local 分支上执行<strong style="margin:0px;padding:0px;">git reset HEAD^1</strong> 或者 <strong style="margin:0px;padding:0px;">git reset HEAD C1</strong> 操作来撤销本地的C3操作。</blockquote>
+</li>
+<li style="list-style-type:disc;margin:0px;padding:0px;">
+<blockquote style="background:none;border:2px solid rgb(239, 239, 239);padding:5px 10px;margin:0px;border-top:none;border-right:none;border-bottom:none;border-image:initial;border-left:5px solid rgb(221, 221, 221);padding-left:10px;">然后我们再通过 <strong style="margin:0px;padding:0px;">git checkout pushed</strong>操作切换到 pushed 分支上，然后执行 <strong style="margin:0px;padding:0px;">git revert HEAD^1</strong> 操作，撤销C2的提交。</blockquote>
+</li>
+</ul>
+<p style="margin:10px auto;text-indent:0px;padding:0px;">　　<img src="Git知识总览(五) Git中的merge、rebase、cherry-pick以及交互式_files/545446-20180106215043471-1245798326.gif" type="image/gif" data-filename="545446-20180106215043471-1245798326.gif" alt="" height="368" style="border:none;max-width:300px;height:auto;margin:0px;padding:0px;" width="506"/></p>
+<p style="margin:10px auto;text-indent:0px;padding:0px;"> </p>
+<p style="margin:10px auto;text-indent:0px;padding:0px;">如果你reset某个提交，想在将分支号移动到之前的提交上，可以使用上面的 git branch -f 操作，将相应的分支移到相应的提交上。下方是将 local 分支又移动回了C3, 如下所示。</p>
+<p style="margin:10px auto;text-indent:0px;padding:0px;">　　<img src="Git知识总览(五) Git中的merge、rebase、cherry-pick以及交互式_files/545446-20180106215110628-1291590176.gif" type="image/gif" data-filename="545446-20180106215110628-1291590176.gif" alt="" height="371" style="border:none;max-width:300px;height:auto;margin:0px;padding:0px;" width="510"/></p>
+<p style="margin:10px auto;text-indent:0px;padding:0px;"> </p>
+<p style="margin:10px auto;text-indent:0px;padding:0px;">接下来我来看一下对 reset 后的分支进行push, 以及对 revert 分支后进行push。</p>
+<ul style="margin:0px 0px 1em 40px;padding:0px;">
+<li style="list-style-type:disc;margin:0px;padding:0px;">
+<blockquote style="background:none;border:2px solid rgb(239, 239, 239);padding:5px 10px;margin:0px;border-top:none;border-right:none;border-bottom:none;border-image:initial;border-left:5px solid rgb(221, 221, 221);padding-left:10px;">首先在local分支上执行reset操作，然后进行push会提示本地仓库和远程仓库产生了分歧，先git pull 或者 <strong style="margin:0px;padding:0px;">git pull --rebase</strong>。</blockquote>
+</li>
+<li style="list-style-type:disc;margin:0px;padding:0px;">
+<blockquote style="background:none;border:2px solid rgb(239, 239, 239);padding:5px 10px;margin:0px;border-top:none;border-right:none;border-bottom:none;border-image:initial;border-left:5px solid rgb(221, 221, 221);padding-left:10px;">而在pushed分支上的revert操作就不会有这样的提示，因为revert是在原来的分支下方产生了一个新的提交，和正常提交一样对待，所以是可以push的。</blockquote>
+</li>
+</ul>
+<p style="margin:10px auto;text-indent:0px;padding:0px;">　　<img src="Git知识总览(五) Git中的merge、rebase、cherry-pick以及交互式_files/545446-20180106220637909-881237884.gif" type="image/gif" data-filename="545446-20180106220637909-881237884.gif" alt="" height="378" style="border:none;max-width:300px;height:auto;margin:0px;padding:0px;" width="762"/></p>
+<p style="margin:10px auto;text-indent:0px;padding:0px;"> </p>
+<p style="margin:10px auto;text-indent:0px;padding:0px;">下方我们再做个尝试，在一个分支上进行了reset , 然后在reset后的分支上做了一些提交。最后我们将这些提交进行push，然后看一下具体的效果。</p>
+<ul style="margin:0px 0px 1em 40px;padding:0px;">
+<li style="list-style-type:disc;margin:0px;padding:0px;">
+<blockquote style="background:none;border:2px solid rgb(239, 239, 239);padding:5px 10px;margin:0px;border-top:none;border-right:none;border-bottom:none;border-image:initial;border-left:5px solid rgb(221, 221, 221);padding-left:10px;">首先我们对clone到本地的local分支进行了reset操作，操作后在新的分支上进行两次commit。</blockquote>
+</li>
+<li style="list-style-type:disc;margin:0px;padding:0px;">
+<blockquote style="background:none;border:2px solid rgb(239, 239, 239);padding:5px 10px;margin:0px;border-top:none;border-right:none;border-bottom:none;border-image:initial;border-left:5px solid rgb(221, 221, 221);padding-left:10px;">然后我们进行push , 会提示先pull或者<strong style="margin:0px;padding:0px;">pull --rebase</strong> , 然后在进行push.</blockquote>
+</li>
+<li style="list-style-type:disc;margin:0px;padding:0px;">
+<blockquote style="background:none;border:2px solid rgb(239, 239, 239);padding:5px 10px;margin:0px;border-top:none;border-right:none;border-bottom:none;border-image:initial;border-left:5px solid rgb(221, 221, 221);padding-left:10px;">下方先执行了 git pull 操作，执行pull操作后，就是将 o/local 分支和 local分支进行合并，合并后就可以进行push了。这样一来，我们之前reset操作就不起什么作用了。因为 pull 操作后进行了merge, 就等效于在C3上直接进行commit。</blockquote>
+</li>
+<li style="list-style-type:disc;margin:0px;padding:0px;">
+<blockquote style="background:none;border:2px solid rgb(239, 239, 239);padding:5px 10px;margin:0px;border-top:none;border-right:none;border-bottom:none;border-image:initial;border-left:5px solid rgb(221, 221, 221);padding-left:10px;">然后我们进行回退，又试了一下<strong style="margin:0px;padding:0px;">git pull --rebase</strong> 操作，其实该操作就是将merge操作改成了变基操作。将我们后来的C4, C5两个提交变基到C3上，从效果上看，就和没有执行reset操作一样。具体如下所示：</blockquote>
+</li>
+</ul>
+<p style="margin:10px auto;text-indent:0px;padding:0px;">　　<img src="Git知识总览(五) Git中的merge、rebase、cherry-pick以及交互式_files/545446-20180106221532096-1446487700.gif" type="image/gif" data-filename="545446-20180106221532096-1446487700.gif" alt="" height="408" style="border:none;max-width:300px;height:auto;margin:0px;padding:0px;" width="823"/></p>
+<p style="margin:10px auto;text-indent:0px;padding:0px;"> </p>
+<p style="margin:10px auto;text-indent:0px;padding:0px;"> </p>
+<p style="margin:10px auto;text-indent:0px;padding:0px;"><strong style="margin:0px;padding:0px;"><span style="margin:0px;padding:0px;color:#008080;font-size:14pt;">三、cherry-pick和交互式rebase</span></strong></p>
+<p style="margin:10px auto;text-indent:0px;padding:0px;">之所以将这两个放在一块，是因为使用两者都可以达到相同的目标，只是操作不同。下方会分别介绍。</p>
+<p style="margin:10px auto;text-indent:0px;padding:0px;"><strong style="margin:0px;padding:0px;"><span style="margin:0px;padding:0px;color:#008080;font-size:16px;">1. cherry-pick</span></strong></p>
+<p style="margin:10px auto;text-indent:0px;padding:0px;">下方我们来看一下cherry-pick这一关，下方我们需要将 bugFix 分支上的<strong style="margin:0px;padding:0px;"> C3 、side</strong> 分支上的 C4 以及another分支上的C7通过cherry-pick的形式拿到 master分支上。</p>
+<p style="margin:10px auto;text-indent:0px;padding:0px;">　　<img src="Git知识总览(五) Git中的merge、rebase、cherry-pick以及交互式_files/545446-20180106223541159-1818415475.png" type="image/png" data-filename="545446-20180106223541159-1818415475.png" alt="" height="355" style="border:none;max-width:300px;height:auto;margin:0px;padding:0px;" width="683"/></p>
+<p style="margin:10px auto;text-indent:0px;padding:0px;"> </p>
+<p style="margin:10px auto;text-indent:0px;padding:0px;">下方主要还是使用了cherry-pick来达到我们的目标的，主要还是一个命令的使用 , 在 master 分支上执行 git cherry-pick C3 C4 C7, 可以将C3 C4 C7这三个提交摘到master分支上了。具体如下所示：</p>
+<p style="margin:10px auto;text-indent:0px;padding:0px;">　　<img src="Git知识总览(五) Git中的merge、rebase、cherry-pick以及交互式_files/545446-20180107102116831-1525483932.gif" type="image/gif" data-filename="545446-20180107102116831-1525483932.gif" alt="" height="400" style="border:none;max-width:300px;height:auto;margin:0px;padding:0px;" width="668"/></p>
+<p style="margin:10px auto;text-indent:0px;padding:0px;"> </p>
+<p style="margin:10px auto;text-indent:0px;padding:0px;"><span style="margin:0px;padding:0px;color:#008080;font-size:16px;"><strong style="margin:0px;padding:0px;">2、交互式rebase</strong></span></p>
+<p style="margin:10px auto;text-indent:0px;padding:0px;">解析我们来使用交互式rebase来做节点的迁移，当然下方的操作也是可以使用cherry-pick来完成的。左边是我们要完成的目标，右边则是初始化状态。我们需要将C2 C3 C4 C5的提交顺序转换成C3, C5, C4的顺序。</p>
+<p style="margin:10px auto;text-indent:0px;padding:0px;"> 　　<img src="Git知识总览(五) Git中的merge、rebase、cherry-pick以及交互式_files/545446-20180107103033799-358777715.png" type="image/png" data-filename="545446-20180107103033799-358777715.png" alt="" height="333" style="border:none;max-width:300px;height:auto;margin:0px;padding:0px;" width="626"/></p>
+<p style="margin:10px auto;text-indent:0px;padding:0px;"> </p>
+<p style="margin:10px auto;text-indent:0px;padding:0px;">下方就是我们交互式rebase操作的具体步骤，本质上就一个命令 git rebase -i HEAD~4, 然后操作相关的节点即可。</p>
+<p style="margin:10px auto;text-indent:0px;padding:0px;">　　<img src="Git知识总览(五) Git中的merge、rebase、cherry-pick以及交互式_files/545446-20180107130200440-2103580446.gif" type="image/gif" data-filename="545446-20180107130200440-2103580446.gif" alt="" height="334" style="border:none;max-width:300px;height:auto;margin:0px;padding:0px;" width="558"/></p>
+<p style="margin:10px auto;text-indent:0px;padding:0px;"> </p>
+<p style="margin:10px auto;text-indent:0px;padding:0px;"><span style="margin:0px;padding:0px;color:#008080;font-size:16px;"><strong style="margin:0px;padding:0px;">3、交互式rebase实践</strong></span></p>
+<p style="margin:10px auto;text-indent:0px;padding:0px;">接下来我们来看一下在真正的git分支上是如何使用交互式rebase操作的。下方是做交互式rebase操作之前的分支关系。目前所在的分支是bugFix, 其中有4个提交。</p>
+<p style="margin:10px auto;text-indent:0px;padding:0px;">　　<img src="Git知识总览(五) Git中的merge、rebase、cherry-pick以及交互式_files/545446-20180107150408346-422899875.png" type="image/png" data-filename="545446-20180107150408346-422899875.png" alt="" height="149" style="border:none;max-width:300px;height:auto;margin:0px;padding:0px;" width="383"/></p>
+<p style="margin:10px auto;text-indent:0px;padding:0px;"> </p>
+<p style="margin:10px auto;text-indent:0px;padding:0px;">现在要做的是在bugFix上进行交互式rebase, 在终端中输入 git rebase -i master, 目的是将 bugFix 分支上的提交通过交互式rebase的方式将其变基到master分支上。下方是输入git rebase -i maste命令后所出现的界面，我们可以通过vim编辑器编辑将要执行的变基操作。下方是对应的几种交互式命令</p>
+<ul style="margin:0px 0px 1em 40px;padding:0px;">
+<li style="list-style-type:disc;margin:0px;padding:0px;">
+<blockquote style="background:none;border:2px solid rgb(239, 239, 239);padding:5px 10px;margin:0px;border-top:none;border-right:none;border-bottom:none;border-image:initial;border-left:5px solid rgb(221, 221, 221);padding-left:10px;">pick 应用相关提交。</blockquote>
+</li>
+<li style="list-style-type:disc;margin:0px;padding:0px;">
+<blockquote style="background:none;border:2px solid rgb(239, 239, 239);padding:5px 10px;margin:0px;border-top:none;border-right:none;border-bottom:none;border-image:initial;border-left:5px solid rgb(221, 221, 221);padding-left:10px;">reword 修改commit信息。</blockquote>
+</li>
+<li style="list-style-type:disc;margin:0px;padding:0px;">
+<blockquote style="background:none;border:2px solid rgb(239, 239, 239);padding:5px 10px;margin:0px;border-top:none;border-right:none;border-bottom:none;border-image:initial;border-left:5px solid rgb(221, 221, 221);padding-left:10px;">edit 对提交进行编辑，然后使用<strong style="margin:0px;padding:0px;">git commit -amend</strong>进行提交。</blockquote>
+</li>
+<li style="list-style-type:disc;margin:0px;padding:0px;">
+<blockquote style="background:none;border:2px solid rgb(239, 239, 239);padding:5px 10px;margin:0px;border-top:none;border-right:none;border-bottom:none;border-image:initial;border-left:5px solid rgb(221, 221, 221);padding-left:10px;">squash 是把多个提交合并成一个提交</blockquote>
+</li>
+<li style="list-style-type:disc;margin:0px;padding:0px;">
+<blockquote style="background:none;border:2px solid rgb(239, 239, 239);padding:5px 10px;margin:0px;border-top:none;border-right:none;border-bottom:none;border-image:initial;border-left:5px solid rgb(221, 221, 221);padding-left:10px;">fixup 与squash差不多，不过会抛弃掉本次提交的log信息</blockquote>
+</li>
+<li style="list-style-type:disc;margin:0px;padding:0px;">
+<blockquote style="background:none;border:2px solid rgb(239, 239, 239);padding:5px 10px;margin:0px;border-top:none;border-right:none;border-bottom:none;border-image:initial;border-left:5px solid rgb(221, 221, 221);padding-left:10px;">exec 执行shell命令</blockquote>
+</li>
+<li style="list-style-type:disc;margin:0px;padding:0px;">
+<blockquote style="background:none;border:2px solid rgb(239, 239, 239);padding:5px 10px;margin:0px;border-top:none;border-right:none;border-bottom:none;border-image:initial;border-left:5px solid rgb(221, 221, 221);padding-left:10px;">drop 删除提交</blockquote>
+</li>
+</ul>
+<p style="margin:10px auto;text-indent:0px;padding:0px;">　　<img src="Git知识总览(五) Git中的merge、rebase、cherry-pick以及交互式_files/545446-20180107151134924-815712535.png" type="image/png" data-filename="545446-20180107151134924-815712535.png" alt="" height="417" style="border:none;max-width:300px;height:auto;margin:0px;padding:0px;" width="501"/></p>
+<p style="margin:10px auto;text-indent:0px;padding:0px;"> </p>
+<p style="margin:10px auto;text-indent:0px;padding:0px;"> 下方我们对相关操作执行的交互式的操作：</p>
+<ul style="margin:0px 0px 1em 40px;padding:0px;">
+<li style="list-style-type:disc;margin:0px;padding:0px;">
+<blockquote style="background:none;border:2px solid rgb(239, 239, 239);padding:5px 10px;margin:0px;border-top:none;border-right:none;border-bottom:none;border-image:initial;border-left:5px solid rgb(221, 221, 221);padding-left:10px;">首先使用 reword 来操作下方截图中的第一条操作，用来修改message。</blockquote>
+</li>
+<li style="list-style-type:disc;margin:0px;padding:0px;">
+<blockquote style="background:none;border:2px solid rgb(239, 239, 239);padding:5px 10px;margin:0px;border-top:none;border-right:none;border-bottom:none;border-image:initial;border-left:5px solid rgb(221, 221, 221);padding-left:10px;">然后交换了第二行和第三行的pick的位置</blockquote>
+</li>
+<li style="list-style-type:disc;margin:0px;padding:0px;">
+<blockquote style="background:none;border:2px solid rgb(239, 239, 239);padding:5px 10px;margin:0px;border-top:none;border-right:none;border-bottom:none;border-image:initial;border-left:5px solid rgb(221, 221, 221);padding-left:10px;">然后对第四行的提交执行edit命令对其进行修改</blockquote>
+</li>
+<li style="list-style-type:disc;margin:0px;padding:0px;">
+<blockquote style="background:none;border:2px solid rgb(239, 239, 239);padding:5px 10px;margin:0px;border-top:none;border-right:none;border-bottom:none;border-image:initial;border-left:5px solid rgb(221, 221, 221);padding-left:10px;">然后删除 编号为04的提交</blockquote>
+</li>
+</ul>
+<p style="margin:10px auto;text-indent:0px;padding:0px;">　　<img src="Git知识总览(五) Git中的merge、rebase、cherry-pick以及交互式_files/545446-20180107151352049-1971768667.png" type="image/png" data-filename="545446-20180107151352049-1971768667.png" alt="" height="115" style="border:none;max-width:300px;height:auto;margin:0px;padding:0px;" width="361"/></p>
+<p style="margin:10px auto;text-indent:0px;padding:0px;"> </p>
+<p style="margin:10px auto;text-indent:0px;padding:0px;">点击回车键的话会弹出下方的vim编辑器来让你修改 f53560c 这个操作的commit message，修改完毕后进行保存即可。 </p>
+<p style="margin:10px auto;text-indent:0px;padding:0px;">　　<img src="Git知识总览(五) Git中的merge、rebase、cherry-pick以及交互式_files/545446-20180107151451081-335910144.png" type="image/png" data-filename="545446-20180107151451081-335910144.png" alt="" height="274" style="border:none;max-width:300px;height:auto;margin:0px;padding:0px;" width="515"/></p>
+<p style="margin:10px auto;text-indent:0px;padding:0px;"> </p>
+<p style="margin:10px auto;text-indent:0px;padding:0px;">下方是在rebase合并时产生了冲突，我们需要对冲突进行解决。解决完毕后，执行 git add 将冲突文件进行存储，并且执行git rebase --continue 来继续我们的rebase操作。</p>
+<p style="margin:10px auto;text-indent:0px;padding:0px;">　　<img src="Git知识总览(五) Git中的merge、rebase、cherry-pick以及交互式_files/545446-20180107151546034-2087154880.png" type="image/png" data-filename="545446-20180107151546034-2087154880.png" alt="" height="216" style="border:none;max-width:300px;height:auto;margin:0px;padding:0px;" width="476"/> </p>
+<p style="margin:10px auto;text-indent:0px;padding:0px;"> </p>
+<p style="margin:10px auto;text-indent:0px;padding:0px;">经过一系列解决冲突的操作，最终我们的rebase操作是成功的，会提示下方的 Successfully。</p>
+<p style="margin:10px auto;text-indent:0px;padding:0px;">　　<img src="Git知识总览(五) Git中的merge、rebase、cherry-pick以及交互式_files/545446-20180107151927018-1204541921.png" type="image/png" data-filename="545446-20180107151927018-1204541921.png" alt="" height="118" style="border:none;max-width:300px;height:auto;margin:0px;padding:0px;" width="412"/></p>
+<p style="margin:10px auto;text-indent:0px;padding:0px;"> </p>
+<p style="margin:10px auto;text-indent:0px;padding:0px;">交互式rebase操作成功后，接下来我们来看一下当前分支的情况，，从结果中我们不难看出：</p>
+<ul style="margin:0px 0px 1em 40px;padding:0px;">
+<li style="list-style-type:disc;margin:0px;padding:0px;">
+<blockquote style="background:none;border:2px solid rgb(239, 239, 239);padding:5px 10px;margin:0px;border-top:none;border-right:none;border-bottom:none;border-image:initial;border-left:5px solid rgb(221, 221, 221);padding-left:10px;">bugFix 分支上的提交已经变基到了master分支上。</blockquote>
+</li>
+<li style="list-style-type:disc;margin:0px;padding:0px;">
+<blockquote style="background:none;border:2px solid rgb(239, 239, 239);padding:5px 10px;margin:0px;border-top:none;border-right:none;border-bottom:none;border-image:initial;border-left:5px solid rgb(221, 221, 221);padding-left:10px;">“change aa.text 04”的提交已经被移除了。</blockquote>
+</li>
+<li style="list-style-type:disc;margin:0px;padding:0px;">
+<blockquote style="background:none;border:2px solid rgb(239, 239, 239);padding:5px 10px;margin:0px;border-top:none;border-right:none;border-bottom:none;border-image:initial;border-left:5px solid rgb(221, 221, 221);padding-left:10px;">“change aa.text 01” 和 “change aa.text 02” 的提交顺序进行了交换。</blockquote>
+</li>
+<li style="list-style-type:disc;margin:0px;padding:0px;">
+<blockquote style="background:none;border:2px solid rgb(239, 239, 239);padding:5px 10px;margin:0px;border-top:none;border-right:none;border-bottom:none;border-image:initial;border-left:5px solid rgb(221, 221, 221);padding-left:10px;">并且 &quot;create aa.text&quot; 的log变成了 &quot;create aa.text reword&quot;</blockquote>
+</li>
+</ul>
+<p style="margin:10px auto;text-indent:0px;padding:0px;">　　<img src="Git知识总览(五) Git中的merge、rebase、cherry-pick以及交互式_files/545446-20180107152010112-1166089365.png" type="image/png" data-filename="545446-20180107152010112-1166089365.png" alt="" height="211" style="border:none;max-width:300px;height:auto;margin:0px;padding:0px;" width="491"/></p>
+<p style="margin:10px auto;text-indent:0px;padding:0px;"> </p>
+<p style="margin:10px auto;text-indent:0px;padding:0px;"> </p>
+<p style="margin:10px auto;text-indent:0px;padding:0px;"><span style="margin:0px;padding:0px;color:#008080;font-size:16px;"><strong style="margin:0px;padding:0px;">4、交互式rebase的squash操作</strong></span></p>
+<p style="margin:10px auto;text-indent:0px;padding:0px;">接下来我们来看一下squash的操作，下方我们会在当前所在分支和上次提交上执行squash操作，其对应的命令的为：git rebase -i HEAD~1，如下所示：</p>
+<p style="margin:10px auto;text-indent:0px;padding:0px;">　　<img src="Git知识总览(五) Git中的merge、rebase、cherry-pick以及交互式_files/545446-20180107154734596-493905602.png" type="image/png" data-filename="545446-20180107154734596-493905602.png" alt="" height="130" style="border:none;max-width:300px;height:auto;margin:0px;padding:0px;" width="507"/></p>
+<p style="margin:10px auto;text-indent:0px;padding:0px;"> </p>
+<p style="margin:10px auto;text-indent:0px;padding:0px;">我们对该操作执行squash命令，如下所示，编辑完进行保存即可。</p>
+<p style="margin:10px auto;text-indent:0px;padding:0px;">　　<img src="Git知识总览(五) Git中的merge、rebase、cherry-pick以及交互式_files/545446-20180107154447846-418261402.png" type="image/png" data-filename="545446-20180107154447846-418261402.png" alt="" height="179" style="border:none;max-width:300px;height:auto;margin:0px;padding:0px;" width="420"/></p>
+<p style="margin:10px auto;text-indent:0px;padding:0px;"> </p>
+<p style="margin:10px auto;text-indent:0px;padding:0px;">保存后会出现下方的操作，目的是用来编辑两次提交合并后的commit message 的。</p>
+<p style="margin:10px auto;text-indent:0px;padding:0px;">　　<img src="Git知识总览(五) Git中的merge、rebase、cherry-pick以及交互式_files/545446-20180107154611253-135639904.png" type="image/png" data-filename="545446-20180107154611253-135639904.png" alt="" height="306" style="border:none;max-width:300px;height:auto;margin:0px;padding:0px;" width="380"/></p>
+<p style="margin:10px auto;text-indent:0px;padding:0px;"> </p>
+<p style="margin:10px auto;text-indent:0px;padding:0px;">编辑完保存即可，下方就是我们进行上述操作后所对应的相关信息。</p>
+<p style="margin:10px auto;text-indent:0px;padding:0px;">　　<img src="Git知识总览(五) Git中的merge、rebase、cherry-pick以及交互式_files/545446-20180107154842503-1050200147.png" type="image/png" data-filename="545446-20180107154842503-1050200147.png" alt="" height="233" style="border:none;max-width:300px;height:auto;margin:0px;padding:0px;" width="572"/></p>
+<p style="margin:10px auto;text-indent:0px;padding:0px;"> </p>
+<p style="margin:10px auto;text-indent:0px;padding:0px;"><span style="margin:0px;padding:0px;font-size:16px;"><strong style="margin:0px;padding:0px;"><span style="margin:0px;padding:0px;color:#008080;">5、交互式rebase的另一个示例</span></strong></span></p>
+<p style="margin:10px auto;text-indent:0px;padding:0px;">接下来我们来看一下另一个交互式rebase的示例，完成下方的目标，我们需要做下方几步：</p>
+<ul style="margin:0px 0px 1em 40px;padding:0px;">
+<li style="list-style-type:disc;margin:0px;padding:0px;">
+<blockquote style="background:none;border:2px solid rgb(239, 239, 239);padding:5px 10px;margin:0px;border-top:none;border-right:none;border-bottom:none;border-image:initial;border-left:5px solid rgb(221, 221, 221);padding-left:10px;">首先我们通过交互式rebase将caption变基到master分支上，在变基操作时交换 C2 和 C3的位置。</blockquote>
+</li>
+<li style="list-style-type:disc;margin:0px;padding:0px;">
+<blockquote style="background:none;border:2px solid rgb(239, 239, 239);padding:5px 10px;margin:0px;border-top:none;border-right:none;border-bottom:none;border-image:initial;border-left:5px solid rgb(221, 221, 221);padding-left:10px;">然后通过 <strong style="margin:0px;padding:0px;">git commit --amend</strong> 往 C2 上追加提交内容。</blockquote>
+</li>
+<li style="list-style-type:disc;margin:0px;padding:0px;">
+<blockquote style="background:none;border:2px solid rgb(239, 239, 239);padding:5px 10px;margin:0px;border-top:none;border-right:none;border-bottom:none;border-image:initial;border-left:5px solid rgb(221, 221, 221);padding-left:10px;">最后再通过 git rebase -i 操作将C2和C3进行交换。</blockquote>
+</li>
+</ul>
+<p style="margin:10px auto;text-indent:0px;padding:0px;">　　<img src="Git知识总览(五) Git中的merge、rebase、cherry-pick以及交互式_files/545446-20180107171731362-1913360032.png" type="image/png" data-filename="545446-20180107171731362-1913360032.png" alt="" height="378" style="border:none;max-width:300px;height:auto;margin:0px;padding:0px;" width="657"/>　　</p>
+<p style="margin:10px auto;text-indent:0px;padding:0px;"> </p>
+<p style="margin:10px auto;text-indent:0px;padding:0px;">下方就是对应的具体命令操作：</p>
+<ul style="margin:0px 0px 1em 40px;padding:0px;">
+<li style="list-style-type:disc;margin:0px;padding:0px;">
+<blockquote style="background:none;border:2px solid rgb(239, 239, 239);padding:5px 10px;margin:0px;border-top:none;border-right:none;border-bottom:none;border-image:initial;border-left:5px solid rgb(221, 221, 221);padding-left:10px;">首先在caption分支上执行 <strong style="margin:0px;padding:0px;">git rebase -i master</strong>, 将caption分支通过交互式rebase的方式变基到master分支。</blockquote>
+</li>
+<li style="list-style-type:disc;margin:0px;padding:0px;">
+<blockquote style="background:none;border:2px solid rgb(239, 239, 239);padding:5px 10px;margin:0px;border-top:none;border-right:none;border-bottom:none;border-image:initial;border-left:5px solid rgb(221, 221, 221);padding-left:10px;">在交互式变基时，修改了C2和C3的提交顺序。</blockquote>
+</li>
+<li style="list-style-type:disc;margin:0px;padding:0px;">
+<blockquote style="background:none;border:2px solid rgb(239, 239, 239);padding:5px 10px;margin:0px;border-top:none;border-right:none;border-bottom:none;border-image:initial;border-left:5px solid rgb(221, 221, 221);padding-left:10px;">然后在通过git commit -amend 操作往C2上追加了一些修改。</blockquote>
+</li>
+<li style="list-style-type:disc;margin:0px;padding:0px;">
+<blockquote style="background:none;border:2px solid rgb(239, 239, 239);padding:5px 10px;margin:0px;border-top:none;border-right:none;border-bottom:none;border-image:initial;border-left:5px solid rgb(221, 221, 221);padding-left:10px;">然后再通过git rebase -i master , 将C2和C3进行交换回来。</blockquote>
+</li>
+<li style="list-style-type:disc;margin:0px;padding:0px;">
+<blockquote style="background:none;border:2px solid rgb(239, 239, 239);padding:5px 10px;margin:0px;border-top:none;border-right:none;border-bottom:none;border-image:initial;border-left:5px solid rgb(221, 221, 221);padding-left:10px;">最后将master使用git rebase 操作进行快速移动到caption上。</blockquote>
+</li>
+</ul>
+<p style="margin:10px auto;text-indent:0px;padding:0px;">　　<img src="Git知识总览(五) Git中的merge、rebase、cherry-pick以及交互式_files/545446-20180107173922299-152868710.gif" type="image/gif" data-filename="545446-20180107173922299-152868710.gif" alt="" height="398" style="border:none;max-width:300px;height:auto;margin:0px;padding:0px;" width="656"/></p>
+<p style="margin:10px auto;text-indent:0px;padding:0px;"> </p>
+<p style="margin:10px auto;text-indent:0px;padding:0px;">今天博客就先到这儿吧，下篇博客继续聊git相关的内容。</p></div><div style="display:block;margin:0px;padding:0px;"><p style="margin:0px;padding:10px 10px 10px 10px;background:rgb(230, 250, 250);border:1px dashed rgb(224, 224, 224);font-family:微软雅黑;font-size:13px;">
+作者：<a href="http://home.cnblogs.com/u/ludashi/" style="margin:0px;padding:0px;color:rgb(250, 0, 0);text-decoration:none;" target="_blank">青玉伏案</a>
+<br style="margin:0px;padding:0px;"/>
+出处：<a href="http://www.cnblogs.com/ludashi/" style="margin:0px;padding:0px;color:rgb(0, 0, 0);text-decoration:none;" target="_blank">http://www.cnblogs.com/ludashi/</a>
+<br style="margin:0px;padding:0px;"/>
+本文版权归作者和共博客园共有，欢迎转载，但未经作者同意必须保留此段声明，且在文章页面明显位置给出原文连接，否则保留追究法律责任的权利。
+<br style="margin:0px;padding:0px;"/>
+如果文中有什么错误，欢迎指出。以免更多的人被误导。
+</p></div>
+<div style="clear:both;margin:0px;padding:0px;"></div>
+<div style="margin-top:20px;margin:0px;padding:0px;">
+<div style="margin-bottom:10px;margin:0px;padding:0px;">分类: <a href="https://www.cnblogs.com/ludashi/category/1141984.html" style="margin:0px;padding:0px;color:rgb(0, 0, 0);text-decoration:none;margin-left:10px;" target="_blank">git</a></div>
+<div style="margin-top:0px;margin:0px;padding:0px;font-size:14px;color:rgb(126, 140, 141);font-weight:bold;">标签: <a href="https://www.cnblogs.com/ludashi/tag/git/" style="margin:0px;padding:0px;color:rgb(159, 164, 164);text-decoration:none;font-weight:normal;margin-left:10px;">git</a></div>
+<div style="margin:0px;padding:0px;"><div style="padding:10px 0px;margin-bottom:10px;margin-top:10px;border:1px dashed silver;font-size:12px;width:320px;text-align:center;margin:0px;position:fixed;bottom:30px;margin-left:433px;">
+        <a href="#" style="background:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAAkCAYAAABIdFAMAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAHhJREFUeNo8zjsOxCAMBFB/KEAUFFR0Cbng3nQPw68ArZdAlOZppPFIBhH5EAB8b+Tlt9MYQ6i1BuqFaq1CKSVcxZ2Acs6406KUgpt5/LCKuVgz5BDCSb13ZO99ZOdcZGvt4mJjzMVKqcha68iIePB86GAiOv8CDADlIUQBs7MD3wAAAABJRU5ErkJggg%3D%3D&quot;) repeat-x;display:inline-block;padding:3px 8px;color:rgb(255, 255, 255);text-decoration:none;font-weight:bold;cursor:pointer;margin-right:10px;border-radius:10px;box-shadow:rgba(0, 0, 0, 0.5) 0px 1px 3px;text-shadow:rgba(0, 0, 0, 0.25) 0px -1px 1px;vertical-align:middle;background-color:rgb(45, 174, 191);border:none;margin:0px;">好文要顶</a>
+            <a href="#" style="background:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAAkCAYAAABIdFAMAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAHhJREFUeNo8zjsOxCAMBFB/KEAUFFR0Cbng3nQPw68ArZdAlOZppPFIBhH5EAB8b+Tlt9MYQ6i1BuqFaq1CKSVcxZ2Acs6406KUgpt5/LCKuVgz5BDCSb13ZO99ZOdcZGvt4mJjzMVKqcha68iIePB86GAiOv8CDADlIUQBs7MD3wAAAABJRU5ErkJggg%3D%3D&quot;) repeat-x;display:inline-block;padding:3px 8px;color:rgb(255, 255, 255);text-decoration:none;font-weight:bold;cursor:pointer;margin-right:10px;border-radius:10px;box-shadow:rgba(0, 0, 0, 0.5) 0px 1px 3px;text-shadow:rgba(0, 0, 0, 0.25) 0px -1px 1px;vertical-align:middle;background-color:rgb(227, 49, 0);border:none;margin:0px;">关注我</a>
+    <a href="#" style="background:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAAkCAYAAABIdFAMAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAHhJREFUeNo8zjsOxCAMBFB/KEAUFFR0Cbng3nQPw68ArZdAlOZppPFIBhH5EAB8b+Tlt9MYQ6i1BuqFaq1CKSVcxZ2Acs6406KUgpt5/LCKuVgz5BDCSb13ZO99ZOdcZGvt4mJjzMVKqcha68iIePB86GAiOv8CDADlIUQBs7MD3wAAAABJRU5ErkJggg%3D%3D&quot;) repeat-x;display:inline-block;padding:3px 8px;color:rgb(255, 255, 255);text-decoration:none;font-weight:bold;cursor:pointer;margin-right:10px;border-radius:10px;box-shadow:rgba(0, 0, 0, 0.5) 0px 1px 3px;text-shadow:rgba(0, 0, 0, 0.25) 0px -1px 1px;vertical-align:middle;background-color:rgb(255, 181, 21);border:none;margin:0px;">收藏该文</a>
+    <a href="#" style="background:none;display:inline-block;padding:3px 2px;color:rgb(255, 255, 255);text-decoration:none;font-weight:bold;cursor:pointer;margin-right:10px;border-radius:10px;box-shadow:none;text-shadow:none;vertical-align:middle;border:none;margin:0px;" title="分享至新浪微博"><img src="Git知识总览(五) Git中的merge、rebase、cherry-pick以及交互式_files/icon_weibo_24.png" type="image/png" data-filename="icon_weibo_24.png" alt="" height="24" style="border:none;vertical-align:middle;margin-left:5px;box-shadow:none;margin:0px;padding:0px;height:auto;max-width:300px;" width="24"/></a>
+    <a href="#" style="background:none;display:inline-block;padding:3px 2px;color:rgb(255, 255, 255);text-decoration:none;font-weight:bold;cursor:pointer;margin-right:10px;border-radius:10px;box-shadow:none;text-shadow:none;vertical-align:middle;border:none;margin:0px;" title="分享至微信"><img src="Git知识总览(五) Git中的merge、rebase、cherry-pick以及交互式_files/wechat.png" type="image/png" data-filename="wechat.png" alt="" height="24" style="border:medium none;width:24px;height:24px;box-shadow:none;margin-left:5px;vertical-align:middle;margin:0px;padding:0px;max-width:300px;" width="24"/></a>
+</div>
+<div style="float:left;width:280px;margin-top:0px;margin-bottom:10px;color:rgb(0, 0, 0);margin-left:0px;font-size:12px;margin:0px;padding:0px;">
+    <div style="float:left;line-height:18px;margin:0px;padding:0px;">
+            <a href="https://home.cnblogs.com/u/ludashi/" style="margin:0px;padding:0px;color:rgb(0, 0, 0);text-decoration:none;" target="_blank"><img src="Git知识总览(五) Git中的merge、rebase、cherry-pick以及交互式_files/20140828105334.png" type="image/png" data-filename="20140828105334.png" alt="" height="48" style="border:0px;vertical-align:top;float:left;margin-right:5px;padding-top:5px;padding-left:2px;margin:0px;padding:0px;height:auto;max-width:300px;" width="48"/></a>
+        <div style="float:left;line-height:18px;margin:0px;padding:0px;">
+            <a href="https://home.cnblogs.com/u/ludashi/" style="margin:0px;padding:0px;color:rgb(0, 0, 0);text-decoration:none;">青玉伏案</a><br style="margin:0px;padding:0px;"/>
+            <a href="https://home.cnblogs.com/u/ludashi/followees" style="margin:0px;padding:0px;color:rgb(0, 0, 0);text-decoration:none;">关注 - 11</a><br style="margin:0px;padding:0px;"/>
+            <a href="https://home.cnblogs.com/u/ludashi/followers" style="margin:0px;padding:0px;color:rgb(0, 0, 0);text-decoration:none;">粉丝 - 1431</a>
+        </div>
+    </div>
+    <div style="clear:both;margin:0px;padding:0px;"></div>
+    <div style="margin:0px;padding:0px;"></div>
+    <div style="margin:0px;padding:0px;">
+                <a href="#" style="margin:0px;padding:0px;color:rgb(0, 0, 0);text-decoration:none;">+加关注</a>
+    </div>
+</div>
+<div style="float:right;margin-bottom:10px;margin-right:30px;font-size:12px;width:125px;text-align:center;margin-top:10px;margin:0px;padding:0px;position:fixed;bottom:25px;margin-left:800px;">
+    <div style="float:left;width:46px;height:52px;background:url(&quot;//static.cnblogs.com/images/upup.gif&quot;) no-repeat;text-align:center;cursor:pointer;margin-top:2px;padding-top:5px;margin:0px;padding:0px;">
+        <span style="font-size:14px;color:rgb(7, 93, 179);font-family:Verdana;line-height:1.5em;margin:0px;padding:0px;">8</span>
+    </div>
+    
+    <div style="clear:both;margin:0px;padding:0px;"></div>
+    
+</div>
+</div>
+<div style="clear:both;margin:0px;padding:0px;"></div>
+<div style="line-height:200%;font-size:14px;margin:10px 0px;padding:0px;"><a href="https://www.cnblogs.com/ludashi/p/8116434.html" style="text-decoration:none;margin:0px;padding:0px;color:rgb(51, 51, 51);">« </a> 上一篇：<a href="https://www.cnblogs.com/ludashi/p/8116434.html" style="margin:0px;padding:0px;color:rgb(51, 51, 51);text-decoration:none;" title="发布于2018-02-02 08:47">Git知识总览(四) git分支管理之rebase 以及 cherry-pick相关操作</a><br style="margin:0px;padding:0px;"/><a href="https://www.cnblogs.com/ludashi/p/8323617.html" style="text-decoration:none;margin:0px;padding:0px;color:rgb(51, 51, 51);">» </a> 下一篇：<a href="https://www.cnblogs.com/ludashi/p/8323617.html" style="margin:0px;padding:0px;color:rgb(51, 51, 51);text-decoration:none;" title="发布于2018-03-14 09:13">Git知识总览(六) Git分支中的远程操作实践</a><br style="margin:0px;padding:0px;"/></div>
+</div>
+
+
+		</div>
+		<div style="margin:10px 0px;padding:0px;clear:both;color:rgb(119, 119, 119);float:none;text-align:left;line-height:200%;font-size:14px;">posted @ <span style="margin:0px;padding:0px;">2018-02-09 09:43</span> <a href="https://www.cnblogs.com/ludashi/" style="margin:0px;padding:0px;color:rgb(153, 153, 153);text-decoration:none;">青玉伏案</a> 阅读(<span style="margin:0px;padding:0px;">25707</span>) 评论(<span style="margin:0px;padding:0px;">1</span>)  <a href="https://i.cnblogs.com/EditPosts.aspx?postid=8213550" rel="nofollow" style="margin:0px;padding:0px;color:rgb(153, 153, 153);text-decoration:none;">编辑</a> <a href="https://www.cnblogs.com/ludashi/p/8213550.html#" style="margin:0px;padding:0px;color:rgb(153, 153, 153);text-decoration:none;">收藏</a></div>
+	</div></div></div></div></div></div></div></div></div></div><br/></div></span>
+</div></body></html> 

@@ -1,0 +1,588 @@
+<html>
+<head>
+  <title>@Transactional - 割肉机 - 博客园</title>
+  <basefont face="微软雅黑" size="2" />
+  <meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+  <meta name="exporter-version" content="YXBJ Windows/601935 (zh-CN, DDL); Windows/10.0.0 (Win64); EDAMVersion=V2;"/>
+  <style>
+    body, td {
+      font-family: 微软雅黑;
+      font-size: 10pt;
+    }
+  </style>
+</head>
+<body>
+<a name="12869"/>
+<h1>@Transactional - 割肉机 - 博客园</h1>
+<div>
+<table bgcolor="#D4DDE5" border="0">
+<tr><td><b>创建时间：</b></td><td><i>2019/8/28 15:21</i></td></tr>
+<tr><td><b>来源：</b></td><td><a href="https://www.cnblogs.com/williamjie/p/9267880.html"><i>https://www.cnblogs.com/williamjie/p/9267880.html</i></a></td></tr>
+</table>
+</div>
+<br/>
+
+<div><span><div style="-evernote-webclip:true"><br/><div style="font-size: 16px; display: inline-block;"><div><div style="font-family:&quot;PingFang SC&quot;, &quot;Helvetica Neue&quot;, Helvetica, Arial, sans-serif;color:rgb(70, 70, 70);font-size:14px;background:url(&quot;/skins/summergarden/images/bg.jpg&quot;) repeat-x rgb(250, 247, 239);text-size-adjust:none;"><div style="min-width:unset;"><div style="min-width:unset;text-align:left;"><div style="text-overflow:ellipsis;overflow:hidden;word-break:break-all;"><div><div><div style="text-overflow:ellipsis;overflow:hidden;"><div><div style="line-height:1.5;color:rgb(57, 57, 57);font-size:14px;"><div style="word-break:break-word;"><div><div>
+<h1 style="font-size:28px;font-weight:bold;line-height:1.5;margin:10px 0px;padding:0px;"><a name="t0" style="margin:0px;padding:0px;"></a>@Transactional</h1>
+<hr style="margin:0px;padding:0px;"/>
+<h2 style="font-size:21px;font-weight:bold;line-height:1.5;margin:10px 0px;padding:0px;"><a name="t1" style="margin:0px;padding:0px;"></a>事务管理的目的</h2>
+<ul style="margin-left:30px;padding-left:0px;margin:0px;padding:0px;word-break:break-all;">
+<li style="list-style-type:disc;margin:0px;padding:0px;list-style:none;margin-bottom:1em;">在出现异常的情况下，保证数据的一致性；数据提交操作回滚至异常发生前的状态</li>
+</ul>
+<h2 style="font-size:21px;font-weight:bold;line-height:1.5;margin:10px 0px;padding:0px;"><a name="t2" style="margin:0px;padding:0px;"></a>事务管理的方式：</h2>
+<ul style="margin-left:30px;padding-left:0px;margin:0px;padding:0px;word-break:break-all;">
+<li style="list-style-type:disc;margin:0px;padding:0px;list-style:none;margin-bottom:1em;">Spring（Spring Framework 提供对事务管理的抽象接口） 支持两种事务管理方式： <br style="margin:0px;padding:0px;"/>
+<ul style="margin-left:30px;padding-left:0px;margin:0px;padding:0px;word-break:break-all;">
+<li style="list-style-type:circle;margin:0px;padding:0px;list-style:none;margin-bottom:1em;">编程式事务管理：使用TransactionTemplate或PlatformTransactionManager实现</li>
+<li style="list-style-type:circle;margin:0px;padding:0px;list-style:none;margin-bottom:1em;">声明式事务管理：建立在AOP之上的。其本质是对方法前后进行拦截，然后在目标方法开始之前创建或者加入一个事务（此处取决于事务的传播行为），在执行完目标方法之后根据执行情况提交或者回滚事务（执行成功则提交，失败则进行实物的回滚）</li>
+<li style="list-style-type:circle;margin:0px;padding:0px;list-style:none;margin-bottom:1em;">编程式事务管理优势：可以控制事务的粒度，最细粒度到代码块级别；</li>
+<li style="list-style-type:circle;margin:0px;padding:0px;list-style:none;margin-bottom:1em;">声明式实物管理优势：在方法外进行声明，事务控制的代码不会与业务逻辑代码混在一起，最细粒度到方法级别（解决方法：可以将需要进行事务管理的代码块独立为方法，通过方法间调用实现）；符合spring倡导的非侵入式的开发方式，即业务处理逻辑代码与事务管理代码不放在一起</li>
+
+</ul>
+
+</li>
+
+</ul>
+<hr style="margin:0px;padding:0px;"/>
+<h2 style="font-size:21px;font-weight:bold;line-height:1.5;margin:10px 0px;padding:0px;"><a name="t3" style="margin:0px;padding:0px;"></a>声明式事务管理实现方式：</h2>
+<ul style="margin-left:30px;padding-left:0px;margin:0px;padding:0px;word-break:break-all;">
+<li style="list-style-type:disc;margin:0px;padding:0px;list-style:none;margin-bottom:1em;">基于tx和aop名字空间的xml配置文件</li>
+
+</ul>
+<pre style="margin-top:0px;margin-bottom:0px;white-space:pre-wrap;overflow-wrap:break-word;margin:0px;padding:0px;"><code style="line-height:1.8;margin:1px 5px;vertical-align:middle;display:inline-block;font-family:&quot;Courier New&quot;, sans-serif;font-size:12px;background-color:rgb(245, 245, 245);border:1px solid rgb(204, 204, 204);padding:0px 5px;border-radius:3px;">// 基本配置
+<span style="margin:0px;padding:0px;"><span style="margin:0px;padding:0px;"><span style="color:rgb(43, 145, 175);margin:0px;padding:0px;">&lt;?</span>xml version=<span style="color:rgb(163, 21, 21);margin:0px;padding:0px;">&quot;1.0&quot;</span> encoding=<span style="color:rgb(163, 21, 21);margin:0px;padding:0px;">&quot;UTF-8&quot;</span><span style="color:rgb(43, 145, 175);margin:0px;padding:0px;">?&gt;</span></span>
+<span style="color:rgb(0, 0, 255);margin:0px;padding:0px;"><span style="color:rgb(0, 0, 255);margin:0px;padding:0px;">&lt;</span><span style="color:rgb(163, 21, 21);margin:0px;padding:0px;"><span style="color:rgb(0, 0, 255);margin:0px;padding:0px;"><span style="color:rgb(0, 0, 255);margin:0px;padding:0px;">beans</span> </span><span style="color:rgb(163, 21, 21);margin:0px;padding:0px;"><span style="color:rgb(0, 0, 255);margin:0px;padding:0px;"><span style="color:rgb(255, 0, 0);margin:0px;padding:0px;">xmlns</span>=</span><span style="margin:0px;padding:0px;"><span style="color:rgb(0, 0, 255);margin:0px;padding:0px;"><span style="color:rgb(163, 21, 21);margin:0px;padding:0px;">&quot;http://www.springframework.org/schema/beans&quot;</span>
+       </span><span style="color:rgb(163, 21, 21);margin:0px;padding:0px;"><span style="color:rgb(0, 0, 255);margin:0px;padding:0px;"><span style="color:rgb(255, 0, 0);margin:0px;padding:0px;">xmlns:xsi</span>=</span><span style="margin:0px;padding:0px;"><span style="color:rgb(0, 0, 255);margin:0px;padding:0px;"><span style="color:rgb(163, 21, 21);margin:0px;padding:0px;">&quot;http://www.w3.org/2001/XMLSchema-instance&quot;</span> </span><span style="color:rgb(163, 21, 21);margin:0px;padding:0px;"><span style="color:rgb(0, 0, 255);margin:0px;padding:0px;"><span style="color:rgb(255, 0, 0);margin:0px;padding:0px;">xmlns:context</span>=</span><span style="margin:0px;padding:0px;"><span style="color:rgb(0, 0, 255);margin:0px;padding:0px;"><span style="color:rgb(163, 21, 21);margin:0px;padding:0px;">&quot;http://www.springframework.org/schema/context&quot;</span>
+       </span><span style="color:rgb(163, 21, 21);margin:0px;padding:0px;"><span style="color:rgb(0, 0, 255);margin:0px;padding:0px;"><span style="color:rgb(255, 0, 0);margin:0px;padding:0px;">xmlns:mvc</span>=</span><span style="margin:0px;padding:0px;"><span style="color:rgb(0, 0, 255);margin:0px;padding:0px;"><span style="color:rgb(163, 21, 21);margin:0px;padding:0px;">&quot;http://www.springframework.org/schema/mvc&quot;</span> </span><span style="color:rgb(163, 21, 21);margin:0px;padding:0px;"><span style="color:rgb(0, 0, 255);margin:0px;padding:0px;"><span style="color:rgb(255, 0, 0);margin:0px;padding:0px;">xmlns:aop</span>=</span><span style="margin:0px;padding:0px;"><span style="color:rgb(0, 0, 255);margin:0px;padding:0px;"><span style="color:rgb(163, 21, 21);margin:0px;padding:0px;">&quot;http://www.springframework.org/schema/aop&quot;</span>
+       </span><span style="color:rgb(163, 21, 21);margin:0px;padding:0px;"><span style="color:rgb(0, 0, 255);margin:0px;padding:0px;"><span style="color:rgb(255, 0, 0);margin:0px;padding:0px;">xmlns:task</span>=</span><span style="margin:0px;padding:0px;"><span style="color:rgb(0, 0, 255);margin:0px;padding:0px;"><span style="color:rgb(163, 21, 21);margin:0px;padding:0px;">&quot;http://www.springframework.org/schema/task&quot;</span> </span><span style="color:rgb(163, 21, 21);margin:0px;padding:0px;"><span style="color:rgb(0, 0, 255);margin:0px;padding:0px;"><span style="color:rgb(255, 0, 0);margin:0px;padding:0px;">xmlns:jms</span>=</span><span style="margin:0px;padding:0px;"><span style="color:rgb(0, 0, 255);margin:0px;padding:0px;"><span style="color:rgb(163, 21, 21);margin:0px;padding:0px;">&quot;http://www.springframework.org/schema/jms&quot;</span>
+       </span><span style="color:rgb(163, 21, 21);margin:0px;padding:0px;"><span style="color:rgb(0, 0, 255);margin:0px;padding:0px;"><span style="color:rgb(255, 0, 0);margin:0px;padding:0px;">xmlns:tx</span>=</span><span style="margin:0px;padding:0px;"><span style="color:rgb(0, 0, 255);margin:0px;padding:0px;"><span style="color:rgb(163, 21, 21);margin:0px;padding:0px;">&quot;http://www.springframework.org/schema/tx&quot;</span>
+       </span><span style="color:rgb(163, 21, 21);margin:0px;padding:0px;"><span style="color:rgb(0, 0, 255);margin:0px;padding:0px;"><span style="color:rgb(255, 0, 0);margin:0px;padding:0px;">xsi:schemaLocation</span>=</span><span style="margin:0px;padding:0px;"><span style="color:rgb(0, 0, 255);margin:0px;padding:0px;"><span style="color:rgb(163, 21, 21);margin:0px;padding:0px;">&quot;http://www.springframework.org/schema/mvc http://www.springframework.org/schema/mvc/spring-mvc-4.1.xsd
+                          http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-4.1.xsd
+                          http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-4.1.xsd
+                          http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop-4.1.xsd
+                          http://www.springframework.org/schema/task http://www.springframework.org/schema/task/spring-task-4.1.xsd
+                          http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx-4.1.xsd
+                          http://www.springframework.org/schema/jms http://www.springframework.org/schema/jms/spring-jms-4.1.xsd&quot;</span>&gt;</span>
+
+<span style="color:rgb(0, 0, 255);margin:0px;padding:0px;"><span style="color:rgb(0, 0, 255);margin:0px;padding:0px;">&lt;</span><span style="color:rgb(163, 21, 21);margin:0px;padding:0px;"><span style="color:rgb(0, 0, 255);margin:0px;padding:0px;"><span style="color:rgb(0, 0, 255);margin:0px;padding:0px;">bean</span> </span><span style="color:rgb(163, 21, 21);margin:0px;padding:0px;"><span style="color:rgb(0, 0, 255);margin:0px;padding:0px;"><span style="color:rgb(255, 0, 0);margin:0px;padding:0px;">name</span>=</span><span style="margin:0px;padding:0px;"><span style="color:rgb(0, 0, 255);margin:0px;padding:0px;"><span style="color:rgb(163, 21, 21);margin:0px;padding:0px;">&quot;transactionManager&quot;</span>
+        </span><span style="color:rgb(163, 21, 21);margin:0px;padding:0px;"><span style="color:rgb(0, 0, 255);margin:0px;padding:0px;"><span style="color:rgb(255, 0, 0);margin:0px;padding:0px;">class</span>=</span><span style="margin:0px;padding:0px;"><span style="color:rgb(0, 0, 255);margin:0px;padding:0px;"><span style="color:rgb(163, 21, 21);margin:0px;padding:0px;">&quot;org.springframework.jdbc.datasource.DataSourceTransactionManager&quot;</span>&gt;</span>
+        <span style="color:rgb(0, 0, 255);margin:0px;padding:0px;"><span style="color:rgb(0, 0, 255);margin:0px;padding:0px;">&lt;</span><span style="color:rgb(163, 21, 21);margin:0px;padding:0px;"><span style="color:rgb(0, 0, 255);margin:0px;padding:0px;"><span style="color:rgb(0, 0, 255);margin:0px;padding:0px;">property</span> </span><span style="color:rgb(163, 21, 21);margin:0px;padding:0px;"><span style="color:rgb(0, 0, 255);margin:0px;padding:0px;"><span style="color:rgb(255, 0, 0);margin:0px;padding:0px;">name</span>=</span><span style="margin:0px;padding:0px;"><span style="color:rgb(0, 0, 255);margin:0px;padding:0px;"><span style="color:rgb(163, 21, 21);margin:0px;padding:0px;">&quot;dataSource&quot;</span> </span><span style="color:rgb(163, 21, 21);margin:0px;padding:0px;"><span style="color:rgb(0, 0, 255);margin:0px;padding:0px;"><span style="color:rgb(255, 0, 0);margin:0px;padding:0px;">ref</span>=</span><span style="margin:0px;padding:0px;"><span style="color:rgb(0, 0, 255);margin:0px;padding:0px;"><span style="color:rgb(163, 21, 21);margin:0px;padding:0px;">&quot;shardingDataSource&quot;</span>&gt;</span><span style="color:rgb(0, 0, 255);margin:0px;padding:0px;"><span style="color:rgb(0, 0, 255);margin:0px;padding:0px;">&lt;/</span><span style="color:rgb(163, 21, 21);margin:0px;padding:0px;"><span style="color:rgb(0, 0, 255);margin:0px;padding:0px;"><span style="color:rgb(0, 0, 255);margin:0px;padding:0px;">property</span>&gt;</span>
+    <span style="color:rgb(0, 0, 255);margin:0px;padding:0px;"><span style="color:rgb(0, 0, 255);margin:0px;padding:0px;">&lt;/</span><span style="color:rgb(163, 21, 21);margin:0px;padding:0px;"><span style="color:rgb(0, 0, 255);margin:0px;padding:0px;"><span style="color:rgb(0, 0, 255);margin:0px;padding:0px;">bean</span>&gt;</span>
+
+<span style="color:rgb(0, 0, 255);margin:0px;padding:0px;"><span style="color:rgb(0, 0, 255);margin:0px;padding:0px;">&lt;</span><span style="color:rgb(163, 21, 21);margin:0px;padding:0px;"><span style="color:rgb(0, 0, 255);margin:0px;padding:0px;"><span style="color:rgb(0, 0, 255);margin:0px;padding:0px;">tx:annotation-driven</span> </span><span style="color:rgb(163, 21, 21);margin:0px;padding:0px;"><span style="color:rgb(0, 0, 255);margin:0px;padding:0px;"><span style="color:rgb(255, 0, 0);margin:0px;padding:0px;">transaction-manager</span>=</span><span style="margin:0px;padding:0px;"><span style="color:rgb(0, 0, 255);margin:0px;padding:0px;"><span style="color:rgb(163, 21, 21);margin:0px;padding:0px;">&quot;transactionManager&quot;</span> </span><span style="color:rgb(163, 21, 21);margin:0px;padding:0px;"><span style="color:rgb(0, 0, 255);margin:0px;padding:0px;"><span style="color:rgb(255, 0, 0);margin:0px;padding:0px;">proxy-target-class</span>=</span><span style="margin:0px;padding:0px;"><span style="color:rgb(0, 0, 255);margin:0px;padding:0px;"><span style="color:rgb(163, 21, 21);margin:0px;padding:0px;">&quot;true&quot;</span> /&gt;</span>
+
+// MyBatis自动参与到spring事务管理中，无需额外配置，只要org.mybatis.spring.SqlSessionFactoryBean引用的数据源与DataSourceTransactionManager引用的数据源一致即可，否则事务管理会不起作用
+// <span style="color:rgb(0, 0, 255);margin:0px;padding:0px;"><span style="color:rgb(0, 0, 255);margin:0px;padding:0px;">&lt;</span><span style="color:rgb(163, 21, 21);margin:0px;padding:0px;"><span style="color:rgb(0, 0, 255);margin:0px;padding:0px;"><span style="color:rgb(0, 0, 255);margin:0px;padding:0px;">annotation-driven</span>&gt;</span>标签的声明，则是在Spring内部启用@Transactional来进行事务管理，使用 @Transactional 前需要配置</span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></code></pre>
+<p style="margin:10px auto;text-indent:0px;padding:0px;"> </p>
+<p style="margin:10px auto;text-indent:0px;padding:0px;"> </p>
+<ul style="margin-left:30px;padding-left:0px;margin:0px;padding:0px;word-break:break-all;">
+<li style="list-style-type:disc;margin:0px;padding:0px;list-style:none;margin-bottom:1em;">基于@Transactional注解 <br style="margin:0px;padding:0px;"/>@Transactional实质是使用了JDBC的事务来进行事务控制的 <br style="margin:0px;padding:0px;"/>@Transactional基于Spring的动态代理的机制</li>
+<li style="list-style-type:disc;margin:0px;padding:0px;list-style:none;margin-bottom:1em;">@Transactional实现原理</li>
+<li style="list-style-type:disc;margin:0px;padding:0px;list-style:none;margin-bottom:1em;">1)事务开始时，通过AOP机制，生成一个代理connection对象，并将其放入DataSource实例的某个与DataSourceTransactionManager相关的某处容器中。在接下来的整个事务中，客户代码都应该使用该connection连接数据库，执行所有数据库命令[不使用该connection连接数据库执行的数据库命令，在本事务回滚的时候得不到回滚]（物理连接connection逻辑上新建一个会话session；DataSource与TransactionManager配置相同的数据源）</li>
+<li style="list-style-type:disc;margin:0px;padding:0px;list-style:none;margin-bottom:1em;">2)事务结束时，回滚在第1步骤中得到的代理connection对象上执行的数据库命令，然后关闭该代理connection对象（事务结束后，回滚操作不会对已执行完毕的SQL操作命令起作用）</li>
+
+</ul>
+<h2 style="font-size:21px;font-weight:bold;line-height:1.5;margin:10px 0px;padding:0px;"><a name="t4" style="margin:0px;padding:0px;"></a>声明式事务的管理实现本质：</h2>
+<ul style="margin-left:30px;padding-left:0px;margin:0px;padding:0px;word-break:break-all;">
+<li style="list-style-type:disc;margin:0px;padding:0px;list-style:none;margin-bottom:1em;"><a href="http://blog.csdn.net/mingyundezuoan/article/details/78777341" rel="nofollow" style="margin:0px;padding:0px;color:rgb(100, 102, 179);text-decoration:underline;" target="_blank">事务</a>的两种开启方式 <br style="margin:0px;padding:0px;"/>
+<ul style="margin-left:30px;padding-left:0px;margin:0px;padding:0px;word-break:break-all;">
+<li style="list-style-type:circle;margin:0px;padding:0px;list-style:none;margin-bottom:1em;">显示开启<code style="margin:0px;padding:0px;">start transaction | begin</code>，通过 <code style="margin:0px;padding:0px;">commit | rollback</code> 结束事务</li>
+<li style="list-style-type:circle;margin:0px;padding:0px;list-style:none;margin-bottom:1em;">关闭数据库中自动提交 <a href="http://blog.csdn.net/mingyundezuoan/article/details/78764443" rel="nofollow" style="margin:0px;padding:0px;color:rgb(100, 102, 179);text-decoration:underline;" target="_blank">autocommit</a> <code style="margin:0px;padding:0px;">set autocommit = 0</code>；MySQL 默认开启自动提交；通过手动提交或执行回滚操作来结束事务</li>
+
+</ul>
+
+</li>
+<li style="list-style-type:disc;margin:0px;padding:0px;list-style:none;margin-bottom:1em;">Spring 关闭数据库中自动提交：在方法执行前关闭自动提交，方法执行完毕后再开启自动提交</li>
+
+</ul>
+<pre style="margin-top:0px;margin-bottom:0px;white-space:pre-wrap;overflow-wrap:break-word;margin:0px;padding:0px;"><code style="line-height:1.8;margin:1px 5px;vertical-align:middle;display:inline-block;font-family:&quot;Courier New&quot;, sans-serif;font-size:12px;background-color:rgb(245, 245, 245);border:1px solid rgb(204, 204, 204);padding:0px 5px;border-radius:3px;"> // org.springframework.jdbc.datasource.DataSourceTransactionManager.java 源码实现
+ // switch to manual <span style="margin:0px;padding:0px;"><span style="color:rgb(0, 0, 255);margin:0px;padding:0px;"><span style="color:rgb(0, 0, 255);margin:0px;padding:0px;">commit</span> <span style="color:rgb(0, 0, 255);margin:0px;padding:0px;"><span style="color:rgb(0, 0, 255);margin:0px;padding:0px;">if</span> necessary. this <span style="color:rgb(0, 0, 255);margin:0px;padding:0px;"><span style="color:rgb(0, 0, 255);margin:0px;padding:0px;">is</span> very expensive <span style="color:rgb(0, 0, 255);margin:0px;padding:0px;"><span style="color:rgb(0, 0, 255);margin:0px;padding:0px;">in</span> <span style="color:rgb(0, 0, 255);margin:0px;padding:0px;"><span style="color:rgb(0, 0, 255);margin:0px;padding:0px;">some</span> jdbc drivers,
+ // so we don<span style="color:rgb(163, 21, 21);margin:0px;padding:0px;"><span style="color:rgb(163, 21, 21);margin:0px;padding:0px;">'t want to do it unnecessarily (for example if we'</span>ve explicitly
+ // configured the <span style="color:rgb(0, 0, 255);margin:0px;padding:0px;"><span style="color:rgb(0, 0, 255);margin:0px;padding:0px;">connection</span> pool <span style="color:rgb(0, 0, 255);margin:0px;padding:0px;"><span style="color:rgb(0, 0, 255);margin:0px;padding:0px;">to</span> <span style="color:rgb(0, 0, 255);margin:0px;padding:0px;"><span style="color:rgb(0, 0, 255);margin:0px;padding:0px;">set</span> it already).
+ <span style="color:rgb(0, 0, 255);margin:0px;padding:0px;"><span style="color:rgb(0, 0, 255);margin:0px;padding:0px;">if</span> (con.getautocommit()) {
+     txobject.setmustrestoreautocommit(<span style="color:rgb(0, 0, 255);margin:0px;padding:0px;"><span style="color:rgb(163, 21, 21);margin:0px;padding:0px;">true</span>);
+     if (logger.isdebugenabled()) {
+         logger.debug(&quot;switching jdbc connection [&quot; + con + &quot;] to manual <span style="margin:0px;padding:0px;"><span style="color:rgb(0, 0, 255);margin:0px;padding:0px;"><span style="color:rgb(0, 0, 255);margin:0px;padding:0px;">commit</span><span style="color:rgb(163, 21, 21);margin:0px;padding:0px;"><span style="color:rgb(163, 21, 21);margin:0px;padding:0px;">&quot;);
+     }
+     con.setautocommit(false);
+ }
+</span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></code></pre>
+<p style="margin:10px auto;text-indent:0px;padding:0px;"> </p>
+<p style="margin:10px auto;text-indent:0px;padding:0px;"> </p>
+<ul style="margin-left:30px;padding-left:0px;margin:0px;padding:0px;word-break:break-all;">
+<li style="list-style-type:disc;margin:0px;padding:0px;list-style:none;margin-bottom:1em;">
+<p style="margin:10px auto;text-indent:0px;padding:0px;">问题：</p>
+<ul style="margin-left:30px;padding-left:0px;margin:0px;padding:0px;word-break:break-all;">
+<li style="list-style-type:circle;margin:0px;padding:0px;list-style:none;margin-bottom:1em;">关闭自动提交后，若事务一直未完成，即未手动执行 commit 或 rollback 时如何处理已经执行过的SQL操作？ <br style="margin:0px;padding:0px;"/>
+<ul style="margin-left:30px;padding-left:0px;margin:0px;padding:0px;word-break:break-all;">
+<li style="list-style-type:circle;margin:0px;padding:0px;list-style:none;margin-bottom:1em;">C3P0默认的策略是回滚任何未提交的事务 </li>
+<li style="list-style-type:circle;margin:0px;padding:0px;list-style:none;margin-bottom:1em;">C3P0是一个开源的JDBC连接池，它实现了数据源和JNDI绑定，支持JDBC3规范和JDBC2的标准扩展。目前使用它的开源项目有Hibernate，Spring等</li>
+<li style="list-style-type:circle;margin:0px;padding:0px;list-style:none;margin-bottom:1em;">JNDI(Java Naming and Directory Interface,Java命名和目录接口)是SUN公司提供的一种标准的Java命名系统接口，JNDI提供统一的客户端API，通过不同的访问提供者接口JNDI服务供应接口(SPI)的实现，由管理者将JNDI API映射为特定的命名服务和目录系统，使得Java应用程序可以和这些命名服务和目录服务之间进行交互</li>
+
+</ul>
+
+</li>
+
+</ul>
+
+</li>
+
+</ul>
+<hr style="margin:0px;padding:0px;"/>
+<h2 style="font-size:21px;font-weight:bold;line-height:1.5;margin:10px 0px;padding:0px;"><a name="t5" style="margin:0px;padding:0px;"></a>spring事务特性</h2>
+<ul style="margin-left:30px;padding-left:0px;margin:0px;padding:0px;word-break:break-all;">
+<li style="list-style-type:disc;margin:0px;padding:0px;list-style:none;margin-bottom:1em;">spring所有的事务管理策略类都继承自<code style="margin:0px;padding:0px;">org.springframework.transaction.PlatformTransactionManager</code>接口</li>
+
+</ul>
+<pre style="margin-top:0px;margin-bottom:0px;white-space:pre-wrap;overflow-wrap:break-word;margin:0px;padding:0px;"><code style="line-height:1.8;margin:1px 5px;vertical-align:middle;display:inline-block;font-family:&quot;Courier New&quot;, sans-serif;font-size:12px;background-color:rgb(245, 245, 245);border:1px solid rgb(204, 204, 204);padding:0px 5px;border-radius:3px;"><span style="color:rgb(0, 0, 255);margin:0px;padding:0px;"><span style="color:rgb(0, 0, 255);margin:0px;padding:0px;">public</span> <span style="margin:0px;padding:0px;"><span style="color:rgb(0, 0, 255);margin:0px;padding:0px;"><span style="margin:0px;padding:0px;"><span style="color:rgb(0, 0, 255);margin:0px;padding:0px;">interface</span> </span><span style="color:rgb(163, 21, 21);margin:0px;padding:0px;"><span style="margin:0px;padding:0px;"><span style="color:rgb(163, 21, 21);margin:0px;padding:0px;">PlatformTransactionManager</span> </span>{
+  <span style="margin:0px;padding:0px;">TransactionStatus <span style="color:rgb(163, 21, 21);margin:0px;padding:0px;">getTransaction</span><span style="margin:0px;padding:0px;">(TransactionDefinition definition)</span>
+  </span><span style="color:rgb(0, 0, 255);margin:0px;padding:0px;"><span style="margin:0px;padding:0px;"><span style="color:rgb(0, 0, 255);margin:0px;padding:0px;">throws</span> TransactionException</span>;
+  <span style="color:rgb(0, 0, 255);margin:0px;padding:0px;"><span style="margin:0px;padding:0px;"><span style="color:rgb(0, 0, 255);margin:0px;padding:0px;">void</span> <span style="color:rgb(163, 21, 21);margin:0px;padding:0px;">commit</span><span style="margin:0px;padding:0px;">(TransactionStatus status)</span> </span><span style="color:rgb(0, 0, 255);margin:0px;padding:0px;"><span style="margin:0px;padding:0px;"><span style="color:rgb(0, 0, 255);margin:0px;padding:0px;">throws</span> TransactionException</span>;
+  <span style="color:rgb(0, 0, 255);margin:0px;padding:0px;"><span style="margin:0px;padding:0px;"><span style="color:rgb(0, 0, 255);margin:0px;padding:0px;">void</span> <span style="color:rgb(163, 21, 21);margin:0px;padding:0px;">rollback</span><span style="margin:0px;padding:0px;">(TransactionStatus status)</span> </span><span style="color:rgb(0, 0, 255);margin:0px;padding:0px;"><span style="margin:0px;padding:0px;"><span style="color:rgb(0, 0, 255);margin:0px;padding:0px;">throws</span> TransactionException</span>;
+}</span></span></span></span></span></span></span></span></span></code></pre>
+<p style="margin:10px auto;text-indent:0px;padding:0px;"> </p>
+<p style="margin:10px auto;text-indent:0px;padding:0px;"> </p>
+<ul style="margin-left:30px;padding-left:0px;margin:0px;padding:0px;word-break:break-all;">
+<li style="list-style-type:disc;margin:0px;padding:0px;list-style:none;margin-bottom:1em;">
+<p style="margin:10px auto;text-indent:0px;padding:0px;"><a href="http://blog.csdn.net/mingyundezuoan/article/details/78777341" rel="nofollow" style="margin:0px;padding:0px;color:rgb(100, 102, 179);text-decoration:underline;" target="_blank">事务的隔离级别</a>：是指若干个并发 <br style="margin:0px;padding:0px;"/>的事务之间的隔离程度</p>
+<ul style="margin-left:30px;padding-left:0px;margin:0px;padding:0px;word-break:break-all;">
+<li style="list-style-type:circle;margin:0px;padding:0px;list-style:none;margin-bottom:1em;">@Transactional(isolation = Isolation.READ_UNCOMMITTED)：读取未提交数据(会出现脏读, 不可重复读) 基本不使用</li>
+<li style="list-style-type:circle;margin:0px;padding:0px;list-style:none;margin-bottom:1em;">@Transactional(isolation = Isolation.READ_COMMITTED)：读取已提交数据(会出现不可重复读和幻读)</li>
+<li style="list-style-type:circle;margin:0px;padding:0px;list-style:none;margin-bottom:1em;">@Transactional(isolation = Isolation.REPEATABLE_READ)：可重复读(会出现幻读)</li>
+<li style="list-style-type:circle;margin:0px;padding:0px;list-style:none;margin-bottom:1em;">@Transactional(isolation = Isolation.SERIALIZABLE)：串行化</li>
+
+</ul>
+
+</li>
+<li style="list-style-type:disc;margin:0px;padding:0px;list-style:none;margin-bottom:1em;">
+<p style="margin:10px auto;text-indent:0px;padding:0px;">事务传播行为：如果在开始当前事务之前，一个事务上下文已经存在，此时有若干选项可以指定一个事务性方法的执行行为</p>
+<ul style="margin-left:30px;padding-left:0px;margin:0px;padding:0px;word-break:break-all;">
+<li style="list-style-type:circle;margin:0px;padding:0px;list-style:none;margin-bottom:1em;">TransactionDefinition.PROPAGATION_REQUIRED：如果当前存在事务，则加入该事务；如果当前没有事务，则创建一个新的事务。这是默认值。</li>
+<li style="list-style-type:circle;margin:0px;padding:0px;list-style:none;margin-bottom:1em;">TransactionDefinition.PROPAGATION_REQUIRES_NEW：创建一个新的事务，如果当前存在事务，则把当前事务挂起。</li>
+<li style="list-style-type:circle;margin:0px;padding:0px;list-style:none;margin-bottom:1em;">TransactionDefinition.PROPAGATION_SUPPORTS：如果当前存在事务，则加入该事务；如果当前没有事务，则以非事务的方式继续运行。</li>
+<li style="list-style-type:circle;margin:0px;padding:0px;list-style:none;margin-bottom:1em;">TransactionDefinition.PROPAGATION_NOT_SUPPORTED：以非事务方式运行，如果当前存在事务，则把当前事务挂起。</li>
+<li style="list-style-type:circle;margin:0px;padding:0px;list-style:none;margin-bottom:1em;">TransactionDefinition.PROPAGATION_NEVER：以非事务方式运行，如果当前存在事务，则抛出异常。</li>
+<li style="list-style-type:circle;margin:0px;padding:0px;list-style:none;margin-bottom:1em;">TransactionDefinition.PROPAGATION_MANDATORY：如果当前存在事务，则加入该事务；如果当前没有事务，则抛出异常。</li>
+<li style="list-style-type:circle;margin:0px;padding:0px;list-style:none;margin-bottom:1em;">TransactionDefinition.PROPAGATION_NESTED：如果当前存在事务，则创建一个事务作为当前事务的嵌套事务来运行；如果当前没有事务，则该取值等价于TransactionDefinition.PROPAGATION_REQUIRED。</li>
+
+</ul>
+
+</li>
+
+</ul>
+<hr style="margin:0px;padding:0px;"/>
+<h2 style="font-size:21px;font-weight:bold;line-height:1.5;margin:10px 0px;padding:0px;"><a name="t6" style="margin:0px;padding:0px;"></a>@Transactional 属性配置</h2>
+<table style="font-size:inherit;font-weight:inherit;font-style:inherit;font-variant:inherit;border:1px solid rgb(192, 192, 192);border-collapse:collapse;word-break:break-word;margin:0px;padding:0px;border-spacing:0px;display:block;overflow-x:scroll;">
+<thead style="margin:0px;padding:0px;">
+<tr style="margin:0px;padding:0px;"><th align="left" style="background-color:rgb(250, 250, 250);border:1px solid rgb(192, 192, 192);border-collapse:collapse;padding:8px 14px;margin:0px;white-space:nowrap;">属性</th><th align="left" style="background-color:rgb(250, 250, 250);border:1px solid rgb(192, 192, 192);border-collapse:collapse;padding:8px 14px;margin:0px;white-space:nowrap;">类型</th><th align="left" style="background-color:rgb(250, 250, 250);border:1px solid rgb(192, 192, 192);border-collapse:collapse;padding:8px 14px;margin:0px;white-space:nowrap;">描述</th></tr>
+
+</thead>
+<tbody style="margin:0px;padding:0px;">
+<tr style="margin:0px;padding:0px;">
+<td align="left" style="border:1px solid rgb(192, 192, 192);border-collapse:collapse;padding:8px 14px;margin:0px;white-space:nowrap;">value</td>
+<td align="left" style="border:1px solid rgb(192, 192, 192);border-collapse:collapse;padding:8px 14px;margin:0px;white-space:nowrap;">String</td>
+<td align="left" style="border:1px solid rgb(192, 192, 192);border-collapse:collapse;padding:8px 14px;margin:0px;white-space:nowrap;">可选的限定描述符，指定使用的事务管理器</td>
+
+</tr>
+<tr style="margin:0px;padding:0px;">
+<td align="left" style="border:1px solid rgb(192, 192, 192);border-collapse:collapse;padding:8px 14px;margin:0px;white-space:nowrap;">propagation</td>
+<td align="left" style="border:1px solid rgb(192, 192, 192);border-collapse:collapse;padding:8px 14px;margin:0px;white-space:nowrap;">enum: Propagation</td>
+<td align="left" style="border:1px solid rgb(192, 192, 192);border-collapse:collapse;padding:8px 14px;margin:0px;white-space:nowrap;">可选的事务传播行为设置</td>
+
+</tr>
+<tr style="margin:0px;padding:0px;">
+<td align="left" style="border:1px solid rgb(192, 192, 192);border-collapse:collapse;padding:8px 14px;margin:0px;white-space:nowrap;">isolation</td>
+<td align="left" style="border:1px solid rgb(192, 192, 192);border-collapse:collapse;padding:8px 14px;margin:0px;white-space:nowrap;">enum: Isolation</td>
+<td align="left" style="border:1px solid rgb(192, 192, 192);border-collapse:collapse;padding:8px 14px;margin:0px;white-space:nowrap;">可选的事务隔离级别设置</td>
+
+</tr>
+<tr style="margin:0px;padding:0px;">
+<td align="left" style="border:1px solid rgb(192, 192, 192);border-collapse:collapse;padding:8px 14px;margin:0px;white-space:nowrap;">readOnly</td>
+<td align="left" style="border:1px solid rgb(192, 192, 192);border-collapse:collapse;padding:8px 14px;margin:0px;white-space:nowrap;">boolean</td>
+<td align="left" style="border:1px solid rgb(192, 192, 192);border-collapse:collapse;padding:8px 14px;margin:0px;white-space:nowrap;">读写或只读事务，默认读写</td>
+
+</tr>
+<tr style="margin:0px;padding:0px;">
+<td align="left" style="border:1px solid rgb(192, 192, 192);border-collapse:collapse;padding:8px 14px;margin:0px;white-space:nowrap;">timeout</td>
+<td align="left" style="border:1px solid rgb(192, 192, 192);border-collapse:collapse;padding:8px 14px;margin:0px;white-space:nowrap;">int (in seconds granularity)</td>
+<td align="left" style="border:1px solid rgb(192, 192, 192);border-collapse:collapse;padding:8px 14px;margin:0px;white-space:nowrap;">事务超时时间设置</td>
+
+</tr>
+<tr style="margin:0px;padding:0px;">
+<td align="left" style="border:1px solid rgb(192, 192, 192);border-collapse:collapse;padding:8px 14px;margin:0px;white-space:nowrap;">rollbackFor</td>
+<td align="left" style="border:1px solid rgb(192, 192, 192);border-collapse:collapse;padding:8px 14px;margin:0px;white-space:nowrap;">Class对象数组，必须继承自Throwable</td>
+<td align="left" style="border:1px solid rgb(192, 192, 192);border-collapse:collapse;padding:8px 14px;margin:0px;white-space:nowrap;">导致事务回滚的异常类数组</td>
+
+</tr>
+<tr style="margin:0px;padding:0px;">
+<td align="left" style="border:1px solid rgb(192, 192, 192);border-collapse:collapse;padding:8px 14px;margin:0px;white-space:nowrap;">rollbackForClassName</td>
+<td align="left" style="border:1px solid rgb(192, 192, 192);border-collapse:collapse;padding:8px 14px;margin:0px;white-space:nowrap;">类名数组，必须继承自Throwable</td>
+<td align="left" style="border:1px solid rgb(192, 192, 192);border-collapse:collapse;padding:8px 14px;margin:0px;white-space:nowrap;">导致事务回滚的异常类名字数组</td>
+
+</tr>
+<tr style="margin:0px;padding:0px;">
+<td align="left" style="border:1px solid rgb(192, 192, 192);border-collapse:collapse;padding:8px 14px;margin:0px;white-space:nowrap;">noRollbackFor</td>
+<td align="left" style="border:1px solid rgb(192, 192, 192);border-collapse:collapse;padding:8px 14px;margin:0px;white-space:nowrap;">Class对象数组，必须继承自Throwable</td>
+<td align="left" style="border:1px solid rgb(192, 192, 192);border-collapse:collapse;padding:8px 14px;margin:0px;white-space:nowrap;">不会导致事务回滚的异常类数组</td>
+
+</tr>
+<tr style="margin:0px;padding:0px;">
+<td align="left" style="border:1px solid rgb(192, 192, 192);border-collapse:collapse;padding:8px 14px;margin:0px;white-space:nowrap;">noRollbackForClassName</td>
+<td align="left" style="border:1px solid rgb(192, 192, 192);border-collapse:collapse;padding:8px 14px;margin:0px;white-space:nowrap;">类名数组，必须继承自Throwable</td>
+<td align="left" style="border:1px solid rgb(192, 192, 192);border-collapse:collapse;padding:8px 14px;margin:0px;white-space:nowrap;">不会导致事务回滚的异常类名字数组</td>
+
+</tr>
+
+</tbody>
+
+</table>
+<h4 style="font-size:14px;font-weight:bold;margin:10px 0px;padding:0px;color:rgb(51, 51, 51);">说明：</h4>
+<ul style="margin-left:30px;padding-left:0px;margin:0px;padding:0px;word-break:break-all;">
+<li style="list-style-type:disc;margin:0px;padding:0px;list-style:none;margin-bottom:1em;">value ：主要用来指定不同的事务管理器；主要用来满足在同一个系统中，存在不同的事务管理器。比如在Spring中，声明了两种事务管理器txManager1, txManager2.然后，用户可以根据这个参数来根据需要指定特定的txManager.</li>
+<li style="list-style-type:disc;margin:0px;padding:0px;list-style:none;margin-bottom:1em;">value 适用场景：在一个系统中，需要访问多个数据源或者多个数据库，则必然会配置多个事务管理器的</li>
+<li style="list-style-type:disc;margin:0px;padding:0px;list-style:none;margin-bottom:1em;">REQUIRED_NEW和NESTED两种不同的传播机制的区别</li>
+<li style="list-style-type:disc;margin:0px;padding:0px;list-style:none;margin-bottom:1em;">REQUIRED_NEW：内部的事务独立运行，在各自的作用域中，可以独立的回滚或者提交；而外部的事务将不受内部事务的回滚状态影响</li>
+<li style="list-style-type:disc;margin:0px;padding:0px;list-style:none;margin-bottom:1em;">ESTED的事务，基于单一的事务来管理，提供了多个保存点。这种多个保存点的机制允许内部事务的变更触发外部事务的回滚。而外部事务在混滚之后，仍能继续进行事务处理，即使部分操作已经被混滚。 由于这个设置基于JDBC的保存点，所以只能工作在JDBC的机制</li>
+<li style="list-style-type:disc;margin:0px;padding:0px;list-style:none;margin-bottom:1em;">rollbackFor ： 让受检查异常回滚；即让本来不应该回滚的进行回滚操作</li>
+<li style="list-style-type:disc;margin:0px;padding:0px;list-style:none;margin-bottom:1em;">noRollbackFor ：忽略非检查异常；即让本来应该回滚的不进行回滚操作 </li>
+
+</ul>
+<hr style="margin:0px;padding:0px;"/>
+<h2 style="font-size:21px;font-weight:bold;line-height:1.5;margin:10px 0px;padding:0px;"><a name="t7" style="margin:0px;padding:0px;"></a>spring事务回滚规则</h2>
+<ul style="margin-left:30px;padding-left:0px;margin:0px;padding:0px;word-break:break-all;">
+<li style="list-style-type:disc;margin:0px;padding:0px;list-style:none;margin-bottom:1em;">指示spring事务管理器回滚一个事务的推荐方法是在当前事务的上下文内抛出异常 <br style="margin:0px;padding:0px;"/>spring事务管理器会捕捉任何未处理的异常，然后依据规则决定是否回滚抛出异常的事务 <br style="margin:0px;padding:0px;"/>
+<ul style="margin-left:30px;padding-left:0px;margin:0px;padding:0px;word-break:break-all;">
+<li style="list-style-type:circle;margin:0px;padding:0px;list-style:none;margin-bottom:1em;">默认配置下，spring只有在抛出的异常为运行时unchecked异常时才回滚该事务，也就是抛出的异常为RuntimeException的子类(Errors也会导致事务回滚)，而抛出checked异常则不会导致事务回滚。</li>
+<li style="list-style-type:circle;margin:0px;padding:0px;list-style:none;margin-bottom:1em;">用 spring 事务管理器,由spring来负责数据库的打开,提交,回滚.默认遇到运行期例外(throw new RuntimeException(“注释”);)会回滚，即遇到不受检查（unchecked）的例外时回滚；而遇到需要捕获的例外(throw new Exception(“注释”);)不会回滚,即遇到受检查的例外（就是非运行时抛出的异常，编译器会检查到的异常叫受检查例外或说受检查异常）时，需我们指定方式来让事务回滚要想所有异常都回滚,要加上 @Transactional( rollbackFor={Exception.class,其它异常}) .如果让unchecked例外不回滚： @Transactional(notRollbackFor=RunTimeException.class)</li>
+
+</ul>
+
+</li>
+
+</ul>
+<hr style="margin:0px;padding:0px;"/>
+<h2 style="font-size:21px;font-weight:bold;line-height:1.5;margin:10px 0px;padding:0px;"><a name="t8" style="margin:0px;padding:0px;"></a>注意事项：</h2>
+<ul style="margin-left:30px;padding-left:0px;margin:0px;padding:0px;word-break:break-all;">
+<li style="list-style-type:disc;margin:0px;padding:0px;list-style:none;margin-bottom:1em;">
+<p style="margin:10px auto;text-indent:0px;padding:0px;">@Transactional 使用位置 类上方、方法上方 <br style="margin:0px;padding:0px;"/>Spring 建议不要在接口或者接口方法上使用该注解，因为这只有在使用基于接口的代理时它才会生效 <br style="margin:0px;padding:0px;"/>当作用于类上时，该类的所有 public 方法将都具有该类型的事务属性，同时，我们也可以在方法级别使用该标注来覆盖类级别的定义。</p>
+
+</li>
+<li style="list-style-type:disc;margin:0px;padding:0px;list-style:none;margin-bottom:1em;">
+<p style="margin:10px auto;text-indent:0px;padding:0px;">方法的访问权限为 public  <br style="margin:0px;padding:0px;"/>@Transactional 注解应该只被应用到 public 方法上，这是由 Spring AOP 的本质决定的。在 protected、private 或者默认可见性的方法上使用 @Transactional 注解，这将被忽略，也不会抛出任何异常</p>
+
+</li>
+<li style="list-style-type:disc;margin:0px;padding:0px;list-style:none;margin-bottom:1em;">
+<p style="margin:10px auto;text-indent:0px;padding:0px;">默认情况下，只有来自外部的方法调用才会被AOP代理捕获，也就是，类内部方法调用本类内部的其他方法并不会引起事务行为，即使被调用方法使用@Transactional注解进行修饰 <br style="margin:0px;padding:0px;"/>例如一：同一个类中方法，A方法未使用此标签，B使用了，C未使用，A 调用 B , B 调用 C ；则外部调用A之后，B的事务是不会起作用的 <br style="margin:0px;padding:0px;"/>例如二：若是有上层（按照 Controller层、Service层、DAO层的顺序）由Action 调用 Service 直接调用，发生异常会发生回滚；若间接调用，Action 调用 Service 中 的A 方法，A无@Transactional 注解，B有，A调用B，B的注解无效</p>
+
+</li>
+
+</ul>
+<hr style="margin:0px;padding:0px;"/>
+<h2 style="font-size:21px;font-weight:bold;line-height:1.5;margin:10px 0px;padding:0px;"><a name="t9" style="margin:0px;padding:0px;"></a>其他</h2>
+<ul style="margin-left:30px;padding-left:0px;margin:0px;padding:0px;word-break:break-all;">
+<li style="list-style-type:disc;margin:0px;padding:0px;list-style:none;margin-bottom:1em;">事务方法的嵌套调用会产生事务传播</li>
+<li style="list-style-type:disc;margin:0px;padding:0px;list-style:none;margin-bottom:1em;">spring 的事务管理是线程安全的</li>
+<li style="list-style-type:disc;margin:0px;padding:0px;list-style:none;margin-bottom:1em;">父类的声明的@Transactional会对子类的所有方法进行事务增强；子类覆盖重写父类方式可覆盖其@Transactional中的声明配置</li>
+<li style="list-style-type:disc;margin:0px;padding:0px;list-style:none;margin-bottom:1em;">类名上方使用@Transactional，类中方法可通过属性配置覆盖类上的@Transactional配置；比如：类上配置全局是可读写，可在某个方法上改为只读</li>
+
+</ul>
+<hr style="margin:0px;padding:0px;"/>
+<h2 style="font-size:21px;font-weight:bold;line-height:1.5;margin:10px 0px;padding:0px;"><a name="t10" style="margin:0px;padding:0px;"></a>参考资料</h2>
+<ul style="margin-left:30px;padding-left:0px;margin:0px;padding:0px;word-break:break-all;">
+<li style="list-style-type:disc;margin:0px;padding:0px;list-style:none;margin-bottom:1em;"><a href="https://www.cnblogs.com/yepei/p/4716112.html" rel="nofollow" style="margin:0px;padding:0px;color:rgb(100, 102, 179);text-decoration:underline;" target="_blank">spring的@Transactional注解详细用法</a></li>
+<li style="list-style-type:disc;margin:0px;padding:0px;list-style:none;margin-bottom:1em;"><a href="http://blog.csdn.net/blueheart20/article/details/44654007" rel="nofollow" style="margin:0px;padding:0px;color:rgb(100, 102, 179);text-decoration:underline;" target="_blank">Spring中@Transactional用法深度分析之一</a></li>
+<li style="list-style-type:disc;margin:0px;padding:0px;list-style:none;margin-bottom:1em;"><a href="http://blog.csdn.net/kinseygeek/article/details/54931710" rel="nofollow" style="margin:0px;padding:0px;color:rgb(100, 102, 179);text-decoration:underline;" target="_blank">@Transactional事务几点注意</a></li>
+<li style="list-style-type:disc;margin:0px;padding:0px;list-style:none;margin-bottom:1em;"><a href="https://www.cnblogs.com/caoyc/p/5632963.html" rel="nofollow" style="margin:0px;padding:0px;color:rgb(100, 102, 179);text-decoration:underline;" target="_blank">spring @Transactional注解参数详解</a></li>
+<li style="list-style-type:disc;margin:0px;padding:0px;list-style:none;margin-bottom:1em;"><a href="https://www.cnblogs.com/hjwublog/p/5626465.html" rel="nofollow" style="margin:0px;padding:0px;color:rgb(100, 102, 179);text-decoration:underline;" target="_blank">深入分析@Transactional的用法</a></li>
+<li style="list-style-type:disc;margin:0px;padding:0px;list-style:none;margin-bottom:1em;"><a href="http://robinsoncrusoe.iteye.com/blog/825531" rel="nofollow" style="margin:0px;padding:0px;color:rgb(100, 102, 179);text-decoration:underline;" target="_blank">Spring @Transactional （一）</a></li>
+<li style="list-style-type:disc;margin:0px;padding:0px;list-style:none;margin-bottom:1em;"><a href="http://www.importnew.com/12300.html" rel="nofollow" style="margin:0px;padding:0px;color:rgb(100, 102, 179);text-decoration:underline;" target="_blank">Spring @Transactional工作原理</a></li>
+<li style="list-style-type:disc;margin:0px;padding:0px;list-style:none;margin-bottom:1em;"><a href="http://blog.csdn.net/dslztx/article/details/46636079" rel="nofollow" style="margin:0px;padding:0px;color:rgb(100, 102, 179);text-decoration:underline;" target="_blank">@Transactional注解工作原理</a></li>
+<li style="list-style-type:disc;margin:0px;padding:0px;list-style:none;margin-bottom:1em;"><a href="https://baike.baidu.com/item/%E6%95%B0%E6%8D%AE%E5%BA%93%E7%AE%A1%E7%90%86%E7%B3%BB%E7%BB%9F/1239101?fr=aladdin&amp;fromid=1239170&amp;fromtitle=dbms" rel="nofollow" style="margin:0px;padding:0px;color:rgb(100, 102, 179);text-decoration:underline;" target="_blank">DBMS</a></li>
+<li style="list-style-type:disc;margin:0px;padding:0px;list-style:none;margin-bottom:1em;"><a href="https://baike.baidu.com/item/c3p0/3719378?fr=aladdin" rel="nofollow" style="margin:0px;padding:0px;color:rgb(100, 102, 179);text-decoration:underline;" target="_blank">c3p0</a></li>
+<li style="list-style-type:disc;margin:0px;padding:0px;list-style:none;margin-bottom:1em;"><a href="https://baike.baidu.com/item/JNDI/3792442?fr=aladdin" rel="nofollow" style="margin:0px;padding:0px;color:rgb(100, 102, 179);text-decoration:underline;" target="_blank">JNDI</a></li>
+
+</ul>
+
+</div></div></div></div></div></div></div></div></div></div></div></div></div></div><div style="font-size: 16px; display: inline-block;"><div><div style="font-family:&quot;PingFang SC&quot;, &quot;Helvetica Neue&quot;, Helvetica, Arial, sans-serif;color:rgb(70, 70, 70);font-size:14px;background:url(&quot;/skins/summergarden/images/bg.jpg&quot;) repeat-x rgb(250, 247, 239);text-size-adjust:none;"><div style="min-width:unset;"><div style="min-width:unset;text-align:left;"><div style="text-overflow:ellipsis;overflow:hidden;word-break:break-all;"><div><div><div style="text-overflow:ellipsis;overflow:hidden;"><div><div style="line-height:1.5;color:rgb(57, 57, 57);font-size:14px;"><div style="word-break:break-word;"><div><div>
+<h1 style="font-size:28px;font-weight:bold;line-height:1.5;margin:10px 0px;padding:0px;"><a name="t0" style="margin:0px;padding:0px;"></a>@Transactional</h1>
+<hr style="margin:0px;padding:0px;"/>
+<h2 style="font-size:21px;font-weight:bold;line-height:1.5;margin:10px 0px;padding:0px;"><a name="t1" style="margin:0px;padding:0px;"></a>事务管理的目的</h2>
+<ul style="margin-left:30px;padding-left:0px;margin:0px;padding:0px;word-break:break-all;">
+<li style="list-style-type:disc;margin:0px;padding:0px;list-style:none;margin-bottom:1em;">在出现异常的情况下，保证数据的一致性；数据提交操作回滚至异常发生前的状态</li>
+</ul>
+<h2 style="font-size:21px;font-weight:bold;line-height:1.5;margin:10px 0px;padding:0px;"><a name="t2" style="margin:0px;padding:0px;"></a>事务管理的方式：</h2>
+<ul style="margin-left:30px;padding-left:0px;margin:0px;padding:0px;word-break:break-all;">
+<li style="list-style-type:disc;margin:0px;padding:0px;list-style:none;margin-bottom:1em;">Spring（Spring Framework 提供对事务管理的抽象接口） 支持两种事务管理方式： <br style="margin:0px;padding:0px;"/>
+<ul style="margin-left:30px;padding-left:0px;margin:0px;padding:0px;word-break:break-all;">
+<li style="list-style-type:circle;margin:0px;padding:0px;list-style:none;margin-bottom:1em;">编程式事务管理：使用TransactionTemplate或PlatformTransactionManager实现</li>
+<li style="list-style-type:circle;margin:0px;padding:0px;list-style:none;margin-bottom:1em;">声明式事务管理：建立在AOP之上的。其本质是对方法前后进行拦截，然后在目标方法开始之前创建或者加入一个事务（此处取决于事务的传播行为），在执行完目标方法之后根据执行情况提交或者回滚事务（执行成功则提交，失败则进行实物的回滚）</li>
+<li style="list-style-type:circle;margin:0px;padding:0px;list-style:none;margin-bottom:1em;">编程式事务管理优势：可以控制事务的粒度，最细粒度到代码块级别；</li>
+<li style="list-style-type:circle;margin:0px;padding:0px;list-style:none;margin-bottom:1em;">声明式实物管理优势：在方法外进行声明，事务控制的代码不会与业务逻辑代码混在一起，最细粒度到方法级别（解决方法：可以将需要进行事务管理的代码块独立为方法，通过方法间调用实现）；符合spring倡导的非侵入式的开发方式，即业务处理逻辑代码与事务管理代码不放在一起</li>
+
+</ul>
+
+</li>
+
+</ul>
+<hr style="margin:0px;padding:0px;"/>
+<h2 style="font-size:21px;font-weight:bold;line-height:1.5;margin:10px 0px;padding:0px;"><a name="t3" style="margin:0px;padding:0px;"></a>声明式事务管理实现方式：</h2>
+<ul style="margin-left:30px;padding-left:0px;margin:0px;padding:0px;word-break:break-all;">
+<li style="list-style-type:disc;margin:0px;padding:0px;list-style:none;margin-bottom:1em;">基于tx和aop名字空间的xml配置文件</li>
+
+</ul>
+<pre style="margin-top:0px;margin-bottom:0px;white-space:pre-wrap;overflow-wrap:break-word;margin:0px;padding:0px;"><code style="line-height:1.8;margin:1px 5px;vertical-align:middle;display:inline-block;font-family:&quot;Courier New&quot;, sans-serif;font-size:12px;background-color:rgb(245, 245, 245);border:1px solid rgb(204, 204, 204);padding:0px 5px;border-radius:3px;">// 基本配置
+<span style="margin:0px;padding:0px;"><span style="margin:0px;padding:0px;"><span style="color:rgb(43, 145, 175);margin:0px;padding:0px;">&lt;?</span>xml version=<span style="color:rgb(163, 21, 21);margin:0px;padding:0px;">&quot;1.0&quot;</span> encoding=<span style="color:rgb(163, 21, 21);margin:0px;padding:0px;">&quot;UTF-8&quot;</span><span style="color:rgb(43, 145, 175);margin:0px;padding:0px;">?&gt;</span></span>
+<span style="color:rgb(0, 0, 255);margin:0px;padding:0px;"><span style="color:rgb(0, 0, 255);margin:0px;padding:0px;">&lt;</span><span style="color:rgb(163, 21, 21);margin:0px;padding:0px;"><span style="color:rgb(0, 0, 255);margin:0px;padding:0px;"><span style="color:rgb(0, 0, 255);margin:0px;padding:0px;">beans</span> </span><span style="color:rgb(163, 21, 21);margin:0px;padding:0px;"><span style="color:rgb(0, 0, 255);margin:0px;padding:0px;"><span style="color:rgb(255, 0, 0);margin:0px;padding:0px;">xmlns</span>=</span><span style="margin:0px;padding:0px;"><span style="color:rgb(0, 0, 255);margin:0px;padding:0px;"><span style="color:rgb(163, 21, 21);margin:0px;padding:0px;">&quot;http://www.springframework.org/schema/beans&quot;</span>
+       </span><span style="color:rgb(163, 21, 21);margin:0px;padding:0px;"><span style="color:rgb(0, 0, 255);margin:0px;padding:0px;"><span style="color:rgb(255, 0, 0);margin:0px;padding:0px;">xmlns:xsi</span>=</span><span style="margin:0px;padding:0px;"><span style="color:rgb(0, 0, 255);margin:0px;padding:0px;"><span style="color:rgb(163, 21, 21);margin:0px;padding:0px;">&quot;http://www.w3.org/2001/XMLSchema-instance&quot;</span> </span><span style="color:rgb(163, 21, 21);margin:0px;padding:0px;"><span style="color:rgb(0, 0, 255);margin:0px;padding:0px;"><span style="color:rgb(255, 0, 0);margin:0px;padding:0px;">xmlns:context</span>=</span><span style="margin:0px;padding:0px;"><span style="color:rgb(0, 0, 255);margin:0px;padding:0px;"><span style="color:rgb(163, 21, 21);margin:0px;padding:0px;">&quot;http://www.springframework.org/schema/context&quot;</span>
+       </span><span style="color:rgb(163, 21, 21);margin:0px;padding:0px;"><span style="color:rgb(0, 0, 255);margin:0px;padding:0px;"><span style="color:rgb(255, 0, 0);margin:0px;padding:0px;">xmlns:mvc</span>=</span><span style="margin:0px;padding:0px;"><span style="color:rgb(0, 0, 255);margin:0px;padding:0px;"><span style="color:rgb(163, 21, 21);margin:0px;padding:0px;">&quot;http://www.springframework.org/schema/mvc&quot;</span> </span><span style="color:rgb(163, 21, 21);margin:0px;padding:0px;"><span style="color:rgb(0, 0, 255);margin:0px;padding:0px;"><span style="color:rgb(255, 0, 0);margin:0px;padding:0px;">xmlns:aop</span>=</span><span style="margin:0px;padding:0px;"><span style="color:rgb(0, 0, 255);margin:0px;padding:0px;"><span style="color:rgb(163, 21, 21);margin:0px;padding:0px;">&quot;http://www.springframework.org/schema/aop&quot;</span>
+       </span><span style="color:rgb(163, 21, 21);margin:0px;padding:0px;"><span style="color:rgb(0, 0, 255);margin:0px;padding:0px;"><span style="color:rgb(255, 0, 0);margin:0px;padding:0px;">xmlns:task</span>=</span><span style="margin:0px;padding:0px;"><span style="color:rgb(0, 0, 255);margin:0px;padding:0px;"><span style="color:rgb(163, 21, 21);margin:0px;padding:0px;">&quot;http://www.springframework.org/schema/task&quot;</span> </span><span style="color:rgb(163, 21, 21);margin:0px;padding:0px;"><span style="color:rgb(0, 0, 255);margin:0px;padding:0px;"><span style="color:rgb(255, 0, 0);margin:0px;padding:0px;">xmlns:jms</span>=</span><span style="margin:0px;padding:0px;"><span style="color:rgb(0, 0, 255);margin:0px;padding:0px;"><span style="color:rgb(163, 21, 21);margin:0px;padding:0px;">&quot;http://www.springframework.org/schema/jms&quot;</span>
+       </span><span style="color:rgb(163, 21, 21);margin:0px;padding:0px;"><span style="color:rgb(0, 0, 255);margin:0px;padding:0px;"><span style="color:rgb(255, 0, 0);margin:0px;padding:0px;">xmlns:tx</span>=</span><span style="margin:0px;padding:0px;"><span style="color:rgb(0, 0, 255);margin:0px;padding:0px;"><span style="color:rgb(163, 21, 21);margin:0px;padding:0px;">&quot;http://www.springframework.org/schema/tx&quot;</span>
+       </span><span style="color:rgb(163, 21, 21);margin:0px;padding:0px;"><span style="color:rgb(0, 0, 255);margin:0px;padding:0px;"><span style="color:rgb(255, 0, 0);margin:0px;padding:0px;">xsi:schemaLocation</span>=</span><span style="margin:0px;padding:0px;"><span style="color:rgb(0, 0, 255);margin:0px;padding:0px;"><span style="color:rgb(163, 21, 21);margin:0px;padding:0px;">&quot;http://www.springframework.org/schema/mvc http://www.springframework.org/schema/mvc/spring-mvc-4.1.xsd
+                          http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-4.1.xsd
+                          http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-4.1.xsd
+                          http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop-4.1.xsd
+                          http://www.springframework.org/schema/task http://www.springframework.org/schema/task/spring-task-4.1.xsd
+                          http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx-4.1.xsd
+                          http://www.springframework.org/schema/jms http://www.springframework.org/schema/jms/spring-jms-4.1.xsd&quot;</span>&gt;</span>
+
+<span style="color:rgb(0, 0, 255);margin:0px;padding:0px;"><span style="color:rgb(0, 0, 255);margin:0px;padding:0px;">&lt;</span><span style="color:rgb(163, 21, 21);margin:0px;padding:0px;"><span style="color:rgb(0, 0, 255);margin:0px;padding:0px;"><span style="color:rgb(0, 0, 255);margin:0px;padding:0px;">bean</span> </span><span style="color:rgb(163, 21, 21);margin:0px;padding:0px;"><span style="color:rgb(0, 0, 255);margin:0px;padding:0px;"><span style="color:rgb(255, 0, 0);margin:0px;padding:0px;">name</span>=</span><span style="margin:0px;padding:0px;"><span style="color:rgb(0, 0, 255);margin:0px;padding:0px;"><span style="color:rgb(163, 21, 21);margin:0px;padding:0px;">&quot;transactionManager&quot;</span>
+        </span><span style="color:rgb(163, 21, 21);margin:0px;padding:0px;"><span style="color:rgb(0, 0, 255);margin:0px;padding:0px;"><span style="color:rgb(255, 0, 0);margin:0px;padding:0px;">class</span>=</span><span style="margin:0px;padding:0px;"><span style="color:rgb(0, 0, 255);margin:0px;padding:0px;"><span style="color:rgb(163, 21, 21);margin:0px;padding:0px;">&quot;org.springframework.jdbc.datasource.DataSourceTransactionManager&quot;</span>&gt;</span>
+        <span style="color:rgb(0, 0, 255);margin:0px;padding:0px;"><span style="color:rgb(0, 0, 255);margin:0px;padding:0px;">&lt;</span><span style="color:rgb(163, 21, 21);margin:0px;padding:0px;"><span style="color:rgb(0, 0, 255);margin:0px;padding:0px;"><span style="color:rgb(0, 0, 255);margin:0px;padding:0px;">property</span> </span><span style="color:rgb(163, 21, 21);margin:0px;padding:0px;"><span style="color:rgb(0, 0, 255);margin:0px;padding:0px;"><span style="color:rgb(255, 0, 0);margin:0px;padding:0px;">name</span>=</span><span style="margin:0px;padding:0px;"><span style="color:rgb(0, 0, 255);margin:0px;padding:0px;"><span style="color:rgb(163, 21, 21);margin:0px;padding:0px;">&quot;dataSource&quot;</span> </span><span style="color:rgb(163, 21, 21);margin:0px;padding:0px;"><span style="color:rgb(0, 0, 255);margin:0px;padding:0px;"><span style="color:rgb(255, 0, 0);margin:0px;padding:0px;">ref</span>=</span><span style="margin:0px;padding:0px;"><span style="color:rgb(0, 0, 255);margin:0px;padding:0px;"><span style="color:rgb(163, 21, 21);margin:0px;padding:0px;">&quot;shardingDataSource&quot;</span>&gt;</span><span style="color:rgb(0, 0, 255);margin:0px;padding:0px;"><span style="color:rgb(0, 0, 255);margin:0px;padding:0px;">&lt;/</span><span style="color:rgb(163, 21, 21);margin:0px;padding:0px;"><span style="color:rgb(0, 0, 255);margin:0px;padding:0px;"><span style="color:rgb(0, 0, 255);margin:0px;padding:0px;">property</span>&gt;</span>
+    <span style="color:rgb(0, 0, 255);margin:0px;padding:0px;"><span style="color:rgb(0, 0, 255);margin:0px;padding:0px;">&lt;/</span><span style="color:rgb(163, 21, 21);margin:0px;padding:0px;"><span style="color:rgb(0, 0, 255);margin:0px;padding:0px;"><span style="color:rgb(0, 0, 255);margin:0px;padding:0px;">bean</span>&gt;</span>
+
+<span style="color:rgb(0, 0, 255);margin:0px;padding:0px;"><span style="color:rgb(0, 0, 255);margin:0px;padding:0px;">&lt;</span><span style="color:rgb(163, 21, 21);margin:0px;padding:0px;"><span style="color:rgb(0, 0, 255);margin:0px;padding:0px;"><span style="color:rgb(0, 0, 255);margin:0px;padding:0px;">tx:annotation-driven</span> </span><span style="color:rgb(163, 21, 21);margin:0px;padding:0px;"><span style="color:rgb(0, 0, 255);margin:0px;padding:0px;"><span style="color:rgb(255, 0, 0);margin:0px;padding:0px;">transaction-manager</span>=</span><span style="margin:0px;padding:0px;"><span style="color:rgb(0, 0, 255);margin:0px;padding:0px;"><span style="color:rgb(163, 21, 21);margin:0px;padding:0px;">&quot;transactionManager&quot;</span> </span><span style="color:rgb(163, 21, 21);margin:0px;padding:0px;"><span style="color:rgb(0, 0, 255);margin:0px;padding:0px;"><span style="color:rgb(255, 0, 0);margin:0px;padding:0px;">proxy-target-class</span>=</span><span style="margin:0px;padding:0px;"><span style="color:rgb(0, 0, 255);margin:0px;padding:0px;"><span style="color:rgb(163, 21, 21);margin:0px;padding:0px;">&quot;true&quot;</span> /&gt;</span>
+
+// MyBatis自动参与到spring事务管理中，无需额外配置，只要org.mybatis.spring.SqlSessionFactoryBean引用的数据源与DataSourceTransactionManager引用的数据源一致即可，否则事务管理会不起作用
+// <span style="color:rgb(0, 0, 255);margin:0px;padding:0px;"><span style="color:rgb(0, 0, 255);margin:0px;padding:0px;">&lt;</span><span style="color:rgb(163, 21, 21);margin:0px;padding:0px;"><span style="color:rgb(0, 0, 255);margin:0px;padding:0px;"><span style="color:rgb(0, 0, 255);margin:0px;padding:0px;">annotation-driven</span>&gt;</span>标签的声明，则是在Spring内部启用@Transactional来进行事务管理，使用 @Transactional 前需要配置</span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></code></pre>
+<p style="margin:10px auto;text-indent:0px;padding:0px;"> </p>
+<p style="margin:10px auto;text-indent:0px;padding:0px;"> </p>
+<ul style="margin-left:30px;padding-left:0px;margin:0px;padding:0px;word-break:break-all;">
+<li style="list-style-type:disc;margin:0px;padding:0px;list-style:none;margin-bottom:1em;">基于@Transactional注解 <br style="margin:0px;padding:0px;"/>@Transactional实质是使用了JDBC的事务来进行事务控制的 <br style="margin:0px;padding:0px;"/>@Transactional基于Spring的动态代理的机制</li>
+<li style="list-style-type:disc;margin:0px;padding:0px;list-style:none;margin-bottom:1em;">@Transactional实现原理</li>
+<li style="list-style-type:disc;margin:0px;padding:0px;list-style:none;margin-bottom:1em;">1)事务开始时，通过AOP机制，生成一个代理connection对象，并将其放入DataSource实例的某个与DataSourceTransactionManager相关的某处容器中。在接下来的整个事务中，客户代码都应该使用该connection连接数据库，执行所有数据库命令[不使用该connection连接数据库执行的数据库命令，在本事务回滚的时候得不到回滚]（物理连接connection逻辑上新建一个会话session；DataSource与TransactionManager配置相同的数据源）</li>
+<li style="list-style-type:disc;margin:0px;padding:0px;list-style:none;margin-bottom:1em;">2)事务结束时，回滚在第1步骤中得到的代理connection对象上执行的数据库命令，然后关闭该代理connection对象（事务结束后，回滚操作不会对已执行完毕的SQL操作命令起作用）</li>
+
+</ul>
+<h2 style="font-size:21px;font-weight:bold;line-height:1.5;margin:10px 0px;padding:0px;"><a name="t4" style="margin:0px;padding:0px;"></a>声明式事务的管理实现本质：</h2>
+<ul style="margin-left:30px;padding-left:0px;margin:0px;padding:0px;word-break:break-all;">
+<li style="list-style-type:disc;margin:0px;padding:0px;list-style:none;margin-bottom:1em;"><a href="http://blog.csdn.net/mingyundezuoan/article/details/78777341" rel="nofollow" style="margin:0px;padding:0px;color:rgb(100, 102, 179);text-decoration:underline;" target="_blank">事务</a>的两种开启方式 <br style="margin:0px;padding:0px;"/>
+<ul style="margin-left:30px;padding-left:0px;margin:0px;padding:0px;word-break:break-all;">
+<li style="list-style-type:circle;margin:0px;padding:0px;list-style:none;margin-bottom:1em;">显示开启<code style="margin:0px;padding:0px;">start transaction | begin</code>，通过 <code style="margin:0px;padding:0px;">commit | rollback</code> 结束事务</li>
+<li style="list-style-type:circle;margin:0px;padding:0px;list-style:none;margin-bottom:1em;">关闭数据库中自动提交 <a href="http://blog.csdn.net/mingyundezuoan/article/details/78764443" rel="nofollow" style="margin:0px;padding:0px;color:rgb(100, 102, 179);text-decoration:underline;" target="_blank">autocommit</a> <code style="margin:0px;padding:0px;">set autocommit = 0</code>；MySQL 默认开启自动提交；通过手动提交或执行回滚操作来结束事务</li>
+
+</ul>
+
+</li>
+<li style="list-style-type:disc;margin:0px;padding:0px;list-style:none;margin-bottom:1em;">Spring 关闭数据库中自动提交：在方法执行前关闭自动提交，方法执行完毕后再开启自动提交</li>
+
+</ul>
+<pre style="margin-top:0px;margin-bottom:0px;white-space:pre-wrap;overflow-wrap:break-word;margin:0px;padding:0px;"><code style="line-height:1.8;margin:1px 5px;vertical-align:middle;display:inline-block;font-family:&quot;Courier New&quot;, sans-serif;font-size:12px;background-color:rgb(245, 245, 245);border:1px solid rgb(204, 204, 204);padding:0px 5px;border-radius:3px;"> // org.springframework.jdbc.datasource.DataSourceTransactionManager.java 源码实现
+ // switch to manual <span style="margin:0px;padding:0px;"><span style="color:rgb(0, 0, 255);margin:0px;padding:0px;"><span style="color:rgb(0, 0, 255);margin:0px;padding:0px;">commit</span> <span style="color:rgb(0, 0, 255);margin:0px;padding:0px;"><span style="color:rgb(0, 0, 255);margin:0px;padding:0px;">if</span> necessary. this <span style="color:rgb(0, 0, 255);margin:0px;padding:0px;"><span style="color:rgb(0, 0, 255);margin:0px;padding:0px;">is</span> very expensive <span style="color:rgb(0, 0, 255);margin:0px;padding:0px;"><span style="color:rgb(0, 0, 255);margin:0px;padding:0px;">in</span> <span style="color:rgb(0, 0, 255);margin:0px;padding:0px;"><span style="color:rgb(0, 0, 255);margin:0px;padding:0px;">some</span> jdbc drivers,
+ // so we don<span style="color:rgb(163, 21, 21);margin:0px;padding:0px;"><span style="color:rgb(163, 21, 21);margin:0px;padding:0px;">'t want to do it unnecessarily (for example if we'</span>ve explicitly
+ // configured the <span style="color:rgb(0, 0, 255);margin:0px;padding:0px;"><span style="color:rgb(0, 0, 255);margin:0px;padding:0px;">connection</span> pool <span style="color:rgb(0, 0, 255);margin:0px;padding:0px;"><span style="color:rgb(0, 0, 255);margin:0px;padding:0px;">to</span> <span style="color:rgb(0, 0, 255);margin:0px;padding:0px;"><span style="color:rgb(0, 0, 255);margin:0px;padding:0px;">set</span> it already).
+ <span style="color:rgb(0, 0, 255);margin:0px;padding:0px;"><span style="color:rgb(0, 0, 255);margin:0px;padding:0px;">if</span> (con.getautocommit()) {
+     txobject.setmustrestoreautocommit(<span style="color:rgb(0, 0, 255);margin:0px;padding:0px;"><span style="color:rgb(163, 21, 21);margin:0px;padding:0px;">true</span>);
+     if (logger.isdebugenabled()) {
+         logger.debug(&quot;switching jdbc connection [&quot; + con + &quot;] to manual <span style="margin:0px;padding:0px;"><span style="color:rgb(0, 0, 255);margin:0px;padding:0px;"><span style="color:rgb(0, 0, 255);margin:0px;padding:0px;">commit</span><span style="color:rgb(163, 21, 21);margin:0px;padding:0px;"><span style="color:rgb(163, 21, 21);margin:0px;padding:0px;">&quot;);
+     }
+     con.setautocommit(false);
+ }
+</span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></code></pre>
+<p style="margin:10px auto;text-indent:0px;padding:0px;"> </p>
+<p style="margin:10px auto;text-indent:0px;padding:0px;"> </p>
+<ul style="margin-left:30px;padding-left:0px;margin:0px;padding:0px;word-break:break-all;">
+<li style="list-style-type:disc;margin:0px;padding:0px;list-style:none;margin-bottom:1em;">
+<p style="margin:10px auto;text-indent:0px;padding:0px;">问题：</p>
+<ul style="margin-left:30px;padding-left:0px;margin:0px;padding:0px;word-break:break-all;">
+<li style="list-style-type:circle;margin:0px;padding:0px;list-style:none;margin-bottom:1em;">关闭自动提交后，若事务一直未完成，即未手动执行 commit 或 rollback 时如何处理已经执行过的SQL操作？ <br style="margin:0px;padding:0px;"/>
+<ul style="margin-left:30px;padding-left:0px;margin:0px;padding:0px;word-break:break-all;">
+<li style="list-style-type:circle;margin:0px;padding:0px;list-style:none;margin-bottom:1em;">C3P0默认的策略是回滚任何未提交的事务 </li>
+<li style="list-style-type:circle;margin:0px;padding:0px;list-style:none;margin-bottom:1em;">C3P0是一个开源的JDBC连接池，它实现了数据源和JNDI绑定，支持JDBC3规范和JDBC2的标准扩展。目前使用它的开源项目有Hibernate，Spring等</li>
+<li style="list-style-type:circle;margin:0px;padding:0px;list-style:none;margin-bottom:1em;">JNDI(Java Naming and Directory Interface,Java命名和目录接口)是SUN公司提供的一种标准的Java命名系统接口，JNDI提供统一的客户端API，通过不同的访问提供者接口JNDI服务供应接口(SPI)的实现，由管理者将JNDI API映射为特定的命名服务和目录系统，使得Java应用程序可以和这些命名服务和目录服务之间进行交互</li>
+
+</ul>
+
+</li>
+
+</ul>
+
+</li>
+
+</ul>
+<hr style="margin:0px;padding:0px;"/>
+<h2 style="font-size:21px;font-weight:bold;line-height:1.5;margin:10px 0px;padding:0px;"><a name="t5" style="margin:0px;padding:0px;"></a>spring事务特性</h2>
+<ul style="margin-left:30px;padding-left:0px;margin:0px;padding:0px;word-break:break-all;">
+<li style="list-style-type:disc;margin:0px;padding:0px;list-style:none;margin-bottom:1em;">spring所有的事务管理策略类都继承自<code style="margin:0px;padding:0px;">org.springframework.transaction.PlatformTransactionManager</code>接口</li>
+
+</ul>
+<pre style="margin-top:0px;margin-bottom:0px;white-space:pre-wrap;overflow-wrap:break-word;margin:0px;padding:0px;"><code style="line-height:1.8;margin:1px 5px;vertical-align:middle;display:inline-block;font-family:&quot;Courier New&quot;, sans-serif;font-size:12px;background-color:rgb(245, 245, 245);border:1px solid rgb(204, 204, 204);padding:0px 5px;border-radius:3px;"><span style="color:rgb(0, 0, 255);margin:0px;padding:0px;"><span style="color:rgb(0, 0, 255);margin:0px;padding:0px;">public</span> <span style="margin:0px;padding:0px;"><span style="color:rgb(0, 0, 255);margin:0px;padding:0px;"><span style="margin:0px;padding:0px;"><span style="color:rgb(0, 0, 255);margin:0px;padding:0px;">interface</span> </span><span style="color:rgb(163, 21, 21);margin:0px;padding:0px;"><span style="margin:0px;padding:0px;"><span style="color:rgb(163, 21, 21);margin:0px;padding:0px;">PlatformTransactionManager</span> </span>{
+  <span style="margin:0px;padding:0px;">TransactionStatus <span style="color:rgb(163, 21, 21);margin:0px;padding:0px;">getTransaction</span><span style="margin:0px;padding:0px;">(TransactionDefinition definition)</span>
+  </span><span style="color:rgb(0, 0, 255);margin:0px;padding:0px;"><span style="margin:0px;padding:0px;"><span style="color:rgb(0, 0, 255);margin:0px;padding:0px;">throws</span> TransactionException</span>;
+  <span style="color:rgb(0, 0, 255);margin:0px;padding:0px;"><span style="margin:0px;padding:0px;"><span style="color:rgb(0, 0, 255);margin:0px;padding:0px;">void</span> <span style="color:rgb(163, 21, 21);margin:0px;padding:0px;">commit</span><span style="margin:0px;padding:0px;">(TransactionStatus status)</span> </span><span style="color:rgb(0, 0, 255);margin:0px;padding:0px;"><span style="margin:0px;padding:0px;"><span style="color:rgb(0, 0, 255);margin:0px;padding:0px;">throws</span> TransactionException</span>;
+  <span style="color:rgb(0, 0, 255);margin:0px;padding:0px;"><span style="margin:0px;padding:0px;"><span style="color:rgb(0, 0, 255);margin:0px;padding:0px;">void</span> <span style="color:rgb(163, 21, 21);margin:0px;padding:0px;">rollback</span><span style="margin:0px;padding:0px;">(TransactionStatus status)</span> </span><span style="color:rgb(0, 0, 255);margin:0px;padding:0px;"><span style="margin:0px;padding:0px;"><span style="color:rgb(0, 0, 255);margin:0px;padding:0px;">throws</span> TransactionException</span>;
+}</span></span></span></span></span></span></span></span></span></code></pre>
+<p style="margin:10px auto;text-indent:0px;padding:0px;"> </p>
+<p style="margin:10px auto;text-indent:0px;padding:0px;"> </p>
+<ul style="margin-left:30px;padding-left:0px;margin:0px;padding:0px;word-break:break-all;">
+<li style="list-style-type:disc;margin:0px;padding:0px;list-style:none;margin-bottom:1em;">
+<p style="margin:10px auto;text-indent:0px;padding:0px;"><a href="http://blog.csdn.net/mingyundezuoan/article/details/78777341" rel="nofollow" style="margin:0px;padding:0px;color:rgb(100, 102, 179);text-decoration:underline;" target="_blank">事务的隔离级别</a>：是指若干个并发 <br style="margin:0px;padding:0px;"/>的事务之间的隔离程度</p>
+<ul style="margin-left:30px;padding-left:0px;margin:0px;padding:0px;word-break:break-all;">
+<li style="list-style-type:circle;margin:0px;padding:0px;list-style:none;margin-bottom:1em;">@Transactional(isolation = Isolation.READ_UNCOMMITTED)：读取未提交数据(会出现脏读, 不可重复读) 基本不使用</li>
+<li style="list-style-type:circle;margin:0px;padding:0px;list-style:none;margin-bottom:1em;">@Transactional(isolation = Isolation.READ_COMMITTED)：读取已提交数据(会出现不可重复读和幻读)</li>
+<li style="list-style-type:circle;margin:0px;padding:0px;list-style:none;margin-bottom:1em;">@Transactional(isolation = Isolation.REPEATABLE_READ)：可重复读(会出现幻读)</li>
+<li style="list-style-type:circle;margin:0px;padding:0px;list-style:none;margin-bottom:1em;">@Transactional(isolation = Isolation.SERIALIZABLE)：串行化</li>
+
+</ul>
+
+</li>
+<li style="list-style-type:disc;margin:0px;padding:0px;list-style:none;margin-bottom:1em;">
+<p style="margin:10px auto;text-indent:0px;padding:0px;">事务传播行为：如果在开始当前事务之前，一个事务上下文已经存在，此时有若干选项可以指定一个事务性方法的执行行为</p>
+<ul style="margin-left:30px;padding-left:0px;margin:0px;padding:0px;word-break:break-all;">
+<li style="list-style-type:circle;margin:0px;padding:0px;list-style:none;margin-bottom:1em;">TransactionDefinition.PROPAGATION_REQUIRED：如果当前存在事务，则加入该事务；如果当前没有事务，则创建一个新的事务。这是默认值。</li>
+<li style="list-style-type:circle;margin:0px;padding:0px;list-style:none;margin-bottom:1em;">TransactionDefinition.PROPAGATION_REQUIRES_NEW：创建一个新的事务，如果当前存在事务，则把当前事务挂起。</li>
+<li style="list-style-type:circle;margin:0px;padding:0px;list-style:none;margin-bottom:1em;">TransactionDefinition.PROPAGATION_SUPPORTS：如果当前存在事务，则加入该事务；如果当前没有事务，则以非事务的方式继续运行。</li>
+<li style="list-style-type:circle;margin:0px;padding:0px;list-style:none;margin-bottom:1em;">TransactionDefinition.PROPAGATION_NOT_SUPPORTED：以非事务方式运行，如果当前存在事务，则把当前事务挂起。</li>
+<li style="list-style-type:circle;margin:0px;padding:0px;list-style:none;margin-bottom:1em;">TransactionDefinition.PROPAGATION_NEVER：以非事务方式运行，如果当前存在事务，则抛出异常。</li>
+<li style="list-style-type:circle;margin:0px;padding:0px;list-style:none;margin-bottom:1em;">TransactionDefinition.PROPAGATION_MANDATORY：如果当前存在事务，则加入该事务；如果当前没有事务，则抛出异常。</li>
+<li style="list-style-type:circle;margin:0px;padding:0px;list-style:none;margin-bottom:1em;">TransactionDefinition.PROPAGATION_NESTED：如果当前存在事务，则创建一个事务作为当前事务的嵌套事务来运行；如果当前没有事务，则该取值等价于TransactionDefinition.PROPAGATION_REQUIRED。</li>
+
+</ul>
+
+</li>
+
+</ul>
+<hr style="margin:0px;padding:0px;"/>
+<h2 style="font-size:21px;font-weight:bold;line-height:1.5;margin:10px 0px;padding:0px;"><a name="t6" style="margin:0px;padding:0px;"></a>@Transactional 属性配置</h2>
+<table style="font-size:inherit;font-weight:inherit;font-style:inherit;font-variant:inherit;border:1px solid rgb(192, 192, 192);border-collapse:collapse;word-break:break-word;margin:0px;padding:0px;border-spacing:0px;display:block;overflow-x:scroll;">
+<thead style="margin:0px;padding:0px;">
+<tr style="margin:0px;padding:0px;"><th align="left" style="background-color:rgb(250, 250, 250);border:1px solid rgb(192, 192, 192);border-collapse:collapse;padding:8px 14px;margin:0px;white-space:nowrap;">属性</th><th align="left" style="background-color:rgb(250, 250, 250);border:1px solid rgb(192, 192, 192);border-collapse:collapse;padding:8px 14px;margin:0px;white-space:nowrap;">类型</th><th align="left" style="background-color:rgb(250, 250, 250);border:1px solid rgb(192, 192, 192);border-collapse:collapse;padding:8px 14px;margin:0px;white-space:nowrap;">描述</th></tr>
+
+</thead>
+<tbody style="margin:0px;padding:0px;">
+<tr style="margin:0px;padding:0px;">
+<td align="left" style="border:1px solid rgb(192, 192, 192);border-collapse:collapse;padding:8px 14px;margin:0px;white-space:nowrap;">value</td>
+<td align="left" style="border:1px solid rgb(192, 192, 192);border-collapse:collapse;padding:8px 14px;margin:0px;white-space:nowrap;">String</td>
+<td align="left" style="border:1px solid rgb(192, 192, 192);border-collapse:collapse;padding:8px 14px;margin:0px;white-space:nowrap;">可选的限定描述符，指定使用的事务管理器</td>
+
+</tr>
+<tr style="margin:0px;padding:0px;">
+<td align="left" style="border:1px solid rgb(192, 192, 192);border-collapse:collapse;padding:8px 14px;margin:0px;white-space:nowrap;">propagation</td>
+<td align="left" style="border:1px solid rgb(192, 192, 192);border-collapse:collapse;padding:8px 14px;margin:0px;white-space:nowrap;">enum: Propagation</td>
+<td align="left" style="border:1px solid rgb(192, 192, 192);border-collapse:collapse;padding:8px 14px;margin:0px;white-space:nowrap;">可选的事务传播行为设置</td>
+
+</tr>
+<tr style="margin:0px;padding:0px;">
+<td align="left" style="border:1px solid rgb(192, 192, 192);border-collapse:collapse;padding:8px 14px;margin:0px;white-space:nowrap;">isolation</td>
+<td align="left" style="border:1px solid rgb(192, 192, 192);border-collapse:collapse;padding:8px 14px;margin:0px;white-space:nowrap;">enum: Isolation</td>
+<td align="left" style="border:1px solid rgb(192, 192, 192);border-collapse:collapse;padding:8px 14px;margin:0px;white-space:nowrap;">可选的事务隔离级别设置</td>
+
+</tr>
+<tr style="margin:0px;padding:0px;">
+<td align="left" style="border:1px solid rgb(192, 192, 192);border-collapse:collapse;padding:8px 14px;margin:0px;white-space:nowrap;">readOnly</td>
+<td align="left" style="border:1px solid rgb(192, 192, 192);border-collapse:collapse;padding:8px 14px;margin:0px;white-space:nowrap;">boolean</td>
+<td align="left" style="border:1px solid rgb(192, 192, 192);border-collapse:collapse;padding:8px 14px;margin:0px;white-space:nowrap;">读写或只读事务，默认读写</td>
+
+</tr>
+<tr style="margin:0px;padding:0px;">
+<td align="left" style="border:1px solid rgb(192, 192, 192);border-collapse:collapse;padding:8px 14px;margin:0px;white-space:nowrap;">timeout</td>
+<td align="left" style="border:1px solid rgb(192, 192, 192);border-collapse:collapse;padding:8px 14px;margin:0px;white-space:nowrap;">int (in seconds granularity)</td>
+<td align="left" style="border:1px solid rgb(192, 192, 192);border-collapse:collapse;padding:8px 14px;margin:0px;white-space:nowrap;">事务超时时间设置</td>
+
+</tr>
+<tr style="margin:0px;padding:0px;">
+<td align="left" style="border:1px solid rgb(192, 192, 192);border-collapse:collapse;padding:8px 14px;margin:0px;white-space:nowrap;">rollbackFor</td>
+<td align="left" style="border:1px solid rgb(192, 192, 192);border-collapse:collapse;padding:8px 14px;margin:0px;white-space:nowrap;">Class对象数组，必须继承自Throwable</td>
+<td align="left" style="border:1px solid rgb(192, 192, 192);border-collapse:collapse;padding:8px 14px;margin:0px;white-space:nowrap;">导致事务回滚的异常类数组</td>
+
+</tr>
+<tr style="margin:0px;padding:0px;">
+<td align="left" style="border:1px solid rgb(192, 192, 192);border-collapse:collapse;padding:8px 14px;margin:0px;white-space:nowrap;">rollbackForClassName</td>
+<td align="left" style="border:1px solid rgb(192, 192, 192);border-collapse:collapse;padding:8px 14px;margin:0px;white-space:nowrap;">类名数组，必须继承自Throwable</td>
+<td align="left" style="border:1px solid rgb(192, 192, 192);border-collapse:collapse;padding:8px 14px;margin:0px;white-space:nowrap;">导致事务回滚的异常类名字数组</td>
+
+</tr>
+<tr style="margin:0px;padding:0px;">
+<td align="left" style="border:1px solid rgb(192, 192, 192);border-collapse:collapse;padding:8px 14px;margin:0px;white-space:nowrap;">noRollbackFor</td>
+<td align="left" style="border:1px solid rgb(192, 192, 192);border-collapse:collapse;padding:8px 14px;margin:0px;white-space:nowrap;">Class对象数组，必须继承自Throwable</td>
+<td align="left" style="border:1px solid rgb(192, 192, 192);border-collapse:collapse;padding:8px 14px;margin:0px;white-space:nowrap;">不会导致事务回滚的异常类数组</td>
+
+</tr>
+<tr style="margin:0px;padding:0px;">
+<td align="left" style="border:1px solid rgb(192, 192, 192);border-collapse:collapse;padding:8px 14px;margin:0px;white-space:nowrap;">noRollbackForClassName</td>
+<td align="left" style="border:1px solid rgb(192, 192, 192);border-collapse:collapse;padding:8px 14px;margin:0px;white-space:nowrap;">类名数组，必须继承自Throwable</td>
+<td align="left" style="border:1px solid rgb(192, 192, 192);border-collapse:collapse;padding:8px 14px;margin:0px;white-space:nowrap;">不会导致事务回滚的异常类名字数组</td>
+
+</tr>
+
+</tbody>
+
+</table>
+<h4 style="font-size:14px;font-weight:bold;margin:10px 0px;padding:0px;color:rgb(51, 51, 51);">说明：</h4>
+<ul style="margin-left:30px;padding-left:0px;margin:0px;padding:0px;word-break:break-all;">
+<li style="list-style-type:disc;margin:0px;padding:0px;list-style:none;margin-bottom:1em;">value ：主要用来指定不同的事务管理器；主要用来满足在同一个系统中，存在不同的事务管理器。比如在Spring中，声明了两种事务管理器txManager1, txManager2.然后，用户可以根据这个参数来根据需要指定特定的txManager.</li>
+<li style="list-style-type:disc;margin:0px;padding:0px;list-style:none;margin-bottom:1em;">value 适用场景：在一个系统中，需要访问多个数据源或者多个数据库，则必然会配置多个事务管理器的</li>
+<li style="list-style-type:disc;margin:0px;padding:0px;list-style:none;margin-bottom:1em;">REQUIRED_NEW和NESTED两种不同的传播机制的区别</li>
+<li style="list-style-type:disc;margin:0px;padding:0px;list-style:none;margin-bottom:1em;">REQUIRED_NEW：内部的事务独立运行，在各自的作用域中，可以独立的回滚或者提交；而外部的事务将不受内部事务的回滚状态影响</li>
+<li style="list-style-type:disc;margin:0px;padding:0px;list-style:none;margin-bottom:1em;">ESTED的事务，基于单一的事务来管理，提供了多个保存点。这种多个保存点的机制允许内部事务的变更触发外部事务的回滚。而外部事务在混滚之后，仍能继续进行事务处理，即使部分操作已经被混滚。 由于这个设置基于JDBC的保存点，所以只能工作在JDBC的机制</li>
+<li style="list-style-type:disc;margin:0px;padding:0px;list-style:none;margin-bottom:1em;">rollbackFor ： 让受检查异常回滚；即让本来不应该回滚的进行回滚操作</li>
+<li style="list-style-type:disc;margin:0px;padding:0px;list-style:none;margin-bottom:1em;">noRollbackFor ：忽略非检查异常；即让本来应该回滚的不进行回滚操作 </li>
+
+</ul>
+<hr style="margin:0px;padding:0px;"/>
+<h2 style="font-size:21px;font-weight:bold;line-height:1.5;margin:10px 0px;padding:0px;"><a name="t7" style="margin:0px;padding:0px;"></a>spring事务回滚规则</h2>
+<ul style="margin-left:30px;padding-left:0px;margin:0px;padding:0px;word-break:break-all;">
+<li style="list-style-type:disc;margin:0px;padding:0px;list-style:none;margin-bottom:1em;">指示spring事务管理器回滚一个事务的推荐方法是在当前事务的上下文内抛出异常 <br style="margin:0px;padding:0px;"/>spring事务管理器会捕捉任何未处理的异常，然后依据规则决定是否回滚抛出异常的事务 <br style="margin:0px;padding:0px;"/>
+<ul style="margin-left:30px;padding-left:0px;margin:0px;padding:0px;word-break:break-all;">
+<li style="list-style-type:circle;margin:0px;padding:0px;list-style:none;margin-bottom:1em;">默认配置下，spring只有在抛出的异常为运行时unchecked异常时才回滚该事务，也就是抛出的异常为RuntimeException的子类(Errors也会导致事务回滚)，而抛出checked异常则不会导致事务回滚。</li>
+<li style="list-style-type:circle;margin:0px;padding:0px;list-style:none;margin-bottom:1em;">用 spring 事务管理器,由spring来负责数据库的打开,提交,回滚.默认遇到运行期例外(throw new RuntimeException(“注释”);)会回滚，即遇到不受检查（unchecked）的例外时回滚；而遇到需要捕获的例外(throw new Exception(“注释”);)不会回滚,即遇到受检查的例外（就是非运行时抛出的异常，编译器会检查到的异常叫受检查例外或说受检查异常）时，需我们指定方式来让事务回滚要想所有异常都回滚,要加上 @Transactional( rollbackFor={Exception.class,其它异常}) .如果让unchecked例外不回滚： @Transactional(notRollbackFor=RunTimeException.class)</li>
+
+</ul>
+
+</li>
+
+</ul>
+<hr style="margin:0px;padding:0px;"/>
+<h2 style="font-size:21px;font-weight:bold;line-height:1.5;margin:10px 0px;padding:0px;"><a name="t8" style="margin:0px;padding:0px;"></a>注意事项：</h2>
+<ul style="margin-left:30px;padding-left:0px;margin:0px;padding:0px;word-break:break-all;">
+<li style="list-style-type:disc;margin:0px;padding:0px;list-style:none;margin-bottom:1em;">
+<p style="margin:10px auto;text-indent:0px;padding:0px;">@Transactional 使用位置 类上方、方法上方 <br style="margin:0px;padding:0px;"/>Spring 建议不要在接口或者接口方法上使用该注解，因为这只有在使用基于接口的代理时它才会生效 <br style="margin:0px;padding:0px;"/>当作用于类上时，该类的所有 public 方法将都具有该类型的事务属性，同时，我们也可以在方法级别使用该标注来覆盖类级别的定义。</p>
+
+</li>
+<li style="list-style-type:disc;margin:0px;padding:0px;list-style:none;margin-bottom:1em;">
+<p style="margin:10px auto;text-indent:0px;padding:0px;">方法的访问权限为 public  <br style="margin:0px;padding:0px;"/>@Transactional 注解应该只被应用到 public 方法上，这是由 Spring AOP 的本质决定的。在 protected、private 或者默认可见性的方法上使用 @Transactional 注解，这将被忽略，也不会抛出任何异常</p>
+
+</li>
+<li style="list-style-type:disc;margin:0px;padding:0px;list-style:none;margin-bottom:1em;">
+<p style="margin:10px auto;text-indent:0px;padding:0px;">默认情况下，只有来自外部的方法调用才会被AOP代理捕获，也就是，类内部方法调用本类内部的其他方法并不会引起事务行为，即使被调用方法使用@Transactional注解进行修饰 <br style="margin:0px;padding:0px;"/>例如一：同一个类中方法，A方法未使用此标签，B使用了，C未使用，A 调用 B , B 调用 C ；则外部调用A之后，B的事务是不会起作用的 <br style="margin:0px;padding:0px;"/>例如二：若是有上层（按照 Controller层、Service层、DAO层的顺序）由Action 调用 Service 直接调用，发生异常会发生回滚；若间接调用，Action 调用 Service 中 的A 方法，A无@Transactional 注解，B有，A调用B，B的注解无效</p>
+
+</li>
+
+</ul>
+<hr style="margin:0px;padding:0px;"/>
+<h2 style="font-size:21px;font-weight:bold;line-height:1.5;margin:10px 0px;padding:0px;"><a name="t9" style="margin:0px;padding:0px;"></a>其他</h2>
+<ul style="margin-left:30px;padding-left:0px;margin:0px;padding:0px;word-break:break-all;">
+<li style="list-style-type:disc;margin:0px;padding:0px;list-style:none;margin-bottom:1em;">事务方法的嵌套调用会产生事务传播</li>
+<li style="list-style-type:disc;margin:0px;padding:0px;list-style:none;margin-bottom:1em;">spring 的事务管理是线程安全的</li>
+<li style="list-style-type:disc;margin:0px;padding:0px;list-style:none;margin-bottom:1em;">父类的声明的@Transactional会对子类的所有方法进行事务增强；子类覆盖重写父类方式可覆盖其@Transactional中的声明配置</li>
+<li style="list-style-type:disc;margin:0px;padding:0px;list-style:none;margin-bottom:1em;">类名上方使用@Transactional，类中方法可通过属性配置覆盖类上的@Transactional配置；比如：类上配置全局是可读写，可在某个方法上改为只读</li>
+
+</ul>
+<hr style="margin:0px;padding:0px;"/>
+<h2 style="font-size:21px;font-weight:bold;line-height:1.5;margin:10px 0px;padding:0px;"><a name="t10" style="margin:0px;padding:0px;"></a>参考资料</h2>
+<ul style="margin-left:30px;padding-left:0px;margin:0px;padding:0px;word-break:break-all;">
+<li style="list-style-type:disc;margin:0px;padding:0px;list-style:none;margin-bottom:1em;"><a href="https://www.cnblogs.com/yepei/p/4716112.html" rel="nofollow" style="margin:0px;padding:0px;color:rgb(100, 102, 179);text-decoration:underline;" target="_blank">spring的@Transactional注解详细用法</a></li>
+<li style="list-style-type:disc;margin:0px;padding:0px;list-style:none;margin-bottom:1em;"><a href="http://blog.csdn.net/blueheart20/article/details/44654007" rel="nofollow" style="margin:0px;padding:0px;color:rgb(100, 102, 179);text-decoration:underline;" target="_blank">Spring中@Transactional用法深度分析之一</a></li>
+<li style="list-style-type:disc;margin:0px;padding:0px;list-style:none;margin-bottom:1em;"><a href="http://blog.csdn.net/kinseygeek/article/details/54931710" rel="nofollow" style="margin:0px;padding:0px;color:rgb(100, 102, 179);text-decoration:underline;" target="_blank">@Transactional事务几点注意</a></li>
+<li style="list-style-type:disc;margin:0px;padding:0px;list-style:none;margin-bottom:1em;"><a href="https://www.cnblogs.com/caoyc/p/5632963.html" rel="nofollow" style="margin:0px;padding:0px;color:rgb(100, 102, 179);text-decoration:underline;" target="_blank">spring @Transactional注解参数详解</a></li>
+<li style="list-style-type:disc;margin:0px;padding:0px;list-style:none;margin-bottom:1em;"><a href="https://www.cnblogs.com/hjwublog/p/5626465.html" rel="nofollow" style="margin:0px;padding:0px;color:rgb(100, 102, 179);text-decoration:underline;" target="_blank">深入分析@Transactional的用法</a></li>
+<li style="list-style-type:disc;margin:0px;padding:0px;list-style:none;margin-bottom:1em;"><a href="http://robinsoncrusoe.iteye.com/blog/825531" rel="nofollow" style="margin:0px;padding:0px;color:rgb(100, 102, 179);text-decoration:underline;" target="_blank">Spring @Transactional （一）</a></li>
+<li style="list-style-type:disc;margin:0px;padding:0px;list-style:none;margin-bottom:1em;"><a href="http://www.importnew.com/12300.html" rel="nofollow" style="margin:0px;padding:0px;color:rgb(100, 102, 179);text-decoration:underline;" target="_blank">Spring @Transactional工作原理</a></li>
+<li style="list-style-type:disc;margin:0px;padding:0px;list-style:none;margin-bottom:1em;"><a href="http://blog.csdn.net/dslztx/article/details/46636079" rel="nofollow" style="margin:0px;padding:0px;color:rgb(100, 102, 179);text-decoration:underline;" target="_blank">@Transactional注解工作原理</a></li>
+<li style="list-style-type:disc;margin:0px;padding:0px;list-style:none;margin-bottom:1em;"><a href="https://baike.baidu.com/item/%E6%95%B0%E6%8D%AE%E5%BA%93%E7%AE%A1%E7%90%86%E7%B3%BB%E7%BB%9F/1239101?fr=aladdin&amp;fromid=1239170&amp;fromtitle=dbms" rel="nofollow" style="margin:0px;padding:0px;color:rgb(100, 102, 179);text-decoration:underline;" target="_blank">DBMS</a></li>
+<li style="list-style-type:disc;margin:0px;padding:0px;list-style:none;margin-bottom:1em;"><a href="https://baike.baidu.com/item/c3p0/3719378?fr=aladdin" rel="nofollow" style="margin:0px;padding:0px;color:rgb(100, 102, 179);text-decoration:underline;" target="_blank">c3p0</a></li>
+<li style="list-style-type:disc;margin:0px;padding:0px;list-style:none;margin-bottom:1em;"><a href="https://baike.baidu.com/item/JNDI/3792442?fr=aladdin" rel="nofollow" style="margin:0px;padding:0px;color:rgb(100, 102, 179);text-decoration:underline;" target="_blank">JNDI</a></li>
+
+</ul>
+
+</div></div></div></div></div></div></div></div></div></div></div></div></div></div><br/></div></span>
+</div></body></html> 

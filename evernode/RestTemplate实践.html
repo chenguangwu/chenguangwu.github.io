@@ -1,0 +1,931 @@
+<html>
+<head>
+  <title>RestTemplate实践</title>
+  <basefont face="微软雅黑" size="2" />
+  <meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+  <meta name="exporter-version" content="YXBJ Windows/601935 (zh-CN, DDL); Windows/10.0.0 (Win64); EDAMVersion=V2;"/>
+  <style>
+    body, td {
+      font-family: 微软雅黑;
+      font-size: 10pt;
+    }
+  </style>
+</head>
+<body>
+<a name="12653"/>
+<h1>RestTemplate实践</h1>
+<div>
+<table bgcolor="#D4DDE5" border="0">
+<tr><td><b>创建时间：</b></td><td><i>2019/7/24 16:05</i></td></tr>
+<tr><td><b>来源：</b></td><td><a href="https://www.jianshu.com/p/0fd5f3f64137"><i>https://www.jianshu.com/p/0fd5f3f64137</i></a></td></tr>
+</table>
+</div>
+<br/>
+
+<div><span><div style="-evernote-webclip:true"><br/><div style="font-size: 16px; display: inline-block;"><div style="font-family:sans-serif;text-size-adjust:100%;box-sizing:border-box;font-size:10px;-webkit-tap-highlight-color:transparent;"><div style="box-sizing:border-box;font-family:-apple-system, &quot;SF UI Text&quot;, Arial, &quot;PingFang SC&quot;, &quot;Hiragino Sans GB&quot;, &quot;Microsoft YaHei&quot;, &quot;WenQuanYi Micro Hei&quot;, sans-serif;font-size:17px;line-height:1.42857;background-color:rgb(255, 255, 255);min-width:768px;color:rgb(51, 51, 51);"><div style="box-sizing:border-box;"><div style="box-sizing:border-box;"><div style="box-sizing:border-box;"><div style="box-sizing:border-box;color:rgb(47, 47, 47);font-size:16px;font-weight:400;line-height:1.7;word-break:break-word;"><div style="box-sizing:border-box;">
+            <h1 style="font-size:26px;margin:0px 0px 15px;box-sizing:border-box;font-family:inherit;font-weight:700;line-height:1.7;color:rgb(47, 47, 47);text-rendering:optimizelegibility;margin-top:20px;margin-bottom:10px;">一、RestTemplate是什么</h1>
+<blockquote style="box-sizing:border-box;padding:20px;margin:0px 0px 20px;font-size:16px;border-left:6px solid rgb(180, 180, 180);margin-bottom:25px;background-color:rgb(247, 247, 247);font-weight:400;line-height:30px;word-break:break-word;">
+<p style="box-sizing:border-box;margin:0px 0px 25px;word-break:break-word;font-size:16px;font-weight:400;line-height:1.7;">环境约束：</p>
+<p style="box-sizing:border-box;margin:0px 0px 25px;margin-bottom:0px;word-break:break-word;font-size:16px;font-weight:400;line-height:1.7;">spring-web-4.3.9.RELEASE</p>
+</blockquote>
+<p style="box-sizing:border-box;margin:0px 0px 25px;word-break:break-word;"><strong style="font-weight:700;box-sizing:border-box;">Spring文档：</strong> <a href="https://docs.spring.io/spring/docs/4.3.9.RELEASE/spring-framework-reference/html/remoting.html#rest-client-access" rel="nofollow" style="background-color:transparent;box-sizing:border-box;color:rgb(49, 148, 208);text-decoration:none;cursor:pointer;" target="_blank">https://docs.spring.io/spring/docs/4.3.9.RELEASE/spring-framework-reference/html/remoting.html#rest-client-access</a></p>
+<blockquote style="box-sizing:border-box;padding:20px;margin:0px 0px 20px;font-size:16px;border-left:6px solid rgb(180, 180, 180);margin-bottom:25px;background-color:rgb(247, 247, 247);font-weight:400;line-height:30px;word-break:break-word;">
+<p style="box-sizing:border-box;margin:0px 0px 25px;word-break:break-word;font-size:16px;font-weight:400;line-height:1.7;">The <code style="font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;font-size:13px;box-sizing:border-box;color:rgb(199, 37, 78);background-color:rgb(246, 246, 246);border-radius:4px;padding:2px 4px;border:none;white-space:pre-wrap;vertical-align:middle;">RestTemplate</code> is the core class for client-side access to RESTful services. It is conceptually similar to other template classes in Spring, such as <code style="font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;font-size:13px;box-sizing:border-box;color:rgb(199, 37, 78);background-color:rgb(246, 246, 246);border-radius:4px;padding:2px 4px;border:none;white-space:pre-wrap;vertical-align:middle;">JdbcTemplate</code> and<code style="font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;font-size:13px;box-sizing:border-box;color:rgb(199, 37, 78);background-color:rgb(246, 246, 246);border-radius:4px;padding:2px 4px;border:none;white-space:pre-wrap;vertical-align:middle;">JmsTemplate</code> and other template classes found in other Spring portfolio projects.<code style="font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;font-size:13px;box-sizing:border-box;color:rgb(199, 37, 78);background-color:rgb(246, 246, 246);border-radius:4px;padding:2px 4px;border:none;white-space:pre-wrap;vertical-align:middle;">RestTemplate’s behavior is customized by providing callback methods and configuring the HttpMessageConverter</code> used to marshal objects into the HTTP request body and to unmarshal any response back into an object. As it is common to use XML as a message format, Spring provides a <code style="font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;font-size:13px;box-sizing:border-box;color:rgb(199, 37, 78);background-color:rgb(246, 246, 246);border-radius:4px;padding:2px 4px;border:none;white-space:pre-wrap;vertical-align:middle;">MarshallingHttpMessageConverter</code> that uses the Object-to-XML framework that is part of the <code style="font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;font-size:13px;box-sizing:border-box;color:rgb(199, 37, 78);background-color:rgb(246, 246, 246);border-radius:4px;padding:2px 4px;border:none;white-space:pre-wrap;vertical-align:middle;">org.springframework.oxm</code> package. This gives you a wide range of choices of XML to Object mapping technologies to choose from.</p>
+<p style="box-sizing:border-box;margin:0px 0px 25px;word-break:break-word;font-size:16px;font-weight:400;line-height:1.7;">This section describes how to use the <code style="font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;font-size:13px;box-sizing:border-box;color:rgb(199, 37, 78);background-color:rgb(246, 246, 246);border-radius:4px;padding:2px 4px;border:none;white-space:pre-wrap;vertical-align:middle;">RestTemplate</code> and its associated <code style="font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;font-size:13px;box-sizing:border-box;color:rgb(199, 37, 78);background-color:rgb(246, 246, 246);border-radius:4px;padding:2px 4px;border:none;white-space:pre-wrap;vertical-align:middle;">HttpMessageConverters</code>.</p>
+<ul style="box-sizing:border-box;margin-bottom:0px;word-break:break-word;padding:0px;margin:-5px 0px 20px 20px;margin-top:0px;padding-left:0px;">
+<li style="box-sizing:border-box;line-height:30px;">
+<code style="font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;font-size:13px;box-sizing:border-box;color:rgb(199, 37, 78);background-color:rgb(246, 246, 246);border-radius:4px;padding:2px 4px;border:none;white-space:pre-wrap;vertical-align:middle;">RestTemplate</code>是Spring的通过客户端访问RESTful服务端的核心类，和<code style="font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;font-size:13px;box-sizing:border-box;color:rgb(199, 37, 78);background-color:rgb(246, 246, 246);border-radius:4px;padding:2px 4px;border:none;white-space:pre-wrap;vertical-align:middle;">JdbcTemplate</code>、<code style="font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;font-size:13px;box-sizing:border-box;color:rgb(199, 37, 78);background-color:rgb(246, 246, 246);border-radius:4px;padding:2px 4px;border:none;white-space:pre-wrap;vertical-align:middle;">JmsTemplate</code>概念相似，都是Spring提供的模板类</li>
+<li style="box-sizing:border-box;line-height:30px;margin-bottom:0px;">
+<code style="font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;font-size:13px;box-sizing:border-box;color:rgb(199, 37, 78);background-color:rgb(246, 246, 246);border-radius:4px;padding:2px 4px;border:none;white-space:pre-wrap;vertical-align:middle;">RestTemplate</code>的行为可以通过callback回调方法和配置<code style="font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;font-size:13px;box-sizing:border-box;color:rgb(199, 37, 78);background-color:rgb(246, 246, 246);border-radius:4px;padding:2px 4px;border:none;white-space:pre-wrap;vertical-align:middle;">HttpMessageConverter</code> 来定制，用来把对象封装到HTTP请求体，将响应信息放到一个对象中</li>
+</ul>
+</blockquote>
+<blockquote style="box-sizing:border-box;padding:20px;margin:0px 0px 20px;font-size:16px;border-left:6px solid rgb(180, 180, 180);margin-bottom:25px;background-color:rgb(247, 247, 247);font-weight:400;line-height:30px;word-break:break-word;">
+<p style="box-sizing:border-box;margin:0px 0px 25px;word-break:break-word;font-size:16px;font-weight:400;line-height:1.7;">Invoking RESTful services in Java is typically done using a helper class such as Apache HttpComponents <code style="font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;font-size:13px;box-sizing:border-box;color:rgb(199, 37, 78);background-color:rgb(246, 246, 246);border-radius:4px;padding:2px 4px;border:none;white-space:pre-wrap;vertical-align:middle;">HttpClient</code>. For common REST operations this approach is too low level as shown below.</p>
+<p style="box-sizing:border-box;margin:0px 0px 25px;margin-bottom:0px;word-break:break-word;font-size:16px;font-weight:400;line-height:1.7;">java中调用RESTful服务很典型的是使用<code style="font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;font-size:13px;box-sizing:border-box;color:rgb(199, 37, 78);background-color:rgb(246, 246, 246);border-radius:4px;padding:2px 4px;border:none;white-space:pre-wrap;vertical-align:middle;">HttpClient</code>，对于常用的REST操作，这些方法属于低等级的操作</p>
+</blockquote>
+<pre style="overflow:auto;font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;font-size:13px;box-sizing:border-box;display:block;padding:15px;margin:0px 0px 10px;line-height:1.42857;word-break:break-word;overflow-wrap:normal;color:rgb(171, 178, 191);border:1px solid rgb(204, 204, 204);border-radius:4px;margin-bottom:20px;white-space:pre;overflow-x:auto;background:rgb(40, 44, 52);background-color:rgb(245, 245, 245);"><code style="font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;font-size:13px;box-sizing:border-box;color:inherit;background-color:transparent;border-radius:0px;padding:0px;white-space:pre;border:none;vertical-align:middle;">String uri = <span style="box-sizing:border-box;color:rgb(152, 195, 121);">&quot;http://example.com/hotels/1/bookings&quot;</span>;
+
+PostMethod post = <span style="box-sizing:border-box;color:rgb(198, 120, 221);">new</span> PostMethod(uri);
+String request = <span style="box-sizing:border-box;color:rgb(146, 146, 146);font-style:normal;">// create booking request content</span>
+post.setRequestEntity(<span style="box-sizing:border-box;color:rgb(198, 120, 221);">new</span> StringRequestEntity(request));
+
+httpClient.executeMethod(post);
+
+<span style="box-sizing:border-box;color:rgb(198, 120, 221);">if</span> (HttpStatus.SC_CREATED == post.getStatusCode()) {
+    Header location = post.getRequestHeader(<span style="box-sizing:border-box;color:rgb(152, 195, 121);">&quot;Location&quot;</span>);
+    <span style="box-sizing:border-box;color:rgb(198, 120, 221);">if</span> (location != <span style="box-sizing:border-box;color:rgb(198, 120, 221);">null</span>) {
+        System.out.println(<span style="box-sizing:border-box;color:rgb(152, 195, 121);">&quot;Created new booking at :&quot;</span> + location.getValue());
+    }
+}
+</code></pre>
+<p style="box-sizing:border-box;margin:0px 0px 25px;word-break:break-word;">使用<code style="font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;font-size:13px;box-sizing:border-box;color:rgb(199, 37, 78);background-color:rgb(246, 246, 246);border-radius:4px;padding:2px 4px;border:none;white-space:pre-wrap;vertical-align:middle;">HttpClient</code>我们需要自己封装Post请求，再根据响应的状态码判断从响应中获取header和body，有时候还需要自己做json转换</p>
+<blockquote style="box-sizing:border-box;padding:20px;margin:0px 0px 20px;font-size:16px;border-left:6px solid rgb(180, 180, 180);margin-bottom:25px;background-color:rgb(247, 247, 247);font-weight:400;line-height:30px;word-break:break-word;">
+<p style="box-sizing:border-box;margin:0px 0px 25px;word-break:break-word;font-size:16px;font-weight:400;line-height:1.7;">RestTemplate provides higher level methods that correspond to each of the six main HTTP methods that make invoking many RESTful services a one-liner and enforce REST best practices.</p>
+<p style="box-sizing:border-box;margin:0px 0px 25px;margin-bottom:0px;word-break:break-word;font-size:16px;font-weight:400;line-height:1.7;">RestTemplate提供更高等级的符合HTTP的6中主要方法，可以很简单的调用RESTful服务</p>
+</blockquote>
+<h1 style="font-size:26px;margin:0px 0px 15px;box-sizing:border-box;font-family:inherit;font-weight:700;line-height:1.7;color:rgb(47, 47, 47);text-rendering:optimizelegibility;margin-top:20px;margin-bottom:10px;">二、创建RestTemplate</h1>
+<p style="box-sizing:border-box;margin:0px 0px 25px;word-break:break-word;">创建RestTemplate很简单，只需要<code style="font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;font-size:13px;box-sizing:border-box;color:rgb(199, 37, 78);background-color:rgb(246, 246, 246);border-radius:4px;padding:2px 4px;border:none;white-space:pre-wrap;vertical-align:middle;">new RestTemplate()</code>，如果使用Spring架构，将创建的RestTemplate实例通过XML或注解的方式注册到Spring容器中即可</p>
+<p style="box-sizing:border-box;margin:0px 0px 25px;word-break:break-word;">举例：</p>
+<pre style="overflow:auto;font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;font-size:13px;box-sizing:border-box;display:block;padding:15px;margin:0px 0px 10px;line-height:1.42857;word-break:break-word;overflow-wrap:normal;color:rgb(171, 178, 191);border:1px solid rgb(204, 204, 204);border-radius:4px;margin-bottom:20px;white-space:pre;overflow-x:auto;background:rgb(40, 44, 52);background-color:rgb(245, 245, 245);"><code style="font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;font-size:13px;box-sizing:border-box;color:inherit;background-color:transparent;border-radius:0px;padding:0px;white-space:pre;border:none;vertical-align:middle;"><span style="box-sizing:border-box;color:rgb(97, 174, 238);">@Bean</span>
+<span style="box-sizing:border-box;"><span style="box-sizing:border-box;color:rgb(198, 120, 221);">public</span> RestTemplate <span style="box-sizing:border-box;color:rgb(97, 174, 238);">restTemplate</span><span style="box-sizing:border-box;">()</span> </span>{
+    <span style="box-sizing:border-box;color:rgb(198, 120, 221);">return</span> <span style="box-sizing:border-box;color:rgb(198, 120, 221);">new</span> RestTemplate();
+}
+</code></pre>
+<h2 style="box-sizing:border-box;font-family:inherit;font-weight:700;line-height:1.7;color:rgb(47, 47, 47);font-size:24px;margin:0px 0px 15px;text-rendering:optimizelegibility;margin-top:20px;margin-bottom:10px;">RestTemplate构造方法</h2>
+<p style="box-sizing:border-box;margin:0px 0px 25px;word-break:break-word;">RestTemplate有3个构造方法，一个无参构造，两个有参构造</p>
+<p style="box-sizing:border-box;margin:0px 0px 25px;word-break:break-word;"><strong style="font-weight:700;box-sizing:border-box;">RestTemplate无参构造</strong></p>
+<pre style="overflow:auto;font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;font-size:13px;box-sizing:border-box;display:block;padding:15px;margin:0px 0px 10px;line-height:1.42857;word-break:break-word;overflow-wrap:normal;color:rgb(171, 178, 191);border:1px solid rgb(204, 204, 204);border-radius:4px;margin-bottom:20px;white-space:pre;overflow-x:auto;background:rgb(40, 44, 52);background-color:rgb(245, 245, 245);"><code style="font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;font-size:13px;box-sizing:border-box;color:inherit;background-color:transparent;border-radius:0px;padding:0px;white-space:pre;border:none;vertical-align:middle;"><span style="box-sizing:border-box;color:rgb(146, 146, 146);font-style:normal;">/**
+ * Create a new instance of the {<span style="box-sizing:border-box;color:rgb(198, 120, 221);">@link</span> RestTemplate} using default settings.
+ * Default {<span style="box-sizing:border-box;color:rgb(198, 120, 221);">@link</span> HttpMessageConverter}s are initialized.
+ * 使用默认配置创建一个RestTemplate实例
+ * 默认的HttpMessageConverter集合被初始化
+ */</span>
+<span style="box-sizing:border-box;"><span style="box-sizing:border-box;color:rgb(198, 120, 221);">public</span> <span style="box-sizing:border-box;color:rgb(97, 174, 238);">RestTemplate</span><span style="box-sizing:border-box;">()</span> </span>{
+    <span style="box-sizing:border-box;color:rgb(198, 120, 221);">this</span>.messageConverters.add(<span style="box-sizing:border-box;color:rgb(198, 120, 221);">new</span> ByteArrayHttpMessageConverter());
+    <span style="box-sizing:border-box;color:rgb(198, 120, 221);">this</span>.messageConverters.add(<span style="box-sizing:border-box;color:rgb(198, 120, 221);">new</span> StringHttpMessageConverter());
+    <span style="box-sizing:border-box;color:rgb(198, 120, 221);">this</span>.messageConverters.add(<span style="box-sizing:border-box;color:rgb(198, 120, 221);">new</span> ResourceHttpMessageConverter());
+    <span style="box-sizing:border-box;color:rgb(198, 120, 221);">this</span>.messageConverters.add(<span style="box-sizing:border-box;color:rgb(198, 120, 221);">new</span> SourceHttpMessageConverter&lt;Source&gt;());
+    <span style="box-sizing:border-box;color:rgb(198, 120, 221);">this</span>.messageConverters.add(<span style="box-sizing:border-box;color:rgb(198, 120, 221);">new</span> AllEncompassingFormHttpMessageConverter());
+
+    <span style="box-sizing:border-box;color:rgb(198, 120, 221);">if</span> (romePresent) {
+        <span style="box-sizing:border-box;color:rgb(198, 120, 221);">this</span>.messageConverters.add(<span style="box-sizing:border-box;color:rgb(198, 120, 221);">new</span> AtomFeedHttpMessageConverter());
+        <span style="box-sizing:border-box;color:rgb(198, 120, 221);">this</span>.messageConverters.add(<span style="box-sizing:border-box;color:rgb(198, 120, 221);">new</span> RssChannelHttpMessageConverter());
+    }
+
+    <span style="box-sizing:border-box;color:rgb(198, 120, 221);">if</span> (jackson2XmlPresent) {
+        <span style="box-sizing:border-box;color:rgb(198, 120, 221);">this</span>.messageConverters.add(<span style="box-sizing:border-box;color:rgb(198, 120, 221);">new</span> MappingJackson2XmlHttpMessageConverter());
+    }
+    <span style="box-sizing:border-box;color:rgb(198, 120, 221);">else</span> <span style="box-sizing:border-box;color:rgb(198, 120, 221);">if</span> (jaxb2Present) {
+        <span style="box-sizing:border-box;color:rgb(198, 120, 221);">this</span>.messageConverters.add(<span style="box-sizing:border-box;color:rgb(198, 120, 221);">new</span> Jaxb2RootElementHttpMessageConverter());
+    }
+
+    <span style="box-sizing:border-box;color:rgb(146, 146, 146);font-style:normal;">/**
+     * 如果类路径下包含com.fasterxml.jackson.databind.ObjectMapper 和 com.fasterxml.jackson.core.JsonGenerator
+     * 使用jackson做http请求、响应的json转换
+     */</span>
+    <span style="box-sizing:border-box;color:rgb(198, 120, 221);">if</span> (jackson2Present) {
+        <span style="box-sizing:border-box;color:rgb(198, 120, 221);">this</span>.messageConverters.add(<span style="box-sizing:border-box;color:rgb(198, 120, 221);">new</span> MappingJackson2HttpMessageConverter());
+    }
+    <span style="box-sizing:border-box;color:rgb(198, 120, 221);">else</span> <span style="box-sizing:border-box;color:rgb(198, 120, 221);">if</span> (gsonPresent) {
+        <span style="box-sizing:border-box;color:rgb(198, 120, 221);">this</span>.messageConverters.add(<span style="box-sizing:border-box;color:rgb(198, 120, 221);">new</span> GsonHttpMessageConverter());
+    }
+}
+</code></pre>
+<p style="box-sizing:border-box;margin:0px 0px 25px;word-break:break-word;"><strong style="font-weight:700;box-sizing:border-box;">参数为ClientHttpRequestFactory的构造</strong></p>
+<pre style="overflow:auto;font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;font-size:13px;box-sizing:border-box;display:block;padding:15px;margin:0px 0px 10px;line-height:1.42857;word-break:break-word;overflow-wrap:normal;color:rgb(171, 178, 191);border:1px solid rgb(204, 204, 204);border-radius:4px;margin-bottom:20px;white-space:pre;overflow-x:auto;background:rgb(40, 44, 52);background-color:rgb(245, 245, 245);"><code style="font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;font-size:13px;box-sizing:border-box;color:inherit;background-color:transparent;border-radius:0px;padding:0px;white-space:pre;border:none;vertical-align:middle;"><span style="box-sizing:border-box;color:rgb(146, 146, 146);font-style:normal;">/**
+ * Create a new instance of the {<span style="box-sizing:border-box;color:rgb(198, 120, 221);">@link</span> RestTemplate} based on the given {<span style="box-sizing:border-box;color:rgb(198, 120, 221);">@link</span> ClientHttpRequestFactory}.
+ * <span style="box-sizing:border-box;color:rgb(198, 120, 221);">@param</span> requestFactory HTTP request factory to use
+ * <span style="box-sizing:border-box;color:rgb(198, 120, 221);">@see</span> org.springframework.http.client.SimpleClientHttpRequestFactory
+ * <span style="box-sizing:border-box;color:rgb(198, 120, 221);">@see</span> org.springframework.http.client.HttpComponentsClientHttpRequestFactory
+ * 使用指定的ClientHttpRequestFactory创建一个RestTemplate实例
+ * requestFactory是用于创建HTTP请求的工厂，默认的实现有
+ * SimpleClientHttpRequestFactory、HttpComponentsClientHttpRequestFactory
+ * 如果没有设置默认是SimpleClientHttpRequestFactory
+ */</span>
+<span style="box-sizing:border-box;"><span style="box-sizing:border-box;color:rgb(198, 120, 221);">public</span> <span style="box-sizing:border-box;color:rgb(97, 174, 238);">RestTemplate</span><span style="box-sizing:border-box;">(ClientHttpRequestFactory requestFactory)</span> </span>{
+    <span style="box-sizing:border-box;color:rgb(198, 120, 221);">this</span>();  <span style="box-sizing:border-box;color:rgb(146, 146, 146);font-style:normal;">//也会调用无参构造初始化默认的messageConverters</span>
+    setRequestFactory(requestFactory);
+}
+</code></pre>
+<p style="box-sizing:border-box;margin:0px 0px 25px;word-break:break-word;"><strong style="font-weight:700;box-sizing:border-box;">参数为messageConverters的构造</strong></p>
+<pre style="overflow:auto;font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;font-size:13px;box-sizing:border-box;display:block;padding:15px;margin:0px 0px 10px;line-height:1.42857;word-break:break-word;overflow-wrap:normal;color:rgb(171, 178, 191);border:1px solid rgb(204, 204, 204);border-radius:4px;margin-bottom:20px;white-space:pre;overflow-x:auto;background:rgb(40, 44, 52);background-color:rgb(245, 245, 245);"><code style="font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;font-size:13px;box-sizing:border-box;color:inherit;background-color:transparent;border-radius:0px;padding:0px;white-space:pre;border:none;vertical-align:middle;"><span style="box-sizing:border-box;color:rgb(146, 146, 146);font-style:normal;">/**
+ * Create a new instance of the {<span style="box-sizing:border-box;color:rgb(198, 120, 221);">@link</span> RestTemplate} using the given list of
+ * {<span style="box-sizing:border-box;color:rgb(198, 120, 221);">@link</span> HttpMessageConverter} to use
+ * <span style="box-sizing:border-box;color:rgb(198, 120, 221);">@param</span> messageConverters the list of {<span style="box-sizing:border-box;color:rgb(198, 120, 221);">@link</span> HttpMessageConverter} to use
+ * <span style="box-sizing:border-box;color:rgb(198, 120, 221);">@since</span> 3.2.7
+ * 传入自定义的HttpMessageConverter集合，并赋值给messageConverters，之后使用自定义的HttpMessageConverter
+ */</span>
+<span style="box-sizing:border-box;"><span style="box-sizing:border-box;color:rgb(198, 120, 221);">public</span> <span style="box-sizing:border-box;color:rgb(97, 174, 238);">RestTemplate</span><span style="box-sizing:border-box;">(List&lt;HttpMessageConverter&lt;?&gt;&gt; messageConverters)</span> </span>{
+    Assert.notEmpty(messageConverters, <span style="box-sizing:border-box;color:rgb(152, 195, 121);">&quot;At least one HttpMessageConverter required&quot;</span>);
+    <span style="box-sizing:border-box;color:rgb(198, 120, 221);">this</span>.messageConverters.addAll(messageConverters);
+}
+</code></pre>
+<h1 style="font-size:26px;margin:0px 0px 15px;box-sizing:border-box;font-family:inherit;font-weight:700;line-height:1.7;color:rgb(47, 47, 47);text-rendering:optimizelegibility;margin-top:20px;margin-bottom:10px;">三、RestTemplate API使用</h1>
+<p style="box-sizing:border-box;margin:0px 0px 25px;word-break:break-word;"><a href="https://docs.spring.io/spring-framework/docs/4.3.9.RELEASE/javadoc-api/org/springframework/web/client/RestTemplate.html" rel="nofollow" style="background-color:transparent;box-sizing:border-box;color:rgb(49, 148, 208);text-decoration:none;cursor:pointer;" target="_blank">RestTemplate 4.3.9.RELEASE版本 API</a></p>
+<table style="font-size:inherit;font-weight:inherit;font-style:inherit;font-variant:inherit;border-collapse:collapse;border-spacing:0px;box-sizing:border-box;background-color:transparent;width:100%;margin-bottom:20px;border-top:1px solid rgb(221, 221, 221);border-right:1px solid rgb(221, 221, 221);border-bottom:1px solid rgb(221, 221, 221);border-image:initial;border-left:none;word-break:normal;">
+<thead style="box-sizing:border-box;">
+<tr style="box-sizing:border-box;">
+<th style="padding:8px;box-sizing:border-box;text-align:center;vertical-align:middle;border:1px solid rgb(221, 221, 221);line-height:20px;font-weight:700;">HTTP Method</th>
+<th style="padding:8px;box-sizing:border-box;text-align:inherit;vertical-align:middle;border:1px solid rgb(221, 221, 221);line-height:20px;font-weight:700;">RestTemplate Method</th>
+</tr>
+</thead>
+<tbody style="box-sizing:border-box;">
+<tr style="box-sizing:border-box;">
+<td style="padding:8px;box-sizing:border-box;border:1px solid rgb(221, 221, 221);line-height:20px;vertical-align:middle;text-align:center;">DELETE</td>
+<td style="padding:8px;box-sizing:border-box;border:1px solid rgb(221, 221, 221);line-height:20px;vertical-align:middle;">void   delete(String url, Object... uriVariables) &lt;br /&gt; void   delete(String url, Map&lt;String,?&gt; uriVariables)&lt;br /&gt;void   delete(URI url)</td>
+</tr>
+<tr style="box-sizing:border-box;background-color:rgba(181, 181, 181, 0.1);">
+<td style="padding:8px;box-sizing:border-box;border:1px solid rgb(221, 221, 221);line-height:20px;vertical-align:middle;text-align:center;">GET</td>
+<td style="padding:8px;box-sizing:border-box;border:1px solid rgb(221, 221, 221);line-height:20px;vertical-align:middle;">&lt;T&gt; T   getForObject(String url, Class&lt;T&gt; responseType, Object... uriVariables)&lt;br /&gt;&lt;T&gt; T   getForObject(String url, Class&lt;T&gt; responseType, Map&lt;String,?&gt; uriVariables)&lt;br /&gt;&lt;T&gt; T   getForObject(URI url, Class&lt;T&gt; responseType)&lt;br /&gt;&lt;br /&gt;&lt;T&gt; ResponseEntity&lt;T&gt;  getForEntity(String url, Class&lt;T&gt; responseType, Object... uriVariables)&lt;br /&gt;&lt;T&gt; ResponseEntity&lt;T&gt;  getForEntity(String url, Class&lt;T&gt; responseType, Map&lt;String,?&gt; uriVariables)&lt;br /&gt;&lt;T&gt; ResponseEntity&lt;T&gt;  getForEntity(URI url, Class&lt;T&gt; responseType)</td>
+</tr>
+<tr style="box-sizing:border-box;">
+<td style="padding:8px;box-sizing:border-box;border:1px solid rgb(221, 221, 221);line-height:20px;vertical-align:middle;text-align:center;">HEAD</td>
+<td style="padding:8px;box-sizing:border-box;border:1px solid rgb(221, 221, 221);line-height:20px;vertical-align:middle;">HttpHeaders   headForHeaders(String url, Object... uriVariables)&lt;br /&gt;HttpHeaders   headForHeaders(String url, Map&lt;String,?&gt; uriVariables)&lt;br /&gt;HttpHeaders   headForHeaders(URI url)</td>
+</tr>
+<tr style="box-sizing:border-box;background-color:rgba(181, 181, 181, 0.1);">
+<td style="padding:8px;box-sizing:border-box;border:1px solid rgb(221, 221, 221);line-height:20px;vertical-align:middle;text-align:center;">OPTIONS</td>
+<td style="padding:8px;box-sizing:border-box;border:1px solid rgb(221, 221, 221);line-height:20px;vertical-align:middle;">Set&lt;HttpMethod&gt;  optionsForAllow(String url, Object... uriVariables)&lt;br /&gt;Set&lt;HttpMethod&gt;  optionsForAllow(String url, Map&lt;String,?&gt; uriVariables)&lt;br /&gt;Set&lt;HttpMethod&gt;  optionsForAllow(URI url)</td>
+</tr>
+<tr style="box-sizing:border-box;">
+<td style="padding:8px;box-sizing:border-box;border:1px solid rgb(221, 221, 221);line-height:20px;vertical-align:middle;text-align:center;">POST</td>
+<td style="padding:8px;box-sizing:border-box;border:1px solid rgb(221, 221, 221);line-height:20px;vertical-align:middle;">&lt;T&gt; T  postForObject(String url, Object request, Class&lt;T&gt; responseType, Object... uriVariables)&lt;br /&gt;&lt;T&gt; T  postForObject(String url, Object request, Class&lt;T&gt; responseType, Map&lt;String,?&gt; uriVariables)&lt;br /&gt;&lt;T&gt; T  postForObject(URI url, Object request, Class&lt;T&gt; responseType)&lt;br /&gt;&lt;br /&gt;&lt;T&gt; ResponseEntity&lt;T&gt;  postForEntity(String url, Object request, Class&lt;T&gt; responseType, Object... uriVariables)&lt;br /&gt;&lt;T&gt; ResponseEntity&lt;T&gt;  postForEntity(String url, Object request, Class&lt;T&gt; responseType, Map&lt;String,?&gt; uriVariables)&lt;br /&gt;&lt;T&gt; ResponseEntity&lt;T&gt;  postForEntity(URI url, Object request, Class&lt;T&gt; responseType)</td>
+</tr>
+<tr style="box-sizing:border-box;background-color:rgba(181, 181, 181, 0.1);">
+<td style="padding:8px;box-sizing:border-box;border:1px solid rgb(221, 221, 221);line-height:20px;vertical-align:middle;text-align:center;">PUT</td>
+<td style="padding:8px;box-sizing:border-box;border:1px solid rgb(221, 221, 221);line-height:20px;vertical-align:middle;">void   put(String url, Object request, Object... uriVariables)&lt;br /&gt;void   put(String url, Object request, Map&lt;String,?&gt; uriVariables)&lt;br /&gt;void   put(URI url, Object request)</td>
+</tr>
+<tr style="box-sizing:border-box;">
+<td style="padding:8px;box-sizing:border-box;border:1px solid rgb(221, 221, 221);line-height:20px;vertical-align:middle;text-align:center;">PATCH and others</td>
+<td style="padding:8px;box-sizing:border-box;border:1px solid rgb(221, 221, 221);line-height:20px;vertical-align:middle;">exchange()、execute()</td>
+</tr>
+</tbody>
+</table>
+<ul style="box-sizing:border-box;word-break:break-word;padding:0px;margin:-5px 0px 20px 20px;margin-top:0px;margin-bottom:10px;padding-left:0px;">
+<li style="box-sizing:border-box;line-height:30px;">
+<p style="box-sizing:border-box;margin:0px 0px 25px;overflow:visible;word-break:break-word;">RestTemplate的方法名遵循一定的命名规范，第一部分表示用哪种HTTP方法调用（get，post），第二部分表示返回类型</p>
+<ul style="box-sizing:border-box;word-break:break-word;padding:0px;margin:-5px 0px 20px 20px;margin-top:15px;margin-bottom:0px;padding-left:0px;">
+<li style="box-sizing:border-box;line-height:30px;">getForObject() -- 发送GET请求，将HTTP response转换成一个指定的object对象</li>
+<li style="box-sizing:border-box;line-height:30px;">postForEntity() -- 发送POST请求，将给定的对象封装到HTTP请求体，返回类型是一个HttpEntity对象</li>
+</ul>
+</li>
+<li style="box-sizing:border-box;line-height:30px;">
+<p style="box-sizing:border-box;margin:0px 0px 25px;overflow:visible;word-break:break-word;">每个HTTP方法对应的RestTemplate方法都有3种。其中2种的url参数为字符串，URI参数变量分别是Object数组和Map，第3种使用URI类型作为参数</p>
+<ul style="box-sizing:border-box;word-break:break-word;padding:0px;margin:-5px 0px 20px 20px;margin-top:15px;margin-bottom:0px;padding-left:0px;">
+<li style="box-sizing:border-box;line-height:30px;">
+<p style="box-sizing:border-box;margin:0px 0px 25px;overflow:visible;word-break:break-word;">注意，使用字符串类型的url默认会对url进行转义，如<code style="font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;font-size:13px;box-sizing:border-box;color:rgb(199, 37, 78);background-color:rgb(246, 246, 246);border-radius:4px;padding:2px 4px;border:none;white-space:pre-wrap;vertical-align:middle;">http://example.com/hotel list</code>在执行时会转义为<code style="font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;font-size:13px;box-sizing:border-box;color:rgb(199, 37, 78);background-color:rgb(246, 246, 246);border-radius:4px;padding:2px 4px;border:none;white-space:pre-wrap;vertical-align:middle;">http://example.com/hotel%20list</code>，这样其实是没有问题的，但如果字符串类型的url本身已经转义过了，执行时就会再转义一次，变成<code style="font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;font-size:13px;box-sizing:border-box;color:rgb(199, 37, 78);background-color:rgb(246, 246, 246);border-radius:4px;padding:2px 4px;border:none;white-space:pre-wrap;vertical-align:middle;">http://example.com/hotel%2520list</code>。如果不需要这种隐式的转义，可以使用<code style="font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;font-size:13px;box-sizing:border-box;color:rgb(199, 37, 78);background-color:rgb(246, 246, 246);border-radius:4px;padding:2px 4px;border:none;white-space:pre-wrap;vertical-align:middle;">java.net.URI</code>参数的方法，这种方法不会在执行时存在隐式的url转义，可以在创建<code style="font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;font-size:13px;box-sizing:border-box;color:rgb(199, 37, 78);background-color:rgb(246, 246, 246);border-radius:4px;padding:2px 4px;border:none;white-space:pre-wrap;vertical-align:middle;">URI</code>对象时自行决定是否转义，推荐使用<code style="font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;font-size:13px;box-sizing:border-box;color:rgb(199, 37, 78);background-color:rgb(246, 246, 246);border-radius:4px;padding:2px 4px;border:none;white-space:pre-wrap;vertical-align:middle;">UriComponentsBuilder</code>创建<code style="font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;font-size:13px;box-sizing:border-box;color:rgb(199, 37, 78);background-color:rgb(246, 246, 246);border-radius:4px;padding:2px 4px;border:none;white-space:pre-wrap;vertical-align:middle;">URI</code></p>
+<pre style="overflow:auto;font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;font-size:13px;box-sizing:border-box;display:block;padding:15px;margin:0px 0px 10px;line-height:1.42857;word-break:break-word;overflow-wrap:normal;color:rgb(171, 178, 191);border:1px solid rgb(204, 204, 204);border-radius:4px;margin-bottom:20px;white-space:pre;overflow-x:auto;background:rgb(40, 44, 52);background-color:rgb(245, 245, 245);"><code style="font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;font-size:13px;box-sizing:border-box;color:inherit;background-color:transparent;border-radius:0px;padding:0px;white-space:pre;border:none;vertical-align:middle;">UriComponents uriComponents = UriComponentsBuilder.fromUriString(
+        <span style="box-sizing:border-box;color:rgb(152, 195, 121);">&quot;http://example.com/hotels/{hotel}/bookings/{booking}&quot;</span>)
+        .build() <span style="box-sizing:border-box;color:rgb(146, 146, 146);font-style:normal;">//build(true)就不会对url转义，但如果包含http://example.com/hotel list这种需要转义的url，会报错</span>
+        .expand(<span style="box-sizing:border-box;color:rgb(152, 195, 121);">&quot;42&quot;</span>, <span style="box-sizing:border-box;color:rgb(152, 195, 121);">&quot;21&quot;</span>)
+        .encode();
+
+URI uri = uriComponents.toUri();
+</code></pre>
+</li>
+<li style="box-sizing:border-box;line-height:30px;"><p style="box-sizing:border-box;margin:0px 0px 25px;overflow:visible;word-break:break-word;"><code style="font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;font-size:13px;box-sizing:border-box;color:rgb(199, 37, 78);background-color:rgb(246, 246, 246);border-radius:4px;padding:2px 4px;border:none;white-space:pre-wrap;vertical-align:middle;">exchange</code> 和<code style="font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;font-size:13px;box-sizing:border-box;color:rgb(199, 37, 78);background-color:rgb(246, 246, 246);border-radius:4px;padding:2px 4px;border:none;white-space:pre-wrap;vertical-align:middle;">execute</code> 方法比上面列出的其它方法（如getForObject、postForEntity等）使用范围更广，允许调用者指定HTTP请求的方法（GET、POST、PUT等），并且可以支持像HTTP PATCH（部分更新），但需要底层的HTTP库支持，JDK自带的<code style="font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;font-size:13px;box-sizing:border-box;color:rgb(199, 37, 78);background-color:rgb(246, 246, 246);border-radius:4px;padding:2px 4px;border:none;white-space:pre-wrap;vertical-align:middle;">HttpURLConnection</code>不支持PATCH方法，Apache的HTTPClient 4.2及以后版本支持</p></li>
+</ul>
+</li>
+</ul>
+<h2 style="box-sizing:border-box;font-family:inherit;font-weight:700;line-height:1.7;color:rgb(47, 47, 47);font-size:24px;margin:0px 0px 15px;text-rendering:optimizelegibility;margin-top:20px;margin-bottom:10px;">GET方法</h2>
+<h2 style="box-sizing:border-box;font-family:inherit;font-weight:700;line-height:1.7;color:rgb(47, 47, 47);font-size:24px;margin:0px 0px 15px;text-rendering:optimizelegibility;margin-top:20px;margin-bottom:10px;">getForEntity()</h2>
+<p style="box-sizing:border-box;margin:0px 0px 25px;word-break:break-word;">发送GET请求，返回ResponseEntity</p>
+<pre style="overflow:auto;font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;font-size:13px;box-sizing:border-box;display:block;padding:15px;margin:0px 0px 10px;line-height:1.42857;word-break:break-word;overflow-wrap:normal;color:rgb(171, 178, 191);border:1px solid rgb(204, 204, 204);border-radius:4px;margin-bottom:20px;white-space:pre;overflow-x:auto;background:rgb(40, 44, 52);background-color:rgb(245, 245, 245);"><code style="font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;font-size:13px;box-sizing:border-box;color:inherit;background-color:transparent;border-radius:0px;padding:0px;white-space:pre;border:none;vertical-align:middle;"><span style="box-sizing:border-box;color:rgb(146, 146, 146);font-style:normal;">/**
+ * 参数1： String类型 或 URI类型的请求地址
+ * 参数2： 指定返回的实体类型，class对象
+ * 参数3： uri参数，可以是变长数组或map
+ * 返回值：ResponseEntity&lt;T&gt;是Spring对HTTP响应的封装，包括了几个重要的元素，如响应码、contentType、contentLength、response header信息，response body信息等
+ */</span>
+<span style="box-sizing:border-box;color:rgb(97, 174, 238);">@Override</span>
+<span style="box-sizing:border-box;color:rgb(198, 120, 221);">public</span> &lt;T&gt; <span style="box-sizing:border-box;">ResponseEntity&lt;T&gt; <span style="box-sizing:border-box;color:rgb(97, 174, 238);">getForEntity</span><span style="box-sizing:border-box;">(String url, Class&lt;T&gt; responseType, Object... uriVariables)</span>
+        <span style="box-sizing:border-box;color:rgb(198, 120, 221);">throws</span> RestClientException </span>{
+    RequestCallback requestCallback = acceptHeaderRequestCallback(responseType);
+    ResponseExtractor&lt;ResponseEntity&lt;T&gt;&gt; responseExtractor = responseEntityExtractor(responseType);
+    <span style="box-sizing:border-box;color:rgb(198, 120, 221);">return</span> execute(url, HttpMethod.GET, requestCallback, responseExtractor, uriVariables);
+}
+
+<span style="box-sizing:border-box;color:rgb(97, 174, 238);">@Override</span>
+<span style="box-sizing:border-box;color:rgb(198, 120, 221);">public</span> &lt;T&gt; <span style="box-sizing:border-box;">ResponseEntity&lt;T&gt; <span style="box-sizing:border-box;color:rgb(97, 174, 238);">getForEntity</span><span style="box-sizing:border-box;">(String url, Class&lt;T&gt; responseType, Map&lt;String, ?&gt; uriVariables)</span>
+        <span style="box-sizing:border-box;color:rgb(198, 120, 221);">throws</span> RestClientException </span>{
+    RequestCallback requestCallback = acceptHeaderRequestCallback(responseType);
+    ResponseExtractor&lt;ResponseEntity&lt;T&gt;&gt; responseExtractor = responseEntityExtractor(responseType);
+    <span style="box-sizing:border-box;color:rgb(198, 120, 221);">return</span> execute(url, HttpMethod.GET, requestCallback, responseExtractor, uriVariables);
+}
+
+<span style="box-sizing:border-box;color:rgb(97, 174, 238);">@Override</span>
+<span style="box-sizing:border-box;color:rgb(198, 120, 221);">public</span> &lt;T&gt; <span style="box-sizing:border-box;">ResponseEntity&lt;T&gt; <span style="box-sizing:border-box;color:rgb(97, 174, 238);">getForEntity</span><span style="box-sizing:border-box;">(URI url, Class&lt;T&gt; responseType)</span> <span style="box-sizing:border-box;color:rgb(198, 120, 221);">throws</span> RestClientException </span>{
+    RequestCallback requestCallback = acceptHeaderRequestCallback(responseType);
+    ResponseExtractor&lt;ResponseEntity&lt;T&gt;&gt; responseExtractor = responseEntityExtractor(responseType);
+    <span style="box-sizing:border-box;color:rgb(198, 120, 221);">return</span> execute(url, HttpMethod.GET, requestCallback, responseExtractor);
+}
+</code></pre>
+<p style="box-sizing:border-box;margin:0px 0px 25px;word-break:break-word;"><strong style="font-weight:700;box-sizing:border-box;">举例：</strong></p>
+<pre style="overflow:auto;font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;font-size:13px;box-sizing:border-box;display:block;padding:15px;margin:0px 0px 10px;line-height:1.42857;word-break:break-word;overflow-wrap:normal;color:rgb(171, 178, 191);border:1px solid rgb(204, 204, 204);border-radius:4px;margin-bottom:20px;white-space:pre;overflow-x:auto;background:rgb(40, 44, 52);background-color:rgb(245, 245, 245);"><code style="font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;font-size:13px;box-sizing:border-box;color:inherit;background-color:transparent;border-radius:0px;padding:0px;white-space:pre;border:none;vertical-align:middle;">ResponseEntity&lt;Book&gt; responseEntity = restTemplate.getForEntity(<span style="box-sizing:border-box;color:rgb(152, 195, 121);">&quot;http://127.0.0.1:8080/getbook?bookname={1}&quot;</span>, Book.class, <span style="box-sizing:border-box;color:rgb(152, 195, 121);">&quot;java&quot;</span>);
+
+Book book = responseEntity.getBody();  <span style="box-sizing:border-box;color:rgb(146, 146, 146);font-style:normal;">//响应体转换为Book类型</span>
+<span style="box-sizing:border-box;color:rgb(198, 120, 221);">int</span> statusCodeValue = responseEntity.getStatusCodeValue();  <span style="box-sizing:border-box;color:rgb(146, 146, 146);font-style:normal;">//响应状态码</span>
+HttpHeaders headers = responseEntity.getHeaders();  <span style="box-sizing:border-box;color:rgb(146, 146, 146);font-style:normal;">//响应头信息</span>
+</code></pre>
+<h2 style="box-sizing:border-box;font-family:inherit;font-weight:700;line-height:1.7;color:rgb(47, 47, 47);font-size:24px;margin:0px 0px 15px;text-rendering:optimizelegibility;margin-top:20px;margin-bottom:10px;">getForObject()</h2>
+<p style="box-sizing:border-box;margin:0px 0px 25px;word-break:break-word;">发送GET请求，返回指定的Object类型</p>
+<pre style="overflow:auto;font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;font-size:13px;box-sizing:border-box;display:block;padding:15px;margin:0px 0px 10px;line-height:1.42857;word-break:break-word;overflow-wrap:normal;color:rgb(171, 178, 191);border:1px solid rgb(204, 204, 204);border-radius:4px;margin-bottom:20px;white-space:pre;overflow-x:auto;background:rgb(40, 44, 52);background-color:rgb(245, 245, 245);"><code style="font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;font-size:13px;box-sizing:border-box;color:inherit;background-color:transparent;border-radius:0px;padding:0px;white-space:pre;border:none;vertical-align:middle;"><span style="box-sizing:border-box;color:rgb(146, 146, 146);font-style:normal;">/**
+ * 参数1： String类型 或 URI类型的请求地址
+ * 参数2： 指定返回的实体类型，class对象
+ * 参数3： uri参数，可以是变长数组或map
+ * 返回值：responseType指定的Object类型
+ */</span>
+<span style="box-sizing:border-box;color:rgb(97, 174, 238);">@Override</span>
+<span style="box-sizing:border-box;color:rgb(198, 120, 221);">public</span> &lt;T&gt; <span style="box-sizing:border-box;">T <span style="box-sizing:border-box;color:rgb(97, 174, 238);">getForObject</span><span style="box-sizing:border-box;">(String url, Class&lt;T&gt; responseType, Object... uriVariables)</span> <span style="box-sizing:border-box;color:rgb(198, 120, 221);">throws</span> RestClientException </span>{
+    RequestCallback requestCallback = acceptHeaderRequestCallback(responseType);
+    HttpMessageConverterExtractor&lt;T&gt; responseExtractor =
+            <span style="box-sizing:border-box;color:rgb(198, 120, 221);">new</span> HttpMessageConverterExtractor&lt;T&gt;(responseType, getMessageConverters(), logger);
+    <span style="box-sizing:border-box;color:rgb(198, 120, 221);">return</span> execute(url, HttpMethod.GET, requestCallback, responseExtractor, uriVariables);
+}
+
+<span style="box-sizing:border-box;color:rgb(97, 174, 238);">@Override</span>
+<span style="box-sizing:border-box;color:rgb(198, 120, 221);">public</span> &lt;T&gt; <span style="box-sizing:border-box;">T <span style="box-sizing:border-box;color:rgb(97, 174, 238);">getForObject</span><span style="box-sizing:border-box;">(String url, Class&lt;T&gt; responseType, Map&lt;String, ?&gt; uriVariables)</span> <span style="box-sizing:border-box;color:rgb(198, 120, 221);">throws</span> RestClientException </span>{
+    RequestCallback requestCallback = acceptHeaderRequestCallback(responseType);
+    HttpMessageConverterExtractor&lt;T&gt; responseExtractor =
+            <span style="box-sizing:border-box;color:rgb(198, 120, 221);">new</span> HttpMessageConverterExtractor&lt;T&gt;(responseType, getMessageConverters(), logger);
+    <span style="box-sizing:border-box;color:rgb(198, 120, 221);">return</span> execute(url, HttpMethod.GET, requestCallback, responseExtractor, uriVariables);
+}
+
+<span style="box-sizing:border-box;color:rgb(97, 174, 238);">@Override</span>
+<span style="box-sizing:border-box;color:rgb(198, 120, 221);">public</span> &lt;T&gt; <span style="box-sizing:border-box;">T <span style="box-sizing:border-box;color:rgb(97, 174, 238);">getForObject</span><span style="box-sizing:border-box;">(URI url, Class&lt;T&gt; responseType)</span> <span style="box-sizing:border-box;color:rgb(198, 120, 221);">throws</span> RestClientException </span>{
+    RequestCallback requestCallback = acceptHeaderRequestCallback(responseType);
+    HttpMessageConverterExtractor&lt;T&gt; responseExtractor =
+            <span style="box-sizing:border-box;color:rgb(198, 120, 221);">new</span> HttpMessageConverterExtractor&lt;T&gt;(responseType, getMessageConverters(), logger);
+    <span style="box-sizing:border-box;color:rgb(198, 120, 221);">return</span> execute(url, HttpMethod.GET, requestCallback, responseExtractor);
+}
+</code></pre>
+<p style="box-sizing:border-box;margin:0px 0px 25px;word-break:break-word;"><strong style="font-weight:700;box-sizing:border-box;">举例：</strong></p>
+<pre style="overflow:auto;font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;font-size:13px;box-sizing:border-box;display:block;padding:15px;margin:0px 0px 10px;line-height:1.42857;word-break:break-word;overflow-wrap:normal;color:rgb(171, 178, 191);border:1px solid rgb(204, 204, 204);border-radius:4px;margin-bottom:20px;white-space:pre;overflow-x:auto;background:rgb(40, 44, 52);background-color:rgb(245, 245, 245);"><code style="font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;font-size:13px;box-sizing:border-box;color:inherit;background-color:transparent;border-radius:0px;padding:0px;white-space:pre;border:none;vertical-align:middle;">Book book = restTemplate.getForObject(<span style="box-sizing:border-box;color:rgb(152, 195, 121);">&quot;http://127.0.0.1:8080/getbook?bookname={1}&quot;</span>, Book.class, <span style="box-sizing:border-box;color:rgb(152, 195, 121);">&quot;java&quot;</span>);
+</code></pre>
+<h2 style="box-sizing:border-box;font-family:inherit;font-weight:700;line-height:1.7;color:rgb(47, 47, 47);font-size:24px;margin:0px 0px 15px;text-rendering:optimizelegibility;margin-top:20px;margin-bottom:10px;">POST方法</h2>
+<h2 style="box-sizing:border-box;font-family:inherit;font-weight:700;line-height:1.7;color:rgb(47, 47, 47);font-size:24px;margin:0px 0px 15px;text-rendering:optimizelegibility;margin-top:20px;margin-bottom:10px;">postForEntity()</h2>
+<p style="box-sizing:border-box;margin:0px 0px 25px;word-break:break-word;">发送POST请求，返回ResponseEntity</p>
+<pre style="overflow:auto;font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;font-size:13px;box-sizing:border-box;display:block;padding:15px;margin:0px 0px 10px;line-height:1.42857;word-break:break-word;overflow-wrap:normal;color:rgb(171, 178, 191);border:1px solid rgb(204, 204, 204);border-radius:4px;margin-bottom:20px;white-space:pre;overflow-x:auto;background:rgb(40, 44, 52);background-color:rgb(245, 245, 245);"><code style="font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;font-size:13px;box-sizing:border-box;color:inherit;background-color:transparent;border-radius:0px;padding:0px;white-space:pre;border:none;vertical-align:middle;"><span style="box-sizing:border-box;color:rgb(146, 146, 146);font-style:normal;">/**
+ * 参数1： String类型 或 URI类型的请求地址
+ * 参数2： 请求body，可以是HttpEntity类型（可设置request header），或其它Object类型
+ * 参数3： 指定返回的实体类型，class对象
+ * 参数4： uri参数，可以是变长数组或map
+ * 返回值：ResponseEntity&lt;T&gt;是Spring对HTTP响应的封装，包括了几个重要的元素，如响应码、contentType、contentLength、response header信息，response body信息等
+ */</span>
+<span style="box-sizing:border-box;color:rgb(97, 174, 238);">@Override</span>
+<span style="box-sizing:border-box;color:rgb(198, 120, 221);">public</span> &lt;T&gt; <span style="box-sizing:border-box;">ResponseEntity&lt;T&gt; <span style="box-sizing:border-box;color:rgb(97, 174, 238);">postForEntity</span><span style="box-sizing:border-box;">(String url, Object request, Class&lt;T&gt; responseType, Object... uriVariables)</span>  <span style="box-sizing:border-box;color:rgb(198, 120, 221);">throws</span> RestClientException </span>{
+    RequestCallback requestCallback = httpEntityCallback(request, responseType);
+    ResponseExtractor&lt;ResponseEntity&lt;T&gt;&gt; responseExtractor = responseEntityExtractor(responseType);
+    <span style="box-sizing:border-box;color:rgb(198, 120, 221);">return</span> execute(url, HttpMethod.POST, requestCallback, responseExtractor, uriVariables);
+}
+
+<span style="box-sizing:border-box;color:rgb(97, 174, 238);">@Override</span>
+<span style="box-sizing:border-box;color:rgb(198, 120, 221);">public</span> &lt;T&gt; <span style="box-sizing:border-box;">ResponseEntity&lt;T&gt; <span style="box-sizing:border-box;color:rgb(97, 174, 238);">postForEntity</span><span style="box-sizing:border-box;">(String url, Object request, Class&lt;T&gt; responseType, Map&lt;String, ?&gt; uriVariables)</span>  <span style="box-sizing:border-box;color:rgb(198, 120, 221);">throws</span> RestClientException </span>{
+    RequestCallback requestCallback = httpEntityCallback(request, responseType);
+    ResponseExtractor&lt;ResponseEntity&lt;T&gt;&gt; responseExtractor = responseEntityExtractor(responseType);
+    <span style="box-sizing:border-box;color:rgb(198, 120, 221);">return</span> execute(url, HttpMethod.POST, requestCallback, responseExtractor, uriVariables);
+}
+
+<span style="box-sizing:border-box;color:rgb(97, 174, 238);">@Override</span>
+<span style="box-sizing:border-box;color:rgb(198, 120, 221);">public</span> &lt;T&gt; <span style="box-sizing:border-box;">ResponseEntity&lt;T&gt; <span style="box-sizing:border-box;color:rgb(97, 174, 238);">postForEntity</span><span style="box-sizing:border-box;">(URI url, Object request, Class&lt;T&gt; responseType)</span> <span style="box-sizing:border-box;color:rgb(198, 120, 221);">throws</span> RestClientException </span>{
+    RequestCallback requestCallback = httpEntityCallback(request, responseType);
+    ResponseExtractor&lt;ResponseEntity&lt;T&gt;&gt; responseExtractor = responseEntityExtractor(responseType);
+    <span style="box-sizing:border-box;color:rgb(198, 120, 221);">return</span> execute(url, HttpMethod.POST, requestCallback, responseExtractor);
+}
+</code></pre>
+<p style="box-sizing:border-box;margin:0px 0px 25px;word-break:break-word;"><strong style="font-weight:700;box-sizing:border-box;">举例：</strong></p>
+<pre style="overflow:auto;font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;font-size:13px;box-sizing:border-box;display:block;padding:15px;margin:0px 0px 10px;line-height:1.42857;word-break:break-word;overflow-wrap:normal;color:rgb(171, 178, 191);border:1px solid rgb(204, 204, 204);border-radius:4px;margin-bottom:20px;white-space:pre;overflow-x:auto;background:rgb(40, 44, 52);background-color:rgb(245, 245, 245);"><code style="font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;font-size:13px;box-sizing:border-box;color:inherit;background-color:transparent;border-radius:0px;padding:0px;white-space:pre;border:none;vertical-align:middle;"><span style="box-sizing:border-box;color:rgb(146, 146, 146);font-style:normal;">//参数是Book类型，返回值是ResponseEntity&lt;Book&gt;类型</span>
+ResponseEntity&lt;Book&gt; responseEntity = restTemplate.postForEntity(<span style="box-sizing:border-box;color:rgb(152, 195, 121);">&quot;http://127.0.0.1:8080/updateBook&quot;</span>, book, Book.class);
+
+Book book = responseEntity.getBody();  <span style="box-sizing:border-box;color:rgb(146, 146, 146);font-style:normal;">//响应体转换为Book类型</span>
+<span style="box-sizing:border-box;color:rgb(198, 120, 221);">int</span> statusCodeValue = responseEntity.getStatusCodeValue();  <span style="box-sizing:border-box;color:rgb(146, 146, 146);font-style:normal;">//响应状态码</span>
+HttpHeaders headers = responseEntity.getHeaders();  <span style="box-sizing:border-box;color:rgb(146, 146, 146);font-style:normal;">//响应头信息</span>
+</code></pre>
+<h2 style="box-sizing:border-box;font-family:inherit;font-weight:700;line-height:1.7;color:rgb(47, 47, 47);font-size:24px;margin:0px 0px 15px;text-rendering:optimizelegibility;margin-top:20px;margin-bottom:10px;">postForObject()</h2>
+<p style="box-sizing:border-box;margin:0px 0px 25px;word-break:break-word;">发送POST请求，返回指定的Object类型</p>
+<pre style="overflow:auto;font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;font-size:13px;box-sizing:border-box;display:block;padding:15px;margin:0px 0px 10px;line-height:1.42857;word-break:break-word;overflow-wrap:normal;color:rgb(171, 178, 191);border:1px solid rgb(204, 204, 204);border-radius:4px;margin-bottom:20px;white-space:pre;overflow-x:auto;background:rgb(40, 44, 52);background-color:rgb(245, 245, 245);"><code style="font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;font-size:13px;box-sizing:border-box;color:inherit;background-color:transparent;border-radius:0px;padding:0px;white-space:pre;border:none;vertical-align:middle;"><span style="box-sizing:border-box;color:rgb(146, 146, 146);font-style:normal;">/**
+ * 参数1： String类型 或 URI类型的请求地址
+ * 参数2： 请求body，可以是HttpEntity类型（可设置request header），或其它Object类型
+ * 参数3： 指定返回的实体类型，class对象
+ * 参数4： uri参数，可以是变长数组或map
+ * 返回值：responseType指定的Object类型
+ */</span>
+<span style="box-sizing:border-box;color:rgb(97, 174, 238);">@Override</span>
+<span style="box-sizing:border-box;color:rgb(198, 120, 221);">public</span> &lt;T&gt; <span style="box-sizing:border-box;">T <span style="box-sizing:border-box;color:rgb(97, 174, 238);">postForObject</span><span style="box-sizing:border-box;">(String url, Object request, Class&lt;T&gt; responseType, Object... uriVariables)</span>
+        <span style="box-sizing:border-box;color:rgb(198, 120, 221);">throws</span> RestClientException </span>{
+    RequestCallback requestCallback = httpEntityCallback(request, responseType);
+    HttpMessageConverterExtractor&lt;T&gt; responseExtractor =
+            <span style="box-sizing:border-box;color:rgb(198, 120, 221);">new</span> HttpMessageConverterExtractor&lt;T&gt;(responseType, getMessageConverters(), logger);
+    <span style="box-sizing:border-box;color:rgb(198, 120, 221);">return</span> execute(url, HttpMethod.POST, requestCallback, responseExtractor, uriVariables);
+}
+
+<span style="box-sizing:border-box;color:rgb(97, 174, 238);">@Override</span>
+<span style="box-sizing:border-box;color:rgb(198, 120, 221);">public</span> &lt;T&gt; <span style="box-sizing:border-box;">T <span style="box-sizing:border-box;color:rgb(97, 174, 238);">postForObject</span><span style="box-sizing:border-box;">(String url, Object request, Class&lt;T&gt; responseType, Map&lt;String, ?&gt; uriVariables)</span>
+        <span style="box-sizing:border-box;color:rgb(198, 120, 221);">throws</span> RestClientException </span>{
+    RequestCallback requestCallback = httpEntityCallback(request, responseType);
+    HttpMessageConverterExtractor&lt;T&gt; responseExtractor =
+            <span style="box-sizing:border-box;color:rgb(198, 120, 221);">new</span> HttpMessageConverterExtractor&lt;T&gt;(responseType, getMessageConverters(), logger);
+    <span style="box-sizing:border-box;color:rgb(198, 120, 221);">return</span> execute(url, HttpMethod.POST, requestCallback, responseExtractor, uriVariables);
+}
+
+<span style="box-sizing:border-box;color:rgb(97, 174, 238);">@Override</span>
+<span style="box-sizing:border-box;color:rgb(198, 120, 221);">public</span> &lt;T&gt; <span style="box-sizing:border-box;">T <span style="box-sizing:border-box;color:rgb(97, 174, 238);">postForObject</span><span style="box-sizing:border-box;">(URI url, Object request, Class&lt;T&gt; responseType)</span> <span style="box-sizing:border-box;color:rgb(198, 120, 221);">throws</span> RestClientException </span>{
+    RequestCallback requestCallback = httpEntityCallback(request, responseType);
+    HttpMessageConverterExtractor&lt;T&gt; responseExtractor =
+            <span style="box-sizing:border-box;color:rgb(198, 120, 221);">new</span> HttpMessageConverterExtractor&lt;T&gt;(responseType, getMessageConverters());
+    <span style="box-sizing:border-box;color:rgb(198, 120, 221);">return</span> execute(url, HttpMethod.POST, requestCallback, responseExtractor);
+}
+</code></pre>
+<p style="box-sizing:border-box;margin:0px 0px 25px;word-break:break-word;"><strong style="font-weight:700;box-sizing:border-box;">举例：</strong></p>
+<pre style="overflow:auto;font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;font-size:13px;box-sizing:border-box;display:block;padding:15px;margin:0px 0px 10px;line-height:1.42857;word-break:break-word;overflow-wrap:normal;color:rgb(171, 178, 191);border:1px solid rgb(204, 204, 204);border-radius:4px;margin-bottom:20px;white-space:pre;overflow-x:auto;background:rgb(40, 44, 52);background-color:rgb(245, 245, 245);"><code style="font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;font-size:13px;box-sizing:border-box;color:inherit;background-color:transparent;border-radius:0px;padding:0px;white-space:pre;border:none;vertical-align:middle;"><span style="box-sizing:border-box;color:rgb(146, 146, 146);font-style:normal;">//参数是Book类型，返回值也是Book类型</span>
+Book book = restTemplate.postForObject(<span style="box-sizing:border-box;color:rgb(152, 195, 121);">&quot;http://127.0.0.1:8080/updatebook&quot;</span>, book, Book.class);
+</code></pre>
+<h2 style="box-sizing:border-box;font-family:inherit;font-weight:700;line-height:1.7;color:rgb(47, 47, 47);font-size:24px;margin:0px 0px 15px;text-rendering:optimizelegibility;margin-top:20px;margin-bottom:10px;">exchange方法</h2>
+<ul style="box-sizing:border-box;word-break:break-word;padding:0px;margin:-5px 0px 20px 20px;margin-top:0px;margin-bottom:10px;padding-left:0px;">
+<li style="box-sizing:border-box;line-height:30px;">可以支持多种HTTP方法，在参数中指定</li>
+<li style="box-sizing:border-box;line-height:30px;">可以在请求中增加header和body信息，返回类型是ResponseEntity，可以从中获取响应的状态码，header和body等信息</li>
+</ul>
+<pre style="overflow:auto;font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;font-size:13px;box-sizing:border-box;display:block;padding:15px;margin:0px 0px 10px;line-height:1.42857;word-break:break-word;overflow-wrap:normal;color:rgb(171, 178, 191);border:1px solid rgb(204, 204, 204);border-radius:4px;margin-bottom:20px;white-space:pre;overflow-x:auto;background:rgb(40, 44, 52);background-color:rgb(245, 245, 245);"><code style="font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;font-size:13px;box-sizing:border-box;color:inherit;background-color:transparent;border-radius:0px;padding:0px;white-space:pre;border:none;vertical-align:middle;">HttpHeaders requestHeaders = <span style="box-sizing:border-box;color:rgb(198, 120, 221);">new</span> HttpHeaders();
+requestHeaders.set(<span style="box-sizing:border-box;color:rgb(152, 195, 121);">&quot;MyRequestHeader&quot;</span>, <span style="box-sizing:border-box;color:rgb(152, 195, 121);">&quot;MyValue&quot;</span>);
+HttpEntity requestEntity = <span style="box-sizing:border-box;color:rgb(198, 120, 221);">new</span> HttpEntity(requestHeaders);
+
+HttpEntity&lt;String&gt; response = template.exchange(
+        <span style="box-sizing:border-box;color:rgb(152, 195, 121);">&quot;http://example.com/hotels/{hotel}&quot;</span>,
+        HttpMethod.GET,     <span style="box-sizing:border-box;color:rgb(146, 146, 146);font-style:normal;">//GET请求</span>
+        requestEntity,      <span style="box-sizing:border-box;color:rgb(146, 146, 146);font-style:normal;">//requestEntity，可以设置请求header、body</span>
+        String.class, <span style="box-sizing:border-box;color:rgb(152, 195, 121);">&quot;42&quot;</span>);
+
+String responseHeader = response.getHeaders().getFirst(<span style="box-sizing:border-box;color:rgb(152, 195, 121);">&quot;MyResponseHeader&quot;</span>);   <span style="box-sizing:border-box;color:rgb(146, 146, 146);font-style:normal;">//响应头信息</span>
+String body = response.getBody();
+</code></pre>
+<h1 style="font-size:26px;margin:0px 0px 15px;box-sizing:border-box;font-family:inherit;font-weight:700;line-height:1.7;color:rgb(47, 47, 47);text-rendering:optimizelegibility;margin-top:20px;margin-bottom:10px;">四、RestTemplate扩展/配置</h1>
+<h2 style="box-sizing:border-box;font-family:inherit;font-weight:700;line-height:1.7;color:rgb(47, 47, 47);font-size:24px;margin:0px 0px 15px;text-rendering:optimizelegibility;margin-top:20px;margin-bottom:10px;">1、处理请求头和响应头</h2>
+<h2 style="box-sizing:border-box;font-family:inherit;font-weight:700;line-height:1.7;color:rgb(47, 47, 47);font-size:24px;margin:0px 0px 15px;text-rendering:optimizelegibility;margin-top:20px;margin-bottom:10px;">设置请求头信息</h2>
+<p style="box-sizing:border-box;margin:0px 0px 25px;word-break:break-word;">（1）如果是发送post、put请求，要设置请求头，可以在调用方法时的第二个参数传入HttpEntity对象，HttpEntity可以用于设置请求头信息，如</p>
+<pre style="overflow:auto;font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;font-size:13px;box-sizing:border-box;display:block;padding:15px;margin:0px 0px 10px;line-height:1.42857;word-break:break-word;overflow-wrap:normal;color:rgb(171, 178, 191);border:1px solid rgb(204, 204, 204);border-radius:4px;margin-bottom:20px;white-space:pre;overflow-x:auto;background:rgb(40, 44, 52);background-color:rgb(245, 245, 245);"><code style="font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;font-size:13px;box-sizing:border-box;color:inherit;background-color:transparent;border-radius:0px;padding:0px;white-space:pre;border:none;vertical-align:middle;">HttpHeaders requestHeaders = <span style="box-sizing:border-box;color:rgb(198, 120, 221);">new</span> HttpHeaders();
+requestHeaders.set(<span style="box-sizing:border-box;color:rgb(152, 195, 121);">&quot;MyRequestHeader&quot;</span>, <span style="box-sizing:border-box;color:rgb(152, 195, 121);">&quot;MyValue&quot;</span>);
+HttpEntity requestEntity = <span style="box-sizing:border-box;color:rgb(198, 120, 221);">new</span> HttpEntity(requestHeaders);
+
+Book book = restTemplate.postForObject(<span style="box-sizing:border-box;color:rgb(152, 195, 121);">&quot;http://127.0.0.1:8080/getbook&quot;</span>, requestEntity, Book.class);
+</code></pre>
+<p style="box-sizing:border-box;margin:0px 0px 25px;word-break:break-word;">以<code style="font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;font-size:13px;box-sizing:border-box;color:rgb(199, 37, 78);background-color:rgb(246, 246, 246);border-radius:4px;padding:2px 4px;border:none;white-space:pre-wrap;vertical-align:middle;">postForObject()</code>方法举例，其第二个参数接收Object类型的数据，如传入的是HttpEntity，则使用它作为整个请求实体，如果传入的是其它Object类型，则将Object参数作为request body，新建一个HttpEntity作为请求实体</p>
+<pre style="overflow:auto;font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;font-size:13px;box-sizing:border-box;display:block;padding:15px;margin:0px 0px 10px;line-height:1.42857;word-break:break-word;overflow-wrap:normal;color:rgb(171, 178, 191);border:1px solid rgb(204, 204, 204);border-radius:4px;margin-bottom:20px;white-space:pre;overflow-x:auto;background:rgb(40, 44, 52);background-color:rgb(245, 245, 245);"><code style="font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;font-size:13px;box-sizing:border-box;color:inherit;background-color:transparent;border-radius:0px;padding:0px;white-space:pre;border:none;vertical-align:middle;"><span style="box-sizing:border-box;"><span style="box-sizing:border-box;color:rgb(198, 120, 221);">private</span> <span style="box-sizing:border-box;color:rgb(97, 174, 238);">HttpEntityRequestCallback</span><span style="box-sizing:border-box;">(Object requestBody, Type responseType)</span> </span>{
+    <span style="box-sizing:border-box;color:rgb(198, 120, 221);">super</span>(responseType);
+    <span style="box-sizing:border-box;color:rgb(146, 146, 146);font-style:normal;">//如果是HttpEntity类型的，直接作为请求实体赋值给this.requestEntity</span>
+    <span style="box-sizing:border-box;color:rgb(198, 120, 221);">if</span> (requestBody <span style="box-sizing:border-box;color:rgb(198, 120, 221);">instanceof</span> HttpEntity) {
+        <span style="box-sizing:border-box;color:rgb(198, 120, 221);">this</span>.requestEntity = (HttpEntity&lt;?&gt;) requestBody;
+    }
+    <span style="box-sizing:border-box;color:rgb(146, 146, 146);font-style:normal;">//如果requestBody不是HttpEntity类型，且不为空，以Object参数作为request body，并新建HttpEntity</span>
+    <span style="box-sizing:border-box;color:rgb(198, 120, 221);">else</span> <span style="box-sizing:border-box;color:rgb(198, 120, 221);">if</span> (requestBody != <span style="box-sizing:border-box;color:rgb(198, 120, 221);">null</span>) {
+        <span style="box-sizing:border-box;color:rgb(198, 120, 221);">this</span>.requestEntity = <span style="box-sizing:border-box;color:rgb(198, 120, 221);">new</span> HttpEntity&lt;Object&gt;(requestBody);
+    }
+    <span style="box-sizing:border-box;color:rgb(198, 120, 221);">else</span> {
+        <span style="box-sizing:border-box;color:rgb(198, 120, 221);">this</span>.requestEntity = HttpEntity.EMPTY;
+    }
+}
+</code></pre>
+<p style="box-sizing:border-box;margin:0px 0px 25px;word-break:break-word;">（2）如果是其它HTTP方法调用要设置请求头，可以使用exchange()方法，可以参考 <a href="https://docs.spring.io/spring/docs/4.3.9.RELEASE/spring-framework-reference/html/remoting.html#rest-template-headers" rel="nofollow" style="background-color:transparent;box-sizing:border-box;color:rgb(49, 148, 208);text-decoration:none;cursor:pointer;" target="_blank">官方示例</a></p>
+<pre style="overflow:auto;font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;font-size:13px;box-sizing:border-box;display:block;padding:15px;margin:0px 0px 10px;line-height:1.42857;word-break:break-word;overflow-wrap:normal;color:rgb(171, 178, 191);border:1px solid rgb(204, 204, 204);border-radius:4px;margin-bottom:20px;white-space:pre;overflow-x:auto;background:rgb(40, 44, 52);background-color:rgb(245, 245, 245);"><code style="font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;font-size:13px;box-sizing:border-box;color:inherit;background-color:transparent;border-radius:0px;padding:0px;white-space:pre;border:none;vertical-align:middle;">HttpHeaders requestHeaders = <span style="box-sizing:border-box;color:rgb(198, 120, 221);">new</span> HttpHeaders();
+requestHeaders.set(<span style="box-sizing:border-box;color:rgb(152, 195, 121);">&quot;MyRequestHeader&quot;</span>, <span style="box-sizing:border-box;color:rgb(152, 195, 121);">&quot;MyValue&quot;</span>);
+HttpEntity requestEntity = <span style="box-sizing:border-box;color:rgb(198, 120, 221);">new</span> HttpEntity(requestHeaders);
+
+HttpEntity&lt;String&gt; response = template.exchange(
+        <span style="box-sizing:border-box;color:rgb(152, 195, 121);">&quot;http://example.com/hotels/{hotel}&quot;</span>,
+        HttpMethod.GET, requestEntity, String.class, <span style="box-sizing:border-box;color:rgb(152, 195, 121);">&quot;42&quot;</span>);
+
+String responseHeader = response.getHeaders().getFirst(<span style="box-sizing:border-box;color:rgb(152, 195, 121);">&quot;MyResponseHeader&quot;</span>);
+String body = response.getBody();
+</code></pre>
+<blockquote style="box-sizing:border-box;padding:20px;margin:0px 0px 20px;font-size:16px;border-left:6px solid rgb(180, 180, 180);margin-bottom:25px;background-color:rgb(247, 247, 247);font-weight:400;line-height:30px;word-break:break-word;">
+<p style="box-sizing:border-box;margin:0px 0px 25px;word-break:break-word;font-size:16px;font-weight:400;line-height:1.7;">总之，设置request header信息，需要找到对应的restTemplate方法中可以使用HttpEntity作为参数的，提前设置好请求头信息</p>
+<p style="box-sizing:border-box;margin:0px 0px 25px;word-break:break-word;font-size:16px;font-weight:400;line-height:1.7;">注意：HttpEntity有4个构造方法，无参构造，只设置请求body，只设置headers，既设置headers又设置body</p>
+<pre style="overflow:auto;font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;font-size:13px;box-sizing:border-box;display:block;padding:15px;margin:0px 0px 10px;line-height:1.42857;word-break:break-word;overflow-wrap:normal;color:rgb(171, 178, 191);border:1px solid rgb(204, 204, 204);border-radius:4px;margin-bottom:20px;white-space:pre;overflow-x:auto;background:rgb(40, 44, 52);background-color:rgb(245, 245, 245);"><code style="font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;font-size:13px;box-sizing:border-box;color:inherit;background-color:transparent;border-radius:0px;padding:0px;white-space:pre;border:none;vertical-align:middle;"><span style="box-sizing:border-box;color:rgb(146, 146, 146);font-style:normal;">/**
+ * Create a new, empty {<span style="box-sizing:border-box;color:rgb(198, 120, 221);">@code</span> HttpEntity}.
+ */</span>
+<span style="box-sizing:border-box;"><span style="box-sizing:border-box;color:rgb(198, 120, 221);">protected</span> <span style="box-sizing:border-box;color:rgb(97, 174, 238);">HttpEntity</span><span style="box-sizing:border-box;">()</span> </span>{
+  <span style="box-sizing:border-box;color:rgb(198, 120, 221);">this</span>(<span style="box-sizing:border-box;color:rgb(198, 120, 221);">null</span>, <span style="box-sizing:border-box;color:rgb(198, 120, 221);">null</span>);
+}
+
+<span style="box-sizing:border-box;color:rgb(146, 146, 146);font-style:normal;">/**
+ * Create a new {<span style="box-sizing:border-box;color:rgb(198, 120, 221);">@code</span> HttpEntity} with the given body and no headers.
+ * <span style="box-sizing:border-box;color:rgb(198, 120, 221);">@param</span> body the entity body
+ */</span>
+<span style="box-sizing:border-box;"><span style="box-sizing:border-box;color:rgb(198, 120, 221);">public</span> <span style="box-sizing:border-box;color:rgb(97, 174, 238);">HttpEntity</span><span style="box-sizing:border-box;">(T body)</span> </span>{
+  <span style="box-sizing:border-box;color:rgb(198, 120, 221);">this</span>(body, <span style="box-sizing:border-box;color:rgb(198, 120, 221);">null</span>);
+}
+
+<span style="box-sizing:border-box;color:rgb(146, 146, 146);font-style:normal;">/**
+ * Create a new {<span style="box-sizing:border-box;color:rgb(198, 120, 221);">@code</span> HttpEntity} with the given headers and no body.
+ * <span style="box-sizing:border-box;color:rgb(198, 120, 221);">@param</span> headers the entity headers
+ */</span>
+<span style="box-sizing:border-box;"><span style="box-sizing:border-box;color:rgb(198, 120, 221);">public</span> <span style="box-sizing:border-box;color:rgb(97, 174, 238);">HttpEntity</span><span style="box-sizing:border-box;">(MultiValueMap&lt;String, String&gt; headers)</span> </span>{
+  <span style="box-sizing:border-box;color:rgb(198, 120, 221);">this</span>(<span style="box-sizing:border-box;color:rgb(198, 120, 221);">null</span>, headers);
+}
+
+<span style="box-sizing:border-box;color:rgb(146, 146, 146);font-style:normal;">/**
+ * Create a new {<span style="box-sizing:border-box;color:rgb(198, 120, 221);">@code</span> HttpEntity} with the given body and headers.
+ * <span style="box-sizing:border-box;color:rgb(198, 120, 221);">@param</span> body the entity body
+ * <span style="box-sizing:border-box;color:rgb(198, 120, 221);">@param</span> headers the entity headers
+ */</span>
+<span style="box-sizing:border-box;"><span style="box-sizing:border-box;color:rgb(198, 120, 221);">public</span> <span style="box-sizing:border-box;color:rgb(97, 174, 238);">HttpEntity</span><span style="box-sizing:border-box;">(T body, MultiValueMap&lt;String, String&gt; headers)</span> </span>{
+  <span style="box-sizing:border-box;color:rgb(198, 120, 221);">this</span>.body = body;
+  HttpHeaders tempHeaders = <span style="box-sizing:border-box;color:rgb(198, 120, 221);">new</span> HttpHeaders();
+  <span style="box-sizing:border-box;color:rgb(198, 120, 221);">if</span> (headers != <span style="box-sizing:border-box;color:rgb(198, 120, 221);">null</span>) {
+      tempHeaders.putAll(headers);
+  }
+  <span style="box-sizing:border-box;color:rgb(198, 120, 221);">this</span>.headers = HttpHeaders.readOnlyHttpHeaders(tempHeaders);
+}
+</code></pre>
+</blockquote>
+<h2 style="box-sizing:border-box;font-family:inherit;font-weight:700;line-height:1.7;color:rgb(47, 47, 47);font-size:24px;margin:0px 0px 15px;text-rendering:optimizelegibility;margin-top:20px;margin-bottom:10px;">处理响应头信息</h2>
+<p style="box-sizing:border-box;margin:0px 0px 25px;word-break:break-word;">使用RestTemplate中<code style="font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;font-size:13px;box-sizing:border-box;color:rgb(199, 37, 78);background-color:rgb(246, 246, 246);border-radius:4px;padding:2px 4px;border:none;white-space:pre-wrap;vertical-align:middle;">xxxForEntity()</code>的方法，会返回ResponseEntity，可以从中获取到响应状态码，响应头和body等信息</p>
+<pre style="overflow:auto;font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;font-size:13px;box-sizing:border-box;display:block;padding:15px;margin:0px 0px 10px;line-height:1.42857;word-break:break-word;overflow-wrap:normal;color:rgb(171, 178, 191);border:1px solid rgb(204, 204, 204);border-radius:4px;margin-bottom:20px;white-space:pre;overflow-x:auto;background:rgb(40, 44, 52);background-color:rgb(245, 245, 245);"><code style="font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;font-size:13px;box-sizing:border-box;color:inherit;background-color:transparent;border-radius:0px;padding:0px;white-space:pre;border:none;vertical-align:middle;">HttpHeaders requestHeaders = <span style="box-sizing:border-box;color:rgb(198, 120, 221);">new</span> HttpHeaders();
+requestHeaders.set(<span style="box-sizing:border-box;color:rgb(152, 195, 121);">&quot;MyRequestHeader&quot;</span>, <span style="box-sizing:border-box;color:rgb(152, 195, 121);">&quot;MyValue&quot;</span>);
+HttpEntity requestEntity = <span style="box-sizing:border-box;color:rgb(198, 120, 221);">new</span> HttpEntity(requestHeaders);
+
+HttpEntity&lt;String&gt; response = template.exchange(
+        <span style="box-sizing:border-box;color:rgb(152, 195, 121);">&quot;http://example.com/hotels/{hotel}&quot;</span>,
+        HttpMethod.GET, requestEntity, String.class, <span style="box-sizing:border-box;color:rgb(152, 195, 121);">&quot;42&quot;</span>);
+
+<span style="box-sizing:border-box;color:rgb(146, 146, 146);font-style:normal;">//response相关信息</span>
+String responseHeader = response.getHeaders().getFirst(<span style="box-sizing:border-box;color:rgb(152, 195, 121);">&quot;MyResponseHeader&quot;</span>);
+String body = response.getBody();
+</code></pre>
+<h2 style="box-sizing:border-box;font-family:inherit;font-weight:700;line-height:1.7;color:rgb(47, 47, 47);font-size:24px;margin:0px 0px 15px;text-rendering:optimizelegibility;margin-top:20px;margin-bottom:10px;">2、ClientHttpRequestFactory</h2>
+<p style="box-sizing:border-box;margin:0px 0px 25px;word-break:break-word;">ClientHttpRequestFactory是Spring定义的一个接口，其用于生产<code style="font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;font-size:13px;box-sizing:border-box;color:rgb(199, 37, 78);background-color:rgb(246, 246, 246);border-radius:4px;padding:2px 4px;border:none;white-space:pre-wrap;vertical-align:middle;">org.springframework.http.client.ClientHttpRequest</code>对象，RestTemplate只是模板类，抽象了很多调用方法，而底层真正使用何种框架发送HTTP请求是通过ClientHttpRequestFactory指定的</p>
+<p style="box-sizing:border-box;margin:0px 0px 25px;word-break:break-word;"><strong style="font-weight:700;box-sizing:border-box;">接口定义</strong></p>
+<pre style="overflow:auto;font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;font-size:13px;box-sizing:border-box;display:block;padding:15px;margin:0px 0px 10px;line-height:1.42857;word-break:break-word;overflow-wrap:normal;color:rgb(171, 178, 191);border:1px solid rgb(204, 204, 204);border-radius:4px;margin-bottom:20px;white-space:pre;overflow-x:auto;background:rgb(40, 44, 52);background-color:rgb(245, 245, 245);"><code style="font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;font-size:13px;box-sizing:border-box;color:inherit;background-color:transparent;border-radius:0px;padding:0px;white-space:pre;border:none;vertical-align:middle;"><span style="box-sizing:border-box;color:rgb(146, 146, 146);font-style:normal;">/**
+ * Factory for {<span style="box-sizing:border-box;color:rgb(198, 120, 221);">@link</span> ClientHttpRequest} objects.
+ * Requests are created by the {<span style="box-sizing:border-box;color:rgb(198, 120, 221);">@link</span> #createRequest(URI, HttpMethod)} method.
+ * ClientHttpRequest对象的工厂
+ *
+ * <span style="box-sizing:border-box;color:rgb(198, 120, 221);">@author</span> Arjen Poutsma
+ * <span style="box-sizing:border-box;color:rgb(198, 120, 221);">@since</span> 3.0
+ */</span>
+<span style="box-sizing:border-box;color:rgb(198, 120, 221);">public</span> <span style="box-sizing:border-box;"><span style="box-sizing:border-box;color:rgb(198, 120, 221);">interface</span> <span style="box-sizing:border-box;color:rgb(230, 192, 123);">ClientHttpRequestFactory</span> </span>{
+
+    <span style="box-sizing:border-box;color:rgb(146, 146, 146);font-style:normal;">/**
+     * Create a new {<span style="box-sizing:border-box;color:rgb(198, 120, 221);">@link</span> ClientHttpRequest} for the specified URI and HTTP method.
+     * &lt;p&gt;The returned request can be written to, and then executed by calling
+     * {<span style="box-sizing:border-box;color:rgb(198, 120, 221);">@link</span> ClientHttpRequest#execute()}.
+     * 使用指定的URI和HTTP方法新建一个ClientHttpRequest对象
+     * 可以修改返回的request，并通过ClientHttpRequest的execute()方法执行调用
+     * 即调用的逻辑也被Spring封装到ClientHttpRequest中
+     * 
+     * <span style="box-sizing:border-box;color:rgb(198, 120, 221);">@param</span> uri the URI to create a request for
+     * <span style="box-sizing:border-box;color:rgb(198, 120, 221);">@param</span> httpMethod the HTTP method to execute
+     * <span style="box-sizing:border-box;color:rgb(198, 120, 221);">@return</span> the created request
+     * <span style="box-sizing:border-box;color:rgb(198, 120, 221);">@throws</span> IOException in case of I/O errors
+     */</span>
+    <span style="box-sizing:border-box;">ClientHttpRequest <span style="box-sizing:border-box;color:rgb(97, 174, 238);">createRequest</span><span style="box-sizing:border-box;">(URI uri, HttpMethod httpMethod)</span> <span style="box-sizing:border-box;color:rgb(198, 120, 221);">throws</span> IOException</span>;
+
+}
+</code></pre>
+<p style="box-sizing:border-box;margin:0px 0px 25px;word-break:break-word;">RestTemplate可以在构造时设置ClientHttpRequestFactory，也可以通过setRequestFactory()方法设置</p>
+<pre style="overflow:auto;font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;font-size:13px;box-sizing:border-box;display:block;padding:15px;margin:0px 0px 10px;line-height:1.42857;word-break:break-word;overflow-wrap:normal;color:rgb(171, 178, 191);border:1px solid rgb(204, 204, 204);border-radius:4px;margin-bottom:20px;white-space:pre;overflow-x:auto;background:rgb(40, 44, 52);background-color:rgb(245, 245, 245);"><code style="font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;font-size:13px;box-sizing:border-box;color:inherit;background-color:transparent;border-radius:0px;padding:0px;white-space:pre;border:none;vertical-align:middle;">构造方法设置：
+<span style="box-sizing:border-box;color:rgb(146, 146, 146);font-style:normal;">/**
+ * Create a new instance of the {<span style="box-sizing:border-box;color:rgb(198, 120, 221);">@link</span> RestTemplate} based on the given {<span style="box-sizing:border-box;color:rgb(198, 120, 221);">@link</span> ClientHttpRequestFactory}.
+ * <span style="box-sizing:border-box;color:rgb(198, 120, 221);">@param</span> requestFactory HTTP request factory to use
+ * <span style="box-sizing:border-box;color:rgb(198, 120, 221);">@see</span> org.springframework.http.client.SimpleClientHttpRequestFactory
+ * <span style="box-sizing:border-box;color:rgb(198, 120, 221);">@see</span> org.springframework.http.client.HttpComponentsClientHttpRequestFactory
+ */</span>
+<span style="box-sizing:border-box;"><span style="box-sizing:border-box;color:rgb(198, 120, 221);">public</span> <span style="box-sizing:border-box;color:rgb(97, 174, 238);">RestTemplate</span><span style="box-sizing:border-box;">(ClientHttpRequestFactory requestFactory)</span> </span>{
+    <span style="box-sizing:border-box;color:rgb(198, 120, 221);">this</span>();
+    setRequestFactory(requestFactory);
+}
+</code></pre>
+<p style="box-sizing:border-box;margin:0px 0px 25px;word-break:break-word;">可以看到上面注释中已经给出了Spring的两种ClientHttpRequestFactory的实现类<code style="font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;font-size:13px;box-sizing:border-box;color:rgb(199, 37, 78);background-color:rgb(246, 246, 246);border-radius:4px;padding:2px 4px;border:none;white-space:pre-wrap;vertical-align:middle;">SimpleClientHttpRequestFactory</code>和<code style="font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;font-size:13px;box-sizing:border-box;color:rgb(199, 37, 78);background-color:rgb(246, 246, 246);border-radius:4px;padding:2px 4px;border:none;white-space:pre-wrap;vertical-align:middle;">HttpComponentsClientHttpRequestFactory</code></p>
+<h2 style="box-sizing:border-box;font-family:inherit;font-weight:700;line-height:1.7;color:rgb(47, 47, 47);font-size:24px;margin:0px 0px 15px;text-rendering:optimizelegibility;margin-top:20px;margin-bottom:10px;">SimpleClientHttpRequestFactory</h2>
+<p style="box-sizing:border-box;margin:0px 0px 25px;word-break:break-word;">如果什么都不设置，RestTemplate默认使用的是SimpleClientHttpRequestFactory，其内部使用的是jdk的<code style="font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;font-size:13px;box-sizing:border-box;color:rgb(199, 37, 78);background-color:rgb(246, 246, 246);border-radius:4px;padding:2px 4px;border:none;white-space:pre-wrap;vertical-align:middle;">java.net.HttpURLConnection</code>创建底层连接，默认是没有连接池的，connectTimeout和readTimeout都是 <strong style="font-weight:700;box-sizing:border-box;">-1</strong>，即没有超时时间</p>
+<pre style="overflow:auto;font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;font-size:13px;box-sizing:border-box;display:block;padding:15px;margin:0px 0px 10px;line-height:1.42857;word-break:break-word;overflow-wrap:normal;color:rgb(171, 178, 191);border:1px solid rgb(204, 204, 204);border-radius:4px;margin-bottom:20px;white-space:pre;overflow-x:auto;background:rgb(40, 44, 52);background-color:rgb(245, 245, 245);"><code style="font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;font-size:13px;box-sizing:border-box;color:inherit;background-color:transparent;border-radius:0px;padding:0px;white-space:pre;border:none;vertical-align:middle;"><span style="box-sizing:border-box;color:rgb(198, 120, 221);">public</span> <span style="box-sizing:border-box;"><span style="box-sizing:border-box;color:rgb(198, 120, 221);">class</span> <span style="box-sizing:border-box;color:rgb(230, 192, 123);">SimpleClientHttpRequestFactory</span> <span style="box-sizing:border-box;color:rgb(198, 120, 221);">implements</span> <span style="box-sizing:border-box;color:rgb(230, 192, 123);">ClientHttpRequestFactory</span>, <span style="box-sizing:border-box;color:rgb(230, 192, 123);">AsyncClientHttpRequestFactory</span> </span>{
+    。。。。。。
+        
+    <span style="box-sizing:border-box;color:rgb(198, 120, 221);">private</span> <span style="box-sizing:border-box;color:rgb(198, 120, 221);">int</span> connectTimeout = -<span style="box-sizing:border-box;color:rgb(209, 154, 102);">1</span>;
+    <span style="box-sizing:border-box;color:rgb(198, 120, 221);">private</span> <span style="box-sizing:border-box;color:rgb(198, 120, 221);">int</span> readTimeout = -<span style="box-sizing:border-box;color:rgb(209, 154, 102);">1</span>;
+    
+    <span style="box-sizing:border-box;color:rgb(146, 146, 146);font-style:normal;">//创建Request</span>
+    <span style="box-sizing:border-box;color:rgb(97, 174, 238);">@Override</span>
+    <span style="box-sizing:border-box;"><span style="box-sizing:border-box;color:rgb(198, 120, 221);">public</span> ClientHttpRequest <span style="box-sizing:border-box;color:rgb(97, 174, 238);">createRequest</span><span style="box-sizing:border-box;">(URI uri, HttpMethod httpMethod)</span> <span style="box-sizing:border-box;color:rgb(198, 120, 221);">throws</span> IOException </span>{
+        HttpURLConnection connection = openConnection(uri.toURL(), <span style="box-sizing:border-box;color:rgb(198, 120, 221);">this</span>.proxy);
+        prepareConnection(connection, httpMethod.name());
+
+         <span style="box-sizing:border-box;color:rgb(146, 146, 146);font-style:normal;">//bufferRequestBody默认为true</span>
+        <span style="box-sizing:border-box;color:rgb(198, 120, 221);">if</span> (<span style="box-sizing:border-box;color:rgb(198, 120, 221);">this</span>.bufferRequestBody) {
+            <span style="box-sizing:border-box;color:rgb(198, 120, 221);">return</span> <span style="box-sizing:border-box;color:rgb(198, 120, 221);">new</span> SimpleBufferingClientHttpRequest(connection, <span style="box-sizing:border-box;color:rgb(198, 120, 221);">this</span>.outputStreaming);
+        }
+        <span style="box-sizing:border-box;color:rgb(198, 120, 221);">else</span> {
+            <span style="box-sizing:border-box;color:rgb(198, 120, 221);">return</span> <span style="box-sizing:border-box;color:rgb(198, 120, 221);">new</span> SimpleStreamingClientHttpRequest(connection, <span style="box-sizing:border-box;color:rgb(198, 120, 221);">this</span>.chunkSize, <span style="box-sizing:border-box;color:rgb(198, 120, 221);">this</span>.outputStreaming);
+        }
+    }
+    
+    
+    <span style="box-sizing:border-box;color:rgb(146, 146, 146);font-style:normal;">/**
+     * Opens and returns a connection to the given URL.
+     * 打开并返回一个指定URL的连接
+     * &lt;p&gt;The default implementation uses the given {<span style="box-sizing:border-box;color:rgb(198, 120, 221);">@linkplain</span> #setProxy(java.net.Proxy) proxy} -
+     * if any - to open a connection.
+     * <span style="box-sizing:border-box;color:rgb(198, 120, 221);">@param</span> url the URL to open a connection to
+     * <span style="box-sizing:border-box;color:rgb(198, 120, 221);">@param</span> proxy the proxy to use, may be {<span style="box-sizing:border-box;color:rgb(198, 120, 221);">@code</span> null}
+     * <span style="box-sizing:border-box;color:rgb(198, 120, 221);">@return</span> the opened connection  返回类型为 java.net.HttpURLConnection
+     * <span style="box-sizing:border-box;color:rgb(198, 120, 221);">@throws</span> IOException in case of I/O errors
+     */</span>
+    <span style="box-sizing:border-box;"><span style="box-sizing:border-box;color:rgb(198, 120, 221);">protected</span> HttpURLConnection <span style="box-sizing:border-box;color:rgb(97, 174, 238);">openConnection</span><span style="box-sizing:border-box;">(URL url, Proxy proxy)</span> <span style="box-sizing:border-box;color:rgb(198, 120, 221);">throws</span> IOException </span>{
+        URLConnection urlConnection = (proxy != <span style="box-sizing:border-box;color:rgb(198, 120, 221);">null</span> ? url.openConnection(proxy) : url.openConnection());
+        <span style="box-sizing:border-box;color:rgb(198, 120, 221);">if</span> (!HttpURLConnection.class.isInstance(urlConnection)) {
+            <span style="box-sizing:border-box;color:rgb(198, 120, 221);">throw</span> <span style="box-sizing:border-box;color:rgb(198, 120, 221);">new</span> IllegalStateException(<span style="box-sizing:border-box;color:rgb(152, 195, 121);">&quot;HttpURLConnection required for [&quot;</span> + url + <span style="box-sizing:border-box;color:rgb(152, 195, 121);">&quot;] but got: &quot;</span> + urlConnection);
+        }
+        <span style="box-sizing:border-box;color:rgb(198, 120, 221);">return</span> (HttpURLConnection) urlConnection;
+    }
+    
+    
+    <span style="box-sizing:border-box;color:rgb(146, 146, 146);font-style:normal;">/**
+     * Template method for preparing the given {<span style="box-sizing:border-box;color:rgb(198, 120, 221);">@link</span> HttpURLConnection}.
+     * &lt;p&gt;The default implementation prepares the connection for input and output, and sets the HTTP method.
+     * <span style="box-sizing:border-box;color:rgb(198, 120, 221);">@param</span> connection the connection to prepare
+     * <span style="box-sizing:border-box;color:rgb(198, 120, 221);">@param</span> httpMethod the HTTP request method ({<span style="box-sizing:border-box;color:rgb(198, 120, 221);">@code</span> GET}, {<span style="box-sizing:border-box;color:rgb(198, 120, 221);">@code</span> POST}, etc.)
+     * <span style="box-sizing:border-box;color:rgb(198, 120, 221);">@throws</span> IOException in case of I/O errors
+     */</span>
+    <span style="box-sizing:border-box;"><span style="box-sizing:border-box;color:rgb(198, 120, 221);">protected</span> <span style="box-sizing:border-box;color:rgb(198, 120, 221);">void</span> <span style="box-sizing:border-box;color:rgb(97, 174, 238);">prepareConnection</span><span style="box-sizing:border-box;">(HttpURLConnection connection, String httpMethod)</span> <span style="box-sizing:border-box;color:rgb(198, 120, 221);">throws</span> IOException </span>{
+         <span style="box-sizing:border-box;color:rgb(146, 146, 146);font-style:normal;">//如果connectTimeout大于等于0，设置连接超时时间</span>
+        <span style="box-sizing:border-box;color:rgb(198, 120, 221);">if</span> (<span style="box-sizing:border-box;color:rgb(198, 120, 221);">this</span>.connectTimeout &gt;= <span style="box-sizing:border-box;color:rgb(209, 154, 102);">0</span>) {
+            connection.setConnectTimeout(<span style="box-sizing:border-box;color:rgb(198, 120, 221);">this</span>.connectTimeout);
+        }
+         <span style="box-sizing:border-box;color:rgb(146, 146, 146);font-style:normal;">//如果readTimeout大于等于0，设置读超时时间</span>
+        <span style="box-sizing:border-box;color:rgb(198, 120, 221);">if</span> (<span style="box-sizing:border-box;color:rgb(198, 120, 221);">this</span>.readTimeout &gt;= <span style="box-sizing:border-box;color:rgb(209, 154, 102);">0</span>) {
+            connection.setReadTimeout(<span style="box-sizing:border-box;color:rgb(198, 120, 221);">this</span>.readTimeout);
+        }
+
+        connection.setDoInput(<span style="box-sizing:border-box;color:rgb(198, 120, 221);">true</span>);
+
+        <span style="box-sizing:border-box;color:rgb(198, 120, 221);">if</span> (<span style="box-sizing:border-box;color:rgb(152, 195, 121);">&quot;GET&quot;</span>.equals(httpMethod)) {
+            connection.setInstanceFollowRedirects(<span style="box-sizing:border-box;color:rgb(198, 120, 221);">true</span>);
+        }
+        <span style="box-sizing:border-box;color:rgb(198, 120, 221);">else</span> {
+            connection.setInstanceFollowRedirects(<span style="box-sizing:border-box;color:rgb(198, 120, 221);">false</span>);
+        }
+
+        <span style="box-sizing:border-box;color:rgb(198, 120, 221);">if</span> (<span style="box-sizing:border-box;color:rgb(152, 195, 121);">&quot;POST&quot;</span>.equals(httpMethod) || <span style="box-sizing:border-box;color:rgb(152, 195, 121);">&quot;PUT&quot;</span>.equals(httpMethod) ||
+                <span style="box-sizing:border-box;color:rgb(152, 195, 121);">&quot;PATCH&quot;</span>.equals(httpMethod) || <span style="box-sizing:border-box;color:rgb(152, 195, 121);">&quot;DELETE&quot;</span>.equals(httpMethod)) {
+            connection.setDoOutput(<span style="box-sizing:border-box;color:rgb(198, 120, 221);">true</span>);
+        }
+        <span style="box-sizing:border-box;color:rgb(198, 120, 221);">else</span> {
+            connection.setDoOutput(<span style="box-sizing:border-box;color:rgb(198, 120, 221);">false</span>);
+        }
+
+        connection.setRequestMethod(httpMethod);
+    }
+    
+    。。。。。。
+}
+</code></pre>
+<h2 style="box-sizing:border-box;font-family:inherit;font-weight:700;line-height:1.7;color:rgb(47, 47, 47);font-size:24px;margin:0px 0px 15px;text-rendering:optimizelegibility;margin-top:20px;margin-bottom:10px;">HttpComponentsClientHttpRequestFactory</h2>
+<p style="box-sizing:border-box;margin:0px 0px 25px;word-break:break-word;">HttpComponentsClientHttpRequestFactory底层使用Apache HttpClient创建请求，访问远程的Http服务，<strong style="font-weight:700;box-sizing:border-box;">可以使用一个已经配置好的HttpClient实例创建HttpComponentsClientHttpRequestFactory请求工厂，HttpClient实例中可以配置连接池和证书等信息</strong></p>
+<h3 style="box-sizing:border-box;font-family:inherit;font-weight:700;line-height:1.7;color:rgb(47, 47, 47);font-size:22px;margin:0px 0px 15px;text-rendering:optimizelegibility;margin-top:20px;margin-bottom:10px;">添加HttpClient依赖</h3>
+<pre style="overflow:auto;font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;font-size:13px;box-sizing:border-box;display:block;padding:15px;margin:0px 0px 10px;line-height:1.42857;word-break:break-word;overflow-wrap:normal;color:rgb(171, 178, 191);border:1px solid rgb(204, 204, 204);border-radius:4px;margin-bottom:20px;white-space:pre;overflow-x:auto;background:rgb(40, 44, 52);background-color:rgb(245, 245, 245);"><code style="font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;font-size:13px;box-sizing:border-box;color:inherit;background-color:transparent;border-radius:0px;padding:0px;white-space:pre;border:none;vertical-align:middle;"><span style="box-sizing:border-box;">&lt;<span style="box-sizing:border-box;color:rgb(224, 108, 117);">dependency</span>&gt;</span>
+    <span style="box-sizing:border-box;">&lt;<span style="box-sizing:border-box;color:rgb(224, 108, 117);">groupId</span>&gt;</span>org.apache.httpcomponents<span style="box-sizing:border-box;">&lt;/<span style="box-sizing:border-box;color:rgb(224, 108, 117);">groupId</span>&gt;</span>
+    <span style="box-sizing:border-box;">&lt;<span style="box-sizing:border-box;color:rgb(224, 108, 117);">artifactId</span>&gt;</span>httpclient<span style="box-sizing:border-box;">&lt;/<span style="box-sizing:border-box;color:rgb(224, 108, 117);">artifactId</span>&gt;</span>
+    <span style="box-sizing:border-box;">&lt;<span style="box-sizing:border-box;color:rgb(224, 108, 117);">version</span>&gt;</span>x.x.x<span style="box-sizing:border-box;">&lt;/<span style="box-sizing:border-box;color:rgb(224, 108, 117);">version</span>&gt;</span>   <span style="box-sizing:border-box;color:rgb(146, 146, 146);font-style:normal;">&lt;!-- springboot项目不用指定 --&gt;</span>
+<span style="box-sizing:border-box;">&lt;/<span style="box-sizing:border-box;color:rgb(224, 108, 117);">dependency</span>&gt;</span>
+</code></pre>
+<h3 style="box-sizing:border-box;font-family:inherit;font-weight:700;line-height:1.7;color:rgb(47, 47, 47);font-size:22px;margin:0px 0px 15px;text-rendering:optimizelegibility;margin-top:20px;margin-bottom:10px;">设置超时时间</h3>
+<p style="box-sizing:border-box;margin:0px 0px 25px;word-break:break-word;">设置超时时间，可以直接使用Spring的底层基于HttpClient的HttpComponentsClientHttpRequestFactory，此处设置的是ClientHttpRequestFactory级别的全局超时时间</p>
+<pre style="overflow:auto;font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;font-size:13px;box-sizing:border-box;display:block;padding:15px;margin:0px 0px 10px;line-height:1.42857;word-break:break-word;overflow-wrap:normal;color:rgb(171, 178, 191);border:1px solid rgb(204, 204, 204);border-radius:4px;margin-bottom:20px;white-space:pre;overflow-x:auto;background:rgb(40, 44, 52);background-color:rgb(245, 245, 245);"><code style="font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;font-size:13px;box-sizing:border-box;color:inherit;background-color:transparent;border-radius:0px;padding:0px;white-space:pre;border:none;vertical-align:middle;"><span style="box-sizing:border-box;color:rgb(97, 174, 238);">@Configuration</span>  
+<span style="box-sizing:border-box;color:rgb(198, 120, 221);">public</span> <span style="box-sizing:border-box;"><span style="box-sizing:border-box;color:rgb(198, 120, 221);">class</span> <span style="box-sizing:border-box;color:rgb(230, 192, 123);">RestTemplateConfig</span> </span>{  
+  
+    <span style="box-sizing:border-box;color:rgb(97, 174, 238);">@Bean</span>  
+    <span style="box-sizing:border-box;"><span style="box-sizing:border-box;color:rgb(198, 120, 221);">public</span> RestTemplate <span style="box-sizing:border-box;color:rgb(97, 174, 238);">restTemplate</span><span style="box-sizing:border-box;">()</span> </span>{  
+        <span style="box-sizing:border-box;color:rgb(198, 120, 221);">return</span> <span style="box-sizing:border-box;color:rgb(198, 120, 221);">new</span> RestTemplate(clientHttpRequestFactory());  
+    }  
+  
+    <span style="box-sizing:border-box;color:rgb(97, 174, 238);">@Bean</span> 
+    <span style="box-sizing:border-box;"><span style="box-sizing:border-box;color:rgb(198, 120, 221);">private</span> ClientHttpRequestFactory <span style="box-sizing:border-box;color:rgb(97, 174, 238);">clientHttpRequestFactory</span><span style="box-sizing:border-box;">()</span> </span>{  
+        HttpComponentsClientHttpRequestFactory factory = <span style="box-sizing:border-box;color:rgb(198, 120, 221);">new</span> HttpComponentsClientHttpRequestFactory();  
+        factory.setConnectTimeout(<span style="box-sizing:border-box;color:rgb(209, 154, 102);">30</span> * <span style="box-sizing:border-box;color:rgb(209, 154, 102);">1000</span>);  <span style="box-sizing:border-box;color:rgb(146, 146, 146);font-style:normal;">//连接超时时间</span>
+        factory.setReadTimeout(<span style="box-sizing:border-box;color:rgb(209, 154, 102);">60</span> * <span style="box-sizing:border-box;color:rgb(209, 154, 102);">1000</span>);  <span style="box-sizing:border-box;color:rgb(146, 146, 146);font-style:normal;">//读超时时间</span>
+        <span style="box-sizing:border-box;color:rgb(198, 120, 221);">return</span> factory;  
+    }  
+} 
+</code></pre>
+<p style="box-sizing:border-box;margin:0px 0px 25px;word-break:break-word;"><strong style="font-weight:700;box-sizing:border-box;">注意：</strong>如果通过一个HttpClient实例创建HttpComponentsClientHttpRequestFactory，并通过HttpClient指定了DefaultRequestConfig，设置了connectTimeout、readTimeout等，在实际执行请求创建request时会与HttpComponentsClientHttpRequestFactory的配置合并，connectTimeout、socketTimeout、connectionRequestTimeout 以HttpComponentsClientHttpRequestFactory的配置为准</p>
+<pre style="overflow:auto;font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;font-size:13px;box-sizing:border-box;display:block;padding:15px;margin:0px 0px 10px;line-height:1.42857;word-break:break-word;overflow-wrap:normal;color:rgb(171, 178, 191);border:1px solid rgb(204, 204, 204);border-radius:4px;margin-bottom:20px;white-space:pre;overflow-x:auto;background:rgb(40, 44, 52);background-color:rgb(245, 245, 245);"><code style="font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;font-size:13px;box-sizing:border-box;color:inherit;background-color:transparent;border-radius:0px;padding:0px;white-space:pre;border:none;vertical-align:middle;">HttpComponentsClientHttpRequestFactory：
+<span style="box-sizing:border-box;color:rgb(146, 146, 146);font-style:normal;">/**
+ * Merge the given {<span style="box-sizing:border-box;color:rgb(198, 120, 221);">@link</span> HttpClient}-level {<span style="box-sizing:border-box;color:rgb(198, 120, 221);">@link</span> RequestConfig} with
+ * the factory-level {<span style="box-sizing:border-box;color:rgb(198, 120, 221);">@link</span> RequestConfig}, if necessary.
+ * <span style="box-sizing:border-box;color:rgb(198, 120, 221);">@param</span> clientConfig the config held by the current    httpClient级别的requestConfig配置
+ * <span style="box-sizing:border-box;color:rgb(198, 120, 221);">@return</span> the merged request config
+ * (may be {<span style="box-sizing:border-box;color:rgb(198, 120, 221);">@code</span> null} if the given client config is {<span style="box-sizing:border-box;color:rgb(198, 120, 221);">@code</span> null})
+ * <span style="box-sizing:border-box;color:rgb(198, 120, 221);">@since</span> 4.2
+ */</span>
+<span style="box-sizing:border-box;"><span style="box-sizing:border-box;color:rgb(198, 120, 221);">protected</span> RequestConfig <span style="box-sizing:border-box;color:rgb(97, 174, 238);">mergeRequestConfig</span><span style="box-sizing:border-box;">(RequestConfig clientConfig)</span> </span>{
+    <span style="box-sizing:border-box;color:rgb(198, 120, 221);">if</span> (<span style="box-sizing:border-box;color:rgb(198, 120, 221);">this</span>.requestConfig == <span style="box-sizing:border-box;color:rgb(198, 120, 221);">null</span>) {  <span style="box-sizing:border-box;color:rgb(146, 146, 146);font-style:normal;">// nothing to merge</span>
+        <span style="box-sizing:border-box;color:rgb(198, 120, 221);">return</span> clientConfig;
+    }
+
+    RequestConfig.Builder builder = RequestConfig.copy(clientConfig);
+    <span style="box-sizing:border-box;color:rgb(198, 120, 221);">int</span> connectTimeout = <span style="box-sizing:border-box;color:rgb(198, 120, 221);">this</span>.requestConfig.getConnectTimeout();  <span style="box-sizing:border-box;color:rgb(146, 146, 146);font-style:normal;">//HttpComponentsClientHttpRequestFactory级别的配置</span>
+    <span style="box-sizing:border-box;color:rgb(198, 120, 221);">if</span> (connectTimeout &gt;= <span style="box-sizing:border-box;color:rgb(209, 154, 102);">0</span>) {
+        builder.setConnectTimeout(connectTimeout);
+    }
+    <span style="box-sizing:border-box;color:rgb(198, 120, 221);">int</span> connectionRequestTimeout = <span style="box-sizing:border-box;color:rgb(198, 120, 221);">this</span>.requestConfig.getConnectionRequestTimeout();
+    <span style="box-sizing:border-box;color:rgb(198, 120, 221);">if</span> (connectionRequestTimeout &gt;= <span style="box-sizing:border-box;color:rgb(209, 154, 102);">0</span>) {
+        builder.setConnectionRequestTimeout(connectionRequestTimeout);
+    }
+    <span style="box-sizing:border-box;color:rgb(198, 120, 221);">int</span> socketTimeout = <span style="box-sizing:border-box;color:rgb(198, 120, 221);">this</span>.requestConfig.getSocketTimeout();
+    <span style="box-sizing:border-box;color:rgb(198, 120, 221);">if</span> (socketTimeout &gt;= <span style="box-sizing:border-box;color:rgb(209, 154, 102);">0</span>) {
+        builder.setSocketTimeout(socketTimeout);
+    }
+    <span style="box-sizing:border-box;color:rgb(198, 120, 221);">return</span> builder.build();
+}
+</code></pre>
+<p style="box-sizing:border-box;margin:0px 0px 25px;word-break:break-word;">上例中虽然没有指定http连接池，但** HttpComponentsClientHttpRequestFactory无参构造会创建一个HttpClient，并默认使用了连接池配置，MaxTotal=10，DefaultMaxPerRoute=5 **，具体如下：</p>
+<pre style="overflow:auto;font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;font-size:13px;box-sizing:border-box;display:block;padding:15px;margin:0px 0px 10px;line-height:1.42857;word-break:break-word;overflow-wrap:normal;color:rgb(171, 178, 191);border:1px solid rgb(204, 204, 204);border-radius:4px;margin-bottom:20px;white-space:pre;overflow-x:auto;background:rgb(40, 44, 52);background-color:rgb(245, 245, 245);"><code style="font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;font-size:13px;box-sizing:border-box;color:inherit;background-color:transparent;border-radius:0px;padding:0px;white-space:pre;border:none;vertical-align:middle;">HttpComponentsClientHttpRequestFactory：
+<span style="box-sizing:border-box;color:rgb(146, 146, 146);font-style:normal;">/**
+ * Create a new instance of the {<span style="box-sizing:border-box;color:rgb(198, 120, 221);">@code</span> HttpComponentsClientHttpRequestFactory}
+ * with a default {<span style="box-sizing:border-box;color:rgb(198, 120, 221);">@link</span> HttpClient}.
+ */</span>
+<span style="box-sizing:border-box;"><span style="box-sizing:border-box;color:rgb(198, 120, 221);">public</span> <span style="box-sizing:border-box;color:rgb(97, 174, 238);">HttpComponentsClientHttpRequestFactory</span><span style="box-sizing:border-box;">()</span> </span>{
+    <span style="box-sizing:border-box;color:rgb(198, 120, 221);">this</span>(HttpClients.createSystem());
+}
+
+
+HttpClients：
+<span style="box-sizing:border-box;color:rgb(146, 146, 146);font-style:normal;">/**
+ * Creates {<span style="box-sizing:border-box;color:rgb(198, 120, 221);">@link</span> CloseableHttpClient} instance with default
+ * configuration based on system properties.
+ * 创建CloseableHttpClient实例使用基于system properties的默认配置
+ */</span>
+<span style="box-sizing:border-box;"><span style="box-sizing:border-box;color:rgb(198, 120, 221);">public</span> <span style="box-sizing:border-box;color:rgb(198, 120, 221);">static</span> CloseableHttpClient <span style="box-sizing:border-box;color:rgb(97, 174, 238);">createSystem</span><span style="box-sizing:border-box;">()</span> </span>{
+    <span style="box-sizing:border-box;color:rgb(198, 120, 221);">return</span> HttpClientBuilder.create().useSystemProperties().build();
+}
+
+
+HttpClientBuilder：
+<span style="box-sizing:border-box;color:rgb(146, 146, 146);font-style:normal;">/**
+ * Use system properties when creating and configuring default
+ * implementations.
+ */</span>
+<span style="box-sizing:border-box;"><span style="box-sizing:border-box;color:rgb(198, 120, 221);">public</span> <span style="box-sizing:border-box;color:rgb(198, 120, 221);">final</span> HttpClientBuilder <span style="box-sizing:border-box;color:rgb(97, 174, 238);">useSystemProperties</span><span style="box-sizing:border-box;">()</span> </span>{
+    <span style="box-sizing:border-box;color:rgb(198, 120, 221);">this</span>.systemProperties = <span style="box-sizing:border-box;color:rgb(198, 120, 221);">true</span>;  <span style="box-sizing:border-box;color:rgb(146, 146, 146);font-style:normal;">//设置systemProperties为true</span>
+    <span style="box-sizing:border-box;color:rgb(198, 120, 221);">return</span> <span style="box-sizing:border-box;color:rgb(198, 120, 221);">this</span>;
+}
+
+<span style="box-sizing:border-box;"><span style="box-sizing:border-box;color:rgb(198, 120, 221);">public</span> CloseableHttpClient <span style="box-sizing:border-box;color:rgb(97, 174, 238);">build</span><span style="box-sizing:border-box;">()</span> </span>{
+    HttpClientConnectionManager connManagerCopy = <span style="box-sizing:border-box;color:rgb(198, 120, 221);">this</span>.connManager; <span style="box-sizing:border-box;color:rgb(146, 146, 146);font-style:normal;">//没有设置，为null</span>
+    <span style="box-sizing:border-box;color:rgb(198, 120, 221);">if</span> (connManagerCopy == <span style="box-sizing:border-box;color:rgb(198, 120, 221);">null</span>) {
+        。。。。。。
+        <span style="box-sizing:border-box;color:rgb(146, 146, 146);font-style:normal;">//创建连接池管理器PoolingHttpClientConnectionManager</span>
+        <span style="box-sizing:border-box;color:rgb(97, 174, 238);">@SuppressWarnings</span>(<span style="box-sizing:border-box;color:rgb(152, 195, 121);">&quot;resource&quot;</span>)
+        <span style="box-sizing:border-box;color:rgb(198, 120, 221);">final</span> PoolingHttpClientConnectionManager poolingmgr = <span style="box-sizing:border-box;color:rgb(198, 120, 221);">new</span> PoolingHttpClientConnectionManager(
+                RegistryBuilder.&lt;ConnectionSocketFactory&gt;create()
+                    .register(<span style="box-sizing:border-box;color:rgb(152, 195, 121);">&quot;http&quot;</span>, PlainConnectionSocketFactory.getSocketFactory())
+                    .register(<span style="box-sizing:border-box;color:rgb(152, 195, 121);">&quot;https&quot;</span>, sslSocketFactoryCopy)
+                    .build(),
+                <span style="box-sizing:border-box;color:rgb(198, 120, 221);">null</span>,
+                <span style="box-sizing:border-box;color:rgb(198, 120, 221);">null</span>,
+                dnsResolver,
+                connTimeToLive,
+                connTimeToLiveTimeUnit != <span style="box-sizing:border-box;color:rgb(198, 120, 221);">null</span> ? connTimeToLiveTimeUnit : TimeUnit.MILLISECONDS);
+        <span style="box-sizing:border-box;color:rgb(198, 120, 221);">if</span> (defaultSocketConfig != <span style="box-sizing:border-box;color:rgb(198, 120, 221);">null</span>) {
+            poolingmgr.setDefaultSocketConfig(defaultSocketConfig);
+        }
+        <span style="box-sizing:border-box;color:rgb(198, 120, 221);">if</span> (defaultConnectionConfig != <span style="box-sizing:border-box;color:rgb(198, 120, 221);">null</span>) {
+            poolingmgr.setDefaultConnectionConfig(defaultConnectionConfig);
+        }
+        <span style="box-sizing:border-box;color:rgb(146, 146, 146);font-style:normal;">//由于是HttpClientBuilder.create().useSystemProperties().build(),systemProperties为true</span>
+        <span style="box-sizing:border-box;color:rgb(198, 120, 221);">if</span> (systemProperties) {
+            String s = System.getProperty(<span style="box-sizing:border-box;color:rgb(152, 195, 121);">&quot;http.keepAlive&quot;</span>, <span style="box-sizing:border-box;color:rgb(152, 195, 121);">&quot;true&quot;</span>);  <span style="box-sizing:border-box;color:rgb(146, 146, 146);font-style:normal;">//http.keepAlive默认值为true</span>
+            <span style="box-sizing:border-box;color:rgb(198, 120, 221);">if</span> (<span style="box-sizing:border-box;color:rgb(152, 195, 121);">&quot;true&quot;</span>.equalsIgnoreCase(s)) {
+                s = System.getProperty(<span style="box-sizing:border-box;color:rgb(152, 195, 121);">&quot;http.maxConnections&quot;</span>, <span style="box-sizing:border-box;color:rgb(152, 195, 121);">&quot;5&quot;</span>);  <span style="box-sizing:border-box;color:rgb(146, 146, 146);font-style:normal;">//默认值为5</span>
+                <span style="box-sizing:border-box;color:rgb(198, 120, 221);">final</span> <span style="box-sizing:border-box;color:rgb(198, 120, 221);">int</span> max = Integer.parseInt(s);
+                poolingmgr.setDefaultMaxPerRoute(max);  <span style="box-sizing:border-box;color:rgb(146, 146, 146);font-style:normal;">//DefaultMaxPerRoute=5</span>
+                poolingmgr.setMaxTotal(<span style="box-sizing:border-box;color:rgb(209, 154, 102);">2</span> * max);  <span style="box-sizing:border-box;color:rgb(146, 146, 146);font-style:normal;">//MaxTotal=10</span>
+            }
+        }
+        <span style="box-sizing:border-box;color:rgb(198, 120, 221);">if</span> (maxConnTotal &gt; <span style="box-sizing:border-box;color:rgb(209, 154, 102);">0</span>) {
+            poolingmgr.setMaxTotal(maxConnTotal);
+        }
+        <span style="box-sizing:border-box;color:rgb(198, 120, 221);">if</span> (maxConnPerRoute &gt; <span style="box-sizing:border-box;color:rgb(209, 154, 102);">0</span>) {
+            poolingmgr.setDefaultMaxPerRoute(maxConnPerRoute);
+        }
+        connManagerCopy = poolingmgr;
+    }
+}
+</code></pre>
+<h3 style="box-sizing:border-box;font-family:inherit;font-weight:700;line-height:1.7;color:rgb(47, 47, 47);font-size:22px;margin:0px 0px 15px;text-rendering:optimizelegibility;margin-top:20px;margin-bottom:10px;">配置连接池</h3>
+<pre style="overflow:auto;font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;font-size:13px;box-sizing:border-box;display:block;padding:15px;margin:0px 0px 10px;line-height:1.42857;word-break:break-word;overflow-wrap:normal;color:rgb(171, 178, 191);border:1px solid rgb(204, 204, 204);border-radius:4px;margin-bottom:20px;white-space:pre;overflow-x:auto;background:rgb(40, 44, 52);background-color:rgb(245, 245, 245);"><code style="font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;font-size:13px;box-sizing:border-box;color:inherit;background-color:transparent;border-radius:0px;padding:0px;white-space:pre;border:none;vertical-align:middle;"><span style="box-sizing:border-box;color:rgb(97, 174, 238);">@Configuration</span>  
+<span style="box-sizing:border-box;color:rgb(198, 120, 221);">public</span> <span style="box-sizing:border-box;"><span style="box-sizing:border-box;color:rgb(198, 120, 221);">class</span> <span style="box-sizing:border-box;color:rgb(230, 192, 123);">RestTemplateConfig</span> </span>{  
+  
+    <span style="box-sizing:border-box;color:rgb(97, 174, 238);">@Bean</span>  
+    <span style="box-sizing:border-box;"><span style="box-sizing:border-box;color:rgb(198, 120, 221);">public</span> RestTemplate <span style="box-sizing:border-box;color:rgb(97, 174, 238);">restTemplate</span><span style="box-sizing:border-box;">()</span> </span>{  
+        <span style="box-sizing:border-box;color:rgb(198, 120, 221);">return</span> <span style="box-sizing:border-box;color:rgb(198, 120, 221);">new</span> RestTemplate(clientHttpRequestFactory());  
+    }  
+  
+    <span style="box-sizing:border-box;color:rgb(97, 174, 238);">@Bean</span>
+    <span style="box-sizing:border-box;"><span style="box-sizing:border-box;color:rgb(198, 120, 221);">public</span> HttpComponentsClientHttpRequestFactory <span style="box-sizing:border-box;color:rgb(97, 174, 238);">clientHttpRequestFactory</span><span style="box-sizing:border-box;">()</span> </span>{
+        <span style="box-sizing:border-box;color:rgb(198, 120, 221);">try</span> {
+            HttpClientBuilder httpClientBuilder = HttpClientBuilder.create();
+
+            <span style="box-sizing:border-box;color:rgb(146, 146, 146);font-style:normal;">//开始设置连接池</span>
+            PoolingHttpClientConnectionManager poolingHttpClientConnectionManager 
+                                                    = <span style="box-sizing:border-box;color:rgb(198, 120, 221);">new</span> PoolingHttpClientConnectionManager();
+            poolingHttpClientConnectionManager.setMaxTotal(<span style="box-sizing:border-box;color:rgb(209, 154, 102);">100</span>);  <span style="box-sizing:border-box;color:rgb(146, 146, 146);font-style:normal;">//最大连接数</span>
+            poolingHttpClientConnectionManager.setDefaultMaxPerRoute(<span style="box-sizing:border-box;color:rgb(209, 154, 102);">20</span>);  <span style="box-sizing:border-box;color:rgb(146, 146, 146);font-style:normal;">//同路由并发数</span>
+            httpClientBuilder.setConnectionManager(poolingHttpClientConnectionManager);
+
+            HttpClient httpClient = httpClientBuilder.build();
+            <span style="box-sizing:border-box;color:rgb(146, 146, 146);font-style:normal;">// httpClient连接配置</span>
+            HttpComponentsClientHttpRequestFactory clientHttpRequestFactory 
+                                                    = <span style="box-sizing:border-box;color:rgb(198, 120, 221);">new</span> HttpComponentsClientHttpRequestFactory(httpClient);
+            clientHttpRequestFactory.setConnectTimeout(<span style="box-sizing:border-box;color:rgb(209, 154, 102);">30</span> * <span style="box-sizing:border-box;color:rgb(209, 154, 102);">1000</span>);  <span style="box-sizing:border-box;color:rgb(146, 146, 146);font-style:normal;">//连接超时</span>
+            clientHttpRequestFactory.setReadTimeout(<span style="box-sizing:border-box;color:rgb(209, 154, 102);">60</span> * <span style="box-sizing:border-box;color:rgb(209, 154, 102);">1000</span>);     <span style="box-sizing:border-box;color:rgb(146, 146, 146);font-style:normal;">//数据读取超时时间</span>
+            clientHttpRequestFactory.setConnectionRequestTimeout(<span style="box-sizing:border-box;color:rgb(209, 154, 102);">30</span> * <span style="box-sizing:border-box;color:rgb(209, 154, 102);">1000</span>);  <span style="box-sizing:border-box;color:rgb(146, 146, 146);font-style:normal;">//连接不够用的等待时间</span>
+            <span style="box-sizing:border-box;color:rgb(198, 120, 221);">return</span> clientHttpRequestFactory;
+        }
+        <span style="box-sizing:border-box;color:rgb(198, 120, 221);">catch</span> (Exception e) {
+            logger.error(<span style="box-sizing:border-box;color:rgb(152, 195, 121);">&quot;初始化clientHttpRequestFactory出错&quot;</span>, e);
+        }
+        <span style="box-sizing:border-box;color:rgb(198, 120, 221);">return</span> <span style="box-sizing:border-box;color:rgb(198, 120, 221);">null</span>;
+    } 
+} 
+</code></pre>
+<h2 style="box-sizing:border-box;font-family:inherit;font-weight:700;line-height:1.7;color:rgb(47, 47, 47);font-size:24px;margin:0px 0px 15px;text-rendering:optimizelegibility;margin-top:20px;margin-bottom:10px;">3、自定义messageConverter</h2>
+<p style="box-sizing:border-box;margin:0px 0px 25px;word-break:break-word;">RestTemplate的无参构造中默认会初始化很多messageConverters，用于请求/响应中的消息转换</p>
+<pre style="overflow:auto;font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;font-size:13px;box-sizing:border-box;display:block;padding:15px;margin:0px 0px 10px;line-height:1.42857;word-break:break-word;overflow-wrap:normal;color:rgb(171, 178, 191);border:1px solid rgb(204, 204, 204);border-radius:4px;margin-bottom:20px;white-space:pre;overflow-x:auto;background:rgb(40, 44, 52);background-color:rgb(245, 245, 245);"><code style="font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;font-size:13px;box-sizing:border-box;color:inherit;background-color:transparent;border-radius:0px;padding:0px;white-space:pre;border:none;vertical-align:middle;"><span style="box-sizing:border-box;color:rgb(146, 146, 146);font-style:normal;">/**
+ * Create a new instance of the {<span style="box-sizing:border-box;color:rgb(198, 120, 221);">@link</span> RestTemplate} using default settings.
+ * Default {<span style="box-sizing:border-box;color:rgb(198, 120, 221);">@link</span> HttpMessageConverter}s are initialized.
+ * 使用默认配置创建一个RestTemplate实例
+ * 默认的HttpMessageConverter集合被初始化
+ */</span>
+<span style="box-sizing:border-box;"><span style="box-sizing:border-box;color:rgb(198, 120, 221);">public</span> <span style="box-sizing:border-box;color:rgb(97, 174, 238);">RestTemplate</span><span style="box-sizing:border-box;">()</span> </span>{
+    <span style="box-sizing:border-box;color:rgb(198, 120, 221);">this</span>.messageConverters.add(<span style="box-sizing:border-box;color:rgb(198, 120, 221);">new</span> ByteArrayHttpMessageConverter());
+    <span style="box-sizing:border-box;color:rgb(198, 120, 221);">this</span>.messageConverters.add(<span style="box-sizing:border-box;color:rgb(198, 120, 221);">new</span> StringHttpMessageConverter());
+    <span style="box-sizing:border-box;color:rgb(198, 120, 221);">this</span>.messageConverters.add(<span style="box-sizing:border-box;color:rgb(198, 120, 221);">new</span> ResourceHttpMessageConverter());
+    <span style="box-sizing:border-box;color:rgb(198, 120, 221);">this</span>.messageConverters.add(<span style="box-sizing:border-box;color:rgb(198, 120, 221);">new</span> SourceHttpMessageConverter&lt;Source&gt;());
+    <span style="box-sizing:border-box;color:rgb(198, 120, 221);">this</span>.messageConverters.add(<span style="box-sizing:border-box;color:rgb(198, 120, 221);">new</span> AllEncompassingFormHttpMessageConverter());
+
+    <span style="box-sizing:border-box;color:rgb(198, 120, 221);">if</span> (romePresent) {
+        <span style="box-sizing:border-box;color:rgb(198, 120, 221);">this</span>.messageConverters.add(<span style="box-sizing:border-box;color:rgb(198, 120, 221);">new</span> AtomFeedHttpMessageConverter());
+        <span style="box-sizing:border-box;color:rgb(198, 120, 221);">this</span>.messageConverters.add(<span style="box-sizing:border-box;color:rgb(198, 120, 221);">new</span> RssChannelHttpMessageConverter());
+    }
+
+    <span style="box-sizing:border-box;color:rgb(198, 120, 221);">if</span> (jackson2XmlPresent) {
+        <span style="box-sizing:border-box;color:rgb(198, 120, 221);">this</span>.messageConverters.add(<span style="box-sizing:border-box;color:rgb(198, 120, 221);">new</span> MappingJackson2XmlHttpMessageConverter());
+    }
+    <span style="box-sizing:border-box;color:rgb(198, 120, 221);">else</span> <span style="box-sizing:border-box;color:rgb(198, 120, 221);">if</span> (jaxb2Present) {
+        <span style="box-sizing:border-box;color:rgb(198, 120, 221);">this</span>.messageConverters.add(<span style="box-sizing:border-box;color:rgb(198, 120, 221);">new</span> Jaxb2RootElementHttpMessageConverter());
+    }
+
+    <span style="box-sizing:border-box;color:rgb(146, 146, 146);font-style:normal;">/**
+     * 如果类路径下包含com.fasterxml.jackson.databind.ObjectMapper 和 com.fasterxml.jackson.core.JsonGenerator
+     * 使用jackson做http请求、响应的json转换
+     */</span>
+    <span style="box-sizing:border-box;color:rgb(198, 120, 221);">if</span> (jackson2Present) {
+        <span style="box-sizing:border-box;color:rgb(198, 120, 221);">this</span>.messageConverters.add(<span style="box-sizing:border-box;color:rgb(198, 120, 221);">new</span> MappingJackson2HttpMessageConverter());
+    }
+    <span style="box-sizing:border-box;color:rgb(198, 120, 221);">else</span> <span style="box-sizing:border-box;color:rgb(198, 120, 221);">if</span> (gsonPresent) {  <span style="box-sizing:border-box;color:rgb(146, 146, 146);font-style:normal;">//类路径下包含 com.google.gson.Gson</span>
+        <span style="box-sizing:border-box;color:rgb(198, 120, 221);">this</span>.messageConverters.add(<span style="box-sizing:border-box;color:rgb(198, 120, 221);">new</span> GsonHttpMessageConverter());
+    }
+}
+</code></pre>
+<p style="box-sizing:border-box;margin:0px 0px 25px;word-break:break-word;">springboot项目默认使用jackson做json转换</p>
+<h2 style="box-sizing:border-box;font-family:inherit;font-weight:700;line-height:1.7;color:rgb(47, 47, 47);font-size:24px;margin:0px 0px 15px;text-rendering:optimizelegibility;margin-top:20px;margin-bottom:10px;">使用fastjson做json转换</h2>
+<ol style="box-sizing:border-box;word-break:break-word;padding:0px;margin:-5px 0px 20px 20px;margin-top:0px;margin-bottom:10px;">
+<li style="box-sizing:border-box;line-height:30px;">引入fastjson依赖</li>
+<li style="box-sizing:border-box;line-height:30px;">排除jackson的HttpMessageConverter转换器</li>
+<li style="box-sizing:border-box;line-height:30px;">添加fastjson的转换器</li>
+</ol>
+<p style="box-sizing:border-box;margin:0px 0px 25px;word-break:break-word;">排除jackson的HttpMessageConverter转换器有两种方式：</p>
+<p style="box-sizing:border-box;margin:0px 0px 25px;word-break:break-word;">（1）类路径下去掉jackson的支持</p>
+<p style="box-sizing:border-box;margin:0px 0px 25px;word-break:break-word;">从RestTemplate的无参构造可以看出，需要判断类路径下是否有jackson的相关类，有才会添加MappingJackson2HttpMessageConverter，故可以在pom.xml中排除jackson的支持，以springboot项目举例</p>
+<pre style="overflow:auto;font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;font-size:13px;box-sizing:border-box;display:block;padding:15px;margin:0px 0px 10px;line-height:1.42857;word-break:break-word;overflow-wrap:normal;color:rgb(171, 178, 191);border:1px solid rgb(204, 204, 204);border-radius:4px;margin-bottom:20px;white-space:pre;overflow-x:auto;background:rgb(40, 44, 52);background-color:rgb(245, 245, 245);"><code style="font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;font-size:13px;box-sizing:border-box;color:inherit;background-color:transparent;border-radius:0px;padding:0px;white-space:pre;border:none;vertical-align:middle;"><span style="box-sizing:border-box;">&lt;<span style="box-sizing:border-box;color:rgb(224, 108, 117);">dependency</span>&gt;</span>
+    <span style="box-sizing:border-box;">&lt;<span style="box-sizing:border-box;color:rgb(224, 108, 117);">groupId</span>&gt;</span>org.springframework.boot<span style="box-sizing:border-box;">&lt;/<span style="box-sizing:border-box;color:rgb(224, 108, 117);">groupId</span>&gt;</span>
+    <span style="box-sizing:border-box;">&lt;<span style="box-sizing:border-box;color:rgb(224, 108, 117);">artifactId</span>&gt;</span>spring-boot-starter-web<span style="box-sizing:border-box;">&lt;/<span style="box-sizing:border-box;color:rgb(224, 108, 117);">artifactId</span>&gt;</span>
+    <span style="box-sizing:border-box;">&lt;<span style="box-sizing:border-box;color:rgb(224, 108, 117);">exclusions</span>&gt;</span>
+        <span style="box-sizing:border-box;">&lt;<span style="box-sizing:border-box;color:rgb(224, 108, 117);">exclusion</span>&gt;</span>
+            <span style="box-sizing:border-box;">&lt;<span style="box-sizing:border-box;color:rgb(224, 108, 117);">artifactId</span>&gt;</span>jackson-databind<span style="box-sizing:border-box;">&lt;/<span style="box-sizing:border-box;color:rgb(224, 108, 117);">artifactId</span>&gt;</span> 
+            <span style="box-sizing:border-box;">&lt;<span style="box-sizing:border-box;color:rgb(224, 108, 117);">groupId</span>&gt;</span>com.fasterxml.jackson.core<span style="box-sizing:border-box;">&lt;/<span style="box-sizing:border-box;color:rgb(224, 108, 117);">groupId</span>&gt;</span>
+        <span style="box-sizing:border-box;">&lt;/<span style="box-sizing:border-box;color:rgb(224, 108, 117);">exclusion</span>&gt;</span>
+    <span style="box-sizing:border-box;">&lt;/<span style="box-sizing:border-box;color:rgb(224, 108, 117);">exclusions</span>&gt;</span>
+<span style="box-sizing:border-box;">&lt;/<span style="box-sizing:border-box;color:rgb(224, 108, 117);">dependency</span>&gt;</span>
+</code></pre>
+<p style="box-sizing:border-box;margin:0px 0px 25px;word-break:break-word;">（2）在初始化配置RestTemplate时，去掉其默认的MappingJackson2HttpMessageConverter</p>
+<pre style="overflow:auto;font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;font-size:13px;box-sizing:border-box;display:block;padding:15px;margin:0px 0px 10px;line-height:1.42857;word-break:break-word;overflow-wrap:normal;color:rgb(171, 178, 191);border:1px solid rgb(204, 204, 204);border-radius:4px;margin-bottom:20px;white-space:pre;overflow-x:auto;background:rgb(40, 44, 52);background-color:rgb(245, 245, 245);"><code style="font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;font-size:13px;box-sizing:border-box;color:inherit;background-color:transparent;border-radius:0px;padding:0px;white-space:pre;border:none;vertical-align:middle;"><span style="box-sizing:border-box;color:rgb(97, 174, 238);">@Bean</span>
+<span style="box-sizing:border-box;"><span style="box-sizing:border-box;color:rgb(198, 120, 221);">public</span> RestTemplate <span style="box-sizing:border-box;color:rgb(97, 174, 238);">restTemplate</span><span style="box-sizing:border-box;">()</span> </span>{
+    RestTemplate restTemplate = <span style="box-sizing:border-box;color:rgb(198, 120, 221);">new</span> RestTemplate();
+    restTemplate.setRequestFactory(clientHttpRequestFactory());
+
+    <span style="box-sizing:border-box;color:rgb(146, 146, 146);font-style:normal;">//restTemplate默认的HttpMessageConverter</span>
+    List&lt;HttpMessageConverter&lt;?&gt;&gt; messageConverters = restTemplate.getMessageConverters();
+    List&lt;HttpMessageConverter&lt;?&gt;&gt; messageConvertersNew = <span style="box-sizing:border-box;color:rgb(198, 120, 221);">new</span> ArrayList&lt;HttpMessageConverter&lt;?&gt;&gt;();
+    
+    <span style="box-sizing:border-box;color:rgb(198, 120, 221);">for</span>(HttpMessageConverter httpMessageConverter : messageConverters){
+        <span style="box-sizing:border-box;color:rgb(146, 146, 146);font-style:normal;">//跳过MappingJackson2HttpMessageConverter</span>
+        <span style="box-sizing:border-box;color:rgb(198, 120, 221);">if</span> (httpMessageConverter <span style="box-sizing:border-box;color:rgb(198, 120, 221);">instanceof</span> MappingJackson2HttpMessageConverter) <span style="box-sizing:border-box;color:rgb(198, 120, 221);">continue</span>;
+
+        messageConvertersNew.add(httpMessageConverter);
+    }
+
+    <span style="box-sizing:border-box;color:rgb(146, 146, 146);font-style:normal;">//添加fastjson转换器</span>
+    messageConvertersNew.add(fastJsonHttpMessageConverter());
+
+    <span style="box-sizing:border-box;color:rgb(198, 120, 221);">return</span> restTemplate;
+}
+
+<span style="box-sizing:border-box;color:rgb(97, 174, 238);">@Bean</span>
+<span style="box-sizing:border-box;"><span style="box-sizing:border-box;color:rgb(198, 120, 221);">public</span> HttpMessageConverter <span style="box-sizing:border-box;color:rgb(97, 174, 238);">fastJsonHttpMessageConverter</span><span style="box-sizing:border-box;">()</span> </span>{
+    <span style="box-sizing:border-box;color:rgb(146, 146, 146);font-style:normal;">//MediaType</span>
+    List&lt;MediaType&gt; mediaTypes = <span style="box-sizing:border-box;color:rgb(198, 120, 221);">new</span> ArrayList&lt;&gt;();
+    mediaTypes.add(MediaType.APPLICATION_JSON_UTF8);
+
+    <span style="box-sizing:border-box;color:rgb(146, 146, 146);font-style:normal;">//FastJsonConfig</span>
+    FastJsonConfig fastJsonConfig = <span style="box-sizing:border-box;color:rgb(198, 120, 221);">new</span> FastJsonConfig();
+    fastJsonConfig.setSerializerFeatures(SerializerFeature.WriteMapNullValue,
+                                         SerializerFeature.QuoteFieldNames);
+
+    <span style="box-sizing:border-box;color:rgb(146, 146, 146);font-style:normal;">//创建FastJsonHttpMessageConverter4    Spring 4.2后使用</span>
+    FastJsonHttpMessageConverter4 fastJsonHttpMessageConverter = <span style="box-sizing:border-box;color:rgb(198, 120, 221);">new</span> FastJsonHttpMessageConverter4();
+    fastJsonHttpMessageConverter.setSupportedMediaTypes(mediaTypes);
+    fastJsonHttpMessageConverter.setFastJsonConfig(fastJsonConfig);
+
+    <span style="box-sizing:border-box;color:rgb(198, 120, 221);">return</span> fastJsonHttpMessageConverter;
+}
+</code></pre>
+<h1 style="font-size:26px;margin:0px 0px 15px;box-sizing:border-box;font-family:inherit;font-weight:700;line-height:1.7;color:rgb(47, 47, 47);text-rendering:optimizelegibility;margin-top:20px;margin-bottom:10px;">五、SpringBoot中使用RestTemplate</h1>
+<p style="box-sizing:border-box;margin:0px 0px 25px;word-break:break-word;">SpringBoot项目可以通过上面的方式，@Bean往Spring容器中注册一个配置好的RestTemplate实例，也可以参考 <a href="https://docs.spring.io/spring-boot/docs/1.5.4.RELEASE/reference/html/boot-features-restclient.html" rel="nofollow" style="background-color:transparent;box-sizing:border-box;color:rgb(49, 148, 208);text-decoration:none;cursor:pointer;" target="_blank">SpringBoot官方</a> 的方式自定义RestTemplate</p>
+<p style="box-sizing:border-box;margin:0px 0px 25px;word-break:break-word;">由于RestTemplate实例在使用前经常需要自定义，SpringBoot没有提供自动配置好的RestTemplate，但是自动配置好了可以用于创建RestTemplate的<code style="font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;font-size:13px;box-sizing:border-box;color:rgb(199, 37, 78);background-color:rgb(246, 246, 246);border-radius:4px;padding:2px 4px;border:none;white-space:pre-wrap;vertical-align:middle;">RestTemplateBuilder</code>实例，可以按如下使用</p>
+<pre style="overflow:auto;font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;font-size:13px;box-sizing:border-box;display:block;padding:15px;margin:0px 0px 10px;line-height:1.42857;word-break:break-word;overflow-wrap:normal;color:rgb(171, 178, 191);border:1px solid rgb(204, 204, 204);border-radius:4px;margin-bottom:20px;white-space:pre;overflow-x:auto;background:rgb(40, 44, 52);background-color:rgb(245, 245, 245);"><code style="font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;font-size:13px;box-sizing:border-box;color:inherit;background-color:transparent;border-radius:0px;padding:0px;white-space:pre;border:none;vertical-align:middle;"><span style="box-sizing:border-box;color:rgb(97, 174, 238);">@Service</span>
+<span style="box-sizing:border-box;color:rgb(198, 120, 221);">public</span> <span style="box-sizing:border-box;"><span style="box-sizing:border-box;color:rgb(198, 120, 221);">class</span> <span style="box-sizing:border-box;color:rgb(230, 192, 123);">MyBean</span> </span>{
+
+    <span style="box-sizing:border-box;color:rgb(198, 120, 221);">private</span> <span style="box-sizing:border-box;color:rgb(198, 120, 221);">final</span> RestTemplate restTemplate;
+
+    <span style="box-sizing:border-box;"><span style="box-sizing:border-box;color:rgb(198, 120, 221);">public</span> <span style="box-sizing:border-box;color:rgb(97, 174, 238);">MyBean</span><span style="box-sizing:border-box;">(RestTemplateBuilder restTemplateBuilder)</span> </span>{
+        <span style="box-sizing:border-box;color:rgb(198, 120, 221);">this</span>.restTemplate = restTemplateBuilder.build();
+    }
+
+    <span style="box-sizing:border-box;"><span style="box-sizing:border-box;color:rgb(198, 120, 221);">public</span> Details <span style="box-sizing:border-box;color:rgb(97, 174, 238);">someRestCall</span><span style="box-sizing:border-box;">(String name)</span> </span>{
+        <span style="box-sizing:border-box;color:rgb(198, 120, 221);">return</span> <span style="box-sizing:border-box;color:rgb(198, 120, 221);">this</span>.restTemplate.getForObject(<span style="box-sizing:border-box;color:rgb(152, 195, 121);">&quot;/{name}/details&quot;</span>, Details.class, name);
+    }
+
+}
+</code></pre>
+<h2 style="box-sizing:border-box;font-family:inherit;font-weight:700;line-height:1.7;color:rgb(47, 47, 47);font-size:24px;margin:0px 0px 15px;text-rendering:optimizelegibility;margin-top:20px;margin-bottom:10px;">RestTemplate自定义</h2>
+<p style="box-sizing:border-box;margin:0px 0px 25px;word-break:break-word;">RestTemplate自定义主要有三种方法，具体取决于希望自定义应用的范围</p>
+<ol style="box-sizing:border-box;word-break:break-word;padding:0px;margin:-5px 0px 20px 20px;margin-top:0px;margin-bottom:10px;">
+<li style="box-sizing:border-box;line-height:30px;"><p style="box-sizing:border-box;margin:0px 0px 25px;overflow:visible;word-break:break-word;">类范围。为了尽量缩小自定义的范围，在类中注入自动配置的<code style="font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;font-size:13px;box-sizing:border-box;color:rgb(199, 37, 78);background-color:rgb(246, 246, 246);border-radius:4px;padding:2px 4px;border:none;white-space:pre-wrap;vertical-align:middle;">RestTemplateBuilder</code>，然后根据需求调用它的配置方法，每次调用配置方法都会 new RestTemplateBuilder()并返回，所以对RestTemplateBuilder的配置只会影响由它创建的RestTemplate</p></li>
+<li style="box-sizing:border-box;line-height:30px;">
+<p style="box-sizing:border-box;margin:0px 0px 25px;overflow:visible;word-break:break-word;">应用范围。可以使用<code style="font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;font-size:13px;box-sizing:border-box;color:rgb(199, 37, 78);background-color:rgb(246, 246, 246);border-radius:4px;padding:2px 4px;border:none;white-space:pre-wrap;vertical-align:middle;">RestTemplateCustomizer</code>来自定义应用范围的的RestTemplate，所有注册到Spring容器的<code style="font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;font-size:13px;box-sizing:border-box;color:rgb(199, 37, 78);background-color:rgb(246, 246, 246);border-radius:4px;padding:2px 4px;border:none;white-space:pre-wrap;vertical-align:middle;">RestTemplateCustomizer</code>都会自动生效。如下，通过RestTemplateCustomizer设置连接池</p>
+<pre style="overflow:auto;font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;font-size:13px;box-sizing:border-box;display:block;padding:15px;margin:0px 0px 10px;line-height:1.42857;word-break:break-word;overflow-wrap:normal;color:rgb(171, 178, 191);border:1px solid rgb(204, 204, 204);border-radius:4px;margin-bottom:20px;white-space:pre;overflow-x:auto;background:rgb(40, 44, 52);background-color:rgb(245, 245, 245);"><code style="font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;font-size:13px;box-sizing:border-box;color:inherit;background-color:transparent;border-radius:0px;padding:0px;white-space:pre;border:none;vertical-align:middle;"><span style="box-sizing:border-box;color:rgb(97, 174, 238);">@Bean</span>
+    <span style="box-sizing:border-box;"><span style="box-sizing:border-box;color:rgb(198, 120, 221);">public</span> RestTemplateCustomizer <span style="box-sizing:border-box;color:rgb(97, 174, 238);">restTemplateCustomizer</span><span style="box-sizing:border-box;">()</span></span>{
+        <span style="box-sizing:border-box;color:rgb(198, 120, 221);">return</span> <span style="box-sizing:border-box;color:rgb(198, 120, 221);">new</span> RestTemplateCustomizer(){
+            <span style="box-sizing:border-box;color:rgb(97, 174, 238);">@Override</span>
+            <span style="box-sizing:border-box;"><span style="box-sizing:border-box;color:rgb(198, 120, 221);">public</span> <span style="box-sizing:border-box;color:rgb(198, 120, 221);">void</span> <span style="box-sizing:border-box;color:rgb(97, 174, 238);">customize</span><span style="box-sizing:border-box;">(RestTemplate restTemplate)</span> </span>{
+                HttpClientBuilder httpClientBuilder = HttpClientBuilder.create();
+
+                <span style="box-sizing:border-box;color:rgb(146, 146, 146);font-style:normal;">//创建连接管理器</span>
+                PoolingHttpClientConnectionManager poolingHttpClientConnectionManager 
+                                         = <span style="box-sizing:border-box;color:rgb(198, 120, 221);">new</span> PoolingHttpClientConnectionManager();
+                poolingHttpClientConnectionManager.setMaxTotal(<span style="box-sizing:border-box;color:rgb(209, 154, 102);">100</span>);
+                poolingHttpClientConnectionManager.setDefaultMaxPerRoute(<span style="box-sizing:border-box;color:rgb(209, 154, 102);">20</span>);
+                httpClientBuilder.setConnectionManager(poolingHttpClientConnectionManager);
+
+                <span style="box-sizing:border-box;color:rgb(146, 146, 146);font-style:normal;">//创建httpClient</span>
+                HttpClient httpClient = httpClientBuilder.build();
+
+                <span style="box-sizing:border-box;color:rgb(146, 146, 146);font-style:normal;">//创建HttpComponentsClientHttpRequestFactory</span>
+                HttpComponentsClientHttpRequestFactory httpComponentsClientHttpRequestFactory 
+                                             = <span style="box-sizing:border-box;color:rgb(198, 120, 221);">new</span> HttpComponentsClientHttpRequestFactory(httpClient);
+                httpComponentsClientHttpRequestFactory.setConnectTimeout(<span style="box-sizing:border-box;color:rgb(209, 154, 102);">10</span> * <span style="box-sizing:border-box;color:rgb(209, 154, 102);">1000</span>);
+                httpComponentsClientHttpRequestFactory.setReadTimeout(<span style="box-sizing:border-box;color:rgb(209, 154, 102);">60</span> * <span style="box-sizing:border-box;color:rgb(209, 154, 102);">1000</span>);
+                httpComponentsClientHttpRequestFactory.setConnectionRequestTimeout(<span style="box-sizing:border-box;color:rgb(209, 154, 102);">20</span> * <span style="box-sizing:border-box;color:rgb(209, 154, 102);">1000</span>);
+
+                restTemplate.setRequestFactory(httpComponentsClientHttpRequestFactory);
+            }
+        };
+    }
+</code></pre>
+</li>
+</ol>
+<ol start="3" style="box-sizing:border-box;word-break:break-word;padding:0px;margin:-5px 0px 20px 20px;margin-top:0px;margin-bottom:10px;">
+<li style="box-sizing:border-box;line-height:30px;">最后，最极端的（也是很少使用的）选项是创建你自己的<code style="font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;font-size:13px;box-sizing:border-box;color:rgb(199, 37, 78);background-color:rgb(246, 246, 246);border-radius:4px;padding:2px 4px;border:none;white-space:pre-wrap;vertical-align:middle;">RestTemplateBuilder</code> bean。这将关闭<code style="font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;font-size:13px;box-sizing:border-box;color:rgb(199, 37, 78);background-color:rgb(246, 246, 246);border-radius:4px;padding:2px 4px;border:none;white-space:pre-wrap;vertical-align:middle;">RestTemplateBuilder</code>的自动配置，并阻止使用任何<code style="font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;font-size:13px;box-sizing:border-box;color:rgb(199, 37, 78);background-color:rgb(246, 246, 246);border-radius:4px;padding:2px 4px;border:none;white-space:pre-wrap;vertical-align:middle;">RestTemplateCustomizer</code> bean</li>
+</ol>
+
+          </div></div></div></div></div></div></div></div><br/></div></span>
+</div></body></html> 

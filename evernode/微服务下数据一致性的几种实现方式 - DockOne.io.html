@@ -1,0 +1,179 @@
+<html>
+<head>
+  <title>微服务下数据一致性的几种实现方式 - DockOne.io</title>
+  <basefont face="微软雅黑" size="2" />
+  <meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+  <meta name="exporter-version" content="YXBJ Windows/601935 (zh-CN, DDL); Windows/10.0.0 (Win64); EDAMVersion=V2;"/>
+  <style>
+    body, td {
+      font-family: 微软雅黑;
+      font-size: 10pt;
+    }
+  </style>
+</head>
+<body>
+<a name="14957"/>
+<h1>微服务下数据一致性的几种实现方式 - DockOne.io</h1>
+<div>
+<table bgcolor="#D4DDE5" border="0">
+<tr><td><b>创建时间：</b></td><td><i>2020/4/15 9:58</i></td></tr>
+<tr><td><b>来源：</b></td><td><a href="http://dockone.io/article/9669"><i>http://dockone.io/article/9669</i></a></td></tr>
+</table>
+</div>
+<br/>
+
+<div><span><div style="-evernote-webclip:true"><br/><div style="font-size: 16px; display: inline-block;"><div style="font-family:sans-serif;text-size-adjust:100%;box-sizing:border-box;font-size:10px;-webkit-tap-highlight-color:rgba(0, 0, 0, 0);text-rendering:optimizelegibility;-webkit-font-smoothing:antialiased;"><div style="box-sizing:border-box;font-family:&quot;Helvetica Neue&quot;, STHeiti, &quot;Microsoft YaHei&quot;, Helvetica, Arial, sans-serif;font-size:14px;line-height:160%;color:rgb(102, 102, 102);background:url(&quot;img/bg.gif&quot;) repeat;"><div style="box-sizing:border-box;"><div style="box-sizing:border-box;"><div style="box-sizing:border-box;"><div style="box-sizing:border-box;background-color:rgb(255, 255, 255);border-radius:4px;"><div style="box-sizing:border-box;"><div style="box-sizing:border-box;">
+                        <div style="box-sizing:border-box;position:relative;padding-bottom:14px;border-bottom:1px solid rgb(245, 245, 245);">
+                            <h1 style="margin:0px;font-size:20px;box-sizing:border-box;font-family:&quot;Helvetica Neue&quot;, STHeiti, &quot;Microsoft YaHei&quot;, Helvetica, Arial, sans-serif;font-weight:500;line-height:30px;color:rgb(51, 51, 51);max-width:600px;">
+                                微服务下数据一致性的几种实现方式                            </h1>
+
+                                                    </div>
+                        <div style="box-sizing:border-box;margin-bottom:20px;">
+                            <div style="box-sizing:border-box;padding:10px 0px;position:relative;z-index:1;line-height:180%;overflow-wrap:break-word;">
+                                【编者的话】本人最近学习了一下微服务下数据一致性的特点，总结了下目前的保障微服务下数据一致性的几种实现方式如下，以备后查。此篇文章旨在给大家一个基于微服务的数据一致性实现的大概介绍，并未深入展开，具体的实现方式本人也在继续学习中，如有错误，欢迎大家拍砖。<br style="box-sizing:border-box;"/>
+<h3 style="box-sizing:border-box;font-family:&quot;Helvetica Neue&quot;, STHeiti, &quot;Microsoft YaHei&quot;, Helvetica, Arial, sans-serif;font-weight:500;line-height:1.7;color:rgb(51, 51, 51);font-size:1.5em;margin:16px 0px;">传统应用的事务管理</h3><h4 style="box-sizing:border-box;font-family:&quot;Helvetica Neue&quot;, STHeiti, &quot;Microsoft YaHei&quot;, Helvetica, Arial, sans-serif;font-weight:500;line-height:1.7;color:inherit;font-size:1.25em;margin:16px 0px;">本地事务</h4>在介绍微服务下的数据一致性之前，先简单地介绍一下事务的背景。传统单机应用使用一个RDBMS作为数据源。应用开启事务，进行CRUD，提交或回滚事务，统统发生在本地事务中，由资源管理器（RM）直接提供事务支持。数据的一致性在一个本地事务中得到保证。<br style="box-sizing:border-box;"/>
+<div style="box-sizing:border-box;">
+	<a href="http://dockone.io/uploads/article/20200115/ac9f86298d77a51b0b705abefd512559.png" rel="lightbox" style="background:0px 0px;box-sizing:border-box;color:rgb(21, 95, 170);text-decoration:none;cursor:pointer;" target="_blank"><img src="微服务下数据一致性的几种实现方式 - DockOne.io_files/Image.png" type="image/png" data-filename="Image.png" alt="1.png" height="323" style="border:0px;box-sizing:border-box;vertical-align:middle;max-width:625px;margin-bottom:15px;" title="1.png" width="461"/></a>
+</div>
+<br style="box-sizing:border-box;"/>
+<h4 style="box-sizing:border-box;font-family:&quot;Helvetica Neue&quot;, STHeiti, &quot;Microsoft YaHei&quot;, Helvetica, Arial, sans-serif;font-weight:500;line-height:1.7;color:inherit;font-size:1.25em;margin:16px 0px;">分布式事务</h4><strong style="font-weight:700;box-sizing:border-box;color:rgb(51, 51, 51);">两阶段提交（2PC）</strong><br style="box-sizing:border-box;"/>
+<br style="box-sizing:border-box;"/>当应用逐渐扩展，出现一个应用使用多个数据源的情况，这个时候本地事务已经无法满足数据一致性的要求。由于多个数据源的同时访问，事务需要跨多个数据源管理，分布式事务应运而生。其中最流行的就是两阶段提交（2PC），分布式事务由事务管理器（TM）统一管理。<br style="box-sizing:border-box;"/>
+<br style="box-sizing:border-box;"/>两阶段提交分为准备阶段和提交阶段。<br style="box-sizing:border-box;"/>
+<div style="box-sizing:border-box;">
+	<a href="http://dockone.io/uploads/article/20200115/783efcf03af15b6ca1831d58144532ce.png" rel="lightbox" style="background:0px 0px;box-sizing:border-box;color:rgb(21, 95, 170);text-decoration:none;cursor:pointer;" target="_blank"><img src="微服务下数据一致性的几种实现方式 - DockOne.io_files/Image [1].png" type="image/png" data-filename="Image.png" alt="2.png" height="305" style="border:0px;box-sizing:border-box;vertical-align:middle;max-width:625px;margin-bottom:15px;" title="2.png" width="505"/></a>
+</div>
+<br style="box-sizing:border-box;"/>
+<em style="box-sizing:border-box;font-style:italic;">两阶段提交-commit</em><br style="box-sizing:border-box;"/>
+<br style="box-sizing:border-box;"/><div style="box-sizing:border-box;">
+	<a href="http://dockone.io/uploads/article/20200115/89a81ae3e597cc496bc766af47b8c9df.png" rel="lightbox" style="background:0px 0px;box-sizing:border-box;color:rgb(21, 95, 170);text-decoration:none;cursor:pointer;" target="_blank"><img src="微服务下数据一致性的几种实现方式 - DockOne.io_files/Image [2].png" type="image/png" data-filename="Image.png" alt="3.png" height="309" style="border:0px;box-sizing:border-box;vertical-align:middle;max-width:625px;margin-bottom:15px;" title="3.png" width="482"/></a>
+</div>
+<br style="box-sizing:border-box;"/>
+<em style="box-sizing:border-box;font-style:italic;">两阶段提交-rollback</em><br style="box-sizing:border-box;"/>
+<br style="box-sizing:border-box;"/>然而两阶段提交也不能完全保证数据一致性问题，并且有同步阻塞的问题，所以其优化版本三阶段提交（3PC）被发明了出来。<br style="box-sizing:border-box;"/>
+<br style="box-sizing:border-box;"/><strong style="font-weight:700;box-sizing:border-box;color:rgb(51, 51, 51);">三阶段提交（3PC）</strong><br style="box-sizing:border-box;"/>
+<br style="box-sizing:border-box;"/><div style="box-sizing:border-box;">
+	<a href="http://dockone.io/uploads/article/20200115/c0b40c5ff0881dc2a46094b40a68d03d.png" rel="lightbox" style="background:0px 0px;box-sizing:border-box;color:rgb(21, 95, 170);text-decoration:none;cursor:pointer;" target="_blank"><img src="微服务下数据一致性的几种实现方式 - DockOne.io_files/Image [3].png" type="image/png" data-filename="Image.png" alt="4.png" height="180" style="border:0px;box-sizing:border-box;vertical-align:middle;max-width:625px;margin-bottom:15px;" title="4.png" width="323"/></a>
+</div>
+<br style="box-sizing:border-box;"/>
+<em style="box-sizing:border-box;font-style:italic;">三阶段提交</em><br style="box-sizing:border-box;"/>
+<br style="box-sizing:border-box;"/>然而3PC也只能保证绝大多数情况下的数据一致性。<br style="box-sizing:border-box;"/>
+<h3 style="box-sizing:border-box;font-family:&quot;Helvetica Neue&quot;, STHeiti, &quot;Microsoft YaHei&quot;, Helvetica, Arial, sans-serif;font-weight:500;line-height:1.7;color:rgb(51, 51, 51);font-size:1.5em;margin:16px 0px;">微服务下的事务管理</h3>那么，分布式事务2PC或者3PC是否适合于微服务下的事务管理呢？答案是否定的，原因有三点：<br style="box-sizing:border-box;"/>
+<ol style="box-sizing:border-box;margin:0px;padding:0px;list-style:decimal;margin-bottom:0px;padding-left:32px;line-height:30px;"><li style="box-sizing:border-box;line-height:25px;">由于微服务间无法直接进行数据访问，微服务间互相调用通常通过RPC（Dubbo）或Http API（Spring Cloud）进行，所以已经无法使用TM统一管理微服务的RM。</li><li style="box-sizing:border-box;line-height:25px;">不同的微服务使用的数据源类型可能完全不同，如果微服务使用了NoSQL之类不支持事务的数据库，则事务根本无从谈起。</li><li style="box-sizing:border-box;line-height:25px;">即使微服务使用的数据源都支持事务，那么如果使用一个大事务将许多微服务的事务管理起来，这个大事务维持的时间，将比本地事务长几个数量级。如此长时间的事务及跨服务的事务，将为产生很多锁及数据不可用，严重影响系统性能。</li></ol>
+<br style="box-sizing:border-box;"/>由此可见，传统的分布式事务已经无法满足微服务架构下的事务管理需求。那么，既然无法满足传统的ACID事务，在微服务下的事务管理必然要遵循新的法则－－BASE理论。<br style="box-sizing:border-box;"/>
+<br style="box-sizing:border-box;"/>BASE理论由eBay的架构师Dan Pritchett提出，BASE理论是对CAP理论的延伸，核心思想是即使无法做到强一致性，应用应该可以采用合适的方式达到最终一致性。BASE是指基本可用（Basically Available）、软状态（ Soft State）、最终一致性（ Eventual Consistency）。<br style="box-sizing:border-box;"/>
+<ul style="box-sizing:border-box;margin:0px;padding:0px;list-style:disc;margin-bottom:0px;padding-left:32px;line-height:30px;"><li style="box-sizing:border-box;line-height:25px;">基本可用：指分布式系统在出现故障的时候，允许损失部分可用性，即保证核心可用。</li><li style="box-sizing:border-box;line-height:25px;">软状态：允许系统存在中间状态，而该中间状态不会影响系统整体可用性。分布式存储中一般一份数据至少会有三个副本，允许不同节点间副本同步的延时就是软状态的体现。</li><li style="box-sizing:border-box;line-height:25px;">最终一致性：最终一致性是指系统中的所有数据副本经过一定时间后，最终能够达到一致的状态。弱一致性和强一致性相反，最终一致性是弱一致性的一种特殊情况。</li></ul>
+<br style="box-sizing:border-box;"/>BASE中的最终一致性是对于微服务下的事务管理的根本要求，既基于微服务的事务管理无法达到强一致性，但必须保证最重一致性。那么，有哪些方法可以保证微服务下的事务管理的最终一致性呢，按照实现原理分主要有两类，事件通知型和补偿型，其中事件通知型又可分为可靠事件通知模式及最大努力通知模式，而补偿型又可分为TCC模式、和业务补偿模式两种。这四种模式都可以达到微服务下的数据最终一致性。<br style="box-sizing:border-box;"/>
+<h3 style="box-sizing:border-box;font-family:&quot;Helvetica Neue&quot;, STHeiti, &quot;Microsoft YaHei&quot;, Helvetica, Arial, sans-serif;font-weight:500;line-height:1.7;color:rgb(51, 51, 51);font-size:1.5em;margin:16px 0px;">实现微服务下数据一致性的方式</h3><h4 style="box-sizing:border-box;font-family:&quot;Helvetica Neue&quot;, STHeiti, &quot;Microsoft YaHei&quot;, Helvetica, Arial, sans-serif;font-weight:500;line-height:1.7;color:inherit;font-size:1.25em;margin:16px 0px;">可靠事件通知模式</h4><strong style="font-weight:700;box-sizing:border-box;color:rgb(51, 51, 51);">同步事件</strong><br style="box-sizing:border-box;"/>
+<br style="box-sizing:border-box;"/>可靠事件通知模式的设计理念比较容易理解，即是主服务完成后将结果通过事件（常常是消息队列）传递给从服务，从服务在接受到消息后进行消费，完成业务，从而达到主服务与从服务间的消息一致性。首先能想到的也是最简单的就是同步事件通知，业务处理与消息发送同步执行，实现逻辑见下方代码及时序图。<br style="box-sizing:border-box;"/>
+<pre style="overflow:hidden;font-family:Menlo, Monaco, Consolas, &quot;Courier New&quot;, monospace;font-size:14px;box-sizing:border-box;display:block;padding:16px;margin:0px 0px 10px;line-height:20px;color:rgb(51, 51, 51);word-break:break-all;overflow-wrap:break-word;background-color:rgb(247, 247, 247);border:none;border-radius:3px;">public void trans() {
+try {
+// 1. 操作数据库
+    bool result = dao.update(data);// 操作数据库失败，会抛出异常
+// 2. 如果数据库操作成功则发送消息
+    if(result){
+        mq.send(data);// 如果方法执行失败，会抛出异常
+    }
+} catch (Exception e) {
+    roolback();// 如果发生异常，就回滚
+}
+} 
+</pre><br style="box-sizing:border-box;"/>
+<div style="box-sizing:border-box;">
+	<a href="http://dockone.io/uploads/article/20200115/ba163a2a0ac524317b5574d382f52138.png" rel="lightbox" style="background:0px 0px;box-sizing:border-box;color:rgb(21, 95, 170);text-decoration:none;cursor:pointer;" target="_blank"><img src="微服务下数据一致性的几种实现方式 - DockOne.io_files/Image [4].png" type="image/png" data-filename="Image.png" alt="5.png" height="702" style="border:0px;box-sizing:border-box;vertical-align:middle;max-width:625px;margin-bottom:15px;" title="5.png" width="625"/></a>
+</div>
+<br style="box-sizing:border-box;"/>
+上面的逻辑看上去天衣无缝，如果数据库操作失败则直接退出，不发送消息；如果发送消息失败，则数据库回滚；如果数据库操作成功且消息发送成功，则业务成功，消息发送给下游消费。然后仔细思考后，同步消息通知其实有两点不足的地方。<br style="box-sizing:border-box;"/>
+<ol style="box-sizing:border-box;margin:0px;padding:0px;list-style:decimal;margin-bottom:0px;padding-left:32px;line-height:30px;"><li style="box-sizing:border-box;line-height:25px;">在微服务的架构下，有可能出现网络IO问题或者服务器宕机的问题，如果这些问题出现在时序图的第7步，使得消息投递后无法正常通知主服务（网络问题），或无法继续提交事务（宕机），那么主服务将会认为消息投递失败，会滚主服务业务，然而实际上消息已经被从服务消费，那么就会造成主服务和从服务的数据不一致。具体场景可见下面两张时序图。
+<div style="box-sizing:border-box;">
+	<a href="http://dockone.io/uploads/article/20200115/23ea4ae5f1a6f551f41ec9b9faff861b.png" rel="lightbox" style="background:0px 0px;box-sizing:border-box;color:rgb(21, 95, 170);text-decoration:none;cursor:pointer;" target="_blank"><img src="微服务下数据一致性的几种实现方式 - DockOne.io_files/Image [5].png" type="image/png" data-filename="Image.png" alt="6.png" height="713" style="border:0px;box-sizing:border-box;vertical-align:middle;max-width:625px;margin-bottom:15px;" title="6.png" width="625"/></a>
+</div>
+<br style="box-sizing:border-box;"/>
+<div style="box-sizing:border-box;">
+	<a href="http://dockone.io/uploads/article/20200115/af6d2e23b209030b11003ac248e9bc92.png" rel="lightbox" style="background:0px 0px;box-sizing:border-box;color:rgb(21, 95, 170);text-decoration:none;cursor:pointer;" target="_blank"><img src="微服务下数据一致性的几种实现方式 - DockOne.io_files/Image [6].png" type="image/png" data-filename="Image.png" alt="7.png" height="693" style="border:0px;box-sizing:border-box;vertical-align:middle;max-width:625px;margin-bottom:15px;" title="7.png" width="625"/></a>
+</div>
+</li><li style="box-sizing:border-box;line-height:25px;">事件服务（在这里就是消息服务）与业务过于耦合，如果消息服务不可用，会导致业务不可用。应该将事件服务与业务解耦，独立出来异步执行，或者在业务执行后先尝试发送一次消息，如果消息发送失败，则降级为异步发送。</li></ol>
+<br style="box-sizing:border-box;"/><strong style="font-weight:700;box-sizing:border-box;color:rgb(51, 51, 51);">异步事件</strong><br style="box-sizing:border-box;"/>
+<br style="box-sizing:border-box;"/>本地事件服务：<br style="box-sizing:border-box;"/>
+<br style="box-sizing:border-box;"/>为了解决上述同步事件中描述的同步事件的问题，异步事件通知模式被发展了出来，既业务服务和事件服务解耦，事件异步进行，由单独的事件服务保证事件的可靠投递。<br style="box-sizing:border-box;"/>
+<div style="box-sizing:border-box;">
+	<a href="http://dockone.io/uploads/article/20200115/89385441705abfc8a8df9cddf1de86e4.png" rel="lightbox" style="background:0px 0px;box-sizing:border-box;color:rgb(21, 95, 170);text-decoration:none;cursor:pointer;" target="_blank"><img src="微服务下数据一致性的几种实现方式 - DockOne.io_files/Image [7].png" type="image/png" data-filename="Image.png" alt="8.png" height="317" style="border:0px;box-sizing:border-box;vertical-align:middle;max-width:625px;margin-bottom:15px;" title="8.png" width="625"/></a>
+</div>
+<br style="box-sizing:border-box;"/>
+<em style="box-sizing:border-box;font-style:italic;">异步事件通知——本地事件服务</em><br style="box-sizing:border-box;"/>
+<br style="box-sizing:border-box;"/>当业务执行时，在同一个本地事务中将事件写入本地事件表，同时投递该事件，如果事件投递成功，则将该事件从事件表中删除。如果投递失败，则使用事件服务定时地异步统一处理投递失败的事件，进行重新投递，直到事件被正确投递，并将事件从事件表中删除。这种方式最大可能地保证了事件投递的实效性，并且当第一次投递失败后，也能使用异步事件服务保证事件至少被投递一次。<br style="box-sizing:border-box;"/>
+<br style="box-sizing:border-box;"/>然而，这种使用本地事件服务保证可靠事件通知的方式也有它的不足之处，那便是业务仍旧与事件服务有一定耦合（第一次同步投递时），更为严重的是，本地事务需要负责额外的事件表的操作，为数据库带来了压力，在高并发的场景，由于每一个业务操作就要产生相应的事件表操作，几乎将数据库的可用吞吐量砍了一半，这无疑是无法接受的。正是因为这样的原因，可靠事件通知模式进一步地发展－外部事件服务出现在了人们的眼中。<br style="box-sizing:border-box;"/>
+<br style="box-sizing:border-box;"/>外部事件服务：<br style="box-sizing:border-box;"/>
+<br style="box-sizing:border-box;"/>外部事件服务在本地事件服务的基础上更进了一步，将事件服务独立出主业务服务，主业务服务不在对事件服务有任何强依赖。<br style="box-sizing:border-box;"/>
+<div style="box-sizing:border-box;">
+	<a href="http://dockone.io/uploads/article/20200115/70f8f5b697ac005bf1b688f91dd7cd7e.png" rel="lightbox" style="background:0px 0px;box-sizing:border-box;color:rgb(21, 95, 170);text-decoration:none;cursor:pointer;" target="_blank"><img src="微服务下数据一致性的几种实现方式 - DockOne.io_files/Image [8].png" type="image/png" data-filename="Image.png" alt="9.png" height="312" style="border:0px;box-sizing:border-box;vertical-align:middle;max-width:625px;margin-bottom:15px;" title="9.png" width="625"/></a>
+</div>
+<br style="box-sizing:border-box;"/>
+<em style="box-sizing:border-box;font-style:italic;">异步事件通知——外部事件服务</em><br style="box-sizing:border-box;"/>
+<br style="box-sizing:border-box;"/>业务服务在提交前，向事件服务发送事件，事件服务只记录事件，并不发送。业务服务在提交或回滚后通知事件服务，事件服务发送事件或者删除事件。不用担心业务系统在提交或者会滚后宕机而无法发送确认事件给事件服务，因为事件服务会定时获取所有仍未发送的事件并且向业务系统查询，根据业务系统的返回来决定发送或者删除该事件。<br style="box-sizing:border-box;"/>
+<br style="box-sizing:border-box;"/>外部事件虽然能够将业务系统和事件系统解耦，但是也带来了额外的工作量：外部事件服务比起本地事件服务来说多了两次网络通信开销（提交前、提交／回滚后），同时也需要业务系统提供单独的查询接口给事件系统用来判断未发送事件的状态。<br style="box-sizing:border-box;"/>
+<br style="box-sizing:border-box;"/>可靠事件通知模式的注意事项：<br style="box-sizing:border-box;"/>
+<br style="box-sizing:border-box;"/>可靠事件模式需要注意的有两点：1. 事件的正确发送； 2. 事件的重复消费。<br style="box-sizing:border-box;"/>
+<br style="box-sizing:border-box;"/>通过异步消息服务可以确保事件的正确发送，然而事件是有可能重复发送的，那么就需要消费端保证同一条事件不会重复被消费，简而言之就是保证事件消费的幂等性。<br style="box-sizing:border-box;"/>
+<br style="box-sizing:border-box;"/>如果事件本身是具备幂等性的状态型事件，如订单状态的通知（已下单、已支付、已发货等），则需要判断事件的顺序。一般通过时间戳来判断，既消费过了新的消息后，当接受到老的消息直接丢弃不予消费。如果无法提供全局时间戳，则应考虑使用全局统一的序列号。<br style="box-sizing:border-box;"/>
+<br style="box-sizing:border-box;"/>对于不具备幂等性的事件，一般是动作行为事件，如扣款100，存款200，则应该将事件ID及事件结果持久化，在消费事件前查询事件ID，若已经消费则直接返回执行结果；若是新消息，则执行，并存储执行结果。<br style="box-sizing:border-box;"/>
+<h4 style="box-sizing:border-box;font-family:&quot;Helvetica Neue&quot;, STHeiti, &quot;Microsoft YaHei&quot;, Helvetica, Arial, sans-serif;font-weight:500;line-height:1.7;color:inherit;font-size:1.25em;margin:16px 0px;">最大努力通知模式</h4>相比可靠事件通知模式，最大努力通知模式就容易理解多了。最大努力通知型的特点是，业务服务在提交事务后，进行有限次数（设置最大次数限制）的消息发送，比如发送三次消息，若三次消息发送都失败，则不予继续发送。所以有可能导致消息的丢失。同时，主业务方需要提供查询接口给从业务服务，用来恢复丢失消息。最大努力通知型对于时效性保证比较差（既可能会出现较长时间的软状态），所以对于数据一致性的时效性要求比较高的系统无法使用。这种模式通常使用在不同业务平台服务或者对于第三方业务服务的通知，如银行通知、商户通知等，这里不再展开。<br style="box-sizing:border-box;"/>
+<h4 style="box-sizing:border-box;font-family:&quot;Helvetica Neue&quot;, STHeiti, &quot;Microsoft YaHei&quot;, Helvetica, Arial, sans-serif;font-weight:500;line-height:1.7;color:inherit;font-size:1.25em;margin:16px 0px;">业务补偿模式</h4>接下来介绍两种补偿模式，补偿模式比起事件通知模式最大的不同是，补偿模式的上游服务依赖于下游服务的运行结果，而事件通知模式上游服务不依赖于下游服务的运行结果。首先介绍业务补偿模式，业务补偿模式是一种纯补偿模式，其设计理念为，业务在调用的时候正常提交，当一个服务失败的时候，所有其依赖的上游服务都进行业务补偿操作。举个例子，小明从杭州出发，去往美国纽约出差，现在他需要定从杭州去往上海的火车票，以及从上海飞往纽约的飞机票。如果小明成功购买了火车票之后发现那天的飞机票已经售空了，那么与其在上海再多待一天，小明还不如取消去上海的火车票，选择飞往北京再转机纽约，所以小明就取消了去上海的火车票。这个例子中购买杭州到上海的火车票是服务a，购买上海到纽约的飞机票是服务b，业务补偿模式就是在服务b失败的时候，对服务a进行补偿操作，在例子中就是取消杭州到上海的火车票。<br style="box-sizing:border-box;"/>
+<br style="box-sizing:border-box;"/>补偿模式要求每个服务都提供补偿借口，且这种补偿一般来说是不完全补偿，既即使进行了补偿操作，那条取消的火车票记录还是一直存在数据库中可以被追踪（一般是有相信的状态字段“已取消”作为标记），毕竟已经提交的线上数据一般是不能进行物理删除的。<br style="box-sizing:border-box;"/>
+<br style="box-sizing:border-box;"/>业务补偿模式最大的缺点是软状态的时间比较长，既数据一致性的时效性很低，多个服务常常可能处于数据不一致的情况。<br style="box-sizing:border-box;"/>
+<h4 style="box-sizing:border-box;font-family:&quot;Helvetica Neue&quot;, STHeiti, &quot;Microsoft YaHei&quot;, Helvetica, Arial, sans-serif;font-weight:500;line-height:1.7;color:inherit;font-size:1.25em;margin:16px 0px;">TCC/Try Confirm Cancel模式</h4>TCC模式是一种优化了的业务补偿模式，它可以做到完全补偿，既进行补偿后不留下补偿的纪录，就好像什么事情都没有发生过一样。同时，TCC的软状态时间很短，原因是因为TCC是一种两阶段型模式，只有在所有的服务的第一阶段（try）都成功的时候才进行第二阶段确认（Confirm）操作，否则进行补偿(Cancel)操作，而在try阶段是不会进行真正的业务处理的。<br style="box-sizing:border-box;"/>
+<div style="box-sizing:border-box;">
+	<a href="http://dockone.io/uploads/article/20200115/cb3a01ab4ef548e91913985c62b158a3.jpg" rel="lightbox" style="background:0px 0px;box-sizing:border-box;color:rgb(21, 95, 170);text-decoration:none;cursor:pointer;" target="_blank"><img src="微服务下数据一致性的几种实现方式 - DockOne.io_files/Image.jpg" type="image/jpeg" data-filename="Image.jpg" alt="10.jpg" height="437" style="border:0px;box-sizing:border-box;vertical-align:middle;max-width:625px;margin-bottom:15px;" title="10.jpg" width="625"/></a>
+</div>
+<br style="box-sizing:border-box;"/>
+<em style="box-sizing:border-box;font-style:italic;">TCC模式</em><br style="box-sizing:border-box;"/>
+<br style="box-sizing:border-box;"/>TCC模式的具体流程为两个阶段：<br style="box-sizing:border-box;"/>
+<ol style="box-sizing:border-box;margin:0px;padding:0px;list-style:decimal;margin-bottom:0px;padding-left:32px;line-height:30px;"><li style="box-sizing:border-box;line-height:25px;">Try，业务服务完成所有的业务检查，预留必需的业务资源</li><li style="box-sizing:border-box;line-height:25px;">如果Try在所有服务中都成功，那么执行Confirm操作，Confirm操作不做任何的业务检查（因为try中已经做过），只是用Try阶段预留的业务资源进行业务处理；否则进行Cancel操作，Cancel操作释放Try阶段预留的业务资源。</li></ol>
+<br style="box-sizing:border-box;"/>这么说可能比较模糊，下面我举一个具体的例子，小明在线从招商银行转账100元到广发银行。这个操作可看作两个服务，服务a从小明的招行账户转出100元，服务b从小明的广发银行帐户汇入100元。<br style="box-sizing:border-box;"/>
+<br style="box-sizing:border-box;"/>服务a（小明从招行转出100元）：<br style="box-sizing:border-box;"/>
+<br style="box-sizing:border-box;"/>try：update cmb_account set balance=balance-100, freeze=freeze+100 where acc_id=1 and balance&gt;100;<br style="box-sizing:border-box;"/>
+<br style="box-sizing:border-box;"/>confirm：update cmb_account set freeze=freeze-100 where acc_id=1;<br style="box-sizing:border-box;"/>
+<br style="box-sizing:border-box;"/>cancel：update cmb_account set balance=balance+100, freeze=freeze-100 where acc_id=1;<br style="box-sizing:border-box;"/>
+<br style="box-sizing:border-box;"/>服务b（小明往广发银行汇入100元）：<br style="box-sizing:border-box;"/>
+<br style="box-sizing:border-box;"/>try：update cgb_account set freeze=freeze+100 where acc_id=1;<br style="box-sizing:border-box;"/>
+<br style="box-sizing:border-box;"/>confirm：update cgb_account set balance=balance+100, freeze=freeze-100 where acc_id=1;<br style="box-sizing:border-box;"/>
+<br style="box-sizing:border-box;"/>cancel：update cgb_account set freeze=freeze-100 where acc_id=1;<br style="box-sizing:border-box;"/>
+<br style="box-sizing:border-box;"/>具体说明：<br style="box-sizing:border-box;"/>
+<br style="box-sizing:border-box;"/>a的try阶段，服务做了两件事：1. 业务检查，这里是检查小明的帐户里的钱是否多余100元；2. 预留资源，将100元从余额中划入冻结资金。<br style="box-sizing:border-box;"/>
+<br style="box-sizing:border-box;"/>a的confirm阶段，这里不再进行业务检查，因为try阶段已经做过了，同时由于转账已经成功，将冻结资金扣除。<br style="box-sizing:border-box;"/>
+<br style="box-sizing:border-box;"/>a的cancel阶段，释放预留资源，既100元冻结资金，并恢复到余额。<br style="box-sizing:border-box;"/>
+<br style="box-sizing:border-box;"/>b的try阶段进行，预留资源，将100元冻结。<br style="box-sizing:border-box;"/>
+<br style="box-sizing:border-box;"/>b的confirm阶段，使用try阶段预留的资源，将100元冻结资金划入余额。<br style="box-sizing:border-box;"/>
+<br style="box-sizing:border-box;"/>b的cancel阶段，释放try阶段的预留资源，将100元从冻结资金中减去。<br style="box-sizing:border-box;"/>
+<br style="box-sizing:border-box;"/>从上面的简单例子可以看出，TCC模式比纯业务补偿模式更加复杂，所以在实现上每个服务都需要实现Cofirm和Cancel两个接口。<br style="box-sizing:border-box;"/>
+<h4 style="box-sizing:border-box;font-family:&quot;Helvetica Neue&quot;, STHeiti, &quot;Microsoft YaHei&quot;, Helvetica, Arial, sans-serif;font-weight:500;line-height:1.7;color:inherit;font-size:1.25em;margin:16px 0px;">总结</h4>下面的表格对这四种常用的模式进行了比较：<br style="box-sizing:border-box;"/>
+<div style="box-sizing:border-box;">
+	<a href="http://dockone.io/uploads/article/20200115/e42cff80ceb759400fee288b669b44f5.png" rel="lightbox" style="background:0px 0px;box-sizing:border-box;color:rgb(21, 95, 170);text-decoration:none;cursor:pointer;" target="_blank"><img src="微服务下数据一致性的几种实现方式 - DockOne.io_files/Image [9].png" type="image/png" data-filename="Image.png" alt="11.png" height="178" style="border:0px;box-sizing:border-box;vertical-align:middle;max-width:625px;margin-bottom:15px;" title="11.png" width="625"/></a>
+</div>
+<br style="box-sizing:border-box;"/>
+<br style="box-sizing:border-box;"/>原文链接：<a href="https://www.jianshu.com/p/b264a196b177" rel="nofollow" style="background:0px 0px;box-sizing:border-box;color:rgb(21, 95, 170);text-decoration:none;cursor:pointer;" target="_blank">https://www.jianshu.com/p/b264a196b177</a>，作者：SawyerZhou
+                                                                <div style="box-sizing:border-box;">
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                </div>
+                                
+                                                                <ul style="box-sizing:border-box;margin:0px;padding:0px;list-style:disc;margin-bottom:0px;padding-left:32px;line-height:30px;">
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            </ul>
+                                                            </div>
+                            <div style="box-sizing:border-box;min-height:20px;line-height:38px;font-size:12px;"><span style="line-height:38px;font-size:12px;display:table;"> </span>
+                                <div style="box-sizing:border-box;float:left;margin-right:15px;border-radius:4px;background-color:rgb(245, 245, 245);">
+                                    <a href="#" style="background:0px 0px;box-sizing:border-box;color:rgb(157, 158, 159);text-decoration:none;cursor:pointer;display:inline-block;float:left;height:38px;line-height:38px;padding:0px 13px 0px 15px;outline:none;border-radius:4px;border:1px solid rgb(245, 245, 245);box-shadow:none;background-color:rgb(255, 255, 255);"><i style="box-sizing:border-box;font-family:icomoon;speak:none;font-style:normal;font-weight:normal;font-variant:normal;text-transform:none;line-height:1;-webkit-font-smoothing:antialiased;color:rgb(153, 153, 153);font-size:16px;vertical-align:0px;margin:0px;"><span style="font-family:icomoon;font-style:normal;font-weight:normal;font-variant:normal;text-transform:none;line-height:1;color:rgb(153, 153, 153);font-size:16px;"></span></i> <b style="font-weight:500;box-sizing:border-box;margin-left:5px;font-size:16px;">0</b></a>
+                                                                    </div>
+
+                                <span style="box-sizing:border-box;float:right;position:relative;margin:0px;">
+                                    
+                                    
+                                    <a style="background:0px 0px;box-sizing:border-box;color:rgb(153, 153, 153);text-decoration:none;cursor:pointer;font-size:12px;margin-left:15px;">
+                                        <i style="box-sizing:border-box;font-family:icomoon;speak:none;font-style:normal;font-weight:normal;font-variant:normal;text-transform:none;line-height:1;-webkit-font-smoothing:antialiased;margin-right:2px;color:rgb(153, 153, 153);font-size:16px;vertical-align:-2px;"><span style="font-family:icomoon;font-style:normal;font-weight:normal;font-variant:normal;text-transform:none;line-height:1;color:rgb(153, 153, 153);font-size:16px;"></span></i> 分享                                    </a>
+                                    
+
+                                    <em style="box-sizing:border-box;font-style:normal;font-size:12px;color:rgb(153, 153, 153);margin-left:15px;">2020-01-15</em>
+                                </span>
+                            <span style="line-height:38px;font-size:12px;display:table;clear:both;"> </span></div>
+                        </div>
+                        <div style="box-sizing:border-box;">
+                                                    </div>
+                    </div></div></div></div></div></div></div></div></div><br/></div></span>
+</div></body></html> 

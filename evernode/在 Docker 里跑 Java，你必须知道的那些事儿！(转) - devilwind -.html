@@ -1,0 +1,183 @@
+<html>
+<head>
+  <title>在 Docker 里跑 Java，你必须知道的那些事儿！(转) - devilwind - 博客园</title>
+  <basefont face="微软雅黑" size="2" />
+  <meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+  <meta name="exporter-version" content="YXBJ Windows/601935 (zh-CN, DDL); Windows/10.0.0 (Win64); EDAMVersion=V2;"/>
+  <style>
+    body, td {
+      font-family: 微软雅黑;
+      font-size: 10pt;
+    }
+  </style>
+</head>
+<body>
+<a name="15596"/>
+<h1>在 Docker 里跑 Java，你必须知道的那些事儿！(转) - devilwind - 博客园</h1>
+<div>
+<table bgcolor="#D4DDE5" border="0">
+<tr><td><b>创建时间：</b></td><td><i>2020/6/3 10:42</i></td></tr>
+<tr><td><b>来源：</b></td><td><a href="https://www.cnblogs.com/devilwind/p/9766116.html"><i>https://www.cnblogs.com/devilwind/p/9766116.html</i></a></td></tr>
+</table>
+</div>
+<br/>
+
+<div><span><div style="-evernote-webclip:true"><br/><div><div><div><div><h1>在 Docker 里跑 Java，你必须知道的那些事儿！(转)</h1><div><div></div></div></div>
+    <p>原文 https://www.jianshu.com/p/0897d0581872</p>
+
+
+<p><strong>背景：</strong>众所周知，当我们执行没有任何调优参数（如“java-jar mypplication-fat.jar”）的 Java 应用程序时，JVM 会自动调整几个参数，以便在执行环境中具有最佳性能。</p>
+<p>但是许多开发者发现，如果让 JVM ergonomics (即JVM人体工程学，用于自动选择和行为调整)对垃圾收集器、堆大小和运行编译器使用默认设置值，运行在 Linux 容器（docker,rkt,runC,lxcfs 等）中的 Java 进程会与我们的预期表现严重不符。</p>
+<p>本篇文章采用简单的方法来向开发人员展示在 Linux 容器中打包 Java 应用程序时应该知道什么。</p>
+<p><strong>懒人超精简阅读版：</strong></p>
+<p><strong>a.JVM 做不了内存限制，一旦超出资源限制，容器就会出错</strong></p>
+<p><strong>b.即使你多给些内存资源，也没什么卵用，只会错上加错</strong></p>
+<p><strong>c.解决方案：用 Dockfile 中的环境变量来定义 JVM 的额外参数</strong></p>
+<p><strong>d.更进一步：使用由 Fabric8 社区提供的基础 Docker 镜像来定义 Java 应用程序,将始终根据容器调整堆大小</strong></p>
+<p><strong>详细全文：</strong></p>
+<p>我们往往把容器当虚拟机，让它定义一些虚拟 CPU 和虚拟内存。其实容器更像是一种隔离机制：它可以让一个进程中的资源（CPU，内存，文件系统，网络等）与另一个进程中的资源完全隔离。Linux 内核中的 cgroups 功能用于实现这种隔离。</p>
+<p>然而，一些从执行环境收集信息的应用程序已经在 cgroups 存在之前就被执行了。“top”，“free”，“ps”，甚至 JVM 等工具都<strong>没有针对在容器内执行高度受限的 Linux 进程进行优化。</strong></p>
+<p><strong>1.存在的问题</strong></p>
+<p>为了演示，我用“docker-machine create -d virtualbox –virtualbox-memory ‘1024’ docker1024”在<strong>1GB RAM</strong>的虚拟机中创建了 docker daemon。接下来，在<strong>一个虚拟内存为</strong><strong>100MB</strong><strong>的容器</strong>里面跑三个不同的Linux distribution，执行 “free -h”命令，结果是：<strong>它们都显示了</strong><strong>995MB</strong><strong>的总内存。</strong></p>
+<div>
+<div>
+
+<div><div><img src="在 Docker 里跑 Java，你必须知道的那些事儿！(转) - devilwind -_files/2529018-4f9ee19059c131a5.png" type="image/png" data-filename="2529018-4f9ee19059c131a5.png" height="253" width="576"/></div></div>
+</div>
+
+</div>
+<p>即使在 Kubernetes / OpenShift 集群中，结果也类似。</p>
+<p>我在一个<strong>15GB</strong><strong>内存的集群中</strong>跑一个 Kubernetes Pod ，并将 Pod 的内存限制为512M （通过“kubectl run mycentos –image=centos -it –limits=’memory=512Mi'”命令实现），最后显示的总内存却是<strong>14GB</strong>。</p>
+<div>
+<div>
+
+<div><div><img src="在 Docker 里跑 Java，你必须知道的那些事儿！(转) - devilwind -_files/2529018-067290b2a703a5d8.png" type="image/png" data-filename="2529018-067290b2a703a5d8.png" height="87" width="576"/></div></div>
+</div>
+
+</div>
+<p>如果想知道为什么会发生这种情况，建议您阅读博客<a target="_blank">“Memoryinside Linux containers – Or why don’t free and top work in a Linux container?”</a>(https://fabiokung.com/2014/03/13/memory-inside-linux-containers/)</p>
+<p>docker switches（-m，-memory和-memory-swap）和kubernetes switch（–limits）在进程超过限制的情况下，会指示Linux内核杀死该进程；<strong>但JVM是完全不知道限制，所以在进程超过限制的时候，糟糕的事情就发生了！</strong></p>
+<p>为了模拟在超过指定的内存限制后被杀死的进程，我们可以通过“docker run -it –name mywildfly -m=50m jboss/wildfly”命令在50MB内存限制的容器中跑WildFly应用server，用“dockerstats”命令来检查容器限制。</p>
+<div>
+<div>
+
+<div><img src="在 Docker 里跑 Java，你必须知道的那些事儿！(转) - devilwind -_files/2529018-0dbf3599fd709001.png" type="image/png" data-filename="2529018-0dbf3599fd709001.png" height="42" width="555"/></div>
+</div>
+
+</div>
+<p>但是在几秒钟之后，Wildfly的容器执行将被中断并显示：*** JBossAS process (55) received KILL signal ***</p>
+<p>“docker inspect mywildfly -f ‘{{json.State}}'”命令显示由于OOM（内存不足），该容器已被杀死。注意容器“state”中的OOMKilled = true。</p>
+<div>
+<div>
+
+<div><div><img src="在 Docker 里跑 Java，你必须知道的那些事儿！(转) - devilwind -_files/2529018-d81171d0c53a9fbd.png" type="image/png" data-filename="2529018-d81171d0c53a9fbd.png" height="73" width="576"/></div></div>
+</div>
+
+</div>
+<p><strong>2.JAVA</strong><strong>的应用程序是如何被影响的？</strong></p>
+<p>在docker daemon里用Dockerfile中定义的参数-XX：+ PrintFlagsFinal和-XX：+ PrintGCDetails起一个java应用。</p>
+<p>其中 machine:1GB RAM容器内存：限制为150M（对于这个Spring Boot应用，似乎够用）</p>
+<p>这些参数允许我们读取初始JVM人机工程学参数，并了解有关垃圾收集（GC）执行的详细信息。</p>
+<p><strong>动手试一下：</strong></p>
+<div>
+<div>
+
+<div><div><img src="在 Docker 里跑 Java，你必须知道的那些事儿！(转) - devilwind -_files/2529018-14693be0aeeadf57.png" type="image/png" data-filename="2529018-14693be0aeeadf57.png" height="40" width="576"/></div></div>
+</div>
+
+</div>
+<p>我已经在“/ api / memory /”上准备了一个端点，它使用String对象加载JVM内存来模拟消耗大量内存的操作。我们来调用一次：</p>
+<div>
+<div>
+
+<div><div><img src="在 Docker 里跑 Java，你必须知道的那些事儿！(转) - devilwind -_files/2529018-3f6854473b04b436.png" type="image/png" data-filename="2529018-3f6854473b04b436.png" height="40" width="576"/></div></div>
+</div>
+
+</div>
+<p>此端点将回复“分配超过80％（219.8 MiB）的最大允许JVM内存大小（241.7 MiB）”</p>
+<p>在这里我们可以提至少两个问题：</p>
+<p>为什么JVM最大允许内存241.7 MiB？</p>
+<p>如果这个容器将内存限制为150MB，那为什么它允许Java分配近220MB？</p>
+<p>首先，我们需要回顾一下JVM人机工程学页面上关于“最大堆大小”的内容:是物理内存的1/4。由于JVM不知道它在一个容器内执行，所以允许最大堆大小将接近260MB。鉴于我们在容器初始化期间添加了-XX：+ PrintFlagsFinal标志，我们可以检查这个值：</p>
+<div>
+<div>
+
+<div><div><img src="在 Docker 里跑 Java，你必须知道的那些事儿！(转) - devilwind -_files/2529018-4e09928bee234783.png" type="image/png" data-filename="2529018-4e09928bee234783.png" height="52" width="576"/></div></div>
+</div>
+
+</div>
+<p>其次，我们需要了解，当我们在docker命令行中使用参数“-m 150M”时，docker daemon将在RAM中限制150M，在Swap中限制为150M。因此，该过程可以分配300M。这就解释了为什么我们的进程没有被杀死。</p>
+<p>docker命令行中的内存限制（-memory）和swap（-memory-swap）之间的更多组合可以在这里(https://docs.docker.com/engine/reference/run/#example-run-htop-inside-a-container)找到。</p>
+<p><strong>3.提供更多内存是否靠谱？</strong></p>
+<p>不了解问题的开发者往往认为环境不能为执行JVM提供足够的内存。所以通常的解决办法是提供更多内存，这实际上会使事情变得更糟。</p>
+<p>我们假设将daemon从1GB更改为8GB（使用“docker-machinecreate -d virtualbox –virtualbox-memory ‘8192’ docker8192”创建），并将容器内存从150M更改为800M：</p>
+<div>
+<div>
+
+<div><img src="在 Docker 里跑 Java，你必须知道的那些事儿！(转) - devilwind -_files/2529018-09251013df85cfe1.png" type="image/png" data-filename="2529018-09251013df85cfe1.png" height="55" width="864"/></div>
+</div>
+
+</div>
+<p>请注意这次，“curl http://`docker-machine ipdocker8192`:8080/api/memory”命令甚至没有执行完，因为在8GB环境中计算的JVM的MaxHeapSize为2092957696字节（〜2GB）。检查“docker logs mycontainer|grep -i MaxHeapSize”</p>
+<div>
+<div>
+
+<div><img src="在 Docker 里跑 Java，你必须知道的那些事儿！(转) - devilwind -_files/2529018-035c50db5af873af.png" type="image/png" data-filename="2529018-035c50db5af873af.png" height="47" width="524"/></div>
+</div>
+
+</div>
+<p>该应用将尝试分配超过1.6GB的内存，这超出了此容器的限制（RAM中的800MB + Swap中的800MB），并且该进程将被杀掉。</p>
+<p>很显然，用增加内存且让JVM自定义参数的方式在容器里跑Java，不是什么好主意<strong>。</strong><strong><strong>在容器内部运行Java</strong><strong>应用程序时，我们应该根据应用程序需求和容器限制设置最大堆大小（-Xmx</strong><strong>参数）。</strong></strong></p>
+<p><strong>4.解决方案</strong></p>
+<p><strong>Dockerfile</strong><strong>的一个细微变化允许用户指定一个环境变量来定义JVM</strong><strong>的额外参数。</strong><strong>检查以下行：</strong></p>
+<div>
+<div>
+
+<div><div><img src="在 Docker 里跑 Java，你必须知道的那些事儿！(转) - devilwind -_files/2529018-a4af6ab8edd4add6.png" type="image/png" data-filename="2529018-a4af6ab8edd4add6.png" height="39" width="576"/></div></div>
+</div>
+
+</div>
+<p>现在我们可以使用JAVA_OPTIONS环境变量来通知JVM堆的大小。对于这个应用程序，300M就够了。稍后可以检查日志并获取314572800字节（300MBi）的值</p>
+<p>对于docker，您可以使用“-e”switch指定环境变量。</p>
+<div>
+<div>
+
+<div><div><img src="在 Docker 里跑 Java，你必须知道的那些事儿！(转) - devilwind -_files/2529018-36b9ff567a058c4a.png" type="image/png" data-filename="2529018-36b9ff567a058c4a.png" height="74" width="576"/></div></div>
+</div>
+
+</div>
+<p>在Kubernetes中，您可以使用switch“-env = [key = value]”设置环境变量：</p>
+<div>
+<div>
+
+<div><div><img src="在 Docker 里跑 Java，你必须知道的那些事儿！(转) - devilwind -_files/2529018-28c6a169e4494ebf.png" type="image/png" data-filename="2529018-28c6a169e4494ebf.png" height="129" width="576"/></div></div>
+</div>
+
+</div>
+<p><strong>再进一步</strong></p>
+<p><strong>如果可以根据容器限制自动计算堆的值，该怎么做？</strong></p>
+<p><strong>使用由Fabric8社区提供的基础Docker镜像，就可以搞定。</strong>这个镜像fabric8 / java-jboss-openjdk8-jdk使用一个脚本来计算容器限制，并使用50％的可用内存作为上限。请注意，这个50％的内存比可以被复写。您还可以使用此镜像来启用/禁用调试，诊断等。</p>
+<div>
+<div>
+
+<div><div><img src="在 Docker 里跑 Java，你必须知道的那些事儿！(转) - devilwind -_files/2529018-b7ee26ab98534a82.png" type="image/png" data-filename="2529018-b7ee26ab98534a82.png" height="124" width="576"/></div></div>
+</div>
+
+</div>
+<p>下面一起看看Dockerfile是如何作用于这个Spring Boot应用程序：</p>
+<p>搞定！<strong>现在，无论容器内存限制是多少，我们的Java</strong><strong>应用程序将始终根据容器调整堆大小，而不是根据daemon</strong><strong>调整堆大小。</strong></p>
+<div>
+<div>
+
+<div><div><img src="在 Docker 里跑 Java，你必须知道的那些事儿！(转) - devilwind -_files/2529018-67cadf5203755d80.png" type="image/png" data-filename="2529018-67cadf5203755d80.png" height="132" width="576"/></div></div>
+</div>
+
+</div>
+<p><strong>5.结论</strong></p>
+<p>直到现在，Java JVM依然没有提供什么支持，让大家可以理解它在容器内是如何运行的，而且它有一些资源是内存和CPU限制的。<strong><strong>因此，您不能让JVM</strong><strong>人体工程学本身决定最大堆大小。</strong></strong></p>
+<p><strong>解决此问题的一种方法是使用能够理解它在受限容器内运行的Fabric8 Base镜像</strong>。</p>
+<p>在JVM中有一个实验支持，已经包含在JDK9中以支持容器（即Docker）环境中的cgroup内存限制。可以参考：<a target="_blank">http://hg.openjdk.java.net/jdk9/jdk9/hotspot/rev/5f1d1df0ea49</a></p>
+<p><em>原文评论：更好的方法是以exec表单定义您的CMD指令，这将确保java是PID 1进程-这对于允许Java在容器停止时正常关闭至关重要。</em></p>
+<p><em>Exec表单不支持环境变量替换，但您可以通过设置JAVA_TOOL_OPTIONS环境变量来传递其他命令行标志（请参阅</em><a target="_blank"><em>http://bit.ly/2mTIDUt</em></a><em>）</em></p>
+</div></div></div><br/></div></span>
+</div></body></html> 

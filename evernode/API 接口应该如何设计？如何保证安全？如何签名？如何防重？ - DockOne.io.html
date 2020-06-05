@@ -1,0 +1,447 @@
+<html>
+<head>
+  <title>API 接口应该如何设计？如何保证安全？如何签名？如何防重？ - DockOne.io</title>
+  <basefont face="微软雅黑" size="2" />
+  <meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+  <meta name="exporter-version" content="YXBJ Windows/601935 (zh-CN, DDL); Windows/10.0.0 (Win64); EDAMVersion=V2;"/>
+  <style>
+    body, td {
+      font-family: 微软雅黑;
+      font-size: 10pt;
+    }
+  </style>
+</head>
+<body>
+<a name="15374"/>
+<h1>API 接口应该如何设计？如何保证安全？如何签名？如何防重？ - DockOne.io</h1>
+<div>
+<table bgcolor="#D4DDE5" border="0">
+<tr><td><b>创建时间：</b></td><td><i>2020/5/20 11:34</i></td></tr>
+<tr><td><b>来源：</b></td><td><a href="http://dockone.io/article/10178"><i>http://dockone.io/article/10178</i></a></td></tr>
+</table>
+</div>
+<br/>
+
+<div><span><div style="-evernote-webclip:true"><br/><div><div><div><div><h1> API 接口应该如何设计？如何保证安全？如何签名？如何防重？ </h1><div><div></div></div></div>
+                        
+                            
+                                <br/><strong>说明</strong>：在实际的业务中，难免会跟第三方系统进行数据的交互与传递，那么如何保证数据在传输过程中的安全呢（防窃取）？除了https的协议之外，能不能加上通用的一套算法以及规范来保证传输的安全性呢？<br/><br/>下面我们就来讨论下常用的一些API设计的安全方法，可能不一定是最好的，有更牛逼的实现方式，但是这篇是我自己的经验分享。<h3>Token 简介</h3>Token：访问令牌access token，用于接口中，用于标识接口调用者的身份、凭证，减少用户名和密码的传输次数。一般情况下客户端（接口调用方）需要先向服务器端申请一个接口调用的账号，服务器会给出一个appId和一个key，key用于参数签名使用，注意key保存到客户端，需要做一些安全处理，防止泄露。<br/><br/>Token的值一般是UUID，服务端生成Token后需要将token做为key，将一些和token关联的信息作为value保存到缓存服务器中（Redis），当一个请求过来后，服务器就去缓存服务器中查询这个Token是否存在，存在则调用接口，不存在返回接口错误，一般通过拦截器或者过滤器来实现，Token分为两种：<ul><li>API Token（接口令牌）：用于访问不需要用户登录的接口，如登录、注册、一些基本数据的获取等。 获取接口令牌需要拿appId、timestamp和sign来换，sign=加密（timestamp+key）</li><li>USER Token（用户令牌）：用于访问需要用户登录之后的接口，如：获取我的基本信息、保存、修改、删除等操作。获取用户令牌需要拿用户名和密码来换</li></ul>关于Token的时效性：token可以是一次性的、也可以在一段时间范围内是有效的，具体使用哪种看业务需要。<br/><br/>一般情况下接口最好使用https协议，如果使用http协议，Token机制只是一种减少被黑的可能性，其实只能防君子不能防小人。<br/><br/>一般token、timestamp和sign三个参数会在接口中会同时作为参数传递，每个参数都有各自的用途。<h3>Timestamp简介</h3>Timestamp：时间戳，是客户端调用接口时对应的当前时间戳，时间戳用于防止DoS攻击。当黑客劫持了请求的url去DoS攻击，每次调用接口时接口都会判断服务器当前系统时间和接口中传的的timestamp的差值，如果这个差值超过某个设置的时间（假如5分钟），那么这个请求将被拦截掉，如果在设置的超时时间范围内，是不能阻止DoS攻击的。 timestamp机制只能减轻DoS攻击的时间，缩短攻击时间。如果黑客修改了时间戳的值可通过sign签名机制来处理。<h4>DoS</h4>DoS是Denial of Service的简称，即拒绝服务，造成DoS的攻击行为被称为DoS攻击，其目的是使计算机或网络无法提供正常的服务。最常见的DoS攻击有计算机网络带宽攻击和连通性攻击。<br/><br/>DoS攻击是指故意的攻击网络协议实现的缺陷或直接通过野蛮手段残忍地耗尽被攻击对象的资源，目的是让目标计算机或网络无法提供正常的服务或资源访问，使目标系统服务系统停止响应甚至崩溃，而在此攻击中并不包括侵入目标服务器或目标网络设备。这些服务资源包括网络带宽，文件系统空间容量，开放的进程或者允许的连接。这种攻击会导致资源的匮乏，无论计算机的处理速度多快、内存容量多大、网络带宽的速度多快都无法避免这种攻击带来的后果。<ul><li>Pingflood：该攻击在短时间内向目的主机发送大量ping包，造成网络堵塞或主机资源耗尽。</li><li>Synflood：该攻击以多个随机的源主机地址向目的主机发送SYN包，而在收到目的主机的SYN ACK后并不回应，这样，目的主机就为这些源主机建立了大量的连接队列，而且由于没有收到ACK一直维护着这</li></ul>些队列，造成了资源的大量消耗而不能向正常请求提供服务。<ul><li>Smurf：该攻击向一个子网的广播地址发一个带有特定请求（如ICMP回应请求）的包，并且将源地址伪装成想要攻击的主机地址。子网上所有主机都回应广播包请求而向被攻击主机发包，使该主机受到攻击。</li><li>Land-based：攻击者将一个包的源地址和目的地址都设置为目标主机的地址，然后将该包通过IP欺骗的方式发送给被攻击主机，这种包可以造成被攻击主机因试图与自己建立连接而陷入死循环，从而很大程度地降低了系统性能。</li><li>Ping of Death：根据TCP/IP的规范，一个包的长度最大为65536字节。尽管一个包的长度不能超过65536字节，但是一个包分成的多个片段的叠加却能做到。当一个主机收到了长度大于65536字节的包时，就是受到了Ping of Death攻击，该攻击会造成主机的宕机。</li><li>Teardrop：IP数据包在网络传递时，数据包可以分成更小的片段。攻击者可以通过发送两段（或者更多）数据包来实现TearDrop攻击。第一个包的偏移量为0，长度为N，第二个包的偏移量小于N。为了合并这些数据段，TCP/IP堆栈会分配超乎寻常的巨大资源，从而造成系统资源的缺乏甚至机器的重新启动。</li><li>PingSweep：使用ICMP Echo轮询多个主机。</li></ul><h3>sign简介</h3>nonce：随机值，是客户端随机生成的值，作为参数传递过来，随机值的目的是增加sign签名的多变性。随机值一般是数字和字母的组合，6位长度，随机值的组成和长度没有固定规则。<br/><br/>sign：一般用于参数签名，防止参数被非法篡改，最常见的是修改金额等重要敏感参数， sign的值一般是将所有非空参数按照升续排序然后+token+key+timestamp+nonce（随机数）拼接在一起，然后使用某种加密算法进行加密，作为接口中的一个参数sign来传递，也可以将sign放到请求头中。接口在网络传输过程中如果被黑客挟持，并修改其中的参数值，然后再继续调用接口，虽然参数的值被修改了，但是因为黑客不知道sign是如何计算出来的，不知道sign都有哪些值构成，不知道以怎样的顺序拼接在一起的，最重要的是不知道签名字符串中的key是什么，所以黑客可以篡改参数的值，但没法修改sign的值，当服务器调用接口前会按照sign的规则重新计算出sign的值然后和接口传递的sign参数的值做比较，如果相等表示参数值没有被篡改，如果不等，表示参数被非法篡改了，就不执行接口了。<h3>防止重复提交</h3>对于一些重要的操作需要防止客户端重复提交的（如非幂等性重要操作），具体办法是当请求第一次提交时将sign作为key保存到Redis，并设置超时时间，超时时间和Timestamp中设置的差值相同。当同一个请求第二次访问时会先检测Redis是否存在该sign，如果存在则证明重复提交了，接口就不再继续调用了。如果sign在缓存服务器中因过期时间到了，而被删除了，此时当这个url再次请求服务器时，因token的过期时间和sign的过期时间一直，sign过期也意味着token过期，那样同样的url再访问服务器会因token错误会被拦截掉，这就是为什么sign和token的过期时间要保持一致的原因。拒绝重复调用机制确保URL被别人截获了也无法使用（如抓取数据）。<br/><br/>对于哪些接口需要防止重复提交可以自定义个注解来标记。<br/><br/>注意：所有的安全措施都用上的话有时候难免太过复杂，在实际项目中需要根据自身情况作出裁剪，比如可以只使用签名机制就可以保证信息不会被篡改，或者定向提供服务的时候只用Token机制就可以了。如何裁剪，全看项目实际情况和对接口安全性的要求。<h3>使用流程</h3><ol><li>接口调用方（客户端）向接口提供方（服务器）申请接口调用账号，申请成功后，接口提供方会给接口调用方一个appId和一个key参数</li><li>客户端携带参数appId、timestamp、sign去调用服务器端的API token，其中sign=加密(appId + timestamp + key)</li><li>客户端拿着api_token 去访问不需要登录就能访问的接口</li><li>当访问用户需要登录的接口时，客户端跳转到登录页面，通过用户名和密码调用登录接口，登录接口会返回一个usertoken，客户端拿着usertoken去访问需要登录才能访问的接口</li></ol>sign的作用是防止参数被篡改，客户端调用服务端时需要传递sign参数，服务器响应客户端时也可以返回一个sign用于客户度校验返回的值是否被非法篡改了。客户端传的sign和服务器端响应的sign算法可能会不同。<h3>示例代码</h3><h4>dependency</h4><pre>&lt;dependency&gt;<br/>
+&lt;groupId&gt;org.springframework.boot&lt;/groupId&gt;<br/>
+&lt;artifactId&gt;spring-boot-starter-data-redis&lt;/artifactId&gt;<br/>
+&lt;/dependency&gt;<br/>
+&lt;dependency&gt;<br/>
+&lt;groupId&gt;redis.clients&lt;/groupId&gt;<br/>
+&lt;artifactId&gt;jedis&lt;/artifactId&gt;<br/>
+&lt;version&gt;2.9.0&lt;/version&gt;<br/>
+&lt;/dependency&gt;<br/><br/>&lt;dependency&gt;<br/>
+&lt;groupId&gt;org.springframework.boot&lt;/groupId&gt;<br/>
+&lt;artifactId&gt;spring-boot-starter-web&lt;/artifactId&gt;<br/>
+&lt;/dependency&gt;<br/>
+</pre><h4>RedisConfiguration</h4><pre>@Configuration<br/>
+public class RedisConfiguration {<br/>
+@Bean<br/>
+public JedisConnectionFactory jedisConnectionFactory(){<br/>
+    return new JedisConnectionFactory();<br/>
+}<br/><br/>/**<br/>
+ * 支持存储对象<br/>
+ * @return<br/>
+ */<br/>
+@Bean<br/>
+public RedisTemplate&lt;String, String&gt; redisTemplate(){<br/>
+    RedisTemplate&lt;String, String&gt; redisTemplate = new StringRedisTemplate();<br/>
+    redisTemplate.setConnectionFactory(jedisConnectionFactory());<br/>
+    Jackson2JsonRedisSerializer jackson2JsonRedisSerializer = new Jackson2JsonRedisSerializer(Object.class);<br/>
+    ObjectMapper objectMapper = new ObjectMapper();<br/>
+    objectMapper.setVisibility(PropertyAccessor.ALL, JsonAutoDetect.Visibility.ANY);<br/>
+    objectMapper.enableDefaultTyping(ObjectMapper.DefaultTyping.NON_FINAL);<br/><br/>jackson2JsonRedisSerializer.setObjectMapper(objectMapper);<br/>
+    redisTemplate.setValueSerializer(jackson2JsonRedisSerializer);<br/>
+    redisTemplate.afterPropertiesSet();<br/><br/>return redisTemplate;<br/>
+}<br/>
+} <br/>
+</pre><h4>TokenController</h4><pre>@Slf4j<br/>
+@RestController<br/>
+@RequestMapping(&quot;/api/token&quot;)<br/>
+public class TokenController {<br/><br/>@Autowired<br/>
+private RedisTemplate redisTemplate;<br/><br/>/**<br/>
+ * API Token<br/>
+ *<br/>
+ * @param sign<br/>
+ * @return<br/>
+ */<br/>
+@PostMapping(&quot;/api_token&quot;)<br/>
+public ApiResponse&lt;AccessToken&gt; apiToken(String appId, @RequestHeader(&quot;timestamp&quot;) String timestamp, @RequestHeader(&quot;sign&quot;) String sign) {<br/>
+    Assert.isTrue(!StringUtils.isEmpty(appId) &amp;&amp; !StringUtils.isEmpty(timestamp) &amp;&amp; !StringUtils.isEmpty(sign), &quot;参数错误&quot;);<br/><br/>long reqeustInterval = System.currentTimeMillis() - Long.valueOf(timestamp);<br/>
+    Assert.isTrue(reqeustInterval &lt; 5 * 60 * 1000, &quot;请求过期，请重新请求&quot;);<br/><br/>// 1. 根据appId查询数据库获取appSecret<br/>
+    AppInfo appInfo = new AppInfo(&quot;1&quot;, &quot;12345678954556&quot;);<br/><br/>// 2. 校验签名<br/>
+    String signString = timestamp + appId + appInfo.getKey();<br/>
+    String signature = MD5Util.encode(signString);<br/>
+    log.info(signature);<br/>
+    Assert.isTrue(signature.equals(sign), &quot;签名错误&quot;);<br/><br/>// 3. 如果正确生成一个token保存到redis中，如果错误返回错误信息<br/>
+    AccessToken accessToken = this.saveToken(0, appInfo, null);<br/><br/>return ApiResponse.success(accessToken);<br/>
+}<br/><br/><br/>
+@NotRepeatSubmit(5000)<br/>
+@PostMapping(&quot;user_token&quot;)<br/>
+public ApiResponse&lt;UserInfo&gt; userToken(String username, String password) {<br/>
+    // 根据用户名查询密码, 并比较密码(密码可以RSA加密一下)<br/>
+    UserInfo userInfo = new UserInfo(username, &quot;81255cb0dca1a5f304328a70ac85dcbd&quot;, &quot;111111&quot;);<br/>
+    String pwd = password + userInfo.getSalt();<br/>
+    String passwordMD5 = MD5Util.encode(pwd);<br/>
+    Assert.isTrue(passwordMD5.equals(userInfo.getPassword()), &quot;密码错误&quot;);<br/><br/>// 2. 保存Token<br/>
+    AppInfo appInfo = new AppInfo(&quot;1&quot;, &quot;12345678954556&quot;);<br/>
+    AccessToken accessToken = this.saveToken(1, appInfo, userInfo);<br/>
+    userInfo.setAccessToken(accessToken);<br/>
+    return ApiResponse.success(userInfo);<br/>
+}<br/><br/>private AccessToken saveToken(int tokenType, AppInfo appInfo,  UserInfo userInfo) {<br/>
+    String token = UUID.randomUUID().toString();<br/><br/>// token有效期为2小时<br/>
+    Calendar calendar = Calendar.getInstance();<br/>
+    calendar.setTime(new Date());<br/>
+    calendar.add(Calendar.SECOND, 7200);<br/>
+    Date expireTime = calendar.getTime();<br/><br/>// 4. 保存token<br/>
+    ValueOperations&lt;String, TokenInfo&gt; operations = redisTemplate.opsForValue();<br/>
+    TokenInfo tokenInfo = new TokenInfo();<br/>
+    tokenInfo.setTokenType(tokenType);<br/>
+    tokenInfo.setAppInfo(appInfo);<br/><br/>if (tokenType == 1) {<br/>
+        tokenInfo.setUserInfo(userInfo);<br/>
+    }<br/><br/>operations.set(token, tokenInfo, 7200, TimeUnit.SECONDS);<br/><br/>AccessToken accessToken = new AccessToken(token, expireTime);<br/><br/>return accessToken;<br/>
+}<br/><br/>public static void main(String[] args) {<br/>
+    long timestamp = System.currentTimeMillis();<br/>
+    System.out.println(timestamp);<br/>
+    String signString = timestamp + &quot;1&quot; + &quot;12345678954556&quot;;<br/>
+    String sign = MD5Util.encode(signString);<br/>
+    System.out.println(sign);<br/><br/>System.out.println(&quot;-------------------&quot;);<br/>
+    signString = &quot;password=123456&amp;username=1&amp;12345678954556&quot; + &quot;ff03e64b-427b-45a7-b78b-47d9e8597d3b1529815393153sdfsdfsfs&quot; + timestamp + &quot;A1scr6&quot;;<br/>
+    sign = MD5Util.encode(signString);<br/>
+    System.out.println(sign);<br/>
+}<br/>
+} <br/>
+</pre><h4>WebMvcConfiguration</h4><pre>@Configuration<br/>
+public class WebMvcConfiguration extends WebMvcConfigurationSupport {<br/><br/>private static final String[] excludePathPatterns  = {&quot;/api/token/api_token&quot;};<br/><br/>@Autowired<br/>
+private TokenInterceptor tokenInterceptor;<br/><br/>@Override<br/>
+public void addInterceptors(InterceptorRegistry registry) {<br/>
+    super.addInterceptors(registry);<br/>
+    registry.addInterceptor(tokenInterceptor)<br/>
+            .addPathPatterns(&quot;/api/**&quot;)<br/>
+            .excludePathPatterns(excludePathPatterns);<br/>
+}<br/>
+} <br/>
+</pre><h4>TokenInterceptor</h4><pre>@Component<br/>
+public class TokenInterceptor extends HandlerInterceptorAdapter {<br/><br/>@Autowired<br/>
+private RedisTemplate redisTemplate;<br/><br/>/**<br/>
+ *<br/>
+ * @param request<br/>
+ * @param response<br/>
+ * @param handler 访问的目标方法<br/>
+ * @return<br/>
+ * @throws Exception<br/>
+ */<br/>
+@Override<br/>
+public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {<br/>
+    String token = request.getHeader(&quot;token&quot;);<br/>
+    String timestamp = request.getHeader(&quot;timestamp&quot;);<br/>
+    // 随机字符串<br/>
+    String nonce = request.getHeader(&quot;nonce&quot;);<br/>
+    String sign = request.getHeader(&quot;sign&quot;);<br/>
+    Assert.isTrue(!StringUtils.isEmpty(token) &amp;&amp; !StringUtils.isEmpty(timestamp) &amp;&amp; !StringUtils.isEmpty(sign), &quot;参数错误&quot;);<br/><br/>// 获取超时时间<br/>
+    NotRepeatSubmit notRepeatSubmit = ApiUtil.getNotRepeatSubmit(handler);<br/>
+    long expireTime = notRepeatSubmit == null ? 5 * 60 * 1000 : notRepeatSubmit.value();<br/><br/>// 2. 请求时间间隔<br/>
+    long reqeustInterval = System.currentTimeMillis() - Long.valueOf(timestamp);<br/>
+    Assert.isTrue(reqeustInterval &lt; expireTime, &quot;请求超时，请重新请求&quot;);<br/><br/>// 3. 校验Token是否存在<br/>
+    ValueOperations&lt;String, TokenInfo&gt; tokenRedis = redisTemplate.opsForValue();<br/>
+    TokenInfo tokenInfo = tokenRedis.get(token);<br/>
+    Assert.notNull(tokenInfo, &quot;token错误&quot;);<br/><br/>// 4. 校验签名(将所有的参数加进来，防止别人篡改参数) 所有参数看参数名升续排序拼接成url<br/>
+    // 请求参数 + token + timestamp + nonce<br/>
+    String signString = ApiUtil.concatSignString(request) + tokenInfo.getAppInfo().getKey() + token + timestamp + nonce;<br/>
+    String signature = MD5Util.encode(signString);<br/>
+    boolean flag = signature.equals(sign);<br/>
+    Assert.isTrue(flag, &quot;签名错误&quot;);<br/><br/>// 5. 拒绝重复调用(第一次访问时存储，过期时间和请求超时时间保持一致), 只有标注不允许重复提交注解的才会校验<br/>
+    if (notRepeatSubmit != null) {<br/>
+        ValueOperations&lt;String, Integer&gt; signRedis = redisTemplate.opsForValue();<br/>
+        boolean exists = redisTemplate.hasKey(sign);<br/>
+        Assert.isTrue(!exists, &quot;请勿重复提交&quot;);<br/>
+        signRedis.set(sign, 0, expireTime, TimeUnit.MILLISECONDS);<br/>
+    }<br/><br/>return super.preHandle(request, response, handler);<br/>
+}<br/>
+} <br/>
+</pre><h4>MD5Util----MD5工具类，加密生成数字签名</h4><pre>public class MD5Util {<br/><br/>private static final String hexDigits[] = { &quot;0&quot;, &quot;1&quot;, &quot;2&quot;, &quot;3&quot;, &quot;4&quot;, &quot;5&quot;,<br/>
+        &quot;6&quot;, &quot;7&quot;, &quot;8&quot;, &quot;9&quot;, &quot;a&quot;, &quot;b&quot;, &quot;c&quot;, &quot;d&quot;, &quot;e&quot;, &quot;f&quot; };<br/><br/>private static String byteArrayToHexString(byte b[]) {<br/>
+    StringBuffer resultSb = new StringBuffer();<br/>
+    for (int i = 0; i &lt; b.length; i++)<br/>
+        resultSb.append(byteToHexString(b[i]));<br/><br/>return resultSb.toString();<br/>
+}<br/><br/>private static String byteToHexString(byte b) {<br/>
+    int n = b;<br/>
+    if (n &lt; 0)<br/>
+        n += 256;<br/>
+    int d1 = n / 16;<br/>
+    int d2 = n % 16;<br/>
+    return hexDigits[d1] + hexDigits[d2];<br/>
+}<br/><br/>public static String encode(String origin) {<br/>
+    return encode(origin, &quot;UTF-8&quot;);<br/>
+}<br/>
+public static String encode(String origin, String charsetname) {<br/>
+    String resultString = null;<br/>
+    try {<br/>
+        resultString = new String(origin);<br/>
+        MessageDigest md = MessageDigest.getInstance(&quot;MD5&quot;);<br/>
+        if (charsetname == null || &quot;&quot;.equals(charsetname))<br/>
+            resultString = byteArrayToHexString(md.digest(resultString<br/>
+                    .getBytes()));<br/>
+        else<br/>
+            resultString = byteArrayToHexString(md.digest(resultString<br/>
+                    .getBytes(charsetname)));<br/>
+    } catch (Exception exception) {<br/>
+    }<br/>
+    return resultString;<br/>
+}<br/>
+} <br/>
+</pre><h4>@NotRepeatSubmit   -----自定义注解，防止重复提交。</h4><pre>/**<br/>
+* 禁止重复提交<br/>
+*/<br/>
+@Target(ElementType.METHOD)<br/>
+@Retention(RetentionPolicy.RUNTIME)<br/>
+public @interface NotRepeatSubmit {<br/>
+/** 过期时间，单位毫秒 **/<br/>
+long value() default 5000;<br/>
+} <br/>
+</pre><h4>AccessToken</h4><pre>@Data<br/>
+@AllArgsConstructor<br/>
+public class AccessToken {<br/>
+/** token */<br/>
+private String token;<br/><br/>/** 失效时间 */<br/>
+private Date expireTime;<br/>
+} <br/>
+</pre><h4>AppInfo</h4><pre>@Data<br/>
+@NoArgsConstructor<br/>
+@AllArgsConstructor<br/>
+public class AppInfo {<br/>
+/** App id */<br/>
+private String appId;<br/>
+/** API 秘钥 */<br/>
+private String key;<br/>
+} <br/>
+</pre><h4>TokenInfo</h4><pre>@Data<br/>
+public class TokenInfo {<br/>
+/** token类型: api:0 、user:1 */<br/>
+private Integer tokenType;<br/><br/>/** App 信息 */<br/>
+private AppInfo appInfo;<br/><br/>/** 用户其他数据 */<br/>
+private UserInfo userInfo;<br/>
+} <br/>
+</pre><h4>UserInfo</h4><pre>@Data<br/>
+public class UserInfo {<br/>
+/** 用户名 */<br/>
+private String username;<br/>
+/** 手机号 */<br/>
+private String mobile;<br/>
+/** 邮箱 */<br/>
+private String email;<br/>
+/** 密码 */<br/>
+private String password;<br/>
+/** 盐 */<br/>
+private String salt;<br/><br/>private AccessToken accessToken;<br/><br/>public UserInfo(String username, String password, String salt) {<br/>
+    this.username = username;<br/>
+    this.password = password;<br/>
+    this.salt = salt;<br/>
+}<br/>
+} <br/>
+</pre><h4>ApiCodeEnum</h4><pre>/**<br/>
+* 错误码code可以使用纯数字,使用不同区间标识一类错误，也可以使用纯字符，也可以使用前缀+编号<br/>
+*<br/>
+* 错误码：ERR + 编号<br/>
+*<br/>
+* 可以使用日志级别的前缀作为错误类型区分 Info(I) Error(E) Warning(W)<br/>
+*<br/>
+* 或者以业务模块 + 错误号<br/>
+*<br/>
+* TODO 错误码设计<br/>
+*<br/>
+* Alipay 用了两个code，两个msg(https://docs.open.alipay.com/api_1/alipay.trade.pay)<br/>
+*/<br/>
+public enum ApiCodeEnum {<br/>
+SUCCESS(&quot;10000&quot;, &quot;success&quot;),<br/>
+UNKNOW_ERROR(&quot;ERR0001&quot;,&quot;未知错误&quot;),<br/>
+PARAMETER_ERROR(&quot;ERR0002&quot;,&quot;参数错误&quot;),<br/>
+TOKEN_EXPIRE(&quot;ERR0003&quot;,&quot;认证过期&quot;),<br/>
+REQUEST_TIMEOUT(&quot;ERR0004&quot;,&quot;请求超时&quot;),<br/>
+SIGN_ERROR(&quot;ERR0005&quot;,&quot;签名错误&quot;),<br/>
+REPEAT_SUBMIT(&quot;ERR0006&quot;,&quot;请不要频繁操作&quot;),<br/>
+;<br/><br/>/** 代码 */<br/>
+private String code;<br/><br/>/** 结果 */<br/>
+private String msg;<br/><br/>ApiCodeEnum(String code, String msg) {<br/>
+    this.code = code;<br/>
+    this.msg = msg;<br/>
+}<br/><br/>public String getCode() {<br/>
+    return code;<br/>
+}<br/><br/>public String getMsg() {<br/>
+    return msg;<br/>
+}<br/>
+} <br/>
+</pre><h4>ApiResult</h4><pre>@Data<br/>
+@NoArgsConstructor<br/>
+@AllArgsConstructor<br/>
+public class ApiResult {<br/><br/>/** 代码 */<br/>
+private String code;<br/><br/>/** 结果 */<br/>
+private String msg;<br/>
+} <br/>
+</pre><h4>ApiUtil  -------这个参考支付宝加密的算法写的.我直接Copy过来了。</h4><pre>public class ApiUtil {<br/><br/>/**<br/>
+ * 按参数名升续拼接参数<br/>
+ * @param request<br/>
+ * @return<br/>
+ */<br/>
+public static String concatSignString(HttpServletRequest request) {<br/>
+    Map&lt;String, String&gt; paramterMap = new HashMap&lt;&gt;();<br/>
+    request.getParameterMap().forEach((key, value) -&gt; paramterMap.put(key, value[0]));<br/>
+    // 按照key升续排序，然后拼接参数<br/>
+    Set&lt;String&gt; keySet = paramterMap.keySet();<br/>
+    String[] keyArray = keySet.toArray(new String[keySet.size()]);<br/>
+    Arrays.sort(keyArray);<br/>
+    StringBuilder sb = new StringBuilder();<br/>
+    for (String k : keyArray) {<br/>
+        // 或略掉的字段<br/>
+        if (k.equals(&quot;sign&quot;)) {<br/>
+            continue;<br/>
+        }<br/>
+        if (paramterMap.get(k).trim().length() &gt; 0) {<br/>
+            // 参数值为空，则不参与签名<br/>
+            sb.append(k).append(&quot;=&quot;).append(paramterMap.get(k).trim()).append(&quot;&amp;&quot;);<br/>
+        }<br/>
+    }<br/><br/>return sb.toString();<br/>
+}<br/><br/>public static String concatSignString(Map&lt;String, String&gt; map) {<br/>
+    Map&lt;String, String&gt; paramterMap = new HashMap&lt;&gt;();<br/>
+    map.forEach((key, value) -&gt; paramterMap.put(key, value));<br/>
+    // 按照key升续排序，然后拼接参数<br/>
+    Set&lt;String&gt; keySet = paramterMap.keySet();<br/>
+    String[] keyArray = keySet.toArray(new String[keySet.size()]);<br/>
+    Arrays.sort(keyArray);<br/>
+    StringBuilder sb = new StringBuilder();<br/>
+    for (String k : keyArray) {<br/>
+        if (paramterMap.get(k).trim().length() &gt; 0) {<br/>
+            // 参数值为空，则不参与签名<br/>
+            sb.append(k).append(&quot;=&quot;).append(paramterMap.get(k).trim()).append(&quot;&amp;&quot;);<br/>
+        }<br/>
+    }<br/>
+    return sb.toString();<br/>
+}<br/><br/>/**<br/>
+ * 获取方法上的@NotRepeatSubmit注解<br/>
+ * @param handler<br/>
+ * @return<br/>
+ */<br/>
+public static NotRepeatSubmit getNotRepeatSubmit(Object handler) {<br/>
+    if (handler instanceof HandlerMethod) {<br/>
+        HandlerMethod handlerMethod = (HandlerMethod) handler;<br/>
+        Method method = handlerMethod.getMethod();<br/>
+        NotRepeatSubmit annotation = method.getAnnotation(NotRepeatSubmit.class);<br/><br/>return annotation;<br/>
+    }<br/><br/>return null;<br/>
+}<br/>
+} <br/>
+</pre><h4>ApiResponse</h4><pre>@Data<br/>
+@Slf4j<br/>
+public class ApiResponse&lt;T&gt; {<br/>
+/** 结果 */<br/>
+private ApiResult result;<br/><br/>/** 数据 */<br/>
+private T data;<br/><br/>/** 签名 */<br/>
+private String sign;<br/><br/><br/>
+public static &lt;T&gt; ApiResponse success(T data) {<br/>
+    return response(ApiCodeEnum.SUCCESS.getCode(), ApiCodeEnum.SUCCESS.getMsg(), data);<br/>
+}<br/><br/>public static ApiResponse error(String code, String msg) {<br/>
+    return response(code, msg, null);<br/>
+}<br/><br/>public static &lt;T&gt; ApiResponse response(String code, String msg, T data) {<br/>
+    ApiResult result = new ApiResult(code, msg);<br/>
+    ApiResponse response = new ApiResponse();<br/>
+    response.setResult(result);<br/>
+    response.setData(data);<br/><br/>String sign = signData(data);<br/>
+    response.setSign(sign);<br/><br/>return response;<br/>
+}<br/><br/>private static &lt;T&gt; String signData(T data) {<br/>
+    // TODO 查询key<br/>
+    String key = &quot;12345678954556&quot;;<br/>
+    Map&lt;String, String&gt; responseMap = null;<br/>
+    try {<br/>
+        responseMap = getFields(data);<br/>
+    } catch (IllegalAccessException e) {<br/>
+        return null;<br/>
+    }<br/>
+    String urlComponent = ApiUtil.concatSignString(responseMap);<br/>
+    String signature = urlComponent + &quot;key=&quot; + key;<br/>
+    String sign = MD5Util.encode(signature);<br/><br/>return sign;<br/>
+}<br/><br/>/**<br/>
+ * @param data 反射的对象,获取对象的字段名和值<br/>
+ * @throws IllegalArgumentException<br/>
+ * @throws IllegalAccessException<br/>
+ */<br/>
+public static Map&lt;String, String&gt; getFields(Object data) throws IllegalAccessException, IllegalArgumentException {<br/>
+    if (data == null) return null;<br/>
+    Map&lt;String, String&gt; map = new HashMap&lt;&gt;();<br/>
+    Field[] fields = data.getClass().getDeclaredFields();<br/>
+    for (int i = 0; i &lt; fields.length; i++) {<br/>
+        Field field = fields[i];<br/>
+        field.setAccessible(true);<br/><br/>String name = field.getName();<br/>
+        Object value = field.get(data);<br/>
+        if (field.get(data) != null) {<br/>
+            map.put(name, value.toString());<br/>
+        }<br/>
+    }<br/><br/>return map;<br/>
+}<br/>
+} <br/>
+</pre><h3>ThreadLocal</h3>ThreadLocal是线程内的全局上下文。就是在单个线程中，方法之间共享的内存，每个方法都可以从该上下文中获取值和修改值。<br/><br/>实际案例：<br/><br/>在调用API时都会传一个token参数，通常会写一个拦截器来校验token是否合法，我们可以通过token找到对应的用户信息（User），如果token合法，然后将用户信息存储到ThreadLocal中，这样无论是在controller、service、dao的哪一层都能访问到该用户的信息。作用类似于Web中的request作用域。<br/><br/>传统方式我们要在方法中访问某个变量，可以通过传参的形式往方法中传参，如果多个方法都要使用那么每个方法都要传参；如果使用ThreadLocal所有方法就不需要传该参数了，每个方法都可以通过ThreadLocal来访问该值。<ul><li>ThreadLocalUtil.set(&quot;key&quot;, value); 保存值</li><li>T value = ThreadLocalUtil.get(&quot;key&quot;); 获取值</li></ul>ThreadLocalUtil<pre>public class ThreadLocalUtil&lt;T&gt; {<br/>
+private static final ThreadLocal&lt;Map&lt;String, Object&gt;&gt; threadLocal = new ThreadLocal() {<br/>
+    @Override<br/>
+    protected Map&lt;String, Object&gt; initialValue() {<br/>
+        return new HashMap&lt;&gt;(4);<br/>
+    }<br/>
+};<br/><br/><br/>
+public static Map&lt;String, Object&gt; getThreadLocal(){<br/>
+    return threadLocal.get();<br/>
+}<br/><br/>public static &lt;T&gt; T get(String key) {<br/>
+    Map map = (Map)threadLocal.get();<br/>
+    return (T)map.get(key);<br/>
+}<br/><br/>public static &lt;T&gt; T get(String key,T defaultValue) {<br/>
+    Map map = (Map)threadLocal.get();<br/>
+    return (T)map.get(key) == null ? defaultValue : (T)map.get(key);<br/>
+}<br/><br/>public static void set(String key, Object value) {<br/>
+    Map map = (Map)threadLocal.get();<br/>
+    map.put(key, value);<br/>
+}<br/><br/>public static void set(Map&lt;String, Object&gt; keyValueMap) {<br/>
+    Map map = (Map)threadLocal.get();<br/>
+    map.putAll(keyValueMap);<br/>
+}<br/><br/>public static void remove() {<br/>
+    threadLocal.remove();<br/>
+}<br/><br/>public static &lt;T&gt; Map&lt;String,T&gt; fetchVarsByPrefix(String prefix) {<br/>
+    Map&lt;String,T&gt; vars = new HashMap&lt;&gt;();<br/>
+    if( prefix == null ){<br/>
+        return vars;<br/>
+    }<br/>
+    Map map = (Map)threadLocal.get();<br/>
+    Set&lt;Map.Entry&gt; set = map.entrySet();<br/><br/>for( Map.Entry entry : set){<br/>
+        Object key = entry.getKey();<br/>
+        if( key instanceof String ){<br/>
+            if( ((String) key).startsWith(prefix) ){<br/>
+                vars.put((String)key,(T)entry.getValue());<br/>
+            }<br/>
+        }<br/>
+    }<br/>
+    return vars;<br/>
+}<br/><br/>public static &lt;T&gt; T remove(String key) {<br/>
+    Map map = (Map)threadLocal.get();<br/>
+    return (T)map.remove(key);<br/>
+}<br/><br/>public static void clear(String prefix) {<br/>
+    if( prefix == null ){<br/>
+        return;<br/>
+    }<br/>
+    Map map = (Map)threadLocal.get();<br/>
+    Set&lt;Map.Entry&gt; set = map.entrySet();<br/>
+    List&lt;String&gt; removeKeys = new ArrayList&lt;&gt;();<br/><br/>for( Map.Entry entry : set ){<br/>
+        Object key = entry.getKey();<br/>
+        if( key instanceof String ){<br/>
+            if( ((String) key).startsWith(prefix) ){<br/>
+                removeKeys.add((String)key);<br/>
+            }<br/>
+        }<br/>
+    }<br/>
+    for( String key : removeKeys ){<br/>
+        map.remove(key);<br/>
+    }<br/>
+}<br/>
+} <br/>
+</pre><br/>
+ 总结: 这个是目前第三方数据接口交互过程中常用的一些参数与使用示例，希望对大家有点帮助。<br/><br/>当然如果为了保证更加的安全，可以加上RSA，RSA2，AES等等加密方式，保证了数据的更加的安全，但是唯一的缺点是加密与解密比较耗费CPU的资源。<br/><br/>原文链接：<a href="https://www.cnblogs.com/jurendage/p/12653865.html" target="_blank">https://www.cnblogs.com/jurendage/p/12653865.html</a>，作者：巨人大哥
+                                
+                                                            </div></div></div><br/></div></span>
+</div></body></html> 
