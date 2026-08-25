@@ -1,0 +1,1259 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+
+<script src="/js/tool-page-runtime.js" defer></script>
+<!-- TOOLBOX-TOOL-RUNTIME -->
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="toolbox" content="cat=game,industry=fun,icon=🚀,bg=#fff3e0">
+<meta name="description" content="太空射击 - 小游戏 - 驾驶飞船消灭外星敌人，收集道具，挑战高分。纯前端Canvas游戏，无需下载。。娱乐游戏工具，纯前端实现，无需安装，离线可玩">
+<meta name="keywords" content="太空射击,飞机大战,射击游戏,小游戏,Canvas游戏,太空游戏">
+<meta name="author" content="ToolBox">
+<meta name="robots" content="index, follow">
+<link rel="icon" type="image/svg+xml" href="../../favicon.svg">
+<link rel="icon" type="image/x-icon" href="../../favicon.ico">
+<title>太空射击 - 小游戏 - 驾驶飞船消灭外星敌人，收集道具，挑战高分 - ToolBox</title>
+<link rel="canonical" href="https://chenguangwu.github.io/tools/fun/space-shooter.html">
+<meta property="og:title" content="太空射击 - 小游戏 - 驾驶飞船消灭外星敌人，收集道具，挑战高分 - ToolBox">
+<meta property="og:description" content="太空射击 - 小游戏 - 驾驶飞船消灭外星敌人，收集道具，挑战高分。纯前端Canvas游戏，无需下载。。娱乐游戏工具，纯前端实现，无需安装，离线可玩">
+<meta property="og:url" content="https://chenguangwu.github.io/tools/fun/space-shooter.html">
+<meta name="twitter:card" content="summary">
+<link rel="stylesheet" href="../../css/common.css">
+<script src="../../js/common.js"></script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebApplication",
+  "name": "太空射击",
+  "description": "驾驶飞船消灭外星敌人，收集道具，挑战高分的太空射击小游戏。",
+  "applicationCategory": "Game",
+  "operatingSystem": "All",
+  "offers": { "@type": "Offer", "price": "0", "priceCurrency": "CNY" },
+  "browserRequirements": "Requires a modern browser with Canvas support"
+}
+</script>
+<style>
+  .game-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+  }
+  .game-hud {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+    justify-content: center;
+    width: 100%;
+    max-width: 600px;
+  }
+  .hud-item {
+    background: var(--result-bg);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 8px 16px;
+    text-align: center;
+    min-width: 90px;
+  }
+  .hud-item .hud-val {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--primary);
+  }
+  .hud-item .hud-label {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-top: 2px;
+  }
+  .hud-item.hud-lives .hud-val { color: #EF4444; }
+  .hud-item.hud-level .hud-val { color: var(--secondary); }
+  .hud-item.hud-power .hud-val { color: var(--accent); font-size: 14px; }
+  #gameCanvas {
+    border-radius: 16px;
+    border: 2px solid var(--border);
+    background: #0a0a1a;
+    max-width: 100%;
+    height: auto;
+    touch-action: none;
+    cursor: crosshair;
+  }
+  .game-controls {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  .game-controls .btn {
+    min-width: 100px;
+    justify-content: center;
+  }
+  .mobile-controls {
+    display: none;
+    gap: 8px;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+    max-width: 600px;
+    margin-top: 4px;
+  }
+  .mobile-controls .ctrl-row {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+  .mobile-btn {
+    width: 56px;
+    height: 56px;
+    border-radius: 14px;
+    border: 1px solid var(--border);
+    background: var(--card-bg);
+    color: var(--text);
+    font-size: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    user-select: none;
+    -webkit-user-select: none;
+    touch-action: manipulation;
+    transition: all 0.15s;
+  }
+  .mobile-btn:active {
+    background: var(--primary);
+    color: #fff;
+    border-color: var(--primary);
+    transform: scale(0.92);
+  }
+  .mobile-btn.fire-btn {
+    width: 72px;
+    height: 72px;
+    border-radius: 50%;
+    font-size: 14px;
+    font-weight: 700;
+    background: linear-gradient(135deg, #FF6B35, #E55A25);
+    color: #fff;
+    border: 2px solid rgba(255,255,255,0.3);
+    box-shadow: 0 4px 16px rgba(255,107,53,0.3);
+    margin-left: 20px;
+  }
+  .mobile-btn.fire-btn:active {
+    transform: scale(0.9);
+    box-shadow: 0 2px 8px rgba(255,107,53,0.4);
+  }
+  .pause-btn {
+    background: rgba(0,0,0,0.5);
+    color: #fff;
+    border: 1px solid rgba(255,255,255,0.2);
+  }
+  .pause-btn:active {
+    background: rgba(0,0,0,0.7);
+    color: #fff;
+  }
+  @media (max-width: 768px) {
+    .mobile-controls { display: flex; flex-direction: column; align-items: center; }
+    .game-controls { display: none; }
+    #gameCanvas { border-radius: 12px; }
+  }
+  @media (pointer: coarse) {
+    .mobile-controls { display: flex; flex-direction: column; align-items: center; }
+    .game-controls { display: none; }
+  }
+</style>
+
+
+
+<meta property="og:image" content="https://chenguangwu.github.io/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="ToolBox - 6000+免费在线工具">
+<meta name="twitter:image" content="https://chenguangwu.github.io/og-image.png">
+<meta name="twitter:image:alt" content="ToolBox - 6000+免费在线工具">
+    <meta property="og:type" content="website">
+    <meta name="twitter:title" content="太空射击 - 小游戏 - 驾驶飞船消灭外星敌人，收集道具，挑战高分 - ToolBox">
+    <meta name="twitter:description" content="太空射击 - 小游戏 - 驾驶飞船消灭外星敌人，收集道具，挑战高分。纯前端Canvas游戏，无需下载。。娱乐游戏工具，纯前端实现，无需安装，离线可玩">
+<!-- TOOLBOX-WEBAPP-LD -->
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"WebApplication","name":"太空射击 - 小游戏 - 驾驶飞船消灭外星敌人，收集道具，挑战高分","url":"https://chenguangwu.github.io/tools/fun/space-shooter.html","applicationCategory":"GamesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":["zh-CN", "en-US"],"description":"太空射击","image":"https://chenguangwu.github.io/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}
+</script>
+<meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
+<meta http-equiv="X-Content-Type-Options" content="nosniff">
+<meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
+<!-- TOOLBOX-SECURITY -->
+
+<script src="/js/privacy.js" defer></script>
+<!-- TOOLBOX-PRIVACY-SCRIPT -->
+
+<script src="/js/metrics.js" defer></script>
+<!-- TOOLBOX-METRICS-SCRIPT -->
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"首页","item":"https://chenguangwu.github.io/"},{"@type":"ListItem","position":2,"name":"娱乐游戏","item":"https://chenguangwu.github.io/tools/fun/index.html"},{"@type":"ListItem","position":3,"name":"太空射击","item":"https://chenguangwu.github.io/tools/fun/space-shooter.html"}]}
+</script>
+
+<script src="../../js/i18n.js" defer></script>
+<script src="../../js/tool-i18n.js" defer></script>
+<!-- TOOLBOX-I18N-SCRIPT -->
+<!-- TOOLBOX-HREFLANG -->
+<link rel="alternate" hreflang="zh-CN" href="https://chenguangwu.github.io/tools/fun/space-shooter.html">
+<link rel="alternate" hreflang="en-US" href="https://chenguangwu.github.io/tools/fun/space-shooter.html">
+<link rel="alternate" hreflang="x-default" href="https://chenguangwu.github.io/tools/fun/space-shooter.html">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:locale:alternate" content="en_US">
+
+<script src="/js/clarity.js" defer></script>
+<!-- TOOLBOX-CLARITY -->
+</head>
+<body>
+<h1 class="sr-only">太空射击</h1>
+
+
+<div class="nav">
+  <a href="../../index.html">ToolBox</a>
+  <span>/ 太空射击</span>
+  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()">🌙</button>
+</div>
+
+
+
+
+
+<nav class="breadcrumb" aria-label="面包屑导航" data-breadcrumb="1">
+  <a href="../../index.html">首页</a>
+  <span class="bc-sep">‹</span>
+  <a href="index.html">🎮 娱乐游戏</a>
+  <span class="bc-sep">‹</span>
+  <span class="bc-current">太空射击</span>
+</nav>
+<div class="container">
+  <div class="card tool-card-accent" style="--tool-accent:#EC4899;">
+    <h2>🚀 太空射击</h2>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;">驾驶飞船消灭敌人，收集道具，挑战最高分！</p>
+
+    <div class="game-wrapper">
+      <div class="game-hud">
+        <div class="hud-item hud-score">
+          <div class="hud-val" id="hudScore">0</div>
+          <div class="hud-label">分数</div>
+        </div>
+        <div class="hud-item hud-lives">
+          <div class="hud-val" id="hudLives">❤️❤️❤️</div>
+          <div class="hud-label">生命</div>
+        </div>
+        <div class="hud-item hud-level">
+          <div class="hud-val" id="hudLevel">1</div>
+          <div class="hud-label">等级</div>
+        </div>
+        <div class="hud-item hud-power">
+          <div class="hud-val" id="hudPower">--</div>
+          <div class="hud-label">道具</div>
+        </div>
+      </div>
+
+      <canvas id="gameCanvas" width="600" height="700"></canvas>
+
+      <div class="game-controls">
+        <button type="button" class="btn primary" id="btnStart" onclick="startGame()">开始游戏</button>
+        <button type="button" class="btn" id="btnPause" onclick="togglePause()">暂停</button>
+        <button type="button" class="btn" id="btnRestart" onclick="restartGame()">重新开始</button>
+      </div>
+
+      <div class="mobile-controls">
+        <div class="ctrl-row">
+          <button type="button" class="mobile-btn" id="mLeft" ontouchstart="mobileKeyDown('left')" ontouchend="mobileKeyUp('left')">◀</button>
+          <button type="button" class="mobile-btn pause-btn" id="mPause" onclick="togglePause()">⏸</button>
+          <button type="button" class="mobile-btn" id="mRight" ontouchstart="mobileKeyDown('right')" ontouchend="mobileKeyUp('right')">▶</button>
+          <button type="button" class="mobile-btn fire-btn" id="mFire" ontouchstart="mobileFireDown()" ontouchend="mobileFireUp()">FIRE</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="tip-box tip-info" style="margin-top:12px;">
+    <strong>操作说明</strong>：桌面端使用 ← → 方向键移动，空格键射击，P 键暂停。移动端使用下方虚拟按钮操控。
+  </div>
+
+  
+</div>
+
+</div>
+
+<!-- 相关工具 -->
+<div class="related-tools" data-related-tools="1">
+  <h3 class="related-tools-title">🔗 相关工具</h3>
+  <div class="related-tools-grid">
+    
+    
+    <a href="generator-2.html" class="related-tool-card">
+      <span class="rt-icon">🎮</span>
+      <span class="rt-info"><span class="rt-name">数独生成器 / 求解器 - 免费在线工具，纯前端处理 | ToolBox免费在线工具箱</span><span class="rt-desc">数独生成器 / 求解器</span></span>
+    </a>
+    <a href="laugh-generator.html" class="related-tool-card">
+      <span class="rt-icon">😂</span>
+      <span class="rt-info"><span class="rt-name">笑声音效生成器 - 免费趣味工具，用Web Audio API合成笑声 | ToolBox免费在线工具箱</span><span class="rt-desc">笑声音效生成器</span></span>
+    </a>
+    <a href="generator-laugh.html" class="related-tool-card">
+      <span class="rt-icon">🔧</span>
+      <span class="rt-info"><span class="rt-name">笑声音效生成器（合成） - 免费在线工具，纯前端处理 | ToolBox免费在线工具箱</span><span class="rt-desc">笑声音效生成器（合成）</span></span>
+    </a>
+    <a href="../dance/choreography-timeline.html" class="related-tool-card">
+      <span class="rt-icon">🎶</span>
+      <span class="rt-info"><span class="rt-name">编舞时间线 - 8拍分段规划器，按BPM和小节数生成舞蹈编排时间轴 | ToolBox免费在线工具箱</span><span class="rt-desc">编舞时间线</span></span>
+    </a>
+  </div>
+</div>
+<div class="tool-intro">
+    <div class="tool-intro-header" onclick="this.parentElement.classList.toggle('open')">
+      <div class="intro-icon-wrap">
+        <div class="intro-icon">🚀</div>
+        <span>关于太空射击</span>
+      </div>
+      <div class="arrow">▼</div>
+    </div>
+    <div class="tool-intro-body">
+      <p>太空射击是一款经典的纵向射击游戏。驾驶你的太空飞船，在浩瀚的星空中消灭一波又一波的外星敌人！</p>
+      <h4><span class="h4-icon">✨</span> 功能特点</h4>
+      <ul class="intro-features">
+        <li>三种敌人类型：普通、快速、强壮</li>
+        <li>三种道具：三连射、护盾、加命</li>
+        <li>等级递增系统</li>
+        <li>爆炸粒子特效</li>
+        <li>动态星空背景</li>
+        <li>移动端触控支持</li>
+      </ul>
+      <h4><span class="h4-icon">🎯</span> 游戏规则</h4>
+      <ul class="intro-scenes">
+        <li>击中敌人获得分数</li>
+        <li>敌人到达底部或碰撞玩家减命</li>
+        <li>每500分升一级，难度递增</li>
+        <li>3条命用完游戏结束</li>
+        <li>收集道具增强能力</li>
+        <li>护盾可抵挡一次伤害</li>
+      </ul>
+      <h4><span class="h4-icon">❓</span> 常见问题</h4>
+      <div class="intro-faq-item">
+        <div class="intro-faq-q">如何获得高分？</div>
+        <div class="intro-faq-a">优先击杀强壮敌人（30分），合理利用三连射道具快速清场，保持移动躲避碰撞。</div>
+      </div>
+      <div class="intro-faq-item">
+        <div class="intro-faq-q">道具多久出现一次？</div>
+        <div class="intro-faq-a">道具随机出现在击杀敌人后的位置，出现概率约15%。等级越高道具出现越频繁。</div>
+      </div>
+    </div>
+  </div>
+
+<!-- 注意事项区块 -->
+<div class="tool-notes" style="--tool-accent:#EC4899;">
+  <div class="tool-notes-title">⚠️ 使用说明与注意事项</div>
+  <ul>
+      <li>本工具纯前端运行，数据不会上传到服务器</li>
+      <li>建议在主流浏览器（Chrome/Safari/Firefox/Edge）中使用</li>
+      <li>计算结果仅供参考，请以实际应用场景为准</li>
+  </ul>
+</div>
+<!-- /注意事项区块 -->
+</div>
+
+<script>
+(function() {
+  'use strict';
+
+  // ============ CANVAS SETUP ============
+  var canvas = document.getElementById('gameCanvas');
+  var ctx = canvas.getContext('2d');
+  var W = canvas.width;
+  var H = canvas.height;
+
+  // ============ GAME STATE ============
+  var STATE = { MENU: 0, PLAYING: 1, PAUSED: 2, GAMEOVER: 3 };
+  var gameState = STATE.MENU;
+  var score = 0;
+  var lives = 3;
+  var level = 1;
+  var animFrameId = null;
+  var lastTime = 0;
+  var enemySpawnTimer = 0;
+  var enemySpawnInterval = 1200;
+  var powerUpChance = 0.15;
+
+  // ============ INPUT ============
+  var keys = {};
+  var mobileKeys = { left: false, right: false, fire: false };
+  var firePressed = false;
+  var fireTimer = 0;
+  var fireInterval = 250;
+
+  // ============ ENTITIES ============
+  var player = null;
+  var bullets = [];
+  var enemies = [];
+  var particles = [];
+  var powerUps = [];
+  var stars = [];
+
+  // ============ POWER-UP EFFECTS ============
+  var activePower = { type: null, timer: 0 };
+  var shieldActive = false;
+
+  // ============ STAR FIELD ============
+  function initStars() {
+    stars = [];
+    for (var i = 0; i < 120; i++) {
+      stars.push({
+        x: Math.random() * W,
+        y: Math.random() * H,
+        size: Math.random() * 2 + 0.5,
+        speed: Math.random() * 1.5 + 0.3,
+        brightness: Math.random() * 0.7 + 0.3
+      });
+    }
+  }
+
+  function updateStars(dt) {
+    for (var i = 0; i < stars.length; i++) {
+      var s = stars[i];
+      s.y += s.speed * dt * 60;
+      if (s.y > H) {
+        s.y = 0;
+        s.x = Math.random() * W;
+      }
+    }
+  }
+
+  function drawStars() {
+    for (var i = 0; i < stars.length; i++) {
+      var s = stars[i];
+      ctx.fillStyle = 'rgba(255,255,255,' + s.brightness + ')';
+      ctx.beginPath();
+      ctx.arc(s.x, s.y, s.size, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+
+  // ============ PLAYER ============
+  function createPlayer() {
+    return {
+      x: W / 2,
+      y: H - 70,
+      w: 40,
+      h: 44,
+      speed: 5
+    };
+  }
+
+  function drawPlayer(p) {
+    ctx.save();
+    ctx.translate(p.x, p.y);
+
+    // Engine flame
+    var flicker = Math.sin(Date.now() * 0.02) * 4;
+    ctx.fillStyle = '#FF6B35';
+    ctx.beginPath();
+    ctx.moveTo(-8, p.h / 2);
+    ctx.lineTo(0, p.h / 2 + 14 + flicker);
+    ctx.lineTo(8, p.h / 2);
+    ctx.closePath();
+    ctx.fill();
+    ctx.fillStyle = '#FFD93D';
+    ctx.beginPath();
+    ctx.moveTo(-4, p.h / 2);
+    ctx.lineTo(0, p.h / 2 + 8 + flicker * 0.5);
+    ctx.lineTo(4, p.h / 2);
+    ctx.closePath();
+    ctx.fill();
+
+    // Ship body
+    ctx.fillStyle = '#3B82F6';
+    ctx.beginPath();
+    ctx.moveTo(0, -p.h / 2);
+    ctx.lineTo(-p.w / 2, p.h / 2);
+    ctx.lineTo(-p.w / 4, p.h / 3);
+    ctx.lineTo(p.w / 4, p.h / 3);
+    ctx.lineTo(p.w / 2, p.h / 2);
+    ctx.closePath();
+    ctx.fill();
+
+    // Cockpit
+    ctx.fillStyle = '#60A5FA';
+    ctx.beginPath();
+    ctx.moveTo(0, -p.h / 2 + 8);
+    ctx.lineTo(-8, p.h / 4);
+    ctx.lineTo(8, p.h / 4);
+    ctx.closePath();
+    ctx.fill();
+
+    // Wings accent
+    ctx.fillStyle = '#1D4ED8';
+    ctx.beginPath();
+    ctx.moveTo(-p.w / 2, p.h / 2);
+    ctx.lineTo(-p.w / 2 - 6, p.h / 2 + 4);
+    ctx.lineTo(-p.w / 4, p.h / 3);
+    ctx.closePath();
+    ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(p.w / 2, p.h / 2);
+    ctx.lineTo(p.w / 2 + 6, p.h / 2 + 4);
+    ctx.lineTo(p.w / 4, p.h / 3);
+    ctx.closePath();
+    ctx.fill();
+
+    // Shield effect
+    if (shieldActive) {
+      ctx.strokeStyle = 'rgba(0,201,167,0.6)';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(0, 0, 28, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.fillStyle = 'rgba(0,201,167,0.1)';
+      ctx.fill();
+    }
+
+    ctx.restore();
+  }
+
+  function updatePlayer(dt) {
+    if (!player) return;
+    var moving = keys['ArrowLeft'] || keys['a'] || mobileKeys.left;
+    var movingR = keys['ArrowRight'] || keys['d'] || mobileKeys.right;
+    if (moving) player.x -= player.speed * dt * 60;
+    if (movingR) player.x += player.speed * dt * 60;
+    player.x = Math.max(player.w / 2, Math.min(W - player.w / 2, player.x));
+  }
+
+  // ============ BULLETS ============
+  function spawnBullet(x, y, angle) {
+    angle = angle || -Math.PI / 2;
+    var speed = 8;
+    bullets.push({
+      x: x, y: y,
+      vx: Math.cos(angle) * speed,
+      vy: Math.sin(angle) * speed,
+      r: 3,
+      life: 1
+    });
+  }
+
+  function playerShoot() {
+    if (!player || gameState !== STATE.PLAYING) return;
+    if (activePower.type === 'triple') {
+      spawnBullet(player.x, player.y - player.h / 2, -Math.PI / 2);
+      spawnBullet(player.x, player.y - player.h / 2, -Math.PI / 2 - 0.2);
+      spawnBullet(player.x, player.y - player.h / 2, -Math.PI / 2 + 0.2);
+    } else {
+      spawnBullet(player.x, player.y - player.h / 2);
+    }
+  }
+
+  function updateBullets(dt) {
+    for (var i = bullets.length - 1; i >= 0; i--) {
+      var b = bullets[i];
+      b.x += b.vx * dt * 60;
+      b.y += b.vy * dt * 60;
+      if (b.y < -10 || b.y > H + 10 || b.x < -10 || b.x > W + 10) {
+        bullets.splice(i, 1);
+      }
+    }
+  }
+
+  function drawBullets() {
+    for (var i = 0; i < bullets.length; i++) {
+      var b = bullets[i];
+      var grad = ctx.createRadialGradient(b.x, b.y, 0, b.x, b.y, b.r * 3);
+      grad.addColorStop(0, '#FFD93D');
+      grad.addColorStop(0.5, '#FF6B35');
+      grad.addColorStop(1, 'rgba(255,107,53,0)');
+      ctx.fillStyle = grad;
+      ctx.beginPath();
+      ctx.arc(b.x, b.y, b.r * 3, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#fff';
+      ctx.beginPath();
+      ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+
+  // ============ ENEMIES ============
+  var ENEMY_TYPES = {
+    normal: { hp: 1, speed: 1.5, size: 20, score: 10, color: '#EF4444', innerColor: '#F87171' },
+    fast: { hp: 1, speed: 3, size: 16, score: 20, color: '#F59E0B', innerColor: '#FBBF24' },
+    tough: { hp: 3, speed: 0.8, size: 26, score: 30, color: '#7C3AED', innerColor: '#A78BFA' }
+  };
+
+  function spawnEnemy() {
+    var rand = Math.random();
+    var type;
+    if (rand < 0.15 + level * 0.02) {
+      type = 'fast';
+    } else if (rand < 0.3 + level * 0.03) {
+      type = 'tough';
+    } else {
+      type = 'normal';
+    }
+    var cfg = ENEMY_TYPES[type];
+    var sizeMulti = 1 + (level - 1) * 0.05;
+    enemies.push({
+      x: Math.random() * (W - 60) + 30,
+      y: -30,
+      type: type,
+      hp: cfg.hp,
+      maxHp: cfg.hp,
+      speed: cfg.speed * (1 + (level - 1) * 0.08) * sizeMulti,
+      size: cfg.size,
+      score: cfg.score,
+      color: cfg.color,
+      innerColor: cfg.innerColor,
+      wobble: Math.random() * Math.PI * 2,
+      wobbleSpeed: (Math.random() * 0.02 + 0.01) * (type === 'fast' ? 2 : 1)
+    });
+  }
+
+  function updateEnemies(dt) {
+    enemySpawnTimer -= dt * 1000;
+    if (enemySpawnTimer <= 0) {
+      spawnEnemy();
+      enemySpawnTimer = Math.max(300, enemySpawnInterval - level * 60);
+    }
+    for (var i = enemies.length - 1; i >= 0; i--) {
+      var e = enemies[i];
+      e.y += e.speed * dt * 60;
+      e.wobble += e.wobbleSpeed * dt * 60;
+      e.x += Math.sin(e.wobble) * 0.8;
+      if (e.y > H + 30) {
+        enemies.splice(i, 1);
+        loseLife();
+      }
+    }
+  }
+
+  function drawEnemies() {
+    for (var i = 0; i < enemies.length; i++) {
+      var e = enemies[i];
+      ctx.save();
+      ctx.translate(e.x, e.y);
+
+      // Glow
+      var glow = ctx.createRadialGradient(0, 0, e.size * 0.3, 0, 0, e.size * 1.5);
+      glow.addColorStop(0, canvasColorWithAlpha(e.color, '#FF6B35', 0.2));
+      glow.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.fillStyle = glow;
+      ctx.beginPath();
+      ctx.arc(0, 0, e.size * 1.5, 0, Math.PI * 2);
+      ctx.fill();
+
+      if (e.type === 'normal') {
+        // Diamond shape
+        ctx.fillStyle = e.color;
+        ctx.beginPath();
+        ctx.moveTo(0, -e.size);
+        ctx.lineTo(e.size, 0);
+        ctx.lineTo(0, e.size);
+        ctx.lineTo(-e.size, 0);
+        ctx.closePath();
+        ctx.fill();
+        ctx.fillStyle = e.innerColor;
+        ctx.beginPath();
+        ctx.moveTo(0, -e.size * 0.5);
+        ctx.lineTo(e.size * 0.5, 0);
+        ctx.lineTo(0, e.size * 0.5);
+        ctx.lineTo(-e.size * 0.5, 0);
+        ctx.closePath();
+        ctx.fill();
+      } else if (e.type === 'fast') {
+        // Triangle pointing down
+        ctx.fillStyle = e.color;
+        ctx.beginPath();
+        ctx.moveTo(0, e.size);
+        ctx.lineTo(-e.size, -e.size * 0.6);
+        ctx.lineTo(e.size, -e.size * 0.6);
+        ctx.closePath();
+        ctx.fill();
+        ctx.fillStyle = e.innerColor;
+        ctx.beginPath();
+        ctx.moveTo(0, e.size * 0.5);
+        ctx.lineTo(-e.size * 0.5, -e.size * 0.2);
+        ctx.lineTo(e.size * 0.5, -e.size * 0.2);
+        ctx.closePath();
+        ctx.fill();
+      } else if (e.type === 'tough') {
+        // Hexagon
+        ctx.fillStyle = e.color;
+        ctx.beginPath();
+        for (var j = 0; j < 6; j++) {
+          var angle = (Math.PI / 3) * j - Math.PI / 6;
+          var px = Math.cos(angle) * e.size;
+          var py = Math.sin(angle) * e.size;
+          if (j === 0) ctx.moveTo(px, py);
+          else ctx.lineTo(px, py);
+        }
+        ctx.closePath();
+        ctx.fill();
+        ctx.fillStyle = e.innerColor;
+        ctx.beginPath();
+        for (var j = 0; j < 6; j++) {
+          var angle = (Math.PI / 3) * j - Math.PI / 6;
+          var px = Math.cos(angle) * e.size * 0.55;
+          var py = Math.sin(angle) * e.size * 0.55;
+          if (j === 0) ctx.moveTo(px, py);
+          else ctx.lineTo(px, py);
+        }
+        ctx.closePath();
+        ctx.fill();
+        // HP bar for tough enemies
+        if (e.hp < e.maxHp) {
+          var bw = e.size * 1.5;
+          ctx.fillStyle = 'rgba(0,0,0,0.5)';
+          ctx.fillRect(-bw / 2, -e.size - 8, bw, 4);
+          ctx.fillStyle = '#10B981';
+          ctx.fillRect(-bw / 2, -e.size - 8, bw * (e.hp / e.maxHp), 4);
+        }
+      }
+
+      ctx.restore();
+    }
+  }
+
+  // ============ COLLISIONS ============
+  function checkCollisions() {
+    // Bullets vs enemies
+    for (var i = bullets.length - 1; i >= 0; i--) {
+      var b = bullets[i];
+      for (var j = enemies.length - 1; j >= 0; j--) {
+        var e = enemies[j];
+        var dx = b.x - e.x;
+        var dy = b.y - e.y;
+        var dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist < e.size + b.r) {
+          bullets.splice(i, 1);
+          e.hp--;
+          if (e.hp <= 0) {
+            score += e.score;
+            spawnExplosion(e.x, e.y, e.color, e.size);
+            if (Math.random() < powerUpChance + level * 0.005) {
+              spawnPowerUp(e.x, e.y);
+            }
+            enemies.splice(j, 1);
+            checkLevelUp();
+            updateHUD();
+          } else {
+            // Hit flash particles
+            for (var k = 0; k < 4; k++) {
+              particles.push(createParticle(e.x, e.y, e.innerColor, 1.5));
+            }
+          }
+          break;
+        }
+      }
+    }
+
+    // Enemies vs player
+    if (!player) return;
+    for (var j = enemies.length - 1; j >= 0; j--) {
+      var e = enemies[j];
+      var dx = player.x - e.x;
+      var dy = player.y - e.y;
+      var dist = Math.sqrt(dx * dx + dy * dy);
+      if (dist < e.size + 16) {
+        spawnExplosion(e.x, e.y, e.color, e.size);
+        enemies.splice(j, 1);
+        loseLife();
+      }
+    }
+
+    // Player vs powerups
+    for (var j = powerUps.length - 1; j >= 0; j--) {
+      var p = powerUps[j];
+      var dx = player.x - p.x;
+      var dy = player.y - p.y;
+      var dist = Math.sqrt(dx * dx + dy * dy);
+      if (dist < p.size + 20) {
+        applyPowerUp(p.type);
+        powerUps.splice(j, 1);
+      }
+    }
+  }
+
+  // ============ POWER-UPS ============
+  function spawnPowerUp(x, y) {
+    var types = ['triple', 'shield', 'life'];
+    var weights = [0.5, 0.3, 0.2];
+    var rand = Math.random();
+    var type;
+    if (rand < weights[0]) type = 'triple';
+    else if (rand < weights[0] + weights[1]) type = 'shield';
+    else type = 'life';
+
+    powerUps.push({
+      x: x, y: y,
+      type: type,
+      size: 14,
+      speed: 1.2,
+      time: 0
+    });
+  }
+
+  function applyPowerUp(type) {
+    if (type === 'triple') {
+      activePower.type = 'triple';
+      activePower.timer = 8000;
+      ToolBox.showToast(i18nText('toast.msg037'), 'info');
+    } else if (type === 'shield') {
+      shieldActive = true;
+      ToolBox.showToast(i18nText('toast.msg372'), 'success');
+    } else if (type === 'life') {
+      lives = Math.min(5, lives + 1);
+      ToolBox.showToast(i18nText('toast.msg507'), 'success');
+    }
+    updateHUD();
+  }
+
+  function updatePowerUps(dt) {
+    for (var i = powerUps.length - 1; i >= 0; i--) {
+      var p = powerUps[i];
+      p.y += p.speed * dt * 60;
+      p.time += dt * 1000;
+      if (p.y > H + 20) powerUps.splice(i, 1);
+    }
+    // Active power timer
+    if (activePower.type) {
+      activePower.timer -= dt * 1000;
+      if (activePower.timer <= 0) {
+        activePower.type = null;
+        activePower.timer = 0;
+      }
+    }
+  }
+
+  function drawPowerUps() {
+    for (var i = 0; i < powerUps.length; i++) {
+      var p = powerUps[i];
+      ctx.save();
+      ctx.translate(p.x, p.y);
+      var pulse = Math.sin(p.time * 0.005) * 0.2 + 1;
+
+      var colors = { triple: '#FBBF24', shield: '#00C9A7', life: '#EF4444' };
+      var icons = { triple: 'T', shield: 'S', life: '+' };
+      var c = colors[p.type];
+
+      // Outer glow
+      ctx.fillStyle = c + '33';
+      ctx.beginPath();
+      ctx.arc(0, 0, p.size * 1.8 * pulse, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Body
+      ctx.fillStyle = c;
+      ctx.beginPath();
+      ctx.arc(0, 0, p.size * pulse, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Icon
+      ctx.fillStyle = '#fff';
+      ctx.font = 'bold 14px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(icons[p.type], 0, 1);
+
+      ctx.restore();
+    }
+  }
+
+  // ============ PARTICLES / EXPLOSIONS ============
+  function createParticle(x, y, color, sizeMulti) {
+    var angle = Math.random() * Math.PI * 2;
+    var speed = Math.random() * 3 + 1;
+    return {
+      x: x, y: y,
+      vx: Math.cos(angle) * speed,
+      vy: Math.sin(angle) * speed,
+      life: 1,
+      decay: Math.random() * 0.02 + 0.015,
+      size: (Math.random() * 3 + 1) * (sizeMulti || 1),
+      color: color
+    };
+  }
+
+  function spawnExplosion(x, y, color, size) {
+    var count = Math.floor(size * 1.5) + 8;
+    for (var i = 0; i < count; i++) {
+      particles.push(createParticle(x, y, color, 1.2));
+    }
+    // White flash particles
+    for (var i = 0; i < 5; i++) {
+      particles.push(createParticle(x, y, '#ffffff', 0.8));
+    }
+  }
+
+  function updateParticles(dt) {
+    for (var i = particles.length - 1; i >= 0; i--) {
+      var p = particles[i];
+      p.x += p.vx * dt * 60;
+      p.y += p.vy * dt * 60;
+      p.life -= p.decay * dt * 60;
+      p.vx *= 0.98;
+      p.vy *= 0.98;
+      if (p.life <= 0) particles.splice(i, 1);
+    }
+  }
+
+  function drawParticles() {
+    for (var i = 0; i < particles.length; i++) {
+      var p = particles[i];
+      ctx.globalAlpha = Math.max(0, p.life);
+      ctx.fillStyle = p.color;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.size * p.life, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  // ============ GAME LOGIC ============
+  function loseLife() {
+    if (shieldActive) {
+      shieldActive = false;
+      spawnExplosion(player.x, player.y, '#00C9A7', 20);
+      ToolBox.showToast(i18nText('toast.msg373'), 'warning');
+      updateHUD();
+      return;
+    }
+    lives--;
+    spawnExplosion(player.x, player.y, '#3B82F6', 25);
+    updateHUD();
+    if (lives <= 0) {
+      gameOver();
+    }
+  }
+
+  function checkLevelUp() {
+    var newLevel = Math.floor(score / 500) + 1;
+    if (newLevel > level) {
+      level = newLevel;
+      ToolBox.showToast('升级！等级 ' + level, 'success');
+      updateHUD();
+    }
+  }
+
+  function gameOver() {
+    gameState = STATE.GAMEOVER;
+    updateHUD();
+  }
+
+  function updateHUD() {
+    document.getElementById('hudScore').textContent = score;
+    var hearts = '';
+    for (var i = 0; i < lives; i++) hearts += '❤️';
+    if (lives === 0) hearts = '💀';
+    document.getElementById('hudLives').textContent = hearts || '💀';
+    document.getElementById('hudLevel').textContent = level;
+    var powerText = '--';
+    if (activePower.type === 'triple') powerText = '三连射 ' + Math.ceil(activePower.timer / 1000) + 's';
+    else if (shieldActive) powerText = '护盾';
+    document.getElementById('hudPower').textContent = powerText;
+  }
+
+  // ============ DRAW OVERLAYS ============
+  function drawOverlay(title, subtitle, action) {
+    ctx.fillStyle = 'rgba(0,0,0,0.65)';
+    ctx.fillRect(0, 0, W, H);
+
+    ctx.fillStyle = '#fff';
+    ctx.font = 'bold 36px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(title, W / 2, H / 2 - 40);
+
+    ctx.font = '16px sans-serif';
+    ctx.fillStyle = 'rgba(255,255,255,0.7)';
+    ctx.fillText(subtitle, W / 2, H / 2 + 10);
+
+    ctx.font = '14px sans-serif';
+    ctx.fillStyle = 'rgba(255,255,255,0.5)';
+    ctx.fillText(action, W / 2, H / 2 + 50);
+  }
+
+  function drawMenuScreen() {
+    ctx.fillStyle = 'rgba(0,0,0,0.7)';
+    ctx.fillRect(0, 0, W, H);
+
+    // Title
+    ctx.fillStyle = '#FF6B35';
+    ctx.font = 'bold 42px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('🚀 太空射击', W / 2, H / 2 - 60);
+
+    // Instructions
+    ctx.fillStyle = 'rgba(255,255,255,0.85)';
+    ctx.font = '16px sans-serif';
+    var instructions = [
+      '← → 移动飞船',
+      '空格键 射击',
+      'P 暂停游戏'
+    ];
+    for (var i = 0; i < instructions.length; i++) {
+      ctx.fillText(instructions[i], W / 2, H / 2 + i * 28);
+    }
+
+    ctx.fillStyle = 'rgba(255,255,255,0.5)';
+    ctx.font = '14px sans-serif';
+    ctx.fillText('点击「开始游戏」或按 Enter 开始', W / 2, H / 2 + 120);
+  }
+
+  // ============ MAIN LOOP ============
+  function gameLoop(timestamp) {
+    animFrameId = requestAnimationFrame(gameLoop);
+    if (!lastTime) lastTime = timestamp;
+    var dt = Math.min((timestamp - lastTime) / 1000, 0.05);
+    lastTime = timestamp;
+
+    // Clear
+    ctx.fillStyle = '#0a0a1a';
+    ctx.fillRect(0, 0, W, H);
+
+    // Always update and draw stars
+    updateStars(dt);
+    drawStars();
+
+    if (gameState === STATE.PLAYING) {
+      updatePlayer(dt);
+
+      // Fire
+      fireTimer -= dt * 1000;
+      var wantFire = keys[' '] || keys['ArrowUp'] || mobileKeys.fire;
+      if (wantFire && fireTimer <= 0) {
+        playerShoot();
+        fireTimer = fireInterval;
+      }
+
+      updateBullets(dt);
+      updateEnemies(dt);
+      updatePowerUps(dt);
+      updateParticles(dt);
+      checkCollisions();
+
+      drawBullets();
+      drawEnemies();
+      drawPowerUps();
+      drawParticles();
+      if (player) drawPlayer(player);
+
+      // Update power HUD timer
+      if (activePower.type) updateHUD();
+    } else if (gameState === STATE.MENU) {
+      drawMenuScreen();
+    } else if (gameState === STATE.PAUSED) {
+      // Draw frozen state
+      drawBullets();
+      drawEnemies();
+      drawPowerUps();
+      drawParticles();
+      if (player) drawPlayer(player);
+      drawOverlay('⏸ 暂停', '分数: ' + score + '  |  等级: ' + level, '按 P 或点击「暂停」继续');
+    } else if (gameState === STATE.GAMEOVER) {
+      drawBullets();
+      drawEnemies();
+      drawPowerUps();
+      drawParticles();
+      drawOverlay('💀 游戏结束', '最终分数: ' + score + '  |  最高等级: ' + level, '点击「重新开始」再战一次');
+    }
+  }
+
+  // ============ PUBLIC FUNCTIONS ============
+  window.startGame = function() {
+    if (gameState === STATE.PLAYING) return;
+    score = 0;
+    lives = 3;
+    level = 1;
+    enemySpawnTimer = 0;
+    enemySpawnInterval = 1200;
+    bullets = [];
+    enemies = [];
+    particles = [];
+    powerUps = [];
+    activePower = { type: null, timer: 0 };
+    shieldActive = false;
+    player = createPlayer();
+    gameState = STATE.PLAYING;
+    lastTime = 0;
+    updateHUD();
+    document.getElementById('btnStart').textContent = '游戏中...';
+    document.getElementById('btnStart').disabled = true;
+  };
+
+  window.togglePause = function() {
+    if (gameState === STATE.PLAYING) {
+      gameState = STATE.PAUSED;
+    } else if (gameState === STATE.PAUSED) {
+      gameState = STATE.PLAYING;
+      lastTime = 0;
+    }
+  };
+
+  window.restartGame = function() {
+    gameState = STATE.MENU;
+    player = null;
+    bullets = [];
+    enemies = [];
+    particles = [];
+    powerUps = [];
+    activePower = { type: null, timer: 0 };
+    shieldActive = false;
+    score = 0;
+    lives = 3;
+    level = 1;
+    updateHUD();
+    document.getElementById('btnStart').textContent = '开始游戏';
+    document.getElementById('btnStart').disabled = false;
+  };
+
+  // ============ MOBILE CONTROLS ============
+  window.mobileKeyDown = function(dir) {
+    mobileKeys[dir] = true;
+  };
+  window.mobileKeyUp = function(dir) {
+    mobileKeys[dir] = false;
+  };
+  window.mobileFireDown = function() {
+    mobileKeys.fire = true;
+  };
+  window.mobileFireUp = function() {
+    mobileKeys.fire = false;
+  };
+
+  // ============ KEYBOARD EVENTS ============
+  document.addEventListener('keydown', function(e) {
+    keys[e.key] = true;
+    if (e.key === 'Enter' && gameState === STATE.MENU) {
+      window.startGame();
+    }
+    if ((e.key === 'p' || e.key === 'P') && (gameState === STATE.PLAYING || gameState === STATE.PAUSED)) {
+      window.togglePause();
+    }
+    if (e.key === 'Enter' && gameState === STATE.GAMEOVER) {
+      window.restartGame();
+      window.startGame();
+    }
+    // Prevent scrolling
+    if (['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', ' '].indexOf(e.key) !== -1) {
+      e.preventDefault();
+    }
+  });
+
+  document.addEventListener('keyup', function(e) {
+    keys[e.key] = false;
+  });
+
+  // ============ TOUCH CONTROLS FOR CANVAS ============
+  (function() {
+    var touchLeft = false;
+    var touchRight = false;
+    var touchFire = false;
+
+    canvas.addEventListener('touchstart', function(e) {
+      e.preventDefault();
+      var rect = canvas.getBoundingClientRect();
+      var scaleX = W / rect.width;
+      for (var i = 0; i < e.touches.length; i++) {
+        var tx = (e.touches[i].clientX - rect.left) * scaleX;
+        if (tx < W * 0.3) {
+          mobileKeys.left = true;
+          touchLeft = true;
+        } else if (tx > W * 0.7) {
+          mobileKeys.right = true;
+          touchRight = true;
+        } else {
+          mobileKeys.fire = true;
+          touchFire = true;
+        }
+      }
+    }, { passive: false });
+
+    canvas.addEventListener('touchmove', function(e) {
+      e.preventDefault();
+    }, { passive: false });
+
+    canvas.addEventListener('touchend', function(e) {
+      e.preventDefault();
+      if (e.touches.length === 0) {
+        mobileKeys.left = false;
+        mobileKeys.right = false;
+        mobileKeys.fire = false;
+        touchLeft = false;
+        touchRight = false;
+        touchFire = false;
+      } else {
+        // Recalculate remaining touches
+        mobileKeys.left = false;
+        mobileKeys.right = false;
+        mobileKeys.fire = false;
+        var rect = canvas.getBoundingClientRect();
+        var scaleX = W / rect.width;
+        for (var i = 0; i < e.touches.length; i++) {
+          var tx = (e.touches[i].clientX - rect.left) * scaleX;
+          if (tx < W * 0.3) mobileKeys.left = true;
+          else if (tx > W * 0.7) mobileKeys.right = true;
+          else mobileKeys.fire = true;
+        }
+      }
+    }, { passive: false });
+  })();
+
+  // ============ INIT ============
+  initStars();
+  updateHUD();
+  animFrameId = requestAnimationFrame(gameLoop);
+
+  // Cleanup on page unload
+  window.addEventListener('beforeunload', function() {
+    if (animFrameId) cancelAnimationFrame(animFrameId);
+  });
+
+})();
+</script>
+
+<!-- SEO 介绍区块 -->
+<div class="tool-intro open" id="toolIntro">
+  <div class="tool-intro-header">
+    <span class="intro-icon-wrap"><span class="intro-icon">📖</span>关于「太空射击」</span>
+    <span class="arrow">▼</span>
+  </div>
+  <div class="tool-intro-body">
+    <h4><span class="h4-icon">📝</span>工具简介</h4>
+    <p>太空射击小游戏 - 驾驶飞船消灭外星敌人，收集道具，挑战高分。纯前端Canvas游戏，无需下载。。娱乐游戏工具，纯前端实现，无需安装，离线可玩。</p>
+    <h4><span class="h4-icon">✨</span>功能特点</h4>
+    <ul class="intro-features">
+      <li>纯前端实现，无需安装</li>
+      <li>操作简单，上手快速</li>
+      <li>支持多种设备，随时随地使用</li>
+      <li>无需联网，离线可玩</li>
+    </ul>
+    <h4><span class="h4-icon">🎯</span>使用场景</h4>
+    <ul class="intro-scenes">
+      <li>休闲娱乐与放松</li>
+      <li>聚会互动小游戏</li>
+      <li>碎片时间的趣味消遣</li>
+      <li>概率与统计的学习辅助</li>
+    </ul>
+    <h4><span class="h4-icon">💬</span>常见问题</h4>
+      <div class="intro-faq-item"><div class="intro-faq-q">这个工具是免费的吗？</div><div class="intro-faq-a">完全免费，无需注册，直接在浏览器中使用。</div></div>
+      <div class="intro-faq-item"><div class="intro-faq-q">需要安装软件吗？</div><div class="intro-faq-a">不需要，直接在浏览器中打开即可使用。</div></div>
+      <div class="intro-faq-item"><div class="intro-faq-q">支持手机使用吗？</div><div class="intro-faq-a">支持。页面已做响应式适配，手机和电脑均可正常使用。</div></div>
+  </div>
+</div>
+<!-- /SEO 介绍区块 -->
+
+<script>
+// tool-intro折叠交互
+document.addEventListener('DOMContentLoaded',function(){
+  var headers=document.querySelectorAll('.tool-intro-header');
+  headers.forEach(function(h){
+    h.addEventListener('click',function(){
+      this.parentElement.classList.toggle('open');
+    });
+  });
+});
+</script>
+
+</body>
+</html>

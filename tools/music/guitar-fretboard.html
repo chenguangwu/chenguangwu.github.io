@@ -1,0 +1,819 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+
+<script src="/js/tool-page-runtime.js" defer></script>
+<!-- TOOLBOX-TOOL-RUNTIME -->
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="toolbox" content="cat=reference,industry=music,icon=🎸,bg=#e3f2fd">
+<title>吉他指板音位图 - 交互式吉他指板音位图，显示所有品格的音符位置 - ToolBox</title>
+<link rel="canonical" href="https://chenguangwu.github.io/tools/music/guitar-fretboard.html">
+<meta property="og:title" content="吉他指板音位图 - 交互式吉他指板音位图，显示所有品格的音符位置 - ToolBox">
+<meta property="og:description" content="交互式吉他指板音位图，显示所有品格的音符位置。支持调式选择、多种调弦方式、音符播放，是吉他学习者必备的参考工具。">
+<meta property="og:url" content="https://chenguangwu.github.io/tools/music/guitar-fretboard.html">
+<meta name="twitter:card" content="summary">
+<meta name="description" content="交互式吉他指板音位图，显示所有品格的音符位置。支持调式选择、多种调弦方式、音符播放，是吉他学习者必备的参考工具。">
+<meta name="keywords" content="吉他指板,音位图,吉他音符,吉他学习,指板图,guitar fretboard,音符位置">
+<link rel="icon" href="../../favicon.svg" type="image/svg+xml">
+<link rel="icon" href="../../favicon.ico" type="image/x-icon">
+<link rel="stylesheet" href="../../css/common.css">
+<script src="../../js/common.js"></script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebApplication",
+  "name": "吉他指板音位图",
+  "description": "交互式吉他指板音位图，支持调式选择、多种调弦方式、音符播放，帮助吉他学习者快速掌握指板音符。",
+  "applicationCategory": "MusicApplication",
+  "operatingSystem": "Web Browser",
+  "offers": { "@type": "Offer", "price": "0", "priceCurrency": "CNY" }
+}
+</script>
+<style>
+/* 指板容器 */
+.fretboard-wrap {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 4px 0 16px;
+  margin: 0 -4px;
+}
+.fretboard-wrap::-webkit-scrollbar {
+  height: 6px;
+}
+.fretboard-wrap::-webkit-scrollbar-track {
+  background: var(--border);
+  border-radius: 3px;
+}
+.fretboard-wrap::-webkit-scrollbar-thumb {
+  background: var(--primary);
+  border-radius: 3px;
+  opacity: 0.6;
+}
+.fretboard {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  user-select: none;
+  min-width: fit-content;
+}
+/* 弦行 */
+.fret-string-row {
+  display: flex;
+  align-items: stretch;
+  height: 48px;
+  position: relative;
+}
+/* 品格格子 */
+.fret-cell {
+  width: 52px;
+  min-width: 52px;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-right: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  position: relative;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.fret-cell:hover {
+  background: var(--bg-hover);
+}
+/* 0品 */
+.fret-cell.fret-zero {
+  width: 44px;
+  min-width: 44px;
+  background: var(--th-bg);
+  border-right: 2px solid var(--text-muted);
+}
+/* 品格标记 */
+.fret-cell .fret-marker {
+  position: absolute;
+  bottom: 2px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--border);
+  pointer-events: none;
+}
+.fret-cell.fret-12 .fret-marker,
+.fret-cell.fret-12-double .fret-marker {
+  width: 8px;
+  height: 8px;
+  background: var(--text-muted);
+}
+/* 音符圆点 */
+.note-dot {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+  transition: transform 0.15s, box-shadow 0.15s;
+  z-index: 1;
+}
+.note-dot:hover {
+  transform: scale(1.18);
+}
+.note-dot.in-scale {
+  background: var(--primary);
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(255,107,53,0.3);
+}
+.note-dot.in-scale:hover {
+  box-shadow: 0 4px 14px rgba(255,107,53,0.4);
+}
+.note-dot.natural {
+  background: var(--bg);
+  color: var(--text);
+  border: 2px solid var(--border);
+}
+.note-dot.chromatic {
+  background: var(--bg);
+  color: var(--text-muted);
+  border: 1px dashed var(--border);
+  opacity: 0.5;
+}
+.note-dot.root-note {
+  background: var(--secondary);
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(124,58,237,0.35);
+}
+.note-dot.hidden-note {
+  display: none;
+}
+/* 弦标签 */
+.fret-cell.fret-zero .note-dot {
+  background: var(--card-bg);
+  color: var(--text);
+  border: 2px solid var(--primary);
+  font-weight: 700;
+  box-shadow: 0 1px 4px rgba(255,107,53,0.15);
+}
+/* 最后一行无底部边框 */
+.fret-string-row:last-child .fret-cell {
+  border-bottom: none;
+}
+/* 品号行 */
+.fret-numbers {
+  display: flex;
+  height: 24px;
+}
+.fret-numbers .fret-num {
+  width: 52px;
+  min-width: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+.fret-numbers .fret-num.fret-zero-num {
+  width: 44px;
+  min-width: 44px;
+  color: var(--primary);
+  font-weight: 700;
+}
+/* 弦名标签 */
+.string-label {
+  width: 44px;
+  min-width: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-secondary);
+  background: var(--th-bg);
+  border-bottom: 1px solid var(--border);
+  border-right: 1px solid var(--border);
+  height: 48px;
+}
+.fret-string-row:first-child .string-label {
+  border-top: 1px solid var(--border);
+}
+.fret-string-row:last-child .string-label {
+  border-bottom: none;
+}
+/* 音符信息面板 */
+.note-info-panel {
+  margin-top: 12px;
+  padding: 14px 16px;
+  background: var(--result-bg);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  font-size: 14px;
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  min-height: 52px;
+}
+.note-info-panel .info-empty {
+  color: var(--text-muted);
+  font-size: 13px;
+}
+.note-info-panel .info-note {
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--primary);
+  min-width: 40px;
+  text-align: center;
+}
+.note-info-panel .info-freq {
+  font-size: 14px;
+  color: var(--text);
+}
+.note-info-panel .info-freq strong {
+  color: var(--primary);
+  font-weight: 600;
+}
+.note-info-panel .info-pos {
+  font-size: 13px;
+  color: var(--text-muted);
+  background: var(--bg);
+  padding: 4px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+}
+.note-info-panel .info-played {
+  font-size: 12px;
+  color: var(--accent);
+  margin-left: auto;
+}
+/* 调内音符列表 */
+.scale-notes-display {
+  margin-top: 8px;
+  font-size: 13px;
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.scale-notes-display .scale-label {
+  font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
+}
+.scale-notes-display .scale-note-item {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 3px 10px;
+  border-radius: 16px;
+  font-size: 12px;
+  font-weight: 600;
+  background: rgba(255,107,53,0.08);
+  color: var(--primary);
+  border: 1px solid rgba(255,107,53,0.2);
+}
+.scale-notes-display .scale-note-item.root {
+  background: rgba(124,58,237,0.1);
+  color: var(--secondary);
+  border-color: rgba(124,58,237,0.25);
+}
+/* 移动端适配 */
+@media(max-width:768px){
+  .fret-cell {
+    width: 42px;
+    min-width: 42px;
+  }
+  .fret-cell.fret-zero {
+    width: 38px;
+    min-width: 38px;
+  }
+  .fret-numbers .fret-num {
+    width: 42px;
+    min-width: 42px;
+  }
+  .fret-numbers .fret-num.fret-zero-num {
+    width: 38px;
+    min-width: 38px;
+  }
+  .string-label {
+    width: 38px;
+    min-width: 38px;
+    font-size: 12px;
+  }
+  .fret-string-row {
+    height: 42px;
+  }
+  .note-dot {
+    width: 26px;
+    height: 26px;
+    font-size: 10px;
+  }
+  .note-info-panel {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 12px 14px;
+  }
+  .note-info-panel .info-played {
+    margin-left: 0;
+  }
+}
+</style>
+
+
+
+<meta property="og:image" content="https://chenguangwu.github.io/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="ToolBox - 6000+免费在线工具">
+<meta name="twitter:image" content="https://chenguangwu.github.io/og-image.png">
+<meta name="twitter:image:alt" content="ToolBox - 6000+免费在线工具">
+    <meta property="og:type" content="website">
+    <meta name="twitter:title" content="吉他指板音位图 - 交互式吉他指板音位图，显示所有品格的音符位置 - ToolBox">
+    <meta name="twitter:description" content="交互式吉他指板音位图，显示所有品格的音符位置。支持调式选择、多种调弦方式、音符播放，是吉他学习者必备的参考工具。">
+<!-- TOOLBOX-WEBAPP-LD -->
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"WebApplication","name":"吉他指板音位图 - 交互式吉他指板音位图，显示所有品格的音符位置","url":"https://chenguangwu.github.io/tools/music/guitar-fretboard.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":["zh-CN", "en-US"],"description":"吉他指板音位图","image":"https://chenguangwu.github.io/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}
+</script>
+<meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
+<meta http-equiv="X-Content-Type-Options" content="nosniff">
+<meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
+<!-- TOOLBOX-SECURITY -->
+
+<script src="/js/privacy.js" defer></script>
+<!-- TOOLBOX-PRIVACY-SCRIPT -->
+
+<script src="/js/metrics.js" defer></script>
+<!-- TOOLBOX-METRICS-SCRIPT -->
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"首页","item":"https://chenguangwu.github.io/"},{"@type":"ListItem","position":2,"name":"音乐艺术","item":"https://chenguangwu.github.io/tools/music/index.html"},{"@type":"ListItem","position":3,"name":"吉他指板音位图","item":"https://chenguangwu.github.io/tools/music/guitar-fretboard.html"}]}
+</script>
+
+<script src="../../js/i18n.js" defer></script>
+<script src="../../js/tool-i18n.js" defer></script>
+<!-- TOOLBOX-I18N-SCRIPT -->
+<!-- TOOLBOX-HREFLANG -->
+<link rel="alternate" hreflang="zh-CN" href="https://chenguangwu.github.io/tools/music/guitar-fretboard.html">
+<link rel="alternate" hreflang="en-US" href="https://chenguangwu.github.io/tools/music/guitar-fretboard.html">
+<link rel="alternate" hreflang="x-default" href="https://chenguangwu.github.io/tools/music/guitar-fretboard.html">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:locale:alternate" content="en_US">
+
+<script src="/js/clarity.js" defer></script>
+<!-- TOOLBOX-CLARITY -->
+</head>
+<body>
+<h1 class="sr-only">吉他指板音位图</h1>
+
+
+<div class="nav">
+  <a href="../../index.html">← ToolBox</a>
+  <span>/ 吉他指板音位图</span>
+  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()">🌙</button>
+</div>
+
+
+
+
+
+<nav class="breadcrumb" aria-label="面包屑导航" data-breadcrumb="1">
+  <a href="../../index.html">首页</a>
+  <span class="bc-sep">‹</span>
+  <a href="index.html">🎵 音乐艺术</a>
+  <span class="bc-sep">‹</span>
+  <span class="bc-current">吉他指板音位图</span>
+</nav>
+<div class="container">
+  <div class="card tool-card-accent" style="--tool-accent:#FF6B35;">
+    <h2>🎸 吉他指板音位图</h2>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;">交互式吉他指板，查看所有品格音符位置，支持调式高亮和音高播放</p>
+
+    <!-- 调弦方式 -->
+    <div style="margin-bottom:12px;">
+      <label style="margin-bottom:8px;">调弦方式</label>
+      <div class="tabs" id="tuningTabs">
+        <button type="button" class="tab-btn active" onclick="setTuning('standard')">标准 (EADGBE)</button>
+        <button type="button" class="tab-btn" onclick="setTuning('drop-d')">Drop D</button>
+        <button type="button" class="tab-btn" onclick="setTuning('open-g')">Open G</button>
+        <button type="button" class="tab-btn" onclick="setTuning('dadgad')">DADGAD</button>
+      </div>
+    </div>
+
+    <!-- 调式选择 -->
+    <div style="margin-bottom:12px;">
+      <label style="margin-bottom:8px;">调式</label>
+      <div class="tabs" id="scaleTabs">
+        <button type="button" class="tab-btn active" onclick="setScale('C','major')">C 大调</button>
+        <button type="button" class="tab-btn" onclick="setScale('A','minor')">A 小调</button>
+        <button type="button" class="tab-btn" onclick="setScale('G','major')">G 大调</button>
+        <button type="button" class="tab-btn" onclick="setScale('E','minor')">E 小调</button>
+        <button type="button" class="tab-btn" onclick="setScale('D','major')">D 大调</button>
+        <button type="button" class="tab-btn" onclick="setScale('B','minor')">B 小调</button>
+        <button type="button" class="tab-btn" onclick="setScale('F','major')">F 大调</button>
+        <button type="button" class="tab-btn" onclick="setScale('D','minor')">D 小调</button>
+      </div>
+    </div>
+
+    <!-- 显示模式 -->
+    <div style="margin-bottom:16px;">
+      <label style="margin-bottom:8px;">显示模式</label>
+      <div class="tabs" id="displayTabs">
+        <button type="button" class="tab-btn active" onclick="setDisplay('all')">全部音符</button>
+        <button type="button" class="tab-btn" onclick="setDisplay('natural')">仅自然音</button>
+        <button type="button" class="tab-btn" onclick="setDisplay('scale')">仅调内音</button>
+        <button type="button" class="tab-btn" onclick="setDisplay('hidden')">隐藏</button>
+      </div>
+    </div>
+
+    <!-- 调内音符展示 -->
+    <div class="scale-notes-display" id="scaleNotesDisplay"></div>
+
+    <!-- 指板 -->
+    <div class="fretboard-wrap">
+      <div class="fretboard" id="fretboard"></div>
+    </div>
+
+    <!-- 音符信息 -->
+    <div class="note-info-panel" id="noteInfo">
+      <span class="info-empty">点击指板上的音符查看详情</span>
+    </div>
+  </div>
+
+  <!-- 使用说明 -->
+  
+</div>
+
+</div>
+
+
+<!-- 相关工具 -->
+<div class="related-tools" data-related-tools="1">
+  <h3 class="related-tools-title">🔗 相关工具</h3>
+  <div class="related-tools-grid">
+    <a href="chord-progression.html" class="related-tool-card">
+      <span class="rt-icon">🎼</span>
+      <span class="rt-info"><span class="rt-name">和弦进行生成器 - 免费在线和弦进行生成器，随机生成流行和弦进行</span><span class="rt-desc">&amp;#127926; 和弦进行生成器</span></span>
+    </a>
+    <a href="random-training-rhythm.html" class="related-tool-card">
+      <span class="rt-icon">🎵</span>
+      <span class="rt-info"><span class="rt-name">节奏训练（随机节奏点击）</span><span class="rt-desc">节奏训练（随机节奏点击）</span></span>
+    </a>
+    <a href="generator-1.html" class="related-tool-card">
+      <span class="rt-icon">🎵</span>
+      <span class="rt-info"><span class="rt-name">音阶生成器（大调/小调/五声音阶）</span><span class="rt-desc">音阶生成器（大调/小调/五声音阶）</span></span>
+    </a>
+    <a href="bpm-converter.html" class="related-tool-card">
+      <span class="rt-icon">⏱️</span>
+      <span class="rt-info"><span class="rt-name">BPM速度转换器 - BPM与音符时长、延迟时间、LFO频率、采样长度互转</span><span class="rt-desc">&amp;#9201;&amp;#65039; BPM 速度转换器</span></span>
+    </a>
+    <a href="convert-speed.html" class="related-tool-card">
+      <span class="rt-icon">🎵</span>
+      <span class="rt-info"><span class="rt-name">歌曲速度转换（BPM微调）</span><span class="rt-desc">歌曲速度转换（BPM微调）</span></span>
+    </a>
+    <a href="audio-converter.html" class="related-tool-card">
+      <span class="rt-icon">🔄</span>
+      <span class="rt-info"><span class="rt-name">音频转换 - 音乐艺术领域的在线工具</span><span class="rt-desc">音频格式转换参数</span></span>
+    </a>
+  </div>
+</div>
+<div class="tool-intro" id="toolIntro">
+    <div class="tool-intro-header" onclick="toggleIntro()">
+      <span class="intro-icon-wrap"><span class="intro-icon">📖</span> 使用说明</span>
+      <span class="arrow">▼</span>
+    </div>
+    <div class="tool-intro-body">
+      <h4>功能特点</h4>
+      <ul class="intro-features">
+        <li>6弦0-15品完整指板音位图</li>
+        <li>支持大调/小调调式高亮</li>
+        <li>4种调弦方式切换</li>
+        <li>点击音符播放音高</li>
+        <li>4种显示模式</li>
+        <li>品格标记点 (3/5/7/9/12)</li>
+      </ul>
+      <h4>使用场景</h4>
+      <ul class="intro-scenes">
+        <li>学习吉他指板音符分布</li>
+        <li>练习不同调式音阶指法</li>
+        <li>了解不同调弦的音符变化</li>
+        <li>快速查找某音符在指板上的位置</li>
+      </ul>
+      <h4>常见问题</h4>
+      <div class="intro-faq-item">
+        <div class="intro-faq-q">为什么点击音符没有声音？</div>
+        <div class="intro-faq-a">请确保设备未静音，且浏览器允许播放音频。首次使用时浏览器可能需要用户交互才能启用音频。</div>
+      </div>
+      <div class="intro-faq-item">
+        <div class="intro-faq-q">Drop D 调弦和标准调弦有什么区别？</div>
+        <div class="intro-faq-a">Drop D 将最低的E弦降低一个全音到D，其余弦不变。这使得低音D更容易弹奏，常用于摇滚和金属音乐。</div>
+      </div>
+      <div class="intro-faq-item">
+        <div class="intro-faq-q">什么显示模式最适合初学者？</div>
+        <div class="intro-faq-a">建议先使用"仅调内音"模式，聚焦当前调式的音符。熟悉后再切换到"全部音符"查看完整音位分布。</div>
+      </div>
+    </div>
+  </div>
+
+<!-- 注意事项区块 -->
+<div class="tool-notes" style="--tool-accent:#FF6B35;">
+  <div class="tool-notes-title">⚠️ 使用说明与注意事项</div>
+  <ul>
+      <li>本工具纯前端运行，数据不会上传到服务器</li>
+      <li>建议在主流浏览器（Chrome/Safari/Firefox/Edge）中使用</li>
+      <li>计算结果仅供参考，请以实际应用场景为准</li>
+  </ul>
+</div>
+<!-- /注意事项区块 -->
+</div>
+
+<script>
+(function() {
+  'use strict';
+
+  // 常量定义
+  var NOTE_NAMES = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+  var NATURAL_NOTES = new Set(['C','D','E','F','G','A','B']);
+  var FRET_COUNT = 15;
+
+  // 调弦定义: [6弦(低), 5弦, 4弦, 3弦, 2弦, 1弦(高)] -- 音符索引
+  var TUNINGS = {
+    'standard': { name: '标准 (EADGBE)', notes: ['E2','A2','D3','G3','B3','E4'], indices: [4,9,2,7,11,4] },
+    'drop-d':   { name: 'Drop D',       notes: ['D2','A2','D3','G3','B3','E4'], indices: [2,9,2,7,11,4] },
+    'open-g':   { name: 'Open G',       notes: ['D2','G2','D3','G3','B3','D4'], indices: [2,7,2,7,11,2] },
+    'dadgad':   { name: 'DADGAD',       notes: ['D2','A2','D3','G3','A3','D4'], indices: [2,9,2,7,9,2] }
+  };
+
+  // 调式定义: 大调= [0,2,4,5,7,9,11] / 小调= [9,11,0,2,4,5,7] (相对关系)
+  var SCALE_INTERVALS = {
+    'major': [0,2,4,5,7,9,11],
+    'minor': [9,11,0,2,4,5,7]
+  };
+
+  // 根音到音符名的映射
+  var ROOT_MAP = { 'C':0,'C#':1,'D':2,'D#':3,'E':4,'F':5,'F#':6,'G':7,'G#':8,'A':9,'A#':10,'B':11 };
+
+  // 状态
+  var currentTuning = 'standard';
+  var currentRoot = 'C';
+  var currentScaleType = 'major';
+  var currentDisplay = 'all';
+  var scaleNoteSet = new Set();
+  var audioCtx = null;
+
+  // 初始化音频上下文
+  function getAudioCtx() {
+    if (!audioCtx) {
+      try {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      } catch(e) {
+        return null;
+      }
+    }
+    return audioCtx;
+  }
+
+  // 计算调内音符集合
+  function calcScaleNotes(root, scaleType) {
+    var rootIdx = ROOT_MAP[root];
+    if (rootIdx === undefined) return new Set();
+    var intervals = SCALE_INTERVALS[scaleType] || SCALE_INTERVALS['major'];
+    var set = new Set();
+    intervals.forEach(function(interval) {
+      set.add(NOTE_NAMES[(rootIdx + interval) % 12]);
+    });
+    return set;
+  }
+
+  // 获取某弦某品的音符信息
+  function getNoteInfo(stringIdx, fret) {
+    var tuning = TUNINGS[currentTuning];
+    var openNoteIdx = tuning.indices[stringIdx];
+    var noteIdx = (openNoteIdx + fret) % 12;
+    var noteName = NOTE_NAMES[noteIdx];
+    // 频率计算: 基于标准调弦的最低音
+    var baseFreqs = { 'standard': [82.41,110,146.83,196,246.94,329.63], 'drop-d': [73.42,110,146.83,196,246.94,329.63], 'open-g': [73.42,98,146.83,196,246.94,293.66], 'dadgad': [73.42,110,146.83,196,220,293.66] };
+    var baseFreq = baseFreqs[currentTuning][stringIdx] || 82.41;
+    var freq = baseFreq * Math.pow(2, fret / 12);
+    return { name: noteName, freq: freq, stringIdx: stringIdx, fret: fret, isRoot: noteName === currentRoot };
+  }
+
+  // 播放音符
+  function playNote(freq) {
+    var ctx = getAudioCtx();
+    if (!ctx) return;
+    if (ctx.state === 'suspended') {
+      ctx.resume();
+    }
+    var osc = ctx.createOscillator();
+    var gain = ctx.createGain();
+    // 使用三角波模拟吉他音色
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(freq, ctx.currentTime);
+    gain.gain.setValueAtTime(0, ctx.currentTime);
+    gain.gain.linearRampToValueAtTime(0.35, ctx.currentTime + 0.02);
+    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 1.2);
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start(ctx.currentTime);
+    osc.stop(ctx.currentTime + 1.2);
+  }
+
+  // 渲染指板
+  function renderFretboard() {
+    scaleNoteSet = calcScaleNotes(currentRoot, currentScaleType);
+    var tuning = TUNINGS[currentTuning];
+    var fb = document.getElementById('fretboard');
+    var html = '';
+
+    // 生成指板行（6弦，从低音到高音）
+    for (var s = 0; s < 6; s++) {
+      html += '<div class="fret-string-row">';
+      // 弦名标签
+      html += '<div class="string-label">' + tuning.notes[s].replace(/\d/g,'') + '<span style="font-size:10px;color:var(--text-muted);">' + tuning.notes[s].slice(-1) + '</span></div>';
+
+      for (var f = 0; f <= FRET_COUNT; f++) {
+        var noteInfo = getNoteInfo(s, f);
+        var classes = 'fret-cell';
+        if (f === 0) classes += ' fret-zero';
+        // 品格标记
+        if (f === 12) classes += ' fret-12';
+
+        var dotClasses = 'note-dot';
+        var dotStyle = '';
+
+        if (f === 0) {
+          // 0品总是显示
+          dotClasses += '';
+        } else if (currentDisplay === 'hidden') {
+          dotClasses += ' hidden-note';
+        } else if (currentDisplay === 'scale') {
+          if (scaleNoteSet.has(noteInfo.name)) {
+            if (noteInfo.isRoot) {
+              dotClasses += ' root-note';
+            } else {
+              dotClasses += ' in-scale';
+            }
+          } else {
+            dotClasses += ' hidden-note';
+          }
+        } else if (currentDisplay === 'natural') {
+          if (NATURAL_NOTES.has(noteInfo.name)) {
+            if (scaleNoteSet.has(noteInfo.name)) {
+              if (noteInfo.isRoot) {
+                dotClasses += ' root-note';
+              } else {
+                dotClasses += ' in-scale';
+              }
+            } else {
+              dotClasses += ' natural';
+            }
+          } else {
+            dotClasses += ' hidden-note';
+          }
+        } else {
+          // all
+          if (scaleNoteSet.has(noteInfo.name)) {
+            if (noteInfo.isRoot) {
+              dotClasses += ' root-note';
+            } else {
+              dotClasses += ' in-scale';
+            }
+          } else if (NATURAL_NOTES.has(noteInfo.name)) {
+            dotClasses += ' natural';
+          } else {
+            dotClasses += ' chromatic';
+          }
+        }
+
+        html += '<div class="' + classes + '" data-string="' + s + '" data-fret="' + f + '" onclick="onFretClick(' + s + ',' + f + ')" title="' + noteInfo.name + '">';
+        html += '<span class="' + dotClasses + '">' + noteInfo.name + '</span>';
+        // 品格标记点（只在第3弦位置显示）
+        if (f === 12 && s === 2) {
+          html += '<span class="fret-marker" style="bottom:auto;top:2px;"></span>';
+          html += '<span class="fret-marker"></span>';
+        } else if ([3,5,7,9,12,15].indexOf(f) !== -1 && s === 2) {
+          html += '<span class="fret-marker"></span>';
+        }
+        html += '</div>';
+      }
+
+      html += '</div>';
+    }
+
+    // 品号行
+    html += '<div class="fret-numbers">';
+    html += '<div class="fret-num fret-zero-num"></div>';
+    for (var f = 1; f <= FRET_COUNT; f++) {
+      html += '<div class="fret-num">' + f + '</div>';
+    }
+    html += '</div>';
+
+    fb.innerHTML = html;
+    updateScaleDisplay();
+  }
+
+  // 更新调内音符显示
+  function updateScaleDisplay() {
+    var el = document.getElementById('scaleNotesDisplay');
+    var tuning = TUNINGS[currentTuning];
+    var scaleName = currentRoot + (currentScaleType === 'major' ? ' 大调' : ' 小调');
+    var html = '<span class="scale-label">' + scaleName + '：</span>';
+    NOTE_NAMES.forEach(function(n) {
+      if (scaleNoteSet.has(n)) {
+        var cls = 'scale-note-item' + (n === currentRoot ? ' root' : '');
+        html += '<span class="' + cls + '">' + n + '</span>';
+      }
+    });
+    el.innerHTML = html;
+  }
+
+  // 品格点击处理
+  window.onFretClick = function(stringIdx, fret) {
+    var noteInfo = getNoteInfo(stringIdx, fret);
+    var tuning = TUNINGS[currentTuning];
+    var stringName = tuning.notes[stringIdx];
+    var panel = document.getElementById('noteInfo');
+    var scaleText = scaleNoteSet.has(noteInfo.name) ? (noteInfo.isRoot ? '调内 - 根音' : '调内音') : '调外音';
+    var freqStr = noteInfo.freq.toFixed(2);
+    panel.innerHTML =
+      '<span class="info-note">' + noteInfo.name + '</span>' +
+      '<span class="info-freq">频率: <strong>' + freqStr + ' Hz</strong></span>' +
+      '<span class="info-pos">' + stringName + ' 第' + fret + '品 · ' + scaleText + '</span>' +
+      '<span class="info-played">🔊 正在播放...</span>';
+    playNote(noteInfo.freq);
+    setTimeout(function() {
+      var played = panel.querySelector('.info-played');
+      if (played) played.textContent = '';
+    }, 800);
+  };
+
+  // 设置调弦
+  window.setTuning = function(tuning) {
+    currentTuning = tuning;
+    var tabs = document.querySelectorAll('#tuningTabs .tab-btn');
+    tabs.forEach(function(btn) { btn.classList.remove('active'); });
+    var idx = Object.keys(TUNINGS).indexOf(tuning);
+    if (idx >= 0 && tabs[idx]) tabs[idx].classList.add('active');
+    renderFretboard();
+  };
+
+  // 设置调式
+  window.setScale = function(root, scaleType) {
+    currentRoot = root;
+    currentScaleType = scaleType;
+    var tabs = document.querySelectorAll('#scaleTabs .tab-btn');
+    tabs.forEach(function(btn) { btn.classList.remove('active'); });
+    var scales = [
+      ['C','major'],['A','minor'],['G','major'],['E','minor'],
+      ['D','major'],['B','minor'],['F','major'],['D','minor']
+    ];
+    for (var i = 0; i < scales.length; i++) {
+      if (scales[i][0] === root && scales[i][1] === scaleType) {
+        if (tabs[i]) tabs[i].classList.add('active');
+        break;
+      }
+    }
+    renderFretboard();
+  };
+
+  // 设置显示模式
+  window.setDisplay = function(mode) {
+    currentDisplay = mode;
+    var tabs = document.querySelectorAll('#displayTabs .tab-btn');
+    tabs.forEach(function(btn) { btn.classList.remove('active'); });
+    var modes = ['all','natural','scale','hidden'];
+    var idx = modes.indexOf(mode);
+    if (idx >= 0 && tabs[idx]) tabs[idx].classList.add('active');
+    renderFretboard();
+  };
+
+  // 工具介绍折叠
+  window.toggleIntro = function() {
+    var intro = document.getElementById('toolIntro');
+    if (intro) intro.classList.toggle('open');
+  };
+
+  // 初始化
+  renderFretboard();
+
+})();
+</script><script>
+// tool-intro折叠交互
+document.addEventListener('DOMContentLoaded',function(){
+  var headers=document.querySelectorAll('.tool-intro-header');
+  headers.forEach(function(h){
+    h.addEventListener('click',function(){
+      this.parentElement.classList.toggle('open');
+    });
+  });
+});
+</script>
+
+</body>
+</html>

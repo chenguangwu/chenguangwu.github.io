@@ -1,0 +1,717 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+
+<script src="/js/tool-page-runtime.js" defer></script>
+<!-- TOOLBOX-TOOL-RUNTIME -->
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="toolbox" content="cat=convert,industry=audio,icon=⏩,bg=#e3f2fd">
+<meta name="description" content="音频播放速度调节 - 工具，基于 Web Audio API 与 HTML5 Audio 实现。上传任意音频文件后，可通过滑块在 0.25x 到 4x 范围内自由调节播放速度，支持保持原音调播放、进度拖拽定位、一键导出变速后的 WAV 文件。所有">
+<meta name="keywords" content="音频变速,播放速度,音频调速,变速不变调,WAV导出,Web Audio API,音频工具">
+<title>音频播放速度调节 - 工具，基于 Web Audio API 与 HTML5 - ToolBox</title>
+<link rel="canonical" href="https://chenguangwu.github.io/tools/audio/audio-speed.html">
+<meta property="og:title" content="音频播放速度调节 - 工具，基于 Web Audio API 与 HTML5 - ToolBox">
+<meta property="og:description" content="音频播放速度调节 - 工具，基于 Web Audio API 与 HTML5 Audio 实现。上传任意音频文件后，可通过滑块在 0.25x 到 4x 范围内自由调节播放速度，支持保持原音调播放、进度拖拽定位、一键导出变速后的 WAV 文件。所有">
+<meta property="og:url" content="https://chenguangwu.github.io/tools/audio/audio-speed.html">
+<meta name="twitter:card" content="summary">
+<link rel="stylesheet" href="../../css/common.css">
+<script src="../../js/common.js"></script>
+<style>
+/* 上传区域 */
+.upload-zone{
+  border:2px dashed var(--border);
+  border-radius:16px;
+  padding:42px 20px;
+  text-align:center;
+  cursor:pointer;
+  transition:all .25s;
+  background:var(--result-bg);
+}
+.upload-zone:hover,.upload-zone.dragover{
+  border-color:var(--primary);
+  background:var(--bg-hover);
+}
+.upload-zone .upload-icon{font-size:48px;margin-bottom:12px;line-height:1;}
+.upload-zone .upload-text{font-size:15px;color:var(--text-secondary);font-weight:500;}
+.upload-zone .upload-hint{font-size:12px;color:var(--text-muted);margin-top:6px;}
+
+/* 文件信息条 */
+.file-info{
+  display:flex;align-items:center;gap:10px;
+  padding:12px 14px;
+  background:var(--result-bg);
+  border:1px solid var(--border);
+  border-radius:12px;
+  margin-top:16px;margin-bottom:16px;
+  font-size:13px;
+}
+.file-info .file-icon{font-size:20px;flex-shrink:0;}
+.file-info .file-name{flex:1;font-weight:500;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;}
+.file-info .file-size{color:var(--text-muted);font-size:12px;flex-shrink:0;}
+.file-info .btn{padding:6px 12px;font-size:12px;flex-shrink:0;}
+
+/* 进度条 */
+.progress-section{margin-bottom:16px;}
+.progress-bar-wrap{
+  position:relative;
+  height:8px;
+  background:var(--border);
+  border-radius:4px;
+  cursor:pointer;
+  margin-bottom:8px;
+  user-select:none;
+}
+.progress-bar-fill{
+  height:100%;
+  border-radius:4px;
+  background:var(--gradient-primary);
+  width:0%;
+  transition:width .1s linear;
+  position:relative;
+}
+.progress-bar-fill::after{
+  content:'';
+  position:absolute;
+  right:-7px;top:50%;
+  transform:translateY(-50%);
+  width:14px;height:14px;
+  border-radius:50%;
+  background:#fff;
+  border:2px solid var(--primary);
+  box-shadow:0 1px 4px rgba(0,0,0,.15);
+  opacity:0;
+  transition:opacity .2s;
+}
+.progress-bar-wrap:hover .progress-bar-fill::after{opacity:1;}
+.time-display{
+  display:flex;justify-content:space-between;
+  font-size:12px;color:var(--text-muted);
+  font-variant-numeric:tabular-nums;
+}
+
+/* 速度调节 */
+.speed-section{margin:18px 0;}
+.speed-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;}
+.speed-label{font-size:13px;color:var(--text-light);font-weight:500;}
+.speed-value{font-size:20px;font-weight:700;color:var(--primary);font-variant-numeric:tabular-nums;}
+.speed-slider{
+  -webkit-appearance:none;appearance:none;
+  width:100%;height:6px;border-radius:3px;
+  background:linear-gradient(to right,var(--primary) 0%,var(--primary) var(--pct,21%),var(--border) var(--pct,21%),var(--border) 100%);
+  outline:none;margin-bottom:14px;
+}
+.speed-slider::-webkit-slider-thumb{
+  -webkit-appearance:none;appearance:none;
+  width:20px;height:20px;border-radius:50%;
+  background:var(--gradient-primary);
+  cursor:pointer;
+  box-shadow:0 2px 6px rgba(255,107,53,.3);
+  border:2px solid #fff;
+}
+.speed-slider::-moz-range-thumb{
+  width:20px;height:20px;border-radius:50%;
+  background:var(--primary);cursor:pointer;
+  border:2px solid #fff;
+  box-shadow:0 2px 6px rgba(255,107,53,.3);
+}
+
+/* 预设按钮 */
+.preset-buttons{display:flex;gap:8px;flex-wrap:wrap;}
+.preset-buttons .btn{
+  flex:1;min-width:60px;
+  padding:8px 12px;font-size:13px;
+  justify-content:center;
+}
+.preset-buttons .btn.active{
+  background:var(--gradient-primary);
+  color:#fff;border-color:transparent;
+}
+
+/* 音调说明 */
+.pitch-note{
+  font-size:12px;color:var(--text-muted);
+  margin-top:6px;padding-left:0;line-height:1.6;
+}
+
+/* 导出进度 */
+.export-progress{
+  height:6px;background:var(--border);
+  border-radius:3px;overflow:hidden;
+  margin-top:12px;display:none;
+}
+.export-progress.active{display:block;}
+.export-progress-fill{
+  height:100%;background:var(--gradient-primary);
+  width:0%;transition:width .3s;
+}
+
+/* 播放按钮 */
+.play-btn{font-size:15px;}
+
+@media(max-width:768px){
+  .upload-zone{padding:30px 16px;}
+  .preset-buttons .btn{flex:1 1 calc(33.333% - 8px);min-width:0;padding:9px 8px;}
+  .speed-value{font-size:18px;}
+}
+</style>
+
+
+
+<meta property="og:image" content="https://chenguangwu.github.io/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="ToolBox - 6000+免费在线工具">
+<meta name="twitter:image" content="https://chenguangwu.github.io/og-image.png">
+<meta name="twitter:image:alt" content="ToolBox - 6000+免费在线工具">
+    <meta property="og:type" content="website">
+    <meta name="twitter:title" content="音频播放速度调节 - 工具，基于 Web Audio API 与 HTML5 - ToolBox">
+    <meta name="twitter:description" content="音频播放速度调节 - 工具，基于 Web Audio API 与 HTML5 Audio 实现。上传任意音频文件后，可通过滑块在 0.25x 到 4x 范围内自由调节播放速度，支持保持原音调播放、进度拖拽定位、一键导出变速后的 WAV 文件。所有">
+<!-- TOOLBOX-WEBAPP-LD -->
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"WebApplication","name":"音频播放速度调节 - 工具，基于 Web Audio API 与 HTML5","url":"https://chenguangwu.github.io/tools/audio/audio-speed.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":["zh-CN", "en-US"],"description":"⏩ 音频播放速度调节","image":"https://chenguangwu.github.io/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}
+</script>
+<meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
+<meta http-equiv="X-Content-Type-Options" content="nosniff">
+<meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
+<!-- TOOLBOX-SECURITY -->
+
+<script src="/js/privacy.js" defer></script>
+<!-- TOOLBOX-PRIVACY-SCRIPT -->
+
+<script src="/js/metrics.js" defer></script>
+<!-- TOOLBOX-METRICS-SCRIPT -->
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"首页","item":"https://chenguangwu.github.io/"},{"@type":"ListItem","position":2,"name":"音频工具","item":"https://chenguangwu.github.io/tools/audio/index.html"},{"@type":"ListItem","position":3,"name":"音频播放速度调节","item":"https://chenguangwu.github.io/tools/audio/audio-speed.html"}]}
+</script>
+
+<script src="../../js/i18n.js" defer></script>
+<script src="../../js/tool-i18n.js" defer></script>
+<!-- TOOLBOX-I18N-SCRIPT -->
+<!-- TOOLBOX-HREFLANG -->
+<link rel="alternate" hreflang="zh-CN" href="https://chenguangwu.github.io/tools/audio/audio-speed.html">
+<link rel="alternate" hreflang="en-US" href="https://chenguangwu.github.io/tools/audio/audio-speed.html">
+<link rel="alternate" hreflang="x-default" href="https://chenguangwu.github.io/tools/audio/audio-speed.html">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:locale:alternate" content="en_US">
+
+<script src="/js/clarity.js" defer></script>
+<!-- TOOLBOX-CLARITY -->
+</head>
+<body>
+<h1 class="sr-only">音频播放速度调节</h1>
+<div class="nav">
+  <a href="../../index.html">← ToolBox</a>
+  <span>/ 音频播放速度调节</span>
+  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()">🌙</button>
+</div>
+
+
+
+
+<nav class="breadcrumb" aria-label="面包屑导航" data-breadcrumb="1">
+  <a href="../../index.html">首页</a>
+  <span class="bc-sep">‹</span>
+  <a href="index.html">🔧 音频工具</a>
+  <span class="bc-sep">‹</span>
+  <span class="bc-current">音频播放速度调节</span>
+</nav>
+<div class="container">
+  <div class="card">
+    <h2>⏩ 音频播放速度调节</h2>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;">上传音频文件，自由调节播放速度（0.25x ~ 4x），支持保持音调、进度拖拽、导出变速 WAV。纯前端处理，文件不上传。</p>
+
+    <!-- 上传区域 -->
+    <div class="upload-zone" id="dropZone">
+      <input type="file" id="fileInput" accept="audio/*" hidden>
+      <div class="upload-icon">🎵</div>
+      <div class="upload-text">点击或拖拽音频文件到此处</div>
+      <div class="upload-hint">支持 MP3 / WAV / OGG / M4A / FLAC 等格式</div>
+    </div>
+
+    <!-- 播放器区域 -->
+    <div id="playerSection" style="display:none;">
+      <!-- 文件信息 -->
+      <div class="file-info">
+        <span class="file-icon">📄</span>
+        <span class="file-name" id="fileName">未选择文件</span>
+        <span class="file-size" id="fileSize"></span>
+        <button type="button" class="btn" onclick="clearFile()">更换</button>
+      </div>
+
+      <!-- 进度条 -->
+      <div class="progress-section">
+        <div class="progress-bar-wrap" id="progressBar">
+          <div class="progress-bar-fill" id="progressFill"></div>
+        </div>
+        <div class="time-display">
+          <span id="curTime">0:00</span>
+          <span id="durTime">0:00</span>
+        </div>
+      </div>
+
+      <!-- 播放控制 -->
+      <div class="toolbar">
+        <button type="button" class="btn primary play-btn" id="playBtn" onclick="togglePlay()">▶ 播放</button>
+        <button type="button" class="btn" onclick="stopPlay()">⏹ 停止</button>
+        <button type="button" class="btn" onclick="seekBy(-5)">⏪ 5s</button>
+        <button type="button" class="btn" onclick="seekBy(5)">5s ⏩</button>
+      </div>
+
+      <!-- 速度调节 -->
+      <div class="speed-section">
+        <div class="speed-header">
+          <span class="speed-label">播放速度</span>
+          <span class="speed-value" id="speedVal">1.00x</span>
+        </div>
+        <input type="range" class="speed-slider" id="speedSlider" min="0.25" max="4" step="0.05" value="1" aria-label="播放速度">
+        <div class="preset-buttons" id="presetBtns">
+          <button type="button" class="btn" data-speed="0.5">0.5x</button>
+          <button type="button" class="btn" data-speed="0.75">0.75x</button>
+          <button type="button" class="btn active" data-speed="1">1x</button>
+          <button type="button" class="btn" data-speed="1.25">1.25x</button>
+          <button type="button" class="btn" data-speed="1.5">1.5x</button>
+          <button type="button" class="btn" data-speed="2">2x</button>
+        </div>
+      </div>
+
+      <!-- 音调保持 -->
+      <div class="checkbox-row">
+        <label>
+          <input type="checkbox" id="preservePitch" onchange="togglePreservePitch()">
+          保持原音调（不变调播放）
+        </label>
+      </div>
+      <p class="pitch-note">默认变速时音调随之变化（类似磁带快进/慢放效果）；勾选后实时播放保持原音调。导出 WAV 始终为变速变调渲染（基于 OfflineAudioContext）。</p>
+
+      <!-- 导出 -->
+      <div class="toolbar" style="margin-top:16px;">
+        <button type="button" class="btn primary" id="exportBtn" onclick="exportWav()">⬇ 导出变速 WAV</button>
+      </div>
+      <div class="export-progress" id="exportProgress">
+        <div class="export-progress-fill" id="exportProgressFill"></div>
+      </div>
+    </div>
+
+    <div class="result-box" id="result"></div>
+    <div class="info-box">所有音频处理均在浏览器本地完成，文件不会上传到服务器，请放心使用。</div>
+  </div>
+
+  <!-- 注意事项 -->
+  <div class="tool-notes">
+    <div class="tool-notes-title">⚠️ 使用说明</div>
+    <ul>
+      <li>支持 MP3、WAV、OGG、M4A、FLAC 等浏览器可解码的音频格式</li>
+      <li>播放速度范围 0.25x ~ 4x，可通过滑块或预设按钮快速切换</li>
+      <li>保持音调功能依赖浏览器原生支持（Chrome / Edge / Safari / Firefox 均支持）</li>
+      <li>导出 WAV 使用 OfflineAudioContext 离线渲染，文件越大耗时越长</li>
+      <li>建议使用 Chrome 或 Edge 浏览器以获得最佳体验</li>
+    </ul>
+  </div>
+
+  <!-- SEO 介绍区块 -->
+  
+</div>
+
+</div>
+
+<!-- 相关工具 -->
+<div class="related-tools" data-related-tools="1">
+  <h3 class="related-tools-title">🔗 相关工具</h3>
+  <div class="related-tools-grid">
+    <a href="audio-recorder.html" class="related-tool-card">
+      <span class="rt-icon">🎙️</span>
+      <span class="rt-info"><span class="rt-name">在线录音工具 - 基于 Web Audio API 与 MediaRecord | ToolBox免费在线工具箱</span><span class="rt-desc">&amp;#127908; 在线录音工具</span></span>
+    </a>
+    <a href="audio-volume.html" class="related-tool-card">
+      <span class="rt-icon">🔊</span>
+      <span class="rt-info"><span class="rt-name">audio-volume</span><span class="rt-desc">&amp;#128266; 音频音量调节</span></span>
+    </a>
+    <a href="audio-cut.html" class="related-tool-card">
+      <span class="rt-icon">✂️</span>
+      <span class="rt-info"><span class="rt-name">音频剪切工具 - 纯前端在线音频裁剪器，支持拖拽上传音频、波形可视化、拖选剪切 | ToolBox免费在线工具箱</span><span class="rt-desc">音频剪切工具</span></span>
+    </a>
+    <a href="audio-echo.html" class="related-tool-card">
+      <span class="rt-icon">🌊</span>
+      <span class="rt-info"><span class="rt-name">音频回声混响效果 - 在线音频回声混响效果工具，基于 Web Audio API  | ToolBox免费在线工具箱</span><span class="rt-desc">音频回声混响效果</span></span>
+    </a>
+    <a href="convert-9.html" class="related-tool-card">
+      <span class="rt-icon">🔊</span>
+      <span class="rt-info"><span class="rt-name">音频格式转换（需依赖库，如ffmpeg.wasm） - 免费在线工具，纯前端处理 | ToolBox免费在线工具箱</span><span class="rt-desc">音频格式转换（需依赖库，如ffmpeg.wasm）</span></span>
+    </a>
+    <a href="audio-waveform.html" class="related-tool-card">
+      <span class="rt-icon">📊</span>
+      <span class="rt-info"><span class="rt-name">音频波形显示工具 - 免费在线音频可视化，支持时域波形、频域频谱、静态波形概览三种 | ToolBox免费在线工具箱</span><span class="rt-desc">音频波形显示工具</span></span>
+    </a>
+  </div>
+</div>
+<div class="tool-intro open" id="toolIntro">
+    <div class="tool-intro-header">
+      <span class="intro-icon-wrap"><span class="intro-icon">📖</span>关于「音频播放速度调节」</span>
+      <span class="arrow">▼</span>
+    </div>
+    <div class="tool-intro-body">
+      <h4><span class="h4-icon">📝</span>工具简介</h4>
+      <p>音频播放速度调节工具，基于 Web Audio API 与 HTML5 Audio 实现。上传任意音频文件后，可通过滑块在 0.25x 到 4x 范围内自由调节播放速度，支持保持原音调播放、进度拖拽定位、一键导出变速后的 WAV 文件。所有处理在浏览器本地完成，数据不上传，保护隐私安全。</p>
+      <h4><span class="h4-icon">✨</span>功能特点</h4>
+      <ul class="intro-features">
+        <li>0.25x ~ 4x 无级变速调节</li>
+        <li>6 档预设速度快捷切换</li>
+        <li>可选保持原音调不变调播放</li>
+        <li>进度条拖拽快速定位</li>
+        <li>导出变速 WAV 文件（OfflineAudioContext 渲染）</li>
+        <li>纯前端处理，文件不上传</li>
+        <li>支持深色模式与移动端响应式</li>
+      </ul>
+      <h4><span class="h4-icon">🎯</span>使用场景</h4>
+      <ul class="intro-scenes">
+        <li>语言学习：慢速听清外语发音细节</li>
+        <li>播客速听：1.5x~2x 加速收听节省时间</li>
+        <li>音乐练习：放慢节奏逐句学习乐器</li>
+        <li>听写转写：变速反复听写会议录音</li>
+        <li>音频制作：生成变速变调特效音频</li>
+        <li>字幕制作：精准定位对齐时间轴</li>
+      </ul>
+      <h4><span class="h4-icon">💬</span>常见问题</h4>
+      <div class="intro-faq-item"><div class="intro-faq-q">变速后音调会变吗？</div><div class="intro-faq-a">默认情况下音调会随速度变化（加速变尖、减速变沉）。勾选"保持原音调"后，实时播放将保持原始音调。导出的 WAV 文件为纯变速渲染，音调会随速度变化。</div></div>
+      <div class="intro-faq-item"><div class="intro-faq-q">导出的 WAV 文件和原文件有什么区别？</div><div class="intro-faq-a">导出的是经过变速渲染的 WAV 格式音频（16bit PCM）。如果原文件是 MP3/OGG 等压缩格式，导出后会转为无损 WAV，音质取决于原始解码质量。</div></div>
+      <div class="intro-faq-item"><div class="intro-faq-q">我的数据会被上传吗？</div><div class="intro-faq-a">不会。所有音频解码、播放、渲染和导出都在你的浏览器本地完成，文件不会发送到任何服务器。</div></div>
+      <div class="intro-faq-item"><div class="intro-faq-q">支持哪些音频格式？</div><div class="intro-faq-a">支持浏览器可解码的所有格式，包括 MP3、WAV、OGG、M4A、FLAC、AAC 等。具体支持情况取决于浏览器。</div></div>
+    </div>
+  </div>
+  <!-- /SEO 介绍区块 -->
+</div>
+
+<audio id="player" preload="auto"></audio>
+
+<script>
+(function(){
+'use strict';
+
+var player = document.getElementById('player');
+var fileInput = document.getElementById('fileInput');
+var dropZone = document.getElementById('dropZone');
+var playerSection = document.getElementById('playerSection');
+var speedSlider = document.getElementById('speedSlider');
+var progressBar = document.getElementById('progressBar');
+var currentFile = null;
+
+/* ---------- 工具函数 ---------- */
+function fmtTime(sec){
+  if(!isFinite(sec) || sec < 0) sec = 0;
+  var m = Math.floor(sec / 60);
+  var s = Math.floor(sec % 60);
+  return m + ':' + (s < 10 ? '0' + s : s);
+}
+function fmtSize(bytes){
+  if(bytes < 1024) return bytes + ' B';
+  if(bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
+  return (bytes / 1048576).toFixed(2) + ' MB';
+}
+function readFileAsArrayBuffer(file){
+  return new Promise(function(resolve, reject){
+    var reader = new FileReader();
+    reader.onload = function(e){ resolve(e.target.result); };
+    reader.onerror = function(){ reject(reader.error || new Error('读取文件失败')); };
+    reader.readAsArrayBuffer(file);
+  });
+}
+function decodeAudioData(ctx, arrayBuffer){
+  return new Promise(function(resolve, reject){
+    ctx.decodeAudioData(arrayBuffer, resolve, reject);
+  });
+}
+
+/* ---------- 文件上传 ---------- */
+dropZone.addEventListener('click', function(){ fileInput.click(); });
+fileInput.addEventListener('change', function(e){
+  if(e.target.files[0]) loadFile(e.target.files[0]);
+});
+dropZone.addEventListener('dragover', function(e){
+  e.preventDefault();
+  dropZone.classList.add('dragover');
+});
+dropZone.addEventListener('dragleave', function(){
+  dropZone.classList.remove('dragover');
+});
+dropZone.addEventListener('drop', function(e){
+  e.preventDefault();
+  dropZone.classList.remove('dragover');
+  var f = e.dataTransfer.files[0];
+  if(f) loadFile(f);
+});
+
+function loadFile(file){
+  if(!file.type.startsWith('audio/') && !/\.(mp3|wav|ogg|m4a|flac|aac|opus|webm)$/i.test(file.name)){
+    ToolBox.showToast('tool.file_upload_hint', 'error');
+    return;
+  }
+  currentFile = file;
+  document.getElementById('fileName').textContent = file.name;
+  document.getElementById('fileSize').textContent = fmtSize(file.size);
+
+  var url = URL.createObjectURL(file);
+  player.src = url;
+  player.load();
+  playerSection.style.display = 'block';
+
+  // 重置速度与音调设置
+  setSpeed(1, true);
+  document.getElementById('preservePitch').checked = false;
+  setPreservePitch(false);
+  document.getElementById('result').innerHTML = '';
+
+  ToolBox.showToast('tool.audio_load_ok', 'success');
+}
+
+function clearFile(){
+  player.pause();
+  if(player.src) URL.revokeObjectURL(player.src);
+  player.src = '';
+  currentFile = null;
+  playerSection.style.display = 'none';
+  fileInput.value = '';
+  document.getElementById('result').innerHTML = '';
+  dropZone.classList.remove('dragover');
+}
+
+/* ---------- 播放控制 ---------- */
+player.addEventListener('loadedmetadata', function(){
+  document.getElementById('durTime').textContent = fmtTime(player.duration);
+  // 确保音调设置生效
+  setPreservePitch(document.getElementById('preservePitch').checked);
+});
+player.addEventListener('timeupdate', function(){
+  var pct = player.duration ? (player.currentTime / player.duration) * 100 : 0;
+  document.getElementById('progressFill').style.width = pct + '%';
+  document.getElementById('curTime').textContent = fmtTime(player.currentTime);
+});
+player.addEventListener('play', function(){
+  document.getElementById('playBtn').innerHTML = '⏸ 暂停';
+});
+player.addEventListener('pause', function(){
+  document.getElementById('playBtn').innerHTML = '▶ 播放';
+});
+player.addEventListener('ended', function(){
+  document.getElementById('playBtn').innerHTML = '▶ 播放';
+});
+
+function togglePlay(){
+  if(!currentFile){ ToolBox.showToast('tool.file_upload_hint', 'error'); return; }
+  if(player.paused) player.play().catch(function(){ ToolBox.showToast(i18nText('toast.msg380'), 'error'); });
+  else player.pause();
+}
+function stopPlay(){
+  player.pause();
+  player.currentTime = 0;
+}
+function seekBy(sec){
+  if(!player.duration) return;
+  player.currentTime = Math.max(0, Math.min(player.duration, player.currentTime + sec));
+}
+
+/* ---------- 进度条拖拽 ---------- */
+var isDragging = false;
+function seekToEvent(e){
+  var rect = progressBar.getBoundingClientRect();
+  var clientX = e.clientX !== undefined ? e.clientX : (e.touches && e.touches[0] ? e.touches[0].clientX : 0);
+  var x = clientX - rect.left;
+  var pct = Math.max(0, Math.min(1, x / rect.width));
+  document.getElementById('progressFill').style.width = (pct * 100) + '%';
+  if(player.duration){
+    var t = pct * player.duration;
+    player.currentTime = t;
+    document.getElementById('curTime').textContent = fmtTime(t);
+  }
+}
+progressBar.addEventListener('mousedown', function(e){ isDragging = true; seekToEvent(e); });
+document.addEventListener('mousemove', function(e){ if(isDragging) seekToEvent(e); });
+document.addEventListener('mouseup', function(){ isDragging = false; });
+progressBar.addEventListener('touchstart', function(e){ isDragging = true; seekToEvent(e); }, {passive:true});
+document.addEventListener('touchmove', function(e){ if(isDragging) seekToEvent(e); }, {passive:true});
+document.addEventListener('touchend', function(){ isDragging = false; });
+
+/* ---------- 速度调节 ---------- */
+function updateSliderTrack(val){
+  var pct = ((val - 0.25) / (4 - 0.25)) * 100;
+  speedSlider.style.setProperty('--pct', pct + '%');
+}
+speedSlider.addEventListener('input', function(){
+  setSpeed(parseFloat(this.value), false);
+});
+function setSpeed(rate, syncSlider){
+  rate = Math.max(0.25, Math.min(4, rate));
+  player.playbackRate = rate;
+  document.getElementById('speedVal').textContent = rate.toFixed(2) + 'x';
+  if(syncSlider) speedSlider.value = rate;
+  updateSliderTrack(rate);
+  // 更新预设按钮高亮
+  document.querySelectorAll('#presetBtns .btn').forEach(function(btn){
+    btn.classList.toggle('active', Math.abs(parseFloat(btn.dataset.speed) - rate) < 0.001);
+  });
+}
+document.querySelectorAll('#presetBtns .btn').forEach(function(btn){
+  btn.addEventListener('click', function(){
+    setSpeed(parseFloat(this.dataset.speed), true);
+  });
+});
+
+/* ---------- 音调保持 ---------- */
+function setPreservePitch(preserve){
+  if('preservesPitch' in player) player.preservesPitch = preserve;
+  if('mozPreservesPitch' in player) player.mozPreservesPitch = preserve;
+  if('webkitPreservesPitch' in player) player.webkitPreservesPitch = preserve;
+}
+function togglePreservePitch(){
+  setPreservePitch(document.getElementById('preservePitch').checked);
+}
+
+/* ---------- WAV 编码 ---------- */
+function writeStr(view, offset, str){
+  for(var i = 0; i < str.length; i++) view.setUint8(offset + i, str.charCodeAt(i));
+}
+function audioBufferToWav(buffer){
+  var numChannels = buffer.numberOfChannels;
+  var sampleRate = buffer.sampleRate;
+  var numSamples = buffer.length;
+  var bitDepth = 16;
+  var blockAlign = numChannels * bitDepth / 8;
+  var dataSize = numSamples * blockAlign;
+
+  var ab = new ArrayBuffer(44 + dataSize);
+  var view = new DataView(ab);
+
+  // RIFF 头
+  writeStr(view, 0, 'RIFF');
+  view.setUint32(4, 36 + dataSize, true);
+  writeStr(view, 8, 'WAVE');
+  // fmt 块
+  writeStr(view, 12, 'fmt ');
+  view.setUint32(16, 16, true);
+  view.setUint16(20, 1, true);            // PCM
+  view.setUint16(22, numChannels, true);
+  view.setUint32(24, sampleRate, true);
+  view.setUint32(28, sampleRate * blockAlign, true); // byte rate
+  view.setUint16(32, blockAlign, true);
+  view.setUint16(34, bitDepth, true);
+  // data 块
+  writeStr(view, 36, 'data');
+  view.setUint32(40, dataSize, true);
+
+  // 交错写入采样数据
+  var channels = [];
+  for(var i = 0; i < numChannels; i++) channels.push(buffer.getChannelData(i));
+  var offset = 44;
+  for(var i = 0; i < numSamples; i++){
+    for(var ch = 0; ch < numChannels; ch++){
+      var s = Math.max(-1, Math.min(1, channels[ch][i]));
+      s = s < 0 ? s * 0x8000 : s * 0x7FFF;
+      view.setInt16(offset, s, true);
+      offset += 2;
+    }
+  }
+  return new Blob([ab], {type: 'audio/wav'});
+}
+
+/* ---------- 导出变速 WAV ---------- */
+async function exportWav(){
+  if(!currentFile){
+    ToolBox.showToast('tool.file_upload_hint', 'error');
+    return;
+  }
+  var rate = player.playbackRate;
+  var exportBtn = document.getElementById('exportBtn');
+  var prog = document.getElementById('exportProgress');
+  var progFill = document.getElementById('exportProgressFill');
+
+  exportBtn.disabled = true;
+  exportBtn.innerHTML = '⏳ 渲染中...';
+  prog.classList.add('active');
+  progFill.style.width = '20%';
+
+  try{
+    var AudioCtx = window.AudioContext || window.webkitAudioContext;
+    var OfflineCtx = window.OfflineAudioContext || window.webkitOfflineAudioContext;
+    if(!AudioCtx || !OfflineCtx){
+      throw new Error('浏览器不支持 Web Audio API');
+    }
+
+    // 读取文件并解码
+    var arrayBuffer = await readFileAsArrayBuffer(currentFile);
+    progFill.style.width = '40%';
+    var audioCtx = new AudioCtx();
+    var audioBuffer = await decodeAudioData(audioCtx, arrayBuffer);
+    try { await audioCtx.close(); } catch(e){}
+
+    progFill.style.width = '60%';
+
+    // 离线渲染变速音频
+    var numChannels = audioBuffer.numberOfChannels;
+    var sampleRate = audioBuffer.sampleRate;
+    var renderedLength = Math.max(1, Math.ceil(audioBuffer.length / rate));
+
+    var offlineCtx = new OfflineCtx(numChannels, renderedLength, sampleRate);
+    var source = offlineCtx.createBufferSource();
+    source.buffer = audioBuffer;
+    source.playbackRate.value = rate;
+    source.connect(offlineCtx.destination);
+    source.start(0);
+
+    var rendered = await offlineCtx.startRendering();
+    progFill.style.width = '85%';
+
+    // 编码 WAV 并下载
+    var wavBlob = audioBufferToWav(rendered);
+    var url = URL.createObjectURL(wavBlob);
+    var a = document.createElement('a');
+    var baseName = currentFile.name.replace(/\.[^.]+$/, '') || 'audio';
+    a.href = url;
+    a.download = baseName + '_' + rate.toFixed(2) + 'x.wav';
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(function(){ URL.revokeObjectURL(url); a.remove(); }, 0);
+
+    progFill.style.width = '100%';
+    setTimeout(function(){ prog.classList.remove('active'); progFill.style.width = '0%'; }, 800);
+
+    document.getElementById('result').innerHTML =
+      '<p>✅ 导出成功</p>' +
+      '<p>倍速：<strong>' + rate.toFixed(2) + 'x</strong> &nbsp; 时长：<strong>' + fmtTime(rendered.duration) + '</strong> &nbsp; 大小：<strong>' + fmtSize(wavBlob.size) + '</strong></p>' +
+      '<p style="font-size:12px;color:var(--text-muted);">导出文件为变速变调渲染的 WAV（16bit PCM），音调随速度变化。</p>';
+    ToolBox.showToast(i18nText('toast.msg022'), 'success');
+  } catch(err){
+    console.error('Export error:', err);
+    ToolBox.showToast('导出失败：' + (err.message || '未知错误'), 'error');
+    prog.classList.remove('active');
+    progFill.style.width = '0%';
+  } finally {
+    exportBtn.disabled = false;
+    exportBtn.innerHTML = '⬇ 导出变速 WAV';
+  }
+}
+
+// 暴露到全局供 onclick 调用
+window.togglePlay = togglePlay;
+window.stopPlay = stopPlay;
+window.seekBy = seekBy;
+window.togglePreservePitch = togglePreservePitch;
+window.exportWav = exportWav;
+window.clearFile = clearFile;
+
+// 初始化滑块轨道
+updateSliderTrack(1);
+})();
+
+// tool-intro 折叠交互
+document.addEventListener('DOMContentLoaded', function(){
+  var headers = document.querySelectorAll('.tool-intro-header');
+  headers.forEach(function(h){
+    h.addEventListener('click', function(){
+      this.parentElement.classList.toggle('open');
+    });
+  });
+});
+</script>
+</body>
+</html>

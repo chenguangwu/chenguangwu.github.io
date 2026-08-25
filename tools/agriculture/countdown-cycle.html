@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+
+<script src="/js/tool-page-runtime.js" defer></script>
+<!-- TOOLBOX-TOOL-RUNTIME -->
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="toolbox" content="cat=convert,industry=agriculture,icon=🌱,bg=#e8f5e9">
+<meta name="description" content="收获倒计时（按作物生长周期） - 基于作物生长周期的收获日期预测工具，内置15种常见作物数据库，选择作物与种植日期即可推算收获日，并以生长阶段时间线显示当前所处阶段，支持多批次种植管理。">
+<title>收获倒计时（按作物生长周期） - 基于作物生长周期的收获日期预测工具 - ToolBox</title>
+<link rel="canonical" href="https://chenguangwu.github.io/tools/agriculture/countdown-cycle.html">
+<meta property="og:title" content="收获倒计时（按作物生长周期） - 基于作物生长周期的收获日期预测工具 - ToolBox">
+<meta property="og:description" content="收获倒计时（按作物生长周期） - 基于作物生长周期的收获日期预测工具，内置15种常见作物数据库，选择作物与种植日期即可推算收获日，并以生长阶段时间线显示当前所处阶段，支持多批次种植管理。">
+<meta property="og:url" content="https://chenguangwu.github.io/tools/agriculture/countdown-cycle.html">
+<meta name="twitter:card" content="summary">
+<link rel="stylesheet" href="../../css/common.css">
+<script src="../../js/common.js"></script>
+<style>
+.crop-card{
+  background:var(--result-bg);border:1px solid var(--border);border-radius:16px;
+  padding:16px;margin-bottom:12px;position:relative;transition:all 0.2s;
+}
+.crop-card.ready{border-color:var(--success);background:rgba(16,185,129,0.06);}
+.crop-card:hover{box-shadow:var(--shadow-sm);}
+.crop-head{display:flex;align-items:center;gap:12px;}
+.crop-head .icon{font-size:30px;}
+.crop-head .info{flex:1;min-width:0;}
+.crop-head .name{font-size:15px;font-weight:600;color:var(--heading);}
+.crop-head .meta{font-size:12px;color:var(--text-muted);margin-top:2px;}
+.crop-status{font-size:13px;font-weight:700;text-align:right;min-width:90px;}
+.crop-status .big{font-size:24px;font-weight:800;display:block;}
+.stage-track{position:relative;height:30px;margin:14px 0 6px;}
+.stage-seg{position:absolute;top:0;height:100%;display:flex;align-items:center;justify-content:center;font-size:10px;color:#fff;font-weight:600;overflow:hidden;border-radius:6px 0 0 6px;transition:opacity 0.2s;}
+.stage-seg:last-child{border-radius:6px;}
+.stage-seg.past{opacity:0.4;}
+.stage-seg.current{outline:2px solid var(--heading);outline-offset:-2px;z-index:2;}
+.stage-marker{position:absolute;top:-4px;width:2px;height:38px;background:var(--primary);z-index:3;}
+.stage-marker::after{content:'今日';position:absolute;top:-18px;left:50%;transform:translateX(-50%);font-size:10px;color:var(--primary);white-space:nowrap;}
+.crop-del{position:absolute;top:8px;right:8px;border:none;background:none;color:var(--text-muted);cursor:pointer;font-size:16px;width:26px;height:26px;border-radius:8px;}
+.crop-del:hover{background:var(--bg-hover);color:var(--danger);}
+.tag{display:inline-block;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600;background:var(--bg-active);color:var(--primary);}
+.tag.ready{background:rgba(16,185,129,0.12);color:var(--success);}
+</style>
+
+
+
+<meta property="og:image" content="https://chenguangwu.github.io/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="ToolBox - 6000+免费在线工具">
+<meta name="twitter:image" content="https://chenguangwu.github.io/og-image.png">
+<meta name="twitter:image:alt" content="ToolBox - 6000+免费在线工具">
+    <meta property="og:type" content="website">
+    <meta name="twitter:title" content="收获倒计时（按作物生长周期） - 基于作物生长周期的收获日期预测工具 - ToolBox">
+    <meta name="twitter:description" content="收获倒计时（按作物生长周期） - 基于作物生长周期的收获日期预测工具，内置15种常见作物数据库，选择作物与种植日期即可推算收获日，并以生长阶段时间线显示当前所处阶段，支持多批次种植管理。">
+<!-- TOOLBOX-WEBAPP-LD -->
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"WebApplication","name":"收获倒计时（按作物生长周期） - 基于作物生长周期的收获日期预测工具","url":"https://chenguangwu.github.io/tools/agriculture/countdown-cycle.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":["zh-CN", "en-US"],"description":"收获倒计时（按作物生长周期）","image":"https://chenguangwu.github.io/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}
+</script>
+<meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
+<meta http-equiv="X-Content-Type-Options" content="nosniff">
+<meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
+<!-- TOOLBOX-SECURITY -->
+
+<script src="/js/privacy.js" defer></script>
+<!-- TOOLBOX-PRIVACY-SCRIPT -->
+
+<script src="/js/metrics.js" defer></script>
+<!-- TOOLBOX-METRICS-SCRIPT -->
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"首页","item":"https://chenguangwu.github.io/"},{"@type":"ListItem","position":2,"name":"农业种植","item":"https://chenguangwu.github.io/tools/agriculture/index.html"},{"@type":"ListItem","position":3,"name":"收获倒计时（按作物生长周期）","item":"https://chenguangwu.github.io/tools/agriculture/countdown-cycle.html"}]}
+</script>
+
+<script src="../../js/i18n.js" defer></script>
+<script src="../../js/tool-i18n.js" defer></script>
+<!-- TOOLBOX-I18N-SCRIPT -->
+<!-- TOOLBOX-HREFLANG -->
+<link rel="alternate" hreflang="zh-CN" href="https://chenguangwu.github.io/tools/agriculture/countdown-cycle.html">
+<link rel="alternate" hreflang="en-US" href="https://chenguangwu.github.io/tools/agriculture/countdown-cycle.html">
+<link rel="alternate" hreflang="x-default" href="https://chenguangwu.github.io/tools/agriculture/countdown-cycle.html">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:locale:alternate" content="en_US">
+
+<script src="/js/clarity.js" defer></script>
+<!-- TOOLBOX-CLARITY -->
+</head>
+<body>
+<h1 class="sr-only">收获倒计时（按作物生长周期）</h1>
+<div class="nav">
+  <a href="../../index.html">← ToolBox</a>
+  <span>/ 收获倒计时（按作物生长周期）</span>
+  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()">🌙</button>
+</div>
+
+
+
+
+<nav class="breadcrumb" aria-label="面包屑导航" data-breadcrumb="1">
+  <a href="../../index.html">首页</a>
+  <span class="bc-sep">‹</span>
+  <a href="index.html">🌾 农业种植</a>
+  <span class="bc-sep">‹</span>
+  <span class="bc-current">收获倒计时（按作物生长周期）</span>
+</nav>
+<div class="container">
+  <div class="card">
+    <h2>🌱 收获倒计时（按作物生长周期）</h2>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;">选择作物与种植日期，自动预测收获日期并显示当前生长阶段，支持多批次管理。</p>
+
+    <div class="input-row">
+      <div style="flex:2;">
+        <label>选择作物</label>
+        <select id="cropSel"></select>
+      </div>
+      <div>
+        <label>种植日期</label>
+        <input type="date" id="plantDate">
+      </div>
+      <div>
+        <label>备注（地块等）</label>
+        <input type="text" id="plantNote" placeholder="如：南大棚">
+      </div>
+      <button class="btn primary" onclick="addPlanting()">添加种植</button>
+    </div>
+    <div id="cropInfo" class="tip-box tip-info" style="display:none;"></div>
+  </div>
+
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;flex-wrap:wrap;gap:8px;">
+      <h3 style="margin:0;">种植批次与收获倒计时</h3>
+      <button class="btn danger" style="padding:6px 12px;font-size:12px;" onclick="clearAll()">清空全部</button>
+    </div>
+    <div id="list"></div>
+  </div>
+
+  <div class="card">
+    <div class="tip-box tip-info">
+      <strong>使用说明：</strong>生长周期为常见参考值，实际受品种、气候、管理等因素影响。进度条与阶段为按周期比例估算，临近收获时请结合作物实际长势判断采收时机。
+    </div>
+  </div>
+</div>
+
+<script>
+var KEY='tb_crop_plantings';
+// 作物数据库：cycle为生长周期(天)，stages为生长阶段(累计结束比例0-1)
+var CROPS=[
+  {name:'番茄',icon:'🍅',cycle:100,stages:[{n:'发芽期',f:0.07},{n:'幼苗期',f:0.25},{n:'营养生长',f:0.45},{n:'开花期',f:0.55},{n:'结果期',f:0.85},{n:'成熟期',f:1}]},
+  {name:'黄瓜',icon:'🥒',cycle:60,stages:[{n:'发芽期',f:0.08},{n:'幼苗期',f:0.25},{n:'抽蔓期',f:0.45},{n:'开花期',f:0.55},{n:'结果期',f:0.85},{n:'成熟期',f:1}]},
+  {name:'辣椒',icon:'🌶️',cycle:100,stages:[{n:'发芽期',f:0.07},{n:'幼苗期',f:0.3},{n:'开花期',f:0.5},{n:'结果期',f:0.8},{n:'成熟期',f:1}]},
+  {name:'生菜',icon:'🥬',cycle:50,stages:[{n:'发芽期',f:0.1},{n:'幼苗期',f:0.35},{n:'莲座期',f:0.75},{n:'成熟期',f:1}]},
+  {name:'大白菜',icon:'🥬',cycle:75,stages:[{n:'发芽期',f:0.08},{n:'幼苗期',f:0.25},{n:'莲座期',f:0.55},{n:'结球期',f:0.9},{n:'成熟期',f:1}]},
+  {name:'萝卜',icon:'🥕',cycle:60,stages:[{n:'发芽期',f:0.08},{n:'幼苗期',f:0.25},{n:'肉质根膨大',f:0.8},{n:'成熟期',f:1}]},
+  {name:'茄子',icon:'🍆',cycle:105,stages:[{n:'发芽期',f:0.07},{n:'幼苗期',f:0.3},{n:'开花期',f:0.5},{n:'结果期',f:0.8},{n:'成熟期',f:1}]},
+  {name:'豆角',icon:'🫛',cycle:60,stages:[{n:'发芽期',f:0.08},{n:'幼苗期',f:0.25},{n:'抽蔓期',f:0.45},{n:'开花结荚',f:0.85},{n:'成熟期',f:1}]},
+  {name:'西瓜',icon:'🍉',cycle:90,stages:[{n:'发芽期',f:0.07},{n:'幼苗期',f:0.25},{n:'伸蔓期',f:0.45},{n:'开花期',f:0.55},{n:'膨大期',f:0.85},{n:'成熟期',f:1}]},
+  {name:'草莓',icon:'🍓',cycle:100,stages:[{n:'缓苗期',f:0.1},{n:'营养生长',f:0.4},{n:'开花期',f:0.55},{n:'结果期',f:0.85},{n:'成熟期',f:1}]},
+  {name:'玉米',icon:'🌽',cycle:110,stages:[{n:'发芽期',f:0.07},{n:'幼苗期',f:0.3},{n:'拔节期',f:0.55},{n:'抽雄期',f:0.7},{n:'灌浆期',f:0.9},{n:'成熟期',f:1}]},
+  {name:'水稻',icon:'🌾',cycle:135,stages:[{n:'发芽期',f:0.05},{n:'幼苗期',f:0.2},{n:'分蘖期',f:0.45},{n:'拔节孕穗',f:0.65},{n:'抽穗扬花',f:0.75},{n:'灌浆期',f:0.95},{n:'成熟期',f:1}]},
+  {name:'小麦',icon:'🌾',cycle:230,stages:[{n:'出苗期',f:0.05},{n:'分蘖期',f:0.3},{n:'越冬期',f:0.55},{n:'拔节期',f:0.7},{n:'抽穗期',f:0.8},{n:'灌浆期',f:0.95},{n:'成熟期',f:1}]},
+  {name:'大豆',icon:'🫘',cycle:105,stages:[{n:'发芽期',f:0.07},{n:'幼苗期',f:0.25},{n:'分枝期',f:0.45},{n:'开花期',f:0.6},{n:'结荚期',f:0.85},{n:'成熟期',f:1}]},
+  {name:'马铃薯',icon:'🥔',cycle:90,stages:[{n:'发芽期',f:0.1},{n:'幼苗期',f:0.3},{n:'块茎形成',f:0.55},{n:'块茎膨大',f:0.85},{n:'成熟期',f:1}]}
+];
+var STAGE_COLORS=['#F59E0B','#10B981','#3B82F6','#7C3AED','#FF6B35','#EF4444'];
+var plantings=[];
+
+function load(){try{plantings=JSON.parse(localStorage.getItem(KEY))||[];}catch(e){plantings=[];}}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(plantings));}catch(e){}}
+function pad(n){return (n<10?'0':'')+n;}
+function parseISO(s){var p=s.split('-');return new Date(+p[0],+p[1]-1,+p[2]);}
+function isoStr(d){return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());}
+function addDays(date,n){var d=new Date(date);d.setDate(d.getDate()+n);return d;}
+function todayISO(){var d=new Date();d.setHours(0,0,0,0);return isoStr(d);}
+function fmtDate(s){var d=parseISO(s);var w=['日','一','二','三','四','五','六'];return (d.getMonth()+1)+'月'+d.getDate()+'日 周'+w[d.getDay()];}
+
+function fillCropSel(){
+  var sel=document.getElementById('cropSel');
+  sel.innerHTML=CROPS.map(function(c,i){return '<option value="'+i+'">'+c.icon+' '+c.name+' · 约'+c.cycle+'天</option>';}).join('');
+  onCropChange();
+}
+function onCropChange(){
+  var c=CROPS[parseInt(document.getElementById('cropSel').value)];
+  var box=document.getElementById('cropInfo');
+  box.style.display='block';
+  var stagesTxt=c.stages.map(function(s){return s.n;}).join(' → ');
+  box.innerHTML='<strong>'+c.icon+' '+c.name+'</strong> · 生长周期约 <strong>'+c.cycle+'</strong> 天 · 阶段：'+stagesTxt;
+}
+function addPlanting(){
+  var c=CROPS[parseInt(document.getElementById('cropSel').value)];
+  var date=document.getElementById('plantDate').value;
+  var note=document.getElementById('plantNote').value.trim();
+  if(!date){ToolBox.showToast(i18nText('toast.msg946'),'error');return;}
+  plantings.push({id:Date.now(),cropIdx:CROPS.indexOf(c),name:c.name,icon:c.icon,cycle:c.cycle,
+                  stages:c.stages,plantDate:date,note:note});
+  document.getElementById('plantNote').value='';
+  save();render();
+  ToolBox.showToast('已添加「'+c.name+'」种植记录');
+}
+function delPlanting(id){
+  plantings=plantings.filter(function(p){return p.id!==id;});
+  save();render();
+}
+function clearAll(){
+  if(!plantings.length){ToolBox.showToast(i18nText('toast.empty_data'),'info');return;}
+  if(confirm('确定清空全部种植记录？')){
+    plantings=[];save();render();ToolBox.showToast(i18nText('toast.cleared'));
+  }
+}
+function getCurrentStage(c,frac){
+  var cur=null;
+  for(var i=0;i<c.stages.length;i++){
+    if(frac<=c.stages[i].f){cur=c.stages[i];break;}
+  }
+  if(!cur)cur=c.stages[c.stages.length-1];
+  return cur;
+}
+function render(){
+  var box=document.getElementById('list');
+  if(!plantings.length){
+    box.innerHTML='<p style="color:var(--text-muted);text-align:center;padding:24px;">还没有种植记录，请在上方添加</p>';
+    return;
+  }
+  var today=new Date();today.setHours(0,0,0,0);
+  var arr=plantings.map(function(p){
+    var plant=parseISO(p.plantDate);
+    var harvest=addDays(plant,p.cycle);
+    var elapsed=Math.floor((today-plant)/86400000);
+    var frac=Math.min(1,Math.max(0,elapsed/p.cycle));
+    var left=Math.round((harvest-today)/86400000);
+    return Object.assign({},p,{harvest:isoStr(harvest),elapsed:elapsed,frac:frac,left:left});
+  });
+  // 按剩余天数升序
+  arr.sort(function(a,b){return a.left-b.left;});
+  var html='';
+  arr.forEach(function(p){
+    var ready=p.left<=0;
+    var curStage=getCurrentStage(p,p.frac);
+    html+='<div class="crop-card'+(ready?' ready':'')+'" style="position:relative;">';
+    html+='<button class="crop-del" onclick="delPlanting('+p.id+')" title="删除">×</button>';
+    html+='<div class="crop-head">';
+    html+='<div class="icon">'+p.icon+'</div>';
+    html+='<div class="info"><div class="name">'+ToolBox.escHtml(p.name)+' '+(ready?'<span class="tag ready">可收获</span>':'<span class="tag">'+curStage.n+'</span>')+'</div>';
+    html+='<div class="meta">种植：'+fmtDate(p.plantDate)+' · 预计收获：'+fmtDate(p.harvest)+(p.note?' · '+ToolBox.escHtml(p.note):'')+'</div></div>';
+    if(ready){
+      html+='<div class="crop-status" style="color:var(--success);"><span class="big">已成熟</span>可采收</div>';
+    }else if(p.left===0){
+      html+='<div class="crop-status" style="color:var(--warning);"><span class="big">0</span>今日采收</div>';
+    }else{
+      html+='<div class="crop-status" style="color:var(--primary);"><span class="big">'+p.left+'</span>天后收获</div>';
+    }
+    html+='</div>';
+    // 生长阶段进度条
+    var pct=Math.round(p.frac*100);
+    html+='<div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text-muted);"><span>已生长 '+p.elapsed+'/'+p.cycle+' 天 ('+pct+'%)</span><span>当前：'+curStage.n+'</span></div>';
+    html+='<div class="stage-track">';
+    var prevF=0;
+    p.stages.forEach(function(s,i){
+      var w=(s.f-prevF)*100;
+      var cls='';
+      if(p.frac>=s.f)cls='past';
+      else if(p.frac>=prevF)cls='current';
+      var color=STAGE_COLORS[i%STAGE_COLORS.length];
+      html+='<div class="stage-seg '+cls+'" style="left:'+prevF*100+'%;width:'+w+'%;background:'+color+';" title="'+s.n+'">'+(w>10?s.n:'')+'</div>';
+      prevF=s.f;
+    });
+    if(p.frac>0&&p.frac<1){
+      html+='<div class="stage-marker" style="left:'+(p.frac*100).toFixed(1)+'%;"></div>';
+    }
+    html+='</div>';
+    if(ready){
+      html+='<div class="tip-box tip-success" style="margin-top:6px;padding:8px 12px;font-size:12px;">✅ 已到预计收获期，请结合实际长势安排采收。</div>';
+    }else{
+      html+='<div class="tip-box tip-info" style="margin-top:6px;padding:8px 12px;font-size:12px;">💡 当前处于「'+curStage.n+'」，注意该阶段的水肥与病虫害管理。</div>';
+    }
+    html+='</div>';
+  });
+  box.innerHTML=html;
+}
+load();fillCropSel();
+document.getElementById('plantDate').value=todayISO();
+render();
+setInterval(render,60000);
+</script>
+
+<!-- SEO 介绍区块 -->
+
+</div>
+
+</div>
+
+
+<!-- 相关工具 -->
+<div class="related-tools" data-related-tools="1">
+  <h3 class="related-tools-title">🔗 相关工具</h3>
+  <div class="related-tools-grid">
+    <a href="calc-37.html" class="related-tool-card">
+      <span class="rt-icon">🌾</span>
+      <span class="rt-info"><span class="rt-name">光照累积量（每日光积分DLI）计算 - 每日光积分（Daily Light Integral,</span><span class="rt-desc">光照累积量（每日光积分DLI）计算</span></span>
+    </a>
+    <a href="convert-content-1.html" class="related-tool-card">
+      <span class="rt-icon">🌾</span>
+      <span class="rt-info"><span class="rt-name">农产品干物质含量与水分换算</span><span class="rt-desc">农产品干物质含量与水分换算</span></span>
+    </a>
+    <a href="dry-matter-conversion.html" class="related-tool-card">
+      <span class="rt-icon">⚖️</span>
+      <span class="rt-info"><span class="rt-name">农产品干物质含量换算器 - 鲜重/干重/含水率/干物质含量快速换算</span><span class="rt-desc">农产品干物质含量换算器</span></span>
+    </a>
+    <a href="calc-4.html" class="related-tool-card">
+      <span class="rt-icon">🌤️</span>
+      <span class="rt-info"><span class="rt-name">大棚卷膜时间建议 - 帮助种植户根据棚内温度变化趋势</span><span class="rt-desc">大棚卷膜时间建议</span></span>
+    </a>
+    <a href="temp-time-2.html" class="related-tool-card">
+      <span class="rt-icon">🌾</span>
+      <span class="rt-info"><span class="rt-name">大棚卷膜时间（温度/风速）建议 - 大棚卷膜时间建议工具，根据棚内外温差、风速与棚膜面积</span><span class="rt-desc">大棚卷膜时间（温度/风速）建议</span></span>
+    </a>
+    <a href="calc-15.html" class="related-tool-card">
+      <span class="rt-icon">📅</span>
+      <span class="rt-info"><span class="rt-name">播种日期计算器 - 根据作物收获目标倒推播种时间，帮助种植户把握最佳播期窗口</span><span class="rt-desc">播种日期计算器</span></span>
+    </a>
+  </div>
+</div>
+<div class="tool-intro open" id="toolIntro">
+  <div class="tool-intro-header">
+    <span class="intro-icon-wrap"><span class="intro-icon">📖</span>关于「收获倒计时（按作物生长周期）」</span>
+    <span class="arrow">▼</span>
+  </div>
+  <div class="tool-intro-body">
+    <h4><span class="h4-icon">📝</span>工具简介</h4>
+    <p>基于作物生长周期的收获日期预测工具，内置15种常见作物数据库，选择作物与种植日期即可推算收获日，并以生长阶段时间线显示当前所处阶段，支持多批次种植管理。</p>
+    <h4><span class="h4-icon">✨</span>功能特点</h4>
+    <ul class="intro-features">
+      <li>内置15种常见作物生长周期</li>
+      <li>种植日期自动推算预计收获日</li>
+      <li>生长阶段时间线，当前阶段高亮</li>
+      <li>多批次种植同时跟踪</li>
+      <li>按剩余天数排序，到期提醒</li>
+    </ul>
+    <h4><span class="h4-icon">💬</span>常见问题</h4>
+      <div class="intro-faq-item"><div class="intro-faq-q">这个工具是免费的吗？</div><div class="intro-faq-a">完全免费，无需注册，直接在浏览器中使用。</div></div>
+      <div class="intro-faq-item"><div class="intro-faq-q">生长周期准确吗？</div><div class="intro-faq-a">为常见参考值，实际受品种、气候、管理影响，请结合实际长势判断。</div></div>
+      <div class="intro-faq-item"><div class="intro-faq-q">支持手机使用吗？</div><div class="intro-faq-a">支持。页面已做响应式适配，手机和电脑均可正常使用。</div></div>
+  </div>
+</div>
+<!-- /SEO 介绍区块 -->
+
+<script>
+document.addEventListener('DOMContentLoaded',function(){
+  var headers=document.querySelectorAll('.tool-intro-header');
+  headers.forEach(function(h){
+    h.addEventListener('click',function(){this.parentElement.classList.toggle('open');});
+  });
+});
+</script>
+</body>
+</html>

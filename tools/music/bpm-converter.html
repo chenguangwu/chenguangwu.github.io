@@ -1,0 +1,651 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+
+<script src="/js/tool-page-runtime.js" defer></script>
+<!-- TOOLBOX-TOOL-RUNTIME -->
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="toolbox" content="cat=convert,industry=music,icon=⏱️,bg=#e3f2fd">
+<meta name="description" content="BPM速度转换器 - BPM与音符时长、延迟时间、LFO频率、采样长度互转，音乐制作与DJ必备工具，免费在线使用。">
+<meta name="keywords" content="BPM转换器,BPM计算器,音符时长,延迟时间,LFO频率,采样长度,音乐制作,DJ工具,节拍计算,在线工具,免费工具,ToolBox">
+<meta name="robots" content="index,follow">
+<link rel="canonical" href="https://chenguangwu.github.io/tools/music/bpm-converter.html">
+<meta property="og:title" content="BPM速度转换器 - BPM与音符时长、延迟时间、LFO频率、采样长度互转 - ToolBox">
+<meta property="og:description" content="BPM速度转换器 - BPM与音符时长、延迟时间、LFO频率、采样长度互转，音乐制作与DJ必备工具，免费在线使用。">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://chenguangwu.github.io/tools/music/bpm-converter.html">
+<meta name="twitter:card" content="summary">
+
+<title>BPM速度转换器 - BPM与音符时长、延迟时间、LFO频率、采样长度互转 - ToolBox</title>
+<meta name="theme-color" content="#FF6B35">
+<link rel="icon" type="image/svg+xml" href="../../favicon.svg">
+<link rel="icon" href="../../favicon.ico" sizes="16x16 32x32 48x48">
+<link rel="apple-touch-icon" href="../../apple-touch-icon.png">
+<link rel="stylesheet" href="../../css/common.css">
+<script src="../../js/common.js"></script>
+<style>
+.note-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin: 12px 0; }
+.note-card {
+  background: var(--result-bg);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 14px;
+  text-align: center;
+  transition: all 0.2s;
+  cursor: pointer;
+  position: relative;
+}
+.note-card:hover { border-color: var(--primary); transform: translateY(-2px); box-shadow: var(--shadow-sm); }
+.note-card .note-val { font-size: 22px; font-weight: 700; color: var(--primary); }
+.note-card .note-label { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+.note-card .note-ms { font-size: 11px; color: var(--text-light); margin-top: 4px; }
+.note-card .copy-hint {
+  position: absolute; top: 6px; right: 8px; font-size: 10px; color: var(--text-muted);
+  opacity: 0; transition: opacity 0.2s;
+}
+.note-card:hover .copy-hint { opacity: 1; }
+.delay-table-wrap { overflow-x: auto; margin: 12px 0; }
+.lfo-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; margin: 12px 0; }
+.lfo-card {
+  background: var(--result-bg);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 14px;
+  text-align: center;
+  transition: all 0.2s;
+  cursor: pointer;
+}
+.lfo-card:hover { border-color: var(--secondary); transform: translateY(-2px); box-shadow: var(--shadow-sm); }
+.lfo-card .lfo-val { font-size: 20px; font-weight: 700; color: var(--secondary); }
+.lfo-card .lfo-label { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+.sample-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 10px; margin: 12px 0; }
+.sample-card {
+  background: var(--result-bg);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 14px;
+  text-align: center;
+  transition: all 0.2s;
+  cursor: pointer;
+}
+.sample-card:hover { border-color: var(--accent); transform: translateY(-2px); box-shadow: var(--shadow-sm); }
+.sample-card .sample-val { font-size: 20px; font-weight: 700; color: var(--accent); }
+.sample-card .sample-label { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+.reverse-result {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--primary);
+  text-align: center;
+  padding: 16px;
+}
+.reverse-sub { font-size: 14px; color: var(--text-muted); text-align: center; margin-top: 4px; }
+.bpm-slider-wrap { margin: 8px 0; }
+.bpm-slider {
+  width: 100%;
+  -webkit-appearance: none;
+  appearance: none;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--border);
+  outline: none;
+  cursor: pointer;
+}
+.bpm-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--gradient-primary);
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(255,107,53,0.3);
+}
+.bpm-slider::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--gradient-primary);
+  cursor: pointer;
+  border: none;
+  box-shadow: 0 2px 6px rgba(255,107,53,0.3);
+}
+.section-divider { border: none; border-top: 1px solid var(--border); margin: 0 0 16px; }
+.quick-btns { display: flex; gap: 6px; flex-wrap: wrap; margin: 8px 0; }
+.quick-btn {
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 12px;
+  cursor: pointer;
+  border: 1px solid var(--border);
+  background: var(--card-bg);
+  color: var(--text);
+  transition: all 0.2s;
+  font-weight: 500;
+}
+.quick-btn:hover { border-color: var(--primary); background: var(--bg-hover); }
+.quick-btn.active { background: var(--gradient-primary); color: #fff; border-color: transparent; }
+</style>
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "BPM速度转换器",
+  "description": "BPM速度转换器 - BPM与音符时长、延迟时间、LFO频率、采样长度互转，音乐制作与DJ必备工具。",
+  "url": "https://chenguangwu.github.io/tools/music/bpm-converter.html",
+  "applicationCategory": "UtilitiesApplication",
+  "operatingSystem": "Web",
+  "offers": {
+    "@type": "Offer",
+    "price": "0",
+    "priceCurrency": "CNY"
+  },
+  "inLanguage": "zh-CN",
+  "isAccessibleForFree": true,
+  "browserRequirements": "Requires JavaScript. Requires HTML5.",
+  "softwareVersion": "1.0"
+}
+</script>
+
+
+
+<meta property="og:image" content="https://chenguangwu.github.io/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="ToolBox - 6000+免费在线工具">
+<meta name="twitter:image" content="https://chenguangwu.github.io/og-image.png">
+<meta name="twitter:image:alt" content="ToolBox - 6000+免费在线工具">
+    <meta name="twitter:title" content="BPM速度转换器 - BPM与音符时长、延迟时间、LFO频率、采样长度互转 - ToolBox">
+    <meta name="twitter:description" content="BPM速度转换器 - BPM与音符时长、延迟时间、LFO频率、采样长度互转，音乐制作与DJ必备工具，免费在线使用。">
+<!-- TOOLBOX-WEBAPP-LD -->
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"WebApplication","name":"BPM速度转换器 - BPM与音符时长、延迟时间、LFO频率、采样长度互转","url":"https://chenguangwu.github.io/tools/music/bpm-converter.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":["zh-CN", "en-US"],"description":"&amp;#9201;&amp;#65039; BPM 速度转换器","image":"https://chenguangwu.github.io/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}
+</script>
+<meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
+<meta http-equiv="X-Content-Type-Options" content="nosniff">
+<meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
+<!-- TOOLBOX-SECURITY -->
+
+<script src="/js/privacy.js" defer></script>
+<!-- TOOLBOX-PRIVACY-SCRIPT -->
+
+<script src="/js/metrics.js" defer></script>
+<!-- TOOLBOX-METRICS-SCRIPT -->
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"首页","item":"https://chenguangwu.github.io/"},{"@type":"ListItem","position":2,"name":"音乐艺术","item":"https://chenguangwu.github.io/tools/music/index.html"},{"@type":"ListItem","position":3,"name":"BPM速度转换器","item":"https://chenguangwu.github.io/tools/music/bpm-converter.html"}]}
+</script>
+
+<script src="../../js/i18n.js" defer></script>
+<script src="../../js/tool-i18n.js" defer></script>
+<!-- TOOLBOX-I18N-SCRIPT -->
+<!-- TOOLBOX-HREFLANG -->
+<link rel="alternate" hreflang="zh-CN" href="https://chenguangwu.github.io/tools/music/bpm-converter.html">
+<link rel="alternate" hreflang="en-US" href="https://chenguangwu.github.io/tools/music/bpm-converter.html">
+<link rel="alternate" hreflang="x-default" href="https://chenguangwu.github.io/tools/music/bpm-converter.html">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:locale:alternate" content="en_US">
+
+<script src="/js/clarity.js" defer></script>
+<!-- TOOLBOX-CLARITY -->
+</head>
+<body>
+<h1 class="sr-only">BPM速度转换器</h1>
+
+
+<!-- 导航栏 -->
+<div class="nav">
+  <a href="../../index.html">&larr; ToolBox</a>
+  <span>/ BPM速度转换器</span>
+  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()">&#127769;</button>
+</div>
+
+
+
+
+
+<nav class="breadcrumb" aria-label="面包屑导航" data-breadcrumb="1">
+  <a href="../../index.html">首页</a>
+  <span class="bc-sep">‹</span>
+  <a href="index.html">🎵 音乐艺术</a>
+  <span class="bc-sep">‹</span>
+  <span class="bc-current">BPM速度转换器</span>
+</nav>
+<div class="container">
+
+  <!-- BPM 输入卡片 -->
+  <div class="card tool-card-accent" style="--tool-accent:#FF6B35;">
+    <h2>&#9201;&#65039; BPM 速度转换器</h2>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;">BPM 与音符时长、延迟时间、LFO 频率、采样长度互转，音乐制作与 DJ 必备</p>
+
+    <div class="input-row">
+      <div style="flex:1;min-width:180px;">
+        <label for="bpmInput">BPM 数值 (40-300)</label>
+        <input type="number" id="bpmInput" min="40" max="300" step="0.1" value="120" oninput="onBpmChange()">
+      </div>
+      <div style="flex:1;min-width:120px;">
+        <label>&nbsp;</label>
+        <div class="bpm-slider-wrap">
+          <input type="range" class="bpm-slider" id="bpmSlider" min="40" max="300" step="0.1" value="120" oninput="onSliderChange()">
+        </div>
+      </div>
+    </div>
+
+    <div class="quick-btns">
+      <button type="button" class="quick-btn" onclick="setBpm(60)">60</button>
+      <button type="button" class="quick-btn" onclick="setBpm(80)">80</button>
+      <button type="button" class="quick-btn" onclick="setBpm(90)">90</button>
+      <button type="button" class="quick-btn active" onclick="setBpm(120)">120</button>
+      <button type="button" class="quick-btn" onclick="setBpm(128)">128</button>
+      <button type="button" class="quick-btn" onclick="setBpm(140)">140</button>
+      <button type="button" class="quick-btn" onclick="setBpm(160)">160</button>
+      <button type="button" class="quick-btn" onclick="setBpm(180)">180</button>
+      <button type="button" class="quick-btn" onclick="setBpm(200)">200</button>
+    </div>
+  </div>
+
+  <!-- 音符时长卡片 -->
+  <div class="card">
+    <h3>&#127926; 音符时长</h3>
+    <p style="font-size:12px;color:var(--text-muted);margin-bottom:4px;">点击任意卡片可复制数值</p>
+    <div class="note-grid" id="noteGrid"></div>
+  </div>
+
+  <!-- 延迟时间卡片 -->
+  <div class="card">
+    <h3>&#9202; 延迟时间 (Delay)</h3>
+    <p style="font-size:12px;color:var(--text-muted);margin-bottom:4px;">适合设置延迟效果的同步时间值</p>
+    <div class="delay-table-wrap" id="delayTable"></div>
+  </div>
+
+  <!-- LFO 频率卡片 -->
+  <div class="card">
+    <h3>&#127752; LFO 频率</h3>
+    <p style="font-size:12px;color:var(--text-muted);margin-bottom:4px;">将 BPM 转为 LFO 同步频率 (Hz)，点击可复制</p>
+    <div class="lfo-grid" id="lfoGrid"></div>
+  </div>
+
+  <!-- 采样长度卡片 -->
+  <div class="card">
+    <h3>&#127911; 采样长度</h3>
+    <div class="input-row">
+      <label>采样率</label>
+      <select id="sampleRate" onchange="calcAll()" style="max-width:200px;">
+        <option value="44100" selected>44100 Hz (CD)</option>
+        <option value="48000">48000 Hz (DVD)</option>
+        <option value="96000">96000 Hz (Hi-Res)</option>
+      </select>
+    </div>
+    <div class="sample-grid" id="sampleGrid"></div>
+  </div>
+
+  <!-- 反向计算卡片 -->
+  <div class="card">
+    <h3>&#128256; 反向计算：时长转 BPM</h3>
+    <p style="font-size:12px;color:var(--text-muted);margin-bottom:12px;">输入时长 (ms)，自动计算对应的 BPM</p>
+    <div class="input-row">
+      <div style="flex:1;min-width:140px;">
+        <label>时长 (ms)</label>
+        <input type="number" id="reverseMs" min="1" step="0.01" value="500" oninput="calcReverse()">
+      </div>
+      <div style="flex:1;min-width:140px;">
+        <label>音符类型</label>
+        <select id="reverseNote" onchange="calcReverse()" style="max-width:200px;">
+          <option value="quarter" selected>四分音符</option>
+          <option value="eighth">八分音符</option>
+          <option value="sixteenth">十六分音符</option>
+          <option value="triplet">三连音</option>
+          <option value="dotted">附点四分</option>
+          <option value="bar">一小节 (4/4)</option>
+        </select>
+      </div>
+    </div>
+    <div class="result-box" id="reverseResult"></div>
+  </div>
+
+  <!-- 工具介绍（SEO） -->
+  
+</div>
+
+</div>
+
+
+<!-- 相关工具 -->
+<div class="related-tools" data-related-tools="1">
+  <h3 class="related-tools-title">🔗 相关工具</h3>
+  <div class="related-tools-grid">
+    <a href="chord-progression.html" class="related-tool-card">
+      <span class="rt-icon">🎼</span>
+      <span class="rt-info"><span class="rt-name">和弦进行生成器 - 免费在线和弦进行生成器，随机生成流行和弦进行</span><span class="rt-desc">&amp;#127926; 和弦进行生成器</span></span>
+    </a>
+    <a href="random-training-rhythm.html" class="related-tool-card">
+      <span class="rt-icon">🎵</span>
+      <span class="rt-info"><span class="rt-name">节奏训练（随机节奏点击）</span><span class="rt-desc">节奏训练（随机节奏点击）</span></span>
+    </a>
+    <a href="generator-1.html" class="related-tool-card">
+      <span class="rt-icon">🎵</span>
+      <span class="rt-info"><span class="rt-name">音阶生成器（大调/小调/五声音阶）</span><span class="rt-desc">音阶生成器（大调/小调/五声音阶）</span></span>
+    </a>
+    <a href="convert-speed.html" class="related-tool-card">
+      <span class="rt-icon">🎵</span>
+      <span class="rt-info"><span class="rt-name">歌曲速度转换（BPM微调）</span><span class="rt-desc">歌曲速度转换（BPM微调）</span></span>
+    </a>
+    <a href="audio-converter.html" class="related-tool-card">
+      <span class="rt-icon">🔄</span>
+      <span class="rt-info"><span class="rt-name">音频转换 - 音乐艺术领域的在线工具</span><span class="rt-desc">音频格式转换参数</span></span>
+    </a>
+    <a href="freq-note-converter.html" class="related-tool-card">
+      <span class="rt-icon">🔉</span>
+      <span class="rt-info"><span class="rt-name">频率音符转换器 - Hz频率与音符名称双向转换，支持自定义A4参考频率</span><span class="rt-desc">频率音符转换器</span></span>
+    </a>
+  </div>
+</div>
+<div class="tool-intro" id="toolIntro">
+    <div class="tool-intro-header" onclick="toggleIntro()">
+      <div class="intro-icon-wrap">
+        <div class="intro-icon">&#9201;&#65039;</div>
+        <span>关于 BPM 速度转换器</span>
+      </div>
+      <div class="arrow">&#9660;</div>
+    </div>
+    <div class="tool-intro-body">
+      <p>BPM（Beats Per Minute，每分钟节拍数）是音乐制作中最基础的速度指标。本工具帮助你在 BPM 与各种时间值之间快速转换，适用于音乐制作、DJ 混音、编曲和音频工程。</p>
+
+      <h4><span class="h4-icon">&#11088;</span> 功能特点</h4>
+      <ul class="intro-features">
+        <li>BPM 与音符时长互转</li>
+        <li>Delay 延迟时间同步计算</li>
+        <li>LFO 低频振荡器频率转换</li>
+        <li>采样长度精确计算</li>
+        <li>反向时长推算 BPM</li>
+        <li>快捷预设常用速度</li>
+        <li>一键复制各项结果</li>
+        <li>支持多种采样率</li>
+      </ul>
+
+      <h4><span class="h4-icon">&#127916;</span> 使用场景</h4>
+      <ul class="intro-scenes">
+        <li>编曲时计算音符精确时长</li>
+        <li>DJ 混音匹配两首歌的 BPM</li>
+        <li>设置延迟效果器的同步时间</li>
+        <li>LFO 参数与 BPM 同步</li>
+        <li>音频采样循环对齐节拍</li>
+        <li>MIDI 时值与毫秒互转</li>
+      </ul>
+
+      <h4><span class="h4-icon">&#10067;</span> 常见问题</h4>
+      <div class="intro-faq-item">
+        <div class="intro-faq-q">BPM 是什么？</div>
+        <div class="intro-faq-a">BPM 全称 Beats Per Minute，即每分钟节拍数。120 BPM 表示每分钟有 120 拍，每拍时长 500 毫秒。常见的舞曲 BPM 在 120-140 之间。</div>
+      </div>
+      <div class="intro-faq-item">
+        <div class="intro-faq-q">为什么延迟时间要按 BPM 同步？</div>
+        <div class="intro-faq-a">当延迟时间与 BPM 同步时，延迟回声会与节拍对齐，产生有节奏感的效果而非混乱的回声。这是混音中常用的技巧。</div>
+      </div>
+      <div class="intro-faq-item">
+        <div class="intro-faq-q">LFO 频率如何与 BPM 同步？</div>
+        <div class="intro-faq-a">将 LFO 频率设置为 BPM 对应的 Hz 值，可以使效果（如颤音、滤波扫频等）与音乐节奏精确同步，增强律动感。</div>
+      </div>
+    </div>
+  </div>
+
+
+<!-- 注意事项区块 -->
+<div class="tool-notes" style="--tool-accent:#FF6B35;">
+  <div class="tool-notes-title">⚠️ 使用说明与注意事项</div>
+  <ul>
+      <li>本工具纯前端运行，数据不会上传到服务器</li>
+      <li>建议在主流浏览器（Chrome/Safari/Firefox/Edge）中使用</li>
+      <li>计算结果仅供参考，请以实际应用场景为准</li>
+  </ul>
+</div>
+<!-- /注意事项区块 -->
+</div>
+
+<script>
+(function() {
+  'use strict';
+
+  // 获取 BPM 输入值
+  function getBpm() {
+    var val = parseFloat(document.getElementById('bpmInput').value);
+    if (isNaN(val) || val < 40) val = 40;
+    if (val > 300) val = 300;
+    return val;
+  }
+
+  // 同步滑块和输入框
+  window.onBpmChange = function() {
+    var val = getBpm();
+    document.getElementById('bpmSlider').value = val;
+    updateQuickBtns(val);
+    calcAll();
+  };
+
+  window.onSliderChange = function() {
+    var val = parseFloat(document.getElementById('bpmSlider').value);
+    document.getElementById('bpmInput').value = val;
+    updateQuickBtns(val);
+    calcAll();
+  };
+
+  window.setBpm = function(val) {
+    document.getElementById('bpmInput').value = val;
+    document.getElementById('bpmSlider').value = val;
+    updateQuickBtns(val);
+    calcAll();
+  };
+
+  // 更新快捷按钮高亮
+  function updateQuickBtns(val) {
+    var btns = document.querySelectorAll('.quick-btn');
+    btns.forEach(function(btn) {
+      var bv = parseFloat(btn.textContent);
+      btn.classList.toggle('active', bv === Math.round(val));
+    });
+  }
+
+  // 计算音符时长
+  function calcNoteDuration(bpm, divisions) {
+    var quarter = 60000 / bpm;
+    return quarter * divisions;
+  }
+
+  // 格式化数值，保留合适的小数位
+  function fmt(val, unit) {
+    if (val >= 1000) return val.toFixed(1) + ' ' + unit;
+    if (val >= 100) return val.toFixed(2) + ' ' + unit;
+    if (val >= 10) return val.toFixed(2) + ' ' + unit;
+    return val.toFixed(3) + ' ' + unit;
+  }
+
+  // 复制数值
+  function copyVal(text) {
+    ToolBox.copyText(String(text), '已复制: ' + text);
+  }
+
+  // 音符时长计算
+  function renderNotes(bpm) {
+    var quarter = 60000 / bpm;
+    var notes = [
+      { label: '全音符', ms: quarter * 4, symbol: '&#119133;' },
+      { label: '二分音符', ms: quarter * 2, symbol: '&#119134;' },
+      { label: '四分音符', ms: quarter, symbol: '&#119135;' },
+      { label: '八分音符', ms: quarter / 2, symbol: '&#119136;' },
+      { label: '十六分音符', ms: quarter / 4, symbol: '&#119137;' },
+      { label: '三连音', ms: quarter / 3, symbol: '&#9833;' },
+      { label: '附点四分', ms: quarter * 1.5, symbol: '&#119135;.' },
+      { label: '每小节(4/4)', ms: quarter * 4, symbol: '&#9836;' }
+    ];
+
+    var html = '';
+    notes.forEach(function(n) {
+      html += '<div class="note-card" onclick="copyVal(' + n.ms.toFixed(3) + ')" title="点击复制 ' + n.ms.toFixed(3) + ' ms">'
+        + '<span class="copy-hint">复制</span>'
+        + '<div class="note-val">' + fmt(n.ms, 'ms') + '</div>'
+        + '<div class="note-label">' + n.label + '</div>'
+        + '<div class="note-ms">' + n.symbol + '</div>'
+        + '</div>';
+    });
+    document.getElementById('noteGrid').innerHTML = html;
+  }
+
+  // 延迟时间表格
+  function renderDelay(bpm) {
+    var quarter = 60000 / bpm;
+    var rows = [
+      ['1/1 (全音符)', quarter * 4],
+      ['1/2 (二分音符)', quarter * 2],
+      ['1/4 (四分音符)', quarter],
+      ['1/4D (附点四分)', quarter * 1.5],
+      ['1/8 (八分音符)', quarter / 2],
+      ['1/8D (附点八分)', quarter / 4 * 3],
+      ['1/8T (八分三连)', quarter / 3],
+      ['1/16 (十六分音符)', quarter / 4],
+      ['1/16D (附点十六)', quarter / 8 * 3],
+      ['1/16T (十六分三连)', quarter / 6],
+      ['1/32 (三十二分音符)', quarter / 8]
+    ];
+
+    var html = '<table><thead><tr><th>音符</th><th>时间 (ms)</th><th>时间 (秒)</th></tr></thead><tbody>';
+    rows.forEach(function(r) {
+      var ms = r[1];
+      html += '<tr>'
+        + '<td>' + r[0] + '</td>'
+        + '<td><strong style="color:var(--primary)">' + ms.toFixed(2) + '</strong></td>'
+        + '<td>' + (ms / 1000).toFixed(4) + '</td>'
+        + '</tr>';
+    });
+    html += '</tbody></table>';
+    document.getElementById('delayTable').innerHTML = html;
+  }
+
+  // LFO 频率计算
+  function renderLfo(bpm) {
+    var quarter = 60000 / bpm; // ms
+    var items = [
+      { label: '一小节 (4拍)', mult: 4 },
+      { label: '二分音符', mult: 2 },
+      { label: '四分音符 (1拍)', mult: 1 },
+      { label: '八分音符', mult: 0.5 },
+      { label: '十六分音符', mult: 0.25 },
+      { label: '三连音', mult: 1 / 3 }
+    ];
+
+    var html = '';
+    items.forEach(function(item) {
+      var ms = quarter * item.mult;
+      var hz = 1000 / ms;
+      html += '<div class="lfo-card" onclick="copyVal(' + hz.toFixed(6) + ')" title="点击复制 ' + hz.toFixed(6) + ' Hz">'
+        + '<div class="lfo-val">' + fmt(hz, 'Hz') + '</div>'
+        + '<div class="lfo-label">' + item.label + '</div>'
+        + '</div>';
+    });
+    document.getElementById('lfoGrid').innerHTML = html;
+  }
+
+  // 采样长度计算
+  function renderSamples(bpm) {
+    var quarter = 60000 / bpm; // ms
+    var rate = parseInt(document.getElementById('sampleRate').value);
+    var items = [
+      { label: '一拍 (四分音符)', ms: quarter },
+      { label: '一小节 (4/4)', ms: quarter * 4 },
+      { label: '八分音符', ms: quarter / 2 },
+      { label: '十六分音符', ms: quarter / 4 },
+      { label: '全音符', ms: quarter * 4 },
+      { label: '三连音', ms: quarter / 3 }
+    ];
+
+    var html = '';
+    items.forEach(function(item) {
+      var samples = Math.round(item.ms / 1000 * rate);
+      html += '<div class="sample-card" onclick="copyVal(' + samples + ')" title="点击复制 ' + ToolBox.formatNumber(samples, 0) + ' 采样">'
+        + '<div class="sample-val">' + ToolBox.formatNumber(samples, 0) + '</div>'
+        + '<div class="sample-label">' + item.label + '</div>'
+        + '<div class="note-ms" style="font-size:11px;color:var(--text-light);margin-top:4px;">' + fmt(item.ms, 'ms') + '</div>'
+        + '</div>';
+    });
+    document.getElementById('sampleGrid').innerHTML = html;
+  }
+
+  // 反向计算：时长转 BPM
+  window.calcReverse = function() {
+    var ms = parseFloat(document.getElementById('reverseMs').value);
+    var noteType = document.getElementById('reverseNote').value;
+
+    if (isNaN(ms) || ms <= 0) {
+      document.getElementById('reverseResult').innerHTML = '<p style="color:var(--danger);text-align:center;">请输入有效的时长值</p>';
+      return;
+    }
+
+    var divisions = {
+      'quarter': 1,
+      'eighth': 0.5,
+      'sixteenth': 0.25,
+      'triplet': 1 / 3,
+      'dotted': 1.5,
+      'bar': 4
+    };
+
+    var div = divisions[noteType] || 1;
+    // BPM = 60000 / (ms / div) = 60000 * div / ms
+    var bpm = 60000 * div / ms;
+
+    var noteNames = {
+      'quarter': '四分音符',
+      'eighth': '八分音符',
+      'sixteenth': '十六分音符',
+      'triplet': '三连音',
+      'dotted': '附点四分',
+      'bar': '一小节 (4/4)'
+    };
+
+    var name = noteNames[noteType] || '四分音符';
+    var quarterMs = ms / div;
+
+    var html = '<div class="reverse-result">' + bpm.toFixed(2) + ' BPM</div>'
+      + '<div class="reverse-sub">' + ms.toFixed(2) + ' ms = 1 个' + name + ' &rarr; BPM = ' + bpm.toFixed(4) + '</div>'
+      + '<div style="margin-top:10px;font-size:13px;color:var(--text-light);text-align:center;">'
+      + '四分音符时长: ' + fmt(quarterMs, 'ms')
+      + ' &nbsp;|&nbsp; 一小节(4/4): ' + fmt(quarterMs * 4, 'ms')
+      + '</div>';
+
+    document.getElementById('reverseResult').innerHTML = html;
+  };
+
+  // 综合计算
+  function calcAll() {
+    var bpm = getBpm();
+    renderNotes(bpm);
+    renderDelay(bpm);
+    renderLfo(bpm);
+    renderSamples(bpm);
+  }
+
+  // 切换工具介绍展开/折叠
+  window.toggleIntro = function() {
+    var el = document.getElementById('toolIntro');
+    el.classList.toggle('open');
+  };
+
+  // 页面加载时自动计算
+  calcAll();
+  calcReverse();
+
+})();
+</script><script>
+// tool-intro折叠交互
+document.addEventListener('DOMContentLoaded',function(){
+  var headers=document.querySelectorAll('.tool-intro-header');
+  headers.forEach(function(h){
+    h.addEventListener('click',function(){
+      this.parentElement.classList.toggle('open');
+    });
+  });
+});
+</script>
+
+</body>
+</html>

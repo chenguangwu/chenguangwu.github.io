@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="toolbox" content="cat=game,industry=fun,icon=🔢,bg=#fef3c7">
+  <title>数独生成器 - ToolBox</title>
+  <link rel="stylesheet" href="../../css/common.css">
+  <script src="../../js/common.js"></script>
+  <style>
+    .sudoku{display:grid;grid-template-columns:repeat(9,1fr);gap:2px;max-width:360px;}
+    .cell{aspect-ratio:1;border:1px solid var(--border);display:flex;align-items:center;justify-content:center;background:var(--bg-card);font-weight:700;}
+    .cell.given{background:#ecfeff;font-weight:800;}
+    .cell span{user-select:none;}
+    @media(max-width:520px){.sudoku{max-width:320px;}}
+  </style>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"首页","item":"https://chenguangwu.github.io/"},{"@type":"ListItem","position":2,"name":"娱乐游戏","item":"https://chenguangwu.github.io/tools/fun/index.html"},{"@type":"ListItem","position":3,"name":"数独生成器","item":"https://chenguangwu.github.io/tools/fun/sudoku-generator.html"}]}
+</script>
+<!-- TOOLBOX-WEBAPP-LD -->
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"WebApplication","name":"数独生成器","url":"https://chenguangwu.github.io/tools/fun/sudoku-generator.html","applicationCategory":"GamesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":["zh-CN", "en-US"],"description":"数独生成器","image":"https://chenguangwu.github.io/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}
+</script>
+<meta property="og:image" content="https://chenguangwu.github.io/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="ToolBox - 6000+免费在线工具">
+<meta name="twitter:image" content="https://chenguangwu.github.io/og-image.png">
+<meta name="twitter:image:alt" content="ToolBox - 6000+免费在线工具">
+
+<meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
+<meta http-equiv="X-Content-Type-Options" content="nosniff">
+<meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
+<!-- TOOLBOX-SECURITY -->
+
+<script src="/js/privacy.js" defer></script>
+<!-- TOOLBOX-PRIVACY-SCRIPT -->
+
+<script src="/js/metrics.js" defer></script>
+<!-- TOOLBOX-METRICS-SCRIPT -->
+
+<script src="../../js/i18n.js" defer></script>
+<script src="../../js/tool-i18n.js" defer></script>
+<!-- TOOLBOX-I18N-SCRIPT -->
+
+<meta name="description" content="数独生成器，生成一个可打印的 9x9 数独谜题（本地可复现）">
+<meta property="og:title" content="数独生成器">
+<meta property="og:description" content="数独生成器，生成一个可打印的 9x9 数独谜题（本地可复现）">
+<meta name="twitter:title" content="数独生成器">
+<meta name="twitter:description" content="数独生成器">
+<link rel="canonical" href="https://chenguangwu.github.io/tools/fun/sudoku-generator.html">
+
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://chenguangwu.github.io/tools/fun/sudoku-generator.html">
+<meta name="twitter:card" content="summary">
+<!-- TOOLBOX-HREFLANG -->
+<link rel="alternate" hreflang="zh-CN" href="https://chenguangwu.github.io/tools/fun/sudoku-generator.html">
+<link rel="alternate" hreflang="en-US" href="https://chenguangwu.github.io/tools/fun/sudoku-generator.html">
+<link rel="alternate" hreflang="x-default" href="https://chenguangwu.github.io/tools/fun/sudoku-generator.html">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:locale:alternate" content="en_US">
+
+<script src="/js/clarity.js" defer></script>
+<!-- TOOLBOX-CLARITY -->
+</head>
+<body>
+<h1 class="sr-only">数独生成器</h1>
+
+<div class="nav">
+  <a href="../../index.html">← ToolBox</a>
+  <span>/ 数独生成器</span>
+  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()">🌙</button>
+</div>
+
+
+<nav class="breadcrumb" aria-label="面包屑导航" data-breadcrumb="1">
+  <a href="../../index.html">首页</a>
+  <span class="bc-sep">‹</span>
+  <a href="index.html">🎮 娱乐游戏</a>
+  <span class="bc-sep">‹</span>
+  <span class="bc-current">数独生成器</span>
+</nav>
+<div class="container">
+  <div class="card">
+    <h2>🔢 数独生成器</h2>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;">生成一个可打印的 9x9 数独谜题（本地可复现）</p>
+    <div class="toolbar">
+      <label for="level">难度：</label>
+      <select id="level" onchange="build()">
+        <option value="easy">简单</option>
+        <option value="normal">普通</option>
+        <option value="hard">困难</option>
+      </select>
+      <button class="btn primary" onclick="build()">重新生成</button>
+      <button class="btn" onclick="copyTextResult()">复制题面</button>
+    </div>
+    <div class="sudoku" id="grid" style="margin-top:12px;"></div>
+  </div>
+</div>
+
+<script>
+const BASE = [
+  [5,3,4,6,7,8,9,1,2],
+  [6,7,2,1,9,5,3,4,8],
+  [1,9,8,3,4,2,5,6,7],
+  [8,5,9,7,6,1,4,2,3],
+  [4,2,6,8,5,3,7,9,1],
+  [7,1,3,9,2,4,8,5,6],
+  [9,6,1,5,3,7,2,8,4],
+  [2,8,7,4,1,9,6,3,5],
+  [3,4,5,2,8,6,1,7,9]
+];
+
+const MASKS = {
+  easy: 48,
+  normal: 38,
+  hard: 28
+};
+
+function shuffle(arr) {
+  const a = arr.slice();
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+function rotate() {
+  const g = BASE.map(r => r.map(v => v));
+  const map = shuffle([0,1,2,3,4,5,6,7,8]);
+  const map9 = [0,1,2,3,4,5,6,7,8];
+  map9.forEach((v,i) => { map9[i]=v; });
+  return map9.map(i => g.map(row => row[i]));
+}
+
+function build() {
+  const level = document.getElementById('level').value;
+  const puzzle = BASE.map(r => r.slice());
+  const keep = MASKS[level] || MASKS.normal;
+  const idx = shuffle([...Array(81).keys()]);
+  for (let i = 0; i < 81 - keep; i++) {
+    const p = idx[i];
+    puzzle[Math.floor(p/9)][p%9] = 0;
+  }
+  render(puzzle);
+}
+
+function render(puzzle) {
+  const g = document.getElementById('grid');
+  g.innerHTML = '';
+  for (let r = 0; r < 9; r++) {
+    for (let c = 0; c < 9; c++) {
+      const v = puzzle[r][c];
+      const cell = document.createElement('div');
+      cell.className = 'cell' + (v ? ' given' : '');
+      if (v) {
+        cell.innerHTML = `<span>${v}</span>`;
+      }
+      g.appendChild(cell);
+    }
+  }
+}
+
+function copyTextResult() {
+  const text = Array.from(document.querySelectorAll('.cell')).map(el => el.innerText || '0').join('');
+  ToolBox.copyText(text, i18nText('msg300'));
+}
+
+build();
+</script>
+</body>
+</html>

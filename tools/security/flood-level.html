@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+
+<script src="/js/tool-page-runtime.js" defer></script>
+<!-- TOOLBOX-TOOL-RUNTIME -->
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="toolbox" content="cat=reference,industry=security,icon=🌊,bg=#e0f7fa">
+<title>洪水水位标尺 - 洪水预警等级对照表，模拟不同水深的影响和应对措施 - ToolBox</title>
+<link rel="canonical" href="https://chenguangwu.github.io/tools/security/flood-level.html">
+<meta property="og:title" content="洪水水位标尺 - 洪水预警等级对照表，模拟不同水深的影响和应对措施 - ToolBox">
+<meta property="og:description" content="洪水水位标尺 - 洪水预警等级对照表，模拟不同水深的影响和应对措施。了解洪水等级，做好防汛准备。免费在线工具，纯前端本地处理，数据不上传。">
+<meta property="og:url" content="https://chenguangwu.github.io/tools/security/flood-level.html">
+<meta name="twitter:card" content="summary">
+<meta name="description" content="洪水水位标尺 - 洪水预警等级对照表，模拟不同水深的影响和应对措施。了解洪水等级，做好防汛准备。免费在线工具，纯前端本地处理，数据不上传。">
+<link rel="stylesheet" href="../../css/common.css">
+<script src="../../js/common.js"></script>
+<style>
+.flood-scale {
+  position: relative;
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 20px;
+  margin-bottom: 16px;
+  overflow: hidden;
+}
+.water-tank {
+  position: relative;
+  height: 320px;
+  background: linear-gradient(to top, #E0F7FA 0%, #F0FDFA 100%);
+  border-radius: 12px;
+  overflow: hidden;
+  border: 2px solid var(--border);
+}
+.water-fill {
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  background: linear-gradient(to top, rgba(59,130,246,0.6), rgba(59,130,246,0.3));
+  transition: height 0.5s ease;
+  border-radius: 0 0 10px 10px;
+}
+.water-fill::before {
+  content: '';
+  position: absolute;
+  top: -3px; left: 0; right: 0;
+  height: 6px;
+  background: rgba(59,130,246,0.8);
+  border-radius: 50%;
+  animation: wave 2s ease-in-out infinite;
+}
+@keyframes wave { 0%,100%{transform:scaleX(1);} 50%{transform:scaleX(1.05);} }
+.level-marker {
+  position: absolute;
+  left: 0; right: 0;
+  border-top: 2px dashed;
+  display: flex;
+  justify-content: flex-end;
+  padding-right: 8px;
+  font-size: 11px;
+  font-weight: 600;
+}
+.level-marker .lm-label {
+  background: var(--card-bg);
+  padding: 2px 8px;
+  border-radius: 6px;
+  margin-top: -10px;
+  border: 1px solid var(--border);
+}
+.scale-marks {
+  position: absolute;
+  top: 0; bottom: 0; left: 8px;
+  display: flex;
+  flex-direction: column-reverse;
+  justify-content: space-between;
+  padding: 4px 0;
+  font-size: 10px;
+  color: var(--text-muted);
+}
+.scale-marks span { background: rgba(255,255,255,0.7); padding: 0 4px; border-radius: 3px; }
+.level-card {
+  background: var(--result-bg);
+  border: 1px solid var(--border);
+  border-left: 4px solid;
+  border-radius: 12px;
+  padding: 14px 16px;
+  margin-bottom: 10px;
+  transition: all 0.2s;
+}
+.level-card:hover { box-shadow: var(--shadow-sm); }
+.level-card .lc-head {
+  display: flex; align-items: center; gap: 8px; margin-bottom: 6px;
+  flex-wrap: wrap;
+}
+.level-card .lc-name { font-size: 15px; font-weight: 700; color: var(--heading); }
+.level-card .lc-badge {
+  padding: 2px 10px; border-radius: 6px;
+  font-size: 11px; font-weight: 600; color: #fff;
+}
+.level-card .lc-desc { font-size: 13px; color: var(--text-secondary); line-height: 1.6; }
+.level-card .lc-impact { font-size: 12px; color: var(--text-muted); margin-top: 6px; }
+.level-card .lc-actions { font-size: 12px; margin-top: 6px; color: var(--primary); }
+.lc-blue { border-left-color: #3B82F6; }
+.lc-yellow { border-left-color: #F59E0B; }
+.lc-orange { border-left-color: #F97316; }
+.lc-red { border-left-color: #EF4444; }
+.lc-purple { border-left-color: #8B5CF6; }
+.badge-blue { background: #3B82F6; }
+.badge-yellow { background: #F59E0B; }
+.badge-orange { background: #F97316; }
+.badge-red { background: #EF4444; }
+.badge-purple { background: #8B5CF6; }
+.depth-slider-container { padding: 10px 0; }
+.depth-display {
+  text-align: center;
+  font-size: 32px;
+  font-weight: 800;
+  color: var(--primary);
+  margin: 10px 0;
+}
+.depth-display .unit { font-size: 16px; color: var(--text-muted); }
+input[type="range"] {
+  width: 100%;
+  -webkit-appearance: none;
+  height: 8px;
+  background: linear-gradient(to right, #84CC16, #F59E0B, #EF4444, #8B5CF6);
+  border-radius: 4px;
+  outline: none;
+}
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 24px; height: 24px;
+  border-radius: 50%;
+  background: var(--primary);
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(255,107,53,0.3);
+  border: 3px solid #fff;
+}
+input[type="range"]::-moz-range-thumb {
+  width: 24px; height: 24px;
+  border-radius: 50%;
+  background: var(--primary);
+  cursor: pointer;
+  border: 3px solid #fff;
+}
+</style>
+
+
+
+<meta property="og:image" content="https://chenguangwu.github.io/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="ToolBox - 6000+免费在线工具">
+<meta name="twitter:image" content="https://chenguangwu.github.io/og-image.png">
+<meta name="twitter:image:alt" content="ToolBox - 6000+免费在线工具">
+    <meta property="og:type" content="website">
+    <meta name="twitter:title" content="洪水水位标尺 - 洪水预警等级对照表，模拟不同水深的影响和应对措施 - ToolBox">
+    <meta name="twitter:description" content="洪水水位标尺 - 洪水预警等级对照表，模拟不同水深的影响和应对措施。了解洪水等级，做好防汛准备。免费在线工具，纯前端本地处理，数据不上传。">
+<!-- TOOLBOX-WEBAPP-LD -->
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"WebApplication","name":"洪水水位标尺 - 洪水预警等级对照表，模拟不同水深的影响和应对措施","url":"https://chenguangwu.github.io/tools/security/flood-level.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":["zh-CN", "en-US"],"description":"洪水水位标尺","image":"https://chenguangwu.github.io/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}
+</script>
+<meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
+<meta http-equiv="X-Content-Type-Options" content="nosniff">
+<meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
+<!-- TOOLBOX-SECURITY -->
+
+<script src="/js/privacy.js" defer></script>
+<!-- TOOLBOX-PRIVACY-SCRIPT -->
+
+<script src="/js/metrics.js" defer></script>
+<!-- TOOLBOX-METRICS-SCRIPT -->
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"首页","item":"https://chenguangwu.github.io/"},{"@type":"ListItem","position":2,"name":"网络安全","item":"https://chenguangwu.github.io/tools/security/index.html"},{"@type":"ListItem","position":3,"name":"洪水水位标尺","item":"https://chenguangwu.github.io/tools/security/flood-level.html"}]}
+</script>
+
+<script src="../../js/i18n.js" defer></script>
+<script src="../../js/tool-i18n.js" defer></script>
+<!-- TOOLBOX-I18N-SCRIPT -->
+<!-- TOOLBOX-HREFLANG -->
+<link rel="alternate" hreflang="zh-CN" href="https://chenguangwu.github.io/tools/security/flood-level.html">
+<link rel="alternate" hreflang="en-US" href="https://chenguangwu.github.io/tools/security/flood-level.html">
+<link rel="alternate" hreflang="x-default" href="https://chenguangwu.github.io/tools/security/flood-level.html">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:locale:alternate" content="en_US">
+
+<script src="/js/clarity.js" defer></script>
+<!-- TOOLBOX-CLARITY -->
+</head>
+
+<body>
+<h1 class="sr-only">洪水水位标尺</h1>
+
+
+<div class="nav">
+  <a href="../../index.html">&larr; ToolBox</a>
+  <span>/ 洪水水位标尺</span>
+  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()">🌙</button>
+</div>
+
+
+
+
+
+<nav class="breadcrumb" aria-label="面包屑导航" data-breadcrumb="1">
+  <a href="../../index.html">首页</a>
+  <span class="bc-sep">‹</span>
+  <a href="index.html">🔧 网络安全</a>
+  <span class="bc-sep">‹</span>
+  <span class="bc-current">洪水水位标尺</span>
+</nav>
+<div class="container">
+  <div class="card tool-card-accent" style="--tool-accent:#FF6B35;">
+    <h2>🌊 洪水水位标尺</h2>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;">洪水预警等级对照表，模拟不同水深的影响和应对措施。了解洪水等级，做好防汛准备。</p>
+
+    <div class="depth-slider-container">
+      <h3>模拟水深</h3>
+      <div class="depth-display"><span id="depthVal">0</span><span class="unit"> cm</span></div>
+      <input type="range" id="depthSlider" min="0" max="300" value="0" step="5" oninput="updateDepth()">
+      <div id="depthImpact" style="margin-top:12px;font-size:13px;"></div>
+    </div>
+
+    <div class="flood-scale">
+      <h3>水位预警等级标尺</h3>
+      <div class="water-tank">
+        <div class="water-fill" id="waterFill" style="height:0%"></div>
+        <div class="scale-marks">
+          <span>0cm</span><span>50cm</span><span>100cm</span><span>150cm</span><span>200cm</span><span>250cm</span><span>300cm</span>
+        </div>
+        <div class="level-marker" style="bottom:16.7%;border-color:#3B82F6;"><span class="lm-label" style="color:#3B82F6;">蓝色 50cm</span></div>
+        <div class="level-marker" style="bottom:33.3%;border-color:#F59E0B;"><span class="lm-label" style="color:#F59E0B;">黄色 100cm</span></div>
+        <div class="level-marker" style="bottom:50%;border-color:#F97316;"><span class="lm-label" style="color:#F97316;">橙色 150cm</span></div>
+        <div class="level-marker" style="bottom:66.7%;border-color:#EF4444;"><span class="lm-label" style="color:#EF4444;">红色 200cm</span></div>
+        <div class="level-marker" style="bottom:83.3%;border-color:#8B5CF6;"><span class="lm-label" style="color:#8B5CF6;">紫色 250cm</span></div>
+      </div>
+      <p style="font-size:12px;color:var(--text-muted);margin-top:8px;text-align:center;">拖动上方滑块模拟不同水位深度</p>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>洪水预警等级说明</h3>
+    <div id="levelList"></div>
+  </div>
+
+  <div class="card">
+    <h3>不同水深的影响与应对</h3>
+    <div style="overflow-x:auto;">
+      <table>
+        <thead>
+          <tr><th>水深</th><th>影响程度</th><th>人员风险</th><th>车辆</th><th>应对措施</th></tr>
+        </thead>
+        <tbody id="impactTable"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>洪水防灾指南</h3>
+    <div class="ref-card">
+      <h4>⚠️ 洪水来临前</h4>
+      <ul>
+        <li>关注气象和水务部门发布的预警信息</li>
+        <li>准备沙袋、挡水板等防汛物资</li>
+        <li>将贵重物品和电器移至高处</li>
+        <li>清理排水沟渠，确保排水畅通</li>
+        <li>准备应急包（食物、水、药品、手电筒、救生衣）</li>
+        <li>了解社区疏散路线和避难场所位置</li>
+      </ul>
+    </div>
+    <div class="ref-card">
+      <h4>🌊 洪水期间</h4>
+      <ul>
+        <li>不要涉水行走（15cm水深即可使人跌倒，46cm水深可冲走成人）</li>
+        <li>远离电线和电气设备，防范触电</li>
+        <li>不要驾车通过积水路段（30cm水深可浮起轿车）</li>
+        <li>如被困，转移到高处等待救援，发送求救信号</li>
+        <li>关闭电源和燃气总阀</li>
+      </ul>
+    </div>
+    <div class="ref-card">
+      <h4>✅ 洪水过后</h4>
+      <ul>
+        <li>确认官方宣布安全后再返回</li>
+        <li>不饮用未经处理的水，使用煮沸或瓶装水</li>
+        <li>不要食用被洪水浸泡的食物</li>
+        <li>清理积水和淤泥，做好消毒防疫</li>
+        <li>检查房屋结构安全，拍照留存损失证据</li>
+      </ul>
+    </div>
+    <div class="tip-box tip-error">关键数据：水深 15cm 可使成人跌倒，30cm 可冲走汽车，60cm 可冲走大型车辆。切勿低估积水的力量。</div>
+  </div>
+
+  
+</div>
+
+</div>
+
+<!-- 相关工具 -->
+<div class="related-tools" data-related-tools="1">
+  <h3 class="related-tools-title">🔗 相关工具</h3>
+  <div class="related-tools-grid">
+    <a href="../it/properties-parser.html" class="related-tool-card">
+      <span class="rt-icon">🔧</span>
+      <span class="rt-info"><span class="rt-name">.properties 解析器 - 免费开发工具，properties 解析器 | ToolBox免费在线工具箱</span><span class="rt-desc">.properties 解析器</span></span>
+    </a>
+    <a href="../it/ast-viewer.html" class="related-tool-card">
+      <span class="rt-icon">🌳</span>
+      <span class="rt-info"><span class="rt-name">AST抽象语法树查看器 - 在线解析JavaScript代码生成AST树形结构，支持节点 | ToolBox免费在线工具箱</span><span class="rt-desc">AST 抽象语法树查看器</span></span>
+    </a>
+    <a href="../it/css-minifier.html" class="related-tool-card">
+      <span class="rt-icon">🎨</span>
+      <span class="rt-info"><span class="rt-name">CSS 压缩/美化工具 - 免费开发工具，CSS 压缩/格式化/美化 | ToolBox免费在线工具箱</span><span class="rt-desc">CSS 压缩/格式化/美化</span></span>
+    </a>
+    <a href="../it/css-formatter.html" class="related-tool-card">
+      <span class="rt-icon">🔧</span>
+      <span class="rt-info"><span class="rt-name">CSS 格式化 - 免费开发工具，在线CSS 格式化 | ToolBox免费在线工具箱</span><span class="rt-desc">CSS 格式化</span></span>
+    </a>
+    <a href="../it/cron.html" class="related-tool-card">
+      <span class="rt-icon">⏰</span>
+      <span class="rt-info"><span class="rt-name">Cron 表达式生成器 - 免费开发工具，在线Cron 表达式生成器 | ToolBox免费在线工具箱</span><span class="rt-desc">⏰ Cron 表达式生成器</span></span>
+    </a>
+    <a href="../it/graphql-formatter.html" class="related-tool-card">
+      <span class="rt-icon">🔧</span>
+      <span class="rt-info"><span class="rt-name">GraphQL 格式化 - 免费开发工具，在线GraphQL 格式化 | ToolBox免费在线工具箱</span><span class="rt-desc">◈ GraphQL 格式化</span></span>
+    </a>
+  </div>
+</div>
+<div class="tool-intro" id="toolIntro">
+    <div class="tool-intro-header" onclick="this.parentElement.classList.toggle('open')">
+      <span class="intro-icon-wrap"><span class="intro-icon">🌊</span> 工具介绍与使用说明</span>
+      <span class="arrow">▼</span>
+    </div>
+    <div class="tool-intro-body">
+      <p>洪水水位标尺工具展示洪水预警等级体系，模拟不同水深的影响和应对措施。</p>
+      <h4><span class="h4-icon">✨</span> 功能特点</h4>
+      <ul class="intro-features">
+        <li>水位可视化标尺</li>
+        <li>5级洪水预警对照</li>
+        <li>水深影响模拟</li>
+        <li>分级应对措施</li>
+        <li>防汛防灾指南</li>
+      </ul>
+      <h4><span class="h4-icon">📋</span> 使用场景</h4>
+      <ul class="intro-scenes">
+        <li>汛期安全防范</li>
+        <li>防洪知识学习</li>
+        <li>社区防汛教育</li>
+        <li>应急避险参考</li>
+      </ul>
+    </div>
+  </div>
+
+<!-- 注意事项区块 -->
+<div class="tool-notes" style="--tool-accent:#FF6B35;">
+  <div class="tool-notes-title">⚠️ 使用说明与注意事项</div>
+  <ul>
+      <li>本工具纯前端运行，数据不会上传到服务器</li>
+      <li>建议在主流浏览器（Chrome/Safari/Firefox/Edge）中使用</li>
+      <li>计算结果仅供参考，请以实际应用场景为准</li>
+  </ul>
+</div>
+<!-- /注意事项区块 -->
+</div>
+
+<script>
+(function(){
+  'use strict';
+
+  var LEVELS = [
+    { name:'蓝色预警', color:'lc-blue', badge:'badge-blue', depth:'≥50cm', desc:'水位达到或超过警戒水位，可能发生一般洪水', impact:'低洼地区开始积水，排水不畅区域出现内涝', action:'关注预警信息，检查排水设施，准备防汛物资' },
+    { name:'黄色预警', color:'lc-yellow', badge:'badge-yellow', depth:'≥100cm', desc:'水位明显上涨，可能发生较大洪水', impact:'部分道路积水，低层建筑进水，交通受阻', action:'转移低层贵重物品，减少外出，远离河道' },
+    { name:'橙色预警', color:'lc-orange', badge:'badge-orange', depth:'≥150cm', desc:'水位严重上涨，可能发生大洪水', impact:'大面积积水，一层建筑进水，车辆无法通行', action:'立即转移至高处，听从疏散指令，准备应急包' },
+    { name:'红色预警', color:'lc-red', badge:'badge-red', depth:'≥200cm', desc:'水位超历史极值，可能发生特大洪水', impact:'多层建筑进水，大面积区域被淹，电力中断', action:'紧急疏散，不要返回，等待救援' },
+    { name:'紫色预警', color:'lc-purple', badge:'badge-purple', depth:'≥250cm', desc:'极端洪水，灾难性水位', impact:'大面积区域严重被淹，建筑可能受损，通讯中断', action:'全力撤离危险区域，前往高地避难所' }
+  ];
+
+  var IMPACTS = [
+    { depth:'0-10cm', risk:'低', vehicle:'影响小', impact:'路面积水，注意防滑', action:'绕行低洼路段' },
+    { depth:'10-30cm', risk:'较低', vehicle:'小型车涉水困难', impact:'可浸湿鞋袜，儿童有滑倒风险', action:'穿雨靴，避免涉水' },
+    { depth:'30-50cm', risk:'中', vehicle:'轿车可能熄火', impact:'可冲倒行人，浸入一层地面', action:'不要驾车涉水，转移到高处' },
+    { depth:'50-100cm', risk:'高', vehicle:'车辆可被冲走', impact:'成人难以站立，一层建筑进水', action:'紧急撤离，不要涉水' },
+    { depth:'100-150cm', risk:'很高', vehicle:'车辆完全淹没', impact:'一层建筑严重进水，人员有生命危险', action:'立即转移至二层以上或高地' },
+    { depth:'≥150cm', risk:'极高', vehicle:'完全淹没', impact:'大面积区域被淹，多层建筑受影响', action:'全力撤离，等待专业救援' }
+  ];
+
+  function renderLevels(){
+    var html = '';
+    LEVELS.forEach(function(l){
+      html += '<div class="level-card ' + l.color + '">'
+        + '<div class="lc-head">'
+        + '<span class="lc-badge ' + l.badge + '">' + ToolBox.escHtml(l.depth) + '</span>'
+        + '<span class="lc-name">' + ToolBox.escHtml(l.name) + '</span>'
+        + '</div>'
+        + '<div class="lc-desc">' + ToolBox.escHtml(l.desc) + '</div>'
+        + '<div class="lc-impact">影响：' + ToolBox.escHtml(l.impact) + '</div>'
+        + '<div class="lc-actions">应对：' + ToolBox.escHtml(l.action) + '</div>'
+        + '</div>';
+    });
+    document.getElementById('levelList').innerHTML = html;
+  }
+
+  function renderImpactTable(){
+    var html = '';
+    IMPACTS.forEach(function(i){
+      html += '<tr>'
+        + '<td><strong>' + ToolBox.escHtml(i.depth) + '</strong></td>'
+        + '<td>' + ToolBox.escHtml(i.impact) + '</td>'
+        + '<td>' + ToolBox.escHtml(i.risk) + '</td>'
+        + '<td>' + ToolBox.escHtml(i.vehicle) + '</td>'
+        + '<td>' + ToolBox.escHtml(i.action) + '</td>'
+        + '</tr>';
+    });
+    document.getElementById('impactTable').innerHTML = html;
+  }
+
+  window.updateDepth = function(){
+    var depth = parseInt(document.getElementById('depthSlider').value, 10);
+    document.getElementById('depthVal').textContent = depth;
+
+    // 更新水位（最大300cm映射到100%高度）
+    var pct = Math.min((depth / 300) * 100, 100);
+    document.getElementById('waterFill').style.height = pct + '%';
+
+    // 匹配影响等级
+    var impact = null;
+    for(var i = IMPACTS.length - 1; i >= 0; i--){
+      if(i === IMPACTS.length - 1){
+        if(depth >= 150){ impact = IMPACTS[i]; break; }
+      } else {
+        var parts = IMPACTS[i].depth.split('-');
+        var min = parseInt(parts[0], 10);
+        var max = parseInt(parts[1], 10);
+        if(depth >= min && depth < max){ impact = IMPACTS[i]; break; }
+      }
+    }
+    if(!impact) impact = IMPACTS[0];
+
+    // 匹配预警等级
+    var level = null;
+    if(depth >= 250) level = LEVELS[4];
+    else if(depth >= 200) level = LEVELS[3];
+    else if(depth >= 150) level = LEVELS[2];
+    else if(depth >= 100) level = LEVELS[1];
+    else if(depth >= 50) level = LEVELS[0];
+    else level = null;
+
+    var html = '<div class="tip-box tip-info">'
+      + '<strong>水深 ' + depth + 'cm</strong> — ' + ToolBox.escHtml(impact.impact) + '<br>'
+      + '<strong>人员风险：</strong>' + ToolBox.escHtml(impact.risk) + ' | '
+      + '<strong>车辆：</strong>' + ToolBox.escHtml(impact.vehicle) + '<br>'
+      + '<strong>建议：</strong>' + ToolBox.escHtml(impact.action);
+    if(level){
+      html += '<br><strong>预警等级：</strong>' + ToolBox.escHtml(level.name) + '（' + ToolBox.escHtml(level.depth) + '）';
+    } else {
+      html += '<br><strong>预警等级：</strong>暂未达到预警级别';
+    }
+    html += '</div>';
+    document.getElementById('depthImpact').innerHTML = html;
+  };
+
+  renderLevels();
+  renderImpactTable();
+  updateDepth();
+})();
+</script><script>
+// tool-intro折叠交互
+document.addEventListener('DOMContentLoaded',function(){
+  var headers=document.querySelectorAll('.tool-intro-header');
+  headers.forEach(function(h){
+    h.addEventListener('click',function(){
+      this.parentElement.classList.toggle('open');
+    });
+  });
+});
+</script>
+
+</body>
+</html>

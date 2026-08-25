@@ -1,0 +1,1137 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="description" content="文本字数统计 - 实时统计文本的字符数、单词数、句子数、段落数等指标，支持中英文混合分析。纯前端处理，数据不上传。">
+<meta name="keywords" content="字数统计,字符统计,文本分析,中英文混合,在线统计,ToolBox">
+<meta name="author" content="ToolBox 工具百科">
+<meta property="og:title" content="文本字数统计 - ToolBox">
+<meta property="og:description" content="实时统计文本的字符数、单词数、句子数、段落数等指标，支持中英文混合分析。">
+<meta property="og:type" content="website">
+<title>文本字数统计 - ToolBox 工具百科</title>
+<link rel="stylesheet" href="template.css">
+<style>
+  /* ===== 数据可视化类（类型九：数据输入区 + 指标卡片网格 + 图表区）页面专用样式 ===== */
+
+  /* section 间距 */
+  .section{margin-bottom:32px;}
+  @media(max-width:768px){.section{margin-bottom:24px;}}
+  .section-title{
+    font-size:18px;font-weight:700;color:var(--text);
+    display:flex;align-items:center;gap:10px;margin-bottom:16px;
+  }
+  @media(max-width:768px){.section-title{font-size:16px;}}
+
+  /* ===== 数据输入卡片 ===== */
+  .input-card{
+    margin-bottom:24px;
+  }
+  .input-card-header{
+    display:flex;align-items:center;justify-content:space-between;
+    margin-bottom:14px;
+  }
+  @media(max-width:768px){
+    .input-card-header{flex-direction:column;align-items:flex-start;gap:10px;}
+  }
+  .input-card-toolbar{
+    display:flex;align-items:center;gap:6px;
+  }
+  .tool-btn{
+    display:inline-flex;align-items:center;gap:5px;
+    padding:7px 14px;
+    border:1px solid var(--border);
+    border-radius:var(--radius-full);
+    background:var(--card);
+    color:var(--text-secondary);
+    font-size:13px;font-weight:500;
+    font-family:inherit;
+    cursor:pointer;
+    transition:all 0.2s ease;
+    white-space:nowrap;
+  }
+  .tool-btn svg{width:14px;height:14px;}
+  .tool-btn:hover{
+    border-color:var(--primary);
+    color:var(--primary);
+    background:var(--primary-light);
+  }
+  .tool-btn:active{transform:scale(0.96);}
+
+  /* Textarea 样式覆盖 */
+  .input-card .textarea{
+    min-height:160px;
+    line-height:1.75;
+    font-size:14px;
+  }
+
+  /* 底部状态栏 */
+  .input-status-bar{
+    display:flex;align-items:center;justify-content:space-between;
+    margin-top:10px;
+    padding:8px 14px;
+    background:var(--bg-warm);
+    border-radius:var(--radius-md);
+    font-size:12px;
+    color:var(--text-muted);
+  }
+  .input-status-bar .status-left{
+    display:flex;align-items:center;gap:16px;
+  }
+  .input-status-bar .status-item{
+    display:flex;align-items:center;gap:4px;
+  }
+  .input-status-bar .status-item svg{width:13px;height:13px;}
+  .input-status-bar .status-live{
+    display:inline-flex;align-items:center;gap:4px;
+    color:var(--accent);
+    font-weight:500;
+  }
+  .input-status-bar .status-live .live-dot{
+    width:6px;height:6px;border-radius:50%;
+    background:var(--accent);
+    animation:pulse 2s ease-in-out infinite;
+  }
+  .encoding-select{
+    padding:4px 8px;
+    border:1px solid var(--border);
+    border-radius:var(--radius-sm);
+    background:var(--card);
+    color:var(--text-secondary);
+    font-size:12px;
+    font-family:inherit;
+    cursor:pointer;
+    outline:none;
+  }
+  .encoding-select:focus{border-color:var(--primary);}
+
+  /* ===== 指标卡片网格（4 列桌面，2 列移动） ===== */
+  .stat-grid-4{
+    display:grid;
+    grid-template-columns:repeat(4,1fr);
+    gap:16px;
+    margin-bottom:24px;
+  }
+  @media(max-width:768px){
+    .stat-grid-4{grid-template-columns:repeat(2,1fr);gap:12px;}
+  }
+  .stat-card-v2{
+    background:var(--card);
+    border:1px solid var(--border);
+    border-radius:var(--radius-lg);
+    padding:20px 16px;
+    text-align:center;
+    transition:all 0.2s ease;
+    position:relative;
+    overflow:hidden;
+  }
+  .stat-card-v2:hover{
+    border-color:rgba(255,107,53,0.3);
+    box-shadow:var(--shadow-primary);
+    transform:translateY(-2px);
+  }
+  .stat-card-v2 .stat-icon{
+    width:36px;height:36px;
+    border-radius:var(--radius-md);
+    display:flex;align-items:center;justify-content:center;
+    margin:0 auto 10px;
+  }
+  .stat-card-v2 .stat-icon svg{width:18px;height:18px;}
+  .stat-card-v2 .stat-number{
+    font-size:28px;
+    font-weight:800;
+    color:var(--primary);
+    line-height:1.2;
+    font-variant-numeric:tabular-nums;
+  }
+  .stat-card-v2 .stat-text{
+    font-size:13px;
+    color:var(--text-muted);
+    margin-top:4px;
+    font-weight:500;
+  }
+  @media(max-width:768px){
+    .stat-card-v2 .stat-number{font-size:22px;}
+    .stat-card-v2{padding:16px 12px;}
+  }
+
+  /* 暗色模式 stat-card 细节 */
+  body.dark .stat-card-v2 .stat-number{color:var(--primary);}
+
+  /* ===== 图表区网格（桌面 2 列，移动堆叠） ===== */
+  .chart-grid{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:20px;
+    margin-bottom:24px;
+  }
+  @media(max-width:768px){
+    .chart-grid{grid-template-columns:1fr;gap:16px;}
+  }
+
+  /* ===== 水平条形图 ===== */
+  .bar-chart{margin-top:16px;}
+  .bar-row{
+    display:flex;align-items:center;gap:12px;
+    margin-bottom:14px;
+  }
+  .bar-row:last-child{margin-bottom:0;}
+  .bar-label{
+    width:70px;
+    flex-shrink:0;
+    font-size:13px;
+    color:var(--text-secondary);
+    font-weight:500;
+    text-align:right;
+  }
+  @media(max-width:768px){.bar-label{width:56px;font-size:12px;}}
+  .bar-track{
+    flex:1;
+    height:24px;
+    background:var(--bg-warm);
+    border-radius:var(--radius-full);
+    overflow:hidden;
+    position:relative;
+  }
+  body.dark .bar-track{background:rgba(255,255,255,0.06);}
+  .bar-fill{
+    height:100%;
+    border-radius:var(--radius-full);
+    transition:width 0.6s cubic-bezier(.22,1,.36,1);
+    min-width:0;
+  }
+  .bar-percent{
+    width:48px;
+    flex-shrink:0;
+    font-size:13px;
+    font-weight:700;
+    color:var(--text);
+    text-align:left;
+    font-variant-numeric:tabular-nums;
+  }
+  @media(max-width:768px){.bar-percent{width:40px;font-size:12px;}}
+
+  /* 条形图颜色 */
+  .bar-color-chinese{background:linear-gradient(90deg,#FF6B35,#FF8A5C);}
+  .bar-color-english{background:linear-gradient(90deg,#7C3AED,#9B6CF5);}
+  .bar-color-number{background:linear-gradient(90deg,#3B82F6,#60A5FA);}
+  .bar-color-space{background:linear-gradient(90deg,#9CA3AF,#D1D5DB);}
+  .bar-color-punct{background:linear-gradient(90deg,#00C9A7,#34D399);}
+
+  /* ===== 词频列表 ===== */
+  .freq-list{margin-top:16px;}
+  .freq-item{
+    display:flex;align-items:center;gap:10px;
+    padding:8px 0;
+    border-bottom:1px solid var(--border-light);
+  }
+  .freq-item:last-child{border-bottom:none;}
+  .freq-rank{
+    width:24px;height:24px;
+    border-radius:50%;
+    display:flex;align-items:center;justify-content:center;
+    font-size:11px;font-weight:700;
+    flex-shrink:0;
+    color:#fff;
+  }
+  .freq-rank.rank-1{background:var(--primary);}
+  .freq-rank.rank-2{background:var(--secondary);}
+  .freq-rank.rank-3{background:var(--accent);}
+  .freq-rank.rank-other{background:var(--text-muted);}
+  .freq-word{
+    width:80px;
+    flex-shrink:0;
+    font-size:13px;
+    font-weight:600;
+    color:var(--text);
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+  }
+  @media(max-width:768px){.freq-word{width:60px;font-size:12px;}}
+  .freq-bar-track{
+    flex:1;
+    height:16px;
+    background:var(--bg-warm);
+    border-radius:var(--radius-full);
+    overflow:hidden;
+  }
+  body.dark .freq-bar-track{background:rgba(255,255,255,0.06);}
+  .freq-bar-fill{
+    height:100%;
+    background:var(--gradient-primary);
+    border-radius:var(--radius-full);
+    transition:width 0.6s cubic-bezier(.22,1,.36,1);
+  }
+  .freq-count{
+    width:36px;
+    flex-shrink:0;
+    font-size:13px;
+    font-weight:600;
+    color:var(--text-secondary);
+    text-align:right;
+    font-variant-numeric:tabular-nums;
+  }
+  @media(max-width:768px){.freq-count{width:30px;font-size:12px;}}
+
+  /* ===== 详细分析双栏 ===== */
+  .detail-grid{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:20px;
+  }
+  @media(max-width:768px){
+    .detail-grid{grid-template-columns:1fr;gap:16px;}
+  }
+  .detail-group-title{
+    font-size:14px;
+    font-weight:600;
+    color:var(--text);
+    margin-bottom:14px;
+    display:flex;
+    align-items:center;
+    gap:6px;
+  }
+  .detail-group-title svg{width:16px;height:16px;color:var(--primary);}
+  .detail-row{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding:10px 0;
+    border-bottom:1px solid var(--border-light);
+  }
+  .detail-row:last-child{border-bottom:none;}
+  .detail-row-label{
+    font-size:13px;
+    color:var(--text-secondary);
+    display:flex;
+    align-items:center;
+    gap:6px;
+  }
+  .detail-row-label svg{width:14px;height:14px;color:var(--text-muted);}
+  .detail-row-value{
+    font-size:14px;
+    font-weight:700;
+    color:var(--text);
+    font-variant-numeric:tabular-nums;
+  }
+  .detail-row-value .detail-unit{
+    font-size:12px;
+    font-weight:400;
+    color:var(--text-muted);
+    margin-left:2px;
+  }
+
+  /* ===== 空状态提示 ===== */
+  .empty-hint{
+    text-align:center;
+    padding:40px 20px;
+    color:var(--text-muted);
+  }
+  .empty-hint svg{width:48px;height:48px;margin-bottom:12px;opacity:0.4;}
+  .empty-hint p{font-size:14px;}
+
+  /* ===== 相关工具 ===== */
+  .related-grid{
+    display:grid;
+    grid-template-columns:repeat(4,1fr);
+    gap:16px;
+  }
+  @media(max-width:1024px){.related-grid{grid-template-columns:repeat(2,1fr);}}
+  @media(max-width:480px){.related-grid{grid-template-columns:repeat(2,1fr);gap:12px;}}
+  .related-card{
+    display:block;text-decoration:none;
+    background:var(--card);border:1px solid var(--border);
+    border-radius:var(--radius-lg);padding:18px;
+    box-shadow:var(--shadow-sm);transition:all 0.25s ease;
+  }
+  .related-card:hover{
+    box-shadow:var(--shadow-primary);border-color:rgba(255,107,53,0.2);
+    transform:translateY(-3px);
+  }
+  .related-icon{
+    width:44px;height:44px;border-radius:var(--radius-md);
+    display:flex;align-items:center;justify-content:center;
+    font-size:22px;margin-bottom:11px;
+  }
+  .related-card h3{font-size:14px;font-weight:700;color:var(--text);margin-bottom:4px;}
+  .related-card p{font-size:12px;color:var(--text-muted);line-height:1.5;}
+
+  /* ===== 移动端菜单面板 ===== */
+  .navbar-mobile-panel{
+    display:none;background:var(--card);border-bottom:1px solid var(--border);
+    padding:12px 16px 16px;
+  }
+  .navbar-mobile-panel.open{display:block;}
+  .navbar-mobile-panel .mobile-search{position:relative;margin-bottom:10px;}
+  .navbar-mobile-panel .mobile-search input{
+    width:100%;height:42px;padding:0 12px 0 40px;border:1px solid var(--border);
+    border-radius:var(--radius-md);background:var(--bg-warm);color:var(--text);
+    font-size:14px;font-family:inherit;outline:none;
+  }
+  .navbar-mobile-panel .mobile-search svg{
+    position:absolute;left:13px;top:50%;transform:translateY(-50%);
+    width:18px;height:18px;color:var(--text-muted);
+  }
+  .navbar-mobile-panel a{
+    display:block;padding:11px 4px;font-size:15px;color:var(--text-secondary);
+    text-decoration:none;border-bottom:1px solid var(--border-light);
+  }
+  .navbar-mobile-panel a:last-child{border-bottom:none;}
+
+  /* ===== 工具头部图标包裹（渐变背景） ===== */
+  .tool-title-icon-wrap{
+    width:48px;height:48px;border-radius:var(--radius-lg);
+    background:var(--gradient-primary);display:flex;align-items:center;justify-content:center;
+    font-size:24px;flex-shrink:0;box-shadow:0 6px 18px rgba(255,107,53,0.25);
+  }
+
+  /* ===== 暗色模式适配 ===== */
+  body.dark .input-status-bar{
+    background:rgba(255,255,255,0.04);
+  }
+  body.dark .freq-rank.rank-other{
+    background:var(--text-muted);
+  }
+</style>
+
+<script src="/js/clarity.js" defer></script>
+</head>
+<body>
+
+<!-- ===== 导航栏 ===== -->
+<nav class="navbar">
+  <div class="navbar-inner">
+    <a href="#" class="navbar-brand">
+      <img src="logo.svg" alt="ToolBox">
+      <span class="navbar-brand-text">ToolBox <span>工具百科</span></span>
+    </a>
+    <div class="navbar-links">
+      <a href="#">全部工具</a>
+      <a href="#">商业办公</a>
+      <a href="#">文本处理</a>
+      <a href="#">关于</a>
+    </div>
+    <div class="navbar-search">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+      <input type="text" placeholder="搜索 1000+ 工具...">
+    </div>
+    <div class="navbar-actions">
+      <button class="theme-toggle" aria-label="切换主题">
+        <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>
+        <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
+      </button>
+      <button class="navbar-mobile-menu" id="mobileMenuBtn" aria-label="菜单" style="background:none;border:none;color:var(--text);cursor:pointer;align-items:center;justify-content:center;padding:8px;">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" x2="20" y1="6" y2="6"/><line x1="4" x2="20" y1="12" y2="12"/><line x1="4" x2="20" y1="18" y2="18"/></svg>
+      </button>
+    </div>
+  </div>
+  <!-- 移动端菜单面板 -->
+  <div class="navbar-mobile-panel" id="mobilePanel">
+    <div class="mobile-search">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+      <input type="text" placeholder="搜索工具...">
+    </div>
+    <a href="#">全部工具</a>
+    <a href="#">商业办公</a>
+    <a href="#">文本处理</a>
+    <a href="#">关于</a>
+  </div>
+</nav>
+
+<!-- ===== 主内容 ===== -->
+<main class="container-main tool-content">
+
+  <!-- 面包屑 -->
+  <nav class="breadcrumb animate-fade-in" aria-label="面包屑">
+    <a href="#">首页</a>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+    <a href="#">商业办公</a>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+    <span class="breadcrumb-current">文本字数统计</span>
+  </nav>
+
+  <!-- 工具标题区 -->
+  <div class="tool-header animate-fade-up">
+    <h1 class="tool-title">
+      <span class="tool-title-icon-wrap">
+        <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="m7 16 4-8 4 4 4-10"/></svg>
+      </span>
+      文本字数统计
+    </h1>
+    <p class="tool-desc">实时统计文本的字符数、单词数、句子数、段落数等指标，支持中英文混合分析</p>
+    <div class="tool-tags">
+      <span class="tool-tag tag-primary">商业办公</span>
+      <span class="tool-tag tag-secondary">文本处理</span>
+      <span class="tool-tag tag-accent">实时分析</span>
+    </div>
+  </div>
+
+  <!-- ===== 数据输入卡片（全宽） ===== -->
+  <section class="section animate-fade-up delay-1">
+    <div class="card input-card">
+      <div class="input-card-header">
+        <h2 class="card-title">
+          <span class="card-title-icon icon-bg-primary">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><line x1="16" x2="8" y1="13" y2="13"/><line x1="16" x2="8" y1="17" y2="17"/><line x1="10" x2="8" y1="9" y2="9"/></svg>
+          </span>
+          输入文本
+        </h2>
+        <div class="input-card-toolbar">
+          <button class="tool-btn" id="btnPaste" type="button">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="8" height="4" x="8" y="2" rx="1" ry="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/></svg>
+            粘贴
+          </button>
+          <button class="tool-btn" id="btnClear" type="button">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
+            清空
+          </button>
+          <button class="tool-btn" id="btnSample" type="button">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/></svg>
+            示例
+          </button>
+        </div>
+      </div>
+      <textarea class="textarea" id="textInput" placeholder="在此输入或粘贴需要统计的文本..."></textarea>
+      <div class="input-status-bar">
+        <div class="status-left">
+          <span class="status-live"><span class="live-dot"></span>实时统计</span>
+          <span class="status-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            <span id="statusChars">0 字符</span>
+          </span>
+        </div>
+        <select class="encoding-select" id="encodingSelect" aria-label="编码选择">
+          <option value="utf-8">UTF-8</option>
+          <option value="gbk">GBK</option>
+        </select>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== 指标卡片网格（8 个统计卡片） ===== -->
+  <section class="section animate-fade-up delay-2">
+    <div class="stat-grid-4" id="statGrid">
+      <!-- 卡片 1：总字符数（含空格） -->
+      <div class="stat-card-v2">
+        <div class="stat-icon" style="background:var(--primary-light);">
+          <svg viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/></svg>
+        </div>
+        <div class="stat-number" id="statTotalChars">0</div>
+        <div class="stat-text">总字符数（含空格）</div>
+      </div>
+      <!-- 卡片 2：字符数（不含空格） -->
+      <div class="stat-card-v2">
+        <div class="stat-icon" style="background:var(--secondary-light);">
+          <svg viewBox="0 0 24 24" fill="none" stroke="var(--secondary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7V4h16v3"/><path d="M9 20h6"/><path d="M12 4v16"/></svg>
+        </div>
+        <div class="stat-number" id="statCharsNoSpace">0</div>
+        <div class="stat-text">字符数（不含空格）</div>
+      </div>
+      <!-- 卡片 3：单词数 -->
+      <div class="stat-card-v2">
+        <div class="stat-icon" style="background:var(--accent-light);">
+          <svg viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 20l4-16"/><path d="M17 20l4-16"/><path d="M15 20H3"/><path d="M21 8H9"/></svg>
+        </div>
+        <div class="stat-number" id="statWords">0</div>
+        <div class="stat-text">单词数</div>
+      </div>
+      <!-- 卡片 4：中文字数 -->
+      <div class="stat-card-v2">
+        <div class="stat-icon" style="background:var(--primary-light);">
+          <svg viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 12h8"/><path d="M12 8v8"/></svg>
+        </div>
+        <div class="stat-number" id="statChinese">0</div>
+        <div class="stat-text">中文字数</div>
+      </div>
+      <!-- 卡片 5：英文单词 -->
+      <div class="stat-card-v2">
+        <div class="stat-icon" style="background:var(--secondary-light);">
+          <svg viewBox="0 0 24 24" fill="none" stroke="var(--secondary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 22h16a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v16a2 2 0 0 1-2 2Zm0 0a2 2 0 0 1-2-2v-9c0-1.1.9-2 2-2h2"/></svg>
+        </div>
+        <div class="stat-number" id="statEnglish">0</div>
+        <div class="stat-text">英文单词</div>
+      </div>
+      <!-- 卡片 6：句子数 -->
+      <div class="stat-card-v2">
+        <div class="stat-icon" style="background:rgba(59,130,246,0.1);">
+          <svg viewBox="0 0 24 24" fill="none" stroke="var(--info)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        </div>
+        <div class="stat-number" id="statSentences">0</div>
+        <div class="stat-text">句子数</div>
+      </div>
+      <!-- 卡片 7：段落数 -->
+      <div class="stat-card-v2">
+        <div class="stat-icon" style="background:rgba(245,158,11,0.1);">
+          <svg viewBox="0 0 24 24" fill="none" stroke="var(--warning)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" x2="21" y1="6" y2="6"/><line x1="3" x2="21" y1="12" y2="12"/><line x1="3" x2="21" y1="18" y2="18"/></svg>
+        </div>
+        <div class="stat-number" id="statParagraphs">0</div>
+        <div class="stat-text">段落数</div>
+      </div>
+      <!-- 卡片 8：行数 -->
+      <div class="stat-card-v2">
+        <div class="stat-icon" style="background:rgba(16,185,129,0.1);">
+          <svg viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 4v16"/><path d="M17 4v16"/><path d="M13 4h4"/><path d="M13 20h4"/><path d="M3 8h4"/><path d="M3 12h4"/><path d="M3 16h4"/></svg>
+        </div>
+        <div class="stat-number" id="statLines">0</div>
+        <div class="stat-text">行数</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== 图表分析区（桌面 2 列，移动堆叠） ===== -->
+  <section class="section animate-fade-up delay-3">
+    <div class="chart-grid">
+      <!-- 左栏：字符分布 -->
+      <div class="card">
+        <div class="card-header">
+          <h2 class="card-title">
+            <span class="card-title-icon icon-bg-primary">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" x2="12" y1="20" y2="10"/><line x1="18" x2="18" y1="20" y2="4"/><line x1="6" x2="6" y1="20" y2="16"/></svg>
+            </span>
+            字符分布
+          </h2>
+        </div>
+        <div class="bar-chart" id="charDistribution">
+          <div class="bar-row">
+            <span class="bar-label">中文字符</span>
+            <div class="bar-track"><div class="bar-fill bar-color-chinese" id="barChinese" style="width:0%;"></div></div>
+            <span class="bar-percent" id="pctChinese">0%</span>
+          </div>
+          <div class="bar-row">
+            <span class="bar-label">英文字母</span>
+            <div class="bar-track"><div class="bar-fill bar-color-english" id="barEnglish" style="width:0%;"></div></div>
+            <span class="bar-percent" id="pctEnglish">0%</span>
+          </div>
+          <div class="bar-row">
+            <span class="bar-label">数字</span>
+            <div class="bar-track"><div class="bar-fill bar-color-number" id="barNumber" style="width:0%;"></div></div>
+            <span class="bar-percent" id="pctNumber">0%</span>
+          </div>
+          <div class="bar-row">
+            <span class="bar-label">空格</span>
+            <div class="bar-track"><div class="bar-fill bar-color-space" id="barSpace" style="width:0%;"></div></div>
+            <span class="bar-percent" id="pctSpace">0%</span>
+          </div>
+          <div class="bar-row">
+            <span class="bar-label">标点</span>
+            <div class="bar-track"><div class="bar-fill bar-color-punct" id="barPunct" style="width:0%;"></div></div>
+            <span class="bar-percent" id="pctPunct">0%</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 右栏：词频分析 -->
+      <div class="card">
+        <div class="card-header">
+          <h2 class="card-title">
+            <span class="card-title-icon icon-bg-secondary">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>
+            </span>
+            词频分析
+          </h2>
+          <span style="font-size:12px;color:var(--text-muted);font-weight:500;">Top 10</span>
+        </div>
+        <div class="freq-list" id="freqList">
+          <div class="empty-hint" id="freqEmpty">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/></svg>
+            <p>输入文本后显示词频分析</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== 详细分析卡片（全宽） ===== -->
+  <section class="section animate-fade-up delay-3">
+    <div class="card">
+      <div class="card-header">
+        <h2 class="card-title">
+          <span class="card-title-icon icon-bg-accent">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+          </span>
+          详细分析
+        </h2>
+      </div>
+      <div class="detail-grid">
+        <!-- 左栏：阅读指标 -->
+        <div>
+          <div class="detail-group-title">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+            阅读指标
+          </div>
+          <div class="detail-row">
+            <span class="detail-row-label">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+              阅读时间
+            </span>
+            <span class="detail-row-value" id="detailReadTime">0<span class="detail-unit">分钟</span></span>
+          </div>
+          <div class="detail-row">
+            <span class="detail-row-label">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg>
+              朗读时间
+            </span>
+            <span class="detail-row-value" id="detailSpeakTime">0<span class="detail-unit">分钟</span></span>
+          </div>
+          <div class="detail-row">
+            <span class="detail-row-label">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="m7 16 4-8 4 4 4-10"/></svg>
+              平均句长
+            </span>
+            <span class="detail-row-value" id="detailAvgSentence">0<span class="detail-unit">字符/句</span></span>
+          </div>
+          <div class="detail-row">
+            <span class="detail-row-label">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v14c0 1.1.9 2 2 2h3"/><path d="M16 3h3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-3"/><path d="M12 20v2"/><path d="M12 14v2"/><path d="M12 8v2"/><path d="M12 2v2"/></svg>
+              最长句
+            </span>
+            <span class="detail-row-value" id="detailMaxSentence">0<span class="detail-unit">字符</span></span>
+          </div>
+        </div>
+        <!-- 右栏：文本特征 -->
+        <div>
+          <div class="detail-group-title">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10Z"/><path d="m9 12 2 2 4-4"/></svg>
+            文本特征
+          </div>
+          <div class="detail-row">
+            <span class="detail-row-label">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+              标点符号数
+            </span>
+            <span class="detail-row-value" id="detailPunctuation">0<span class="detail-unit">个</span></span>
+          </div>
+          <div class="detail-row">
+            <span class="detail-row-label">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"/></svg>
+              特殊字符数
+            </span>
+            <span class="detail-row-value" id="detailSpecial">0<span class="detail-unit">个</span></span>
+          </div>
+          <div class="detail-row">
+            <span class="detail-row-label">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 20h20"/><path d="M5 20V8"/><path d="M10 20V4"/><path d="M15 20v-6"/><path d="M20 20v-2"/></svg>
+              数字串
+            </span>
+            <span class="detail-row-value" id="detailNumbers">0<span class="detail-unit">个</span></span>
+          </div>
+          <div class="detail-row">
+            <span class="detail-row-label">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+              URL 链接数
+            </span>
+            <span class="detail-row-value" id="detailUrls">0<span class="detail-unit">个</span></span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== 相关工具 ===== -->
+  <section class="section animate-fade-up delay-3">
+    <h2 class="section-title">
+      <span style="width:32px;height:32px;border-radius:var(--radius-md);display:flex;align-items:center;justify-content:center;background:var(--accent-light);">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/></svg>
+      </span>
+      相关工具
+    </h2>
+    <div class="related-grid">
+      <a href="#" class="related-card">
+        <div class="related-icon" style="background:var(--primary-light);">🔄</div>
+        <h3>文本去重</h3>
+        <p>去除文本中的重复行和重复内容</p>
+      </a>
+      <a href="#" class="related-card">
+        <div class="related-icon" style="background:var(--secondary-light);">🔤</div>
+        <h3>大小写转换</h3>
+        <p>英文文本大小写一键批量转换</p>
+      </a>
+      <a href="#" class="related-card">
+        <div class="related-icon" style="background:var(--accent-light);">✂️</div>
+        <h3>文本对比</h3>
+        <p>对比两段文本的差异和高亮</p>
+      </a>
+      <a href="#" class="related-card">
+        <div class="related-icon" style="background:var(--primary-light);">📝</div>
+        <h3>Markdown 编辑器</h3>
+        <p>实时预览的在线 Markdown 编辑工具</p>
+      </a>
+    </div>
+  </section>
+
+</main>
+
+<!-- ===== 页脚 ===== -->
+<footer class="footer">
+  <div class="footer-inner">
+    <div>
+      <div class="footer-brand">
+        <img src="logo.svg" alt="ToolBox">
+        <span class="footer-brand-text">ToolBox <span>工具百科</span></span>
+      </div>
+      <p class="footer-desc">ToolBox 工具百科，汇集 1010+ 免费在线工具，纯前端处理，数据不上传，让效率触手可及。</p>
+    </div>
+    <div>
+      <h4>工具分类</h4>
+      <ul>
+        <li><a href="#">IT 开发</a></li>
+        <li><a href="#">商业办公</a></li>
+        <li><a href="#">日常生活</a></li>
+        <li><a href="#">健康医疗</a></li>
+      </ul>
+    </div>
+    <div>
+      <h4>关于我们</h4>
+      <ul>
+        <li><a href="#">关于 ToolBox</a></li>
+        <li><a href="#">使用条款</a></li>
+        <li><a href="#">隐私政策</a></li>
+        <li><a href="#">联系我们</a></li>
+      </ul>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <span>&copy; 2026 ToolBox 工具百科. All rights reserved.</span>
+    <span>纯前端 &middot; 免费开放 &middot; 数据不上传</span>
+  </div>
+</footer>
+
+<!-- ===== 移动端底部 Tab 栏 ===== -->
+<nav class="mobile-tabbar" aria-label="底部导航">
+  <a href="#" class="mobile-tabbar-item active">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+    <span>首页</span>
+  </a>
+  <a href="#" class="mobile-tabbar-item">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/></svg>
+    <span>分类</span>
+  </a>
+  <a href="#" class="mobile-tabbar-item">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+    <span>搜索</span>
+  </a>
+  <a href="#" class="mobile-tabbar-item">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+    <span>收藏</span>
+  </a>
+</nav>
+
+<!-- ===== 脚本 ===== -->
+<script src="template.js"></script>
+<script>
+(function(){
+  'use strict';
+
+  var textInput = document.getElementById('textInput');
+  var statusChars = document.getElementById('statusChars');
+
+  // 示例文本
+  var sampleText = '人工智能（Artificial Intelligence，简称 AI）是计算机科学的一个重要分支。它试图理解智能的实质，并生产出一种新的、能以与人类智能相似的方式做出反应的智能机器。\n\n'
+    + 'AI 的研究包括机器人、语言识别、图像识别、自然语言处理和专家系统等。自人工智能诞生以来，理论和技术日益成熟，应用领域也在不断扩大。\n\n'
+    + 'The field of AI research was founded at a workshop held on the campus of Dartmouth College during the summer of 1956. Those who attended would become the leaders of AI research for decades.\n\n'
+    + '随着深度学习（Deep Learning）技术的突破，AI 在 2020 年代迎来了新的发展高潮。GPT、BERT 等大语言模型（LLM）的出现，使得自然语言处理取得了革命性进展。目前，AI 已广泛应用于搜索引擎、推荐系统、自动驾驶、医疗诊断等众多领域。\n\n'
+    + '据统计，2025 年全球 AI 市场规模已超过 5000 亿美元，预计到 2030 年将达到 1.8 万亿美元。中国、美国和欧盟是 AI 技术发展的三大核心区域。';
+
+  // DOM 引用 - 指标卡片
+  var el = {
+    totalChars:   document.getElementById('statTotalChars'),
+    charsNoSpace: document.getElementById('statCharsNoSpace'),
+    words:        document.getElementById('statWords'),
+    chinese:      document.getElementById('statChinese'),
+    english:      document.getElementById('statEnglish'),
+    sentences:    document.getElementById('statSentences'),
+    paragraphs:   document.getElementById('statParagraphs'),
+    lines:        document.getElementById('statLines'),
+    // 条形图
+    barChinese:  document.getElementById('barChinese'),
+    barEnglish:  document.getElementById('barEnglish'),
+    barNumber:   document.getElementById('barNumber'),
+    barSpace:    document.getElementById('barSpace'),
+    barPunct:    document.getElementById('barPunct'),
+    pctChinese:  document.getElementById('pctChinese'),
+    pctEnglish:  document.getElementById('pctEnglish'),
+    pctNumber:   document.getElementById('pctNumber'),
+    pctSpace:    document.getElementById('pctSpace'),
+    pctPunct:    document.getElementById('pctPunct'),
+    // 词频
+    freqList:    document.getElementById('freqList'),
+    freqEmpty:   document.getElementById('freqEmpty'),
+    // 详细分析
+    readTime:    document.getElementById('detailReadTime'),
+    speakTime:   document.getElementById('detailSpeakTime'),
+    avgSentence: document.getElementById('detailAvgSentence'),
+    maxSentence: document.getElementById('detailMaxSentence'),
+    punctuation: document.getElementById('detailPunctuation'),
+    special:     document.getElementById('detailSpecial'),
+    numbers:     document.getElementById('detailNumbers'),
+    urls:        document.getElementById('detailUrls')
+  };
+
+  // 中文正则
+  var reChinese = /[\u4e00-\u9fff\u3400-\u4dbf]/g;
+  // 英文单词正则
+  var reEnglishWord = /[a-zA-Z]+/g;
+  // 句子分割（中英文句号、问号、叹号）
+  var reSentence = /[^。！？.!?]+[。！？.!?]+/g;
+  // URL
+  var reUrl = /https?:\/\/[\S]+/g;
+  // 数字串
+  var reDigit = /\d+/g;
+  // 标点符号（中文标点 + 英文标点）
+  var rePunct = /[\u3000-\u303f\uff00-\uffef.,;:!?"'()\[\]{}<>@#$%^&*\-_=+\\|~`]/g;
+  // 特殊字符（非汉字、非英文、非数字、非空格换行、非标点）
+  var reSpecial = /[^\u4e00-\u9fff\u3400-\u4dbfa-zA-Z0-9\s\u3000-\u303f\uff00-\uffef.,;:!?"'()\[\]{}<>@#$%^&*\-_=+\\|~`]/g;
+
+  // 中文停用词
+  var stopWords = '的了是在我你他她它们这那个一不人都有什么吗呢吧啊哦嗯'.split('');
+  var enStopWords = ['the','a','an','is','are','was','were','be','been','being','have','has','had','do','does','did','will','would','could','should','may','might','can','shall','to','of','in','for','on','with','at','by','from','as','into','through','during','before','after','above','below','between','out','off','over','under','again','further','then','once','here','there','when','where','why','how','all','each','every','both','few','more','most','other','some','such','no','nor','not','only','own','same','so','than','too','very','just','because','but','and','or','if','while','about','up','it','its','this','that','these','those','i','me','my','we','our','you','your','he','him','his','she','her','they','them','their','what','which','who','whom','am','s','t','d','m','re','ll','ve','don','didn','won','wouldn','couldn','shouldn','isn','aren','wasn','weren','hasn','haven','hadn'];
+
+  // 格式化数字（千分位）
+  function formatNum(n){
+    return n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  }
+
+  // 安全设置 innerHTML
+  function setDetail(id, value, unit){
+    document.getElementById(id).innerHTML = value + '<span class="detail-unit">' + unit + '</span>';
+  }
+
+  // 核心分析函数
+  function analyze(text){
+    var totalChars = text.length;
+    var charsNoSpace = text.replace(/\s/g, '').length;
+    var lines = text ? text.split('\n').length : 0;
+    var paragraphs = text.trim() ? text.trim().split(/\n\s*\n/).filter(function(p){return p.trim();}).length : 0;
+    if(paragraphs === 0 && text.trim().length > 0) paragraphs = 1;
+
+    // 中文字符
+    var chineseMatches = text.match(reChinese);
+    var chineseCount = chineseMatches ? chineseMatches.length : 0;
+
+    // 英文单词
+    var englishMatches = text.match(reEnglishWord);
+    var englishCount = englishMatches ? englishMatches.length : 0;
+
+    // 总词数 = 中文字数 + 英文单词数
+    var wordCount = chineseCount + englishCount;
+
+    // 句子数
+    var sentenceMatches = text.match(reSentence);
+    var sentenceCount = sentenceMatches ? sentenceMatches.length : 0;
+    if(sentenceCount === 0 && text.trim().length > 0) sentenceCount = 1;
+
+    // 数字统计
+    var digitMatches = text.match(reDigit);
+    var digitCount = digitMatches ? digitMatches.length : 0;
+
+    // 空格数
+    var spaceCount = (text.match(/ /g) || []).length + (text.match(/\u3000/g) || []).length;
+
+    // 标点数
+    var punctMatches = text.match(rePunct);
+    var punctCount = punctMatches ? punctMatches.length : 0;
+
+    // 特殊字符数
+    var specialMatches = text.match(reSpecial);
+    var specialCount = specialMatches ? specialMatches.length : 0;
+
+    // URL 数
+    var urlMatches = text.match(reUrl);
+    var urlCount = urlMatches ? urlMatches.length : 0;
+
+    // ===== 更新指标卡片 =====
+    el.totalChars.textContent = formatNum(totalChars);
+    el.charsNoSpace.textContent = formatNum(charsNoSpace);
+    el.words.textContent = formatNum(wordCount);
+    el.chinese.textContent = formatNum(chineseCount);
+    el.english.textContent = formatNum(englishCount);
+    el.sentences.textContent = formatNum(sentenceCount);
+    el.paragraphs.textContent = formatNum(paragraphs);
+    el.lines.textContent = formatNum(lines);
+    statusChars.textContent = formatNum(totalChars) + ' 字符';
+
+    // ===== 更新字符分布条形图 =====
+    var base = totalChars || 1;
+    var cPct = Math.round(chineseCount / base * 100);
+    var ePct = Math.round(englishCount / base * 100);
+    var dPct = Math.round(digitCount / base * 100);
+    var sPct = Math.round(spaceCount / base * 100);
+    var pPct = Math.round(punctCount / base * 100);
+
+    el.barChinese.style.width = cPct + '%';
+    el.barEnglish.style.width = ePct + '%';
+    el.barNumber.style.width = dPct + '%';
+    el.barSpace.style.width = sPct + '%';
+    el.barPunct.style.width = pPct + '%';
+    el.pctChinese.textContent = cPct + '%';
+    el.pctEnglish.textContent = ePct + '%';
+    el.pctNumber.textContent = dPct + '%';
+    el.pctSpace.textContent = sPct + '%';
+    el.pctPunct.textContent = pPct + '%';
+
+    // ===== 更新词频列表 =====
+    updateFreqList(text, chineseCount);
+
+    // ===== 更新详细分析 =====
+    // 阅读时间：中文 400 字/分钟，英文 200 词/分钟
+    var readMin = Math.max(0, Math.ceil(chineseCount / 400 + englishCount / 200));
+    var speakMin = Math.max(0, Math.ceil(chineseCount / 250 + englishCount / 150));
+    setDetail('detailReadTime', readMin, '分钟');
+    setDetail('detailSpeakTime', speakMin, '分钟');
+
+    // 平均句长 / 最长句
+    var avgLen = sentenceCount > 0 ? Math.round(totalChars / sentenceCount) : 0;
+    setDetail('detailAvgSentence', formatNum(avgLen), '字符/句');
+
+    var maxLen = 0;
+    if(sentenceMatches){
+      for(var i = 0; i < sentenceMatches.length; i++){
+        if(sentenceMatches[i].length > maxLen) maxLen = sentenceMatches[i].length;
+      }
+    } else if(text.trim()){
+      maxLen = totalChars;
+    }
+    setDetail('detailMaxSentence', formatNum(maxLen), '字符');
+
+    // 文本特征
+    setDetail('detailPunctuation', formatNum(punctCount), '个');
+    setDetail('detailSpecial', formatNum(specialCount), '个');
+    setDetail('detailNumbers', formatNum(digitCount), '个');
+    setDetail('detailUrls', formatNum(urlCount), '个');
+  }
+
+  // 词频分析
+  function updateFreqList(text, chineseCount){
+    var freqMap = {};
+
+    // 中文：按单字统计（2 个字以上按 2-gram）
+    if(chineseCount > 0){
+      // 提取所有中文词组（简单 2-gram + 单字）
+      var cleaned = text.replace(rePunct, ' ').replace(/[a-zA-Z0-9\s]/g, '');
+      var chars = cleaned.match(/[\u4e00-\u9fff\u3400-\u4dbf]+/g);
+      if(chars){
+        chars.forEach(function(seg){
+          // 单字
+          for(var i = 0; i < seg.length; i++){
+            var ch = seg[i];
+            if(stopWords.indexOf(ch) === -1){
+              freqMap[ch] = (freqMap[ch] || 0) + 1;
+            }
+          }
+          // 双字词
+          for(var i = 0; i < seg.length - 1; i++){
+            var bi = seg.substring(i, i + 2);
+            freqMap[bi] = (freqMap[bi] || 0) + 1;
+          }
+        });
+      }
+    }
+
+    // 英文：按单词统计
+    var enWords = text.match(reEnglishWord);
+    if(enWords){
+      enWords.forEach(function(w){
+        var lw = w.toLowerCase();
+        if(lw.length > 1 && enStopWords.indexOf(lw) === -1){
+          freqMap[lw] = (freqMap[lw] || 0) + 1;
+        }
+      });
+    }
+
+    // 排序取 Top 10
+    var entries = [];
+    for(var key in freqMap){
+      if(freqMap.hasOwnProperty(key) && freqMap[key] > 1){
+        entries.push({word:key, count:freqMap[key]});
+      }
+    }
+    entries.sort(function(a,b){ return b.count - a.count; });
+    var top10 = entries.slice(0, 10);
+
+    // 渲染
+    var maxCount = top10.length > 0 ? top10[0].count : 1;
+
+    if(top10.length === 0){
+      el.freqEmpty.style.display = 'block';
+      // 清除旧条目（保留 empty hint）
+      var oldItems = el.freqList.querySelectorAll('.freq-item');
+      for(var i = 0; i < oldItems.length; i++) oldItems[i].remove();
+      return;
+    }
+
+    el.freqEmpty.style.display = 'none';
+    var html = '';
+    for(var i = 0; i < top10.length; i++){
+      var item = top10[i];
+      var rankClass = i === 0 ? 'rank-1' : i === 1 ? 'rank-2' : i === 2 ? 'rank-3' : 'rank-other';
+      var pct = Math.round(item.count / maxCount * 100);
+      html += '<div class="freq-item">'
+        + '<span class="freq-rank ' + rankClass + '">' + (i + 1) + '</span>'
+        + '<span class="freq-word" title="' + item.word + '">' + item.word + '</span>'
+        + '<div class="freq-bar-track"><div class="freq-bar-fill" style="width:' + pct + '%;"></div></div>'
+        + '<span class="freq-count">' + item.count + '</span>'
+        + '</div>';
+    }
+    // 保留 empty hint 隐藏
+    var oldItems = el.freqList.querySelectorAll('.freq-item');
+    for(var i = 0; i < oldItems.length; i++) oldItems[i].remove();
+    el.freqEmpty.insertAdjacentHTML('afterend', html);
+  }
+
+  // ===== 事件绑定 =====
+  textInput.addEventListener('input', function(){
+    analyze(textInput.value);
+  });
+
+  // 粘贴按钮
+  document.getElementById('btnPaste').addEventListener('click', function(){
+    if(navigator.clipboard && navigator.clipboard.readText){
+      navigator.clipboard.readText().then(function(text){
+        textInput.value = text;
+        analyze(text);
+        if(window.Template) window.Template.showToast('已粘贴剪贴板内容');
+      }).catch(function(){
+        textInput.focus();
+        document.execCommand('paste');
+      });
+    } else {
+      textInput.focus();
+      document.execCommand('paste');
+    }
+  });
+
+  // 清空按钮
+  document.getElementById('btnClear').addEventListener('click', function(){
+    textInput.value = '';
+    analyze('');
+    if(window.Template) window.Template.showToast('已清空文本');
+  });
+
+  // 示例按钮
+  document.getElementById('btnSample').addEventListener('click', function(){
+    textInput.value = sampleText;
+    analyze(sampleText);
+    if(window.Template) window.Template.showToast('已加载示例文本');
+  });
+
+  // 移动端菜单
+  var mobileBtn = document.getElementById('mobileMenuBtn');
+  var mobilePanel = document.getElementById('mobilePanel');
+  if(mobileBtn){
+    mobileBtn.addEventListener('click', function(){
+      mobilePanel.classList.toggle('open');
+    });
+  }
+
+  // 编码切换
+  document.getElementById('encodingSelect').addEventListener('change', function(){
+    analyze(textInput.value);
+  });
+
+  // 初始分析
+  analyze('');
+})();
+
+</body>
+</html>

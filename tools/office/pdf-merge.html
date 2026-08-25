@@ -1,0 +1,702 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+
+<script src="/js/tool-page-runtime.js" defer></script>
+<!-- TOOLBOX-TOOL-RUNTIME -->
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="toolbox" content="cat=convert,industry=office,icon=🔗,bg=#f5f5f5">
+<meta name="description" content="PDF合并工具 - 是一款免费的在线文档处理工具，可将多个 PDF 文件按指定顺序合并为一个完整的 PDF。无需安装任何软件，无需注册登录，打开浏览器即可使用。基于 pdf-lib 在浏览器本地完成所有解析与合并操作，文件不会上传到服务器，充分保">
+<meta name="keywords" content="PDF合并,合并PDF,PDF合并在线,在线合并PDF,免费PDF合并,PDF工具,文档合并,纯前端,ToolBox">
+<meta name="robots" content="index,follow">
+<link rel="canonical" href="https://chenguangwu.github.io/tools/office/pdf-merge.html">
+<meta property="og:title" content="PDF合并工具 - 免费的在线文档处理工具，可将多个 PDF - ToolBox">
+<meta property="og:description" content="PDF合并工具 - 是一款免费的在线文档处理工具，可将多个 PDF 文件按指定顺序合并为一个完整的 PDF。无需安装任何软件，无需注册登录，打开浏览器即可使用。基于 pdf-lib 在浏览器本地完成所有解析与合并操作，文件不会上传到服务器，充分保">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://chenguangwu.github.io/tools/office/pdf-merge.html">
+<meta name="twitter:card" content="summary">
+<title>PDF合并工具 - 免费的在线文档处理工具，可将多个 PDF - ToolBox</title>
+<meta name="theme-color" content="#FF6B35">
+<link rel="icon" type="image/svg+xml" href="../../favicon.svg">
+<link rel="icon" href="../../favicon.ico" sizes="16x16 32x32 48x48">
+<link rel="apple-touch-icon" href="../../apple-touch-icon.png">
+<link rel="stylesheet" href="../../css/common.css">
+<script src="../../js/common.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "PDF合并工具",
+  "description": "免费在线合并多个PDF文件，支持拖拽排序，纯前端浏览器处理，文件不上传服务器。",
+  "url": "https://chenguangwu.github.io/tools/office/pdf-merge.html",
+  "applicationCategory": "UtilitiesApplication",
+  "operatingSystem": "Web",
+  "offers": { "@type": "Offer", "price": "0", "priceCurrency": "CNY" },
+  "inLanguage": "zh-CN",
+  "isAccessibleForFree": true,
+  "browserRequirements": "Requires JavaScript. Requires HTML5.",
+  "softwareVersion": "1.0"
+}
+</script>
+<style>
+  .drop-zone{
+    border:2px dashed var(--border);
+    border-radius:16px;
+    padding:36px 20px;
+    text-align:center;
+    cursor:pointer;
+    transition:all 0.2s ease;
+    background:var(--result-bg);
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:8px;
+  }
+  .drop-zone:hover{border-color:var(--primary);background:var(--bg-hover);}
+  .drop-zone.dragover{border-color:var(--primary);background:var(--bg-active);transform:scale(1.01);}
+  .drop-zone .dz-icon{font-size:38px;line-height:1;}
+  .drop-zone .dz-title{font-size:15px;font-weight:600;color:var(--heading);}
+  .drop-zone .dz-hint{font-size:12.5px;color:var(--text-muted);}
+  .drop-zone .dz-btn{margin-top:4px;}
+
+  .file-list{margin-top:16px;display:flex;flex-direction:column;gap:8px;}
+  .file-item{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    padding:10px 12px;
+    border:1px solid var(--border);
+    border-radius:12px;
+    background:var(--card-bg);
+    transition:border-color 0.2s,box-shadow 0.2s,opacity 0.2s;
+  }
+  .file-item.dragging{opacity:0.4;border-style:dashed;}
+  .file-item.drag-over{border-color:var(--primary);box-shadow:0 0 0 3px rgba(255,107,53,0.12);}
+  .file-item .drag-handle{
+    cursor:grab;
+    color:var(--text-muted);
+    font-size:18px;
+    line-height:1;
+    padding:4px 2px;
+    flex-shrink:0;
+    user-select:none;
+    transition:color 0.2s;
+  }
+  .file-item .drag-handle:hover{color:var(--primary);cursor:grabbing;}
+  .file-item .file-idx{
+    flex-shrink:0;
+    width:24px;height:24px;
+    border-radius:7px;
+    background:var(--gradient-primary);
+    color:#fff;
+    font-size:12px;font-weight:700;
+    display:flex;align-items:center;justify-content:center;
+  }
+  .file-item .file-icon{font-size:22px;flex-shrink:0;}
+  .file-item .file-info{flex:1;min-width:0;}
+  .file-item .file-name{
+    font-size:13.5px;font-weight:600;color:var(--text);
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  }
+  .file-item .file-meta{font-size:12px;color:var(--text-muted);margin-top:2px;display:flex;gap:10px;flex-wrap:wrap;}
+  .file-item .file-meta .badge{
+    display:inline-flex;align-items:center;gap:3px;
+    padding:1px 8px;border-radius:20px;
+    background:var(--bg-hover);color:var(--text-secondary);font-size:11px;
+  }
+  .file-item .file-meta .badge.pages{background:rgba(255,107,53,0.1);color:var(--primary);}
+  .file-item .file-meta .badge.loading{background:rgba(59,130,246,0.1);color:#3B82F6;}
+  .file-item .file-meta .badge.error{background:rgba(239,68,68,0.1);color:var(--danger);}
+  .file-item .file-actions{display:flex;gap:4px;flex-shrink:0;}
+  .file-item .icon-btn{
+    width:30px;height:30px;
+    border:1px solid var(--border);
+    border-radius:8px;
+    background:var(--card-bg);
+    color:var(--text-secondary);
+    cursor:pointer;
+    display:flex;align-items:center;justify-content:center;
+    font-size:14px;
+    transition:all 0.15s;
+    padding:0;
+  }
+  .file-item .icon-btn:hover{border-color:var(--primary);color:var(--primary);}
+  .file-item .icon-btn.danger:hover{border-color:var(--danger);color:var(--danger);background:rgba(239,68,68,0.06);}
+  .file-item .icon-btn:disabled{opacity:0.4;cursor:not-allowed;}
+
+  .merge-panel{
+    position:sticky;
+    bottom:0;
+    background:var(--card-bg);
+    border:1px solid var(--border);
+    border-radius:16px;
+    padding:14px 16px;
+    margin-top:16px;
+    box-shadow:var(--shadow);
+    z-index:50;
+  }
+  .merge-progress{margin-top:10px;}
+  .merge-progress .mp-label{display:flex;justify-content:space-between;font-size:12.5px;color:var(--text-secondary);margin-bottom:6px;}
+  .merge-progress .mp-status{font-size:12.5px;color:var(--text-muted);margin-top:6px;}
+
+  .stat-summary{
+    display:flex;gap:8px;flex-wrap:wrap;
+    margin-top:14px;
+  }
+  .stat-summary .ss-item{
+    flex:1;min-width:90px;
+    background:var(--result-bg);
+    border:1px solid var(--border);
+    border-radius:12px;
+    padding:10px 12px;
+    text-align:center;
+  }
+  .stat-summary .ss-val{font-size:18px;font-weight:700;color:var(--primary);}
+  .stat-summary .ss-lbl{font-size:11px;color:var(--text-muted);margin-top:2px;}
+
+  .empty-hint{text-align:center;padding:20px;color:var(--text-muted);font-size:13px;}
+
+  @media(max-width:768px){
+    .drop-zone{padding:26px 16px;}
+    .drop-zone .dz-icon{font-size:32px;}
+    .file-item{padding:9px 10px;gap:8px;}
+    .file-item .file-name{font-size:13px;}
+    .file-item .icon-btn{width:32px;height:32px;}
+    .stat-summary .ss-item{min-width:calc(50% - 4px);}
+  }
+</style>
+
+
+
+<meta property="og:image" content="https://chenguangwu.github.io/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="ToolBox - 6000+免费在线工具">
+<meta name="twitter:image" content="https://chenguangwu.github.io/og-image.png">
+<meta name="twitter:image:alt" content="ToolBox - 6000+免费在线工具">
+    <meta name="twitter:title" content="PDF合并工具 - 免费的在线文档处理工具，可将多个 PDF - ToolBox">
+    <meta name="twitter:description" content="PDF合并工具 - 是一款免费的在线文档处理工具，可将多个 PDF 文件按指定顺序合并为一个完整的 PDF。无需安装任何软件，无需注册登录，打开浏览器即可使用。基于 pdf-lib 在浏览器本地完成所有解析与合并操作，文件不会上传到服务器，充分保">
+<!-- TOOLBOX-WEBAPP-LD -->
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"WebApplication","name":"PDF合并工具 - 免费的在线文档处理工具，可将多个 PDF","url":"https://chenguangwu.github.io/tools/office/pdf-merge.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":["zh-CN", "en-US"],"description":"PDF合并工具","image":"https://chenguangwu.github.io/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}
+</script>
+<meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
+<meta http-equiv="X-Content-Type-Options" content="nosniff">
+<meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
+<!-- TOOLBOX-SECURITY -->
+
+<script src="/js/privacy.js" defer></script>
+<!-- TOOLBOX-PRIVACY-SCRIPT -->
+
+<script src="/js/metrics.js" defer></script>
+<!-- TOOLBOX-METRICS-SCRIPT -->
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"首页","item":"https://chenguangwu.github.io/"},{"@type":"ListItem","position":2,"name":"办公文档","item":"https://chenguangwu.github.io/tools/office/index.html"},{"@type":"ListItem","position":3,"name":"PDF合并工具","item":"https://chenguangwu.github.io/tools/office/pdf-merge.html"}]}
+</script>
+
+<script src="../../js/i18n.js" defer></script>
+<script src="../../js/tool-i18n.js" defer></script>
+<!-- TOOLBOX-I18N-SCRIPT -->
+<!-- TOOLBOX-HREFLANG -->
+<link rel="alternate" hreflang="zh-CN" href="https://chenguangwu.github.io/tools/office/pdf-merge.html">
+<link rel="alternate" hreflang="en-US" href="https://chenguangwu.github.io/tools/office/pdf-merge.html">
+<link rel="alternate" hreflang="x-default" href="https://chenguangwu.github.io/tools/office/pdf-merge.html">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:locale:alternate" content="en_US">
+
+<script src="/js/clarity.js" defer></script>
+<!-- TOOLBOX-CLARITY -->
+</head>
+<body>
+<h1 class="sr-only">PDF合并工具</h1>
+<div class="nav">
+  <a href="../../index.html">← ToolBox</a>
+  <span>/ PDF合并工具</span>
+  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()" aria-label="切换主题">🌙</button>
+</div>
+
+
+
+
+<nav class="breadcrumb" aria-label="面包屑导航" data-breadcrumb="1">
+  <a href="../../index.html">首页</a>
+  <span class="bc-sep">‹</span>
+  <a href="index.html">🔧 办公文档</a>
+  <span class="bc-sep">‹</span>
+  <span class="bc-current">PDF合并工具</span>
+</nav>
+<div class="container">
+  <div class="card">
+    <h2>🔗 PDF合并工具</h2>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;">选择多个 PDF 文件，拖拽调整顺序后一键合并。所有处理在浏览器本地完成，文件不会上传到服务器。</p>
+
+    <!-- 上传区 -->
+    <div class="drop-zone" id="dropZone" onclick="document.getElementById('fileInput').click()">
+      <div class="dz-icon">📄</div>
+      <div class="dz-title">点击选择 PDF 文件，或拖拽到此处</div>
+      <div class="dz-hint">支持选择多个 PDF 文件 · 纯前端处理 · 数据不上传</div>
+      <button type="button" class="btn primary dz-btn" onclick="event.stopPropagation();document.getElementById('fileInput').click();">+ 添加 PDF 文件</button>
+      <input type="file" id="fileInput" accept="application/pdf,.pdf" multiple style="display:none;" onchange="onFilePicked(event)">
+    </div>
+
+    <!-- 文件列表 -->
+    <div class="file-list" id="fileList"></div>
+
+    <!-- 统计 -->
+    <div class="stat-summary" id="statSummary" style="display:none;"></div>
+
+    <!-- 操作工具栏 -->
+    <div class="toolbar" id="actionBar" style="margin-top:16px;display:none;">
+      <button type="button" class="btn primary" id="mergeBtn" onclick="mergePDFs()" disabled>🔗 合并所有 PDF</button>
+      <button type="button" class="btn" onclick="clearAll()">🗑️ 清空列表</button>
+      <button type="button" class="btn" onclick="addMore()">+ 继续添加</button>
+    </div>
+
+    <!-- 合并进度 -->
+    <div class="merge-progress" id="mergeProgress" style="display:none;">
+      <div class="mp-label">
+        <span id="mpStatus">准备中...</span>
+        <span id="mpPercent">0%</span>
+      </div>
+      <div class="progress-bar"><div class="progress-fill" id="mpFill" style="width:0%;"></div></div>
+      <div class="mp-status" id="mpHint"></div>
+    </div>
+
+    <!-- 结果 -->
+    <div class="result-box" id="result"></div>
+
+    <div class="info-box">
+      所有 PDF 文件均在浏览器本地读取与合并，不会上传到任何服务器，请放心使用。
+    </div>
+  </div>
+
+  <!-- 注意事项 -->
+  <div class="tool-notes">
+    <div class="tool-notes-title">⚠️ 使用说明与注意事项</div>
+    <ul>
+      <li>支持选择多个 PDF 文件，可拖拽列表项或使用上移/下移按钮调整合并顺序</li>
+      <li>合并顺序为列表中从上到下的顺序，序号①②③即为合并后的页码顺序</li>
+      <li>加密或损坏的 PDF 文件将被跳过并提示，不影响其他文件合并</li>
+      <li>文件越多、体积越大，合并耗时越长，处理过程中请勿关闭页面</li>
+      <li>建议在主流浏览器（Chrome / Safari / Firefox / Edge）中使用</li>
+    </ul>
+  </div>
+
+  <!-- SEO 介绍区块 -->
+  
+</div>
+
+</div>
+
+<!-- 相关工具 -->
+<div class="related-tools" data-related-tools="1">
+  <h3 class="related-tools-title">🔗 相关工具</h3>
+  <div class="related-tools-grid">
+    <a href="markdown-editor.html" class="related-tool-card">
+      <span class="rt-icon">📝</span>
+      <span class="rt-info"><span class="rt-name">Markdown 编辑器（分屏预览） - Markdown 编辑器 - 免费在线 Markdo | ToolBox免费在线工具箱</span><span class="rt-desc">Markdown 编辑器（分屏预览）</span></span>
+    </a>
+    <a href="pdf-split.html" class="related-tool-card">
+      <span class="rt-icon">📄</span>
+      <span class="rt-info"><span class="rt-name">PDF拆分工具 - 在线提取PDF指定页面 - PDF拆分工具 - 免费在线PDF页面提取工具 | ToolBox免费在线工具箱</span><span class="rt-desc">PDF 拆分工具</span></span>
+    </a>
+    <a href="pdf-rotate.html" class="related-tool-card">
+      <span class="rt-icon">🔄</span>
+      <span class="rt-info"><span class="rt-name">PDF页面旋转工具 - 免费在线PDF页面旋转工具，支持单页旋转、批量旋转、全部旋转 | ToolBox免费在线工具箱</span><span class="rt-desc">PDF页面旋转工具</span></span>
+    </a>
+    <a href="mindmap.html" class="related-tool-card">
+      <span class="rt-icon">🧠</span>
+      <span class="rt-info"><span class="rt-name">思维导图 - 免费在线思维导图工具，使用 Markdown 语法实时生成可 | ToolBox免费在线工具箱</span><span class="rt-desc">思维导图编辑器</span></span>
+    </a>
+    <a href="flowchart.html" class="related-tool-card">
+      <span class="rt-icon">🔀</span>
+      <span class="rt-info"><span class="rt-name">流程图绘制工具（Mermaid） - 流程图绘制工具 - 基于 Mermaid 的在线流程图、 | ToolBox免费在线工具箱</span><span class="rt-desc">流程图绘制工具</span></span>
+    </a>
+  </div>
+</div>
+<div class="tool-intro open" id="toolIntro">
+    <div class="tool-intro-header">
+      <span class="intro-icon-wrap"><span class="intro-icon">📖</span>关于「PDF合并工具」</span>
+      <span class="arrow">▼</span>
+    </div>
+    <div class="tool-intro-body">
+      <h4><span class="h4-icon">📝</span>工具简介</h4>
+      <p>PDF合并工具是一款免费的在线文档处理工具，可将多个 PDF 文件按指定顺序合并为一个完整的 PDF。无需安装任何软件，无需注册登录，打开浏览器即可使用。基于 pdf-lib 在浏览器本地完成所有解析与合并操作，文件不会上传到服务器，充分保护您的隐私安全。</p>
+      <h4><span class="h4-icon">✨</span>功能特点</h4>
+      <ul class="intro-features">
+        <li>多文件批量合并</li>
+        <li>拖拽自由排序</li>
+        <li>上移/下移精准调整</li>
+        <li>实时显示页数与大小</li>
+        <li>合并进度可视化</li>
+        <li>一键下载合并结果</li>
+        <li>纯前端处理，零上传</li>
+        <li>支持深色模式</li>
+      </ul>
+      <h4><span class="h4-icon">🎯</span>使用场景</h4>
+      <ul class="intro-scenes">
+        <li>合并多个合同/协议为一份文档</li>
+        <li>整理扫描件按顺序归档</li>
+        <li>合并课程讲义与习题</li>
+        <li>汇总报告章节为完整 PDF</li>
+        <li>合并发票/收据便于管理</li>
+        <li>组合简历与附件材料</li>
+      </ul>
+      <h4><span class="h4-icon">💬</span>常见问题</h4>
+      <div class="intro-faq-item">
+        <div class="intro-faq-q">合并后的 PDF 会上传到服务器吗？</div>
+        <div class="intro-faq-a">不会。本工具完全在浏览器本地运行，所有 PDF 文件的读取、解析与合并均在您的设备上完成，不会上传到任何服务器，隐私安全有保障。</div>
+      </div>
+      <div class="intro-faq-item">
+        <div class="intro-faq-q">如何调整 PDF 的合并顺序？</div>
+        <div class="intro-faq-a">两种方式：一是直接拖拽文件列表项到目标位置；二是点击每项右侧的上移、下移按钮进行微调。列表中从上到下的顺序即为合并后页码的先后顺序。</div>
+      </div>
+      <div class="intro-faq-item">
+        <div class="intro-faq-q">加密的 PDF 可以合并吗？</div>
+        <div class="intro-faq-a">本工具会尝试加载加密 PDF，但部分设置了打开密码或严格权限限制的文件可能无法解析，会被自动跳过并在列表中标注错误，不影响其他文件正常合并。</div>
+      </div>
+      <div class="intro-faq-item">
+        <div class="intro-faq-q">合并后的文件有大小限制吗？</div>
+        <div class="intro-faq-a">理论上仅受浏览器可用内存限制。建议单个文件不超过 100MB，合并总页数过大时浏览器可能需要较多内存与处理时间，请耐心等待。</div>
+      </div>
+      <div class="intro-faq-item">
+        <div class="intro-faq-q">这个工具收费吗？</div>
+        <div class="intro-faq-a">完全免费，无需注册，不限制使用次数，打开网页即可直接使用。</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const { PDFDocument } = PDFLib;
+
+let files = [];          // { id, file, name, size, pages, status:'loading'|'ok'|'error' }
+let dragSrcId = null;
+let isMerging = false;
+
+/* ---------- 工具函数 ---------- */
+function genId(){
+  return 'f_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2,7);
+}
+function formatSize(bytes){
+  if(bytes < 1024) return bytes + ' B';
+  if(bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+  return (bytes / 1024 / 1024).toFixed(2) + ' MB';
+}
+function esc(str){ return ToolBox.escHtml(str); }
+
+/* ---------- 文件添加 ---------- */
+function onFilePicked(e){
+  addFiles(e.target.files);
+  e.target.value = ''; // 允许重复选择同一文件
+}
+function addMore(){
+  document.getElementById('fileInput').click();
+}
+async function addFiles(fileList){
+  const arr = Array.from(fileList).filter(f =>
+    f.type === 'application/pdf' || f.name.toLowerCase().endsWith('.pdf')
+  );
+  if(arr.length === 0){
+    ToolBox.showToast(i18nText(), 'warning');
+    return;
+  }
+  const addedItems = [];
+  for(const f of arr){
+    const item = {
+      id: genId(),
+      file: f,
+      name: f.name,
+      size: f.size,
+      pages: null,
+      status: 'loading'
+    };
+    files.push(item);
+    addedItems.push(item);
+  }
+  renderList();
+  // 异步读取每个文件的页数
+  for(const item of addedItems){
+    await loadPageCount(item);
+  }
+}
+
+function getItemById(id){
+  return files.find(f => f.id === id);
+}
+
+async function loadPageCount(item){
+  if(!item) return;
+  try{
+    const buf = await item.file.arrayBuffer();
+    const doc = await PDFDocument.load(buf, { ignoreEncryption: true });
+    item.pages = doc.getPageCount();
+    item.status = 'ok';
+  }catch(err){
+    item.pages = null;
+    item.status = 'error';
+  }
+  renderList();
+}
+
+/* ---------- 列表渲染 ---------- */
+function renderList(){
+  const list = document.getElementById('fileList');
+  const bar = document.getElementById('actionBar');
+  const summary = document.getElementById('statSummary');
+
+  if(files.length === 0){
+    list.innerHTML = '';
+    bar.style.display = 'none';
+    summary.style.display = 'none';
+    document.getElementById('mergeBtn').disabled = true;
+    return;
+  }
+
+  bar.style.display = 'flex';
+
+  list.innerHTML = files.map((f, i) => {
+    let metaBadge;
+    if(f.status === 'loading'){
+      metaBadge = '<span class="badge loading">读取中...</span>';
+    }else if(f.status === 'error'){
+      metaBadge = '<span class="badge error">无法解析</span>';
+    }else{
+      metaBadge = '<span class="badge pages">' + (f.pages != null ? f.pages + ' 页' : '?') + '</span>';
+    }
+    return `
+      <div class="file-item" draggable="true" data-id="${f.id}"
+           ondragstart="onDragStart(event,'${f.id}')"
+           ondragover="onDragOver(event,'${f.id}')"
+           ondragleave="onDragLeave(event,'${f.id}')"
+           ondrop="onDrop(event,'${f.id}')"
+           ondragend="onDragEnd(event)">
+        <span class="drag-handle" title="拖拽排序">⠿</span>
+        <span class="file-idx">${i + 1}</span>
+        <span class="file-icon">📄</span>
+        <div class="file-info">
+          <div class="file-name" title="${esc(f.name)}">${esc(f.name)}</div>
+          <div class="file-meta">
+            ${metaBadge}
+            <span class="badge">${formatSize(f.size)}</span>
+          </div>
+        </div>
+        <div class="file-actions">
+          <button class="icon-btn" title="上移" onclick="moveItem('${f.id}',-1)" ${i === 0 ? 'disabled' : ''}>↑</button>
+          <button class="icon-btn" title="下移" onclick="moveItem('${f.id}',1)" ${i === files.length - 1 ? 'disabled' : ''}>↓</button>
+          <button class="icon-btn danger" title="删除" onclick="removeItem('${f.id}')">✕</button>
+        </div>
+      </div>`;
+  }).join('');
+
+  // 统计
+  const okItems = files.filter(f => f.status === 'ok');
+  const totalPages = okItems.reduce((s, f) => s + (f.pages || 0), 0);
+  const totalSize = files.reduce((s, f) => s + f.size, 0);
+  const errCount = files.filter(f => f.status === 'error').length;
+  summary.style.display = 'flex';
+  summary.innerHTML = `
+    <div class="ss-item"><div class="ss-val">${files.length}</div><div class="ss-lbl">文件总数</div></div>
+    <div class="ss-item"><div class="ss-val">${totalPages}</div><div class="ss-lbl">合计页数</div></div>
+    <div class="ss-item"><div class="ss-val">${formatSize(totalSize)}</div><div class="ss-lbl">总大小</div></div>
+    ${errCount > 0 ? '<div class="ss-item"><div class="ss-val" style="color:var(--danger);">' + errCount + '</div><div class="ss-lbl">无法解析</div></div>' : ''}
+  `;
+
+  // 合并按钮可用性：至少 2 个可解析文件
+  const mergeable = okItems.length >= 2 && !isMerging;
+  document.getElementById('mergeBtn').disabled = !mergeable;
+}
+
+/* ---------- 排序操作 ---------- */
+function moveItem(id, dir){
+  const idx = files.findIndex(f => f.id === id);
+  if(idx < 0) return;
+  const target = idx + dir;
+  if(target < 0 || target >= files.length) return;
+  [files[idx], files[target]] = [files[target], files[idx]];
+  renderList();
+}
+function removeItem(id){
+  files = files.filter(f => f.id !== id);
+  renderList();
+  ToolBox.showToast(i18nText(), 'info');
+}
+function clearAll(){
+  if(files.length === 0) return;
+  if(!confirm('确定要清空全部 ' + files.length + ' 个文件吗？')) return;
+  files = [];
+  renderList();
+  hideProgress();
+  document.getElementById('result').innerHTML = '';
+  ToolBox.showToast(i18nText(), 'info');
+}
+
+/* ---------- 拖拽排序 ---------- */
+function onDragStart(e, id){
+  dragSrcId = id;
+  e.currentTarget.classList.add('dragging');
+  e.dataTransfer.effectAllowed = 'move';
+  try{ e.dataTransfer.setData('text/plain', id); }catch(_){}
+}
+function onDragOver(e, id){
+  e.preventDefault();
+  e.dataTransfer.dropEffect = 'move';
+  if(id !== dragSrcId){
+    document.querySelectorAll('.file-item').forEach(el => el.classList.remove('drag-over'));
+    e.currentTarget.classList.add('drag-over');
+  }
+}
+function onDragLeave(e, id){
+  e.currentTarget.classList.remove('drag-over');
+}
+function onDrop(e, id){
+  e.preventDefault();
+  e.currentTarget.classList.remove('drag-over');
+  if(!dragSrcId || dragSrcId === id) return;
+  const srcIdx = files.findIndex(f => f.id === dragSrcId);
+  const tgtIdx = files.findIndex(f => f.id === id);
+  if(srcIdx < 0 || tgtIdx < 0) return;
+  const [moved] = files.splice(srcIdx, 1);
+  files.splice(tgtIdx, 0, moved);
+  renderList();
+}
+function onDragEnd(e){
+  dragSrcId = null;
+  document.querySelectorAll('.file-item').forEach(el => {
+    el.classList.remove('dragging');
+    el.classList.remove('drag-over');
+  });
+}
+
+/* ---------- 拖拽上传区 ---------- */
+(function initDropZone(){
+  const dz = document.getElementById('dropZone');
+  ['dragenter','dragover'].forEach(ev => dz.addEventListener(ev, e => {
+    e.preventDefault(); e.stopPropagation();
+    dz.classList.add('dragover');
+  }));
+  ['dragleave','drop'].forEach(ev => dz.addEventListener(ev, e => {
+    e.preventDefault(); e.stopPropagation();
+    if(ev === 'dragleave' && dz.contains(e.relatedTarget)) return;
+    dz.classList.remove('dragover');
+  }));
+  dz.addEventListener('drop', e => {
+    const dt = e.dataTransfer;
+    if(dt && dt.files && dt.files.length){
+      addFiles(dt.files);
+    }
+  });
+})();
+
+/* ---------- 合并 ---------- */
+function showProgress(done, total, status, hint){
+  const box = document.getElementById('mergeProgress');
+  box.style.display = 'block';
+  const pct = total > 0 ? Math.round((done / total) * 100) : 0;
+  document.getElementById('mpFill').style.width = pct + '%';
+  document.getElementById('mpPercent').textContent = pct + '%';
+  document.getElementById('mpStatus').textContent = status;
+  document.getElementById('mpHint').textContent = hint || '';
+}
+function hideProgress(){
+  document.getElementById('mergeProgress').style.display = 'none';
+}
+
+async function mergePDFs(){
+  if(isMerging) return;
+  const okItems = files.filter(f => f.status === 'ok');
+  if(okItems.length < 2){
+    ToolBox.showToast(i18nText(), 'warning');
+    return;
+  }
+  isMerging = true;
+  document.getElementById('mergeBtn').disabled = true;
+  document.getElementById('result').innerHTML = '';
+  const total = okItems.length;
+  const merged = await PDFDocument.create();
+
+  try{
+    for(let i = 0; i < okItems.length; i++){
+      const item = okItems[i];
+      showProgress(i, total, `正在处理 (${i + 1}/${total})`, '读取：' + item.name);
+      const buf = await item.file.arrayBuffer();
+      const src = await PDFDocument.load(buf, { ignoreEncryption: true });
+      const indices = src.getPageIndices();
+      const copied = await merged.copyPages(src, indices);
+      copied.forEach(p => merged.addPage(p));
+    }
+    showProgress(total, total, '正在生成 PDF 文件...', '');
+    const outBytes = await merged.save();
+
+    // 下载
+    const blob = new Blob([outBytes], { type: 'application/pdf' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    const ts = new Date();
+    const pad = n => String(n).padStart(2, '0');
+    const fname = 'merged-' + ts.getFullYear() + pad(ts.getMonth()+1) + pad(ts.getDate()) + '-' + pad(ts.getHours()) + pad(ts.getMinutes()) + pad(ts.getSeconds()) + '.pdf';
+    a.download = fname;
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 0);
+
+    const totalPages = merged.getPageCount();
+    const sizeKb = (outBytes.byteLength / 1024).toFixed(1);
+    document.getElementById('result').innerHTML =
+      '<p>✅ 合并成功！已合并 <strong>' + okItems.length + '</strong> 个文件，共 <strong>' + totalPages + '</strong> 页。</p>' +
+      '<p>文件大小：<strong>' + (sizeKb >= 1024 ? (sizeKb/1024).toFixed(2) + ' MB' : sizeKb + ' KB') + '</strong></p>' +
+      '<p style="color:var(--text-muted);font-size:12px;">文件已开始下载，如未自动下载请点击下方按钮。</p>' +
+      '<div class="toolbar" style="margin-top:8px;"><button class="btn primary" onclick="redownload()">⬇️ 重新下载</button></div>';
+
+    // 缓存最后一次结果供重新下载
+    window.__lastBlob = blob;
+    window.__lastName = fname;
+    showProgress(total, total, '合并完成 ✓', '共 ' + totalPages + ' 页，文件已下载');
+    ToolBox.showToast(i18nText(), 'success');
+  }catch(err){
+    console.error(err);
+    document.getElementById('result').innerHTML =
+      '<p style="color:var(--danger);">❌ 合并失败：' + esc(String(err && err.message ? err.message : err)) + '</p>' +
+      '<p style="color:var(--text-muted);font-size:12px;">请检查文件是否损坏或加密后重试。</p>';
+    showProgress(0, total, '合并失败', String(err && err.message ? err.message : err));
+    ToolBox.showToast(i18nText(), 'error');
+  }finally{
+    isMerging = false;
+    renderList();
+  }
+}
+
+function redownload(){
+  if(!window.__lastBlob){
+    ToolBox.showToast(i18nText(), 'warning');
+    return;
+  }
+  const url = URL.createObjectURL(window.__lastBlob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = window.__lastName || 'merged.pdf';
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 0);
+}
+
+/* ---------- 初始化 ---------- */
+renderList();
+</script>
+<script>
+// tool-intro 折叠交互
+document.addEventListener('DOMContentLoaded', function(){
+  var headers = document.querySelectorAll('.tool-intro-header');
+  headers.forEach(function(h){
+    h.addEventListener('click', function(){
+      this.parentElement.classList.toggle('open');
+    });
+  });
+});
+</script>
+</body>
+</html>

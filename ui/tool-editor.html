@@ -1,0 +1,1240 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="description" content="Markdown 编辑器 - 实时预览的 Markdown 编写工具，支持完整语法和代码高亮。纯前端处理，数据不上传。">
+<meta name="keywords" content="Markdown编辑器,在线Markdown,实时预览,代码高亮,Markdown语法,富文本编辑">
+<meta name="author" content="ToolBox 工具百科">
+<meta property="og:title" content="Markdown 编辑器 - ToolBox">
+<meta property="og:description" content="实时预览的 Markdown 编写工具，支持完整语法和代码高亮">
+<meta property="og:type" content="website">
+<title>Markdown 编辑器 - ToolBox 工具百科</title>
+<link rel="stylesheet" href="template.css">
+<script src="template.js" defer></script>
+<style>
+  /* ===== 富文本编辑类（类型八：全高左右分屏）页面专用样式 ===== */
+
+  /* 工具栏卡片 */
+  .editor-toolbar-card{
+    padding:10px 16px;
+    display:flex;align-items:center;justify-content:space-between;gap:12px;
+    flex-wrap:nowrap;
+    overflow-x:auto;
+    -webkit-overflow-scrolling:touch;
+  }
+  @media(max-width:768px){
+    .editor-toolbar-card{padding:8px 12px;gap:8px;}
+  }
+
+  /* 格式化按钮组 */
+  .format-group{
+    display:flex;align-items:center;gap:2px;
+    flex-shrink:0;
+  }
+  .format-sep{
+    width:1px;height:20px;
+    background:var(--border);
+    margin:0 6px;
+    flex-shrink:0;
+  }
+  @media(max-width:768px){.format-sep{margin:0 4px;}}
+
+  .fmt-btn{
+    width:32px;height:32px;
+    display:flex;align-items:center;justify-content:center;
+    border:none;background:transparent;
+    border-radius:var(--radius-sm);
+    color:var(--text-secondary);
+    cursor:pointer;transition:all 0.15s ease;
+    flex-shrink:0;
+    font-family:inherit;
+  }
+  .fmt-btn:hover{background:var(--bg-warm);color:var(--primary);}
+  .fmt-btn:active{transform:scale(0.92);}
+  .fmt-btn svg{width:16px;height:16px;}
+  .fmt-btn-text{
+    font-size:12px;font-weight:700;
+    font-family:var(--font-body);
+  }
+  .fmt-btn-text-italic{font-style:italic;}
+  .fmt-btn-text-strike{text-decoration:line-through;}
+  .fmt-btn-code{
+    font-family:var(--font-mono);
+    font-size:11px;font-weight:600;
+    color:var(--secondary);
+  }
+  .fmt-btn-code:hover{background:var(--secondary-light);}
+  .fmt-btn-h{
+    font-family:var(--font-body);
+    font-size:11px;font-weight:800;
+  }
+
+  /* 右侧工具栏（视图切换 + 导出） */
+  .toolbar-right{
+    display:flex;align-items:center;gap:8px;
+    flex-shrink:0;
+  }
+
+  /* 视图切换按钮组 */
+  .view-toggle{
+    display:flex;align-items:center;
+    background:var(--bg-warm);
+    border-radius:var(--radius-full);
+    padding:3px;gap:2px;
+  }
+  .view-btn{
+    padding:5px 12px;
+    border:none;background:transparent;
+    border-radius:var(--radius-full);
+    font-size:12px;font-weight:600;
+    font-family:inherit;
+    color:var(--text-muted);
+    cursor:pointer;transition:all 0.2s ease;
+    white-space:nowrap;
+  }
+  .view-btn:hover{color:var(--text);}
+  .view-btn.active{
+    background:var(--primary);
+    color:#fff;
+    box-shadow:0 2px 8px rgba(255,107,53,0.25);
+  }
+  .view-btn svg{width:14px;height:14px;}
+  @media(max-width:768px){
+    .view-btn{padding:5px 10px;font-size:11px;}
+  }
+
+  /* ===== 分屏编辑器 ===== */
+  .editor-split{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    height:calc(100vh - 280px);
+    min-height:400px;
+    border:1px solid var(--border);
+    border-radius:var(--radius-lg);
+    overflow:hidden;
+    box-shadow:var(--shadow);
+  }
+  @media(max-width:768px){
+    .editor-split{
+      grid-template-columns:1fr;
+      height:calc(100vh - 320px);
+      min-height:300px;
+    }
+  }
+
+  /* 编辑面板 */
+  .editor-pane{
+    display:flex;flex-direction:column;
+    overflow:hidden;
+    min-width:0;
+  }
+
+  /* 面板标题栏 */
+  .pane-header{
+    display:flex;align-items:center;justify-content:space-between;
+    padding:8px 16px;
+    border-bottom:1px solid var(--border-light);
+    flex-shrink:0;
+    min-height:38px;
+  }
+  .pane-header-left{
+    display:flex;align-items:center;gap:8px;
+  }
+  .pane-title{
+    font-size:13px;font-weight:600;color:var(--text);
+  }
+  .pane-meta{
+    font-size:11px;color:var(--text-muted);
+    font-family:var(--font-mono);
+  }
+  .pane-header-right{
+    display:flex;align-items:center;gap:6px;
+  }
+  .sync-dot{
+    width:6px;height:6px;border-radius:50%;
+    background:var(--accent);
+    box-shadow:0 0 0 0 rgba(0,201,167,0.5);
+    animation:syncPulse 2s ease-in-out infinite;
+  }
+  @keyframes syncPulse{
+    0%,100%{box-shadow:0 0 0 0 rgba(0,201,167,0.5);}
+    50%{box-shadow:0 0 0 4px rgba(0,201,167,0);}
+  }
+  .sync-label{
+    font-size:11px;color:var(--accent);font-weight:500;
+  }
+
+  /* 面板底部状态栏 */
+  .pane-status{
+    display:flex;align-items:center;justify-content:space-between;
+    padding:4px 16px;
+    border-top:1px solid var(--border-light);
+    flex-shrink:0;
+    min-height:28px;
+    font-size:11px;
+    font-family:var(--font-mono);
+    color:var(--text-muted);
+  }
+  .pane-status-item{
+    display:flex;align-items:center;gap:4px;
+  }
+  .pane-status-item svg{width:12px;height:12px;}
+
+  /* ===== 编辑区（始终暗色 IDE 风格） ===== */
+  .editor-dark{
+    background:#1E1E2E;
+  }
+  .editor-dark .pane-header{
+    background:#252540;
+    border-bottom-color:rgba(255,255,255,0.06);
+  }
+  .editor-dark .pane-header .pane-title{
+    color:rgba(255,255,255,0.85);
+  }
+  .editor-dark .pane-header .pane-meta{
+    color:rgba(255,255,255,0.35);
+  }
+  .editor-dark .pane-status{
+    background:#1A1A2E;
+    border-top-color:rgba(255,255,255,0.06);
+    color:rgba(255,255,255,0.4);
+  }
+  .editor-dark .pane-status-item svg{
+    color:rgba(255,255,255,0.3);
+  }
+
+  /* 编辑区内容（行号 + textarea） */
+  .editor-body{
+    flex:1;display:flex;overflow:hidden;
+  }
+  .line-numbers{
+    padding:16px 0;
+    min-width:48px;
+    text-align:right;
+    user-select:none;
+    overflow:hidden;
+    border-right:1px solid rgba(255,255,255,0.06);
+    background:rgba(255,255,255,0.02);
+    flex-shrink:0;
+  }
+  .line-numbers div{
+    padding:0 12px;
+    font-family:var(--font-mono);
+    font-size:13px;
+    line-height:1.65;
+    color:rgba(255,255,255,0.2);
+  }
+  .line-numbers div.active-line{
+    color:rgba(255,255,255,0.5);
+  }
+
+  .editor-textarea{
+    flex:1;
+    background:transparent;
+    color:rgba(255,255,255,0.88);
+    font-family:var(--font-mono);
+    font-size:13px;
+    line-height:1.65;
+    padding:16px;
+    border:none;outline:none;
+    resize:none;
+    overflow-y:auto;
+    tab-size:2;
+    -moz-tab-size:2;
+    word-break:break-all;
+    white-space:pre-wrap;
+  }
+  .editor-textarea::selection{
+    background:rgba(255,107,53,0.3);
+  }
+  .editor-textarea::placeholder{
+    color:rgba(255,255,255,0.2);
+  }
+
+  /* 分隔线 */
+  .editor-divider{
+    width:1px;
+    background:var(--border);
+    flex-shrink:0;
+  }
+  @media(max-width:768px){
+    .editor-divider{width:100%;height:1px;}
+  }
+
+  /* ===== 预览区 ===== */
+  .preview-body{
+    flex:1;
+    overflow-y:auto;
+    background:var(--card);
+  }
+  .preview-content{
+    padding:24px 32px;
+    max-width:100%;
+    overflow-x:auto;
+  }
+  @media(max-width:768px){
+    .preview-content{padding:16px 18px;}
+  }
+
+  /* ===== Markdown 渲染样式 ===== */
+  .md-preview h1{
+    font-size:24px;font-weight:700;color:var(--text);
+    margin:0 0 12px;padding-bottom:10px;
+    border-bottom:2px solid var(--border);
+    line-height:1.35;
+  }
+  .md-preview h2{
+    font-size:20px;font-weight:700;color:var(--text);
+    margin:28px 0 10px;padding-bottom:8px;
+    border-bottom:1px solid var(--border-light);
+    line-height:1.4;
+  }
+  .md-preview h3{
+    font-size:17px;font-weight:600;color:var(--text);
+    margin:24px 0 8px;line-height:1.4;
+  }
+  .md-preview h4{
+    font-size:15px;font-weight:600;color:var(--text);
+    margin:20px 0 6px;line-height:1.4;
+  }
+  .md-preview h5{
+    font-size:14px;font-weight:600;color:var(--text-secondary);
+    margin:18px 0 6px;line-height:1.4;
+  }
+  .md-preview h6{
+    font-size:13px;font-weight:600;color:var(--text-muted);
+    margin:16px 0 6px;line-height:1.4;
+  }
+  .md-preview p{
+    font-size:14px;color:var(--text-secondary);
+    line-height:1.75;margin:0 0 14px;
+  }
+  .md-preview strong{color:var(--text);font-weight:600;}
+  .md-preview em{font-style:italic;}
+  .md-preview del{color:var(--text-muted);}
+  .md-preview a{
+    color:var(--primary);text-decoration:none;
+    border-bottom:1px solid rgba(255,107,53,0.3);
+    transition:border-color 0.2s;
+  }
+  .md-preview a:hover{border-bottom-color:var(--primary);}
+
+  .md-preview ul,
+  .md-preview ol{
+    padding-left:24px;margin:0 0 14px;
+    font-size:14px;color:var(--text-secondary);
+    line-height:1.75;
+  }
+  .md-preview ul{list-style-type:disc;}
+  .md-preview ol{list-style-type:decimal;}
+  .md-preview li{margin-bottom:4px;}
+  .md-preview li::marker{color:var(--primary);}
+
+  .md-preview blockquote{
+    margin:0 0 16px;
+    padding:12px 18px;
+    border-left:4px solid var(--primary);
+    background:var(--primary-light);
+    border-radius:0 var(--radius-md) var(--radius-md) 0;
+  }
+  .md-preview blockquote p:last-child{margin-bottom:0;}
+
+  .md-preview code{
+    font-family:var(--font-mono);
+    font-size:12px;
+    background:var(--bg-warm);
+    color:var(--secondary);
+    padding:2px 6px;
+  }
+  body.dark .md-preview code{
+    background:rgba(124,58,237,0.12);
+  }
+  .md-preview pre{
+    margin:0 0 16px;
+    padding:16px 20px;
+    background:#1E1E2E;
+    border-radius:var(--radius-md);
+    overflow-x:auto;
+    border:1px solid rgba(255,255,255,0.06);
+  }
+  .md-preview pre code{
+    background:transparent;
+    color:rgba(255,255,255,0.85);
+    padding:0;font-size:13px;
+    line-height:1.6;
+  }
+  /* 代码高亮模拟 */
+  .md-preview pre code .kw{color:#C678DD;} /* keyword */
+  .md-preview pre code .fn{color:#61AFEF;} /* function */
+  .md-preview pre code .str{color:#98C379;} /* string */
+  .md-preview pre code .cm{color:#5C6370;font-style:italic;} /* comment */
+  .md-preview pre code .num{color:#D19A66;} /* number */
+  .md-preview pre code .op{color:#56B6C2;} /* operator */
+
+  .md-preview hr{
+    border:none;
+    height:1px;
+    background:var(--border);
+    margin:20px 0;
+  }
+
+  .md-preview table{
+    width:100%;border-collapse:collapse;
+    margin:0 0 16px;font-size:13px;
+  }
+  .md-preview thead tr{
+    background:var(--bg-warm);
+  }
+  .md-preview th{
+    padding:10px 14px;text-align:left;
+    font-weight:600;color:var(--text);
+    border:1px solid var(--border);
+  }
+  .md-preview td{
+    padding:9px 14px;
+    color:var(--text-secondary);
+    border:1px solid var(--border);
+  }
+  .md-preview tbody tr:nth-child(even){
+    background:var(--bg-warm);
+  }
+
+  /* 任务列表 */
+  .md-preview .task-list{
+    list-style:none;
+    padding-left:0;
+  }
+  .md-preview .task-list li{
+    display:flex;align-items:flex-start;gap:8px;
+    margin-bottom:6px;
+  }
+  .md-preview .task-list input[type="checkbox"]{
+    margin-top:4px;
+    accent-color:var(--primary);
+    width:16px;height:16px;
+    flex-shrink:0;
+  }
+
+  /* ===== 移动端 Tab 面板切换 ===== */
+  .mobile-editor-tabs{
+    display:none;
+  }
+  @media(max-width:768px){
+    .mobile-editor-tabs{display:flex;}
+  }
+  .mobile-tab-switch{
+    display:flex;
+    background:var(--bg-warm);
+    border-radius:var(--radius-md);
+    padding:3px;gap:2px;
+    margin-bottom:12px;
+  }
+  .mobile-tab-btn{
+    flex:1;
+    padding:8px 12px;
+    border:none;background:transparent;
+    border-radius:var(--radius-sm);
+    font-size:13px;font-weight:600;
+    font-family:inherit;
+    color:var(--text-muted);
+    cursor:pointer;transition:all 0.2s ease;
+    text-align:center;
+  }
+  .mobile-tab-btn.active{
+    background:var(--primary);color:#fff;
+    box-shadow:0 2px 8px rgba(255,107,53,0.25);
+  }
+
+  /* 移动端面板显隐 */
+  @media(max-width:768px){
+    .editor-split .editor-pane.mobile-hidden,
+    .editor-split .editor-divider.mobile-hidden{
+      display:none;
+    }
+  }
+
+  /* ===== 快捷键提示卡片 ===== */
+  .shortcut-grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fill,minmax(200px,1fr));
+    gap:10px;
+  }
+  @media(max-width:480px){
+    .shortcut-grid{grid-template-columns:1fr;}
+  }
+  .shortcut-item{
+    display:flex;align-items:center;justify-content:space-between;
+    padding:10px 14px;
+    background:var(--bg-warm);
+    border-radius:var(--radius-md);
+    border:1px solid var(--border-light);
+    transition:all 0.15s ease;
+  }
+  .shortcut-item:hover{
+    border-color:var(--primary);
+    background:var(--primary-light);
+  }
+  .shortcut-desc{
+    font-size:13px;color:var(--text-secondary);font-weight:500;
+  }
+  .shortcut-keys{
+    display:flex;align-items:center;gap:4px;
+  }
+  .kbd{
+    display:inline-flex;align-items:center;justify-content:center;
+    padding:3px 7px;
+    background:var(--card);
+    border:1px solid var(--border);
+    border-radius:6px;
+    font-family:var(--font-mono);
+    font-size:11px;font-weight:600;
+    color:var(--text);
+    box-shadow:0 1px 2px rgba(0,0,0,0.06);
+    min-width:24px;
+  }
+  .shortcut-plus{
+    font-size:11px;color:var(--text-muted);font-weight:500;
+  }
+
+  /* 相关工具 */
+  .related-grid{
+    display:grid;
+    grid-template-columns:repeat(4,1fr);
+    gap:16px;
+  }
+  @media(max-width:1024px){.related-grid{grid-template-columns:repeat(2,1fr);}}
+  @media(max-width:480px){.related-grid{grid-template-columns:repeat(2,1fr);gap:12px;}}
+  .related-card{
+    display:flex;flex-direction:column;align-items:flex-start;gap:10px;
+    padding:20px;text-decoration:none;
+    background:var(--card);border:1px solid var(--border);
+    border-radius:var(--radius-lg);
+    transition:all 0.2s ease;
+  }
+  .related-card:hover{
+    border-color:var(--primary);box-shadow:var(--shadow-primary);
+    transform:translateY(-2px);
+  }
+  .related-icon{
+    width:44px;height:44px;border-radius:var(--radius-md);
+    display:flex;align-items:center;justify-content:center;
+    font-size:22px;transition:transform 0.2s;
+  }
+  .related-card:hover .related-icon{transform:scale(1.1);}
+  .related-title{font-size:14px;font-weight:600;color:var(--text);}
+  .related-desc{font-size:12px;color:var(--text-muted);line-height:1.5;}
+
+  .section-title{
+    font-size:18px;font-weight:700;color:var(--text);
+    display:flex;align-items:center;gap:10px;margin-bottom:16px;
+  }
+  .section-title-icon{
+    width:32px;height:32px;border-radius:var(--radius-md);
+    display:flex;align-items:center;justify-content:center;
+  }
+  .section-title-icon svg{width:18px;height:18px;}
+  .section-gap{margin-top:28px;}
+  @media(max-width:768px){.section-gap{margin-top:22px;}}
+
+  /* 暗色模式预览区适配 */
+  body.dark .md-preview h1,
+  body.dark .md-preview h2{
+    border-color:rgba(255,255,255,0.1);
+  }
+  body.dark .md-preview h2{
+    border-bottom-color:rgba(255,255,255,0.06);
+  }
+  body.dark .md-preview blockquote{
+    background:rgba(255,107,53,0.08);
+  }
+  body.dark .md-preview thead tr{
+    background:rgba(255,255,255,0.03);
+  }
+  body.dark .md-preview tbody tr:nth-child(even){
+    background:rgba(255,255,255,0.02);
+  }
+  body.dark .md-preview th,
+  body.dark .md-preview td{
+    border-color:rgba(255,255,255,0.08);
+  }
+  body.dark .shortcut-item{
+    background:rgba(255,255,255,0.03);
+    border-color:rgba(255,255,255,0.06);
+  }
+  body.dark .shortcut-item:hover{
+    background:rgba(255,107,53,0.08);
+  }
+  body.dark .kbd{
+    background:rgba(255,255,255,0.06);
+    border-color:rgba(255,255,255,0.1);
+  }
+  body.dark .mobile-tab-switch{
+    background:rgba(255,255,255,0.05);
+  }
+</style>
+
+<script src="/js/clarity.js" defer></script>
+</head>
+<body>
+
+<!-- ===== 导航栏 ===== -->
+<nav class="navbar">
+  <div class="navbar-inner">
+    <a href="#" class="navbar-brand">
+      <img src="logo.svg" alt="ToolBox">
+      <span class="navbar-brand-text">ToolBox <span>工具百科</span></span>
+    </a>
+    <div class="navbar-links">
+      <a href="#">全部工具</a>
+      <a href="#">商业办公</a>
+      <a href="#">开发工具</a>
+      <a href="#">关于</a>
+    </div>
+    <div class="navbar-search">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+      <input type="text" placeholder="搜索工具..." aria-label="搜索工具">
+    </div>
+    <div class="navbar-actions">
+      <button class="theme-toggle" aria-label="切换主题">
+        <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
+        <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>
+      </button>
+      <button class="theme-toggle navbar-mobile-menu" aria-label="菜单">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" x2="20" y1="6" y2="6"/><line x1="4" x2="20" y1="12" y2="12"/><line x1="4" x2="20" y1="18" y2="18"/></svg>
+      </button>
+    </div>
+  </div>
+</nav>
+
+<!-- ===== 主内容 ===== -->
+<main class="container-main tool-content">
+
+  <!-- 面包屑 -->
+  <nav class="breadcrumb animate-fade-in" aria-label="面包屑">
+    <a href="#">首页</a>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+    <a href="#">商业办公</a>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+    <span class="breadcrumb-current">Markdown 编辑器</span>
+  </nav>
+
+  <!-- 工具标题区 -->
+  <div class="tool-header animate-fade-up">
+    <h1 class="tool-title">
+      <span class="tool-title-icon">📝</span>
+      <span>Markdown 编辑器</span>
+    </h1>
+    <p class="tool-desc">实时预览的 Markdown 编写工具，支持完整语法和代码高亮</p>
+    <div class="tool-tags">
+      <span class="tool-tag tag-primary">商业办公</span>
+      <span class="tool-tag tag-secondary">实时预览</span>
+      <span class="tool-tag tag-accent">免费</span>
+    </div>
+  </div>
+
+  <!-- 工具栏卡片 -->
+  <div class="card editor-toolbar-card animate-fade-up delay-1" style="margin-bottom:16px;">
+    <!-- 格式化按钮组 -->
+    <div class="format-group" role="toolbar" aria-label="格式化工具">
+      <!-- 撤销 / 重做 -->
+      <button class="fmt-btn" title="撤销 (Ctrl+Z)" aria-label="撤销">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7v6h6"/><path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"/></svg>
+      </button>
+      <button class="fmt-btn" title="重做 (Ctrl+Shift+Z)" aria-label="重做">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 7v6h-6"/><path d="M3 17a9 9 0 0 1 9-9 9 9 0 0 1 6 2.3L21 13"/></svg>
+      </button>
+
+      <span class="format-sep"></span>
+
+      <!-- 粗体 / 斜体 / 删除线 / 行内代码 -->
+      <button class="fmt-btn" title="粗体 (Ctrl+B)" aria-label="粗体">
+        <span class="fmt-btn-text">B</span>
+      </button>
+      <button class="fmt-btn" title="斜体 (Ctrl+I)" aria-label="斜体">
+        <span class="fmt-btn-text fmt-btn-text-italic">I</span>
+      </button>
+      <button class="fmt-btn" title="删除线" aria-label="删除线">
+        <span class="fmt-btn-text fmt-btn-text-strike">S</span>
+      </button>
+      <button class="fmt-btn fmt-btn-code" title="行内代码" aria-label="行内代码">
+        &lt;/&gt;
+      </button>
+
+      <span class="format-sep"></span>
+
+      <!-- H1 / H2 / H3 -->
+      <button class="fmt-btn" title="一级标题" aria-label="一级标题">
+        <span class="fmt-btn-h">H1</span>
+      </button>
+      <button class="fmt-btn" title="二级标题" aria-label="二级标题">
+        <span class="fmt-btn-h">H2</span>
+      </button>
+      <button class="fmt-btn" title="三级标题" aria-label="三级标题">
+        <span class="fmt-btn-h">H3</span>
+      </button>
+
+      <span class="format-sep"></span>
+
+      <!-- 无序列表 / 有序列表 / 任务列表 -->
+      <button class="fmt-btn" title="无序列表" aria-label="无序列表">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" x2="21" y1="6" y2="6"/><line x1="8" x2="21" y1="12" y2="12"/><line x1="8" x2="21" y1="18" y2="18"/><line x1="3" x2="3.01" y1="6" y2="6"/><line x1="3" x2="3.01" y1="12" y2="12"/><line x1="3" x2="3.01" y1="18" y2="18"/></svg>
+      </button>
+      <button class="fmt-btn" title="有序列表" aria-label="有序列表">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="10" x2="21" y1="6" y2="6"/><line x1="10" x2="21" y1="12" y2="12"/><line x1="10" x2="21" y1="18" y2="18"/><path d="M4 6h1v4"/><path d="M4 10h2"/><path d="M6 18H4c0-1 2-2 2-3s-1-1.5-2-1"/></svg>
+      </button>
+      <button class="fmt-btn" title="任务列表" aria-label="任务列表">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="m9 12 2 2 4-4"/></svg>
+      </button>
+
+      <span class="format-sep"></span>
+
+      <!-- 引用块 / 分割线 / 表格 -->
+      <button class="fmt-btn" title="引用块" aria-label="引用块">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21c3 0 7-1 7-8V5c0-1.25-.756-2.017-2-2H4c-1.25 0-2 .75-2 1.972V11c0 1.25.75 2 2 2 1 0 1 0 1 1v1c0 1-1 2-2 2s-1 .008-1 1.031V20c0 1 0 1 1 1z"/><path d="M15 21c3 0 7-1 7-8V5c0-1.25-.757-2.017-2-2h-4c-1.25 0-2 .75-2 1.972V11c0 1.25.75 2 2 2h.75c0 2.25.25 4-2.75 4v3c0 1 0 1 1 1z"/></svg>
+      </button>
+      <button class="fmt-btn" title="分割线" aria-label="分割线">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h18"/></svg>
+      </button>
+      <button class="fmt-btn" title="表格" aria-label="表格">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18"/><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><path d="M3 9h18"/><path d="M3 15h18"/></svg>
+      </button>
+
+      <span class="format-sep"></span>
+
+      <!-- 链接 / 图片 / 代码块 -->
+      <button class="fmt-btn" title="链接 (Ctrl+K)" aria-label="链接">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+      </button>
+      <button class="fmt-btn" title="图片" aria-label="图片">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>
+      </button>
+      <button class="fmt-btn" title="代码块" aria-label="代码块">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+      </button>
+    </div>
+
+    <!-- 右侧：视图切换 + 导出 -->
+    <div class="toolbar-right">
+      <div class="view-toggle hidden-mobile" role="tablist" aria-label="视图模式">
+        <button class="view-btn" data-view="edit" role="tab">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline;vertical-align:middle;margin-right:4px;width:13px;height:13px;"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>
+          编辑
+        </button>
+        <button class="view-btn" data-view="preview" role="tab">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline;vertical-align:middle;margin-right:4px;width:13px;height:13px;"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+          预览
+        </button>
+        <button class="view-btn active" data-view="split" role="tab" aria-selected="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline;vertical-align:middle;margin-right:4px;width:13px;height:13px;"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><path d="M15 3v18"/></svg>
+          分屏
+        </button>
+      </div>
+      <button class="btn btn-secondary btn-sm" onclick="Template.showToast('已导出为 Markdown 文件')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
+        导出
+      </button>
+    </div>
+  </div>
+
+  <!-- 移动端 Tab 切换（编辑/预览/分屏） -->
+  <div class="mobile-editor-tabs">
+    <div class="mobile-tab-switch" role="tablist" aria-label="编辑器视图">
+      <button class="mobile-tab-btn" data-view="edit" role="tab">编辑</button>
+      <button class="mobile-tab-btn" data-view="preview" role="tab">预览</button>
+      <button class="mobile-tab-btn active" data-view="split" role="tab">分屏</button>
+    </div>
+  </div>
+
+  <!-- 编辑器分屏 -->
+  <div class="editor-split animate-fade-up delay-2" id="editorSplit">
+
+    <!-- 左栏：编辑区（始终暗色） -->
+    <div class="editor-pane editor-dark" id="editPane">
+      <div class="pane-header">
+        <div class="pane-header-left">
+          <span class="pane-title">编辑</span>
+        </div>
+        <div class="pane-header-right">
+          <span class="pane-meta" id="wordCount">428 字</span>
+          <span class="pane-meta" style="margin-left:8px;" id="lineCount">33 行</span>
+        </div>
+      </div>
+      <div class="editor-body">
+        <div class="line-numbers" id="lineNumbers"></div>
+        <textarea class="editor-textarea" id="editorInput" spellcheck="false" placeholder="在此输入 Markdown 内容..."># 欢迎使用 Markdown 编辑器
+
+这是一款功能强大的在线 Markdown 编辑器，支持**实时预览**和丰富的格式化功能。
+
+## 核心特性
+
+- 实时双栏预览
+- 一键导出 HTML / PDF
+- 语法高亮渲染
+- 智能快捷键支持
+
+## 代码示例
+
+```javascript
+function greetUser(name) {
+  console.log(`你好，${name}！`);
+  return { status: 'success' };
+}
+```
+
+## 数据表格
+
+| 功能模块   | 状态   | 进度   |
+| ---------- | ------ | ------ |
+| 编辑器核心 | 完成   | 100%   |
+| 导出功能   | 进行中 | 75%    |
+| 协作编辑   | 计划中 | 0%     |
+
+> **提示**：使用快捷键 `Ctrl + S` 保存内容，`Ctrl + Shift + P` 切换预览。
+
+## 了解更多
+
+访问 [ToolBox 工具百科](https://toolbox.example.com) 获取更多开发工具。</textarea>
+      </div>
+      <div class="pane-status">
+        <div class="pane-status-item">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+          <span id="cursorPos">行 1, 列 1</span>
+        </div>
+        <div class="pane-status-item">
+          <span>UTF-8</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 分隔线 -->
+    <div class="editor-divider" id="editorDivider"></div>
+
+    <!-- 右栏：预览区 -->
+    <div class="editor-pane" id="previewPane">
+      <div class="pane-header">
+        <div class="pane-header-left">
+          <span class="sync-dot"></span>
+          <span class="pane-title">预览</span>
+        </div>
+        <div class="pane-header-right">
+          <span class="sync-label">已同步</span>
+        </div>
+      </div>
+      <div class="preview-body">
+        <div class="preview-content md-preview" id="previewContent">
+          <!-- 由 JS 渲染 -->
+        </div>
+      </div>
+      <div class="pane-status">
+        <div class="pane-status-item">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          <span id="readTime">约 2 分钟</span>
+        </div>
+        <div class="pane-status-item">
+          <span id="previewWordCount">428 字</span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- 快捷键提示卡片 -->
+  <section class="section-gap animate-fade-up delay-3">
+    <div class="card">
+      <div class="card-header">
+        <h2 class="card-title">
+          <span class="card-title-icon icon-bg-secondary">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="16" x="2" y="4" rx="2" ry="2"/><path d="M6 8h.001M10 8h.001M14 8h.001M18 8h.001M8 12h.001M12 12h.001M16 12h.001M7 16h10"/></svg>
+          </span>
+          快捷键
+        </h2>
+      </div>
+      <div class="shortcut-grid">
+        <div class="shortcut-item">
+          <span class="shortcut-desc">粗体</span>
+          <div class="shortcut-keys">
+            <span class="kbd">Ctrl</span><span class="shortcut-plus">+</span><span class="kbd">B</span>
+          </div>
+        </div>
+        <div class="shortcut-item">
+          <span class="shortcut-desc">斜体</span>
+          <div class="shortcut-keys">
+            <span class="kbd">Ctrl</span><span class="shortcut-plus">+</span><span class="kbd">I</span>
+          </div>
+        </div>
+        <div class="shortcut-item">
+          <span class="shortcut-desc">插入链接</span>
+          <div class="shortcut-keys">
+            <span class="kbd">Ctrl</span><span class="shortcut-plus">+</span><span class="kbd">K</span>
+          </div>
+        </div>
+        <div class="shortcut-item">
+          <span class="shortcut-desc">保存</span>
+          <div class="shortcut-keys">
+            <span class="kbd">Ctrl</span><span class="shortcut-plus">+</span><span class="kbd">S</span>
+          </div>
+        </div>
+        <div class="shortcut-item">
+          <span class="shortcut-desc">撤销</span>
+          <div class="shortcut-keys">
+            <span class="kbd">Ctrl</span><span class="shortcut-plus">+</span><span class="kbd">Z</span>
+          </div>
+        </div>
+        <div class="shortcut-item">
+          <span class="shortcut-desc">重做</span>
+          <div class="shortcut-keys">
+            <span class="kbd">Ctrl</span><span class="shortcut-plus">+</span><span class="kbd">Shift</span><span class="shortcut-plus">+</span><span class="kbd">Z</span>
+          </div>
+        </div>
+        <div class="shortcut-item">
+          <span class="shortcut-desc">查找替换</span>
+          <div class="shortcut-keys">
+            <span class="kbd">Ctrl</span><span class="shortcut-plus">+</span><span class="kbd">H</span>
+          </div>
+        </div>
+        <div class="shortcut-item">
+          <span class="shortcut-desc">全选</span>
+          <div class="shortcut-keys">
+            <span class="kbd">Ctrl</span><span class="shortcut-plus">+</span><span class="kbd">A</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 相关工具 -->
+  <section class="section-gap animate-fade-up delay-3">
+    <h2 class="section-title">
+      <span class="section-title-icon icon-bg-accent">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/></svg>
+      </span>
+      相关工具
+    </h2>
+    <div class="related-grid">
+      <a href="#" class="related-card">
+        <span class="related-icon" style="background:var(--primary-light);">📋</span>
+        <span class="related-title">JSON 格式化</span>
+        <span class="related-desc">在线 JSON 格式化、压缩和校验工具</span>
+      </a>
+      <a href="#" class="related-card">
+        <span class="related-icon" style="background:var(--secondary-light);">🔤</span>
+        <span class="related-title">HTML 转义</span>
+        <span class="related-desc">HTML 实体编码与解码转换工具</span>
+      </a>
+      <a href="#" class="related-card">
+        <span class="related-icon" style="background:var(--accent-light);">📄</span>
+        <span class="related-title">文档转换</span>
+        <span class="related-desc">Word、PDF、TXT 多格式文档互转</span>
+      </a>
+      <a href="#" class="related-card">
+        <span class="related-icon" style="background:var(--primary-light);">🔍</span>
+        <span class="related-title">正则表达式</span>
+        <span class="related-desc">在线正则表达式测试与调试工具</span>
+      </a>
+    </div>
+  </section>
+
+</main>
+
+<!-- ===== 页脚 ===== -->
+<footer class="footer">
+  <div class="footer-inner">
+    <div>
+      <div class="footer-brand">
+        <img src="logo.svg" alt="ToolBox">
+        <span class="footer-brand-text">Tool<span>Box</span></span>
+      </div>
+      <p class="footer-desc">ToolBox 工具百科，汇集 1010+ 免费在线工具，纯前端处理，数据不上传，让效率触手可及。</p>
+    </div>
+    <div>
+      <h4>工具分类</h4>
+      <ul>
+        <li><a href="#">IT 开发</a></li>
+        <li><a href="#">商业办公</a></li>
+        <li><a href="#">日常生活</a></li>
+        <li><a href="#">健康医疗</a></li>
+      </ul>
+    </div>
+    <div>
+      <h4>关于我们</h4>
+      <ul>
+        <li><a href="#">关于 ToolBox</a></li>
+        <li><a href="#">使用条款</a></li>
+        <li><a href="#">隐私政策</a></li>
+        <li><a href="#">联系我们</a></li>
+      </ul>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <span>© 2026 ToolBox 工具百科. All rights reserved.</span>
+    <span>纯前端 · 免费开放 · 数据不上传</span>
+  </div>
+</footer>
+
+<!-- ===== 移动端底部 Tab 栏 ===== -->
+<nav class="mobile-tabbar" aria-label="底部导航">
+  <a href="#" class="mobile-tabbar-item active">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+    <span>首页</span>
+  </a>
+  <a href="#" class="mobile-tabbar-item">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/></svg>
+    <span>分类</span>
+  </a>
+  <a href="#" class="mobile-tabbar-item">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+    <span>搜索</span>
+  </a>
+  <a href="#" class="mobile-tabbar-item">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+    <span>收藏</span>
+  </a>
+</nav>
+
+<script>
+/* ===== Markdown 编辑器逻辑 ===== */
+(function(){
+  'use strict';
+
+  var editor = document.getElementById('editorInput');
+  var lineNumbers = document.getElementById('lineNumbers');
+  var preview = document.getElementById('previewContent');
+  var cursorPos = document.getElementById('cursorPos');
+  var wordCountEl = document.getElementById('wordCount');
+  var lineCountEl = document.getElementById('lineCount');
+  var readTimeEl = document.getElementById('readTime');
+  var previewWordCountEl = document.getElementById('previewWordCount');
+
+  // ===== 简易 Markdown 渲染器 =====
+  function renderMarkdown(md){
+    var html = md;
+    // 代码块（先处理，避免内部被转换）
+    var codeBlocks = [];
+    html = html.replace(/```(\w*)\n([\s\S]*?)```/g, function(m, lang, code){
+      var idx = codeBlocks.length;
+      codeBlocks.push('<pre><code>' + highlightCode(escHtml(code.trim())) + '</code></pre>');
+      return '%%CODEBLOCK' + idx + '%%';
+    });
+    // 行内代码
+    html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
+    // 标题
+    html = html.replace(/^######\s+(.+)$/gm, '<h6>$1</h6>');
+    html = html.replace(/^#####\s+(.+)$/gm, '<h5>$1</h5>');
+    html = html.replace(/^####\s+(.+)$/gm, '<h4>$1</h4>');
+    html = html.replace(/^###\s+(.+)$/gm, '<h3>$1</h3>');
+    html = html.replace(/^##\s+(.+)$/gm, '<h2>$1</h2>');
+    html = html.replace(/^#\s+(.+)$/gm, '<h1>$1</h1>');
+    // 分割线
+    html = html.replace(/^(---|\*\*\*|___)\s*$/gm, '<hr>');
+    // 引用块
+    html = html.replace(/^>\s+(.+)$/gm, '<blockquote><p>$1</p></blockquote>');
+    // 合并相邻引用块
+    html = html.replace(/<\/blockquote>\n<blockquote>/g, '\n');
+    // 粗体
+    html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+    // 斜体
+    html = html.replace(/\*(.+?)\*/g, '<em>$1</em>');
+    // 删除线
+    html = html.replace(/~~(.+?)~~/g, '<del>$1</del>');
+    // 图片
+    html = html.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<img src="$2" alt="$1" style="max-width:100%;border-radius:8px;">');
+    // 链接
+    html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank">$1</a>');
+    // 表格
+    html = html.replace(/((?:^\|.+$)\n)+/gm, function(tableMatch){
+      if(tableMatch.indexOf('|') === -1) return tableMatch;
+      var rows = tableMatch.trim().split('\n');
+      if(rows.length < 2) return tableMatch;
+      // 检查第二行是否是分隔行
+      if(!/^\|[\s|:-]+\|$/.test(rows[1])) return tableMatch;
+      var headers = rows[0].split('|').filter(function(c){return c.trim() !== '';});
+      var bodyRows = rows.slice(2);
+      var out = '<table><thead><tr>';
+      headers.forEach(function(h){ out += '<th>' + h.trim() + '</th>'; });
+      out += '</tr></thead><tbody>';
+      bodyRows.forEach(function(row){
+        var cells = row.split('|').filter(function(c){return c.trim() !== '';});
+        if(cells.length === 0) return;
+        out += '<tr>';
+        cells.forEach(function(c){ out += '<td>' + c.trim() + '</td>'; });
+        out += '</tr>';
+      });
+      out += '</tbody></table>';
+      return out;
+    });
+    // 无序列表
+    html = html.replace(/^(\s*)-\s+(.+)$/gm, '<li>$2</li>');
+    html = html.replace(/((?:<li>.*<\/li>\n?)+)/g, '<ul>$1</ul>');
+    // 有序列表
+    html = html.replace(/^\d+\.\s+(.+)$/gm, '<oli>$1</oli>');
+    html = html.replace(/((?:<oli>.*<\/oli>\n?)+)/g, function(m){
+      return '<ol>' + m.replace(/<oli>/g,'<li>').replace(/<\/oli>/g,'</li>') + '</ol>';
+    });
+    // 段落：把未被标签包裹的连续行包裹为 <p>
+    html = html.replace(/^(?!<[a-z/])(.*\S.*)$/gm, '<p>$1</p>');
+    // 还原代码块
+    codeBlocks.forEach(function(block, i){
+      html = html.replace('%%CODEBLOCK' + i + '%%', block);
+    });
+    return html;
+  }
+
+  // 简易代码高亮（JS 关键词）
+  function highlightCode(code){
+    code = code
+      .replace(/\/\/.*$/gm, '<span class="cm">$&</span>')
+      .replace(/\b(function|const|let|var|return|if|else|for|while|class|import|export|from|new|this|typeof|instanceof|async|await|try|catch|throw)\b/g, '<span class="kw">$1</span>')
+      .replace(/\b(\d+\.?\d*)\b/g, '<span class="num">$1</span>')
+      .replace(/("(?:[^"\\]|\\.)*"|`(?:[^`\\]|\\.)*`)/g, '<span class="str">$1</span>')
+      .replace(/('(?:[^'\\]|\\.)*')/g, '<span class="str">$1</span>')
+      .replace(/(=>|===|!==|&&|\|\||\.=|[+\-*/]=?)/g, '<span class="op">$1</span>');
+    return code;
+  }
+
+  function escHtml(s){
+    return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
+  // ===== 行号更新 =====
+  function updateLineNumbers(){
+    var lines = editor.value.split('\n');
+    var curLine = editor.value.substring(0, editor.selectionStart).split('\n').length;
+    var html = '';
+    for(var i = 1; i <= lines.length; i++){
+      html += '<div' + (i === curLine ? ' class="active-line"' : '') + '>' + i + '</div>';
+    }
+    lineNumbers.innerHTML = html;
+    // 同步滚动
+    lineNumbers.scrollTop = editor.scrollTop;
+  }
+
+  // ===== 统计更新 =====
+  function updateStats(){
+    var text = editor.value;
+    var chars = text.length;
+    var lines = text.split('\n').length;
+    wordCountEl.textContent = chars + ' 字';
+    lineCountEl.textContent = lines + ' 行';
+    previewWordCountEl.textContent = chars + ' 字';
+    // 阅读时间（中文约 400 字/分钟）
+    var minutes = Math.max(1, Math.ceil(chars / 400));
+    readTimeEl.textContent = '约 ' + minutes + ' 分钟';
+  }
+
+  // ===== 光标位置更新 =====
+  function updateCursorPos(){
+    var val = editor.value;
+    var pos = editor.selectionStart;
+    var before = val.substring(0, pos);
+    var line = before.split('\n').length;
+    var col = pos - before.lastIndexOf('\n');
+    cursorPos.textContent = '行 ' + line + ', 列 ' + col;
+  }
+
+  // ===== 预览渲染 =====
+  function renderPreview(){
+    var md = editor.value;
+    preview.innerHTML = renderMarkdown(md);
+  }
+
+  // ===== 编辑器输入监听 =====
+  editor.addEventListener('input', function(){
+    updateLineNumbers();
+    updateStats();
+    renderPreview();
+  });
+  editor.addEventListener('scroll', function(){
+    lineNumbers.scrollTop = editor.scrollTop;
+  });
+  editor.addEventListener('click', function(){
+    updateCursorPos();
+    updateLineNumbers();
+  });
+  editor.addEventListener('keyup', function(){
+    updateCursorPos();
+    updateLineNumbers();
+  });
+
+  // ===== 视图切换（桌面端） =====
+  function initDesktopViewToggle(){
+    var btns = document.querySelectorAll('.view-toggle .view-btn');
+    btns.forEach(function(btn){
+      btn.addEventListener('click', function(){
+        btns.forEach(function(b){ b.classList.remove('active'); b.removeAttribute('aria-selected'); });
+        btn.classList.add('active');
+        btn.setAttribute('aria-selected', 'true');
+        var view = btn.getAttribute('data-view');
+        applyView(view);
+      });
+    });
+  }
+
+  // ===== 视图切换（移动端） =====
+  function initMobileViewToggle(){
+    var btns = document.querySelectorAll('.mobile-tab-btn');
+    btns.forEach(function(btn){
+      btn.addEventListener('click', function(){
+        btns.forEach(function(b){ b.classList.remove('active'); });
+        btn.classList.add('active');
+        var view = btn.getAttribute('data-view');
+        applyView(view);
+        // 同步桌面端按钮
+        document.querySelectorAll('.view-toggle .view-btn').forEach(function(b){
+          b.classList.toggle('active', b.getAttribute('data-view') === view);
+        });
+      });
+    });
+  }
+
+  function applyView(view){
+    var editPane = document.getElementById('editPane');
+    var previewPane = document.getElementById('previewPane');
+    var divider = document.getElementById('editorDivider');
+    var split = document.getElementById('editorSplit');
+
+    if(view === 'edit'){
+      editPane.style.display = 'flex';
+      previewPane.style.display = 'none';
+      divider.style.display = 'none';
+      if(window.innerWidth <= 768){
+        editPane.classList.remove('mobile-hidden');
+        previewPane.classList.add('mobile-hidden');
+        divider.classList.add('mobile-hidden');
+      }
+    } else if(view === 'preview'){
+      editPane.style.display = 'none';
+      previewPane.style.display = 'flex';
+      divider.style.display = 'none';
+      if(window.innerWidth <= 768){
+        editPane.classList.add('mobile-hidden');
+        previewPane.classList.remove('mobile-hidden');
+        divider.classList.add('mobile-hidden');
+      }
+    } else {
+      editPane.style.display = 'flex';
+      previewPane.style.display = 'flex';
+      divider.style.display = 'block';
+      if(window.innerWidth <= 768){
+        editPane.classList.remove('mobile-hidden');
+        previewPane.classList.remove('mobile-hidden');
+        divider.classList.remove('mobile-hidden');
+      }
+    }
+  }
+
+  // ===== 初始化 =====
+  document.addEventListener('DOMContentLoaded', function(){
+    updateLineNumbers();
+    updateStats();
+    updateCursorPos();
+    renderPreview();
+    initDesktopViewToggle();
+    initMobileViewToggle();
+  });
+
+})();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,554 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+
+<script src="/js/tool-page-runtime.js" defer></script>
+<!-- TOOLBOX-TOOL-RUNTIME -->
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="toolbox" content="cat=calculator,industry=astronomy,icon=🔭,bg=#e3f2fd">
+<meta name="description" content="天文观测条件计算器 - 是一款面向天文爱好者与深空摄影师的纯前端在线工具。输入观测日期、地理经纬度、Bortle 暗空等级与云量，即可实时估算月相、月相照明百分比、月升月落时间，并综合月光干扰、光污染与天气因素给出 1-10 分观测条件评分与针对">
+<title>天文观测条件计算器 - 面向天文爱好者与深空摄影师的纯前端在线工具 - ToolBox</title>
+<link rel="canonical" href="https://chenguangwu.github.io/tools/astronomy/observation-conditions.html">
+<meta property="og:title" content="天文观测条件计算器 - 面向天文爱好者与深空摄影师的纯前端在线工具 - ToolBox">
+<meta property="og:description" content="天文观测条件计算器 - 是一款面向天文爱好者与深空摄影师的纯前端在线工具。输入观测日期、地理经纬度、Bortle 暗空等级与云量，即可实时估算月相、月相照明百分比、月升月落时间，并综合月光干扰、光污染与天气因素给出 1-10 分观测条件评分与针对">
+<meta property="og:url" content="https://chenguangwu.github.io/tools/astronomy/observation-conditions.html">
+<meta name="twitter:card" content="summary">
+<link rel="stylesheet" href="../../css/common.css">
+<script src="../../js/common.js"></script>
+<style>
+  /* 工具专属样式 */
+  .moon-stage{
+    display:flex;align-items:center;gap:18px;flex-wrap:wrap;
+    padding:18px;border-radius:16px;margin-bottom:14px;
+    background:linear-gradient(135deg,rgba(59,130,246,0.06) 0%,rgba(124,58,237,0.06) 100%);
+    border:1px solid var(--border);
+  }
+  [data-theme="dark"] .moon-stage{background:linear-gradient(135deg,rgba(59,130,246,0.1) 0%,rgba(124,58,237,0.1) 100%);}
+  .moon-emoji{
+    font-size:64px;line-height:1;flex-shrink:0;
+    filter:drop-shadow(0 0 14px rgba(255,239,163,0.45));
+    animation:moonFloat 4s ease-in-out infinite;
+  }
+  @keyframes moonFloat{0%,100%{transform:translateY(0);}50%{transform:translateY(-4px);}}
+  .moon-info{flex:1;min-width:160px;}
+  .moon-info .phase-name{font-size:20px;font-weight:700;color:var(--heading);}
+  .moon-info .phase-sub{font-size:13px;color:var(--text-secondary);margin-top:2px;}
+  .illum-bar{height:8px;background:var(--border);border-radius:4px;overflow:hidden;margin-top:10px;}
+  .illum-fill{height:100%;border-radius:4px;background:linear-gradient(135deg,#F5E6C8,#FFD27A);transition:width .5s ease;}
+
+  /* 评分大卡片 */
+  .score-hero{
+    display:flex;align-items:center;gap:20px;flex-wrap:wrap;
+    padding:20px;border-radius:16px;margin-bottom:14px;
+    border:1px solid var(--border);
+  }
+  .score-ring{
+    width:96px;height:96px;border-radius:50%;flex-shrink:0;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    color:#fff;box-shadow:0 6px 20px rgba(0,0,0,0.15);
+  }
+  .score-ring .num{font-size:30px;font-weight:800;line-height:1;}
+  .score-ring .unit{font-size:11px;opacity:.9;margin-top:2px;}
+  .score-hero .score-text{flex:1;min-width:200px;}
+  .score-hero .score-level{font-size:15px;font-weight:700;margin-bottom:4px;}
+  .score-hero .score-tip{font-size:13px;color:var(--text-secondary);line-height:1.7;}
+
+  /* 评分刻度条 */
+  .score-scale{margin-top:12px;}
+  .score-scale-track{position:relative;height:10px;border-radius:5px;overflow:hidden;
+    background:linear-gradient(90deg,#EF4444 0%,#FF6B35 25%,#F59E0B 45%,#3B82F6 70%,#10B981 100%);}
+  .score-scale-mark{position:absolute;top:-3px;width:4px;height:16px;background:var(--heading);border-radius:2px;transform:translateX(-50%);transition:left .4s ease;}
+  .score-scale-labels{display:flex;justify-content:space-between;font-size:11px;color:var(--text-muted);margin-top:6px;}
+
+  .breakdown .bar-row .bar-lbl{width:92px;}
+  .breakdown .bar-row .bar-fill{background:linear-gradient(90deg,#3B82F6,#7C3AED);}
+
+  /* Bortle 表格当前行高亮 */
+  .bortle-table tr.active td{background:rgba(255,107,53,0.1);font-weight:600;}
+  [data-theme="dark"] .bortle-table tr.active td{background:rgba(255,107,53,0.16);}
+  .bortle-dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px;vertical-align:middle;}
+
+  /* 输入区两列 */
+  .input-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;}
+  @media(max-width:768px){.input-grid{grid-template-columns:1fr;}}
+  .slider-row{display:flex;align-items:center;gap:12px;}
+  .slider-row input[type=range]{flex:1;accent-color:var(--primary);height:6px;}
+  .slider-row .slider-val{font-size:13px;font-weight:600;color:var(--primary);min-width:46px;text-align:right;}
+</style>
+
+
+
+<meta property="og:image" content="https://chenguangwu.github.io/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="ToolBox - 6000+免费在线工具">
+<meta name="twitter:image" content="https://chenguangwu.github.io/og-image.png">
+<meta name="twitter:image:alt" content="ToolBox - 6000+免费在线工具">
+    <meta property="og:type" content="website">
+    <meta name="twitter:title" content="天文观测条件计算器 - 面向天文爱好者与深空摄影师的纯前端在线工具 - ToolBox">
+    <meta name="twitter:description" content="天文观测条件计算器 - 是一款面向天文爱好者与深空摄影师的纯前端在线工具。输入观测日期、地理经纬度、Bortle 暗空等级与云量，即可实时估算月相、月相照明百分比、月升月落时间，并综合月光干扰、光污染与天气因素给出 1-10 分观测条件评分与针对">
+<!-- TOOLBOX-WEBAPP-LD -->
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"WebApplication","name":"天文观测条件计算器 - 面向天文爱好者与深空摄影师的纯前端在线工具","url":"https://chenguangwu.github.io/tools/astronomy/observation-conditions.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":["zh-CN", "en-US"],"description":"天文观测条件计算器","image":"https://chenguangwu.github.io/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}
+</script>
+<meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
+<meta http-equiv="X-Content-Type-Options" content="nosniff">
+<meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
+<!-- TOOLBOX-SECURITY -->
+
+<script src="/js/privacy.js" defer></script>
+<!-- TOOLBOX-PRIVACY-SCRIPT -->
+
+<script src="/js/metrics.js" defer></script>
+<!-- TOOLBOX-METRICS-SCRIPT -->
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"首页","item":"https://chenguangwu.github.io/"},{"@type":"ListItem","position":2,"name":"天文观测","item":"https://chenguangwu.github.io/tools/astronomy/index.html"},{"@type":"ListItem","position":3,"name":"天文观测条件计算器","item":"https://chenguangwu.github.io/tools/astronomy/observation-conditions.html"}]}
+</script>
+
+<script src="../../js/i18n.js" defer></script>
+<script src="../../js/tool-i18n.js" defer></script>
+<!-- TOOLBOX-I18N-SCRIPT -->
+<!-- TOOLBOX-HREFLANG -->
+<link rel="alternate" hreflang="zh-CN" href="https://chenguangwu.github.io/tools/astronomy/observation-conditions.html">
+<link rel="alternate" hreflang="en-US" href="https://chenguangwu.github.io/tools/astronomy/observation-conditions.html">
+<link rel="alternate" hreflang="x-default" href="https://chenguangwu.github.io/tools/astronomy/observation-conditions.html">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:locale:alternate" content="en_US">
+
+<script src="/js/clarity.js" defer></script>
+<!-- TOOLBOX-CLARITY -->
+</head>
+<body>
+<h1 class="sr-only">天文观测条件计算器</h1>
+<div class="nav">
+  <a href="../../index.html">← ToolBox</a>
+  <span>/ 天文观测条件计算器</span>
+  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()">🌙</button>
+</div>
+
+
+
+
+<nav class="breadcrumb" aria-label="面包屑导航" data-breadcrumb="1">
+  <a href="../../index.html">首页</a>
+  <span class="bc-sep">‹</span>
+  <a href="index.html">🔧 天文观测</a>
+  <span class="bc-sep">‹</span>
+  <span class="bc-current">天文观测条件计算器</span>
+</nav>
+<div class="container">
+  <div class="card tool-card-accent" style="--tool-accent:#3B82F6;--tool-accent-dark:#2563EB;">
+    <h2>🔭 天文观测条件计算器</h2>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:14px;">输入日期、位置与观测环境，实时估算月相、月升月落与综合观测条件评分</p>
+
+    <!-- 输入区 -->
+    <div class="input-grid">
+      <div>
+        <label>观测日期</label>
+        <input type="date" id="dateInput" oninput="calc()" aria-label="观测日期">
+      </div>
+      <div>
+        <label>Bortle 暗空等级（1 最暗 - 9 最亮）</label>
+        <select id="bortleInput" oninput="calc()" aria-label="Bortle 暗空等级">
+          <option value="1">1 - 极暗空（自然黑暗）</option>
+          <option value="2">2 - 典型真正暗空</option>
+          <option value="3">3 - 乡村天空</option>
+          <option value="4">4 - 乡村/郊区过渡</option>
+          <option value="5" selected>5 - 郊区天空</option>
+          <option value="6">6 - 明亮郊区</option>
+          <option value="7">7 - 郊/城过渡</option>
+          <option value="8">8 - 城市天空</option>
+          <option value="9">9 - 城市中心</option>
+        </select>
+      </div>
+      <div>
+        <label>纬度（-90 ~ 90）</label>
+        <input type="number" id="latInput" value="39.9042" step="0.0001" min="-90" max="90" oninput="calc()" enterkeyhint="done" aria-label="纬度">
+      </div>
+      <div>
+        <label>经度（-180 ~ 180）</label>
+        <input type="number" id="lonInput" value="116.4074" step="0.0001" min="-180" max="180" oninput="calc()" enterkeyhint="done" aria-label="经度">
+      </div>
+    </div>
+    <div style="margin-bottom:12px;">
+      <label>云量（0% 晴朗 - 100% 阴天）：天气因素</label>
+      <div class="slider-row">
+        <input type="range" id="cloudInput" min="0" max="100" value="20" step="5" oninput="calc()" aria-label="云量">
+        <span class="slider-val" id="cloudVal">20%</span>
+      </div>
+    </div>
+
+    <div class="toolbar">
+      <button class="btn primary" type="button" onclick="calc()">🧮 计算</button>
+      <button class="btn" type="button" onclick="copyRes()">📋 复制结果</button>
+      <button class="btn" type="button" onclick="resetAll()">🗑️ 重置</button>
+    </div>
+
+    <!-- 结果区 -->
+    <div class="result-box" id="res"></div>
+
+    <div class="info-box">💡 说明：月相基于朔望月周期（约 29.53 天）估算，月升月落为本地太阳时近似值（未做时区修正），实际时间会有 ±30 分钟偏差；评分综合月光干扰（35%）、光污染（40%）与云量（25%）。</div>
+
+    <div class="tool-notes">
+      <div class="tool-notes-title">⚠️ 使用说明与注意事项</div>
+      <ul>
+        <li>本工具纯前端运行，所有计算在浏览器本地完成，数据不会上传</li>
+        <li>月相计算为简化算法，与天文历表可能有数小时误差，仅供出片规划参考</li>
+        <li>纬度影响日出日落与月升月落，请尽量填写观测地点实际坐标</li>
+        <li>Bortle 等级可参考 <a href="https://www.lightpollutionmap.info" target="_blank" rel="noopener">光污染地图</a> 查询所在地等级</li>
+        <li>云量为人工预估，建议结合当地天气预报综合判断</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- Bortle 等级对照表 -->
+  <div class="card">
+    <h3>🌌 Bortle 暗空等级对照表</h3>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;">当前选择等级已高亮，数据源自国际暗天协会（IDA）标准</p>
+    <div style="overflow-x:auto;">
+      <table class="bortle-table" id="bortleTable"></table>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ============ 天文计算 ============ */
+var SYNODIC = 29.530588853;          // 朔望月（天）
+var NEW_MOON_EPOCH = Date.UTC(2000, 0, 6, 18, 14, 0); // 2000-01-06 18:14 UTC 参考新月
+
+var BORTLE_DATA = [
+  {cls:1, mag:'7.6-8.0', desc:'极佳暗空，天空完全黑暗，空气辉光与黄道光清晰可见', color:'#0b1026'},
+  {cls:2, mag:'7.1-7.5', desc:'典型真正暗空，仅地平线方向略有光晕，M33肉眼可见', color:'#16224a'},
+  {cls:3, mag:'6.6-7.0', desc:'乡村天空，银河结构清晰可辨，地面阴影微弱', color:'#1f3a6b'},
+  {cls:4, mag:'6.1-6.5', desc:'乡村/郊区过渡，银河可见但结构略模糊', color:'#2f5599'},
+  {cls:5, mag:'5.6-6.0', desc:'郊区天空，银河勉强可见，地平线光污染明显', color:'#4a78b8'},
+  {cls:6, mag:'5.1-5.5', desc:'明亮郊区天空，地平线泛亮，银河难以辨认', color:'#6f96c8'},
+  {cls:7, mag:'4.6-5.0', desc:'郊/城过渡，整个天空泛橙红色调', color:'#9aa9cf'},
+  {cls:8, mag:'4.1-4.5', desc:'城市天空，仅见亮星，星座易辨认', color:'#c4b8b0'},
+  {cls:9, mag:'≤4.0', desc:'城市中心，天空亮如白昼，仅见最亮恒星与行星', color:'#dfd2c4'}
+];
+
+function $(id){ return document.getElementById(id); }
+
+function todayStr(){
+  var d = new Date();
+  var y = d.getFullYear();
+  var m = String(d.getMonth()+1).padStart(2,'0');
+  var day = String(d.getDate()).padStart(2,'0');
+  return y+'-'+m+'-'+day;
+}
+
+/* 月相：返回 {phase:0~1, age:天} */
+function getMoonPhase(date){
+  var diffDays = (date.getTime() - NEW_MOON_EPOCH) / 86400000;
+  var phase = (diffDays % SYNODIC) / SYNODIC;
+  if (phase < 0) phase += 1;
+  return { phase: phase, age: phase * SYNODIC };
+}
+
+/* 月相名称与图标 */
+function moonPhaseInfo(phase){
+  var p = phase, icon, name;
+  if (p < 0.035 || p > 0.965){ icon='🌑'; name='新月'; }
+  else if (p < 0.215){ icon='🌒'; name='蛾眉月'; }
+  else if (p < 0.285){ icon='🌓'; name='上弦月'; }
+  else if (p < 0.465){ icon='🌔'; name='盈凸月'; }
+  else if (p < 0.535){ icon='🌕'; name='满月'; }
+  else if (p < 0.715){ icon='🌖'; name='亏凸月'; }
+  else if (p < 0.785){ icon='🌗'; name='下弦月'; }
+  else { icon='🌘'; name='残月'; }
+  return { icon: icon, name: name };
+}
+
+/* 月相照明百分比 0~1 */
+function moonIllumination(phase){
+  return (1 - Math.cos(2 * Math.PI * phase)) / 2;
+}
+
+/* 一年中的第 N 天（1~365） */
+function dayOfYear(year, month, day){
+  var start = Date.UTC(year, 0, 1);
+  var cur = Date.UTC(year, month, day);
+  return Math.floor((cur - start) / 86400000) + 1;
+}
+
+/* 日出日落（本地太阳时，小时） */
+function sunriseSunset(lat, year, month, day){
+  var N = dayOfYear(year, month, day);
+  var decl = 23.45 * Math.sin(2 * Math.PI * (284 + N) / 365);
+  var latRad = lat * Math.PI / 180;
+  var declRad = decl * Math.PI / 180;
+  var cosH = -Math.tan(latRad) * Math.tan(declRad);
+  if (cosH > 1) return { polar: 'night' };   // 极夜
+  if (cosH < -1) return { polar: 'day' };    // 极昼
+  var H = Math.acos(cosH) * 180 / Math.PI;
+  return { sunrise: 12 - H / 15, sunset: 12 + H / 15 };
+}
+
+/* 小时 -> HH:MM */
+function fmtTime(hours){
+  if (hours == null || isNaN(hours)) return '—';
+  var h = Math.floor(hours);
+  var m = Math.round((hours - h) * 60);
+  if (m === 60){ h = (h + 1) % 24; m = 0; }
+  h = ((h % 24) + 24) % 24;
+  return String(h).padStart(2,'0') + ':' + String(m).padStart(2,'0');
+}
+
+/* 评分颜色 */
+function scoreColor(score){
+  if (score >= 8) return '#10B981';
+  if (score >= 6.5) return '#3B82F6';
+  if (score >= 4.5) return '#F59E0B';
+  if (score >= 2.5) return '#FF6B35';
+  return '#EF4444';
+}
+function scoreLevel(score){
+  if (score >= 8) return '极佳';
+  if (score >= 6.5) return '良好';
+  if (score >= 4.5) return '一般';
+  if (score >= 2.5) return '较差';
+  return '极差';
+}
+
+/* 设置输入错误态 */
+function setInvalid(el, invalid){
+  if (!el) return;
+  if (invalid){ el.classList.add('input-error'); el.setAttribute('aria-invalid','true'); }
+  else { el.classList.remove('input-error'); el.removeAttribute('aria-invalid'); }
+}
+
+/* ============ 主计算 ============ */
+function calc(){
+  var dateStr = $('dateInput').value || todayStr();
+  var lat = parseFloat($('latInput').value);
+  var lon = parseFloat($('lonInput').value);
+  var bortle = parseInt($('bortleInput').value, 10);
+  var cloud = parseInt($('cloudInput').value, 10);
+
+  setInvalid($('latInput'), isNaN(lat) || lat < -90 || lat > 90);
+  setInvalid($('lonInput'), isNaN(lon) || lon < -180 || lon > 180);
+  if (isNaN(lat) || lat < -90 || lat > 90) lat = 0;
+  if (isNaN(lon)) lon = 0;
+
+  $('cloudVal').textContent = cloud + '%';
+
+  // 解析日期（UTC 正午，避免时区边界）
+  var parts = dateStr.split('-');
+  var year = +parts[0], month = +parts[1] - 1, day = +parts[2];
+  var dateUTC = new Date(Date.UTC(year, month, day, 12, 0, 0));
+
+  // 月相
+  var mp = getMoonPhase(dateUTC);
+  var info = moonPhaseInfo(mp.phase);
+  var illum = moonIllumination(mp.phase);
+  var illumPct = (illum * 100);
+
+  // 月升月落估算
+  var ss = sunriseSunset(lat, year, month, day);
+  var moonrise, moonset, polarNote = '';
+  if (ss.polar){
+    polarNote = ss.polar === 'day' ? '（极昼，太阳不落）' : '（极夜，太阳不升）';
+    moonrise = null; moonset = null;
+  } else {
+    var shiftMin = mp.age * 50.47; // 月亮每天比太阳晚约 50.47 分钟
+    var riseH = (ss.sunrise * 60 + shiftMin) / 60;
+    var setH = (ss.sunset * 60 + shiftMin) / 60;
+    moonrise = ((riseH % 24) + 24) % 24;
+    moonset = ((setH % 24) + 24) % 24;
+  }
+
+  // 下次新月 / 满月
+  var daysToNewMoon = SYNODIC - mp.age;
+  var daysToFullMoon;
+  if (mp.phase < 0.5){ daysToFullMoon = (0.5 - mp.phase) * SYNODIC; }
+  else { daysToFullMoon = (1.5 - mp.phase) * SYNODIC; }
+
+  // 评分
+  var moonScore = 10 - 7 * illum;            // 新月=10，满月=3
+  var bortleScore = 11 - bortle;             // Bortle1=10，Bortle9=2
+  var weatherScore = 10 - (cloud / 100) * 8; // 晴朗=10，阴天=2
+  var total = moonScore * 0.35 + bortleScore * 0.40 + weatherScore * 0.25;
+  total = Math.max(1, Math.min(10, total));
+  var totalRound = Math.round(total * 10) / 10;
+
+  // 建议
+  var tip;
+  if (totalRound >= 8){ tip = '观测条件极佳，非常适合深空摄影与梅西耶天体观测，抓紧黄金时段！'; }
+  else if (totalRound >= 6.5){ tip = '观测条件良好，可进行深空观测与行星摄影。'; }
+  else if (totalRound >= 4.5){ tip = '条件一般，建议观测明亮行星、月球或双星。'; }
+  else if (totalRound >= 2.5){ tip = '条件较差，仅适合观测月球与亮行星。'; }
+  else { tip = '条件极差，建议室内休息或进行后期数据处理。'; }
+  if (illum > 0.7){ tip += ' 注意：月光较强，深空目标受干扰，建议转向行星/月球观测。'; }
+  else if (illum < 0.15 && bortle <= 4){ tip += ' 无月暗空夜，是深空摄影的黄金时段！'; }
+
+  var sc = scoreColor(totalRound);
+  var lvl = scoreLevel(totalRound);
+
+  // 极限星等
+  var bortleObj = BORTLE_DATA[bortle - 1];
+
+  // 渲染
+  var html = '';
+  // 月相舞台
+  html += '<div class="moon-stage">' +
+    '<div class="moon-emoji" aria-hidden="true">'+info.icon+'</div>' +
+    '<div class="moon-info">' +
+      '<div class="phase-name">'+info.name+'</div>' +
+      '<div class="phase-sub">月龄 '+mp.age.toFixed(1)+' 天 · 照明 '+illumPct.toFixed(1)+'%</div>' +
+      '<div class="illum-bar"><div class="illum-fill" style="width:'+illumPct.toFixed(1)+'%;"></div></div>' +
+    '</div></div>';
+
+  // 评分英雄区
+  html += '<div class="score-hero">' +
+    '<div class="score-ring" style="background:'+sc+';">' +
+      '<div class="num">'+totalRound.toFixed(1)+'</div><div class="unit">/ 10</div>' +
+    '</div>' +
+    '<div class="score-text">' +
+      '<div class="score-level" style="color:'+sc+';">观测条件：'+lvl+'</div>' +
+      '<div class="score-tip">'+tip+'</div>' +
+      '<div class="score-scale">' +
+        '<div class="score-scale-track"><div class="score-scale-mark" style="left:'+(totalRound*10)+'%;"></div></div>' +
+        '<div class="score-scale-labels"><span>1 极差</span><span>5</span><span>10 极佳</span></div>' +
+      '</div>' +
+    '</div></div>';
+
+  // 评分明细
+  html += '<div class="breakdown" style="margin-bottom:14px;">' +
+    '<div class="bar-row"><span class="bar-lbl">月光干扰</span><div class="bar-bg"><div class="bar-fill" style="width:'+(moonScore*10).toFixed(0)+'%;">'+moonScore.toFixed(1)+'</div></div></div>' +
+    '<div class="bar-row"><span class="bar-lbl">光污染</span><div class="bar-bg"><div class="bar-fill" style="width:'+(bortleScore*10).toFixed(0)+'%;">'+bortleScore.toFixed(1)+'</div></div></div>' +
+    '<div class="bar-row"><span class="bar-lbl">天气云量</span><div class="bar-bg"><div class="bar-fill" style="width:'+(weatherScore*10).toFixed(0)+'%;">'+weatherScore.toFixed(1)+'</div></div></div>' +
+    '</div>';
+
+  // 数据卡片
+  html += '<div class="data-grid">' +
+    '<div class="data-card"><div class="num">'+fmtTime(moonrise)+'</div><div class="label">月升（估）'+polarNote+'</div></div>' +
+    '<div class="data-card"><div class="num">'+fmtTime(moonset)+'</div><div class="label">月落（估）'+polarNote+'</div></div>' +
+    '<div class="data-card"><div class="num">'+daysToFullMoon.toFixed(1)+'</div><div class="label">距下次满月（天）</div></div>' +
+    '<div class="data-card"><div class="num">'+daysToNewMoon.toFixed(1)+'</div><div class="label">距下次新月（天）</div></div>' +
+    '<div class="data-card"><div class="num">'+bortleObj.mag+'</div><div class="label">极限星等</div></div>' +
+    '<div class="data-card"><div class="num">B'+bortle+'</div><div class="label">Bortle 等级</div></div>' +
+    '</div>';
+
+  $('res').innerHTML = html;
+
+  // 高亮 Bortle 表当前行
+  renderBortleTable(bortle);
+}
+
+/* ============ Bortle 对照表 ============ */
+function renderBortleTable(activeCls){
+  var html = '<thead><tr><th>等级</th><th>极限星等</th><th>天空描述</th></tr></thead><tbody>';
+  BORTLE_DATA.forEach(function(b){
+    var active = (b.cls === activeCls) ? ' class="active"' : '';
+    html += '<tr'+active+'><td><span class="bortle-dot" style="background:'+b.color+';"></span>B'+b.cls+'</td>' +
+      '<td>'+b.mag+'</td><td>'+b.desc+'</td></tr>';
+  });
+  html += '</tbody>';
+  $('bortleTable').innerHTML = html;
+}
+
+/* ============ 操作 ============ */
+function copyRes(){
+  var text = $('res').innerText;
+  if (!text || !text.trim()){ ToolBox.showToast(i18nText('toast.copy_target_missing'),'warning'); return; }
+  ToolBox.copyText(text);
+}
+function resetAll(){
+  $('dateInput').value = todayStr();
+  $('latInput').value = 39.9042;
+  $('lonInput').value = 116.4074;
+  $('bortleInput').value = 5;
+  $('cloudInput').value = 20;
+  setInvalid($('latInput'), false);
+  setInvalid($('lonInput'), false);
+  calc();
+  ToolBox.showToast('toast.reset','info');
+}
+
+/* ============ 初始化 ============ */
+document.addEventListener('DOMContentLoaded', function(){
+  $('dateInput').value = todayStr();
+  calc();
+});
+calc();
+</script>
+
+<!-- SEO 介绍区块 -->
+
+</div>
+
+</div>
+
+<!-- 相关工具 -->
+<div class="related-tools" data-related-tools="1">
+  <h3 class="related-tools-title">🔗 相关工具</h3>
+  <div class="related-tools-grid">
+    <a href="convert-15.html" class="related-tool-card">
+      <span class="rt-icon">🌌</span>
+      <span class="rt-info"><span class="rt-name">地震震级与能量换算（里氏↔焦耳） - 免费在线工具，纯前端处理 | ToolBox免费在线工具箱</span><span class="rt-desc">地震震级与能量换算（里氏↔焦耳）</span></span>
+    </a>
+    <a href="convert-18.html" class="related-tool-card">
+      <span class="rt-icon">🌌</span>
+      <span class="rt-info"><span class="rt-name">大气压与海拔转换（气压计读数） - 免费在线工具，纯前端处理 | ToolBox免费在线工具箱</span><span class="rt-desc">大气压与海拔转换（气压计读数）</span></span>
+    </a>
+    <a href="convert-17.html" class="related-tool-card">
+      <span class="rt-icon">🌌</span>
+      <span class="rt-info"><span class="rt-name">时区转换（内置全球时区） - 免费在线工具，纯前端处理 | ToolBox免费在线工具箱</span><span class="rt-desc">时区转换（内置全球时区）</span></span>
+    </a>
+    <a href="earth-curvature.html" class="related-tool-card">
+      <span class="rt-icon">🌍</span>
+      <span class="rt-info"><span class="rt-name">地球曲率可视距离计算器 - 在线计算地平线距离、地球曲率下降量与目标被遮挡高度，支持大气 | ToolBox免费在线工具箱</span><span class="rt-desc">地球曲率可视距离计算器</span></span>
+    </a>
+    <a href="solar-elevation.html" class="related-tool-card">
+      <span class="rt-icon">☀️</span>
+      <span class="rt-info"><span class="rt-name">太阳高度角计算器 - 根据日期、时间、经纬度计算太阳高度角、方位角、太阳赤纬、时角 | ToolBox免费在线工具箱</span><span class="rt-desc">太阳高度角计算器</span></span>
+    </a>
+    <a href="sunrise-sunset.html" class="related-tool-card">
+      <span class="rt-icon">🌅</span>
+      <span class="rt-info"><span class="rt-name">日出日落时间计算器 - 基于 NOAA 太阳算法，输入日期、经纬度和时区 | ToolBox免费在线工具箱</span><span class="rt-desc">日出日落时间计算器</span></span>
+    </a>
+  </div>
+</div>
+<div class="tool-intro open" id="toolIntro">
+  <div class="tool-intro-header">
+    <span class="intro-icon-wrap"><span class="intro-icon">📖</span>关于「天文观测条件计算器」</span>
+    <span class="arrow">▼</span>
+  </div>
+  <div class="tool-intro-body">
+    <h4><span class="h4-icon">📝</span>工具简介</h4>
+    <p>天文观测条件计算器是一款面向天文爱好者与深空摄影师的纯前端在线工具。输入观测日期、地理经纬度、Bortle 暗空等级与云量，即可实时估算月相、月相照明百分比、月升月落时间，并综合月光干扰、光污染与天气因素给出 1-10 分观测条件评分与针对性观测建议，帮助你判断今晚是否适合出摊拍摄。</p>
+    <h4><span class="h4-icon">✨</span>功能特点</h4>
+    <ul class="intro-features">
+      <li>月相实时计算（8 种相位 + 照明百分比）</li>
+      <li>月升月落时间估算（含极昼极夜识别）</li>
+      <li>1-10 分综合观测评分与刻度可视化</li>
+      <li>月光 / 光污染 / 云量三维评分明细</li>
+      <li>完整 Bortle 暗空等级对照表</li>
+      <li>智能观测建议（深空/行星/月球）</li>
+      <li>纯前端处理，数据不上传，隐私安全</li>
+    </ul>
+    <h4><span class="h4-icon">🎯</span>使用场景</h4>
+    <ul class="intro-scenes">
+      <li>深空摄影出片规划</li>
+      <li>梅西耶马拉松选择日期</li>
+      <li>行星与月球观测安排</li>
+      <li>星空营地与暗空公园选址</li>
+      <li>天文科普活动时间安排</li>
+      <li>判断是否值得携带器材外出</li>
+    </ul>
+    <h4><span class="h4-icon">🧮</span>计算原理</h4>
+    <p>月相基于 2000-01-06 参考新月与 29.53 天朔望月周期估算；月升月落按"月亮每日比太阳晚约 50.47 分钟"结合当地纬度日出日落推算（本地太阳时）；评分 = 月光干扰(35%) + 光污染(40%) + 云量(25%)，其中月光越满、Bortle 等级越高、云量越大则分数越低。</p>
+    <h4><span class="h4-icon">💬</span>常见问题</h4>
+    <div class="intro-faq-item"><div class="intro-faq-q">月升月落时间为什么和实际有偏差？</div><div class="intro-faq-a">本工具采用简化估算模型，结果为本地太阳时且未做时区与月球赤纬修正，实际偏差通常在 ±30 分钟以内，仅供出片规划参考。</div></div>
+    <div class="intro-faq-item"><div class="intro-faq-q">如何知道我所在地的 Bortle 等级？</div><div class="intro-faq-a">可访问光污染地图（lightpollutionmap.info）查询所在地光污染等级，城市中心通常为 B8-B9，远郊山区可达 B1-B3。</div></div>
+    <div class="intro-faq-item"><div class="intro-faq-q">满月时还能观测吗？</div><div class="intro-faq-a">满月月光强烈会显著降低深空目标对比度，但非常适合月球本身的细节观测与行星摄影，本工具会自动给出相应建议。</div></div>
+    <div class="intro-faq-item"><div class="intro-faq-q">我的数据会被上传吗？</div><div class="intro-faq-a">不会。所有计算都在你的浏览器本地完成，数据不会发送到任何服务器。</div></div>
+    <div class="intro-faq-item"><div class="intro-faq-q">支持手机使用吗？</div><div class="intro-faq-a">支持。页面已做响应式适配，手机和电脑均可正常使用，方便户外现场查询。</div></div>
+  </div>
+</div>
+<!-- /SEO 介绍区块 -->
+</body>
+</html>

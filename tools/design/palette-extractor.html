@@ -1,0 +1,953 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+
+<script src="/js/tool-page-runtime.js" defer></script>
+<!-- TOOLBOX-TOOL-RUNTIME -->
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="toolbox" content="cat=image,industry=design,icon=🎨,bg=#fce4ec">
+<title>调色板提取器 - 上传图片，智能提取主色调，生成调色板并导出为 CSS - ToolBox</title>
+<link rel="canonical" href="https://chenguangwu.github.io/tools/design/palette-extractor.html">
+<meta property="og:title" content="调色板提取器 - 上传图片，智能提取主色调，生成调色板并导出为 CSS - ToolBox">
+<meta property="og:description" content="调色板提取器 - 上传图片，智能提取主色调，生成调色板并导出为 CSS / JSON。免费在线工具，纯前端本地处理，数据不上传。">
+<meta property="og:url" content="https://chenguangwu.github.io/tools/design/palette-extractor.html">
+<meta name="twitter:card" content="summary">
+<meta name="description" content="调色板提取器 - 上传图片，智能提取主色调，生成调色板并导出为 CSS / JSON。免费在线工具，纯前端本地处理，数据不上传。">
+<link rel="stylesheet" href="../../css/common.css">
+<script src="../../js/common.js"></script>
+<style>
+  .upload-zone {
+    border: 2px dashed var(--border);
+    border-radius: var(--radius-lg);
+    padding: 40px 20px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.25s;
+    background: var(--result-bg);
+    position: relative;
+    overflow: hidden;
+  }
+  .upload-zone:hover,
+  .upload-zone.drag-over {
+    border-color: var(--primary);
+    background: rgba(255,107,53,0.06);
+  }
+  .upload-zone.drag-over {
+    transform: scale(1.01);
+  }
+  .upload-zone .upload-icon {
+    font-size: 40px;
+    margin-bottom: 10px;
+    display: block;
+  }
+  .upload-zone .upload-text {
+    font-size: 14px;
+    color: var(--text-secondary);
+    line-height: 1.6;
+  }
+  .upload-zone .upload-hint {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-top: 6px;
+  }
+  .upload-zone input[type="file"] {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    cursor: pointer;
+  }
+
+  .preview-area {
+    display: none;
+    margin-top: 16px;
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    border: 1px solid var(--border);
+    background: var(--card-bg);
+  }
+  .preview-area.show { display: block; }
+  .preview-area img {
+    width: 100%;
+    max-height: 320px;
+    object-fit: contain;
+    display: block;
+    background: repeating-conic-gradient(#e5e5e5 0% 25%, #fff 0% 50%) 50%/16px 16px;
+  }
+
+  .settings-row {
+    display: flex;
+    gap: 16px;
+    align-items: center;
+    margin: 16px 0;
+    flex-wrap: wrap;
+  }
+  .settings-row label {
+    font-size: 13px;
+    color: var(--text-secondary);
+    font-weight: 500;
+    margin-bottom: 0;
+  }
+  .count-selector {
+    display: flex;
+    gap: 4px;
+    flex-wrap: wrap;
+  }
+  .count-btn {
+    padding: 7px 16px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: var(--card-bg);
+    color: var(--text-secondary);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .count-btn:hover {
+    border-color: var(--primary);
+    color: var(--primary);
+  }
+  .count-btn.active {
+    background: var(--gradient-primary);
+    color: #fff;
+    border-color: transparent;
+  }
+
+  .sort-selector {
+    display: flex;
+    gap: 4px;
+    flex-wrap: wrap;
+  }
+  .sort-btn {
+    padding: 7px 14px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: var(--card-bg);
+    color: var(--text-secondary);
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .sort-btn:hover {
+    border-color: var(--primary);
+    color: var(--primary);
+  }
+  .sort-btn.active {
+    background: var(--bg-active);
+    color: var(--primary);
+    border-color: var(--primary);
+  }
+
+  .palette-result {
+    display: none;
+    margin-top: 16px;
+  }
+  .palette-result.show { display: block; }
+
+  .palette-grid {
+    display: grid;
+    gap: 10px;
+    margin-top: 12px;
+  }
+  .palette-grid.cols-5 { grid-template-columns: repeat(5, 1fr); }
+  .palette-grid.cols-6 { grid-template-columns: repeat(6, 1fr); }
+
+  .color-swatch {
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    border: 1px solid var(--border);
+    cursor: pointer;
+    transition: all 0.2s;
+    background: var(--card-bg);
+  }
+  .color-swatch:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow);
+  }
+  .color-swatch .swatch-color {
+    height: 80px;
+    position: relative;
+  }
+  .color-swatch .swatch-info {
+    padding: 8px 10px;
+    text-align: center;
+  }
+  .color-swatch .swatch-hex {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-primary);
+    font-family: 'SF Mono', 'Courier New', monospace;
+    letter-spacing: 0.5px;
+  }
+  .color-swatch .swatch-rgb {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-top: 2px;
+    font-family: 'SF Mono', 'Courier New', monospace;
+  }
+  .color-swatch .swatch-percent {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-top: 2px;
+  }
+  .color-swatch .copy-hint {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(0,0,0,0.65);
+    color: #fff;
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 11px;
+    opacity: 0;
+    transition: opacity 0.2s;
+    pointer-events: none;
+    white-space: nowrap;
+  }
+  .color-swatch:hover .copy-hint { opacity: 1; }
+
+  .export-section {
+    margin-top: 20px;
+  }
+  .export-section h3 {
+    margin-bottom: 10px;
+  }
+  .export-tabs {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 12px;
+  }
+  .export-tab {
+    padding: 8px 16px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: var(--card-bg);
+    color: var(--text-secondary);
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-weight: 500;
+  }
+  .export-tab:hover {
+    border-color: var(--primary);
+    color: var(--primary);
+  }
+  .export-tab.active {
+    background: var(--gradient-primary);
+    color: #fff;
+    border-color: transparent;
+  }
+  .export-code {
+    background: var(--result-bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 16px;
+    font-family: 'SF Mono', 'Courier New', 'Fira Code', monospace;
+    font-size: 13px;
+    line-height: 1.7;
+    color: var(--text-primary);
+    white-space: pre-wrap;
+    word-break: break-all;
+    max-height: 300px;
+    overflow-y: auto;
+    margin-bottom: 12px;
+  }
+
+  .loading-overlay {
+    display: none;
+    position: absolute;
+    inset: 0;
+    background: rgba(255,255,255,0.85);
+    border-radius: var(--radius-lg);
+    z-index: 10;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 10px;
+  }
+  body.dark .loading-overlay { background: rgba(26,26,46,0.85); }
+  .loading-overlay.show { display: flex; }
+  .loading-spinner {
+    width: 36px;
+    height: 36px;
+    border: 3px solid var(--border);
+    border-top-color: var(--primary);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .loading-text {
+    font-size: 13px;
+    color: var(--text-secondary);
+  }
+
+  .stats-row {
+    display: flex;
+    gap: 12px;
+    margin-top: 12px;
+    flex-wrap: wrap;
+  }
+  .stat-chip {
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 12px;
+    background: var(--result-bg);
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+  }
+  .stat-chip strong {
+    color: var(--primary);
+    font-weight: 600;
+  }
+
+  .extract-btn-row {
+    margin-top: 16px;
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  canvas { display: none; }
+
+  @media(max-width:768px) {
+    .palette-grid.cols-5,
+    .palette-grid.cols-6 { grid-template-columns: repeat(3, 1fr); }
+    .color-swatch .swatch-color { height: 60px; }
+    .settings-row { gap: 10px; }
+    .upload-zone { padding: 28px 16px; }
+    .upload-zone .upload-icon { font-size: 32px; }
+  }
+  @media(max-width:480px) {
+    .palette-grid.cols-5,
+    .palette-grid.cols-6 { grid-template-columns: repeat(2, 1fr); }
+  }
+</style>
+
+
+
+<meta property="og:image" content="https://chenguangwu.github.io/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="ToolBox - 6000+免费在线工具">
+<meta name="twitter:image" content="https://chenguangwu.github.io/og-image.png">
+<meta name="twitter:image:alt" content="ToolBox - 6000+免费在线工具">
+    <meta property="og:type" content="website">
+    <meta name="twitter:title" content="调色板提取器 - 上传图片，智能提取主色调，生成调色板并导出为 CSS - ToolBox">
+    <meta name="twitter:description" content="调色板提取器 - 上传图片，智能提取主色调，生成调色板并导出为 CSS / JSON。免费在线工具，纯前端本地处理，数据不上传。">
+<!-- TOOLBOX-WEBAPP-LD -->
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"WebApplication","name":"调色板提取器 - 上传图片，智能提取主色调，生成调色板并导出为 CSS","url":"https://chenguangwu.github.io/tools/design/palette-extractor.html","applicationCategory":"MultimediaApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":["zh-CN", "en-US"],"description":"调色板提取器","image":"https://chenguangwu.github.io/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}
+</script>
+<meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
+<meta http-equiv="X-Content-Type-Options" content="nosniff">
+<meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
+<!-- TOOLBOX-SECURITY -->
+
+<script src="/js/privacy.js" defer></script>
+<!-- TOOLBOX-PRIVACY-SCRIPT -->
+
+<script src="/js/metrics.js" defer></script>
+<!-- TOOLBOX-METRICS-SCRIPT -->
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"首页","item":"https://chenguangwu.github.io/"},{"@type":"ListItem","position":2,"name":"设计创意","item":"https://chenguangwu.github.io/tools/design/index.html"},{"@type":"ListItem","position":3,"name":"调色板提取器","item":"https://chenguangwu.github.io/tools/design/palette-extractor.html"}]}
+</script>
+
+<script src="../../js/i18n.js" defer></script>
+<script src="../../js/tool-i18n.js" defer></script>
+<!-- TOOLBOX-I18N-SCRIPT -->
+<!-- TOOLBOX-HREFLANG -->
+<link rel="alternate" hreflang="zh-CN" href="https://chenguangwu.github.io/tools/design/palette-extractor.html">
+<link rel="alternate" hreflang="en-US" href="https://chenguangwu.github.io/tools/design/palette-extractor.html">
+<link rel="alternate" hreflang="x-default" href="https://chenguangwu.github.io/tools/design/palette-extractor.html">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:locale:alternate" content="en_US">
+
+<script src="/js/clarity.js" defer></script>
+<!-- TOOLBOX-CLARITY -->
+</head>
+<body>
+<h1 class="sr-only">调色板提取器</h1>
+
+
+<div class="nav">
+  <a href="../../index.html">← ToolBox</a>
+  <span>/ 调色板提取器</span>
+  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()">🌙</button>
+</div>
+
+
+
+
+
+<nav class="breadcrumb" aria-label="面包屑导航" data-breadcrumb="1">
+  <a href="../../index.html">首页</a>
+  <span class="bc-sep">‹</span>
+  <a href="index.html">🎨 设计创意</a>
+  <span class="bc-sep">‹</span>
+  <span class="bc-current">调色板提取器</span>
+</nav>
+<div class="container">
+  <div class="card tool-card-accent" style="--tool-accent:#7C3AED;">
+    <h2>🎨 调色板提取器</h2>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;">上传图片，智能提取主色调，生成调色板并导出为 CSS / JSON</p>
+
+    <!-- 上传区域 -->
+    <div class="upload-zone" id="uploadZone">
+      <span class="upload-icon">📁</span>
+      <div class="upload-text">拖拽图片到此处，或点击选择文件</div>
+      <div class="upload-hint">支持 JPG、PNG、WebP、BMP 格式</div>
+      <input type="file" id="fileInput" accept="image/jpeg,image/png,image/webp,image/bmp,image/gif">
+    </div>
+
+    <!-- 图片预览 -->
+    <div class="preview-area" id="previewArea">
+      <img id="previewImg" alt="预览图片">
+      <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-spinner"></div>
+        <div class="loading-text">正在分析颜色...</div>
+      </div>
+    </div>
+
+    <!-- 设置 -->
+    <div id="settingsPanel" style="display:none;">
+      <div class="settings-row">
+        <label>提取数量：</label>
+        <div class="count-selector" id="countSelector">
+          <button type="button" class="count-btn" data-count="5">5 色</button>
+          <button type="button" class="count-btn active" data-count="8">8 色</button>
+          <button type="button" class="count-btn" data-count="10">10 色</button>
+          <button type="button" class="count-btn" data-count="12">12 色</button>
+        </div>
+      </div>
+      <div class="settings-row">
+        <label>排序方式：</label>
+        <div class="sort-selector" id="sortSelector">
+          <button type="button" class="sort-btn active" data-sort="frequency">按频率</button>
+          <button type="button" class="sort-btn" data-sort="lightness">按亮度</button>
+          <button type="button" class="sort-btn" data-sort="hue">按色相</button>
+        </div>
+      </div>
+      <div class="extract-btn-row">
+        <button type="button" class="btn primary" onclick="extractColors()">重新提取</button>
+        <button type="button" class="btn" onclick="resetAll()">重新上传</button>
+      </div>
+
+      <!-- 图片统计 -->
+      <div class="stats-row" id="imageStats"></div>
+    </div>
+
+    <!-- 调色板结果 -->
+    <div class="palette-result" id="paletteResult">
+      <h3 style="margin-top:20px;">提取结果</h3>
+      <div class="palette-grid cols-5" id="paletteGrid"></div>
+    </div>
+
+    <!-- 导出功能 -->
+    <div class="palette-result" id="exportResult">
+      <div class="export-section">
+        <h3>导出调色板</h3>
+        <div class="export-tabs" id="exportTabs">
+          <button class="export-tab active" data-format="css">CSS 变量</button>
+          <button class="export-tab" data-format="json">JSON 数组</button>
+          <button class="export-tab" data-format="scss">SCSS 变量</button>
+          <button class="export-tab" data-format="tailwind">Tailwind 配置</button>
+        </div>
+        <div class="export-code" id="exportCode"></div>
+        <div class="toolbar">
+          <button type="button" class="btn primary" onclick="copyExport()">复制代码</button>
+          <button type="button" class="btn" onclick="downloadExport()">下载文件</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 工具介绍（SEO） -->
+    
+</div>
+
+</div>
+
+<!-- 相关工具 -->
+<div class="related-tools" data-related-tools="1">
+  <h3 class="related-tools-title">🔗 相关工具</h3>
+  <div class="related-tools-grid">
+    <a href="generator-10.html" class="related-tool-card">
+      <span class="rt-icon">🎨</span>
+      <span class="rt-info"><span class="rt-name">CSS动画生成器（关键帧可视化） - 免费在线工具，纯前端处理 | ToolBox免费在线工具箱</span><span class="rt-desc">CSS动画生成器（关键帧可视化）</span></span>
+    </a>
+    <a href="generator-5.html" class="related-tool-card">
+      <span class="rt-icon">🎨</span>
+      <span class="rt-info"><span class="rt-name">CSS渐变生成器（线性/径向/圆锥） - 免费在线工具，纯前端处理 | ToolBox免费在线工具箱</span><span class="rt-desc">CSS渐变生成器（线性/径向/圆锥）</span></span>
+    </a>
+    <a href="web-audio-metronome.html" class="related-tool-card">
+      <span class="rt-icon">🎼</span>
+      <span class="rt-info"><span class="rt-name">Web Audio 节拍器 - 免费生成器工具，在线节拍器 | ToolBox免费在线工具箱</span><span class="rt-desc">在线节拍器</span></span>
+    </a>
+    <a href="generator-8.html" class="related-tool-card">
+      <span class="rt-icon">🎨</span>
+      <span class="rt-info"><span class="rt-name">二维码生成器（已有，可加强定制） - 免费在线工具，纯前端处理 | ToolBox免费在线工具箱</span><span class="rt-desc">二维码生成器（已有，可加强定制）</span></span>
+    </a>
+    <a href="generator-9.html" class="related-tool-card">
+      <span class="rt-icon">🎨</span>
+      <span class="rt-info"><span class="rt-name">条形码生成器（EAN-13等） - 免费在线工具，纯前端处理 | ToolBox免费在线工具箱</span><span class="rt-desc">条形码生成器（EAN-13等）</span></span>
+    </a>
+    <a href="generator-6.html" class="related-tool-card">
+      <span class="rt-icon">🎨</span>
+      <span class="rt-info"><span class="rt-name">盒子阴影生成器（可视化调整） - 免费在线工具，纯前端处理 | ToolBox免费在线工具箱</span><span class="rt-desc">盒子阴影生成器（可视化调整）</span></span>
+    </a>
+  </div>
+</div>
+<div class="tool-intro" id="toolIntro">
+      <div class="tool-intro-header" onclick="toggleIntro()">
+        <span class="intro-icon-wrap">
+          <span class="intro-icon">🎨</span>
+          <span>工具介绍与常见问题</span>
+        </span>
+        <span class="arrow">▼</span>
+      </div>
+      <div class="tool-intro-body">
+        <p>调色板提取器是一款纯前端图片颜色分析工具，采用中位切分法（Median Cut）算法，从上传的图片中智能提取主色调，帮助设计师和开发者快速获取配色方案。</p>
+
+        <h4><span class="h4-icon">✨</span> 功能特点</h4>
+        <ul class="intro-features">
+          <li>中位切分法颜色量化算法</li>
+          <li>支持拖拽和点击上传图片</li>
+          <li>5/8/10/12 色自由选择</li>
+          <li>按频率、亮度、色相排序</li>
+          <li>导出 CSS / JSON / SCSS / Tailwind</li>
+          <li>纯前端处理，图片不上传服务器</li>
+        </ul>
+
+        <h4><span class="h4-icon">🎯</span> 使用场景</h4>
+        <ul class="intro-scenes">
+          <li>提取设计稿/照片的主色调</li>
+          <li>为项目生成配色方案</li>
+          <li>分析品牌视觉色彩构成</li>
+          <li>创建 CSS 变量和设计 Token</li>
+        </ul>
+
+        <h4><span class="h4-icon">❓</span> 常见问题</h4>
+        <div class="intro-faq-item">
+          <div class="intro-faq-q">图片数据会上传到服务器吗？</div>
+          <div class="intro-faq-a">不会。所有图片分析均在浏览器本地完成，通过 Canvas API 读取像素数据，不会上传到任何服务器。</div>
+        </div>
+        <div class="intro-faq-item">
+          <div class="intro-faq-q">支持哪些图片格式？</div>
+          <div class="intro-faq-a">支持 JPG、PNG、WebP、BMP、GIF 等主流浏览器支持的图片格式。</div>
+        </div>
+        <div class="intro-faq-item">
+          <div class="intro-faq-q">提取的颜色不准确怎么办？</div>
+          <div class="intro-faq-a">建议上传色彩丰富且分辨率适中的图片。纯白/纯黑背景占比过大会影响结果，可尝试裁剪掉大面积单色区域后再提取。</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+<!-- 注意事项区块 -->
+<div class="tool-notes" style="--tool-accent:#7C3AED;">
+  <div class="tool-notes-title">⚠️ 使用说明与注意事项</div>
+  <ul>
+      <li>本工具纯前端运行，数据不会上传到服务器</li>
+      <li>建议在主流浏览器（Chrome/Safari/Firefox/Edge）中使用</li>
+      <li>计算结果仅供参考，请以实际应用场景为准</li>
+  </ul>
+</div>
+<!-- /注意事项区块 -->
+</div>
+
+<!-- 隐藏 Canvas -->
+<canvas id="analysisCanvas"></canvas>
+
+<script>
+(function() {
+  'use strict';
+
+  // ===== 状态 =====
+  var state = {
+    imageData: null,      // ImageData 对象
+    rawPixels: [],        // 原始像素 [r,g,b][]
+    palette: [],          // 当前调色板 [{r,g,b,hex,count}]
+    colorCount: 8,        // 提取数量
+    sortMode: 'frequency',// 排序方式
+    exportFormat: 'css',  // 导出格式
+    imgWidth: 0,
+    imgHeight: 0,
+    totalPixels: 0
+  };
+
+  var uploadZone = document.getElementById('uploadZone');
+  var fileInput = document.getElementById('fileInput');
+  var previewArea = document.getElementById('previewArea');
+  var previewImg = document.getElementById('previewImg');
+  var loadingOverlay = document.getElementById('loadingOverlay');
+  var settingsPanel = document.getElementById('settingsPanel');
+  var paletteResult = document.getElementById('paletteResult');
+  var paletteGrid = document.getElementById('paletteGrid');
+  var exportResult = document.getElementById('exportResult');
+  var exportCode = document.getElementById('exportCode');
+  var imageStats = document.getElementById('imageStats');
+  var countSelector = document.getElementById('countSelector');
+  var sortSelector = document.getElementById('sortSelector');
+  var exportTabs = document.getElementById('exportTabs');
+  var canvas = document.getElementById('analysisCanvas');
+
+  // ===== 拖拽上传 =====
+  uploadZone.addEventListener('dragover', function(e) {
+    e.preventDefault();
+    uploadZone.classList.add('drag-over');
+  });
+  uploadZone.addEventListener('dragleave', function(e) {
+    e.preventDefault();
+    uploadZone.classList.remove('drag-over');
+  });
+  uploadZone.addEventListener('drop', function(e) {
+    e.preventDefault();
+    uploadZone.classList.remove('drag-over');
+    var files = e.dataTransfer.files;
+    if (files.length > 0 && files[0].type.startsWith('image/')) {
+      loadImage(files[0]);
+    } else {
+      ToolBox.showToast(i18nText('tool.file_upload_hint'), 'error');
+    }
+  });
+  fileInput.addEventListener('change', function() {
+    if (fileInput.files.length > 0) {
+      loadImage(fileInput.files[0]);
+    }
+  });
+
+  // ===== 加载图片 =====
+  function loadImage(file) {
+    var reader = new FileReader();
+    reader.onload = function(e) {
+      previewImg.src = e.target.result;
+      previewImg.onload = function() {
+        previewArea.classList.add('show');
+        uploadZone.style.display = 'none';
+        settingsPanel.style.display = 'block';
+        state.imgWidth = previewImg.naturalWidth;
+        state.imgHeight = previewImg.naturalHeight;
+        extractColors();
+      };
+    };
+    reader.readAsDataURL(file);
+  }
+
+  // ===== 中位切分法 Median Cut =====
+  function medianCut(pixels, depth, maxDepth) {
+    if (depth >= maxDepth || pixels.length === 0) {
+      var r = 0, g = 0, b = 0;
+      for (var i = 0; i < pixels.length; i++) {
+        r += pixels[i][0];
+        g += pixels[i][1];
+        b += pixels[i][2];
+      }
+      var n = pixels.length;
+      return [{ r: Math.round(r / n), g: Math.round(g / n), b: Math.round(b / n), count: n }];
+    }
+
+    // 找最大色差通道
+    var minR = 255, minG = 255, minB = 255, maxR = 0, maxG = 0, maxB = 0;
+    for (var i = 0; i < pixels.length; i++) {
+      var p = pixels[i];
+      if (p[0] < minR) minR = p[0]; if (p[0] > maxR) maxR = p[0];
+      if (p[1] < minG) minG = p[1]; if (p[1] > maxG) maxG = p[1];
+      if (p[2] < minB) minB = p[2]; if (p[2] > maxB) maxB = p[2];
+    }
+    var rangeR = maxR - minR, rangeG = maxG - minG, rangeB = maxB - minB;
+    var ranges = [rangeR, rangeG, rangeB];
+    var maxRange = Math.max(rangeR, rangeG, rangeB);
+    var channel = ranges.indexOf(maxRange);
+
+    // 按该通道排序并取中位
+    pixels.sort(function(a, b) { return a[channel] - b[channel]; });
+    var mid = Math.floor(pixels.length / 2);
+
+    return medianCut(pixels.slice(0, mid), depth + 1, maxDepth)
+      .concat(medianCut(pixels.slice(mid), depth + 1, maxDepth));
+  }
+
+  // ===== 颜色工具函数 =====
+  function rgbToHex(r, g, b) {
+    return '#' + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1).toUpperCase();
+  }
+
+  function rgbToHsl(r, g, b) {
+    r /= 255; g /= 255; b /= 255;
+    var max = Math.max(r, g, b), min = Math.min(r, g, b);
+    var h, s, l = (max + min) / 2;
+    if (max === min) {
+      h = s = 0;
+    } else {
+      var d = max - min;
+      s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+      if (max === r) h = ((g - b) / d + (g < b ? 6 : 0)) / 6;
+      else if (max === g) h = ((b - r) / d + 2) / 6;
+      else h = ((r - g) / d + 4) / 6;
+    }
+    return { h: h * 360, s: s * 100, l: l * 100 };
+  }
+
+  function relativeLuminance(r, g, b) {
+    var rs = r / 255, gs = g / 255, bs = b / 255;
+    var rl = rs <= 0.03928 ? rs / 12.92 : Math.pow((rs + 0.055) / 1.055, 2.4);
+    var gl = gs <= 0.03928 ? gs / 12.92 : Math.pow((gs + 0.055) / 1.055, 2.4);
+    var bl = bs <= 0.03928 ? bs / 12.92 : Math.pow((bs + 0.055) / 1.055, 2.4);
+    return 0.2126 * rl + 0.7152 * gl + 0.0722 * bl;
+  }
+
+  // ===== 提取颜色（主流程）=====
+  window.extractColors = function() {
+    if (!previewImg.src || previewImg.naturalWidth === 0) {
+      ToolBox.showToast(i18nText('tool.file_upload_hint'), 'warning');
+      return;
+    }
+
+    loadingOverlay.classList.add('show');
+    paletteResult.classList.remove('show');
+    exportResult.classList.remove('show');
+
+    // 用 setTimeout 让 loading 显示出来
+    setTimeout(function() {
+      try {
+        doExtract();
+      } catch (err) {
+        ToolBox.showToast('分析出错: ' + err.message, 'error');
+      }
+      loadingOverlay.classList.remove('show');
+    }, 50);
+  };
+
+  function doExtract() {
+    // 绘制到 Canvas（缩小提高性能）
+    var maxDim = 200;
+    var scale = Math.min(maxDim / previewImg.naturalWidth, maxDim / previewImg.naturalHeight, 1);
+    var w = Math.round(previewImg.naturalWidth * scale);
+    var h = Math.round(previewImg.naturalHeight * scale);
+    canvas.width = w;
+    canvas.height = h;
+    var ctx = canvas.getContext('2d', { willReadFrequently: true });
+    ctx.drawImage(previewImg, 0, 0, w, h);
+    var imgData = ctx.getImageData(0, 0, w, h);
+    var data = imgData.data;
+
+    // 采集像素（跳过全透明像素）
+    var pixels = [];
+    for (var i = 0; i < data.length; i += 4) {
+      var a = data[i + 3];
+      if (a < 128) continue; // 跳过半透明/透明
+      pixels.push([data[i], data[i + 1], data[i + 2]]);
+    }
+
+    state.rawPixels = pixels;
+    state.totalPixels = pixels.length;
+
+    if (pixels.length === 0) {
+      ToolBox.showToast(i18nText('toast.msg409'), 'error');
+      return;
+    }
+
+    // 计算 maxDepth：颜色数 = 2^maxDepth，取最接近的
+    var count = state.colorCount;
+    var maxDepth = Math.ceil(Math.log2(count));
+
+    // 执行中位切分
+    var rawPalette = medianCut(pixels, 0, maxDepth);
+
+    // 排序并截取目标数量
+    rawPalette.sort(function(a, b) { return b.count - a.count; });
+    if (rawPalette.length > count) {
+      rawPalette = rawPalette.slice(0, count);
+    }
+
+    // 构建结果
+    state.palette = rawPalette.map(function(c) {
+      var hex = rgbToHex(c.r, c.g, c.b);
+      var hsl = rgbToHsl(c.r, c.g, c.b);
+      return {
+        r: c.r, g: c.g, b: c.b,
+        hex: hex,
+        count: c.count,
+        percent: ((c.count / pixels.length) * 100).toFixed(1),
+        hue: hsl.h,
+        lightness: hsl.l,
+        luminance: relativeLuminance(c.r, c.g, c.b)
+      };
+    });
+
+    // 排序
+    sortPalette();
+
+    // 显示统计
+    imageStats.innerHTML =
+      '<span class="stat-chip">尺寸：<strong>' + previewImg.naturalWidth + ' x ' + previewImg.naturalHeight + '</strong></span>' +
+      '<span class="stat-chip">采样像素：<strong>' + ToolBox.formatNumber(pixels.length) + '</strong></span>' +
+      '<span class="stat-chip">提取数量：<strong>' + state.palette.length + '</strong></span>';
+
+    renderPalette();
+    renderExport();
+    paletteResult.classList.add('show');
+    exportResult.classList.add('show');
+    ToolBox.showToast('成功提取 ' + state.palette.length + ' 个主色调');
+  }
+
+  // ===== 排序 =====
+  function sortPalette() {
+    var mode = state.sortMode;
+    state.palette.sort(function(a, b) {
+      if (mode === 'frequency') return b.count - a.count;
+      if (mode === 'lightness') return a.luminance - b.luminance;
+      if (mode === 'hue') return a.hue - b.hue;
+      return 0;
+    });
+  }
+
+  // ===== 渲染调色板 =====
+  function renderPalette() {
+    var gridClass = state.palette.length > 8 ? 'cols-6' : 'cols-5';
+    paletteGrid.className = 'palette-grid ' + gridClass;
+    var html = '';
+    for (var i = 0; i < state.palette.length; i++) {
+      var c = state.palette[i];
+      var textColor = c.luminance > 0.4 ? '#000' : '#fff';
+      html += '<div class="color-swatch" onclick="copySwatchHex(\'' + c.hex + '\')">' +
+        '<div class="swatch-color" style="background:' + c.hex + '">' +
+        '<span class="copy-hint" style="color:' + textColor + '">点击复制</span>' +
+        '</div>' +
+        '<div class="swatch-info">' +
+        '<div class="swatch-hex">' + c.hex + '</div>' +
+        '<div class="swatch-rgb">RGB(' + c.r + ', ' + c.g + ', ' + c.b + ')</div>' +
+        '<div class="swatch-percent">' + c.percent + '%</div>' +
+        '</div>' +
+        '</div>';
+    }
+    paletteGrid.innerHTML = html;
+  }
+
+  // ===== 复制色块 =====
+  window.copySwatchHex = function(hex) {
+    ToolBox.copyText(hex, '已复制 ' + hex);
+  };
+
+  // ===== 渲染导出代码 =====
+  function renderExport() {
+    var fmt = state.exportFormat;
+    var palette = state.palette;
+    var code = '';
+
+    if (fmt === 'css') {
+      code += ':root {\n';
+      for (var i = 0; i < palette.length; i++) {
+        var name = 'color-' + (i + 1);
+        code += '  --' + name + ': ' + palette[i].hex + ';\n';
+      }
+      code += '}';
+    } else if (fmt === 'json') {
+      var arr = [];
+      for (var i = 0; i < palette.length; i++) {
+        arr.push({
+          hex: palette[i].hex,
+          rgb: 'rgb(' + palette[i].r + ', ' + palette[i].g + ', ' + palette[i].b + ')',
+          percent: parseFloat(palette[i].percent)
+        });
+      }
+      code = JSON.stringify(arr, null, 2);
+    } else if (fmt === 'scss') {
+      for (var i = 0; i < palette.length; i++) {
+        code += '$color-' + (i + 1) + ': ' + palette[i].hex + ';\n';
+      }
+    } else if (fmt === 'tailwind') {
+      code += '// tailwind.config.js\nmodule.exports = {\n  theme: {\n    extend: {\n      colors: {\n        palette: {\n';
+      for (var i = 0; i < palette.length; i++) {
+        var comma = i < palette.length - 1 ? ',' : '';
+        code += '          ' + (i + 1) + ': "' + palette[i].hex + '"' + comma + '\n';
+      }
+      code += '        }\n      }\n    }\n  }\n}';
+    }
+    exportCode.textContent = code;
+  }
+
+  // ===== 导出操作 =====
+  window.copyExport = function() {
+    var code = exportCode.textContent;
+    ToolBox.copyText(code, i18nText('msg270'));
+  };
+
+  window.downloadExport = function() {
+    var fmt = state.exportFormat;
+    var code = exportCode.textContent;
+    var extMap = { css: 'css', json: 'json', scss: 'scss', tailwind: 'js' };
+    var mimeMap = { css: 'text/css', json: 'application/json', scss: 'text/x-scss', tailwind: 'text/javascript' };
+    ToolBox.downloadText('palette.' + (extMap[fmt] || 'txt'), code, mimeMap[fmt] || 'text/plain');
+  };
+
+  // ===== 重置 =====
+  window.resetAll = function() {
+    previewArea.classList.remove('show');
+    settingsPanel.style.display = 'none';
+    paletteResult.classList.remove('show');
+    exportResult.classList.remove('show');
+    uploadZone.style.display = '';
+    previewImg.src = '';
+    fileInput.value = '';
+    state.palette = [];
+    state.rawPixels = [];
+    imageStats.innerHTML = '';
+  };
+
+  // ===== 数量选择 =====
+  countSelector.addEventListener('click', function(e) {
+    var btn = e.target.closest('.count-btn');
+    if (!btn) return;
+    countSelector.querySelectorAll('.count-btn').forEach(function(b) { b.classList.remove('active'); });
+    btn.classList.add('active');
+    state.colorCount = parseInt(btn.dataset.count, 10);
+    if (state.rawPixels.length > 0) extractColors();
+  });
+
+  // ===== 排序选择 =====
+  sortSelector.addEventListener('click', function(e) {
+    var btn = e.target.closest('.sort-btn');
+    if (!btn) return;
+    sortSelector.querySelectorAll('.sort-btn').forEach(function(b) { b.classList.remove('active'); });
+    btn.classList.add('active');
+    state.sortMode = btn.dataset.sort;
+    if (state.palette.length > 0) {
+      sortPalette();
+      renderPalette();
+    }
+  });
+
+  // ===== 导出格式选择 =====
+  exportTabs.addEventListener('click', function(e) {
+    var tab = e.target.closest('.export-tab');
+    if (!tab) return;
+    exportTabs.querySelectorAll('.export-tab').forEach(function(t) { t.classList.remove('active'); });
+    tab.classList.add('active');
+    state.exportFormat = tab.dataset.format;
+    if (state.palette.length > 0) renderExport();
+  });
+
+  // ===== 工具介绍折叠 =====
+  window.toggleIntro = function() {
+    var el = document.getElementById('toolIntro');
+    el.classList.toggle('open');
+  };
+
+})();
+</script><script>
+// tool-intro折叠交互
+document.addEventListener('DOMContentLoaded',function(){
+  var headers=document.querySelectorAll('.tool-intro-header');
+  headers.forEach(function(h){
+    h.addEventListener('click',function(){
+      this.parentElement.classList.toggle('open');
+    });
+  });
+});
+</script>
+
+</body>
+</html>

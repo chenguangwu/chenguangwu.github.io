@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="toolbox" content="cat=dev,industry=it,icon=🧭,bg=#f5f3ff">
+  <title>curl 命令解析器 - ToolBox</title>
+  <link rel="stylesheet" href="../../css/common.css">
+  <script src="../../js/common.js"></script>
+  <style>textarea{min-height:150px;}</style>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"首页","item":"https://chenguangwu.github.io/"},{"@type":"ListItem","position":2,"name":"IT 开发","item":"https://chenguangwu.github.io/tools/it/index.html"},{"@type":"ListItem","position":3,"name":"curl 命令解析器","item":"https://chenguangwu.github.io/tools/it/curl-parser.html"}]}
+</script>
+<!-- TOOLBOX-WEBAPP-LD -->
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"WebApplication","name":"curl 命令解析器","url":"https://chenguangwu.github.io/tools/it/curl-parser.html","applicationCategory":"DeveloperApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":["zh-CN", "en-US"],"description":"curl 命令解析器","image":"https://chenguangwu.github.io/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}
+</script>
+<meta property="og:image" content="https://chenguangwu.github.io/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="ToolBox - 6000+免费在线工具">
+<meta name="twitter:image" content="https://chenguangwu.github.io/og-image.png">
+<meta name="twitter:image:alt" content="ToolBox - 6000+免费在线工具">
+
+<meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
+<meta http-equiv="X-Content-Type-Options" content="nosniff">
+<meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
+<!-- TOOLBOX-SECURITY -->
+
+<script src="/js/privacy.js" defer></script>
+<!-- TOOLBOX-PRIVACY-SCRIPT -->
+
+<script src="/js/metrics.js" defer></script>
+<!-- TOOLBOX-METRICS-SCRIPT -->
+
+<script src="../../js/i18n.js" defer></script>
+<script src="../../js/tool-i18n.js" defer></script>
+<!-- TOOLBOX-I18N-SCRIPT -->
+
+<meta name="description" content="curl 命令解析器，从 curl 命令提取 URL、方法、Header 与 Body。">
+<meta property="og:title" content="curl 命令解析器">
+<meta property="og:description" content="curl 命令解析器，从 curl 命令提取 URL、方法、Header 与 Body。">
+<meta name="twitter:title" content="curl 命令解析器">
+<meta name="twitter:description" content="curl 命令解析器">
+<link rel="canonical" href="https://chenguangwu.github.io/tools/it/curl-parser.html">
+
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://chenguangwu.github.io/tools/it/curl-parser.html">
+<meta name="twitter:card" content="summary">
+<!-- TOOLBOX-HREFLANG -->
+<link rel="alternate" hreflang="zh-CN" href="https://chenguangwu.github.io/tools/it/curl-parser.html">
+<link rel="alternate" hreflang="en-US" href="https://chenguangwu.github.io/tools/it/curl-parser.html">
+<link rel="alternate" hreflang="x-default" href="https://chenguangwu.github.io/tools/it/curl-parser.html">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:locale:alternate" content="en_US">
+
+<script src="/js/clarity.js" defer></script>
+<!-- TOOLBOX-CLARITY -->
+</head>
+<body>
+<h1 class="sr-only">curl 命令解析器</h1>
+
+<div class="nav">
+  <a href="../../index.html">← ToolBox</a>
+  <span>/ curl 命令解析器</span>
+  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()">🌙</button>
+</div>
+
+
+<nav class="breadcrumb" aria-label="面包屑导航" data-breadcrumb="1">
+  <a href="../../index.html">首页</a>
+  <span class="bc-sep">‹</span>
+  <a href="index.html">💻 IT 开发</a>
+  <span class="bc-sep">‹</span>
+  <span class="bc-current">curl 命令解析器</span>
+</nav>
+
+<div class="tool-guide-link" data-guide-link="1">
+  <a href="../../guides/curl-parser-guide.html">📖 查看「curl 命令解析使用指南」</a>
+</div>
+<div class="container">
+  <div class="card">
+    <h2>🧭 curl 命令解析器</h2>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;">从 curl 命令提取 URL、方法、Header 与 Body。</p>
+
+    <div class="input-row">
+      <label>curl 命令</label>
+      <textarea id="cmd">curl -X POST 'https://example.com/api/v1/pay' -H 'Content-Type: application/json' -d '{"name":"test"}'</textarea>
+    </div>
+
+    <div class="toolbar">
+      <button class="btn primary" onclick="parse()">解析</button>
+      <button class="btn" onclick="copyResult()">复制结果</button>
+    </div>
+    <div class="result-box" id="out"></div>
+  </div>
+</div>
+
+<script>
+function parse() {
+  const raw = document.getElementById('cmd').value || '';
+  const tokens = raw.match(/(?:\"[^\"]*\"|'[^']*'|\S)+/g) || [];
+
+  let method = 'GET';
+  const headers = [];
+  let data = '';
+  let url = '';
+
+  for (let i = 0; i < tokens.length; i++) {
+    const t = tokens[i];
+    if (t === 'curl' || t === 'curl.exe') continue;
+    if ((t === '-X' || t === '--request') && tokens[i+1]) {
+      method = tokens[i+1].toUpperCase(); i += 1; continue;
+    }
+    if ((t === '-H' || t === '--header') && tokens[i+1]) {
+      headers.push(trimQuote(tokens[i+1])); i += 1; continue;
+    }
+    if ((t === '-d' || t === '--data' || t === '--data-raw') && tokens[i+1]) {
+      data = trimQuote(tokens[i+1]); i += 1; continue;
+    }
+    if (!t.startsWith('-') && !url) {
+      url = trimQuote(t);
+    }
+  }
+
+  document.getElementById('out').innerHTML =
+    `<p>方法：<strong>${method}</strong></p>` +
+    `<p>URL：<strong>${url || '未识别'}</strong></p>` +
+    `<p>Headers：</p>` +
+    `<div>${headers.length ? headers.map(h => `<p>${h}</p>`).join('') : '<p>无</p>'}</div>` +
+    `<p>Body：</p>` +
+    `<pre style="white-space:pre-wrap">${data || '无'}</pre>`;
+}
+
+function trimQuote(v) {
+  return v.replace(/^['\"]|['\"]$/g, '');
+}
+
+function copyResult() {
+  const text = document.getElementById('out').innerText || '';
+  if (!text.trim()) {
+    ToolBox.showToast(i18nText('toast.msg668'), 'warning');
+    return;
+  }
+  ToolBox.copyText(text, i18nText('msg346'));
+}
+
+parse();
+</script>
+</body>
+</html>

@@ -1,0 +1,997 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+
+<script src="/js/tool-page-runtime.js" defer></script>
+<!-- TOOLBOX-TOOL-RUNTIME -->
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="toolbox" content="cat=convert,industry=audio,icon=📊,bg=#e3f2fd">
+<meta name="description" content="音频波形显示工具 - 基于 Web Audio API 的 AnalyserNode 实现，可对本地音频文件进行实时可视化分析。支持时域波形（示波器）、频域频谱（FFT 分析）和静态波形概览三种显示模式，并提供 FFT 大小、波形颜色、平滑度等参">
+<title>音频波形显示工具 - 基于 Web Audio API 的 - ToolBox</title>
+<link rel="canonical" href="https://chenguangwu.github.io/tools/audio/audio-waveform.html">
+<meta property="og:title" content="音频波形显示工具 - 基于 Web Audio API 的 - ToolBox">
+<meta property="og:description" content="音频波形显示工具 - 基于 Web Audio API 的 AnalyserNode 实现，可对本地音频文件进行实时可视化分析。支持时域波形（示波器）、频域频谱（FFT 分析）和静态波形概览三种显示模式，并提供 FFT 大小、波形颜色、平滑度等参">
+<meta property="og:url" content="https://chenguangwu.github.io/tools/audio/audio-waveform.html">
+<meta name="twitter:card" content="summary">
+<link rel="stylesheet" href="../../css/common.css">
+<script src="../../js/common.js"></script>
+<style>
+/* 工具专属样式 */
+.drop-zone{
+  border:2px dashed var(--border);
+  border-radius:16px;
+  padding:36px 20px;
+  text-align:center;
+  cursor:pointer;
+  transition:all 0.25s;
+  background:var(--result-bg);
+  position:relative;
+}
+.drop-zone:hover{border-color:var(--primary);background:var(--bg-hover);}
+.drop-zone.dragover{border-color:var(--primary);background:var(--bg-active);transform:scale(1.01);}
+.drop-zone .drop-icon{font-size:42px;margin-bottom:10px;display:block;}
+.drop-zone .drop-text{font-size:14px;color:var(--text-secondary);font-weight:500;}
+.drop-zone .drop-hint{font-size:12px;color:var(--text-muted);margin-top:6px;}
+.drop-zone input[type="file"]{display:none;}
+
+.file-info{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  padding:12px 14px;
+  background:var(--result-bg);
+  border:1px solid var(--border);
+  border-radius:12px;
+  margin-top:12px;
+  font-size:13px;
+  flex-wrap:wrap;
+}
+.file-info .file-name{font-weight:600;color:var(--text);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.file-info .file-meta{font-size:12px;color:var(--text-muted);flex-shrink:0;}
+
+.player-bar{
+  display:flex;
+  align-items:center;
+  gap:12px;
+  padding:12px 14px;
+  background:var(--result-bg);
+  border:1px solid var(--border);
+  border-radius:12px;
+  margin-top:12px;
+}
+.player-bar .play-btn{
+  width:44px;height:44px;
+  border-radius:50%;
+  border:none;
+  background:var(--gradient-primary);
+  color:#fff;
+  font-size:18px;
+  cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  flex-shrink:0;
+  transition:all 0.2s;
+  box-shadow:0 4px 12px rgba(255,107,53,0.25);
+}
+.player-bar .play-btn:hover{transform:scale(1.06);box-shadow:0 6px 16px rgba(255,107,53,0.35);}
+.player-bar .play-btn:disabled{opacity:0.4;cursor:not-allowed;transform:none;box-shadow:none;}
+.player-bar .progress-wrap{flex:1;min-width:0;}
+.player-bar .progress-track{
+  height:8px;
+  background:var(--border);
+  border-radius:4px;
+  cursor:pointer;
+  position:relative;
+  overflow:hidden;
+}
+.player-bar .progress-fill{
+  height:100%;
+  background:var(--gradient-primary);
+  border-radius:4px;
+  width:0%;
+  transition:width 0.1s linear;
+}
+.player-bar .time-display{
+  font-size:12px;
+  color:var(--text-muted);
+  font-variant-numeric:tabular-nums;
+  flex-shrink:0;
+  min-width:80px;
+  text-align:right;
+}
+
+.viz-canvas-wrap{
+  margin-top:14px;
+  border-radius:14px;
+  overflow:hidden;
+  background:#0d0d1a;
+  border:1px solid var(--border);
+  position:relative;
+}
+.viz-canvas-wrap canvas{
+  display:block;
+  width:100%;
+  height:280px;
+}
+.viz-canvas-wrap .canvas-placeholder{
+  position:absolute;
+  inset:0;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  color:rgba(255,255,255,0.4);
+  font-size:14px;
+  pointer-events:none;
+}
+
+.param-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(180px,1fr));
+  gap:12px;
+  margin-top:14px;
+}
+.param-item label{font-size:12px;color:var(--text-light);margin-bottom:5px;display:block;font-weight:500;}
+.param-item select,.param-item input[type="range"]{width:100%;}
+.param-item input[type="range"]{
+  -webkit-appearance:none;
+  appearance:none;
+  height:6px;
+  background:var(--border);
+  border-radius:3px;
+  outline:none;
+  padding:0;
+  border:none;
+}
+.param-item input[type="range"]::-webkit-slider-thumb{
+  -webkit-appearance:none;
+  appearance:none;
+  width:18px;height:18px;
+  border-radius:50%;
+  background:var(--primary);
+  cursor:pointer;
+  box-shadow:0 2px 6px rgba(255,107,53,0.3);
+}
+.param-item input[type="range"]::-moz-range-thumb{
+  width:18px;height:18px;
+  border-radius:50%;
+  background:var(--primary);
+  cursor:pointer;
+  border:none;
+  box-shadow:0 2px 6px rgba(255,107,53,0.3);
+}
+.param-item .color-row{display:flex;align-items:center;gap:8px;}
+.param-item input[type="color"]{
+  width:42px;height:36px;
+  border:1.5px solid var(--border);
+  border-radius:10px;
+  cursor:pointer;
+  padding:3px;
+  background:var(--card-bg);
+  flex-shrink:0;
+}
+.param-item .color-val{font-size:12px;color:var(--text-muted);font-family:monospace;}
+
+.param-item .range-val{font-size:12px;color:var(--primary);font-weight:600;font-variant-numeric:tabular-nums;}
+
+@media(max-width:768px){
+  .viz-canvas-wrap canvas{height:200px;}
+  .player-bar{flex-wrap:wrap;}
+  .player-bar .progress-wrap{order:3;flex:1 1 100%;}
+  .player-bar .time-display{min-width:auto;font-size:11px;}
+  .param-grid{grid-template-columns:1fr;gap:10px;}
+}
+</style>
+
+
+
+<meta property="og:image" content="https://chenguangwu.github.io/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="ToolBox - 6000+免费在线工具">
+<meta name="twitter:image" content="https://chenguangwu.github.io/og-image.png">
+<meta name="twitter:image:alt" content="ToolBox - 6000+免费在线工具">
+    <meta property="og:type" content="website">
+    <meta name="twitter:title" content="音频波形显示工具 - 基于 Web Audio API 的 - ToolBox">
+    <meta name="twitter:description" content="音频波形显示工具 - 基于 Web Audio API 的 AnalyserNode 实现，可对本地音频文件进行实时可视化分析。支持时域波形（示波器）、频域频谱（FFT 分析）和静态波形概览三种显示模式，并提供 FFT 大小、波形颜色、平滑度等参">
+<!-- TOOLBOX-WEBAPP-LD -->
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"WebApplication","name":"音频波形显示工具 - 基于 Web Audio API 的","url":"https://chenguangwu.github.io/tools/audio/audio-waveform.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":["zh-CN", "en-US"],"description":"音频波形显示工具","image":"https://chenguangwu.github.io/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}
+</script>
+<meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
+<meta http-equiv="X-Content-Type-Options" content="nosniff">
+<meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
+<!-- TOOLBOX-SECURITY -->
+
+<script src="/js/privacy.js" defer></script>
+<!-- TOOLBOX-PRIVACY-SCRIPT -->
+
+<script src="/js/metrics.js" defer></script>
+<!-- TOOLBOX-METRICS-SCRIPT -->
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"首页","item":"https://chenguangwu.github.io/"},{"@type":"ListItem","position":2,"name":"音频工具","item":"https://chenguangwu.github.io/tools/audio/index.html"},{"@type":"ListItem","position":3,"name":"音频波形显示工具","item":"https://chenguangwu.github.io/tools/audio/audio-waveform.html"}]}
+</script>
+
+<script src="../../js/i18n.js" defer></script>
+<script src="../../js/tool-i18n.js" defer></script>
+<!-- TOOLBOX-I18N-SCRIPT -->
+<!-- TOOLBOX-HREFLANG -->
+<link rel="alternate" hreflang="zh-CN" href="https://chenguangwu.github.io/tools/audio/audio-waveform.html">
+<link rel="alternate" hreflang="en-US" href="https://chenguangwu.github.io/tools/audio/audio-waveform.html">
+<link rel="alternate" hreflang="x-default" href="https://chenguangwu.github.io/tools/audio/audio-waveform.html">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:locale:alternate" content="en_US">
+
+<script src="/js/clarity.js" defer></script>
+<!-- TOOLBOX-CLARITY -->
+</head>
+<body>
+<h1 class="sr-only">音频波形显示工具</h1>
+<div class="nav">
+  <a href="../../index.html">← ToolBox</a>
+  <span>/ 音频波形显示工具</span>
+  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()">🌙</button>
+</div>
+
+
+
+
+<nav class="breadcrumb" aria-label="面包屑导航" data-breadcrumb="1">
+  <a href="../../index.html">首页</a>
+  <span class="bc-sep">‹</span>
+  <a href="index.html">🔧 音频工具</a>
+  <span class="bc-sep">‹</span>
+  <span class="bc-current">音频波形显示工具</span>
+</nav>
+<div class="container">
+  <div class="card tool-card-accent" style="--tool-accent:#FF6B35;">
+    <h2>📊 音频波形显示工具</h2>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:14px;">上传音频文件，实时可视化波形、频谱与概览。基于 Web Audio API，纯前端处理，文件不上传。</p>
+
+    <!-- 上传区域 -->
+    <div class="drop-zone" id="dropZone" onclick="document.getElementById('fileInput').click()">
+      <span class="drop-icon">🎵</span>
+      <div class="drop-text">点击或拖拽音频文件到此处</div>
+      <div class="drop-hint">支持 MP3 / WAV / OGG / FLAC / M4A 等浏览器可解码格式</div>
+      <input type="file" id="fileInput" accept="audio/*">
+    </div>
+
+    <!-- 文件信息 -->
+    <div class="file-info" id="fileInfo" style="display:none;">
+      <span style="font-size:18px;">📄</span>
+      <span class="file-name" id="fileName">—</span>
+      <span class="file-meta" id="fileMeta">—</span>
+    </div>
+
+    <!-- 播放控制 -->
+    <div class="player-bar" id="playerBar" style="display:none;">
+      <button class="play-btn" id="playBtn" onclick="togglePlay()" aria-label="播放/暂停">▶</button>
+      <div class="progress-wrap">
+        <div class="progress-track" id="progressTrack" onclick="seekTo(event)">
+          <div class="progress-fill" id="progressFill"></div>
+        </div>
+      </div>
+      <span class="time-display" id="timeDisplay">00:00 / 00:00</span>
+    </div>
+
+    <!-- 模式切换 -->
+    <div class="tabs" id="modeTabs" style="margin-top:16px;">
+      <button class="tab-btn active" data-mode="oscilloscope" onclick="switchMode('oscilloscope')">📈 时域波形</button>
+      <button class="tab-btn" data-mode="spectrum" onclick="switchMode('spectrum')">🌈 频域频谱</button>
+      <button class="tab-btn" data-mode="overview" onclick="switchMode('overview')">🗺️ 波形概览</button>
+    </div>
+
+    <!-- 可视化画布 -->
+    <div class="viz-canvas-wrap">
+      <canvas id="vizCanvas"></canvas>
+      <div class="canvas-placeholder" id="canvasPlaceholder">请先上传音频文件</div>
+    </div>
+
+    <!-- 参数调节 -->
+    <div class="param-grid" id="paramGrid">
+      <div class="param-item" id="fftParam">
+        <label>FFT 大小</label>
+        <select id="fftSize" onchange="updateFFTSize()">
+          <option value="256">256</option>
+          <option value="512">512</option>
+          <option value="1024">1024</option>
+          <option value="2048" selected>2048</option>
+          <option value="4096">4096</option>
+        </select>
+      </div>
+      <div class="param-item">
+        <label>波形颜色</label>
+        <div class="color-row">
+          <input type="color" id="waveColor" value="#FF6B35" onchange="updateColor(this.value)">
+          <span class="color-val" id="colorVal">#FF6B35</span>
+        </div>
+      </div>
+      <div class="param-item">
+        <label>平滑度 <span class="range-val" id="smoothVal">0.80</span></label>
+        <input type="range" id="smoothing" min="0" max="0.99" step="0.01" value="0.8" oninput="updateSmoothing(this.value)">
+      </div>
+    </div>
+
+    <div class="info-box">💡 提示：播放音频时可查看实时波形/频谱；切换到「波形概览」可查看整段音频的静态波形图，点击进度条可跳转播放位置。</div>
+  </div>
+
+  <!-- 注意事项 -->
+  <div class="tool-notes" style="--tool-accent:#FF6B35;">
+    <div class="tool-notes-title">⚠️ 使用说明与注意事项</div>
+    <ul>
+      <li>本工具纯前端运行，音频文件不会上传到服务器，保护隐私安全</li>
+      <li>需浏览器支持 Web Audio API（Chrome / Safari / Firefox / Edge 近两年版本均可）</li>
+      <li>可解码的格式取决于浏览器，部分特殊编码可能无法解析</li>
+      <li>FFT 大小越大频率分辨率越高，但时间响应略慢；按需调节</li>
+    </ul>
+  </div>
+</div>
+
+<!-- SEO 介绍区块 -->
+
+</div>
+
+</div>
+
+<!-- 相关工具 -->
+<div class="related-tools" data-related-tools="1">
+  <h3 class="related-tools-title">🔗 相关工具</h3>
+  <div class="related-tools-grid">
+    <a href="audio-recorder.html" class="related-tool-card">
+      <span class="rt-icon">🎙️</span>
+      <span class="rt-info"><span class="rt-name">在线录音工具 - 基于 Web Audio API 与 MediaRecord | ToolBox免费在线工具箱</span><span class="rt-desc">&amp;#127908; 在线录音工具</span></span>
+    </a>
+    <a href="audio-volume.html" class="related-tool-card">
+      <span class="rt-icon">🔊</span>
+      <span class="rt-info"><span class="rt-name">audio-volume</span><span class="rt-desc">&amp;#128266; 音频音量调节</span></span>
+    </a>
+    <a href="audio-cut.html" class="related-tool-card">
+      <span class="rt-icon">✂️</span>
+      <span class="rt-info"><span class="rt-name">音频剪切工具 - 纯前端在线音频裁剪器，支持拖拽上传音频、波形可视化、拖选剪切 | ToolBox免费在线工具箱</span><span class="rt-desc">音频剪切工具</span></span>
+    </a>
+    <a href="audio-echo.html" class="related-tool-card">
+      <span class="rt-icon">🌊</span>
+      <span class="rt-info"><span class="rt-name">音频回声混响效果 - 在线音频回声混响效果工具，基于 Web Audio API  | ToolBox免费在线工具箱</span><span class="rt-desc">音频回声混响效果</span></span>
+    </a>
+    <a href="audio-speed.html" class="related-tool-card">
+      <span class="rt-icon">⏩</span>
+      <span class="rt-info"><span class="rt-name">音频播放速度调节 - 工具，基于 Web Audio API | ToolBox免费在线工具箱</span><span class="rt-desc">⏩ 音频播放速度调节</span></span>
+    </a>
+    <a href="convert-9.html" class="related-tool-card">
+      <span class="rt-icon">🔊</span>
+      <span class="rt-info"><span class="rt-name">音频格式转换（需依赖库，如ffmpeg.wasm） - 免费在线工具，纯前端处理 | ToolBox免费在线工具箱</span><span class="rt-desc">音频格式转换（需依赖库，如ffmpeg.wasm）</span></span>
+    </a>
+  </div>
+</div>
+<div class="tool-intro open" id="toolIntro">
+  <div class="tool-intro-header">
+    <span class="intro-icon-wrap"><span class="intro-icon">📖</span>关于「音频波形显示工具」</span>
+    <span class="arrow">▼</span>
+  </div>
+  <div class="tool-intro-body">
+    <h4><span class="h4-icon">📝</span>工具简介</h4>
+    <p>音频波形显示工具基于 Web Audio API 的 AnalyserNode 实现，可对本地音频文件进行实时可视化分析。支持时域波形（示波器）、频域频谱（FFT 分析）和静态波形概览三种显示模式，并提供 FFT 大小、波形颜色、平滑度等参数调节。所有处理在浏览器本地完成，文件不上传，隐私安全有保障。</p>
+    <h4><span class="h4-icon">✨</span>功能特点</h4>
+    <ul class="intro-features">
+      <li>三种可视化模式自由切换</li>
+      <li>实时时域波形示波器显示</li>
+      <li>实时频域 FFT 频谱分析</li>
+      <li>整段音频静态波形概览</li>
+      <li>FFT 大小可选（256~4096）</li>
+      <li>自定义波形颜色与平滑度</li>
+      <li>高 DPI 屏幕清晰渲染</li>
+      <li>支持深色模式与响应式布局</li>
+      <li>纯前端处理，文件不上传</li>
+    </ul>
+    <h4><span class="h4-icon">🎯</span>使用场景</h4>
+    <ul class="intro-scenes">
+      <li>音频编辑前快速预览波形</li>
+      <li>音乐制作频谱分析辅助</li>
+      <li>语音录制质量检查</li>
+      <li>音频教学与声学演示</li>
+      <li>播客后期处理参考</li>
+      <li>声学频率特征观察</li>
+    </ul>
+    <h4><span class="h4-icon">💬</span>常见问题</h4>
+    <div class="intro-faq-item"><div class="intro-faq-q">支持哪些音频格式？</div><div class="intro-faq-a">支持浏览器可解码的格式，通常包括 MP3、WAV、OGG、FLAC、M4A 等。具体支持的格式取决于你所使用的浏览器，部分小众编码可能无法解析。</div></div>
+    <div class="intro-faq-item"><div class="intro-faq-q">我的音频文件会被上传吗？</div><div class="intro-faq-a">不会。所有音频解码、分析和可视化均在你的浏览器本地完成，文件不会发送到任何服务器。</div></div>
+    <div class="intro-faq-item"><div class="intro-faq-q">时域波形和频域频谱有什么区别？</div><div class="intro-faq-a">时域波形（示波器）显示音频信号随时间变化的振幅曲线；频域频谱（FFT）将信号分解为不同频率成分，显示各频率的能量分布。两者从不同角度呈现音频特征。</div></div>
+    <div class="intro-faq-item"><div class="intro-faq-q">FFT 大小应该怎么选？</div><div class="intro-faq-a">FFT 大小决定频率分辨率：值越大频率越精细但时间响应略慢。一般 2048 适合大多数场景，需要更细腻的频率分析可选 4096，需要更快响应可选 1024 或更小。</div></div>
+    <div class="intro-faq-item"><div class="intro-faq-q">支持手机使用吗？</div><div class="intro-faq-a">支持。页面已做响应式适配，手机和电脑均可正常使用。</div></div>
+  </div>
+</div>
+<!-- /SEO 介绍区块 -->
+
+<script>
+(function(){
+'use strict';
+
+/* ===== 状态变量 ===== */
+var audioCtx = null;
+var analyser = null;
+var mediaSource = null;
+var audioEl = null;
+var audioBuffer = null;   // 解码后的音频缓冲（用于静态概览）
+var isPlaying = false;
+var mode = 'oscilloscope';
+var fftSize = 2048;
+var waveColor = '#FF6B35';
+var smoothing = 0.8;
+var rafId = null;
+var overviewCache = null; // 静态概览的降采样缓存
+
+var canvas = document.getElementById('vizCanvas');
+var ctx2d = canvas.getContext('2d');
+var placeholder = document.getElementById('canvasPlaceholder');
+
+/* ===== 初始化 Canvas（高 DPI）===== */
+function resizeCanvas(){
+  var dpr = window.devicePixelRatio || 1;
+  var rect = canvas.getBoundingClientRect();
+  canvas.width = Math.max(1, Math.floor(rect.width * dpr));
+  canvas.height = Math.max(1, Math.floor(rect.height * dpr));
+  ctx2d.setTransform(dpr, 0, 0, dpr, 0, 0);
+}
+resizeCanvas();
+window.addEventListener('resize', function(){
+  resizeCanvas();
+  if(mode === 'overview' && overviewCache){
+    drawOverview();
+  }
+});
+
+/* ===== 初始化 AudioContext（延迟创建，需用户交互）===== */
+function ensureAudioCtx(){
+  if(audioCtx) return;
+  var AC = window.AudioContext || window.webkitAudioContext;
+  if(!AC){
+    ToolBox.showToast(i18nText('toast.msg496'), 'error');
+    return;
+  }
+  audioCtx = new AC();
+  analyser = audioCtx.createAnalyser();
+  analyser.fftSize = fftSize;
+  analyser.smoothingTimeConstant = smoothing;
+  analyser.connect(audioCtx.destination);
+}
+
+/* ===== 文件上传处理 ===== */
+var dropZone = document.getElementById('dropZone');
+var fileInput = document.getElementById('fileInput');
+
+dropZone.addEventListener('dragover', function(e){
+  e.preventDefault();
+  dropZone.classList.add('dragover');
+});
+dropZone.addEventListener('dragleave', function(e){
+  e.preventDefault();
+  dropZone.classList.remove('dragover');
+});
+dropZone.addEventListener('drop', function(e){
+  e.preventDefault();
+  dropZone.classList.remove('dragover');
+  var file = e.dataTransfer.files[0];
+  if(file) handleFile(file);
+});
+fileInput.addEventListener('change', function(e){
+  var file = e.target.files[0];
+  if(file) handleFile(file);
+});
+
+function handleFile(file){
+  if(!file.type.startsWith('audio/') && !/\.(mp3|wav|ogg|flac|m4a|aac|opus|webm)$/i.test(file.name)){
+    ToolBox.showToast('tool.file_upload_hint', 'warning');
+    return;
+  }
+
+  // 停止当前播放
+  if(isPlaying) stopPlay();
+
+  // 清理旧资源
+  if(mediaSource){
+    try{ mediaSource.disconnect(); }catch(e){}
+    mediaSource = null;
+  }
+  if(audioEl){
+    audioEl.pause();
+    audioEl.src = '';
+  }
+  audioBuffer = null;
+  overviewCache = null;
+
+  ensureAudioCtx();
+  if(!audioCtx) return;
+
+  // 显示文件信息
+  var fileInfo = document.getElementById('fileInfo');
+  var playerBar = document.getElementById('playerBar');
+  fileInfo.style.display = 'flex';
+  playerBar.style.display = 'flex';
+  document.getElementById('fileName').textContent = file.name;
+  document.getElementById('fileMeta').textContent = formatSize(file.size);
+  placeholder.style.display = 'none';
+
+  var url = URL.createObjectURL(file);
+
+  // 创建 audio 元素
+  audioEl = new Audio();
+  audioEl.src = url;
+  audioEl.crossOrigin = 'anonymous';
+
+  audioEl.addEventListener('loadedmetadata', function(){
+    updateTimeDisplay(0, audioEl.duration);
+  });
+  audioEl.addEventListener('timeupdate', function(){
+    if(audioEl.duration){
+      var pct = (audioEl.currentTime / audioEl.duration) * 100;
+      document.getElementById('progressFill').style.width = pct + '%';
+      updateTimeDisplay(audioEl.currentTime, audioEl.duration);
+    }
+  });
+  audioEl.addEventListener('ended', function(){
+    stopPlay();
+  });
+  audioEl.addEventListener('error', function(){
+    ToolBox.showToast(i18nText('toast.msg988'), 'error');
+  });
+
+  // 连接到 AnalyserNode（每个 audio 元素只能创建一次 MediaElementSource）
+  try{
+    mediaSource = audioCtx.createMediaElementSource(audioEl);
+    mediaSource.connect(analyser);
+  }catch(err){
+    ToolBox.showToast(i18nText('toast.msg990'), 'error');
+    return;
+  }
+
+  // 恢复 AudioContext（浏览器自动暂停策略）
+  if(audioCtx.state === 'suspended'){
+    audioCtx.resume();
+  }
+
+  // 同时解码一份用于静态概览
+  var reader = new FileReader();
+  reader.onload = function(ev){
+    audioCtx.decodeAudioData(
+      ev.target.result.slice(0),
+      function(buf){
+        audioBuffer = buf;
+        buildOverviewCache();
+        if(mode === 'overview') drawOverview();
+        ToolBox.showToast('tool.audio_load_ok', 'success');
+      },
+      function(){
+        // 解码失败不影响实时播放
+        if(mode === 'overview'){
+          placeholder.textContent = '该格式无法解码为静态概览';
+          placeholder.style.display = 'flex';
+        }
+      }
+    );
+  };
+  reader.readAsArrayBuffer(file);
+
+  ToolBox.showToast(i18nText('toast.msg457'), 'info');
+}
+
+function formatSize(bytes){
+  if(bytes < 1024) return bytes + ' B';
+  if(bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
+  return (bytes / 1048576).toFixed(2) + ' MB';
+}
+
+function formatTime(sec){
+  if(!sec || isNaN(sec)) sec = 0;
+  var m = Math.floor(sec / 60);
+  var s = Math.floor(sec % 60);
+  return (m < 10 ? '0' : '') + m + ':' + (s < 10 ? '0' : '') + s;
+}
+
+function updateTimeDisplay(cur, total){
+  document.getElementById('timeDisplay').textContent = formatTime(cur) + ' / ' + formatTime(total);
+}
+
+/* ===== 播放控制 ===== */
+function togglePlay(){
+  if(!audioEl){
+    ToolBox.showToast('tool.file_upload_hint', 'warning');
+    return;
+  }
+  if(!isPlaying){
+    playAudio();
+  }else{
+    pausePlay();
+  }
+}
+window.togglePlay = togglePlay;
+
+function playAudio(){
+  if(audioCtx && audioCtx.state === 'suspended'){
+    audioCtx.resume();
+  }
+  audioEl.play().then(function(){
+    isPlaying = true;
+    document.getElementById('playBtn').textContent = '⏸';
+    startRender();
+  }).catch(function(err){
+    ToolBox.showToast('播放失败：' + (err.message || '未知错误'), 'error');
+  });
+}
+
+function pausePlay(){
+  audioEl.pause();
+  isPlaying = false;
+  document.getElementById('playBtn').textContent = '▶';
+  stopRender();
+  // 暂停时绘制最后一帧静态画面
+  if(mode === 'oscilloscope') drawOscilloscope(true);
+  else if(mode === 'spectrum') drawSpectrum(true);
+}
+
+function stopPlay(){
+  if(audioEl){
+    audioEl.pause();
+    audioEl.currentTime = 0;
+  }
+  isPlaying = false;
+  document.getElementById('playBtn').textContent = '▶';
+  stopRender();
+  document.getElementById('progressFill').style.width = '0%';
+}
+
+/* ===== 进度条跳转 ===== */
+window.seekTo = function(e){
+  if(!audioEl || !audioEl.duration) return;
+  var track = document.getElementById('progressTrack');
+  var rect = track.getBoundingClientRect();
+  var pct = (e.clientX - rect.left) / rect.width;
+  pct = Math.max(0, Math.min(1, pct));
+  audioEl.currentTime = pct * audioEl.duration;
+  document.getElementById('progressFill').style.width = (pct * 100) + '%';
+  updateTimeDisplay(audioEl.currentTime, audioEl.duration);
+};
+
+/* ===== 模式切换 ===== */
+window.switchMode = function(newMode){
+  mode = newMode;
+  // 更新 Tab 状态
+  var btns = document.querySelectorAll('#modeTabs .tab-btn');
+  btns.forEach(function(b){
+    b.classList.toggle('active', b.dataset.mode === newMode);
+  });
+
+  // FFT 参数仅在示波器/频谱模式可用
+  var fftParam = document.getElementById('fftParam');
+  fftParam.style.opacity = (newMode === 'overview') ? '0.45' : '1';
+  fftParam.style.pointerEvents = (newMode === 'overview') ? 'none' : 'auto';
+
+  stopRender();
+  clearCanvas();
+
+  if(newMode === 'overview'){
+    if(audioBuffer){
+      drawOverview();
+    }else{
+      placeholder.textContent = '请先上传音频文件';
+      placeholder.style.display = 'flex';
+    }
+  }else{
+    if(audioEl){
+      placeholder.style.display = 'none';
+      if(isPlaying){
+        startRender();
+      }else{
+        // 静态绘制一帧
+        if(newMode === 'oscilloscope') drawOscilloscope(true);
+        else drawSpectrum(true);
+      }
+    }else{
+      placeholder.textContent = '请先上传音频文件';
+      placeholder.style.display = 'flex';
+    }
+  }
+};
+
+/* ===== 参数更新 ===== */
+window.updateFFTSize = function(){
+  fftSize = parseInt(document.getElementById('fftSize').value, 10);
+  if(analyser) analyser.fftSize = fftSize;
+};
+
+window.updateColor = function(val){
+  waveColor = val;
+  document.getElementById('colorVal').textContent = val.toUpperCase();
+  // 静态模式下重绘
+  if(mode === 'overview' && overviewCache){
+    drawOverview();
+  }else if(!isPlaying){
+    if(mode === 'oscilloscope') drawOscilloscope(true);
+    else if(mode === 'spectrum') drawSpectrum(true);
+  }
+};
+
+window.updateSmoothing = function(val){
+  smoothing = parseFloat(val);
+  document.getElementById('smoothVal').textContent = smoothing.toFixed(2);
+  if(analyser) analyser.smoothingTimeConstant = smoothing;
+};
+
+/* ===== 渲染循环 ===== */
+function startRender(){
+  stopRender();
+  rafId = requestAnimationFrame(renderFrame);
+}
+function stopRender(){
+  if(rafId){
+    cancelAnimationFrame(rafId);
+    rafId = null;
+  }
+}
+function renderFrame(){
+  if(mode === 'oscilloscope'){
+    drawOscilloscope(false);
+  }else if(mode === 'spectrum'){
+    drawSpectrum(false);
+  }
+  rafId = requestAnimationFrame(renderFrame);
+}
+
+/* ===== 画布工具 ===== */
+function getCanvasSize(){
+  var rect = canvas.getBoundingClientRect();
+  return { w: rect.width, h: rect.height };
+}
+
+function clearCanvas(){
+  var s = getCanvasSize();
+  ctx2d.clearRect(0, 0, s.w, s.h);
+}
+
+function drawBg(){
+  var s = getCanvasSize();
+  // 深色背景
+  var grad = ctx2d.createLinearGradient(0, 0, 0, s.h);
+  grad.addColorStop(0, '#0d0d1a');
+  grad.addColorStop(1, '#161628');
+  ctx2d.fillStyle = grad;
+  ctx2d.fillRect(0, 0, s.w, s.h);
+
+  // 中线
+  ctx2d.strokeStyle = 'rgba(255,255,255,0.08)';
+  ctx2d.lineWidth = 1;
+  ctx2d.beginPath();
+  ctx2d.moveTo(0, s.h / 2);
+  ctx2d.lineTo(s.w, s.h / 2);
+  ctx2d.stroke();
+}
+
+/* ===== 时域波形（示波器）===== */
+function drawOscilloscope(staticFrame){
+  if(!analyser) return;
+  var s = getCanvasSize();
+  var bufLen = analyser.fftSize;
+  var dataArray = new Uint8Array(bufLen);
+  analyser.getByteTimeDomainData(dataArray);
+
+  drawBg();
+
+  // 波形线
+  ctx2d.lineWidth = 2;
+  ctx2d.strokeStyle = waveColor;
+  ctx2d.shadowBlur = 8;
+  ctx2d.shadowColor = waveColor;
+  ctx2d.beginPath();
+
+  var sliceWidth = s.w / bufLen;
+  var x = 0;
+  for(var i = 0; i < bufLen; i++){
+    var v = dataArray[i] / 128.0; // 0~2
+    var y = (v * s.h) / 2;
+    if(i === 0){
+      ctx2d.moveTo(x, y);
+    }else{
+      ctx2d.lineTo(x, y);
+    }
+    x += sliceWidth;
+  }
+  ctx2d.stroke();
+  ctx2d.shadowBlur = 0;
+
+  // 标签
+  drawLabel('时域波形 Oscilloscope');
+}
+
+/* ===== 频域频谱（FFT）===== */
+function drawSpectrum(staticFrame){
+  if(!analyser) return;
+  var s = getCanvasSize();
+  var bufLen = analyser.frequencyBinCount;
+  var dataArray = new Uint8Array(bufLen);
+  analyser.getByteFrequencyData(dataArray);
+
+  drawBg();
+
+  var barCount = Math.min(bufLen, Math.floor(s.w / 3));
+  var step = Math.floor(bufLen / barCount);
+  var barWidth = s.w / barCount;
+  var gap = barWidth > 4 ? 1 : 0;
+
+  for(var i = 0; i < barCount; i++){
+    // 取该区间内的最大值
+    var val = 0;
+    for(var j = 0; j < step; j++){
+      if(dataArray[i * step + j] > val) val = dataArray[i * step + j];
+    }
+    var barHeight = (val / 255) * s.h * 0.92;
+    var x = i * barWidth;
+    var y = s.h - barHeight;
+
+    // 渐变填充
+    var grad = ctx2d.createLinearGradient(0, y, 0, s.h);
+    grad.addColorStop(0, waveColor);
+    grad.addColorStop(1, hexToRgba(waveColor, 0.3));
+    ctx2d.fillStyle = grad;
+    ctx2d.fillRect(x, y, Math.max(1, barWidth - gap), barHeight);
+  }
+
+  drawLabel('频域频谱 Spectrum (FFT=' + fftSize + ')');
+}
+
+/* ===== 静态波形概览 ===== */
+function buildOverviewCache(){
+  if(!audioBuffer) return;
+  var channelData = audioBuffer.getChannelData(0);
+  var samples = channelData.length;
+  var s = getCanvasSize();
+  var targetPoints = Math.floor(s.w * 2); // 2x 超采样
+  if(targetPoints < 100) targetPoints = 100;
+  var block = Math.floor(samples / targetPoints);
+  if(block < 1) block = 1;
+
+  var peaks = [];
+  for(var i = 0; i < targetPoints; i++){
+    var start = i * block;
+    var end = Math.min(start + block, samples);
+    var min = 1, max = -1;
+    for(var j = start; j < end; j++){
+      var v = channelData[j];
+      if(v < min) min = v;
+      if(v > max) max = v;
+    }
+    peaks.push({ min: min, max: max });
+  }
+  overviewCache = { peaks: peaks, duration: audioBuffer.duration, sampleRate: audioBuffer.sampleRate, channels: audioBuffer.numberOfChannels };
+}
+
+function drawOverview(){
+  if(!overviewCache){
+    if(audioBuffer){
+      buildOverviewCache();
+      if(!overviewCache) return;
+    }else{
+      return;
+    }
+  }
+  var s = getCanvasSize();
+  var peaks = overviewCache.peaks;
+  var duration = overviewCache.duration;
+  var mid = s.h / 2;
+  var amp = s.h * 0.42;
+
+  drawBg();
+
+  // 波形填充
+  ctx2d.beginPath();
+  ctx2d.moveTo(0, mid);
+  var n = peaks.length;
+  var xStep = s.w / n;
+
+  // 上半部分（max）
+  for(var i = 0; i < n; i++){
+    var x = i * xStep;
+    var y = mid - peaks[i].max * amp;
+    if(i === 0) ctx2d.moveTo(x, y);
+    else ctx2d.lineTo(x, y);
+  }
+  // 下半部分（min），反向
+  for(var k = n - 1; k >= 0; k--){
+    var x2 = k * xStep;
+    var y2 = mid - peaks[k].min * amp;
+    ctx2d.lineTo(x2, y2);
+  }
+  ctx2d.closePath();
+
+  var fillGrad = ctx2d.createLinearGradient(0, 0, 0, s.h);
+  fillGrad.addColorStop(0, hexToRgba(waveColor, 0.5));
+  fillGrad.addColorStop(0.5, hexToRgba(waveColor, 0.15));
+  fillGrad.addColorStop(1, hexToRgba(waveColor, 0.5));
+  ctx2d.fillStyle = fillGrad;
+  ctx2d.fill();
+
+  // 描边
+  ctx2d.lineWidth = 1;
+  ctx2d.strokeStyle = waveColor;
+  ctx2d.shadowBlur = 4;
+  ctx2d.shadowColor = waveColor;
+
+  ctx2d.beginPath();
+  for(var a = 0; a < n; a++){
+    var xa = a * xStep;
+    var ya = mid - peaks[a].max * amp;
+    if(a === 0) ctx2d.moveTo(xa, ya);
+    else ctx2d.lineTo(xa, ya);
+  }
+  ctx2d.stroke();
+
+  ctx2d.beginPath();
+  for(var b = 0; b < n; b++){
+    var xb = b * xStep;
+    var yb = mid - peaks[b].min * amp;
+    if(b === 0) ctx2d.moveTo(xb, yb);
+    else ctx2d.lineTo(xb, yb);
+  }
+  ctx2d.stroke();
+  ctx2d.shadowBlur = 0;
+
+  // 播放进度指示线
+  if(audioEl && audioEl.duration){
+    var pct = audioEl.currentTime / audioEl.duration;
+    var px = pct * s.w;
+    ctx2d.strokeStyle = 'rgba(255,255,255,0.6)';
+    ctx2d.lineWidth = 1.5;
+    ctx2d.setLineDash([4, 3]);
+    ctx2d.beginPath();
+    ctx2d.moveTo(px, 0);
+    ctx2d.lineTo(px, s.h);
+    ctx2d.stroke();
+    ctx2d.setLineDash([]);
+  }
+
+  // 信息标签
+  var info = '波形概览 Overview | 时长 ' + formatTime(duration) + ' | ' + overviewCache.sampleRate + 'Hz | ' + overviewCache.channels + 'ch';
+  drawLabel(info);
+}
+
+/* ===== 辅助绘制 ===== */
+function drawLabel(text){
+  ctx2d.font = '12px -apple-system, sans-serif';
+  ctx2d.fillStyle = 'rgba(255,255,255,0.5)';
+  ctx2d.textAlign = 'left';
+  ctx2d.fillText(text, 10, 18);
+}
+
+function hexToRgba(hex, alpha){
+  hex = hex.replace('#', '');
+  if(hex.length === 3){
+    hex = hex[0] + hex[0] + hex[1] + hex[1] + hex[2] + hex[2];
+  }
+  var r = parseInt(hex.substring(0, 2), 16);
+  var g = parseInt(hex.substring(2, 4), 16);
+  var b = parseInt(hex.substring(4, 6), 16);
+  return 'rgba(' + r + ',' + g + ',' + b + ',' + alpha + ')';
+}
+
+/* ===== 概览模式下持续更新进度线 ===== */
+setInterval(function(){
+  if(mode === 'overview' && audioEl && audioEl.duration && overviewCache){
+    drawOverview();
+  }
+}, 200);
+
+/* ===== tool-intro 折叠交互 ===== */
+document.addEventListener('DOMContentLoaded', function(){
+  var headers = document.querySelectorAll('.tool-intro-header');
+  headers.forEach(function(h){
+    h.addEventListener('click', function(){
+      this.parentElement.classList.toggle('open');
+    });
+  });
+});
+
+/* ===== 初始绘制空状态 ===== */
+drawBg();
+
+})();
+</script>
+</body>
+</html>

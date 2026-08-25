@@ -1,0 +1,634 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+
+<script src="/js/tool-page-runtime.js" defer></script>
+<!-- TOOLBOX-TOOL-RUNTIME -->
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="toolbox" content="cat=calculator,industry=agriculture,icon=🌾,bg=#f1f8e9">
+<title>农业计算器 - 涵盖肥料配比、种植密度、农药稀释、灌溉水量、孵化倒计时 - ToolBox</title>
+<link rel="canonical" href="https://chenguangwu.github.io/tools/agriculture/agri-calculator.html">
+<meta property="og:title" content="农业计算器 - 涵盖肥料配比、种植密度、农药稀释、灌溉水量、孵化倒计时 - ToolBox">
+<meta property="og:description" content="农业计算器 - 涵盖肥料配比、种植密度、农药稀释、灌溉水量、孵化倒计时、农机油耗等常用农业计算。免费在线工具，纯前端本地处理，数据不上传。">
+<meta property="og:url" content="https://chenguangwu.github.io/tools/agriculture/agri-calculator.html">
+<meta name="twitter:card" content="summary">
+<meta name="description" content="农业计算器 - 涵盖肥料配比、种植密度、农药稀释、灌溉水量、孵化倒计时、农机油耗等常用农业计算。免费在线工具，纯前端本地处理，数据不上传。">
+<link rel="stylesheet" href="../../css/common.css">
+<script src="../../js/common.js"></script>
+<style>
+.agri-tabs { display: flex; gap: 4px; margin-bottom: 16px; overflow-x: auto; -webkit-overflow-scrolling: touch; flex-wrap: wrap; }
+.agri-tab { padding: 10px 16px; background: none; border: none; cursor: pointer; font-size: 13px; color: var(--text-light); border-radius: 10px; white-space: nowrap; transition: all 0.2s; font-weight: 500; }
+.agri-tab:hover { color: var(--primary); background: var(--bg-hover); }
+.agri-tab.active { color: #fff; background: var(--gradient-primary); }
+.agri-panel { display: none; }
+.agri-panel.active { display: block; }
+.agri-sub-title { font-size: 15px; font-weight: 600; color: var(--heading); margin-bottom: 12px; display: flex; align-items: center; gap: 6px; }
+.agri-formula { font-size: 12px; color: var(--text-muted); margin-bottom: 12px; padding: 8px 12px; background: var(--result-bg); border-radius: 8px; border: 1px solid var(--border); }
+.agri-formula code { color: var(--primary); font-weight: 600; }
+.incubation-day { display: flex; align-items: center; gap: 12px; padding: 10px 14px; border: 1px solid var(--border); border-radius: 10px; margin-bottom: 8px; transition: all 0.2s; }
+.incubation-day.current { border-color: var(--primary); background: var(--bg-active); }
+.incubation-day .day-num { width: 36px; height: 36px; border-radius: 50%; background: var(--gradient-primary); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; flex-shrink: 0; }
+.incubation-day .day-num.done { background: var(--success); }
+.incubation-day .day-num.future { background: var(--border); color: var(--text-muted); }
+.incubation-day .day-info { flex: 1; }
+.incubation-day .day-label { font-size: 13px; font-weight: 600; color: var(--heading); }
+.incubation-day .day-desc { font-size: 12px; color: var(--text-light); margin-top: 2px; }
+.progress-ring { width: 100%; max-width: 200px; margin: 0 auto 16px; }
+.nutrient-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 12px 0; }
+.nutrient-card { background: var(--result-bg); border: 1px solid var(--border); border-radius: 12px; padding: 16px; text-align: center; transition: all 0.2s; }
+.nutrient-card:hover { border-color: var(--primary); transform: translateY(-2px); }
+.nutrient-card .nutrient-name { font-size: 13px; font-weight: 600; color: var(--heading); margin-bottom: 4px; }
+.nutrient-card .nutrient-val { font-size: 22px; font-weight: 700; color: var(--primary); }
+.nutrient-card .nutrient-unit { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+.nutrient-card.n-nutrient { border-left: 3px solid #3B82F6; }
+.nutrient-card.n-nutrient .nutrient-val { color: #3B82F6; }
+.nutrient-card.p-nutrient { border-left: 3px solid #F59E0B; }
+.nutrient-card.p-nutrient .nutrient-val { color: #F59E0B; }
+.nutrient-card.k-nutrient { border-left: 3px solid #8B5CF6; }
+.nutrient-card.k-nutrient .nutrient-val { color: #8B5CF6; }
+@media(max-width:768px){
+  .nutrient-grid { grid-template-columns: 1fr; }
+  .agri-tabs { overflow-x: auto; flex-wrap: nowrap; margin: 0 -18px 16px; padding: 0 18px 4px; gap: 6px; }
+  .agri-tab { padding: 9px 14px; font-size: 13px; flex-shrink: 0; white-space: nowrap; }
+}
+</style>
+
+
+
+<meta property="og:image" content="https://chenguangwu.github.io/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="ToolBox - 6000+免费在线工具">
+<meta name="twitter:image" content="https://chenguangwu.github.io/og-image.png">
+<meta name="twitter:image:alt" content="ToolBox - 6000+免费在线工具">
+    <meta property="og:type" content="website">
+    <meta name="twitter:title" content="农业计算器 - 涵盖肥料配比、种植密度、农药稀释、灌溉水量、孵化倒计时 - ToolBox">
+    <meta name="twitter:description" content="农业计算器 - 涵盖肥料配比、种植密度、农药稀释、灌溉水量、孵化倒计时、农机油耗等常用农业计算。免费在线工具，纯前端本地处理，数据不上传。">
+<!-- TOOLBOX-WEBAPP-LD -->
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"WebApplication","name":"农业计算器 - 涵盖肥料配比、种植密度、农药稀释、灌溉水量、孵化倒计时","url":"https://chenguangwu.github.io/tools/agriculture/agri-calculator.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":["zh-CN", "en-US"],"description":"农业计算器","image":"https://chenguangwu.github.io/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}
+</script>
+<meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
+<meta http-equiv="X-Content-Type-Options" content="nosniff">
+<meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
+<!-- TOOLBOX-SECURITY -->
+
+<script src="/js/privacy.js" defer></script>
+<!-- TOOLBOX-PRIVACY-SCRIPT -->
+
+<script src="/js/metrics.js" defer></script>
+<!-- TOOLBOX-METRICS-SCRIPT -->
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"首页","item":"https://chenguangwu.github.io/"},{"@type":"ListItem","position":2,"name":"农业种植","item":"https://chenguangwu.github.io/tools/agriculture/index.html"},{"@type":"ListItem","position":3,"name":"农业计算器","item":"https://chenguangwu.github.io/tools/agriculture/agri-calculator.html"}]}
+</script>
+
+<script src="../../js/i18n.js" defer></script>
+<script src="../../js/tool-i18n.js" defer></script>
+<!-- TOOLBOX-I18N-SCRIPT -->
+<!-- TOOLBOX-HREFLANG -->
+<link rel="alternate" hreflang="zh-CN" href="https://chenguangwu.github.io/tools/agriculture/agri-calculator.html">
+<link rel="alternate" hreflang="en-US" href="https://chenguangwu.github.io/tools/agriculture/agri-calculator.html">
+<link rel="alternate" hreflang="x-default" href="https://chenguangwu.github.io/tools/agriculture/agri-calculator.html">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:locale:alternate" content="en_US">
+
+<script src="/js/clarity.js" defer></script>
+<!-- TOOLBOX-CLARITY -->
+</head>
+<body>
+<h1 class="sr-only">农业计算器</h1>
+
+
+<div class="nav">
+  <a href="../../index.html">← ToolBox</a>
+  <span>/ 农业计算器</span>
+  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()">🌙</button>
+</div>
+
+
+
+
+
+<nav class="breadcrumb" aria-label="面包屑导航" data-breadcrumb="1">
+  <a href="../../index.html">首页</a>
+  <span class="bc-sep">‹</span>
+  <a href="index.html">🌾 农业种植</a>
+  <span class="bc-sep">‹</span>
+  <span class="bc-current">农业计算器</span>
+</nav>
+<div class="container">
+  <div class="card tool-card-accent" style="--tool-accent:#FF6B35;">
+    <h2>🌾 农业计算器</h2>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;">涵盖肥料配比、种植密度、农药稀释、灌溉水量、孵化倒计时、农机油耗等常用农业计算</p>
+
+    <div class="agri-tabs" id="agriTabs">
+      <button class="agri-tab active" onclick="switchTab(0)">🧪 肥料配比</button>
+      <button class="agri-tab" onclick="switchTab(1)">🌱 种植密度</button>
+      <button class="agri-tab" onclick="switchTab(2)">⚗️ 农药稀释</button>
+      <button class="agri-tab" onclick="switchTab(3)">💧 灌溉水量</button>
+      <button class="agri-tab" onclick="switchTab(4)">🥚 孵化倒计时</button>
+      <button class="agri-tab" onclick="switchTab(5)">🚜 农机油耗</button>
+    </div>
+
+    <!-- 1. 肥料配比计算器 -->
+    <div class="agri-panel active" id="panel0">
+      <div class="agri-sub-title">🧪 肥料配比计算器</div>
+      <div class="agri-formula">计算公式：<code>各元素用量 = 肥料总量 × (元素含量% / 100)</code></div>
+      <div class="input-row">
+        <div><label>氮(N)含量 (%)</label><input type="number" id="fert_n" value="15" min="0" max="100" oninput="calcFertilizer()"></div>
+        <div><label>磷(P₂O₅)含量 (%)</label><input type="number" id="fert_p" value="15" min="0" max="100" oninput="calcFertilizer()"></div>
+        <div><label>钾(K₂O)含量 (%)</label><input type="number" id="fert_k" value="15" min="0" max="100" oninput="calcFertilizer()"></div>
+      </div>
+      <div class="input-row">
+        <div><label>施肥面积 (亩)</label><input type="number" id="fert_area" value="10" min="0" step="0.1" oninput="calcFertilizer()"></div>
+        <div><label>每亩用量 (kg/亩)</label><input type="number" id="fert_per_mu" value="25" min="0" step="0.1" oninput="calcFertilizer()"></div>
+      </div>
+      <div class="toolbar">
+        <button type="button" class="btn primary" onclick="calcFertilizer()">计算配比</button>
+        <button type="button" class="btn" onclick="copyFertResult()">复制结果</button>
+      </div>
+      <div class="result-box" id="fertResult"></div>
+    </div>
+
+    <!-- 2. 种植密度计算器 -->
+    <div class="agri-panel" id="panel1">
+      <div class="agri-sub-title">🌱 种植密度计算器</div>
+      <div class="agri-formula">计算公式：<code>株数 = 面积(m²) / (株距(m) × 行距(m))</code>，1亩 = 666.67m²</div>
+      <div class="input-row">
+        <div><label>株距 (cm)</label><input type="number" id="plant_spacing" value="30" min="1" oninput="calcDensity()"></div>
+        <div><label>行距 (cm)</label><input type="number" id="plant_row" value="50" min="1" oninput="calcDensity()"></div>
+      </div>
+      <div class="input-row">
+        <div><label>面积</label><input type="number" id="plant_area" value="10" min="0" step="0.1" oninput="calcDensity()"></div>
+        <div><label>面积单位</label>
+          <select id="plant_unit" onchange="calcDensity()">
+            <option value="mu">亩</option>
+            <option value="sqm">平方米</option>
+          </select>
+        </div>
+      </div>
+      <div class="toolbar">
+        <button type="button" class="btn primary" onclick="calcDensity()">计算密度</button>
+        <button type="button" class="btn" onclick="copyDensityResult()">复制结果</button>
+      </div>
+      <div class="result-box" id="densityResult"></div>
+    </div>
+
+    <!-- 3. 农药稀释浓度计算器 -->
+    <div class="agri-panel" id="panel2">
+      <div class="agri-sub-title">⚗️ 农药稀释浓度计算器</div>
+      <div class="agri-formula">计算公式：<code>原药用量 = (目标浓度 × 配制药液量) / 原药浓度</code></div>
+      <div class="input-row">
+        <div><label>农药有效成分含量 (%)</label><input type="number" id="pest_content" value="40" min="0.01" max="100" step="0.1" oninput="calcPesticide()"></div>
+        <div><label>浓度单位</label>
+          <select id="pest_unit" onchange="calcPesticide()">
+            <option value="ppm">ppm</option>
+            <option value="pct">%</option>
+          </select>
+        </div>
+      </div>
+      <div class="input-row">
+        <div><label>目标浓度</label><input type="number" id="pest_target" value="1000" min="0.01" step="1" oninput="calcPesticide()"></div>
+        <div><label>需配制药液量 (L)</label><input type="number" id="pest_volume" value="30" min="0.01" step="0.1" oninput="calcPesticide()"></div>
+      </div>
+      <div class="toolbar">
+        <button type="button" class="btn primary" onclick="calcPesticide()">计算用量</button>
+        <button type="button" class="btn" onclick="copyPestResult()">复制结果</button>
+      </div>
+      <div class="result-box" id="pestResult"></div>
+      <div class="tip-box tip-warn" style="margin-top:12px;">注意：配药时请穿戴防护装备，严格按照推荐浓度使用，避免药害或残留超标。</div>
+    </div>
+
+    <!-- 4. 灌溉用水量估算 -->
+    <div class="agri-panel" id="panel3">
+      <div class="agri-sub-title">💧 灌溉用水量估算</div>
+      <div class="agri-formula">计算公式：<code>用水量(m³) = 面积(亩) × 灌溉深度(mm) × 0.667</code>，1mm水深 × 1亩 = 0.667m³</div>
+      <div class="input-row">
+        <div><label>灌溉面积 (亩)</label><input type="number" id="irr_area" value="10" min="0" step="0.1" oninput="calcIrrigation()"></div>
+        <div><label>灌溉深度 (mm)</label><input type="number" id="irr_depth" value="50" min="0" step="1" oninput="calcIrrigation()"></div>
+      </div>
+      <div class="toolbar">
+        <button type="button" class="btn primary" onclick="calcIrrigation()">计算水量</button>
+        <button type="button" class="btn" onclick="copyIrrResult()">复制结果</button>
+      </div>
+      <div class="result-box" id="irrResult"></div>
+      <div class="tip-box tip-info" style="margin-top:12px;">参考值：苗期灌溉深度一般 10-20mm，生长期 30-50mm，开花坐果期 40-60mm。</div>
+    </div>
+
+    <!-- 5. 鸡蛋孵化倒计时 -->
+    <div class="agri-panel" id="panel4">
+      <div class="agri-sub-title">🥚 鸡蛋孵化倒计时</div>
+      <div class="agri-formula">正常孵化周期：<code>21天</code>（鸡），入孵后自动计算各阶段进度</div>
+      <div class="input-row">
+        <div><label>入孵日期</label><input type="date" id="hatch_date" onchange="calcIncubation()"></div>
+      </div>
+      <div class="toolbar">
+        <button type="button" class="btn primary" onclick="setToday()">设为今天</button>
+        <button type="button" class="btn" onclick="calcIncubation()">刷新计算</button>
+      </div>
+      <div class="result-box" id="hatchResult"></div>
+      <div id="hatchStages"></div>
+    </div>
+
+    <!-- 6. 农机油耗估算 -->
+    <div class="agri-panel" id="panel5">
+      <div class="agri-sub-title">🚜 农机油耗估算</div>
+      <div class="agri-formula">计算公式：<code>总油耗 = 作业面积 × 每亩油耗</code>，<code>总费用 = 总油耗 × 油价</code></div>
+      <div class="input-row">
+        <div><label>作业面积 (亩)</label><input type="number" id="fuel_area" value="50" min="0" step="0.1" oninput="calcFuel()"></div>
+        <div><label>每亩油耗 (L/亩)</label><input type="number" id="fuel_per_mu" value="1.5" min="0" step="0.1" oninput="calcFuel()"></div>
+      </div>
+      <div class="input-row">
+        <div><label>油价 (元/L)</label><input type="number" id="fuel_price" value="7.5" min="0" step="0.1" oninput="calcFuel()"></div>
+      </div>
+      <div class="toolbar">
+        <button type="button" class="btn primary" onclick="calcFuel()">计算费用</button>
+        <button type="button" class="btn" onclick="copyFuelResult()">复制结果</button>
+      </div>
+      <div class="result-box" id="fuelResult"></div>
+      <div class="tip-box tip-info" style="margin-top:12px;">参考值：旋耕作业约 0.8-1.2 L/亩，播种约 0.5-0.8 L/亩，收割约 1.5-2.5 L/亩。</div>
+    </div>
+
+  </div>
+
+  <!-- 工具介绍（SEO） -->
+  
+</div>
+
+</div>
+
+
+<!-- 相关工具 -->
+<div class="related-tools" data-related-tools="1">
+  <h3 class="related-tools-title">🔗 相关工具</h3>
+  <div class="related-tools-grid">
+    <a href="calc-37.html" class="related-tool-card">
+      <span class="rt-icon">🌾</span>
+      <span class="rt-info"><span class="rt-name">光照累积量（每日光积分DLI）计算 - 每日光积分（Daily Light Integral,</span><span class="rt-desc">光照累积量（每日光积分DLI）计算</span></span>
+    </a>
+    <a href="convert-content-1.html" class="related-tool-card">
+      <span class="rt-icon">🌾</span>
+      <span class="rt-info"><span class="rt-name">农产品干物质含量与水分换算</span><span class="rt-desc">农产品干物质含量与水分换算</span></span>
+    </a>
+    <a href="dry-matter-conversion.html" class="related-tool-card">
+      <span class="rt-icon">⚖️</span>
+      <span class="rt-info"><span class="rt-name">农产品干物质含量换算器 - 鲜重/干重/含水率/干物质含量快速换算</span><span class="rt-desc">农产品干物质含量换算器</span></span>
+    </a>
+    <a href="calc-4.html" class="related-tool-card">
+      <span class="rt-icon">🌤️</span>
+      <span class="rt-info"><span class="rt-name">大棚卷膜时间建议 - 帮助种植户根据棚内温度变化趋势</span><span class="rt-desc">大棚卷膜时间建议</span></span>
+    </a>
+    <a href="temp-time-2.html" class="related-tool-card">
+      <span class="rt-icon">🌾</span>
+      <span class="rt-info"><span class="rt-name">大棚卷膜时间（温度/风速）建议 - 大棚卷膜时间建议工具，根据棚内外温差、风速与棚膜面积</span><span class="rt-desc">大棚卷膜时间（温度/风速）建议</span></span>
+    </a>
+    <a href="calc-15.html" class="related-tool-card">
+      <span class="rt-icon">📅</span>
+      <span class="rt-info"><span class="rt-name">播种日期计算器 - 根据作物收获目标倒推播种时间，帮助种植户把握最佳播期窗口</span><span class="rt-desc">播种日期计算器</span></span>
+    </a>
+  </div>
+</div>
+<div class="tool-intro" id="toolIntro">
+    <div class="tool-intro-header" onclick="toggleIntro()">
+      <span class="intro-icon-wrap"><span class="intro-icon">🌾</span> 工具介绍与使用说明</span>
+      <span class="arrow">▼</span>
+    </div>
+    <div class="tool-intro-body">
+      <p>农业计算器是一款专为农民、农业技术人员和种植户设计的多功能在线计算工具，涵盖施肥、种植、灌溉、病虫害防治、养殖和农机作业等六大场景。</p>
+      <h4><span class="h4-icon">✨</span> 功能特点</h4>
+      <ul class="intro-features">
+        <li>肥料配比计算</li>
+        <li>种植密度测算</li>
+        <li>农药稀释配比</li>
+        <li>灌溉水量估算</li>
+        <li>鸡蛋孵化倒计时</li>
+        <li>农机油耗费用估算</li>
+        <li>纯前端离线可用</li>
+        <li>数据不上传保护隐私</li>
+      </ul>
+      <h4><span class="h4-icon">📋</span> 使用场景</h4>
+      <ul class="intro-scenes">
+        <li>大田作物施肥方案制定</li>
+        <li>果园蔬菜种植密度规划</li>
+        <li>病虫害防治配药参考</li>
+        <li>农田灌溉用水预算</li>
+        <li>禽类养殖孵化管理</li>
+        <li>农机作业成本核算</li>
+      </ul>
+      <h4><span class="h4-icon">❓</span> 常见问题</h4>
+      <div class="intro-faq-item">
+        <div class="intro-faq-q">肥料N-P-K比例怎么理解？</div>
+        <div class="intro-faq-a">N-P-K分别代表氮(N)、磷(P₂O₅)、钾(K₂O)三种主要营养元素的含量百分比。例如15-15-15表示三种元素各占15%，即三元复合肥。</div>
+      </div>
+      <div class="intro-faq-item">
+        <div class="intro-faq-q">农药稀释的ppm和百分比怎么换算？</div>
+        <div class="intro-faq-a">1% = 10000ppm。例如目标浓度1000ppm等于0.01%。本工具支持直接选择ppm或百分比作为浓度单位。</div>
+      </div>
+      <div class="intro-faq-item">
+        <div class="intro-faq-q">鸡蛋孵化温度和湿度要求是什么？</div>
+        <div class="intro-faq-a">一般鸡蛋白天温度37.5-38.5℃，夜间可略低0.5℃；湿度1-18天50-60%，19-21天65-75%，本工具提供各阶段参考提醒。</div>
+      </div>
+    </div>
+  </div>
+
+<!-- 注意事项区块 -->
+<div class="tool-notes" style="--tool-accent:#FF6B35;">
+  <div class="tool-notes-title">⚠️ 使用说明与注意事项</div>
+  <ul>
+      <li>本工具纯前端运行，数据不会上传到服务器</li>
+      <li>建议在主流浏览器（Chrome/Safari/Firefox/Edge）中使用</li>
+      <li>计算结果仅供参考，请以实际应用场景为准</li>
+  </ul>
+</div>
+<!-- /注意事项区块 -->
+</div>
+
+<script>
+// ===== 标签页切换 =====
+var currentTab = 0;
+function switchTab(idx) {
+  currentTab = idx;
+  var tabs = document.querySelectorAll('.agri-tab');
+  var panels = document.querySelectorAll('.agri-panel');
+  tabs.forEach(function(t, i) { t.classList.toggle('active', i === idx); });
+  panels.forEach(function(p, i) { p.classList.toggle('active', i === idx); });
+}
+
+// ===== 工具介绍折叠 =====
+function toggleIntro() {
+  document.getElementById('toolIntro').classList.toggle('open');
+}
+
+// ===== 1. 肥料配比计算器 =====
+var lastFertText = '';
+function calcFertilizer() {
+  var n = parseFloat(document.getElementById('fert_n').value) || 0;
+  var p = parseFloat(document.getElementById('fert_p').value) || 0;
+  var k = parseFloat(document.getElementById('fert_k').value) || 0;
+  var area = parseFloat(document.getElementById('fert_area').value) || 0;
+  var perMu = parseFloat(document.getElementById('fert_per_mu').value) || 0;
+
+  var totalKg = area * perMu;
+  var nKg = totalKg * n / 100;
+  var pKg = totalKg * p / 100;
+  var kKg = totalKg * k / 100;
+
+  var ratio = n + '-' + p + '-' + k;
+  var text = '肥料配方：' + ratio + ' | 施肥面积：' + area + '亩 | 每亩用量：' + perMu + 'kg'
+    + '\n肥料总量：' + totalKg.toFixed(1) + 'kg'
+    + '\n氮(N)用量：' + nKg.toFixed(2) + 'kg'
+    + '\n磷(P₂O₅)用量：' + pKg.toFixed(2) + 'kg'
+    + '\n钾(K₂O)用量：' + kKg.toFixed(2) + 'kg';
+  lastFertText = text;
+
+  var html = '<div class="nutrient-grid">'
+    + '<div class="nutrient-card n-nutrient"><div class="nutrient-name">氮 (N)</div><div class="nutrient-val">' + nKg.toFixed(2) + '</div><div class="nutrient-unit">kg</div></div>'
+    + '<div class="nutrient-card p-nutrient"><div class="nutrient-name">磷 (P₂O₅)</div><div class="nutrient-val">' + pKg.toFixed(2) + '</div><div class="nutrient-unit">kg</div></div>'
+    + '<div class="nutrient-card k-nutrient"><div class="nutrient-name">钾 (K₂O)</div><div class="nutrient-val">' + kKg.toFixed(2) + '</div><div class="nutrient-unit">kg</div></div>'
+    + '</div>'
+    + '<p>配方比例：<strong>' + ratio + '</strong></p>'
+    + '<p>施肥面积：<strong>' + area + '</strong> 亩</p>'
+    + '<p>每亩用量：<strong>' + perMu + '</strong> kg/亩</p>'
+    + '<p>肥料总量：<strong>' + totalKg.toFixed(1) + '</strong> kg</p>';
+  document.getElementById('fertResult').innerHTML = html;
+}
+function copyFertResult() {
+  if (lastFertText) ToolBox.copyText(lastFertText, i18nText('msg564'));
+}
+
+// ===== 2. 种植密度计算器 =====
+var lastDensityText = '';
+function calcDensity() {
+  var spacing = parseFloat(document.getElementById('plant_spacing').value) || 0;
+  var rowDist = parseFloat(document.getElementById('plant_row').value) || 0;
+  var area = parseFloat(document.getElementById('plant_area').value) || 0;
+  var unit = document.getElementById('plant_unit').value;
+
+  var sqm = unit === 'mu' ? area * 666.67 : area;
+  var spacingM = spacing / 100;
+  var rowM = rowDist / 100;
+  var singleArea = spacingM * rowM;
+  var count = singleArea > 0 ? Math.floor(sqm / singleArea) : 0;
+  var perMu = singleArea > 0 ? Math.floor(666.67 / singleArea) : 0;
+  var muCount = unit === 'sqm' ? (area / 666.67).toFixed(2) : area;
+
+  var text = '株距：' + spacing + 'cm | 行距：' + rowDist + 'cm | 面积：' + area + (unit === 'mu' ? '亩' : '平方米')
+    + '\n种植面积：' + sqm.toFixed(1) + '平方米（' + muCount + '亩）'
+    + '\n种植株数：' + ToolBox.formatNumber(count) + '株'
+    + '\n每亩株数：' + ToolBox.formatNumber(perMu) + '株';
+  lastDensityText = text;
+
+  var html = '<div class="stat-grid">'
+    + '<div class="stat-card"><div class="val">' + ToolBox.formatNumber(count) + '</div><div class="lbl">总株数（株）</div></div>'
+    + '<div class="stat-card"><div class="val">' + ToolBox.formatNumber(perMu) + '</div><div class="lbl">每亩株数</div></div>'
+    + '<div class="stat-card"><div class="val">' + sqm.toFixed(1) + '</div><div class="lbl">面积（m²）</div></div>'
+    + '</div>'
+    + '<p>株距 <strong>' + spacing + 'cm</strong> × 行距 <strong>' + rowDist + 'cm</strong>，每株占地 <strong>' + (singleArea * 10000).toFixed(1) + '</strong> cm²</p>';
+  document.getElementById('densityResult').innerHTML = html;
+}
+function copyDensityResult() {
+  if (lastDensityText) ToolBox.copyText(lastDensityText, i18nText('msg537'));
+}
+
+// ===== 3. 农药稀释浓度计算器 =====
+var lastPestText = '';
+function calcPesticide() {
+  var content = parseFloat(document.getElementById('pest_content').value) || 0;
+  var targetVal = parseFloat(document.getElementById('pest_target').value) || 0;
+  var volume = parseFloat(document.getElementById('pest_volume').value) || 0;
+  var unit = document.getElementById('pest_unit').value;
+
+  // 目标浓度统一换算为百分比
+  // ppm -> % : 1% = 10000ppm
+  var targetPct = unit === 'ppm' ? targetVal / 10000 : targetVal;
+
+  // 公式: 原药量(ml) = (目标浓度% / 100) × 配制总量(ml) / (原药含量% / 100)
+  //     = (目标浓度% × 配制总量ml) / 原药含量%
+  // 假设药液密度近似水 (1g/ml)
+  var totalMl = volume * 1000;
+  var needed = content > 0 ? (targetPct * totalMl) / content : 0;
+
+  var targetDisplay = unit === 'ppm' ? targetVal + 'ppm' : targetVal + '%';
+  var text = '原药含量：' + content + '% | 目标浓度：' + targetDisplay + ' | 配制量：' + volume + 'L'
+    + '\n需原药量：' + needed.toFixed(2) + 'ml(g)'
+    + '\n加水量：约' + (volume * 1000 - needed).toFixed(0) + 'ml（' + volume + 'L）';
+  lastPestText = text;
+
+  var html = '<div class="stat-grid">'
+    + '<div class="stat-card"><div class="val">' + needed.toFixed(2) + '</div><div class="lbl">需原药量 (ml/g)</div></div>'
+    + '<div class="stat-card"><div class="val">' + volume + '</div><div class="lbl">配制药液量 (L)</div></div>'
+    + '<div class="stat-card"><div class="val">' + targetDisplay + '</div><div class="lbl">目标浓度</div></div>'
+    + '</div>'
+    + '<p>原药有效成分含量：<strong>' + content + '%</strong></p>'
+    + '<p>需量取原药：<strong>' + needed.toFixed(2) + ' ml(g)</strong></p>'
+    + '<p>加清水至：<strong>' + volume + '</strong> 升，搅拌均匀即可使用</p>';
+  document.getElementById('pestResult').innerHTML = html;
+}
+function copyPestResult() {
+  if (lastPestText) ToolBox.copyText(lastPestText, i18nText('msg156'));
+}
+
+// ===== 4. 灌溉用水量估算 =====
+var lastIrrText = '';
+function calcIrrigation() {
+  var area = parseFloat(document.getElementById('irr_area').value) || 0;
+  var depth = parseFloat(document.getElementById('irr_depth').value) || 0;
+
+  var waterM3 = area * depth * 0.667;
+  var waterT = waterM3 / 1000;
+  var perMuM3 = depth * 0.667;
+
+  var text = '灌溉面积：' + area + '亩 | 灌溉深度：' + depth + 'mm'
+    + '\n总用水量：' + waterM3.toFixed(1) + '立方米（' + waterT.toFixed(3) + '吨）'
+    + '\n每亩用水：' + perMuM3.toFixed(1) + '立方米';
+  lastIrrText = text;
+
+  var html = '<div class="stat-grid">'
+    + '<div class="stat-card"><div class="val">' + waterM3.toFixed(1) + '</div><div class="lbl">总用水量 (m³)</div></div>'
+    + '<div class="stat-card"><div class="val">' + waterT.toFixed(2) + '</div><div class="lbl">总用水量 (吨)</div></div>'
+    + '<div class="stat-card"><div class="val">' + perMuM3.toFixed(1) + '</div><div class="lbl">每亩用水 (m³)</div></div>'
+    + '</div>'
+    + '<p>灌溉面积：<strong>' + area + '</strong> 亩</p>'
+    + '<p>灌溉深度：<strong>' + depth + '</strong> mm</p>'
+    + '<p>总用水量：<strong>' + waterM3.toFixed(1) + '</strong> m³（约 <strong>' + waterT.toFixed(2) + '</strong> 吨）</p>';
+  document.getElementById('irrResult').innerHTML = html;
+}
+function copyIrrResult() {
+  if (lastIrrText) ToolBox.copyText(lastIrrText, i18nText('msg494'));
+}
+
+// ===== 5. 鸡蛋孵化倒计时 =====
+var TOTAL_DAYS = 21;
+function setToday() {
+  var today = new Date();
+  var dateStr = today.getFullYear() + '-' + String(today.getMonth() + 1).padStart(2, '0') + '-' + String(today.getDate()).padStart(2, '0');
+  document.getElementById('hatch_date').value = dateStr;
+  calcIncubation();
+}
+
+function calcIncubation() {
+  var dateVal = document.getElementById('hatch_date').value;
+  if (!dateVal) {
+    document.getElementById('hatchResult').innerHTML = '<p style="color:var(--text-muted);">请选择入孵日期</p>';
+    document.getElementById('hatchStages').innerHTML = '';
+    return;
+  }
+
+  var startDate = new Date(dateVal + 'T00:00:00');
+  var today = new Date();
+  today.setHours(0, 0, 0, 0);
+  var diffDays = Math.floor((today - startDate) / (1000 * 60 * 60 * 24));
+  var hatchDate = new Date(startDate.getTime() + TOTAL_DAYS * 24 * 60 * 60 * 1000);
+  var hatchStr = hatchDate.getFullYear() + '-' + String(hatchDate.getMonth() + 1).padStart(2, '0') + '-' + String(hatchDate.getDate()).padStart(2, '0');
+  var remainDays = TOTAL_DAYS - diffDays;
+
+  var status = '';
+  var statusClass = '';
+  if (diffDays < 0) {
+    status = '尚未入孵';
+    statusClass = 'tip-info';
+  } else if (diffDays >= TOTAL_DAYS) {
+    status = '已到出雏日';
+    statusClass = 'tip-success';
+  } else {
+    status = '孵化中';
+    statusClass = 'tip-warn';
+  }
+
+  var progressPct = Math.max(0, Math.min(100, (diffDays / TOTAL_DAYS) * 100));
+
+  var html = '<div class="stat-grid">'
+    + '<div class="stat-card"><div class="val">' + Math.max(0, diffDays) + '</div><div class="lbl">孵化天数</div></div>'
+    + '<div class="stat-card"><div class="val">' + Math.max(0, remainDays) + '</div><div class="lbl">剩余天数</div></div>'
+    + '<div class="stat-card"><div class="val">' + hatchStr + '</div><div class="lbl">预计出雏日</div></div>'
+    + '</div>'
+    + '<div class="progress-bar" style="margin-top:12px;"><div class="progress-fill" style="width:' + progressPct.toFixed(1) + '%"></div></div>'
+    + '<p style="font-size:13px;color:var(--text-light);margin-top:4px;">孵化进度 ' + progressPct.toFixed(1) + '% | 当前状态：<strong>' + status + '</strong></p>';
+
+  document.getElementById('hatchResult').innerHTML = html;
+
+  // 孵化阶段详情
+  var stages = [
+    { start: 1, end: 3, label: '第1-3天', desc: '温度 37.8-38.5℃，湿度 50-60%，此期不需要翻蛋', icon: '🌡️' },
+    { start: 4, end: 7, label: '第4-7天', desc: '开始照蛋第一次检查（白壳蛋），温度 37.8℃，每天翻蛋 3-4 次', icon: '🔍' },
+    { start: 8, end: 12, label: '第8-12天', desc: '温度 37.8℃，湿度 50-55%，继续每天翻蛋，尿囊合拢期', icon: '🔄' },
+    { start: 13, end: 16, label: '第13-16天', desc: '第二次照蛋（看胚胎发育），温度 37.5-37.8℃，翻蛋至第18天止', icon: '🥚' },
+    { start: 17, end: 18, label: '第17-18天', desc: '移盘准备，停止翻蛋，温度降至 37.2-37.5℃，湿度提高至 60-65%', icon: '📋' },
+    { start: 19, end: 21, label: '第19-21天', desc: '出雏期，温度 37-37.2℃，湿度 65-75%，保持安静，不要频繁开箱', icon: '🐣' }
+  ];
+
+  var stageHtml = '';
+  stages.forEach(function(s) {
+    var isCurrent = diffDays >= s.start && diffDays <= s.end;
+    var isDone = diffDays > s.end;
+    var cls = isCurrent ? ' current' : '';
+    var numCls = isDone ? ' done' : (diffDays < s.start ? ' future' : '');
+    var badge = isDone ? ' ✅' : (isCurrent ? ' 🔵 当前阶段' : '');
+    stageHtml += '<div class="incubation-day' + cls + '">'
+      + '<div class="day-num' + numCls + '">' + (isDone ? '✓' : s.start + '-' + s.end) + '</div>'
+      + '<div class="day-info">'
+      + '<div class="day-label">' + s.icon + ' ' + s.label + badge + '</div>'
+      + '<div class="day-desc">' + s.desc + '</div>'
+      + '</div></div>';
+  });
+  document.getElementById('hatchStages').innerHTML = stageHtml;
+}
+
+// ===== 6. 农机油耗估算 =====
+var lastFuelText = '';
+function calcFuel() {
+  var area = parseFloat(document.getElementById('fuel_area').value) || 0;
+  var perMu = parseFloat(document.getElementById('fuel_per_mu').value) || 0;
+  var price = parseFloat(document.getElementById('fuel_price').value) || 0;
+
+  var totalFuel = area * perMu;
+  var totalCost = totalFuel * price;
+  var costPerMu = perMu * price;
+
+  var text = '作业面积：' + area + '亩 | 每亩油耗：' + perMu + 'L/亩 | 油价：' + price + '元/L'
+    + '\n总油耗：' + totalFuel.toFixed(1) + 'L'
+    + '\n总费用：' + totalCost.toFixed(2) + '元'
+    + '\n每亩费用：' + costPerMu.toFixed(2) + '元/亩';
+  lastFuelText = text;
+
+  var html = '<div class="stat-grid">'
+    + '<div class="stat-card"><div class="val">' + totalFuel.toFixed(1) + '</div><div class="lbl">总油耗 (L)</div></div>'
+    + '<div class="stat-card"><div class="val">' + totalCost.toFixed(2) + '</div><div class="lbl">总费用 (元)</div></div>'
+    + '<div class="stat-card"><div class="val">' + costPerMu.toFixed(2) + '</div><div class="lbl">每亩费用 (元)</div></div>'
+    + '</div>'
+    + '<p>作业面积：<strong>' + area + '</strong> 亩</p>'
+    + '<p>每亩油耗：<strong>' + perMu + '</strong> L</p>'
+    + '<p>油价：<strong>' + price + '</strong> 元/L</p>'
+    + '<p>总油耗：<strong>' + totalFuel.toFixed(1) + '</strong> L</p>'
+    + '<p>总费用：<strong style="color:var(--primary);">' + totalCost.toFixed(2) + '</strong> 元</p>';
+  document.getElementById('fuelResult').innerHTML = html;
+}
+function copyFuelResult() {
+  if (lastFuelText) ToolBox.copyText(lastFuelText, i18nText('msg155'));
+}
+
+// ===== 初始化 =====
+document.addEventListener('DOMContentLoaded', function() {
+  calcFertilizer();
+  calcDensity();
+  calcPesticide();
+  calcIrrigation();
+  calcFuel();
+  setToday();
+});
+</script><script>
+// tool-intro折叠交互
+document.addEventListener('DOMContentLoaded',function(){
+  var headers=document.querySelectorAll('.tool-intro-header');
+  headers.forEach(function(h){
+    h.addEventListener('click',function(){
+      this.parentElement.classList.toggle('open');
+    });
+  });
+});
+</script>
+
+</body>
+</html>

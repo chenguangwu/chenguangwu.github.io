@@ -1,0 +1,933 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+
+<script src="/js/tool-page-runtime.js" defer></script>
+<!-- TOOLBOX-TOOL-RUNTIME -->
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="toolbox" content="cat=math,industry=science,icon=🌍,bg=#e8f5e9">
+<title>地理距离计算器 - 科学研究领域的在线工具 - ToolBox</title>
+<link rel="canonical" href="https://chenguangwu.github.io/tools/science/geo-distance-calculator.html">
+<meta property="og:title" content="地理距离计算器 - 科学研究领域的在线工具 - ToolBox">
+<meta property="og:description" content="地理距离计算器 - 是一款科学研究领域的在线工具。科学研究工具，采用标准科学公式，计算精准">
+<meta property="og:url" content="https://chenguangwu.github.io/tools/science/geo-distance-calculator.html">
+<meta name="twitter:card" content="summary">
+<meta name="description" content="地理距离计算器 - 是一款科学研究领域的在线工具。科学研究工具，采用标准科学公式，计算精准">
+<link rel="stylesheet" href="../../css/common.css">
+<script src="../../js/common.js"></script>
+<style>
+.point-section {
+  background: var(--result-bg);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 16px;
+  margin-bottom: 14px;
+  transition: border-color 0.2s;
+}
+.point-section:hover {
+  border-color: rgba(255,107,53,0.3);
+}
+.point-label {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--heading);
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.coord-row {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+.coord-row > div {
+  flex: 1;
+  min-width: 0;
+}
+.coord-row label {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-bottom: 4px;
+  display: block;
+}
+.coord-row input {
+  font-size: 14px;
+  padding: 10px 12px;
+}
+.preset-wrap {
+  margin-top: 10px;
+}
+.preset-label {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-bottom: 6px;
+}
+.preset-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.preset-tag {
+  padding: 5px 10px;
+  border-radius: 20px;
+  font-size: 12px;
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+  font-weight: 500;
+}
+.preset-tag:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+  background: var(--bg-hover);
+  transform: translateY(-1px);
+}
+.result-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin-bottom: 14px;
+}
+.result-item {
+  background: var(--result-bg);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 14px;
+  text-align: center;
+  transition: all 0.2s;
+}
+.result-item:hover {
+  border-color: var(--primary);
+  transform: translateY(-2px);
+}
+.result-item .val {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--primary);
+  line-height: 1.2;
+}
+.result-item .lbl {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 4px;
+}
+.bearing-result {
+  background: var(--result-bg);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 14px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 14px;
+}
+.bearing-compass {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  border: 2px solid var(--border);
+  position: relative;
+  flex-shrink: 0;
+  background: var(--card-bg);
+}
+.bearing-needle {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 2px;
+  height: 24px;
+  background: linear-gradient(to top, var(--primary), var(--danger));
+  transform-origin: bottom center;
+  border-radius: 1px;
+  margin-left: -1px;
+  margin-top: -24px;
+  transition: transform 0.5s cubic-bezier(0.4,0,0.2,1);
+}
+.bearing-needle::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--heading);
+}
+.bearing-n {
+  position: absolute;
+  top: 2px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--danger);
+}
+.bearing-info .bearing-val {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--primary);
+}
+.bearing-info .bearing-dir {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin-top: 2px;
+}
+.bearing-info .bearing-desc {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+.map-wrap {
+  margin-top: 14px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  overflow: hidden;
+  background: var(--card-bg);
+}
+.map-header {
+  padding: 10px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--heading);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.map-canvas-wrap {
+  position: relative;
+  width: 100%;
+  padding-bottom: 50%;
+}
+.map-canvas-wrap canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+}
+.error-msg {
+  color: var(--danger);
+  font-size: 13px;
+  margin-top: 8px;
+  display: none;
+}
+.error-msg.show {
+  display: block;
+}
+.swap-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  padding: 8px;
+  margin-bottom: 14px;
+}
+.swap-btn button {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 18px;
+  border-radius: 10px;
+  border: 1px dashed var(--border);
+  background: var(--bg-hover);
+  color: var(--text-secondary);
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-weight: 500;
+}
+.swap-btn button:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+  background: var(--bg-active);
+}
+@media (max-width: 768px) {
+  .coord-row {
+    flex-direction: column;
+    gap: 8px;
+  }
+  .result-grid {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+  .bearing-result {
+    flex-direction: column;
+    text-align: center;
+  }
+  .preset-grid {
+    gap: 5px;
+  }
+  .preset-tag {
+    padding: 4px 8px;
+    font-size: 11px;
+  }
+}
+</style>
+
+
+
+<meta property="og:image" content="https://chenguangwu.github.io/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="ToolBox - 6000+免费在线工具">
+<meta name="twitter:image" content="https://chenguangwu.github.io/og-image.png">
+<meta name="twitter:image:alt" content="ToolBox - 6000+免费在线工具">
+    <meta property="og:type" content="website">
+    <meta name="twitter:title" content="地理距离计算器 - 科学研究领域的在线工具 - ToolBox">
+    <meta name="twitter:description" content="地理距离计算器 - 是一款科学研究领域的在线工具。科学研究工具，采用标准科学公式，计算精准">
+<!-- TOOLBOX-WEBAPP-LD -->
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"WebApplication","name":"地理距离计算器 - 科学研究领域的在线工具","url":"https://chenguangwu.github.io/tools/science/geo-distance-calculator.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":["zh-CN", "en-US"],"description":"地理距离计算器","image":"https://chenguangwu.github.io/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}
+</script>
+<meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
+<meta http-equiv="X-Content-Type-Options" content="nosniff">
+<meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
+<!-- TOOLBOX-SECURITY -->
+
+<script src="/js/privacy.js" defer></script>
+<!-- TOOLBOX-PRIVACY-SCRIPT -->
+
+<script src="/js/metrics.js" defer></script>
+<!-- TOOLBOX-METRICS-SCRIPT -->
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"首页","item":"https://chenguangwu.github.io/"},{"@type":"ListItem","position":2,"name":"科学研究","item":"https://chenguangwu.github.io/tools/science/index.html"},{"@type":"ListItem","position":3,"name":"地理距离计算器","item":"https://chenguangwu.github.io/tools/science/geo-distance-calculator.html"}]}
+</script>
+
+<script src="../../js/i18n.js" defer></script>
+<script src="../../js/tool-i18n.js" defer></script>
+<!-- TOOLBOX-I18N-SCRIPT -->
+<!-- TOOLBOX-HREFLANG -->
+<link rel="alternate" hreflang="zh-CN" href="https://chenguangwu.github.io/tools/science/geo-distance-calculator.html">
+<link rel="alternate" hreflang="en-US" href="https://chenguangwu.github.io/tools/science/geo-distance-calculator.html">
+<link rel="alternate" hreflang="x-default" href="https://chenguangwu.github.io/tools/science/geo-distance-calculator.html">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:locale:alternate" content="en_US">
+
+<script src="/js/clarity.js" defer></script>
+<!-- TOOLBOX-CLARITY -->
+</head>
+<body>
+<h1 class="sr-only">地理距离计算器</h1>
+
+
+<div class="nav">
+  <a href="../../index.html">← ToolBox</a>
+  <span>/ 地理距离计算器</span>
+  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()">🌙</button>
+</div>
+
+
+
+
+
+<nav class="breadcrumb" aria-label="面包屑导航" data-breadcrumb="1">
+  <a href="../../index.html">首页</a>
+  <span class="bc-sep">‹</span>
+  <a href="index.html">🔬 科学研究</a>
+  <span class="bc-sep">‹</span>
+  <span class="bc-current">地理距离计算器</span>
+</nav>
+<div class="container">
+  <div class="card tool-card-accent" style="--tool-accent:#06B6D4;">
+    <h2>🌍 地理距离计算器</h2>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;">基于 Haversine 公式计算两点间大圆距离，支持方位角计算与地图可视化</p>
+    <div class="formula-box">
+      <div class="formula-title">📐 计算公式</div>
+      <div class="formula-eq">Haversine d = 2R·asin(√(...))</div>
+      <p class="formula-desc">基于 Haversine 公式计算两点间大圆距离，支持方位角计算与地图可视化</p>
+    </div>
+
+    <!-- 地点A -->
+    <div class="point-section">
+      <div class="point-label">
+        <span style="display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;background:var(--primary);color:#fff;font-size:12px;font-weight:700;">A</span>
+        地点 A
+      </div>
+      <div class="coord-row">
+        <div>
+          <label>纬度 (Latitude)</label>
+          <input type="number" id="lat1" value="39.9042" step="0.0001" min="-90" max="90" placeholder="-90 ~ 90" oninput="calculate()">
+        </div>
+        <div>
+          <label>经度 (Longitude)</label>
+          <input type="number" id="lon1" value="116.4074" step="0.0001" min="-180" max="180" placeholder="-180 ~ 180" oninput="calculate()">
+        </div>
+      </div>
+      <div class="error-msg" id="error1"></div>
+      <div class="preset-wrap">
+        <div class="preset-label">快速填入：</div>
+        <div class="preset-grid" id="presets-a"></div>
+      </div>
+    </div>
+
+    <!-- 交换按钮 -->
+    <div class="swap-btn">
+      <button onclick="swapPoints()">⇅ 交换 A / B</button>
+    </div>
+
+    <!-- 地点B -->
+    <div class="point-section">
+      <div class="point-label">
+        <span style="display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;background:var(--secondary);color:#fff;font-size:12px;font-weight:700;">B</span>
+        地点 B
+      </div>
+      <div class="coord-row">
+        <div>
+          <label>纬度 (Latitude)</label>
+          <input type="number" id="lat2" value="31.2304" step="0.0001" min="-90" max="90" placeholder="-90 ~ 90" oninput="calculate()">
+        </div>
+        <div>
+          <label>经度 (Longitude)</label>
+          <input type="number" id="lon2" value="121.4737" step="0.0001" min="-180" max="180" placeholder="-180 ~ 180" oninput="calculate()">
+        </div>
+      </div>
+      <div class="error-msg" id="error2"></div>
+      <div class="preset-wrap">
+        <div class="preset-label">快速填入：</div>
+        <div class="preset-grid" id="presets-b"></div>
+      </div>
+    </div>
+
+    <!-- 工具栏 -->
+    <div class="toolbar">
+      <button type="button" class="btn primary" onclick="calculate()">🔄 计算距离</button>
+      <button type="button" class="btn" onclick="copyResult()">📋 复制结果</button>
+      <button type="button" class="btn" onclick="clearAll()">🗑️ 清空</button>
+    </div>
+
+    <!-- 距离结果 -->
+    <div class="result-grid">
+      <div class="result-item">
+        <div class="val" id="result-km">-</div>
+        <div class="lbl">公里 (km)</div>
+      </div>
+      <div class="result-item">
+        <div class="val" id="result-mile">-</div>
+        <div class="lbl">英里 (mi)</div>
+      </div>
+      <div class="result-item">
+        <div class="val" id="result-nm">-</div>
+        <div class="lbl">海里 (NM)</div>
+      </div>
+    </div>
+
+    <!-- 方位角结果 -->
+    <div class="bearing-result" id="bearing-box">
+      <div class="bearing-compass">
+        <span class="bearing-n">N</span>
+        <div class="bearing-needle" id="bearing-needle"></div>
+      </div>
+      <div class="bearing-info">
+        <div class="bearing-val" id="bearing-val">-</div>
+        <div class="bearing-dir" id="bearing-dir">-</div>
+        <div class="bearing-desc">从 A 到 B 的初始方位角</div>
+      </div>
+    </div>
+
+    <!-- 地图可视化 -->
+    <div class="map-wrap">
+      <div class="map-header">🗺️ 投影示意</div>
+      <div class="map-canvas-wrap">
+        <canvas id="map-canvas"></canvas>
+      </div>
+    </div>
+
+    <!-- 计算详情 -->
+    <div class="result-box" id="detail-box" style="margin-top:14px;display:none;"></div>
+  </div>
+
+<!-- 注意事项区块 -->
+<div class="tool-notes" style="--tool-accent:#06B6D4;">
+  <div class="tool-notes-title">⚠️ 使用说明与注意事项</div>
+  <ul>
+      <li>本工具纯前端运行，数据不会上传到服务器</li>
+      <li>建议在主流浏览器（Chrome/Safari/Firefox/Edge）中使用</li>
+      <li>计算结果仅供参考，请以实际应用场景为准</li>
+  </ul>
+</div>
+<!-- /注意事项区块 -->
+</div>
+
+<script>
+// ===== 城市预设数据 =====
+var PRESETS = [
+  {name: '北京', lat: 39.9042, lon: 116.4074},
+  {name: '上海', lat: 31.2304, lon: 121.4737},
+  {name: '广州', lat: 23.1291, lon: 113.2644},
+  {name: '深圳', lat: 22.5431, lon: 114.0579},
+  {name: '成都', lat: 30.5728, lon: 104.0668},
+  {name: '武汉', lat: 30.5928, lon: 114.3055},
+  {name: '西安', lat: 34.3416, lon: 108.9398},
+  {name: '杭州', lat: 30.2741, lon: 120.1551},
+  {name: '纽约', lat: 40.7128, lon: -74.0060},
+  {name: '伦敦', lat: 51.5074, lon: -0.1278},
+  {name: '东京', lat: 35.6762, lon: 139.6503},
+  {name: '巴黎', lat: 48.8566, lon: 2.3522}
+];
+
+var EARTH_RADIUS_KM = 6371;
+var DEG2RAD = Math.PI / 180;
+var RAD2DEG = 180 / Math.PI;
+
+var lastResult = null;
+
+// ===== 初始化预设标签 =====
+function initPresets() {
+  var htmlA = '';
+  var htmlB = '';
+  PRESETS.forEach(function(city) {
+    htmlA += '<span class="preset-tag" onclick="fillPreset(\'a\',' + city.lat + ',' + city.lon + ')">' + city.name + '</span>';
+    htmlB += '<span class="preset-tag" onclick="fillPreset(\'b\',' + city.lat + ',' + city.lon + ')">' + city.name + '</span>';
+  });
+  document.getElementById('presets-a').innerHTML = htmlA;
+  document.getElementById('presets-b').innerHTML = htmlB;
+}
+
+function fillPreset(point, lat, lon) {
+  if (point === 'a') {
+    document.getElementById('lat1').value = lat;
+    document.getElementById('lon1').value = lon;
+  } else {
+    document.getElementById('lat2').value = lat;
+    document.getElementById('lon2').value = lon;
+  }
+  calculate();
+}
+
+function swapPoints() {
+  var lat1 = document.getElementById('lat1').value;
+  var lon1 = document.getElementById('lon1').value;
+  var lat2 = document.getElementById('lat2').value;
+  var lon2 = document.getElementById('lon2').value;
+  document.getElementById('lat1').value = lat2;
+  document.getElementById('lon1').value = lon2;
+  document.getElementById('lat2').value = lat1;
+  document.getElementById('lon2').value = lon1;
+  calculate();
+  ToolBox.showToast(i18nText(), 'info');
+}
+
+function clearAll() {
+  document.getElementById('lat1').value = '';
+  document.getElementById('lon1').value = '';
+  document.getElementById('lat2').value = '';
+  document.getElementById('lon2').value = '';
+  document.getElementById('result-km').textContent = '-';
+  document.getElementById('result-mile').textContent = '-';
+  document.getElementById('result-nm').textContent = '-';
+  document.getElementById('bearing-val').textContent = '-';
+  document.getElementById('bearing-dir').textContent = '-';
+  document.getElementById('bearing-needle').style.transform = 'rotate(0deg)';
+  document.getElementById('error1').classList.remove('show');
+  document.getElementById('error2').classList.remove('show');
+  document.getElementById('detail-box').style.display = 'none';
+  lastResult = null;
+  clearCanvas();
+  ToolBox.showToast(i18nText(), 'info');
+}
+
+// ===== 输入验证 =====
+function validateInput(id, errorId) {
+  var val = parseFloat(document.getElementById(id).value);
+  var errEl = document.getElementById(errorId);
+  errEl.classList.remove('show');
+
+  if (isNaN(val)) {
+    errEl.textContent = '请输入有效的数字';
+    errEl.classList.add('show');
+    return null;
+  }
+
+  var isLat = id.startsWith('lat');
+  var min = isLat ? -90 : -180;
+  var max = isLat ? 90 : 180;
+  var name = isLat ? '纬度' : '经度';
+
+  if (val < min || val > max) {
+    errEl.textContent = name + '范围应为 ' + min + ' ~ ' + max;
+    errEl.classList.add('show');
+    return null;
+  }
+  return val;
+}
+
+// ===== Haversine 公式 =====
+function haversine(lat1, lon1, lat2, lon2) {
+  var dLat = (lat2 - lat1) * DEG2RAD;
+  var dLon = (lon2 - lon1) * DEG2RAD;
+  var a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(lat1 * DEG2RAD) * Math.cos(lat2 * DEG2RAD) *
+    Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return EARTH_RADIUS_KM * c;
+}
+
+// ===== 方位角计算 =====
+function bearing(lat1, lon1, lat2, lon2) {
+  var dLon = (lon2 - lon1) * DEG2RAD;
+  var y = Math.sin(dLon) * Math.cos(lat2 * DEG2RAD);
+  var x = Math.cos(lat1 * DEG2RAD) * Math.sin(lat2 * DEG2RAD) -
+    Math.sin(lat1 * DEG2RAD) * Math.cos(lat2 * DEG2RAD) * Math.cos(dLon);
+  var brng = Math.atan2(y, x) * RAD2DEG;
+  return (brng + 360) % 360;
+}
+
+// ===== 方位角方向描述 =====
+function bearingDirection(deg) {
+  var dirs = ['正北 (N)', '北偏东 (NNE)', '东北偏北 (NE)', '东北偏东 (ENE)',
+              '正东 (E)', '东偏南 (ESE)', '东南偏东 (SE)', '东南偏南 (SSE)',
+              '正南 (S)', '南偏西 (SSW)', '西南偏南 (SW)', '西南偏西 (WSW)',
+              '正西 (W)', '西偏北 (WNW)', '西北偏西 (NW)', '西北偏北 (NNW)'];
+  var idx = Math.round(deg / 22.5) % 16;
+  return dirs[idx];
+}
+
+// ===== 核心计算 =====
+function calculate() {
+  var lat1 = validateInput('lat1', 'error1');
+  var lon1 = validateInput('lon1', 'error1');
+  var lat2 = validateInput('lat2', 'error2');
+  var lon2 = validateInput('lon2', 'error2');
+
+  if (lat1 === null || lon1 === null || lat2 === null || lon2 === null) {
+    document.getElementById('result-km').textContent = '-';
+    document.getElementById('result-mile').textContent = '-';
+    document.getElementById('result-nm').textContent = '-';
+    document.getElementById('bearing-val').textContent = '-';
+    document.getElementById('bearing-dir').textContent = '-';
+    document.getElementById('detail-box').style.display = 'none';
+    lastResult = null;
+    return;
+  }
+
+  var distKm = haversine(lat1, lon1, lat2, lon2);
+  var distMile = distKm * 0.621371;
+  var distNm = distKm * 0.539957;
+  var brng = bearing(lat1, lon1, lat2, lon2);
+  var dir = bearingDirection(brng);
+
+  document.getElementById('result-km').textContent = distKm.toFixed(2);
+  document.getElementById('result-mile').textContent = distMile.toFixed(2);
+  document.getElementById('result-nm').textContent = distNm.toFixed(2);
+  document.getElementById('bearing-val').textContent = brng.toFixed(2) + '°';
+  document.getElementById('bearing-dir').textContent = dir;
+  document.getElementById('bearing-needle').style.transform = 'rotate(' + brng + 'deg)';
+
+  // 计算详情
+  var detailHtml = '<p style="font-weight:600;margin-bottom:6px;">📊 计算详情</p>' +
+    '<p>📍 地点 A：(' + lat1.toFixed(4) + '°, ' + lon1.toFixed(4) + '°)</p>' +
+    '<p>📍 地点 B：(' + lat2.toFixed(4) + '°, ' + lon2.toFixed(4) + '°)</p>' +
+    '<p>📏 大圆距离：<strong>' + distKm.toFixed(4) + ' km</strong></p>' +
+    '<p>🧭 初始方位角：<strong>' + brng.toFixed(4) + '°</strong> (' + dir + ')</p>' +
+    '<p>🌐 地球半径：6,371 km</p>' +
+    '<p style="margin-top:6px;font-size:12px;color:var(--text-muted);">公式：Haversine 大圆距离公式 | 海里换算系数：1 km ≈ 0.539957 NM | 英里换算系数：1 km ≈ 0.621371 mi</p>';
+  document.getElementById('detail-box').innerHTML = detailHtml;
+  document.getElementById('detail-box').style.display = 'block';
+
+  lastResult = {
+    lat1: lat1, lon1: lon1,
+    lat2: lat2, lon2: lon2,
+    distKm: distKm,
+    distMile: distMile,
+    distNm: distNm,
+    bearing: brng,
+    direction: dir
+  };
+
+  drawMap(lat1, lon1, lat2, lon2);
+}
+
+// ===== 复制结果 =====
+function copyResult() {
+  if (!lastResult) {
+    ToolBox.showToast(i18nText(), 'warning');
+    return;
+  }
+  var r = lastResult;
+  var text = '地理距离计算结果\n' +
+    '地点A：(' + r.lat1.toFixed(4) + ', ' + r.lon1.toFixed(4) + ')\n' +
+    '地点B：(' + r.lat2.toFixed(4) + ', ' + r.lon2.toFixed(4) + ')\n' +
+    '距离：' + r.distKm.toFixed(2) + ' km / ' + r.distMile.toFixed(2) + ' mi / ' + r.distNm.toFixed(2) + ' NM\n' +
+    '方位角：' + r.bearing.toFixed(2) + '° (' + r.direction + ')';
+  ToolBox.copyText(text, i18nText());
+}
+
+// ===== 地图可视化 =====
+function clearCanvas() {
+  var canvas = document.getElementById('map-canvas');
+  var wrap = canvas.parentElement;
+  canvas.width = wrap.clientWidth;
+  canvas.height = wrap.clientHeight;
+  var ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+}
+
+function drawMap(lat1, lon1, lat2, lon2) {
+  var canvas = document.getElementById('map-canvas');
+  var wrap = canvas.parentElement;
+  var W = wrap.clientWidth;
+  var H = wrap.clientHeight;
+  var dpr = window.devicePixelRatio || 1;
+  canvas.width = W * dpr;
+  canvas.height = H * dpr;
+  canvas.style.width = W + 'px';
+  canvas.style.height = H + 'px';
+  var ctx = canvas.getContext('2d');
+  ctx.scale(dpr, dpr);
+
+  var isDark = document.body.classList.contains('dark') || document.documentElement.getAttribute('data-theme') === 'dark';
+
+  // 背景
+  ctx.fillStyle = isDark ? '#1E293B' : '#F0F9FF';
+  ctx.fillRect(0, 0, W, H);
+
+  // 绘制经纬网格（等距圆柱投影）
+  var bgGrid = isDark ? 'rgba(100,116,139,0.25)' : 'rgba(148,163,184,0.3)';
+  ctx.strokeStyle = bgGrid;
+  ctx.lineWidth = 0.5;
+
+  // 经线（每30度）
+  for (var lon = -180; lon <= 180; lon += 30) {
+    var x = ((lon + 180) / 360) * W;
+    ctx.beginPath();
+    ctx.moveTo(x, 0);
+    ctx.lineTo(x, H);
+    ctx.stroke();
+  }
+  // 纬线（每30度）
+  for (var lat = -90; lat <= 90; lat += 30) {
+    var y = ((90 - lat) / 180) * H;
+    ctx.beginPath();
+    ctx.moveTo(0, y);
+    ctx.lineTo(W, y);
+    ctx.stroke();
+  }
+
+  // 赤道加粗
+  ctx.strokeStyle = isDark ? 'rgba(100,116,139,0.45)' : 'rgba(100,116,184,0.4)';
+  ctx.lineWidth = 1;
+  var eqY = H / 2;
+  ctx.beginPath();
+  ctx.moveTo(0, eqY);
+  ctx.lineTo(W, eqY);
+  ctx.stroke();
+
+  // 本初子午线
+  var pmX = W / 2;
+  ctx.beginPath();
+  ctx.moveTo(pmX, 0);
+  ctx.lineTo(pmX, H);
+  ctx.stroke();
+
+  // 经纬度转画布坐标
+  function toXY(lat, lon) {
+    return {
+      x: ((lon + 180) / 360) * W,
+      y: ((90 - lat) / 180) * H
+    };
+  }
+
+  // 大圆弧线（用多段折线近似）
+  var pA = toXY(lat1, lon1);
+  var pB = toXY(lat2, lon2);
+
+  // 绘制连线
+  var lineGrad = ctx.createLinearGradient(pA.x, pA.y, pB.x, pB.y);
+  lineGrad.addColorStop(0, '#FF6B35');
+  lineGrad.addColorStop(1, '#7C3AED');
+  ctx.strokeStyle = lineGrad;
+  ctx.lineWidth = 2.5;
+  ctx.setLineDash([6, 4]);
+
+  // 分段绘制大圆弧（采样20个点）
+  ctx.beginPath();
+  for (var i = 0; i <= 20; i++) {
+    var f = i / 20;
+    var lat = lat1 + (lat2 - lat1) * f;
+    var lon1r = lon1 * DEG2RAD;
+    var lon2r = lon2 * DEG2RAD;
+    var latr = lat * DEG2RAD;
+    // 插值经度需要考虑大圆路径
+    var lon;
+    if (Math.abs(lon2 - lon1) > 180) {
+      // 走另一侧
+      if (lon1 > lon2) {
+        lon = lon1 + ((lon2 + 360 - lon1) * f);
+      } else {
+        lon = lon1 - ((lon1 + 360 - lon2) * f);
+      }
+    } else {
+      lon = lon1 + (lon2 - lon1) * f;
+    }
+    var p = toXY(lat, lon);
+    if (i === 0) {
+      ctx.moveTo(p.x, p.y);
+    } else {
+      ctx.lineTo(p.x, p.y);
+    }
+  }
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // 绘制地点A
+  drawPoint(ctx, pA.x, pA.y, '#FF6B35', 'A', isDark);
+
+  // 绘制地点B
+  drawPoint(ctx, pB.x, pB.y, '#7C3AED', 'B', isDark);
+
+  // 网格标签
+  ctx.font = '10px sans-serif';
+  ctx.fillStyle = isDark ? 'rgba(148,163,184,0.6)' : 'rgba(100,116,139,0.6)';
+  ctx.textAlign = 'center';
+  for (var lon = -150; lon <= 150; lon += 30) {
+    var x = ((lon + 180) / 360) * W;
+    ctx.fillText(lon + '°', x, H - 4);
+  }
+  ctx.textAlign = 'left';
+  for (var lat = -60; lat <= 60; lat += 30) {
+    if (lat === 0) continue;
+    var y = ((90 - lat) / 180) * H;
+    ctx.fillText(lat + '°', 4, y - 2);
+  }
+}
+
+function drawPoint(ctx, x, y, color, label, isDark) {
+  // 光晕
+  var glow = ctx.createRadialGradient(x, y, 0, x, y, 18);
+  glow.addColorStop(0, canvasColorWithAlpha(color, '#FF6B35', 0.25));
+  glow.addColorStop(1, canvasColorWithAlpha(color, '#FF6B35', 0));
+  ctx.fillStyle = glow;
+  ctx.beginPath();
+  ctx.arc(x, y, 18, 0, Math.PI * 2);
+  ctx.fill();
+
+  // 外环
+  ctx.beginPath();
+  ctx.arc(x, y, 8, 0, Math.PI * 2);
+  ctx.fillStyle = color + '30';
+  ctx.fill();
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 2;
+  ctx.stroke();
+
+  // 内点
+  ctx.beginPath();
+  ctx.arc(x, y, 4, 0, Math.PI * 2);
+  ctx.fillStyle = color;
+  ctx.fill();
+
+  // 标签
+  ctx.font = 'bold 12px sans-serif';
+  ctx.fillStyle = color;
+  ctx.textAlign = 'center';
+  ctx.fillText(label, x, y - 14);
+}
+
+// ===== 窗口大小变化时重绘 =====
+var resizeTimer;
+window.addEventListener('resize', function() {
+  clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(function() {
+    if (lastResult) {
+      drawMap(lastResult.lat1, lastResult.lon1, lastResult.lat2, lastResult.lon2);
+    } else {
+      clearCanvas();
+    }
+  }, 200);
+});
+
+// ===== 初始化 =====
+document.addEventListener('DOMContentLoaded', function() {
+  initPresets();
+  calculate();
+});
+</script>
+
+<!-- SEO 介绍区块 -->
+
+</div>
+
+</div>
+
+<!-- 相关工具 -->
+<div class="related-tools" data-related-tools="1">
+  <h3 class="related-tools-title">🔗 相关工具</h3>
+  <div class="related-tools-grid">
+    <a href="text-extract-phones.html" class="related-tool-card">
+      <span class="rt-icon">📝</span>
+      <span class="rt-info"><span class="rt-name">提取电话号码 - 免费文本处理工具，在线提取电话号码 | ToolBox免费在线工具箱</span><span class="rt-desc">提取电话号码</span></span>
+    </a>
+    <a href="barcode-pharmacode.html" class="related-tool-card">
+      <span class="rt-icon">🎲</span>
+      <span class="rt-info"><span class="rt-name">Pharmacode 条形码 - 免费生成器工具，在线Pharmacode 条形码 | ToolBox免费在线工具箱</span><span class="rt-desc">Pharmacode 条形码</span></span>
+    </a>
+    <a href="passphrase-generator.html" class="related-tool-card">
+      <span class="rt-icon">🎲</span>
+      <span class="rt-info"><span class="rt-name">密码短语生成器 - 免费生成器工具，在线密码短语生成器 | ToolBox免费在线工具箱</span><span class="rt-desc">密码短语生成器</span></span>
+    </a>
+    <a href="../misc/magic-square.html" class="related-tool-card">
+      <span class="rt-icon">🪄</span>
+      <span class="rt-info"><span class="rt-name">幻方生成器 - 科学研究在线工具 | ToolBox免费在线工具箱</span><span class="rt-desc">幻方生成器</span></span>
+    </a>
+    <a href="phone-qr.html" class="related-tool-card">
+      <span class="rt-icon">🎲</span>
+      <span class="rt-info"><span class="rt-name">电话二维码 - 免费生成器工具，在线电话二维码 | ToolBox免费在线工具箱</span><span class="rt-desc">电话二维码</span></span>
+    </a>
+    <a href="../misc/truth-table.html" class="related-tool-card">
+      <span class="rt-icon">🔌</span>
+      <span class="rt-info"><span class="rt-name">逻辑真值表生成器 - 科学研究在线工具 | ToolBox免费在线工具箱</span><span class="rt-desc">逻辑真值表生成器</span></span>
+    </a>
+  </div>
+</div>
+<div class="tool-intro open" id="toolIntro">
+  <div class="tool-intro-header">
+    <span class="intro-icon-wrap"><span class="intro-icon">📖</span>关于「地理距离计算器」</span>
+    <span class="arrow">▼</span>
+  </div>
+  <div class="tool-intro-body">
+    <h4><span class="h4-icon">📝</span>工具简介</h4>
+    <p>地理距离计算器是一款科学研究领域的在线工具。科学研究工具，采用标准科学公式，计算精准。</p>
+    <h4><span class="h4-icon">✨</span>功能特点</h4>
+    <ul class="intro-features">
+      <li>采用标准科学计算公式</li>
+      <li>支持多种参数配置</li>
+      <li>实时计算，即时显示结果</li>
+      <li>数据不上传，安全可靠</li>
+    </ul>
+    <h4><span class="h4-icon">🎯</span>使用场景</h4>
+    <ul class="intro-scenes">
+      <li>科学实验数据分析</li>
+      <li>物理化学计算</li>
+      <li>学术研究辅助</li>
+      <li>学习科学知识</li>
+    </ul>
+    <h4><span class="h4-icon">💬</span>常见问题</h4>
+      <div class="intro-faq-item"><div class="intro-faq-q">这个工具是免费的吗？</div><div class="intro-faq-a">完全免费，无需注册，直接在浏览器中使用。</div></div>
+      <div class="intro-faq-item"><div class="intro-faq-q">计算结果准确吗？</div><div class="intro-faq-a">采用标准科学计算公式，结果准确可靠。</div></div>
+      <div class="intro-faq-item"><div class="intro-faq-q">支持手机使用吗？</div><div class="intro-faq-a">支持。页面已做响应式适配，手机和电脑均可正常使用。</div></div>
+  </div>
+</div>
+<!-- /SEO 介绍区块 -->
+
+<script>
+// tool-intro折叠交互
+document.addEventListener('DOMContentLoaded',function(){
+  var headers=document.querySelectorAll('.tool-intro-header');
+  headers.forEach(function(h){
+    h.addEventListener('click',function(){
+      this.parentElement.classList.toggle('open');
+    });
+  });
+});
+</script>
+
+</body>
+</html>

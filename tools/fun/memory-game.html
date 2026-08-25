@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+
+<script src="/js/tool-page-runtime.js" defer></script>
+<!-- TOOLBOX-TOOL-RUNTIME -->
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="toolbox" content="cat=game,industry=fun,icon=🃏,bg=#fff8e1">
+<meta name="description" content="记忆翻牌游戏 - 娱乐游戏工具，纯前端实现，无需安装，离线可玩">
+<meta name="keywords" content="记忆翻牌游戏,记忆翻牌游戏在线,在线记忆翻牌游戏,游戏趣味,娱乐游戏,在线工具,免费工具,ToolBox">
+<meta name="robots" content="index,follow">
+<link rel="canonical" href="https://chenguangwu.github.io/tools/fun/memory-game.html">
+<meta property="og:title" content="记忆翻牌游戏 - 免费游戏趣味工具，在线记忆翻牌游戏，免费使用 - ToolBox">
+<meta property="og:description" content="记忆翻牌游戏 - 娱乐游戏工具，纯前端实现，无需安装，离线可玩">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://chenguangwu.github.io/tools/fun/memory-game.html">
+<meta name="twitter:card" content="summary">
+
+<title>记忆翻牌游戏 - 免费游戏趣味工具，在线记忆翻牌游戏，免费使用 - ToolBox</title>
+<meta name="theme-color" content="#FF6B35">
+<link rel="icon" type="image/svg+xml" href="../../favicon.svg">
+<link rel="icon" href="../../favicon.ico" sizes="16x16 32x32 48x48">
+<link rel="apple-touch-icon" href="../../apple-touch-icon.png">
+<link rel="stylesheet" href="../../css/common.css">
+<script src="../../js/common.js"></script>
+<style>
+.difficulty-row,.theme-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;}
+.diff-btn,.theme-btn-select{flex:1;min-width:70px;padding:8px;border:2px solid var(--border);border-radius:8px;background:var(--card-bg);cursor:pointer;font-size:12px;font-weight:500;color:var(--text);transition:all 0.2s;}
+.diff-btn:hover,.theme-btn-select:hover{border-color:var(--primary);}
+.diff-btn.active,.theme-btn-select.active{border-color:var(--primary);background:var(--primary);color:#fff;}
+.game-stats{display:flex;justify-content:space-around;margin:12px 0;font-size:14px;flex-wrap:wrap;gap:8px;}
+.stat-item{text-align:center;}
+.stat-item .val{font-size:22px;font-weight:700;color:var(--primary);}
+.stat-item .lbl{font-size:11px;color:var(--text-muted);}
+.grid{display:grid;gap:8px;max-width:480px;margin:12px auto;}
+.card-tile{aspect-ratio:1/1;border-radius:10px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:32px;background:linear-gradient(135deg,var(--primary),var(--primary-dark));color:#fff;user-select:none;transition:transform 0.3s,box-shadow 0.2s;position:relative;transform-style:preserve-3d;box-shadow:0 4px 12px rgba(102,126,234,0.3);}
+.card-tile:hover:not(.flipped):not(.matched){transform:translateY(-2px);box-shadow:0 6px 16px rgba(102,126,234,0.4);}
+.card-tile.flipped{transform:rotateY(180deg);background:var(--card-bg);color:var(--text);}
+.card-tile.matched{background:var(--success);color:#fff;cursor:default;animation:matchPulse 0.5s ease;}
+@keyframes matchPulse{0%{transform:scale(1);}50%{transform:scale(1.1);}100%{transform:scale(1);}}
+.card-tile .front,.card-tile .back{position:absolute;width:100%;height:100%;display:flex;align-items:center;justify-content:center;backface-visibility:hidden;border-radius:10px;}
+.card-tile .front{background:linear-gradient(135deg,var(--primary),var(--primary-dark));color:#fff;font-size:24px;}
+.card-tile .back{background:var(--card-bg);color:var(--text);transform:rotateY(180deg);border:2px solid var(--border);}
+.card-tile.flipped{background:transparent;}
+.card-tile.matched .back{background:var(--success);color:#fff;border-color:var(--success);}
+.tab-row{display:flex;gap:4px;margin-bottom:12px;border-bottom:1px solid var(--border);}
+.tab-btn{padding:8px 16px;border:none;background:transparent;cursor:pointer;font-size:13px;color:var(--text-muted);border-bottom:2px solid transparent;margin-bottom:-1px;}
+.tab-btn.active{color:var(--primary);border-bottom-color:var(--primary);font-weight:600;}
+.best-scores{font-size:13px;}
+.score-row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);}
+.score-row:last-child{border-bottom:none;}
+.win-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.6);display:flex;align-items:center;justify-content:center;z-index:1000;animation:fadeIn 0.3s ease;}
+@keyframes fadeIn{from{opacity:0;}to{opacity:1;}}
+.win-modal{background:var(--card-bg);border-radius:16px;padding:32px;text-align:center;max-width:320px;width:90%;animation:popIn 0.4s ease;}
+@keyframes popIn{0%{transform:scale(0.5);opacity:0;}100%{transform:scale(1);opacity:1;}}
+.win-modal h2{font-size:28px;margin-bottom:8px;}
+.win-modal .big-emoji{font-size:64px;margin:16px 0;}
+.theme-preview{display:flex;gap:4px;justify-content:center;flex-wrap:wrap;}
+.theme-preview span{font-size:18px;}
+</style>
+
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "记忆翻牌游戏",
+  "description": "记忆翻牌游戏 - 免费游戏趣味工具，在线记忆翻牌游戏，免费使用。",
+  "url": "https://chenguangwu.github.io/tools/fun/memory-game.html",
+  "applicationCategory": "UtilitiesApplication",
+  "operatingSystem": "Web",
+  "offers": {
+    "@type": "Offer",
+    "price": "0",
+    "priceCurrency": "CNY"
+  },
+  "inLanguage": "zh-CN",
+  "isAccessibleForFree": true,
+  "browserRequirements": "Requires JavaScript. Requires HTML5.",
+  "softwareVersion": "1.0"
+}
+</script>
+
+
+
+<meta property="og:image" content="https://chenguangwu.github.io/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="ToolBox - 6000+免费在线工具">
+<meta name="twitter:image" content="https://chenguangwu.github.io/og-image.png">
+<meta name="twitter:image:alt" content="ToolBox - 6000+免费在线工具">
+    <meta name="twitter:title" content="记忆翻牌游戏 - 免费游戏趣味工具，在线记忆翻牌游戏，免费使用 - ToolBox">
+    <meta name="twitter:description" content="记忆翻牌游戏 - 娱乐游戏工具，纯前端实现，无需安装，离线可玩">
+<!-- TOOLBOX-WEBAPP-LD -->
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"WebApplication","name":"记忆翻牌游戏 - 免费游戏趣味工具，在线记忆翻牌游戏，免费使用","url":"https://chenguangwu.github.io/tools/fun/memory-game.html","applicationCategory":"GamesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":["zh-CN", "en-US"],"description":"记忆翻牌游戏","image":"https://chenguangwu.github.io/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}
+</script>
+<meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
+<meta http-equiv="X-Content-Type-Options" content="nosniff">
+<meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
+<!-- TOOLBOX-SECURITY -->
+
+<script src="/js/privacy.js" defer></script>
+<!-- TOOLBOX-PRIVACY-SCRIPT -->
+
+<script src="/js/metrics.js" defer></script>
+<!-- TOOLBOX-METRICS-SCRIPT -->
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"首页","item":"https://chenguangwu.github.io/"},{"@type":"ListItem","position":2,"name":"娱乐游戏","item":"https://chenguangwu.github.io/tools/fun/index.html"},{"@type":"ListItem","position":3,"name":"记忆翻牌游戏","item":"https://chenguangwu.github.io/tools/fun/memory-game.html"}]}
+</script>
+
+<script src="../../js/i18n.js" defer></script>
+<script src="../../js/tool-i18n.js" defer></script>
+<!-- TOOLBOX-I18N-SCRIPT -->
+<!-- TOOLBOX-HREFLANG -->
+<link rel="alternate" hreflang="zh-CN" href="https://chenguangwu.github.io/tools/fun/memory-game.html">
+<link rel="alternate" hreflang="en-US" href="https://chenguangwu.github.io/tools/fun/memory-game.html">
+<link rel="alternate" hreflang="x-default" href="https://chenguangwu.github.io/tools/fun/memory-game.html">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:locale:alternate" content="en_US">
+
+<script src="/js/clarity.js" defer></script>
+<!-- TOOLBOX-CLARITY -->
+</head>
+<body>
+<h1 class="sr-only">记忆翻牌游戏</h1>
+
+<div class="nav">
+  <a href="../../index.html">← ToolBox</a>
+  <span>/ 记忆翻牌游戏</span>
+  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()">🌙</button>
+</div>
+
+
+
+
+<nav class="breadcrumb" aria-label="面包屑导航" data-breadcrumb="1">
+  <a href="../../index.html">首页</a>
+  <span class="bc-sep">‹</span>
+  <a href="index.html">🎮 娱乐游戏</a>
+  <span class="bc-sep">‹</span>
+  <span class="bc-current">记忆翻牌游戏</span>
+</nav>
+<div class="container">
+  <div class="card tool-card-accent" style="--tool-accent:#EC4899;">
+    <h2>🃏 记忆翻牌游戏</h2>
+    
+    <div class="tab-row">
+      <button type="button" class="tab-btn active" onclick="switchTab('game',this)">游戏</button>
+      <button type="button" class="tab-btn" onclick="switchTab('scores',this)">排行榜</button>
+      <button type="button" class="tab-btn" onclick="switchTab('help',this)">说明</button>
+    </div>
+
+    <div id="tab-game">
+      <label>难度</label>
+      <div class="difficulty-row">
+        <button type="button" class="diff-btn active" data-diff="easy" onclick="setDifficulty('easy',this)">简单 4×3</button>
+        <button type="button" class="diff-btn" data-diff="medium" onclick="setDifficulty('medium',this)">中等 4×4</button>
+        <button type="button" class="diff-btn" data-diff="hard" onclick="setDifficulty('hard',this)">困难 6×4</button>
+        <button type="button" class="diff-btn" data-diff="expert" onclick="setDifficulty('expert',this)">专家 6×6</button>
+      </div>
+
+      <label>主题</label>
+      <div class="theme-row">
+        <button class="theme-btn-select active" data-theme="animals" onclick="setTheme('animals',this)">🐾 动物</button>
+        <button class="theme-btn-select" data-theme="fruits" onclick="setTheme('fruits',this)">🍎 水果</button>
+        <button class="theme-btn-select" data-theme="numbers" onclick="setTheme('numbers',this)">🔢 数字</button>
+        <button class="theme-btn-select" data-theme="letters" onclick="setTheme('letters',this)">🔤 字母</button>
+        <button class="theme-btn-select" data-theme="emojis" onclick="setTheme('emojis',this)">😀 表情</button>
+      </div>
+
+      <div class="game-stats">
+        <div class="stat-item">
+          <div class="val" id="timer">00:00</div>
+          <div class="lbl">时间</div>
+        </div>
+        <div class="stat-item">
+          <div class="val" id="moves">0</div>
+          <div class="lbl">步数</div>
+        </div>
+        <div class="stat-item">
+          <div class="val" id="pairs">0/0</div>
+          <div class="lbl">配对</div>
+        </div>
+        <div class="stat-item">
+          <div class="val" id="bestScore">--</div>
+          <div class="lbl">最佳</div>
+        </div>
+      </div>
+
+      <div class="grid" id="grid"></div>
+
+      <div class="toolbar">
+        <button type="button" class="btn primary" onclick="startGame()">🎮 开始/重玩</button>
+        <button type="button" class="btn" onclick="shuffleCards()">🔀 洗牌</button>
+      </div>
+    </div>
+
+    <div id="tab-scores" style="display:none;">
+      <h3>🏆 最佳成绩</h3>
+      <div class="best-scores" id="bestScores">
+        <div class="score-row"><span>简单 (4×3)</span><span id="best-easy">--</span></div>
+        <div class="score-row"><span>中等 (4×4)</span><span id="best-medium">--</span></div>
+        <div class="score-row"><span>困难 (6×4)</span><span id="best-hard">--</span></div>
+        <div class="score-row"><span>专家 (6×6)</span><span id="best-expert">--</span></div>
+      </div>
+      <div class="toolbar" style="margin-top:12px;">
+        <button type="button" class="btn danger" onclick="clearBestScores()">清除记录</button>
+      </div>
+    </div>
+
+    <div id="tab-help" style="display:none;">
+      <h3>🎮 游戏规则</h3>
+      <div class="step-line">点击卡片翻开，记住每张卡片的图案</div>
+      <div class="step-line">每次翻开两张相同的卡片即可配对成功</div>
+      <div class="step-line">配对所有卡片即为胜利</div>
+      <div class="step-line">用最少的步数和最短的时间完成游戏</div>
+      <h3 style="margin-top:12px;">💡 技巧提示</h3>
+      <div class="step-line">专注记忆位置，而不是图案</div>
+      <div class="step-line">从角落开始，逐步向中间推进</div>
+      <div class="step-line">遇到相同图案时优先配对</div>
+      <h3 style="margin-top:12px;">🗂️ 主题说明</h3>
+      <div class="step-line"><strong>动物</strong>：可爱的动物表情符号</div>
+      <div class="step-line"><strong>水果</strong>：新鲜的水果表情符号</div>
+      <div class="step-line"><strong>数字</strong>：1-9 数字，适合数字记忆训练</div>
+      <div class="step-line"><strong>字母</strong>：A-Z 字母，适合字母记忆训练</div>
+      <div class="step-line"><strong>表情</strong>：丰富的表情符号</div>
+    </div>
+  </div>
+
+<!-- 注意事项区块 -->
+<div class="tool-notes" style="--tool-accent:#EC4899;">
+  <div class="tool-notes-title">⚠️ 使用说明与注意事项</div>
+  <ul>
+      <li>本工具纯前端运行，数据不会上传到服务器</li>
+      <li>建议在主流浏览器（Chrome/Safari/Firefox/Edge）中使用</li>
+      <li>计算结果仅供参考，请以实际应用场景为准</li>
+  </ul>
+</div>
+<!-- /注意事项区块 -->
+</div>
+
+<div id="winOverlay" style="display:none;">
+  <div class="win-modal">
+    <div class="big-emoji">🎉</div>
+    <h2>恭喜完成！</h2>
+    <p style="color:var(--text-muted);margin-bottom:16px;">你太厉害了！</p>
+    <div style="display:flex;justify-content:space-around;margin:16px 0;">
+      <div><div style="font-size:24px;font-weight:700;color:var(--primary);" id="finalTime">00:00</div><div style="font-size:12px;color:var(--text-muted);">用时</div></div>
+      <div><div style="font-size:24px;font-weight:700;color:var(--primary);" id="finalMoves">0</div><div style="font-size:12px;color:var(--text-muted);">步数</div></div>
+    </div>
+    <p id="newRecord" style="color:var(--success);font-weight:600;display:none;">🏆 新纪录！</p>
+    <div class="toolbar" style="margin-top:16px;margin-bottom:0;">
+      <button type="button" class="btn primary" onclick="startGame()">再玩一次</button>
+      <button type="button" class="btn" onclick="closeWin()">关闭</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const themes = {
+  animals: ['🐶','🐱','🐭','🐹','🐰','🦊','🐻','🐼','🐨','🐯','🦁','🐮','🐷','🐸','🐵','🐔','🐧','🐦'],
+  fruits: ['🍎','🍊','🍋','🍇','🍓','🍑','🍒','🍍','🥝','🍌','🍉','🍐','🥭','🍈','🥥','🍅','🥑','🍆'],
+  numbers: ['1','2','3','4','5','6','7','8','9','10','11','12','13','14','15','16','17','18'],
+  letters: ['A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R'],
+  emojis: ['😀','😎','🥳','😍','🤩','😇','🤗','😜','🤔','😴','🥳','😱','🤯','😇','🥰','😋','🤠','🤖']
+};
+
+const difficulties = {
+  easy: { cols:4, rows:3, pairs:6 },
+  medium: { cols:4, rows:4, pairs:8 },
+  hard: { cols:6, rows:4, pairs:12 },
+  expert: { cols:6, rows:6, pairs:18 }
+};
+
+let currentDiff = 'easy';
+let currentTheme = 'animals';
+let cards = [];
+let flipped = [];
+let matched = 0;
+let moves = 0;
+let lock = false;
+let timerInterval = null;
+let seconds = 0;
+let gameStarted = false;
+
+function switchTab(tab, btn){
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  ['game','scores','help'].forEach(t=>{
+    document.getElementById('tab-'+t).style.display = t===tab?'block':'none';
+  });
+  if(tab==='scores') updateBestScoresDisplay();
+}
+
+function setDifficulty(diff, btn){
+  currentDiff = diff;
+  document.querySelectorAll('.diff-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  updateBestScore();
+}
+
+function setTheme(theme, btn){
+  currentTheme = theme;
+  document.querySelectorAll('.theme-btn-select').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+}
+
+function startGame(){
+  stopTimer();
+  seconds = 0;
+  moves = 0;
+  matched = 0;
+  flipped = [];
+  lock = false;
+  gameStarted = false;
+  
+  const diff = difficulties[currentDiff];
+  const themeCards = themes[currentTheme].slice(0, diff.pairs);
+  cards = [...themeCards, ...themeCards];
+  shuffleArray(cards);
+  
+  renderGrid();
+  updateStats();
+  updateBestScore();
+  closeWin();
+}
+
+function shuffleCards(){
+  if(!gameStarted) return;
+  shuffleArray(cards);
+  renderGrid();
+  flipped = [];
+  matched = 0;
+  moves = 0;
+  lock = false;
+  updateStats();
+}
+
+function shuffleArray(arr){
+  for(let i=arr.length-1;i>0;i--){
+    const j = Math.floor(Math.random()*(i+1));
+    [arr[i],arr[j]] = [arr[j],arr[i]];
+  }
+}
+
+function renderGrid(){
+  const diff = difficulties[currentDiff];
+  const grid = document.getElementById('grid');
+  grid.style.gridTemplateColumns = `repeat(${diff.cols}, 1fr)`;
+  grid.innerHTML = '';
+  
+  cards.forEach((emoji,i)=>{
+    const card = document.createElement('div');
+    card.className = 'card-tile';
+    card.dataset.i = i;
+    card.dataset.emoji = emoji;
+    card.innerHTML = '<div class="front">?</div><div class="back">' + emoji + '</div>';
+    card.onclick = ()=>flipCard(i, card);
+    grid.appendChild(card);
+  });
+}
+
+function flipCard(i, el){
+  if(lock || el.classList.contains('flipped') || el.classList.contains('matched')) return;
+  
+  if(!gameStarted){
+    gameStarted = true;
+    startTimer();
+  }
+  
+  el.classList.add('flipped');
+  flipped.push({i, el, emoji: cards[i]});
+  
+  if(flipped.length === 2){
+    moves++;
+    updateStats();
+    lock = true;
+    setTimeout(checkMatch, 800);
+  }
+}
+
+function checkMatch(){
+  const [a,b] = flipped;
+  if(a.emoji === b.emoji){
+    a.el.classList.add('matched');
+    b.el.classList.add('matched');
+    matched++;
+    if(matched === difficulties[currentDiff].pairs){
+      stopTimer();
+      showWin();
+    }
+  }else{
+    a.el.classList.remove('flipped');
+    b.el.classList.remove('flipped');
+  }
+  flipped = [];
+  lock = false;
+  updateStats();
+}
+
+function startTimer(){
+  timerInterval = setInterval(()=>{
+    seconds++;
+    updateTimerDisplay();
+  }, 1000);
+}
+
+function stopTimer(){
+  if(timerInterval){
+    clearInterval(timerInterval);
+    timerInterval = null;
+  }
+}
+
+function updateTimerDisplay(){
+  const mins = Math.floor(seconds/60).toString().padStart(2,'0');
+  const secs = (seconds%60).toString().padStart(2,'0');
+  document.getElementById('timer').textContent = mins + ':' + secs;
+}
+
+function updateStats(){
+  document.getElementById('moves').textContent = moves;
+  document.getElementById('pairs').textContent = matched + '/' + difficulties[currentDiff].pairs;
+}
+
+function updateBestScore(){
+  const best = getBestScore(currentDiff);
+  document.getElementById('bestScore').textContent = best ? best.moves + '步' : '--';
+}
+
+function getBestScore(diff){
+  try{
+    const data = localStorage.getItem('memory_best_' + diff);
+    return data ? JSON.parse(data) : null;
+  }catch(e){ return null; }
+}
+
+function setBestScore(diff, time, moves){
+  const current = getBestScore(diff);
+  if(!current || moves < current.moves || (moves === current.moves && time < current.time)){
+    localStorage.setItem('memory_best_' + diff, JSON.stringify({time, moves}));
+    return true;
+  }
+  return false;
+}
+
+function updateBestScoresDisplay(){
+  ['easy','medium','hard','expert'].forEach(diff=>{
+    const best = getBestScore(diff);
+    const mins = best ? Math.floor(best.time/60).toString().padStart(2,'0') : '--';
+    const secs = best ? (best.time%60).toString().padStart(2,'0') : '--';
+    const timeStr = best ? mins + ':' + secs : '--';
+    const moveStr = best ? best.moves + '步' : '--';
+    document.getElementById('best-'+diff).textContent = timeStr + ' / ' + moveStr;
+  });
+}
+
+function clearBestScores(){
+  ['easy','medium','hard','expert'].forEach(diff=>{
+    localStorage.removeItem('memory_best_' + diff);
+  });
+  updateBestScoresDisplay();
+  updateBestScore();
+  ToolBox.showToast(i18nText('toast.history_cleared'));
+}
+
+function showWin(){
+  const isNewRecord = setBestScore(currentDiff, seconds, moves);
+  const mins = Math.floor(seconds/60).toString().padStart(2,'0');
+  const secs = (seconds%60).toString().padStart(2,'0');
+  document.getElementById('finalTime').textContent = mins + ':' + secs;
+  document.getElementById('finalMoves').textContent = moves;
+  document.getElementById('newRecord').style.display = isNewRecord ? 'block' : 'none';
+  document.getElementById('winOverlay').style.display = 'flex';
+  updateBestScore();
+}
+
+function closeWin(){
+  document.getElementById('winOverlay').style.display = 'none';
+}
+
+startGame();
+</script><script>
+// tool-intro折叠交互
+document.addEventListener('DOMContentLoaded',function(){
+  var headers=document.querySelectorAll('.tool-intro-header');
+  headers.forEach(function(h){
+    h.addEventListener('click',function(){
+      this.parentElement.classList.toggle('open');
+    });
+  });
+});
+</script>
+<!-- SEO 介绍区块 -->
+
+</div>
+
+</div>
+
+<!-- 相关工具 -->
+<div class="related-tools" data-related-tools="1">
+  <h3 class="related-tools-title">🔗 相关工具</h3>
+  <div class="related-tools-grid">
+    
+    
+    <a href="generator-2.html" class="related-tool-card">
+      <span class="rt-icon">🎮</span>
+      <span class="rt-info"><span class="rt-name">数独生成器 / 求解器 - 免费在线工具，纯前端处理 | ToolBox免费在线工具箱</span><span class="rt-desc">数独生成器 / 求解器</span></span>
+    </a>
+    <a href="laugh-generator.html" class="related-tool-card">
+      <span class="rt-icon">😂</span>
+      <span class="rt-info"><span class="rt-name">笑声音效生成器 - 免费趣味工具，用Web Audio API合成笑声 | ToolBox免费在线工具箱</span><span class="rt-desc">笑声音效生成器</span></span>
+    </a>
+    <a href="generator-laugh.html" class="related-tool-card">
+      <span class="rt-icon">🔧</span>
+      <span class="rt-info"><span class="rt-name">笑声音效生成器（合成） - 免费在线工具，纯前端处理 | ToolBox免费在线工具箱</span><span class="rt-desc">笑声音效生成器（合成）</span></span>
+    </a>
+    <a href="../dance/choreography-timeline.html" class="related-tool-card">
+      <span class="rt-icon">🎶</span>
+      <span class="rt-info"><span class="rt-name">编舞时间线 - 8拍分段规划器，按BPM和小节数生成舞蹈编排时间轴 | ToolBox免费在线工具箱</span><span class="rt-desc">编舞时间线</span></span>
+    </a>
+  </div>
+</div>
+<div class="tool-intro open" id="toolIntro">
+  <div class="tool-intro-header">
+    <span class="intro-icon-wrap"><span class="intro-icon">📖</span>关于「记忆翻牌游戏」</span>
+    <span class="arrow">▼</span>
+  </div>
+  <div class="tool-intro-body">
+    <h4><span class="h4-icon">📝</span>工具简介</h4>
+    <p>记忆翻牌游戏。娱乐游戏工具，纯前端实现，无需安装，离线可玩。</p>
+    <h4><span class="h4-icon">✨</span>功能特点</h4>
+    <ul class="intro-features">
+      <li>纯前端实现，无需安装</li>
+      <li>操作简单，上手快速</li>
+      <li>支持多种设备，随时随地使用</li>
+      <li>无需联网，离线可玩</li>
+    </ul>
+    <h4><span class="h4-icon">🎯</span>使用场景</h4>
+    <ul class="intro-scenes">
+      <li>休闲娱乐与放松</li>
+      <li>聚会互动小游戏</li>
+      <li>碎片时间的趣味消遣</li>
+      <li>概率与统计的学习辅助</li>
+    </ul>
+    <h4><span class="h4-icon">💬</span>常见问题</h4>
+      <div class="intro-faq-item"><div class="intro-faq-q">这个工具是免费的吗？</div><div class="intro-faq-a">完全免费，无需注册，直接在浏览器中使用。</div></div>
+      <div class="intro-faq-item"><div class="intro-faq-q">需要安装软件吗？</div><div class="intro-faq-a">不需要，直接在浏览器中打开即可使用。</div></div>
+      <div class="intro-faq-item"><div class="intro-faq-q">支持手机使用吗？</div><div class="intro-faq-a">支持。页面已做响应式适配，手机和电脑均可正常使用。</div></div>
+  </div>
+</div>
+<!-- /SEO 介绍区块 -->
+</body>
+</html>

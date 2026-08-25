@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title data-i18n-head="guide.html-entity-encoder.title" data-i18n-head-fb="HTML 实体编码与 XSS 转义 - ToolBox">HTML 实体编码与 XSS 转义 - ToolBox</title>
+<meta name="description" data-i18n-head="guide.html-entity-encoder.desc" data-i18n-head-fb="为什么要把 &lt; &gt; &amp; 转成实体，如何用 ToolBox 做 HTML 实体编解码与基础 XSS 防护。" data-attr="content" content="为什么要把 < > & 转成实体，如何用 ToolBox 做 HTML 实体编解码与基础 XSS 防护。">
+<meta property="og:title" content="HTML 实体编码与 XSS 转义 - ToolBox">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="ToolBox">
+<meta property="og:url" content="https://chenguangwu.github.io/guides/html-entity-encoder-guide.html">
+<meta property="og:description" content="为什么要把 &lt; &gt; &amp; 转成实体，如何用 ToolBox 做 HTML 实体编解码与基础 XSS 防护。">
+<meta name="twitter:title" content="HTML 实体编码与 XSS 转义 - ToolBox">
+<meta name="twitter:description" content="为什么要把 &lt; &gt; &amp; 转成实体，如何用 ToolBox 做 HTML 实体编解码与基础 XSS 防护。">
+<meta name="twitter:image" content="https://chenguangwu.github.io/og-image.png">
+<meta name="twitter:image:alt" content="ToolBox - 免费在线工具与使用指南">
+<meta property="og:image" content="https://chenguangwu.github.io/og-image.png">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="canonical" href="https://chenguangwu.github.io/guides/html-entity-encoder-guide.html">
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "Article", "headline": "HTML 实体编码与 XSS 转义", "description": "为什么要把 < > & 转成实体，如何用 ToolBox 做 HTML 实体编解码与基础 XSS 防护。", "author": {"@type": "Organization", "name": "ToolBox"}, "datePublished": "2026-08-07", "dateModified": "2026-08-07", "mainEntityOfPage": {"@type": "WebPage", "@id": "https://chenguangwu.github.io/guides/html-entity-encoder-guide.html"}}</script>
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "ToolBox", "item": "https://chenguangwu.github.io/"}, {"@type": "ListItem", "position": 2, "name": "使用指南", "item": "https://chenguangwu.github.io/#guides"}, {"@type": "ListItem", "position": 3, "name": "编码与加密", "item": "https://chenguangwu.github.io/guides/cluster-encode.html"}, {"@type": "ListItem", "position": 4, "name": "HTML 实体编码与 XSS 转义", "item": "https://chenguangwu.github.io/guides/html-entity-encoder-guide.html"}]}</script>
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "属性值里也要转义引号吗？", "acceptedAnswer": {"@type": "Answer", "text": "要。放在双引号属性中的 \" 应转成 &quot;，单引号属性同理转 &apos;，避免提前闭合属性。"}}, {"@type": "Question", "name": "转义后还能正常显示吗？", "acceptedAnswer": {"@type": "Answer", "text": "能。浏览器渲染时会把实体还原为对应字符显示，仅源码层面是转义形态。"}}, {"@type": "Question", "name": "仅做 HTML 转义够防 XSS 吗？", "acceptedAnswer": {"@type": "Answer", "text": "对 HTML 正文足够；但若内容进入 URL、on* 事件或 JS 字符串，需要对应场景的编码，单一手段并不万能。"}}]}</script>
+<style>
+:root{--primary:#FF6B35;--text:#1F2937;--muted:#6B7280;--border:#E5E7EB;--bg:#FFFAF7;}
+*{box-sizing:border-box;}
+body{margin:0;font-family:"Noto Sans SC","Plus Jakarta Sans",system-ui,sans-serif;color:var(--text);background:var(--bg);line-height:1.75;}
+header{padding:18px 20px;border-bottom:1px solid var(--border);background:#fff;}
+.breadcrumb a{color:var(--primary);text-decoration:none;margin-right:6px;}
+.breadcrumb a:hover{text-decoration:underline;}
+main{max-width:820px;margin:0 auto;padding:28px 20px 60px;}
+h1{font-size:28px;margin:0 0 8px;}
+.lead{font-size:16px;color:var(--muted);margin:0 0 22px;}
+h2{font-size:20px;margin:28px 0 10px;color:var(--primary);}
+.toc{background:#fff;border:1px solid var(--border);border-radius:14px;padding:14px 18px;margin:18px 0;}
+.toc ul{margin:0;padding-left:20px;}
+.toc a{color:var(--text);text-decoration:none;}
+.toc a:hover{color:var(--primary);}
+pre{background:#0f172a;color:#e2e8f0;padding:14px 16px;border-radius:12px;overflow:auto;font-size:13px;line-height:1.6;}
+code{background:#fff3e0;padding:1px 5px;border-radius:5px;font-size:.92em;}
+pre code{background:none;padding:0;}
+.related{margin-top:26px;padding:16px;background:#fff;border:1px solid var(--border);border-radius:14px;}
+.related h3{margin:0 0 10px;font-size:16px;color:var(--text);}
+.tool-chip{display:inline-block;margin:4px 6px 4px 0;padding:6px 12px;border:1px solid var(--border);border-radius:999px;color:var(--primary);text-decoration:none;font-size:14px;}
+.tool-chip:hover{background:var(--primary);color:#fff;}
+.faq{margin-top:26px;}
+.faq dt{font-weight:700;margin-top:14px;}
+.faq dd{margin:4px 0 0;color:var(--muted);}
+.back{margin-top:30px;padding:16px;background:#fff;border:1px solid var(--border);border-radius:14px;}
+.back a{color:var(--primary);font-weight:700;text-decoration:none;}
+footer{text-align:center;color:var(--muted);font-size:13px;padding:24px;border-top:1px solid var(--border);}
+</style>
+
+<script src="/js/clarity.js" defer></script>
+<link rel="alternate" hreflang="zh-CN" href="https://chenguangwu.github.io/guides/html-entity-encoder-guide.html">
+<link rel="alternate" hreflang="en-US" href="https://chenguangwu.github.io/guides/html-entity-encoder-guide.html">
+<link rel="alternate" hreflang="x-default" href="https://chenguangwu.github.io/guides/html-entity-encoder-guide.html">
+<script defer src="https://chenguangwu.github.io/js/i18n.js"></script>
+<script defer src="https://chenguangwu.github.io/js/guide-en-pack.js"></script>
+<script defer src="https://chenguangwu.github.io/js/guide-i18n.js"></script>
+</head>
+<body>
+<header><nav class="breadcrumb"><a href="https://chenguangwu.github.io/">ToolBox</a> / <a href="https://chenguangwu.github.io/#guides">使用指南</a> / <a href="https://chenguangwu.github.io/guides/cluster-encode.html">编码与加密</a> / <span>HTML 实体编码与 XSS 转义</span></nav></header>
+<main>
+<h1 data-i18n="guide.html-entity-encoder.title" data-i18n-fb="HTML 实体编码与 XSS 转义">HTML 实体编码与 XSS 转义</h1>
+<p class="lead" data-i18n="guide.html-entity-encoder.intro" data-i18n-fb="为什么要把 &lt; &gt; &amp; 转成实体，如何用 ToolBox 做 HTML 实体编解码与基础 XSS 防护。">为什么要把 < > & 转成实体，如何用 ToolBox 做 HTML 实体编解码与基础 XSS 防护。</p>
+<div class="toc"><strong>目录</strong><ul><li><a href="#s0" data-i18n="guide.html-entity-encoder.sec0" data-i18n-fb="为什么需要实体编码">为什么需要实体编码</a></li><li><a href="#s1" data-i18n="guide.html-entity-encoder.sec1" data-i18n-fb="实体 vs 字符引用">实体 vs 字符引用</a></li><li><a href="#s2" data-i18n="guide.html-entity-encoder.sec2" data-i18n-fb="在 ToolBox 中使用">在 ToolBox 中使用</a></li><li><a href="#s3" data-i18n="guide.html-entity-encoder.sec3" data-i18n-fb="XSS 防护的边界">XSS 防护的边界</a></li></ul></div>
+<h2 id="s0" data-i18n="guide.html-entity-encoder.sec0" data-i18n-fb="为什么需要实体编码">为什么需要实体编码</h2>
+<p data-i18n="guide.html-entity-encoder.p0.0" data-i18n-fb="在 HTML 中直接输出  会被浏览器当作标签/脚本执行，造成 XSS。把  转成 &amp;lt;、&gt; 转成 &amp;gt;、&amp; 转成 &amp;amp;，可让特殊字符「只显示不执行」。">在 HTML 中直接输出 <code><script></code> 会被浏览器当作标签/脚本执行，造成 XSS。把 <code><</code> 转成 <code>&lt;</code>、<code>></code> 转成 <code>&gt;</code>、<code>&</code> 转成 <code>&amp;</code>，可让特殊字符「只显示不执行」。</p>
+<h2 id="s1" data-i18n="guide.html-entity-encoder.sec1" data-i18n-fb="实体 vs 字符引用">实体 vs 字符引用</h2>
+<p data-i18n="guide.html-entity-encoder.p1.0" data-i18n-fb="&amp;lt; 是命名实体，&amp;#60; 是十进制数字引用，&amp;#x3C; 是十六进制；三者等价，命名实体更易读。"><code>&lt;</code> 是命名实体，<code>&#60;</code> 是十进制数字引用，<code>&#x3C;</code> 是十六进制；三者等价，命名实体更易读。</p>
+<h2 id="s2" data-i18n="guide.html-entity-encoder.sec2" data-i18n-fb="在 ToolBox 中使用">在 ToolBox 中使用</h2>
+<p data-i18n="guide.html-entity-encoder.p2.0" data-i18n-fb="粘贴文本点击编码即可获得实体化结果，适合回填到模板/富文本前做转义；解码则把实体还原为原字符。">粘贴文本点击编码即可获得实体化结果，适合回填到模板/富文本前做转义；解码则把实体还原为原字符。</p>
+<h2 id="s3" data-i18n="guide.html-entity-encoder.sec3" data-i18n-fb="XSS 防护的边界">XSS 防护的边界</h2>
+<p data-i18n="guide.html-entity-encoder.p3.0" data-i18n-fb="实体编码只是输出层手段之一，不能替代参数化查询、CSP、输入校验等综合防护；对 URL、属性、JS 上下文要分别处理。">实体编码只是输出层手段之一，不能替代参数化查询、CSP、输入校验等综合防护；对 URL、属性、JS 上下文要分别处理。</p>
+<div class="related"><h3>相关工具</h3><a class="tool-chip" href="/tools/it/html-entity-encoder.html">HTML 实体编码器</a>
+<a class="tool-chip" href="/tools/it/url-encode.html">URL 编码</a>
+<a class="tool-chip" href="/tools/it/base64.html">Base64 编解码</a></div>
+<div class="faq"><h2 data-i18n="guide.html-entity-encoder.sec4" data-i18n-fb="常见问题">常见问题</h2><dl><dt data-i18n="guide.html-entity-encoder.faqs.0.q" data-i18n-fb="属性值里也要转义引号吗？">属性值里也要转义引号吗？</dt><dd data-i18n="guide.html-entity-encoder.faqs.0.a" data-i18n-fb="要。放在双引号属性中的 &quot; 应转成 &amp;quot;，单引号属性同理转 &amp;apos;，避免提前闭合属性。">要。放在双引号属性中的 " 应转成 &quot;，单引号属性同理转 &apos;，避免提前闭合属性。</dd>
+<dt data-i18n="guide.html-entity-encoder.faqs.0.q" data-i18n-fb="转义后还能正常显示吗？">转义后还能正常显示吗？</dt><dd data-i18n="guide.html-entity-encoder.faqs.1.a" data-i18n-fb="能。浏览器渲染时会把实体还原为对应字符显示，仅源码层面是转义形态。">能。浏览器渲染时会把实体还原为对应字符显示，仅源码层面是转义形态。</dd>
+<dt data-i18n="guide.html-entity-encoder.faqs.0.q" data-i18n-fb="仅做 HTML 转义够防 XSS 吗？">仅做 HTML 转义够防 XSS 吗？</dt><dd data-i18n="guide.html-entity-encoder.faqs.2.a" data-i18n-fb="对 HTML 正文足够；但若内容进入 URL、on* 事件或 JS 字符串，需要对应场景的编码，单一手段并不万能。">对 HTML 正文足够；但若内容进入 URL、on* 事件或 JS 字符串，需要对应场景的编码，单一手段并不万能。</dd></dl></div>
+<div class="back"><a href="https://chenguangwu.github.io/guides/cluster-encode.html">← 返回「编码与加密」内容集群</a></div>
+</main>
+<footer>© 2026 ToolBox · 纯前端工具，数据不出浏览器</footer>
+</body>
+</html>

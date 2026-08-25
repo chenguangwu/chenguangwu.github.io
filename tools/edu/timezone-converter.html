@@ -1,0 +1,941 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+
+<script src="/js/tool-page-runtime.js" defer></script>
+<!-- TOOLBOX-TOOL-RUNTIME -->
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="toolbox" content="cat=convert,industry=edu,icon=🕐,bg=#e8eaf6">
+<title>当前本地时间 - 教育学习在线工具 - ToolBox</title>
+<link rel="canonical" href="https://chenguangwu.github.io/tools/edu/timezone-converter.html">
+<meta property="og:title" content="当前本地时间 - 教育学习在线工具 - ToolBox">
+<meta property="og:description" content="免费在线时区转换器，支持世界主要城市时区互转、世界时钟、时差计算，24/12小时制切换，纯前端无需后端。">
+<meta property="og:url" content="https://chenguangwu.github.io/tools/edu/timezone-converter.html">
+<meta name="twitter:card" content="summary">
+<meta name="description" content="免费在线时区转换器，支持世界主要城市时区互转、世界时钟、时差计算，24/12小时制切换，纯前端无需后端。">
+<meta name="keywords" content="时区转换,世界时钟,时差计算,UTC,timezone converter,时区对照表">
+<link rel="icon" href="../../favicon.ico" type="image/x-icon">
+<link rel="icon" href="../../favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../../css/common.css">
+<script src="../../js/common.js"></script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebApplication",
+  "name": "时区转换器",
+  "description": "免费在线时区转换工具，支持世界主要城市时区互转、世界时钟和时差计算",
+  "url": "https://toolbox.1010tools.com/tools/edu/timezone-converter.html",
+  "applicationCategory": "EducationalApplication",
+  "operatingSystem": "All",
+  "offers": {"@type": "Offer", "price": "0", "priceCurrency": "CNY"}
+}
+</script>
+<style>
+/* 页面内自定义样式 */
+.local-time-display {
+  text-align: center;
+  padding: 20px 0 8px;
+}
+.local-time-display .time-big {
+  font-size: 42px;
+  font-weight: 700;
+  color: var(--primary);
+  letter-spacing: 2px;
+  font-variant-numeric: tabular-nums;
+}
+.local-time-display .date-info {
+  font-size: 14px;
+  color: var(--text-muted);
+  margin-top: 4px;
+}
+.tz-select-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+.tz-select-grid .input-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 0;
+}
+.swap-btn-wrap {
+  display: flex;
+  align-items: flex-end;
+  padding-bottom: 4px;
+}
+.swap-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 2px solid var(--border);
+  background: var(--card-bg);
+  color: var(--primary);
+  cursor: pointer;
+  font-size: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.25s;
+  flex-shrink: 0;
+}
+.swap-btn:hover {
+  border-color: var(--primary);
+  background: var(--bg-hover);
+  transform: rotate(180deg);
+}
+.datetime-inputs {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 10px;
+}
+.datetime-inputs label {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-bottom: 2px;
+}
+.format-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin-bottom: 12px;
+}
+.format-toggle button {
+  padding: 5px 14px;
+  border-radius: 20px;
+  border: 1px solid var(--border);
+  background: var(--card-bg);
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+.format-toggle button.active {
+  background: var(--gradient-primary);
+  color: #fff;
+  border-color: transparent;
+}
+/* 世界时钟网格 */
+.world-clock-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 10px;
+}
+.world-clock-item {
+  background: var(--result-bg);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 14px;
+  text-align: center;
+  transition: all 0.2s;
+}
+.world-clock-item:hover {
+  border-color: var(--primary);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-sm);
+}
+.world-clock-item .city {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--heading);
+  margin-bottom: 2px;
+}
+.world-clock-item .offset {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-bottom: 6px;
+}
+.world-clock-item .clock-time {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--primary);
+  font-variant-numeric: tabular-nums;
+}
+.world-clock-item .clock-date {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+.world-clock-item .dst-badge {
+  display: inline-block;
+  font-size: 10px;
+  padding: 2px 8px;
+  border-radius: 10px;
+  background: rgba(245, 158, 11, 0.12);
+  color: #D97706;
+  margin-top: 4px;
+  font-weight: 500;
+}
+/* 时差结果 */
+.diff-result {
+  text-align: center;
+  padding: 16px;
+}
+.diff-result .diff-value {
+  font-size: 36px;
+  font-weight: 700;
+  color: var(--primary);
+  font-variant-numeric: tabular-nums;
+}
+.diff-result .diff-desc {
+  font-size: 14px;
+  color: var(--text-secondary);
+  margin-top: 6px;
+  line-height: 1.6;
+}
+.diff-result .diff-detail {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin-top: 8px;
+}
+/* 转换结果高亮 */
+.convert-result-highlight {
+  text-align: center;
+  padding: 20px;
+  background: linear-gradient(135deg, rgba(255,107,53,0.06) 0%, rgba(124,58,237,0.06) 100%);
+  border-radius: 12px;
+  margin-top: 12px;
+}
+.convert-result-highlight .result-time {
+  font-size: 36px;
+  font-weight: 700;
+  color: var(--primary);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 1px;
+}
+.convert-result-highlight .result-date {
+  font-size: 14px;
+  color: var(--text-secondary);
+  margin-top: 4px;
+}
+.convert-result-highlight .result-city {
+  font-size: 15px;
+  color: var(--heading);
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+.convert-result-highlight .dst-note {
+  font-size: 12px;
+  color: #D97706;
+  margin-top: 6px;
+}
+@media (max-width: 768px) {
+  .local-time-display .time-big {
+    font-size: 32px;
+  }
+  .tz-select-grid {
+    grid-template-columns: 1fr;
+  }
+  .datetime-inputs {
+    grid-template-columns: 1fr;
+  }
+  .world-clock-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .convert-result-highlight .result-time {
+    font-size: 28px;
+  }
+  .diff-result .diff-value {
+    font-size: 28px;
+  }
+}
+</style>
+
+
+
+<meta property="og:image" content="https://chenguangwu.github.io/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="ToolBox - 6000+免费在线工具">
+<meta name="twitter:image" content="https://chenguangwu.github.io/og-image.png">
+<meta name="twitter:image:alt" content="ToolBox - 6000+免费在线工具">
+    <meta property="og:type" content="website">
+    <meta name="twitter:title" content="当前本地时间 - 教育学习在线工具 - ToolBox">
+    <meta name="twitter:description" content="免费在线时区转换器，支持世界主要城市时区互转、世界时钟、时差计算，24/12小时制切换，纯前端无需后端。">
+<!-- TOOLBOX-WEBAPP-LD -->
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"WebApplication","name":"当前本地时间 - 教育学习在线工具","url":"https://chenguangwu.github.io/tools/edu/timezone-converter.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":["zh-CN", "en-US"],"description":"&amp;#128336; 当前本地时间","image":"https://chenguangwu.github.io/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}
+</script>
+<meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
+<meta http-equiv="X-Content-Type-Options" content="nosniff">
+<meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
+<!-- TOOLBOX-SECURITY -->
+
+<script src="/js/privacy.js" defer></script>
+<!-- TOOLBOX-PRIVACY-SCRIPT -->
+
+<script src="/js/metrics.js" defer></script>
+<!-- TOOLBOX-METRICS-SCRIPT -->
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"首页","item":"https://chenguangwu.github.io/"},{"@type":"ListItem","position":2,"name":"教育学习","item":"https://chenguangwu.github.io/tools/edu/index.html"},{"@type":"ListItem","position":3,"name":"当前本地时间","item":"https://chenguangwu.github.io/tools/edu/timezone-converter.html"}]}
+</script>
+
+<script src="../../js/i18n.js" defer></script>
+<script src="../../js/tool-i18n.js" defer></script>
+<!-- TOOLBOX-I18N-SCRIPT -->
+<!-- TOOLBOX-HREFLANG -->
+<link rel="alternate" hreflang="zh-CN" href="https://chenguangwu.github.io/tools/edu/timezone-converter.html">
+<link rel="alternate" hreflang="en-US" href="https://chenguangwu.github.io/tools/edu/timezone-converter.html">
+<link rel="alternate" hreflang="x-default" href="https://chenguangwu.github.io/tools/edu/timezone-converter.html">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:locale:alternate" content="en_US">
+
+<script src="/js/clarity.js" defer></script>
+<!-- TOOLBOX-CLARITY -->
+</head>
+<body>
+<h1 class="sr-only">时区转换器</h1>
+
+
+<!-- 导航栏 -->
+<div class="nav">
+  <a href="../../index.html">&larr; ToolBox</a>
+  <span>/ 时区转换器</span>
+  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()">&#127769;</button>
+</div>
+
+
+
+
+
+<nav class="breadcrumb" aria-label="面包屑导航" data-breadcrumb="1">
+  <a href="../../index.html">首页</a>
+  <span class="bc-sep">‹</span>
+  <a href="index.html">📖 教育学习</a>
+  <span class="bc-sep">‹</span>
+  <span class="bc-current">当前本地时间</span>
+</nav>
+<div class="container">
+
+  <!-- 当前时间卡片 -->
+  <div class="card tool-card-accent" style="--tool-accent:#FF6B35;">
+    <h2>&#128336; 当前本地时间</h2>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;">基于您的浏览器本地时区，实时更新</p>
+    <div class="local-time-display">
+      <div class="time-big" id="localTime">--:--:--</div>
+      <div class="date-info" id="localDate">----年--月--日 星期-</div>
+    </div>
+    <div class="format-toggle" style="justify-content:center;margin-top:12px;">
+      <span>时间格式：</span>
+      <button id="fmt24" class="active" onclick="setFormat(24)">24小时制</button>
+      <button id="fmt12" onclick="setFormat(12)">12小时制</button>
+    </div>
+  </div>
+
+  <!-- 选项卡导航 -->
+  <div class="tabs">
+    <button type="button" class="tab-btn active" onclick="switchTab('convert')">&#128260; 时区转换</button>
+    <button type="button" class="tab-btn" onclick="switchTab('worldclock')">&#127758; 世界时钟</button>
+    <button type="button" class="tab-btn" onclick="switchTab('diff')">&#128279; 时差计算</button>
+  </div>
+
+  <!-- 时区转换 -->
+  <div class="tab-content active" id="tab-convert">
+    <div class="card">
+      <h2>&#128260; 时区转换</h2>
+      <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;">选择源时区和时间，转换到目标时区</p>
+
+      <div class="tz-select-grid">
+        <div class="input-row">
+          <label>源时区（城市）</label>
+          <select id="srcTz" onchange="onTzChange()"></select>
+        </div>
+        <div class="swap-btn-wrap">
+          <button type="button" class="swap-btn" onclick="swapTimezones()" title="交换源和目标时区">&#8644;</button>
+        </div>
+        <div class="input-row">
+          <label>目标时区（城市）</label>
+          <select id="dstTz" onchange="onTzChange()"></select>
+        </div>
+      </div>
+
+      <div style="margin-top:16px;">
+        <label>输入时间（源时区）</label>
+        <div class="datetime-inputs">
+          <div>
+            <label style="font-size:12px;color:var(--text-muted);margin-bottom:2px;">时</label>
+            <input type="number" id="inpHour" min="0" max="23" value="12" oninput="doConvert()">
+          </div>
+          <div>
+            <label style="font-size:12px;color:var(--text-muted);margin-bottom:2px;">分</label>
+            <input type="number" id="inpMin" min="0" max="59" value="0" oninput="doConvert()">
+          </div>
+          <div>
+            <label style="font-size:12px;color:var(--text-muted);margin-bottom:2px;">秒</label>
+            <input type="number" id="inpSec" min="0" max="59" value="0" oninput="doConvert()">
+          </div>
+        </div>
+      </div>
+
+      <div style="margin-top:12px;">
+        <label>日期（可选，默认今天）</label>
+        <input type="date" id="inpDate" oninput="doConvert()">
+      </div>
+
+      <div style="margin-top:16px;">
+        <div class="checkbox-row">
+          <label><input type="checkbox" id="chkDST" onchange="doConvert()"> 考虑夏令时（使用DST偏移）</label>
+          <label><input type="checkbox" id="chkNow" checked onchange="useNowTime()"> 使用当前时间</label>
+        </div>
+      </div>
+
+      <div class="toolbar" style="margin-top:12px;">
+        <button type="button" class="btn primary" onclick="doConvert()">&#128260; 转换</button>
+        <button type="button" class="btn" onclick="copyResult()">&#128203; 复制结果</button>
+        <button type="button" class="btn" onclick="setNowTime()">&#9200; 当前时间</button>
+      </div>
+
+      <div class="result-box" id="convertResult" style="display:none;"></div>
+    </div>
+  </div>
+
+  <!-- 世界时钟 -->
+  <div class="tab-content" id="tab-worldclock">
+    <div class="card">
+      <h2>&#127758; 世界时钟</h2>
+      <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;">同时查看世界主要城市当前时间</p>
+      <div class="tip-box tip-info" style="margin-bottom:16px;">
+        &#9888;&#65039; 夏令时标注说明：标有"可能夏令时"的城市表示该城市在特定月份可能使用夏令时偏移（DST列）。本工具以标准偏移为默认值，勾选"考虑夏令时"后使用DST偏移。
+      </div>
+      <div class="world-clock-grid" id="worldClockGrid"></div>
+    </div>
+  </div>
+
+  <!-- 时差计算 -->
+  <div class="tab-content" id="tab-diff">
+    <div class="card">
+      <h2>&#128279; 时差计算</h2>
+      <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;">选择两个时区，计算它们之间的时差</p>
+
+      <div class="input-row">
+        <div class="input-row">
+          <label>时区 A</label>
+          <select id="diffTzA" onchange="calcDiff()"></select>
+        </div>
+        <div class="input-row">
+          <label>时区 B</label>
+          <select id="diffTzB" onchange="calcDiff()"></select>
+        </div>
+      </div>
+
+      <div class="checkbox-row">
+        <label><input type="checkbox" id="chkDiffDST" onchange="calcDiff()"> 考虑夏令时</label>
+      </div>
+
+      <div class="toolbar">
+        <button type="button" class="btn primary" onclick="calcDiff()">&#128279; 计算时差</button>
+        <button type="button" class="btn" onclick="swapDiff()">&#8644; 交换</button>
+      </div>
+
+      <div class="result-box" id="diffResult" style="display:none;"></div>
+    </div>
+
+    <!-- UTC 偏移对照表 -->
+    <div class="card">
+      <h3>&#128203; 世界主要时区 UTC 偏移对照表</h3>
+      <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;">标准时间偏移与夏令时偏移一览</p>
+      <div id="offsetTable"></div>
+    </div>
+  </div>
+
+  <!-- SEO 工具介绍 -->
+  
+</div>
+
+</div>
+
+<!-- 相关工具 -->
+<div class="related-tools" data-related-tools="1">
+  <h3 class="related-tools-title">🔗 相关工具</h3>
+  <div class="related-tools-grid">
+    <a href="pinyin-typing-practice.html" class="related-tool-card">
+      <span class="rt-icon">⌨️</span>
+      <span class="rt-info"><span class="rt-name">拼音打字练习 - 免费开发工具，在线拼音打字练习 | ToolBox免费在线工具箱</span><span class="rt-desc">⌨️ 拼音打字练习</span></span>
+    </a>
+    <a href="english-vocabulary.html" class="related-tool-card">
+      <span class="rt-icon">📚</span>
+      <span class="rt-info"><span class="rt-name">英语单词测试 - 免费开发工具，在线英语单词测试 | ToolBox免费在线工具箱</span><span class="rt-desc">英语单词测试</span></span>
+    </a>
+    <a href="study-planner.html" class="related-tool-card">
+      <span class="rt-icon">📅</span>
+      <span class="rt-info"><span class="rt-name">学习计划制定 - 免费生成器工具，在线学习计划制定 | ToolBox免费在线工具箱</span><span class="rt-desc">学习计划制定</span></span>
+    </a>
+    <a href="generator-4.html" class="related-tool-card">
+      <span class="rt-icon">📚</span>
+      <span class="rt-info"><span class="rt-name">摘要生成器（基于句子权重） - 免费在线工具，纯前端处理 | ToolBox免费在线工具箱</span><span class="rt-desc">摘要生成器（基于句子权重）</span></span>
+    </a>
+    <a href="../library/archive-label.html" class="related-tool-card">
+      <span class="rt-icon">🏷️</span>
+      <span class="rt-info"><span class="rt-name">档案盒标签生成 - 器 - 档案盒脊背标签格式生成，可打印 | ToolBox免费在线工具箱</span><span class="rt-desc">档案盒标签生成</span></span>
+    </a>
+    <a href="../kids/memory-palace.html" class="related-tool-card">
+      <span class="rt-icon">🏰</span>
+      <span class="rt-info"><span class="rt-name">记忆宫殿编码 - 教育学习在线工具 | ToolBox免费在线工具箱</span><span class="rt-desc">记忆宫殿编码</span></span>
+    </a>
+  </div>
+</div>
+<div class="tool-intro" id="toolIntro">
+    <div class="tool-intro-header" onclick="this.parentElement.classList.toggle('open')">
+      <span class="intro-icon-wrap"><span class="intro-icon">&#128336;</span> 工具介绍与常见问题</span>
+      <span class="arrow">&#9660;</span>
+    </div>
+    <div class="tool-intro-body">
+      <p>时区转换器是一款纯前端在线工具，可帮助用户在世界主要城市时区之间快速转换时间，查看世界时钟，计算不同时区之间的时差。所有计算均在浏览器本地完成，无需后端服务。</p>
+      <h4>&#11088; 功能特点</h4>
+      <ul class="intro-features">
+        <li>支持 15+ 世界主要城市时区</li>
+        <li>UTC 偏移量直接计算，简单准确</li>
+        <li>24/12 小时制自由切换</li>
+        <li>世界时钟实时刷新</li>
+        <li>时差可视化展示</li>
+        <li>夏令时偏移标注</li>
+        <li>纯前端，数据不上传</li>
+      </ul>
+      <h4>&#127919; 使用场景</h4>
+      <ul class="intro-scenes">
+        <li>跨国会议时间安排</li>
+        <li>国际航班时间换算</li>
+        <li>远程协作排期参考</li>
+        <li>海外亲友通话时间</li>
+      </ul>
+      <h4>&#10067; 常见问题</h4>
+      <div class="intro-faq-item">
+        <div class="intro-faq-q">什么是 UTC 偏移量？</div>
+        <div class="intro-faq-a">UTC 偏移量表示某个时区相对于协调世界时（UTC）的时间差。例如北京时间为 UTC+8，表示比 UTC 快 8 小时。</div>
+      </div>
+      <div class="intro-faq-item">
+        <div class="intro-faq-q">夏令时（DST）是什么？</div>
+        <div class="intro-faq-a">夏令时是一些国家/地区在夏季将时钟拨快一小时的制度。本工具内置了主要城市的夏令时偏移数据，勾选后会使用夏令时偏移计算。</div>
+      </div>
+      <div class="intro-faq-item">
+        <div class="intro-faq-q">这个工具的计算准确吗？</div>
+        <div class="intro-faq-a">本工具使用固定 UTC 偏移量进行计算，适用于绝大多数场景。但实际时区规则可能因国家政策调整而变化，重要场景建议核实官方时区信息。</div>
+      </div>
+    </div>
+  </div>
+
+
+<!-- 注意事项区块 -->
+<div class="tool-notes" style="--tool-accent:#FF6B35;">
+  <div class="tool-notes-title">⚠️ 使用说明与注意事项</div>
+  <ul>
+      <li>本工具纯前端运行，数据不会上传到服务器</li>
+      <li>建议在主流浏览器（Chrome/Safari/Firefox/Edge）中使用</li>
+      <li>计算结果仅供参考，请以实际应用场景为准</li>
+  </ul>
+</div>
+<!-- /注意事项区块 -->
+</div>
+
+<script>
+(function() {
+  'use strict';
+
+  // ====== 世界主要城市时区数据 ======
+  // stdOffset: 标准时间 UTC 偏移（分钟）
+  // dstOffset: 夏令时 UTC 偏移（分钟），null 表示无夏令时
+  // dstMonths: 可能处于夏令时的月份（北半球通常 3-10，南半球 10-3）
+  var TIMEZONES = [
+    { city: '北京', country: '中国', stdOffset: 480, dstOffset: null, dstMonths: [], emoji: '&#127464;&#127475;' },
+    { city: '东京', country: '日本', stdOffset: 540, dstOffset: null, dstMonths: [], emoji: '&#127471;&#127477;' },
+    { city: '首尔', country: '韩国', stdOffset: 540, dstOffset: null, dstMonths: [], emoji: '&#127472;&#127479;' },
+    { city: '新加坡', country: '新加坡', stdOffset: 480, dstOffset: null, dstMonths: [], emoji: '&#127480;&#127468;' },
+    { city: '孟买', country: '印度', stdOffset: 330, dstOffset: null, dstMonths: [], emoji: '&#127470;&#127475;' },
+    { city: '迪拜', country: '阿联酋', stdOffset: 240, dstOffset: null, dstMonths: [], emoji: '&#127462;&#127466;' },
+    { city: '莫斯科', country: '俄罗斯', stdOffset: 180, dstOffset: null, dstMonths: [], emoji: '&#127477;&#127473;' },
+    { city: '伦敦', country: '英国', stdOffset: 0, dstOffset: 60, dstMonths: [3,4,5,6,7,8,9,10], emoji: '&#127468;&#127463;' },
+    { city: '巴黎', country: '法国', stdOffset: 60, dstOffset: 120, dstMonths: [3,4,5,6,7,8,9,10], emoji: '&#127467;&#127479;' },
+    { city: '柏林', country: '德国', stdOffset: 60, dstOffset: 120, dstMonths: [3,4,5,6,7,8,9,10], emoji: '&#127465;&#127466;' },
+    { city: '圣保罗', country: '巴西', stdOffset: -180, dstOffset: null, dstMonths: [], emoji: '&#127463;&#127479;' },
+    { city: '纽约', country: '美国', stdOffset: -300, dstOffset: -240, dstMonths: [3,4,5,6,7,8,9,10], emoji: '&#127482;&#127480;' },
+    { city: '芝加哥', country: '美国', stdOffset: -360, dstOffset: -300, dstMonths: [3,4,5,6,7,8,9,10], emoji: '&#127482;&#127480;' },
+    { city: '洛杉矶', country: '美国', stdOffset: -480, dstOffset: -420, dstMonths: [3,4,5,6,7,8,9,10], emoji: '&#127482;&#127480;' },
+    { city: '悉尼', country: '澳大利亚', stdOffset: 660, dstOffset: 720, dstMonths: [10,11,12,1,2,3], emoji: '&#127462;&#127482;' }
+  ];
+
+  var timeFormat = 24; // 24 or 12
+  var clockTimer = null;
+
+  // ====== 工具函数 ======
+  function offsetToStr(minutes) {
+    var sign = minutes >= 0 ? '+' : '-';
+    var absMin = Math.abs(minutes);
+    var h = Math.floor(absMin / 60);
+    var m = absMin % 60;
+    return 'UTC' + sign + h + (m > 0 ? ':' + String(m).padStart(2, '0') : '');
+  }
+
+  function formatOffsetForSelect(tz, useDST) {
+    var offset = useDST && tz.dstOffset !== null ? tz.dstOffset : tz.stdOffset;
+    return offsetToStr(offset);
+  }
+
+  function isLikelyDST(tz) {
+    if (tz.dstOffset === null || tz.dstMonths.length === 0) return false;
+    var now = new Date();
+    var month = now.getMonth() + 1;
+    return tz.dstMonths.indexOf(month) !== -1;
+  }
+
+  function getOffset(tz, useDST) {
+    if (useDST && tz.dstOffset !== null) return tz.dstOffset;
+    return tz.stdOffset;
+  }
+
+  function pad(n) { return String(n).padStart(2, '0'); }
+
+  function formatTime(hours, minutes, seconds, use12) {
+    if (use12) {
+      var ampm = hours >= 12 ? 'PM' : 'AM';
+      var h12 = hours % 12;
+      if (h12 === 0) h12 = 12;
+      return pad(h12) + ':' + pad(minutes) + ':' + pad(seconds) + ' ' + ampm;
+    }
+    return pad(hours) + ':' + pad(minutes) + ':' + pad(seconds);
+  }
+
+  function formatDate(year, month, day, weekdayIndex) {
+    var weekdays = ['日', '一', '二', '三', '四', '五', '六'];
+    return year + '年' + pad(month) + '月' + pad(day) + '日 星期' + weekdays[weekdayIndex];
+  }
+
+  function convertTime(srcOffsetMin, dstOffsetMin, hours, minutes, seconds, year, month, day) {
+    // 策略：把源时区的"墙上时间"当作 UTC 来构造一个基准时间戳，
+    // 然后用偏移量差值平移到目标时区的"墙上时间"。
+    // 这样完全脱离浏览器本地时区，保证计算只依赖用户选择的偏移量。
+    // baseUTC = Date.UTC(year, month-1, day, hours, minutes, seconds)
+    // realUTC = baseUTC - srcOffsetMin * 60000
+    // targetWallUTC = realUTC + dstOffsetMin * 60000
+    //                = baseUTC + (dstOffsetMin - srcOffsetMin) * 60000
+    var baseUTC = Date.UTC(year, month - 1, day, hours, minutes, seconds);
+    var targetWallUTC = baseUTC + (dstOffsetMin - srcOffsetMin) * 60000;
+    var d = new Date(targetWallUTC);
+    return {
+      year: d.getUTCFullYear(),
+      month: d.getUTCMonth() + 1,
+      day: d.getUTCDate(),
+      weekday: d.getUTCDay(),
+      hours: d.getUTCHours(),
+      minutes: d.getUTCMinutes(),
+      seconds: d.getUTCSeconds(),
+      dayDiff: Math.round((Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()) - Date.UTC(year, month - 1, day)) / 86400000)
+    };
+  }
+
+  // ====== 初始化 ======
+  function init() {
+    populateSelects();
+    setDefaultDate();
+    setNowTime();
+    renderWorldClock();
+    renderOffsetTable();
+    startClock();
+    doConvert();
+    calcDiff();
+  }
+
+  function populateSelects() {
+    var selects = ['srcTz', 'dstTz', 'diffTzA', 'diffTzB'];
+    selects.forEach(function(id) {
+      var sel = document.getElementById(id);
+      if (!sel) return;
+      sel.innerHTML = '';
+      TIMEZONES.forEach(function(tz, i) {
+        var opt = document.createElement('option');
+        opt.value = i;
+        opt.textContent = tz.city + '（' + tz.country + '）' + offsetToStr(tz.stdOffset);
+        sel.appendChild(opt);
+      });
+    });
+    // 默认：北京 -> 纽约
+    document.getElementById('srcTz').value = 0; // 北京
+    document.getElementById('dstTz').value = 11; // 纽约
+    document.getElementById('diffTzA').value = 0;
+    document.getElementById('diffTzB').value = 11;
+  }
+
+  function setDefaultDate() {
+    var now = new Date();
+    var yyyy = now.getFullYear();
+    var mm = pad(now.getMonth() + 1);
+    var dd = pad(now.getDate());
+    document.getElementById('inpDate').value = yyyy + '-' + mm + '-' + dd;
+  }
+
+  // ====== 时钟 ======
+  function startClock() {
+    function tick() {
+      var now = new Date();
+      var h = now.getHours(), m = now.getMinutes(), s = now.getSeconds();
+      document.getElementById('localTime').textContent = formatTime(h, m, s, timeFormat === 12);
+      document.getElementById('localDate').textContent = formatDate(
+        now.getFullYear(), now.getMonth() + 1, now.getDate(), now.getDay()
+      );
+      updateWorldClock(now);
+    }
+    tick();
+    clockTimer = setInterval(tick, 1000);
+  }
+
+  function updateWorldClock(now) {
+    // now 是本地当前时间，转为 UTC 毫秒
+    var utcNow = now.getTime();
+    var items = document.querySelectorAll('.world-clock-item');
+    items.forEach(function(item) {
+      var idx = parseInt(item.dataset.tzIndex);
+      var tz = TIMEZONES[idx];
+      if (!tz) return;
+      var offset = getOffset(tz, false);
+      // 目标城市墙上时间 = UTC + offset
+      var tzTime = new Date(utcNow + offset * 60000);
+      // 使用 UTC 访问器，避免浏览器本地时区干扰
+      var h = tzTime.getUTCHours(), m = tzTime.getUTCMinutes();
+      item.querySelector('.clock-time').textContent = formatTime(h, m, 0, timeFormat === 12);
+      item.querySelector('.clock-date').textContent = pad(tzTime.getUTCMonth() + 1) + '/' + pad(tzTime.getUTCDate());
+    });
+  }
+
+  function renderWorldClock() {
+    var grid = document.getElementById('worldClockGrid');
+    var html = '';
+    TIMEZONES.forEach(function(tz, i) {
+      var dstNote = '';
+      if (tz.dstOffset !== null) {
+        dstNote = '<div class="dst-badge">&#9728;&#65039; 夏令时 ' + offsetToStr(tz.dstOffset) + '</div>';
+      }
+      html += '<div class="world-clock-item" data-tz-index="' + i + '">'
+        + '<div class="city">' + tz.emoji + ' ' + tz.city + '</div>'
+        + '<div class="offset">' + offsetToStr(tz.stdOffset) + (tz.dstOffset !== null ? ' / ' + offsetToStr(tz.dstOffset) : '') + '</div>'
+        + '<div class="clock-time">--:--</div>'
+        + '<div class="clock-date">--/--</div>'
+        + dstNote
+        + '</div>';
+    });
+    grid.innerHTML = html;
+  }
+
+  // ====== 时区转换 ======
+  window.doConvert = function doConvert() {
+    var srcIdx = parseInt(document.getElementById('srcTz').value);
+    var dstIdx = parseInt(document.getElementById('dstTz').value);
+    var srcTz = TIMEZONES[srcIdx];
+    var dstTz = TIMEZONES[dstIdx];
+    var useDST = document.getElementById('chkDST').checked;
+
+    var h = parseInt(document.getElementById('inpHour').value) || 0;
+    var m = parseInt(document.getElementById('inpMin').value) || 0;
+    var s = parseInt(document.getElementById('inpSec').value) || 0;
+    var dateVal = document.getElementById('inpDate').value;
+
+    var now = new Date();
+    var year = now.getFullYear(), month = now.getMonth() + 1, day = now.getDate();
+    if (dateVal) {
+      var parts = dateVal.split('-');
+      year = parseInt(parts[0]);
+      month = parseInt(parts[1]);
+      day = parseInt(parts[2]);
+    }
+
+    var srcOffset = getOffset(srcTz, useDST);
+    var dstOffset = getOffset(dstTz, useDST);
+
+    var result = convertTime(srcOffset, dstOffset, h, m, s, year, month, day);
+    var diffMinutes = dstOffset - srcOffset;
+
+    var dayDiffText = '';
+    if (result.dayDiff > 0) dayDiffText = ' +' + result.dayDiff + ' 天';
+    else if (result.dayDiff < 0) dayDiffText = ' ' + result.dayDiff + ' 天';
+
+    var dstNote = '';
+    if (useDST && dstTz.dstOffset !== null) {
+      dstNote = '<div class="dst-note">&#9728;&#65039; 使用夏令时偏移：' + offsetToStr(dstTz.dstOffset) + '</div>';
+    }
+    if (useDST && srcTz.dstOffset !== null) {
+      dstNote += '<div class="dst-note" style="margin-top:2px;">&#9728;&#65039; 源时区使用夏令时偏移：' + offsetToStr(srcTz.dstOffset) + '</div>';
+    }
+
+    var el = document.getElementById('convertResult');
+    el.style.display = 'block';
+    el.innerHTML = '<div class="convert-result-highlight">'
+      + '<div class="result-city">' + dstTz.city + '（' + dstTz.country + '）' + offsetToStr(dstOffset) + '</div>'
+      + '<div class="result-time">' + formatTime(result.hours, result.minutes, result.seconds, timeFormat === 12) + '</div>'
+      + '<div class="result-date">' + formatDate(result.year, result.month, result.day, result.weekday) + dayDiffText + '</div>'
+      + dstNote
+      + '</div>'
+      + '<p style="margin-top:12px;font-size:13px;color:var(--text-muted);">'
+      + srcTz.city + ' ' + pad(h) + ':' + pad(m) + ':' + pad(s)
+      + ' (' + offsetToStr(srcOffset) + ') &rarr; '
+      + dstTz.city + ' ' + formatTime(result.hours, result.minutes, result.seconds, timeFormat === 12)
+      + ' (' + offsetToStr(dstOffset) + ')'
+      + '</p>'
+      + '<p style="font-size:13px;color:var(--text-secondary);">时差：' + formatDiffMinutes(diffMinutes) + '</p>';
+  };
+
+  window.copyResult = function copyResult() {
+    var el = document.getElementById('convertResult');
+    if (!el || el.style.display === 'none') {
+      ToolBox.showToast(i18nText('toast.msg623'), 'warning');
+      return;
+    }
+    var text = el.innerText;
+    ToolBox.copyText(text, i18nText('msg618'));
+  };
+
+  window.setNowTime = function setNowTime() {
+    var now = new Date();
+    document.getElementById('inpHour').value = now.getHours();
+    document.getElementById('inpMin').value = now.getMinutes();
+    document.getElementById('inpSec').value = now.getSeconds();
+    setDefaultDate();
+    doConvert();
+  };
+
+  window.useNowTime = function useNowTime() {
+    var checked = document.getElementById('chkNow').checked;
+    if (checked) setNowTime();
+  };
+
+  window.onTzChange = function onTzChange() {
+    doConvert();
+  };
+
+  window.swapTimezones = function swapTimezones() {
+    var srcSel = document.getElementById('srcTz');
+    var dstSel = document.getElementById('dstTz');
+    var tmp = srcSel.value;
+    srcSel.value = dstSel.value;
+    dstSel.value = tmp;
+    doConvert();
+  };
+
+  // ====== 时差计算 ======
+  function formatDiffMinutes(mins) {
+    var abs = Math.abs(mins);
+    var h = Math.floor(abs / 60);
+    var m = abs % 60;
+    var sign = mins >= 0 ? '' : '-';
+    var str = '';
+    if (h > 0) str += h + ' 小时';
+    if (m > 0) str += m + ' 分钟';
+    if (!str) str = '0 分钟';
+    return sign + str;
+  }
+
+  window.calcDiff = function calcDiff() {
+    var idxA = parseInt(document.getElementById('diffTzA').value);
+    var idxB = parseInt(document.getElementById('diffTzB').value);
+    var tzA = TIMEZONES[idxA];
+    var tzB = TIMEZONES[idxB];
+    var useDST = document.getElementById('chkDiffDST').checked;
+
+    var offsetA = getOffset(tzA, useDST);
+    var offsetB = getOffset(tzB, useDST);
+    var diff = offsetB - offsetA;
+
+    var direction = '';
+    if (diff > 0) direction = tzB.city + ' 比 ' + tzA.city + ' 快';
+    else if (diff < 0) direction = tzB.city + ' 比 ' + tzA.city + ' 慢';
+    else direction = tzA.city + ' 与 ' + tzB.city + ' 时区相同';
+
+    var absDiff = Math.abs(diff);
+    var diffH = Math.floor(absDiff / 60);
+    var diffM = absDiff % 60;
+
+    // 计算当 tzA 为 12:00 时 tzB 的时间
+    var sampleTotal = 12 * 60 + diff; // 分钟
+    var sampleH = Math.floor(((sampleTotal % 1440) + 1440) % 1440 / 60);
+    var sampleM = ((sampleTotal % 1440) + 1440) % 1440 % 60;
+    var sampleTimeStr = pad(sampleH) + ':' + pad(sampleM);
+
+    var dstNote = '';
+    if (useDST && (tzA.dstOffset !== null || tzB.dstOffset !== null)) {
+      dstNote = '<div class="dst-note" style="margin-top:8px;font-size:12px;color:#D97706;">&#9728;&#65039; 已考虑夏令时偏移</div>';
+    }
+
+    var el = document.getElementById('diffResult');
+    el.style.display = 'block';
+    el.innerHTML = '<div class="diff-result">'
+      + '<div class="diff-value">' + (diff >= 0 ? '+' : '-') + diffH + 'h' + (diffM > 0 ? diffM + 'm' : '') + '</div>'
+      + '<div class="diff-desc">' + direction + '</div>'
+      + '<div class="diff-detail">'
+      + tzA.city + '（' + offsetToStr(offsetA) + '） &harr; ' + tzB.city + '（' + offsetToStr(offsetB) + '）'
+      + '</div>'
+      + dstNote
+      + '</div>'
+      + '<div class="tip-box tip-info" style="margin-top:12px;">'
+      + '<strong>举例：</strong>当 ' + tzA.city + ' 为 12:00 时，' + tzB.city + ' 为 ' + sampleTimeStr
+      + '。即 ' + tzB.city + ' 比 ' + tzA.city + (diff > 0 ? '快 ' : (diff < 0 ? '慢 ' : '同时区')) + formatDiffMinutes(Math.abs(diff)) + '。'
+      + '</div>';
+  };
+
+  window.swapDiff = function swapDiff() {
+    var selA = document.getElementById('diffTzA');
+    var selB = document.getElementById('diffTzB');
+    var tmp = selA.value;
+    selA.value = selB.value;
+    selB.value = tmp;
+    calcDiff();
+  };
+
+  // ====== 偏移对照表 ======
+  function renderOffsetTable() {
+    var headers = ['城市', '国家', '标准偏移', '夏令时偏移', '夏令时月份'];
+    var rows = TIMEZONES.map(function(tz) {
+      return [
+        tz.city,
+        tz.country,
+        offsetToStr(tz.stdOffset),
+        tz.dstOffset !== null ? offsetToStr(tz.dstOffset) : '无夏令时',
+        tz.dstMonths.length > 0 ? tz.dstMonths.join('/') + '月' : '-'
+      ];
+    });
+    document.getElementById('offsetTable').innerHTML = ToolBox.createTable(headers, rows);
+  }
+
+  // ====== Tab 切换 ======
+  window.switchTab = function switchTab(tabName) {
+    var tabs = document.querySelectorAll('.tab-btn');
+    var contents = document.querySelectorAll('.tab-content');
+    var map = { convert: 0, worldclock: 1, diff: 2 };
+    var idx = map[tabName];
+    tabs.forEach(function(t, i) { t.classList.toggle('active', i === idx); });
+    contents.forEach(function(c, i) { c.classList.toggle('active', i === idx); });
+  };
+
+  // ====== 时间格式切换 ======
+  window.setFormat = function setFormat(fmt) {
+    timeFormat = fmt;
+    document.getElementById('fmt24').classList.toggle('active', fmt === 24);
+    document.getElementById('fmt12').classList.toggle('active', fmt === 12);
+    doConvert();
+    // 更新世界时钟
+    var now = new Date();
+    updateWorldClock(now);
+  };
+
+  // ====== 启动 ======
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+})();
+</script><script>
+// tool-intro折叠交互
+document.addEventListener('DOMContentLoaded',function(){
+  var headers=document.querySelectorAll('.tool-intro-header');
+  headers.forEach(function(h){
+    h.addEventListener('click',function(){
+      this.parentElement.classList.toggle('open');
+    });
+  });
+});
+</script>
+
+</body>
+</html>

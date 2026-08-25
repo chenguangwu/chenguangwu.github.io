@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+
+<script src="/js/tool-page-runtime.js" defer></script>
+<!-- TOOLBOX-TOOL-RUNTIME -->
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="toolbox" content="cat=image,industry=image,icon=🔄,bg=#e3f2fd">
+<meta name="description" content="图片旋转工具 - 是一款图像处理领域的在线工具，支持任意角度旋转、90 度快捷旋转、水平与垂直翻转，并可自适应调整画布尺寸以容纳旋转后的完整图片。所有操作基于浏览器 Canvas API，纯前端运算，图片不离开设备">
+<meta name="keywords" content="图片旋转,图片翻转,在线图片旋转,旋转图片,图片处理,图像旋转,水平翻转,垂直翻转,90度旋转,任意角度旋转,免费工具,ToolBox">
+<meta name="robots" content="index,follow">
+<link rel="canonical" href="https://chenguangwu.github.io/tools/image/image-rotate.html">
+<meta property="og:title" content="图片旋转工具 - 图像处理领域的在线工具，支持任意角度旋转、90 - ToolBox">
+<meta property="og:description" content="图片旋转工具 - 是一款图像处理领域的在线工具，支持任意角度旋转、90 度快捷旋转、水平与垂直翻转，并可自适应调整画布尺寸以容纳旋转后的完整图片。所有操作基于浏览器 Canvas API，纯前端运算，图片不离开设备">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://chenguangwu.github.io/tools/image/image-rotate.html">
+<meta name="twitter:card" content="summary">
+
+<title>图片旋转工具 - 图像处理领域的在线工具，支持任意角度旋转、90 - ToolBox</title>
+<meta name="theme-color" content="#FF6B35">
+<link rel="icon" type="image/svg+xml" href="../../favicon.svg">
+<link rel="icon" href="../../favicon.ico" sizes="16x16 32x32 48x48">
+<link rel="apple-touch-icon" href="../../apple-touch-icon.png">
+<link rel="stylesheet" href="../../css/common.css">
+<script src="../../js/common.js"></script>
+<style>
+.rotate-drop-zone{
+  border:2px dashed var(--border);
+  border-radius:12px;
+  padding:36px 20px;
+  text-align:center;
+  color:var(--text-muted);
+  cursor:pointer;
+  transition:all 0.2s;
+  font-size:14px;
+}
+.rotate-drop-zone:hover,.rotate-drop-zone.dragover{
+  border-color:var(--primary);
+  background:rgba(255,107,53,0.05);
+  color:var(--primary);
+}
+.rotate-drop-zone .dz-icon{font-size:34px;display:block;margin-bottom:8px;}
+.rotate-preview-wrap{
+  margin:16px 0;
+  border:1px solid var(--border);
+  border-radius:12px;
+  padding:16px;
+  overflow:auto;
+  text-align:center;
+  /* 棋盘格背景用于展示透明区域 */
+  background-color:var(--result-bg);
+  background-image:
+    linear-gradient(45deg,rgba(128,128,128,0.18) 25%,transparent 25%),
+    linear-gradient(-45deg,rgba(128,128,128,0.18) 25%,transparent 25%),
+    linear-gradient(45deg,transparent 75%,rgba(128,128,128,0.18) 75%),
+    linear-gradient(-45deg,transparent 75%,rgba(128,128,128,0.18) 75%);
+  background-size:20px 20px;
+  background-position:0 0,0 10px,10px -10px,-10px 0;
+}
+.rotate-preview-wrap canvas{
+  max-width:100%;
+  max-height:420px;
+  border-radius:8px;
+  box-shadow:0 4px 16px rgba(0,0,0,0.12);
+}
+.rotate-preview-empty{
+  padding:40px 20px;
+  color:var(--text-muted);
+  font-size:14px;
+}
+.rotate-slider-row{display:flex;align-items:center;gap:12px;margin:12px 0;}
+.rotate-slider-row label{margin:0;min-width:72px;font-size:13px;flex-shrink:0;}
+.rotate-slider-row input[type="range"]{flex:1;accent-color:var(--primary);}
+.rotate-slider-row .val{font-size:13px;color:var(--primary);min-width:60px;text-align:right;font-weight:600;flex-shrink:0;}
+.rotate-btn-group{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0;}
+.rotate-btn-group .btn{flex:1 1 auto;justify-content:center;min-width:92px;}
+.bg-options{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:8px 0;}
+.bg-option{
+  display:inline-flex;align-items:center;gap:6px;
+  padding:8px 14px;border:1px solid var(--border);border-radius:10px;
+  cursor:pointer;font-size:13px;background:var(--card-bg);color:var(--text);
+  transition:all 0.2s;
+}
+.bg-option:hover{border-color:var(--primary);}
+.bg-option.active{border-color:var(--primary);background:rgba(255,107,53,0.08);color:var(--primary);}
+.bg-color-swatch{display:inline-block;width:16px;height:16px;border-radius:4px;border:1px solid var(--border);vertical-align:middle;}
+.bg-color-swatch.transparent{
+  background-image:linear-gradient(45deg,rgba(128,128,128,0.4) 25%,transparent 25%,transparent 75%,rgba(128,128,128,0.4) 75%);
+  background-size:8px 8px;
+}
+.bg-custom-row{display:none;align-items:center;gap:10px;margin-top:10px;}
+.bg-custom-row.show{display:flex;}
+.bg-custom-row input[type="color"]{
+  width:54px;height:38px;padding:4px;border:1px solid var(--border);border-radius:8px;cursor:pointer;background:var(--card-bg);
+}
+.format-select{width:auto;min-width:120px;}
+.section-label{font-size:13px;font-weight:600;color:var(--heading);margin:16px 0 8px;display:flex;align-items:center;gap:6px;}
+.info-meta{display:flex;flex-wrap:wrap;gap:8px 22px;font-size:13px;color:var(--text-secondary);}
+.info-meta span strong{color:var(--primary);}
+</style>
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "图片旋转",
+  "description": "图片旋转工具 - 免费在线图片旋转、翻转工具，支持任意角度旋转、90度快捷旋转、水平垂直翻转、自适应画布尺寸，纯前端 Canvas 处理，图片不上传。",
+  "url": "https://chenguangwu.github.io/tools/image/image-rotate.html",
+  "applicationCategory": "UtilitiesApplication",
+  "operatingSystem": "Web",
+  "offers": {"@type": "Offer","price": "0","priceCurrency": "CNY"},
+  "inLanguage": "zh-CN",
+  "isAccessibleForFree": true,
+  "browserRequirements": "Requires JavaScript. Requires HTML5 Canvas.",
+  "softwareVersion": "1.0"
+}
+</script>
+
+
+
+<meta property="og:image" content="https://chenguangwu.github.io/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="ToolBox - 6000+免费在线工具">
+<meta name="twitter:image" content="https://chenguangwu.github.io/og-image.png">
+<meta name="twitter:image:alt" content="ToolBox - 6000+免费在线工具">
+    <meta name="twitter:title" content="图片旋转工具 - 图像处理领域的在线工具，支持任意角度旋转、90 - ToolBox">
+    <meta name="twitter:description" content="图片旋转工具 - 是一款图像处理领域的在线工具，支持任意角度旋转、90 度快捷旋转、水平与垂直翻转，并可自适应调整画布尺寸以容纳旋转后的完整图片。所有操作基于浏览器 Canvas API，纯前端运算，图片不离开设备">
+<!-- TOOLBOX-WEBAPP-LD -->
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"WebApplication","name":"图片旋转工具 - 图像处理领域的在线工具，支持任意角度旋转、90","url":"https://chenguangwu.github.io/tools/image/image-rotate.html","applicationCategory":"MultimediaApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":["zh-CN", "en-US"],"description":"图片旋转工具","image":"https://chenguangwu.github.io/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}
+</script>
+<meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
+<meta http-equiv="X-Content-Type-Options" content="nosniff">
+<meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
+<!-- TOOLBOX-SECURITY -->
+
+<script src="/js/privacy.js" defer></script>
+<!-- TOOLBOX-PRIVACY-SCRIPT -->
+
+<script src="/js/metrics.js" defer></script>
+<!-- TOOLBOX-METRICS-SCRIPT -->
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"首页","item":"https://chenguangwu.github.io/"},{"@type":"ListItem","position":2,"name":"图像处理","item":"https://chenguangwu.github.io/tools/image/index.html"},{"@type":"ListItem","position":3,"name":"图片旋转工具","item":"https://chenguangwu.github.io/tools/image/image-rotate.html"}]}
+</script>
+
+<script src="../../js/i18n.js" defer></script>
+<script src="../../js/tool-i18n.js" defer></script>
+<!-- TOOLBOX-I18N-SCRIPT -->
+<!-- TOOLBOX-HREFLANG -->
+<link rel="alternate" hreflang="zh-CN" href="https://chenguangwu.github.io/tools/image/image-rotate.html">
+<link rel="alternate" hreflang="en-US" href="https://chenguangwu.github.io/tools/image/image-rotate.html">
+<link rel="alternate" hreflang="x-default" href="https://chenguangwu.github.io/tools/image/image-rotate.html">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:locale:alternate" content="en_US">
+
+<script src="/js/clarity.js" defer></script>
+<!-- TOOLBOX-CLARITY -->
+</head>
+<body>
+<h1 class="sr-only">图片旋转工具</h1>
+<div class="nav">
+  <a href="../../index.html">← ToolBox</a>
+  <span>/ 图片旋转</span>
+  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()" aria-label="切换主题">🌙</button>
+</div>
+
+
+
+
+<nav class="breadcrumb" aria-label="面包屑导航" data-breadcrumb="1">
+  <a href="../../index.html">首页</a>
+  <span class="bc-sep">‹</span>
+  <a href="index.html">🖼️ 图像处理</a>
+  <span class="bc-sep">‹</span>
+  <span class="bc-current">图片旋转工具</span>
+</nav>
+<div class="container">
+  <div class="card tool-card-accent" style="--tool-accent:#FF6B35;">
+    <h2>🔄 图片旋转工具</h2>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;">使用 Canvas 实现任意角度旋转、翻转，自适应画布尺寸，纯前端处理，图片不上传。</p>
+
+    <div class="rotate-drop-zone" id="dropZone" onclick="document.getElementById('fileInput').click()">
+      <span class="dz-icon">📁</span>
+      点击或拖拽图片到这里
+      <input type="file" id="fileInput" accept="image/*" style="display:none;" onchange="handleFile(this.files[0])">
+    </div>
+
+    <div id="controls" style="display:none;">
+      <!-- 实时预览 -->
+      <div class="section-label">🖼️ 实时预览</div>
+      <div class="rotate-preview-wrap">
+        <canvas id="previewCanvas"></canvas>
+      </div>
+
+      <!-- 旋转角度滑块 -->
+      <div class="section-label">🎚️ 旋转角度</div>
+      <div class="rotate-slider-row">
+        <label>角度</label>
+        <input type="range" id="angleSlider" min="-180" max="180" value="0" step="1" oninput="onAngleInput(this.value)">
+        <span class="val" id="angleVal">0°</span>
+      </div>
+
+      <!-- 快捷旋转 -->
+      <div class="section-label">⚡ 快捷旋转</div>
+      <div class="rotate-btn-group">
+        <button type="button" class="btn" onclick="quickRotate(-90)">↺ 左转 90°</button>
+        <button type="button" class="btn" onclick="quickRotate(90)">↻ 右转 90°</button>
+        <button type="button" class="btn" onclick="quickRotate(180)">🔄 转 180°</button>
+        <button type="button" class="btn" onclick="resetTransform()">↩ 重置</button>
+      </div>
+
+      <!-- 翻转 -->
+      <div class="section-label">🔀 翻转</div>
+      <div class="rotate-btn-group">
+        <button type="button" class="btn" id="flipHBtn" onclick="toggleFlip('h')">⇋ 水平翻转</button>
+        <button type="button" class="btn" id="flipVBtn" onclick="toggleFlip('v')">⇅ 垂直翻转</button>
+      </div>
+
+      <!-- 背景色 -->
+      <div class="section-label">🎨 旋转后空白区域填充</div>
+      <div class="bg-options" id="bgOptions">
+        <button type="button" class="bg-option active" data-bg="transparent"><span class="bg-color-swatch transparent"></span>透明</button>
+        <button type="button" class="bg-option" data-bg="#ffffff"><span class="bg-color-swatch" style="background:#fff;"></span>白色</button>
+        <button type="button" class="bg-option" data-bg="#000000"><span class="bg-color-swatch" style="background:#000;"></span>黑色</button>
+        <button type="button" class="bg-option" data-bg="custom"><span class="bg-color-swatch" id="customSwatch" style="background:#3b82f6;"></span>自定义</button>
+      </div>
+      <div class="bg-custom-row" id="customRow">
+        <input type="color" id="customColor" value="#3b82f6" oninput="setCustomBg(this.value)">
+        <span style="font-size:13px;color:var(--text-muted);">选择自定义填充颜色</span>
+      </div>
+
+      <!-- 下载 -->
+      <div class="section-label">⬇️ 下载图片</div>
+      <div class="toolbar">
+        <select id="formatSelect" class="format-select">
+          <option value="png">PNG（保留透明）</option>
+          <option value="jpeg">JPEG（体积小）</option>
+        </select>
+        <button type="button" class="btn primary" onclick="downloadImage()">⬇ 下载旋转后图片</button>
+        <button type="button" class="btn" onclick="loadAnother()">📂 重新选择图片</button>
+      </div>
+
+      <!-- 图片信息 -->
+      <div class="result-box" id="infoBox">
+        <div class="info-meta" id="infoMeta"></div>
+      </div>
+      <div class="info-box" id="tipBox">所有处理均在浏览器本地完成，图片不会上传到服务器，请放心使用。</div>
+    </div>
+  </div>
+
+  <!-- 注意事项区块 -->
+  <div class="tool-notes" style="--tool-accent:#FF6B35;">
+    <div class="tool-notes-title">⚠️ 使用说明与注意事项</div>
+    <ul>
+      <li>本工具纯前端运行，图片数据不会上传到服务器</li>
+      <li>旋转非 90° 倍数角度时，画布会自动扩展以容纳完整图片，空白区域按所选背景色填充</li>
+      <li>下载 JPEG 格式时不支持透明背景，将自动以白色填充</li>
+      <li>建议在主流浏览器（Chrome/Safari/Firefox/Edge）中使用</li>
+    </ul>
+  </div>
+</div>
+
+<!-- SEO 介绍区块 -->
+
+</div>
+
+</div>
+
+<!-- 相关工具 -->
+<div class="related-tools" data-related-tools="1">
+  <h3 class="related-tools-title">🔗 相关工具</h3>
+  <div class="related-tools-grid">
+    <a href="generator-15.html" class="related-tool-card">
+      <span class="rt-icon">🖼️</span>
+      <span class="rt-info"><span class="rt-name">圆角图片（生成带圆角的PNG） - 免费在线工具，纯前端处理 | ToolBox免费在线工具箱</span><span class="rt-desc">圆角图片（生成带圆角的PNG）</span></span>
+    </a>
+    <a href="convert-8.html" class="related-tool-card">
+      <span class="rt-icon">🖼️</span>
+      <span class="rt-info"><span class="rt-name">图片格式转换（PNG/JPG/WEBP） - 免费在线工具，纯前端处理 | ToolBox免费在线工具箱</span><span class="rt-desc">图片格式转换（PNG/JPG/WEBP）</span></span>
+    </a>
+    <a href="image-converter.html" class="related-tool-card">
+      <span class="rt-icon">🖼️</span>
+      <span class="rt-info"><span class="rt-name">图片转换 - 免费格式转换工具，图片格式转换 | ToolBox免费在线工具箱</span><span class="rt-desc">图片格式转换</span></span>
+    </a>
+    <a href="gif-split.html" class="related-tool-card">
+      <span class="rt-icon">🎞️</span>
+      <span class="rt-info"><span class="rt-name">GIF分解工具 - 在线将GIF动画分解提取每一帧，导出为PNG图片或批量打包Z | ToolBox免费在线工具箱</span><span class="rt-desc">GIF分解工具</span></span>
+    </a>
+    <a href="image-compress.html" class="related-tool-card">
+      <span class="rt-icon">🗜️</span>
+      <span class="rt-info"><span class="rt-name">图片压缩 - 工具 - 免费在线图片压缩，支持 JPEG/WebP/PNG | ToolBox免费在线工具箱</span><span class="rt-desc">图片压缩</span></span>
+    </a>
+    <a href="image-collage.html" class="related-tool-card">
+      <span class="rt-icon">🧩</span>
+      <span class="rt-info"><span class="rt-name">图片拼图合成工具 - 免费在线拼图生成器，支持竖排/横排拼接、2x2/3x3/自定 | ToolBox免费在线工具箱</span><span class="rt-desc">图片拼图合成工具</span></span>
+    </a>
+  </div>
+</div>
+<div class="tool-intro open" id="toolIntro">
+  <div class="tool-intro-header">
+    <span class="intro-icon-wrap"><span class="intro-icon">📖</span>关于「图片旋转」</span>
+    <span class="arrow">▼</span>
+  </div>
+  <div class="tool-intro-body">
+    <h4><span class="h4-icon">📝</span>工具简介</h4>
+    <p>图片旋转工具是一款图像处理领域的在线工具，支持任意角度旋转、90 度快捷旋转、水平与垂直翻转，并可自适应调整画布尺寸以容纳旋转后的完整图片。所有操作基于浏览器 Canvas API，纯前端运算，图片不离开设备。</p>
+    <h4><span class="h4-icon">✨</span>功能特点</h4>
+    <ul class="intro-features">
+      <li>任意角度旋转（-180°~180°）实时预览</li>
+      <li>左转 90°、右转 90°、180° 一键快捷旋转</li>
+      <li>水平翻转、垂直翻转</li>
+      <li>自适应画布，旋转后无裁切</li>
+      <li>透明/白色/黑色/自定义背景填充</li>
+      <li>支持 PNG、JPEG 格式下载</li>
+      <li>纯前端处理，图片不上传</li>
+    </ul>
+    <h4><span class="h4-icon">🎯</span>使用场景</h4>
+    <ul class="intro-scenes">
+      <li>纠正拍摄倾斜的照片</li>
+      <li>横竖图快速转换方向</li>
+      <li>镜像翻转图片素材</li>
+      <li>制作旋转动效的起始帧</li>
+      <li>调整证件照、头像方向</li>
+      <li>隐私敏感的图片处理需求</li>
+    </ul>
+    <h4><span class="h4-icon">💬</span>常见问题</h4>
+    <div class="intro-faq-item"><div class="intro-faq-q">这个工具是免费的吗？</div><div class="intro-faq-a">完全免费，无需注册，直接在浏览器中使用。</div></div>
+    <div class="intro-faq-item"><div class="intro-faq-q">我的图片会被上传吗？</div><div class="intro-faq-a">不会。所有旋转、翻转处理都在浏览器本地通过 Canvas 完成，图片不会发送到任何服务器。</div></div>
+    <div class="intro-faq-item"><div class="intro-faq-q">旋转后图片被裁切了吗？</div><div class="intro-faq-a">没有。工具会自动计算旋转后的外接矩形并扩展画布尺寸，确保完整保留图片内容，空白区域按所选背景色填充。</div></div>
+    <div class="intro-faq-item"><div class="intro-faq-q">支持哪些图片格式？</div><div class="intro-faq-a">支持上传 PNG、JPG、GIF、WebP 等主流格式，下载时可选择 PNG（保留透明）或 JPEG（体积更小）。</div></div>
+  </div>
+</div>
+
+<script>
+// ===== 状态 =====
+var originalImg = null;   // 原始 Image 对象
+var fileName = 'image';   // 原始文件名（不含扩展名）
+var angle = 0;            // 旋转角度 -180~180
+var flipH = false;        // 水平翻转
+var flipV = false;        // 垂直翻转
+var bgColor = 'transparent'; // 背景填充
+var customColor = '#3b82f6'; // 自定义颜色
+
+// 角度归一化到 -180~180
+function normalizeAngle(a){
+  a = a % 360;
+  if(a > 180) a -= 360;
+  if(a < -180) a += 360;
+  return a;
+}
+
+// ===== 文件处理 =====
+function handleFile(file){
+  if(!file){
+    ToolBox.showToast(i18nText('toast.msg449'), 'warning');
+    return;
+  }
+  if(!file.type || !file.type.startsWith('image/')){
+    ToolBox.showToast(i18nText('toast.msg933'), 'error');
+    return;
+  }
+  // 保存文件名（去掉扩展名）
+  fileName = (file.name || 'image').replace(/\.[^.]+$/, '');
+  var reader = new FileReader();
+  reader.onload = function(e){
+    var img = new Image();
+    img.onload = function(){
+      originalImg = img;
+      // 重置变换状态
+      angle = 0;
+      flipH = false;
+      flipV = false;
+      syncControls();
+      document.getElementById('controls').style.display = '';
+      render();
+      ToolBox.showToast(i18nText('tool.image_load_ok'), 'success');
+    };
+    img.onerror = function(){
+      ToolBox.showToast(i18nText('tool.image_load_error'), 'error');
+    };
+    img.src = e.target.result;
+  };
+  reader.onerror = function(){
+    ToolBox.showToast(i18nText('toast.msg393'), 'error');
+  };
+  reader.readAsDataURL(file);
+}
+
+// ===== 同步控件状态 =====
+function syncControls(){
+  var slider = document.getElementById('angleSlider');
+  slider.value = angle;
+  document.getElementById('angleVal').textContent = angle + '°';
+  document.getElementById('flipHBtn').classList.toggle('primary', flipH);
+  document.getElementById('flipVBtn').classList.toggle('primary', flipV);
+}
+
+// ===== 角度滑块输入 =====
+function onAngleInput(v){
+  angle = parseInt(v, 10) || 0;
+  document.getElementById('angleVal').textContent = angle + '°';
+  render();
+}
+
+// ===== 快捷旋转 =====
+function quickRotate(delta){
+  angle = normalizeAngle(angle + delta);
+  syncControls();
+  render();
+}
+
+// ===== 翻转切换 =====
+function toggleFlip(dir){
+  if(dir === 'h') flipH = !flipH;
+  if(dir === 'v') flipV = !flipV;
+  syncControls();
+  render();
+}
+
+// ===== 重置 =====
+function resetTransform(){
+  angle = 0;
+  flipH = false;
+  flipV = false;
+  syncControls();
+  render();
+  ToolBox.showToast(i18nText(), 'info');
+}
+
+// ===== 背景色选择 =====
+function setupBgOptions(){
+  var btns = document.querySelectorAll('.bg-option');
+  btns.forEach(function(btn){
+    btn.addEventListener('click', function(){
+      btns.forEach(function(b){ b.classList.remove('active'); });
+      btn.classList.add('active');
+      var bg = btn.getAttribute('data-bg');
+      if(bg === 'custom'){
+        bgColor = customColor;
+        document.getElementById('customRow').classList.add('show');
+      } else {
+        bgColor = bg;
+        document.getElementById('customRow').classList.remove('show');
+      }
+      render();
+    });
+  });
+}
+
+function setCustomBg(val){
+  customColor = val;
+  document.getElementById('customSwatch').style.background = val;
+  // 若当前激活的是自定义，则更新背景
+  var active = document.querySelector('.bg-option.active');
+  if(active && active.getAttribute('data-bg') === 'custom'){
+    bgColor = val;
+    render();
+  }
+}
+
+// ===== 核心渲染 =====
+function render(){
+  if(!originalImg) return;
+  var w = originalImg.naturalWidth;
+  var h = originalImg.naturalHeight;
+  if(w < 1 || h < 1) return;
+
+  var rad = angle * Math.PI / 180;
+  var cos = Math.abs(Math.cos(rad));
+  var sin = Math.abs(Math.sin(rad));
+  // 自适应画布：旋转后外接矩形
+  var newW = Math.max(1, Math.ceil(w * cos + h * sin));
+  var newH = Math.max(1, Math.ceil(w * sin + h * cos));
+
+  var canvas = document.getElementById('previewCanvas');
+  canvas.width = newW;
+  canvas.height = newH;
+  var ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, newW, newH);
+
+  // 填充背景（透明则跳过）
+  if(bgColor && bgColor !== 'transparent'){
+    ctx.fillStyle = bgColor;
+    ctx.fillRect(0, 0, newW, newH);
+  }
+
+  // 移动到画布中心，旋转，翻转，绘制
+  ctx.translate(newW / 2, newH / 2);
+  ctx.rotate(rad);
+  ctx.scale(flipH ? -1 : 1, flipV ? -1 : 1);
+  ctx.drawImage(originalImg, -w / 2, -h / 2, w, h);
+
+  // 更新信息
+  updateInfo(w, h, newW, newH);
+}
+
+// ===== 图片信息 =====
+function updateInfo(origW, origH, newW, newH){
+  var sizeKB = Math.round((originalImg.src.length * 0.75) / 1024);
+  var html =
+    '<span>原图尺寸：<strong>' + origW + ' × ' + origH + '</strong></span>' +
+    '<span>输出尺寸：<strong>' + newW + ' × ' + newH + '</strong></span>' +
+    '<span>旋转角度：<strong>' + angle + '°</strong></span>' +
+    '<span>水平翻转：<strong>' + (flipH ? '是' : '否') + '</strong></span>' +
+    '<span>垂直翻转：<strong>' + (flipV ? '是' : '否') + '</strong></span>';
+  document.getElementById('infoMeta').innerHTML = html;
+}
+
+// ===== 下载 =====
+function downloadImage(){
+  if(!originalImg){
+    ToolBox.showToast(i18nText('tool.file_upload_hint'), 'warning');
+    return;
+  }
+  var canvas = document.getElementById('previewCanvas');
+  var format = document.getElementById('formatSelect').value;
+  var mime = format === 'jpeg' ? 'image/jpeg' : 'image/png';
+  var ext = format === 'jpeg' ? 'jpg' : 'png';
+
+  // JPEG 不支持透明，需填充白色背景
+  if(format === 'jpeg' && bgColor === 'transparent'){
+    var tmp = document.createElement('canvas');
+    tmp.width = canvas.width;
+    tmp.height = canvas.height;
+    var tctx = tmp.getContext('2d');
+    tctx.fillStyle = '#ffffff';
+    tctx.fillRect(0, 0, tmp.width, tmp.height);
+    tctx.drawImage(canvas, 0, 0);
+    canvas = tmp;
+    ToolBox.showToast(i18nText('toast.msg010'), 'info');
+  }
+
+  canvas.toBlob(function(blob){
+    if(!blob){
+      ToolBox.showToast(i18nText('toast.msg508'), 'error');
+      return;
+    }
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = fileName + '-rotated-' + angle + 'deg.' + ext;
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(function(){ URL.revokeObjectURL(url); a.remove(); }, 0);
+    ToolBox.showToast(i18nText('toast.msg041'), 'success');
+  }, mime, 0.92);
+}
+
+// ===== 重新选择图片 =====
+function loadAnother(){
+  document.getElementById('fileInput').value = '';
+  document.getElementById('fileInput').click();
+}
+
+// ===== 拖拽上传 =====
+var dz = document.getElementById('dropZone');
+dz.addEventListener('dragover', function(e){ e.preventDefault(); dz.classList.add('dragover'); });
+dz.addEventListener('dragleave', function(){ dz.classList.remove('dragover'); });
+dz.addEventListener('drop', function(e){
+  e.preventDefault();
+  dz.classList.remove('dragover');
+  if(e.dataTransfer.files.length){
+    handleFile(e.dataTransfer.files[0]);
+  }
+});
+
+// ===== 初始化 =====
+setupBgOptions();
+ToolBox.initToolTheme();
+
+// tool-intro 折叠交互
+document.addEventListener('DOMContentLoaded', function(){
+  var headers = document.querySelectorAll('.tool-intro-header');
+  headers.forEach(function(h){
+    h.addEventListener('click', function(){
+      this.parentElement.classList.toggle('open');
+    });
+  });
+});
+</script>
+</body>
+</html>

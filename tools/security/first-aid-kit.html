@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+
+<script src="/js/tool-page-runtime.js" defer></script>
+<!-- TOOLBOX-TOOL-RUNTIME -->
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="toolbox" content="cat=generate,industry=security,icon=🩹,bg=#e8f5e9">
+<title>急救包清单生成器 - 按使用场景生成专业急救物品清单，支持勾选确认和导出打印 - ToolBox</title>
+<link rel="canonical" href="https://chenguangwu.github.io/tools/security/first-aid-kit.html">
+<meta property="og:title" content="急救包清单生成器 - 按使用场景生成专业急救物品清单，支持勾选确认和导出打印 - ToolBox">
+<meta property="og:description" content="急救包清单生成器 - 按使用场景生成专业急救物品清单，支持勾选确认和导出打印。有备无患，关键时刻能救命。免费在线工具，纯前端本地处理，数据不上传。">
+<meta property="og:url" content="https://chenguangwu.github.io/tools/security/first-aid-kit.html">
+<meta name="twitter:card" content="summary">
+<meta name="description" content="急救包清单生成器 - 按使用场景生成专业急救物品清单，支持勾选确认和导出打印。有备无患，关键时刻能救命。免费在线工具，纯前端本地处理，数据不上传。">
+<link rel="stylesheet" href="../../css/common.css">
+<script src="../../js/common.js"></script>
+<style>
+.scene-card {
+  background: var(--card-bg);
+  border: 2px solid var(--border);
+  border-radius: 14px;
+  padding: 16px;
+  cursor: pointer;
+  transition: all 0.25s;
+  text-align: center;
+}
+.scene-card:hover { border-color: var(--primary); transform: translateY(-2px); box-shadow: var(--shadow-sm); }
+.scene-card.selected { border-color: var(--primary); background: var(--bg-hover); box-shadow: 0 0 0 3px rgba(255,107,53,0.1); }
+.scene-card .sc-icon { font-size: 32px; }
+.scene-card .sc-name { font-size: 14px; font-weight: 600; color: var(--heading); margin-top: 6px; }
+.scene-card .sc-count { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+.scene-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 10px; margin-bottom: 16px; }
+.item-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 14px; background: var(--result-bg);
+  border: 1px solid var(--border); border-radius: 10px;
+  margin-bottom: 6px; transition: all 0.2s;
+}
+.item-row:hover { border-color: var(--primary); }
+.item-row .ir-check {
+  width: 20px; height: 20px; border-radius: 6px;
+  border: 2px solid var(--border); flex-shrink: 0;
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+  transition: all 0.2s;
+}
+.item-row.checked .ir-check { background: var(--primary); border-color: var(--primary); color: #fff; }
+.item-row.checked .ir-check::after { content: '✓'; font-size: 12px; font-weight: 700; }
+.item-row.checked .ir-name { text-decoration: line-through; opacity: 0.6; }
+.item-row .ir-body { flex: 1; min-width: 0; }
+.item-row .ir-name { font-size: 13px; font-weight: 500; color: var(--text); }
+.item-row .ir-desc { font-size: 11px; color: var(--text-muted); margin-top: 1px; }
+.item-row .ir-qty {
+  font-size: 12px; color: var(--primary); font-weight: 600;
+  background: var(--bg-hover); padding: 2px 8px; border-radius: 6px;
+  flex-shrink: 0;
+}
+.cat-tag {
+  display: inline-block; padding: 2px 8px; border-radius: 6px;
+  font-size: 10px; font-weight: 600; margin-right: 4px;
+}
+.cat-bandage { background: rgba(239,68,68,0.1); color: #DC2626; }
+.cat-medical { background: rgba(16,185,129,0.1); color: #059669; }
+.cat-tool { background: rgba(59,130,246,0.1); color: #2563EB; }
+.cat-survival { background: rgba(245,158,11,0.1); color: #D97706; }
+.cat-personal { background: rgba(124,58,237,0.1); color: #7C3AED; }
+[data-theme="dark"] .cat-bandage { color: #F87171; }
+[data-theme="dark"] .cat-medical { color: #34D399; }
+[data-theme="dark"] .cat-tool { color: #60A5FA; }
+[data-theme="dark"] .cat-survival { color: #FBBF24; }
+[data-theme="dark"] .cat-personal { color: #9B6CF5; }
+.progress-summary {
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px 16px; background: var(--result-bg);
+  border-radius: 12px; margin-bottom: 16px;
+}
+.progress-summary .ps-text { flex: 1; font-size: 13px; color: var(--text-secondary); }
+.progress-summary .ps-text strong { color: var(--primary); }
+</style>
+
+
+
+<meta property="og:image" content="https://chenguangwu.github.io/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="ToolBox - 6000+免费在线工具">
+<meta name="twitter:image" content="https://chenguangwu.github.io/og-image.png">
+<meta name="twitter:image:alt" content="ToolBox - 6000+免费在线工具">
+    <meta property="og:type" content="website">
+    <meta name="twitter:title" content="急救包清单生成器 - 按使用场景生成专业急救物品清单，支持勾选确认和导出打印 - ToolBox">
+    <meta name="twitter:description" content="急救包清单生成器 - 按使用场景生成专业急救物品清单，支持勾选确认和导出打印。有备无患，关键时刻能救命。免费在线工具，纯前端本地处理，数据不上传。">
+<!-- TOOLBOX-WEBAPP-LD -->
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"WebApplication","name":"急救包清单生成器 - 按使用场景生成专业急救物品清单，支持勾选确认和导出打印","url":"https://chenguangwu.github.io/tools/security/first-aid-kit.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":["zh-CN", "en-US"],"description":"急救包清单生成器","image":"https://chenguangwu.github.io/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}
+</script>
+<meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
+<meta http-equiv="X-Content-Type-Options" content="nosniff">
+<meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
+<!-- TOOLBOX-SECURITY -->
+
+<script src="/js/privacy.js" defer></script>
+<!-- TOOLBOX-PRIVACY-SCRIPT -->
+
+<script src="/js/metrics.js" defer></script>
+<!-- TOOLBOX-METRICS-SCRIPT -->
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"首页","item":"https://chenguangwu.github.io/"},{"@type":"ListItem","position":2,"name":"网络安全","item":"https://chenguangwu.github.io/tools/security/index.html"},{"@type":"ListItem","position":3,"name":"急救包清单生成器","item":"https://chenguangwu.github.io/tools/security/first-aid-kit.html"}]}
+</script>
+
+<script src="../../js/i18n.js" defer></script>
+<script src="../../js/tool-i18n.js" defer></script>
+<!-- TOOLBOX-I18N-SCRIPT -->
+<!-- TOOLBOX-HREFLANG -->
+<link rel="alternate" hreflang="zh-CN" href="https://chenguangwu.github.io/tools/security/first-aid-kit.html">
+<link rel="alternate" hreflang="en-US" href="https://chenguangwu.github.io/tools/security/first-aid-kit.html">
+<link rel="alternate" hreflang="x-default" href="https://chenguangwu.github.io/tools/security/first-aid-kit.html">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:locale:alternate" content="en_US">
+
+<script src="/js/clarity.js" defer></script>
+<!-- TOOLBOX-CLARITY -->
+</head>
+<body>
+<h1 class="sr-only">急救包清单生成器</h1>
+
+
+<div class="nav">
+  <a href="../../index.html">&larr; ToolBox</a>
+  <span>/ 急救包清单生成器</span>
+  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()">🌙</button>
+</div>
+
+
+
+
+
+<nav class="breadcrumb" aria-label="面包屑导航" data-breadcrumb="1">
+  <a href="../../index.html">首页</a>
+  <span class="bc-sep">‹</span>
+  <a href="index.html">🔧 网络安全</a>
+  <span class="bc-sep">‹</span>
+  <span class="bc-current">急救包清单生成器</span>
+</nav>
+<div class="container">
+  <div class="card tool-card-accent" style="--tool-accent:#FF6B35;">
+    <h2>🩹 急救包清单生成器</h2>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;">按使用场景生成专业急救物品清单，支持勾选确认和导出打印。有备无患，关键时刻能救命。</p>
+
+    <h3>选择场景</h3>
+    <div class="scene-grid" id="sceneGrid"></div>
+
+    <div class="toolbar">
+      <button type="button" class="btn primary" onclick="generateList()">生成清单</button>
+      <button type="button" class="btn" onclick="checkAll()">全部勾选</button>
+      <button type="button" class="btn" onclick="uncheckAll()">取消勾选</button>
+      <button type="button" class="btn" onclick="exportList()">导出清单</button>
+    </div>
+  </div>
+
+  <div id="listCard" class="card" style="display:none;">
+    <div class="progress-summary">
+      <div class="ps-text">已准备 <strong id="checkedCount">0</strong> / <strong id="totalCount">0</strong> 项</div>
+      <div style="width:120px;">
+        <div class="progress-bar"><div class="progress-fill" id="prepProgress" style="width:0%"></div></div>
+      </div>
+    </div>
+    <div id="itemList"></div>
+    <div class="tip-box tip-info" style="margin-top:16px;">提示：定期检查急救包内药品有效期，每3-6个月更换过期物品。将急救包放在全家都知道且容易拿到的地方。</div>
+  </div>
+
+  <div class="card">
+    <h3>急救包使用建议</h3>
+    <div class="ref-card">
+      <h4>📦 存放位置</h4>
+      <ul>
+        <li>放在全家都知道且儿童不易拿到的地方</li>
+        <li>避免高温潮湿环境（如浴室），药品需干燥阴凉存放</li>
+        <li>车载急救包放在后备箱固定位置，避免行驶中散落</li>
+        <li>户外急救包随身携带或放在背包外侧易取位置</li>
+      </ul>
+    </div>
+    <div class="ref-card">
+      <h4>🔄 定期维护</h4>
+      <ul>
+        <li>每3个月检查一次药品有效期</li>
+        <li>每6个月更换即将过期的药品和耗材</li>
+        <li>使用后及时补充消耗的物品</li>
+        <li>定期学习急救知识，确保家人都会使用</li>
+      </ul>
+    </div>
+  </div>
+
+  
+</div>
+
+</div>
+
+<!-- 相关工具 -->
+<div class="related-tools" data-related-tools="1">
+  <h3 class="related-tools-title">🔗 相关工具</h3>
+  <div class="related-tools-grid">
+    <a href="../it/properties-parser.html" class="related-tool-card">
+      <span class="rt-icon">🔧</span>
+      <span class="rt-info"><span class="rt-name">.properties 解析器 - 免费开发工具，properties 解析器 | ToolBox免费在线工具箱</span><span class="rt-desc">.properties 解析器</span></span>
+    </a>
+    <a href="../it/ast-viewer.html" class="related-tool-card">
+      <span class="rt-icon">🌳</span>
+      <span class="rt-info"><span class="rt-name">AST抽象语法树查看器 - 在线解析JavaScript代码生成AST树形结构，支持节点 | ToolBox免费在线工具箱</span><span class="rt-desc">AST 抽象语法树查看器</span></span>
+    </a>
+    <a href="../it/css-minifier.html" class="related-tool-card">
+      <span class="rt-icon">🎨</span>
+      <span class="rt-info"><span class="rt-name">CSS 压缩/美化工具 - 免费开发工具，CSS 压缩/格式化/美化 | ToolBox免费在线工具箱</span><span class="rt-desc">CSS 压缩/格式化/美化</span></span>
+    </a>
+    <a href="../it/css-formatter.html" class="related-tool-card">
+      <span class="rt-icon">🔧</span>
+      <span class="rt-info"><span class="rt-name">CSS 格式化 - 免费开发工具，在线CSS 格式化 | ToolBox免费在线工具箱</span><span class="rt-desc">CSS 格式化</span></span>
+    </a>
+    <a href="../it/cron.html" class="related-tool-card">
+      <span class="rt-icon">⏰</span>
+      <span class="rt-info"><span class="rt-name">Cron 表达式生成器 - 免费开发工具，在线Cron 表达式生成器 | ToolBox免费在线工具箱</span><span class="rt-desc">⏰ Cron 表达式生成器</span></span>
+    </a>
+    <a href="../it/graphql-formatter.html" class="related-tool-card">
+      <span class="rt-icon">🔧</span>
+      <span class="rt-info"><span class="rt-name">GraphQL 格式化 - 免费开发工具，在线GraphQL 格式化 | ToolBox免费在线工具箱</span><span class="rt-desc">◈ GraphQL 格式化</span></span>
+    </a>
+  </div>
+</div>
+<div class="tool-intro" id="toolIntro">
+    <div class="tool-intro-header" onclick="this.parentElement.classList.toggle('open')">
+      <span class="intro-icon-wrap"><span class="intro-icon">🩹</span> 工具介绍与使用说明</span>
+      <span class="arrow">▼</span>
+    </div>
+    <div class="tool-intro-body">
+      <p>急救包清单生成器根据不同使用场景，生成专业的急救物品清单，帮助你做好应急准备。</p>
+      <h4><span class="h4-icon">✨</span> 功能特点</h4>
+      <ul class="intro-features">
+        <li>4种场景清单</li>
+        <li>分类标注物品用途</li>
+        <li>勾选确认准备进度</li>
+        <li>支持导出打印</li>
+        <li>含使用维护建议</li>
+      </ul>
+      <h4><span class="h4-icon">📋</span> 使用场景</h4>
+      <ul class="intro-scenes">
+        <li>家庭应急准备</li>
+        <li>车载安全配置</li>
+        <li>户外徒步出行</li>
+        <li>办公场所备用</li>
+      </ul>
+    </div>
+  </div>
+
+<!-- 注意事项区块 -->
+<div class="tool-notes" style="--tool-accent:#FF6B35;">
+  <div class="tool-notes-title">⚠️ 使用说明与注意事项</div>
+  <ul>
+      <li>本工具纯前端运行，数据不会上传到服务器</li>
+      <li>建议在主流浏览器（Chrome/Safari/Firefox/Edge）中使用</li>
+      <li>计算结果仅供参考，请以实际应用场景为准</li>
+  </ul>
+</div>
+<!-- /注意事项区块 -->
+</div>
+
+<script>
+(function(){
+  'use strict';
+
+  var STORAGE_KEY = 'toolbox_firstaid_checklist';
+
+  var SCENES = [
+    { id:'home', name:'家庭急救包', icon:'🏠', desc:'日常居家应急' },
+    { id:'car', name:'车载急救包', icon:'🚗', desc:'行车安全备用' },
+    { id:'outdoor', name:'户外急救包', icon:'🏕️', desc:'徒步露营探险' },
+    { id:'office', name:'办公急救包', icon:'🏢', desc:'工作场所备用' }
+  ];
+
+  var KITS = {
+    home: [
+      { name:'创可贴（多种规格）', qty:'20片', cat:'bandage', desc:'处理小伤口、擦伤' },
+      { name:'医用纱布', qty:'2卷', cat:'bandage', desc:'包扎伤口、压迫止血' },
+      { name:'绷带卷', qty:'2卷', cat:'bandage', desc:'固定纱布、支撑关节' },
+      { name:'医用胶带', qty:'1卷', cat:'bandage', desc:'固定纱布和绷带' },
+      { name:'碘伏棉签', qty:'30支', cat:'medical', desc:'伤口消毒，独立包装' },
+      { name:'酒精棉片', qty:'20片', cat:'medical', desc:'器具消毒、清洁' },
+      { name:'退烧药（布洛芬/对乙酰氨基酚）', qty:'1盒', cat:'medical', desc:'退烧止痛' },
+      { name:'感冒药', qty:'1盒', cat:'medical', desc:'缓解感冒症状' },
+      { name:'止泻药', qty:'1盒', cat:'medical', desc:'缓解腹泻' },
+      { name:'抗过敏药', qty:'1盒', cat:'medical', desc:'缓解过敏反应' },
+      { name:'烫伤膏', qty:'1支', cat:'medical', desc:'轻度烫伤处理' },
+      { name:'体温计', qty:'1支', cat:'tool', desc:'测量体温，电子式为佳' },
+      { name:'血压计', qty:'1台', cat:'tool', desc:'家有老人建议配备' },
+      { name:'一次性手套', qty:'5副', cat:'tool', desc:'处理伤口时防护' },
+      { name:'剪刀', qty:'1把', cat:'tool', desc:'剪纱布胶带，圆头安全' },
+      { name:'镊子', qty:'1把', cat:'tool', desc:'拔刺、取异物' },
+      { name:'手电筒', qty:'1个', cat:'survival', desc:'停电应急，备电池' },
+      { name:'应急哨', qty:'1个', cat:'survival', desc:'紧急呼救' },
+      { name:'保温毯', qty:'2张', cat:'survival', desc:'防失温、应急保温' },
+      { name:'家庭常用药清单', qty:'1份', cat:'personal', desc:'记录家人用药和过敏史' }
+    ],
+    car: [
+      { name:'创可贴', qty:'10片', cat:'bandage', desc:'小伤口处理' },
+      { name:'医用纱布', qty:'1卷', cat:'bandage', desc:'包扎止血' },
+      { name:'绷带卷', qty:'1卷', cat:'bandage', desc:'固定包扎' },
+      { name:'碘伏棉签', qty:'10支', cat:'medical', desc:'伤口消毒' },
+      { name:'止血带', qty:'1条', cat:'bandage', desc:'紧急止血' },
+      { name:'退烧止痛药', qty:'1盒', cat:'medical', desc:'应急用药' },
+      { name:'晕车药', qty:'1盒', cat:'medical', desc:'防晕车不适' },
+      { name:'三角巾', qty:'2条', cat:'bandage', desc:'包扎、悬吊手臂' },
+      { name:'一次性手套', qty:'3副', cat:'tool', desc:'伤口处理防护' },
+      { name:'剪刀', qty:'1把', cat:'tool', desc:'剪纱布、安全带' },
+      { name:'应急哨', qty:'1个', cat:'survival', desc:'事故后呼救' },
+      { name:'手电筒', qty:'1个', cat:'survival', desc:'夜间应急照明' },
+      { name:'反光背心', qty:'2件', cat:'survival', desc:'事故现场安全警示' },
+      { name:'灭火器（车用）', qty:'1个', cat:'survival', desc:'车辆初期火灾' },
+      { name:'安全锤', qty:'1个', cat:'survival', desc:'破窗逃生' },
+      { name:'保温毯', qty:'2张', cat:'survival', desc:'防失温保温' }
+    ],
+    outdoor: [
+      { name:'创可贴（防水）', qty:'15片', cat:'bandage', desc:'防水保护伤口' },
+      { name:'医用纱布', qty:'2卷', cat:'bandage', desc:'包扎伤口' },
+      { name:'绷带卷', qty:'2卷', cat:'bandage', desc:'固定包扎、扭伤支撑' },
+      { name:'三角巾', qty:'2条', cat:'bandage', desc:'悬吊、包扎' },
+      { name:'止血带', qty:'1条', cat:'bandage', desc:'紧急止血' },
+      { name:'碘伏棉签', qty:'20支', cat:'medical', desc:'伤口消毒' },
+      { name:'酒精棉片', qty:'10片', cat:'medical', desc:'器具消毒' },
+      { name:'退烧止痛药', qty:'1盒', cat:'medical', desc:'退烧止痛' },
+      { name:'抗过敏药', qty:'1盒', cat:'medical', desc:'野外过敏应急' },
+      { name:'止泻药', qty:'1盒', cat:'medical', desc:'水土不服腹泻' },
+      { name:'蛇药片', qty:'1盒', cat:'medical', desc:'毒蛇咬伤应急' },
+      { name:'防中暑药（藿香正气水）', qty:'1盒', cat:'medical', desc:'防中暑' },
+      { name:'烫伤膏', qty:'1支', cat:'medical', desc:'烫伤处理' },
+      { name:'一次性手套', qty:'5副', cat:'tool', desc:'处理伤口防护' },
+      { name:'剪刀', qty:'1把', cat:'tool', desc:'多功能剪刀' },
+      { name:'镊子', qty:'1把', cat:'tool', desc:'拔刺取虫' },
+      { name:'手电筒（头灯）', qty:'1个', cat:'survival', desc:'夜间照明，备电池' },
+      { name:'应急哨', qty:'1个', cat:'survival', desc:'迷路呼救' },
+      { name:'保温毯', qty:'2张', cat:'survival', desc:'防失温，可做信号' },
+      { name:'净水片', qty:'1瓶', cat:'survival', desc:'野外饮水消毒' },
+      { name:'急救指南卡片', qty:'1份', cat:'personal', desc:'CPR步骤、止血要点' }
+    ],
+    office: [
+      { name:'创可贴', qty:'15片', cat:'bandage', desc:'日常小伤口' },
+      { name:'医用纱布', qty:'1卷', cat:'bandage', desc:'包扎伤口' },
+      { name:'绷带卷', qty:'1卷', cat:'bandage', desc:'固定包扎' },
+      { name:'碘伏棉签', qty:'15支', cat:'medical', desc:'伤口消毒' },
+      { name:'退烧止痛药', qty:'1盒', cat:'medical', desc:'头痛发热应急' },
+      { name:'抗过敏药', qty:'1盒', cat:'medical', desc:'过敏应急' },
+      { name:'烫伤膏', qty:'1支', cat:'medical', desc:'热水烫伤处理' },
+      { name:'眼药水', qty:'1瓶', cat:'medical', desc:'眼睛不适缓解' },
+      { name:'一次性手套', qty:'5副', cat:'tool', desc:'处理伤口防护' },
+      { name:'剪刀', qty:'1把', cat:'tool', desc:'圆头安全剪刀' },
+      { name:'镊子', qty:'1把', cat:'tool', desc:'取异物' },
+      { name:'手电筒', qty:'1个', cat:'survival', desc:'停电应急' },
+      { name:'应急哨', qty:'1个', cat:'survival', desc:'紧急呼救' },
+      { name:'AED（自动体外除颤器）', qty:'按需', cat:'tool', desc:'心脏骤停急救，建议楼层配备' }
+    ]
+  };
+
+  var CAT_NAMES = { bandage:'包扎', medical:'药品', tool:'器具', survival:'应急', personal:'个人' };
+  var selectedScene = 'home';
+
+  function renderScenes(){
+    var html = '';
+    SCENES.forEach(function(s){
+      var count = (KITS[s.id] || []).length;
+      html += '<div class="scene-card' + (s.id===selectedScene?' selected':'') + '" onclick="selectScene(\''+s.id+'\')">'
+        + '<div class="sc-icon">'+s.icon+'</div>'
+        + '<div class="sc-name">'+ToolBox.escHtml(s.name)+'</div>'
+        + '<div class="sc-count">'+count+' 项物品</div>'
+        + '</div>';
+    });
+    document.getElementById('sceneGrid').innerHTML = html;
+  }
+
+  window.selectScene = function(id){
+    selectedScene = id;
+    renderScenes();
+  };
+
+  window.generateList = function(){
+    var items = KITS[selectedScene] || [];
+    var saved = getSaved();
+    var html = '';
+    items.forEach(function(item, idx){
+      var key = selectedScene + '_' + idx;
+      var isChecked = saved[key] === true;
+      html += '<div class="item-row' + (isChecked?' checked':'') + '" onclick="toggleItem(\''+key+'\','+idx+')">'
+        + '<div class="ir-check"></div>'
+        + '<div class="ir-body">'
+        + '<div class="ir-name"><span class="cat-tag cat-'+item.cat+'">'+ToolBox.escHtml(CAT_NAMES[item.cat])+'</span>'+ToolBox.escHtml(item.name)+'</div>'
+        + '<div class="ir-desc">'+ToolBox.escHtml(item.desc)+'</div>'
+        + '</div>'
+        + '<div class="ir-qty">'+ToolBox.escHtml(item.qty)+'</div>'
+        + '</div>';
+    });
+    document.getElementById('itemList').innerHTML = html;
+    document.getElementById('listCard').style.display = 'block';
+    updateProgress();
+    ToolBox.showToast(i18nText(), 'success');
+  };
+
+  window.toggleItem = function(key, idx){
+    var row = event.currentTarget;
+    var saved = getSaved();
+    saved[key] = !saved[key];
+    saveSaved(saved);
+    row.classList.toggle('checked');
+    updateProgress();
+  };
+
+  function updateProgress(){
+    var items = KITS[selectedScene] || [];
+    var saved = getSaved();
+    var checked = 0;
+    items.forEach(function(item, idx){
+      if(saved[selectedScene + '_' + idx]) checked++;
+    });
+    var total = items.length;
+    document.getElementById('checkedCount').textContent = checked;
+    document.getElementById('totalCount').textContent = total;
+    var pct = total > 0 ? Math.round((checked/total)*100) : 0;
+    document.getElementById('prepProgress').style.width = pct + '%';
+  }
+
+  window.checkAll = function(){
+    var items = KITS[selectedScene] || [];
+    var saved = getSaved();
+    items.forEach(function(item, idx){
+      saved[selectedScene + '_' + idx] = true;
+    });
+    saveSaved(saved);
+    var rows = document.querySelectorAll('#itemList .item-row');
+    rows.forEach(function(r){ r.classList.add('checked'); });
+    updateProgress();
+    ToolBox.showToast(i18nText(), 'success');
+  };
+
+  window.uncheckAll = function(){
+    var items = KITS[selectedScene] || [];
+    var saved = getSaved();
+    items.forEach(function(item, idx){
+      saved[selectedScene + '_' + idx] = false;
+    });
+    saveSaved(saved);
+    var rows = document.querySelectorAll('#itemList .item-row');
+    rows.forEach(function(r){ r.classList.remove('checked'); });
+    updateProgress();
+    ToolBox.showToast(i18nText(), 'info');
+  };
+
+  window.exportList = function(){
+    var items = KITS[selectedScene] || [];
+    var saved = getSaved();
+    var sceneName = '';
+    SCENES.forEach(function(s){ if(s.id===selectedScene) sceneName = s.name; });
+    var lines = [];
+    lines.push('=== ' + sceneName + ' 清单 ===');
+    lines.push('生成时间：' + new Date().toLocaleString('zh-CN'));
+    lines.push('物品总数：' + items.length + ' 项');
+    lines.push('========================');
+    lines.push('');
+    items.forEach(function(item, idx){
+      var checked = saved[selectedScene + '_' + idx] ? '[x]' : '[ ]';
+      lines.push(checked + ' ' + item.name + '  ×' + item.qty);
+      lines.push('    分类：' + (CAT_NAMES[item.cat]||'') + ' | ' + item.desc);
+    });
+    lines.push('');
+    lines.push('========================');
+    lines.push('请定期检查药品有效期，每3-6个月更换过期物品');
+    ToolBox.downloadText(sceneName + '清单.txt', lines.join('\n'));
+  };
+
+  function getSaved(){
+    try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}'); }
+    catch(e){ return {}; }
+  }
+  function saveSaved(data){
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); }
+    catch(e){}
+  }
+
+  renderScenes();
+  generateList();
+})();
+</script><script>
+// tool-intro折叠交互
+document.addEventListener('DOMContentLoaded',function(){
+  var headers=document.querySelectorAll('.tool-intro-header');
+  headers.forEach(function(h){
+    h.addEventListener('click',function(){
+      this.parentElement.classList.toggle('open');
+    });
+  });
+});
+</script>
+
+</body>
+</html>

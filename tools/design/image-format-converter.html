@@ -1,0 +1,1159 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+
+<script src="/js/tool-page-runtime.js" defer></script>
+<!-- TOOLBOX-TOOL-RUNTIME -->
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="toolbox" content="cat=image,industry=design,icon=🔄,bg=#e8eaf6">
+<title>图片格式转换器 - 支持 PNG / JPEG / WEBP / BMP - ToolBox</title>
+<link rel="canonical" href="https://chenguangwu.github.io/tools/design/image-format-converter.html">
+<meta property="og:title" content="图片格式转换器 - 支持 PNG / JPEG / WEBP / BMP - ToolBox">
+<meta property="og:description" content="图片格式转换器 - 支持 PNG / JPEG / WEBP / BMP 格式互转，可调整质量和尺寸，纯浏览器本地处理。免费在线工具，纯前端本地处理，数据不上传。">
+<meta property="og:url" content="https://chenguangwu.github.io/tools/design/image-format-converter.html">
+<meta name="twitter:card" content="summary">
+<meta name="description" content="图片格式转换器 - 支持 PNG / JPEG / WEBP / BMP 格式互转，可调整质量和尺寸，纯浏览器本地处理。免费在线工具，纯前端本地处理，数据不上传。">
+<link rel="stylesheet" href="../../css/common.css">
+<script src="../../js/common.js"></script>
+<style>
+.upload-zone {
+  border: 2px dashed var(--border);
+  border-radius: 16px;
+  padding: 40px 20px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.25s;
+  background: var(--result-bg);
+  margin-bottom: 16px;
+  position: relative;
+}
+.upload-zone:hover,
+.upload-zone.drag-over {
+  border-color: var(--primary);
+  background: var(--bg-hover);
+}
+.upload-zone .upload-icon {
+  font-size: 48px;
+  margin-bottom: 12px;
+  display: block;
+}
+.upload-zone .upload-text {
+  font-size: 15px;
+  color: var(--text-secondary);
+  margin-bottom: 4px;
+}
+.upload-zone .upload-hint {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+.upload-zone input[type="file"] {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.format-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 8px;
+  margin-bottom: 16px;
+}
+.format-option {
+  padding: 12px 10px;
+  border: 2px solid var(--border);
+  border-radius: 12px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  background: var(--card-bg);
+}
+.format-option:hover {
+  border-color: var(--primary);
+  transform: translateY(-1px);
+}
+.format-option.active {
+  border-color: var(--primary);
+  background: linear-gradient(135deg, rgba(255,107,53,0.08), rgba(124,58,237,0.08));
+  box-shadow: 0 2px 8px rgba(255,107,53,0.15);
+}
+.format-option .format-icon {
+  font-size: 24px;
+  display: block;
+  margin-bottom: 4px;
+}
+.format-option .format-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+.format-option .format-desc {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+.quality-section {
+  margin-bottom: 16px;
+}
+.quality-slider-wrap {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.quality-slider-wrap input[type="range"] {
+  flex: 1;
+  height: 6px;
+  -webkit-appearance: none;
+  appearance: none;
+  background: var(--border);
+  border-radius: 3px;
+  outline: none;
+  border: none;
+  padding: 0;
+}
+.quality-slider-wrap input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--primary);
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(255,107,53,0.3);
+  transition: transform 0.15s;
+}
+.quality-slider-wrap input[type="range"]::-webkit-slider-thumb:hover {
+  transform: scale(1.15);
+}
+.quality-slider-wrap input[type="range"]::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--primary);
+  cursor: pointer;
+  border: none;
+}
+.quality-value {
+  min-width: 48px;
+  text-align: center;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--primary);
+  padding: 6px 10px;
+  background: var(--result-bg);
+  border-radius: 8px;
+  border: 1px solid var(--border);
+}
+
+.size-section {
+  margin-bottom: 16px;
+}
+.size-radios {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.size-radios label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  cursor: pointer;
+  margin: 0;
+}
+.size-inputs {
+  display: none;
+  gap: 10px;
+  margin-top: 12px;
+}
+.size-inputs.show {
+  display: flex;
+}
+.size-inputs .size-field {
+  flex: 1;
+  position: relative;
+}
+.size-inputs .size-field label {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-bottom: 4px;
+}
+.size-inputs .size-field input {
+  width: 100%;
+  padding: 10px 36px 10px 12px;
+  font-size: 14px;
+}
+.size-inputs .size-field .unit {
+  position: absolute;
+  right: 12px;
+  bottom: 10px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+.size-link {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding-top: 22px;
+}
+.size-link.show {
+  display: flex;
+}
+.size-link button {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--card-bg);
+  color: var(--primary);
+  cursor: pointer;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+.size-link button:hover {
+  background: var(--bg-hover);
+  border-color: var(--primary);
+}
+.size-link button.unlinked {
+  color: var(--text-muted);
+}
+
+.preview-section {
+  margin-top: 16px;
+}
+.preview-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+@media (max-width: 600px) {
+  .preview-grid { grid-template-columns: 1fr; }
+}
+.preview-box {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--result-bg);
+}
+.preview-box .preview-label {
+  padding: 8px 12px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--heading);
+  background: var(--th-bg);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.preview-box .preview-label .label-size {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-weight: 400;
+}
+.preview-box .preview-img {
+  width: 100%;
+  min-height: 140px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px;
+  background:
+    linear-gradient(45deg, var(--border) 25%, transparent 25%),
+    linear-gradient(-45deg, var(--border) 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, var(--border) 75%),
+    linear-gradient(-45deg, transparent 75%, var(--border) 75%);
+  background-size: 16px 16px;
+  background-position: 0 0, 0 8px, 8px -8px, -8px 0px;
+}
+.preview-box .preview-img img {
+  max-width: 100%;
+  max-height: 200px;
+  object-fit: contain;
+  border-radius: 4px;
+}
+.preview-placeholder {
+  color: var(--text-muted);
+  font-size: 13px;
+  text-align: center;
+}
+
+.file-list {
+  margin-bottom: 16px;
+}
+.file-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  margin-bottom: 6px;
+  background: var(--card-bg);
+  transition: all 0.2s;
+}
+.file-item:hover {
+  border-color: var(--primary);
+}
+.file-item .file-thumb {
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  object-fit: cover;
+  flex-shrink: 0;
+  background: var(--result-bg);
+}
+.file-item .file-info {
+  flex: 1;
+  min-width: 0;
+}
+.file-item .file-name {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.file-item .file-meta {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+.file-item .file-status {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 20px;
+  flex-shrink: 0;
+}
+.file-status.pending {
+  color: var(--text-muted);
+  background: var(--result-bg);
+}
+.file-status.done {
+  color: var(--success);
+  background: rgba(16,185,129,0.1);
+}
+.file-status.error {
+  color: var(--danger);
+  background: rgba(239,68,68,0.1);
+}
+.file-item .file-remove {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  border: none;
+  background: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  flex-shrink: 0;
+  transition: all 0.15s;
+}
+.file-item .file-remove:hover {
+  background: rgba(239,68,68,0.1);
+  color: var(--danger);
+}
+
+.compare-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin: 12px 0;
+}
+@media (max-width: 480px) {
+  .compare-stats { grid-template-columns: 1fr; }
+}
+.compare-stat {
+  background: var(--result-bg);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px;
+  text-align: center;
+}
+.compare-stat .stat-val {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--primary);
+}
+.compare-stat .stat-lbl {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+.compare-stat.saved .stat-val {
+  color: var(--success);
+}
+.compare-stat.larger .stat-val {
+  color: var(--danger);
+}
+
+.download-all-section {
+  margin-top: 16px;
+  text-align: center;
+}
+</style>
+
+
+
+<meta property="og:image" content="https://chenguangwu.github.io/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="ToolBox - 6000+免费在线工具">
+<meta name="twitter:image" content="https://chenguangwu.github.io/og-image.png">
+<meta name="twitter:image:alt" content="ToolBox - 6000+免费在线工具">
+    <meta property="og:type" content="website">
+    <meta name="twitter:title" content="图片格式转换器 - 支持 PNG / JPEG / WEBP / BMP - ToolBox">
+    <meta name="twitter:description" content="图片格式转换器 - 支持 PNG / JPEG / WEBP / BMP 格式互转，可调整质量和尺寸，纯浏览器本地处理。免费在线工具，纯前端本地处理，数据不上传。">
+<!-- TOOLBOX-WEBAPP-LD -->
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"WebApplication","name":"图片格式转换器 - 支持 PNG / JPEG / WEBP / BMP","url":"https://chenguangwu.github.io/tools/design/image-format-converter.html","applicationCategory":"MultimediaApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":["zh-CN", "en-US"],"description":"图片格式转换器","image":"https://chenguangwu.github.io/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}
+</script>
+<meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
+<meta http-equiv="X-Content-Type-Options" content="nosniff">
+<meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
+<!-- TOOLBOX-SECURITY -->
+
+<script src="/js/privacy.js" defer></script>
+<!-- TOOLBOX-PRIVACY-SCRIPT -->
+
+<script src="/js/metrics.js" defer></script>
+<!-- TOOLBOX-METRICS-SCRIPT -->
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"首页","item":"https://chenguangwu.github.io/"},{"@type":"ListItem","position":2,"name":"设计创意","item":"https://chenguangwu.github.io/tools/design/index.html"},{"@type":"ListItem","position":3,"name":"图片格式转换器","item":"https://chenguangwu.github.io/tools/design/image-format-converter.html"}]}
+</script>
+
+<script src="../../js/i18n.js" defer></script>
+<script src="../../js/tool-i18n.js" defer></script>
+<!-- TOOLBOX-I18N-SCRIPT -->
+<!-- TOOLBOX-HREFLANG -->
+<link rel="alternate" hreflang="zh-CN" href="https://chenguangwu.github.io/tools/design/image-format-converter.html">
+<link rel="alternate" hreflang="en-US" href="https://chenguangwu.github.io/tools/design/image-format-converter.html">
+<link rel="alternate" hreflang="x-default" href="https://chenguangwu.github.io/tools/design/image-format-converter.html">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:locale:alternate" content="en_US">
+
+<script src="/js/clarity.js" defer></script>
+<!-- TOOLBOX-CLARITY -->
+</head>
+<body>
+<h1 class="sr-only">图片格式转换器</h1>
+
+
+<div class="nav">
+  <a href="../../index.html">← ToolBox</a>
+  <span>/ 图片格式转换器</span>
+  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()">🌙</button>
+</div>
+
+
+
+
+
+<nav class="breadcrumb" aria-label="面包屑导航" data-breadcrumb="1">
+  <a href="../../index.html">首页</a>
+  <span class="bc-sep">‹</span>
+  <a href="index.html">🎨 设计创意</a>
+  <span class="bc-sep">‹</span>
+  <span class="bc-current">图片格式转换器</span>
+</nav>
+
+<div class="tool-guide-link" data-guide-link="1">
+  <a href="../../guides/image-format-converter-guide.html">📖 查看「图片格式转换器使用指南」</a>
+</div>
+<div class="container">
+  <div class="card tool-card-accent" style="--tool-accent:#7C3AED;">
+    <h2>🔄 图片格式转换器</h2>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;">支持 PNG / JPEG / WEBP / BMP 格式互转，可调整质量和尺寸，纯浏览器本地处理</p>
+
+    <!-- 上传区域 -->
+    <div class="upload-zone" id="uploadZone">
+      <span class="upload-icon">📁</span>
+      <div class="upload-text">拖拽图片到此处，或点击选择文件</div>
+      <div class="upload-hint">支持 PNG、JPEG、WEBP、BMP、GIF、SVG 等常见格式，可多选批量转换</div>
+      <input type="file" id="fileInput" accept="image/*" multiple>
+    </div>
+
+    <!-- 文件列表 -->
+    <div class="file-list" id="fileList"></div>
+
+    <!-- 目标格式 -->
+    <h3 style="margin-bottom:10px;">目标格式</h3>
+    <div class="format-grid" id="formatGrid">
+      <div class="format-option active" data-format="png" onclick="selectFormat('png')">
+        <span class="format-icon">🖼️</span>
+        <div class="format-name">PNG</div>
+        <div class="format-desc">无损 / 透明</div>
+      </div>
+      <div class="format-option" data-format="jpeg" onclick="selectFormat('jpeg')">
+        <span class="format-icon">📸</span>
+        <div class="format-name">JPEG</div>
+        <div class="format-desc">有损 / 小体积</div>
+      </div>
+      <div class="format-option" data-format="webp" onclick="selectFormat('webp')">
+        <span class="format-icon">⚡</span>
+        <div class="format-name">WEBP</div>
+        <div class="format-desc">现代 / 高压缩</div>
+      </div>
+      <div class="format-option" data-format="bmp" onclick="selectFormat('bmp')">
+        <span class="format-icon">🗺️</span>
+        <div class="format-name">BMP</div>
+        <div class="format-desc">位图 / 无压缩</div>
+      </div>
+    </div>
+
+    <!-- 质量设置 -->
+    <div class="quality-section" id="qualitySection" style="display:none;">
+      <label style="margin-bottom:8px;">图片质量</label>
+      <div class="quality-slider-wrap">
+        <input type="range" id="qualitySlider" min="10" max="100" value="90" oninput="updateQualityLabel()">
+        <div class="quality-value" id="qualityValue">90%</div>
+      </div>
+      <div style="font-size:11px;color:var(--text-muted);margin-top:6px;">质量越高文件越大，建议 80%-95%</div>
+    </div>
+
+    <!-- 尺寸设置 -->
+    <div class="size-section">
+      <h3 style="margin-bottom:10px;">输出尺寸</h3>
+      <div class="size-radios">
+        <label><input type="radio" name="sizeMode" value="original" checked onchange="updateSizeMode()"> 保持原尺寸</label>
+        <label><input type="radio" name="sizeMode" value="custom" onchange="updateSizeMode()"> 自定义尺寸</label>
+        <label><input type="radio" name="sizeMode" value="percent" onchange="updateSizeMode()"> 按比例缩放</label>
+      </div>
+      <div class="size-inputs" id="customSizeWrap">
+        <div class="size-field">
+          <label>宽度</label>
+          <input type="number" id="customWidth" min="1" max="10000" placeholder="宽度" oninput="onCustomSizeChange('width')">
+          <span class="unit">px</span>
+        </div>
+        <div class="size-link" id="sizeLinkWrap">
+          <button id="sizeLinkBtn" onclick="toggleSizeLink()" title="已锁定宽高比（点击解锁）">🔒</button>
+        </div>
+        <div class="size-field">
+          <label>高度</label>
+          <input type="number" id="customHeight" min="1" max="10000" placeholder="高度" oninput="onCustomSizeChange('height')">
+          <span class="unit">px</span>
+        </div>
+      </div>
+      <div class="size-inputs" id="percentSizeWrap" style="display:none;">
+        <div class="size-field">
+          <label>缩放比例</label>
+          <input type="number" id="percentScale" min="1" max="1000" value="100" style="padding-right:36px;">
+          <span class="unit">%</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 操作按钮 -->
+    <div class="toolbar" id="actionToolbar" style="display:none;">
+      <button type="button" class="btn primary" onclick="convertAll()" id="convertBtn">🔄 开始转换</button>
+      <button type="button" class="btn" onclick="downloadAll()" id="downloadAllBtn" disabled>📥 下载全部</button>
+      <button type="button" class="btn danger" onclick="clearAll()">🗑️ 清除全部</button>
+    </div>
+
+    <!-- 转换结果对比 -->
+    <div class="preview-section" id="previewSection" style="display:none;">
+      <h3 style="margin-bottom:12px;">转换结果</h3>
+      <div class="compare-stats" id="compareStats"></div>
+      <div class="preview-grid" id="previewGrid">
+        <div class="preview-box">
+          <div class="preview-label">
+            <span>原始图片</span>
+            <span class="label-size" id="origSizeLabel"></span>
+          </div>
+          <div class="preview-img" id="origPreview">
+            <span class="preview-placeholder">暂无预览</span>
+          </div>
+        </div>
+        <div class="preview-box">
+          <div class="preview-label">
+            <span>转换结果</span>
+            <span class="label-size" id="convSizeLabel"></span>
+          </div>
+          <div class="preview-img" id="convPreview">
+            <span class="preview-placeholder">暂无预览</span>
+          </div>
+        </div>
+      </div>
+      <div class="toolbar" style="margin-top:12px;">
+        <button type="button" class="btn primary" onclick="downloadCurrent()" id="downloadBtn">📥 下载当前</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 工具介绍（SEO） -->
+  
+</div>
+
+</div>
+
+<!-- 相关工具 -->
+<div class="related-tools" data-related-tools="1">
+  <h3 class="related-tools-title">🔗 相关工具</h3>
+  <div class="related-tools-grid">
+    <a href="generator-10.html" class="related-tool-card">
+      <span class="rt-icon">🎨</span>
+      <span class="rt-info"><span class="rt-name">CSS动画生成器（关键帧可视化） - 免费在线工具，纯前端处理 | ToolBox免费在线工具箱</span><span class="rt-desc">CSS动画生成器（关键帧可视化）</span></span>
+    </a>
+    <a href="generator-5.html" class="related-tool-card">
+      <span class="rt-icon">🎨</span>
+      <span class="rt-info"><span class="rt-name">CSS渐变生成器（线性/径向/圆锥） - 免费在线工具，纯前端处理 | ToolBox免费在线工具箱</span><span class="rt-desc">CSS渐变生成器（线性/径向/圆锥）</span></span>
+    </a>
+    <a href="web-audio-metronome.html" class="related-tool-card">
+      <span class="rt-icon">🎼</span>
+      <span class="rt-info"><span class="rt-name">Web Audio 节拍器 - 免费生成器工具，在线节拍器 | ToolBox免费在线工具箱</span><span class="rt-desc">在线节拍器</span></span>
+    </a>
+    <a href="generator-8.html" class="related-tool-card">
+      <span class="rt-icon">🎨</span>
+      <span class="rt-info"><span class="rt-name">二维码生成器（已有，可加强定制） - 免费在线工具，纯前端处理 | ToolBox免费在线工具箱</span><span class="rt-desc">二维码生成器（已有，可加强定制）</span></span>
+    </a>
+    <a href="generator-9.html" class="related-tool-card">
+      <span class="rt-icon">🎨</span>
+      <span class="rt-info"><span class="rt-name">条形码生成器（EAN-13等） - 免费在线工具，纯前端处理 | ToolBox免费在线工具箱</span><span class="rt-desc">条形码生成器（EAN-13等）</span></span>
+    </a>
+    <a href="generator-6.html" class="related-tool-card">
+      <span class="rt-icon">🎨</span>
+      <span class="rt-info"><span class="rt-name">盒子阴影生成器（可视化调整） - 免费在线工具，纯前端处理 | ToolBox免费在线工具箱</span><span class="rt-desc">盒子阴影生成器（可视化调整）</span></span>
+    </a>
+  </div>
+</div>
+<div class="tool-intro" id="toolIntro">
+    <div class="tool-intro-header" onclick="toggleIntro()">
+      <span class="intro-icon-wrap">
+        <span class="intro-icon">🔄</span>
+        工具介绍与使用帮助
+      </span>
+      <span class="arrow">▼</span>
+    </div>
+    <div class="tool-intro-body">
+      <p>图片格式转换器是一款纯前端在线工具，无需上传文件到服务器，所有转换过程均在浏览器本地完成，安全可靠。</p>
+      <h4><span class="h4-icon">✨</span> 功能特点</h4>
+      <ul class="intro-features">
+        <li>支持 PNG / JPEG / WEBP / BMP 四种主流格式互转</li>
+        <li>JPEG 和 WEBP 格式支持质量参数调节</li>
+        <li>支持自定义输出尺寸和按比例缩放</li>
+        <li>支持多文件拖拽批量上传转换</li>
+        <li>转换前后大小对比和压缩率显示</li>
+        <li>实时预览原始图片和转换结果</li>
+        <li>纯浏览器端处理，隐私安全</li>
+      </ul>
+      <h4><span class="h4-icon">🎯</span> 使用场景</h4>
+      <ul class="intro-scenes">
+        <li>将 PNG 转为 JPEG 以减小文件体积</li>
+        <li>将 JPEG 转为 PNG 以保留透明通道</li>
+        <li>转换为 WEBP 格式以优化网页加载速度</li>
+        <li>调整图片尺寸用于不同平台上传</li>
+        <li>批量转换图片格式统一管理素材</li>
+        <li>生成 BMP 位图用于特定应用场景</li>
+      </ul>
+      <h4><span class="h4-icon">❓</span> 常见问题</h4>
+      <div class="intro-faq-item">
+        <div class="intro-faq-q">转换后的图片质量会下降吗？</div>
+        <div class="intro-faq-a">PNG 和 BMP 是无损格式，质量不会下降。JPEG 和 WEBP 是有损压缩，质量取决于设定的参数值，建议设为 80%-95%。</div>
+      </div>
+      <div class="intro-faq-item">
+        <div class="intro-faq-q">支持多大的图片文件？</div>
+        <div class="intro-faq-a">理论上没有大小限制，但受限于浏览器内存。建议单张图片不超过 50MB，以确保流畅转换。</div>
+      </div>
+      <div class="intro-faq-item">
+        <div class="intro-faq-q">我的图片会被上传到服务器吗？</div>
+        <div class="intro-faq-a">不会。所有处理均在浏览器本地完成，图片数据不会离开您的设备，完全隐私安全。</div>
+      </div>
+    </div>
+  </div>
+
+<!-- 注意事项区块 -->
+<div class="tool-notes" style="--tool-accent:#7C3AED;">
+  <div class="tool-notes-title">⚠️ 使用说明与注意事项</div>
+  <ul>
+      <li>本工具纯前端运行，数据不会上传到服务器</li>
+      <li>建议在主流浏览器（Chrome/Safari/Firefox/Edge）中使用</li>
+      <li>计算结果仅供参考，请以实际应用场景为准</li>
+  </ul>
+</div>
+<!-- /注意事项区块 -->
+</div>
+
+<script>
+(function() {
+  'use strict';
+
+  // 状态
+  var state = {
+    files: [],         // { file, img, name, origSize }
+    targetFormat: 'png',
+    quality: 90,
+    sizeMode: 'original',
+    customWidth: 0,
+    customHeight: 0,
+    percentScale: 100,
+    sizeLinked: true,
+    aspectRatio: 1,
+    results: [],       // { blob, url, size, name }
+    currentPreviewIdx: -1
+  };
+
+  var uploadZone = document.getElementById('uploadZone');
+  var fileInput = document.getElementById('fileInput');
+
+  // ---- 拖拽上传 ----
+  uploadZone.addEventListener('dragover', function(e) {
+    e.preventDefault();
+    uploadZone.classList.add('drag-over');
+  });
+  uploadZone.addEventListener('dragleave', function(e) {
+    e.preventDefault();
+    uploadZone.classList.remove('drag-over');
+  });
+  uploadZone.addEventListener('drop', function(e) {
+    e.preventDefault();
+    uploadZone.classList.remove('drag-over');
+    var files = e.dataTransfer.files;
+    if (files.length > 0) handleFiles(files);
+  });
+
+  // ---- 点击上传 ----
+  fileInput.addEventListener('change', function() {
+    if (fileInput.files.length > 0) {
+      handleFiles(fileInput.files);
+      fileInput.value = '';
+    }
+  });
+
+  // ---- 处理文件 ----
+  function handleFiles(fileList) {
+    var validTypes = ['image/png','image/jpeg','image/jpg','image/webp','image/bmp','image/gif','image/svg+xml','image/tiff'];
+    var count = 0;
+    Array.from(fileList).forEach(function(file) {
+      if (validTypes.indexOf(file.type) === -1 && !file.type.startsWith('image/')) {
+        ToolBox.showToast('不支持的文件类型: ' + file.name, 'error');
+        return;
+      }
+      count++;
+      var reader = new FileReader();
+      reader.onload = function(e) {
+        var img = new Image();
+        img.onload = function() {
+          state.files.push({
+            file: file,
+            img: img,
+            name: file.name,
+            origSize: file.size,
+            width: img.naturalWidth,
+            height: img.naturalHeight
+          });
+          renderFileList();
+          updateUI();
+        };
+        img.onerror = function() {
+          ToolBox.showToast('图片加载失败: ' + file.name, 'error');
+        };
+        img.src = e.target.result;
+      };
+      reader.readAsDataURL(file);
+    });
+    if (count > 0) {
+      setTimeout(function() {
+        ToolBox.showToast('已添加 ' + count + ' 个文件', 'info');
+      }, 300);
+    }
+  }
+
+  // ---- 渲染文件列表 ----
+  function renderFileList() {
+    var container = document.getElementById('fileList');
+    if (state.files.length === 0) {
+      container.innerHTML = '';
+      return;
+    }
+    var html = '';
+    state.files.forEach(function(item, idx) {
+      var statusCls = 'pending';
+      var statusText = '等待转换';
+      var meta = formatSize(item.origSize) + ' · ' + item.width + 'x' + item.height;
+      if (state.results[idx]) {
+        statusCls = 'done';
+        statusText = formatSize(state.results[idx].size);
+        meta += ' → ' + getFormatName(state.targetFormat);
+      }
+      html += '<div class="file-item" onclick="showPreview(' + idx + ')">'
+        + '<img class="file-thumb" src="' + item.img.src + '" alt="">'
+        + '<div class="file-info">'
+        + '<div class="file-name">' + escHtml(item.name) + '</div>'
+        + '<div class="file-meta">' + meta + '</div>'
+        + '</div>'
+        + '<span class="file-status ' + statusCls + '">' + statusText + '</span>'
+        + '<button class="file-remove" onclick="event.stopPropagation();removeFile(' + idx + ')" title="移除">×</button>'
+        + '</div>';
+    });
+    container.innerHTML = html;
+  }
+
+  function escHtml(s) {
+    var d = document.createElement('div');
+    d.textContent = s;
+    return d.innerHTML;
+  }
+
+  // ---- 格式选择 ----
+  window.selectFormat = function(format) {
+    state.targetFormat = format;
+    state.results = []; // 切换格式后清除旧结果
+    document.querySelectorAll('.format-option').forEach(function(el) {
+      el.classList.toggle('active', el.dataset.format === format);
+    });
+    var showQuality = (format === 'jpeg' || format === 'webp');
+    document.getElementById('qualitySection').style.display = showQuality ? 'block' : 'none';
+    renderFileList();
+    updateUI();
+  };
+
+  // ---- 质量更新 ----
+  window.updateQualityLabel = function() {
+    var val = document.getElementById('qualitySlider').value;
+    state.quality = parseInt(val);
+    document.getElementById('qualityValue').textContent = val + '%';
+  };
+
+  // ---- 尺寸模式 ----
+  window.updateSizeMode = function() {
+    var mode = document.querySelector('input[name="sizeMode"]:checked').value;
+    state.sizeMode = mode;
+    document.getElementById('customSizeWrap').className = 'size-inputs' + (mode === 'custom' ? ' show' : '');
+    document.getElementById('percentSizeWrap').style.display = mode === 'percent' ? 'flex' : 'none';
+    document.getElementById('sizeLinkWrap').className = 'size-link' + (mode === 'custom' ? ' show' : '');
+  };
+
+  window.onCustomSizeChange = function(dim) {
+    if (!state.sizeLinked || state.files.length === 0) return;
+    var w = parseInt(document.getElementById('customWidth').value) || 0;
+    var h = parseInt(document.getElementById('customHeight').value) || 0;
+    if (dim === 'width' && w > 0) {
+      document.getElementById('customHeight').value = Math.round(w / state.aspectRatio);
+    } else if (dim === 'height' && h > 0) {
+      document.getElementById('customWidth').value = Math.round(h * state.aspectRatio);
+    }
+  };
+
+  window.toggleSizeLink = function() {
+    state.sizeLinked = !state.sizeLinked;
+    var btn = document.getElementById('sizeLinkBtn');
+    btn.textContent = state.sizeLinked ? '🔒' : '🔓';
+    btn.title = state.sizeLinked ? '已锁定宽高比（点击解锁）' : '已解锁宽高比（点击锁定）';
+    btn.classList.toggle('unlinked', !state.sizeLinked);
+    if (state.sizeLinked && state.files.length > 0) {
+      // 用第一张图的比例
+      state.aspectRatio = state.files[0].width / state.files[0].height;
+    }
+  };
+
+  // ---- 移除文件 ----
+  window.removeFile = function(idx) {
+    state.files.splice(idx, 1);
+    if (state.results[idx]) {
+      URL.revokeObjectURL(state.results[idx].url);
+      state.results.splice(idx, 1);
+    }
+    renderFileList();
+    updateUI();
+  };
+
+  // ---- 转换 ----
+  window.convertAll = function() {
+    if (state.files.length === 0) {
+      ToolBox.showToast(i18nText('tool.file_upload_hint'), 'warning');
+      return;
+    }
+
+    state.results = [];
+    var format = state.targetFormat;
+    var quality = state.quality / 100;
+    var mode = state.sizeMode;
+
+    state.files.forEach(function(item, idx) {
+      try {
+        var w = item.width;
+        var h = item.height;
+
+        if (mode === 'custom') {
+          var cw = parseInt(document.getElementById('customWidth').value);
+          var ch = parseInt(document.getElementById('customHeight').value);
+          if (cw > 0) w = cw;
+          if (ch > 0) h = ch;
+        } else if (mode === 'percent') {
+          var pct = parseInt(document.getElementById('percentScale').value) || 100;
+          w = Math.round(w * pct / 100);
+          h = Math.round(h * pct / 100);
+        }
+
+        var canvas = document.createElement('canvas');
+        canvas.width = Math.max(1, w);
+        canvas.height = Math.max(1, h);
+        var ctx = canvas.getContext('2d');
+
+        // JPEG 不支持透明，填充白色背景
+        if (format === 'jpeg') {
+          ctx.fillStyle = '#FFFFFF';
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+        }
+
+        ctx.drawImage(item.img, 0, 0, canvas.width, canvas.height);
+
+        var mime = 'image/' + format;
+        var qualityArg = (format === 'png' || format === 'bmp') ? undefined : quality;
+
+        // BMP 格式：浏览器原生 toBlob 多不支持，用手动编码器
+        if (format === 'bmp') {
+          try {
+            var bmpBlob = encodeBMP(canvas, ctx);
+            onConverted(idx, item, bmpBlob, format);
+          } catch (e) {
+            ToolBox.showToast('BMP 转换失败: ' + item.name, 'error');
+          }
+          return;
+        }
+
+        canvas.toBlob(function(blob) {
+          if (!blob) {
+            ToolBox.showToast('转换失败: ' + item.name, 'error');
+            return;
+          }
+          onConverted(idx, item, blob, format);
+        }, mime, qualityArg);
+      } catch (err) {
+        ToolBox.showToast('转换出错: ' + item.name, 'error');
+      }
+    });
+  };
+
+  // 转换完成回调
+  function onConverted(idx, item, blob, format) {
+    var url = URL.createObjectURL(blob);
+    var baseName = item.name.replace(/\.[^.]+$/, '');
+    state.results[idx] = {
+      blob: blob,
+      url: url,
+      size: blob.size,
+      name: baseName + '.' + getExtension(format)
+    };
+    renderFileList();
+    updateUI();
+    if (idx === 0) showPreview(0);
+    // 最后一个完成后提示
+    if (state.results.filter(Boolean).length === state.files.length) {
+      ToolBox.showToast(i18nText('toast.msg069'), 'success');
+      document.getElementById('downloadAllBtn').disabled = false;
+    }
+  }
+
+  // 手动 24 位 BMP 编码器（浏览器原生 toBlob 通常不支持 image/bmp）
+  function encodeBMP(canvas, ctx) {
+    var w = canvas.width;
+    var h = canvas.height;
+    var imgData = ctx.getImageData(0, 0, w, h);
+    var data = imgData.data; // RGBA
+
+    // 每行字节数需 4 字节对齐
+    var rowSize = Math.floor((24 * w + 31) / 32) * 4;
+    var pixelDataSize = rowSize * h;
+    var fileSize = 54 + pixelDataSize;
+
+    var buf = new ArrayBuffer(fileSize);
+    var view = new DataView(buf);
+    var bytes = new Uint8Array(buf);
+
+    // BMP 文件头 (14 字节)
+    view.setUint8(0, 0x42); // 'B'
+    view.setUint8(1, 0x4D); // 'M'
+    view.setUint32(2, fileSize, true);
+    view.setUint32(6, 0, true); // 保留
+    view.setUint32(10, 54, true); // 像素数据偏移
+
+    // DIB 头 BITMAPINFOHEADER (40 字节)
+    view.setUint32(14, 40, true); // 头大小
+    view.setInt32(18, w, true);   // 宽
+    view.setInt32(22, h, true);   // 高（正数 = 自下而上）
+    view.setUint16(26, 1, true);  // 颜色平面数
+    view.setUint16(28, 24, true); // 每像素位数
+    view.setUint32(30, 0, true);  // 压缩（0 = BI_RGB）
+    view.setUint32(34, pixelDataSize, true);
+    view.setInt32(38, 2835, true); // 水平分辨率 (72 DPI -> 2835 px/m)
+    view.setInt32(42, 2835, true); // 垂直分辨率
+    view.setUint32(46, 0, true); // 调色板颜色数
+    view.setUint32(50, 0, true); // 重要颜色数
+
+    // 像素数据：BMP 自下而上、BGR 顺序、每行 4 字节对齐
+    var offset = 54;
+    for (var y = h - 1; y >= 0; y--) {
+      var rowStart = offset + (h - 1 - y) * rowSize;
+      for (var x = 0; x < w; x++) {
+        var src = (y * w + x) * 4;
+        var dst = rowStart + x * 3;
+        bytes[dst]     = data[src + 2]; // B
+        bytes[dst + 1] = data[src + 1]; // G
+        bytes[dst + 2] = data[src];     // R
+      }
+      // 行尾补零（对齐 4 字节）
+      var pad = rowSize - w * 3;
+      for (var p = 0; p < pad; p++) {
+        bytes[rowStart + w * 3 + p] = 0;
+      }
+    }
+
+    return new Blob([buf], { type: 'image/bmp' });
+  }
+
+  // ---- 预览 ----
+  window.showPreview = function(idx) {
+    state.currentPreviewIdx = idx;
+    if (!state.files[idx] || !state.results[idx]) {
+      document.getElementById('previewSection').style.display = 'none';
+      return;
+    }
+
+    var item = state.files[idx];
+    var result = state.results[idx];
+    var section = document.getElementById('previewSection');
+    section.style.display = 'block';
+
+    // 原始预览
+    var origPreview = document.getElementById('origPreview');
+    origPreview.innerHTML = '<img src="' + item.img.src + '" alt="原始图片">';
+
+    // 转换后预览
+    var convPreview = document.getElementById('convPreview');
+    convPreview.innerHTML = '<img src="' + result.url + '" alt="转换结果">';
+
+    // 尺寸标签
+    document.getElementById('origSizeLabel').textContent = formatSize(item.origSize);
+    document.getElementById('convSizeLabel').textContent = formatSize(result.size);
+
+    // 对比统计
+    var diff = result.size - item.origSize;
+    var ratio = item.origSize > 0 ? ((result.size - item.origSize) / item.origSize * 100) : 0;
+    var isSaved = diff < 0;
+
+    var statsHtml = '<div class="compare-stat"><div class="stat-val">' + formatSize(item.origSize) + '</div><div class="stat-lbl">原始大小</div></div>';
+    statsHtml += '<div class="compare-stat"><div class="stat-val">' + formatSize(result.size) + '</div><div class="stat-lbl">转换后大小</div></div>';
+    if (diff !== 0) {
+      var cls = isSaved ? 'saved' : 'larger';
+      var sign = isSaved ? '' : '+';
+      statsHtml += '<div class="compare-stat ' + cls + '"><div class="stat-val">' + sign + ratio.toFixed(1) + '%</div><div class="stat-lbl">' + (isSaved ? '节省空间' : '体积增大') + '</div></div>';
+    } else {
+      statsHtml += '<div class="compare-stat"><div class="stat-val">0%</div><div class="stat-lbl">大小不变</div></div>';
+    }
+    document.getElementById('compareStats').innerHTML = statsHtml;
+
+    // 滚动到预览区
+    section.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  };
+
+  // ---- 下载当前 ----
+  window.downloadCurrent = function() {
+    var idx = state.currentPreviewIdx;
+    if (idx < 0 || !state.results[idx]) {
+      ToolBox.showToast(i18nText('toast.msg682'), 'warning');
+      return;
+    }
+    downloadBlob(state.results[idx]);
+  };
+
+  // ---- 下载全部 ----
+  window.downloadAll = function() {
+    var valid = state.results.filter(Boolean);
+    if (valid.length === 0) {
+      ToolBox.showToast(i18nText('toast.empty_download'), 'warning');
+      return;
+    }
+    if (valid.length === 1) {
+      downloadBlob(valid[0]);
+      return;
+    }
+    // 逐个下载（有延迟避免浏览器拦截）
+    valid.forEach(function(r, i) {
+      setTimeout(function() { downloadBlob(r); }, i * 300);
+    });
+    ToolBox.showToast('正在下载 ' + valid.length + ' 个文件...', 'info');
+  };
+
+  function downloadBlob(result) {
+    var a = document.createElement('a');
+    a.href = result.url;
+    a.download = result.name;
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(function() { a.remove(); }, 100);
+  }
+
+  // ---- 清除全部 ----
+  window.clearAll = function() {
+    state.results.forEach(function(r) {
+      if (r) URL.revokeObjectURL(r.url);
+    });
+    state.files = [];
+    state.results = [];
+    state.currentPreviewIdx = -1;
+    renderFileList();
+    updateUI();
+    document.getElementById('previewSection').style.display = 'none';
+    ToolBox.showToast(i18nText('toast.msg283'), 'info');
+  };
+
+  // ---- UI 更新 ----
+  function updateUI() {
+    var hasFiles = state.files.length > 0;
+    document.getElementById('actionToolbar').style.display = hasFiles ? 'flex' : 'none';
+    if (state.files.length > 0 && state.sizeLinked) {
+      state.aspectRatio = state.files[0].width / state.files[0].height;
+    }
+  }
+
+  // ---- 折叠介绍 ----
+  window.toggleIntro = function() {
+    document.getElementById('toolIntro').classList.toggle('open');
+  };
+
+  // ---- 辅助函数 ----
+  function formatSize(bytes) {
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+    return (bytes / (1024 * 1024)).toFixed(2) + ' MB';
+  }
+
+  function getExtension(format) {
+    var map = { png: 'png', jpeg: 'jpg', webp: 'webp', bmp: 'bmp' };
+    return map[format] || format;
+  }
+
+  function getFormatName(format) {
+    var map = { png: 'PNG', jpeg: 'JPEG', webp: 'WEBP', bmp: 'BMP' };
+    return map[format] || format;
+  }
+
+  // 初始化
+  selectFormat('png');
+
+})();
+</script><script>
+// tool-intro折叠交互
+document.addEventListener('DOMContentLoaded',function(){
+  var headers=document.querySelectorAll('.tool-intro-header');
+  headers.forEach(function(h){
+    h.addEventListener('click',function(){
+      this.parentElement.classList.toggle('open');
+    });
+  });
+});
+</script>
+
+</body>
+</html>

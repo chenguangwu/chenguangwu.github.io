@@ -1,0 +1,1041 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+
+<script src="/js/tool-page-runtime.js" defer></script>
+<!-- TOOLBOX-TOOL-RUNTIME -->
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="toolbox" content="cat=reference,industry=science,icon=⚡,bg=#e8f5e9">
+<title>逻辑门模拟器 - 选择逻辑门类型，切换输入开关 - ToolBox</title>
+<link rel="canonical" href="https://chenguangwu.github.io/tools/science/logic-gate-simulator.html">
+<meta property="og:title" content="逻辑门模拟器 - 选择逻辑门类型，切换输入开关 - ToolBox">
+<meta property="og:description" content="逻辑门模拟器 - 选择逻辑门类型，切换输入开关，实时观察输出结果与布尔表达式。免费在线工具，纯前端本地处理，数据不上传。">
+<meta property="og:url" content="https://chenguangwu.github.io/tools/science/logic-gate-simulator.html">
+<meta name="twitter:card" content="summary">
+<meta name="description" content="逻辑门模拟器 - 选择逻辑门类型，切换输入开关，实时观察输出结果与布尔表达式。免费在线工具，纯前端本地处理，数据不上传。">
+<link rel="stylesheet" href="../../css/common.css">
+<script src="../../js/common.js"></script>
+<style>
+/* 逻辑门选择按钮组 */
+.gate-selector { display: flex; flex-wrap: wrap; gap: 6px; margin: 16px 0; }
+.gate-btn {
+  padding: 8px 16px;
+  border-radius: 10px;
+  border: 1.5px solid var(--border);
+  background: var(--card-bg);
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  letter-spacing: 0.5px;
+}
+.gate-btn:hover { border-color: var(--primary); transform: translateY(-1px); }
+.gate-btn.active {
+  background: var(--gradient-primary);
+  color: #fff;
+  border-color: transparent;
+  box-shadow: 0 4px 14px rgba(255,107,53,0.3);
+}
+
+/* 开关样式 */
+.switch-panel {
+  display: flex;
+  gap: 20px;
+  align-items: center;
+  justify-content: center;
+  margin: 20px 0;
+  flex-wrap: wrap;
+}
+.input-switch {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+.switch-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--heading);
+}
+.switch-track {
+  width: 80px;
+  height: 40px;
+  border-radius: 20px;
+  cursor: pointer;
+  position: relative;
+  transition: all 0.3s;
+  border: 2px solid var(--border);
+  background: var(--border);
+  user-select: none;
+}
+.switch-track.on {
+  background: var(--primary);
+  border-color: var(--primary);
+  box-shadow: 0 0 16px rgba(255,107,53,0.35);
+}
+.switch-thumb {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: #fff;
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  transition: transform 0.3s cubic-bezier(0.4,0,0.2,1);
+  box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+}
+.switch-track.on .switch-thumb { transform: translateX(40px); }
+.switch-value {
+  font-size: 28px;
+  font-weight: 800;
+  color: var(--primary);
+  font-family: 'SF Mono', 'Courier New', monospace;
+  min-width: 24px;
+  text-align: center;
+}
+
+/* 门符号区域 */
+.gate-symbol-area {
+  display: flex;
+  justify-content: center;
+  margin: 16px 0;
+}
+.gate-symbol-box {
+  background: var(--result-bg);
+  border: 1.5px solid var(--border);
+  border-radius: 16px;
+  padding: 20px 28px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  transition: all 0.3s;
+}
+.gate-symbol-box svg { filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1)); }
+
+/* LED 输出 */
+.output-panel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  margin: 16px 0;
+}
+.led-light {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  border: 3px solid var(--border);
+  background: var(--border);
+  transition: all 0.3s;
+  box-shadow: inset 0 2px 6px rgba(0,0,0,0.1);
+}
+.led-light.on {
+  background: #00C9A7;
+  border-color: #00C9A7;
+  box-shadow: 0 0 20px rgba(0,201,167,0.5), 0 0 40px rgba(0,201,167,0.2), inset 0 -2px 6px rgba(0,0,0,0.1);
+}
+.output-label { font-size: 14px; font-weight: 600; color: var(--heading); }
+.output-value {
+  font-size: 32px;
+  font-weight: 800;
+  font-family: 'SF Mono', 'Courier New', monospace;
+}
+.output-value.val-0 { color: var(--text-muted); }
+.output-value.val-1 { color: var(--accent); }
+
+/* 布尔表达式 */
+.expression-box {
+  background: var(--result-bg);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 14px 18px;
+  text-align: center;
+  font-size: 16px;
+  font-weight: 600;
+  font-family: 'SF Mono', 'Courier New', monospace;
+  color: var(--heading);
+  margin: 12px 0;
+  letter-spacing: 1px;
+}
+.expression-box .expr-result { color: var(--primary); }
+
+/* 真值表 */
+.truth-table-wrap { margin: 16px 0; overflow-x: auto; }
+.truth-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+  border-radius: 12px;
+  overflow: hidden;
+  white-space: nowrap;
+}
+.truth-table th {
+  background: var(--th-bg);
+  font-weight: 700;
+  color: var(--heading);
+  padding: 12px 20px;
+  text-align: center;
+  border: 1px solid var(--border);
+}
+.truth-table td {
+  padding: 10px 20px;
+  text-align: center;
+  border: 1px solid var(--border);
+  transition: background 0.2s;
+  font-family: 'SF Mono', 'Courier New', monospace;
+  font-weight: 600;
+}
+.truth-table tr.highlight td {
+  background: rgba(255,107,53,0.1);
+  color: var(--primary);
+  font-weight: 700;
+}
+[data-theme="dark"] .truth-table tr.highlight td {
+  background: rgba(255,107,53,0.15);
+}
+.truth-table tr:hover td { background: var(--bg-hover); }
+.truth-table tr.highlight:hover td { background: rgba(255,107,53,0.15); }
+
+/* 多门组合区域 */
+.combo-section { margin-top: 16px; }
+.combo-chains { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0; }
+.combo-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  background: var(--result-bg);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--heading);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.combo-chip:hover { border-color: var(--primary); transform: translateY(-1px); }
+.combo-chip.active {
+  background: rgba(255,107,53,0.08);
+  border-color: var(--primary);
+  color: var(--primary);
+}
+.combo-chip .remove-chip {
+  width: 16px; height: 16px;
+  border-radius: 50%;
+  background: var(--danger);
+  color: #fff;
+  font-size: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  margin-left: 2px;
+  line-height: 1;
+}
+.combo-arrow {
+  display: flex;
+  align-items: center;
+  color: var(--text-muted);
+  font-size: 18px;
+  font-weight: 700;
+}
+.combo-output-label {
+  font-size: 13px;
+  color: var(--text-muted);
+  text-align: center;
+  margin-top: 8px;
+}
+.combo-output-value {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--heading);
+  text-align: center;
+}
+
+/* 门信息网格 */
+.gate-info-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 10px;
+  margin: 12px 0;
+}
+.gate-info-card {
+  background: var(--result-bg);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-align: center;
+}
+.gate-info-card:hover { border-color: var(--primary); transform: translateY(-2px); }
+.gate-info-card.active { border-color: var(--primary); background: rgba(255,107,53,0.06); }
+.gate-info-card .gate-name {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--heading);
+  margin-bottom: 4px;
+}
+.gate-info-card .gate-alias {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-bottom: 6px;
+}
+.gate-info-card .gate-desc {
+  font-size: 12px;
+  color: var(--text-light);
+  line-height: 1.5;
+}
+
+/* 提示信息 */
+.gate-tip {
+  font-size: 13px;
+  color: var(--text-muted);
+  text-align: center;
+  margin-top: 8px;
+}
+
+/* 移动端适配 */
+@media (max-width: 768px) {
+  .switch-panel { gap: 16px; }
+  .switch-track { width: 70px; height: 36px; }
+  .switch-thumb { width: 28px; height: 28px; }
+  .switch-track.on .switch-thumb { transform: translateX(34px); }
+  .switch-value { font-size: 24px; }
+  .output-value { font-size: 26px; }
+  .led-light { width: 40px; height: 40px; }
+  .gate-selector { gap: 5px; }
+  .gate-btn { padding: 7px 12px; font-size: 12px; }
+  .gate-symbol-box { padding: 14px 18px; gap: 12px; }
+  .expression-box { font-size: 14px; padding: 12px; }
+  .truth-table th, .truth-table td { padding: 8px 12px; }
+  .gate-info-grid { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+}
+</style>
+
+
+
+<meta property="og:image" content="https://chenguangwu.github.io/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="ToolBox - 6000+免费在线工具">
+<meta name="twitter:image" content="https://chenguangwu.github.io/og-image.png">
+<meta name="twitter:image:alt" content="ToolBox - 6000+免费在线工具">
+    <meta property="og:type" content="website">
+    <meta name="twitter:title" content="逻辑门模拟器 - 选择逻辑门类型，切换输入开关 - ToolBox">
+    <meta name="twitter:description" content="逻辑门模拟器 - 选择逻辑门类型，切换输入开关，实时观察输出结果与布尔表达式。免费在线工具，纯前端本地处理，数据不上传。">
+<!-- TOOLBOX-WEBAPP-LD -->
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"WebApplication","name":"逻辑门模拟器 - 选择逻辑门类型，切换输入开关","url":"https://chenguangwu.github.io/tools/science/logic-gate-simulator.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":["zh-CN", "en-US"],"description":"&amp;#9889; 逻辑门模拟器","image":"https://chenguangwu.github.io/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}
+</script>
+<meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
+<meta http-equiv="X-Content-Type-Options" content="nosniff">
+<meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
+<!-- TOOLBOX-SECURITY -->
+
+<script src="/js/privacy.js" defer></script>
+<!-- TOOLBOX-PRIVACY-SCRIPT -->
+
+<script src="/js/metrics.js" defer></script>
+<!-- TOOLBOX-METRICS-SCRIPT -->
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"首页","item":"https://chenguangwu.github.io/"},{"@type":"ListItem","position":2,"name":"科学研究","item":"https://chenguangwu.github.io/tools/science/index.html"},{"@type":"ListItem","position":3,"name":"逻辑门模拟器","item":"https://chenguangwu.github.io/tools/science/logic-gate-simulator.html"}]}
+</script>
+
+<script src="../../js/i18n.js" defer></script>
+<script src="../../js/tool-i18n.js" defer></script>
+<!-- TOOLBOX-I18N-SCRIPT -->
+<!-- TOOLBOX-HREFLANG -->
+<link rel="alternate" hreflang="zh-CN" href="https://chenguangwu.github.io/tools/science/logic-gate-simulator.html">
+<link rel="alternate" hreflang="en-US" href="https://chenguangwu.github.io/tools/science/logic-gate-simulator.html">
+<link rel="alternate" hreflang="x-default" href="https://chenguangwu.github.io/tools/science/logic-gate-simulator.html">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:locale:alternate" content="en_US">
+
+<script src="/js/clarity.js" defer></script>
+<!-- TOOLBOX-CLARITY -->
+</head>
+<body>
+<h1 class="sr-only">逻辑门模拟器</h1>
+
+
+<!-- 导航栏 -->
+<div class="nav">
+  <a href="../../index.html">&larr; ToolBox</a>
+  <span>/ 逻辑门模拟器</span>
+  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()">&#127769;</button>
+</div>
+
+
+
+
+
+<nav class="breadcrumb" aria-label="面包屑导航" data-breadcrumb="1">
+  <a href="../../index.html">首页</a>
+  <span class="bc-sep">‹</span>
+  <a href="index.html">🔬 科学研究</a>
+  <span class="bc-sep">‹</span>
+  <span class="bc-current">逻辑门模拟器</span>
+</nav>
+<div class="container">
+  <!-- 主卡片：交互模拟器 -->
+  <div class="card tool-card-accent" style="--tool-accent:#06B6D4;">
+    <h2>&#9889; 逻辑门模拟器</h2>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;">
+      选择逻辑门类型，切换输入开关，实时观察输出结果与布尔表达式
+    </p>
+
+    <!-- 门类型选择 -->
+    <div class="gate-selector" id="gateSelector">
+      <button type="button" class="gate-btn active" data-gate="AND" onclick="selectGate('AND')">AND</button>
+      <button type="button" class="gate-btn" data-gate="OR" onclick="selectGate('OR')">OR</button>
+      <button type="button" class="gate-btn" data-gate="NOT" onclick="selectGate('NOT')">NOT</button>
+      <button type="button" class="gate-btn" data-gate="NAND" onclick="selectGate('NAND')">NAND</button>
+      <button type="button" class="gate-btn" data-gate="NOR" onclick="selectGate('NOR')">NOR</button>
+      <button type="button" class="gate-btn" data-gate="XOR" onclick="selectGate('XOR')">XOR</button>
+      <button type="button" class="gate-btn" data-gate="XNOR" onclick="selectGate('XNOR')">XNOR</button>
+      <button type="button" class="gate-btn" data-gate="BUFFER" onclick="selectGate('BUFFER')">BUFFER</button>
+    </div>
+
+    <!-- 输入开关 -->
+    <div class="switch-panel" id="switchPanel">
+      <div class="input-switch" id="switchA">
+        <span class="switch-label">输入 A</span>
+        <div class="switch-track" onclick="toggleInput('A')">
+          <div class="switch-thumb"></div>
+        </div>
+        <span class="switch-value" id="valA">0</span>
+      </div>
+      <div class="input-switch" id="switchB">
+        <span class="switch-label">输入 B</span>
+        <div class="switch-track" onclick="toggleInput('B')">
+          <div class="switch-thumb"></div>
+        </div>
+        <span class="switch-value" id="valB">0</span>
+      </div>
+    </div>
+
+    <!-- 门符号 + 输出 -->
+    <div class="gate-symbol-area">
+      <div class="gate-symbol-box">
+        <div id="gateSymbol"></div>
+        <div style="font-size:28px;color:var(--text-muted);">&rarr;</div>
+        <div class="output-panel">
+          <span class="output-label">输出 Q</span>
+          <div class="led-light" id="ledLight"></div>
+          <span class="output-value val-0" id="outputValue">0</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 布尔表达式 -->
+    <div class="expression-box" id="expressionBox">
+      A AND B = <span class="expr-result" id="exprResult">0</span>
+    </div>
+
+    <!-- 工具栏 -->
+    <div class="toolbar">
+      <button type="button" class="btn primary" onclick="resetInputs()">&#8635; 重置</button>
+      <button type="button" class="btn" onclick="copyExpression()">&#128203; 复制表达式</button>
+      <button type="button" class="btn" onclick="copyTruthTable()">&#128203; 复制真值表</button>
+    </div>
+
+    <!-- 真值表 -->
+    <h3 style="margin-top:16px;">&#128202; 真值表</h3>
+    <div class="truth-table-wrap" id="truthTableWrap"></div>
+    <p class="gate-tip" id="gateTip"></p>
+  </div>
+
+  <!-- 门参考信息卡片 -->
+  <div class="card">
+    <h3>&#128218; 逻辑门速查</h3>
+    <div class="gate-info-grid" id="gateInfoGrid"></div>
+  </div>
+
+  <!-- 多门组合（进阶） -->
+  <div class="card">
+    <h3>&#128279; 多门组合（进阶）</h3>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;">
+      点击下方按钮串联多个逻辑门，观察组合输出。点击已添加的门可移除。
+    </p>
+    <div class="combo-chains" id="comboChains">
+      <div class="combo-chip" style="cursor:default;border-color:var(--primary);color:var(--primary);">
+        A=<span id="comboA">0</span>
+      </div>
+      <div class="combo-chip" style="cursor:default;border-color:var(--primary);color:var(--primary);">
+        B=<span id="comboB">0</span>
+      </div>
+    </div>
+    <div class="gate-selector" style="margin:8px 0;" id="comboGateSelector"></div>
+    <div class="toolbar">
+      <button type="button" class="btn" onclick="addComboGate()">+ 添加逻辑门</button>
+      <button type="button" class="btn danger" onclick="clearCombo()">&#128465; 清空组合</button>
+    </div>
+    <div id="comboResult" style="display:none;">
+      <div class="combo-output-label">组合输出</div>
+      <div class="combo-output-value" id="comboOutputValue"></div>
+    </div>
+    <div class="combo-chains" id="comboDisplay"></div>
+  </div>
+
+  <!-- SEO 工具介绍 -->
+  
+</div>
+
+</div>
+
+<!-- 相关工具 -->
+<div class="related-tools" data-related-tools="1">
+  <h3 class="related-tools-title">🔗 相关工具</h3>
+  <div class="related-tools-grid">
+    <a href="text-extract-phones.html" class="related-tool-card">
+      <span class="rt-icon">📝</span>
+      <span class="rt-info"><span class="rt-name">提取电话号码 - 免费文本处理工具，在线提取电话号码 | ToolBox免费在线工具箱</span><span class="rt-desc">提取电话号码</span></span>
+    </a>
+    <a href="barcode-pharmacode.html" class="related-tool-card">
+      <span class="rt-icon">🎲</span>
+      <span class="rt-info"><span class="rt-name">Pharmacode 条形码 - 免费生成器工具，在线Pharmacode 条形码 | ToolBox免费在线工具箱</span><span class="rt-desc">Pharmacode 条形码</span></span>
+    </a>
+    <a href="passphrase-generator.html" class="related-tool-card">
+      <span class="rt-icon">🎲</span>
+      <span class="rt-info"><span class="rt-name">密码短语生成器 - 免费生成器工具，在线密码短语生成器 | ToolBox免费在线工具箱</span><span class="rt-desc">密码短语生成器</span></span>
+    </a>
+    <a href="../misc/magic-square.html" class="related-tool-card">
+      <span class="rt-icon">🪄</span>
+      <span class="rt-info"><span class="rt-name">幻方生成器 - 科学研究在线工具 | ToolBox免费在线工具箱</span><span class="rt-desc">幻方生成器</span></span>
+    </a>
+    <a href="phone-qr.html" class="related-tool-card">
+      <span class="rt-icon">🎲</span>
+      <span class="rt-info"><span class="rt-name">电话二维码 - 免费生成器工具，在线电话二维码 | ToolBox免费在线工具箱</span><span class="rt-desc">电话二维码</span></span>
+    </a>
+    <a href="../misc/truth-table.html" class="related-tool-card">
+      <span class="rt-icon">🔌</span>
+      <span class="rt-info"><span class="rt-name">逻辑真值表生成器 - 科学研究在线工具 | ToolBox免费在线工具箱</span><span class="rt-desc">逻辑真值表生成器</span></span>
+    </a>
+  </div>
+</div>
+<div class="tool-intro" id="toolIntro">
+    <div class="tool-intro-header" onclick="this.parentElement.classList.toggle('open')">
+      <div class="intro-icon-wrap">
+        <div class="intro-icon">&#9889;</div>
+        <span>关于逻辑门模拟器</span>
+      </div>
+      <div class="arrow">&#9660;</div>
+    </div>
+    <div class="tool-intro-body">
+      <p>逻辑门（Logic Gate）是数字电路的基本组成单元，执行基本布尔逻辑运算。本工具提供 8 种常见逻辑门的交互式模拟，支持实时输入切换、LED 输出指示、真值表高亮和多门组合功能。</p>
+      <h4><span class="h4-icon">&#127919;</span> 功能特点</h4>
+      <ul class="intro-features">
+        <li>8 种基本逻辑门</li>
+        <li>交互式开关输入</li>
+        <li>LED 灯输出指示</li>
+        <li>实时布尔表达式</li>
+        <li>真值表高亮显示</li>
+        <li>多门组合模拟</li>
+        <li>SVG 门电路符号</li>
+        <li>深色模式支持</li>
+      </ul>
+      <h4><span class="h4-icon">&#128161;</span> 使用场景</h4>
+      <ul class="intro-scenes">
+        <li>数字电路教学演示</li>
+        <li>计算机组成原理学习</li>
+        <li>布尔代数验证</li>
+        <li>逻辑设计辅助分析</li>
+      </ul>
+      <h4><span class="h4-icon">&#10067;</span> 常见问题</h4>
+      <div class="intro-faq-item">
+        <div class="intro-faq-q">什么是逻辑门？</div>
+        <div class="intro-faq-a">逻辑门是执行基本逻辑运算的电子电路元件，是数字电路和计算机的基础构建模块。每个逻辑门有一个或多个输入和一个输出，输出由输入的逻辑关系决定。</div>
+      </div>
+      <div class="intro-faq-item">
+        <div class="intro-faq-q">NAND 门为什么被称为"万能门"？</div>
+        <div class="intro-faq-a">因为仅用 NAND 门就可以组合实现所有其他逻辑门（AND、OR、NOT、XOR 等），在集成电路设计中具有重要意义。</div>
+      </div>
+      <div class="intro-faq-item">
+        <div class="intro-faq-q">XOR 和 XNOR 有什么区别？</div>
+        <div class="intro-faq-a">XOR（异或）在两个输入不同时输出 1；XNOR（同或）在两个输入相同时输出 1。XNOR 也称为"异或非"，是 XOR 的取反。</div>
+      </div>
+    </div>
+  </div>
+
+<!-- 注意事项区块 -->
+<div class="tool-notes" style="--tool-accent:#06B6D4;">
+  <div class="tool-notes-title">⚠️ 使用说明与注意事项</div>
+  <ul>
+      <li>本工具纯前端运行，数据不会上传到服务器</li>
+      <li>建议在主流浏览器（Chrome/Safari/Firefox/Edge）中使用</li>
+      <li>计算结果仅供参考，请以实际应用场景为准</li>
+  </ul>
+</div>
+<!-- /注意事项区块 -->
+</div>
+
+<script>
+// ===== 逻辑门数据定义 =====
+const GATES = {
+  AND: {
+    name: 'AND', alias: '与门', inputs: 2,
+    desc: '两输入全1输出1',
+    truthTable: [[0,0,0],[0,1,0],[1,0,0],[1,1,1]],
+    fn: (a,b) => a & b,
+    expr: (a,b,r) => `${a} AND ${b} = ${r}`
+  },
+  OR: {
+    name: 'OR', alias: '或门', inputs: 2,
+    desc: '任一输入1输出1',
+    truthTable: [[0,0,0],[0,1,1],[1,0,1],[1,1,1]],
+    fn: (a,b) => a | b,
+    expr: (a,b,r) => `${a} OR ${b} = ${r}`
+  },
+  NOT: {
+    name: 'NOT', alias: '非门', inputs: 1,
+    desc: '输入取反',
+    truthTable: [[0,1],[1,0]],
+    fn: (a) => a ^ 1,
+    expr: (a,b,r) => `NOT ${a} = ${r}`
+  },
+  NAND: {
+    name: 'NAND', alias: '与非门', inputs: 2,
+    desc: 'AND取反',
+    truthTable: [[0,0,1],[0,1,1],[1,0,1],[1,1,0]],
+    fn: (a,b) => (a & b) ^ 1,
+    expr: (a,b,r) => `NOT (${a} AND ${b}) = ${r}`
+  },
+  NOR: {
+    name: 'NOR', alias: '或非门', inputs: 2,
+    desc: 'OR取反',
+    truthTable: [[0,0,1],[0,1,0],[1,0,0],[1,1,0]],
+    fn: (a,b) => (a | b) ^ 1,
+    expr: (a,b,r) => `NOT (${a} OR ${b}) = ${r}`
+  },
+  XOR: {
+    name: 'XOR', alias: '异或门', inputs: 2,
+    desc: '输入不同输出1',
+    truthTable: [[0,0,0],[0,1,1],[1,0,1],[1,1,0]],
+    fn: (a,b) => a ^ b,
+    expr: (a,b,r) => `${a} XOR ${b} = ${r}`
+  },
+  XNOR: {
+    name: 'XNOR', alias: '同或门', inputs: 2,
+    desc: '输入相同输出1',
+    truthTable: [[0,0,1],[0,1,0],[1,0,0],[1,1,1]],
+    fn: (a,b) => (a ^ b) ^ 1,
+    expr: (a,b,r) => `${a} XNOR ${b} = ${r}`
+  },
+  BUFFER: {
+    name: 'BUFFER', alias: '缓冲器', inputs: 1,
+    desc: '输出等于输入',
+    truthTable: [[0,0],[1,1]],
+    fn: (a) => a,
+    expr: (a,b,r) => `${a} = ${r}`
+  }
+};
+
+// ===== SVG 门符号生成 =====
+function getGateSVG(type) {
+  const svgNS = 'http://www.w3.org/2000/svg';
+  const w = 160, h = 100;
+  const stroke = 'var(--heading)';
+  const fill = 'var(--result-bg)';
+  const sw = 2.5;
+
+  const paths = {
+    AND: `
+      <line x1="0" y1="30" x2="40" y2="30" stroke="${stroke}" stroke-width="${sw}"/>
+      <line x1="0" y1="70" x2="40" y2="70" stroke="${stroke}" stroke-width="${sw}"/>
+      <path d="M40,25 L40,75 L110,75 A35,35 0 0,0 110,25 Z" fill="${fill}" stroke="${stroke}" stroke-width="${sw}" stroke-linejoin="round"/>
+      <line x1="110" y1="50" x2="160" y2="50" stroke="${stroke}" stroke-width="${sw}"/>
+      <text x="65" y="55" text-anchor="middle" fill="${stroke}" font-size="14" font-weight="700" font-family="monospace">&amp;</text>
+      <text x="0" y="22" fill="${stroke}" font-size="11" font-family="monospace">A</text>
+      <text x="0" y="82" fill="${stroke}" font-size="11" font-family="monospace">B</text>
+      <text x="148" y="45" fill="${stroke}" font-size="11" font-family="monospace">Q</text>
+    `,
+    OR: `
+      <line x1="0" y1="30" x2="30" y2="30" stroke="${stroke}" stroke-width="${sw}"/>
+      <line x1="0" y1="70" x2="20" y2="70" stroke="${stroke}" stroke-width="${sw}"/>
+      <path d="M30,25 Q55,25 80,25 Q130,50 80,75 Q55,75 30,75 Q60,50 30,25 Z" fill="${fill}" stroke="${stroke}" stroke-width="${sw}" stroke-linejoin="round"/>
+      <line x1="110" y1="50" x2="160" y2="50" stroke="${stroke}" stroke-width="${sw}"/>
+      <text x="60" y="55" text-anchor="middle" fill="${stroke}" font-size="13" font-weight="700" font-family="monospace">&ge;1</text>
+      <text x="0" y="22" fill="${stroke}" font-size="11" font-family="monospace">A</text>
+      <text x="0" y="82" fill="${stroke}" font-size="11" font-family="monospace">B</text>
+      <text x="148" y="45" fill="${stroke}" font-size="11" font-family="monospace">Q</text>
+    `,
+    NOT: `
+      <line x1="0" y1="50" x2="40" y2="50" stroke="${stroke}" stroke-width="${sw}"/>
+      <path d="M40,25 L40,75 L100,50 Z" fill="${fill}" stroke="${stroke}" stroke-width="${sw}" stroke-linejoin="round"/>
+      <circle cx="108" cy="50" r="6" fill="${fill}" stroke="${stroke}" stroke-width="${sw}"/>
+      <line x1="114" y1="50" x2="160" y2="50" stroke="${stroke}" stroke-width="${sw}"/>
+      <text x="55" y="55" text-anchor="middle" fill="${stroke}" font-size="13" font-weight="700" font-family="monospace">1</text>
+      <text x="0" y="42" fill="${stroke}" font-size="11" font-family="monospace">A</text>
+      <text x="148" y="45" fill="${stroke}" font-size="11" font-family="monospace">Q</text>
+    `,
+    NAND: `
+      <line x1="0" y1="30" x2="40" y2="30" stroke="${stroke}" stroke-width="${sw}"/>
+      <line x1="0" y1="70" x2="40" y2="70" stroke="${stroke}" stroke-width="${sw}"/>
+      <path d="M40,25 L40,75 L100,75 A30,30 0 0,0 100,25 Z" fill="${fill}" stroke="${stroke}" stroke-width="${sw}" stroke-linejoin="round"/>
+      <circle cx="108" cy="50" r="6" fill="${fill}" stroke="${stroke}" stroke-width="${sw}"/>
+      <line x1="114" y1="50" x2="160" y2="50" stroke="${stroke}" stroke-width="${sw}"/>
+      <text x="60" y="55" text-anchor="middle" fill="${stroke}" font-size="13" font-weight="700" font-family="monospace">&amp;</text>
+      <text x="0" y="22" fill="${stroke}" font-size="11" font-family="monospace">A</text>
+      <text x="0" y="82" fill="${stroke}" font-size="11" font-family="monospace">B</text>
+      <text x="148" y="45" fill="${stroke}" font-size="11" font-family="monospace">Q</text>
+    `,
+    NOR: `
+      <line x1="0" y1="30" x2="30" y2="30" stroke="${stroke}" stroke-width="${sw}"/>
+      <line x1="0" y1="70" x2="20" y2="70" stroke="${stroke}" stroke-width="${sw}"/>
+      <path d="M30,25 Q50,25 70,25 Q110,50 70,75 Q50,75 30,75 Q55,50 30,25 Z" fill="${fill}" stroke="${stroke}" stroke-width="${sw}" stroke-linejoin="round"/>
+      <circle cx="100" cy="50" r="6" fill="${fill}" stroke="${stroke}" stroke-width="${sw}"/>
+      <line x1="106" y1="50" x2="160" y2="50" stroke="${stroke}" stroke-width="${sw}"/>
+      <text x="52" y="55" text-anchor="middle" fill="${stroke}" font-size="12" font-weight="700" font-family="monospace">&ge;1</text>
+      <text x="0" y="22" fill="${stroke}" font-size="11" font-family="monospace">A</text>
+      <text x="0" y="82" fill="${stroke}" font-size="11" font-family="monospace">B</text>
+      <text x="148" y="45" fill="${stroke}" font-size="11" font-family="monospace">Q</text>
+    `,
+    XOR: `
+      <line x1="0" y1="30" x2="30" y2="30" stroke="${stroke}" stroke-width="${sw}"/>
+      <line x1="0" y1="70" x2="20" y2="70" stroke="${stroke}" stroke-width="${sw}"/>
+      <path d="M38,25 Q55,25 75,25 Q125,50 75,75 Q55,75 38,75 Q60,50 38,25 Z" fill="${fill}" stroke="${stroke}" stroke-width="${sw}" stroke-linejoin="round"/>
+      <path d="M30,25 Q48,25 68,25 Q118,50 68,75 Q48,75 30,75 Q52,50 30,25 Z" fill="none" stroke="${stroke}" stroke-width="${sw}" stroke-linejoin="round"/>
+      <line x1="105" y1="50" x2="160" y2="50" stroke="${stroke}" stroke-width="${sw}"/>
+      <text x="62" y="55" text-anchor="middle" fill="${stroke}" font-size="12" font-weight="700" font-family="monospace">=1</text>
+      <text x="0" y="22" fill="${stroke}" font-size="11" font-family="monospace">A</text>
+      <text x="0" y="82" fill="${stroke}" font-size="11" font-family="monospace">B</text>
+      <text x="148" y="45" fill="${stroke}" font-size="11" font-family="monospace">Q</text>
+    `,
+    XNOR: `
+      <line x1="0" y1="30" x2="30" y2="30" stroke="${stroke}" stroke-width="${sw}"/>
+      <line x1="0" y1="70" x2="20" y2="70" stroke="${stroke}" stroke-width="${sw}"/>
+      <path d="M38,25 Q55,25 75,25 Q120,50 75,75 Q55,75 38,75 Q60,50 38,25 Z" fill="${fill}" stroke="${stroke}" stroke-width="${sw}" stroke-linejoin="round"/>
+      <path d="M30,25 Q48,25 68,25 Q113,50 68,75 Q48,75 30,75 Q52,50 30,25 Z" fill="none" stroke="${stroke}" stroke-width="${sw}" stroke-linejoin="round"/>
+      <circle cx="103" cy="50" r="6" fill="${fill}" stroke="${stroke}" stroke-width="${sw}"/>
+      <line x1="109" y1="50" x2="160" y2="50" stroke="${stroke}" stroke-width="${sw}"/>
+      <text x="58" y="55" text-anchor="middle" fill="${stroke}" font-size="12" font-weight="700" font-family="monospace">=1</text>
+      <text x="0" y="22" fill="${stroke}" font-size="11" font-family="monospace">A</text>
+      <text x="0" y="82" fill="${stroke}" font-size="11" font-family="monospace">B</text>
+      <text x="148" y="45" fill="${stroke}" font-size="11" font-family="monospace">Q</text>
+    `,
+    BUFFER: `
+      <line x1="0" y1="50" x2="40" y2="50" stroke="${stroke}" stroke-width="${sw}"/>
+      <path d="M40,25 L40,75 L110,50 Z" fill="${fill}" stroke="${stroke}" stroke-width="${sw}" stroke-linejoin="round"/>
+      <line x1="110" y1="50" x2="160" y2="50" stroke="${stroke}" stroke-width="${sw}"/>
+      <text x="62" y="55" text-anchor="middle" fill="${stroke}" font-size="13" font-weight="700" font-family="monospace">1</text>
+      <text x="0" y="42" fill="${stroke}" font-size="11" font-family="monospace">A</text>
+      <text x="148" y="45" fill="${stroke}" font-size="11" font-family="monospace">Q</text>
+    `
+  };
+
+  return `<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" xmlns="${svgNS}">${paths[type] || ''}</svg>`;
+}
+
+// ===== 状态 =====
+let currentGate = 'AND';
+let inputA = 0;
+let inputB = 0;
+let comboGates = []; // 多门组合的链
+
+// ===== 初始化 =====
+function init() {
+  renderGateInfo();
+  renderComboSelector();
+  selectGate('AND');
+}
+
+// ===== 选择门类型 =====
+function selectGate(type) {
+  currentGate = type;
+  const gate = GATES[type];
+
+  // 更新按钮高亮
+  document.querySelectorAll('#gateSelector .gate-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.gate === type);
+  });
+
+  // 单输入门隐藏 B 开关
+  const switchB = document.getElementById('switchB');
+  if (gate.inputs === 1) {
+    switchB.style.visibility = 'hidden';
+    switchB.style.opacity = '0.3';
+    switchB.style.pointerEvents = 'none';
+  } else {
+    switchB.style.visibility = 'visible';
+    switchB.style.opacity = '1';
+    switchB.style.pointerEvents = 'auto';
+  }
+
+  // 更新门信息高亮
+  document.querySelectorAll('.gate-info-card').forEach(card => {
+    card.classList.toggle('active', card.dataset.gate === type);
+  });
+
+  // 渲染
+  renderGateSymbol();
+  renderTruthTable();
+  updateOutput();
+}
+
+// ===== 切换输入 =====
+function toggleInput(which) {
+  if (which === 'A') {
+    inputA = inputA ^ 1;
+    const track = document.querySelector('#switchA .switch-track');
+    const val = document.getElementById('valA');
+    track.classList.toggle('on', inputA === 1);
+    val.textContent = inputA;
+  } else {
+    inputB = inputB ^ 1;
+    const track = document.querySelector('#switchB .switch-track');
+    const val = document.getElementById('valB');
+    track.classList.toggle('on', inputB === 1);
+    val.textContent = inputB;
+  }
+  updateOutput();
+  updateCombo();
+}
+
+// ===== 更新输出 =====
+function updateOutput() {
+  const gate = GATES[currentGate];
+  let result;
+  if (gate.inputs === 1) {
+    result = gate.fn(inputA);
+  } else {
+    result = gate.fn(inputA, inputB);
+  }
+
+  // LED 灯
+  const led = document.getElementById('ledLight');
+  led.classList.toggle('on', result === 1);
+
+  // 输出值
+  const outEl = document.getElementById('outputValue');
+  outEl.textContent = result;
+  outEl.className = 'output-value ' + (result === 1 ? 'val-1' : 'val-0');
+
+  // 布尔表达式
+  const exprEl = document.getElementById('exprResult');
+  const exprText = gate.expr(inputA, inputB, result);
+  exprEl.parentElement.innerHTML = exprText.replace(/=(\d)/, `= <span class="expr-result">$1</span>`);
+
+  // 高亮真值表当前行
+  highlightTruthTable();
+
+  // 提示
+  const tip = document.getElementById('gateTip');
+  tip.textContent = `${gate.name}（${gate.alias}）：${gate.desc}`;
+}
+
+// ===== 渲染门符号 =====
+function renderGateSymbol() {
+  document.getElementById('gateSymbol').innerHTML = getGateSVG(currentGate);
+}
+
+// ===== 渲染真值表 =====
+function renderTruthTable() {
+  const gate = GATES[currentGate];
+  const wrap = document.getElementById('truthTableWrap');
+
+  let html = '<table class="truth-table"><thead><tr>';
+  if (gate.inputs === 1) {
+    html += '<th>A</th><th>Q</th>';
+  } else {
+    html += '<th>A</th><th>B</th><th>Q</th>';
+  }
+  html += '</tr></thead><tbody>';
+
+  gate.truthTable.forEach(row => {
+    html += '<tr data-row="' + row.join(',') + '">';
+    row.forEach(cell => {
+      html += '<td>' + cell + '</td>';
+    });
+    html += '</tr>';
+  });
+
+  html += '</tbody></table>';
+  wrap.innerHTML = html;
+}
+
+// ===== 高亮真值表 =====
+function highlightTruthTable() {
+  const gate = GATES[currentGate];
+  const rows = document.querySelectorAll('.truth-table tbody tr');
+
+  rows.forEach(tr => {
+    const data = tr.dataset.row.split(',').map(Number);
+    let match = false;
+    if (gate.inputs === 1) {
+      match = data[0] === inputA;
+    } else {
+      match = data[0] === inputA && data[1] === inputB;
+    }
+    tr.classList.toggle('highlight', match);
+  });
+}
+
+// ===== 渲染门信息卡片 =====
+function renderGateInfo() {
+  const grid = document.getElementById('gateInfoGrid');
+  let html = '';
+  Object.keys(GATES).forEach(key => {
+    const g = GATES[key];
+    html += `<div class="gate-info-card${key === currentGate ? ' active' : ''}" data-gate="${key}" onclick="selectGate('${key}')">
+      <div class="gate-name">${g.name}</div>
+      <div class="gate-alias">${g.alias}</div>
+      <div class="gate-desc">${g.desc}</div>
+    </div>`;
+  });
+  grid.innerHTML = html;
+}
+
+// ===== 重置输入 =====
+function resetInputs() {
+  inputA = 0;
+  inputB = 0;
+  document.querySelector('#switchA .switch-track').classList.remove('on');
+  document.querySelector('#switchB .switch-track').classList.remove('on');
+  document.getElementById('valA').textContent = '0';
+  document.getElementById('valB').textContent = '0';
+  updateOutput();
+  updateCombo();
+  ToolBox.showToast(i18nText());
+}
+
+// ===== 复制表达式 =====
+function copyExpression() {
+  const gate = GATES[currentGate];
+  const text = gate.expr(inputA, inputB, GATES[currentGate].inputs === 1 ? gate.fn(inputA) : gate.fn(inputA, inputB));
+  ToolBox.copyText(text);
+}
+
+// ===== 复制真值表 =====
+function copyTruthTable() {
+  const gate = GATES[currentGate];
+  let text = `${gate.name}（${gate.alias}）真值表\n`;
+  if (gate.inputs === 1) {
+    text += 'A | Q\n';
+    text += '--+--\n';
+    gate.truthTable.forEach(r => { text += `${r[0]} | ${r[1]}\n`; });
+  } else {
+    text += 'A | B | Q\n';
+    text += '--+--+--\n';
+    gate.truthTable.forEach(r => { text += `${r[0]} | ${r[1]} | ${r[2]}\n`; });
+  }
+  ToolBox.copyText(text);
+}
+
+// ===== 多门组合 =====
+function renderComboSelector() {
+  const sel = document.getElementById('comboGateSelector');
+  let html = '';
+  Object.keys(GATES).forEach(key => {
+    html += `<button type="button" class="gate-btn combo-gate-btn" data-gate="${key}" onclick="setComboGateType('${key}')">${key}</button>`;
+  });
+  sel.innerHTML = html;
+}
+
+let selectedComboGate = 'AND';
+function setComboGateType(type) {
+  selectedComboGate = type;
+  document.querySelectorAll('#comboGateSelector .gate-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.gate === type);
+  });
+}
+
+function addComboGate() {
+  if (comboGates.length >= 6) {
+    ToolBox.showToast(i18nText(), 'warning');
+    return;
+  }
+  comboGates.push(selectedComboGate);
+  updateCombo();
+  ToolBox.showToast(`已添加 ${selectedComboGate} 门`);
+}
+
+function removeComboGate(index) {
+  comboGates.splice(index, 1);
+  updateCombo();
+}
+
+function clearCombo() {
+  comboGates = [];
+  updateCombo();
+  ToolBox.showToast(i18nText());
+}
+
+function updateCombo() {
+  // 更新输入显示
+  document.getElementById('comboA').textContent = inputA;
+  document.getElementById('comboB').textContent = inputB;
+
+  const display = document.getElementById('comboDisplay');
+  const resultDiv = document.getElementById('comboResult');
+
+  if (comboGates.length === 0) {
+    display.innerHTML = '';
+    resultDiv.style.display = 'none';
+    return;
+  }
+
+  // 计算组合输出
+  let valA = inputA, valB = inputB;
+  let currentOutput = 0;
+  const steps = [];
+
+  comboGates.forEach((gateType, i) => {
+    const gate = GATES[gateType];
+    let out;
+    if (gate.inputs === 1) {
+      out = gate.fn(valA);
+      steps.push({ gate: gateType, a: valA, b: '-', out });
+      // 单输出门的输出作为下一级的两个输入
+      valA = out;
+      valB = out;
+    } else {
+      out = gate.fn(valA, valB);
+      steps.push({ gate: gateType, a: valA, b: valB, out });
+      valA = out;
+      valB = inputA; // 第二路保持原始 A
+    }
+    currentOutput = out;
+  });
+
+  // 渲染组合链
+  let html = '';
+  comboGates.forEach((gateType, i) => {
+    const step = steps[i];
+    if (i === 0) {
+      html += `<div class="combo-arrow">&#10132;</div>`;
+    }
+    html += `<div class="combo-chip${i === comboGates.length - 1 ? ' active' : ''}">
+      ${gateType}(${step.a}${GATES[gateType].inputs === 1 ? '' : ',' + step.b}) = ${step.out}
+      <span class="remove-chip" onclick="removeComboGate(${i})">&times;</span>
+    </div>`;
+    if (i < comboGates.length - 1) {
+      html += `<div class="combo-arrow">&#10132;</div>`;
+    }
+  });
+  display.innerHTML = html;
+
+  resultDiv.style.display = 'block';
+  const outEl = document.getElementById('comboOutputValue');
+  outEl.innerHTML = `最终输出 = <span style="color:var(--primary);font-size:18px;">${currentOutput}</span>`;
+}
+
+// 启动
+init();
+</script><script>
+// tool-intro折叠交互
+document.addEventListener('DOMContentLoaded',function(){
+  var headers=document.querySelectorAll('.tool-intro-header');
+  headers.forEach(function(h){
+    h.addEventListener('click',function(){
+      this.parentElement.classList.toggle('open');
+    });
+  });
+});
+</script>
+
+</body>
+</html>

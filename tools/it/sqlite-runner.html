@@ -1,0 +1,752 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+
+<script src="/js/tool-page-runtime.js" defer></script>
+<!-- TOOLBOX-TOOL-RUNTIME -->
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>SQLite 在线执行工具 - 基于 sql.js（将 SQLite 编译为 - ToolBox</title>
+<meta name="toolbox" content="cat=dev,industry=it,icon=🗄️,bg=#e3f2fd">
+<meta name="description" content="SQLite 在线执行工具 - 基于 sql.js（将 SQLite 编译为 WebAssembly）实现，在浏览器内存中运行完整的 SQLite 数据库引擎。无需安装任何软件、无需注册账号，打开网页即可编写并执行 SQL 语句，实时查看查询结果">
+<meta name="keywords" content="SQLite在线执行,SQLite在线工具,SQLite运行,sql.js,在线SQLite,SQLite浏览器,SQL执行工具,SQLite练习,在线数据库,开发工具">
+<meta name="robots" content="index,follow">
+<link rel="canonical" href="https://chenguangwu.github.io/tools/it/sqlite-runner.html">
+<meta property="og:title" content="SQLite 在线执行工具 - 基于 sql.js（将 SQLite 编译为 - ToolBox">
+<meta property="og:description" content="SQLite 在线执行工具 - 基于 sql.js（将 SQLite 编译为 WebAssembly）实现，在浏览器内存中运行完整的 SQLite 数据库引擎。无需安装任何软件、无需注册账号，打开网页即可编写并执行 SQL 语句，实时查看查询结果">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://chenguangwu.github.io/tools/it/sqlite-runner.html">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="SQLite 在线执行工具 - 基于 sql.js（将 SQLite 编译为 - ToolBox">
+<meta name="twitter:description" content="SQLite 在线执行工具 - 基于 sql.js（将 SQLite 编译为 WebAssembly）实现，在浏览器内存中运行完整的 SQLite 数据库引擎。无需安装任何软件、无需注册账号，打开网页即可编写并执行 SQL 语句，实时查看查询结果">
+<meta name="theme-color" content="#FF6B35">
+<link rel="icon" type="image/svg+xml" href="../../favicon.svg">
+<link rel="icon" href="../../favicon.ico" sizes="16x16 32x32 48x48">
+<link rel="apple-touch-icon" href="../../apple-touch-icon.png">
+<link rel="stylesheet" href="../../css/common.css">
+<script src="../../js/common.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.8.0/sql-wasm.js"></script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "SQLite 在线执行工具",
+  "description": "基于 sql.js WASM 在浏览器本地运行 SQLite 数据库，支持多条 SQL 执行、结果表格、执行耗时、历史记录、导出 .sqlite 文件。纯前端处理，数据不上传。",
+  "url": "https://chenguangwu.github.io/tools/it/sqlite-runner.html",
+  "applicationCategory": "DeveloperApplication",
+  "operatingSystem": "Web",
+  "offers": { "@type": "Offer", "price": "0", "priceCurrency": "CNY" },
+  "inLanguage": "zh-CN",
+  "isAccessibleForFree": true,
+  "browserRequirements": "Requires JavaScript. Requires WebAssembly.",
+  "softwareVersion": "1.0"
+}
+</script>
+<style>
+/* 状态徽标 */
+.db-status{display:inline-flex;align-items:center;gap:6px;padding:4px 12px;border-radius:20px;font-size:12px;font-weight:600;white-space:nowrap;}
+.db-status.loading{background:rgba(245,158,11,0.12);color:var(--warning);}
+.db-status.ready{background:rgba(16,185,129,0.12);color:var(--success);}
+.db-status.error{background:rgba(239,68,68,0.12);color:var(--danger);}
+.db-status .dot{width:7px;height:7px;border-radius:50%;background:currentColor;display:inline-block;}
+.db-status.loading .dot{animation:pulse 1.1s ease-in-out infinite;}
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:0.3;}}
+
+.header-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:4px;}
+.header-row h2{margin:0;}
+
+/* SQL 编辑器（高亮叠加层） */
+.sql-editor-wrap{position:relative;margin-bottom:8px;}
+.sql-highlight,#sqlInput{
+  font-family:'SF Mono','Courier New','Fira Code',monospace;
+  font-size:14px;
+  line-height:1.6;
+  padding:12px 14px;
+  border-radius:12px;
+  border:1.5px solid var(--border);
+  white-space:pre-wrap;
+  word-break:break-word;
+  tab-size:2;
+  -moz-tab-size:2;
+  margin:0;
+  box-sizing:border-box;
+  width:100%;
+  letter-spacing:normal;
+}
+.sql-highlight{
+  position:absolute;
+  top:0;left:0;
+  height:100%;
+  background:transparent;
+  color:var(--text);
+  overflow:auto;
+  scrollbar-width:none;
+  pointer-events:none;
+  z-index:0;
+  border-color:transparent;
+}
+.sql-highlight::-webkit-scrollbar{display:none;}
+#sqlInput{
+  position:relative;
+  z-index:1;
+  background:transparent;
+  color:transparent;
+  caret-color:var(--text);
+  resize:vertical;
+  min-height:200px;
+  -webkit-text-fill-color:transparent;
+}
+#sqlInput::selection{background:rgba(255,107,53,0.25);-webkit-text-fill-color:transparent;}
+.sql-keyword{color:#7C3AED;font-weight:600;}
+.sql-string{color:#059669;}
+.sql-number{color:#FF6B35;}
+.sql-comment{color:var(--text-muted);font-style:italic;}
+[data-theme="dark"] .sql-keyword{color:#C4B5FD;}
+[data-theme="dark"] .sql-string{color:#34D399;}
+[data-theme="dark"] .sql-number{color:#FB923C;}
+
+.editor-hint{font-size:12px;color:var(--text-muted);display:flex;gap:14px;flex-wrap:wrap;margin-bottom:14px;}
+.editor-hint kbd{font-size:11px;}
+
+/* 表列表 */
+.table-chips{display:flex;flex-wrap:wrap;gap:8px;}
+.table-chip{padding:6px 14px;border-radius:20px;background:var(--result-bg);border:1px solid var(--border);font-size:13px;color:var(--text);cursor:pointer;transition:all 0.2s;font-family:'SF Mono','Courier New',monospace;display:inline-flex;align-items:center;gap:6px;}
+.table-chip:hover{border-color:var(--primary);color:var(--primary);transform:translateY(-1px);}
+.table-empty{font-size:13px;color:var(--text-muted);}
+
+/* 执行输出 */
+.exec-output{margin-top:12px;}
+.exec-item{background:var(--result-bg);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:10px;overflow:auto;}
+.exec-meta{font-size:12px;color:var(--text-muted);margin-bottom:8px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.exec-meta .tag{padding:2px 8px;border-radius:6px;font-weight:600;font-size:11px;}
+.exec-meta .tag.q{background:rgba(124,58,237,0.12);color:#7C3AED;}
+.exec-meta .tag.m{background:rgba(255,107,53,0.12);color:var(--primary);}
+.exec-meta .tag.e{background:rgba(239,68,68,0.12);color:var(--danger);}
+[data-theme="dark"] .exec-meta .tag.q{color:#C4B5FD;}
+.exec-meta .time{color:var(--text-secondary);}
+.exec-meta .rows{color:var(--success);font-weight:600;}
+.exec-sql{font-family:'SF Mono','Courier New',monospace;font-size:12px;color:var(--text-secondary);background:var(--card-bg);border:1px solid var(--border);border-radius:8px;padding:8px 10px;margin-bottom:8px;white-space:pre-wrap;word-break:break-word;max-height:120px;overflow:auto;}
+.exec-item table{margin-top:4px;}
+.exec-error{color:var(--danger);font-size:13px;font-family:'SF Mono','Courier New',monospace;background:rgba(239,68,68,0.06);border:1px solid rgba(239,68,68,0.2);border-radius:8px;padding:10px 12px;word-break:break-word;}
+.exec-summary{font-size:13px;color:var(--text-secondary);padding:10px 14px;background:var(--result-bg);border:1px solid var(--border);border-radius:12px;margin-top:10px;}
+.exec-summary strong{color:var(--primary);}
+
+/* 历史记录 */
+.history-list{max-height:280px;overflow-y:auto;}
+.history-item{padding:10px 12px;border:1px solid var(--border);border-radius:10px;margin-bottom:8px;cursor:pointer;transition:all 0.2s;background:var(--card-bg);}
+.history-item:hover{border-color:var(--primary);transform:translateX(2px);box-shadow:var(--shadow-sm);}
+.history-item .h-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;gap:8px;}
+.history-item .h-time{font-size:11px;color:var(--text-muted);}
+.history-item .h-status{font-size:11px;padding:2px 8px;border-radius:6px;font-weight:600;}
+.history-item .h-status.ok{background:rgba(16,185,129,0.12);color:var(--success);}
+.history-item .h-status.err{background:rgba(239,68,68,0.12);color:var(--danger);}
+.history-item .h-sql{font-family:'SF Mono','Courier New',monospace;font-size:12px;color:var(--text-secondary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+
+@media(max-width:768px){
+  #sqlInput,.sql-highlight{font-size:16px;padding:12px;}
+  .editor-hint{gap:10px;}
+}
+</style>
+
+
+
+<meta property="og:image" content="https://chenguangwu.github.io/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="ToolBox - 6000+免费在线工具">
+<meta name="twitter:image" content="https://chenguangwu.github.io/og-image.png">
+<meta name="twitter:image:alt" content="ToolBox - 6000+免费在线工具">
+<!-- TOOLBOX-WEBAPP-LD -->
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"WebApplication","name":"SQLite 在线执行工具 - 基于 sql.js（将 SQLite 编译为","url":"https://chenguangwu.github.io/tools/it/sqlite-runner.html","applicationCategory":"DeveloperApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":["zh-CN", "en-US"],"description":"SQLite 在线执行","image":"https://chenguangwu.github.io/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}
+</script>
+<meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
+<meta http-equiv="X-Content-Type-Options" content="nosniff">
+<meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
+<!-- TOOLBOX-SECURITY -->
+
+<script src="/js/privacy.js" defer></script>
+<!-- TOOLBOX-PRIVACY-SCRIPT -->
+
+<script src="/js/metrics.js" defer></script>
+<!-- TOOLBOX-METRICS-SCRIPT -->
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"首页","item":"https://chenguangwu.github.io/"},{"@type":"ListItem","position":2,"name":"IT 开发","item":"https://chenguangwu.github.io/tools/it/index.html"},{"@type":"ListItem","position":3,"name":"SQLite 在线执行工具","item":"https://chenguangwu.github.io/tools/it/sqlite-runner.html"}]}
+</script>
+
+<script src="../../js/i18n.js" defer></script>
+<script src="../../js/tool-i18n.js" defer></script>
+<!-- TOOLBOX-I18N-SCRIPT -->
+<!-- TOOLBOX-HREFLANG -->
+<link rel="alternate" hreflang="zh-CN" href="https://chenguangwu.github.io/tools/it/sqlite-runner.html">
+<link rel="alternate" hreflang="en-US" href="https://chenguangwu.github.io/tools/it/sqlite-runner.html">
+<link rel="alternate" hreflang="x-default" href="https://chenguangwu.github.io/tools/it/sqlite-runner.html">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:locale:alternate" content="en_US">
+
+<script src="/js/clarity.js" defer></script>
+<!-- TOOLBOX-CLARITY -->
+</head>
+<body>
+<h1 class="sr-only">SQLite在线执行工具</h1>
+
+<div class="nav">
+  <a href="../../index.html">← ToolBox</a>
+  <span>/ SQLite 在线执行</span>
+  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()" aria-label="切换主题">🌙</button>
+</div>
+
+
+
+
+
+<nav class="breadcrumb" aria-label="面包屑导航" data-breadcrumb="1">
+  <a href="../../index.html">首页</a>
+  <span class="bc-sep">‹</span>
+  <a href="index.html">💻 IT 开发</a>
+  <span class="bc-sep">‹</span>
+  <span class="bc-current">SQLite 在线执行工具</span>
+</nav>
+<div class="container">
+
+  <div class="card">
+    <div class="header-row">
+      <h2>🗄️ SQLite 在线执行</h2>
+      <span id="dbStatus" class="db-status loading"><span class="dot"></span>数据库加载中…</span>
+    </div>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;">基于 sql.js (WebAssembly) 在浏览器内存中运行完整 SQLite 引擎，支持多条 SQL 语句、结果表格、执行耗时、历史记录与数据库导出。所有数据均在本地处理，不上传服务器。</p>
+
+    <div class="toolbar">
+      <button type="button" class="btn primary" id="runBtn" onclick="executeSQL()" disabled>▶ 执行 (Ctrl+Enter)</button>
+      <button type="button" class="btn" onclick="loadSample()">加载示例</button>
+      <button type="button" class="btn" onclick="clearSQL()">清空 SQL</button>
+      <button type="button" class="btn warning" onclick="resetDB()">清空数据库</button>
+      <button type="button" class="btn success" onclick="exportDB()">导出 .sqlite</button>
+    </div>
+
+    <div class="sql-editor-wrap">
+      <pre class="sql-highlight" id="sqlHighlight" aria-hidden="true"></pre>
+      <textarea id="sqlInput" spellcheck="false" autocomplete="off" autocapitalize="off" autocorrect="off" placeholder="-- 在此输入 SQL 语句，多条语句用分号 ; 分隔&#10;CREATE TABLE users (id INTEGER PRIMARY KEY, name TEXT);&#10;INSERT INTO users (name) VALUES ('ToolBox');&#10;SELECT * FROM users;"></textarea>
+    </div>
+    <div class="editor-hint">
+      <span><kbd>Tab</kbd> 缩进</span>
+      <span><kbd>Ctrl</kbd>+<kbd>Enter</kbd> 执行</span>
+      <span>多条语句用 <kbd>;</kbd> 分隔</span>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>📋 数据表</h3>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:10px;">当前数据库中的表（点击表名快速查询前 100 行）</p>
+    <div id="tableList" class="table-chips"><span class="table-empty">暂无数据表，执行 CREATE TABLE 语句后此处会显示。</span></div>
+  </div>
+
+  <div class="card">
+    <h3>📤 执行结果</h3>
+    <div id="result" class="exec-output">
+      <div class="exec-summary">等待执行 SQL 语句…</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="history-header">
+      <h3>🕑 执行历史</h3>
+      <button type="button" class="btn" style="padding:6px 12px;font-size:12px;" onclick="clearHistory()">清空历史</button>
+    </div>
+    <div id="historyList" class="history-list"></div>
+  </div>
+
+  <!-- SEO 介绍区块 -->
+  
+</div>
+
+</div>
+
+<!-- 相关工具 -->
+<div class="related-tools" data-related-tools="1">
+  <h3 class="related-tools-title">🔗 相关工具</h3>
+  <div class="related-tools-grid">
+    <a href="properties-parser.html" class="related-tool-card">
+      <span class="rt-icon">🔧</span>
+      <span class="rt-info"><span class="rt-name">.properties 解析器 - 免费开发工具，properties 解析器 | ToolBox免费在线工具箱</span><span class="rt-desc">.properties 解析器</span></span>
+    </a>
+    <a href="ast-viewer.html" class="related-tool-card">
+      <span class="rt-icon">🌳</span>
+      <span class="rt-info"><span class="rt-name">AST抽象语法树查看器 - 在线解析JavaScript代码生成AST树形结构，支持节点 | ToolBox免费在线工具箱</span><span class="rt-desc">AST 抽象语法树查看器</span></span>
+    </a>
+    <a href="css-minifier.html" class="related-tool-card">
+      <span class="rt-icon">🎨</span>
+      <span class="rt-info"><span class="rt-name">CSS 压缩/美化工具 - 免费开发工具，CSS 压缩/格式化/美化 | ToolBox免费在线工具箱</span><span class="rt-desc">CSS 压缩/格式化/美化</span></span>
+    </a>
+    <a href="css-formatter.html" class="related-tool-card">
+      <span class="rt-icon">🔧</span>
+      <span class="rt-info"><span class="rt-name">CSS 格式化 - 免费开发工具，在线CSS 格式化 | ToolBox免费在线工具箱</span><span class="rt-desc">CSS 格式化</span></span>
+    </a>
+    <a href="cron.html" class="related-tool-card">
+      <span class="rt-icon">⏰</span>
+      <span class="rt-info"><span class="rt-name">Cron 表达式生成器 - 免费开发工具，在线Cron 表达式生成器 | ToolBox免费在线工具箱</span><span class="rt-desc">⏰ Cron 表达式生成器</span></span>
+    </a>
+    <a href="graphql-formatter.html" class="related-tool-card">
+      <span class="rt-icon">🔧</span>
+      <span class="rt-info"><span class="rt-name">GraphQL 格式化 - 免费开发工具，在线GraphQL 格式化 | ToolBox免费在线工具箱</span><span class="rt-desc">◈ GraphQL 格式化</span></span>
+    </a>
+  </div>
+</div>
+<div class="tool-intro open" id="toolIntro">
+    <div class="tool-intro-header">
+      <span class="intro-icon-wrap"><span class="intro-icon">📖</span>关于「SQLite 在线执行工具」</span>
+      <span class="arrow">▼</span>
+    </div>
+    <div class="tool-intro-body">
+      <h4><span class="h4-icon">📝</span>工具简介</h4>
+      <p>SQLite 在线执行工具基于 sql.js（将 SQLite 编译为 WebAssembly）实现，在浏览器内存中运行完整的 SQLite 数据库引擎。无需安装任何软件、无需注册账号，打开网页即可编写并执行 SQL 语句，实时查看查询结果。所有数据均在浏览器本地处理，不会上传到任何服务器。</p>
+      <h4><span class="h4-icon">✨</span>功能特点</h4>
+      <ul class="intro-features">
+        <li>基于 WebAssembly 的完整 SQLite 引擎</li>
+        <li>支持多条 SQL 语句一次性执行</li>
+        <li>SELECT 结果以表格形式展示</li>
+        <li>显示执行耗时与影响行数</li>
+        <li>SQL 关键字语法高亮</li>
+        <li>执行历史记录（本地保存最近 10 条）</li>
+        <li>一键导出 .sqlite 数据库文件</li>
+        <li>支持深色模式与响应式布局</li>
+        <li>纯前端运行，数据不上传</li>
+      </ul>
+      <h4><span class="h4-icon">🎯</span>使用场景</h4>
+      <ul class="intro-scenes">
+        <li>学习与练习 SQL 语法</li>
+        <li>快速验证 SQL 查询逻辑</li>
+        <li>本地测试建表与数据操作</li>
+        <li>面试笔试 SQL 题目演练</li>
+        <li>数据库课程教学演示</li>
+        <li>临时数据分析与查询</li>
+      </ul>
+      <h4><span class="h4-icon">💬</span>常见问题</h4>
+      <div class="intro-faq-item"><div class="intro-faq-q">我的数据会被上传到服务器吗？</div><div class="intro-faq-a">不会。本工具基于 sql.js 在浏览器本地内存中运行 SQLite，所有建表、插入、查询操作均在你的浏览器内完成，数据不会发送到任何服务器。</div></div>
+      <div class="intro-faq-item"><div class="intro-faq-q">支持哪些 SQL 语法？</div><div class="intro-faq-a">支持完整的 SQLite SQL 语法，包括 CREATE TABLE、INSERT、UPDATE、DELETE、SELECT、JOIN、聚合函数、子查询、视图、触发器、PRAGMA 等。</div></div>
+      <div class="intro-faq-item"><div class="intro-faq-q">刷新页面后数据还在吗？</div><div class="intro-faq-a">不在。数据库运行在浏览器内存中，刷新或关闭页面后数据会清空。如需保存，可点击「导出 .sqlite」下载数据库文件。</div></div>
+      <div class="intro-faq-item"><div class="intro-faq-q">执行多条 SQL 语句时报错怎么办？</div><div class="intro-faq-a">请确保每条语句以分号（;）结尾。工具会逐条执行并分别显示每条语句的结果或错误，方便定位问题。</div></div>
+      <div class="intro-faq-item"><div class="intro-faq-q">这个工具是免费的吗？</div><div class="intro-faq-a">完全免费，无需注册，直接在浏览器中打开即可使用。</div></div>
+    </div>
+  </div>
+  <!-- /SEO 介绍区块 -->
+
+</div>
+
+<script>
+(function(){
+'use strict';
+
+const SAMPLE_SQL = `-- 创建用户表
+CREATE TABLE users (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  name TEXT NOT NULL,
+  age INTEGER,
+  email TEXT UNIQUE,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 插入示例数据
+INSERT INTO users (name, age, email) VALUES
+  ('张三', 28, 'zhangsan@example.com'),
+  ('李四', 35, 'lisi@example.com'),
+  ('王五', 22, 'wangwu@example.com');
+
+-- 查询 25 岁及以上的用户
+SELECT id, name, age, email FROM users
+WHERE age >= 25
+ORDER BY age DESC;`;
+
+const KEYWORDS = new Set([
+  'SELECT','FROM','WHERE','INSERT','INTO','VALUES','CREATE','TABLE','DROP','UPDATE','SET',
+  'DELETE','AND','OR','NOT','NULL','PRIMARY','KEY','FOREIGN','REFERENCES','INTEGER','INT',
+  'TEXT','REAL','BLOB','NUMERIC','VARCHAR','CHAR','FLOAT','DOUBLE','BOOLEAN','DATE','DATETIME',
+  'TIME','TIMESTAMP','UNIQUE','DEFAULT','AUTOINCREMENT','CONSTRAINT','CHECK','INDEX','JOIN',
+  'LEFT','RIGHT','INNER','OUTER','FULL','CROSS','ON','GROUP','BY','HAVING','ORDER','ASC','DESC',
+  'LIMIT','OFFSET','DISTINCT','AS','UNION','ALL','CASE','WHEN','THEN','ELSE','END','COUNT',
+  'SUM','AVG','MIN','MAX','TOTAL','GROUP_CONCAT','LIKE','GLOB','IN','BETWEEN','IS','EXISTS',
+  'BEGIN','COMMIT','ROLLBACK','TRANSACTION','PRAGMA','ALTER','ADD','COLUMN','RENAME','TO',
+  'VIEW','TRIGGER','BEFORE','AFTER','ATTACH','DETACH','EXPLAIN','QUERY','PLAN','EXCEPT',
+  'INTERSECT','REPLACE','COLLATE','CAST','CONFLICT','ABORT','FAIL','IGNORE','CASCADE'
+]);
+
+const HISTORY_KEY = 'sqlite_runner_history';
+const MAX_HISTORY = 10;
+
+let db = null;
+let history = [];
+let tableNames = [];
+
+const $ = id => document.getElementById(id);
+const sqlInput = $('sqlInput');
+const sqlHighlight = $('sqlHighlight');
+const dbStatus = $('dbStatus');
+const runBtn = $('runBtn');
+
+/* ---------- 数据库初始化 ---------- */
+async function initDB(){
+  setStatus('loading', '数据库加载中…');
+  try{
+    const SQL = await initSqlJs({
+      locateFile: file => `https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.8.0/${file}`
+    });
+    db = new SQL.Database();
+    setStatus('ready', '数据库就绪');
+    runBtn.disabled = false;
+    refreshTables();
+  }catch(e){
+    setStatus('error', '加载失败');
+    ToolBox.showToast(i18nText('toast.msg016'), 'error');
+    console.error(e);
+  }
+}
+
+function setStatus(type, text){
+  dbStatus.className = 'db-status ' + type;
+  dbStatus.innerHTML = '<span class="dot"></span>' + text;
+}
+
+/* ---------- SQL 高亮 ---------- */
+function highlightSQL(code){
+  const pattern = /(--[^\n]*|\/\*[\s\S]*?\*\/)|('(?:[^']|'')*'|"(?:[^"]|"")*")|(\b\d+(?:\.\d+)?\b)|([A-Za-z_]\w*)/g;
+  let result = '';
+  let last = 0;
+  let m;
+  while((m = pattern.exec(code)) !== null){
+    result += ToolBox.escHtml(code.slice(last, m.index));
+    const full = m[0];
+    const comment = m[1], str = m[2], num = m[3], ident = m[4];
+    if(comment){
+      result += '<span class="sql-comment">' + ToolBox.escHtml(comment) + '</span>';
+    }else if(str){
+      result += '<span class="sql-string">' + ToolBox.escHtml(str) + '</span>';
+    }else if(num){
+      result += '<span class="sql-number">' + ToolBox.escHtml(num) + '</span>';
+    }else if(ident){
+      if(KEYWORDS.has(ident.toUpperCase())){
+        result += '<span class="sql-keyword">' + ToolBox.escHtml(ident) + '</span>';
+      }else{
+        result += ToolBox.escHtml(ident);
+      }
+    }
+    last = m.index + full.length;
+  }
+  result += ToolBox.escHtml(code.slice(last));
+  return result;
+}
+
+function updateHighlight(){
+  let code = sqlInput.value;
+  let html = highlightSQL(code);
+  // 处理尾部换行，保证高亮层与输入框高度一致
+  if(code.endsWith('\n')) html += ' ';
+  sqlHighlight.innerHTML = html;
+  sqlHighlight.scrollTop = sqlInput.scrollTop;
+  sqlHighlight.scrollLeft = sqlInput.scrollLeft;
+}
+
+/* ---------- SQL 语句切分（尊重字符串与注释） ---------- */
+function splitSQL(sql){
+  const stmts = [];
+  let cur = '';
+  let i = 0;
+  const n = sql.length;
+  const push = () => {
+    const t = cur.trim();
+    if(t) stmts.push(t);
+    cur = '';
+  };
+  while(i < n){
+    const ch = sql[i];
+    const two = sql.substr(i, 2);
+    if(two === '--'){
+      const end = sql.indexOf('\n', i);
+      const stop = end === -1 ? n : end;
+      cur += sql.slice(i, stop);
+      i = stop;
+      continue;
+    }
+    if(two === '/*'){
+      const end = sql.indexOf('*/', i + 2);
+      const stop = end === -1 ? n : end + 2;
+      cur += sql.slice(i, stop);
+      i = stop;
+      continue;
+    }
+    if(ch === "'" || ch === '"'){
+      const quote = ch;
+      cur += ch; i++;
+      while(i < n){
+        cur += sql[i];
+        if(sql[i] === quote){
+          if(sql[i + 1] === quote){ cur += sql[i + 1]; i += 2; continue; }
+          i++; break;
+        }
+        i++;
+      }
+      continue;
+    }
+    if(ch === ';'){ cur += ch; i++; push(); continue; }
+    cur += ch; i++;
+  }
+  push();
+  return stmts;
+}
+
+function stmtType(sql){
+  const m = sql.trim().match(/^(\w+)/);
+  return m ? m[1].toUpperCase() : 'SQL';
+}
+
+const DML_TYPES = {'INSERT':'插入','UPDATE':'更新','DELETE':'删除','REPLACE':'替换'};
+const DDL_TYPES = {'CREATE':'创建','DROP':'删除','ALTER':'修改','ATTACH':'附加','DETACH':'分离','PRAGMA':'PRAGMA'};
+
+/* ---------- 执行 SQL ---------- */
+function executeSQL(){
+  if(!db){ ToolBox.showToast(i18nText('toast.msg387'), 'warning'); return; }
+  const raw = sqlInput.value.trim();
+  if(!raw){ ToolBox.showToast(i18nText('toast.msg750'), 'warning'); return; }
+
+  const stmts = splitSQL(raw);
+  if(stmts.length === 0){ ToolBox.showToast(i18nText('toast.msg750'), 'warning'); return; }
+
+  let html = '';
+  let successCount = 0, errorCount = 0;
+  const t0 = performance.now();
+
+  stmts.forEach((stmt, idx) => {
+    const type = stmtType(stmt);
+    const st0 = performance.now();
+    let results;
+    try{
+      results = db.exec(stmt);
+    }catch(e){
+      const elapsed = (performance.now() - st0).toFixed(2);
+      errorCount++;
+      html += renderError(idx + 1, type, stmt, e.message, elapsed);
+      return;
+    }
+    const elapsed = (performance.now() - st0).toFixed(2);
+    successCount++;
+    if(results && results.length > 0){
+      results.forEach(r => {
+        html += renderTable(idx + 1, type, stmt, r.columns, r.values, elapsed);
+      });
+    }else{
+      const affected = db.getRowsModified();
+      html += renderAffected(idx + 1, type, stmt, affected, elapsed);
+    }
+  });
+
+  const totalElapsed = (performance.now() - t0).toFixed(2);
+  const summary = `<div class="exec-summary">共执行 <strong>${stmts.length}</strong> 条语句 · 成功 <strong>${successCount}</strong> 条 · 失败 <strong>${errorCount}</strong> 条 · 总耗时 <strong>${totalElapsed}ms</strong></div>`;
+
+  $('result').innerHTML = html + summary;
+  saveHistory(raw, errorCount === 0);
+  refreshTables();
+  ToolBox.showToast(errorCount === 0 ? '执行完成' : `执行完成，${errorCount} 条失败`, errorCount === 0 ? 'success' : 'warning');
+}
+
+function renderTable(no, type, stmt, columns, values, elapsed){
+  const rowCount = values.length;
+  let tableHtml = '<table><thead><tr>';
+  columns.forEach(c => { tableHtml += '<th>' + ToolBox.escHtml(c) + '</th>'; });
+  tableHtml += '</tr></thead><tbody>';
+  values.forEach(row => {
+    tableHtml += '<tr>';
+    row.forEach(cell => {
+      const v = cell === null ? '<span style="color:var(--text-muted);font-style:italic;">NULL</span>' : ToolBox.escHtml(String(cell));
+      tableHtml += '<td>' + v + '</td>';
+    });
+    tableHtml += '</tr>';
+  });
+  tableHtml += '</tbody></table>';
+  return `<div class="exec-item">
+    <div class="exec-meta"><span class="tag q">${type}</span> 语句 #${no} · <span class="time">${elapsed}ms</span> · <span class="rows">${rowCount} 行</span></div>
+    <div class="exec-sql">${ToolBox.escHtml(stmt)}</div>
+    ${tableHtml}
+  </div>`;
+}
+
+function renderAffected(no, type, stmt, affected, elapsed){
+  const label = DML_TYPES[type] || DDL_TYPES[type] || '执行';
+  const affectedText = (type in DML_TYPES) ? ` · 影响 <span class="rows">${affected} 行</span>` : '';
+  return `<div class="exec-item">
+    <div class="exec-meta"><span class="tag m">${type}</span> 语句 #${no} · ${label}成功 · <span class="time">${elapsed}ms</span>${affectedText}</div>
+    <div class="exec-sql">${ToolBox.escHtml(stmt)}</div>
+  </div>`;
+}
+
+function renderError(no, type, stmt, msg, elapsed){
+  return `<div class="exec-item">
+    <div class="exec-meta"><span class="tag e">${type}</span> 语句 #${no} · 执行失败 · <span class="time">${elapsed}ms</span></div>
+    <div class="exec-sql">${ToolBox.escHtml(stmt)}</div>
+    <div class="exec-error">${ToolBox.escHtml(msg)}</div>
+  </div>`;
+}
+
+/* ---------- 数据表列表 ---------- */
+function refreshTables(){
+  if(!db){ return; }
+  const list = $('tableList');
+  try{
+    const res = db.exec("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name");
+    if(res.length === 0 || res[0].values.length === 0){
+      list.innerHTML = '<span class="table-empty">暂无数据表，执行 CREATE TABLE 语句后此处会显示。</span>';
+      return;
+    }
+    tableNames = res[0].values.map(r => r[0]);
+    list.innerHTML = tableNames.map((name, idx) =>
+      `<span class="table-chip" onclick="queryTable(${idx})">🗂️ ${ToolBox.escHtml(name)}</span>`
+    ).join('');
+  }catch(e){
+    list.innerHTML = '<span class="table-empty">读取表列表失败</span>';
+  }
+}
+
+window.queryTable = function(idx){
+  const name = tableNames[idx];
+  if(!name) return;
+  const safe = String(name).replace(/"/g, '""');
+  sqlInput.value = `SELECT * FROM "${safe}" LIMIT 100;`;
+  updateHighlight();
+  executeSQL();
+  sqlInput.scrollIntoView({behavior:'smooth', block:'center'});
+};
+
+/* ---------- 按钮操作 ---------- */
+window.loadSample = function(){
+  sqlInput.value = SAMPLE_SQL;
+  updateHighlight();
+  ToolBox.showToast(i18nText('toast.msg181'), 'info');
+};
+
+window.clearSQL = function(){
+  sqlInput.value = '';
+  updateHighlight();
+  sqlInput.focus();
+};
+
+window.resetDB = function(){
+  if(!db) return;
+  if(!confirm('确定要清空当前数据库吗？所有表和数据将被删除，且无法恢复。')) return;
+  try{
+    const res = db.exec("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'");
+    if(res.length > 0){
+      res[0].values.forEach(r => {
+        try{ db.run(`DROP TABLE IF EXISTS "${r[0]}"`); }catch(e){}
+      });
+    }
+  }catch(e){}
+  refreshTables();
+  $('result').innerHTML = '<div class="exec-summary">数据库已重置，所有表和数据已清空。</div>';
+  ToolBox.showToast(i18nText('toast.msg389'), 'success');
+};
+
+window.exportDB = function(){
+  if(!db){ ToolBox.showToast(i18nText('toast.msg387'), 'warning'); return; }
+  try{
+    const data = db.export();
+    const blob = new Blob([data], {type:'application/x-sqlite3'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'toolbox-' + Date.now() + '.sqlite';
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 0);
+    ToolBox.showToast(i18nText('toast.msg388'), 'success');
+  }catch(e){
+    ToolBox.showToast('导出失败：' + e.message, 'error');
+  }
+};
+
+/* ---------- 历史记录 ---------- */
+function loadHistory(){
+  try{
+    const raw = localStorage.getItem(HISTORY_KEY);
+    history = raw ? JSON.parse(raw) : [];
+  }catch(e){ history = []; }
+  renderHistory();
+}
+
+function saveHistory(sql, ok){
+  history.unshift({ sql: sql, time: Date.now(), ok: ok });
+  if(history.length > MAX_HISTORY) history = history.slice(0, MAX_HISTORY);
+  try{ localStorage.setItem(HISTORY_KEY, JSON.stringify(history)); }catch(e){}
+  renderHistory();
+}
+
+function renderHistory(){
+  const list = $('historyList');
+  if(history.length === 0){
+    list.innerHTML = '<div class="history-empty">暂无执行历史，执行 SQL 后将自动记录最近 10 条。</div>';
+    return;
+  }
+  list.innerHTML = history.map((h, idx) => {
+    const d = new Date(h.time);
+    const time = d.toLocaleString('zh-CN', {month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit'});
+    const preview = h.sql.replace(/\s+/g, ' ').slice(0, 120);
+    return `<div class="history-item" onclick="loadHistoryItem(${idx})">
+      <div class="h-head">
+        <span class="h-time">${time}</span>
+        <span class="h-status ${h.ok ? 'ok' : 'err'}">${h.ok ? '成功' : '有错误'}</span>
+      </div>
+      <div class="h-sql">${ToolBox.escHtml(preview)}</div>
+    </div>`;
+  }).join('');
+}
+
+window.loadHistoryItem = function(idx){
+  if(!history[idx]) return;
+  sqlInput.value = history[idx].sql;
+  updateHighlight();
+  sqlInput.focus();
+  ToolBox.showToast(i18nText('toast.msg313'), 'info');
+};
+
+window.clearHistory = function(){
+  history = [];
+  try{ localStorage.removeItem(HISTORY_KEY); }catch(e){}
+  renderHistory();
+  ToolBox.showToast(i18nText(), 'success');
+};
+
+/* ---------- 编辑器交互 ---------- */
+sqlInput.addEventListener('input', updateHighlight);
+sqlInput.addEventListener('scroll', () => {
+  sqlHighlight.scrollTop = sqlInput.scrollTop;
+  sqlHighlight.scrollLeft = sqlInput.scrollLeft;
+});
+
+sqlInput.addEventListener('keydown', e => {
+  if(e.key === 'Tab'){
+    e.preventDefault();
+    const start = sqlInput.selectionStart;
+    const end = sqlInput.selectionEnd;
+    const indent = '  ';
+    sqlInput.value = sqlInput.value.slice(0, start) + indent + sqlInput.value.slice(end);
+    sqlInput.selectionStart = sqlInput.selectionEnd = start + indent.length;
+    updateHighlight();
+  }else if((e.ctrlKey || e.metaKey) && e.key === 'Enter'){
+    e.preventDefault();
+    executeSQL();
+  }
+});
+
+/* ---------- tool-intro 折叠 ---------- */
+document.querySelectorAll('.tool-intro-header').forEach(h => {
+  h.addEventListener('click', function(){ this.parentElement.classList.toggle('open'); });
+});
+
+/* ---------- 启动 ---------- */
+sqlInput.value = SAMPLE_SQL;
+updateHighlight();
+loadHistory();
+initDB();
+
+})();
+</script>
+</body>
+</html>

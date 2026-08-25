@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+
+<script src="/js/tool-page-runtime.js" defer></script>
+<!-- TOOLBOX-TOOL-RUNTIME -->
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="toolbox" content="cat=game,industry=fun,icon=🔢,bg=#fff8e1">
+<meta name="description" content="2048 游戏 - 娱乐游戏工具，纯前端实现，无需安装，离线可玩">
+<meta name="keywords" content="2048 游戏,2048 游戏在线,在线2048 游戏,游戏趣味,娱乐游戏,2048,游戏,在线工具,免费工具,ToolBox">
+<meta name="robots" content="index,follow">
+<link rel="canonical" href="https://chenguangwu.github.io/tools/fun/2048-game.html">
+<meta property="og:title" content="2048 游戏 - 免费游戏趣味工具，在线2048 游戏，免费使用 - ToolBox">
+<meta property="og:description" content="2048 游戏 - 娱乐游戏工具，纯前端实现，无需安装，离线可玩">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://chenguangwu.github.io/tools/fun/2048-game.html">
+<meta name="twitter:card" content="summary">
+
+<title>2048 游戏 - 免费游戏趣味工具，在线2048 游戏，免费使用 - ToolBox</title>
+<meta name="theme-color" content="#FF6B35">
+<link rel="icon" type="image/svg+xml" href="../../favicon.svg">
+<link rel="icon" href="../../favicon.ico" sizes="16x16 32x32 48x48">
+<link rel="apple-touch-icon" href="../../apple-touch-icon.png">
+<link rel="stylesheet" href="../../css/common.css">
+<script src="../../js/common.js"></script>
+<style>
+.game-container{display:flex;flex-direction:column;align-items:center;gap:12px;}
+.board-2048{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;padding:8px;background:var(--border);border-radius:12px;max-width:400px;width:100%;aspect-ratio:1/1;}
+.tile{display:flex;align-items:center;justify-content:center;border-radius:8px;font-weight:700;font-size:24px;transition:all 0.15s;aspect-ratio:1/1;}
+.tile-0{background:var(--card-bg);}
+.tile-2{background:#eee4da;color:#776e65;}
+.tile-4{background:#ede0c8;color:#776e65;}
+.tile-8{background:#f2b179;color:#f9f6f2;}
+.tile-16{background:#f59563;color:#f9f6f2;}
+.tile-32{background:#f67c5f;color:#f9f6f2;}
+.tile-64{background:#f65e3b;color:#f9f6f2;}
+.tile-128{background:#edcf72;color:#f9f6f2;font-size:22px;}
+.tile-256{background:#edcc61;color:#f9f6f2;font-size:22px;}
+.tile-512{background:#edc850;color:#f9f6f2;font-size:22px;}
+.tile-1024{background:#edc53f;color:#f9f6f2;font-size:18px;}
+.tile-2048{background:#edc22e;color:#f9f6f2;font-size:18px;box-shadow:0 0 20px rgba(237,194,46,0.5);}
+.tile-super{background:#3c3a32;color:#f9f6f2;font-size:16px;}
+.tile-new{animation:tileNew 0.2s ease;}
+.tile-merged{animation:tileMerge 0.2s ease;}
+@keyframes tileNew{0%{transform:scale(0);}100%{transform:scale(1);}}
+@keyframes tileMerge{0%{transform:scale(1);}50%{transform:scale(1.2);}100%{transform:scale(1);}}
+.score-row{display:flex;gap:16px;flex-wrap:wrap;justify-content:center;}
+.score-box{background:var(--border);border-radius:8px;padding:8px 16px;text-align:center;min-width:80px;}
+.score-box .val{font-size:20px;font-weight:700;color:var(--primary);}
+.score-box .lbl{font-size:11px;color:var(--text-muted);}
+.controls-hint{font-size:12px;color:var(--text-muted);text-align:center;}
+.tab-row{display:flex;gap:4px;margin-bottom:12px;border-bottom:1px solid var(--border);}
+.tab-btn{padding:8px 16px;border:none;background:transparent;cursor:pointer;font-size:13px;color:var(--text-muted);border-bottom:2px solid transparent;margin-bottom:-1px;}
+.tab-btn.active{color:var(--primary);border-bottom-color:var(--primary);font-weight:600;}
+.game-over-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.6);display:flex;align-items:center;justify-content:center;z-index:1000;animation:fadeIn 0.3s ease;}
+@keyframes fadeIn{from{opacity:0;}to{opacity:1;}}
+.game-modal{background:var(--card-bg);border-radius:16px;padding:32px;text-align:center;max-width:320px;width:90%;animation:popIn 0.4s ease;}
+@keyframes popIn{0%{transform:scale(0.5);opacity:0;}100%{transform:scale(1);opacity:1;}}
+.game-modal h2{font-size:28px;margin-bottom:8px;}
+.game-modal .big-emoji{font-size:64px;margin:16px 0;}
+</style>
+
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "2048 游戏",
+  "description": "2048 游戏 - 免费游戏趣味工具，在线2048 游戏，免费使用。",
+  "url": "https://chenguangwu.github.io/tools/fun/2048-game.html",
+  "applicationCategory": "UtilitiesApplication",
+  "operatingSystem": "Web",
+  "offers": {
+    "@type": "Offer",
+    "price": "0",
+    "priceCurrency": "CNY"
+  },
+  "inLanguage": "zh-CN",
+  "isAccessibleForFree": true,
+  "browserRequirements": "Requires JavaScript. Requires HTML5.",
+  "softwareVersion": "1.0"
+}
+</script>
+
+
+
+<meta property="og:image" content="https://chenguangwu.github.io/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="ToolBox - 6000+免费在线工具">
+<meta name="twitter:image" content="https://chenguangwu.github.io/og-image.png">
+<meta name="twitter:image:alt" content="ToolBox - 6000+免费在线工具">
+    <meta name="twitter:title" content="2048 游戏 - 免费游戏趣味工具，在线2048 游戏，免费使用 - ToolBox">
+    <meta name="twitter:description" content="2048 游戏 - 娱乐游戏工具，纯前端实现，无需安装，离线可玩">
+<!-- TOOLBOX-WEBAPP-LD -->
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"WebApplication","name":"2048 游戏 - 免费游戏趣味工具，在线2048 游戏，免费使用","url":"https://chenguangwu.github.io/tools/fun/2048-game.html","applicationCategory":"GamesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":["zh-CN", "en-US"],"description":"2048 游戏","image":"https://chenguangwu.github.io/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}
+</script>
+<meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
+<meta http-equiv="X-Content-Type-Options" content="nosniff">
+<meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
+<!-- TOOLBOX-SECURITY -->
+
+<script src="/js/privacy.js" defer></script>
+<!-- TOOLBOX-PRIVACY-SCRIPT -->
+
+<script src="/js/metrics.js" defer></script>
+<!-- TOOLBOX-METRICS-SCRIPT -->
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"首页","item":"https://chenguangwu.github.io/"},{"@type":"ListItem","position":2,"name":"娱乐游戏","item":"https://chenguangwu.github.io/tools/fun/index.html"},{"@type":"ListItem","position":3,"name":"2048 游戏","item":"https://chenguangwu.github.io/tools/fun/2048-game.html"}]}
+</script>
+
+<script src="../../js/i18n.js" defer></script>
+<script src="../../js/tool-i18n.js" defer></script>
+<!-- TOOLBOX-I18N-SCRIPT -->
+<!-- TOOLBOX-HREFLANG -->
+<link rel="alternate" hreflang="zh-CN" href="https://chenguangwu.github.io/tools/fun/2048-game.html">
+<link rel="alternate" hreflang="en-US" href="https://chenguangwu.github.io/tools/fun/2048-game.html">
+<link rel="alternate" hreflang="x-default" href="https://chenguangwu.github.io/tools/fun/2048-game.html">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:locale:alternate" content="en_US">
+
+<script src="/js/clarity.js" defer></script>
+<!-- TOOLBOX-CLARITY -->
+</head>
+<body>
+<h1 class="sr-only">2048 游戏</h1>
+
+<div class="nav">
+  <a href="../../index.html">← ToolBox</a>
+  <span>/ 2048 游戏</span>
+  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()">🌙</button>
+</div>
+
+
+
+
+<nav class="breadcrumb" aria-label="面包屑导航" data-breadcrumb="1">
+  <a href="../../index.html">首页</a>
+  <span class="bc-sep">‹</span>
+  <a href="index.html">🎮 娱乐游戏</a>
+  <span class="bc-sep">‹</span>
+  <span class="bc-current">2048 游戏</span>
+</nav>
+<div class="container">
+  <div class="card tool-card-accent" style="--tool-accent:#EC4899;">
+    <h2>🔢 2048 游戏</h2>
+    
+    <div class="tab-row">
+      <button type="button" class="tab-btn active" onclick="switchTab('game',this)">游戏</button>
+      <button type="button" class="tab-btn" onclick="switchTab('scores',this)">排行榜</button>
+      <button type="button" class="tab-btn" onclick="switchTab('help',this)">说明</button>
+    </div>
+
+    <div id="tab-game">
+      <div class="score-row">
+        <div class="score-box">
+          <div class="val" id="score">0</div>
+          <div class="lbl">当前分数</div>
+        </div>
+        <div class="score-box">
+          <div class="val" id="bestScore">0</div>
+          <div class="lbl">最高分</div>
+        </div>
+        <div class="score-box">
+          <div class="val" id="maxTile">0</div>
+          <div class="lbl">最大方块</div>
+        </div>
+      </div>
+
+      <div class="game-container">
+        <div class="board-2048" id="board"></div>
+      </div>
+
+      <p class="controls-hint">方向键/WASD 移动，U 键撤销</p>
+
+      <div class="toolbar">
+        <button type="button" class="btn primary" onclick="newGame()">🎮 新游戏</button>
+        <button type="button" class="btn" onclick="undoMove()">↩️ 撤销</button>
+      </div>
+    </div>
+
+    <div id="tab-scores" style="display:none;">
+      <h3>🏆 记录</h3>
+      <div class="result-box">
+        <p>最高分：<strong id="bestScore2">0</strong></p>
+        <p>最大方块：<strong id="maxTile2">0</strong></p>
+      </div>
+      <div class="toolbar" style="margin-top:12px;">
+        <button type="button" class="btn danger" onclick="clearBest()">清除记录</button>
+      </div>
+    </div>
+
+    <div id="tab-help" style="display:none;">
+      <h3>🎮 游戏规则</h3>
+      <div class="step-line">使用方向键或滑动控制所有方块移动</div>
+      <div class="step-line">两个相同数字的方块相撞时会合并成它们的和</div>
+      <div class="step-line">每次移动后会随机出现一个新的 2 或 4</div>
+      <div class="step-line">合并出 2048 即为胜利！</div>
+      <div class="step-line">无法移动时游戏结束</div>
+      <h3 style="margin-top:12px;">💡 技巧提示</h3>
+      <div class="step-line">尽量让最大的数字保持在角落</div>
+      <div class="step-line">保持一行或一列单调递增/递减</div>
+      <div class="step-line">避免频繁改变大数字的位置</div>
+      <h3 style="margin-top:12px;">⌨️ 操作方式</h3>
+      <div class="step-line"><strong>键盘</strong>：方向键 或 WASD</div>
+      <div class="step-line"><strong>撤销</strong>：U 键</div>
+      <div class="step-line"><strong>移动端</strong>：滑动屏幕</div>
+    </div>
+  </div>
+
+<!-- 注意事项区块 -->
+<div class="tool-notes" style="--tool-accent:#EC4899;">
+  <div class="tool-notes-title">⚠️ 使用说明与注意事项</div>
+  <ul>
+      <li>本工具纯前端运行，数据不会上传到服务器</li>
+      <li>建议在主流浏览器（Chrome/Safari/Firefox/Edge）中使用</li>
+      <li>计算结果仅供参考，请以实际应用场景为准</li>
+  </ul>
+</div>
+<!-- /注意事项区块 -->
+</div>
+
+<div id="gameOverOverlay" style="display:none;">
+  <div class="game-modal">
+    <div class="big-emoji">💀</div>
+    <h2>游戏结束</h2>
+    <p style="color:var(--text-muted);margin-bottom:16px;">无法继续移动了</p>
+    <div style="display:flex;justify-content:space-around;margin:16px 0;">
+      <div><div style="font-size:24px;font-weight:700;color:var(--primary);" id="finalScore">0</div><div style="font-size:12px;color:var(--text-muted);">得分</div></div>
+      <div><div style="font-size:24px;font-weight:700;color:var(--primary);" id="finalMax">0</div><div style="font-size:12px;color:var(--text-muted);">最大方块</div></div>
+    </div>
+    <div class="toolbar" style="margin-top:16px;margin-bottom:0;">
+      <button type="button" class="btn primary" onclick="newGame()">再来一局</button>
+      <button type="button" class="btn" onclick="closeGameOver()">关闭</button>
+    </div>
+  </div>
+</div>
+
+<div id="winOverlay" style="display:none;">
+  <div class="game-modal">
+    <div class="big-emoji">🎉</div>
+    <h2>恭喜！</h2>
+    <p style="color:var(--text-muted);margin-bottom:16px;">你合成了 2048！</p>
+    <div style="display:flex;justify-content:space-around;margin:16px 0;">
+      <div><div style="font-size:24px;font-weight:700;color:var(--primary);" id="winScore">0</div><div style="font-size:12px;color:var(--text-muted);">得分</div></div>
+    </div>
+    <div class="toolbar" style="margin-top:16px;margin-bottom:0;">
+      <button type="button" class="btn primary" onclick="continueGame()">继续挑战</button>
+      <button type="button" class="btn" onclick="newGame()">新游戏</button>
+    </div>
+  </div>
+</div>
+
+<script>
+let board = [];
+let score = 0;
+let bestScore = 0;
+let maxTile = 0;
+let history = [];
+let gameOver = false;
+let won = false;
+let keepPlaying = false;
+
+function switchTab(tab, btn){
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  ['game','scores','help'].forEach(t=>{
+    document.getElementById('tab-'+t).style.display = t===tab?'block':'none';
+  });
+  if(tab==='scores'){
+    document.getElementById('bestScore2').textContent = bestScore;
+    document.getElementById('maxTile2').textContent = maxTile;
+  }
+}
+
+function newGame(){
+  board = Array(4).fill(null).map(()=>Array(4).fill(0));
+  score = 0;
+  history = [];
+  gameOver = false;
+  won = false;
+  keepPlaying = false;
+  addRandomTile();
+  addRandomTile();
+  render();
+  updateScore();
+  closeGameOver();
+  closeWin();
+}
+
+function addRandomTile(){
+  const empty = [];
+  for(let i=0;i<4;i++){
+    for(let j=0;j<4;j++){
+      if(board[i][j] === 0) empty.push({i,j});
+    }
+  }
+  if(empty.length === 0) return false;
+  const {i,j} = empty[Math.floor(Math.random()*empty.length)];
+  board[i][j] = Math.random() < 0.9 ? 2 : 4;
+  return {i,j};
+}
+
+function render(newTile=null, merged=[]){
+  const el = document.getElementById('board');
+  el.innerHTML = '';
+  for(let i=0;i<4;i++){
+    for(let j=0;j<4;j++){
+      const tile = document.createElement('div');
+      const val = board[i][j];
+      let cls = 'tile tile-' + (val > 2048 ? 'super' : val);
+      if(newTile && newTile.i === i && newTile.j === j) cls += ' tile-new';
+      if(merged.some(m=>m.i===i && m.j===j)) cls += ' tile-merged';
+      tile.className = cls;
+      tile.textContent = val || '';
+      el.appendChild(tile);
+    }
+  }
+}
+
+function move(direction){
+  if(gameOver) return;
+  
+  const prevBoard = board.map(row=>[...row]);
+  const prevScore = score;
+  let moved = false;
+  let mergedPositions = [];
+  
+  const rotate = (b, times) => {
+    let r = b.map(row=>[...row]);
+    for(let t=0;t<times;t++){
+      const n = r.length;
+      const rotated = Array(n).fill(null).map(()=>Array(n).fill(0));
+      for(let i=0;i<n;i++){
+        for(let j=0;j<n;j++){
+          rotated[j][n-1-i] = r[i][j];
+        }
+      }
+      r = rotated;
+    }
+    return r;
+  };
+  
+  const rotations = {left:0, up:3, right:2, down:1};
+  let b = rotate(board, rotations[direction]);
+  
+  for(let i=0;i<4;i++){
+    let row = b[i].filter(v=>v!==0);
+    let newRow = [];
+    let skip = false;
+    for(let j=0;j<row.length;j++){
+      if(skip){ skip = false; continue; }
+      if(j+1 < row.length && row[j] === row[j+1]){
+        const mergedVal = row[j] * 2;
+        newRow.push(mergedVal);
+        score += mergedVal;
+        if(mergedVal > maxTile) maxTile = mergedVal;
+        if(mergedVal === 2048 && !won && !keepPlaying){
+          won = true;
+        }
+        skip = true;
+      }else{
+        newRow.push(row[j]);
+      }
+    }
+    while(newRow.length < 4) newRow.push(0);
+    
+    for(let j=0;j<4;j++){
+      if(b[i][j] !== newRow[j]) moved = true;
+    }
+    b[i] = newRow;
+  }
+  
+  const reverseRotations = {left:0, up:1, right:2, down:3};
+  board = rotate(b, reverseRotations[direction]);
+  
+  if(moved){
+    history.push({board: prevBoard, score: prevScore});
+    if(history.length > 10) history.shift();
+    
+    const newTile = addRandomTile();
+    render(newTile, mergedPositions);
+    updateScore();
+    saveBest();
+    
+    if(won && !keepPlaying){
+      showWin();
+    }else if(!canMove()){
+      gameOver = true;
+      showGameOver();
+    }
+  }
+}
+
+function canMove(){
+  for(let i=0;i<4;i++){
+    for(let j=0;j<4;j++){
+      if(board[i][j] === 0) return true;
+      if(j+1<4 && board[i][j] === board[i][j+1]) return true;
+      if(i+1<4 && board[i][j] === board[i+1][j]) return true;
+    }
+  }
+  return false;
+}
+
+function undoMove(){
+  if(history.length === 0 || gameOver) return;
+  const prev = history.pop();
+  board = prev.board;
+  score = prev.score;
+  render();
+  updateScore();
+}
+
+function updateScore(){
+  document.getElementById('score').textContent = score;
+  document.getElementById('maxTile').textContent = maxTile;
+  if(score > bestScore){
+    bestScore = score;
+    document.getElementById('bestScore').textContent = bestScore;
+  }
+}
+
+function saveBest(){
+  try{
+    const data = {
+      best: Math.max(bestScore, score),
+      maxTile: maxTile
+    };
+    localStorage.setItem('game2048_best', JSON.stringify(data));
+  }catch(e){}
+}
+
+function loadBest(){
+  try{
+    const data = JSON.parse(localStorage.getItem('game2048_best') || '{}');
+    bestScore = data.best || 0;
+    maxTile = data.maxTile || 0;
+    document.getElementById('bestScore').textContent = bestScore;
+    document.getElementById('maxTile').textContent = maxTile;
+  }catch(e){}
+}
+
+function clearBest(){
+  localStorage.removeItem('game2048_best');
+  bestScore = 0;
+  maxTile = 0;
+  document.getElementById('bestScore').textContent = 0;
+  document.getElementById('maxTile').textContent = 0;
+  ToolBox.showToast(i18nText('toast.history_cleared'));
+}
+
+function showGameOver(){
+  document.getElementById('finalScore').textContent = score;
+  document.getElementById('finalMax').textContent = maxTile;
+  document.getElementById('gameOverOverlay').style.display = 'flex';
+}
+
+function closeGameOver(){
+  document.getElementById('gameOverOverlay').style.display = 'none';
+}
+
+function showWin(){
+  document.getElementById('winScore').textContent = score;
+  document.getElementById('winOverlay').style.display = 'flex';
+}
+
+function closeWin(){
+  document.getElementById('winOverlay').style.display = 'none';
+}
+
+function continueGame(){
+  keepPlaying = true;
+  closeWin();
+}
+
+document.addEventListener('keydown', (e) => {
+  switch(e.key){
+    case 'ArrowUp':
+    case 'w':
+    case 'W':
+      e.preventDefault();
+      move('up');
+      break;
+    case 'ArrowDown':
+    case 's':
+    case 'S':
+      e.preventDefault();
+      move('down');
+      break;
+    case 'ArrowLeft':
+    case 'a':
+    case 'A':
+      e.preventDefault();
+      move('left');
+      break;
+    case 'ArrowRight':
+    case 'd':
+    case 'D':
+      e.preventDefault();
+      move('right');
+      break;
+    case 'u':
+    case 'U':
+      e.preventDefault();
+      undoMove();
+      break;
+  }
+});
+
+let touchStartX = 0;
+let touchStartY = 0;
+
+const boardEl = document.getElementById('board');
+boardEl.addEventListener('touchstart', (e) => {
+  touchStartX = e.touches[0].clientX;
+  touchStartY = e.touches[0].clientY;
+}, {passive: true});
+
+boardEl.addEventListener('touchend', (e) => {
+  if(gameOver) return;
+  
+  const touchEndX = e.changedTouches[0].clientX;
+  const touchEndY = e.changedTouches[0].clientY;
+  
+  const dx = touchEndX - touchStartX;
+  const dy = touchEndY - touchStartY;
+  
+  if(Math.abs(dx) < 30 && Math.abs(dy) < 30) return;
+  
+  if(Math.abs(dx) > Math.abs(dy)){
+    move(dx > 0 ? 'right' : 'left');
+  }else{
+    move(dy > 0 ? 'down' : 'up');
+  }
+}, {passive: true});
+
+loadBest();
+newGame();
+</script><script>
+// tool-intro折叠交互
+document.addEventListener('DOMContentLoaded',function(){
+  var headers=document.querySelectorAll('.tool-intro-header');
+  headers.forEach(function(h){
+    h.addEventListener('click',function(){
+      this.parentElement.classList.toggle('open');
+    });
+  });
+});
+</script>
+<!-- SEO 介绍区块 -->
+
+</div>
+
+</div>
+
+<!-- 相关工具 -->
+<div class="related-tools" data-related-tools="1">
+  <h3 class="related-tools-title">🔗 相关工具</h3>
+  <div class="related-tools-grid">
+    
+    
+    <a href="generator-2.html" class="related-tool-card">
+      <span class="rt-icon">🎮</span>
+      <span class="rt-info"><span class="rt-name">数独生成器 / 求解器 - 免费在线工具，纯前端处理 | ToolBox免费在线工具箱</span><span class="rt-desc">数独生成器 / 求解器</span></span>
+    </a>
+    <a href="laugh-generator.html" class="related-tool-card">
+      <span class="rt-icon">😂</span>
+      <span class="rt-info"><span class="rt-name">笑声音效生成器 - 免费趣味工具，用Web Audio API合成笑声 | ToolBox免费在线工具箱</span><span class="rt-desc">笑声音效生成器</span></span>
+    </a>
+    <a href="generator-laugh.html" class="related-tool-card">
+      <span class="rt-icon">🔧</span>
+      <span class="rt-info"><span class="rt-name">笑声音效生成器（合成） - 免费在线工具，纯前端处理 | ToolBox免费在线工具箱</span><span class="rt-desc">笑声音效生成器（合成）</span></span>
+    </a>
+    <a href="../dance/choreography-timeline.html" class="related-tool-card">
+      <span class="rt-icon">🎶</span>
+      <span class="rt-info"><span class="rt-name">编舞时间线 - 8拍分段规划器，按BPM和小节数生成舞蹈编排时间轴 | ToolBox免费在线工具箱</span><span class="rt-desc">编舞时间线</span></span>
+    </a>
+  </div>
+</div>
+<div class="tool-intro open" id="toolIntro">
+  <div class="tool-intro-header">
+    <span class="intro-icon-wrap"><span class="intro-icon">📖</span>关于「2048 游戏」</span>
+    <span class="arrow">▼</span>
+  </div>
+  <div class="tool-intro-body">
+    <h4><span class="h4-icon">📝</span>工具简介</h4>
+    <p>2048 游戏。娱乐游戏工具，纯前端实现，无需安装，离线可玩。</p>
+    <h4><span class="h4-icon">✨</span>功能特点</h4>
+    <ul class="intro-features">
+      <li>纯前端实现，无需安装</li>
+      <li>操作简单，上手快速</li>
+      <li>支持多种设备，随时随地使用</li>
+      <li>无需联网，离线可玩</li>
+    </ul>
+    <h4><span class="h4-icon">🎯</span>使用场景</h4>
+    <ul class="intro-scenes">
+      <li>休闲娱乐与放松</li>
+      <li>聚会互动小游戏</li>
+      <li>碎片时间的趣味消遣</li>
+      <li>概率与统计的学习辅助</li>
+    </ul>
+    <h4><span class="h4-icon">💬</span>常见问题</h4>
+      <div class="intro-faq-item"><div class="intro-faq-q">这个工具是免费的吗？</div><div class="intro-faq-a">完全免费，无需注册，直接在浏览器中使用。</div></div>
+      <div class="intro-faq-item"><div class="intro-faq-q">需要安装软件吗？</div><div class="intro-faq-a">不需要，直接在浏览器中打开即可使用。</div></div>
+      <div class="intro-faq-item"><div class="intro-faq-q">支持手机使用吗？</div><div class="intro-faq-a">支持。页面已做响应式适配，手机和电脑均可正常使用。</div></div>
+  </div>
+</div>
+<!-- /SEO 介绍区块 -->
+</body>
+</html>

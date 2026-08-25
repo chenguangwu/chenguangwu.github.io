@@ -1,0 +1,961 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+
+<script src="/js/tool-page-runtime.js" defer></script>
+<!-- TOOLBOX-TOOL-RUNTIME -->
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="toolbox" content="cat=game,industry=fun,icon=🏓,bg=#fff3e0">
+<meta name="description" content="乒乓对战 - 经典乒乓对战游戏，支持双人对战和AI模式。纯前端Canvas渲染，无需安装，即开即玩。先得11分获胜，球速随回合递增。。娱乐游戏工具，纯前端实现，无需安装，离线可玩。">
+<meta name="keywords" content="Pong,乒乓球游戏,双人游戏,AI对战,经典街机,在线小游戏,浏览器游戏">
+<title>乒乓对战 - 经典乒乓对战游戏，支持双人对战和AI模式 - ToolBox</title>
+<link rel="canonical" href="https://chenguangwu.github.io/tools/fun/pong.html">
+<meta property="og:title" content="乒乓对战 - 经典乒乓对战游戏，支持双人对战和AI模式 - ToolBox">
+<meta property="og:description" content="乒乓对战 - 经典乒乓对战游戏，支持双人对战和AI模式。纯前端Canvas渲染，无需安装，即开即玩。先得11分获胜，球速随回合递增。。娱乐游戏工具，纯前端实现，无需安装，离线可玩。">
+<meta property="og:url" content="https://chenguangwu.github.io/tools/fun/pong.html">
+<meta name="twitter:card" content="summary">
+<link rel="icon" type="image/svg+xml" href="../../favicon.svg">
+<link rel="icon" type="image/x-icon" href="../../favicon.ico">
+<link rel="stylesheet" href="../../css/common.css">
+<script src="../../js/common.js"></script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebApplication",
+  "name": "乒乓对战 - ToolBox",
+  "description": "经典乒乓对战游戏，支持双人对战和AI模式，纯前端Canvas渲染，先得11分获胜。",
+  "applicationCategory": "Game",
+  "operatingSystem": "Any",
+  "offers": { "@type": "Offer", "price": "0", "priceCurrency": "CNY" }
+}
+</script>
+<style>
+  .game-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+  }
+  .mode-selector {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 4px;
+  }
+  .mode-btn {
+    padding: 8px 18px;
+    border-radius: 10px;
+    font-size: 13px;
+    cursor: pointer;
+    border: 1.5px solid var(--border);
+    background: var(--card-bg);
+    color: var(--text);
+    transition: all 0.2s ease;
+    font-weight: 500;
+  }
+  .mode-btn:hover {
+    border-color: var(--primary);
+    background: var(--bg-hover);
+  }
+  .mode-btn.active {
+    background: var(--gradient-primary);
+    color: #fff;
+    border-color: transparent;
+    box-shadow: 0 4px 14px rgba(255,107,53,0.3);
+  }
+  .scoreboard {
+    display: flex;
+    align-items: center;
+    gap: 32px;
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--heading);
+  }
+  .scoreboard .player-label {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    margin-bottom: 2px;
+  }
+  .scoreboard .score-col {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: 80px;
+  }
+  .scoreboard .score-num {
+    font-size: 36px;
+    font-weight: 800;
+    line-height: 1;
+    color: var(--primary);
+  }
+  .scoreboard .vs {
+    font-size: 14px;
+    color: var(--text-muted);
+    font-weight: 600;
+  }
+  #pongCanvas {
+    border-radius: 12px;
+    border: 2px solid var(--border);
+    background: var(--result-bg);
+    display: block;
+    max-width: 100%;
+    touch-action: none;
+    cursor: default;
+    transition: border-color 0.2s;
+  }
+  #pongCanvas:focus {
+    border-color: var(--primary);
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(255,107,53,0.12);
+  }
+  .game-toolbar {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  .game-info {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    justify-content: center;
+    font-size: 13px;
+    color: var(--text-muted);
+  }
+  .game-info .info-tag {
+    padding: 4px 12px;
+    background: var(--result-bg);
+    border-radius: 20px;
+    border: 1px solid var(--border);
+    font-weight: 500;
+  }
+  .winner-overlay {
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.55);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    border-radius: 12px;
+    z-index: 10;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+  }
+  .winner-overlay.show {
+    opacity: 1;
+    pointer-events: auto;
+  }
+  .winner-overlay .winner-text {
+    font-size: 28px;
+    font-weight: 800;
+    color: #fff;
+    text-shadow: 0 2px 12px rgba(0,0,0,0.4);
+    margin-bottom: 12px;
+  }
+  .winner-overlay .winner-sub {
+    font-size: 14px;
+    color: rgba(255,255,255,0.8);
+    margin-bottom: 16px;
+  }
+  .canvas-container {
+    position: relative;
+    display: inline-block;
+    line-height: 0;
+  }
+  .controls-hint {
+    font-size: 12px;
+    color: var(--text-muted);
+    text-align: center;
+    line-height: 1.8;
+  }
+  .controls-hint kbd {
+    display: inline-block;
+    padding: 2px 8px;
+    background: var(--bg-hover);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font-size: 11px;
+    font-family: inherit;
+    font-weight: 600;
+    color: var(--text-primary);
+    box-shadow: 0 1px 2px rgba(0,0,0,0.06);
+  }
+  @media (max-width: 768px) {
+    .scoreboard .score-num {
+      font-size: 28px;
+    }
+    .scoreboard {
+      gap: 20px;
+    }
+    .winner-overlay .winner-text {
+      font-size: 22px;
+    }
+  }
+</style>
+
+
+
+<meta property="og:image" content="https://chenguangwu.github.io/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="ToolBox - 6000+免费在线工具">
+<meta name="twitter:image" content="https://chenguangwu.github.io/og-image.png">
+<meta name="twitter:image:alt" content="ToolBox - 6000+免费在线工具">
+    <meta property="og:type" content="website">
+    <meta name="twitter:title" content="乒乓对战 - 经典乒乓对战游戏，支持双人对战和AI模式 - ToolBox">
+    <meta name="twitter:description" content="乒乓对战 - 经典乒乓对战游戏，支持双人对战和AI模式。纯前端Canvas渲染，无需安装，即开即玩。先得11分获胜，球速随回合递增。。娱乐游戏工具，纯前端实现，无需安装，离线可玩。">
+<!-- TOOLBOX-WEBAPP-LD -->
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"WebApplication","name":"乒乓对战 - 经典乒乓对战游戏，支持双人对战和AI模式","url":"https://chenguangwu.github.io/tools/fun/pong.html","applicationCategory":"GamesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":["zh-CN", "en-US"],"description":"&amp;#127936; 乒乓对战","image":"https://chenguangwu.github.io/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}
+</script>
+<meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
+<meta http-equiv="X-Content-Type-Options" content="nosniff">
+<meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
+<!-- TOOLBOX-SECURITY -->
+
+<script src="/js/privacy.js" defer></script>
+<!-- TOOLBOX-PRIVACY-SCRIPT -->
+
+<script src="/js/metrics.js" defer></script>
+<!-- TOOLBOX-METRICS-SCRIPT -->
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"首页","item":"https://chenguangwu.github.io/"},{"@type":"ListItem","position":2,"name":"娱乐游戏","item":"https://chenguangwu.github.io/tools/fun/index.html"},{"@type":"ListItem","position":3,"name":"乒乓对战","item":"https://chenguangwu.github.io/tools/fun/pong.html"}]}
+</script>
+
+<script src="../../js/i18n.js" defer></script>
+<script src="../../js/tool-i18n.js" defer></script>
+<!-- TOOLBOX-I18N-SCRIPT -->
+<!-- TOOLBOX-HREFLANG -->
+<link rel="alternate" hreflang="zh-CN" href="https://chenguangwu.github.io/tools/fun/pong.html">
+<link rel="alternate" hreflang="en-US" href="https://chenguangwu.github.io/tools/fun/pong.html">
+<link rel="alternate" hreflang="x-default" href="https://chenguangwu.github.io/tools/fun/pong.html">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:locale:alternate" content="en_US">
+
+<script src="/js/clarity.js" defer></script>
+<!-- TOOLBOX-CLARITY -->
+</head>
+<body>
+<h1 class="sr-only">乒乓对战</h1>
+
+
+<div class="nav">
+  <a href="../../index.html">&larr; ToolBox</a>
+  <span>/ 乒乓对战</span>
+  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()">&#127769;</button>
+</div>
+
+
+
+
+
+<nav class="breadcrumb" aria-label="面包屑导航" data-breadcrumb="1">
+  <a href="../../index.html">首页</a>
+  <span class="bc-sep">‹</span>
+  <a href="index.html">🎮 娱乐游戏</a>
+  <span class="bc-sep">‹</span>
+  <span class="bc-current">乒乓对战</span>
+</nav>
+<div class="container">
+  <div class="card tool-card-accent" style="--tool-accent:#EC4899;">
+    <h2>&#127936; 乒乓对战</h2>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;">经典 Pong 游戏，支持双人对战和 AI 模式，先得 11 分获胜</p>
+
+    <div class="game-wrapper">
+      <!-- 模式选择 -->
+      <div class="mode-selector">
+        <button type="button" class="mode-btn active" id="modeAI" onclick="setMode('ai')">&#129302; AI 对战</button>
+        <button type="button" class="mode-btn" id="mode2P" onclick="setMode('2p')">&#129327; 双人对战</button>
+      </div>
+
+      <!-- 计分板 -->
+      <div class="scoreboard">
+        <div class="score-col">
+          <div class="player-label" id="labelLeft">玩家</div>
+          <div class="score-num" id="scoreLeft">0</div>
+        </div>
+        <div class="vs">VS</div>
+        <div class="score-col">
+          <div class="player-label" id="labelRight">电脑</div>
+          <div class="score-num" id="scoreRight">0</div>
+        </div>
+      </div>
+
+      <!-- 游戏画布 -->
+      <div class="canvas-container">
+        <canvas id="pongCanvas" width="640" height="400" tabindex="0"></canvas>
+        <div class="winner-overlay" id="winnerOverlay">
+          <div class="winner-text" id="winnerText"></div>
+          <div class="winner-sub" id="winnerSub"></div>
+          <button type="button" class="btn primary" onclick="resetGame()">再来一局</button>
+        </div>
+      </div>
+
+      <!-- 控制按钮 -->
+      <div class="game-toolbar">
+        <button type="button" class="btn primary" id="btnStart" onclick="togglePause()">&#9654; 开始</button>
+        <button type="button" class="btn" onclick="resetGame()">&#128260; 重新开始</button>
+      </div>
+
+      <!-- 游戏信息 -->
+      <div class="game-info">
+        <span class="info-tag" id="roundInfo">第 1 回合</span>
+        <span class="info-tag" id="speedInfo">球速: 1.0x</span>
+      </div>
+
+      <!-- 操作提示 -->
+      <div class="controls-hint" id="controlsHint">
+        <kbd>W</kbd> / <kbd>S</kbd> 控制左挡板 &nbsp;&bull;&nbsp; <kbd>&uarr;</kbd> / <kbd>&darr;</kbd> 控制右挡板 &nbsp;&bull;&nbsp; <kbd>空格</kbd> 暂停/继续
+      </div>
+    </div>
+  </div>
+
+  <!-- 游戏说明 -->
+  
+</div>
+
+</div>
+
+<!-- 相关工具 -->
+<div class="related-tools" data-related-tools="1">
+  <h3 class="related-tools-title">🔗 相关工具</h3>
+  <div class="related-tools-grid">
+    
+    
+    <a href="generator-2.html" class="related-tool-card">
+      <span class="rt-icon">🎮</span>
+      <span class="rt-info"><span class="rt-name">数独生成器 / 求解器 - 免费在线工具，纯前端处理 | ToolBox免费在线工具箱</span><span class="rt-desc">数独生成器 / 求解器</span></span>
+    </a>
+    <a href="laugh-generator.html" class="related-tool-card">
+      <span class="rt-icon">😂</span>
+      <span class="rt-info"><span class="rt-name">笑声音效生成器 - 免费趣味工具，用Web Audio API合成笑声 | ToolBox免费在线工具箱</span><span class="rt-desc">笑声音效生成器</span></span>
+    </a>
+    <a href="generator-laugh.html" class="related-tool-card">
+      <span class="rt-icon">🔧</span>
+      <span class="rt-info"><span class="rt-name">笑声音效生成器（合成） - 免费在线工具，纯前端处理 | ToolBox免费在线工具箱</span><span class="rt-desc">笑声音效生成器（合成）</span></span>
+    </a>
+    <a href="../dance/choreography-timeline.html" class="related-tool-card">
+      <span class="rt-icon">🎶</span>
+      <span class="rt-info"><span class="rt-name">编舞时间线 - 8拍分段规划器，按BPM和小节数生成舞蹈编排时间轴 | ToolBox免费在线工具箱</span><span class="rt-desc">编舞时间线</span></span>
+    </a>
+  </div>
+</div>
+<div class="tool-intro" id="introPanel">
+    <div class="tool-intro-header" onclick="toggleIntro()">
+      <div class="intro-icon-wrap">
+        <span class="intro-icon">&#127936;</span>
+        <span>游戏规则与说明</span>
+      </div>
+      <span class="arrow">&#9660;</span>
+    </div>
+    <div class="tool-intro-body">
+      <p>乒乓对战（Pong）是最早的电子游戏之一，现在以纯前端技术重新呈现。</p>
+      <h4>&#127919; 基本规则</h4>
+      <ul class="intro-scenes">
+        <li>双方各控制一个挡板，将球击向对方</li>
+        <li>球从上/下边界反弹，从左/右边界出界则对方得分</li>
+        <li>球击中挡板不同位置会改变反弹角度</li>
+        <li>先得 11 分的一方获胜</li>
+      </ul>
+      <h4>&#127760; 双人模式操控</h4>
+      <ul class="intro-scenes">
+        <li>左玩家：<kbd>W</kbd> 上移 / <kbd>S</kbd> 下移</li>
+        <li>右玩家：<kbd>&uarr;</kbd> 上移 / <kbd>&darr;</kbd> 下移</li>
+        <li><kbd>空格</kbd> 暂停/继续游戏</li>
+      </ul>
+      <h4>&#129302; AI 模式</h4>
+      <ul class="intro-scenes">
+        <li>电脑自动控制右挡板</li>
+        <li>AI 有反应延迟和移动误差</li>
+        <li>球速越快 AI 越容易失误</li>
+      </ul>
+      <h4>&#128640; 球速递增</h4>
+      <ul class="intro-scenes">
+        <li>每次击球后球速略微增加</li>
+        <li>回合越长节奏越紧张</li>
+        <li>球速显示在信息栏中</li>
+      </ul>
+      <h4>&#128241; 移动端支持</h4>
+      <ul class="intro-scenes">
+        <li>在画布左半区域上下滑动控制左板</li>
+        <li>在画布右半区域上下滑动控制右板</li>
+      </ul>
+    </div>
+  </div>
+
+<!-- 注意事项区块 -->
+<div class="tool-notes" style="--tool-accent:#EC4899;">
+  <div class="tool-notes-title">⚠️ 使用说明与注意事项</div>
+  <ul>
+      <li>本工具纯前端运行，数据不会上传到服务器</li>
+      <li>建议在主流浏览器（Chrome/Safari/Firefox/Edge）中使用</li>
+      <li>计算结果仅供参考，请以实际应用场景为准</li>
+  </ul>
+</div>
+<!-- /注意事项区块 -->
+</div>
+
+<script>
+(function() {
+  'use strict';
+
+  // ===== 游戏配置 =====
+  var CANVAS_W = 640;
+  var CANVAS_H = 400;
+  var PADDLE_W = 12;
+  var PADDLE_H = 80;
+  var PADDLE_SPEED = 6;
+  var PADDLE_MARGIN = 20;
+  var BALL_SIZE = 10;
+  var BALL_SPEED_INIT = 4.5;
+  var BALL_SPEED_INCREMENT = 0.15;
+  var BALL_MAX_SPEED = 12;
+  var WIN_SCORE = 11;
+  var AI_SPEED = 4.2;
+  var AI_REACTION = 0.08;
+  var AI_ERROR = 15;
+
+  // ===== DOM =====
+  var canvas = document.getElementById('pongCanvas');
+  var ctx = canvas.getContext('2d');
+  var scoreLeftEl = document.getElementById('scoreLeft');
+  var scoreRightEl = document.getElementById('scoreRight');
+  var roundInfoEl = document.getElementById('roundInfo');
+  var speedInfoEl = document.getElementById('speedInfo');
+  var btnStart = document.getElementById('btnStart');
+  var winnerOverlay = document.getElementById('winnerOverlay');
+  var winnerText = document.getElementById('winnerText');
+  var winnerSub = document.getElementById('winnerSub');
+  var controlsHint = document.getElementById('controlsHint');
+
+  // ===== 游戏状态 =====
+  var mode = 'ai';
+  var paused = true;
+  var gameOver = false;
+  var animId = null;
+  var rallyCount = 0;
+  var currentSpeedMul = 1;
+
+  var scores = { left: 0, right: 0 };
+
+  var leftPaddle = { x: PADDLE_MARGIN, y: CANVAS_H / 2 - PADDLE_H / 2, w: PADDLE_W, h: PADDLE_H, dy: 0 };
+  var rightPaddle = { x: CANVAS_W - PADDLE_MARGIN - PADDLE_W, y: CANVAS_H / 2 - PADDLE_H / 2, w: PADDLE_W, h: PADDLE_H, dy: 0 };
+
+  var ball = { x: CANVAS_W / 2, y: CANVAS_H / 2, vx: 0, vy: 0, speed: BALL_SPEED_INIT };
+
+  var keys = {};
+  var aiTargetY = CANVAS_H / 2;
+
+  // ===== 工具函数 =====
+  function clamp(val, min, max) {
+    return Math.max(min, Math.min(max, val));
+  }
+
+  function resetBall(direction) {
+    ball.x = CANVAS_W / 2;
+    ball.y = CANVAS_H / 2;
+    ball.speed = BALL_SPEED_INIT;
+    currentSpeedMul = 1;
+    rallyCount = 0;
+    var angle = (Math.random() * 0.8 - 0.4);
+    ball.vx = ball.speed * Math.cos(angle) * direction;
+    ball.vy = ball.speed * Math.sin(angle);
+  }
+
+  function resetPaddles() {
+    leftPaddle.y = CANVAS_H / 2 - PADDLE_H / 2;
+    rightPaddle.y = CANVAS_H / 2 - PADDLE_H / 2;
+  }
+
+  // ===== 模式切换 =====
+  window.setMode = function(m) {
+    mode = m;
+    document.getElementById('modeAI').classList.toggle('active', m === 'ai');
+    document.getElementById('mode2P').classList.toggle('active', m === '2p');
+    document.getElementById('labelRight').textContent = m === 'ai' ? '电脑' : '玩家 2';
+    if (m === 'ai') {
+      controlsHint.innerHTML = '<kbd>W</kbd> / <kbd>S</kbd> 控制左挡板 &bull; <kbd>空格</kbd> 暂停/继续';
+    } else {
+      controlsHint.innerHTML = '<kbd>W</kbd> / <kbd>S</kbd> 左挡板 &bull; <kbd>&uarr;</kbd> / <kbd>&darr;</kbd> 右挡板 &bull; <kbd>空格</kbd> 暂停/继续';
+    }
+    resetGame();
+  };
+
+  // ===== 暂停/继续 =====
+  window.togglePause = function() {
+    if (gameOver) return;
+    paused = !paused;
+    btnStart.innerHTML = paused ? '&#9654; 继续' : '&#9646;&#9646; 暂停';
+    if (!paused) {
+      canvas.focus();
+      gameLoop();
+    }
+  };
+
+  // ===== 重新开始 =====
+  window.resetGame = function() {
+    gameOver = false;
+    paused = true;
+    scores.left = 0;
+    scores.right = 0;
+    winnerOverlay.classList.remove('show');
+    updateScoreboard();
+    resetPaddles();
+    resetBall(Math.random() > 0.5 ? 1 : -1);
+    btnStart.innerHTML = '&#9654; 开始';
+    if (animId) cancelAnimationFrame(animId);
+    draw();
+  };
+
+  // ===== 更新显示 =====
+  function updateScoreboard() {
+    scoreLeftEl.textContent = scores.left;
+    scoreRightEl.textContent = scores.right;
+    roundInfoEl.textContent = '第 ' + (scores.left + scores.right + 1) + ' 回合';
+    speedInfoEl.textContent = '球速: ' + currentSpeedMul.toFixed(1) + 'x';
+  }
+
+  // ===== AI 逻辑 =====
+  function updateAI() {
+    // 只在球朝向AI方向时跟踪
+    if (ball.vx > 0) {
+      // 加入随机误差
+      aiTargetY = ball.y + (Math.random() - 0.5) * AI_ERROR * 2;
+    }
+
+    var paddleCenter = rightPaddle.y + rightPaddle.h / 2;
+    var diff = aiTargetY - paddleCenter;
+
+    if (Math.abs(diff) > 8) {
+      rightPaddle.y += Math.sign(diff) * AI_SPEED * AI_REACTION;
+    }
+
+    rightPaddle.y = clamp(rightPaddle.y, 0, CANVAS_H - rightPaddle.h);
+  }
+
+  // ===== 碰撞检测 =====
+  function checkPaddleCollision(paddle) {
+    if (ball.x - BALL_SIZE / 2 < paddle.x + paddle.w &&
+        ball.x + BALL_SIZE / 2 > paddle.x &&
+        ball.y - BALL_SIZE / 2 < paddle.y + paddle.h &&
+        ball.y + BALL_SIZE / 2 > paddle.y) {
+      return true;
+    }
+    return false;
+  }
+
+  function handlePaddleBounce(paddle, direction) {
+    rallyCount++;
+    ball.speed = Math.min(BALL_SPEED_INIT + rallyCount * BALL_SPEED_INCREMENT, BALL_MAX_SPEED);
+    currentSpeedMul = ball.speed / BALL_SPEED_INIT;
+
+    // 根据击中挡板的位置计算反弹角度
+    var hitPos = (ball.y - (paddle.y + paddle.h / 2)) / (paddle.h / 2);
+    hitPos = clamp(hitPos, -1, 1);
+
+    var maxAngle = Math.PI / 3;
+    var angle = hitPos * maxAngle;
+
+    ball.vx = ball.speed * Math.cos(angle) * direction;
+    ball.vy = ball.speed * Math.sin(angle);
+
+    // 防止球卡在挡板里
+    if (direction > 0) {
+      ball.x = paddle.x + paddle.w + BALL_SIZE / 2;
+    } else {
+      ball.x = paddle.x - BALL_SIZE / 2;
+    }
+
+    speedInfoEl.textContent = '球速: ' + currentSpeedMul.toFixed(1) + 'x';
+  }
+
+  // ===== 得分 =====
+  function scorePoint(side) {
+    if (side === 'right') {
+      scores.right++;
+    } else {
+      scores.left++;
+    }
+    updateScoreboard();
+
+    if (scores.left >= WIN_SCORE || scores.right >= WIN_SCORE) {
+      endGame();
+      return;
+    }
+
+    // 得分后球发向失分方
+    var dir = side === 'right' ? -1 : 1;
+    resetBall(dir);
+    resetPaddles();
+  }
+
+  function endGame() {
+    gameOver = true;
+    paused = true;
+    btnStart.innerHTML = '&#9654; 开始';
+
+    var winner = scores.left >= WIN_SCORE ? 'left' : 'right';
+    var name = '';
+    if (winner === 'left') {
+      name = mode === 'ai' ? '玩家' : '玩家 1';
+    } else {
+      name = mode === 'ai' ? '电脑' : '玩家 2';
+    }
+    winnerText.textContent = name + ' 获胜!';
+    winnerSub.textContent = scores.left + ' : ' + scores.right;
+    winnerOverlay.classList.add('show');
+
+    if (animId) cancelAnimationFrame(animId);
+    draw();
+  }
+
+  // ===== 更新逻辑 =====
+  function update() {
+    if (paused || gameOver) return;
+
+    // 左挡板移动（键盘）
+    if (keys['w'] || keys['W']) leftPaddle.dy = -PADDLE_SPEED;
+    else if (keys['s'] || keys['S']) leftPaddle.dy = PADDLE_SPEED;
+    else leftPaddle.dy = 0;
+    leftPaddle.y = clamp(leftPaddle.y + leftPaddle.dy, 0, CANVAS_H - leftPaddle.h);
+
+    // 右挡板
+    if (mode === '2p') {
+      if (keys['ArrowUp']) rightPaddle.dy = -PADDLE_SPEED;
+      else if (keys['ArrowDown']) rightPaddle.dy = PADDLE_SPEED;
+      else rightPaddle.dy = 0;
+      rightPaddle.y = clamp(rightPaddle.y + rightPaddle.dy, 0, CANVAS_H - rightPaddle.h);
+    } else {
+      updateAI();
+    }
+
+    // 球移动
+    ball.x += ball.vx;
+    ball.y += ball.vy;
+
+    // 上下边界反弹
+    if (ball.y - BALL_SIZE / 2 <= 0) {
+      ball.y = BALL_SIZE / 2;
+      ball.vy = Math.abs(ball.vy);
+    }
+    if (ball.y + BALL_SIZE / 2 >= CANVAS_H) {
+      ball.y = CANVAS_H - BALL_SIZE / 2;
+      ball.vy = -Math.abs(ball.vy);
+    }
+
+    // 挡板碰撞
+    if (ball.vx < 0 && checkPaddleCollision(leftPaddle)) {
+      handlePaddleBounce(leftPaddle, 1);
+    }
+    if (ball.vx > 0 && checkPaddleCollision(rightPaddle)) {
+      handlePaddleBounce(rightPaddle, -1);
+    }
+
+    // 左/右出界得分
+    if (ball.x + BALL_SIZE / 2 < 0) {
+      scorePoint('right');
+    }
+    if (ball.x - BALL_SIZE / 2 > CANVAS_W) {
+      scorePoint('left');
+    }
+  }
+
+  // ===== 绘制 =====
+  function getThemeColors() {
+    var isDark = document.body.classList.contains('dark') ||
+                 document.documentElement.getAttribute('data-theme') === 'dark';
+    return {
+      bg: isDark ? '#252540' : '#FFF8F5',
+      line: isDark ? '#3A3A5A' : '#E5E7EB',
+      paddle: isDark ? '#FF8A5C' : '#FF6B35',
+      paddleGlow: isDark ? 'rgba(255,138,92,0.3)' : 'rgba(255,107,53,0.2)',
+      ball: isDark ? '#F3F4F6' : '#1F2937',
+      ballGlow: isDark ? 'rgba(243,244,246,0.2)' : 'rgba(31,41,55,0.15)',
+      score: isDark ? 'rgba(243,244,246,0.15)' : 'rgba(31,41,55,0.08)',
+      text: isDark ? '#D1D5DB' : '#6B7280'
+    };
+  }
+
+  function draw() {
+    var c = getThemeColors();
+    var dpr = window.devicePixelRatio || 1;
+    var rect = canvas.getBoundingClientRect();
+
+    // 高清屏适配
+    if (canvas.width !== Math.round(rect.width * dpr) ||
+        canvas.height !== Math.round(rect.height * dpr)) {
+      // 只在尺寸实际变化时重设，避免无限循环
+    }
+
+    // 清空
+    ctx.fillStyle = c.bg;
+    ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
+
+    // 中线
+    ctx.setLineDash([6, 8]);
+    ctx.strokeStyle = c.line;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(CANVAS_W / 2, 0);
+    ctx.lineTo(CANVAS_W / 2, CANVAS_H);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    // 中圈
+    ctx.strokeStyle = c.line;
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.arc(CANVAS_W / 2, CANVAS_H / 2, 40, 0, Math.PI * 2);
+    ctx.stroke();
+
+    // 大比分（背景装饰）
+    ctx.fillStyle = c.score;
+    ctx.font = 'bold 120px -apple-system, BlinkMacSystemFont, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(String(scores.left), CANVAS_W * 0.25, CANVAS_H / 2);
+    ctx.fillText(String(scores.right), CANVAS_W * 0.75, CANVAS_H / 2);
+
+    // 挡板 - 左
+    drawPaddle(leftPaddle, c);
+
+    // 挡板 - 右
+    drawPaddle(rightPaddle, c);
+
+    // 球
+    drawBall(c);
+
+    // 暂停提示
+    if (paused && !gameOver) {
+      ctx.fillStyle = 'rgba(0,0,0,0.35)';
+      ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
+      ctx.fillStyle = '#fff';
+      ctx.font = 'bold 24px -apple-system, BlinkMacSystemFont, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(gameOver ? '' : '按下 "开始" 或空格键', CANVAS_W / 2, CANVAS_H / 2);
+    }
+  }
+
+  function drawPaddle(paddle, c) {
+    // 发光
+    ctx.shadowColor = c.paddleGlow;
+    ctx.shadowBlur = 12;
+    // 挡板本体
+    ctx.fillStyle = c.paddle;
+    ctx.beginPath();
+    var r = Math.min(PADDLE_W / 2, 6);
+    roundRect(ctx, paddle.x, paddle.y, paddle.w, paddle.h, r);
+    ctx.fill();
+    ctx.shadowBlur = 0;
+  }
+
+  function drawBall(c) {
+    ctx.shadowColor = c.ballGlow;
+    ctx.shadowBlur = 10;
+    ctx.fillStyle = c.ball;
+    ctx.beginPath();
+    ctx.arc(ball.x, ball.y, BALL_SIZE / 2, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.shadowBlur = 0;
+  }
+
+  function roundRect(ctx, x, y, w, h, r) {
+    r = Math.max(0, Math.min(r, Math.min(w, h) / 2));
+    ctx.moveTo(x + r, y);
+    ctx.lineTo(x + w - r, y);
+    ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+    ctx.lineTo(x + w, y + h - r);
+    ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+    ctx.lineTo(x + r, y + h);
+    ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+    ctx.lineTo(x, y + r);
+    ctx.quadraticCurveTo(x, y, x + r, y);
+    ctx.closePath();
+  }
+
+  // ===== 游戏循环 =====
+  function gameLoop() {
+    if (paused && !gameOver) {
+      draw();
+      return;
+    }
+    update();
+    draw();
+    if (!gameOver) {
+      animId = requestAnimationFrame(gameLoop);
+    }
+  }
+
+  // ===== 键盘事件 =====
+  document.addEventListener('keydown', function(e) {
+    keys[e.key] = true;
+
+    // 空格暂停/继续
+    if (e.key === ' ' || e.code === 'Space') {
+      e.preventDefault();
+      if (gameOver) {
+        resetGame();
+      } else {
+        togglePause();
+      }
+    }
+
+    // 阻止方向键滚动页面
+    if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+      e.preventDefault();
+    }
+  });
+
+  document.addEventListener('keyup', function(e) {
+    keys[e.key] = false;
+  });
+
+  // ===== 触控支持 =====
+  (function() {
+    var touchLeft = null;
+    var touchRight = null;
+    var touchActive = false;
+
+    canvas.addEventListener('touchstart', function(e) {
+      e.preventDefault();
+      touchActive = true;
+      handleTouches(e.touches);
+    }, { passive: false });
+
+    canvas.addEventListener('touchmove', function(e) {
+      e.preventDefault();
+      handleTouches(e.touches);
+    }, { passive: false });
+
+    canvas.addEventListener('touchend', function(e) {
+      e.preventDefault();
+      handleTouches(e.touches);
+      if (e.touches.length === 0) {
+        touchActive = false;
+        keys['w'] = false;
+        keys['W'] = false;
+        keys['s'] = false;
+        keys['S'] = false;
+        if (mode === '2p') {
+          keys['ArrowUp'] = false;
+          keys['ArrowDown'] = false;
+        }
+      }
+    }, { passive: false });
+
+    function handleTouches(touches) {
+      var rect = canvas.getBoundingClientRect();
+      var scaleX = CANVAS_W / rect.width;
+      var scaleY = CANVAS_H / rect.height;
+
+      // 重置触控输入
+      keys['w'] = false;
+      keys['W'] = false;
+      keys['s'] = false;
+      keys['S'] = false;
+      if (mode === '2p') {
+        keys['ArrowUp'] = false;
+        keys['ArrowDown'] = false;
+      }
+
+      for (var i = 0; i < touches.length; i++) {
+        var t = touches[i];
+        var tx = (t.clientX - rect.left) * scaleX;
+        var ty = (t.clientY - rect.top) * scaleY;
+
+        if (tx < CANVAS_W / 2) {
+          // 左半区域 - 控制左板
+          var leftCenter = leftPaddle.y + leftPaddle.h / 2;
+          if (ty < leftCenter - 15) {
+            keys['w'] = true;
+          } else if (ty > leftCenter + 15) {
+            keys['s'] = true;
+          }
+        } else if (mode === '2p') {
+          // 右半区域 - 双人模式控制右板
+          var rightCenter = rightPaddle.y + rightPaddle.h / 2;
+          if (ty < rightCenter - 15) {
+            keys['ArrowUp'] = true;
+          } else if (ty > rightCenter + 15) {
+            keys['ArrowDown'] = true;
+          }
+        }
+      }
+
+      // 如果游戏暂停且触控，自动开始
+      if (touchActive && paused && !gameOver) {
+        togglePause();
+      }
+    }
+  })();
+
+  // ===== 窗口失焦自动暂停 =====
+  document.addEventListener('visibilitychange', function() {
+    if (document.hidden && !paused && !gameOver) {
+      togglePause();
+    }
+  });
+
+  // ===== 说明面板 =====
+  window.toggleIntro = function() {
+    var panel = document.getElementById('introPanel');
+    panel.classList.toggle('open');
+  };
+
+  // ===== 初始化 =====
+  resetBall(Math.random() > 0.5 ? 1 : -1);
+  draw();
+
+})();
+</script>
+
+<!-- SEO 介绍区块 -->
+<div class="tool-intro open" id="toolIntro">
+  <div class="tool-intro-header">
+    <span class="intro-icon-wrap"><span class="intro-icon">📖</span>关于「乒乓对战」</span>
+    <span class="arrow">▼</span>
+  </div>
+  <div class="tool-intro-body">
+    <h4><span class="h4-icon">📝</span>工具简介</h4>
+    <p>经典乒乓对战游戏，支持双人对战和AI模式。纯前端Canvas渲染，无需安装，即开即玩。先得11分获胜，球速随回合递增。。娱乐游戏工具，纯前端实现，无需安装，离线可玩。</p>
+    <h4><span class="h4-icon">✨</span>功能特点</h4>
+    <ul class="intro-features">
+      <li>纯前端实现，无需安装</li>
+      <li>操作简单，上手快速</li>
+      <li>支持多种设备，随时随地使用</li>
+      <li>无需联网，离线可玩</li>
+    </ul>
+    <h4><span class="h4-icon">🎯</span>使用场景</h4>
+    <ul class="intro-scenes">
+      <li>休闲娱乐与放松</li>
+      <li>聚会互动小游戏</li>
+      <li>碎片时间的趣味消遣</li>
+      <li>概率与统计的学习辅助</li>
+    </ul>
+    <h4><span class="h4-icon">💬</span>常见问题</h4>
+      <div class="intro-faq-item"><div class="intro-faq-q">这个工具是免费的吗？</div><div class="intro-faq-a">完全免费，无需注册，直接在浏览器中使用。</div></div>
+      <div class="intro-faq-item"><div class="intro-faq-q">需要安装软件吗？</div><div class="intro-faq-a">不需要，直接在浏览器中打开即可使用。</div></div>
+      <div class="intro-faq-item"><div class="intro-faq-q">支持手机使用吗？</div><div class="intro-faq-a">支持。页面已做响应式适配，手机和电脑均可正常使用。</div></div>
+  </div>
+</div>
+<!-- /SEO 介绍区块 -->
+
+<script>
+// tool-intro折叠交互
+document.addEventListener('DOMContentLoaded',function(){
+  var headers=document.querySelectorAll('.tool-intro-header');
+  headers.forEach(function(h){
+    h.addEventListener('click',function(){
+      this.parentElement.classList.toggle('open');
+    });
+  });
+});
+</script>
+
+</body>
+</html>

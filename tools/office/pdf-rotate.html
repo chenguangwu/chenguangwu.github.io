@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+
+<script src="/js/tool-page-runtime.js" defer></script>
+<!-- TOOLBOX-TOOL-RUNTIME -->
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="toolbox" content="cat=convert,industry=office,icon=🔄,bg=#f5f5f5">
+<meta name="description" content="PDF页面旋转工具 - 是一款在线 PDF 处理工具，可对 PDF 文档的每一页进行 90°、180°、270° 方向旋转。支持单页旋转、批量勾选旋转、全部统一旋转，并可实时预览旋转效果。所有处理均在浏览器本地完成，PDF 文件不会上传到服务器">
+<meta name="keywords" content="PDF旋转,PDF页面旋转,旋转PDF,PDF旋转工具,在线PDF旋转,免费PDF旋转,PDF方向调整,纯前端PDF工具,ToolBox">
+<meta name="robots" content="index,follow">
+<link rel="canonical" href="https://chenguangwu.github.io/tools/office/pdf-rotate.html">
+<meta property="og:title" content="PDF页面旋转工具 - 在线 PDF 处理工具，可对 PDF 文档的每一页进行 - ToolBox">
+<meta property="og:description" content="PDF页面旋转工具 - 是一款在线 PDF 处理工具，可对 PDF 文档的每一页进行 90°、180°、270° 方向旋转。支持单页旋转、批量勾选旋转、全部统一旋转，并可实时预览旋转效果。所有处理均在浏览器本地完成，PDF 文件不会上传到服务器">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://chenguangwu.github.io/tools/office/pdf-rotate.html">
+<meta name="twitter:card" content="summary">
+<title>PDF页面旋转工具 - 在线 PDF 处理工具，可对 PDF 文档的每一页进行 - ToolBox</title>
+<meta name="theme-color" content="#FF6B35">
+<link rel="icon" type="image/svg+xml" href="../../favicon.svg">
+<link rel="icon" href="../../favicon.ico" sizes="16x16 32x32 48x48">
+<link rel="apple-touch-icon" href="../../apple-touch-icon.png">
+<link rel="stylesheet" href="../../css/common.css">
+<script src="../../js/common.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script>
+pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+</script>
+<style>
+.drop-zone{border:2px dashed var(--border);border-radius:14px;padding:40px 20px;text-align:center;color:var(--text-muted);cursor:pointer;transition:all .2s;background:var(--result-bg);}
+.drop-zone:hover,.drop-zone.dragover{border-color:var(--primary);background:var(--bg-hover);color:var(--primary);}
+.drop-zone .dz-icon{font-size:42px;margin-bottom:8px;line-height:1;}
+.drop-zone .dz-title{font-size:15px;font-weight:600;color:var(--text);}
+.drop-zone .dz-hint{font-size:12px;margin-top:4px;}
+.pdf-info{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin:14px 0;}
+.pdf-info .pi-item{background:var(--result-bg);border:1px solid var(--border);border-radius:10px;padding:10px 12px;}
+.pdf-info .pi-label{font-size:11px;color:var(--text-muted);}
+.pdf-info .pi-value{font-size:14px;font-weight:600;color:var(--text);margin-top:2px;word-break:break-all;}
+.thumb-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:14px;margin-top:14px;}
+.thumb-item{border:1px solid var(--border);border-radius:12px;padding:10px;background:var(--card-bg);transition:all .2s;}
+.thumb-item.selected{border-color:var(--primary);box-shadow:0 0 0 2px rgba(255,107,53,.18);}
+.thumb-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;gap:6px;}
+.thumb-head .thumb-check{display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px;font-weight:600;color:var(--text);}
+.thumb-head .thumb-check input{width:auto;accent-color:var(--primary);margin:0;}
+.angle-badge{font-size:11px;padding:2px 9px;border-radius:10px;background:var(--bg-active);color:var(--primary);font-weight:700;white-space:nowrap;}
+.thumb-canvas-wrap{background:#fff;border-radius:8px;min-height:130px;display:flex;align-items:center;justify-content:center;overflow:hidden;margin-bottom:8px;border:1px solid var(--border);}
+.thumb-canvas-wrap canvas{max-width:100%;height:auto;display:block;}
+.thumb-loading,.thumb-error{font-size:12px;color:var(--text-muted);padding:30px 0;}
+.thumb-error{color:var(--danger);}
+.thumb-actions{display:flex;gap:6px;}
+.thumb-actions .btn{flex:1;padding:7px 0;font-size:12px;justify-content:center;}
+.sel-bar{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:6px;font-size:13px;color:var(--text-light);}
+.sel-bar .sel-count{font-weight:700;color:var(--primary);}
+.panel-wrap{position:relative;}
+.loading-overlay{position:absolute;inset:0;background:rgba(255,255,255,.72);display:none;align-items:center;justify-content:center;font-size:13px;color:var(--primary);border-radius:12px;z-index:2;font-weight:600;}
+[data-theme="dark"] .loading-overlay{background:rgba(37,37,64,.72);}
+@media(max-width:768px){
+  .thumb-grid{grid-template-columns:repeat(2,1fr);gap:10px;}
+  .drop-zone{padding:28px 14px;}
+  .toolbar .btn{flex:1 1 calc(50% - 4px);}
+  .toolbar .btn.primary{flex:1 1 100%;}
+}
+</style>
+<script type="application/ld+json">
+{
+  "@context":"https://schema.org",
+  "@type":"SoftwareApplication",
+  "name":"PDF页面旋转工具",
+  "description":"免费在线PDF页面旋转工具，支持单页旋转、批量旋转、全部旋转，纯前端处理，PDF文件不上传服务器。",
+  "url":"https://chenguangwu.github.io/tools/office/pdf-rotate.html",
+  "applicationCategory":"UtilitiesApplication",
+  "operatingSystem":"Web",
+  "offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"},
+  "inLanguage":"zh-CN",
+  "isAccessibleForFree":true,
+  "browserRequirements":"Requires JavaScript. Requires HTML5.",
+  "softwareVersion":"1.0"
+}
+</script>
+
+
+
+<meta property="og:image" content="https://chenguangwu.github.io/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="ToolBox - 6000+免费在线工具">
+<meta name="twitter:image" content="https://chenguangwu.github.io/og-image.png">
+<meta name="twitter:image:alt" content="ToolBox - 6000+免费在线工具">
+    <meta name="twitter:title" content="PDF页面旋转工具 - 在线 PDF 处理工具，可对 PDF 文档的每一页进行 - ToolBox">
+    <meta name="twitter:description" content="PDF页面旋转工具 - 是一款在线 PDF 处理工具，可对 PDF 文档的每一页进行 90°、180°、270° 方向旋转。支持单页旋转、批量勾选旋转、全部统一旋转，并可实时预览旋转效果。所有处理均在浏览器本地完成，PDF 文件不会上传到服务器">
+<!-- TOOLBOX-WEBAPP-LD -->
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"WebApplication","name":"PDF页面旋转工具 - 在线 PDF 处理工具，可对 PDF 文档的每一页进行","url":"https://chenguangwu.github.io/tools/office/pdf-rotate.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":["zh-CN", "en-US"],"description":"PDF页面旋转工具","image":"https://chenguangwu.github.io/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}
+</script>
+<meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
+<meta http-equiv="X-Content-Type-Options" content="nosniff">
+<meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
+<!-- TOOLBOX-SECURITY -->
+
+<script src="/js/privacy.js" defer></script>
+<!-- TOOLBOX-PRIVACY-SCRIPT -->
+
+<script src="/js/metrics.js" defer></script>
+<!-- TOOLBOX-METRICS-SCRIPT -->
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"首页","item":"https://chenguangwu.github.io/"},{"@type":"ListItem","position":2,"name":"办公文档","item":"https://chenguangwu.github.io/tools/office/index.html"},{"@type":"ListItem","position":3,"name":"PDF页面旋转工具","item":"https://chenguangwu.github.io/tools/office/pdf-rotate.html"}]}
+</script>
+
+<script src="../../js/i18n.js" defer></script>
+<script src="../../js/tool-i18n.js" defer></script>
+<!-- TOOLBOX-I18N-SCRIPT -->
+<!-- TOOLBOX-HREFLANG -->
+<link rel="alternate" hreflang="zh-CN" href="https://chenguangwu.github.io/tools/office/pdf-rotate.html">
+<link rel="alternate" hreflang="en-US" href="https://chenguangwu.github.io/tools/office/pdf-rotate.html">
+<link rel="alternate" hreflang="x-default" href="https://chenguangwu.github.io/tools/office/pdf-rotate.html">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:locale:alternate" content="en_US">
+
+<script src="/js/clarity.js" defer></script>
+<!-- TOOLBOX-CLARITY -->
+</head>
+<body>
+<h1 class="sr-only">PDF页面旋转工具</h1>
+<div class="nav">
+  <a href="../../index.html">← ToolBox</a>
+  <span>/ PDF页面旋转</span>
+  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()">🌙</button>
+</div>
+
+
+
+
+<nav class="breadcrumb" aria-label="面包屑导航" data-breadcrumb="1">
+  <a href="../../index.html">首页</a>
+  <span class="bc-sep">‹</span>
+  <a href="index.html">🔧 办公文档</a>
+  <span class="bc-sep">‹</span>
+  <span class="bc-current">PDF页面旋转工具</span>
+</nav>
+<div class="container">
+  <div class="card tool-card-accent" style="--tool-accent:#FF6B35;">
+    <h2>🔄 PDF页面旋转工具</h2>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;">纯前端旋转 PDF 页面方向，支持单页、批量、全部旋转，实时预览，文件不上传服务器。</p>
+
+    <div class="drop-zone" id="dropZone" onclick="document.getElementById('fileInput').click()">
+      <div class="dz-icon">📄</div>
+      <div class="dz-title">点击或拖拽 PDF 文件到这里</div>
+      <div class="dz-hint">支持 .pdf 格式，所有处理在浏览器本地完成</div>
+      <input type="file" id="fileInput" accept="application/pdf,.pdf" style="display:none;" onchange="handleFile(this.files[0])">
+    </div>
+
+    <div id="pdfPanel" style="display:none;">
+      <div class="pdf-info" id="pdfInfo"></div>
+
+      <div class="toolbar" style="margin-top:6px;">
+        <button type="button" class="btn" onclick="rotateAll(-90)">↺ 全部左转90°</button>
+        <button type="button" class="btn" onclick="rotateAll(90)">↻ 全部右转90°</button>
+        <button type="button" class="btn" onclick="rotateSelected(-90)">↺ 选中左转</button>
+        <button type="button" class="btn" onclick="rotateSelected(90)">↻ 选中右转</button>
+        <button type="button" class="btn" onclick="selectAll()">☑ 全选</button>
+        <button type="button" class="btn" onclick="deselectAll()">☐ 取消全选</button>
+        <button type="button" class="btn" onclick="resetAll()">⟲ 重置旋转</button>
+        <button type="button" class="btn" onclick="resetFile()">📁 重新上传</button>
+        <button type="button" class="btn primary" onclick="downloadPdf()">⬇ 下载旋转后的PDF</button>
+      </div>
+
+      <div class="sel-bar">已选 <span class="sel-count" id="selCount">0</span> / <span id="totalCount">0</span> 页</div>
+
+      <div class="panel-wrap">
+        <div class="loading-overlay" id="loadingOverlay">正在渲染页面…</div>
+        <div class="thumb-grid" id="thumbGrid"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="tool-notes" style="--tool-accent:#FF6B35;">
+    <div class="tool-notes-title">⚠️ 使用说明与注意事项</div>
+    <ul>
+      <li>本工具纯前端运行，PDF 文件不会上传到任何服务器，隐私安全有保障</li>
+      <li>旋转操作仅改变页面方向，不会修改文字、图片等内容</li>
+      <li>大文件（页数较多）渲染缩略图可能需要数秒，请耐心等待</li>
+      <li>建议在主流浏览器（Chrome / Safari / Firefox / Edge 最新版本）中使用</li>
+    </ul>
+  </div>
+
+  <!-- SEO 介绍区块 -->
+  
+</div>
+
+</div>
+
+<!-- 相关工具 -->
+<div class="related-tools" data-related-tools="1">
+  <h3 class="related-tools-title">🔗 相关工具</h3>
+  <div class="related-tools-grid">
+    <a href="markdown-editor.html" class="related-tool-card">
+      <span class="rt-icon">📝</span>
+      <span class="rt-info"><span class="rt-name">Markdown 编辑器（分屏预览） - Markdown 编辑器 - 免费在线 Markdo | ToolBox免费在线工具箱</span><span class="rt-desc">Markdown 编辑器（分屏预览）</span></span>
+    </a>
+    <a href="pdf-merge.html" class="related-tool-card">
+      <span class="rt-icon">🔗</span>
+      <span class="rt-info"><span class="rt-name">PDF合并工具 - 免费在线合并多个PDF文件，支持拖拽排序 | ToolBox免费在线工具箱</span><span class="rt-desc">PDF合并工具</span></span>
+    </a>
+    <a href="pdf-split.html" class="related-tool-card">
+      <span class="rt-icon">📄</span>
+      <span class="rt-info"><span class="rt-name">PDF拆分工具 - 在线提取PDF指定页面 - PDF拆分工具 - 免费在线PDF页面提取工具 | ToolBox免费在线工具箱</span><span class="rt-desc">PDF 拆分工具</span></span>
+    </a>
+    <a href="mindmap.html" class="related-tool-card">
+      <span class="rt-icon">🧠</span>
+      <span class="rt-info"><span class="rt-name">思维导图 - 免费在线思维导图工具，使用 Markdown 语法实时生成可 | ToolBox免费在线工具箱</span><span class="rt-desc">思维导图编辑器</span></span>
+    </a>
+    <a href="flowchart.html" class="related-tool-card">
+      <span class="rt-icon">🔀</span>
+      <span class="rt-info"><span class="rt-name">流程图绘制工具（Mermaid） - 流程图绘制工具 - 基于 Mermaid 的在线流程图、 | ToolBox免费在线工具箱</span><span class="rt-desc">流程图绘制工具</span></span>
+    </a>
+  </div>
+</div>
+<div class="tool-intro open" id="toolIntro">
+    <div class="tool-intro-header">
+      <span class="intro-icon-wrap"><span class="intro-icon">📖</span>关于「PDF页面旋转工具」</span>
+      <span class="arrow">▼</span>
+    </div>
+    <div class="tool-intro-body">
+      <h4><span class="h4-icon">📝</span>工具简介</h4>
+      <p>PDF页面旋转工具是一款在线 PDF 处理工具，可对 PDF 文档的每一页进行 90°、180°、270° 方向旋转。支持单页旋转、批量勾选旋转、全部统一旋转，并可实时预览旋转效果。所有处理均在浏览器本地完成，PDF 文件不会上传到服务器，保护您的隐私与文档安全。</p>
+      <h4><span class="h4-icon">✨</span>功能特点</h4>
+      <ul class="intro-features">
+        <li>纯前端处理，PDF 不上传服务器</li>
+        <li>单页、批量、全部三种旋转模式</li>
+        <li>缩略图实时预览旋转效果</li>
+        <li>显示每页当前旋转角度</li>
+        <li>一键重置为原始方向</li>
+        <li>支持深色模式与移动端响应式</li>
+      </ul>
+      <h4><span class="h4-icon">🎯</span>使用场景</h4>
+      <ul class="intro-scenes">
+        <li>扫描 PDF 页面方向颠倒时纠正</li>
+        <li>横向页面需要统一为纵向</li>
+        <li>批量调整电子书、资料页面方向</li>
+        <li>手机拍照转 PDF 后方向错误的修正</li>
+      </ul>
+      <h4><span class="h4-icon">💬</span>常见问题</h4>
+      <div class="intro-faq-item"><div class="intro-faq-q">这个工具是免费的吗？</div><div class="intro-faq-a">完全免费，无需注册登录，直接在浏览器中打开即可使用。</div></div>
+      <div class="intro-faq-item"><div class="intro-faq-q">我的 PDF 文件会被上传吗？</div><div class="intro-faq-a">不会。所有 PDF 解析、渲染、旋转与导出都在浏览器本地完成，文件不会发送到任何服务器，隐私安全有保障。</div></div>
+      <div class="intro-faq-item"><div class="intro-faq-q">旋转后导出的 PDF 清晰度会下降吗？</div><div class="intro-faq-a">不会。本工具只修改页面的方向属性，不会重新压缩或栅格化页面内容，导出后的 PDF 与原文件清晰度一致。</div></div>
+      <div class="intro-faq-item"><div class="intro-faq-q">支持加密的 PDF 文件吗？</div><div class="intro-faq-a">支持仅设置所有者密码（无打开密码）的 PDF。若文件设置了打开密码，需先解除密码后再使用本工具。</div></div>
+    </div>
+  </div>
+  <!-- /SEO 介绍区块 -->
+</div>
+
+<script>
+const { PDFDocument, degrees } = PDFLib;
+
+let state = {
+  file:null, fileBuffer:null, pdfjsDoc:null,
+  rotations:[], originalRotations:[],
+  numPages:0, fileName:'', fileSize:0,
+  selected:new Set()
+};
+let renderToken = 0;
+
+const fileInput = document.getElementById('fileInput');
+const dropZone = document.getElementById('dropZone');
+
+dropZone.addEventListener('dragover', e=>{ e.preventDefault(); dropZone.classList.add('dragover'); });
+dropZone.addEventListener('dragleave', ()=>dropZone.classList.remove('dragover'));
+dropZone.addEventListener('drop', e=>{
+  e.preventDefault();
+  dropZone.classList.remove('dragover');
+  if(e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]);
+});
+
+function handleFile(file){
+  if(!file) return;
+  if(file.type !== 'application/pdf' && !/\.pdf$/i.test(file.name)){
+    ToolBox.showToast(i18nText(), 'warning');
+    return;
+  }
+  fileInput.value = '';
+  loadPdf(file);
+}
+
+function formatSize(bytes){
+  if(bytes < 1024) return bytes + ' B';
+  if(bytes < 1024*1024) return (bytes/1024).toFixed(1) + ' KB';
+  return (bytes/1024/1024).toFixed(2) + ' MB';
+}
+
+async function loadPdf(file){
+  ToolBox.showToast(i18nText(), 'info');
+  try{
+    const raw = await file.arrayBuffer();
+    const pdfjsData = new Uint8Array(raw.slice(0));
+    const pdfLibData = raw.slice(0);
+
+    const pdfjsDoc = await pdfjsLib.getDocument({ data: pdfjsData }).promise;
+    const pdfLibDoc = await PDFDocument.load(pdfLibData, { ignoreEncryption:true });
+    const pages = pdfLibDoc.getPages();
+    const rotations = [];
+    const originalRotations = [];
+    for(let i=0;i<pages.length;i++){
+      const a = pages[i].getRotation().angle;
+      rotations.push(a);
+      originalRotations.push(a);
+    }
+
+    state = {
+      file, fileBuffer:raw, pdfjsDoc,
+      rotations, originalRotations,
+      numPages:pdfjsDoc.numPages,
+      fileName:file.name, fileSize:file.size,
+      selected:new Set()
+    };
+
+    document.getElementById('pdfPanel').style.display = '';
+    renderInfo();
+    await renderAllThumbs();
+    ToolBox.showToast(i18nText('toast.saved', 'PDF 加载完成，共 ' + state.numPages + ' 页'), 'success');
+  }catch(e){
+    console.error(e);
+    ToolBox.showToast('PDF 加载失败：' + (e.message || e),'error');
+  }
+}
+
+function renderInfo(){
+  document.getElementById('pdfInfo').innerHTML =
+    '<div class="pi-item"><div class="pi-label">文件名</div><div class="pi-value">' + ToolBox.escHtml(state.fileName) + '</div></div>' +
+    '<div class="pi-item"><div class="pi-label">总页数</div><div class="pi-value">' + state.numPages + ' 页</div></div>' +
+    '<div class="pi-item"><div class="pi-label">文件大小</div><div class="pi-value">' + formatSize(state.fileSize) + '</div></div>';
+  document.getElementById('totalCount').textContent = state.numPages;
+  updateSelCount();
+}
+
+function showLoading(show){
+  document.getElementById('loadingOverlay').style.display = show ? 'flex' : 'none';
+}
+
+async function renderAllThumbs(){
+  const grid = document.getElementById('thumbGrid');
+  grid.innerHTML = '';
+  for(let i=0;i<state.numPages;i++){
+    grid.appendChild(createThumbItem(i));
+  }
+  const token = ++renderToken;
+  showLoading(true);
+  for(let i=0;i<state.numPages;i++){
+    if(token !== renderToken) return;
+    await renderThumbCanvas(i);
+  }
+  showLoading(false);
+}
+
+function createThumbItem(i){
+  const div = document.createElement('div');
+  div.className = 'thumb-item';
+  div.id = 'thumb-' + i;
+  div.innerHTML =
+    '<div class="thumb-head">' +
+      '<label class="thumb-check"><input type="checkbox" data-page="' + i + '" onchange="onCheckChange(' + i + ', this.checked)"><span>第 ' + (i+1) + ' 页</span></label>' +
+      '<span class="angle-badge" id="angle-' + i + '">' + state.rotations[i] + '°</span>' +
+    '</div>' +
+    '<div class="thumb-canvas-wrap" id="wrap-' + i + '"><div class="thumb-loading">渲染中…</div></div>' +
+    '<div class="thumb-actions">' +
+      '<button type="button" class="btn" onclick="rotateOne(' + i + ', -90)" title="左转90°">↺ 左转</button>' +
+      '<button type="button" class="btn" onclick="rotateOne(' + i + ', 90)" title="右转90°">↻ 右转</button>' +
+    '</div>';
+  return div;
+}
+
+async function renderThumbCanvas(i){
+  try{
+    const page = await state.pdfjsDoc.getPage(i+1);
+    const base = page.getViewport({ scale:1 });
+    const scale = Math.min(1.6, 230 / Math.max(base.width, 1));
+    const viewport = page.getViewport({ scale });
+
+    const off = document.createElement('canvas');
+    off.width = Math.max(1, Math.floor(viewport.width));
+    off.height = Math.max(1, Math.floor(viewport.height));
+    const offCtx = off.getContext('2d');
+    offCtx.fillStyle = '#ffffff';
+    offCtx.fillRect(0,0,off.width,off.height);
+    await page.render({ canvasContext:offCtx, viewport }).promise;
+
+    const extra = (((state.rotations[i] - state.originalRotations[i]) % 360) + 360) % 360;
+    const isSide = extra === 90 || extra === 270;
+
+    const disp = document.createElement('canvas');
+    if(isSide){
+      disp.width = off.height;
+      disp.height = off.width;
+    }else{
+      disp.width = off.width;
+      disp.height = off.height;
+    }
+    const ctx = disp.getContext('2d');
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0,0,disp.width,disp.height);
+    ctx.translate(disp.width/2, disp.height/2);
+    ctx.rotate(extra * Math.PI / 180);
+    ctx.translate(-off.width/2, -off.height/2);
+    ctx.drawImage(off, 0, 0);
+
+    const wrap = document.getElementById('wrap-' + i);
+    if(wrap){
+      wrap.innerHTML = '';
+      wrap.appendChild(disp);
+    }
+  }catch(e){
+    console.error('render page', i, e);
+    const wrap = document.getElementById('wrap-' + i);
+    if(wrap) wrap.innerHTML = '<div class="thumb-error">渲染失败</div>';
+  }
+}
+
+function setAngle(i){
+  const el = document.getElementById('angle-' + i);
+  if(el) el.textContent = state.rotations[i] + '°';
+}
+
+function rotateOne(i, delta){
+  state.rotations[i] = (((state.rotations[i] + delta) % 360) + 360) % 360;
+  setAngle(i);
+  renderThumbCanvas(i);
+}
+
+async function rotateAll(delta){
+  const idx = [];
+  for(let i=0;i<state.numPages;i++){
+    state.rotations[i] = (((state.rotations[i] + delta) % 360) + 360) % 360;
+    setAngle(i);
+    idx.push(i);
+  }
+  await renderMany(idx);
+}
+
+async function rotateSelected(delta){
+  if(state.selected.size === 0){
+    ToolBox.showToast(i18nText(), 'warning');
+    return;
+  }
+  const idx = Array.from(state.selected).sort((a,b)=>a-b);
+  for(const i of idx){
+    state.rotations[i] = (((state.rotations[i] + delta) % 360) + 360) % 360;
+    setAngle(i);
+  }
+  await renderMany(idx);
+}
+
+async function resetAll(){
+  const idx = [];
+  for(let i=0;i<state.numPages;i++){
+    state.rotations[i] = state.originalRotations[i];
+    setAngle(i);
+    idx.push(i);
+  }
+  await renderMany(idx);
+  ToolBox.showToast(i18nText(), 'info');
+}
+
+async function renderMany(idx){
+  const token = ++renderToken;
+  showLoading(true);
+  for(const i of idx){
+    if(token !== renderToken) return;
+    await renderThumbCanvas(i);
+  }
+  showLoading(false);
+}
+
+function onCheckChange(i, checked){
+  if(checked) state.selected.add(i); else state.selected.delete(i);
+  const item = document.getElementById('thumb-' + i);
+  if(item) item.classList.toggle('selected', checked);
+  updateSelCount();
+}
+
+function selectAll(){
+  for(let i=0;i<state.numPages;i++){
+    state.selected.add(i);
+    const cb = document.querySelector('input[data-page="' + i + '"]');
+    if(cb) cb.checked = true;
+    const item = document.getElementById('thumb-' + i);
+    if(item) item.classList.add('selected');
+  }
+  updateSelCount();
+}
+
+function deselectAll(){
+  state.selected.clear();
+  document.querySelectorAll('input[data-page]').forEach(cb=>cb.checked=false);
+  document.querySelectorAll('.thumb-item').forEach(el=>el.classList.remove('selected'));
+  updateSelCount();
+}
+
+function updateSelCount(){
+  document.getElementById('selCount').textContent = state.selected.size;
+}
+
+function resetFile(){
+  state = { file:null, fileBuffer:null, pdfjsDoc:null, rotations:[], originalRotations:[], numPages:0, fileName:'', fileSize:0, selected:new Set() };
+  document.getElementById('pdfPanel').style.display = 'none';
+  document.getElementById('thumbGrid').innerHTML = '';
+  document.getElementById('pdfInfo').innerHTML = '';
+  fileInput.value = '';
+}
+
+async function downloadPdf(){
+  if(!state.fileBuffer){
+    ToolBox.showToast(i18nText(), 'warning');
+    return;
+  }
+  try{
+    ToolBox.showToast(i18nText(), 'info');
+    const doc = await PDFDocument.load(state.fileBuffer.slice(0), { ignoreEncryption:true });
+    const pages = doc.getPages();
+    for(let i=0;i<pages.length;i++){
+      const target = ((state.rotations[i] % 360) + 360) % 360;
+      pages[i].setRotation(degrees(target));
+    }
+    const bytes = await doc.save();
+    const blob = new Blob([bytes], { type:'application/pdf' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = state.fileName.replace(/\.pdf$/i,'') + '-rotated.pdf';
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(()=>{ URL.revokeObjectURL(url); a.remove(); }, 0);
+    ToolBox.showToast(i18nText(), 'success');
+  }catch(e){
+    console.error(e);
+    ToolBox.showToast('下载失败：' + (e.message || e),'error');
+  }
+}
+
+ToolBox.initToolTheme();
+</script>
+<script>
+document.addEventListener('DOMContentLoaded',function(){
+  var headers=document.querySelectorAll('.tool-intro-header');
+  headers.forEach(function(h){
+    h.addEventListener('click',function(){ this.parentElement.classList.toggle('open'); });
+  });
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,963 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+
+<script src="/js/tool-page-runtime.js" defer></script>
+<!-- TOOLBOX-TOOL-RUNTIME -->
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="toolbox" content="cat=health,industry=medical,icon=🏥,bg=#e8f5e9">
+<meta name="description" content="医疗计算器 - 医疗健康计算器综合工具 - 用药剂量、输液滴速、血糖换算、体温曲线、血压分类、急救计时，纯前端免费使用。。医疗专业工具，基于权威医学标准，仅供参考。">
+<meta name="keywords" content="医疗计算器,用药剂量,输液滴速,血糖换算,体温记录,血压分类,急救计时,ToolBox">
+<link rel="canonical" href="https://chenguangwu.github.io/tools/medical/medical-calculator.html">
+<title>医疗计算器 - 医疗健康计算器综合工具 - 用药剂量、输液滴速 - ToolBox</title>
+<meta property="og:title" content="医疗计算器 - 医疗健康计算器综合工具 - 用药剂量、输液滴速 - ToolBox">
+<meta property="og:description" content="医疗计算器 - 医疗健康计算器综合工具 - 用药剂量、输液滴速、血糖换算、体温曲线、血压分类、急救计时，纯前端免费使用。。医疗专业工具，基于权威医学标准，仅供参考。">
+<meta property="og:url" content="https://chenguangwu.github.io/tools/medical/medical-calculator.html">
+<meta name="twitter:card" content="summary">
+<link rel="stylesheet" href="../../css/common.css">
+<script src="../../js/common.js"></script>
+<style>
+/* Canvas 体温曲线容器 */
+.temp-canvas-wrap{position:relative;width:100%;max-width:600px;margin:12px auto 0;background:var(--result-bg);border:1px solid var(--border);border-radius:12px;overflow:hidden;}
+.temp-canvas-wrap canvas{display:block;width:100%;height:240px;}
+.temp-record-list{max-height:180px;overflow-y:auto;margin-top:10px;}
+.temp-record-item{display:flex;align-items:center;gap:8px;padding:6px 10px;border:1px solid var(--border);border-radius:8px;margin-bottom:4px;font-size:13px;background:var(--card-bg);}
+.temp-record-item .temp-time{color:var(--text-muted);font-size:12px;min-width:60px;}
+.temp-record-item .temp-val{font-weight:600;color:var(--primary);}
+.temp-record-item .temp-del{margin-left:auto;cursor:pointer;color:var(--danger);font-size:12px;padding:2px 6px;border-radius:6px;border:1px solid transparent;transition:all 0.15s;}
+.temp-record-item .temp-del:hover{border-color:var(--danger);background:rgba(239,68,68,0.08);}
+
+/* 血压结果卡片 */
+.bp-result-card{padding:16px;border-radius:12px;margin-top:12px;border-left:4px solid;font-size:14px;}
+.bp-ideal{border-color:var(--success);background:rgba(16,185,129,0.08);color:#059669;}
+.bp-normal{border-color:#3B82F6;background:rgba(59,130,246,0.08);color:#2563EB;}
+.bp-high-normal{border-color:var(--warning);background:rgba(245,158,11,0.08);color:#D97706;}
+.bp-h1{border-color:#F97316;background:rgba(249,115,22,0.08);color:#EA580C;}
+.bp-h2{border-color:#EF4444;background:rgba(239,68,68,0.08);color:#DC2626;}
+.bp-h3{border-color:#991B1B;background:rgba(153,27,27,0.12);color:#991B1B;}
+[data-theme="dark"] .bp-ideal{color:#34D399;}
+[data-theme="dark"] .bp-normal{color:#60A5FA;}
+[data-theme="dark"] .bp-high-normal{color:#FBBF24;}
+[data-theme="dark"] .bp-h1{color:#FB923C;}
+[data-theme="dark"] .bp-h2{color:#F87171;}
+[data-theme="dark"] .bp-h3{color:#FCA5A5;}
+
+/* 急救计时器 */
+.timer-display{font-size:48px;font-weight:700;text-align:center;padding:24px 0;font-variant-numeric:tabular-nums;letter-spacing:2px;color:var(--primary);}
+.timer-display.urgent{color:var(--danger);animation:timerPulse 1s ease-in-out infinite;}
+@keyframes timerPulse{0%,100%{opacity:1;}50%{opacity:0.5;}}
+.timer-presets{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px;}
+.timer-preset-btn{padding:8px 14px;border-radius:10px;border:1px solid var(--border);background:var(--card-bg);color:var(--text);cursor:pointer;font-size:13px;transition:all 0.2s;font-weight:500;}
+.timer-preset-btn:hover{border-color:var(--primary);background:var(--bg-hover);}
+.timer-preset-btn.active{background:var(--gradient-primary);color:#fff;border-color:transparent;}
+.timer-controls{display:flex;gap:8px;justify-content:center;margin-top:12px;}
+.timer-progress{height:6px;background:var(--border);border-radius:3px;overflow:hidden;margin-top:12px;}
+.timer-progress-fill{height:100%;border-radius:3px;background:var(--gradient-primary);transition:width 0.5s linear;}
+
+/* 免责声明 */
+.disclaimer{border:1px solid var(--danger);background:rgba(239,68,68,0.06);border-radius:12px;padding:12px 14px;margin-top:16px;font-size:12px;color:var(--danger);line-height:1.6;}
+[data-theme="dark"] .disclaimer{background:rgba(239,68,68,0.1);border-color:rgba(239,68,68,0.3);}
+
+/* 参考值表格 */
+.ref-table-wrap{overflow-x:auto;margin-top:10px;}
+.ref-table-wrap table{font-size:12px;}
+.ref-table-wrap th{background:var(--th-bg);font-weight:600;white-space:nowrap;}
+.ref-table-wrap td{white-space:nowrap;}
+</style>
+
+
+
+<meta property="og:image" content="https://chenguangwu.github.io/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="ToolBox - 6000+免费在线工具">
+<meta name="twitter:image" content="https://chenguangwu.github.io/og-image.png">
+<meta name="twitter:image:alt" content="ToolBox - 6000+免费在线工具">
+    <meta property="og:type" content="website">
+    <meta name="twitter:title" content="医疗计算器 - 医疗健康计算器综合工具 - 用药剂量、输液滴速 - ToolBox">
+    <meta name="twitter:description" content="医疗计算器 - 医疗健康计算器综合工具 - 用药剂量、输液滴速、血糖换算、体温曲线、血压分类、急救计时，纯前端免费使用。。医疗专业工具，基于权威医学标准，仅供参考。">
+<!-- TOOLBOX-WEBAPP-LD -->
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"WebApplication","name":"医疗计算器 - 医疗健康计算器综合工具 - 用药剂量、输液滴速","url":"https://chenguangwu.github.io/tools/medical/medical-calculator.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":["zh-CN", "en-US"],"description":"&amp;#127973; 医疗健康计算器","image":"https://chenguangwu.github.io/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}
+</script>
+<meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
+<meta http-equiv="X-Content-Type-Options" content="nosniff">
+<meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
+<!-- TOOLBOX-SECURITY -->
+
+<script src="/js/privacy.js" defer></script>
+<!-- TOOLBOX-PRIVACY-SCRIPT -->
+
+<script src="/js/metrics.js" defer></script>
+<!-- TOOLBOX-METRICS-SCRIPT -->
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"首页","item":"https://chenguangwu.github.io/"},{"@type":"ListItem","position":2,"name":"医疗专业","item":"https://chenguangwu.github.io/tools/medical/index.html"},{"@type":"ListItem","position":3,"name":"医疗计算器","item":"https://chenguangwu.github.io/tools/medical/medical-calculator.html"}]}
+</script>
+
+<script src="../../js/i18n.js" defer></script>
+<script src="../../js/tool-i18n.js" defer></script>
+<!-- TOOLBOX-I18N-SCRIPT -->
+<!-- TOOLBOX-HREFLANG -->
+<link rel="alternate" hreflang="zh-CN" href="https://chenguangwu.github.io/tools/medical/medical-calculator.html">
+<link rel="alternate" hreflang="en-US" href="https://chenguangwu.github.io/tools/medical/medical-calculator.html">
+<link rel="alternate" hreflang="x-default" href="https://chenguangwu.github.io/tools/medical/medical-calculator.html">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:locale:alternate" content="en_US">
+
+<script src="/js/clarity.js" defer></script>
+<!-- TOOLBOX-CLARITY -->
+</head>
+<body>
+<h1 class="sr-only">医疗计算器</h1>
+
+
+<div class="nav">
+  <a href="../../index.html">&larr; ToolBox</a>
+  <span>/ 医疗计算器</span>
+  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()">&#127769;</button>
+</div>
+
+
+
+
+
+<nav class="breadcrumb" aria-label="面包屑导航" data-breadcrumb="1">
+  <a href="../../index.html">首页</a>
+  <span class="bc-sep">‹</span>
+  <a href="index.html">🏥 医疗专业</a>
+  <span class="bc-sep">‹</span>
+  <span class="bc-current">医疗计算器</span>
+</nav>
+<div class="container">
+  <div class="card tool-card-accent" style="--tool-accent:#FF6B35;">
+    <h2>&#127973; 医疗健康计算器</h2>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;">
+      综合医疗健康计算工具集：用药剂量、输液滴速、血糖换算、体温曲线、血压分类、急救计时
+    </p>
+
+    <!-- 标签页导航 -->
+    <div class="tabs" id="mainTabs">
+      <button type="button" class="tab-btn active" onclick="switchTab('dose')">&#128138; 用药剂量</button>
+      <button type="button" class="tab-btn" onclick="switchTab('iv')">&#127919; 输液滴速</button>
+      <button type="button" class="tab-btn" onclick="switchTab('glucose')">&#128298; 血糖换算</button>
+      <button type="button" class="tab-btn" onclick="switchTab('temp')">&#127777; 体温曲线</button>
+      <button type="button" class="tab-btn" onclick="switchTab('bp')">&#128147; 血压分类</button>
+      <button type="button" class="tab-btn" onclick="switchTab('emergency')">&#9888; 急救计时</button>
+    </div>
+
+    <!-- ==================== 1. 用药剂量计算器 ==================== -->
+    <div class="tab-content active" id="tab-dose">
+      <h3>&#128138; 用药剂量计算器（按体重）</h3>
+      <div class="input-row">
+        <div><label>体重 (kg)</label><input type="number" id="dose_weight" value="60" min="1" step="0.1" oninput="calcDose()"></div>
+        <div><label>推荐剂量 (mg/kg/天)</label><input type="number" id="dose_per_kg" value="10" min="0.01" step="0.1" oninput="calcDose()"></div>
+        <div><label>服药频率 (次/天)</label><input type="number" id="dose_freq" value="3" min="1" max="24" step="1" oninput="calcDose()"></div>
+      </div>
+      <div class="toolbar">
+        <button type="button" class="btn primary" onclick="calcDose()">计算剂量</button>
+        <button type="button" class="btn" onclick="copyDose()">复制结果</button>
+      </div>
+      <div class="result-box" id="result-dose"></div>
+      <div class="info-box">公式：每日总剂量 = 体重 x 推荐剂量；每次剂量 = 每日总剂量 / 服药频率。计算结果仅供参考，请遵医嘱。</div>
+    </div>
+
+    <!-- ==================== 2. 输液滴速计算器 ==================== -->
+    <div class="tab-content" id="tab-iv">
+      <h3>&#127919; 输液滴速计算器</h3>
+      <div class="input-row">
+        <div><label>输液总量 (ml)</label><input type="number" id="iv_volume" value="500" min="1" step="1" oninput="calcIV()"></div>
+        <div><label>输液时间 (分钟)</label><input type="number" id="iv_time" value="120" min="1" step="1" oninput="calcIV()"></div>
+        <div><label>滴系数 (滴/ml)</label>
+          <select id="iv_factor" onchange="calcIV()">
+            <option value="10">10 (普通输液器)</option>
+            <option value="15" selected>15 (标准输液器)</option>
+            <option value="20">20 (儿科/精密输液器)</option>
+            <option value="60">60 (微量输液器)</option>
+          </select>
+        </div>
+      </div>
+      <div class="toolbar">
+        <button type="button" class="btn primary" onclick="calcIV()">计算滴速</button>
+        <button type="button" class="btn" onclick="copyIV()">复制结果</button>
+      </div>
+      <div class="result-box" id="result-iv"></div>
+      <div class="info-box">公式：每分钟滴数 = (输液总量 x 滴系数) / 输液时间(分钟)；每小时毫升数 = 输液总量 / (输液时间/60)。</div>
+    </div>
+
+    <!-- ==================== 3. 血糖单位换算 ==================== -->
+    <div class="tab-content" id="tab-glucose">
+      <h3>&#128298; 血糖单位换算 (mmol/L &#8596; mg/dL)</h3>
+      <div class="input-row">
+        <div><label>mmol/L</label><input type="number" id="glucose_mmol" value="5.6" min="0" step="0.1" oninput="convertGlucose('mmol')"></div>
+        <div style="display:flex;align-items:flex-end;padding-bottom:2px;font-size:18px;color:var(--text-muted);">&#8596;</div>
+        <div><label>mg/dL</label><input type="number" id="glucose_mg" value="100.9" min="0" step="0.1" oninput="convertGlucose('mg')"></div>
+      </div>
+      <div class="toolbar">
+        <button type="button" class="btn primary" onclick="convertGlucose('mmol')">换算</button>
+        <button type="button" class="btn" onclick="copyGlucose()">复制结果</button>
+      </div>
+      <div class="result-box" id="result-glucose"></div>
+      <div class="ref-table-wrap">
+        <h4 style="font-size:14px;margin-top:8px;margin-bottom:6px;">空腹血糖参考值</h4>
+        <table>
+          <thead><tr><th>分类</th><th>mmol/L</th><th>mg/dL</th></tr></thead>
+          <tbody>
+            <tr><td style="color:var(--success);font-weight:600;">正常</td><td>3.9 - 6.1</td><td>70 - 110</td></tr>
+            <tr><td style="color:var(--warning);font-weight:600;">空腹血糖受损 (IFG)</td><td>6.1 - 7.0</td><td>110 - 126</td></tr>
+            <tr><td style="color:var(--danger);font-weight:600;">糖尿病 (空腹)</td><td>&ge; 7.0</td><td>&ge; 126</td></tr>
+            <tr><td style="color:var(--success);font-weight:600;">餐后2h正常</td><td>&lt; 7.8</td><td>&lt; 140</td></tr>
+            <tr><td style="color:var(--warning);font-weight:600;">糖耐量异常 (IGT)</td><td>7.8 - 11.1</td><td>140 - 200</td></tr>
+            <tr><td style="color:var(--danger);font-weight:600;">糖尿病 (餐后2h)</td><td>&ge; 11.1</td><td>&ge; 200</td></tr>
+            <tr><td style="font-weight:600;">低血糖</td><td>&lt; 3.9</td><td>&lt; 70</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="info-box">换算系数：mmol/L &times; 18.0159 = mg/dL。参考值基于 WHO 糖尿病诊断标准，具体诊断请遵医嘱。</div>
+    </div>
+
+    <!-- ==================== 4. 体温记录曲线图 ==================== -->
+    <div class="tab-content" id="tab-temp">
+      <h3>&#127777; 体温记录曲线图</h3>
+      <div class="input-row">
+        <div><label>测量时间</label><input type="text" id="temp_time" placeholder="如: 7/28 08:00"></div>
+        <div><label>体温 (&#8451;)</label><input type="number" id="temp_value" value="36.5" min="34" max="42" step="0.1"></div>
+      </div>
+      <div class="toolbar">
+        <button type="button" class="btn primary" onclick="addTempRecord()">添加记录</button>
+        <button type="button" class="btn" onclick="clearTempRecords()">清空记录</button>
+      </div>
+      <div class="temp-canvas-wrap">
+        <canvas id="tempCanvas" height="240"></canvas>
+      </div>
+      <div class="temp-record-list" id="tempRecordList"></div>
+      <div class="info-box">正常体温范围 36.0 - 37.2&#8451;。绿色区域为正常范围，红色虚线标记发热阈值(37.3&#8451;)。数据保存在浏览器本地。</div>
+    </div>
+
+    <!-- ==================== 5. 血压分类对照表 ==================== -->
+    <div class="tab-content" id="tab-bp">
+      <h3>&#128147; 血压分类对照表</h3>
+      <div class="input-row">
+        <div><label>收缩压 SBP (mmHg)</label><input type="number" id="bp_sbp" value="120" min="50" max="280" step="1" oninput="classifyBP()"></div>
+        <div><label>舒张压 DBP (mmHg)</label><input type="number" id="bp_dbp" value="80" min="30" max="180" step="1" oninput="classifyBP()"></div>
+      </div>
+      <div class="toolbar">
+        <button type="button" class="btn primary" onclick="classifyBP()">分类评估</button>
+        <button type="button" class="btn" onclick="copyBP()">复制结果</button>
+      </div>
+      <div id="result-bp"></div>
+      <div class="ref-table-wrap">
+        <h4 style="font-size:14px;margin-top:12px;margin-bottom:6px;">血压分类标准（中国高血压防治指南）</h4>
+        <table>
+          <thead><tr><th>分类</th><th>收缩压 (mmHg)</th><th>舒张压 (mmHg)</th></tr></thead>
+          <tbody>
+            <tr><td style="color:var(--success);font-weight:600;">理想血压</td><td>&lt; 120</td><td>&lt; 80</td></tr>
+            <tr><td style="color:#3B82F6;font-weight:600;">正常血压</td><td>120 - 129</td><td>80 - 84</td></tr>
+            <tr><td style="color:var(--warning);font-weight:600;">正常高值</td><td>130 - 139</td><td>85 - 89</td></tr>
+            <tr><td style="color:#F97316;font-weight:600;">1级高血压（轻度）</td><td>140 - 159</td><td>90 - 99</td></tr>
+            <tr><td style="color:var(--danger);font-weight:600;">2级高血压（中度）</td><td>160 - 179</td><td>100 - 109</td></tr>
+            <tr><td style="color:#991B1B;font-weight:600;">3级高血压（重度）</td><td>&ge; 180</td><td>&ge; 110</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="info-box">分类标准：当收缩压与舒张压分属不同级别时，以较高的级别为准。单纯收缩期高血压为收缩压升高而舒张压 &lt; 90 mmHg。</div>
+    </div>
+
+    <!-- ==================== 6. 急救黄金时间计时器 ==================== -->
+    <div class="tab-content" id="tab-emergency">
+      <h3>&#9888; 急救黄金时间计时器</h3>
+      <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;">选择预设急救场景或自定义倒计时时间，开始计时。</p>
+
+      <div class="timer-presets" id="timerPresets">
+        <button type="button" class="timer-preset-btn active" onclick="setTimerPreset(120, this, '心梗黄金时间')">心梗 120分钟</button>
+        <button type="button" class="timer-preset-btn" onclick="setTimerPreset(180, this, '中风黄金时间')">中风 3小时</button>
+        <button type="button" class="timer-preset-btn" onclick="setTimerPreset(60, this, '心肺复苏黄金时间')">CPR 60分钟</button>
+        <button type="button" class="timer-preset-btn" onclick="setTimerPreset(360, this, '脊髓损伤黄金时间')">脊髓损伤 6小时</button>
+        <button type="button" class="timer-preset-btn" onclick="setTimerPreset(90, this, '溶栓黄金时间')">溶栓 90分钟</button>
+      </div>
+
+      <div style="margin-top:12px;">
+        <div class="input-row">
+          <div><label>自定义时间（分钟）</label><input type="number" id="timer_custom_min" value="" min="1" step="1" placeholder="留空使用预设"></div>
+        </div>
+      </div>
+
+      <div class="timer-display" id="timerDisplay">120:00</div>
+      <div style="text-align:center;font-size:13px;color:var(--text-muted);margin-bottom:8px;" id="timerLabel">心梗黄金时间</div>
+
+      <div class="timer-progress">
+        <div class="timer-progress-fill" id="timerProgress" style="width:100%;"></div>
+      </div>
+
+      <div class="timer-controls">
+        <button type="button" class="btn primary" id="timerStartBtn" onclick="startTimer()">&#9654; 开始</button>
+        <button type="button" class="btn" id="timerPauseBtn" onclick="pauseTimer()" disabled>&#10074;&#10074; 暂停</button>
+        <button type="button" class="btn danger" onclick="resetTimer()">&#8634; 重置</button>
+      </div>
+
+      <div class="result-box" id="result-timer" style="display:none;"></div>
+      <div class="tip-box tip-warn">提示：急救计时器为辅助工具，遇到紧急情况请立即拨打 120 急救电话。时间到后会有声音提醒，请确保设备音量已开启。</div>
+    </div>
+
+    <!-- 免责声明 -->
+    <div class="disclaimer">
+      &#9888; <strong>免责声明：</strong>本工具仅供学习参考，所有计算结果不构成任何医疗诊断或治疗建议。
+      用药剂量、输液滴速等计算结果必须经过专业医护人员审核后方可执行。
+      血压分类、血糖参考值仅作科普用途，不能替代专业医疗评估。
+      急救计时器为辅助提醒工具，不能替代专业急救培训。紧急情况请立即拨打 120。
+    </div>
+  </div>
+
+<!-- 注意事项区块 -->
+<div class="tool-notes" style="--tool-accent:#FF6B35;">
+  <div class="tool-notes-title">⚠️ 使用说明与注意事项</div>
+  <ul>
+      <li>本工具纯前端运行，数据不会上传到服务器</li>
+      <li>建议在主流浏览器（Chrome/Safari/Firefox/Edge）中使用</li>
+      <li>计算结果仅供参考，请以实际应用场景为准</li>
+  </ul>
+</div>
+<!-- /注意事项区块 -->
+</div>
+
+<script>
+ToolBox.initToolTheme();
+
+// ====== 标签页切换 ======
+function switchTab(name) {
+  document.querySelectorAll('#mainTabs .tab-btn').forEach(function(b, i) {
+    var tabs = ['dose','iv','glucose','temp','bp','emergency'];
+    b.classList.toggle('active', tabs[i] === name);
+  });
+  document.querySelectorAll('.tab-content').forEach(function(p) {
+    p.classList.toggle('active', p.id === 'tab-' + name);
+  });
+  // 切换到体温时重绘
+  if (name === 'temp') { drawTempChart(); }
+}
+
+// ====== 1. 用药剂量计算器 ======
+function calcDose() {
+  var w = parseFloat(document.getElementById('dose_weight').value) || 0;
+  var perKg = parseFloat(document.getElementById('dose_per_kg').value) || 0;
+  var freq = parseInt(document.getElementById('dose_freq').value) || 0;
+  if (w <= 0 || perKg <= 0 || freq <= 0) {
+    document.getElementById('result-dose').innerHTML = '<p style="color:var(--danger);">请输入有效数值（体重、剂量、频率均需大于0）</p>';
+    return;
+  }
+  var dailyTotal = w * perKg;
+  var perDose = dailyTotal / freq;
+  var html = '<div class="stat-grid">';
+  html += '<div class="stat-card"><div class="val">' + dailyTotal.toFixed(1) + '</div><div class="lbl">每日总剂量 (mg/天)</div></div>';
+  html += '<div class="stat-card"><div class="val">' + perDose.toFixed(1) + '</div><div class="lbl">每次剂量 (mg/次)</div></div>';
+  html += '<div class="stat-card"><div class="val">' + freq + '</div><div class="lbl">每日服药次数</div></div>';
+  html += '</div>';
+  html += '<p style="font-size:13px;color:var(--text-secondary);margin-top:8px;">计算公式：每日总剂量 = ' + w + 'kg &times; ' + perKg + 'mg/kg = <strong>' + dailyTotal.toFixed(1) + 'mg</strong>；每次剂量 = ' + dailyTotal.toFixed(1) + 'mg / ' + freq + '次 = <strong>' + perDose.toFixed(1) + 'mg</strong></p>';
+  document.getElementById('result-dose').innerHTML = html;
+}
+
+function copyDose() {
+  var el = document.getElementById('result-dose');
+  if (!el) return;
+  ToolBox.copyText(el.innerText.replace(/\s+\n/g, '\n').trim(), i18nText());
+}
+
+// ====== 2. 输液滴速计算器 ======
+function calcIV() {
+  var vol = parseFloat(document.getElementById('iv_volume').value) || 0;
+  var time = parseFloat(document.getElementById('iv_time').value) || 0;
+  var factor = parseInt(document.getElementById('iv_factor').value) || 15;
+  if (vol <= 0 || time <= 0) {
+    document.getElementById('result-iv').innerHTML = '<p style="color:var(--danger);">请输入有效的输液总量和时间</p>';
+    return;
+  }
+  var dropsPerMin = (vol * factor) / time;
+  var dropsPerHour = dropsPerMin * 60;
+  var mlPerHour = vol / (time / 60);
+  var html = '<div class="stat-grid">';
+  html += '<div class="stat-card"><div class="val">' + Math.round(dropsPerMin) + '</div><div class="lbl">每分钟滴数 (滴/分)</div></div>';
+  html += '<div class="stat-card"><div class="val">' + Math.round(dropsPerHour) + '</div><div class="lbl">每小时滴数 (滴/时)</div></div>';
+  html += '<div class="stat-card"><div class="val">' + mlPerHour.toFixed(1) + '</div><div class="lbl">每小时毫升 (ml/时)</div></div>';
+  html += '</div>';
+  html += '<p style="font-size:13px;color:var(--text-secondary);margin-top:8px;">公式：滴/分 = (' + vol + 'ml &times; ' + factor + ') / ' + time + '分钟 = <strong>' + Math.round(dropsPerMin) + ' 滴/分</strong></p>';
+  document.getElementById('result-iv').innerHTML = html;
+}
+
+function copyIV() {
+  var el = document.getElementById('result-iv');
+  if (!el) return;
+  ToolBox.copyText(el.innerText.replace(/\s+\n/g, '\n').trim(), i18nText());
+}
+
+// ====== 3. 血糖单位换算 ======
+var glucoseFactor = 18.0159;
+
+function convertGlucose(dir) {
+  if (dir === 'mmol') {
+    var mmol = parseFloat(document.getElementById('glucose_mmol').value);
+    if (isNaN(mmol) || mmol < 0) return;
+    var mg = mmol * glucoseFactor;
+    document.getElementById('glucose_mg').value = mg.toFixed(1);
+  } else {
+    var mg = parseFloat(document.getElementById('glucose_mg').value);
+    if (isNaN(mg) || mg < 0) return;
+    var mmol = mg / glucoseFactor;
+    document.getElementById('glucose_mmol').value = mmol.toFixed(2);
+  }
+  showGlucoseResult();
+}
+
+function showGlucoseResult() {
+  var mmol = parseFloat(document.getElementById('glucose_mmol').value);
+  var mg = parseFloat(document.getElementById('glucose_mg').value);
+  if (isNaN(mmol) || isNaN(mg)) return;
+  var level = '';
+  var cls = '';
+  if (mmol < 3.9) { level = '低血糖'; cls = 'tip-error'; }
+  else if (mmol <= 6.1) { level = '正常空腹血糖'; cls = 'tip-success'; }
+  else if (mmol < 7.0) { level = '空腹血糖受损 (IFG)'; cls = 'tip-warn'; }
+  else { level = '糖尿病空腹标准'; cls = 'tip-error'; }
+  var html = '<div class="tip-box ' + cls + '">';
+  html += '<strong>' + level + '</strong>';
+  html += '：' + mmol.toFixed(2) + ' mmol/L = ' + mg.toFixed(1) + ' mg/dL';
+  html += '</div>';
+  document.getElementById('result-glucose').innerHTML = html;
+}
+
+function copyGlucose() {
+  var mmol = document.getElementById('glucose_mmol').value;
+  var mg = document.getElementById('glucose_mg').value;
+  var text = mmol + ' mmol/L = ' + mg + ' mg/dL';
+  ToolBox.copyText(text, i18nText());
+}
+
+// ====== 4. 体温记录曲线图 ======
+var TEMP_STORAGE_KEY = 'toolbox_temp_records';
+
+function getTempRecords() {
+  try {
+    var data = localStorage.getItem(TEMP_STORAGE_KEY);
+    return data ? JSON.parse(data) : [];
+  } catch(e) { return []; }
+}
+
+function saveTempRecords(records) {
+  try { localStorage.setItem(TEMP_STORAGE_KEY, JSON.stringify(records)); } catch(e) {}
+}
+
+function addTempRecord() {
+  var timeVal = document.getElementById('temp_time').value.trim();
+  var tempVal = parseFloat(document.getElementById('temp_value').value);
+  if (!timeVal) {
+    // 自动生成当前时间
+    var now = new Date();
+    timeVal = (now.getMonth()+1) + '/' + now.getDate() + ' ' + String(now.getHours()).padStart(2,'0') + ':' + String(now.getMinutes()).padStart(2,'0');
+  }
+  if (isNaN(tempVal) || tempVal < 34 || tempVal > 42) {
+    ToolBox.showToast(i18nText(),'error');
+    return;
+  }
+  var records = getTempRecords();
+  records.push({ time: timeVal, temp: tempVal, id: Date.now() });
+  // 最多保留30条
+  if (records.length > 30) records = records.slice(-30);
+  saveTempRecords(records);
+  // 清空输入
+  document.getElementById('temp_value').value = '36.5';
+  document.getElementById('temp_time').value = '';
+  renderTempRecords();
+  drawTempChart();
+  ToolBox.showToast(i18nText());
+}
+
+function deleteTempRecord(id) {
+  var records = getTempRecords().filter(function(r) { return r.id !== id; });
+  saveTempRecords(records);
+  renderTempRecords();
+  drawTempChart();
+}
+
+function clearTempRecords() {
+  if (getTempRecords().length === 0) {
+    ToolBox.showToast(i18nText(),'info');
+    return;
+  }
+  saveTempRecords([]);
+  renderTempRecords();
+  drawTempChart();
+  ToolBox.showToast(i18nText());
+}
+
+function renderTempRecords() {
+  var records = getTempRecords();
+  var list = document.getElementById('tempRecordList');
+  if (records.length === 0) {
+    list.innerHTML = '<p style="text-align:center;color:var(--text-muted);padding:16px;font-size:13px;">暂无体温记录，请添加。</p>';
+    return;
+  }
+  var html = '';
+  for (var i = records.length - 1; i >= 0; i--) {
+    var r = records[i];
+    var tempColor = (r.temp >= 37.3) ? 'var(--danger)' : (r.temp < 36.0 ? 'var(--info)' : 'var(--success)');
+    html += '<div class="temp-record-item">';
+    html += '<span class="temp-time">' + r.time + '</span>';
+    html += '<span class="temp-val" style="color:' + tempColor + ';">' + r.temp.toFixed(1) + '&#8451;</span>';
+    html += '<span class="temp-del" onclick="deleteTempRecord(' + r.id + ')">删除</span>';
+    html += '</div>';
+  }
+  list.innerHTML = html;
+}
+
+function drawTempChart() {
+  var canvas = document.getElementById('tempCanvas');
+  if (!canvas) return;
+  var ctx = canvas.getContext('2d');
+  var records = getTempRecords();
+  // 高清绘制
+  var dpr = window.devicePixelRatio || 1;
+  var rect = canvas.getBoundingClientRect();
+  var w = rect.width || 600;
+  var h = 240;
+  canvas.width = w * dpr;
+  canvas.height = h * dpr;
+  canvas.style.height = h + 'px';
+  ctx.scale(dpr, dpr);
+
+  // 读取CSS变量颜色
+  var style = getComputedStyle(document.documentElement);
+  var textColor = style.getPropertyValue('--text-primary').trim() || '#1F2937';
+  var mutedColor = style.getPropertyValue('--text-muted').trim() || '#9CA3AF';
+  var borderColor = style.getPropertyValue('--border').trim() || '#E5E7EB';
+  var primaryColor = style.getPropertyValue('--primary').trim() || '#FF6B35';
+  var cardBg = style.getPropertyValue('--card-bg').trim() || '#FFFFFF';
+
+  ctx.clearRect(0, 0, w, h);
+
+  var padL = 45, padR = 20, padT = 20, padB = 35;
+  var chartW = w - padL - padR;
+  var chartH = h - padT - padB;
+
+  // 温度范围 35-40
+  var minT = 35, maxT = 40;
+  var stepT = 0.5;
+
+  // 网格线和Y轴标签
+  ctx.font = '11px sans-serif';
+  ctx.textAlign = 'right';
+  ctx.textBaseline = 'middle';
+  for (var t = minT; t <= maxT; t += stepT) {
+    var y = padT + chartH - (t - minT) / (maxT - minT) * chartH;
+    ctx.strokeStyle = (t === Math.floor(t) || t === Math.floor(t) + 0.5) ? borderColor : 'transparent';
+    ctx.lineWidth = 0.5;
+    ctx.beginPath();
+    ctx.moveTo(padL, y);
+    ctx.lineTo(padL + chartW, y);
+    ctx.stroke();
+    if (t === Math.floor(t) || t % 1 === 0.5) {
+      ctx.fillStyle = mutedColor;
+      ctx.fillText(t.toFixed(1), padL - 6, y);
+    }
+  }
+
+  // 正常范围区域 36-37.2
+  var yNormalLow = padT + chartH - (36 - minT) / (maxT - minT) * chartH;
+  var yNormalHigh = padT + chartH - (37.2 - minT) / (maxT - minT) * chartH;
+  ctx.fillStyle = 'rgba(16,185,129,0.08)';
+  ctx.fillRect(padL, yNormalHigh, chartW, yNormalLow - yNormalHigh);
+
+  // 正常范围标注
+  ctx.fillStyle = 'rgba(16,185,129,0.6)';
+  ctx.font = '10px sans-serif';
+  ctx.textAlign = 'left';
+  ctx.fillText('正常 36.0-37.2\u2103', padL + 4, yNormalHigh + 12);
+
+  // 发热线 37.3
+  var yFever = padT + chartH - (37.3 - minT) / (maxT - minT) * chartH;
+  ctx.strokeStyle = 'rgba(239,68,68,0.4)';
+  ctx.lineWidth = 1;
+  ctx.setLineDash([4, 3]);
+  ctx.beginPath();
+  ctx.moveTo(padL, yFever);
+  ctx.lineTo(padL + chartW, yFever);
+  ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle = 'rgba(239,68,68,0.6)';
+  ctx.font = '10px sans-serif';
+  ctx.fillText('发热 37.3\u2103', padL + 4, yFever - 6);
+
+  if (records.length === 0) {
+    ctx.fillStyle = mutedColor;
+    ctx.font = '14px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('暂无体温数据，请添加记录', w / 2, h / 2);
+    return;
+  }
+
+  // 绘制数据点
+  var points = [];
+  for (var i = 0; i < records.length; i++) {
+    var x = padL + (records.length > 1 ? i / (records.length - 1) * chartW : chartW / 2);
+    var y = padT + chartH - (records[i].temp - minT) / (maxT - minT) * chartH;
+    points.push({ x: x, y: y, temp: records[i].temp, time: records[i].time });
+  }
+
+  // 填充区域
+  ctx.beginPath();
+  ctx.moveTo(points[0].x, padT + chartH);
+  for (var i = 0; i < points.length; i++) {
+    if (i === 0) ctx.lineTo(points[i].x, points[i].y);
+    else {
+      // 平滑曲线
+      var prev = points[i - 1];
+      var cpx = (prev.x + points[i].x) / 2;
+      ctx.bezierCurveTo(cpx, prev.y, cpx, points[i].y, points[i].x, points[i].y);
+    }
+  }
+  ctx.lineTo(points[points.length - 1].x, padT + chartH);
+  ctx.closePath();
+  var grad = ctx.createLinearGradient(0, padT, 0, padT + chartH);
+  grad.addColorStop(0, 'rgba(255,107,53,0.2)');
+  grad.addColorStop(1, 'rgba(255,107,53,0.02)');
+  ctx.fillStyle = grad;
+  ctx.fill();
+
+  // 折线
+  ctx.beginPath();
+  for (var i = 0; i < points.length; i++) {
+    if (i === 0) ctx.moveTo(points[i].x, points[i].y);
+    else {
+      var prev = points[i - 1];
+      var cpx = (prev.x + points[i].x) / 2;
+      ctx.bezierCurveTo(cpx, prev.y, cpx, points[i].y, points[i].x, points[i].y);
+    }
+  }
+  ctx.strokeStyle = primaryColor;
+  ctx.lineWidth = 2;
+  ctx.stroke();
+
+  // 数据点 + 标注
+  ctx.textAlign = 'center';
+  for (var i = 0; i < points.length; i++) {
+    var p = points[i];
+    var dotColor = (p.temp >= 37.3) ? '#EF4444' : (p.temp < 36.0 ? '#3B82F6' : '#10B981');
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, 4, 0, Math.PI * 2);
+    ctx.fillStyle = dotColor;
+    ctx.fill();
+    ctx.strokeStyle = '#fff';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    // 温度标注
+    ctx.fillStyle = textColor;
+    ctx.font = '10px sans-serif';
+    var labelY = p.y - 10;
+    if (labelY < padT + 5) labelY = p.y + 14;
+    ctx.fillText(p.temp.toFixed(1) + '\u2103', p.x, labelY);
+
+    // 时间标注（仅少量数据时显示）
+    if (records.length <= 10) {
+      ctx.fillStyle = mutedColor;
+      ctx.font = '9px sans-serif';
+      ctx.fillText(p.time, p.x, padT + chartH + 14);
+    }
+  }
+}
+
+// ====== 5. 血压分类对照表 ======
+function classifyBP() {
+  var sbp = parseInt(document.getElementById('bp_sbp').value) || 0;
+  var dbp = parseInt(document.getElementById('bp_dbp').value) || 0;
+  if (sbp < 50 || dbp < 30 || sbp <= dbp) {
+    document.getElementById('result-bp').innerHTML = '<div class="result-box"><p style="color:var(--danger);">请输入有效血压值（收缩压 > 舒张压，且在合理范围内）</p></div>';
+    return;
+  }
+
+  var level = '';
+  var cls = '';
+  var advice = '';
+  var detail = '';
+
+  if (sbp < 120 && dbp < 80) {
+    level = '理想血压';
+    cls = 'bp-ideal';
+    advice = '血压理想，继续保持健康生活方式，定期监测。';
+    detail = '收缩压 < 120 mmHg 且 舒张压 < 80 mmHg';
+  } else if (sbp < 130 && dbp < 85) {
+    level = '正常血压';
+    cls = 'bp-normal';
+    advice = '血压正常，保持健康饮食、适量运动、控制体重。';
+    detail = '收缩压 120-129 mmHg 或 舒张压 80-84 mmHg';
+  } else if (sbp < 140 && dbp < 90) {
+    level = '正常高值';
+    cls = 'bp-high-normal';
+    advice = '血压偏高，建议改善生活方式：低盐饮食、规律运动、控制体重、戒烟限酒。定期复查血压。';
+    detail = '收缩压 130-139 mmHg 或 舒张压 85-89 mmHg';
+  } else if (sbp < 160 && dbp < 100) {
+    level = '1级高血压（轻度）';
+    cls = 'bp-h1';
+    advice = '轻度高血压，建议：改善生活方式（低盐饮食 <6g/天、规律运动每周150分钟、控制BMI <24、戒烟限酒）。如3-6个月血压未达标，应考虑药物治疗。';
+    detail = '收缩压 140-159 mmHg 或 舒张压 90-99 mmHg';
+  } else if (sbp < 180 && dbp < 110) {
+    level = '2级高血压（中度）';
+    cls = 'bp-h2';
+    advice = '中度高血压，建议立即在医生指导下进行药物治疗，同时配合生活方式干预。定期监测血压和靶器官功能。';
+    detail = '收缩压 160-179 mmHg 或 舒张压 100-109 mmHg';
+  } else {
+    level = '3级高血压（重度）';
+    cls = 'bp-h3';
+    advice = '重度高血压（高血压亚急症/急症），建议立即就医评估。注意监测有无头痛、视力模糊、胸闷等症状。警惕高血压急症并发症。';
+    detail = '收缩压 &ge; 180 mmHg 或 舒张压 &ge; 110 mmHg';
+  }
+
+  var map = Math.round((dbp + (sbp - dbp) / 3) * 10) / 10;
+  var pulsePressure = sbp - dbp;
+
+  var html = '<div class="data-grid">';
+  html += '<div class="data-card"><div class="num">' + sbp + '/' + dbp + '</div><div class="label">当前血压 mmHg</div></div>';
+  html += '<div class="data-card"><div class="num">' + map + '</div><div class="label">平均动脉压 mmHg</div></div>';
+  html += '<div class="data-card"><div class="num">' + pulsePressure + '</div><div class="label">脉压差 mmHg</div></div>';
+  html += '</div>';
+  html += '<div class="bp-result-card ' + cls + '">';
+  html += '<div style="font-size:16px;font-weight:700;margin-bottom:6px;">' + level + '</div>';
+  html += '<p>' + detail + '</p>';
+  html += '<p style="margin-top:8px;font-weight:500;">' + advice + '</p>';
+  html += '</div>';
+
+  document.getElementById('result-bp').innerHTML = html;
+}
+
+function copyBP() {
+  var el = document.getElementById('result-bp');
+  if (!el) return;
+  ToolBox.copyText(el.innerText.replace(/\s+\n/g, '\n').trim(), i18nText());
+}
+
+// ====== 6. 急救黄金时间计时器 ======
+var timerTotalSeconds = 120 * 60; // 总秒数
+var timerRemaining = 120 * 60;   // 剩余秒数
+var timerInterval = null;
+var timerRunning = false;
+var timerPresetLabel = '心梗黄金时间';
+
+function setTimerPreset(minutes, btn, label) {
+  if (timerRunning) {
+    ToolBox.showToast(i18nText(),'warning');
+    return;
+  }
+  timerTotalSeconds = minutes * 60;
+  timerRemaining = timerTotalSeconds;
+  timerPresetLabel = label;
+
+  // 更新按钮状态
+  document.querySelectorAll('.timer-preset-btn').forEach(function(b) { b.classList.remove('active'); });
+  if (btn) btn.classList.add('active');
+
+  // 清空自定义输入
+  document.getElementById('timer_custom_min').value = '';
+  document.getElementById('timerLabel').textContent = label;
+  document.getElementById('timerStartBtn').disabled = false;
+  document.getElementById('timerPauseBtn').disabled = true;
+
+  updateTimerDisplay();
+  document.getElementById('result-timer').style.display = 'none';
+  document.getElementById('timerDisplay').classList.remove('urgent');
+  document.getElementById('timerProgress').style.width = '100%';
+  document.getElementById('timerProgress').style.background = 'var(--gradient-primary)';
+}
+
+function startTimer() {
+  // 检查是否有自定义时间
+  var customMin = parseInt(document.getElementById('timer_custom_min').value);
+  if (customMin > 0 && !timerRunning && timerRemaining === timerTotalSeconds) {
+    timerTotalSeconds = customMin * 60;
+    timerRemaining = timerTotalSeconds;
+    timerPresetLabel = '自定义计时 ' + customMin + '分钟';
+    document.getElementById('timerLabel').textContent = timerPresetLabel;
+    // 取消预设按钮激活
+    document.querySelectorAll('.timer-preset-btn').forEach(function(b) { b.classList.remove('active'); });
+  }
+
+  if (timerRemaining <= 0) return;
+
+  timerRunning = true;
+  document.getElementById('timerStartBtn').disabled = true;
+  document.getElementById('timerPauseBtn').disabled = false;
+
+  timerInterval = setInterval(function() {
+    timerRemaining--;
+    if (timerRemaining <= 0) {
+      timerRemaining = 0;
+      clearInterval(timerInterval);
+      timerInterval = null;
+      timerRunning = false;
+      document.getElementById('timerStartBtn').disabled = true;
+      document.getElementById('timerPauseBtn').disabled = true;
+      // 时间到提醒
+      document.getElementById('timerDisplay').classList.add('urgent');
+      document.getElementById('timerProgress').style.width = '0%';
+      document.getElementById('timerProgress').style.background = 'var(--danger)';
+      document.getElementById('result-timer').style.display = 'block';
+      document.getElementById('result-timer').innerHTML = '<p style="color:var(--danger);font-weight:700;font-size:15px;">&#9888; 时间到！' + timerPresetLabel + '已结束！</p><p style="font-size:13px;color:var(--text-secondary);margin-top:4px;">请立即采取相应的急救措施，并拨打 120 急救电话。</p>';
+      // 声音提醒
+      try {
+        var audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        var playBeep = function(times) {
+          if (times <= 0) return;
+          var osc = audioCtx.createOscillator();
+          var gain = audioCtx.createGain();
+          osc.connect(gain);
+          gain.connect(audioCtx.destination);
+          osc.frequency.value = 880;
+          gain.gain.value = 0.3;
+          osc.start(audioCtx.currentTime);
+          osc.stop(audioCtx.currentTime + 0.15);
+          setTimeout(function() { playBeep(times - 1); }, 300);
+        };
+        playBeep(10);
+      } catch(e) {}
+    }
+    updateTimerDisplay();
+  }, 1000);
+}
+
+function pauseTimer() {
+  if (timerInterval) {
+    clearInterval(timerInterval);
+    timerInterval = null;
+  }
+  timerRunning = false;
+  document.getElementById('timerStartBtn').disabled = false;
+  document.getElementById('timerPauseBtn').disabled = true;
+}
+
+function resetTimer() {
+  pauseTimer();
+  timerRemaining = timerTotalSeconds;
+  document.getElementById('timerDisplay').classList.remove('urgent');
+  document.getElementById('result-timer').style.display = 'none';
+  document.getElementById('timerProgress').style.width = '100%';
+  document.getElementById('timerProgress').style.background = 'var(--gradient-primary)';
+  document.getElementById('timerStartBtn').disabled = false;
+  updateTimerDisplay();
+}
+
+function updateTimerDisplay() {
+  var min = Math.floor(timerRemaining / 60);
+  var sec = timerRemaining % 60;
+  var display = String(min).padStart(2, '0') + ':' + String(sec).padStart(2, '0');
+  document.getElementById('timerDisplay').textContent = display;
+  // 更新进度条
+  var pct = (timerRemaining / timerTotalSeconds) * 100;
+  document.getElementById('timerProgress').style.width = pct + '%';
+  // 剩余不到20%时变色
+  if (pct < 20 && pct > 0) {
+    document.getElementById('timerDisplay').classList.add('urgent');
+    document.getElementById('timerProgress').style.background = 'var(--danger)';
+  } else if (pct >= 20) {
+    document.getElementById('timerDisplay').classList.remove('urgent');
+    document.getElementById('timerProgress').style.background = 'var(--gradient-primary)';
+  }
+}
+
+// ====== 初始化 ======
+document.addEventListener('DOMContentLoaded', function() {
+  calcDose();
+  calcIV();
+  showGlucoseResult();
+  renderTempRecords();
+  classifyBP();
+  // 延迟绘制canvas（确保DOM渲染完毕）
+  setTimeout(drawTempChart, 100);
+  updateTimerDisplay();
+});
+
+// 窗口大小变化时重绘体温曲线
+window.addEventListener('resize', function() {
+  drawTempChart();
+});
+</script>
+
+
+<!-- SEO 介绍区块 -->
+
+</div>
+
+</div>
+
+
+<!-- 相关工具 -->
+<div class="related-tools" data-related-tools="1">
+  <h3 class="related-tools-title">🔗 相关工具</h3>
+  <div class="related-tools-grid">
+    <a href="convert-12.html" class="related-tool-card">
+      <span class="rt-icon">⚕️</span>
+      <span class="rt-info"><span class="rt-name">儿童用药剂量换算（按年龄/体重）</span><span class="rt-desc">儿童用药剂量换算（按年龄/体重）</span></span>
+    </a>
+    <a href="stats-4.html" class="related-tool-card">
+      <span class="rt-icon">⚕️</span>
+      <span class="rt-info"><span class="rt-name">手术预计时长（按术式统计）</span><span class="rt-desc">手术预计时长（按术式统计）</span></span>
+    </a>
+    <a href="convert-glucose.html" class="related-tool-card">
+      <span class="rt-icon">⚕️</span>
+      <span class="rt-info"><span class="rt-name">血糖单位换算（mmol/L ↔ mg/dL）</span><span class="rt-desc">血糖单位换算（mmol/L ↔ mg/dL）</span></span>
+    </a>
+    <a href="convert-time-infusion.html" class="related-tool-card">
+      <span class="rt-icon">⚕️</span>
+      <span class="rt-info"><span class="rt-name">静脉输液滴速与时间换算（已有但加强）</span><span class="rt-desc">静脉输液滴速与时间换算（已有但加强）</span></span>
+    </a>
+    <a href="calculator-calc-infusion.html" class="related-tool-card">
+      <span class="rt-icon">⚕️</span>
+      <span class="rt-info"><span class="rt-name">输液滴速计算器 - 医疗专业在线工具</span><span class="rt-desc">输液滴速计算器</span></span>
+    </a>
+    <a href="calculator-calc-due-date.html" class="related-tool-card">
+      <span class="rt-icon">⚕️</span>
+      <span class="rt-info"><span class="rt-name">预产期计算器（医疗）</span><span class="rt-desc">预产期计算器（医疗）</span></span>
+    </a>
+  </div>
+</div>
+<div class="tool-intro open" id="toolIntro">
+  <div class="tool-intro-header">
+    <span class="intro-icon-wrap"><span class="intro-icon">📖</span>关于「医疗计算器」</span>
+    <span class="arrow">▼</span>
+  </div>
+  <div class="tool-intro-body">
+    <h4><span class="h4-icon">📝</span>工具简介</h4>
+    <p>医疗健康计算器综合工具 - 用药剂量、输液滴速、血糖换算、体温曲线、血压分类、急救计时，纯前端免费使用。。医疗专业工具，基于权威医学标准，仅供参考。</p>
+    <h4><span class="h4-icon">✨</span>功能特点</h4>
+    <ul class="intro-features">
+      <li>基于权威医学标准</li>
+      <li>支持多种临床参数</li>
+      <li>实时计算，结果即时显示</li>
+      <li>医疗数据不上传，保护隐私</li>
+    </ul>
+    <h4><span class="h4-icon">🎯</span>使用场景</h4>
+    <ul class="intro-scenes">
+      <li>临床计算与评估辅助</li>
+      <li>医学学习与考试备考</li>
+      <li>科研数据分析</li>
+      <li>健康监测参考</li>
+    </ul>
+    <h4><span class="h4-icon">💬</span>常见问题</h4>
+      <div class="intro-faq-item"><div class="intro-faq-q">这个工具是免费的吗？</div><div class="intro-faq-a">完全免费，无需注册，直接在浏览器中使用。</div></div>
+      <div class="intro-faq-item"><div class="intro-faq-q">计算结果准确吗？</div><div class="intro-faq-a">基于权威医学标准计算，结果仅供参考，不能替代临床诊断。</div></div>
+      <div class="intro-faq-item"><div class="intro-faq-q">能替代医生诊断吗？</div><div class="intro-faq-a">不能。工具仅提供计算参考，具体诊断请咨询专业医生。</div></div>
+  </div>
+</div>
+<!-- /SEO 介绍区块 -->
+
+<script>
+// tool-intro折叠交互
+document.addEventListener('DOMContentLoaded',function(){
+  var headers=document.querySelectorAll('.tool-intro-header');
+  headers.forEach(function(h){
+    h.addEventListener('click',function(){
+      this.parentElement.classList.toggle('open');
+    });
+  });
+});
+</script>
+
+</body>
+</html>

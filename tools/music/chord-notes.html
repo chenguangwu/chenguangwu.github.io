@@ -1,0 +1,851 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+
+<script src="/js/tool-page-runtime.js" defer></script>
+<!-- TOOLBOX-TOOL-RUNTIME -->
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="toolbox" content="cat=reference,industry=music,icon=🎵,bg=#e3f2fd">
+<meta name="description" content="和弦音符转换器 - 输入和弦名称，显示组成音符、频率和钢琴键盘可视化 - 专业的音乐艺术在线工具，支持实时计算，纯前端本地处理，数据不上传服务器，保护隐私安全。">
+<meta name="keywords" content="和弦音符,和弦分析,和弦查询,钢琴和弦,chord notes,和弦组成音,和弦频率,在线和弦工具,免费工具,ToolBox">
+<meta name="robots" content="index,follow">
+<link rel="canonical" href="https://chenguangwu.github.io/tools/music/chord-notes.html">
+<meta property="og:title" content="和弦音符转换器 - 输入和弦名称，显示组成音符、频率和钢琴键盘可视化 - ToolBox">
+<meta property="og:description" content="和弦音符转换器 - 输入和弦名称，显示组成音符、频率和钢琴键盘可视化 - 专业的音乐艺术在线工具，支持实时计算，纯前端本地处理，数据不上传服务器，保护隐私安全。">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://chenguangwu.github.io/tools/music/chord-notes.html">
+<meta name="twitter:card" content="summary">
+
+<title>和弦音符转换器 - 输入和弦名称，显示组成音符、频率和钢琴键盘可视化 - ToolBox</title>
+<meta name="theme-color" content="#FF6B35">
+<link rel="icon" type="image/svg+xml" href="../../favicon.svg">
+<link rel="icon" href="../../favicon.ico" sizes="16x16 32x32 48x48">
+<link rel="apple-touch-icon" href="../../apple-touch-icon.png">
+<link rel="stylesheet" href="../../css/common.css">
+<script src="../../js/common.js"></script>
+<style>
+/* 和弦输入区 */
+.chord-input-wrap{position:relative;margin-bottom:16px;}
+.chord-input-wrap input{font-size:18px;font-weight:600;padding:14px 16px;letter-spacing:1px;font-family:'SF Mono','Courier New',monospace;}
+.chord-input-wrap .input-hint{position:absolute;right:14px;top:50%;transform:translateY(-50%);font-size:12px;color:var(--text-muted);pointer-events:none;}
+.chord-input-wrap input:focus ~ .input-hint{display:none;}
+
+/* 音符结果展示 */
+.notes-display{display:flex;flex-wrap:wrap;gap:10px;margin:12px 0;justify-content:center;}
+.note-badge{
+  display:inline-flex;flex-direction:column;align-items:center;gap:4px;
+  padding:12px 16px;border-radius:14px;min-width:80px;
+  background:var(--result-bg);border:2px solid var(--border);transition:all 0.2s;cursor:pointer;
+}
+.note-badge:hover{border-color:var(--primary);transform:translateY(-2px);box-shadow:var(--shadow);}
+.note-badge .note-name{font-size:22px;font-weight:700;color:var(--primary);font-family:'SF Mono',monospace;}
+.note-badge .note-freq{font-size:11px;color:var(--text-muted);}
+.note-badge .note-degree{font-size:10px;color:var(--text-light);background:var(--bg-hover);padding:2px 8px;border-radius:8px;}
+.note-badge.playing{border-color:var(--secondary);background:rgba(124,58,237,0.1);animation:notePulse 0.4s ease;}
+@keyframes notePulse{0%{transform:scale(1);}50%{transform:scale(1.06);}100%{transform:scale(1);}}
+
+/* 钢琴键盘 */
+.piano-container{margin:16px 0;overflow-x:auto;-webkit-overflow-scrolling:touch;padding:4px 0;}
+.piano{position:relative;display:flex;height:140px;margin:0 auto;max-width:100%;}
+.piano-octave{position:relative;display:flex;height:140px;flex-shrink:0;}
+.white-key{
+  width:44px;height:140px;background:var(--card-bg);border:1px solid var(--border);
+  border-radius:0 0 6px 6px;cursor:pointer;display:flex;flex-direction:column;
+  align-items:center;justify-content:flex-end;padding-bottom:8px;
+  transition:background 0.15s;position:relative;z-index:1;flex-shrink:0;
+}
+.white-key:hover{background:var(--bg-hover);}
+.white-key.highlighted{background:linear-gradient(180deg,#FFE0CC 0%,#FFDAB9 100%);border-color:var(--primary);z-index:1;}
+.white-key.highlighted .key-label{color:var(--primary);font-weight:700;}
+.white-key.playing{background:linear-gradient(180deg,#D4A8FF 0%,#C084FC 100%);border-color:var(--secondary);}
+.white-key .key-label{font-size:11px;color:var(--text-muted);font-weight:500;pointer-events:none;}
+.white-key .key-short{font-size:9px;color:var(--text-muted);opacity:0.6;pointer-events:none;}
+.black-key{
+  position:absolute;top:0;width:28px;height:88px;
+  background:linear-gradient(180deg,#2D2D3A 0%,#1A1A24 100%);
+  border:1px solid #111;border-radius:0 0 4px 4px;cursor:pointer;z-index:2;
+  display:flex;flex-direction:column;align-items:center;justify-content:flex-end;
+  padding-bottom:6px;transition:background 0.15s;
+}
+.black-key:hover{background:linear-gradient(180deg,#3D3D5A 0%,#2A2A3E 100%);}
+.black-key.highlighted{background:linear-gradient(180deg,#FF6B35 0%,#E55A25 100%);border-color:var(--primary);}
+.black-key.highlighted .key-label{color:#fff;}
+.black-key.playing{background:linear-gradient(180deg,#7C3AED 0%,#6B2FD9 100%);}
+.black-key .key-label{font-size:9px;color:#999;font-weight:500;pointer-events:none;}
+
+/* 和弦类型标签 */
+.chord-type-badge{
+  display:inline-block;padding:4px 12px;border-radius:20px;font-size:12px;font-weight:600;
+  background:rgba(124,58,237,0.1);color:var(--secondary);border:1px solid rgba(124,58,237,0.2);margin:8px 0;
+}
+
+/* 速查表 */
+.chord-quick-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(56px,1fr));gap:6px;margin:12px 0;}
+.chord-quick-btn{
+  padding:8px 4px;border-radius:10px;border:1px solid var(--border);background:var(--card-bg);
+  cursor:pointer;font-size:12px;font-weight:600;color:var(--text);text-align:center;
+  transition:all 0.15s;font-family:'SF Mono',monospace;
+}
+.chord-quick-btn:hover{border-color:var(--primary);background:var(--bg-hover);transform:translateY(-1px);}
+.chord-quick-btn.active{background:var(--gradient-primary);color:#fff;border-color:transparent;}
+
+/* 和弦规则表 */
+.chord-rule-table{font-size:12px;}
+.chord-rule-table td,.chord-rule-table th{padding:8px 10px;}
+.chord-rule-table code{font-size:12px;background:var(--bg-hover);padding:2px 6px;border-radius:4px;font-family:'SF Mono',monospace;}
+
+/* 音程信息 */
+.interval-info{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0;align-items:center;}
+.interval-tag{
+  display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:8px;
+  font-size:11px;font-weight:600;background:var(--result-bg);border:1px solid var(--border);color:var(--text-secondary);
+}
+.interval-tag .semitones{font-size:10px;color:var(--text-muted);}
+
+/* 移动端适配 */
+@media(max-width:768px){
+  .chord-input-wrap input{font-size:16px;padding:12px 14px;}
+  .note-badge{padding:10px 12px;min-width:68px;}
+  .note-badge .note-name{font-size:18px;}
+  .note-badge .note-freq{font-size:10px;}
+  .piano{height:120px;}
+  .piano-octave{height:120px;}
+  .white-key{width:34px;height:120px;}
+  .black-key{width:22px;height:72px;}
+  .white-key .key-label{font-size:9px;}
+  .black-key .key-label{font-size:8px;}
+  .chord-quick-grid{grid-template-columns:repeat(auto-fill,minmax(48px,1fr));gap:4px;}
+  .chord-quick-btn{padding:7px 3px;font-size:11px;}
+}
+</style>
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "和弦音符转换器",
+  "description": "输入和弦名称，显示组成音符、频率和钢琴键盘可视化，支持试听播放。",
+  "url": "https://chenguangwu.github.io/tools/music/chord-notes.html",
+  "applicationCategory": "UtilitiesApplication",
+  "operatingSystem": "Web",
+  "offers": {
+    "@type": "Offer",
+    "price": "0",
+    "priceCurrency": "CNY"
+  },
+  "inLanguage": "zh-CN",
+  "isAccessibleForFree": true,
+  "browserRequirements": "Requires JavaScript. Requires HTML5.",
+  "softwareVersion": "1.0"
+}
+</script>
+
+
+
+<meta property="og:image" content="https://chenguangwu.github.io/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="ToolBox - 6000+免费在线工具">
+<meta name="twitter:image" content="https://chenguangwu.github.io/og-image.png">
+<meta name="twitter:image:alt" content="ToolBox - 6000+免费在线工具">
+    <meta name="twitter:title" content="和弦音符转换器 - 输入和弦名称，显示组成音符、频率和钢琴键盘可视化 - ToolBox">
+    <meta name="twitter:description" content="和弦音符转换器 - 输入和弦名称，显示组成音符、频率和钢琴键盘可视化 - 专业的音乐艺术在线工具，支持实时计算，纯前端本地处理，数据不上传服务器，保护隐私安全。">
+<!-- TOOLBOX-WEBAPP-LD -->
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"WebApplication","name":"和弦音符转换器 - 输入和弦名称，显示组成音符、频率和钢琴键盘可视化","url":"https://chenguangwu.github.io/tools/music/chord-notes.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":["zh-CN", "en-US"],"description":"和弦音符转换器","image":"https://chenguangwu.github.io/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}
+</script>
+<meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
+<meta http-equiv="X-Content-Type-Options" content="nosniff">
+<meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
+<!-- TOOLBOX-SECURITY -->
+
+<script src="/js/privacy.js" defer></script>
+<!-- TOOLBOX-PRIVACY-SCRIPT -->
+
+<script src="/js/metrics.js" defer></script>
+<!-- TOOLBOX-METRICS-SCRIPT -->
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"首页","item":"https://chenguangwu.github.io/"},{"@type":"ListItem","position":2,"name":"音乐艺术","item":"https://chenguangwu.github.io/tools/music/index.html"},{"@type":"ListItem","position":3,"name":"和弦音符转换器","item":"https://chenguangwu.github.io/tools/music/chord-notes.html"}]}
+</script>
+
+<script src="../../js/i18n.js" defer></script>
+<script src="../../js/tool-i18n.js" defer></script>
+<!-- TOOLBOX-I18N-SCRIPT -->
+<!-- TOOLBOX-HREFLANG -->
+<link rel="alternate" hreflang="zh-CN" href="https://chenguangwu.github.io/tools/music/chord-notes.html">
+<link rel="alternate" hreflang="en-US" href="https://chenguangwu.github.io/tools/music/chord-notes.html">
+<link rel="alternate" hreflang="x-default" href="https://chenguangwu.github.io/tools/music/chord-notes.html">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:locale:alternate" content="en_US">
+
+<script src="/js/clarity.js" defer></script>
+<!-- TOOLBOX-CLARITY -->
+</head>
+<body>
+<h1 class="sr-only">和弦音符转换器</h1>
+
+<div class="nav">
+  <a href="../../index.html">← ToolBox</a>
+  <span>/ 和弦音符转换器</span>
+  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()">🌙</button>
+</div>
+
+
+
+
+
+<nav class="breadcrumb" aria-label="面包屑导航" data-breadcrumb="1">
+  <a href="../../index.html">首页</a>
+  <span class="bc-sep">‹</span>
+  <a href="index.html">🎵 音乐艺术</a>
+  <span class="bc-sep">‹</span>
+  <span class="bc-current">和弦音符转换器</span>
+</nav>
+<div class="container">
+  <!-- 主卡片：输入与结果 -->
+  <div class="card tool-card-accent" style="--tool-accent:#FF6B35;">
+    <h2>🎵 和弦音符转换器</h2>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;">输入和弦名称，查看组成音符、频率，并在钢琴键盘上可视化</p>
+
+    <!-- 输入区 -->
+    <div class="chord-input-wrap">
+      <input type="text" id="chordInput" value="C" placeholder="输入和弦名称，如 C、Am、F#m7、G7、Dm7b5..."
+        oninput="onChordInput()" autofocus>
+      <span class="input-hint">回车分析</span>
+    </div>
+
+    <!-- 工具栏 -->
+    <div class="toolbar">
+      <button type="button" class="btn primary" onclick="analyzeChord()">🔍 分析和弦</button>
+      <button type="button" class="btn" onclick="playChord()">🔊 播放和弦</button>
+      <button type="button" class="btn" onclick="copyResult()">📋 复制结果</button>
+      <button type="button" class="btn" onclick="clearInput()">✕ 清空</button>
+    </div>
+
+    <!-- 和弦类型标签 -->
+    <div id="chordTypeLabel" style="text-align:center;"></div>
+
+    <!-- 音符结果 -->
+    <div id="notesDisplay" class="notes-display"></div>
+
+    <!-- 音程信息 -->
+    <div id="intervalInfo" class="interval-info"></div>
+
+    <!-- 钢琴键盘 -->
+    <h3 style="margin-top:16px;">🎹 钢琴键盘</h3>
+    <div class="piano-container">
+      <div id="piano" class="piano"></div>
+    </div>
+  </div>
+
+  <!-- 速查表 -->
+  <div class="card">
+    <h3>⚡ 常见和弦速查表</h3>
+    <p style="font-size:12px;color:var(--text-muted);margin-bottom:12px;">点击快速填入和弦名称并分析</p>
+
+    <div class="tabs" id="quickTabs">
+      <button type="button" class="tab-btn active" onclick="switchQuickTab('triad',this)">三和弦</button>
+      <button type="button" class="tab-btn" onclick="switchQuickTab('seventh',this)">七和弦</button>
+      <button type="button" class="tab-btn" onclick="switchQuickTab('sus',this)">挂留/附加</button>
+      <button type="button" class="tab-btn" onclick="switchQuickTab('extended',this)">扩展</button>
+    </div>
+
+    <div id="quickContent-triad" class="tab-content active">
+      <div class="chord-quick-grid" id="triadGrid"></div>
+    </div>
+    <div id="quickContent-seventh" class="tab-content">
+      <div class="chord-quick-grid" id="seventhGrid"></div>
+    </div>
+    <div id="quickContent-sus" class="tab-content">
+      <div class="chord-quick-grid" id="susGrid"></div>
+    </div>
+    <div id="quickContent-extended" class="tab-content">
+      <div class="chord-quick-grid" id="extendedGrid"></div>
+    </div>
+  </div>
+
+  <!-- 和弦规则参考 -->
+  <div class="card">
+    <h3>📖 和弦音程规则参考</h3>
+    <div class="result-box" style="margin-top:0;">
+      <table class="chord-rule-table">
+        <thead>
+          <tr><th>和弦类型</th><th>标记示例</th><th>音程（半音）</th><th>结构</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>大三和弦</td><td>C</td><td>0, 4, 7</td><td>根-大三-纯五</td></tr>
+          <tr><td>小三和弦</td><td>Am</td><td>0, 3, 7</td><td>根-小三-纯五</td></tr>
+          <tr><td>增三和弦</td><td>Caug</td><td>0, 4, 8</td><td>根-大三-增五</td></tr>
+          <tr><td>减三和弦</td><td>Bdim</td><td>0, 3, 6</td><td>根-小三-减五</td></tr>
+          <tr><td>大七和弦</td><td>Cmaj7</td><td>0, 4, 7, 11</td><td>大三+大七</td></tr>
+          <tr><td>小七和弦</td><td>Am7</td><td>0, 3, 7, 10</td><td>小三+小七</td></tr>
+          <tr><td>属七和弦</td><td>G7</td><td>0, 4, 7, 10</td><td>大三+小七</td></tr>
+          <tr><td>减七和弦</td><td>Bdim7</td><td>0, 3, 6, 9</td><td>减三+减七</td></tr>
+          <tr><td>半减七和弦</td><td>Dm7b5</td><td>0, 3, 6, 10</td><td>减三+小七</td></tr>
+          <tr><td>挂二和弦</td><td>Csus2</td><td>0, 2, 7</td><td>根-大二-纯五</td></tr>
+          <tr><td>挂四和弦</td><td>Csus4</td><td>0, 5, 7</td><td>根-纯四-纯五</td></tr>
+          <tr><td>加九和弦</td><td>Cadd9</td><td>0, 2, 4, 7</td><td>大三+九音</td></tr>
+          <tr><td>六和弦</td><td>C6</td><td>0, 4, 7, 9</td><td>大三+六音</td></tr>
+          <tr><td>小六和弦</td><td>Am6</td><td>0, 3, 7, 9</td><td>小三+六音</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- SEO 工具介绍 -->
+  
+</div>
+
+</div>
+
+
+<!-- 相关工具 -->
+<div class="related-tools" data-related-tools="1">
+  <h3 class="related-tools-title">🔗 相关工具</h3>
+  <div class="related-tools-grid">
+    <a href="chord-progression.html" class="related-tool-card">
+      <span class="rt-icon">🎼</span>
+      <span class="rt-info"><span class="rt-name">和弦进行生成器 - 免费在线和弦进行生成器，随机生成流行和弦进行</span><span class="rt-desc">&amp;#127926; 和弦进行生成器</span></span>
+    </a>
+    <a href="random-training-rhythm.html" class="related-tool-card">
+      <span class="rt-icon">🎵</span>
+      <span class="rt-info"><span class="rt-name">节奏训练（随机节奏点击）</span><span class="rt-desc">节奏训练（随机节奏点击）</span></span>
+    </a>
+    <a href="generator-1.html" class="related-tool-card">
+      <span class="rt-icon">🎵</span>
+      <span class="rt-info"><span class="rt-name">音阶生成器（大调/小调/五声音阶）</span><span class="rt-desc">音阶生成器（大调/小调/五声音阶）</span></span>
+    </a>
+    <a href="bpm-converter.html" class="related-tool-card">
+      <span class="rt-icon">⏱️</span>
+      <span class="rt-info"><span class="rt-name">BPM速度转换器 - BPM与音符时长、延迟时间、LFO频率、采样长度互转</span><span class="rt-desc">&amp;#9201;&amp;#65039; BPM 速度转换器</span></span>
+    </a>
+    <a href="convert-speed.html" class="related-tool-card">
+      <span class="rt-icon">🎵</span>
+      <span class="rt-info"><span class="rt-name">歌曲速度转换（BPM微调）</span><span class="rt-desc">歌曲速度转换（BPM微调）</span></span>
+    </a>
+    <a href="audio-converter.html" class="related-tool-card">
+      <span class="rt-icon">🔄</span>
+      <span class="rt-info"><span class="rt-name">音频转换 - 音乐艺术领域的在线工具</span><span class="rt-desc">音频格式转换参数</span></span>
+    </a>
+  </div>
+</div>
+<div class="tool-intro" id="toolIntro">
+    <div class="tool-intro-header" onclick="toggleIntro()">
+      <div class="intro-icon-wrap">
+        <span class="intro-icon">🎵</span>
+        <span>工具介绍与使用说明</span>
+      </div>
+      <span class="arrow">▼</span>
+    </div>
+    <div class="tool-intro-body">
+      <p>和弦音符转换器是一款纯前端音乐理论工具，支持解析 15 种常见和弦类型，可显示组成音符及其频率，并在虚拟钢琴键盘上高亮可视化。所有计算均在浏览器本地完成，无需网络请求，数据安全。</p>
+      <h4><span class="h4-icon">✨</span> 功能特点</h4>
+      <ul class="intro-features">
+        <li>支持大三、小三、增减、七和弦、挂留等 15 种和弦类型</li>
+        <li>显示每个音符名称与对应频率（基于 A4=440Hz）</li>
+        <li>钢琴键盘可视化，高亮显示和弦组成音</li>
+        <li>Web Audio API 试听播放，点击单个音符或整个和弦</li>
+        <li>常见和弦速查表，一键填入分析</li>
+        <li>纯前端处理，无需后端服务，保护隐私</li>
+      </ul>
+      <h4><span class="h4-icon">📌</span> 使用场景</h4>
+      <ul class="intro-scenes">
+        <li>学习音乐理论，快速查询和弦组成</li>
+        <li>编曲创作时确认和弦音</li>
+        <li>乐器练习时参考和弦指法</li>
+        <li>音乐教学辅助工具</li>
+      </ul>
+      <h4><span class="h4-icon">❓</span> 常见问题</h4>
+      <div class="intro-faq-item">
+        <div class="intro-faq-q">支持哪些和弦类型？</div>
+        <div class="intro-faq-a">支持大三和弦(M)、小三和弦(m)、增三(aug)、减三(dim)、大七(maj7)、小七(m7)、属七(7)、减七(dim7)、半减七(m7b5)、挂二(sus2)、挂四(sus4)、加九(add9)、六和弦(6)、小六(m6)等类型。</div>
+      </div>
+      <div class="intro-faq-item">
+        <div class="intro-faq-q">频率是如何计算的？</div>
+        <div class="intro-faq-a">基于 A4=440Hz 标准，使用十二平均律公式计算：f = 440 × 2^((n-69)/12)，其中 n 为 MIDI 音符编号。</div>
+      </div>
+      <div class="intro-faq-item">
+        <div class="intro-faq-q">为什么有些升号根音（如 F#m7）也能解析？</div>
+        <div class="intro-faq-a">支持所有 12 个音名作为根音：C、C#/Db、D、D#/Eb、E、F、F#/Gb、G、G#/Ab、A、A#/Bb、B。升号用 # 表示，降号用 b 表示。</div>
+      </div>
+    </div>
+  </div>
+
+<!-- 注意事项区块 -->
+<div class="tool-notes" style="--tool-accent:#FF6B35;">
+  <div class="tool-notes-title">⚠️ 使用说明与注意事项</div>
+  <ul>
+      <li>本工具纯前端运行，数据不会上传到服务器</li>
+      <li>建议在主流浏览器（Chrome/Safari/Firefox/Edge）中使用</li>
+      <li>计算结果仅供参考，请以实际应用场景为准</li>
+  </ul>
+</div>
+<!-- /注意事项区块 -->
+</div>
+
+<script>
+(function() {
+  'use strict';
+
+  /* ===== 常量定义 ===== */
+  const NOTE_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+  const NOTE_ALIASES = { 'Db': 'C#', 'Eb': 'D#', 'Gb': 'F#', 'Ab': 'G#', 'Bb': 'A#' };
+  const DEGREE_NAMES = ['根音', '九音', '二音', '小三', '大三', '纯四', '增四/减五', '纯五', '小六', '大六', '小七', '大七'];
+
+  /* 和弦类型定义：标记 -> { intervals, name } */
+  const CHORD_TYPES = {
+    '':         { intervals: [0, 4, 7],        name: '大三和弦' },
+    'M':        { intervals: [0, 4, 7],        name: '大三和弦' },
+    'm':        { intervals: [0, 3, 7],        name: '小三和弦' },
+    'min':      { intervals: [0, 3, 7],        name: '小三和弦' },
+    '-':        { intervals: [0, 3, 7],        name: '小三和弦' },
+    'aug':      { intervals: [0, 4, 8],        name: '增三和弦' },
+    '+':        { intervals: [0, 4, 8],        name: '增三和弦' },
+    'dim':      { intervals: [0, 3, 6],        name: '减三和弦' },
+    '°':        { intervals: [0, 3, 6],        name: '减三和弦' },
+    'maj7':     { intervals: [0, 4, 7, 11],    name: '大七和弦' },
+    'M7':       { intervals: [0, 4, 7, 11],    name: '大七和弦' },
+    'Δ':        { intervals: [0, 4, 7, 11],    name: '大七和弦' },
+    '7':        { intervals: [0, 4, 7, 10],    name: '属七和弦' },
+    'dom7':     { intervals: [0, 4, 7, 10],    name: '属七和弦' },
+    'm7':       { intervals: [0, 3, 7, 10],    name: '小七和弦' },
+    'min7':     { intervals: [0, 3, 7, 10],    name: '小七和弦' },
+    '-7':       { intervals: [0, 3, 7, 10],    name: '小七和弦' },
+    'dim7':     { intervals: [0, 3, 6, 9],     name: '减七和弦' },
+    '°7':       { intervals: [0, 3, 6, 9],     name: '减七和弦' },
+    'm7b5':     { intervals: [0, 3, 6, 10],    name: '半减七和弦' },
+    'ø7':       { intervals: [0, 3, 6, 10],    name: '半减七和弦' },
+    'm7♭5':     { intervals: [0, 3, 6, 10],    name: '半减七和弦' },
+    'sus2':     { intervals: [0, 2, 7],        name: '挂二和弦' },
+    'sus4':     { intervals: [0, 5, 7],        name: '挂四和弦' },
+    'sus':      { intervals: [0, 5, 7],        name: '挂四和弦' },
+    '2':        { intervals: [0, 2, 7],        name: '挂二和弦' },
+    '4':        { intervals: [0, 5, 7],        name: '挂四和弦' },
+    'add9':     { intervals: [0, 2, 4, 7],     name: '加九和弦' },
+    '9':        { intervals: [0, 4, 7, 10, 14], name: '属九和弦' },
+    'm9':       { intervals: [0, 3, 7, 10, 14], name: '小九和弦' },
+    '6':        { intervals: [0, 4, 7, 9],     name: '六和弦' },
+    'm6':       { intervals: [0, 3, 7, 9],     name: '小六和弦' },
+    '5':        { intervals: [0, 7],           name: '五度（强力和弦）' }
+  };
+
+  /* 速查表数据 */
+  const QUICK_CHORDS = {
+    triad: [
+      'C','C#','D','D#','E','F','F#','G','G#','A','A#','B',
+      'Cm','C#m','Dm','D#m','Em','Fm','F#m','Gm','G#m','Am','A#m','Bm',
+      'Caug','Daug','Eaug','Faug','Gaug','Aaug','Baug',
+      'Cdim','Ddim','Edim','Fdim','Gdim','Adim','Bdim'
+    ],
+    seventh: [
+      'C7','D7','E7','F7','G7','A7','B7',
+      'Cmaj7','Dmaj7','Emaj7','Fmaj7','Gmaj7','Amaj7','Bmaj7',
+      'Cm7','Dm7','Em7','Fm7','Gm7','Am7','Bm7',
+      'Cdim7','Ddim7','Edim7','Fdim7','Gdim7','Adim7','Bdim7',
+      'Dm7b5','Em7b5','F#m7b5','Am7b5','Bm7b5'
+    ],
+    sus: [
+      'Csus2','Dsus2','Esus2','Fsus2','Gsus2','Asus2','Bsus2',
+      'Csus4','Dsus4','Esus4','Fsus4','Gsus4','Asus4','Bsus4',
+      'Cadd9','Dadd9','Eadd9','Fadd9','Gadd9','Aadd9','Badd9'
+    ],
+    extended: [
+      'C6','D6','E6','F6','G6','A6','B6',
+      'Cm6','Dm6','Em6','Fm6','Gm6','Am6','Bm6',
+      'C9','D9','E9','F9','G9','A9','B9',
+      'Cm9','Dm9','Em9','Fm9','Gm9','Am9','Bm9',
+      'C5','D5','E5','F5','G5','A5','B5'
+    ]
+  };
+
+  /* ===== Web Audio ===== */
+  let audioCtx = null;
+  function getAudioCtx() {
+    if (!audioCtx) {
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    }
+    return audioCtx;
+  }
+
+  function midiToFreq(midi) {
+    return 440 * Math.pow(2, (midi - 69) / 12);
+  }
+
+  function playNote(freq, duration, delay) {
+    const ctx = getAudioCtx();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(freq, ctx.currentTime + delay);
+    gain.gain.setValueAtTime(0, ctx.currentTime + delay);
+    gain.gain.linearRampToValueAtTime(0.3, ctx.currentTime + delay + 0.02);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + delay + duration);
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start(ctx.currentTime + delay);
+    osc.stop(ctx.currentTime + delay + duration);
+  }
+
+  /* ===== 和弦解析 ===== */
+  function parseChord(input) {
+    if (!input) return null;
+    input = input.trim();
+
+    /* 匹配根音：1-2 个字符，可含 # 或 b */
+    const rootMatch = input.match(/^([A-Ga-g])(#|b)?/);
+    if (!rootMatch) return null;
+
+    let rootName = rootMatch[1].toUpperCase();
+    let accidental = rootMatch[2] || '';
+    let root = rootName + accidental;
+
+    /* 统一升号表示 */
+    if (NOTE_ALIASES[root]) root = NOTE_ALIASES[root];
+
+    let suffix = input.substring(rootMatch[0].length);
+    let rootIndex = NOTE_NAMES.indexOf(root);
+
+    if (rootIndex === -1) return null;
+
+    /* 尝试匹配和弦类型（优先匹配更长的后缀） */
+    const suffixes = Object.keys(CHORD_TYPES).sort((a, b) => b.length - a.length);
+    let matched = null;
+    for (const s of suffixes) {
+      if (suffix === s || (s && suffix.startsWith(s))) {
+        matched = { type: s, intervals: CHORD_TYPES[s].intervals, name: CHORD_TYPES[s].name };
+        break;
+      }
+    }
+
+    /* 未匹配时尝试变体匹配 */
+    if (!matched) {
+      const normalized = suffix
+        .replace('maj', 'M')
+        .replace('min', 'm')
+        .replace('dom', '')
+        .replace('major', 'M')
+        .replace('minor', 'm');
+      for (const s of suffixes) {
+        if (normalized === s || (s && normalized.startsWith(s))) {
+          matched = { type: s, intervals: CHORD_TYPES[s].intervals, name: CHORD_TYPES[s].name };
+          break;
+        }
+      }
+    }
+
+    if (!matched) {
+      /* 默认大三和弦 */
+      matched = { type: '', intervals: [0, 4, 7], name: '大三和弦' };
+    }
+
+    /* 计算组成音符 */
+    const notes = matched.intervals.map(semitone => {
+      const noteIndex = (rootIndex + semitone) % 12;
+      /* 选择合适的八度显示（第4八度附近） */
+      const midi = 60 + rootIndex + semitone;
+      return {
+        name: NOTE_NAMES[noteIndex],
+        semitone: semitone,
+        midi: midi,
+        freq: midiToFreq(midi)
+      };
+    });
+
+    return {
+      root: root,
+      rootDisplay: rootMatch[1].toUpperCase() + (rootMatch[2] || ''),
+      type: matched.type,
+      typeName: matched.name,
+      intervals: matched.intervals,
+      notes: notes
+    };
+  }
+
+  /* ===== 渲染 ===== */
+  let currentChord = null;
+
+  function renderResult(chord) {
+    currentChord = chord;
+
+    /* 和弦类型标签 */
+    const typeLabel = document.getElementById('chordTypeLabel');
+    if (chord) {
+      typeLabel.innerHTML = '<span class="chord-type-badge">' + ToolBox.escHtml(chord.rootDisplay + chord.type) +
+        ' · ' + ToolBox.escHtml(chord.typeName) + '</span>';
+    } else {
+      typeLabel.innerHTML = '';
+    }
+
+    /* 音符展示 */
+    const notesEl = document.getElementById('notesDisplay');
+    if (chord && chord.notes.length > 0) {
+      notesEl.innerHTML = chord.notes.map(function(note, i) {
+        return '<div class="note-badge" onclick="playSingleNote(' + i + ')" title="点击播放 ' + note.name + '">' +
+          '<span class="note-name">' + note.name + '</span>' +
+          '<span class="note-freq">' + note.freq.toFixed(2) + ' Hz</span>' +
+          '<span class="note-degree">' + DEGREE_NAMES[note.semitone % 12] + '</span>' +
+          '</div>';
+      }).join('');
+    } else {
+      notesEl.innerHTML = '';
+    }
+
+    /* 音程信息 */
+    const intervalEl = document.getElementById('intervalInfo');
+    if (chord) {
+      intervalEl.innerHTML = '<span style="font-size:12px;color:var(--text-muted);margin-right:4px;">音程：</span>' +
+        chord.intervals.map(function(s) {
+          return '<span class="interval-tag">' + DEGREE_NAMES[s % 12] +
+            ' <span class="semitones">(' + s + '半音)</span></span>';
+        }).join('');
+    } else {
+      intervalEl.innerHTML = '';
+    }
+
+    /* 钢琴键盘 */
+    renderPiano(chord);
+  }
+
+  function renderPiano(chord) {
+    const pianoEl = document.getElementById('piano');
+    /* 显示两个八度：C3-B3 和 C4-B4 */
+    const highlightedNotes = new Set();
+    if (chord) {
+      chord.notes.forEach(function(n) { highlightedNotes.add(n.name); });
+    }
+
+    /* 每个白键在八度内的索引 -> 是否有黑键紧跟其后，以及黑键信息 */
+    /* 白键顺序: C(0) D(1) E(2) F(3) G(4) A(5) B(6) */
+    const blackAfterWhite = {
+      0: { name: 'C#', semitone: 1 },  /* C# 在 C 和 D 之间 */
+      1: { name: 'D#', semitone: 3 },  /* D# 在 D 和 E 之间 */
+      2: null,                          /* E 和 F 之间无黑键 */
+      3: { name: 'F#', semitone: 6 },  /* F# 在 F 和 G 之间 */
+      4: { name: 'G#', semitone: 8 },  /* G# 在 G 和 A 之间 */
+      5: { name: 'A#', semitone: 10 }, /* A# 在 A 和 B 之间 */
+      6: null                           /* B 和 C 之间无黑键 */
+    };
+
+    /* 先生成所有白键 */
+    let html = '';
+    const startMidi = 48; /* C3 */
+    const endMidi = 72;    /* C5 (exclusive)，即到 B4 */
+    const whiteKeysData = []; /* 记录白键的 midi 和位置信息 */
+
+    for (let midi = startMidi; midi < endMidi; midi++) {
+      const noteName = NOTE_NAMES[midi % 12];
+      if (noteName.includes('#')) continue; /* 跳过黑键，稍后单独处理 */
+
+      const octave = Math.floor(midi / 12) - 1;
+      const isHighlighted = highlightedNotes.has(noteName) && isNoteInChord(chord, noteName, midi);
+
+      html += '<div class="white-key' + (isHighlighted ? ' highlighted' : '') +
+        '" data-midi="' + midi + '" onclick="playPianoKey(' + midi + ',this)">' +
+        '<span class="key-label">' + noteName + octave + '</span></div>';
+
+      whiteKeysData.push({ midi: midi, noteName: noteName });
+    }
+
+    pianoEl.innerHTML = html;
+
+    /* 获取渲染后的白键 DOM 用于定位黑键 */
+    const whiteKeyEls = pianoEl.querySelectorAll('.white-key');
+
+    /* 叠加黑键 */
+    whiteKeysData.forEach(function(wk, idx) {
+      const whiteIndexInOctave = ((wk.midi - startMidi) % 12);
+      /* 将 MIDI 偏移映射到白键序号 0-6 */
+      const octaveWhiteIdx = [0, 2, 4, 5, 7, 9, 11].indexOf(whiteIndexInOctave);
+      const bkInfo = blackAfterWhite[octaveWhiteIdx];
+
+      if (bkInfo && whiteKeyEls[idx]) {
+        const bMidi = wk.midi + (bkInfo.semitone - whiteIndexInOctave);
+        const isHighlighted = highlightedNotes.has(bkInfo.name) && isNoteInChord(chord, bkInfo.name, bMidi);
+
+        const bk = document.createElement('div');
+        bk.className = 'black-key' + (isHighlighted ? ' highlighted' : '');
+        bk.setAttribute('data-midi', bMidi);
+        bk.onclick = function() { playPianoKey(bMidi, this); };
+        bk.innerHTML = '<span class="key-label">' + bkInfo.name + '</span>';
+        /* 黑键定位：在当前白键右边缘，居中偏移 */
+        const leftPos = whiteKeyEls[idx].offsetLeft + whiteKeyEls[idx].offsetWidth - 14;
+        bk.style.left = leftPos + 'px';
+        pianoEl.appendChild(bk);
+      }
+    });
+  }
+
+  /* 判断某音名是否属于当前和弦（按音名匹配，忽略八度） */
+  function isNoteInChord(chord, noteName, midi) {
+    if (!chord) return false;
+    for (let i = 0; i < chord.notes.length; i++) {
+      if (chord.notes[i].name === noteName) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /* ===== 播放 ===== */
+  function playChord() {
+    if (!currentChord || !currentChord.notes.length) {
+      ToolBox.showToast(i18nText(), 'warning');
+      return;
+    }
+    currentChord.notes.forEach(function(note, i) {
+      playNote(note.freq, 1.5, i * 0.08);
+    });
+
+    /* 高亮动画 */
+    const badges = document.querySelectorAll('.note-badge');
+    badges.forEach(function(b, i) {
+      setTimeout(function() {
+        b.classList.add('playing');
+        setTimeout(function() { b.classList.remove('playing'); }, 500);
+      }, i * 80);
+    });
+  }
+
+  function playSingleNote(index) {
+    if (!currentChord || !currentChord.notes[index]) return;
+    const note = currentChord.notes[index];
+    playNote(note.freq, 1.0, 0);
+
+    const badges = document.querySelectorAll('.note-badge');
+    if (badges[index]) {
+      badges[index].classList.add('playing');
+      setTimeout(function() { badges[index].classList.remove('playing'); }, 500);
+    }
+  }
+
+  function playPianoKey(midi, el) {
+    playNote(midiToFreq(midi), 1.0, 0);
+    el.classList.add('playing');
+    setTimeout(function() { el.classList.remove('playing'); }, 500);
+  }
+
+  /* ===== 工具栏功能 ===== */
+  function analyzeChord() {
+    const input = document.getElementById('chordInput').value.trim();
+    if (!input) {
+      ToolBox.showToast(i18nText(), 'warning');
+      return;
+    }
+    const chord = parseChord(input);
+    if (!chord) {
+      ToolBox.showToast(i18nText(), 'error');
+      renderResult(null);
+      return;
+    }
+    renderResult(chord);
+    ToolBox.showToast(chord.rootDisplay + chord.type + ' = ' + chord.notes.map(function(n) { return n.name; }).join(' '), 'success');
+  }
+
+  function clearInput() {
+    document.getElementById('chordInput').value = '';
+    renderResult(null);
+  }
+
+  function copyResult() {
+    if (!currentChord) {
+      ToolBox.showToast(i18nText(), 'warning');
+      return;
+    }
+    const chord = currentChord;
+    let text = chord.rootDisplay + chord.type + ' (' + chord.typeName + ')\n';
+    text += '组成音符：' + chord.notes.map(function(n) { return n.name; }).join(' - ') + '\n';
+    text += '音程：' + chord.intervals.join(', ') + ' (半音)\n';
+    text += '频率：\n';
+    chord.notes.forEach(function(n) {
+      text += '  ' + n.name + ': ' + n.freq.toFixed(2) + ' Hz\n';
+    });
+    ToolBox.copyText(text, i18nText());
+  }
+
+  function onChordInput() {
+    const input = document.getElementById('chordInput').value.trim();
+    if (!input) {
+      renderResult(null);
+      return;
+    }
+    /* 实时解析（不弹 toast） */
+    const chord = parseChord(input);
+    if (chord) {
+      renderResult(chord);
+    } else {
+      renderResult(null);
+    }
+  }
+
+  /* ===== 速查表 ===== */
+  function switchQuickTab(tab, btn) {
+    document.querySelectorAll('#quickTabs .tab-btn').forEach(function(b) { b.classList.remove('active'); });
+    document.querySelectorAll('[id^="quickContent-"]').forEach(function(c) { c.classList.remove('active'); });
+    btn.classList.add('active');
+    document.getElementById('quickContent-' + tab).classList.add('active');
+  }
+
+  function buildQuickGrids() {
+    Object.keys(QUICK_CHORDS).forEach(function(category) {
+      const grid = document.getElementById(category + 'Grid');
+      if (!grid) return;
+      const chords = QUICK_CHORDS[category];
+      grid.innerHTML = chords.map(function(ch) {
+        return '<button type="button" class="chord-quick-btn" onclick="quickFill(\'' + ch + '\',this)">' + ch + '</button>';
+      }).join('');
+    });
+  }
+
+  function quickFill(chordName, btn) {
+    document.getElementById('chordInput').value = chordName;
+    /* 高亮当前按钮 */
+    document.querySelectorAll('.chord-quick-btn').forEach(function(b) { b.classList.remove('active'); });
+    if (btn) btn.classList.add('active');
+    onChordInput();
+  }
+
+  /* ===== 工具介绍折叠 ===== */
+  function toggleIntro() {
+    document.getElementById('toolIntro').classList.toggle('open');
+  }
+
+  /* ===== 键盘事件 ===== */
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter' && document.activeElement === document.getElementById('chordInput')) {
+      analyzeChord();
+    }
+  });
+
+  /* ===== 初始化 ===== */
+  buildQuickGrids();
+  analyzeChord();
+
+  /* 暴露到全局 */
+  window.analyzeChord = analyzeChord;
+  window.playChord = playChord;
+  window.playSingleNote = playSingleNote;
+  window.playPianoKey = playPianoKey;
+  window.copyResult = copyResult;
+  window.clearInput = clearInput;
+  window.onChordInput = onChordInput;
+  window.switchQuickTab = switchQuickTab;
+  window.quickFill = quickFill;
+  window.toggleIntro = toggleIntro;
+
+})();
+</script><script>
+// tool-intro折叠交互
+document.addEventListener('DOMContentLoaded',function(){
+  var headers=document.querySelectorAll('.tool-intro-header');
+  headers.forEach(function(h){
+    h.addEventListener('click',function(){
+      this.parentElement.classList.toggle('open');
+    });
+  });
+});
+</script>
+
+</body>
+</html>

@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+
+<script src="/js/tool-page-runtime.js" defer></script>
+<!-- TOOLBOX-TOOL-RUNTIME -->
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="toolbox" content="cat=dev,industry=it,icon=🎨,bg=#e3f2fd">
+<meta name="description" content="Less 转 CSS 编译器 - 是一款在线工具，可将 Less 预处理器代码实时编译为浏览器可识别的标准 CSS。基于 less.js 引擎，支持变量、混合、嵌套、运算、函数等 Less 全部核心特性。所有编译均在浏览器本地完成，代码不离开你的">
+<meta name="keywords" content="Less编译器,Less转CSS,Less to CSS,在线Less编译,Less预处理器,Less在线工具,CSS预处理器,Less变量,Less混合mixin,Less嵌套,免费工具,纯前端">
+<meta name="robots" content="index,follow">
+<link rel="canonical" href="https://chenguangwu.github.io/tools/it/less-compiler.html">
+<meta property="og:title" content="Less 转 CSS 编译器 - 在线工具，可将 Less - ToolBox">
+<meta property="og:description" content="Less 转 CSS 编译器 - 是一款在线工具，可将 Less 预处理器代码实时编译为浏览器可识别的标准 CSS。基于 less.js 引擎，支持变量、混合、嵌套、运算、函数等 Less 全部核心特性。所有编译均在浏览器本地完成，代码不离开你的">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://chenguangwu.github.io/tools/it/less-compiler.html">
+<meta name="twitter:card" content="summary">
+
+<title>Less 转 CSS 编译器 - 在线工具，可将 Less - ToolBox</title>
+<meta name="theme-color" content="#FF6B35">
+<link rel="icon" type="image/svg+xml" href="../../favicon.svg">
+<link rel="icon" href="../../favicon.ico" sizes="16x16 32x32 48x48">
+<link rel="apple-touch-icon" href="../../apple-touch-icon.png">
+<link rel="stylesheet" href="../../css/common.css">
+<script src="../../js/common.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/less@4/dist/less.min.js"></script>
+<style>
+.editor-wrap{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+@media(max-width:768px){.editor-wrap{grid-template-columns:1fr;}}
+.editor-panel{display:flex;flex-direction:column;gap:6px;}
+.editor-panel > label{font-size:13px;font-weight:600;color:var(--text-secondary);display:flex;align-items:center;justify-content:space-between;}
+.editor-panel > label .badge{font-size:11px;font-weight:500;color:var(--text-muted);background:var(--result-bg);padding:2px 8px;border-radius:6px;border:1px solid var(--border);}
+textarea{min-height:380px;font-family:'SF Mono','Fira Code','Courier New',monospace;font-size:13px;line-height:1.6;resize:vertical;tab-size:2;}
+#output{min-height:380px;font-family:'SF Mono','Fira Code','Courier New',monospace;font-size:13px;line-height:1.6;background:var(--result-bg);border:1.5px solid var(--border);border-radius:12px;padding:14px;white-space:pre-wrap;word-break:break-all;overflow:auto;}
+#output.error-state{border-color:var(--danger);color:var(--danger);background:rgba(239,68,68,0.06);}
+#output.empty-state{color:var(--text-muted);font-style:italic;}
+.options-bar{display:flex;gap:16px;flex-wrap:wrap;align-items:center;margin-bottom:12px;padding:12px 14px;background:var(--result-bg);border:1px solid var(--border);border-radius:12px;}
+.option-toggle{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text-secondary);cursor:pointer;user-select:none;}
+.option-toggle input[type="checkbox"]{width:16px;height:16px;cursor:pointer;accent-color:var(--primary);}
+.switch{position:relative;display:inline-block;width:38px;height:20px;flex-shrink:0;}
+.switch input{opacity:0;width:0;height:0;}
+.slider{position:absolute;cursor:pointer;inset:0;background:var(--border);border-radius:20px;transition:0.25s;}
+.slider::before{content:"";position:absolute;height:14px;width:14px;left:3px;top:3px;background:#fff;border-radius:50%;transition:0.25s;box-shadow:0 1px 3px rgba(0,0,0,0.2);}
+.switch input:checked + .slider{background:var(--primary);}
+.switch input:checked + .slider::before{transform:translateX(18px);}
+.stat-row{display:flex;gap:12px;flex-wrap:wrap;margin-top:12px;font-size:12.5px;color:var(--text-light);}
+.stat-item{background:var(--result-bg);padding:6px 12px;border-radius:8px;border:1px solid var(--border);}
+.stat-item strong{color:var(--primary);font-weight:600;}
+.error-panel{margin-top:12px;border-radius:10px;overflow:hidden;display:none;}
+.error-panel.show{display:block;}
+.error-panel-header{background:rgba(239,68,68,0.1);color:var(--danger);padding:8px 14px;font-size:13px;font-weight:600;display:flex;align-items:center;gap:6px;}
+.error-panel-body{background:rgba(239,68,68,0.04);color:var(--danger);padding:12px 14px;font-size:12.5px;line-height:1.6;font-family:'SF Mono','Courier New',monospace;white-space:pre-wrap;word-break:break-all;}
+.status-dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;}
+.status-dot.ok{background:var(--success);}
+.status-dot.err{background:var(--danger);}
+.status-dot.idle{background:var(--text-muted);}
+</style>
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "Less 转 CSS 编译器",
+  "description": "在线将 Less 预处理器代码编译为标准 CSS，支持变量、混合、嵌套、运算、函数等特性，纯前端浏览器处理。",
+  "url": "https://chenguangwu.github.io/tools/it/less-compiler.html",
+  "applicationCategory": "DeveloperApplication",
+  "operatingSystem": "Web",
+  "offers": {
+    "@type": "Offer",
+    "price": "0",
+    "priceCurrency": "CNY"
+  },
+  "inLanguage": "zh-CN",
+  "isAccessibleForFree": true,
+  "browserRequirements": "Requires JavaScript. Requires HTML5.",
+  "softwareVersion": "1.0"
+}
+</script>
+
+
+
+<meta property="og:image" content="https://chenguangwu.github.io/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="ToolBox - 6000+免费在线工具">
+<meta name="twitter:image" content="https://chenguangwu.github.io/og-image.png">
+<meta name="twitter:image:alt" content="ToolBox - 6000+免费在线工具">
+    <meta name="twitter:title" content="Less 转 CSS 编译器 - 在线工具，可将 Less - ToolBox">
+    <meta name="twitter:description" content="Less 转 CSS 编译器 - 是一款在线工具，可将 Less 预处理器代码实时编译为浏览器可识别的标准 CSS。基于 less.js 引擎，支持变量、混合、嵌套、运算、函数等 Less 全部核心特性。所有编译均在浏览器本地完成，代码不离开你的">
+<!-- TOOLBOX-WEBAPP-LD -->
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"WebApplication","name":"Less 转 CSS 编译器 - 在线工具，可将 Less","url":"https://chenguangwu.github.io/tools/it/less-compiler.html","applicationCategory":"DeveloperApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":["zh-CN", "en-US"],"description":"Less 转 CSS 编译器","image":"https://chenguangwu.github.io/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}
+</script>
+<meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
+<meta http-equiv="X-Content-Type-Options" content="nosniff">
+<meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
+<!-- TOOLBOX-SECURITY -->
+
+<script src="/js/privacy.js" defer></script>
+<!-- TOOLBOX-PRIVACY-SCRIPT -->
+
+<script src="/js/metrics.js" defer></script>
+<!-- TOOLBOX-METRICS-SCRIPT -->
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"首页","item":"https://chenguangwu.github.io/"},{"@type":"ListItem","position":2,"name":"IT 开发","item":"https://chenguangwu.github.io/tools/it/index.html"},{"@type":"ListItem","position":3,"name":"Less 转 CSS 编译器","item":"https://chenguangwu.github.io/tools/it/less-compiler.html"}]}
+</script>
+
+<script src="../../js/i18n.js" defer></script>
+<script src="../../js/tool-i18n.js" defer></script>
+<!-- TOOLBOX-I18N-SCRIPT -->
+<!-- TOOLBOX-HREFLANG -->
+<link rel="alternate" hreflang="zh-CN" href="https://chenguangwu.github.io/tools/it/less-compiler.html">
+<link rel="alternate" hreflang="en-US" href="https://chenguangwu.github.io/tools/it/less-compiler.html">
+<link rel="alternate" hreflang="x-default" href="https://chenguangwu.github.io/tools/it/less-compiler.html">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:locale:alternate" content="en_US">
+
+<script src="/js/clarity.js" defer></script>
+<!-- TOOLBOX-CLARITY -->
+</head>
+<body>
+<h1 class="sr-only">Less转CSS编译器</h1>
+<div class="nav">
+  <a href="../../index.html">← ToolBox</a>
+  <span>/ IT开发 / Less转CSS编译器</span>
+  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()">🌙</button>
+</div>
+
+
+
+
+<nav class="breadcrumb" aria-label="面包屑导航" data-breadcrumb="1">
+  <a href="../../index.html">首页</a>
+  <span class="bc-sep">‹</span>
+  <a href="index.html">💻 IT 开发</a>
+  <span class="bc-sep">‹</span>
+  <span class="bc-current">Less 转 CSS 编译器</span>
+</nav>
+<div class="container">
+  <div class="card tool-card-accent" style="--tool-accent:#FF6B35;">
+    <h2>🎨 Less 转 CSS 编译器</h2>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;">将 Less 预处理器代码实时编译为标准 CSS，支持变量、混合、嵌套、运算、函数等全部特性，纯前端处理</p>
+
+    <div class="options-bar">
+      <label class="option-toggle">
+        <span class="switch"><input type="checkbox" id="optCompress"><span class="slider"></span></span>
+        压缩模式 (compress)
+      </label>
+      <label class="option-toggle">
+        <span class="switch"><input type="checkbox" id="optStrictMath"><span class="slider"></span></span>
+        严格数学 (strictMath)
+      </label>
+      <label class="option-toggle">
+        <span class="switch"><input type="checkbox" id="optStrictUnits"><span class="slider"></span></span>
+        严格单位 (strictUnits)
+      </label>
+    </div>
+
+    <div class="toolbar">
+      <button type="button" class="btn primary" onclick="compile(true)">⚡ 编译</button>
+      <button type="button" class="btn" onclick="loadSample()">📋 加载示例</button>
+      <button type="button" class="btn" onclick="copyOutput()">复制 CSS</button>
+      <button type="button" class="btn success" onclick="downloadOutput()">下载 CSS</button>
+      <button type="button" class="btn danger" onclick="clearAll()">清空</button>
+    </div>
+
+    <div class="editor-wrap">
+      <div class="editor-panel">
+        <label>Less 输入 <span class="badge" id="inputStat">0 行</span></label>
+        <textarea id="input" placeholder="在此输入 Less 代码..." spellcheck="false"></textarea>
+      </div>
+      <div class="editor-panel">
+        <label>CSS 输出 <span class="status-dot idle" id="statusDot"></span><span id="statusText" style="font-size:12px;color:var(--text-muted);">等待编译</span></label>
+        <div id="output" class="empty-state">编译结果将显示在此处...</div>
+      </div>
+    </div>
+
+    <div class="stat-row" id="stats" style="display:none;">
+      <div class="stat-item">编译耗时: <strong id="compileTime">0</strong> ms</div>
+      <div class="stat-item">输出行数: <strong id="outputLines">0</strong> 行</div>
+      <div class="stat-item">输出大小: <strong id="outputSize">0</strong> 字节</div>
+    </div>
+
+    <div class="error-panel" id="errorPanel">
+      <div class="error-panel-header">❌ 编译错误</div>
+      <div class="error-panel-body" id="errorBody"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>📖 使用说明</h3>
+    <div class="ref-card">
+      <h4>功能说明</h4>
+      <ul>
+        <li><strong>实时编译</strong>：输入 Less 代码时自动延迟编译，无需手动点击</li>
+        <li><strong>变量 Variables</strong>：<code>@width: 10px;</code> 定义变量，可在全局复用</li>
+        <li><strong>混合 Mixins</strong>：<code>.bordered();</code> 引用一组属性集合</li>
+        <li><strong>嵌套 Nesting</strong>：支持选择器层级嵌套，结构更清晰</li>
+        <li><strong>运算 Operations</strong>：支持加减乘除等数学运算</li>
+        <li><strong>函数 Functions</strong>：<code>darken()</code>、<code>lighten()</code>、<code>fade()</code> 等颜色与数学函数</li>
+      </ul>
+    </div>
+    <div class="ref-card">
+      <h4>编译选项</h4>
+      <ul>
+        <li><strong>压缩模式</strong>：移除注释和多余空白，输出最小体积 CSS</li>
+        <li><strong>严格数学</strong>：仅在括号内执行数学运算，避免 <code>font: 12px/1.5</code> 被计算</li>
+        <li><strong>严格单位</strong>：单位不一致时报错，而非自动转换</li>
+        <li><strong>Tab 缩进</strong>：输入框中按 Tab 键可插入两个空格缩进</li>
+      </ul>
+    </div>
+  </div>
+
+<!-- 注意事项区块 -->
+<div class="tool-notes" style="--tool-accent:#FF6B35;">
+  <div class="tool-notes-title">⚠️ 使用说明与注意事项</div>
+  <ul>
+      <li>本工具纯前端运行，数据不会上传到服务器</li>
+      <li>编译依赖 less.js（CDN 加载），首次使用需等待脚本加载完成</li>
+      <li>建议在主流浏览器（Chrome/Safari/Firefox/Edge）中使用</li>
+      <li>实时编译有 400ms 防抖延迟，避免频繁触发影响性能</li>
+  </ul>
+</div>
+<!-- /注意事项区块 -->
+</div>
+
+<!-- SEO 介绍区块 -->
+
+</div>
+
+</div>
+
+<!-- 相关工具 -->
+<div class="related-tools" data-related-tools="1">
+  <h3 class="related-tools-title">🔗 相关工具</h3>
+  <div class="related-tools-grid">
+    <a href="properties-parser.html" class="related-tool-card">
+      <span class="rt-icon">🔧</span>
+      <span class="rt-info"><span class="rt-name">.properties 解析器 - 免费开发工具，properties 解析器 | ToolBox免费在线工具箱</span><span class="rt-desc">.properties 解析器</span></span>
+    </a>
+    <a href="ast-viewer.html" class="related-tool-card">
+      <span class="rt-icon">🌳</span>
+      <span class="rt-info"><span class="rt-name">AST抽象语法树查看器 - 在线解析JavaScript代码生成AST树形结构，支持节点 | ToolBox免费在线工具箱</span><span class="rt-desc">AST 抽象语法树查看器</span></span>
+    </a>
+    <a href="css-minifier.html" class="related-tool-card">
+      <span class="rt-icon">🎨</span>
+      <span class="rt-info"><span class="rt-name">CSS 压缩/美化工具 - 免费开发工具，CSS 压缩/格式化/美化 | ToolBox免费在线工具箱</span><span class="rt-desc">CSS 压缩/格式化/美化</span></span>
+    </a>
+    <a href="css-formatter.html" class="related-tool-card">
+      <span class="rt-icon">🔧</span>
+      <span class="rt-info"><span class="rt-name">CSS 格式化 - 免费开发工具，在线CSS 格式化 | ToolBox免费在线工具箱</span><span class="rt-desc">CSS 格式化</span></span>
+    </a>
+    <a href="cron.html" class="related-tool-card">
+      <span class="rt-icon">⏰</span>
+      <span class="rt-info"><span class="rt-name">Cron 表达式生成器 - 免费开发工具，在线Cron 表达式生成器 | ToolBox免费在线工具箱</span><span class="rt-desc">⏰ Cron 表达式生成器</span></span>
+    </a>
+    <a href="graphql-formatter.html" class="related-tool-card">
+      <span class="rt-icon">🔧</span>
+      <span class="rt-info"><span class="rt-name">GraphQL 格式化 - 免费开发工具，在线GraphQL 格式化 | ToolBox免费在线工具箱</span><span class="rt-desc">◈ GraphQL 格式化</span></span>
+    </a>
+  </div>
+</div>
+<div class="tool-intro open" id="toolIntro">
+  <div class="tool-intro-header">
+    <span class="intro-icon-wrap"><span class="intro-icon">📖</span>关于「Less 转 CSS 编译器」</span>
+    <span class="arrow">▼</span>
+  </div>
+  <div class="tool-intro-body">
+    <h4><span class="h4-icon">📝</span>工具简介</h4>
+    <p>Less 转 CSS 编译器是一款在线工具，可将 Less 预处理器代码实时编译为浏览器可识别的标准 CSS。基于 less.js 引擎，支持变量、混合、嵌套、运算、函数等 Less 全部核心特性。所有编译均在浏览器本地完成，代码不离开你的设备。</p>
+    <h4><span class="h4-icon">✨</span>功能特点</h4>
+    <ul class="intro-features">
+      <li>纯前端处理，代码不上传服务器</li>
+      <li>实时编译，输入即编译</li>
+      <li>支持变量、混合、嵌套语法</li>
+      <li>支持运算与内置函数</li>
+      <li>压缩模式输出最小体积</li>
+      <li>严格数学/严格单位模式</li>
+      <li>编译耗时与输出统计</li>
+      <li>详细错误信息提示</li>
+      <li>一键复制与下载 CSS</li>
+      <li>支持深色模式</li>
+    </ul>
+    <h4><span class="h4-icon">🎯</span>使用场景</h4>
+    <ul class="intro-scenes">
+      <li>前端项目 Less 样式开发调试</li>
+      <li>快速预览 Less 编译效果</li>
+      <li>学习 Less 语法与特性</li>
+      <li>将 Less 代码转换为纯 CSS</li>
+      <li>CSS 预处理器技术选型评估</li>
+      <li>在线编写可复用的样式组件</li>
+    </ul>
+    <h4><span class="h4-icon">💬</span>常见问题</h4>
+      <div class="intro-faq-item"><div class="intro-faq-q">这个工具是免费的吗？</div><div class="intro-faq-a">完全免费，无需注册，直接在浏览器中打开即可使用。</div></div>
+      <div class="intro-faq-item"><div class="intro-faq-q">我的代码会被上传吗？</div><div class="intro-faq-a">不会。所有编译都在你的浏览器本地完成，Less 代码不会发送到任何服务器。</div></div>
+      <div class="intro-faq-item"><div class="intro-faq-q">支持哪些 Less 特性？</div><div class="intro-faq-a">支持 Less 的全部核心特性，包括变量（@var）、混合（Mixin）、嵌套（Nesting）、运算（Operations）、函数（Functions）、导入（@import）、条件表达式等。</div></div>
+      <div class="intro-faq-item"><div class="intro-faq-q">严格数学模式有什么用？</div><div class="intro-faq-a">开启后，Less 只在括号内执行数学运算。这对于 font 简写中的行高（如 font: 12px/1.5）很有用，避免被误计算。</div></div>
+      <div class="intro-faq-item"><div class="intro-faq-q">编译报错怎么办？</div><div class="intro-faq-a">错误面板会显示详细的错误信息和行号，请根据提示检查 Less 语法，如变量名拼写、括号匹配、分号缺失等常见问题。</div></div>
+  </div>
+</div>
+<!-- /SEO 介绍区块 -->
+
+<script>
+const SAMPLE_LESS = `// Less 变量定义
+@primary-color: #FF6B35;
+@secondary-color: #7C3AED;
+@base-font-size: 16px;
+@border-radius: 12px;
+@spacing: 20px;
+
+// 混合 Mixin
+.flex-center() {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.card-shadow() {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+}
+
+// 嵌套与运算
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: @spacing;
+
+  .header {
+    .flex-center();
+    padding: @spacing * 0.5;
+    background: linear-gradient(135deg, @primary-color, @secondary-color);
+    border-radius: @border-radius;
+
+    h1 {
+      color: #fff;
+      font-size: @base-font-size * 1.5;
+      margin: 0;
+    }
+  }
+
+  .card {
+    background: #fff;
+    border-radius: @border-radius;
+    padding: @spacing;
+    .card-shadow();
+    margin-bottom: @spacing;
+
+    &:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+    }
+
+    .btn {
+      padding: 10px @spacing;
+      border: none;
+      border-radius: @border-radius;
+      font-size: @base-font-size * 0.875;
+      cursor: pointer;
+      transition: all 0.25s ease;
+
+      &.primary {
+        background: @primary-color;
+        color: #fff;
+
+        &:hover {
+          background: darken(@primary-color, 8%);
+        }
+      }
+
+      &.secondary {
+        background: @secondary-color;
+        color: #fff;
+      }
+    }
+  }
+}`;
+
+const SAMPLES = [SAMPLE_LESS];
+let sampleIndex = 0;
+let compileTimer = null;
+let lastCompiledCSS = '';
+
+const inputEl = document.getElementById('input');
+const outputEl = document.getElementById('output');
+const errorPanel = document.getElementById('errorPanel');
+const errorBody = document.getElementById('errorBody');
+const statsEl = document.getElementById('stats');
+
+function getOptions() {
+  return {
+    compress: document.getElementById('optCompress').checked,
+    strictMath: document.getElementById('optStrictMath').checked,
+    strictUnits: document.getElementById('optStrictUnits').checked
+  };
+}
+
+function setStatus(state, text) {
+  const dot = document.getElementById('statusDot');
+  const txt = document.getElementById('statusText');
+  dot.className = 'status-dot ' + state;
+  txt.textContent = text;
+}
+
+function showInputStat() {
+  const lines = inputEl.value.split('\n').length;
+  document.getElementById('inputStat').textContent = lines + ' 行';
+}
+
+function hideError() {
+  errorPanel.classList.remove('show');
+}
+
+function showError(msg) {
+  errorBody.textContent = msg;
+  errorPanel.classList.add('show');
+  outputEl.classList.add('error-state');
+  outputEl.classList.remove('empty-state');
+  outputEl.textContent = '编译失败，请查看下方错误信息';
+  setStatus('err', '编译错误');
+  statsEl.style.display = 'none';
+}
+
+function compile(manual) {
+  const lessCode = inputEl.value;
+  if (!lessCode.trim()) {
+    outputEl.textContent = '编译结果将显示在此处...';
+    outputEl.classList.add('empty-state');
+    outputEl.classList.remove('error-state');
+    hideError();
+    statsEl.style.display = 'none';
+    setStatus('idle', '等待输入');
+    lastCompiledCSS = '';
+    return;
+  }
+
+  if (typeof less === 'undefined') {
+    showError('less.js 尚未加载完成，请稍后重试...');
+    return;
+  }
+
+  const opts = getOptions();
+  const start = performance.now();
+
+  less.render(lessCode, {
+    compress: opts.compress,
+    strictMath: opts.strictMath,
+    strictUnits: opts.strictUnits
+  }).then(function(output) {
+    const css = output.css;
+    lastCompiledCSS = css;
+    const elapsed = Math.round(performance.now() - start);
+
+    outputEl.classList.remove('error-state', 'empty-state');
+    outputEl.textContent = css;
+    hideError();
+
+    const lineCount = css.split('\n').length;
+    const sizeBytes = new Blob([css]).size;
+    document.getElementById('compileTime').textContent = elapsed;
+    document.getElementById('outputLines').textContent = lineCount;
+    document.getElementById('outputSize').textContent = sizeBytes.toLocaleString();
+    statsEl.style.display = 'flex';
+    setStatus('ok', '编译成功');
+
+    if (manual) ToolBox.showToast(i18nText('toast.msg551'), 'success');
+  }).catch(function(err) {
+    let msg = err.message || String(err);
+    if (err.line) msg += '\n行号: ' + err.line;
+    if (err.column) msg += '  列号: ' + err.column;
+    if (err.filename) msg += '\n文件: ' + err.filename;
+    showError(msg);
+    lastCompiledCSS = '';
+    if (manual) ToolBox.showToast(i18nText('toast.msg550'), 'error');
+  });
+}
+
+function debouncedCompile() {
+  if (compileTimer) clearTimeout(compileTimer);
+  setStatus('idle', '编译中...');
+  compileTimer = setTimeout(function() { compile(false); }, 400);
+}
+
+function loadSample() {
+  inputEl.value = SAMPLES[sampleIndex % SAMPLES.length];
+  sampleIndex++;
+  showInputStat();
+  compile(true);
+  ToolBox.showToast(i18nText('toast.msg525'), 'info');
+}
+
+function copyOutput() {
+  if (!lastCompiledCSS) {
+    ToolBox.showToast(i18nText('toast.msg423'), 'warning');
+    return;
+  }
+  ToolBox.copyText(lastCompiledCSS, i18nText('msg025'));
+}
+
+function downloadOutput() {
+  if (!lastCompiledCSS) {
+    ToolBox.showToast(i18nText('toast.msg422'), 'warning');
+    return;
+  }
+  ToolBox.downloadText('styles.css', lastCompiledCSS, 'text/css;charset=utf-8');
+  ToolBox.showToast(i18nText('toast.msg004'), 'success');
+}
+
+function clearAll() {
+  inputEl.value = '';
+  outputEl.textContent = '编译结果将显示在此处...';
+  outputEl.classList.add('empty-state');
+  outputEl.classList.remove('error-state');
+  hideError();
+  statsEl.style.display = 'none';
+  setStatus('idle', '等待输入');
+  lastCompiledCSS = '';
+  showInputStat();
+  ToolBox.showToast(i18nText(), 'info');
+}
+
+// 输入框 Tab 键缩进
+inputEl.addEventListener('keydown', function(e) {
+  if (e.key === 'Tab') {
+    e.preventDefault();
+    const start = this.selectionStart;
+    const end = this.selectionEnd;
+    this.value = this.value.substring(0, start) + '  ' + this.value.substring(end);
+    this.selectionStart = this.selectionEnd = start + 2;
+    debouncedCompile();
+  }
+});
+
+inputEl.addEventListener('input', function() {
+  showInputStat();
+  debouncedCompile();
+});
+
+// 选项变化时重新编译
+['optCompress', 'optStrictMath', 'optStrictUnits'].forEach(function(id) {
+  document.getElementById(id).addEventListener('change', function() { compile(false); });
+});
+
+// 初始化：加载默认示例
+inputEl.value = SAMPLE_LESS;
+showInputStat();
+// 等待 less.js 加载完成
+function initCompile() {
+  if (typeof less !== 'undefined') {
+    compile(false);
+  } else {
+    setTimeout(initCompile, 200);
+  }
+}
+initCompile();
+</script>
+<script>
+// tool-intro 折叠交互
+document.addEventListener('DOMContentLoaded', function() {
+  var headers = document.querySelectorAll('.tool-intro-header');
+  headers.forEach(function(h) {
+    h.addEventListener('click', function() {
+      this.parentElement.classList.toggle('open');
+    });
+  });
+});
+</script>
+</body>
+</html>

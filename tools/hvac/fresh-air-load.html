@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+
+<script src="/js/tool-page-runtime.js" defer></script>
+<!-- TOOLBOX-TOOL-RUNTIME -->
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="toolbox" content="cat=calculator,industry=hvac,icon=🍃,bg=#e8f5e9">
+<meta name="description" content="新风负荷计算器 - 是一款面向暖通空调（HVAC）设计的在线工具，依据焓湿图原理计算新风引入带来的全热负荷、显热负荷与潜热负荷。输入人数、新风量标准及室内外温湿度，即可快速得到新风量、室内外焓值、焓差及三类负荷，并展示完整计算过程，适合空调方案估">
+<meta name="keywords" content="新风负荷计算器,新风全热负荷,新风显热负荷,新风潜热负荷,焓湿图,焓差计算,新风量计算,暖通空调,HVAC,在线工具,免费工具,ToolBox">
+<meta name="robots" content="index,follow">
+<link rel="canonical" href="https://chenguangwu.github.io/tools/hvac/fresh-air-load.html">
+<meta property="og:title" content="新风负荷计算器 - 面向暖通空调（HVAC）设计的在线工具 - ToolBox">
+<meta property="og:description" content="新风负荷计算器 - 是一款面向暖通空调（HVAC）设计的在线工具，依据焓湿图原理计算新风引入带来的全热负荷、显热负荷与潜热负荷。输入人数、新风量标准及室内外温湿度，即可快速得到新风量、室内外焓值、焓差及三类负荷，并展示完整计算过程，适合空调方案估">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://chenguangwu.github.io/tools/hvac/fresh-air-load.html">
+<meta name="twitter:card" content="summary">
+
+<title>新风负荷计算器 - 面向暖通空调（HVAC）设计的在线工具 - ToolBox</title>
+<meta name="theme-color" content="#FF6B35">
+<link rel="icon" type="image/svg+xml" href="../../favicon.svg">
+<link rel="icon" href="../../favicon.ico" sizes="16x16 32x32 48x48">
+<link rel="apple-touch-icon" href="../../apple-touch-icon.png">
+<link rel="stylesheet" href="../../css/common.css">
+<script src="../../js/common.js"></script>
+<style>
+  /* 工具内补充样式 */
+  .preset-chips{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;}
+  .preset-chip{padding:8px 14px;border:1.5px solid var(--border);border-radius:20px;background:var(--card-bg);color:var(--text-secondary);font-size:13px;cursor:pointer;transition:all .2s;font-weight:500;}
+  .preset-chip:hover{border-color:var(--primary);color:var(--primary);}
+  .preset-chip.active{background:var(--gradient-primary);color:#fff;border-color:transparent;box-shadow:0 4px 12px rgba(255,107,53,.25);}
+  .preset-chip .chip-val{font-size:11px;opacity:.8;margin-left:4px;}
+  .load-card{position:relative;overflow:hidden;}
+  .load-card .num{font-size:24px;}
+  .load-card.total{border-color:rgba(255,107,53,.35);}
+  .load-card.total .num{color:var(--primary);}
+  .load-card.sensible .num{color:#3B82F6;}
+  .load-card.latent .num{color:#7C3AED;}
+  [data-theme="dark"] .load-card.sensible .num{color:#60A5FA;}
+  [data-theme="dark"] .load-card.latent .num{color:#9B6CF5;}
+  .load-card .sub{font-size:11px;color:var(--text-muted);margin-top:2px;}
+  .load-card .tag{position:absolute;top:10px;right:10px;font-size:10px;padding:2px 8px;border-radius:10px;font-weight:600;}
+  .tag-cool{background:rgba(59,130,246,.12);color:#2563EB;}
+  .tag-heat{background:rgba(239,68,68,.12);color:#DC2626;}
+  [data-theme="dark"] .tag-cool{background:rgba(59,130,246,.2);color:#60A5FA;}
+  [data-theme="dark"] .tag-heat{background:rgba(239,68,68,.2);color:#F87171;}
+  .formula-line{font-family:'SF Mono','Courier New',monospace;font-size:13px;background:var(--result-bg);border:1px solid var(--border);border-radius:8px;padding:8px 12px;margin:6px 0;color:var(--text);}
+  .formula-line .var{color:var(--primary);font-weight:600;}
+  .state-box{display:grid;grid-template-columns:1fr auto 1fr;gap:8px;align-items:center;margin:12px 0;}
+  .state-card{background:var(--result-bg);border:1px solid var(--border);border-radius:12px;padding:14px;text-align:center;}
+  .state-card .title{font-size:12px;color:var(--text-muted);margin-bottom:6px;}
+  .state-card .vals{font-size:15px;font-weight:600;color:var(--text);}
+  .state-card .h-val{font-size:13px;color:var(--primary);margin-top:4px;}
+  .state-arrow{font-size:22px;color:var(--text-muted);}
+  @media(max-width:768px){
+    .state-box{grid-template-columns:1fr;}
+    .state-arrow{transform:rotate(90deg);}
+    .preset-chip{padding:7px 12px;font-size:12px;}
+  }
+</style>
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "新风负荷计算器",
+  "description": "新风负荷计算器 - 在线计算新风全热负荷、显热负荷、潜热负荷，基于焓湿图公式，纯前端运行数据不上传。",
+  "url": "https://chenguangwu.github.io/tools/hvac/fresh-air-load.html",
+  "applicationCategory": "UtilitiesApplication",
+  "operatingSystem": "Web",
+  "offers": {"@type": "Offer", "price": "0", "priceCurrency": "CNY"},
+  "inLanguage": "zh-CN",
+  "isAccessibleForFree": true,
+  "browserRequirements": "Requires JavaScript. Requires HTML5.",
+  "softwareVersion": "1.0"
+}
+</script>
+
+
+
+<meta property="og:image" content="https://chenguangwu.github.io/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="ToolBox - 6000+免费在线工具">
+<meta name="twitter:image" content="https://chenguangwu.github.io/og-image.png">
+<meta name="twitter:image:alt" content="ToolBox - 6000+免费在线工具">
+    <meta name="twitter:title" content="新风负荷计算器 - 面向暖通空调（HVAC）设计的在线工具 - ToolBox">
+    <meta name="twitter:description" content="新风负荷计算器 - 是一款面向暖通空调（HVAC）设计的在线工具，依据焓湿图原理计算新风引入带来的全热负荷、显热负荷与潜热负荷。输入人数、新风量标准及室内外温湿度，即可快速得到新风量、室内外焓值、焓差及三类负荷，并展示完整计算过程，适合空调方案估">
+<!-- TOOLBOX-WEBAPP-LD -->
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"WebApplication","name":"新风负荷计算器 - 面向暖通空调（HVAC）设计的在线工具","url":"https://chenguangwu.github.io/tools/hvac/fresh-air-load.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":["zh-CN", "en-US"],"description":"新风负荷计算器","image":"https://chenguangwu.github.io/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}
+</script>
+<meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
+<meta http-equiv="X-Content-Type-Options" content="nosniff">
+<meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
+<!-- TOOLBOX-SECURITY -->
+
+<script src="/js/privacy.js" defer></script>
+<!-- TOOLBOX-PRIVACY-SCRIPT -->
+
+<script src="/js/metrics.js" defer></script>
+<!-- TOOLBOX-METRICS-SCRIPT -->
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"首页","item":"https://chenguangwu.github.io/"},{"@type":"ListItem","position":2,"name":"暖通空调","item":"https://chenguangwu.github.io/tools/hvac/index.html"},{"@type":"ListItem","position":3,"name":"新风负荷计算器","item":"https://chenguangwu.github.io/tools/hvac/fresh-air-load.html"}]}
+</script>
+
+<script src="../../js/i18n.js" defer></script>
+<script src="../../js/tool-i18n.js" defer></script>
+<!-- TOOLBOX-I18N-SCRIPT -->
+<!-- TOOLBOX-HREFLANG -->
+<link rel="alternate" hreflang="zh-CN" href="https://chenguangwu.github.io/tools/hvac/fresh-air-load.html">
+<link rel="alternate" hreflang="en-US" href="https://chenguangwu.github.io/tools/hvac/fresh-air-load.html">
+<link rel="alternate" hreflang="x-default" href="https://chenguangwu.github.io/tools/hvac/fresh-air-load.html">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:locale:alternate" content="en_US">
+
+<script src="/js/clarity.js" defer></script>
+<!-- TOOLBOX-CLARITY -->
+</head>
+<body>
+<h1 class="sr-only">新风负荷计算器</h1>
+
+<div class="nav">
+  <a href="../../index.html">← ToolBox</a>
+  <span>/ 新风负荷计算器</span>
+  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()" aria-label="切换主题">🌙</button>
+</div>
+
+
+
+
+
+<nav class="breadcrumb" aria-label="面包屑导航" data-breadcrumb="1">
+  <a href="../../index.html">首页</a>
+  <span class="bc-sep">‹</span>
+  <a href="index.html">🔧 暖通空调</a>
+  <span class="bc-sep">‹</span>
+  <span class="bc-current">新风负荷计算器</span>
+</nav>
+<div class="container">
+<div class="card">
+  <h2>🍃 新风负荷计算器</h2>
+  <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;">基于焓湿图公式计算新风全热 / 显热 / 潜热负荷，适用于暖通空调设计选型</p>
+
+  <!-- 场景预设 -->
+  <label>场景预设（点击选择新风量标准）</label>
+  <div class="preset-chips" id="presetChips">
+    <div class="preset-chip active" data-val="30" onclick="setPreset(30,this)">办公室<span class="chip-val">30</span></div>
+    <div class="preset-chip" data-val="50" onclick="setPreset(50,this)">会议室<span class="chip-val">50</span></div>
+    <div class="preset-chip" data-val="20" onclick="setPreset(20,this)">商场<span class="chip-val">20</span></div>
+    <div class="preset-chip" data-val="25" onclick="setPreset(25,this)">餐厅<span class="chip-val">25</span></div>
+    <div class="preset-chip" data-val="custom" onclick="setPreset('custom',this)">自定义</div>
+  </div>
+
+  <!-- 输入区 -->
+  <div class="input-row">
+    <div>
+      <label>人数（人）</label>
+      <input type="number" id="people" value="20" min="0" step="1" oninput="calc()">
+    </div>
+    <div>
+      <label>每人新风量标准（m³/h·人）</label>
+      <input type="number" id="stdAir" value="30" min="0" step="1" oninput="onStdChange()">
+    </div>
+  </div>
+
+  <div class="input-row">
+    <div>
+      <label>室内温度（°C）</label>
+      <input type="number" id="indoorT" value="26" step="0.1" oninput="calc()">
+    </div>
+    <div>
+      <label>室内相对湿度（%）</label>
+      <input type="number" id="indoorRH" value="55" min="0" max="100" step="1" oninput="calc()">
+    </div>
+  </div>
+
+  <div class="input-row">
+    <div>
+      <label>室外温度（°C）</label>
+      <input type="number" id="outdoorT" value="34" step="0.1" oninput="calc()">
+    </div>
+    <div>
+      <label>室外相对湿度（%）</label>
+      <input type="number" id="outdoorRH" value="65" min="0" max="100" step="1" oninput="calc()">
+    </div>
+  </div>
+
+  <!-- 工具栏 -->
+  <div class="toolbar" style="margin-top:16px;">
+    <button type="button" class="btn primary" onclick="calc()">🔍 计算</button>
+    <button type="button" class="btn" onclick="copyResult()">📋 复制结果</button>
+    <button type="button" class="btn" onclick="resetInput()">🔄 重置</button>
+  </div>
+
+  <!-- 风量与焓值卡片 -->
+  <h3 style="margin-top:18px;">📊 风量与焓值</h3>
+  <div class="data-grid">
+    <div class="data-card"><div class="num" id="cardG">--</div><div class="label">新风量 G (m³/h)</div></div>
+    <div class="data-card"><div class="num" id="cardHn">--</div><div class="label">室内焓 hn (kJ/kg)</div></div>
+    <div class="data-card"><div class="num" id="cardHw">--</div><div class="label">室外焓 hw (kJ/kg)</div></div>
+    <div class="data-card"><div class="num" id="cardDh">--</div><div class="label">焓差 Δh (kJ/kg)</div></div>
+  </div>
+
+  <!-- 室内外状态对比 -->
+  <div class="state-box">
+    <div class="state-card">
+      <div class="title">室内状态 N</div>
+      <div class="vals" id="stateN">--</div>
+      <div class="h-val" id="stateHN">--</div>
+    </div>
+    <div class="state-arrow">⇄</div>
+    <div class="state-card">
+      <div class="title">室外状态 W</div>
+      <div class="vals" id="stateW">--</div>
+      <div class="h-val" id="stateHW">--</div>
+    </div>
+  </div>
+
+  <!-- 负荷卡片 -->
+  <h3 style="margin-top:18px;">⚡ 新风负荷</h3>
+  <div class="data-grid">
+    <div class="data-card load-card total"><span class="tag" id="tagTotal"></span><div class="num" id="cardQt">--</div><div class="label">全热负荷 Q (kW)</div><div class="sub" id="subQt">--</div></div>
+    <div class="data-card load-card sensible"><div class="num" id="cardQs">--</div><div class="label">显热负荷 (kW)</div><div class="sub" id="subQs">--</div></div>
+    <div class="data-card load-card latent"><div class="num" id="cardQl">--</div><div class="label">潜热负荷 (kW)</div><div class="sub" id="subQl">--</div></div>
+  </div>
+
+  <!-- 负荷分解条 -->
+  <div style="margin-top:14px;">
+    <div class="bar-row">
+      <span class="bar-lbl">显热占比</span>
+      <div class="bar-bg"><div class="bar-fill" id="barSensible" style="width:0%;background:#3B82F6;">0%</div></div>
+    </div>
+    <div class="bar-row">
+      <span class="bar-lbl">潜热占比</span>
+      <div class="bar-bg"><div class="bar-fill" id="barLatent" style="width:0%;background:#7C3AED;">0%</div></div>
+    </div>
+  </div>
+
+  <!-- 计算过程 -->
+  <div class="result-box" id="result" style="margin-top:14px;"></div>
+
+  <!-- 提示 -->
+  <div class="info-box">
+    计算依据：大气压力取 101325 Pa，空气密度 ρ = 1.2 kg/m³，干空气定压比热 cp = 1.01 kJ/(kg·°C)。
+    正值表示制冷负荷（需供冷），负值表示制热负荷（需供热）。结果仅供参考，请以专业设计软件为准。
+  </div>
+</div>
+
+<!-- 注意事项 -->
+<div class="tool-notes">
+  <div class="tool-notes-title">⚠️ 使用说明与注意事项</div>
+  <ul>
+    <li>本工具纯前端运行，所有计算在浏览器本地完成，数据不会上传到服务器</li>
+    <li>饱和水蒸气分压力采用 Magnus 公式估算，焓值计算为工程常用近似方法</li>
+    <li>空气密度取标准值 1.2 kg/m³，如需高海拔场景请按实际密度修正</li>
+    <li>计算结果仅供方案估算与教学参考，正式设计请使用专业焓湿图软件</li>
+  </ul>
+</div>
+</div>
+
+<script>
+(function(){
+  'use strict';
+  // 常量
+  var P_ATM = 101325; // 大气压力 Pa
+  var RHO = 1.2;      // 空气密度 kg/m³
+  var CP = 1.01;      // 干空气定压比热 kJ/(kg·°C)
+
+  var lastResult = null;
+
+  // 饱和水蒸气分压力 (Pa) — Magnus 公式
+  function pws(t){
+    return 610.78 * Math.exp(17.27 * t / (t + 237.3));
+  }
+  // 含湿量 d (g/kg 干空气)
+  function dRatio(t, rh){
+    var pw = (rh / 100) * pws(t);
+    return 0.622 * pw / (P_ATM - pw) * 1000;
+  }
+  // 焓 h (kJ/kg 干空气)  h = 1.01t + 0.001d(2500+1.84t)
+  function enthalpy(t, rh){
+    var d = dRatio(t, rh); // g/kg
+    return 1.01 * t + 0.001 * d * (2500 + 1.84 * t);
+  }
+  function num(id){
+    var v = parseFloat(document.getElementById(id).value);
+    return isNaN(v) ? null : v;
+  }
+  function fmt(v, d){
+    if(v === null || v === undefined || isNaN(v)) return '--';
+    d = d == null ? 2 : d;
+    return Number(v).toFixed(d);
+  }
+  function setHtml(id, html){
+    var el = document.getElementById(id);
+    if(el) el.innerHTML = html;
+  }
+
+  // 预设
+  window.setPreset = function(val, el){
+    document.querySelectorAll('.preset-chip').forEach(function(c){c.classList.remove('active');});
+    el.classList.add('active');
+    if(val !== 'custom'){
+      document.getElementById('stdAir').value = val;
+    }
+    calc();
+  };
+  window.onStdChange = function(){
+    // 手动修改新风量时，预设切换为自定义高亮
+    var cur = parseFloat(document.getElementById('stdAir').value);
+    var matched = false;
+    document.querySelectorAll('.preset-chip').forEach(function(c){
+      var cv = c.getAttribute('data-val');
+      c.classList.remove('active');
+      if(cv !== 'custom' && parseFloat(cv) === cur){ c.classList.add('active'); matched = true; }
+    });
+    if(!matched){
+      var customChip = document.querySelector('.preset-chip[data-val="custom"]');
+      if(customChip) customChip.classList.add('active');
+    }
+    calc();
+  };
+
+  window.calc = function(){
+    var people = num('people');
+    var std = num('stdAir');
+    var tn = num('indoorT');
+    var rhN = num('indoorRH');
+    var tw = num('outdoorT');
+    var rhW = num('outdoorRH');
+
+    if(people === null || std === null || tn === null || rhN === null || tw === null || rhW === null){
+      ['cardG','cardHn','cardHw','cardDh','cardQt','cardQs','cardQl'].forEach(function(id){setHtml(id,'--');});
+      ['subQt','subQs','subQl','stateN','stateW','stateHN','stateHW','tagTotal'].forEach(function(id){setHtml(id,'--');});
+      setHtml('result','<p style="color:var(--text-muted);">请填写所有参数后查看计算结果。</p>');
+      lastResult = null;
+      return;
+    }
+
+    var G = people * std;                 // 新风量 m³/h
+    var dn = dRatio(tn, rhN);             // 室内含湿量 g/kg
+    var dw = dRatio(tw, rhW);             // 室外含湿量 g/kg
+    var hn = enthalpy(tn, rhN);           // 室内焓 kJ/kg
+    var hw = enthalpy(tw, rhW);           // 室外焓 kJ/kg
+    var dh = hw - hn;                     // 焓差 kJ/kg
+    var dG = dw - dn;                     // 含湿量差 g/kg
+
+    var Q_total = G * RHO * (hw - hn) / 3600;        // 全热负荷 kW
+    var Q_sensible = G * RHO * CP * (tw - tn) / 3600; // 显热负荷 kW
+    var Q_latent = Q_total - Q_sensible;              // 潜热负荷 kW
+
+    // 季节判断
+    var isCooling = Q_total > 0.0001;
+    var isHeating = Q_total < -0.0001;
+    var season = isCooling ? '夏季制冷' : (isHeating ? '冬季制热' : '零负荷');
+
+    // 卡片：风量与焓值
+    setHtml('cardG', fmt(G, 0));
+    setHtml('cardHn', fmt(hn, 2));
+    setHtml('cardHw', fmt(hw, 2));
+    setHtml('cardDh', fmt(dh, 2));
+
+    // 状态对比
+    setHtml('stateN', tn + '°C / ' + rhN + '%');
+    setHtml('stateW', tw + '°C / ' + rhW + '%');
+    setHtml('stateHN', 'd=' + fmt(dn,2) + ' g/kg · h=' + fmt(hn,2) + ' kJ/kg');
+    setHtml('stateHW', 'd=' + fmt(dw,2) + ' g/kg · h=' + fmt(hw,2) + ' kJ/kg');
+
+    // 负荷卡片
+    setHtml('cardQt', fmt(Q_total, 3));
+    setHtml('cardQs', fmt(Q_sensible, 3));
+    setHtml('cardQl', fmt(Q_latent, 3));
+    setHtml('subQt', (Q_total*1000).toFixed(1) + ' W · ' + (Q_total*860).toFixed(0) + ' kcal/h · ' + (Q_total/3.517).toFixed(2) + ' RT');
+    setHtml('subQs', (Q_sensible*1000).toFixed(1) + ' W');
+    setHtml('subQl', (Q_latent*1000).toFixed(1) + ' W');
+
+    // 负荷性质标签
+    setHtml('tagTotal', isCooling ? '<span class="tag tag-cool">制冷</span>' : (isHeating ? '<span class="tag tag-heat">制热</span>' : ''));
+
+    // 分解比例（按绝对值）
+    var absS = Math.abs(Q_sensible);
+    var absL = Math.abs(Q_latent);
+    var sum = absS + absL;
+    var pctS = sum > 0.0001 ? (absS / sum * 100) : 0;
+    var pctL = sum > 0.0001 ? (absL / sum * 100) : 0;
+    var barS = document.getElementById('barSensible');
+    var barL = document.getElementById('barLatent');
+    if(barS){ barS.style.width = pctS.toFixed(1) + '%'; barS.textContent = pctS.toFixed(1) + '%'; }
+    if(barL){ barL.style.width = pctL.toFixed(1) + '%'; barL.textContent = pctL.toFixed(1) + '%'; }
+
+    // 计算过程
+    var html = ''
+      + '<p style="margin-bottom:8px;"><strong>计算过程（' + season + '）</strong></p>'
+      + '<div class="formula-line">① 新风量 <span class="var">G</span> = 人数 × 标准 = ' + people + ' × ' + std + ' = <strong>' + fmt(G,0) + ' m³/h</strong></div>'
+      + '<div class="formula-line">② 室内焓 <span class="var">hn</span> = 1.01×' + tn + ' + 0.001×' + fmt(dn,2) + '×(2500+1.84×' + tn + ') = <strong>' + fmt(hn,2) + ' kJ/kg</strong></div>'
+      + '<div class="formula-line">③ 室外焓 <span class="var">hw</span> = 1.01×' + tw + ' + 0.001×' + fmt(dw,2) + '×(2500+1.84×' + tw + ') = <strong>' + fmt(hw,2) + ' kJ/kg</strong></div>'
+      + '<div class="formula-line">④ 焓差 <span class="var">Δh</span> = hw − hn = ' + fmt(hw,2) + ' − ' + fmt(hn,2) + ' = <strong>' + fmt(dh,2) + ' kJ/kg</strong>（含湿量差 Δd = ' + fmt(dG,2) + ' g/kg）</div>'
+      + '<div class="formula-line">⑤ 全热负荷 <span class="var">Q</span> = G·ρ·(hw−hn)/3600 = ' + fmt(G,0) + '×' + RHO + '×' + fmt(dh,2) + '/3600 = <strong>' + fmt(Q_total,3) + ' kW</strong></div>'
+      + '<div class="formula-line">⑥ 显热负荷 <span class="var">Qs</span> = G·ρ·cp·(tw−tn)/3600 = ' + fmt(G,0) + '×' + RHO + '×' + CP + '×' + fmt((tw-tn),2) + '/3600 = <strong>' + fmt(Q_sensible,3) + ' kW</strong></div>'
+      + '<div class="formula-line">⑦ 潜热负荷 <span class="var">Ql</span> = Q − Qs = ' + fmt(Q_total,3) + ' − ' + fmt(Q_sensible,3) + ' = <strong>' + fmt(Q_latent,3) + ' kW</strong></div>';
+    setHtml('result', html);
+
+    lastResult = {
+      people: people, std: std, G: G,
+      tn: tn, rhN: rhN, tw: tw, rhW: rhW,
+      dn: fmt(dn,2), dw: fmt(dw,2), hn: fmt(hn,2), hw: fmt(hw,2), dh: fmt(dh,2),
+      Q_total: fmt(Q_total,3), Q_sensible: fmt(Q_sensible,3), Q_latent: fmt(Q_latent,3),
+      season: season
+    };
+  };
+
+  window.copyResult = function(){
+    if(!lastResult){
+      ToolBox.showToast(i18nText('toast.msg615'), 'warning');
+      return;
+    }
+    var r = lastResult;
+    var text = '新风负荷计算结果（' + r.season + '）\n'
+      + '人数: ' + r.people + ' 人\n'
+      + '新风标准: ' + r.std + ' m³/h·人\n'
+      + '新风量 G: ' + r.G + ' m³/h\n'
+      + '室内状态: ' + r.tn + '°C / ' + r.rhN + '% (d=' + r.dn + ' g/kg, h=' + r.hn + ' kJ/kg)\n'
+      + '室外状态: ' + r.tw + '°C / ' + r.rhW + '% (d=' + r.dw + ' g/kg, h=' + r.hw + ' kJ/kg)\n'
+      + '焓差 Δh: ' + r.dh + ' kJ/kg\n'
+      + '全热负荷: ' + r.Q_total + ' kW\n'
+      + '显热负荷: ' + r.Q_sensible + ' kW\n'
+      + '潜热负荷: ' + r.Q_latent + ' kW';
+    ToolBox.copyText(text, i18nText('msg554'));
+  };
+
+  window.resetInput = function(){
+    document.getElementById('people').value = 20;
+    document.getElementById('stdAir').value = 30;
+    document.getElementById('indoorT').value = 26;
+    document.getElementById('indoorRH').value = 55;
+    document.getElementById('outdoorT').value = 34;
+    document.getElementById('outdoorRH').value = 65;
+    // 重置预设高亮
+    document.querySelectorAll('.preset-chip').forEach(function(c){
+      c.classList.toggle('active', c.getAttribute('data-val') === '30');
+    });
+    calc();
+    ToolBox.showToast(i18nText());
+  };
+
+  // 初始计算
+  calc();
+})();
+</script>
+
+<script>
+// tool-intro 折叠交互
+document.addEventListener('DOMContentLoaded', function(){
+  var headers = document.querySelectorAll('.tool-intro-header');
+  headers.forEach(function(h){
+    h.addEventListener('click', function(){
+      this.parentElement.classList.toggle('open');
+    });
+  });
+});
+</script>
+
+<!-- SEO 介绍区块 -->
+
+</div>
+
+</div>
+
+<!-- 相关工具 -->
+<div class="related-tools" data-related-tools="1">
+  <h3 class="related-tools-title">🔗 相关工具</h3>
+  <div class="related-tools-grid">
+    <a href="dehumidifier.html" class="related-tool-card">
+      <span class="rt-icon">🌫️</span>
+      <span class="rt-info"><span class="rt-name">dehumidifier</span><span class="rt-desc">除湿量计算器 Dehumidifier Sizing</span></span>
+    </a>
+    <a href="cooling-tower.html" class="related-tool-card">
+      <span class="rt-icon">🗼</span>
+      <span class="rt-info"><span class="rt-name">冷却塔散热与补水量计算器 - 在线计算冷却塔散热量、冷却范围、接近度、蒸发损失、飘水损失、 | ToolBox免费在线工具箱</span><span class="rt-desc">冷却塔散热与补水量计算器</span></span>
+    </a>
+    <a href="chiller-efficiency.html" class="related-tool-card">
+      <span class="rt-icon">🏭</span>
+      <span class="rt-info"><span class="rt-name">冷机COP/EER能效计算器 - 免费在线计算冷水机组性能系数(COP)、能效比(EER)、单 | ToolBox免费在线工具箱</span><span class="rt-desc">&amp;#127981; 冷机COP/EER能效计算器</span></span>
+    </a>
+    <a href="pump-calculator.html" class="related-tool-card">
+      <span class="rt-icon">💧</span>
+      <span class="rt-info"><span class="rt-name">水泵扬程流量计算器 - 水泵扬程与流量计算器，在线计算管路流速、沿程阻力损失、局部阻 | ToolBox免费在线工具箱</span><span class="rt-desc">水泵扬程与流量计算器</span></span>
+    </a>
+    <a href="cooling-load.html" class="related-tool-card">
+      <span class="rt-icon">❄️</span>
+      <span class="rt-info"><span class="rt-name">空调负荷计算器 - 基于简化冷负荷系数法，计算外墙、窗户、人员、设备、照明、新风 | ToolBox免费在线工具箱</span><span class="rt-desc">空调负荷计算器</span></span>
+    </a>
+    <a href="supply-air.html" class="related-tool-card">
+      <span class="rt-icon">🌀</span>
+      <span class="rt-info"><span class="rt-name">送风量与风速设计计算器 - 免费暖通空调设计工具，在线计算空调送风量、换气次数、送风口数 | ToolBox免费在线工具箱</span><span class="rt-desc">送风量与风速设计计算器</span></span>
+    </a>
+  </div>
+</div>
+<div class="tool-intro open" id="toolIntro">
+  <div class="tool-intro-header">
+    <span class="intro-icon-wrap"><span class="intro-icon">📖</span>关于「新风负荷计算器」</span>
+    <span class="arrow">▼</span>
+  </div>
+  <div class="tool-intro-body">
+    <h4><span class="h4-icon">📝</span>工具简介</h4>
+    <p>新风负荷计算器是一款面向暖通空调（HVAC）设计的在线工具，依据焓湿图原理计算新风引入带来的全热负荷、显热负荷与潜热负荷。输入人数、新风量标准及室内外温湿度，即可快速得到新风量、室内外焓值、焓差及三类负荷，并展示完整计算过程，适合空调方案估算与教学演示。</p>
+    <h4><span class="h4-icon">✨</span>功能特点</h4>
+    <ul class="intro-features">
+      <li>基于焓湿图公式 h=1.01t+0.001d(2500+1.84t)</li>
+      <li>内置办公室/会议室/商场/餐厅新风量预设</li>
+      <li>自动分解全热、显热、潜热负荷</li>
+      <li>展示完整计算过程与状态参数对比</li>
+      <li>支持制冷/制热季节自动判断</li>
+      <li>深色模式与移动端响应式适配</li>
+      <li>纯前端运行，数据不上传</li>
+    </ul>
+    <h4><span class="h4-icon">🎯</span>使用场景</h4>
+    <ul class="intro-scenes">
+      <li>空调系统新风负荷估算</li>
+      <li>空调机组/新风机组选型</li>
+      <li>暖通课程教学与实验</li>
+      <li>建筑节能方案评估</li>
+      <li>设计方案快速复核</li>
+      <li>制冷量/制热量需求计算</li>
+    </ul>
+    <h4><span class="h4-icon">📐</span>计算公式说明</h4>
+    <p><strong>含湿量</strong>：先由 Magnus 公式求饱和水蒸气分压力 Pws，再得实际水蒸气分压力 Pw=φ·Pws，含湿量 d=0.622·Pw/(P−Pw)（g/kg 干空气）。</p>
+    <p><strong>焓值</strong>：h = 1.01·t + 0.001·d·(2500+1.84·t)，单位 kJ/kg 干空气，其中 1.01 为干空气定压比热、2500 为 0°C 水的汽化潜热、1.84 为水蒸气定压比热。</p>
+    <p><strong>新风全热负荷</strong>：Q = G·ρ·(hw−hn)/3600（kW）；<strong>显热负荷</strong>：Qs = G·ρ·cp·(tw−tn)/3600（kW）；<strong>潜热负荷</strong>：Ql = Q − Qs（kW）。其中 G 为新风量(m³/h)、ρ 为空气密度(1.2 kg/m³)、cp 为干空气定压比热(1.01 kJ/kg·°C)。</p>
+    <h4><span class="h4-icon">💬</span>常见问题</h4>
+    <div class="intro-faq-item"><div class="intro-faq-q">这个工具是免费的吗？</div><div class="intro-faq-a">完全免费，无需注册，直接在浏览器中使用，所有计算均在本地完成。</div></div>
+    <div class="intro-faq-item"><div class="intro-faq-q">为什么显热负荷和潜热负荷相加等于全热负荷？</div><div class="intro-faq-a">全热负荷由温度差引起的显热负荷与含湿量差引起的潜热负荷两部分组成，按定义 Ql = Q − Qs，因此三者满足该关系（均带正负号）。</div></div>
+    <div class="intro-faq-item"><div class="intro-faq-q">负荷为负值代表什么？</div><div class="intro-faq-a">正值表示制冷负荷（新风带入热量，需供冷）；负值表示制热负荷（冬季室外比室内干冷，新风需加热加湿，需供热）。</div></div>
+    <div class="intro-faq-item"><div class="intro-faq-q">空气密度为什么取 1.2 kg/m³？</div><div class="intro-faq-a">1.2 kg/m³ 是标准大气压、常温下湿空气密度的工程近似值。若处于高海拔地区，应按当地实际大气压力与温度修正密度。</div></div>
+    <div class="intro-faq-item"><div class="intro-faq-q">支持手机使用吗？</div><div class="intro-faq-a">支持。页面已做响应式适配，手机和电脑均可正常使用。</div></div>
+  </div>
+</div>
+<!-- /SEO 介绍区块 -->
+</body>
+</html>

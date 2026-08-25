@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+
+<script src="/js/tool-page-runtime.js" defer></script>
+<!-- TOOLBOX-TOOL-RUNTIME -->
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="toolbox" content="cat=calculator,industry=hvac,icon=🏭,bg=#e8f5e9">
+<meta name="description" content="冷机COP/EER能效计算器 - 是一款面向暖通空调（HVAC）工程师的冷水机组能效分析工具，可计算性能系数 COP、能效比 EER、单位冷吨功耗 kW/RT 及综合部分负荷性能系数 IPLV，并对照 GB 19577-2015 判定能效等级。所">
+<meta name="keywords" content="冷机COP计算器,EER计算器,IPLV计算,kW/RT,冷水机组能效,GB19577,冷吨换算,能效等级,HVAC,暖通空调,冷水机组,在线工具,免费工具,ToolBox">
+<meta name="robots" content="index,follow">
+<link rel="canonical" href="https://chenguangwu.github.io/tools/hvac/chiller-efficiency.html">
+<meta property="og:title" content="冷机COP/EER能效计算器 - 面向暖通空调（HVAC）工程师的冷水机组能效分析工具 - ToolBox">
+<meta property="og:description" content="冷机COP/EER能效计算器 - 是一款面向暖通空调（HVAC）工程师的冷水机组能效分析工具，可计算性能系数 COP、能效比 EER、单位冷吨功耗 kW/RT 及综合部分负荷性能系数 IPLV，并对照 GB 19577-2015 判定能效等级。所">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://chenguangwu.github.io/tools/hvac/chiller-efficiency.html">
+<meta name="twitter:card" content="summary">
+
+<title>冷机COP/EER能效计算器 - 面向暖通空调（HVAC）工程师的冷水机组能效分析工具 - ToolBox</title>
+<meta name="theme-color" content="#FF6B35">
+<link rel="icon" type="image/svg+xml" href="../../favicon.svg">
+<link rel="icon" href="../../favicon.ico" sizes="16x16 32x32 48x48">
+<link rel="apple-touch-icon" href="../../apple-touch-icon.png">
+<link rel="stylesheet" href="../../css/common.css">
+<script src="../../js/common.js"></script>
+<style>
+.unit-toggle{display:inline-flex;border:1.5px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:14px;}
+.unit-toggle button{padding:9px 18px;border:none;background:var(--card-bg);color:var(--text-light);cursor:pointer;font-size:13px;font-weight:500;transition:all .2s;border-radius:0;}
+.unit-toggle button.active{background:var(--gradient-primary);color:#fff;}
+.unit-toggle button:hover:not(.active){background:var(--bg-hover);color:var(--primary);}
+.field-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.field-grid .full{grid-column:1/-1;}
+.input-suffix{position:relative;}
+.input-suffix input{padding-right:46px;}
+.input-suffix .suffix{position:absolute;right:14px;top:50%;transform:translateY(-50%);font-size:13px;color:var(--text-muted);pointer-events:none;}
+.grade-badge{display:inline-flex;align-items:center;gap:10px;padding:10px 18px;border-radius:14px;font-weight:700;font-size:18px;}
+.grade-badge.grade-excellent{background:rgba(16,185,129,0.12);color:#059669;}
+.grade-badge.grade-good{background:rgba(59,130,246,0.12);color:#2563EB;}
+.grade-badge.grade-pass{background:rgba(245,158,11,0.12);color:#D97706;}
+.grade-badge.grade-fail{background:rgba(239,68,68,0.12);color:#DC2626;}
+[data-theme="dark"] .grade-badge.grade-excellent{color:#34D399;}
+[data-theme="dark"] .grade-badge.grade-good{color:#60A5FA;}
+[data-theme="dark"] .grade-badge.grade-pass{color:#FBBF24;}
+[data-theme="dark"] .grade-badge.grade-fail{color:#F87171;}
+.result-highlight{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;background:var(--result-bg);border:1px solid var(--border);border-radius:14px;padding:18px 20px;margin-top:14px;}
+.result-highlight .rh-main{font-size:34px;font-weight:800;color:var(--primary);line-height:1;}
+.result-highlight .rh-label{font-size:12px;color:var(--text-muted);margin-top:4px;}
+.iplv-table{width:100%;border-collapse:separate;border-spacing:0;font-size:13px;}
+.iplv-table th{background:var(--th-bg);font-weight:600;color:var(--heading);padding:10px 12px;text-align:left;border-bottom:1px solid var(--border);}
+.iplv-table td{padding:8px 12px;border-bottom:1px solid var(--border);vertical-align:middle;}
+.iplv-table tr:last-child td{border-bottom:none;}
+.iplv-table input{padding:9px 12px;}
+.weight-tag{display:inline-block;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;background:rgba(124,58,237,0.1);color:var(--secondary);}
+.contrib{font-variant-numeric:tabular-nums;color:var(--text-secondary);font-weight:500;}
+@media(max-width:768px){
+  .field-grid{grid-template-columns:1fr;}
+  .result-highlight{flex-direction:column;align-items:flex-start;gap:12px;}
+  .result-highlight .rh-main{font-size:28px;}
+  .grade-badge{font-size:16px;}
+}
+</style>
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "冷机COP/EER能效计算器",
+  "description": "免费在线冷水机组能效计算器，计算COP、EER、kW/RT与IPLV综合部分负荷性能系数，对照GB 19577-2015判定能效等级，支持kW与US冷吨换算。",
+  "url": "https://chenguangwu.github.io/tools/hvac/chiller-efficiency.html",
+  "applicationCategory": "UtilitiesApplication",
+  "operatingSystem": "Web",
+  "offers": {"@type": "Offer", "price": "0", "priceCurrency": "CNY"},
+  "inLanguage": "zh-CN",
+  "isAccessibleForFree": true,
+  "browserRequirements": "Requires JavaScript. Requires HTML5.",
+  "softwareVersion": "1.0"
+}
+</script>
+
+
+
+<meta property="og:image" content="https://chenguangwu.github.io/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="ToolBox - 6000+免费在线工具">
+<meta name="twitter:image" content="https://chenguangwu.github.io/og-image.png">
+<meta name="twitter:image:alt" content="ToolBox - 6000+免费在线工具">
+    <meta name="twitter:title" content="冷机COP/EER能效计算器 - 面向暖通空调（HVAC）工程师的冷水机组能效分析工具 - ToolBox">
+    <meta name="twitter:description" content="冷机COP/EER能效计算器 - 是一款面向暖通空调（HVAC）工程师的冷水机组能效分析工具，可计算性能系数 COP、能效比 EER、单位冷吨功耗 kW/RT 及综合部分负荷性能系数 IPLV，并对照 GB 19577-2015 判定能效等级。所">
+<!-- TOOLBOX-WEBAPP-LD -->
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"WebApplication","name":"冷机COP/EER能效计算器 - 面向暖通空调（HVAC）工程师的冷水机组能效分析工具","url":"https://chenguangwu.github.io/tools/hvac/chiller-efficiency.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":["zh-CN", "en-US"],"description":"&amp;#127981; 冷机COP/EER能效计算器","image":"https://chenguangwu.github.io/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}
+</script>
+<meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
+<meta http-equiv="X-Content-Type-Options" content="nosniff">
+<meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
+<!-- TOOLBOX-SECURITY -->
+
+<script src="/js/privacy.js" defer></script>
+<!-- TOOLBOX-PRIVACY-SCRIPT -->
+
+<script src="/js/metrics.js" defer></script>
+<!-- TOOLBOX-METRICS-SCRIPT -->
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"首页","item":"https://chenguangwu.github.io/"},{"@type":"ListItem","position":2,"name":"暖通空调","item":"https://chenguangwu.github.io/tools/hvac/index.html"},{"@type":"ListItem","position":3,"name":"冷机COP/EER能效计算器","item":"https://chenguangwu.github.io/tools/hvac/chiller-efficiency.html"}]}
+</script>
+
+<script src="../../js/i18n.js" defer></script>
+<script src="../../js/tool-i18n.js" defer></script>
+<!-- TOOLBOX-I18N-SCRIPT -->
+<!-- TOOLBOX-HREFLANG -->
+<link rel="alternate" hreflang="zh-CN" href="https://chenguangwu.github.io/tools/hvac/chiller-efficiency.html">
+<link rel="alternate" hreflang="en-US" href="https://chenguangwu.github.io/tools/hvac/chiller-efficiency.html">
+<link rel="alternate" hreflang="x-default" href="https://chenguangwu.github.io/tools/hvac/chiller-efficiency.html">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:locale:alternate" content="en_US">
+
+<script src="/js/clarity.js" defer></script>
+<!-- TOOLBOX-CLARITY -->
+</head>
+<body>
+
+<h1 class="sr-only">冷机能效计算器</h1>
+
+<div class="nav">
+  <a href="../../index.html">&larr; ToolBox</a>
+  <span>/ 冷机COP/EER能效计算器</span>
+  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()">&#127769;</button>
+</div>
+
+
+
+
+
+<nav class="breadcrumb" aria-label="面包屑导航" data-breadcrumb="1">
+  <a href="../../index.html">首页</a>
+  <span class="bc-sep">‹</span>
+  <a href="index.html">🔧 暖通空调</a>
+  <span class="bc-sep">‹</span>
+  <span class="bc-current">冷机COP/EER能效计算器</span>
+</nav>
+<div class="container">
+  <div class="card tool-card-accent" style="--tool-accent:#00C9A7;">
+    <h2>&#127981; 冷机COP/EER能效计算器</h2>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;">计算冷水机组性能系数 COP、能效比 EER、kW/RT，对照 GB 19577-2015 判定能效等级</p>
+
+    <!-- 制冷量输入方式切换 -->
+    <label>制冷量输入方式</label>
+    <div class="unit-toggle" role="group" aria-label="制冷量单位切换">
+      <button type="button" class="active" id="btnKw" onclick="setUnit('kw')">kW 千瓦</button>
+      <button type="button" id="btnRt" onclick="setUnit('rt')">US.RT 冷吨</button>
+    </div>
+
+    <div class="field-grid">
+      <div class="input-suffix full" id="capKwWrap">
+        <label>制冷量</label>
+        <input type="number" id="capacityKw" value="500" min="0" step="any" oninput="calcNominal()" inputmode="decimal">
+        <span class="suffix">kW</span>
+      </div>
+      <div class="input-suffix full" id="capRtWrap" style="display:none;">
+        <label>制冷量</label>
+        <input type="number" id="capacityRt" value="142.17" min="0" step="any" oninput="calcNominal()" inputmode="decimal">
+        <span class="suffix">RT</span>
+      </div>
+      <div class="input-suffix full">
+        <label>压缩机输入功率</label>
+        <input type="number" id="powerKw" value="90" min="0" step="any" oninput="calcNominal()" inputmode="decimal">
+        <span class="suffix">kW</span>
+      </div>
+      <div class="input-suffix">
+        <label>冷水进水温度</label>
+        <input type="number" id="tIn" value="12" step="any" oninput="calcNominal()" inputmode="decimal">
+        <span class="suffix">&#176;C</span>
+      </div>
+      <div class="input-suffix">
+        <label>冷水出水温度</label>
+        <input type="number" id="tOut" value="7" step="any" oninput="calcNominal()" inputmode="decimal">
+        <span class="suffix">&#176;C</span>
+      </div>
+    </div>
+
+    <div class="toolbar" style="margin-top:16px;">
+      <button type="button" class="btn primary" onclick="calcNominal()">&#128202; 计算能效</button>
+      <button type="button" class="btn" onclick="copyResult()">&#128203; 复制结果</button>
+      <button type="button" class="btn" onclick="resetNominal()">&#128260; 重置</button>
+    </div>
+
+    <!-- 结果高亮 -->
+    <div id="nominalResult"></div>
+
+    <!-- 数据卡片 -->
+    <div id="nominalCards" class="data-grid" style="display:none;"></div>
+
+    <!-- 计算过程 -->
+    <div id="nominalFormula" class="result-box" style="display:none;"></div>
+
+    <!-- 能效等级对照表 -->
+    <h3 style="margin-top:20px;">&#128203; GB 19577-2015 能效等级对照表</h3>
+    <div style="overflow-x:auto;border-radius:12px;">
+      <table>
+        <thead><tr><th>能效等级</th><th>COP 限定值</th><th>说明</th></tr></thead>
+        <tbody>
+          <tr><td><span class="grade-tag grade-excellent">1级</span></td><td>COP &#8805; 6.1</td><td>能效最高，节能优品</td></tr>
+          <tr><td><span class="grade-tag grade-good">2级</span></td><td>COP &#8805; 5.6</td><td>节能产品</td></tr>
+          <tr><td><span class="grade-tag grade-pass">3级</span></td><td>COP &#8805; 5.0</td><td>能效限定值（市场准入）</td></tr>
+          <tr><td><span class="grade-tag grade-fail">不达标</span></td><td>COP &lt; 5.0</td><td>低于限定值，禁止销售</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="info-box">GB 19577-2015《冷水机组能效限定值及能效等级》按机组类型（风冷/水冷）与制冷量分段规定不同限定值，本表 6.1 / 5.6 / 5.0 为水冷冷水机组参考值，实际请以对应机组类型与冷量段的标准条款为准。</div>
+  </div>
+
+  <!-- IPLV 计算卡片 -->
+  <div class="card">
+    <h2>&#128200; IPLV 综合部分负荷性能系数</h2>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:14px;">输入各负荷点 COP，按 AHRI 550/590 与 GB/T 18430 加权系数计算 IPLV</p>
+
+    <div style="overflow-x:auto;border-radius:12px;border:1px solid var(--border);">
+      <table class="iplv-table">
+        <thead><tr><th>负荷点</th><th>COP (W/W)</th><th>加权系数</th><th>权重贡献</th></tr></thead>
+        <tbody>
+          <tr><td>100% 负荷</td><td><input type="number" id="cop100" value="5.6" step="any" oninput="calcIPLV()" inputmode="decimal"></td><td><span class="weight-tag">1%</span></td><td class="contrib" id="w100">&#8212;</td></tr>
+          <tr><td>75% 负荷</td><td><input type="number" id="cop75" value="6.3" step="any" oninput="calcIPLV()" inputmode="decimal"></td><td><span class="weight-tag">42%</span></td><td class="contrib" id="w75">&#8212;</td></tr>
+          <tr><td>50% 负荷</td><td><input type="number" id="cop50" value="6.8" step="any" oninput="calcIPLV()" inputmode="decimal"></td><td><span class="weight-tag">45%</span></td><td class="contrib" id="w50">&#8212;</td></tr>
+          <tr><td>25% 负荷</td><td><input type="number" id="cop25" value="6.0" step="any" oninput="calcIPLV()" inputmode="decimal"></td><td><span class="weight-tag">12%</span></td><td class="contrib" id="w25">&#8212;</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="toolbar" style="margin-top:14px;">
+      <button type="button" class="btn primary" onclick="calcIPLV()">&#128200; 计算 IPLV</button>
+      <button type="button" class="btn" onclick="copyIPLV()">&#128203; 复制结果</button>
+    </div>
+
+    <div id="iplvResult"></div>
+    <div id="iplvCards" class="data-grid" style="display:none;"></div>
+
+    <div class="info-box">IPLV 计算公式：IPLV = 0.01&#215;COP<sub>100%</sub> + 0.42&#215;COP<sub>75%</sub> + 0.45&#215;COP<sub>50%</sub> + 0.12&#215;COP<sub>25%</sub>。加权系数反映建筑空调实际运行中各负荷段的时间占比，其中 50% 负荷运行时间最长（45%），故对 IPLV 影响最大。</div>
+  </div>
+
+  <!-- 工具介绍 SEO 区块 -->
+  
+</div>
+
+</div>
+
+<!-- 相关工具 -->
+<div class="related-tools" data-related-tools="1">
+  <h3 class="related-tools-title">🔗 相关工具</h3>
+  <div class="related-tools-grid">
+    <a href="dehumidifier.html" class="related-tool-card">
+      <span class="rt-icon">🌫️</span>
+      <span class="rt-info"><span class="rt-name">dehumidifier</span><span class="rt-desc">除湿量计算器 Dehumidifier Sizing</span></span>
+    </a>
+    <a href="cooling-tower.html" class="related-tool-card">
+      <span class="rt-icon">🗼</span>
+      <span class="rt-info"><span class="rt-name">冷却塔散热与补水量计算器 - 在线计算冷却塔散热量、冷却范围、接近度、蒸发损失、飘水损失、 | ToolBox免费在线工具箱</span><span class="rt-desc">冷却塔散热与补水量计算器</span></span>
+    </a>
+    <a href="fresh-air-load.html" class="related-tool-card">
+      <span class="rt-icon">🍃</span>
+      <span class="rt-info"><span class="rt-name">新风负荷计算器 - 在线计算新风全热负荷、显热负荷、潜热负荷，基于焓湿图公式 h | ToolBox免费在线工具箱</span><span class="rt-desc">新风负荷计算器</span></span>
+    </a>
+    <a href="pump-calculator.html" class="related-tool-card">
+      <span class="rt-icon">💧</span>
+      <span class="rt-info"><span class="rt-name">水泵扬程流量计算器 - 水泵扬程与流量计算器，在线计算管路流速、沿程阻力损失、局部阻 | ToolBox免费在线工具箱</span><span class="rt-desc">水泵扬程与流量计算器</span></span>
+    </a>
+    <a href="cooling-load.html" class="related-tool-card">
+      <span class="rt-icon">❄️</span>
+      <span class="rt-info"><span class="rt-name">空调负荷计算器 - 基于简化冷负荷系数法，计算外墙、窗户、人员、设备、照明、新风 | ToolBox免费在线工具箱</span><span class="rt-desc">空调负荷计算器</span></span>
+    </a>
+    <a href="supply-air.html" class="related-tool-card">
+      <span class="rt-icon">🌀</span>
+      <span class="rt-info"><span class="rt-name">送风量与风速设计计算器 - 免费暖通空调设计工具，在线计算空调送风量、换气次数、送风口数 | ToolBox免费在线工具箱</span><span class="rt-desc">送风量与风速设计计算器</span></span>
+    </a>
+  </div>
+</div>
+<div class="tool-intro open" id="toolIntro">
+    <div class="tool-intro-header">
+      <span class="intro-icon-wrap"><span class="intro-icon">&#128214;</span>关于「冷机COP/EER能效计算器」</span>
+      <span class="arrow">&#9660;</span>
+    </div>
+    <div class="tool-intro-body">
+      <h4><span class="h4-icon">&#128221;</span>工具简介</h4>
+      <p>冷机COP/EER能效计算器是一款面向暖通空调（HVAC）工程师的冷水机组能效分析工具，可计算性能系数 COP、能效比 EER、单位冷吨功耗 kW/RT 及综合部分负荷性能系数 IPLV，并对照 GB 19577-2015 判定能效等级。所有计算在浏览器本地完成，数据不上传。</p>
+      <h4><span class="h4-icon">&#10024;</span>功能特点</h4>
+      <ul class="intro-features">
+        <li>支持制冷量 kW 与 US 冷吨(RT)互切换输入</li>
+        <li>COP、EER、kW/RT 一键计算</li>
+        <li>冷冻水温差与流量估算</li>
+        <li>IPLV 部分负荷加权计算</li>
+        <li>GB 19577-2015 能效等级自动判定</li>
+        <li>结果数据卡片 + 等级标识可视化</li>
+        <li>支持深色模式与移动端响应式</li>
+      </ul>
+      <h4><span class="h4-icon">&#127919;</span>使用场景</h4>
+      <ul class="intro-scenes">
+        <li>冷水机组选型与能效评估</li>
+        <li>机房节能改造效果分析</li>
+        <li>设备能效等级合规性核查</li>
+        <li>HVAC 设计与方案比选</li>
+        <li>运行能耗诊断与优化</li>
+        <li>暖通专业学习与教学</li>
+      </ul>
+      <h4><span class="h4-icon">&#128172;</span>常见问题</h4>
+      <div class="intro-faq-item">
+        <div class="intro-faq-q">COP 和 EER 有什么区别？</div>
+        <div class="intro-faq-a">COP（性能系数）采用国际单位制，量纲为 W/W，即制冷量与输入功率之比；EER（能效比）采用英制单位，量纲为 Btu/(W&#183;h)。两者换算关系为 EER = COP &#215; 3.412，因为 1 kW = 3412 Btu/h。</div>
+      </div>
+      <div class="intro-faq-item">
+        <div class="intro-faq-q">kW/RT 越低越好还是越高越好？</div>
+        <div class="intro-faq-a">kW/RT 表示每产生 1 冷吨制冷量所需的电功率(kW)，数值越低代表机组效率越高、越节能。例如 kW/RT=0.6 优于 kW/RT=0.8。它与 COP 的关系为 COP = 3.5169 &#247; (kW/RT)。</div>
+      </div>
+      <div class="intro-faq-item">
+        <div class="intro-faq-q">什么是 IPLV，为什么要算它？</div>
+        <div class="intro-faq-a">IPLV（综合部分负荷性能系数）按建筑空调实际运行中各负荷段时间占比加权计算，权重为 100% 负荷 1%、75% 负荷 42%、50% 负荷 45%、25% 负荷 12%。由于冷水机组绝大多数时间运行在部分负荷，IPLV 比满载 COP 更能反映真实运行能耗水平。</div>
+      </div>
+      <div class="intro-faq-item">
+        <div class="intro-faq-q">1 冷吨(RT)等于多少 kW？</div>
+        <div class="intro-faq-a">1 美制冷吨(US Refrigeration Ton) = 12000 Btu/h &#8776; 3.5169 kW，即 1 小时内融化 1 美吨冰所吸收的潜热当量。本工具采用 3.5169 kW/RT 进行换算。</div>
+      </div>
+      <div class="intro-faq-item">
+        <div class="intro-faq-q">能效等级的限定值适用于所有冷机吗？</div>
+        <div class="intro-faq-a">GB 19577-2015 按机组类型（风冷/水冷）和制冷量分段规定不同限定值。本工具采用的 6.1 / 5.6 / 5.0 为水冷冷水机组参考值，实际项目请以对应机组类型与制冷量段的标准条款为准。</div>
+      </div>
+    </div>
+  </div>
+  <!-- /工具介绍 SEO 区块 -->
+
+  <!-- 注意事项 -->
+  <div class="tool-notes" style="--tool-accent:#00C9A7;">
+    <div class="tool-notes-title">&#9888;&#65039; 使用说明与注意事项</div>
+    <ul>
+      <li>本工具纯前端运行，所有数据在浏览器本地计算，不会上传到服务器</li>
+      <li>能效等级限定值为 GB 19577-2015 水冷冷水机组参考值，不同机型与冷量段请以标准原文为准</li>
+      <li>IPLV 加权系数采用 AHRI 550/590 及 GB/T 18430 通用系数（0.01 / 0.42 / 0.45 / 0.12）</li>
+      <li>冷冻水流量按比热容 4.186 kJ/(kg&#183;&#176;C)、密度 1000 kg/m&#179; 估算，仅供设计参考</li>
+      <li>计算结果仅供参考，实际工程请结合厂家样本与专业判断</li>
+    </ul>
+  </div>
+  <!-- /注意事项 -->
+</div>
+
+<script>
+(function(){
+  'use strict';
+
+  /* ========== 常量 ========== */
+  var RT_TO_KW = 3.5169; // 1 US Refrigeration Ton = 3.5169 kW
+  var EER_FACTOR = 3.412; // 1 kW = 3412 Btu/h
+  var CP_WATER = 4.186;   // 水的比热容 kJ/(kg·°C)
+
+  /* ========== 状态 ========== */
+  var unit = 'kw';
+  var lastNominalText = '';
+  var lastIplvText = '';
+
+  /* ========== 能效等级判定 (GB 19577-2015) ========== */
+  function getGrade(cop){
+    if(cop >= 6.1) return {level:1, name:'1级', cls:'grade-excellent', desc:'能效最高，节能优品'};
+    if(cop >= 5.6) return {level:2, name:'2级', cls:'grade-good', desc:'节能产品'};
+    if(cop >= 5.0) return {level:3, name:'3级', cls:'grade-pass', desc:'能效限定值（市场准入）'};
+    return {level:0, name:'不达标', cls:'grade-fail', desc:'低于限定值，禁止销售'};
+  }
+
+  /* ========== 单位切换 ========== */
+  window.setUnit = function(u){
+    var prev = unit;
+    unit = u;
+    if(prev === 'kw' && u === 'rt'){
+      var kwVal = parseFloat(document.getElementById('capacityKw').value);
+      if(kwVal > 0) document.getElementById('capacityRt').value = (kwVal / RT_TO_KW).toFixed(2);
+    } else if(prev === 'rt' && u === 'kw'){
+      var rtVal = parseFloat(document.getElementById('capacityRt').value);
+      if(rtVal > 0) document.getElementById('capacityKw').value = (rtVal * RT_TO_KW).toFixed(2);
+    }
+    document.getElementById('btnKw').classList.toggle('active', u === 'kw');
+    document.getElementById('btnRt').classList.toggle('active', u === 'rt');
+    document.getElementById('capKwWrap').style.display = (u === 'kw') ? '' : 'none';
+    document.getElementById('capRtWrap').style.display = (u === 'rt') ? '' : 'none';
+    calcNominal();
+  };
+
+  /* ========== 满载能效计算 ========== */
+  window.calcNominal = function(){
+    var capKw, rt;
+    if(unit === 'rt'){
+      var rtVal = parseFloat(document.getElementById('capacityRt').value);
+      if(isNaN(rtVal) || rtVal <= 0){ clearNominal(); return; }
+      rt = rtVal;
+      capKw = rtVal * RT_TO_KW;
+    } else {
+      var kwVal = parseFloat(document.getElementById('capacityKw').value);
+      if(isNaN(kwVal) || kwVal <= 0){ clearNominal(); return; }
+      capKw = kwVal;
+      rt = kwVal / RT_TO_KW;
+    }
+    var power = parseFloat(document.getElementById('powerKw').value);
+    if(isNaN(power) || power <= 0){ clearNominal(); return; }
+
+    var tIn = parseFloat(document.getElementById('tIn').value);
+    var tOut = parseFloat(document.getElementById('tOut').value);
+
+    var cop = capKw / power;
+    var eer = cop * EER_FACTOR;
+    var kwPerRt = power / rt;
+    var grade = getGrade(cop);
+
+    // 温差与流量
+    var deltaT = null, flowLs = null, flowM3h = null;
+    if(!isNaN(tIn) && !isNaN(tOut)){
+      deltaT = tIn - tOut;
+      if(Math.abs(deltaT) > 0.001){
+        flowLs = capKw / (CP_WATER * Math.abs(deltaT)); // kg/s ≈ L/s
+        flowM3h = flowLs * 3.6; // L/s × 3.6 = m³/h
+      }
+    }
+
+    // 结果高亮
+    var highlight = '<div class="result-highlight">' +
+      '<div><div class="rh-main">' + cop.toFixed(3) + '</div><div class="rh-label">COP 性能系数 (W/W)</div></div>' +
+      '<div class="grade-badge ' + grade.cls + '"><span>' + grade.name + '</span><span style="font-size:13px;font-weight:500;">' + grade.desc + '</span></div>' +
+      '</div>';
+    document.getElementById('nominalResult').innerHTML = highlight;
+
+    // 数据卡片
+    var cards = [
+      {num: cop.toFixed(3), label: 'COP (W/W)'},
+      {num: eer.toFixed(2), label: 'EER (Btu/W·h)'},
+      {num: kwPerRt.toFixed(3), label: 'kW/RT'},
+      {num: rt.toFixed(2), label: '制冷量 (US.RT)'},
+      {num: capKw.toFixed(2), label: '制冷量 (kW)'},
+      {num: power.toFixed(2), label: '输入功率 (kW)'}
+    ];
+    if(deltaT !== null) cards.push({num: deltaT.toFixed(2), label: '水温差 ΔT (°C)'});
+    if(flowLs !== null) cards.push({num: flowLs.toFixed(1), label: '冷冻水流量 (L/s)'});
+    if(flowM3h !== null) cards.push({num: flowM3h.toFixed(1), label: '冷冻水流量 (m³/h)'});
+
+    var cardHtml = '';
+    cards.forEach(function(c){
+      cardHtml += '<div class="data-card"><div class="num">' + c.num + '</div><div class="label">' + c.label + '</div></div>';
+    });
+    document.getElementById('nominalCards').innerHTML = cardHtml;
+    document.getElementById('nominalCards').style.display = 'grid';
+
+    // 计算过程
+    var f = '<p><strong>计算过程：</strong></p>';
+    f += '<p>COP = 制冷量 &#247; 输入功率 = ' + capKw.toFixed(2) + ' &#247; ' + power.toFixed(2) + ' = <strong>' + cop.toFixed(3) + '</strong> W/W</p>';
+    f += '<p>EER = COP &#215; 3.412 = ' + cop.toFixed(3) + ' &#215; 3.412 = <strong>' + eer.toFixed(2) + '</strong> Btu/W·h</p>';
+    f += '<p>kW/RT = 功率 &#247; 冷吨 = ' + power.toFixed(2) + ' &#247; ' + rt.toFixed(2) + ' = <strong>' + kwPerRt.toFixed(3) + '</strong> kW/RT</p>';
+    if(deltaT !== null){
+      f += '<p>冷冻水温差 ΔT = ' + tIn + ' − ' + tOut + ' = <strong>' + deltaT.toFixed(2) + '</strong> °C</p>';
+      if(flowLs !== null){
+        f += '<p>冷冻水流量 = 制冷量 &#247; (4.186 × |ΔT|) = ' + capKw.toFixed(2) + ' &#247; (4.186 × ' + Math.abs(deltaT).toFixed(2) + ') = <strong>' + flowLs.toFixed(1) + '</strong> L/s (' + flowM3h.toFixed(1) + ' m³/h)</p>';
+      }
+    }
+    var fBox = document.getElementById('nominalFormula');
+    fBox.innerHTML = f;
+    fBox.style.display = 'block';
+
+    // 复制文本
+    lastNominalText = '=== 冷机COP/EER能效计算结果 ===\n' +
+      '制冷量: ' + capKw.toFixed(2) + ' kW (' + rt.toFixed(2) + ' US.RT)\n' +
+      '输入功率: ' + power.toFixed(2) + ' kW\n' +
+      'COP: ' + cop.toFixed(3) + ' W/W\n' +
+      'EER: ' + eer.toFixed(2) + ' Btu/W·h\n' +
+      'kW/RT: ' + kwPerRt.toFixed(3) + ' kW/RT\n' +
+      '能效等级: ' + grade.name + ' (' + grade.desc + ')\n';
+    if(deltaT !== null) lastNominalText += '冷冻水温差: ' + deltaT.toFixed(2) + ' °C\n';
+    if(flowLs !== null) lastNominalText += '冷冻水流量: ' + flowLs.toFixed(1) + ' L/s (' + flowM3h.toFixed(1) + ' m³/h)\n';
+  };
+
+  function clearNominal(){
+    document.getElementById('nominalResult').innerHTML = '';
+    document.getElementById('nominalCards').style.display = 'none';
+    document.getElementById('nominalFormula').style.display = 'none';
+    lastNominalText = '';
+  }
+
+  /* ========== IPLV 计算 ========== */
+  window.calcIPLV = function(){
+    var c100 = parseFloat(document.getElementById('cop100').value);
+    var c75 = parseFloat(document.getElementById('cop75').value);
+    var c50 = parseFloat(document.getElementById('cop50').value);
+    var c25 = parseFloat(document.getElementById('cop25').value);
+
+    if(isNaN(c100) || isNaN(c75) || isNaN(c50) || isNaN(c25) || c100 <= 0 || c75 <= 0 || c50 <= 0 || c25 <= 0){
+      document.getElementById('iplvResult').innerHTML = '';
+      document.getElementById('iplvCards').style.display = 'none';
+      ['w100','w75','w50','w25'].forEach(function(id){ document.getElementById(id).textContent = '\u2014'; });
+      lastIplvText = '';
+      return;
+    }
+
+    var w1 = 0.01, w2 = 0.42, w3 = 0.45, w4 = 0.12;
+    // IPLV = 0.01×COP100 + 0.42×COP75 + 0.45×COP50 + 0.12×COP25
+    var iplv = w1 * c100 + w2 * c75 + w3 * c50 + w4 * c25;
+    var grade = getGrade(iplv);
+
+    document.getElementById('w100').textContent = (w1 * c100).toFixed(3);
+    document.getElementById('w75').textContent = (w2 * c75).toFixed(3);
+    document.getElementById('w50').textContent = (w3 * c50).toFixed(3);
+    document.getElementById('w25').textContent = (w4 * c25).toFixed(3);
+
+    var highlight = '<div class="result-highlight">' +
+      '<div><div class="rh-main">' + iplv.toFixed(3) + '</div><div class="rh-label">IPLV 综合部分负荷性能系数 (W/W)</div></div>' +
+      '<div class="grade-badge ' + grade.cls + '"><span>' + grade.name + '</span><span style="font-size:13px;font-weight:500;">' + grade.desc + '</span></div>' +
+      '</div>';
+    document.getElementById('iplvResult').innerHTML = highlight;
+
+    var cards = [
+      {num: iplv.toFixed(3), label: 'IPLV (W/W)'},
+      {num: c100.toFixed(2), label: '100% 负荷 COP'},
+      {num: c75.toFixed(2), label: '75% 负荷 COP'},
+      {num: c50.toFixed(2), label: '50% 负荷 COP'},
+      {num: c25.toFixed(2), label: '25% 负荷 COP'}
+    ];
+    var cardHtml = '';
+    cards.forEach(function(c){
+      cardHtml += '<div class="data-card"><div class="num">' + c.num + '</div><div class="label">' + c.label + '</div></div>';
+    });
+    document.getElementById('iplvCards').innerHTML = cardHtml;
+    document.getElementById('iplvCards').style.display = 'grid';
+
+    lastIplvText = '=== IPLV 综合部分负荷性能系数 ===\n' +
+      '100%负荷COP: ' + c100.toFixed(3) + ' (权重1%)\n' +
+      '75%负荷COP: ' + c75.toFixed(3) + ' (权重42%)\n' +
+      '50%负荷COP: ' + c50.toFixed(3) + ' (权重45%)\n' +
+      '25%负荷COP: ' + c25.toFixed(3) + ' (权重12%)\n' +
+      'IPLV: ' + iplv.toFixed(3) + ' W/W\n' +
+      '参考能效等级: ' + grade.name + '\n';
+  };
+
+  /* ========== 复制 / 重置 ========== */
+  window.copyResult = function(){
+    if(!lastNominalText){ ToolBox.showToast(i18nText('toast.msg689'), 'warning'); return; }
+    ToolBox.copyText(lastNominalText);
+  };
+  window.copyIPLV = function(){
+    if(!lastIplvText){ ToolBox.showToast(i18nText('toast.msg689'), 'warning'); return; }
+    ToolBox.copyText(lastIplvText);
+  };
+  window.resetNominal = function(){
+    document.getElementById('capacityKw').value = 500;
+    document.getElementById('capacityRt').value = (500 / RT_TO_KW).toFixed(2);
+    document.getElementById('powerKw').value = 90;
+    document.getElementById('tIn').value = 12;
+    document.getElementById('tOut').value = 7;
+    setUnit('kw');
+    ToolBox.showToast(i18nText(), 'info');
+  };
+
+  /* ========== 初始化 ========== */
+  document.addEventListener('DOMContentLoaded', function(){
+    calcNominal();
+    calcIPLV();
+  });
+})();
+</script>
+
+<!-- tool-intro 折叠交互 -->
+<script>
+document.addEventListener('DOMContentLoaded', function(){
+  var headers = document.querySelectorAll('.tool-intro-header');
+  headers.forEach(function(h){
+    h.addEventListener('click', function(){
+      this.parentElement.classList.toggle('open');
+    });
+  });
+});
+</script>
+
+</body>
+</html>

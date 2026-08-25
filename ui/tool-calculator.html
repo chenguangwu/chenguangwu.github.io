@@ -1,0 +1,770 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>BMI 计算器 - ToolBox 工具百科</title>
+  <meta name="description" content="BMI 体重指数计算器，输入身高体重快速计算 BMI 并给出健康建议。基于世卫组织与中国标准双重参考，纯前端本地计算，数据不上传。">
+  <meta name="keywords" content="BMI计算器,体重指数,BMI计算,健康计算,体重评估,ToolBox">
+  <meta name="author" content="ToolBox 工具百科">
+  <meta property="og:title" content="BMI 计算器 - ToolBox">
+  <meta property="og:description" content="输入身高体重，快速计算体重指数并给出健康建议。基于世卫组织与中国标准双重参考。">
+  <meta property="og:type" content="website">
+  <link rel="stylesheet" href="template.css">
+  <style>
+    /* ===== 页面专属样式（计算器模板） ===== */
+
+    /* 核心计算区：60/40 分栏 */
+    .calc-grid{
+      display:grid;
+      grid-template-columns:3fr 2fr; /* 60% / 40% */
+      gap:24px;
+      align-items:stretch;
+    }
+    @media(max-width:768px){
+      .calc-grid{grid-template-columns:1fr;gap:16px;}
+    }
+
+    /* range 滑块填充进度（覆盖 template.css 的纯色背景，使用 --val 变量） */
+    input[type="range"]{
+      background:linear-gradient(to right,
+        var(--primary) 0%, var(--primary) var(--val,50%),
+        var(--border) var(--val,50%), var(--border) 100%);
+    }
+
+    /* 性别选择 */
+    .gender-group{display:flex;gap:12px;}
+    .gender-btn{
+      flex:1;display:flex;align-items:center;justify-content:center;gap:6px;
+      padding:12px 16px;border-radius:var(--radius-full);
+      font-size:14px;font-weight:600;font-family:inherit;cursor:pointer;
+      border:1.5px solid var(--border);background:var(--card);color:var(--text-secondary);
+      transition:all .2s ease;
+    }
+    .gender-btn svg{width:16px;height:16px;}
+    .gender-btn:hover{border-color:var(--primary);color:var(--primary);}
+    .gender-btn.active{
+      background:var(--gradient-btn);color:#fff;border-color:transparent;
+      box-shadow:0 4px 14px rgba(255,107,53,0.28);
+    }
+
+    /* 字段行 */
+    .field{margin-bottom:22px;}
+    .field:last-child{margin-bottom:0;}
+    .field-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
+    .field-label{font-size:13px;font-weight:500;color:var(--text-secondary);}
+    .field-label .opt{color:var(--text-muted);font-size:12px;font-weight:400;}
+    .field-value{display:flex;align-items:center;gap:6px;}
+    .field-value input[type="number"]{
+      width:74px;text-align:right;font-weight:700;color:var(--primary);
+      background:var(--primary-light);border:1px solid rgba(255,107,53,0.22);
+      border-radius:var(--radius-md);padding:6px 8px;font-size:14px;outline:none;
+      font-family:inherit;transition:all .2s;
+      -moz-appearance:textfield;
+    }
+    .field-value input[type="number"]::-webkit-outer-spin-button,
+    .field-value input[type="number"]::-webkit-inner-spin-button{
+      -webkit-appearance:none;margin:0;
+    }
+    .field-value input[type="number"]:focus{box-shadow:0 0 0 3px rgba(255,107,53,0.15);}
+    .field-value .unit{font-size:12px;color:var(--text-muted);font-weight:500;}
+    .field-range{margin-top:2px;}
+    .field-minmax{display:flex;justify-content:space-between;font-size:11px;color:var(--text-muted);margin-top:7px;}
+
+    /* 年龄输入（可选，中性样式） */
+    .age-input{
+      width:74px;text-align:right;font-weight:600;color:var(--text);
+      background:var(--bg-warm);border:1px solid var(--border);
+      border-radius:var(--radius-md);padding:6px 8px;font-size:14px;outline:none;
+      font-family:inherit;transition:all .2s;
+      -moz-appearance:textfield;
+    }
+    .age-input::-webkit-outer-spin-button,
+    .age-input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0;}
+    .age-input:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(255,107,53,0.12);}
+
+    /* 渐变计算按钮 */
+    .btn-gradient{
+      background:var(--gradient-primary);color:#fff;
+      box-shadow:0 6px 20px rgba(255,107,53,0.25);
+    }
+    .btn-gradient:hover{
+      background:var(--gradient-btn-hover);
+      box-shadow:0 10px 28px rgba(255,107,53,0.34);
+      transform:translateY(-1px);
+    }
+    .btn-gradient:active{transform:translateY(0);}
+
+    /* 仪表盘 */
+    .gauge-wrap{position:relative;width:230px;max-width:100%;margin:0 auto 14px;}
+    .gauge-wrap svg{width:100%;height:auto;display:block;overflow:visible;}
+    .gauge-needle{
+      transform-box:view-box;
+      transform-origin:100px 100px;
+      transition:transform .6s cubic-bezier(.22,1,.36,1);
+    }
+    .result-center{text-align:center;}
+    .bmi-number{
+      font-size:56px;font-weight:800;color:var(--text);
+      line-height:1;letter-spacing:-1.5px;
+    }
+    .bmi-unit{font-size:15px;color:var(--text-muted);font-weight:500;margin-left:5px;}
+    @media(max-width:768px){.bmi-number{font-size:46px;}}
+
+    /* 状态徽章 */
+    .status-badge{
+      display:inline-flex;align-items:center;gap:6px;
+      padding:6px 16px;border-radius:var(--radius-full);
+      font-size:13px;font-weight:700;margin-top:10px;
+    }
+    .status-badge svg{width:16px;height:16px;}
+    .status-normal{background:var(--accent-light);color:var(--accent);}
+    .status-under{background:rgba(59,130,246,0.12);color:var(--info);}
+    .status-over{background:var(--primary-light);color:var(--primary);}
+    .status-obese{background:var(--secondary-light);color:var(--secondary);}
+
+    /* 分类指示器 */
+    .cat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:18px;}
+    .cat-cell{
+      text-align:center;padding:10px 4px;border-radius:var(--radius-md);
+      background:var(--bg-warm);border:1.5px solid transparent;
+      transition:all .25s ease;
+    }
+    .cat-cell .cat-name{font-size:12px;color:var(--text-muted);margin-bottom:2px;}
+    .cat-cell .cat-range{font-size:11px;color:var(--text-muted);}
+    .cat-cell.active.cat-under{background:rgba(59,130,246,0.10);border-color:var(--info);}
+    .cat-cell.active.cat-under .cat-name,
+    .cat-cell.active.cat-under .cat-range{color:var(--info);font-weight:700;}
+    .cat-cell.active.cat-normal{background:var(--accent-light);border-color:var(--accent);}
+    .cat-cell.active.cat-normal .cat-name,
+    .cat-cell.active.cat-normal .cat-range{color:var(--accent);font-weight:700;}
+    .cat-cell.active.cat-over{background:var(--primary-light);border-color:var(--primary);}
+    .cat-cell.active.cat-over .cat-name,
+    .cat-cell.active.cat-over .cat-range{color:var(--primary);font-weight:700;}
+    .cat-cell.active.cat-obese{background:var(--secondary-light);border-color:var(--secondary);}
+    .cat-cell.active.cat-obese .cat-name,
+    .cat-cell.active.cat-obese .cat-range{color:var(--secondary);font-weight:700;}
+
+    /* 健康建议框 */
+    .advice-box{
+      margin-top:16px;
+      background:var(--accent-light);
+      border:1px solid rgba(0,201,167,0.22);
+      border-radius:var(--radius-lg);padding:14px 16px;text-align:left;
+    }
+    .advice-box .advice-title{font-size:13px;font-weight:700;color:var(--accent);margin-bottom:5px;display:flex;align-items:center;gap:5px;}
+    .advice-box .advice-title svg{width:15px;height:15px;}
+    .advice-box .advice-text{font-size:13px;color:var(--text-secondary);line-height:1.65;}
+    .advice-box .advice-range{font-size:12px;color:var(--text-muted);margin-top:9px;padding-top:9px;border-top:1px dashed rgba(0,201,167,0.3);}
+    .advice-box .advice-range strong{color:var(--text);font-weight:700;}
+
+    /* 折叠 */
+    .collapse{max-height:0;overflow:hidden;transition:max-height .4s ease;}
+    .collapse.open{max-height:760px;}
+    .collapse-toggle{cursor:pointer;background:none;border:none;width:100%;text-align:left;font-family:inherit;padding:0;}
+    .collapse-toggle .chevron{transition:transform .3s ease;}
+    .collapse-toggle[aria-expanded="true"] .chevron{transform:rotate(180deg);}
+
+    /* 参照表 */
+    .ref-table-wrap{overflow-x:auto;margin-top:18px;}
+    .ref-table{width:100%;border-collapse:collapse;font-size:13px;min-width:520px;}
+    .ref-table th{
+      text-align:left;padding:11px 14px;font-size:11px;font-weight:600;
+      color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;
+      border-bottom:1px solid var(--border);white-space:nowrap;
+    }
+    .ref-table td{padding:13px 14px;border-bottom:1px solid var(--border-light);color:var(--text-secondary);}
+    .ref-table tbody tr{transition:background .2s;}
+    .ref-table tr.ref-active td{background:var(--accent-light);color:var(--accent);font-weight:600;}
+    .ref-table tr.ref-active td:first-child{border-left:3px solid var(--accent);padding-left:11px;}
+    @media(max-width:768px){
+      .ref-table .col-risk{display:none;}
+      .ref-table th.col-risk{display:none;}
+      .ref-table{min-width:auto;font-size:12px;}
+      .ref-table th,.ref-table td{padding:10px 10px;}
+    }
+
+    /* 相关工具 */
+    .related-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;}
+    @media(max-width:768px){.related-grid{grid-template-columns:repeat(2,1fr);gap:12px;}}
+    .related-card{
+      display:block;text-decoration:none;background:var(--card);
+      border:1px solid var(--border);border-radius:var(--radius-lg);padding:18px;
+      box-shadow:var(--shadow-sm);transition:all .25s ease;
+    }
+    .related-card:hover{
+      box-shadow:var(--shadow-primary);border-color:rgba(255,107,53,0.2);
+      transform:translateY(-3px);
+    }
+    .related-icon{
+      width:44px;height:44px;border-radius:var(--radius-md);
+      display:flex;align-items:center;justify-content:center;
+      font-size:22px;margin-bottom:11px;
+    }
+    .related-card h3{font-size:14px;font-weight:700;color:var(--text);margin-bottom:4px;}
+    .related-card p{font-size:12px;color:var(--text-muted);line-height:1.5;}
+
+    /* section 间距 */
+    .section{margin-bottom:44px;}
+    @media(max-width:768px){.section{margin-bottom:26px;}}
+    .section-title{font-size:20px;font-weight:700;color:var(--text);margin-bottom:18px;display:flex;align-items:center;gap:8px;}
+    @media(max-width:768px){.section-title{font-size:17px;}}
+
+    /* 移动菜单面板 */
+    .navbar-mobile-panel{
+      display:none;background:var(--card);border-bottom:1px solid var(--border);
+      padding:12px 16px 16px;
+    }
+    .navbar-mobile-panel.open{display:block;}
+    .navbar-mobile-panel .mobile-search{position:relative;margin-bottom:10px;}
+    .navbar-mobile-panel .mobile-search input{
+      width:100%;height:42px;padding:0 12px 0 40px;border:1px solid var(--border);
+      border-radius:var(--radius-md);background:var(--bg-warm);color:var(--text);
+      font-size:14px;font-family:inherit;outline:none;
+    }
+    .navbar-mobile-panel .mobile-search svg{position:absolute;left:13px;top:50%;transform:translateY(-50%);width:18px;height:18px;color:var(--text-muted);}
+    .navbar-mobile-panel a{
+      display:block;padding:11px 4px;font-size:15px;color:var(--text-secondary);
+      text-decoration:none;border-bottom:1px solid var(--border-light);
+    }
+    .navbar-mobile-panel a:last-child{border-bottom:none;}
+
+    /* 结果面板内部纵向布局 */
+    .result-panel{display:flex;flex-direction:column;}
+    .result-body{flex:1;display:flex;flex-direction:column;justify-content:center;}
+
+    /* 工具头部图标背景 */
+    .tool-title-icon-wrap{
+      width:48px;height:48px;border-radius:var(--radius-lg);
+      background:var(--gradient-primary);display:flex;align-items:center;justify-content:center;
+      font-size:26px;flex-shrink:0;box-shadow:0 6px 18px rgba(255,107,53,0.25);
+    }
+  </style>
+
+<script src="/js/clarity.js" defer></script>
+</head>
+<body>
+
+<!-- ===== 导航栏 ===== -->
+<nav class="navbar">
+  <div class="navbar-inner">
+    <a href="#" class="navbar-brand">
+      <img src="logo.svg" alt="ToolBox">
+      <span class="navbar-brand-text">ToolBox <span>工具百科</span></span>
+    </a>
+    <div class="navbar-links">
+      <a href="#">全部工具</a>
+      <a href="#">健康医疗</a>
+      <a href="#">金融理财</a>
+      <a href="#">日常工具</a>
+    </div>
+    <div class="navbar-search">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+      <input type="text" placeholder="搜索 1000+ 工具...">
+    </div>
+    <div class="navbar-actions">
+      <button class="theme-toggle" aria-label="切换主题">
+        <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
+        <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
+      </button>
+      <button class="navbar-mobile-menu" id="mobileMenuBtn" aria-label="菜单" style="background:none;border:none;color:var(--text);cursor:pointer;align-items:center;justify-content:center;padding:8px;">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/></svg>
+      </button>
+    </div>
+  </div>
+  <!-- 移动端菜单面板 -->
+  <div class="navbar-mobile-panel" id="mobilePanel">
+    <div class="mobile-search">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+      <input type="text" placeholder="搜索工具...">
+    </div>
+    <a href="#">全部工具</a>
+    <a href="#">健康医疗</a>
+    <a href="#">金融理财</a>
+    <a href="#">日常工具</a>
+  </div>
+</nav>
+
+<!-- ===== 主内容 ===== -->
+<main class="container-main tool-content">
+
+  <!-- 面包屑 -->
+  <nav class="breadcrumb" aria-label="面包屑">
+    <a href="#">首页</a>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+    <a href="#">健康医疗</a>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+    <span class="breadcrumb-current">BMI计算器</span>
+  </nav>
+
+  <!-- 工具标题区 -->
+  <div class="tool-header animate-fade-up">
+    <h1 class="tool-title">
+      <span class="tool-title-icon-wrap">⚖️</span>
+      BMI 体重指数计算器
+    </h1>
+    <p class="tool-desc">输入身高体重，快速计算体重指数并给出健康建议。基于世卫组织与中国标准双重参考，帮助您科学管理体重。</p>
+    <div class="tool-tags">
+      <span class="tool-tag tag-primary">健康医疗</span>
+      <span class="tool-tag tag-accent">本地处理</span>
+      <span class="tool-tag tag-secondary">免费</span>
+    </div>
+  </div>
+
+  <!-- 核心计算区（60/40 分栏） -->
+  <section class="section">
+    <div class="calc-grid">
+
+      <!-- 左栏：输入面板 -->
+      <div class="card">
+        <div class="card-header">
+          <h2 class="card-title">
+            <span class="card-title-icon icon-bg-primary">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg>
+            </span>
+            输入参数
+          </h2>
+        </div>
+
+        <!-- 性别选择 -->
+        <div class="field">
+          <label class="field-label">性别</label>
+          <div class="gender-group">
+            <button class="gender-btn active" data-gender="male" type="button">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="10" cy="14" r="6"/><path d="m14 10 6-6"/><path d="M15 4h5v5"/></svg>
+              男
+            </button>
+            <button class="gender-btn" data-gender="female" type="button">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="9" r="6"/><path d="M12 15v7"/><path d="M8 18h8"/></svg>
+              女
+            </button>
+          </div>
+        </div>
+
+        <!-- 身高输入 -->
+        <div class="field">
+          <div class="field-head">
+            <label class="field-label" for="heightNum">身高</label>
+            <div class="field-value">
+              <input type="number" id="heightNum" value="170" min="100" max="220">
+              <span class="unit">cm</span>
+            </div>
+          </div>
+          <input type="range" id="heightRange" class="field-range" min="100" max="220" value="170" style="--val:58.3%">
+          <div class="field-minmax"><span>100cm</span><span>220cm</span></div>
+        </div>
+
+        <!-- 体重输入 -->
+        <div class="field">
+          <div class="field-head">
+            <label class="field-label" for="weightNum">体重</label>
+            <div class="field-value">
+              <input type="number" id="weightNum" value="65" min="30" max="150">
+              <span class="unit">kg</span>
+            </div>
+          </div>
+          <input type="range" id="weightRange" class="field-range" min="30" max="150" value="65" style="--val:29.2%">
+          <div class="field-minmax"><span>30kg</span><span>150kg</span></div>
+        </div>
+
+        <!-- 年龄输入（可选） -->
+        <div class="field">
+          <div class="field-head">
+            <label class="field-label" for="ageNum">年龄 <span class="opt">（可选）</span></label>
+            <div class="field-value">
+              <input type="number" id="ageNum" class="age-input" value="28" min="6" max="120" placeholder="--">
+              <span class="unit">岁</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 计算按钮 -->
+        <button class="btn btn-primary btn-lg btn-gradient w-full" id="calcBtn" type="button" style="margin-top:6px;">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="16" height="20" x="4" y="2" rx="2"/><line x1="8" x2="16" y1="6" y2="6"/><line x1="16" x2="16" y1="14" y2="18"/><path d="M16 10h.01"/><path d="M12 10h.01"/><path d="M8 10h.01"/><path d="M12 14h.01"/><path d="M8 14h.01"/><path d="M12 18h.01"/><path d="M8 18h.01"/></svg>
+          立即计算
+        </button>
+      </div>
+
+      <!-- 右栏：结果面板 -->
+      <div class="card result-panel">
+        <div class="card-header">
+          <h2 class="card-title">
+            <span class="card-title-icon icon-bg-accent">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+            </span>
+            计算结果
+          </h2>
+        </div>
+
+        <div class="result-body">
+          <!-- BMI 仪表盘 -->
+          <div class="result-center">
+            <div class="gauge-wrap">
+              <svg viewBox="0 0 200 120" role="img" aria-label="BMI 仪表盘">
+                <!-- 背景弧 -->
+                <path d="M 20 100 A 80 80 0 0 1 180 100" fill="none" stroke="var(--border)" stroke-width="14" stroke-linecap="round"/>
+                <!-- 偏瘦段（绿·浅） -->
+                <path d="M 20 100 A 80 80 0 0 1 27.62 65.94" fill="none" stroke="#00C9A7" stroke-width="14" stroke-linecap="round" opacity="0.4"/>
+                <!-- 正常段（绿） -->
+                <path d="M 27.62 65.94 A 80 80 0 0 1 65.01 28.06" fill="none" stroke="#00C9A7" stroke-width="14" stroke-linecap="round"/>
+                <!-- 超重段（橙） -->
+                <path d="M 65.01 28.06 A 80 80 0 0 1 105.02 20.16" fill="none" stroke="#FF6B35" stroke-width="14" stroke-linecap="round" opacity="0.85"/>
+                <!-- 肥胖段（紫） -->
+                <path d="M 105.02 20.16 A 80 80 0 0 1 180 100" fill="none" stroke="#7C3AED" stroke-width="14" stroke-linecap="round" opacity="0.85"/>
+                <!-- 指针 -->
+                <g class="gauge-needle" id="gaugeNeedle">
+                  <line x1="100" y1="100" x2="100" y2="30" stroke="var(--text)" stroke-width="3" stroke-linecap="round"/>
+                  <circle cx="100" cy="30" r="3.5" fill="var(--text)"/>
+                </g>
+                <!-- 中心圆点 -->
+                <circle cx="100" cy="100" r="8" fill="var(--text)"/>
+                <circle cx="100" cy="100" r="3.5" fill="var(--card)"/>
+              </svg>
+            </div>
+
+            <!-- BMI 数值 -->
+            <div>
+              <span class="bmi-number" id="bmiValue">22.5</span>
+              <span class="bmi-unit">kg/m²</span>
+            </div>
+
+            <!-- 状态徽章 -->
+            <div class="status-badge status-normal" id="statusBadge">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="m9 11 3 3L22 4"/></svg>
+              体重正常
+            </div>
+          </div>
+
+          <!-- 4 列分类指示器 -->
+          <div class="cat-grid">
+            <div class="cat-cell cat-under" data-cat="under">
+              <div class="cat-name">偏轻</div>
+              <div class="cat-range">&lt;18.5</div>
+            </div>
+            <div class="cat-cell cat-normal active" data-cat="normal">
+              <div class="cat-name">正常</div>
+              <div class="cat-range">18.5-23.9</div>
+            </div>
+            <div class="cat-cell cat-over" data-cat="over">
+              <div class="cat-name">超重</div>
+              <div class="cat-range">24-27.9</div>
+            </div>
+            <div class="cat-cell cat-obese" data-cat="obese">
+              <div class="cat-name">肥胖</div>
+              <div class="cat-range">≥28</div>
+            </div>
+          </div>
+
+          <!-- 健康建议框 -->
+          <div class="advice-box">
+            <div class="advice-title">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10Z"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+              健康建议
+            </div>
+            <p class="advice-text" id="adviceText">您的体重处于正常范围，建议保持当前饮食与运动习惯，定期监测体重变化。</p>
+            <p class="advice-range" id="adviceRange">理想体重范围：<strong>53.5 ~ 69.0 kg</strong></p>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- BMI 参照表（可折叠） -->
+  <section class="section">
+    <div class="card">
+      <button class="collapse-toggle" id="refToggle" aria-expanded="true" type="button">
+        <div class="card-header" style="margin-bottom:0;">
+          <h2 class="card-title">
+            <span class="card-title-icon icon-bg-secondary">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M3 9h18"/><path d="M3 15h18"/><path d="M9 3v18"/><path d="M15 3v18"/></svg>
+            </span>
+            BMI 参照表（中国标准）
+          </h2>
+          <svg class="chevron" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="var(--text-muted)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+        </div>
+      </button>
+      <div class="collapse open" id="refCollapse">
+        <div class="ref-table-wrap">
+          <table class="ref-table">
+            <thead>
+              <tr>
+                <th>BMI 范围</th>
+                <th>体重分类</th>
+                <th class="col-risk">健康风险</th>
+                <th>建议</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr data-cat="under">
+                <td>&lt; 18.5</td>
+                <td>偏轻</td>
+                <td class="col-risk">营养不良风险</td>
+                <td>适当增加热量摄入</td>
+              </tr>
+              <tr class="ref-active" data-cat="normal">
+                <td>18.5 – 23.9</td>
+                <td>正常 ✓</td>
+                <td class="col-risk">低风险</td>
+                <td>保持当前习惯</td>
+              </tr>
+              <tr data-cat="over">
+                <td>24.0 – 27.9</td>
+                <td>超重</td>
+                <td class="col-risk">心血管风险增加</td>
+                <td>控制饮食，增加运动</td>
+              </tr>
+              <tr data-cat="obese">
+                <td>≥ 28.0</td>
+                <td>肥胖</td>
+                <td class="col-risk">多种慢性病风险</td>
+                <td>建议就医评估</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 相关工具 -->
+  <section class="section">
+    <h2 class="section-title">相关工具推荐</h2>
+    <div class="related-grid">
+      <a href="#" class="related-card">
+        <div class="related-icon" style="background:var(--primary-light);">❤️</div>
+        <h3>基础代谢率计算</h3>
+        <p>计算每日基础代谢消耗</p>
+      </a>
+      <a href="#" class="related-card">
+        <div class="related-icon" style="background:var(--secondary-light);">📊</div>
+        <h3>体脂率计算</h3>
+        <p>根据体围估算体脂比例</p>
+      </a>
+      <a href="#" class="related-card">
+        <div class="related-icon" style="background:var(--accent-light);">🍎</div>
+        <h3>卡路里计算</h3>
+        <p>查询食物热量数据</p>
+      </a>
+      <a href="#" class="related-card">
+        <div class="related-icon" style="background:var(--primary-light);">✈️</div>
+        <h3>理想体重计算</h3>
+        <p>科学评估标准体重</p>
+      </a>
+    </div>
+  </section>
+
+</main>
+
+<!-- ===== 页脚 ===== -->
+<footer class="footer">
+  <div class="footer-inner">
+    <div>
+      <div class="footer-brand">
+        <img src="logo.svg" alt="ToolBox">
+        <span class="footer-brand-text">ToolBox <span>工具百科</span></span>
+      </div>
+      <p class="footer-desc">一站式在线工具合集，覆盖计算、转换、生成等多种场景，所有工具免费使用，数据本地处理不上传。</p>
+    </div>
+    <div>
+      <h4>工具分类</h4>
+      <ul>
+        <li><a href="#">健康医疗</a></li>
+        <li><a href="#">金融理财</a></li>
+        <li><a href="#">日常换算</a></li>
+        <li><a href="#">文本处理</a></li>
+      </ul>
+    </div>
+    <div>
+      <h4>关于我们</h4>
+      <ul>
+        <li><a href="#">使用帮助</a></li>
+        <li><a href="#">隐私政策</a></li>
+        <li><a href="#">联系反馈</a></li>
+      </ul>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <p>© 2025 ToolBox 工具百科 · 所有计算均在本地完成，不上传任何数据</p>
+    <div style="display:flex;gap:16px;">
+      <a href="#" aria-label="GitHub"><svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M12 .5C5.7.5.5 5.7.5 12c0 5.1 3.3 9.4 7.9 10.9.6.1.8-.3.8-.6v-2c-3.2.7-3.9-1.4-3.9-1.4-.5-1.3-1.3-1.7-1.3-1.7-1.1-.7.1-.7.1-.7 1.2.1 1.8 1.2 1.8 1.2 1 1.8 2.7 1.3 3.4 1 .1-.8.4-1.3.7-1.6-2.6-.3-5.3-1.3-5.3-5.7 0-1.3.5-2.3 1.2-3.1-.1-.3-.5-1.5.1-3.1 0 0 1-.3 3.3 1.2a11.5 11.5 0 0 1 6 0C17 4.6 18 4.9 18 4.9c.6 1.6.2 2.8.1 3.1.8.8 1.2 1.8 1.2 3.1 0 4.4-2.7 5.4-5.3 5.7.4.4.8 1.1.8 2.2v3.3c0 .3.2.7.8.6 4.6-1.5 7.9-5.8 7.9-10.9C23.5 5.7 18.3.5 12 .5Z"/></svg></a>
+      <a href="#" aria-label="Twitter"><svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M18.9 1.2h3.7l-8 9.1 9.4 12.5h-7.4l-5.8-7.6-6.6 7.6H.5l8.5-9.7L0 1.2h7.6l5.2 6.9 6.1-6.9Zm-1.3 19.6h2L6.5 3.2H4.3l13.3 17.6Z"/></svg></a>
+      <a href="#" aria-label="邮箱"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg></a>
+    </div>
+  </div>
+</footer>
+
+<!-- ===== 移动端底部 Tab 栏 ===== -->
+<nav class="mobile-tabbar">
+  <a href="#" class="mobile-tabbar-item active">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+    首页
+  </a>
+  <a href="#" class="mobile-tabbar-item">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/></svg>
+    分类
+  </a>
+  <a href="#" class="mobile-tabbar-item">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.29 1.51 4.04 3 5.5l7 7Z"/></svg>
+    收藏
+  </a>
+  <a href="#" class="mobile-tabbar-item">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+    我的
+  </a>
+</nav>
+
+<!-- ===== 脚本 ===== -->
+<script src="template.js"></script>
+<script>
+(function(){
+  'use strict';
+
+  var state = { gender:'male', height:170, weight:65, age:28 };
+
+  function $(id){ return document.getElementById(id); }
+  var heightNum=$('heightNum'), heightRange=$('heightRange');
+  var weightNum=$('weightNum'), weightRange=$('weightRange');
+  var ageNum=$('ageNum');
+  var bmiValueEl=$('bmiValue'), statusBadge=$('statusBadge'), needle=$('gaugeNeedle');
+  var adviceText=$('adviceText'), adviceRange=$('adviceRange');
+  var catCells=document.querySelectorAll('.cat-cell');
+  var refRows=document.querySelectorAll('.ref-table tr[data-cat]');
+
+  // 滑块填充进度
+  function setRangeFill(rangeEl){
+    var min=+rangeEl.min, max=+rangeEl.max, v=+rangeEl.value;
+    var pct=((v-min)/(max-min))*100;
+    rangeEl.style.setProperty('--val', pct+'%');
+  }
+
+  // 图标
+  var ICON_CHECK='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="m9 11 3 3L22 4"/></svg>';
+  var ICON_ALERT='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>';
+
+  // BMI 仪表盘映射：BMI 15 -> 180°, 40 -> 0°
+  function bmiToRotation(bmi){
+    var c=Math.max(15,Math.min(40,bmi));
+    return -90 + (c-15)*7.2; // 指针默认指向上方(90°)，旋转角度
+  }
+
+  function compute(){
+    var h=state.height/100, w=state.weight;
+    if(!h||!w){return;}
+    var bmi=w/(h*h);
+    var bmiRound=Math.round(bmi*10)/10;
+    bmiValueEl.textContent=bmiRound.toFixed(1);
+
+    var cat,label,statusClass,advice;
+    if(bmi<18.5){
+      cat='under';label='体重偏轻';statusClass='status-under';
+      advice='您的体重偏轻，建议适当增加营养摄入，保证蛋白质与优质碳水的摄取，结合力量训练增加肌肉量。';
+    }else if(bmi<24){
+      cat='normal';label='体重正常';statusClass='status-normal';
+      advice='您的体重处于正常范围，建议保持当前饮食与运动习惯，定期监测体重变化。';
+    }else if(bmi<28){
+      cat='over';label='体重超重';statusClass='status-over';
+      advice='您的体重超重，建议控制热量摄入，每周进行 150 分钟以上有氧运动，减少高糖高脂食物。';
+    }else{
+      cat='obese';label='体重肥胖';statusClass='status-obese';
+      advice='您的体重属于肥胖范围，建议咨询专业医生或营养师，制定科学的减重计划，逐步控制体重。';
+    }
+
+    // 状态徽章
+    statusBadge.className='status-badge '+statusClass;
+    statusBadge.innerHTML=(cat==='normal'?ICON_CHECK:ICON_ALERT)+label;
+
+    // 仪表盘指针
+    needle.style.transform='rotate('+bmiToRotation(bmi)+'deg)';
+
+    // 分类指示器高亮
+    catCells.forEach(function(c){
+      c.classList.toggle('active', c.getAttribute('data-cat')===cat);
+    });
+
+    // 参照表行高亮
+    refRows.forEach(function(r){
+      r.classList.toggle('ref-active', r.getAttribute('data-cat')===cat);
+    });
+
+    // 健康建议
+    adviceText.textContent=advice;
+    var lo=18.5*h*h, hi=23.9*h*h;
+    adviceRange.innerHTML='理想体重范围：<strong>'+lo.toFixed(1)+' ~ '+hi.toFixed(1)+' kg</strong>';
+  }
+
+  // 性别按钮
+  document.querySelectorAll('.gender-btn').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      document.querySelectorAll('.gender-btn').forEach(function(b){b.classList.remove('active');});
+      btn.classList.add('active');
+      state.gender=btn.getAttribute('data-gender');
+      compute();
+    });
+  });
+
+  // 身高联动
+  heightRange.addEventListener('input', function(){
+    state.height=+heightRange.value;
+    heightNum.value=heightRange.value;
+    setRangeFill(heightRange);
+    compute();
+  });
+  heightNum.addEventListener('input', function(){
+    var v=+heightNum.value||170;
+    v=Math.max(100,Math.min(220,v));
+    heightRange.value=v;
+    setRangeFill(heightRange);
+    state.height=v;
+    compute();
+  });
+
+  // 体重联动
+  weightRange.addEventListener('input', function(){
+    state.weight=+weightRange.value;
+    weightNum.value=weightRange.value;
+    setRangeFill(weightRange);
+    compute();
+  });
+  weightNum.addEventListener('input', function(){
+    var v=+weightNum.value||65;
+    v=Math.max(30,Math.min(150,v));
+    weightRange.value=v;
+    setRangeFill(weightRange);
+    state.weight=v;
+    compute();
+  });
+
+  // 年龄
+  ageNum.addEventListener('input', function(){ state.age=+ageNum.value||0; });
+
+  // 计算按钮
+  $('calcBtn').addEventListener('click', function(){
+    compute();
+    if(window.Template && window.Template.showToast){ window.Template.showToast('计算完成'); }
+  });
+
+  // 折叠面板
+  var refToggle=$('refToggle'), refCollapse=$('refCollapse');
+  refToggle.addEventListener('click', function(){
+    var open=refCollapse.classList.toggle('open');
+    refToggle.setAttribute('aria-expanded', open?'true':'false');
+  });
+
+  // 移动菜单
+  var mobileBtn=$('mobileMenuBtn'), mobilePanel=$('mobilePanel');
+  if(mobileBtn){
+    mobileBtn.addEventListener('click', function(){
+      mobilePanel.classList.toggle('open');
+    });
+  }
+
+  // 初始化
+  setRangeFill(heightRange);
+  setRangeFill(weightRange);
+  compute();
+})();
+</script>
+
+</body>
+</html>

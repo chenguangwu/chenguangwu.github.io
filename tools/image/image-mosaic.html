@@ -1,0 +1,715 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+
+<script src="/js/tool-page-runtime.js" defer></script>
+<!-- TOOLBOX-TOOL-RUNTIME -->
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="toolbox" content="cat=image,industry=image,icon=🟫,bg=#e3f2fd">
+<meta name="description" content="图片马赛克效果工具 - 是一款在线图像处理工具，可将图片像素化以实现打码遮挡效果。支持全图马赛克与局部区域框选马赛克两种模式，可通过滑块自由调节像素块大小并实时预览，处理完成后可下载 PNG 或 JPEG 图片。所有运算均在浏览器本地完成，图片不">
+<meta name="keywords" content="图片马赛克,马赛克工具,图片像素化,在线马赛克,图片打码,区域马赛克,图片处理,图像处理,在线工具,免费工具,ToolBox">
+<meta name="robots" content="index,follow">
+<link rel="canonical" href="https://chenguangwu.github.io/tools/image/image-mosaic.html">
+<meta property="og:title" content="图片马赛克效果工具 - 在线图像处理工具，可将图片像素化以实现打码遮挡效果 - ToolBox">
+<meta property="og:description" content="图片马赛克效果工具 - 是一款在线图像处理工具，可将图片像素化以实现打码遮挡效果。支持全图马赛克与局部区域框选马赛克两种模式，可通过滑块自由调节像素块大小并实时预览，处理完成后可下载 PNG 或 JPEG 图片。所有运算均在浏览器本地完成，图片不">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://chenguangwu.github.io/tools/image/image-mosaic.html">
+<meta name="twitter:card" content="summary">
+
+<title>图片马赛克效果工具 - 在线图像处理工具，可将图片像素化以实现打码遮挡效果 - ToolBox</title>
+<meta name="theme-color" content="#FF6B35">
+<link rel="icon" type="image/svg+xml" href="../../favicon.svg">
+<link rel="icon" href="../../favicon.ico" sizes="16x16 32x32 48x48">
+<link rel="apple-touch-icon" href="../../apple-touch-icon.png">
+<link rel="stylesheet" href="../../css/common.css">
+<script src="../../js/common.js"></script>
+<style>
+/* 上传拖拽区 */
+.drop-zone{
+  border:2px dashed var(--border);
+  border-radius:12px;
+  padding:36px 20px;
+  text-align:center;
+  color:var(--text-muted);
+  cursor:pointer;
+  transition:all 0.2s;
+  font-size:14px;
+}
+.drop-zone:hover,.drop-zone.dragover{
+  border-color:var(--primary);
+  background:rgba(255,107,53,0.05);
+  color:var(--primary);
+}
+.drop-zone .dz-icon{font-size:34px;display:block;margin-bottom:8px;}
+.drop-zone .dz-hint{font-size:12px;color:var(--text-muted);margin-top:6px;}
+
+/* 分段切换 */
+.seg{display:inline-flex;border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:14px;background:var(--card-bg);}
+.seg button{padding:9px 18px;border:none;background:none;cursor:pointer;font-size:13px;color:var(--text-secondary);font-weight:500;transition:all 0.2s;}
+.seg button:hover{color:var(--primary);}
+.seg button.active{background:var(--gradient-primary);color:#fff;}
+
+/* 滑块行 */
+.slider-row{display:flex;align-items:center;gap:12px;margin:10px 0;}
+.slider-row label{margin:0;min-width:96px;font-size:13px;flex-shrink:0;}
+.slider-row input[type="range"]{flex:1;accent-color:var(--primary);height:6px;}
+.slider-row .val{font-size:13px;color:var(--primary);min-width:56px;text-align:right;font-weight:600;flex-shrink:0;}
+
+/* 画布容器（带棋盘格透明背景） */
+.canvas-wrap{
+  position:relative;
+  display:flex;
+  justify-content:center;
+  align-items:flex-start;
+  border-radius:12px;
+  overflow:auto;
+  max-height:560px;
+  margin:14px 0;
+  padding:8px;
+  background-color:var(--result-bg);
+  background-image:
+    linear-gradient(45deg,rgba(0,0,0,0.05) 25%,transparent 25%),
+    linear-gradient(-45deg,rgba(0,0,0,0.05) 25%,transparent 25%),
+    linear-gradient(45deg,transparent 75%,rgba(0,0,0,0.05) 75%),
+    linear-gradient(-45deg,transparent 75%,rgba(0,0,0,0.05) 75%);
+  background-size:18px 18px;
+  background-position:0 0,0 9px,9px -9px,-9px 0;
+  border:1px solid var(--border);
+}
+[data-theme="dark"] .canvas-wrap{
+  background-image:
+    linear-gradient(45deg,rgba(255,255,255,0.04) 25%,transparent 25%),
+    linear-gradient(-45deg,rgba(255,255,255,0.04) 25%,transparent 25%),
+    linear-gradient(45deg,transparent 75%,rgba(255,255,255,0.04) 75%),
+    linear-gradient(-45deg,transparent 75%,rgba(255,255,255,0.04) 75%);
+}
+.canvas-wrap canvas{
+  display:block;
+  max-width:100%;
+  height:auto;
+  touch-action:none;
+  user-select:none;
+  -webkit-user-select:none;
+  border-radius:6px;
+  box-shadow:0 2px 10px rgba(0,0,0,0.08);
+}
+.canvas-wrap.area canvas{cursor:crosshair;}
+
+/* 区域提示条 */
+.area-hint{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  flex-wrap:wrap;
+  font-size:12.5px;
+  color:var(--text-secondary);
+  background:rgba(59,130,246,0.08);
+  border:1px solid rgba(59,130,246,0.2);
+  border-radius:10px;
+  padding:8px 12px;
+  margin-bottom:10px;
+}
+.area-hint .ico{color:#3B82F6;font-weight:700;}
+
+/* 信息条 */
+.meta-line{font-size:12px;color:var(--text-muted);margin-top:8px;display:flex;gap:14px;flex-wrap:wrap;}
+.meta-line span strong{color:var(--text-secondary);font-weight:600;}
+
+@media(max-width:768px){
+  .slider-row label{min-width:80px;}
+  .canvas-wrap{max-height:440px;padding:6px;}
+  .seg button{padding:9px 14px;font-size:12.5px;}
+}
+</style>
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "图片马赛克效果工具",
+  "description": "免费在线图片马赛克/像素化工具，支持全图与区域框选马赛克、像素块大小调节，实时预览并下载 PNG/JPEG，纯前端处理，图片不上传。",
+  "url": "https://chenguangwu.github.io/tools/image/image-mosaic.html",
+  "applicationCategory": "UtilitiesApplication",
+  "operatingSystem": "Web",
+  "offers": { "@type": "Offer", "price": "0", "priceCurrency": "CNY" },
+  "inLanguage": "zh-CN",
+  "isAccessibleForFree": true,
+  "browserRequirements": "Requires JavaScript. Requires HTML5 Canvas.",
+  "softwareVersion": "1.0"
+}
+</script>
+
+
+
+<meta property="og:image" content="https://chenguangwu.github.io/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="ToolBox - 6000+免费在线工具">
+<meta name="twitter:image" content="https://chenguangwu.github.io/og-image.png">
+<meta name="twitter:image:alt" content="ToolBox - 6000+免费在线工具">
+    <meta name="twitter:title" content="图片马赛克效果工具 - 在线图像处理工具，可将图片像素化以实现打码遮挡效果 - ToolBox">
+    <meta name="twitter:description" content="图片马赛克效果工具 - 是一款在线图像处理工具，可将图片像素化以实现打码遮挡效果。支持全图马赛克与局部区域框选马赛克两种模式，可通过滑块自由调节像素块大小并实时预览，处理完成后可下载 PNG 或 JPEG 图片。所有运算均在浏览器本地完成，图片不">
+<!-- TOOLBOX-WEBAPP-LD -->
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"WebApplication","name":"图片马赛克效果工具 - 在线图像处理工具，可将图片像素化以实现打码遮挡效果","url":"https://chenguangwu.github.io/tools/image/image-mosaic.html","applicationCategory":"MultimediaApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":["zh-CN", "en-US"],"description":"图片马赛克效果工具","image":"https://chenguangwu.github.io/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}
+</script>
+<meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
+<meta http-equiv="X-Content-Type-Options" content="nosniff">
+<meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
+<!-- TOOLBOX-SECURITY -->
+
+<script src="/js/privacy.js" defer></script>
+<!-- TOOLBOX-PRIVACY-SCRIPT -->
+
+<script src="/js/metrics.js" defer></script>
+<!-- TOOLBOX-METRICS-SCRIPT -->
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"首页","item":"https://chenguangwu.github.io/"},{"@type":"ListItem","position":2,"name":"图像处理","item":"https://chenguangwu.github.io/tools/image/index.html"},{"@type":"ListItem","position":3,"name":"图片马赛克效果工具","item":"https://chenguangwu.github.io/tools/image/image-mosaic.html"}]}
+</script>
+
+<script src="../../js/i18n.js" defer></script>
+<script src="../../js/tool-i18n.js" defer></script>
+<!-- TOOLBOX-I18N-SCRIPT -->
+<!-- TOOLBOX-HREFLANG -->
+<link rel="alternate" hreflang="zh-CN" href="https://chenguangwu.github.io/tools/image/image-mosaic.html">
+<link rel="alternate" hreflang="en-US" href="https://chenguangwu.github.io/tools/image/image-mosaic.html">
+<link rel="alternate" hreflang="x-default" href="https://chenguangwu.github.io/tools/image/image-mosaic.html">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:locale:alternate" content="en_US">
+
+<script src="/js/clarity.js" defer></script>
+<!-- TOOLBOX-CLARITY -->
+</head>
+<body>
+<h1 class="sr-only">图片马赛克效果工具</h1>
+<div class="nav">
+  <a href="../../index.html">← ToolBox</a>
+  <span>/ 图片马赛克</span>
+  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()">🌙</button>
+</div>
+
+
+
+
+
+<nav class="breadcrumb" aria-label="面包屑导航" data-breadcrumb="1">
+  <a href="../../index.html">首页</a>
+  <span class="bc-sep">‹</span>
+  <a href="index.html">🖼️ 图像处理</a>
+  <span class="bc-sep">‹</span>
+  <span class="bc-current">图片马赛克效果工具</span>
+</nav>
+<div class="container">
+  <div class="card tool-card-accent" style="--tool-accent:#FF6B35;">
+    <h2>🟫 图片马赛克效果工具</h2>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;">使用 Canvas API 对图片进行像素化/马赛克处理，支持全图或区域框选，实时预览，纯前端处理不上传。</p>
+
+    <!-- 上传区 -->
+    <div class="drop-zone" id="drop-zone" onclick="document.getElementById('file-input').click()">
+      <span class="dz-icon">📁</span>
+      点击或拖拽图片到这里
+      <div class="dz-hint">支持 JPG / PNG / WebP / GIF 等格式，图片仅在浏览器本地处理</div>
+      <input type="file" id="file-input" accept="image/*" style="display:none;" onchange="handleFile(this.files[0])">
+    </div>
+
+    <!-- 控制区 -->
+    <div id="controls" style="display:none;">
+      <div class="seg" role="tablist" aria-label="马赛克模式">
+        <button type="button" id="mode-full" class="active" onclick="setMode('full')">全图马赛克</button>
+        <button type="button" id="mode-area" onclick="setMode('area')">区域马赛克</button>
+      </div>
+
+      <div class="slider-row">
+        <label>像素块大小</label>
+        <input type="range" id="block-size" min="2" max="50" value="10" oninput="onBlockSize()">
+        <span class="val" id="block-val">10 px</span>
+      </div>
+
+      <div class="area-hint" id="area-hint" style="display:none;">
+        <span class="ico">◆</span>
+        <span>在图片上按住拖拽即可框选要打码的区域；可反复拖拽调整，松手自动生效。</span>
+        <button type="button" class="btn" style="padding:5px 12px;font-size:12px;margin-left:auto;" onclick="clearSelection()">清除选区</button>
+      </div>
+
+      <div class="canvas-wrap" id="canvas-wrap">
+        <canvas id="disp-canvas"></canvas>
+      </div>
+
+      <div class="meta-line" id="meta-line"></div>
+
+      <div class="toolbar">
+        <button type="button" class="btn" onclick="resetAll()">↻ 重置</button>
+        <button type="button" class="btn" id="peek-btn">👁 按住看原图</button>
+        <button type="button" class="btn" onclick="reloadImage()">重新上传</button>
+        <button type="button" class="btn primary" onclick="downloadImage('png')">⬇ 下载 PNG</button>
+        <button type="button" class="btn" onclick="downloadImage('jpeg')">⬇ 下载 JPG</button>
+      </div>
+
+      <div class="info-box">所有处理均在浏览器本地完成，图片不会上传到服务器，请放心使用。</div>
+    </div>
+  </div>
+
+  <!-- 注意事项 -->
+  <div class="tool-notes" style="--tool-accent:#FF6B35;">
+    <div class="tool-notes-title">⚠️ 使用说明与注意事项</div>
+    <ul>
+      <li>本工具纯前端运行，图片数据不会上传到任何服务器</li>
+      <li>区域马赛克模式下，在图片上拖拽即可框选打码区域，松手后实时生效</li>
+      <li>像素块越大马赛克越明显，越小越精细；建议 8~30px 之间效果较佳</li>
+      <li>下载 PNG 为无损画质，JPEG 文件更小但有压缩，按需选择</li>
+      <li>建议在主流浏览器（Chrome / Safari / Firefox / Edge）中使用</li>
+    </ul>
+  </div>
+</div>
+
+<script>
+(function(){
+  'use strict';
+
+  var sourceImg = null;      // 原始 Image 对象
+  var srcDispCanvas = null;  // 显示尺寸的原始像素画布（用于采样与底图）
+  var dispW = 0, dispH = 0;  // 显示画布尺寸
+  var mode = 'full';         // 'full' | 'area'
+  var blockSize = 10;
+  var currentRegion = null;  // {x,y,w,h} 显示坐标
+  var isDragging = false;
+  var dragStart = null;
+  var dragRect = null;
+  var showOriginal = false;
+  var rafPending = false;
+
+  var dispCanvas = document.getElementById('disp-canvas');
+  var dctx = dispCanvas.getContext('2d');
+  var wrap = document.getElementById('canvas-wrap');
+  var MAXW = 760, MAXH = 540;
+
+  /* ============ 文件上传 ============ */
+  window.handleFile = function(file){
+    if(!file){ return; }
+    if(!file.type.startsWith('image/')){
+      ToolBox.showToast(i18nText('toast.msg933'), 'error');
+      return;
+    }
+    var img = new Image();
+    img.onload = function(){
+      sourceImg = img;
+      initDisplay();
+      document.getElementById('drop-zone').style.display = 'none';
+      document.getElementById('controls').style.display = '';
+      ToolBox.showToast(i18nText('tool.image_load_ok'), 'success');
+    };
+    img.onerror = function(){
+      ToolBox.showToast(i18nText('toast.msg118'), 'error');
+    };
+    img.src = URL.createObjectURL(file);
+  };
+
+  /* ============ 初始化显示画布 ============ */
+  function initDisplay(){
+    var nw = sourceImg.naturalWidth, nh = sourceImg.naturalHeight;
+    var scale = Math.min(MAXW / nw, MAXH / nh, 1);
+    dispW = Math.max(1, Math.round(nw * scale));
+    dispH = Math.max(1, Math.round(nh * scale));
+
+    dispCanvas.width = dispW;
+    dispCanvas.height = dispH;
+
+    // 构建显示尺寸的原始画布
+    srcDispCanvas = document.createElement('canvas');
+    srcDispCanvas.width = dispW;
+    srcDispCanvas.height = dispH;
+    srcDispCanvas.getContext('2d').drawImage(sourceImg, 0, 0, dispW, dispH);
+
+    currentRegion = null;
+    updateMeta();
+    scheduleRender();
+  }
+
+  function updateMeta(){
+    var el = document.getElementById('meta-line');
+    if(!sourceImg){ el.innerHTML = ''; return; }
+    var nw = sourceImg.naturalWidth, nh = sourceImg.naturalHeight;
+    var regionTxt = (mode === 'area' && currentRegion)
+      ? Math.round(currentRegion.w) + '×' + Math.round(currentRegion.h)
+      : '—';
+    el.innerHTML =
+      '<span>原图尺寸：<strong>' + nw + '×' + nh + '</strong></span>' +
+      '<span>预览尺寸：<strong>' + dispW + '×' + dispH + '</strong></span>' +
+      '<span>当前模式：<strong>' + (mode === 'full' ? '全图' : '区域') + '</strong></span>' +
+      '<span>选区：<strong>' + regionTxt + '</strong></span>';
+  }
+
+  /* ============ 模式切换 ============ */
+  window.setMode = function(m){
+    mode = m;
+    document.getElementById('mode-full').classList.toggle('active', m === 'full');
+    document.getElementById('mode-area').classList.toggle('active', m === 'area');
+    document.getElementById('area-hint').style.display = (m === 'area') ? 'flex' : 'none';
+    wrap.classList.toggle('area', m === 'area');
+    if(m === 'full'){ currentRegion = null; }
+    updateMeta();
+    scheduleRender();
+  };
+
+  window.clearSelection = function(){
+    currentRegion = null;
+    updateMeta();
+    scheduleRender();
+    ToolBox.showToast(i18nText('toast.msg288'), 'info');
+  };
+
+  window.onBlockSize = function(){
+    blockSize = parseInt(document.getElementById('block-size').value, 10) || 2;
+    document.getElementById('block-val').textContent = blockSize + ' px';
+    scheduleRender();
+  };
+
+  window.resetAll = function(){
+    document.getElementById('block-size').value = 10;
+    blockSize = 10;
+    document.getElementById('block-val').textContent = '10 px';
+    currentRegion = null;
+    setMode('full');
+    scheduleRender();
+    ToolBox.showToast(i18nText(), 'info');
+  };
+
+  window.reloadImage = function(){
+    sourceImg = null;
+    srcDispCanvas = null;
+    currentRegion = null;
+    document.getElementById('controls').style.display = 'none';
+    document.getElementById('drop-zone').style.display = '';
+    document.getElementById('file-input').value = '';
+  };
+
+  /* ============ 渲染 ============ */
+  function scheduleRender(){
+    if(rafPending){ return; }
+    rafPending = true;
+    requestAnimationFrame(function(){
+      rafPending = false;
+      renderPreview();
+    });
+  }
+
+  function renderPreview(){
+    if(!srcDispCanvas){ return; }
+    if(showOriginal){
+      dctx.drawImage(srcDispCanvas, 0, 0);
+      return;
+    }
+    var region = null;
+    if(mode === 'full'){
+      region = null;
+    } else if(mode === 'area'){
+      region = isDragging ? dragRect : currentRegion;
+    }
+
+    // 先画底图，再按需叠马赛克
+    if(region){
+      mosaicRegion(dctx, srcDispCanvas, blockSize, region);
+    } else {
+      dctx.drawImage(srcDispCanvas, 0, 0);
+    }
+
+    // 区域模式下绘制选区边框
+    if(mode === 'area' && region){
+      drawSelectionRect(dctx, region);
+    }
+  }
+
+  // 核心：对指定区域打马赛克（基于中心像素采样填充块）
+  function mosaicRegion(ctx, srcCanvas, size, region){
+    var W = srcCanvas.width, H = srcCanvas.height;
+    ctx.drawImage(srcCanvas, 0, 0);
+    if(size < 2){ return; }
+
+    var rx = 0, ry = 0, rw = W, rh = H;
+    if(region){
+      rx = Math.max(0, Math.floor(region.x));
+      ry = Math.max(0, Math.floor(region.y));
+      rw = Math.min(W - rx, Math.floor(region.w));
+      rh = Math.min(H - ry, Math.floor(region.h));
+    }
+    if(rw < 1 || rh < 1){ return; }
+
+    var imgData = srcCanvas.getContext('2d').getImageData(rx, ry, rw, rh);
+    var d = imgData.data;
+    var half = size >> 1;
+
+    for(var by = 0; by < rh; by += size){
+      for(var bx = 0; bx < rw; bx += size){
+        var cx = Math.min(bx + half, rw - 1);
+        var cy = Math.min(by + half, rh - 1);
+        var i = (cy * rw + cx) * 4;
+        ctx.fillStyle = 'rgb(' + d[i] + ',' + d[i + 1] + ',' + d[i + 2] + ')';
+        var bw = Math.min(size, rw - bx);
+        var bh = Math.min(size, rh - by);
+        ctx.fillRect(rx + bx, ry + by, bw, bh);
+      }
+    }
+  }
+
+  function drawSelectionRect(ctx, r){
+    if(!r || r.w < 1 || r.h < 1){ return; }
+    ctx.save();
+    ctx.lineWidth = 2;
+    ctx.setLineDash([6, 4]);
+    // 黑色外框 + 白色内框，保证任意背景下可见
+    ctx.strokeStyle = 'rgba(0,0,0,0.9)';
+    ctx.strokeRect(r.x + 0.5, r.y + 0.5, r.w, r.h);
+    ctx.setLineDash([6, 4]);
+    ctx.lineDashOffset = 6;
+    ctx.strokeStyle = 'rgba(255,255,255,0.95)';
+    ctx.strokeRect(r.x + 0.5, r.y + 0.5, r.w, r.h);
+    // 四角标记
+    ctx.setLineDash([]);
+    ctx.fillStyle = 'rgba(255,107,53,0.95)';
+    var cs = 6;
+    [[r.x, r.y],[r.x+r.w-cs,r.y],[r.x,r.y+r.h-cs],[r.x+r.w-cs,r.y+r.h-cs]].forEach(function(p){
+      ctx.fillRect(p[0], p[1], cs, cs);
+    });
+    ctx.restore();
+  }
+
+  /* ============ 区域框选（指针事件，兼容触摸） ============ */
+  function getCanvasPos(e){
+    var rect = dispCanvas.getBoundingClientRect();
+    var sx = dispCanvas.width / rect.width;
+    var sy = dispCanvas.height / rect.height;
+    return {
+      x: (e.clientX - rect.left) * sx,
+      y: (e.clientY - rect.top) * sy
+    };
+  }
+
+  function normalizeRect(a, b){
+    var x = Math.min(a.x, b.x);
+    var y = Math.min(a.y, b.y);
+    var w = Math.abs(a.x - b.x);
+    var h = Math.abs(a.y - b.y);
+    return { x: x, y: y, w: w, h: h };
+  }
+
+  dispCanvas.addEventListener('pointerdown', function(e){
+    if(mode !== 'area' || !srcDispCanvas){ return; }
+    e.preventDefault();
+    isDragging = true;
+    dragStart = getCanvasPos(e);
+    dragRect = { x: dragStart.x, y: dragStart.y, w: 0, h: 0 };
+    try { dispCanvas.setPointerCapture(e.pointerId); } catch(err){}
+    scheduleRender();
+  });
+
+  dispCanvas.addEventListener('pointermove', function(e){
+    if(!isDragging){ return; }
+    var p = getCanvasPos(e);
+    dragRect = normalizeRect(dragStart, p);
+    // 限制在画布范围内
+    dragRect.x = Math.max(0, dragRect.x);
+    dragRect.y = Math.max(0, dragRect.y);
+    dragRect.w = Math.min(dragRect.w, dispW - dragRect.x);
+    dragRect.h = Math.min(dragRect.h, dispH - dragRect.y);
+    scheduleRender();
+  });
+
+  function endDrag(){
+    if(!isDragging){ return; }
+    isDragging = false;
+    if(dragRect && dragRect.w > 4 && dragRect.h > 4){
+      currentRegion = { x: dragRect.x, y: dragRect.y, w: dragRect.w, h: dragRect.h };
+    } else {
+      currentRegion = null;
+    }
+    dragRect = null;
+    updateMeta();
+    scheduleRender();
+  }
+  dispCanvas.addEventListener('pointerup', endDrag);
+  dispCanvas.addEventListener('pointercancel', endDrag);
+  dispCanvas.addEventListener('pointerleave', function(){
+    if(isDragging){ endDrag(); }
+  });
+
+  /* ============ 按住查看原图 ============ */
+  var peekBtn = document.getElementById('peek-btn');
+  peekBtn.addEventListener('pointerdown', function(e){
+    e.preventDefault();
+    showOriginal = true;
+    renderPreview();
+  });
+  function endPeek(){
+    if(showOriginal){
+      showOriginal = false;
+      scheduleRender();
+    }
+  }
+  peekBtn.addEventListener('pointerup', endPeek);
+  peekBtn.addEventListener('pointerleave', endPeek);
+  peekBtn.addEventListener('pointercancel', endPeek);
+
+  /* ============ 下载（按原图分辨率输出） ============ */
+  window.downloadImage = function(format){
+    if(!sourceImg){
+      ToolBox.showToast(i18nText('tool.file_upload_hint'), 'warning');
+      return;
+    }
+    var W = sourceImg.naturalWidth, H = sourceImg.naturalHeight;
+
+    var srcFull = document.createElement('canvas');
+    srcFull.width = W;
+    srcFull.height = H;
+    srcFull.getContext('2d').drawImage(sourceImg, 0, 0);
+
+    var out = document.createElement('canvas');
+    out.width = W;
+    out.height = H;
+    var octx = out.getContext('2d');
+
+    // 将显示坐标的选区换算到原图坐标
+    var region = null;
+    if(mode === 'area' && currentRegion){
+      var kx = W / dispW, ky = H / dispH;
+      region = {
+        x: currentRegion.x * kx,
+        y: currentRegion.y * ky,
+        w: currentRegion.w * kx,
+        h: currentRegion.h * ky
+      };
+    } else if(mode === 'full'){
+      region = null;
+    }
+
+    if(mode === 'full'){
+      mosaicRegion(octx, srcFull, blockSize, null);
+    } else if(region){
+      mosaicRegion(octx, srcFull, blockSize, region);
+    } else {
+      octx.drawImage(srcFull, 0, 0);
+    }
+
+    var type = format === 'jpeg' ? 'image/jpeg' : 'image/png';
+    var ext = format === 'jpeg' ? 'jpg' : 'png';
+    out.toBlob(function(blob){
+      if(!blob){
+        ToolBox.showToast(i18nText('toast.msg508'), 'error');
+        return;
+      }
+      var a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'mosaic-' + Date.now() + '.' + ext;
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(function(){ URL.revokeObjectURL(a.href); a.remove(); }, 800);
+      ToolBox.showToast(i18nText('toast.msg141'), 'success');
+    }, type, 0.92);
+  };
+
+  /* ============ 拖拽上传 ============ */
+  var dz = document.getElementById('drop-zone');
+  dz.addEventListener('dragover', function(e){
+    e.preventDefault();
+    dz.classList.add('dragover');
+  });
+  dz.addEventListener('dragleave', function(){ dz.classList.remove('dragover'); });
+  dz.addEventListener('drop', function(e){
+    e.preventDefault();
+    dz.classList.remove('dragover');
+    if(e.dataTransfer.files.length){ handleFile(e.dataTransfer.files[0]); }
+  });
+
+  // 阻止整页拖拽默认行为
+  window.addEventListener('dragover', function(e){ e.preventDefault(); });
+  window.addEventListener('drop', function(e){ e.preventDefault(); });
+
+  ToolBox.initToolTheme();
+})();
+</script>
+
+<script>
+// tool-intro 折叠交互
+document.addEventListener('DOMContentLoaded', function(){
+  var headers = document.querySelectorAll('.tool-intro-header');
+  headers.forEach(function(h){
+    h.addEventListener('click', function(){ this.parentElement.classList.toggle('open'); });
+  });
+});
+</script>
+
+<!-- SEO 介绍区块 -->
+
+</div>
+
+</div>
+
+<!-- 相关工具 -->
+<div class="related-tools" data-related-tools="1">
+  <h3 class="related-tools-title">🔗 相关工具</h3>
+  <div class="related-tools-grid">
+    <a href="generator-15.html" class="related-tool-card">
+      <span class="rt-icon">🖼️</span>
+      <span class="rt-info"><span class="rt-name">圆角图片（生成带圆角的PNG） - 免费在线工具，纯前端处理 | ToolBox免费在线工具箱</span><span class="rt-desc">圆角图片（生成带圆角的PNG）</span></span>
+    </a>
+    <a href="convert-8.html" class="related-tool-card">
+      <span class="rt-icon">🖼️</span>
+      <span class="rt-info"><span class="rt-name">图片格式转换（PNG/JPG/WEBP） - 免费在线工具，纯前端处理 | ToolBox免费在线工具箱</span><span class="rt-desc">图片格式转换（PNG/JPG/WEBP）</span></span>
+    </a>
+    <a href="image-converter.html" class="related-tool-card">
+      <span class="rt-icon">🖼️</span>
+      <span class="rt-info"><span class="rt-name">图片转换 - 免费格式转换工具，图片格式转换 | ToolBox免费在线工具箱</span><span class="rt-desc">图片格式转换</span></span>
+    </a>
+    <a href="gif-split.html" class="related-tool-card">
+      <span class="rt-icon">🎞️</span>
+      <span class="rt-info"><span class="rt-name">GIF分解工具 - 在线将GIF动画分解提取每一帧，导出为PNG图片或批量打包Z | ToolBox免费在线工具箱</span><span class="rt-desc">GIF分解工具</span></span>
+    </a>
+    <a href="image-compress.html" class="related-tool-card">
+      <span class="rt-icon">🗜️</span>
+      <span class="rt-info"><span class="rt-name">图片压缩 - 工具 - 免费在线图片压缩，支持 JPEG/WebP/PNG | ToolBox免费在线工具箱</span><span class="rt-desc">图片压缩</span></span>
+    </a>
+    <a href="image-collage.html" class="related-tool-card">
+      <span class="rt-icon">🧩</span>
+      <span class="rt-info"><span class="rt-name">图片拼图合成工具 - 免费在线拼图生成器，支持竖排/横排拼接、2x2/3x3/自定 | ToolBox免费在线工具箱</span><span class="rt-desc">图片拼图合成工具</span></span>
+    </a>
+  </div>
+</div>
+<div class="tool-intro open" id="toolIntro">
+  <div class="tool-intro-header">
+    <span class="intro-icon-wrap"><span class="intro-icon">📖</span>关于「图片马赛克效果工具」</span>
+    <span class="arrow">▼</span>
+  </div>
+  <div class="tool-intro-body">
+    <h4><span class="h4-icon">📝</span>工具简介</h4>
+    <p>图片马赛克效果工具是一款在线图像处理工具，可将图片像素化以实现打码遮挡效果。支持全图马赛克与局部区域框选马赛克两种模式，可通过滑块自由调节像素块大小并实时预览，处理完成后可下载 PNG 或 JPEG 图片。所有运算均在浏览器本地完成，图片不上传服务器，隐私安全有保障。</p>
+    <h4><span class="h4-icon">✨</span>功能特点</h4>
+    <ul class="intro-features">
+      <li>纯前端 Canvas 处理，图片不上传</li>
+      <li>全图马赛克与区域框选马赛克两种模式</li>
+      <li>像素块大小 2~50px 自由调节，实时预览</li>
+      <li>支持拖拽上传与触摸框选，移动端友好</li>
+      <li>按原图分辨率导出 PNG/JPEG，画质无损</li>
+      <li>支持深色模式与响应式布局</li>
+    </ul>
+    <h4><span class="h4-icon">🎯</span>使用场景</h4>
+    <ul class="intro-scenes">
+      <li>遮挡身份证、车牌、人脸等隐私信息</li>
+      <li>给分享截图中的敏感内容打码</li>
+      <li>制作像素化风格的创意图片</li>
+      <li>隐藏图片中的文字、水印或账号信息</li>
+      <li>对局部区域进行模糊遮挡处理</li>
+      <li>隐私敏感场景下的本地图片处理</li>
+    </ul>
+    <h4><span class="h4-icon">💬</span>常见问题</h4>
+    <div class="intro-faq-item"><div class="intro-faq-q">这个工具是免费的吗？</div><div class="intro-faq-a">完全免费，无需注册登录，直接在浏览器中打开即可使用。</div></div>
+    <div class="intro-faq-item"><div class="intro-faq-q">我的图片会被上传到服务器吗？</div><div class="intro-faq-a">不会。所有马赛克处理都在你的浏览器本地通过 Canvas API 完成，图片数据不会发送到任何服务器，充分保护隐私。</div></div>
+    <div class="intro-faq-item"><div class="intro-faq-q">如何只对图片的某一部分打马赛克？</div><div class="intro-faq-a">点击「区域马赛克」切换到区域模式，然后在图片上按住鼠标或手指拖拽框选需要打码的区域，松手后即可实时看到效果，可反复拖拽调整。</div></div>
+    <div class="intro-faq-item"><div class="intro-faq-q">像素块大小设为多少比较合适？</div><div class="intro-faq-a">一般 8~30px 效果较好：数值越大遮挡越彻底但越粗糙，数值越小越精细但可能仍能辨认细节。请根据遮挡需求调节。</div></div>
+    <div class="intro-faq-item"><div class="intro-faq-q">下载的图片是原始分辨率吗？</div><div class="intro-faq-a">是的，下载时会按图片原始分辨率重新渲染马赛克效果，不会因为预览缩放而降低画质。PNG 为无损格式，JPEG 文件更小。</div></div>
+    <div class="intro-faq-item"><div class="intro-faq-q">支持哪些图片格式？</div><div class="intro-faq-a">支持 JPG、PNG、WebP、GIF、BMP 等主流图片格式，导出时可选择 PNG 或 JPEG。</div></div>
+  </div>
+</div>
+<!-- /SEO 介绍区块 -->
+</body>
+</html>

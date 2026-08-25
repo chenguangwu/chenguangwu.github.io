@@ -1,0 +1,1012 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+
+<script src="/js/tool-page-runtime.js" defer></script>
+<!-- TOOLBOX-TOOL-RUNTIME -->
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="toolbox" content="cat=design,industry=design,icon=💫,bg=#e0f7fa">
+<title>粒子特效生成器 - 设计创意领域的在线工具 - ToolBox</title>
+<link rel="canonical" href="https://chenguangwu.github.io/tools/design/particle-effect-generator.html">
+<meta property="og:title" content="粒子特效生成器 - 设计创意领域的在线工具 - ToolBox">
+<meta property="og:description" content="粒子特效生成器 - 是一款设计创意领域的在线工具。设计创意工具，可视化操作，一键生成 CSS 代码">
+<meta property="og:url" content="https://chenguangwu.github.io/tools/design/particle-effect-generator.html">
+<meta name="twitter:card" content="summary">
+<meta name="description" content="粒子特效生成器 - 是一款设计创意领域的在线工具。设计创意工具，可视化操作，一键生成 CSS 代码">
+<link rel="stylesheet" href="../../css/common.css">
+<script src="../../js/common.js"></script>
+<style>
+/* 页面专用样式 */
+.particle-layout {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+}
+.particle-canvas-wrap {
+  flex: 1;
+  min-width: 0;
+  position: relative;
+  border-radius: 16px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  background: #1E1E2E;
+}
+.particle-canvas-wrap canvas {
+  display: block;
+  width: 100%;
+  height: 480px;
+  cursor: crosshair;
+}
+.canvas-overlay-info {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: rgba(0,0,0,0.5);
+  color: #fff;
+  padding: 4px 10px;
+  border-radius: 8px;
+  font-size: 11px;
+  pointer-events: none;
+  backdrop-filter: blur(4px);
+}
+.particle-controls {
+  width: 300px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.ctrl-group {
+  background: var(--card-bg);
+  border-radius: 12px;
+  padding: 14px;
+  border: 1px solid var(--border);
+  transition: box-shadow 0.2s;
+}
+.ctrl-group:hover {
+  box-shadow: var(--shadow-sm);
+}
+.ctrl-group h3 {
+  font-size: 13px;
+  margin-bottom: 10px;
+  color: var(--heading);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.ctrl-row {
+  margin-bottom: 10px;
+}
+.ctrl-row:last-child {
+  margin-bottom: 0;
+}
+.ctrl-row label {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12px;
+  color: var(--text-light);
+  margin-bottom: 5px;
+}
+.ctrl-row label .val {
+  font-weight: 600;
+  color: var(--primary);
+  font-variant-numeric: tabular-nums;
+}
+input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--border);
+  outline: none;
+  transition: background 0.2s;
+}
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--gradient-primary);
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(255,107,53,0.3);
+  transition: transform 0.15s;
+}
+input[type="range"]::-webkit-slider-thumb:hover {
+  transform: scale(1.15);
+}
+input[type="range"]::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--gradient-primary);
+  cursor: pointer;
+  border: none;
+  box-shadow: 0 2px 6px rgba(255,107,53,0.3);
+}
+input[type="color"] {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 36px;
+  border: 1.5px solid var(--border);
+  border-radius: 10px;
+  padding: 2px;
+  cursor: pointer;
+  background: var(--card-bg);
+  transition: border-color 0.2s;
+}
+input[type="color"]:hover {
+  border-color: var(--primary);
+}
+input[type="color"]::-webkit-color-swatch-wrapper {
+  padding: 2px;
+}
+input[type="color"]::-webkit-color-swatch {
+  border: none;
+  border-radius: 7px;
+}
+.mode-btns {
+  display: flex;
+  gap: 4px;
+  background: var(--result-bg);
+  border-radius: 10px;
+  padding: 3px;
+}
+.mode-btn {
+  flex: 1;
+  padding: 7px 6px;
+  border: none;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  background: transparent;
+  color: var(--text-light);
+  transition: all 0.2s;
+}
+.mode-btn:hover {
+  color: var(--text);
+  background: var(--bg-hover);
+}
+.mode-btn.active {
+  background: var(--gradient-primary);
+  color: #fff;
+  box-shadow: 0 2px 6px rgba(255,107,53,0.25);
+}
+.preset-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+}
+.preset-btn {
+  padding: 8px 4px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  font-size: 12px;
+  cursor: pointer;
+  background: var(--card-bg);
+  color: var(--text);
+  transition: all 0.2s;
+  text-align: center;
+  font-weight: 500;
+}
+.preset-btn:hover {
+  border-color: var(--primary);
+  background: var(--bg-hover);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-sm);
+}
+.preset-btn.active {
+  border-color: var(--primary);
+  background: linear-gradient(135deg, rgba(255,107,53,0.08), rgba(124,58,237,0.08));
+  color: var(--primary);
+  font-weight: 600;
+}
+.action-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.action-row .btn {
+  flex: 1;
+  justify-content: center;
+  font-size: 12px;
+  padding: 9px 10px;
+  min-width: 0;
+}
+.mouse-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--text-light);
+}
+.mouse-toggle .toggle-switch {
+  position: relative;
+  width: 40px;
+  height: 22px;
+  flex-shrink: 0;
+}
+.mouse-toggle .toggle-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+.mouse-toggle .toggle-slider {
+  position: absolute;
+  cursor: pointer;
+  inset: 0;
+  background: var(--border);
+  border-radius: 11px;
+  transition: background 0.25s;
+}
+.mouse-toggle .toggle-slider::before {
+  content: '';
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #fff;
+  top: 3px;
+  left: 3px;
+  transition: transform 0.25s;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+}
+.mouse-toggle .toggle-switch input:checked + .toggle-slider {
+  background: var(--primary);
+}
+.mouse-toggle .toggle-switch input:checked + .toggle-slider::before {
+  transform: translateX(18px);
+}
+
+/* 移动端适配 */
+@media (max-width: 900px) {
+  .particle-layout {
+    flex-direction: column;
+  }
+  .particle-controls {
+    width: 100%;
+  }
+  .particle-canvas-wrap canvas {
+    height: 320px;
+  }
+  .preset-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+@media (max-width: 768px) {
+  .particle-canvas-wrap canvas {
+    height: 260px;
+  }
+}
+</style>
+
+
+
+<meta property="og:image" content="https://chenguangwu.github.io/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="ToolBox - 6000+免费在线工具">
+<meta name="twitter:image" content="https://chenguangwu.github.io/og-image.png">
+<meta name="twitter:image:alt" content="ToolBox - 6000+免费在线工具">
+    <meta property="og:type" content="website">
+    <meta name="twitter:title" content="粒子特效生成器 - 设计创意领域的在线工具 - ToolBox">
+    <meta name="twitter:description" content="粒子特效生成器 - 是一款设计创意领域的在线工具。设计创意工具，可视化操作，一键生成 CSS 代码">
+<!-- TOOLBOX-WEBAPP-LD -->
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"WebApplication","name":"粒子特效生成器 - 设计创意领域的在线工具","url":"https://chenguangwu.github.io/tools/design/particle-effect-generator.html","applicationCategory":"MultimediaApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":["zh-CN", "en-US"],"description":"粒子特效生成器","image":"https://chenguangwu.github.io/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}
+</script>
+<meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
+<meta http-equiv="X-Content-Type-Options" content="nosniff">
+<meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
+<!-- TOOLBOX-SECURITY -->
+
+<script src="/js/privacy.js" defer></script>
+<!-- TOOLBOX-PRIVACY-SCRIPT -->
+
+<script src="/js/metrics.js" defer></script>
+<!-- TOOLBOX-METRICS-SCRIPT -->
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"首页","item":"https://chenguangwu.github.io/"},{"@type":"ListItem","position":2,"name":"设计创意","item":"https://chenguangwu.github.io/tools/design/index.html"},{"@type":"ListItem","position":3,"name":"粒子特效生成器","item":"https://chenguangwu.github.io/tools/design/particle-effect-generator.html"}]}
+</script>
+
+<script src="../../js/i18n.js" defer></script>
+<script src="../../js/tool-i18n.js" defer></script>
+<!-- TOOLBOX-I18N-SCRIPT -->
+<!-- TOOLBOX-HREFLANG -->
+<link rel="alternate" hreflang="zh-CN" href="https://chenguangwu.github.io/tools/design/particle-effect-generator.html">
+<link rel="alternate" hreflang="en-US" href="https://chenguangwu.github.io/tools/design/particle-effect-generator.html">
+<link rel="alternate" hreflang="x-default" href="https://chenguangwu.github.io/tools/design/particle-effect-generator.html">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:locale:alternate" content="en_US">
+
+<script src="/js/clarity.js" defer></script>
+<!-- TOOLBOX-CLARITY -->
+</head>
+<body>
+<h1 class="sr-only">粒子特效生成器</h1>
+
+
+<div class="nav">
+  <a href="../../index.html">← ToolBox</a>
+  <span>/ 粒子特效生成器</span>
+  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()">🌙</button>
+</div>
+
+
+
+
+
+<nav class="breadcrumb" aria-label="面包屑导航" data-breadcrumb="1">
+  <a href="../../index.html">首页</a>
+  <span class="bc-sep">‹</span>
+  <a href="index.html">🎨 设计创意</a>
+  <span class="bc-sep">‹</span>
+  <span class="bc-current">粒子特效生成器</span>
+</nav>
+<div class="container">
+  <div class="card tool-card-accent" style="--tool-accent:#7C3AED;">
+    <h2>💫 粒子特效生成器</h2>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;">实时 Canvas 粒子系统，支持多种发射模式、鼠标交互和预设效果，参数实时调整即时生效</p>
+
+    <div class="particle-layout">
+      <!-- Canvas 预览区 -->
+      <div class="particle-canvas-wrap">
+        <canvas id="particleCanvas"></canvas>
+        <div class="canvas-overlay-info" id="canvasInfo">粒子: 0 | FPS: 0</div>
+      </div>
+
+      <!-- 控制面板 -->
+      <div class="particle-controls">
+        <!-- 基础参数 -->
+        <div class="ctrl-group">
+          <h3>⚙️ 基础参数</h3>
+          <div class="ctrl-row">
+            <label>粒子数量 <span class="val" id="countVal">150</span></label>
+            <input type="range" id="count" min="10" max="500" value="150" oninput="onParamChange()">
+          </div>
+          <div class="ctrl-row">
+            <label>粒子大小 <span class="val" id="sizeVal">4</span></label>
+            <input type="range" id="psize" min="1" max="20" value="4" step="0.5" oninput="onParamChange()">
+          </div>
+          <div class="ctrl-row">
+            <label>运动速度 <span class="val" id="speedVal">2</span></label>
+            <input type="range" id="speed" min="0.1" max="5" value="2" step="0.1" oninput="onParamChange()">
+          </div>
+          <div class="ctrl-row">
+            <label>重力 <span class="val" id="gravityVal">0</span></label>
+            <input type="range" id="gravity" min="-1" max="1" value="0" step="0.05" oninput="onParamChange()">
+          </div>
+          <div class="ctrl-row">
+            <label>粒子寿命 <span class="val" id="lifetimeVal">∞</span></label>
+            <input type="range" id="lifetime" min="0.5" max="5" value="5" step="0.1" oninput="onParamChange()">
+          </div>
+          <div class="ctrl-row">
+            <label>连线距离 <span class="val" id="linkVal">0</span></label>
+            <input type="range" id="linkDist" min="0" max="200" value="0" oninput="onParamChange()">
+          </div>
+        </div>
+
+        <!-- 颜色设置 -->
+        <div class="ctrl-group">
+          <h3>🎨 颜色设置</h3>
+          <div class="ctrl-row">
+            <label>粒子颜色</label>
+            <input type="color" id="pColor" value="#FF6B35" oninput="onParamChange()">
+          </div>
+          <div class="ctrl-row">
+            <label>背景颜色</label>
+            <input type="color" id="bgColor" value="#1E1E2E" oninput="onParamChange()">
+          </div>
+        </div>
+
+        <!-- 发射模式 -->
+        <div class="ctrl-group">
+          <h3>🚀 发射模式</h3>
+          <div class="mode-btns">
+            <button type="button" class="mode-btn active" data-mode="continuous" onclick="setMode('continuous',this)">连续</button>
+            <button type="button" class="mode-btn" data-mode="burst" onclick="setMode('burst',this)">爆发</button>
+            <button type="button" class="mode-btn" data-mode="spiral" onclick="setMode('spiral',this)">螺旋</button>
+          </div>
+        </div>
+
+        <!-- 鼠标交互 -->
+        <div class="ctrl-group">
+          <h3>🖱️ 鼠标交互</h3>
+          <div class="mouse-toggle">
+            <label class="toggle-switch">
+              <input type="checkbox" id="mouseEnabled" checked onchange="onParamChange()">
+              <span class="toggle-slider"></span>
+            </label>
+            <span id="mouseModeLabel">吸引模式</span>
+            <button type="button" class="btn" style="margin-left:auto;padding:5px 12px;font-size:11px;" onclick="toggleMouseMode()">切换</button>
+          </div>
+        </div>
+
+        <!-- 预设效果 -->
+        <div class="ctrl-group">
+          <h3>✨ 预设效果</h3>
+          <div class="preset-grid">
+            <button type="button" class="preset-btn" onclick="applyPreset('firework',this)">🎆 烟花</button>
+            <button type="button" class="preset-btn" onclick="applyPreset('starry',this)">🌌 星空</button>
+            <button type="button" class="preset-btn" onclick="applyPreset('snow',this)">❄️ 雪花</button>
+            <button type="button" class="preset-btn" onclick="applyPreset('fountain',this)">⛲ 喷泉</button>
+            <button type="button" class="preset-btn" onclick="applyPreset('nebula',this)">🌌 星云</button>
+          </div>
+        </div>
+
+        <!-- 操作按钮 -->
+        <div class="action-row">
+          <button type="button" class="btn primary" onclick="resetParticles()">🔄 重置</button>
+          <button type="button" class="btn" onclick="pauseResume()" id="pauseBtn">⏸ 暂停</button>
+          <button type="button" class="btn warning" onclick="exportConfig()">📥 导出配置</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+<!-- 注意事项区块 -->
+<div class="tool-notes" style="--tool-accent:#7C3AED;">
+  <div class="tool-notes-title">⚠️ 使用说明与注意事项</div>
+  <ul>
+      <li>本工具纯前端运行，数据不会上传到服务器</li>
+      <li>建议在主流浏览器（Chrome/Safari/Firefox/Edge）中使用</li>
+      <li>计算结果仅供参考，请以实际应用场景为准</li>
+  </ul>
+</div>
+<!-- /注意事项区块 -->
+</div>
+
+<script>
+(function() {
+  'use strict';
+
+  // ====== 状态变量 ======
+  var canvas = document.getElementById('particleCanvas');
+  var ctx = canvas.getContext('2d');
+  var particles = [];
+  var animId = null;
+  var paused = false;
+  var spiralAngle = 0;
+  var burstTimer = 0;
+  var mouseAttract = true; // true=吸引, false=排斥
+  var mouseX = -9999, mouseY = -9999;
+  var lastTime = 0, frameCount = 0, fps = 0;
+
+  // 当前参数（从控件读取）
+  var opts = {
+    count: 150,
+    size: 4,
+    speed: 2,
+    color: '#FF6B35',
+    bgColor: '#1E1E2E',
+    gravity: 0,
+    lifetime: -1, // -1 表示无限
+    linkDist: 0,
+    mode: 'continuous',
+    mouseEnabled: true
+  };
+
+  // ====== Canvas 尺寸 ======
+  function resizeCanvas() {
+    var rect = canvas.parentElement.getBoundingClientRect();
+    var dpr = Math.min(window.devicePixelRatio || 1, 2);
+    canvas.width = rect.width * dpr;
+    canvas.height = canvas.offsetHeight * dpr;
+    ctx.scale(dpr, dpr);
+  }
+
+  // ====== 读取控件参数 ======
+  function readParams() {
+    opts.count = parseInt(document.getElementById('count').value, 10);
+    opts.size = parseFloat(document.getElementById('psize').value);
+    opts.speed = parseFloat(document.getElementById('speed').value);
+    opts.color = document.getElementById('pColor').value;
+    opts.bgColor = document.getElementById('bgColor').value;
+    opts.gravity = parseFloat(document.getElementById('gravity').value);
+    var lifeVal = parseFloat(document.getElementById('lifetime').value);
+    opts.lifetime = lifeVal >= 4.95 ? -1 : Math.round(lifeVal * 60); // 转为帧数
+    opts.linkDist = parseInt(document.getElementById('linkDist').value, 10);
+    opts.mouseEnabled = document.getElementById('mouseEnabled').checked;
+
+    // 更新显示值
+    document.getElementById('countVal').textContent = opts.count;
+    document.getElementById('sizeVal').textContent = opts.size;
+    document.getElementById('speedVal').textContent = opts.speed;
+    document.getElementById('gravityVal').textContent = opts.gravity.toFixed(2);
+    document.getElementById('linkVal').textContent = opts.linkDist;
+    var lifeDisp = document.getElementById('lifetime').value;
+    document.getElementById('lifetimeVal').textContent = parseFloat(lifeDisp) >= 4.95 ? '∞' : parseFloat(lifeDisp).toFixed(1) + 's';
+  }
+
+  // ====== 创建粒子 ======
+  function createParticle(x, y) {
+    var p = {
+      x: x,
+      y: y,
+      vx: (Math.random() - 0.5) * opts.speed * 2,
+      vy: (Math.random() - 0.5) * opts.speed * 2,
+      size: opts.size * (0.5 + Math.random() * 0.5),
+      life: opts.lifetime > 0 ? opts.lifetime * (0.7 + Math.random() * 0.3) : -1,
+      maxLife: opts.lifetime > 0 ? opts.lifetime : -1,
+      color: opts.color,
+      originX: x,
+      originY: y,
+      angle: Math.random() * Math.PI * 2,
+      angularSpeed: (Math.random() - 0.5) * 0.02
+    };
+    return p;
+  }
+
+  function spawnParticles() {
+    var w = canvas.offsetWidth;
+    var h = canvas.offsetHeight;
+    var cx = w / 2, cy = h / 2;
+
+    if (opts.mode === 'continuous') {
+      // 保持粒子数量
+      while (particles.length < opts.count) {
+        particles.push(createParticle(
+          Math.random() * w,
+          Math.random() * h
+        ));
+      }
+      // 如果粒子过多，逐步减少
+      while (particles.length > opts.count + 10) {
+        particles.shift();
+      }
+    } else if (opts.mode === 'burst') {
+      burstTimer++;
+      if (burstTimer >= 30) { // 每0.5秒爆发一次
+        burstTimer = 0;
+        var burstCount = Math.min(opts.count, 60);
+        for (var i = 0; i < burstCount; i++) {
+          var angle = (Math.PI * 2 / burstCount) * i + Math.random() * 0.3;
+          var p = createParticle(cx, cy);
+          p.vx = Math.cos(angle) * opts.speed * (1 + Math.random());
+          p.vy = Math.sin(angle) * opts.speed * (1 + Math.random());
+          particles.push(p);
+        }
+      }
+      // 清除超出数量的旧粒子
+      while (particles.length > opts.count * 2) {
+        particles.shift();
+      }
+    } else if (opts.mode === 'spiral') {
+      spiralAngle += 0.05;
+      while (particles.length < opts.count) {
+        var r = 50 + Math.random() * 80;
+        var a = spiralAngle + particles.length * 0.15;
+        var px = cx + Math.cos(a) * r;
+        var py = cy + Math.sin(a) * r;
+        var sp = createParticle(px, py);
+        // 给螺旋模式加一点切线速度
+        sp.vx = -Math.sin(a) * opts.speed * 0.5 + (Math.random() - 0.5) * opts.speed * 0.5;
+        sp.vy = Math.cos(a) * opts.speed * 0.5 + (Math.random() - 0.5) * opts.speed * 0.5;
+        particles.push(sp);
+      }
+      while (particles.length > opts.count + 10) {
+        particles.shift();
+      }
+    }
+  }
+
+  // ====== 更新粒子 ======
+  function updateParticles() {
+    var w = canvas.offsetWidth;
+    var h = canvas.offsetHeight;
+
+    for (var i = particles.length - 1; i >= 0; i--) {
+      var p = particles[i];
+
+      // 重力
+      p.vy += opts.gravity * 0.1;
+
+      // 鼠标交互
+      if (opts.mouseEnabled && mouseX > 0 && mouseY > 0) {
+        var dx = p.x - mouseX;
+        var dy = p.y - mouseY;
+        var dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist < 120 && dist > 1) {
+          var force = (120 - dist) / 120 * 0.8;
+          if (mouseAttract) {
+            // 吸引
+            p.vx -= (dx / dist) * force;
+            p.vy -= (dy / dist) * force;
+          } else {
+            // 排斥
+            p.vx += (dx / dist) * force;
+            p.vy += (dy / dist) * force;
+          }
+        }
+      }
+
+      // 轻微阻力
+      p.vx *= 0.99;
+      p.vy *= 0.99;
+
+      p.x += p.vx;
+      p.y += p.vy;
+
+      // 寿命
+      if (p.life > 0) {
+        p.life--;
+      }
+
+      // 边界回弹或移除
+      if (p.life === 0) {
+        particles.splice(i, 1);
+        continue;
+      }
+      if (p.x < -50 || p.x > w + 50 || p.y < -50 || p.y > h + 50) {
+        if (p.life > 0) {
+          particles.splice(i, 1);
+        } else {
+          // 无限寿命的粒子在连续模式下回弹
+          if (p.x < -50) p.x = w + 49;
+          if (p.x > w + 50) p.x = -49;
+          if (p.y < -50) p.y = h + 49;
+          if (p.y > h + 50) p.y = -49;
+        }
+      }
+    }
+  }
+
+  // ====== 绘制 ======
+  function drawParticles() {
+    var w = canvas.offsetWidth;
+    var h = canvas.offsetHeight;
+
+    // 清除背景（带半透明拖尾效果）
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = opts.bgColor;
+    ctx.fillRect(0, 0, w, h);
+
+    // 连线
+    if (opts.linkDist > 0 && particles.length < 300) {
+      for (var i = 0; i < particles.length; i++) {
+        for (var j = i + 1; j < particles.length; j++) {
+          var dx = particles[i].x - particles[j].x;
+          var dy = particles[i].y - particles[j].y;
+          var dist = Math.sqrt(dx * dx + dy * dy);
+          if (dist < opts.linkDist) {
+            var lineAlpha = (1 - dist / opts.linkDist) * 0.4;
+            ctx.globalAlpha = lineAlpha;
+            ctx.strokeStyle = particles[i].color;
+            ctx.lineWidth = 0.6;
+            ctx.beginPath();
+            ctx.moveTo(particles[i].x, particles[i].y);
+            ctx.lineTo(particles[j].x, particles[j].y);
+            ctx.stroke();
+          }
+        }
+      }
+    }
+
+    // 绘制粒子
+    for (var k = 0; k < particles.length; k++) {
+      var p = particles[k];
+      var alpha = p.maxLife > 0 ? Math.max(0, p.life / p.maxLife) : 1;
+
+      ctx.globalAlpha = alpha;
+
+      // 发光效果
+      ctx.shadowBlur = p.size * 2;
+      ctx.shadowColor = p.color;
+
+      ctx.fillStyle = p.color;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, Math.max(0.5, p.size), 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    // 关闭阴影
+    ctx.shadowBlur = 0;
+    ctx.globalAlpha = 1;
+  }
+
+  // ====== 动画循环 ======
+  function animate(timestamp) {
+    if (paused) {
+      animId = requestAnimationFrame(animate);
+      return;
+    }
+
+    // FPS 计算
+    frameCount++;
+    if (timestamp - lastTime >= 1000) {
+      fps = frameCount;
+      frameCount = 0;
+      lastTime = timestamp;
+    }
+
+    spawnParticles();
+    updateParticles();
+    drawParticles();
+
+    // 更新信息
+    document.getElementById('canvasInfo').textContent =
+      '粒子: ' + particles.length + ' | FPS: ' + fps;
+
+    animId = requestAnimationFrame(animate);
+  }
+
+  // ====== 公开方法 ======
+
+  // 参数变化回调
+  window.onParamChange = function() {
+    readParams();
+  };
+
+  // 切换发射模式
+  window.setMode = function(mode, btn) {
+    opts.mode = mode;
+    var btns = btn.parentElement.querySelectorAll('.mode-btn');
+    for (var i = 0; i < btns.length; i++) {
+      btns[i].classList.toggle('active', btns[i] === btn);
+    }
+    // 切换模式时清空粒子重新开始
+    particles.length = 0;
+    burstTimer = 0;
+    spiralAngle = 0;
+  };
+
+  // 切换鼠标交互模式
+  window.toggleMouseMode = function() {
+    mouseAttract = !mouseAttract;
+    document.getElementById('mouseModeLabel').textContent =
+      mouseAttract ? '吸引模式' : '排斥模式';
+  };
+
+  // 重置粒子
+  window.resetParticles = function() {
+    particles.length = 0;
+    burstTimer = 0;
+    spiralAngle = 0;
+    ToolBox.showToast(i18nText('toast.msg536'));
+  };
+
+  // 暂停/继续
+  window.pauseResume = function() {
+    paused = !paused;
+    document.getElementById('pauseBtn').textContent =
+      paused ? '▶ 继续' : '⏸ 暂停';
+    ToolBox.showToast(paused ? '已暂停' : '已继续', 'info');
+  };
+
+  // 导出配置
+  window.exportConfig = function() {
+    var config = {
+      count: opts.count,
+      size: opts.size,
+      speed: opts.speed,
+      color: opts.color,
+      bgColor: opts.bgColor,
+      gravity: opts.gravity,
+      lifetime: opts.lifetime > 0 ? (opts.lifetime / 60).toFixed(1) + 's' : 'infinite',
+      linkDistance: opts.linkDist,
+      mode: opts.mode,
+      mouseInteraction: opts.mouseEnabled,
+      mouseMode: mouseAttract ? 'attract' : 'repel'
+    };
+    var jsonStr = JSON.stringify(config, null, 2);
+    ToolBox.copyText(jsonStr, i18nText('msg640'));
+    ToolBox.downloadText('particle-config.json', jsonStr, 'application/json');
+    ToolBox.showToast(i18nText('toast.msg980'));
+  };
+
+  // 预设效果
+  window.applyPreset = function(name, btn) {
+    var presets = {
+      firework: {
+        count: 300, size: 3, speed: 5, color: '#FFD700',
+        bgColor: '#0A0A1A', gravity: 0.3, lifetime: 1.5,
+        linkDist: 0, mode: 'burst'
+      },
+      starry: {
+        count: 200, size: 2, speed: 0.2, color: '#FFFFFF',
+        bgColor: '#0B0D2E', gravity: 0, lifetime: -1,
+        linkDist: 80, mode: 'continuous'
+      },
+      snow: {
+        count: 250, size: 4, speed: 1.5, color: '#E8F4FD',
+        bgColor: '#1A2332', gravity: 0.15, lifetime: -1,
+        linkDist: 0, mode: 'continuous'
+      },
+      fountain: {
+        count: 200, size: 3.5, speed: 4, color: '#00C9A7',
+        bgColor: '#0D1B2A', gravity: 0.5, lifetime: 2.5,
+        linkDist: 0, mode: 'burst'
+      },
+      nebula: {
+        count: 400, size: 5, speed: 0.8, color: '#9B6CF5',
+        bgColor: '#0F0A1E', gravity: 0, lifetime: -1,
+        linkDist: 100, mode: 'continuous'
+      }
+    };
+
+    var p = presets[name];
+    if (!p) return;
+
+    // 设置控件值
+    document.getElementById('count').value = p.count;
+    document.getElementById('psize').value = p.size;
+    document.getElementById('speed').value = p.speed;
+    document.getElementById('pColor').value = p.color;
+    document.getElementById('bgColor').value = p.bgColor;
+    document.getElementById('gravity').value = p.gravity;
+    if (p.lifetime > 0) {
+      document.getElementById('lifetime').value = p.lifetime;
+    } else {
+      document.getElementById('lifetime').value = 5;
+    }
+    document.getElementById('linkDist').value = p.linkDist;
+
+    // 切换模式
+    var modeBtns = document.querySelectorAll('.mode-btn');
+    for (var i = 0; i < modeBtns.length; i++) {
+      modeBtns[i].classList.toggle('active',
+        modeBtns[i].getAttribute('data-mode') === p.mode);
+    }
+
+    // 高亮预设按钮
+    var presetBtns = document.querySelectorAll('.preset-btn');
+    for (var j = 0; j < presetBtns.length; j++) {
+      presetBtns[j].classList.remove('active');
+    }
+    if (btn) btn.classList.add('active');
+
+    readParams();
+    opts.mode = p.mode;
+    particles.length = 0;
+    burstTimer = 0;
+    spiralAngle = 0;
+
+    ToolBox.showToast('已应用预设：' + (btn ? btn.textContent.trim() : name));
+  };
+
+  // ====== 鼠标事件 ======
+  canvas.addEventListener('mousemove', function(e) {
+    var rect = canvas.getBoundingClientRect();
+    mouseX = e.clientX - rect.left;
+    mouseY = e.clientY - rect.top;
+  });
+  canvas.addEventListener('mouseleave', function() {
+    mouseX = -9999;
+    mouseY = -9999;
+  });
+  canvas.addEventListener('touchmove', function(e) {
+    e.preventDefault();
+    var rect = canvas.getBoundingClientRect();
+    var touch = e.touches[0];
+    mouseX = touch.clientX - rect.left;
+    mouseY = touch.clientY - rect.top;
+  }, { passive: false });
+  canvas.addEventListener('touchend', function() {
+    mouseX = -9999;
+    mouseY = -9999;
+  });
+
+  // ====== 点击产生爆发粒子 ======
+  canvas.addEventListener('click', function(e) {
+    var rect = canvas.getBoundingClientRect();
+    var cx = e.clientX - rect.left;
+    var cy = e.clientY - rect.top;
+    var burstCount = 20;
+    for (var i = 0; i < burstCount; i++) {
+      var angle = (Math.PI * 2 / burstCount) * i;
+      var sp = createParticle(cx, cy);
+      sp.vx = Math.cos(angle) * opts.speed * 2;
+      sp.vy = Math.sin(angle) * opts.speed * 2;
+      sp.life = opts.lifetime > 0 ? opts.lifetime * 0.6 : 60;
+      sp.maxLife = sp.life > 0 ? sp.life : -1;
+      particles.push(sp);
+    }
+  });
+
+  // ====== 窗口 resize ======
+  window.addEventListener('resize', function() {
+    resizeCanvas();
+  });
+
+  // ====== 初始化 ======
+  function init() {
+    resizeCanvas();
+    readParams();
+    animId = requestAnimationFrame(animate);
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+
+})();
+</script>
+
+<!-- SEO 介绍区块 -->
+
+</div>
+
+</div>
+
+<!-- 相关工具 -->
+<div class="related-tools" data-related-tools="1">
+  <h3 class="related-tools-title">🔗 相关工具</h3>
+  <div class="related-tools-grid">
+    <a href="generator-10.html" class="related-tool-card">
+      <span class="rt-icon">🎨</span>
+      <span class="rt-info"><span class="rt-name">CSS动画生成器（关键帧可视化） - 免费在线工具，纯前端处理 | ToolBox免费在线工具箱</span><span class="rt-desc">CSS动画生成器（关键帧可视化）</span></span>
+    </a>
+    <a href="generator-5.html" class="related-tool-card">
+      <span class="rt-icon">🎨</span>
+      <span class="rt-info"><span class="rt-name">CSS渐变生成器（线性/径向/圆锥） - 免费在线工具，纯前端处理 | ToolBox免费在线工具箱</span><span class="rt-desc">CSS渐变生成器（线性/径向/圆锥）</span></span>
+    </a>
+    <a href="web-audio-metronome.html" class="related-tool-card">
+      <span class="rt-icon">🎼</span>
+      <span class="rt-info"><span class="rt-name">Web Audio 节拍器 - 免费生成器工具，在线节拍器 | ToolBox免费在线工具箱</span><span class="rt-desc">在线节拍器</span></span>
+    </a>
+    <a href="generator-8.html" class="related-tool-card">
+      <span class="rt-icon">🎨</span>
+      <span class="rt-info"><span class="rt-name">二维码生成器（已有，可加强定制） - 免费在线工具，纯前端处理 | ToolBox免费在线工具箱</span><span class="rt-desc">二维码生成器（已有，可加强定制）</span></span>
+    </a>
+    <a href="generator-9.html" class="related-tool-card">
+      <span class="rt-icon">🎨</span>
+      <span class="rt-info"><span class="rt-name">条形码生成器（EAN-13等） - 免费在线工具，纯前端处理 | ToolBox免费在线工具箱</span><span class="rt-desc">条形码生成器（EAN-13等）</span></span>
+    </a>
+    <a href="generator-6.html" class="related-tool-card">
+      <span class="rt-icon">🎨</span>
+      <span class="rt-info"><span class="rt-name">盒子阴影生成器（可视化调整） - 免费在线工具，纯前端处理 | ToolBox免费在线工具箱</span><span class="rt-desc">盒子阴影生成器（可视化调整）</span></span>
+    </a>
+  </div>
+</div>
+<div class="tool-intro open" id="toolIntro">
+  <div class="tool-intro-header">
+    <span class="intro-icon-wrap"><span class="intro-icon">📖</span>关于「粒子特效生成器」</span>
+    <span class="arrow">▼</span>
+  </div>
+  <div class="tool-intro-body">
+    <h4><span class="h4-icon">📝</span>工具简介</h4>
+    <p>粒子特效生成器是一款设计创意领域的在线工具。设计创意工具，可视化操作，一键生成 CSS 代码。</p>
+    <h4><span class="h4-icon">✨</span>功能特点</h4>
+    <ul class="intro-features">
+      <li>可视化操作，所见即所得</li>
+      <li>支持实时预览与调试</li>
+      <li>一键复制 CSS 代码</li>
+      <li>纯前端运行，无需安装</li>
+    </ul>
+    <h4><span class="h4-icon">🎯</span>使用场景</h4>
+    <ul class="intro-scenes">
+      <li>前端开发中的样式设计</li>
+      <li>UI 设计师配色与布局参考</li>
+      <li>快速生成 CSS 效果代码</li>
+      <li>设计灵感探索与原型制作</li>
+    </ul>
+    <h4><span class="h4-icon">💬</span>常见问题</h4>
+      <div class="intro-faq-item"><div class="intro-faq-q">这个工具是免费的吗？</div><div class="intro-faq-a">完全免费，无需注册，直接在浏览器中使用。</div></div>
+      <div class="intro-faq-item"><div class="intro-faq-q">生成的代码可以直接用吗？</div><div class="intro-faq-a">可以，生成的 CSS 代码符合标准，可直接复制到项目中使用。</div></div>
+      <div class="intro-faq-item"><div class="intro-faq-q">支持自定义参数吗？</div><div class="intro-faq-a">支持，提供多种参数调节选项，满足个性化设计需求。</div></div>
+  </div>
+</div>
+<!-- /SEO 介绍区块 -->
+
+<script>
+// tool-intro折叠交互
+document.addEventListener('DOMContentLoaded',function(){
+  var headers=document.querySelectorAll('.tool-intro-header');
+  headers.forEach(function(h){
+    h.addEventListener('click',function(){
+      this.parentElement.classList.toggle('open');
+    });
+  });
+});
+</script>
+
+</body>
+</html>

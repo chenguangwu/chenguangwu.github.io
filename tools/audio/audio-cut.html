@@ -1,0 +1,954 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+
+<script src="/js/tool-page-runtime.js" defer></script>
+<!-- TOOLBOX-TOOL-RUNTIME -->
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="toolbox" content="cat=convert,industry=audio,icon=✂️,bg=#e3f2fd">
+<meta name="description" content="音频剪切工具 - 是一款基于 Web Audio API 的纯前端在线音频裁剪器。无需安装软件，上传音频后即可在可视化波形上拖拽选择片段，精确到毫秒级裁剪，并一键导出标准 WAV 文件">
+<title>音频剪切工具 - 基于 Web Audio API 的纯前端在线音频裁剪器 - ToolBox</title>
+<link rel="canonical" href="https://chenguangwu.github.io/tools/audio/audio-cut.html">
+<meta property="og:title" content="音频剪切工具 - 基于 Web Audio API 的纯前端在线音频裁剪器 - ToolBox">
+<meta property="og:description" content="音频剪切工具 - 是一款基于 Web Audio API 的纯前端在线音频裁剪器。无需安装软件，上传音频后即可在可视化波形上拖拽选择片段，精确到毫秒级裁剪，并一键导出标准 WAV 文件">
+<meta property="og:url" content="https://chenguangwu.github.io/tools/audio/audio-cut.html">
+<meta name="twitter:card" content="summary">
+<link rel="stylesheet" href="../../css/common.css">
+<script src="../../js/common.js"></script>
+<style>
+/* ===== 页面专用样式 ===== */
+.audio-drop{
+  border:2px dashed var(--border);
+  border-radius:14px;
+  padding:28px 20px;
+  text-align:center;
+  cursor:pointer;
+  transition:all .25s;
+  color:var(--text-muted);
+  font-size:14px;
+  position:relative;
+}
+.audio-drop:hover,.audio-drop.dragover{
+  border-color:var(--primary);
+  background:rgba(255,107,53,0.05);
+  color:var(--primary);
+}
+.audio-drop .drop-icon{font-size:34px;margin-bottom:8px;display:block;}
+.audio-drop input[type="file"]{display:none;}
+.audio-drop small{color:var(--text-muted);font-size:12px;}
+
+/* 文件信息 */
+.file-info{
+  display:none;
+  margin-top:14px;
+  padding:14px 16px;
+  background:var(--result-bg);
+  border:1px solid var(--border);
+  border-radius:12px;
+  font-size:13px;
+}
+.file-info.show{display:block;}
+.file-info .fi-name{font-weight:600;color:var(--text-primary);word-break:break-all;margin-bottom:6px;display:flex;align-items:center;gap:6px;}
+.file-info .fi-meta{display:flex;flex-wrap:wrap;gap:10px 18px;color:var(--text-secondary);font-size:12.5px;}
+.file-info .fi-meta span{display:inline-flex;align-items:center;gap:4px;}
+.file-info .fi-meta b{color:var(--primary);font-weight:600;}
+
+/* 波形画布容器 */
+.wave-wrap{
+  position:relative;
+  width:100%;
+  border-radius:12px;
+  overflow:hidden;
+  background:var(--result-bg);
+  border:1px solid var(--border);
+  margin:10px 0 6px;
+  user-select:none;
+  -webkit-user-select:none;
+}
+.wave-wrap canvas{display:block;width:100%;height:170px;touch-action:none;cursor:crosshair;}
+.wave-wrap.disabled canvas{cursor:not-allowed;opacity:.6;}
+.wave-hint{font-size:12px;color:var(--text-muted);margin-bottom:10px;display:flex;align-items:center;gap:6px;}
+
+/* 选区信息行 */
+.sel-info{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px 20px;
+  align-items:center;
+  margin-top:10px;
+  font-size:13px;
+  color:var(--text-secondary);
+}
+.sel-info .seg{display:inline-flex;align-items:center;gap:6px;}
+.sel-info .seg b{color:var(--primary);font-variant-numeric:tabular-nums;font-weight:600;}
+.sel-info .seg.dur b{color:var(--secondary);}
+
+/* 时间输入组 */
+.time-inputs{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:6px 0 4px;}
+.time-field label{display:flex;justify-content:space-between;align-items:center;}
+.time-field label .hint{font-size:11px;color:var(--text-muted);font-weight:400;}
+.time-field input{font-variant-numeric:tabular-nums;}
+
+/* 播放进度条（选区内） */
+.preview-bar{
+  height:6px;
+  background:var(--border);
+  border-radius:4px;
+  overflow:hidden;
+  margin:10px 0 2px;
+  display:none;
+}
+.preview-bar.show{display:block;}
+.preview-bar .fill{height:100%;width:0;background:var(--gradient-primary);border-radius:4px;transition:width .08s linear;}
+
+/* 按钮区微调 */
+.toolbar .btn .ico{font-size:14px;}
+
+@media(max-width:768px){
+  .audio-drop{padding:22px 14px;}
+  .audio-drop .drop-icon{font-size:28px;}
+  .wave-wrap canvas{height:140px;}
+  .time-inputs{grid-template-columns:1fr;gap:8px;}
+  .sel-info{gap:6px 14px;font-size:12.5px;}
+}
+</style>
+
+
+
+<meta property="og:image" content="https://chenguangwu.github.io/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="ToolBox - 6000+免费在线工具">
+<meta name="twitter:image" content="https://chenguangwu.github.io/og-image.png">
+<meta name="twitter:image:alt" content="ToolBox - 6000+免费在线工具">
+    <meta property="og:type" content="website">
+    <meta name="twitter:title" content="音频剪切工具 - 基于 Web Audio API 的纯前端在线音频裁剪器 - ToolBox">
+    <meta name="twitter:description" content="音频剪切工具 - 是一款基于 Web Audio API 的纯前端在线音频裁剪器。无需安装软件，上传音频后即可在可视化波形上拖拽选择片段，精确到毫秒级裁剪，并一键导出标准 WAV 文件">
+<!-- TOOLBOX-WEBAPP-LD -->
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"WebApplication","name":"音频剪切工具 - 基于 Web Audio API 的纯前端在线音频裁剪器","url":"https://chenguangwu.github.io/tools/audio/audio-cut.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":["zh-CN", "en-US"],"description":"音频剪切工具","image":"https://chenguangwu.github.io/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}
+</script>
+<meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
+<meta http-equiv="X-Content-Type-Options" content="nosniff">
+<meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
+<!-- TOOLBOX-SECURITY -->
+
+<script src="/js/privacy.js" defer></script>
+<!-- TOOLBOX-PRIVACY-SCRIPT -->
+
+<script src="/js/metrics.js" defer></script>
+<!-- TOOLBOX-METRICS-SCRIPT -->
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"首页","item":"https://chenguangwu.github.io/"},{"@type":"ListItem","position":2,"name":"音频工具","item":"https://chenguangwu.github.io/tools/audio/index.html"},{"@type":"ListItem","position":3,"name":"音频剪切工具","item":"https://chenguangwu.github.io/tools/audio/audio-cut.html"}]}
+</script>
+
+<script src="../../js/i18n.js" defer></script>
+<script src="../../js/tool-i18n.js" defer></script>
+<!-- TOOLBOX-I18N-SCRIPT -->
+<!-- TOOLBOX-HREFLANG -->
+<link rel="alternate" hreflang="zh-CN" href="https://chenguangwu.github.io/tools/audio/audio-cut.html">
+<link rel="alternate" hreflang="en-US" href="https://chenguangwu.github.io/tools/audio/audio-cut.html">
+<link rel="alternate" hreflang="x-default" href="https://chenguangwu.github.io/tools/audio/audio-cut.html">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:locale:alternate" content="en_US">
+
+<script src="/js/clarity.js" defer></script>
+<!-- TOOLBOX-CLARITY -->
+</head>
+<body>
+
+<h1 class="sr-only">音频剪切工具</h1>
+
+<div class="nav">
+  <a href="../../index.html">← ToolBox</a>
+  <span>/ 音频剪切工具</span>
+  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()" aria-label="切换主题">🌙</button>
+</div>
+
+
+
+
+
+<nav class="breadcrumb" aria-label="面包屑导航" data-breadcrumb="1">
+  <a href="../../index.html">首页</a>
+  <span class="bc-sep">‹</span>
+  <a href="index.html">🔧 音频工具</a>
+  <span class="bc-sep">‹</span>
+  <span class="bc-current">音频剪切工具</span>
+</nav>
+<div class="container">
+
+  <!-- 上传区 -->
+  <div class="card">
+    <h2>✂️ 音频剪切工具</h2>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;">上传音频，在波形上拖选片段，试听后导出为 WAV。纯本地处理，文件不会上传。</p>
+
+    <div class="audio-drop" id="audioDrop" onclick="document.getElementById('audioFileInput').click()">
+      <span class="drop-icon">🎵</span>
+      <span>点击或拖拽音频文件到此处</span>
+      <br><small>支持 MP3 / WAV / OGG / M4A / FLAC / WebM 等浏览器可解码格式</small>
+      <input type="file" id="audioFileInput" accept="audio/*" onchange="handleFileSelect(event)">
+    </div>
+
+    <div class="file-info" id="fileInfo">
+      <div class="fi-name">📄 <span id="fiName">—</span></div>
+      <div class="fi-meta">
+        <span>时长：<b id="fiDuration">—</b></span>
+        <span>采样率：<b id="fiSampleRate">—</b></span>
+        <span>声道：<b id="fiChannels">—</b></span>
+        <span>大小：<b id="fiSize">—</b></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- 波形与选区 -->
+  <div class="card">
+    <h3>📊 波形与选区</h3>
+    <div class="wave-hint">💡 在波形上按住鼠标左右拖拽即可选择剪切区域，也可拖动两侧手柄微调。</div>
+    <div class="wave-wrap disabled" id="waveWrap">
+      <canvas id="waveCanvas"></canvas>
+    </div>
+
+    <div class="sel-info">
+      <span class="seg">起点：<b id="selStartTxt">0:00.000</b></span>
+      <span class="seg">终点：<b id="selEndTxt">0:00.000</b></span>
+      <span class="seg dur">片段时长：<b id="selDurTxt">0:00.000</b></span>
+    </div>
+
+    <div class="preview-bar" id="previewBar"><div class="fill" id="previewFill"></div></div>
+  </div>
+
+  <!-- 精确时间输入与操作 -->
+  <div class="card">
+    <h3>⏱️ 精确时间输入（秒）</h3>
+    <div class="time-inputs">
+      <div class="time-field">
+        <label>起始时间 <span class="hint">0 ~ 总时长</span></label>
+        <input type="number" id="startInput" min="0" step="0.01" value="0" placeholder="0.00" oninput="onTimeInput('start',this.value)">
+      </div>
+      <div class="time-field">
+        <label>结束时间 <span class="hint">0 ~ 总时长</span></label>
+        <input type="number" id="endInput" min="0" step="0.01" value="0" placeholder="0.00" oninput="onTimeInput('end',this.value)">
+      </div>
+    </div>
+
+    <div class="toolbar" style="margin-top:14px;">
+      <button type="button" class="btn primary" id="btnPreview" onclick="togglePreview()" disabled><span class="ico">▶</span> 试听片段</button>
+      <button type="button" class="btn" id="btnStop" onclick="stopPreview()" disabled><span class="ico">⏹</span> 停止</button>
+      <button type="button" class="btn success" id="btnExport" onclick="exportSelection()" disabled><span class="ico">⬇</span> 导出 WAV</button>
+      <button type="button" class="btn" id="btnSelectAll" onclick="selectAll()" disabled><span class="ico">矩</span> 全选</button>
+      <button type="button" class="btn" id="btnResetSel" onclick="resetSelection()" disabled><span class="ico">↺</span> 重置选区</button>
+    </div>
+
+    <div class="result-box" id="resultBox"></div>
+    <div class="info-box">🔒 所有音频处理均在浏览器本地完成，文件不会被上传到任何服务器。</div>
+  </div>
+
+  <!-- SEO 介绍区块 -->
+  
+</div>
+
+</div>
+
+<!-- 相关工具 -->
+<div class="related-tools" data-related-tools="1">
+  <h3 class="related-tools-title">🔗 相关工具</h3>
+  <div class="related-tools-grid">
+    <a href="audio-recorder.html" class="related-tool-card">
+      <span class="rt-icon">🎙️</span>
+      <span class="rt-info"><span class="rt-name">在线录音工具 - 基于 Web Audio API 与 MediaRecord | ToolBox免费在线工具箱</span><span class="rt-desc">&amp;#127908; 在线录音工具</span></span>
+    </a>
+    <a href="audio-volume.html" class="related-tool-card">
+      <span class="rt-icon">🔊</span>
+      <span class="rt-info"><span class="rt-name">audio-volume</span><span class="rt-desc">&amp;#128266; 音频音量调节</span></span>
+    </a>
+    <a href="audio-echo.html" class="related-tool-card">
+      <span class="rt-icon">🌊</span>
+      <span class="rt-info"><span class="rt-name">音频回声混响效果 - 在线音频回声混响效果工具，基于 Web Audio API  | ToolBox免费在线工具箱</span><span class="rt-desc">音频回声混响效果</span></span>
+    </a>
+    <a href="audio-speed.html" class="related-tool-card">
+      <span class="rt-icon">⏩</span>
+      <span class="rt-info"><span class="rt-name">音频播放速度调节 - 工具，基于 Web Audio API | ToolBox免费在线工具箱</span><span class="rt-desc">⏩ 音频播放速度调节</span></span>
+    </a>
+    <a href="convert-9.html" class="related-tool-card">
+      <span class="rt-icon">🔊</span>
+      <span class="rt-info"><span class="rt-name">音频格式转换（需依赖库，如ffmpeg.wasm） - 免费在线工具，纯前端处理 | ToolBox免费在线工具箱</span><span class="rt-desc">音频格式转换（需依赖库，如ffmpeg.wasm）</span></span>
+    </a>
+    <a href="audio-waveform.html" class="related-tool-card">
+      <span class="rt-icon">📊</span>
+      <span class="rt-info"><span class="rt-name">音频波形显示工具 - 免费在线音频可视化，支持时域波形、频域频谱、静态波形概览三种 | ToolBox免费在线工具箱</span><span class="rt-desc">音频波形显示工具</span></span>
+    </a>
+  </div>
+</div>
+<div class="tool-intro open" id="toolIntro">
+    <div class="tool-intro-header">
+      <span class="intro-icon-wrap"><span class="intro-icon">📖</span> 关于「音频剪切工具」</span>
+      <span class="arrow">▼</span>
+    </div>
+    <div class="tool-intro-body">
+      <h4><span class="h4-icon">📝</span> 工具简介</h4>
+      <p>音频剪切工具是一款基于 Web Audio API 的纯前端在线音频裁剪器。无需安装软件，上传音频后即可在可视化波形上拖拽选择片段，精确到毫秒级裁剪，并一键导出标准 WAV 文件。</p>
+      <h4><span class="h4-icon">✨</span> 功能特点</h4>
+      <ul class="intro-features">
+        <li>拖拽上传音频</li>
+        <li>Canvas 波形可视化</li>
+        <li>鼠标拖选剪切区域</li>
+        <li>精确时间输入（秒）</li>
+        <li>片段试听预览</li>
+        <li>OfflineAudioContext 渲染导出</li>
+        <li>导出标准 WAV（16bit PCM）</li>
+        <li>纯本地处理，数据不上传</li>
+        <li>支持深色模式与响应式</li>
+      </ul>
+      <h4><span class="h4-icon">🎯</span> 使用场景</h4>
+      <ul class="intro-scenes">
+        <li>截取音频片段做铃声</li>
+        <li>裁剪播客/录音多余开头结尾</li>
+        <li>提取音乐高潮部分</li>
+        <li>为视频制作精准音频素材</li>
+        <li>去除音频中的静音或噪声段</li>
+      </ul>
+      <h4><span class="h4-icon">💬</span> 常见问题</h4>
+      <div class="intro-faq-item">
+        <div class="intro-faq-q">导出的为什么是 WAV 格式？</div>
+        <div class="intro-faq-a">WAV 是无损未压缩格式，可由浏览器原生 Web Audio API 直接编码生成，无需第三方库，兼容性最佳。如需 MP3，可用音频格式转换工具二次处理。</div>
+      </div>
+      <div class="intro-faq-item">
+        <div class="intro-faq-q">为什么有些音频文件无法加载？</div>
+        <div class="intro-faq-a">浏览器仅支持其内置解码器可处理的格式（如 MP3、WAV、OGG、M4A、FLAC 等）。若格式不被支持，将提示解码失败，建议转换格式后再试。</div>
+      </div>
+      <div class="intro-faq-item">
+        <div class="intro-faq-q">裁剪会损失音质吗？</div>
+        <div class="intro-faq-a">不会。本工具通过 Web Audio API 直接对原始 PCM 采样进行切片并重新渲染，导出的 WAV 与源音频在该片段内的采样数据一致，无额外有损压缩。</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 注意事项 -->
+  <div class="tool-notes">
+    <div class="tool-notes-title">⚠️ 使用说明与注意事项</div>
+    <ul>
+      <li>本工具纯前端运行，音频文件不会上传到服务器</li>
+      <li>建议在主流浏览器（Chrome / Safari / Firefox / Edge）中使用</li>
+      <li>首次播放/试听需用户交互后浏览器才会允许音频输出</li>
+      <li>大文件解码可能需要数秒，请耐心等待</li>
+      <li>导出的 WAV 文件体积较大（约每分钟 10MB/单声道），请注意存储空间</li>
+    </ul>
+  </div>
+
+</div>
+
+<script>
+'use strict';
+
+// ===== 全局状态 =====
+var audioCtx = null;
+var audioBuffer = null;       // 解码后的 AudioBuffer
+var fileName = '';
+var duration = 0;             // 总时长（秒）
+var selStart = 0;             // 选区起点（秒）
+var selEnd = 0;               // 选区终点（秒）
+var MIN_GAP = 0.02;           // 最小选区长度（秒）
+
+// 波形数据
+var peaksMin = null;          // 每列最小值
+var peaksMax = null;          // 每列最大值
+var waveWidth = 0;            // 当前峰值列数（= canvas CSS 宽度）
+
+// 播放/试听
+var previewSource = null;
+var isPreviewing = false;
+var previewStartCtxTime = 0;  // audioCtx.currentTime 起点时刻
+var previewOffset = 0;        // 试听片段在源音频中的偏移
+var previewDuration = 0;
+var rafId = null;
+
+// 拖拽选区
+var dragMode = null;          // 'new' | 'start' | 'end' | null
+var dragAnchor = 0;
+
+// DOM
+var canvas, ctx, dpr;
+
+// ===== 初始化 =====
+document.addEventListener('DOMContentLoaded', function() {
+  canvas = document.getElementById('waveCanvas');
+  ctx = canvas.getContext('2d');
+  dpr = window.devicePixelRatio || 1;
+
+  resizeCanvas();
+  drawWaveform();
+  window.addEventListener('resize', debounceResize);
+
+  // 折叠面板
+  var headers = document.querySelectorAll('.tool-intro-header');
+  headers.forEach(function(h) {
+    h.addEventListener('click', function() { this.parentElement.classList.toggle('open'); });
+  });
+
+  // 拖拽上传
+  var drop = document.getElementById('audioDrop');
+  drop.addEventListener('dragover', function(e) { e.preventDefault(); drop.classList.add('dragover'); });
+  drop.addEventListener('dragleave', function() { drop.classList.remove('dragover'); });
+  drop.addEventListener('drop', function(e) {
+    e.preventDefault();
+    drop.classList.remove('dragover');
+    var f = e.dataTransfer.files[0];
+    if (f && f.type.startsWith('audio/')) loadAudioFile(f);
+    else ToolBox.showToast(i18nText('toast.msg732'), 'warning');
+  });
+
+  // 画布交互（Pointer Events 统一鼠标/触摸）
+  canvas.addEventListener('pointerdown', onPointerDown);
+  canvas.addEventListener('pointermove', onPointerMove);
+  window.addEventListener('pointerup', onPointerUp);
+  canvas.addEventListener('pointercancel', onPointerUp);
+
+  // 主题切换时重绘
+  var mo = new MutationObserver(function() { drawWaveform(); });
+  mo.observe(document.body, { attributes: true, attributeFilter: ['class'] });
+  mo.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+});
+
+function debounceResize() {
+  clearTimeout(window._rzT);
+  window._rzT = setTimeout(function() {
+    resizeCanvas();
+    computePeaks();
+    drawWaveform();
+  }, 150);
+}
+
+function resizeCanvas() {
+  var cssW = canvas.parentElement.clientWidth;
+  var cssH = 170;
+  if (window.innerWidth <= 768) cssH = 140;
+  canvas.width = Math.floor(cssW * dpr);
+  canvas.height = Math.floor(cssH * dpr);
+  canvas.style.height = cssH + 'px';
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.scale(dpr, dpr);
+}
+
+// ===== 音频上下文 =====
+function ensureCtx() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+  return audioCtx;
+}
+
+// ===== 文件处理 =====
+function handleFileSelect(e) {
+  var f = e.target.files[0];
+  if (f) loadAudioFile(f);
+  e.target.value = ''; // 允许重复选择同一文件
+}
+
+function loadAudioFile(file) {
+  stopPreview();
+  fileName = file.name;
+  ToolBox.showToast(i18nText('toast.msg464'), 'info');
+
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    ensureCtx();
+    audioCtx.decodeAudioData(
+      e.target.result,
+      function(buf) { onDecoded(buf, file); },
+      function(err) {
+        console.error('解码失败', err);
+        ToolBox.showToast(i18nText('toast.msg991'), 'error');
+      }
+    );
+  };
+  reader.onerror = function() { ToolBox.showToast('toast.import_failed', 'error'); };
+  reader.readAsArrayBuffer(file);
+}
+
+function onDecoded(buf, file) {
+  audioBuffer = buf;
+  duration = buf.duration;
+  selStart = 0;
+  selEnd = duration;
+
+  // 文件信息
+  document.getElementById('fileInfo').classList.add('show');
+  document.getElementById('fiName').textContent = file.name;
+  document.getElementById('fiDuration').textContent = formatTime(duration);
+  document.getElementById('fiSampleRate').textContent = buf.sampleRate + ' Hz';
+  document.getElementById('fiChannels').textContent = buf.numberOfChannels + (buf.numberOfChannels === 1 ? '（单声道）' : '（立体声）');
+  document.getElementById('fiSize').textContent = formatSize(file.size);
+
+  // 启用按钮
+  ['btnPreview', 'btnExport', 'btnSelectAll', 'btnResetSel'].forEach(function(id) {
+    document.getElementById(id).disabled = false;
+  });
+  document.getElementById('waveWrap').classList.remove('disabled');
+
+  // 时间输入
+  var startIn = document.getElementById('startInput');
+  var endIn = document.getElementById('endInput');
+  startIn.max = duration.toFixed(3);
+  endIn.max = duration.toFixed(3);
+  startIn.value = '0';
+  endIn.value = duration.toFixed(3);
+
+  computePeaks();
+  drawWaveform();
+  updateSelInfo(true);
+  setResult('已加载 <strong>' + escHtml(fileName) + '</strong>，时长 ' + formatTime(duration) + '。可在波形上拖选剪切区域。');
+  ToolBox.showToast('tool.audio_load_ok', 'success');
+}
+
+// ===== 峰值计算 =====
+function computePeaks() {
+  if (!audioBuffer) return;
+  var cssW = canvas.parentElement.clientWidth;
+  waveWidth = Math.max(1, Math.floor(cssW));
+  peaksMin = new Float32Array(waveWidth);
+  peaksMax = new Float32Array(waveWidth);
+
+  var ch0 = audioBuffer.getChannelData(0);
+  var total = ch0.length;
+  var samplesPerCol = total / waveWidth;
+
+  for (var c = 0; c < waveWidth; c++) {
+    var startIdx = Math.floor(c * samplesPerCol);
+    var endIdx = Math.floor((c + 1) * samplesPerCol);
+    if (endIdx <= startIdx) endIdx = startIdx + 1;
+    var mn = 1.0, mx = -1.0;
+    for (var i = startIdx; i < endIdx && i < total; i++) {
+      var v = ch0[i];
+      // 多声道取最大绝对值近似（用第一声道渲染，足够代表波形）
+      if (v < mn) mn = v;
+      if (v > mx) mx = v;
+    }
+    peaksMin[c] = mn;
+    peaksMax[c] = mx;
+  }
+}
+
+// ===== 绘制 =====
+function themeColors() {
+  var dark = document.body.classList.contains('dark');
+  return {
+    bg: dark ? '#252540' : '#FFF8F5',
+    wave: dark ? 'rgba(124,58,237,0.75)' : 'rgba(255,107,53,0.55)',
+    waveSel: dark ? '#FF8A5C' : '#FF6B35',
+    center: dark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
+    selBg: dark ? 'rgba(255,138,92,0.18)' : 'rgba(255,107,53,0.14)',
+    selBorder: dark ? '#FF8A5C' : '#FF6B35',
+    handle: '#FF6B35',
+    axis: dark ? 'rgba(255,255,255,0.35)' : 'rgba(0,0,0,0.4)',
+    playhead: '#00C9A7'
+  };
+}
+
+function drawWaveform(playheadTime) {
+  var cssW = canvas.parentElement.clientWidth;
+  var cssH = parseFloat(canvas.style.height) || 170;
+  var colors = themeColors();
+  var waveH = cssH - 22;     // 留底部给时间轴
+  var mid = waveH / 2;
+
+  ctx.clearRect(0, 0, cssW, cssH);
+  ctx.fillStyle = colors.bg;
+  ctx.fillRect(0, 0, cssW, cssH);
+
+  // 中心线
+  ctx.strokeStyle = colors.center;
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(0, mid);
+  ctx.lineTo(cssW, mid);
+  ctx.stroke();
+
+  if (!audioBuffer || !peaksMax) {
+    // 空状态提示
+    ctx.fillStyle = colors.axis;
+    ctx.font = '13px -apple-system, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('请先上传音频文件', cssW / 2, mid + 5);
+    drawAxis(cssW, cssH, waveH, colors, 1);
+    return;
+  }
+
+  // 选区像素范围
+  var sx = timeToX(selStart, cssW);
+  var ex = timeToX(selEnd, cssW);
+
+  // 选区背景
+  ctx.fillStyle = colors.selBg;
+  ctx.fillRect(sx, 0, ex - sx, waveH);
+
+  // 波形
+  for (var i = 0; i < waveWidth; i++) {
+    var x = i;
+    if (x >= cssW) break;
+    var inSel = (x >= sx && x <= ex);
+    var mn = peaksMin[i];
+    var mx = peaksMax[i];
+    var y1 = mid - mx * (mid - 2);
+    var y2 = mid - mn * (mid - 2);
+    if (y2 < y1) { var t = y1; y1 = y2; y2 = t; }
+    ctx.fillStyle = inSel ? colors.waveSel : colors.wave;
+    ctx.fillRect(x, y1, 1, Math.max(1, y2 - y1));
+  }
+
+  // 选区边框 + 手柄
+  ctx.strokeStyle = colors.selBorder;
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(sx, 0); ctx.lineTo(sx, waveH);
+  ctx.moveTo(ex, 0); ctx.lineTo(ex, waveH);
+  ctx.stroke();
+  // 手柄小方块
+  ctx.fillStyle = colors.handle;
+  ctx.fillRect(sx - 3, 0, 6, 8);
+  ctx.fillRect(ex - 3, 0, 6, 8);
+
+  // 播放头
+  if (typeof playheadTime === 'number') {
+    var px = timeToX(playheadTime, cssW);
+    if (px >= 0 && px <= cssW) {
+      ctx.strokeStyle = colors.playhead;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(px, 0);
+      ctx.lineTo(px, waveH);
+      ctx.stroke();
+    }
+  }
+
+  drawAxis(cssW, cssH, waveH, colors, duration);
+}
+
+function drawAxis(cssW, cssH, waveH, colors, dur) {
+  ctx.fillStyle = colors.axis;
+  ctx.font = '10px -apple-system, sans-serif';
+  ctx.textAlign = 'left';
+  var ticks = 6;
+  for (var i = 0; i <= ticks; i++) {
+    var x = (cssW / ticks) * i;
+    var t = (dur / ticks) * i;
+    if (i === ticks) { ctx.textAlign = 'right'; x = cssW - 1; }
+    else if (i === 0) { ctx.textAlign = 'left'; }
+    else ctx.textAlign = 'center';
+    ctx.fillText(formatTimeShort(t), x, cssH - 6);
+  }
+}
+
+// 坐标换算
+function timeToX(t, cssW) { return duration > 0 ? (t / duration) * cssW : 0; }
+function xToTime(x, cssW) { return duration > 0 ? (x / cssW) * duration : 0; }
+
+// ===== 画布交互（拖选） =====
+function getCanvasX(e) {
+  var rect = canvas.getBoundingClientRect();
+  var x = e.clientX - rect.left;
+  return Math.max(0, Math.min(rect.width, x));
+}
+
+function onPointerDown(e) {
+  if (!audioBuffer) return;
+  e.preventDefault();
+  canvas.setPointerCapture(e.pointerId);
+  var cssW = canvas.parentElement.clientWidth;
+  var x = getCanvasX(e);
+  var sx = timeToX(selStart, cssW);
+  var ex = timeToX(selEnd, cssW);
+  var nearStart = Math.abs(x - sx) < 7;
+  var nearEnd = Math.abs(x - ex) < 7;
+
+  if (nearStart && !nearEnd) {
+    dragMode = 'start';
+  } else if (nearEnd) {
+    dragMode = 'end';
+  } else {
+    dragMode = 'new';
+    dragAnchor = xToTime(x, cssW);
+    selStart = dragAnchor;
+    selEnd = dragAnchor;
+  }
+  drawWaveform();
+}
+
+function onPointerMove(e) {
+  if (!audioBuffer || !dragMode) return;
+  e.preventDefault();
+  var cssW = canvas.parentElement.clientWidth;
+  var x = getCanvasX(e);
+  var t = xToTime(x, cssW);
+
+  if (dragMode === 'start') {
+    selStart = clamp(t, 0, selEnd - MIN_GAP);
+  } else if (dragMode === 'end') {
+    selEnd = clamp(t, selStart + MIN_GAP, duration);
+  } else { // new
+    var a = dragAnchor;
+    selStart = clamp(Math.min(a, t), 0, duration);
+    selEnd = clamp(Math.max(a, t), MIN_GAP, duration);
+    if (selEnd - selStart < MIN_GAP) selEnd = Math.min(duration, selStart + MIN_GAP);
+  }
+  drawWaveform();
+  updateSelInfo(true);
+}
+
+function onPointerUp(e) {
+  if (!dragMode) return;
+  dragMode = null;
+  if (selStart > selEnd) { var t = selStart; selStart = selEnd; selEnd = t; }
+  if (selEnd - selStart < MIN_GAP) selEnd = Math.min(duration, selStart + MIN_GAP);
+  updateSelInfo(true);
+  drawWaveform();
+}
+
+// ===== 时间输入联动 =====
+function onTimeInput(which, val) {
+  if (!audioBuffer) return;
+  var v = parseFloat(val);
+  if (isNaN(v)) return;
+  v = clamp(v, 0, duration);
+  if (which === 'start') {
+    selStart = clamp(v, 0, selEnd - MIN_GAP);
+  } else {
+    selEnd = clamp(v, selStart + MIN_GAP, duration);
+  }
+  drawWaveform();
+  updateSelInfo(false);
+}
+
+function selectAll() {
+  if (!audioBuffer) return;
+  selStart = 0; selEnd = duration;
+  drawWaveform();
+  updateSelInfo(true);
+}
+
+function resetSelection() {
+  if (!audioBuffer) return;
+  stopPreview();
+  selStart = Math.max(0, duration * 0.1);
+  selEnd = Math.min(duration, duration * 0.9);
+  drawWaveform();
+  updateSelInfo(true);
+  ToolBox.showToast(i18nText('toast.msg327'), 'info');
+}
+
+// ===== 选区信息更新 =====
+// updateInputs: 是否同步更新两个 number 输入框（手动输入时传 false 以免光标跳动）
+function updateSelInfo(updateInputs) {
+  document.getElementById('selStartTxt').textContent = formatTime(selStart);
+  document.getElementById('selEndTxt').textContent = formatTime(selEnd);
+  document.getElementById('selDurTxt').textContent = formatTime(selEnd - selStart);
+  if (updateInputs) {
+    document.getElementById('startInput').value = selStart.toFixed(3);
+    document.getElementById('endInput').value = selEnd.toFixed(3);
+  }
+}
+
+// ===== 试听 =====
+function togglePreview() {
+  if (!audioBuffer) return;
+  if (isPreviewing) { stopPreview(); return; }
+  startPreview();
+}
+
+function startPreview() {
+  ensureCtx();
+  stopPreview();
+  if (selEnd - selStart < MIN_GAP) { ToolBox.showToast(i18nText('toast.msg977'), 'warning'); return; }
+
+  previewSource = audioCtx.createBufferSource();
+  previewSource.buffer = audioBuffer;
+  previewSource.connect(audioCtx.destination);
+  previewOffset = selStart;
+  previewDuration = selEnd - selStart;
+  previewSource.start(0, previewOffset, previewDuration);
+  previewSource.onended = function() {
+    if (isPreviewing) endPreview();
+  };
+
+  isPreviewing = true;
+  previewStartCtxTime = audioCtx.currentTime;
+  document.getElementById('btnPreview').innerHTML = '<span class="ico">⏸</span> 停止试听';
+  document.getElementById('btnStop').disabled = false;
+  document.getElementById('previewBar').classList.add('show');
+  setResult('正在试听片段：<strong>' + formatTime(selStart) + '</strong> ~ <strong>' + formatTime(selEnd) + '</strong>');
+  animatePreview();
+}
+
+function animatePreview() {
+  if (!isPreviewing) return;
+  var elapsed = audioCtx.currentTime - previewStartCtxTime;
+  var cur = previewOffset + elapsed;
+  var ratio = Math.min(1, elapsed / previewDuration);
+  document.getElementById('previewFill').style.width = (ratio * 100) + '%';
+  drawWaveform(cur);
+  if (cur >= previewOffset + previewDuration) {
+    endPreview();
+    return;
+  }
+  rafId = requestAnimationFrame(animatePreview);
+}
+
+function endPreview() {
+  isPreviewing = false;
+  previewSource = null;
+  if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
+  document.getElementById('btnPreview').innerHTML = '<span class="ico">▶</span> 试听片段';
+  document.getElementById('btnStop').disabled = true;
+  document.getElementById('previewFill').style.width = '0%';
+  document.getElementById('previewBar').classList.remove('show');
+  drawWaveform();
+}
+
+function stopPreview() {
+  if (previewSource) {
+    try { previewSource.onended = null; previewSource.stop(); } catch (e) {}
+  }
+  if (isPreviewing) endPreview();
+}
+
+// ===== 导出 WAV（OfflineAudioContext）=====
+function exportSelection() {
+  if (!audioBuffer) return;
+  stopPreview();
+  if (selEnd - selStart < MIN_GAP) { ToolBox.showToast(i18nText('toast.msg976'), 'warning'); return; }
+
+  var sr = audioBuffer.sampleRate;
+  var nch = audioBuffer.numberOfChannels;
+  var startSample = Math.floor(selStart * sr);
+  var endSample = Math.floor(selEnd * sr);
+  var length = endSample - startSample;
+  if (length <= 0) { ToolBox.showToast(i18nText('toast.msg975'), 'error'); return; }
+
+  ToolBox.showToast(i18nText('toast.msg461'), 'info');
+  document.getElementById('btnExport').disabled = true;
+
+  var offline;
+  try {
+    offline = new OfflineAudioContext(nch, length, sr);
+  } catch (err) {
+    ToolBox.showToast(i18nText('toast.msg348'), 'error');
+    document.getElementById('btnExport').disabled = false;
+    return;
+  }
+
+  var src = offline.createBufferSource();
+  src.buffer = audioBuffer;
+  src.connect(offline.destination);
+  src.start(0, selStart, selEnd - selStart);
+
+  offline.startRendering().then(function(rendered) {
+    var blob = audioBufferToWav(rendered);
+    downloadBlob(blob, makeExportName());
+    document.getElementById('btnExport').disabled = false;
+    setResult('导出成功！片段 <strong>' + formatTime(selStart) + ' ~ ' + formatTime(selEnd) + '</strong>（' + formatTime(selEnd - selStart) + '），WAV 文件大小 ' + formatSize(blob.size) + '。');
+    ToolBox.showToast(i18nText('toast.msg021'), 'success');
+  }).catch(function(err) {
+    console.error(err);
+    document.getElementById('btnExport').disabled = false;
+    ToolBox.showToast(i18nText('toast.msg138'), 'error');
+  });
+}
+
+function makeExportName() {
+  var base = (fileName || 'audio').replace(/\.[^.]+$/, '');
+  return base + '_cut_' + selStart.toFixed(1) + '-' + selEnd.toFixed(1) + '.wav';
+}
+
+// WAV 编码（16bit PCM）
+function audioBufferToWav(buffer) {
+  var numCh = buffer.numberOfChannels;
+  var sr = buffer.sampleRate;
+  var numSamples = buffer.length;
+  var bitDepth = 16;
+  var bytesPerSample = bitDepth / 8;
+  var blockAlign = numCh * bytesPerSample;
+  var dataSize = numSamples * blockAlign;
+  var ab = new ArrayBuffer(44 + dataSize);
+  var view = new DataView(ab);
+
+  writeStr(view, 0, 'RIFF');
+  view.setUint32(4, 36 + dataSize, true);
+  writeStr(view, 8, 'WAVE');
+  writeStr(view, 12, 'fmt ');
+  view.setUint32(16, 16, true);       // fmt chunk size
+  view.setUint16(20, 1, true);        // PCM
+  view.setUint16(22, numCh, true);
+  view.setUint32(24, sr, true);
+  view.setUint32(28, sr * blockAlign, true);
+  view.setUint16(32, blockAlign, true);
+  view.setUint16(34, bitDepth, true);
+  writeStr(view, 36, 'data');
+  view.setUint32(40, dataSize, true);
+
+  var channels = [];
+  for (var c = 0; c < numCh; c++) channels.push(buffer.getChannelData(c));
+  var offset = 44;
+  for (var i = 0; i < numSamples; i++) {
+    for (var c = 0; c < numCh; c++) {
+      var s = Math.max(-1, Math.min(1, channels[c][i]));
+      s = s < 0 ? s * 0x8000 : s * 0x7FFF;
+      view.setInt16(offset, s, true);
+      offset += 2;
+    }
+  }
+  return new Blob([view], { type: 'audio/wav' });
+}
+
+function writeStr(view, offset, str) {
+  for (var i = 0; i < str.length; i++) view.setUint8(offset + i, str.charCodeAt(i));
+}
+
+function downloadBlob(blob, name) {
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a');
+  a.href = url;
+  a.download = name;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(function() { URL.revokeObjectURL(url); }, 0);
+}
+
+// ===== 工具函数 =====
+function clamp(v, min, max) { return v < min ? min : (v > max ? max : v); }
+
+function formatTime(sec) {
+  if (!isFinite(sec) || sec < 0) sec = 0;
+  var m = Math.floor(sec / 60);
+  var s = Math.floor(sec % 60);
+  var ms = Math.floor((sec % 1) * 1000);
+  return m + ':' + String(s).padStart(2, '0') + '.' + String(ms).padStart(3, '0');
+}
+
+function formatTimeShort(sec) {
+  if (!isFinite(sec) || sec < 0) sec = 0;
+  var m = Math.floor(sec / 60);
+  var s = Math.floor(sec % 60);
+  return m + ':' + String(s).padStart(2, '0');
+}
+
+function formatSize(bytes) {
+  if (bytes < 1024) return bytes + ' B';
+  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+  return (bytes / 1024 / 1024).toFixed(2) + ' MB';
+}
+
+function setResult(html) {
+  document.getElementById('resultBox').innerHTML = '<p>' + html + '</p>';
+}
+
+function escHtml(s) {
+  var d = document.createElement('div');
+  d.textContent = s == null ? '' : String(s);
+  return d.innerHTML;
+}
+</script>
+
+</body>
+</html>

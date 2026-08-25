@@ -1,0 +1,926 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+
+<script src="/js/tool-page-runtime.js" defer></script>
+<!-- TOOLBOX-TOOL-RUNTIME -->
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="toolbox" content="cat=engineer,industry=music,icon=🎵,bg=#e3f2fd">
+<title>节拍细分计算器 - ：计算各种音符时值、附点、三连音的精确时长 - ToolBox</title>
+<link rel="canonical" href="https://chenguangwu.github.io/tools/music/beat-subdivision.html">
+<meta property="og:url" content="https://chenguangwu.github.io/tools/music/beat-subdivision.html">
+<meta name="twitter:card" content="summary">
+<meta name="description" content="节拍细分计算器 - ：计算各种音符时值、附点、三连音的精确时长，支持拍号选择、小节可视化、Web Audio节拍器、BPM对比功能。。音乐艺术工具，纯前端实现，支持实时试听">
+<meta name="keywords" content="节拍细分,音符时值,BPM计算器,附点音符,三连音,节拍器,音乐节拍,拍号,音符时长">
+<meta property="og:title" content="节拍细分计算器 - ：计算各种音符时值、附点、三连音的精确时长 - ToolBox">
+<meta property="og:description" content="节拍细分计算器 - ：计算各种音符时值、附点、三连音的精确时长，支持拍号选择、小节可视化、Web Audio节拍器、BPM对比功能。。音乐艺术工具，纯前端实现，支持实时试听">
+<link rel="icon" type="image/svg+xml" href="../../favicon.svg">
+<link rel="icon" type="image/x-icon" href="../../favicon.ico">
+<link rel="stylesheet" href="../../css/common.css">
+<script src="../../js/common.js"></script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebApplication",
+  "name": "节拍细分计算器",
+  "description": "精确计算各种音符时值、附点、三连音的时长，支持拍号选择、小节可视化、Web Audio节拍器。",
+  "applicationCategory": "MusicApplication",
+  "operatingSystem": "Any",
+  "offers": {"@type": "Offer", "price": "0", "priceCurrency": "CNY"}
+}
+</script>
+<style>
+  /* 细分表格行高亮 */
+  .sub-table tr.highlight td { background: rgba(255,107,53,0.06); font-weight: 600; }
+  .sub-table tr:hover td { background: var(--bg-hover); }
+  .sub-table td, .sub-table th { text-align: center; white-space: nowrap; }
+  .sub-table td:first-child, .sub-table th:first-child { text-align: left; }
+  .note-symbol { font-size: 15px; }
+
+  /* 可视化小节方格 */
+  .viz-bar {
+    display: flex; gap: 2px; padding: 12px; background: var(--result-bg);
+    border-radius: 12px; overflow-x: auto; align-items: stretch; flex-wrap: wrap;
+  }
+  .viz-beat {
+    display: flex; gap: 1px; flex: 1; min-width: 60px;
+  }
+  .viz-cell {
+    flex: 1; min-width: 10px; height: 36px; border-radius: 4px;
+    background: var(--border); transition: all 0.2s; cursor: pointer; position: relative;
+  }
+  .viz-cell:hover { opacity: 0.8; transform: scaleY(1.1); }
+  .viz-cell.active { animation: vizPulse 0.15s ease; }
+  @keyframes vizPulse {
+    0% { transform: scaleY(0.7); } 50% { transform: scaleY(1.15); } 100% { transform: scaleY(1); }
+  }
+  .viz-beat-label {
+    text-align: center; font-size: 11px; color: var(--text-muted); margin-top: 4px;
+    font-weight: 600;
+  }
+
+  /* 节拍器控制 */
+  .metronome-ctrl {
+    display: flex; gap: 10px; align-items: center; flex-wrap: wrap;
+  }
+  .metro-btn { width: 52px; height: 52px; border-radius: 50%; border: 2px solid var(--primary);
+    background: var(--card-bg); color: var(--primary); font-size: 20px; cursor: pointer;
+    transition: all 0.2s; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .metro-btn:hover { background: var(--bg-hover); transform: scale(1.05); }
+  .metro-btn.playing { background: var(--primary); color: #fff; animation: metroPulse 0.3s ease; }
+  @keyframes metroPulse { 0%{box-shadow:0 0 0 0 rgba(255,107,53,0.4);} 100%{box-shadow:0 0 0 12px rgba(255,107,53,0);} }
+
+  /* BPM 对比 */
+  .compare-arrow { font-size: 20px; color: var(--primary); font-weight: 700; text-align: center; }
+  .compare-diff { color: var(--primary); font-weight: 700; }
+
+  /* 音符类型选择器 */
+  .note-type-grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 8px;
+  }
+  .note-type-item {
+    padding: 10px; border-radius: 12px; border: 1.5px solid var(--border);
+    background: var(--card-bg); cursor: pointer; text-align: center;
+    transition: all 0.2s; font-size: 13px;
+  }
+  .note-type-item:hover { border-color: var(--primary); transform: translateY(-1px); }
+  .note-type-item.selected { border-color: var(--primary); background: var(--bg-active); color: var(--primary); font-weight: 600; }
+  .note-type-item .note-icon { font-size: 22px; display: block; margin-bottom: 4px; }
+
+  /* 速度指示 */
+  .tempo-label { font-size: 13px; color: var(--text-muted); margin-top: 4px; font-weight: 500; }
+  .tempo-name { color: var(--primary); font-weight: 600; }
+
+  @media(max-width:768px){
+    .viz-bar { padding: 10px; }
+    .viz-cell { height: 28px; min-width: 8px; }
+    .metro-btn { width: 48px; height: 48px; font-size: 18px; }
+    .note-type-grid { grid-template-columns: repeat(3, 1fr); }
+  }
+</style>
+
+
+
+<meta property="og:image" content="https://chenguangwu.github.io/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="ToolBox - 6000+免费在线工具">
+<meta name="twitter:image" content="https://chenguangwu.github.io/og-image.png">
+<meta name="twitter:image:alt" content="ToolBox - 6000+免费在线工具">
+    <meta property="og:type" content="website">
+    <meta name="twitter:title" content="节拍细分计算器 - ：计算各种音符时值、附点、三连音的精确时长 - ToolBox">
+    <meta name="twitter:description" content="节拍细分计算器 - ：计算各种音符时值、附点、三连音的精确时长，支持拍号选择、小节可视化、Web Audio节拍器、BPM对比功能。。音乐艺术工具，纯前端实现，支持实时试听">
+<!-- TOOLBOX-WEBAPP-LD -->
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"WebApplication","name":"节拍细分计算器 - ：计算各种音符时值、附点、三连音的精确时长","url":"https://chenguangwu.github.io/tools/music/beat-subdivision.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":["zh-CN", "en-US"],"description":"节拍细分计算器","image":"https://chenguangwu.github.io/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}
+</script>
+<meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
+<meta http-equiv="X-Content-Type-Options" content="nosniff">
+<meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
+<!-- TOOLBOX-SECURITY -->
+
+<script src="/js/privacy.js" defer></script>
+<!-- TOOLBOX-PRIVACY-SCRIPT -->
+
+<script src="/js/metrics.js" defer></script>
+<!-- TOOLBOX-METRICS-SCRIPT -->
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"首页","item":"https://chenguangwu.github.io/"},{"@type":"ListItem","position":2,"name":"音乐艺术","item":"https://chenguangwu.github.io/tools/music/index.html"},{"@type":"ListItem","position":3,"name":"节拍细分计算器","item":"https://chenguangwu.github.io/tools/music/beat-subdivision.html"}]}
+</script>
+
+<script src="../../js/i18n.js" defer></script>
+<script src="../../js/tool-i18n.js" defer></script>
+<!-- TOOLBOX-I18N-SCRIPT -->
+<!-- TOOLBOX-HREFLANG -->
+<link rel="alternate" hreflang="zh-CN" href="https://chenguangwu.github.io/tools/music/beat-subdivision.html">
+<link rel="alternate" hreflang="en-US" href="https://chenguangwu.github.io/tools/music/beat-subdivision.html">
+<link rel="alternate" hreflang="x-default" href="https://chenguangwu.github.io/tools/music/beat-subdivision.html">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:locale:alternate" content="en_US">
+
+<script src="/js/clarity.js" defer></script>
+<!-- TOOLBOX-CLARITY -->
+</head>
+<body>
+<h1 class="sr-only">节拍细分计算器</h1>
+
+
+<!-- 导航栏 -->
+<div class="nav">
+  <a href="../../index.html">← ToolBox</a>
+  <span>/ 节拍细分计算器</span>
+  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()">🌙</button>
+</div>
+
+
+
+
+
+<nav class="breadcrumb" aria-label="面包屑导航" data-breadcrumb="1">
+  <a href="../../index.html">首页</a>
+  <span class="bc-sep">‹</span>
+  <a href="index.html">🎵 音乐艺术</a>
+  <span class="bc-sep">‹</span>
+  <span class="bc-current">节拍细分计算器</span>
+</nav>
+<div class="container">
+
+  <!-- 主控制卡片 -->
+  <div class="card tool-card-accent" style="--tool-accent:#FF6B35;">
+    <h2>🎵 节拍细分计算器</h2>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;">计算各种音符时值、附点、三连音的精确时长，可视化小节结构</p>
+
+    <div class="input-row">
+      <div style="flex:1;min-width:120px;">
+        <label>BPM（速度）</label>
+        <input type="number" id="bpm" value="120" min="1" max="999" oninput="calculate()">
+      </div>
+      <div style="flex:1;min-width:120px;">
+        <label>拍号</label>
+        <select id="timeSig" onchange="calculate()">
+          <option value="2/4">2/4</option>
+          <option value="3/4">3/4</option>
+          <option value="4/4" selected>4/4</option>
+          <option value="5/4">5/4</option>
+          <option value="6/8">6/8</option>
+          <option value="7/8">7/8</option>
+          <option value="3/8">3/8</option>
+          <option value="9/8">9/8</option>
+          <option value="12/8">12/8</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="toolbar">
+      <button type="button" class="btn primary" onclick="calculate()">计算</button>
+      <button type="button" class="btn" onclick="ToolBox.copyText(generateTextReport())">复制结果</button>
+      <button type="button" class="btn" onclick="ToolBox.downloadText('beat-subdivision.txt', generateTextReport())">导出文本</button>
+    </div>
+
+    <div class="tempo-label" id="tempoLabel"></div>
+  </div>
+
+  <!-- 统计概览 -->
+  <div class="stat-grid" id="statGrid"></div>
+
+  <!-- 选项卡 -->
+  <div class="card">
+    <div class="tabs">
+      <button type="button" class="tab-btn active" onclick="switchTab('table')">音符时值表</button>
+      <button type="button" class="tab-btn" onclick="switchTab('visual')">小节可视化</button>
+      <button type="button" class="tab-btn" onclick="switchTab('metronome')">节拍器</button>
+      <button type="button" class="tab-btn" onclick="switchTab('compare')">BPM 对比</button>
+    </div>
+
+    <!-- 音符时值表 -->
+    <div class="tab-content active" id="tab-table">
+      <h3>音符时长对照表</h3>
+      <div style="overflow-x:auto;" id="tableContainer"></div>
+      <div class="tip-box tip-info" style="margin-top:12px;">
+        <strong>提示：</strong>附点音符 = 原时值 × 1.5；三连音 = 原时值 × 2/3（将原音符均分为三等份）。八分音符三连音常用于 Solo 填充，十六分音符三连音常见于爵士乐。
+      </div>
+    </div>
+
+    <!-- 小节可视化 -->
+    <div class="tab-content" id="tab-visual">
+      <h3>小节细分结构</h3>
+      <div class="input-row" style="margin-bottom:12px;">
+        <div style="flex:1;min-width:150px;">
+          <label>细分精度</label>
+          <select id="vizDivision" onchange="renderVisualization()">
+            <option value="whole">全音符</option>
+            <option value="half">二分音符</option>
+            <option value="quarter" selected>四分音符</option>
+            <option value="eighth">八分音符</option>
+            <option value="sixteenth">十六分音符</option>
+            <option value="triplet-quarter">四分三连音</option>
+            <option value="triplet-eighth">八分三连音</option>
+            <option value="triplet-sixteenth">十六分三连音</option>
+          </select>
+        </div>
+      </div>
+      <div id="vizContainer"></div>
+      <div class="tip-box tip-info" style="margin-top:12px;">
+        <strong>说明：</strong>点击方格可播放对应细分的声音。每拍用空格分隔，数字表示拍号位置。颜色越深代表越靠后的细分。
+      </div>
+    </div>
+
+    <!-- 节拍器 -->
+    <div class="tab-content" id="tab-metronome">
+      <h3>节拍器</h3>
+      <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;">选择细分类型，点击播放按钮开始练习</p>
+
+      <div class="note-type-grid" id="noteTypeGrid"></div>
+
+      <div class="metronome-ctrl" style="margin-top:16px;">
+        <button type="button" class="metro-btn" id="metroBtn" onclick="toggleMetronome()">▶</button>
+        <div style="flex:1;">
+          <label>节拍器 BPM</label>
+          <input type="range" id="metroBpm" min="20" max="300" value="120" oninput="updateMetroBpm()" style="width:100%;height:6px;accent-color:var(--primary);padding:0;border:none;">
+          <div class="tempo-label" id="metroBpmLabel">120 BPM</div>
+        </div>
+      </div>
+
+      <div style="margin-top:12px;">
+        <label>重拍音量</label>
+        <div class="input-row">
+          <input type="range" id="metroAccVol" min="0" max="100" value="80" oninput="document.getElementById('accVolVal').textContent=this.value+'%'" style="flex:1;height:6px;accent-color:var(--primary);padding:0;border:none;">
+          <span style="font-size:12px;color:var(--text-muted);min-width:40px;" id="accVolVal">80%</span>
+        </div>
+      </div>
+      <div>
+        <label>弱拍音量</label>
+        <div class="input-row">
+          <input type="range" id="metroBeatVol" min="0" max="100" value="50" oninput="document.getElementById('beatVolVal').textContent=this.value+'%'" style="flex:1;height:6px;accent-color:var(--primary);padding:0;border:none;">
+          <span style="font-size:12px;color:var(--text-muted);min-width:40px;" id="beatVolVal">50%</span>
+        </div>
+      </div>
+
+      <div class="tip-box tip-warn" style="margin-top:12px;">
+        <strong>注意：</strong>请确保设备未静音，使用耳机效果更佳。节拍器使用 Web Audio API，无需网络连接。
+      </div>
+    </div>
+
+    <!-- BPM 对比 -->
+    <div class="tab-content" id="tab-compare">
+      <h3>BPM 时长差异对比</h3>
+      <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;">输入两个 BPM，查看各种音符的时长差异</p>
+      <div class="input-row">
+        <div style="flex:1;min-width:100px;">
+          <label>BPM A</label>
+          <input type="number" id="bpmA" value="100" min="1" max="999" oninput="compareBPM()">
+        </div>
+        <div class="compare-arrow" style="min-width:30px;">vs</div>
+        <div style="flex:1;min-width:100px;">
+          <label>BPM B</label>
+          <input type="number" id="bpmB" value="140" min="1" max="999" oninput="compareBPM()">
+        </div>
+      </div>
+      <div style="overflow-x:auto;" id="compareContainer"></div>
+    </div>
+  </div>
+
+  <!-- 工具介绍 (SEO) -->
+  
+</div>
+
+</div>
+
+
+<!-- 相关工具 -->
+<div class="related-tools" data-related-tools="1">
+  <h3 class="related-tools-title">🔗 相关工具</h3>
+  <div class="related-tools-grid">
+    <a href="chord-progression.html" class="related-tool-card">
+      <span class="rt-icon">🎼</span>
+      <span class="rt-info"><span class="rt-name">和弦进行生成器 - 免费在线和弦进行生成器，随机生成流行和弦进行</span><span class="rt-desc">&amp;#127926; 和弦进行生成器</span></span>
+    </a>
+    <a href="random-training-rhythm.html" class="related-tool-card">
+      <span class="rt-icon">🎵</span>
+      <span class="rt-info"><span class="rt-name">节奏训练（随机节奏点击）</span><span class="rt-desc">节奏训练（随机节奏点击）</span></span>
+    </a>
+    <a href="generator-1.html" class="related-tool-card">
+      <span class="rt-icon">🎵</span>
+      <span class="rt-info"><span class="rt-name">音阶生成器（大调/小调/五声音阶）</span><span class="rt-desc">音阶生成器（大调/小调/五声音阶）</span></span>
+    </a>
+    <a href="bpm-converter.html" class="related-tool-card">
+      <span class="rt-icon">⏱️</span>
+      <span class="rt-info"><span class="rt-name">BPM速度转换器 - BPM与音符时长、延迟时间、LFO频率、采样长度互转</span><span class="rt-desc">&amp;#9201;&amp;#65039; BPM 速度转换器</span></span>
+    </a>
+    <a href="convert-speed.html" class="related-tool-card">
+      <span class="rt-icon">🎵</span>
+      <span class="rt-info"><span class="rt-name">歌曲速度转换（BPM微调）</span><span class="rt-desc">歌曲速度转换（BPM微调）</span></span>
+    </a>
+    <a href="audio-converter.html" class="related-tool-card">
+      <span class="rt-icon">🔄</span>
+      <span class="rt-info"><span class="rt-name">音频转换 - 音乐艺术领域的在线工具</span><span class="rt-desc">音频格式转换参数</span></span>
+    </a>
+  </div>
+</div>
+<div class="tool-intro">
+    <div class="tool-intro-header" onclick="this.parentElement.classList.toggle('open')">
+      <span class="intro-icon-wrap">
+        <span class="intro-icon">🎵</span>
+        <span>工具介绍与使用指南</span>
+      </span>
+      <span class="arrow">▼</span>
+    </div>
+    <div class="tool-intro-body">
+      <p>节拍细分计算器帮助音乐人、作曲者和学习者精确计算各种音符时值。无论是标准音符、附点音符还是三连音，都能给出毫秒级的精确时长，配合可视化小节图和内置节拍器，让节奏练习更高效。</p>
+      <h4><span class="h4-icon">✦</span> 功能特点</h4>
+      <ul class="intro-features">
+        <li>支持 9 种拍号（2/4、3/4、4/4、5/4、6/8、7/8、3/8、9/8、12/8）</li>
+        <li>计算 18 种音符时值（普通、附点、三连音各 6 种）</li>
+        <li>小节结构可视化方格图</li>
+        <li>Web Audio API 节拍器，支持细分练习</li>
+        <li>BPM 对比功能，快速看差异</li>
+        <li>导出计算结果为文本文件</li>
+      </ul>
+      <h4><span class="h4-icon">⟶</span> 使用场景</h4>
+      <ul class="intro-scenes">
+        <li>MIDI 制作中精确设置音符时值</li>
+        <li>练习复杂节奏型前计算时长</li>
+        <li>对比不同速度下的演奏难度</li>
+        <li>编曲时确认节拍细分是否正确</li>
+        <li>教学中讲解音符时值关系</li>
+        <li>乐队排练统一速度参考</li>
+      </ul>
+      <h4><span class="h4-icon">?</span> 常见问题</h4>
+      <div class="intro-faq-item">
+        <div class="intro-faq-q">什么是三连音？</div>
+        <div class="intro-faq-a">三连音将一个音符的时值均分为三等份，原本只能放两个同样音符的空间现在放三个。例如八分三连音的时长 = 八分音符 × 2/3，三个三连音加起来等于一个四分音符。</div>
+      </div>
+      <div class="intro-faq-item">
+        <div class="intro-faq-q">6/8 拍和 3/4 拍有什么区别？</div>
+        <div class="intro-faq-a">6/8 拍是复合拍子，以八分音符为一拍，每小节 6 个八分音符，分为两组（每组 3 个），感觉是"一二三-四五六"的摇摆感。3/4 拍是单拍子，以四分音符为一拍，每小节 3 拍，是华尔兹的感觉。</div>
+      </div>
+      <div class="intro-faq-item">
+        <div class="intro-faq-q">附点音符怎么算？</div>
+        <div class="intro-faq-a">附点音符 = 原时值 × 1.5。附点的作用是在原音符基础上增加一半的时值。例如附点四分音符 = 四分音符 + 八分音符 = 1.5 个四分音符的时长。</div>
+      </div>
+    </div>
+  </div>
+
+
+<!-- 注意事项区块 -->
+<div class="tool-notes" style="--tool-accent:#FF6B35;">
+  <div class="tool-notes-title">⚠️ 使用说明与注意事项</div>
+  <ul>
+      <li>本工具纯前端运行，数据不会上传到服务器</li>
+      <li>建议在主流浏览器（Chrome/Safari/Firefox/Edge）中使用</li>
+      <li>计算结果仅供参考，请以实际应用场景为准</li>
+  </ul>
+</div>
+<!-- /注意事项区块 -->
+</div>
+
+<script>
+/* ========== 全局状态 ========== */
+let audioCtx = null;
+let metroTimer = null;
+let isPlaying = false;
+let metroBeatIndex = 0;
+let selectedNoteType = 'quarter';
+
+/* 音符类型定义 */
+const NOTE_TYPES = [
+  { key: 'whole', name: '全音符', symbol: '𝅝', beats: 4, msMult: 4 },
+  { key: 'half', name: '二分音符', symbol: '𝅗𝅥', beats: 2, msMult: 2 },
+  { key: 'quarter', name: '四分音符', symbol: '♩', beats: 1, msMult: 1 },
+  { key: 'eighth', name: '八分音符', symbol: '♪', beats: 0.5, msMult: 0.5 },
+  { key: 'sixteenth', name: '十六分音符', symbol: '𝅘𝅥𝅯', beats: 0.25, msMult: 0.25 },
+  { key: 'thirtysecond', name: '三十二分音符', symbol: '𝅘𝅥𝅰', beats: 0.125, msMult: 0.125 }
+];
+
+/* 节拍器可选细分 */
+const METRO_TYPES = [
+  { key: 'quarter', name: '四分音符', symbol: '♩', perBeat: 1 },
+  { key: 'eighth', name: '八分音符', symbol: '♪', perBeat: 2 },
+  { key: 'sixteenth', name: '十六分音符', symbol: '𝅘𝅥𝅯', perBeat: 4 },
+  { key: 'triplet-quarter', name: '四分三连音', symbol: '♩³', perBeat: 3 },
+  { key: 'triplet-eighth', name: '八分三连音', symbol: '♪³', perBeat: 3 },
+  { key: 'dotted-quarter', name: '附点四分', symbol: '♩.', perBeat: 1.5 },
+  { key: 'dotted-eighth', name: '附点八分', symbol: '♪.', perBeat: 1.5 }
+];
+
+/* ========== 核心计算 ========== */
+
+function getQuarterMs() {
+  const bpm = parseFloat(document.getElementById('bpm').value) || 120;
+  return 60000 / bpm;
+}
+
+function parseTimeSig() {
+  const sig = document.getElementById('timeSig').value;
+  const [beats, unit] = sig.split('/').map(Number);
+  return { beats, unit, text: sig };
+}
+
+/* 八分音符基准拍（用于 6/8 等） */
+function getEighthMs() {
+  return getQuarterMs() / 2;
+}
+
+/* 根据 6/8 或 x/8 拍号计算每小节时长 */
+function getMeasureMs() {
+  const { beats, unit } = parseTimeSig();
+  if (unit === 8) {
+    return beats * getEighthMs();
+  }
+  return beats * getQuarterMs();
+}
+
+/* 根据拍号返回"每小节多少拍"的合理拍数 */
+function getBeatsPerMeasure() {
+  const { beats, unit } = parseTimeSig();
+  if (unit === 8) {
+    // 6/8 -> 2拍（每拍3个八分），9/8 -> 3拍，12/8 -> 4拍
+    return beats / 3;
+  }
+  return beats;
+}
+
+/* ========== 速度术语 ========== */
+function getTempoName(bpm) {
+  if (bpm < 40) return 'Grave（极缓慢）';
+  if (bpm < 55) return 'Largo（广板）';
+  if (bpm < 65) return 'Larghetto（小广板）';
+  if (bpm < 73) return 'Adagio（柔板）';
+  if (bpm < 85) return 'Andante（行板）';
+  if (bpm < 98) return 'Andantino（小行板）';
+  if (bpm < 109) return 'Moderato（中板）';
+  if (bpm < 132) return 'Allegro（快板）';
+  if (bpm < 140) return 'Allegro vivace（活泼的快板）';
+  if (bpm < 178) return 'Vivace（甚快板）';
+  if (bpm < 200) return 'Presto（急板）';
+  return 'Prestissimo（最急板）';
+}
+
+/* ========== 主计算 ========== */
+function calculate() {
+  const qMs = getQuarterMs();
+  const bpm = parseFloat(document.getElementById('bpm').value) || 120;
+  const { beats, unit, text } = parseTimeSig();
+  const measureMs = getMeasureMs();
+  const beatsPerMeasure = getBeatsPerMeasure();
+
+  // 速度标签
+  document.getElementById('tempoLabel').innerHTML =
+    `${bpm} BPM — <span class="tempo-name">${getTempoName(bpm)}</span> | 拍号 ${text} | 小节时长 ${(measureMs / 1000).toFixed(2)}s`;
+
+  // 统计概览
+  document.getElementById('statGrid').innerHTML = `
+    <div class="stat-card"><div class="val">${bpm}</div><div class="lbl">BPM</div></div>
+    <div class="stat-card"><div class="val">${qMs.toFixed(1)}</div><div class="lbl">四分音符(ms)</div></div>
+    <div class="stat-card"><div class="val">${(measureMs/1000).toFixed(2)}s</div><div class="lbl">小节时长</div></div>
+    <div class="stat-card"><div class="val">${beatsPerMeasure}</div><div class="lbl">每小节拍数</div></div>
+  `;
+
+  renderTable();
+  renderVisualization();
+}
+
+/* ========== 音符时值表 ========== */
+function renderTable() {
+  const qMs = getQuarterMs();
+  const { beats, unit, text } = parseTimeSig();
+
+  let html = '<table class="sub-table"><thead><tr>';
+  html += '<th>音符类型</th><th>符号</th><th>时长(ms)</th><th>时长(s)</th><th>每拍数量</th><th>每小节数量</th>';
+  html += '</tr></thead><tbody>';
+
+  const measureMs = getMeasureMs();
+  const beatsPerMeasure = getBeatsPerMeasure();
+  const baseUnit = unit === 8 ? '八分音符' : '四分音符';
+
+  NOTE_TYPES.forEach(nt => {
+    const ms = qMs * nt.msMult;
+    const perBeat = nt.beats <= 1 ? 1 / nt.beats : nt.beats;
+    const perMeasure = measureMs / ms;
+
+    // 普通音符
+    html += `<tr class="${nt.key === 'quarter' ? 'highlight' : ''}">`;
+    html += `<td>${nt.name}</td>`;
+    html += `<td><span class="note-symbol">${nt.symbol}</span></td>`;
+    html += `<td>${ms.toFixed(2)}</td>`;
+    html += `<td>${(ms/1000).toFixed(3)}</td>`;
+    html += `<td>${formatRatio(perBeat)}</td>`;
+    html += `<td>${formatRatio(perMeasure)}</td>`;
+    html += '</tr>';
+
+    // 附点版本
+    const dottedMs = ms * 1.5;
+    const dottedPerBeat = perBeat / 1.5;
+    const dottedPerMeasure = perMeasure / 1.5;
+    html += `<tr>`;
+    html += `<td style="color:var(--text-muted);">附点${nt.name}</td>`;
+    html += `<td><span class="note-symbol">${nt.symbol}.</span></td>`;
+    html += `<td>${dottedMs.toFixed(2)}</td>`;
+    html += `<td>${(dottedMs/1000).toFixed(3)}</td>`;
+    html += `<td>${formatRatio(dottedPerBeat)}</td>`;
+    html += `<td>${formatRatio(dottedPerMeasure)}</td>`;
+    html += '</tr>';
+
+    // 三连音版本
+    const tripMs = ms * 2 / 3;
+    const tripPerBeat = perBeat * 3 / 2;
+    const tripPerMeasure = perMeasure * 3 / 2;
+    html += `<tr>`;
+    html += `<td style="color:var(--text-muted);">${nt.name}三连音</td>`;
+    html += `<td><span class="note-symbol">${nt.symbol}³</span></td>`;
+    html += `<td>${tripMs.toFixed(2)}</td>`;
+    html += `<td>${(tripMs/1000).toFixed(3)}</td>`;
+    html += `<td>${formatRatio(tripPerBeat)}</td>`;
+    html += `<td>${formatRatio(tripPerMeasure)}</td>`;
+    html += '</tr>';
+  });
+
+  html += '</tbody></table>';
+  document.getElementById('tableContainer').innerHTML = html;
+}
+
+function formatRatio(n) {
+  if (n === Infinity || isNaN(n)) return '∞';
+  if (Number.isInteger(n)) return String(n);
+  // 尝试显示分数
+  const frac = toFraction(n);
+  if (frac) return frac;
+  return n.toFixed(2);
+}
+
+function toFraction(decimal) {
+  const tolerance = 1e-6;
+  let numerator = 1, denominator = 1;
+  let bestNum = 1, bestDen = 1, bestErr = Math.abs(decimal - 1);
+  for (let d = 1; d <= 64; d++) {
+    const n = Math.round(decimal * d);
+    const err = Math.abs(decimal - n / d);
+    if (err < bestErr) {
+      bestErr = err;
+      bestNum = n;
+      bestDen = d;
+      if (err < tolerance) break;
+    }
+  }
+  if (bestErr < tolerance && bestDen > 1) {
+    return bestNum + '/' + bestDen;
+  }
+  return null;
+}
+
+/* ========== 小节可视化 ========== */
+function renderVisualization() {
+  const div = document.getElementById('vizDivision').value;
+  const { beats, unit, text } = parseTimeSig();
+  const qMs = getQuarterMs();
+  const measureMs = getMeasureMs();
+  const beatsPerMeasure = getBeatsPerMeasure();
+
+  // 计算每拍细分数和每小节总细分数
+  let subdivisionsPerBeat, totalSubs;
+  const colorBase = [255, 107, 53]; // primary
+  const colorEnd = [124, 58, 237];   // secondary
+
+  switch (div) {
+    case 'whole':
+      subdivisionsPerBeat = 0.25; totalSubs = Math.round(beatsPerMeasure * 0.25); break;
+    case 'half':
+      subdivisionsPerBeat = 0.5; totalSubs = Math.round(beatsPerMeasure * 0.5); break;
+    case 'quarter':
+      subdivisionsPerBeat = 1; totalSubs = Math.round(beatsPerMeasure); break;
+    case 'eighth':
+      subdivisionsPerBeat = 2; totalSubs = Math.round(beatsPerMeasure * 2); break;
+    case 'sixteenth':
+      subdivisionsPerBeat = 4; totalSubs = Math.round(beatsPerMeasure * 4); break;
+    case 'triplet-quarter':
+      subdivisionsPerBeat = 3; totalSubs = Math.round(beatsPerMeasure * 3); break;
+    case 'triplet-eighth':
+      subdivisionsPerBeat = 6; totalSubs = Math.round(beatsPerMeasure * 6); break;
+    case 'triplet-sixteenth':
+      subdivisionsPerBeat = 12; totalSubs = Math.round(beatsPerMeasure * 12); break;
+    default:
+      subdivisionsPerBeat = 1; totalSubs = beatsPerMeasure;
+  }
+
+  // 限制最大显示数量
+  if (totalSubs > 96) {
+    document.getElementById('vizContainer').innerHTML =
+      '<div class="tip-box tip-warn">该细分精度下小节包含 ' + totalSubs + ' 个格子，数量过多无法显示。请选择更大的音符类型。</div>';
+    return;
+  }
+
+  let html = '';
+  for (let beat = 0; beat < beatsPerMeasure; beat++) {
+    html += '<div style="flex:1;min-width:40px;">';
+    html += '<div class="viz-beat">';
+    for (let sub = 0; sub < subdivisionsPerBeat; sub++) {
+      const globalIdx = beat * subdivisionsPerBeat + sub;
+      const ratio = totalSubs > 1 ? globalIdx / (totalSubs - 1) : 0;
+      const r = Math.round(colorBase[0] + (colorEnd[0] - colorBase[0]) * ratio);
+      const g = Math.round(colorBase[1] + (colorEnd[1] - colorBase[1]) * ratio);
+      const b = Math.round(colorBase[2] + (colorEnd[2] - colorBase[2]) * ratio);
+      const bgColor = `rgb(${r},${g},${b})`;
+      const subMs = measureMs / totalSubs;
+      html += `<div class="viz-cell" style="background:${bgColor};" data-ms="${subMs.toFixed(2)}" onclick="playClick(this)" title="${subMs.toFixed(1)}ms"></div>`;
+    }
+    html += '</div>';
+    html += `<div class="viz-beat-label">拍${beat + 1}</div>`;
+    html += '</div>';
+  }
+
+  document.getElementById('vizContainer').innerHTML =
+    `<div class="viz-bar" id="vizBar">${html}</div>` +
+    `<div style="font-size:12px;color:var(--text-muted);margin-top:8px;">共 ${totalSubs} 个细分 | 每格 ${(measureMs / totalSubs).toFixed(2)}ms</div>`;
+}
+
+/* ========== 节拍器 ========== */
+function initMetroTypes() {
+  let html = '';
+  METRO_TYPES.forEach(mt => {
+    html += `<div class="note-type-item${mt.key === selectedNoteType ? ' selected' : ''}" data-key="${mt.key}" onclick="selectNoteType('${mt.key}')">
+      <span class="note-icon">${mt.symbol}</span>
+      ${mt.name}
+    </div>`;
+  });
+  document.getElementById('noteTypeGrid').innerHTML = html;
+}
+
+function selectNoteType(key) {
+  selectedNoteType = key;
+  document.querySelectorAll('.note-type-item').forEach(el => {
+    el.classList.toggle('selected', el.dataset.key === key);
+  });
+  // 如果正在播放，重启
+  if (isPlaying) {
+    stopMetronome();
+    startMetronome();
+  }
+}
+
+function updateMetroBpm() {
+  const val = document.getElementById('metroBpm').value;
+  document.getElementById('metroBpmLabel').textContent = val + ' BPM';
+}
+
+function getAudioCtx() {
+  if (!audioCtx) {
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  }
+  return audioCtx;
+}
+
+function playClick(el) {
+  const ms = parseFloat(el.dataset.ms) || 500;
+  playBeep(ms, 1.0);
+  el.classList.add('active');
+  setTimeout(() => el.classList.remove('active'), 150);
+}
+
+function playBeep(durationMs, volume) {
+  const ctx = getAudioCtx();
+  if (ctx.state === 'suspended') ctx.resume();
+  const osc = ctx.createOscillator();
+  const gain = ctx.createGain();
+  osc.connect(gain);
+  gain.connect(ctx.destination);
+
+  osc.frequency.value = 1000;
+  osc.type = 'sine';
+  gain.gain.setValueAtTime(Math.max(0, Math.min(1, volume * 0.5)), ctx.currentTime);
+  gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + durationMs / 1000);
+
+  osc.start(ctx.currentTime);
+  osc.stop(ctx.currentTime + durationMs / 1000);
+}
+
+function playAccentBeep(durationMs, volume) {
+  const ctx = getAudioCtx();
+  if (ctx.state === 'suspended') ctx.resume();
+  const osc = ctx.createOscillator();
+  const gain = ctx.createGain();
+  osc.connect(gain);
+  gain.connect(ctx.destination);
+
+  osc.frequency.value = 1200;
+  osc.type = 'sine';
+  gain.gain.setValueAtTime(Math.max(0, Math.min(1, volume * 0.7)), ctx.currentTime);
+  gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + durationMs / 1000);
+
+  osc.start(ctx.currentTime);
+  osc.stop(ctx.currentTime + durationMs / 1000);
+}
+
+function toggleMetronome() {
+  if (isPlaying) {
+    stopMetronome();
+  } else {
+    startMetronome();
+  }
+}
+
+function startMetronome() {
+  const bpm = parseInt(document.getElementById('metroBpm').value) || 120;
+  const metroType = METRO_TYPES.find(m => m.key === selectedNoteType);
+  if (!metroType) return;
+
+  const { beats, unit } = parseTimeSig();
+  const beatsPerMeasure = getBeatsPerMeasure();
+  const accVol = parseInt(document.getElementById('metroAccVol').value) / 100;
+  const beatVol = parseInt(document.getElementById('metroBeatVol').value) / 100;
+
+  // 每个细分的间隔(ms)
+  const subdivisionInterval = 60000 / bpm / metroType.perBeat;
+  // 每小节总细分数
+  const subsPerMeasure = beatsPerMeasure * metroType.perBeat;
+
+  isPlaying = true;
+  metroBeatIndex = 0;
+  const btn = document.getElementById('metroBtn');
+  btn.textContent = '⏸';
+  btn.classList.add('playing');
+
+  // 立即播放第一拍
+  scheduleClick(metroBeatIndex, subsPerMeasure, accVol, beatVol, subdivisionInterval);
+  metroBeatIndex++;
+
+  metroTimer = setInterval(() => {
+    scheduleClick(metroBeatIndex, subsPerMeasure, accVol, beatVol, subdivisionInterval);
+    metroBeatIndex = (metroBeatIndex + 1) % subsPerMeasure;
+  }, subdivisionInterval);
+}
+
+function scheduleClick(idx, subsPerMeasure, accVol, beatVol, subdivisionInterval) {
+  const metroType = METRO_TYPES.find(m => m.key === selectedNoteType);
+  const isAccent = idx % metroType.perBeat === 0;
+  const beatDuration = subdivisionInterval;
+
+  if (isAccent) {
+    playAccentBeep(Math.min(beatDuration * 0.3, 100), accVol);
+  } else {
+    playBeep(Math.min(beatDuration * 0.3, 80), beatVol);
+  }
+}
+
+function stopMetronome() {
+  isPlaying = false;
+  if (metroTimer) {
+    clearInterval(metroTimer);
+    metroTimer = null;
+  }
+  const btn = document.getElementById('metroBtn');
+  btn.textContent = '▶';
+  btn.classList.remove('playing');
+}
+
+/* ========== BPM 对比 ========== */
+function compareBPM() {
+  const a = parseFloat(document.getElementById('bpmA').value) || 100;
+  const b = parseFloat(document.getElementById('bpmB').value) || 140;
+  const qMsA = 60000 / a;
+  const qMsB = 60000 / b;
+
+  let html = '<table class="sub-table"><thead><tr>';
+  html += '<th>音符类型</th><th>符号</th>';
+  html += `<th>BPM ${a} 时长(ms)</th><th>BPM ${b} 时长(ms)</th><th>差值(ms)</th><th>差异比例</th>`;
+  html += '</tr></thead><tbody>';
+
+  NOTE_TYPES.forEach(nt => {
+    const msA = qMsA * nt.msMult;
+    const msB = qMsB * nt.msMult;
+    const diff = msA - msB;
+    const pct = ((diff / msA) * 100).toFixed(1);
+
+    html += `<tr>`;
+    html += `<td>${nt.name}</td>`;
+    html += `<td><span class="note-symbol">${nt.symbol}</span></td>`;
+    html += `<td>${msA.toFixed(2)}</td>`;
+    html += `<td>${msB.toFixed(2)}</td>`;
+    html += `<td class="compare-diff">${diff > 0 ? '+' : ''}${diff.toFixed(2)}</td>`;
+    html += `<td class="compare-diff">${diff > 0 ? '+' : ''}${pct}%</td>`;
+    html += '</tr>';
+
+    // 附点
+    const dmsA = msA * 1.5;
+    const dmsB = msB * 1.5;
+    const ddiff = dmsA - dmsB;
+    const dpct = ((ddiff / dmsA) * 100).toFixed(1);
+    html += `<tr><td style="color:var(--text-muted);">附点${nt.name}</td>`;
+    html += `<td><span class="note-symbol">${nt.symbol}.</span></td>`;
+    html += `<td>${dmsA.toFixed(2)}</td><td>${dmsB.toFixed(2)}</td>`;
+    html += `<td class="compare-diff">${ddiff > 0 ? '+' : ''}${ddiff.toFixed(2)}</td>`;
+    html += `<td class="compare-diff">${ddiff > 0 ? '+' : ''}${dpct}%</td></tr>`;
+  });
+
+  html += '</tbody></table>';
+  document.getElementById('compareContainer').innerHTML = html;
+}
+
+/* ========== 选项卡切换 ========== */
+function switchTab(name) {
+  document.querySelectorAll('.tab-btn').forEach((btn, i) => {
+    const tabs = ['table', 'visual', 'metronome', 'compare'];
+    btn.classList.toggle('active', tabs[i] === name);
+  });
+  document.querySelectorAll('.tab-content').forEach(tc => tc.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  if (name === 'visual') renderVisualization();
+  if (name === 'compare') compareBPM();
+}
+
+/* ========== 导出文本 ========== */
+function generateTextReport() {
+  const bpm = parseFloat(document.getElementById('bpm').value) || 120;
+  const { text } = parseTimeSig();
+  const qMs = getQuarterMs();
+  const measureMs = getMeasureMs();
+  let txt = `节拍细分计算结果\n`;
+  txt += `BPM: ${bpm} | 拍号: ${text} | 小节时长: ${(measureMs/1000).toFixed(3)}s\n`;
+  txt += `速度术语: ${getTempoName(bpm)}\n`;
+  txt += `四分音符: ${qMs.toFixed(2)}ms\n\n`;
+
+  txt += `--- 音符时值表 ---\n`;
+  NOTE_TYPES.forEach(nt => {
+    const ms = qMs * nt.msMult;
+    txt += `${nt.name}: ${ms.toFixed(2)}ms (${(ms/1000).toFixed(3)}s)\n`;
+    txt += `  附点: ${(ms*1.5).toFixed(2)}ms | 三连音: ${(ms*2/3).toFixed(2)}ms\n`;
+  });
+
+  return txt;
+}
+
+/* ========== 初始化 ========== */
+document.addEventListener('DOMContentLoaded', () => {
+  calculate();
+  initMetroTypes();
+  compareBPM();
+});
+</script>
+
+
+<!-- SEO 介绍区块 -->
+<div class="tool-intro open" id="toolIntro">
+  <div class="tool-intro-header">
+    <span class="intro-icon-wrap"><span class="intro-icon">📖</span>关于「节拍细分计算器」</span>
+    <span class="arrow">▼</span>
+  </div>
+  <div class="tool-intro-body">
+    <h4><span class="h4-icon">📝</span>工具简介</h4>
+    <p>节拍细分计算器：计算各种音符时值、附点、三连音的精确时长，支持拍号选择、小节可视化、Web Audio节拍器、BPM对比功能。。音乐艺术工具，纯前端实现，支持实时试听。</p>
+    <h4><span class="h4-icon">✨</span>功能特点</h4>
+    <ul class="intro-features">
+      <li>纯前端实现，无需安装</li>
+      <li>支持多种音乐参数配置</li>
+      <li>实时生成，即时试听</li>
+      <li>操作简单，上手快速</li>
+    </ul>
+    <h4><span class="h4-icon">🎯</span>使用场景</h4>
+    <ul class="intro-scenes">
+      <li>音乐创作与编曲辅助</li>
+      <li>乐理学习与练习</li>
+      <li>音频处理与转换</li>
+      <li>艺术创作的灵感工具</li>
+    </ul>
+    <h4><span class="h4-icon">💬</span>常见问题</h4>
+      <div class="intro-faq-item"><div class="intro-faq-q">这个工具是免费的吗？</div><div class="intro-faq-a">完全免费，无需注册，直接在浏览器中使用。</div></div>
+      <div class="intro-faq-item"><div class="intro-faq-q">需要安装软件吗？</div><div class="intro-faq-a">不需要，直接在浏览器中打开即可使用。</div></div>
+      <div class="intro-faq-item"><div class="intro-faq-q">支持手机使用吗？</div><div class="intro-faq-a">支持。页面已做响应式适配，手机和电脑均可正常使用。</div></div>
+  </div>
+</div>
+<!-- /SEO 介绍区块 -->
+
+<script>
+// tool-intro折叠交互
+document.addEventListener('DOMContentLoaded',function(){
+  var headers=document.querySelectorAll('.tool-intro-header');
+  headers.forEach(function(h){
+    h.addEventListener('click',function(){
+      this.parentElement.classList.toggle('open');
+    });
+  });
+});
+</script>
+
+</body>
+</html>

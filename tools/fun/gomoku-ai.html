@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="toolbox" content="cat=game,industry=fun,icon=⚪,bg=#dcfce7">
+  <title>五子棋人机对战 - ToolBox</title>
+  <link rel="stylesheet" href="../../css/common.css">
+  <script src="../../js/common.js"></script>
+  <style>
+    .board {display:grid;grid-template-columns:repeat(15,1fr);gap:2px;max-width:500px;margin:auto;}
+    .cell {width:100%;aspect-ratio:1;background:#f7fee7;border:1px solid var(--border);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:18px;}
+  </style>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"首页","item":"https://chenguangwu.github.io/"},{"@type":"ListItem","position":2,"name":"娱乐游戏","item":"https://chenguangwu.github.io/tools/fun/index.html"},{"@type":"ListItem","position":3,"name":"五子棋人机对战","item":"https://chenguangwu.github.io/tools/fun/gomoku-ai.html"}]}
+</script>
+<!-- TOOLBOX-WEBAPP-LD -->
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"WebApplication","name":"五子棋人机对战","url":"https://chenguangwu.github.io/tools/fun/gomoku-ai.html","applicationCategory":"GamesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":["zh-CN", "en-US"],"description":"五子棋人机对战","image":"https://chenguangwu.github.io/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}
+</script>
+<meta property="og:image" content="https://chenguangwu.github.io/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="ToolBox - 6000+免费在线工具">
+<meta name="twitter:image" content="https://chenguangwu.github.io/og-image.png">
+<meta name="twitter:image:alt" content="ToolBox - 6000+免费在线工具">
+
+<meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
+<meta http-equiv="X-Content-Type-Options" content="nosniff">
+<meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
+<!-- TOOLBOX-SECURITY -->
+
+<script src="/js/privacy.js" defer></script>
+<!-- TOOLBOX-PRIVACY-SCRIPT -->
+
+<script src="/js/metrics.js" defer></script>
+<!-- TOOLBOX-METRICS-SCRIPT -->
+
+<script src="../../js/i18n.js" defer></script>
+<script src="../../js/tool-i18n.js" defer></script>
+<!-- TOOLBOX-I18N-SCRIPT -->
+
+<meta name="description" content="五子棋人机对战，简化版人机五子棋，AI 按周围棋势打分。 - 免费在线工具">
+<meta property="og:title" content="五子棋人机对战">
+<meta property="og:description" content="五子棋人机对战，简化版人机五子棋，AI 按周围棋势打分。 - 免费在线工具">
+<meta name="twitter:title" content="五子棋人机对战">
+<meta name="twitter:description" content="五子棋人机对战">
+<link rel="canonical" href="https://chenguangwu.github.io/tools/fun/gomoku-ai.html">
+
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://chenguangwu.github.io/tools/fun/gomoku-ai.html">
+<meta name="twitter:card" content="summary">
+<!-- TOOLBOX-HREFLANG -->
+<link rel="alternate" hreflang="zh-CN" href="https://chenguangwu.github.io/tools/fun/gomoku-ai.html">
+<link rel="alternate" hreflang="en-US" href="https://chenguangwu.github.io/tools/fun/gomoku-ai.html">
+<link rel="alternate" hreflang="x-default" href="https://chenguangwu.github.io/tools/fun/gomoku-ai.html">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:locale:alternate" content="en_US">
+
+<script src="/js/clarity.js" defer></script>
+<!-- TOOLBOX-CLARITY -->
+</head>
+<body>
+<h1 class="sr-only">五子棋人机对战</h1>
+
+<div class="nav">
+  <a href="../../index.html">← ToolBox</a>
+  <span>/ 五子棋人机对战</span>
+  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()">🌙</button>
+</div>
+
+
+<nav class="breadcrumb" aria-label="面包屑导航" data-breadcrumb="1">
+  <a href="../../index.html">首页</a>
+  <span class="bc-sep">‹</span>
+  <a href="index.html">🎮 娱乐游戏</a>
+  <span class="bc-sep">‹</span>
+  <span class="bc-current">五子棋人机对战</span>
+</nav>
+<div class="container">
+  <div class="card">
+    <h2>⚪ 五子棋人机对战</h2>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;">简化版人机五子棋，AI 按周围棋势打分。</p>
+    <div class="toolbar">
+      <button class="btn primary" onclick="initGame()">开始新局</button>
+      <button class="btn" onclick="undo()">悔1手</button>
+    </div>
+    <div id="status" style="margin:10px 0;font-size:13px;color:var(--text-muted)"></div>
+    <div class="board" id="board"></div>
+  </div>
+</div>
+
+<script>
+const SIZE = 15;
+let board = [];
+let turn = 1;
+let history = [];
+const EMPTY = 0;
+const BLACK = 1;
+const WHITE = -1;
+
+function initGame() {
+  board = Array.from({ length: SIZE }, () => Array(SIZE).fill(EMPTY));
+  history = [];
+  turn = BLACK;
+  renderBoard();
+  setStatus('你执黑，先手落子');
+}
+
+function setStatus(txt) {
+  document.getElementById('status').textContent = txt;
+}
+
+function renderBoard() {
+  const root = document.getElementById('board');
+  root.innerHTML = '';
+  for (let r = 0; r < SIZE; r++) {
+    for (let c = 0; c < SIZE; c++) {
+      const cell = document.createElement('div');
+      cell.className = 'cell';
+      if (board[r][c] === BLACK) cell.textContent = '●';
+      if (board[r][c] === WHITE) cell.textContent = '○';
+      cell.addEventListener('click', () => playerMove(r, c));
+      root.appendChild(cell);
+    }
+  }
+}
+
+function playerMove(r, c) {
+  if (turn !== BLACK || board[r][c] !== EMPTY) return;
+  place(r, c, BLACK);
+}
+
+function place(r, c, color) {
+  board[r][c] = color;
+  history.push([r, c, color]);
+  renderBoard();
+
+  if (checkWin(r, c, color)) {
+    setStatus(color === BLACK ? '你赢了！' : 'AI 获胜！');
+    return;
+  }
+
+  if (history.length === SIZE * SIZE) {
+    setStatus('平局');
+    return;
+  }
+
+  turn = -color;
+  if (turn === WHITE) {
+    setStatus('AI 思考中...');
+    setTimeout(() => aiMove(), 100);
+  } else {
+    setStatus('你的回合');
+  }
+}
+
+function checkWin(r, c, color) {
+  const dirs = [[1,0],[0,1],[1,1],[1,-1]];
+  for (const [dr, dc] of dirs) {
+    let cnt = 1;
+    for (let k = 1; k < 5; k++) {
+      const nr = r + dr * k;
+      const nc = c + dc * k;
+      if (nr < 0 || nr >= SIZE || nc < 0 || nc >= SIZE || board[nr][nc] !== color) break;
+      cnt += 1;
+    }
+    for (let k = 1; k < 5; k++) {
+      const nr = r - dr * k;
+      const nc = c - dc * k;
+      if (nr < 0 || nr >= SIZE || nc < 0 || nc >= SIZE || board[nr][nc] !== color) break;
+      cnt += 1;
+    }
+    if (cnt >= 5) return true;
+  }
+  return false;
+}
+
+function score(r, c, color) {
+  if (board[r][c] !== EMPTY) return -1e9;
+  const dirs = [[1,0],[0,1],[1,1],[1,-1]];
+  let s = 0;
+  for (const [dr, dc] of dirs) {
+    let link = 1;
+    for (let k = 1; k <= 4; k++) {
+      const nr = r + dr * k;
+      const nc = c + dc * k;
+      if (nr < 0 || nr >= SIZE || nc < 0 || nc >= SIZE) break;
+      if (board[nr][nc] === color) link += 1;
+    }
+    for (let k = 1; k <= 4; k++) {
+      const nr = r - dr * k;
+      const nc = c - dc * k;
+      if (nr < 0 || nr >= SIZE || nc < 0 || nc >= SIZE) break;
+      if (board[nr][nc] === color) link += 1;
+    }
+    s += Math.pow(10, link);
+  }
+  return s;
+}
+
+function aiMove() {
+  let best = -1e9;
+  let pickR = Math.floor(SIZE / 2);
+  let pickC = Math.floor(SIZE / 2);
+
+  for (let r = 0; r < SIZE; r++) {
+    for (let c = 0; c < SIZE; c++) {
+      if (board[r][c] !== EMPTY) continue;
+      const val = score(r, c, WHITE) * 1.6 + score(r, c, BLACK) * 0.8;
+      if (val > best) {
+        best = val;
+        pickR = r;
+        pickC = c;
+      }
+    }
+  }
+
+  place(pickR, pickC, WHITE);
+}
+
+function undo() {
+  const last = history.pop();
+  if (!last) return;
+  const [r1, c1] = last;
+  board[r1][c1] = EMPTY;
+  turn = BLACK;
+  renderBoard();
+  setStatus('已悔1步，当前轮到你');
+}
+
+initGame();
+</script>
+</body>
+</html>

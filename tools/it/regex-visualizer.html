@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="toolbox" content="cat=dev,industry=it,icon=📐,bg=#eef2ff">
+  <title>正则可视化 - ToolBox</title>
+  <link rel="stylesheet" href="../../css/common.css">
+  <script src="../../js/common.js"></script>
+  <style>
+    .state{padding:8px 10px;border:1px solid var(--border);border-radius:8px;margin:8px 0;background:var(--result-bg);}
+  </style>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"首页","item":"https://chenguangwu.github.io/"},{"@type":"ListItem","position":2,"name":"IT 开发","item":"https://chenguangwu.github.io/tools/it/index.html"},{"@type":"ListItem","position":3,"name":"正则可视化","item":"https://chenguangwu.github.io/tools/it/regex-visualizer.html"}]}
+</script>
+<!-- TOOLBOX-WEBAPP-LD -->
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"WebApplication","name":"正则可视化","url":"https://chenguangwu.github.io/tools/it/regex-visualizer.html","applicationCategory":"DeveloperApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":["zh-CN", "en-US"],"description":"正则可视化","image":"https://chenguangwu.github.io/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}
+</script>
+<meta property="og:image" content="https://chenguangwu.github.io/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="ToolBox - 6000+免费在线工具">
+<meta name="twitter:image" content="https://chenguangwu.github.io/og-image.png">
+<meta name="twitter:image:alt" content="ToolBox - 6000+免费在线工具">
+
+<meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
+<meta http-equiv="X-Content-Type-Options" content="nosniff">
+<meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
+<!-- TOOLBOX-SECURITY -->
+
+<script src="/js/privacy.js" defer></script>
+<!-- TOOLBOX-PRIVACY-SCRIPT -->
+
+<script src="/js/metrics.js" defer></script>
+<!-- TOOLBOX-METRICS-SCRIPT -->
+
+<script src="../../js/i18n.js" defer></script>
+<script src="../../js/tool-i18n.js" defer></script>
+<!-- TOOLBOX-I18N-SCRIPT -->
+
+<meta name="description" content="正则可视化，输入正则后，基于 token 展示简化状态转移文本图。">
+<meta property="og:title" content="正则可视化">
+<meta property="og:description" content="正则可视化，输入正则后，基于 token 展示简化状态转移文本图。">
+<meta name="twitter:title" content="正则可视化">
+<meta name="twitter:description" content="正则可视化">
+<link rel="canonical" href="https://chenguangwu.github.io/tools/it/regex-visualizer.html">
+
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://chenguangwu.github.io/tools/it/regex-visualizer.html">
+<meta name="twitter:card" content="summary">
+<!-- TOOLBOX-HREFLANG -->
+<link rel="alternate" hreflang="zh-CN" href="https://chenguangwu.github.io/tools/it/regex-visualizer.html">
+<link rel="alternate" hreflang="en-US" href="https://chenguangwu.github.io/tools/it/regex-visualizer.html">
+<link rel="alternate" hreflang="x-default" href="https://chenguangwu.github.io/tools/it/regex-visualizer.html">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:locale:alternate" content="en_US">
+
+<script src="/js/clarity.js" defer></script>
+<!-- TOOLBOX-CLARITY -->
+</head>
+<body>
+<h1 class="sr-only">正则可视化</h1>
+
+<div class="nav">
+  <a href="../../index.html">← ToolBox</a>
+  <span>/ 正则可视化</span>
+  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()">🌙</button>
+</div>
+
+
+<nav class="breadcrumb" aria-label="面包屑导航" data-breadcrumb="1">
+  <a href="../../index.html">首页</a>
+  <span class="bc-sep">‹</span>
+  <a href="index.html">💻 IT 开发</a>
+  <span class="bc-sep">‹</span>
+  <span class="bc-current">正则可视化</span>
+</nav>
+<div class="container">
+  <div class="card">
+    <h2>📐 正则可视化</h2>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;">输入正则后，基于 token 展示简化状态转移文本图。</p>
+
+    <div class="input-row">
+      <label>正则表达式</label>
+      <input type="text" id="pattern" value="^a[0-9]+b$" oninput="render()">
+    </div>
+    <div class="toolbar">
+      <button class="btn primary" onclick="render()">生成可视化</button>
+      <button class="btn" onclick="copyResult()">复制节点</button>
+    </div>
+    <div class="result-box" id="preview"></div>
+  </div>
+</div>
+
+<script>
+function tokenize(p) {
+  const tokens = [];
+  for (let i = 0; i < p.length; i++) {
+    const ch = p[i];
+    if (ch === '\\') {
+      tokens.push(p.slice(i, i + 2));
+      i += 1;
+    } else {
+      tokens.push(ch);
+    }
+  }
+  return tokens;
+}
+
+function buildStates(tokens) {
+  const states = [{id:0,label:'start'}];
+  let id = 1;
+  for (const t of tokens) {
+    states.push({id, label:`${t}`});
+    id += 1;
+  }
+  states.push({id, label:'accept'});
+
+  const edges = [];
+  for (let i = 0; i < states.length - 1; i++) {
+    const from = states[i].id;
+    const to = states[i + 1].id;
+    const lab = tokens[i] || 'ε';
+    edges.push(`${from} --${lab}--> ${to}`);
+  }
+  return {states, edges};
+}
+
+function render() {
+  const p = document.getElementById('pattern').value || '';
+  try {
+    new RegExp(p);
+  } catch (e) {
+    document.getElementById('preview').innerHTML = `<p>正则不合法：${e.message}</p>`;
+    return;
+  }
+
+  const tokens = tokenize(p);
+  const {states, edges} = buildStates(tokens);
+  let html = '<div class="state">';
+  html += `总状态：${states.length}（含 start + accept）`;
+  html += '</div>';
+  html += states.map(s => `<div class="state">S${s.id}: ${s.label}</div>`).join('');
+  html += '<p style="margin-top:10px">转移：</p>';
+  html += `<div class="state">${edges.join('<br>')}</div>`;
+  document.getElementById('preview').innerHTML = html;
+}
+
+function copyResult() {
+  const text = document.getElementById('preview').innerText || '';
+  if (!text.trim()) {
+    ToolBox.showToast(i18nText('toast.msg654'), 'warning');
+    return;
+  }
+  ToolBox.copyText(text, i18nText('msg309'));
+}
+
+render();
+</script>
+</body>
+</html>

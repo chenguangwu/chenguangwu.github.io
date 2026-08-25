@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="toolbox" content="cat=image,industry=image,icon=🔲,bg=#e8eaf6">
+<title>九宫格切图 - ToolBox</title>
+<link rel="stylesheet" href="../../css/common.css">
+<script src="../../js/common.js"></script>
+<script src="../../js/i18n.js" defer></script>
+<script src="../../js/tool-i18n.js" defer></script>
+<style>
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px;}
+.grid canvas{width:100%;border-radius:8px;border:1px solid var(--border-color);}
+</style>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"首页","item":"https://chenguangwu.github.io/"},{"@type":"ListItem","position":2,"name":"图像处理","item":"https://chenguangwu.github.io/tools/image/index.html"},{"@type":"ListItem","position":3,"name":"九宫格切图","item":"https://chenguangwu.github.io/tools/image/nine-grid-cutter.html"}]}
+</script>
+<!-- TOOLBOX-WEBAPP-LD -->
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"WebApplication","name":"九宫格切图","url":"https://chenguangwu.github.io/tools/image/nine-grid-cutter.html","applicationCategory":"MultimediaApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":["zh-CN", "en-US"],"description":"九宫格切图","image":"https://chenguangwu.github.io/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}
+</script>
+<meta property="og:image" content="https://chenguangwu.github.io/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="ToolBox - 6000+免费在线工具">
+<meta name="twitter:image" content="https://chenguangwu.github.io/og-image.png">
+<meta name="twitter:image:alt" content="ToolBox - 6000+免费在线工具">
+
+<meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
+<meta http-equiv="X-Content-Type-Options" content="nosniff">
+<meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
+<!-- TOOLBOX-SECURITY -->
+
+<script src="/js/privacy.js" defer></script>
+<!-- TOOLBOX-PRIVACY-SCRIPT -->
+
+<script src="/js/metrics.js" defer></script>
+<!-- TOOLBOX-METRICS-SCRIPT -->
+
+<script src="../../js/i18n.js" defer></script>
+<script src="../../js/tool-i18n.js" defer></script>
+<!-- TOOLBOX-I18N-SCRIPT -->
+
+<meta name="description" content="九宫格切图，上传图片后自动切成 3×3，并可分别下载。 - 免费在线工具">
+<meta property="og:title" content="九宫格切图">
+<meta property="og:description" content="九宫格切图，上传图片后自动切成 3×3，并可分别下载。 - 免费在线工具">
+<meta name="twitter:title" content="九宫格切图">
+<meta name="twitter:description" content="九宫格切图">
+<link rel="canonical" href="https://chenguangwu.github.io/tools/image/nine-grid-cutter.html">
+
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://chenguangwu.github.io/tools/image/nine-grid-cutter.html">
+<meta name="twitter:card" content="summary">
+<!-- TOOLBOX-HREFLANG -->
+<link rel="alternate" hreflang="zh-CN" href="https://chenguangwu.github.io/tools/image/nine-grid-cutter.html">
+<link rel="alternate" hreflang="en-US" href="https://chenguangwu.github.io/tools/image/nine-grid-cutter.html">
+<link rel="alternate" hreflang="x-default" href="https://chenguangwu.github.io/tools/image/nine-grid-cutter.html">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:locale:alternate" content="en_US">
+
+<script src="/js/clarity.js" defer></script>
+<!-- TOOLBOX-CLARITY -->
+</head>
+<body>
+<h1 class="sr-only">九宫格切图</h1>
+
+<div class="nav">
+  <a href="../../index.html">← ToolBox</a>
+  <span>/ 九宫格切图</span>
+  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()">🌙</button>
+</div>
+
+
+<nav class="breadcrumb" aria-label="面包屑导航" data-breadcrumb="1">
+  <a href="../../index.html">首页</a>
+  <span class="bc-sep">‹</span>
+  <a href="index.html">🖼️ 图像处理</a>
+  <span class="bc-sep">‹</span>
+  <span class="bc-current">九宫格切图</span>
+</nav>
+<div class="container">
+  <div class="card">
+    <h2>🔲 九宫格切图</h2>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;">上传图片后自动切成 3×3，并可分别下载。</p>
+
+    <input id="file" type="file" accept="image/*" onchange="openFile(event)">
+    <div class="toolbar">
+      <button class="btn primary" onclick="splitAndRender()">生成切片</button>
+      <button class="btn" onclick="downloadAll()">全部下载</button>
+    </div>
+
+    <div id="grid" class="grid"></div>
+  </div>
+</div>
+
+<script>
+let image = null;
+let blobs = [];
+
+function openFile(ev) {
+  const f = ev.target.files && ev.target.files[0];
+  if (!f) return;
+  const r = new FileReader();
+  r.onload = function (e) {
+    const img = new Image();
+    img.onload = function () {
+      image = img;
+      splitAndRender();
+    };
+    img.src = e.target.result;
+  };
+  r.readAsDataURL(f);
+}
+
+function splitAndRender() {
+  const grid = document.getElementById('grid');
+  grid.innerHTML = '';
+  blobs = [];
+  if (!image) {
+    grid.innerHTML = '<p style="grid-column:1/span 3">请先上传图片。</p>';
+    return;
+  }
+
+  const side = Math.min(image.width, image.height);
+  const sx = (image.width - side) / 2;
+  const sy = (image.height - side) / 2;
+  const cell = side / 3;
+
+  for (let r = 0; r < 3; r++) {
+    for (let c = 0; c < 3; c++) {
+      const cs = document.createElement('canvas');
+      cs.width = Math.round(cell);
+      cs.height = Math.round(cell);
+      const ctx = cs.getContext('2d');
+      ctx.drawImage(image, sx + c * cell, sy + r * cell, cell, cell, 0, 0, cs.width, cs.height);
+      const index = r * 3 + c + 1;
+
+      const btn = document.createElement('button');
+      btn.textContent = '导出第 ' + index + ' 片';
+      btn.className = 'btn';
+      btn.type = 'button';
+      btn.onclick = () => downloadOne(cs, index);
+
+      const wrapper = document.createElement('div');
+      wrapper.appendChild(cs);
+      wrapper.appendChild(btn);
+
+      grid.appendChild(wrapper);
+
+      blobs.push(new Promise(resolve => cs.toBlob(resolve, 'image/png')));
+    }
+  }
+}
+
+function downloadOne(canvas, idx) {
+  canvas.toBlob(function (blob) {
+    if (!blob) return;
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'grid-' + idx + '.png';
+    a.click();
+    URL.revokeObjectURL(url);
+  }, 'image/png');
+}
+
+async function downloadAll() {
+  if (!blobs.length) return;
+  const list = await Promise.all(blobs);
+  list.forEach((b, i) => {
+    if (!b) return;
+    const url = URL.createObjectURL(b);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'grid-' + (i + 1) + '.png';
+    a.click();
+    URL.revokeObjectURL(url);
+  });
+}
+</script>
+</body>
+</html>

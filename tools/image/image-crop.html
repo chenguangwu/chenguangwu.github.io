@@ -1,0 +1,923 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+
+<script src="/js/tool-page-runtime.js" defer></script>
+<!-- TOOLBOX-TOOL-RUNTIME -->
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="toolbox" content="cat=image,industry=image,icon=✂️,bg=#e3f2fd">
+<meta name="description" content="图片裁剪工具 - 是一款基于 HTML5 Canvas 的在线图片处理工具。无需安装软件、无需注册登录，打开网页即可使用。支持自由拖拽创建裁剪框、四角四边调整大小、多种宽高比预设、90° 旋转以及实时预览，全部在浏览器本地完成，图片不离开设备">
+<meta name="keywords" content="图片裁剪,在线裁剪图片,图片裁剪工具,裁剪图片,Canvas裁剪,图片编辑,免费工具,在线工具,ToolBox">
+<meta name="robots" content="index,follow">
+<link rel="canonical" href="https://chenguangwu.github.io/tools/image/image-crop.html">
+<meta property="og:title" content="图片裁剪工具 - 基于 HTML5 Canvas 的在线图片处理工具 - ToolBox">
+<meta property="og:description" content="图片裁剪工具 - 是一款基于 HTML5 Canvas 的在线图片处理工具。无需安装软件、无需注册登录，打开网页即可使用。支持自由拖拽创建裁剪框、四角四边调整大小、多种宽高比预设、90° 旋转以及实时预览，全部在浏览器本地完成，图片不离开设备">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://chenguangwu.github.io/tools/image/image-crop.html">
+<meta name="twitter:card" content="summary">
+
+<title>图片裁剪工具 - 基于 HTML5 Canvas 的在线图片处理工具 - ToolBox</title>
+<meta name="theme-color" content="#FF6B35">
+<link rel="icon" type="image/svg+xml" href="../../favicon.svg">
+<link rel="icon" href="../../favicon.ico" sizes="16x16 32x32 48x48">
+<link rel="apple-touch-icon" href="../../apple-touch-icon.png">
+<link rel="stylesheet" href="../../css/common.css">
+<script src="../../js/common.js"></script>
+<style>
+/* 上传区域 */
+.drop-zone{
+  border:2px dashed var(--border);
+  border-radius:12px;
+  padding:40px 20px;
+  text-align:center;
+  color:var(--text-muted);
+  cursor:pointer;
+  transition:all 0.2s;
+  background:var(--result-bg);
+}
+.drop-zone:hover,.drop-zone.dragover{
+  border-color:var(--primary);
+  background:rgba(255,107,53,0.06);
+  color:var(--primary);
+}
+.drop-zone .dz-icon{font-size:40px;display:block;margin-bottom:10px;}
+.drop-zone .dz-title{font-size:15px;font-weight:600;color:var(--text);margin-bottom:4px;}
+.drop-zone .dz-sub{font-size:12px;}
+
+/* 裁剪画布容器 */
+.crop-wrap{
+  position:relative;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  background:var(--result-bg);
+  border:1px solid var(--border);
+  border-radius:12px;
+  overflow:hidden;
+  min-height:200px;
+  padding:10px;
+  margin:12px 0;
+}
+#crop-canvas{display:block;touch-action:none;border-radius:6px;background:transparent;}
+
+/* 比例按钮 */
+.aspect-row{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0;}
+.aspect-btn{
+  padding:7px 13px;
+  background:var(--result-bg);
+  border:1px solid var(--border);
+  border-radius:8px;
+  cursor:pointer;
+  font-size:12.5px;
+  color:var(--text);
+  transition:all 0.15s;
+  font-weight:500;
+}
+.aspect-btn:hover{background:var(--bg-hover);border-color:var(--primary);}
+.aspect-btn.active{background:var(--gradient-primary);color:#fff;border-color:transparent;}
+
+/* 裁剪信息 */
+.crop-info{
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  gap:8px;
+  margin:12px 0;
+}
+.crop-info .ci-cell{
+  background:var(--result-bg);
+  border:1px solid var(--border);
+  border-radius:10px;
+  padding:10px;
+  text-align:center;
+}
+.crop-info .ci-label{font-size:11px;color:var(--text-muted);margin-bottom:2px;}
+.crop-info .ci-val{font-size:16px;font-weight:700;color:var(--primary);font-variant-numeric:tabular-nums;}
+
+/* 格式行 */
+.format-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:10px 0;}
+.format-row label{margin:0;font-size:13px;}
+.format-row select{width:auto;min-width:110px;padding:9px 12px;}
+.quality-row{display:flex;align-items:center;gap:10px;margin:10px 0;}
+.quality-row label{margin:0;min-width:70px;font-size:13px;}
+.quality-row input[type="range"]{flex:1;accent-color:var(--primary);}
+.quality-row .qval{font-size:12px;color:var(--primary);min-width:42px;text-align:right;}
+
+/* 预览 */
+.preview-section{display:flex;flex-direction:column;gap:10px;}
+.preview-wrap{
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  background:var(--result-bg);
+  border:1px solid var(--border);
+  border-radius:12px;
+  padding:14px;
+  min-height:160px;
+}
+#preview-canvas{
+  max-width:100%;
+  max-height:260px;
+  border-radius:8px;
+  background:
+    linear-gradient(45deg,#0000 25%,rgba(127,127,127,.18) 25%,rgba(127,127,127,.18) 50%,#0000 50%,#0000 75%,rgba(127,127,127,.18) 75%) 0 0/16px 16px,
+    #fff;
+}
+.preview-empty{color:var(--text-muted);font-size:13px;}
+
+/* 工具栏分组 */
+.tool-section{margin-top:14px;}
+.tool-section h3{margin-bottom:8px;}
+.hint-text{font-size:12px;color:var(--text-muted);margin:6px 0 2px;}
+
+@media(max-width:768px){
+  .crop-info{grid-template-columns:repeat(2,1fr);}
+  .crop-info .ci-val{font-size:15px;}
+  .drop-zone{padding:28px 16px;}
+  .crop-wrap{padding:6px;min-height:160px;}
+}
+</style>
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "图片裁剪工具",
+  "description": "免费在线图片裁剪工具，支持自定义裁剪框、宽高比预设、旋转、实时预览，纯前端 Canvas 处理，图片不上传。",
+  "url": "https://chenguangwu.github.io/tools/image/image-crop.html",
+  "applicationCategory": "MultimediaApplication",
+  "operatingSystem": "Web",
+  "offers": { "@type": "Offer", "price": "0", "priceCurrency": "CNY" },
+  "inLanguage": "zh-CN",
+  "isAccessibleForFree": true,
+  "browserRequirements": "Requires JavaScript. Requires HTML5 Canvas.",
+  "softwareVersion": "1.0"
+}
+</script>
+
+
+
+<meta property="og:image" content="https://chenguangwu.github.io/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="ToolBox - 6000+免费在线工具">
+<meta name="twitter:image" content="https://chenguangwu.github.io/og-image.png">
+<meta name="twitter:image:alt" content="ToolBox - 6000+免费在线工具">
+    <meta name="twitter:title" content="图片裁剪工具 - 基于 HTML5 Canvas 的在线图片处理工具 - ToolBox">
+    <meta name="twitter:description" content="图片裁剪工具 - 是一款基于 HTML5 Canvas 的在线图片处理工具。无需安装软件、无需注册登录，打开网页即可使用。支持自由拖拽创建裁剪框、四角四边调整大小、多种宽高比预设、90° 旋转以及实时预览，全部在浏览器本地完成，图片不离开设备">
+<!-- TOOLBOX-WEBAPP-LD -->
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"WebApplication","name":"图片裁剪工具 - 基于 HTML5 Canvas 的在线图片处理工具","url":"https://chenguangwu.github.io/tools/image/image-crop.html","applicationCategory":"MultimediaApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":["zh-CN", "en-US"],"description":"图片裁剪工具","image":"https://chenguangwu.github.io/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}
+</script>
+<meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
+<meta http-equiv="X-Content-Type-Options" content="nosniff">
+<meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
+<!-- TOOLBOX-SECURITY -->
+
+<script src="/js/privacy.js" defer></script>
+<!-- TOOLBOX-PRIVACY-SCRIPT -->
+
+<script src="/js/metrics.js" defer></script>
+<!-- TOOLBOX-METRICS-SCRIPT -->
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"首页","item":"https://chenguangwu.github.io/"},{"@type":"ListItem","position":2,"name":"图像处理","item":"https://chenguangwu.github.io/tools/image/index.html"},{"@type":"ListItem","position":3,"name":"图片裁剪工具","item":"https://chenguangwu.github.io/tools/image/image-crop.html"}]}
+</script>
+
+<script src="../../js/i18n.js" defer></script>
+<script src="../../js/tool-i18n.js" defer></script>
+<!-- TOOLBOX-I18N-SCRIPT -->
+<!-- TOOLBOX-HREFLANG -->
+<link rel="alternate" hreflang="zh-CN" href="https://chenguangwu.github.io/tools/image/image-crop.html">
+<link rel="alternate" hreflang="en-US" href="https://chenguangwu.github.io/tools/image/image-crop.html">
+<link rel="alternate" hreflang="x-default" href="https://chenguangwu.github.io/tools/image/image-crop.html">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:locale:alternate" content="en_US">
+
+<script src="/js/clarity.js" defer></script>
+<!-- TOOLBOX-CLARITY -->
+</head>
+<body>
+<h1 class="sr-only">图片裁剪工具</h1>
+<div class="nav">
+  <a href="../../index.html">← ToolBox</a>
+  <span>/ 图片裁剪</span>
+  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()">🌙</button>
+</div>
+
+
+
+
+<nav class="breadcrumb" aria-label="面包屑导航" data-breadcrumb="1">
+  <a href="../../index.html">首页</a>
+  <span class="bc-sep">‹</span>
+  <a href="index.html">🖼️ 图像处理</a>
+  <span class="bc-sep">‹</span>
+  <span class="bc-current">图片裁剪工具</span>
+</nav>
+<div class="container">
+  <div class="card tool-card-accent" style="--tool-accent:#FF6B35;">
+    <h2>✂️ 图片裁剪工具</h2>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;">在图片上拖拽创建裁剪框，拖动四角/四边调整大小，支持比例预设与旋转，纯前端处理不上传。</p>
+
+    <!-- 上传区域 -->
+    <div class="drop-zone" id="drop-zone" onclick="document.getElementById('file-input').click()">
+      <span class="dz-icon">🖼️</span>
+      <div class="dz-title">点击或拖拽图片到此处</div>
+      <div class="dz-sub">支持 PNG / JPG / GIF / WebP，文件不会上传到服务器</div>
+      <input type="file" id="file-input" accept="image/*" style="display:none;" onchange="handleFile(this.files[0])">
+    </div>
+
+    <!-- 编辑器 -->
+    <div id="editor" style="display:none;">
+      <!-- 操作工具栏 -->
+      <div class="toolbar">
+        <button type="button" class="btn" onclick="rotateImage(-90)">↺ 左转 90°</button>
+        <button type="button" class="btn" onclick="rotateImage(90)">↻ 右转 90°</button>
+        <button type="button" class="btn" onclick="resetCrop()">⤢ 重置裁剪框</button>
+        <button type="button" class="btn" onclick="resetAll()">⟲ 换一张图片</button>
+      </div>
+
+      <!-- 比例预设 -->
+      <div class="tool-section">
+        <h3>宽高比预设</h3>
+        <div class="aspect-row" id="aspect-row">
+          <button type="button" class="aspect-btn active" data-aspect="free" onclick="setAspect(null,this)">自由</button>
+          <button type="button" class="aspect-btn" data-aspect="1" onclick="setAspect(1,this)">1:1</button>
+          <button type="button" class="aspect-btn" data-aspect="1.3333" onclick="setAspect(4/3,this)">4:3</button>
+          <button type="button" class="aspect-btn" data-aspect="1.7778" onclick="setAspect(16/9,this)">16:9</button>
+          <button type="button" class="aspect-btn" data-aspect="0.75" onclick="setAspect(3/4,this)">3:4</button>
+          <button type="button" class="aspect-btn" data-aspect="0.5625" onclick="setAspect(9/16,this)">9:16</button>
+          <button type="button" class="aspect-btn" data-aspect="1.6" onclick="setAspect(16/10,this)">16:10</button>
+        </div>
+        <p class="hint-text">提示：在图片上拖拽可新建裁剪框，拖动框内可移动，拖动四角/四边可调整大小。</p>
+      </div>
+
+      <!-- 裁剪画布 -->
+      <div class="crop-wrap" id="crop-wrap">
+        <canvas id="crop-canvas"></canvas>
+      </div>
+
+      <!-- 裁剪信息 -->
+      <div class="crop-info" id="crop-info">
+        <div class="ci-cell"><div class="ci-label">X 坐标</div><div class="ci-val" id="ci-x">0</div></div>
+        <div class="ci-cell"><div class="ci-label">Y 坐标</div><div class="ci-val" id="ci-y">0</div></div>
+        <div class="ci-cell"><div class="ci-label">宽度 W</div><div class="ci-val" id="ci-w">0</div></div>
+        <div class="ci-cell"><div class="ci-label">高度 H</div><div class="ci-val" id="ci-h">0</div></div>
+      </div>
+
+      <!-- 输出格式 -->
+      <div class="tool-section">
+        <h3>输出设置</h3>
+        <div class="format-row">
+          <label>格式</label>
+          <select id="format-select" onchange="onFormatChange()">
+            <option value="png">PNG（无损/透明）</option>
+            <option value="jpeg">JPEG（体积小）</option>
+          </select>
+        </div>
+        <div class="quality-row" id="quality-row" style="display:none;">
+          <label>质量</label>
+          <input type="range" id="quality" min="50" max="100" value="92" oninput="document.getElementById('quality-val').textContent=this.value+'%'">
+          <span class="qval" id="quality-val">92%</span>
+        </div>
+        <div class="toolbar" style="margin-top:10px;">
+          <button type="button" class="btn primary" onclick="downloadCrop()">⬇ 下载裁剪图片</button>
+        </div>
+      </div>
+
+      <!-- 预览 -->
+      <div class="tool-section preview-section">
+        <h3>裁剪结果预览</h3>
+        <div class="preview-wrap">
+          <canvas id="preview-canvas"></canvas>
+          <span class="preview-empty" id="preview-empty" style="display:none;">裁剪框为空</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="info-box">
+      🔒 纯前端处理：图片仅在浏览器本地处理，不会上传到任何服务器，保护你的隐私安全。
+    </div>
+  </div>
+
+  <!-- 注意事项 -->
+  <div class="tool-notes" style="--tool-accent:#FF6B35;">
+    <div class="tool-notes-title">⚠️ 使用说明与注意事项</div>
+    <ul>
+      <li>本工具纯前端运行，图片数据不会上传到服务器</li>
+      <li>建议在主流浏览器（Chrome / Safari / Firefox / Edge）中使用</li>
+      <li>超大图片（超过 8000px）可能影响性能，建议先压缩</li>
+      <li>JPEG 不支持透明背景，透明区域将填充为白色</li>
+      <li>旋转与裁剪均基于原始分辨率，导出画质无损（PNG）</li>
+    </ul>
+  </div>
+</div>
+
+<!-- SEO 介绍区块 -->
+
+</div>
+
+</div>
+
+<!-- 相关工具 -->
+<div class="related-tools" data-related-tools="1">
+  <h3 class="related-tools-title">🔗 相关工具</h3>
+  <div class="related-tools-grid">
+    <a href="generator-15.html" class="related-tool-card">
+      <span class="rt-icon">🖼️</span>
+      <span class="rt-info"><span class="rt-name">圆角图片（生成带圆角的PNG） - 免费在线工具，纯前端处理 | ToolBox免费在线工具箱</span><span class="rt-desc">圆角图片（生成带圆角的PNG）</span></span>
+    </a>
+    <a href="convert-8.html" class="related-tool-card">
+      <span class="rt-icon">🖼️</span>
+      <span class="rt-info"><span class="rt-name">图片格式转换（PNG/JPG/WEBP） - 免费在线工具，纯前端处理 | ToolBox免费在线工具箱</span><span class="rt-desc">图片格式转换（PNG/JPG/WEBP）</span></span>
+    </a>
+    <a href="image-converter.html" class="related-tool-card">
+      <span class="rt-icon">🖼️</span>
+      <span class="rt-info"><span class="rt-name">图片转换 - 免费格式转换工具，图片格式转换 | ToolBox免费在线工具箱</span><span class="rt-desc">图片格式转换</span></span>
+    </a>
+    <a href="gif-split.html" class="related-tool-card">
+      <span class="rt-icon">🎞️</span>
+      <span class="rt-info"><span class="rt-name">GIF分解工具 - 在线将GIF动画分解提取每一帧，导出为PNG图片或批量打包Z | ToolBox免费在线工具箱</span><span class="rt-desc">GIF分解工具</span></span>
+    </a>
+    <a href="image-compress.html" class="related-tool-card">
+      <span class="rt-icon">🗜️</span>
+      <span class="rt-info"><span class="rt-name">图片压缩 - 工具 - 免费在线图片压缩，支持 JPEG/WebP/PNG | ToolBox免费在线工具箱</span><span class="rt-desc">图片压缩</span></span>
+    </a>
+    <a href="image-collage.html" class="related-tool-card">
+      <span class="rt-icon">🧩</span>
+      <span class="rt-info"><span class="rt-name">图片拼图合成工具 - 免费在线拼图生成器，支持竖排/横排拼接、2x2/3x3/自定 | ToolBox免费在线工具箱</span><span class="rt-desc">图片拼图合成工具</span></span>
+    </a>
+  </div>
+</div>
+<div class="tool-intro open" id="toolIntro">
+  <div class="tool-intro-header">
+    <span class="intro-icon-wrap"><span class="intro-icon">📖</span>关于「图片裁剪」</span>
+    <span class="arrow">▼</span>
+  </div>
+  <div class="tool-intro-body">
+    <h4><span class="h4-icon">📝</span>工具简介</h4>
+    <p>图片裁剪工具是一款基于 HTML5 Canvas 的在线图片处理工具。无需安装软件、无需注册登录，打开网页即可使用。支持自由拖拽创建裁剪框、四角四边调整大小、多种宽高比预设、90° 旋转以及实时预览，全部在浏览器本地完成，图片不离开设备。</p>
+    <h4><span class="h4-icon">✨</span>功能特点</h4>
+    <ul class="intro-features">
+      <li>拖拽创建裁剪框，所见即所得</li>
+      <li>四角 + 四边八向调整大小</li>
+      <li>7 种宽高比预设（1:1、4:3、16:9 等）</li>
+      <li>90° 左右旋转，裁剪前自由调整方向</li>
+      <li>实时显示裁剪坐标与尺寸</li>
+      <li>实时预览裁剪结果</li>
+      <li>支持 PNG / JPEG 输出与质量控制</li>
+      <li>纯前端处理，图片不上传，保护隐私</li>
+      <li>支持深色模式与移动端响应式布局</li>
+    </ul>
+    <h4><span class="h4-icon">🎯</span>使用场景</h4>
+    <ul class="intro-scenes">
+      <li>裁剪头像、证件照尺寸调整</li>
+      <li>社交媒体封面图（16:9 / 1:1）</li>
+      <li>手机壁纸裁剪（9:16 竖屏）</li>
+      <li>电商主图、详情图比例裁剪</li>
+      <li>去除图片多余边距与水印区域</li>
+      <li>批量前处理素材，快速构图</li>
+    </ul>
+    <h4><span class="h4-icon">💬</span>常见问题</h4>
+    <div class="intro-faq-item"><div class="intro-faq-q">这个工具是免费的吗？</div><div class="intro-faq-a">完全免费，无需注册，直接在浏览器中打开即可使用，没有任何使用次数限制。</div></div>
+    <div class="intro-faq-item"><div class="intro-faq-q">我的图片会被上传吗？</div><div class="intro-faq-a">不会。所有裁剪、旋转、预览操作都在浏览器本地通过 Canvas 完成，图片不会发送到任何服务器，隐私安全有保障。</div></div>
+    <div class="intro-faq-item"><div class="intro-faq-q">支持哪些图片格式？</div><div class="intro-faq-a">支持读取 PNG、JPG/JPEG、GIF（首帧）、WebP、BMP 等主流格式。导出时可选择 PNG（保留透明）或 JPEG（体积更小）。</div></div>
+    <div class="intro-faq-item"><div class="intro-faq-q">如何精确控制裁剪比例？</div><div class="intro-faq-a">点击上方「宽高比预设」中的任意比例（如 1:1、16:9），裁剪框将自动锁定该比例，拖拽四角时会保持比例不变。选择「自由」则可任意调整。</div></div>
+    <div class="intro-faq-item"><div class="intro-faq-q">裁剪后的图片清晰度会下降吗？</div><div class="intro-faq-a">不会。裁剪基于原始分辨率进行，导出 PNG 时为无损画质；选择 JPEG 时可通过质量滑块平衡画质与体积。</div></div>
+  </div>
+</div>
+<!-- /SEO 介绍区块 -->
+
+<script>
+(function(){
+'use strict';
+
+// ===== 状态 =====
+var canvas = document.getElementById('crop-canvas');
+var ctx = canvas.getContext('2d');
+var preview = document.getElementById('preview-canvas');
+var pctx = preview.getContext('2d');
+var wrap = document.getElementById('crop-wrap');
+
+var originalImage = null;   // 原始 HTMLImageElement
+var sourceCanvas = null;    // 当前（旋转后）图像 canvas
+var imgW = 0, imgH = 0;     // sourceCanvas 的自然尺寸
+var rotation = 0;           // 0 / 90 / 180 / 270
+var crop = null;            // {x,y,w,h} 自然坐标
+var aspect = null;          // null=自由，否则 w/h
+var fileName = 'image';
+
+// 显示几何
+var scale = 1, dispW = 0, dispH = 0, dpr = window.devicePixelRatio || 1;
+var MIN_SIZE = 12;          // 自然坐标下最小裁剪尺寸
+
+// 交互状态
+var action = null;          // 'move' | 'create' | 'resize-xx'
+var startNat = null;        // 指针起始（自然坐标）
+var startCrop = null;       // 操作开始时的 crop
+var previewScheduled = false;
+
+var CORNERS = ['nw','ne','se','sw'];
+var EDGES = ['n','e','s','w'];
+
+// ===== 工具函数 =====
+function clamp(v, lo, hi){ return Math.max(lo, Math.min(hi, v)); }
+
+function fitImage(){
+  var maxW = Math.max(40, wrap.clientWidth - 20);
+  var maxH = 460;
+  var s = Math.min(maxW / imgW, maxH / imgH, 6);
+  if(!isFinite(s) || s <= 0) s = 0.1;
+  scale = s;
+  dispW = Math.max(1, Math.round(imgW * scale));
+  dispH = Math.max(1, Math.round(imgH * scale));
+  dpr = window.devicePixelRatio || 1;
+  canvas.style.width = dispW + 'px';
+  canvas.style.height = dispH + 'px';
+  canvas.width = Math.round(dispW * dpr);
+  canvas.height = Math.round(dispH * dpr);
+}
+
+function natX(d){ return d / scale; }
+function natY(d){ return d / scale; }
+function dispX(n){ return n * scale; }
+function dispY(n){ return n * scale; }
+
+function pointerToDisplay(e){
+  var rect = canvas.getBoundingClientRect();
+  return { x: e.clientX - rect.left, y: e.clientY - rect.top };
+}
+
+// ===== 源图像构建（含旋转） =====
+function rebuildSource(){
+  if(!originalImage) return;
+  var w = originalImage.naturalWidth, h = originalImage.naturalHeight;
+  var rad = rotation * Math.PI / 180;
+  var swap = rotation === 90 || rotation === 270;
+  var cw = swap ? h : w;
+  var ch = swap ? w : h;
+  var c = document.createElement('canvas');
+  c.width = cw; c.height = ch;
+  var cx = c.getContext('2d');
+  cx.save();
+  cx.translate(cw / 2, ch / 2);
+  cx.rotate(rad);
+  cx.drawImage(originalImage, -w / 2, -h / 2);
+  cx.restore();
+  sourceCanvas = c;
+  imgW = cw; imgH = ch;
+}
+
+// ===== 裁剪框重置 =====
+function resetCrop(){
+  if(!sourceCanvas) return;
+  if(aspect){
+    var w = imgW, h = w / aspect;
+    if(h > imgH){ h = imgH; w = h * aspect; }
+    crop = { x: (imgW - w) / 2, y: (imgH - h) / 2, w: w, h: h };
+  } else {
+    crop = { x: 0, y: 0, w: imgW, h: imgH };
+  }
+  draw(); updatePreview();
+}
+
+// ===== 绘制 =====
+function draw(){
+  if(!sourceCanvas) return;
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.clearRect(0, 0, dispW, dispH);
+  ctx.drawImage(sourceCanvas, 0, 0, imgW, imgH, 0, 0, dispW, dispH);
+
+  if(crop && crop.w > 0 && crop.h > 0){
+    var cx = dispX(crop.x), cy = dispY(crop.y);
+    var cw = dispX(crop.w), ch = dispY(crop.h);
+    // 暗色遮罩
+    ctx.fillStyle = 'rgba(0,0,0,0.5)';
+    ctx.fillRect(0, 0, dispW, cy);
+    ctx.fillRect(0, cy + ch, dispW, dispH - (cy + ch));
+    ctx.fillRect(0, cy, cx, ch);
+    ctx.fillRect(cx + cw, cy, dispW - (cx + cw), ch);
+    // 边框
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(cx, cy, cw, ch);
+    // 三分线
+    ctx.strokeStyle = 'rgba(255,255,255,0.35)';
+    ctx.lineWidth = 1;
+    for(var i = 1; i < 3; i++){
+      ctx.beginPath();
+      ctx.moveTo(cx + cw * i / 3, cy);
+      ctx.lineTo(cx + cw * i / 3, cy + ch);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(cx, cy + ch * i / 3);
+      ctx.lineTo(cx + cw, cy + ch * i / 3);
+      ctx.stroke();
+    }
+    // 手柄
+    drawHandles(cx, cy, cw, ch);
+  }
+}
+
+function drawHandles(cx, cy, cw, ch){
+  var pts = handlePositions(cx, cy, cw, ch);
+  var hs = 9;
+  ctx.lineWidth = 2;
+  for(var i = 0; i < pts.length; i++){
+    var p = pts[i];
+    if(aspect && EDGES.indexOf(p.name) >= 0) continue;
+    ctx.fillStyle = '#ffffff';
+    ctx.strokeStyle = '#FF6B35';
+    ctx.beginPath();
+    ctx.rect(p.x - hs, p.y - hs, hs * 2, hs * 2);
+    ctx.fill();
+    ctx.stroke();
+  }
+}
+
+function handlePositions(cx, cy, cw, ch){
+  return [
+    { name: 'nw', x: cx, y: cy },
+    { name: 'n',  x: cx + cw / 2, y: cy },
+    { name: 'ne', x: cx + cw, y: cy },
+    { name: 'e',  x: cx + cw, y: cy + ch / 2 },
+    { name: 'se', x: cx + cw, y: cy + ch },
+    { name: 's',  x: cx + cw / 2, y: cy + ch },
+    { name: 'sw', x: cx, y: cy + ch },
+    { name: 'w',  x: cx, y: cy + ch / 2 }
+  ];
+}
+
+function getHandleAt(px, py){
+  if(!crop) return null;
+  var cx = dispX(crop.x), cy = dispY(crop.y);
+  var cw = dispX(crop.w), ch = dispY(crop.h);
+  var pts = handlePositions(cx, cy, cw, ch);
+  var r = 14;
+  for(var i = 0; i < pts.length; i++){
+    var p = pts[i];
+    if(aspect && EDGES.indexOf(p.name) >= 0) continue;
+    if(Math.abs(px - p.x) <= r && Math.abs(py - p.y) <= r) return p.name;
+  }
+  return null;
+}
+
+function pointInCrop(px, py){
+  if(!crop) return false;
+  var cx = dispX(crop.x), cy = dispY(crop.y);
+  var cw = dispX(crop.w), ch = dispY(crop.h);
+  return px >= cx && px <= cx + cw && py >= cy && py <= cy + ch;
+}
+
+function setCursor(px, py){
+  var handle = getHandleAt(px, py);
+  var cur;
+  if(handle){
+    var map = { nw:'nwse-resize', se:'nwse-resize', ne:'nesw-resize', sw:'nesw-resize',
+                n:'ns-resize', s:'ns-resize', e:'ew-resize', w:'ew-resize' };
+    cur = map[handle];
+  } else if(pointInCrop(px, py)){
+    cur = 'move';
+  } else {
+    cur = 'crosshair';
+  }
+  canvas.style.cursor = cur;
+}
+
+// ===== 裁剪操作 =====
+function moveCrop(pn){
+  var dx = pn.x - startNat.x;
+  var dy = pn.y - startNat.y;
+  var x = clamp(startCrop.x + dx, 0, imgW - startCrop.w);
+  var y = clamp(startCrop.y + dy, 0, imgH - startCrop.h);
+  crop = { x: x, y: y, w: startCrop.w, h: startCrop.h };
+}
+
+function createCrop(pn){
+  var x0 = startNat.x, y0 = startNat.y;
+  var x1 = clamp(pn.x, 0, imgW), y1 = clamp(pn.y, 0, imgH);
+  if(aspect){
+    var dirX = x1 >= x0 ? 1 : -1;
+    var dirY = y1 >= y0 ? 1 : -1;
+    var w = Math.abs(x1 - x0);
+    var h = Math.abs(y1 - y0);
+    if(w / aspect > h){ h = w / aspect; } else { w = h * aspect; }
+    var maxW = dirX > 0 ? imgW - x0 : x0;
+    var maxH = dirY > 0 ? imgH - y0 : y0;
+    w = Math.min(w, maxW); h = Math.min(h, maxH);
+    w = Math.min(w, h * aspect); h = w / aspect;
+    if(w < MIN_SIZE){ w = MIN_SIZE; h = w / aspect; }
+    var x = dirX > 0 ? x0 : x0 - w;
+    var y = dirY > 0 ? y0 : y0 - h;
+    crop = { x: x, y: y, w: w, h: h };
+  } else {
+    var left = Math.min(x0, x1), top = Math.min(y0, y1);
+    var ww = Math.max(MIN_SIZE, Math.abs(x1 - x0));
+    var hh = Math.max(MIN_SIZE, Math.abs(y1 - y0));
+    crop = { x: left, y: top, w: ww, h: hh };
+  }
+}
+
+function resizeCrop(handle, pn){
+  if(aspect){
+    // 角落按比例缩放
+    var fixedX = handle.indexOf('w') >= 0 ? (startCrop.x + startCrop.w) : startCrop.x;
+    var fixedY = handle.indexOf('n') >= 0 ? (startCrop.y + startCrop.h) : startCrop.y;
+    var dirX = handle.indexOf('w') >= 0 ? -1 : 1;
+    var dirY = handle.indexOf('n') >= 0 ? -1 : 1;
+    var maxW = dirX > 0 ? imgW - fixedX : fixedX;
+    var maxH = dirY > 0 ? imgH - fixedY : fixedY;
+    var dw = Math.abs(pn.x - fixedX);
+    var dh = Math.abs(pn.y - fixedY);
+    var w, h;
+    if(dw / aspect > dh){ h = dw / aspect; w = dw; } else { w = dh * aspect; h = dh; }
+    w = Math.min(w, maxW); h = Math.min(h, maxH);
+    w = Math.min(w, h * aspect); h = w / aspect;
+    if(w < MIN_SIZE){ w = MIN_SIZE; h = w / aspect; }
+    var x = dirX > 0 ? fixedX : fixedX - w;
+    var y = dirY > 0 ? fixedY : fixedY - h;
+    crop = { x: x, y: y, w: w, h: h };
+  } else {
+    // 自由缩放
+    var left = startCrop.x, top = startCrop.y;
+    var right = startCrop.x + startCrop.w, bottom = startCrop.y + startCrop.h;
+    if(handle.indexOf('w') >= 0) left = clamp(pn.x, 0, right - MIN_SIZE);
+    if(handle.indexOf('e') >= 0) right = clamp(pn.x, left + MIN_SIZE, imgW);
+    if(handle.indexOf('n') >= 0) top = clamp(pn.y, 0, bottom - MIN_SIZE);
+    if(handle.indexOf('s') >= 0) bottom = clamp(pn.y, top + MIN_SIZE, imgH);
+    crop = { x: left, y: top, w: right - left, h: bottom - top };
+  }
+}
+
+// ===== 指针事件 =====
+function onPointerDown(e){
+  if(!sourceCanvas){ return; }
+  e.preventDefault();
+  canvas.setPointerCapture(e.pointerId);
+  var p = pointerToDisplay(e);
+  var pn = { x: natX(p.x), y: natY(p.y) };
+  startNat = pn;
+  startCrop = crop ? { x: crop.x, y: crop.y, w: crop.w, h: crop.h } : null;
+  var handle = getHandleAt(p.x, p.y);
+  if(handle){
+    action = 'resize-' + handle;
+  } else if(crop && pointInCrop(p.x, p.y)){
+    action = 'move';
+  } else {
+    action = 'create';
+    crop = { x: pn.x, y: pn.y, w: 0, h: 0 };
+  }
+}
+
+function onPointerMove(e){
+  var p = pointerToDisplay(e);
+  if(!action){
+    setCursor(p.x, p.y);
+    return;
+  }
+  e.preventDefault();
+  var pn = { x: natX(p.x), y: natY(p.y) };
+  if(action === 'move'){ moveCrop(pn); }
+  else if(action === 'create'){ createCrop(pn); }
+  else if(action.indexOf('resize-') === 0){ resizeCrop(action.slice(7), pn); }
+  draw();
+  schedulePreview();
+}
+
+function onPointerUp(e){
+  if(!action) return;
+  // 若创建的框过小，恢复为整图
+  if(action === 'create' && crop && (crop.w < MIN_SIZE || crop.h < MIN_SIZE)){
+    resetCrop();
+  }
+  action = null;
+  try{ canvas.releasePointerCapture(e.pointerId); }catch(err){}
+  draw();
+  updatePreview();
+}
+
+canvas.addEventListener('pointerdown', onPointerDown);
+canvas.addEventListener('pointermove', onPointerMove);
+canvas.addEventListener('pointerup', onPointerUp);
+canvas.addEventListener('pointercancel', onPointerUp);
+canvas.addEventListener('pointerleave', function(e){
+  if(!action) setCursor(-1, -1);
+});
+
+// ===== 预览 =====
+function getCroppedCanvas(){
+  if(!crop || !sourceCanvas) return null;
+  var x = Math.round(crop.x), y = Math.round(crop.y);
+  var w = Math.round(crop.w), h = Math.round(crop.h);
+  w = Math.max(1, w); h = Math.max(1, h);
+  x = clamp(x, 0, imgW - 1); y = clamp(y, 0, imgH - 1);
+  w = Math.min(w, imgW - x); h = Math.min(h, imgH - y);
+  var c = document.createElement('canvas');
+  c.width = w; c.height = h;
+  var cx = c.getContext('2d');
+  cx.drawImage(sourceCanvas, x, y, w, h, 0, 0, w, h);
+  return c;
+}
+
+function updatePreview(){
+  previewScheduled = false;
+  updateCropInfo();
+  if(!crop || crop.w <= 0 || crop.h <= 0){
+    document.getElementById('preview-empty').style.display = '';
+    preview.style.display = 'none';
+    return;
+  }
+  var c = getCroppedCanvas();
+  if(!c) return;
+  var maxW = 320, maxH = 260;
+  var s = Math.min(maxW / c.width, maxH / c.height);
+  var dw = Math.max(1, Math.round(c.width * s));
+  var dh = Math.max(1, Math.round(c.height * s));
+  preview.width = dw; preview.height = dh;
+  preview.style.display = '';
+  document.getElementById('preview-empty').style.display = 'none';
+  pctx.imageSmoothingQuality = 'high';
+  pctx.clearRect(0, 0, dw, dh);
+  pctx.drawImage(c, 0, 0, dw, dh);
+}
+
+function schedulePreview(){
+  if(previewScheduled) return;
+  previewScheduled = true;
+  if(window.requestAnimationFrame){
+    window.requestAnimationFrame(updatePreview);
+  } else {
+    setTimeout(updatePreview, 16);
+  }
+}
+
+function updateCropInfo(){
+  if(!crop){ return; }
+  document.getElementById('ci-x').textContent = Math.round(crop.x);
+  document.getElementById('ci-y').textContent = Math.round(crop.y);
+  document.getElementById('ci-w').textContent = Math.round(crop.w);
+  document.getElementById('ci-h').textContent = Math.round(crop.h);
+}
+
+// ===== 比例 =====
+function setAspect(a, btn){
+  aspect = a;
+  var btns = document.querySelectorAll('.aspect-btn');
+  for(var i = 0; i < btns.length; i++) btns[i].classList.remove('active');
+  if(btn) btn.classList.add('active');
+  if(crop && sourceCanvas){
+    // 以当前中心居中调整
+    var cx = crop.x + crop.w / 2, cy = crop.y + crop.h / 2;
+    if(a){
+      var w = crop.w, h = w / a;
+      if(h > imgH){ h = imgH; w = h * a; }
+      if(w > imgW){ w = imgW; h = w / a; }
+      var x = clamp(cx - w / 2, 0, imgW - w);
+      var y = clamp(cy - h / 2, 0, imgH - h);
+      crop = { x: x, y: y, w: w, h: h };
+    }
+    draw();
+    updatePreview();
+  }
+}
+window.setAspect = setAspect;
+
+// ===== 旋转 =====
+function rotateImage(delta){
+  if(!originalImage) return;
+  rotation = ((rotation + delta) % 360 + 360) % 360;
+  rebuildSource();
+  fitImage();
+  resetCrop();
+  ToolBox.showToast(rotation === 0 ? '已恢复原向' : '已旋转 ' + rotation + '°', 'info');
+}
+window.rotateImage = rotateImage;
+
+// ===== 格式 =====
+function onFormatChange(){
+  var fmt = document.getElementById('format-select').value;
+  document.getElementById('quality-row').style.display = (fmt === 'jpeg') ? '' : 'none';
+}
+window.onFormatChange = onFormatChange;
+
+// ===== 下载 =====
+function downloadCrop(){
+  if(!crop || crop.w <= 0 || crop.h <= 0 || !sourceCanvas){
+    ToolBox.showToast(i18nText('toast.msg675'), 'warning');
+    return;
+  }
+  var c = getCroppedCanvas();
+  var fmt = document.getElementById('format-select').value;
+  if(fmt === 'jpeg'){
+    // JPEG 不支持透明，填充白底
+    var tmp = document.createElement('canvas');
+    tmp.width = c.width; tmp.height = c.height;
+    var tx = tmp.getContext('2d');
+    tx.fillStyle = '#ffffff';
+    tx.fillRect(0, 0, tmp.width, tmp.height);
+    tx.drawImage(c, 0, 0);
+    c = tmp;
+  }
+  var mime = fmt === 'jpeg' ? 'image/jpeg' : 'image/png';
+  var q = parseInt(document.getElementById('quality').value, 10) / 100;
+  c.toBlob(function(blob){
+    if(!blob){ ToolBox.showToast(i18nText('toast.msg509'), 'error'); return; }
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = fileName + '-crop.' + (fmt === 'jpeg' ? 'jpg' : 'png');
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(function(){ URL.revokeObjectURL(a.href); a.remove(); }, 500);
+    ToolBox.showToast(i18nText('toast.msg148'), 'success');
+  }, mime, q);
+}
+window.downloadCrop = downloadCrop;
+
+// ===== 重置裁剪框（对外） =====
+window.resetCrop = resetCrop;
+
+// ===== 换图 =====
+function resetAll(){
+  originalImage = null;
+  sourceCanvas = null;
+  crop = null;
+  rotation = 0;
+  aspect = null;
+  var btns = document.querySelectorAll('.aspect-btn');
+  for(var i = 0; i < btns.length; i++) btns[i].classList.toggle('active', i === 0);
+  document.getElementById('editor').style.display = 'none';
+  document.getElementById('drop-zone').style.display = '';
+  document.getElementById('file-input').value = '';
+}
+window.resetAll = resetAll;
+
+// ===== 文件加载 =====
+function handleFile(file){
+  if(!file){ return; }
+  if(!file.type.startsWith('image/')){
+    ToolBox.showToast(i18nText('toast.msg933'), 'error');
+    return;
+  }
+  fileName = (file.name || 'image').replace(/\.[^.]+$/, '');
+  var url = URL.createObjectURL(file);
+  var img = new Image();
+  img.onload = function(){
+    originalImage = img;
+    rotation = 0;
+    rebuildSource();
+    document.getElementById('drop-zone').style.display = 'none';
+    document.getElementById('editor').style.display = '';
+    onFormatChange();
+    fitImage();
+    resetCrop();
+    ToolBox.showToast(i18nText('toast.msg121'), 'success');
+  };
+  img.onerror = function(){
+    ToolBox.showToast(i18nText('tool.image_load_error'), 'error');
+    URL.revokeObjectURL(url);
+  };
+  img.src = url;
+}
+window.handleFile = handleFile;
+
+// ===== 拖拽上传 =====
+var dz = document.getElementById('drop-zone');
+dz.addEventListener('dragover', function(e){ e.preventDefault(); dz.classList.add('dragover'); });
+dz.addEventListener('dragleave', function(){ dz.classList.remove('dragover'); });
+dz.addEventListener('drop', function(e){
+  e.preventDefault();
+  dz.classList.remove('dragover');
+  if(e.dataTransfer.files.length){ handleFile(e.dataTransfer.files[0]); }
+});
+
+// 窗口尺寸变化时重新适配
+var resizeTimer = null;
+window.addEventListener('resize', function(){
+  if(!sourceCanvas) return;
+  if(resizeTimer) clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(function(){
+    fitImage();
+    draw();
+    updatePreview();
+  }, 150);
+});
+
+// tool-intro 折叠
+document.addEventListener('DOMContentLoaded', function(){
+  var headers = document.querySelectorAll('.tool-intro-header');
+  for(var i = 0; i < headers.length; i++){
+    headers[i].addEventListener('click', function(){
+      this.parentElement.classList.toggle('open');
+    });
+  }
+});
+
+ToolBox.initToolTheme();
+})();
+</script>
+<script>
+// 兼容 common.js 的 h1 自动注入（此处已手动添加 sr-only h1，重复检测会跳过）
+</script>
+</body>
+</html>

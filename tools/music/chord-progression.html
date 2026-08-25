@@ -1,0 +1,944 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+
+<script src="/js/tool-page-runtime.js" defer></script>
+<!-- TOOLBOX-TOOL-RUNTIME -->
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="toolbox" content="cat=generate,industry=music,icon=🎼,bg=#e3f2fd">
+<title>和弦进行生成器 - 免费在线和弦进行生成器，随机生成流行和弦进行 - ToolBox</title>
+<link rel="canonical" href="https://chenguangwu.github.io/tools/music/chord-progression.html">
+<meta property="og:title" content="和弦进行生成器 - 免费在线和弦进行生成器，随机生成流行和弦进行 - ToolBox">
+<meta property="og:description" content="免费在线和弦进行生成器，随机生成流行和弦进行，支持大调小调多种调式，内置经典和弦进行库，Web Audio API 试听播放。">
+<meta property="og:url" content="https://chenguangwu.github.io/tools/music/chord-progression.html">
+<meta name="twitter:card" content="summary">
+<meta name="description" content="免费在线和弦进行生成器，随机生成流行和弦进行，支持大调小调多种调式，内置经典和弦进行库，Web Audio API 试听播放。">
+<meta name="keywords" content="和弦进行生成器,流行和弦,和弦走向,音乐理论,和弦进行,吉他和弦,钢琴和弦,Web Audio">
+<link rel="icon" type="image/svg+xml" href="../../favicon.svg">
+<link rel="icon" type="image/x-icon" href="../../favicon.ico">
+<link rel="stylesheet" href="../../css/common.css">
+<script src="../../js/common.js"></script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebApplication",
+  "name": "和弦进行生成器",
+  "description": "免费在线和弦进行生成器，随机生成流行和弦进行，支持多种调式和经典和弦进行库，Web Audio API 试听播放。",
+  "applicationCategory": "MusicApplication",
+  "operatingSystem": "All",
+  "offers": { "@type": "Offer", "price": "0", "priceCurrency": "CNY" }
+}
+</script>
+<style>
+  .chord-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 10px;
+    margin: 12px 0;
+  }
+  .chord-card {
+    background: var(--result-bg);
+    border: 2px solid var(--border);
+    border-radius: 12px;
+    padding: 14px 10px;
+    text-align: center;
+    transition: all 0.25s ease;
+    cursor: default;
+    position: relative;
+  }
+  .chord-card:hover {
+    border-color: var(--primary);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-sm);
+  }
+  .chord-card.playing {
+    border-color: var(--primary);
+    background: rgba(255,107,53,0.08);
+    box-shadow: 0 0 0 3px rgba(255,107,53,0.15);
+  }
+  .chord-card .chord-name {
+    font-size: 22px;
+    font-weight: 800;
+    color: var(--primary);
+    margin-bottom: 4px;
+  }
+  .chord-card .chord-notes {
+    font-size: 12px;
+    color: var(--text-muted);
+    font-family: 'SF Mono', 'Courier New', monospace;
+    letter-spacing: 1px;
+  }
+  .chord-card .chord-bar {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-top: 4px;
+    opacity: 0.7;
+  }
+  .progression-name {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 20px;
+    background: linear-gradient(135deg, rgba(255,107,53,0.08), rgba(124,58,237,0.08));
+    border: 1px solid rgba(255,107,53,0.15);
+    font-size: 12px;
+    color: var(--secondary);
+    font-weight: 600;
+    margin-bottom: 12px;
+  }
+  .playback-bar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 12px 0;
+    padding: 12px 14px;
+    background: var(--result-bg);
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    flex-wrap: wrap;
+  }
+  .playback-bar .beat-indicator {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--border);
+    transition: background 0.15s;
+    flex-shrink: 0;
+  }
+  .playback-bar .beat-indicator.active {
+    background: var(--primary);
+    box-shadow: 0 0 8px rgba(255,107,53,0.5);
+  }
+  .bpm-control {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .bpm-control input[type="range"] {
+    flex: 1;
+    min-width: 80px;
+    height: 6px;
+    -webkit-appearance: none;
+    appearance: none;
+    background: var(--border);
+    border-radius: 3px;
+    outline: none;
+    padding: 0;
+    border: none;
+  }
+  .bpm-control input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: var(--primary);
+    cursor: pointer;
+    border: 2px solid var(--card-bg);
+    box-shadow: 0 2px 6px rgba(255,107,53,0.3);
+  }
+  .bpm-value {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--primary);
+    min-width: 50px;
+    text-align: center;
+  }
+  .ref-section {
+    margin-top: 16px;
+  }
+  .ref-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 10px;
+  }
+  .ref-card {
+    background: var(--result-bg);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 12px 14px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .ref-card:hover {
+    border-color: var(--primary);
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-sm);
+  }
+  .ref-card .ref-name {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--heading);
+    margin-bottom: 4px;
+  }
+  .ref-card .ref-numeral {
+    font-size: 13px;
+    color: var(--primary);
+    font-family: 'SF Mono', monospace;
+    margin-bottom: 2px;
+  }
+  .ref-card .ref-desc {
+    font-size: 12px;
+    color: var(--text-muted);
+  }
+  .empty-state {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--text-muted);
+    font-size: 14px;
+  }
+  .empty-state .empty-icon {
+    font-size: 48px;
+    margin-bottom: 12px;
+    opacity: 0.5;
+  }
+  @media (max-width: 768px) {
+    .chord-grid {
+      grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+      gap: 8px;
+    }
+    .chord-card { padding: 10px 8px; }
+    .chord-card .chord-name { font-size: 18px; }
+    .chord-card .chord-notes { font-size: 11px; }
+    .ref-grid { grid-template-columns: 1fr; }
+    .playback-bar { gap: 8px; }
+  }
+</style>
+
+
+
+<meta property="og:image" content="https://chenguangwu.github.io/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="ToolBox - 6000+免费在线工具">
+<meta name="twitter:image" content="https://chenguangwu.github.io/og-image.png">
+<meta name="twitter:image:alt" content="ToolBox - 6000+免费在线工具">
+    <meta property="og:type" content="website">
+    <meta name="twitter:title" content="和弦进行生成器 - 免费在线和弦进行生成器，随机生成流行和弦进行 - ToolBox">
+    <meta name="twitter:description" content="免费在线和弦进行生成器，随机生成流行和弦进行，支持大调小调多种调式，内置经典和弦进行库，Web Audio API 试听播放。">
+<!-- TOOLBOX-WEBAPP-LD -->
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"WebApplication","name":"和弦进行生成器 - 免费在线和弦进行生成器，随机生成流行和弦进行","url":"https://chenguangwu.github.io/tools/music/chord-progression.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":["zh-CN", "en-US"],"description":"&amp;#127926; 和弦进行生成器","image":"https://chenguangwu.github.io/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}
+</script>
+<meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
+<meta http-equiv="X-Content-Type-Options" content="nosniff">
+<meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
+<!-- TOOLBOX-SECURITY -->
+
+<script src="/js/privacy.js" defer></script>
+<!-- TOOLBOX-PRIVACY-SCRIPT -->
+
+<script src="/js/metrics.js" defer></script>
+<!-- TOOLBOX-METRICS-SCRIPT -->
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"首页","item":"https://chenguangwu.github.io/"},{"@type":"ListItem","position":2,"name":"音乐艺术","item":"https://chenguangwu.github.io/tools/music/index.html"},{"@type":"ListItem","position":3,"name":"和弦进行生成器","item":"https://chenguangwu.github.io/tools/music/chord-progression.html"}]}
+</script>
+
+<script src="../../js/i18n.js" defer></script>
+<script src="../../js/tool-i18n.js" defer></script>
+<!-- TOOLBOX-I18N-SCRIPT -->
+<!-- TOOLBOX-HREFLANG -->
+<link rel="alternate" hreflang="zh-CN" href="https://chenguangwu.github.io/tools/music/chord-progression.html">
+<link rel="alternate" hreflang="en-US" href="https://chenguangwu.github.io/tools/music/chord-progression.html">
+<link rel="alternate" hreflang="x-default" href="https://chenguangwu.github.io/tools/music/chord-progression.html">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:locale:alternate" content="en_US">
+
+<script src="/js/clarity.js" defer></script>
+<!-- TOOLBOX-CLARITY -->
+</head>
+<body>
+<h1 class="sr-only">和弦进行生成器</h1>
+
+
+<div class="nav">
+  <a href="../../index.html">&#8592; ToolBox</a>
+  <span>/ 和弦进行生成器</span>
+  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()">&#127769;</button>
+</div>
+
+
+
+
+
+<nav class="breadcrumb" aria-label="面包屑导航" data-breadcrumb="1">
+  <a href="../../index.html">首页</a>
+  <span class="bc-sep">‹</span>
+  <a href="index.html">🎵 音乐艺术</a>
+  <span class="bc-sep">‹</span>
+  <span class="bc-current">和弦进行生成器</span>
+</nav>
+<div class="container">
+  <div class="card tool-card-accent" style="--tool-accent:#FF6B35;">
+    <h2>&#127926; 和弦进行生成器</h2>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;">随机生成流行和弦进行，支持播放试听，适用于吉他、钢琴等编曲创作。</p>
+
+    <!-- 输入区域 -->
+    <div class="input-row">
+      <div style="flex:1;min-width:140px;">
+        <label>调式</label>
+        <select id="selKey">
+          <optgroup label="大调">
+            <option value="C">C 大调</option>
+            <option value="G" selected>G 大调</option>
+            <option value="D">D 大调</option>
+            <option value="A">A 大调</option>
+            <option value="E">E 大调</option>
+            <option value="B">B 大调</option>
+            <option value="F#">F# 大调</option>
+            <option value="F">F 大调</option>
+            <option value="Bb">降B 大调</option>
+            <option value="Eb">降E 大调</option>
+          </optgroup>
+          <optgroup label="小调">
+            <option value="Am">A 小调</option>
+            <option value="Em">E 小调</option>
+            <option value="Bm">B 小调</option>
+            <option value="F#m">F#m 小调</option>
+            <option value="C#m">C#m 小调</option>
+            <option value="G#m">G#m 小调</option>
+            <option value="Dm">D 小调</option>
+            <option value="Gm">G 小调</option>
+            <option value="Cm">C 小调</option>
+          </optgroup>
+        </select>
+      </div>
+      <div style="flex:0.6;min-width:100px;">
+        <label>小节数</label>
+        <select id="selBars">
+          <option value="4" selected>4 小节</option>
+          <option value="8">8 小节</option>
+          <option value="16">16 小节</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- 工具栏 -->
+    <div class="toolbar">
+      <button type="button" class="btn primary" onclick="generate()">随机生成</button>
+      <button type="button" class="btn" id="btnPlay" onclick="togglePlay()" disabled>&#9654; 播放</button>
+      <button type="button" class="btn" id="btnStop" onclick="stopPlay()" disabled>&#9632; 停止</button>
+      <button type="button" class="btn" onclick="copyProgression()">&#128203; 复制</button>
+    </div>
+
+    <!-- 播放控制 -->
+    <div class="playback-bar" id="playbackBar">
+      <div class="bpm-control" style="flex:1;">
+        <span style="font-size:12px;color:var(--text-muted);white-space:nowrap;">BPM</span>
+        <input type="range" id="bpmSlider" min="60" max="200" value="100" oninput="updateBpm()">
+        <span class="bpm-value" id="bpmValue">100</span>
+      </div>
+      <div id="beatDots" style="display:flex;gap:4px;align-items:center;"></div>
+    </div>
+
+    <!-- 结果区域 -->
+    <div class="result-box" id="result">
+      <div class="empty-state">
+        <div class="empty-icon">&#127925;</div>
+        <p>点击「随机生成」获取和弦进行</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- 和弦进行参考 -->
+  <div class="card">
+    <h3>&#128218; 经典和弦进行库</h3>
+    <p style="font-size:12px;color:var(--text-muted);margin-bottom:12px;">点击任意进行可快速应用到当前调式和小节数</p>
+    <div class="ref-grid" id="refGrid"></div>
+  </div>
+
+  <!-- 工具介绍（SEO） -->
+  
+</div>
+
+</div>
+
+
+<!-- 相关工具 -->
+<div class="related-tools" data-related-tools="1">
+  <h3 class="related-tools-title">🔗 相关工具</h3>
+  <div class="related-tools-grid">
+    <a href="random-training-rhythm.html" class="related-tool-card">
+      <span class="rt-icon">🎵</span>
+      <span class="rt-info"><span class="rt-name">节奏训练（随机节奏点击）</span><span class="rt-desc">节奏训练（随机节奏点击）</span></span>
+    </a>
+    <a href="generator-1.html" class="related-tool-card">
+      <span class="rt-icon">🎵</span>
+      <span class="rt-info"><span class="rt-name">音阶生成器（大调/小调/五声音阶）</span><span class="rt-desc">音阶生成器（大调/小调/五声音阶）</span></span>
+    </a>
+    <a href="bpm-converter.html" class="related-tool-card">
+      <span class="rt-icon">⏱️</span>
+      <span class="rt-info"><span class="rt-name">BPM速度转换器 - BPM与音符时长、延迟时间、LFO频率、采样长度互转</span><span class="rt-desc">&amp;#9201;&amp;#65039; BPM 速度转换器</span></span>
+    </a>
+    <a href="convert-speed.html" class="related-tool-card">
+      <span class="rt-icon">🎵</span>
+      <span class="rt-info"><span class="rt-name">歌曲速度转换（BPM微调）</span><span class="rt-desc">歌曲速度转换（BPM微调）</span></span>
+    </a>
+    <a href="audio-converter.html" class="related-tool-card">
+      <span class="rt-icon">🔄</span>
+      <span class="rt-info"><span class="rt-name">音频转换 - 音乐艺术领域的在线工具</span><span class="rt-desc">音频格式转换参数</span></span>
+    </a>
+    <a href="freq-note-converter.html" class="related-tool-card">
+      <span class="rt-icon">🔉</span>
+      <span class="rt-info"><span class="rt-name">频率音符转换器 - Hz频率与音符名称双向转换，支持自定义A4参考频率</span><span class="rt-desc">频率音符转换器</span></span>
+    </a>
+  </div>
+</div>
+<div class="tool-intro" id="toolIntro">
+    <div class="tool-intro-header" onclick="toggleIntro()">
+      <span class="intro-icon-wrap">
+        <span class="intro-icon">&#127926;</span>
+        关于和弦进行生成器
+      </span>
+      <span class="arrow">&#9660;</span>
+    </div>
+    <div class="tool-intro-body">
+      <p>和弦进行（Chord Progression）是指一组和弦按照特定顺序排列，构成音乐的基本和声框架。不同风格的和弦进行能营造出截然不同的情感和氛围，是歌曲创作和编曲的核心元素。</p>
+      <h4><span class="h4-icon">&#127775;</span> 功能特点</h4>
+      <ul class="intro-features">
+        <li>支持 10 种大调 + 9 种小调</li>
+        <li>内置 8 种经典和弦进行</li>
+        <li>4/8/16 小节灵活配置</li>
+        <li>Web Audio API 实时试听</li>
+        <li>可调节 BPM 速度</li>
+        <li>一键复制和弦文本</li>
+      </ul>
+      <h4><span class="h4-icon">&#127914;</span> 适用场景</h4>
+      <ul class="intro-scenes">
+        <li>吉他弹唱编曲</li>
+        <li>钢琴伴奏创作</li>
+        <li>歌曲写作灵感</li>
+        <li>音乐理论学习</li>
+      </ul>
+      <h4><span class="h4-icon">&#10067;</span> 常见问题</h4>
+      <div class="intro-faq-item">
+        <div class="intro-faq-q">什么是 I-V-vi-IV 进行？</div>
+        <div class="intro-faq-a">这是流行音乐中最常见的和弦进行，例如 C 大调中的 C-G-Am-F，几乎在数万首热门歌曲中出现。被称为"流行万能进行"。</div>
+      </div>
+      <div class="intro-faq-item">
+        <div class="intro-faq-q">罗马数字代表什么？</div>
+        <div class="intro-faq-a">罗马数字代表和弦在音阶中的级数（如 I=一级和弦，V=五级和弦）。大写表示大三和弦，小写表示小三和弦。</div>
+      </div>
+      <div class="intro-faq-item">
+        <div class="intro-faq-q">播放功能如何工作？</div>
+        <div class="intro-faq-a">使用浏览器原生的 Web Audio API 合成和弦音色，无需安装任何插件或加载外部音频文件。</div>
+      </div>
+    </div>
+  </div>
+
+<!-- 注意事项区块 -->
+<div class="tool-notes" style="--tool-accent:#FF6B35;">
+  <div class="tool-notes-title">⚠️ 使用说明与注意事项</div>
+  <ul>
+      <li>本工具纯前端运行，数据不会上传到服务器</li>
+      <li>建议在主流浏览器（Chrome/Safari/Firefox/Edge）中使用</li>
+      <li>计算结果仅供参考，请以实际应用场景为准</li>
+  </ul>
+</div>
+<!-- /注意事项区块 -->
+</div>
+
+<script>
+(function() {
+  'use strict';
+
+  // ============ 音符与音阶数据 ============
+
+  const NOTE_NAMES = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+  const NOTE_NAMES_FLAT = ['C','Db','D','Eb','E','F','Gb','G','Ab','A','Bb','B'];
+
+  // 和弦类型的三度偏移
+  const CHORD_TYPES = {
+    '':     [0, 4, 7],       // 大三和弦 Major
+    'm':    [0, 3, 7],       // 小三和弦 Minor
+    'dim':  [0, 3, 6],       // 减三和弦 Diminished
+    'aug':  [0, 4, 8],       // 增三和弦 Augmented
+    'm7':   [0, 3, 7, 10],   // 小七和弦 Minor 7th
+    '7':    [0, 4, 7, 10],   // 属七和弦 Dominant 7th
+    'maj7': [0, 4, 7, 11],   // 大七和弦 Major 7th
+  };
+
+  // 所有调式的根音索引
+  const KEY_MAP = {
+    'C':0,'C#':1,'D':2,'D#':3,'E':4,'F':5,'F#':6,'G':7,'G#':8,'A':9,'A#':10,'B':11,
+    'Bb':10,'Eb':2,'Ab':8,'Db':1,'Gb':6,
+    'Am':9,'Em':4,'Bm':11,'F#m':6,'C#m':1,'G#m':8,'Dm':2,'Gm':7,'Cm':0
+  };
+
+  // 使用降号的调式
+  const FLAT_KEYS = ['F','Bb','Eb','Ab','Db','Gb','Gm','Cm','Dm','Fm','Bbm','Ebm','Abm'];
+
+  // 大调音阶各级和弦：I ii iii IV V vi vii
+  const MAJOR_SCALE = [
+    { deg: 1, numeral: 'I',  type: '' },
+    { deg: 2, numeral: 'ii', type: 'm' },
+    { deg: 3, numeral: 'iii', type: 'm' },
+    { deg: 4, numeral: 'IV', type: '' },
+    { deg: 5, numeral: 'V',  type: '' },
+    { deg: 6, numeral: 'vi', type: 'm' },
+    { deg: 7, numeral: 'vii', type: 'dim' }
+  ];
+
+  // 小调音阶各级和弦：i ii III iv v VI VII
+  const MINOR_SCALE = [
+    { deg: 1, numeral: 'i',   type: 'm' },
+    { deg: 2, numeral: 'ii',  type: 'dim' },
+    { deg: 3, numeral: 'III', type: '' },
+    { deg: 4, numeral: 'iv',  type: 'm' },
+    { deg: 5, numeral: 'v',   type: 'm' },
+    { deg: 6, numeral: 'VI',  type: '' },
+    { deg: 7, numeral: 'VII', type: '' }
+  ];
+
+  // ============ 经典和弦进行库 ============
+
+  const PROGRESSIONS = [
+    {
+      name: '流行万能进行',
+      numeral: 'I - V - vi - IV',
+      degrees: [1, 5, 6, 4],
+      desc: '最流行的和弦进行，出现在数万首歌曲中',
+      scales: ['major']
+    },
+    {
+      name: '经典 I-IV-V-I',
+      numeral: 'I - IV - V - I',
+      degrees: [1, 4, 5, 1],
+      desc: '布鲁斯与摇滚的基石',
+      scales: ['major']
+    },
+    {
+      name: '反流行进行',
+      numeral: 'vi - IV - I - V',
+      degrees: [6, 4, 1, 5],
+      desc: 'I-V-vi-IV 的反向排列，同样悦耳',
+      scales: ['major']
+    },
+    {
+      name: '卡农进行',
+      numeral: 'I - V - vi - iii - IV - I - IV - V',
+      degrees: [1, 5, 6, 3, 4, 1, 4, 5],
+      desc: '帕赫贝尔卡农的经典和弦走向',
+      scales: ['major']
+    },
+    {
+      name: '爵士 ii-V-I',
+      numeral: 'ii - V - I',
+      degrees: [2, 5, 1],
+      desc: '爵士乐中最核心的和弦进行',
+      scales: ['major', 'minor']
+    },
+    {
+      name: '50年代进行',
+      numeral: 'I - vi - IV - V',
+      degrees: [1, 6, 4, 5],
+      desc: '经典复古风格，50-60年代流行',
+      scales: ['major']
+    },
+    {
+      name: '安达卢西亚',
+      numeral: 'vi - V - IV - III',
+      degrees: [6, 5, 4, 3],
+      desc: '弗拉门戈风格，紧张而有张力',
+      scales: ['major']
+    },
+    {
+      name: '悲怆进行',
+      numeral: 'I - iii - IV - iv',
+      degrees: [1, 3, 4, 4],
+      desc: '贝多芬悲怆奏鸣曲风格，小调iv替代大调IV',
+      scales: ['major'],
+      special: 'pathetique'
+    }
+  ];
+
+  // ============ 状态变量 ============
+
+  let currentProgression = null; // [{name, numeral, notes, degree}]
+  let currentProgName = '';
+  let audioCtx = null;
+  let isPlaying = false;
+  let playTimeout = null;
+  let currentPlayIndex = -1;
+  let scheduledOscillators = [];
+
+  // ============ 工具函数 ============
+
+  function noteName(midiNote, useFlat) {
+    var idx = midiNote % 12;
+    var oct = Math.floor(midiNote / 12) - 1;
+    var name = useFlat ? NOTE_NAMES_FLAT[idx] : NOTE_NAMES[idx];
+    return name + oct;
+  }
+
+  function getKeyInfo(keyName) {
+    var rootIdx = KEY_MAP[keyName];
+    // 小调键名以 'm' 结尾（已枚举的所有小调）
+    var minorKeys = ['Am','Em','Bm','F#m','C#m','G#m','Dm','Gm','Cm'];
+    var isMinor = minorKeys.indexOf(keyName) !== -1;
+    var useFlat = FLAT_KEYS.indexOf(keyName) !== -1;
+    var scale = isMinor ? MINOR_SCALE : MAJOR_SCALE;
+    return { rootIdx: rootIdx, isMinor: isMinor, useFlat: useFlat, scale: scale };
+  }
+
+  // ============ 生成和弦进行 ============
+
+  function buildProgression(keyName, prog, barCount) {
+    var info = getKeyInfo(keyName);
+    var chords = [];
+    var patternLen = prog.degrees.length;
+
+    for (var i = 0; i < barCount; i++) {
+      var degIdx = i % patternLen;
+      var degree = prog.degrees[degIdx];
+
+      // Handle special case: pathetique uses minor iv
+      var scaleInfo = info.scale.find(function(s) { return s.deg === degree; });
+      var type = scaleInfo ? scaleInfo.type : '';
+
+      // Check for pathetique special override
+      if (prog.special === 'pathetique' && degree === 4) {
+        type = 'm';
+      }
+
+      var intervals = info.isMinor ? [0, 2, 3, 5, 7, 8, 10] : [0, 2, 4, 5, 7, 9, 11];
+      var chordRoot = info.rootIdx + intervals[degree - 1];
+      var chordType = type;
+      var chordIntervals = CHORD_TYPES[chordType] || [0, 4, 7];
+
+      var rootName = info.useFlat ? NOTE_NAMES_FLAT[chordRoot % 12] : NOTE_NAMES[chordRoot % 12];
+      var chordName = rootName + (chordType || '');
+
+      // Build numeral string
+      var numeral = scaleInfo ? scaleInfo.numeral : String(degree);
+
+      var notes = chordIntervals.map(function(iv) {
+        return (chordRoot + iv);
+      });
+
+      chords.push({
+        name: chordName,
+        numeral: numeral,
+        notes: notes,
+        bar: i + 1
+      });
+    }
+
+    return chords;
+  }
+
+  // ============ 渲染 ============
+
+  function renderChords(chords, progName) {
+    var html = '<div class="progression-name">' + ToolBox.escHtml(progName) + '</div>';
+    html += '<div class="chord-grid" id="chordGrid">';
+    chords.forEach(function(ch, i) {
+      var notesStr = ch.notes.map(function(n) {
+        return noteName(n, false);
+      }).join(' - ');
+      html += '<div class="chord-card" id="chordCard' + i + '">'
+        + '<div class="chord-name">' + ToolBox.escHtml(ch.name) + '</div>'
+        + '<div class="chord-notes">' + ToolBox.escHtml(notesStr) + '</div>'
+        + '<div class="chord-bar">第 ' + ch.bar + ' 小节</div>'
+        + '</div>';
+    });
+    html += '</div>';
+    return html;
+  }
+
+  // ============ Web Audio 播放 ============
+
+  function getAudioCtx() {
+    if (!audioCtx) {
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    }
+    if (audioCtx.state === 'suspended') {
+      audioCtx.resume();
+    }
+    return audioCtx;
+  }
+
+  function midiToFreq(midi) {
+    return 440 * Math.pow(2, (midi - 69) / 12);
+  }
+
+  function playChord(notes, startTime, duration) {
+    var ctx = getAudioCtx();
+
+    notes.forEach(function(note) {
+      var freq = midiToFreq(note);
+
+      // 主音（正弦波 + 少量锯齿波模拟钢琴）
+      var osc1 = ctx.createOscillator();
+      osc1.type = 'triangle';
+      osc1.frequency.value = freq;
+
+      var osc2 = ctx.createOscillator();
+      osc2.type = 'sine';
+      osc2.frequency.value = freq * 2; // 八度泛音
+
+      var gain1 = ctx.createGain();
+      var gain2 = ctx.createGain();
+
+      // ADSR 包络
+      var now = startTime;
+      gain1.gain.setValueAtTime(0, now);
+      gain1.gain.linearRampToValueAtTime(0.18, now + 0.02);
+      gain1.gain.exponentialRampToValueAtTime(0.1, now + 0.15);
+      gain1.gain.exponentialRampToValueAtTime(0.001, now + duration);
+
+      gain2.gain.setValueAtTime(0, now);
+      gain2.gain.linearRampToValueAtTime(0.06, now + 0.01);
+      gain2.gain.exponentialRampToValueAtTime(0.001, now + duration * 0.7);
+
+      osc1.connect(gain1);
+      gain1.connect(ctx.destination);
+      osc2.connect(gain2);
+      gain2.connect(ctx.destination);
+
+      osc1.start(now);
+      osc1.stop(now + duration + 0.05);
+      osc2.start(now);
+      osc2.stop(now + duration + 0.05);
+
+      scheduledOscillators.push(osc1, osc2);
+    });
+  }
+
+  function playProgression() {
+    if (!currentProgression || currentProgression.length === 0) return;
+    isPlaying = true;
+    updatePlayButtons();
+    var bpm = parseInt(document.getElementById('bpmSlider').value) || 100;
+    var beatDuration = 60 / bpm; // 每拍秒数
+    var chordDuration = beatDuration * 4; // 每小节4拍
+    var ctx = getAudioCtx();
+    var startTime = ctx.currentTime + 0.1;
+
+    currentProgression.forEach(function(ch, i) {
+      var t = startTime + i * chordDuration;
+      playChord(ch.notes, t, chordDuration * 0.9);
+
+      // 高亮当前和弦卡片
+      (function(idx) {
+        var delay = (t - ctx.currentTime) * 1000;
+        setTimeout(function() {
+          highlightChord(idx);
+        }, delay);
+      })(i);
+    });
+
+    // 播放完毕
+    var totalTime = currentProgression.length * chordDuration * 1000;
+    playTimeout = setTimeout(function() {
+      isPlaying = false;
+      currentPlayIndex = -1;
+      clearHighlight();
+      updatePlayButtons();
+    }, totalTime + 200);
+  }
+
+  function highlightChord(idx) {
+    if (!currentProgression) return;
+    // 清除之前高亮
+    for (var i = 0; i < currentProgression.length; i++) {
+      var el = document.getElementById('chordCard' + i);
+      if (el) el.classList.remove('playing');
+    }
+    var card = document.getElementById('chordCard' + idx);
+    if (card) {
+      card.classList.add('playing');
+      card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+    currentPlayIndex = idx;
+    updateBeatDots();
+  }
+
+  function clearHighlight() {
+    if (!currentProgression) return;
+    for (var i = 0; i < currentProgression.length; i++) {
+      var el = document.getElementById('chordCard' + i);
+      if (el) el.classList.remove('playing');
+    }
+    updateBeatDots();
+  }
+
+  function stopPlay() {
+    isPlaying = false;
+    currentPlayIndex = -1;
+    clearTimeout(playTimeout);
+    playTimeout = null;
+    // 停止所有振荡器
+    scheduledOscillators.forEach(function(osc) {
+      try { osc.stop(); } catch(e) {}
+    });
+    scheduledOscillators = [];
+    clearHighlight();
+    updatePlayButtons();
+  }
+
+  function updatePlayButtons() {
+    var btnPlay = document.getElementById('btnPlay');
+    var btnStop = document.getElementById('btnStop');
+    if (isPlaying) {
+      btnPlay.innerHTML = '&#10074;&#10074; 暂停';
+      btnStop.disabled = false;
+    } else {
+      btnPlay.innerHTML = '&#9654; 播放';
+      btnStop.disabled = !currentProgression;
+    }
+  }
+
+  function updateBpm() {
+    var val = document.getElementById('bpmSlider').value;
+    document.getElementById('bpmValue').textContent = val;
+  }
+
+  function updateBeatDots() {
+    var container = document.getElementById('beatDots');
+    if (!currentProgression) { container.innerHTML = ''; return; }
+    // Show dots for the current section (up to 8 dots)
+    var maxDots = Math.min(currentProgression.length, 8);
+    var html = '';
+    for (var i = 0; i < maxDots; i++) {
+      var cls = 'beat-indicator' + (i === currentPlayIndex ? ' active' : '');
+      html += '<div class="' + cls + '"></div>';
+    }
+    container.innerHTML = html;
+  }
+
+  // ============ 公开函数 ============
+
+  window.generate = function() {
+    var keyName = document.getElementById('selKey').value;
+    var barCount = parseInt(document.getElementById('selBars').value) || 4;
+
+    // 随机选取一个和弦进行
+    var info = getKeyInfo(keyName);
+    var scaleType = info.isMinor ? 'minor' : 'major';
+    var compatible = PROGRESSIONS.filter(function(p) {
+      return p.scales.indexOf(scaleType) !== -1;
+    });
+    if (compatible.length === 0) compatible = PROGRESSIONS;
+    var prog = compatible[Math.floor(Math.random() * compatible.length)];
+
+    currentProgression = buildProgression(keyName, prog, barCount);
+    currentProgName = prog.name + ' (' + prog.numeral + ')';
+
+    // 渲染
+    var resultEl = document.getElementById('result');
+    resultEl.innerHTML = renderChords(currentProgression, currentProgName);
+
+    // 更新按钮状态
+    document.getElementById('btnPlay').disabled = false;
+    document.getElementById('btnStop').disabled = false;
+    updateBeatDots();
+    updatePlayButtons();
+  };
+
+  window.generateSpecific = function(progIdx) {
+    var prog = PROGRESSIONS[progIdx];
+    if (!prog) return;
+
+    var keyName = document.getElementById('selKey').value;
+    var barCount = parseInt(document.getElementById('selBars').value) || 4;
+
+    var info = getKeyInfo(keyName);
+    var scaleType = info.isMinor ? 'minor' : 'major';
+    if (prog.scales.indexOf(scaleType) === -1) {
+      ToolBox.showToast(i18nText('toast.saved', '该进行仅支持' + (scaleType === 'major' ? '大调' : '小调')) + '，请切换调式', 'warning');
+      return;
+    }
+
+    // 停止当前播放
+    stopPlay();
+
+    currentProgression = buildProgression(keyName, prog, barCount);
+    currentProgName = prog.name + ' (' + prog.numeral + ')';
+
+    var resultEl = document.getElementById('result');
+    resultEl.innerHTML = renderChords(currentProgression, currentProgName);
+
+    document.getElementById('btnPlay').disabled = false;
+    document.getElementById('btnStop').disabled = false;
+    updateBeatDots();
+    updatePlayButtons();
+
+    // 滚动到结果
+    resultEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  };
+
+  window.togglePlay = function() {
+    if (isPlaying) {
+      stopPlay();
+    } else {
+      if (!currentProgression || currentProgression.length === 0) {
+        ToolBox.showToast(i18nText(), 'warning');
+        return;
+      }
+      playProgression();
+    }
+  };
+
+  window.stopPlay = stopPlay;
+
+  window.copyProgression = function() {
+    if (!currentProgression || currentProgression.length === 0) {
+      ToolBox.showToast(i18nText(), 'warning');
+      return;
+    }
+    var text = currentProgName + '\n';
+    var chordNames = currentProgression.map(function(ch) {
+      return ch.name;
+    });
+    text += chordNames.join(' | ');
+
+    ToolBox.copyText(text, i18nText());
+  };
+
+  window.toggleIntro = function() {
+    var intro = document.getElementById('toolIntro');
+    intro.classList.toggle('open');
+  };
+
+  // ============ 渲染参考进行 ============
+
+  function renderRefGrid() {
+    var grid = document.getElementById('refGrid');
+    var html = '';
+    PROGRESSIONS.forEach(function(prog, idx) {
+      var scaleTag = prog.scales.map(function(s) {
+        return s === 'major' ? '大调' : '小调';
+      }).join(' / ');
+      html += '<div class="ref-card" onclick="generateSpecific(' + idx + ')">'
+        + '<div class="ref-name">' + ToolBox.escHtml(prog.name) + '</div>'
+        + '<div class="ref-numeral">' + ToolBox.escHtml(prog.numeral) + '</div>'
+        + '<div class="ref-desc">' + ToolBox.escHtml(prog.desc) + ' (' + scaleTag + ')</div>'
+        + '</div>';
+    });
+    grid.innerHTML = html;
+  }
+
+  // ============ 初始化 ============
+
+  document.addEventListener('DOMContentLoaded', function() {
+    renderRefGrid();
+    updateBpm();
+    updateBeatDots();
+  });
+
+})();
+</script><script>
+// tool-intro折叠交互
+document.addEventListener('DOMContentLoaded',function(){
+  var headers=document.querySelectorAll('.tool-intro-header');
+  headers.forEach(function(h){
+    h.addEventListener('click',function(){
+      this.parentElement.classList.toggle('open');
+    });
+  });
+});
+</script>
+
+</body>
+</html>

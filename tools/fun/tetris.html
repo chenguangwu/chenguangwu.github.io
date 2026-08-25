@@ -1,0 +1,822 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+
+<script src="/js/tool-page-runtime.js" defer></script>
+<!-- TOOLBOX-TOOL-RUNTIME -->
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="toolbox" content="cat=game,industry=fun,icon=🟦,bg=#fff3e0">
+<meta name="description" content="俄罗斯方块 - 免费在线俄罗斯方块游戏，经典消行玩法 - 专业的娱乐游戏在线工具，支持实时计算，纯前端本地处理，数据不上传服务器，保护隐私安全。">
+<meta name="keywords" content="俄罗斯方块,Tetris,在线俄罗斯方块,经典游戏,消行游戏,游戏趣味,娱乐游戏,在线工具,免费工具,ToolBox">
+<meta name="robots" content="index,follow">
+<link rel="canonical" href="https://chenguangwu.github.io/tools/fun/tetris.html">
+<meta property="og:title" content="俄罗斯方块 - 免费在线俄罗斯方块游戏，经典消行玩法 - ToolBox">
+<meta property="og:description" content="俄罗斯方块 - 免费在线俄罗斯方块游戏，经典消行玩法 - 专业的娱乐游戏在线工具，支持实时计算，纯前端本地处理，数据不上传服务器，保护隐私安全。">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://chenguangwu.github.io/tools/fun/tetris.html">
+<meta name="twitter:card" content="summary">
+
+<title>俄罗斯方块 - 免费在线俄罗斯方块游戏，经典消行玩法 - ToolBox</title>
+<meta name="theme-color" content="#FF6B35">
+<link rel="icon" type="image/svg+xml" href="../../favicon.svg">
+<link rel="icon" href="../../favicon.ico" sizes="16x16 32x32 48x48">
+<link rel="apple-touch-icon" href="../../apple-touch-icon.png">
+<link rel="stylesheet" href="../../css/common.css">
+<script src="../../js/common.js"></script>
+<style>
+.game-wrapper{display:flex;justify-content:center;align-items:flex-start;gap:16px;margin-top:8px;}
+.game-board-area{display:flex;flex-direction:column;align-items:center;gap:8px;}
+#gameCanvas{border:3px solid var(--border);border-radius:12px;background:var(--card-bg);max-width:100%;touch-action:none;}
+.game-side{display:flex;flex-direction:column;gap:12px;min-width:120px;}
+.next-box{background:var(--result-bg);border:1px solid var(--border);border-radius:12px;padding:12px;text-align:center;}
+.next-box .next-label{font-size:12px;color:var(--text-muted);margin-bottom:8px;font-weight:500;}
+#nextCanvas{border-radius:8px;background:var(--card-bg);}
+.stat-row{display:flex;flex-direction:column;gap:8px;}
+.stat-item{background:var(--result-bg);border:1px solid var(--border);border-radius:12px;padding:10px 14px;text-align:center;}
+.stat-item .val{font-size:22px;font-weight:700;color:var(--primary);}
+.stat-item .lbl{font-size:11px;color:var(--text-muted);margin-top:2px;}
+.controls-hint{font-size:12px;color:var(--text-muted);text-align:center;line-height:1.8;}
+.controls-hint kbd{display:inline-block;padding:2px 6px;background:var(--result-bg);border:1px solid var(--border);border-radius:4px;font-size:11px;font-family:inherit;font-weight:600;color:var(--text-secondary);}
+.game-over-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.6);display:flex;align-items:center;justify-content:center;z-index:1000;animation:fadeIn 0.3s ease;}
+@keyframes fadeIn{from{opacity:0;}to{opacity:1;}}
+.game-over-modal{background:var(--card-bg);border-radius:20px;padding:32px;text-align:center;max-width:320px;width:90%;animation:popIn 0.4s ease;}
+@keyframes popIn{0%{transform:scale(0.5);opacity:0;}100%{transform:scale(1);opacity:1;}}
+.game-over-modal h2{font-size:24px;margin-bottom:8px;justify-content:center;}
+.game-over-modal .big-emoji{font-size:56px;margin:12px 0;}
+.game-over-modal .final-score{font-size:32px;font-weight:700;color:var(--primary);margin:8px 0;}
+.game-over-modal .final-label{font-size:13px;color:var(--text-muted);}
+.pause-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;z-index:999;animation:fadeIn 0.2s ease;}
+.pause-text{background:var(--card-bg);border-radius:16px;padding:24px 40px;font-size:20px;font-weight:700;color:var(--heading);animation:popIn 0.3s ease;}
+.mobile-controls{display:none;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(2,1fr);gap:6px;max-width:260px;margin:8px auto;width:100%;}
+.mobile-btn{aspect-ratio:1/1;border:2px solid var(--border);border-radius:12px;background:var(--card-bg);font-size:22px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.1s;user-select:none;-webkit-tap-highlight-color:transparent;}
+.mobile-btn:active{background:var(--primary);color:#fff;transform:scale(0.95);}
+.mobile-btn.empty{visibility:hidden;}
+.mobile-btn.wide{aspect-ratio:auto;grid-column:span 1;}
+@media(max-width:768px){
+  .game-wrapper{flex-direction:column;align-items:center;gap:10px;}
+  .game-side{flex-direction:row;flex-wrap:wrap;justify-content:center;min-width:auto;gap:8px;}
+  .next-box{min-width:100px;}
+  .stat-item{min-width:90px;padding:8px 12px;}
+  .stat-item .val{font-size:18px;}
+  .controls-hint{display:none;}
+  .mobile-controls{display:grid;}
+}
+</style>
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "俄罗斯方块",
+  "description": "俄罗斯方块 - 免费在线俄罗斯方块游戏，经典消行玩法，支持键盘和触控操作，免费使用。",
+  "url": "https://chenguangwu.github.io/tools/fun/tetris.html",
+  "applicationCategory": "GameApplication",
+  "operatingSystem": "Web",
+  "offers": {
+    "@type": "Offer",
+    "price": "0",
+    "priceCurrency": "CNY"
+  },
+  "inLanguage": "zh-CN",
+  "isAccessibleForFree": true,
+  "browserRequirements": "Requires JavaScript. Requires HTML5 Canvas.",
+  "softwareVersion": "1.0"
+}
+</script>
+
+
+
+<meta property="og:image" content="https://chenguangwu.github.io/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="ToolBox - 6000+免费在线工具">
+<meta name="twitter:image" content="https://chenguangwu.github.io/og-image.png">
+<meta name="twitter:image:alt" content="ToolBox - 6000+免费在线工具">
+    <meta name="twitter:title" content="俄罗斯方块 - 免费在线俄罗斯方块游戏，经典消行玩法 - ToolBox">
+    <meta name="twitter:description" content="俄罗斯方块 - 免费在线俄罗斯方块游戏，经典消行玩法 - 专业的娱乐游戏在线工具，支持实时计算，纯前端本地处理，数据不上传服务器，保护隐私安全。">
+<!-- TOOLBOX-WEBAPP-LD -->
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"WebApplication","name":"俄罗斯方块 - 免费在线俄罗斯方块游戏，经典消行玩法","url":"https://chenguangwu.github.io/tools/fun/tetris.html","applicationCategory":"GamesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":["zh-CN", "en-US"],"description":"俄罗斯方块","image":"https://chenguangwu.github.io/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}
+</script>
+<meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
+<meta http-equiv="X-Content-Type-Options" content="nosniff">
+<meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
+<!-- TOOLBOX-SECURITY -->
+
+<script src="/js/privacy.js" defer></script>
+<!-- TOOLBOX-PRIVACY-SCRIPT -->
+
+<script src="/js/metrics.js" defer></script>
+<!-- TOOLBOX-METRICS-SCRIPT -->
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"首页","item":"https://chenguangwu.github.io/"},{"@type":"ListItem","position":2,"name":"娱乐游戏","item":"https://chenguangwu.github.io/tools/fun/index.html"},{"@type":"ListItem","position":3,"name":"俄罗斯方块","item":"https://chenguangwu.github.io/tools/fun/tetris.html"}]}
+</script>
+
+<script src="../../js/i18n.js" defer></script>
+<script src="../../js/tool-i18n.js" defer></script>
+<!-- TOOLBOX-I18N-SCRIPT -->
+<!-- TOOLBOX-HREFLANG -->
+<link rel="alternate" hreflang="zh-CN" href="https://chenguangwu.github.io/tools/fun/tetris.html">
+<link rel="alternate" hreflang="en-US" href="https://chenguangwu.github.io/tools/fun/tetris.html">
+<link rel="alternate" hreflang="x-default" href="https://chenguangwu.github.io/tools/fun/tetris.html">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:locale:alternate" content="en_US">
+
+<script src="/js/clarity.js" defer></script>
+<!-- TOOLBOX-CLARITY -->
+</head>
+<body>
+<h1 class="sr-only">俄罗斯方块</h1>
+
+
+<div class="nav">
+  <a href="../../index.html">← ToolBox</a>
+  <span>/ 俄罗斯方块</span>
+  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()">🌙</button>
+</div>
+
+
+
+
+
+<nav class="breadcrumb" aria-label="面包屑导航" data-breadcrumb="1">
+  <a href="../../index.html">首页</a>
+  <span class="bc-sep">‹</span>
+  <a href="index.html">🎮 娱乐游戏</a>
+  <span class="bc-sep">‹</span>
+  <span class="bc-current">俄罗斯方块</span>
+</nav>
+<div class="container">
+  <div class="card tool-card-accent" style="--tool-accent:#EC4899;">
+    <h2>🟦 俄罗斯方块</h2>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;">经典消行游戏，支持键盘和触控操作</p>
+
+    <div class="toolbar">
+      <button type="button" class="btn primary" id="btnStart" onclick="startGame()">开始游戏</button>
+      <button type="button" class="btn" id="btnPause" onclick="togglePause()" disabled>暂停 (P)</button>
+      <button type="button" class="btn" id="btnRestart" onclick="restartGame()" disabled>重新开始</button>
+    </div>
+
+    <div class="game-wrapper">
+      <div class="game-board-area">
+        <canvas id="gameCanvas" width="250" height="500"></canvas>
+      </div>
+      <div class="game-side">
+        <div class="next-box">
+          <div class="next-label">下一个</div>
+          <canvas id="nextCanvas" width="100" height="100"></canvas>
+        </div>
+        <div class="stat-row">
+          <div class="stat-item">
+            <div class="val" id="scoreVal">0</div>
+            <div class="lbl">分数</div>
+          </div>
+          <div class="stat-item">
+            <div class="val" id="levelVal">1</div>
+            <div class="lbl">等级</div>
+          </div>
+          <div class="stat-item">
+            <div class="val" id="linesVal">0</div>
+            <div class="lbl">消行</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="controls-hint">
+      <kbd>←</kbd> <kbd>→</kbd> 移动 &nbsp;
+      <kbd>↑</kbd> 旋转 &nbsp;
+      <kbd>↓</kbd> 软降 &nbsp;
+      <kbd>空格</kbd> 硬降 &nbsp;
+      <kbd>P</kbd> 暂停
+    </div>
+
+    <div class="mobile-controls" id="mobileControls">
+      <div class="mobile-btn" ontouchstart="mobileAction('rotate');event.preventDefault();" onmousedown="mobileAction('rotate')">↻</div>
+      <div class="mobile-btn" ontouchstart="mobileAction('left');event.preventDefault();" onmousedown="mobileAction('left')">←</div>
+      <div class="mobile-btn" ontouchstart="mobileAction('right');event.preventDefault();" onmousedown="mobileAction('right')">→</div>
+      <div class="mobile-btn" ontouchstart="mobileAction('drop');event.preventDefault();" onmousedown="mobileAction('drop')" style="font-size:16px;font-weight:700;">硬降</div>
+      <div class="mobile-btn" ontouchstart="mobileAction('down');event.preventDefault();" onmousedown="mobileAction('down')">↓</div>
+      <div class="mobile-btn" ontouchstart="togglePause();event.preventDefault();" onmousedown="togglePause()" style="font-size:16px;font-weight:700;">暂停</div>
+    </div>
+  </div>
+
+<!-- 注意事项区块 -->
+<div class="tool-notes" style="--tool-accent:#EC4899;">
+  <div class="tool-notes-title">⚠️ 使用说明与注意事项</div>
+  <ul>
+      <li>本工具纯前端运行，数据不会上传到服务器</li>
+      <li>建议在主流浏览器（Chrome/Safari/Firefox/Edge）中使用</li>
+      <li>计算结果仅供参考，请以实际应用场景为准</li>
+  </ul>
+</div>
+<!-- /注意事项区块 -->
+</div>
+
+<!-- SEO 工具介绍 -->
+
+</div>
+
+</div>
+
+<!-- 相关工具 -->
+<div class="related-tools" data-related-tools="1">
+  <h3 class="related-tools-title">🔗 相关工具</h3>
+  <div class="related-tools-grid">
+    
+    
+    <a href="generator-2.html" class="related-tool-card">
+      <span class="rt-icon">🎮</span>
+      <span class="rt-info"><span class="rt-name">数独生成器 / 求解器 - 免费在线工具，纯前端处理 | ToolBox免费在线工具箱</span><span class="rt-desc">数独生成器 / 求解器</span></span>
+    </a>
+    <a href="laugh-generator.html" class="related-tool-card">
+      <span class="rt-icon">😂</span>
+      <span class="rt-info"><span class="rt-name">笑声音效生成器 - 免费趣味工具，用Web Audio API合成笑声 | ToolBox免费在线工具箱</span><span class="rt-desc">笑声音效生成器</span></span>
+    </a>
+    <a href="generator-laugh.html" class="related-tool-card">
+      <span class="rt-icon">🔧</span>
+      <span class="rt-info"><span class="rt-name">笑声音效生成器（合成） - 免费在线工具，纯前端处理 | ToolBox免费在线工具箱</span><span class="rt-desc">笑声音效生成器（合成）</span></span>
+    </a>
+    <a href="../dance/choreography-timeline.html" class="related-tool-card">
+      <span class="rt-icon">🎶</span>
+      <span class="rt-info"><span class="rt-name">编舞时间线 - 8拍分段规划器，按BPM和小节数生成舞蹈编排时间轴 | ToolBox免费在线工具箱</span><span class="rt-desc">编舞时间线</span></span>
+    </a>
+  </div>
+</div>
+<div class="tool-intro" id="toolIntro">
+  <div class="tool-intro-header" onclick="toggleIntro()">
+    <div class="intro-icon-wrap">
+      <span class="intro-icon">🟦</span>
+      <span>关于俄罗斯方块</span>
+    </div>
+    <span class="arrow">▼</span>
+  </div>
+  <div class="tool-intro-body">
+    <p>俄罗斯方块（Tetris）是经典的益智游戏，玩家需要移动和旋转下落的方块，填满整行即可消除得分。随着等级提升，下落速度逐渐加快，挑战你的反应速度和策略思维。</p>
+    <h4>游戏规则</h4>
+    <ul class="intro-features">
+      <li>7种经典方块（I/O/T/S/Z/L/J）</li>
+      <li>填满整行自动消除</li>
+      <li>消1行100分 / 2行300分 / 3行500分 / 4行800分</li>
+      <li>每消除10行升一级，速度加快</li>
+      <li>方块堆到顶部则游戏结束</li>
+    </ul>
+    <h4>操作方式</h4>
+    <ul class="intro-scenes">
+      <li>键盘：方向键移动旋转，空格硬降</li>
+      <li>手机：触控按钮操作</li>
+      <li>暂停：P键或暂停按钮</li>
+      <li>幽灵方块显示落点预览</li>
+    </ul>
+    <h4>常见问题</h4>
+    <div class="intro-faq-item">
+      <div class="intro-faq-q">数据会上传到服务器吗？</div>
+      <div class="intro-faq-a">不会，游戏完全在浏览器本地运行，不联网、不上传数据。</div>
+    </div>
+    <div class="intro-faq-item">
+      <div class="intro-faq-q">手机上能玩吗？</div>
+      <div class="intro-faq-a">可以，页面会自动显示触控按钮，支持移动端操作。</div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ===== 俄罗斯方块 - 完整实现 ===== */
+(function() {
+  "use strict";
+
+  // === 常量 ===
+  var COLS = 10;
+  var ROWS = 20;
+  var CELL = 25; // 每格像素
+  var EMPTY = 0;
+  var SCORE_TABLE = [0, 100, 300, 500, 800]; // 0/1/2/3/4行得分
+  var LINES_PER_LEVEL = 10;
+
+  // === 方块定义（7种）===
+  var SHAPES = {
+    I: { cells: [[0,0,0,0],[1,1,1,1],[0,0,0,0],[0,0,0,0]], color: "#00BCD4" },
+    O: { cells: [[1,1],[1,1]], color: "#FFEB3B" },
+    T: { cells: [[0,1,0],[1,1,1],[0,0,0]], color: "#9C27B0" },
+    S: { cells: [[0,1,1],[1,1,0],[0,0,0]], color: "#4CAF50" },
+    Z: { cells: [[1,1,0],[0,1,1],[0,0,0]], color: "#F44336" },
+    L: { cells: [[0,0,1],[1,1,1],[0,0,0]], color: "#FF9800" },
+    J: { cells: [[1,0,0],[1,1,1],[0,0,0]], color: "#2196F3" }
+  };
+  var PIECE_NAMES = ["I","O","T","S","Z","L","J"];
+
+  // === 画布 ===
+  var canvas = document.getElementById("gameCanvas");
+  var ctx = canvas.getContext("2d");
+  var nextCanvas = document.getElementById("nextCanvas");
+  var nextCtx = nextCanvas.getContext("2d");
+
+  // === 游戏状态 ===
+  var board = [];
+  var currentPiece = null;
+  var nextPiece = null;
+  var score = 0;
+  var level = 1;
+  var lines = 0;
+  var gameRunning = false;
+  var gamePaused = false;
+  var gameOver = false;
+  var dropTimer = null;
+  var dropInterval = 800;
+  var lockDelay = 0;
+  var lockTimer = null;
+
+  // === 方块对象 ===
+  function createPiece(name) {
+    var shape = SHAPES[name];
+    var cells = shape.cells.map(function(r) { return r.slice(); });
+    return {
+      name: name,
+      cells: cells,
+      color: shape.color,
+      x: Math.floor((COLS - cells[0].length) / 2),
+      y: name === "I" ? -1 : 0
+    };
+  }
+
+  function randomPiece() {
+    return createPiece(PIECE_NAMES[Math.floor(Math.random() * PIECE_NAMES.length)]);
+  }
+
+  // === 棋盘操作 ===
+  function initBoard() {
+    board = [];
+    for (var r = 0; r < ROWS; r++) {
+      board[r] = [];
+      for (var c = 0; c < COLS; c++) {
+        board[r][c] = EMPTY;
+      }
+    }
+  }
+
+  function rotateCells(cells) {
+    var n = cells.length;
+    var rotated = [];
+    for (var r = 0; r < n; r++) {
+      rotated[r] = [];
+      for (var c = 0; c < n; c++) {
+        rotated[r][c] = cells[n - 1 - c][r];
+      }
+    }
+    return rotated;
+  }
+
+  function isValid(cells, px, py) {
+    for (var r = 0; r < cells.length; r++) {
+      for (var c = 0; c < cells[r].length; c++) {
+        if (!cells[r][c]) continue;
+        var nx = px + c;
+        var ny = py + r;
+        if (nx < 0 || nx >= COLS || ny >= ROWS) return false;
+        if (ny < 0) continue;
+        if (board[ny][nx] !== EMPTY) return false;
+      }
+    }
+    return true;
+  }
+
+  function lockPiece() {
+    var cells = currentPiece.cells;
+    for (var r = 0; r < cells.length; r++) {
+      for (var c = 0; c < cells[r].length; c++) {
+        if (!cells[r][c]) continue;
+        var ny = currentPiece.y + r;
+        var nx = currentPiece.x + c;
+        if (ny < 0) {
+          endGame();
+          return;
+        }
+        board[ny][nx] = currentPiece.color;
+      }
+    }
+    clearLines();
+    spawnPiece();
+  }
+
+  function clearLines() {
+    var cleared = 0;
+    for (var r = ROWS - 1; r >= 0; r--) {
+      var full = true;
+      for (var c = 0; c < COLS; c++) {
+        if (board[r][c] === EMPTY) { full = false; break; }
+      }
+      if (full) {
+        board.splice(r, 1);
+        var emptyRow = [];
+        for (var c2 = 0; c2 < COLS; c2++) emptyRow[c2] = EMPTY;
+        board.unshift(emptyRow);
+        cleared++;
+        r++; // 重新检查当前行
+      }
+    }
+    if (cleared > 0) {
+      score += SCORE_TABLE[cleared] * level;
+      lines += cleared;
+      var newLevel = Math.floor(lines / LINES_PER_LEVEL) + 1;
+      if (newLevel !== level) {
+        level = newLevel;
+        updateDropInterval();
+      }
+      updateStats();
+    }
+  }
+
+  function spawnPiece() {
+    currentPiece = nextPiece || randomPiece();
+    nextPiece = randomPiece();
+    if (!isValid(currentPiece.cells, currentPiece.x, currentPiece.y)) {
+      endGame();
+    }
+    drawNextPiece();
+  }
+
+  function getGhostY() {
+    var gy = currentPiece.y;
+    while (isValid(currentPiece.cells, currentPiece.x, gy + 1)) {
+      gy++;
+    }
+    return gy;
+  }
+
+  // === 移动操作 ===
+  function moveLeft() {
+    if (!currentPiece || gamePaused || gameOver) return;
+    if (isValid(currentPiece.cells, currentPiece.x - 1, currentPiece.y)) {
+      currentPiece.x--;
+      draw();
+    }
+  }
+
+  function moveRight() {
+    if (!currentPiece || gamePaused || gameOver) return;
+    if (isValid(currentPiece.cells, currentPiece.x + 1, currentPiece.y)) {
+      currentPiece.x++;
+      draw();
+    }
+  }
+
+  function moveDown() {
+    if (!currentPiece || gamePaused || gameOver) return false;
+    if (isValid(currentPiece.cells, currentPiece.x, currentPiece.y + 1)) {
+      currentPiece.y++;
+      score += 1; // 软降加分
+      updateStats();
+      draw();
+      return true;
+    } else {
+      lockPiece();
+      draw();
+      return false;
+    }
+  }
+
+  function hardDrop() {
+    if (!currentPiece || gamePaused || gameOver) return;
+    var dropDist = 0;
+    while (isValid(currentPiece.cells, currentPiece.x, currentPiece.y + 1)) {
+      currentPiece.y++;
+      dropDist++;
+    }
+    score += dropDist * 2; // 硬降加分
+    updateStats();
+    lockPiece();
+    draw();
+  }
+
+  function rotate() {
+    if (!currentPiece || gamePaused || gameOver) return;
+    var rotated = rotateCells(currentPiece.cells);
+    // 尝试原位、左移1、右移1、左移2、右移2（wall kick）
+    var kicks = [0, -1, 1, -2, 2];
+    for (var i = 0; i < kicks.length; i++) {
+      if (isValid(rotated, currentPiece.x + kicks[i], currentPiece.y)) {
+        currentPiece.cells = rotated;
+        currentPiece.x += kicks[i];
+        draw();
+        return;
+      }
+    }
+  }
+
+  // === 渲染 ===
+  function draw() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    drawBoard();
+    drawGhost();
+    drawCurrentPiece();
+  }
+
+  function drawBoard() {
+    for (var r = 0; r < ROWS; r++) {
+      for (var c = 0; c < COLS; c++) {
+        var x = c * CELL;
+        var y = r * CELL;
+        if (board[r][c] !== EMPTY) {
+          drawCell(ctx, x, y, board[r][c]);
+        } else {
+          drawEmptyCell(ctx, x, y);
+        }
+      }
+    }
+  }
+
+  function drawEmptyCell(c, x, y) {
+    c.fillStyle = getComputedVar("--card-bg") || "#FFFFFF";
+    c.fillRect(x, y, CELL, CELL);
+    c.strokeStyle = getComputedVar("--border") || "#E5E7EB";
+    c.lineWidth = 0.5;
+    c.strokeRect(x + 0.5, y + 0.5, CELL - 1, CELL - 1);
+  }
+
+  function drawCell(c, x, y, color) {
+    // 主体填充
+    c.fillStyle = color;
+    c.fillRect(x + 1, y + 1, CELL - 2, CELL - 2);
+    // 高光（上边和左边）
+    c.fillStyle = "rgba(255,255,255,0.3)";
+    c.fillRect(x + 1, y + 1, CELL - 2, 2);
+    c.fillRect(x + 1, y + 1, 2, CELL - 2);
+    // 阴影（下边和右边）
+    c.fillStyle = "rgba(0,0,0,0.15)";
+    c.fillRect(x + 1, y + CELL - 3, CELL - 2, 2);
+    c.fillRect(x + CELL - 3, y + 1, 2, CELL - 2);
+  }
+
+  function drawGhost() {
+    if (!currentPiece) return;
+    var ghostY = getGhostY();
+    if (ghostY === currentPiece.y) return;
+    var cells = currentPiece.cells;
+    for (var r = 0; r < cells.length; r++) {
+      for (var c = 0; c < cells[r].length; c++) {
+        if (!cells[r][c]) continue;
+        var x = (currentPiece.x + c) * CELL;
+        var y = (ghostY + r) * CELL;
+        if (ghostY + r < 0) continue;
+        ctx.strokeStyle = currentPiece.color;
+        ctx.lineWidth = 1.5;
+        ctx.globalAlpha = 0.3;
+        ctx.strokeRect(x + 2, y + 2, CELL - 4, CELL - 4);
+        ctx.globalAlpha = 1.0;
+      }
+    }
+  }
+
+  function drawCurrentPiece() {
+    if (!currentPiece) return;
+    var cells = currentPiece.cells;
+    for (var r = 0; r < cells.length; r++) {
+      for (var c = 0; c < cells[r].length; c++) {
+        if (!cells[r][c]) continue;
+        var ny = currentPiece.y + r;
+        if (ny < 0) continue;
+        var x = (currentPiece.x + c) * CELL;
+        var y = ny * CELL;
+        drawCell(ctx, x, y, currentPiece.color);
+      }
+    }
+  }
+
+  function drawNextPiece() {
+    nextCtx.clearRect(0, 0, nextCanvas.width, nextCanvas.height);
+    if (!nextPiece) return;
+    var cells = nextPiece.cells;
+    var cellSize = 22;
+    var offsetX = (nextCanvas.width - cells[0].length * cellSize) / 2;
+    var offsetY = (nextCanvas.height - cells.length * cellSize) / 2;
+    for (var r = 0; r < cells.length; r++) {
+      for (var c = 0; c < cells[r].length; c++) {
+        if (!cells[r][c]) continue;
+        var x = offsetX + c * cellSize;
+        var y = offsetY + r * cellSize;
+        nextCtx.fillStyle = nextPiece.color;
+        nextCtx.fillRect(x + 1, y + 1, cellSize - 2, cellSize - 2);
+        nextCtx.fillStyle = "rgba(255,255,255,0.3)";
+        nextCtx.fillRect(x + 1, y + 1, cellSize - 2, 2);
+        nextCtx.fillRect(x + 1, y + 1, 2, cellSize - 2);
+        nextCtx.fillStyle = "rgba(0,0,0,0.15)";
+        nextCtx.fillRect(x + 1, y + cellSize - 3, cellSize - 2, 2);
+        nextCtx.fillRect(x + cellSize - 3, y + 1, 2, cellSize - 2);
+      }
+    }
+  }
+
+  function getComputedVar(name) {
+    try {
+      return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+    } catch(e) { return null; }
+  }
+
+  function updateStats() {
+    document.getElementById("scoreVal").textContent = score;
+    document.getElementById("levelVal").textContent = level;
+    document.getElementById("linesVal").textContent = lines;
+  }
+
+  // === 游戏循环 ===
+  function updateDropInterval() {
+    dropInterval = Math.max(80, 800 - (level - 1) * 70);
+    if (dropTimer) {
+      clearInterval(dropTimer);
+      dropTimer = setInterval(gameTick, dropInterval);
+    }
+  }
+
+  function gameTick() {
+    if (!gameRunning || gamePaused || gameOver) return;
+    if (!moveDown()) {
+      // 方块到底了，lockPiece已在moveDown中调用
+    }
+  }
+
+  // === 游戏控制 ===
+  window.startGame = function() {
+    initBoard();
+    score = 0;
+    level = 1;
+    lines = 0;
+    gameRunning = true;
+    gamePaused = false;
+    gameOver = false;
+    currentPiece = null;
+    nextPiece = null;
+    updateStats();
+    dropInterval = 800;
+
+    // 移除已有的overlay
+    removeOverlays();
+
+    spawnPiece();
+    draw();
+
+    if (dropTimer) clearInterval(dropTimer);
+    dropTimer = setInterval(gameTick, dropInterval);
+
+    document.getElementById("btnStart").disabled = true;
+    document.getElementById("btnPause").disabled = false;
+    document.getElementById("btnRestart").disabled = false;
+
+    // 聚焦canvas以便接收键盘事件
+    canvas.focus();
+  };
+
+  window.restartGame = function() {
+    window.startGame();
+  };
+
+  window.togglePause = function() {
+    if (!gameRunning || gameOver) return;
+    gamePaused = !gamePaused;
+    var btn = document.getElementById("btnPause");
+    btn.textContent = gamePaused ? "继续 (P)" : "暂停 (P)";
+
+    if (gamePaused) {
+      showPauseOverlay();
+    } else {
+      removeOverlays();
+      canvas.focus();
+    }
+  };
+
+  function endGame() {
+    gameRunning = false;
+    gameOver = true;
+    if (dropTimer) { clearInterval(dropTimer); dropTimer = null; }
+    document.getElementById("btnStart").disabled = false;
+    document.getElementById("btnPause").disabled = true;
+    showGameOverOverlay();
+  }
+
+  function showGameOverOverlay() {
+    removeOverlays();
+    var overlay = document.createElement("div");
+    overlay.className = "game-over-overlay";
+    overlay.id = "gameOverOverlay";
+    overlay.innerHTML =
+      '<div class="game-over-modal">' +
+      '<h2>游戏结束</h2>' +
+      '<div class="big-emoji">💥</div>' +
+      '<div class="final-label">最终得分</div>' +
+      '<div class="final-score">' + score + '</div>' +
+      '<div style="margin-top:6px;font-size:13px;color:var(--text-muted);">等级 ' + level + ' · 消行 ' + lines + '</div>' +
+      '<div style="margin-top:16px;display:flex;gap:8px;justify-content:center;">' +
+      '<button type="button" class="btn primary" onclick="restartGame()">再来一局</button>' +
+      '</div>' +
+      '</div>';
+    document.body.appendChild(overlay);
+  }
+
+  function showPauseOverlay() {
+    removeOverlays();
+    var overlay = document.createElement("div");
+    overlay.className = "pause-overlay";
+    overlay.id = "pauseOverlay";
+    overlay.innerHTML = '<div class="pause-text">⏸ 已暂停<br><span style="font-size:14px;font-weight:400;color:var(--text-muted);">按 P 或点击继续</span></div>';
+    overlay.addEventListener("click", function() {
+      window.togglePause();
+    });
+    document.body.appendChild(overlay);
+  }
+
+  function removeOverlays() {
+    var go = document.getElementById("gameOverOverlay");
+    if (go) go.remove();
+    var po = document.getElementById("pauseOverlay");
+    if (po) po.remove();
+  }
+
+  // === 键盘控制 ===
+  document.addEventListener("keydown", function(e) {
+    if (!gameRunning || gameOver) return;
+    if (e.key === "p" || e.key === "P") {
+      e.preventDefault();
+      window.togglePause();
+      return;
+    }
+    if (gamePaused) return;
+
+    switch(e.key) {
+      case "ArrowLeft":
+        e.preventDefault();
+        moveLeft();
+        break;
+      case "ArrowRight":
+        e.preventDefault();
+        moveRight();
+        break;
+      case "ArrowDown":
+        e.preventDefault();
+        moveDown();
+        break;
+      case "ArrowUp":
+        e.preventDefault();
+        rotate();
+        break;
+      case " ":
+        e.preventDefault();
+        hardDrop();
+        break;
+    }
+  });
+
+  // === 移动端触控 ===
+  window.mobileAction = function(action) {
+    if (!gameRunning || gamePaused || gameOver) return;
+    switch(action) {
+      case "left": moveLeft(); break;
+      case "right": moveRight(); break;
+      case "down": moveDown(); break;
+      case "rotate": rotate(); break;
+      case "drop": hardDrop(); break;
+    }
+  };
+
+  // === 工具介绍折叠 ===
+  window.toggleIntro = function() {
+    var el = document.getElementById("toolIntro");
+    el.classList.toggle("open");
+  };
+
+  // === 初始绘制 ===
+  initBoard();
+  draw();
+
+  // 绘制初始空棋盘
+  (function drawInitial() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    for (var r = 0; r < ROWS; r++) {
+      for (var c = 0; c < COLS; c++) {
+        drawEmptyCell(ctx, c * CELL, r * CELL);
+      }
+    }
+    // 绘制"点击开始"文字
+    ctx.fillStyle = getComputedVar("--text-muted") || "#9CA3AF";
+    ctx.font = "600 16px -apple-system, BlinkMacSystemFont, sans-serif";
+    ctx.textAlign = "center";
+    ctx.fillText('点击「开始游戏」', canvas.width / 2, canvas.height / 2 - 10);
+    ctx.font = "400 13px -apple-system, BlinkMacSystemFont, sans-serif";
+    ctx.fillText('开始经典俄罗斯方块', canvas.width / 2, canvas.height / 2 + 14);
+  })();
+
+})();
+</script><script>
+// tool-intro折叠交互
+document.addEventListener('DOMContentLoaded',function(){
+  var headers=document.querySelectorAll('.tool-intro-header');
+  headers.forEach(function(h){
+    h.addEventListener('click',function(){
+      this.parentElement.classList.toggle('open');
+    });
+  });
+});
+</script>
+
+</body>
+</html>

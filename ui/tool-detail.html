@@ -1,0 +1,598 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="description" content="JSON 格式化在线工具，支持 JSON 校验、压缩与美化，语法高亮显示，纯前端本地处理，数据不上传，免费使用。">
+  <meta name="keywords" content="JSON 格式化,JSON 校验,JSON 压缩,JSON 美化,在线工具">
+  <title>JSON 格式化 - ToolBox 工具百科</title>
+  <link rel="stylesheet" href="template.css">
+  <style>
+    /* ===== 文本处理工具特有样式（双栏布局 / 选项栏 / 语法高亮） ===== */
+
+    /* 双栏等分：桌面 2 列，移动堆叠 */
+    .editor-grid{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:20px;
+      align-items:stretch;
+    }
+    @media(max-width:768px){
+      .editor-grid{grid-template-columns:1fr;gap:16px;}
+    }
+
+    /* 编辑器卡片：纵向撑满 */
+    .editor-card{
+      display:flex;flex-direction:column;
+      padding:0;overflow:hidden;
+    }
+    .editor-card .card-head{
+      display:flex;align-items:center;justify-content:space-between;
+      padding:16px 20px;
+      border-bottom:1px solid var(--border-light);
+    }
+    .editor-card .card-head .card-title{margin:0;}
+    .editor-card .editor-body{flex:1;padding:16px 20px;display:flex;}
+    .editor-card .editor-foot{
+      padding:14px 20px;
+      border-top:1px solid var(--border-light);
+      display:flex;flex-wrap:wrap;gap:10px;
+    }
+
+    /* textarea / pre 等高撑满 */
+    .editor-textarea{
+      flex:1;
+      width:100%;
+      min-height:360px;
+      padding:16px;
+      border:1.5px solid var(--border);
+      border-radius:var(--radius-md);
+      background:var(--bg-warm);
+      color:var(--text);
+      font-family:var(--font-mono);
+      font-size:13px;
+      line-height:1.7;
+      resize:vertical;
+      outline:none;
+      transition:border-color 0.2s,box-shadow 0.2s;
+    }
+    .editor-textarea:focus{
+      border-color:var(--primary);
+      box-shadow:0 0 0 3px rgba(255,107,53,0.12);
+    }
+    .editor-textarea::placeholder{color:var(--text-muted);opacity:0.7;}
+
+    .editor-preview{
+      flex:1;
+      width:100%;
+      min-height:360px;
+      padding:16px;
+      border:1.5px solid var(--border-light);
+      border-radius:var(--radius-md);
+      background:var(--bg-warm);
+      overflow:auto;
+      margin:0;
+      font-family:var(--font-mono);
+      font-size:13px;
+      line-height:1.7;
+      white-space:pre-wrap;
+      word-break:break-word;
+      color:var(--text);
+    }
+
+    /* 状态指示 */
+    .status-indicator{
+      display:inline-flex;align-items:center;gap:6px;
+      font-size:12px;font-weight:600;color:var(--accent);
+    }
+    .status-dot{
+      width:8px;height:8px;border-radius:50%;
+      background:var(--accent);
+      animation:pulse 2s ease-in-out infinite;
+    }
+
+    /* 选项栏分段控件 */
+    .options-bar{
+      display:flex;flex-wrap:wrap;align-items:center;gap:24px;
+    }
+    .option-group{
+      display:flex;align-items:center;gap:12px;
+    }
+    .option-label{
+      font-size:13px;font-weight:600;color:var(--text);
+      white-space:nowrap;
+    }
+    .segmented{
+      display:inline-flex;gap:2px;
+      padding:3px;
+      background:var(--bg-warm);
+      border:1px solid var(--border);
+      border-radius:var(--radius-md);
+    }
+    .segmented button{
+      padding:6px 14px;
+      border:none;background:transparent;
+      font-size:13px;font-weight:600;font-family:inherit;
+      color:var(--text-secondary);
+      border-radius:var(--radius-sm);
+      cursor:pointer;
+      transition:all 0.2s;
+      white-space:nowrap;
+    }
+    .segmented button:hover{color:var(--text);}
+    .segmented button.active{
+      background:var(--card);
+      color:var(--primary);
+      box-shadow:var(--shadow-sm);
+    }
+    body.dark .segmented button.active{
+      background:var(--primary);
+      color:#fff;
+    }
+
+    /* 语法高亮 */
+    .tok-key{color:var(--secondary);}
+    .tok-string{color:var(--primary);}
+    .tok-number{color:var(--accent);}
+    .tok-bool{color:var(--warning);}
+    .tok-null{color:var(--text-muted);}
+    .tok-punct{color:var(--text-muted);}
+    body.dark .tok-key{color:var(--secondary);}
+    body.dark .tok-string{color:var(--primary);}
+    body.dark .tok-number{color:var(--accent);}
+
+    /* 暗色代码块（快速开始） */
+    .code-block-dark{
+      background:#1E1E2E;
+      border-radius:var(--radius-md);
+      padding:20px;
+      overflow:auto;
+      margin:0;
+      font-family:var(--font-mono);
+      font-size:13px;
+      line-height:1.7;
+      white-space:pre;
+      transition:box-shadow 0.2s;
+    }
+    .code-block-dark .dk-key{color:#FF8A5C;}
+    .code-block-dark .dk-string{color:#00C9A7;}
+    .code-block-dark .dk-number{color:#FBBF24;}
+    .code-block-dark .dk-bool{color:#9B6CF5;}
+    .code-block-dark .dk-punct{color:#9CA3AF;}
+
+    .quick-hint{
+      display:flex;align-items:center;gap:6px;
+      font-size:12px;color:var(--text-muted);
+      margin-bottom:12px;
+    }
+    .quick-hint svg{width:14px;height:14px;}
+
+    /* 区块标题 */
+    .section-title{
+      display:flex;align-items:center;gap:8px;
+      font-size:18px;font-weight:700;color:var(--text);
+      margin-bottom:16px;
+    }
+    .section-title .sec-emoji{font-size:20px;}
+
+    /* 相关工具网格 */
+    .related-grid{
+      display:grid;
+      grid-template-columns:repeat(4,1fr);
+      gap:16px;
+    }
+    @media(max-width:768px){
+      .related-grid{grid-template-columns:repeat(2,1fr);gap:12px;}
+    }
+    .related-card{
+      display:block;
+      background:var(--card);
+      border:1.5px solid var(--border);
+      border-radius:var(--radius-lg);
+      padding:20px;
+      text-decoration:none;
+      cursor:pointer;
+      transition:all 0.2s ease;
+    }
+    .related-card:hover{
+      border-color:var(--primary);
+      box-shadow:var(--shadow-primary);
+      transform:translateY(-2px);
+    }
+    .related-card .rc-icon{font-size:30px;margin-bottom:10px;}
+    .related-card .rc-title{
+      font-size:14px;font-weight:700;color:var(--text);
+      margin-bottom:4px;
+      transition:color 0.2s;
+    }
+    .related-card:hover .rc-title{color:var(--primary);}
+    .related-card .rc-desc{
+      font-size:12px;color:var(--text-secondary);
+      line-height:1.5;
+    }
+
+    /* 工具栏间距修正 */
+    .editor-foot .btn{padding:9px 18px;}
+
+    .content-stack{display:flex;flex-direction:column;gap:28px;}
+    @media(max-width:768px){.content-stack{gap:24px;}}
+  </style>
+
+<script src="/js/clarity.js" defer></script>
+</head>
+<body>
+
+  <!-- 导航栏 -->
+  <nav class="navbar">
+    <div class="navbar-inner">
+      <a href="#" class="navbar-brand">
+        <img src="logo.svg" alt="ToolBox">
+        <span class="navbar-brand-text">ToolBox <span>工具百科</span></span>
+      </a>
+      <div class="navbar-links">
+        <a href="#">全部工具</a>
+        <a href="#">IT开发</a>
+        <a href="#">健康医疗</a>
+        <a href="#">金融理财</a>
+      </div>
+      <div class="navbar-search">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.3-4.3"></path></svg>
+        <input type="text" placeholder="搜索 1010+ 工具...">
+      </div>
+      <div class="navbar-actions">
+        <button class="theme-toggle" aria-label="切换主题">
+          <svg class="icon-moon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"></path></svg>
+          <svg class="icon-sun" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2"></path><path d="M12 20v2"></path><path d="m4.93 4.93 1.41 1.41"></path><path d="m17.66 17.66 1.41 1.41"></path><path d="M2 12h2"></path><path d="M20 12h2"></path><path d="m6.34 17.66-1.41 1.41"></path><path d="m19.07 4.93-1.41 1.41"></path></svg>
+        </button>
+        <button class="theme-toggle navbar-mobile-menu" aria-label="菜单">
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="4" x2="20" y1="6" y2="6"></line><line x1="4" x2="20" y1="12" y2="12"></line><line x1="4" x2="20" y1="18" y2="18"></line></svg>
+        </button>
+      </div>
+    </div>
+  </nav>
+
+  <!-- 主内容区 -->
+  <main class="container-main tool-content">
+    <div class="content-stack">
+
+      <!-- 面包屑 + 工具标题 -->
+      <section class="animate-fade-up">
+        <!-- 面包屑 -->
+        <nav class="breadcrumb">
+          <a href="#">首页</a>
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"></path></svg>
+          <a href="#">IT开发</a>
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"></path></svg>
+          <span class="breadcrumb-current">JSON格式化</span>
+        </nav>
+
+        <!-- 工具标题区 -->
+        <div class="tool-header">
+          <h1 class="tool-title">
+            <span class="tool-title-icon">📋</span>
+            JSON 格式化
+          </h1>
+          <p class="tool-desc">在线 JSON 格式化、校验、压缩与美化工具，支持语法高亮显示。纯前端本地处理，数据不上传，安全免费。</p>
+          <div class="tool-tags">
+            <span class="tool-tag tag-primary">IT开发</span>
+            <span class="tool-tag tag-secondary">本地处理</span>
+            <span class="tool-tag tag-accent">免费</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- 选项栏卡片 -->
+      <section class="card animate-fade-up delay-1">
+        <div class="options-bar">
+          <div class="option-group">
+            <span class="option-label">缩进</span>
+            <div class="segmented" id="indentGroup">
+              <button class="active" data-indent="2">2空格</button>
+              <button data-indent="4">4空格</button>
+              <button data-indent="tab">Tab</button>
+            </div>
+          </div>
+          <div class="option-group">
+            <span class="option-label">模式</span>
+            <div class="segmented" id="modeGroup">
+              <button class="active" data-mode="format">格式化</button>
+              <button data-mode="minify">压缩</button>
+              <button data-mode="validate">验证</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 核心双栏区 -->
+      <section class="animate-fade-up delay-2">
+        <div class="editor-grid">
+          <!-- 左栏：输入 -->
+          <div class="card editor-card">
+            <div class="card-head">
+              <h3 class="card-title">
+                <span class="card-title-icon icon-bg-primary">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"></path></svg>
+                </span>
+                输入 JSON
+              </h3>
+              <span style="font-size:12px;color:var(--text-muted);" id="charCount">0 字符</span>
+            </div>
+            <div class="editor-body">
+              <textarea
+                class="editor-textarea"
+                id="jsonInput"
+                spellcheck="false"
+                placeholder='&#10;{&#10;  "name": "张三",&#10;  "age": 28,&#10;  "skills": ["JavaScript", "Python"],&#10;  "address": {&#10;    "city": "上海",&#10;    "district": "浦东新区"&#10;  }&#10;}'
+              ></textarea>
+            </div>
+            <div class="editor-foot">
+              <button class="btn btn-primary" onclick="formatJson()">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"></path><path d="M20 3v4"></path><path d="M22 5h-4"></path><path d="M4 17v2"></path><path d="M5 18H3"></path></svg>
+                格式化
+              </button>
+              <button class="btn btn-secondary" onclick="minifyJson()">压缩</button>
+              <button class="btn btn-ghost" onclick="clearInput()">清空</button>
+            </div>
+          </div>
+
+          <!-- 右栏：输出 -->
+          <div class="card editor-card">
+            <div class="card-head">
+              <h3 class="card-title">
+                <span class="card-title-icon icon-bg-accent">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2v4a2 2 0 0 0 2 2h4"></path><path d="M16 22H8a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8l6 6v10a2 2 0 0 1-2 2Z"></path><path d="m9 13 1.5 1.5L13 12"></path><path d="m9 18 1.5 1.5L13 17"></path></svg>
+                </span>
+                格式化结果
+              </h3>
+              <span class="status-indicator">
+                <span class="status-dot"></span> 已就绪
+              </span>
+            </div>
+            <div class="editor-body">
+              <pre class="editor-preview" id="jsonOutput"><span class="tok-punct">{</span>
+  <span class="tok-key">"name"</span><span class="tok-punct">:</span> <span class="tok-string">"张三"</span><span class="tok-punct">,</span>
+  <span class="tok-key">"age"</span><span class="tok-punct">:</span> <span class="tok-number">28</span><span class="tok-punct">,</span>
+  <span class="tok-key">"skills"</span><span class="tok-punct">:</span> <span class="tok-punct">[</span>
+    <span class="tok-string">"JavaScript"</span><span class="tok-punct">,</span>
+    <span class="tok-string">"Python"</span>
+  <span class="tok-punct">]</span><span class="tok-punct">,</span>
+  <span class="tok-key">"address"</span><span class="tok-punct">:</span> <span class="tok-punct">{</span>
+    <span class="tok-key">"city"</span><span class="tok-punct">:</span> <span class="tok-string">"上海"</span><span class="tok-punct">,</span>
+    <span class="tok-key">"district"</span><span class="tok-punct">:</span> <span class="tok-string">"浦东新区"</span>
+  <span class="tok-punct">}</span>
+<span class="tok-punct">}</span></pre>
+            </div>
+            <div class="editor-foot">
+              <button class="btn btn-primary" onclick="copyResult()">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"></rect><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"></path></svg>
+                复制结果
+              </button>
+              <button class="btn btn-secondary" onclick="downloadJson()">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" x2="12" y1="15" y2="3"></line></svg>
+                下载 .json
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 快速开始 -->
+      <section class="animate-fade-up">
+        <h2 class="section-title"><span class="sec-emoji">⚡</span> 快速开始</h2>
+        <div class="card card-hover">
+          <p class="quick-hint">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 9h.01"></path><path d="M14 9h.01"></path><path d="M12 14h.01"></path><path d="M9.5 14a2.5 2.5 0 0 0 5 0"></path><path d="M21 12c0 4.97-4.03 9-9 9s-9-4.03-9-9 4.03-9 9-9 9 4.03 9 9Z"></path></svg>
+            点击下方代码块可自动填入输入框
+          </p>
+          <pre class="code-block-dark"><span class="dk-punct">{</span>
+  <span class="dk-key">"name"</span><span class="dk-punct">:</span> <span class="dk-string">"李明"</span><span class="dk-punct">,</span>
+  <span class="dk-key">"age"</span><span class="dk-punct">:</span> <span class="dk-number">32</span><span class="dk-punct">,</span>
+  <span class="dk-key">"skills"</span><span class="dk-punct">:</span> <span class="dk-punct">[</span>
+    <span class="dk-string">"Vue.js"</span><span class="dk-punct">,</span>
+    <span class="dk-string">"Node.js"</span><span class="dk-punct">,</span>
+    <span class="dk-string">"PostgreSQL"</span>
+  <span class="dk-punct">]</span><span class="dk-punct">,</span>
+  <span class="dk-key">"address"</span><span class="dk-punct">:</span> <span class="dk-punct">{</span>
+    <span class="dk-key">"city"</span><span class="dk-punct">:</span> <span class="dk-string">"北京"</span><span class="dk-punct">,</span>
+    <span class="dk-key">"district"</span><span class="dk-punct">:</span> <span class="dk-string">"海淀区"</span><span class="dk-punct">,</span>
+    <span class="dk-key">"zip"</span><span class="dk-punct">:</span> <span class="dk-string">"100080"</span>
+  <span class="dk-punct">}</span><span class="dk-punct">,</span>
+  <span class="dk-key">"isActive"</span><span class="dk-punct">:</span> <span class="dk-bool">true</span>
+<span class="dk-punct">}</span></pre>
+        </div>
+      </section>
+
+      <!-- 相关工具 -->
+      <section class="animate-fade-up">
+        <h2 class="section-title"><span class="sec-emoji">🔧</span> 相关工具</h2>
+        <div class="related-grid">
+          <a href="#" class="related-card">
+            <div class="rc-icon">🔐</div>
+            <div class="rc-title">Base64 编解码</div>
+            <div class="rc-desc">快速进行 Base64 编码与解码转换</div>
+          </a>
+          <a href="#" class="related-card">
+            <div class="rc-icon">🆔</div>
+            <div class="rc-title">UUID 生成</div>
+            <div class="rc-desc">一键生成 UUID v4 标准唯一标识符</div>
+          </a>
+          <a href="#" class="related-card">
+            <div class="rc-icon">🔍</div>
+            <div class="rc-title">正则表达式测试</div>
+            <div class="rc-desc">在线测试正则表达式并高亮匹配结果</div>
+          </a>
+          <a href="#" class="related-card">
+            <div class="rc-icon">🔒</div>
+            <div class="rc-title">哈希计算</div>
+            <div class="rc-desc">MD5 / SHA-1 / SHA-256 哈希值计算</div>
+          </a>
+        </div>
+      </section>
+
+    </div>
+  </main>
+
+  <!-- 页脚 -->
+  <footer class="footer">
+    <div class="footer-inner">
+      <div>
+        <div class="footer-brand">
+          <img src="logo.svg" alt="ToolBox">
+          <span class="footer-brand-text">ToolBox <span>工具百科</span></span>
+        </div>
+        <p class="footer-desc">1010+ 免费在线工具，纯前端处理，数据不上传，安全可靠。覆盖 IT 开发、金融理财、健康医疗等 50+ 细分行业。</p>
+      </div>
+      <div>
+        <h4>工具分类</h4>
+        <ul>
+          <li><a href="#">IT 开发</a></li>
+          <li><a href="#">文本处理</a></li>
+          <li><a href="#">编码解码</a></li>
+          <li><a href="#">生成器</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>关于</h4>
+        <ul>
+          <li><a href="#">关于我们</a></li>
+          <li><a href="#">使用条款</a></li>
+          <li><a href="#">隐私政策</a></li>
+          <li><a href="#">联系方式</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2026 ToolBox 工具百科 · 纯前端 · 无需注册 · 免费使用</span>
+      <span>Made with ❤️ for Developers</span>
+    </div>
+  </footer>
+
+  <!-- 移动端底部 Tab 栏 -->
+  <nav class="mobile-tabbar">
+    <a href="#" class="mobile-tabbar-item active">
+      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+      首页
+    </a>
+    <a href="#" class="mobile-tabbar-item">
+      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect width="7" height="7" x="3" y="3" rx="1"></rect><rect width="7" height="7" x="14" y="3" rx="1"></rect><rect width="7" height="7" x="14" y="14" rx="1"></rect><rect width="7" height="7" x="3" y="14" rx="1"></rect></svg>
+      分类
+    </a>
+    <a href="#" class="mobile-tabbar-item">
+      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"></path></svg>
+      收藏
+    </a>
+    <a href="#" class="mobile-tabbar-item">
+      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><path d="M3 3v5h5"></path><path d="M12 7v5l4 2"></path></svg>
+      历史
+    </a>
+    <a href="#" class="mobile-tabbar-item">
+      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="5"></circle><path d="M20 21a8 8 0 0 0-16 0"></path></svg>
+      我的
+    </a>
+  </nav>
+
+  <script src="template.js"></script>
+  <script>
+    // 分段控件交互
+    function initSegmented(id){
+      const group = document.getElementById(id);
+      if(!group) return;
+      group.querySelectorAll('button').forEach(btn => {
+        btn.addEventListener('click', () => {
+          group.querySelectorAll('button').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+        });
+      });
+    }
+    initSegmented('indentGroup');
+    initSegmented('modeGroup');
+
+    // 字符计数
+    const inputEl = document.getElementById('jsonInput');
+    const countEl = document.getElementById('charCount');
+    inputEl.addEventListener('input', () => {
+      countEl.textContent = inputEl.value.length + ' 字符';
+    });
+
+    // 工具功能（示例实现）
+    function getIndent(){
+      const active = document.querySelector('#indentGroup button.active');
+      const v = active ? active.getAttribute('data-indent') : '2';
+      if(v === 'tab') return '\t';
+      return ' '.repeat(parseInt(v, 10));
+    }
+    function escapeHtml(s){
+      return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    }
+    function highlightJson(str){
+      // 简易语法高亮
+      return escapeHtml(str)
+        .replace(/(&quot;(?:\\.|[^&quot;\\])*&quot;)(\s*:)/g, '<span class="tok-key">$1</span>$2')
+        .replace(/:\s*(&quot;(?:\\.|[^&quot;\\])*&quot;)/g, ': <span class="tok-string">$1</span>')
+        .replace(/:\s*(-?\d+(?:\.\d+)?)/g, ': <span class="tok-number">$1</span>')
+        .replace(/:\s*(true|false)/g, ': <span class="tok-bool">$1</span>')
+        .replace(/:\s*(null)/g, ': <span class="tok-null">$1</span>')
+        .replace(/([{}\[\],])/g, '<span class="tok-punct">$1</span>');
+    }
+    function formatJson(){
+      const raw = inputEl.value.trim();
+      const out = document.getElementById('jsonOutput');
+      if(!raw){ Template.showToast('请输入 JSON 内容','error'); return; }
+      try{
+        const obj = JSON.parse(raw);
+        const pretty = JSON.stringify(obj, null, getIndent());
+        out.innerHTML = highlightJson(pretty);
+        Template.showToast('格式化成功');
+      }catch(e){
+        out.innerHTML = '<span style="color:var(--error);">解析错误：' + escapeHtml(e.message) + '</span>';
+        Template.showToast('JSON 解析失败','error');
+      }
+    }
+    function minifyJson(){
+      const raw = inputEl.value.trim();
+      const out = document.getElementById('jsonOutput');
+      if(!raw){ Template.showToast('请输入 JSON 内容','error'); return; }
+      try{
+        const obj = JSON.parse(raw);
+        const mini = JSON.stringify(obj);
+        out.innerHTML = highlightJson(mini);
+        Template.showToast('压缩成功');
+      }catch(e){
+        out.innerHTML = '<span style="color:var(--error);">解析错误：' + escapeHtml(e.message) + '</span>';
+        Template.showToast('JSON 解析失败','error');
+      }
+    }
+    function clearInput(){
+      inputEl.value = '';
+      countEl.textContent = '0 字符';
+      document.getElementById('jsonOutput').textContent = '';
+      Template.showToast('已清空');
+    }
+    function copyResult(){
+      const out = document.getElementById('jsonOutput');
+      Template.copyText(out.textContent);
+    }
+    function downloadJson(){
+      const out = document.getElementById('jsonOutput');
+      const text = out.textContent;
+      if(!text){ Template.showToast('暂无结果可下载','error'); return; }
+      const blob = new Blob([text], {type:'application/json'});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = 'formatted.json';
+      document.body.appendChild(a); a.click(); a.remove();
+      URL.revokeObjectURL(url);
+      Template.showToast('下载已开始');
+    }
+
+    // 快速开始代码块点击填入
+    document.querySelector('.code-block-dark').addEventListener('click', function(){
+      inputEl.value = this.textContent;
+      countEl.textContent = inputEl.value.length + ' 字符';
+      formatJson();
+      Template.showToast('已填入示例');
+    });
+  </script>
+
+</body>
+</html>

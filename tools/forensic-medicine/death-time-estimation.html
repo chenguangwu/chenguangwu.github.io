@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+
+<script src="/js/tool-page-runtime.js" defer></script>
+<!-- TOOLBOX-TOOL-RUNTIME -->
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="toolbox" content="cat=convert,industry=forensic-medicine,icon=🔬,bg=#efebe9">
+<meta name="description" content="死亡时间(尸温角膜混浊)估算器 - 基于尸温下降公式（Glaister法、Henssge列线图法）与角膜混浊程度，综合估算死后经过时间的法医学辅助工具。">
+<meta name="keywords" content="死亡时间估算,尸温,Glaister公式,Henssge列线图,角膜混浊,法医学,死后经过时间,在线工具,免费工具,ToolBox">
+<meta name="robots" content="index,follow">
+<link rel="canonical" href="https://chenguangwu.github.io/tools/forensic-medicine/death-time-estimation.html">
+<meta property="og:title" content="死亡时间(尸温角膜混浊)估算器 - 基于尸温下降公式（Glaister法 - ToolBox">
+<meta property="og:description" content="死亡时间(尸温角膜混浊)估算器 - 基于尸温下降公式（Glaister法、Henssge列线图法）与角膜混浊程度，综合估算死后经过时间的法医学辅助工具。">
+<meta property="og:type" content="website">
+<title>死亡时间(尸温角膜混浊)估算器 - 基于尸温下降公式（Glaister法 - ToolBox</title>
+<meta property="og:url" content="https://chenguangwu.github.io/tools/forensic-medicine/death-time-estimation.html">
+<meta name="twitter:card" content="summary">
+<meta name="theme-color" content="#FF6B35">
+<link rel="icon" type="image/svg+xml" href="../../favicon.svg">
+<link rel="icon" href="../../favicon.ico" sizes="16x16 32x32 48x48">
+<link rel="apple-touch-icon" href="../../apple-touch-icon.png">
+<link rel="stylesheet" href="../../css/common.css">
+<script src="../../js/common.js"></script>
+<style>
+.temp-chart{display:flex;align-items:flex-end;gap:4px;height:120px;margin:16px 0;padding:0 8px;border-bottom:2px solid var(--border);position:relative;}
+.temp-bar{flex:1;background:var(--gradient-primary);border-radius:4px 4px 0 0;min-height:4px;transition:height 0.4s ease;position:relative;}
+.temp-bar .temp-label{position:absolute;bottom:-20px;left:50%;transform:translateX(-50%);font-size:10px;color:var(--text-muted);white-space:nowrap;}
+.temp-bar .temp-val{position:absolute;top:-16px;left:50%;transform:translateX(-50%);font-size:9px;color:var(--primary);font-weight:600;white-space:nowrap;}
+.corneal-stage{display:inline-block;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:600;margin:2px;}
+.stage-clear{background:rgba(16,185,129,0.1);color:#059669;}
+.stage-mild{background:rgba(59,130,246,0.1);color:#2563EB;}
+.stage-moderate{background:rgba(245,158,11,0.1);color:#D97706;}
+.stage-severe{background:rgba(239,68,68,0.1);color:#DC2626;}
+.estimate-box{background:var(--result-bg);border:2px solid var(--primary);border-radius:12px;padding:16px;text-align:center;margin:12px 0;}
+.estimate-box .hours{font-size:32px;font-weight:700;color:var(--primary);}
+.estimate-box .range{font-size:14px;color:var(--text-secondary);margin-top:4px;}
+</style>
+
+
+
+<meta property="og:image" content="https://chenguangwu.github.io/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="ToolBox - 6000+免费在线工具">
+<meta name="twitter:image" content="https://chenguangwu.github.io/og-image.png">
+<meta name="twitter:image:alt" content="ToolBox - 6000+免费在线工具">
+    <meta name="twitter:title" content="死亡时间(尸温角膜混浊)估算器 - 基于尸温下降公式（Glaister法 - ToolBox">
+    <meta name="twitter:description" content="死亡时间(尸温角膜混浊)估算器 - 基于尸温下降公式（Glaister法、Henssge列线图法）与角膜混浊程度，综合估算死后经过时间的法医学辅助工具。">
+<!-- TOOLBOX-WEBAPP-LD -->
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"WebApplication","name":"死亡时间(尸温角膜混浊)估算器 - 基于尸温下降公式（Glaister法","url":"https://chenguangwu.github.io/tools/forensic-medicine/death-time-estimation.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":["zh-CN", "en-US"],"description":"死亡时间(尸温角膜混浊)估算器","image":"https://chenguangwu.github.io/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}
+</script>
+<meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
+<meta http-equiv="X-Content-Type-Options" content="nosniff">
+<meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
+<!-- TOOLBOX-SECURITY -->
+
+<script src="/js/privacy.js" defer></script>
+<!-- TOOLBOX-PRIVACY-SCRIPT -->
+
+<script src="/js/metrics.js" defer></script>
+<!-- TOOLBOX-METRICS-SCRIPT -->
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"首页","item":"https://chenguangwu.github.io/"},{"@type":"ListItem","position":2,"name":"法医学","item":"https://chenguangwu.github.io/tools/forensic-medicine/index.html"},{"@type":"ListItem","position":3,"name":"死亡时间(尸温角膜混浊)估算器","item":"https://chenguangwu.github.io/tools/forensic-medicine/death-time-estimation.html"}]}
+</script>
+
+<script src="../../js/i18n.js" defer></script>
+<script src="../../js/tool-i18n.js" defer></script>
+<!-- TOOLBOX-I18N-SCRIPT -->
+<!-- TOOLBOX-HREFLANG -->
+<link rel="alternate" hreflang="zh-CN" href="https://chenguangwu.github.io/tools/forensic-medicine/death-time-estimation.html">
+<link rel="alternate" hreflang="en-US" href="https://chenguangwu.github.io/tools/forensic-medicine/death-time-estimation.html">
+<link rel="alternate" hreflang="x-default" href="https://chenguangwu.github.io/tools/forensic-medicine/death-time-estimation.html">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:locale:alternate" content="en_US">
+
+<script src="/js/clarity.js" defer></script>
+<!-- TOOLBOX-CLARITY -->
+</head>
+<body>
+<h1 class="sr-only">死亡时间(尸温角膜混浊)估算器</h1>
+
+<div class="nav">
+  <a href="../../index.html">← ToolBox</a>
+  <span>/ 死亡时间估算器</span>
+  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()">🌙</button>
+</div>
+
+
+
+
+<nav class="breadcrumb" aria-label="面包屑导航" data-breadcrumb="1">
+  <a href="../../index.html">首页</a>
+  <span class="bc-sep">‹</span>
+  <a href="index.html">🔧 法医学</a>
+  <span class="bc-sep">‹</span>
+  <span class="bc-current">死亡时间(尸温角膜混浊)估算器</span>
+</nav>
+<div class="container">
+  <div class="card tool-card-accent" style="--tool-accent:#FF6B35;">
+    <h2>🔬 死亡时间(尸温角膜混浊)估算器</h2>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;">基于尸温下降公式(Glaister/Henssge)与角膜混浊程度，综合估算死后经过时间</p>
+
+    <div class="input-row">
+      <div>
+        <label>直肠温度 Tr (°C)</label>
+        <input type="number" id="rectalTemp" value="32" step="0.1" oninput="calc()">
+      </div>
+      <div>
+        <label>环境温度 Ta (°C)</label>
+        <input type="number" id="ambientTemp" value="20" step="0.5" oninput="calc()">
+      </div>
+      <div>
+        <label>体重 (kg)</label>
+        <input type="number" id="bodyWeight" value="70" oninput="calc()">
+      </div>
+    </div>
+
+    <div class="input-row">
+      <div>
+        <label>角膜混浊程度</label>
+        <select id="corneal" onchange="calc()">
+          <option value="0">透明（清楚）</option>
+          <option value="1">轻度混浊（薄雾感）</option>
+          <option value="2">中度混浊（瞳孔模糊）</option>
+          <option value="3">重度混浊（完全不透明）</option>
+        </select>
+      </div>
+      <div>
+        <label>穿着情况</label>
+        <select id="clothing" onchange="calc()">
+          <option value="1.0">裸体/薄衣</option>
+          <option value="0.7" selected>普通穿着</option>
+          <option value="0.5">厚衣/被褥覆盖</option>
+        </select>
+      </div>
+      <div>
+        <label>环境状况</label>
+        <select id="env" onchange="calc()">
+          <option value="1.0" selected>室内静止空气</option>
+          <option value="1.2">通风/有风环境</option>
+          <option value="0.8">潮湿环境</option>
+          <option value="1.5">水中/雨中</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="toolbar">
+      <button type="button" class="btn primary" onclick="calc()">估算死亡时间</button>
+      <button type="button" class="btn" onclick="copyResult()">复制报告</button>
+    </div>
+
+    <div class="result-box" id="result"></div>
+
+    <div class="tip-box tip-warn" style="margin-top:12px;">
+      ⚠️ 本工具基于经验公式估算，受个体差异、环境因素等影响较大，结果仅供法医学教学和初步参考，不能替代专业法医鉴定。
+    </div>
+
+    <h3 style="margin-top:20px;">参考依据</h3>
+    <div class="ref-card">
+      <h4>Glaister 公式（简易估算法）</h4>
+      <p>死后经过时间(小时) = (37 - Tr) / 0.83</p>
+      <p>适用于死后早期（数小时内）、环境温度约18-20°C的粗略估算。0.83为经验冷却速率(°C/h)。</p>
+    </div>
+    <div class="ref-card">
+      <h4>Henssge 列线图法（修正公式）</h4>
+      <p>死后经过时间(小时) = (37.2 - Tr) / [K × 补正系数]</p>
+      <p>其中 K 为冷却常数，受体重影响：K ≈ 0.4 × (70/W)^0.5（近似）；补正系数考虑穿着与环境。</p>
+      <p>Henssge法给出了95%置信区间，适用于直肠温度10-37.2°C、环境温度-10°C~+23°C范围。</p>
+    </div>
+    <div class="ref-card">
+      <h4>角膜混浊与死后时间关系</h4>
+      <p>• <span class="corneal-stage stage-clear">透明</span> 死后约 1-2 小时内</p>
+      <p>• <span class="corneal-stage stage-mild">轻度混浊</span> 死后约 3-6 小时，角膜出现薄雾感</p>
+      <p>• <span class="corneal-stage stage-moderate">中度混浊</span> 死后约 7-12 小时，瞳孔模糊可见</p>
+      <p>• <span class="corneal-stage stage-severe">重度混浊</span> 死后约 15-24 小时以上，角膜完全不透明呈灰白色</p>
+      <p style="margin-top:6px;">注：角膜混浊受环境湿度、眼睑是否闭合影响，眼睑闭合者混浊较慢。</p>
+    </div>
+
+    <h3 style="margin-top:20px;">尸温下降趋势</h3>
+    <div class="temp-chart" id="tempChart"></div>
+    <p style="font-size:12px;color:var(--text-muted);text-align:center;">虚线为理论尸温下降曲线（环境温度 <span id="chartAmbient">20</span>°C）</p>
+  </div>
+
+<!-- 注意事项区块 -->
+<div class="tool-notes" style="--tool-accent:#FF6B35;">
+  <div class="tool-notes-title">⚠️ 使用说明与注意事项</div>
+  <ul>
+      <li>本工具纯前端运行，数据不会上传到服务器</li>
+      <li>建议在主流浏览器（Chrome/Safari/Firefox/Edge）中使用</li>
+      <li>计算结果仅供参考，请以实际应用场景为准</li>
+  </ul>
+</div>
+<!-- /注意事项区块 -->
+</div>
+<script>
+function calc() {
+  var Tr = parseFloat(document.getElementById('rectalTemp').value);
+  var Ta = parseFloat(document.getElementById('ambientTemp').value);
+  var W = parseFloat(document.getElementById('bodyWeight').value);
+  var corneal = parseInt(document.getElementById('corneal').value);
+  var clothing = parseFloat(document.getElementById('clothing').value);
+  var env = parseFloat(document.getElementById('env').value);
+
+  if (isNaN(Tr) || isNaN(Ta) || isNaN(W)) {
+    ToolBox.setResult('result', '<p style="color:var(--danger);">请输入有效的数值</p>');
+    return;
+  }
+
+  // Glaister 简易公式
+  var glaisterHours = (37 - Tr) / 0.83;
+
+  // Henssge 修正法 (近似)
+  // 冷却常数 K 受体重影响
+  var K = 0.4 * Math.pow(70 / W, 0.5);
+  // 补正系数 = 穿着系数 × 环境系数
+  var correction = clothing * env;
+  var henssgeHours = (37.2 - Tr) / (K * correction);
+
+  // 95% 置信区间 (Henssge法 ±2.8h 近似)
+  var lower = Math.max(0, henssgeHours - 2.8);
+  var upper = henssgeHours + 2.8;
+
+  // 综合估算 (取两者加权平均)
+  var combined = glaisterHours * 0.35 + henssgeHours * 0.65;
+
+  // 角膜混浊参考时间
+  var cornealInfo = [
+    { stage: '透明', time: '0-2 小时', color: 'stage-clear' },
+    { stage: '轻度混浊', time: '3-6 小时', color: 'stage-mild' },
+    { stage: '中度混浊', time: '7-12 小时', color: 'stage-moderate' },
+    { stage: '重度混浊', time: '15-24 小时以上', color: 'stage-severe' }
+  ];
+  var ci = cornealInfo[corneal];
+
+  // 温度差异合理性检查
+  var tempDiff = Tr - Ta;
+  var warnings = [];
+  if (Tr >= 37) warnings.push('直肠温度≥37°C，尸体可能尚未充分冷却或存在发热因素');
+  if (Tr <= Ta) warnings.push('直肠温度≤环境温度，已超出公式适用范围');
+  if (W < 30 || W > 120) warnings.push('体重超出常规范围(30-120kg)，估算精度下降');
+  if (glaisterHours < 0) glaisterHours = 0;
+  if (combined < 0) combined = 0;
+
+  function fmtH(h) {
+    if (h < 1) return Math.round(h * 60) + ' 分钟';
+    var hh = Math.floor(h);
+    var mm = Math.round((h - hh) * 60);
+    return hh + ' 小时' + (mm > 0 ? ' ' + mm + ' 分钟' : '');
+  }
+
+  var html = '';
+  html += '<div class="estimate-box">';
+  html += '<div style="font-size:13px;color:var(--text-muted);">综合估算死后经过时间</div>';
+  html += '<div class="hours">' + fmtH(combined) + '</div>';
+  html += '<div class="range">估算范围：' + fmtH(lower) + ' ~ ' + fmtH(upper) + '</div>';
+  html += '</div>';
+
+  html += '<div class="stat-grid">';
+  html += '<div class="stat-card"><div class="val">' + glaisterHours.toFixed(1) + '</div><div class="lbl">Glaister法 (h)</div></div>';
+  html += '<div class="stat-card"><div class="val">' + henssgeHours.toFixed(1) + '</div><div class="lbl">Henssge法 (h)</div></div>';
+  html += '<div class="stat-card"><div class="val">' + (37.2 - Tr).toFixed(1) + '</div><div class="lbl">温度差 ΔT (°C)</div></div>';
+  html += '<div class="stat-card"><div class="val">' + K.toFixed(3) + '</div><div class="lbl">冷却常数 K</div></div>';
+  html += '</div>';
+
+  html += '<h3 style="margin-top:16px;">角膜混浊参考</h3>';
+  html += '<p>当前判定：<span class="corneal-stage ' + ci.color + '">' + ci.stage + '</span> → 对应死后时间约 <strong>' + ci.time + '</strong></p>';
+
+  if (warnings.length > 0) {
+    html += '<div class="tip-box tip-warn" style="margin-top:8px;">';
+    warnings.forEach(function(w) { html += '<p>⚠️ ' + w + '</p>'; });
+    html += '</div>';
+  }
+
+  html += '<p style="font-size:12px;color:var(--text-muted);margin-top:8px;">输入参数：Tr=' + Tr + '°C, Ta=' + Ta + '°C, 体重=' + W + 'kg, 穿着系数=' + clothing + ', 环境系数=' + env + '</p>';
+
+  ToolBox.setResult('result', html);
+
+  // 更新尸温下降曲线
+  drawTempChart(Ta, env * clothing);
+}
+
+function drawTempChart(Ta, factor) {
+  var chart = document.getElementById('tempChart');
+  var html = '';
+  var hours = [0, 1, 2, 3, 4, 6, 8, 10, 12, 16, 20, 24];
+  var maxTemp = 37.2;
+  var minTemp = Ta;
+  var range = maxTemp - minTemp;
+  if (range <= 0) range = 1;
+
+  hours.forEach(function(h) {
+    // 近似指数下降: T(t) = Ta + (37.2 - Ta) * e^(-0.4*factor*t/1.5)
+    var k = 0.4 * factor / 1.5;
+    var temp = Ta + (37.2 - Ta) * Math.exp(-k * h);
+    if (temp < Ta) temp = Ta;
+    var heightPct = ((temp - minTemp) / range) * 100;
+    if (heightPct < 4) heightPct = 4;
+    if (heightPct > 100) heightPct = 100;
+    html += '<div class="temp-bar" style="height:' + heightPct + '%;">';
+    html += '<span class="temp-val">' + temp.toFixed(1) + '</span>';
+    html += '<span class="temp-label">' + h + 'h</span>';
+    html += '</div>';
+  });
+  chart.innerHTML = html;
+  document.getElementById('chartAmbient').textContent = Ta;
+}
+
+function copyResult() {
+  var text = document.getElementById('result').innerText;
+  ToolBox.copyText(text, i18nText('msg136'));
+}
+
+calc();
+</script>
+<script>
+document.addEventListener('DOMContentLoaded',function(){
+  document.querySelectorAll('.tool-intro-header').forEach(function(h){
+    h.addEventListener('click',function(){ this.parentElement.classList.toggle('open'); });
+  });
+});
+</script>
+
+</div>
+
+</div>
+
+
+<!-- 相关工具 -->
+<div class="related-tools" data-related-tools="1">
+  <h3 class="related-tools-title">🔗 相关工具</h3>
+  <div class="related-tools-grid">
+    <a href="burn-assessment.html" class="related-tool-card">
+      <span class="rt-icon">🔬</span>
+      <span class="rt-info"><span class="rt-name">烧伤(面积深度)分度器 - 中国九分法/手掌法计算烧伤面积，三度四分法评估烧伤深度</span><span class="rt-desc">烧伤(面积深度)分度器</span></span>
+    </a>
+    <a href="bloodstain-pattern.html" class="related-tool-card">
+      <span class="rt-icon">🔬</span>
+      <span class="rt-info"><span class="rt-name">血迹形态(滴落喷溅)判读器 - 基于血迹形态分析(BPA)原理，通过撞击角度计算</span><span class="rt-desc">血迹形态(滴落喷溅)判读器</span></span>
+    </a>
+    <a href="blast-injury.html" class="related-tool-card">
+      <span class="rt-icon">🔬</span>
+      <span class="rt-info"><span class="rt-name">爆炸伤(冲击波)效应估算器 - 基于TNT当量、爆心距离与爆炸环境</span><span class="rt-desc">爆炸伤(冲击波)效应估算器</span></span>
+    </a>
+    <a href="analysis-15.html" class="related-tool-card">
+      <span class="rt-icon">🔧</span>
+      <span class="rt-info"><span class="rt-name">高坠（损伤分布）重力分析</span><span class="rt-desc">高坠（损伤分布）重力分析</span></span>
+    </a>
+    <a href="detector-10.html" class="related-tool-card">
+      <span class="rt-icon">🔧</span>
+      <span class="rt-info"><span class="rt-name">溺死（硅藻）内脏检测 - 法医硅藻检测分析工具，输入各内脏器官硅藻检出数量和种类</span><span class="rt-desc">溺死（硅藻）内脏检测</span></span>
+    </a>
+    <a href="dna-str-typing.html" class="related-tool-card">
+      <span class="rt-icon">🔬</span>
+      <span class="rt-info"><span class="rt-name">DNA(STR)分型图谱分析器 - 输入STR基因座等位基因数据，进行亲权指数(PI)计算</span><span class="rt-desc">DNA(STR)分型图谱分析器</span></span>
+    </a>
+  </div>
+</div>
+<div class="tool-intro open">
+  <div class="tool-intro-header">
+    <span class="intro-icon-wrap"><span class="intro-icon">📖</span>关于「死亡时间估算器」</span>
+    <span class="arrow">▼</span>
+  </div>
+  <div class="tool-intro-body">
+    <h4><span class="h4-icon">📝</span>工具简介</h4>
+    <p>基于尸温下降公式（Glaister法、Henssge列线图法）与角膜混浊程度，综合估算死后经过时间的法医学辅助工具。</p>
+    <h4><span class="h4-icon">✨</span>功能特点</h4>
+    <ul class="intro-features">
+      <li>支持Glaister简易公式估算</li>
+      <li>支持Henssge修正公式（含体重/穿着/环境修正）</li>
+      <li>角膜混浊四期分期参考</li>
+      <li>尸温下降趋势可视化曲线</li>
+      <li>提供95%置信区间估算</li>
+    </ul>
+    <h4><span class="h4-icon">🎯</span>使用场景</h4>
+    <ul class="intro-scenes">
+      <li>法医学教学与学习</li>
+      <li>案发现场初步时间推断</li>
+      <li>法医病理学案例研讨</li>
+      <li>司法鉴定辅助参考</li>
+    </ul>
+  </div>
+</div>
+
+<!-- SEO 介绍区块 -->
+<div class="tool-intro open" id="toolIntro">
+  <div class="tool-intro-header">
+    <span class="intro-icon-wrap"><span class="intro-icon">📖</span>关于「死亡时间(尸温角膜混浊)估算器」</span>
+    <span class="arrow">▼</span>
+  </div>
+  <div class="tool-intro-body">
+    <h4><span class="h4-icon">📝</span>工具简介</h4>
+    <p>死亡时间(尸温角膜混浊)估算器 - 基于尸温下降公式与角膜混浊程度综合估算死后经过时间，法医学死亡时间推断辅助工具。。医疗专业工具，基于权威医学标准，仅供参考。</p>
+    <h4><span class="h4-icon">✨</span>功能特点</h4>
+    <ul class="intro-features">
+      <li>基于权威医学标准</li>
+      <li>支持多种临床参数</li>
+      <li>实时计算，结果即时显示</li>
+      <li>医疗数据不上传，保护隐私</li>
+    </ul>
+    <h4><span class="h4-icon">🎯</span>使用场景</h4>
+    <ul class="intro-scenes">
+      <li>临床计算与评估辅助</li>
+      <li>医学学习与考试备考</li>
+      <li>科研数据分析</li>
+      <li>健康监测参考</li>
+    </ul>
+    <h4><span class="h4-icon">💬</span>常见问题</h4>
+      <div class="intro-faq-item"><div class="intro-faq-q">这个工具是免费的吗？</div><div class="intro-faq-a">完全免费，无需注册，直接在浏览器中使用。</div></div>
+      <div class="intro-faq-item"><div class="intro-faq-q">计算结果准确吗？</div><div class="intro-faq-a">基于权威医学标准计算，结果仅供参考，不能替代临床诊断。</div></div>
+      <div class="intro-faq-item"><div class="intro-faq-q">能替代医生诊断吗？</div><div class="intro-faq-a">不能。工具仅提供计算参考，具体诊断请咨询专业医生。</div></div>
+  </div>
+</div>
+<!-- /SEO 介绍区块 -->
+
+<script>
+// tool-intro折叠交互
+document.addEventListener('DOMContentLoaded',function(){
+  var headers=document.querySelectorAll('.tool-intro-header');
+  headers.forEach(function(h){
+    h.addEventListener('click',function(){
+      this.parentElement.classList.toggle('open');
+    });
+  });
+});
+</script>
+
+</body>
+</html>

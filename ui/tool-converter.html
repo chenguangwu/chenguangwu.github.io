@@ -1,0 +1,878 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="description" content="时间戳转换器 - Unix 时间戳与日期格式互转工具，支持毫秒精度和多种时区显示。纯前端处理，数据不上传。">
+<meta name="keywords" content="时间戳转换,Unix,Epoch,日期转换,时区,毫秒,ISO 8601,UTC">
+<meta name="author" content="ToolBox 工具百科">
+<meta property="og:title" content="时间戳转换器 - ToolBox">
+<meta property="og:description" content="Unix 时间戳与日期格式互转工具，支持毫秒精度和多种时区显示">
+<meta property="og:type" content="website">
+<link rel="canonical" href="https://chenguangwu.github.io/ui/tool-converter.html">
+<title>时间戳转换器 - ToolBox 工具百科</title>
+<link rel="stylesheet" href="template.css">
+<script src="template.js" defer></script>
+<style>
+  /* ===== 转换查询类（类型四：纵向流）页面专用样式 ===== */
+
+  /* 实时状态栏：全宽渐变背景卡片 */
+  .status-bar{
+    background:var(--gradient-hero);
+    border:1px solid var(--border);
+    border-radius:var(--radius-2xl);
+    padding:24px 28px;
+    display:flex;align-items:center;justify-content:space-between;gap:24px;
+    box-shadow:var(--shadow-sm);
+    position:relative;overflow:hidden;
+  }
+  .status-bar::before{
+    content:'';position:absolute;top:-60px;right:-40px;
+    width:200px;height:200px;border-radius:50%;
+    background:radial-gradient(circle,rgba(255,107,53,0.10),transparent 70%);
+    pointer-events:none;
+  }
+  body.dark .status-bar{
+    background:linear-gradient(135deg,#252540 0%,#2A2545 50%,#1F2A35 100%);
+  }
+  @media(max-width:768px){
+    .status-bar{flex-direction:column;align-items:flex-start;gap:16px;padding:20px;}
+  }
+  .status-left{flex:1;min-width:0;}
+  .status-label{
+    font-size:13px;font-weight:600;color:var(--text-muted);
+    display:flex;align-items:center;gap:8px;margin-bottom:6px;
+    letter-spacing:0.02em;
+  }
+  .status-label .live-dot{
+    width:8px;height:8px;border-radius:50%;
+    background:var(--accent);flex-shrink:0;
+    box-shadow:0 0 0 0 rgba(0,201,167,0.5);
+    animation:livePulse 1.8s ease-in-out infinite;
+  }
+  @keyframes livePulse{
+    0%,100%{box-shadow:0 0 0 0 rgba(0,201,167,0.5);}
+    50%{box-shadow:0 0 0 6px rgba(0,201,167,0);}
+  }
+  .status-time{
+    font-family:var(--font-mono);
+    font-size:32px;font-weight:700;color:var(--text);
+    letter-spacing:-0.01em;line-height:1.2;
+    font-variant-numeric:tabular-nums;
+  }
+  @media(max-width:768px){.status-time{font-size:24px;}}
+  .status-right{display:flex;flex-direction:column;align-items:flex-end;gap:8px;}
+  @media(max-width:768px){.status-right{align-items:flex-start;width:100%;}}
+  .status-ts-row{
+    display:flex;align-items:center;gap:10px;
+  }
+  .status-ts-tag{
+    font-size:11px;font-weight:600;color:var(--text-muted);
+    text-transform:uppercase;letter-spacing:0.05em;
+  }
+  .status-ts-value{
+    font-family:var(--font-mono);font-size:18px;font-weight:600;
+    color:var(--primary);font-variant-numeric:tabular-nums;
+  }
+
+  /* Tab 内容面板 */
+  .tab-content{display:none;}
+  .tab-content.active{display:block;animation:fadeIn 0.3s ease-out both;}
+
+  /* 输入区行 */
+  .input-row{margin-bottom:16px;}
+  .input-row .input{
+    font-size:16px;font-family:var(--font-mono);
+    padding:14px 16px;letter-spacing:0.01em;
+  }
+  .input-lg{font-size:16px!important;}
+
+  .field-grid{
+    display:grid;grid-template-columns:1fr 200px;gap:12px;
+  }
+  @media(max-width:768px){.field-grid{grid-template-columns:1fr;}}
+
+  .btn-row{display:flex;flex-wrap:wrap;gap:10px;margin-top:18px;}
+  .btn-row .btn{flex:1;min-width:120px;}
+  @media(max-width:768px){.btn-row .btn{flex:1 1 100%;}}
+
+  /* 结果数据卡片网格（4列） */
+  .result-grid{
+    display:grid;
+    grid-template-columns:repeat(4,1fr);
+    gap:16px;
+  }
+  @media(max-width:1024px){.result-grid{grid-template-columns:repeat(2,1fr);}}
+  @media(max-width:480px){.result-grid{grid-template-columns:1fr;}}
+
+  .result-card{
+    background:var(--card);
+    border:1px solid var(--border);
+    border-radius:var(--radius-lg);
+    padding:18px 20px;
+    position:relative;
+    transition:all 0.2s ease;
+    display:flex;flex-direction:column;gap:6px;
+  }
+  .result-card:hover{
+    border-color:var(--primary);
+    box-shadow:var(--shadow-primary);
+    transform:translateY(-2px);
+  }
+  .result-card-label{
+    font-size:12px;font-weight:600;color:var(--text-muted);
+    display:flex;align-items:center;gap:6px;
+    text-transform:uppercase;letter-spacing:0.04em;
+  }
+  .result-card-label svg{width:14px;height:14px;}
+  .result-card-value{
+    font-family:var(--font-mono);
+    font-size:18px;font-weight:700;color:var(--text);
+    word-break:break-all;line-height:1.35;
+    font-variant-numeric:tabular-nums;
+    padding-right:28px;
+  }
+  .result-card-copy{
+    position:absolute;top:14px;right:14px;
+    width:28px;height:28px;border-radius:var(--radius-sm);
+    border:1px solid var(--border);background:var(--bg-warm);
+    color:var(--text-muted);cursor:pointer;
+    display:flex;align-items:center;justify-content:center;
+    transition:all 0.2s ease;
+  }
+  .result-card-copy:hover{color:var(--primary);border-color:var(--primary);background:var(--primary-light);}
+  .result-card-copy svg{width:14px;height:14px;}
+  .result-card-copy.copied{color:var(--accent);border-color:var(--accent);background:var(--accent-light);}
+
+  /* 转换历史 */
+  .history-list{display:flex;flex-direction:column;gap:10px;}
+  .history-item{
+    display:flex;align-items:center;gap:16px;
+    padding:14px 18px;
+    background:var(--bg-warm);
+    border:1px solid var(--border-light);
+    border-radius:var(--radius-md);
+    transition:all 0.2s ease;
+  }
+  .history-item:hover{border-color:var(--primary);background:var(--card);}
+  @media(max-width:768px){
+    .history-item{flex-wrap:wrap;gap:8px;padding:12px 14px;}
+  }
+  .history-ts{
+    font-family:var(--font-mono);font-size:15px;font-weight:700;
+    color:var(--primary);min-width:140px;
+    font-variant-numeric:tabular-nums;
+  }
+  @media(max-width:768px){.history-ts{min-width:0;}}
+  .history-arrow{color:var(--text-muted);flex-shrink:0;}
+  .history-arrow svg{width:16px;height:16px;}
+  .history-result{
+    font-family:var(--font-mono);font-size:14px;color:var(--text);
+    flex:1;min-width:0;
+  }
+  .history-time{
+    font-size:12px;color:var(--text-muted);
+    white-space:nowrap;flex-shrink:0;
+  }
+  .history-empty{
+    text-align:center;padding:32px 16px;
+    color:var(--text-muted);font-size:14px;
+  }
+
+  /* 相关工具卡片 */
+  .related-grid{
+    display:grid;
+    grid-template-columns:repeat(4,1fr);
+    gap:16px;
+  }
+  @media(max-width:1024px){.related-grid{grid-template-columns:repeat(2,1fr);}}
+  @media(max-width:480px){.related-grid{grid-template-columns:repeat(2,1fr);gap:12px;}}
+  .related-card{
+    display:flex;flex-direction:column;align-items:flex-start;gap:10px;
+    padding:20px;text-decoration:none;
+    background:var(--card);border:1px solid var(--border);
+    border-radius:var(--radius-lg);
+    transition:all 0.2s ease;
+  }
+  .related-card:hover{
+    border-color:var(--primary);box-shadow:var(--shadow-primary);
+    transform:translateY(-2px);
+  }
+  .related-icon{
+    width:44px;height:44px;border-radius:var(--radius-md);
+    display:flex;align-items:center;justify-content:center;
+    font-size:22px;
+  }
+  .related-title{font-size:14px;font-weight:600;color:var(--text);}
+  .related-desc{font-size:12px;color:var(--text-muted);line-height:1.5;}
+
+  .section-title{
+    font-size:18px;font-weight:700;color:var(--text);
+    display:flex;align-items:center;gap:10px;margin-bottom:16px;
+  }
+  .section-title-icon{
+    width:32px;height:32px;border-radius:var(--radius-md);
+    display:flex;align-items:center;justify-content:center;
+  }
+  .section-title-icon svg{width:18px;height:18px;}
+  .section-gap{margin-top:28px;}
+  @media(max-width:768px){.section-gap{margin-top:22px;}}
+
+  .copy-icon-btn{
+    width:36px;height:36px;border-radius:var(--radius-md);
+    border:1px solid var(--border);background:rgba(255,255,255,0.15);
+    color:var(--text);cursor:pointer;
+    display:inline-flex;align-items:center;justify-content:center;
+    transition:all 0.2s ease;flex-shrink:0;
+  }
+  .copy-icon-btn:hover{background:rgba(255,255,255,0.25);}
+  .copy-icon-btn svg{width:16px;height:16px;}
+</style>
+
+<script src="/js/clarity.js" defer></script>
+</head>
+<body>
+
+<!-- ===== 导航栏 ===== -->
+<nav class="navbar">
+  <div class="navbar-inner">
+    <a href="../index.html" class="navbar-brand">
+      <img src="logo.svg" alt="ToolBox">
+      <span class="navbar-brand-text">ToolBox <span>工具百科</span></span>
+    </a>
+    <div class="navbar-links">
+      <a href="../index.html">全部工具</a>
+      <a href="#">分类浏览</a>
+      <a href="#">热门推荐</a>
+      <a href="#">关于</a>
+    </div>
+    <div class="navbar-search">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+      <input type="text" placeholder="搜索工具..." aria-label="搜索工具">
+    </div>
+    <div class="navbar-actions">
+      <button class="theme-toggle" aria-label="切换主题">
+        <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
+        <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
+      </button>
+      <button class="theme-toggle navbar-mobile-menu" aria-label="菜单">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" x2="20" y1="6" y2="6"/><line x1="4" x2="20" y1="12" y2="12"/><line x1="4" x2="20" y1="18" y2="18"/></svg>
+      </button>
+    </div>
+  </div>
+</nav>
+
+<!-- ===== 主内容（纵向流） ===== -->
+<main class="tool-content">
+  <div class="container-narrow">
+
+    <!-- 面包屑 -->
+    <nav class="breadcrumb" aria-label="面包屑">
+      <a href="../index.html">首页</a>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+      <a href="#">商业办公</a>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+      <span class="breadcrumb-current">时间戳转换器</span>
+    </nav>
+
+    <!-- 工具标题区 -->
+    <div class="tool-header">
+      <h1 class="tool-title">
+        <span class="tool-title-icon">🕐</span>
+        <span>时间戳转换器</span>
+      </h1>
+      <p class="tool-desc">Unix 时间戳与日期格式互转工具，支持毫秒精度和多种时区显示</p>
+      <div class="tool-tags">
+        <span class="tool-tag tag-primary">商业办公</span>
+        <span class="tool-tag tag-secondary">本地处理</span>
+        <span class="tool-tag tag-accent">免费</span>
+      </div>
+    </div>
+
+    <!-- 实时状态栏（全宽渐变背景卡片） -->
+    <div class="status-bar animate-pulse" role="status" aria-live="polite">
+      <div class="status-left">
+        <div class="status-label">
+          <span class="live-dot" aria-hidden="true"></span>
+          <span>当前时间</span>
+        </div>
+        <div class="status-time" id="liveTime">2026-07-27 12:00:00</div>
+      </div>
+      <div class="status-right">
+        <div class="status-ts-row">
+          <span class="status-ts-tag">Unix 时间戳</span>
+          <span class="status-ts-value" id="liveTs">1753256045</span>
+          <button class="copy-icon-btn" onclick="copyLiveTs()" aria-label="复制当前时间戳" title="复制时间戳">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+          </button>
+        </div>
+        <div class="status-ts-row">
+          <span class="status-ts-tag">毫秒</span>
+          <span class="status-ts-value" id="liveTsMs" style="color:var(--secondary);">1753256045000</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tab 切换 -->
+    <div class="tabs" style="margin-top:28px;">
+      <button class="tab-btn active" data-tab="ts2date">时间戳 → 日期</button>
+      <button class="tab-btn" data-tab="date2ts">日期 → 时间戳</button>
+      <button class="tab-btn" data-tab="now">当前时间</button>
+    </div>
+
+    <!-- Tab 1: 时间戳 → 日期 -->
+    <div class="tab-content active" data-tab="ts2date">
+      <div class="card">
+        <div class="card-header">
+          <h2 class="card-title">
+            <span class="card-title-icon icon-bg-primary">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+            </span>
+            输入内容
+          </h2>
+        </div>
+
+        <div class="input-row">
+          <label class="label" for="tsInput">Unix 时间戳</label>
+          <input class="input input-lg" id="tsInput" type="text" inputmode="numeric"
+            placeholder="请输入 Unix 时间戳，如 1700000000"
+            value="1700000000" autocomplete="off">
+        </div>
+
+        <div class="input-row field-grid">
+          <div>
+            <label class="label" for="tzSelect1">时区选择</label>
+            <select class="select" id="tzSelect1">
+              <option value="local">本地时区</option>
+              <option value="UTC">UTC（格林威治）</option>
+              <option value="8" selected>东八区（北京）</option>
+              <option value="-5">美东时间（UTC-5）</option>
+              <option value="-8">美西时间（UTC-8）</option>
+            </select>
+          </div>
+          <div>
+            <label class="label" for="unitSelect">精度</label>
+            <select class="select" id="unitSelect">
+              <option value="auto" selected>自动识别</option>
+              <option value="s">秒（10位）</option>
+              <option value="ms">毫秒（13位）</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="btn-row">
+          <button class="btn btn-primary" onclick="convertTs2Date()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h18M12 3v18"/></svg>
+            转换
+          </button>
+          <button class="btn btn-secondary" onclick="clearTsInput()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+            清空
+          </button>
+          <button class="btn btn-ghost" onclick="useCurrentTime()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            使用当前时间
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tab 2: 日期 → 时间戳 -->
+    <div class="tab-content" data-tab="date2ts">
+      <div class="card">
+        <div class="card-header">
+          <h2 class="card-title">
+            <span class="card-title-icon icon-bg-secondary">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+            </span>
+            输入内容
+          </h2>
+        </div>
+
+        <div class="input-row field-grid">
+          <div>
+            <label class="label" for="dateInput">选择日期</label>
+            <input class="input" id="dateInput" type="date" value="2023-11-15">
+          </div>
+          <div>
+            <label class="label" for="timeInput">选择时间</label>
+            <input class="input" id="timeInput" type="time" step="1" value="06:13:20">
+          </div>
+        </div>
+
+        <div class="input-row">
+          <label class="label" for="tzSelect2">时区选择</label>
+          <select class="select" id="tzSelect2">
+            <option value="local">本地时区</option>
+            <option value="UTC">UTC（格林威治）</option>
+            <option value="8" selected>东八区（北京）</option>
+            <option value="-5">美东时间（UTC-5）</option>
+            <option value="-8">美西时间（UTC-8）</option>
+          </select>
+        </div>
+
+        <div class="btn-row">
+          <button class="btn btn-primary" onclick="convertDate2Ts()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h18M12 3v18"/></svg>
+            转换
+          </button>
+          <button class="btn btn-secondary" onclick="clearDateInput()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+            清空
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tab 3: 当前时间 -->
+    <div class="tab-content" data-tab="now">
+      <div class="card">
+        <div class="card-header">
+          <h2 class="card-title">
+            <span class="card-title-icon icon-bg-accent">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            </span>
+            当前时间详情
+          </h2>
+        </div>
+        <p style="font-size:14px;color:var(--text-secondary);margin-bottom:18px;">
+          以下为系统当前时间在各时区下的实时表示，每秒自动刷新。
+        </p>
+        <div class="result-grid" id="nowGrid"></div>
+      </div>
+    </div>
+
+    <!-- 结果数据卡片网格（4列） -->
+    <div class="section-gap" id="resultSection">
+      <h2 class="section-title">
+        <span class="section-title-icon icon-bg-primary">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg>
+        </span>
+        转换结果
+      </h2>
+      <div class="result-grid" id="resultGrid">
+        <div class="result-card">
+          <div class="result-card-label">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5v14"/></svg>
+            Unix 时间戳
+          </div>
+          <div class="result-card-value" id="resUnix">1700000000</div>
+          <button class="result-card-copy" data-copy="resUnix" aria-label="复制 Unix 时间戳">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+          </button>
+        </div>
+        <div class="result-card">
+          <div class="result-card-label">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 2"/></svg>
+            ISO 8601
+          </div>
+          <div class="result-card-value" id="resIso">2023-11-14T22:13:20Z</div>
+          <button class="result-card-copy" data-copy="resIso" aria-label="复制 ISO 8601">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+          </button>
+        </div>
+        <div class="result-card">
+          <div class="result-card-label">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+            UTC 时间
+          </div>
+          <div class="result-card-value" id="resUtc">2023-11-14 22:13:20</div>
+          <button class="result-card-copy" data-copy="resUtc" aria-label="复制 UTC 时间">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+          </button>
+        </div>
+        <div class="result-card">
+          <div class="result-card-label">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8v4l3 3"/><circle cx="12" cy="12" r="10"/></svg>
+            相对时间
+          </div>
+          <div class="result-card-value" id="resRelative">8个月前</div>
+          <button class="result-card-copy" data-copy="resRelative" aria-label="复制相对时间">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 转换历史卡片 -->
+    <div class="section-gap">
+      <div class="card">
+        <div class="card-header">
+          <h2 class="card-title">
+            <span class="card-title-icon icon-bg-secondary">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v5h5M3.05 13A9 9 0 1 0 6 5.3L3 8"/><path d="M12 7v5l4 2"/></svg>
+            </span>
+            转换历史
+          </h2>
+          <button class="btn btn-ghost btn-sm" onclick="clearHistory()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+            清空历史
+          </button>
+        </div>
+        <div class="history-list" id="historyList">
+          <div class="history-item">
+            <div class="history-ts">1700000000</div>
+            <span class="history-arrow">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+            </span>
+            <div class="history-result">2023-11-15 06:13:20 (UTC+8)</div>
+            <div class="history-time">今天 11:58</div>
+          </div>
+          <div class="history-item">
+            <div class="history-ts">1699488000</div>
+            <span class="history-arrow">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+            </span>
+            <div class="history-result">2023-11-09 08:00:00 (UTC+8)</div>
+            <div class="history-time">今天 11:55</div>
+          </div>
+          <div class="history-item">
+            <div class="history-ts">1609459200</div>
+            <span class="history-arrow">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+            </span>
+            <div class="history-result">2021-01-01 08:00:00 (UTC+8)</div>
+            <div class="history-time">昨天 18:30</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 相关工具 -->
+    <div class="section-gap">
+      <h2 class="section-title">
+        <span class="section-title-icon icon-bg-accent">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/></svg>
+        </span>
+        相关工具
+      </h2>
+      <div class="related-grid">
+        <a href="#" class="related-card">
+          <span class="related-icon" style="background:var(--primary-light);">📅</span>
+          <span class="related-title">日期计算器</span>
+          <span class="related-desc">计算两个日期间隔天数</span>
+        </a>
+        <a href="#" class="related-card">
+          <span class="related-icon" style="background:var(--secondary-light);">⏱️</span>
+          <span class="related-title">倒计时器</span>
+          <span class="related-desc">自定义目标倒计时</span>
+        </a>
+        <a href="#" class="related-card">
+          <span class="related-icon" style="background:var(--accent-light);">🗓️</span>
+          <span class="related-title">万年历</span>
+          <span class="related-desc">农历与节假日查询</span>
+        </a>
+        <a href="#" class="related-card">
+          <span class="related-icon" style="background:var(--primary-light);">🌐</span>
+          <span class="related-title">世界时钟</span>
+          <span class="related-desc">全球各地实时时间</span>
+        </a>
+      </div>
+    </div>
+
+  </div>
+</main>
+
+<!-- ===== 页脚 ===== -->
+<footer class="footer">
+  <div class="footer-inner">
+    <div>
+      <div class="footer-brand">
+        <img src="logo.svg" alt="ToolBox">
+        <span class="footer-brand-text">Tool<span>Box</span></span>
+      </div>
+      <p class="footer-desc">ToolBox 工具百科，汇集实用在线工具，助力高效工作与生活。所有工具纯前端处理，数据不上传。</p>
+    </div>
+    <div>
+      <h4>工具分类</h4>
+      <ul>
+        <li><a href="#">IT 开发</a></li>
+        <li><a href="#">商业办公</a></li>
+        <li><a href="#">日常生活</a></li>
+        <li><a href="#">健康医疗</a></li>
+      </ul>
+    </div>
+    <div>
+      <h4>关于我们</h4>
+      <ul>
+        <li><a href="#">关于 ToolBox</a></li>
+        <li><a href="#">使用条款</a></li>
+        <li><a href="#">隐私政策</a></li>
+        <li><a href="#">联系我们</a></li>
+      </ul>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <span>© 2026 ToolBox 工具百科. All rights reserved.</span>
+    <span>纯前端 · 数据本地处理 · 免费使用</span>
+  </div>
+</footer>
+
+<!-- ===== 移动端底部 Tab 栏 ===== -->
+<nav class="mobile-tabbar" aria-label="底部导航">
+  <a href="../index.html" class="mobile-tabbar-item active">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+    <span>首页</span>
+  </a>
+  <a href="#" class="mobile-tabbar-item">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/></svg>
+    <span>分类</span>
+  </a>
+  <a href="#" class="mobile-tabbar-item">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+    <span>搜索</span>
+  </a>
+  <a href="#" class="mobile-tabbar-item">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+    <span>收藏</span>
+  </a>
+</nav>
+
+<script>
+/* ===== 时间戳转换器逻辑 ===== */
+(function(){
+  'use strict';
+
+  var pad = function(n){ return String(n).padStart(2,'0'); };
+  var HISTORY_KEY = 'toolbox-timestamp-history';
+
+  // 格式化日期为 YYYY-MM-DD HH:mm:ss
+  function fmt(d){
+    return d.getFullYear() + '-' + pad(d.getMonth()+1) + '-' + pad(d.getDate()) +
+      ' ' + pad(d.getHours()) + ':' + pad(d.getMinutes()) + ':' + pad(d.getSeconds());
+  }
+
+  // 按指定时区偏移（小时）生成对应的本地表示
+  // 思路：用 getUTC* 方法 + 时区偏移量计算，避免 toLocaleString 的环境差异
+  function dateInTz(utcMs, tzHours){
+    var offsetMs = tzHours * 3600000;
+    var shifted = new Date(utcMs + offsetMs);
+    return {
+      y: shifted.getUTCFullYear(),
+      mo: shifted.getUTCMonth(),
+      d: shifted.getUTCDate(),
+      h: shifted.getUTCHours(),
+      mi: shifted.getUTCMinutes(),
+      s: shifted.getUTCSeconds()
+    };
+  }
+
+  function fmtTz(parts){
+    return parts.y + '-' + pad(parts.mo+1) + '-' + pad(parts.d) +
+      ' ' + pad(parts.h) + ':' + pad(parts.mi) + ':' + pad(parts.s);
+  }
+
+  // 相对时间
+  function relativeTime(targetMs){
+    var diff = Date.now() - targetMs;
+    var absDiff = Math.abs(diff);
+    var past = diff >= 0;
+    var str;
+    if(absDiff < 60000) str = '刚刚';
+    else if(absDiff < 3600000) str = Math.floor(absDiff/60000) + ' 分钟';
+    else if(absDiff < 86400000) str = Math.floor(absDiff/3600000) + ' 小时';
+    else if(absDiff < 2592000000) str = Math.floor(absDiff/86400000) + ' 天';
+    else if(absDiff < 31536000000) str = Math.floor(absDiff/2592000000) + ' 个月';
+    else str = Math.floor(absDiff/31536000000) + ' 年';
+    if(str === '刚刚') return str;
+    return past ? str + '前' : str + '后';
+  }
+
+  // 解析时区选择
+  function parseTz(val){
+    if(val === 'local') return -new Date().getTimezoneOffset()/60;
+    if(val === 'UTC') return 0;
+    return parseFloat(val);
+  }
+
+  // ===== 实时时间更新 =====
+  function updateLive(){
+    var now = new Date();
+    document.getElementById('liveTime').textContent = fmt(now);
+    document.getElementById('liveTs').textContent = Math.floor(now.getTime()/1000);
+    document.getElementById('liveTsMs').textContent = now.getTime();
+    // 若"当前时间"tab可见则同步刷新
+    var nowGrid = document.getElementById('nowGrid');
+    if(nowGrid && nowGrid.closest('.tab-content').classList.contains('active')){
+      renderNowGrid(now);
+    }
+  }
+
+  function renderNowGrid(now){
+    var tzList = [
+      {label:'本地时区', h: -now.getTimezoneOffset()/60},
+      {label:'UTC', h: 0},
+      {label:'北京 (UTC+8)', h: 8},
+      {label:'美东 (UTC-5)', h: -5}
+    ];
+    var html = '';
+    tzList.forEach(function(t){
+      var p = dateInTz(now.getTime(), t.h);
+      html += '<div class="result-card">' +
+        '<div class="result-card-label">' + t.label + '</div>' +
+        '<div class="result-card-value">' + fmtTz(p) + '</div>' +
+        '</div>';
+    });
+    document.getElementById('nowGrid').innerHTML = html;
+  }
+
+  // ===== 时间戳 → 日期 =====
+  function convertTs2Date(){
+    var raw = document.getElementById('tsInput').value.trim();
+    if(!raw){ Template.showToast('请输入时间戳', 'error'); return; }
+    var num = Number(raw);
+    if(isNaN(num)){ Template.showToast('时间戳格式无效', 'error'); return; }
+
+    var unit = document.getElementById('unitSelect').value;
+    var tsMs;
+    if(unit === 's') tsMs = num * 1000;
+    else if(unit === 'ms') tsMs = num;
+    else tsMs = String(raw).length > 10 ? num : num * 1000; // 自动
+
+    var tz = parseTz(document.getElementById('tzSelect1').value);
+    var parts = dateInTz(tsMs, tz);
+    var utcParts = dateInTz(tsMs, 0);
+
+    var iso = new Date(tsMs).toISOString();
+    // 带时区偏移的 ISO
+    var tzSign = tz >= 0 ? '+' : '-';
+    var tzAbs = Math.abs(tz);
+    var tzH = pad(Math.floor(tzAbs));
+    var tzM = pad(Math.round((tzAbs - Math.floor(tzAbs)) * 60));
+    var isoTz = new Date(tsMs).toISOString().replace('Z', tzSign + tzH + ':' + tzM);
+
+    document.getElementById('resUnix').textContent = String(raw).length > 10 ? raw : String(Math.floor(num));
+    document.getElementById('resIso').textContent = unit === 's' ? iso : isoTz;
+    document.getElementById('resUtc').textContent = fmtTz(utcParts);
+    document.getElementById('resRelative').textContent = relativeTime(tsMs);
+
+    // 滚动到结果区
+    document.getElementById('resultSection').scrollIntoView({behavior:'smooth', block:'start'});
+    addHistory(String(raw).length > 10 ? raw : String(Math.floor(num)), fmtTz(parts) + ' (UTC' + (tz>=0?'+':'') + tz + ')');
+  }
+
+  // ===== 日期 → 时间戳 =====
+  function convertDate2Ts(){
+    var dateVal = document.getElementById('dateInput').value;
+    var timeVal = document.getElementById('timeInput').value || '00:00:00';
+    if(!dateVal){ Template.showToast('请选择日期', 'error'); return; }
+
+    var tz = parseTz(document.getElementById('tzSelect2').value);
+    // 把所选"该时区的本地时间"换算为 UTC 毫秒
+    var parts = dateVal.split('-').map(Number);
+    var timeParts = timeVal.split(':').map(Number);
+    // 构造一个 UTC 时间点 = 该时区显示的时间，再减去时区偏移
+    var utcMs = Date.UTC(parts[0], parts[1]-1, parts[2], timeParts[0]||0, timeParts[1]||0, timeParts[2]||0) - tz*3600000;
+    var tsSec = Math.floor(utcMs/1000);
+
+    document.getElementById('resUnix').textContent = tsSec;
+    document.getElementById('resIso').textContent = new Date(utcMs).toISOString();
+    document.getElementById('resUtc').textContent = fmtTz(dateInTz(utcMs, 0));
+    document.getElementById('resRelative').textContent = relativeTime(utcMs);
+
+    document.getElementById('resultSection').scrollIntoView({behavior:'smooth', block:'start'});
+    addHistory(String(tsSec), dateVal + ' ' + timeVal + ' (UTC' + (tz>=0?'+':'') + tz + ')');
+  }
+
+  function clearTsInput(){
+    document.getElementById('tsInput').value = '';
+    document.getElementById('tsInput').focus();
+  }
+  function clearDateInput(){
+    document.getElementById('dateInput').value = '';
+    document.getElementById('timeInput').value = '';
+  }
+  function useCurrentTime(){
+    document.getElementById('tsInput').value = String(Math.floor(Date.now()/1000));
+    document.getElementById('unitSelect').value = 's';
+    convertTs2Date();
+  }
+
+  // ===== 历史 =====
+  function loadHistory(){
+    try{ return JSON.parse(localStorage.getItem(HISTORY_KEY)) || []; }catch(e){ return []; }
+  }
+  function saveHistory(list){
+    try{ localStorage.setItem(HISTORY_KEY, JSON.stringify(list)); }catch(e){}
+  }
+  function addHistory(ts, result){
+    var list = loadHistory();
+    // 去重
+    list = list.filter(function(it){ return !(it.ts === ts && it.result === result); });
+    list.unshift({ts:ts, result:result, time:fmt(new Date())});
+    if(list.length > 20) list = list.slice(0,20);
+    saveHistory(list);
+    renderHistory();
+  }
+  function renderHistory(){
+    var list = loadHistory();
+    var el = document.getElementById('historyList');
+    if(!list.length){
+      el.innerHTML = '<div class="history-empty">暂无转换历史</div>';
+      return;
+    }
+    el.innerHTML = list.map(function(it){
+      return '<div class="history-item">' +
+        '<div class="history-ts">' + escapeHtml(it.ts) + '</div>' +
+        '<span class="history-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg></span>' +
+        '<div class="history-result">' + escapeHtml(it.result) + '</div>' +
+        '<div class="history-time">' + escapeHtml(it.time) + '</div>' +
+      '</div>';
+    }).join('');
+  }
+  function clearHistory(){
+    saveHistory([]);
+    renderHistory();
+    Template.showToast('已清空历史');
+  }
+  function escapeHtml(s){
+    return String(s).replace(/[&<>"']/g, function(c){
+      return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
+    });
+  }
+
+  // ===== 复制 =====
+  function copyLiveTs(){
+    var txt = document.getElementById('liveTs').textContent;
+    Template.copyText(txt);
+  }
+  function bindCopyButtons(){
+    document.addEventListener('click', function(e){
+      var btn = e.target.closest('.result-card-copy');
+      if(!btn) return;
+      var id = btn.getAttribute('data-copy');
+      var val = document.getElementById(id).textContent;
+      Template.copyText(val);
+      btn.classList.add('copied');
+      var original = btn.innerHTML;
+      btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>';
+      setTimeout(function(){
+        btn.classList.remove('copied');
+        btn.innerHTML = original;
+      }, 1500);
+    });
+  }
+
+  // ===== 初始化 =====
+  document.addEventListener('DOMContentLoaded', function(){
+    updateLive();
+    setInterval(updateLive, 1000);
+    renderHistory();
+    bindCopyButtons();
+    // 初始转换一次，让默认值出结果
+    convertTs2Date();
+  });
+
+  // 暴露给 inline onclick
+  window.convertTs2Date = convertTs2Date;
+  window.convertDate2Ts = convertDate2Ts;
+  window.clearTsInput = clearTsInput;
+  window.clearDateInput = clearDateInput;
+  window.useCurrentTime = useCurrentTime;
+  window.clearHistory = clearHistory;
+  window.copyLiveTs = copyLiveTs;
+})();
+</script>
+
+</body>
+</html>

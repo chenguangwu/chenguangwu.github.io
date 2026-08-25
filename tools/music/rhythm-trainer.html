@@ -1,0 +1,1099 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+
+<script src="/js/tool-page-runtime.js" defer></script>
+<!-- TOOLBOX-TOOL-RUNTIME -->
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="toolbox" content="cat=game,industry=music,icon=🥁,bg=#e3f2fd">
+<title>节奏训练器 - 免费在线节奏训练器，支持多种难度和 BPM，使用 - ToolBox</title>
+<link rel="canonical" href="https://chenguangwu.github.io/tools/music/rhythm-trainer.html">
+<meta property="og:title" content="节奏训练器 - 免费在线节奏训练器，支持多种难度和 BPM，使用 - ToolBox">
+<meta property="og:description" content="免费在线节奏训练器，支持多种难度和 BPM，使用 Web Audio API 生成节拍，评估你的节奏准确度。">
+<meta property="og:url" content="https://chenguangwu.github.io/tools/music/rhythm-trainer.html">
+<meta name="twitter:card" content="summary">
+<meta name="description" content="免费在线节奏训练器，支持多种难度和 BPM，使用 Web Audio API 生成节拍，评估你的节奏准确度。">
+<meta name="keywords" content="节奏训练,节拍器,音乐练习,Web Audio,鼓点练习,节奏准确度">
+<link rel="icon" type="image/svg+xml" href="../../favicon.svg">
+<link rel="icon" type="image/x-icon" href="../../favicon.ico">
+<link rel="stylesheet" href="../../css/common.css">
+<script src="../../js/common.js"></script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebApplication",
+  "name": "节奏训练器",
+  "description": "免费在线节奏训练器，随机生成节奏型，评估敲击准确度",
+  "applicationCategory": "MusicApplication",
+  "operatingSystem": "Any",
+  "offers": { "@type": "Offer", "price": "0", "priceCurrency": "CNY" },
+  "browserRequirements": "Requires JavaScript, Requires Web Audio API"
+}
+</script>
+<style>
+  /* 节奏网格 */
+  .rhythm-grid-wrap {
+    background: var(--result-bg);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 20px;
+    margin: 16px 0;
+    overflow-x: auto;
+  }
+  .rhythm-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: fit-content;
+  }
+  .rhythm-measure {
+    display: flex;
+    align-items: center;
+    gap: 0;
+  }
+  .rhythm-measure-label {
+    font-size: 11px;
+    color: var(--text-muted);
+    width: 24px;
+    flex-shrink: 0;
+    text-align: right;
+    margin-right: 8px;
+  }
+  .rhythm-beats {
+    display: flex;
+    gap: 2px;
+    flex: 1;
+  }
+  .rhythm-cell {
+    width: 36px;
+    height: 36px;
+    border-radius: 6px;
+    background: var(--border);
+    transition: background 0.15s, transform 0.1s, box-shadow 0.15s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    cursor: default;
+  }
+  .rhythm-cell.note {
+    background: var(--primary);
+    box-shadow: 0 2px 6px rgba(255,107,53,0.25);
+  }
+  .rhythm-cell.current {
+    transform: scale(1.15);
+    box-shadow: 0 0 0 2px var(--primary), 0 2px 8px rgba(255,107,53,0.3);
+  }
+  .rhythm-cell.rest {
+    background: var(--border);
+  }
+  .rhythm-cell.user-hit {
+    background: var(--success);
+    box-shadow: 0 2px 6px rgba(16,185,129,0.25);
+  }
+  .rhythm-cell.user-miss {
+    background: var(--danger);
+    box-shadow: 0 2px 6px rgba(239,68,68,0.25);
+  }
+  /* 拍号分隔线 */
+  .rhythm-cell.beat-start {
+    border-left: 2px solid var(--text-muted);
+    margin-left: 4px;
+  }
+  /* 敲击按钮 */
+  .tap-btn {
+    width: 100%;
+    max-width: 280px;
+    margin: 20px auto;
+    padding: 24px 32px;
+    border-radius: 20px;
+    background: linear-gradient(135deg, #FF6B35, #7C3AED);
+    color: #fff;
+    font-size: 18px;
+    font-weight: 700;
+    border: none;
+    cursor: pointer;
+    transition: all 0.12s ease;
+    box-shadow: 0 6px 20px rgba(255,107,53,0.3);
+    user-select: none;
+    -webkit-user-select: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+  }
+  .tap-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(255,107,53,0.4);
+  }
+  .tap-btn:active {
+    transform: scale(0.96);
+    box-shadow: 0 2px 8px rgba(255,107,53,0.2);
+  }
+  .tap-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    transform: none !important;
+    box-shadow: none !important;
+  }
+  .tap-btn .tap-hint {
+    font-size: 12px;
+    font-weight: 400;
+    opacity: 0.8;
+  }
+  /* 进度指示 */
+  .progress-indicator {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 12px 0;
+    font-size: 13px;
+    color: var(--text-secondary);
+  }
+  .progress-indicator .beat-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: var(--border);
+    transition: background 0.15s, transform 0.15s;
+  }
+  .progress-indicator .beat-dot.active {
+    background: var(--primary);
+    transform: scale(1.3);
+  }
+  .progress-indicator .beat-dot.accent {
+    background: var(--danger);
+  }
+  /* 评分卡片 */
+  .score-display {
+    text-align: center;
+    padding: 20px;
+  }
+  .score-display .score-value {
+    font-size: 56px;
+    font-weight: 800;
+    line-height: 1;
+    background: var(--gradient-primary);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .score-display .score-unit {
+    font-size: 20px;
+    color: var(--text-muted);
+    margin-left: 4px;
+  }
+  .score-display .score-grade {
+    margin-top: 8px;
+    font-size: 18px;
+    font-weight: 600;
+  }
+  /* 偏差列表 */
+  .hit-list {
+    max-height: 200px;
+    overflow-y: auto;
+    margin-top: 8px;
+  }
+  .hit-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 10px;
+    border-radius: 8px;
+    margin-bottom: 4px;
+    font-size: 13px;
+    background: var(--result-bg);
+    transition: background 0.15s;
+  }
+  .hit-item:hover {
+    background: var(--bg-hover);
+  }
+  .hit-item .hit-index {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 700;
+    color: #fff;
+    flex-shrink: 0;
+  }
+  .hit-item .hit-index.good { background: var(--success); }
+  .hit-item .hit-index.ok { background: var(--warning); }
+  .hit-item .hit-index.bad { background: var(--danger); }
+  .hit-item .hit-time { font-family: 'SF Mono', 'Courier New', monospace; font-size: 12px; color: var(--text-muted); }
+  .hit-item .hit-deviation { margin-left: auto; font-weight: 600; font-size: 13px; }
+  .hit-item .hit-deviation.good { color: var(--success); }
+  .hit-item .hit-deviation.ok { color: var(--warning); }
+  .hit-item .hit-deviation.bad { color: var(--danger); }
+  /* 状态文字 */
+  .status-text {
+    text-align: center;
+    font-size: 14px;
+    color: var(--text-secondary);
+    padding: 12px;
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+  }
+  .status-text .countdown {
+    font-size: 28px;
+    font-weight: 800;
+    color: var(--primary);
+    min-width: 32px;
+    text-align: center;
+  }
+  /* 难度选择 */
+  .difficulty-selector {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 12px;
+  }
+  .diff-btn {
+    flex: 1;
+    padding: 10px 12px;
+    border-radius: 12px;
+    border: 1.5px solid var(--border);
+    background: var(--card-bg);
+    color: var(--text);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-align: center;
+  }
+  .diff-btn:hover {
+    border-color: var(--primary);
+    background: var(--bg-hover);
+  }
+  .diff-btn.active {
+    background: var(--gradient-primary);
+    color: #fff;
+    border-color: transparent;
+    box-shadow: 0 4px 14px rgba(255,107,53,0.25);
+  }
+  .diff-btn small {
+    display: block;
+    font-size: 11px;
+    font-weight: 400;
+    opacity: 0.75;
+    margin-top: 2px;
+  }
+  /* 可视化波形 */
+  .wave-bar {
+    display: flex;
+    align-items: flex-end;
+    gap: 2px;
+    height: 60px;
+    padding: 8px 0;
+  }
+  .wave-bar .bar {
+    flex: 1;
+    background: var(--primary);
+    border-radius: 3px 3px 0 0;
+    min-height: 4px;
+    transition: height 0.1s ease;
+    opacity: 0.6;
+  }
+  .wave-bar .bar.hit {
+    opacity: 1;
+    background: var(--accent);
+  }
+  /* 响应式 */
+  @media (max-width: 768px) {
+    .rhythm-cell {
+      width: 28px;
+      height: 28px;
+    }
+    .tap-btn {
+      max-width: 100%;
+      padding: 20px 24px;
+      font-size: 16px;
+    }
+    .score-display .score-value {
+      font-size: 44px;
+    }
+    .rhythm-grid-wrap {
+      padding: 14px;
+    }
+    .difficulty-selector {
+      gap: 4px;
+    }
+  }
+</style>
+
+
+
+<meta property="og:image" content="https://chenguangwu.github.io/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="ToolBox - 6000+免费在线工具">
+<meta name="twitter:image" content="https://chenguangwu.github.io/og-image.png">
+<meta name="twitter:image:alt" content="ToolBox - 6000+免费在线工具">
+    <meta property="og:type" content="website">
+    <meta name="twitter:title" content="节奏训练器 - 免费在线节奏训练器，支持多种难度和 BPM，使用 - ToolBox">
+    <meta name="twitter:description" content="免费在线节奏训练器，支持多种难度和 BPM，使用 Web Audio API 生成节拍，评估你的节奏准确度。">
+<!-- TOOLBOX-WEBAPP-LD -->
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"WebApplication","name":"节奏训练器 - 免费在线节奏训练器，支持多种难度和 BPM，使用","url":"https://chenguangwu.github.io/tools/music/rhythm-trainer.html","applicationCategory":"GamesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":["zh-CN", "en-US"],"description":"节奏训练器","image":"https://chenguangwu.github.io/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}
+</script>
+<meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
+<meta http-equiv="X-Content-Type-Options" content="nosniff">
+<meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
+<!-- TOOLBOX-SECURITY -->
+
+<script src="/js/privacy.js" defer></script>
+<!-- TOOLBOX-PRIVACY-SCRIPT -->
+
+<script src="/js/metrics.js" defer></script>
+<!-- TOOLBOX-METRICS-SCRIPT -->
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"首页","item":"https://chenguangwu.github.io/"},{"@type":"ListItem","position":2,"name":"音乐艺术","item":"https://chenguangwu.github.io/tools/music/index.html"},{"@type":"ListItem","position":3,"name":"节奏训练器","item":"https://chenguangwu.github.io/tools/music/rhythm-trainer.html"}]}
+</script>
+
+<script src="../../js/i18n.js" defer></script>
+<script src="../../js/tool-i18n.js" defer></script>
+<!-- TOOLBOX-I18N-SCRIPT -->
+<!-- TOOLBOX-HREFLANG -->
+<link rel="alternate" hreflang="zh-CN" href="https://chenguangwu.github.io/tools/music/rhythm-trainer.html">
+<link rel="alternate" hreflang="en-US" href="https://chenguangwu.github.io/tools/music/rhythm-trainer.html">
+<link rel="alternate" hreflang="x-default" href="https://chenguangwu.github.io/tools/music/rhythm-trainer.html">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:locale:alternate" content="en_US">
+
+<script src="/js/clarity.js" defer></script>
+<!-- TOOLBOX-CLARITY -->
+</head>
+<body>
+<h1 class="sr-only">节奏训练器</h1>
+
+
+<!-- 导航栏 -->
+<div class="nav">
+  <a href="../../index.html">← ToolBox</a>
+  <span>/ 节奏训练器</span>
+  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()">🌙</button>
+</div>
+
+
+
+
+
+<nav class="breadcrumb" aria-label="面包屑导航" data-breadcrumb="1">
+  <a href="../../index.html">首页</a>
+  <span class="bc-sep">‹</span>
+  <a href="index.html">🎵 音乐艺术</a>
+  <span class="bc-sep">‹</span>
+  <span class="bc-current">节奏训练器</span>
+</nav>
+<div class="container">
+  <!-- 主卡片：控制面板 -->
+  <div class="card tool-card-accent" style="--tool-accent:#FF6B35;">
+    <h2>🥁 节奏训练器</h2>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;">跟随节拍敲击，训练你的节奏感。支持空格键 / 点击敲击。</p>
+
+    <!-- 难度选择 -->
+    <div class="difficulty-selector" id="diffSelector">
+      <button type="button" class="diff-btn active" data-diff="easy" onclick="setDifficulty('easy')">
+        简单
+        <small>4 分音符</small>
+      </button>
+      <button type="button" class="diff-btn" data-diff="medium" onclick="setDifficulty('medium')">
+        中等
+        <small>8 分音符</small>
+      </button>
+      <button type="button" class="diff-btn" data-diff="hard" onclick="setDifficulty('hard')">
+        困难
+        <small>16 分音符</small>
+      </button>
+    </div>
+
+    <!-- BPM 控制 -->
+    <div class="input-row">
+      <label>BPM 速度</label>
+      <input type="number" id="bpmInput" value="90" min="60" max="200" step="5">
+      <button type="button" class="btn" onclick="adjustBPM(-5)">-5</button>
+      <button type="button" class="btn" onclick="adjustBPM(5)">+5</button>
+    </div>
+
+    <!-- 小节数 -->
+    <div class="input-row">
+      <label>小节数</label>
+      <select id="measureCount" style="max-width:120px;">
+        <option value="2">2 小节</option>
+        <option value="4" selected>4 小节</option>
+        <option value="8">8 小节</option>
+      </select>
+    </div>
+
+    <!-- 操作按钮 -->
+    <div class="toolbar">
+      <button type="button" class="btn primary" id="startBtn" onclick="startTraining()">▶ 开始训练</button>
+      <button type="button" class="btn" id="stopBtn" onclick="stopTraining()" disabled>⏹ 停止</button>
+    </div>
+  </div>
+
+  <!-- 状态文字 -->
+  <div class="card" id="statusCard" style="display:none;">
+    <div class="status-text" id="statusText">准备开始...</div>
+    <div class="progress-indicator" id="beatIndicator"></div>
+  </div>
+
+  <!-- 节奏网格 -->
+  <div class="card" id="gridCard" style="display:none;">
+    <h3>📋 节奏型</h3>
+    <div class="rhythm-grid-wrap">
+      <div class="rhythm-grid" id="rhythmGrid"></div>
+    </div>
+  </div>
+
+  <!-- 敲击按钮 -->
+  <div id="tapArea" style="display:none;">
+    <button type="button" class="tap-btn" id="tapBtn" onclick="onTap()" disabled>
+      🥁 敲击
+      <span class="tap-hint">或按空格键</span>
+    </button>
+  </div>
+
+  <!-- 评分结果 -->
+  <div class="card" id="resultCard" style="display:none;">
+    <h3>📊 评分结果</h3>
+    <div class="score-display" id="scoreDisplay"></div>
+    <div class="stat-grid" id="scoreStats"></div>
+    <h3 style="margin-top:16px;">🔍 每次敲击偏差</h3>
+    <div class="hit-list" id="hitList"></div>
+    <div class="toolbar" style="margin-top:16px;">
+      <button type="button" class="btn primary" onclick="startTraining()">🔄 再来一次</button>
+    </div>
+  </div>
+
+  <!-- 使用说明 -->
+  <div class="tip-box tip-info" style="margin-top:16px;">
+    <strong>使用说明：</strong>
+    1. 选择难度和 BPM 速度 → 点击"开始训练"
+    2. 听 4 拍预备拍后，节奏开始播放
+    3. 在听到鼓点时按 <strong>空格键</strong> 或点击 <strong>敲击按钮</strong>
+    4. 播放结束后查看评分和偏差分析
+  </div>
+
+  <!-- SEO 工具介绍 -->
+  
+</div>
+
+</div>
+
+
+<!-- 相关工具 -->
+<div class="related-tools" data-related-tools="1">
+  <h3 class="related-tools-title">🔗 相关工具</h3>
+  <div class="related-tools-grid">
+    <a href="chord-progression.html" class="related-tool-card">
+      <span class="rt-icon">🎼</span>
+      <span class="rt-info"><span class="rt-name">和弦进行生成器 - 免费在线和弦进行生成器，随机生成流行和弦进行</span><span class="rt-desc">&amp;#127926; 和弦进行生成器</span></span>
+    </a>
+    <a href="random-training-rhythm.html" class="related-tool-card">
+      <span class="rt-icon">🎵</span>
+      <span class="rt-info"><span class="rt-name">节奏训练（随机节奏点击）</span><span class="rt-desc">节奏训练（随机节奏点击）</span></span>
+    </a>
+    <a href="generator-1.html" class="related-tool-card">
+      <span class="rt-icon">🎵</span>
+      <span class="rt-info"><span class="rt-name">音阶生成器（大调/小调/五声音阶）</span><span class="rt-desc">音阶生成器（大调/小调/五声音阶）</span></span>
+    </a>
+    <a href="bpm-converter.html" class="related-tool-card">
+      <span class="rt-icon">⏱️</span>
+      <span class="rt-info"><span class="rt-name">BPM速度转换器 - BPM与音符时长、延迟时间、LFO频率、采样长度互转</span><span class="rt-desc">&amp;#9201;&amp;#65039; BPM 速度转换器</span></span>
+    </a>
+    <a href="convert-speed.html" class="related-tool-card">
+      <span class="rt-icon">🎵</span>
+      <span class="rt-info"><span class="rt-name">歌曲速度转换（BPM微调）</span><span class="rt-desc">歌曲速度转换（BPM微调）</span></span>
+    </a>
+    <a href="audio-converter.html" class="related-tool-card">
+      <span class="rt-icon">🔄</span>
+      <span class="rt-info"><span class="rt-name">音频转换 - 音乐艺术领域的在线工具</span><span class="rt-desc">音频格式转换参数</span></span>
+    </a>
+  </div>
+</div>
+<div class="tool-intro" id="toolIntro">
+    <div class="tool-intro-header" onclick="this.parentElement.classList.toggle('open')">
+      <span class="intro-icon-wrap"><span class="intro-icon">🥁</span>关于节奏训练器</span>
+      <span class="arrow">▼</span>
+    </div>
+    <div class="tool-intro-body">
+      <p>节奏训练器是一款基于 Web Audio API 的纯前端节奏练习工具，帮助音乐学习者和爱好者提升节奏感。通过随机生成不同难度的节奏型并实时评估敲击准确度，让节奏训练变得简单有趣。</p>
+      <h4><span class="h4-icon">✨</span> 功能特点</h4>
+      <ul class="intro-features">
+        <li>三种难度级别</li>
+        <li>BPM 自由调节</li>
+        <li>Web Audio 实时音效</li>
+        <li>精确偏差分析</li>
+        <li>纯前端无上传</li>
+      </ul>
+      <h4><span class="h4-icon">🎯</span> 适用场景</h4>
+      <ul class="intro-scenes">
+        <li>乐器练习前热身</li>
+        <li>节奏感基础训练</li>
+        <li>视唱练耳辅助</li>
+        <li>音乐课堂演示</li>
+      </ul>
+      <h4><span class="h4-icon">❓</span> 常见问题</h4>
+      <div class="intro-faq-item">
+        <div class="intro-faq-q">支持哪些浏览器？</div>
+        <div class="intro-faq-a">支持所有主流现代浏览器（Chrome、Firefox、Safari、Edge），需要 Web Audio API 支持。</div>
+      </div>
+      <div class="intro-faq-item">
+        <div class="intro-faq-q">为什么我的评分很低？</div>
+        <div class="intro-faq-a">建议从简单难度和较低 BPM 开始练习，逐步提升。注意在听到鼓点的同时敲击，而非提前或延后。</div>
+      </div>
+    </div>
+  </div>
+
+<!-- 注意事项区块 -->
+<div class="tool-notes" style="--tool-accent:#FF6B35;">
+  <div class="tool-notes-title">⚠️ 使用说明与注意事项</div>
+  <ul>
+      <li>本工具纯前端运行，数据不会上传到服务器</li>
+      <li>建议在主流浏览器（Chrome/Safari/Firefox/Edge）中使用</li>
+      <li>计算结果仅供参考，请以实际应用场景为准</li>
+  </ul>
+</div>
+<!-- /注意事项区块 -->
+</div>
+
+<script>
+(function() {
+  'use strict';
+
+  // ========== 状态变量 ==========
+  let audioCtx = null;
+  let difficulty = 'easy';
+  let bpm = 90;
+  let measures = 4;
+  let subdivision = 1; // 1=easy(4th), 2=medium(8th), 4=hard(16th)
+  let rhythmPattern = []; // boolean[], true=note, false=rest
+  let notePositions = []; // the beat indices that have notes
+  let userTaps = []; // timestamps of user taps
+  let startTime = 0; // audio start time
+  let isPlaying = false;
+  let isRecording = false;
+  let schedulerTimer = null;
+  let currentCellIndex = -1;
+  let countdownTimer = null;
+
+  // ========== Audio Context ==========
+  function getAudioCtx() {
+    if (!audioCtx) {
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    }
+    if (audioCtx.state === 'suspended') {
+      audioCtx.resume();
+    }
+    return audioCtx;
+  }
+
+  // ========== Sound Generation ==========
+  function playClick(ctx, time, freq, duration, gain) {
+    const osc = ctx.createOscillator();
+    const g = ctx.createGain();
+    osc.connect(g);
+    g.connect(ctx.destination);
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(freq, time);
+    g.gain.setValueAtTime(gain, time);
+    g.gain.exponentialRampToValueAtTime(0.001, time + duration);
+    osc.start(time);
+    osc.stop(time + duration);
+  }
+
+  // 鼓点声（低频噪音 + 音调）
+  function playDrum(ctx, time) {
+    // 低音
+    playClick(ctx, time, 150, 0.12, 0.7);
+    // 高频 attack
+    playClick(ctx, time, 800, 0.04, 0.3);
+  }
+
+  // 节拍器嘀声（预备拍）
+  function playTick(ctx, time, accent) {
+    playClick(ctx, time, accent ? 1000 : 800, 0.06, accent ? 0.5 : 0.35);
+  }
+
+  // 敲击反馈声
+  function playTapSound() {
+    const ctx = getAudioCtx();
+    playClick(ctx, ctx.currentTime, 600, 0.05, 0.3);
+  }
+
+  // ========== Difficulty ==========
+  function setDifficulty(diff) {
+    difficulty = diff;
+    const btns = document.querySelectorAll('.diff-btn');
+    btns.forEach(b => b.classList.toggle('active', b.dataset.diff === diff));
+    switch (diff) {
+      case 'easy': subdivision = 1; break;
+      case 'medium': subdivision = 2; break;
+      case 'hard': subdivision = 4; break;
+    }
+  }
+
+  function adjustBPM(delta) {
+    const input = document.getElementById('bpmInput');
+    let val = parseInt(input.value) || 90;
+    val = Math.max(60, Math.min(200, val + delta));
+    input.value = val;
+    bpm = val;
+  }
+
+  // ========== Generate Rhythm ==========
+  function generateRhythm() {
+    const beatsPerMeasure = 4;
+    const cellsPerBeat = subdivision;
+    const cellsPerMeasure = beatsPerMeasure * cellsPerBeat;
+    const totalCells = cellsPerMeasure * measures;
+
+    rhythmPattern = [];
+    notePositions = [];
+
+    for (let i = 0; i < totalCells; i++) {
+      const beatPos = i % cellsPerBeat;
+      const isDownbeat = (i % cellsPerMeasure) === 0;
+      const isBeatStart = beatPos === 0;
+
+      let hasNote = false;
+      if (difficulty === 'easy') {
+        // 简单：每拍至少一个音，偶尔休止
+        hasNote = isBeatStart ? (Math.random() > 0.15) : false;
+      } else if (difficulty === 'medium') {
+        // 中等：8分音符，每拍0-2个音
+        if (isBeatStart) {
+          hasNote = Math.random() > 0.1;
+        } else {
+          hasNote = Math.random() > 0.55;
+        }
+      } else {
+        // 困难：16分音符，更多变化
+        hasNote = Math.random() > 0.5;
+        // 确保不是全空
+      }
+
+      rhythmPattern.push(hasNote);
+      if (hasNote) {
+        notePositions.push(i);
+      }
+    }
+
+    // 确保至少有一些音符（至少30%）
+    if (notePositions.length < totalCells * 0.3) {
+      for (let i = 0; i < totalCells && notePositions.length < totalCells * 0.3; i += cellsPerBeat) {
+        if (!rhythmPattern[i]) {
+          rhythmPattern[i] = true;
+          notePositions.push(i);
+        }
+      }
+    }
+  }
+
+  // ========== Render Grid ==========
+  function renderGrid() {
+    const grid = document.getElementById('rhythmGrid');
+    const cellsPerBeat = subdivision;
+    const cellsPerMeasure = 4 * cellsPerBeat;
+    const totalCells = cellsPerMeasure * measures;
+
+    let html = '';
+    for (let m = 0; m < measures; m++) {
+      html += '<div class="rhythm-measure">';
+      html += '<span class="rhythm-measure-label">' + (m + 1) + '</span>';
+      html += '<div class="rhythm-beats">';
+      for (let i = 0; i < cellsPerMeasure; i++) {
+        const idx = m * cellsPerMeasure + i;
+        const isNote = rhythmPattern[idx];
+        const beatPos = i % cellsPerBeat;
+        const isBeatStart = beatPos === 0 && i > 0;
+        const cls = [
+          'rhythm-cell',
+          isNote ? 'note' : 'rest',
+          isBeatStart ? 'beat-start' : ''
+        ].filter(Boolean).join(' ');
+        html += '<div class="' + cls + '" data-idx="' + idx + '" id="cell-' + idx + '"></div>';
+      }
+      html += '</div></div>';
+    }
+    grid.innerHTML = html;
+  }
+
+  // ========== Highlight Cell ==========
+  function highlightCell(idx) {
+    // Remove previous highlight
+    if (currentCellIndex >= 0) {
+      const prev = document.getElementById('cell-' + currentCellIndex);
+      if (prev) prev.classList.remove('current');
+    }
+    currentCellIndex = idx;
+    const el = document.getElementById('cell-' + idx);
+    if (el) el.classList.add('current');
+  }
+
+  // ========== Beat Indicator ==========
+  function initBeatIndicator() {
+    const el = document.getElementById('beatIndicator');
+    let html = '';
+    for (let i = 0; i < 4; i++) {
+      html += '<div class="beat-dot" id="beatDot-' + i + '"></div>';
+    }
+    el.innerHTML = html;
+  }
+
+  function updateBeatIndicator(beat) {
+    for (let i = 0; i < 4; i++) {
+      const dot = document.getElementById('beatDot-' + i);
+      if (!dot) continue;
+      dot.classList.toggle('active', i === beat);
+      dot.classList.toggle('accent', i === 0 && beat === 0);
+    }
+  }
+
+  function clearBeatIndicator() {
+    for (let i = 0; i < 4; i++) {
+      const dot = document.getElementById('beatDot-' + i);
+      if (dot) {
+        dot.classList.remove('active', 'accent');
+      }
+    }
+  }
+
+  // ========== Play ==========
+  function startTraining() {
+    if (isPlaying) return;
+
+    // Read settings
+    bpm = parseInt(document.getElementById('bpmInput').value) || 90;
+    bpm = Math.max(60, Math.min(200, bpm));
+    measures = parseInt(document.getElementById('measureCount').value) || 4;
+
+    // Generate rhythm
+    generateRhythm();
+    renderGrid();
+
+    // Show UI
+    document.getElementById('statusCard').style.display = '';
+    document.getElementById('gridCard').style.display = '';
+    document.getElementById('tapArea').style.display = '';
+    document.getElementById('resultCard').style.display = 'none';
+    document.getElementById('startBtn').disabled = true;
+    document.getElementById('stopBtn').disabled = false;
+    document.getElementById('tapBtn').disabled = true;
+
+    // Reset
+    userTaps = [];
+    isPlaying = true;
+    isRecording = false;
+    currentCellIndex = -1;
+    initBeatIndicator();
+
+    const ctx = getAudioCtx();
+    const beatDuration = 60.0 / bpm; // duration of one quarter note
+    const cellDuration = beatDuration / subdivision;
+    const totalCells = 4 * subdivision * measures;
+    const countInBeats = 4; // 4 beat count-in
+    const countInDuration = countInBeats * beatDuration;
+
+    // Show countdown
+    const statusEl = document.getElementById('statusText');
+    statusEl.innerHTML = '🎵 预备拍 <span class="countdown">4</span>';
+
+    // Schedule count-in
+    const now = ctx.currentTime;
+    for (let i = 0; i < countInBeats; i++) {
+      playTick(ctx, now + i * beatDuration, i === 0);
+    }
+
+    // Countdown animation
+    let countNum = 4;
+    clearInterval(countdownTimer);
+    countdownTimer = setInterval(() => {
+      countNum--;
+      if (countNum > 0) {
+        statusEl.innerHTML = '🎵 预备拍 <span class="countdown">' + countNum + '</span>';
+        updateBeatIndicator(countNum - 1);
+      } else {
+        clearInterval(countdownTimer);
+      }
+    }, beatDuration * 1000);
+
+    // After count-in, start the rhythm
+    startTime = now + countInDuration;
+    statusEl.innerHTML = '🎵 跟着节奏敲击！';
+
+    // Schedule all notes
+    for (let i = 0; i < totalCells; i++) {
+      const noteTime = startTime + i * cellDuration;
+      if (rhythmPattern[i]) {
+        playDrum(ctx, noteTime);
+      }
+      // Visual highlight scheduling
+      const cellIdx = i;
+      const delay = (noteTime - now) * 1000;
+      setTimeout(() => {
+        if (!isPlaying) return;
+        highlightCell(cellIdx);
+        // Update beat indicator
+        const beatInMeasure = Math.floor((cellIdx % (4 * subdivision)) / subdivision);
+        updateBeatIndicator(beatInMeasure);
+      }, delay);
+    }
+
+    // Enable recording after count-in
+    setTimeout(() => {
+      if (!isPlaying) return;
+      isRecording = true;
+      document.getElementById('tapBtn').disabled = false;
+      statusEl.innerHTML = '🥁 跟着节奏敲击！';
+    }, countInDuration * 1000);
+
+    // Schedule end
+    const totalDuration = countInDuration + totalCells * cellDuration;
+    setTimeout(() => {
+      if (!isPlaying) return;
+      endTraining();
+    }, totalDuration * 1000 + 200);
+  }
+
+  function stopTraining() {
+    isPlaying = false;
+    isRecording = false;
+    clearInterval(countdownTimer);
+    if (currentCellIndex >= 0) {
+      const prev = document.getElementById('cell-' + currentCellIndex);
+      if (prev) prev.classList.remove('current');
+    }
+    clearBeatIndicator();
+    document.getElementById('startBtn').disabled = false;
+    document.getElementById('stopBtn').disabled = true;
+    document.getElementById('tapBtn').disabled = true;
+    document.getElementById('statusText').textContent = '已停止';
+  }
+
+  function endTraining() {
+    isPlaying = false;
+    isRecording = false;
+    clearInterval(countdownTimer);
+    clearBeatIndicator();
+
+    // Reset cells
+    if (currentCellIndex >= 0) {
+      const prev = document.getElementById('cell-' + currentCellIndex);
+      if (prev) prev.classList.remove('current');
+    }
+
+    document.getElementById('startBtn').disabled = false;
+    document.getElementById('stopBtn').disabled = true;
+    document.getElementById('tapBtn').disabled = true;
+    document.getElementById('statusText').textContent = '训练完成！查看结果 ↓';
+
+    // Calculate score
+    calculateScore();
+  }
+
+  // ========== Tap Handler ==========
+  function onTap() {
+    if (!isRecording) return;
+    const now = performance.now() / 1000; // seconds
+    userTaps.push(now);
+    playTapSound();
+  }
+
+  // ========== Calculate Score ==========
+  function calculateScore() {
+    const beatDuration = 60.0 / bpm;
+    const cellDuration = beatDuration / subdivision;
+    const totalCells = 4 * subdivision * measures;
+
+    // Convert notePositions to absolute times
+    const noteTimes = notePositions.map(idx => startTime + idx * cellDuration);
+
+    // Match user taps to expected note times using greedy nearest-match
+    const cellDurationMs = cellDuration * 1000;
+    const toleranceMs = Math.max(cellDurationMs * 0.8, 80); // tolerance window
+
+    const results = [];
+    const usedTapIndices = new Set();
+
+    for (let i = 0; i < noteTimes.length; i++) {
+      const expectedTimeMs = noteTimes[i] * 1000;
+      let bestTap = -1;
+      let bestDiff = Infinity;
+
+      for (let j = 0; j < userTaps.length; j++) {
+        if (usedTapIndices.has(j)) continue;
+        const tapMs = userTaps[j] * 1000;
+        const diff = Math.abs(tapMs - expectedTimeMs);
+        if (diff < bestDiff && diff < toleranceMs) {
+          bestDiff = diff;
+          bestTap = j;
+        }
+      }
+
+      if (bestTap >= 0) {
+        usedTapIndices.add(bestTap);
+        const deviation = userTaps[bestTap] * 1000 - expectedTimeMs;
+        results.push({
+          noteIndex: notePositions[i],
+          deviation: deviation,
+          absDeviation: Math.abs(deviation),
+          hit: true
+        });
+      } else {
+        results.push({
+          noteIndex: notePositions[i],
+          deviation: null,
+          absDeviation: null,
+          hit: false
+        });
+      }
+    }
+
+    // Calculate accuracy
+    const hitResults = results.filter(r => r.hit);
+    const hitRate = results.length > 0 ? hitResults.length / results.length : 0;
+
+    // Score based on deviation
+    let avgDeviation = 0;
+    let totalScore = 0;
+
+    for (const r of results) {
+      if (!r.hit) {
+        totalScore += 0;
+      } else if (r.absDeviation < 30) {
+        totalScore += 100;
+      } else if (r.absDeviation < 60) {
+        totalScore += 90;
+      } else if (r.absDeviation < 100) {
+        totalScore += 70;
+      } else if (r.absDeviation < 150) {
+        totalScore += 50;
+      } else if (r.absDeviation < 200) {
+        totalScore += 30;
+      } else {
+        totalScore += 10;
+      }
+    }
+
+    const accuracy = results.length > 0 ? Math.round(totalScore / results.length) : 0;
+
+    if (hitResults.length > 0) {
+      avgDeviation = Math.round(hitResults.reduce((sum, r) => sum + r.absDeviation, 0) / hitResults.length);
+    }
+
+    // Grade
+    let grade, gradeClass;
+    if (accuracy >= 90) { grade = '🎉 完美！'; gradeClass = 'grade-excellent'; }
+    else if (accuracy >= 80) { grade = '👏 优秀'; gradeClass = 'grade-good'; }
+    else if (accuracy >= 60) { grade = '👍 良好'; gradeClass = 'grade-pass'; }
+    else { grade = '💪 继续练习'; gradeClass = 'grade-fail'; }
+
+    // Color cells based on results
+    for (const r of results) {
+      const cell = document.getElementById('cell-' + r.noteIndex);
+      if (!cell) continue;
+      cell.classList.remove('note');
+      if (r.hit) {
+        cell.classList.add(r.absDeviation < 60 ? 'user-hit' : (r.absDeviation < 150 ? 'note' : 'user-miss'));
+      } else {
+        cell.classList.add('user-miss');
+      }
+    }
+
+    // Render score display
+    const scoreDisplay = document.getElementById('scoreDisplay');
+    scoreDisplay.innerHTML =
+      '<span class="score-value">' + accuracy + '</span>' +
+      '<span class="score-unit">%</span>' +
+      '<div class="score-grade"><span class="grade-tag ' + gradeClass + '">' + grade + '</span></div>';
+
+    // Stats
+    const missed = results.filter(r => !r.hit).length;
+    const perfect = hitResults.filter(r => r.absDeviation < 30).length;
+    document.getElementById('scoreStats').innerHTML =
+      '<div class="stat-card"><div class="num">' + notePositions.length + '</div><div class="lbl">总音符数</div></div>' +
+      '<div class="stat-card"><div class="num">' + userTaps.length + '</div><div class="lbl">敲击次数</div></div>' +
+      '<div class="stat-card"><div class="num" style="color:var(--success);">' + perfect + '</div><div class="lbl">完美命中</div></div>' +
+      '<div class="stat-card"><div class="num" style="color:var(--danger);">' + missed + '</div><div class="lbl">漏击</div></div>' +
+      '<div class="stat-card"><div class="num">' + avgDeviation + '<small style="font-size:12px;color:var(--text-muted);">ms</small></div><div class="lbl">平均偏差</div></div>';
+
+    // Hit list
+    const hitList = document.getElementById('hitList');
+    let listHtml = '';
+    for (let i = 0; i < results.length; i++) {
+      const r = results[i];
+      let cls, devText;
+      if (!r.hit) {
+        cls = 'bad';
+        devText = '未击中';
+      } else if (r.absDeviation < 60) {
+        cls = 'good';
+        devText = (r.deviation > 0 ? '+' : '') + Math.round(r.deviation) + 'ms';
+      } else if (r.absDeviation < 150) {
+        cls = 'ok';
+        devText = (r.deviation > 0 ? '+' : '') + Math.round(r.deviation) + 'ms';
+      } else {
+        cls = 'bad';
+        devText = (r.deviation > 0 ? '+' : '') + Math.round(r.deviation) + 'ms';
+      }
+      const beatIdx = Math.floor(r.noteIndex / subdivision) + 1;
+      const measureNum = Math.floor(beatIdx / 4) + 1;
+      const beatInMeasure = ((beatIdx - 1) % 4) + 1;
+      listHtml += '<div class="hit-item">' +
+        '<span class="hit-index ' + cls + '">' + (i + 1) + '</span>' +
+        '<span class="hit-time">第' + measureNum + '小节 第' + beatInMeasure + '拍</span>' +
+        '<span class="hit-deviation ' + cls + '">' + devText + '</span>' +
+        '</div>';
+    }
+    hitList.innerHTML = listHtml;
+
+    // Show result
+    document.getElementById('resultCard').style.display = '';
+    document.getElementById('resultCard').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  // ========== Keyboard ==========
+  document.addEventListener('keydown', function(e) {
+    if (e.code === 'Space' && !e.repeat && !e.target.matches('input, textarea, select')) {
+      e.preventDefault();
+      onTap();
+    }
+  });
+
+  // ========== BPM input sync ==========
+  document.getElementById('bpmInput').addEventListener('change', function() {
+    bpm = Math.max(60, Math.min(200, parseInt(this.value) || 90));
+    this.value = bpm;
+  });
+
+  // ========== Expose ==========
+  window.setDifficulty = setDifficulty;
+  window.adjustBPM = adjustBPM;
+  window.startTraining = startTraining;
+  window.stopTraining = stopTraining;
+  window.onTap = onTap;
+
+})();
+</script><script>
+// tool-intro折叠交互
+document.addEventListener('DOMContentLoaded',function(){
+  var headers=document.querySelectorAll('.tool-intro-header');
+  headers.forEach(function(h){
+    h.addEventListener('click',function(){
+      this.parentElement.classList.toggle('open');
+    });
+  });
+});
+</script>
+
+</body>
+</html>

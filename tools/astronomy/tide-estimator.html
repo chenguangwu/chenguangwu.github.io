@@ -1,0 +1,732 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+
+<script src="/js/tool-page-runtime.js" defer></script>
+<!-- TOOLBOX-TOOL-RUNTIME -->
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="toolbox" content="cat=calculator,industry=astronomy,icon=🌊,bg=#e3f2fd">
+<meta name="description" content="潮汐高度估算器 - 是一款基于天体引潮力的在线潮汐计算工具。它根据输入的日期、月相、平均潮差与纬度，结合月球与太阳的引潮力（平衡潮理论）估算合成潮汐高度、预测潮差，并判断当日属于朔望大潮还是方照小潮，同时按纬度判断潮汐类型（半日潮、混合潮、全日潮">
+<title>潮汐高度估算器 - 基于天体引潮力的在线潮汐计算工具 - ToolBox</title>
+<link rel="canonical" href="https://chenguangwu.github.io/tools/astronomy/tide-estimator.html">
+<meta property="og:title" content="潮汐高度估算器 - 基于天体引潮力的在线潮汐计算工具 - ToolBox">
+<meta property="og:description" content="潮汐高度估算器 - 是一款基于天体引潮力的在线潮汐计算工具。它根据输入的日期、月相、平均潮差与纬度，结合月球与太阳的引潮力（平衡潮理论）估算合成潮汐高度、预测潮差，并判断当日属于朔望大潮还是方照小潮，同时按纬度判断潮汐类型（半日潮、混合潮、全日潮">
+<meta property="og:url" content="https://chenguangwu.github.io/tools/astronomy/tide-estimator.html">
+<meta name="twitter:card" content="summary">
+<link rel="stylesheet" href="../../css/common.css">
+<script src="../../js/common.js"></script>
+<style>
+  /* 工具专属样式 */
+  #tideChart{width:100%;height:240px;display:block;border-radius:12px;margin-top:8px;}
+  .dc-icon{font-size:22px;line-height:1;margin-bottom:4px;}
+  .data-card .num.txt{font-size:16px;font-weight:700;color:var(--primary);}
+  .data-card .num small{font-size:12px;font-weight:500;color:var(--text-muted);margin-left:2px;}
+  .phase-row{display:flex;align-items:center;gap:14px;flex-wrap:wrap;}
+  .phase-emoji{font-size:40px;line-height:1;filter:drop-shadow(0 2px 6px rgba(124,58,237,0.25));}
+  .phase-meta{font-size:13px;color:var(--text-secondary);line-height:1.7;}
+  .phase-meta b{color:var(--heading);}
+  .chart-legend{display:flex;gap:14px;flex-wrap:wrap;margin-top:8px;font-size:12px;color:var(--text-secondary);}
+  .chart-legend span{display:inline-flex;align-items:center;gap:5px;}
+  .chart-legend i{width:10px;height:10px;border-radius:50%;display:inline-block;}
+  .tide-badge{display:inline-block;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:600;}
+  .badge-spring{background:rgba(255,107,53,0.12);color:#E55A25;}
+  .badge-neap{background:rgba(59,130,246,0.12);color:#2563EB;}
+  .badge-mid{background:rgba(124,58,237,0.12);color:#7C3AED;}
+  .badge-semi{background:rgba(16,185,129,0.12);color:#059669;}
+  .badge-mixed{background:rgba(245,158,11,0.12);color:#D97706;}
+  .badge-diur{background:rgba(239,68,68,0.12);color:#DC2626;}
+  [data-theme="dark"] .badge-spring{color:#FF8A5C;}
+  [data-theme="dark"] .badge-neap{color:#60A5FA;}
+  [data-theme="dark"] .badge-mid{color:#9B6CF5;}
+  [data-theme="dark"] .badge-semi{color:#34D399;}
+  [data-theme="dark"] .badge-mixed{color:#FBBF24;}
+  [data-theme="dark"] .badge-diur{color:#F87171;}
+  .tide-time-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;margin-top:4px;}
+  .tt-item{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:10px;background:var(--result-bg);border:1px solid var(--border);font-size:13px;}
+  .tt-item .tt-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;}
+  .tt-item .tt-time{font-weight:700;color:var(--heading);}
+  .tt-item .tt-h{color:var(--text-muted);font-size:12px;margin-left:auto;}
+  .phase-select-wrap{display:none;}
+  .phase-select-wrap.show{display:block;}
+  @media(max-width:768px){
+    #tideChart{height:200px;}
+    .phase-emoji{font-size:34px;}
+  }
+</style>
+
+
+
+<meta property="og:image" content="https://chenguangwu.github.io/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="ToolBox - 6000+免费在线工具">
+<meta name="twitter:image" content="https://chenguangwu.github.io/og-image.png">
+<meta name="twitter:image:alt" content="ToolBox - 6000+免费在线工具">
+    <meta property="og:type" content="website">
+    <meta name="twitter:title" content="潮汐高度估算器 - 基于天体引潮力的在线潮汐计算工具 - ToolBox">
+    <meta name="twitter:description" content="潮汐高度估算器 - 是一款基于天体引潮力的在线潮汐计算工具。它根据输入的日期、月相、平均潮差与纬度，结合月球与太阳的引潮力（平衡潮理论）估算合成潮汐高度、预测潮差，并判断当日属于朔望大潮还是方照小潮，同时按纬度判断潮汐类型（半日潮、混合潮、全日潮">
+<!-- TOOLBOX-WEBAPP-LD -->
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"WebApplication","name":"潮汐高度估算器 - 基于天体引潮力的在线潮汐计算工具","url":"https://chenguangwu.github.io/tools/astronomy/tide-estimator.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":["zh-CN", "en-US"],"description":"潮汐高度估算器","image":"https://chenguangwu.github.io/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}
+</script>
+<meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
+<meta http-equiv="X-Content-Type-Options" content="nosniff">
+<meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
+<!-- TOOLBOX-SECURITY -->
+
+<script src="/js/privacy.js" defer></script>
+<!-- TOOLBOX-PRIVACY-SCRIPT -->
+
+<script src="/js/metrics.js" defer></script>
+<!-- TOOLBOX-METRICS-SCRIPT -->
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"首页","item":"https://chenguangwu.github.io/"},{"@type":"ListItem","position":2,"name":"天文观测","item":"https://chenguangwu.github.io/tools/astronomy/index.html"},{"@type":"ListItem","position":3,"name":"潮汐高度估算器","item":"https://chenguangwu.github.io/tools/astronomy/tide-estimator.html"}]}
+</script>
+
+<script src="../../js/i18n.js" defer></script>
+<script src="../../js/tool-i18n.js" defer></script>
+<!-- TOOLBOX-I18N-SCRIPT -->
+<!-- TOOLBOX-HREFLANG -->
+<link rel="alternate" hreflang="zh-CN" href="https://chenguangwu.github.io/tools/astronomy/tide-estimator.html">
+<link rel="alternate" hreflang="en-US" href="https://chenguangwu.github.io/tools/astronomy/tide-estimator.html">
+<link rel="alternate" hreflang="x-default" href="https://chenguangwu.github.io/tools/astronomy/tide-estimator.html">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:locale:alternate" content="en_US">
+
+<script src="/js/clarity.js" defer></script>
+<!-- TOOLBOX-CLARITY -->
+</head>
+<body>
+<h1 class="sr-only">潮汐高度估算器</h1>
+
+<div class="nav">
+  <a href="../../index.html">← ToolBox</a>
+  <span>/ 潮汐高度估算器</span>
+  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()" aria-label="切换主题">🌙</button>
+</div>
+
+
+
+
+
+<nav class="breadcrumb" aria-label="面包屑导航" data-breadcrumb="1">
+  <a href="../../index.html">首页</a>
+  <span class="bc-sep">‹</span>
+  <a href="index.html">🔧 天文观测</a>
+  <span class="bc-sep">‹</span>
+  <span class="bc-current">潮汐高度估算器</span>
+</nav>
+<div class="container">
+  <div class="card">
+    <h2>🌊 潮汐高度估算器</h2>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;">基于月球与太阳引潮力（平衡潮理论）估算潮汐高度、潮差、大潮/小潮与潮汐类型，并绘制 24 小时潮汐曲线。</p>
+
+    <!-- 输入区 -->
+    <div class="input-row">
+      <div>
+        <label for="date">日期</label>
+        <input type="date" id="date">
+      </div>
+      <div>
+        <label for="range">平均潮差 (m)</label>
+        <input type="number" id="range" value="2.0" min="0" step="0.1">
+      </div>
+      <div>
+        <label for="lat">纬度 (°)</label>
+        <input type="number" id="lat" value="30" step="0.1" min="-90" max="90">
+      </div>
+    </div>
+
+    <div class="checkbox-row">
+      <label><input type="checkbox" id="autoPhase" checked> 自动计算月相（由日期推算）</label>
+      <div class="phase-select-wrap" id="manualWrap" style="flex:1;min-width:200px;">
+        <label for="manualPhase">手动选择月相</label>
+        <select id="manualPhase"></select>
+      </div>
+    </div>
+
+    <div class="toolbar">
+      <button type="button" class="btn primary" onclick="calc()">开始估算</button>
+      <button type="button" class="btn" onclick="copyResult()">复制结果</button>
+      <button type="button" class="btn" onclick="resetToday()">重置为今天</button>
+    </div>
+
+    <!-- 月相信息 -->
+    <div class="info-box" id="phaseInfo" style="background:rgba(124,58,237,0.06);border-color:rgba(124,58,237,0.2);color:var(--text-secondary);"></div>
+
+    <!-- 数据卡片 -->
+    <div class="data-grid" id="dataGrid" style="margin-top:14px;"></div>
+
+    <!-- 潮汐曲线 -->
+    <div style="margin-top:16px;">
+      <label style="display:flex;align-items:center;justify-content:space-between;">
+        <span>24 小时潮汐高度变化曲线</span>
+        <span style="font-size:12px;color:var(--text-muted);font-weight:400;">单位：米（相对平均海平面）</span>
+      </label>
+      <canvas id="tideChart"></canvas>
+      <div class="chart-legend">
+        <span><i style="background:#FF6B35;"></i>潮汐曲线</span>
+        <span><i style="background:#10B981;"></i>高潮</span>
+        <span><i style="background:#EF4444;"></i>低潮</span>
+        <span><i style="background:#9CA3AF;"></i>平均海平面</span>
+      </div>
+    </div>
+
+    <!-- 高潮/低潮时间 -->
+    <div style="margin-top:16px;">
+      <h3>高潮 / 低潮时间估算</h3>
+      <div class="tide-time-list" id="tideTimes"></div>
+    </div>
+
+    <!-- 潮汐周期信息 -->
+    <div class="result-box" id="cycleInfo"></div>
+
+    <!-- 说明 -->
+    <div class="tip-box tip-info" style="margin-top:14px;">
+      本工具基于<strong>平衡潮理论</strong>估算，仅考虑月球与太阳的引潮力及距离变化、月相合成效应。实际潮汐受海底地形、海岸线形状、水深共振等局部因素影响显著，结果<strong>仅供参考与教学演示</strong>，不可用于航行、工程或防灾决策。
+    </div>
+  </div>
+
+  <!-- 注意事项 -->
+  <div class="tool-notes">
+    <div class="tool-notes-title">⚠️ 使用说明与注意事项</div>
+    <ul>
+      <li>纯前端计算，所有数据在浏览器本地处理，不会上传到服务器</li>
+      <li>「平均潮差」请填写该地点长期的平均潮差（高潮与低潮高度差的长期均值），用于把理论平衡潮换算为本地实际量级</li>
+      <li>月相、月地距离、日地距离由日期自动推算（简化天文公式，误差约 1-3%）</li>
+      <li>潮汐类型按纬度划分属近似模型，真实潮汐类型取决于海区地理条件</li>
+      <li>高潮/低潮时间为理论估算，实际潮时受「潮汐调和常数」与港区潮汐订正影响</li>
+    </ul>
+  </div>
+
+  <!-- SEO 介绍区块 -->
+  
+</div>
+
+</div>
+
+<!-- 相关工具 -->
+<div class="related-tools" data-related-tools="1">
+  <h3 class="related-tools-title">🔗 相关工具</h3>
+  <div class="related-tools-grid">
+    <a href="convert-15.html" class="related-tool-card">
+      <span class="rt-icon">🌌</span>
+      <span class="rt-info"><span class="rt-name">地震震级与能量换算（里氏↔焦耳） - 免费在线工具，纯前端处理 | ToolBox免费在线工具箱</span><span class="rt-desc">地震震级与能量换算（里氏↔焦耳）</span></span>
+    </a>
+    <a href="convert-18.html" class="related-tool-card">
+      <span class="rt-icon">🌌</span>
+      <span class="rt-info"><span class="rt-name">大气压与海拔转换（气压计读数） - 免费在线工具，纯前端处理 | ToolBox免费在线工具箱</span><span class="rt-desc">大气压与海拔转换（气压计读数）</span></span>
+    </a>
+    <a href="convert-17.html" class="related-tool-card">
+      <span class="rt-icon">🌌</span>
+      <span class="rt-info"><span class="rt-name">时区转换（内置全球时区） - 免费在线工具，纯前端处理 | ToolBox免费在线工具箱</span><span class="rt-desc">时区转换（内置全球时区）</span></span>
+    </a>
+    <a href="earth-curvature.html" class="related-tool-card">
+      <span class="rt-icon">🌍</span>
+      <span class="rt-info"><span class="rt-name">地球曲率可视距离计算器 - 在线计算地平线距离、地球曲率下降量与目标被遮挡高度，支持大气 | ToolBox免费在线工具箱</span><span class="rt-desc">地球曲率可视距离计算器</span></span>
+    </a>
+    <a href="observation-conditions.html" class="related-tool-card">
+      <span class="rt-icon">🔭</span>
+      <span class="rt-info"><span class="rt-name">天文观测条件计算器 - 在线估算月相、月升月落时间、月光干扰与光污染评分，给出 1- | ToolBox免费在线工具箱</span><span class="rt-desc">天文观测条件计算器</span></span>
+    </a>
+    <a href="solar-elevation.html" class="related-tool-card">
+      <span class="rt-icon">☀️</span>
+      <span class="rt-info"><span class="rt-name">太阳高度角计算器 - 根据日期、时间、经纬度计算太阳高度角、方位角、太阳赤纬、时角 | ToolBox免费在线工具箱</span><span class="rt-desc">太阳高度角计算器</span></span>
+    </a>
+  </div>
+</div>
+<div class="tool-intro open" id="toolIntro">
+    <div class="tool-intro-header">
+      <span class="intro-icon-wrap"><span class="intro-icon">📖</span>关于「潮汐高度估算器」</span>
+      <span class="arrow">▼</span>
+    </div>
+    <div class="tool-intro-body">
+      <h4><span class="h4-icon">📝</span>工具简介</h4>
+      <p>潮汐高度估算器是一款基于天体引潮力的在线潮汐计算工具。它根据输入的日期、月相、平均潮差与纬度，结合月球与太阳的引潮力（平衡潮理论）估算合成潮汐高度、预测潮差，并判断当日属于朔望大潮还是方照小潮，同时按纬度判断潮汐类型（半日潮、混合潮、全日潮），最后用 Canvas 绘制 24 小时潮汐高度曲线并估算高潮、低潮出现时间。所有计算在浏览器本地完成，数据不上传，保护隐私。</p>
+      <h4><span class="h4-icon">✨</span>功能特点</h4>
+      <ul class="intro-features">
+        <li>月球引潮力计算（含月地距离变化）</li>
+        <li>太阳引潮力计算（含日地距离变化）</li>
+        <li>月日合成潮高与潮差预测</li>
+        <li>朔望大潮 / 方照小潮自动判断</li>
+        <li>按纬度判断潮汐类型</li>
+        <li>Canvas 24 小时潮汐曲线可视化</li>
+        <li>高潮、低潮时间估算</li>
+        <li>支持深色模式与移动端响应式</li>
+      </ul>
+      <h4><span class="h4-icon">🎯</span>使用场景</h4>
+      <ul class="intro-scenes">
+        <li>海洋科学教学与课堂演示</li>
+        <li>天文与地理爱好者探索潮汐成因</li>
+        <li>赶海、观潮前的大致潮况参考</li>
+        <li>航海、渔业入门知识学习</li>
+        <li>潮汐发电可行性初步评估</li>
+      </ul>
+      <h4><span class="h4-icon">💡</span>潮汐小知识</h4>
+      <p>潮汐由月球和太阳的引潮力产生，引潮力与天体距离的三次方成反比。月球引潮力约为太阳的 2.17 倍（太阳约占 46%）。朔（新月）与望（满月）时日月引潮力同向叠加形成<strong>大潮</strong>；上弦、下弦（方照）时二者相互抵消一部分形成<strong>小潮</strong>。月球近地点时引潮力增大约 25%，可形成「近地点大潮」。赤道附近多为半日潮（每日两次高潮两次低潮），高纬度地区全日潮特征更明显。</p>
+      <h4><span class="h4-icon">💬</span>常见问题</h4>
+      <div class="intro-faq-item"><div class="intro-faq-q">这个工具的估算结果准确吗？</div><div class="intro-faq-a">本工具基于平衡潮理论，仅反映天体引潮力的理论量级与趋势。实际潮汐受地形、水深、共振等影响很大，沿海实测潮差可达理论值的数倍，因此结果仅供学习参考，不可用于航行或工程决策。</div></div>
+      <div class="intro-faq-item"><div class="intro-faq-q">「平均潮差」填什么？</div><div class="intro-faq-a">填写目标地点长期观测的平均潮差（单位米），例如中国东海沿岸约 2-4 米，渤海约 1-2 米。它用于把理论平衡潮按比例换算为本地实际量级。</div></div>
+      <div class="intro-faq-item"><div class="intro-faq-q">为什么高潮时间和实际不一致？</div><div class="intro-faq-a">实际潮时由本地潮汐调和常数决定，存在「潮龄」与港区订正。本工具的理论潮时仅供示意，每日潮时约比前一日推迟 50 分钟的规律会被体现。</div></div>
+      <div class="intro-faq-item"><div class="intro-faq-q">我的数据会被上传吗？</div><div class="intro-faq-a">不会。所有计算都在你的浏览器本地完成，数据不会发送到任何服务器。</div></div>
+    </div>
+  </div>
+  <!-- /SEO 介绍区块 -->
+</div>
+
+<script>
+(function(){
+'use strict';
+
+/* ===== 天文常数 ===== */
+var L_MEAN  = 0.542;        // 月球平衡潮振幅(m)，平均距离
+var S_MEAN  = 0.249;        // 太阳平衡潮振幅(m)，平均距离
+var A_MOON  = 384400;       // 月球轨道半长轴(km)
+var E_MOON  = 0.0549;       // 月球轨道偏心率
+var A_SUN   = 149600000;    // 日地平均距离(km)
+var E_SUN   = 0.01671;      // 地球轨道偏心率
+var SYNODIC = 29.530588853; // 朔望月(天)
+var M2_PERIOD = 12.42;      // 太阴半日潮周期(小时，M2)
+var K1_PERIOD = 24.0;       // 全日潮近似周期(小时)
+
+/* 月相定义（角度 D：0=新月） */
+var PHASE_LIST = [
+  { name:'新月（朔）',  D:0,   emoji:'🌑' },
+  { name:'蛾眉月',      D:45,  emoji:'🌒' },
+  { name:'上弦月',      D:90,  emoji:'🌓' },
+  { name:'盈凸月',      D:135, emoji:'🌔' },
+  { name:'满月（望）',  D:180, emoji:'🌕' },
+  { name:'亏凸月',      D:225, emoji:'🌖' },
+  { name:'下弦月',      D:270, emoji:'🌗' },
+  { name:'残月',        D:315, emoji:'🌘' }
+];
+
+/* ===== 儒略日 ===== */
+function julianDay(y, m, day){
+  if(m <= 2){ y -= 1; m += 12; }
+  var A = Math.floor(y / 100);
+  var B = 2 - A + Math.floor(A / 4);
+  return Math.floor(365.25 * (y + 4716)) + Math.floor(30.6001 * (m + 1)) + day + B - 1524.5;
+}
+function mod360(x){ x = x % 360; if(x < 0) x += 360; return x; }
+
+/* ===== 由日期推算天文参数 ===== */
+function astroFromJDE(jde){
+  var d = jde - 2451545.0;
+  var D  = mod360(297.8501921 + 12.19074912 * d);   // 月球平黄经差(月相角)
+  var Mm = mod360(134.9633964 + 13.06499295 * d);   // 月球平近点角(定距离)
+  var Ms = mod360(357.5291 + 0.98560028 * d);       // 太阳平近点角(定日地距)
+  var rMoon = A_MOON * (1 - E_MOON*E_MOON) / (1 + E_MOON * Math.cos(Mm * Math.PI/180));
+  var rSun  = A_SUN  * (1 - E_SUN *E_SUN ) / (1 + E_SUN  * Math.cos(Ms * Math.PI/180));
+  var age   = D / 360 * SYNODIC;
+  var illum = 0.5 * (1 - Math.cos(D * Math.PI/180));
+  return { D:D, Mm:Mm, Ms:Ms, rMoon:rMoon, rSun:rSun, age:age, illum:illum };
+}
+
+function phaseInfoByD(D){
+  // 取最接近的相位（环形距离）
+  var best = PHASE_LIST[0], bestDelta = 999;
+  for(var j=0;j<PHASE_LIST.length;j++){
+    var delta = Math.min(Math.abs(D - PHASE_LIST[j].D), 360 - Math.abs(D - PHASE_LIST[j].D));
+    if(delta < bestDelta){ bestDelta = delta; best = PHASE_LIST[j]; }
+  }
+  return best;
+}
+
+/* ===== 时间格式化 ===== */
+function fmtTime(t){
+  t = ((t % 24) + 24) % 24;
+  var h = Math.floor(t);
+  var m = Math.round((t - h) * 60);
+  if(m === 60){ h = (h + 1) % 24; m = 0; }
+  return (h < 10 ? '0' : '') + h + ':' + (m < 10 ? '0' : '') + m;
+}
+function fmt(n, d){ return (n == null || isNaN(n)) ? '--' : Number(n).toFixed(d == null ? 2 : d); }
+
+/* ===== 全局渲染缓存（供主题切换重绘） ===== */
+var lastRender = null;
+
+/* ===== 主计算 ===== */
+function calc(){
+  var dateStr = document.getElementById('date').value;
+  var range = parseFloat(document.getElementById('range').value);
+  var lat = parseFloat(document.getElementById('lat').value);
+  var auto = document.getElementById('autoPhase').checked;
+
+  // 校验
+  var err = [];
+  if(!dateStr) err.push('请选择日期');
+  if(isNaN(range) || range <= 0) err.push('平均潮差需为正数');
+  if(isNaN(lat) || lat < -90 || lat > 90) err.push('纬度需在 -90 ~ 90 之间');
+  if(err.length){
+    document.getElementById('phaseInfo').innerHTML = '⚠️ ' + err.join('；');
+    document.getElementById('dataGrid').innerHTML = '';
+    document.getElementById('tideTimes').innerHTML = '';
+    document.getElementById('cycleInfo').innerHTML = '';
+    var ctx = document.getElementById('tideChart').getContext('2d');
+    ctx.clearRect(0,0,document.getElementById('tideChart').width,document.getElementById('tideChart').height);
+    lastRender = null;
+    return;
+  }
+
+  // 解析日期 -> 儒略日
+  var parts = dateStr.split('-');
+  var jde = julianDay(+parts[0], +parts[1], +parts[2] + 0.0); // 当日0时
+  var astro = astroFromJDE(jde);
+
+  // 月相角 D
+  var D;
+  if(auto){
+    D = astro.D;
+  }else{
+    D = parseFloat(document.getElementById('manualPhase').value) || 0;
+  }
+  var ph = phaseInfoByD(D);
+
+  // 引潮力振幅（随距离三次方变化）
+  var L = L_MEAN * Math.pow(A_MOON / astro.rMoon, 3);  // 月球
+  var S = S_MEAN * Math.pow(A_SUN  / astro.rSun , 3);  // 太阳
+
+  // 合成（半日潮合成：sqrt(L² + S² + 2LS·cos2D)）
+  var phaseRad = D * Math.PI / 180;
+  var combined = Math.sqrt(L*L + S*S + 2*L*S*Math.cos(2*phaseRad));
+  var combinedMean = Math.sqrt(L_MEAN*L_MEAN + S_MEAN*S_MEAN); // 长期均方根≈0.597
+  var scale = combined / combinedMean;
+
+  // 本地预测潮差与振幅
+  var predRange = range * scale;
+  var predAmp = predRange / 2;
+
+  // 大潮/小潮判断
+  var phaseFactor = Math.cos(2 * phaseRad); // +1 朔望大潮, -1 方照小潮
+  var stage, stageBadge;
+  if(phaseFactor > 0.5){ stage = '大潮'; stageBadge = 'badge-spring'; }
+  else if(phaseFactor < -0.5){ stage = '小潮'; stageBadge = 'badge-neap'; }
+  else { stage = '中潮'; stageBadge = 'badge-mid'; }
+
+  var sunMoonRatio = S / L; // 太阳/月球引潮力比
+
+  // 潮汐类型（按纬度 + 平衡潮纬度因子）
+  var latRad = lat * Math.PI / 180;
+  var semiFactor = Math.cos(latRad) * Math.cos(latRad);     // 半日潮纬度因子
+  var diurFactor = Math.abs(Math.sin(2 * latRad));          // 全日潮纬度因子
+  var tideType, typeBadge, typeDesc;
+  if(Math.abs(lat) <= 25){
+    tideType = '半日潮'; typeBadge = 'badge-semi';
+    typeDesc = '每日约两次高潮、两次低潮，相邻潮差相近';
+  }else if(Math.abs(lat) <= 50){
+    tideType = '混合潮'; typeBadge = 'badge-mixed';
+    typeDesc = '半日潮为主，但相邻潮差明显不等';
+  }else{
+    tideType = '全日潮'; typeBadge = 'badge-diur';
+    typeDesc = '每日约一次高潮、一次低潮为主';
+  }
+
+  /* ---- 月相信息卡 ---- */
+  document.getElementById('phaseInfo').innerHTML =
+    '<div class="phase-row">' +
+      '<div class="phase-emoji">' + ph.emoji + '</div>' +
+      '<div class="phase-meta">' +
+        '<b>' + ph.name + '</b>　月龄 ' + fmt(astro.age, 1) + ' 天　照度 ' + fmt(astro.illum*100, 0) + '%<br>' +
+        '月地距离 <b>' + fmt(astro.rMoon, 0) + '</b> km　日地距离 <b>' + fmt(astro.rSun/1000000, 3) + '</b> 百万 km' +
+      '</div>' +
+    '</div>';
+
+  /* ---- 数据卡片 ---- */
+  var cards = [
+    { icon: ph.emoji, num: ph.name, cls:'txt', label:'当日月相' },
+    { icon:'🌑', num: fmt(L,3)+'<small>m</small>', label:'月球引潮力（vs均值 ' + fmt(L/L_MEAN*100,0) + '%）' },
+    { icon:'☀️', num: fmt(S,3)+'<small>m</small>', label:'太阳引潮力（占月球 ' + fmt(sunMoonRatio*100,0) + '%）' },
+    { icon:'🌊', num: fmt(combined,3)+'<small>m</small>', label:'合成潮高（倍率 ' + fmt(scale,2) + '×）' },
+    { icon:'🔁', num: '<span class="tide-badge '+stageBadge+'">'+stage+'</span>', cls:'txt', label:'潮汐阶段' },
+    { icon:'📍', num: '<span class="tide-badge '+typeBadge+'">'+tideType+'</span>', cls:'txt', label:'潮汐类型（按纬度）' },
+    { icon:'📏', num: fmt(predRange,2)+'<small>m</small>', label:'预测潮差' },
+    { icon:'⬆️', num: fmt(predAmp,2)+'<small>m</small>', label:'预测高潮位（相对海平面）' }
+  ];
+  var gridHtml = '';
+  cards.forEach(function(c){
+    gridHtml += '<div class="data-card"><div class="dc-icon">'+c.icon+'</div>' +
+      '<div class="num '+(c.cls||'')+'">'+c.num+'</div>' +
+      '<div class="label">'+c.label+'</div></div>';
+  });
+  document.getElementById('dataGrid').innerHTML = gridHtml;
+
+  /* ---- 构建 24 小时潮汐曲线 ---- */
+  // 半日 / 全日分量权重（按纬度因子）
+  var wSemi = semiFactor;
+  var wDiur = 0.5 * diurFactor;
+  // 潮时相位（随月龄推移，每日约延后 50 分钟）
+  var phaseS = (astro.age * 0.82) % M2_PERIOD;
+  var phaseD = phaseS / 2;
+
+  var pts = [];
+  var maxAbs = 0;
+  for(var t = 0; t <= 24.0001; t += 0.05){
+    var h = wSemi * Math.cos(2*Math.PI*(t - phaseS)/M2_PERIOD)
+          + wDiur * Math.cos(2*Math.PI*(t - phaseD)/K1_PERIOD);
+    if(Math.abs(h) > maxAbs) maxAbs = Math.abs(h);
+    pts.push({ t:t, h:h });
+  }
+  var s2 = predAmp / (maxAbs || 1);
+  pts.forEach(function(p){ p.h *= s2; });
+
+  // 找极值（高潮/低潮）
+  var extrema = [];
+  for(var i = 1; i < pts.length - 1; i++){
+    var a = pts[i-1].h, b = pts[i].h, c = pts[i+1].h;
+    if(b >= a && b >= c && (b > a || b > c)){
+      extrema.push({ t:pts[i].t, h:b, type:'high' });
+    }else if(b <= a && b <= c && (b < a || b < c)){
+      extrema.push({ t:pts[i].t, h:b, type:'low' });
+    }
+  }
+  // 去除过近的重复极值（步长很小，平顶情况）
+  var cleaned = [];
+  extrema.forEach(function(e){
+    var last = cleaned[cleaned.length-1];
+    if(!last || Math.abs(e.t - last.t) > 0.2 || last.type !== e.type){
+      cleaned.push(e);
+    }else if((e.type==='high' && e.h > last.h) || (e.type==='low' && e.h < last.h)){
+      cleaned[cleaned.length-1] = e;
+    }
+  });
+  extrema = cleaned;
+
+  /* ---- 高潮/低潮时间列表 ---- */
+  var timesHtml = '';
+  if(!extrema.length){
+    timesHtml = '<div class="empty-state">暂无足够数据</div>';
+  }else{
+    // 按时间排序
+    extrema.sort(function(a,b){ return a.t - b.t; });
+    extrema.forEach(function(e){
+      var color = e.type==='high' ? '#10B981' : '#EF4444';
+      var label = e.type==='high' ? '高潮' : '低潮';
+      timesHtml += '<div class="tt-item"><span class="tt-dot" style="background:'+color+';"></span>' +
+        '<span>'+label+'</span><span class="tt-time">'+fmtTime(e.t)+'</span>' +
+        '<span class="tt-h">'+fmt(e.h,2)+' m</span></div>';
+    });
+  }
+  document.getElementById('tideTimes').innerHTML = timesHtml;
+
+  /* ---- 潮汐周期信息 ---- */
+  var highCount = extrema.filter(function(e){ return e.type==='high'; }).length;
+  var lowCount  = extrema.filter(function(e){ return e.type==='low'; }).length;
+  document.getElementById('cycleInfo').innerHTML =
+    '<p>📅 <strong>潮汐类型</strong>：' + tideType + '（' + typeDesc + '）</p>' +
+    '<p>🔁 <strong>主潮周期</strong>：半日潮分量 ' + M2_PERIOD + ' 小时（约 12 小时 25 分），全日潮分量 ' + K1_PERIOD + ' 小时</p>' +
+    '<p>🌊 <strong>当日潮次</strong>：预计 ' + highCount + ' 次高潮、' + lowCount + ' 次低潮</p>' +
+    '<p>⏰ <strong>潮时规律</strong>：高潮时间每日约比前一日推迟 50 分钟（跟随月球中天）</p>' +
+    '<p>📏 <strong>预测潮差</strong>：' + fmt(predRange,2) + ' m（平均潮差 ' + fmt(range,2) + ' m × 倍率 ' + fmt(scale,2) + '）</p>';
+
+  /* ---- 绘制曲线 ---- */
+  lastRender = { pts:pts, extrema:extrema, predAmp:predAmp };
+  drawChart(lastRender);
+}
+
+/* ===== Canvas 绘制 ===== */
+function drawChart(r){
+  if(!r) return;
+  var canvas = document.getElementById('tideChart');
+  var ctx = canvas.getContext('2d');
+  var dpr = window.devicePixelRatio || 1;
+  var cssW = canvas.clientWidth || 720;
+  var cssH = window.innerWidth < 768 ? 200 : 240;
+  canvas.width = Math.round(cssW * dpr);
+  canvas.height = Math.round(cssH * dpr);
+  canvas.style.height = cssH + 'px';
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+  var dark = document.body.classList.contains('dark') || document.documentElement.getAttribute('data-theme') === 'dark';
+  var cText = dark ? '#9CA3AF' : '#6B7280';
+  var cAxis = dark ? '#3A3A5A' : '#E5E7EB';
+  var cGrid = dark ? '#2D2D4A' : '#F3F4F6';
+  var cLine = '#FF6B35';
+  var cHigh = '#10B981';
+  var cLow  = '#EF4444';
+  var cSea  = dark ? '#6B7280' : '#9CA3AF';
+  var cFillTop = 'rgba(255,107,53,0.22)';
+  var cFillBot = 'rgba(124,58,237,0.03)';
+
+  var padL = 46, padR = 14, padT = 14, padB = 26;
+  var W = cssW, H = cssH;
+  var plotW = W - padL - padR, plotH = H - padT - padB;
+
+  var yMax = Math.max(r.predAmp * 1.18, 0.1);
+  var yMin = -yMax;
+  function xOf(t){ return padL + (t/24) * plotW; }
+  function yOf(v){ return padT + (1 - (v - yMin)/(yMax - yMin)) * plotH; }
+
+  ctx.clearRect(0, 0, W, H);
+
+  // 浅网格
+  ctx.strokeStyle = cGrid; ctx.lineWidth = 1;
+  for(var hg = 0; hg <= 24; hg += 2){
+    var xg = xOf(hg);
+    ctx.beginPath(); ctx.moveTo(xg, padT); ctx.lineTo(xg, padT + plotH); ctx.stroke();
+  }
+
+  // 主网格 + x 标签
+  ctx.strokeStyle = cAxis; ctx.fillStyle = cText; ctx.lineWidth = 1;
+  ctx.font = '11px -apple-system,BlinkMacSystemFont,sans-serif'; ctx.textAlign = 'center';
+  for(var h = 0; h <= 24; h += 4){
+    var x = xOf(h);
+    ctx.beginPath(); ctx.moveTo(x, padT); ctx.lineTo(x, padT + plotH); ctx.stroke();
+    ctx.fillText(h + 'h', x, padT + plotH + 16);
+  }
+
+  // y 标签
+  ctx.textAlign = 'right';
+  var ySteps = [-1, -0.5, 0, 0.5, 1];
+  ySteps.forEach(function(s){
+    var v = s * yMax;
+    var y = yOf(v);
+    ctx.strokeStyle = (s === 0) ? cSea : cAxis;
+    ctx.setLineDash(s === 0 ? [5,4] : []);
+    ctx.beginPath(); ctx.moveTo(padL, y); ctx.lineTo(padL + plotW, y); ctx.stroke();
+    ctx.fillText(v.toFixed(2), padL - 6, y + 3);
+  });
+  ctx.setLineDash([]);
+
+  // 平均海平面标注
+  var y0 = yOf(0);
+  ctx.fillStyle = cSea; ctx.textAlign = 'left';
+  ctx.fillText('平均海平面', padL + 6, y0 - 5);
+
+  // 填充区域
+  var grad = ctx.createLinearGradient(0, padT, 0, padT + plotH);
+  grad.addColorStop(0, cFillTop);
+  grad.addColorStop(1, cFillBot);
+  ctx.beginPath();
+  ctx.moveTo(xOf(r.pts[0].t), y0);
+  r.pts.forEach(function(p){ ctx.lineTo(xOf(p.t), yOf(p.h)); });
+  ctx.lineTo(xOf(r.pts[r.pts.length-1].t), y0);
+  ctx.closePath();
+  ctx.fillStyle = grad; ctx.fill();
+
+  // 曲线
+  ctx.strokeStyle = cLine; ctx.lineWidth = 2.2; ctx.lineJoin = 'round';
+  ctx.beginPath();
+  r.pts.forEach(function(p, i){
+    var x = xOf(p.t), y = yOf(p.h);
+    if(i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+  });
+  ctx.stroke();
+
+  // 高潮/低潮标记
+  ctx.font = '11px -apple-system,BlinkMacSystemFont,sans-serif';
+  r.extrema.forEach(function(e){
+    var x = xOf(e.t), y = yOf(e.h);
+    ctx.fillStyle = e.type === 'high' ? cHigh : cLow;
+    ctx.beginPath(); ctx.arc(x, y, 4.5, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = '#fff';
+    ctx.beginPath(); ctx.arc(x, y, 1.6, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = cText; ctx.textAlign = 'center';
+    var label = (e.type === 'high' ? '高 ' : '低 ') + fmtTime(e.t);
+    ctx.fillText(label, x, e.type === 'high' ? y - 9 : y + 16);
+  });
+}
+
+/* ===== 复制结果 ===== */
+function copyResult(){
+  if(!lastRender){
+    ToolBox.showToast(i18nText('toast.copy_target_missing'), 'warning');
+    return;
+  }
+  var dateStr = document.getElementById('date').value;
+  var range = document.getElementById('range').value;
+  var lat = document.getElementById('lat').value;
+  var lines = [];
+  lines.push('潮汐高度估算结果');
+  lines.push('日期：' + dateStr + '　纬度：' + lat + '°　平均潮差：' + range + ' m');
+  var cards = document.querySelectorAll('#dataGrid .data-card');
+  cards.forEach(function(c){
+    var num = c.querySelector('.num').textContent.trim();
+    var lbl = c.querySelector('.label').textContent.trim();
+    lines.push(lbl + '：' + num);
+  });
+  lines.push('高潮/低潮时间：');
+  document.querySelectorAll('#tideTimes .tt-item').forEach(function(it){
+    lines.push('  ' + it.textContent.replace(/\s+/g,' ').trim());
+  });
+  ToolBox.copyText(lines.join('\n'), i18nText('msg490'));
+}
+
+/* ===== 重置为今天 ===== */
+function resetToday(){
+  var now = new Date();
+  var m = (now.getMonth()+1); var d = now.getDate();
+  document.getElementById('date').value = now.getFullYear() + '-' + (m<10?'0':'')+m + '-' + (d<10?'0':'')+d;
+  document.getElementById('autoPhase').checked = true;
+  toggleManual();
+  calc();
+}
+
+/* ===== 手动月相切换 ===== */
+function toggleManual(){
+  var auto = document.getElementById('autoPhase').checked;
+  document.getElementById('manualWrap').classList.toggle('show', !auto);
+}
+
+/* ===== 初始化月相下拉 ===== */
+function initPhaseSelect(){
+  var sel = document.getElementById('manualPhase');
+  var html = '';
+  PHASE_LIST.forEach(function(p){
+    html += '<option value="' + p.D + '">' + p.emoji + ' ' + p.name + '</option>';
+  });
+  sel.innerHTML = html;
+}
+
+/* ===== 暴露到全局 ===== */
+window.calc = calc;
+window.copyResult = copyResult;
+window.resetToday = resetToday;
+window.toggleManual = toggleManual;
+
+/* ===== 事件绑定 ===== */
+document.addEventListener('DOMContentLoaded', function(){
+  initPhaseSelect();
+
+  // 默认今天
+  var now = new Date();
+  var m = (now.getMonth()+1); var d = now.getDate();
+  document.getElementById('date').value = now.getFullYear() + '-' + (m<10?'0':'')+m + '-' + (d<10?'0':'')+d;
+
+  // 实时计算
+  ['date','range','lat','autoPhase','manualPhase'].forEach(function(id){
+    var el = document.getElementById(id);
+    if(!el) return;
+    el.addEventListener('input', function(){
+      if(id === 'autoPhase') toggleManual();
+      calc();
+    });
+    el.addEventListener('change', function(){
+      if(id === 'autoPhase') toggleManual();
+      calc();
+    });
+  });
+
+  // 主题切换重绘
+  var redraw = function(){ if(lastRender) drawChart(lastRender); };
+  var mo = new MutationObserver(redraw);
+  mo.observe(document.documentElement, { attributes:true, attributeFilter:['data-theme'] });
+  mo.observe(document.body, { attributes:true, attributeFilter:['class'] });
+  window.addEventListener('resize', ToolBox.debounce(redraw, 180));
+
+  // tool-intro 折叠
+  document.querySelectorAll('.tool-intro-header').forEach(function(h){
+    h.addEventListener('click', function(){ this.parentElement.classList.toggle('open'); });
+  });
+
+  // 首次计算
+  calc();
+});
+
+})();
+</script>
+
+</body>
+</html>

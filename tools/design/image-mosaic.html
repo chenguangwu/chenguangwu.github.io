@@ -1,0 +1,906 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+
+<script src="/js/tool-page-runtime.js" defer></script>
+<!-- TOOLBOX-TOOL-RUNTIME -->
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="toolbox" content="cat=image,industry=design,icon=🟫,bg=#fff3e0">
+<title>图片马赛克工具 - ㊗ 图片马赛克工具 - 上传图片，自由调节马赛克块大小 - ToolBox</title>
+<link rel="canonical" href="https://chenguangwu.github.io/tools/design/image-mosaic.html">
+<meta property="og:title" content="图片马赛克工具 - ㊗ 图片马赛克工具 - 上传图片，自由调节马赛克块大小 - ToolBox">
+<meta property="og:description" content="㊗ 图片马赛克工具 - 上传图片，自由调节马赛克块大小，支持全图或框选区域打码，纯本地处理，图片不会上传。免费在线工具，纯前端本地处理，数据不上传。">
+<meta property="og:url" content="https://chenguangwu.github.io/tools/design/image-mosaic.html">
+<meta name="twitter:card" content="summary">
+<meta name="description" content="㊗ 图片马赛克工具 - 上传图片，自由调节马赛克块大小，支持全图或框选区域打码，纯本地处理，图片不会上传。免费在线工具，纯前端本地处理，数据不上传。">
+<link rel="stylesheet" href="../../css/common.css">
+<script src="../../js/common.js"></script>
+<style>
+  .upload-zone {
+    border: 2px dashed var(--border);
+    border-radius: 16px;
+    padding: 40px 20px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.25s ease;
+    background: var(--result-bg);
+    position: relative;
+  }
+  .upload-zone:hover,
+  .upload-zone.drag-over {
+    border-color: var(--primary);
+    background: rgba(255,107,53,0.06);
+  }
+  .upload-zone .upload-icon {
+    font-size: 48px;
+    margin-bottom: 12px;
+    display: block;
+  }
+  .upload-zone .upload-text {
+    font-size: 15px;
+    color: var(--text-secondary);
+    line-height: 1.6;
+  }
+  .upload-zone .upload-text strong {
+    color: var(--primary);
+  }
+  .upload-zone input[type="file"] {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    cursor: pointer;
+  }
+
+  /* 参数区域 */
+  .param-grid {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    gap: 10px 16px;
+    align-items: center;
+    margin-bottom: 16px;
+  }
+  .param-grid label {
+    font-size: 14px;
+    color: var(--text-secondary);
+    font-weight: 500;
+    white-space: nowrap;
+  }
+  .param-grid input[type="range"] {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+    height: 6px;
+    border-radius: 3px;
+    background: var(--border);
+    outline: none;
+    border: none;
+    padding: 0;
+  }
+  .param-grid input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: var(--primary);
+    cursor: pointer;
+    box-shadow: 0 2px 6px rgba(255,107,53,0.3);
+    transition: transform 0.15s;
+  }
+  .param-grid input[type="range"]::-webkit-slider-thumb:hover {
+    transform: scale(1.15);
+  }
+  .param-grid input[type="range"]::-moz-range-thumb {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: var(--primary);
+    cursor: pointer;
+    border: none;
+    box-shadow: 0 2px 6px rgba(255,107,53,0.3);
+  }
+  .param-grid .val-display {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--primary);
+    min-width: 40px;
+    text-align: center;
+    background: var(--result-bg);
+    padding: 4px 10px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+  }
+
+  /* 预览区域 */
+  .preview-area {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-top: 16px;
+  }
+  .preview-panel {
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+    background: var(--result-bg);
+    min-height: 200px;
+    display: flex;
+    flex-direction: column;
+  }
+  .preview-panel .panel-header {
+    padding: 10px 14px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    background: var(--bg-hover);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .preview-panel .panel-body {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 12px;
+    position: relative;
+    overflow: hidden;
+  }
+  .preview-panel .panel-body canvas {
+    max-width: 100%;
+    max-height: 400px;
+    border-radius: 4px;
+    display: block;
+  }
+  .preview-panel .panel-body .empty-hint {
+    color: var(--text-muted);
+    font-size: 13px;
+    text-align: center;
+    line-height: 1.8;
+  }
+  .panel-header .dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .dot-original { background: var(--accent); }
+  .dot-mosaic { background: var(--primary); }
+
+  /* 框选提示 */
+  .selection-info {
+    font-size: 13px;
+    color: var(--text-muted);
+    margin-top: 8px;
+    line-height: 1.6;
+  }
+
+  /* 模式切换按钮组 */
+  .mode-group {
+    display: flex;
+    gap: 4px;
+    background: var(--result-bg);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 4px;
+    margin-bottom: 16px;
+  }
+  .mode-btn {
+    flex: 1;
+    padding: 8px 16px;
+    border: none;
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    background: transparent;
+    color: var(--text-secondary);
+    transition: all 0.2s;
+  }
+  .mode-btn:hover {
+    color: var(--primary);
+    background: var(--bg-hover);
+  }
+  .mode-btn.active {
+    background: var(--gradient-primary);
+    color: #fff;
+    box-shadow: 0 2px 8px rgba(255,107,53,0.25);
+  }
+
+  /* 隐藏的原始画布 */
+  .hidden-canvas {
+    display: none;
+  }
+
+  /* 框选覆盖层 */
+  .canvas-wrapper {
+    position: relative;
+    display: inline-block;
+  }
+  .canvas-wrapper canvas {
+    display: block;
+    max-width: 100%;
+    max-height: 400px;
+    border-radius: 4px;
+  }
+  .selection-overlay {
+    position: absolute;
+    border: 2px dashed var(--primary);
+    background: rgba(255,107,53,0.12);
+    pointer-events: none;
+    display: none;
+    z-index: 5;
+    border-radius: 2px;
+  }
+  .canvas-wrapper .crosshair {
+    cursor: crosshair;
+  }
+
+  /* 信息统计 */
+  .info-stats {
+    display: flex;
+    gap: 16px;
+    margin-top: 12px;
+    flex-wrap: wrap;
+  }
+  .info-stats .stat {
+    font-size: 12px;
+    color: var(--text-muted);
+  }
+  .info-stats .stat strong {
+    color: var(--text-primary);
+    font-weight: 600;
+  }
+
+  @media (max-width: 768px) {
+    .preview-area {
+      grid-template-columns: 1fr;
+    }
+    .upload-zone {
+      padding: 30px 16px;
+    }
+    .upload-zone .upload-icon {
+      font-size: 36px;
+    }
+    .param-grid {
+      grid-template-columns: auto 1fr auto;
+    }
+  }
+</style>
+
+
+
+<meta property="og:image" content="https://chenguangwu.github.io/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="ToolBox - 6000+免费在线工具">
+<meta name="twitter:image" content="https://chenguangwu.github.io/og-image.png">
+<meta name="twitter:image:alt" content="ToolBox - 6000+免费在线工具">
+    <meta property="og:type" content="website">
+    <meta name="twitter:title" content="图片马赛克工具 - ㊗ 图片马赛克工具 - 上传图片，自由调节马赛克块大小 - ToolBox">
+    <meta name="twitter:description" content="㊗ 图片马赛克工具 - 上传图片，自由调节马赛克块大小，支持全图或框选区域打码，纯本地处理，图片不会上传。免费在线工具，纯前端本地处理，数据不上传。">
+<!-- TOOLBOX-WEBAPP-LD -->
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"WebApplication","name":"图片马赛克工具 - ㊗ 图片马赛克工具 - 上传图片，自由调节马赛克块大小","url":"https://chenguangwu.github.io/tools/design/image-mosaic.html","applicationCategory":"MultimediaApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":["zh-CN", "en-US"],"description":"&amp;#12951; 图片马赛克工具","image":"https://chenguangwu.github.io/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}
+</script>
+<meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
+<meta http-equiv="X-Content-Type-Options" content="nosniff">
+<meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
+<!-- TOOLBOX-SECURITY -->
+
+<script src="/js/privacy.js" defer></script>
+<!-- TOOLBOX-PRIVACY-SCRIPT -->
+
+<script src="/js/metrics.js" defer></script>
+<!-- TOOLBOX-METRICS-SCRIPT -->
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"首页","item":"https://chenguangwu.github.io/"},{"@type":"ListItem","position":2,"name":"设计创意","item":"https://chenguangwu.github.io/tools/design/index.html"},{"@type":"ListItem","position":3,"name":"图片马赛克工具","item":"https://chenguangwu.github.io/tools/design/image-mosaic.html"}]}
+</script>
+
+<script src="../../js/i18n.js" defer></script>
+<script src="../../js/tool-i18n.js" defer></script>
+<!-- TOOLBOX-I18N-SCRIPT -->
+<!-- TOOLBOX-HREFLANG -->
+<link rel="alternate" hreflang="zh-CN" href="https://chenguangwu.github.io/tools/design/image-mosaic.html">
+<link rel="alternate" hreflang="en-US" href="https://chenguangwu.github.io/tools/design/image-mosaic.html">
+<link rel="alternate" hreflang="x-default" href="https://chenguangwu.github.io/tools/design/image-mosaic.html">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:locale:alternate" content="en_US">
+
+<script src="/js/clarity.js" defer></script>
+<!-- TOOLBOX-CLARITY -->
+</head>
+<body>
+<h1 class="sr-only">图片马赛克工具</h1>
+
+
+<!-- 导航栏 -->
+<div class="nav">
+  <a href="../../index.html">&larr; ToolBox</a>
+  <span>/ 图片马赛克工具</span>
+  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()">&#127769;</button>
+</div>
+
+
+
+
+
+<nav class="breadcrumb" aria-label="面包屑导航" data-breadcrumb="1">
+  <a href="../../index.html">首页</a>
+  <span class="bc-sep">‹</span>
+  <a href="index.html">🎨 设计创意</a>
+  <span class="bc-sep">‹</span>
+  <span class="bc-current">图片马赛克工具</span>
+</nav>
+<div class="container">
+  <div class="card tool-card-accent" style="--tool-accent:#7C3AED;">
+    <h2>&#12951; 图片马赛克工具</h2>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;">上传图片，自由调节马赛克块大小，支持全图或框选区域打码，纯本地处理，图片不会上传</p>
+
+    <!-- 上传区域 -->
+    <div class="upload-zone" id="uploadZone">
+      <span class="upload-icon">&#128247;</span>
+      <div class="upload-text">
+        <strong>点击上传</strong> 或拖拽图片到此处<br>
+        <span style="font-size:12px;">支持 JPG / PNG / WebP / BMP，单张最大 20MB</span>
+      </div>
+      <input type="file" id="fileInput" accept="image/jpeg,image/png,image/webp,image/bmp">
+    </div>
+
+    <!-- 参数区域 -->
+    <div id="controlsArea" style="display:none;margin-top:16px;">
+      <h3 style="margin-bottom:12px;">参数设置</h3>
+
+      <!-- 模式切换 -->
+      <div class="mode-group">
+        <button type="button" class="mode-btn active" id="modeFull" onclick="setMode('full')">全图马赛克</button>
+        <button type="button" class="mode-btn" id="modeSelect" onclick="setMode('select')">框选区域马赛克</button>
+      </div>
+
+      <!-- 块大小 -->
+      <div class="param-grid">
+        <label>马赛克块大小</label>
+        <input type="range" id="blockSize" min="5" max="50" value="10" oninput="updateBlockSize()">
+        <div class="val-display" id="blockSizeVal">10px</div>
+      </div>
+
+      <!-- 工具栏 -->
+      <div class="toolbar">
+        <button type="button" class="btn primary" onclick="applyMosaicEffect()">&#128295; 应用马赛克</button>
+        <button type="button" class="btn" id="downloadBtn" onclick="downloadResult()" disabled>&#128229; 下载结果</button>
+        <button type="button" class="btn danger" onclick="resetImage()">&#8634; 重置</button>
+      </div>
+
+      <!-- 框选提示 -->
+      <div class="selection-info" id="selectionInfo" style="display:none;">
+        &#9432; 在左侧原图上拖拽鼠标框选需要打码的区域，然后点击「应用马赛克」
+      </div>
+
+      <!-- 预览区域 -->
+      <div class="preview-area">
+        <!-- 原图 -->
+        <div class="preview-panel">
+          <div class="panel-header"><span class="dot dot-original"></span> 原图</div>
+          <div class="panel-body" id="originalPanel">
+            <span class="empty-hint">等待上传...</span>
+          </div>
+        </div>
+        <!-- 结果 -->
+        <div class="preview-panel">
+          <div class="panel-header"><span class="dot dot-mosaic"></span> 马赛克结果</div>
+          <div class="panel-body" id="resultPanel">
+            <span class="empty-hint">点击「应用马赛克」生成...</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 图片信息 -->
+      <div class="info-stats" id="imageInfo"></div>
+    </div>
+  </div>
+
+  <!-- 工具介绍（SEO） -->
+  
+</div>
+
+</div>
+
+<!-- 相关工具 -->
+<div class="related-tools" data-related-tools="1">
+  <h3 class="related-tools-title">🔗 相关工具</h3>
+  <div class="related-tools-grid">
+    <a href="generator-10.html" class="related-tool-card">
+      <span class="rt-icon">🎨</span>
+      <span class="rt-info"><span class="rt-name">CSS动画生成器（关键帧可视化） - 免费在线工具，纯前端处理 | ToolBox免费在线工具箱</span><span class="rt-desc">CSS动画生成器（关键帧可视化）</span></span>
+    </a>
+    <a href="generator-5.html" class="related-tool-card">
+      <span class="rt-icon">🎨</span>
+      <span class="rt-info"><span class="rt-name">CSS渐变生成器（线性/径向/圆锥） - 免费在线工具，纯前端处理 | ToolBox免费在线工具箱</span><span class="rt-desc">CSS渐变生成器（线性/径向/圆锥）</span></span>
+    </a>
+    <a href="web-audio-metronome.html" class="related-tool-card">
+      <span class="rt-icon">🎼</span>
+      <span class="rt-info"><span class="rt-name">Web Audio 节拍器 - 免费生成器工具，在线节拍器 | ToolBox免费在线工具箱</span><span class="rt-desc">在线节拍器</span></span>
+    </a>
+    <a href="generator-8.html" class="related-tool-card">
+      <span class="rt-icon">🎨</span>
+      <span class="rt-info"><span class="rt-name">二维码生成器（已有，可加强定制） - 免费在线工具，纯前端处理 | ToolBox免费在线工具箱</span><span class="rt-desc">二维码生成器（已有，可加强定制）</span></span>
+    </a>
+    <a href="generator-9.html" class="related-tool-card">
+      <span class="rt-icon">🎨</span>
+      <span class="rt-info"><span class="rt-name">条形码生成器（EAN-13等） - 免费在线工具，纯前端处理 | ToolBox免费在线工具箱</span><span class="rt-desc">条形码生成器（EAN-13等）</span></span>
+    </a>
+    <a href="generator-6.html" class="related-tool-card">
+      <span class="rt-icon">🎨</span>
+      <span class="rt-info"><span class="rt-name">盒子阴影生成器（可视化调整） - 免费在线工具，纯前端处理 | ToolBox免费在线工具箱</span><span class="rt-desc">盒子阴影生成器（可视化调整）</span></span>
+    </a>
+  </div>
+</div>
+<div class="tool-intro" id="toolIntro">
+    <div class="tool-intro-header" onclick="toggleIntro()">
+      <span class="intro-icon-wrap">
+        <span class="intro-icon">&#12951;</span>
+        工具介绍与常见问题
+      </span>
+      <span class="arrow">&#9660;</span>
+    </div>
+    <div class="tool-intro-body">
+      <p>图片马赛克工具是一款纯前端在线打码工具，可对图片进行像素化处理，常用于隐私保护、信息遮挡等场景。</p>
+      <h4><span class="h4-icon">&#127919;</span> 功能特点</h4>
+      <ul class="intro-features">
+        <li>纯本地处理，图片不上传</li>
+        <li>支持全图和框选区域两种模式</li>
+        <li>块大小 5-50px 自由调节</li>
+        <li>实时预览处理效果</li>
+        <li>一键下载 PNG 结果</li>
+        <li>支持深色模式</li>
+      </ul>
+      <h4><span class="h4-icon">&#128214;</span> 使用场景</h4>
+      <ul class="intro-scenes">
+        <li>截图隐私信息打码</li>
+        <li>人脸模糊化处理</li>
+        <li>证件号码遮挡</li>
+        <li>敏感信息像素化</li>
+      </ul>
+      <h4><span class="h4-icon">&#10067;</span> 常见问题</h4>
+      <div class="intro-faq-item">
+        <div class="intro-faq-q">图片会被上传到服务器吗？</div>
+        <div class="intro-faq-a">不会。所有处理均在浏览器本地通过 Canvas API 完成，图片数据不会离开您的设备。</div>
+      </div>
+      <div class="intro-faq-item">
+        <div class="intro-faq-q">支持哪些图片格式？</div>
+        <div class="intro-faq-a">支持 JPG、PNG、WebP、BMP 等主流图片格式。处理结果导出为 PNG 格式，保证画质无损。</div>
+      </div>
+      <div class="intro-faq-item">
+        <div class="intro-faq-q">马赛克块大小怎么选？</div>
+        <div class="intro-faq-a">块越大，马赛克效果越模糊、遮挡越彻底；块越小，越接近原图但仍有像素化效果。一般 10-20px 适合日常打码。</div>
+      </div>
+    </div>
+  </div>
+
+<!-- 注意事项区块 -->
+<div class="tool-notes" style="--tool-accent:#7C3AED;">
+  <div class="tool-notes-title">⚠️ 使用说明与注意事项</div>
+  <ul>
+      <li>本工具纯前端运行，数据不会上传到服务器</li>
+      <li>建议在主流浏览器（Chrome/Safari/Firefox/Edge）中使用</li>
+      <li>计算结果仅供参考，请以实际应用场景为准</li>
+  </ul>
+</div>
+<!-- /注意事项区块 -->
+</div>
+
+<!-- 隐藏画布 -->
+<canvas id="srcCanvas" class="hidden-canvas"></canvas>
+
+<script>
+(function() {
+  'use strict';
+
+  // 状态变量
+  var originalImage = null;  // 原始 Image 对象
+  var currentMode = 'full';  // 'full' | 'select'
+  var blockSize = 10;
+  var selection = null;      // {x, y, w, h} 框选区域（原图坐标系）
+  var isSelecting = false;
+  var selectStart = null;    // 框选起点
+  var canvasScale = 1;       // 显示画布 vs 原始画布的缩放比
+
+  // DOM 缓存
+  var uploadZone = document.getElementById('uploadZone');
+  var fileInput = document.getElementById('fileInput');
+  var controlsArea = document.getElementById('controlsArea');
+  var blockSizeSlider = document.getElementById('blockSize');
+  var blockSizeVal = document.getElementById('blockSizeVal');
+  var downloadBtn = document.getElementById('downloadBtn');
+  var originalPanel = document.getElementById('originalPanel');
+  var resultPanel = document.getElementById('resultPanel');
+  var imageInfo = document.getElementById('imageInfo');
+  var selectionInfo = document.getElementById('selectionInfo');
+  var srcCanvas = document.getElementById('srcCanvas');
+
+  // ===== 上传处理 =====
+  fileInput.addEventListener('change', function(e) {
+    if (e.target.files && e.target.files[0]) {
+      loadImage(e.target.files[0]);
+    }
+  });
+
+  uploadZone.addEventListener('dragover', function(e) {
+    e.preventDefault();
+    uploadZone.classList.add('drag-over');
+  });
+  uploadZone.addEventListener('dragleave', function() {
+    uploadZone.classList.remove('drag-over');
+  });
+  uploadZone.addEventListener('drop', function(e) {
+    e.preventDefault();
+    uploadZone.classList.remove('drag-over');
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      var file = e.dataTransfer.files[0];
+      if (file.type.startsWith('image/')) {
+        loadImage(file);
+      } else {
+        ToolBox.showToast(i18nText('tool.file_upload_hint'), 'error');
+      }
+    }
+  });
+
+  function loadImage(file) {
+    if (file.size > 20 * 1024 * 1024) {
+      ToolBox.showToast(i18nText('toast.msg394'), 'warning');
+      return;
+    }
+    var reader = new FileReader();
+    reader.onload = function(e) {
+      var img = new Image();
+      img.onload = function() {
+        originalImage = img;
+        selection = null;
+        showOriginalPreview();
+        controlsArea.style.display = 'block';
+        downloadBtn.disabled = true;
+        resultPanel.innerHTML = '<span class="empty-hint">点击「应用马赛克」生成...</span>';
+
+        // 显示图片信息
+        imageInfo.innerHTML =
+          '<span class="stat">尺寸：<strong>' + img.width + ' x ' + img.height + '</strong></span>' +
+          '<span class="stat">格式：<strong>' + file.type.replace('image/', '').toUpperCase() + '</strong></span>' +
+          '<span class="stat">大小：<strong>' + formatFileSize(file.size) + '</strong></span>';
+
+        ToolBox.showToast(i18nText('tool.image_load_ok'));
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  }
+
+  function formatFileSize(bytes) {
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+    return (bytes / (1024 * 1024)).toFixed(2) + ' MB';
+  }
+
+  // ===== 原图预览 =====
+  function showOriginalPreview() {
+    if (!originalImage) return;
+
+    // 在原始画布上绘制
+    srcCanvas.width = originalImage.width;
+    srcCanvas.height = originalImage.height;
+    var ctx = srcCanvas.getContext('2d');
+    ctx.drawImage(originalImage, 0, 0);
+
+    // 在面板中显示可交互画布
+    originalPanel.innerHTML = '';
+
+    var wrapper = document.createElement('div');
+    wrapper.className = 'canvas-wrapper';
+
+    var displayCanvas = document.createElement('canvas');
+    displayCanvas.id = 'displayCanvas';
+    var displayCtx = displayCanvas.getContext('2d');
+
+    // 计算缩放
+    var panelWidth = originalPanel.clientWidth - 24;
+    var panelHeight = 400;
+    var scale = Math.min(panelWidth / originalImage.width, panelHeight / originalImage.height, 1);
+    canvasScale = scale;
+
+    displayCanvas.width = Math.round(originalImage.width * scale);
+    displayCanvas.height = Math.round(originalImage.height * scale);
+    displayCtx.drawImage(originalImage, 0, 0, displayCanvas.width, displayCanvas.height);
+
+    // 如果是框选模式，添加交互
+    if (currentMode === 'select') {
+      displayCanvas.className = 'crosshair';
+      displayCanvas.style.cursor = 'crosshair';
+    }
+
+    // 框选覆盖层
+    var overlay = document.createElement('div');
+    overlay.className = 'selection-overlay';
+    overlay.id = 'selectionOverlay';
+
+    wrapper.appendChild(displayCanvas);
+    wrapper.appendChild(overlay);
+    originalPanel.appendChild(wrapper);
+
+    // 绑定框选事件
+    bindSelectionEvents(displayCanvas, overlay);
+  }
+
+  // ===== 框选交互 =====
+  function bindSelectionEvents(canvas, overlay) {
+    var dragging = false;
+    var startX = 0, startY = 0;
+
+    function getPos(e) {
+      var rect = canvas.getBoundingClientRect();
+      var clientX, clientY;
+      if (e.touches) {
+        clientX = e.touches[0].clientX;
+        clientY = e.touches[0].clientY;
+      } else {
+        clientX = e.clientX;
+        clientY = e.clientY;
+      }
+      return {
+        x: clientX - rect.left,
+        y: clientY - rect.top
+      };
+    }
+
+    function onStart(e) {
+      if (currentMode !== 'select') return;
+      e.preventDefault();
+      dragging = true;
+      var pos = getPos(e);
+      startX = pos.x;
+      startY = pos.y;
+      overlay.style.display = 'none';
+      selection = null;
+    }
+
+    function onMove(e) {
+      if (!dragging || currentMode !== 'select') return;
+      e.preventDefault();
+      var pos = getPos(e);
+      var x = Math.min(startX, pos.x);
+      var y = Math.min(startY, pos.y);
+      var w = Math.abs(pos.x - startX);
+      var h = Math.abs(pos.y - startY);
+
+      overlay.style.display = 'block';
+      overlay.style.left = x + 'px';
+      overlay.style.top = y + 'px';
+      overlay.style.width = w + 'px';
+      overlay.style.height = h + 'px';
+    }
+
+    function onEnd(e) {
+      if (!dragging) return;
+      dragging = false;
+      if (currentMode !== 'select') return;
+
+      var pos;
+      if (e.changedTouches) {
+        pos = {
+          x: e.changedTouches[0].clientX - canvas.getBoundingClientRect().left,
+          y: e.changedTouches[0].clientY - canvas.getBoundingClientRect().top
+        };
+      } else {
+        pos = getPos(e);
+      }
+
+      var x = Math.min(startX, pos.x);
+      var y = Math.min(startY, pos.y);
+      var w = Math.abs(pos.x - startX);
+      var h = Math.abs(pos.y - startY);
+
+      if (w > 5 && h > 5) {
+        // 转换到原图坐标系
+        selection = {
+          x: Math.round(x / canvasScale),
+          y: Math.round(y / canvasScale),
+          w: Math.round(w / canvasScale),
+          h: Math.round(h / canvasScale)
+        };
+        ToolBox.showToast('已选择区域 (' + selection.w + 'x' + selection.h + ')');
+      } else {
+        overlay.style.display = 'none';
+        selection = null;
+      }
+    }
+
+    canvas.addEventListener('mousedown', onStart);
+    canvas.addEventListener('mousemove', onMove);
+    canvas.addEventListener('mouseup', onEnd);
+    canvas.addEventListener('mouseleave', function() {
+      if (dragging) onEnd({ clientX: 0, clientY: 0 });
+    });
+    canvas.addEventListener('touchstart', onStart, { passive: false });
+    canvas.addEventListener('touchmove', onMove, { passive: false });
+    canvas.addEventListener('touchend', onEnd);
+  }
+
+  // ===== 模式切换 =====
+  window.setMode = function(mode) {
+    currentMode = mode;
+    document.getElementById('modeFull').classList.toggle('active', mode === 'full');
+    document.getElementById('modeSelect').classList.toggle('active', mode === 'select');
+    selectionInfo.style.display = mode === 'select' ? 'block' : 'none';
+    selection = null;
+
+    // 刷新原图预览（更新光标和交互）
+    if (originalImage) {
+      showOriginalPreview();
+    }
+  };
+
+  // ===== 块大小更新 =====
+  window.updateBlockSize = function() {
+    blockSize = parseInt(blockSizeSlider.value, 10);
+    blockSizeVal.textContent = blockSize + 'px';
+  };
+
+  // ===== 马赛克算法 =====
+  function mosaicRegion(ctx, x, y, w, h, size) {
+    var imageData = ctx.getImageData(x, y, w, h);
+    var data = imageData.data;
+    var clampW = w;
+    var clampH = h;
+
+    for (var by = 0; by < clampH; by += size) {
+      for (var bx = 0; bx < clampW; bx += size) {
+        var r = 0, g = 0, b = 0, a = 0, count = 0;
+        var endDy = Math.min(by + size, clampH);
+        var endDx = Math.min(bx + size, clampW);
+        for (var dy = by; dy < endDy; dy++) {
+          for (var dx = bx; dx < endDx; dx++) {
+            var idx = (dy * clampW + dx) * 4;
+            r += data[idx];
+            g += data[idx + 1];
+            b += data[idx + 2];
+            a += data[idx + 3];
+            count++;
+          }
+        }
+        r = Math.round(r / count);
+        g = Math.round(g / count);
+        b = Math.round(b / count);
+        a = Math.round(a / count);
+        ctx.fillStyle = 'rgba(' + r + ',' + g + ',' + b + ',' + (a / 255).toFixed(3) + ')';
+        ctx.fillRect(x + bx, y + by, endDx - bx, endDy - by);
+      }
+    }
+  }
+
+  window.applyMosaicEffect = function() {
+    if (!originalImage) {
+      ToolBox.showToast(i18nText('tool.file_upload_hint'), 'warning');
+      return;
+    }
+
+    if (currentMode === 'select' && !selection) {
+      ToolBox.showToast(i18nText('toast.msg613'), 'warning');
+      return;
+    }
+
+    var size = Math.max(1, blockSize);
+
+    // 在源画布上操作
+    srcCanvas.width = originalImage.width;
+    srcCanvas.height = originalImage.height;
+    var ctx = srcCanvas.getContext('2d');
+    ctx.drawImage(originalImage, 0, 0);
+
+    if (currentMode === 'full') {
+      mosaicRegion(ctx, 0, 0, originalImage.width, originalImage.height, size);
+    } else {
+      // 仅对选区做马赛克
+      var sx = Math.max(0, selection.x);
+      var sy = Math.max(0, selection.y);
+      var sw = Math.min(selection.w, originalImage.width - sx);
+      var sh = Math.min(selection.h, originalImage.height - sy);
+      if (sw > 0 && sh > 0) {
+        mosaicRegion(ctx, sx, sy, sw, sh, size);
+      }
+    }
+
+    // 显示结果
+    resultPanel.innerHTML = '';
+    var resultCanvas = document.createElement('canvas');
+    var displayScale = Math.min(
+      (resultPanel.clientWidth - 24) / srcCanvas.width,
+      400 / srcCanvas.height,
+      1
+    );
+    resultCanvas.width = Math.round(srcCanvas.width * displayScale);
+    resultCanvas.height = Math.round(srcCanvas.height * displayScale);
+    var rCtx = resultCanvas.getContext('2d');
+    rCtx.drawImage(srcCanvas, 0, 0, resultCanvas.width, resultCanvas.height);
+    resultPanel.appendChild(resultCanvas);
+
+    downloadBtn.disabled = false;
+    ToolBox.showToast(i18nText('toast.msg997'));
+  };
+
+  // ===== 下载结果 =====
+  window.downloadResult = function() {
+    if (!srcCanvas || srcCanvas.width === 0) {
+      ToolBox.showToast(i18nText('toast.empty_download'), 'warning');
+      return;
+    }
+    try {
+      srcCanvas.toBlob(function(blob) {
+        if (!blob) {
+          ToolBox.showToast(i18nText('toast.msg137'), 'error');
+          return;
+        }
+        var url = URL.createObjectURL(blob);
+        var a = document.createElement('a');
+        a.href = url;
+        a.download = 'mosaic_' + Date.now() + '.png';
+        document.body.appendChild(a);
+        a.click();
+        setTimeout(function() {
+          URL.revokeObjectURL(url);
+          a.remove();
+        }, 100);
+        ToolBox.showToast(i18nText('toast.msg041'));
+      }, 'image/png');
+    } catch (e) {
+      ToolBox.showToast('下载失败：' + e.message, 'error');
+    }
+  };
+
+  // ===== 重置 =====
+  window.resetImage = function() {
+    if (!originalImage) return;
+    selection = null;
+    blockSizeSlider.value = 10;
+    blockSize = 10;
+    blockSizeVal.textContent = '10px';
+    downloadBtn.disabled = true;
+    showOriginalPreview();
+    resultPanel.innerHTML = '<span class="empty-hint">点击「应用马赛克」生成...</span>';
+
+    // 重置框选覆盖层
+    var overlay = document.getElementById('selectionOverlay');
+    if (overlay) overlay.style.display = 'none';
+
+    ToolBox.showToast(i18nText('toast.msg324'));
+  };
+
+  // ===== 工具介绍折叠 =====
+  window.toggleIntro = function() {
+    document.getElementById('toolIntro').classList.toggle('open');
+  };
+
+  // ===== 窗口尺寸变化时刷新预览 =====
+  var resizeTimer = null;
+  window.addEventListener('resize', function() {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(function() {
+      if (originalImage) showOriginalPreview();
+    }, 300);
+  });
+
+})();
+</script><script>
+// tool-intro折叠交互
+document.addEventListener('DOMContentLoaded',function(){
+  var headers=document.querySelectorAll('.tool-intro-header');
+  headers.forEach(function(h){
+    h.addEventListener('click',function(){
+      this.parentElement.classList.toggle('open');
+    });
+  });
+});
+</script>
+
+</body>
+</html>

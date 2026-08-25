@@ -1,0 +1,623 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+
+<script src="/js/tool-page-runtime.js" defer></script>
+<!-- TOOLBOX-TOOL-RUNTIME -->
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="toolbox" content="cat=design,industry=office,icon=🔀,bg=#f5f5f5">
+<meta name="description" content="流程图绘制工具（Mermaid） - 流程图绘制工具基于开源图表引擎 Mermaid，通过编写简洁的文本代码即可生成专业美观的图表。支持流程图、时序图、甘特图、类图、状态图、ER 图、饼图共七种常用图表类型，左侧编辑代码、右侧实时预览，所见即所得，并可一键导出 SVG 矢量图与">
+<meta name="keywords" content="流程图,Mermaid,流程图绘制,时序图,甘特图,类图,状态图,ER图,饼图,在线画图,图表生成,免费工具,ToolBox">
+<meta name="robots" content="index,follow">
+<link rel="canonical" href="https://chenguangwu.github.io/tools/office/flowchart.html">
+<meta property="og:title" content="流程图绘制工具（Mermaid） - 流程图绘制工具基于开源图表引擎 Mermaid - ToolBox">
+<meta property="og:description" content="流程图绘制工具（Mermaid） - 流程图绘制工具基于开源图表引擎 Mermaid，通过编写简洁的文本代码即可生成专业美观的图表。支持流程图、时序图、甘特图、类图、状态图、ER 图、饼图共七种常用图表类型，左侧编辑代码、右侧实时预览，所见即所得，并可一键导出 SVG 矢量图与">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://chenguangwu.github.io/tools/office/flowchart.html">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="流程图绘制工具（Mermaid） - 流程图绘制工具基于开源图表引擎 Mermaid - ToolBox">
+<meta name="twitter:description" content="流程图绘制工具（Mermaid） - 流程图绘制工具基于开源图表引擎 Mermaid，通过编写简洁的文本代码即可生成专业美观的图表。支持流程图、时序图、甘特图、类图、状态图、ER 图、饼图共七种常用图表类型，左侧编辑代码、右侧实时预览，所见即所得，并可一键导出 SVG 矢量图与">
+
+<title>流程图绘制工具（Mermaid） - 流程图绘制工具基于开源图表引擎 Mermaid - ToolBox</title>
+<meta name="theme-color" content="#FF6B35">
+<link rel="icon" type="image/svg+xml" href="../../favicon.svg">
+<link rel="icon" href="../../favicon.ico" sizes="16x16 32x32 48x48">
+<link rel="apple-touch-icon" href="../../apple-touch-icon.png">
+<link rel="stylesheet" href="../../css/common.css">
+<script src="../../js/common.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<style>
+/* 流程图工具局部样式：优先使用公共变量 */
+.flowchart-container{max-width:1200px;}
+.fc-header{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;margin-bottom:14px;}
+.fc-header h2{margin:0;}
+.fc-sub{font-size:13px;color:var(--text-muted);}
+.fc-split{display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:stretch;}
+.fc-pane{display:flex;flex-direction:column;min-width:0;}
+.fc-pane > label{font-size:13px;color:var(--text-secondary);margin-bottom:6px;font-weight:600;display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.fc-hint{font-weight:400;color:var(--text-muted);font-size:12px;}
+#editor{
+  flex:1;min-height:440px;
+  font-family:'SF Mono','Fira Code','Courier New',monospace;
+  font-size:13px;line-height:1.65;resize:none;tab-size:2;
+  -moz-tab-size:2;
+}
+.fc-preview{
+  flex:1;min-height:440px;
+  background:var(--result-bg);
+  border:1.5px solid var(--border);
+  border-radius:12px;
+  padding:16px;overflow:auto;
+  display:flex;align-items:center;justify-content:center;
+  transition:border-color 0.2s;
+}
+.fc-preview svg{max-width:100%;height:auto;}
+.fc-preview .empty-tip{color:var(--text-muted);font-size:13px;text-align:center;line-height:1.8;}
+.fc-preview .empty-tip .big{font-size:28px;display:block;margin-bottom:8px;opacity:0.6;}
+.fc-error{
+  margin-top:10px;padding:12px 14px;border-radius:10px;
+  background:rgba(239,68,68,0.08);
+  border:1px solid rgba(239,68,68,0.28);
+  color:var(--danger);font-size:12.5px;
+  font-family:'SF Mono','Courier New',monospace;
+  white-space:pre-wrap;word-break:break-word;line-height:1.6;
+}
+.fc-save-state{font-size:11px;color:var(--text-muted);font-weight:400;}
+.fc-save-state.saved{color:var(--success);}
+/* 图表类型标签在移动端可横向滚动 */
+#typeTabs{margin-bottom:14px;}
+@media(max-width:768px){
+  .fc-split{grid-template-columns:1fr;}
+  #editor{min-height:240px;resize:vertical;font-size:14px;}
+  .fc-preview{min-height:300px;}
+  .flowchart-container{padding:0 12px;margin:14px auto 20px;}
+}
+</style>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "流程图绘制工具",
+  "description": "基于 Mermaid 的在线图表绘制器，支持流程图、时序图、甘特图、类图、状态图、ER 图、饼图，实时渲染并可导出 SVG 与 PNG，纯前端运行数据不上传。",
+  "url": "https://chenguangwu.github.io/tools/office/flowchart.html",
+  "applicationCategory": "DesignApplication",
+  "operatingSystem": "Web",
+  "offers": { "@type": "Offer", "price": "0", "priceCurrency": "CNY" },
+  "inLanguage": "zh-CN",
+  "isAccessibleForFree": true,
+  "browserRequirements": "Requires JavaScript. Requires HTML5.",
+  "softwareVersion": "1.0"
+}
+</script>
+
+
+
+<meta property="og:image" content="https://chenguangwu.github.io/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="ToolBox - 6000+免费在线工具">
+<meta name="twitter:image" content="https://chenguangwu.github.io/og-image.png">
+<meta name="twitter:image:alt" content="ToolBox - 6000+免费在线工具">
+<!-- TOOLBOX-WEBAPP-LD -->
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"WebApplication","name":"流程图绘制工具（Mermaid） - 流程图绘制工具基于开源图表引擎 Mermaid","url":"https://chenguangwu.github.io/tools/office/flowchart.html","applicationCategory":"MultimediaApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":["zh-CN", "en-US"],"description":"流程图绘制工具","image":"https://chenguangwu.github.io/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}
+</script>
+<meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
+<meta http-equiv="X-Content-Type-Options" content="nosniff">
+<meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
+<!-- TOOLBOX-SECURITY -->
+
+<script src="/js/privacy.js" defer></script>
+<!-- TOOLBOX-PRIVACY-SCRIPT -->
+
+<script src="/js/metrics.js" defer></script>
+<!-- TOOLBOX-METRICS-SCRIPT -->
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"首页","item":"https://chenguangwu.github.io/"},{"@type":"ListItem","position":2,"name":"办公文档","item":"https://chenguangwu.github.io/tools/office/index.html"},{"@type":"ListItem","position":3,"name":"流程图绘制工具（Mermaid）","item":"https://chenguangwu.github.io/tools/office/flowchart.html"}]}
+</script>
+
+<script src="../../js/i18n.js" defer></script>
+<script src="../../js/tool-i18n.js" defer></script>
+<!-- TOOLBOX-I18N-SCRIPT -->
+<!-- TOOLBOX-HREFLANG -->
+<link rel="alternate" hreflang="zh-CN" href="https://chenguangwu.github.io/tools/office/flowchart.html">
+<link rel="alternate" hreflang="en-US" href="https://chenguangwu.github.io/tools/office/flowchart.html">
+<link rel="alternate" hreflang="x-default" href="https://chenguangwu.github.io/tools/office/flowchart.html">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:locale:alternate" content="en_US">
+
+<script src="/js/clarity.js" defer></script>
+<!-- TOOLBOX-CLARITY -->
+</head>
+<body>
+<h1 class="sr-only">流程图绘制工具</h1>
+
+<div class="nav">
+  <a href="../../index.html">← ToolBox</a>
+  <span>/ 流程图绘制</span>
+  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()" aria-label="切换主题">🌙</button>
+</div>
+
+<div class="container flowchart-container">
+  
+
+
+
+<nav class="breadcrumb" aria-label="面包屑导航" data-breadcrumb="1">
+  <a href="../../index.html">首页</a>
+  <span class="bc-sep">‹</span>
+  <a href="index.html">🔧 办公文档</a>
+  <span class="bc-sep">‹</span>
+  <span class="bc-current">流程图绘制工具（Mermaid）</span>
+</nav>
+<div class="card">
+    <div class="fc-header">
+      <h2>🔀 流程图绘制工具</h2>
+      <span class="fc-sub">基于 Mermaid · 左侧编写代码，右侧实时渲染</span>
+    </div>
+
+    <!-- 图表类型选择 -->
+    <div class="tabs" id="typeTabs" role="tablist">
+      <button type="button" class="tab-btn active" data-type="flowchart" onclick="selectType('flowchart')" role="tab">流程图</button>
+      <button type="button" class="tab-btn" data-type="sequence" onclick="selectType('sequence')" role="tab">时序图</button>
+      <button type="button" class="tab-btn" data-type="gantt" onclick="selectType('gantt')" role="tab">甘特图</button>
+      <button type="button" class="tab-btn" data-type="class" onclick="selectType('class')" role="tab">类图</button>
+      <button type="button" class="tab-btn" data-type="state" onclick="selectType('state')" role="tab">状态图</button>
+      <button type="button" class="tab-btn" data-type="er" onclick="selectType('er')" role="tab">ER 图</button>
+      <button type="button" class="tab-btn" data-type="pie" onclick="selectType('pie')" role="tab">饼图</button>
+    </div>
+
+    <!-- 工具栏 -->
+    <div class="toolbar">
+      <button type="button" class="btn primary" onclick="loadExample()">📋 加载示例</button>
+      <button type="button" class="btn" onclick="clearEditor()">🗑️ 清空</button>
+      <button type="button" class="btn" onclick="copyCode()">📄 复制代码</button>
+      <button type="button" class="btn" onclick="downloadSVG()">⬇️ 下载 SVG</button>
+      <button type="button" class="btn" onclick="downloadPNG()">🖼️ 下载 PNG</button>
+    </div>
+
+    <!-- 左右分栏 -->
+    <div class="fc-split">
+      <div class="fc-pane">
+        <label>Mermaid 代码 <span class="fc-hint">（<kbd>Tab</kbd> 缩进 · 自动保存）</span> <span class="fc-save-state" id="saveState"></span></label>
+        <textarea id="editor" placeholder="在此输入 Mermaid 代码，例如：&#10;flowchart TD&#10;    A[开始] --> B[结束]" spellcheck="false" autocomplete="off" autocapitalize="off"></textarea>
+      </div>
+      <div class="fc-pane">
+        <label>渲染预览</label>
+        <div id="preview" class="fc-preview"></div>
+        <div id="errorBox" class="fc-error" style="display:none;" role="alert"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 使用说明 -->
+  <div class="info-box">
+    💡 提示：选择上方图表类型可加载对应示例；编辑代码后图表会自动渲染（500ms 防抖）。所有内容仅在本地浏览器处理，不会上传到服务器。
+  </div>
+
+  <!-- SEO 介绍区块 -->
+  
+</div>
+
+</div>
+
+<!-- 相关工具 -->
+<div class="related-tools" data-related-tools="1">
+  <h3 class="related-tools-title">🔗 相关工具</h3>
+  <div class="related-tools-grid">
+    <a href="markdown-editor.html" class="related-tool-card">
+      <span class="rt-icon">📝</span>
+      <span class="rt-info"><span class="rt-name">Markdown 编辑器（分屏预览） - Markdown 编辑器 - 免费在线 Markdo | ToolBox免费在线工具箱</span><span class="rt-desc">Markdown 编辑器（分屏预览）</span></span>
+    </a>
+    <a href="pdf-merge.html" class="related-tool-card">
+      <span class="rt-icon">🔗</span>
+      <span class="rt-info"><span class="rt-name">PDF合并工具 - 免费在线合并多个PDF文件，支持拖拽排序 | ToolBox免费在线工具箱</span><span class="rt-desc">PDF合并工具</span></span>
+    </a>
+    <a href="pdf-split.html" class="related-tool-card">
+      <span class="rt-icon">📄</span>
+      <span class="rt-info"><span class="rt-name">PDF拆分工具 - 在线提取PDF指定页面 - PDF拆分工具 - 免费在线PDF页面提取工具 | ToolBox免费在线工具箱</span><span class="rt-desc">PDF 拆分工具</span></span>
+    </a>
+    <a href="pdf-rotate.html" class="related-tool-card">
+      <span class="rt-icon">🔄</span>
+      <span class="rt-info"><span class="rt-name">PDF页面旋转工具 - 免费在线PDF页面旋转工具，支持单页旋转、批量旋转、全部旋转 | ToolBox免费在线工具箱</span><span class="rt-desc">PDF页面旋转工具</span></span>
+    </a>
+    <a href="mindmap.html" class="related-tool-card">
+      <span class="rt-icon">🧠</span>
+      <span class="rt-info"><span class="rt-name">思维导图 - 免费在线思维导图工具，使用 Markdown 语法实时生成可 | ToolBox免费在线工具箱</span><span class="rt-desc">思维导图编辑器</span></span>
+    </a>
+  </div>
+</div>
+<div class="tool-intro open" id="toolIntro">
+    <div class="tool-intro-header">
+      <span class="intro-icon-wrap"><span class="intro-icon">📖</span>关于「流程图绘制工具」</span>
+      <span class="arrow">▼</span>
+    </div>
+    <div class="tool-intro-body">
+      <h4><span class="h4-icon">📝</span>工具简介</h4>
+      <p>流程图绘制工具基于开源图表引擎 Mermaid，通过编写简洁的文本代码即可生成专业美观的图表。支持流程图、时序图、甘特图、类图、状态图、ER 图、饼图共七种常用图表类型，左侧编辑代码、右侧实时预览，所见即所得，并可一键导出 SVG 矢量图与 PNG 图片。全部计算与渲染均在浏览器本地完成，数据不上传，安全私密。</p>
+      <h4><span class="h4-icon">✨</span>功能特点</h4>
+      <ul class="intro-features">
+        <li>七种图表类型一键切换</li>
+        <li>实时渲染（500ms 防抖）</li>
+        <li>Tab 键缩进，编辑体验流畅</li>
+        <li>自动保存到本地，刷新不丢失</li>
+        <li>跟随深色 / 浅色主题</li>
+        <li>导出 SVG 与 PNG</li>
+        <li>纯前端运行，数据不上传</li>
+        <li>移动端响应式布局</li>
+      </ul>
+      <h4><span class="h4-icon">🎯</span>使用场景</h4>
+      <ul class="intro-scenes">
+        <li>梳理业务流程与决策分支</li>
+        <li>绘制接口调用时序图</li>
+        <li>规划项目开发甘特图</li>
+        <li>设计数据库 ER 模型</li>
+        <li>描述对象类与继承关系</li>
+        <li>梳理订单状态机流转</li>
+        <li>可视化数据占比饼图</li>
+        <li>编写技术文档与方案</li>
+      </ul>
+      <h4><span class="h4-icon">💬</span>常见问题</h4>
+      <div class="intro-faq-item"><div class="intro-faq-q">Mermaid 代码写错了没有渲染怎么办？</div><div class="intro-faq-a">预览区下方会显示红色的错误提示信息，包含出错位置与原因，根据提示修正代码后会自动重新渲染。</div></div>
+      <div class="intro-faq-item"><div class="intro-faq-q">导出的 PNG 背景是什么颜色？</div><div class="intro-faq-a">PNG 会跟随当前主题：浅色模式下背景为白色，深色模式下背景为深色，方便直接粘贴到对应主题的文档中。</div></div>
+      <div class="intro-faq-item"><div class="intro-faq-q">我的代码会被保存吗？</div><div class="intro-faq-a">会。编辑内容会自动保存到浏览器 localStorage，下次打开同一页面时自动恢复，数据仅存在本地。</div></div>
+      <div class="intro-faq-item"><div class="intro-faq-q">支持哪些图表类型？</div><div class="intro-faq-a">目前支持流程图（flowchart）、时序图（sequence）、甘特图（gantt）、类图（class）、状态图（state）、ER 图（er）和饼图（pie）共七种，点击顶部标签可加载对应示例。</div></div>
+    </div>
+  </div>
+  <!-- /SEO 介绍区块 -->
+</div>
+
+<script>
+/* ===== 初始化 Mermaid ===== */
+mermaid.initialize({ startOnLoad: false, theme: 'default' });
+
+/* ===== DOM 引用 ===== */
+const editor = document.getElementById('editor');
+const preview = document.getElementById('preview');
+const errorBox = document.getElementById('errorBox');
+const saveState = document.getElementById('saveState');
+
+/* ===== 常量 ===== */
+const STORAGE_KEY = 'toolbox_flowchart_code';
+const STORAGE_TYPE_KEY = 'toolbox_flowchart_type';
+
+/* ===== 各图表类型示例代码 ===== */
+const EXAMPLES = {
+  flowchart:
+`flowchart TD
+    A[开始] --> B{是否已登录?}
+    B -->|是| C[进入首页]
+    B -->|否| D[跳转登录页]
+    D --> E[输入账号密码]
+    E --> F{验证通过?}
+    F -->|是| C
+    F -->|否| D
+    C --> G[结束]`,
+  sequence:
+`sequenceDiagram
+    participant U as 用户
+    participant F as 前端
+    participant B as 后端
+    participant D as 数据库
+    U->>F: 点击登录
+    F->>B: 提交账号密码
+    B->>D: 查询用户信息
+    D-->>B: 返回用户记录
+    B-->>F: 签发 Token
+    F-->>U: 登录成功`,
+  gantt:
+`gantt
+    title 项目开发计划
+    dateFormat YYYY-MM-DD
+    section 需求阶段
+    需求调研     :a1, 2024-01-01, 7d
+    需求评审     :a2, after a1, 3d
+    section 开发阶段
+    前端开发     :a3, after a2, 10d
+    后端开发     :a4, after a2, 12d
+    section 测试上线
+    联调测试     :a5, after a4, 5d
+    上线部署     :a6, after a5, 2d`,
+  class:
+`classDiagram
+    class Animal {
+      +String name
+      +int age
+      +eat() void
+      +sleep() void
+    }
+    class Dog {
+      +String breed
+      +bark() void
+    }
+    class Cat {
+      +String color
+      +meow() void
+    }
+    Animal <|-- Dog
+    Animal <|-- Cat`,
+  state:
+`stateDiagram-v2
+    [*] --> 待支付
+    待支付 --> 已支付: 用户付款
+    已支付 --> 已发货: 商家发货
+    已发货 --> 已签收: 用户签收
+    已签收 --> 已完成: 确认收货
+    待支付 --> 已取消: 超时取消
+    已支付 --> 已取消: 用户取消
+    已取消 --> [*]
+    已完成 --> [*]`,
+  er:
+`erDiagram
+    USER ||--o{ ORDER : places
+    ORDER ||--|{ ORDER_ITEM : contains
+    PRODUCT ||--o{ ORDER_ITEM : included_in
+    USER {
+      int id PK
+      string name
+      string email
+    }
+    ORDER {
+      int id PK
+      int user_id FK
+      string status
+    }
+    PRODUCT {
+      int id PK
+      string name
+      decimal price
+    }
+    ORDER_ITEM {
+      int id PK
+      int order_id FK
+      int product_id FK
+      int quantity
+    }`,
+  pie:
+`pie title 浏览器市场占有率
+    "Chrome" : 65
+    "Safari" : 18
+    "Edge" : 7
+    "Firefox" : 4
+    "其他" : 6`
+};
+
+let currentType = 'flowchart';
+
+/* ===== 主题相关 ===== */
+function currentMermaidTheme() {
+  const isDark = document.documentElement.getAttribute('data-theme') === 'dark'
+    || document.body.classList.contains('dark');
+  return isDark ? 'dark' : 'default';
+}
+
+function applyMermaidTheme() {
+  mermaid.initialize({ startOnLoad: false, theme: currentMermaidTheme() });
+  renderChart();
+}
+
+/* ===== 渲染逻辑 ===== */
+async function renderChart() {
+  const code = editor.value.trim();
+  if (!code) {
+    preview.innerHTML = '<div class="empty-tip"><span class="big">📊</span>在左侧输入 Mermaid 代码，<br>这里会实时渲染图表...</div>';
+    errorBox.style.display = 'none';
+    return;
+  }
+  // 清理 Mermaid 上次渲染残留的临时节点，避免重复 id 冲突
+  const old = document.getElementById('graphDiv');
+  if (old) old.remove();
+  const oldD = document.getElementById('dgraphDiv');
+  if (oldD) oldD.remove();
+  try {
+    const { svg } = await mermaid.render('graphDiv', code);
+    preview.innerHTML = svg;
+    errorBox.style.display = 'none';
+  } catch (err) {
+    preview.innerHTML = '<div class="empty-tip"><span class="big">⚠️</span>图表渲染失败，请检查代码语法</div>';
+    errorBox.style.display = 'block';
+    errorBox.textContent = err && (err.message || err.str) ? (err.message || err.str) : String(err);
+  }
+}
+
+const renderDebounced = ToolBox.debounce(renderChart, 500);
+
+/* ===== 本地存储 ===== */
+function saveCode() {
+  try {
+    localStorage.setItem(STORAGE_KEY, editor.value);
+    localStorage.setItem(STORAGE_TYPE_KEY, currentType);
+    saveState.textContent = '已保存';
+    saveState.classList.add('saved');
+  } catch (e) {
+    saveState.textContent = '';
+  }
+}
+function loadSaved() {
+  try {
+    return {
+      code: localStorage.getItem(STORAGE_KEY),
+      type: localStorage.getItem(STORAGE_TYPE_KEY)
+    };
+  } catch (e) {
+    return { code: null, type: null };
+  }
+}
+
+/* ===== 图表类型切换 ===== */
+function selectType(type) {
+  currentType = type;
+  document.querySelectorAll('#typeTabs .tab-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.type === type);
+  });
+  editor.value = EXAMPLES[type] || '';
+  saveCode();
+  renderChart();
+}
+
+/* ===== 工具栏操作 ===== */
+function loadExample() {
+  editor.value = EXAMPLES[currentType] || EXAMPLES.flowchart;
+  saveCode();
+  renderChart();
+  ToolBox.showToast(i18nText('toast.saved', '已加载 ' + currentType + ' 示例'), 'success');
+}
+
+function clearEditor() {
+  editor.value = '';
+  saveCode();
+  renderChart();
+  editor.focus();
+  ToolBox.showToast(i18nText(), 'info');
+}
+
+function copyCode() {
+  const code = editor.value;
+  if (!code.trim()) {
+    ToolBox.showToast(i18nText(), 'warning');
+    return;
+  }
+  ToolBox.copyText(code, i18nText());
+}
+
+function downloadSVG() {
+  const svgEl = preview.querySelector('svg');
+  if (!svgEl) {
+    ToolBox.showToast(i18nText(), 'warning');
+    return;
+  }
+  const clone = svgEl.cloneNode(true);
+  clone.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+  let svgStr = new XMLSerializer().serializeToString(clone);
+  if (svgStr.indexOf('<?xml') === -1) {
+    svgStr = '<?xml version="1.0" encoding="UTF-8"?>\n' + svgStr;
+  }
+  ToolBox.downloadText('flowchart.svg', svgStr, 'image/svg+xml;charset=utf-8');
+  ToolBox.showToast(i18nText(), 'success');
+}
+
+function parseDim(val) {
+  if (!val) return NaN;
+  const s = String(val);
+  if (s.indexOf('%') !== -1) return NaN;
+  const n = parseFloat(s);
+  return isNaN(n) ? NaN : n;
+}
+
+function downloadPNG() {
+  const svgEl = preview.querySelector('svg');
+  if (!svgEl) {
+    ToolBox.showToast(i18nText(), 'warning');
+    return;
+  }
+  const clone = svgEl.cloneNode(true);
+  // 解析尺寸：优先 width/height 属性，其次 viewBox
+  let w = parseDim(clone.getAttribute('width'));
+  let h = parseDim(clone.getAttribute('height'));
+  const vb = clone.viewBox && clone.viewBox.baseVal;
+  if ((isNaN(w) || w <= 0) && vb && vb.width) w = vb.width;
+  if ((isNaN(h) || h <= 0) && vb && vb.height) h = vb.height;
+  if (isNaN(w) || w <= 0) w = 800;
+  if (isNaN(h) || h <= 0) h = 600;
+  clone.setAttribute('width', w);
+  clone.setAttribute('height', h);
+  clone.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+  const svgStr = new XMLSerializer().serializeToString(clone);
+  const url = URL.createObjectURL(new Blob([svgStr], { type: 'image/svg+xml;charset=utf-8' }));
+  const img = new Image();
+  img.onload = function () {
+    const scale = 2; // 2 倍清晰度
+    const canvas = document.createElement('canvas');
+    canvas.width = Math.round(w * scale);
+    canvas.height = Math.round(h * scale);
+    const ctx = canvas.getContext('2d');
+    const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+    ctx.fillStyle = isDark ? '#1A1A2E' : '#FFFFFF';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+    URL.revokeObjectURL(url);
+    canvas.toBlob(function (blob) {
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'flowchart.png';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(function () { URL.revokeObjectURL(a.href); }, 0);
+    }, 'image/png');
+    ToolBox.showToast(i18nText(), 'success');
+  };
+  img.onerror = function () {
+    URL.revokeObjectURL(url);
+    ToolBox.showToast(i18nText(), 'error');
+  };
+  img.src = url;
+}
+
+/* ===== Tab 键缩进 ===== */
+editor.addEventListener('keydown', function (e) {
+  if (e.key !== 'Tab') return;
+  e.preventDefault();
+  const start = editor.selectionStart;
+  const end = editor.selectionEnd;
+  if (e.shiftKey) {
+    // Shift+Tab：减少缩进（删掉行首 2 空格）
+    const before = editor.value.slice(0, start);
+    const lineStart = before.lastIndexOf('\n') + 1;
+    const lineHead = editor.value.slice(lineStart, lineStart + 2);
+    if (lineHead === '  ') {
+      editor.value = editor.value.slice(0, lineStart) + editor.value.slice(lineStart + 2);
+      const delta = start - lineStart >= 2 ? 2 : (start - lineStart);
+      editor.selectionStart = editor.selectionEnd = Math.max(lineStart, start - delta);
+    }
+  } else {
+    // Tab：插入 2 空格
+    editor.value = editor.value.slice(0, start) + '  ' + editor.value.slice(end);
+    editor.selectionStart = editor.selectionEnd = start + 2;
+  }
+  renderDebounced();
+  saveCode();
+});
+
+/* ===== 输入事件 ===== */
+editor.addEventListener('input', function () {
+  renderDebounced();
+  saveCode();
+});
+
+/* ===== 主题变化监听：Mermaid 跟随切换 ===== */
+const themeObserver = new MutationObserver(ToolBox.debounce(function () {
+  mermaid.initialize({ startOnLoad: false, theme: currentMermaidTheme() });
+  renderChart();
+}, 200));
+themeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+themeObserver.observe(document.body, { attributes: true, attributeFilter: ['class'] });
+
+/* ===== 折叠面板交互 ===== */
+document.querySelectorAll('.tool-intro-header').forEach(function (h) {
+  h.addEventListener('click', function () {
+    this.parentElement.classList.toggle('open');
+  });
+});
+
+/* ===== 初始化 ===== */
+(function init() {
+  const saved = loadSaved();
+  if (saved.type && EXAMPLES[saved.type]) {
+    currentType = saved.type;
+    document.querySelectorAll('#typeTabs .tab-btn').forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.type === saved.type);
+    });
+  }
+  if (saved.code && saved.code.trim()) {
+    editor.value = saved.code;
+  } else {
+    editor.value = EXAMPLES[currentType];
+  }
+  applyMermaidTheme();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,658 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+
+<script src="/js/tool-page-runtime.js" defer></script>
+<!-- TOOLBOX-TOOL-RUNTIME -->
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="toolbox" content="cat=game,industry=fun,icon=⭕,bg=#fff8e1">
+<meta name="description" content="井字棋 - 是一款娱乐游戏领域的在线工具。娱乐游戏工具，纯前端实现，无需安装，离线可玩">>
+<meta name="keywords" content="井字棋,井字棋在线,在线井字棋,游戏趣味,娱乐游戏,在线工具,免费工具,ToolBox">
+<meta name="robots" content="index,follow">
+<link rel="canonical" href="https://chenguangwu.github.io/tools/fun/tic-tac-toe.html">
+<meta property="og:title" content="井字棋 - 娱乐游戏领域的在线工具 - ToolBox">
+<meta property="og:description" content="井字棋 - 是一款娱乐游戏领域的在线工具。娱乐游戏工具，纯前端实现，无需安装，离线可玩">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://chenguangwu.github.io/tools/fun/tic-tac-toe.html">
+<meta name="twitter:card" content="summary">
+
+<title>井字棋 - 娱乐游戏领域的在线工具 - ToolBox</title>
+<meta name="theme-color" content="#FF6B35">
+<link rel="icon" type="image/svg+xml" href="../../favicon.svg">
+<link rel="icon" href="../../favicon.ico" sizes="16x16 32x32 48x48">
+<link rel="apple-touch-icon" href="../../apple-touch-icon.png">
+<link rel="stylesheet" href="../../css/common.css">
+<script src="../../js/common.js"></script>
+<style>
+.mode-row,.difficulty-row{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;}
+.mode-btn,.diff-btn{flex:1;min-width:70px;padding:8px;border:2px solid var(--border);border-radius:8px;background:var(--card-bg);cursor:pointer;font-size:12px;font-weight:500;color:var(--text);transition:all 0.2s;}
+.mode-btn:hover,.diff-btn:hover{border-color:var(--primary);}
+.mode-btn.active,.diff-btn.active{border-color:var(--primary);background:var(--primary);color:#fff;}
+.board{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;max-width:320px;margin:16px auto;position:relative;}
+.cell{aspect-ratio:1/1;border:2px solid var(--border);border-radius:12px;font-size:48px;font-weight:bold;display:flex;align-items:center;justify-content:center;cursor:pointer;background:var(--card-bg);color:var(--primary);transition:all 0.15s;user-select:none;position:relative;}
+.cell:hover:not(.taken):not(.game-over){background:var(--result-bg);transform:scale(1.02);}
+.cell.taken{cursor:not-allowed;}
+.cell.x{color:#f44336;}
+.cell.o{color:#4caf50;}
+.cell.win{background:rgba(76,175,80,0.15);border-color:var(--success);animation:winPulse 0.6s ease;}
+@keyframes winPulse{0%{transform:scale(1);}50%{transform:scale(1.1);}100%{transform:scale(1);}}
+.score-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:12px 0;}
+.score-card{background:var(--result-bg);border:1px solid var(--border);border-radius:10px;padding:12px;text-align:center;}
+.score-card .val{font-size:24px;font-weight:700;}
+.score-card.x .val{color:#f44336;}
+.score-card.o .val{color:#4caf50;}
+.score-card.d .val{color:var(--text-muted);}
+.score-card .lbl{font-size:11px;color:var(--text-muted);margin-top:2px;}
+.turn-indicator{text-align:center;font-size:16px;font-weight:600;margin-bottom:8px;}
+.turn-x{color:#f44336;}
+.turn-o{color:#4caf50;}
+.tab-row{display:flex;gap:4px;margin-bottom:12px;border-bottom:1px solid var(--border);}
+.tab-btn{padding:8px 16px;border:none;background:transparent;cursor:pointer;font-size:13px;color:var(--text-muted);border-bottom:2px solid transparent;margin-bottom:-1px;}
+.tab-btn.active{color:var(--primary);border-bottom-color:var(--primary);font-weight:600;}
+.history{font-size:13px;max-height:200px;overflow-y:auto;}
+.history-item{padding:6px 8px;border-bottom:1px solid var(--border);}
+.history-item:last-child{border-bottom:none;}
+.win-line{position:absolute;background:var(--success);height:6px;border-radius:3px;transform-origin:left center;animation:drawLine 0.5s ease forwards;z-index:10;}
+@keyframes drawLine{from{width:0;}to{width:100%;}}
+</style>
+
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "井字棋",
+  "description": "井字棋 - 免费游戏趣味工具，在线井字棋，免费使用。",
+  "url": "https://chenguangwu.github.io/tools/fun/tic-tac-toe.html",
+  "applicationCategory": "UtilitiesApplication",
+  "operatingSystem": "Web",
+  "offers": {
+    "@type": "Offer",
+    "price": "0",
+    "priceCurrency": "CNY"
+  },
+  "inLanguage": "zh-CN",
+  "isAccessibleForFree": true,
+  "browserRequirements": "Requires JavaScript. Requires HTML5.",
+  "softwareVersion": "1.0"
+}
+</script>
+
+
+
+<meta property="og:image" content="https://chenguangwu.github.io/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="ToolBox - 6000+免费在线工具">
+<meta name="twitter:image" content="https://chenguangwu.github.io/og-image.png">
+<meta name="twitter:image:alt" content="ToolBox - 6000+免费在线工具">
+    <meta name="twitter:title" content="井字棋 - 娱乐游戏领域的在线工具 - ToolBox">
+    <meta name="twitter:description" content="井字棋 - 是一款娱乐游戏领域的在线工具。娱乐游戏工具，纯前端实现，无需安装，离线可玩">
+<!-- TOOLBOX-WEBAPP-LD -->
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"WebApplication","name":"井字棋 - 娱乐游戏领域的在线工具","url":"https://chenguangwu.github.io/tools/fun/tic-tac-toe.html","applicationCategory":"GamesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":["zh-CN", "en-US"],"description":"⭕ 井字棋","image":"https://chenguangwu.github.io/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}
+</script>
+<meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
+<meta http-equiv="X-Content-Type-Options" content="nosniff">
+<meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
+<!-- TOOLBOX-SECURITY -->
+
+<script src="/js/privacy.js" defer></script>
+<!-- TOOLBOX-PRIVACY-SCRIPT -->
+
+<script src="/js/metrics.js" defer></script>
+<!-- TOOLBOX-METRICS-SCRIPT -->
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"首页","item":"https://chenguangwu.github.io/"},{"@type":"ListItem","position":2,"name":"娱乐游戏","item":"https://chenguangwu.github.io/tools/fun/index.html"},{"@type":"ListItem","position":3,"name":"井字棋","item":"https://chenguangwu.github.io/tools/fun/tic-tac-toe.html"}]}
+</script>
+
+<script src="../../js/i18n.js" defer></script>
+<script src="../../js/tool-i18n.js" defer></script>
+<!-- TOOLBOX-I18N-SCRIPT -->
+<!-- TOOLBOX-HREFLANG -->
+<link rel="alternate" hreflang="zh-CN" href="https://chenguangwu.github.io/tools/fun/tic-tac-toe.html">
+<link rel="alternate" hreflang="en-US" href="https://chenguangwu.github.io/tools/fun/tic-tac-toe.html">
+<link rel="alternate" hreflang="x-default" href="https://chenguangwu.github.io/tools/fun/tic-tac-toe.html">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:locale:alternate" content="en_US">
+
+<script src="/js/clarity.js" defer></script>
+<!-- TOOLBOX-CLARITY -->
+</head>
+<body>
+<h1 class="sr-only">井字棋</h1>
+
+<div class="nav">
+  <a href="../../index.html">← ToolBox</a>
+  <span>/ 井字棋</span>
+  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()">🌙</button>
+</div>
+
+
+
+
+<nav class="breadcrumb" aria-label="面包屑导航" data-breadcrumb="1">
+  <a href="../../index.html">首页</a>
+  <span class="bc-sep">‹</span>
+  <a href="index.html">🎮 娱乐游戏</a>
+  <span class="bc-sep">‹</span>
+  <span class="bc-current">井字棋</span>
+</nav>
+<div class="container">
+  <div class="card tool-card-accent" style="--tool-accent:#EC4899;">
+    <h2>⭕ 井字棋</h2>
+    
+    <div class="tab-row">
+      <button type="button" class="tab-btn active" onclick="switchTab('game',this)">游戏</button>
+      <button type="button" class="tab-btn" onclick="switchTab('history',this)">历史</button>
+      <button type="button" class="tab-btn" onclick="switchTab('help',this)">说明</button>
+    </div>
+
+    <div id="tab-game">
+      <label>游戏模式</label>
+      <div class="mode-row">
+        <button type="button" class="mode-btn active" onclick="setMode('pvp',this)">👥 双人对战</button>
+        <button type="button" class="mode-btn" onclick="setMode('ai',this)">🤖 人机对战</button>
+      </div>
+
+      <div id="aiDifficulty" style="display:none;">
+        <label>AI 难度</label>
+        <div class="difficulty-row">
+          <button type="button" class="diff-btn active" onclick="setDifficulty('easy',this)">简单</button>
+          <button type="button" class="diff-btn" onclick="setDifficulty('medium',this)">中等</button>
+          <button type="button" class="diff-btn" onclick="setDifficulty('hard',this)">困难</button>
+        </div>
+      </div>
+
+      <div id="playerFirst" style="display:none;margin-bottom:12px;">
+        <label><input type="checkbox" id="playerFirstChk" checked> 玩家先手（X）</label>
+      </div>
+
+      <div class="turn-indicator" id="turnIndicator">当前回合：<span class="turn-x">X</span></div>
+
+      <div class="board" id="board"></div>
+
+      <div class="result-box" id="output">点击格子开始游戏</div>
+
+      <div class="score-grid">
+        <div class="score-card x">
+          <div class="val" id="xScore">0</div>
+          <div class="lbl">X 胜</div>
+        </div>
+        <div class="score-card d">
+          <div class="val" id="dScore">0</div>
+          <div class="lbl">平局</div>
+        </div>
+        <div class="score-card o">
+          <div class="val" id="oScore">0</div>
+          <div class="lbl">O 胜</div>
+        </div>
+      </div>
+
+      <div class="toolbar">
+        <button type="button" class="btn primary" onclick="newGame()">🎮 新游戏</button>
+        <button type="button" class="btn" onclick="undoMove()">↩️ 悔棋</button>
+        <button type="button" class="btn danger" onclick="resetScores()">🔄 重置分数</button>
+      </div>
+    </div>
+
+    <div id="tab-history" style="display:none;">
+      <h3>📜 对战历史</h3>
+      <div class="history" id="gameHistory"></div>
+      <div class="toolbar" style="margin-top:12px;">
+        <button type="button" class="btn danger" onclick="clearHistory()">清除历史</button>
+      </div>
+    </div>
+
+    <div id="tab-help" style="display:none;">
+      <h3>🎮 游戏规则</h3>
+      <div class="step-line">X 先手，双方轮流在格子中放置自己的标记</div>
+      <div class="step-line">率先将三个标记连成一线者获胜（横、竖、斜均可）</div>
+      <div class="step-line">如果所有格子填满仍无人获胜，则为平局</div>
+      <h3 style="margin-top:12px;">🤖 AI 难度说明</h3>
+      <div class="step-line"><strong>简单</strong>：随机落子，适合新手练习</div>
+      <div class="step-line"><strong>中等</strong>：有一定策略，偶尔会犯错</div>
+      <div class="step-line"><strong>困难</strong>：使用 Minimax 算法，完美玩家，最多平局</div>
+      <h3 style="margin-top:12px;">💡 获胜技巧</h3>
+      <div class="step-line">优先占据中心位置</div>
+      <div class="step-line">注意防守对手的潜在连线</div>
+      <div class="step-line">制造"双活三"局面让对手无法防守</div>
+    </div>
+  </div>
+
+<!-- 注意事项区块 -->
+<div class="tool-notes" style="--tool-accent:#EC4899;">
+  <div class="tool-notes-title">⚠️ 使用说明与注意事项</div>
+  <ul>
+      <li>本工具纯前端运行，数据不会上传到服务器</li>
+      <li>建议在主流浏览器（Chrome/Safari/Firefox/Edge）中使用</li>
+      <li>计算结果仅供参考，请以实际应用场景为准</li>
+  </ul>
+</div>
+<!-- /注意事项区块 -->
+</div>
+
+<script>
+const lines = [[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
+
+let board = [];
+let currentPlayer = 'X';
+let gameOver = false;
+let gameMode = 'pvp';
+let aiDifficulty = 'easy';
+let scores = { x:0, o:0, d:0 };
+let moveHistory = [];
+let gameHistory = [];
+let boardHistory = [];
+
+function switchTab(tab, btn){
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  ['game','history','help'].forEach(t=>{
+    document.getElementById('tab-'+t).style.display = t===tab?'block':'none';
+  });
+  if(tab==='history') renderGameHistory();
+}
+
+function setMode(mode, btn){
+  gameMode = mode;
+  document.querySelectorAll('.mode-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('aiDifficulty').style.display = mode==='ai' ? 'block' : 'none';
+  document.getElementById('playerFirst').style.display = mode==='ai' ? 'block' : 'none';
+  newGame();
+}
+
+function setDifficulty(diff, btn){
+  aiDifficulty = diff;
+  document.querySelectorAll('.diff-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  newGame();
+}
+
+function newGame(){
+  board = Array(9).fill('');
+  currentPlayer = 'X';
+  gameOver = false;
+  moveHistory = [];
+  boardHistory = [];
+  document.getElementById('board').querySelectorAll('.win-line').forEach(el=>el.remove());
+  render();
+  updateTurnIndicator();
+  document.getElementById('output').textContent = '点击格子开始游戏';
+  
+  if(gameMode === 'ai' && !document.getElementById('playerFirstChk').checked){
+    setTimeout(aiMove, 500);
+  }
+}
+
+function render(){
+  const el = document.getElementById('board');
+  el.innerHTML = '';
+  board.forEach((v,i)=>{
+    const c = document.createElement('div');
+    c.className = 'cell' + (v ? ' taken ' + v.toLowerCase() : '') + (gameOver ? ' game-over' : '');
+    c.textContent = v;
+    c.onclick = ()=>makeMove(i);
+    el.appendChild(c);
+  });
+}
+
+function makeMove(i){
+  if(gameOver || board[i]) return;
+  if(gameMode === 'ai' && currentPlayer === 'O') return;
+  
+  board[i] = currentPlayer;
+  moveHistory.push(i);
+  boardHistory.push([...board]);
+  render();
+  
+  const winLine = checkWin(currentPlayer);
+  if(winLine){
+    gameOver = true;
+    highlightWin(winLine);
+    scores[currentPlayer.toLowerCase()]++;
+    updateScores();
+    document.getElementById('output').innerHTML = '🎉 <strong>' + currentPlayer + '</strong> 获胜！';
+    addGameHistory(currentPlayer + ' 胜');
+    return;
+  }
+  
+  if(board.every(c=>c)){
+    gameOver = true;
+    scores.d++;
+    updateScores();
+    document.getElementById('output').textContent = '🤝 平局！';
+    addGameHistory('平局');
+    return;
+  }
+  
+  currentPlayer = currentPlayer === 'X' ? 'O' : 'X';
+  updateTurnIndicator();
+  
+  if(gameMode === 'ai' && currentPlayer === 'O'){
+    setTimeout(aiMove, 400);
+  }
+}
+
+function aiMove(){
+  if(gameOver) return;
+  
+  let move;
+  if(aiDifficulty === 'easy'){
+    move = getRandomMove();
+  }else if(aiDifficulty === 'medium'){
+    move = Math.random() < 0.6 ? getBestMove() : getRandomMove();
+  }else{
+    move = getBestMove();
+  }
+  
+  if(move >= 0){
+    board[move] = 'O';
+    moveHistory.push(move);
+    boardHistory.push([...board]);
+    render();
+    
+    const winLine = checkWin('O');
+    if(winLine){
+      gameOver = true;
+      highlightWin(winLine);
+      scores.o++;
+      updateScores();
+      document.getElementById('output').innerHTML = '🤖 <strong>O</strong> 获胜！';
+      addGameHistory('O 胜');
+      return;
+    }
+    
+    if(board.every(c=>c)){
+      gameOver = true;
+      scores.d++;
+      updateScores();
+      document.getElementById('output').textContent = '🤝 平局！';
+      addGameHistory('平局');
+      return;
+    }
+    
+    currentPlayer = 'X';
+    updateTurnIndicator();
+  }
+}
+
+function getRandomMove(){
+  const empty = [];
+  for(let i=0;i<9;i++){
+    if(!board[i]) empty.push(i);
+  }
+  return empty[Math.floor(Math.random()*empty.length)];
+}
+
+function getBestMove(){
+  let best = -Infinity;
+  let bestMove = -1;
+  for(let i=0;i<9;i++){
+    if(!board[i]){
+      board[i] = 'O';
+      let score = minimax(board, 0, false);
+      board[i] = '';
+      if(score > best){
+        best = score;
+        bestMove = i;
+      }
+    }
+  }
+  return bestMove;
+}
+
+function minimax(b, depth, isMax){
+  if(checkWinFor(b, 'O')) return 10 - depth;
+  if(checkWinFor(b, 'X')) return depth - 10;
+  if(b.every(c=>c)) return 0;
+  
+  if(isMax){
+    let best = -Infinity;
+    for(let i=0;i<9;i++){
+      if(!b[i]){
+        b[i] = 'O';
+        best = Math.max(best, minimax(b, depth+1, false));
+        b[i] = '';
+      }
+    }
+    return best;
+  }else{
+    let best = Infinity;
+    for(let i=0;i<9;i++){
+      if(!b[i]){
+        b[i] = 'X';
+        best = Math.min(best, minimax(b, depth+1, true));
+        b[i] = '';
+      }
+    }
+    return best;
+  }
+}
+
+function checkWin(player){
+  for(const line of lines){
+    if(line.every(i=>board[i] === player)){
+      return line;
+    }
+  }
+  return null;
+}
+
+function checkWinFor(b, player){
+  return lines.some(line=>line.every(i=>b[i] === player));
+}
+
+function highlightWin(line){
+  const cells = document.querySelectorAll('.cell');
+  line.forEach(i=>cells[i].classList.add('win'));
+  
+  const boardEl = document.getElementById('board');
+  const first = line[0], last = line[2];
+  const cellsArr = Array.from(cells);
+  
+  const firstRect = cellsArr[first].getBoundingClientRect();
+  const lastRect = cellsArr[last].getBoundingClientRect();
+  const boardRect = boardEl.getBoundingClientRect();
+  
+  const startX = firstRect.left + firstRect.width/2 - boardRect.left;
+  const startY = firstRect.top + firstRect.height/2 - boardRect.top;
+  const endX = lastRect.left + lastRect.width/2 - boardRect.left;
+  const endY = lastRect.top + lastRect.height/2 - boardRect.top;
+  
+  const length = Math.sqrt((endX-startX)**2 + (endY-startY)**2);
+  const angle = Math.atan2(endY-startY, endX-startX) * 180 / Math.PI;
+  
+  const winLine = document.createElement('div');
+  winLine.className = 'win-line';
+  winLine.style.left = startX + 'px';
+  winLine.style.top = startY + 'px';
+  winLine.style.width = length + 'px';
+  winLine.style.transform = `rotate(${angle}deg)`;
+  boardEl.appendChild(winLine);
+}
+
+function updateTurnIndicator(){
+  const indicator = document.getElementById('turnIndicator');
+  const cls = currentPlayer === 'X' ? 'turn-x' : 'turn-o';
+  indicator.innerHTML = '当前回合：<span class="' + cls + '">' + currentPlayer + '</span>';
+}
+
+function updateScores(){
+  document.getElementById('xScore').textContent = scores.x;
+  document.getElementById('oScore').textContent = scores.o;
+  document.getElementById('dScore').textContent = scores.d;
+  saveScores();
+}
+
+function resetScores(){
+  scores = { x:0, o:0, d:0 };
+  updateScores();
+  ToolBox.showToast(i18nText('toast.msg078'));
+}
+
+function undoMove(){
+  if(moveHistory.length === 0) return;
+  if(gameOver) return;
+  
+  if(gameMode === 'ai' && moveHistory.length >= 2){
+    boardHistory.pop();
+    boardHistory.pop();
+    moveHistory.pop();
+    moveHistory.pop();
+    board = boardHistory.length > 0 ? [...boardHistory[boardHistory.length-1]] : Array(9).fill('');
+    currentPlayer = 'X';
+  }else if(gameMode === 'pvp'){
+    boardHistory.pop();
+    moveHistory.pop();
+    board = boardHistory.length > 0 ? [...boardHistory[boardHistory.length-1]] : Array(9).fill('');
+    currentPlayer = currentPlayer === 'X' ? 'O' : 'X';
+  }else{
+    return;
+  }
+  
+  render();
+  updateTurnIndicator();
+  document.getElementById('output').textContent = '已悔棋';
+}
+
+function addGameHistory(result){
+  const now = new Date();
+  const item = {
+    time: now.toLocaleString(),
+    result,
+    mode: gameMode,
+    difficulty: aiDifficulty,
+    moves: moveHistory.length
+  };
+  gameHistory.unshift(item);
+  if(gameHistory.length > 50) gameHistory.pop();
+  saveGameHistory();
+}
+
+function renderGameHistory(){
+  const el = document.getElementById('gameHistory');
+  if(gameHistory.length === 0){
+    el.innerHTML = '<div style="text-align:center;padding:20px;color:var(--text-muted);">暂无记录</div>';
+    return;
+  }
+  el.innerHTML = gameHistory.map(item=>{
+    const modeStr = item.mode === 'pvp' ? '双人' : '人机-' + ({easy:'简单',medium:'中等',hard:'困难'}[item.difficulty]||'');
+    return '<div class="history-item"><span style="color:var(--text-muted);">[' + item.time + ']</span> ' +
+      '<strong>' + item.result + '</strong> ' +
+      '<span style="color:var(--text-muted);font-size:12px;">(' + modeStr + ', ' + item.moves + '步)</span></div>';
+  }).join('');
+}
+
+function clearHistory(){
+  gameHistory = [];
+  saveGameHistory();
+  renderGameHistory();
+  ToolBox.showToast(i18nText('toast.msg094'));
+}
+
+function saveScores(){
+  try{
+    localStorage.setItem('ttt_scores', JSON.stringify(scores));
+  }catch(e){}
+}
+
+function loadScores(){
+  try{
+    const s = localStorage.getItem('ttt_scores');
+    if(s) scores = JSON.parse(s);
+  }catch(e){}
+  updateScores();
+}
+
+function saveGameHistory(){
+  try{
+    localStorage.setItem('ttt_history', JSON.stringify(gameHistory));
+  }catch(e){}
+}
+
+function loadGameHistory(){
+  try{
+    const h = localStorage.getItem('ttt_history');
+    if(h) gameHistory = JSON.parse(h);
+  }catch(e){}
+}
+
+loadScores();
+loadGameHistory();
+newGame();
+</script><script>
+// tool-intro折叠交互
+document.addEventListener('DOMContentLoaded',function(){
+  var headers=document.querySelectorAll('.tool-intro-header');
+  headers.forEach(function(h){
+    h.addEventListener('click',function(){
+      this.parentElement.classList.toggle('open');
+    });
+  });
+});
+</script>
+<!-- SEO 介绍区块 -->
+
+</div>
+
+</div>
+
+<!-- 相关工具 -->
+<div class="related-tools" data-related-tools="1">
+  <h3 class="related-tools-title">🔗 相关工具</h3>
+  <div class="related-tools-grid">
+    
+    
+    <a href="generator-2.html" class="related-tool-card">
+      <span class="rt-icon">🎮</span>
+      <span class="rt-info"><span class="rt-name">数独生成器 / 求解器 - 免费在线工具，纯前端处理 | ToolBox免费在线工具箱</span><span class="rt-desc">数独生成器 / 求解器</span></span>
+    </a>
+    <a href="laugh-generator.html" class="related-tool-card">
+      <span class="rt-icon">😂</span>
+      <span class="rt-info"><span class="rt-name">笑声音效生成器 - 免费趣味工具，用Web Audio API合成笑声 | ToolBox免费在线工具箱</span><span class="rt-desc">笑声音效生成器</span></span>
+    </a>
+    <a href="generator-laugh.html" class="related-tool-card">
+      <span class="rt-icon">🔧</span>
+      <span class="rt-info"><span class="rt-name">笑声音效生成器（合成） - 免费在线工具，纯前端处理 | ToolBox免费在线工具箱</span><span class="rt-desc">笑声音效生成器（合成）</span></span>
+    </a>
+    <a href="../dance/choreography-timeline.html" class="related-tool-card">
+      <span class="rt-icon">🎶</span>
+      <span class="rt-info"><span class="rt-name">编舞时间线 - 8拍分段规划器，按BPM和小节数生成舞蹈编排时间轴 | ToolBox免费在线工具箱</span><span class="rt-desc">编舞时间线</span></span>
+    </a>
+  </div>
+</div>
+<div class="tool-intro open" id="toolIntro">
+  <div class="tool-intro-header">
+    <span class="intro-icon-wrap"><span class="intro-icon">📖</span>关于「井字棋」</span>
+    <span class="arrow">▼</span>
+  </div>
+  <div class="tool-intro-body">
+    <h4><span class="h4-icon">📝</span>工具简介</h4>
+    <p>井字棋是一款娱乐游戏领域的在线工具。娱乐游戏工具，纯前端实现，无需安装，离线可玩。</p>
+    <h4><span class="h4-icon">✨</span>功能特点</h4>
+    <ul class="intro-features">
+      <li>纯前端实现，无需安装</li>
+      <li>操作简单，上手快速</li>
+      <li>支持多种设备，随时随地使用</li>
+      <li>无需联网，离线可玩</li>
+    </ul>
+    <h4><span class="h4-icon">🎯</span>使用场景</h4>
+    <ul class="intro-scenes">
+      <li>休闲娱乐与放松</li>
+      <li>聚会互动小游戏</li>
+      <li>碎片时间的趣味消遣</li>
+      <li>概率与统计的学习辅助</li>
+    </ul>
+    <h4><span class="h4-icon">💬</span>常见问题</h4>
+      <div class="intro-faq-item"><div class="intro-faq-q">这个工具是免费的吗？</div><div class="intro-faq-a">完全免费，无需注册，直接在浏览器中使用。</div></div>
+      <div class="intro-faq-item"><div class="intro-faq-q">需要安装软件吗？</div><div class="intro-faq-a">不需要，直接在浏览器中打开即可使用。</div></div>
+      <div class="intro-faq-item"><div class="intro-faq-q">支持手机使用吗？</div><div class="intro-faq-a">支持。页面已做响应式适配，手机和电脑均可正常使用。</div></div>
+  </div>
+</div>
+<!-- /SEO 介绍区块 -->
+</body>
+</html>

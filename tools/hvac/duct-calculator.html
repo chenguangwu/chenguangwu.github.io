@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+
+<script src="/js/tool-page-runtime.js" defer></script>
+<!-- TOOLBOX-TOOL-RUNTIME -->
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="toolbox" content="cat=engineer,industry=hvac,icon=🌬️,bg=#e8f5e9">
+<meta name="description" content="风管尺寸与阻力计算器 - 是一款面向暖通空调（HVAC）设计师的在线工程计算工具。输入风量、风速、风管形状与尺寸、管长及局部阻力系数，即可一键计算风管所需截面积、实际截面积、实际风速、等流速当量直径、沿程阻力系数、动压、比摩阻、沿程阻力、局部阻力">
+<title>风管尺寸与阻力计算器 - 面向暖通空调（HVAC）设计师的在线工程计算工具 - ToolBox</title>
+<link rel="canonical" href="https://chenguangwu.github.io/tools/hvac/duct-calculator.html">
+<meta property="og:title" content="风管尺寸与阻力计算器 - 面向暖通空调（HVAC）设计师的在线工程计算工具 - ToolBox">
+<meta property="og:description" content="风管尺寸与阻力计算器 - 是一款面向暖通空调（HVAC）设计师的在线工程计算工具。输入风量、风速、风管形状与尺寸、管长及局部阻力系数，即可一键计算风管所需截面积、实际截面积、实际风速、等流速当量直径、沿程阻力系数、动压、比摩阻、沿程阻力、局部阻力">
+<meta property="og:url" content="https://chenguangwu.github.io/tools/hvac/duct-calculator.html">
+<meta name="twitter:card" content="summary">
+<link rel="stylesheet" href="../../css/common.css">
+<script src="../../js/common.js"></script>
+<style>
+  /* 风管计算器专用样式 */
+  .duct-formula{font-family:'SF Mono','Courier New',monospace;font-size:12.5px;background:var(--result-bg);border:1px dashed var(--border);border-radius:10px;padding:10px 12px;margin:8px 0;color:var(--text-secondary);line-height:1.8;}
+  .duct-formula b{color:var(--primary);font-weight:600;}
+  .shape-switch{display:inline-flex;background:var(--bg-hover);border:1px solid var(--border);border-radius:12px;padding:4px;gap:4px;}
+  .shape-switch button{padding:8px 16px;border:none;background:transparent;border-radius:9px;font-size:13px;font-weight:500;color:var(--text-secondary);cursor:pointer;transition:all .2s;}
+  .shape-switch button.active{background:var(--gradient-primary);color:#fff;box-shadow:0 2px 8px rgba(255,107,53,.25);}
+  .dim-inputs{display:none;}
+  .dim-inputs.show{display:block;}
+  .speed-grade{display:inline-block;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:600;margin-left:6px;}
+  .speed-low{background:rgba(59,130,246,.1);color:#2563EB;}
+  .speed-ok{background:rgba(16,185,129,.1);color:#059669;}
+  .speed-high{background:rgba(245,158,11,.1);color:#D97706;}
+  .speed-over{background:rgba(239,68,68,.1);color:#DC2626;}
+  [data-theme="dark"] .speed-low{color:#60A5FA;}
+  [data-theme="dark"] .speed-ok{color:#34D399;}
+  [data-theme="dark"] .speed-high{color:#FBBF24;}
+  [data-theme="dark"] .speed-over{color:#F87171;}
+  .calc-steps{font-size:12.5px;color:var(--text-secondary);line-height:1.9;}
+  .calc-steps .step{padding:2px 0;}
+  .calc-steps .step strong{color:var(--text);font-weight:600;}
+  .calc-steps .step em{color:var(--primary);font-style:normal;font-weight:600;}
+  .total-loss{background:linear-gradient(135deg,rgba(255,107,53,.08),rgba(124,58,237,.08));border:1px solid rgba(255,107,53,.2);border-radius:12px;padding:14px 16px;margin-top:10px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;}
+  .total-loss .tl-label{font-size:13px;color:var(--text-secondary);font-weight:500;}
+  .total-loss .tl-val{font-size:26px;font-weight:700;color:var(--primary);}
+  .total-loss .tl-unit{font-size:13px;color:var(--text-muted);margin-left:4px;}
+</style>
+
+
+
+<meta property="og:image" content="https://chenguangwu.github.io/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="ToolBox - 6000+免费在线工具">
+<meta name="twitter:image" content="https://chenguangwu.github.io/og-image.png">
+<meta name="twitter:image:alt" content="ToolBox - 6000+免费在线工具">
+    <meta property="og:type" content="website">
+    <meta name="twitter:title" content="风管尺寸与阻力计算器 - 面向暖通空调（HVAC）设计师的在线工程计算工具 - ToolBox">
+    <meta name="twitter:description" content="风管尺寸与阻力计算器 - 是一款面向暖通空调（HVAC）设计师的在线工程计算工具。输入风量、风速、风管形状与尺寸、管长及局部阻力系数，即可一键计算风管所需截面积、实际截面积、实际风速、等流速当量直径、沿程阻力系数、动压、比摩阻、沿程阻力、局部阻力">
+<!-- TOOLBOX-WEBAPP-LD -->
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"WebApplication","name":"风管尺寸与阻力计算器 - 面向暖通空调（HVAC）设计师的在线工程计算工具","url":"https://chenguangwu.github.io/tools/hvac/duct-calculator.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":["zh-CN", "en-US"],"description":"风管尺寸与阻力计算器","image":"https://chenguangwu.github.io/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}
+</script>
+<meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
+<meta http-equiv="X-Content-Type-Options" content="nosniff">
+<meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
+<!-- TOOLBOX-SECURITY -->
+
+<script src="/js/privacy.js" defer></script>
+<!-- TOOLBOX-PRIVACY-SCRIPT -->
+
+<script src="/js/metrics.js" defer></script>
+<!-- TOOLBOX-METRICS-SCRIPT -->
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"首页","item":"https://chenguangwu.github.io/"},{"@type":"ListItem","position":2,"name":"暖通空调","item":"https://chenguangwu.github.io/tools/hvac/index.html"},{"@type":"ListItem","position":3,"name":"风管尺寸与阻力计算器","item":"https://chenguangwu.github.io/tools/hvac/duct-calculator.html"}]}
+</script>
+
+<script src="../../js/i18n.js" defer></script>
+<script src="../../js/tool-i18n.js" defer></script>
+<!-- TOOLBOX-I18N-SCRIPT -->
+<!-- TOOLBOX-HREFLANG -->
+<link rel="alternate" hreflang="zh-CN" href="https://chenguangwu.github.io/tools/hvac/duct-calculator.html">
+<link rel="alternate" hreflang="en-US" href="https://chenguangwu.github.io/tools/hvac/duct-calculator.html">
+<link rel="alternate" hreflang="x-default" href="https://chenguangwu.github.io/tools/hvac/duct-calculator.html">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:locale:alternate" content="en_US">
+
+<script src="/js/clarity.js" defer></script>
+<!-- TOOLBOX-CLARITY -->
+</head>
+<body>
+<h1 class="sr-only">风管尺寸与阻力计算器</h1>
+
+<div class="nav">
+  <a href="../../index.html">← ToolBox</a>
+  <span>/ 风管尺寸与阻力计算器</span>
+  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()" aria-label="切换主题">🌙</button>
+</div>
+
+
+
+
+
+<nav class="breadcrumb" aria-label="面包屑导航" data-breadcrumb="1">
+  <a href="../../index.html">首页</a>
+  <span class="bc-sep">‹</span>
+  <a href="index.html">🔧 暖通空调</a>
+  <span class="bc-sep">‹</span>
+  <span class="bc-current">风管尺寸与阻力计算器</span>
+</nav>
+<div class="container">
+
+  <!-- ============ 输入参数 ============ -->
+  <div class="card">
+    <h2>🌬️ 风管尺寸与阻力计算器</h2>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:14px;">依据暖通设计规范，输入风量、风速与风管参数，计算截面积、当量直径、沿程阻力、局部阻力及总阻力。</p>
+
+    <div class="input-row">
+      <div>
+        <label>风量 Q（m³/h）</label>
+        <input type="number" id="Q" value="3600" min="0" step="any" oninput="calc()" enterkeyhint="done" aria-label="风量，立方米每小时">
+      </div>
+      <div>
+        <label>设计风速 v（m/s）</label>
+        <input type="number" id="v" value="5" min="0" step="any" oninput="calc()" enterkeyhint="done" aria-label="设计风速，米每秒">
+      </div>
+      <div>
+        <label>空气密度 ρ（kg/m³）</label>
+        <input type="number" id="rho" value="1.2" min="0" step="any" oninput="calc()" enterkeyhint="done" aria-label="空气密度，标准工况默认1.2">
+      </div>
+    </div>
+
+    <div style="margin-bottom:12px;">
+      <label>风管形状</label>
+      <div class="shape-switch" role="tablist">
+        <button type="button" id="btnRect" class="active" onclick="switchShape('rect')" role="tab" aria-selected="true">▭ 矩形风管</button>
+        <button type="button" id="btnCircle" onclick="switchShape('circle')" role="tab" aria-selected="false">○ 圆形风管</button>
+      </div>
+    </div>
+
+    <!-- 矩形尺寸 -->
+    <div class="dim-inputs show" id="rectInputs">
+      <div class="input-row">
+        <div>
+          <label>宽边 a（mm）</label>
+          <input type="number" id="rectA" value="500" min="0" step="any" oninput="calc()" enterkeyhint="done" aria-label="矩形风管宽边尺寸，毫米">
+        </div>
+        <div>
+          <label>窄边 b（mm）</label>
+          <input type="number" id="rectB" value="400" min="0" step="any" oninput="calc()" enterkeyhint="done" aria-label="矩形风管窄边尺寸，毫米">
+        </div>
+      </div>
+    </div>
+
+    <!-- 圆形尺寸 -->
+    <div class="dim-inputs" id="circleInputs">
+      <div class="input-row">
+        <div>
+          <label>直径 D（mm）</label>
+          <input type="number" id="diaD" value="500" min="0" step="any" oninput="calc()" enterkeyhint="done" aria-label="圆形风管直径，毫米">
+        </div>
+      </div>
+    </div>
+
+    <div class="input-row">
+      <div>
+        <label>风管长度 L（m）</label>
+        <input type="number" id="L" value="20" min="0" step="any" oninput="calc()" enterkeyhint="done" aria-label="风管长度，米">
+      </div>
+      <div>
+        <label>局部阻力系数 Σξ</label>
+        <input type="number" id="xi" value="1.5" min="0" step="any" oninput="calc()" enterkeyhint="done" aria-label="局部阻力系数之和">
+      </div>
+    </div>
+
+    <div class="toolbar">
+      <button class="btn primary" type="button" onclick="calc()">🧮 计算</button>
+      <button class="btn" type="button" onclick="copyRes()">📋 复制结果</button>
+      <button class="btn" type="button" onclick="suggestSize()">📐 推荐尺寸</button>
+      <button class="btn" type="button" onclick="resetAll()">🗑️ 重置</button>
+    </div>
+
+    <div class="info-box">💡 动压 Pv = ρv²/2；矩形等流速当量直径 De = 2ab/(a+b)；沿程阻力系数 λ = 0.0125 + 0.0011/√De（De 单位取 m）。</div>
+  </div>
+
+  <!-- ============ 计算结果 ============ -->
+  <div class="card">
+    <h3>📊 计算结果</h3>
+    <div id="resultGrid"></div>
+
+    <div id="totalBox" style="display:none;"></div>
+
+    <div class="result-box" id="stepsBox" style="margin-top:12px;"></div>
+  </div>
+
+  <!-- ============ 推荐风速参考表 ============ -->
+  <div class="card">
+    <h3>📋 推荐风速参考表</h3>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:10px;">依据《民用建筑供暖通风与空气调节设计规范》GB 50736，常用风管内空气流速参考值：</p>
+    <table>
+      <thead>
+        <tr><th>应用场所 / 系统</th><th>主风管（m/s）</th><th>支风管（m/s）</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>住宅、卧室（低噪要求）</td><td>3 ~ 5</td><td>1 ~ 3</td></tr>
+        <tr><td>商场、办公（一般低速）</td><td>6 ~ 10</td><td>2 ~ 5</td></tr>
+        <tr><td>影剧院、图书馆（安静）</td><td>4 ~ 6</td><td>2 ~ 3</td></tr>
+        <tr><td>一般空调（高速系统）</td><td>12 ~ 20</td><td>5 ~ 8</td></tr>
+        <tr><td>工业通风、除尘</td><td>6 ~ 14</td><td>2 ~ 8</td></tr>
+        <tr><td>高速工业排风</td><td>15 ~ 25</td><td>8 ~ 12</td></tr>
+      </tbody>
+    </table>
+    <div class="tip-box tip-info" style="margin-top:10px;">风速越高，风管截面越小（节省材料与空间），但噪声与阻力能耗越大；风速过低则风管粗大、初投资高。实际设计需在噪声、能耗、造价间权衡。</div>
+  </div>
+
+  <!-- ============ 公式与说明 ============ -->
+  <div class="card">
+    <h3>📐 计算公式说明</h3>
+    <div class="duct-formula">
+      <b>① 风管截面积</b><br>
+      F = Q / (3600 × v) &nbsp;【m²】 &nbsp; Q 为风量(m³/h)，v 为风速(m/s)<br><br>
+      <b>② 矩形等流速当量直径</b><br>
+      De = 2ab / (a+b) &nbsp;【m】 &nbsp; a、b 为矩形宽、窄边(m)；圆形风管 De = D<br><br>
+      <b>③ 沿程阻力系数（近似）</b><br>
+      λ = 0.0125 + 0.0011 / √De &nbsp;（De 取 m）<br><br>
+      <b>④ 动压</b><br>
+      Pv = ρ × v² / 2 &nbsp;【Pa】 &nbsp; ρ 为空气密度，标准工况 1.2 kg/m³<br><br>
+      <b>⑤ 比摩阻（单位长度沿程阻力）</b><br>
+      Rm = λ × (1/De) × Pv &nbsp;【Pa/m】<br><br>
+      <b>⑥ 沿程阻力</b><br>
+      ΔPy = Rm × L = λ × (L/De) × Pv &nbsp;【Pa】 &nbsp; L 为风管长度(m)<br><br>
+      <b>⑦ 局部阻力</b><br>
+      ΔPj = Σξ × Pv &nbsp;【Pa】 &nbsp; Σξ 为管件局部阻力系数之和<br><br>
+      <b>⑧ 系统总阻力</b><br>
+      ΔP = ΔPy + ΔPj &nbsp;【Pa】
+    </div>
+    <div class="tip-box tip-warn">⚠️ 阻力计算使用<b>实际风速</b>（由风量与实际截面积推算）。当实际截面积与所需截面积接近时，实际风速≈设计风速。λ 为工程近似公式，适用于一般镀锌钢板风管；粗糙度不同时结果会有偏差。</div>
+  </div>
+
+  <!-- ============ SEO 介绍区块 ============ -->
+  
+</div>
+
+</div>
+
+<!-- 相关工具 -->
+<div class="related-tools" data-related-tools="1">
+  <h3 class="related-tools-title">🔗 相关工具</h3>
+  <div class="related-tools-grid">
+    <a href="dehumidifier.html" class="related-tool-card">
+      <span class="rt-icon">🌫️</span>
+      <span class="rt-info"><span class="rt-name">dehumidifier</span><span class="rt-desc">除湿量计算器 Dehumidifier Sizing</span></span>
+    </a>
+    <a href="cooling-tower.html" class="related-tool-card">
+      <span class="rt-icon">🗼</span>
+      <span class="rt-info"><span class="rt-name">冷却塔散热与补水量计算器 - 在线计算冷却塔散热量、冷却范围、接近度、蒸发损失、飘水损失、 | ToolBox免费在线工具箱</span><span class="rt-desc">冷却塔散热与补水量计算器</span></span>
+    </a>
+    <a href="chiller-efficiency.html" class="related-tool-card">
+      <span class="rt-icon">🏭</span>
+      <span class="rt-info"><span class="rt-name">冷机COP/EER能效计算器 - 免费在线计算冷水机组性能系数(COP)、能效比(EER)、单 | ToolBox免费在线工具箱</span><span class="rt-desc">&amp;#127981; 冷机COP/EER能效计算器</span></span>
+    </a>
+    <a href="fresh-air-load.html" class="related-tool-card">
+      <span class="rt-icon">🍃</span>
+      <span class="rt-info"><span class="rt-name">新风负荷计算器 - 在线计算新风全热负荷、显热负荷、潜热负荷，基于焓湿图公式 h | ToolBox免费在线工具箱</span><span class="rt-desc">新风负荷计算器</span></span>
+    </a>
+    <a href="pump-calculator.html" class="related-tool-card">
+      <span class="rt-icon">💧</span>
+      <span class="rt-info"><span class="rt-name">水泵扬程流量计算器 - 水泵扬程与流量计算器，在线计算管路流速、沿程阻力损失、局部阻 | ToolBox免费在线工具箱</span><span class="rt-desc">水泵扬程与流量计算器</span></span>
+    </a>
+    <a href="cooling-load.html" class="related-tool-card">
+      <span class="rt-icon">❄️</span>
+      <span class="rt-info"><span class="rt-name">空调负荷计算器 - 基于简化冷负荷系数法，计算外墙、窗户、人员、设备、照明、新风 | ToolBox免费在线工具箱</span><span class="rt-desc">空调负荷计算器</span></span>
+    </a>
+  </div>
+</div>
+<div class="tool-intro open" id="toolIntro">
+    <div class="tool-intro-header" onclick="this.parentElement.classList.toggle('open')">
+      <span class="intro-icon-wrap"><span class="intro-icon">📖</span>关于「风管尺寸与阻力计算器」</span>
+      <span class="arrow">▼</span>
+    </div>
+    <div class="tool-intro-body">
+      <h4><span class="h4-icon">📝</span>工具简介</h4>
+      <p>风管尺寸与阻力计算器是一款面向暖通空调（HVAC）设计师的在线工程计算工具。输入风量、风速、风管形状与尺寸、管长及局部阻力系数，即可一键计算风管所需截面积、实际截面积、实际风速、等流速当量直径、沿程阻力系数、动压、比摩阻、沿程阻力、局部阻力及系统总阻力，并内置推荐风速参考表，辅助风管选型与系统阻力校核。</p>
+      <h4><span class="h4-icon">✨</span>功能特点</h4>
+      <ul class="intro-features">
+        <li>支持矩形与圆形两种风管形状</li>
+        <li>自动计算等流速当量直径 De</li>
+        <li>沿程阻力 + 局部阻力 + 总阻力一键算</li>
+        <li>内置 GB 50736 推荐风速参考表</li>
+        <li>风速合理性智能评估提示</li>
+        <li>纯前端处理，数据不上传服务器</li>
+      </ul>
+      <h4><span class="h4-icon">🎯</span>使用场景</h4>
+      <ul class="intro-scenes">
+        <li>空调送回风风管选型设计</li>
+        <li>通风排烟系统阻力计算</li>
+        <li>风机选型时的系统阻力估算</li>
+        <li>风管截面尺寸优化与校核</li>
+        <li>暖通课程设计与工程教学</li>
+        <li>现场施工风管复核</li>
+      </ul>
+      <h4><span class="h4-icon">💬</span>常见问题</h4>
+      <div class="intro-faq-item"><div class="intro-faq-q">等流速当量直径和等流量当量直径有什么区别？</div><div class="intro-faq-a">等流速当量直径 De = 2ab/(a+b)，即水力直径，表示与矩形风管在相同流速下产生相同单位阻力损失的圆形风管直径，本工具沿程阻力计算采用此值。等流量当量直径则用于相同流量下阻力相等换算，公式不同。</div></div>
+      <div class="intro-faq-item"><div class="intro-faq-q">沿程阻力系数 λ 的公式适用范围？</div><div class="intro-faq-a">本工具采用 λ = 0.0125 + 0.0011/√De 的工程近似公式，适用于一般镀锌钢板风管、湍流区（Re &gt; 10⁵）。当风管材料粗糙度较大（如混凝土风道）或处于过渡区时，建议查莫迪图或采用柯列勃洛克公式修正。</div></div>
+      <div class="intro-faq-item"><div class="intro-faq-q">局部阻力系数 Σξ 如何取值？</div><div class="intro-faq-a">Σξ 为管段上所有管件（弯头、三通、变径、风口、阀门等）局部阻力系数之和，可查阅《实用供热空调设计手册》或厂家样本。例如 90° 圆形弯头约 0.3，矩形弯头约 0.2~0.4，渐缩管约 0.1。</div></div>
+      <div class="intro-faq-item"><div class="intro-faq-q">计算结果是免费的吗？数据会被上传吗？</div><div class="intro-faq-a">完全免费，无需注册。所有计算在浏览器本地完成，数据不会发送到任何服务器，保护您的隐私与设计资料安全。</div></div>
+    </div>
+  </div>
+  <!-- /SEO 介绍区块 -->
+
+</div>
+
+<script>
+function $(id){ return document.getElementById(id); }
+
+/* ---------- 形状切换 ---------- */
+function switchShape(shape){
+  if(shape === 'rect'){
+    $('btnRect').classList.add('active');
+    $('btnRect').setAttribute('aria-selected','true');
+    $('btnCircle').classList.remove('active');
+    $('btnCircle').setAttribute('aria-selected','false');
+    $('rectInputs').classList.add('show');
+    $('circleInputs').classList.remove('show');
+  } else {
+    $('btnCircle').classList.add('active');
+    $('btnCircle').setAttribute('aria-selected','true');
+    $('btnRect').classList.remove('active');
+    $('btnRect').setAttribute('aria-selected','false');
+    $('circleInputs').classList.add('show');
+    $('rectInputs').classList.remove('show');
+  }
+  calc();
+}
+
+/* ---------- 输入读取与校验 ---------- */
+function setInvalid(el, invalid){
+  if(!el) return;
+  if(invalid){ el.classList.add('input-error'); el.setAttribute('aria-invalid','true'); }
+  else { el.classList.remove('input-error'); el.removeAttribute('aria-invalid'); }
+}
+
+function readNum(id){
+  var el = $(id);
+  var val = parseFloat(el.value);
+  setInvalid(el, el.value !== '' && isNaN(val));
+  return isNaN(val) ? 0 : val;
+}
+
+/* ---------- 风速评估 ---------- */
+function speedGrade(v){
+  if(v <= 0) return {txt:'-', cls:''};
+  if(v < 3) return {txt:'偏低', cls:'speed-low'};
+  if(v <= 8) return {txt:'经济合理', cls:'speed-ok'};
+  if(v <= 12) return {txt:'偏高·注意噪声', cls:'speed-high'};
+  return {txt:'过高·噪声大', cls:'speed-over'};
+}
+
+/* ---------- 主计算 ---------- */
+function calc(){
+  var Q   = readNum('Q');     // m³/h
+  var vD  = readNum('v');     // 设计风速 m/s
+  var rho = readNum('rho');   // kg/m³
+  var L   = readNum('L');     // m
+  var xi  = readNum('xi');    // Σξ
+  var shape = $('btnRect').classList.contains('active') ? 'rect' : 'circle';
+
+  // 所需截面积（依据设计风速）
+  var F_req = (vD > 0) ? Q / (3600 * vD) : 0; // m²
+
+  // 实际截面积 / 当量直径 / 尺寸描述
+  var F_act = 0, De = 0, dimStr = '', v_act = 0, a_mm = 0, b_mm = 0, D_mm = 0;
+  if(shape === 'rect'){
+    a_mm = readNum('rectA');
+    b_mm = readNum('rectB');
+    var a = a_mm / 1000, b = b_mm / 1000;
+    F_act = a * b;
+    if((a + b) > 0) De = 2 * a * b / (a + b);
+    dimStr = a_mm + ' × ' + b_mm + ' mm';
+  } else {
+    D_mm = readNum('diaD');
+    var D = D_mm / 1000;
+    F_act = Math.PI * D * D / 4;
+    De = D;
+    dimStr = 'Φ ' + D_mm + ' mm';
+  }
+
+  // 实际风速
+  v_act = (F_act > 0) ? Q / (3600 * F_act) : 0;
+
+  // 沿程阻力系数
+  var lambda = (De > 0) ? (0.0125 + 0.0011 / Math.sqrt(De)) : 0;
+
+  // 动压
+  var Pv = rho * v_act * v_act / 2; // Pa
+
+  // 比摩阻
+  var Rm = (De > 0) ? (lambda / De * Pv) : 0; // Pa/m
+
+  // 沿程阻力
+  var dPy = Rm * L; // Pa
+
+  // 局部阻力
+  var dPj = xi * Pv; // Pa
+
+  // 总阻力
+  var dP = dPy + dPj; // Pa
+
+  // 面积偏差
+  var areaDiff = (F_req > 0) ? ((F_act - F_req) / F_req * 100) : 0;
+
+  renderResults({
+    Q:Q, vD:vD, rho:rho, L:L, xi:xi, shape:shape,
+    F_req:F_req, F_act:F_act, De:De, dimStr:dimStr, v_act:v_act,
+    lambda:lambda, Pv:Pv, Rm:Rm, dPy:dPy, dPj:dPj, dP:dP, areaDiff:areaDiff,
+    a_mm:a_mm, b_mm:b_mm, D_mm:D_mm
+  });
+}
+
+/* ---------- 结果渲染 ---------- */
+function renderResults(r){
+  var sg = speedGrade(r.v_act);
+  var areaTip = '';
+  if(r.F_req > 0 && r.F_act > 0){
+    if(Math.abs(r.areaDiff) > 15){
+      areaTip = '<div class="tip-box tip-warn" style="margin-top:8px;">⚠️ 实际截面积与所需面积偏差 ' +
+        Math.abs(r.areaDiff).toFixed(1) + '%，实际风速将偏离设计风速较多，建议调整风管尺寸。</div>';
+    } else {
+      areaTip = '<div class="tip-box tip-success" style="margin-top:8px;">✓ 实际截面积与所需面积匹配良好（偏差 ' +
+        Math.abs(r.areaDiff).toFixed(1) + '%）。</div>';
+    }
+  }
+
+  $('resultGrid').innerHTML =
+    '<div class="data-grid">' +
+      dc(r.F_req.toFixed(4), '所需截面积 F (m²)') +
+      dc(r.F_act.toFixed(4), '实际截面积 F (m²)') +
+      dc(r.v_act.toFixed(2), '实际风速 (m/s)') +
+      dc((r.De * 1000).toFixed(1), '当量直径 De (mm)') +
+    '</div>' +
+    '<div class="data-grid" style="margin-top:8px;">' +
+      dc(r.lambda.toFixed(5), '沿程阻力系数 λ') +
+      dc(r.Pv.toFixed(2), '动压 Pv (Pa)') +
+      dc(r.Rm.toFixed(2), '比摩阻 Rm (Pa/m)') +
+      dc(r.dimStr, '风管尺寸') +
+    '</div>' +
+    '<div class="data-grid" style="margin-top:8px;">' +
+      dc(r.dPy.toFixed(1), '沿程阻力 ΔPy (Pa)') +
+      dc(r.dPj.toFixed(1), '局部阻力 ΔPj (Pa)') +
+      dc('<span style="font-size:14px;">' + r.vD.toFixed(2) + '</span>', '设计风速 (m/s)') +
+      dc('<span style="font-size:13px;">' + r.rho.toFixed(3) + '</span>', '空气密度 ρ (kg/m³)') +
+    '</div>' +
+    (sg.cls ? '<div class="tip-box tip-info" style="margin-top:8px;">🚩 实际风速评估：<strong>' + r.v_act.toFixed(2) + ' m/s</strong> <span class="speed-grade ' + sg.cls + '">' + sg.txt + '</span></div>' : '') +
+    areaTip;
+
+  // 总阻力高亮
+  $('totalBox').style.display = 'block';
+  $('totalBox').innerHTML =
+    '<div class="total-loss">' +
+      '<span class="tl-label">系统总阻力 ΔP = ΔPy + ΔPj</span>' +
+      '<span><span class="tl-val">' + r.dP.toFixed(1) + '</span><span class="tl-unit">Pa</span></span>' +
+    '</div>';
+
+  // 计算步骤
+  $('stepsBox').innerHTML =
+    '<div class="calc-steps">' +
+    step('风量 Q', r.Q + ' m³/h') +
+    step('设计风速 v', r.vD + ' m/s') +
+    step('所需截面积 F = Q/(3600×v)', r.F_req.toFixed(4) + ' m²') +
+    step('实际截面积 F' + (r.shape==='rect' ? ' = a×b' : ' = πD²/4'), r.F_act.toFixed(4) + ' m² （' + r.dimStr + '）') +
+    step('实际风速 v = Q/(3600×F)', r.v_act.toFixed(3) + ' m/s') +
+    step('当量直径 De' + (r.shape==='rect' ? ' = 2ab/(a+b)' : ' = D'), (r.De*1000).toFixed(2) + ' mm = ' + r.De.toFixed(4) + ' m') +
+    step('沿程阻力系数 λ = 0.0125 + 0.0011/√De', r.lambda.toFixed(5)) +
+    step('动压 Pv = ρv²/2', r.Pv.toFixed(3) + ' Pa') +
+    step('比摩阻 Rm = λ·Pv/De', r.Rm.toFixed(3) + ' Pa/m') +
+    step('沿程阻力 ΔPy = Rm×L', r.dPy.toFixed(2) + ' Pa （L=' + r.L + ' m）') +
+    step('局部阻力 ΔPj = Σξ·Pv', r.dPj.toFixed(2) + ' Pa （Σξ=' + r.xi + '）') +
+    '<div class="step" style="border-left-color:var(--primary);color:var(--text);font-weight:600;margin-top:4px;">总阻力 ΔP = ΔPy + ΔPj = <em>' + r.dP.toFixed(2) + ' Pa</em></div>' +
+    '</div>';
+}
+
+function dc(num, label){
+  return '<div class="data-card"><div class="num">' + num + '</div><div class="label">' + label + '</div></div>';
+}
+function step(name, val){
+  return '<div class="step"><strong>' + name + '</strong> = <em>' + val + '</em></div>';
+}
+
+/* ---------- 推荐尺寸 ---------- */
+function suggestSize(){
+  var Q = readNum('Q');
+  var v = readNum('v');
+  if(Q <= 0 || v <= 0){ ToolBox.showToast(i18nText('toast.msg692'), 'warning'); return; }
+  var F = Q / (3600 * v); // m²
+  var shape = $('btnRect').classList.contains('active') ? 'rect' : 'circle';
+
+  if(shape === 'circle'){
+    var D = Math.sqrt(4 * F / Math.PI) * 1000; // mm
+    // 取标准值（50mm 进位）
+    var Dstd = Math.ceil(D / 50) * 50;
+    $('diaD').value = Dstd;
+    ToolBox.showToast('推荐圆形直径约 ' + D.toFixed(0) + ' mm，已取标准值 ' + Dstd + ' mm', 'info');
+  } else {
+    // 矩形：按宽高比 1.25:1 估算
+    var ratio = 1.25;
+    var b = Math.sqrt(F / ratio) * 1000;
+    var a = b * ratio;
+    var bstd = Math.ceil(b / 50) * 50;
+    var astd = Math.ceil(a / 50) * 50;
+    $('rectA').value = astd;
+    $('rectB').value = bstd;
+    ToolBox.showToast('推荐矩形约 ' + a.toFixed(0) + '×' + b.toFixed(0) + ' mm，已取标准值 ' + astd + '×' + bstd + ' mm', 'info');
+  }
+  calc();
+}
+
+/* ---------- 复制 / 重置 ---------- */
+function copyRes(){
+  var text = $('stepsBox').innerText.replace(/\n{2,}/g, '\n').trim();
+  if(!text){ ToolBox.showToast(i18nText(), 'warning'); return; }
+  text = '【风管阻力计算结果】\n' + text + '\n总阻力: ' + $('totalBox').innerText.replace(/\s+/g,' ').trim();
+  ToolBox.copyText(text);
+}
+
+function resetAll(){
+  $('Q').value = 3600;
+  $('v').value = 5;
+  $('rho').value = 1.2;
+  $('rectA').value = 500;
+  $('rectB').value = 400;
+  $('diaD').value = 500;
+  $('L').value = 20;
+  $('xi').value = 1.5;
+  switchShape('rect');
+  calc();
+  ToolBox.showToast(i18nText('toast.msg326'), 'info');
+}
+
+/* ---------- 初始化 ---------- */
+calc();
+</script>
+
+</body>
+</html>
