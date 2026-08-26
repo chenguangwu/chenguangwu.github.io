@@ -81,16 +81,12 @@
 <div class="container">
   <div class="card tool-card-accent" style="--tool-accent:#FF6B35;">
     <h2>📚 颜色代码转换（HEX/RGB/HSL/CMYK）</h2>
-    <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;">HEX/RGB/HSL/CMYK</p>
-<div class="input-row"><div><label>输入数值</label><input type="number" id="val" value="1" step="any" oninput="calc()"></div>
-<div><label>换算系数</label><input type="number" id="rate" value="1" step="any" oninput="calc()"></div></div>
-<div class="input-row"><div><label>从</label><select id="from" onchange="calc()"><option value="1">单位A</option><option value="0.001">毫单位A</option><option value="1000">千单位A</option></select></div>
-<div><label>到</label><select id="to" onchange="calc()"><option value="1">单位B</option><option value="0.001">毫单位B</option><option value="1000">千单位B</option></select></div></div>
-<div class="toolbar"><button type="button" class="btn primary" onclick="calc()">换算</button><button type="button" class="btn" onclick="copyRes()">复制</button></div>
-<div class="result-box" id="res"></div>
-  </div>
-
-<!-- 注意事项区块 -->
+<p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;">HEX / RGB / HSL / CMYK 颜色代码互转</p>
+<div class="input-row"><div><label>输入颜色值</label><input type="text" id="val" value="#FF6B35" oninput="calc()"></div></div>
+<div class="input-row"><div><label>从格式</label><select id="from" onchange="calc()"><option value="hex" selected>HEX</option><option value="rgb">RGB</option><option value="hsl">HSL</option><option value="cmyk">CMYK</option></select></div>
+<div><label>到格式</label><select id="to" onchange="calc()"><option value="hex">HEX</option><option value="rgb" selected>RGB</option><option value="hsl">HSL</option><option value="cmyk">CMYK</option></select></div></div>
+<div class="toolbar"><button type="button" class="btn primary" onclick="calc()">转换</button><button type="button" class="btn" onclick="copyRes()">复制</button></div>
+<div class="result-box" id="res"></div></div>
 <div class="tool-notes" style="--tool-accent:#FF6B35;">
   <div class="tool-notes-title">⚠️ 使用说明与注意事项</div>
   <ul>
@@ -102,7 +98,17 @@
 <!-- /注意事项区块 -->
 </div>
 <script>
-function calc(){const v=+document.getElementById("val").value||0;const rate=+document.getElementById("rate").value||1;const f=+document.getElementById("from").value;const t=+document.getElementById("to").value;const r=v*rate*f/t;document.getElementById("res").innerHTML=`<p style="font-size:22px;color:var(--primary);"><strong>${r.toFixed(6)}</strong></p><p style="font-size:12px;color:var(--text-muted);">系数: ${rate}</p>`;}calc();function copyRes(){ToolBox.copyText(document.getElementById("res").innerText);}
+function hexToRgb(h){h=h.replace('#','');if(h.length===3)h=h.split('').map(function(c){return c+c;}).join('');var n=parseInt(h,16);return [n>>16&255,n>>8&255,n&255];}
+function rgbToHex(r,g,b){return '#'+[r,g,b].map(function(x){var s=('0'+Math.round(x).toString(16)).slice(-2);return s;}).join('').toUpperCase();}
+function rgbToHsl(r,g,b){r/=255;g/=255;b/=255;var mx=Math.max(r,g,b),mn=Math.min(r,g,b),h,s,l=(mx+mn)/2;if(mx===mn){h=s=0;}else{var d=mx-mn;if(l>0.5)s=d/(2-mx-mn);else s=d/(mx+mn);switch(mx){case r:h=(g-b)/d+(g<b?6:0);break;case g:h=(b-r)/d+2;break;default:h=(r-g)/d+4;}h/=6;}return [Math.round(h*360),Math.round(s*100),Math.round(l*100)];}
+function hslToRgb(h,s,l){h/=360;s/=100;l/=100;var r,g,b;if(s===0){r=g=b=l;}else{var q=l<0.5?l*(1+s):l+s-l*s;var p=2*l-q;var hu=function(t){if(t<0)t+=1;if(t>1)t-=1;if(t<1/6)return p+(q-p)*6*t;if(t<1/2)return q;if(t<2/3)return p+(q-p)*(2/3-t)*6;return p;};r=hu(h+1/3);g=hu(h);b=hu(h-1/3);}return [r*255,g*255,b*255];}
+function rgbToCmyk(r,g,b){r/=255;g/=255;b/=255;var k=1-Math.max(r,g,b);if(k===1)return [0,0,0,100];var c=(1-r-k)/(1-k),m=(1-g-k)/(1-k),y=(1-b-k)/(1-k);return [Math.round(c*100),Math.round(m*100),Math.round(y*100),Math.round(k*100)];}
+function cmykToRgb(c,m,y,k){c/=100;m/=100;y/=100;k/=100;var r=255*(1-c)*(1-k),g=255*(1-m)*(1-k),b=255*(1-y)*(1-k);return [r,g,b];}
+function parseRgb(s){var m=s.match(/[\d.]+/g);return m?m.slice(0,3).map(Number):null;}
+function parseHsl(s){var m=s.match(/[\d.]+/g);return m?m.slice(0,3).map(Number):null;}
+function parseCmyk(s){var m=s.match(/[\d.]+/g);return m?m.slice(0,4).map(Number):null;}
+function calc(){var v=(document.getElementById('val').value||'').trim();var from=document.getElementById('from').value;var to=document.getElementById('to').value;var rgb,out='';try{if(from==='hex'){rgb=hexToRgb(v);}else if(from==='rgb'){rgb=parseRgb(v);}else if(from==='hsl'){rgb=hslToRgb.apply(null,parseHsl(v));}else{rgb=cmykToRgb.apply(null,parseCmyk(v));}if(!rgb){out='输入无效';}else if(to==='hex'){out=rgbToHex(rgb[0],rgb[1],rgb[2]);}else if(to==='rgb'){out='rgb('+Math.round(rgb[0])+', '+Math.round(rgb[1])+', '+Math.round(rgb[2])+')';}else if(to==='hsl'){var h=rgbToHsl(rgb[0],rgb[1],rgb[2]);out='hsl('+h[0]+', '+h[1]+'%, '+h[2]+'%)';}else{var c=rgbToCmyk(rgb[0],rgb[1],rgb[2]);out='cmyk('+c[0]+'%, '+c[1]+'%, '+c[2]+'%, '+c[3]+'%)';}}catch(e){out='输入无效';}document.getElementById('res').innerHTML='<p style="font-size:18px;color:var(--primary);"><strong>'+out+'</strong></p>';}calc();function copyRes(){ToolBox.copyText(document.getElementById('res').innerText);}
+<!-- TOOLBOX-REALIZED -->
 </script>
 
 <!-- SEO 介绍区块 -->
