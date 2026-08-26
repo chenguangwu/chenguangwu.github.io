@@ -57,5 +57,5 @@
 ## 6. 待办（非阻塞，不阻断发布）
 
 1. **GSC 数据驱动 CTR 精修**：待老板提供 GSC 查询 CSV（query / impressions / clicks / ctr / position），对「高展示低点击」页面批量优化 title/description（207 处短描述优先）。
-2. **指南页社交标签**：为 `guides/` 81 页补齐 og:description / twitter:* 等社交卡片标签（不影响搜索 CTR）。
+2. **指南页社交标签**：~~为 `guides/` 81 页补齐 og:description / twitter:* 等社交卡片标签~~ **【2026-08-26 复核：已完成/无需处理】** 全站 150 个 `guides/*.html` 经实测 `og:title`/`og:description`/`twitter:title`/`twitter:description`/`twitter:card`/`canonical`/`og:image` 全部 0 缺失，后续构建已自动补齐，此项已自然收口（不影响搜索 CTR）。
 3. **索引提交**：由老板侧 cron（每日 15:00 IndexNow）自动运行，会话内不触发。
