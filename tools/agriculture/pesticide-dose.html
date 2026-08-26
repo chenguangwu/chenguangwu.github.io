@@ -132,6 +132,19 @@
   <div class="card tool-card-accent" style="--tool-accent:#FF6B35;">
     <h2>🧴 农药配比计算器</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;">专业农药稀释配比计算，支持多种喷施方式、常用农药对照表、安全间隔期查询</p>
+<!-- TOOLBOX-POLISH -->
+
+<div class="formula-box">
+  <div class="formula-title">📐 工作原理与说明</div>
+  <p class="formula-desc">按标签推荐浓度换算实际用药量。<b>原药体积 = 目标药液总量 ÷ 稀释倍数</b>；或 <b>用药量 = 面积 × 单位面积推荐量</b>（如 mL/亩、g/亩）。已给水量时：原药量 = 水量 × 推荐浓度比。</p>
+  <ul class="formula-list">
+    <li>严格遵守安全间隔期与最大残留限量（MRL），禁止超量。</li>
+    <li>折算以登记作物、剂型、有效成分含量为依据。</li>
+    <li>结果仅供参考，施药务必核对正式标签与当地植保指导。</li>
+  </ul>
+</div>
+
+
 
     <div class="tabs">
       <button type="button" class="tab-btn active" onclick="switchTab('calc')">🧪 计算</button>
@@ -369,7 +382,7 @@ function renderPesticideTable(){
 }
 
 function selectMethod(id){
-  currentMethod = METHODS.find(function(m){ return m.id === id; });
+  currentMethod = METHODS.find(function(m){ return m.id === id; }) || METHODS[0];
   renderMethodGrid();
   $('ppmRow').style.display = id === 'ppm' ? 'block' : 'none';
   $('dilutionRow').style.display = id === 'dilution' ? 'block' : 'none';
@@ -377,7 +390,7 @@ function selectMethod(id){
 }
 
 function selectPreset(i){
-  currentPreset = PRESETS[i];
+  currentPreset = PRESETS[i] || PRESETS[0];
   $('activePct').value = currentPreset.default;
   renderPresetGrid();
   calc();
@@ -399,6 +412,8 @@ function applyPesticide(){
 }
 
 function calc(){
+  currentMethod = currentMethod || METHODS[0];
+  currentPreset = currentPreset || PRESETS[0];
   var activePct = parseFloat($('activePct').value) || 0;
   var water = parseFloat($('water').value) || 0;
   var area = parseFloat($('area').value) || 0;
@@ -415,12 +430,12 @@ function calc(){
 
   if(currentMethod.id === 'ppm'){
     targetPpm = parseFloat($('targetPpm').value) || 0;
-    if(targetPpm <= 0){ return; }
+    if(targetPpm <= 0){ $('chartWrap').style.display = 'none'; return; }
     dilutionTimes = 1000000 / targetPpm;
     pesticidePerMu = (water / dilutionTimes) * (100 / activePct);
   } else if(currentMethod.id === 'dilution'){
     dilutionTimes = parseFloat($('dilutionTimes').value) || 0;
-    if(dilutionTimes <= 0){ return; }
+    if(dilutionTimes <= 0){ $('chartWrap').style.display = 'none'; return; }
     targetPpm = 1000000 / dilutionTimes;
     pesticidePerMu = (water / dilutionTimes) * (100 / activePct);
   } else {
@@ -490,11 +505,16 @@ function canvasColorWithAlpha(value, fallback, alpha){
 
 function drawChart(perMu, totalWater, totalPest, area){
   var canvas = $('chart');
+  if(!canvas || !canvas.parentElement || !Number.isFinite(perMu) || !Number.isFinite(totalWater) || !Number.isFinite(totalPest) || !Number.isFinite(area) || area <= 0){
+    return;
+  }
   var ctx = canvas.getContext('2d');
+  if(!ctx){ return; }
   var container = canvas.parentElement;
   canvas.width = container.clientWidth;
   canvas.height = container.clientHeight;
   var w = canvas.width, h = canvas.height;
+  if(w <= 0 || h <= 0){ return; }
   ctx.clearRect(0, 0, w, h);
 
   var padding = {top:20, right:20, bottom:40, left:50};

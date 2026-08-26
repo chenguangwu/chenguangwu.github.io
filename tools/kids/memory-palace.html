@@ -108,6 +108,18 @@
   <div class="card tool-card-accent" style="--tool-accent:#FF6B35;">
     <h2>🏰 记忆宫殿编码</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;">为数字生成虚拟格子位置编码，结合图像记忆法快速记忆长串数字或词表</p>
+<!-- TOOLBOX-POLISH -->
+
+<div class="formula-box">
+  <div class="formula-title">📐 工作原理与说明</div>
+  <p class="formula-desc">记忆宫殿（Method of Loci）把待记项编码为生动意象，依次“放置”在熟悉的空间路径（房间、路线）上，回忆时沿路径提取。数字常用 <b>00–99 双位编码</b>（每数对应一个形象）转成可挂钩的意象。</p>
+  <ul class="formula-list">
+    <li>编码越夸张、多感官，提取越牢；路径越熟悉越稳定。</li>
+    <li>本工具生成编码表与练习序列，纯本地、不上传。</li>
+  </ul>
+</div>
+
+
 
     <div class="input-row">
       <div>
@@ -221,7 +233,8 @@ function emojiFor(name){
 
 function generate(){
   var text = document.getElementById('srcInput').value.trim() || '3.1415926';
-  var count = parseInt(document.getElementById('cellCount').value);
+  var count = parseInt(document.getElementById('cellCount').value, 10);
+  if(!Number.isFinite(count) || count < 1){ count = 16; }
   var mode = document.getElementById('modeSel').value;
 
   var segments = [];
@@ -301,6 +314,7 @@ function revealCell(i, hidden){
   if(!hidden) return;
   var grid = document.getElementById('palace');
   var cell = grid.children[i];
+  if(!cell) return;
   if(cell.classList.contains('hide')){
     cell.classList.remove('hide');
     cell.classList.add('reveal');
@@ -310,24 +324,34 @@ function revealCell(i, hidden){
   }
 }
 
+function toolText(key, fallback){
+  return typeof i18nText === 'function' ? i18nText(key, fallback) : fallback;
+}
+
+function toolToast(message, type){
+  if(typeof ToolBox !== 'undefined' && typeof ToolBox.showToast === 'function') ToolBox.showToast(message, type);
+}
+
 function startRecall(){
-  if(palace.length === 0){ ToolBox.showToast(i18nText('toast.msg656'), 'error'); return; }
+  if(palace.length === 0){ toolToast(toolText('toast.msg656', '请先生成记忆宫殿'), 'error'); return; }
   renderPalace(true);
-  ToolBox.showToast(i18nText('toast.msg334'), 'info');
+  toolToast(toolText('toast.msg334', '已进入回忆模式'), 'info');
 }
 
 function showAll(){
-  if(palace.length === 0){ ToolBox.showToast(i18nText('toast.msg656'), 'error'); return; }
+  if(palace.length === 0){ toolToast(toolText('toast.msg656', '请先生成记忆宫殿'), 'error'); return; }
   renderPalace(false);
 }
 
 function exportCode(){
-  if(palace.length === 0){ ToolBox.showToast(i18nText('toast.msg656'), 'error'); return; }
+  if(palace.length === 0){ toolToast(toolText('toast.msg656', '请先生成记忆宫殿'), 'error'); return; }
   var lines = ['记忆宫殿编码表', '位置\t内容\t联想'];
   palace.forEach(function(c){
     lines.push(c.pos + '\t' + c.raw + '\t' + c.encode);
   });
-  ToolBox.copyText(lines.join('\n'), i18nText('msg559'));
+  if(typeof ToolBox !== 'undefined' && typeof ToolBox.copyText === 'function'){
+    ToolBox.copyText(lines.join('\n'), toolText('msg559', '编码表已复制'));
+  }
 }
 
 generate();
