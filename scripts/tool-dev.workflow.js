@@ -1,6 +1,6 @@
 // ============================================================================
 // ToolBox 新工具批量开发编排（workflow script body）
-// 关联：PLAN-TOOLS.md（候选池）· ROADMAP.md §P3-1（新工具批量开发）
+// 关联：DEV-PLAN.md（开发计划/候选池/新工具批量开发）
 // 用法：将本文件内容作为 workflow 工具的 script 参数；
 //       args 传 { batches: [{ id, tools: [{slug, name, industry, cat, icon, bg, desc, spec}] }] }
 //       不传 args 时回退到下方 DEFAULT_BATCHES（批次1+2 去重后的首批候选）。
