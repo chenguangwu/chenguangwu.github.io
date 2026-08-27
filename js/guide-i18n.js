@@ -9,6 +9,15 @@
  */
 (function () {
   'use strict';
+
+  // 指南页不一定加载 common.js 或 clarity.js，仍统一复用同一统计加载器。
+  if (!document.querySelector('script[src="/js/analytics.js"], script[src$="/js/analytics.js"]')) {
+    var analytics = document.createElement('script');
+    analytics.src = '/js/analytics.js';
+    analytics.async = true;
+    document.head.appendChild(analytics);
+  }
+
   if (!window.I18n) return;
   var I18n = window.I18n;
 

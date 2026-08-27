@@ -2502,86 +2502,14 @@ document.addEventListener('DOMContentLoaded', function trackToolLaunch(){
   });
 })();
 
-(function(){
-  var bp = document.createElement('script');
-  var curProtocol = window.location.protocol.split(':')[0];
-  if (curProtocol === 'https') {
-    bp.src = 'https://zz.bdstatic.com/linksubmit/push.js';
-  } else {
-    bp.src = 'http://push.zhanzhang.baidu.com/push.js';
-  }
-  bp.async = true;
-  var s = document.getElementsByTagName("script")[0];
-  if (s) {
-    s.parentNode.insertBefore(bp, s);
-  }
-})();
-
-(function(){
-  var hm = document.createElement('script');
-  hm.src = 'https://hm.baidu.com/hm.js?f2993fe19b2862986dd8dbfa0ffcebb8';
-  hm.async = true;
-  var s = document.getElementsByTagName("script")[0];
-  if (s) {
-    s.parentNode.insertBefore(hm, s);
-  }
-})();
-
-// Microsoft Clarity 站点行为分析（统一从外部脚本文件注入，避免内联重复）
-(function () {
-  function loadClarity(){
-    try {
-      if (document.querySelector('meta[name="toolbox"]')) return;
-      if (window.__tbClarityLoaded) return;
-    var existing = document.querySelector('script[src="/js/clarity.js"], script[src$="/js/clarity.js"]');
-    if (existing) {
-      window.__tbClarityLoaded = true;
-      return;
-    }
-    window.__tbClarityLoaded = true;
-
-    if (document.getElementById('tb-clarity-bootstrap')) return;
-    var script = document.createElement('script');
-    script.id = 'tb-clarity-bootstrap';
-    script.defer = true;
-    script.src = '/js/clarity.js';
-    var first = document.getElementsByTagName('script')[0];
-    if (first && first.parentNode) {
-      first.parentNode.insertBefore(script, first);
-    } else if (document.head) {
-      document.head.appendChild(script);
-    } else {
-      document.documentElement.appendChild(script);
-    }
-    } catch (e) {}
-  }
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', loadClarity, {once:true});
-  } else {
-    loadClarity();
-  }
-})();
-
-// 51.la 站点统计（第三方分析，统一从此共享脚本动态注入，避免逐页内联重复）
-(function () {
-  if (window.__laLoaded) return;
-  window.__laLoaded = true;
-  var s = document.createElement('script');
-  s.charset = 'UTF-8';
-  s.id = 'LA_COLLECT';
-  s.src = '//sdk.51.la/js-sdk-pro.min.js';
-  s.onload = function () {
-    if (window.LA) {
-      window.LA.init({id:"3R0rVW6KKmLfdAFz",ck:"3R0rVW6KKmLfdAFz",autoTrack:true,hashMode:true,screenRecord:true});
-    }
-  };
-  var first = document.getElementsByTagName('script')[0];
-  if (first && first.parentNode) {
-    first.parentNode.insertBefore(s, first);
-  } else if (document.head) {
-    document.head.appendChild(s);
-  }
-})();
+// 复用统一统计入口，覆盖未加载 clarity.js 的公共功能页。
+(function (document) {
+  if (document.querySelector('script[src="/js/analytics.js"], script[src$="/js/analytics.js"]')) return;
+  var script = document.createElement('script');
+  script.src = '/js/analytics.js';
+  script.async = true;
+  document.head.appendChild(script);
+})(document);
 
 function resolveCanvasColor(value, fallback){
   var color=String(value||'').trim();
