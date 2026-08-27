@@ -195,6 +195,7 @@ chenguangwu.github.io/
 - 资产完整性门禁：`python3 _audit_assets.py --check` 必须 exit 0（0 局部资产死链 / 0 `<html lang>` 缺失 / 0 页面内重复 id）。同样排除 `<script>/<style>` 块示例与 GSC/Bing 验证文件（无 `<html>` 标签），避免误报；发布前必须跑通
 - **不要手动修改** `json/*.json` 和 `sitemap.xml`，它们是构建产物
 - 不要手动修改 `index.html` 中的工具列表/统计数据，它们由构建脚本注入
+- **所有公开页面必须引用 `/js/common.js`**（工具页/行业落地页/首页由 `_build.py` 统一注入；guides/静态页等非 `_build.py` 处理的页面须手动保留该引用，遗漏可用 `python3 scripts/inject_common_js.py` 幂等补全）。`js/common.js` 会在加载时兜底补引统一统计入口 `js/analytics.js`，因此「引 common.js」即同时获得公共功能与百度/Clarity/51.la 统计覆盖。**例外：Google 站点验证文件（`google*.html`）不引入任何脚本、保持原样。**
 
 ### 4.5 索引提交约定（重要）
 - **不要自动执行**索引提交（全量跑约 19 分钟，拖慢会话）

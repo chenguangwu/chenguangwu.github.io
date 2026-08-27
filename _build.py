@@ -1330,6 +1330,7 @@ h2 { font-size: 1.3rem; margin: 25px 0 15px; padding-bottom: 8px; border-bottom:
 .count { font-size: 12px; color: #6B7280; font-weight: normal; margin-left: 8px; }
 .footer { margin-top: 40px; padding-top: 20px; border-top: 1px solid #E5E7EB; text-align: center; color: #9CA3AF; font-size: 12px; }
 </style>
+<script src="/js/common.js"></script>
 </head>
 <body>
 <a href="/" class="back">← 返回首页</a>
