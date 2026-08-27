@@ -11,7 +11,7 @@ import re
 import sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-CLARITY_SNIPPET = '/js/clarity.js'
+CLARITY_SNIPPET = '/js/analytics.js'
 EXEMPT_PATTERNS = [
     # Google site ownership verification files intentionally keep minimal markup.
     re.compile(r'^google[0-9a-f]+\.html$')

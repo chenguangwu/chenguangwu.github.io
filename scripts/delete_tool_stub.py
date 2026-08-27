@@ -24,7 +24,7 @@ def make_stub(title, url):
         '<meta http-equiv="refresh" content="0;url=%s">\n'
         '<link rel="canonical" href="%s">\n'
         '<meta name="robots" content="noindex,follow">\n'
-        '<script src="/js/clarity.js" defer></script>\n'
+        '<script src="/js/analytics.js" defer></script>\n'
         "<title>%s</title></head>\n"
         '<body><p>该工具已整合至 <a href="%s">对应分类页</a>。</p>\n'
         "<script>window.location.href='%s';</script></body></html>"

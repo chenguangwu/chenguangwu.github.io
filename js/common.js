@@ -2502,7 +2502,7 @@ document.addEventListener('DOMContentLoaded', function trackToolLaunch(){
   });
 })();
 
-// 复用统一统计入口，覆盖未加载 clarity.js 的公共功能页。
+// 复用统一统计入口，覆盖公共功能页。
 (function (document) {
   if (document.querySelector('script[src="/js/analytics.js"], script[src$="/js/analytics.js"]')) return;
   var script = document.createElement('script');

@@ -73,7 +73,7 @@ def main():
             f'<meta http-equiv="refresh" content="0;url={url}">\n'
             f'<link rel="canonical" href="{url}">\n'
             '<meta name="robots" content="noindex,follow">\n'
-            '<script src="/js/clarity.js" defer></script>\n'
+            '<script src="/js/analytics.js" defer></script>\n'
             f"<title>{title}</title>\n"
             "</head>\n"
             "<body>\n"

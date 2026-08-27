@@ -232,7 +232,7 @@ def make_stub_html(title: str, target_url: str) -> str:
         f"<link rel=\"canonical\" href=\"{target_url}\">\n"
         '<meta name="robots" content="noindex,follow">\n'
         f"<title>{title} - ToolBox</title>\n"
-        '<script src="/js/clarity.js" defer></script>\n'
+        '<script src="/js/analytics.js" defer></script>\n'
         "</head>\n"
         "<body>\n"
         f"<p>页面已迁移至 <a href=\"{target_url}\">新地址</a>。</p>\n"

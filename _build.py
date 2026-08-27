@@ -1369,7 +1369,7 @@ h2 { font-size: 1.3rem; margin: 25px 0 15px; padding-bottom: 8px; border-bottom:
 
 
 def run_clarity_gate():
-    """Run post-build check to ensure every public HTML page has /js/clarity.js."""
+    """Run post-build check to ensure every public HTML page has /js/analytics.js."""
     checker = os.path.join(ROOT, 'scripts', 'check_clarity_refs.py')
     if not os.path.exists(checker):
         print('  skip: clarity checker not found')
@@ -1622,7 +1622,7 @@ def fix_tool_pages_seo(tools):
             content = _inject_into_document_head(content, bc_json + '\n')
 
         # 3.5 Add shared tool runtime bootstrap (SW + theme + tool-intro interaction)
-        clarity_block = '\n<script src="/js/clarity.js" defer></script>\n' + CLARITY_MARKER + '\n'
+        clarity_block = '\n<script src="/js/analytics.js" defer></script>\n' + CLARITY_MARKER + '\n'
         runtime_block = '\n<script src="/js/tool-page-runtime.js" defer></script>\n' + TOOL_RUNTIME_MARKER + '\n'
         old_marker_pattern = re.compile(
             r'<!-- toolbox-theme-bootstrap -->\s*'
@@ -1632,7 +1632,7 @@ def fix_tool_pages_seo(tools):
         )
 
         # Keep Clarity as shared script reference (B10) to avoid inline script drift across tool pages.
-        if not _head_contains(content, '/js/clarity.js'):
+        if not _head_contains(content, '/js/analytics.js'):
             content = _inject_into_document_head(content, clarity_block)
 
         # Ensure tool runtime script is loaded, while preserving compatibility with old inline bootstrap blocks.
@@ -1844,8 +1844,8 @@ def generate_category_indexes(tools):
         parts.append('<link rel="canonical" href="https://chenguangwu.github.io/tools/%s/index.html">\n' % ind)
         parts.append('<link rel="icon" type="image/svg+xml" href="/favicon.svg">\n')
         parts.append('<link rel="stylesheet" href="../../css/common.css">\n')
-        if '/js/clarity.js' not in ''.join(parts):
-            parts.append('<script src="/js/clarity.js" defer></script>\n')
+        if '/js/analytics.js' not in ''.join(parts):
+            parts.append('<script src="/js/analytics.js" defer></script>\n')
             parts.append(CLARITY_MARKER + '\n')
         parts.append('<script src="../../js/common.js"></script>\n')
         parts.append('<script src="/js/tool-page-runtime.js" defer></script>\n')
@@ -1896,7 +1896,7 @@ def generate_category_indexes(tools):
 def ensure_tool_clarity_refs(tools):
     """Final pass to make sure every tool page includes shared Clarity loader."""
     changed = 0
-    clarity_block = '\n<script src="/js/clarity.js" defer></script>\n' + CLARITY_MARKER + '\n'
+    clarity_block = '\n<script src="/js/analytics.js" defer></script>\n' + CLARITY_MARKER + '\n'
     for t in tools:
         filepath = os.path.join(TOOLS_DIR, t['path'])
         if not os.path.exists(filepath):
@@ -1905,7 +1905,7 @@ def ensure_tool_clarity_refs(tools):
             content = f.read()
 
         original = content
-        if not _head_contains(content, '/js/clarity.js'):
+        if not _head_contains(content, '/js/analytics.js'):
             content = _inject_into_document_head(content, clarity_block)
             if content != original:
                 with open(filepath, 'w', encoding='utf-8') as f:
