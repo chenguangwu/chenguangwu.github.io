@@ -1,4 +1,4 @@
-// ToolBox 统一统计入口：百度统计、51.la。
+// ToolBox 统一统计入口：百度统计、51.la、Microsoft Clarity。
 // 新增或调整统计平台时，只修改本文件，页面无需逐页改动。
 (function (window, document) {
   'use strict';
@@ -15,6 +15,13 @@
     if (onload) script.onload = onload;
     (document.head || document.documentElement).appendChild(script);
   }
+
+  // Microsoft Clarity
+  window.__tbClarityLoaded = true;
+  window.clarity = window.clarity || function () {
+    (window.clarity.q = window.clarity.q || []).push(arguments);
+  };
+  loadScript('tb-clarity-sdk', 'https://www.clarity.ms/tag/y48102uvzx?ref=bwt');
 
   // 百度统计与自动推送
   window._hmt = window._hmt || [];
