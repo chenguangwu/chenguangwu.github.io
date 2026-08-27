@@ -170,14 +170,6 @@ TOOLS_JSON_FILE = os.path.join(ROOT, 'json', 'tools.json')
 TOOL_RUNTIME_MARKER = '<!-- TOOLBOX-TOOL-RUNTIME -->'
 CLARITY_MARKER = '<!-- TOOLBOX-CLARITY -->'
 
-# 51.la 站点统计（第三方分析 JS，构建期统一注入，幂等）
-LA_MARKER = '<!-- TOOLBOX-51LA -->'
-LA_SCRIPT = (
-    '\n<script charset="UTF-8" id="LA_COLLECT" src="//sdk.51.la/js-sdk-pro.min.js"></script>\n'
-    '<script>LA.init({id:"3R0rVW6KKmLfdAFz",ck:"3R0rVW6KKmLfdAFz",autoTrack:true,hashMode:true,screenRecord:true})</script>\n'
-    + LA_MARKER + '\n'
-)
-
 # ============================================================
 # 多语言（i18n）常量 —— 与 js/i18n.js LANG_REGISTRY 保持一致
 # hreflang 采用构建期常量：每个 locale 对应一个规范 URL（语言由 ?lang 客户端切换，
@@ -1748,10 +1740,6 @@ def fix_tool_pages_seo(tools):
         abs_url = 'https://chenguangwu.github.io/' + t['url']
         content = inject_hreflang(content, abs_url)
 
-        # 4.10 Add 51.la analytics (idempotent via LA_MARKER)
-        if LA_MARKER not in content:
-            content = content.replace('</head>', LA_SCRIPT + '</head>', 1)
-
         # 5. Related tools section — 修剪模式（根治删除工具后残留死链，且不引入算法回归）
         #  - 已有块：仅删除指向「文件已不存在」的卡片（即被删工具的死链），保留历史相关工具选取；整块变空则移除整块
         #  - 无块：按行业生成（原逻辑），保持向后一致
@@ -1870,8 +1858,6 @@ def generate_category_indexes(tools):
         parts.append('<script type="application/ld+json">\n{"@context":"https://schema.org","@type":"CollectionPage","name":"%s工具","url":"https://chenguangwu.github.io/tools/%s/index.html","description":"%s"}\n</script>\n' % (esc_html_py(ind_name), ind, esc_html_py(desc_meta)))
         # BreadcrumbList structured data
         parts.append('<script type="application/ld+json">\n{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"首页","item":"https://chenguangwu.github.io/"},{"@type":"ListItem","position":2,"name":"%s","item":"https://chenguangwu.github.io/tools/%s/index.html"}]}\n</script>\n' % (esc_html_py(ind_name), ind))
-        # 51.la 站点统计（第三方分析 JS，随行业落地页生成时一并写入 head）
-        parts.append(LA_SCRIPT)
         parts.append('</head>\n<body>\n')
         parts.append('<h1 class="sr-only">%s %s工具</h1>\n' % (ind_icon, esc_html_py(ind_name)))
         # Breadcrumb
@@ -2055,15 +2041,6 @@ def main():
         with open(INDEX_FILE, 'w', encoding='utf-8') as f:
             f.write(idx_html)
         print('Injected hreflang into index.html')
-
-    # 51.la analytics into index.html (idempotent via LA_MARKER)
-    with open(INDEX_FILE, 'r', encoding='utf-8') as f:
-        idx_html = f.read()
-    if LA_MARKER not in idx_html:
-        idx_html = idx_html.replace('</head>', LA_SCRIPT + '</head>', 1)
-        with open(INDEX_FILE, 'w', encoding='utf-8') as f:
-            f.write(idx_html)
-        print('Injected 51.la into index.html')
 
     # Generate sitemaps: root full urlset + per-industry sitemap.xml (kept for optional submission)
     from datetime import datetime
