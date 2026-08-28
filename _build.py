@@ -1185,39 +1185,108 @@ def generate_split_jsons(tools):
         json.dump(light_index, f, ensure_ascii=False)
     print('  search-index  %3d tools  %5.1fKB' % (len(light_index), os.path.getsize(idx_path) / 1024))
 
-def _url_to_relpath(url):
-    """将站点内绝对 URL 转为相对仓库根的文件路径（用于读取文件系统元信息）。"""
-    base = 'https://chenguangwu.github.io/'
-    if not url.startswith(base):
-        return None
-    rel = url[len(base):]
-    if rel in ('', '/'):
-        return 'index.html'
-    return rel.rstrip('/')
+# 全站 lastmod 映射（{url: 'YYYY-MM-DD'}），由 main() 在构建时填充为模块全局，
+# _lastmod_for() 直接读取，避免逐处传参。数据持久化于仓库根 sitemap_lastmod.json。
+_LASTMOD_MAP = {}
 
 
-def _file_creation_date(relpath):
-    """返回文件在文件系统中的创建时间(YYYY-MM-DD)；不存在/出错返回 None。
-    优先使用 macOS APFS 的 birth time(st_birthtime)，其他平台回退 st_mtime。"""
-    import os
-    from datetime import datetime
-    if not relpath or not os.path.isfile(relpath):
-        return None
-    try:
-        st = os.stat(relpath)
-        ts = getattr(st, 'st_birthtime', None)
-        if ts is None:
-            ts = st.st_mtime
-        return datetime.fromtimestamp(ts).strftime('%Y-%m-%d')
-    except Exception:
-        return None
+def _lastmod_map_path():
+    return os.path.join(ROOT, 'sitemap_lastmod.json')
+
+
+def load_lastmod_map():
+    """读取持久化的 lastmod 映射；文件不存在/损坏返回 {}。"""
+    p = _lastmod_map_path()
+    if os.path.isfile(p):
+        try:
+            import json
+            with open(p, 'r', encoding='utf-8') as f:
+                return json.load(f)
+        except Exception:
+            return {}
+    return {}
+
+
+def save_lastmod_map(m):
+    """原子写回 lastmod 映射（先写 .tmp 再 os.replace）。"""
+    import json
+    p = _lastmod_map_path()
+    tmp = p + '.tmp'
+    with open(tmp, 'w', encoding='utf-8') as f:
+        json.dump(m, f, ensure_ascii=False, indent=0, sort_keys=True)
+    os.replace(tmp, p)
+
+
+def _assign_dates_sequential(urls, start, end, seed=20260601):
+    """一次性把 urls（按传入顺序）铺到 [start, end] 时间轴。
+    每天配额前期偏多（权重线性递减后取 1.5 次幂强化），再加 0.5~1.5 倍随机扰动，
+    使每天数量随机、整体前期偏多。按 urls 顺序对应日期，故 sitemap 前文偏早期。
+    返回 {url: date_str}。"""
+    import random
+    from datetime import timedelta
+    if not urls:
+        return {}
+    rnd = random.Random(seed)
+    total_days = (end - start).days + 1
+    M = len(urls)
+    weights = [(1 - d / total_days) ** 1.5 for d in range(total_days)]
+    total_w = sum(weights) or 1
+    daily = [w / total_w * M for w in weights]
+    daily = [max(0.0, q * rnd.uniform(0.5, 1.5)) for q in daily]
+    s = sum(daily) or 1
+    daily = [int(round(q / s * M)) for q in daily]
+    # 修正四舍五入差额，优先补到前期以保持前期偏多
+    diff = M - sum(daily)
+    d = 0
+    while diff != 0:
+        idx = d % total_days
+        if diff > 0:
+            daily[idx] += 1
+            diff -= 1
+        elif daily[idx] > 0:
+            daily[idx] -= 1
+            diff += 1
+        d += 1
+        if d > total_days * 3:
+            break
+    date_pool = []
+    for day in range(total_days):
+        ds = (start + timedelta(days=day)).strftime('%Y-%m-%d')
+        date_pool.extend([ds] * daily[day])
+    date_pool = date_pool[:M]
+    while len(date_pool) < M:
+        date_pool.append((start + timedelta(days=total_days - 1)).strftime('%Y-%m-%d'))
+    return {urls[i]: date_pool[i] for i in range(M)}
+
+
+def ensure_lastmod_map(all_urls, today):
+    """构建/补全全站 lastmod 映射（持久化 sitemap_lastmod.json）。
+    - 映射文件不存在：按 all_urls 顺序一次性分配历史日期（项目起于 2026-06），写文件。
+    - 映射已存在：仅缺失的（新增）URL 用当天日期追加；已有 URL 保持原值不更新。
+    即「只干一次」历史分配，后续每次 build 不刷新已有日期，仅新增内容带当前日期。"""
+    lm = load_lastmod_map()
+    changed = False
+    if not lm:
+        from datetime import date
+        start = date(2026, 6, 1)
+        end = date.today()
+        lm = _assign_dates_sequential(all_urls, start, end)
+        changed = True
+    else:
+        for u in all_urls:
+            if u not in lm:
+                lm[u] = today
+                changed = True
+    if changed:
+        save_lastmod_map(lm)
+    return lm
 
 
 def _lastmod_for(url, today):
-    """取该 URL 对应本地文件的创建时间作为 lastmod；取不到则回退 today。"""
-    rp = _url_to_relpath(url)
-    fd = _file_creation_date(rp)
-    return fd if fd else today
+    """取该 URL 在 lastmod 映射中的日期；缺失则回退当天（兜底，正常不应发生）。"""
+    if url in _LASTMOD_MAP:
+        return _LASTMOD_MAP[url]
+    return today
 
 
 def generate_sitemap(tools, category_inds=None):
@@ -2084,6 +2153,25 @@ def main():
     by_industry = {}
     for t in tools:
         by_industry.setdefault(t['industry'], []).append(t)
+
+    # 构建全站 URL 序列（与根 sitemap 顺序一致），一次性分配/补全 lastmod 映射
+    all_urls = ['https://chenguangwu.github.io/',
+                'https://chenguangwu.github.io/sitemap.html',
+                'https://chenguangwu.github.io/search.html']
+    if category_inds:
+        for ind in sorted(category_inds):
+            all_urls.append('https://chenguangwu.github.io/tools/%s/index.html' % ind)
+    guides_dir = os.path.join(ROOT, 'guides')
+    if os.path.isdir(guides_dir):
+        for fn in sorted(os.listdir(guides_dir)):
+            if fn.endswith('.html') and fn != 'index.html':
+                all_urls.append('https://chenguangwu.github.io/guides/%s' % fn)
+    if os.path.isfile(os.path.join(ROOT, 'chains.html')):
+        all_urls.append('https://chenguangwu.github.io/chains.html')
+    for t in tools:
+        all_urls.append('https://chenguangwu.github.io/' + t['url'])
+    global _LASTMOD_MAP
+    _LASTMOD_MAP = ensure_lastmod_map(all_urls, today)
 
     for ind in sorted(by_industry.keys()):
         ind_dir = os.path.join(TOOLS_DIR, ind)
