@@ -2833,6 +2833,229 @@ document.addEventListener('DOMContentLoaded', function(){
   setTimeout(injectAdBanner, 0);
 });
 
+// ===== 全站统一顶部导航 / 底部页脚（与首页 index.html 一致）=====
+// 规则：仅工具页（存在 .nav 或路径含 /tools/）生效；删除旧 .nav，注入 .nav-top/.nav-mobile
+// 与 .footer/.tab-bar，中间工具内容区保持不变。搜索跳转 search.html（不加载首页 app.js）。
+function toolPageRootPrefix(){
+  // 工具页位于 tools/<industry>/xxx.html → 站点根为 ../../；兜底用 /
+  try {
+    var p = location.pathname || '';
+    var seg = p.split('/').filter(Boolean);
+    // tools/industry/xxx.html → 两级
+    if (seg.length >= 2 && seg[0] === 'tools') return '../../';
+    if (seg.length >= 1 && seg[0] === 'tools') return '../';
+  } catch(e){}
+  return '/';
+}
+
+function buildUnifiedHeader(){
+  var root = toolPageRootPrefix();
+  var isTool = location.pathname.indexOf('/tools/') !== -1 || !!document.querySelector('.nav');
+  if (!isTool) return null;
+
+  // 1) 先救出旧导航里的语言切换器（i18n.js 已在其上注册事件），稍后再挂回新导航
+  var oldNav = document.querySelector('.nav');
+  var rescuedSwitcher = oldNav ? oldNav.querySelector('.lang-switcher') : null;
+  if (rescuedSwitcher) window.__tbRescuedLangSwitcher = rescuedSwitcher;
+
+  var wrap = document.createElement('div');
+  wrap.id = 'tbUnifiedHeader';
+
+  // 桌面顶栏
+  var desk = document.createElement('nav');
+  desk.className = 'nav-top desktop-only';
+  desk.innerHTML =
+    '<div class="nav-logo" onclick="location.href=\'' + root + 'index.html\'" style="cursor:pointer">' +
+      '<img src="' + root + 'logo.svg" alt="ToolBox Logo">' +
+      '<div class="nav-logo-text"><span class="nav-logo-name">ToolBox</span><span class="nav-logo-sub">工具百科</span></div>' +
+    '</div>' +
+    '<a class="nav-primary-link" href="' + root + 'guides/index.html" data-i18n="nav.guides" data-i18n-fb="使用指南">使用指南</a>' +
+    '<form class="nav-search" action="' + root + 'search.html" method="GET" onsubmit="if(!this.q.value.trim()){event.preventDefault();return false;}">' +
+      '<svg class="nav-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>' +
+      '<input type="search" name="q" placeholder="搜索工具、分类或功能..." data-i18n-ph="search.placeholder">' +
+    '</form>' +
+    '<div class="nav-actions">' +
+      '<button class="nav-icon-btn" onclick="ToolBox.toggleToolTheme()" title="切换主题" aria-label="切换主题" data-i18n-title="nav.theme"><span class="tb-theme-icon" style="font-size:18px">🌙</span></button>' +
+      '<button class="nav-icon-btn" onclick="location.href=\'' + root + 'index.html#hot\'" title="热门工具" aria-label="热门工具" data-i18n-title="nav.hot">' +
+        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg>' +
+      '</button>' +
+      '<button class="nav-icon-btn" onclick="location.href=\'' + root + 'index.html#fav\'" title="我的收藏" aria-label="我的收藏" data-i18n-title="nav.fav">' +
+        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>' +
+      '</button>' +
+      '<span class="nav-lang-slot"></span>' +
+    '</div>';
+
+  // 移动端顶栏
+  var mob = document.createElement('nav');
+  mob.className = 'nav-mobile mobile-only';
+  mob.innerHTML =
+    '<div class="nav-mobile-logo" onclick="location.href=\'' + root + 'index.html\'" style="cursor:pointer">' +
+      '<img src="' + root + 'logo.svg" alt="ToolBox Logo"><span>ToolBox</span>' +
+    '</div>' +
+    '<div class="nav-mobile-actions">' +
+      '<button class="nav-icon-btn" onclick="location.href=\'' + root + 'search.html\'" title="搜索工具" aria-label="搜索工具">' +
+        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>' +
+      '</button>' +
+      '<button class="nav-icon-btn" onclick="ToolBox.toggleToolTheme()" title="切换主题" aria-label="切换主题"><span class="tb-theme-icon" style="font-size:16px">🌙</span></button>' +
+    '</div>';
+
+  wrap.appendChild(desk);
+  wrap.appendChild(mob);
+  return wrap;
+}
+
+function buildUnifiedFooter(){
+  var root = toolPageRootPrefix();
+  var wrap = document.createElement('div');
+  wrap.id = 'tbUnifiedFooter';
+
+  var footer = document.createElement('footer');
+  footer.className = 'footer';
+  footer.innerHTML =
+    '<div class="footer-inner">' +
+      '<div class="footer-grid">' +
+        '<div>' +
+          '<div class="footer-brand"><img src="' + root + 'logo-32.png" alt="ToolBox"><span>ToolBox</span></div>' +
+          '<p class="footer-desc" data-i18n="footer.desc" data-i18n-fb="6000+ 跨行业纯前端在线工具，数据不出浏览器，保护你的隐私安全。">6000+ 跨行业纯前端在线工具，数据不出浏览器，保护你的隐私安全。</p>' +
+        '</div>' +
+        '<div class="desktop-only-block">' +
+          '<h2 data-i18n="section.hotcat" data-i18n-fb="热门分类">热门分类</h2>' +
+          '<ul>' +
+            '<li><a href="' + root + 'tools/it/index.html" data-i18n="ind_it" data-i18n-fb="IT开发">IT开发</a></li>' +
+            '<li><a href="' + root + 'tools/design/index.html" data-i18n="ind_design" data-i18n-fb="设计创意">设计创意</a></li>' +
+            '<li><a href="' + root + 'tools/biz/index.html" data-i18n="ind_biz" data-i18n-fb="商业办公">商业办公</a></li>' +
+            '<li><a href="' + root + 'tools/life/index.html" data-i18n="ind_life" data-i18n-fb="日常生活">日常生活</a></li>' +
+          '</ul>' +
+        '</div>' +
+        '<div class="desktop-only-block">' +
+          '<h2 data-i18n="section.comtools" data-i18n-fb="常用工具">常用工具</h2>' +
+          '<ul>' +
+            '<li><a href="' + root + 'tools/it/json-formatter.html" data-i18n="foot.tool_json" data-i18n-fb="JSON格式化">JSON格式化</a></li>' +
+            '<li><a href="' + root + 'tools/it/qrcode-generator.html" data-i18n="foot.tool_qr" data-i18n-fb="二维码生成">二维码生成</a></li>' +
+            '<li><a href="' + root + 'tools/it/password-generator.html" data-i18n="foot.tool_pwd" data-i18n-fb="密码生成器">密码生成器</a></li>' +
+            '<li><a href="' + root + 'tools/design/color-picker.html" data-i18n="foot.tool_color" data-i18n-fb="颜色选择器">颜色选择器</a></li>' +
+          '</ul>' +
+        '</div>' +
+        '<div class="desktop-only-block">' +
+          '<h2 data-i18n="section.about" data-i18n-fb="关于">关于</h2>' +
+          '<ul>' +
+            '<li><a href="' + root + 'guides/index.html" data-i18n="nav.guides" data-i18n-fb="使用指南">使用指南</a></li>' +
+            '<li><a href="' + root + 'sitemap.html" data-i18n="foot.sitemap" data-i18n-fb="站点地图">站点地图</a></li>' +
+            '<li><a href="https://github.com/chenguangwu/chenguangwu.github.io/issues" target="_blank" rel="noopener" data-i18n="foot.contact" data-i18n-fb="联系反馈">联系反馈</a></li>' +
+            '<li><a href="#" id="tbFooterPrivacyLink" style="cursor:pointer" data-i18n="foot.manage_data" data-i18n-fb="🗂️ 管理本地数据">🗂️ 管理本地数据</a></li>' +
+          '</ul>' +
+        '</div>' +
+      '</div>' +
+      '<div class="footer-copy" data-i18n="footer.privacy" data-i18n-fb="© 2026 ToolBox · 纯前端在线工具 · 数据不上传，安全可靠">© 2026 ToolBox · 纯前端在线工具 · 数据不上传，安全可靠</div>' +
+    '</div>';
+
+  // 移动端底部 Tab 栏 + 回顶按钮
+  var tabbar = document.createElement('div');
+  tabbar.className = 'tab-bar mobile-only';
+  tabbar.innerHTML =
+    '<div class="tab-bar-inner">' +
+      '<button class="tab-bar-btn" onclick="location.href=\'' + root + 'index.html\'">' +
+        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>' +
+        '<span data-i18n="tabbar.home" data-i18n-fb="首页">首页</span></button>' +
+      '<button class="tab-bar-btn" onclick="location.href=\'' + root + 'index.html#cat\'">' +
+        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/></svg>' +
+        '<span data-i18n="tabbar.cat" data-i18n-fb="分类">分类</span></button>' +
+      '<button class="tab-bar-btn" onclick="location.href=\'' + root + 'index.html#hot\'">' +
+        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg>' +
+        '<span data-i18n="tabbar.hot" data-i18n-fb="热门">热门</span></button>' +
+      '<button class="tab-bar-btn" onclick="location.href=\'' + root + 'index.html#fav\'">' +
+        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>' +
+        '<span data-i18n="tabbar.fav" data-i18n-fb="收藏">收藏</span></button>' +
+      '<button class="tab-bar-btn" onclick="location.href=\'' + root + 'guides/index.html\'">' +
+        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>' +
+        '<span data-i18n="tabbar.guides" data-i18n-fb="指南">指南</span></button>' +
+    '</div>';
+
+  var spacer = document.createElement('div');
+  spacer.className = 'tab-bar-spacer';
+
+  var jump = document.createElement('button');
+  jump.id = 'tbJumpTop';
+  jump.className = 'jump-top';
+  jump.setAttribute('aria-label', '回到顶部');
+  jump.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m18 15-6-6-6 6"/></svg>';
+
+  wrap.appendChild(footer);
+  wrap.appendChild(tabbar);
+  wrap.appendChild(spacer);
+  wrap.appendChild(jump);
+  return wrap;
+}
+
+function syncToolThemeIcon(){
+  var dark = document.documentElement.getAttribute('data-theme') === 'dark' ||
+             (document.body && document.body.classList.contains('dark'));
+  var icons = document.querySelectorAll('.tb-theme-icon');
+  for (var i = 0; i < icons.length; i++) icons[i].textContent = dark ? '☀️' : '🌙';
+}
+
+function injectUnifiedChrome(){
+  try {
+    if (document.getElementById('tbUnifiedHeader')) return;
+    var header = buildUnifiedHeader();
+    if (!header) return;
+    document.body.insertBefore(header, document.body.firstChild);
+
+    var footer = buildUnifiedFooter();
+    document.body.appendChild(footer);
+
+    syncToolThemeIcon();
+
+    // 回顶按钮显隐
+    var jump = document.getElementById('tbJumpTop');
+    if (jump) {
+      jump.addEventListener('click', function(){ window.scrollTo({ top: 0, behavior: 'smooth' }); });
+      window.addEventListener('scroll', function(){
+        if (window.scrollY > 300) jump.classList.add('show');
+        else jump.classList.remove('show');
+      }, { passive: true });
+    }
+
+    // 本地数据管理入口（复用 privacy.js）
+    var pl = document.getElementById('tbFooterPrivacyLink');
+    if (pl) {
+      pl.addEventListener('click', function(e){
+        e.preventDefault();
+        if (window.ToolBox && window.ToolBox.Privacy) window.ToolBox.Privacy.open();
+        else if (typeof window.alert === 'function') alert('隐私模块加载中，请稍候重试');
+      });
+    }
+
+    // 语言切换器： rescued from old nav 或者让 i18n.js 重新挂载到新导航
+    var deskActions = document.querySelector('.nav-actions');
+    var mobActions = document.querySelector('.nav-mobile-actions');
+    var rescued = window.__tbRescuedLangSwitcher;
+    delete window.__tbRescuedLangSwitcher;
+    if (rescued && deskActions) deskActions.appendChild(rescued);
+    if (window.I18n && typeof window.I18n.mountSwitcher === 'function') {
+      if (deskActions) window.I18n.mountSwitcher(deskActions);
+      if (mobActions) window.I18n.mountSwitcher(mobActions);
+    }
+
+    // 移除旧导航（此时已将其中的语言切换器救出）
+    var oldNav = document.querySelector('.nav');
+    if (oldNav) oldNav.parentNode.removeChild(oldNav);
+
+    if (window.I18n && typeof window.I18n.apply === 'function') {
+      window.I18n.apply(header);
+      window.I18n.apply(footer);
+    }
+  } catch(e){}
+}
+document.addEventListener('DOMContentLoaded', function(){
+  setTimeout(injectUnifiedChrome, 0);
+  // 主题切换后同步图标
+  if (window.ToolBox && typeof window.ToolBox.toggleToolTheme === 'function') {
+    var orig = window.ToolBox.toggleToolTheme;
+    window.ToolBox.toggleToolTheme = function(){ orig.apply(this, arguments); setTimeout(syncToolThemeIcon, 30); };
+  }
+});
+
 // ===== B3-06 模板计算器 Tier 2 UX 增强（通用机制，全站生效）=====
 // 目标：输入校验增强 + 结果一键复制 + 结果格式化（对已保留模板架构的计算器批量生效，
 //       不改动各工具自身的 calc 逻辑，零侵入）
