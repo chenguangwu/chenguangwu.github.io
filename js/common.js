@@ -2103,6 +2103,7 @@ global.ToolBox = {
   markInvalid: markInvalid,
   clearInvalid: clearInvalid,
   validateNumberInput: validateNumberInput,
+  Analytics: global.ToolBox && global.ToolBox.Analytics,
   injectPrivacyBadge: injectPrivacyBadge,
   openPrivacyModal: openPrivacyModal,
   ensurePrivacyScript: ensurePrivacyScript,
@@ -2493,9 +2494,12 @@ document.addEventListener('DOMContentLoaded', function trackToolLaunch(){
       var adCard = adDiv.querySelector('.tool-ad-card');
       if(adCard) {
         adCard.addEventListener('click', function(){
-          if(window._hmt) {
-            _hmt.push(['_trackEvent', i18nText('ad.track_event', '广告点击'), i18nText('ad.taobao_title', '淘宝精选'), isMobile ? i18nText('tool.device_mobile', '移动端') : i18nText('tool.device_pc', '桌面端')]);
-          }
+          try {
+            if (window.ToolBox && ToolBox.Analytics) ToolBox.Analytics.track('ad_tb', {
+              ad_pos: adCard.closest('.tool-ad-banner') && adCard.closest('.tool-ad-banner').getAttribute('data-ad-pos') || 'tool',
+              ad_page: 'tool'
+            });
+          } catch (e) {}
         });
       }
     }, 0);

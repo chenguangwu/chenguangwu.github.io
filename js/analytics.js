@@ -24,6 +24,53 @@
     try { fn(); } catch (e) {}
   }
 
+  // 统一事件上报。各平台单独隔离，任一 SDK 异常都不能影响业务代码。
+  var pendingLaTracks = [];
+  function trackLa(args) {
+    if (window.LA && typeof window.LA.track === 'function') {
+      window.LA.track.apply(window.LA, args);
+    } else if (pendingLaTracks.length < 50) {
+      pendingLaTracks.push(args);
+    }
+  }
+  function flushLaTracks() {
+    var pending = pendingLaTracks.splice(0);
+    pending.forEach(function (args) { runSafely(function () { trackLa(args); }); });
+  }
+
+  var analytics = {
+    track: function (eventIdentification, customParams, ids) {
+      runSafely(function () {
+        if (customParams && typeof customParams === 'object' && Object.keys(customParams).length) {
+          if (ids !== undefined) trackLa([eventIdentification, customParams, ids]);
+          else trackLa([eventIdentification, customParams]);
+        } else if (ids !== undefined) {
+          trackLa([eventIdentification, ids]);
+        } else {
+          trackLa([eventIdentification]);
+        }
+      });
+      runSafely(function () {
+        if (!window._hmt || typeof window._hmt.push !== 'function') return;
+        var category = customParams && customParams.category || eventIdentification;
+        var label = customParams && customParams.label || '';
+        window._hmt.push(['_trackEvent', eventIdentification, category, label]);
+      });
+      runSafely(function () {
+        if (typeof window.clarity !== 'function') return;
+        if (customParams && typeof customParams === 'object') {
+          Object.keys(customParams).forEach(function (key) {
+            if (key === 'category' || key === 'label') return;
+            window.clarity('set', key, String(customParams[key]).slice(0, 64));
+          });
+        }
+        window.clarity('event', eventIdentification);
+      });
+    }
+  };
+  window.ToolBox = window.ToolBox || {};
+  window.ToolBox.Analytics = analytics;
+
   // 51.la
   runSafely(function () {
     loadScript('LA_COLLECT', 'https://sdk.51.la/js-sdk-pro.min.js', function () {
@@ -33,6 +80,7 @@
           ck: '3R0rVW6KKmLfdAFz',
           autoTrack: true
         });
+        flushLaTracks();
       }
     });
   });

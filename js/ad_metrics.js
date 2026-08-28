@@ -1,6 +1,4 @@
-// 广告点击埋点（Microsoft Clarity 自定义事件）
-// 完整版：上报广告点击事件 + 位置维度(ad_pos) + 所在页维度(ad_page)
-// 仅监听广告位点击，不干扰普通点击；clarity() 未就绪时自动排队，安全。
+// 广告点击埋点：统一交给 ToolBox.Analytics，同时上报三家统计平台。
 (function () {
   'use strict';
 
@@ -28,10 +26,11 @@
     if (!ad) return;
     var pos = resolvePos(ad);
     var page = resolvePage();
-    if (typeof window.clarity === 'function') {
-      window.clarity('set', 'ad_pos', pos);
-      window.clarity('set', 'ad_page', page);
-      window.clarity('event', 'ad_click');
-    }
+    try {
+      if (window.ToolBox && ToolBox.Analytics) ToolBox.Analytics.track('ad_tb', {
+        ad_pos: pos,
+        ad_page: page
+      });
+    } catch (e) {}
   }, true);
 })();
