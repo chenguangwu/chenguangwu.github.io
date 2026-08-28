@@ -1185,6 +1185,41 @@ def generate_split_jsons(tools):
         json.dump(light_index, f, ensure_ascii=False)
     print('  search-index  %3d tools  %5.1fKB' % (len(light_index), os.path.getsize(idx_path) / 1024))
 
+def _url_to_relpath(url):
+    """将站点内绝对 URL 转为相对仓库根的文件路径（用于读取文件系统元信息）。"""
+    base = 'https://chenguangwu.github.io/'
+    if not url.startswith(base):
+        return None
+    rel = url[len(base):]
+    if rel in ('', '/'):
+        return 'index.html'
+    return rel.rstrip('/')
+
+
+def _file_creation_date(relpath):
+    """返回文件在文件系统中的创建时间(YYYY-MM-DD)；不存在/出错返回 None。
+    优先使用 macOS APFS 的 birth time(st_birthtime)，其他平台回退 st_mtime。"""
+    import os
+    from datetime import datetime
+    if not relpath or not os.path.isfile(relpath):
+        return None
+    try:
+        st = os.stat(relpath)
+        ts = getattr(st, 'st_birthtime', None)
+        if ts is None:
+            ts = st.st_mtime
+        return datetime.fromtimestamp(ts).strftime('%Y-%m-%d')
+    except Exception:
+        return None
+
+
+def _lastmod_for(url, today):
+    """取该 URL 对应本地文件的创建时间作为 lastmod；取不到则回退 today。"""
+    rp = _url_to_relpath(url)
+    fd = _file_creation_date(rp)
+    return fd if fd else today
+
+
 def generate_sitemap(tools, category_inds=None):
     from datetime import datetime
     today = datetime.now().strftime('%Y-%m-%d')
@@ -1220,7 +1255,7 @@ def _url_block(url, today, freq, prio):
             '    <lastmod>%s</lastmod>\n'
             '    <changefreq>%s</changefreq>\n'
             '    <priority>%s</priority>\n'
-            '  </url>' % (url, today, freq, prio))
+            '  </url>' % (url, _lastmod_for(url, today), freq, prio))
 
 
 def _url_block_xhtml(url, today, freq, prio):
@@ -1231,7 +1266,7 @@ def _url_block_xhtml(url, today, freq, prio):
             '    <changefreq>%s</changefreq>\n'
             '    <priority>%s</priority>\n'
             '%s\n'
-            '  </url>' % (url, today, freq, prio, _xhtml_alternates(url)))
+            '  </url>' % (url, _lastmod_for(url, today), freq, prio, _xhtml_alternates(url)))
 
 
 def generate_core_sitemap(today):
