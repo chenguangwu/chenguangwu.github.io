@@ -410,6 +410,23 @@ var LANG_REGISTRY = [
     }
   }
 
+  // 工具页标题同步（P1）：构建期已将 <title> 预渲染为英文以优化国际 SEO 首抓，
+  // 中文模式切回 <meta name="title-zh"> 保存的中文标题；英文/其他模式恢复 <title> 原值。
+  function syncTitle() {
+    try {
+      var titleEl = document.querySelector('title');
+      if (!titleEl) return;
+      if (current === 'zh-CN') {
+        var zhMeta = document.querySelector('meta[name="title-zh"]');
+        if (zhMeta && zhMeta.getAttribute('content')) {
+          document.title = zhMeta.getAttribute('content');
+        }
+      } else {
+        document.title = titleEl.textContent;
+      }
+    } catch (e) {}
+  }
+
   function set(lang, opts) {
     var nl = normalize(lang);
     if (!nl) nl = FALLBACK;
@@ -422,6 +439,7 @@ var LANG_REGISTRY = [
     } catch (e) {}
     applyLangAttr();
     apply(document);
+    syncTitle();
     if (window.dispatchEvent) window.dispatchEvent(new Event('toolbox:langchange'));
   }
 
@@ -431,6 +449,7 @@ var LANG_REGISTRY = [
     } catch (e) { current = FALLBACK; }
     applyLangAttr();
     apply(document);
+    syncTitle();
     autoMount();
   }
 

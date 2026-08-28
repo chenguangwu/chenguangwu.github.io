@@ -1665,6 +1665,18 @@ def fix_tool_pages_seo(tools):
     fixed_rt = 0
     fixed_rt_removed = 0
     i18n_dir = os.path.join(ROOT, 'i18n', 'tools')
+    _ind_cache = {}
+
+    def _zh_title_of(ind, base):
+        # 取 per-industry 字典 zh-CN.title（真实中文工具名）；懒加载并缓存。
+        if ind not in _ind_cache:
+            fp = os.path.join(i18n_dir, ind + '.json')
+            try:
+                _ind_cache[ind] = json.load(open(fp, encoding='utf-8')) if os.path.isfile(fp) else {}
+            except Exception:
+                _ind_cache[ind] = {}
+        return _ind_cache[ind].get(base, {}).get('zh-CN', {}).get('title')
+
     for t in tools:
         filepath = os.path.join(TOOLS_DIR, t['path'])
         if not os.path.exists(filepath):
@@ -1787,6 +1799,36 @@ def fix_tool_pages_seo(tools):
         if 'og:image' not in content:
             image_meta = '\n<meta property="og:image" content="https://chenguangwu.github.io/og-image.png">\n<meta property="og:image:width" content="1200">\n<meta property="og:image:height" content="630">\n<meta property="og:image:alt" content="ToolBox - 6000+免费在线工具">\n<meta name="twitter:image" content="https://chenguangwu.github.io/og-image.png">\n<meta name="twitter:image:alt" content="ToolBox - 6000+免费在线工具">\n'
             content = content.replace('</head>', image_meta + '</head>', 1)
+
+        # 4.0 预渲染英文 <title>（P1 国际 SEO）：命中 EN_OVERRIDE 时把 <title> 改为英文，
+        # 让 Google 首抓直接命中英文标题（原中文仅依赖 JS 运行时切换，爬虫首抓看不到）。
+        # 原中文标题存入 <meta name="title-zh">，供前端中文模式切回（见 js/i18n.js）。
+        # 注意：title-zh 必须注入到 I18N_HREFLANG_MARKER 之前——inject_hreflang 会截断
+        # marker→</head> 之间的内容，注入其后会被丢弃（已踩坑并修复）。
+        # og:title / twitter:title 强制跟随英文（覆盖存量中文值），全链路英文一致。
+        _seo_slug = _slug_of(t)
+        if _seo_slug in EN_OVERRIDE and EN_OVERRIDE[_seo_slug].get('en'):
+            _en_t = EN_OVERRIDE[_seo_slug]['en']
+            _m_t = re.search(r'<title>([^<]*)</title>', content)
+            if _m_t:
+                # 中文标题来源：per-industry 字典 zh-CN.title（真实中文工具名），
+                # 兜底 t['name']（部分工具为英文）。绝不用当前 <title>（本段已预渲染英文），否则中文模式无中文可切回。
+                _base = os.path.splitext(os.path.basename(t['path']))[0]
+                _zh_title = _zh_title_of(industry, _base) or t.get('name') or tool_name_esc
+                _zh_t = _zh_title if _zh_title.endswith('ToolBox') else (_zh_title + ' - ToolBox')
+                _new_t = _en_t if _en_t.endswith('ToolBox') else (_en_t + ' - ToolBox')
+                content = content.replace(_m_t.group(0), '<title>%s</title>' % esc_html_py(_new_t), 1)
+                # title-zh 强制覆盖：先删旧（可能来自上一轮 build 的英文残留）再注入字典中文标题，
+                # 保证重跑构建幂等正确（否则守卫会跳过、残留陈旧英文值，导致中文模式无中文可切回）。
+                content = re.sub(r'<meta name="title-zh" content="[^"]*">\s*', '', content)
+                _zh_meta = '\n<meta name="title-zh" content="%s">' % esc_html_py(_zh_t)
+                if I18N_HREFLANG_MARKER in content:
+                    content = content.replace(I18N_HREFLANG_MARKER, _zh_meta + '\n' + I18N_HREFLANG_MARKER, 1)
+                else:
+                    content = content.replace('</head>', _zh_meta + '\n</head>', 1)
+                _og_t = esc_html_py(_new_t[:-len(' - ToolBox')] if _new_t.endswith(' - ToolBox') else _new_t)
+                content = re.sub(r'<meta property="og:title" content="[^"]*">', '<meta property="og:title" content="%s">' % _og_t, content, count=1)
+                content = re.sub(r'<meta name="twitter:title" content="[^"]*">', '<meta name="twitter:title" content="%s">' % _og_t, content, count=1)
 
         # 4.1 Add meta description / og:title / og:description / twitter:* / canonical (idempotent, 补齐老模板工具页缺失的社交与 SEO 标签)
         # 锚点优先用 I18N_HREFLANG_MARKER，避免被 inject_hreflang 的 marker→</head> 截取逻辑丢弃注入的标签
