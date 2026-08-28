@@ -2792,12 +2792,12 @@ function injectAdBanner(){
     if (!container) return;
     var ad = document.createElement('div');
     ad.id = 'toolboxAd';
-    ad.setAttribute('style', 'max-width:760px;margin:30px auto 10px;text-align:center;font-size:12px;');
+    ad.setAttribute('style', 'max-width:960px;margin:30px auto 10px;text-align:center;');
     var label = document.createElement('div');
-    label.setAttribute('style', 'color:var(--muted,#9CA3AF);letter-spacing:2px;margin-bottom:8px;opacity:.7;');
+    label.className = 'tool-ad-label';
     label.setAttribute('data-i18n', 'ad.label');
-    label.setAttribute('data-i18n-fb', '— 广告 —');
-    label.textContent = '— 广告 —';
+    label.setAttribute('data-i18n-fb', '— 推广 —');
+    label.textContent = '— 推广 —';
     var box = document.createElement('div');
     box.id = 'toolboxAdBox';
     if (window.TOOLBOX_ADS_CLIENT) {
@@ -2813,11 +2813,14 @@ function injectAdBanner(){
         document.head.appendChild(s);
       }
     } else {
-      box.className = 'toolbox-ad-fallback';
-      box.innerHTML = '<a href="/" aria-label="ToolBox" style="text-decoration:none;">'
-        + '<span class="toolbox-ad-fallback-icon" aria-hidden="true">⭐</span>'
-        + '<span data-i18n="ad.fallback_text" data-i18n-fb="收藏 ToolBox：6000+ 免费工具，随时使用 · 纯前端 · 数据留在浏览器">收藏 ToolBox：6000+ 免费工具，随时使用 · 纯前端 · 数据留在浏览器</span>'
-        + '</a>';
+      // 淘宝联盟推广（与首页 index.html 的 .ad-banner 一致）
+      box.className = 'tool-ad-banner';
+      box.innerHTML = '<a class="tool-ad-card" href="https://s.click.taobao.com/UItQ6Hk" target="_blank" rel="noopener sponsored">'
+        + '<div class="tool-ad-content">'
+        + '<div class="tool-ad-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg></div>'
+        + '<div class="tool-ad-text"><span class="tool-ad-title">淘宝好物推荐</span><span class="tool-ad-desc">精选好物，品质保障，限时优惠中</span></div>'
+        + '<span class="tool-ad-cta">去看看 →</span>'
+        + '</div></a>';
     }
     ad.appendChild(label);
     ad.appendChild(box);

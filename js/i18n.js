@@ -386,7 +386,7 @@ var LANG_REGISTRY = [
     var sel = document.createElement('select');
     sel.setAttribute('aria-label', 'Language / 语言');
     sel.title = 'Language / 语言';
-    sel.style.cssText = 'background:transparent;border:none;color:inherit;font:inherit;cursor:pointer;padding:6px 4px;outline:none;';
+    sel.style.cssText = 'background:transparent;border:none;color:inherit;font:inherit;cursor:pointer;outline:none;';
     for (var i = 0; i < LANG_REGISTRY.length; i++) {
       var o = document.createElement('option');
       o.value = LANG_REGISTRY[i].code;
