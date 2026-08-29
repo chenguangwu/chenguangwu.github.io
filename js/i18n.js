@@ -444,10 +444,13 @@ var LANG_REGISTRY = [
   }
 
   function set(lang, opts) {
+    opts = opts || {};
     var nl = normalize(lang);
     if (!nl) nl = FALLBACK;
     current = nl;
-    try { localStorage.setItem(KEY, current); } catch (e) {}
+    if (opts.persist !== false) {
+      try { localStorage.setItem(KEY, current); } catch (e) {}
+    }
     try {
       var url = new URL(location.href);
       url.searchParams.set('lang', current);
@@ -488,5 +491,20 @@ var LANG_REGISTRY = [
     document.addEventListener('DOMContentLoaded', init);
   } else {
     init();
+  }
+
+  // 页面加载完成后，根据 URL ?lang 参数兜底自动对齐语言。
+  // 临时覆盖语义：persist:false 不写 localStorage，避免覆盖用户手动选择的语言偏好。
+  function ensureLangFromQuery() {
+    try {
+      var params = new URLSearchParams(location.search);
+      var q = normalize(params.get('lang'));
+      if (q && q !== current) set(q, { persist: false });
+    } catch (e) {}
+  }
+  if (document.readyState === 'complete') {
+    ensureLangFromQuery();
+  } else {
+    window.addEventListener('load', ensureLangFromQuery);
   }
 })();

@@ -2213,6 +2213,7 @@ def fix_tool_pages_seo(tools):
         #    幂等：先清除已有深度块（兼容旧构建无 marker 残留 / 重复注入），再注入，重跑构建不叠加。
         #    锚点三级回退：手工页「注意事项区块」→ 生成页「相关工具」(step5 注入) → 纯 JS 计算页兜底「</body>」(全页存在)。
         if _seo_slug in DEEP_DIVE:
+            content = re.sub(r'<!-- TOOLBOX-DEEP-DIVE -->\s*', '', content)
             content = re.sub(r'<style>\s*\.deep-dive[\s\S]*?</style>\s*', '', content)
             content = re.sub(r'<section class="deep-dive"[^>]*>[\s\S]*?</section>\s*', '', content)
             if '<!-- 注意事项区块 -->' in content:
