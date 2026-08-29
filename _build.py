@@ -1497,6 +1497,40 @@ SW_FILE = os.path.join(ROOT, 'sw.js')
 SW_BUILD_RE = re.compile(r"^const BUILD = '[^']*';", re.M)
 
 
+PHRASES_INDEX_FILE = 'phrases-index.json'
+
+
+def sync_phrases_index():
+    """生成 i18n/tools/phrases-index.json —— 列出真正有 phrases 数据的行业。
+
+    背景：js/tool-i18n.js 运行时按需 fetch i18n/tools/<industry>-phrases.json，
+    但全站仅部分行业生成过该数据（缺失行业会打到 404，虽被静默回退却是每页一次无谓请求）。
+    前端改为先读本索引、只对清单内行业发请求 → 0 个 404；将来补生成 phrases 后，
+    构建会自动把它纳入索引，无需再改前端。
+    幂等：内容不变则不写盘（避免每次 build 产生无意义变更）。
+    """
+    i18n_dir = os.path.join(ROOT, 'i18n', 'tools')
+    if not os.path.isdir(i18n_dir):
+        return
+    inds = sorted({
+        fn[:-len('-phrases.json')]
+        for fn in os.listdir(i18n_dir)
+        if fn.endswith('-phrases.json')
+    })
+    text = json.dumps({'industries': inds, 'count': len(inds)},
+                      ensure_ascii=False, indent=1) + '\n'
+    out = os.path.join(i18n_dir, PHRASES_INDEX_FILE)
+    try:
+        with open(out, 'r', encoding='utf-8') as f:
+            if f.read() == text:
+                return  # 内容一致 → 不写盘，保持构建幂等
+    except (IOError, OSError):
+        pass
+    with open(out, 'w', encoding='utf-8') as f:
+        f.write(text)
+    print('Generated %s (%d industries with phrase data)' % (PHRASES_INDEX_FILE, len(inds)))
+
+
 def compute_sw_build():
     """按共享静态资源内容计算 SW 版本戳（纯内容驱动，保证构建幂等）。"""
     h = hashlib.sha1()
@@ -2228,6 +2262,9 @@ def main():
     # Generate split JSON files (per industry + search index)
     print('\nGenerating split JSON files:')
     generate_split_jsons(tools)
+
+    # 生成 phrases 索引（有数据的行业清单，供 tool-i18n 按需加载，避免对缺失行业发 404 请求）
+    sync_phrases_index()
 
     # SEO: Fix tool pages (h1, breadcrumbs, related tools, structured data)
     print('\nFixing tool pages SEO:')

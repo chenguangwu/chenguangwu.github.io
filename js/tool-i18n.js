@@ -9585,10 +9585,30 @@
   // ---- 工具正文（逐行业独有短语）按需加载 ----
   // 数据源：i18n/tools/<industry>-phrases.json（按行业切分的 n=1 长尾手翻短语，扁平 { 中文: 英文 }）
   // 与 BODY_PHRASE_MAP 同源机制，但按行业隔离、运行时按需 fetch，避免 9 万条全量进全局大表拖慢每页加载。
+  // 索引清单：i18n/tools/phrases-index.json（构建期产出，列出真正有 phrases 数据的行业）。
+  // 全站仅部分行业生成过 phrases 数据；缺失行业若直接 fetch 会打到 404（虽被静默回退，
+  // 但每页一次无谓请求）。改为先取索引、只对清单内行业发请求 → 0 个 404，
+  // 且将来补生成 phrases 后由构建自动纳入索引、无需改这里。
+  var PHRASES_INDEX = null;         // string[] | null
+  var PHRASES_INDEX_PROMISE = null;
+
+  function loadPhrasesIndex() {
+    if (PHRASES_INDEX !== null) return Promise.resolve(PHRASES_INDEX);
+    if (PHRASES_INDEX_PROMISE) return PHRASES_INDEX_PROMISE;
+    if (!window.fetch) { PHRASES_INDEX = []; return Promise.resolve(PHRASES_INDEX); }
+    PHRASES_INDEX_PROMISE = fetch('../../i18n/tools/phrases-index.json')
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (obj) { PHRASES_INDEX = (obj && obj.industries) || []; return PHRASES_INDEX; })
+      .catch(function () { PHRASES_INDEX = []; return PHRASES_INDEX; });
+    return PHRASES_INDEX_PROMISE;
+  }
+
   function loadIndustryPhrases(ind) {
     if (!ind || BODY_IND_PHRASES[ind]) return;
-    var url = '../../i18n/tools/' + ind + '-phrases.json';
-    if (window.fetch) {
+    if (!window.fetch) return;
+    loadPhrasesIndex().then(function (list) {
+      if (!list || list.indexOf(ind) < 0) return;   // 该行业无 phrases 数据 → 不发请求（避免 404）
+      var url = '../../i18n/tools/' + ind + '-phrases.json';
       fetch(url, { cache: 'no-cache' })
         .then(function (r) { return r.ok ? r.json() : null; })
         .then(function (map) {
@@ -9597,7 +9617,7 @@
           if (I18n.get() !== 'zh-CN') translateBodyPhrases(false);
         })
         .catch(function () { /* 字典缺失则忽略，回退中文 */ });
-    }
+    });
   }
 
   function applyToolBody() {
