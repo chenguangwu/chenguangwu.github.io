@@ -2188,6 +2188,14 @@ def fix_tool_pages_seo(tools):
 
     print('  h1 added: %d, breadcrumbs: %d, related tools: %d (recomputed), removed stale blocks: %d' % (fixed_h1, fixed_bc, fixed_rt, fixed_rt_removed))
 
+# 行业聚合页 meta description 覆盖（仅影响列出的行业；工具数为动态带入，避免下次 build 被模板覆盖）
+CATEGORY_DESC_OVERRIDE = {
+    'home': 'Home and Renovation tools: %d free online tools for room area, material estimates and renovation planning. Browse and use instantly—client-side, no upload.',
+    'embedded': 'Embedded Systems tools: %d free online tool for bit, register and protocol calculations. Browse and use it instantly—client-side, no upload, no install.',
+    'telecom': 'Telecommunications tools collection with %d free online tools for signal, RF and network calculations. Browse and launch instantly—client-side, no upload.',
+}
+
+
 def generate_category_indexes(tools):
     """Generate index.html for each industry directory."""
     _en_path = os.path.join(ROOT, 'i18n', 'industry-en.json')
@@ -2213,7 +2221,10 @@ def generate_category_indexes(tools):
         en_name = _IND_EN.get(ind, ind_name)
         title = ('%s (%s) Tools Collection - ToolBox' % (en_name, ind)) if len(name_to_inds.get(ind_name, set())) > 1 else ('%s Tools Collection - ToolBox' % en_name)
         title_zh = ('%s（%s）工具集合 - ToolBox' % (ind_name, ind)) if len(name_to_inds.get(ind_name, set())) > 1 else ('%s工具集合 - ToolBox' % ind_name)
-        desc_meta = '%s tools collection with %d free online tools. All run client-side in your browser, no data uploaded.' % (en_name, count)
+        if ind in CATEGORY_DESC_OVERRIDE:
+            desc_meta = CATEGORY_DESC_OVERRIDE[ind] % count
+        else:
+            desc_meta = '%s tools collection with %d free online tools. All run client-side in your browser, no data uploaded.' % (en_name, count)
         desc_meta_zh = '%s工具集合，共%d个免费在线工具，纯前端处理数据不上传。' % (ind_name, count)
 
         parts = []
