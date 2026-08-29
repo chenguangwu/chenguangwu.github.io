@@ -151,10 +151,64 @@
       </div>
       
       <div class="jwt-section jwt-signature">
-        <h3><span class="color-dot" style="background:#2196f3;"></span>Signature</h3>
+        <h3><span class="color-dot" style="background:#2196f3;"></span>Signature 签名</h3>
         <pre id="signature" style="color:#94a3b8;"></pre>
       </div>
+
+      <div class="jwt-section" style="margin-top:16px;border-top:1px solid var(--border);padding-top:14px;">
+        <h3>🔐 签名验证（浏览器本地验签，密钥不上传）</h3>
+        <div class="input-row" style="align-items:center;gap:10px;flex-wrap:wrap;">
+          <select id="verifyAlg" style="flex:0 0 120px;">
+            <option value="HS256">HS256</option>
+            <option value="HS384">HS384</option>
+            <option value="HS512">HS512</option>
+          </select>
+          <input type="text" id="secret" placeholder="输入签名密钥 secret（HS 系列）" style="flex:1;min-width:170px;" onkeydown="if(event.key==='Enter')verifySignature()">
+          <button type="button" class="btn primary" onclick="verifySignature()">验证签名</button>
+        </div>
+        <div id="verifyResult" class="result-box" style="display:none;"></div>
+      </div>
+
+      <div class="jwt-section" style="margin-top:6px;">
+        <h3>🕒 标准声明检查（exp / nbf / iat）</h3>
+        <div id="claimsCheck" style="font-size:13px;"></div>
+      </div>
     </div>
+  </div>
+
+  <div class="card">
+    <h2>✍️ 生成 JWT（HS256 / HS384 / HS512）</h2>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;">填写 Payload 与密钥，浏览器本地用 WebCrypto 计算 HMAC 签名并生成完整 Token，可直接用于接口联调与本地测试。</p>
+    <div class="input-row" style="align-items:center;gap:10px;flex-wrap:wrap;">
+      <span style="font-size:13px;">算法</span>
+      <select id="genAlg" style="flex:0 0 110px;">
+        <option value="HS256">HS256</option>
+        <option value="HS384">HS384</option>
+        <option value="HS512">HS512</option>
+      </select>
+      <span style="font-size:13px;">有效期</span>
+      <select id="genExp" style="flex:0 0 110px;">
+        <option value="3600">1 小时</option>
+        <option value="86400" selected>1 天</option>
+        <option value="604800">7 天</option>
+        <option value="2592000">30 天</option>
+        <option value="0">永不过期</option>
+      </select>
+    </div>
+    <div class="input-row">
+      <label for="genPayload">Payload（JSON 格式）</label>
+      <textarea id="genPayload" style="min-height:110px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13px;" placeholder='{"sub":"1234567890","name":"张三","role":"admin"}'></textarea>
+    </div>
+    <div class="input-row">
+      <label for="genSecret">密钥 Secret</label>
+      <input type="text" id="genSecret" placeholder="your-256-bit-secret">
+    </div>
+    <div class="toolbar">
+      <button type="button" class="btn primary" onclick="generateJwt()">生成 Token</button>
+      <button type="button" class="btn" onclick="copyGen()">复制</button>
+      <button type="button" class="btn" onclick="useGen()">填入上方解析器</button>
+    </div>
+    <textarea id="genOut" readonly style="min-height:76px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;" placeholder="生成的 JWT 将显示在这里"></textarea>
   </div>
 
   <div class="card">
@@ -248,6 +302,7 @@ function parseJwt(){
     
     document.getElementById('signature').textContent = parts[2];
     resultDiv.style.display = 'block';
+    checkClaims();
   } catch(e){
     resultDiv.style.display = 'block';
     document.getElementById('header').textContent = '❌ 解析失败: ' + e.message;
@@ -259,6 +314,162 @@ function parseJwt(){
 function clearAll(){
   document.getElementById('jwtInput').value = '';
   document.getElementById('result').style.display = 'none';
+  var vr = document.getElementById('verifyResult');
+  if(vr){ vr.style.display='none'; vr.innerHTML=''; }
+  var cc = document.getElementById('claimsCheck');
+  if(cc) cc.innerHTML = '';
+}
+
+/* ================= 签名验证与生成（WebCrypto HMAC，纯本地） ================= */
+function escH(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+function b64urlToBytes(str){
+  str = str.replace(/-/g,'+').replace(/_/g,'/');
+  while(str.length % 4) str += '=';
+  var bin = atob(str);
+  var arr = new Uint8Array(bin.length);
+  for(var i=0;i<bin.length;i++) arr[i] = bin.charCodeAt(i);
+  return arr;
+}
+function bytesToB64url(bytes){
+  var bin = '';
+  for(var i=0;i<bytes.length;i++) bin += String.fromCharCode(bytes[i]);
+  return btoa(bin).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+}
+function hmacAlgName(alg){
+  if(alg === 'HS384') return 'SHA-384';
+  if(alg === 'HS512') return 'SHA-512';
+  return 'SHA-256';
+}
+function hmacSign(alg, secret, signingInput){
+  var enc = new TextEncoder();
+  return crypto.subtle.importKey('raw', enc.encode(secret), {name:'HMAC', hash: hmacAlgName(alg)}, false, ['sign'])
+    .then(function(key){
+      return crypto.subtle.sign('HMAC', key, enc.encode(signingInput));
+    })
+    .then(function(sig){
+      return bytesToB64url(new Uint8Array(sig));
+    });
+}
+
+function verifySignature(){
+  var token = document.getElementById('jwtInput').value.trim();
+  var secret = document.getElementById('secret').value;
+  var alg = document.getElementById('verifyAlg').value;
+  var box = document.getElementById('verifyResult');
+  if(!box) return;
+  box.style.display = 'block';
+  if(!token){ box.innerHTML = '<p>请先输入 JWT</p>'; return; }
+  var parts = token.split('.');
+  if(parts.length !== 3){ box.innerHTML = '<p>❌ JWT 格式错误，应包含 3 段</p>'; return; }
+  var headerObj = null;
+  try { headerObj = JSON.parse(base64UrlDecode(parts[0])); } catch(e){
+    box.innerHTML = '<p>❌ Header 解析失败：' + escH(e.message) + '</p>'; return;
+  }
+  if(!secret){ box.innerHTML = '<p>⚠️ 请输入密钥（HS 系列需要密钥才能验签）</p>'; return; }
+  var declaredAlg = headerObj.alg || '';
+  if(declaredAlg !== alg){
+    box.innerHTML = '<p>⚠️ Token 声明的算法是 <code>' + escH(declaredAlg) + '</code>，与所选 <code>' + escH(alg) + '</code> 不一致，请切换为 <strong>' + escH(declaredAlg) + '</strong> 后重试</p>';
+    return;
+  }
+  if(!/^HS\d{3}$/.test(declaredAlg)){
+    box.innerHTML = '<p>ℹ️ 该 Token 使用 <code>' + escH(declaredAlg) + '</code>（非对称算法）。浏览器本地仅支持 HS256/384/512 对称验签，RS/ES/PS 系列请在服务端验证。</p>';
+    return;
+  }
+  box.innerHTML = '<p>⏳ 正在验签…</p>';
+  hmacSign(alg, secret, parts[0] + '.' + parts[1]).then(function(expect){
+    var ok = (expect === parts[2]);
+    box.innerHTML = ok
+      ? '<p>✅ <strong>签名有效</strong>：使用 ' + alg + ' 与所填密钥计算出的签名与 Token 完全一致，内容未被篡改。</p>'
+      : '<p>❌ <strong>签名无效</strong>：密钥不匹配，或内容已被修改。<br><span style="font-size:12px;color:var(--text-muted);">期望签名：<code>' + escH(expect.slice(0,40)) + '…</code></span></p>';
+  }).catch(function(e){
+    box.innerHTML = '<p>❌ 验签失败：' + escH(e.message) + '</p>';
+  });
+}
+
+/* ---------- 标准声明检查 ---------- */
+function relTime(sec){
+  if(sec < 60) return sec + ' 秒';
+  if(sec < 3600) return Math.floor(sec/60) + ' 分钟';
+  if(sec < 86400) return Math.floor(sec/3600) + ' 小时';
+  return Math.floor(sec/86400) + ' 天';
+}
+function checkClaims(){
+  var box = document.getElementById('claimsCheck');
+  if(!box) return;
+  var token = (document.getElementById('jwtInput').value || '').trim();
+  var parts = token.split('.');
+  if(parts.length !== 3){ box.innerHTML = ''; return; }
+  var p = null;
+  try { p = JSON.parse(base64UrlDecode(parts[1])); } catch(e){ box.innerHTML = ''; return; }
+  var now = Math.floor(Date.now() / 1000);
+  var rows = [];
+  function fmtTs(ts){ return new Date(ts * 1000).toLocaleString('zh-CN'); }
+  if(typeof p.iat === 'number') rows.push(['iat 签发时间', fmtTs(p.iat), '签发于 ' + relTime(Math.max(now - p.iat, 0)) + '前', 'ℹ️']);
+  if(typeof p.nbf === 'number'){
+    var nbfOk = now >= p.nbf;
+    rows.push(['nbf 生效时间', fmtTs(p.nbf), nbfOk ? '已生效' : '尚未生效（' + relTime(p.nbf - now) + '后生效）', nbfOk ? '✅' : '⚠️']);
+  }
+  if(typeof p.exp === 'number'){
+    var expOk = now < p.exp;
+    rows.push(['exp 过期时间', fmtTs(p.exp), expOk ? '剩余 ' + relTime(p.exp - now) : '已过期（' + relTime(now - p.exp) + '前）', expOk ? '✅' : '❌']);
+  }
+  if(typeof p.iss === 'string') rows.push(['iss 签发者', escH(p.iss), '', 'ℹ️']);
+  if(typeof p.sub === 'string') rows.push(['sub 主体', escH(p.sub), '', 'ℹ️']);
+  if(p.aud !== undefined) rows.push(['aud 受众', escH(String(p.aud)), '', 'ℹ️']);
+  if(typeof p.jti === 'string') rows.push(['jti 令牌 ID', escH(p.jti), '', 'ℹ️']);
+  if(!rows.length){ box.innerHTML = '<p style="font-size:12px;color:var(--text-muted);">Payload 中未包含标准时间或身份声明</p>'; return; }
+  box.innerHTML = '<div class="table-scroll"><table class="result-table"><thead><tr><th>声明</th><th>值</th><th>状态</th></tr></thead><tbody>' +
+    rows.map(function(r){
+      return '<tr><td><code>' + r[0] + '</code></td><td style="font-size:12px;">' + r[1] + '</td><td>' + r[3] + ' ' + r[2] + '</td></tr>';
+    }).join('') + '</tbody></table></div>';
+}
+
+/* ---------- 生成 JWT ---------- */
+function generateJwt(){
+  var alg = document.getElementById('genAlg').value;
+  var ttl = parseInt(document.getElementById('genExp').value, 10);
+  var rawPayload = (document.getElementById('genPayload').value || '').trim();
+  var secret = document.getElementById('genSecret').value;
+  var out = document.getElementById('genOut');
+  if(!out) return;
+  if(!secret){
+    if(window.ToolBox && ToolBox.showToast) ToolBox.showToast('请填写密钥 Secret');
+    return;
+  }
+  var payload;
+  if(!rawPayload){ payload = {}; }
+  else {
+    try { payload = JSON.parse(rawPayload); }
+    catch(e){ out.value = '❌ Payload 不是合法 JSON：' + e.message; return; }
+  }
+  var now = Math.floor(Date.now() / 1000);
+  payload.iat = now;
+  if(ttl > 0) payload.exp = now + ttl;
+  var header = { alg: alg, typ: 'JWT' };
+  var enc = new TextEncoder();
+  var h = bytesToB64url(enc.encode(JSON.stringify(header)));
+  var p = bytesToB64url(enc.encode(JSON.stringify(payload)));
+  hmacSign(alg, secret, h + '.' + p).then(function(sig){
+    out.value = h + '.' + p + '.' + sig;
+    if(window.ToolBox && ToolBox.showToast) ToolBox.showToast('已生成 Token');
+  }).catch(function(e){
+    out.value = '❌ 签名失败：' + e.message;
+  });
+}
+function copyGen(){
+  var v = document.getElementById('genOut').value;
+  if(!v){ if(window.ToolBox && ToolBox.showToast) ToolBox.showToast('暂无内容'); return; }
+  ToolBox.copyText(v);
+}
+function useGen(){
+  var v = document.getElementById('genOut').value;
+  if(!v){ if(window.ToolBox && ToolBox.showToast) ToolBox.showToast('请先生成 Token'); return; }
+  document.getElementById('jwtInput').value = v;
+  document.getElementById('secret').value = document.getElementById('genSecret').value;
+  var algEl = document.getElementById('verifyAlg');
+  if(algEl) algEl.value = document.getElementById('genAlg').value;
+  parseJwt();
 }
 
 parseJwt();

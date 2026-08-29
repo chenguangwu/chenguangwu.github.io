@@ -20,6 +20,7 @@ import json
 import glob
 import hashlib
 import subprocess
+import html
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
 README_PATH = os.path.join(ROOT, 'README.md')
@@ -1600,6 +1601,20 @@ def update_index_html(index_path, tools_js, tool_count, cat_counts, ind_counts):
         f.write(html)
     return True
 
+def esc_once(s):
+    """幂等转义：先反转义消除历史污染，再统一转义一次。
+
+    背景（已踩坑）：i18n/tools/_en_override.json 中的英文标题由 gen_en_override.py
+    从构建产物（search-index）派生，可能已经带有一层转义（如 `&amp;#9989;`）。
+    若直接对它再 esc_html_py，会累积成 `&amp;amp;#9989;`，且每跑一次 build 就多
+    叠一层，页面 title / og:title 越来越烂。
+    因此凡是把「可能已被转义过的文本」写入 HTML 的地方，一律走 esc_once。
+    """
+    if not s:
+        return ''
+    return esc_html_py(html.unescape(str(s)))
+
+
 def esc_html_py(s):
     """Escape HTML entities in Python for building static HTML."""
     if not s:
@@ -1817,16 +1832,18 @@ def fix_tool_pages_seo(tools):
                 _zh_title = _zh_title_of(industry, _base) or t.get('name') or tool_name_esc
                 _zh_t = _zh_title if _zh_title.endswith('ToolBox') else (_zh_title + ' - ToolBox')
                 _new_t = _en_t if _en_t.endswith('ToolBox') else (_en_t + ' - ToolBox')
-                content = content.replace(_m_t.group(0), '<title>%s</title>' % esc_html_py(_new_t), 1)
+                # 均用 esc_once（先反转义再转义）：EN_OVERRIDE 的 en 值来自构建产物，
+                # 可能已带一层转义，直接 esc_html_py 会累积成 &amp;amp;（已踩坑修复）。
+                content = content.replace(_m_t.group(0), '<title>%s</title>' % esc_once(_new_t), 1)
                 # title-zh 强制覆盖：先删旧（可能来自上一轮 build 的英文残留）再注入字典中文标题，
                 # 保证重跑构建幂等正确（否则守卫会跳过、残留陈旧英文值，导致中文模式无中文可切回）。
                 content = re.sub(r'[ \t]*<meta name="title-zh" content="[^"]*">[ \t]*\n?', '', content)
-                _zh_meta = '<meta name="title-zh" content="%s">' % esc_html_py(_zh_t)
+                _zh_meta = '<meta name="title-zh" content="%s">' % esc_once(_zh_t)
                 if I18N_HREFLANG_MARKER in content:
                     content = content.replace(I18N_HREFLANG_MARKER, _zh_meta + '\n' + I18N_HREFLANG_MARKER, 1)
                 else:
                     content = content.replace('</head>', _zh_meta + '\n</head>', 1)
-                _og_t = esc_html_py(_new_t[:-len(' - ToolBox')] if _new_t.endswith(' - ToolBox') else _new_t)
+                _og_t = esc_once(_new_t[:-len(' - ToolBox')] if _new_t.endswith(' - ToolBox') else _new_t)
                 content = re.sub(r'<meta property="og:title" content="[^"]*">', '<meta property="og:title" content="%s">' % _og_t, content, count=1)
                 content = re.sub(r'<meta name="twitter:title" content="[^"]*">', '<meta name="twitter:title" content="%s">' % _og_t, content, count=1)
 
