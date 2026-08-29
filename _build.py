@@ -1512,10 +1512,12 @@ def sync_phrases_index():
     i18n_dir = os.path.join(ROOT, 'i18n', 'tools')
     if not os.path.isdir(i18n_dir):
         return
+    # common-phrases.json 是跨行业公共短语（全站加载一次），不是"行业"数据，须排除，
+    # 否则索引里会多出一个名为 common 的伪行业。
     inds = sorted({
         fn[:-len('-phrases.json')]
         for fn in os.listdir(i18n_dir)
-        if fn.endswith('-phrases.json')
+        if fn.endswith('-phrases.json') and fn != 'common-phrases.json'
     })
     text = json.dumps({'industries': inds, 'count': len(inds)},
                       ensure_ascii=False, indent=1) + '\n'

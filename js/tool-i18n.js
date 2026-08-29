@@ -9506,6 +9506,7 @@
       var txt = el.textContent.trim();
       var tr = null;
       if (BODY_PHRASE_MAP.hasOwnProperty(txt)) tr = BODY_PHRASE_MAP[txt];
+      else if (COMMON_PHRASES.hasOwnProperty(txt)) tr = COMMON_PHRASES[txt];
       else if (indMap && indMap.hasOwnProperty(txt)) tr = indMap[txt];
       if (tr) {
         BODY_CHANGED.push({ el: el, orig: txt });
@@ -9563,6 +9564,7 @@
   var BODY_MAP = {};   // { industry: { slug: { title, intro } } }
   var ORIG = {};       // { slug: { title, intro } } 原文缓存，用于切回中文还原
   var BODY_IND_PHRASES = {};   // { industry: { text: en } } 逐行业正文短语（按需加载，避免全局大表死重）
+  var COMMON_PHRASES = {};     // { text: en } 跨行业通用短语（common-phrases.json，全站只加载一次）
 
   function isFormula(text) {
     if (!text) return false;
@@ -9591,6 +9593,27 @@
   // 且将来补生成 phrases 后由构建自动纳入索引、无需改这里。
   var PHRASES_INDEX = null;         // string[] | null
   var PHRASES_INDEX_PROMISE = null;
+
+  // 跨行业通用短语：i18n/tools/common-phrases.json（全站只加载一次）
+  // 高频通用文案（面包屑标签、通用 FAQ、通用 UI）放这里，避免 277 个行业文件各存一份，
+  // 也避免继续撑大 BODY_PHRASE_MAP（该表已逾 400KB，每页都要加载）。
+  var COMMON_PHRASES_PROMISE = null;
+
+  function loadCommonPhrases() {
+    if (COMMON_PHRASES_PROMISE) return COMMON_PHRASES_PROMISE;
+    if (!window.fetch) { COMMON_PHRASES_PROMISE = Promise.resolve(null); return COMMON_PHRASES_PROMISE; }
+    COMMON_PHRASES_PROMISE = fetch('../../i18n/tools/common-phrases.json')
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (map) {
+        if (map) {
+          COMMON_PHRASES = map;
+          if (I18n.get() !== 'zh-CN') translateBodyPhrases(false);
+        }
+        return COMMON_PHRASES;
+      })
+      .catch(function () { return COMMON_PHRASES; });
+    return COMMON_PHRASES_PROMISE;
+  }
 
   function loadPhrasesIndex() {
     if (PHRASES_INDEX !== null) return Promise.resolve(PHRASES_INDEX);
@@ -9668,6 +9691,7 @@
     var ind = getIndustry();
     loadIndustryDict(ind);
     loadIndustryBody(ind);
+    loadCommonPhrases();
     loadIndustryPhrases(ind);
     applyToolBody();
   }
