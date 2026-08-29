@@ -412,17 +412,32 @@ var LANG_REGISTRY = [
 
   // 工具页标题同步（P1）：构建期已将 <title> 预渲染为英文以优化国际 SEO 首抓，
   // 中文模式切回 <meta name="title-zh"> 保存的中文标题；英文/其他模式恢复 <title> 原值。
+  var _descZh = '';
   function syncTitle() {
     try {
       var titleEl = document.querySelector('title');
       if (!titleEl) return;
-      if (current === 'zh-CN') {
-        var zhMeta = document.querySelector('meta[name="title-zh"]');
-        if (zhMeta && zhMeta.getAttribute('content')) {
-          document.title = zhMeta.getAttribute('content');
+      if (current === 'en-US') {
+        var enMeta = document.querySelector('meta[name="title-en"]');
+        if (enMeta && enMeta.getAttribute('content')) {
+          document.title = enMeta.getAttribute('content');
         }
       } else {
         document.title = titleEl.textContent;
+      }
+    } catch (e) {}
+  }
+  function syncDesc() {
+    try {
+      var descEl = document.querySelector('meta[name="description"]');
+      if (!descEl) return;
+      if (current === 'en-US') {
+        var enMeta = document.querySelector('meta[name="desc-en"]');
+        if (enMeta && enMeta.getAttribute('content')) {
+          descEl.setAttribute('content', enMeta.getAttribute('content'));
+        }
+      } else {
+        descEl.setAttribute('content', _descZh);
       }
     } catch (e) {}
   }
@@ -440,16 +455,22 @@ var LANG_REGISTRY = [
     applyLangAttr();
     apply(document);
     syncTitle();
+    syncDesc();
     if (window.dispatchEvent) window.dispatchEvent(new Event('toolbox:langchange'));
   }
 
   function init() {
+    try {
+      var _dEl = document.querySelector('meta[name="description"]');
+      if (_dEl) _descZh = _dEl.getAttribute('content') || '';
+    } catch (e) {}
     try {
       current = detect();
     } catch (e) { current = FALLBACK; }
     applyLangAttr();
     apply(document);
     syncTitle();
+    syncDesc();
     autoMount();
   }
 

@@ -1882,6 +1882,39 @@ def fix_tool_pages_seo(tools):
                 _ind_cache[ind] = {}
         return _ind_cache[ind].get(base, {}).get('zh-CN', {}).get('title')
 
+    def extract_zh_desc(content, t, industry, entry):
+        # 中文优先 meta description 提取（2026-08-29 反转：目标用户以中文为主）。
+        # 优先 per-industry 字典 zh-CN.intro/desc（零成本、有实质内容、不套话），
+        # 其次页面首个含中文且非模板的 <p>，再次中文 h2，兜底中文标题 + 固定后缀。
+        base = os.path.splitext(os.path.basename(t['path']))[0]
+        if industry not in _ind_cache:
+            fp = os.path.join(i18n_dir, industry + '.json')
+            try:
+                _ind_cache[industry] = json.load(open(fp, encoding='utf-8')) if os.path.isfile(fp) else {}
+            except Exception:
+                _ind_cache[industry] = {}
+        _ind = _ind_cache.get(industry, {})
+        zh = _ind.get(base, {}).get('zh-CN', {}) if isinstance(_ind, dict) else {}
+        intro = zh.get('intro') or zh.get('desc') or ''
+        if re.search(r'[\u4e00-\u9fff]', intro or '') and len(intro.strip()) >= 8:
+            return intro.strip()
+        paras = re.findall(r'<p[^>]*>([\s\S]*?)</p>', content)
+        for p in paras:
+            txt = re.sub(r'<[^>]+>', '', p).strip()
+            txt = re.sub(r'\s+', ' ', txt)
+            if '${' in txt or '<' in txt:
+                continue
+            if re.search(r'[\u4e00-\u9fff]', txt) and len(txt) >= 8:
+                return txt
+        h2 = re.search(r'<h2[^>]*>([\s\S]*?)</h2>', content)
+        if h2:
+            txt = re.sub(r'<[^>]+>', '', h2.group(1)).strip()
+            txt = re.sub(r'\s+', ' ', txt)
+            if re.search(r'[\u4e00-\u9fff]', txt):
+                return txt
+        zh_title = _zh_title_of(industry, base) or t.get('name') or ''
+        return '%s - 免费在线工具，纯前端运行，数据不上传。' % zh_title
+
     for t in tools:
         filepath = os.path.join(TOOLS_DIR, t['path'])
         if not os.path.exists(filepath):
@@ -2011,71 +2044,80 @@ def fix_tool_pages_seo(tools):
             image_meta = '\n<meta property="og:image" content="https://chenguangwu.github.io/og-image.png">\n<meta property="og:image:width" content="1200">\n<meta property="og:image:height" content="630">\n<meta property="og:image:alt" content="ToolBox - 6000+免费在线工具">\n<meta name="twitter:image" content="https://chenguangwu.github.io/og-image.png">\n<meta name="twitter:image:alt" content="ToolBox - 6000+免费在线工具">\n'
             content = content.replace('</head>', image_meta + '</head>', 1)
 
-        # 4.0 预渲染英文 <title>（P1 国际 SEO）：命中 EN_OVERRIDE 时把 <title> 改为英文，
-        # 让 Google 首抓直接命中英文标题（原中文仅依赖 JS 运行时切换，爬虫首抓看不到）。
-        # 原中文标题存入 <meta name="title-zh">，供前端中文模式切回（见 js/i18n.js）。
-        # 注意：title-zh 必须注入到 I18N_HREFLANG_MARKER 之前——inject_hreflang 会截断
-        # marker→</head> 之间的内容，注入其后会被丢弃（已踩坑并修复）。
-        # og:title / twitter:title 强制跟随英文（覆盖存量中文值），全链路英文一致。
+        # 4.0 中文优先 <title>（2026-08-29 反转：目标用户以中文为主）。
+        # 初始 <title> 渲染为中文（per-industry 字典 zh-CN.title 或中文名），英文标题存
+        # <meta name="title-en"> 供前端 en-US 模式切回（见 js/i18n.js syncTitle）。
+        # og:title / twitter:title 跟随中文。注意：title-en 注入到 I18N_HREFLANG_MARKER 之前，
+        # 否则 inject_hreflang 会截断 marker→</head> 间内容导致丢失（已踩坑修复）。
         _seo_slug = _slug_of(t)
         if _seo_slug in EN_OVERRIDE and EN_OVERRIDE[_seo_slug].get('en'):
             _en_t = EN_OVERRIDE[_seo_slug]['en']
             _m_t = re.search(r'<title>([^<]*)</title>', content)
             if _m_t:
-                # 中文标题来源：per-industry 字典 zh-CN.title（真实中文工具名），
-                # 兜底 t['name']（部分工具为英文）。绝不用当前 <title>（本段已预渲染英文），否则中文模式无中文可切回。
                 _base = os.path.splitext(os.path.basename(t['path']))[0]
                 _zh_title = _zh_title_of(industry, _base) or t.get('name') or tool_name_esc
                 _zh_t = _zh_title if _zh_title.endswith('ToolBox') else (_zh_title + ' - ToolBox')
-                _new_t = _en_t if _en_t.endswith('ToolBox') else (_en_t + ' - ToolBox')
-                # 均用 esc_once（先反转义再转义）：EN_OVERRIDE 的 en 值来自构建产物，
-                # 可能已带一层转义，直接 esc_html_py 会累积成 &amp;amp;（已踩坑修复）。
-                content = content.replace(_m_t.group(0), '<title>%s</title>' % esc_once(_new_t), 1)
-                # title-zh 强制覆盖：先删旧（可能来自上一轮 build 的英文残留）再注入字典中文标题，
-                # 保证重跑构建幂等正确（否则守卫会跳过、残留陈旧英文值，导致中文模式无中文可切回）。
+                _en_full = _en_t if _en_t.endswith('ToolBox') else (_en_t + ' - ToolBox')
+                # 初始 title 渲染中文（中文优先）
+                content = content.replace(_m_t.group(0), '<title>%s</title>' % esc_once(_zh_t), 1)
+                # 清理旧 title-zh 残留（不再使用），避免 HTML 冗余
                 content = re.sub(r'[ \t]*<meta name="title-zh" content="[^"]*">[ \t]*\n?', '', content)
-                _zh_meta = '<meta name="title-zh" content="%s">' % esc_once(_zh_t)
+                # 英文标题存 title-en：先删旧再注入，保证幂等
+                content = re.sub(r'[ \t]*<meta name="title-en" content="[^"]*">[ \t]*\n?', '', content)
+                _en_meta = '<meta name="title-en" content="%s">' % esc_once(_en_full)
                 if I18N_HREFLANG_MARKER in content:
-                    content = content.replace(I18N_HREFLANG_MARKER, _zh_meta + '\n' + I18N_HREFLANG_MARKER, 1)
+                    content = content.replace(I18N_HREFLANG_MARKER, _en_meta + '\n' + I18N_HREFLANG_MARKER, 1)
                 else:
-                    content = content.replace('</head>', _zh_meta + '\n</head>', 1)
-                _og_t = esc_once(_new_t[:-len(' - ToolBox')] if _new_t.endswith(' - ToolBox') else _new_t)
-                content = re.sub(r'<meta property="og:title" content="[^"]*">', '<meta property="og:title" content="%s">' % _og_t, content, count=1)
-                content = re.sub(r'<meta name="twitter:title" content="[^"]*">', '<meta name="twitter:title" content="%s">' % _og_t, content, count=1)
+                    content = content.replace('</head>', _en_meta + '\n</head>', 1)
+                # og:title / twitter:title 跟随中文
+                _og_t = esc_once(_zh_t[:-len(' - ToolBox')] if _zh_t.endswith(' - ToolBox') else _zh_t)
+                content = re.sub(r'<meta property="og:title" content="[^"]*">', lambda m: '<meta property="og:title" content="%s">' % _og_t, content, count=1)
+                content = re.sub(r'<meta name="twitter:title" content="[^"]*">', lambda m: '<meta name="twitter:title" content="%s">' % _og_t, content, count=1)
 
         # 4.1 Add meta description / og:title / og:description / twitter:* / canonical (idempotent, 补齐老模板工具页缺失的社交与 SEO 标签)
         # 锚点优先用 I18N_HREFLANG_MARKER，避免被 inject_hreflang 的 marker→</head> 截取逻辑丢弃注入的标签
         m_title = re.search(r'<title>([^<]*)</title>', content)
         page_title = m_title.group(1).strip() if m_title else tool_name_esc
         og_title = page_title[:-len(' - ToolBox')] if page_title.endswith(' - ToolBox') else page_title
-        # 4.1a 英文 meta description（P1 扩展）：命中 EN_OVERRIDE 且有 ed 时优先用英文描述，
-        # 让 Google 首抓 description 即英文（title 预渲染已完成，description 是本轮主要缺口）。
+        # 4.1a 中文优先 meta description（2026-08-29 反转：目标用户以中文为主）。
+        # 初始 description 渲染为中文（优先 per-industry 字典 zh-CN.intro/desc，其次页面中文正文），
+        # 英文描述存 <meta name="desc-en"> 供前端 en-US 切换（见 js/i18n.js syncDesc）。
         _en_desc = ''
         if _seo_slug in EN_OVERRIDE and EN_OVERRIDE[_seo_slug].get('ed'):
             _en_desc = EN_OVERRIDE[_seo_slug]['ed']
-        seo_desc = esc_once((_en_desc or t.get('desc') or t['name'])[:160])
+        _zh_desc_raw = extract_zh_desc(content, t, industry, entry)
+        seo_desc = esc_once(_zh_desc_raw[:120])
         anchor = I18N_HREFLANG_MARKER if I18N_HREFLANG_MARKER in content else '</head>'
         seo_tags = ''
         if 'name="description"' not in content:
             seo_tags += '\n<meta name="description" content="%s">' % seo_desc
-        elif _en_desc:
-            # 已存在 description：英文 override 可用时强制覆写为英文（国际 SEO，减少首抓中文依赖）
+        else:
+            # 已存在 description：强制覆写为中文（中文优先，确保爬虫首抓即中文）
             content = re.sub(r'<meta name="description" content="[^"]*">',
-                             '<meta name="description" content="%s">' % seo_desc, content, count=1)
+                             lambda m: '<meta name="description" content="%s">' % seo_desc, content, count=1)
         if 'og:title' not in content:
             seo_tags += '\n<meta property="og:title" content="%s">' % esc_html_py(og_title)
         if 'og:description' not in content:
             seo_tags += '\n<meta property="og:description" content="%s">' % seo_desc
-        elif _en_desc:
+        else:
             content = re.sub(r'<meta property="og:description" content="[^"]*">',
-                             '<meta property="og:description" content="%s">' % seo_desc, content, count=1)
+                             lambda m: '<meta property="og:description" content="%s">' % seo_desc, content, count=1)
+        # 英文描述存 desc-en（供 JS en-US 切换）：注入到 I18N_HREFLANG_MARKER 之前，
+        # 否则 inject_hreflang 会截断 marker→</head> 间内容导致丢失（已踩坑修复）。
+        if _en_desc:
+            content = re.sub(r'[ \t]*<meta name="desc-en" content="[^"]*">[ \t]*\n?', '', content)
+            _en_d = '<meta name="desc-en" content="%s">' % esc_once(_en_desc[:160])
+            if I18N_HREFLANG_MARKER in content:
+                content = content.replace(I18N_HREFLANG_MARKER, _en_d + '\n' + I18N_HREFLANG_MARKER, 1)
+            else:
+                content = content.replace('</head>', _en_d + '\n</head>', 1)
         if 'twitter:title' not in content:
             seo_tags += '\n<meta name="twitter:title" content="%s">' % esc_html_py(og_title)
         if 'twitter:description' not in content:
             seo_tags += '\n<meta name="twitter:description" content="%s">' % seo_desc
-        elif _en_desc:
+        else:
             content = re.sub(r'<meta name="twitter:description" content="[^"]*">',
-                             '<meta name="twitter:description" content="%s">' % seo_desc, content, count=1)
+                             lambda m: '<meta name="twitter:description" content="%s">' % seo_desc, content, count=1)
         if 'rel="canonical"' not in content:
             seo_tags += '\n<link rel="canonical" href="https://chenguangwu.github.io/%s">' % t['url']
         if 'og:type' not in content:
@@ -2231,11 +2273,14 @@ def generate_category_indexes(tools):
         parts.append('<!DOCTYPE html>\n<html lang="zh-CN">\n<head>\n')
         parts.append('<meta charset="UTF-8">\n')
         parts.append('<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">\n')
-        parts.append('<meta name="description" content="%s">\n' % esc_html_py(desc_meta))
-        parts.append('<meta name="title-zh" content="%s">\n' % esc_html_py(title_zh))
+        # 中文优先：初始 description/og:description 渲染中文（desc_meta_zh），
+        # 英文描述存 desc-en 供前端 en-US 切换（见 js/i18n.js syncDesc）。
+        parts.append('<meta name="description" content="%s">\n' % esc_html_py(desc_meta_zh))
+        parts.append('<meta name="title-en" content="%s">\n' % esc_html_py(title))
+        parts.append('<meta name="desc-en" content="%s">\n' % esc_html_py(desc_meta))
         parts.append('<meta name="robots" content="index,follow">\n')
-        parts.append('<meta property="og:title" content="%s">\n' % esc_html_py(title))
-        parts.append('<meta property="og:description" content="%s">\n' % esc_html_py(desc_meta))
+        parts.append('<meta property="og:title" content="%s">\n' % esc_html_py(title_zh))
+        parts.append('<meta property="og:description" content="%s">\n' % esc_html_py(desc_meta_zh))
         parts.append('<meta property="og:type" content="website">\n')
         parts.append('<meta property="og:url" content="https://chenguangwu.github.io/tools/%s/index.html">\n' % ind)
         parts.append('<meta property="og:site_name" content="ToolBox">\n')
@@ -2244,11 +2289,11 @@ def generate_category_indexes(tools):
         parts.append('<meta property="og:image:height" content="630">\n')
         parts.append('<meta property="og:image:alt" content="ToolBox - 6000+免费在线工具">\n')
         parts.append('<meta name="twitter:card" content="summary_large_image">\n')
-        parts.append('<meta name="twitter:title" content="%s">\n' % esc_html_py(title))
-        parts.append('<meta name="twitter:description" content="%s">\n' % esc_html_py(desc_meta))
+        parts.append('<meta name="twitter:title" content="%s">\n' % esc_html_py(title_zh))
+        parts.append('<meta name="twitter:description" content="%s">\n' % esc_html_py(desc_meta_zh))
         parts.append('<meta name="twitter:image" content="https://chenguangwu.github.io/og-image.png">\n')
         parts.append('<meta name="twitter:image:alt" content="ToolBox - 6000+免费在线工具">\n')
-        parts.append('<title>%s</title>\n' % esc_html_py(title))
+        parts.append('<title>%s</title>\n' % esc_html_py(title_zh))
         parts.append('<link rel="canonical" href="https://chenguangwu.github.io/tools/%s/index.html">\n' % ind)
         parts.append('<link rel="icon" type="image/svg+xml" href="/favicon.svg">\n')
         parts.append('<link rel="stylesheet" href="../../css/common.css">\n')
@@ -2263,7 +2308,7 @@ def generate_category_indexes(tools):
         # 多语言 SEO：hreflang + og:locale（构建期常量，批次4）
         parts.append(build_hreflang_block('https://chenguangwu.github.io/tools/%s/index.html' % ind))
         # CollectionPage structured data
-        parts.append('<script type="application/ld+json">\n{"@context":"https://schema.org","@type":"CollectionPage","name":"%s工具","url":"https://chenguangwu.github.io/tools/%s/index.html","description":"%s"}\n</script>\n' % (esc_html_py(ind_name), ind, esc_html_py(desc_meta)))
+        parts.append('<script type="application/ld+json">\n{"@context":"https://schema.org","@type":"CollectionPage","name":"%s工具","url":"https://chenguangwu.github.io/tools/%s/index.html","description":"%s"}\n</script>\n' % (esc_html_py(ind_name), ind, esc_html_py(desc_meta_zh)))
         # BreadcrumbList structured data
         parts.append('<script type="application/ld+json">\n{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"首页","item":"https://chenguangwu.github.io/"},{"@type":"ListItem","position":2,"name":"%s","item":"https://chenguangwu.github.io/tools/%s/index.html"}]}\n</script>\n' % (esc_html_py(ind_name), ind))
         parts.append('</head>\n<body>\n')
