@@ -262,7 +262,7 @@ var LANG_REGISTRY = [
     return null;
   }
 
-  // 判定语言（优先级：?lang > localStorage > navigator.languages > 时区 > en-US）
+  // 判定语言（优先级：?lang > localStorage > 浏览器含中文变体?中文 : 页面默认<html lang>）
   function detect() {
     try {
       var params = new URLSearchParams(location.search);
@@ -274,17 +274,18 @@ var LANG_REGISTRY = [
       var sn = normalize(s);
       if (sn) return sn;
     } catch (e) {}
+    // 中文优先：未显式指定(?lang/localStorage)时，默认跟随页面 <html lang>（中文），
+    // 确保中文搜索引擎(含 Googlebot, 其渲染 locale=en-US)渲染后索引中文；
+    // 仅当用户浏览器语言含中文变体时才跟随浏览器。英文真实用户可点语言按钮或带 ?lang=en 显式切换。
+    var htmlLang = (document.documentElement && document.documentElement.lang || '').toLowerCase();
+    var pageDefault = normalize(htmlLang) || 'zh-CN';
     var langs = (navigator.languages && navigator.languages.length)
       ? navigator.languages : [navigator.language];
     for (var i = 0; i < langs.length; i++) {
       var n = normalize(langs[i]);
-      if (n) return n;
+      if (n === 'zh-CN') return 'zh-CN';
     }
-    try {
-      var tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
-      if (tz && TIMEZONE_MAP[tz]) return TIMEZONE_MAP[tz];
-    } catch (e) {}
-    return FALLBACK;
+    return pageDefault;
   }
 
   function get() { return current; }
