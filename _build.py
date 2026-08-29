@@ -1820,8 +1820,8 @@ def fix_tool_pages_seo(tools):
                 content = content.replace(_m_t.group(0), '<title>%s</title>' % esc_html_py(_new_t), 1)
                 # title-zh 强制覆盖：先删旧（可能来自上一轮 build 的英文残留）再注入字典中文标题，
                 # 保证重跑构建幂等正确（否则守卫会跳过、残留陈旧英文值，导致中文模式无中文可切回）。
-                content = re.sub(r'<meta name="title-zh" content="[^"]*">\s*', '', content)
-                _zh_meta = '\n<meta name="title-zh" content="%s">' % esc_html_py(_zh_t)
+                content = re.sub(r'[ \t]*<meta name="title-zh" content="[^"]*">[ \t]*\n?', '', content)
+                _zh_meta = '<meta name="title-zh" content="%s">' % esc_html_py(_zh_t)
                 if I18N_HREFLANG_MARKER in content:
                     content = content.replace(I18N_HREFLANG_MARKER, _zh_meta + '\n' + I18N_HREFLANG_MARKER, 1)
                 else:

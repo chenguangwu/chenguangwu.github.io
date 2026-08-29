@@ -3366,4 +3366,251 @@ global.fmtNum = function(n, digits){
   } catch(e){ return String(num); }
 };
 
+// ===== 外链增长：工具页「分享与嵌入」组件 =====
+// 关键设计：纯 <iframe> 嵌入不传递权重，只有可抓取的 <a href> 回链才传递。
+// 因此生成的嵌入代码片段自带一行品牌署名链接，且不加 rel="nofollow"（用户自愿署名，属白帽）。
+// 代码以纯文本形式放在 <pre> 中，不产生真实 DOM 链接，不影响站内链接结构。
+var TB_SE_ORIGIN = 'https://chenguangwu.github.io';
+
+function tbSeLang(){
+  var l = '';
+  try { l = document.documentElement.getAttribute('lang') || ''; } catch(e){}
+  return String(l).toLowerCase().indexOf('zh') === 0 ? 'zh' : 'en';
+}
+function tbSeStripTail(s){
+  return String(s || '').replace(/\s*[-\u2013|]\s*ToolBox\s*$/i, '').trim();
+}
+function tbSeTitle(){
+  var en = '';
+  try { en = tbSeStripTail(document.title); } catch(e){}
+  var zh = '';
+  try {
+    var m = document.querySelector('meta[name="title-zh"]');
+    if (m) zh = tbSeStripTail(m.getAttribute('content'));
+  } catch(e){}
+  if (!zh) zh = en;
+  if (!en) en = zh;
+  return { en: en || 'ToolBox', zh: zh || 'ToolBox' };
+}
+function tbSeEsc(s){
+  return String(s == null ? '' : s)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+function tbSePath(){
+  var p = '';
+  try { p = location.pathname || ''; } catch(e){}
+  return p.replace(/^\/+/, '');
+}
+function tbSeI18n(){
+  if (tbSeLang() === 'zh') {
+    return {
+      title: '分享与嵌入',
+      sub: '把这个工具放到你的网站或博客，代码自带署名回链',
+      tabEmbed: '嵌入代码',
+      tabShare: '分享链接',
+      height: '高度',
+      theme: '主题',
+      themeLight: '浅色',
+      themeDark: '深色',
+      copyCode: '复制代码',
+      copyLink: '复制链接',
+      docs: '嵌入文档',
+      shareHint: '把这个工具分享给需要的人，或在社区推荐它',
+      x: 'X', weibo: '微博', reddit: 'Reddit', mail: '邮件',
+      tip: '嵌入代码自带一条可点击的署名回链，这正是嵌入能为 ToolBox 带来权重的部分，感谢支持'
+    };
+  }
+  return {
+    title: 'Share & Embed',
+    sub: 'Put this tool on your site — the snippet includes a credit backlink',
+    tabEmbed: 'Embed code',
+    tabShare: 'Share link',
+    height: 'Height',
+    theme: 'Theme',
+    themeLight: 'Light',
+    themeDark: 'Dark',
+    copyCode: 'Copy code',
+    copyLink: 'Copy link',
+    docs: 'Embed docs',
+    shareHint: 'Share this tool with someone who needs it, or recommend it in your community',
+    x: 'X', weibo: 'Weibo', reddit: 'Reddit', mail: 'Email',
+    tip: 'The snippet includes a crawlable credit link — that is the only part of an embed that passes link equity. Thanks for the support'
+  };
+}
+function tbSeEmbedCode(){
+  var t = tbSeTitle();
+  var zh = tbSeLang() === 'zh';
+  var box = document.querySelector('.tb-share-embed');
+  var h = 520, theme = 'light';
+  if (box) {
+    var hs = box.querySelector('.tb-se-height');
+    var ts = box.querySelector('.tb-se-theme');
+    if (hs) h = parseInt(hs.value, 10) || 520;
+    if (ts) theme = ts.value || 'light';
+  }
+  var pageUrl = TB_SE_ORIGIN + '/' + tbSePath();
+  var src = pageUrl + '?embed=1' + (theme === 'dark' ? '&theme=dark' : '');
+  var name = zh ? t.zh : t.en;
+  return '<div class="toolbox-embed">\n' +
+    '  <iframe src="' + tbSeEsc(src) + '"\n' +
+    '    width="100%" height="' + h + '"\n' +
+    '    style="border:0;border-radius:12px" loading="lazy"\n' +
+    '    title="' + tbSeEsc(name) + '"></iframe>\n' +
+    '  <p style="margin:6px 0 0;font:12px/1.5 system-ui,-apple-system,sans-serif;text-align:right">\n' +
+    '    <a href="' + tbSeEsc(pageUrl) + '" target="_blank" rel="noopener">' +
+    tbSeEsc(name + ' \u00b7 ToolBox') + '</a>\n' +
+    '  </p>\n' +
+    '</div>';
+}
+function tbSeRefreshCode(){
+  var box = document.querySelector('.tb-share-embed');
+  if (!box) return;
+  var pre = box.querySelector('.tb-se-code pre');
+  if (pre) pre.textContent = tbSeEmbedCode();
+}
+function tbSeTrack(evt){
+  try {
+    if (global.ToolBox && global.ToolBox.Analytics &&
+        typeof global.ToolBox.Analytics.track === 'function') {
+      global.ToolBox.Analytics.track(evt, { page: tbSePath() });
+    }
+  } catch(e){}
+}
+function injectShareEmbed(){
+  try {
+    if (document.querySelector('.tb-share-embed')) return;
+    // 被 iframe 嵌入时不再显示，避免嵌套
+    if (document.documentElement.classList.contains('embedded')) return;
+    try {
+      var q = new URLSearchParams(location.search || '');
+      if (q.has('embed') || q.get('mode') === 'embed') return;
+    } catch(e){}
+    // 仅标准工具页显示（行业落地页 / 首页等跳过）
+    if (!isStandardToolUrl(getToolUrl())) return;
+    var container = document.querySelector('.container');
+    if (!container) return;
+
+    var i = tbSeI18n();
+    var t = tbSeTitle();
+    var pageUrl = TB_SE_ORIGIN + '/' + tbSePath();
+    var name = tbSeLang() === 'zh' ? t.zh : t.en;
+    var enc = encodeURIComponent(pageUrl);
+    var encName = encodeURIComponent(name);
+
+    var shareX = 'https://twitter.com/intent/tweet?url=' + enc + '&text=' + encName;
+    var shareWb = 'https://service.weibo.com/share/share.php?url=' + enc + '&title=' + encName;
+    var shareRd = 'https://www.reddit.com/submit?url=' + enc + '&title=' + encName;
+    var shareMail = 'mailto:?subject=' + encName + '&body=' + enc;
+
+    var wrap = document.createElement('section');
+    wrap.className = 'tb-share-embed';
+    wrap.innerHTML =
+      '<button class="tb-se-head" type="button" aria-expanded="false">' +
+        '<span class="tb-se-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.6" y1="13.5" x2="15.4" y2="17.5"/><line x1="15.4" y1="6.5" x2="8.6" y2="10.5"/></svg></span>' +
+        '<span class="tb-se-txt">' + tbSeEsc(i.title) + '<small>' + tbSeEsc(i.sub) + '</small></span>' +
+        '<span class="tb-se-caret"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></span>' +
+      '</button>' +
+      '<div class="tb-se-body">' +
+        '<div class="tb-se-tabs">' +
+          '<button class="tb-se-tab active" type="button" data-tab="embed">' + tbSeEsc(i.tabEmbed) + '</button>' +
+          '<button class="tb-se-tab" type="button" data-tab="share">' + tbSeEsc(i.tabShare) + '</button>' +
+        '</div>' +
+        '<div class="tb-se-panel active" data-panel="embed">' +
+          '<div class="tb-se-row">' +
+            '<label>' + tbSeEsc(i.height) +
+              ' <select class="tb-se-height"><option value="420">420</option>' +
+              '<option value="520" selected>520</option><option value="620">620</option>' +
+              '<option value="760">760</option></select></label>' +
+            '<label>' + tbSeEsc(i.theme) +
+              ' <select class="tb-se-theme"><option value="light" selected>' + tbSeEsc(i.themeLight) + '</option>' +
+              '<option value="dark">' + tbSeEsc(i.themeDark) + '</option></select></label>' +
+          '</div>' +
+          '<div class="tb-se-code"><pre></pre></div>' +
+          '<div class="tb-se-actions">' +
+            '<button class="tb-se-btn primary" type="button" data-act="copy-code">' + tbSeEsc(i.copyCode) + '</button>' +
+            '<a class="tb-se-btn" href="../../embed.html">' + tbSeEsc(i.docs) + '</a>' +
+          '</div>' +
+          '<p class="tb-se-tip">' + tbSeEsc(i.tip) + '</p>' +
+        '</div>' +
+        '<div class="tb-se-panel" data-panel="share">' +
+          '<p class="tb-se-tip" style="margin-top:0">' + tbSeEsc(i.shareHint) + '</p>' +
+          '<div class="tb-se-link">' +
+            '<input type="text" readonly value="' + tbSeEsc(pageUrl) + '" aria-label="' + tbSeEsc(name) + '">' +
+            '<button class="tb-se-btn primary" type="button" data-act="copy-link">' + tbSeEsc(i.copyLink) + '</button>' +
+          '</div>' +
+          '<div class="tb-se-social">' +
+            '<a href="' + tbSeEsc(shareX) + '" target="_blank" rel="noopener noreferrer">' + tbSeEsc(i.x) + '</a>' +
+            '<a href="' + tbSeEsc(shareWb) + '" target="_blank" rel="noopener noreferrer">' + tbSeEsc(i.weibo) + '</a>' +
+            '<a href="' + tbSeEsc(shareRd) + '" target="_blank" rel="noopener noreferrer">' + tbSeEsc(i.reddit) + '</a>' +
+            '<a href="' + tbSeEsc(shareMail) + '">' + tbSeEsc(i.mail) + '</a>' +
+          '</div>' +
+        '</div>' +
+      '</div>';
+
+    var related = container.querySelector('.related-tools');
+    if (related) container.insertBefore(wrap, related);
+    else container.appendChild(wrap);
+
+    var head = wrap.querySelector('.tb-se-head');
+    if (head) {
+      head.addEventListener('click', function(){
+        var open = wrap.classList.toggle('open');
+        head.setAttribute('aria-expanded', open ? 'true' : 'false');
+        if (open) tbSeTrack('share_embed_open');
+      });
+    }
+    var tabs = wrap.querySelectorAll('.tb-se-tab');
+    Array.prototype.forEach.call(tabs, function(tab){
+      tab.addEventListener('click', function(){
+        Array.prototype.forEach.call(tabs, function(x){ x.classList.remove('active'); });
+        tab.classList.add('active');
+        var key = tab.getAttribute('data-tab');
+        Array.prototype.forEach.call(wrap.querySelectorAll('.tb-se-panel'), function(p){
+          p.classList.toggle('active', p.getAttribute('data-panel') === key);
+        });
+      });
+    });
+    var hs = wrap.querySelector('.tb-se-height');
+    var ts = wrap.querySelector('.tb-se-theme');
+    if (hs) hs.addEventListener('change', tbSeRefreshCode);
+    if (ts) ts.addEventListener('change', tbSeRefreshCode);
+    wrap.addEventListener('click', function(e){
+      var btn = null;
+      try { btn = e.target && e.target.closest ? e.target.closest('[data-act]') : null; } catch(err){}
+      if (!btn) return;
+      var act = btn.getAttribute('data-act');
+      var node = null, val = '';
+      if (act === 'copy-code') {
+        node = wrap.querySelector('.tb-se-code pre');
+        if (node) { val = node.textContent || ''; tbSeTrack('share_embed_copy'); }
+      } else if (act === 'copy-link') {
+        node = wrap.querySelector('.tb-se-link input');
+        if (node) { val = node.value || ''; tbSeTrack('share_embed_copy_link'); }
+      }
+      if (val && global.ToolBox && typeof global.ToolBox.copyText === 'function') global.ToolBox.copyText(val);
+    });
+    tbSeRefreshCode();
+  } catch(e){}
+}
+
+document.addEventListener('DOMContentLoaded', function(){ setTimeout(injectShareEmbed, 60); });
+
+// 语言切换后重建组件，保证文案与代码里的工具名跟随当前语言
+window.addEventListener('toolbox:langchange', function(){
+  try {
+    var box = document.querySelector('.tb-share-embed');
+    if (!box) return;
+    var wasOpen = box.classList.contains('open');
+    box.parentNode.removeChild(box);
+    injectShareEmbed();
+    var nb = document.querySelector('.tb-share-embed');
+    if (nb && wasOpen) {
+      nb.classList.add('open');
+      var h2 = nb.querySelector('.tb-se-head');
+      if (h2) h2.setAttribute('aria-expanded', 'true');
+    }
+  } catch(e){}
+});
+
 })(window);
