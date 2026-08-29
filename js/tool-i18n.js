@@ -9672,8 +9672,19 @@
       return;
     }
 
+    // 短语数据必须无条件加载：否则 -body.json 里没有该 slug 的页面会在这里提前 return，
+    // 导致 common / 行业 phrases 永远加载不到，正文短语始终不翻译。
+    loadCommonPhrases();
+    loadIndustryPhrases(ind);
+
     var body = BODY_MAP[ind] && BODY_MAP[ind][slug];
-    if (!body) return;
+    if (!body) {
+      // 即便该工具没有 body 数据，切到英文时也要把已就绪的短语应用上去
+      if (lang !== 'zh-CN') {
+        loadCommonPhrases().then(function () { translateBodyPhrases(false); });
+      }
+      return;
+    }
     if (!skipH2 && h2 && body.title) {
       var m = h2.textContent.match(/^([^\u4e00-\u9fffA-Za-z0-9]*)([\s\S]*)$/);
       var icon = (m && m[1]) ? m[1] : '';
@@ -9681,6 +9692,11 @@
     }
     if (!skipIntro && introP && body.intro) {
       introP.textContent = body.intro;
+    }
+    // 数据可能已在首次加载（中文态）时就绪，切换语言时 promise 直接命中缓存、
+    // 不会再走 then 分支，这里补一次确保短语被应用
+    if (lang !== 'zh-CN') {
+      loadCommonPhrases().then(function () { translateBodyPhrases(false); });
     }
   }
 
