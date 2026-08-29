@@ -383,11 +383,15 @@ var LANG_REGISTRY = [
     if (!container || container.querySelector('.lang-switcher')) return;
     var wrap = document.createElement('div');
     wrap.className = 'lang-switcher nav-icon-btn';
-    wrap.style.cssText = 'display:inline-flex;align-items:center;padding:0;';
+    wrap.style.cssText = 'display:inline-flex;align-items:center;gap:6px;padding:0 10px;';
+    var flag = document.createElement('span');
+    flag.className = 'lang-flag-icon';
+    flag.textContent = '\uD83C\uDF10'; // 🌐
+    flag.style.cssText = 'font-size:16px;pointer-events:none;';
     var sel = document.createElement('select');
     sel.setAttribute('aria-label', 'Language / 语言');
     sel.title = 'Language / 语言';
-    sel.style.cssText = 'background:transparent;border:none;color:inherit;font:inherit;cursor:pointer;outline:none;';
+    sel.style.cssText = 'background:transparent;border:none;color:inherit;font:inherit;cursor:pointer;outline:none;appearance:none;-webkit-appearance:none;';
     for (var i = 0; i < LANG_REGISTRY.length; i++) {
       var o = document.createElement('option');
       o.value = LANG_REGISTRY[i].code;
@@ -396,7 +400,13 @@ var LANG_REGISTRY = [
       sel.appendChild(o);
     }
     sel.onchange = function () { set(sel.value); };
+    var caret = document.createElement('span');
+    caret.className = 'lang-caret';
+    caret.textContent = '▾';
+    caret.style.cssText = 'font-size:10px;opacity:.6;pointer-events:none;';
+    wrap.appendChild(flag);
     wrap.appendChild(sel);
+    wrap.appendChild(caret);
     container.appendChild(wrap);
   }
 
