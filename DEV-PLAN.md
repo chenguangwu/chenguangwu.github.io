@@ -9,8 +9,8 @@
 - [GSC-A2] 12 个同行业工具英文标题+描述去重（`_en_override.json` 写具体功能）。
 
 ### ⏳ 进行中（老板 8-29 已批"铺开"，同机制按行业分批）
-- [GSC-A3] 内容深度铺开，已落地 9 行业共 214 页 deep-dive：
-  - 试点 it/ 15（1e051b92）→ math/ 25 → design/ 22 → finance/ 22 → statistics/ 23 → science/ 23 → materials/ 28 → electromagnetism/ 28 → fluid/ 28（共 214 页）
+- [GSC-A3] 内容深度铺开，已落地 10 行业共 242 页 deep-dive：
+  - 试点 it/ 15（1e051b92）→ math/ 25 → design/ 22 → finance/ 22 → statistics/ 23 → science/ 23 → materials/ 28 → electromagnetism/ 28 → fluid/ 28 → metrology/ 28（共 242 页）
   - 机制：`_build.py` step6 + `i18n/tools/content_deepdive.json`，幂等注入，四门禁每批全绿
   - 剩余候选：fluid/metrology/signal/investment/economics/process 等理工类，及 engineering/automotive/hydraulic/ai 等高质量行业
 - [GSC-B] CTR 精修：等 GSC 查询 CSV（高展示低点击页定向改写 description）再动。
