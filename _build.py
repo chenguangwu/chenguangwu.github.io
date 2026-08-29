@@ -2070,6 +2070,8 @@ def fix_tool_pages_seo(tools):
 
 def generate_category_indexes(tools):
     """Generate index.html for each industry directory."""
+    _en_path = os.path.join(ROOT, 'i18n', 'industry-en.json')
+    _IND_EN = json.load(open(_en_path, encoding='utf-8')) if os.path.exists(_en_path) else {}
     by_industry = {}
     for t in tools:
         by_industry.setdefault(t['industry'], []).append(t)
@@ -2088,14 +2090,18 @@ def generate_category_indexes(tools):
 
         ind_tools_sorted = sorted(ind_tools, key=lambda x: x['name'])
         count = len(ind_tools_sorted)
-        title = ('%s（%s）工具集合 - ToolBox' % (ind_name, ind)) if len(name_to_inds.get(ind_name, set())) > 1 else ('%s工具集合 - ToolBox' % ind_name)
-        desc_meta = '%s工具集合，共%d个免费在线工具，纯前端处理数据不上传。' % (ind_name, count)
+        en_name = _IND_EN.get(ind, ind_name)
+        title = ('%s (%s) Tools Collection - ToolBox' % (en_name, ind)) if len(name_to_inds.get(ind_name, set())) > 1 else ('%s Tools Collection - ToolBox' % en_name)
+        title_zh = ('%s（%s）工具集合 - ToolBox' % (ind_name, ind)) if len(name_to_inds.get(ind_name, set())) > 1 else ('%s工具集合 - ToolBox' % ind_name)
+        desc_meta = '%s tools collection with %d free online tools. All run client-side in your browser, no data uploaded.' % (en_name, count)
+        desc_meta_zh = '%s工具集合，共%d个免费在线工具，纯前端处理数据不上传。' % (ind_name, count)
 
         parts = []
         parts.append('<!DOCTYPE html>\n<html lang="zh-CN">\n<head>\n')
         parts.append('<meta charset="UTF-8">\n')
         parts.append('<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">\n')
         parts.append('<meta name="description" content="%s">\n' % esc_html_py(desc_meta))
+        parts.append('<meta name="title-zh" content="%s">\n' % esc_html_py(title_zh))
         parts.append('<meta name="robots" content="index,follow">\n')
         parts.append('<meta property="og:title" content="%s">\n' % esc_html_py(title))
         parts.append('<meta property="og:description" content="%s">\n' % esc_html_py(desc_meta))
