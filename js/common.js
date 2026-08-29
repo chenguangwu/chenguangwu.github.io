@@ -2899,10 +2899,11 @@ function buildUnifiedHeader(){
       '<img src="' + root + 'logo.svg" alt="ToolBox Logo"><span>ToolBox</span>' +
     '</div>' +
     '<div class="nav-mobile-actions">' +
-      '<button class="nav-icon-btn" onclick="location.href=\'' + root + 'search.html\'" title="搜索工具" aria-label="搜索工具">' +
+      '<button class="nav-icon-btn" onclick="location.href=\'' + root + 'search.html\'" title="搜索工具" aria-label="搜索工具" data-i18n-title="nav.search">' +
         '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>' +
+        '<span class="nav-btn-label" data-i18n="nav.search" data-i18n-fb="搜索工具">搜索工具</span>' +
       '</button>' +
-      '<button class="nav-icon-btn" onclick="ToolBox.toggleToolTheme()" title="切换主题" aria-label="切换主题"><span class="tb-theme-icon" style="font-size:16px">🌙</span></button>' +
+      '<button class="nav-icon-btn" onclick="ToolBox.toggleToolTheme()" title="切换主题" aria-label="切换主题" data-i18n-title="nav.theme"><span class="tb-theme-icon" style="font-size:16px">🌙</span><span class="nav-btn-label" data-i18n="nav.theme" data-i18n-fb="切换主题">切换主题</span></button>' +
     '</div>';
 
   wrap.appendChild(desk);
