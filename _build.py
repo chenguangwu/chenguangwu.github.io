@@ -143,6 +143,51 @@ def _replace_h1_text(html, text):
     pattern = re.compile(r'(<h1\b[^>]*>)([\s\S]*?)(</h1>)', re.S)
     return pattern.sub(lambda m: '%s%s%s' % (m.group(1), esc_html_py(text), m.group(3)), html, count=1)
 
+
+def _prerender_tool_body(content, entry):
+    """构建期把英文 title/intro 预渲染进工具页 h2 + 首个 p，并加 data-zh 保存中文原文。
+
+    目的：让无 JS 的首抓（含英文 SEO 爬虫）直接拿到英文正文，不必等运行时 fetch -body.json。
+    中文用户由运行时 applyToolBody 用 data-zh 还原（英文用户走 -body.json，逻辑不变）。
+    仅处理含中文的节点，已是英文的页不动 —— 保证幂等且不影响纯英文工具页。
+    """
+    if not isinstance(entry, dict):
+        return content
+    en_title = (entry.get('title') or '').strip()
+    en_intro = (entry.get('intro') or '').strip()
+    if not en_title and not en_intro:
+        return content
+
+    _cjk = re.compile(r'[\u4e00-\u9fff]')
+
+    if en_title:
+        def _h2(m):
+            open_tag, attrs, inner, close = m.group(1), m.group(2), m.group(3), m.group(4)
+            if not _cjk.search(inner):
+                return m.group(0)  # 已是英文，不动
+            orig = inner
+            mm = re.match(r'^([^\u4e00-\u9fffA-Za-z0-9]*)([\s\S]*)$', orig)
+            icon = mm.group(1) if mm else ''
+            new_text = icon + en_title
+            if 'data-zh=' not in attrs:
+                attrs = attrs.rstrip('>') + ' data-zh="%s">' % esc_html_py(orig)
+            return '%s%s%s%s' % (open_tag, attrs, esc_html_py(new_text), close)
+        content = re.sub(r'(<h2\b)([^>]*>)([\s\S]*?)(</h2>)', _h2, content, count=1)
+
+    if en_intro:
+        def _p(m):
+            open_tag, attrs, inner, close = m.group(1), m.group(2), m.group(3), m.group(4)
+            if not _cjk.search(inner):
+                return m.group(0)  # 已是英文，不动
+            orig = inner
+            new_text = en_intro
+            if 'data-zh=' not in attrs:
+                attrs = attrs.rstrip('>') + ' data-zh="%s">' % esc_html_py(orig)
+            return '%s%s%s%s' % (open_tag, attrs, esc_html_py(new_text), close)
+        content = re.sub(r'(<p\b)([^>]*>)([\s\S]*?)(</p>)', _p, content, count=1)
+
+    return content
+
 def _slug_of(t):
     # 覆盖字典 key 采用「行业/basename」精确匹配，避免 calc-N 这类跨行业复用 basename 的错配。
     u = t.get('u') or t.get('url') or t.get('file') or ''
@@ -1796,16 +1841,22 @@ def fix_tool_pages_seo(tools):
         ind_def = INDUSTRY_DEFS.get(industry, ('🔧', industry))
         ind_icon, ind_name = ind_def[0], ind_def[1]
         tool_name_esc = esc_html_py(t['name'])
-        # Top 工具页预渲染：对关键高访问工具构建期注入英文文本（减少首抓依赖 JS）
-        if t['url'] in TOP_TOOL_PRE_RENDER:
-            slug = os.path.splitext(os.path.basename(t['path']))[0]
-            entry = _load_tool_body(i18n_dir, industry, slug)
+        # 工具正文英文预渲染：把 -body.json 英文 title/intro 预渲染进静态 HTML（利于无 JS 首抓/英文 SEO）。
+        # 已用 data-i18n 管理的手工页（含 6 个 Top + 其余 8 个）走原机制；其余生成页统一预渲染 +
+        # 加 data-zh 保存中文原文，运行时 applyToolBody 对中文用户用 data-zh 还原，英文用户走 -body.json。
+        slug = os.path.splitext(os.path.basename(t['path']))[0]
+        entry = _load_tool_body(i18n_dir, industry, slug)
+        key_prefix = '%s.%s' % (industry, slug)
+        if ('data-i18n="%s.title"' % key_prefix) in content:
+            # 已有 data-i18n 管理的手工页：走原机制（中文由 data-i18n-fb 还原）
             tool_title = (entry.get('title') or t.get('en') or tool_name_esc)
             tool_intro = (entry.get('intro') or t.get('ed') or '')
-            key_prefix = '%s.%s' % (industry, slug)
             content = _replace_data_i18n_text(content, key_prefix + '.title', tool_title)
             content = _replace_data_i18n_text(content, key_prefix + '.intro', tool_intro)
             content = _replace_h1_text(content, tool_title)
+        else:
+            # 生成页：预渲染英文 + data-zh 中文原文
+            content = _prerender_tool_body(content, entry)
 
         # 1. Ensure h1 exists (idempotent)
         if '<h1' not in content:

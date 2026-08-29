@@ -9656,14 +9656,18 @@
     var skipH2 = !!(h2 && (h2.querySelector('[data-i18n]') || isFormula(h2.textContent)));
     var skipIntro = !!(introP && introP.hasAttribute('data-i18n'));
 
-    // 首次调用缓存原文（仅缓存未跳过的部分）
-    if (!skipH2 && h2 && ORIG[slug] === undefined) {
+    // 首次调用缓存原文（按字段独立判断，避免 h2 捕获定义 ORIG[slug] 后阻断 introP 捕获）。
+    // 优先用 data-zh（构建期保存的中文原文）：预渲染英文到静态 HTML 后 textContent 已是英文，
+    // 若不取 data-zh，中文用户切回会被钉死成英文。
+    if (!skipH2 && h2 && (!ORIG[slug] || ORIG[slug].title === undefined)) {
       ORIG[slug] = ORIG[slug] || {};
-      ORIG[slug].title = h2.textContent;
+      var _zhT = h2.getAttribute('data-zh');
+      ORIG[slug].title = (_zhT != null) ? _zhT : h2.textContent;
     }
-    if (!skipIntro && introP && ORIG[slug] === undefined) {
+    if (!skipIntro && introP && (!ORIG[slug] || ORIG[slug].intro === undefined)) {
       ORIG[slug] = ORIG[slug] || {};
-      ORIG[slug].intro = introP.textContent;
+      var _zhI = introP.getAttribute('data-zh');
+      ORIG[slug].intro = (_zhI != null) ? _zhI : introP.textContent;
     }
 
     if (lang === 'zh-CN') {
