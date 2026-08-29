@@ -235,8 +235,7 @@ var LANG_REGISTRY = [
       'ad.taobao_cta': 'Check it out →',
       'ad.track_event': 'Ad click',
       'ad.fallback_text': '⭐ Bookmark ToolBox: 6000+ free tools anytime · Pure frontend · Data stays in browser'
-    },
-    'en-US': {}
+    }
   };
 
   var KEY = 'toolbox_lang';
