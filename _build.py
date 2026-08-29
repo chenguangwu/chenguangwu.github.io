@@ -1485,6 +1485,62 @@ def run_clarity_gate():
         raise SystemExit(proc.returncode)
 
 
+# ---------------------------------------------------------------------------
+# Service Worker 版本戳同步
+# ---------------------------------------------------------------------------
+# 背景（2026-08-29）：sw.js 旧版缓存名为硬编码常量，发布后不变化，导致用户端
+# CSS/JS/JSON 被永久钉死在首次安装的版本，必须无痕模式才能看到更新。
+# 现改为「内容驱动版本戳」：sw.js 的 BUILD 常量由本函数按共享静态资源内容 hash
+# 写入 —— 内容不变则戳不变（build 幂等），内容一变则缓存命名空间变化，
+# 客户端 activate 时自动清理旧缓存，发布即生效。
+SW_FILE = os.path.join(ROOT, 'sw.js')
+SW_BUILD_RE = re.compile(r"^const BUILD = '[^']*';", re.M)
+
+
+def compute_sw_build():
+    """按共享静态资源内容计算 SW 版本戳（纯内容驱动，保证构建幂等）。"""
+    h = hashlib.sha1()
+    files = []
+    for sub, exts in (('css', ('.css',)), ('js', ('.js',))):
+        d = os.path.join(ROOT, sub)
+        if os.path.isdir(d):
+            for fn in sorted(os.listdir(d)):
+                if fn.endswith(exts):
+                    files.append(os.path.join(d, fn))
+    jdir = os.path.join(ROOT, 'json')
+    for name in ('tools.json', 'search-index.json', 'guides.json', 'channel.json'):
+        p = os.path.join(jdir, name)
+        if os.path.isfile(p):
+            files.append(p)
+    for p in files:
+        try:
+            with open(p, 'rb') as f:
+                h.update(os.path.relpath(p, ROOT).encode('utf-8'))
+                h.update(f.read())
+        except OSError:
+            pass
+    return h.hexdigest()[:10]
+
+
+def sync_service_worker_build():
+    """把版本戳写回 sw.js；无变化则不落盘（避免无谓 diff）。"""
+    if not os.path.isfile(SW_FILE):
+        return
+    build = compute_sw_build()
+    with open(SW_FILE, encoding='utf-8') as f:
+        src = f.read()
+    new_src, n = SW_BUILD_RE.subn("const BUILD = '%s';" % build, src, count=1)
+    if n == 0:
+        print('[sw] WARN: 未匹配到 BUILD 常量，跳过版本戳更新')
+        return
+    if new_src != src:
+        with open(SW_FILE, 'w', encoding='utf-8') as f:
+            f.write(new_src)
+        print('[sw] 版本戳更新 -> %s（客户端旧缓存将在下次激活时清理）' % build)
+    else:
+        print('[sw] 版本戳未变化 -> %s' % build)
+
+
 def _count_xml_urls(path):
     with open(path, encoding='utf-8') as f:
         return sum(1 for line in f if '<loc>' in line)
@@ -2253,6 +2309,9 @@ def main():
     # Final gate: verify all public pages reference the shared Clarity module.
     # This is the build-time guard to avoid future direct inline regressions.
     run_clarity_gate()
+
+    # 同步 Service Worker 版本戳（内容驱动，发布后客户端缓存自动失效）
+    sync_service_worker_build()
 
     # 质量分级统计
     qc = {'A': 0, 'B': 0, 'C': 0}

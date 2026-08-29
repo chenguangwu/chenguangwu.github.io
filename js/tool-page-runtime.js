@@ -43,8 +43,26 @@
     if (document.__toolPageRuntimeSWRegistered) return;
     document.__toolPageRuntimeSWRegistered = true;
     if (!('serviceWorker' in navigator)) return;
+    // 是否已被旧版本接管：首次安装不算「更新」，避免首访多刷新一次
+    var hadController = !!navigator.serviceWorker.controller;
+    var refreshing = false;
+    window.__tbUserInteracted = window.__tbUserInteracted || false;
+    ['pointerdown', 'keydown', 'input'].forEach(function(evt){
+      window.addEventListener(evt, function(){ window.__tbUserInteracted = true; }, { once: true, passive: true });
+    });
     window.addEventListener('load', function(){
-      navigator.serviceWorker.register('/sw.js').catch(function(){});
+      // updateViaCache:'none' —— 不让 HTTP 缓存拖延 sw.js 的更新检测
+      navigator.serviceWorker.register('/sw.js', { updateViaCache: 'none' }).then(function(reg){
+        reg.update().catch(function(){});
+      }).catch(function(){});
+    });
+    navigator.serviceWorker.addEventListener('controllerchange', function(){
+      // 新版本已接管：用户尚未操作则静默刷新一次立即呈现最新内容；
+      // 正在输入/填表则不打断，等下次自然导航生效。
+      if (refreshing || !hadController) return;
+      refreshing = true;
+      if (window.__tbUserInteracted) return;
+      window.location.reload();
     });
   }
 
