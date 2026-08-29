@@ -1944,19 +1944,34 @@ def fix_tool_pages_seo(tools):
         m_title = re.search(r'<title>([^<]*)</title>', content)
         page_title = m_title.group(1).strip() if m_title else tool_name_esc
         og_title = page_title[:-len(' - ToolBox')] if page_title.endswith(' - ToolBox') else page_title
-        seo_desc = esc_html_py((t.get('desc') or t['name'])[:160])
+        # 4.1a 英文 meta description（P1 扩展）：命中 EN_OVERRIDE 且有 ed 时优先用英文描述，
+        # 让 Google 首抓 description 即英文（title 预渲染已完成，description 是本轮主要缺口）。
+        _en_desc = ''
+        if _seo_slug in EN_OVERRIDE and EN_OVERRIDE[_seo_slug].get('ed'):
+            _en_desc = EN_OVERRIDE[_seo_slug]['ed']
+        seo_desc = esc_once((_en_desc or t.get('desc') or t['name'])[:160])
         anchor = I18N_HREFLANG_MARKER if I18N_HREFLANG_MARKER in content else '</head>'
         seo_tags = ''
         if 'name="description"' not in content:
             seo_tags += '\n<meta name="description" content="%s">' % seo_desc
+        elif _en_desc:
+            # 已存在 description：英文 override 可用时强制覆写为英文（国际 SEO，减少首抓中文依赖）
+            content = re.sub(r'<meta name="description" content="[^"]*">',
+                             '<meta name="description" content="%s">' % seo_desc, content, count=1)
         if 'og:title' not in content:
             seo_tags += '\n<meta property="og:title" content="%s">' % esc_html_py(og_title)
         if 'og:description' not in content:
             seo_tags += '\n<meta property="og:description" content="%s">' % seo_desc
+        elif _en_desc:
+            content = re.sub(r'<meta property="og:description" content="[^"]*">',
+                             '<meta property="og:description" content="%s">' % seo_desc, content, count=1)
         if 'twitter:title' not in content:
             seo_tags += '\n<meta name="twitter:title" content="%s">' % esc_html_py(og_title)
         if 'twitter:description' not in content:
             seo_tags += '\n<meta name="twitter:description" content="%s">' % seo_desc
+        elif _en_desc:
+            content = re.sub(r'<meta name="twitter:description" content="[^"]*">',
+                             '<meta name="twitter:description" content="%s">' % seo_desc, content, count=1)
         if 'rel="canonical"' not in content:
             seo_tags += '\n<link rel="canonical" href="https://chenguangwu.github.io/%s">' % t['url']
         if 'og:type' not in content:
