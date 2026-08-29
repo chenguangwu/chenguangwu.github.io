@@ -2844,13 +2844,17 @@ function toolPageRootPrefix(){
     // tools/industry/xxx.html → 两级
     if (seg.length >= 2 && seg[0] === 'tools') return '../../';
     if (seg.length >= 1 && seg[0] === 'tools') return '../';
+    // guides/xxx.html → 一级（guides/ 的父即站点根）
+    if (seg.length >= 1 && seg[0] === 'guides') return '../';
   } catch(e){}
   return '/';
 }
 
 function buildUnifiedHeader(){
   var root = toolPageRootPrefix();
-  var isTool = location.pathname.indexOf('/tools/') !== -1 || !!document.querySelector('.nav');
+  var isTool = location.pathname.indexOf('/tools/') !== -1
+             || location.pathname.indexOf('/guides/') !== -1
+             || !!document.querySelector('.nav');
   if (!isTool) return null;
 
   // 1) 先救出旧导航里的语言切换器（i18n.js 已在其上注册事件），稍后再挂回新导航
@@ -3035,6 +3039,13 @@ function injectUnifiedChrome(){
     if (window.I18n && typeof window.I18n.mountSwitcher === 'function') {
       if (deskActions) window.I18n.mountSwitcher(deskActions);
       if (mobActions) window.I18n.mountSwitcher(mobActions);
+    }
+
+    // guide 页自带的简陋 <footer> 版权与注入的 .footer 深色页脚重复，先移除
+    var oldFooters = document.querySelectorAll('body > footer');
+    for (var fi = 0; fi < oldFooters.length; fi++) {
+      var fo = oldFooters[fi];
+      if (fo.parentNode) fo.parentNode.removeChild(fo);
     }
 
     // 移除旧导航（此时已将其中的语言切换器救出）
