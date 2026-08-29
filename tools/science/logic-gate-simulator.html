@@ -436,7 +436,7 @@
 
     <!-- 布尔表达式 -->
     <div class="expression-box" id="expressionBox">
-      A AND B = <span class="expr-result" id="exprResult">0</span>
+      <span id="exprLabel">A AND B = </span><span class="expr-result" id="exprResult">0</span>
     </div>
 
     <!-- 工具栏 -->
@@ -818,9 +818,14 @@ function updateOutput() {
   outEl.className = 'output-value ' + (result === 1 ? 'val-1' : 'val-0');
 
   // 布尔表达式
+  const exprLabel = document.getElementById('exprLabel');
   const exprEl = document.getElementById('exprResult');
   const exprText = gate.expr(inputA, inputB, result);
-  exprEl.parentElement.innerHTML = exprText.replace(/=(\d)/, `= <span class="expr-result">$1</span>`);
+  const separator = exprText.lastIndexOf('=');
+  if (exprLabel && exprEl && separator >= 0) {
+    exprLabel.textContent = exprText.slice(0, separator + 1).trim() + ' ';
+    exprEl.textContent = exprText.slice(separator + 1).trim();
+  }
 
   // 高亮真值表当前行
   highlightTruthTable();
@@ -828,6 +833,14 @@ function updateOutput() {
   // 提示
   const tip = document.getElementById('gateTip');
   tip.textContent = `${gate.name}（${gate.alias}）：${gate.desc}`;
+}
+
+function gateText(key, fallback) {
+  return typeof i18nText === 'function' ? i18nText(key, fallback) : fallback;
+}
+
+function gateToast(message, type) {
+  if (typeof ToolBox !== 'undefined' && typeof ToolBox.showToast === 'function') ToolBox.showToast(message, type);
 }
 
 // ===== 渲染门符号 =====
@@ -902,7 +915,7 @@ function resetInputs() {
   document.getElementById('valB').textContent = '0';
   updateOutput();
   updateCombo();
-  ToolBox.showToast(i18nText());
+  gateToast(gateText(null, '已重置'));
 }
 
 // ===== 复制表达式 =====
@@ -948,7 +961,7 @@ function setComboGateType(type) {
 
 function addComboGate() {
   if (comboGates.length >= 6) {
-    ToolBox.showToast(i18nText(), 'warning');
+    gateToast(gateText(null, '最多添加 6 个逻辑门'), 'warning');
     return;
   }
   comboGates.push(selectedComboGate);
@@ -964,7 +977,7 @@ function removeComboGate(index) {
 function clearCombo() {
   comboGates = [];
   updateCombo();
-  ToolBox.showToast(i18nText());
+  gateToast(gateText(null, '组合已清空'));
 }
 
 function updateCombo() {
