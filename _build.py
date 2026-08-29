@@ -1789,6 +1789,50 @@ def _inject_into_document_head(content, block):
     return content[:bounds[2]] + block + content[bounds[2]:]
 
 
+def _build_deep_dive_html(d):
+    """构建「内容深度」区块 HTML：独有使用场景 / 实际示例 / FAQ，打掉模板化页过滤。"""
+    if not isinstance(d, dict):
+        return ''
+    title = esc_html_py((d.get('title') or '').strip())
+    parts = []
+    parts.append('<!-- TOOLBOX-DEEP-DIVE -->')
+    parts.append('<style>')
+    parts.append(
+        '.deep-dive .dd-list{margin:8px 0 16px;padding-left:20px;}\n'
+        '.deep-dive .dd-list li{margin:6px 0;line-height:1.75;}\n'
+        '.deep-dive .dd-example{background:var(--card-bg,#fff);border:1px solid var(--border,#eee);border-radius:10px;padding:12px 14px;margin:8px 0 16px;}\n'
+        '.deep-dive .dd-ex-title{font-weight:600;color:var(--tool-accent,#FF6B35);margin-bottom:6px;}\n'
+        '.deep-dive .dd-ex-body{font-size:13px;line-height:1.85;color:var(--text,#333);word-break:break-word;}\n'
+        '.deep-dive .dd-faq{margin:8px 0 4px;}\n'
+        '.deep-dive .dd-faq dt{font-weight:600;margin-top:10px;color:var(--text,#333);}\n'
+        '.deep-dive .dd-faq dd{margin:4px 0 0;font-size:13px;line-height:1.85;color:var(--text-muted,#666);}\n'
+    )
+    parts.append('</style>')
+    parts.append('<section class="deep-dive" data-deep-dive="1">')
+    parts.append('<div class="card">')
+    parts.append('<h2>📚 深度解析：%s</h2>' % title)
+    _sc = d.get('scenarios') or []
+    if _sc:
+        parts.append('<h3>💡 常见使用场景</h3>')
+        parts.append('<ul class="dd-list">')
+        for s in _sc:
+            parts.append('<li>%s</li>' % esc_html_py(s))
+        parts.append('</ul>')
+    for e in (d.get('examples') or []):
+        parts.append('<div class="dd-example"><div class="dd-ex-title">%s</div><div class="dd-ex-body">%s</div></div>'
+                    % (esc_html_py(e.get('title', '')), esc_html_py(e.get('body', ''))))
+    _fq = d.get('faqs') or []
+    if _fq:
+        parts.append('<h3>❓ 常见问题（FAQ）</h3>')
+        parts.append('<dl class="dd-faq">')
+        for f in _fq:
+            parts.append('<dt>%s</dt><dd>%s</dd>' % (esc_html_py(f.get('q', '')), esc_html_py(f.get('a', ''))))
+        parts.append('</dl>')
+    parts.append('</div>')
+    parts.append('</section>')
+    return '\n'.join(parts)
+
+
 def fix_tool_pages_seo(tools):
     """Post-process all tool pages: ensure h1, add breadcrumbs, related tools, structured data."""
     by_industry = {}
@@ -1811,6 +1855,15 @@ def fix_tool_pages_seo(tools):
                     GUIDE_MAP[_gt] = (_g.get('guide', ''), _title)
         except Exception:
             pass
+
+    # 内容深度（content-depth）试点数据：it/ 等高频工具独有使用场景 / 示例 / FAQ
+    DEEP_DIVE = {}
+    _dd_path = os.path.join(ROOT, 'i18n', 'tools', 'content_deepdive.json')
+    if os.path.isfile(_dd_path):
+        try:
+            DEEP_DIVE = json.load(open(_dd_path, encoding='utf-8'))
+        except Exception:
+            DEEP_DIVE = {}
 
     fixed_h1 = 0
     fixed_bc = 0
@@ -2112,6 +2165,18 @@ def fix_tool_pages_seo(tools):
                 elif '</div>\n</div>\n<script>' in content:
                     content = content.replace('</div>\n</div>\n<script>', '</div>\n</div>\n' + rt_html + '<script>', 1)
                 fixed_rt += 1
+
+        # 6. 内容深度块（content-depth 试点）：注入独有使用场景 / 示例 / FAQ，打掉模板化页过滤。
+        #    幂等：先清除已有深度块（兼容旧构建无 marker 残留 / 重复注入），再注入，重跑构建不叠加。
+        #    锚点：优先「注意事项区块」（手工页），否则「相关工具」（生成页 step5 必生成，全页存在）。
+        if _seo_slug in DEEP_DIVE:
+            content = re.sub(r'<style>\s*\.deep-dive[\s\S]*?</style>\s*', '', content)
+            content = re.sub(r'<section class="deep-dive"[^>]*>[\s\S]*?</section>\s*', '', content)
+            _anchor = '<!-- 注意事项区块 -->' if '<!-- 注意事项区块 -->' in content else '<!-- 相关工具 -->'
+            if _anchor in content:
+                _dd_html = _build_deep_dive_html(DEEP_DIVE[_seo_slug])
+                if _dd_html:
+                    content = content.replace(_anchor, _dd_html + '\n' + _anchor, 1)
 
         if content != original:
             with open(filepath, 'w', encoding='utf-8') as f:
