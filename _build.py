@@ -263,14 +263,15 @@ def inject_hreflang(content, abs_url, default_locale='zh-CN'):
 
 
 def _xhtml_alternates(abs_url):
-    """sitemap <url> 内的 xhtml:link 多语言变体（构建期常量，无 ?lang 查询态）。"""
-    out = []
-    for loc in I18N_LOCALES:
-        out.append('    <xhtml:link rel="alternate" hreflang="%s" href="%s"/>'
-                   % (loc, abs_url))
-    out.append('    <xhtml:link rel="alternate" hreflang="x-default" href="%s"/>'
-               % abs_url)
-    return '\n'.join(out)
+    """sitemap <url> 内的 xhtml:link 多语言变体。
+
+    站点仅中文为可索引语言版本；英文是同一 URL 的客户端 JS 切换态，
+    不独立收录（纯前端架构下百度/Bing 抓 ?lang=en 仍得中文 HTML，
+    声明 en-US 指向它会构成语言不匹配的错误配置）。故只声明 zh-CN + x-default，
+    均自指本页，消除"3 条同 URL"的冗余噪声且不误导爬虫。
+    """
+    return ('    <xhtml:link rel="alternate" hreflang="zh-CN" href="%s"/>\n'
+            '    <xhtml:link rel="alternate" hreflang="x-default" href="%s"/>') % (abs_url, abs_url)
 
 # ============================================================
 # Category definitions (functional)
