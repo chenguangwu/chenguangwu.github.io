@@ -2168,15 +2168,19 @@ def fix_tool_pages_seo(tools):
 
         # 6. 内容深度块（content-depth 试点）：注入独有使用场景 / 示例 / FAQ，打掉模板化页过滤。
         #    幂等：先清除已有深度块（兼容旧构建无 marker 残留 / 重复注入），再注入，重跑构建不叠加。
-        #    锚点：优先「注意事项区块」（手工页），否则「相关工具」（生成页 step5 必生成，全页存在）。
+        #    锚点三级回退：手工页「注意事项区块」→ 生成页「相关工具」(step5 注入) → 纯 JS 计算页兜底「</body>」(全页存在)。
         if _seo_slug in DEEP_DIVE:
             content = re.sub(r'<style>\s*\.deep-dive[\s\S]*?</style>\s*', '', content)
             content = re.sub(r'<section class="deep-dive"[^>]*>[\s\S]*?</section>\s*', '', content)
-            _anchor = '<!-- 注意事项区块 -->' if '<!-- 注意事项区块 -->' in content else '<!-- 相关工具 -->'
-            if _anchor in content:
-                _dd_html = _build_deep_dive_html(DEEP_DIVE[_seo_slug])
-                if _dd_html:
-                    content = content.replace(_anchor, _dd_html + '\n' + _anchor, 1)
+            if '<!-- 注意事项区块 -->' in content:
+                _anchor = '<!-- 注意事项区块 -->'
+            elif '<!-- 相关工具 -->' in content:
+                _anchor = '<!-- 相关工具 -->'
+            else:
+                _anchor = '</body>'
+            _dd_html = _build_deep_dive_html(DEEP_DIVE[_seo_slug])
+            if _dd_html and _anchor in content:
+                content = content.replace(_anchor, _dd_html + '\n' + _anchor, 1)
 
         if content != original:
             with open(filepath, 'w', encoding='utf-8') as f:
