@@ -343,14 +343,16 @@ def main():
         top = []
         for t in tools_sorted[:8]:
             name_zh = zh_name(t)
+            md = meta_desc(t.get('path', ''))
+            d_zh = clip(md, 32) if md else clip(name_zh, 40)
+            d_en = en_desc(t)
             ov = DESC_OVERRIDE.get(name_zh)
             if ov:
-                # 源数据没写描述（meta description 就等于工具名），用人工补齐的中英文
-                d_zh, d_en = ov
-            else:
-                md = meta_desc(t.get('path', ''))
-                d_zh = clip(md, 32) if md else clip(name_zh, 40)
-                d_en = en_desc(t)
+                # 人工补齐表：任一侧留空表示沿用上面自动提取的结果
+                if ov[0]:
+                    d_zh = ov[0]
+                if ov[1]:
+                    d_en = ov[1]
             top.append({
                 'name': name_zh,            # 中文名（导航中文态用）
                 'en': en_name(t),            # 英文名（导航英文态用）
