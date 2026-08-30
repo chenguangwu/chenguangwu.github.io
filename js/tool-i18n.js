@@ -154,15 +154,23 @@
     '0-不能':'0 - Unable','3-中':'3 - Medium','较好 (4分)':'Good (4)','达标 (2分)':'Meets (2)'
   };
   var GEN_ORIG = new WeakMap();
+  // 剥离开头的 emoji/符号前缀，返回 {prefix, core}，用于按钮「emoji+中文」与 GEN_UI_MAP 核心词匹配
+  function stripEmojiPrefix(s) {
+    var m = s.match(/^[^一-鿿A-Za-z]+/);
+    if (!m) return { prefix: '', core: s.trim() };
+    return { prefix: m[0].trim(), core: s.slice(m[0].length).trim() };
+  }
   function translateGenericUI(isZh) {
-    var nodes = document.querySelectorAll('label, button.btn, .toolbar .btn, select option, .json-actions .btn');
+    var nodes = document.querySelectorAll('label, button.btn, .toolbar .btn, select option, .json-actions .btn, .tab-btn');
     for (var i = 0; i < nodes.length; i++) {
       var el = nodes[i];
       var txt = el.textContent.trim();
       if (isZh) { if (GEN_ORIG.has(el)) el.textContent = GEN_ORIG.get(el); continue; }
-      if (GEN_UI_MAP.hasOwnProperty(txt)) {
+      var sp = stripEmojiPrefix(txt);
+      var tr = GEN_UI_MAP[txt] || GEN_UI_MAP[sp.core] || GEN_UI_MAP[sp.core.replace(/\s+/g, '')];
+      if (tr) {
         if (!GEN_ORIG.has(el)) GEN_ORIG.set(el, txt);
-        el.textContent = GEN_UI_MAP[txt];
+        el.textContent = sp.prefix ? (sp.prefix + ' ' + tr) : tr;
       }
     }
   }

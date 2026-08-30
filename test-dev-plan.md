@@ -104,4 +104,22 @@
 
 ### 提交（master）
 - `js/tool-i18n.js`（B 项）、50 个 `tools/*.html`（A 项源改动）+ 重建产物（分类页/index/sitemap/json/sw.js）
+
+## 第二轮《修复验证版》报告考证（2026-08-30）
+老板提交《ToolBox测试报告_修复验证版.md》，列 12 项「未修复」。用真实代码 + 线上 curl + 真实索引数据逐条复现考证：
+
+### 考证结论：报告多项误标（已修复被误判为未修复）
+- **P0-04 URL参数触发 + 大小写敏感**：误标。线上 `search.html`（curl 实测 `URLSearchParams(location.search)` 存在）fetch 完索引后读 `?q=` 并 `doSearch`；匹配全程 `.toLowerCase()`，`json`/`JSON`/`Json` 各 24 命中、不区分大小写。
+- **P1-02 拼音/英文别名**：误标。真实索引 `erweima`/`qrcode`/`EWM` 各 17 命中（二维码美化生成器 py=`erweimameihuashengchengqi`、al 含 qrcode）。
+- **P1-09 percent/trending-up**：误标。当前 search-index.json 中 name=percent/trending-up 的条目 **0 条**；搜索「复利」返回 6 个全中文名。
+- **P0-11 分类按钮截断（IT... 348）**：误标。全项目 `text-overflow:ellipsis` 仅作用于导航条/分类页工具卡标题/相关工具，无「分类导航按钮」截断逻辑；首页 `industry-card` 渲染完整中文名+计数。
+- **P0-10 移动端搜索入口**：误标。`app.js:1079 openMobileSearch()` 真实存在且有调用（1116）。
+
+### 真未修且本次已修复
+- **P0-06 工具页功能按钮英文翻译** ✅：根因 `tool-i18n.js` 的 `translateGenericUI` 用 `GEN_UI_MAP` **整段精确匹配**按钮文本，但工具页按钮是 `🔀 排序`/`✨ 美化` 带 emoji 前缀——字典只有核心词 `排序`，整段不匹配 → 裸露中文。修复：`translateGenericUI` 改为「先原文本查、未命中则剥 emoji 前缀查核心词 + 保留 emoji 前缀」，扩展 `GEN_UI_MAP` 覆盖 JSON 页高频功能词（美化/压缩/校验/转义/反转义/提取/高亮/树形/纯文本/有效/无效/缩进/字符/行/输入JSON/JSON有效 等），并将 `.tab-btn` 纳入遍历。node 模拟验证：🔀排序→🔀Sort、✨美化→✨Beautify、🗜️压缩→🗜️Minify 全命中；零 HTML 改动。
+- **P1-04 无结果推荐引导** ✅：`search.html` 空态加 5 个推荐词（JSON/换算/二维码/二维码生成/时间戳）+ 清空按钮，点击自动填入并搜索。
+
+### 仍待老板拍板（非缺陷，未擅改）
+- **P0-05 6000+ vs 5014**：真实数据口径不一致，需定调（统一为真实数 or 标注说明）。
+- **P1-12「无广告」矛盾**：广告变现站，需定调宣传文案或广告策略。
 - 三道门禁全绿（_test_static / _audit_links 0 死链 / _audit_assets 0）
