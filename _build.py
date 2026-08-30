@@ -1364,6 +1364,9 @@ def generate_sitemap(tools, category_inds=None):
     # chains.html 工具链页（B3-05）
     if os.path.isfile(os.path.join(ROOT, 'chains.html')):
         lines.append(_url_block_xhtml('https://chenguangwu.github.io/chains.html', today, 'weekly', '0.8'))
+    # about.html 关于我们
+    if os.path.isfile(os.path.join(ROOT, 'about.html')):
+        lines.append(_url_block_xhtml('https://chenguangwu.github.io/about.html', today, 'monthly', '0.7'))
     for t in tools:
         url = 'https://chenguangwu.github.io/' + t['url']
         lines.append(_url_block_xhtml(url, today, 'monthly', '0.8'))
@@ -1399,6 +1402,8 @@ def generate_core_sitemap(today):
     lines.append(_url_block_xhtml('https://chenguangwu.github.io/', today, 'daily', '1.0'))
     lines.append(_url_block_xhtml('https://chenguangwu.github.io/sitemap.html', today, 'weekly', '0.9'))
     lines.append(_url_block_xhtml('https://chenguangwu.github.io/search.html', today, 'weekly', '0.9'))
+    if os.path.isfile(os.path.join(ROOT, 'about.html')):
+        lines.append(_url_block_xhtml('https://chenguangwu.github.io/about.html', today, 'monthly', '0.7'))
     # guides/ 目录下的指南页（自动扫描，避免重跑构建后丢失）
     guides_dir = os.path.join(ROOT, 'guides')
     if os.path.isdir(guides_dir):
@@ -1668,12 +1673,13 @@ def _build_consistency_check(tools, category_inds):
     if os.path.isdir(guides_dir):
         guides_count = len([fn for fn in os.listdir(guides_dir) if fn.endswith('.html') and fn != 'index.html'])
     has_chains = 1 if os.path.isfile(os.path.join(ROOT, 'chains.html')) else 0
-    expected_sitemap_urls = expected_tools + 3 + len(category_inds) + guides_count + has_chains
+    has_about = 1 if os.path.isfile(os.path.join(ROOT, 'about.html')) else 0
+    expected_sitemap_urls = expected_tools + 3 + len(category_inds) + guides_count + has_chains + has_about
     actual_sitemap_urls = _count_xml_urls(SITEMAP_FILE)
     if expected_sitemap_urls != actual_sitemap_urls:
         print('Build consistency failed: sitemap url count mismatch')
         print('  expected=%d actual=%d' % (expected_sitemap_urls, actual_sitemap_urls))
-        print('  formula: tools + core pages + category index + guides + chains')
+        print('  formula: tools + core pages + category index + guides + chains + about')
         return False
 
     return True
@@ -2570,6 +2576,8 @@ def main():
                 all_urls.append('https://chenguangwu.github.io/guides/%s' % fn)
     if os.path.isfile(os.path.join(ROOT, 'chains.html')):
         all_urls.append('https://chenguangwu.github.io/chains.html')
+    if os.path.isfile(os.path.join(ROOT, 'about.html')):
+        all_urls.append('https://chenguangwu.github.io/about.html')
     for t in tools:
         all_urls.append('https://chenguangwu.github.io/' + t['url'])
     global _LASTMOD_MAP

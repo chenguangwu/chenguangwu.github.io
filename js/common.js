@@ -2836,12 +2836,14 @@ function isHomepage(){
 function buildUnifiedHeader(){
   var root = toolPageRootPrefix();
 
-  // 统一顶栏注入范围：首页 / 工具页(/tools/) / 指南页(/guides/) / 含旧 .nav 的页面。
-  // 与老板诉求一致——仅首页与工具页共享同一套顶/底代码；search/chains/sitemap
-  // 等无 .nav 的页面维持原状，不被本次统一改造波及。
-  var isTarget = location.pathname.indexOf('/tools/') !== -1
-              || location.pathname.indexOf('/guides/') !== -1
+  // 统一顶栏注入范围：首页 / 工具页(/tools/) / 指南页(/guides/) / 关于我们(/about.html)
+  // / 含旧 .nav 的页面。search/chains/sitemap 等无 .nav 的页面维持原状，
+  // 不被本次统一改造波及。
+  var path = location.pathname || '';
+  var isTarget = path.indexOf('/tools/') !== -1
+              || path.indexOf('/guides/') !== -1
               || isHomepage()
+              || path.indexOf('/about.html') !== -1
               || !!document.querySelector('.nav');
   if (!isTarget) return null;
 
@@ -2937,9 +2939,12 @@ function buildUnifiedFooter(){
         '<div class="desktop-only-block">' +
           '<h2 data-i18n="section.about" data-i18n-fb="关于">关于</h2>' +
           '<ul>' +
+            '<li><a href="' + root + 'about.html" data-i18n="foot.about" data-i18n-fb="关于我们">关于我们</a></li>' +
+            '<li><a href="' + root + 'guides/index.html" data-i18n="nav.guides" data-i18n-fb="使用指南">使用指南</a></li>' +
+            '<li><a href="' + root + 'chains.html" data-i18n="foot.chains" data-i18n-fb="工具链组合">工具链组合</a></li>' +
             '<li><a href="' + root + 'sitemap.html" data-i18n="foot.sitemap" data-i18n-fb="站点地图">站点地图</a></li>' +
             '<li><a href="https://github.com/chenguangwu/chenguangwu.github.io/issues" target="_blank" rel="noopener" data-i18n="foot.contact" data-i18n-fb="联系反馈">联系反馈</a></li>' +
-            '<li><a href="#" id="tbFooterPrivacyLink" style="cursor:pointer" data-i18n="foot.manage_data" data-i18n-fb="🗂️ 管理本地数据">🗂️ 管理本地数据</a></li>' +
+            '<li><a href="#" id="tbFooterPrivacyLink" style="cursor:pointer" data-i18n="foot.manage_data" data-i18n-fb="管理本地数据">管理本地数据</a></li>' +
           '</ul>' +
         '</div>' +
       '</div>' +
