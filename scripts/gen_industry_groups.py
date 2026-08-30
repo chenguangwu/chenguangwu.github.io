@@ -124,6 +124,10 @@ GROUPS = [
     ('finance', '金融财务', '💰', 'Finance'),
     ('health', '健康医疗', '🏥', 'Health'),
     ('engineering', '工程制造', '⚙️', 'Engineering'),
+    # 以下两个由「工程制造」「商业办公」拆分而来（原工程制造 69 个、商业办公 51 个，
+    # 二级分类过多导致下拉面板一屏放不下）
+    ('matchem', '材料化工', '🧪', 'Materials'),
+    ('translogi', '交通物流', '🚚', 'Transport'),
     ('science', '科学研究', '🔬', 'Science'),
     ('life', '生活实用', '🏠', 'Daily Life'),
     ('edu', '教育培训', '📚', 'Education'),
@@ -236,6 +240,37 @@ KEY_RULES = {
     'chess': 'entertainment', 'dance': 'entertainment', 'yoga': 'entertainment',
     'martial': 'entertainment', 'martial-arts': 'entertainment', 'antiques': 'entertainment',
 }
+
+# === 拆分规则（覆盖上面的默认归属）========================================
+# 起因：工程制造 69 个、商业办公 51 个二级分类，下拉面板一屏放不下。
+# 从两者各拆出一批，新组「材料化工」「交通物流」两个一级分类；
+# 顺带把原本兜底进「商业办公」的错位行业归到正经分类。
+KEY_RULES.update({
+    # —— 材料化工（原工程制造，31 个）——
+    'chemistry': 'matchem', 'materials': 'matchem', 'metallurgy': 'matchem',
+    'chemical': 'matchem', 'petrochem': 'matchem', 'rubber': 'matchem',
+    'plastic': 'matchem', 'ceramics': 'matchem', 'glass': 'matchem',
+    'textile': 'matchem', 'textile2': 'matchem', 'dyeing': 'matchem',
+    'leather': 'matchem', 'paper': 'matchem', 'printing': 'matchem',
+    'woodworking': 'matchem', 'woodwork': 'matchem', 'timber': 'matchem',
+    'stone': 'matchem', 'metalwork': 'matchem', 'welding': 'matchem',
+    'casting': 'matchem', 'heattreat': 'matchem', 'surface': 'matchem',
+    'mold': 'matchem', 'cnc': 'matchem', 'mining': 'matchem',
+    'beneficiation': 'matchem', 'steel': 'matchem',
+    'paint': 'matchem', 'cable': 'matchem',           # 原商业办公
+    # —— 交通物流（原工程制造 + 商业办公，17 个）——
+    'automotive': 'translogi', 'transport': 'translogi', 'railway': 'translogi',
+    'road': 'translogi', 'bridge': 'translogi', 'tunnel': 'translogi',
+    'municipal': 'translogi', 'auto-beauty': 'translogi', 'supplychain': 'translogi',
+    'usedcar': 'translogi', 'logistics': 'translogi', 'logistics2': 'translogi',
+    'shipping': 'translogi', 'warehouse': 'translogi', 'express': 'translogi',
+    'fresh': 'translogi', 'procurement': 'translogi',
+    # —— 修正兜底错位（这些本来就不属于商业办公）——
+    'meteorology': 'science', 'robotics': 'science', 'ballistics': 'science',
+    'misc': 'science', 'eco': 'science', 'environment': 'science',
+    'psychology': 'health', 'audio': 'design', 'stage': 'design',
+    'niche': 'life', 'community': 'life',
+})
 
 
 def classify(key, cname):

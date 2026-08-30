@@ -414,6 +414,23 @@ var LANG_REGISTRY = [
     wrap.appendChild(flag);
     wrap.appendChild(sel);
     wrap.appendChild(caret);
+
+    // 图标 🌐 与箭头 ▾ 是 pointer-events:none，点击会穿透到外层 div，
+    // 而外层原本没有点击处理 → 表现为"点图标没反应，只能点文字"。
+    // 这里统一转发：优先展开原生下拉，浏览器不支持时直接切换语言
+    //（当前只有中英两语，点图标即切换符合预期）。
+    wrap.style.cursor = 'pointer';
+    wrap.addEventListener('click', function (e) {
+      if (e.target === sel) return;   // 点 select 自身交给原生处理
+      e.preventDefault();
+      try {
+        if (typeof sel.showPicker === 'function') { sel.showPicker(); return; }
+      } catch (err) { /* 不支持则走下面兜底 */ }
+      for (var i = 0; i < LANG_REGISTRY.length; i++) {
+        if (LANG_REGISTRY[i].code !== current) { set(LANG_REGISTRY[i].code); break; }
+      }
+    });
+
     container.appendChild(wrap);
   }
 

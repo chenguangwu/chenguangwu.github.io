@@ -21,6 +21,10 @@ NAME_OVERRIDE = {
     'pets': '宠物饲养',          # pet 已占「宠物养护」
     'service': '生活服务',        # customer-service 已占「客户服务」
     'water': '水务管理',          # hydraulic 已占「水利工程」
+    # 二级分类名统一压到 4 字以内：下拉面板列宽约 161px，5 字以上会被截断
+    'uiux': 'UI设计',            # 原「UI/UX设计」7 字
+    'ai': '人工智能',             # 原「AI 人工智能」6 字
+    'signal': '信号系统',          # 原「信号与系统」5 字
 }
 
 # emoji 映射：key -> emoji。优先用行业页 h1 自带的专属图标，缺失的在此补齐
