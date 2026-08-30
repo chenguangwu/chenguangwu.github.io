@@ -111,6 +111,7 @@ var LANG_REGISTRY = [
       // 移动端底部 Tab
       'tabbar.home': 'Home',
       'tabbar.cat': 'Categories',
+      'tabbar.search': 'Search',
       'tabbar.hot': 'Hot',
       'tabbar.fav': 'Favorites',
       // 功能分类

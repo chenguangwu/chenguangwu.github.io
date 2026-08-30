@@ -40,9 +40,11 @@
 - [x] 三道门禁通过（_test_static 0 / _audit_links 0 死链 / _audit_assets 0）
 - ⚠️ 遗留品牌决策（待老板确认，未擅自改）：build 实算当前真实工具数 = **5014**，全站品牌口径却写「6000+ 工具」（title/description/og:image:alt/footer/manifest/search/404 页约数千处）。若要求「数字真实」，需全站改为 `5000+`/`5014+`，涉及改 `_build.py` 模板并重建约 5000 工具页 og:image:alt，是大改动，等老板拍板再做。P0-05 本条仅解决「首页三处数字不一」的不一致问题。
 
-### Batch 4 — P0-10 / P0-11 移动端搜索入口 + 分类按钮截断
-- [ ] 核实移动端搜索按钮可见性（`index.html` 已有 `openMobileSearch` 入口）
-- [ ] 分类按钮加 `title` + 截断修复（`.ind-btn` / `.industry-card`）
+### Batch 4 — P0-10 / P0-11 移动端搜索入口 + 分类按钮截断【已完成】
+- [x] P0-10 移动端搜索入口：经查 `.nav-mobile`（顶部移动导航，含搜索按钮 625 行）基础 `display:none` 且无 `@media(max-width:767px)` 覆盖 → 移动端整条隐藏，搜索按钮不可见；底部 `.tab-bar` 可见但无搜索项。`openMobileSearch()` 函数本身正常。修复：在底部 `.tab-bar` 第 3 位插入搜索按钮（`tabBarSearch` → `openMobileSearch()`，图标+`data-i18n="tabbar.search"` 中/英「搜索/Search」），移动端 1 步可达搜索。
+- [x] P0-11 分类按钮截断：报告说的 `.ind-btn` 在本代码库不存在，真实分类按钮类是 `.industry-card`（`js/app.js:422` 渲染，原无 `title`）。修复：① `renderIndustries()` 按钮加 `title="${_ind(info, key)}"`（悬浮看全名）；② `.industry-name` CSS 加 `white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0`，截断为干净省略号而非硬裁。
+- [x] 补充 i18n：`js/i18n.js` 加 `'tabbar.search': 'Search'`
+- [x] 三道门禁通过（_test_static 0 / _audit_links 0 死链 / _audit_assets 0）；node --check 两 JS 通过；build 幂等（底部搜索按钮与 CSS 改动未被 build 覆盖，已验证）
 
 ### Batch 5 — i18n 补缺与模板一致性（P0-06 / P0-08 / P1-01 / P1-12 / P0-09）
 - [ ] 逐条核实，已覆盖的标记跳过，缺的补充 key

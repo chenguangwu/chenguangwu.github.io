@@ -419,7 +419,7 @@ function renderIndustries() {
   let html = '';
   for (const [key, info] of industries) {
     const count = (window.INDUSTRY_COUNTS && window.INDUSTRY_COUNTS[key]) || '';
-    html += `<button onclick="selectIndustry('${key}')" class="industry-card">
+    html += `<button onclick="selectIndustry('${key}')" class="industry-card" title="${_ind(info, key)}">
       <div class="industry-card-head">
         <span class="industry-icon">${info.icon}</span>
         <span class="industry-name">${_ind(info, key)}${count ? ` <small style="color:var(--muted);font-weight:400;font-size:12px">(${count})</small>` : ''}</span>
