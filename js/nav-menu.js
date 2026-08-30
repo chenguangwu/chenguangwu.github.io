@@ -165,8 +165,10 @@
     const head = panel.querySelector('.tb-megapanel-head');
     if (head) {
       const n = g.children ? g.children.length : 0;
-      const cols = n <= 16 ? 1 : n <= 32 ? 2 : n <= 48 ? 3 : 4;
-      const width = [0, 190, 360, 530, 700][cols];
+      // 目标：一屏装下全部二级分类，不再出现面板内滚动
+      // 69 个（工程制造）→5 列 14 行，51 个（商业办公）→4 列 13 行
+      const cols = n <= 16 ? 1 : n <= 32 ? 2 : n <= 48 ? 3 : n <= 64 ? 4 : 5;
+      const width = [0, 190, 370, 540, 700, 760][cols];
       head.style.setProperty('--tb-cat-cols', String(cols));
       head.style.setProperty('--tb-cats-width', width + 'px');
     }
