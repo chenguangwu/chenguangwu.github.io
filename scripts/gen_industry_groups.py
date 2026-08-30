@@ -48,6 +48,48 @@ def en_name(t):
     return re.sub(r'^[\s.]+', '', v) or n
 
 
+# ed 字段里大量「Free online tool on ToolBox — 100% client-side」这类模板签名，
+# 直接展示会满屏套话（实测 1648 条中 1519 条、92% 是模板腔），先剥掉再判断有无实质内容
+ED_BOILERPLATE = [
+    r'\s*[.\-–—,]?\s*Free online tool on ToolBox.*$',
+    r'\s*[.\-–—,]?\s*\d+%\s*client[-\s]side.*$',
+    r'\s*[.\-–—,]?\s*Free online tool\b.*$',
+    r'\s*[.\-–—,]?\s*Free and (secure|instant)\.?\s*$',
+    r'\s*[.\-–—,]?\s*Browser[-\s]only\.?\s*$',
+    r'\s*[.\-–—,]?\s*No sign[- ]up\.?\s*$',
+    # 「encode and decode online / calculate online, free and accurate」这类
+    # 只说动作不说内容的空话，同样没有信息量
+    r'\s*[.\-–—,]?\s*\w+\s+(and\s+\w+\s+)?online\b.*$',
+    r'\s*,\s*free and \w+[\w\s]*$',
+    r'\s*[.\-–—,]?\s*Free\s*$',
+]
+
+
+def strip_ed_boilerplate(s):
+    for pat in ED_BOILERPLATE:
+        s = re.sub(pat, '', s, flags=re.I)
+    return s.strip().rstrip(' .,-–—:·|')
+
+
+def en_desc(t):
+    """英文描述：取 tools.json 的 ed 字段，去掉「英文名 - 」前缀后截断。
+
+    ed 形如 ".gitignore Generator - Pick stacks ... Free, browser-only."，
+    直接显示会和卡片标题重复，故先剥掉名字前缀。
+    """
+    raw = (t.get('ed') or '').strip()
+    if not raw:
+        return ''
+    name = en_name(t)
+    if name and raw.startswith(name):
+        stripped = raw[len(name):].lstrip(' -–—:·|')
+        if stripped:
+            raw = stripped
+    clean = strip_ed_boilerplate(raw)
+    # 洗掉模板腔后没剩多少实质内容，就不显示描述（宁缺毋滥，避免满屏套话）
+    return clip(clean, 60) if len(clean) >= 20 else ''
+
+
 def clip(s, n=32):
     s = (s or '').strip()
     if len(s) <= n:
@@ -261,6 +303,7 @@ def main():
                 'name': zh_name(t),          # 中文名（导航中文态用）
                 'en': en_name(t),            # 英文名（导航英文态用）
                 'desc': clip(md) if md else clip(zh_name(t), 40),
+                'ed': en_desc(t),            # 英文描述（导航英文态用）
                 'url': '/' + t.get('url', ''),
                 'icon': t.get('icon', ''),
                 'bg': t.get('bg', '#f5f5f5'),

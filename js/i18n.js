@@ -45,6 +45,9 @@ var LANG_REGISTRY = [
       'nav.recent': 'Recent',
       'nav.fav': 'Favorites',
       'nav.guide': 'User Guide',
+      // index.html 顶部用的是 nav.guides（复数），与 nav.guide 并存，
+      // 否则 key 不匹配会回退到中文兜底「使用指南」
+      'nav.guides': 'User Guide',
       'nav.cat': 'Categories',
       'hero.title': 'Free Online Tools',
       'hero.sub': '5000+ free tools, all running locally in your browser. No sign-up, your data stays private.',
@@ -108,6 +111,8 @@ var LANG_REGISTRY = [
       'explore.hint': 'Pick a category above, or search directly · Pure frontend, your data stays local',
       'explore.hot': 'Popular Industries',
       'footer.privacy': 'Pure frontend · Data never leaves your browser',
+      // common.js 的 buildUnifiedFooter() 会动态注入 footer，缺这个键会回退中文
+      'footer.desc': '5000+ cross-industry pure frontend tools. Your data never leaves your browser.',
       // 移动端底部 Tab
       'tabbar.home': 'Home',
       'tabbar.cat': 'Categories',

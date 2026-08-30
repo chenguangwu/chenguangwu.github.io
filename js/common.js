@@ -3014,6 +3014,15 @@ function injectUnifiedChrome(){
     var footer = buildUnifiedFooter();
     document.body.appendChild(footer);
 
+    // footer/header 是运行时注入的，i18n 初始化时还没这段 DOM，
+    // 必须补一次 apply，否则英文态下注入的文案（如 footer.desc）仍是中文
+    try {
+      if (window.I18n && typeof window.I18n.apply === 'function') {
+        window.I18n.apply(footer);
+        window.I18n.apply(header);
+      }
+    } catch (e) { /* i18n 未加载时忽略 */ }
+
     syncToolThemeIcon();
 
     // 回顶按钮显隐

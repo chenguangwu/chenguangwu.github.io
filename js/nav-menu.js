@@ -31,9 +31,11 @@
   // 名称/描述按语言取：英文态优先 en，否则中文
   function nOf(o) { return (isEn() && o && o.en) ? o.en : ((o && o.name) || ''); }
   function dOf(o) {
-    var d = (o && o.desc) || '';
-    // 描述与名称相同时不重复展示
-    return (d && d === o.name) ? '' : d;
+    if (!o) return '';
+    // 英文态取英文描述：多数工具没有实质英文描述（ed 为空），此时只显示名称，
+    // 不回退中文描述，避免「英文名 + 中文描述」混排
+    var d = isEn() ? (o.ed || '') : (o.desc || '');
+    return (d && d === nOf(o)) ? '' : d;
   }
   // 名称 + 描述拼成卡片 title（悬浮提示）
   function titleOf(o) {
@@ -69,9 +71,7 @@
   function renderTopNav(container) {
     container.innerHTML = '';
     const inner = ce('div', 'tb-nav-inner');
-    const logo = ce('a', 'tb-nav-logo', '<span class="tb-nav-logo-icon">🧰</span><span>ToolBox</span>');
-    logo.href = '/';
-    logo.title = 'ToolBox 首页';
+    // 不渲染 Logo：第二行只放分类，返回首页由第一行 .nav-top 的 Logo 承担
 
     const menu = ce('ul', 'tb-nav-menu');
     groups.forEach((g, i) => {
@@ -84,9 +84,7 @@
     });
 
     const right = ce('div', 'tb-nav-right');
-    const searchBtn = ce('button', 'tb-nav-search-btn', '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>');
-    searchBtn.title = _t('nav.search', '搜索');
-    searchBtn.onclick = () => { location.href = '/search.html'; };
+    // 不渲染搜索按钮：第一行 .nav-top 已有搜索框，此处去重（老板要求）
     // 主题切换：桌面由旧 nav-top 提供，此处主要服务移动端（顶部只有这一层导航）
     const themeBtn = ce('button', 'tb-nav-theme-btn', '<span id="tbNavThemeIcon">🌙</span>');
     themeBtn.title = _t('nav.theme', '切换主题');
@@ -95,11 +93,9 @@
     const mobileToggle = ce('button', 'tb-nav-mobile-toggle', '☰');
     mobileToggle.title = _t('nav.menu', '菜单');
     mobileToggle.onclick = () => { toggleMobileDrawer(true); };
-    right.appendChild(searchBtn);
     right.appendChild(themeBtn);
     right.appendChild(mobileToggle);
 
-    inner.appendChild(logo);
     inner.appendChild(menu);
     inner.appendChild(right);
     container.appendChild(inner);
@@ -163,6 +159,17 @@
 
     const catCol = panel.querySelector('.tb-megapanel-cats');
     const toolsCol = panel.querySelector('.tb-megapanel-tools');
+
+    // 按子行业数量决定左侧列数与宽度：目标是一屏放得下、不用滚动
+    // （工程制造 69 个→4 列，商业办公 51 个→4 列，健康医疗 34 个→3 列）
+    const head = panel.querySelector('.tb-megapanel-head');
+    if (head) {
+      const n = g.children ? g.children.length : 0;
+      const cols = n <= 16 ? 1 : n <= 32 ? 2 : n <= 48 ? 3 : 4;
+      const width = [0, 190, 360, 530, 700][cols];
+      head.style.setProperty('--tb-cat-cols', String(cols));
+      head.style.setProperty('--tb-cats-width', width + 'px');
+    }
 
     // 左侧子行业列表
     catCol.innerHTML = '';

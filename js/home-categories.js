@@ -17,9 +17,11 @@
   // 名称/描述按语言取：英文态优先 en，否则中文
   function nOf(o) { return (isEn() && o && o.en) ? o.en : ((o && o.name) || ''); }
   function dOf(o) {
-    var d = (o && o.desc) || '';
-    // 描述与名称相同时不重复展示
-    return (d && d === o.name) ? '' : d;
+    if (!o) return '';
+    // 英文态取英文描述：多数工具没有实质英文描述（ed 为空），此时只显示名称，
+    // 不回退中文描述，避免「英文名 + 中文描述」混排
+    var d = isEn() ? (o.ed || '') : (o.desc || '');
+    return (d && d === nOf(o)) ? '' : d;
   }
   function titleOf(o) {
     var n = nOf(o), d = dOf(o);

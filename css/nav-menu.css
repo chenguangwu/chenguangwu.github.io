@@ -16,11 +16,16 @@
 /* 只有注入了新导航的页面才调整 body 顶部留白（由 nav-menu.js 打标记）。
    新导航是 sticky 自带占位，body 只需让出「旧固定顶栏」那一段；
    移动端旧顶栏隐藏，留白归零，避免首页/工具页顶部多出 54px 空档。 */
-body.tb-has-topnav { padding-top: var(--tb-top-offset); }
+body.tb-has-topnav {
+  /* fixed 后本条不再占文档流，留白需覆盖「旧顶栏 + 本条」两段高度 */
+  padding-top: calc(var(--tb-top-offset) + var(--tb-nav-height));
+}
 
 /* ===== 顶部导航条 ===== */
 .tb-topnav {
-  position: sticky;
+  /* fixed 而非 sticky：sticky 在页面滚到顶/底（尤其 overscroll 回弹）时
+     会随文档流短暂位移，看起来像抖动并盖住上一行；fixed 位置恒定，不再遮挡 */
+  position: fixed;
   top: var(--tb-top-offset);
   left: 0;
   right: 0;
@@ -222,7 +227,8 @@ body.tb-has-topnav { padding-top: var(--tb-top-offset); }
 
 .tb-megapanel-head {
   display: grid;
-  grid-template-columns: 220px 1fr;
+  /* 左侧宽度由 JS 按子行业数量算（列数越多越宽），见 showMegaPanel() */
+  grid-template-columns: var(--tb-cats-width, 220px) 1fr;
   gap: 24px;
   min-height: 320px;
 }
@@ -248,18 +254,23 @@ body.tb-has-topnav { padding-top: var(--tb-top-offset); }
   list-style: none;
   margin: 0;
   padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
+  /* 子行业多的大类（工程制造 69 个）单列要滚动才能看全，改为多列平铺。
+     列数由 JS 按数量注入 --tb-cat-cols。 */
+  display: grid;
+  grid-template-columns: repeat(var(--tb-cat-cols, 1), minmax(0, 1fr));
+  gap: 2px 8px;
+  align-content: start;
 }
 
 .tb-megapanel-cat-item {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 9px 12px;
+  /* 多列后要塞进更多行，纵向 padding 由 9px 压到 5px（行高 42→32px） */
+  padding: 5px 10px;
   border-radius: 10px;
   cursor: pointer;
+  min-width: 0;
   transition: all 0.15s;
   font-size: 14px;
   color: #475569;
