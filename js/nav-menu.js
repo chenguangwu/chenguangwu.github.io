@@ -293,14 +293,18 @@
     megapanel.id = 'tbMegapanel';
 
     // 已有 body 时插入到最前面
-    if (document.body) {
+    const mount = () => {
       document.body.insertBefore(topnav, document.body.firstChild);
       document.body.insertBefore(megapanel, topnav.nextSibling);
+      // 打标记：只有挂了新导航的页面才由 CSS 调整 body 顶部留白，
+      // 避免影响未注入导航的静态页（guides / 404 等）
+      document.body.classList.add('tb-has-topnav');
+    };
+
+    if (document.body) {
+      mount();
     } else {
-      document.addEventListener('DOMContentLoaded', () => {
-        document.body.insertBefore(topnav, document.body.firstChild);
-        document.body.insertBefore(megapanel, topnav.nextSibling);
-      });
+      document.addEventListener('DOMContentLoaded', mount);
     }
 
     renderTopNav(topnav);

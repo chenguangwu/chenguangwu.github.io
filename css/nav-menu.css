@@ -3,6 +3,9 @@
 
 :root {
   --tb-nav-height: 56px;
+  /* 新分类导航的停靠位置：桌面停在旧固定顶栏（68px）下方，避免滚动后两层重叠。
+     移动端旧顶栏已隐藏，停靠 0。 */
+  --tb-top-offset: 68px;
   --tb-nav-bg: rgba(255, 255, 255, 0.92);
   --tb-nav-border: rgba(15, 23, 42, 0.06);
   --tb-panel-bg: #ffffff;
@@ -10,10 +13,15 @@
   --tb-cat-active-bg: rgba(255, 107, 53, 0.08);
 }
 
+/* 只有注入了新导航的页面才调整 body 顶部留白（由 nav-menu.js 打标记）。
+   新导航是 sticky 自带占位，body 只需让出「旧固定顶栏」那一段；
+   移动端旧顶栏隐藏，留白归零，避免首页/工具页顶部多出 54px 空档。 */
+body.tb-has-topnav { padding-top: var(--tb-top-offset); }
+
 /* ===== 顶部导航条 ===== */
 .tb-topnav {
   position: sticky;
-  top: 0;
+  top: var(--tb-top-offset);
   left: 0;
   right: 0;
   z-index: 90;
@@ -180,8 +188,10 @@
 
 /* ===== 下拉 mega panel ===== */
 .tb-megapanel {
-  position: absolute;
-  top: var(--tb-nav-height);
+  /* fixed 而非 absolute：导航是 sticky，滚动后会固定在 --tb-top-offset 处，
+     面板用 fixed 才能始终贴在导航下沿（absolute 会随文档滚走） */
+  position: fixed;
+  top: calc(var(--tb-top-offset) + var(--tb-nav-height));
   left: 0;
   right: 0;
   z-index: 89;
@@ -193,7 +203,7 @@
   transform: translateY(-8px);
   transition: opacity 0.2s, transform 0.25s, visibility 0.2s;
   pointer-events: none;
-  max-height: calc(100vh - var(--tb-nav-height) - 24px);
+  max-height: calc(100vh - var(--tb-top-offset) - var(--tb-nav-height) - 24px);
   overflow-y: auto;
 }
 
@@ -528,7 +538,7 @@
 }
 
 @media (max-width: 767px) {
-  :root { --tb-nav-height: 52px; }
+  :root { --tb-nav-height: 52px; --tb-top-offset: 0px; }
   .tb-nav-menu {
     display: none;
   }
