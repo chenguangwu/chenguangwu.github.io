@@ -331,7 +331,11 @@
     window.addEventListener('toolbox:langchange', () => {
       renderTopNav(topnav);
       renderMobileBody();
+      // 面板若正展开，必须连内容一起重渲染，否则里面仍是切换前的语言
+      const panel = $('#tbMegapanel');
+      const wasOpen = panel && panel.classList.contains(CLS_OPEN);
       closeMegaPanel();
+      if (wasOpen) showMegaPanel(activeGroupIndex);
     });
   }
 
