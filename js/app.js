@@ -1185,15 +1185,37 @@ function toolboxScore(t, q) {
   return -1;
 }
 
+// Split a query into one or more AND-term sets. A single token that mixes CJK
+// and latin/digit runs (e.g. "格式化json") is also segmented into
+// ["格式化","json"] so multi-concept queries typed without spaces still match
+// (closes P1-02 验收: "格式化json" -> "JSON 格式化").
+function segmentQuery(raw) {
+  const spaceTerms = raw.split(/\s+/).filter(Boolean);
+  if (spaceTerms.length > 1) return [spaceTerms];
+  const token = spaceTerms[0] || '';
+  const seg = (token.match(/[一-鿿]+|[a-z0-9]+/gi) || []).filter(Boolean);
+  if (seg.length > 1) return [[token], seg];
+  return [[token]];
+}
+
 function toolboxSearch(query, limit) {
   let q = (query || '').toLowerCase().trim();
   if (!q || !allSearchIndex) return [];
   // pinyin spaces are not part of the continuous py/pyi fields; strip them
   // before matching so "ji suan qi" behaves like "jisuanqi".
   const qNoSpace = q.replace(/\s+/g, '');
+  const termSets = segmentQuery(q);
+  const singleWhole = (t) => toolboxScore(t, q) >= 0 || (qNoSpace !== q && toolboxScore(t, qNoSpace) >= 0);
+  const matchesSet = (t, set) => set.every(term => toolboxScore(t, term) >= 0);
+  const scoreSet = (t, set) => set.reduce((s, term) => s + Math.max(toolboxScore(t, term), 0), 0);
+  const pass = (t) => termSets.some(set => set.length === 1 ? singleWhole(t) : matchesSet(t, set));
+  const scoreOf = (t) => Math.max(...termSets.map(set =>
+    set.length === 1
+      ? Math.max(toolboxScore(t, set[0]), qNoSpace !== set[0] ? toolboxScore(t, qNoSpace) : -1)
+      : scoreSet(t, set)));
   const direct = allSearchIndex
-    .filter(t => toolboxScore(t, q) >= 0 || (qNoSpace !== q && toolboxScore(t, qNoSpace) >= 0))
-    .sort((a, b) => Math.max(toolboxScore(b, q), toolboxScore(b, qNoSpace)) - Math.max(toolboxScore(a, q), toolboxScore(a, qNoSpace)));
+    .filter(pass)
+    .sort((a, b) => scoreOf(b) - scoreOf(a));
   // Typo correction (P3-3): when direct hits are scarce and the query is
   // latin-only (pinyin/english), scan pinyin fields with a sliding-window
   // edit distance (<=2). py/pyi include the description, so a whole-string

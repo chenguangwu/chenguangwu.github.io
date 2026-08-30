@@ -114,6 +114,18 @@ mark{background:rgba(255,107,53,0.2);color:inherit;border-radius:2px;padding:0 2
   }
   window.onSearch = onSearch;
 
+  // Split a query into AND-term sets. A single token mixing CJK + latin/digit
+  // (e.g. "格式化json") is also segmented into ["格式化","json"] so multi-concept
+  // queries without spaces still match (P1-02 验收).
+  function segmentQuery(raw) {
+    var spaceTerms = raw.split(/\s+/).filter(Boolean);
+    if (spaceTerms.length > 1) return [spaceTerms];
+    var token = spaceTerms[0] || '';
+    var seg = (token.match(/[一-鿿]+|[a-z0-9]+/gi) || []).filter(Boolean);
+    if (seg.length > 1) return [[token], seg];
+    return [[token]];
+  }
+
   function doSearch(q) {
     q = (q || '').trim().toLowerCase();
     var qNoSpace = q.replace(/\s+/g, '');
@@ -124,13 +136,26 @@ mark{background:rgba(255,107,53,0.2);color:inherit;border-radius:2px;padding:0 2
       updateUrl('');
       return;
     }
+    var termSets = segmentQuery(q);
     var results = allTools.filter(function(t) {
-      var text = ' ' + [t.n, t.d, t.i, t.c].join(' ');
-      if (text.toLowerCase().indexOf(q) !== -1) return true;
-      // pinyin: continuous py / initials pyi, with spaces stripped
-      if ((t.py || '').indexOf(qNoSpace) !== -1) return true;
-      if ((t.pyi || '').indexOf(qNoSpace) !== -1) return true;
-      return false;
+      var aliasStr = (t.al || []).join(' ').toLowerCase();
+      return termSets.some(function(set) {
+        if (set.length === 1) {
+          var text = ' ' + [t.n, t.d, t.i, t.c].join(' ');
+          if (text.toLowerCase().indexOf(set[0]) !== -1) return true;
+          if (aliasStr.indexOf(set[0]) !== -1) return true;
+          // pinyin: continuous py / initials pyi, with spaces stripped
+          if ((t.py || '').indexOf(qNoSpace) !== -1) return true;
+          if ((t.pyi || '').indexOf(qNoSpace) !== -1) return true;
+          return false;
+        }
+        return set.every(function(term) {
+          var text = ' ' + [t.n, t.d, t.i, t.c].join(' ');
+          if (text.toLowerCase().indexOf(term) !== -1) return true;
+          if (aliasStr.indexOf(term) !== -1) return true;
+          return false;
+        });
+      });
     }).sort(function(a, b) { return score(b, q, qNoSpace) - score(a, q, qNoSpace); });
     // Typo correction (P3-3): when direct hits are scarce and the query is
     // latin-only, match pinyin fields with sliding-window edit distance (<=2).
@@ -198,6 +223,7 @@ mark{background:rgba(255,107,53,0.2);color:inherit;border-radius:2px;padding:0 2
     var s = 0;
     qNoSpace = qNoSpace || q;
     if ((t.n || '').toLowerCase().indexOf(q) !== -1) s += 100;
+    if ((t.al || []).join(' ').toLowerCase().indexOf(q) !== -1) s += 95;
     if ((t.pyi || '').indexOf(qNoSpace) === 0 && qNoSpace.length >= 2) s += 90;
     if ((t.py || '').indexOf(qNoSpace) === 0) s += 80;
     if ((t.pyi || '').indexOf(qNoSpace) !== -1) s += 60;
