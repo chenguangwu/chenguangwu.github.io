@@ -112,6 +112,8 @@ var LANG_REGISTRY = [
       'tabbar.home': 'Home',
       'tabbar.cat': 'Categories',
       'tabbar.search': 'Search',
+      'breadcrumb.expand': 'Expand all {n} categories',
+      'breadcrumb.collapse': 'Collapse categories',
       'tabbar.hot': 'Hot',
       'tabbar.fav': 'Favorites',
       // 功能分类

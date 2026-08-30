@@ -46,9 +46,16 @@
 - [x] 补充 i18n：`js/i18n.js` 加 `'tabbar.search': 'Search'`
 - [x] 三道门禁通过（_test_static 0 / _audit_links 0 死链 / _audit_assets 0）；node --check 两 JS 通过；build 幂等（底部搜索按钮与 CSS 改动未被 build 覆盖，已验证）
 
-### Batch 5 — i18n 补缺与模板一致性（P0-06 / P0-08 / P1-01 / P1-12 / P0-09）
-- [ ] 逐条核实，已覆盖的标记跳过，缺的补充 key
-- [ ] 工具页模板 / 广告一致性核查
+### Batch 5 — i18n 补缺与模板一致性（P0-06 / P0-08 / P1-01 / P1-12 / P0-09）【已完成 · 实测核实】
+- [x] **P0-09 详情页被 Hero 掩埋：已解决，无需改**。实测 `tools/it/json-formatter.html` 仅引 `tool-page-runtime.js`+`common.js`，**无任何首页 Hero/`nav-top`/`nav-mobile` 标记**，首屏即工具内容。报告所述对当前模板不成立。
+- [x] **P0-06 翻译不完整：基础设施已覆盖，补关键缺口**。
+  - `js/tool-i18n.js`（0.5MB 短语字典 + `translateButtons`/`translateGenericUI`/`translateBodyPhrases`）已运行时翻译工具页按钮（美化→Beautify 等）、正文、行业名（通用工程→General Engineering）。
+  - 首页级 key 多靠「内联英文兜底」已能在英文模式显示（hero.eyebrow/footer.desc 等）。
+  - **真缺口**：`breadcrumb.expand`/`collapse` 用 `_t()` 且内联中文兜底、en 包无 key → 英文模式仍显中文「展开全部 N 个分类」。已修：`js/i18n.js` 加 `'breadcrumb.expand':'Expand all {n} categories'`+`'breadcrumb.collapse':'Collapse categories'`；`js/app.js` 该行改 `.replace('{n}', entries.length)` 保留分类数。
+  - 余项（广告标识「推广」→Sponsored）：tool-i18n.js 未单列该 badge 映射，极次要，可后续补，不阻塞。
+- [x] **P0-08 分类页卡片未翻译：双语设计 + 收拾混杂**。分类卡片本就是双语（`.ct-name` 中文 + `.ct-desc` 英文，如 `Aztec 码 (简化版)`/`Aztec Code`）；`tool-i18n.js` 英文模式按字典译 `.ct-name`。报告「中文模式强制展示英文副标题视觉混杂」已修：`css/common.css` 加 `html[lang="zh-CN"] .category-tool-item .ct-desc{display:none}`（中文模式只显中文名，英文模式保留译名+英文副标题）。
+- [ ] **P1-01 模板不统一 / P1-12「无广告」与广告矛盾：产品决策，未改，待老板拍板**。本项目即广告变现站，删广告/全量重做模板违背商业模式；「永久免费无广告」文案与广告并存属措辞问题，建议二选一（改文案去「无广告」或调整广告策略），等老板决定后再动。
+- [x] 三道门禁通过（_test_static 0 / _audit_links 0 死链 / _audit_assets 0）；node --check 两 JS 通过；build 幂等。
 
 ### Batch 6 — 搜索 / 细节 / P3 回归验证
 - [ ] P0-04 / P1-02 / P1-04 / P2-xx / P3-xx 回归（多为已实现，验证为主）

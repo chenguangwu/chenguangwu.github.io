@@ -469,7 +469,7 @@ function renderBreadcrumbNav() {
       <button class="breadcrumb-toggle-btn ${breadcrumbExpanded ? 'expanded' : ''}" onclick="toggleBreadcrumbNav()">
         ${breadcrumbExpanded
           ? _t('breadcrumb.collapse', '收起分类')
-          : _t('breadcrumb.expand', `展开全部 ${entries.length} 个分类`)}
+          : _t('breadcrumb.expand', '展开全部 {n} 个分类').replace('{n}', entries.length)}
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
       </button>
     </div>`;
