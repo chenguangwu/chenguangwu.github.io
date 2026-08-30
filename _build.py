@@ -2355,17 +2355,22 @@ def generate_category_indexes(tools):
         parts.append('    <div class="category-tool-list">\n')
         index_ref_dir = 'tools/' + ind
         for t in ind_tools_sorted:
-            # 卡片双层命名：ct-name 始终为中文名、ct-desc 始终为英文名，
-            # 由 CSS 按 html[lang] 切换显示（P0-08 修复：原直接取 name/desc 导致
-            # 英文名为 name 的工具在中文模式只剩英文）。中文名优先取 name，
-            # 否则取 desc；英文名取可靠的 en 字段。
-            _zh = t['name'] if _has_cjk(t['name']) else (t.get('desc', '') if _has_cjk(t.get('desc', '')) else t['name'])
-            _en = t.get('en') or t['name']
-            t_name = esc_html_py(_zh)
-            t_desc = esc_html_py(_en)
+            # 卡片样式对齐顶部分类下拉（tb-megapanel-tool-card）：图标 + 名称 + 描述。
+            # 中文模式显示「中文名 + 中文描述」(t['desc'])，与下拉 dOf 中文态一致；
+            # 英文模式显示「英文名 + 英文描述」(t['en']/t['ed'])，沿用原双层 lang 切换框架。
+            _zh_name = t['name'] if _has_cjk(t['name']) else (t.get('desc', '') if _has_cjk(t.get('desc', '')) else t['name'])
+            _en_name = t.get('en') or t['name']
+            _zh_desc = t.get('desc', '') or ''
+            if _zh_desc == _zh_name:           # 描述与名称相同则视为无描述（同 dOf 去重）
+                _zh_desc = ''
+            if not _zh_desc:                   # 中文描述缺失时回退英文名，避免中文模式空行
+                _zh_desc = _en_name
+            _en_desc = t.get('ed') or ''
+            if _en_desc == _en_name:           # 英文描述与英文名相同则视为无描述（同 dOf）
+                _en_desc = ''
             t_icon = t.get('icon', '🔧')
             tool_href = os.path.relpath(t['url'], index_ref_dir).replace(os.sep, '/')
-            parts.append('      <a href="%s" class="category-tool-item">\n        <span class="ct-icon">%s</span>\n        <span class="ct-info"><span class="ct-name">%s</span><span class="ct-desc">%s</span></span>\n      </a>\n' % (tool_href, t_icon, t_name, t_desc))
+            parts.append('      <a href="%s" class="tb-megapanel-tool-card cat-tool">\n        <span class="tb-tool-icon" style="background:#f5f5f5">%s</span>\n        <span class="tb-tool-body">\n          <span class="tb-tool-name"><span class="t-zh">%s</span><span class="t-en">%s</span></span>\n          <span class="tb-tool-desc"><span class="t-zh">%s</span><span class="t-en">%s</span></span>\n        </span>\n      </a>\n' % (tool_href, t_icon, esc_html_py(_zh_name), esc_html_py(_en_name), esc_html_py(_zh_desc), esc_html_py(_en_desc)))
         parts.append('    </div>\n  </div>\n')
         # SEO intro
         parts.append('  <div class="tool-intro open">\n    <div class="tool-intro-header"><span class="intro-icon-wrap"><span class="intro-icon">📖</span>关于「%s工具」</span><span class="arrow">▼</span></div>\n' % esc_html_py(ind_name))
