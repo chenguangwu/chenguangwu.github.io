@@ -129,10 +129,11 @@ GROUPS = [
     ('matchem', '材料化工', '🧪', 'Materials'),
     ('translogi', '交通物流', '🚚', 'Transport'),
     ('science', '科学研究', '🔬', 'Science'),
-    ('life', '生活实用', '🏠', 'Daily Life'),
-    ('edu', '教育培训', '📚', 'Education'),
+    ('life', '生活实用', '🏠', 'Life'),
+    ('edu', '教育培训', '📚', 'Edu'),
     ('business', '商业办公', '💼', 'Business'),
-    ('entertainment', '休闲娱乐', '🎮', 'Entertainment'),
+    # 英文名取短：12 个菜单项在 1280px 容器内排布，长名会挤出横向滚动条
+    ('entertainment', '休闲娱乐', '🎮', 'Leisure'),
 ]
 
 
