@@ -16,7 +16,7 @@
 
 ## 批次
 
-### Batch 1 — P0 死链 + i18n 裸露 + 默认标签（高置信 / 低风险）【进行中】
+### Batch 1 — P0 死链 + i18n 裸露 + 默认标签（高置信 / 低风险）【已完成 · 已提交 0e707620】
 - [ ] P0-01 `js/app.js` `HOT_TOOLS[6]` → `tools/life/unit-converter.html`
 - [ ] P0-01 `404.html` `PATH_MAP.converter` + `HOT_TOOLS` 单位换算 → `unit-converter.html`
 - [ ] P0-02 `js/app.js` `HOT_TOOLS[10]` → `tools/it/uuid-v4-generator.html`
@@ -25,14 +25,20 @@
 - [ ] P0-03 `tools/it/stopwatch.html` 默认标签改 `countdown`
 - 验证：`node --check` 两 JS；手动确认两死链 200；build 非必须（未改工具页）
 
-### Batch 2 — P1-09 公式名称坏数据（164 工具，抽样扩散发现）
+### Batch 2 — P1-09 公式名称坏数据（164 工具，抽样扩散发现）【已完成 · 已提交 63dca724】
 - [ ] 脚本：用 `<h1>` 正确名回写 164 页 `<title>`/`<og:title>`/`<twitter:title>`
 - [ ] `_build.py` 重建索引
 - [ ] 验证：`search-index.json` 公式名 = 0；`_test_static.py` 门禁
 
-### Batch 3 — P0-05 统计数字统一 + 404 增强
-- [ ] hero / sub / why-card / footer 数字统一为单一数据源（build 注入或常量）
-- [ ] 404 自动跳转确认（代码已有 `setTimeout` 3 秒，仅修正目标 URL）
+### Batch 3 — P0-05 统计数字统一 + 404 增强【已完成】
+- [x] 首页四处数字统一口径为品牌 `6000+`：
+  - `index.html:643` `hero.sub` fb `等5014+实用工具` → `等6000+实用工具`
+  - `index.html:712` `why.c4_title` fb `6060+ 全覆盖` → `6000+ 全覆盖`
+  - `js/i18n.js:161` `why.c4_title` 英文包 `6060+ full coverage` → `6000+ full coverage`
+  - `_build.py:1736` 不再注入真实工具数（原 `等%d+`→ 真实 5014），改为固定 `等6000+实用工具`，否则 build 会把 hero.sub 覆盖回真实数
+- [x] 404 自动跳转确认：PATH_MAP 在 Batch1 已修（`uuid.html`→`uuid-v4-generator.html`、`converter.html`→`unit-converter.html`），逻辑正确，无需再改
+- [x] 三道门禁通过（_test_static 0 / _audit_links 0 死链 / _audit_assets 0）
+- ⚠️ 遗留品牌决策（待老板确认，未擅自改）：build 实算当前真实工具数 = **5014**，全站品牌口径却写「6000+ 工具」（title/description/og:image:alt/footer/manifest/search/404 页约数千处）。若要求「数字真实」，需全站改为 `5000+`/`5014+`，涉及改 `_build.py` 模板并重建约 5000 工具页 og:image:alt，是大改动，等老板拍板再做。P0-05 本条仅解决「首页三处数字不一」的不一致问题。
 
 ### Batch 4 — P0-10 / P0-11 移动端搜索入口 + 分类按钮截断
 - [ ] 核实移动端搜索按钮可见性（`index.html` 已有 `openMobileSearch` 入口）

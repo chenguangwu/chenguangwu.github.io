@@ -1733,7 +1733,9 @@ def update_index_html(index_path, tools_js, tool_count, cat_counts, ind_counts):
         )
 
     # Update tool count in hero text (match pattern like "1010+")
-    html = re.sub(r'等\d+\+实用工具', '等%d+实用工具' % tool_count, html)
+    # P0-05 统计数字统一：首页各处的营销数字统一为品牌口径 6000+，
+    # 不再注入真实工具数（避免与 title/description/og:image 等处的 6000+ 不一致）。
+    html = re.sub(r'等\d+\+实用工具', '等6000+实用工具', html)
 
     # v2-02：首页构建期英文预渲染（高优先入口，首抓更友好）
     for key, text in HOME_PRE_RENDER_I18N_EN.items():

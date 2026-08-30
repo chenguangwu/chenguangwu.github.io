@@ -158,7 +158,7 @@ var LANG_REGISTRY = [
       'why.c2_desc': 'No backend wait, no loading spinners. Ready on open; speed depends on your device, not the server.',
       'why.c3_title': 'No ads, no login',
       'why.c3_desc': 'No popups, no forced sign-up, no limits. Use and go. Free forever.',
-      'why.c4_title': '6060+ full coverage',
+      'why.c4_title': '6000+ full coverage',
       'why.c4_desc': 'From developers to daily life, 200+ niche industries in one place. No jumping between a dozen sites.',
       'hero.badge1': 'Runs pure-frontend',
       'hero.badge2': 'Data stays in browser',
