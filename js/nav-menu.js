@@ -183,6 +183,9 @@
       li.dataset.index = i;
       li.innerHTML = `<span class="tb-cat-icon">${c.icon}</span><span class="tb-cat-name">${nOf(c)}</span><span class="tb-cat-count">${c.count}</span>`;
       li.onclick = () => selectChild(i);
+      // 老板要求：鼠标移到二级分类即切换右侧工具（悬停即展示，不必点击）
+      // 仅在切换到不同项时重渲染，避免在同一项内反复移动鼠标时抖闪
+      li.addEventListener('mouseenter', () => { if (i !== activeChildIndex) selectChild(i); });
       catList.appendChild(li);
     });
     catCol.appendChild(catList);
