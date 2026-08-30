@@ -1204,11 +1204,13 @@ def generate_split_jsons(tools):
     # tools from remaining in the lazy-loaded industry indexes.
     active_files = {'industry-%s.json' % ind for ind in industries}
     for filename in glob.glob(os.path.join(json_dir, 'industry-*.json')):
-        if os.path.basename(filename) in active_files:
+        base = os.path.basename(filename)
+        # industry-groups.json 是 2 级分组导航产物，不在这里清理
+        if base == 'industry-groups.json' or base in active_files:
             continue
         with open(filename, 'w', encoding='utf-8') as f:
             json.dump([], f)
-        print('  cleared orphan %s' % os.path.basename(filename))
+        print('  cleared orphan %s' % base)
     
     # Lightweight search index (name, desc, industry, cat, url only)
     light_index = []
@@ -1646,10 +1648,13 @@ def _build_consistency_check(tools, category_inds):
 
     industry_total = 0
     for fp in sorted(glob.glob(os.path.join(ROOT, 'json', 'industry-*.json'))):
+        base = os.path.basename(fp)
+        if base == 'industry-groups.json':
+            continue
         with open(fp, encoding='utf-8') as f:
             data = json.load(f)
         if not isinstance(data, list):
-            print('Build consistency failed: industry file not list -> %s' % os.path.basename(fp))
+            print('Build consistency failed: industry file not list -> %s' % base)
             return False
         industry_total += len(data)
 
@@ -2492,6 +2497,12 @@ def main():
     # SEO: Generate category index pages
     print('\nGenerating category index pages:')
     category_inds = generate_category_indexes(tools)
+
+    # 生成 2 级分类导航数据：js/industry-info.js + json/industry-groups.json
+    print('\nGenerating 2-level navigation data:')
+    import subprocess as _sp
+    _sp.run([sys.executable, os.path.join(ROOT, 'scripts', 'gen_industry_info.py')], check=True)
+    _sp.run([sys.executable, os.path.join(ROOT, 'scripts', 'gen_industry_groups.py')], check=True)
 
     # Update index.html (just update counts and metadata, tools array removed)
     if update_index_html(INDEX_FILE, tools_js, len(tools), cat_counts, ind_counts):

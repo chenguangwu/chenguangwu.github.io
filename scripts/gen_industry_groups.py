@@ -1,0 +1,215 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+B1: 生成 json/industry-groups.json —— 266 个子行业 → ~10 个一级分类。
+
+布局参考 chinaz tools/nav：顶部一级横向菜单，下拉面板左侧=子行业列表，
+右侧=选中子行业的常用工具（名称 + 描述）。
+
+用法：python3 scripts/gen_industry_groups.py
+      _build.py 后续会自动调用（幂等）。
+"""
+import json
+import os
+import re
+
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+# 一级分类（name 是中文导航名，icon 用 emoji，group_key 是 JSON key）
+GROUPS = [
+    ('it', 'IT开发', '💻'),
+    ('design', '设计创意', '🎨'),
+    ('finance', '金融财务', '💰'),
+    ('health', '健康医疗', '🏥'),
+    ('engineering', '工程制造', '⚙️'),
+    ('science', '科学研究', '🔬'),
+    ('life', '生活实用', '🏠'),
+    ('edu', '教育培训', '📚'),
+    ('business', '商业办公', '💼'),
+    ('entertainment', '休闲娱乐', '🎮'),
+]
+
+# 分类规则：行业 key -> 一级 group_key。列出的 key 优先按此表映射。
+KEY_RULES = {
+    # IT 开发
+    'it': 'it', 'ai': 'it', 'data': 'it', 'encode': 'it', 'text': 'it', 'office': 'it',
+    'network': 'it', 'security': 'it', 'electronics': 'it', 'telecom': 'it', 'embedded': 'it',
+    # 设计创意
+    'design': 'design', 'image': 'design', 'photo': 'design', 'photo2': 'design',
+    'video': 'design', 'music': 'design', 'uiux': 'design', 'media': 'design',
+    'advertising': 'design', 'film': 'design', 'beauty': 'design',
+    'cosmetics': 'design', 'cosmetic-derm': 'design', 'photography': 'design',
+    'floral': 'design', 'content': 'design',
+    # 金融财务
+    'finance': 'finance', 'accounting': 'finance', 'banking': 'finance', 'insurance': 'finance',
+    'investment': 'finance', 'tax': 'finance', 'securities': 'finance', 'forex': 'finance',
+    'futures': 'finance', 'economics': 'finance', 'audit': 'finance',
+    # 健康医疗（含医疗科室、中医、护理、药学、康复）
+    'health': 'health', 'medical': 'health', 'medical2': 'health', 'healthcare': 'health',
+    'fitness': 'health', 'nutrition': 'health', 'elderly': 'health', 'parenting': 'health',
+    'cardiology': 'health', 'dentistry': 'health', 'dermatology': 'health',
+    'endocrinology': 'health', 'ent': 'health', 'gastroenterology': 'health',
+    'hematology': 'health', 'nephrology': 'health', 'neurology': 'health',
+    'obstetrics': 'health', 'ophthalmology': 'health', 'pediatrics': 'health',
+    'psychiatry': 'health', 'pulmonology': 'health', 'rheumatology': 'health',
+    'urology': 'health', 'acupuncture': 'health', 'tcm-pharmacy': 'health',
+    'tcm-diagnosis': 'health', 'tcm-chemistry': 'health', 'clinical-lab': 'health',
+    'clinical-nursing': 'health', 'forensic-medicine': 'health',
+    'reproductive-medicine': 'health', 'rehabilitation': 'health', 'pharmacy': 'health',
+    # 工程制造（含土木、机械、材料、化工、交通、能源、矿业、建筑）
+    'engineering': 'engineering', 'mechanical': 'engineering', 'machinery': 'engineering',
+    'manufacturing': 'engineering', 'electrical': 'engineering', 'civil': 'engineering',
+    'construction': 'engineering', 'structural': 'engineering', 'hydraulic': 'engineering',
+    'fire-rescue': 'engineering', 'mining': 'engineering', 'metallurgy': 'engineering',
+    'metalwork': 'engineering', 'materials': 'engineering', 'aerospace': 'engineering',
+    'automotive': 'engineering', 'energy': 'engineering', 'transport': 'engineering',
+    'road': 'engineering', 'railway': 'engineering', 'tunnel': 'engineering',
+    'bridge': 'engineering', 'surveying': 'engineering', 'geology': 'engineering',
+    'gis': 'engineering', 'glass': 'engineering', 'ceramics': 'engineering',
+    'paper': 'engineering', 'printing': 'engineering', 'packaging': 'engineering',
+    'plastic': 'engineering', 'rubber': 'engineering', 'leather': 'engineering',
+    'textile': 'engineering', 'textile2': 'engineering', 'dyeing': 'engineering',
+    'chemical': 'engineering', 'chemistry': 'engineering', 'petrochem': 'engineering',
+    'gas': 'engineering', 'fire': 'engineering', 'safety': 'engineering',
+    'welding': 'engineering', 'casting': 'engineering', 'cnc': 'engineering',
+    'woodworking': 'engineering', 'woodwork': 'engineering', 'timber': 'engineering',
+    'stone': 'engineering', 'building-material': 'engineering', 'beneficiation': 'engineering',
+    'blasting': 'engineering', 'bonding': 'engineering', 'surface': 'engineering',
+    'heattreat': 'engineering', 'hvac': 'engineering', 'pneumatic': 'engineering',
+    'process': 'engineering', 'quality': 'engineering', 'mold': 'engineering',
+    'municipal': 'engineering', 'water': 'engineering', 'defense': 'engineering',
+    'general': 'engineering', 'auto-beauty': 'engineering', 'steel': 'engineering',
+    'supplychain': 'engineering',
+    # 科学研究（数理、物理、天文、地球科学）
+    'science': 'science', 'math': 'science', 'stats': 'science', 'statistics': 'science',
+    'astronomy': 'science', 'acoustics': 'science', 'metrology': 'science',
+    'geometry': 'science', 'quantum': 'science', 'optics': 'science',
+    'thermodynamics': 'science', 'nuclear': 'science', 'seismology': 'science',
+    'dynamics': 'science', 'electromagnetism': 'science', 'fluid': 'science',
+    'kinematics': 'science', 'signal': 'science', 'research': 'science',
+    # 生活实用
+    'life': 'life', 'food': 'life', 'food-testing': 'life', 'food-safety': 'life',
+    'food-processing': 'life', 'chinese-cook': 'life', 'baking': 'life',
+    'home': 'life', 'gardening': 'life', 'gardening2': 'life', 'travel': 'life',
+    'hotel': 'life', 'restaurant': 'life', 'wedding': 'life', 'funeral': 'life',
+    'daily-goods': 'life', 'cleaning': 'life', 'domestic': 'life', 'convenience': 'life',
+    'pets': 'life', 'pet': 'life', 'pet-training': 'life', 'livestock': 'life',
+    'fishery': 'life', 'aquaculture': 'life', 'agriculture': 'life', 'beekeeping': 'life',
+    'forestry': 'life', 'outdoor': 'life', 'accessibility': 'life',
+    # 教育培训
+    'edu': 'edu', 'edu2': 'edu', 'language': 'edu', 'exam': 'edu', 'history': 'edu',
+    'literature': 'edu', 'writing': 'edu', 'knowledge': 'edu', 'library': 'edu',
+    'archive': 'edu', 'museum': 'edu', 'chinese': 'edu', 'yi': 'edu', 'fengshui': 'edu',
+    'fortune': 'edu', 'archaeology': 'edu',
+    # 商业办公
+    'biz': 'business', 'marketing': 'business', 'sales': 'business', 'hr': 'business',
+    'startup': 'business', 'pr': 'business', 'consulting': 'business', 'procurement': 'business',
+    'logistics': 'business', 'logistics2': 'business', 'warehouse': 'business',
+    'express': 'business', 'shipping': 'business', 'ecommerce': 'business',
+    'project': 'business', 'property': 'business', 'admin': 'business',
+    'unitedfront': 'business', 'event': 'business', 'exhibition': 'business',
+    'customer-service': 'business', 'service': 'business', 'brand': 'business',
+    'usedcar': 'business', 'rental': 'business', 'niche': 'business',
+    'community': 'business', 'discipline': 'business', 'legal': 'business', 'legal2': 'business',
+    # 休闲娱乐
+    'fun': 'entertainment', 'sports': 'entertainment', 'sports-event': 'entertainment',
+    'chess': 'entertainment', 'dance': 'entertainment', 'yoga': 'entertainment',
+    'martial': 'entertainment', 'martial-arts': 'entertainment', 'antiques': 'entertainment',
+}
+
+
+def classify(key, cname):
+    if key in KEY_RULES:
+        return KEY_RULES[key]
+    # 按中文名关键词兜底（避免 key 子串误伤，如 furniture 含 'it'）
+    kw_map = [
+        ('health', ['医', '药', '护理', '临床', '针灸', '中医', '康复', '口腔', '皮肤', '心血管', '内分泌', '耳鼻喉', '消化', '血液', '肾脏', '神经', '产科', '眼科', '儿科', '精神', '呼吸', '风湿', '泌尿', '生殖', '保健', '健康', '健身', '营养', '养老', '育儿', '美容皮肤']),
+        ('engineering', ['工程', '机械', '制造', '电气', '土木', '建筑', '结构', '水利', '消防', '救援', '矿业', '冶金', '金属', '材料', '航空', '汽车', '能源', '交通', '铁路', '隧道', '桥梁', '测绘', '地质', '玻璃', '陶瓷', '印刷', '包装', '塑料', '橡胶', '皮革', '纺织', '印染', '化工', '化学', '石化', '燃气', '焊接', '铸造', '数控', '木材', '石材', '建材', '选矿', '爆破', '粘接', '表面', '热处理', '暖通', '气动', '模具', '市政', '水务', '钢铁', '供应链', '家居', '装修']),
+        ('science', ['科学', '数学', '统计', '天文', '声学', '计量', '几何', '量子', '光学', '热力学', '核', '地震', '动力学', '电磁', '流体', '运动学', '信号', '材料学', '科研', '研究']),
+        ('it', ['IT', '代码', '网络', '安全', '数据', '智能', '电子', '通信', '文本', '办公', '编码', '解码']),
+        ('design', ['设计', '图像', '摄影', '视频', '音乐', '媒体', '广告', '化妆', '花艺', '内容']),
+        ('finance', ['金融', '财务', '会计', '银行', '保险', '投资', '税务', '证券', '外汇', '期货', '经济', '审计']),
+        ('life', ['生活', '食品', '家居', '园艺', '旅行', '酒店', '餐饮', '婚礼', '殡葬', '日用', '清洁', '家政', '宠物', '畜牧', '渔业', '水产', '农业', '养蜂', '林业', '户外', '烘焙', '烹饪']),
+        ('edu', ['教育', '培训', '语言', '考试', '历史', '文学', '写作', '知识', '图书', '档案', '博物馆', '周易', '风水', '考古']),
+        ('business', ['营销', '销售', '人力', '创业', '公关', '咨询', '采购', '物流', '仓储', '快递', '船运', '电商', '项目', '物业', '行政', '会展', '客服', '服务', '品牌', '二手车', '租赁', '社区', '规章', '法律', '法务']),
+        ('entertainment', ['娱乐', '游戏', '体育', '棋', '舞蹈', '瑜伽', '武术', '古董']),
+    ]
+    for gk, kws in kw_map:
+        for kw in kws:
+            if kw in cname:
+                return gk
+    return 'business'
+
+
+def main():
+    tools = json.load(open(os.path.join(ROOT, 'json', 'tools.json'), encoding='utf-8'))
+    # 工具数按行业聚合
+    counts = {}
+    for t in tools:
+        ind = t.get('industry')
+        if ind:
+            counts[ind] = counts.get(ind, 0) + 1
+
+    # 从 js/industry-info.js 提取中文名/图标（正则读 JS 对象，不 eval）
+    info_src = open(os.path.join(ROOT, 'js', 'industry-info.js'), encoding='utf-8').read()
+    m = re.search(r'window\.INDUSTRY_INFO = \{(.*?)\n\};', info_src, re.S)
+    ind_info = {}
+    if m:
+        for line in m.group(1).splitlines():
+            mm = re.search(r"'([a-z0-9\-]+)'\s*:\s*\{\s*name:\s*'([^']*)',\s*icon:\s*'([^']*)'", line)
+            if mm:
+                ind_info[mm.group(1)] = {'name': mm.group(2), 'icon': mm.group(3)}
+    # 下面直接走 KEY_RULES 分类
+
+    # 预读每个子行业的工具列表，用于下拉面板右侧展示
+    industry_tools = {}
+    for key in counts:
+        ipath = os.path.join(ROOT, 'json', f'industry-{key}.json')
+        if os.path.exists(ipath):
+            industry_tools[key] = json.load(open(ipath, encoding='utf-8'))
+        else:
+            industry_tools[key] = []
+
+    grouped = {gk: [] for gk, _n, _i in GROUPS}
+    for key, c in counts.items():
+        info = ind_info.get(key, {'name': key, 'icon': '🔧'})
+        gk = classify(key, info['name'])
+        top = []
+        for t in industry_tools.get(key, [])[:8]:
+            top.append({
+                'name': t.get('name') or t.get('en', key),
+                'desc': t.get('desc', ''),
+                'url': '/' + t.get('url', ''),
+                'icon': t.get('icon', ''),
+                'bg': t.get('bg', '#f5f5f5'),
+            })
+        grouped.setdefault(gk, []).append({
+            'key': key, 'name': info['name'], 'icon': info['icon'],
+            'count': c, 'top': top,
+        })
+
+    # 每个一级分类内按工具数降序
+    for gk in grouped:
+        grouped[gk].sort(key=lambda x: -x['count'])
+
+    out = []
+    for gk, gname, gicon in GROUPS:
+        out.append({
+            'key': gk,
+            'name': gname,
+            'icon': gicon,
+            'count': sum(x['count'] for x in grouped[gk]),
+            'children': grouped[gk],
+        })
+
+    out_path = os.path.join(ROOT, 'json', 'industry-groups.json')
+    with open(out_path, 'w', encoding='utf-8') as f:
+        json.dump(out, f, ensure_ascii=False, indent=1)
+    print(f'✅ 生成 {out_path}')
+    print('一级分类分布:')
+    for item in out:
+        print(f"  {item['icon']} {item['name']:6} {len(item['children']):3} 子行业  {item['count']:4} 工具")
+
+
+if __name__ == '__main__':
+    main()
