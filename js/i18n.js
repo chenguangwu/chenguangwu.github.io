@@ -49,6 +49,7 @@ var LANG_REGISTRY = [
       // 否则 key 不匹配会回退到中文兜底「使用指南」
       'nav.guides': 'User Guide',
       'nav.cat': 'Categories',
+      'hero.eyebrow': '5000+ tools · Runs in your browser',
       'hero.title': 'Free Online Tools',
       'hero.sub': '5000+ free tools, all running locally in your browser. No sign-up, your data stays private.',
       'hero.tags': 'Popular:',
@@ -172,6 +173,10 @@ var LANG_REGISTRY = [
       'hero.badge2': 'Data stays in browser',
       'hero.badge3': 'No login required',
       'hero.badge4': 'Free forever',
+      // 首页「分类导航」主体区块标题（home-categories.js 渲染）
+      'home.cats_title': 'Categories',
+      // 顶栏 Logo 副标题
+      'brand.sub': 'Tools Wiki',
       'breadcrumb.nav': 'Categories',
       'ad.label': '— Sponsored —',
       'ad.taobao_title': 'Taobao Picks',
@@ -316,13 +321,34 @@ var LANG_REGISTRY = [
 
   function t(key, fallback) { return resolve(key, fallback); }
 
+  // 行业/分类 key -> 可读英文名兜底（general -> General，auto-beauty -> Auto Beauty，ai -> AI）
+  var KEY_ACRONYMS = {
+    it: 'IT', ai: 'AI', ui: 'UI', ux: 'UX', uiux: 'UI/UX', api: 'API', seo: 'SEO',
+    hr: 'HR', erp: 'ERP', crm: 'CRM', oa: 'OA', pdf: 'PDF', '3d': '3D', ar: 'AR',
+    vr: 'VR', id: 'ID', iot: 'IoT', sql: 'SQL', b2b: 'B2B', b2c: 'B2C', cad: 'CAD',
+    cpu: 'CPU', gpu: 'GPU', css: 'CSS', html: 'HTML', js: 'JavaScript', qc: 'QC',
+    qa: 'QA', sms: 'SMS', gps: 'GPS'
+  };
+
+  function keyToEn(k) {
+    var parts = String(k || '').split('-');
+    var out = [];
+    for (var i = 0; i < parts.length; i++) {
+      if (!parts[i]) continue;
+      out.push(KEY_ACRONYMS[parts[i]] || parts[i].charAt(0).toUpperCase() + parts[i].slice(1));
+    }
+    return out.join(' ') || String(k || '');
+  }
+
   function indName(info, key) {
     if (!info) return '';
     if (current !== 'zh-CN') {
       if (info.en) return info.en;
       var en = t('ind_' + (key || info.key), null);
       if (en && en.indexOf('ind_') !== 0) return en;
-      return info.name || '';
+      // 兜底不要用中文：否则英文态会出现「通用工程」这类中文残留
+      var k = key || info.key;
+      return k ? keyToEn(k) : (info.name || '');
     }
     return info.name || '';
   }
@@ -332,7 +358,8 @@ var LANG_REGISTRY = [
       if (info.en) return info.en;
       var en = t('cat_' + (key || info.key), null);
       if (en && en.indexOf('cat_') !== 0) return en;
-      return info.name || '';
+      var k2 = key || info.key;
+      return k2 ? keyToEn(k2) : (info.name || '');
     }
     return info.name || '';
   }

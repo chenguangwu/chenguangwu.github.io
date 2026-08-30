@@ -13,8 +13,16 @@ import html
 import json
 import os
 import re
+import sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+# 人工补齐的工具描述（源数据确实没写的那批）
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+try:
+    from tool_desc_override import DESC_OVERRIDE
+except ImportError:      # pragma: no cover - 数据文件缺失时降级为空表
+    DESC_OVERRIDE = {}
 
 # ---- 中英文名/描述选取 ----------------------------------------------------
 # 背景：_build.py 会对部分页面做「英文 title 预渲染」，导致 tools.json 里
@@ -334,12 +342,20 @@ def main():
         tools_sorted = sorted(industry_tools.get(key, []), key=tool_sort_key)
         top = []
         for t in tools_sorted[:8]:
-            md = meta_desc(t.get('path', ''))
+            name_zh = zh_name(t)
+            ov = DESC_OVERRIDE.get(name_zh)
+            if ov:
+                # 源数据没写描述（meta description 就等于工具名），用人工补齐的中英文
+                d_zh, d_en = ov
+            else:
+                md = meta_desc(t.get('path', ''))
+                d_zh = clip(md, 32) if md else clip(name_zh, 40)
+                d_en = en_desc(t)
             top.append({
-                'name': zh_name(t),          # 中文名（导航中文态用）
+                'name': name_zh,            # 中文名（导航中文态用）
                 'en': en_name(t),            # 英文名（导航英文态用）
-                'desc': clip(md) if md else clip(zh_name(t), 40),
-                'ed': en_desc(t),            # 英文描述（导航英文态用）
+                'desc': clip(d_zh, 32),      # 中文描述
+                'ed': clip(d_en, 60),        # 英文描述（导航英文态用）
                 'url': '/' + t.get('url', ''),
                 'icon': t.get('icon', ''),
                 'bg': t.get('bg', '#f5f5f5'),
