@@ -47,7 +47,7 @@ var LANG_REGISTRY = [
       'nav.guide': 'User Guide',
       'nav.cat': 'Categories',
       'hero.title': 'Free Online Tools',
-      'hero.sub': '6000+ free tools, all running locally in your browser. No sign-up, your data stays private.',
+      'hero.sub': '5000+ free tools, all running locally in your browser. No sign-up, your data stays private.',
       'hero.tags': 'Popular:',
       'hero.chain': 'Tool Chains: link multiple tools, output flows into the next input',
       'tab.hot': '🔥 Hot Tools',
@@ -86,7 +86,7 @@ var LANG_REGISTRY = [
       'btn.allInd': 'View all industries →',
       'search.placeholder': 'Search tools, categories or features...',
       'search.mobile': 'Search tools...',
-      'search.cmdk': 'Search 6000+ tools, categories or features...',
+      'search.cmdk': 'Search 5000+ tools, categories or features...',
       'cmdk.title': 'Tool Search',
       'cmdk.select': 'Select',
       'cmdk.open': 'Open',
@@ -104,7 +104,7 @@ var LANG_REGISTRY = [
       'quality.C': 'Lite Tools',
       'quality.C.desc': 'Quick reference / lookup pages',
       'explore.title': '🧭 Explore Tools',
-      'explore.subtitle': 'Explore 6000+ free online tools',
+      'explore.subtitle': 'Explore 5000+ free online tools',
       'explore.hint': 'Pick a category above, or search directly · Pure frontend, your data stays local',
       'explore.hot': 'Popular Industries',
       'footer.privacy': 'Pure frontend · Data never leaves your browser',
@@ -159,14 +159,14 @@ var LANG_REGISTRY = [
       'why.c1_desc': 'All computation happens locally. No server, no upload, no data collection. Handle sensitive files with peace of mind.',
       'why.c2_title': 'Instant pure-frontend load',
       'why.c2_desc': 'No backend wait, no loading spinners. Ready on open; speed depends on your device, not the server.',
-      'why.c3_title': 'No ads, no login',
+      'why.c3_title': 'No login, free forever',
       'why.c3_desc': 'No popups, no forced sign-up, no limits. Use and go. Free forever.',
-      'why.c4_title': '6000+ full coverage',
+      'why.c4_title': '5000+ full coverage',
       'why.c4_desc': 'From developers to daily life, 200+ niche industries in one place. No jumping between a dozen sites.',
       'hero.badge1': 'Runs pure-frontend',
       'hero.badge2': 'Data stays in browser',
       'hero.badge3': 'No login required',
-      'hero.badge4': 'Free forever, no ads',
+      'hero.badge4': 'Free forever',
       'breadcrumb.nav': 'Categories',
       'ad.label': '— Sponsored —',
       'ad.taobao_title': 'Taobao Picks',
@@ -237,7 +237,7 @@ var LANG_REGISTRY = [
       'ad.taobao_desc': 'Curated quality products, limited-time offers',
       'ad.taobao_cta': 'Check it out →',
       'ad.track_event': 'Ad click',
-      'ad.fallback_text': '⭐ Bookmark ToolBox: 6000+ free tools anytime · Pure frontend · Data stays in browser'
+      'ad.fallback_text': '⭐ Bookmark ToolBox: 5000+ free tools anytime · Pure frontend · Data stays in browser'
     }
   };
 

@@ -54,7 +54,7 @@ TOP_TOOL_PRE_RENDER = {
 
 HOME_PRE_RENDER_I18N_EN = {
     'hero.title': 'Free Online Tools',
-    'hero.sub': '6000+ free tools, all running locally in your browser. No sign-up, your data stays private.',
+    'hero.sub': '5000+ free tools, all running locally in your browser. No sign-up, your data stays private.',
     'hero.tags': 'Popular:',
     'foot.tool_json': 'JSON Formatter',
     'foot.tool_qr': 'QR Code Generator',
@@ -66,7 +66,7 @@ HOME_PRE_RENDER_I18N_EN = {
     'hero.badge1': 'Pure Frontend',
     'hero.badge2': 'No Data Upload',
     'hero.badge3': 'No Login Required',
-    'hero.badge4': 'Free Forever, No Ads',
+    'hero.badge4': 'Free Forever',
     'tab.hot': '🔥 Hot Tools',
     'tab.recent': '🕐 Recent Use',
     'tab.fav': '❤️ Favorites',
@@ -78,9 +78,9 @@ HOME_PRE_RENDER_I18N_EN = {
     'why.c1_desc': 'All computation happens locally. No server upload, no data collection. You can process files with confidence.',
     'why.c2_title': 'Fast Pure Frontend Start',
     'why.c2_desc': 'No backend waiting and no spinning loading animations. Open, use, and exit directly.',
-    'why.c3_title': 'No Ads, No Login',
+    'why.c3_title': 'No Login, Free Forever',
     'why.c3_desc': 'No popups, no forced registration, no usage cap. Use freely, leave immediately. Free forever.',
-    'why.c4_title': '6000+ Full Coverage',
+    'why.c4_title': '5000+ Full Coverage',
     'why.c4_desc': 'From developers to daily life, this is a one-stop toolbox with 200+ niche industries.',
     'section.hotcat': 'Popular Categories',
     'section.comtools': 'Common Tools',
@@ -1717,7 +1717,7 @@ def update_index_html(index_path, tools_js, tool_count, cat_counts, ind_counts):
 
     # Update title only if not already set correctly
     html = re.sub(r'<title>ToolBox - [^<]+</title>',
-        '<title>ToolBox - 6000+免费在线工具集合，纯前端处理数据不上传 | 工具百科</title>', html)
+        '<title>ToolBox - 5000+免费在线工具集合，纯前端处理数据不上传 | 工具百科</title>', html)
 
     # Inject industry counts for sidebar (so all counts show on first load)
     ind_counts_js = json.dumps(ind_counts, ensure_ascii=False)
@@ -1733,9 +1733,9 @@ def update_index_html(index_path, tools_js, tool_count, cat_counts, ind_counts):
         )
 
     # Update tool count in hero text (match pattern like "1010+")
-    # P0-05 统计数字统一：首页各处的营销数字统一为品牌口径 6000+，
-    # 不再注入真实工具数（避免与 title/description/og:image 等处的 6000+ 不一致）。
-    html = re.sub(r'等\d+\+实用工具', '等6000+实用工具', html)
+    # P0-05 统计数字统一：首页各处的营销数字统一为品牌口径 5000+，
+    # 不再注入真实工具数（避免与 title/description/og:image 等处的 5000+ 不一致）。
+    html = re.sub(r'等\d+\+实用工具', '等5000+实用工具', html)
 
     # v2-02：首页构建期英文预渲染（高优先入口，首抓更友好）
     for key, text in HOME_PRE_RENDER_I18N_EN.items():
@@ -2048,7 +2048,7 @@ def fix_tool_pages_seo(tools):
 
         # 4. Add og:image / twitter:image (idempotent)
         if 'og:image' not in content:
-            image_meta = '\n<meta property="og:image" content="https://chenguangwu.github.io/og-image.png">\n<meta property="og:image:width" content="1200">\n<meta property="og:image:height" content="630">\n<meta property="og:image:alt" content="ToolBox - 6000+免费在线工具">\n<meta name="twitter:image" content="https://chenguangwu.github.io/og-image.png">\n<meta name="twitter:image:alt" content="ToolBox - 6000+免费在线工具">\n'
+            image_meta = '\n<meta property="og:image" content="https://chenguangwu.github.io/og-image.png">\n<meta property="og:image:width" content="1200">\n<meta property="og:image:height" content="630">\n<meta property="og:image:alt" content="ToolBox - 5000+免费在线工具">\n<meta name="twitter:image" content="https://chenguangwu.github.io/og-image.png">\n<meta name="twitter:image:alt" content="ToolBox - 5000+免费在线工具">\n'
             content = content.replace('</head>', image_meta + '</head>', 1)
 
         # 4.0 中文优先 <title>（2026-08-29 反转：目标用户以中文为主）。
@@ -2300,12 +2300,12 @@ def generate_category_indexes(tools):
         parts.append('<meta property="og:image" content="https://chenguangwu.github.io/og-image.png">\n')
         parts.append('<meta property="og:image:width" content="1200">\n')
         parts.append('<meta property="og:image:height" content="630">\n')
-        parts.append('<meta property="og:image:alt" content="ToolBox - 6000+免费在线工具">\n')
+        parts.append('<meta property="og:image:alt" content="ToolBox - 5000+免费在线工具">\n')
         parts.append('<meta name="twitter:card" content="summary_large_image">\n')
         parts.append('<meta name="twitter:title" content="%s">\n' % esc_html_py(title_zh))
         parts.append('<meta name="twitter:description" content="%s">\n' % esc_html_py(desc_meta_zh))
         parts.append('<meta name="twitter:image" content="https://chenguangwu.github.io/og-image.png">\n')
-        parts.append('<meta name="twitter:image:alt" content="ToolBox - 6000+免费在线工具">\n')
+        parts.append('<meta name="twitter:image:alt" content="ToolBox - 5000+免费在线工具">\n')
         parts.append('<title>%s</title>\n' % esc_html_py(title_zh))
         parts.append('<link rel="canonical" href="https://chenguangwu.github.io/tools/%s/index.html">\n' % ind)
         parts.append('<link rel="icon" type="image/svg+xml" href="/favicon.svg">\n')
@@ -2501,7 +2501,7 @@ def main():
     with open(INDEX_FILE, 'r', encoding='utf-8') as f:
         idx_html = f.read()
     if 'og:image' not in idx_html:
-        image_meta = '<meta property="og:image" content="https://chenguangwu.github.io/og-image.png">\n<meta property="og:image:width" content="1200">\n<meta property="og:image:height" content="630">\n<meta property="og:image:alt" content="ToolBox - 6000+免费在线工具">\n<meta name="twitter:image" content="https://chenguangwu.github.io/og-image.png">\n<meta name="twitter:image:alt" content="ToolBox - 6000+免费在线工具">\n'
+        image_meta = '<meta property="og:image" content="https://chenguangwu.github.io/og-image.png">\n<meta property="og:image:width" content="1200">\n<meta property="og:image:height" content="630">\n<meta property="og:image:alt" content="ToolBox - 5000+免费在线工具">\n<meta name="twitter:image" content="https://chenguangwu.github.io/og-image.png">\n<meta name="twitter:image:alt" content="ToolBox - 5000+免费在线工具">\n'
         idx_html = idx_html.replace('<meta property="og:type" content="website">',
                                     '<meta property="og:type" content="website">\n' + image_meta, 1)
         with open(INDEX_FILE, 'w', encoding='utf-8') as f:

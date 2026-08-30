@@ -2787,7 +2787,7 @@ function isStandaloneMode(){
 }
 function injectAdBanner(){
   try {
-    if (isStandaloneMode()) return;              // PWA 安装后无广告
+    if (isStandaloneMode()) return;              // PWA 安装后不展示广告位
     var nav = document.querySelector('.nav');
     if (!nav) return;                             // 仅工具页
     if (document.getElementById('toolboxAd')) return;
@@ -2926,7 +2926,7 @@ function buildUnifiedFooter(){
       '<div class="footer-grid">' +
         '<div>' +
           '<div class="footer-brand"><img src="' + root + 'logo-32.png" alt="ToolBox"><span>ToolBox</span></div>' +
-          '<p class="footer-desc" data-i18n="footer.desc" data-i18n-fb="6000+ 跨行业纯前端在线工具，数据不出浏览器，保护你的隐私安全。">6000+ 跨行业纯前端在线工具，数据不出浏览器，保护你的隐私安全。</p>' +
+          '<p class="footer-desc" data-i18n="footer.desc" data-i18n-fb="5000+ 跨行业纯前端在线工具，数据不出浏览器，保护你的隐私安全。">5000+ 跨行业纯前端在线工具，数据不出浏览器，保护你的隐私安全。</p>' +
         '</div>' +
         '<div class="desktop-only-block">' +
           '<h2 data-i18n="section.hotcat" data-i18n-fb="热门分类">热门分类</h2>' +

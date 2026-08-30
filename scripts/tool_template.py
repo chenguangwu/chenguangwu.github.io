@@ -81,9 +81,9 @@ TEMPLATE = """<!DOCTYPE html>
 <meta property="og:image" content="https://chenguangwu.github.io/og-image.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
-<meta property="og:image:alt" content="ToolBox - 6000+免费在线工具">
+<meta property="og:image:alt" content="ToolBox - 5000+免费在线工具">
 <meta name="twitter:image" content="https://chenguangwu.github.io/og-image.png">
-<meta name="twitter:image:alt" content="ToolBox - 6000+免费在线工具">
+<meta name="twitter:image:alt" content="ToolBox - 5000+免费在线工具">
     <meta property="og:type" content="website">
     <meta name="twitter:title" content="__TITLE__">
     <meta name="twitter:description" content="__DESC__">

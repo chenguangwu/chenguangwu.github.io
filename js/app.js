@@ -561,7 +561,7 @@ function renderExploreGuide() {
     <div class="explore-guide-head">
       <div class="explore-guide-emoji">🧭</div>
       <div class="explore-guide-text">
-        <div class="explore-guide-title">${_t('explore.subtitle', '开始探索 6000+ 在线工具')}</div>
+        <div class="explore-guide-title">${_t('explore.subtitle', '开始探索 5000+ 在线工具')}</div>
         <div class="explore-guide-sub">${_t('explore.hint', '选择上方「功能分类」或「分类导航」，也可直接搜索 · 纯前端处理，数据不上传')}</div>
       </div>
     </div>

@@ -176,7 +176,7 @@ TOOLS.append(dict(
     title='OG 元标签生成器',
     desc='可视化生成 Open Graph + Twitter Card 全套 meta 标签：标题/描述/图片/URL/类型/站点名，一键复制 HTML，提升社交分享效果。',
     body='''    <div class="input-row">
-      <div><label>页面标题</label><input type="text" id="f_title" placeholder="ToolBox - 6000+ 免费在线工具" oninput="build()"></div>
+      <div><label>页面标题</label><input type="text" id="f_title" placeholder="ToolBox - 5000+ 免费在线工具" oninput="build()"></div>
     </div>
     <div class="input-row">
       <div><label>页面描述</label><input type="text" id="f_desc" placeholder="JSON格式化、二维码生成等 6256 个实用工具，纯前端运行" oninput="build()"></div>

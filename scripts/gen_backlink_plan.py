@@ -95,7 +95,7 @@ SITE_PLATFORMS = [
         "type": "软件导航站（DoFollow）",
         "action": "为「ToolBox」建产品条目，关联竞品（it-tools.tech、Toolfk、其他在线工具聚合站）；"
                   "用户自然投票带来外链 + 直接流量。",
-        "template": "Product: ToolBox — 6000+ 免费在线工具百科，纯前端、数据不上传。\n"
+        "template": "Product: ToolBox — 5000+ 免费在线工具百科，纯前端、数据不上传。\n"
                     "Alternatives to: it-tools.tech, toolfk.com, smallpdf.com",
     },
     {
@@ -104,7 +104,7 @@ SITE_PLATFORMS = [
         "weight": "DR 90 / 极高",
         "type": "产品发布平台（高权重外链 + 流量）",
         "action": "发一次 Launch（需准备首图、标语、前 100 字描述）。建议周五 UTC 档期。",
-        "template": "Tagline: 6000+ free online tools, 100% in-browser, no data upload.\n"
+        "template": "Tagline: 5000+ free online tools, 100% in-browser, no data upload.\n"
                     "Topics: Productivity, Developer Tools, Web App\n"
                     "First Comment: 为什么做 / 与 it-tools 的差异（更全、中文友好）",
     },
@@ -113,8 +113,8 @@ SITE_PLATFORMS = [
         "url": "https://news.ycombinator.com/submit",
         "weight": "DR 88 / 极高",
         "type": "社区（DoFollow，流量大）",
-        "action": "发「Show HN: ToolBox, 6000+ free client-side web tools」。标题克制、正文讲技术取舍（纯前端/零后端）。",
-        "template": "Title: Show HN: ToolBox – 6000+ free, fully client-side web tools\n"
+        "action": "发「Show HN: ToolBox, 5000+ free client-side web tools」。标题克制、正文讲技术取舍（纯前端/零后端）。",
+        "template": "Title: Show HN: ToolBox – 5000+ free, fully client-side web tools\n"
                     "Text: 纯静态、零后端、数据不上传；覆盖 IT/金融/设计/生活。求反馈。",
     },
     {
@@ -122,8 +122,8 @@ SITE_PLATFORMS = [
         "url": "https://sspai.com",
         "weight": "DR 78 / 高（中文权重）",
         "type": "中文科技媒体（客座/矩阵）",
-        "action": "写「我用 6000+ 在线工具搭建了一个零后端工具站」类文章，自然带站链；或投稿效率工具清单。",
-        "template": "标题: 收藏这个零后端工具站，6000+ 需求一站搞定\n正文: 按场景挑 10 个工具演示，结尾放 ToolBox 总入口",
+        "action": "写「我用 5000+ 在线工具搭建了一个零后端工具站」类文章，自然带站链；或投稿效率工具清单。",
+        "template": "标题: 收藏这个零后端工具站，5000+ 需求一站搞定\n正文: 按场景挑 10 个工具演示，结尾放 ToolBox 总入口",
     },
     {
         "name": "V2EX「分享发现 / 创造」",
@@ -131,7 +131,7 @@ SITE_PLATFORMS = [
         "weight": "DR 72 / 中高",
         "type": "中文社区（自然露出）",
         "action": "发「做了一个纯前端工具站」帖，给价值、不硬广；回帖答疑带链接。",
-        "template": "标题: 做了一个 6000+ 工具的纯前端站，数据全在本地\n正文: 技术选型 + 几个好用工具举例",
+        "template": "标题: 做了一个 5000+ 工具的纯前端站，数据全在本地\n正文: 技术选型 + 几个好用工具举例",
     },
     {
         "name": "Reddit (r/usefulwebsites 等)",
@@ -139,7 +139,7 @@ SITE_PLATFORMS = [
         "weight": "DR 91 / 极高",
         "type": "社区（DoFollow，大流量）",
         "action": "在 r/usefulwebsites、r/software、r/SideProject 发帖；遵守版规、先给价值。",
-        "template": "Title: I built a 6000+ free client-side tool site (no backend, no upload)\n"
+        "template": "Title: I built a 5000+ free client-side tool site (no backend, no upload)\n"
                     "Body: what it covers + a few examples",
     },
     {
@@ -156,7 +156,7 @@ SITE_PLATFORMS = [
         "weight": "中-高（按目标页定）",
         "type": "资源页投稿（精准、相关性强）",
         "action": "搜「best free online {industry} tools」「{industry} tools list」类资源页，邮件联系站长把 ToolBox 加入。",
-        "template": "邮件: Hi, 我发现你的 {行业} 工具清单很棒，可否把 ToolBox（6000+ 工具含 {行业} 分类）加进去？",
+        "template": "邮件: Hi, 我发现你的 {行业} 工具清单很棒，可否把 ToolBox（5000+ 工具含 {行业} 分类）加进去？",
     },
 ]
 

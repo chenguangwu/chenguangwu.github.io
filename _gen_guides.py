@@ -280,7 +280,7 @@ footer{{text-align:center;color:var(--muted);font-size:13px;padding:24px;border-
 <dl>{faqs}</dl>
 <p class="back"><a href="{tool_url}">→ 打开「{title}」工具立即使用</a></p>
 </main>
-<footer>© ToolBox · 6000+ 免费在线工具，纯前端运行，数据不上传</footer>
+<footer>© ToolBox · 5000+ 免费在线工具，纯前端运行，数据不上传</footer>
 </body>
 </html>'''
 
@@ -339,7 +339,7 @@ footer{{text-align:center;color:var(--muted);font-size:13px;padding:24px;border-
 <p style="color:var(--muted);">精选高频工具的实用指南，涵盖核心功能、适用场景、使用步骤、实用技巧与常见问题。</p>
 <ul>{cards}</ul>
 </main>
-<footer>© ToolBox · 6000+ 免费在线工具，纯前端运行，数据不上传</footer>
+<footer>© ToolBox · 5000+ 免费在线工具，纯前端运行，数据不上传</footer>
 </body>
 </html>'''
 
