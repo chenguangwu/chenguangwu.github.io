@@ -19,6 +19,28 @@
     return fb !== undefined ? fb : key;
   }
 
+  // 当前是否为英文态（i18n 未就绪时回退 <html lang>）
+  function isEn() {
+    var l = '';
+    try {
+      if (window.I18n && typeof window.I18n.get === 'function') l = window.I18n.get() || '';
+    } catch (e) { /* ignore */ }
+    if (!l) l = document.documentElement.lang || '';
+    return String(l).toLowerCase().indexOf('en') === 0;
+  }
+  // 名称/描述按语言取：英文态优先 en，否则中文
+  function nOf(o) { return (isEn() && o && o.en) ? o.en : ((o && o.name) || ''); }
+  function dOf(o) {
+    var d = (o && o.desc) || '';
+    // 描述与名称相同时不重复展示
+    return (d && d === o.name) ? '' : d;
+  }
+  // 名称 + 描述拼成卡片 title（悬浮提示）
+  function titleOf(o) {
+    var n = nOf(o), d = dOf(o);
+    return n + (d ? ' - ' + d : '');
+  }
+
   // ---- DOM 创建辅助 ----
   function $(sel) { return document.querySelector(sel); }
   function ce(tag, cls, html) {
@@ -54,7 +76,7 @@
     const menu = ce('ul', 'tb-nav-menu');
     groups.forEach((g, i) => {
       const li = ce('li', 'tb-nav-item');
-      const a = ce('a', 'tb-nav-link', `<span class="tb-nav-link-icon">${g.icon}</span><span>${g.name}</span>`);
+      const a = ce('a', 'tb-nav-link', `<span class="tb-nav-link-icon">${g.icon}</span><span>${nOf(g)}</span>`);
       a.href = '#';
       a.dataset.index = i;
       li.appendChild(a);
@@ -144,13 +166,13 @@
 
     // 左侧子行业列表
     catCol.innerHTML = '';
-    const catTitle = ce('div', 'tb-megapanel-cats-title', g.name);
+    const catTitle = ce('div', 'tb-megapanel-cats-title', nOf(g));
     catCol.appendChild(catTitle);
     const catList = ce('ul', 'tb-megapanel-cat-list');
     g.children.forEach((c, i) => {
       const li = ce('li', 'tb-megapanel-cat-item' + (i === 0 ? ' ' + CLS_ACTIVE : ''));
       li.dataset.index = i;
-      li.innerHTML = `<span class="tb-cat-icon">${c.icon}</span><span class="tb-cat-name">${c.name}</span><span class="tb-cat-count">${c.count}</span>`;
+      li.innerHTML = `<span class="tb-cat-icon">${c.icon}</span><span class="tb-cat-name">${nOf(c)}</span><span class="tb-cat-count">${c.count}</span>`;
       li.onclick = () => selectChild(i);
       catList.appendChild(li);
     });
@@ -177,7 +199,7 @@
     if (!c) return;
     toolsCol.innerHTML = '';
     const header = ce('div', 'tb-megapanel-tools-header');
-    header.innerHTML = `<span class="tb-tools-header-icon">${c.icon}</span><span class="tb-tools-header-name">${c.name}</span><a class="tb-tools-header-more" href="/tools/${c.key}/index.html">查看全部 ${c.count} 个工具 →</a>`;
+    header.innerHTML = `<span class="tb-tools-header-icon">${c.icon}</span><span class="tb-tools-header-name">${nOf(c)}</span><a class="tb-tools-header-more" href="/tools/${c.key}/index.html">${isEn() ? 'View all' : '查看全部'} ${c.count} ${isEn() ? 'tools' : '个工具'} →</a>`;
     toolsCol.appendChild(header);
 
     const grid = ce('div', 'tb-megapanel-tools-grid');
@@ -185,17 +207,17 @@
       c.top.forEach(t => {
         const card = ce('a', 'tb-megapanel-tool-card');
         card.href = t.url;
-        card.title = t.name;
+        card.title = titleOf(t);
         card.innerHTML = `
           <span class="tb-tool-icon" style="background:${t.bg || '#f5f5f5'}">${t.icon || '🔧'}</span>
           <span class="tb-tool-body">
-            <span class="tb-tool-name">${t.name}</span>
-            <span class="tb-tool-desc">${t.desc || ''}</span>
+            <span class="tb-tool-name">${nOf(t)}</span>
+            <span class="tb-tool-desc">${dOf(t)}</span>
           </span>`;
         grid.appendChild(card);
       });
     } else {
-      grid.innerHTML = `<div class="tb-megapanel-empty">暂无工具</div>`;
+      grid.innerHTML = `<div class="tb-megapanel-empty">${_t('nav.no_tools', '暂无工具')}</div>`;
     }
     toolsCol.appendChild(grid);
   }
@@ -240,7 +262,7 @@
     groups.forEach((g, i) => {
       const section = ce('div', 'tb-mobile-section');
       const head = ce('div', 'tb-mobile-section-head');
-      head.innerHTML = `<span class="tb-mobile-section-icon">${g.icon}</span><span>${g.name}</span><span class="tb-mobile-section-count">${g.count}</span>`;
+      head.innerHTML = `<span class="tb-mobile-section-icon">${g.icon}</span><span>${nOf(g)}</span><span class="tb-mobile-section-count">${g.count}</span>`;
       head.onclick = () => {
         section.classList.toggle(CLS_OPEN);
       };
@@ -249,7 +271,7 @@
         const li = ce('li', 'tb-mobile-section-item');
         const a = ce('a');
         a.href = `/tools/${c.key}/index.html`;
-        a.innerHTML = `<span class="tb-mobile-cat-icon">${c.icon}</span><span>${c.name}</span><span class="tb-mobile-cat-count">${c.count}</span>`;
+        a.innerHTML = `<span class="tb-mobile-cat-icon">${c.icon}</span><span>${nOf(c)}</span><span class="tb-mobile-cat-count">${c.count}</span>`;
         li.appendChild(a);
         list.appendChild(li);
       });
@@ -290,6 +312,13 @@
       if (!e.target.closest('#tbTopnav') && !e.target.closest('#tbMegapanel')) {
         closeMegaPanel();
       }
+    });
+
+    // 语言切换后重渲染（中英文分类名/工具名来自同一份数据的不同字段）
+    window.addEventListener('toolbox:langchange', () => {
+      renderTopNav(topnav);
+      renderMobileBody();
+      closeMegaPanel();
     });
   }
 

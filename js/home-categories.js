@@ -5,6 +5,27 @@
   const MAX_CHILDREN = 6;    // 每个大类默认展示多少个子行业标签
   const MAX_TOOLS = 8;       // 每个子行业默认展示多少个工具
 
+  // ---- i18n 轻量辅助（与 js/i18n.js 并存但不强依赖）----
+  function isEn() {
+    var l = '';
+    try {
+      if (window.I18n && typeof window.I18n.get === 'function') l = window.I18n.get() || '';
+    } catch (e) { /* ignore */ }
+    if (!l) l = document.documentElement.lang || '';
+    return String(l).toLowerCase().indexOf('en') === 0;
+  }
+  // 名称/描述按语言取：英文态优先 en，否则中文
+  function nOf(o) { return (isEn() && o && o.en) ? o.en : ((o && o.name) || ''); }
+  function dOf(o) {
+    var d = (o && o.desc) || '';
+    // 描述与名称相同时不重复展示
+    return (d && d === o.name) ? '' : d;
+  }
+  function titleOf(o) {
+    var n = nOf(o), d = dOf(o);
+    return n + (d ? ' - ' + d : '');
+  }
+
   function ce(tag, cls, html) {
     const el = document.createElement(tag);
     if (cls) el.className = cls;
@@ -18,8 +39,8 @@
     return ce('a', 'hc-tool-card', `
       <span class="hc-tool-icon" style="background:${t.bg || '#f5f5f5'}">${t.icon || '🔧'}</span>
       <span class="hc-tool-body">
-        <span class="hc-tool-name">${t.name}</span>
-        <span class="hc-tool-desc">${t.desc || ''}</span>
+        <span class="hc-tool-name">${nOf(t)}</span>
+        <span class="hc-tool-desc">${dOf(t)}</span>
       </span>
     `);
   }
@@ -33,10 +54,10 @@
     head.innerHTML = `
       <div class="hc-section-title">
         <span class="hc-section-icon">${g.icon}</span>
-        <span class="hc-section-name">${g.name}</span>
-        <span class="hc-section-count">${g.count} 工具</span>
+        <span class="hc-section-name">${nOf(g)}</span>
+        <span class="hc-section-count">${g.count} ${isEn() ? 'tools' : '工具'}</span>
       </div>
-      <a class="hc-section-more" href="tools/${g.children[0] ? g.children[0].key : g.key}/index.html">查看全部 →</a>
+      <a class="hc-section-more" href="tools/${g.children[0] ? g.children[0].key : g.key}/index.html">${isEn() ? 'View all' : '查看全部'} →</a>
     `;
 
     // 子行业标签
@@ -45,7 +66,7 @@
     visibleChildren.forEach((c, i) => {
       const btn = ce('button', 'hc-tab' + (i === 0 ? ' active' : ''));
       btn.dataset.child = c.key;
-      btn.innerHTML = `<span class="hc-tab-icon">${c.icon}</span><span class="hc-tab-name">${c.name}</span><span class="hc-tab-count">${c.count}</span>`;
+      btn.innerHTML = `<span class="hc-tab-icon">${c.icon}</span><span class="hc-tab-name">${nOf(c)}</span><span class="hc-tab-count">${c.count}</span>`;
       btn.onclick = () => switchChild(section, g, c.key);
       tabs.appendChild(btn);
     });
@@ -64,13 +85,13 @@
   function fillGrid(grid, child) {
     grid.innerHTML = '';
     if (!child || !child.top || !child.top.length) {
-      grid.innerHTML = '<div class="hc-empty">暂无工具</div>';
+      grid.innerHTML = `<div class="hc-empty">${isEn() ? 'No tools yet' : '暂无工具'}</div>`;
       return;
     }
     child.top.slice(0, MAX_TOOLS).forEach(t => {
       const card = renderToolCard(t);
       card.href = t.url;
-      card.title = t.name;
+      card.title = titleOf(t);
       grid.appendChild(card);
     });
   }
@@ -94,12 +115,20 @@
   async function init() {
     const container = document.getElementById('homeCategoriesBody');
     if (!container) return;
+
+    const render = groups => {
+      container.innerHTML = '';
+      groups.forEach(g => renderSection(g, container));
+    };
+
     try {
       const res = await fetch('/json/industry-groups.json');
       const groups = await res.json();
-      groups.forEach(g => renderSection(g, container));
+      render(groups);
+      // 语言切换后按新语言重渲染（分类名/工具名中英字段不同）
+      window.addEventListener('toolbox:langchange', () => render(groups));
     } catch (e) {
-      container.innerHTML = '<div class="hc-empty">分类数据加载失败，请刷新重试</div>';
+      container.innerHTML = `<div class="hc-empty">${isEn() ? 'Failed to load categories, please refresh' : '分类数据加载失败，请刷新重试'}</div>`;
     }
   }
 

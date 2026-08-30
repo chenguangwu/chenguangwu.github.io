@@ -9,25 +9,103 @@ B1: 生成 json/industry-groups.json —— 266 个子行业 → ~10 个一级�
 用法：python3 scripts/gen_industry_groups.py
       _build.py 后续会自动调用（幂等）。
 """
+import html
 import json
 import os
 import re
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-# 一级分类（name 是中文导航名，icon 用 emoji，group_key 是 JSON key）
+# ---- 中英文名/描述选取 ----------------------------------------------------
+# 背景：_build.py 会对部分页面做「英文 title 预渲染」，导致 tools.json 里
+#   name（来自 <title>）与 desc 的中英属性是互换的：
+#     · 4905 条：name=中文名，desc=英文描述
+#     · 109  条：name=英文名，desc=中文描述
+# 因此统一规则：**谁含中日韩字符，谁就是中文那一侧**，另一侧即为英文。
+CJK = re.compile(r'[\u4e00-\u9fff]')
+
+# 质量优先序：下拉面板/首页展示优先挑 A 级工具，避免只按文件名取到低质页
+QUALITY_ORDER = {'A': 0, 'B': 1, 'C': 2}
+
+_desc_cache = {}
+
+
+def zh_name(t):
+    """中文名：name 与 desc 中含中文的那个。"""
+    n = t.get('name') or ''
+    d = t.get('desc') or ''
+    return n if CJK.search(n) else (d if CJK.search(d) else n)
+
+
+def en_name(t):
+    """英文名：优先用 _en_override 产出的 en 字段，否则取 name/desc 中不含中文的一侧。"""
+    e = (t.get('en') or '').strip()
+    if e and not CJK.search(e):
+        return e
+    n = t.get('name') or ''
+    d = t.get('desc') or ''
+    v = n if not CJK.search(n) else (d if not CJK.search(d) else n)
+    return re.sub(r'^[\s.]+', '', v) or n
+
+
+def clip(s, n=32):
+    s = (s or '').strip()
+    if len(s) <= n:
+        return s
+    return s[:n - 1].rstrip('，,。、；;：: ') + '…'
+
+
+def meta_desc(path):
+    """从工具页 <meta name="description"> 取中文描述（只读前 12KB，带缓存）。"""
+    if path in _desc_cache:
+        return _desc_cache[path]
+    d = ''
+    try:
+        with open(os.path.join(ROOT, 'tools', path), encoding='utf-8', errors='ignore') as f:
+            head = f.read(12000)
+        m = re.search(r'<meta name="description" content="([^"]*)"', head)
+        if m:
+            d = html.unescape(m.group(1)).strip()
+    except Exception:
+        d = ''
+    _desc_cache[path] = d
+    return d
+
+
+def tool_sort_key(t):
+    return (QUALITY_ORDER.get(t.get('quality', 'C'), 3), t.get('file', ''))
+
+# 一级分类：(group_key, 中文名, icon, 英文名) —— 英文名供英文态导航使用
 GROUPS = [
-    ('it', 'IT开发', '💻'),
-    ('design', '设计创意', '🎨'),
-    ('finance', '金融财务', '💰'),
-    ('health', '健康医疗', '🏥'),
-    ('engineering', '工程制造', '⚙️'),
-    ('science', '科学研究', '🔬'),
-    ('life', '生活实用', '🏠'),
-    ('edu', '教育培训', '📚'),
-    ('business', '商业办公', '💼'),
-    ('entertainment', '休闲娱乐', '🎮'),
+    ('it', 'IT开发', '💻', 'IT & Dev'),
+    ('design', '设计创意', '🎨', 'Design'),
+    ('finance', '金融财务', '💰', 'Finance'),
+    ('health', '健康医疗', '🏥', 'Health'),
+    ('engineering', '工程制造', '⚙️', 'Engineering'),
+    ('science', '科学研究', '🔬', 'Science'),
+    ('life', '生活实用', '🏠', 'Daily Life'),
+    ('edu', '教育培训', '📚', 'Education'),
+    ('business', '商业办公', '💼', 'Business'),
+    ('entertainment', '休闲娱乐', '🎮', 'Entertainment'),
 ]
+
+
+# 常见缩写：避免 it -> "It" 这类不体面的首字母大写
+ACRONYMS = {
+    'it': 'IT', 'ai': 'AI', 'ui': 'UI', 'ux': 'UX', 'uiux': 'UI/UX', 'api': 'API',
+    'seo': 'SEO', 'hr': 'HR', 'erp': 'ERP', 'crm': 'CRM', 'oa': 'OA', 'pdf': 'PDF',
+    '3d': '3D', 'ar': 'AR', 'vr': 'VR', 'id': 'ID', 'iot': 'IoT', 'sql': 'SQL',
+    'b2b': 'B2B', 'b2c': 'B2C', 'cad': 'CAD', 'cpu': 'CPU', 'gpu': 'GPU', 'css': 'CSS',
+    'html': 'HTML', 'js': 'JavaScript', 'qc': 'QC', 'qa': 'QA', 'sms': 'SMS', 'gps': 'GPS',
+}
+
+
+def key_to_en(key):
+    """行业 key -> 可读英文名（auto-beauty -> Auto Beauty，it -> IT）。"""
+    parts = [w for w in str(key).split('-') if w]
+    if not parts:
+        return str(key)
+    return ' '.join(ACRONYMS.get(w, w.capitalize()) for w in parts)
 
 # 分类规则：行业 key -> 一级 group_key。列出的 key 优先按此表映射。
 KEY_RULES = {
@@ -170,21 +248,25 @@ def main():
         else:
             industry_tools[key] = []
 
-    grouped = {gk: [] for gk, _n, _i in GROUPS}
+    grouped = {gk: [] for gk, _n, _i, _e in GROUPS}
     for key, c in counts.items():
         info = ind_info.get(key, {'name': key, 'icon': '🔧'})
         gk = classify(key, info['name'])
+        # A 级优先、同级按文件名，保证展示质量且每次构建结果稳定
+        tools_sorted = sorted(industry_tools.get(key, []), key=tool_sort_key)
         top = []
-        for t in industry_tools.get(key, [])[:8]:
+        for t in tools_sorted[:8]:
+            md = meta_desc(t.get('path', ''))
             top.append({
-                'name': t.get('name') or t.get('en', key),
-                'desc': t.get('desc', ''),
+                'name': zh_name(t),          # 中文名（导航中文态用）
+                'en': en_name(t),            # 英文名（导航英文态用）
+                'desc': clip(md) if md else clip(zh_name(t), 40),
                 'url': '/' + t.get('url', ''),
                 'icon': t.get('icon', ''),
                 'bg': t.get('bg', '#f5f5f5'),
             })
         grouped.setdefault(gk, []).append({
-            'key': key, 'name': info['name'], 'icon': info['icon'],
+            'key': key, 'name': info['name'], 'en': key_to_en(key), 'icon': info['icon'],
             'count': c, 'top': top,
         })
 
@@ -193,10 +275,11 @@ def main():
         grouped[gk].sort(key=lambda x: -x['count'])
 
     out = []
-    for gk, gname, gicon in GROUPS:
+    for gk, gname, gicon, gename in GROUPS:
         out.append({
             'key': gk,
             'name': gname,
+            'en': gename,
             'icon': gicon,
             'count': sum(x['count'] for x in grouped[gk]),
             'children': grouped[gk],
