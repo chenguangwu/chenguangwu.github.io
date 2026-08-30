@@ -1810,6 +1810,9 @@ def _build_deep_dive_html(d):
     parts.append('<!-- TOOLBOX-DEEP-DIVE -->')
     parts.append('<style>')
     parts.append(
+        '.deep-dive{max-width:960px;margin:16px auto;padding:0 16px;}\n'
+        '.deep-dive > .card{margin-bottom:0;}\n'
+        '@media(max-width:600px){.deep-dive{margin:14px auto;padding:0 12px;}}\n'
         '.deep-dive .dd-list{margin:8px 0 16px;padding-left:20px;}\n'
         '.deep-dive .dd-list li{margin:6px 0;line-height:1.75;}\n'
         '.deep-dive .dd-example{background:var(--card-bg,#fff);border:1px solid var(--border,#eee);border-radius:10px;padding:12px 14px;margin:8px 0 16px;}\n'
