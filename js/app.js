@@ -450,7 +450,7 @@ function renderBreadcrumbNav() {
   }));
   // 按工具数量降序排序，数量相同的按名称
   entries.sort((a, b) => b.count - a.count || a.info.name.localeCompare(b.info.name, 'zh'));
-  const DEFAULT_VISIBLE = 15;
+  const DEFAULT_VISIBLE = 16; // 4列 x 4行，分批展示
   const visibleEntries = breadcrumbExpanded ? entries : entries.slice(0, DEFAULT_VISIBLE);
   const hasMore = entries.length > DEFAULT_VISIBLE;
 
@@ -460,7 +460,7 @@ function renderBreadcrumbNav() {
     const name = _ind(info, key);
     html += `<a href="tools/${key}/index.html" class="breadcrumb-item${hot}" title="${name}">
       <span class="bc-icon">${info.icon}</span>
-      <span style="overflow:hidden;text-overflow:ellipsis">${name}</span>
+      <span>${name}</span>
       ${count ? `<span class="bc-count">${count}</span>` : ''}
     </a>`;
   }
