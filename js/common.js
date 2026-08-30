@@ -1503,6 +1503,9 @@ var I18N_MSG = {
   "tool.image_load_error": "图片加载失败，请检查文件",
   "tool.image_load_ok": "图片加载成功",
   "tool.result_empty": "暂无结果",
+  "tool.copy": "📋 复制结果",
+  "tool.related": "🔗 相关工具",
+  "common.loading": "加载中…",
 };
 function i18nText(key, fallback){
   try {
@@ -2331,8 +2334,8 @@ function renderRelatedTools(){
   if(document.querySelector('.related-tools')) return;
   var ind = getToolIndustry();
   if(!ind) return;
-  var relatedTitle = i18nText('tool.related');
-  var loadingText = i18nText('common.loading');
+  var relatedTitle = i18nText('tool.related', '🔗 相关工具');
+  var loadingText = i18nText('common.loading', '加载中…');
   var cur = (location.pathname || '').replace(/^\/+/, '');
   var wrap = document.createElement('div');
   wrap.className = 'related-tools card';
@@ -3089,7 +3092,7 @@ function autoInjectCopyBtn(){
     if (toolbar.querySelector('.auto-copy-btn')) return;
     var btn = document.createElement('button');
     btn.className = 'btn auto-copy-btn';
-    btn.textContent = i18nText('tool.copy');
+    btn.textContent = i18nText('tool.copy', '📋 复制结果');
     btn.setAttribute('style', 'margin-left:8px;');
     btn.onclick = function(){
       var el = document.querySelector('#result, #output, .result-box, .result, #textResult, #viewRaw, textarea[readonly], #resultText');
