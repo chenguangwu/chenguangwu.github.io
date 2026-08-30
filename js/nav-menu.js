@@ -65,10 +65,16 @@
     const searchBtn = ce('button', 'tb-nav-search-btn', '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>');
     searchBtn.title = _t('nav.search', '搜索');
     searchBtn.onclick = () => { location.href = '/search.html'; };
+    // 主题切换：桌面由旧 nav-top 提供，此处主要服务移动端（顶部只有这一层导航）
+    const themeBtn = ce('button', 'tb-nav-theme-btn', '<span id="tbNavThemeIcon">🌙</span>');
+    themeBtn.title = _t('nav.theme', '切换主题');
+    themeBtn.onclick = () => { if (typeof window.toggleTheme === 'function') window.toggleTheme(); };
+
     const mobileToggle = ce('button', 'tb-nav-mobile-toggle', '☰');
     mobileToggle.title = _t('nav.menu', '菜单');
     mobileToggle.onclick = () => { toggleMobileDrawer(true); };
     right.appendChild(searchBtn);
+    right.appendChild(themeBtn);
     right.appendChild(mobileToggle);
 
     inner.appendChild(logo);
