@@ -385,8 +385,28 @@ var LANG_REGISTRY = [
     } catch (e) {}
   }
 
+  // 在首次渲染前，把 placeholder / title 的「原始中文」快照到 *-fb 属性。
+  // 否则切到英文后，这些属性值会被改成英文；再切回中文时 fallback 取到的
+  // 是已被污染的英文属性值，导致中文无法恢复（与 data-i18n 缺 fb 同理）。
+  // 只对缺失 *-fb 的元素补快照，已显式配置的不覆盖。
+  function snapshotFallback() {
+    try {
+      var nodes = document.querySelectorAll('[data-i18n-ph],[data-i18n-title]');
+      for (var i = 0; i < nodes.length; i++) {
+        var el = nodes[i];
+        if (el.hasAttribute('data-i18n-ph') && !el.hasAttribute('data-i18n-ph-fb')) {
+          el.setAttribute('data-i18n-ph-fb', el.getAttribute('placeholder') || '');
+        }
+        if (el.hasAttribute('data-i18n-title') && !el.hasAttribute('data-i18n-title-fb')) {
+          el.setAttribute('data-i18n-title-fb', el.getAttribute('title') || '');
+        }
+      }
+    } catch (e) {}
+  }
+
   function apply(root) {
     root = root || document;
+    snapshotFallback();
     var nodes = root.querySelectorAll('[data-i18n],[data-i18n-ph],[data-i18n-title]');
     for (var i = 0; i < nodes.length; i++) {
       var el = nodes[i];
@@ -396,10 +416,16 @@ var LANG_REGISTRY = [
         if (txt) el.textContent = txt;
       }
       if (el.hasAttribute('data-i18n-ph')) {
-        el.setAttribute('placeholder', t(el.getAttribute('data-i18n-ph'), el.getAttribute('placeholder')));
+        var phKey = el.getAttribute('data-i18n-ph');
+        var phFb = el.getAttribute('data-i18n-ph-fb');
+        if (phFb == null) phFb = el.getAttribute('placeholder') || '';
+        el.setAttribute('placeholder', t(phKey, phFb));
       }
       if (el.hasAttribute('data-i18n-title')) {
-        el.setAttribute('title', t(el.getAttribute('data-i18n-title'), el.getAttribute('title')));
+        var ttKey = el.getAttribute('data-i18n-title');
+        var ttFb = el.getAttribute('data-i18n-title-fb');
+        if (ttFb == null) ttFb = el.getAttribute('title') || '';
+        el.setAttribute('title', t(ttKey, ttFb));
       }
     }
     updateSwitchers();
