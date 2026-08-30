@@ -53,7 +53,7 @@
   - 首页级 key 多靠「内联英文兜底」已能在英文模式显示（hero.eyebrow/footer.desc 等）。
   - **真缺口**：`breadcrumb.expand`/`collapse` 用 `_t()` 且内联中文兜底、en 包无 key → 英文模式仍显中文「展开全部 N 个分类」。已修：`js/i18n.js` 加 `'breadcrumb.expand':'Expand all {n} categories'`+`'breadcrumb.collapse':'Collapse categories'`；`js/app.js` 该行改 `.replace('{n}', entries.length)` 保留分类数。
   - 余项（广告标识「推广」→Sponsored）：tool-i18n.js 未单列该 badge 映射，极次要，可后续补，不阻塞。
-- [x] **P0-08 分类页卡片未翻译：双语设计 + 收拾混杂**。分类卡片本就是双语（`.ct-name` 中文 + `.ct-desc` 英文，如 `Aztec 码 (简化版)`/`Aztec Code`）；`tool-i18n.js` 英文模式按字典译 `.ct-name`。报告「中文模式强制展示英文副标题视觉混杂」已修：`css/common.css` 加 `html[lang="zh-CN"] .category-tool-item .ct-desc{display:none}`（中文模式只显中文名，英文模式保留译名+英文副标题）。
+- [x] **P0-08 分类页卡片未翻译（⚠️ 前次修复有 bug，本次纠错）**：原修复仅加 `html[lang="zh-CN"] .ct-desc{display:none}`，但生成器直接取 `ct-name=t['name']`、`ct-desc=t['desc']`，而 `name`/`desc` 语言角色随工具而变（英文名为 name 的工具 `ct-name` 是英文）。导致**英文名工具（如 .gitignore Generator / CSS Minifier / JSON Repairer）在中文模式只剩英文**——IT 分类 348 卡中 62 张异常，按比例影响全部 266 个分类页。本次真因修复：`_build.py` 生成器改为输出一致双层（`ct-name`=中文名/`ct-desc`=英文名，中文名优先取 name 否则 desc、英文名取可靠的 en 字段）；CSS 补 `html:not([lang="zh-CN"]) .ct-name{display:none}`。重建后全站 5024 张卡仅 60 张仍显英文（源数据本身无中文名的工具，如 API Signature Generator，属数据缺口非回归）。
 - [ ] **P1-01 模板不统一 / P1-12「无广告」与广告矛盾：产品决策，未改，待老板拍板**。本项目即广告变现站，删广告/全量重做模板违背商业模式；「永久免费无广告」文案与广告并存属措辞问题，建议二选一（改文案去「无广告」或调整广告策略），等老板决定后再动。
 - [x] 三道门禁通过（_test_static 0 / _audit_links 0 死链 / _audit_assets 0）；node --check 两 JS 通过；build 幂等。
 

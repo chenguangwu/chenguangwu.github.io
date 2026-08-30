@@ -2246,6 +2246,11 @@ CATEGORY_DESC_OVERRIDE = {
 }
 
 
+def _has_cjk(s):
+    """返回字符串是否含中日韩（中文）字符，用于判定工具名/描述的语言。"""
+    return bool(re.search(r'[一-鿿]', s or ''))
+
+
 def generate_category_indexes(tools):
     """Generate index.html for each industry directory."""
     _en_path = os.path.join(ROOT, 'i18n', 'industry-en.json')
@@ -2332,8 +2337,14 @@ def generate_category_indexes(tools):
         parts.append('    <div class="category-tool-list">\n')
         index_ref_dir = 'tools/' + ind
         for t in ind_tools_sorted:
-            t_name = esc_html_py(t['name'])
-            t_desc = esc_html_py(t.get('desc', ''))
+            # 卡片双层命名：ct-name 始终为中文名、ct-desc 始终为英文名，
+            # 由 CSS 按 html[lang] 切换显示（P0-08 修复：原直接取 name/desc 导致
+            # 英文名为 name 的工具在中文模式只剩英文）。中文名优先取 name，
+            # 否则取 desc；英文名取可靠的 en 字段。
+            _zh = t['name'] if _has_cjk(t['name']) else (t.get('desc', '') if _has_cjk(t.get('desc', '')) else t['name'])
+            _en = t.get('en') or t['name']
+            t_name = esc_html_py(_zh)
+            t_desc = esc_html_py(_en)
             t_icon = t.get('icon', '🔧')
             tool_href = os.path.relpath(t['url'], index_ref_dir).replace(os.sep, '/')
             parts.append('      <a href="%s" class="category-tool-item">\n        <span class="ct-icon">%s</span>\n        <span class="ct-info"><span class="ct-name">%s</span><span class="ct-desc">%s</span></span>\n      </a>\n' % (tool_href, t_icon, t_name, t_desc))
