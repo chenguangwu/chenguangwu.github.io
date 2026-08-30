@@ -6,7 +6,7 @@
   - **P0-01 / P0-02 死链 ✅确认**：`unit-converter.html`、`uuid-v4-generator.html` 才存在；`HOT_TOOLS` 两处 + `404.html` 的 `PATH_MAP` + `404.html` 的 `HOT_TOOLS` 都指向已删除旧路径（`converter.html` / `uuid.html`）。
   - **P0-03 倒计时器默认秒表 ✅确认**：`stopwatch.html` 的 `currentMode='stopwatch'`，但卡片叫「倒计时器」。
   - **P0-07 i18n key 裸露 ✅确认**：`I18N_MSG` 缺 `tool.copy`/`tool.related`/`common.loading`，且三处 `i18nText()` 无 fallback；zh 包为空 → 回退裸 key。
-  - **P0-04 搜索返回全部/时序 ⚠️疑似已修复**：`app.js` 已用 `toolboxSearch`+debounce+空结果态，标记为「回归验证」。
+  - **P0-04 搜索返回全部/无效词 ❌确为真实缺陷（已修复）**：三方报告（今早基于最新站点合并生成）指出无效关键词返回全部/热门工具、不支持拼音。前次 Batch6 误判「代码早已落地」已被老板复核推翻——用**真实 Fuse 库 + 逐字抽取真实函数 + 真实 search-index.json** 端到端复现，确认存在三重污染（见 Batch 6·纠错）。
   - **P0-05 统计数字不一 ✅确认**：hero `6000+` / sub `5014+` / why-card `6060+` / footer `6000+` 口径混乱。
   - **P0-06 / 08 / 09 / 10 / 11 / P1-01 / P1-12 等**：多为已通过 `data-i18n-fb` 或现有组件覆盖，逐条核实后针对性处理，不做表面修改。
   - **P1-09 索引名称异常 ✅确认扩散**：报告举例 `bercent`/`ending-` 已随重建消失，但现存在 **164 个「公式字符串作为名称」** 的工具（math/statistics/banking/economics/investment/optics/fluid/robotics/quantum/nuclear/aerospace/dynamics/kinematics/process/astronomy…）。根因：源页 `<title>`/`<og:title>` 被公式替换，`<h1>` 正确。修复：用 `<h1>` 回写 `<title>`/`<og:title>` 后重建索引。
@@ -57,25 +57,28 @@
 - [ ] **P1-01 模板不统一 / P1-12「无广告」与广告矛盾：产品决策，未改，待老板拍板**。本项目即广告变现站，删广告/全量重做模板违背商业模式；「永久免费无广告」文案与广告并存属措辞问题，建议二选一（改文案去「无广告」或调整广告策略），等老板决定后再动。
 - [x] 三道门禁通过（_test_static 0 / _audit_links 0 死链 / _audit_assets 0）；node --check 两 JS 通过；build 幂等。
 
-### Batch 6 — 搜索 / 细节 / P3 回归验证【已完成】
-> 核心结论：报告这批搜索问题对应的代码**早已大幅超越旧版**（hybrid ranker + Fuse 模糊 + 拼音/别名 + 防抖 + Ctrl+K 命令面板 + 空态提示均已落地）。逐条核实后，发现并修复 1 个真实一致性缺陷、补强 1 个验收缺口。
+### Batch 6 — 搜索 / 细节 / P3 回归验证【已完成 · 结论经复核推翻后纠错】
+> ⚠️ 前次 Batch6 提交 `ef50c2bc` 的「报告搜索类问题代码早已落地、逐条核实通过」结论**经老板复核有误**。报告是今早基于最新站点、三方 AI 合并生成，可信度高。改用**真实 Fuse 库 + 逐字抽取真实函数 + 真实 `search-index.json`** 端到端复现，确认搜索确实存在「无效关键词返回结果」真实缺陷，根因有三重污染，已全部修复（见下）。
 
-- [x] **P0-04 搜索时序/返回全部 ✅已落实（验证）**：`performSearch()` 先 `await ensureSearchIndexLoaded()` 再渲染，`toolboxSearch` 空查询返回 `[]`、无匹配显「没有找到匹配的工具」+相关推荐（`renderSearchResults` 1026-1037）；`search.html` 监听 `?q=` 并在 fetch 完索引后才 `doSearch`，无时序 bug；无效词（如 `zzzzz`）实测 0 命中、显空态、不返回全部。
-- [x] **P1-02 拼音/英文别名 ✅已落实 + 本次补强**：索引 5014 工具全带 `py/pyi/al`；`erweima/qrcode/ewm/json/jisuanqi/bmi` 实测均命中（Node 复刻双路径验证）。**修复 1 个真实缺陷**：`search.html` 的 `doSearch` 旧版漏查 `al`（别名），导致首页能命中 `qrcode` 而 search.html 输 `qrcode` 却 0 命中——已补别名检索 + 评分权重。**修复验收缺口**：`格式化json`（CJK+拉丁混排无空格）原 0 命中，新增 `segmentQuery()` 对混排词切分为 `["格式化","json"]` 做 AND 匹配，两处搜索路径均已闭环（实测命中「JSON 格式化」）。
-- [x] **P1-04 无结果提示 ✅已落实（验证）**：两处搜索无结果均显「未找到相关工具/没有找到匹配的工具」空态 + 推荐词/相关工具引导，不返回全部；搜索框保留输入内容。
+- [x] **P0-04 / P1-02 / P1-04 搜索污染修复（真实根因，非"已实现"）**：用真实环境复现，无效关键词（zzz/zzzzz/qwe/abc/asdkjfh/哈哈哈）原本返回几十~数百条结果，确为缺陷。三重污染根因：① **Fuse 噪声污染**：`threshold:0.38 + minMatchCharLength:1` 对短字母词极宽松，`Fuse.search('zzz')`→288、`qwe`→300、`abc`→300（触 limit 上限），`toolboxSearch` 直接 concat → 无效词返回海量噪声；② **corrected 伪纠错**：`windowEditDistance` 距离≤2 且无条数上限，`jisqanqi` 在 `search.html` 召回 698 条；③ **toolboxScore 短词子串过宽**：`abc` 命中 ABCD 工具（py 含 abc）、`zzz` 命中 pyi 失真（zh-zh-zh→zzz）的 7 个工具。
+  - **修复（`js/app.js` + `search.html` 双路径对齐）**：① `toolboxScore`/`shMatch` 加无效词早返回（`/(.)\1\1/` 连续重复 或 单一种类字符 → -1）+ 拉丁短词（≤3 字符）禁任意子串、仅 token/前缀级匹配；② `corrected` 纠错门槛收紧（仅 ≥4 字符 / 无连续重复 / 字符种类≥3）+ 窗口距离 2→1 + `.slice(0,8)`；③ Fuse 兜底仅 ≥4 字符且 `score≤0.3`；④ `fuzzySuggest` 空态建议加 isJunk 判定 + `score≤0.3`。
+  - **实测（真实 Fuse + 真实索引，两路径一致）**：jisqanqi→13/8 条（收敛到计算器类）、zzzzz→0、qwe→0、abc→2 条（合理 ABCD 工具）、asdkjfh→0、erweima→17、复利→6、格式化json→5；拼音/别名/混排分词均正常。
+- [x] **P1-02 别名补查 + 混排切分（前次 Batch6 真实有效，保留）**：`search.html` 的 `doSearch` 补查 `al`（别名）使 `qrcode` 等命中；`segmentQuery()` 对 `格式化json` 切分 `["格式化","json"]` 做 AND 匹配，两路径闭环（实测命中「JSON 格式化」）。
+- [x] **P1-04 无结果提示（前次 Batch6 验证：已落实，但"返回全部"属污染 bug 本次才根治）**：两处搜索无结果均显空态 + 引导，不返回全部；搜索框保留输入。真正杜绝"无效词返回结果"靠的是上面的三重污染修复，而非仅空态文案。
 - [x] **P2-09 搜索防抖 ✅已落实（验证）**：`app.js:958` 与 `search.html:113` 均为 150ms debounce。
 - [x] **P2-03 Ctrl+K 命令面板 ✅已落实（验证）**：`app.js:1119-1120` 已绑定 `Ctrl/Cmd+K`，Mac 显示 ⌘K。
 - [x] **P2-05 主题持久化 ✅已落实**：`app.js:391/402` 读写 `localStorage.theme` + `prefers-color-scheme` 跟随。
 - [x] **P2-06 语言记忆 ✅已落实**：`i18n.js:244` `toolbox_lang` + `privacy.js:19` 已登记持久化。
 - [x] **P2-04 推广位识别 ✅已落实**：`common.js:2489/2821` 渲染 `tool-ad-card` + `rel="noopener sponsored"` + 「— 推广 —」角标，与工具卡视觉区分。
 - [x] **P2-08 分类名与计数重叠 ✅已落实（验证）**：当前布局分类名（`toolsGridTitle`）与计数（`resultCount`）为独立元素、`.cat-tag` 按钮仅显名称无计数，无重叠。
-- [x] 三道门禁通过（_test_static 0 / _audit_links 0 死链 / _audit_assets 0）；`node --check` 校验 `js/app.js` + 抽取 `search.html` 内联脚本均 OK；Node 复刻双搜索路径实测 9 组用例全通过。
+- [x] 三道门禁通过（_test_static 0 / _audit_links 0 死链 / _audit_assets 0）；`node --check` 校验 `js/app.js` + 抽取 `search.html` 内联脚本均 OK；**真实 Fuse 库 + 真实 `search-index.json` 端到端复现验证通过**（无效词归零、拼音/别名/混排/中文正常）。
 - [ ] **P3 低优先优化（本次仅验证，未实现，待老板决策）**：P3-01 行业口径/ P3-02「推广」文案去重 / P3-03 主题过渡动画 / P3-04 emoji 规范 / P3-05 分类 emoji 去重 / P3-06 首屏骨架屏 / P3-07 空态引导 / **P3-08 搜索历史记录** / P3-09 结构化数据（已由 `_build.py` 注入 JSON-LD+OG，已落实）/ P3-10 第三方推广 sandbox。多为产品/体验增强项，非缺陷；其中 P3-08/P3-03 等若老板要做可单独立项，不在「修报告 bug」范围盲改。
 
 ---
 
-## ✅ 全部批次完成
-- Batch 1-6 已分批完成、逐批门禁通过、提交并推送 master。
+## ✅ 全部批次完成（含 Batch6 结论纠错）
+- Batch 1-6 已分批完成、逐批门禁通过。**Batch6 前次提交 `ef50c2bc` 的搜索结论经复核有误，本次已纠错**：搜索确实存在「无效关键词返回结果」真实缺陷（Fuse 噪声 + corrected 伪纠错 + 短词子串三重污染），已在 `js/app.js` + `search.html` 修复并真实环境复现验证。
+- 已提交文件：`js/app.js`、`search.html`、`test-dev-plan.md`（纠错记录）。
 - 两个仍待老板拍板的决策（非缺陷，未擅改）：
   1. **真实工具数 5014 vs 全站「6000+」品牌口径**（P0-05 遗留）：是否全站改为 `5000+`/`5014+`，涉及 `_build.py` 模板 + 重建约 5000 工具页 og:image:alt，是大改动。
   2. **P1-01 模板统一 / P1-12「无广告」矛盾**：本项目即广告变现站，属产品/文案方向，待老板定调。

@@ -1158,10 +1158,14 @@ function cmdkInitFuse() {
 // B5-01: fuzzy "did you mean" suggestions for empty-result searches.
 function fuzzySuggest(q, limit) {
   if (!allSearchIndex) return [];
+  const qn = (q || '').trim().toLowerCase().replace(/\s+/g, '');
+  // 无效查询（连续重复/单种类字符）不给建议，避免噪声；长度过短也不建议
+  if (qn.length < 2 || /(.)\1\1/.test(qn) || new Set(qn.split('')).size < 2) return [];
   cmdkInitFuse();
   if (!cmdkFuse) return [];
-  const res = cmdkFuse.search(q, { limit: limit || 8 });
-  return res.map(r => r.item);
+  const res = cmdkFuse.search(qn, { limit: limit || 8 });
+  // 只取高质量相似，过滤 Fuse 宽松配置产生的低相似噪声
+  return res.filter(r => (r.score || 1) <= 0.3).map(r => r.item);
 }
 
 // B5-01: hybrid search ranker. Exact/prefix/contains/pinyin/alias matches are
@@ -1170,18 +1174,31 @@ function fuzzySuggest(q, limit) {
 function toolboxScore(t, q) {
   const name = (t.n || '').toLowerCase();
   const slug = (t.s || '').toLowerCase();
-  const alias = (t.al || []).join(' ').toLowerCase();
+  const aliasArr = (t.al || []).map(a => String(a).toLowerCase());
   const py = (t.py || '').toLowerCase();
   const pyi = (t.pyi || '').toLowerCase();
+  const qn = q.replace(/\s+/g, '');
+  // 无效查询（连续重复字符如 zzz、或单一种类字符）直接判负。否则拼音首字母
+  // 失真（pyi 把 zh-zh-zh 压成 zzz）会让 zzz 误命中一堆不相关工具。
+  if (/(.)\1\1/.test(qn) || new Set(qn.split('')).size < 2) return -1;
+  // 拉丁短词（≤3 字符的拼音/英文）极易在长拼音串里子串误命中，降级为
+  // 精确/前缀/token 级匹配，禁止任意子串包含；中文短词保持正常子串匹配。
+  const latinShort = /^[a-z0-9]+$/.test(q) && q.length <= 3;
   if (name === q) return 1000;
   if (name.startsWith(q)) return 920 - name.length;
-  if (name.indexOf(q) >= 0) return 820 - name.indexOf(q);
+  if (!latinShort && name.indexOf(q) >= 0) return 820 - name.indexOf(q);
   if (pyi && pyi === q) return 660;
   if (pyi && pyi.startsWith(q) && q.length >= 2) return 640 - q.length;
-  if (py && py.indexOf(q) >= 0) return 600 - py.indexOf(q) * 0.5;
-  if (pyi && pyi.indexOf(q) >= 0) return 580 - pyi.indexOf(q) * 0.5;
-  if (slug.indexOf(q) >= 0) return 560 - slug.indexOf(q) * 0.5;
-  if (alias.indexOf(q) >= 0) return 520;
+  if (!latinShort && py && py.indexOf(q) >= 0) return 600 - py.indexOf(q) * 0.5;
+  if (!latinShort && pyi && pyi.indexOf(q) >= 0) return 580 - pyi.indexOf(q) * 0.5;
+  if (!latinShort && slug.indexOf(q) >= 0) return 560 - slug.indexOf(q) * 0.5;
+  if (aliasArr.indexOf(q) >= 0) return 520;
+  if (latinShort) {
+    const toks = (s) => (s || '').split(/[^a-z0-9]+/i).filter(Boolean);
+    if (aliasArr.some(a => a.startsWith(q))) return 515;
+    if (toks(pyi).some(tok => tok === q || tok.startsWith(q))) return 510;
+    if (toks(py).some(tok => tok === q || tok.startsWith(q))) return 505;
+  }
   return -1;
 }
 
@@ -1222,34 +1239,41 @@ function toolboxSearch(query, limit) {
   // distance would always fail; the window search finds the best local match
   // (e.g. "jisqanqi" -> "jisuanqi" inside "fangdaijisuanqi...").
   let corrected = [];
-  if (direct.length < 3 && /^[a-z]+$/.test(qNoSpace) && qNoSpace.length >= 3) {
+  // 滑动窗口纠错门槛：仅对 ≥4 字符、无连续重复、字符种类≥3 的拉丁查询启用，
+  // 避免 zzz/aaaa 这类无效词在 py 字段里捞回一堆不相关工具的“伪纠错”。
+  if (direct.length < 3 && /^[a-z]+$/.test(qNoSpace) && qNoSpace.length >= 4 && !/(.)\1\1/.test(qNoSpace) && new Set(qNoSpace.split('')).size >= 3) {
     corrected = allSearchIndex
       .map(t => {
         const py = (t.py || '').toLowerCase();
         const pyi = (t.pyi || '').toLowerCase();
         let best = -1;
         if (py) {
-          const d = windowEditDistance(py, qNoSpace, 2);
+          const d = windowEditDistance(py, qNoSpace, 1);
           if (d >= 0) best = Math.max(best, d);
         }
         if (pyi) {
-          const d = windowEditDistance(pyi, qNoSpace, 2);
+          const d = windowEditDistance(pyi, qNoSpace, 1);
           if (d >= 0) best = Math.max(best, d);
         }
         return best >= 0 ? { t: t, s: 480 - best * 40 } : null;
       })
       .filter(x => x && !direct.some(d => d.u === x.t.u))
       .sort((a, b) => b.s - a.s)
+      .slice(0, 8)
       .map(x => x.t);
   }
   cmdkInitFuse();
-  const fz = cmdkFuse ? cmdkFuse.search(q, { limit: 300 }) : [];
-  const seen = new Set(direct.map(t => t.u).concat(corrected.map(t => t.u)));
-  const fuzzy = fz
-    .filter(r => !seen.has(r.item.u))
-    .map(r => ({ t: r.item, s: 300 - (r.score || 0) * 300 }))
-    .sort((a, b) => b.s - a.s)
-    .map(x => x.t);
+  let fuzzy = [];
+  // 仅长查询（≥4 字符）用 Fuse 做高质量补充，并对结果严格按 score 过滤。
+  // 否则宽松的 Fuse 配置（minMatchCharLength:1）会让 zzz/qwe/abc 等短字母词
+  // 返回海量低相似噪声，表现为“无效关键词返回一堆结果”。
+  if (q.length >= 4) {
+    const fz = cmdkFuse ? cmdkFuse.search(q, { limit: 300 }) : [];
+    const seen = new Set(direct.map(t => t.u).concat(corrected.map(t => t.u)));
+    fuzzy = fz
+      .filter(r => !seen.has(r.item.u) && (r.score || 1) <= 0.3)
+      .map(r => r.item);
+  }
   return direct.concat(corrected, fuzzy).slice(0, limit || 20);
 }
 

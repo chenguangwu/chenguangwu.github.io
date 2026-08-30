@@ -126,6 +126,34 @@ mark{background:rgba(255,107,53,0.2);color:inherit;border-radius:2px;padding:0 2
     return [[token]];
   }
 
+  // 与首页 app.js toolboxScore 对齐的匹配判定：无效词防护 + 拉丁短词分层
+  function shMatch(t, q) {
+    var qn = q.replace(/\s+/g, '');
+    if (/(.)\1\1/.test(qn) || new Set(qn.split('')).size < 2) return false;
+    var name = (t.n || '').toLowerCase();
+    var slug = (t.s || '').toLowerCase();
+    var aliasArr = (t.al || []).map(function(a){ return String(a).toLowerCase(); });
+    var py = (t.py || '').toLowerCase();
+    var pyi = (t.pyi || '').toLowerCase();
+    var latinShort = /^[a-z0-9]+$/.test(q) && q.length <= 3;
+    if (name === q) return true;
+    if (name.indexOf(q) === 0) return true;
+    if (!latinShort && name.indexOf(q) >= 0) return true;
+    if (pyi === q) return true;
+    if (pyi.indexOf(q) === 0 && q.length >= 2) return true;
+    if (!latinShort && py.indexOf(q) >= 0) return true;
+    if (!latinShort && pyi.indexOf(q) >= 0) return true;
+    if (!latinShort && slug.indexOf(q) >= 0) return true;
+    if (aliasArr.indexOf(q) >= 0) return true;
+    if (latinShort) {
+      var toks = function(s){ return (s || '').split(/[^a-z0-9]+/i).filter(Boolean); };
+      if (aliasArr.some(function(a){ return a.indexOf(q) === 0; })) return true;
+      if (toks(pyi).some(function(tok){ return tok === q || tok.indexOf(q) === 0; })) return true;
+      if (toks(py).some(function(tok){ return tok === q || tok.indexOf(q) === 0; })) return true;
+    }
+    return false;
+  }
+
   function doSearch(q) {
     q = (q || '').trim().toLowerCase();
     var qNoSpace = q.replace(/\s+/g, '');
@@ -136,48 +164,41 @@ mark{background:rgba(255,107,53,0.2);color:inherit;border-radius:2px;padding:0 2
       updateUrl('');
       return;
     }
+    var qn = q.replace(/\s+/g, '');
+    // 无效查询（连续重复字符/单一种类字符）直接返回空结果，不返回噪声
+    if (/(.)\1\1/.test(qn) || new Set(qn.split('')).size < 2) {
+      renderResults([], q);
+      updateUrl(q);
+      return;
+    }
     var termSets = segmentQuery(q);
     var results = allTools.filter(function(t) {
-      var aliasStr = (t.al || []).join(' ').toLowerCase();
       return termSets.some(function(set) {
-        if (set.length === 1) {
-          var text = ' ' + [t.n, t.d, t.i, t.c].join(' ');
-          if (text.toLowerCase().indexOf(set[0]) !== -1) return true;
-          if (aliasStr.indexOf(set[0]) !== -1) return true;
-          // pinyin: continuous py / initials pyi, with spaces stripped
-          if ((t.py || '').indexOf(qNoSpace) !== -1) return true;
-          if ((t.pyi || '').indexOf(qNoSpace) !== -1) return true;
-          return false;
-        }
-        return set.every(function(term) {
-          var text = ' ' + [t.n, t.d, t.i, t.c].join(' ');
-          if (text.toLowerCase().indexOf(term) !== -1) return true;
-          if (aliasStr.indexOf(term) !== -1) return true;
-          return false;
-        });
+        if (set.length === 1) return shMatch(t, set[0]);
+        return set.every(function(term) { return shMatch(t, term); });
       });
     }).sort(function(a, b) { return score(b, q, qNoSpace) - score(a, q, qNoSpace); });
     // Typo correction (P3-3): when direct hits are scarce and the query is
     // latin-only, match pinyin fields with sliding-window edit distance (<=2).
     // py/pyi include the description, so window search (not whole-string)
     // finds the best local match, e.g. "jisqanqi" -> "jisuanqi".
-    if (results.length < 3 && /^[a-z]+$/.test(qNoSpace) && qNoSpace.length >= 3) {
+    if (results.length < 3 && /^[a-z]+$/.test(qNoSpace) && qNoSpace.length >= 4 && !/(.)\1\1/.test(qNoSpace) && new Set(qNoSpace.split('')).size >= 3) {
       var corrected = allTools.map(function(t) {
         var py = t.py || '';
         var pyi = t.pyi || '';
         var best = -1;
         if (py) {
-          var d = windowEditDistance(py, qNoSpace, 2);
+          var d = windowEditDistance(py, qNoSpace, 1);
           if (d >= 0) best = Math.max(best, d);
         }
         if (pyi) {
-          var d = windowEditDistance(pyi, qNoSpace, 2);
+          var d = windowEditDistance(pyi, qNoSpace, 1);
           if (d >= 0) best = Math.max(best, d);
         }
         return best >= 0 ? { t: t, d: best } : null;
       }).filter(function(x) {
         return x && results.indexOf(x.t) === -1;
-      }).sort(function(a, b) { return a.d - b.d; }).map(function(x) { return x.t; });
+      }).sort(function(a, b) { return a.d - b.d; }).slice(0, 8).map(function(x) { return x.t; });
       results = results.concat(corrected);
     }
     updateUrl(q);
@@ -220,14 +241,19 @@ mark{background:rgba(255,107,53,0.2);color:inherit;border-radius:2px;padding:0 2
   }
 
   function score(t, q, qNoSpace) {
+    var qn = (q || '').replace(/\s+/g, '');
+    if (/(.)\1\1/.test(qn) || new Set(qn.split('')).size < 2) return -1;
     var s = 0;
+    var latinShort = /^[a-z0-9]+$/.test(q) && q.length <= 3;
     qNoSpace = qNoSpace || q;
     if ((t.n || '').toLowerCase().indexOf(q) !== -1) s += 100;
-    if ((t.al || []).join(' ').toLowerCase().indexOf(q) !== -1) s += 95;
+    if ((t.al || []).some(function(a){ return String(a).toLowerCase().indexOf(q) === 0; })) s += 95;
     if ((t.pyi || '').indexOf(qNoSpace) === 0 && qNoSpace.length >= 2) s += 90;
     if ((t.py || '').indexOf(qNoSpace) === 0) s += 80;
-    if ((t.pyi || '').indexOf(qNoSpace) !== -1) s += 60;
-    if ((t.py || '').indexOf(qNoSpace) !== -1) s += 50;
+    if (!latinShort) {
+      if ((t.pyi || '').indexOf(qNoSpace) !== -1) s += 60;
+      if ((t.py || '').indexOf(qNoSpace) !== -1) s += 50;
+    }
     if ((t.d || '').toLowerCase().indexOf(q) !== -1) s += 10;
     return s;
   }
