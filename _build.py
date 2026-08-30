@@ -1881,6 +1881,7 @@ def fix_tool_pages_seo(tools):
     fixed_bc = 0
     fixed_rt = 0
     fixed_rt_removed = 0
+    fixed_nav = 0
     i18n_dir = os.path.join(ROOT, 'i18n', 'tools')
     _ind_cache = {}
 
@@ -1935,6 +1936,7 @@ def fix_tool_pages_seo(tools):
             content = f.read()
 
         original = content
+
         industry = t['industry']
         ind_def = INDUSTRY_DEFS.get(industry, ('🔧', industry))
         ind_icon, ind_name = ind_def[0], ind_def[1]
@@ -2237,11 +2239,18 @@ def fix_tool_pages_seo(tools):
             if _dd_html and _anchor in content:
                 content = content.replace(_anchor, _dd_html + '\n' + _anchor, 1)
 
+        # 7. 注入全站 2 级分类导航资源（幂等）。放在写入前，避免被上面的
+        #    预渲染/相关工具/深度块处理覆盖。
+        if '</head>' in content and 'js/nav-menu.js' not in content:
+            nav_inject = '<link rel="stylesheet" href="/css/nav-menu.css">\n<script src="/js/industry-info.js" defer></script>\n<script src="/js/nav-menu.js" defer></script>\n'
+            content = content.replace('</head>', nav_inject + '</head>', 1)
+            fixed_nav += 1
+
         if content != original:
             with open(filepath, 'w', encoding='utf-8') as f:
                 f.write(content)
 
-    print('  h1 added: %d, breadcrumbs: %d, related tools: %d (recomputed), removed stale blocks: %d' % (fixed_h1, fixed_bc, fixed_rt, fixed_rt_removed))
+    print('  h1 added: %d, breadcrumbs: %d, related tools: %d (recomputed), removed stale blocks: %d, nav injected: %d' % (fixed_h1, fixed_bc, fixed_rt, fixed_rt_removed, fixed_nav))
 
 # 行业聚合页 meta description 覆盖（仅影响列出的行业；工具数为动态带入，避免下次 build 被模板覆盖）
 CATEGORY_DESC_OVERRIDE = {
@@ -2323,6 +2332,10 @@ def generate_category_indexes(tools):
         parts.append(TOOL_RUNTIME_MARKER + '\n')
         parts.append('<script src="../../js/i18n.js" defer></script>\n')
         parts.append('<script src="../../js/tool-i18n.js" defer></script>\n')
+        # 全站 2 级分类导航（顶部菜单 + 下拉面板 + 移动抽屉）
+        parts.append('<link rel="stylesheet" href="/css/nav-menu.css">\n')
+        parts.append('<script src="/js/industry-info.js" defer></script>\n')
+        parts.append('<script src="/js/nav-menu.js" defer></script>\n')
         # 多语言 SEO：hreflang + og:locale（构建期常量，批次4）
         parts.append(build_hreflang_block('https://chenguangwu.github.io/tools/%s/index.html' % ind))
         # CollectionPage structured data
