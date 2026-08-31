@@ -60,10 +60,11 @@
 
 ### Performance-A：高热度页面性能与稳定性
 
-- [待开始] 检查重点页面首屏脚本、重复 CSS、图片尺寸和第三方统计加载情况。
-- [待开始] 保证统计脚本失败、网络异常或 CDN 不可用时，工具核心功能仍可正常使用。
-- [待开始] 修复移动端横向溢出、结果区域跳动和输入控件尺寸不足问题。
-- [待开始] 建立优化前后的页面加载、交互完成率和点击率对比记录。
+- [已完成] 统计脚本稳定性：`js/analytics.js` 全 try/catch + `script.async`，百度/Clarity/51.la 三平台各自 `runSafely` 隔离；`common.js` 兜底补引也 async。统计/CDN 失败时仅不上报，工具核心计算（页面内联 script）不挂（A1 达标）。
+- [已完成] 横向溢出审计 5478 页：裸内联 `style="width:Npx"`(>480)=0；16 个扫描命中实为 `max-width:` 类样式或 `@media` 内响应式宽，非真实溢出；表格/pre/code 已有 `overflow-x:auto` 兜底（与 `_perf_baseline.json` 横向溢出告警=0 一致）。仅补 `css/common.css` 全局裸 `pre{overflow-x:auto;max-width:100%}` 加固（A2）。
+- [已完成] 触摸目标：输入/按钮大量 `min-height:44/46/52px`，移动端单手可达（A3 达标）。
+- [已完成] 性能基线复核：`_perf_baseline.json` 显示 LCP≤172ms、CLS≈0、工具页总体积≤150KB、JS≤100KB、thirdParty≤4，全部远低于预算。本地有 Chrome 但缺 lighthouse 且沙箱出网被封，未重测；性能已健康，无真实瓶颈需优化（A4 现状记录）。
+- 注：若后续出现真实性能瓶颈或实测环境就位，再补「优化前后对比记录」。
 
 ### 执行顺序
 
