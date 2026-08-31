@@ -1886,6 +1886,22 @@ def fix_tool_pages_seo(tools):
         except Exception:
             DEEP_DIVE = {}
 
+    # 人工策划的「相关工具」覆盖表：tools/ 相对路径 -> 同类工具路径列表。
+    # 默认逻辑是按行业随机取前 6 个，会出现「样本量计算器」推荐「提取电话号码」这类无关卡片；
+    # 命中本表的页面改用策划列表，按功能/输入输出类型匹配（SEO-C）。
+    CURATED_RT = {}
+    _crt_path = os.path.join(ROOT, 'json', 'related-tools-curated.json')
+    if os.path.isfile(_crt_path):
+        try:
+            _crt = json.load(open(_crt_path, encoding='utf-8'))
+            CURATED_RT = {k: v for k, v in _crt.items() if not k.startswith('_')}
+        except Exception:
+            CURATED_RT = {}
+    # 跨行业引用需要按路径查工具元数据（name/desc/icon）
+    _tools_by_path = {t['path']: t for t in tools}
+    curated_applied = 0
+    curated_missing = []
+
     fixed_h1 = 0
     fixed_bc = 0
     fixed_rt = 0
@@ -1904,10 +1920,32 @@ def fix_tool_pages_seo(tools):
                 _ind_cache[ind] = {}
         return _ind_cache[ind].get(base, {}).get('zh-CN', {}).get('title')
 
+    # 校验/错误提示串特征：这些是 JS 运行时提示，绝不能当 meta description
+    # （曾导致 33 个页面 description 变成「误差范围必须 > 0」之类，搜索结果摘要不可读 → 零点击）
+    _BAD_DESC_PAT = re.compile(
+        r'(^\s*(请输入|请填写|请选择|请检查)|'
+        r'必须\s*[>≥＞]|必须\s*[<≤＜]|必须大于|必须小于|必须等于|必须介于|'
+        r'必须为正|必须为整数|不能为空|不可为空|不能为负|'
+        r'格式错误|格式不正确|输入无效|参数无效|'
+        r'至少需要\s*\d|至少\s*\d+\s*(个|位|项|条)|'
+        r'个数必须相等|长度必须|超出范围|不在允许范围|'
+        r'(值|参数|输入)\s*(有误|无效)$|^\s*(⚠️|❌)|'
+        # 游戏/运行时提示文案（如「💰 余额耗尽！点击"重置"重新开始」）
+        r'重新开始|点击此处|余额耗尽|游戏结束|再来一次|'
+        r'抢跳|答对了|答错了|正确率是|本轮得分|'
+        # JS 字符串拼接残留（如「行列式 |A| = '+fmt(d)+'」「第 '+(idx+1)+' 条」）
+        r"'\s*\+\s*\(|\)\s*\+\s*'|\+\s*'\s*\+)"
+    )
+
+    def _strip_js_blocks(html):
+        # 剔除 <script>/<style> 块：其中的字符串常量（错误提示、模板字面量）不是页面正文，
+        # 不能被 extract_zh_desc 当作 description 来源。
+        return re.sub(r'<(script|style)\b[\s\S]*?</\1\s*>', ' ', html, flags=re.I)
+
     def extract_zh_desc(content, t, industry, entry):
         # 中文优先 meta description 提取（2026-08-29 反转：目标用户以中文为主）。
         # 优先 per-industry 字典 zh-CN.intro/desc（零成本、有实质内容、不套话），
-        # 其次页面首个含中文且非模板的 <p>，再次中文 h2，兜底中文标题 + 固定后缀。
+        # 其次页面首个含中文、非模板、非 JS 校验提示的 <p>，再次中文 h2，兜底中文标题 + 固定后缀。
         base = os.path.splitext(os.path.basename(t['path']))[0]
         if industry not in _ind_cache:
             fp = os.path.join(i18n_dir, industry + '.json')
@@ -1920,19 +1958,23 @@ def fix_tool_pages_seo(tools):
         intro = zh.get('intro') or zh.get('desc') or ''
         if re.search(r'[\u4e00-\u9fff]', intro or '') and len(intro.strip()) >= 8:
             return intro.strip()
-        paras = re.findall(r'<p[^>]*>([\s\S]*?)</p>', content)
+        # 只在剔除 script/style 后的正文里找 <p>，避免抓到 JS 内的错误提示串
+        body = _strip_js_blocks(content)
+        paras = re.findall(r'<p[^>]*>([\s\S]*?)</p>', body)
         for p in paras:
             txt = re.sub(r'<[^>]+>', '', p).strip()
             txt = re.sub(r'\s+', ' ', txt)
             if '${' in txt or '<' in txt:
                 continue
+            if _BAD_DESC_PAT.search(txt):
+                continue
             if re.search(r'[\u4e00-\u9fff]', txt) and len(txt) >= 8:
                 return txt
-        h2 = re.search(r'<h2[^>]*>([\s\S]*?)</h2>', content)
+        h2 = re.search(r'<h2[^>]*>([\s\S]*?)</h2>', body)
         if h2:
             txt = re.sub(r'<[^>]+>', '', h2.group(1)).strip()
             txt = re.sub(r'\s+', ' ', txt)
-            if re.search(r'[\u4e00-\u9fff]', txt):
+            if re.search(r'[\u4e00-\u9fff]', txt) and not _BAD_DESC_PAT.search(txt):
                 return txt
         zh_title = _zh_title_of(industry, base) or t.get('name') or ''
         return '%s - 免费在线工具，纯前端运行，数据不上传。' % zh_title
@@ -2187,6 +2229,38 @@ def fix_tool_pages_seo(tools):
             r'<!-- 相关工具 -->\s*<div class="related-tools"[^>]*>.*?</div>\s*</div>\s*',
             re.S
         )
+        # 5a. 策划表命中：先整块移除旧的（可能是行业随机凑的无关卡片），再按策划列表重建
+        _curated = CURATED_RT.get(t['path'])
+        if _curated:
+            _valid = []
+            for _p in _curated:
+                if _p == t['path']:
+                    continue
+                if _p not in _tools_by_path:
+                    curated_missing.append('%s -> %s' % (t['path'], _p))
+                    continue
+                _valid.append(_tools_by_path[_p])
+            if _valid:
+                content = _rt_block_pat.sub('', content)
+                rt_html = '\n<!-- 相关工具 -->\n<div class="related-tools" data-related-tools="1">\n  <h3 class="related-tools-title">🔗 相关工具</h3>\n  <div class="related-tools-grid">\n'
+                rt_tool_dir = 'tools/' + os.path.dirname(t['path'])
+                for rt in _valid:
+                    rt_name = esc_html_py(rt['name'])
+                    rt_desc = esc_html_py(rt.get('desc', ''))[:50]
+                    rt_icon = rt.get('icon', '🔧')
+                    rt_href = os.path.relpath(rt['url'], rt_tool_dir).replace(os.sep, '/')
+                    rt_html += '    <a href="%s" class="related-tool-card">\n      <span class="rt-icon">%s</span>\n      <span class="rt-info"><span class="rt-name">%s</span><span class="rt-desc">%s</span></span>\n    </a>\n' % (rt_href, rt_icon, rt_name, rt_desc)
+                rt_html += '  </div>\n</div>\n'
+                if '<div class="tool-intro' in content:
+                    content = content.replace('<div class="tool-intro', rt_html + '<div class="tool-intro', 1)
+                elif '<!-- /注意事项区块 -->' in content:
+                    content = content.replace('<!-- /注意事项区块 -->', '<!-- /注意事项区块 -->\n' + rt_html, 1)
+                elif '</div>\n</div>\n<script>' in content:
+                    content = content.replace('</div>\n</div>\n<script>', '</div>\n</div>\n' + rt_html + '<script>', 1)
+                else:
+                    content = content.replace('</body>', rt_html + '</body>', 1)
+                curated_applied += 1
+
         _rt_m = _rt_block_pat.search(content)
         if _rt_m:
             _block = _rt_m.group(0)
@@ -2260,6 +2334,12 @@ def fix_tool_pages_seo(tools):
                 f.write(content)
 
     print('  h1 added: %d, breadcrumbs: %d, related tools: %d (recomputed), removed stale blocks: %d, nav injected: %d' % (fixed_h1, fixed_bc, fixed_rt, fixed_rt_removed, fixed_nav))
+    if CURATED_RT:
+        print('  curated related-tools: %d applied (config: %d)' % (curated_applied, len(CURATED_RT)))
+        if curated_missing:
+            print('  [WARN] 策划表指向了不存在的工具（已跳过）:')
+            for _m in curated_missing[:20]:
+                print('    - ' + _m)
 
 # 行业聚合页 meta description 覆盖（仅影响列出的行业；工具数为动态带入，避免下次 build 被模板覆盖）
 CATEGORY_DESC_OVERRIDE = {
