@@ -84,12 +84,40 @@ def aggregate_rows(rows: list[dict[str, str]]) -> list[dict[str, str]]:
     return sorted(result, key=lambda row: (-float(row["impressions"]), -float(row["clicks"]), row["page"]))
 
 
+def write_platform_summary(source_rows: dict[str, list[dict[str, str]]], output: Path) -> None:
+    fields = ["source", "scope", "records", "impressions_or_pv", "clicks", "ctr",
+              "uv", "ip", "bounce_rate", "avg_duration", "note"]
+    summary = []
+    for source, rows in source_rows.items():
+        impressions = sum(float(row["impressions"] or 0) for row in rows)
+        clicks = sum(float(row["clicks"] or 0) for row in rows)
+        summary.append({
+            "source": source,
+            "scope": "url",
+            "records": len(rows),
+            "impressions_or_pv": int(impressions) if impressions.is_integer() else impressions,
+            "clicks": int(clicks) if clicks.is_integer() else clicks,
+            "ctr": f"{clicks / impressions:.6f}" if impressions else "0",
+            "uv": "",
+            "ip": "",
+            "bounce_rate": "",
+            "avg_duration": "",
+            "note": "按当前项目页面过滤后的 URL 级数据",
+        })
+
+    with output.open("w", encoding="utf-8", newline="") as stream:
+        writer = csv.DictWriter(stream, fieldnames=fields)
+        writer.writeheader()
+        writer.writerows(summary)
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--clarity", type=Path, default=Path("clarity_traffic_export.csv"))
     parser.add_argument("--bing", type=Path, default=Path("bing_traffic_export.csv"))
     parser.add_argument("--51la", dest="la", type=Path)
     parser.add_argument("--output", type=Path, default=Path("analytics_traffic_merged.csv"))
+    parser.add_argument("--summary-output", type=Path, default=Path("analytics_platform_summary.csv"))
     args = parser.parse_args()
 
     inputs = [("clarity", args.clarity), ("bing", args.bing)]
@@ -97,6 +125,7 @@ def main() -> None:
         inputs.append(("51la", args.la))
 
     raw_rows = []
+    source_rows: dict[str, list[dict[str, str]]] = defaultdict(list)
     counts: dict[str, int] = {}
     with args.output.open("w", encoding="utf-8", newline="") as stream:
         for source, path in inputs:
@@ -109,13 +138,17 @@ def main() -> None:
                     continue
                 row["source"] = source
                 raw_rows.append(row)
+                source_rows[source].append(row)
 
         merged_rows = aggregate_rows(raw_rows)
         writer = csv.DictWriter(stream, fieldnames=["page", "impressions", "clicks", "ctr", "position", "sources", "record_count"])
         writer.writeheader()
         writer.writerows(merged_rows)
 
-    print(f"已写入 {args.output}: urls={len(merged_rows)}, " + ", ".join(f"{k}={v}" for k, v in counts.items()))
+    write_platform_summary(source_rows, args.summary_output)
+
+    print(f"已写入 {args.output}: urls={len(merged_rows)}")
+    print(f"已写入 {args.summary_output}: " + ", ".join(f"{k}={v}" for k, v in counts.items()))
 
 
 if __name__ == "__main__":

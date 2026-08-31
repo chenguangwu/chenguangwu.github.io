@@ -4,13 +4,14 @@
 
 ### Analytics-B：补齐可用的站点流量数据
 
-- [进行中] 51.la 当前 AccessKey 可认证，但站点列表为空，真实统计 ID 查询返回 401；待在 51.la 控制台确认 API 应用与统计站点的授权关系后重新抓取。
+- [阻塞] 51.la 低安全性鉴权已打通，但最近访问明细接口返回 `5005` 鉴权失败；需要在 51.la 控制台为 API 应用开通访问明细/页面分析权限后，才能提取 URL 并参与合并。
 - [已完成] Microsoft Clarity 聚合导出已生成，结果文件为 `clarity_traffic_export.csv`。
 - [已完成] Bing Webmaster 查询与页面统计已生成，结果文件为 `bing_traffic_export.csv`，共 156 条查询、57 条页面记录。
 - [已完成] Bing 与 Clarity 已合并为 `analytics_traffic_merged.csv`，每行带有 `source` 和统一分析字段。
 - [已完成] 合并数据过滤规则已加入：移除 `evernode/`、`localhost`、`127.0.0.1` 页面及当前项目中已不存在的页面。
 - [已完成] 最终结果按 URL 去重聚合，汇总展示/点击并按热度排序，每个 URL 只保留一行。
-- [已完成] 51.la Open API 拉取脚本已加入 `scripts/fetch_51la_overview.py`，密钥通过环境变量提供，不写入仓库。
+- [已完成] 站点级 51.la 概览已从 URL 合并结果中移除，不再用于页面热度分析；待取得访问 URL 明细后再接入。
+- [已完成] 51.la Open API 拉取脚本已加入 `scripts/fetch_51la_overview.py`，支持低安全性 `LA_ACCESS_KEY` 和高安全性 `LA_SECRET_KEY`，密钥不写入仓库。
 - 百度统计暂不纳入本轮数据源。
 
 ## 数据使用边界

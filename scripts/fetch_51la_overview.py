@@ -17,21 +17,24 @@ from pathlib import Path
 API_URL = "https://v6-open.51.la/open"
 
 
-def signed_payload(access_key: str, secret_key: str, extra: dict[str, str]) -> dict[str, object]:
+def signed_payload(access_key: str, secret_key: str, extra: dict[str, str], security_level: int) -> dict[str, object]:
     payload: dict[str, object] = {
         "accessKey": access_key,
         "nonce": "".join(random.choice(string.ascii_lowercase + string.digits) for _ in range(4)),
         "timestamp": int(time.time() * 1000),
         **extra,
     }
-    sign_params = {
-        "accessKey": access_key,
-        "nonce": payload["nonce"],
-        "timestamp": payload["timestamp"],
-        "secretKey": secret_key,
-    }
-    query = "&".join(f"{key}={sign_params[key]}" for key in sorted(sign_params))
-    payload["sign"] = hashlib.sha256(query.encode("utf-8")).hexdigest().upper()
+    if security_level == 1:
+        payload["sign"] = access_key
+    else:
+        sign_params = {
+            "accessKey": access_key,
+            "nonce": payload["nonce"],
+            "timestamp": payload["timestamp"],
+            "secretKey": secret_key,
+        }
+        query = "&".join(f"{key}={sign_params[key]}" for key in sorted(sign_params))
+        payload["sign"] = hashlib.sha256(query.encode("utf-8")).hexdigest().upper()
     return payload
 
 
@@ -48,18 +51,22 @@ def request_api(path: str, payload: dict[str, object]) -> dict:
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--mask-id", help="51.la 统计 ID; omit to list available sites")
+    parser.add_argument("--security-level", type=int, choices=(1, 2), default=1,
+                        help="1=仅校验 accessKey，2=使用 SecretKey（默认 1）")
     parser.add_argument("--output", type=Path, default=Path("51la_overview.json"))
     args = parser.parse_args()
 
-    access_key = os.environ.get("51LA_ACCESS_KEY", "").strip()
-    secret_key = os.environ.get("51LA_SECRET_KEY", "").strip()
-    if not access_key or not secret_key:
-        raise SystemExit("请先设置 51LA_ACCESS_KEY 和 51LA_SECRET_KEY")
+    access_key = os.environ.get("LA_ACCESS_KEY", "").strip()
+    secret_key = os.environ.get("LA_SECRET_KEY", "").strip()
+    if not access_key:
+        raise SystemExit("请先设置 LA_ACCESS_KEY")
+    if args.security_level == 2 and not secret_key:
+        raise SystemExit("安全等级 2 请设置 LA_SECRET_KEY")
 
     if args.mask_id:
-        result = request_api("/overview/get", signed_payload(access_key, secret_key, {"maskId": args.mask_id}))
+        result = request_api("/overview/get", signed_payload(access_key, secret_key, {"maskId": args.mask_id}, args.security_level))
     else:
-        result = request_api("/sitegroup/list", signed_payload(access_key, secret_key, {}))
+        result = request_api("/sitegroup/list", signed_payload(access_key, secret_key, {}, args.security_level))
 
     args.output.write_text(json.dumps(result, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     print(f"已写入 {args.output}")
