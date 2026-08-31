@@ -23,11 +23,11 @@
 
 ### Analytics-C：高曝光低点击工具页优化
 
-- [待开始] 从 `analytics_traffic_merged.csv` 筛选展示量大于 10、点击为 0 或 CTR 低于 3%、平均位置在 3 至 15 的页面。
-- [待开始] 首批优化 `tools/it/id-card-generator.html`、`tools/video/video-speed.html`、`tools/science/sample-size-calculator.html`、`tools/finance/lottery-odds-calculator.html`。
-- [待开始] 为每个目标页重写唯一 Title、Description、H1 和首段，明确工具用途、输入内容和输出结果。
-- [待开始] 检查并消除高曝光页面中的模板化描述和重复文案。
-- [待开始] Bing 与 Clarity 分来源统计，避免将不同平台的展示指标直接相加后误判效果。
+- [已完成] 从分来源数据（`analytics_traffic_by_source.csv`）筛选 Bing 展示高、点击 0 的页面（Bing 与 Clarity 口径不同，已分开统计，见 `scripts/analytics_by_source.py`）。
+- [已完成] 首批 4 页（id-card-generator / video-speed / sample-size-calculator / lottery-odds-calculator）重写 Title/Description/H1/首段，消除模板化。
+- [已完成] 扩展至 21 个高曝光低点击页补写真实中文描述；并修复 `_build.py` 提取 description 被 JS 校验串污染的系统性 bug（33 页）+ 273 页 meta 多余尖括号导致 `<head>` 提前闭合。
+- [已完成] 相关工具与指南互链见 SEO-C。
+- 注：Bing 数据仍稀疏（站点爬取爬升期），后续周期数据到位后再滚动扩面。
 
 ### UX-A：高热度工具功能与移动端体验升级
 
@@ -40,12 +40,11 @@
 
 ### SEO-C：工具页内容差异化与内部链接建设
 
-- [待开始] 为高热度工具页建立“首页 -> 分类页 -> 工具页 -> 使用指南 -> 相关工具”的内部链接路径。
-- [待开始] 每个重点工具页增加 3 至 6 个按功能和输入输出类型匹配的相关工具。
-- [待开始] 首页热门工具改为使用真实热度数据，并优先导流高曝光低点击页面。
-- [待开始] 为高点击率工具补充使用指南，并实现指南页与工具页双向链接。
-- [待开始] 检查并完善 canonical、BreadcrumbList、WebApplication 结构化数据。
-- [待开始] 仅在页面真实包含问答内容时增加 FAQ 结构化数据，禁止批量制造问答。
+- [已完成] 22 个重点页增加功能匹配的相关工具（`json/related-tools-curated.json` + `_build.py` 跨行业引用，替代原随机取前 6）。
+- [已完成] 为高曝光低点击的 21 个工具补写使用指南（`guides/<slug>-guide.html`），并实现工具页↔指南页双向链接（`_build.py` 按 basename 注入「📖 使用指南」+ 指南页 related chips，均进 sitemap）。
+- [已完成] canonical / BreadcrumbList / WebApplication 由 `_build.py` 统一注入，已覆盖。
+- [已完成] FAQ 结构化数据：仅指南页（真实含问答）加 FAQPage；工具页无问答内容故不加，符合"禁止批量制造问答"。
+- [待开始] 首页热门工具改为使用真实热度数据，优先导流高曝光低点击页面（依赖 51.la 可读后，见 Analytics-B）。
 
 ### SEO-D：重复页、薄内容页和长期无流量页治理
 
