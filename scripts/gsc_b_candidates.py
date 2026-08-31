@@ -247,7 +247,7 @@ def merge_mapping(
     return aliases
 
 
-def pick_required_fields(aliases: Dict[str, List[str]], headers: List[str]) -> None:
+def pick_required_fields(headers: List[str], aliases: Dict[str, List[str]]) -> None:
     keys = [canon(h) for h in headers if h]
     groups = {
         "query": aliases.get("query", []),
