@@ -49,10 +49,14 @@
 
 ### SEO-D：重复页、薄内容页和长期无流量页治理
 
-- [待开始] 根据连续多个统计周期识别长期无流量、无点击和内容重复页面。
-- [待开始] 对重复功能合并到内容更完整的工具页，对薄页面补充使用场景、参数说明、示例和限制。
-- [待开始] 对确认没有搜索价值且无法补充内容的页面评估 `noindex`、合并或删除。
-- [待开始] 禁止全站批量重写 Description，所有改动先基于页面数据和搜索意图确认。
+- [已完成] 数据驱动识别：复用 `_build.py` 权威质量分级 + 跨行业名称相似度检测（`scripts/audit_seo_d.py` → `json/seo_d_dup_candidates.json`）。当前 C 级(薄内容)=0、A 级率 100%，薄内容维度已基本消除（此前的加真实功能模块优化已生效）。
+- [已完成] 残留重复合并 P2d（`scripts/merge_dupes_p2d.py`）：合并 17 对「随机/混乱文件名方 → 规范命名方」真重复，改写为 TOOLBOX-REDIRECT 桩，旧 URL 不丢。工具数 5014→4997，A 级率保持 100%；5 道门禁全过、build 幂等。
+- [待确认] 另有 18 对（35 高置信中减 17）需人工逐对确认是否真重复，不擅自合并：
+  - 功能可能不同（不合并）：`agriculture/calc-11 <=> machinery-efficiency`（对比 vs 成本）、`encode/utf-8 <=> utf8-bytes`（编码 vs 字节）、`construction/estimate-area-dosage-1 <=> soundproof-material`（面积剂量 vs 隔音）。
+  - 实为命名 Bug 非重复：`process/pp-index <=> ppk-index`（Pp 与 Ppk 不同指标，应改标题而非合并）。
+  - 双方均规范命名、仅差后缀（待确认）：`food-testing/rater-risk <=> allergen-cross-risk`、`fishery/estimate-emission-wastewater <=> wastewater-cod`、`safety/drill-timer <=> assessor-drill`、`it/git-cheatsheet <=> git-commands`、`pet/pet-food <=> pet-feeding-calc`、`design/color-scheme-generator <=> color-palette`、`energy/calculator-calc-power <=> standby-power-calculator`、`it/sn-generator <=> serial-key-generator`、`energy/calc-area-air <=> air-purifier-area`、`meteorology/beaufort-scale <=> wind-beaufort`、`hydraulic/estimate-18 <=> calc-54`、`construction/estimate-volume-load <=> radiator-calculator`、`legal/estimate-accident <=> traffic-accident-compensation`。
+- [待开始] 长期无流量页治理：依赖 Analytics-B（51.la 可读）后，按连续周期数据识别 `noindex`/合并/删除。
+- [保留] 禁止全站批量重写 Description，所有改动先基于页面数据和搜索意图确认。
 
 ### Performance-A：高热度页面性能与稳定性
 
