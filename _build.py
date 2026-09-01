@@ -2071,6 +2071,10 @@ def fix_tool_pages_seo(tools):
             if not replaced:
                 content = _inject_into_document_head(content, runtime_block)
 
+        # 3.5b Add generic tool UX enhancement (copy/download bar, validation hint, input persistence, a11y)
+        # 注：实际注入移到下方「写回前」(2337 附近)，因为在 2079–2336 的 head 重写流程里
+        # 早注入的 <script> 会被覆盖；放最后一步注入可保证落盘且幂等。
+
         # 3.5 Add WebApplication structured data（按 script 块稳态覆盖，避免老版本多语言残留）
         app_cat_map = {
             'dev': 'DeveloperApplication', 'encode': 'DeveloperApplication',
@@ -2242,7 +2246,7 @@ def fix_tool_pages_seo(tools):
                 _valid.append(_tools_by_path[_p])
             if _valid:
                 content = _rt_block_pat.sub('', content)
-                rt_html = '\n<!-- 相关工具 -->\n<div class="related-tools" data-related-tools="1">\n  <h3 class="related-tools-title">🔗 相关工具</h3>\n  <div class="related-tools-grid">\n'
+                rt_html = '<!-- 相关工具 -->\n<div class="related-tools" data-related-tools="1">\n  <h3 class="related-tools-title">🔗 相关工具</h3>\n  <div class="related-tools-grid">\n'
                 rt_tool_dir = 'tools/' + os.path.dirname(t['path'])
                 for rt in _valid:
                     rt_name = esc_html_py(rt['name'])
@@ -2288,7 +2292,7 @@ def fix_tool_pages_seo(tools):
         else:
             related = [rt for rt in by_industry.get(industry, []) if rt['url'] != t['url']][:6]
             if related:
-                rt_html = '\n<!-- 相关工具 -->\n<div class="related-tools" data-related-tools="1">\n  <h3 class="related-tools-title">🔗 相关工具</h3>\n  <div class="related-tools-grid">\n'
+                rt_html = '<!-- 相关工具 -->\n<div class="related-tools" data-related-tools="1">\n  <h3 class="related-tools-title">🔗 相关工具</h3>\n  <div class="related-tools-grid">\n'
                 rt_tool_dir = 'tools/' + os.path.dirname(t['path'])
                 for rt in related:
                     rt_name = esc_html_py(rt['name'])
@@ -2328,6 +2332,11 @@ def fix_tool_pages_seo(tools):
             nav_inject = '<link rel="stylesheet" href="/css/nav-menu.css">\n<script src="/js/industry-info.js" defer></script>\n<script src="/js/nav-menu.js" defer></script>\n'
             content = content.replace('</head>', nav_inject + '</head>', 1)
             fixed_nav += 1
+
+        # 3.5b Add generic tool UX enhancement (copy/download bar, validation hint, input persistence, a11y)
+        ux_block = '\n<script src="/js/tool-ux.js" defer></script>\n<!-- TOOLBOX-TOOL-UX -->\n'
+        if not _head_contains(content, '/js/tool-ux.js'):
+            content = _inject_into_document_head(content, ux_block)
 
         if content != original:
             with open(filepath, 'w', encoding='utf-8') as f:

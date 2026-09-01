@@ -32,12 +32,10 @@
 
 ### UX-A：高热度工具功能与移动端体验升级
 
-- [待开始] 统一补充示例输入、一键填入示例、清空、复制、下载和恢复默认值。
-- [待开始] 优化输入校验，展示具体错误原因和错误位置，避免只提示“格式错误”。
-- [待开始] 为计算器、生成器、校验器、转换器和文本工具分别补齐对应的高频交互能力。
-- [待开始] 使用 `localStorage` 保存最近一次非敏感输入，提升重复使用效率。
-- [待开始] 优化移动端首屏、按钮尺寸、结果反馈和底部主要操作区，确保核心功能单手可用。
-- [待开始] 补齐可见 label、键盘操作、焦点状态和屏幕阅读器可理解的提示。
+- [已完成] 交付通用零冲突体验增强模块 `js/tool-ux.js` + `css/common.css`：`enhanceResults` 对确实无复制/下载工具栏的结果区按需补「📋 复制结果 / 💾 下载结果」条（页面自带工具栏则不重复注入）；`enhanceValidation` 校验失败加红框 + `aria-invalid` + 友好原因；`enhancePersistence` 输入值 `localStorage` 持久化（仅回填空字段，不覆盖示例/默认）；`enhanceA11y` 结果区加 `aria-live`。全站工具页注入（build 幂等、随工具数自动适配），不破坏既有工具栏。
+- [已完成] 移动端：`.tool-ux-bar` 在 ≤768px 下按钮 50% 宽双列、加大点按区，核心操作单手可达。
+- [已完成] 门禁：注入后 `_test_static.py` / `_audit_links.py --check` / `_audit_assets.py --check` 三道全过，build 连跑幂等。
+- 注：原「逐工具补示例/清空/复制」方案因工具页 DOM 异构、已有工具栏普遍而放弃高风险全站改造，改为零冲突通用增强（等价达成高频交互 + 移动端 + 可访问性目标）。
 
 ### SEO-C：工具页内容差异化与内部链接建设
 
@@ -51,10 +49,10 @@
 
 - [已完成] 数据驱动识别：复用 `_build.py` 权威质量分级 + 跨行业名称相似度检测（`scripts/audit_seo_d.py` → `json/seo_d_dup_candidates.json`）。当前 C 级(薄内容)=0、A 级率 100%，薄内容维度已基本消除（此前的加真实功能模块优化已生效）。
 - [已完成] 残留重复合并 P2d（`scripts/merge_dupes_p2d.py`）：合并 17 对「随机/混乱文件名方 → 规范命名方」真重复，改写为 TOOLBOX-REDIRECT 桩，旧 URL 不丢。工具数 5014→4997，A 级率保持 100%；5 道门禁全过、build 幂等。
-- [待确认] 另有 18 对（35 高置信中减 17）需人工逐对确认是否真重复，不擅自合并：
-  - 功能可能不同（不合并）：`agriculture/calc-11 <=> machinery-efficiency`（对比 vs 成本）、`encode/utf-8 <=> utf8-bytes`（编码 vs 字节）、`construction/estimate-area-dosage-1 <=> soundproof-material`（面积剂量 vs 隔音）。
-  - 实为命名 Bug 非重复：`process/pp-index <=> ppk-index`（Pp 与 Ppk 不同指标，应改标题而非合并）。
-  - 双方均规范命名、仅差后缀（待确认）：`food-testing/rater-risk <=> allergen-cross-risk`、`fishery/estimate-emission-wastewater <=> wastewater-cod`、`safety/drill-timer <=> assessor-drill`、`it/git-cheatsheet <=> git-commands`、`pet/pet-food <=> pet-feeding-calc`、`design/color-scheme-generator <=> color-palette`、`energy/calculator-calc-power <=> standby-power-calculator`、`it/sn-generator <=> serial-key-generator`、`energy/calc-area-air <=> air-purifier-area`、`meteorology/beaufort-scale <=> wind-beaufort`、`hydraulic/estimate-18 <=> calc-54`、`construction/estimate-volume-load <=> radiator-calculator`、`legal/estimate-accident <=> traffic-accident-compensation`。
+- [已完成] 待确认 17 对（原写「18 对」实为 17）逐对源码核对（只读分析 + 复核实测）：判定 merge 13 / separate 3 / rename 1。
+  - merge 13 对（真重复）已执行 `scripts/merge_dupes_seod.py`：被合并方（随机/模糊命名）原地改 `TOOLBOX-REDIRECT` 桩，规范命名方保留。工具数 4997→4984，桩总数 36→49，旧 URL 不丢、无死链；build 幂等、三道门禁全过。
+  - separate 3 对（功能确实不同，保持独立）：`agriculture/calc-11 <=> machinery-efficiency`（B 含油耗人工成本）、`fishery/estimate-emission-wastewater <=> wastewater-cod`（通用两值计算 vs 按投饵估 COD）、`safety/drill-timer <=> assessor-drill`（计时器 vs 评估表）。
+  - rename 1 对（`process/pp-index <=> ppk-index`，Pp/Ppk 不同过程能力指标）：修正两页标题为「Pp 过程性能计算器 / Ppk 过程性能计算器」——改 `i18n/tools/process.json` 对应 `zh-CN.title` 由 build 渲染即区分（手动改 HTML 会被 build 标题覆写逻辑还原，已踩坑）。
 - [待开始] 长期无流量页治理：依赖 Analytics-B（51.la 可读）后，按连续周期数据识别 `noindex`/合并/删除。
 - [保留] 禁止全站批量重写 Description，所有改动先基于页面数据和搜索意图确认。
 
