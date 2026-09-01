@@ -56,7 +56,8 @@
 - [待开始] 长期无流量页治理：依赖 Analytics-B（51.la 可读）后，按连续周期数据识别 `noindex`/合并/删除。
 - [保留] 禁止全站批量重写 Description，所有改动先基于页面数据和搜索意图确认。
   - [已完成] 套话 description 治理（189 页）：全站非 index 工具页中 189 个 meta description 为模板化套话（"免费在线工具/纯前端运行/数据不上传"固定串），逐页基于真实功能撰写 >=30 字中文描述写回 `i18n/tools/<ind>.json` 的 `zh-CN.intro`；build 后原套话唯一标识"免费在线工具"归零，四道门禁全过；commit `1fec7878d`。新描述结尾"纯前端/数据不上传"为真实特性说明（非模板套话），未二次扩大。
-  - [已完成] 短描述精修（207→1350 页）：对 description ≤18 字或标题式的 1350 个工具页，按真实功能独立撰写 ≥30 字中文描述，写回 `i18n/tools/<ind>.json` 的 `zh-CN.intro`；分批写回 + 每百页合并 `_build.py` + 四道门禁（_test_static / _audit_links / _audit_assets / verify_calc）全过；commit `42e9f6371`。遵循「禁止全站批量模板化重写」原则，逐页独立撰写、不碰 HTML、由 build 确定性渲染。
+  - [已完成] 短描述精修（207→1350 页）：
+  - [已完成] 真实短描述扩写（1469 页）：对 description 19–30 字、内容真实但偏短的非 index 工具页，逐页基于真实功能独立撰写 ≥35 字中文描述，写回 `i18n/tools/<ind>.json` 的 `zh-CN.intro`；缺口驱动核对（剔除 67 行公式/代码脏数据后真实待修 1469 页）确保零遗漏、全覆盖；`_build.py` 重建（sitemap 4984工具+266分类+guides，A级100%）+ 四道门禁全过；commit `1a40663de`。对 description ≤18 字或标题式的 1350 个工具页，按真实功能独立撰写 ≥30 字中文描述，写回 `i18n/tools/<ind>.json` 的 `zh-CN.intro`；分批写回 + 每百页合并 `_build.py` + 四道门禁（_test_static / _audit_links / _audit_assets / verify_calc）全过；commit `42e9f6371`。遵循「禁止全站批量模板化重写」原则，逐页独立撰写、不碰 HTML、由 build 确定性渲染。
 
 ### Performance-A：高热度页面性能与稳定性
 
