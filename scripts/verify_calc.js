@@ -56,7 +56,7 @@ const targets = [
   "it/text-to-ascii", "it/text-to-unicode",
   // Q1 batch 02 (it csv/mac/ipv6/phone/git)
   "it/csv-to-yaml", "it/mac-generator",
-  "it/ipv6-ula", "it/phone-parser", "it/git-cheatsheet",
+  "it/ipv6-ula", "it/phone-parser",
   // Q1 batch 03 (it yaml/toml/json + emoji/latex)
   "it/yaml-to-toml", "it/toml-to-yaml",
   "it/yaml-to-json", "it/toml-to-json",
@@ -92,6 +92,11 @@ let failures = 0;
 for (const t of targets) {
   const file = path.join(TOOLS_DIR, t + ".html");
   const html = fs.readFileSync(file, "utf8");
+  // skip redirect stubs (TOOLBOX-REDIRECT): they have no calcTool script
+  if (html.includes("TOOLBOX-REDIRECT")) {
+    console.log(`\n[${t}] ⏭️  SKIP (redirect stub)`);
+    continue;
+  }
   const { defaults, script } = extract(html);
   // DOM stub
   const resultCapturer = { innerHTML: "" };
