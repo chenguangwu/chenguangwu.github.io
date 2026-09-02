@@ -4,9 +4,11 @@
 
 ### Analytics-B：补齐可用的站点流量数据
 
-- [阻塞] 51.la 低安全性鉴权已打通，但最近访问明细接口返回 `5005` 鉴权失败；需要在 51.la 控制台为 API 应用开通访问明细/页面分析权限后，才能提取 URL 并参与合并。
+- [阻塞] 51.la 低安全性鉴权已打通；现 level-2 签名（accessKey+secretKey）已验证通过，`/overview/get` 返回真实站内 UV/PV 概览已存档 `json/analytics_51la_overview.json`；但 URL 级明细接口 `/page/all`、`/visit/detail` 仍返回 `5005`，需在 51.la 控制台为 API 应用开通「页面分析/访问明细」接口权限后，才能提取 URL 并参与合并。
 - [已完成] Microsoft Clarity 聚合导出已生成，结果文件为 `clarity_traffic_export.csv`。
 - [已完成] Bing Webmaster 查询与页面统计已生成，结果文件为 `bing_traffic_export.csv`，共 156 条查询、57 条页面记录。
+- 51.la 验证（2026-09-02）：密钥 level-2 签名通过；`/overview/get` 返回真实站内 UV/PV 概览已存档 `json/analytics_51la_overview.json`（今日 UV60/PV62、昨日 UV111/PV123）；但 URL 级明细接口 `/page/all`、`/visit/detail` 仍返回 `5005`，需在 51.la 控制台为 API 应用开通「页面分析/访问明细」接口权限。
+- 注：SEO-C/SEO-D 已改用上述 Bing+Clarity 真实流量（`analytics_traffic_merged.csv`）推进，不再阻塞于 51.la 权限。
 - [已完成] Bing 与 Clarity 已合并为 `analytics_traffic_merged.csv`，每行带有 `source` 和统一分析字段。
 - [已完成] 合并数据过滤规则已加入：移除 `evernode/`、`localhost`、`127.0.0.1` 页面及当前项目中已不存在的页面。
 - [已完成] 最终结果按 URL 去重聚合，汇总展示/点击并按热度排序，每个 URL 只保留一行。
@@ -43,7 +45,7 @@
 - [已完成] 为高曝光低点击的 21 个工具补写使用指南（`guides/<slug>-guide.html`），并实现工具页↔指南页双向链接（`_build.py` 按 basename 注入「📖 使用指南」+ 指南页 related chips，均进 sitemap）。
 - [已完成] canonical / BreadcrumbList / WebApplication 由 `_build.py` 统一注入，已覆盖。
 - [已完成] FAQ 结构化数据：仅指南页（真实含问答）加 FAQPage；工具页无问答内容故不加，符合"禁止批量制造问答"。
-- [待开始] 首页热门工具改为使用真实热度数据，优先导流高曝光低点击页面（依赖 51.la 可读后，见 Analytics-B）。
+- [已完成] 首页热门工具改用真实搜索热度数据：基于 Bing+Clarity 真实流量（analytics_traffic_merged.csv, 2026-08-31）生成 json/hot-tools.json（Top24 真实热度，高曝光低点击页自然靠前=导流优先），app.js 运行时 fetch 驱动；不再依赖 51.la。commit 85e752464。
 
 ### SEO-D：重复页、薄内容页和长期无流量页治理
 
@@ -53,7 +55,7 @@
   - merge 13 对（真重复）已执行 `scripts/merge_dupes_seod.py`：被合并方（随机/模糊命名）原地改 `TOOLBOX-REDIRECT` 桩，规范命名方保留。工具数 4997→4984，桩总数 36→49，旧 URL 不丢、无死链；build 幂等、三道门禁全过。
   - separate 3 对（功能确实不同，保持独立）：`agriculture/calc-11 <=> machinery-efficiency`（B 含油耗人工成本）、`fishery/estimate-emission-wastewater <=> wastewater-cod`（通用两值计算 vs 按投饵估 COD）、`safety/drill-timer <=> assessor-drill`（计时器 vs 评估表）。
   - rename 1 对（`process/pp-index <=> ppk-index`，Pp/Ppk 不同过程能力指标）：修正两页标题为「Pp 过程性能计算器 / Ppk 过程性能计算器」——改 `i18n/tools/process.json` 对应 `zh-CN.title` 由 build 渲染即区分（手动改 HTML 会被 build 标题覆写逻辑还原，已踩坑）。
-- [待开始] 长期无流量页治理：依赖 Analytics-B（51.la 可读）后，按连续周期数据识别 `noindex`/合并/删除。
+- [进行中] 无流量页候选清单已生成（json/seo_d_lowtraffic.json：4320/4983 工具页无流量，按行业统计 it279/general154/finance94/design88…）；noindex/合并/删除动作按原要求需连续周期数据到位后执行，单期数据不立即治理。commit 85e752464。
 - [保留] 禁止全站批量重写 Description，所有改动先基于页面数据和搜索意图确认。
   - [已完成] 套话 description 治理（189 页）：全站非 index 工具页中 189 个 meta description 为模板化套话（"免费在线工具/纯前端运行/数据不上传"固定串），逐页基于真实功能撰写 >=30 字中文描述写回 `i18n/tools/<ind>.json` 的 `zh-CN.intro`；build 后原套话唯一标识"免费在线工具"归零，四道门禁全过；commit `1fec7878d`。新描述结尾"纯前端/数据不上传"为真实特性说明（非模板套话），未二次扩大。
   - [已完成] 短描述精修（207→1350 页）：
