@@ -23,28 +23,20 @@ const CAT_INFO = {
   engineer:  { name: '工程计算', icon: '⚙️' },
 };
 
-const HOT_TOOLS = [
-  { n: 'JSON 格式化',      en: 'JSON Formatter',      d: '格式化并高亮显示 JSON 数据',       ed: 'Format and highlight JSON data',       i: 'it',     c: 'dev',       u: 'tools/it/json-formatter.html', ic: '📋', b: '#e8f5e9' },
-  { n: 'Base64 编解码',    en: 'Base64 Encode/Decode', d: '在线 Base64 编码和解码工具',        ed: 'Online Base64 encoder and decoder',    i: 'it',     c: 'encode',    u: 'tools/it/base64.html',         ic: '🔐', b: '#f3e5f5' },
-  { n: '二维码生成',       en: 'QR Code Generator',   d: '快速生成二维码，支持多种格式',       ed: 'Generate QR codes quickly, multiple formats', i: 'it', c: 'generate', u: 'tools/it/qrcode-generator.html', ic: '📱', b: '#e3f2fd' },
-  { n: '密码生成器',       en: 'Password Generator',  d: '生成高强度随机密码',                ed: 'Generate strong random passwords',        i: 'it',     c: 'generate',  u: 'tools/it/password-generator.html', ic: '🔐', b: '#fff3e0' },
-  { n: 'Markdown 转 HTML', en: 'Markdown to HTML',    d: '手写解析器，支持语法高亮',          ed: 'Hand-written parser with syntax highlight', i: 'it', c: 'convert', u: 'tools/it/markdown-to-html.html', ic: '📝', b: '#e8eaf6' },
-  { n: '时间戳转换',       en: 'Timestamp Converter', d: 'Unix 时间戳与日期互转',             ed: 'Convert between Unix timestamp and date', i: 'life',   c: 'convert',   u: 'tools/life/timestamp.html',    ic: '⏰', b: '#fce4ec' },
-  { n: '单位换算',         en: 'Unit Converter',      d: '全面的单位转换器',                  ed: 'Comprehensive unit converter',            i: 'life',   c: 'convert',   u: 'tools/life/unit-converter.html', ic: '🔄', b: '#e0f7fa' },
-  { n: 'BMI 计算器',       en: 'BMI Calculator',      d: '健康体重指数计算',                  ed: 'Body Mass Index calculator',              i: 'health', c: 'math',      u: 'tools/health/bmi-calculator.html', ic: '⚖️', b: '#ffebee' },
-  { n: '颜色选择器',       en: 'Color Picker',        d: '专业的颜色工具',                    ed: 'Professional color tool',                 i: 'design', c: 'design',    u: 'tools/design/color-picker.html', ic: '🎨', b: '#f3e5f5' },
-  { n: '正则表达式测试',   en: 'Regex Tester',        d: '在线测试正则表达式',                ed: 'Test regular expressions online',         i: 'it',     c: 'dev',       u: 'tools/it/regex.html',          ic: '🔍', b: '#e8f5e9' },
-  { n: 'UUID 生成',        en: 'UUID Generator',      d: '生成各种格式的 UUID',               ed: 'Generate UUIDs in various formats',       i: 'it',     c: 'generate',  u: 'tools/it/uuid-v4-generator.html', ic: '🆔', b: '#fff8e1' },
-  { n: '字数统计',         en: 'Word Counter',        d: '统计文本字数和字符数',              ed: 'Count words and characters in text',       i: 'finance',c: 'text',      u: 'tools/finance/word-counter.html', ic: '📊', b: '#e3f2fd' },
-  { n: '文本去重',         en: 'Text Deduplicate',    d: '移除重复的行',                      ed: 'Remove duplicate lines',                   i: 'biz',    c: 'text',      u: 'tools/biz/text-dedup.html',    ic: '🔄', b: '#e8f5e9' },
-  { n: '汇率换算',         en: 'Currency Converter',  d: '常用货币汇率换算',                  ed: 'Common currency exchange conversion',      i: 'finance',c: 'finance',   u: 'tools/finance/currency-converter.html', ic: '💱', b: '#fff3e0' },
-  { n: '倒计时器',         en: 'Countdown Timer',     d: '在线倒计时工具',                    ed: 'Online countdown timer',                   i: 'it',     c: 'generate',  u: 'tools/it/stopwatch.html',      ic: '⏱️', b: '#fce4ec' },
-  { n: '番茄钟',           en: 'Pomodoro Timer',      d: '专注工作计时器',                    ed: 'Focus work timer',                         i: 'edu',    c: 'generate',  u: 'tools/it/pomodoro.html',       ic: '🍅', b: '#e8f5e9' },
-  { n: 'IP 计算器',        en: 'IP Calculator',       d: '子网掩码和 IP 地址计算',            ed: 'Subnet mask and IP address calculation',   i: 'it',     c: 'dev',       u: 'tools/it/ip-calculator.html',  ic: '🌐', b: '#e3f2fd' },
-  { n: '哈希计算',         en: 'Hash Calculator',     d: 'MD5/SHA1/SHA256 等哈希值',          ed: 'MD5/SHA1/SHA256 and more hash values',      i: 'it',     c: 'encode',    u: 'tools/it/hash.html',           ic: '🔒', b: '#f3e5f5' },
-  { n: 'HTML 转义',        en: 'HTML Escape',         d: 'HTML 字符转义工具',                 ed: 'HTML character escape tool',               i: 'it',     c: 'encode',    u: 'tools/it/html-escape.html',    ic: '<>', b: '#e8eaf6' },
-  { n: '颜色转换',         en: 'Color Converter',     d: 'RGB/HEX/HSL 颜色互转',              ed: 'RGB/HEX/HSL color conversion',             i: 'it',     c: 'convert',   u: 'tools/it/color-converter.html', ic: '🎨', b: '#f3e5f5' },
-];
+let HOT_TOOLS = [];
+
+// 真实热度热门工具：由 build 期生成的 json/hot-tools.json 驱动（基于 Bing+Clarity 真实流量，替代原写死列表）
+function loadHotTools() {
+  fetch('json/hot-tools.json')
+    .then(r => (r.ok ? r.json() : []))
+    .then(d => {
+      HOT_TOOLS = Array.isArray(d) ? d : [];
+      currentTools = HOT_TOOLS;
+      renderHotSpotlight();
+    })
+    .catch(() => {});
+}
+
 
 // ===== i18n 辅助（B3-04 多语言）=====
 // 仅在 I18n 引擎加载后翻译；未加载时回退中文原文，保证向后兼容
@@ -94,7 +86,7 @@ function refreshI18nViews() {
 document.addEventListener('DOMContentLoaded', () => {
   initTheme();
   renderBreadcrumbNav();
-  renderHotSpotlight();
+  loadHotTools();
   renderCategoryTags();
   renderQualityTags();
   renderExploreGuide();
