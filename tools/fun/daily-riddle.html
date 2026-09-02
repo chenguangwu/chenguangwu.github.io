@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+
+<script src="/js/tool-page-runtime.js" defer></script>
+<!-- TOOLBOX-TOOL-RUNTIME -->
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="toolbox" content="cat=game,industry=fun,icon=🧩,bg=#e0f2fe">
+<title>每日谜题挑战 - 在线趣味工具 - ToolBox</title>
+<link rel="canonical" href="https://chenguangwu.github.io/tools/fun/daily-riddle.html">
+<meta property="og:title" content="每日谜题挑战 - 在线趣味工具">
+<meta property="og:description" content="全球同日同题的每日谜题，三级难度、三级提示、积分连击与答题日历，题库持续扩充。">
+<meta property="og:url" content="https://chenguangwu.github.io/tools/fun/daily-riddle.html">
+<meta name="twitter:card" content="summary">
+<meta name="description" content="全球同日同题的每日谜题，三级难度、三级提示、积分连击与答题日历，题库持续扩充。">
+<link rel="stylesheet" href="../../css/common.css">
+<script src="../../js/common.js"></script>
+<!-- TOOLBOX-WEBAPP-LD -->
+<!-- TOOLBOX-SECURITY -->
+<style>
+.dr-wrap{max-width:760px}
+.dr-top{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;margin-bottom:14px}
+.dr-date{font-size:13px;color:var(--text-secondary);background:var(--bg-hover);padding:6px 12px;border-radius:999px;font-weight:600}
+.dr-diff{display:inline-flex;gap:6px;background:var(--bg-hover);padding:4px;border-radius:12px}
+.dr-diff button{border:0;background:transparent;color:var(--text-secondary);padding:7px 14px;border-radius:9px;font-size:13px;font-weight:600;cursor:pointer;transition:.18s}
+.dr-diff button.on{background:var(--card-bg);color:var(--primary);box-shadow:var(--shadow-sm)}
+.dr-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px}
+.dr-stat{background:var(--result-bg);border:1px solid var(--border);border-radius:14px;padding:14px 10px;text-align:center}
+.dr-stat .v{font-size:24px;font-weight:800;color:var(--primary);line-height:1.2}
+.dr-stat .l{font-size:12px;color:var(--text-muted);margin-top:2px}
+.dr-card{border:1px solid var(--border);border-radius:16px;padding:20px;background:var(--card-bg);margin-bottom:14px}
+.dr-badge{display:inline-block;font-size:11px;font-weight:700;padding:3px 10px;border-radius:999px;background:var(--bg-active);color:var(--primary-dark);margin-bottom:10px}
+.dr-q{font-size:18px;font-weight:700;line-height:1.7;color:var(--heading);margin-bottom:6px}
+.dr-qsub{font-size:13px;color:var(--text-muted);margin-bottom:14px}
+.dr-hintbox{background:var(--bg-hover);border-radius:12px;padding:12px 14px;margin:12px 0;min-height:20px;font-size:14px;color:var(--text-secondary);line-height:1.7}
+.dr-hintbox b{color:var(--primary-dark);letter-spacing:2px;font-family:ui-monospace,Menlo,monospace;font-size:16px}
+.dr-actions{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0}
+.dr-input{font-size:16px;letter-spacing:1px}
+.dr-result{border-radius:14px;padding:16px;margin-top:6px;font-size:14px;line-height:1.75}
+.dr-result.ok{background:rgba(16,185,129,.10);border:1px solid rgba(16,185,129,.3)}
+.dr-result.no{background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.25)}
+.dr-result h4{font-size:15px;margin-bottom:6px;display:flex;align-items:center;gap:6px}
+.dr-result .ans{font-size:18px;font-weight:800;color:var(--primary)}
+.dr-pct{display:flex;align-items:center;gap:12px;margin:12px 0;background:var(--bg-hover);border-radius:12px;padding:12px 14px}
+.dr-pct .big{font-size:26px;font-weight:800;color:var(--secondary)}
+.dr-pct .bar{flex:1;height:10px;background:var(--border);border-radius:6px;overflow:hidden}
+.dr-pct .fill{height:100%;background:linear-gradient(90deg,var(--primary),var(--secondary));border-radius:6px;transition:width .5s}
+.dr-hist h3{font-size:14px;color:var(--text-secondary);margin:18px 0 8px}
+.dr-histitem{display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--border);border-radius:12px;margin-bottom:8px;font-size:13px}
+.dr-histitem .d{color:var(--text-muted);font-family:ui-monospace,Menlo,monospace;font-size:12px;flex-shrink:0}
+.dr-histitem .q{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text)}
+.dr-histitem .st{font-weight:700;flex-shrink:0}
+.dr-histitem .st.ok{color:var(--success)}
+.dr-histitem .st.no{color:var(--danger)}
+.dr-empty{text-align:center;color:var(--text-muted);padding:20px;font-size:13px}
+.dr-note{font-size:12.5px;color:var(--text-muted);line-height:1.7;margin-top:10px}
+@media(max-width:600px){
+  .dr-stats{grid-template-columns:repeat(3,1fr);gap:8px}
+  .dr-stat .v{font-size:20px}
+  .dr-q{font-size:16px}
+}
+</style>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"首页","item":"https://chenguangwu.github.io/"},{"@type":"ListItem","position":2,"name":"娱乐游戏","item":"https://chenguangwu.github.io/tools/fun/index.html"},{"@type":"ListItem","position":3,"name":"每日谜题挑战","item":"https://chenguangwu.github.io/tools/fun/daily-riddle.html"}]}
+</script>
+
+<script src="/js/analytics.js" defer></script>
+<!-- TOOLBOX-CLARITY -->
+<!-- TOOLBOX-WEBAPP-LD -->
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"WebApplication","name":"每日谜题挑战 - 在线趣味工具","url":"https://chenguangwu.github.io/tools/fun/daily-riddle.html","applicationCategory":"GamesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":["zh-CN", "en-US"],"description":"Daily Riddle Challenge","image":"https://chenguangwu.github.io/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}
+</script>
+<meta property="og:image" content="https://chenguangwu.github.io/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="ToolBox - 5000+免费在线工具">
+<meta name="twitter:image" content="https://chenguangwu.github.io/og-image.png">
+<meta name="twitter:image:alt" content="ToolBox - 5000+免费在线工具">
+
+<meta name="twitter:title" content="每日谜题挑战 - 在线趣味工具">
+<meta name="twitter:description" content="全球同日同题的每日谜题，三级难度、三级提示、积分连击与答题日历，题库持续扩充。">
+<meta property="og:type" content="website">
+
+<script src="/js/privacy.js" defer></script>
+<!-- TOOLBOX-PRIVACY-SCRIPT -->
+
+<script src="/js/metrics.js" defer></script>
+<!-- TOOLBOX-METRICS-SCRIPT -->
+
+<script src="../../js/i18n.js" defer></script>
+<script src="../../js/tool-i18n.js" defer></script>
+<!-- TOOLBOX-I18N-SCRIPT -->
+<meta name="title-en" content="Daily Riddle Challenge - ToolBox">
+<meta name="desc-en" content="One shared riddle per day with three difficulties, staged hints, points, streaks and an answer calendar, Free, browser-only.">
+<!-- TOOLBOX-HREFLANG -->
+<link rel="alternate" hreflang="zh-CN" href="https://chenguangwu.github.io/tools/fun/daily-riddle.html">
+<link rel="alternate" hreflang="en-US" href="https://chenguangwu.github.io/tools/fun/daily-riddle.html">
+<link rel="alternate" hreflang="x-default" href="https://chenguangwu.github.io/tools/fun/daily-riddle.html">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:locale:alternate" content="en_US">
+<link rel="stylesheet" href="/css/nav-menu.css">
+<script src="/js/industry-info.js" defer></script>
+<script src="/js/nav-menu.js" defer></script>
+
+<script src="/js/tool-ux.js" defer></script>
+<!-- TOOLBOX-TOOL-UX -->
+</head>
+<body>
+
+<h1 class="sr-only">每日谜题挑战</h1>
+
+<div class="nav">
+  <a href="../../index.html">← ToolBox</a>
+  <span>/ 每日谜题挑战</span>
+  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()">🌙</button>
+</div>
+
+<nav class="breadcrumb" aria-label="面包屑导航" data-breadcrumb="1">
+  <a href="../../index.html">首页</a>
+  <span class="bc-sep">‹</span>
+  <a href="index.html">🎮 趣味工具</a>
+  <span class="bc-sep">‹</span>
+  <span class="bc-current">每日谜题挑战</span>
+</nav>
+
+<div class="container dr-wrap">
+  <div class="card tool-card-accent" style="--tool-accent:#0EA5E9;">
+    <h2 data-zh="🧩 每日谜题挑战：日期种子 · 三级提示 · 连击积分">🧩 Daily Riddle Challenge</h2>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:14px;" data-zh="每天一道中文谜题或脑筋急转弯，用当天日期做种子，保证同一天所有人拿到同一道题、隔天自动换题。支持三级关键词提示、积分、连击记录、难度选择，以及'超越 x% 玩家'的百分位估算；成绩与连击本地保存，刷新不丢失。">A fresh Chinese riddle or brain-teaser every day, seeded by the date so everyone gets the same puzzle on the same day. Three-level keyword hints, scoring, streak tracking, difficulty selection and a “beat x% of players” percentile estimate — all progress is saved locally.</p>
+
+    <div class="dr-top">
+      <span class="dr-date" id="drDate">—</span>
+      <div class="dr-diff" role="group" aria-label="难度选择">
+        <button data-diff="1" class="on">简单</button>
+        <button data-diff="2">中等</button>
+        <button data-diff="3">困难</button>
+      </div>
+    </div>
+
+    <div class="dr-stats">
+      <div class="dr-stat"><div class="v" id="drScore">0</div><div class="l">累计积分</div></div>
+      <div class="dr-stat"><div class="v" id="drStreak">0</div><div class="l">当前连击</div></div>
+      <div class="dr-stat"><div class="v" id="drBest">0</div><div class="l">最佳连击</div></div>
+    </div>
+
+    <div class="dr-card">
+      <span class="dr-badge" id="drBadge">简单</span>
+      <div class="dr-q" id="drQuestion">加载中…</div>
+      <div class="dr-qsub" id="drQsub">动动脑筋，下面可以要提示哦。</div>
+
+      <div class="dr-hintbox" id="drHintBox">还没有使用提示。点击下面的按钮逐次揭示关键词。</div>
+
+      <div class="dr-actions">
+        <button class="btn" id="drHint1">提示 1</button>
+        <button class="btn" id="drHint2">提示 2</button>
+        <button class="btn" id="drHint3">提示 3</button>
+        <button class="btn" id="drRevealAll" style="margin-left:auto;color:var(--danger);border-color:rgba(239,68,68,.3)">揭晓答案</button>
+      </div>
+
+      <div class="dr-actions">
+        <input type="text" id="drInput" class="dr-input" placeholder="在此输入你的答案，回车提交" autocomplete="off" style="flex:1;min-width:200px">
+        <button class="btn btn-primary" id="drSubmit">提交答案</button>
+      </div>
+
+      <div id="drResult"></div>
+    </div>
+
+    <div class="dr-hist">
+      <h3>历史答题记录（本地保存）</h3>
+      <div id="drHistory"></div>
+    </div>
+
+    <div class="dr-note">说明：本工具的“超越 x% 玩家”百分位是基于难度基线与提示使用次数模拟的趣味估算，并非真实统计数据；谜题答案以中文为主，提交时会自动忽略空格与标点。</div>
+  </div>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  /* ============================================================
+   * 1. 题库：谜面 / 答案 / 解析 / 难度(1简单 2中等 3困难)
+   * ========================================================== */
+  var RIDDLES = [
+    {q:"白天一起玩，夜间靠墙站，身上好多节，专把时间算。",a:"钟表",a2:"钟",e:"钟表白天被使用、夜晚靠着墙放，表盘上有刻度（一节一节）用来计算时间。",d:1},
+    {q:"有头没有颈，身上冷冰冰，有翅不能飞，无脚也能行。",a:"鱼",e:"鱼有头却没有脖子，身体凉，长着鳍（像翅膀）却不能飞，没有脚却能在水中游动。",d:1},
+    {q:"千条线，万条线，落到水里看不见。",a:"雨",e:"雨丝像千万条线，落入水中便融入水里，看不见了。",d:1},
+    {q:"一个老头，不跑不走，请他睡觉，他就摇头。",a:"不倒翁",e:"不倒翁推它一下就左右摇晃（摇头），却怎么也倒不下、跑不动。",d:1},
+    {q:"身体细又长，生来手脚无，扭来又扭去，吃泥不吃谷。",a:"蚯蚓",e:"蚯蚓细长无手脚，在泥土里蠕动，以腐殖质为食。",d:1},
+    {q:"头戴红帽子，身披白袍子，走路摆架子，说话伸脖子。",a:"鹅",e:"白鹅头顶有红色肉瘤，一身白羽，走路昂首摇摆，叫时伸长脖子。",d:1},
+    {q:"麻屋子，红帐子，里面住个白胖子。",a:"花生",e:"花生壳麻点（麻屋）、红衣（红帐）、里面白色的花生仁。",d:1},
+    {q:"身穿大红袍，头戴绿翎帽，一日打三更，夜里睡得早。",a:"公鸡",e:"公鸡红冠（红袍）、绿尾羽（绿翎），清晨打鸣报晓，夜里早睡。",d:1},
+    {q:"一个娃娃小不点，一件红袄身上穿，香火把它来点燃，大叫一声飞上天。",a:"鞭炮",e:"鞭炮裹红纸、内装火药，点燃后爆响飞起。",d:1},
+    {q:"白嫩小宝宝，洗澡吹泡泡，洗洗身体小，再洗不见了。",a:"肥皂",e:"肥皂越洗越小，最后用完消失。",d:1},
+    {q:"有面没有口，有脚没有手，虽有四只脚，自己不会走。",a:"桌子",e:"桌面无口，桌腿四只却不会自己移动。",d:1},
+    {q:"上边毛，下边毛，中间一颗黑葡萄。",a:"眼睛",e:"上下睫毛之间乌黑的瞳孔像黑葡萄。",d:1},
+    {q:"身穿绿衣裳，肚里水汪汪，生的孩子多，个个黑脸膛。",a:"西瓜",e:"西瓜皮绿、瓤水多、籽黑。",d:1},
+    {q:"一个盒子方又方，里边装着玻璃窗，玻璃窗里亮堂堂，能看天下事一桩。",a:"电视机",e:"电视方盒、屏幕如窗，播放天下事。",d:1},
+    {q:"小小诸葛亮，独坐中军帐，摆下八卦阵，专捉飞来将。",a:"蜘蛛",e:"蜘蛛像军师般守在网（八卦阵）中央，捕捉飞虫。",d:2},
+    {q:"头戴翡翠帽，身穿绿战袍，说话呱呱叫，害虫都吓跑。",a:"青蛙",e:"青蛙绿衣、鸣声呱呱，吃害虫。",d:1},
+    {q:"耳朵长，尾巴短，红眼睛，白毛衫，三瓣嘴儿胆子小。",a:"兔子",e:"兔长耳短尾、红眼白毛、三瓣嘴、胆小。",d:1},
+    {q:"嘴巴尖尖，尾巴长长，偷吃粮食，人人喊打。",a:"老鼠",e:"鼠尖嘴长尾、偷粮、招人厌。",d:1},
+    {q:"白天睡觉夜里忙，眼睛圆圆放光芒，专抓田鼠保庄稼。",a:"猫头鹰",e:"猫头鹰夜行、大眼、捕食田鼠。",d:1},
+    {q:"身穿黄衣裳，你要欺侮它，它就戳一枪。",a:"蜜蜂",e:"蜜蜂黄黑相间，受扰会蜇（戳一枪）。",d:1},
+    {q:"圆圆小珍珠，洒落青草上，太阳一出来，跑得无影踪。",a:"露珠",e:"露珠圆如珍珠附在草上，日出即蒸发。",d:2},
+    {q:"弯弯一座桥，挂在半天腰，七色排得巧，雨后才见到。",a:"彩虹",e:"彩虹弯如桥、七色、雨后现。",d:1},
+    {q:"一物生来身穿三百多件衣，每天脱一件，年底剩张皮。",a:"日历",e:"日历一天撕一页，年终只剩底皮。",d:2},
+    {q:"不怕细菌小，有它能看到，化验需要它，科研不可少。",a:"显微镜",e:"显微镜可看微小细菌，用于化验科研。",d:1},
+    {q:"屋子方方，有门没窗，屋外热烘，屋里冰霜。",a:"冰箱",e:"冰箱方箱、有门无窗，外热内冷。",d:1},
+    {q:"黑黑小小虫，最爱嗡嗡嗡，白天躲暗处，夜晚来点灯。",a:"蚊子",e:"蚊子黑小、嗡嗡、夜间趋光叮人。",d:1},
+    {q:"身体像小山，鼻子长又长，耳朵像蒲扇，腿像粗柱子。",a:"大象",e:"象体大、长鼻、大耳、粗腿。",d:1},
+    {q:"远看山有色，近听水无声，春去花还在，人来鸟不惊。",a:"画",e:"画中景静止：有山色却无水声，花常开、鸟不惊。",d:2},
+    {q:"左边绿，右边红，左右相遇起凉风，绿的喜欢及时雨，红的最怕水来攻。",a:"秋",e:"“秋”=禾（绿、喜雨）+火（红、怕水），秋风吹凉。",d:2},
+    {q:"古月照水水长流，水伴古月情意投，留得水光昭古月，碧波深处好泛舟。",a:"湖",e:"“湖”=氵（水）+胡（古+月），谜面处处点出古、月、水。",d:3},
+    {q:"一点一横长，两点一横长，你若猜不出，站着想一想。",a:"立",e:"“立”字笔顺：点、横、点、撇、横，含一横两点一横。",d:2},
+    {q:"一个字，两张口，下面还有一只狗。",a:"哭",e:"“哭”=两个口在上、犬（狗）在下。",d:2},
+    {q:"一口咬掉牛尾巴。",a:"告",e:"“牛”去掉尾笔、加“口”成“告”。",d:2},
+    {q:"十张嘴巴一颗心。",a:"思",e:"“思”=田（十+口）+心。",d:2},
+    {q:"二人并肩站，不看也相连。",a:"从",e:"“从”=两个“人”并肩。",d:1},
+    {q:"三个口字手拉手，不说也不走。",a:"品",e:"“品”=三个口叠成品字。",d:2},
+    {q:"红门楼，白院墙，里面坐个胖儿郎。",a:"嘴",e:"红唇为门楼、白牙为墙、舌头为胖儿郎。",d:2},
+    {q:"一物生来奇，越洗越脏衣，不洗还能用，洗了不能衣。",a:"水",e:"水用来洗物，自身越用越脏；水本身脏了就难再用。",d:2},
+    {q:"兄弟七八个，围着柱子坐，只要一分开，衣服就扯破。",a:"蒜",e:"蒜瓣（兄弟）围蒜柱，掰开即破皮。",d:2},
+    {q:"四四方方一座城，城里兵马乱纷纷，两个将军来对阵，只看胜败不分明。",a:"棋盘",e:"棋盘如城，棋子（兵马）对阵博弈。",d:2},
+    {q:"青藤藤，开黄花，地上开花不结果，地下结果不开花。",a:"花生",e:"花生地上开黄花、地下结荚果。",d:2},
+    {q:"一匹马儿两人骑，这边高来那边低，虽然马儿不会跑，两人骑着笑嘻嘻。",a:"跷跷板",e:"跷跷板两人一上一下如骑马。",d:2},
+    {q:"远看像座山，近看不是山，上边云雾绕，下边水潺潺。",a:"瀑布",e:"瀑布如山、水雾缭绕、下临流水。",d:2}
+  ];
+
+  /* ============================================================
+   * 2. 工具函数
+   * ========================================================== */
+  function $(id){ return document.getElementById(id); }
+  function pad2(n){ return (n<10?'0':'')+n; }
+  function todayStr(){
+    var t=new Date();
+    return t.getFullYear()+'-'+pad2(t.getMonth()+1)+'-'+pad2(t.getDate());
+  }
+  function yesterdayStr(){
+    var t=new Date(); t.setDate(t.getDate()-1);
+    return t.getFullYear()+'-'+pad2(t.getMonth()+1)+'-'+pad2(t.getDate());
+  }
+  function normalize(s){
+    return String(s||'').toLowerCase().replace(/[\s　,，。.、！!？?；;：:""''（）()\[\]【】\-_]/g,'');
+  }
+  function escapeHtml(s){
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+  function getState(){
+    try{ var s=JSON.parse(localStorage.getItem('tb_dr_state')||'null'); if(s&&typeof s==='object') return s; }catch(e){}
+    return {score:0,streak:0,best:0,lastPlayDate:'',solved:{},history:[]};
+  }
+  function setState(s){ try{ localStorage.setItem('tb_dr_state',JSON.stringify(s)); }catch(e){} }
+  var _toastTimer=null;
+  function toast(msg){
+    var el=$('drToast');
+    if(!el){ el=document.createElement('div'); el.id='drToast';
+      el.style.cssText='position:fixed;left:50%;bottom:32px;transform:translateX(-50%) translateY(20px);background:rgba(31,41,55,.94);color:#fff;padding:10px 18px;border-radius:999px;font-size:13px;z-index:9999;opacity:0;transition:.22s;pointer-events:none;box-shadow:0 6px 20px rgba(0,0,0,.2)';
+      document.body.appendChild(el); }
+    el.textContent=msg; el.style.opacity='1'; el.style.transform='translateX(-50%) translateY(0)';
+    clearTimeout(_toastTimer);
+    _toastTimer=setTimeout(function(){ el.style.opacity='0'; el.style.transform='translateX(-50%) translateY(20px)'; },1600);
+  }
+
+  /* ============================================================
+   * 3. 日期种子伪随机（保证同一天一致、隔天不同）
+   * ========================================================== */
+  function hashStr(str){
+    var h=2166136261>>>0;
+    for(var i=0;i<str.length;i++){ h^=str.charCodeAt(i); h=Math.imul(h,16777619); }
+    return h>>>0;
+  }
+  function seededRandom(seedStr){
+    var s=hashStr(seedStr)||1;
+    return function(){
+      s^=s<<13; s>>>=0; s^=s>>17; s^=s<<5; s>>>=0;
+      return (s>>>0)/4294967296;
+    };
+  }
+
+  /* ============================================================
+   * 4. 状态与难度
+   * ========================================================== */
+  var state=getState();
+  var curDiff=1;
+  var curRiddle=null;
+  var hintLevel=0;          // 已揭示到的最高提示级别 0..3
+  var answered=false;       // 今天该难度是否已提交
+  var earnedToday=0;        // 今天该难度已得分数
+
+  function diffLabel(d){ return d===1?'简单':(d===2?'中等':'困难'); }
+  function poolForDiff(d){
+    return RIDDLES.filter(function(r){ return d===1? r.d<=1 : (d===2? r.d<=2 : r.d>=2); });
+  }
+
+  /* 选今天的题：日期 + 难度 做种子 */
+  function pickToday(){
+    var pool=poolForDiff(curDiff);
+    var rnd=seededRandom(todayStr()+'|diff'+curDiff);
+    var idx=Math.floor(rnd()*pool.length)%pool.length;
+    curRiddle=pool[idx];
+    var key=todayStr()+'|'+curDiff;
+    if(state.solved[key]!==undefined){
+      answered=true; earnedToday=state.solved[key];
+    } else {
+      answered=false; earnedToday=0;
+    }
+    hintLevel=0;
+    renderQuestion();
+  }
+
+  /* ============================================================
+   * 5. 提示揭示
+   * ========================================================== */
+  function maskedAnswer(level){
+    var ans=curRiddle.a;
+    var n=ans.length;
+    if(n<=1) return {text:ans,full:true};
+    var reveal = level===0?0 : level===1? Math.ceil(n*0.34) : level===2? Math.ceil(n*0.67) : n;
+    if(reveal>=n) return {text:ans,full:true};
+    var s='';
+    for(var i=0;i<n;i++){ s += (i<reveal)? ans.charAt(i) : '●'; }
+    return {text:s,full:false};
+  }
+  function renderHint(){
+    var box=$('drHintBox');
+    if(hintLevel===0){
+      box.innerHTML='还没有使用提示。点击下面的按钮逐次揭示关键词。';
+      return;
+    }
+    var m=maskedAnswer(hintLevel);
+    var used = hintLevel;
+    var html='已使用 <b>'+used+'</b> 级提示 → 关键词：<b>'+escapeHtml(m.text)+'</b>';
+    if(m.full) html+='　（已揭示全部）';
+    box.innerHTML=html;
+  }
+
+  /* ============================================================
+   * 6. 评分与百分位
+   * ========================================================== */
+  function baseScore(d){ return d===1?100 : (d===2?180:300); }
+  function computeScore(correct,hints,d){
+    if(!correct) return 0;
+    var sc=baseScore(d) - hints*20;
+    var bonus=Math.min(state.streak,10)*10;
+    sc += bonus;
+    return Math.max(20,sc);
+  }
+  function computePercentile(correct,hints,d){
+    var base = d===1?72 : (d===2?55:38);
+    var p;
+    if(correct){ p = base - hints*7; }
+    else { p = Math.max(8, Math.round(base*0.45) - hints*3); }
+    p=Math.min(99,Math.max(3,p));
+    return p;
+  }
+
+  /* ============================================================
+   * 7. 提交答案
+   * ========================================================== */
+  function submit(){
+    if(answered && earnedToday>0){
+      toast('今天该难度已经作答过啦，明天再来或切换难度');
+      return;
+    }
+    var inp=$('drInput').value;
+    if(!inp || !inp.trim()){
+      toast('请先输入你的答案');
+      return;
+    }
+    var guess=normalize(inp);
+    var ans=normalize(curRiddle.a);
+    var correct = (guess===ans);
+    if(!correct && curRiddle.a2){ correct = (guess===normalize(curRiddle.a2)); }
+
+    var gained=computeScore(correct,hintLevel,curDiff);
+    var pct=computePercentile(correct,hintLevel,curDiff);
+
+    // 连击逻辑：仅答对且为今天第一次作答时推进
+    if(correct && !answered){
+      if(state.lastPlayDate===todayStr()){
+        // 今天已推进过，保持
+      } else if(state.lastPlayDate===yesterdayStr()){
+        state.streak += 1;
+      } else {
+        state.streak = 1;
+      }
+      state.lastPlayDate = todayStr();
+      if(state.streak>state.best) state.best=state.streak;
+      state.score += gained;
+      var key=todayStr()+'|'+curDiff;
+      state.solved[key]=gained;
+      earnedToday=gained;
+      answered=true;
+    }
+
+    // 历史记录（最多保留 30 条）
+    state.history.unshift({
+      date: todayStr(), diff: curDiff, q: curRiddle.q, ok: correct, pct: pct, gained: gained
+    });
+    if(state.history.length>30) state.history.length=30;
+    setState(state);
+
+    renderResult(correct,gained,pct);
+    renderStats();
+    renderHistory();
+  }
+
+  function renderResult(correct,gained,pct){
+    var box=$('drResult');
+    var cls = correct? 'ok':'no';
+    var icon = correct? '✅':'❌';
+    var title = correct? '回答正确！' : '很遗憾，答错了';
+    var ansHtml = '<div class="ans">'+escapeHtml(curRiddle.a)+(curRiddle.a2? ' / '+escapeHtml(curRiddle.a2):'')+'</div>';
+    var pctHtml =
+      '<div class="dr-pct">'+
+        '<div class="big">'+pct+'%</div>'+
+        '<div style="flex:1">'+
+          '<div class="bar"><div class="fill" style="width:'+pct+'%"></div></div>'+
+          '<div style="font-size:12px;color:var(--text-muted);margin-top:4px">你超越了约 <b style="color:var(--secondary)">'+pct+'%</b> 的玩家（趣味估算）</div>'+
+        '</div>'+
+      '</div>';
+    box.className='dr-result '+cls;
+    box.innerHTML =
+      '<h4>'+icon+' '+title+'</h4>'+
+      (correct? ('<p style="color:var(--text-secondary)">本局得分 <b style="color:var(--success)">+'+gained+'</b>（难度 '+diffLabel(curDiff)+'·提示 '+hintLevel+' 级·连击 '+state.streak+'）</p>') :
+                  ('<p style="color:var(--text-secondary)">本次未得分，再接再厉！</p>'))+
+      '<p style="margin:10px 0 4px;font-size:13px;color:var(--text-muted)">正确答案：</p>'+
+      ansHtml+
+      '<p style="margin-top:10px;font-size:13.5px;color:var(--text-secondary);line-height:1.8"><b style="color:var(--heading)">解析：</b>'+escapeHtml(curRiddle.e)+'</p>'+
+      pctHtml;
+  }
+
+  /* ============================================================
+   * 8. 渲染
+   * ========================================================== */
+  function renderQuestion(){
+    $('drDate').textContent='📅 '+todayStr();
+    $('drBadge').textContent=diffLabel(curDiff);
+    $('drQuestion').textContent=curRiddle.q;
+    $('drInput').value='';
+    $('drInput').disabled=answered && earnedToday>0;
+    $('drResult').innerHTML='';
+    $('drResult').className='';
+    if(answered && earnedToday>0){
+      $('drQsub').textContent='今天该难度已作答（得分 '+earnedToday+'），可切换难度挑战新题，或查看解析。';
+      // 展示已保存结果
+      var rec=state.history.filter(function(h){return h.date===todayStr()&&h.diff===curDiff;})[0];
+      if(rec){ renderResult(rec.ok,rec.gained,rec.pct); }
+    } else {
+      $('drQsub').textContent='动动脑筋，下面可以要提示哦。';
+    }
+    renderHint();
+  }
+
+  function renderStats(){
+    $('drScore').textContent=state.score;
+    $('drStreak').textContent=state.streak;
+    $('drBest').textContent=state.best;
+  }
+
+  function renderHistory(){
+    var box=$('drHistory');
+    if(!state.history.length){
+      box.innerHTML='<div class="dr-empty">还没有历史记录，今天就来挑战第一题吧！</div>';
+      return;
+    }
+    var html='';
+    state.history.forEach(function(h){
+      html+='<div class="dr-histitem">'+
+        '<span class="d">'+escapeHtml(h.date)+'</span>'+
+        '<span class="q">['+diffLabel(h.diff)+'] '+escapeHtml(h.q)+'</span>'+
+        '<span class="st '+(h.ok?'ok':'no')+'">'+(h.ok?'+'+h.gained+' · 前'+h.pct+'%':'未过')+'</span>'+
+      '</div>';
+    });
+    box.innerHTML=html;
+  }
+
+  /* ============================================================
+   * 9. 事件绑定
+   * ========================================================== */
+  Array.prototype.forEach.call(document.querySelectorAll('.dr-diff button'),function(btn){
+    btn.addEventListener('click',function(){
+      Array.prototype.forEach.call(document.querySelectorAll('.dr-diff button'),function(b){ b.classList.remove('on'); });
+      btn.classList.add('on');
+      curDiff=parseInt(btn.getAttribute('data-diff'),10);
+      pickToday();
+      toast('已切换到「'+diffLabel(curDiff)+'」难度');
+    });
+  });
+
+  $('drHint1').addEventListener('click',function(){ if(hintLevel<1){hintLevel=1;renderHint();} else toast('提示 1 已揭示'); });
+  $('drHint2').addEventListener('click',function(){ if(hintLevel<2){hintLevel=2;renderHint();} else toast('提示 2 已揭示'); });
+  $('drHint3').addEventListener('click',function(){ if(hintLevel<3){hintLevel=3;renderHint();} else toast('提示 3 已揭示'); });
+  $('drRevealAll').addEventListener('click',function(){
+    if(answered && earnedToday>0){ toast('今天已作答，解析已显示在下方'); return; }
+    hintLevel=3; renderHint();
+  });
+  $('drSubmit').addEventListener('click',submit);
+  $('drInput').addEventListener('keydown',function(e){ if(e.key==='Enter'){ submit(); } });
+
+  /* ============================================================
+   * 10. 初始化
+   * ========================================================== */
+  renderStats();
+  renderHistory();
+  pickToday();
+})();
+</script>
+</body>
+</html>

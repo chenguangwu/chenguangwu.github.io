@@ -1,0 +1,792 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<script src="/js/tool-page-runtime.js" defer></script>
+<!-- TOOLBOX-TOOL-RUNTIME -->
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="toolbox" content="cat=validator,industry=ent,icon=👂,bg=#e8f5e9">
+<title>听觉时间分辨率测试 - 在线工具 - ToolBox</title>
+<link rel="canonical" href="https://chenguangwu.github.io/tools/ent/temporal-resolution-hearing.html">
+<meta property="og:title" content="听觉时间分辨率测试 - 在线工具">
+<meta property="og:description" content="基于 Web Audio 的间隙检测与调制检测，2-IFC 自适应阶梯法估算毫秒级阈值，并对照年龄参考范围。">
+<meta name="twitter:card" content="summary">
+<meta name="description" content="基于 Web Audio 的间隙检测与调制检测，2-IFC 自适应阶梯法估算毫秒级阈值，并对照年龄参考范围。">
+<link rel="stylesheet" href="../../css/common.css">
+<script src="../../js/common.js"></script>
+<!-- TOOLBOX-WEBAPP-LD -->
+<!-- TOOLBOX-SECURITY -->
+<style>
+.tr-wrap{max-width:1080px}
+.tr-accent{border-top:3px solid var(--tool-accent,#2E7D32)}
+.tr-tabs{display:flex;gap:6px;flex-wrap:wrap;border-bottom:2px solid var(--border);margin-bottom:18px}
+.tr-tab{padding:10px 16px;border:0;background:transparent;color:var(--text-secondary);font-size:14px;font-weight:600;cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-2px;border-radius:8px 8px 0 0;transition:.18s}
+.tr-tab:hover{background:var(--bg-hover);color:var(--text-primary)}
+.tr-tab[aria-selected="true"]{color:var(--tool-accent,#2E7D32);border-bottom-color:var(--tool-accent,#2E7D32);background:var(--bg-hover)}
+.tr-pane{display:none}
+.tr-pane.on{display:block}
+.tr-field{display:flex;flex-direction:column;gap:5px;margin-bottom:12px}
+.tr-field label{font-size:12px;font-weight:600;color:var(--text-secondary)}
+.tr-ctl{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:14px;align-items:end}
+.tr-rng{width:100%;accent-color:var(--tool-accent,#2E7D32)}
+.tr-val{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-weight:700;color:var(--tool-accent,#2E7D32)}
+.tr-bigbtn{font-size:15px;padding:14px 22px;font-weight:700}
+.tr-row{display:flex;gap:10px;flex-wrap:wrap;margin:12px 0}
+.tr-row .btn{flex:1 1 0;min-width:140px;justify-content:center}
+.tr-box{background:var(--result-bg);border:1px solid var(--border);border-radius:12px;padding:16px;margin:14px 0}
+.tr-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin:12px 0}
+.tr-stat{background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:14px 10px;text-align:center}
+.tr-stat .v{font-size:22px;font-weight:800;color:var(--tool-accent,#2E7D32);line-height:1.2}
+.tr-stat .l{font-size:12px;color:var(--text-muted);margin-top:4px}
+.tr-prog{height:10px;background:var(--border);border-radius:6px;overflow:hidden;margin:10px 0}
+.tr-prog>i{display:block;height:100%;background:var(--tool-accent,#2E7D32);transition:width .3s}
+.tr-log{max-height:220px;overflow-y:auto;font-family:ui-monospace,Menlo,monospace;font-size:12px;background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:10px;line-height:1.7}
+.tr-log .ok{color:var(--success)}
+.tr-log .no{color:var(--danger)}
+.tr-note{font-size:12.5px;color:var(--text-muted);line-height:1.8;margin-top:14px;padding:12px 14px;background:var(--bg-hover);border-radius:10px;border-left:3px solid var(--warning)}
+table.tr-tbl{width:100%;border-collapse:collapse;font-size:13px;margin-top:10px}
+table.tr-tbl th,table.tr-tbl td{border:1px solid var(--border);padding:8px 10px;text-align:center}
+table.tr-tbl th{background:var(--th-bg);font-weight:700;color:var(--text-secondary)}
+table.tr-tbl td.k{text-align:left;font-weight:600;background:var(--bg-hover)}
+td.in{background:rgba(16,185,129,.14)}
+td.out{background:rgba(245,158,11,.14)}
+.tr-canvas{display:block;width:100%;max-width:560px;margin:10px auto;background:var(--bg-card);border:1px solid var(--border);border-radius:12px}
+.tr-disclaimer{background:rgba(239,68,68,.08);border-left:3px solid var(--danger);padding:10px 14px;border-radius:8px;font-size:13px;color:var(--text-secondary);margin-top:10px;line-height:1.7}
+.tr-disclaimer b{color:var(--danger)}
+@media(max-width:640px){.tr-tab{padding:9px 11px;font-size:13px}.tr-row .btn{min-width:100%}}
+</style>
+
+<script src="/js/analytics.js" defer></script>
+<!-- TOOLBOX-CLARITY -->
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"首页","item":"https://chenguangwu.github.io/"},{"@type":"ListItem","position":2,"name":"耳鼻喉科","item":"https://chenguangwu.github.io/tools/ent/index.html"},{"@type":"ListItem","position":3,"name":"听觉时间分辨率测试 - 在线工具","item":"https://chenguangwu.github.io/tools/ent/temporal-resolution-hearing.html"}]}
+</script>
+
+<!-- TOOLBOX-WEBAPP-LD -->
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"WebApplication","name":"听觉时间分辨率测试 - 在线工具","url":"https://chenguangwu.github.io/tools/ent/temporal-resolution-hearing.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":["zh-CN", "en-US"],"description":"Auditory Temporal Resolution Test - Online Tool","image":"https://chenguangwu.github.io/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}
+</script>
+
+<meta property="og:image" content="https://chenguangwu.github.io/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="ToolBox - 5000+免费在线工具">
+<meta name="twitter:image" content="https://chenguangwu.github.io/og-image.png">
+<meta name="twitter:image:alt" content="ToolBox - 5000+免费在线工具">
+<meta name="title-en" content="Auditory Temporal Resolution Test - ToolBox">
+<meta name="desc-en" content="Web Audio gap and modulation detection with a 2-IFC adaptive staircase estimating millisecond thresholds, Free, browser-only.">
+
+<meta name="twitter:title" content="听觉时间分辨率测试 - 在线工具">
+<meta name="twitter:description" content="基于 Web Audio 的间隙检测与调制检测，2-IFC 自适应阶梯法估算毫秒级阈值，并对照年龄参考范围。">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://chenguangwu.github.io/tools/ent/temporal-resolution-hearing.html">
+
+<script src="/js/privacy.js" defer></script>
+<!-- TOOLBOX-PRIVACY-SCRIPT -->
+
+<script src="/js/metrics.js" defer></script>
+<!-- TOOLBOX-METRICS-SCRIPT -->
+
+<script src="../../js/i18n.js" defer></script>
+<script src="../../js/tool-i18n.js" defer></script>
+<!-- TOOLBOX-I18N-SCRIPT -->
+<!-- TOOLBOX-HREFLANG -->
+<link rel="alternate" hreflang="zh-CN" href="https://chenguangwu.github.io/tools/ent/temporal-resolution-hearing.html">
+<link rel="alternate" hreflang="en-US" href="https://chenguangwu.github.io/tools/ent/temporal-resolution-hearing.html">
+<link rel="alternate" hreflang="x-default" href="https://chenguangwu.github.io/tools/ent/temporal-resolution-hearing.html">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:locale:alternate" content="en_US">
+<link rel="stylesheet" href="/css/nav-menu.css">
+<script src="/js/industry-info.js" defer></script>
+<script src="/js/nav-menu.js" defer></script>
+
+<script src="/js/tool-ux.js" defer></script>
+<!-- TOOLBOX-TOOL-UX -->
+</head>
+<body>
+<nav class="breadcrumb" aria-label="面包屑导航" data-breadcrumb="1">
+  <a href="../../index.html">首页</a>
+  <span class="bc-sep">‹</span>
+  <a href="index.html">🔧 耳鼻喉科</a>
+  <span class="bc-sep">‹</span>
+  <span class="bc-current">听觉时间分辨率测试</span>
+</nav>
+
+<h1 class="sr-only">听觉时间分辨率测试</h1>
+
+<div class="nav">
+  <a href="../../index.html">← ToolBox</a>
+  <span>/ 耳鼻喉科 · 听觉时间分辨率测试</span>
+  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()">🌙</button>
+</div>
+
+<nav class="breadcrumb" aria-label="面包屑导航">
+  <a href="../../index.html">首页</a>
+  <span class="bc-sep">‹</span>
+  <a href="index.html">👂 耳鼻喉科</a>
+  <span class="bc-sep">‹</span>
+  <span class="bc-current">听觉时间分辨率测试</span>
+</nav>
+
+<div class="container tr-wrap">
+  <div class="card tr-accent" style="--tool-accent:#2E7D32;">
+    <h2 data-zh="👂 听觉时间分辨率测试 · Auditory Temporal Resolution">👂 Auditory Temporal Resolution Test - Online Tool</h2>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="基于 Web Audio 的实验性听觉测试。包含「间隙检测」（两段白噪声间插入可调间隙，判断能否听出间断）与「调制检测」（对载波叠加振幅调制，判断能否听出起伏）两种范式，采用 2-IFC 自适应阶梯法估算毫秒级阈值，并对照儿童 / 青年 / 老年参考范围。请在安静环境下、佩戴耳机进行测试。">Web Audio gap and modulation detection with a 2-IFC adaptive staircase estimating millisecond thresholds, compared against age references.</p>
+
+    <div class="tr-disclaimer"><b>使用边界：</b>本测试为娱乐自测，其结果受设备、耳机、环境噪声与个体差异影响很大，<b>不能替代专业听力与耳科检查</b>。若自觉听力下降或耳鸣，请到医疗机构就诊。</div>
+
+    <div class="tr-tabs" role="tablist">
+      <button class="tr-tab" role="tab" aria-selected="true" data-pane="gap">① 间隙检测 Gap</button>
+      <button class="tr-tab" role="tab" aria-selected="false" data-pane="mod">② 调制检测 Modulation</button>
+      <button class="tr-tab" role="tab" aria-selected="false" data-pane="result">③ 结果与常模</button>
+    </div>
+
+    <!-- ===================== PANE 1 · GAP ===================== -->
+    <section class="tr-pane on" id="pane-gap">
+      <div id="trGapAuth" class="tr-box" style="text-align:center">
+        <p style="font-size:13px;color:var(--text-secondary);margin-bottom:12px">测试需要访问音频输出。点击授权后，浏览器会创建 AudioContext 用于生成纯音与噪声。</p>
+        <button class="btn btn-primary tr-bigbtn" id="trGapEnable">🔊 点击开始（授权音频）</button>
+      </div>
+
+      <div id="trGapMain" style="display:none">
+        <div class="tr-ctl">
+          <div class="tr-field">
+            <label for="trGapMode">测试模式</label>
+            <select id="trGapMode">
+              <option value="adaptive">自适应阶梯法（推荐，自动估算阈值）</option>
+              <option value="manual">手动试听（自行调节间隙）</option>
+            </select>
+          </div>
+          <div class="tr-field">
+            <label for="trGapSeg">每段噪声时长</label>
+            <select id="trGapSeg">
+              <option value="0.22">220 ms</option>
+              <option value="0.28" selected>280 ms</option>
+              <option value="0.35">350 ms</option>
+            </select>
+          </div>
+          <div class="tr-field" id="trGapSliderWrap">
+            <label for="trGapSlider">间隙大小 <span class="tr-val" id="trGapSliderV">20 ms</span></label>
+            <input type="range" id="trGapSlider" class="tr-rng" min="1" max="50" step="1" value="20">
+          </div>
+        </div>
+
+        <div id="trGapAdaptive" class="tr-box">
+          <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+            <strong style="font-size:14px;color:var(--text-primary)">自适应测试进度</strong>
+            <span class="tr-val" id="trGapState">待开始</span>
+          </div>
+          <div class="tr-prog"><i id="trGapProg" style="width:0%"></i></div>
+          <div class="tr-row">
+            <button class="btn btn-primary" id="trGapPlay">▶ 播放本轮（两段刺激）</button>
+            <button class="btn" id="trGapReplay">↺ 重听本轮</button>
+          </div>
+          <p style="font-size:12.5px;color:var(--text-muted);line-height:1.7">将依次播放<b>第一段</b>与<b>第二段</b>白噪声（中间有停顿）。其中一段中间夹着一段静默间隙，另一段是连续的。听完后判断<b>哪一段有间断</b>。</p>
+          <div class="tr-row">
+            <button class="btn" id="trGapAns1">第一段有间断</button>
+            <button class="btn" id="trGapAns2">第二段有间断</button>
+          </div>
+          <div class="tr-log" id="trGapLog">等待开始…</div>
+        </div>
+
+        <div id="trGapManual" class="tr-box" style="display:none">
+          <div class="tr-row">
+            <button class="btn btn-primary" id="trGapManualPlay">▶ 试听当前间隙</button>
+            <button class="btn" id="trGapManualCont">▶ 试听「连续无间隙」对照</button>
+          </div>
+          <p style="font-size:12.5px;color:var(--text-muted);line-height:1.7">手动模式下，拖动上方滑杆改变间隙（1–50 ms），对比「有间隙」与「连续」的差异，帮助建立对时间分辨的直观感受。该模式不计入阈值估算。</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================== PANE 2 · MODULATION ===================== -->
+    <section class="tr-pane" id="pane-mod">
+      <div id="trModAuth" class="tr-box" style="text-align:center">
+        <p style="font-size:13px;color:var(--text-secondary);margin-bottom:12px">调制检测同样需要音频授权（若已在上方授权可忽略）。</p>
+        <button class="btn btn-primary tr-bigbtn" id="trModEnable">🔊 点击开始（授权音频）</button>
+      </div>
+
+      <div id="trModMain" style="display:none">
+        <div class="tr-ctl">
+          <div class="tr-field">
+            <label for="trModMode">测试模式</label>
+            <select id="trModMode">
+              <option value="adaptive">自适应阶梯法（推荐）</option>
+              <option value="manual">手动试听</option>
+            </select>
+          </div>
+          <div class="tr-field">
+            <label for="trModCarrier">载波频率</label>
+            <select id="trModCarrier">
+              <option value="500">500 Hz</option>
+              <option value="1000" selected>1000 Hz</option>
+              <option value="2000">2000 Hz</option>
+              <option value="4000">4000 Hz</option>
+            </select>
+          </div>
+          <div class="tr-field">
+            <label for="trModFreq">调制频率 <span class="tr-val" id="trModFreqV">4 Hz</span></label>
+            <input type="range" id="trModFreq" class="tr-rng" min="1" max="20" step="1" value="4">
+          </div>
+          <div class="tr-field" id="trModDepthWrap">
+            <label for="trModDepth">调制深度 <span class="tr-val" id="trModDepthV">30 %</span></label>
+            <input type="range" id="trModDepth" class="tr-rng" min="1" max="100" step="1" value="30">
+          </div>
+        </div>
+
+        <div id="trModAdaptive" class="tr-box">
+          <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+            <strong style="font-size:14px;color:var(--text-primary)">自适应测试进度</strong>
+            <span class="tr-val" id="trModState">待开始</span>
+          </div>
+          <div class="tr-prog"><i id="trModProg" style="width:0%"></i></div>
+          <div class="tr-row">
+            <button class="btn btn-primary" id="trModPlay">▶ 播放本轮（两段刺激）</button>
+            <button class="btn" id="trModReplay">↺ 重听本轮</button>
+          </div>
+          <p style="font-size:12.5px;color:var(--text-muted);line-height:1.7">依次播放<b>第一段</b>与<b>第二段</b>纯音。其中一段的响度在周期性「起伏」（振幅调制），另一段响度恒定。听完后判断<b>哪一段有起伏</b>。</p>
+          <div class="tr-row">
+            <button class="btn" id="trModAns1">第一段有起伏</button>
+            <button class="btn" id="trModAns2">第二段有起伏</button>
+          </div>
+          <div class="tr-log" id="trModLog">等待开始…</div>
+        </div>
+
+        <div id="trModManual" class="tr-box" style="display:none">
+          <div class="tr-row">
+            <button class="btn btn-primary" id="trModManualPlay">▶ 试听当前调制</button>
+            <button class="btn" id="trModManualFlat">▶ 试听「恒定无调制」对照</button>
+          </div>
+          <p style="font-size:12.5px;color:var(--text-muted);line-height:1.7">拖动「调制深度」与「调制频率」感受不同条件下的起伏 Detection。该模式不计入阈值估算。</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================== PANE 3 · RESULT ===================== -->
+    <section class="tr-pane" id="pane-result">
+      <div class="tr-grid" id="trResultStats">
+        <div class="tr-stat"><div class="v" id="trRGap">—</div><div class="l">间隙阈值 (ms)</div></div>
+        <div class="tr-stat"><div class="v" id="trRMod">—</div><div class="l">调制深度阈值 (%)</div></div>
+        <div class="tr-stat"><div class="v" id="trRGapRev">—</div><div class="l">间隙测试轮数</div></div>
+        <div class="tr-stat"><div class="v" id="trRModRev">—</div><div class="l">调制测试轮数</div></div>
+      </div>
+
+      <h3 style="font-size:15px;margin:18px 0 6px">间隙检测 · 年龄参考范围对照</h3>
+      <table class="tr-tbl" id="trGapNorm"></table>
+      <p style="font-size:12px;color:var(--text-muted);margin-top:6px">表中数值为<b>参考范围</b>（基于公开文献的粗略概括，仅供对照），并非严格诊断界值。</p>
+      <div class="tr-canvas" id="trGapCanvas"></div>
+
+      <h3 style="font-size:15px;margin:18px 0 6px">调制检测 · 年龄参考范围对照</h3>
+      <table class="tr-tbl" id="trModNorm"></table>
+      <div class="tr-canvas" id="trModCanvas"></div>
+
+      <div class="tr-box" id="trInterpret" style="font-size:13.5px;line-height:1.8;color:var(--text-secondary)">完成至少一项自适应测试后，这里会给出结果解读。</div>
+
+      <div class="tr-row">
+        <button class="btn" id="trCopyResult">复制结果文本</button>
+        <button class="btn" id="trResetAll">重置全部测试</button>
+      </div>
+    </section>
+
+    <div class="tr-note">
+      <b>原理简介：</b>听觉时间分辨率指听觉系统分辨快速时间结构变化的能力。间隙检测（Gap Detection Threshold, GDT）反映对短暂静默的察觉能力；调制检测（Amplitude Modulation Detection, AMD）反映对响度起伏的追踪能力。两者均随年龄增长而下降，并与中枢听觉 Processing 相关。本页用 2-IFC 自适应阶梯法（每次答对缩小刺激、答错放大刺激，取末段反转点均值）做近似估算。
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  /* ============================================================
+   * 0. 通用助手
+   * ========================================================== */
+  function $(id) { return document.getElementById(id); }
+  function clamp(v, a, b) { return v < a ? a : (v > b ? b : v); }
+  function esc(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+
+  var AC = null;
+  var NOISE_CACHE = {};   // 不同 dur 的噪声缓冲缓存
+  var CUR = null;         // 当前待重听的刺激缓冲
+
+  function ensureAudio() {
+    if (!AC) {
+      var Ctx = window.AudioContext || window.webkitAudioContext;
+      AC = new Ctx();
+    }
+    if (AC.state === 'suspended' && AC.resume) { AC.resume(); }
+    return AC;
+  }
+
+  function noiseBuffer(dur) {
+    var key = dur.toFixed(3);
+    if (NOISE_CACHE[key]) { return NOISE_CACHE[key]; }
+    var ctx = AC;
+    var len = Math.max(1, Math.floor(ctx.sampleRate * dur));
+    var buf = ctx.createBuffer(1, len, ctx.sampleRate);
+    var d = buf.getChannelData(0);
+    for (var i = 0; i < len; i++) { d[i] = Math.random() * 2 - 1; }
+    NOISE_CACHE[key] = buf;
+    return buf;
+  }
+
+  // 把一段噪声写入目标缓冲 d 的 [startSec, startSec+durSec) 区间，带 8ms 淡入淡出避免爆音
+  function fillNoise(d, rate, startSec, durSec) {
+    var s = Math.floor(startSec * rate);
+    var e = Math.floor((startSec + durSec) * rate);
+    if (e > d.length) { e = d.length; }
+    var fade = Math.floor(0.008 * rate);
+    for (var i = s; i < e; i++) {
+      var v = Math.random() * 2 - 1;
+      var pos = i - s;
+      if (pos < fade) { v *= (pos / fade); }
+      else if ((e - i) < fade) { v *= ((e - i) / fade); }
+      d[i] = v;
+    }
+  }
+
+  // 把一段正弦（可调制）写入目标缓冲
+  function fillTone(d, rate, startSec, durSec, freq, depth, modHz) {
+    var s = Math.floor(startSec * rate);
+    var e = Math.floor((startSec + durSec) * rate);
+    if (e > d.length) { e = d.length; }
+    var fade = Math.floor(0.01 * rate);
+    var TWO_PI = Math.PI * 2;
+    for (var i = s; i < e; i++) {
+      var t = (i - s) / rate;
+      var env = 1;
+      if (depth > 0 && modHz > 0) {
+        // 颤音式振幅调制：env 在 1-depth/2 .. 1+depth/2 之间周期起伏
+        env = 1 - (depth / 200) + (depth / 200) * Math.sin(TWO_PI * modHz * t);
+      }
+      var v = Math.sin(TWO_PI * freq * t) * env;
+      var pos = i - s;
+      if (pos < fade) { v *= (pos / fade); }
+      else if ((e - i) < fade) { v *= ((e - i) / fade); }
+      d[i] = v * 0.6;
+    }
+  }
+
+  // 构建间隙检测刺激：两段白噪声，其中 gappedInterval(1|2) 中间夹 gapMs 静默
+  function buildGapStimulus(gapMs, gappedInterval, segDur) {
+    var ctx = AC;
+    var rate = ctx.sampleRate;
+    var gap = Math.max(0.0008, gapMs / 1000);
+    var isi = 0.5;
+    var intervalLen = 2 * segDur + gap;
+    var lead = 0.06;
+    var total = lead + intervalLen * 2 + isi + 0.08;
+    var len = Math.ceil(rate * total);
+    var buf = ctx.createBuffer(1, len, rate);
+    var d = buf.getChannelData(0);
+    var t1 = lead;
+    var t2 = lead + intervalLen + isi;
+    if (gappedInterval === 1) { fillNoise(d, rate, t1, segDur); fillNoise(d, rate, t1 + segDur + gap, segDur); }
+    else { fillNoise(d, rate, t1, 2 * segDur); }
+    if (gappedInterval === 2) { fillNoise(d, rate, t2, segDur); fillNoise(d, rate, t2 + segDur + gap, segDur); }
+    else { fillNoise(d, rate, t2, 2 * segDur); }
+    return buf;
+  }
+
+  // 构建调制检测刺激：两段纯音，其中 gappedInterval(1|2) 带振幅调制
+  function buildModStimulus(depthPct, modHz, gappedInterval, carrierHz, dur) {
+    var ctx = AC;
+    var rate = ctx.sampleRate;
+    var isi = 0.5;
+    var lead = 0.06;
+    var intervalLen = dur;
+    var total = lead + intervalLen * 2 + isi + 0.08;
+    var len = Math.ceil(rate * total);
+    var buf = ctx.createBuffer(1, len, rate);
+    var d = buf.getChannelData(0);
+    var t1 = lead;
+    var t2 = lead + intervalLen + isi;
+    if (gappedInterval === 1) { fillTone(d, rate, t1, dur, carrierHz, depthPct, modHz); fillTone(d, rate, t2, dur, carrierHz, 0, 0); }
+    else { fillTone(d, rate, t1, dur, carrierHz, 0, 0); fillTone(d, rate, t2, dur, carrierHz, depthPct, modHz); }
+    return buf;
+  }
+
+  function playBuffer(buf) {
+    if (!buf) { return; }
+    var ctx = ensureAudio();
+    var src = ctx.createBufferSource();
+    src.buffer = buf;
+    var g = ctx.createGain();
+    g.gain.value = 0.9;
+    src.connect(g);
+    g.connect(ctx.destination);
+    src.start();
+    CUR = buf;
+  }
+
+  /* ============================================================
+   * 1. 自适应阶梯控制器（2-IFC）
+   * ========================================================== */
+  function newStair(start, factor) {
+    return {
+      val: start, factor: factor, dir: 0, revs: [], revCount: 0,
+      trial: 0, done: false, history: [], min: 1, max: 50
+    };
+  }
+  function stepStair(s, correct) {
+    var newDir = correct ? -1 : 1;          // -1 缩小刺激量, +1 增大刺激量
+    s.val = correct ? s.val / s.factor : s.val * s.factor;
+    s.val = clamp(s.val, s.min, s.max);
+    if (s.dir !== 0 && newDir !== s.dir) {
+      s.revs.push(s.val);
+      s.revCount++;
+    }
+    s.dir = newDir;
+    s.trial++;
+    s.history.push({ t: s.trial, v: +s.val.toFixed(2), c: correct ? 1 : 0 });
+    if (s.revCount >= 8) { s.done = true; }
+  }
+  function stairThreshold(s) {
+    var r = s.revs.slice(-6);
+    if (!r.length) { return null; }
+    var sum = 0;
+    for (var i = 0; i < r.length; i++) { sum += r[i]; }
+    return sum / r.length;
+  }
+
+  /* ============================================================
+   * 2. 间隙检测状态机
+   * ========================================================== */
+  var GAP = null;
+  var gapTrial = null;   // {gappedInterval, stim, gapMs}
+  var AGE_GAP = [
+    { g: '儿童 (6–12 岁)', lo: 2, hi: 5 },
+    { g: '青年 (18–35 岁)', lo: 3, hi: 6 },
+    { g: '中年 (36–59 岁)', lo: 5, hi: 10 },
+    { g: '老年 (60+ 岁)', lo: 10, hi: 25 }
+  ];
+
+  function gapLog(msg, cls) {
+    var el = $('trGapLog');
+    var line = document.createElement('div');
+    if (cls) { line.className = cls; }
+    line.textContent = msg;
+    el.appendChild(line);
+    el.scrollTop = el.scrollHeight;
+  }
+
+  function startGapAdaptive() {
+    GAP = newStair(20, 1.4);
+    GAP.min = 1; GAP.max = 50;
+    $('trGapLog').innerHTML = '';
+    gapLog('— 间隙自适应测试开始（目标 8 次反转）—');
+    nextGapTrial();
+  }
+
+  function nextGapTrial() {
+    if (GAP.done) { finishGapAdaptive(); return; }
+    var gapMs = GAP.val;
+    var gappedInterval = Math.random() < 0.5 ? 1 : 2;
+    var segDur = parseFloat($('trGapSeg').value);
+    var stim = buildGapStimulus(gapMs, gappedInterval, segDur);
+    gapTrial = { gappedInterval: gappedInterval, stim: stim, gapMs: gapMs };
+    $('trGapState').textContent = '第 ' + (GAP.trial + 1) + ' 轮 · 当前间隙 ' + gapMs.toFixed(1) + ' ms';
+    var pct = Math.min(100, (GAP.revCount / 8) * 100);
+    $('trGapProg').style.width = pct + '%';
+    gapLog('▶ 播放：间隙 ' + gapMs.toFixed(1) + ' ms（隐藏段 ' + gappedInterval + '）');
+    playBuffer(stim);
+  }
+
+  function answerGap(picked) {
+    if (!gapTrial || GAP.done) { return; }
+    var correct = (picked === gapTrial.gappedInterval);
+    stepStair(GAP, correct);
+    gapLog((correct ? '✓ 正确' : '✗ 错误') + ' · 间隙 ' + gapTrial.gapMs.toFixed(1) +
+      ' ms → ' + (correct ? '缩小' : '放大') + ' 至 ' + GAP.val.toFixed(1) + ' ms', correct ? 'ok' : 'no');
+    gapTrial = null;
+    if (GAP.done) { finishGapAdaptive(); }
+    else { setTimeout(nextGapTrial, 550); }
+  }
+
+  function finishGapAdaptive() {
+    var th = stairThreshold(GAP);
+    $('trGapState').textContent = '完成 · 阈值约 ' + (th ? th.toFixed(1) : '—') + ' ms';
+    $('trGapProg').style.width = '100%';
+    gapLog('— 测试完成，阈值估算 ' + (th ? th.toFixed(1) + ' ms' : '失败') + ' —');
+    renderResult();
+  }
+
+  /* ============================================================
+   * 3. 调制检测状态机
+   * ========================================================== */
+  var MOD = null;
+  var modTrial = null;
+  var AGE_MOD = [
+    { g: '儿童 (6–12 岁)', lo: 4, hi: 10 },
+    { g: '青年 (18–35 岁)', lo: 8, hi: 15 },
+    { g: '中年 (36–59 岁)', lo: 12, hi: 25 },
+    { g: '老年 (60+ 岁)', lo: 25, hi: 50 }
+  ];
+
+  function modLog(msg, cls) {
+    var el = $('trModLog');
+    var line = document.createElement('div');
+    if (cls) { line.className = cls; }
+    line.textContent = msg;
+    el.appendChild(line);
+    el.scrollTop = el.scrollHeight;
+  }
+
+  function startModAdaptive() {
+    MOD = newStair(30, 1.3);
+    MOD.min = 1; MOD.max = 100;
+    $('trModLog').innerHTML = '';
+    modLog('— 调制自适应测试开始（目标 8 次反转）—');
+    nextModTrial();
+  }
+
+  function nextModTrial() {
+    if (MOD.done) { finishModAdaptive(); return; }
+    var depth = MOD.val;
+    var gappedInterval = Math.random() < 0.5 ? 1 : 2;
+    var carrier = parseInt($('trModCarrier').value, 10);
+    var modHz = parseInt($('trModFreq').value, 10);
+    var dur = 0.8;
+    var stim = buildModStimulus(depth, modHz, gappedInterval, carrier, dur);
+    modTrial = { gappedInterval: gappedInterval, stim: stim, depth: depth };
+    $('trModState').textContent = '第 ' + (MOD.trial + 1) + ' 轮 · 当前深度 ' + depth.toFixed(1) + ' %';
+    $('trModProg').style.width = (MOD.revCount / 8 * 100) + '%';
+    modLog('▶ 播放：调制深度 ' + depth.toFixed(1) + ' %（隐藏段 ' + gappedInterval + '）');
+    playBuffer(stim);
+  }
+
+  function answerMod(picked) {
+    if (!modTrial || MOD.done) { return; }
+    var correct = (picked === modTrial.gappedInterval);
+    stepStair(MOD, correct);
+    modLog((correct ? '✓ 正确' : '✗ 错误') + ' · 深度 ' + modTrial.depth.toFixed(1) +
+      ' % → ' + (correct ? '缩小' : '放大') + ' 至 ' + MOD.val.toFixed(1) + ' %', correct ? 'ok' : 'no');
+    modTrial = null;
+    if (MOD.done) { finishModAdaptive(); }
+    else { setTimeout(nextModTrial, 550); }
+  }
+
+  function finishModAdaptive() {
+    var th = stairThreshold(MOD);
+    $('trModState').textContent = '完成 · 阈值约 ' + (th ? th.toFixed(1) : '—') + ' %';
+    $('trModProg').style.width = '100%';
+    modLog('— 测试完成，阈值估算 ' + (th ? th.toFixed(1) + ' %' : '失败') + ' —');
+    renderResult();
+  }
+
+  /* ============================================================
+   * 4. 常模对照表 + 轨迹图 + 解读
+   * ========================================================== */
+  function renderNormTable(elId, data, userVal, unit, higherIsWorse) {
+    var h = '<thead><tr><th>年龄组</th><th>参考范围</th><th>你的结果</th><th>对照</th></tr></thead><tbody>';
+    for (var i = 0; i < data.length; i++) {
+      var row = data[i];
+      var cmp = '—';
+      var cls = '';
+      if (userVal != null && isFinite(userVal)) {
+        if (userVal >= row.lo && userVal <= row.hi) { cmp = '在参考范围内'; cls = 'in'; }
+        else {
+          cmp = higherIsWorse ? (userVal > row.hi ? '高于参考范围' : '低于参考范围') : (userVal < row.lo ? '低于参考范围' : '高于参考范围');
+          cls = 'out';
+        }
+      }
+      h += '<tr><td class="k">' + row.g + '</td><td>' + row.lo + '–' + row.hi + ' ' + unit +
+        '</td><td>' + (userVal != null && isFinite(userVal) ? userVal.toFixed(1) + ' ' + unit : '—') +
+        '</td><td class="' + cls + '">' + cmp + '</td></tr>';
+    }
+    h += '</tbody>';
+    $(elId).innerHTML = h;
+  }
+
+  function drawTrajectory(canvasId, stair, unit, color) {
+    var cv = $(canvasId);
+    if (!cv || !stair || !stair.history.length) { return; }
+    var dpr = window.devicePixelRatio || 1;
+    var W = 560, H = 220;
+    cv.width = W * dpr; cv.height = H * dpr;
+    cv.style.height = H + 'px';
+    var ctx = cv.getContext('2d');
+    ctx.scale(dpr, dpr);
+    ctx.clearRect(0, 0, W, H);
+    var padL = 46, padR = 16, padT = 16, padB = 34;
+    var plotW = W - padL - padR, plotH = H - padT - padB;
+    var hist = stair.history;
+    var vals = hist.map(function (x) { return x.v; });
+    var vmin = Math.min.apply(null, vals), vmax = Math.max.apply(null, vals);
+    vmin = Math.max(0, vmin - (vmax - vmin) * 0.15);
+    vmax = vmax + (vmax - vmin) * 0.15;
+    if (vmax === vmin) { vmax = vmin + 1; }
+    function X(i) { return padL + (hist.length === 1 ? plotW / 2 : i / (hist.length - 1) * plotW); }
+    function Y(v) { return padT + (1 - (v - vmin) / (vmax - vmin)) * plotH; }
+    // 轴
+    ctx.strokeStyle = '#9CA3AF'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(padL, padT); ctx.lineTo(padL, padT + plotH); ctx.lineTo(padL + plotW, padT + plotH); ctx.stroke();
+    ctx.fillStyle = '#6B7280'; ctx.font = '11px sans-serif';
+    ctx.fillText(vmax.toFixed(0), 6, padT + 4);
+    ctx.fillText(vmin.toFixed(0), 6, padT + plotH);
+    ctx.fillText(unit, 6, padT - 2);
+    ctx.fillText('轮次 →', padL + plotW - 44, padT + plotH + 24);
+    // 折线
+    ctx.strokeStyle = color; ctx.lineWidth = 2; ctx.beginPath();
+    for (var i = 0; i < hist.length; i++) {
+      var x = X(i), y = Y(hist[i].v);
+      if (i === 0) { ctx.moveTo(x, y); } else { ctx.lineTo(x, y); }
+    }
+    ctx.stroke();
+    // 点
+    for (var j = 0; j < hist.length; j++) {
+      var x = X(j), y = Y(hist[j].v);
+      ctx.fillStyle = hist[j].c ? '#10B981' : '#EF4444';
+      ctx.beginPath(); ctx.arc(x, y, 3.2, 0, Math.PI * 2); ctx.fill();
+    }
+  }
+
+  function renderResult() {
+    var gTh = GAP && GAP.done ? stairThreshold(GAP) : null;
+    var mTh = MOD && MOD.done ? stairThreshold(MOD) : null;
+    $('trRGap').textContent = gTh != null ? gTh.toFixed(1) : '—';
+    $('trRMod').textContent = mTh != null ? mTh.toFixed(1) : '—';
+    $('trRGapRev').textContent = GAP ? GAP.trial : '—';
+    $('trRModRev').textContent = MOD ? MOD.trial : '—';
+    renderNormTable('trGapNorm', AGE_GAP, gTh, 'ms', true);
+    renderNormTable('trModNorm', AGE_MOD, mTh, '%', true);
+    drawTrajectory('trGapCanvas', GAP, 'ms', '#2E7D32');
+    drawTrajectory('trModCanvas', MOD, '%', '#2E7D32');
+    // 解读
+    var txt = '';
+    if (gTh != null) {
+      txt += '<b>间隙检测：</b>你的阈值约 <b>' + gTh.toFixed(1) + ' ms</b>。';
+      var inR = AGE_GAP.some(function (r) { return gTh >= r.lo && gTh <= r.hi; });
+      txt += inR ? '落在多数年龄组的参考范围内，时间分辨基本正常。' : '高于青年参考范围，提示对短暂静默的察觉偏迟钝（可能随年龄或中枢听觉因素变化）。';
+      txt += '<br>';
+    }
+    if (mTh != null) {
+      txt += '<b>调制检测：</b>你的阈值约 <b>' + mTh.toFixed(1) + ' %</b> 调制深度。';
+      var inR2 = AGE_MOD.some(function (r) { return mTh >= r.lo && mTh <= r.hi; });
+      txt += inR2 ? '落在参考范围内，对响度起伏的追踪能力正常。' : '高于青年参考范围，对缓慢起伏的察觉偏弱。';
+    }
+    if (gTh == null && mTh == null) {
+      txt = '完成至少一项自适应测试后，这里会给出结果解读。可在上方「间隙检测」或「调制检测」页点击开始。';
+    }
+    txt += '<br><span style="color:var(--text-muted);font-size:12px">注：参考范围基于文献粗略概括，仅供娱乐对照；本测试不能替代专业听力与耳科检查。</span>';
+    $('trInterpret').innerHTML = txt;
+  }
+
+  /* ============================================================
+   * 5. 事件绑定
+   * ========================================================== */
+  // Tabs
+  var tabs = document.querySelectorAll('.tr-tab');
+  Array.prototype.forEach.call(tabs, function (btn) {
+    btn.addEventListener('click', function () {
+      Array.prototype.forEach.call(tabs, function (b) { b.setAttribute('aria-selected', b === btn ? 'true' : 'false'); });
+      Array.prototype.forEach.call(document.querySelectorAll('.tr-pane'), function (p) {
+        p.classList.toggle('on', p.id === 'pane-' + btn.getAttribute('data-pane'));
+      });
+      if (btn.getAttribute('data-pane') === 'result') { renderResult(); }
+    });
+  });
+
+  // 授权
+  $('trGapEnable').addEventListener('click', function () {
+    ensureAudio();
+    $('trGapAuth').style.display = 'none';
+    $('trGapMain').style.display = 'block';
+  });
+  $('trModEnable').addEventListener('click', function () {
+    ensureAudio();
+    $('trModAuth').style.display = 'none';
+    $('trModMain').style.display = 'block';
+  });
+
+  // 间隙：模式切换
+  $('trGapMode').addEventListener('change', function () {
+    var manual = this.value === 'manual';
+    $('trGapAdaptive').style.display = manual ? 'none' : 'block';
+    $('trGapManual').style.display = manual ? 'block' : 'none';
+    $('trGapSliderWrap').style.opacity = manual ? '1' : '0.5';
+  });
+  $('trGapSlider').addEventListener('input', function () { $('trGapSliderV').textContent = this.value + ' ms'; });
+
+  $('trGapPlay').addEventListener('click', function () {
+    if (!GAP) { startGapAdaptive(); }
+    else if (!GAP.done) { nextGapTrial(); }
+  });
+  $('trGapReplay').addEventListener('click', function () { if (gapTrial) { playBuffer(gapTrial.stim); } });
+  $('trGapAns1').addEventListener('click', function () { answerGap(1); });
+  $('trGapAns2').addEventListener('click', function () { answerGap(2); });
+  $('trGapManualPlay').addEventListener('click', function () {
+    var gapped = Math.random() < 0.5 ? 1 : 2;
+    playBuffer(buildGapStimulus(parseFloat($('trGapSlider').value), gapped, parseFloat($('trGapSeg').value)));
+  });
+  $('trGapManualCont').addEventListener('click', function () {
+    playBuffer(buildGapStimulus(parseFloat($('trGapSlider').value), 0, parseFloat($('trGapSeg').value)));
+  });
+
+  // 调制：模式切换
+  $('trModMode').addEventListener('change', function () {
+    var manual = this.value === 'manual';
+    $('trModAdaptive').style.display = manual ? 'none' : 'block';
+    $('trModManual').style.display = manual ? 'block' : 'none';
+  });
+  $('trModFreq').addEventListener('input', function () { $('trModFreqV').textContent = this.value + ' Hz'; });
+  $('trModDepth').addEventListener('input', function () { $('trModDepthV').textContent = this.value + ' %'; });
+
+  $('trModPlay').addEventListener('click', function () {
+    if (!MOD) { startModAdaptive(); }
+    else if (!MOD.done) { nextModTrial(); }
+  });
+  $('trModReplay').addEventListener('click', function () { if (modTrial) { playBuffer(modTrial.stim); } });
+  $('trModAns1').addEventListener('click', function () { answerMod(1); });
+  $('trModAns2').addEventListener('click', function () { answerMod(2); });
+  $('trModManualPlay').addEventListener('click', function () {
+    var gapped = Math.random() < 0.5 ? 1 : 2;
+    playBuffer(buildModStimulus(parseInt($('trModDepth').value, 10), parseInt($('trModFreq').value, 10), gapped, parseInt($('trModCarrier').value, 10), 0.8));
+  });
+  $('trModManualFlat').addEventListener('click', function () {
+    playBuffer(buildModStimulus(parseInt($('trModDepth').value, 10), parseInt($('trModFreq').value, 10), 0, parseInt($('trModCarrier').value, 10), 0.8));
+  });
+
+  // 结果：复制 / 重置
+  $('trCopyResult').addEventListener('click', function () {
+    var gTh = GAP && GAP.done ? stairThreshold(GAP) : null;
+    var mTh = MOD && MOD.done ? stairThreshold(MOD) : null;
+    var txt = '听觉时间分辨率测试（娱乐自测）\n';
+    txt += '间隙检测阈值: ' + (gTh != null ? gTh.toFixed(1) + ' ms' : '未完成') + '\n';
+    txt += '调制检测阈值: ' + (mTh != null ? mTh.toFixed(1) + ' %' : '未完成') + '\n';
+    txt += '仅供娱乐，不能替代专业听力与耳科检查。';
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(txt).then(function () { toast('已复制结果'); }, function () { toast('复制失败'); });
+    } else { toast('复制失败'); }
+  });
+  $('trResetAll').addEventListener('click', function () {
+    GAP = null; MOD = null; gapTrial = null; modTrial = null;
+    $('trGapLog').innerHTML = '等待开始…'; $('trModLog').innerHTML = '等待开始…';
+    $('trGapProg').style.width = '0%'; $('trModProg').style.width = '0%';
+    $('trGapState').textContent = '待开始'; $('trModState').textContent = '待开始';
+    renderResult();
+    toast('已重置');
+  });
+
+  // 轻量 toast
+  var _tt = null;
+  function toast(msg) {
+    var el = $('trToast');
+    if (!el) {
+      el = document.createElement('div');
+      el.id = 'trToast';
+      el.style.cssText = 'position:fixed;left:50%;bottom:32px;transform:translateX(-50%) translateY(20px);background:rgba(31,41,55,.94);color:#fff;padding:10px 18px;border-radius:999px;font-size:13px;z-index:9999;opacity:0;transition:.22s;pointer-events:none;box-shadow:0 6px 20px rgba(0,0,0,.2)';
+      document.body.appendChild(el);
+    }
+    el.textContent = msg;
+    el.style.opacity = '1'; el.style.transform = 'translateX(-50%) translateY(0)';
+    clearTimeout(_tt);
+    _tt = setTimeout(function () { el.style.opacity = '0'; el.style.transform = 'translateX(-50%) translateY(20px)'; }, 1600);
+  }
+
+  renderResult();
+})();
+</script>
+</body>
+</html>
