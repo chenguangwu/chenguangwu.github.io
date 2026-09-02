@@ -61,6 +61,7 @@
   - [已完成] 续扩 414 个 31-34 字描述至 ≥35 字：全站 4984 工具页 description 现已全部 ≥35 字（≤34 字清零）；`_build.py` 重建 + 四道门禁全过。对 description ≤18 字或标题式的 1350 个工具页，按真实功能独立撰写 ≥30 字中文描述，写回 `i18n/tools/<ind>.json` 的 `zh-CN.intro`；分批写回 + 每百页合并 `_build.py` + 四道门禁（_test_static / _audit_links / _audit_assets / verify_calc）全过；commit `42e9f6371`。遵循「禁止全站批量模板化重写」原则，逐页独立撰写、不碰 HTML、由 build 确定性渲染。
   - [已完成] 清理 per-industry i18n ghost（418 条）：`i18n/tools/<ind>.json` 中无对应 `tools/<ind>/<slug>.html` 的历史残留 slug（含 11 个已无真实工具页的行业整文件留 `{}`）；`*-body/*-phrases/_en_override/slug-en/content_deepdive` 等运行时依赖的翻译资源文件保持不动；`_build.py` 重建 + 四道门禁全过，现存 4846 条目零误删。
   - [已完成] 删除纯前端记录类工具 todo-list：全站唯一纯前端 localStorage 记录类（无计算/生成功能、属伪功能），重写为 TOOLBOX-REDIRECT 桩页（refresh/canonical/JS 跳转 + robots:noindex,follow 指向 `/tools/life/`，同行业落地页权重保留最稳），并从 `i18n/tools/life.json` 删除 todo-list 整条；`_build.py` 重建（sitemap 工具 4983 少1、A级100%）+ 四道门禁全过；commit `069839c35`。
+  - [已完成] 扩写遗留短描述（212 个 <35 字）至 ≥35 字真实功能描述：覆盖 fun/quiz、design/图片处理、biz/文本、冷门行业统计等多类工具；逐页基于真实功能独立撰写、禁模板化套话；i18n 精准行替换仅改 zh-CN.intro（74 文件、212 插/212 删、净 0 大 diff，修 2 个含转义引号遗漏 + 末尾空行污染）；`_build.py` 重建（sitemap 4983 工具+266 分类+guides，A 级 4982/100%）+ 四道门禁全过；commit `a22275ca9`。
 
 ### Performance-A：高热度页面性能与稳定性
 
