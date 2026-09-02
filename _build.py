@@ -1943,6 +1943,20 @@ def fix_tool_pages_seo(tools):
                 _ind_cache[ind] = {}
         return _ind_cache[ind].get(base, {}).get('zh-CN', {}).get('title')
 
+    def _zh_desc_of(rt):
+        # 相关工具卡片描述：贪心取首个含中文候选（与搜索索引/hot-tools 同源修复），
+        # 避免中文模式相关工具卡片显示英文 proper-noun（如 "Grace Score"）。
+        # 候选优先级：i18n zh-CN.desc > zh-CN.intro > tools.json 自带 desc > 中文名；全无中文才回退英文原名。
+        ind = rt.get('industry', 'it')
+        base = (rt.get('file') or '').replace('.html', '')
+        _zh_title_of(ind, base)            # 确保 i18n 缓存已加载
+        zhe = (_ind_cache.get(ind, {}) or {}).get(base, {}) or {}
+        zhe = zhe.get('zh-CN', {}) or {}
+        for cand in (zhe.get('desc'), zhe.get('intro'), rt.get('desc', ''), rt.get('name', '')):
+            if isinstance(cand, str) and _has_cjk(cand):
+                return cand
+        return rt.get('name', '')
+
     # 校验/错误提示串特征：这些是 JS 运行时提示，绝不能当 meta description
     # （曾导致 33 个页面 description 变成「误差范围必须 > 0」之类，搜索结果摘要不可读 → 零点击）
     _BAD_DESC_PAT = re.compile(
@@ -2108,7 +2122,9 @@ def fix_tool_pages_seo(tools):
             'image': 'MultimediaApplication', 'design': 'MultimediaApplication',
         }
         app_cat = app_cat_map.get(t['cat'], 'UtilitiesApplication')
-        app_desc = esc_html_py((t.get('desc') or t['name'])[:150])
+        # 中文优先：JSON-LD description 与 meta 描述同源取中文（extract_zh_desc），
+        # 避免中文模式页面结构化数据里塞英文 t['desc']（与 meta/og 描述保持一致）
+        app_desc = esc_html_py((extract_zh_desc(content, t, industry, entry) or t['name'])[:150])
         app_json_block = '\n<!-- TOOLBOX-WEBAPP-LD -->\n<script type="application/ld+json">\n{"@context":"https://schema.org","@type":"WebApplication","name":"%s","url":"https://chenguangwu.github.io/%s","applicationCategory":"%s","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":%s,"description":"%s","image":"https://chenguangwu.github.io/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}\n</script>' % (tool_name_esc, t['url'], app_cat, json.dumps(I18N_LOCALES, ensure_ascii=False), app_desc)
 
         def _replace_webapp_ld(src):
@@ -2273,7 +2289,7 @@ def fix_tool_pages_seo(tools):
                 rt_tool_dir = 'tools/' + os.path.dirname(t['path'])
                 for rt in _valid:
                     rt_name = esc_html_py(rt['name'])
-                    rt_desc = esc_html_py(rt.get('desc', ''))[:50]
+                    rt_desc = esc_html_py(_zh_desc_of(rt))[:50]
                     rt_icon = rt.get('icon', '🔧')
                     rt_href = os.path.relpath(rt['url'], rt_tool_dir).replace(os.sep, '/')
                     rt_html += '    <a href="%s" class="related-tool-card">\n      <span class="rt-icon">%s</span>\n      <span class="rt-info"><span class="rt-name">%s</span><span class="rt-desc">%s</span></span>\n    </a>\n' % (rt_href, rt_icon, rt_name, rt_desc)
@@ -2319,7 +2335,7 @@ def fix_tool_pages_seo(tools):
                 rt_tool_dir = 'tools/' + os.path.dirname(t['path'])
                 for rt in related:
                     rt_name = esc_html_py(rt['name'])
-                    rt_desc = esc_html_py(rt.get('desc', ''))[:50]
+                    rt_desc = esc_html_py(_zh_desc_of(rt))[:50]
                     rt_icon = rt.get('icon', '🔧')
                     rt_href = os.path.relpath(rt['url'], rt_tool_dir).replace(os.sep, '/')
                     rt_html += '    <a href="%s" class="related-tool-card">\n      <span class="rt-icon">%s</span>\n      <span class="rt-info"><span class="rt-name">%s</span><span class="rt-desc">%s</span></span>\n    </a>\n' % (rt_href, rt_icon, rt_name, rt_desc)
