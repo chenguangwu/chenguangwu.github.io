@@ -2470,6 +2470,27 @@ def _has_cjk(s):
     return bool(re.search(r'[一-鿿]', s or ''))
 
 
+def _is_weak_desc(desc, title):
+    """判定中文描述是否只是标题重复或缺乏信息量，需要从 intro 取长描述。"""
+    if not desc or not _has_cjk(desc):
+        return True
+    d = (desc or '').strip()
+    t = (title or '').strip()
+    if not t:
+        return len(d) < 12
+    # desc 完全等于标题，或只是标题加少量无意义后缀
+    if d == t:
+        return True
+    if d.startswith(t) and len(d) <= len(t) + 8:
+        return True
+    if t.startswith(d) and len(t) <= len(d) + 8:
+        return True
+    # desc 比标题还短，显然不是描述
+    if len(d) <= max(len(t), 12):
+        return True
+    return False
+
+
 def generate_category_indexes(tools):
     """Generate index.html for each industry directory."""
     _en_path = os.path.join(ROOT, 'i18n', 'industry-en.json')
@@ -2570,15 +2591,15 @@ def generate_category_indexes(tools):
             _zh_name = t['name'] if _has_cjk(t['name']) else (t.get('desc', '') if _has_cjk(t.get('desc', '')) else t['name'])
             _en_name = t.get('en') or t['name']
             # 中文描述优先从 i18n/tools/<ind>.json 的 zh-CN.desc / zh-CN.intro 取；
-            # 若 desc 不含中文（英文/公式残留），改取中文 intro；仍无中文才回退中文名，避免中文模式露英文
+            # 若 desc 为空、无中文、或只是标题重复/过短，改取中文 intro；仍弱则回退中文名，避免中文模式露英文
             slug = t['file'].replace('.html', '')
             zh_i18n = (ind_i18n.get(slug, {}) or {}).get('zh-CN', {}) or {}
             _zh_desc = (zh_i18n.get('desc') or '') if isinstance(zh_i18n.get('desc'), str) else ''
-            if not _has_cjk(_zh_desc):          # desc 无中文（英文/符号残留）→ 改用中文 intro
+            if _is_weak_desc(_zh_desc, _zh_name):          # desc 弱（无中文/标题重复/过短）→ 改用中文 intro
                 intro = (zh_i18n.get('intro') or '') if isinstance(zh_i18n.get('intro'), str) else ''
                 if intro:
                     _zh_desc = intro[:100] + ('…' if len(intro) > 100 else '')
-            if not _has_cjk(_zh_desc):         # 仍无中文 → 回退中文名
+            if _is_weak_desc(_zh_desc, _zh_name):         # 仍弱 → 回退中文名
                 _zh_desc = _zh_name
             _en_desc = t.get('ed') or ''
             if _en_desc == _en_name:           # 英文描述与英文名相同则视为无描述（同 dOf）
