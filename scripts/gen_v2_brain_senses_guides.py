@@ -502,6 +502,9 @@ TPL = """<!DOCTYPE html>
 <meta property="og:image:alt" content="ToolBox - 免费在线工具与使用指南">
 <meta name="twitter:card" content="summary_large_image">
 <link rel="canonical" href="{canonical}">
+<link rel="alternate" hreflang="zh-CN" href="{canonical}">
+<link rel="alternate" hreflang="en-US" href="{en_url}">
+<link rel="alternate" hreflang="x-default" href="{canonical}">
 <script type="application/ld+json">{article_json}</script>
 <script type="application/ld+json">{breadcrumb_json}</script>
 <script type="application/ld+json">{faq_json}</script>
@@ -587,6 +590,7 @@ def main():
         slug = g['slug']
         fn = '%s-guide.html' % slug
         canonical = '%s/guides/%s' % (SITE, fn)
+        en_url = '%s/guides/%s-guide.en.html' % (SITE, slug)
         rel = curated.get(g['tool'].replace('tools/', '', 1), [])[:5]
         chips = [chip('/%s' % g['tool'], read_title(g['tool']))]
         for r in rel:
@@ -619,6 +623,7 @@ def main():
             .replace('{title}', html.escape(g['name']))
             .replace('{desc}', html.escape(g['desc']))
             .replace('{canonical}', canonical)
+            .replace('{en_url}', en_url)
             .replace('{intro}', html.escape(g['intro']))
             .replace('{features}', li(g['features']))
             .replace('{scenarios}', li(g['scenarios']))

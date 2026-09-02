@@ -1404,11 +1404,26 @@ def generate_sitemap(tools, category_inds=None):
         for ind in sorted(category_inds):
             lines.append(_url_block_xhtml('https://chenguangwu.github.io/tools/%s/index.html' % ind, today, 'weekly', '0.9'))
     # guides/ 指南页（自动扫描，避免重跑构建后丢失）
+    # 若某指南存在同名 .en.html 英文版，则声明双向 hreflang（zh 文件 <-> en 文件）；
+    # 否则沿用既有 ?lang=en 约定（与工具页一致），保持旧行为、最小 diff。
     guides_dir = os.path.join(ROOT, 'guides')
     if os.path.isdir(guides_dir):
         for fn in sorted(os.listdir(guides_dir)):
             if fn.endswith('.html') and fn != 'index.html':
-                lines.append(_url_block_xhtml('https://chenguangwu.github.io/guides/%s' % fn, today, 'monthly', '0.8'))
+                abs_url = 'https://chenguangwu.github.io/guides/%s' % fn
+                if fn.endswith('.en.html'):
+                    zh_fn = fn[:-len('.en.html')] + '.html'
+                    zh_url = 'https://chenguangwu.github.io/guides/%s' % zh_fn
+                    lines.append(_url_block_alts(abs_url, today, 'monthly', '0.7',
+                                                 _guide_alternates_xml(zh_url, abs_url)))
+                else:
+                    en_fn = fn[:-5] + '.en.html'
+                    if os.path.isfile(os.path.join(guides_dir, en_fn)):
+                        en_url = abs_url[:-5] + '.en.html'
+                        lines.append(_url_block_alts(abs_url, today, 'monthly', '0.8',
+                                                     _guide_alternates_xml(abs_url, en_url)))
+                    else:
+                        lines.append(_url_block_xhtml(abs_url, today, 'monthly', '0.8'))
     # chains.html 工具链页（B3-05）
     if os.path.isfile(os.path.join(ROOT, 'chains.html')):
         lines.append(_url_block_xhtml('https://chenguangwu.github.io/chains.html', today, 'weekly', '0.8'))
@@ -1440,6 +1455,31 @@ def _url_block_xhtml(url, today, freq, prio):
             '    <priority>%s</priority>\n'
             '%s\n'
             '  </url>' % (url, _lastmod_for(url, today), freq, prio, _xhtml_alternates(url)))
+
+
+def _guide_alternates_xml(zh_url, en_url=None):
+    """指南页 hreflang 变体 XML。
+
+    en_url 给定时用「独立英文文件」互链（zh 文件 <-> en 文件，x-default 指向 zh）；
+    为 None 时回退到既有 ?lang=en 约定（保持其他指南旧行为，最小 diff）。
+    """
+    if en_url:
+        return ('    <xhtml:link rel="alternate" hreflang="zh-CN" href="%s"/>\n'
+                '    <xhtml:link rel="alternate" hreflang="en-US" href="%s"/>\n'
+                '    <xhtml:link rel="alternate" hreflang="x-default" href="%s"/>'
+                ) % (zh_url, en_url, zh_url)
+    return _xhtml_alternates(zh_url)
+
+
+def _url_block_alts(url, today, freq, prio, alts_xml):
+    """含指定多语言 xhtml:link 变体的 <url> 块（变体由调用方预生成）。"""
+    return ('  <url>\n'
+            '    <loc>%s</loc>\n'
+            '    <lastmod>%s</lastmod>\n'
+            '    <changefreq>%s</changefreq>\n'
+            '    <priority>%s</priority>\n'
+            '%s\n'
+            '  </url>' % (url, _lastmod_for(url, today), freq, prio, alts_xml))
 
 
 def generate_core_sitemap(today):

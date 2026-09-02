@@ -252,6 +252,9 @@ TPL = """<!DOCTYPE html>
 <meta property="og:image:alt" content="ToolBox - Free Online Tools & Guides">
 <meta name="twitter:card" content="summary_large_image">
 <link rel="canonical" href="{canonical}">
+<link rel="alternate" hreflang="zh-CN" href="{zh_url}">
+<link rel="alternate" hreflang="en-US" href="{canonical}">
+<link rel="alternate" hreflang="x-default" href="{zh_url}">
 <script type="application/ld+json">{article_json}</script>
 <script type="application/ld+json">{breadcrumb_json}</script>
 <script type="application/ld+json">{faq_json}</script>
@@ -362,6 +365,7 @@ def main():
             continue
         title = g['name']
         canonical = 'https://chenguangwu.github.io/guides/%s-guide.en.html' % slug
+        zh_url = 'https://chenguangwu.github.io/guides/%s-guide.html' % slug
         article_json = json.dumps({
             '@context': 'https://schema.org', '@type': 'Article',
             'inLanguage': 'en-US', 'headline': title,
@@ -391,6 +395,7 @@ def main():
                 .replace('{title}', esc(title))
                 .replace('{desc}', esc(g['desc']))
                 .replace('{canonical}', canonical)
+                .replace('{zh_url}', zh_url)
                 .replace('{intro}', esc(g['intro']))
                 .replace('{features}', li(g['features']))
                 .replace('{scenarios}', li(g['scenarios']))
