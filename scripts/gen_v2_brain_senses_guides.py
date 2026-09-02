@@ -497,6 +497,9 @@ TPL = """<!DOCTYPE html>
 <meta name="twitter:image" content="https://chenguangwu.github.io/og-image.png">
 <meta name="twitter:image:alt" content="ToolBox - 免费在线工具与使用指南">
 <meta property="og:image" content="https://chenguangwu.github.io/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="ToolBox - 免费在线工具与使用指南">
 <meta name="twitter:card" content="summary_large_image">
 <link rel="canonical" href="{canonical}">
 <script type="application/ld+json">{article_json}</script>
