@@ -2455,17 +2455,26 @@ def generate_category_indexes(tools):
         parts.append('    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;">共 %d 个免费在线工具，纯前端处理，数据不上传</p>\n' % count)
         parts.append('    <div class="category-tool-list">\n')
         index_ref_dir = 'tools/' + ind
+        # 加载本行业中文 i18n 字典，供分类页卡片 .t-zh 描述使用
+        i18n_path = os.path.join(ROOT, 'i18n', 'tools', '%s.json' % ind)
+        ind_i18n = json.load(open(i18n_path, encoding='utf-8')) if os.path.exists(i18n_path) else {}
+
         for t in ind_tools_sorted:
             # 卡片样式对齐顶部分类下拉（tb-megapanel-tool-card）：图标 + 名称 + 描述。
-            # 中文模式显示「中文名 + 中文描述」(t['desc'])，与下拉 dOf 中文态一致；
+            # 中文模式显示「中文名 + 中文描述」(i18n zh-CN.desc/intro)，与下拉 dOf 中文态一致；
             # 英文模式显示「英文名 + 英文描述」(t['en']/t['ed'])，沿用原双层 lang 切换框架。
             _zh_name = t['name'] if _has_cjk(t['name']) else (t.get('desc', '') if _has_cjk(t.get('desc', '')) else t['name'])
             _en_name = t.get('en') or t['name']
-            _zh_desc = t.get('desc', '') or ''
-            if _zh_desc == _zh_name:           # 描述与名称相同则视为无描述（同 dOf 去重）
-                _zh_desc = ''
-            if not _zh_desc:                   # 中文描述缺失时回退英文名，避免中文模式空行
-                _zh_desc = _en_name
+            # 中文描述优先从 i18n/tools/<ind>.json 的 zh-CN.desc / zh-CN.intro 取
+            slug = t['file'].replace('.html', '')
+            zh_i18n = (ind_i18n.get(slug, {}) or {}).get('zh-CN', {}) or {}
+            _zh_desc = (zh_i18n.get('desc') or '') if isinstance(zh_i18n.get('desc'), str) else ''
+            if not _zh_desc:
+                intro = (zh_i18n.get('intro') or '') if isinstance(zh_i18n.get('intro'), str) else ''
+                if intro:
+                    _zh_desc = intro[:100] + ('…' if len(intro) > 100 else '')
+            if not _zh_desc:                   # 中文描述缺失时回退中文名，避免中文模式显示英文
+                _zh_desc = _zh_name
             _en_desc = t.get('ed') or ''
             if _en_desc == _en_name:           # 英文描述与英文名相同则视为无描述（同 dOf）
                 _en_desc = ''
