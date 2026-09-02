@@ -45,6 +45,7 @@ window.INDUSTRY_INFO = {
   'clinical-lab'         : { name: '临床检验', icon: '🔬' },
   'clinical-nursing'     : { name: '临床护理', icon: '💉' },
   'cnc'                  : { name: '数控加工', icon: '⚙️' },
+  'colorvision'          : { name: '色觉与色彩无障碍', icon: '🎨' },
   'community'            : { name: '社区管理', icon: '🏘️' },
   'construction'         : { name: '建筑地产', icon: '🏗️' },
   'consulting'           : { name: '咨询顾问', icon: '💬' },
