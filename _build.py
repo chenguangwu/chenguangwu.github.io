@@ -1216,14 +1216,34 @@ def generate_split_jsons(tools):
         print('  cleared orphan %s' % base)
     
     # Lightweight search index (name, desc, industry, cat, url only)
+    _ind_i18n_cache = {}
+    def _load_ind_i18n(ind):
+        if ind not in _ind_i18n_cache:
+            fp = os.path.join(ROOT, 'i18n', 'tools', ind + '.json')
+            try:
+                _ind_i18n_cache[ind] = json.load(open(fp, encoding='utf-8')) if os.path.isfile(fp) else {}
+            except Exception:
+                _ind_i18n_cache[ind] = {}
+        return _ind_i18n_cache[ind]
     light_index = []
     for t in tools:
         aliases = build_search_aliases(t)
         apply_en_override(t)
+        # 中文描述 d：在多个候选里优先取「含中文」者，避免回退成英文（也避免覆盖工具自带的中文 desc）。
+        # 候选优先级：i18n zh-CN.desc > zh-CN.intro > 工具自带 desc(原 d 源) > 中文名；
+        # 仅当全部无中文时才回退英文原名（该工具本就只有英文名）。
+        _zh = (_load_ind_i18n(t.get('industry', 'it')).get((t.get('file') or '').replace('.html', ''), {}) or {}).get('zh-CN', {}) or {}
+        _d = ''
+        for _cand in (_zh.get('desc'), _zh.get('intro'), t.get('desc', ''), t.get('name', '')):
+            if isinstance(_cand, str) and _has_cjk(_cand):
+                _d = _cand[:80] + ('…' if len(_cand) > 80 else '')
+                break
+        if not _d:                           # 全无中文 → 回退英文原名
+            _d = t.get('name', '')
         light_index.append({
             'n': t['name'],
             'en': t.get('en') or translate_name(t['name']),
-            'd': t.get('desc', ''),
+            'd': _d,
             'ed': t.get('ed') or translate_text(t.get('desc', '')),
             'al': aliases,
             'i': t['industry'],
@@ -2465,15 +2485,16 @@ def generate_category_indexes(tools):
             # 英文模式显示「英文名 + 英文描述」(t['en']/t['ed'])，沿用原双层 lang 切换框架。
             _zh_name = t['name'] if _has_cjk(t['name']) else (t.get('desc', '') if _has_cjk(t.get('desc', '')) else t['name'])
             _en_name = t.get('en') or t['name']
-            # 中文描述优先从 i18n/tools/<ind>.json 的 zh-CN.desc / zh-CN.intro 取
+            # 中文描述优先从 i18n/tools/<ind>.json 的 zh-CN.desc / zh-CN.intro 取；
+            # 若 desc 不含中文（英文/公式残留），改取中文 intro；仍无中文才回退中文名，避免中文模式露英文
             slug = t['file'].replace('.html', '')
             zh_i18n = (ind_i18n.get(slug, {}) or {}).get('zh-CN', {}) or {}
             _zh_desc = (zh_i18n.get('desc') or '') if isinstance(zh_i18n.get('desc'), str) else ''
-            if not _zh_desc:
+            if not _has_cjk(_zh_desc):          # desc 无中文（英文/符号残留）→ 改用中文 intro
                 intro = (zh_i18n.get('intro') or '') if isinstance(zh_i18n.get('intro'), str) else ''
                 if intro:
                     _zh_desc = intro[:100] + ('…' if len(intro) > 100 else '')
-            if not _zh_desc:                   # 中文描述缺失时回退中文名，避免中文模式显示英文
+            if not _has_cjk(_zh_desc):         # 仍无中文 → 回退中文名
                 _zh_desc = _zh_name
             _en_desc = t.get('ed') or ''
             if _en_desc == _en_name:           # 英文描述与英文名相同则视为无描述（同 dOf）
