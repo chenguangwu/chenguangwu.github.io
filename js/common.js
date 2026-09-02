@@ -2334,7 +2334,7 @@ function renderRelatedTools(){
         '</h3><div class="rt-grid">' +
         top.map(function(t){
           var n = isZh ? (t.name || t.desc || t.url) : (t.en || t.ed || t.name || t.desc || t.url);
-          var d = isZh ? (t.desc || t.name || t.url) : (t.ed || t.desc || t.name || t.url);
+          var d = isZh ? (t.d || t.desc || t.name || t.url) : (t.ed || t.desc || t.name || t.url);
           if (n === d) {
             d = '';
           }

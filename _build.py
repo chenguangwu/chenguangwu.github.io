@@ -1178,6 +1178,30 @@ def title_pinyin_initials(name):
     return ''.join(out)
 
 
+# 中文描述字段 d 的统一取源（治本）：运行时渲染器按 t.d(中文) || t.desc(英文) 取描述，
+# 但此前 tools.json / industry-*.json 缺 d 字段，导致 SPA 行业网格在中文模式回退英文 desc。
+# 此处补上 d，优先级与 search-index.json 保持一致：
+#   i18n zh-CN.desc > zh-CN.intro > 工具自带 desc > 中文名；全无中文才回退英文原名。
+_zh_desc_i18n_cache = {}
+def _load_zh_desc_i18n(ind):
+    if ind not in _zh_desc_i18n_cache:
+        fp = os.path.join(ROOT, 'i18n', 'tools', ind + '.json')
+        try:
+            _zh_desc_i18n_cache[ind] = json.load(open(fp, encoding='utf-8')) if os.path.isfile(fp) else {}
+        except Exception:
+            _zh_desc_i18n_cache[ind] = {}
+    return _zh_desc_i18n_cache[ind]
+
+def compute_zh_desc(t):
+    ind = t.get('industry', 'it')
+    base = (t.get('file') or '').replace('.html', '')
+    _zh = (_load_zh_desc_i18n(ind).get(base, {}) or {}).get('zh-CN', {}) or {}
+    for cand in (_zh.get('desc'), _zh.get('intro'), t.get('desc', ''), t.get('name', '')):
+        if isinstance(cand, str) and _has_cjk(cand):
+            return cand[:80] + ('…' if len(cand) > 80 else '')
+    return t.get('name', '')
+
+
 def generate_split_jsons(tools):
     """Generate per-industry JSON files and lightweight search index."""
     json_dir = os.path.dirname(TOOLS_JSON_FILE)
@@ -1190,12 +1214,13 @@ def generate_split_jsons(tools):
         if ind not in industries:
             industries[ind] = []
         industries[ind].append(t)
-    
+
     for ind, items in industries.items():
         for t in items:
             t['en'] = translate_name(t.get('name', ''))
             t['ed'] = translate_text(t.get('desc', ''))
             apply_en_override(t)
+            t['d'] = compute_zh_desc(t)   # 治本：补中文 d，消除 SPA 网格中文模式英文描述泄漏
         path = os.path.join(json_dir, 'industry-%s.json' % ind)
         with open(path, 'w', encoding='utf-8') as f:
             json.dump(items, f, ensure_ascii=False, indent=2)
@@ -2692,6 +2717,7 @@ def main():
         if 'ed' not in t:
             t['ed'] = translate_text(t.get('desc', ''))
         apply_en_override(t)
+        t['d'] = compute_zh_desc(t)   # 治本：补中文 d，确保 tools.json 与 industry-*.json 同源一致
 
     # Save tools.json to json/ directory
     os.makedirs(os.path.dirname(TOOLS_JSON_FILE), exist_ok=True)
