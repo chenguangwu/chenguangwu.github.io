@@ -344,10 +344,10 @@ def main():
         for t in tools_sorted[:8]:
             name_zh = zh_name(t)
             md = meta_desc(t.get('path', ''))
-            # 中文描述优先级：① 页面中文 meta（含中文）→ ② 工具自带中文 d（_build.py 注入）
-            # → ③ 中文名；避免页面 meta 因缺中文内容而回退英文时，卡片仍露英文描述。
-            d_zh = (clip(md, 32) if CJK.search(md or '') else
-                    clip(t.get('d') or '', 32) if CJK.search(t.get('d') or '') else
+            # 中文描述优先级：① 工具自带中文 d（_build.py 注入，权威中文描述）→ ② 页面中文 meta
+            # → ③ 中文名。d 优先于页面 meta，避免页面 meta 夹零星中文却主体为英文时卡片仍露英文。
+            d_zh = (clip(t.get('d') or '', 32) if CJK.search(t.get('d') or '') else
+                    clip(md, 32) if CJK.search(md or '') else
                     clip(name_zh, 40))
             d_en = en_desc(t)
             ov = DESC_OVERRIDE.get(name_zh)
