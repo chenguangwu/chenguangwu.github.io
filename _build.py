@@ -2099,8 +2099,11 @@ def fix_tool_pages_seo(tools):
                 if _g_url:
                     _g_title_esc = esc_html_py(_g_title)
                     gl_html = '\n<div class="tool-guide-link" data-guide-link="1">\n  <a href="%s">📖 查看「%s」</a>\n</div>\n' % (_g_url, _g_title_esc)
-                    if '<div class="container">' in content:
-                        content = content.replace('<div class="container">', gl_html + '<div class="container">', 1)
+                    if '<div class="container' in content:
+                        # 前缀匹配以兼容 V2 模板的 '<div class="container xxx">'（如 cb-wrap）
+                        _cidx = content.find('<div class="container')
+                        _cend = content.find('>', _cidx) + 1
+                        content = content[:_cend] + gl_html + content[_cend:]
                     elif '<div class="card">' in content:
                         content = content.replace('<div class="card">', gl_html + '<div class="card">', 1)
 
