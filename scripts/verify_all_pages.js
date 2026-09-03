@@ -19,6 +19,8 @@ const numArgs = args.filter(a => /^\d+$/.test(a));
 const lo = numArgs[0] ? parseInt(numArgs[0], 10) : 0;
 const hi = numArgs[1] ? parseInt(numArgs[1], 10) : Infinity;
 const DO_CLICKS = !args.includes('--clicks=0');
+const JSONL = args.includes('--jsonl');
+const JSONL_PATH = `/tmp/verify_all_pages_${lo}-${hi === Infinity ? 'end' : hi}.jsonl`;
 
 function walk(dir, out = []) {
   for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
@@ -131,6 +133,7 @@ for (const f of files) {
   if (!r) continue;
   n++;
   if (r.loadErrs.length || r.clickErrs.length) bad.push(r);
+  if (JSONL) { try { fs.appendFileSync(JSONL_PATH, JSON.stringify(r) + '\n'); } catch (e) {} }
   if (n % 300 === 0) console.error(`  ...${n}/${files.length}  已发现 ${bad.length} 个异常`);
 }
 const out = `/tmp/verify_all_pages_${lo}-${hi === Infinity ? 'end' : hi}.json`;

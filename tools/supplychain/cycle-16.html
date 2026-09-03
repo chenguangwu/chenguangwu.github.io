@@ -212,10 +212,10 @@
 
 <script>
 var KEY = 'tb_supplychain_kpi';
-var history = [];
-try { history = JSON.parse(localStorage.getItem(KEY) || '[]'); } catch(e) { history = []; }
+var moveHistory = [];
+try { moveHistory = JSON.parse(localStorage.getItem(KEY) || '[]'); } catch(e) { moveHistory = []; }
 
-function save() { try { localStorage.setItem(KEY, JSON.stringify(history)); } catch(e) {} }
+function save() { try { localStorage.setItem(KEY, JSON.stringify(moveHistory)); } catch(e) {} }
 
 function fmt(n, d) {
   d = d != null ? d : 1;
@@ -327,8 +327,8 @@ function calcKPI() {
 
 function savePeriod() {
   if (!window._currentKPIs) { ToolBox.showToast(i18nText(), 'warning'); return; }
-  history.push(window._currentKPIs);
-  if (history.length > 24) history = history.slice(-24);
+  moveHistory.push(window._currentKPIs);
+  if (moveHistory.length > 24) moveHistory = moveHistory.slice(-24);
   save();
   ToolBox.showToast(i18nText());
   renderHistory();
@@ -337,7 +337,7 @@ function savePeriod() {
 
 function delPeriod(idx) {
   if (!confirm('确定删除该期数据？')) return;
-  history.splice(idx, 1);
+  moveHistory.splice(idx, 1);
   save();
   ToolBox.showToast(i18nText());
   renderHistory();
@@ -345,9 +345,9 @@ function delPeriod(idx) {
 }
 
 function clearHistory() {
-  if (!history.length) { ToolBox.showToast(i18nText(), 'info'); return; }
+  if (!moveHistory.length) { ToolBox.showToast(i18nText(), 'info'); return; }
   if (!confirm('确定清空全部历史数据？')) return;
-  history = [];
+  moveHistory = [];
   save();
   ToolBox.showToast(i18nText());
   renderHistory();
@@ -355,7 +355,7 @@ function clearHistory() {
 }
 
 function loadPeriod(idx) {
-  var p = history[idx];
+  var p = moveHistory[idx];
   if (!p) return;
   document.getElementById('periodName').value = p.name;
   calcKPI();
@@ -363,7 +363,7 @@ function loadPeriod(idx) {
 }
 
 function renderTrend() {
-  if (history.length < 1) {
+  if (moveHistory.length < 1) {
     document.getElementById('trendCard').style.display = 'none';
     return;
   }
@@ -372,7 +372,7 @@ function renderTrend() {
   // 找各KPI最大值用于缩放
   var maxVals = {};
   Object.keys(KPI_BENCHMARKS).forEach(function(k) { maxVals[k] = 0; });
-  history.forEach(function(p) {
+  moveHistory.forEach(function(p) {
     Object.keys(p.kpis).forEach(function(k) { maxVals[k] = Math.max(maxVals[k], p.kpis[k]); });
   });
 
@@ -380,7 +380,7 @@ function renderTrend() {
   Object.keys(KPI_BENCHMARKS).forEach(function(key) {
     var b = KPI_BENCHMARKS[key];
     html += '<h4 style="font-size:13px;margin:14px 0 6px;color:var(--heading);">' + b.name + '</h4>';
-    history.forEach(function(p, i) {
+    moveHistory.forEach(function(p, i) {
       var val = p.kpis[key] || 0;
       var light = getLight(key, val);
       var pct = maxVals[key] > 0 ? (val / maxVals[key]) * 100 : 0;
@@ -396,13 +396,13 @@ function renderTrend() {
 }
 
 function renderHistory() {
-  if (!history.length) {
+  if (!moveHistory.length) {
     document.getElementById('historyList').innerHTML = '<div class="empty-state">暂无历史记录</div>';
     return;
   }
   var html = '';
-  history.slice().reverse().forEach(function(p, ri) {
-    var idx = history.length - 1 - ri;
+  moveHistory.slice().reverse().forEach(function(p, ri) {
+    var idx = moveHistory.length - 1 - ri;
     var k = p.kpis;
     html += '<div class="period-entry">';
     html += '<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">';
