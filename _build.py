@@ -25,6 +25,15 @@ import html
 ROOT = os.path.dirname(os.path.abspath(__file__))
 README_PATH = os.path.join(ROOT, 'README.md')
 sys.path.insert(0, os.path.join(ROOT, 'scripts'))
+
+# 工具页 / 落地页 critical CSS 内联（弱网首屏防白屏/FOUC）。单一来源 scripts/critical_tool_css.txt。
+CRITICAL_TOOL_CSS = ''
+_crit_path = os.path.join(ROOT, 'scripts', 'critical_tool_css.txt')
+if os.path.isfile(_crit_path):
+    try:
+        CRITICAL_TOOL_CSS = open(_crit_path, encoding='utf-8').read().strip()
+    except Exception:
+        CRITICAL_TOOL_CSS = ''
 try:
     from zh_en_dict import translate_name, translate_text
 except Exception:
@@ -1964,6 +1973,31 @@ def _build_deep_dive_html(d):
     return '\n'.join(parts)
 
 
+def _css_nonblocking(content):
+    """把本地 common.css / nav-menu.css 的阻塞 <link rel=stylesheet> 改为非阻塞 preload + noscript 兜底。
+
+    幂等关键点：二次 build 时 content 已含 preload + <noscript><link rel=stylesheet>...</noscript>，
+    若直接 re.sub 会再次匹配 noscript 内部的回退 stylesheet 并嵌套 <noscript>，破坏结构。
+    故先 stash 所有 <noscript> 块（占位符保护），在块外安全替换阻塞 link，再还原 noscript。
+    """
+    nss = {}
+    def _stash(m):
+        k = '\x00NS%d\x00' % len(nss)
+        nss[k] = m.group(0)
+        return k
+    c2 = re.sub(r'<noscript>.*?</noscript>', _stash, content, flags=re.S)
+
+    def _repl(m):
+        href = m.group(1)
+        return ('<link rel="preload" as="style" href="%s" onload="this.onload=null;this.rel=\'stylesheet\'">\n'
+                '<noscript><link rel="stylesheet" href="%s"></noscript>' % (href, href))
+
+    c2 = re.sub(r'<link rel="stylesheet" href="([^"]*(?:common\.css|nav-menu\.css))">', _repl, c2)
+    for k, v in nss.items():
+        c2 = c2.replace(k, v)
+    return c2
+
+
 def fix_tool_pages_seo(tools):
     """Post-process all tool pages: ensure h1, add breadcrumbs, related tools, structured data."""
     by_industry = {}
@@ -2455,12 +2489,29 @@ def fix_tool_pages_seo(tools):
             if _dd_html and _anchor in content:
                 content = content.replace(_anchor, _dd_html + '\n' + _anchor, 1)
 
-        # 7. 注入全站 2 级分类导航资源（幂等）。放在写入前，避免被上面的
-        #    预渲染/相关工具/深度块处理覆盖。
-        if '</head>' in content and 'js/nav-menu.js' not in content:
-            nav_inject = '<link rel="stylesheet" href="/css/nav-menu.css">\n<script src="/js/industry-info.js" defer></script>\n<script src="/js/nav-menu.js" defer></script>\n'
-            content = content.replace('</head>', nav_inject + '</head>', 1)
-            fixed_nav += 1
+        # 7. 注入 critical CSS + 全站 2 级分类导航资源（幂等）。
+        #    - common.css（源文件自带，阻塞）改非阻塞 preload + noscript 兜底；
+        #    - critical CSS 内联（common.css 首屏外壳子集），弱网首访立即可见、防 FOUC；
+        #    - 以上两项与 nav-menu 注入解耦：nav-menu 仅在未注入时执行，
+        #      critical/common.css 每次都按幂等规则处理，避免二次 build 因已含 nav-menu.js 被跳过。
+        # common.css / nav-menu.css 阻塞 link → 非阻塞 preload + noscript 兜底。
+        # 必须用 _css_nonblocking（先 stash 所有 <noscript> 回退块再替换块外阻塞 link），
+        # 切勿用裸 re.sub：二次 build 时裸 re.sub 会再次匹配 noscript 内部的回退 stylesheet，
+        # 嵌套 <noscript> 破坏结构（build13 曾因此损坏 4993 页）。
+        content = _css_nonblocking(content)
+        if 'id="critical-css"' not in content and CRITICAL_TOOL_CSS and '</head>' in content:
+            _crit = '<style id="critical-css">\n%s\n</style>\n' % CRITICAL_TOOL_CSS
+            content = content.replace('</head>', _crit + '</head>', 1)
+        if 'js/nav-menu.js' not in content:
+            nav_inject = (
+                '<link rel="preload" as="style" href="/css/nav-menu.css" onload="this.onload=null;this.rel=\'stylesheet\'">\n'
+                '<noscript><link rel="stylesheet" href="/css/nav-menu.css"></noscript>\n'
+                '<script src="/js/industry-info.js" defer></script>\n'
+                '<script src="/js/nav-menu.js" defer></script>\n'
+            )
+            if '</head>' in content:
+                content = content.replace('</head>', nav_inject + '</head>', 1)
+                fixed_nav += 1
 
         # 3.5b Add generic tool UX enhancement (copy/download bar, validation hint, input persistence, a11y)
         ux_block = '\n<script src="/js/tool-ux.js" defer></script>\n<!-- TOOLBOX-TOOL-UX -->\n'
@@ -2571,7 +2622,10 @@ def generate_category_indexes(tools):
         parts.append('<title>%s</title>\n' % esc_html_py(title_zh))
         parts.append('<link rel="canonical" href="https://chenguangwu.github.io/tools/%s/index.html">\n' % ind)
         parts.append('<link rel="icon" type="image/svg+xml" href="/favicon.svg">\n')
-        parts.append('<link rel="stylesheet" href="../../css/common.css">\n')
+        # critical CSS 内联（弱网首屏防白屏/FOUC），common.css 改非阻塞 preload
+        parts.append('<style id="critical-css">\n' + CRITICAL_TOOL_CSS + '\n</style>\n')
+        parts.append('<link rel="preload" as="style" href="../../css/common.css" onload="this.onload=null;this.rel=\'stylesheet\'">\n')
+        parts.append('<noscript><link rel="stylesheet" href="../../css/common.css"></noscript>\n')
         if '/js/analytics.js' not in ''.join(parts):
             parts.append('<script src="/js/analytics.js" defer></script>\n')
             parts.append(CLARITY_MARKER + '\n')
@@ -2582,7 +2636,8 @@ def generate_category_indexes(tools):
         parts.append('<script src="../../js/i18n.js" defer></script>\n')
         parts.append('<script src="../../js/tool-i18n.js" defer></script>\n')
         # 全站 2 级分类导航（顶部菜单 + 下拉面板 + 移动抽屉）
-        parts.append('<link rel="stylesheet" href="/css/nav-menu.css">\n')
+        parts.append('<link rel="preload" as="style" href="/css/nav-menu.css" onload="this.onload=null;this.rel=\'stylesheet\'">\n')
+        parts.append('<noscript><link rel="stylesheet" href="/css/nav-menu.css"></noscript>\n')
         parts.append('<script src="/js/industry-info.js" defer></script>\n')
         parts.append('<script src="/js/nav-menu.js" defer></script>\n')
         # 多语言 SEO：hreflang + og:locale（构建期常量，批次4）
