@@ -25,7 +25,7 @@ const CAT_INFO = {
 
 let HOT_TOOLS = [];
 
-// 真实热度热门工具：由 build 期生成的 json/hot-tools.json 驱动（基于 Bing+Clarity 真实流量，替代原写死列表）
+// 首页热门工具：由构建期的编辑精选清单生成，避免小样本流量放大窄场景工具。
 function loadHotTools() {
   fetch('json/hot-tools.json')
     .then(r => (r.ok ? r.json() : []))
