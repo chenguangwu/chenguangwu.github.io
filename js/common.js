@@ -2526,7 +2526,7 @@ global.Chain = (function(){
       steps: [
         { file: 'tools/it/markdown-to-html.html', icon: '📝', name: 'Markdown → HTML', note: '粘贴 Markdown，得到 HTML 源码' },
         { file: 'tools/it/url-encode.html', icon: '🔗', name: 'URL 编码', note: '把 HTML 编码为 URL 安全字符串' },
-        { file: 'tools/it/qrcode-generator.html', icon: '📱', name: '二维码生成', note: '用编码后的字符串生成二维码（终端步骤）' }
+        { file: 'tools/it/qrcode.html', icon: '📱', name: '二维码生成', note: '用编码后的字符串生成二维码（终端步骤）' }
       ]
     },
     {
@@ -2535,7 +2535,7 @@ global.Chain = (function(){
       steps: [
         { file: 'tools/it/json-formatter.html', icon: '🧩', name: 'JSON 格式化', note: '粘贴 JSON，得到格式化/压缩文本' },
         { file: 'tools/it/url-encode.html', icon: '🔗', name: 'URL 编码', note: '把 JSON 编码为 URL 安全字符串' },
-        { file: 'tools/it/qrcode-generator.html', icon: '📱', name: '二维码生成', note: '用编码后的字符串生成二维码（终端步骤）' }
+        { file: 'tools/it/qrcode.html', icon: '📱', name: '二维码生成', note: '用编码后的字符串生成二维码（终端步骤）' }
       ]
     }
   ];
@@ -2547,7 +2547,7 @@ global.Chain = (function(){
     'md5.html':                { inSel: '#textInput',  outSel: '#textResult' },
     'markdown-to-html.html':   { inSel: '#mdInput',    outSel: '#htmlOutput' },
     'json-formatter.html':     { inSel: '#input',      outSel: '#viewRaw' },
-    'qrcode-generator.html':   { inSel: '#textInput',  outSel: null },
+    'qrcode.html':             { inSel: '#textInput',  outSel: null },
     'slugify.html':            { inSel: '#input',      outSel: '#result' },
     'regex-tester.html':       { inSel: '#testText',   outSel: null },
     'case-converter.html':     { inSel: '#inputText',  outSel: null }
@@ -2790,6 +2790,9 @@ function toolPageRootPrefix(){
     var seg = p.split('/').filter(Boolean);
     if (seg[0] === 'zh-tw' || seg[0] === 'zh-hk') {
       seg.shift();
+      // 繁体根页（index/search/chains/about 等）须留在当前 locale 目录，
+      // 不能退回简体根目录；工具页与指南页再按目录深度回退。
+      if (seg.length <= 1) return './';
       if (seg.length >= 2 && seg[0] === 'tools') return '../../../';
       if (seg.length >= 1 && seg[0] === 'tools') return '../../';
       if (seg.length >= 1 && seg[0] === 'guides') return '../../';
@@ -2809,6 +2812,8 @@ function toolPageRootPrefix(){
 function isHomepage(){
   var p = location.pathname || '';
   var seg = p.split('/').filter(Boolean);
+  // zh-tw/ 与 zh-hk/ 是独立静态首页，不是简体首页的子内容页。
+  if (seg[0] === 'zh-tw' || seg[0] === 'zh-hk') seg.shift();
   if (seg.length === 0) return true;                 // 根路径 "/"
   if (seg.length === 1 && seg[0] === 'index.html') return true;
   return false;
@@ -2912,7 +2917,7 @@ function buildUnifiedFooter(){
           '<h2 data-i18n="section.comtools" data-i18n-fb="常用工具">常用工具</h2>' +
           '<ul>' +
             '<li><a href="' + root + 'tools/it/json-formatter.html" data-i18n="foot.tool_json" data-i18n-fb="JSON格式化">JSON格式化</a></li>' +
-            '<li><a href="' + root + 'tools/it/qrcode-generator.html" data-i18n="foot.tool_qr" data-i18n-fb="二维码生成">二维码生成</a></li>' +
+            '<li><a href="' + root + 'tools/it/qrcode.html" data-i18n="foot.tool_qr" data-i18n-fb="二维码生成">二维码生成</a></li>' +
             '<li><a href="' + root + 'tools/it/password-generator.html" data-i18n="foot.tool_pwd" data-i18n-fb="密码生成器">密码生成器</a></li>' +
             '<li><a href="' + root + 'tools/design/color-picker.html" data-i18n="foot.tool_color" data-i18n-fb="颜色选择器">颜色选择器</a></li>' +
           '</ul>' +

@@ -2011,7 +2011,11 @@ def _build_deep_dive_html(d):
 
 
 def _css_nonblocking(content):
-    """把本地 common.css / nav-menu.css 的阻塞 <link rel=stylesheet> 改为非阻塞 preload + noscript 兜底。
+    """仅把非关键 nav-menu.css 改为非阻塞加载。
+
+    common.css 包含运行时注入的统一顶部导航样式。若将它异步加载，common.js
+    可能先插入搜索框，导致首屏短暂显示浏览器默认的大输入控件。因此 common.css
+    必须保持阻塞加载；只有二级菜单样式可以延后。
 
     幂等关键点：二次 build 时 content 已含 preload + <noscript><link rel=stylesheet>...</noscript>，
     若直接 re.sub 会再次匹配 noscript 内部的回退 stylesheet 并嵌套 <noscript>，破坏结构。
@@ -2022,6 +2026,14 @@ def _css_nonblocking(content):
         k = '\x00NS%d\x00' % len(nss)
         nss[k] = m.group(0)
         return k
+    # 旧构建产物把 common.css 写成 preload + noscript。先还原为普通 stylesheet，
+    # 并移除对应的 noscript 回退，避免后续构建遗留重复标签。
+    content = re.sub(
+        r'<link rel="preload" as="style" href="([^"]*common\.css)" onload="this\.onload=null;this\.rel=\'stylesheet\'">\s*'
+        r'<noscript><link rel="stylesheet" href="\1"></noscript>',
+        r'<link rel="stylesheet" href="\1">',
+        content,
+    )
     c2 = re.sub(r'<noscript>.*?</noscript>', _stash, content, flags=re.S)
 
     def _repl(m):
@@ -2029,7 +2041,7 @@ def _css_nonblocking(content):
         return ('<link rel="preload" as="style" href="%s" onload="this.onload=null;this.rel=\'stylesheet\'">\n'
                 '<noscript><link rel="stylesheet" href="%s"></noscript>' % (href, href))
 
-    c2 = re.sub(r'<link rel="stylesheet" href="([^"]*(?:common\.css|nav-menu\.css))">', _repl, c2)
+    c2 = re.sub(r'<link rel="stylesheet" href="([^"]*nav-menu\.css)">', _repl, c2)
     for k, v in nss.items():
         c2 = c2.replace(k, v)
     return c2
@@ -2527,11 +2539,11 @@ def fix_tool_pages_seo(tools):
                 content = content.replace(_anchor, _dd_html + '\n' + _anchor, 1)
 
         # 7. 注入 critical CSS + 全站 2 级分类导航资源（幂等）。
-        #    - common.css（源文件自带，阻塞）改非阻塞 preload + noscript 兜底；
+        #    - common.css 保持阻塞，确保统一顶部搜索框不会无样式闪烁；
         #    - critical CSS 内联（common.css 首屏外壳子集），弱网首访立即可见、防 FOUC；
         #    - 以上两项与 nav-menu 注入解耦：nav-menu 仅在未注入时执行，
         #      critical/common.css 每次都按幂等规则处理，避免二次 build 因已含 nav-menu.js 被跳过。
-        # common.css / nav-menu.css 阻塞 link → 非阻塞 preload + noscript 兜底。
+        # 仅 nav-menu.css 阻塞 link → 非阻塞 preload + noscript 兜底。
         # 必须用 _css_nonblocking（先 stash 所有 <noscript> 回退块再替换块外阻塞 link），
         # 切勿用裸 re.sub：二次 build 时裸 re.sub 会再次匹配 noscript 内部的回退 stylesheet，
         # 嵌套 <noscript> 破坏结构（build13 曾因此损坏 4993 页）。
@@ -2659,10 +2671,9 @@ def generate_category_indexes(tools):
         parts.append('<title>%s</title>\n' % esc_html_py(title_zh))
         parts.append('<link rel="canonical" href="https://chenguangwu.github.io/tools/%s/index.html">\n' % ind)
         parts.append('<link rel="icon" type="image/svg+xml" href="/favicon.svg">\n')
-        # critical CSS 内联（弱网首屏防白屏/FOUC），common.css 改非阻塞 preload
+        # critical CSS 内联；common.css 保持阻塞，避免运行时顶栏无样式闪烁
         parts.append('<style id="critical-css">\n' + CRITICAL_TOOL_CSS + '\n</style>\n')
-        parts.append('<link rel="preload" as="style" href="../../css/common.css" onload="this.onload=null;this.rel=\'stylesheet\'">\n')
-        parts.append('<noscript><link rel="stylesheet" href="../../css/common.css"></noscript>\n')
+        parts.append('<link rel="stylesheet" href="../../css/common.css">\n')
         if '/js/analytics.js' not in ''.join(parts):
             parts.append('<script src="/js/analytics.js" defer></script>\n')
             parts.append(CLARITY_MARKER + '\n')

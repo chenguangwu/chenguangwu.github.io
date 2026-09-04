@@ -55,8 +55,29 @@ let searchQuery = '';
 let currentTools = HOT_TOOLS;
 let allSearchIndex = null;
 let loadedIndustries = {};
-let favorites = JSON.parse(localStorage.getItem('favTools') || '[]');
-let recents = JSON.parse(localStorage.getItem('recentTools') || '[]');
+function canonicalToolUrl(url) {
+  return window.ToolPathAliases && typeof window.ToolPathAliases.resolve === 'function'
+    ? window.ToolPathAliases.resolve(url)
+    : url;
+}
+
+function loadStoredToolUrls(storageKey) {
+  let values;
+  try {
+    values = JSON.parse(localStorage.getItem(storageKey) || '[]');
+  } catch (e) {
+    values = [];
+  }
+  if (!Array.isArray(values)) values = [];
+  const canonical = [...new Set(values.filter(url => typeof url === 'string').map(canonicalToolUrl))];
+  if (JSON.stringify(values) !== JSON.stringify(canonical)) {
+    localStorage.setItem(storageKey, JSON.stringify(canonical));
+  }
+  return canonical;
+}
+
+let favorites = loadStoredToolUrls('favTools');
+let recents = loadStoredToolUrls('recentTools');
 let searchIndexLoaded = false;
 let previousView = 'hot';
 let industriesExpanded = false;
@@ -197,7 +218,7 @@ function renderHotSpotlight() {
   const grid = document.getElementById('hotSpotlightGrid');
   if (!grid) return;
   grid.innerHTML = HOT_TOOLS.map(t => {
-    const url = t.u || t.url;
+    const url = canonicalToolUrl(t.u || t.url);
     return `<a class="hot-spotlight-card" href="${url}" target="_blank" rel="noopener" onclick="addToRecent('${url}')">
       <div class="hot-spotlight-icon" style="background:${t.b || t.bg || '#f5f5f5'}">${t.ic || t.icon || '🔧'}</div>
       <div class="hot-spotlight-info">
@@ -608,7 +629,7 @@ function renderToolCards(tools) {
   return tools.map((t, i) => {
     const icon = t.ic || t.icon || '🔧';
     const bg = t.b || t.bg || '#f5f5f5';
-    const url = t.u || t.url;
+    const url = canonicalToolUrl(t.u || t.url);
     const name = _tn(t);
     const desc = _td(t);
     const isFav = favSet.has(url);
@@ -629,6 +650,7 @@ function renderToolCards(tools) {
 }
 
 function toggleFav(url) {
+  url = canonicalToolUrl(url);
   const idx = favorites.indexOf(url);
   if (idx > -1) favorites.splice(idx, 1);
   else favorites.push(url);
@@ -641,6 +663,7 @@ function toggleFav(url) {
 }
 
 function addToRecent(url) {
+  url = canonicalToolUrl(url);
   recents = recents.filter(u => u !== url);
   recents.unshift(url);
   if (recents.length > 50) recents = recents.slice(0, 50);

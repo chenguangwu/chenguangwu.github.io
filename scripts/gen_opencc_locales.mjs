@@ -198,7 +198,10 @@ function localeHead(rel, locale) {
 
 function rewriteSeo(html, rel, locale) {
   const canonical = localeUrl(locale, rel);
-  html = html.replace(/<!-- TOOLBOX-HREFLANG -->[\s\S]*?<\/head>/i, '</head>');
+  // 旧实现会从 hreflang 标记一直删到 </head>。构建脚本后来会在该标记
+  // 之后注入导航资源（nav-menu.css / industry-info.js / nav-menu.js），因此
+  // 不能把标记之后的整段 head 一起移除；只清理旧的语言标签，其他资源原样保留。
+  html = html.replace(/<!-- TOOLBOX-HREFLANG -->\s*/gi, '');
   html = html.replace(/\s*<link\b[^>]*\bhreflang=[^>]*>\s*/gi, '\n');
   html = html.replace(/\s*<meta\b[^>]*\bproperty=["']og:locale(?::alternate)?["'][^>]*>\s*/gi, '\n');
   html = html.replace(/(<link\b[^>]*\brel=["']canonical["'][^>]*\bhref=["'])[^"']*(["'])/i, `$1${canonical}$2`);
