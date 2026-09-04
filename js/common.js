@@ -2789,14 +2789,10 @@ function toolPageRootPrefix(){
     var p = location.pathname || '';
     var seg = p.split('/').filter(Boolean);
     if (seg[0] === 'zh-tw') {
-      seg.shift();
-      // 繁体根页（index/search/chains/about 等）须留在当前 locale 目录，
-      // 不能退回简体根目录；工具页与指南页再按目录深度回退。
-      if (seg.length <= 1) return './';
-      if (seg.length >= 2 && seg[0] === 'tools') return '../../../';
-      if (seg.length >= 1 && seg[0] === 'tools') return '../../';
-      if (seg.length >= 1 && seg[0] === 'guides') return '../../';
-      return '../';
+      // 动态注入的导航、相关工具和页脚必须始终留在繁体静态站点内。
+      // 使用 locale 绝对根可同时覆盖根页、行业页、工具页和指南页，
+      // 避免按当前目录深度回退时意外落到简体 `/tools/`。
+      return '/zh-tw/';
     }
     // tools/industry/xxx.html → 两级
     if (seg.length >= 2 && seg[0] === 'tools') return '../../';
