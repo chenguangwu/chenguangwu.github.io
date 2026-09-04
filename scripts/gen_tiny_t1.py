@@ -27,7 +27,8 @@ TPL = '''<!DOCTYPE html>
 <meta name="twitter:description" content="__DESC__">
 <meta name="twitter:image" content="https://chenguangwu.github.io/og-image.png">
 <link rel="stylesheet" href="../../css/common.css">
-<script src="../../js/common.js"></script>
+<script>window.__tbq=window.__tbq||[];window.ToolBox=window.ToolBox||{};['initToolTheme','addToolStyles','showToast','toast','copyText','copyToClipboard','copyFromElement','downloadText','injectPrivacyBadge','toggleFavTool','addToRecentTool','toggleToolTheme','applyTheme'].forEach(function(k){if(typeof window.ToolBox[k]!=='function')window.ToolBox[k]=function(){window.__tbq.push([k,[].slice.call(arguments)]);};});</script><!-- TOOLBOX-API-STUB -->
+<script src="../../js/common.js" defer></script>
 </head>
 <body>
 <div class="nav">

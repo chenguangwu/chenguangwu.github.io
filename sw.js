@@ -19,7 +19,7 @@
  *   TOOLS    - 已访问页面 HTML，网络优先并持久化
  * AI 模型由 Transformers.js 自行缓存于独立 Cache Storage，不在此重复缓存。
  */
-const BUILD = '1f1cd41b56';                       // 由 _build.py 注入（内容 hash，勿手改）
+const BUILD = '8fa8aee8c1';                       // 由 _build.py 注入（内容 hash，勿手改）
 const SHELL = 'tb-shell-v4';
 const RUNTIME = 'tb-rt-v4-' + BUILD;
 const TOOLS = 'tb-tools-v4-' + BUILD;
@@ -27,6 +27,7 @@ const KEEP = new Set([SHELL, RUNTIME, TOOLS]);
 const MAX_RUNTIME = 400;   // 静态资源 LRU 上限
 const MAX_TOOLS = 800;     // 页面 HTML LRU 上限
 const NET_TIMEOUT = 3000;  // 网络优先超时（ms），超时回退缓存
+const NAV_GRACE = 1000;    // 导航宽限窗（ms）：弱网超过此值立即返回缓存旧副本，后台静默更新
 
 // 预缓存核心应用外壳（仅作离线兜底：在线时一律走网络优先，不会被旧副本钉死）
 const PRECACHE = [
@@ -133,6 +134,24 @@ function networkFirst(req, cacheName, fallback) {
   );
 }
 
+// 导航请求优化：网络优先 + 快速回退缓存（SWR 变体）
+// 好网（<NAV_GRACE ms）返回网络最新版本；弱网超过 NAV_GRACE 立即返回缓存旧副本并后台静默更新。
+// 兼顾「好网拿最新」与「弱网秒开」，避免纯 SWR 在好网也返回旧页的回退。
+function raceCache(req, cacheName, fallback) {
+  const cachedP = caches.match(req);
+  const net = Promise.race([
+    fetch(busted(req)).then((resp) => { putCache(cacheName, req, resp); return resp; }),
+    new Promise((_, rej) => setTimeout(() => rej(new Error('sw-timeout')), NET_TIMEOUT))
+  ]).catch(() => null);
+  const grace = new Promise((resolve) =>
+    setTimeout(() => cachedP.then((c) => resolve(c || null)), NAV_GRACE)
+  );
+  return Promise.race([net, grace]).then((r) => {
+    if (r && r.status === 200) return r;            // 网络胜出（最新）或缓存命中（旧，后台已更新）
+    return net.then((n) => n || fallback || OFFLINE_FALLBACK); // 无缓存且网络慢：等网络或回退
+  });
+}
+
 // 缓存优先：用于内容稳定的资源（图片/字体/图标）
 function cacheFirst(req) {
   return caches.match(req).then((cached) => {
@@ -155,7 +174,7 @@ self.addEventListener('fetch', (event) => {
 
   if (req.mode === 'navigate') {
     // 导航请求：网络优先，断网回退页面缓存，再回退首页（离线可用）
-    event.respondWith(networkFirst(req, TOOLS, caches.match('/index.html')));
+    event.respondWith(raceCache(req, TOOLS, caches.match('/index.html')));
     return;
   }
 
@@ -171,8 +190,8 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // 其它（工具页 HTML 直接访问等）：网络优先并持久化到 TOOLS
-  event.respondWith(networkFirst(req, TOOLS, caches.match('/index.html')));
+  // 其它（工具页 HTML 直接访问等）：网络优先 + 快速回退缓存
+  event.respondWith(raceCache(req, TOOLS, caches.match('/index.html')));
 });
 
 // 供页面调用：手动清缓存 / 立即接管

@@ -46,7 +46,8 @@ function toolTemplate(t) {
 <meta name="description" content="${t.name} - 专为在线工具打造的纯前端工具，数据不上传，免费使用">
 <title>${t.name} - ToolBox</title>
 <link rel="stylesheet" href="../../css/common.css">
-<script src="../../js/common.js"></script>
+<script>window.__tbq=window.__tbq||[];window.ToolBox=window.ToolBox||{};['initToolTheme','addToolStyles','showToast','toast','copyText','copyToClipboard','copyFromElement','downloadText','injectPrivacyBadge','toggleFavTool','addToRecentTool','toggleToolTheme','applyTheme'].forEach(function(k){if(typeof window.ToolBox[k]!=='function')window.ToolBox[k]=function(){window.__tbq.push([k,[].slice.call(arguments)]);};});</script><!-- TOOLBOX-API-STUB -->
+<script src="../../js/common.js" defer></script>
 </head>
 <body>
 <div class="nav">
