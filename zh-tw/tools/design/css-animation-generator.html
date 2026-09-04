@@ -1,0 +1,995 @@
+<!DOCTYPE html>
+<html lang="zh-TW" data-opencc-locale="zh-tw">
+<head>
+
+<script src="/js/tool-page-runtime.js" defer></script>
+<!-- TOOLBOX-TOOL-RUNTIME -->
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="toolbox" content="cat=design,industry=design,icon=✨,bg=#f3e5f5">
+<title>CSS動畫生成器 - ToolBox</title>
+<link rel="canonical" href="https://chenguangwu.github.io/zh-tw/tools/design/css-animation-generator.html">
+<meta property="og:title" content="CSS动画生成器">
+<meta property="og:description" content="CSS 动画生成器，选择动画类型并调整参数实时预览、一键复制 CSS 代码，辅助前端动效开发。">
+<meta property="og:url" content="https://chenguangwu.github.io/zh-tw/tools/design/css-animation-generator.html">
+<meta name="twitter:card" content="summary">
+<meta name="description" content="CSS 动画生成器，选择动画类型并调整参数实时预览、一键复制 CSS 代码，辅助前端动效开发。">
+<link rel="preload" as="style" href="/css/common.css" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="/css/common.css"></noscript>
+<script>window.__tbq=window.__tbq||[];window.ToolBox=window.ToolBox||{};['initToolTheme','addToolStyles','showToast','toast','copyText','copyToClipboard','copyFromElement','downloadText','injectPrivacyBadge','toggleFavTool','addToRecentTool','toggleToolTheme','applyTheme'].forEach(function(k){if(typeof window.ToolBox[k]!=='function')window.ToolBox[k]=function(){window.__tbq.push([k,[].slice.call(arguments)]);};});</script><!-- TOOLBOX-API-STUB -->
+<script src="/js/common.js" defer></script>
+<style>
+  /* 动画类型网格 */
+  .anim-types{
+    display:grid;
+    grid-template-columns:repeat(auto-fill, minmax(100px, 1fr));
+    gap:8px;
+    margin-bottom:20px;
+  }
+  .anim-type-btn{
+    padding:10px 6px;
+    border-radius:10px;
+    border:1.5px solid var(--border);
+    background:var(--card-bg);
+    color:var(--text);
+    cursor:pointer;
+    font-size:12.5px;
+    font-weight:500;
+    text-align:center;
+    transition:all 0.2s;
+    font-family:inherit;
+  }
+  .anim-type-btn:hover{
+    border-color:var(--primary);
+    background:var(--bg-hover);
+  }
+  .anim-type-btn.active{
+    border-color:var(--primary);
+    background:var(--gradient-primary);
+    color:#fff;
+    box-shadow:0 4px 12px rgba(255,107,53,0.25);
+  }
+  .anim-type-btn .anim-icon{
+    display:block;
+    font-size:18px;
+    margin-bottom:4px;
+  }
+
+  /* 参数控制面板 */
+  .params-grid{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:16px;
+    margin-bottom:20px;
+  }
+  .param-group{
+    display:flex;
+    flex-direction:column;
+    gap:6px;
+  }
+  .param-group label{
+    font-size:13px;
+    font-weight:500;
+    color:var(--text-secondary);
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+  }
+  .param-group label .param-val{
+    font-size:12px;
+    color:var(--primary);
+    font-weight:600;
+    background:rgba(255,107,53,0.08);
+    padding:2px 8px;
+    border-radius:6px;
+  }
+  .param-group select{
+    width:100%;
+    padding:10px 12px;
+    border:1.5px solid var(--border);
+    border-radius:12px;
+    font-size:13px;
+    background:var(--card-bg);
+    color:var(--text);
+    outline:none;
+    cursor:pointer;
+    font-family:inherit;
+    transition:border-color 0.2s;
+    -webkit-appearance:none;
+    appearance:none;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236B7280' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+    background-repeat:no-repeat;
+    background-position:right 12px center;
+    padding-right:32px;
+  }
+  .param-group select:focus{
+    border-color:var(--primary);
+    box-shadow:0 0 0 3px rgba(255,107,53,0.12);
+  }
+
+  /* 滑块 */
+  input[type="range"]{
+    -webkit-appearance:none;
+    appearance:none;
+    width:100%;
+    height:6px;
+    border-radius:3px;
+    background:var(--border);
+    outline:none;
+    transition:background 0.2s;
+  }
+  input[type="range"]::-webkit-slider-thumb{
+    -webkit-appearance:none;
+    appearance:none;
+    width:20px;
+    height:20px;
+    border-radius:50%;
+    background:var(--gradient-primary);
+    cursor:pointer;
+    box-shadow:0 2px 8px rgba(255,107,53,0.3);
+    transition:transform 0.15s;
+  }
+  input[type="range"]::-webkit-slider-thumb:hover{
+    transform:scale(1.15);
+  }
+  input[type="range"]::-moz-range-thumb{
+    width:20px;
+    height:20px;
+    border-radius:50%;
+    background:var(--gradient-primary);
+    cursor:pointer;
+    border:none;
+    box-shadow:0 2px 8px rgba(255,107,53,0.3);
+  }
+
+  /* 预览区域 */
+  .preview-section{
+    margin-bottom:20px;
+  }
+  .preview-area{
+    height:200px;
+    border-radius:16px;
+    border:2px dashed var(--border);
+    background:var(--result-bg);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    position:relative;
+    overflow:hidden;
+    transition:border-color 0.2s;
+  }
+  .preview-area:hover{
+    border-color:var(--primary);
+  }
+  .preview-box{
+    width:80px;
+    height:80px;
+    border-radius:16px;
+    background:var(--gradient-primary);
+    box-shadow:0 4px 16px rgba(255,107,53,0.3);
+  }
+  .preview-label{
+    position:absolute;
+    bottom:10px;
+    right:14px;
+    font-size:11px;
+    color:var(--text-muted);
+    background:var(--card-bg);
+    padding:3px 8px;
+    border-radius:6px;
+    border:1px solid var(--border);
+  }
+  .play-btn{
+    position:absolute;
+    top:10px;
+    right:14px;
+    width:34px;
+    height:34px;
+    border-radius:10px;
+    border:1px solid var(--border);
+    background:var(--card-bg);
+    color:var(--text);
+    cursor:pointer;
+    font-size:14px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    transition:all 0.2s;
+  }
+  .play-btn:hover{
+    border-color:var(--primary);
+    background:var(--bg-hover);
+    color:var(--primary);
+  }
+
+  /* 代码区域 */
+  .code-section{
+    margin-top:20px;
+  }
+  .code-header{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    margin-bottom:10px;
+  }
+  .code-header h3{
+    margin:0;
+  }
+  .code-block{
+    background:var(--heading);
+    color:#e2e8f0;
+    border-radius:12px;
+    padding:18px;
+    font-family:'SF Mono','Courier New','Fira Code',monospace;
+    font-size:13px;
+    line-height:1.7;
+    overflow-x:auto;
+    -webkit-overflow-scrolling:touch;
+    position:relative;
+    white-space:pre;
+    tab-size:2;
+  }
+  .code-block .ck{color:#c084fc;} /* keyframes keyword */
+  .code-block .ca{color:#67e8f9;} /* animation keyword */
+  .code-block .cv{color:#fbbf24;} /* values */
+  .code-block .cs{color:#34d399;} /* selectors */
+  .code-block .cp{color:#94a3b8;} /* punctuation */
+  .code-block .cn{color:#f9a8d4;} /* numbers */
+
+  /* cubic-bezier 自定义 */
+  .bezier-group{
+    display:none;
+    margin-top:12px;
+  }
+  .bezier-group.visible{
+    display:block;
+  }
+  .bezier-inputs{
+    display:grid;
+    grid-template-columns:repeat(4, 1fr);
+    gap:8px;
+  }
+  .bezier-inputs input{
+    padding:8px 10px;
+    font-size:13px;
+    text-align:center;
+  }
+  .bezier-preview{
+    height:60px;
+    border-radius:10px;
+    border:1.5px solid var(--border);
+    background:var(--card-bg);
+    margin-top:8px;
+    overflow:hidden;
+  }
+  .bezier-preview canvas{
+    width:100%;
+    height:100%;
+  }
+
+  /* 移动端适配 */
+  @media(max-width:768px){
+    .anim-types{
+      grid-template-columns:repeat(auto-fill, minmax(80px, 1fr));
+      gap:6px;
+    }
+    .anim-type-btn{
+      padding:8px 4px;
+      font-size:11.5px;
+    }
+    .anim-type-btn .anim-icon{
+      font-size:16px;
+    }
+    .params-grid{
+      grid-template-columns:1fr;
+      gap:12px;
+    }
+    .preview-area{
+      height:160px;
+    }
+    .preview-box{
+      width:60px;
+      height:60px;
+      border-radius:12px;
+    }
+    .code-block{
+      font-size:12px;
+      padding:14px;
+    }
+    .bezier-inputs{
+      grid-template-columns:repeat(2, 1fr);
+    }
+  }
+</style>
+
+
+
+<meta property="og:image" content="https://chenguangwu.github.io/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="ToolBox - 5000+免费在线工具">
+<meta name="twitter:image" content="https://chenguangwu.github.io/og-image.png">
+<meta name="twitter:image:alt" content="ToolBox - 5000+免费在线工具">
+    <meta property="og:type" content="website">
+    <meta name="twitter:title" content="CSS动画生成器">
+    <meta name="twitter:description" content="CSS 动画生成器，选择动画类型并调整参数实时预览、一键复制 CSS 代码，辅助前端动效开发。">
+<!-- TOOLBOX-WEBAPP-LD -->
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"CSS動畫生成器","url":"https://chenguangwu.github.io/zh-tw/tools/design/css-animation-generator.html","applicationCategory":"MultimediaApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":"zh-TW","description":"CSS 動畫生成器，選擇動畫型別並調整引數即時預覽、一鍵複製 CSS 程式碼，輔助前端動效開發。","image":"https://chenguangwu.github.io/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}</script>
+<meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
+<meta http-equiv="X-Content-Type-Options" content="nosniff">
+<meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
+<!-- TOOLBOX-SECURITY -->
+
+<script src="/js/privacy.js" defer></script>
+<!-- TOOLBOX-PRIVACY-SCRIPT -->
+
+<script src="/js/metrics.js" defer></script>
+<!-- TOOLBOX-METRICS-SCRIPT -->
+
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"首頁","item":"https://chenguangwu.github.io/zh-tw/"},{"@type":"ListItem","position":2,"name":"設計創意","item":"https://chenguangwu.github.io/zh-tw/tools/design/index.html"},{"@type":"ListItem","position":3,"name":"CSS動畫生成器","item":"https://chenguangwu.github.io/zh-tw/tools/design/css-animation-generator.html"}]}</script>
+
+<script src="/js/i18n.js" defer></script>
+<script src="/js/tool-i18n.js" defer></script>
+<!-- TOOLBOX-I18N-SCRIPT -->
+
+
+<meta name="title-en" content="CSS Animation Generator - ToolBox">
+<meta name="desc-en" content="CSS Animation Generator - generate results online, free and instant. Free online tool on ToolBox — 100% client-side, no data uploaded, no install. Part of ...">
+<!-- TOOLBOX-HREFLANG -->
+<link rel="alternate" hreflang="zh-CN" href="https://chenguangwu.github.io/tools/design/css-animation-generator.html">
+<link rel="alternate" hreflang="zh-TW" href="https://chenguangwu.github.io/zh-tw/tools/design/css-animation-generator.html">
+<link rel="alternate" hreflang="zh-HK" href="https://chenguangwu.github.io/zh-hk/tools/design/css-animation-generator.html">
+<link rel="alternate" hreflang="en-US" href="https://chenguangwu.github.io/tools/design/css-animation-generator.html?lang=en-US">
+<link rel="alternate" hreflang="x-default" href="https://chenguangwu.github.io/tools/design/css-animation-generator.html">
+<meta property="og:locale" content="zh_TW">
+<meta property="og:locale:alternate" content="zh_CN">
+<meta property="og:locale:alternate" content="zh_HK">
+<meta property="og:locale:alternate" content="en_US">
+</head>
+<body>
+<h1 class="sr-only">CSS動畫生成器</h1>
+
+
+<div class="nav">
+  <a href="/zh-tw/index.html">&larr; ToolBox</a>
+  <span>/ CSS動畫生成器</span>
+  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()">&#127769;</button>
+</div>
+
+
+
+
+
+<nav class="breadcrumb" aria-label="麵包屑導航" data-breadcrumb="1">
+  <a href="/zh-tw/index.html">首頁</a>
+  <span class="bc-sep">‹</span>
+  <a href="/zh-tw/tools/design/index.html">🎨 設計創意</a>
+  <span class="bc-sep">‹</span>
+  <span class="bc-current">CSS動畫生成器</span>
+</nav>
+<div class="container">
+  <div class="card tool-card-accent" style="--tool-accent:#7C3AED;">
+    <h2 data-zh="&amp;#10024; CSS動畫生成器">&amp;#CSS Animation Generator</h2>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="選擇動畫型別，調整引數，即時預覽並複製CSS程式碼">CSS Animation Generator is available directly in your browser, with no data uploaded.</p>
+
+    <!-- 動畫型別選擇 -->
+    <label style="font-size:13px;font-weight:500;color:var(--text-secondary);margin-bottom:8px;">動畫型別</label>
+    <div class="anim-types" id="animTypes"></div>
+
+    <!-- 引數控制 -->
+    <label style="font-size:13px;font-weight:500;color:var(--text-secondary);margin-bottom:10px;">引數設定</label>
+    <div class="params-grid">
+      <div class="param-group">
+        <label>持續時間 <span class="param-val" id="durVal">1s</span></label>
+        <input type="range" id="duration" min="0.1" max="5" step="0.1" value="1" oninput="updatePreview()">
+      </div>
+      <div class="param-group">
+        <label>延遲時間 <span class="param-val" id="delayVal">0s</span></label>
+        <input type="range" id="delay" min="0" max="2" step="0.1" value="0" oninput="updatePreview()">
+      </div>
+      <div class="param-group">
+        <label>緩動函式</label>
+        <select id="easing" onchange="updatePreview()">
+          <option value="linear">linear</option>
+          <option value="ease" selected>ease</option>
+          <option value="ease-in">ease-in</option>
+          <option value="ease-out">ease-out</option>
+          <option value="ease-in-out">ease-in-out</option>
+          <option value="cubic-bezier(0.68,-0.55,0.265,1.55)">cubic-bezier (彈性回彈)</option>
+          <option value="cubic-bezier(0.25,0.46,0.45,0.94)">cubic-bezier (標準)</option>
+          <option value="custom">自定義 cubic-bezier</option>
+        </select>
+      </div>
+      <div class="param-group">
+        <label>迴圈次數</label>
+        <select id="iteration" onchange="updatePreview()">
+          <option value="1">1 次</option>
+          <option value="2">2 次</option>
+          <option value="3">3 次</option>
+          <option value="infinite" selected>無限迴圈</option>
+        </select>
+      </div>
+      <div class="param-group">
+        <label>播放方向</label>
+        <select id="direction" onchange="updatePreview()">
+          <option value="normal">normal</option>
+          <option value="reverse">reverse</option>
+          <option value="alternate" selected>alternate</option>
+          <option value="alternate-reverse">alternate-reverse</option>
+        </select>
+      </div>
+      <div class="param-group">
+        <label>填充模式</label>
+        <select id="fillMode" onchange="updatePreview()">
+          <option value="none">none</option>
+          <option value="forwards">forwards</option>
+          <option value="backwards">backwards</option>
+          <option value="both" selected>both</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- 自定義 cubic-bezier -->
+    <div class="bezier-group" id="bezierGroup">
+      <label style="font-size:13px;font-weight:500;color:var(--text-secondary);margin-bottom:6px;">自定義 cubic-bezier(x1, y1, x2, y2)</label>
+      <div class="bezier-inputs">
+        <input type="number" id="bx1" value="0.68" step="0.01" min="0" max="1" oninput="updateBezier()">
+        <input type="number" id="by1" value="-0.55" step="0.01" min="-1" max="2" oninput="updateBezier()">
+        <input type="number" id="bx2" value="0.265" step="0.01" min="0" max="1" oninput="updateBezier()">
+        <input type="number" id="by2" value="1.55" step="0.01" min="-1" max="2" oninput="updateBezier()">
+      </div>
+      <div class="bezier-preview">
+        <canvas id="bezierCanvas"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- 預覽區域 -->
+  <div class="card preview-section">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+      <h3 style="margin:0;">即時預覽</h3>
+      <div class="toolbar" style="margin:0;gap:6px;">
+        <button type="button" class="btn primary" onclick="replayAnimation()" style="padding:8px 16px;font-size:12px;">&#9654; 重播</button>
+      </div>
+    </div>
+    <div class="preview-area" id="previewArea">
+      <div class="preview-box" id="previewBox"></div>
+      <span class="preview-label" id="previewLabel">fade-in</span>
+    </div>
+  </div>
+
+  <!-- 程式碼生成 -->
+  <div class="card code-section">
+    <div class="code-header">
+      <h3>CSS 程式碼</h3>
+      <div class="toolbar" style="margin:0;gap:6px;">
+        <button type="button" class="btn success" onclick="copyCode()" style="padding:8px 16px;font-size:12px;">&#128203; 複製程式碼</button>
+        <button type="button" class="btn" onclick="ToolBox.downloadText('animation.css', getPlainCode())" style="padding:8px 16px;font-size:12px;">&#11015; 下載</button>
+      </div>
+    </div>
+    <div class="code-block" id="codeBlock"></div>
+  </div>
+
+  <!-- SEO 介紹 -->
+
+</div>
+
+</div>
+
+<!-- 相關工具 -->
+<div class="related-tools" data-related-tools="1">
+  <h3 class="related-tools-title">🔗 相關工具</h3>
+  <div class="related-tools-grid">
+    <a href="/zh-tw/tools/design/generator-10.html" class="related-tool-card">
+      <span class="rt-icon">🎨</span>
+      <span class="rt-info"><span class="rt-name">CSS動畫生成器（關鍵幀視覺化） - 免費線上工具，純前端處理 | ToolBox免費線上工具箱</span><span class="rt-desc">CSS動畫生成器（關鍵幀視覺化）</span></span>
+    </a>
+
+    <a href="/zh-tw/tools/design/web-audio-metronome.html" class="related-tool-card">
+      <span class="rt-icon">🎼</span>
+      <span class="rt-info"><span class="rt-name">Web Audio 節拍器 - 免費生成器工具，線上節拍器 | ToolBox免費線上工具箱</span><span class="rt-desc">線上節拍器</span></span>
+    </a>
+    <a href="/zh-tw/tools/design/generator-8.html" class="related-tool-card">
+      <span class="rt-icon">🎨</span>
+      <span class="rt-info"><span class="rt-name">二維碼生成器（已有，可加強定製） - 免費線上工具，純前端處理 | ToolBox免費線上工具箱</span><span class="rt-desc">二維碼生成器（已有，可加強定製）</span></span>
+    </a>
+    <a href="/zh-tw/tools/design/generator-9.html" class="related-tool-card">
+      <span class="rt-icon">🎨</span>
+      <span class="rt-info"><span class="rt-name">條形碼生成器（EAN-13等） - 免費線上工具，純前端處理 | ToolBox免費線上工具箱</span><span class="rt-desc">條形碼生成器（EAN-13等）</span></span>
+    </a>
+    <a href="/zh-tw/tools/design/generator-6.html" class="related-tool-card">
+      <span class="rt-icon">🎨</span>
+      <span class="rt-info"><span class="rt-name">盒子陰影生成器（視覺化調整） - 免費線上工具，純前端處理 | ToolBox免費線上工具箱</span><span class="rt-desc">盒子陰影生成器（視覺化調整）</span></span>
+    </a>
+  </div>
+</div>
+<div class="tool-intro">
+    <div class="tool-intro-header" onclick="this.parentElement.classList.toggle('open')">
+      <span class="intro-icon-wrap">
+        <span class="intro-icon">&#10024;</span>
+        關於 CSS 動畫生成器
+      </span>
+      <span class="arrow">&#9660;</span>
+    </div>
+    <div class="tool-intro-body">
+      <p>CSS動畫生成器是一款純前端線上工具，幫助開發者快速建立自定義CSS動畫程式碼。內建14種常用動畫效果，支援引數微調、即時預覽和一鍵複製。</p>
+      <h4><span class="h4-icon">&#128736;</span> 功能特點</h4>
+      <ul class="intro-features">
+        <li>14種預設動畫效果</li>
+        <li>即時預覽動畫效果</li>
+        <li>自定義緩動函式</li>
+        <li>支援 cubic-bezier 曲線視覺化</li>
+        <li>一鍵複製CSS程式碼</li>
+        <li>下載為CSS檔案</li>
+      </ul>
+      <h4><span class="h4-icon">&#127919;</span> 使用場景</h4>
+      <ul class="intro-scenes">
+        <li>網頁元素入場動畫</li>
+        <li>按鈕互動動效</li>
+        <li>頁面載入過渡動畫</li>
+        <li>CSS動畫學習和除錯</li>
+      </ul>
+    </div>
+  </div>
+
+<!-- TOOLBOX-DEEP-DIVE -->
+<style>
+.deep-dive{max-width:960px;margin:16px auto;padding:0 16px;}
+.deep-dive > .card{margin-bottom:0;}
+@media(max-width:600px){.deep-dive{margin:14px auto;padding:0 12px;}}
+.deep-dive .dd-list{margin:8px 0 16px;padding-left:20px;}
+.deep-dive .dd-list li{margin:6px 0;line-height:1.75;}
+.deep-dive .dd-example{background:var(--card-bg,#fff);border:1px solid var(--border,#eee);border-radius:10px;padding:12px 14px;margin:8px 0 16px;}
+.deep-dive .dd-ex-title{font-weight:600;color:var(--tool-accent,#FF6B35);margin-bottom:6px;}
+.deep-dive .dd-ex-body{font-size:13px;line-height:1.85;color:var(--text,#333);word-break:break-word;}
+.deep-dive .dd-faq{margin:8px 0 4px;}
+.deep-dive .dd-faq dt{font-weight:600;margin-top:10px;color:var(--text,#333);}
+.deep-dive .dd-faq dd{margin:4px 0 0;font-size:13px;line-height:1.85;color:var(--text-muted,#666);}
+
+</style>
+<section class="deep-dive" data-deep-dive="1">
+<div class="card">
+<h2>📚 深度解析：CSS 動畫生成器</h2>
+<h3>💡 常見使用場景</h3>
+<ul class="dd-list">
+<li>生成 @keyframes 關鍵幀動畫</li>
+<li>調時長/緩動/延遲/迴圈</li>
+<li>做載入轉圈、淡入、位移</li>
+<li>緩動函式選擇</li>
+</ul>
+<div class="dd-example"><div class="dd-ex-title">關鍵幀</div><div class="dd-ex-body">@keyframes spin{from{transform:rotate(0)}to{transform:rotate(360deg)}} 配 animation: spin 1s linear infinite 得持續旋轉。可多關鍵幀控制中間態。</div></div>
+<div class="dd-example"><div class="dd-ex-title">緩動</div><div class="dd-ex-body">timing-function: ease（緩入緩出）、linear（勻速）、cubic-bezier 自定義；duration 控快慢，delay 控延遲，iteration-count 控次數（infinite 迴圈）。</div></div>
+<h3>❓ 常見問題（FAQ）</h3>
+<dl class="dd-faq">
+<dt>transform 和 animation 區別？</dt><dd>transform 是瞬間變換屬性，animation 控制隨時間變化的過程。動畫用 @keyframes 描述多幀，animation 屬性繫結。</dd>
+<dt>動畫卡頓怎麼最佳化？</dt><dd>優先動畫 transform/opacity（GPU 友好），避免動畫 width/top/margin 觸發重排；用 will-change 謹慎，過多反而佔資源。</dd>
+</dl>
+</div>
+</section>
+<!-- 注意事項區塊 -->
+<div class="tool-notes" style="--tool-accent:#7C3AED;">
+  <div class="tool-notes-title">⚠️ 使用說明與注意事項</div>
+  <ul>
+      <li>本工具純前端執行，資料不會上傳到伺服器</li>
+      <li>建議在主流瀏覽器（Chrome/Safari/Firefox/Edge）中使用</li>
+      <li>計算結果僅供參考，請以實際應用場景為準</li>
+  </ul>
+</div>
+<!-- /注意事項區塊 -->
+</div>
+
+<script>
+(function(){
+  'use strict';
+
+  /* ===== 动画数据 ===== */
+  var animations = {
+    'fade-in': {
+      label: '淡入',
+      icon: '\u{1F4A8}',
+      keyframes: 'from { opacity: 0; }\nto { opacity: 1; }'
+    },
+    'fade-out': {
+      label: '淡出',
+      icon: '\u{1F4A9}',
+      keyframes: 'from { opacity: 1; }\nto { opacity: 0; }'
+    },
+    'slide-up': {
+      label: '上滑',
+      icon: '\u2B06\uFE0F',
+      keyframes: 'from { transform: translateY(40px); opacity: 0; }\nto { transform: translateY(0); opacity: 1; }'
+    },
+    'slide-down': {
+      label: '下滑',
+      icon: '\u2B07\uFE0F',
+      keyframes: 'from { transform: translateY(-40px); opacity: 0; }\nto { transform: translateY(0); opacity: 1; }'
+    },
+    'slide-left': {
+      label: '左滑',
+      icon: '\u2B05\uFE0F',
+      keyframes: 'from { transform: translateX(40px); opacity: 0; }\nto { transform: translateX(0); opacity: 1; }'
+    },
+    'slide-right': {
+      label: '右滑',
+      icon: '\u27A1\uFE0F',
+      keyframes: 'from { transform: translateX(-40px); opacity: 0; }\nto { transform: translateX(0); opacity: 1; }'
+    },
+    'bounce': {
+      label: '弹跳',
+      icon: '\u{1F3C0}',
+      keyframes: '0% { transform: translateY(0); }\n25% { transform: translateY(-30px); }\n50% { transform: translateY(0); }\n75% { transform: translateY(-15px); }\n100% { transform: translateY(0); }'
+    },
+    'rotate': {
+      label: '旋转',
+      icon: '\u{1F504}',
+      keyframes: 'from { transform: rotate(0deg); }\nto { transform: rotate(360deg); }'
+    },
+    'scale': {
+      label: '缩放',
+      icon: '\u{1F4D0}',
+      keyframes: 'from { transform: scale(0); }\nto { transform: scale(1); }'
+    },
+    'shake': {
+      label: '抖动',
+      icon: '\u{1F4F3}',
+      keyframes: '0%, 100% { transform: translateX(0); }\n10%, 30%, 50%, 70%, 90% { transform: translateX(-8px); }\n20%, 40%, 60%, 80% { transform: translateX(8px); }'
+    },
+    'pulse': {
+      label: '脉冲',
+      icon: '\u{1F493}',
+      keyframes: '0%, 100% { transform: scale(1); opacity: 1; }\n50% { transform: scale(1.15); opacity: 0.8; }'
+    },
+    'flip': {
+      label: '翻转',
+      icon: '\u{1F500}',
+      keyframes: 'from { transform: perspective(400px) rotateY(0deg); }\nto { transform: perspective(400px) rotateY(180deg); }'
+    },
+    'swing': {
+      label: '摇摆',
+      icon: '\u{1F3C3}',
+      keyframes: '20% { transform: rotate(15deg); }\n40% { transform: rotate(-10deg); }\n60% { transform: rotate(5deg); }\n80% { transform: rotate(-5deg); }\n100% { transform: rotate(0deg); }'
+    },
+    'tada': {
+      label: '放大缩小',
+      icon: '\u{1F389}',
+      keyframes: '0% { transform: scale(1) rotate(0deg); }\n10%, 20% { transform: scale(0.9) rotate(-3deg); }\n30%, 50%, 70%, 90% { transform: scale(1.1) rotate(3deg); }\n40%, 60%, 80% { transform: scale(1.1) rotate(-3deg); }\n100% { transform: scale(1) rotate(0deg); }'
+    }
+  };
+
+  var currentAnim = 'fade-in';
+
+  /* ===== 初始化动画类型按钮 ===== */
+  function initAnimTypes(){
+    var container = document.getElementById('animTypes');
+    var html = '';
+    var keys = Object.keys(animations);
+    for(var i = 0; i < keys.length; i++){
+      var key = keys[i];
+      var anim = animations[key];
+      var cls = key === currentAnim ? ' active' : '';
+      html += '<button type="button" class="anim-type-btn' + cls + '" data-anim="' + key + '" onclick="window._cssAnim.selectAnim(\'' + key + '\')">'
+        + '<span class="anim-icon">' + anim.icon + '</span>'
+        + anim.label
+        + '</button>';
+    }
+    container.innerHTML = html;
+  }
+
+  /* ===== 动态注入 @keyframes ===== */
+  function injectKeyframes(){
+    var keys = Object.keys(animations);
+    var css = '';
+    for(var i = 0; i < keys.length; i++){
+      css += '@keyframes ' + keys[i] + ' {\n' + animations[keys[i]].keyframes + '\n}\n';
+    }
+    ToolBox.addToolStyles(css);
+  }
+
+  /* ===== 获取当前缓动函数值 ===== */
+  function getEasingValue(){
+    var sel = document.getElementById('easing');
+    if(sel.value === 'custom'){
+      var x1 = parseFloat(document.getElementById('bx1').value) || 0;
+      var y1 = parseFloat(document.getElementById('by1').value) || 0;
+      var x2 = parseFloat(document.getElementById('bx2').value) || 0;
+      var y2 = parseFloat(document.getElementById('by2').value) || 0;
+      return 'cubic-bezier(' + x1 + ', ' + y1 + ', ' + x2 + ', ' + y2 + ')';
+    }
+    return sel.value;
+  }
+
+  /* ===== 获取所有参数 ===== */
+  function getParams(){
+    return {
+      duration: parseFloat(document.getElementById('duration').value),
+      delay: parseFloat(document.getElementById('delay').value),
+      easing: getEasingValue(),
+      iteration: document.getElementById('iteration').value,
+      direction: document.getElementById('direction').value,
+      fillMode: document.getElementById('fillMode').value
+    };
+  }
+
+  /* ===== 更新预览 ===== */
+  function updatePreview(){
+    var p = getParams();
+    var box = document.getElementById('previewBox');
+
+    // 更新参数显示值
+    document.getElementById('durVal').textContent = p.duration + 's';
+    document.getElementById('delayVal').textContent = p.delay + 's';
+
+    // 显示/隐藏 cubic-bezier 自定义面板
+    var sel = document.getElementById('easing');
+    var bg = document.getElementById('bezierGroup');
+    if(sel.value === 'custom'){
+      bg.classList.add('visible');
+      updateBezier();
+    } else {
+      bg.classList.remove('visible');
+    }
+
+    // 应用动画
+    box.style.animation = 'none';
+    // force reflow
+    void box.offsetWidth;
+    box.style.animation = currentAnim + ' '
+      + p.duration + 's '
+      + p.easing + ' '
+      + p.delay + 's '
+      + p.iteration + ' '
+      + p.direction + ' '
+      + p.fillMode;
+
+    // 更新预览标签
+    document.getElementById('previewLabel').textContent = currentAnim + ' (' + p.duration + 's)';
+
+    // 更新代码
+    updateCode(p);
+  }
+
+  /* ===== 重播动画 ===== */
+  function replayAnimation(){
+    var box = document.getElementById('previewBox');
+    box.style.animation = 'none';
+    void box.offsetWidth;
+    updatePreview();
+  }
+
+  /* ===== 生成纯文本代码 ===== */
+  function generatePlainCode(){
+    var p = getParams();
+    var anim = animations[currentAnim];
+    var code = '@keyframes ' + currentAnim + ' {\n';
+    code += anim.keyframes + '\n}\n\n';
+    code += '.animated {\n';
+    code += '  animation: ' + currentAnim + ' '
+      + p.duration + 's '
+      + p.easing + ' '
+      + p.delay + 's '
+      + p.iteration + ' '
+      + p.direction + ' '
+      + p.fillMode + ';\n';
+    code += '}';
+    return code;
+  }
+
+  function getPlainCode(){
+    return generatePlainCode();
+  }
+
+  /* ===== 语法高亮代码 ===== */
+  function highlightCode(plain){
+    var esc = ToolBox.escHtml;
+    // 高亮 @keyframes
+    var html = esc(plain);
+    // @keyframes
+    html = html.replace(/@keyframes/g, '<span class="ck">@keyframes</span>');
+    // animation property
+    html = html.replace(/\banimation:/g, '<span class="ca">animation</span><span class="cp">:</span>');
+    // 关键帧名（跟在 @keyframes 后面的）
+    html = html.replace(/(@keyframes<\/span>\s+)(\w[\w-]*)/g, '$1<span class="cv">$2</span>');
+    // 选择器 .animated
+    html = html.replace(/(\.animated)/g, '<span class="cs">$1</span>');
+    // 数字 + 单位
+    html = html.replace(/\b(\d+\.?\d*)(s|deg|px|%)?\b/g, '<span class="cn">$1$2</span>');
+    // CSS 属性名
+    var props = ['transform','opacity','perspective','rotate','scale','translateX','translateY'];
+    for(var i = 0; i < props.length; i++){
+      var re = new RegExp('\\b(' + props[i] + ')\\b', 'g');
+      html = html.replace(re, '<span class="ca">$1</span>');
+    }
+    // 关键字值
+    var kws = ['from','to','none','forwards','backwards','both','infinite','normal','reverse','alternate','alternate-reverse','linear','ease','ease-in','ease-out','ease-in-out'];
+    for(var j = 0; j < kws.length; j++){
+      var re2 = new RegExp('\\b(' + kws[j] + ')\\b', 'g');
+      html = html.replace(re2, '<span class="cv">$1</span>');
+    }
+    return html;
+  }
+
+  /* ===== 更新代码显示 ===== */
+  function updateCode(p){
+    var plain = generatePlainCode();
+    var highlighted = highlightCode(plain);
+    document.getElementById('codeBlock').innerHTML = highlighted;
+  }
+
+  /* ===== 复制代码 ===== */
+  function copyCode(){
+    var code = generatePlainCode();
+    ToolBox.copyText(code, i18nText('msg026'));
+  }
+
+  /* ===== 选择动画类型 ===== */
+  function selectAnim(name){
+    currentAnim = name;
+    var btns = document.querySelectorAll('.anim-type-btn');
+    for(var i = 0; i < btns.length; i++){
+      btns[i].classList.toggle('active', btns[i].getAttribute('data-anim') === name);
+    }
+    replayAnimation();
+  }
+
+  /* ===== 更新 cubic-bezier ===== */
+  function updateBezier(){
+    if(document.getElementById('easing').value !== 'custom') return;
+    updatePreview();
+    drawBezier();
+  }
+
+  /* ===== 绘制 cubic-bezier 曲线 ===== */
+  function drawBezier(){
+    var canvas = document.getElementById('bezierCanvas');
+    if(!canvas) return;
+    var rect = canvas.parentElement.getBoundingClientRect();
+    var dpr = window.devicePixelRatio || 1;
+    canvas.width = rect.width * dpr;
+    canvas.height = rect.height * dpr;
+    canvas.style.width = rect.width + 'px';
+    canvas.style.height = rect.height + 'px';
+    var ctx = canvas.getContext('2d');
+    ctx.scale(dpr, dpr);
+
+    var w = rect.width;
+    var h = rect.height;
+    var pad = 10;
+
+    var x1 = parseFloat(document.getElementById('bx1').value) || 0;
+    var y1 = parseFloat(document.getElementById('by1').value) || 0;
+    var x2 = parseFloat(document.getElementById('bx2').value) || 0;
+    var y2 = parseFloat(document.getElementById('by2').value) || 0;
+
+    // 背景
+    var isDark = document.body.classList.contains('dark') || document.documentElement.getAttribute('data-theme') === 'dark';
+    ctx.fillStyle = isDark ? '#252540' : '#ffffff';
+    ctx.fillRect(0, 0, w, h);
+
+    // 网格
+    ctx.strokeStyle = isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(pad, pad); ctx.lineTo(pad, h - pad); ctx.lineTo(w - pad, h - pad);
+    ctx.stroke();
+
+    // 线性参考线
+    ctx.strokeStyle = isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.15)';
+    ctx.setLineDash([4, 4]);
+    ctx.beginPath();
+    ctx.moveTo(pad, h - pad);
+    ctx.lineTo(w - pad, pad);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    // 映射坐标
+    var sx = function(v){ return pad + v * (w - 2 * pad); };
+    var sy = function(v){ return (h - pad) - v * (h - 2 * pad); };
+
+    // 贝塞尔曲线
+    ctx.strokeStyle = '#FF6B35';
+    ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    ctx.moveTo(sx(0), sy(0));
+    ctx.bezierCurveTo(sx(x1), sy(y1), sx(x2), sy(y2), sx(1), sy(1));
+    ctx.stroke();
+
+    // 控制点
+    var points = [[0, 0], [x1, y1], [x2, y2], [1, 1]];
+    for(var i = 0; i < points.length; i++){
+      ctx.beginPath();
+      ctx.arc(sx(points[i][0]), sy(points[i][1]), 4, 0, Math.PI * 2);
+      ctx.fillStyle = i === 1 || i === 2 ? '#7C3AED' : '#FF6B35';
+      ctx.fill();
+      ctx.strokeStyle = '#fff';
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+    }
+
+    // 控制线
+    ctx.strokeStyle = 'rgba(124,58,237,0.3)';
+    ctx.lineWidth = 1;
+    ctx.setLineDash([3, 3]);
+    ctx.beginPath();
+    ctx.moveTo(sx(0), sy(0));
+    ctx.lineTo(sx(x1), sy(y1));
+    ctx.moveTo(sx(1), sy(1));
+    ctx.lineTo(sx(x2), sy(y2));
+    ctx.stroke();
+    ctx.setLineDash([]);
+  }
+
+  /* ===== 暴露到全局（供 inline onclick 调用）===== */
+  window._cssAnim = {
+    selectAnim: selectAnim,
+    updatePreview: updatePreview,
+    replayAnimation: replayAnimation,
+    copyCode: copyCode,
+    getPlainCode: getPlainCode,
+    drawBezier: drawBezier,
+    updateBezier: updateBezier
+  };
+  window.updatePreview = updatePreview;
+  window.replayAnimation = replayAnimation;
+  window.copyCode = copyCode;
+  window.getPlainCode = getPlainCode;
+  window.updateBezier = updateBezier;
+
+  /* ===== 初始化 ===== */
+  initAnimTypes();
+  injectKeyframes();
+  updatePreview();
+
+  // 窗口大小变化时重绘贝塞尔曲线
+  window.addEventListener('resize', function(){
+    if(document.getElementById('easing').value === 'custom'){
+      drawBezier();
+    }
+  });
+})();
+</script>
+
+<!-- SEO 介紹區塊 -->
+<div class="tool-intro open" id="toolIntro">
+  <div class="tool-intro-header">
+    <span class="intro-icon-wrap"><span class="intro-icon">📖</span>關於「CSS動畫生成器」</span>
+    <span class="arrow">▼</span>
+  </div>
+  <div class="tool-intro-body">
+    <h4><span class="h4-icon">📝</span>工具簡介</h4>
+    <p>&#10024; CSS動畫生成器。設計創意工具，視覺化操作，一鍵生成 CSS 程式碼。</p>
+    <h4><span class="h4-icon">✨</span>功能特點</h4>
+    <ul class="intro-features">
+      <li>視覺化操作，所見即所得</li>
+      <li>支援即時預覽與除錯</li>
+      <li>一鍵複製 CSS 程式碼</li>
+      <li>純前端執行，無需安裝</li>
+    </ul>
+    <h4><span class="h4-icon">🎯</span>使用場景</h4>
+    <ul class="intro-scenes">
+      <li>前端開發中的樣式設計</li>
+      <li>UI 設計師配色與佈局參考</li>
+      <li>快速生成 CSS 效果程式碼</li>
+      <li>設計靈感探索與原型製作</li>
+    </ul>
+    <h4><span class="h4-icon">💬</span>常見問題</h4>
+      <div class="intro-faq-item"><div class="intro-faq-q">這個工具是免費的嗎？</div><div class="intro-faq-a">完全免費，無需註冊，直接在瀏覽器中使用。</div></div>
+      <div class="intro-faq-item"><div class="intro-faq-q">生成的程式碼可以直接用嗎？</div><div class="intro-faq-a">可以，生成的 CSS 程式碼符合標準，可直接複製到專案中使用。</div></div>
+      <div class="intro-faq-item"><div class="intro-faq-q">支援自定義引數嗎？</div><div class="intro-faq-a">支援，提供多種引數調節選項，滿足個性化設計需求。</div></div>
+  </div>
+</div>
+<!-- /SEO 介紹區塊 -->
+
+<script>
+// tool-intro折叠交互
+document.addEventListener('DOMContentLoaded',function(){
+  var headers=document.querySelectorAll('.tool-intro-header');
+  headers.forEach(function(h){
+    h.addEventListener('click',function(){
+      this.parentElement.classList.toggle('open');
+    });
+  });
+});
+</script>
+
+</body>
+</html>

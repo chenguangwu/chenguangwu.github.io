@@ -6,15 +6,15 @@
 //   切换语言：I18n.set('en-US') / I18n.set('zh-CN') 或点击页面右上角语言下拉
 //   动态渲染行业/分类名：I18n.indName(info, key) / I18n.catName(info, key)
 //
-// 规范见 docs/i18n-spec.md。en-US 为唯一全局回退，zh-CN 为默认。
+// 规范见 docs/i18n-spec.md。zh-CN 为默认；繁体页为编译期静态页面，英文保留运行时切换。
 (function () {
   'use strict';
 
 // ===== 语言注册表（LANG_REGISTRY）=====
-// fallback: 缺失键回退到的语言；zh-CN 默认(无 fallback)，en-US 唯一全局回退
-// 说明：本项目当前只保留 zh-CN + en-US 两语，其他语言先暂停。
 var LANG_REGISTRY = [
   { code: 'zh-CN', label: '中文',    dir: 'ltr', fallback: null,    isDefault: true },
+  { code: 'zh-TW', label: '繁體中文（台灣）', dir: 'ltr', fallback: null },
+  { code: 'zh-HK', label: '繁體中文（香港）', dir: 'ltr', fallback: null },
   { code: 'en-US', label: 'English', dir: 'ltr', fallback: null }
 ];
 
@@ -36,6 +36,8 @@ var LANG_REGISTRY = [
   // 其余语言包可在 i18n/<code>.json 加载或由构建注入；v1 先复用 en-US 回退
   var PACKS = {
     'zh-CN': {},
+    'zh-TW': {},
+    'zh-HK': {},
     'en-US': {
       // 通用 UI
       'app.name': 'ToolBox',
@@ -281,6 +283,9 @@ var LANG_REGISTRY = [
     if (lang === 'zh') return 'zh-CN';
     lang = String(lang).replace('_', '-');
     if (isValidLang(lang)) return lang;
+    var lower = lang.toLowerCase();
+    if (lower === 'zh-tw' || lower === 'zh-hant-tw') return 'zh-TW';
+    if (lower === 'zh-hk' || lower === 'zh-hant-hk') return 'zh-HK';
     var base = lang.split('-')[0].toLowerCase();
     if (REGION_MAP[base]) return REGION_MAP[base];
     return null;
@@ -288,6 +293,8 @@ var LANG_REGISTRY = [
 
   // 判定语言（优先级：?lang > localStorage > 浏览器含中文变体?中文 : 页面默认<html lang>）
   function detect() {
+    var pathLocale = localeFromPath();
+    if (pathLocale) return pathLocale;
     try {
       var params = new URLSearchParams(location.search);
       var u = normalize(params.get('lang'));
@@ -313,6 +320,43 @@ var LANG_REGISTRY = [
   }
 
   function get() { return current; }
+  function isEnglish() { return current === 'en-US'; }
+  function isStaticTraditional() { return current === 'zh-TW' || current === 'zh-HK'; }
+
+  function localeFromPath() {
+    var path = (location.pathname || '').replace(/^\/+/, '');
+    if (path === 'zh-tw' || path.indexOf('zh-tw/') === 0) return 'zh-TW';
+    if (path === 'zh-hk' || path.indexOf('zh-hk/') === 0) return 'zh-HK';
+    return null;
+  }
+
+  function sourcePath() {
+    var path = (location.pathname || '').replace(/^\/+/, '');
+    return path.replace(/^zh-(?:tw|hk)\/?/i, '');
+  }
+
+  function assetUrl(url) {
+    if (!url || /^(?:[a-z][a-z0-9+.-]*:|\/\/)/i.test(url)) return url;
+    var prefix = current === 'zh-TW' ? '/zh-tw' : (current === 'zh-HK' ? '/zh-hk' : '');
+    if (!prefix) return url;
+    return prefix + (url.charAt(0) === '/' ? url : '/' + url);
+  }
+
+  function routeFor(lang) {
+    var path = sourcePath();
+    var prefix = lang === 'zh-TW' ? '/zh-tw/' : (lang === 'zh-HK' ? '/zh-hk/' : '/');
+    var target = prefix + path;
+    if (!path) target = prefix;
+    var query = '';
+    try {
+      var params = new URLSearchParams(location.search);
+      params.delete('lang');
+      if (lang === 'en-US') params.set('lang', 'en-US');
+      var rendered = params.toString();
+      query = rendered ? '?' + rendered : '';
+    } catch (e) {}
+    return target + query + (location.hash || '');
+  }
 
   // 回退链解析：current -> current.fallback -> ... -> en-US
   function resolve(key, fb) {
@@ -354,7 +398,7 @@ var LANG_REGISTRY = [
 
   function indName(info, key) {
     if (!info) return '';
-    if (current !== 'zh-CN') {
+    if (isEnglish()) {
       if (info.en) return info.en;
       var en = t('ind_' + (key || info.key), null);
       if (en && en.indexOf('ind_') !== 0) return en;
@@ -366,7 +410,7 @@ var LANG_REGISTRY = [
   }
   function catName(info, key) {
     if (!info) return '';
-    if (current !== 'zh-CN') {
+    if (isEnglish()) {
       if (info.en) return info.en;
       var en = t('cat_' + (key || info.key), null);
       if (en && en.indexOf('cat_') !== 0) return en;
@@ -546,13 +590,23 @@ var LANG_REGISTRY = [
     opts = opts || {};
     var nl = normalize(lang);
     if (!nl) nl = FALLBACK;
+    // 台湾/香港是独立静态 URL，切换时整页导航，确保搜索引擎与无 JS 客户端都拿到繁体 HTML。
+    var target = routeFor(nl);
+    if ((isStaticTraditional() || nl === 'zh-TW' || nl === 'zh-HK') && target !== location.pathname + location.search + location.hash) {
+      if (opts.persist !== false) {
+        try { localStorage.setItem(KEY, nl); } catch (e) {}
+      }
+      location.assign(target);
+      return;
+    }
     current = nl;
     if (opts.persist !== false) {
       try { localStorage.setItem(KEY, current); } catch (e) {}
     }
     try {
       var url = new URL(location.href);
-      url.searchParams.set('lang', current);
+      if (current === 'zh-CN') url.searchParams.delete('lang');
+      else url.searchParams.set('lang', current);
       history.replaceState(null, '', url);
     } catch (e) {}
     applyLangAttr();
@@ -575,15 +629,29 @@ var LANG_REGISTRY = [
     syncTitle();
     syncDesc();
     autoMount();
+    loadRegionalPack();
+  }
+
+  function loadRegionalPack() {
+    if (!isStaticTraditional() || !window.fetch) return;
+    var file = current === 'zh-TW' ? '/i18n/locale-zh-TW.json' : '/i18n/locale-zh-HK.json';
+    fetch(file, { cache: 'no-cache' })
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (pack) {
+        if (!pack) return;
+        addPack(current, pack);
+        apply(document);
+      })
+      .catch(function () { /* 静态页面的 data-i18n-fb 已是繁体，可安全回退 */ });
   }
 
   window.I18n = {
     get: get, set: set, t: t,
-    indName: indName, catName: catName,
+    indName: indName, catName: catName, assetUrl: assetUrl,
     apply: apply, applyLangAttr: applyLangAttr, mountSwitcher: mountSwitcher, init: init,
     addPack: addPack,
     LANG_REGISTRY: LANG_REGISTRY, detect: detect, normalize: normalize,
-    FALLBACK: FALLBACK
+    FALLBACK: FALLBACK, isEnglish: isEnglish, isStaticTraditional: isStaticTraditional
   };
 
   if (document.readyState === 'loading') {

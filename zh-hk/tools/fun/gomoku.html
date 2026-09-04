@@ -1,0 +1,936 @@
+<!DOCTYPE html>
+<html lang="zh-HK" data-opencc-locale="zh-hk">
+<head>
+
+<script src="/js/tool-page-runtime.js" defer></script>
+<!-- TOOLBOX-TOOL-RUNTIME -->
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="toolbox" content="cat=game,industry=fun,icon=⚫,bg=#fff3e0">
+<meta name="description" content="在 15×15 标准棋盘上进行五子棋对弈，支持双人对战与 AI 模式（启发式评估活四、活三等棋型），率先连成五子者获胜，纯前端可离线玩耍。">
+<meta name="keywords" content="五子棋,在线五子棋,五子连珠,黑白棋,AI五子棋,棋盘游戏">
+<title>五子棋 - ToolBox</title>
+<link rel="canonical" href="https://chenguangwu.github.io/zh-hk/tools/fun/gomoku.html">
+<meta property="og:title" content="五子棋">
+<meta property="og:description" content="在 15×15 标准棋盘上进行五子棋对弈，支持双人对战与 AI 模式（启发式评估活四、活三等棋型），率先连成五子者获胜，纯前端可离线玩耍。">
+<meta property="og:url" content="https://chenguangwu.github.io/zh-hk/tools/fun/gomoku.html">
+<meta name="twitter:card" content="summary">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<link rel="icon" type="image/x-icon" href="/favicon.ico">
+<link rel="preload" as="style" href="/css/common.css" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="/css/common.css"></noscript>
+<script>window.__tbq=window.__tbq||[];window.ToolBox=window.ToolBox||{};['initToolTheme','addToolStyles','showToast','toast','copyText','copyToClipboard','copyFromElement','downloadText','injectPrivacyBadge','toggleFavTool','addToRecentTool','toggleToolTheme','applyTheme'].forEach(function(k){if(typeof window.ToolBox[k]!=='function')window.ToolBox[k]=function(){window.__tbq.push([k,[].slice.call(arguments)]);};});</script><!-- TOOLBOX-API-STUB -->
+<script src="/js/common.js" defer></script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"五子棋 - ToolBox","description":"在線五子棋遊戲，支持雙人對戰和AI模式","url":"https://toolbox.cgw.name/tools/fun/gomoku.html","applicationCategory":"Game","operatingSystem":"All","browserRequirements":"Requires JavaScript","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}</script>
+<style>
+  .gomoku-wrap { text-align: center; }
+  .gomoku-info {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+  }
+  .gomoku-status {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--heading);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .gomoku-status .stone-icon {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    display: inline-block;
+    vertical-align: middle;
+    border: 2px solid var(--border);
+  }
+  .stone-icon.black {
+    background: radial-gradient(circle at 35% 35%, #555, #111);
+    border-color: #444;
+  }
+  .stone-icon.white {
+    background: radial-gradient(circle at 35% 35%, #fff, #ddd);
+    border-color: #ccc;
+  }
+  .gomoku-moves {
+    font-size: 14px;
+    color: var(--text-secondary);
+  }
+  .gomoku-moves strong {
+    color: var(--primary);
+  }
+  .gomoku-canvas-wrap {
+    display: inline-block;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: var(--shadow);
+    border: 2px solid var(--border);
+    line-height: 0;
+    max-width: 100%;
+  }
+  #gomokuCanvas {
+    display: block;
+    max-width: 100%;
+    height: auto;
+    cursor: pointer;
+    touch-action: none;
+  }
+  .gomoku-controls {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    margin-top: 16px;
+    flex-wrap: wrap;
+  }
+  .gomoku-mode-bar {
+    display: flex;
+    justify-content: center;
+    gap: 6px;
+    margin-bottom: 14px;
+  }
+  .mode-btn {
+    padding: 8px 18px;
+    border-radius: 10px;
+    font-size: 13px;
+    cursor: pointer;
+    border: 1px solid var(--border);
+    background: var(--card-bg);
+    color: var(--text);
+    transition: all 0.2s;
+    font-weight: 500;
+  }
+  .mode-btn:hover {
+    border-color: var(--primary);
+    background: var(--bg-hover);
+  }
+  .mode-btn.active {
+    background: var(--gradient-primary);
+    color: #fff;
+    border-color: transparent;
+  }
+  .win-line { display: none; }
+  .gomoku-result-overlay {
+    display: none;
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 200;
+    justify-content: center;
+    align-items: center;
+  }
+  .gomoku-result-overlay.show {
+    display: flex;
+  }
+  .gomoku-result-modal {
+    background: var(--card-bg);
+    border-radius: 20px;
+    padding: 32px 40px;
+    text-align: center;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    max-width: 360px;
+    width: 90%;
+  }
+  .gomoku-result-modal h3 {
+    font-size: 22px;
+    margin-bottom: 8px;
+    color: var(--heading);
+  }
+  .gomoku-result-modal p {
+    font-size: 14px;
+    color: var(--text-secondary);
+    margin-bottom: 20px;
+  }
+  .gomoku-result-modal .btn {
+    min-width: 120px;
+    justify-content: center;
+  }
+  @media (max-width: 768px) {
+    .gomoku-info { gap: 10px; }
+    .gomoku-status { font-size: 14px; }
+    .gomoku-controls { gap: 6px; }
+    .gomoku-controls .btn {
+      flex: 1 1 calc(50% - 3px);
+      min-width: calc(50% - 3px);
+      justify-content: center;
+    }
+    .gomoku-mode-bar { gap: 4px; }
+    .mode-btn { padding: 7px 14px; font-size: 12px; }
+  }
+</style>
+
+
+
+<meta property="og:image" content="https://chenguangwu.github.io/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="ToolBox - 5000+免费在线工具">
+<meta name="twitter:image" content="https://chenguangwu.github.io/og-image.png">
+<meta name="twitter:image:alt" content="ToolBox - 5000+免费在线工具">
+    <meta property="og:type" content="website">
+    <meta name="twitter:title" content="五子棋">
+    <meta name="twitter:description" content="在 15×15 标准棋盘上进行五子棋对弈，支持双人对战与 AI 模式（启发式评估活四、活三等棋型），率先连成五子者获胜，纯前端可离线玩耍。">
+<!-- TOOLBOX-WEBAPP-LD -->
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"五子棋","url":"https://chenguangwu.github.io/zh-hk/tools/fun/gomoku.html","applicationCategory":"GamesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":"zh-HK","description":"在 15×15 標準棋盤上進行五子棋對弈，支持雙人對戰與 AI 模式（啓發式評估活四、活三等棋型），率先連成五子者獲勝，純前端可離線玩耍。","image":"https://chenguangwu.github.io/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}</script>
+<meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
+<meta http-equiv="X-Content-Type-Options" content="nosniff">
+<meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
+<!-- TOOLBOX-SECURITY -->
+
+<script src="/js/privacy.js" defer></script>
+<!-- TOOLBOX-PRIVACY-SCRIPT -->
+
+<script src="/js/metrics.js" defer></script>
+<!-- TOOLBOX-METRICS-SCRIPT -->
+
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"首頁","item":"https://chenguangwu.github.io/zh-hk/"},{"@type":"ListItem","position":2,"name":"娛樂遊戲","item":"https://chenguangwu.github.io/zh-hk/tools/fun/index.html"},{"@type":"ListItem","position":3,"name":"五子棋","item":"https://chenguangwu.github.io/zh-hk/tools/fun/gomoku.html"}]}</script>
+
+<script src="/js/i18n.js" defer></script>
+<script src="/js/tool-i18n.js" defer></script>
+<!-- TOOLBOX-I18N-SCRIPT -->
+
+
+<meta name="title-en" content="Gomoku - ToolBox">
+<meta name="desc-en" content="Gomoku - free online tool. Free online tool on ToolBox — 100% client-side, no data uploaded, no install. Part of the Games &amp; Entertainment tools.">
+<!-- TOOLBOX-HREFLANG -->
+<link rel="alternate" hreflang="zh-CN" href="https://chenguangwu.github.io/tools/fun/gomoku.html">
+<link rel="alternate" hreflang="zh-TW" href="https://chenguangwu.github.io/zh-tw/tools/fun/gomoku.html">
+<link rel="alternate" hreflang="zh-HK" href="https://chenguangwu.github.io/zh-hk/tools/fun/gomoku.html">
+<link rel="alternate" hreflang="en-US" href="https://chenguangwu.github.io/tools/fun/gomoku.html?lang=en-US">
+<link rel="alternate" hreflang="x-default" href="https://chenguangwu.github.io/tools/fun/gomoku.html">
+<meta property="og:locale" content="zh_HK">
+<meta property="og:locale:alternate" content="zh_CN">
+<meta property="og:locale:alternate" content="zh_TW">
+<meta property="og:locale:alternate" content="en_US">
+</head>
+<body>
+<h1 class="sr-only">五子棋</h1>
+
+
+<div class="nav">
+  <a href="/zh-hk/index.html">&larr; ToolBox</a>
+  <span>/ 五子棋</span>
+  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()">&#127769;</button>
+</div>
+
+
+
+
+
+<nav class="breadcrumb" aria-label="麪包屑導航" data-breadcrumb="1">
+  <a href="/zh-hk/index.html">首頁</a>
+  <span class="bc-sep">‹</span>
+  <a href="/zh-hk/tools/fun/index.html">🎮 娛樂遊戲</a>
+  <span class="bc-sep">‹</span>
+  <span class="bc-current">五子棋</span>
+</nav>
+<div class="container">
+  <div class="card tool-card-accent gomoku-wrap" style="--tool-accent:#EC4899;">
+    <h2 data-zh="&amp;#9899; 五子棋">&amp;#Gomoku</h2>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="15x15 標準棋盤，支持雙人對戰和AI模式">Gomoku is available directly in your browser, with no data uploaded.</p>
+
+    <div class="gomoku-mode-bar">
+      <button type="button" class="mode-btn active" id="modePvP" onclick="setMode('pvp')">雙人對戰</button>
+      <button type="button" class="mode-btn" id="modeAI" onclick="setMode('ai')">人機對戰</button>
+    </div>
+
+    <div class="gomoku-info">
+      <div class="gomoku-status" id="gomokuStatus">
+        <span class="stone-icon black"></span>
+        <span>黑棋落子</span>
+      </div>
+      <div class="gomoku-moves">
+        步數：<strong id="moveCount">0</strong>
+      </div>
+    </div>
+
+    <div class="gomoku-canvas-wrap">
+      <canvas id="gomokuCanvas" width="600" height="600"></canvas>
+    </div>
+
+    <div class="gomoku-controls">
+      <button type="button" class="btn" onclick="undoMove()">悔棋</button>
+      <button type="button" class="btn primary" onclick="restartGame()">重新開始</button>
+    </div>
+  </div>
+
+
+</div>
+
+</div>
+
+<!-- 相關工具 -->
+<div class="related-tools" data-related-tools="1">
+  <h3 class="related-tools-title">🔗 相關工具</h3>
+  <div class="related-tools-grid">
+
+
+    <a href="/zh-hk/tools/fun/generator-2.html" class="related-tool-card">
+      <span class="rt-icon">🎮</span>
+      <span class="rt-info"><span class="rt-name">數獨生成器 / 求解器 - 免費在線工具，純前端處理 | ToolBox免費在線工具箱</span><span class="rt-desc">數獨生成器 / 求解器</span></span>
+    </a>
+    <a href="/zh-hk/tools/fun/laugh-generator.html" class="related-tool-card">
+      <span class="rt-icon">😂</span>
+      <span class="rt-info"><span class="rt-name">笑聲音效生成器 - 免費趣味工具，用Web Audio API合成笑聲 | ToolBox免費在線工具箱</span><span class="rt-desc">笑聲音效生成器</span></span>
+    </a>
+    <a href="/zh-hk/tools/fun/generator-laugh.html" class="related-tool-card">
+      <span class="rt-icon">🔧</span>
+      <span class="rt-info"><span class="rt-name">笑聲音效生成器（合成） - 免費在線工具，純前端處理 | ToolBox免費在線工具箱</span><span class="rt-desc">笑聲音效生成器（合成）</span></span>
+    </a>
+    <a href="/zh-hk/tools/dance/choreography-timeline.html" class="related-tool-card">
+      <span class="rt-icon">🎶</span>
+      <span class="rt-info"><span class="rt-name">編舞時間線 - 8拍分段規劃器，按BPM和小節數生成舞蹈編排時間軸 | ToolBox免費在線工具箱</span><span class="rt-desc">編舞時間線</span></span>
+    </a>
+  </div>
+</div>
+<div class="tool-intro" id="toolIntro">
+    <div class="tool-intro-header" onclick="toggleIntro()">
+      <span class="intro-icon-wrap">
+        <span class="intro-icon">&#9899;</span>
+        遊戲規則與説明
+      </span>
+      <span class="arrow">&#9660;</span>
+    </div>
+    <div class="tool-intro-body">
+      <h4><span class="h4-icon">&#127918;</span> 遊戲規則</h4>
+      <ul class="intro-scenes">
+        <li>黑棋先手，雙方輪流在棋盤交叉點落子</li>
+        <li>任一方在橫、豎、斜方向連成五子即獲勝</li>
+        <li>棋盤下滿未分勝負則為平局</li>
+      </ul>
+      <h4><span class="h4-icon">&#127919;</span> 棋型評估</h4>
+      <p>AI 模式使用啓發式評估算法，識別活四、衝四、活三、眠三等棋型並計算最優落子位置。</p>
+      <ul class="intro-features">
+        <li>活五 100000分</li>
+        <li>衝四/活四 10000分</li>
+        <li>活三 1000分</li>
+        <li>眠四 1000分</li>
+        <li>活二 100分</li>
+        <li>眠三 100分</li>
+      </ul>
+      <h4><span class="h4-icon">&#128161;</span> 操作提示</h4>
+      <ul class="intro-scenes">
+        <li>點擊棋盤交叉點即可落子</li>
+        <li>最後一手用紅色方框標記</li>
+        <li>悔棋可撤銷上一步操作</li>
+        <li>人機模式下 AI 自動執白棋</li>
+      </ul>
+    </div>
+  </div>
+
+<!-- TOOLBOX-DEEP-DIVE -->
+<style>
+.deep-dive{max-width:960px;margin:16px auto;padding:0 16px;}
+.deep-dive > .card{margin-bottom:0;}
+@media(max-width:600px){.deep-dive{margin:14px auto;padding:0 12px;}}
+.deep-dive .dd-list{margin:8px 0 16px;padding-left:20px;}
+.deep-dive .dd-list li{margin:6px 0;line-height:1.75;}
+.deep-dive .dd-example{background:var(--card-bg,#fff);border:1px solid var(--border,#eee);border-radius:10px;padding:12px 14px;margin:8px 0 16px;}
+.deep-dive .dd-ex-title{font-weight:600;color:var(--tool-accent,#FF6B35);margin-bottom:6px;}
+.deep-dive .dd-ex-body{font-size:13px;line-height:1.85;color:var(--text,#333);word-break:break-word;}
+.deep-dive .dd-faq{margin:8px 0 4px;}
+.deep-dive .dd-faq dt{font-weight:600;margin-top:10px;color:var(--text,#333);}
+.deep-dive .dd-faq dd{margin:4px 0 0;font-size:13px;line-height:1.85;color:var(--text-muted,#666);}
+
+</style>
+<section class="deep-dive" data-deep-dive="1">
+<div class="card">
+<h2>📚 深度解析：五子棋</h2>
+<h3>💡 常見使用場景</h3>
+<ul class="dd-list">
+<li>五子棋 場景核驗：統一單位和邊界條件後再跑基準樣本，先確認算式方向是否一致。</li>
+<li>教學/復盤建議：固定 1-2 個變量，逐步掃描關鍵參數，觀察趨勢是否符合預期。</li>
+<li>常見場景：&amp;amp;#Gomoku</li>
+</ul>
+<div class="dd-example"><div class="dd-ex-title">快速複核「五子棋」</div><div class="dd-ex-body">先用基礎參數跑一次基準值，再把核心輸入提高 10% 與 50% 做對比運算，確認輸出變化是否合理。</div></div>
+<h3>❓ 常見問題（FAQ）</h3>
+<dl class="dd-faq">
+<dt>五子棋 結果可用於直接報告嗎？</dt><dd>五子棋 適合用於內部複核與説明，正式材料請附帶口徑、邊界條件和輸入範圍説明。</dd>
+<dt>結果看似異常，該怎麼快速排查？</dt><dd>先核對是否有百分號/小數口徑衝突，再檢查是否觸發了數學域外定義（如對數、開方、除零）。</dd>
+</dl>
+</div>
+</section>
+<!-- 注意事項區塊 -->
+<div class="tool-notes" style="--tool-accent:#EC4899;">
+  <div class="tool-notes-title">⚠️ 使用説明與注意事項</div>
+  <ul>
+      <li>本工具純前端運行，數據不會上傳到伺服器</li>
+      <li>建議在主流瀏覽器（Chrome/Safari/Firefox/Edge）中使用</li>
+      <li>計算結果僅供參考，請以實際應用場景為準</li>
+  </ul>
+</div>
+<!-- /注意事項區塊 -->
+</div>
+
+<div class="gomoku-result-overlay" id="resultOverlay">
+  <div class="gomoku-result-modal">
+    <h3 id="resultTitle"></h3>
+    <p id="resultMsg"></p>
+    <button type="button" class="btn primary" onclick="closeResult(); restartGame();">再來一局</button>
+    <button type="button" class="btn" onclick="closeResult();" style="margin-left:8px;">關閉</button>
+  </div>
+</div>
+
+<script>
+(function() {
+  "use strict";
+
+  // ====== 常量 ======
+  var SIZE = 15;             // 棋盘大小 15x15
+  var EMPTY = 0, BLACK = 1, WHITE = 2;
+  var CELL;                  // 每格像素（动态计算）
+  var PADDING;               // 棋盘边距
+  var STONE_R;               // 棋子半径
+
+  // Canvas
+  var canvas = document.getElementById("gomokuCanvas");
+  var ctx = canvas.getContext("2d");
+
+  // 状态
+  var board = [];
+  var history = [];
+  var currentPlayer = BLACK;
+  var gameOver = false;
+  var winLine = null;        // 获胜连线坐标
+  var mode = "pvp";          // pvp 或 ai
+  var aiThinking = false;
+
+  // 棋型分数
+  var SCORES = {
+    FIVE: 100000,
+    LIVE4: 10000,
+    RUSH4: 10000,
+    LIVE3: 1000,
+    SLEEP4: 1000,
+    LIVE2: 100,
+    SLEEP3: 100,
+    LIVE1: 10,
+    SLEEP2: 10
+  };
+
+  // 方向：水平、垂直、左斜、右斜
+  var DIRS = [[1,0],[0,1],[1,1],[1,-1]];
+
+  // ====== 初始化 ======
+  function init() {
+    resizeCanvas();
+    resetBoard();
+    draw();
+    canvas.addEventListener("click", onCanvasClick);
+    window.addEventListener("resize", function() {
+      resizeCanvas();
+      draw();
+    });
+  }
+
+  function resizeCanvas() {
+    var wrap = canvas.parentElement;
+    var maxW = Math.min(wrap.clientWidth, 600);
+    var dpr = window.devicePixelRatio || 1;
+    var size = maxW;
+    canvas.style.width = size + "px";
+    canvas.style.height = size + "px";
+    canvas.width = size * dpr;
+    canvas.height = size * dpr;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    PADDING = Math.round(size * 0.04);
+    CELL = (size - PADDING * 2) / (SIZE - 1);
+    STONE_R = CELL * 0.43;
+  }
+
+  function resetBoard() {
+    board = [];
+    for (var i = 0; i < SIZE; i++) {
+      board[i] = [];
+      for (var j = 0; j < SIZE; j++) {
+        board[i][j] = EMPTY;
+      }
+    }
+    history = [];
+    currentPlayer = BLACK;
+    gameOver = false;
+    winLine = null;
+    aiThinking = false;
+    updateStatus();
+  }
+
+  // ====== 绘制 ======
+  function draw() {
+    var w = parseFloat(canvas.style.width);
+    var h = parseFloat(canvas.style.height);
+    var isDark = document.body.classList.contains("dark");
+
+    // 棋盘底色
+    ctx.fillStyle = isDark ? "#2A2A3E" : "#DCB35C";
+    ctx.fillRect(0, 0, w, h);
+
+    // 网格线
+    ctx.strokeStyle = isDark ? "rgba(255,255,255,0.25)" : "rgba(0,0,0,0.5)";
+    ctx.lineWidth = 1;
+    for (var i = 0; i < SIZE; i++) {
+      var pos = PADDING + i * CELL;
+      ctx.beginPath();
+      ctx.moveTo(PADDING, pos);
+      ctx.lineTo(PADDING + (SIZE - 1) * CELL, pos);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(pos, PADDING);
+      ctx.lineTo(pos, PADDING + (SIZE - 1) * CELL);
+      ctx.stroke();
+    }
+
+    // 星位（天元 + 四星）
+    var stars = [
+      [3,3],[3,11],[11,3],[11,11],[7,7],
+      [3,7],[7,3],[7,11],[11,7]
+    ];
+    ctx.fillStyle = isDark ? "rgba(255,255,255,0.35)" : "rgba(0,0,0,0.6)";
+    for (var s = 0; s < stars.length; s++) {
+      var sx = PADDING + stars[s][1] * CELL;
+      var sy = PADDING + stars[s][0] * CELL;
+      ctx.beginPath();
+      ctx.arc(sx, sy, CELL * 0.1, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    // 棋子
+    for (var r = 0; r < SIZE; r++) {
+      for (var c = 0; c < SIZE; c++) {
+        if (board[r][c] !== EMPTY) {
+          drawStone(r, c, board[r][c]);
+        }
+      }
+    }
+
+    // 最后一手标记
+    if (history.length > 0) {
+      var last = history[history.length - 1];
+      var lx = PADDING + last.col * CELL;
+      var ly = PADDING + last.row * CELL;
+      ctx.strokeStyle = "#EF4444";
+      ctx.lineWidth = 2.5;
+      var markR = STONE_R * 0.55;
+      ctx.beginPath();
+      ctx.arc(lx, ly, markR, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+
+    // 获胜连线
+    if (winLine && winLine.length >= 5) {
+      var first = winLine[0];
+      var last2 = winLine[winLine.length - 1];
+      var x1 = PADDING + first[1] * CELL;
+      var y1 = PADDING + first[0] * CELL;
+      var x2 = PADDING + last2[1] * CELL;
+      var y2 = PADDING + last2[0] * CELL;
+      ctx.strokeStyle = "#EF4444";
+      ctx.lineWidth = 3.5;
+      ctx.lineCap = "round";
+      ctx.beginPath();
+      ctx.moveTo(x1, y1);
+      ctx.lineTo(x2, y2);
+      ctx.stroke();
+      ctx.lineCap = "butt";
+    }
+  }
+
+  function drawStone(row, col, player) {
+    var x = PADDING + col * CELL;
+    var y = PADDING + row * CELL;
+    var r = Math.max(STONE_R, 1);
+
+    // 阴影
+    ctx.save();
+    ctx.shadowColor = "rgba(0,0,0,0.3)";
+    ctx.shadowBlur = CELL * 0.15;
+    ctx.shadowOffsetX = CELL * 0.04;
+    ctx.shadowOffsetY = CELL * 0.06;
+
+    if (player === BLACK) {
+      var g = ctx.createRadialGradient(x - r * 0.3, y - r * 0.3, r * 0.1, x, y, r);
+      g.addColorStop(0, "#666");
+      g.addColorStop(0.5, "#333");
+      g.addColorStop(1, "#111");
+      ctx.fillStyle = g;
+    } else {
+      var g2 = ctx.createRadialGradient(x - r * 0.3, y - r * 0.3, r * 0.1, x, y, r);
+      g2.addColorStop(0, "#FFFFFF");
+      g2.addColorStop(0.7, "#F0F0F0");
+      g2.addColorStop(1, "#C8C8C8");
+      ctx.fillStyle = g2;
+    }
+
+    ctx.beginPath();
+    ctx.arc(x, y, r, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+
+    // 边线
+    ctx.strokeStyle = player === BLACK ? "rgba(0,0,0,0.4)" : "rgba(150,150,150,0.5)";
+    ctx.lineWidth = 0.5;
+    ctx.beginPath();
+    ctx.arc(x, y, r, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+
+  // ====== 交互 ======
+  function onCanvasClick(e) {
+    if (gameOver || aiThinking) return;
+    if (mode === "ai" && currentPlayer === WHITE) return;
+
+    var rect = canvas.getBoundingClientRect();
+    var scaleX = parseFloat(canvas.style.width) / rect.width;
+    var scaleY = parseFloat(canvas.style.height) / rect.height;
+    var mx = (e.clientX - rect.left) * scaleX;
+    var my = (e.clientY - rect.top) * scaleY;
+
+    var col = Math.round((mx - PADDING) / CELL);
+    var row = Math.round((my - PADDING) / CELL);
+
+    if (row < 0 || row >= SIZE || col < 0 || col >= SIZE) return;
+    if (board[row][col] !== EMPTY) return;
+
+    placePiece(row, col);
+  }
+
+  function placePiece(row, col) {
+    board[row][col] = currentPlayer;
+    history.push({ row: row, col: col, player: currentPlayer });
+    document.getElementById("moveCount").textContent = history.length;
+
+    // 检查胜负
+    var result = checkWin(row, col, currentPlayer);
+    if (result) {
+      winLine = result;
+      gameOver = true;
+      draw();
+      showResult(currentPlayer);
+      return;
+    }
+
+    // 平局
+    if (history.length >= SIZE * SIZE) {
+      gameOver = true;
+      draw();
+      showResult(0);
+      return;
+    }
+
+    currentPlayer = currentPlayer === BLACK ? WHITE : BLACK;
+    updateStatus();
+    draw();
+
+    // AI 回合
+    if (mode === "ai" && currentPlayer === WHITE && !gameOver) {
+      aiThinking = true;
+      setTimeout(aiMove, 150);
+    }
+  }
+
+  function undoMove() {
+    if (history.length === 0 || gameOver) {
+      if (gameOver) {
+        ToolBox.showToast(i18nText('toast.msg711'));
+      } else {
+        ToolBox.showToast(i18nText('toast.msg482'), "info");
+      }
+      return;
+    }
+
+    // AI 模式撤销两步
+    if (mode === "ai" && history.length >= 2 && !gameOver) {
+      var last = history.pop();
+      board[last.row][last.col] = EMPTY;
+      var prev = history.pop();
+      board[prev.row][prev.col] = EMPTY;
+      currentPlayer = BLACK;
+    } else if (mode === "ai" && gameOver && history.length >= 2) {
+      var l1 = history.pop();
+      board[l1.row][l1.col] = EMPTY;
+      var l2 = history.pop();
+      board[l2.row][l2.col] = EMPTY;
+      currentPlayer = BLACK;
+      gameOver = false;
+      winLine = null;
+    } else {
+      var step = history.pop();
+      board[step.row][step.col] = EMPTY;
+      currentPlayer = step.player;
+      gameOver = false;
+      winLine = null;
+    }
+
+    document.getElementById("moveCount").textContent = history.length;
+    updateStatus();
+    draw();
+    ToolBox.showToast(i18nText('toast.msg238'));
+  }
+
+  function restartGame() {
+    resetBoard();
+    draw();
+    ToolBox.showToast(i18nText('toast.msg396'));
+  }
+
+  // ====== 模式切换 ======
+  window.setMode = function(m) {
+    mode = m;
+    document.getElementById("modePvP").classList.toggle("active", m === "pvp");
+    document.getElementById("modeAI").classList.toggle("active", m === "ai");
+    restartGame();
+  };
+
+  // ====== 状态更新 ======
+  function updateStatus() {
+    var el = document.getElementById("gomokuStatus");
+    if (gameOver) return;
+    var isBlack = currentPlayer === BLACK;
+    el.innerHTML = '<span class="stone-icon ' + (isBlack ? 'black' : 'white') + '"></span><span>' +
+      (isBlack ? '黑棋' : '白棋') + '落子</span>';
+  }
+
+  // ====== 胜负判定 ======
+  function checkWin(row, col, player) {
+    for (var d = 0; d < DIRS.length; d++) {
+      var dr = DIRS[d][0], dc = DIRS[d][1];
+      var cells = [[row, col]];
+      // 正方向
+      for (var i = 1; i < 5; i++) {
+        var nr = row + dr * i, nc = col + dc * i;
+        if (nr < 0 || nr >= SIZE || nc < 0 || nc >= SIZE || board[nr][nc] !== player) break;
+        cells.push([nr, nc]);
+      }
+      // 反方向
+      for (var i = 1; i < 5; i++) {
+        var nr = row - dr * i, nc = col - dc * i;
+        if (nr < 0 || nr >= SIZE || nc < 0 || nc >= SIZE || board[nr][nc] !== player) break;
+        cells.unshift([nr, nc]);
+      }
+      if (cells.length >= 5) return cells;
+    }
+    return null;
+  }
+
+  // ====== 结果弹窗 ======
+  function showResult(winner) {
+    var overlay = document.getElementById("resultOverlay");
+    var title = document.getElementById("resultTitle");
+    var msg = document.getElementById("resultMsg");
+
+    if (winner === BLACK) {
+      title.textContent = "黑棋获胜!";
+      msg.textContent = mode === "ai" ? "恭喜你赢了!" : "黑棋取得了胜利，共 " + history.length + " 步。";
+    } else if (winner === WHITE) {
+      title.textContent = "白棋获胜!";
+      msg.textContent = mode === "ai" ? "AI 获胜，再试一次?" : "白棋取得了胜利，共 " + history.length + " 步。";
+    } else {
+      title.textContent = "平局!";
+      msg.textContent = "棋盘已满，双方平局。";
+    }
+
+    overlay.classList.add("show");
+  }
+
+  window.closeResult = function() {
+    document.getElementById("resultOverlay").classList.remove("show");
+  };
+
+  window.restartGame = restartGame;
+  window.undoMove = undoMove;
+
+  // ====== AI 引擎 ======
+  function aiMove() {
+    if (gameOver) { aiThinking = false; return; }
+
+    var best = getBestMove(WHITE);
+    aiThinking = false;
+    if (best) {
+      placePiece(best.row, best.col);
+    }
+  }
+
+  function getBestMove(player) {
+    var opponent = player === BLACK ? WHITE : BLACK;
+    var bestScore = -1;
+    var bestMoves = [];
+
+    // 获取候选位置（有棋子邻居的空位）
+    var candidates = getCandidates();
+    if (candidates.length === 0) {
+      return { row: 7, col: 7 }; // 第一步下天元
+    }
+
+    for (var i = 0; i < candidates.length; i++) {
+      var r = candidates[i][0], c = candidates[i][1];
+
+      // AI 落子得分
+      var attackScore = evaluatePoint(r, c, player);
+      // 对手落子得分（防守）
+      var defendScore = evaluatePoint(r, c, opponent);
+
+      var total = attackScore + defendScore * 0.9;
+
+      // 如果能赢，直接下
+      if (attackScore >= SCORES.FIVE) return { row: r, col: c };
+      // 如果对手能赢，必须堵
+      if (defendScore >= SCORES.FIVE) total = 90000 + attackScore;
+
+      if (total > bestScore) {
+        bestScore = total;
+        bestMoves = [{ row: r, col: c }];
+      } else if (total === bestScore) {
+        bestMoves.push({ row: r, col: c });
+      }
+    }
+
+    // 从同分中随机选一个
+    if (bestMoves.length > 0) {
+      return bestMoves[Math.floor(Math.random() * bestMoves.length)];
+    }
+    return { row: 7, col: 7 };
+  }
+
+  function getCandidates() {
+    var set = {};
+    var range = 2; // 搜索已有棋子周围2格
+    for (var r = 0; r < SIZE; r++) {
+      for (var c = 0; c < SIZE; c++) {
+        if (board[r][c] !== EMPTY) {
+          for (var dr = -range; dr <= range; dr++) {
+            for (var dc = -range; dc <= range; dc++) {
+              var nr = r + dr, nc = c + dc;
+              if (nr >= 0 && nr < SIZE && nc >= 0 && nc < SIZE && board[nr][nc] === EMPTY) {
+                set[nr + "," + nc] = true;
+              }
+            }
+          }
+        }
+      }
+    }
+    var keys = Object.keys(set);
+    var result = [];
+    for (var i = 0; i < keys.length; i++) {
+      var parts = keys[i].split(",");
+      result.push([parseInt(parts[0]), parseInt(parts[1])]);
+    }
+    return result;
+  }
+
+  function evaluatePoint(row, col, player) {
+    var totalScore = 0;
+    // 模拟落子
+    board[row][col] = player;
+
+    for (var d = 0; d < DIRS.length; d++) {
+      var shape = analyzeDirection(row, col, DIRS[d][0], DIRS[d][1], player);
+      totalScore += shapeScore(shape);
+    }
+
+    // 撤回模拟
+    board[row][col] = EMPTY;
+    return totalScore;
+  }
+
+  function analyzeDirection(row, col, dr, dc, player) {
+    var count = 1;      // 连子数（包含自身）
+    var block = 0;      // 被堵的端数
+    var empty1 = 0;     // 紧邻空位（活/冲判断用）
+
+    // 正方向
+    var i;
+    for (i = 1; i <= 4; i++) {
+      var nr = row + dr * i, nc = col + dc * i;
+      if (nr < 0 || nr >= SIZE || nc < 0 || nc >= SIZE) { block++; break; }
+      if (board[nr][nc] === player) {
+        count++;
+      } else if (board[nr][nc] === EMPTY) {
+        empty1++;
+        // 继续看跳一格
+        var nr2 = row + dr * (i + 1), nc2 = col + dc * (i + 1);
+        if (nr2 >= 0 && nr2 < SIZE && nc2 >= 0 && nc2 < SIZE && board[nr2][nc2] === player) {
+          // 跳活判断（不增加count但标记有空位）
+        }
+        break;
+      } else {
+        block++;
+        break;
+      }
+    }
+    if (i > 4) {} // 到边界算堵
+
+    // 反方向
+    for (i = 1; i <= 4; i++) {
+      var nr = row - dr * i, nc = col - dc * i;
+      if (nr < 0 || nr >= SIZE || nc < 0 || nc >= SIZE) { block++; break; }
+      if (board[nr][nc] === player) {
+        count++;
+      } else if (board[nr][nc] === EMPTY) {
+        empty1++;
+        break;
+      } else {
+        block++;
+        break;
+      }
+    }
+
+    return { count: count, block: block, empty: empty1 };
+  }
+
+  function shapeScore(shape) {
+    var c = shape.count;
+    var b = shape.block;
+
+    // 五连
+    if (c >= 5) return SCORES.FIVE;
+
+    // 被两端堵死
+    if (b === 2) {
+      if (c === 4) return SCORES.SLEEP4;
+      if (c === 3) return SCORES.SLEEP3;
+      if (c === 2) return SCORES.SLEEP2;
+      return 0;
+    }
+
+    // 一端被堵（冲）
+    if (b === 1) {
+      if (c === 4) return SCORES.RUSH4;
+      if (c === 3) return SCORES.SLEEP3; // 冲三算眠三
+      if (c === 2) return SCORES.SLEEP2;
+      if (c === 1) return SCORES.LIVE1;
+      return 0;
+    }
+
+    // 两端开放（活）
+    if (c === 4) return SCORES.LIVE4;
+    if (c === 3) return SCORES.LIVE3;
+    if (c === 2) return SCORES.LIVE2;
+    if (c === 1) return SCORES.LIVE1;
+    return 0;
+  }
+
+  // ====== 折叠面板 ======
+  window.toggleIntro = function() {
+    document.getElementById("toolIntro").classList.toggle("open");
+  };
+
+  // ====== 启动 ======
+  init();
+
+})();
+</script><script>
+// tool-intro折叠交互
+document.addEventListener('DOMContentLoaded',function(){
+  var headers=document.querySelectorAll('.tool-intro-header');
+  headers.forEach(function(h){
+    h.addEventListener('click',function(){
+      this.parentElement.classList.toggle('open');
+    });
+  });
+});
+</script>
+
+</body>
+</html>

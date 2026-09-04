@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="zh-TW" data-opencc-locale="zh-tw">
+<head>
+
+<script src="/js/tool-page-runtime.js" defer></script>
+<!-- TOOLBOX-TOOL-RUNTIME -->
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="toolbox" content="cat=finance,industry=advertising,icon=💎,bg=#fdf4ff">
+<meta name="description" content="输入 ARPU、流失率、毛利率和 CAC，计算用户生命周期价值(LTV)、LTV:CAC 比率、回本周期，支持敏感性分析与行业基准对比。">
+<title>LTV（使用者生命週期價值）估算 - ToolBox</title>
+<link rel="canonical" href="https://chenguangwu.github.io/zh-tw/tools/advertising/estimate-cycle.html">
+<meta property="og:title" content="LTV（用户生命周期价值）估算">
+<meta property="og:description" content="输入 ARPU、流失率、毛利率和 CAC，计算用户生命周期价值(LTV)、LTV:CAC 比率、回本周期，支持敏感性分析与行业基准对比。">
+<meta property="og:url" content="https://chenguangwu.github.io/zh-tw/tools/advertising/estimate-cycle.html">
+<meta name="twitter:card" content="summary">
+<link rel="preload" as="style" href="/css/common.css" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="/css/common.css"></noscript>
+<script>window.__tbq=window.__tbq||[];window.ToolBox=window.ToolBox||{};['initToolTheme','addToolStyles','showToast','toast','copyText','copyToClipboard','copyFromElement','downloadText','injectPrivacyBadge','toggleFavTool','addToRecentTool','toggleToolTheme','applyTheme'].forEach(function(k){if(typeof window.ToolBox[k]!=='function')window.ToolBox[k]=function(){window.__tbq.push([k,[].slice.call(arguments)]);};});</script><!-- TOOLBOX-API-STUB -->
+<script src="/js/common.js" defer></script>
+<style>
+.benchmark-row{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px;margin-bottom:8px;}
+.benchmark-row .bm-item{border:1px solid var(--border);border-radius:10px;padding:10px;text-align:center;background:var(--result-bg);}
+.benchmark-row .bm-item.cur{border-color:var(--primary);background:var(--bg-hover);}
+.benchmark-row .bm-item .bm-val{font-size:16px;font-weight:700;color:var(--primary);}
+.benchmark-row .bm-item .bm-lbl{font-size:11px;color:var(--text-muted);margin-top:4px;}
+.sens-table th,.sens-table td{font-size:12px;padding:6px 8px;text-align:center;}
+.sens-table td.best{background:rgba(16,185,129,0.1);color:var(--success);font-weight:600;}
+.sens-table td.warn{background:rgba(245,158,11,0.1);color:var(--warning);font-weight:600;}
+.sens-table td.bad{background:rgba(239,68,68,0.1);color:var(--danger);font-weight:600;}
+.chart-wrap{overflow-x:auto;}
+.chart-wrap svg{display:block;margin:0 auto;min-width:480px;}
+.ratio-bar{display:flex;align-items:center;gap:12px;margin:8px 0;}
+.ratio-bar .ratio-seg{flex:1;height:28px;border-radius:8px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:12px;font-weight:600;}
+</style>
+
+
+
+<meta property="og:image" content="https://chenguangwu.github.io/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="ToolBox - 5000+免费在线工具">
+<meta name="twitter:image" content="https://chenguangwu.github.io/og-image.png">
+<meta name="twitter:image:alt" content="ToolBox - 5000+免费在线工具">
+    <meta property="og:type" content="website">
+    <meta name="twitter:title" content="LTV（用户生命周期价值）估算">
+    <meta name="twitter:description" content="输入 ARPU、流失率、毛利率和 CAC，计算用户生命周期价值(LTV)、LTV:CAC 比率、回本周期，支持敏感性分析与行业基准对比。">
+<!-- TOOLBOX-WEBAPP-LD -->
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"LTV（使用者生命週期價值）估算","url":"https://chenguangwu.github.io/zh-tw/tools/advertising/estimate-cycle.html","applicationCategory":"FinanceApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":"zh-TW","description":"輸入 ARPU、流失率、毛利率和 CAC，計算使用者生命週期價值(LTV)、LTV:CAC 比率、回本週期，支援敏感性分析與行業基準對比。","image":"https://chenguangwu.github.io/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}</script>
+<meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
+<meta http-equiv="X-Content-Type-Options" content="nosniff">
+<meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
+<!-- TOOLBOX-SECURITY -->
+
+<script src="/js/privacy.js" defer></script>
+<!-- TOOLBOX-PRIVACY-SCRIPT -->
+
+<script src="/js/metrics.js" defer></script>
+<!-- TOOLBOX-METRICS-SCRIPT -->
+
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"首頁","item":"https://chenguangwu.github.io/zh-tw/"},{"@type":"ListItem","position":2,"name":"廣告設計","item":"https://chenguangwu.github.io/zh-tw/tools/advertising/index.html"},{"@type":"ListItem","position":3,"name":"LTV（使用者生命週期）估算","item":"https://chenguangwu.github.io/zh-tw/tools/advertising/estimate-cycle.html"}]}</script>
+
+<script src="/js/i18n.js" defer></script>
+<script src="/js/tool-i18n.js" defer></script>
+<!-- TOOLBOX-I18N-SCRIPT -->
+
+
+<meta name="title-en" content="Estimate Cycle - ToolBox">
+<meta name="desc-en" content="Estimate Cycle - free online tool. Free online tool on ToolBox — 100% client-side, no data uploaded, no install. Part of the Advertising &amp; Design tools.">
+<!-- TOOLBOX-HREFLANG -->
+<link rel="alternate" hreflang="zh-CN" href="https://chenguangwu.github.io/tools/advertising/estimate-cycle.html">
+<link rel="alternate" hreflang="zh-TW" href="https://chenguangwu.github.io/zh-tw/tools/advertising/estimate-cycle.html">
+<link rel="alternate" hreflang="zh-HK" href="https://chenguangwu.github.io/zh-hk/tools/advertising/estimate-cycle.html">
+<link rel="alternate" hreflang="en-US" href="https://chenguangwu.github.io/tools/advertising/estimate-cycle.html?lang=en-US">
+<link rel="alternate" hreflang="x-default" href="https://chenguangwu.github.io/tools/advertising/estimate-cycle.html">
+<meta property="og:locale" content="zh_TW">
+<meta property="og:locale:alternate" content="zh_CN">
+<meta property="og:locale:alternate" content="zh_HK">
+<meta property="og:locale:alternate" content="en_US">
+</head>
+<body>
+<h1 class="sr-only">LTV（使用者生命週期）估算</h1>
+<div class="nav">
+  <a href="/zh-tw/index.html">← ToolBox</a>
+  <span>/ LTV（使用者生命週期）估算</span>
+  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()">🌙</button>
+</div>
+
+
+
+
+<nav class="breadcrumb" aria-label="麵包屑導航" data-breadcrumb="1">
+  <a href="/zh-tw/index.html">首頁</a>
+  <span class="bc-sep">‹</span>
+  <a href="/zh-tw/tools/advertising/index.html">🔧 廣告設計</a>
+  <span class="bc-sep">‹</span>
+  <span class="bc-current">LTV（使用者生命週期）估算</span>
+</nav>
+<div class="container">
+  <div class="card tool-card-accent" style="--tool-accent:#7C3AED;">
+    <h2 data-zh="💎 LTV（使用者生命週期價值）估算">💎 Estimate Cycle</h2>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="輸入 ARPU、流失率、毛利率和 CAC，計算使用者生命週期價值(LTV)、LTV:CAC 比率、回本週期，支援敏感性分析與行業基準對比。">Estimate Cycle is available directly in your browser, with no data uploaded.</p>
+
+    <h3>核心引數</h3>
+    <div class="input-row">
+      <div><label>ARPU 月均客單收入（元）</label><input type="number" id="arpu" value="50" step="0.01" min="0"></div>
+      <div><label>月流失率 Churn Rate（%）</label><input type="number" id="churn" value="5" step="0.1" min="0.1" max="100"></div>
+      <div><label>毛利率 Gross Margin（%）</label><input type="number" id="margin" value="70" step="1" min="0" max="100"></div>
+      <div><label>CAC 獲客成本（元）</label><input type="number" id="cac" value="200" step="0.01" min="0"></div>
+    </div>
+    <div class="toolbar">
+      <button type="button" class="btn primary" onclick="calcLTV()">計算 LTV</button>
+      <button type="button" class="btn" onclick="saveParams()">儲存引數</button>
+      <button type="button" class="btn" onclick="loadParams()">載入引數</button>
+    </div>
+  </div>
+
+  <div class="card" id="resultCard" style="display:none;">
+    <h3>LTV 計算結果</h3>
+    <div class="stat-grid" id="ltvStats"></div>
+    <div id="ratioBox"></div>
+    <div id="paybackBox"></div>
+  </div>
+
+  <div class="card" id="chartCard" style="display:none;">
+    <h3>LTV 累積曲線</h3>
+    <p style="font-size:12px;color:var(--text-muted);margin-bottom:8px;">使用者從獲取開始，每月貢獻的毛利累計值。曲線與 CAC 水平線的交點即為回本月數。</p>
+    <div class="chart-wrap" id="chartWrap"></div>
+    <div style="display:flex;gap:16px;justify-content:center;margin-top:10px;font-size:12px;flex-wrap:wrap;">
+      <span style="display:flex;align-items:center;gap:6px;"><span style="width:14px;height:3px;background:#00C9A7;border-radius:2px;"></span>累計毛利（LTV累計）</span>
+      <span style="display:flex;align-items:center;gap:6px;"><span style="width:14px;height:2px;background:#FF6B35;border-radius:2px;border-top:2px dashed #FF6B35;"></span>CAC 獲客成本</span>
+    </div>
+  </div>
+
+  <div class="card" id="benchmarkCard" style="display:none;">
+    <h3>行業基準對比</h3>
+    <div id="benchmarkBox"></div>
+  </div>
+
+  <div class="card" id="sensCard" style="display:none;">
+    <h3>敏感性分析</h3>
+    <p style="font-size:12px;color:var(--text-muted);margin-bottom:12px;">不同 ARPU 與流失率組合下的 LTV（元）。綠色=LTV>CAC×3，黃色=LTV>CAC，紅色=LTV<CAC。</p>
+    <div id="sensBox" style="overflow-x:auto;"></div>
+  </div>
+</div>
+
+<!-- TOOLBOX-DEEP-DIVE -->
+<style>
+.deep-dive{max-width:960px;margin:16px auto;padding:0 16px;}
+.deep-dive > .card{margin-bottom:0;}
+@media(max-width:600px){.deep-dive{margin:14px auto;padding:0 12px;}}
+.deep-dive .dd-list{margin:8px 0 16px;padding-left:20px;}
+.deep-dive .dd-list li{margin:6px 0;line-height:1.75;}
+.deep-dive .dd-example{background:var(--card-bg,#fff);border:1px solid var(--border,#eee);border-radius:10px;padding:12px 14px;margin:8px 0 16px;}
+.deep-dive .dd-ex-title{font-weight:600;color:var(--tool-accent,#FF6B35);margin-bottom:6px;}
+.deep-dive .dd-ex-body{font-size:13px;line-height:1.85;color:var(--text,#333);word-break:break-word;}
+.deep-dive .dd-faq{margin:8px 0 4px;}
+.deep-dive .dd-faq dt{font-weight:600;margin-top:10px;color:var(--text,#333);}
+.deep-dive .dd-faq dd{margin:4px 0 0;font-size:13px;line-height:1.85;color:var(--text-muted,#666);}
+
+</style>
+<section class="deep-dive" data-deep-dive="1">
+<div class="card">
+<h2>📚 深度解析：LTV（使用者生命週期價值）估算</h2>
+<h3>💡 常見使用場景</h3>
+<ul class="dd-list">
+<li>在「LTV（使用者生命週期價值）估算」場景先統一輸入單位與口徑，先做基準算例，再做邊界場景核驗，避免把輸出誤讀為模型差異。</li>
+<li>建議固定關鍵變數並逐步調整其餘輸入，觀察輸出變化方向，快速定位異常源。</li>
+<li>常見場景：LTV（使用者生命週期價值）估算</li>
+</ul>
+<div class="dd-example"><div class="dd-ex-title">快速複核「LTV（使用者生命週期價值）估算」</div><div class="dd-ex-body">先執行工具預設樣例，再做一組極端輸入進行對照；如輸出跳變明顯，優先檢查單位、閾值與是否按新版本口徑切換。</div></div>
+<h3>❓ 常見問題（FAQ）</h3>
+<dl class="dd-faq">
+<dt>LTV（使用者生命週期價值）估算 可直接用於正式報告嗎？</dt><dd>適合用於快速核對和教學演示；正式報告建議補充資料來源、口徑定義、邊界條件與稽核責任鏈。</dd>
+<dt>值跳變或異常偏差怎麼辦？</dt><dd>先核查輸入是否超出定義域、單位是否混用、以及引數是否按同一計算版本口徑輸入。</dd>
+</dl>
+</div>
+</section>
+<!-- 注意事項區塊 -->
+<div class="tool-notes" style="--tool-accent:#7C3AED;">
+  <div class="tool-notes-title">⚠️ 使用說明與注意事項</div>
+  <ul>
+    <li>本工具純前端執行，資料不會上傳到伺服器</li>
+    <li>LTV = ARPU × 毛利率 / 月流失率（簡化模型，未考慮折現）</li>
+    <li>使用者生命週期 = 1 / 月流失率（月）</li>
+    <li>LTV:CAC 健康比率應 > 3:1，低於 1:1 表示獲客虧損</li>
+    <li>回本週期 = CAC / (ARPU × 毛利率)，建議 < 12 個月</li>
+  </ul>
+</div>
+
+<script>
+var KEY = 'tb_ltv_params';
+
+function saveParams() {
+  try {
+    localStorage.setItem(KEY, JSON.stringify({
+      arpu: +document.getElementById('arpu').value,
+      churn: +document.getElementById('churn').value,
+      margin: +document.getElementById('margin').value,
+      cac: +document.getElementById('cac').value
+    }));
+    ToolBox.showToast(i18nText('toast.msg099'));
+  } catch(e) { ToolBox.showToast('toast.import_failed', 'error'); }
+}
+
+function loadParams() {
+  try {
+    var d = JSON.parse(localStorage.getItem(KEY) || 'null');
+    if (d) {
+      document.getElementById('arpu').value = d.arpu;
+      document.getElementById('churn').value = d.churn;
+      document.getElementById('margin').value = d.margin;
+      document.getElementById('cac').value = d.cac;
+      calcLTV();
+      ToolBox.showToast(i18nText('toast.msg100'));
+    } else {
+      ToolBox.showToast(i18nText('toast.msg416'), 'info');
+    }
+  } catch(e) {}
+}
+
+function fmt(n, d) {
+  d = d != null ? d : 2;
+  if (isNaN(n)) n = 0;
+  return n.toLocaleString('zh-CN', {minimumFractionDigits: d, maximumFractionDigits: d});
+}
+
+function calcLTV() {
+  var arpu = parseFloat(document.getElementById('arpu').value) || 0;
+  var churn = parseFloat(document.getElementById('churn').value) || 0;
+  var margin = parseFloat(document.getElementById('margin').value) || 0;
+  var cac = parseFloat(document.getElementById('cac').value) || 0;
+
+  if (arpu <= 0) { ToolBox.showToast(i18nText('toast.msg841'), 'error'); return; }
+  if (churn <= 0) { ToolBox.showToast(i18nText('toast.msg493'), 'error'); return; }
+  if (cac <= 0) { ToolBox.showToast(i18nText('toast.msg842'), 'error'); return; }
+
+  var churnRate = churn / 100;
+  var marginRate = margin / 100;
+  var lifetime = 1 / churnRate; // 月
+  var monthlyGrossProfit = arpu * marginRate;
+  var ltv = monthlyGrossProfit / churnRate;
+  var ratio = cac > 0 ? ltv / cac : 0;
+  var paybackMonths = monthlyGrossProfit > 0 ? cac / monthlyGrossProfit : Infinity;
+
+  // 渲染统计卡片
+  var html = '';
+  html += '<div class="data-card"><div class="num">¥' + fmt(ltv) + '</div><div class="label">LTV 用户生命周期价值</div></div>';
+  html += '<div class="data-card"><div class="num">' + fmt(lifetime, 1) + ' 月</div><div class="label">平均用户生命周期</div></div>';
+  html += '<div class="data-card"><div class="num">¥' + fmt(monthlyGrossProfit) + '</div><div class="label">月均毛利贡献</div></div>';
+  html += '<div class="data-card"><div class="num">' + fmt(ratio, 2) + ':1</div><div class="label">LTV:CAC 比率</div></div>';
+  document.getElementById('ltvStats').innerHTML = html;
+
+  // LTV:CAC 比率条
+  var ratioStatus = ratio >= 3 ? 'status-green' : (ratio >= 1 ? 'status-yellow' : 'status-red');
+  var ratioDesc = ratio >= 3 ? '健康：单位经济模型优秀' : (ratio >= 1 ? '需优化：勉强回本' : '亏损：获客成本过高');
+  var ratioHtml = '<div class="tip-box tip-' + (ratio >= 3 ? 'success' : (ratio >= 1 ? 'warn' : 'error')) + '" style="margin-top:12px;">';
+  ratioHtml += '<strong>LTV:CAC = ' + fmt(ratio, 2) + ' : 1</strong> — ' + ratioDesc + '<br>';
+  ratioHtml += '<div class="ratio-bar" style="margin-top:8px;">';
+  var ltvPct = Math.min(ltv / (ltv + cac) * 100, 90);
+  ratioHtml += '<div class="ratio-seg" style="width:' + ltvPct + '%;background:var(--gradient-primary);">LTV ¥' + fmt(ltv) + '</div>';
+  ratioHtml += '<div class="ratio-seg" style="width:' + (100 - ltvPct) + '%;background:var(--text-muted);">CAC ¥' + fmt(cac) + '</div>';
+  ratioHtml += '</div></div>';
+  document.getElementById('ratioBox').innerHTML = ratioHtml;
+
+  // 回本周期
+  var paybackStatus = paybackMonths <= 6 ? 'status-green' : (paybackMonths <= 12 ? 'status-yellow' : 'status-red');
+  var paybackDesc = paybackMonths <= 6 ? '回本快，现金流健康' : (paybackMonths <= 12 ? '回本周期适中' : '回本周期过长，现金流压力大');
+  var pbHtml = '<div class="tip-box tip-' + (paybackMonths <= 6 ? 'success' : (paybackMonths <= 12 ? 'warn' : 'error')) + '" style="margin-top:12px;">';
+  pbHtml += '<strong>回本周期：' + (isFinite(paybackMonths) ? fmt(paybackMonths, 1) + ' 个月' : '无法回本') + '</strong> — ' + paybackDesc + '<br>';
+  pbHtml += '每月每用户毛利 ¥' + fmt(monthlyGrossProfit) + '，需 ' + (isFinite(paybackMonths) ? Math.ceil(paybackMonths) : '∞') + ' 个月覆盖 ¥' + fmt(cac) + ' 的获客成本';
+  pbHtml += '</div>';
+  document.getElementById('paybackBox').innerHTML = pbHtml;
+
+  document.getElementById('resultCard').style.display = '';
+
+  // LTV 累积曲线
+  renderLTVChart(arpu, marginRate, churnRate, cac, lifetime);
+  document.getElementById('chartCard').style.display = '';
+
+  // 行业基准
+  renderBenchmark(ltv, ratio, paybackMonths);
+  document.getElementById('benchmarkCard').style.display = '';
+
+  // 敏感性分析
+  renderSensitivity(arpu, churn, margin, cac);
+  document.getElementById('sensCard').style.display = '';
+}
+
+function renderLTVChart(arpu, marginRate, churnRate, cac, lifetime) {
+  var W = 520, H = 300, padL = 55, padR = 20, padT = 20, padB = 40;
+  var plotW = W - padL - padR, plotH = H - padT - padB;
+  var months = Math.min(Math.ceil(Math.max(lifetime, cac / (arpu * marginRate)) * 1.5), 36);
+  if (months < 6) months = 6;
+
+  var cumLTV = 0;
+  var data = [];
+  var maxVal = cac;
+  for (var m = 0; m <= months; m++) {
+    if (m > 0) {
+      var survival = Math.pow(1 - churnRate, m - 1);
+      cumLTV += arpu * marginRate * survival;
+    }
+    data.push({ month: m, ltv: cumLTV });
+    maxVal = Math.max(maxVal, cumLTV);
+  }
+  maxVal = maxVal * 1.1;
+
+  var xStep = plotW / months;
+  function getX(m) { return padL + m * xStep; }
+  function getY(v) { return padT + plotH - (v / maxVal) * plotH; }
+
+  var pts = data.map(function(d) { return getX(d.month) + ',' + getY(d.ltv); });
+
+  var svg = '<svg width="' + W + '" height="' + H + '" viewBox="0 0 ' + W + ' ' + H + '" style="max-width:100%;">';
+
+  // 网格
+  for (var g = 0; g <= 4; g++) {
+    var gy = padT + (plotH / 4) * g;
+    var gv = maxVal - (maxVal / 4) * g;
+    svg += '<line x1="' + padL + '" y1="' + gy + '" x2="' + (W - padR) + '" y2="' + gy + '" stroke="var(--border)" stroke-width="1" stroke-dasharray="3,3"/>';
+    svg += '<text x="' + (padL - 8) + '" y="' + (gy + 4) + '" text-anchor="end" font-size="10" fill="var(--text-muted)">¥' + fmt(gv, 0) + '</text>';
+  }
+
+  // CAC 线
+  svg += '<line x1="' + padL + '" y1="' + getY(cac) + '" x2="' + (W - padR) + '" y2="' + getY(cac) + '" stroke="#FF6B35" stroke-width="2" stroke-dasharray="6,4"/>';
+  svg += '<text x="' + (W - padR) + '" y="' + (getY(cac) - 6) + '" text-anchor="end" font-size="10" fill="#FF6B35">CAC ¥' + fmt(cac, 0) + '</text>';
+
+  // LTV 面积+曲线
+  svg += '<path d="M' + padL + ',' + (padT + plotH) + ' L' + pts.join(' L') + ' L' + getX(months) + ',' + (padT + plotH) + ' Z" fill="rgba(0,201,167,0.08)"/>';
+  svg += '<path d="M' + pts.join(' L') + '" fill="none" stroke="#00C9A7" stroke-width="2.5" stroke-linejoin="round"/>';
+
+  // 回本点
+  var paybackM = cac / (arpu * marginRate);
+  if (paybackM <= months) {
+    svg += '<circle cx="' + getX(Math.round(paybackM)) + '" cy="' + getY(cac) + '" r="5" fill="#FF6B35" stroke="#fff" stroke-width="2"/>';
+    svg += '<text x="' + getX(Math.round(paybackM)) + '" y="' + (getY(cac) - 12) + '" text-anchor="middle" font-size="10" fill="#FF6B35" font-weight="600">回本 第' + Math.round(paybackM) + '月</text>';
+  }
+
+  // X 轴标签
+  for (var m = 0; m <= months; m += Math.ceil(months / 8)) {
+    svg += '<text x="' + getX(m) + '" y="' + (H - padB + 16) + '" text-anchor="middle" font-size="10" fill="var(--text-muted)">' + m + '月</text>';
+  }
+
+  svg += '</svg>';
+  document.getElementById('chartWrap').innerHTML = svg;
+}
+
+function renderBenchmark(ltv, ratio, payback) {
+  var benchmarks = [
+    { industry: 'SaaS 企业软件', ltvRange: '¥5,000-50,000', ratioRange: '3-5:1', paybackRange: '12-18月' },
+    { industry: '电商', ltvRange: '¥200-2,000', ratioRange: '3-4:1', paybackRange: '3-6月' },
+    { industry: '移动应用', ltvRange: '¥5-100', ratioRange: '3-5:1', paybackRange: '1-3月' },
+    { industry: '本地服务', ltvRange: '¥500-5,000', ratioRange: '3-4:1', paybackRange: '6-12月' }
+  ];
+
+  var html = '<div class="benchmark-row">';
+  html += '<div class="bm-item"><div class="bm-lbl">行业</div></div>';
+  html += '<div class="bm-item"><div class="bm-lbl">LTV 范围</div></div>';
+  html += '<div class="bm-item"><div class="bm-lbl">LTV:CAC</div></div>';
+  html += '<div class="bm-item"><div class="bm-lbl">回本周期</div></div>';
+  html += '</div>';
+
+  benchmarks.forEach(function(b) {
+    html += '<div class="benchmark-row">';
+    html += '<div class="bm-item"><div class="bm-val" style="font-size:13px;">' + b.industry + '</div></div>';
+    html += '<div class="bm-item"><div class="bm-val">' + b.ltvRange + '</div><div class="bm-lbl">你的 LTV: ¥' + fmt(ltv) + '</div></div>';
+    html += '<div class="bm-item"><div class="bm-val">' + b.ratioRange + '</div><div class="bm-lbl">你的比率: ' + fmt(ratio, 1) + ':1</div></div>';
+    html += '<div class="bm-item"><div class="bm-val">' + b.paybackRange + '</div><div class="bm-lbl">你的回本: ' + (isFinite(payback) ? fmt(payback, 0) + '月' : '∞') + '</div></div>';
+    html += '</div>';
+  });
+
+  html += '<div class="tip-box tip-info" style="margin-top:12px;">基准数据为行业常见参考范围，实际值因业务模式、地区和用户质量而异。建议与同行业上市公司公开数据对标。</div>';
+  document.getElementById('benchmarkBox').innerHTML = html;
+}
+
+function renderSensitivity(arpu, churn, margin, cac) {
+  var marginRate = margin / 100;
+  var arpuSteps = [arpu * 0.5, arpu * 0.75, arpu, arpu * 1.25, arpu * 1.5];
+  var churnSteps = [churn * 0.5, churn * 0.75, churn, churn * 1.25, churn * 1.5];
+
+  var html = '<table class="sens-table"><thead><tr><th>ARPU \\ 流失率</th>';
+  churnSteps.forEach(function(c) { html += '<th>' + fmt(c, 1) + '%</th>'; });
+  html += '</tr></thead><tbody>';
+
+  arpuSteps.forEach(function(a) {
+    html += '<tr><td><strong>¥' + fmt(a) + '</strong></td>';
+    churnSteps.forEach(function(c) {
+      var ltv = (a * marginRate) / (c / 100);
+      var cls = ltv >= cac * 3 ? 'best' : (ltv >= cac ? 'warn' : 'bad');
+      html += '<td class="' + cls + '">¥' + fmt(ltv, 0) + '</td>';
+    });
+    html += '</tr>';
+  });
+  html += '</tbody></table>';
+  document.getElementById('sensBox').innerHTML = html;
+}
+
+calcLTV();
+</script>
+
+<!-- SEO 介紹區塊 -->
+
+</div>
+
+</div>
+
+
+<!-- 相關工具 -->
+<div class="related-tools" data-related-tools="1">
+  <h3 class="related-tools-title">🔗 相關工具</h3>
+  <div class="related-tools-grid">
+    <a href="/zh-tw/tools/advertising/storyboard-timeline.html" class="related-tool-card">
+      <span class="rt-icon">🎬</span>
+      <span class="rt-info"><span class="rt-name">分鏡時間軸 - 營銷推廣領域的線上工具</span><span class="rt-desc">分鏡時間軸</span></span>
+    </a>
+    <a href="/zh-tw/tools/advertising/generator-time.html" class="related-tool-card">
+      <span class="rt-icon">📣</span>
+      <span class="rt-info"><span class="rt-name">影片分鏡指令碼時間軸生成</span><span class="rt-desc">影片分鏡指令碼時間軸生成</span></span>
+    </a>
+    <a href="/zh-tw/tools/advertising/convert-26.html" class="related-tool-card">
+      <span class="rt-icon">📣</span>
+      <span class="rt-info"><span class="rt-name">廣告尺寸與解析度轉換（畫素/毫米）</span><span class="rt-desc">廣告尺寸與解析度轉換（畫素/毫米）</span></span>
+    </a>
+    <a href="/zh-tw/tools/advertising/ad-size.html" class="related-tool-card">
+      <span class="rt-icon">📐</span>
+      <span class="rt-info"><span class="rt-name">廣告尺寸轉換 - 營銷推廣領域的線上工具</span><span class="rt-desc">廣告尺寸轉換</span></span>
+    </a>
+    <a href="/zh-tw/tools/advertising/color-convert.html" class="related-tool-card">
+      <span class="rt-icon">🎨</span>
+      <span class="rt-info"><span class="rt-name">色彩轉換 - 營銷推廣領域的線上工具</span><span class="rt-desc">色彩轉換</span></span>
+    </a>
+    <a href="/zh-tw/tools/advertising/convert-27.html" class="related-tool-card">
+      <span class="rt-icon">📣</span>
+      <span class="rt-info"><span class="rt-name">色彩（CMYK/RGB）轉換與專色</span><span class="rt-desc">色彩（CMYK/RGB）轉換與專色</span></span>
+    </a>
+  </div>
+</div>
+<div class="tool-intro open" id="toolIntro">
+  <div class="tool-intro-header">
+    <span class="intro-icon-wrap"><span class="intro-icon">📖</span>關於「LTV（使用者生命週期）估算」</span>
+    <span class="arrow">▼</span>
+  </div>
+  <div class="tool-intro-body">
+    <h4><span class="h4-icon">📝</span>工具簡介</h4>
+    <p>使用者生命週期價值（LTV）估算工具，基於 ARPU、流失率、毛利率和 CAC 計算 LTV，評估 LTV:CAC 比率與回本週期，並提供行業基準對比與敏感性分析。</p>
+    <h4><span class="h4-icon">✨</span>功能特點</h4>
+    <ul class="intro-features">
+      <li>LTV = ARPU × 毛利率 / 流失率</li>
+      <li>LTV:CAC 健康比率評估</li>
+      <li>回本週期計算與視覺化</li>
+      <li>SaaS/電商/應用行業基準對比</li>
+      <li>ARPU與流失率敏感性矩陣</li>
+    </ul>
+    <h4><span class="h4-icon">🎯</span>使用場景</h4>
+    <ul class="intro-scenes">
+      <li>使用者增長策略評估</li>
+      <li>獲客渠道ROI分析</li>
+      <li>商業模式可行性驗證</li>
+      <li>投資人彙報資料準備</li>
+    </ul>
+    <h4><span class="h4-icon">💬</span>常見問題</h4>
+    <div class="intro-faq-item"><div class="intro-faq-q">這個工具是免費的嗎？</div><div class="intro-faq-a">完全免費，無需註冊，直接在瀏覽器中使用。</div></div>
+    <div class="intro-faq-item"><div class="intro-faq-q">我的資料會被上傳嗎？</div><div class="intro-faq-a">不會。所有處理都在你的瀏覽器本地完成，資料不會發送到任何伺服器。</div></div>
+    <div class="intro-faq-item"><div class="intro-faq-q">LTV:CAC比率多少算健康？</div><div class="intro-faq-a">一般認為 LTV:CAC > 3:1 為健康，1:1-3:1 需最佳化，低於 1:1 表示獲客虧損。但不同行業標準不同。</div></div>
+  </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  var headers = document.querySelectorAll('.tool-intro-header');
+  headers.forEach(function(h) {
+    h.addEventListener('click', function() { this.parentElement.classList.toggle('open'); });
+  });
+});
+</script>
+</body>
+</html>

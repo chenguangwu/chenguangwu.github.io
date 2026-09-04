@@ -1,0 +1,572 @@
+<!DOCTYPE html>
+<html lang="zh-HK" data-opencc-locale="zh-hk">
+<head>
+
+<script src="/js/tool-page-runtime.js" defer></script>
+<!-- TOOLBOX-TOOL-RUNTIME -->
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="toolbox" content="cat=calculator,industry=hvac,icon=🌀,bg=#e8f5e9">
+<meta name="description" content="依据室内冷负荷与送风温差计算空调系统送风量、换气次数、送风口数量及风管风速推荐，适用于舒适空调初步设计选型。">
+<meta name="keywords" content="送风量计算器,送风量计算,换气次数计算,空调送风量,风管风速,送风口数量,暖通设计,HVAC计算,在线工具,免费工具,ToolBox">
+<meta name="robots" content="index,follow">
+<link rel="canonical" href="https://chenguangwu.github.io/zh-hk/tools/hvac/supply-air.html">
+<meta property="og:title" content="送风量与风速设计计算器">
+<meta property="og:description" content="依据室内冷负荷与送风温差计算空调系统送风量、换气次数、送风口数量及风管风速推荐，适用于舒适空调初步设计选型。">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://chenguangwu.github.io/zh-hk/tools/hvac/supply-air.html">
+<meta name="twitter:card" content="summary">
+
+<title>送風量與風速設計計算器 - ToolBox</title>
+<meta name="theme-color" content="#FF6B35">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<link rel="icon" href="/favicon.ico" sizes="16x16 32x32 48x48">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="preload" as="style" href="/css/common.css" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="/css/common.css"></noscript>
+<script>window.__tbq=window.__tbq||[];window.ToolBox=window.ToolBox||{};['initToolTheme','addToolStyles','showToast','toast','copyText','copyToClipboard','copyFromElement','downloadText','injectPrivacyBadge','toggleFavTool','addToRecentTool','toggleToolTheme','applyTheme'].forEach(function(k){if(typeof window.ToolBox[k]!=='function')window.ToolBox[k]=function(){window.__tbq.push([k,[].slice.call(arguments)]);};});</script><!-- TOOLBOX-API-STUB -->
+<script src="/js/common.js" defer></script>
+<style>
+  /* 页面专属强调色 */
+  :root{ --tool-accent:#26A69A; --tool-accent-dark:#00897B; }
+  .formula-box{ background:var(--result-bg); border:1px solid var(--border); border-radius:12px; padding:14px 16px; margin-bottom:14px; }
+  .formula-box h4{ font-size:14px; font-weight:600; color:var(--heading); margin-bottom:8px; display:flex; align-items:center; gap:6px; }
+  .formula-line{ font-family:'SF Mono','Courier New',monospace; font-size:14px; text-align:center; padding:10px 8px; background:var(--card-bg); border:1px solid var(--border); border-radius:8px; margin:6px 0; color:var(--text); }
+  .formula-line .v{ color:var(--primary); font-weight:600; }
+  .param-note{ font-size:12px; color:var(--text-muted); margin-top:6px; line-height:1.6; }
+  .duct-grid{ display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:8px; }
+  .duct-card{ background:var(--result-bg); border:1px solid var(--border); border-radius:12px; padding:14px; }
+  .duct-card h4{ font-size:14px; font-weight:600; color:var(--heading); margin-bottom:8px; display:flex; align-items:center; gap:6px; }
+  .duct-card .duct-row{ display:flex; justify-content:space-between; align-items:baseline; font-size:13px; padding:4px 0; border-bottom:1px dashed var(--border); }
+  .duct-card .duct-row:last-child{ border-bottom:none; }
+  .duct-card .duct-row .k{ color:var(--text-light); }
+  .duct-card .duct-row .v{ color:var(--primary); font-weight:600; font-family:'SF Mono','Courier New',monospace; }
+  .vel-bar{ height:8px; border-radius:4px; background:var(--border); overflow:hidden; margin:6px 0 2px; position:relative; }
+  .vel-bar .fill{ height:100%; border-radius:4px; background:linear-gradient(90deg,var(--tool-accent),var(--primary)); }
+  .vel-range{ font-size:11px; color:var(--text-muted); display:flex; justify-content:space-between; }
+  .compare-wrap{ overflow-x:auto; -webkit-overflow-scrolling:touch; border-radius:12px; }
+  .compare-wrap table{ min-width:440px; }
+  .compare-wrap th,.compare-wrap td{ text-align:center; }
+  .compare-wrap td.cur{ background:rgba(255,107,53,0.07); font-weight:600; color:var(--primary); }
+  .eval-box{ display:flex; align-items:flex-start; gap:10px; padding:12px 14px; border-radius:12px; margin-top:12px; font-size:13px; line-height:1.6; }
+  .eval-box .eval-icon{ font-size:18px; flex-shrink:0; line-height:1.4; }
+  .eval-good{ background:rgba(16,185,129,0.08); border:1px solid rgba(16,185,129,0.25); color:#059669; }
+  .eval-warn{ background:rgba(245,158,11,0.08); border:1px solid rgba(245,158,11,0.25); color:#D97706; }
+  .eval-bad{ background:rgba(239,68,68,0.08); border:1px solid rgba(239,68,68,0.25); color:#DC2626; }
+  [data-theme="dark"] .eval-good{ background:rgba(16,185,129,0.15); border-color:rgba(16,185,129,0.3); color:#34D399; }
+  [data-theme="dark"] .eval-warn{ background:rgba(245,158,11,0.15); border-color:rgba(245,158,11,0.3); color:#FBBF24; }
+  [data-theme="dark"] .eval-bad{ background:rgba(239,68,68,0.15); border-color:rgba(239,68,68,0.3); color:#F87171; }
+  .input-hint{ font-size:11px; color:var(--text-muted); margin-top:4px; }
+  .preset-row{ display:flex; gap:6px; flex-wrap:wrap; margin-top:8px; }
+  .preset-btn{ padding:5px 10px; font-size:12px; border-radius:8px; border:1px solid var(--border); background:var(--card-bg); color:var(--text-light); cursor:pointer; transition:all 0.2s; }
+  .preset-btn:hover{ border-color:var(--primary); color:var(--primary); }
+  @media(max-width:768px){
+    .duct-grid{ grid-template-columns:1fr; }
+  }
+</style>
+<!-- TOOLBOX-WEBAPP-LD -->
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"送風量與風速設計計算器","url":"https://chenguangwu.github.io/zh-hk/tools/hvac/supply-air.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":"zh-HK","description":"依據室內冷負荷與送風温差計算空調系統送風量、換氣次數、送風口數量及風管風速推薦，適用於舒適空調初步設計選型。","image":"https://chenguangwu.github.io/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}</script>
+<meta property="og:image" content="https://chenguangwu.github.io/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="ToolBox - 5000+免费在线工具">
+<meta name="twitter:image" content="https://chenguangwu.github.io/og-image.png">
+<meta name="twitter:image:alt" content="ToolBox - 5000+免费在线工具">
+    <meta name="twitter:title" content="送风量与风速设计计算器">
+    <meta name="twitter:description" content="依据室内冷负荷与送风温差计算空调系统送风量、换气次数、送风口数量及风管风速推荐，适用于舒适空调初步设计选型。">
+
+<meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
+<meta http-equiv="X-Content-Type-Options" content="nosniff">
+<meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
+<!-- TOOLBOX-SECURITY -->
+
+<script src="/js/privacy.js" defer></script>
+<!-- TOOLBOX-PRIVACY-SCRIPT -->
+
+<script src="/js/metrics.js" defer></script>
+<!-- TOOLBOX-METRICS-SCRIPT -->
+
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"首頁","item":"https://chenguangwu.github.io/zh-hk/"},{"@type":"ListItem","position":2,"name":"暖通空調","item":"https://chenguangwu.github.io/zh-hk/tools/hvac/index.html"},{"@type":"ListItem","position":3,"name":"送風量與風速設計計算器","item":"https://chenguangwu.github.io/zh-hk/tools/hvac/supply-air.html"}]}</script>
+
+<script src="/js/i18n.js" defer></script>
+<script src="/js/tool-i18n.js" defer></script>
+<!-- TOOLBOX-I18N-SCRIPT -->
+
+
+<meta name="title-en" content="Supply Air - ToolBox">
+<meta name="desc-en" content="Supply Air - free online tool. Free online tool on ToolBox — 100% client-side, no data uploaded, no install. Part of the HVAC (Heating, Ventilation, Air Co...">
+<!-- TOOLBOX-HREFLANG -->
+<link rel="alternate" hreflang="zh-CN" href="https://chenguangwu.github.io/tools/hvac/supply-air.html">
+<link rel="alternate" hreflang="zh-TW" href="https://chenguangwu.github.io/zh-tw/tools/hvac/supply-air.html">
+<link rel="alternate" hreflang="zh-HK" href="https://chenguangwu.github.io/zh-hk/tools/hvac/supply-air.html">
+<link rel="alternate" hreflang="en-US" href="https://chenguangwu.github.io/tools/hvac/supply-air.html?lang=en-US">
+<link rel="alternate" hreflang="x-default" href="https://chenguangwu.github.io/tools/hvac/supply-air.html">
+<meta property="og:locale" content="zh_HK">
+<meta property="og:locale:alternate" content="zh_CN">
+<meta property="og:locale:alternate" content="zh_TW">
+<meta property="og:locale:alternate" content="en_US">
+</head>
+<body>
+
+<!-- 導航欄 -->
+<div class="nav">
+  <a href="/zh-hk/index.html">← ToolBox</a>
+  <span>/ 送風量與風速設計計算器</span>
+  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()" aria-label="切換深色模式">🌙</button>
+</div>
+
+
+
+
+
+<nav class="breadcrumb" aria-label="麪包屑導航" data-breadcrumb="1">
+  <a href="/zh-hk/index.html">首頁</a>
+  <span class="bc-sep">‹</span>
+  <a href="/zh-hk/tools/hvac/index.html">🔧 暖通空調</a>
+  <span class="bc-sep">‹</span>
+  <span class="bc-current">送風量與風速設計計算器</span>
+</nav>
+<div class="container">
+  <h1 class="sr-only">送風量與風速設計計算器</h1>
+
+  <!-- 計算輸入 -->
+  <div class="card">
+    <h2 data-zh="🌀 送風量與風速設計計算器">🌀 Supply Air</h2>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:14px;" data-zh="依據室內冷負荷與送風温差計算空調系統送風量、換氣次數、送風口數量及風管風速推薦，適用於舒適空調初步設計選型。">Supply Air is available directly in your browser, with no data uploaded.</p>
+
+    <div class="formula-box">
+      <h4>📐 計算公式</h4>
+      <div class="formula-line">送風量 L = Q / ( ρ × c<sub>p</sub> × Δt )</div>
+      <div class="param-note">
+        Q — 室內冷負荷 (W)　|　ρ — 空氣密度 <span class="v" style="color:var(--primary);">1.2 kg/m³</span>　|　c<sub>p</sub> — 空氣定壓比熱 <span style="color:var(--primary);">1.005 kJ/(kg·K)</span>　|　Δt — 送風温差 (°C)<br>
+        換氣次數 n = L / V　|　送風口數量 = ⌈ L(m³/h) / 500 ⌉
+      </div>
+    </div>
+
+    <div class="input-row">
+      <div>
+        <label for="coolLoad">室內冷負荷 Q (W)</label>
+        <input type="number" id="coolLoad" value="2500" min="0" step="100" placeholder="如 2500">
+        <div class="input-hint">1 W = 0.86 kcal/h，常見房間 80-150 W/m²</div>
+      </div>
+      <div>
+        <label for="deltaT">送風温差 Δt (°C)</label>
+        <input type="number" id="deltaT" value="8" min="1" max="20" step="0.5" placeholder="舒適空調 8-10°C">
+        <div class="input-hint">舒適空調推薦 8-10°C</div>
+      </div>
+      <div>
+        <label for="roomVol">房間體積 V (m³)</label>
+        <input type="number" id="roomVol" value="120" min="0" step="1" placeholder="用於換氣次數計算">
+        <div class="input-hint">面積 × 層高，如 40m²×3m</div>
+      </div>
+    </div>
+
+    <div class="preset-row">
+      <span style="font-size:12px;color:var(--text-muted);align-self:center;margin-right:4px;">送風温差預設：</span>
+      <button class="preset-btn" onclick="setDT(6)">6°C</button>
+      <button class="preset-btn" onclick="setDT(8)">8°C</button>
+      <button class="preset-btn" onclick="setDT(10)">10°C</button>
+      <button class="preset-btn" onclick="setDT(12)">12°C</button>
+    </div>
+
+    <div class="toolbar">
+      <button class="btn primary" onclick="calc()">計算</button>
+      <button class="btn" onclick="copyResult()">複製結果</button>
+      <button class="btn" onclick="resetForm()">重置</button>
+    </div>
+
+    <div class="info-box" id="resultSummary" style="display:none;"></div>
+  </div>
+
+  <!-- 結果數據卡片 -->
+  <div class="card" id="resultCard" style="display:none;">
+    <h2>📊 計算結果</h2>
+    <div class="data-grid" id="dataGrid"></div>
+    <div id="evalWrap"></div>
+  </div>
+
+  <!-- 風管風速設計 -->
+  <div class="card" id="ductCard" style="display:none;">
+    <h2>🌬️ 風管風速設計推薦</h2>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:8px;">按主風管風速 6-10 m/s、支風管風速 4-6 m/s 推薦風管截面積與等效直徑。</p>
+    <div class="duct-grid" id="ductGrid"></div>
+    <div class="tip-box tip-info" style="margin-top:12px;">
+      風管截面積 A = L(m³/s) / v；等效圓形風管直徑 d = √(4A/π)。實際工程需結合消聲、阻力及矩形風管寬高比綜合確定。
+    </div>
+  </div>
+
+  <!-- 送風温差對比表 -->
+  <div class="card" id="compareCard" style="display:none;">
+    <h2>📋 不同送風温差風量對比</h2>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:10px;">相同冷負荷下，送風温差越大所需風量越小（節能但需注意温度梯度與吹風感）。</p>
+    <div class="compare-wrap">
+      <table id="compareTable"></table>
+    </div>
+  </div>
+
+  <!-- 設計參考 -->
+  <div class="card">
+    <h2>📚 設計參考</h2>
+    <div class="ref-card">
+      <h4>換氣次數評價（舒適空調）</h4>
+      <ul>
+        <li>n &lt; 5 次/h：偏低，可能換氣不足、温度分佈不均</li>
+        <li>5 ≤ n ≤ 10 次/h：適宜，常規舒適空調推薦區間</li>
+        <li>10 &lt; n ≤ 15 次/h：偏高，注意氣流組織與噪聲控制</li>
+        <li>n &gt; 15 次/h：過高，建議增大送風温差以降低風量</li>
+      </ul>
+    </div>
+    <div class="ref-card">
+      <h4>風管風速推薦（GB 50736 參考）</h4>
+      <ul>
+        <li>主風管（幹管）：6-10 m/s，推薦 8 m/s</li>
+        <li>支風管：4-6 m/s，推薦 5 m/s</li>
+        <li>送風口頸部風速：2-5 m/s（依風口型式而定）</li>
+        <li>風速過高會增加噪聲與阻力，過低則風管截面偏大、佔地多</li>
+      </ul>
+    </div>
+    <div class="ref-card">
+      <h4>送風温差取值</h4>
+      <ul>
+        <li>舒適空調（定風量）：8-10°C</li>
+        <li>變風量系統（VAV）：8-12°C</li>
+        <li>高大空間/分層空調：可取 10-14°C</li>
+        <li>温差過大會導致工作區温度梯度大、產生吹風感</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- SEO 介紹區塊 -->
+
+</div>
+
+</div>
+
+<!-- TOOLBOX-DEEP-DIVE -->
+<style>
+.deep-dive{max-width:960px;margin:16px auto;padding:0 16px;}
+.deep-dive > .card{margin-bottom:0;}
+@media(max-width:600px){.deep-dive{margin:14px auto;padding:0 12px;}}
+.deep-dive .dd-list{margin:8px 0 16px;padding-left:20px;}
+.deep-dive .dd-list li{margin:6px 0;line-height:1.75;}
+.deep-dive .dd-example{background:var(--card-bg,#fff);border:1px solid var(--border,#eee);border-radius:10px;padding:12px 14px;margin:8px 0 16px;}
+.deep-dive .dd-ex-title{font-weight:600;color:var(--tool-accent,#FF6B35);margin-bottom:6px;}
+.deep-dive .dd-ex-body{font-size:13px;line-height:1.85;color:var(--text,#333);word-break:break-word;}
+.deep-dive .dd-faq{margin:8px 0 4px;}
+.deep-dive .dd-faq dt{font-weight:600;margin-top:10px;color:var(--text,#333);}
+.deep-dive .dd-faq dd{margin:4px 0 0;font-size:13px;line-height:1.85;color:var(--text-muted,#666);}
+
+</style>
+<section class="deep-dive" data-deep-dive="1">
+<div class="card">
+<h2>📚 深度解析：送風量與風速設計計算器</h2>
+<h3>💡 常見使用場景</h3>
+<ul class="dd-list">
+<li>當你在hvac相關場景中需要基於“Supply Air”進行快速計算或校驗時，可先用該工具生成一版標準結果。</li>
+<li>在教學、方案評審、調試聯調時，可用固定樣本快速復現實驗流程，驗證參數選擇是否正確。</li>
+<li>用於將人工操作轉為可複用步驟：先確認輸入類型，再觀察輸出變化，便於排查規則誤差。</li>
+</ul>
+<div class="dd-example"><div class="dd-ex-title">標準化使用示例</div><div class="dd-ex-body">以一組典型輸入為例：先按業務口徑補充必要字段，運行工具並記錄輸出；再對比另一組邊界輸入，檢查工具在異常輸入下是否給出穩定提示，便於快速形成操作 SOP。</div></div>
+<h3>❓ 常見問題（FAQ）</h3>
+<dl class="dd-faq">
+<dt>該工具適用於哪些 hvac 場景？</dt><dd>只要數據可映射到本工具支持的參數結構，就可用於日常分析、篩選、校驗等流程；多數情況下適合前置評估和結果複核。</dd>
+<dt>結果可信度如何保證？</dt><dd>工具默認按前端可見規則實時計算，不依賴外部服務；如有偏差，建議結合歷史基準值做交叉確認。</dd>
+</dl>
+</div>
+</section>
+<!-- 相關工具 -->
+<div class="related-tools" data-related-tools="1">
+  <h3 class="related-tools-title">🔗 相關工具</h3>
+  <div class="related-tools-grid">
+    <a href="/zh-hk/tools/hvac/dehumidifier.html" class="related-tool-card">
+      <span class="rt-icon">🌫️</span>
+      <span class="rt-info"><span class="rt-name">dehumidifier</span><span class="rt-desc">除濕量計算器 Dehumidifier Sizing</span></span>
+    </a>
+    <a href="/zh-hk/tools/hvac/cooling-tower.html" class="related-tool-card">
+      <span class="rt-icon">🗼</span>
+      <span class="rt-info"><span class="rt-name">冷卻塔散熱與補水量計算器 - 在線計算冷卻塔散熱量、冷卻範圍、接近度、蒸發損失、飄水損失、 | ToolBox免費在線工具箱</span><span class="rt-desc">冷卻塔散熱與補水量計算器</span></span>
+    </a>
+    <a href="/zh-hk/tools/hvac/chiller-efficiency.html" class="related-tool-card">
+      <span class="rt-icon">🏭</span>
+      <span class="rt-info"><span class="rt-name">冷機COP/EER能效計算器 - 免費在線計算冷水機組性能係數(COP)、能效比(EER)、單 | ToolBox免費在線工具箱</span><span class="rt-desc">&amp;#127981; 冷機COP/EER能效計算器</span></span>
+    </a>
+    <a href="/zh-hk/tools/hvac/fresh-air-load.html" class="related-tool-card">
+      <span class="rt-icon">🍃</span>
+      <span class="rt-info"><span class="rt-name">新風負荷計算器 - 在線計算新風全熱負荷、顯熱負荷、潛熱負荷，基於焓濕圖公式 h | ToolBox免費在線工具箱</span><span class="rt-desc">新風負荷計算器</span></span>
+    </a>
+    <a href="/zh-hk/tools/hvac/pump-calculator.html" class="related-tool-card">
+      <span class="rt-icon">💧</span>
+      <span class="rt-info"><span class="rt-name">水泵揚程流量計算器 - 水泵揚程與流量計算器，在線計算管路流速、沿程阻力損失、局部阻 | ToolBox免費在線工具箱</span><span class="rt-desc">水泵揚程與流量計算器</span></span>
+    </a>
+    <a href="/zh-hk/tools/hvac/cooling-load.html" class="related-tool-card">
+      <span class="rt-icon">❄️</span>
+      <span class="rt-info"><span class="rt-name">空調負荷計算器 - 基於簡化冷負荷係數法，計算外牆、窗户、人員、設備、照明、新風 | ToolBox免費在線工具箱</span><span class="rt-desc">空調負荷計算器</span></span>
+    </a>
+  </div>
+</div>
+<div class="tool-intro open" id="toolIntro">
+    <div class="tool-intro-header">
+      <span class="intro-icon-wrap"><span class="intro-icon">📖</span>關於「送風量與風速設計計算器」</span>
+      <span class="arrow">▼</span>
+    </div>
+    <div class="tool-intro-body">
+      <h4><span class="h4-icon">📝</span>工具簡介</h4>
+      <p>送風量與風速設計計算器是一款面向暖通空調（HVAC）設計的在線工具，根據室內冷負荷、送風温差和房間體積，快速計算空調送風量、換氣次數、推薦送風口數量以及主風管與支風管的風速、截面積和等效直徑，並自動生成不同送風温差下的風量對比表，輔助空調系統初步設計與設備選型。</p>
+      <h4><span class="h4-icon">✨</span>功能特點</h4>
+      <ul class="intro-features">
+        <li>採用標準送風量公式 L=Q/(ρ·cp·Δt)</li>
+        <li>自動換算 m³/s 與 m³/h 雙單位</li>
+        <li>換氣次數評價與設計建議</li>
+        <li>主風管/支風管風速與等效直徑推薦</li>
+        <li>多送風温差風量對比表</li>
+        <li>送風口數量自動估算</li>
+        <li>支持深色模式與移動端響應式</li>
+        <li>純前端計算，數據不上傳</li>
+      </ul>
+      <h4><span class="h4-icon">🎯</span>使用場景</h4>
+      <ul class="intro-scenes">
+        <li>舒適性空調系統初步設計</li>
+        <li>空調送風量與風管尺寸估算</li>
+        <li>送風口數量與氣流組織規劃</li>
+        <li>暖通課程學習與設計作業</li>
+        <li>工程現場快速校核風量</li>
+        <li>變風量（VAV）系統温差比選</li>
+      </ul>
+      <h4><span class="h4-icon">💬</span>常見問題</h4>
+      <div class="intro-faq-item"><div class="intro-faq-q">送風量是怎麼計算的？</div><div class="intro-faq-a">依據公式 L = Q / (ρ × cp × Δt)，其中 Q 為室內冷負荷（W），ρ=1.2 kg/m³ 為空氣密度，cp=1.005 kJ/(kg·K) 為空氣定壓比熱，Δt 為送風温差。計算結果先得 m³/s，再換算為 m³/h。</div></div>
+      <div class="intro-faq-item"><div class="intro-faq-q">送風温差一般取多少？</div><div class="intro-faq-a">舒適空調定風量系統通常取 8-10°C；變風量系統可取 8-12°C；高大空間或分層空調可適當增大。温差過大會增加温度梯度與吹風感，需綜合氣流組織確定。</div></div>
+      <div class="intro-faq-item"><div class="intro-faq-q">換氣次數多少合適？</div><div class="intro-faq-a">舒適性空調一般推薦 5-10 次/h。低於 5 次可能換氣不足，高於 15 次建議增大送風温差以降低風量，避免噪聲與吹風感。</div></div>
+      <div class="intro-faq-item"><div class="intro-faq-q">這個工具是免費的嗎？</div><div class="intro-faq-a">完全免費，無需註冊登錄，直接在瀏覽器中運行。所有計算在本地完成，數據不會上傳到伺服器。</div></div>
+      <div class="intro-faq-item"><div class="intro-faq-q">支持手機使用嗎？</div><div class="intro-faq-a">支持。頁面已做響應式適配，手機和電腦均可正常使用，並支持深色模式切換。</div></div>
+    </div>
+  </div>
+  <!-- /SEO 介紹區塊 -->
+</div>
+
+<script>
+// 物性常数
+var RHO = 1.2;          // 空气密度 kg/m³
+var CP = 1005;          // 空气定压比热 J/(kg·K)，即 1.005 kJ/(kg·K)
+var RHOCP = RHO * CP;   // 1206 J·s/(m³·K)
+var OUTLET_MAX = 500;   // 单个送风口最大风量 m³/h
+var V_MAIN_MIN = 6, V_MAIN_MAX = 10, V_MAIN_REC = 8;   // 主风管风速 m/s
+var V_BRANCH_MIN = 4, V_BRANCH_MAX = 6, V_BRANCH_REC = 5; // 支风管风速 m/s
+
+function setDT(v){
+  document.getElementById('deltaT').value = v;
+  calc();
+}
+
+function num(id){
+  var el = document.getElementById(id);
+  var v = parseFloat(el.value);
+  if(isNaN(v) || v < 0){ ToolBox.markInvalid(el, '请输入有效正数'); return null; }
+  ToolBox.clearInvalid(el);
+  return v;
+}
+
+function fmt(n, d){
+  if(n == null || isNaN(n)) return '—';
+  d = d == null ? 2 : d;
+  return Number(n).toLocaleString('zh-CN', {minimumFractionDigits:d, maximumFractionDigits:d});
+}
+
+function equivDiameter(area){
+  // d = sqrt(4A/π)，area 单位 m²，结果 m
+  if(area <= 0) return 0;
+  return Math.sqrt(4 * area / Math.PI);
+}
+
+function calc(){
+  var Q = num('coolLoad');      // W
+  var dt = num('deltaT');       // °C
+  var V = num('roomVol');       // m³
+  if(Q == null || dt == null) return;
+  if(Q === 0){ ToolBox.showToast(i18nText('toast.msg075'), 'warning'); return; }
+  if(dt === 0){ ToolBox.showToast(i18nText('toast.msg974'), 'warning'); return; }
+
+  // 送风量
+  var Ls = Q / (RHOCP * dt);      // m³/s
+  var Lh = Ls * 3600;             // m³/h
+
+  // 换气次数
+  var hasVol = (V != null && V > 0);
+  var n = hasVol ? Lh / V : null; // 次/h
+
+  // 送风口数量
+  var outlets = Math.max(1, Math.ceil(Lh / OUTLET_MAX));
+  var perOutlet = Lh / outlets;   // 每个风口风量 m³/h
+
+  // —— 结果数据卡片 ——
+  document.getElementById('resultCard').style.display = '';
+  var grid = document.getElementById('dataGrid');
+  var cards = '';
+  cards += dataCard(fmt(Lh, 0), '送风量 L (m³/h)');
+  cards += dataCard(fmt(Ls, 3), '送风量 L (m³/s)');
+  cards += dataCard(hasVol ? fmt(n, 1) : '—', '换气次数 n (次/h)');
+  cards += dataCard(fmt(dt, 1), '送风温差 Δt (°C)');
+  cards += dataCard(outlets, '推荐送风口数量 (个)');
+  cards += dataCard(fmt(perOutlet, 0), '单风口风量 (m³/h)');
+  grid.innerHTML = cards;
+
+  // —— 换气次数评价 ——
+  var evalHtml = '';
+  if(hasVol){
+    if(n < 5){
+      evalHtml = evalBox('bad', '⚠️', '换气次数偏低（' + fmt(n,1) + ' 次/h），可能换气不足、温度分布不均。建议减小送风温差以增大风量，或复核冷负荷取值。');
+    } else if(n <= 10){
+      evalHtml = evalBox('good', '✅', '换气次数适宜（' + fmt(n,1) + ' 次/h），处于舒适空调推荐区间，气流组织良好。');
+    } else if(n <= 15){
+      evalHtml = evalBox('warn', '🟡', '换气次数偏高（' + fmt(n,1) + ' 次/h），注意气流组织与噪声控制，必要时增大送风温差。');
+    } else {
+      evalHtml = evalBox('bad', '⚠️', '换气次数过高（' + fmt(n,1) + ' 次/h），建议增大送风温差以降低风量，避免吹风感与能耗增加。');
+    }
+  } else {
+    evalHtml = evalBox('warn', 'ℹ️', '未填写房间体积，未计算换气次数。填入房间体积（面积×层高）可获得换气次数评价。');
+  }
+  document.getElementById('evalWrap').innerHTML = evalHtml;
+
+  // —— 结果摘要 ——
+  var sum = document.getElementById('resultSummary');
+  sum.style.display = '';
+  sum.innerHTML = '冷负荷 <strong>' + fmt(Q,0) + ' W</strong>，送风温差 <strong>' + fmt(dt,1) + ' °C</strong> → 送风量 <strong>' + fmt(Lh,0) + ' m³/h</strong>' + (hasVol ? '，换气次数 <strong>' + fmt(n,1) + ' 次/h</strong>' : '') + '，推荐送风口 <strong>' + outlets + ' 个</strong>。';
+
+  // —— 风管风速设计 ——
+  document.getElementById('ductCard').style.display = '';
+  var ductGrid = document.getElementById('ductGrid');
+
+  // 主风管：按总风量
+  var mainAreaMin = Ls / V_MAIN_MAX;   // 高风速 → 小截面
+  var mainAreaMax = Ls / V_MAIN_MIN;   // 低风速 → 大截面
+  var mainAreaRec = Ls / V_MAIN_REC;
+  var mainDmin = equivDiameter(mainAreaMin);
+  var mainDmax = equivDiameter(mainAreaMax);
+  var mainDrec = equivDiameter(mainAreaRec);
+
+  // 支风管：按单风口风量
+  var branchLs = perOutlet / 3600;     // 单风口 m³/s
+  var brAreaMin = branchLs / V_BRANCH_MAX;
+  var brAreaMax = branchLs / V_BRANCH_MIN;
+  var brAreaRec = branchLs / V_BRANCH_REC;
+  var brDmin = equivDiameter(brAreaMin);
+  var brDmax = equivDiameter(brAreaMax);
+  var brDrec = equivDiameter(brAreaRec);
+
+  ductGrid.innerHTML =
+    ductCard('主干风管', '🌀',
+      velRow('推荐风速', V_MAIN_REC, V_MAIN_MIN, V_MAIN_MAX),
+      [
+        ['截面积(推荐)', fmt(mainAreaRec*1e4,1) + ' cm²'],
+        ['等效直径(推荐)', fmt(mainDrec*1000,0) + ' mm'],
+        ['截面范围', fmt(mainAreaMin*1e4,0) + ' ~ ' + fmt(mainAreaMax*1e4,0) + ' cm²'],
+        ['直径范围', fmt(mainDmin*1000,0) + ' ~ ' + fmt(mainDmax*1000,0) + ' mm']
+      ]
+    ) +
+    ductCard('支管/送风口管', '🍃',
+      velRow('推荐风速', V_BRANCH_REC, V_BRANCH_MIN, V_BRANCH_MAX),
+      [
+        ['单管风量', fmt(perOutlet,0) + ' m³/h'],
+        ['截面积(推荐)', fmt(brAreaRec*1e4,1) + ' cm²'],
+        ['等效直径(推荐)', fmt(brDrec*1000,0) + ' mm'],
+        ['直径范围', fmt(brDmin*1000,0) + ' ~ ' + fmt(brDmax*1000,0) + ' mm']
+      ]
+    );
+
+  // —— 送风温差对比表 ——
+  document.getElementById('compareCard').style.display = '';
+  var dts = [6, 8, 10, 12, 14, 16];
+  var rows = '';
+  dts.forEach(function(d){
+    var l = Q / (RHOCP * d) * 3600;
+    var o = Math.max(1, Math.ceil(l / OUTLET_MAX));
+    var isCur = Math.abs(d - dt) < 0.001;
+    var cls = isCur ? ' class="cur"' : '';
+    rows += '<tr' + cls + '>'
+      + '<td>' + d + '°C' + (isCur ? ' ★' : '') + '</td>'
+      + '<td>' + fmt(l, 0) + '</td>'
+      + '<td>' + (hasVol ? fmt(l/V, 1) : '—') + '</td>'
+      + '<td>' + o + '</td>'
+      + '</tr>';
+  });
+  document.getElementById('compareTable').innerHTML =
+    '<thead><tr><th>送风温差</th><th>送风量 (m³/h)</th><th>换气次数 (次/h)</th><th>送风口数量</th></tr></thead>'
+    + '<tbody>' + rows + '</tbody>';
+
+  // 滚动到结果
+  document.getElementById('resultCard').scrollIntoView({behavior:'smooth', block:'start'});
+}
+
+function dataCard(val, label){
+  return '<div class="data-card"><div class="num">' + val + '</div><div class="label">' + label + '</div></div>';
+}
+
+function evalBox(type, icon, msg){
+  return '<div class="eval-box eval-' + type + '"><span class="eval-icon">' + icon + '</span><span>' + msg + '</span></div>';
+}
+
+function ductCard(title, icon, velBlock, rows){
+  var rowsHtml = rows.map(function(r){
+    return '<div class="duct-row"><span class="k">' + r[0] + '</span><span class="v">' + r[1] + '</span></div>';
+  }).join('');
+  return '<div class="duct-card">'
+    + '<h4>' + icon + ' ' + title + '</h4>'
+    + velBlock
+    + rowsHtml
+    + '</div>';
+}
+
+function velRow(label, rec, min, max){
+  var pct = ((rec - min) / (max - min)) * 100;
+  return '<div style="margin-bottom:8px;">'
+    + '<div class="duct-row"><span class="k">' + label + '</span><span class="v">' + fmt(rec,1) + ' m/s</span></div>'
+    + '<div class="vel-bar"><div class="fill" style="width:' + pct + '%"></div></div>'
+    + '<div class="vel-range"><span>' + min + ' m/s</span><span>范围 ' + min + '-' + max + ' m/s</span><span>' + max + ' m/s</span></div>'
+    + '</div>';
+}
+
+function copyResult(){
+  var Q = parseFloat(document.getElementById('coolLoad').value) || 0;
+  var dt = parseFloat(document.getElementById('deltaT').value) || 0;
+  var V = parseFloat(document.getElementById('roomVol').value) || 0;
+  if(Q <= 0 || dt <= 0){ ToolBox.showToast(i18nText('toast.msg620'), 'warning'); return; }
+  var Ls = Q / (RHOCP * dt);
+  var Lh = Ls * 3600;
+  var n = V > 0 ? Lh / V : null;
+  var outlets = Math.max(1, Math.ceil(Lh / OUTLET_MAX));
+  var mainAreaRec = Ls / V_MAIN_REC;
+  var mainDrec = equivDiameter(mainAreaRec);
+  var text = '送风量与风速设计计算结果\n'
+    + '冷负荷: ' + fmt(Q,0) + ' W\n'
+    + '送风温差: ' + fmt(dt,1) + ' °C\n'
+    + '送风量: ' + fmt(Lh,0) + ' m³/h (' + fmt(Ls,3) + ' m³/s)\n'
+    + (n != null ? '换气次数: ' + fmt(n,1) + ' 次/h\n' : '')
+    + '推荐送风口数量: ' + outlets + ' 个\n'
+    + '主风管(推荐风速' + V_MAIN_REC + 'm/s): 截面积 ' + fmt(mainAreaRec*1e4,1) + ' cm², 等效直径 ' + fmt(mainDrec*1000,0) + ' mm\n';
+  ToolBox.copyText(text, i18nText('msg600'));
+}
+
+function resetForm(){
+  document.getElementById('coolLoad').value = 2500;
+  document.getElementById('deltaT').value = 8;
+  document.getElementById('roomVol').value = 120;
+  ['coolLoad','deltaT','roomVol'].forEach(function(id){ ToolBox.clearInvalid(document.getElementById(id)); });
+  calc();
+  ToolBox.showToast(i18nText());
+}
+
+// tool-intro 折叠交互
+document.addEventListener('DOMContentLoaded', function(){
+  var headers = document.querySelectorAll('.tool-intro-header');
+  headers.forEach(function(h){
+    h.addEventListener('click', function(){ this.parentElement.classList.toggle('open'); });
+  });
+  calc();
+});
+
+// 输入实时计算
+['coolLoad','deltaT','roomVol'].forEach(function(id){
+  document.getElementById(id).addEventListener('input', ToolBox.debounce(calc, 300));
+});
+</script>
+</body>
+</html>

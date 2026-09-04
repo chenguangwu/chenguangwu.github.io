@@ -1,0 +1,631 @@
+<!DOCTYPE html>
+<html lang="zh-HK" data-opencc-locale="zh-hk">
+<head>
+
+<script src="/js/tool-page-runtime.js" defer></script>
+<!-- TOOLBOX-TOOL-RUNTIME -->
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="toolbox" content="cat=design,industry=design,icon=🔤,bg=#f0f4ff">
+<title>字體預覽器 - ToolBox</title>
+<link rel="canonical" href="https://chenguangwu.github.io/zh-hk/tools/design/font-preview.html">
+<meta property="og:title" content="字体预览器">
+<meta property="og:description" content="快速预览多种系统字体渲染效果，输入文字后实时对比不同字体的显示差异，点击卡片即可复制 font-family CSS 代码。">
+<meta property="og:url" content="https://chenguangwu.github.io/zh-hk/tools/design/font-preview.html">
+<meta name="twitter:card" content="summary">
+<meta name="description" content="快速预览多种系统字体渲染效果，输入文字后实时对比不同字体的显示差异，点击卡片即可复制 font-family CSS 代码。">
+<link rel="preload" as="style" href="/css/common.css" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="/css/common.css"></noscript>
+<script>window.__tbq=window.__tbq||[];window.ToolBox=window.ToolBox||{};['initToolTheme','addToolStyles','showToast','toast','copyText','copyToClipboard','copyFromElement','downloadText','injectPrivacyBadge','toggleFavTool','addToRecentTool','toggleToolTheme','applyTheme'].forEach(function(k){if(typeof window.ToolBox[k]!=='function')window.ToolBox[k]=function(){window.__tbq.push([k,[].slice.call(arguments)]);};});</script><!-- TOOLBOX-API-STUB -->
+<script src="/js/common.js" defer></script>
+<style>
+  .fp-desc {
+    font-size: 13px;
+    color: var(--text-muted);
+    margin-bottom: 16px;
+  }
+  .fp-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    margin-bottom: 18px;
+  }
+  .fp-textarea {
+    width: 100%;
+    padding: 12px 14px;
+    border: 1.5px solid var(--border);
+    border-radius: 12px;
+    font-size: 14px;
+    outline: none;
+    font-family: inherit;
+    background: var(--card-bg);
+    color: var(--text);
+    transition: border-color 0.2s, box-shadow 0.2s;
+    resize: vertical;
+    min-height: 60px;
+    line-height: 1.6;
+  }
+  .fp-textarea:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(255,107,53,0.12);
+  }
+  .fp-slider-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .fp-slider-label {
+    font-size: 13px;
+    color: var(--text-secondary);
+    white-space: nowrap;
+    min-width: 56px;
+    font-weight: 500;
+  }
+  .fp-slider {
+    flex: 1;
+    -webkit-appearance: none;
+    appearance: none;
+    height: 6px;
+    border-radius: 3px;
+    background: var(--border);
+    outline: none;
+    cursor: pointer;
+  }
+  .fp-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: var(--primary);
+    cursor: pointer;
+    box-shadow: 0 2px 6px rgba(255,107,53,0.3);
+    transition: transform 0.15s;
+  }
+  .fp-slider::-webkit-slider-thumb:hover {
+    transform: scale(1.15);
+  }
+  .fp-slider::-moz-range-thumb {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: var(--primary);
+    cursor: pointer;
+    border: none;
+    box-shadow: 0 2px 6px rgba(255,107,53,0.3);
+  }
+  .fp-slider-value {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--primary);
+    min-width: 42px;
+    text-align: right;
+  }
+  .fp-weight-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .fp-weight-btn {
+    padding: 6px 14px;
+    border-radius: 8px;
+    font-size: 12px;
+    cursor: pointer;
+    border: 1.5px solid var(--border);
+    background: var(--card-bg);
+    color: var(--text-secondary);
+    transition: all 0.2s;
+    font-weight: 500;
+  }
+  .fp-weight-btn:hover {
+    border-color: var(--primary);
+    color: var(--primary);
+  }
+  .fp-weight-btn.active {
+    background: var(--primary);
+    color: #fff;
+    border-color: var(--primary);
+  }
+  .fp-search-row {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+  .fp-search-input {
+    flex: 1;
+    padding: 10px 14px;
+    border: 1.5px solid var(--border);
+    border-radius: 12px;
+    font-size: 14px;
+    outline: none;
+    background: var(--card-bg);
+    color: var(--text);
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+  .fp-search-input:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(255,107,53,0.12);
+  }
+  .fp-count {
+    font-size: 13px;
+    color: var(--text-muted);
+    white-space: nowrap;
+    display: flex;
+    align-items: center;
+    padding: 0 4px;
+  }
+  .fp-divider {
+    height: 1px;
+    background: var(--border);
+    margin: 0 0 14px;
+  }
+  .fp-section-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--heading);
+    margin: 18px 0 10px;
+    padding-left: 10px;
+    border-left: 3px solid var(--primary);
+  }
+  .fp-section-title:first-of-type {
+    margin-top: 0;
+  }
+  .fp-font-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .fp-font-item {
+    border: 1.5px solid var(--border);
+    border-radius: 12px;
+    padding: 14px 16px;
+    background: var(--card-bg);
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .fp-font-item:hover {
+    border-color: var(--primary);
+    box-shadow: var(--shadow-sm);
+    transform: translateY(-1px);
+  }
+  .fp-font-name {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-bottom: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+  }
+  .fp-font-name span:first-child {
+    font-weight: 600;
+    color: var(--text-secondary);
+    font-family: 'SF Mono', 'Courier New', monospace;
+    font-size: 12px;
+    background: var(--result-bg);
+    padding: 2px 8px;
+    border-radius: 6px;
+  }
+  .fp-font-name .fp-copy-hint {
+    font-size: 11px;
+    color: var(--text-muted);
+    opacity: 0.6;
+  }
+  .fp-font-item:hover .fp-copy-hint {
+    opacity: 1;
+    color: var(--primary);
+  }
+  .fp-font-preview {
+    color: var(--text-primary);
+    line-height: 1.5;
+    word-break: break-all;
+    overflow-wrap: break-word;
+  }
+  .fp-empty {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--text-muted);
+    font-size: 14px;
+  }
+  .fp-empty-icon {
+    font-size: 32px;
+    margin-bottom: 8px;
+    display: block;
+  }
+  .fp-font-item.hidden {
+    display: none;
+  }
+  .fp-section-title.hidden {
+    display: none;
+  }
+  @media(max-width:768px) {
+    .fp-search-row {
+      flex-direction: column;
+      gap: 8px;
+    }
+    .fp-weight-group {
+      gap: 5px;
+    }
+    .fp-weight-btn {
+      padding: 5px 10px;
+      font-size: 11px;
+    }
+    .fp-font-item {
+      padding: 12px 14px;
+    }
+  }
+</style>
+
+
+
+<meta property="og:image" content="https://chenguangwu.github.io/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="ToolBox - 5000+免费在线工具">
+<meta name="twitter:image" content="https://chenguangwu.github.io/og-image.png">
+<meta name="twitter:image:alt" content="ToolBox - 5000+免费在线工具">
+    <meta property="og:type" content="website">
+    <meta name="twitter:title" content="字体预览器">
+    <meta name="twitter:description" content="快速预览多种系统字体渲染效果，输入文字后实时对比不同字体的显示差异，点击卡片即可复制 font-family CSS 代码。">
+<!-- TOOLBOX-WEBAPP-LD -->
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"字體預覽器","url":"https://chenguangwu.github.io/zh-hk/tools/design/font-preview.html","applicationCategory":"MultimediaApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":"zh-HK","description":"快速預覽多種系統字體渲染效果，輸入文字後實時對比不同字體的顯示差異，點擊卡片即可複製 font-family CSS 代碼。","image":"https://chenguangwu.github.io/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}</script>
+<meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
+<meta http-equiv="X-Content-Type-Options" content="nosniff">
+<meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
+<!-- TOOLBOX-SECURITY -->
+
+<script src="/js/privacy.js" defer></script>
+<!-- TOOLBOX-PRIVACY-SCRIPT -->
+
+<script src="/js/metrics.js" defer></script>
+<!-- TOOLBOX-METRICS-SCRIPT -->
+
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"首頁","item":"https://chenguangwu.github.io/zh-hk/"},{"@type":"ListItem","position":2,"name":"設計創意","item":"https://chenguangwu.github.io/zh-hk/tools/design/index.html"},{"@type":"ListItem","position":3,"name":"字體預覽器","item":"https://chenguangwu.github.io/zh-hk/tools/design/font-preview.html"}]}</script>
+
+<script src="/js/i18n.js" defer></script>
+<script src="/js/tool-i18n.js" defer></script>
+<!-- TOOLBOX-I18N-SCRIPT -->
+
+
+<meta name="title-en" content="Font Preview - ToolBox">
+<meta name="desc-en" content="Font Preview - view and preview online, free. Free online tool on ToolBox — 100% client-side, no data uploaded, no install. Part of the Design &amp; Creativi...">
+<!-- TOOLBOX-HREFLANG -->
+<link rel="alternate" hreflang="zh-CN" href="https://chenguangwu.github.io/tools/design/font-preview.html">
+<link rel="alternate" hreflang="zh-TW" href="https://chenguangwu.github.io/zh-tw/tools/design/font-preview.html">
+<link rel="alternate" hreflang="zh-HK" href="https://chenguangwu.github.io/zh-hk/tools/design/font-preview.html">
+<link rel="alternate" hreflang="en-US" href="https://chenguangwu.github.io/tools/design/font-preview.html?lang=en-US">
+<link rel="alternate" hreflang="x-default" href="https://chenguangwu.github.io/tools/design/font-preview.html">
+<meta property="og:locale" content="zh_HK">
+<meta property="og:locale:alternate" content="zh_CN">
+<meta property="og:locale:alternate" content="zh_TW">
+<meta property="og:locale:alternate" content="en_US">
+</head>
+<body>
+<h1 class="sr-only">字體預覽器</h1>
+
+
+<div class="nav">
+  <a href="/zh-hk/index.html">← ToolBox</a>
+  <span>/ 字體預覽器</span>
+  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()">🌙</button>
+</div>
+
+
+
+
+
+<nav class="breadcrumb" aria-label="麪包屑導航" data-breadcrumb="1">
+  <a href="/zh-hk/index.html">首頁</a>
+  <span class="bc-sep">‹</span>
+  <a href="/zh-hk/tools/design/index.html">🎨 設計創意</a>
+  <span class="bc-sep">‹</span>
+  <span class="bc-current">字體預覽器</span>
+</nav>
+<div class="container">
+  <div class="card tool-card-accent" style="--tool-accent:#7C3AED;">
+    <h2 data-zh="🔤 字體預覽器">🔤 Font Preview</h2>
+    <p class="fp-desc" data-zh="快速預覽多種系統字體渲染效果，輸入文字後實時對比不同字體的顯示差異，點擊卡片即可複製 font-family CSS 代碼。">Font Preview is available directly in your browser, with no data uploaded.</p>
+
+    <!-- 控制區 -->
+    <div class="fp-controls">
+      <div>
+        <label style="margin-bottom:6px;">預覽文字</label>
+        <textarea class="fp-textarea" id="fpText" rows="2" placeholder="输入要预览的文字">永和九年岁在癸丑</textarea>
+      </div>
+      <div class="fp-slider-row">
+        <span class="fp-slider-label">字號</span>
+        <input type="range" class="fp-slider" id="fpSize" min="12" max="72" value="24">
+        <span class="fp-slider-value" id="fpSizeVal">24px</span>
+      </div>
+      <div>
+        <label style="margin-bottom:6px;">字重</label>
+        <div class="fp-weight-group" id="fpWeightGroup">
+          <button type="button" class="fp-weight-btn" data-weight="100">100 極細</button>
+          <button type="button" class="fp-weight-btn" data-weight="300">300 細體</button>
+          <button type="button" class="fp-weight-btn active" data-weight="400">400 常規</button>
+          <button type="button" class="fp-weight-btn" data-weight="500">500 中等</button>
+          <button type="button" class="fp-weight-btn" data-weight="700">700 粗體</button>
+          <button type="button" class="fp-weight-btn" data-weight="900">900 極粗</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="fp-divider"></div>
+
+    <!-- 搜尋 -->
+    <div class="fp-search-row">
+      <input type="text" class="fp-search-input" id="fpSearch" placeholder="搜尋字體名稱...">
+      <span class="fp-count" id="fpCount"></span>
+    </div>
+
+    <!-- 字體列表 -->
+    <div id="fpFontList"></div>
+  </div>
+
+<!-- TOOLBOX-DEEP-DIVE -->
+<style>
+.deep-dive{max-width:960px;margin:16px auto;padding:0 16px;}
+.deep-dive > .card{margin-bottom:0;}
+@media(max-width:600px){.deep-dive{margin:14px auto;padding:0 12px;}}
+.deep-dive .dd-list{margin:8px 0 16px;padding-left:20px;}
+.deep-dive .dd-list li{margin:6px 0;line-height:1.75;}
+.deep-dive .dd-example{background:var(--card-bg,#fff);border:1px solid var(--border,#eee);border-radius:10px;padding:12px 14px;margin:8px 0 16px;}
+.deep-dive .dd-ex-title{font-weight:600;color:var(--tool-accent,#FF6B35);margin-bottom:6px;}
+.deep-dive .dd-ex-body{font-size:13px;line-height:1.85;color:var(--text,#333);word-break:break-word;}
+.deep-dive .dd-faq{margin:8px 0 4px;}
+.deep-dive .dd-faq dt{font-weight:600;margin-top:10px;color:var(--text,#333);}
+.deep-dive .dd-faq dd{margin:4px 0 0;font-size:13px;line-height:1.85;color:var(--text-muted,#666);}
+
+</style>
+<section class="deep-dive" data-deep-dive="1">
+<div class="card">
+<h2>📚 深度解析：字體預覽器</h2>
+<h3>💡 常見使用場景</h3>
+<ul class="dd-list">
+<li>快速核對字體預覽器：優先統一輸入單位、口徑和參數範圍，再對典型樣例做一遍手工驗算。</li>
+<li>教學與複核：建議固定其餘參數，只變動一個輸入變量，確認輸出變化趨勢，避免“算式正確但口徑錯位”。</li>
+<li>常見場景：Font Preview</li>
+</ul>
+<div class="dd-example"><div class="dd-ex-title">快速複核「字體預覽器」</div><div class="dd-ex-body">先輸入一組典型參數跑基準值，再做 ±10%、±20% 調參演算，檢查輸出是否沿業務常識方向變化。</div></div>
+<h3>❓ 常見問題（FAQ）</h3>
+<dl class="dd-faq">
+<dt>字體預覽器 結果可直接用於決策嗎？</dt><dd>字體預覽器 適合用於預估與複核，正式決策請結合完整數據口徑説明（口徑定義、時間區間、邊界條件）。</dd>
+<dt>結果偏離預期很大怎麼辦？</dt><dd>先核對輸入單位與是否存在“% 與小數”混用，再確認分母與分子定義是否同口徑，最後替換一組可復現實例複測。</dd>
+</dl>
+</div>
+</section>
+<!-- 注意事項區塊 -->
+<div class="tool-notes" style="--tool-accent:#7C3AED;">
+  <div class="tool-notes-title">⚠️ 使用説明與注意事項</div>
+  <ul>
+      <li>本工具純前端運行，數據不會上傳到伺服器</li>
+      <li>建議在主流瀏覽器（Chrome/Safari/Firefox/Edge）中使用</li>
+      <li>計算結果僅供參考，請以實際應用場景為準</li>
+  </ul>
+</div>
+<!-- /注意事項區塊 -->
+</div>
+
+<script>
+(function() {
+  var fonts = {
+    '中文字体': [
+      { name: 'Noto Sans SC', family: "'Noto Sans SC', sans-serif" },
+      { name: 'PingFang SC', family: "'PingFang SC', sans-serif" },
+      { name: 'Microsoft YaHei', family: "'Microsoft YaHei', sans-serif" },
+      { name: 'Hiragino Sans GB', family: "'Hiragino Sans GB', sans-serif" },
+      { name: 'SimHei', family: "'SimHei', 'Heiti SC', sans-serif" },
+      { name: 'SimSun', family: "'SimSun', 'Songti SC', serif" },
+      { name: 'KaiTi', family: "'KaiTi', 'STKaiti', 'AR PL UKai CN', serif" },
+      { name: 'FangSong', family: "'FangSong', 'STFangsong', serif" },
+      { name: 'STKaiti', family: "'STKaiti', 'KaiTi', serif" },
+      { name: 'STXihei', family: "'STXihei', 'Heiti SC', sans-serif" }
+    ],
+    '英文字体': [
+      { name: 'Arial', family: "Arial, Helvetica, sans-serif" },
+      { name: 'Helvetica', family: "Helvetica, Arial, sans-serif" },
+      { name: 'Times New Roman', family: "'Times New Roman', Times, serif" },
+      { name: 'Georgia', family: "Georgia, serif" },
+      { name: 'Courier New', family: "'Courier New', Courier, monospace" },
+      { name: 'Verdana', family: "Verdana, Geneva, sans-serif" },
+      { name: 'Trebuchet MS', family: "'Trebuchet MS', Helvetica, sans-serif" },
+      { name: 'Impact', family: "Impact, 'Arial Black', sans-serif" },
+      { name: 'Comic Sans MS', family: "'Comic Sans MS', cursive" }
+    ],
+    '通用字体族': [
+      { name: 'system-ui', family: "system-ui, -apple-system, sans-serif" },
+      { name: 'sans-serif', family: "sans-serif" },
+      { name: 'serif', family: "serif" },
+      { name: 'monospace', family: "monospace" },
+      { name: 'cursive', family: "cursive" },
+      { name: 'fantasy', family: "fantasy" }
+    ]
+  };
+
+  var state = {
+    text: '永和九年岁在癸丑',
+    size: 24,
+    weight: 400,
+    query: ''
+  };
+
+  var textEl = document.getElementById('fpText');
+  var sizeEl = document.getElementById('fpSize');
+  var sizeValEl = document.getElementById('fpSizeVal');
+  var weightGroupEl = document.getElementById('fpWeightGroup');
+  var searchEl = document.getElementById('fpSearch');
+  var listEl = document.getElementById('fpFontList');
+  var countEl = document.getElementById('fpCount');
+
+  function render() {
+    var html = '';
+    var totalVisible = 0;
+    var query = state.query.toLowerCase().trim();
+
+    var sections = Object.keys(fonts);
+    for (var s = 0; s < sections.length; s++) {
+      var sectionName = sections[s];
+      var sectionFonts = fonts[sectionName];
+      var sectionVisibleCount = 0;
+
+      var itemsHtml = '';
+      for (var i = 0; i < sectionFonts.length; i++) {
+        var font = sectionFonts[i];
+        var match = !query || font.name.toLowerCase().indexOf(query) !== -1;
+
+        if (match) {
+          sectionVisibleCount++;
+          totalVisible++;
+          itemsHtml += '<div class="fp-font-item" data-family="' + escAttr(font.family) + '" onclick="copyFontCSS(this)">'
+            + '<div class="fp-font-name">'
+            + '<span>' + escHtml(font.name) + '</span>'
+            + '<span class="fp-copy-hint">点击复制</span>'
+            + '</div>'
+            + '<div class="fp-font-preview" style="font-family:' + font.family + ';font-size:' + state.size + 'px;font-weight:' + state.weight + ';">'
+            + escHtml(state.text)
+            + '</div>'
+            + '</div>';
+        }
+      }
+
+      var sectionClass = sectionVisibleCount === 0 ? ' fp-section-title hidden' : '';
+      html += '<div class="fp-section-title' + sectionClass + '">' + escHtml(sectionName) + '</div>'
+        + '<div class="fp-font-list">' + itemsHtml + '</div>';
+    }
+
+    listEl.innerHTML = html;
+    countEl.textContent = totalVisible + ' / ' + getTotalFontCount() + ' 种字体';
+  }
+
+  function getTotalFontCount() {
+    var count = 0;
+    var keys = Object.keys(fonts);
+    for (var i = 0; i < keys.length; i++) {
+      count += fonts[keys[i]].length;
+    }
+    return count;
+  }
+
+  function escHtml(s) {
+    var d = document.createElement('div');
+    d.textContent = s;
+    return d.innerHTML;
+  }
+
+  function escAttr(s) {
+    return s.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/'/g, '&#39;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+
+  textEl.addEventListener('input', function() {
+    state.text = this.value || '永和九年岁在癸丑';
+    render();
+  });
+
+  sizeEl.addEventListener('input', function() {
+    state.size = parseInt(this.value, 10);
+    sizeValEl.textContent = state.size + 'px';
+    render();
+  });
+
+  weightGroupEl.addEventListener('click', function(e) {
+    var btn = e.target.closest('.fp-weight-btn');
+    if (!btn) return;
+    var btns = weightGroupEl.querySelectorAll('.fp-weight-btn');
+    for (var i = 0; i < btns.length; i++) btns[i].classList.remove('active');
+    btn.classList.add('active');
+    state.weight = parseInt(btn.dataset.weight, 10);
+    render();
+  });
+
+  searchEl.addEventListener('input', function() {
+    state.query = this.value;
+    render();
+  });
+
+  window.copyFontCSS = function(el) {
+    var family = el.dataset.family;
+    var css = 'font-family: ' + family + ';';
+    ToolBox.copyText(css, i18nText('msg121'));
+  };
+
+  render();
+})();
+</script>
+
+<!-- SEO 介紹區塊 -->
+
+</div>
+
+</div>
+
+<!-- 相關工具 -->
+<div class="related-tools" data-related-tools="1">
+  <h3 class="related-tools-title">🔗 相關工具</h3>
+  <div class="related-tools-grid">
+    <a href="/zh-hk/tools/design/generator-10.html" class="related-tool-card">
+      <span class="rt-icon">🎨</span>
+      <span class="rt-info"><span class="rt-name">CSS動畫生成器（關鍵幀可視化） - 免費在線工具，純前端處理 | ToolBox免費在線工具箱</span><span class="rt-desc">CSS動畫生成器（關鍵幀可視化）</span></span>
+    </a>
+
+    <a href="/zh-hk/tools/design/web-audio-metronome.html" class="related-tool-card">
+      <span class="rt-icon">🎼</span>
+      <span class="rt-info"><span class="rt-name">Web Audio 節拍器 - 免費生成器工具，在線節拍器 | ToolBox免費在線工具箱</span><span class="rt-desc">在線節拍器</span></span>
+    </a>
+    <a href="/zh-hk/tools/design/generator-8.html" class="related-tool-card">
+      <span class="rt-icon">🎨</span>
+      <span class="rt-info"><span class="rt-name">二維碼生成器（已有，可加強定製） - 免費在線工具，純前端處理 | ToolBox免費在線工具箱</span><span class="rt-desc">二維碼生成器（已有，可加強定製）</span></span>
+    </a>
+    <a href="/zh-hk/tools/design/generator-9.html" class="related-tool-card">
+      <span class="rt-icon">🎨</span>
+      <span class="rt-info"><span class="rt-name">條形碼生成器（EAN-13等） - 免費在線工具，純前端處理 | ToolBox免費在線工具箱</span><span class="rt-desc">條形碼生成器（EAN-13等）</span></span>
+    </a>
+    <a href="/zh-hk/tools/design/generator-6.html" class="related-tool-card">
+      <span class="rt-icon">🎨</span>
+      <span class="rt-info"><span class="rt-name">盒子陰影生成器（可視化調整） - 免費在線工具，純前端處理 | ToolBox免費在線工具箱</span><span class="rt-desc">盒子陰影生成器（可視化調整）</span></span>
+    </a>
+  </div>
+</div>
+<div class="tool-intro open" id="toolIntro">
+  <div class="tool-intro-header">
+    <span class="intro-icon-wrap"><span class="intro-icon">📖</span>關於「字體預覽器」</span>
+    <span class="arrow">▼</span>
+  </div>
+  <div class="tool-intro-body">
+    <h4><span class="h4-icon">📝</span>工具簡介</h4>
+    <p>字體預覽器是一款設計創意領域的在線工具。設計創意工具，可視化操作，一鍵生成 CSS 代碼。</p>
+    <h4><span class="h4-icon">✨</span>功能特點</h4>
+    <ul class="intro-features">
+      <li>可視化操作，所見即所得</li>
+      <li>支持實時預覽與調試</li>
+      <li>一鍵複製 CSS 代碼</li>
+      <li>純前端運行，無需安裝</li>
+    </ul>
+    <h4><span class="h4-icon">🎯</span>使用場景</h4>
+    <ul class="intro-scenes">
+      <li>前端開發中的樣式設計</li>
+      <li>UI 設計師配色與佈局參考</li>
+      <li>快速生成 CSS 效果代碼</li>
+      <li>設計靈感探索與原型製作</li>
+    </ul>
+    <h4><span class="h4-icon">💬</span>常見問題</h4>
+      <div class="intro-faq-item"><div class="intro-faq-q">這個工具是免費的嗎？</div><div class="intro-faq-a">完全免費，無需註冊，直接在瀏覽器中使用。</div></div>
+      <div class="intro-faq-item"><div class="intro-faq-q">生成的代碼可以直接用嗎？</div><div class="intro-faq-a">可以，生成的 CSS 代碼符合標準，可直接複製到項目中使用。</div></div>
+      <div class="intro-faq-item"><div class="intro-faq-q">支持自定義參數嗎？</div><div class="intro-faq-a">支持，提供多種參數調節選項，滿足個性化設計需求。</div></div>
+  </div>
+</div>
+<!-- /SEO 介紹區塊 -->
+
+<script>
+// tool-intro折叠交互
+document.addEventListener('DOMContentLoaded',function(){
+  var headers=document.querySelectorAll('.tool-intro-header');
+  headers.forEach(function(h){
+    h.addEventListener('click',function(){
+      this.parentElement.classList.toggle('open');
+    });
+  });
+});
+</script>
+
+</body>
+</html>

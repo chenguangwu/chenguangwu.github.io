@@ -1,0 +1,719 @@
+<!DOCTYPE html>
+<html lang="zh-HK" data-opencc-locale="zh-hk">
+<head>
+
+<script src="/js/tool-page-runtime.js" defer></script>
+<!-- TOOLBOX-TOOL-RUNTIME -->
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="toolbox" content="cat=design,industry=design,icon=👁️,bg=#e8f5e9">
+<title>色盲模擬器 - ToolBox</title>
+<link rel="canonical" href="https://chenguangwu.github.io/zh-hk/tools/design/color-blindness-simulator.html">
+<meta property="og:title" content="色盲模拟器">
+<meta property="og:description" content="输入任意颜色，查看在不同色盲类型下的视觉效果。基于 Brettel/Viénot/Machado 色盲模拟矩阵计算，帮助设计师和开发者进行无障碍色彩设计。">
+<meta property="og:url" content="https://chenguangwu.github.io/zh-hk/tools/design/color-blindness-simulator.html">
+<meta name="twitter:card" content="summary">
+<meta name="description" content="输入任意颜色，查看在不同色盲类型下的视觉效果。基于 Brettel/Viénot/Machado 色盲模拟矩阵计算，帮助设计师和开发者进行无障碍色彩设计。">
+<link rel="preload" as="style" href="/css/common.css" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="/css/common.css"></noscript>
+<script>window.__tbq=window.__tbq||[];window.ToolBox=window.ToolBox||{};['initToolTheme','addToolStyles','showToast','toast','copyText','copyToClipboard','copyFromElement','downloadText','injectPrivacyBadge','toggleFavTool','addToRecentTool','toggleToolTheme','applyTheme'].forEach(function(k){if(typeof window.ToolBox[k]!=='function')window.ToolBox[k]=function(){window.__tbq.push([k,[].slice.call(arguments)]);};});</script><!-- TOOLBOX-API-STUB -->
+<script src="/js/common.js" defer></script>
+<style>
+  .color-input-section {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+  }
+  .color-picker-wrap {
+    position: relative;
+    width: 56px;
+    height: 56px;
+    border-radius: 14px;
+    overflow: hidden;
+    border: 2px solid var(--border);
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: border-color 0.2s;
+  }
+  .color-picker-wrap:hover {
+    border-color: var(--primary);
+  }
+  .color-picker-wrap input[type="color"] {
+    position: absolute;
+    top: -8px;
+    left: -8px;
+    width: calc(100% + 16px);
+    height: calc(100% + 16px);
+    border: none;
+    cursor: pointer;
+    background: none;
+  }
+  .hex-input {
+    flex: 1;
+    min-width: 140px;
+  }
+  .hex-input input {
+    font-family: 'SF Mono', 'Courier New', 'Fira Code', monospace;
+    font-size: 16px;
+    font-weight: 600;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+  .original-preview {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 20px;
+    padding: 14px 16px;
+    background: var(--result-bg);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+  }
+  .original-swatch {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    border: 2px solid var(--border);
+    flex-shrink: 0;
+    transition: background 0.2s;
+  }
+  .original-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .original-label {
+    font-size: 12px;
+    color: var(--text-muted);
+    font-weight: 500;
+  }
+  .original-hex {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--text-primary);
+    font-family: 'SF Mono', 'Courier New', 'Fira Code', monospace;
+  }
+  .original-rgb {
+    font-size: 12px;
+    color: var(--text-secondary);
+    font-family: 'SF Mono', 'Courier New', 'Fira Code', monospace;
+  }
+
+  .sim-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 14px;
+  }
+  .sim-card {
+    background: var(--result-bg);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 14px;
+    cursor: pointer;
+    transition: all 0.25s;
+    user-select: none;
+  }
+  .sim-card:hover {
+    border-color: var(--primary);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow);
+  }
+  .sim-card:active {
+    transform: translateY(0);
+  }
+  .sim-swatch {
+    width: 100%;
+    height: 64px;
+    border-radius: 10px;
+    border: 2px solid var(--border);
+    margin-bottom: 10px;
+    transition: background 0.2s;
+    position: relative;
+    overflow: hidden;
+  }
+  .sim-swatch::after {
+    content: '点击复制';
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0,0,0,0.45);
+    color: #fff;
+    font-size: 12px;
+    font-weight: 600;
+    border-radius: 8px;
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+  .sim-card:hover .sim-swatch::after {
+    opacity: 1;
+  }
+  .sim-name {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--heading);
+    margin-bottom: 4px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .sim-name .type-tag {
+    font-size: 10px;
+    padding: 2px 8px;
+    border-radius: 20px;
+    font-weight: 500;
+  }
+  .tag-anopia {
+    background: rgba(239,68,68,0.1);
+    color: #EF4444;
+  }
+  .tag-anomaly {
+    background: rgba(245,158,11,0.1);
+    color: #F59E0B;
+  }
+  .tag-full {
+    background: rgba(59,130,246,0.1);
+    color: #3B82F6;
+  }
+  .tag-normal {
+    background: rgba(16,185,129,0.1);
+    color: #10B981;
+  }
+  [data-theme="dark"] .tag-anopia { background: rgba(239,68,68,0.15); }
+  [data-theme="dark"] .tag-anomaly { background: rgba(245,158,11,0.15); }
+  [data-theme="dark"] .tag-full { background: rgba(59,130,246,0.15); }
+  [data-theme="dark"] .tag-normal { background: rgba(16,185,129,0.15); }
+  .sim-en {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-bottom: 6px;
+  }
+  .sim-hex-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-family: 'SF Mono', 'Courier New', 'Fira Code', monospace;
+  }
+  .sim-hex-label {
+    font-size: 11px;
+    color: var(--text-muted);
+  }
+  .sim-hex-val {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-primary);
+    letter-spacing: 0.5px;
+  }
+  .sim-diff {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-top: 4px;
+  }
+  .sim-diff-bar {
+    height: 4px;
+    background: var(--border);
+    border-radius: 2px;
+    margin-top: 4px;
+    overflow: hidden;
+  }
+  .sim-diff-fill {
+    height: 100%;
+    border-radius: 2px;
+    transition: width 0.3s ease, background 0.3s ease;
+  }
+
+  @media(max-width:768px) {
+    .sim-grid {
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+    }
+    .sim-swatch {
+      height: 52px;
+    }
+    .sim-card {
+      padding: 10px;
+    }
+    .color-input-section {
+      gap: 10px;
+    }
+  }
+  @media(max-width:400px) {
+    .sim-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
+
+
+
+<meta property="og:image" content="https://chenguangwu.github.io/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="ToolBox - 5000+免费在线工具">
+<meta name="twitter:image" content="https://chenguangwu.github.io/og-image.png">
+<meta name="twitter:image:alt" content="ToolBox - 5000+免费在线工具">
+    <meta property="og:type" content="website">
+    <meta name="twitter:title" content="色盲模拟器">
+    <meta name="twitter:description" content="输入任意颜色，查看在不同色盲类型下的视觉效果。基于 Brettel/Viénot/Machado 色盲模拟矩阵计算，帮助设计师和开发者进行无障碍色彩设计。">
+<!-- TOOLBOX-WEBAPP-LD -->
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"色盲模擬器","url":"https://chenguangwu.github.io/zh-hk/tools/design/color-blindness-simulator.html","applicationCategory":"MultimediaApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":"zh-HK","description":"輸入任意顏色，查看在不同色盲類型下的視覺效果。基於 Brettel/Viénot/Machado 色盲模擬矩陣計算，幫助設計師和開發者進行無障礙色彩設計。","image":"https://chenguangwu.github.io/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}</script>
+<meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
+<meta http-equiv="X-Content-Type-Options" content="nosniff">
+<meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
+<!-- TOOLBOX-SECURITY -->
+
+<script src="/js/privacy.js" defer></script>
+<!-- TOOLBOX-PRIVACY-SCRIPT -->
+
+<script src="/js/metrics.js" defer></script>
+<!-- TOOLBOX-METRICS-SCRIPT -->
+
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"首頁","item":"https://chenguangwu.github.io/zh-hk/"},{"@type":"ListItem","position":2,"name":"設計創意","item":"https://chenguangwu.github.io/zh-hk/tools/design/index.html"},{"@type":"ListItem","position":3,"name":"色盲模擬器","item":"https://chenguangwu.github.io/zh-hk/tools/design/color-blindness-simulator.html"}]}</script>
+
+<script src="/js/i18n.js" defer></script>
+<script src="/js/tool-i18n.js" defer></script>
+<!-- TOOLBOX-I18N-SCRIPT -->
+
+
+<meta name="title-en" content="Color Blindness Simulator - ToolBox">
+<meta name="desc-en" content="Color Blindness Simulator - free online tool. Free online tool on ToolBox — 100% client-side, no data uploaded, no install. Part of the Design &amp; Creativi...">
+<!-- TOOLBOX-HREFLANG -->
+<link rel="alternate" hreflang="zh-CN" href="https://chenguangwu.github.io/tools/design/color-blindness-simulator.html">
+<link rel="alternate" hreflang="zh-TW" href="https://chenguangwu.github.io/zh-tw/tools/design/color-blindness-simulator.html">
+<link rel="alternate" hreflang="zh-HK" href="https://chenguangwu.github.io/zh-hk/tools/design/color-blindness-simulator.html">
+<link rel="alternate" hreflang="en-US" href="https://chenguangwu.github.io/tools/design/color-blindness-simulator.html?lang=en-US">
+<link rel="alternate" hreflang="x-default" href="https://chenguangwu.github.io/tools/design/color-blindness-simulator.html">
+<meta property="og:locale" content="zh_HK">
+<meta property="og:locale:alternate" content="zh_CN">
+<meta property="og:locale:alternate" content="zh_TW">
+<meta property="og:locale:alternate" content="en_US">
+</head>
+<body>
+<h1 class="sr-only">色盲模擬器</h1>
+
+
+<div class="nav">
+  <a href="/zh-hk/index.html">← ToolBox</a>
+  <span>/ 色盲模擬器</span>
+  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()">🌙</button>
+</div>
+
+
+
+
+
+<nav class="breadcrumb" aria-label="麪包屑導航" data-breadcrumb="1">
+  <a href="/zh-hk/index.html">首頁</a>
+  <span class="bc-sep">‹</span>
+  <a href="/zh-hk/tools/design/index.html">🎨 設計創意</a>
+  <span class="bc-sep">‹</span>
+  <span class="bc-current">色盲模擬器</span>
+</nav>
+<div class="container">
+  <div class="card tool-card-accent" style="--tool-accent:#7C3AED;">
+    <h2 data-zh="👁️ 色盲模擬器">👁️ Color Blindness Simulator</h2>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="輸入任意顏色，查看在不同色盲類型下的視覺效果。基於 Brettel/Viénot/Machado 色盲模擬矩陣計算，幫助設計師和開發者進行無障礙色彩設計。">Color Blindness Simulator is available directly in your browser, with no data uploaded.</p>
+
+    <!-- 顏色輸入 -->
+    <div class="color-input-section">
+      <div class="color-picker-wrap">
+        <input type="color" id="colorPicker" value="#FF6B35" oninput="onColorChange(this.value)">
+      </div>
+      <div class="hex-input">
+        <input type="text" id="hexInput" value="#FF6B35" placeholder="#FF6B35" oninput="onHexInput(this.value)" maxlength="7">
+      </div>
+    </div>
+
+    <!-- 原始顏色預覽 -->
+    <div class="original-preview">
+      <div class="original-swatch" id="originalSwatch"></div>
+      <div class="original-info">
+        <span class="original-label">原始顏色</span>
+        <span class="original-hex" id="originalHex">#FF6B35</span>
+        <span class="original-rgb" id="originalRgb">RGB(255, 107, 53)</span>
+      </div>
+    </div>
+
+    <!-- 模擬結果網格 -->
+    <div class="sim-grid" id="simGrid"></div>
+  </div>
+
+  <!-- 工具介紹（SEO） -->
+
+</div>
+
+</div>
+
+<!-- 相關工具 -->
+<div class="related-tools" data-related-tools="1">
+  <h3 class="related-tools-title">🔗 相關工具</h3>
+  <div class="related-tools-grid">
+    <a href="/zh-hk/tools/design/generator-10.html" class="related-tool-card">
+      <span class="rt-icon">🎨</span>
+      <span class="rt-info"><span class="rt-name">CSS動畫生成器（關鍵幀可視化） - 免費在線工具，純前端處理 | ToolBox免費在線工具箱</span><span class="rt-desc">CSS動畫生成器（關鍵幀可視化）</span></span>
+    </a>
+
+    <a href="/zh-hk/tools/design/web-audio-metronome.html" class="related-tool-card">
+      <span class="rt-icon">🎼</span>
+      <span class="rt-info"><span class="rt-name">Web Audio 節拍器 - 免費生成器工具，在線節拍器 | ToolBox免費在線工具箱</span><span class="rt-desc">在線節拍器</span></span>
+    </a>
+    <a href="/zh-hk/tools/design/generator-8.html" class="related-tool-card">
+      <span class="rt-icon">🎨</span>
+      <span class="rt-info"><span class="rt-name">二維碼生成器（已有，可加強定製） - 免費在線工具，純前端處理 | ToolBox免費在線工具箱</span><span class="rt-desc">二維碼生成器（已有，可加強定製）</span></span>
+    </a>
+    <a href="/zh-hk/tools/design/generator-9.html" class="related-tool-card">
+      <span class="rt-icon">🎨</span>
+      <span class="rt-info"><span class="rt-name">條形碼生成器（EAN-13等） - 免費在線工具，純前端處理 | ToolBox免費在線工具箱</span><span class="rt-desc">條形碼生成器（EAN-13等）</span></span>
+    </a>
+    <a href="/zh-hk/tools/design/generator-6.html" class="related-tool-card">
+      <span class="rt-icon">🎨</span>
+      <span class="rt-info"><span class="rt-name">盒子陰影生成器（可視化調整） - 免費在線工具，純前端處理 | ToolBox免費在線工具箱</span><span class="rt-desc">盒子陰影生成器（可視化調整）</span></span>
+    </a>
+  </div>
+</div>
+<div class="tool-intro">
+    <div class="tool-intro-header" onclick="this.parentElement.classList.toggle('open')">
+      <span class="intro-icon-wrap">
+        <span class="intro-icon">👁️</span>
+        關於色盲模擬器
+      </span>
+      <span class="arrow">▼</span>
+    </div>
+    <div class="tool-intro-body">
+      <p>色盲模擬器通過數學矩陣變換，模擬不同類型色覺缺陷者看到的顏色效果，幫助設計師和開發者創建對色盲用户友好的界面設計。</p>
+      <h4><span class="h4-icon">🎯</span> 功能特點</h4>
+      <ul class="intro-features">
+        <li>支持 8 種色盲類型模擬</li>
+        <li>基於 Viénot/Brettel/Machado 學術矩陣</li>
+        <li>實時顏色變換計算</li>
+        <li>一鍵複製模擬後的 HEX 值</li>
+        <li>色差可視化對比</li>
+        <li>完全本地計算，無需上傳</li>
+      </ul>
+      <h4><span class="h4-icon">📋</span> 使用場景</h4>
+      <ul class="intro-scenes">
+        <li>UI 設計無障礙檢查</li>
+        <li>品牌色彩適配評估</li>
+        <li>數據可視化配色驗證</li>
+        <li>圖表與信息圖表設計</li>
+        <li>網頁可訪問性測試</li>
+        <li>教育科普色盲知識</li>
+      </ul>
+      <h4><span class="h4-icon">❓</span> 常見問題</h4>
+      <div class="intro-faq-item">
+        <div class="intro-faq-q">色盲模擬的原理是什麼？</div>
+        <div class="intro-faq-a">通過 3x3 顏色矩陣對 RGB 值進行線性變換，模擬不同類型色覺缺陷者視網膜錐體細胞的缺失或異常響應。弱型（Anomaly）通過將色盲矩陣與單位矩陣做 50% 插值來實現部分缺陷模擬。</div>
+      </div>
+      <div class="intro-faq-item">
+        <div class="intro-faq-q">這些模擬結果準確嗎？</div>
+        <div class="intro-faq-a">模擬結果基於 Viénot、Brettel 和 Machado 等學者的學術研究成果，是當前最廣泛使用的色盲模擬算法。但實際色覺缺陷因人而異，模擬結果僅供設計參考，不能完全代表個體視覺體驗。</div>
+      </div>
+      <div class="intro-faq-item">
+        <div class="intro-faq-q">如何確保設計對色盲友好？</div>
+        <div class="intro-faq-a">建議：1) 不僅依賴顏色傳達信息，同時使用形狀、圖標或文字標註；2) 使用本工具檢查關鍵顏色在不同色盲類型下的可區分性；3) 確保顏色對比度滿足 WCAG 2.1 標準（至少 4.5:1）。</div>
+      </div>
+    </div>
+  </div>
+
+<!-- TOOLBOX-DEEP-DIVE -->
+<style>
+.deep-dive{max-width:960px;margin:16px auto;padding:0 16px;}
+.deep-dive > .card{margin-bottom:0;}
+@media(max-width:600px){.deep-dive{margin:14px auto;padding:0 12px;}}
+.deep-dive .dd-list{margin:8px 0 16px;padding-left:20px;}
+.deep-dive .dd-list li{margin:6px 0;line-height:1.75;}
+.deep-dive .dd-example{background:var(--card-bg,#fff);border:1px solid var(--border,#eee);border-radius:10px;padding:12px 14px;margin:8px 0 16px;}
+.deep-dive .dd-ex-title{font-weight:600;color:var(--tool-accent,#FF6B35);margin-bottom:6px;}
+.deep-dive .dd-ex-body{font-size:13px;line-height:1.85;color:var(--text,#333);word-break:break-word;}
+.deep-dive .dd-faq{margin:8px 0 4px;}
+.deep-dive .dd-faq dt{font-weight:600;margin-top:10px;color:var(--text,#333);}
+.deep-dive .dd-faq dd{margin:4px 0 0;font-size:13px;line-height:1.85;color:var(--text-muted,#666);}
+
+</style>
+<section class="deep-dive" data-deep-dive="1">
+<div class="card">
+<h2>📚 深度解析：色盲模擬器</h2>
+<h3>💡 常見使用場景</h3>
+<ul class="dd-list">
+<li>預覽紅綠/藍黃色盲用户看到的界面效果</li>
+<li>檢查圖表配色對色覺障礙者是否可分辨</li>
+<li>無障礙評審時驗證關鍵信息不靠顏色單一通道</li>
+</ul>
+<div class="dd-example"><div class="dd-ex-title">常見類型</div><div class="dd-ex-body">紅色盲（Protanopia）、綠色盲（Deuteranopia）最常見，約佔男性 8%；藍色盲（Tritanopia）極少。模擬後若紅/綠兩色混淆，應改用形狀或文字標籤輔助區分。</div></div>
+<div class="dd-example"><div class="dd-ex-title">設計建議</div><div class="dd-ex-body">不要只用顏色傳達狀態（如僅用紅綠表示對錯），加圖標或文字；用藍/橙對比比紅/綠對比對色盲更友好。</div></div>
+<h3>❓ 常見問題（FAQ）</h3>
+<dl class="dd-faq">
+<dt>色盲主要哪幾種？</dt><dd>紅綠色盲（紅/綠感受器異常）佔絕大多數，藍黃色盲極少。模擬器通常覆蓋 Protan/Deutan/Tritan 三型。</dd>
+<dt>如何讓圖表對色盲友好？</dt><dd>用不同亮度+形狀/紋理區分系列，避免紅綠配對，標註數值；或用色盲友好的調色板（如藍-橙）。</dd>
+</dl>
+</div>
+</section>
+<!-- 注意事項區塊 -->
+<div class="tool-notes" style="--tool-accent:#7C3AED;">
+  <div class="tool-notes-title">⚠️ 使用説明與注意事項</div>
+  <ul>
+      <li>本工具純前端運行，數據不會上傳到伺服器</li>
+      <li>建議在主流瀏覽器（Chrome/Safari/Firefox/Edge）中使用</li>
+      <li>計算結果僅供參考，請以實際應用場景為準</li>
+  </ul>
+</div>
+<!-- /注意事項區塊 -->
+</div>
+
+<script>
+(function() {
+  'use strict';
+
+  // 色盲模拟矩阵（基于 Viénot 1999 / Brettel 1997 / Machado 2009）
+  // 每个矩阵为 3x3，行 = 输出通道 [R,G,B]，列 = 输入通道 [R,G,B]
+  var MATRICES = {
+    normal: {
+      name: '正常视觉',
+      en: 'Normal Vision',
+      tag: 'normal',
+      tagText: '正常',
+      matrix: [[1,0,0],[0,1,0],[0,0,1]]
+    },
+    protanopia: {
+      name: '红色盲',
+      en: 'Protanopia',
+      tag: 'anopia',
+      tagText: '盲',
+      matrix: [[0.567,0.433,0],[0.558,0.442,0],[0,0.242,0.758]]
+    },
+    deuteranopia: {
+      name: '绿色盲',
+      en: 'Deuteranopia',
+      tag: 'anopia',
+      tagText: '盲',
+      matrix: [[0.625,0.375,0],[0.7,0.3,0],[0,0.3,0.7]]
+    },
+    tritanopia: {
+      name: '蓝色盲',
+      en: 'Tritanopia',
+      tag: 'anopia',
+      tagText: '盲',
+      matrix: [[0.95,0.05,0],[0,0.433,0.567],[0,0.475,0.525]]
+    },
+    protanomaly: {
+      name: '红色弱',
+      en: 'Protanomaly',
+      tag: 'anomaly',
+      tagText: '弱',
+      // 50% 插值：0.5 * identity + 0.5 * protanopia
+      matrix: [[0.7835,0.2165,0],[0.779,0.221,0],[0,0.121,0.879]]
+    },
+    deuteranomaly: {
+      name: '绿色弱',
+      en: 'Deuteranomaly',
+      tag: 'anomaly',
+      tagText: '弱',
+      // 50% 插值：0.5 * identity + 0.5 * deuteranopia
+      matrix: [[0.8125,0.1875,0],[0.85,0.15,0],[0,0.15,0.85]]
+    },
+    tritanomaly: {
+      name: '蓝色弱',
+      en: 'Tritanomaly',
+      tag: 'anomaly',
+      tagText: '弱',
+      // 50% 插值：0.5 * identity + 0.5 * tritanopia
+      matrix: [[0.975,0.025,0],[0,0.7165,0.2835],[0,0.2375,0.7625]]
+    },
+    achromatopsia: {
+      name: '全色盲',
+      en: 'Achromatopsia',
+      tag: 'full',
+      tagText: '全色盲',
+      matrix: [[0.299,0.587,0.114],[0.299,0.587,0.114],[0.299,0.587,0.114]]
+    }
+  };
+
+  var currentHex = '#FF6B35';
+
+  // 解析 HEX 为 RGB
+  function hexToRgb(hex) {
+    hex = hex.replace('#', '');
+    if (hex.length === 3) {
+      hex = hex[0]+hex[0]+hex[1]+hex[1]+hex[2]+hex[2];
+    }
+    if (hex.length !== 6) return null;
+    var r = parseInt(hex.substring(0,2), 16);
+    var g = parseInt(hex.substring(2,4), 16);
+    var b = parseInt(hex.substring(4,6), 16);
+    if (isNaN(r) || isNaN(g) || isNaN(b)) return null;
+    return [r, g, b];
+  }
+
+  // RGB 转 HEX
+  function rgbToHex(r, g, b) {
+    r = Math.round(Math.min(255, Math.max(0, r)));
+    g = Math.round(Math.min(255, Math.max(0, g)));
+    b = Math.round(Math.min(255, Math.max(0, b)));
+    return '#' + [r,g,b].map(function(c){ return c.toString(16).padStart(2,'0'); }).join('').toUpperCase();
+  }
+
+  // 应用色盲矩阵
+  function applyMatrix(rgb, matrix) {
+    var r = rgb[0], g = rgb[1], b = rgb[2];
+    return [
+      matrix[0][0]*r + matrix[0][1]*g + matrix[0][2]*b,
+      matrix[1][0]*r + matrix[1][1]*g + matrix[1][2]*b,
+      matrix[2][0]*r + matrix[2][1]*g + matrix[2][2]*b
+    ];
+  }
+
+  // 计算两个颜色之间的 Euclidean 距离（归一化到 0-100）
+  function colorDistance(rgb1, rgb2) {
+    var dr = rgb1[0] - rgb2[0];
+    var dg = rgb1[1] - rgb2[1];
+    var db = rgb1[2] - rgb2[2];
+    var dist = Math.sqrt(dr*dr + dg*dg + db*db);
+    // 最大距离 = sqrt(255^2 * 3) ≈ 441.67
+    return Math.min(100, (dist / 441.67) * 100);
+  }
+
+  // 获取色差描述
+  function getDiffLabel(dist) {
+    if (dist < 1) return '无变化';
+    if (dist < 5) return '极微差异';
+    if (dist < 15) return '轻微差异';
+    if (dist < 30) return '明显差异';
+    if (dist < 50) return '较大差异';
+    return '巨大差异';
+  }
+
+  // 获取色差条颜色
+  function getDiffColor(dist) {
+    if (dist < 5) return '#10B981';
+    if (dist < 15) return '#F59E0B';
+    if (dist < 30) return '#F97316';
+    return '#EF4444';
+  }
+
+  // 渲染模拟卡片
+  function renderSimCards() {
+    var rgb = hexToRgb(currentHex);
+    if (!rgb) return;
+
+    var grid = document.getElementById('simGrid');
+    var html = '';
+
+    var keys = Object.keys(MATRICES);
+    for (var i = 0; i < keys.length; i++) {
+      var key = keys[i];
+      var info = MATRICES[key];
+      var simRgb = applyMatrix(rgb, info.matrix);
+      var simHex = rgbToHex(simRgb[0], simRgb[1], simRgb[2]);
+      var dist = (key === 'normal') ? 0 : colorDistance(rgb, simRgb);
+      var diffLabel = (key === 'normal') ? '基准色' : getDiffLabel(dist);
+      var diffColor = (key === 'normal') ? 'var(--border)' : getDiffColor(dist);
+      var diffWidth = (key === 'normal') ? 0 : dist;
+
+      html += '<div class="sim-card" onclick="ToolBox.copyText(\'' + simHex + '\', \'已复制 ' + simHex + '\')" title="点击复制 ' + simHex + '">'
+        + '<div class="sim-swatch" style="background:' + simHex + '"></div>'
+        + '<div class="sim-name">'
+        + info.name
+        + ' <span class="type-tag tag-' + info.tag + '">' + info.tagText + '</span>'
+        + '</div>'
+        + '<div class="sim-en">' + info.en + '</div>'
+        + '<div class="sim-hex-row">'
+        + '<span class="sim-hex-label">HEX</span>'
+        + '<span class="sim-hex-val">' + simHex + '</span>'
+        + '</div>'
+        + '<div class="sim-hex-row">'
+        + '<span class="sim-hex-label">RGB</span>'
+        + '<span class="sim-hex-val" style="font-size:11px;">(' + Math.round(simRgb[0]) + ', ' + Math.round(simRgb[1]) + ', ' + Math.round(simRgb[2]) + ')</span>'
+        + '</div>'
+        + '<div class="sim-diff">' + diffLabel + (key !== 'normal' ? ' (' + dist.toFixed(1) + '%)' : '') + '</div>'
+        + '<div class="sim-diff-bar"><div class="sim-diff-fill" style="width:' + diffWidth + '%;background:' + diffColor + ';"></div></div>'
+        + '</div>';
+    }
+
+    grid.innerHTML = html;
+  }
+
+  // 更新原始颜色预览
+  function updateOriginalPreview() {
+    var rgb = hexToRgb(currentHex);
+    if (!rgb) return;
+    document.getElementById('originalSwatch').style.background = currentHex;
+    document.getElementById('originalHex').textContent = currentHex.toUpperCase();
+    document.getElementById('originalRgb').textContent = 'RGB(' + rgb[0] + ', ' + rgb[1] + ', ' + rgb[2] + ')';
+  }
+
+  // 颜色选择器变更
+  window.onColorChange = function(val) {
+    currentHex = val;
+    document.getElementById('hexInput').value = val.toUpperCase();
+    updateOriginalPreview();
+    renderSimCards();
+  };
+
+  // HEX 输入框变更
+  window.onHexInput = function(val) {
+    val = val.trim();
+    if (!val.startsWith('#')) val = '#' + val;
+    var rgb = hexToRgb(val);
+    if (rgb) {
+      currentHex = val;
+      document.getElementById('colorPicker').value = val.length === 7 ? val : rgbToHex(rgb[0],rgb[1],rgb[2]);
+      updateOriginalPreview();
+      renderSimCards();
+    }
+  };
+
+  // 初始化
+  updateOriginalPreview();
+  renderSimCards();
+
+})();
+</script>
+
+<!-- SEO 介紹區塊 -->
+<div class="tool-intro open" id="toolIntro">
+  <div class="tool-intro-header">
+    <span class="intro-icon-wrap"><span class="intro-icon">📖</span>關於「色盲模擬器」</span>
+    <span class="arrow">▼</span>
+  </div>
+  <div class="tool-intro-body">
+    <h4><span class="h4-icon">📝</span>工具簡介</h4>
+    <p>色盲模擬器是一款設計創意領域的在線工具。設計創意工具，可視化操作，一鍵生成 CSS 代碼。</p>
+    <h4><span class="h4-icon">✨</span>功能特點</h4>
+    <ul class="intro-features">
+      <li>可視化操作，所見即所得</li>
+      <li>支持實時預覽與調試</li>
+      <li>一鍵複製 CSS 代碼</li>
+      <li>純前端運行，無需安裝</li>
+    </ul>
+    <h4><span class="h4-icon">🎯</span>使用場景</h4>
+    <ul class="intro-scenes">
+      <li>前端開發中的樣式設計</li>
+      <li>UI 設計師配色與佈局參考</li>
+      <li>快速生成 CSS 效果代碼</li>
+      <li>設計靈感探索與原型製作</li>
+    </ul>
+    <h4><span class="h4-icon">💬</span>常見問題</h4>
+      <div class="intro-faq-item"><div class="intro-faq-q">這個工具是免費的嗎？</div><div class="intro-faq-a">完全免費，無需註冊，直接在瀏覽器中使用。</div></div>
+      <div class="intro-faq-item"><div class="intro-faq-q">生成的代碼可以直接用嗎？</div><div class="intro-faq-a">可以，生成的 CSS 代碼符合標準，可直接複製到項目中使用。</div></div>
+      <div class="intro-faq-item"><div class="intro-faq-q">支持自定義參數嗎？</div><div class="intro-faq-a">支持，提供多種參數調節選項，滿足個性化設計需求。</div></div>
+  </div>
+</div>
+<!-- /SEO 介紹區塊 -->
+
+<script>
+// tool-intro折叠交互
+document.addEventListener('DOMContentLoaded',function(){
+  var headers=document.querySelectorAll('.tool-intro-header');
+  headers.forEach(function(h){
+    h.addEventListener('click',function(){
+      this.parentElement.classList.toggle('open');
+    });
+  });
+});
+</script>
+
+</body>
+</html>

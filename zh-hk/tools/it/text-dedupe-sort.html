@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html lang="zh-HK" data-opencc-locale="zh-hk">
+<head>
+
+<script src="/js/tool-page-runtime.js" defer></script>
+<!-- TOOLBOX-TOOL-RUNTIME -->
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="toolbox" content="cat=text,industry=it,icon=📝,bg=#e0f2f1">
+<meta name="description" content="对文本行进行去重、排序、反转等处理，支持多种分隔符与组合操作，全部在浏览器本地完成。">
+<meta name="keywords" content="文本去重,文本排序,行去重,行排序,自然排序,反转行序,移除空行,行号添加,文本处理工具,在线工具,免费工具,ToolBox">
+<meta name="robots" content="index,follow">
+<link rel="canonical" href="https://chenguangwu.github.io/zh-hk/tools/it/text-dedupe-sort.html">
+<meta property="og:title" content="文本去重排序工具">
+<meta property="og:description" content="对文本行进行去重、排序、反转等处理，支持多种分隔符与组合操作，全部在浏览器本地完成。">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://chenguangwu.github.io/zh-hk/tools/it/text-dedupe-sort.html">
+<meta name="twitter:card" content="summary">
+
+<title>文本去重排序工具 - ToolBox</title>
+<meta name="theme-color" content="#FF6B35">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<link rel="icon" href="/favicon.ico" sizes="16x16 32x32 48x48">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="preload" as="style" href="/css/common.css" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="/css/common.css"></noscript>
+<script>window.__tbq=window.__tbq||[];window.ToolBox=window.ToolBox||{};['initToolTheme','addToolStyles','showToast','toast','copyText','copyToClipboard','copyFromElement','downloadText','injectPrivacyBadge','toggleFavTool','addToRecentTool','toggleToolTheme','applyTheme'].forEach(function(k){if(typeof window.ToolBox[k]!=='function')window.ToolBox[k]=function(){window.__tbq.push([k,[].slice.call(arguments)]);};});</script><!-- TOOLBOX-API-STUB -->
+<script src="/js/common.js" defer></script>
+<style>
+.op-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;margin-bottom:16px;}
+.op-btn{
+  padding:10px 12px;border-radius:10px;border:1px solid var(--border);
+  background:var(--card-bg);color:var(--text);font-size:13px;cursor:pointer;
+  transition:all .2s;text-align:left;display:flex;align-items:center;gap:6px;
+  font-weight:500;line-height:1.3;
+}
+.op-btn:hover{border-color:var(--primary);background:var(--bg-hover);transform:translateY(-1px);box-shadow:var(--shadow-sm);}
+.op-btn .ic{flex-shrink:0;font-size:15px;}
+.op-btn.active{border-color:var(--primary);background:var(--bg-active);color:var(--primary);}
+.opt-row{display:flex;gap:16px;flex-wrap:wrap;align-items:center;margin-bottom:14px;padding:12px 14px;background:var(--result-bg);border:1px solid var(--border);border-radius:12px;}
+.opt-row label{margin:0;font-weight:500;display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px;color:var(--text);}
+.opt-row input[type="checkbox"]{width:auto;accent-color:var(--primary);}
+.opt-row select{width:auto;padding:8px 12px;font-size:13px;flex:0 1 auto;}
+.opt-row .sep-input{width:90px;padding:8px 10px;font-size:13px;flex:0 0 90px;}
+.divider{height:1px;background:var(--border);margin:18px 0;}
+.stats-row{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px;}
+.stat-pill{
+  display:inline-flex;align-items:center;gap:6px;
+  padding:8px 14px;border-radius:999px;font-size:13px;
+  background:var(--result-bg);border:1px solid var(--border);color:var(--text-light);
+}
+.stat-pill .num{font-weight:700;color:var(--primary);font-size:14px;}
+.stat-pill.removed .num{color:var(--danger);}
+.stat-pill.added .num{color:var(--success);}
+.text-block{position:relative;}
+.text-block textarea{min-height:200px;font-size:13px;line-height:1.6;}
+.text-block .block-label{position:absolute;top:8px;right:12px;font-size:11px;color:var(--text-muted);background:var(--card-bg);padding:2px 8px;border-radius:6px;border:1px solid var(--border);pointer-events:none;z-index:1;}
+.clear-btn{position:absolute;top:8px;left:12px;font-size:11px;color:var(--text-muted);background:var(--card-bg);border:1px solid var(--border);border-radius:6px;padding:3px 8px;cursor:pointer;z-index:2;transition:all .2s;}
+.clear-btn:hover{color:var(--danger);border-color:var(--danger);}
+.output-area{min-height:200px;font-size:13px;line-height:1.6;white-space:pre-wrap;word-break:break-all;background:var(--result-bg);border:1px solid var(--border);border-radius:12px;padding:14px;font-family:'SF Mono','Courier New','Fira Code',monospace;overflow:auto;max-height:500px;}
+.output-empty{color:var(--text-muted);text-align:center;padding:60px 20px;font-size:13px;}
+.actions-bar{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;}
+.actions-bar .btn{flex:0 0 auto;}
+.tip-mini{font-size:12px;color:var(--text-muted);margin-top:6px;line-height:1.5;}
+@media(max-width:768px){
+  .op-grid{grid-template-columns:repeat(2,1fr);gap:8px;}
+  .op-btn{justify-content:center;text-align:center;padding:11px 8px;font-size:12.5px;}
+  .stats-row{gap:8px;}
+  .stat-pill{flex:1 1 calc(50% - 4px);justify-content:center;}
+  .text-block textarea{min-height:160px;}
+}
+</style>
+
+
+
+<meta property="og:image" content="https://chenguangwu.github.io/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="ToolBox - 5000+免费在线工具">
+<meta name="twitter:image" content="https://chenguangwu.github.io/og-image.png">
+<meta name="twitter:image:alt" content="ToolBox - 5000+免费在线工具">
+    <meta name="twitter:title" content="文本去重排序工具">
+    <meta name="twitter:description" content="对文本行进行去重、排序、反转等处理，支持多种分隔符与组合操作，全部在浏览器本地完成。">
+<!-- TOOLBOX-WEBAPP-LD -->
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"文本去重排序工具","url":"https://chenguangwu.github.io/zh-hk/tools/it/text-dedupe-sort.html","applicationCategory":"DeveloperApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":"zh-HK","description":"對文本行進行去重、排序、反轉等處理，支持多種分隔符與組合操作，全部在瀏覽器本地完成。","image":"https://chenguangwu.github.io/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}</script>
+<meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
+<meta http-equiv="X-Content-Type-Options" content="nosniff">
+<meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
+<!-- TOOLBOX-SECURITY -->
+
+<script src="/js/privacy.js" defer></script>
+<!-- TOOLBOX-PRIVACY-SCRIPT -->
+
+<script src="/js/metrics.js" defer></script>
+<!-- TOOLBOX-METRICS-SCRIPT -->
+
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"首頁","item":"https://chenguangwu.github.io/zh-hk/"},{"@type":"ListItem","position":2,"name":"IT 開發","item":"https://chenguangwu.github.io/zh-hk/tools/it/index.html"},{"@type":"ListItem","position":3,"name":"文本去重排序工具","item":"https://chenguangwu.github.io/zh-hk/tools/it/text-dedupe-sort.html"}]}</script>
+
+<script src="/js/i18n.js" defer></script>
+<script src="/js/tool-i18n.js" defer></script>
+<!-- TOOLBOX-I18N-SCRIPT -->
+
+
+<meta name="title-en" content="Text Deduplicate Sort - ToolBox">
+<meta name="desc-en" content="Text Deduplicate Sort - free online tool. Free online tool on ToolBox — 100% client-side, no data uploaded, no install. Part of the IT Development tools.">
+<!-- TOOLBOX-HREFLANG -->
+<link rel="alternate" hreflang="zh-CN" href="https://chenguangwu.github.io/tools/it/text-dedupe-sort.html">
+<link rel="alternate" hreflang="zh-TW" href="https://chenguangwu.github.io/zh-tw/tools/it/text-dedupe-sort.html">
+<link rel="alternate" hreflang="zh-HK" href="https://chenguangwu.github.io/zh-hk/tools/it/text-dedupe-sort.html">
+<link rel="alternate" hreflang="en-US" href="https://chenguangwu.github.io/tools/it/text-dedupe-sort.html?lang=en-US">
+<link rel="alternate" hreflang="x-default" href="https://chenguangwu.github.io/tools/it/text-dedupe-sort.html">
+<meta property="og:locale" content="zh_HK">
+<meta property="og:locale:alternate" content="zh_CN">
+<meta property="og:locale:alternate" content="zh_TW">
+<meta property="og:locale:alternate" content="en_US">
+</head>
+<body>
+<h1 class="sr-only">文本去重排序工具</h1>
+
+
+<div class="nav">
+  <a href="/zh-hk/index.html">← ToolBox</a>
+  <span>/ 文本去重排序</span>
+  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()">🌙</button>
+</div>
+
+
+
+
+
+<nav class="breadcrumb" aria-label="麪包屑導航" data-breadcrumb="1">
+  <a href="/zh-hk/index.html">首頁</a>
+  <span class="bc-sep">‹</span>
+  <a href="/zh-hk/tools/it/index.html">💻 IT 開發</a>
+  <span class="bc-sep">‹</span>
+  <span class="bc-current">文本去重排序工具</span>
+</nav>
+<div class="container">
+  <div class="card tool-card-accent" style="--tool-accent:#FF6B35;">
+    <h2 data-zh="📝 文本去重排序工具">📝 Text Deduplicate Sort</h2>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="對文本行進行去重、排序、反轉等處理，支持多種分隔符與組合操作，全部在瀏覽器本地完成。">Text Deduplicate Sort is available directly in your browser, with no data uploaded.</p>
+
+    <!-- 輸入區 -->
+    <div class="text-block">
+      <button type="button" class="clear-btn" onclick="clearInput()">清空</button>
+      <span class="block-label">輸入文本</span>
+      <textarea id="input" placeholder="在此粘贴文本，每行一条…&#10;例如：&#10;apple&#10;banana&#10;apple&#10;file10&#10;file2" oninput="updateStats()"></textarea>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- 操作按鈕 -->
+    <h3 style="margin-bottom:10px;">操作（可組合，按順序執行）</h3>
+    <div class="op-grid">
+      <button type="button" class="op-btn" data-op="dedupe" onclick="applyOp('dedupe',this)"><span class="ic">⚀</span>去重</button>
+      <button type="button" class="op-btn" data-op="sortAsc" onclick="applyOp('sortAsc',this)"><span class="ic">↑</span>升序排序</button>
+      <button type="button" class="op-btn" data-op="sortDesc" onclick="applyOp('sortDesc',this)"><span class="ic">↓</span>降序排序</button>
+      <button type="button" class="op-btn" data-op="sortNatural" onclick="applyOp('sortNatural',this)"><span class="ic">123</span>自然排序</button>
+      <button type="button" class="op-btn" data-op="sortByLen" onclick="applyOp('sortByLen',this)"><span class="ic">↔</span>按長度排序</button>
+      <button type="button" class="op-btn" data-op="reverse" onclick="applyOp('reverse',this)"><span class="ic">⇄</span>反轉行序</button>
+      <button type="button" class="op-btn" data-op="removeEmpty" onclick="applyOp('removeEmpty',this)"><span class="ic">∅</span>移除空行</button>
+      <button type="button" class="op-btn" data-op="trim" onclick="applyOp('trim',this)"><span class="ic">⌐</span>去首尾空白</button>
+      <button type="button" class="op-btn" data-op="addLineNum" onclick="applyOp('addLineNum',this)"><span class="ic">#</span>添加行號</button>
+      <button type="button" class="op-btn" data-op="removeLineNum" onclick="applyOp('removeLineNum',this)"><span class="ic">✕</span>移除行號</button>
+    </div>
+
+    <!-- 選項設置 -->
+    <h3 style="margin-bottom:10px;">選項設置</h3>
+    <div class="opt-row">
+      <label><input type="checkbox" id="caseSensitive" checked> 大小寫敏感（去重）</label>
+      <label><input type="checkbox" id="ignoreWhitespace"> 忽略空白字符（去重）</label>
+      <label style="margin-left:auto;">分隔符：
+        <select id="separator" onchange="onSepChange()">
+          <option value="\n">換行符</option>
+          <option value=",">逗號 (,)</option>
+          <option value=";">分號 (;)</option>
+          <option value="\t">製表符</option>
+          <option value="custom">自定義</option>
+        </select>
+      </label>
+      <input type="text" id="customSep" class="sep-input" placeholder="自定義分隔符" value="" style="display:none;" oninput="renderOutput()">
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- 統計 -->
+    <div class="stats-row">
+      <span class="stat-pill">原始行數：<span class="num" id="statOriginal">0</span></span>
+      <span class="stat-pill">處理後行數：<span class="num" id="statCurrent">0</span></span>
+      <span class="stat-pill removed">去重數量：<span class="num" id="statRemoved">0</span></span>
+    </div>
+
+    <!-- 操作欄 -->
+    <div class="toolbar">
+      <button type="button" class="btn primary" onclick="resetToOriginal()">↺ 恢復原文</button>
+      <button type="button" class="btn" onclick="swapToInput()">⇈ 結果用作輸入</button>
+      <button type="button" class="btn warning" onclick="clearAll()">清空全部</button>
+    </div>
+
+    <!-- 輸出區 -->
+    <div class="text-block" style="margin-top:16px;">
+      <span class="block-label">處理結果</span>
+      <div id="output" class="output-area"><div class="output-empty">處理結果將顯示在此處…<br>點擊上方操作按鈕開始處理</div></div>
+    </div>
+
+    <div class="actions-bar">
+      <button type="button" class="btn success" onclick="copyResult()">📋 複製結果</button>
+      <button type="button" class="btn" onclick="downloadResult()">⬇ 下載結果</button>
+    </div>
+
+    <p class="tip-mini">提示：操作按點擊順序依次執行，可疊加多個操作。點擊「恢復原文」回到初始狀態。</p>
+  </div>
+
+<!-- TOOLBOX-DEEP-DIVE -->
+<style>
+.deep-dive{max-width:960px;margin:16px auto;padding:0 16px;}
+.deep-dive > .card{margin-bottom:0;}
+@media(max-width:600px){.deep-dive{margin:14px auto;padding:0 12px;}}
+.deep-dive .dd-list{margin:8px 0 16px;padding-left:20px;}
+.deep-dive .dd-list li{margin:6px 0;line-height:1.75;}
+.deep-dive .dd-example{background:var(--card-bg,#fff);border:1px solid var(--border,#eee);border-radius:10px;padding:12px 14px;margin:8px 0 16px;}
+.deep-dive .dd-ex-title{font-weight:600;color:var(--tool-accent,#FF6B35);margin-bottom:6px;}
+.deep-dive .dd-ex-body{font-size:13px;line-height:1.85;color:var(--text,#333);word-break:break-word;}
+.deep-dive .dd-faq{margin:8px 0 4px;}
+.deep-dive .dd-faq dt{font-weight:600;margin-top:10px;color:var(--text,#333);}
+.deep-dive .dd-faq dd{margin:4px 0 0;font-size:13px;line-height:1.85;color:var(--text-muted,#666);}
+
+</style>
+<section class="deep-dive" data-deep-dive="1">
+<div class="card">
+<h2>📚 深度解析：文本去重排序工具</h2>
+<h3>💡 常見使用場景</h3>
+<ul class="dd-list">
+<li>當你在it相關場景中需要基於“Text Deduplicate Sort”進行快速計算或校驗時，可先用該工具生成一版標準結果。</li>
+<li>在教學、方案評審、調試聯調時，可用固定樣本快速復現實驗流程，驗證參數選擇是否正確。</li>
+<li>用於將人工操作轉為可複用步驟：先確認輸入類型，再觀察輸出變化，便於排查規則誤差。</li>
+</ul>
+<div class="dd-example"><div class="dd-ex-title">標準化使用示例</div><div class="dd-ex-body">以一組典型輸入為例：先按業務口徑補充必要字段，運行工具並記錄輸出；再對比另一組邊界輸入，檢查工具在異常輸入下是否給出穩定提示，便於快速形成操作 SOP。</div></div>
+<h3>❓ 常見問題（FAQ）</h3>
+<dl class="dd-faq">
+<dt>該工具適用於哪些 it 場景？</dt><dd>只要數據可映射到本工具支持的參數結構，就可用於日常分析、篩選、校驗等流程；多數情況下適合前置評估和結果複核。</dd>
+<dt>結果可信度如何保證？</dt><dd>工具默認按前端可見規則實時計算，不依賴外部服務；如有偏差，建議結合歷史基準值做交叉確認。</dd>
+</dl>
+</div>
+</section>
+<!-- 注意事項區塊 -->
+<div class="tool-notes" style="--tool-accent:#FF6B35;">
+  <div class="tool-notes-title">⚠️ 使用説明與注意事項</div>
+  <ul>
+      <li>本工具純前端運行，數據不會上傳到伺服器</li>
+      <li>建議在主流瀏覽器（Chrome/Safari/Firefox/Edge）中使用</li>
+      <li>計算結果僅供參考，請以實際應用場景為準</li>
+  </ul>
+</div>
+<!-- /注意事項區塊 -->
+</div>
+
+<script>
+(function(){
+  'use strict';
+
+  // 状态
+  var originalLines = [];      // 原始行（首次输入时快照）
+  var currentLines = [];       // 当前处理后的行
+  var hasOriginal = false;     // 是否已建立原始快照
+  var dedupeCount = 0;         // 累计去重数量
+
+  function getSep(){
+    var sel = document.getElementById('separator').value;
+    if(sel === 'custom'){
+      var c = document.getElementById('customSep').value;
+      return c === '' ? '\n' : c;
+    }
+    if(sel === '\\n') return '\n';
+    if(sel === '\\t') return '\t';
+    return sel;
+  }
+
+  function parseInput(){
+    var text = document.getElementById('input').value;
+    var sep = getSep();
+    if(sep === '\n'){
+      return text === '' ? [] : text.split(/\r\n|\r|\n/);
+    }
+    // 自定义/逗号/分号/制表符：按字面分隔符拆分，不保留换行
+    return text === '' ? [] : text.split(sep);
+  }
+
+  function joinLines(lines){
+    var sep = getSep();
+    if(sep === '\n') return lines.join('\n');
+    return lines.join(sep);
+  }
+
+  function snapshotOriginal(){
+    originalLines = parseInput().slice();
+    hasOriginal = true;
+  }
+
+  function updateStats(){
+    var inputLines = parseInput();
+    document.getElementById('statOriginal').textContent = inputLines.length;
+    document.getElementById('statCurrent').textContent = currentLines.length;
+    document.getElementById('statRemoved').textContent = dedupeCount;
+  }
+
+  window.updateStats = updateStats;
+
+  window.onSepChange = function(){
+    var sel = document.getElementById('separator').value;
+    document.getElementById('customSep').style.display = (sel === 'custom') ? '' : 'none';
+    // 分隔符变化时，重新建立快照与当前行
+    snapshotOriginal();
+    currentLines = originalLines.slice();
+    dedupeCount = 0;
+    renderOutput();
+    updateStats();
+  };
+
+  window.clearInput = function(){
+    document.getElementById('input').value = '';
+    originalLines = [];
+    currentLines = [];
+    hasOriginal = false;
+    dedupeCount = 0;
+    renderOutput();
+    updateStats();
+  };
+
+  window.clearAll = function(){
+    if(!confirm('确定清空输入和结果吗？')) return;
+    window.clearInput();
+    ToolBox.showToast(i18nText(), 'info');
+  };
+
+  window.resetToOriginal = function(){
+    if(!hasOriginal || originalLines.length === 0){
+      ToolBox.showToast(i18nText('toast.msg421'), 'info');
+      return;
+    }
+    currentLines = originalLines.slice();
+    dedupeCount = 0;
+    renderOutput();
+    updateStats();
+    ToolBox.showToast(i18nText('toast.msg234'));
+  };
+
+  window.swapToInput = function(){
+    if(currentLines.length === 0){
+      ToolBox.showToast(i18nText('toast.msg430'), 'warning');
+      return;
+    }
+    document.getElementById('input').value = joinLines(currentLines);
+    snapshotOriginal();
+    currentLines = originalLines.slice();
+    dedupeCount = 0;
+    renderOutput();
+    updateStats();
+    ToolBox.showToast(i18nText('toast.msg542'));
+  };
+
+  // 核心操作
+  function makeKey(line){
+    var caseSens = document.getElementById('caseSensitive').checked;
+    var ignoreWs = document.getElementById('ignoreWhitespace').checked;
+    var key = line;
+    if(ignoreWs) key = key.replace(/\s+/g, '');
+    if(!caseSens) key = key.toLowerCase();
+    return key;
+  }
+
+  function dedupe(lines){
+    var seen = {};
+    var result = [];
+    var removed = 0;
+    for(var i = 0; i < lines.length; i++){
+      var key = makeKey(lines[i]);
+      if(seen[key]){ removed++; continue; }
+      seen[key] = true;
+      result.push(lines[i]);
+    }
+    dedupeCount += removed;
+    return result;
+  }
+
+  // 自然排序比较器：file2 < file10
+  var natColl = (function(){
+    try { return new Intl.Collator(undefined, {numeric:true, sensitivity:'base'}); }
+    catch(e){ return null; }
+  })();
+
+  function naturalCompare(a, b){
+    if(natColl) return natColl.compare(a, b);
+    // 兜底实现
+    var ax = [], bx = [];
+    a.replace(/(\d+)|(\D+)/g, function(_, $1, $2){ ax.push([$1 ? 0 : 1, $1 ? parseInt($1,10) : $2]); });
+    b.replace(/(\d+)|(\D+)/g, function(_, $1, $2){ bx.push([$1 ? 0 : 1, $1 ? parseInt($1,10) : $2]); });
+    while(ax.length && bx.length){
+      var an = ax.shift(), bn = bx.shift();
+      var nn = (an[0] - bn[0]) || (an[1] < bn[1] ? -1 : an[1] > bn[1] ? 1 : 0);
+      if(nn) return nn;
+    }
+    return ax.length - bx.length;
+  }
+
+  function sortAsc(lines){ return lines.slice().sort(function(a,b){ return a < b ? -1 : a > b ? 1 : 0; }); }
+  function sortDesc(lines){ return lines.slice().sort(function(a,b){ return a > b ? -1 : a < b ? 1 : 0; }); }
+  function sortNatural(lines){ return lines.slice().sort(naturalCompare); }
+  function sortByLen(lines){ return lines.slice().sort(function(a,b){ return a.length - b.length || (a < b ? -1 : a > b ? 1 : 0); }); }
+  function reverse(lines){ return lines.slice().reverse(); }
+
+  function removeEmpty(lines){
+    return lines.filter(function(l){ return l.trim() !== ''; });
+  }
+
+  function trimLines(lines){
+    return lines.map(function(l){ return l.replace(/^\s+|\s+$/g, ''); });
+  }
+
+  function addLineNum(lines){
+    var pad = String(lines.length).length;
+    return lines.map(function(l, i){ return String(i + 1).padStart(pad, '0') + '. ' + l; });
+  }
+
+  function removeLineNum(lines){
+    return lines.map(function(l){ return l.replace(/^\s*\d+[\.\)、\]:\s]+/, ''); });
+  }
+
+  var OP_LABELS = {
+    dedupe:'去重', sortAsc:'升序排序', sortDesc:'降序排序', sortNatural:'自然排序',
+    sortByLen:'按长度排序', reverse:'反转行序', removeEmpty:'移除空行',
+    trim:'去首尾空白', addLineNum:'添加行号', removeLineNum:'移除行号'
+  };
+
+  window.applyOp = function(op, btn){
+    var inputText = document.getElementById('input').value;
+    if(inputText === '' && currentLines.length === 0){
+      ToolBox.showToast(i18nText('toast.empty_source'), 'warning');
+      return;
+    }
+    // 首次操作时建立原始快照
+    if(!hasOriginal){
+      snapshotOriginal();
+      currentLines = originalLines.slice();
+    }
+
+    var before = currentLines.length;
+    switch(op){
+      case 'dedupe':         currentLines = dedupe(currentLines); break;
+      case 'sortAsc':        currentLines = sortAsc(currentLines); break;
+      case 'sortDesc':       currentLines = sortDesc(currentLines); break;
+      case 'sortNatural':    currentLines = sortNatural(currentLines); break;
+      case 'sortByLen':      currentLines = sortByLen(currentLines); break;
+      case 'reverse':        currentLines = reverse(currentLines); break;
+      case 'removeEmpty':    currentLines = removeEmpty(currentLines); break;
+      case 'trim':           currentLines = trimLines(currentLines); break;
+      case 'addLineNum':     currentLines = addLineNum(currentLines); break;
+      case 'removeLineNum':  currentLines = removeLineNum(currentLines); break;
+    }
+
+    // 按钮高亮闪动反馈
+    if(btn){
+      btn.classList.add('active');
+      setTimeout(function(){ btn.classList.remove('active'); }, 600);
+    }
+
+    renderOutput();
+    updateStats();
+    ToolBox.showToast('已执行：' + OP_LABELS[op]);
+  };
+
+  function renderOutput(){
+    var out = document.getElementById('output');
+    if(currentLines.length === 0){
+      out.innerHTML = '<div class="output-empty">处理结果将显示在此处…<br>点击上方操作按钮开始处理</div>';
+      return;
+    }
+    out.textContent = joinLines(currentLines);
+  }
+  window.renderOutput = renderOutput;
+
+  window.copyResult = function(){
+    if(currentLines.length === 0){
+      ToolBox.showToast(i18nText('toast.copy_target_missing'), 'warning');
+      return;
+    }
+    ToolBox.copyText(joinLines(currentLines), i18nText('msg330'));
+  };
+
+  window.downloadResult = function(){
+    if(currentLines.length === 0){
+      ToolBox.showToast(i18nText('toast.msg429'), 'warning');
+      return;
+    }
+    var ts = new Date();
+    var fname = 'dedupe-sort-' + ts.getFullYear() +
+      String(ts.getMonth()+1).padStart(2,'0') +
+      String(ts.getDate()).padStart(2,'0') + '-' +
+      String(ts.getHours()).padStart(2,'0') +
+      String(ts.getMinutes()).padStart(2,'0') +
+      String(ts.getSeconds()).padStart(2,'0') + '.txt';
+    ToolBox.downloadText(fname, joinLines(currentLines), 'text/plain;charset=utf-8');
+    ToolBox.showToast('已下载：' + fname);
+  };
+
+  // 初始化
+  document.addEventListener('DOMContentLoaded', function(){
+    updateStats();
+  });
+})();
+</script>
+
+
+<!-- SEO 介紹區塊 -->
+
+</div>
+
+</div>
+
+<!-- 相關工具 -->
+<div class="related-tools" data-related-tools="1">
+  <h3 class="related-tools-title">🔗 相關工具</h3>
+  <div class="related-tools-grid">
+    <a href="/zh-hk/tools/it/properties-parser.html" class="related-tool-card">
+      <span class="rt-icon">🔧</span>
+      <span class="rt-info"><span class="rt-name">.properties 解析器 - 免費開發工具，properties 解析器 | ToolBox免費在線工具箱</span><span class="rt-desc">.properties 解析器</span></span>
+    </a>
+    <a href="/zh-hk/tools/it/ast-viewer.html" class="related-tool-card">
+      <span class="rt-icon">🌳</span>
+      <span class="rt-info"><span class="rt-name">AST抽象語法樹查看器 - 在線解析JavaScript代碼生成AST樹形結構，支持節點 | ToolBox免費在線工具箱</span><span class="rt-desc">AST 抽象語法樹查看器</span></span>
+    </a>
+    <a href="/zh-hk/tools/it/css-minifier.html" class="related-tool-card">
+      <span class="rt-icon">🎨</span>
+      <span class="rt-info"><span class="rt-name">CSS 壓縮/美化工具 - 免費開發工具，CSS 壓縮/格式化/美化 | ToolBox免費在線工具箱</span><span class="rt-desc">CSS 壓縮/格式化/美化</span></span>
+    </a>
+    <a href="/zh-hk/tools/it/css-formatter.html" class="related-tool-card">
+      <span class="rt-icon">🔧</span>
+      <span class="rt-info"><span class="rt-name">CSS 格式化 - 免費開發工具，在線CSS 格式化 | ToolBox免費在線工具箱</span><span class="rt-desc">CSS 格式化</span></span>
+    </a>
+    <a href="/zh-hk/tools/it/cron.html" class="related-tool-card">
+      <span class="rt-icon">⏰</span>
+      <span class="rt-info"><span class="rt-name">Cron 表達式生成器 - 免費開發工具，在線Cron 表達式生成器 | ToolBox免費在線工具箱</span><span class="rt-desc">⏰ Cron 表達式生成器</span></span>
+    </a>
+    <a href="/zh-hk/tools/it/graphql-formatter.html" class="related-tool-card">
+      <span class="rt-icon">🔧</span>
+      <span class="rt-info"><span class="rt-name">GraphQL 格式化 - 免費開發工具，在線GraphQL 格式化 | ToolBox免費在線工具箱</span><span class="rt-desc">◈ GraphQL 格式化</span></span>
+    </a>
+  </div>
+</div>
+<div class="tool-intro open" id="toolIntro">
+  <div class="tool-intro-header">
+    <span class="intro-icon-wrap"><span class="intro-icon">📖</span>關於「文本去重排序工具」</span>
+    <span class="arrow">▼</span>
+  </div>
+  <div class="tool-intro-body">
+    <h4><span class="h4-icon">📝</span>工具簡介</h4>
+    <p>文本去重排序工具。專為開發者打造的在線工具，純前端運行，代碼不離開瀏覽器。</p>
+
+      </div>
+</div>
+<!-- /SEO 介紹區塊 -->
+
+<script>
+// tool-intro折叠交互
+document.addEventListener('DOMContentLoaded',function(){
+  var headers=document.querySelectorAll('.tool-intro-header');
+  headers.forEach(function(h){
+    h.addEventListener('click',function(){
+      this.parentElement.classList.toggle('open');
+    });
+  });
+});
+</script>
+
+</body>
+</html>

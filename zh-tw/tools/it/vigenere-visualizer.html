@@ -1,0 +1,692 @@
+<!DOCTYPE html>
+<html lang="zh-TW" data-opencc-locale="zh-tw">
+<head>
+
+<script src="/js/tool-page-runtime.js" defer></script>
+<!-- TOOLBOX-TOOL-RUNTIME -->
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="toolbox" content="cat=encode,industry=it,icon=🔐,bg=#f3e5f5">
+<meta name="description" content="以可视化方阵展示维吉尼亚密码：行对应密钥字母、列对应明文字母，交叉点即密文字母。输入明文与关键词即可逐步演示多表替换加密过程，并给出密文。">
+<meta name="keywords" content="维吉尼亚密码可视化,维吉尼亚密码可视化在线,在线维吉尼亚密码可视化,编码解码,IT开发,维吉尼亚密码,在线工具,免费工具,ToolBox">
+<meta name="robots" content="index,follow">
+<link rel="canonical" href="https://chenguangwu.github.io/zh-tw/tools/it/vigenere-visualizer.html">
+<meta property="og:title" content="维吉尼亚密码">
+<meta property="og:description" content="以可视化方阵展示维吉尼亚密码：行对应密钥字母、列对应明文字母，交叉点即密文字母。输入明文与关键词即可逐步演示多表替换加密过程，并给出密文。">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://chenguangwu.github.io/zh-tw/tools/it/vigenere-visualizer.html">
+<meta name="twitter:card" content="summary">
+
+<title>維吉尼亞密碼 - ToolBox</title>
+<meta name="theme-color" content="#FF6B35">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<link rel="icon" href="/favicon.ico" sizes="16x16 32x32 48x48">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="preload" as="style" href="/css/common.css" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="/css/common.css"></noscript>
+<script>window.__tbq=window.__tbq||[];window.ToolBox=window.ToolBox||{};['initToolTheme','addToolStyles','showToast','toast','copyText','copyToClipboard','copyFromElement','downloadText','injectPrivacyBadge','toggleFavTool','addToRecentTool','toggleToolTheme','applyTheme'].forEach(function(k){if(typeof window.ToolBox[k]!=='function')window.ToolBox[k]=function(){window.__tbq.push([k,[].slice.call(arguments)]);};});</script><!-- TOOLBOX-API-STUB -->
+<script src="/js/common.js" defer></script>
+<style>
+.mode-tabs{display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap;}
+.mode-tabs button{padding:8px 14px;border-radius:8px;border:1px solid var(--border);background:var(--card-bg);cursor:pointer;font-size:13px;flex:1;min-width:80px;}
+.mode-tabs button.active{background:var(--primary);color:#fff;border-color:var(--primary);}
+.viz-table{font-family:'SF Mono','Courier New',monospace;font-size:12px;border-collapse:collapse;min-width:100%;}
+.viz-table th,.viz-table td{padding:4px 6px;border:1px solid var(--border);text-align:center;min-width:24px;}
+.viz-table .key-row{background:var(--th-bg);font-weight:600;}
+.viz-table .plain-row{color:var(--text-muted);}
+.viz-table .cipher-row{background:var(--result-bg);color:var(--primary);font-weight:600;}
+.viz-table .header-cell{background:var(--card-bg);font-weight:600;position:sticky;left:0;z-index:1;}
+.viz-table .highlight{background:var(--primary) !important;color:#fff !important;}
+.viz-table .highlight-col{background:rgba(102,126,234,0.15);}
+.viz-table .highlight-row{background:rgba(102,126,234,0.1);}
+.step-controls{display:flex;gap:8px;align-items:center;margin:12px 0;flex-wrap:wrap;}
+.step-controls button{padding:8px 14px;border-radius:8px;border:1px solid var(--border);background:var(--card-bg);cursor:pointer;font-size:13px;}
+.step-controls button.primary{background:var(--primary);color:#fff;border-color:var(--primary);}
+.step-controls button:disabled{opacity:0.5;cursor:not-allowed;}
+.step-info{padding:10px 14px;background:var(--result-bg);border-radius:8px;margin:10px 0;font-size:13px;line-height:1.8;}
+.step-info .step-num{display:inline-block;background:var(--primary);color:#fff;width:22px;height:22px;border-radius:50%;text-align:center;line-height:22px;font-size:12px;margin-right:8px;font-weight:600;}
+.step-info code{background:var(--card-bg);padding:2px 6px;border-radius:4px;font-family:monospace;font-size:12px;color:var(--primary);}
+.vigenere-table-wrap{overflow-x:auto;max-height:400px;position:relative;}
+.history-item{padding:10px 12px;background:var(--result-bg);border-radius:6px;margin-bottom:6px;display:flex;justify-content:space-between;align-items:center;gap:10px;cursor:pointer;transition:all 0.15s;border:1px solid var(--border);}
+.history-item:hover{border-color:var(--primary);}
+.history-item .info{flex:1;min-width:0;}
+.history-item .meta{font-size:11px;color:var(--text-muted);margin-bottom:4px;}
+.history-item .text{font-family:monospace;font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text-light);}
+.history-item .del-btn{font-size:12px;padding:4px 8px;border-radius:4px;border:none;background:transparent;color:var(--danger);cursor:pointer;}
+.principle-box{background:var(--result-bg);border:1px solid var(--border);border-radius:8px;padding:16px;margin-top:12px;}
+.principle-box h4{font-size:15px;margin-bottom:10px;color:var(--heading);}
+.principle-box p{font-size:13px;color:var(--text-light);line-height:1.8;margin-bottom:8px;}
+.principle-box code{background:var(--card-bg);padding:2px 6px;border-radius:4px;font-family:monospace;font-size:12px;color:var(--primary);}
+.formula-box{background:var(--card-bg);border-left:3px solid var(--primary);padding:12px 16px;margin:10px 0;border-radius:0 6px 6px 0;font-family:monospace;font-size:14px;}
+</style>
+
+
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"維吉尼亞密碼視覺化","description":"維吉尼亞密碼視覺化 - 免費編碼解碼工具，維吉尼亞密碼。","url":"https://chenguangwu.github.io/zh-tw/tools/it/vigenere-visualizer.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Web","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"},"inLanguage":"zh-TW","isAccessibleForFree":true,"browserRequirements":"Requires JavaScript. Requires HTML5.","softwareVersion":"1.0"}</script>
+
+
+
+<meta property="og:image" content="https://chenguangwu.github.io/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="ToolBox - 5000+免费在线工具">
+<meta name="twitter:image" content="https://chenguangwu.github.io/og-image.png">
+<meta name="twitter:image:alt" content="ToolBox - 5000+免费在线工具">
+    <meta name="twitter:title" content="维吉尼亚密码">
+    <meta name="twitter:description" content="以可视化方阵展示维吉尼亚密码：行对应密钥字母、列对应明文字母，交叉点即密文字母。输入明文与关键词即可逐步演示多表替换加密过程，并给出密文。">
+<!-- TOOLBOX-WEBAPP-LD -->
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"維吉尼亞密碼","url":"https://chenguangwu.github.io/zh-tw/tools/it/vigenere-visualizer.html","applicationCategory":"DeveloperApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":"zh-TW","description":"以視覺化方陣展示維吉尼亞密碼：行對應金鑰字母、列對應明文字母，交叉點即密文字母。輸入明文與關鍵詞即可逐步演示多表替換加密過程，並給出密文。","image":"https://chenguangwu.github.io/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}</script>
+<meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
+<meta http-equiv="X-Content-Type-Options" content="nosniff">
+<meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
+<!-- TOOLBOX-SECURITY -->
+
+<script src="/js/privacy.js" defer></script>
+<!-- TOOLBOX-PRIVACY-SCRIPT -->
+
+<script src="/js/metrics.js" defer></script>
+<!-- TOOLBOX-METRICS-SCRIPT -->
+
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"首頁","item":"https://chenguangwu.github.io/zh-tw/"},{"@type":"ListItem","position":2,"name":"IT 開發","item":"https://chenguangwu.github.io/zh-tw/tools/it/index.html"},{"@type":"ListItem","position":3,"name":"維吉尼亞密碼視覺化","item":"https://chenguangwu.github.io/zh-tw/tools/it/vigenere-visualizer.html"}]}</script>
+
+<script src="/js/i18n.js" defer></script>
+<script src="/js/tool-i18n.js" defer></script>
+<!-- TOOLBOX-I18N-SCRIPT -->
+
+
+<meta name="title-en" content="Vigenère Cipher Visualization - ToolBox">
+<meta name="desc-en" content="Vigenère Cipher Visualization - free online tool. Free online tool on ToolBox — 100% client-side, no data uploaded, no install. Part of the IT Development ...">
+<!-- TOOLBOX-HREFLANG -->
+<link rel="alternate" hreflang="zh-CN" href="https://chenguangwu.github.io/tools/it/vigenere-visualizer.html">
+<link rel="alternate" hreflang="zh-TW" href="https://chenguangwu.github.io/zh-tw/tools/it/vigenere-visualizer.html">
+<link rel="alternate" hreflang="zh-HK" href="https://chenguangwu.github.io/zh-hk/tools/it/vigenere-visualizer.html">
+<link rel="alternate" hreflang="en-US" href="https://chenguangwu.github.io/tools/it/vigenere-visualizer.html?lang=en-US">
+<link rel="alternate" hreflang="x-default" href="https://chenguangwu.github.io/tools/it/vigenere-visualizer.html">
+<meta property="og:locale" content="zh_TW">
+<meta property="og:locale:alternate" content="zh_CN">
+<meta property="og:locale:alternate" content="zh_HK">
+<meta property="og:locale:alternate" content="en_US">
+</head>
+<body>
+<h1 class="sr-only">維吉尼亞密碼視覺化</h1>
+
+<div class="nav">
+  <a href="/zh-tw/index.html">← ToolBox</a>
+  <span>/ 維吉尼亞密碼</span>
+  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()">🌙</button>
+</div>
+
+
+
+
+<nav class="breadcrumb" aria-label="麵包屑導航" data-breadcrumb="1">
+  <a href="/zh-tw/index.html">首頁</a>
+  <span class="bc-sep">‹</span>
+  <a href="/zh-tw/tools/it/index.html">💻 IT 開發</a>
+  <span class="bc-sep">‹</span>
+  <span class="bc-current">維吉尼亞密碼視覺化</span>
+</nav>
+<div class="container">
+  <div class="card tool-card-accent" style="--tool-accent:#FF6B35;">
+    <h2 data-zh="🔐 維吉尼亞密碼">🔐 Vigenère Cipher Visualization</h2>
+    <div class="mode-tabs">
+      <button class="active" data-mode="encrypt" onclick="setMode('encrypt')">加密</button>
+      <button data-mode="decrypt" onclick="setMode('decrypt')">解密</button>
+    </div>
+
+    <label>金鑰</label>
+    <input type="text" id="key" value="LEMON" placeholder="字母金鑰" oninput="onKeyChange()">
+
+    <label style="margin-top:12px;" id="inputLabel">明文</label>
+    <textarea id="input" placeholder="输入要加密的明文..." oninput="onInputChange()">ATTACKATDAWN</textarea>
+
+    <label style="margin-top:12px;" id="outputLabel">密文</label>
+    <textarea id="output" readonly style="min-height:80px;background:var(--result-bg);"></textarea>
+
+    <div class="toolbar" style="margin-top:12px;">
+      <button type="button" class="btn primary" onclick="process()">加密/解密</button>
+      <button type="button" class="btn success" onclick="copyResult()">複製結果</button>
+      <button type="button" class="btn" onclick="swapText()">⇄ 交換</button>
+      <button type="button" class="btn" onclick="clearAll()">清空</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>📊 加密過程分步演示</h2>
+    <div class="step-controls">
+      <button onclick="stepPrev()" id="prevBtn">◀ 上一步</button>
+      <button class="primary" onclick="stepNext()" id="nextBtn">下一步 ▶</button>
+      <button onclick="autoPlay()" id="playBtn">▶ 自動播放</button>
+      <button onclick="resetStep()">重置</button>
+      <span style="margin-left:auto;font-size:13px;color:var(--text-muted);">步驟: <span id="stepNum">0</span> / <span id="stepTotal">0</span></span>
+    </div>
+    <div class="step-info" id="stepInfo">點選"下一步"開始分步演示</div>
+    <div class="result-box" style="overflow-x:auto;padding:0;">
+      <table class="viz-table" id="vizTable"></table>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>📖 維吉尼亞方陣</h2>
+    <p style="font-size:13px;color:var(--text-light);margin-bottom:10px;" data-zh="行 = 金鑰字母，列 = 明文字母，交叉點 = 密文字母">Vigenère Cipher Visualization is available directly in your browser, with no data uploaded.</p>
+    <div class="vigenere-table-wrap">
+      <table class="viz-table" id="vigenereTable"></table>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>📚 演算法原理</h2>
+    <div class="principle-box">
+      <h4>什麼是維吉尼亞密碼？</h4>
+      <p>維吉尼亞密碼（Vigenère cipher）是一種多表替換密碼，由法國密碼學家布萊斯·德·維吉尼亞於16世紀完善。它使用一個關鍵詞作為金鑰，對明文的每個字母使用不同的凱撒密碼進行加密。</p>
+
+      <h4 style="margin-top:16px;">加密公式</h4>
+      <div class="formula-box">C<sub>i</sub> = (P<sub>i</sub> + K<sub>i</sub>) mod 26</div>
+      <p>其中 <code>C</code> 是密文，<code>P</code> 是明文，<code>K</code> 是金鑰（迴圈重複）。</p>
+
+      <h4 style="margin-top:16px;">解密公式</h4>
+      <div class="formula-box">P<sub>i</sub> = (C<sub>i</sub> - K<sub>i</sub> + 26) mod 26</div>
+
+      <h4 style="margin-top:16px;">工作原理</h4>
+      <p>1. <strong>選擇金鑰</strong>：例如金鑰為 "LEMON"<br>
+         2. <strong>重複金鑰</strong>：將金鑰重複直到與明文長度相同<br>
+         3. <strong>逐字元加密</strong>：每個明文字母與對應金鑰字母在維吉尼亞方陣中查詢交叉點<br>
+         4. <strong>得到密文</strong>：所有交叉點字母連線起來就是密文</p>
+
+      <h4 style="margin-top:16px;">歷史意義</h4>
+      <p>維吉尼亞密碼曾被認為是"不可破譯的"（法語：le chiffre indéchiffrable），直到19世紀被弗里德里希·卡西斯基和查爾斯·巴貝奇分別破解。它是古典密碼學的巔峰之作。</p>
+
+      <h4 style="margin-top:16px;">安全弱點</h4>
+      <p>• 金鑰重複使用導致週期性<br>
+         • 卡西斯基試驗和重合指數法可確定金鑰長度<br>
+         • 確定金鑰長度後，每一列都是一個凱撒密碼，可通過頻率分析破解</p>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>📋 歷史記錄</h2>
+    <div id="historyList" style="max-height:300px;overflow-y:auto;"></div>
+    <div class="toolbar" style="margin-top:12px;">
+      <button type="button" class="btn danger" onclick="clearHistory()">清空歷史</button>
+    </div>
+  </div>
+
+<!-- TOOLBOX-DEEP-DIVE -->
+<style>
+.deep-dive{max-width:960px;margin:16px auto;padding:0 16px;}
+.deep-dive > .card{margin-bottom:0;}
+@media(max-width:600px){.deep-dive{margin:14px auto;padding:0 12px;}}
+.deep-dive .dd-list{margin:8px 0 16px;padding-left:20px;}
+.deep-dive .dd-list li{margin:6px 0;line-height:1.75;}
+.deep-dive .dd-example{background:var(--card-bg,#fff);border:1px solid var(--border,#eee);border-radius:10px;padding:12px 14px;margin:8px 0 16px;}
+.deep-dive .dd-ex-title{font-weight:600;color:var(--tool-accent,#FF6B35);margin-bottom:6px;}
+.deep-dive .dd-ex-body{font-size:13px;line-height:1.85;color:var(--text,#333);word-break:break-word;}
+.deep-dive .dd-faq{margin:8px 0 4px;}
+.deep-dive .dd-faq dt{font-weight:600;margin-top:10px;color:var(--text,#333);}
+.deep-dive .dd-faq dd{margin:4px 0 0;font-size:13px;line-height:1.85;color:var(--text-muted,#666);}
+
+</style>
+<section class="deep-dive" data-deep-dive="1">
+<div class="card">
+<h2>📚 深度解析：維吉尼亞密碼</h2>
+<h3>💡 常見使用場景</h3>
+<ul class="dd-list">
+<li>當你在it相關場景中需要基於“Vigenère Cipher Visualization”進行快速計算或校驗時，可先用該工具生成一版標準結果。</li>
+<li>在教學、方案評審、除錯聯調時，可用固定樣本快速復現實驗流程，驗證引數選擇是否正確。</li>
+<li>用於將人工操作轉為可複用步驟：先確認輸入型別，再觀察輸出變化，便於排查規則誤差。</li>
+</ul>
+<div class="dd-example"><div class="dd-ex-title">標準化使用示例</div><div class="dd-ex-body">以一組典型輸入為例：先按業務口徑補充必要欄位，執行工具並記錄輸出；再對比另一組邊界輸入，檢查工具在異常輸入下是否給出穩定提示，便於快速形成操作 SOP。</div></div>
+<h3>❓ 常見問題（FAQ）</h3>
+<dl class="dd-faq">
+<dt>該工具適用於哪些 it 場景？</dt><dd>只要資料可對映到本工具支援的引數結構，就可用於日常分析、篩選、校驗等流程；多數情況下適合前置評估和結果複核。</dd>
+<dt>結果可信度如何保證？</dt><dd>工具預設按前端可見規則即時計算，不依賴外部服務；如有偏差，建議結合歷史基準值做交叉確認。</dd>
+</dl>
+</div>
+</section>
+<!-- 注意事項區塊 -->
+<div class="tool-notes" style="--tool-accent:#FF6B35;">
+  <div class="tool-notes-title">⚠️ 使用說明與注意事項</div>
+  <ul>
+      <li>本工具純前端執行，資料不會上傳到伺服器</li>
+      <li>建議在主流瀏覽器（Chrome/Safari/Firefox/Edge）中使用</li>
+      <li>計算結果僅供參考，請以實際應用場景為準</li>
+  </ul>
+</div>
+<!-- /注意事項區塊 -->
+</div>
+<script>
+let currentMode = 'encrypt';
+let currentStep = 0;
+let totalSteps = 0;
+let steps = [];
+let autoPlaying = false;
+let autoPlayTimer = null;
+const HISTORY_KEY = 'vigenere_history';
+const MAX_HISTORY = 20;
+
+function setMode(mode){
+  currentMode = mode;
+  document.querySelectorAll('.mode-tabs button').forEach(b => {
+    b.classList.toggle('active', b.dataset.mode === mode);
+  });
+  document.getElementById('inputLabel').textContent = mode === 'encrypt' ? '明文' : '密文';
+  document.getElementById('outputLabel').textContent = mode === 'encrypt' ? '密文' : '明文';
+  process();
+}
+
+function onKeyChange(){
+  process();
+}
+
+function onInputChange(){
+  process();
+}
+
+function vigenere(text, key, encrypt){
+  key = (key || 'A').toUpperCase().replace(/[^A-Z]/g, '');
+  if(!key) key = 'A';
+  let ki = 0, out = '', stepData = [];
+  let plainArr = [], keyArr = [], cipherArr = [];
+
+  for(const ch of text){
+    if(ch >= 'A' && ch <= 'Z'){
+      const k = key.charCodeAt(ki % key.length) - 65;
+      const p = ch.charCodeAt(0) - 65;
+      const c = encrypt ? (p + k) % 26 : (p - k + 26) % 26;
+      const result = String.fromCharCode(c + 65);
+      out += result;
+      stepData.push({
+        index: ki,
+        plain: ch,
+        key: key[ki % key.length],
+        cipher: result,
+        keyIdx: k,
+        plainIdx: p,
+        cipherIdx: c
+      });
+      plainArr.push(ch);
+      keyArr.push(key[ki % key.length]);
+      cipherArr.push(result);
+      ki++;
+    } else if(ch >= 'a' && ch <= 'z'){
+      const k = key.charCodeAt(ki % key.length) - 65;
+      const p = ch.charCodeAt(0) - 97;
+      const c = encrypt ? (p + k) % 26 : (p - k + 26) % 26;
+      const result = String.fromCharCode(c + 97);
+      out += result;
+      stepData.push({
+        index: ki,
+        plain: ch.toUpperCase(),
+        key: key[ki % key.length],
+        cipher: result.toUpperCase(),
+        keyIdx: k,
+        plainIdx: p,
+        cipherIdx: c
+      });
+      plainArr.push(ch.toUpperCase());
+      keyArr.push(key[ki % key.length]);
+      cipherArr.push(result.toUpperCase());
+      ki++;
+    } else {
+      out += ch;
+      plainArr.push(ch);
+      keyArr.push(' ');
+      cipherArr.push(ch);
+    }
+  }
+
+  return {result: out, steps: stepData, plainArr, keyArr, cipherArr};
+}
+
+function process(){
+  const text = document.getElementById('input').value;
+  const key = document.getElementById('key').value;
+  const encrypt = currentMode === 'encrypt';
+
+  const {result, steps: s, plainArr, keyArr, cipherArr} = vigenere(text, key, encrypt);
+  steps = s;
+  totalSteps = steps.length;
+
+  document.getElementById('output').value = result;
+  document.getElementById('stepTotal').textContent = totalSteps;
+
+  renderVizTable(plainArr, keyArr, cipherArr, -1);
+  resetStep();
+
+  if(text && result){
+    saveHistory(text, result, key, currentMode);
+  }
+}
+
+function renderVizTable(plainArr, keyArr, cipherArr, highlightIdx){
+  let html = '<tr><td class="header-cell">明文</td>';
+  for(let i = 0; i < plainArr.length; i++){
+    const cls = i === highlightIdx ? 'plain-row highlight' : 'plain-row';
+    html += `<td class="${cls}">${plainArr[i] || ' '}</td>`;
+  }
+  html += '</tr><tr><td class="header-cell">密钥</td>';
+  for(let i = 0; i < keyArr.length; i++){
+    const cls = i === highlightIdx ? 'key-row highlight' : 'key-row';
+    html += `<td class="${cls}">${keyArr[i] || ' '}</td>`;
+  }
+  html += '</tr><tr><td class="header-cell">密文</td>';
+  for(let i = 0; i < cipherArr.length; i++){
+    const cls = i === highlightIdx ? 'cipher-row highlight' : 'cipher-row';
+    html += `<td class="${cls}">${cipherArr[i] || ' '}</td>`;
+  }
+  html += '</tr>';
+  document.getElementById('vizTable').innerHTML = html;
+}
+
+function stepNext(){
+  if(currentStep >= totalSteps) return;
+  currentStep++;
+  updateStepDisplay();
+}
+
+function stepPrev(){
+  if(currentStep <= 0) return;
+  currentStep--;
+  updateStepDisplay();
+}
+
+function updateStepDisplay(){
+  document.getElementById('stepNum').textContent = currentStep;
+
+  const text = document.getElementById('input').value;
+  const key = document.getElementById('key').value;
+  const encrypt = currentMode === 'encrypt';
+  const {plainArr, keyArr, cipherArr} = vigenere(text, key, encrypt);
+
+  let highlightIdx = -1;
+  if(currentStep > 0){
+    const step = steps[currentStep - 1];
+    highlightIdx = findHighlightIndex(plainArr, step.index);
+
+    const info = document.getElementById('stepInfo');
+    const opName = encrypt ? '加密' : '解密';
+    const formula = encrypt
+      ? `(${step.plainIdx} + ${step.keyIdx}) mod 26 = ${step.cipherIdx}`
+      : `(${step.cipherIdx} - ${step.keyIdx} + 26) mod 26 = ${step.plainIdx}`;
+    info.innerHTML = `
+      <span class="step-num">${currentStep}</span>
+      ${opName}第 ${currentStep} 个字符：<br>
+      明文字母: <code>${step.plain}</code> (位置 ${step.plainIdx})，
+      密钥字母: <code>${step.key}</code> (位置 ${step.keyIdx})<br>
+      ${formula} → 结果: <code>${step.cipher}</code> (位置 ${step.cipherIdx})
+    `;
+  } else {
+    document.getElementById('stepInfo').textContent = '点击"下一步"开始分步演示';
+  }
+
+  renderVizTable(plainArr, keyArr, cipherArr, highlightIdx);
+  highlightVigenereTable(currentStep > 0 ? steps[currentStep - 1] : null);
+
+  document.getElementById('prevBtn').disabled = currentStep <= 0;
+  document.getElementById('nextBtn').disabled = currentStep >= totalSteps;
+}
+
+function findHighlightIndex(plainArr, stepIdx){
+  let alphaCount = 0;
+  for(let i = 0; i < plainArr.length; i++){
+    if(/[A-Za-z]/.test(plainArr[i])){
+      if(alphaCount === stepIdx) return i;
+      alphaCount++;
+    }
+  }
+  return -1;
+}
+
+function resetStep(){
+  currentStep = 0;
+  stopAutoPlay();
+  updateStepDisplay();
+}
+
+function autoPlay(){
+  if(autoPlaying){
+    stopAutoPlay();
+    return;
+  }
+  if(currentStep >= totalSteps) currentStep = 0;
+  autoPlaying = true;
+  document.getElementById('playBtn').textContent = '⏸ 暂停';
+  autoPlayTimer = setInterval(() => {
+    if(currentStep >= totalSteps){
+      stopAutoPlay();
+      return;
+    }
+    stepNext();
+  }, 800);
+}
+
+function stopAutoPlay(){
+  autoPlaying = false;
+  if(autoPlayTimer){
+    clearInterval(autoPlayTimer);
+    autoPlayTimer = null;
+  }
+  document.getElementById('playBtn').textContent = '▶ 自动播放';
+}
+
+function renderVigenereTable(){
+  let html = '<thead><tr><th></th>';
+  for(let i = 0; i < 26; i++){
+    html += `<th id="col-${i}">${String.fromCharCode(65+i)}</th>`;
+  }
+  html += '</tr></thead><tbody>';
+  for(let i = 0; i < 26; i++){
+    html += `<tr id="row-${i}"><th>${String.fromCharCode(65+i)}</th>`;
+    for(let j = 0; j < 26; j++){
+      html += `<td id="cell-${i}-${j}">${String.fromCharCode((i+j)%26+65)}</td>`;
+    }
+    html += '</tr>';
+  }
+  html += '</tbody>';
+  document.getElementById('vigenereTable').innerHTML = html;
+}
+
+function highlightVigenereTable(step){
+  for(let i = 0; i < 26; i++){
+    const row = document.getElementById(`row-${i}`);
+    const col = document.getElementById(`col-${i}`);
+    if(row) row.classList.remove('highlight-row');
+    if(col) col.classList.remove('highlight-col');
+    for(let j = 0; j < 26; j++){
+      const cell = document.getElementById(`cell-${i}-${j}`);
+      if(cell) cell.classList.remove('highlight');
+    }
+  }
+
+  if(step){
+    const rowIdx = currentMode === 'encrypt' ? step.keyIdx : step.cipherIdx;
+    const colIdx = currentMode === 'encrypt' ? step.plainIdx : step.keyIdx;
+
+    const row = document.getElementById(`row-${rowIdx}`);
+    const col = document.getElementById(`col-${colIdx}`);
+    if(row) row.classList.add('highlight-row');
+    if(col) col.classList.add('highlight-col');
+
+    const cell = document.getElementById(`cell-${rowIdx}-${colIdx}`);
+    if(cell) cell.classList.add('highlight');
+
+    const tableWrap = document.querySelector('.vigenere-table-wrap');
+    if(cell && tableWrap){
+      const cellRect = cell.getBoundingClientRect();
+      const wrapRect = tableWrap.getBoundingClientRect();
+      if(cellRect.right > wrapRect.right || cellRect.left < wrapRect.left){
+        cell.scrollIntoView({behavior: 'smooth', block: 'nearest', inline: 'center'});
+      }
+    }
+  }
+}
+
+function copyResult(){
+  const text = document.getElementById('output').value;
+  if(!text){ showToast(i18nText('toast.copy_target_missing')); return; }
+  navigator.clipboard.writeText(text).then(() => showToast(i18nText('tool.copy_ok')));
+}
+
+function swapText(){
+  const input = document.getElementById('input');
+  const output = document.getElementById('output');
+  const temp = input.value;
+  input.value = output.value;
+  output.value = temp;
+  setMode(currentMode === 'encrypt' ? 'decrypt' : 'encrypt');
+}
+
+function clearAll(){
+  document.getElementById('input').value = '';
+  document.getElementById('output').value = '';
+  steps = [];
+  totalSteps = 0;
+  resetStep();
+  document.getElementById('vizTable').innerHTML = '';
+}
+
+function escapeHtml(text){
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
+}
+
+function saveHistory(input, output, key, mode){
+  if(!input || !output) return;
+  let history = getHistory();
+  const item = {
+    input: input.substring(0, 200),
+    output: output.substring(0, 200),
+    key: key.substring(0, 50),
+    mode,
+    time: Date.now()
+  };
+  history.unshift(item);
+  if(history.length > MAX_HISTORY) history = history.slice(0, MAX_HISTORY);
+  localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
+  renderHistory();
+}
+
+function getHistory(){
+  try{
+    return JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]');
+  }catch(e){
+    return [];
+  }
+}
+
+function renderHistory(){
+  const history = getHistory();
+  const list = document.getElementById('historyList');
+  if(history.length === 0){
+    list.innerHTML = '<p style="color:var(--text-muted);text-align:center;padding:20px;font-size:13px;">暂无历史记录</p>';
+    return;
+  }
+  list.innerHTML = history.map((item, idx) => {
+    const modeText = item.mode === 'encrypt' ? '加密' : '解密';
+    const time = new Date(item.time).toLocaleString('zh-CN', {month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'});
+    return `
+      <div class="history-item" onclick="loadHistory(${idx})">
+        <div class="info">
+          <div class="meta">密钥: ${escapeHtml(item.key)} · ${modeText} · ${time}</div>
+          <div class="text">${escapeHtml(item.input.substring(0, 50))}</div>
+        </div>
+        <button type="button" class="del-btn" onclick="event.stopPropagation();deleteHistory(${idx})">删除</button>
+      </div>
+    `;
+  }).join('');
+}
+
+function loadHistory(idx){
+  const history = getHistory();
+  if(history[idx]){
+    document.getElementById('input').value = history[idx].input;
+    document.getElementById('key').value = history[idx].key;
+    setMode(history[idx].mode);
+  }
+}
+
+function deleteHistory(idx){
+  let history = getHistory();
+  history.splice(idx, 1);
+  localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
+  renderHistory();
+}
+
+function clearHistory(){
+  if(!confirm('确定清空所有历史记录吗？')) return;
+  localStorage.removeItem(HISTORY_KEY);
+  renderHistory();
+}
+
+function showToast(msg){
+  if(window.ToolBox && ToolBox.toast){
+    ToolBox.toast(msg);
+  } else {
+    alert(msg);
+  }
+}
+
+renderVigenereTable();
+renderHistory();
+process();
+</script><script>
+// tool-intro折叠交互
+document.addEventListener('DOMContentLoaded',function(){
+  var headers=document.querySelectorAll('.tool-intro-header');
+  headers.forEach(function(h){
+    h.addEventListener('click',function(){
+      this.parentElement.classList.toggle('open');
+    });
+  });
+});
+</script>
+<!-- SEO 介紹區塊 -->
+
+</div>
+
+</div>
+
+<!-- 相關工具 -->
+<div class="related-tools" data-related-tools="1">
+  <h3 class="related-tools-title">🔗 相關工具</h3>
+  <div class="related-tools-grid">
+    <a href="/zh-tw/tools/it/properties-parser.html" class="related-tool-card">
+      <span class="rt-icon">🔧</span>
+      <span class="rt-info"><span class="rt-name">.properties 解析器 - 免費開發工具，properties 解析器 | ToolBox免費線上工具箱</span><span class="rt-desc">.properties 解析器</span></span>
+    </a>
+    <a href="/zh-tw/tools/it/ast-viewer.html" class="related-tool-card">
+      <span class="rt-icon">🌳</span>
+      <span class="rt-info"><span class="rt-name">AST抽象語法樹檢視器 - 線上解析JavaScript程式碼生成AST樹形結構，支援節點 | ToolBox免費線上工具箱</span><span class="rt-desc">AST 抽象語法樹檢視器</span></span>
+    </a>
+    <a href="/zh-tw/tools/it/css-minifier.html" class="related-tool-card">
+      <span class="rt-icon">🎨</span>
+      <span class="rt-info"><span class="rt-name">CSS 壓縮/美化工具 - 免費開發工具，CSS 壓縮/格式化/美化 | ToolBox免費線上工具箱</span><span class="rt-desc">CSS 壓縮/格式化/美化</span></span>
+    </a>
+    <a href="/zh-tw/tools/it/css-formatter.html" class="related-tool-card">
+      <span class="rt-icon">🔧</span>
+      <span class="rt-info"><span class="rt-name">CSS 格式化 - 免費開發工具，線上CSS 格式化 | ToolBox免費線上工具箱</span><span class="rt-desc">CSS 格式化</span></span>
+    </a>
+    <a href="/zh-tw/tools/it/cron.html" class="related-tool-card">
+      <span class="rt-icon">⏰</span>
+      <span class="rt-info"><span class="rt-name">Cron 表示式生成器 - 免費開發工具，線上Cron 表示式生成器 | ToolBox免費線上工具箱</span><span class="rt-desc">⏰ Cron 表示式生成器</span></span>
+    </a>
+    <a href="/zh-tw/tools/it/graphql-formatter.html" class="related-tool-card">
+      <span class="rt-icon">🔧</span>
+      <span class="rt-info"><span class="rt-name">GraphQL 格式化 - 免費開發工具，線上GraphQL 格式化 | ToolBox免費線上工具箱</span><span class="rt-desc">◈ GraphQL 格式化</span></span>
+    </a>
+  </div>
+</div>
+<div class="tool-intro open" id="toolIntro">
+  <div class="tool-intro-header">
+    <span class="intro-icon-wrap"><span class="intro-icon">📖</span>關於「維吉尼亞密碼視覺化」</span>
+    <span class="arrow">▼</span>
+  </div>
+  <div class="tool-intro-body">
+    <h4><span class="h4-icon">📝</span>工具簡介</h4>
+    <p>維吉尼亞密碼視覺化。專為開發者打造的線上工具，純前端執行，程式碼不離開瀏覽器。</p>
+
+      </div>
+</div>
+<!-- /SEO 介紹區塊 -->
+</body>
+</html>

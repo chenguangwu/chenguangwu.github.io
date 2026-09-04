@@ -1,0 +1,823 @@
+<!DOCTYPE html>
+<html lang="zh-TW" data-opencc-locale="zh-tw">
+<head>
+
+<script src="/js/tool-page-runtime.js" defer></script>
+<!-- TOOLBOX-TOOL-RUNTIME -->
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="toolbox" content="cat=dev,industry=it,icon=🌳,bg=#e3f2fd">
+<meta name="description" content="在线 AST 查看器，用 acorn 解析 JavaScript 源码为抽象语法树并可视化展开节点，帮助理解代码结构，支持折叠与定位，纯前端。">
+<meta name="keywords" content="AST查看器,抽象语法树,AST解析,JavaScript AST,acorn,代码分析,AST树,开发工具,在线工具">
+<meta name="robots" content="index,follow">
+<link rel="canonical" href="https://chenguangwu.github.io/zh-tw/tools/it/ast-viewer.html">
+<title>AST 抽象語法樹檢視器 - ToolBox</title>
+<meta property="og:title" content="AST 抽象语法树查看器">
+<meta property="og:description" content="在线 AST 查看器，用 acorn 解析 JavaScript 源码为抽象语法树并可视化展开节点，帮助理解代码结构，支持折叠与定位，纯前端。">
+<meta property="og:url" content="https://chenguangwu.github.io/zh-tw/tools/it/ast-viewer.html">
+<meta name="twitter:card" content="summary">
+<meta name="theme-color" content="#FF6B35">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<link rel="preload" as="style" href="/css/common.css" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="/css/common.css"></noscript>
+<script>window.__tbq=window.__tbq||[];window.ToolBox=window.ToolBox||{};['initToolTheme','addToolStyles','showToast','toast','copyText','copyToClipboard','copyFromElement','downloadText','injectPrivacyBadge','toggleFavTool','addToRecentTool','toggleToolTheme','applyTheme'].forEach(function(k){if(typeof window.ToolBox[k]!=='function')window.ToolBox[k]=function(){window.__tbq.push([k,[].slice.call(arguments)]);};});</script><!-- TOOLBOX-API-STUB -->
+<script src="/js/common.js" defer></script>
+<script src="https://cdn.jsdelivr.net/npm/acorn@8/dist/acorn.min.js"></script>
+<style>
+  /* 解析选项区 */
+  .ast-options{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:12px;}
+  .ast-options .opt-item label{margin-bottom:4px;}
+  .ast-options select{padding:9px 12px;font-size:13px;}
+  .ast-checkbox-row{display:flex;align-items:center;gap:18px;flex-wrap:wrap;margin-bottom:12px;}
+  .ast-checkbox-row label{display:flex;align-items:center;gap:6px;cursor:pointer;font-weight:500;margin:0;font-size:13px;color:var(--text-secondary);}
+  .ast-checkbox-row input[type="checkbox"]{width:auto;accent-color:var(--primary);}
+
+  /* 视图切换标签 */
+  .view-tabs{display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap;}
+  .view-tab{padding:8px 18px;border-radius:10px;border:1px solid var(--border);background:var(--card-bg);color:var(--text-secondary);cursor:pointer;font-size:13px;font-weight:500;transition:all 0.2s;}
+  .view-tab:hover{color:var(--primary);border-color:var(--primary);}
+  .view-tab.active{color:#fff;background:var(--gradient-primary);border-color:transparent;}
+  .view-pane{display:none;}
+  .view-pane.active{display:block;}
+
+  /* AST 树形视图 */
+  .ast-tree{background:var(--result-bg);border:1px solid var(--border);border-radius:12px;padding:14px;font-family:'SF Mono','Fira Code','Courier New',monospace;font-size:12.5px;line-height:1.7;max-height:560px;overflow:auto;}
+  .ast-tree-empty{text-align:center;color:var(--text-muted);padding:40px 20px;font-size:14px;font-family:inherit;}
+  .ast-node{position:relative;}
+  .ast-children{margin-left:20px;border-left:1px dashed var(--border);padding-left:10px;margin-top:2px;}
+  .ast-node.collapsed > .ast-children{display:none;}
+  .ast-node-header{display:flex;align-items:center;flex-wrap:wrap;gap:6px;cursor:pointer;padding:3px 6px;border-radius:6px;transition:background 0.15s;}
+  .ast-node-header:hover{background:var(--bg-hover);}
+  .ast-node.selected > .ast-node-header{background:var(--bg-active);box-shadow:inset 2px 0 0 var(--primary);}
+  .ast-toggle{display:inline-block;width:14px;text-align:center;color:var(--text-muted);user-select:none;flex-shrink:0;font-size:10px;}
+  .ast-node.leaf > .ast-node-header .ast-toggle{visibility:hidden;}
+  .ast-type-tag{display:inline-block;padding:2px 8px;border-radius:6px;font-weight:600;font-size:11.5px;letter-spacing:0.2px;white-space:nowrap;}
+  .ast-decl{color:#2563EB;background:rgba(59,130,246,0.12);}
+  .ast-expr{color:#059669;background:rgba(16,185,129,0.12);}
+  .ast-stmt{color:#D97706;background:rgba(245,158,11,0.12);}
+  .ast-lit{color:#7C3AED;background:rgba(124,58,237,0.12);}
+  .ast-other{color:#6B7280;background:rgba(107,114,128,0.12);}
+  [data-theme="dark"] .ast-decl{color:#60A5FA;background:rgba(59,130,246,0.18);}
+  [data-theme="dark"] .ast-expr{color:#34D399;background:rgba(16,185,129,0.18);}
+  [data-theme="dark"] .ast-stmt{color:#FBBF24;background:rgba(245,158,11,0.18);}
+  [data-theme="dark"] .ast-lit{color:#A78BFA;background:rgba(124,58,237,0.18);}
+  [data-theme="dark"] .ast-other{color:#9CA3AF;background:rgba(156,163,175,0.18);}
+  .ast-attr{font-size:12px;color:var(--text-secondary);}
+  .ast-attr-key{color:var(--text-muted);}
+  .ast-attr-val{color:var(--text);font-weight:500;}
+  .ast-attr-val.str{color:#059669;}
+  .ast-attr-val.bool{color:#7C3AED;}
+  .ast-attr-val.num{color:#D97706;}
+  [data-theme="dark"] .ast-attr-val.str{color:#34D399;}
+  [data-theme="dark"] .ast-attr-val.bool{color:#A78BFA;}
+  [data-theme="dark"] .ast-attr-val.num{color:#FBBF24;}
+  .ast-pos{font-size:11px;color:var(--text-muted);background:var(--card-bg);padding:1px 6px;border-radius:5px;border:1px solid var(--border);}
+  .ast-key{display:inline-block;color:var(--text-muted);font-size:11.5px;margin-right:4px;}
+  .ast-key::before{content:'';}
+  .ast-empty{color:var(--text-muted);font-style:italic;font-size:11.5px;}
+
+  /* JSON 视图 */
+  .ast-json{background:var(--result-bg);border:1px solid var(--border);border-radius:12px;padding:14px;font-family:'SF Mono','Fira Code','Courier New',monospace;font-size:12px;line-height:1.6;max-height:560px;overflow:auto;white-space:pre;}
+  .ast-json .jk{color:#2563EB;}
+  .ast-json .js{color:#059669;}
+  .ast-json .jn{color:#D97706;}
+  .ast-json .jb{color:#7C3AED;}
+  .ast-json .jnull{color:var(--text-muted);font-style:italic;}
+  [data-theme="dark"] .ast-json .jk{color:#60A5FA;}
+  [data-theme="dark"] .ast-json .js{color:#34D399;}
+  [data-theme="dark"] .ast-json .jn{color:#FBBF24;}
+  [data-theme="dark"] .ast-json .jb{color:#A78BFA;}
+
+  /* 统计区 */
+  .stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin-bottom:16px;}
+  .stat-card{background:var(--result-bg);border:1px solid var(--border);border-radius:12px;padding:14px;text-align:center;}
+  .stat-card .val{font-size:22px;font-weight:700;color:var(--primary);}
+  .stat-card .lbl{font-size:12px;color:var(--text-muted);margin-top:2px;}
+  .type-count-list{display:flex;flex-direction:column;gap:6px;}
+  .type-count-row{display:flex;align-items:center;gap:10px;font-size:12.5px;}
+  .type-count-row .tc-name{width:200px;flex-shrink:0;color:var(--text-secondary);font-family:'SF Mono','Courier New',monospace;font-size:11.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .type-count-row .tc-bar{flex:1;height:18px;background:var(--border);border-radius:5px;overflow:hidden;}
+  .type-count-row .tc-fill{height:100%;border-radius:5px;background:var(--gradient-primary);transition:width 0.4s ease;}
+  .type-count-row .tc-num{width:36px;text-align:right;font-weight:600;color:var(--text);flex-shrink:0;}
+
+  /* 错误提示 */
+  .ast-error{background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.25);border-radius:12px;padding:14px 16px;margin-bottom:12px;color:#DC2626;font-size:13px;line-height:1.7;}
+  .ast-error .err-title{font-weight:700;margin-bottom:4px;display:flex;align-items:center;gap:6px;}
+  .ast-error .err-pos{font-size:12px;color:var(--text-muted);margin-top:4px;font-family:'SF Mono','Courier New',monospace;}
+  .ast-error .err-line{margin-top:8px;background:var(--card-bg);border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-family:'SF Mono','Courier New',monospace;font-size:12px;white-space:pre-wrap;word-break:break-all;color:var(--text);}
+  .ast-error .err-caret{color:#DC2626;font-weight:700;}
+  [data-theme="dark"] .ast-error{background:rgba(239,68,68,0.15);border-color:rgba(239,68,68,0.3);color:#F87171;}
+
+  /* 选中源码片段 */
+  .selected-src{background:var(--result-bg);border:1px solid var(--border);border-left:3px solid var(--primary);border-radius:10px;padding:10px 14px;margin-top:12px;font-family:'SF Mono','Courier New',monospace;font-size:12.5px;line-height:1.6;}
+  .selected-src .ss-label{font-size:11px;color:var(--text-muted);margin-bottom:4px;font-family:inherit;}
+  .selected-src .ss-code{white-space:pre-wrap;word-break:break-all;color:var(--text);}
+  .selected-src:empty{display:none;}
+
+  /* 代码输入框：Tab 缩进 */
+  #codeInput{tab-size:2;}
+  .code-hint{font-size:11.5px;color:var(--text-muted);margin-top:6px;}
+  .code-hint kbd{font-size:11px;}
+</style>
+
+
+
+<meta property="og:image" content="https://chenguangwu.github.io/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="ToolBox - 5000+免费在线工具">
+<meta name="twitter:image" content="https://chenguangwu.github.io/og-image.png">
+<meta name="twitter:image:alt" content="ToolBox - 5000+免费在线工具">
+    <meta property="og:type" content="website">
+    <meta name="twitter:title" content="AST 抽象语法树查看器">
+    <meta name="twitter:description" content="在线 AST 查看器，用 acorn 解析 JavaScript 源码为抽象语法树并可视化展开节点，帮助理解代码结构，支持折叠与定位，纯前端。">
+<!-- TOOLBOX-WEBAPP-LD -->
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"AST 抽象語法樹檢視器","url":"https://chenguangwu.github.io/zh-tw/tools/it/ast-viewer.html","applicationCategory":"DeveloperApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":"zh-TW","description":"線上 AST 檢視器，用 acorn 解析 JavaScript 原始碼為抽象語法樹並可視化展開節點，幫助理解程式碼結構，支援摺疊與定位，純前端。","image":"https://chenguangwu.github.io/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}</script>
+<meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
+<meta http-equiv="X-Content-Type-Options" content="nosniff">
+<meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
+<!-- TOOLBOX-SECURITY -->
+
+<script src="/js/privacy.js" defer></script>
+<!-- TOOLBOX-PRIVACY-SCRIPT -->
+
+<script src="/js/metrics.js" defer></script>
+<!-- TOOLBOX-METRICS-SCRIPT -->
+
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"首頁","item":"https://chenguangwu.github.io/zh-tw/"},{"@type":"ListItem","position":2,"name":"IT 開發","item":"https://chenguangwu.github.io/zh-tw/tools/it/index.html"},{"@type":"ListItem","position":3,"name":"AST抽象語法樹檢視器","item":"https://chenguangwu.github.io/zh-tw/tools/it/ast-viewer.html"}]}</script>
+
+<script src="/js/i18n.js" defer></script>
+<script src="/js/tool-i18n.js" defer></script>
+<!-- TOOLBOX-I18N-SCRIPT -->
+
+
+<meta name="title-en" content="AST AST View Device - AST ( Abstract Syntax Tree - ToolBox">
+<meta name="desc-en" content="AST AST View Device - AST ( Abstract Syntax Tree - view and preview online, free. Free online tool on ToolBox — 100% client-side, no data uploaded, no inst...">
+<!-- TOOLBOX-HREFLANG -->
+<link rel="alternate" hreflang="zh-CN" href="https://chenguangwu.github.io/tools/it/ast-viewer.html">
+<link rel="alternate" hreflang="zh-TW" href="https://chenguangwu.github.io/zh-tw/tools/it/ast-viewer.html">
+<link rel="alternate" hreflang="zh-HK" href="https://chenguangwu.github.io/zh-hk/tools/it/ast-viewer.html">
+<link rel="alternate" hreflang="en-US" href="https://chenguangwu.github.io/tools/it/ast-viewer.html?lang=en-US">
+<link rel="alternate" hreflang="x-default" href="https://chenguangwu.github.io/tools/it/ast-viewer.html">
+<meta property="og:locale" content="zh_TW">
+<meta property="og:locale:alternate" content="zh_CN">
+<meta property="og:locale:alternate" content="zh_HK">
+<meta property="og:locale:alternate" content="en_US">
+</head>
+<body>
+<h1 class="sr-only">AST抽象語法樹檢視器</h1>
+<div class="nav">
+  <a href="/zh-tw/index.html">← ToolBox</a>
+  <span>/ AST抽象語法樹檢視器</span>
+  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()">🌙</button>
+</div>
+
+
+
+
+
+<nav class="breadcrumb" aria-label="麵包屑導航" data-breadcrumb="1">
+  <a href="/zh-tw/index.html">首頁</a>
+  <span class="bc-sep">‹</span>
+  <a href="/zh-tw/tools/it/index.html">💻 IT 開發</a>
+  <span class="bc-sep">‹</span>
+  <span class="bc-current">AST抽象語法樹檢視器</span>
+</nav>
+<div class="container">
+
+  <div class="card">
+    <h2 data-zh="🌳 AST 抽象語法樹檢視器">🌳 AST AST View Device - AST ( Abstract Syntax Tree</h2>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="輸入 JavaScript 程式碼，基於 acorn 解析器生成抽象語法樹（AST），支援樹形視覺化、節點統計、JSON 匯出與原始碼定位。純前端執行，程式碼不會上傳。">AST AST View Device - AST ( Abstract Syntax Tree is available directly in your browser, with no data uploaded.</p>
+
+    <div class="ast-options">
+      <div class="opt-item">
+        <label for="ecmaVersion">ECMAScript 版本</label>
+        <select id="ecmaVersion">
+          <option value="5">ES5</option>
+          <option value="2015">ES2015 (ES6)</option>
+          <option value="2020">ES2020</option>
+          <option value="2022" selected>ES2022</option>
+          <option value="latest">latest</option>
+        </select>
+      </div>
+      <div class="opt-item">
+        <label for="sourceType">SourceType</label>
+        <select id="sourceType">
+          <option value="script" selected>script</option>
+          <option value="module">module</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="ast-checkbox-row">
+      <label><input type="checkbox" id="optLocations"> 保留位置資訊 (locations)</label>
+      <label><input type="checkbox" id="optComments"> 保留註釋 (comments)</label>
+    </div>
+
+    <label for="codeInput">JavaScript 程式碼</label>
+    <textarea id="codeInput" rows="12" spellcheck="false" placeholder="在此输入 JavaScript 代码..."></textarea>
+    <div class="code-hint">提示：輸入框內按 <kbd>Tab</kbd> 插入兩個空格縮排。</div>
+
+    <div class="toolbar" style="margin-top:14px;">
+      <button class="btn primary" id="btnParse">解析 AST</button>
+      <button class="btn" id="btnExample">載入示例</button>
+      <button class="btn" id="btnClear">清空</button>
+      <button class="btn" id="btnCopyJson">複製 AST JSON</button>
+      <button class="btn" id="btnExpandAll">全部展開</button>
+      <button class="btn" id="btnCollapseAll">全部摺疊</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>📊 統計資訊</h3>
+    <div class="stat-grid" id="statGrid">
+      <div class="stat-card"><div class="val" id="statNodes">0</div><div class="lbl">節點總數</div></div>
+      <div class="stat-card"><div class="val" id="statTypes">0</div><div class="lbl">節點型別數</div></div>
+      <div class="stat-card"><div class="val" id="statLines">0</div><div class="lbl">程式碼行數</div></div>
+      <div class="stat-card"><div class="val" id="statChars">0</div><div class="lbl">字元數</div></div>
+    </div>
+    <label>節點型別分佈（按數量降序）</label>
+    <div class="type-count-list" id="typeCountList">
+      <div class="ast-tree-empty">解析後顯示節點型別統計</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>🌲 AST 視覺化</h3>
+    <div id="errorBox"></div>
+    <div class="view-tabs">
+      <button class="view-tab active" data-view="tree">樹形檢視</button>
+      <button class="view-tab" data-view="json">JSON 檢視</button>
+    </div>
+
+    <div class="view-pane active" id="paneTree">
+      <div class="ast-tree" id="astTree">
+        <div class="ast-tree-empty">點選「解析 AST」按鈕生成語法樹</div>
+      </div>
+      <div class="selected-src" id="selectedSrc"></div>
+    </div>
+
+    <div class="view-pane" id="paneJson">
+      <div class="ast-json" id="astJson">解析後將顯示 AST 的 JSON 資料</div>
+    </div>
+  </div>
+
+
+</div>
+
+</div>
+
+<!-- TOOLBOX-DEEP-DIVE -->
+<style>
+.deep-dive{max-width:960px;margin:16px auto;padding:0 16px;}
+.deep-dive > .card{margin-bottom:0;}
+@media(max-width:600px){.deep-dive{margin:14px auto;padding:0 12px;}}
+.deep-dive .dd-list{margin:8px 0 16px;padding-left:20px;}
+.deep-dive .dd-list li{margin:6px 0;line-height:1.75;}
+.deep-dive .dd-example{background:var(--card-bg,#fff);border:1px solid var(--border,#eee);border-radius:10px;padding:12px 14px;margin:8px 0 16px;}
+.deep-dive .dd-ex-title{font-weight:600;color:var(--tool-accent,#FF6B35);margin-bottom:6px;}
+.deep-dive .dd-ex-body{font-size:13px;line-height:1.85;color:var(--text,#333);word-break:break-word;}
+.deep-dive .dd-faq{margin:8px 0 4px;}
+.deep-dive .dd-faq dt{font-weight:600;margin-top:10px;color:var(--text,#333);}
+.deep-dive .dd-faq dd{margin:4px 0 0;font-size:13px;line-height:1.85;color:var(--text-muted,#666);}
+
+</style>
+<section class="deep-dive" data-deep-dive="1">
+<div class="card">
+<h2>📚 深度解析：AST 抽象語法樹檢視器</h2>
+<h3>💡 常見使用場景</h3>
+<ul class="dd-list">
+<li>當你在it相關場景中需要基於“AST AST View Device - AST ( Abstract Syntax Tree”進行快速計算或校驗時，可先用該工具生成一版標準結果。</li>
+<li>在教學、方案評審、除錯聯調時，可用固定樣本快速復現實驗流程，驗證引數選擇是否正確。</li>
+<li>用於將人工操作轉為可複用步驟：先確認輸入型別，再觀察輸出變化，便於排查規則誤差。</li>
+</ul>
+<div class="dd-example"><div class="dd-ex-title">標準化使用示例</div><div class="dd-ex-body">以一組典型輸入為例：先按業務口徑補充必要欄位，執行工具並記錄輸出；再對比另一組邊界輸入，檢查工具在異常輸入下是否給出穩定提示，便於快速形成操作 SOP。</div></div>
+<h3>❓ 常見問題（FAQ）</h3>
+<dl class="dd-faq">
+<dt>該工具適用於哪些 it 場景？</dt><dd>只要資料可對映到本工具支援的引數結構，就可用於日常分析、篩選、校驗等流程；多數情況下適合前置評估和結果複核。</dd>
+<dt>結果可信度如何保證？</dt><dd>工具預設按前端可見規則即時計算，不依賴外部服務；如有偏差，建議結合歷史基準值做交叉確認。</dd>
+</dl>
+</div>
+</section>
+<!-- 相關工具 -->
+<div class="related-tools" data-related-tools="1">
+  <h3 class="related-tools-title">🔗 相關工具</h3>
+  <div class="related-tools-grid">
+    <a href="/zh-tw/tools/it/properties-parser.html" class="related-tool-card">
+      <span class="rt-icon">🔧</span>
+      <span class="rt-info"><span class="rt-name">.properties 解析器 - 免費開發工具，properties 解析器 | ToolBox免費線上工具箱</span><span class="rt-desc">.properties 解析器</span></span>
+    </a>
+    <a href="/zh-tw/tools/it/css-minifier.html" class="related-tool-card">
+      <span class="rt-icon">🎨</span>
+      <span class="rt-info"><span class="rt-name">CSS 壓縮/美化工具 - 免費開發工具，CSS 壓縮/格式化/美化 | ToolBox免費線上工具箱</span><span class="rt-desc">CSS 壓縮/格式化/美化</span></span>
+    </a>
+    <a href="/zh-tw/tools/it/css-formatter.html" class="related-tool-card">
+      <span class="rt-icon">🔧</span>
+      <span class="rt-info"><span class="rt-name">CSS 格式化 - 免費開發工具，線上CSS 格式化 | ToolBox免費線上工具箱</span><span class="rt-desc">CSS 格式化</span></span>
+    </a>
+    <a href="/zh-tw/tools/it/cron.html" class="related-tool-card">
+      <span class="rt-icon">⏰</span>
+      <span class="rt-info"><span class="rt-name">Cron 表示式生成器 - 免費開發工具，線上Cron 表示式生成器 | ToolBox免費線上工具箱</span><span class="rt-desc">⏰ Cron 表示式生成器</span></span>
+    </a>
+    <a href="/zh-tw/tools/it/graphql-formatter.html" class="related-tool-card">
+      <span class="rt-icon">🔧</span>
+      <span class="rt-info"><span class="rt-name">GraphQL 格式化 - 免費開發工具，線上GraphQL 格式化 | ToolBox免費線上工具箱</span><span class="rt-desc">◈ GraphQL 格式化</span></span>
+    </a>
+    <a href="/zh-tw/tools/it/html-minifier.html" class="related-tool-card">
+      <span class="rt-icon">🔧</span>
+      <span class="rt-info"><span class="rt-name">HTML 壓縮器 - 免費開發工具，線上HTML 壓縮器 | ToolBox免費線上工具箱</span><span class="rt-desc">HTML 壓縮器</span></span>
+    </a>
+  </div>
+</div>
+<div class="tool-intro open" id="toolIntro">
+    <div class="tool-intro-header">
+      <span class="intro-icon-wrap"><span class="intro-icon">📖</span>關於「AST抽象語法樹檢視器」</span>
+      <span class="arrow">▼</span>
+    </div>
+    <div class="tool-intro-body">
+      <h4><span class="h4-icon">📝</span>工具簡介</h4>
+      <p>AST（Abstract Syntax Tree，抽象語法樹）是原始碼的抽象語法結構的樹狀表現形式。本工具使用 acorn 解析器將 JavaScript 程式碼解析為 ESTree 規範的 AST，並以可摺疊的樹形結構直觀展示每個節點的型別、屬性與位置資訊，是理解程式碼結構、開發編譯外掛、編寫 Babel/ESLint 外掛時的得力助手。</p>
+      <h4><span class="h4-icon">✨</span>功能特點</h4>
+      <ul class="intro-features">
+        <li>基於 acorn 解析器，相容 ESTree 規範</li>
+        <li>可摺疊樹形結構，節點層級一目瞭然</li>
+        <li>節點按型別分色高亮（宣告/表示式/語句/字面量）</li>
+        <li>點選節點自動定位並高亮對應原始碼</li>
+        <li>節點型別統計與分佈視覺化</li>
+        <li>支援 ES5 至 latest 多版本切換</li>
+        <li>支援 script / module 兩種源型別</li>
+        <li>樹形檢視與原始 JSON 檢視自由切換</li>
+        <li>一鍵複製 AST JSON，便於二次開發</li>
+        <li>純前端執行，程式碼不上傳，安全可靠</li>
+      </ul>
+      <h4><span class="h4-icon">🎯</span>使用場景</h4>
+      <ul class="intro-scenes">
+        <li>學習編譯原理，理解程式碼如何被解析</li>
+        <li>開發 Babel 外掛前除錯 AST 結構</li>
+        <li>編寫 ESLint 自定義規則</li>
+        <li>分析程式碼複雜度與語法構成</li>
+        <li>除錯程式碼轉換與 AST 操作工具</li>
+        <li>教學演示 JavaScript 語法結構</li>
+      </ul>
+      <h4><span class="h4-icon">💬</span>常見問題</h4>
+      <div class="intro-faq-item">
+        <div class="intro-faq-q">為什麼解析時報語法錯誤？</div>
+        <div class="intro-faq-a">請檢查程式碼是否符合所選 ECMAScript 版本的語法。例如使用了 import/export 時需將 SourceType 切換為 module；使用了可選鏈(?.)、空值合併(??)等新語法時需選擇 ES2020 及以上版本。</div>
+      </div>
+      <div class="intro-faq-item">
+        <div class="intro-faq-q">節點上的數字 [start..end] 是什麼意思？</div>
+        <div class="intro-faq-a">這是該節點在原始碼中的字元偏移區間（起始位置到結束位置）。點選任意節點，工具會自動在程式碼輸入框中選中並高亮對應的原始碼片段。</div>
+      </div>
+      <div class="intro-faq-item">
+        <div class="intro-faq-q">"保留位置資訊"和"保留註釋"有什麼區別？</div>
+        <div class="intro-faq-a">勾選"保留位置資訊"後，每個節點會額外攜帶 loc 欄位，包含行列資訊（line/column）；勾選"保留註釋"後，程式碼中的註釋會被收集並展示在統計資訊中。</div>
+      </div>
+      <div class="intro-faq-item">
+        <div class="intro-faq-q">AST 資料會儲存或上傳嗎？</div>
+        <div class="intro-faq-a">不會。所有解析與處理均在瀏覽器本地完成，不會將程式碼傳送到任何伺服器，重新整理頁面後資料即清除，請放心使用。</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+(function(){
+  "use strict";
+  const esc = ToolBox.escHtml;
+
+  const codeInput = document.getElementById('codeInput');
+  const ecmaSel = document.getElementById('ecmaVersion');
+  const srcSel = document.getElementById('sourceType');
+  const locChk = document.getElementById('optLocations');
+  const cmtChk = document.getElementById('optComments');
+  const treeBox = document.getElementById('astTree');
+  const jsonBox = document.getElementById('astJson');
+  const errorBox = document.getElementById('errorBox');
+  const selectedSrc = document.getElementById('selectedSrc');
+  const typeCountList = document.getElementById('typeCountList');
+  const statNodes = document.getElementById('statNodes');
+  const statTypes = document.getElementById('statTypes');
+  const statLines = document.getElementById('statLines');
+  const statChars = document.getElementById('statChars');
+
+  let currentAst = null;
+  let currentComments = [];
+
+  const SAMPLE = `// 示例代码：包含常见语法结构
+function greet(name) {
+  if (name) {
+    return "Hello, " + name + "!";
+  }
+  return "Hello, World!";
+}
+
+const add = (a, b) => a + b;
+const nums = [1, 2, 3];
+
+for (let i = 0; i < nums.length; i++) {
+  console.log(nums[i]);
+}
+
+class Counter {
+  constructor() {
+    this.count = 0;
+  }
+  inc() {
+    this.count++;
+  }
+}`;
+
+  // 判断是否为 AST 节点（含 type 字符串的对象）
+  const isNode = v => v && typeof v === 'object' && typeof v.type === 'string' && !Array.isArray(v);
+
+  // 节点颜色分类
+  const typeClass = type => {
+    if (/Declaration$/.test(type)) return 'ast-decl';
+    if (/Expression$/.test(type)) return 'ast-expr';
+    if (/Statement$/.test(type)) return 'ast-stmt';
+    if (type === 'Literal' || /Literal$/.test(type)) return 'ast-lit';
+    return 'ast-other';
+  };
+
+  const SKIP_KEYS = ['type','start','end','loc','range','leadingComments','trailingComments','innerComments'];
+
+  // 递归渲染节点
+  function renderNode(node){
+    const el = document.createElement('div');
+    el.className = 'ast-node';
+
+    const header = document.createElement('div');
+    header.className = 'ast-node-header';
+
+    const toggle = document.createElement('span');
+    toggle.className = 'ast-toggle';
+    toggle.textContent = '▼';
+    header.appendChild(toggle);
+
+    const typeTag = document.createElement('span');
+    typeTag.className = 'ast-type-tag ' + typeClass(node.type);
+    typeTag.textContent = node.type;
+    header.appendChild(typeTag);
+
+    const simpleProps = [];
+    const childEntries = [];
+    Object.keys(node).forEach(k => {
+      if (SKIP_KEYS.indexOf(k) !== -1) return;
+      const v = node[k];
+      if (v === null || typeof v !== 'object') simpleProps.push({k,v});
+      else childEntries.push({k,v});
+    });
+
+    // 内联简单属性
+    simpleProps.forEach(({k,v}) => {
+      const attr = document.createElement('span');
+      attr.className = 'ast-attr';
+      let valClass = '';
+      let valStr = String(v);
+      if (typeof v === 'string'){ valClass = 'str'; valStr = '"' + v + '"'; }
+      else if (typeof v === 'boolean'){ valClass = 'bool'; }
+      else if (typeof v === 'number'){ valClass = 'num'; }
+      attr.innerHTML = '<span class="ast-attr-key">' + esc(k) + ':</span> <span class="ast-attr-val ' + valClass + '">' + esc(valStr) + '</span>';
+      header.appendChild(attr);
+    });
+
+    // 位置信息
+    if (node.start != null && node.end != null){
+      const pos = document.createElement('span');
+      pos.className = 'ast-pos';
+      let txt = '[' + node.start + '..' + node.end + ']';
+      if (node.loc) txt += ' L' + node.loc.start.line + ':' + node.loc.start.column;
+      pos.textContent = txt;
+      header.appendChild(pos);
+    }
+
+    el.appendChild(header);
+
+    // 子节点容器
+    const children = document.createElement('div');
+    children.className = 'ast-children';
+    childEntries.forEach(({k,v}) => {
+      const keySpan = document.createElement('span');
+      keySpan.className = 'ast-key';
+      keySpan.textContent = k + ':';
+      children.appendChild(keySpan);
+      if (Array.isArray(v)){
+        if (v.length === 0){
+          const empty = document.createElement('span');
+          empty.className = 'ast-empty';
+          empty.textContent = '[]';
+          children.appendChild(empty);
+        } else {
+          v.forEach(item => {
+            if (isNode(item)) children.appendChild(renderNode(item));
+            else {
+              const prim = document.createElement('span');
+              prim.className = 'ast-attr-val str';
+              prim.textContent = JSON.stringify(item);
+              children.appendChild(prim);
+            }
+          });
+        }
+      } else if (isNode(v)){
+        children.appendChild(renderNode(v));
+      } else {
+        const empty = document.createElement('span');
+        empty.className = 'ast-empty';
+        empty.textContent = '{}';
+        children.appendChild(empty);
+      }
+    });
+    el.appendChild(children);
+
+    if (childEntries.length === 0){
+      el.classList.add('leaf');
+    }
+
+    // 点击 header：高亮源码 + 折叠/展开
+    header.addEventListener('click', function(e){
+      e.stopPropagation();
+      // 高亮源码
+      if (node.start != null && node.end != null){
+        highlightSource(node.start, node.end);
+      }
+      // 选中标记
+      document.querySelectorAll('.ast-node.selected').forEach(n => n.classList.remove('selected'));
+      el.classList.add('selected');
+      // 折叠切换（非叶子节点）
+      if (!el.classList.contains('leaf')){
+        const collapsed = el.classList.toggle('collapsed');
+        toggle.textContent = collapsed ? '▶' : '▼';
+      }
+    });
+
+    return el;
+  }
+
+  // 高亮源码区间
+  function highlightSource(start, end){
+    const ta = codeInput;
+    ta.focus();
+    try {
+      ta.setSelectionRange(start, end);
+      const prefix = ta.value.slice(0, start);
+      const lineNum = prefix.split('\n').length - 1;
+      const lh = parseFloat(getComputedStyle(ta).lineHeight) || 20;
+      ta.scrollTop = Math.max(0, lineNum * lh - ta.clientHeight / 3);
+    } catch(err){ /* ignore */ }
+    const snippet = ta.value.slice(start, end);
+    selectedSrc.innerHTML = '<div class="ss-label">选中节点源码 [' + start + '..' + end + ']</div><div class="ss-code">' + esc(snippet) + '</div>';
+  }
+
+  // 渲染整个树
+  function renderTree(ast){
+    treeBox.innerHTML = '';
+    if (!ast){ treeBox.innerHTML = '<div class="ast-tree-empty">无 AST 数据</div>'; return; }
+    treeBox.appendChild(renderNode(ast));
+  }
+
+  // 渲染 JSON 视图（带语法高亮）
+  function renderJson(ast){
+    if (!ast){ jsonBox.textContent = '解析后将显示 AST 的 JSON 数据'; return; }
+    let jsonStr;
+    try { jsonStr = JSON.stringify(ast, null, 2); }
+    catch(err){ jsonStr = String(ast); }
+    jsonBox.innerHTML = esc(jsonStr).replace(
+      /("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d+)?(?:[eE][+\-]?\d+)?)/g,
+      function(match){
+        let cls = 'jn';
+        if (/^"/.test(match)){
+          cls = /:$/.test(match) ? 'jk' : 'js';
+        } else if (/true|false/.test(match)){
+          cls = 'jb';
+        } else if (/null/.test(match)){
+          cls = 'jnull';
+        }
+        return '<span class="' + cls + '">' + match + '</span>';
+      }
+    );
+  }
+
+  // 统计节点
+  function computeStats(node, counts){
+    if (!node || typeof node !== 'object') return;
+    if (Array.isArray(node)){ node.forEach(it => computeStats(it, counts)); return; }
+    if (typeof node.type === 'string'){
+      counts[node.type] = (counts[node.type] || 0) + 1;
+    }
+    Object.keys(node).forEach(k => {
+      if (SKIP_KEYS.indexOf(k) !== -1) return;
+      const v = node[k];
+      if (v && typeof v === 'object') computeStats(v, counts);
+    });
+  }
+
+  function renderStats(ast){
+    const code = codeInput.value;
+    const lines = code ? code.split('\n').length : 0;
+    const chars = code.length;
+    statLines.textContent = lines;
+    statChars.textContent = chars;
+
+    if (!ast){
+      statNodes.textContent = '0';
+      statTypes.textContent = '0';
+      typeCountList.innerHTML = '<div class="ast-tree-empty">解析后显示节点类型统计</div>';
+      return;
+    }
+
+    const all = {};
+    computeStats(ast, all);
+    let total = 0;
+    Object.keys(all).forEach(k => total += all[k]);
+    statNodes.textContent = total;
+    statTypes.textContent = Object.keys(all).length;
+
+    const sorted = Object.keys(all).sort((a,b) => all[b] - all[a]);
+    if (sorted.length === 0){
+      typeCountList.innerHTML = '<div class="ast-tree-empty">无节点</div>';
+      return;
+    }
+    const max = all[sorted[0]];
+    let html = '';
+    sorted.forEach(type => {
+      const cnt = all[type];
+      const pct = max > 0 ? Math.round(cnt / max * 100) : 0;
+      html += '<div class="type-count-row">'
+        + '<span class="tc-name" title="' + esc(type) + '">' + esc(type) + '</span>'
+        + '<span class="tc-bar"><span class="tc-fill" style="width:' + pct + '%"></span></span>'
+        + '<span class="tc-num">' + cnt + '</span>'
+        + '</div>';
+    });
+    typeCountList.innerHTML = html;
+  }
+
+  // 显示错误
+  function showError(err){
+    const code = codeInput.value;
+    let html = '<div class="ast-error"><div class="err-title">❌ 解析失败：' + esc(err.message || String(err)) + '</div>';
+    if (err.pos != null){
+      const prefix = code.slice(0, err.pos);
+      const lineNum = prefix.split('\n').length;
+      const lineStart = prefix.lastIndexOf('\n') + 1;
+      let lineEnd = code.indexOf('\n', err.pos);
+      if (lineEnd === -1) lineEnd = code.length;
+      const col = err.pos - lineStart;
+      const lineText = code.slice(lineStart, lineEnd);
+      const caret = new Array(col).join(' ') + '^';
+      html += '<div class="err-pos">位置：第 ' + lineNum + ' 行，第 ' + (col + 1) + ' 列（字符偏移 ' + err.pos + '）</div>';
+      html += '<div class="err-line">' + esc(lineText) + '\n<span class="err-caret">' + caret + '</span></div>';
+    }
+    html += '</div>';
+    errorBox.innerHTML = html;
+  }
+
+  function clearError(){ errorBox.innerHTML = ''; }
+
+  // 解析
+  function parseCode(){
+    const code = codeInput.value;
+    if (!code.trim()){
+      ToolBox.showToast(i18nText('toast.msg684'), 'warning');
+      return;
+    }
+    if (typeof window.acorn === 'undefined'){
+      ToolBox.showToast(i18nText('toast.msg029'), 'error');
+      return;
+    }
+    clearError();
+    selectedSrc.innerHTML = '';
+
+    const ecmaVal = ecmaSel.value;
+    const opts = {
+      ecmaVersion: ecmaVal === 'latest' ? 'latest' : parseInt(ecmaVal, 10),
+      sourceType: srcSel.value,
+      locations: locChk.checked
+    };
+    currentComments = [];
+    if (cmtChk.checked){
+      opts.onComment = currentComments;
+    }
+
+    try {
+      const ast = window.acorn.parse(code, opts);
+      currentAst = ast;
+      renderTree(ast);
+      renderJson(ast);
+      renderStats(ast);
+      ToolBox.showToast('解析成功，共 ' + statNodes.textContent + ' 个节点', 'success');
+    } catch(err){
+      currentAst = null;
+      treeBox.innerHTML = '<div class="ast-tree-empty">解析失败，请查看错误提示</div>';
+      jsonBox.textContent = '解析失败，请查看错误提示';
+      typeCountList.innerHTML = '<div class="ast-tree-empty">解析失败</div>';
+      statNodes.textContent = '0';
+      statTypes.textContent = '0';
+      showError(err);
+      ToolBox.showToast('解析失败：' + (err.message || '语法错误'), 'error');
+    }
+  }
+
+  // 全部展开 / 折叠
+  function setAllCollapsed(collapsed){
+    const nodes = treeBox.querySelectorAll('.ast-node');
+    nodes.forEach(el => {
+      if (el.classList.contains('leaf')) return;
+      const toggle = el.querySelector(':scope > .ast-node-header > .ast-toggle');
+      if (collapsed){
+        el.classList.add('collapsed');
+        if (toggle) toggle.textContent = '▶';
+      } else {
+        el.classList.remove('collapsed');
+        if (toggle) toggle.textContent = '▼';
+      }
+    });
+  }
+
+  // 视图切换
+  document.querySelectorAll('.view-tab').forEach(btn => {
+    btn.addEventListener('click', function(){
+      document.querySelectorAll('.view-tab').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      const view = btn.getAttribute('data-view');
+      document.querySelectorAll('.view-pane').forEach(p => p.classList.remove('active'));
+      document.getElementById(view === 'tree' ? 'paneTree' : 'paneJson').classList.add('active');
+    });
+  });
+
+  // 工具栏按钮
+  document.getElementById('btnParse').addEventListener('click', parseCode);
+  document.getElementById('btnExample').addEventListener('click', function(){
+    codeInput.value = SAMPLE;
+    parseCode();
+  });
+  document.getElementById('btnClear').addEventListener('click', function(){
+    codeInput.value = '';
+    currentAst = null;
+    currentComments = [];
+    treeBox.innerHTML = '<div class="ast-tree-empty">点击「解析 AST」按钮生成语法树</div>';
+    jsonBox.textContent = '解析后将显示 AST 的 JSON 数据';
+    typeCountList.innerHTML = '<div class="ast-tree-empty">解析后显示节点类型统计</div>';
+    statNodes.textContent = '0';
+    statTypes.textContent = '0';
+    statLines.textContent = '0';
+    statChars.textContent = '0';
+    selectedSrc.innerHTML = '';
+    clearError();
+    codeInput.focus();
+  });
+  document.getElementById('btnCopyJson').addEventListener('click', function(){
+    if (!currentAst){
+      ToolBox.showToast(i18nText('toast.msg671'), 'warning');
+      return;
+    }
+    let jsonStr;
+    try { jsonStr = JSON.stringify(currentAst, null, 2); }
+    catch(err){ jsonStr = String(currentAst); }
+    ToolBox.copyText(jsonStr, i18nText());
+  });
+  document.getElementById('btnExpandAll').addEventListener('click', function(){
+    if (!currentAst){ ToolBox.showToast(i18nText('toast.msg670'), 'warning'); return; }
+    setAllCollapsed(false);
+    ToolBox.showToast(i18nText('toast.msg158'), 'info');
+  });
+  document.getElementById('btnCollapseAll').addEventListener('click', function(){
+    if (!currentAst){ ToolBox.showToast(i18nText('toast.msg670'), 'warning'); return; }
+    setAllCollapsed(true);
+    ToolBox.showToast(i18nText('toast.msg159'), 'info');
+  });
+
+  // 介绍区折叠
+  const intro = document.getElementById('toolIntro');
+  if (intro){
+    intro.querySelector('.tool-intro-header').addEventListener('click', function(){
+      intro.classList.toggle('open');
+    });
+  }
+
+  // Tab 键缩进
+  codeInput.addEventListener('keydown', function(e){
+    if (e.key === 'Tab'){
+      e.preventDefault();
+      const s = this.selectionStart;
+      const en = this.selectionEnd;
+      this.value = this.value.slice(0, s) + '  ' + this.value.slice(en);
+      this.selectionStart = this.selectionEnd = s + 2;
+    }
+  });
+
+  // 快捷键：Ctrl/Cmd + Enter 解析
+  codeInput.addEventListener('keydown', function(e){
+    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter'){
+      e.preventDefault();
+      parseCode();
+    }
+  });
+
+  // 初始化
+  codeInput.value = SAMPLE;
+  parseCode();
+})();
+</script>
+</body>
+</html>

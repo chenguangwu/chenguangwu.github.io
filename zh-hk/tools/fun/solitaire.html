@@ -1,0 +1,1444 @@
+<!DOCTYPE html>
+<html lang="zh-HK" data-opencc-locale="zh-hk">
+<head>
+
+<script src="/js/tool-page-runtime.js" defer></script>
+<!-- TOOLBOX-TOOL-RUNTIME -->
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="toolbox" content="cat=game,industry=fun,icon=🃏,bg=#fff3e0">
+<title>紙牌接龍 - ToolBox</title>
+<link rel="canonical" href="https://chenguangwu.github.io/zh-hk/tools/fun/solitaire.html">
+<meta property="og:title" content="纸牌接龙">
+<meta property="og:description" content="经典 Klondike 接龙 - 将所有牌按花色从 A 到 K 移至基础堆">
+<meta property="og:url" content="https://chenguangwu.github.io/zh-hk/tools/fun/solitaire.html">
+<meta name="twitter:card" content="summary">
+<meta name="description" content="经典 Klondike 接龙 - 将所有牌按花色从 A 到 K 移至基础堆">
+<meta name="keywords" content="纸牌接龙, Solitaire, Klondike, 纸牌游戏, 免费在线工具">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="shortcut icon" href="/favicon.ico">
+<link rel="preload" as="style" href="/css/common.css" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="/css/common.css"></noscript>
+<script>window.__tbq=window.__tbq||[];window.ToolBox=window.ToolBox||{};['initToolTheme','addToolStyles','showToast','toast','copyText','copyToClipboard','copyFromElement','downloadText','injectPrivacyBadge','toggleFavTool','addToRecentTool','toggleToolTheme','applyTheme'].forEach(function(k){if(typeof window.ToolBox[k]!=='function')window.ToolBox[k]=function(){window.__tbq.push([k,[].slice.call(arguments)]);};});</script><!-- TOOLBOX-API-STUB -->
+<script src="/js/common.js" defer></script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"紙牌接龍","description":"經典Klondike紙牌接龍游戲，純前端實現，支持拖拽操作、計時計步、撤銷功能。","applicationCategory":"GameApplication","operatingSystem":"Any","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}</script>
+<style>
+  .solitaire-wrap {
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 0 8px 24px;
+    user-select: none;
+  }
+  .game-stats {
+    display: flex;
+    justify-content: center;
+    gap: 24px;
+    margin-bottom: 10px;
+    font-size: 14px;
+    color: var(--text-secondary);
+    font-weight: 500;
+  }
+  .game-stats span { display: flex; align-items: center; gap: 4px; }
+  .game-stats .stat-val { color: var(--primary); font-weight: 700; font-size: 16px; min-width: 36px; text-align: center; }
+  .game-board {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 7 / 9;
+    min-height: 480px;
+  }
+  .stock-area {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 12px;
+    align-items: flex-start;
+  }
+  .stock-pile, .waste-pile, .foundation-slots {
+    display: flex;
+    gap: 6px;
+  }
+  .foundation-slots {
+    margin-left: auto;
+    gap: 6px;
+  }
+
+  /* Card base slot */
+  .card-slot {
+    width: var(--card-w, 72px);
+    height: var(--card-h, 100px);
+    border-radius: 10px;
+    border: 2px dashed var(--border);
+    background: var(--bg-hover);
+    position: relative;
+    flex-shrink: 0;
+  }
+  .card-slot.foundation-slot::after {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 22px;
+    opacity: 0.3;
+    pointer-events: none;
+  }
+  .card-slot[data-suit="spades"]::after { content: "\2660"; color: var(--text-primary); }
+  .card-slot[data-suit="hearts"]::after { content: "\2665"; color: #EF4444; }
+  .card-slot[data-suit="diamonds"]::after { content: "\2666"; color: #EF4444; }
+  .card-slot[data-suit="clubs"]::after { content: "\2663"; color: var(--text-primary); }
+  .card-slot.stock-slot { cursor: pointer; }
+  .card-slot.stock-slot.empty-stock {
+    border-style: solid;
+    border-color: var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .card-slot.stock-slot.empty-stock::after {
+    content: "\21BB";
+    font-size: 24px;
+    opacity: 0.4;
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    color: var(--primary);
+  }
+
+  /* Tableau columns */
+  .tableau-area {
+    display: flex;
+    gap: 6px;
+    justify-content: center;
+  }
+  .tableau-col {
+    width: var(--card-w, 72px);
+    min-height: calc(var(--card-h, 100px) + 60px);
+    position: relative;
+    flex-shrink: 0;
+  }
+  .tableau-col .card-slot {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%;
+    height: 100%;
+  }
+
+  /* Card */
+  .card {
+    width: var(--card-w, 72px);
+    height: var(--card-h, 100px);
+    border-radius: 10px;
+    background: #fff;
+    border: 1.5px solid var(--border);
+    box-shadow: 0 1px 4px rgba(0,0,0,0.12);
+    position: absolute;
+    cursor: pointer;
+    transition: box-shadow 0.15s, transform 0.15s;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 4px 6px;
+    overflow: hidden;
+  }
+  .card:hover { box-shadow: 0 3px 10px rgba(0,0,0,0.18); }
+  .card.selected { box-shadow: 0 0 0 3px var(--primary), 0 4px 14px rgba(255,107,53,0.3); transform: translateY(-2px); }
+  .card.dragging { opacity: 0.6; }
+  .card-back {
+    background: linear-gradient(135deg, #7C3AED 0%, #4C1D95 100%);
+    border-color: #5B21B6;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: default;
+  }
+  .card-back-pattern {
+    width: 60%;
+    height: 70%;
+    border-radius: 6px;
+    border: 2px solid rgba(255,255,255,0.2);
+    background: repeating-linear-gradient(
+      45deg,
+      rgba(255,255,255,0.05) 0px,
+      rgba(255,255,255,0.05) 4px,
+      transparent 4px,
+      transparent 8px
+    );
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .card-back-pattern::after {
+    content: "\2726";
+    font-size: 18px;
+    color: rgba(255,255,255,0.35);
+  }
+  [data-theme="dark"] .card { background: #2a2a45; border-color: #3a3a5a; }
+  [data-theme="dark"] .card-back { background: linear-gradient(135deg, #6B21A8 0%, #3B0764 100%); border-color: #4C1D95; }
+
+  .card-corner {
+    font-size: 12px;
+    font-weight: 700;
+    line-height: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0;
+  }
+  .card-corner .rank { font-size: 13px; }
+  .card-corner .suit-small { font-size: 11px; }
+  .card-top { align-self: flex-start; }
+  .card-bottom {
+    align-self: flex-end;
+    transform: rotate(180deg);
+  }
+  .card-center {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 26px;
+    line-height: 1;
+    pointer-events: none;
+  }
+  .card.red .card-corner, .card.red .card-center { color: #DC2626; }
+  .card.black .card-corner, .card.black .card-center { color: var(--text-primary); }
+
+  /* Drag ghost */
+  .drag-ghost {
+    position: fixed;
+    z-index: 10000;
+    pointer-events: none;
+  }
+  .drag-ghost .card {
+    position: relative;
+    top: auto;
+    left: auto;
+    width: var(--card-w, 72px);
+    height: var(--card-h, 100px);
+  }
+  .drag-ghost .card + .card {
+    margin-top: calc(var(--card-offset, 22px) - var(--card-h, 100px));
+  }
+
+  /* Drop highlight */
+  .card-slot.drop-target, .tableau-col.drop-target .card:last-child,
+  .tableau-col.drop-target .card-slot {
+    box-shadow: 0 0 0 3px var(--accent);
+  }
+
+  /* Win overlay */
+  .win-overlay {
+    display: none;
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 9999;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(4px);
+  }
+  .win-overlay.show { display: flex; }
+  .win-box {
+    background: var(--card-bg);
+    border-radius: 20px;
+    padding: 32px 40px;
+    text-align: center;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    max-width: 360px;
+    width: 90%;
+  }
+  .win-box h2 { font-size: 28px; margin-bottom: 8px; justify-content: center; }
+  .win-box p { color: var(--text-secondary); margin-bottom: 20px; font-size: 15px; }
+  .win-box .btn { margin: 6px; }
+
+  /* Confetti */
+  .confetti-canvas {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 10000;
+    pointer-events: none;
+  }
+
+  /* Toolbar override for this game */
+  .solitaire-toolbar {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 12px;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: center;
+  }
+  .solitaire-toolbar .btn {
+    padding: 8px 16px;
+    font-size: 13px;
+  }
+
+  /* Help section */
+  .help-content {
+    font-size: 13px;
+    color: var(--text-secondary);
+    line-height: 1.7;
+  }
+  .help-content h4 {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--heading);
+    margin: 12px 0 6px;
+  }
+  .help-content ul {
+    padding-left: 18px;
+    margin: 4px 0;
+  }
+  .help-content li { margin: 3px 0; }
+
+  /* Responsive */
+  @media (max-width: 520px) {
+    .game-board { min-height: 400px; }
+    .game-stats { gap: 14px; font-size: 13px; }
+    .game-stats .stat-val { font-size: 14px; }
+  }
+</style>
+
+
+
+<meta property="og:image" content="https://chenguangwu.github.io/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="ToolBox - 5000+免费在线工具">
+<meta name="twitter:image" content="https://chenguangwu.github.io/og-image.png">
+<meta name="twitter:image:alt" content="ToolBox - 5000+免费在线工具">
+    <meta property="og:type" content="website">
+    <meta name="twitter:title" content="纸牌接龙">
+    <meta name="twitter:description" content="经典 Klondike 接龙 - 将所有牌按花色从 A 到 K 移至基础堆">
+<!-- TOOLBOX-WEBAPP-LD -->
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"紙牌接龍","url":"https://chenguangwu.github.io/zh-hk/tools/fun/solitaire.html","applicationCategory":"GamesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":"zh-HK","description":"經典 Klondike 接龍 - 將所有牌按花色從 A 到 K 移至基礎堆","image":"https://chenguangwu.github.io/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}</script>
+<meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
+<meta http-equiv="X-Content-Type-Options" content="nosniff">
+<meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
+<!-- TOOLBOX-SECURITY -->
+
+<script src="/js/privacy.js" defer></script>
+<!-- TOOLBOX-PRIVACY-SCRIPT -->
+
+<script src="/js/metrics.js" defer></script>
+<!-- TOOLBOX-METRICS-SCRIPT -->
+
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"首頁","item":"https://chenguangwu.github.io/zh-hk/"},{"@type":"ListItem","position":2,"name":"娛樂遊戲","item":"https://chenguangwu.github.io/zh-hk/tools/fun/index.html"},{"@type":"ListItem","position":3,"name":"紙牌接龍","item":"https://chenguangwu.github.io/zh-hk/tools/fun/solitaire.html"}]}</script>
+
+<script src="/js/i18n.js" defer></script>
+<script src="/js/tool-i18n.js" defer></script>
+<!-- TOOLBOX-I18N-SCRIPT -->
+
+
+<meta name="title-en" content="Solitaire - ToolBox">
+<meta name="desc-en" content="Solitaire - free online tool. Free online tool on ToolBox — 100% client-side, no data uploaded, no install. Part of the Games &amp; Entertainment tools.">
+<!-- TOOLBOX-HREFLANG -->
+<link rel="alternate" hreflang="zh-CN" href="https://chenguangwu.github.io/tools/fun/solitaire.html">
+<link rel="alternate" hreflang="zh-TW" href="https://chenguangwu.github.io/zh-tw/tools/fun/solitaire.html">
+<link rel="alternate" hreflang="zh-HK" href="https://chenguangwu.github.io/zh-hk/tools/fun/solitaire.html">
+<link rel="alternate" hreflang="en-US" href="https://chenguangwu.github.io/tools/fun/solitaire.html?lang=en-US">
+<link rel="alternate" hreflang="x-default" href="https://chenguangwu.github.io/tools/fun/solitaire.html">
+<meta property="og:locale" content="zh_HK">
+<meta property="og:locale:alternate" content="zh_CN">
+<meta property="og:locale:alternate" content="zh_TW">
+<meta property="og:locale:alternate" content="en_US">
+</head>
+<body>
+<nav class="breadcrumb" aria-label="麪包屑導航" data-breadcrumb="1">
+  <a href="/zh-hk/index.html">首頁</a>
+  <span class="bc-sep">‹</span>
+  <a href="/zh-hk/tools/fun/index.html">🎮 娛樂遊戲</a>
+  <span class="bc-sep">‹</span>
+  <span class="bc-current">紙牌接龍</span>
+</nav>
+
+
+<h1 class="sr-only">紙牌接龍</h1>
+
+
+<div class="nav">
+  <a href="/zh-hk/index.html">&larr; ToolBox</a>
+  <span>/ 紙牌接龍</span>
+  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()">&#127769;</button>
+</div>
+
+<div class="container" style="max-width:720px;">
+  <div class="card tool-card-accent" style="--tool-accent:#EC4899;" style="padding:16px 12px 12px;">
+    <h2 data-zh="&amp;#127183; 紙牌接龍">&amp;#Solitaire</h2>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="經典 Klondike 接龍 - 將所有牌按花色從 A 到 K 移至基礎堆">Solitaire is available directly in your browser, with no data uploaded.</p>
+
+    <div class="game-stats">
+      <span>&#9201; <span class="stat-val" id="timer">0:00</span></span>
+      <span>&#128336; <span class="stat-val" id="moves">0</span></span>
+      <span>&#127942; <span class="stat-val" id="score">0</span></span>
+    </div>
+
+    <div class="solitaire-toolbar">
+      <button type="button" class="btn primary" onclick="newGame()">&#128260; 新遊戲</button>
+      <button type="button" class="btn" onclick="undo()">&#8634; 撤銷</button>
+      <button type="button" class="btn" onclick="autoComplete()">&#9889; 自動完成</button>
+    </div>
+
+    <div class="solitaire-wrap" id="gameWrap">
+      <div class="game-board" id="gameBoard">
+        <!-- Stock, Waste, Foundations -->
+        <div class="stock-area" id="stockArea">
+          <div class="stock-pile" id="stockPile">
+            <div class="card-slot stock-slot" id="stockSlot" onclick="onStockClick()"></div>
+          </div>
+          <div class="waste-pile" id="wastePile"></div>
+          <div class="foundation-slots" id="foundationSlots">
+            <div class="card-slot foundation-slot" data-suit="spades" data-idx="0"></div>
+            <div class="card-slot foundation-slot" data-suit="hearts" data-idx="1"></div>
+            <div class="card-slot foundation-slot" data-suit="diamonds" data-idx="2"></div>
+            <div class="card-slot foundation-slot" data-suit="clubs" data-idx="3"></div>
+          </div>
+        </div>
+        <!-- Tableau -->
+        <div class="tableau-area" id="tableauArea"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Help -->
+
+</div>
+
+</div>
+
+<!-- TOOLBOX-DEEP-DIVE -->
+<style>
+.deep-dive{max-width:960px;margin:16px auto;padding:0 16px;}
+.deep-dive > .card{margin-bottom:0;}
+@media(max-width:600px){.deep-dive{margin:14px auto;padding:0 12px;}}
+.deep-dive .dd-list{margin:8px 0 16px;padding-left:20px;}
+.deep-dive .dd-list li{margin:6px 0;line-height:1.75;}
+.deep-dive .dd-example{background:var(--card-bg,#fff);border:1px solid var(--border,#eee);border-radius:10px;padding:12px 14px;margin:8px 0 16px;}
+.deep-dive .dd-ex-title{font-weight:600;color:var(--tool-accent,#FF6B35);margin-bottom:6px;}
+.deep-dive .dd-ex-body{font-size:13px;line-height:1.85;color:var(--text,#333);word-break:break-word;}
+.deep-dive .dd-faq{margin:8px 0 4px;}
+.deep-dive .dd-faq dt{font-weight:600;margin-top:10px;color:var(--text,#333);}
+.deep-dive .dd-faq dd{margin:4px 0 0;font-size:13px;line-height:1.85;color:var(--text-muted,#666);}
+
+</style>
+<section class="deep-dive" data-deep-dive="1">
+<div class="card">
+<h2>📚 深度解析：紙牌接龍</h2>
+<h3>💡 常見使用場景</h3>
+<ul class="dd-list">
+<li>紙牌接龍 場景核驗：統一單位和邊界條件後再跑基準樣本，先確認算式方向是否一致。</li>
+<li>教學/復盤建議：固定 1-2 個變量，逐步掃描關鍵參數，觀察趨勢是否符合預期。</li>
+<li>常見場景：&amp;amp;#Solitaire</li>
+</ul>
+<div class="dd-example"><div class="dd-ex-title">快速複核「紙牌接龍」</div><div class="dd-ex-body">先用基礎參數跑一次基準值，再把核心輸入提高 10% 與 50% 做對比運算，確認輸出變化是否合理。</div></div>
+<h3>❓ 常見問題（FAQ）</h3>
+<dl class="dd-faq">
+<dt>紙牌接龍 結果可用於直接報告嗎？</dt><dd>紙牌接龍 適合用於內部複核與説明，正式材料請附帶口徑、邊界條件和輸入範圍説明。</dd>
+<dt>結果看似異常，該怎麼快速排查？</dt><dd>先核對是否有百分號/小數口徑衝突，再檢查是否觸發了數學域外定義（如對數、開方、除零）。</dd>
+</dl>
+</div>
+</section>
+<!-- 相關工具 -->
+<div class="related-tools" data-related-tools="1">
+  <h3 class="related-tools-title">🔗 相關工具</h3>
+  <div class="related-tools-grid">
+
+
+    <a href="/zh-hk/tools/fun/generator-2.html" class="related-tool-card">
+      <span class="rt-icon">🎮</span>
+      <span class="rt-info"><span class="rt-name">數獨生成器 / 求解器 - 免費在線工具，純前端處理 | ToolBox免費在線工具箱</span><span class="rt-desc">數獨生成器 / 求解器</span></span>
+    </a>
+    <a href="/zh-hk/tools/fun/laugh-generator.html" class="related-tool-card">
+      <span class="rt-icon">😂</span>
+      <span class="rt-info"><span class="rt-name">笑聲音效生成器 - 免費趣味工具，用Web Audio API合成笑聲 | ToolBox免費在線工具箱</span><span class="rt-desc">笑聲音效生成器</span></span>
+    </a>
+    <a href="/zh-hk/tools/fun/generator-laugh.html" class="related-tool-card">
+      <span class="rt-icon">🔧</span>
+      <span class="rt-info"><span class="rt-name">笑聲音效生成器（合成） - 免費在線工具，純前端處理 | ToolBox免費在線工具箱</span><span class="rt-desc">笑聲音效生成器（合成）</span></span>
+    </a>
+    <a href="/zh-hk/tools/dance/choreography-timeline.html" class="related-tool-card">
+      <span class="rt-icon">🎶</span>
+      <span class="rt-info"><span class="rt-name">編舞時間線 - 8拍分段規劃器，按BPM和小節數生成舞蹈編排時間軸 | ToolBox免費在線工具箱</span><span class="rt-desc">編舞時間線</span></span>
+    </a>
+  </div>
+</div>
+<div class="tool-intro" id="helpIntro">
+    <div class="tool-intro-header" onclick="this.parentElement.classList.toggle('open')">
+      <span class="intro-icon-wrap"><span class="intro-icon">&#9432;</span> 遊戲規則</span>
+      <span class="arrow">&#9660;</span>
+    </div>
+    <div class="tool-intro-body help-content">
+      <h4>遊戲目標</h4>
+      <p>將52張牌全部移至4個基礎堆，按花色從A到K依次排列。</p>
+      <h4>基本操作</h4>
+      <ul>
+        <li><strong>點擊牌庫</strong>：翻一張牌到廢牌堆，牌庫用完後點擊可重新翻</li>
+        <li><strong>拖拽移牌</strong>：將牌拖到合法位置。桌面列間紅黑交替降序排列</li>
+        <li><strong>雙擊</strong>：自動將牌移到基礎堆</li>
+        <li><strong>移動端</strong>：點擊選中牌，再點擊目標位置移動</li>
+      </ul>
+      <h4>規則説明</h4>
+      <ul>
+        <li>桌面列（Tableau）：紅黑交替、從 K 到 A 降序排列</li>
+        <li>空列只能放 K</li>
+        <li>基礎堆（Foundation）：同花色、從 A 到 K 升序</li>
+        <li>廢牌堆頂牌可以移到桌面或基礎堆</li>
+      </ul>
+      <h4>計分規則</h4>
+      <ul>
+        <li>移到基礎堆：+10 分</li>
+        <li>翻開背面牌：+5 分</li>
+        <li>從基礎堆移回：-15 分</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<!-- Win overlay -->
+<div class="win-overlay" id="winOverlay">
+  <div class="win-box">
+    <h2>&#127881; 恭喜通關!</h2>
+    <p id="winMsg">用時 0:00，共 0 步，得分 0</p>
+    <button type="button" class="btn primary" onclick="closeWin();newGame();">&#128260; 再來一局</button>
+    <button type="button" class="btn" onclick="closeWin();">關閉</button>
+  </div>
+</div>
+
+<script>
+(function() {
+  'use strict';
+
+  // ==================== CONSTANTS ====================
+  const SUITS = ['spades', 'hearts', 'diamonds', 'clubs'];
+  const SUIT_SYMBOLS = { spades: '\u2660', hearts: '\u2665', diamonds: '\u2666', clubs: '\u2663' };
+  const RANKS = ['A','2','3','4','5','6','7','8','9','10','J','Q','K'];
+  const RANK_VALUES = { A:1,'2':2,'3':3,'4':4,'5':5,'6':6,'7':7,'8':8,'9':9,'10':10,J:11,Q:12,K:13 };
+  const RED_SUITS = new Set(['hearts', 'diamonds']);
+
+  // ==================== GAME STATE ====================
+  let stock = [];
+  let waste = [];
+  let foundations = [[], [], [], []]; // spades, hearts, diamonds, clubs
+  let tableau = [[], [], [], [], [], [], []];
+  let moveHistory = [];
+  let moves = 0;
+  let score = 0;
+  let timerInterval = null;
+  let seconds = 0;
+  let gameWon = false;
+  let selectedCard = null; // { source: 'tableau'|'waste'|'foundation', col: number, idx: number, cards: [] }
+  let dragState = null; // for drag operations
+
+  // ==================== CARD CREATION ====================
+  function createDeck() {
+    const deck = [];
+    for (const suit of SUITS) {
+      for (const rank of RANKS) {
+        deck.push({ suit, rank, faceUp: false });
+      }
+    }
+    return deck;
+  }
+
+  function shuffle(arr) {
+    for (let i = arr.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    return arr;
+  }
+
+  function cardColor(card) {
+    return RED_SUITS.has(card.suit) ? 'red' : 'black';
+  }
+
+  function cardValue(card) {
+    return RANK_VALUES[card.rank];
+  }
+
+  function cardId(card) {
+    return card.suit + '_' + card.rank;
+  }
+
+  function cloneCard(c) {
+    return { suit: c.suit, rank: c.rank, faceUp: c.faceUp };
+  }
+
+  function cloneState() {
+    return {
+      stock: stock.map(cloneCard),
+      waste: waste.map(cloneCard),
+      foundations: foundations.map(f => f.map(cloneCard)),
+      tableau: tableau.map(col => col.map(cloneCard)),
+      moves, score, seconds
+    };
+  }
+
+  function restoreState(state) {
+    stock = state.stock;
+    waste = state.waste;
+    foundations = state.foundations;
+    tableau = state.tableau;
+    moves = state.moves;
+    score = state.score;
+    seconds = state.seconds;
+    selectedCard = null;
+    dragState = null;
+    updateUI();
+  }
+
+  // ==================== INIT ====================
+  function newGame() {
+    closeWin();
+    stopTimer();
+    const deck = shuffle(createDeck());
+    stock = [];
+    waste = [];
+    foundations = [[], [], [], []];
+    tableau = [[], [], [], [], [], [], []];
+    moveHistory = [];
+    moves = 0;
+    score = 0;
+    seconds = 0;
+    gameWon = false;
+    selectedCard = null;
+    dragState = null;
+
+    // Deal tableau
+    let idx = 0;
+    for (let col = 0; col < 7; col++) {
+      for (let row = 0; row <= col; row++) {
+        const card = deck[idx++];
+        card.faceUp = (row === col);
+        tableau[col].push(card);
+      }
+    }
+
+    // Remaining go to stock
+    for (let i = idx; i < deck.length; i++) {
+      deck[i].faceUp = false;
+      stock.push(deck[i]);
+    }
+
+    updateUI();
+    startTimer();
+  }
+
+  // ==================== TIMER ====================
+  function startTimer() {
+    stopTimer();
+    seconds = 0;
+    updateTimerDisplay();
+    timerInterval = setInterval(() => {
+      if (!gameWon) {
+        seconds++;
+        updateTimerDisplay();
+      }
+    }, 1000);
+  }
+
+  function stopTimer() {
+    if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
+  }
+
+  function updateTimerDisplay() {
+    const m = Math.floor(seconds / 60);
+    const s = seconds % 60;
+    document.getElementById('timer').textContent = m + ':' + (s < 10 ? '0' : '') + s;
+  }
+
+  // ==================== VALIDATION ====================
+  function canPlaceOnTableau(card, targetCol) {
+    const col = tableau[targetCol];
+    if (col.length === 0) {
+      return card.rank === 'K';
+    }
+    const topCard = col[col.length - 1];
+    if (!topCard.faceUp) return false;
+    return cardColor(card) !== cardColor(topCard) && cardValue(card) === cardValue(topCard) - 1;
+  }
+
+  function canPlaceOnFoundation(card, foundIdx) {
+    const f = foundations[foundIdx];
+    if (f.length === 0) {
+      return card.rank === 'A' && card.suit === SUITS[foundIdx];
+    }
+    const topCard = f[f.length - 1];
+    return card.suit === topCard.suit && cardValue(card) === cardValue(topCard) + 1;
+  }
+
+  // ==================== MOVES ====================
+  function saveMove() {
+    moveHistory.push(cloneState());
+    if (moveHistory.length > 50) moveHistory.shift();
+  }
+
+  function flipTopCard(col) {
+    if (tableau[col].length > 0) {
+      const top = tableau[col][tableau[col].length - 1];
+      if (!top.faceUp) {
+        top.faceUp = true;
+        score += 5;
+        return true;
+      }
+    }
+    return false;
+  }
+
+  // Move from waste to tableau
+  function moveWasteToTableau(col) {
+    if (waste.length === 0) return false;
+    const card = waste[waste.length - 1];
+    if (!canPlaceOnTableau(card, col)) return false;
+    saveMove();
+    waste.pop();
+    tableau[col].push(card);
+    card.faceUp = true;
+    moves++;
+    score += 5;
+    updateUI();
+    checkWin();
+    return true;
+  }
+
+  // Move from waste to foundation
+  function moveWasteToFoundation(foundIdx) {
+    if (waste.length === 0) return false;
+    const card = waste[waste.length - 1];
+    if (!canPlaceOnFoundation(card, foundIdx)) return false;
+    saveMove();
+    waste.pop();
+    foundations[foundIdx].push(card);
+    moves++;
+    score += 10;
+    updateUI();
+    checkWin();
+    return true;
+  }
+
+  // Move from tableau to tableau
+  function moveTableauToTableau(fromCol, fromIdx, toCol) {
+    if (fromCol === toCol) return false;
+    const cards = tableau[fromCol].slice(fromIdx);
+    if (cards.length === 0) return false;
+    const bottomCard = cards[0];
+    if (!canPlaceOnTableau(bottomCard, toCol)) return false;
+    saveMove();
+    tableau[fromCol] = tableau[fromCol].slice(0, fromIdx);
+    for (const c of cards) tableau[toCol].push(c);
+    flipTopCard(fromCol);
+    moves++;
+    score += 5;
+    updateUI();
+    checkWin();
+    return true;
+  }
+
+  // Move from tableau to foundation
+  function moveTableauToFoundation(fromCol, foundIdx) {
+    if (tableau[fromCol].length === 0) return false;
+    const card = tableau[fromCol][tableau[fromCol].length - 1];
+    if (!canPlaceOnFoundation(card, foundIdx)) return false;
+    saveMove();
+    tableau[fromCol].pop();
+    foundations[foundIdx].push(card);
+    flipTopCard(fromCol);
+    moves++;
+    score += 10;
+    updateUI();
+    checkWin();
+    return true;
+  }
+
+  // Move from foundation to tableau
+  function moveFoundationToTableau(foundIdx, toCol) {
+    if (foundations[foundIdx].length === 0) return false;
+    const card = foundations[foundIdx][foundations[foundIdx].length - 1];
+    if (!canPlaceOnTableau(card, toCol)) return false;
+    saveMove();
+    foundations[foundIdx].pop();
+    tableau[toCol].push(card);
+    moves++;
+    score -= 15;
+    updateUI();
+    return true;
+  }
+
+  // Stock click
+  function onStockClick() {
+    if (gameWon) return;
+    if (stock.length > 0) {
+      saveMove();
+      const card = stock.pop();
+      card.faceUp = true;
+      waste.push(card);
+      moves++;
+    } else if (waste.length > 0) {
+      saveMove();
+      while (waste.length > 0) {
+        const card = waste.pop();
+        card.faceUp = false;
+        stock.push(card);
+      }
+      moves++;
+      score = Math.max(0, score - 20);
+    }
+    selectedCard = null;
+    updateUI();
+  }
+
+  // Auto-move to foundation (double click)
+  function autoMoveToFoundation(card, source, col) {
+    for (let i = 0; i < 4; i++) {
+      if (canPlaceOnFoundation(card, i)) {
+        if (source === 'waste') {
+          return moveWasteToFoundation(i);
+        } else if (source === 'tableau') {
+          return moveTableauToFoundation(col, i);
+        }
+      }
+    }
+    return false;
+  }
+
+  // Undo
+  function undo() {
+    if (moveHistory.length === 0) {
+      ToolBox.showToast(i18nText('toast.msg482'), 'info');
+      return;
+    }
+    restoreState(moveHistory.pop());
+    ToolBox.showToast(i18nText('toast.msg242'), 'info');
+  }
+
+  // ==================== AUTO COMPLETE ====================
+  function canAutoComplete() {
+    // All cards in tableau are face up and stock/waste are empty
+    if (stock.length > 0 || waste.length > 0) return false;
+    for (const col of tableau) {
+      for (const card of col) {
+        if (!card.faceUp) return false;
+      }
+    }
+    return true;
+  }
+
+  function autoComplete() {
+    if (!canAutoComplete()) {
+      ToolBox.showToast(i18nText('toast.msg986'), 'info');
+      return;
+    }
+    doAutoComplete();
+  }
+
+  function doAutoComplete() {
+    let moved = true;
+    while (moved) {
+      moved = false;
+      // Try waste first
+      if (waste.length > 0) {
+        for (let i = 0; i < 4; i++) {
+          if (canPlaceOnFoundation(waste[waste.length - 1], i)) {
+            saveMove();
+            foundations[i].push(waste.pop());
+            moves++;
+            score += 10;
+            moved = true;
+            break;
+          }
+        }
+      }
+      // Try each tableau column
+      for (let c = 0; c < 7; c++) {
+        if (tableau[c].length === 0) continue;
+        const card = tableau[c][tableau[c].length - 1];
+        for (let i = 0; i < 4; i++) {
+          if (canPlaceOnFoundation(card, i)) {
+            saveMove();
+            foundations[i].push(tableau[c].pop());
+            moves++;
+            score += 10;
+            moved = true;
+            break;
+          }
+        }
+        if (moved) break;
+      }
+    }
+    updateUI();
+    checkWin();
+  }
+
+  // ==================== WIN CHECK ====================
+  function checkWin() {
+    if (foundations.every(f => f.length === 13)) {
+      gameWon = true;
+      stopTimer();
+      setTimeout(() => {
+        const m = Math.floor(seconds / 60);
+        const s = seconds % 60;
+        document.getElementById('winMsg').textContent =
+          '\u7528\u65f6 ' + m + ':' + (s < 10 ? '0' : '') + s +
+          '\uff0c\u5171 ' + moves + ' \u6b65\uff0c\u5f97\u5206 ' + score;
+        document.getElementById('winOverlay').classList.add('show');
+        launchConfetti();
+      }, 300);
+    }
+  }
+
+  function closeWin() {
+    document.getElementById('winOverlay').classList.remove('show');
+  }
+
+  // ==================== CONFETTI ====================
+  function launchConfetti() {
+    const canvas = document.createElement('canvas');
+    canvas.className = 'confetti-canvas';
+    document.body.appendChild(canvas);
+    const ctx = canvas.getContext('2d');
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+
+    const particles = [];
+    const colors = ['#FF6B35','#7C3AED','#00C9A7','#F59E0B','#EF4444','#3B82F6','#EC4899'];
+    for (let i = 0; i < 150; i++) {
+      particles.push({
+        x: Math.random() * canvas.width,
+        y: Math.random() * canvas.height - canvas.height,
+        w: Math.random() * 8 + 4,
+        h: Math.random() * 6 + 3,
+        color: colors[Math.floor(Math.random() * colors.length)],
+        vx: (Math.random() - 0.5) * 4,
+        vy: Math.random() * 3 + 2,
+        rot: Math.random() * Math.PI * 2,
+        vr: (Math.random() - 0.5) * 0.2
+      });
+    }
+
+    let frame = 0;
+    function animate() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      for (const p of particles) {
+        p.x += p.vx;
+        p.y += p.vy;
+        p.rot += p.vr;
+        p.vy += 0.05;
+        ctx.save();
+        ctx.translate(p.x, p.y);
+        ctx.rotate(p.rot);
+        ctx.fillStyle = p.color;
+        ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h);
+        ctx.restore();
+      }
+      frame++;
+      if (frame < 180) {
+        requestAnimationFrame(animate);
+      } else {
+        canvas.remove();
+      }
+    }
+    animate();
+  }
+
+  // ==================== RENDERING ====================
+  function computeCardSize() {
+    const wrap = document.getElementById('gameWrap');
+    const boardWidth = wrap.clientWidth - 16;
+    const gap = 6;
+    const cols = 7;
+    const cardW = Math.min(80, Math.floor((boardWidth - gap * (cols - 1)) / cols));
+    const cardH = Math.round(cardW * 1.38);
+    const offset = Math.max(16, Math.round(cardH * 0.22));
+    document.documentElement.style.setProperty('--card-w', cardW + 'px');
+    document.documentElement.style.setProperty('--card-h', cardH + 'px');
+    document.documentElement.style.setProperty('--card-offset', offset + 'px');
+    return { cardW, cardH, offset };
+  }
+
+  function createCardElement(card, top, left, extra) {
+    const el = document.createElement('div');
+    el.className = 'card ' + (card.faceUp ? cardColor(card) : 'card-back');
+    el.style.top = top + 'px';
+    el.style.left = left + 'px';
+    if (extra) {
+      for (const [k, v] of Object.entries(extra)) {
+        el.style[k] = v;
+      }
+    }
+    if (card.faceUp) {
+      const sym = SUIT_SYMBOLS[card.suit];
+      el.innerHTML =
+        '<div class="card-corner card-top"><span class="rank">' + card.rank + '</span><span class="suit-small">' + sym + '</span></div>' +
+        '<div class="card-center">' + sym + '</div>' +
+        '<div class="card-corner card-bottom"><span class="rank">' + card.rank + '</span><span class="suit-small">' + sym + '</span></div>';
+    } else {
+      el.innerHTML = '<div class="card-back-pattern"></div>';
+    }
+    return el;
+  }
+
+  function updateUI() {
+    const { cardW, cardH, offset } = computeCardSize();
+
+    document.getElementById('moves').textContent = moves;
+    document.getElementById('score').textContent = score;
+
+    // Stock
+    const stockSlot = document.getElementById('stockSlot');
+    stockSlot.innerHTML = '';
+    stockSlot.className = 'card-slot stock-slot' + (stock.length === 0 && waste.length > 0 ? ' empty-stock' : '');
+    if (stock.length > 0) {
+      const el = createCardElement({ faceUp: false }, 0, 0);
+      el.style.position = 'relative';
+      el.style.cursor = 'pointer';
+      el.onclick = onStockClick;
+      stockSlot.appendChild(el);
+    }
+
+    // Waste
+    const wastePile = document.getElementById('wastePile');
+    wastePile.innerHTML = '';
+    if (waste.length > 0) {
+      const card = waste[waste.length - 1];
+      const el = createCardElement(card, 0, 0);
+      el.style.position = 'relative';
+      setupCardInteraction(el, card, 'waste', -1, waste.length - 1);
+      wastePile.appendChild(el);
+    }
+
+    // Foundations
+    for (let i = 0; i < 4; i++) {
+      const slot = document.querySelector('.foundation-slot[data-idx="' + i + '"]');
+      // Keep the slot element, remove card children
+      const existingCard = slot.querySelector('.card');
+      if (existingCard) existingCard.remove();
+      if (foundations[i].length > 0) {
+        const card = foundations[i][foundations[i].length - 1];
+        const el = createCardElement(card, 0, 0);
+        el.style.position = 'relative';
+        el.style.cursor = 'pointer';
+        setupCardInteraction(el, card, 'foundation', i, foundations[i].length - 1);
+        slot.appendChild(el);
+      }
+    }
+
+    // Tableau
+    const tableauArea = document.getElementById('tableauArea');
+    tableauArea.innerHTML = '';
+
+    for (let col = 0; col < 7; col++) {
+      const colEl = document.createElement('div');
+      colEl.className = 'tableau-col';
+      colEl.dataset.col = col;
+
+      // Empty slot indicator
+      const slotEl = document.createElement('div');
+      slotEl.className = 'card-slot';
+      colEl.appendChild(slotEl);
+
+      const cards = tableau[col];
+      for (let idx = 0; idx < cards.length; idx++) {
+        const card = cards[idx];
+        const top = idx * offset;
+        const el = createCardElement(card, top, 0);
+        el.style.zIndex = idx + 1;
+        if (card.faceUp) {
+          setupCardInteraction(el, card, 'tableau', col, idx);
+        }
+        // Check if this card is part of selection
+        if (selectedCard && selectedCard.source === 'tableau' &&
+            selectedCard.col === col && idx >= selectedCard.idx) {
+          el.classList.add('selected');
+        }
+        colEl.appendChild(el);
+      }
+
+      // Set column height for drop targets
+      const totalH = cards.length > 0 ? (cards.length - 1) * offset + cardH : cardH;
+      colEl.style.minHeight = Math.max(cardH + 30, totalH + 30) + 'px';
+
+      // Click on empty column
+      colEl.addEventListener('click', (e) => {
+        if (e.target === colEl || e.target === slotEl) {
+          onTableauColClick(col);
+        }
+      });
+
+      tableauArea.appendChild(colEl);
+    }
+
+    // Highlight selected card
+    if (selectedCard && selectedCard.source === 'waste') {
+      const wCard = wastePile.querySelector('.card');
+      if (wCard) wCard.classList.add('selected');
+    }
+  }
+
+  // ==================== INTERACTION ====================
+  function isDragSupported() {
+    return !('ontouchstart' in window) || window.innerWidth > 768;
+  }
+
+  function setupCardInteraction(el, card, source, col, idx) {
+    if (source === 'foundation') {
+      // Foundation card: allow dragging back to tableau
+      el.addEventListener('mousedown', (e) => {
+        startDrag(e, card, source, col, idx, [card]);
+      });
+      el.addEventListener('dblclick', (e) => {
+        e.preventDefault();
+      });
+      el.addEventListener('click', (e) => {
+        if (!dragState) onCardClick(card, source, col, idx);
+      });
+      return;
+    }
+
+    // Tableau or waste card
+    if (source === 'tableau') {
+      const cardsFromIdx = tableau[col].slice(idx);
+      el.addEventListener('mousedown', (e) => {
+        startDrag(e, card, source, col, idx, cardsFromIdx);
+      });
+    } else if (source === 'waste') {
+      el.addEventListener('mousedown', (e) => {
+        startDrag(e, card, source, col, idx, [card]);
+      });
+    }
+
+    el.addEventListener('dblclick', (e) => {
+      e.preventDefault();
+      if (source === 'tableau' && idx === tableau[col].length - 1) {
+        autoMoveToFoundation(card, source, col);
+      } else if (source === 'waste') {
+        autoMoveToFoundation(card, source, col);
+      }
+    });
+
+    el.addEventListener('click', (e) => {
+      if (!dragState) onCardClick(card, source, col, idx);
+    });
+  }
+
+  function onCardClick(card, source, col, idx) {
+    if (gameWon) return;
+    if (isDragSupported()) {
+      // On desktop, click-to-select as fallback
+      if (!selectedCard) {
+        selectedCard = {
+          source, col, idx,
+          cards: source === 'tableau' ? tableau[col].slice(idx) : [card]
+        };
+        updateUI();
+      } else {
+        // Try to place selected cards
+        tryPlaceSelected(source, col, idx);
+        selectedCard = null;
+        updateUI();
+      }
+    } else {
+      // Mobile: tap to select/place
+      if (!selectedCard) {
+        selectedCard = {
+          source, col, idx,
+          cards: source === 'tableau' ? tableau[col].slice(idx) : [card]
+        };
+        updateUI();
+      } else {
+        tryPlaceSelected(source, col, idx);
+        selectedCard = null;
+        updateUI();
+      }
+    }
+  }
+
+  function onTableauColClick(col) {
+    if (!selectedCard) return;
+    if (selectedCard.source === 'tableau' && selectedCard.col === col) {
+      selectedCard = null;
+      updateUI();
+      return;
+    }
+    tryPlaceSelected('tableau', col, -1);
+    selectedCard = null;
+    updateUI();
+  }
+
+  function tryPlaceSelected(targetSource, targetCol, targetIdx) {
+    if (!selectedCard) return;
+    const { source, col, idx, cards } = selectedCard;
+
+    if (targetSource === 'tableau') {
+      if (source === 'tableau') {
+        moveTableauToTableau(col, idx, targetCol);
+      } else if (source === 'waste') {
+        moveWasteToTableau(targetCol);
+      } else if (source === 'foundation') {
+        moveFoundationToTableau(col, targetCol);
+      }
+    } else if (targetSource === 'foundation') {
+      if (source === 'tableau' && idx === tableau[col].length - 1) {
+        moveTableauToFoundation(col, targetCol);
+      } else if (source === 'waste') {
+        moveWasteToFoundation(targetCol);
+      }
+    }
+  }
+
+  // ==================== DRAG & DROP ====================
+  function startDrag(e, card, source, col, idx, cards) {
+    if (gameWon) return;
+    if (e.button !== 0) return;
+    e.preventDefault();
+
+    selectedCard = null;
+
+    const { cardW, cardH, offset } = computeCardSize();
+    const startX = e.clientX;
+    const startY = e.clientY;
+    let dragging = false;
+
+    const ghost = document.createElement('div');
+    ghost.className = 'drag-ghost';
+    ghost.style.display = 'none';
+    document.body.appendChild(ghost);
+
+    for (const c of cards) {
+      const el = createCardElement(c, 0, 0);
+      el.style.position = 'relative';
+      el.style.top = 'auto';
+      el.style.width = cardW + 'px';
+      el.style.height = cardH + 'px';
+      ghost.appendChild(el);
+    }
+
+    const sourceCards = source === 'tableau' ? tableau[col].slice(idx) : source === 'waste' ? [waste[waste.length - 1]] : [foundations[col][foundations[col].length - 1]];
+
+    // Mark source cards as dragging
+    function markDragging() {
+      if (source === 'tableau') {
+        const colEl = document.querySelector('.tableau-col[data-col="' + col + '"]');
+        if (colEl) {
+          const cardEls = colEl.querySelectorAll('.card');
+          for (let i = idx; i < cardEls.length; i++) {
+            cardEls[i].classList.add('dragging');
+          }
+        }
+      } else if (source === 'waste') {
+        const el = document.getElementById('wastePile').querySelector('.card');
+        if (el) el.classList.add('dragging');
+      } else if (source === 'foundation') {
+        const slot = document.querySelector('.foundation-slot[data-idx="' + col + '"]');
+        const el = slot ? slot.querySelector('.card') : null;
+        if (el) el.classList.add('dragging');
+      }
+    }
+
+    function onMouseMove(e2) {
+      const dx = e2.clientX - startX;
+      const dy = e2.clientY - startY;
+      if (!dragging) {
+        if (Math.abs(dx) < 5 && Math.abs(dy) < 5) return;
+        dragging = true;
+        ghost.style.display = 'block';
+        markDragging();
+      }
+      ghost.style.left = (e2.clientX - cardW / 2) + 'px';
+      ghost.style.top = (e2.clientY - 20) + 'px';
+    }
+
+    function onMouseUp(e2) {
+      document.removeEventListener('mousemove', onMouseMove);
+      document.removeEventListener('mouseup', onMouseUp);
+      ghost.remove();
+
+      if (!dragging) return;
+
+      // Find drop target
+      const dropTarget = findDropTarget(e2.clientX, e2.clientY);
+      if (dropTarget) {
+        const bottomCard = cards[0];
+        if (dropTarget.type === 'tableau') {
+          if (source === 'tableau') {
+            moveTableauToTableau(col, idx, dropTarget.col);
+          } else if (source === 'waste') {
+            moveWasteToTableau(dropTarget.col);
+          } else if (source === 'foundation') {
+            moveFoundationToTableau(col, dropTarget.col);
+          }
+        } else if (dropTarget.type === 'foundation' && cards.length === 1) {
+          if (source === 'tableau' && idx === tableau[col].length - 1) {
+            moveTableauToFoundation(col, dropTarget.idx);
+          } else if (source === 'waste') {
+            moveWasteToFoundation(dropTarget.idx);
+          }
+        }
+      }
+    }
+
+    document.addEventListener('mousemove', onMouseMove);
+    document.addEventListener('mouseup', onMouseUp);
+  }
+
+  function findDropTarget(x, y) {
+    // Check foundations
+    const fSlots = document.querySelectorAll('.foundation-slot');
+    for (const slot of fSlots) {
+      const r = slot.getBoundingClientRect();
+      if (x >= r.left && x <= r.right && y >= r.top && y <= r.bottom) {
+        return { type: 'foundation', idx: parseInt(slot.dataset.idx) };
+      }
+    }
+    // Check tableau columns
+    const tCols = document.querySelectorAll('.tableau-col');
+    for (const col of tCols) {
+      const r = col.getBoundingClientRect();
+      if (x >= r.left && x <= r.right && y >= r.top && y <= r.bottom) {
+        return { type: 'tableau', col: parseInt(col.dataset.col) };
+      }
+    }
+    return null;
+  }
+
+  // ==================== TOUCH SUPPORT ====================
+  // Tap-to-select then tap-to-place on mobile
+  document.addEventListener('DOMContentLoaded', () => {
+    const board = document.getElementById('gameBoard');
+
+    board.addEventListener('touchstart', (e) => {
+      if (gameWon) return;
+      const touch = e.touches[0];
+      const target = document.elementFromPoint(touch.clientX, touch.clientY);
+      if (!target) return;
+
+      const card = target.closest('.card');
+      const colEl = target.closest('.tableau-col');
+      const wasteEl = target.closest('#wastePile');
+      const foundSlot = target.closest('.foundation-slot');
+      const stockSlot = target.closest('#stockSlot');
+
+      // If a card is already selected, try to place it first
+      if (selectedCard) {
+        let placed = false;
+        if (colEl) {
+          const tCol = parseInt(colEl.dataset.col);
+          if (selectedCard.source === 'tableau' && selectedCard.col === tCol) {
+            // Tapped same column - deselect
+            selectedCard = null;
+            updateUI();
+            e.preventDefault();
+            return;
+          }
+          placed = tryPlaceSelected('tableau', tCol, -1);
+        } else if (foundSlot) {
+          const fIdx = parseInt(foundSlot.dataset.idx);
+          placed = tryPlaceSelected('foundation', fIdx, -1);
+        }
+        selectedCard = null;
+        updateUI();
+        if (placed) { e.preventDefault(); return; }
+        // If not placed, fall through to select a new card
+      }
+
+      // Select a card
+      if (card && !card.classList.contains('card-back')) {
+        if (colEl) {
+          const col = parseInt(colEl.dataset.col);
+          const cardEls = Array.from(colEl.querySelectorAll('.card'));
+          const idx = cardEls.indexOf(card);
+          if (idx >= 0 && tableau[col][idx] && tableau[col][idx].faceUp) {
+            selectedCard = {
+              source: 'tableau', col, idx,
+              cards: tableau[col].slice(idx)
+            };
+            updateUI();
+            e.preventDefault();
+          }
+          return;
+        }
+        if (wasteEl && waste.length > 0) {
+          selectedCard = {
+            source: 'waste', col: -1, idx: waste.length - 1,
+            cards: [waste[waste.length - 1]]
+          };
+          updateUI();
+          e.preventDefault();
+          return;
+        }
+        if (foundSlot) {
+          const fIdx = parseInt(foundSlot.dataset.idx);
+          if (foundations[fIdx].length > 0) {
+            selectedCard = {
+              source: 'foundation', col: fIdx, idx: foundations[fIdx].length - 1,
+              cards: [foundations[fIdx][foundations[fIdx].length - 1]]
+            };
+            updateUI();
+            e.preventDefault();
+          }
+        }
+      }
+    }, { passive: false });
+  });
+
+  // ==================== RESIZE ====================
+  window.addEventListener('resize', () => {
+    if (!gameWon) updateUI();
+  });
+
+  // ==================== INIT ====================
+  window.newGame = newGame;
+  window.undo = undo;
+  window.autoComplete = autoComplete;
+  window.closeWin = closeWin;
+  window.onStockClick = onStockClick;
+
+  // Auto-start game on load
+  document.addEventListener('DOMContentLoaded', newGame);
+
+})();
+</script>
+
+<!-- SEO 介紹區塊 -->
+<div class="tool-intro open" id="toolIntro">
+  <div class="tool-intro-header">
+    <span class="intro-icon-wrap"><span class="intro-icon">📖</span>關於「紙牌接龍」</span>
+    <span class="arrow">▼</span>
+  </div>
+  <div class="tool-intro-body">
+    <h4><span class="h4-icon">📝</span>工具簡介</h4>
+    <p>經典Klondike紙牌接龍游戲，純前端實現，支持拖拽操作、計時計步、撤銷功能。。娛樂遊戲工具，純前端實現，無需安裝，離線可玩。</p>
+    <h4><span class="h4-icon">✨</span>功能特點</h4>
+    <ul class="intro-features">
+      <li>純前端實現，無需安裝</li>
+      <li>操作簡單，上手快速</li>
+      <li>支持多種設備，隨時隨地使用</li>
+      <li>無需聯網，離線可玩</li>
+    </ul>
+    <h4><span class="h4-icon">🎯</span>使用場景</h4>
+    <ul class="intro-scenes">
+      <li>休閒娛樂與放鬆</li>
+      <li>聚會互動小遊戲</li>
+      <li>碎片時間的趣味消遣</li>
+      <li>概率與統計的學習輔助</li>
+    </ul>
+    <h4><span class="h4-icon">💬</span>常見問題</h4>
+      <div class="intro-faq-item"><div class="intro-faq-q">這個工具是免費的嗎？</div><div class="intro-faq-a">完全免費，無需註冊，直接在瀏覽器中使用。</div></div>
+      <div class="intro-faq-item"><div class="intro-faq-q">需要安裝軟件嗎？</div><div class="intro-faq-a">不需要，直接在瀏覽器中打開即可使用。</div></div>
+      <div class="intro-faq-item"><div class="intro-faq-q">支持手機使用嗎？</div><div class="intro-faq-a">支持。頁面已做響應式適配，手機和電腦均可正常使用。</div></div>
+  </div>
+</div>
+<!-- /SEO 介紹區塊 -->
+
+<script>
+// tool-intro折叠交互
+document.addEventListener('DOMContentLoaded',function(){
+  var headers=document.querySelectorAll('.tool-intro-header');
+  headers.forEach(function(h){
+    h.addEventListener('click',function(){
+      this.parentElement.classList.toggle('open');
+    });
+  });
+});
+</script>
+
+</body>
+</html>

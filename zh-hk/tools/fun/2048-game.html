@@ -1,0 +1,630 @@
+<!DOCTYPE html>
+<html lang="zh-HK" data-opencc-locale="zh-hk">
+<head>
+
+<script src="/js/tool-page-runtime.js" defer></script>
+<!-- TOOLBOX-TOOL-RUNTIME -->
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="toolbox" content="cat=game,industry=fun,icon=🔢,bg=#fff8e1">
+<meta name="description" content="2048 数字合并游戏。在 4×4 方格中滑动相同数字方块合并为更大数，目标凑出 2048，支持键盘与触屏操作，纯前端离线可玩，适合休闲益智。">
+<meta name="keywords" content="2048 游戏,2048 游戏在线,在线2048 游戏,游戏趣味,娱乐游戏,2048,游戏,在线工具,免费工具,ToolBox">
+<meta name="robots" content="index,follow">
+<link rel="canonical" href="https://chenguangwu.github.io/zh-hk/tools/fun/2048-game.html">
+<meta property="og:title" content="2048 游戏">
+<meta property="og:description" content="2048 数字合并游戏。在 4×4 方格中滑动相同数字方块合并为更大数，目标凑出 2048，支持键盘与触屏操作，纯前端离线可玩，适合休闲益智。">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://chenguangwu.github.io/zh-hk/tools/fun/2048-game.html">
+<meta name="twitter:card" content="summary">
+
+<title>2048 遊戲 - ToolBox</title>
+<meta name="theme-color" content="#FF6B35">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<link rel="icon" href="/favicon.ico" sizes="16x16 32x32 48x48">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="preload" as="style" href="/css/common.css" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="/css/common.css"></noscript>
+<script>window.__tbq=window.__tbq||[];window.ToolBox=window.ToolBox||{};['initToolTheme','addToolStyles','showToast','toast','copyText','copyToClipboard','copyFromElement','downloadText','injectPrivacyBadge','toggleFavTool','addToRecentTool','toggleToolTheme','applyTheme'].forEach(function(k){if(typeof window.ToolBox[k]!=='function')window.ToolBox[k]=function(){window.__tbq.push([k,[].slice.call(arguments)]);};});</script><!-- TOOLBOX-API-STUB -->
+<script src="/js/common.js" defer></script>
+<style>
+.game-container{display:flex;flex-direction:column;align-items:center;gap:12px;}
+.board-2048{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;padding:8px;background:var(--border);border-radius:12px;max-width:400px;width:100%;aspect-ratio:1/1;}
+.tile{display:flex;align-items:center;justify-content:center;border-radius:8px;font-weight:700;font-size:24px;transition:all 0.15s;aspect-ratio:1/1;}
+.tile-0{background:var(--card-bg);}
+.tile-2{background:#eee4da;color:#776e65;}
+.tile-4{background:#ede0c8;color:#776e65;}
+.tile-8{background:#f2b179;color:#f9f6f2;}
+.tile-16{background:#f59563;color:#f9f6f2;}
+.tile-32{background:#f67c5f;color:#f9f6f2;}
+.tile-64{background:#f65e3b;color:#f9f6f2;}
+.tile-128{background:#edcf72;color:#f9f6f2;font-size:22px;}
+.tile-256{background:#edcc61;color:#f9f6f2;font-size:22px;}
+.tile-512{background:#edc850;color:#f9f6f2;font-size:22px;}
+.tile-1024{background:#edc53f;color:#f9f6f2;font-size:18px;}
+.tile-2048{background:#edc22e;color:#f9f6f2;font-size:18px;box-shadow:0 0 20px rgba(237,194,46,0.5);}
+.tile-super{background:#3c3a32;color:#f9f6f2;font-size:16px;}
+.tile-new{animation:tileNew 0.2s ease;}
+.tile-merged{animation:tileMerge 0.2s ease;}
+@keyframes tileNew{0%{transform:scale(0);}100%{transform:scale(1);}}
+@keyframes tileMerge{0%{transform:scale(1);}50%{transform:scale(1.2);}100%{transform:scale(1);}}
+.score-row{display:flex;gap:16px;flex-wrap:wrap;justify-content:center;}
+.score-box{background:var(--border);border-radius:8px;padding:8px 16px;text-align:center;min-width:80px;}
+.score-box .val{font-size:20px;font-weight:700;color:var(--primary);}
+.score-box .lbl{font-size:11px;color:var(--text-muted);}
+.controls-hint{font-size:12px;color:var(--text-muted);text-align:center;}
+.tab-row{display:flex;gap:4px;margin-bottom:12px;border-bottom:1px solid var(--border);}
+.tab-btn{padding:8px 16px;border:none;background:transparent;cursor:pointer;font-size:13px;color:var(--text-muted);border-bottom:2px solid transparent;margin-bottom:-1px;}
+.tab-btn.active{color:var(--primary);border-bottom-color:var(--primary);font-weight:600;}
+.game-over-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.6);display:flex;align-items:center;justify-content:center;z-index:1000;animation:fadeIn 0.3s ease;}
+@keyframes fadeIn{from{opacity:0;}to{opacity:1;}}
+.game-modal{background:var(--card-bg);border-radius:16px;padding:32px;text-align:center;max-width:320px;width:90%;animation:popIn 0.4s ease;}
+@keyframes popIn{0%{transform:scale(0.5);opacity:0;}100%{transform:scale(1);opacity:1;}}
+.game-modal h2{font-size:28px;margin-bottom:8px;}
+.game-modal .big-emoji{font-size:64px;margin:16px 0;}
+</style>
+
+
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"2048 遊戲","description":"2048 遊戲 - 免費遊戲趣味工具，在線2048 遊戲，免費使用。","url":"https://chenguangwu.github.io/zh-hk/tools/fun/2048-game.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Web","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"},"inLanguage":"zh-HK","isAccessibleForFree":true,"browserRequirements":"Requires JavaScript. Requires HTML5.","softwareVersion":"1.0"}</script>
+
+
+
+<meta property="og:image" content="https://chenguangwu.github.io/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="ToolBox - 5000+免费在线工具">
+<meta name="twitter:image" content="https://chenguangwu.github.io/og-image.png">
+<meta name="twitter:image:alt" content="ToolBox - 5000+免费在线工具">
+    <meta name="twitter:title" content="2048 游戏">
+    <meta name="twitter:description" content="2048 数字合并游戏。在 4×4 方格中滑动相同数字方块合并为更大数，目标凑出 2048，支持键盘与触屏操作，纯前端离线可玩，适合休闲益智。">
+<!-- TOOLBOX-WEBAPP-LD -->
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"2048 遊戲","url":"https://chenguangwu.github.io/zh-hk/tools/fun/2048-game.html","applicationCategory":"GamesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":"zh-HK","description":"2048 數字合併遊戲。在 4×4 方格中滑動相同數字方塊合併為更大數，目標湊出 2048，支持鍵盤與觸屏操作，純前端離線可玩，適合休閒益智。","image":"https://chenguangwu.github.io/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}</script>
+<meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
+<meta http-equiv="X-Content-Type-Options" content="nosniff">
+<meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
+<!-- TOOLBOX-SECURITY -->
+
+<script src="/js/privacy.js" defer></script>
+<!-- TOOLBOX-PRIVACY-SCRIPT -->
+
+<script src="/js/metrics.js" defer></script>
+<!-- TOOLBOX-METRICS-SCRIPT -->
+
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"首頁","item":"https://chenguangwu.github.io/zh-hk/"},{"@type":"ListItem","position":2,"name":"娛樂遊戲","item":"https://chenguangwu.github.io/zh-hk/tools/fun/index.html"},{"@type":"ListItem","position":3,"name":"2048 遊戲","item":"https://chenguangwu.github.io/zh-hk/tools/fun/2048-game.html"}]}</script>
+
+<script src="/js/i18n.js" defer></script>
+<script src="/js/tool-i18n.js" defer></script>
+<!-- TOOLBOX-I18N-SCRIPT -->
+
+
+<meta name="title-en" content="2048 Game - ToolBox">
+<meta name="desc-en" content="2048 Game - free online tool. Free online tool on ToolBox — 100% client-side, no data uploaded, no install. Part of the Games &amp; Entertainment tools.">
+<!-- TOOLBOX-HREFLANG -->
+<link rel="alternate" hreflang="zh-CN" href="https://chenguangwu.github.io/tools/fun/2048-game.html">
+<link rel="alternate" hreflang="zh-TW" href="https://chenguangwu.github.io/zh-tw/tools/fun/2048-game.html">
+<link rel="alternate" hreflang="zh-HK" href="https://chenguangwu.github.io/zh-hk/tools/fun/2048-game.html">
+<link rel="alternate" hreflang="en-US" href="https://chenguangwu.github.io/tools/fun/2048-game.html?lang=en-US">
+<link rel="alternate" hreflang="x-default" href="https://chenguangwu.github.io/tools/fun/2048-game.html">
+<meta property="og:locale" content="zh_HK">
+<meta property="og:locale:alternate" content="zh_CN">
+<meta property="og:locale:alternate" content="zh_TW">
+<meta property="og:locale:alternate" content="en_US">
+</head>
+<body>
+<h1 class="sr-only">2048 遊戲</h1>
+
+<div class="nav">
+  <a href="/zh-hk/index.html">← ToolBox</a>
+  <span>/ 2048 遊戲</span>
+  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()">🌙</button>
+</div>
+
+
+
+
+<nav class="breadcrumb" aria-label="麪包屑導航" data-breadcrumb="1">
+  <a href="/zh-hk/index.html">首頁</a>
+  <span class="bc-sep">‹</span>
+  <a href="/zh-hk/tools/fun/index.html">🎮 娛樂遊戲</a>
+  <span class="bc-sep">‹</span>
+  <span class="bc-current">2048 遊戲</span>
+</nav>
+<div class="container">
+  <div class="card tool-card-accent" style="--tool-accent:#EC4899;">
+    <h2 data-zh="🔢 2048 遊戲">🔢 2048 Game</h2>
+
+    <div class="tab-row">
+      <button type="button" class="tab-btn active" onclick="switchTab('game',this)">遊戲</button>
+      <button type="button" class="tab-btn" onclick="switchTab('scores',this)">排行榜</button>
+      <button type="button" class="tab-btn" onclick="switchTab('help',this)">説明</button>
+    </div>
+
+    <div id="tab-game">
+      <div class="score-row">
+        <div class="score-box">
+          <div class="val" id="score">0</div>
+          <div class="lbl">當前分數</div>
+        </div>
+        <div class="score-box">
+          <div class="val" id="bestScore">0</div>
+          <div class="lbl">最高分</div>
+        </div>
+        <div class="score-box">
+          <div class="val" id="maxTile">0</div>
+          <div class="lbl">最大方塊</div>
+        </div>
+      </div>
+
+      <div class="game-container">
+        <div class="board-2048" id="board"></div>
+      </div>
+
+      <p class="controls-hint" data-zh="方向鍵/WASD 移動，U 鍵撤銷">2048 Game is available directly in your browser, with no data uploaded.</p>
+
+      <div class="toolbar">
+        <button type="button" class="btn primary" onclick="newGame()">🎮 新遊戲</button>
+        <button type="button" class="btn" onclick="undoMove()">↩️ 撤銷</button>
+      </div>
+    </div>
+
+    <div id="tab-scores" style="display:none;">
+      <h3>🏆 記錄</h3>
+      <div class="result-box">
+        <p>最高分：<strong id="bestScore2">0</strong></p>
+        <p>最大方塊：<strong id="maxTile2">0</strong></p>
+      </div>
+      <div class="toolbar" style="margin-top:12px;">
+        <button type="button" class="btn danger" onclick="clearBest()">清除記錄</button>
+      </div>
+    </div>
+
+    <div id="tab-help" style="display:none;">
+      <h3>🎮 遊戲規則</h3>
+      <div class="step-line">使用方向鍵或滑動控制所有方塊移動</div>
+      <div class="step-line">兩個相同數字的方塊相撞時會合併成它們的和</div>
+      <div class="step-line">每次移動後會隨機出現一個新的 2 或 4</div>
+      <div class="step-line">合併出 2048 即為勝利！</div>
+      <div class="step-line">無法移動時遊戲結束</div>
+      <h3 style="margin-top:12px;">💡 技巧提示</h3>
+      <div class="step-line">儘量讓最大的數字保持在角落</div>
+      <div class="step-line">保持一行或一列單調遞增/遞減</div>
+      <div class="step-line">避免頻繁改變大數字的位置</div>
+      <h3 style="margin-top:12px;">⌨️ 操作方式</h3>
+      <div class="step-line"><strong>鍵盤</strong>：方向鍵 或 WASD</div>
+      <div class="step-line"><strong>撤銷</strong>：U 鍵</div>
+      <div class="step-line"><strong>移動端</strong>：滑動屏幕</div>
+    </div>
+  </div>
+
+<!-- TOOLBOX-DEEP-DIVE -->
+<style>
+.deep-dive{max-width:960px;margin:16px auto;padding:0 16px;}
+.deep-dive > .card{margin-bottom:0;}
+@media(max-width:600px){.deep-dive{margin:14px auto;padding:0 12px;}}
+.deep-dive .dd-list{margin:8px 0 16px;padding-left:20px;}
+.deep-dive .dd-list li{margin:6px 0;line-height:1.75;}
+.deep-dive .dd-example{background:var(--card-bg,#fff);border:1px solid var(--border,#eee);border-radius:10px;padding:12px 14px;margin:8px 0 16px;}
+.deep-dive .dd-ex-title{font-weight:600;color:var(--tool-accent,#FF6B35);margin-bottom:6px;}
+.deep-dive .dd-ex-body{font-size:13px;line-height:1.85;color:var(--text,#333);word-break:break-word;}
+.deep-dive .dd-faq{margin:8px 0 4px;}
+.deep-dive .dd-faq dt{font-weight:600;margin-top:10px;color:var(--text,#333);}
+.deep-dive .dd-faq dd{margin:4px 0 0;font-size:13px;line-height:1.85;color:var(--text-muted,#666);}
+
+</style>
+<section class="deep-dive" data-deep-dive="1">
+<div class="card">
+<h2>📚 深度解析：2048 遊戲</h2>
+<h3>💡 常見使用場景</h3>
+<ul class="dd-list">
+<li>2048 遊戲 場景核驗：統一單位和邊界條件後再跑基準樣本，先確認算式方向是否一致。</li>
+<li>教學/復盤建議：固定 1-2 個變量，逐步掃描關鍵參數，觀察趨勢是否符合預期。</li>
+<li>常見場景：2048 Game</li>
+</ul>
+<div class="dd-example"><div class="dd-ex-title">快速複核「2048 遊戲」</div><div class="dd-ex-body">先用基礎參數跑一次基準值，再把核心輸入提高 10% 與 50% 做對比運算，確認輸出變化是否合理。</div></div>
+<h3>❓ 常見問題（FAQ）</h3>
+<dl class="dd-faq">
+<dt>2048 遊戲 結果可用於直接報告嗎？</dt><dd>2048 遊戲 適合用於內部複核與説明，正式材料請附帶口徑、邊界條件和輸入範圍説明。</dd>
+<dt>結果看似異常，該怎麼快速排查？</dt><dd>先核對是否有百分號/小數口徑衝突，再檢查是否觸發了數學域外定義（如對數、開方、除零）。</dd>
+</dl>
+</div>
+</section>
+<!-- 注意事項區塊 -->
+<div class="tool-notes" style="--tool-accent:#EC4899;">
+  <div class="tool-notes-title">⚠️ 使用説明與注意事項</div>
+  <ul>
+      <li>本工具純前端運行，數據不會上傳到伺服器</li>
+      <li>建議在主流瀏覽器（Chrome/Safari/Firefox/Edge）中使用</li>
+      <li>計算結果僅供參考，請以實際應用場景為準</li>
+  </ul>
+</div>
+<!-- /注意事項區塊 -->
+</div>
+
+<div id="gameOverOverlay" style="display:none;">
+  <div class="game-modal">
+    <div class="big-emoji">💀</div>
+    <h2>遊戲結束</h2>
+    <p style="color:var(--text-muted);margin-bottom:16px;">無法繼續移動了</p>
+    <div style="display:flex;justify-content:space-around;margin:16px 0;">
+      <div><div style="font-size:24px;font-weight:700;color:var(--primary);" id="finalScore">0</div><div style="font-size:12px;color:var(--text-muted);">得分</div></div>
+      <div><div style="font-size:24px;font-weight:700;color:var(--primary);" id="finalMax">0</div><div style="font-size:12px;color:var(--text-muted);">最大方塊</div></div>
+    </div>
+    <div class="toolbar" style="margin-top:16px;margin-bottom:0;">
+      <button type="button" class="btn primary" onclick="newGame()">再來一局</button>
+      <button type="button" class="btn" onclick="closeGameOver()">關閉</button>
+    </div>
+  </div>
+</div>
+
+<div id="winOverlay" style="display:none;">
+  <div class="game-modal">
+    <div class="big-emoji">🎉</div>
+    <h2>恭喜！</h2>
+    <p style="color:var(--text-muted);margin-bottom:16px;">你合成了 2048！</p>
+    <div style="display:flex;justify-content:space-around;margin:16px 0;">
+      <div><div style="font-size:24px;font-weight:700;color:var(--primary);" id="winScore">0</div><div style="font-size:12px;color:var(--text-muted);">得分</div></div>
+    </div>
+    <div class="toolbar" style="margin-top:16px;margin-bottom:0;">
+      <button type="button" class="btn primary" onclick="continueGame()">繼續挑戰</button>
+      <button type="button" class="btn" onclick="newGame()">新遊戲</button>
+    </div>
+  </div>
+</div>
+
+<script>
+let board = [];
+let score = 0;
+let bestScore = 0;
+let maxTile = 0;
+let history = [];
+let gameOver = false;
+let won = false;
+let keepPlaying = false;
+
+function switchTab(tab, btn){
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  ['game','scores','help'].forEach(t=>{
+    document.getElementById('tab-'+t).style.display = t===tab?'block':'none';
+  });
+  if(tab==='scores'){
+    document.getElementById('bestScore2').textContent = bestScore;
+    document.getElementById('maxTile2').textContent = maxTile;
+  }
+}
+
+function newGame(){
+  board = Array(4).fill(null).map(()=>Array(4).fill(0));
+  score = 0;
+  history = [];
+  gameOver = false;
+  won = false;
+  keepPlaying = false;
+  addRandomTile();
+  addRandomTile();
+  render();
+  updateScore();
+  closeGameOver();
+  closeWin();
+}
+
+function addRandomTile(){
+  const empty = [];
+  for(let i=0;i<4;i++){
+    for(let j=0;j<4;j++){
+      if(board[i][j] === 0) empty.push({i,j});
+    }
+  }
+  if(empty.length === 0) return false;
+  const {i,j} = empty[Math.floor(Math.random()*empty.length)];
+  board[i][j] = Math.random() < 0.9 ? 2 : 4;
+  return {i,j};
+}
+
+function render(newTile=null, merged=[]){
+  const el = document.getElementById('board');
+  el.innerHTML = '';
+  for(let i=0;i<4;i++){
+    for(let j=0;j<4;j++){
+      const tile = document.createElement('div');
+      const val = board[i][j];
+      let cls = 'tile tile-' + (val > 2048 ? 'super' : val);
+      if(newTile && newTile.i === i && newTile.j === j) cls += ' tile-new';
+      if(merged.some(m=>m.i===i && m.j===j)) cls += ' tile-merged';
+      tile.className = cls;
+      tile.textContent = val || '';
+      el.appendChild(tile);
+    }
+  }
+}
+
+function move(direction){
+  if(gameOver) return;
+
+  const prevBoard = board.map(row=>[...row]);
+  const prevScore = score;
+  let moved = false;
+  let mergedPositions = [];
+
+  const rotate = (b, times) => {
+    let r = b.map(row=>[...row]);
+    for(let t=0;t<times;t++){
+      const n = r.length;
+      const rotated = Array(n).fill(null).map(()=>Array(n).fill(0));
+      for(let i=0;i<n;i++){
+        for(let j=0;j<n;j++){
+          rotated[j][n-1-i] = r[i][j];
+        }
+      }
+      r = rotated;
+    }
+    return r;
+  };
+
+  const rotations = {left:0, up:3, right:2, down:1};
+  let b = rotate(board, rotations[direction]);
+
+  for(let i=0;i<4;i++){
+    let row = b[i].filter(v=>v!==0);
+    let newRow = [];
+    let skip = false;
+    for(let j=0;j<row.length;j++){
+      if(skip){ skip = false; continue; }
+      if(j+1 < row.length && row[j] === row[j+1]){
+        const mergedVal = row[j] * 2;
+        newRow.push(mergedVal);
+        score += mergedVal;
+        if(mergedVal > maxTile) maxTile = mergedVal;
+        if(mergedVal === 2048 && !won && !keepPlaying){
+          won = true;
+        }
+        skip = true;
+      }else{
+        newRow.push(row[j]);
+      }
+    }
+    while(newRow.length < 4) newRow.push(0);
+
+    for(let j=0;j<4;j++){
+      if(b[i][j] !== newRow[j]) moved = true;
+    }
+    b[i] = newRow;
+  }
+
+  const reverseRotations = {left:0, up:1, right:2, down:3};
+  board = rotate(b, reverseRotations[direction]);
+
+  if(moved){
+    history.push({board: prevBoard, score: prevScore});
+    if(history.length > 10) history.shift();
+
+    const newTile = addRandomTile();
+    render(newTile, mergedPositions);
+    updateScore();
+    saveBest();
+
+    if(won && !keepPlaying){
+      showWin();
+    }else if(!canMove()){
+      gameOver = true;
+      showGameOver();
+    }
+  }
+}
+
+function canMove(){
+  for(let i=0;i<4;i++){
+    for(let j=0;j<4;j++){
+      if(board[i][j] === 0) return true;
+      if(j+1<4 && board[i][j] === board[i][j+1]) return true;
+      if(i+1<4 && board[i][j] === board[i+1][j]) return true;
+    }
+  }
+  return false;
+}
+
+function undoMove(){
+  if(history.length === 0 || gameOver) return;
+  const prev = history.pop();
+  board = prev.board;
+  score = prev.score;
+  render();
+  updateScore();
+}
+
+function updateScore(){
+  document.getElementById('score').textContent = score;
+  document.getElementById('maxTile').textContent = maxTile;
+  if(score > bestScore){
+    bestScore = score;
+    document.getElementById('bestScore').textContent = bestScore;
+  }
+}
+
+function saveBest(){
+  try{
+    const data = {
+      best: Math.max(bestScore, score),
+      maxTile: maxTile
+    };
+    localStorage.setItem('game2048_best', JSON.stringify(data));
+  }catch(e){}
+}
+
+function loadBest(){
+  try{
+    const data = JSON.parse(localStorage.getItem('game2048_best') || '{}');
+    bestScore = data.best || 0;
+    maxTile = data.maxTile || 0;
+    document.getElementById('bestScore').textContent = bestScore;
+    document.getElementById('maxTile').textContent = maxTile;
+  }catch(e){}
+}
+
+function clearBest(){
+  localStorage.removeItem('game2048_best');
+  bestScore = 0;
+  maxTile = 0;
+  document.getElementById('bestScore').textContent = 0;
+  document.getElementById('maxTile').textContent = 0;
+  ToolBox.showToast(i18nText('toast.history_cleared'));
+}
+
+function showGameOver(){
+  document.getElementById('finalScore').textContent = score;
+  document.getElementById('finalMax').textContent = maxTile;
+  document.getElementById('gameOverOverlay').style.display = 'flex';
+}
+
+function closeGameOver(){
+  document.getElementById('gameOverOverlay').style.display = 'none';
+}
+
+function showWin(){
+  document.getElementById('winScore').textContent = score;
+  document.getElementById('winOverlay').style.display = 'flex';
+}
+
+function closeWin(){
+  document.getElementById('winOverlay').style.display = 'none';
+}
+
+function continueGame(){
+  keepPlaying = true;
+  closeWin();
+}
+
+document.addEventListener('keydown', (e) => {
+  switch(e.key){
+    case 'ArrowUp':
+    case 'w':
+    case 'W':
+      e.preventDefault();
+      move('up');
+      break;
+    case 'ArrowDown':
+    case 's':
+    case 'S':
+      e.preventDefault();
+      move('down');
+      break;
+    case 'ArrowLeft':
+    case 'a':
+    case 'A':
+      e.preventDefault();
+      move('left');
+      break;
+    case 'ArrowRight':
+    case 'd':
+    case 'D':
+      e.preventDefault();
+      move('right');
+      break;
+    case 'u':
+    case 'U':
+      e.preventDefault();
+      undoMove();
+      break;
+  }
+});
+
+let touchStartX = 0;
+let touchStartY = 0;
+
+const boardEl = document.getElementById('board');
+boardEl.addEventListener('touchstart', (e) => {
+  touchStartX = e.touches[0].clientX;
+  touchStartY = e.touches[0].clientY;
+}, {passive: true});
+
+boardEl.addEventListener('touchend', (e) => {
+  if(gameOver) return;
+
+  const touchEndX = e.changedTouches[0].clientX;
+  const touchEndY = e.changedTouches[0].clientY;
+
+  const dx = touchEndX - touchStartX;
+  const dy = touchEndY - touchStartY;
+
+  if(Math.abs(dx) < 30 && Math.abs(dy) < 30) return;
+
+  if(Math.abs(dx) > Math.abs(dy)){
+    move(dx > 0 ? 'right' : 'left');
+  }else{
+    move(dy > 0 ? 'down' : 'up');
+  }
+}, {passive: true});
+
+loadBest();
+newGame();
+</script><script>
+// tool-intro折叠交互
+document.addEventListener('DOMContentLoaded',function(){
+  var headers=document.querySelectorAll('.tool-intro-header');
+  headers.forEach(function(h){
+    h.addEventListener('click',function(){
+      this.parentElement.classList.toggle('open');
+    });
+  });
+});
+</script>
+<!-- SEO 介紹區塊 -->
+
+</div>
+
+</div>
+
+<!-- 相關工具 -->
+<div class="related-tools" data-related-tools="1">
+  <h3 class="related-tools-title">🔗 相關工具</h3>
+  <div class="related-tools-grid">
+
+
+    <a href="/zh-hk/tools/fun/generator-2.html" class="related-tool-card">
+      <span class="rt-icon">🎮</span>
+      <span class="rt-info"><span class="rt-name">數獨生成器 / 求解器 - 免費在線工具，純前端處理 | ToolBox免費在線工具箱</span><span class="rt-desc">數獨生成器 / 求解器</span></span>
+    </a>
+    <a href="/zh-hk/tools/fun/laugh-generator.html" class="related-tool-card">
+      <span class="rt-icon">😂</span>
+      <span class="rt-info"><span class="rt-name">笑聲音效生成器 - 免費趣味工具，用Web Audio API合成笑聲 | ToolBox免費在線工具箱</span><span class="rt-desc">笑聲音效生成器</span></span>
+    </a>
+    <a href="/zh-hk/tools/fun/generator-laugh.html" class="related-tool-card">
+      <span class="rt-icon">🔧</span>
+      <span class="rt-info"><span class="rt-name">笑聲音效生成器（合成） - 免費在線工具，純前端處理 | ToolBox免費在線工具箱</span><span class="rt-desc">笑聲音效生成器（合成）</span></span>
+    </a>
+    <a href="/zh-hk/tools/dance/choreography-timeline.html" class="related-tool-card">
+      <span class="rt-icon">🎶</span>
+      <span class="rt-info"><span class="rt-name">編舞時間線 - 8拍分段規劃器，按BPM和小節數生成舞蹈編排時間軸 | ToolBox免費在線工具箱</span><span class="rt-desc">編舞時間線</span></span>
+    </a>
+  </div>
+</div>
+<div class="tool-intro open" id="toolIntro">
+  <div class="tool-intro-header">
+    <span class="intro-icon-wrap"><span class="intro-icon">📖</span>關於「2048 遊戲」</span>
+    <span class="arrow">▼</span>
+  </div>
+  <div class="tool-intro-body">
+    <h4><span class="h4-icon">📝</span>工具簡介</h4>
+    <p>2048 遊戲。娛樂遊戲工具，純前端實現，無需安裝，離線可玩。</p>
+    <h4><span class="h4-icon">✨</span>功能特點</h4>
+    <ul class="intro-features">
+      <li>純前端實現，無需安裝</li>
+      <li>操作簡單，上手快速</li>
+      <li>支持多種設備，隨時隨地使用</li>
+      <li>無需聯網，離線可玩</li>
+    </ul>
+    <h4><span class="h4-icon">🎯</span>使用場景</h4>
+    <ul class="intro-scenes">
+      <li>休閒娛樂與放鬆</li>
+      <li>聚會互動小遊戲</li>
+      <li>碎片時間的趣味消遣</li>
+      <li>概率與統計的學習輔助</li>
+    </ul>
+    <h4><span class="h4-icon">💬</span>常見問題</h4>
+      <div class="intro-faq-item"><div class="intro-faq-q">這個工具是免費的嗎？</div><div class="intro-faq-a">完全免費，無需註冊，直接在瀏覽器中使用。</div></div>
+      <div class="intro-faq-item"><div class="intro-faq-q">需要安裝軟件嗎？</div><div class="intro-faq-a">不需要，直接在瀏覽器中打開即可使用。</div></div>
+      <div class="intro-faq-item"><div class="intro-faq-q">支持手機使用嗎？</div><div class="intro-faq-a">支持。頁面已做響應式適配，手機和電腦均可正常使用。</div></div>
+  </div>
+</div>
+<!-- /SEO 介紹區塊 -->
+</body>
+</html>

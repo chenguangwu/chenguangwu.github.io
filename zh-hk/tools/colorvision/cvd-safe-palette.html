@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html lang="zh-HK" data-opencc-locale="zh-hk">
+<head>
+
+<script src="/js/tool-page-runtime.js" defer></script>
+<!-- TOOLBOX-TOOL-RUNTIME -->
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="toolbox" content="cat=design,industry=colorvision,icon=🌈,bg=#e8f5e9">
+<title>色盲安全配色生成器 - ToolBox</title>
+<link rel="canonical" href="https://chenguangwu.github.io/zh-hk/tools/colorvision/cvd-safe-palette.html">
+<meta property="og:title" content="色盲安全配色生成器">
+<meta property="og:description" content="生成在红绿/蓝黄色盲、全色盲等 8 种色觉类型下都能清晰区分的配色方案。支持顺序（sequential）/ 发散（diverging）/ 定性（qualitative）三类模式，可锁定关键颜色让生成围绕它扩展；采用「明暗交替 / 最大化明度">
+<meta name="twitter:card" content="summary">
+<meta name="description" content="生成在红绿/蓝黄色盲、全色盲等 8 种色觉类型下都能清晰区分的配色方案。支持顺序（sequential）/ 发散（diverging）/ 定性（qualitative）三类模式，可锁定关键颜色让生成围绕它扩展；采用「明暗交替 / 最大化明度">
+<link rel="preload" as="style" href="/css/common.css" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="/css/common.css"></noscript>
+<script>window.__tbq=window.__tbq||[];window.ToolBox=window.ToolBox||{};['initToolTheme','addToolStyles','showToast','toast','copyText','copyToClipboard','copyFromElement','downloadText','injectPrivacyBadge','toggleFavTool','addToRecentTool','toggleToolTheme','applyTheme'].forEach(function(k){if(typeof window.ToolBox[k]!=='function')window.ToolBox[k]=function(){window.__tbq.push([k,[].slice.call(arguments)]);};});</script><!-- TOOLBOX-API-STUB -->
+<script src="/js/common.js" defer></script>
+<!-- TOOLBOX-WEBAPP-LD -->
+<!-- TOOLBOX-SECURITY -->
+<style>
+.cs-wrap{max-width:1180px}
+.cs-ctl{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;align-items:end}
+.cs-field{display:flex;flex-direction:column;gap:5px}
+.cs-field label{font-size:12px;font-weight:600;color:var(--text-secondary)}
+.cs-locks{display:flex;gap:10px;flex-wrap:wrap;margin:10px 0;align-items:flex-end}
+.cs-lock{display:flex;flex-direction:column;align-items:center;gap:4px;font-size:11px;color:var(--text-muted)}
+.cs-lock input[type=color]{width:46px;height:40px;padding:2px;border:1px solid var(--border);border-radius:8px;background:var(--bg-card);cursor:pointer}
+.cs-lock .row{display:flex;align-items:center;gap:3px}
+.cs-lock input[type=checkbox]{accent-color:var(--primary);width:15px;height:15px}
+.cs-lock button{border:0;background:transparent;color:var(--text-muted);cursor:pointer;font-size:14px;line-height:1;padding:1px 4px;border-radius:4px}
+.cs-lock button:hover{color:var(--danger);background:rgba(239,68,68,.12)}
+.cs-canvas-box{border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;background:var(--bg-card);margin-top:6px}
+.cs-canvas-box canvas{display:block;width:100%;height:auto}
+.cs-ladder{display:flex;gap:6px;flex-wrap:wrap;margin:10px 0;align-items:center}
+.cs-ladder .sw{display:flex;flex-direction:column;align-items:center;gap:3px;font-size:10px;color:var(--text-muted);font-family:ui-monospace,Menlo,monospace}
+.cs-ladder .sw b{width:38px;height:38px;border-radius:8px;border:1px solid var(--border)}
+.cs-ladder .arrow{color:var(--text-muted);font-size:14px}
+.cs-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+table.cs-tbl{width:100%;border-collapse:collapse;font-size:12.5px;margin-top:10px}
+table.cs-tbl th,table.cs-tbl td{border:1px solid var(--border);padding:6px 8px;text-align:center}
+table.cs-tbl th{background:var(--th-bg);font-weight:700;color:var(--text-secondary)}
+table.cs-tbl td.k{text-align:left;font-weight:600;background:var(--bg-hover);white-space:nowrap}
+.cs-pass{color:var(--success);font-weight:700}
+.cs-fail{color:var(--danger);font-weight:700}
+.cs-warn{background:rgba(239,68,68,.10);border-left:3px solid var(--danger);padding:8px 12px;border-radius:6px;font-size:12.5px;color:var(--text-secondary);margin-top:8px;line-height:1.65}
+.cs-warn b{color:var(--danger)}
+.cs-ok{background:rgba(16,185,129,.10);border-left:3px solid var(--success);padding:8px 12px;border-radius:6px;font-size:12.5px;color:var(--text-secondary);margin-top:8px}
+.cs-rng{width:100%;accent-color:var(--primary)}
+.cs-copyrow{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.cs-mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+.cs-note{font-size:12px;color:var(--text-muted);line-height:1.7;margin-top:12px;padding:10px 12px;background:var(--bg-hover);border-radius:8px}
+.cs-loading{padding:22px;text-align:center;color:var(--text-muted);font-size:13px}
+@media(max-width:640px){
+  .cs-lock input[type=color]{width:42px;height:36px}
+}
+</style>
+
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"首頁","item":"https://chenguangwu.github.io/zh-hk/"},{"@type":"ListItem","position":2,"name":"色覺與色彩無障礙","item":"https://chenguangwu.github.io/zh-hk/tools/colorvision/index.html"},{"@type":"ListItem","position":3,"name":"色盲安全配色生成器","item":"https://chenguangwu.github.io/zh-hk/tools/colorvision/cvd-safe-palette.html"}]}</script>
+
+<script src="/js/analytics.js" defer></script>
+<!-- TOOLBOX-CLARITY -->
+<!-- TOOLBOX-WEBAPP-LD -->
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"色盲安全配色生成器","url":"https://chenguangwu.github.io/zh-hk/tools/colorvision/cvd-safe-palette.html","applicationCategory":"MultimediaApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":"zh-HK","description":"生成在紅綠/藍黃色盲、全色盲等 8 種色覺類型下都能清晰區分的配色方案。支持順序（sequential）/ 發散（diverging）/ 定性（qualitative）三類模式，可鎖定關鍵顏色讓生成圍繞它擴展；採用「明暗交替 / 最大化明度差」策略保證色覺缺陷下可分；用 canvas 實時並排預覽 ","image":"https://chenguangwu.github.io/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}</script>
+<meta property="og:image" content="https://chenguangwu.github.io/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="ToolBox - 5000+免费在线工具">
+<meta name="twitter:image" content="https://chenguangwu.github.io/og-image.png">
+<meta name="twitter:image:alt" content="ToolBox - 5000+免费在线工具">
+
+<meta name="twitter:title" content="色盲安全配色生成器">
+<meta name="twitter:description" content="生成在红绿/蓝黄色盲、全色盲等 8 种色觉类型下都能清晰区分的配色方案。支持顺序（sequential）/ 发散（diverging）/ 定性（qualitative）三类模式，可锁定关键颜色让生成围绕它扩展；采用「明暗交替 / 最大化明度">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://chenguangwu.github.io/zh-hk/tools/colorvision/cvd-safe-palette.html">
+
+<script src="/js/privacy.js" defer></script>
+<!-- TOOLBOX-PRIVACY-SCRIPT -->
+
+<script src="/js/metrics.js" defer></script>
+<!-- TOOLBOX-METRICS-SCRIPT -->
+
+<script src="/js/i18n.js" defer></script>
+<script src="/js/tool-i18n.js" defer></script>
+<!-- TOOLBOX-I18N-SCRIPT -->
+<meta name="title-en" content="Colorblind-Safe Palette Generator - ToolBox">
+<meta name="desc-en" content="Generate colorblind-safe sequential, diverging and qualitative palettes with guaranteed minimal Delta-E, Free, browser-only.">
+<!-- TOOLBOX-HREFLANG -->
+<link rel="alternate" hreflang="zh-CN" href="https://chenguangwu.github.io/tools/colorvision/cvd-safe-palette.html">
+<link rel="alternate" hreflang="zh-TW" href="https://chenguangwu.github.io/zh-tw/tools/colorvision/cvd-safe-palette.html">
+<link rel="alternate" hreflang="zh-HK" href="https://chenguangwu.github.io/zh-hk/tools/colorvision/cvd-safe-palette.html">
+<link rel="alternate" hreflang="en-US" href="https://chenguangwu.github.io/tools/colorvision/cvd-safe-palette.html?lang=en-US">
+<link rel="alternate" hreflang="x-default" href="https://chenguangwu.github.io/tools/colorvision/cvd-safe-palette.html">
+<meta property="og:locale" content="zh_HK">
+<meta property="og:locale:alternate" content="zh_CN">
+<meta property="og:locale:alternate" content="zh_TW">
+<meta property="og:locale:alternate" content="en_US">
+</head>
+<body>
+<nav class="breadcrumb" aria-label="麪包屑導航" data-breadcrumb="1">
+  <a href="/zh-hk/index.html">首頁</a>
+  <span class="bc-sep">‹</span>
+  <a href="/zh-hk/tools/colorvision/index.html">🎨 色覺與色彩無障礙</a>
+  <span class="bc-sep">‹</span>
+  <span class="bc-current">色盲安全配色生成器</span>
+</nav>
+
+
+<h1 class="sr-only">色盲安全配色生成器</h1>
+
+<div class="nav">
+  <a href="/zh-hk/index.html">← ToolBox</a>
+  <span>/ 色盲安全配色生成器</span>
+  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()">🌙</button>
+</div>
+
+<nav class="breadcrumb" aria-label="麪包屑導航">
+  <a href="/zh-hk/index.html">首頁</a>
+  <span class="bc-sep">‹</span>
+  <a href="/zh-hk/tools/colorvision/index.html">🎨 色覺與色彩無障礙</a>
+  <span class="bc-sep">‹</span>
+  <span class="bc-current">色盲安全配色生成器</span>
+</nav>
+
+<div class="container cs-wrap">
+  <div class="card tool-card-accent" style="--tool-accent:#16a34a;">
+    <h2 data-zh="🌈 色盲安全配色生成器">🌈 Colorblind-Safe Palette Generator - ToolBox</h2>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="生成在紅綠/藍黃色盲、全色盲等 8 種色覺類型下都能清晰區分的配色方案。支持順序（sequential）/ 發散（diverging）/ 定性（qualitative）三類模式，可鎖定關鍵顏色讓生成圍繞它擴展；採用「明暗交替 / 最大化明度差」策略保證色覺缺陷下可分；用 canvas 實時並排預覽 8 型模擬，並通過 WCAG 2.1 對比度校驗，一鍵複製 HEX / CSS 變量 / JSON。">Generate palettes that stay clearly distinguishable across 8 types of color vision, with sequential / diverging / qualitative modes, color locking, a lightness-alternation strategy, live 8-type previews and WCAG 2.1 checks — exported as HEX, CSS variables or JSON.</p>
+
+    <div class="formula-box">
+      <div class="formula-title">📐 安全配色原理</div>
+      <p class="formula-desc">所有候選色在 OKLCH 感知均勻空間採樣，逐一做 8 型色覺變換（Machado 矩陣用於紅/綠色盲，灰度去色用於全色盲）後轉 CIE Lab，用貪心算法選出「全部 8 型下兩兩最小 ΔE」儘可能大的一組顏色。核心策略：色覺缺陷主要壓縮色相差異，而明度（L*）差異基本保留——因此順序配色走單色明度梯度、定性配色做明暗交替、發散配色讓中心最亮兩端最暗，都能在 CVD 下保持可分辨。WCAG 對比度 = (L亮+0.05)/(L暗+0.05)。</p>
+    </div>
+
+    <!-- 控制區 -->
+    <div class="cs-ctl">
+      <div class="cs-field">
+        <label for="csMode">配色模式</label>
+        <select id="csMode" style="height:40px;padding:0 10px;border:1px solid var(--border);border-radius:8px;background:var(--bg-card);color:var(--text-primary);font-size:14px">
+          <option value="qualitative">定性 qualitative（分類）</option>
+          <option value="sequential">順序 sequential（單色梯度）</option>
+          <option value="diverging">發散 diverging（兩極對比）</option>
+        </select>
+      </div>
+      <div class="cs-field">
+        <label for="csCount"><span>顏色數量</span> <span class="cs-mono" id="csCountv">6</span></label>
+        <input type="range" id="csCount" min="3" max="10" value="6" class="cs-rng">
+      </div>
+      <div class="cs-field">
+        <label for="csStrategy">區分策略</label>
+        <select id="csStrategy" style="height:40px;padding:0 10px;border:1px solid var(--border);border-radius:8px;background:var(--bg-card);color:var(--text-primary);font-size:14px">
+          <option value="auto">自動（按模式最優）</option>
+          <option value="lightness">明暗交替優先</option>
+          <option value="maxmin">最大化最小色差</option>
+        </select>
+      </div>
+      <div class="cs-field">
+        <label>操作</label>
+        <button class="btn btn-primary" id="csGen" style="height:40px">生成安全配色</button>
+      </div>
+    </div>
+
+    <!-- 鎖定顏色 -->
+    <div style="margin-top:14px">
+      <strong style="font-size:13px;color:var(--text-primary)">🔒 鎖定顏色（勾選後生成將圍繞它們擴展）</strong>
+      <div class="cs-locks" id="csLocks"></div>
+      <button class="btn" id="csAddLock">+ 添加鎖定色</button>
+    </div>
+
+    <!-- 結果 -->
+    <div id="csOut"><div class="cs-loading">點擊「生成安全配色」開始</div></div>
+
+    <div class="cs-note"><span>使用邊界説明：</span><span>本工具是設計與自查輔助工具，所有模擬基於色彩科學模型的數學推算，</span><b>不等同於醫學診斷</b><span>。即便配色在 8 型下 ΔE 充足，真實色覺障礙者仍可能受顯示器、環境光與個體差異影響；涉及安全關鍵信息（如交通、醫療圖表）請勿僅依賴顏色，務必配合形狀、紋理或文字標籤。模型採用線性嚴重度插值，與真實光譜響應存在偏差。</span></div>
+  </div>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  /* ============================================================
+   * 1. 色彩科学基础
+   * ========================================================== */
+  var M_PROTAN = [[0.152286, 1.052583, -0.204868], [0.114503, 0.786281, 0.099216], [-0.003882, -0.048116, 1.051998]];
+  var M_DEUTAN = [[0.367322, 0.860646, -0.227968], [0.280085, 0.672501, 0.047413], [-0.011820, 0.042940, 0.968881]];
+  var M_TRITAN = [[1.255528, -0.076749, -0.178779], [-0.078411, 0.930809, 0.147602], [0.004733, 0.691367, 0.303900]];
+
+  function clamp(v, a, b) { return v < a ? a : (v > b ? b : v); }
+  function isEn() { return !!(window.I18n && window.I18n.get && window.I18n.get() === 'en-US'); }
+  function B(zh, en) { return isEn() ? en : zh; }
+
+  function srgbToLin(c) { c /= 255; return c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4); }
+  function linToSrgb(c) {
+    c = clamp(c, 0, 1);
+    var v = c <= 0.0031308 ? c * 12.92 : 1.055 * Math.pow(c, 1 / 2.4) - 0.055;
+    return Math.round(clamp(v, 0, 1) * 255);
+  }
+  function hexToRgb(hex) {
+    var h = String(hex || '').trim().replace(/^#/, '');
+    if (h.length === 3) { h = h[0] + h[0] + h[1] + h[1] + h[2] + h[2]; }
+    if (!/^[0-9a-fA-F]{6}$/.test(h)) { return null; }
+    var n = parseInt(h, 16);
+    return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+  }
+  function rgbToHex(r, g, b) {
+    function p(x) { var s = clamp(Math.round(x), 0, 255).toString(16); return s.length < 2 ? '0' + s : s; }
+    return ('#' + p(r) + p(g) + p(b)).toUpperCase();
+  }
+  function relLuminance(rgb) { return 0.2126 * srgbToLin(rgb[0]) + 0.7152 * srgbToLin(rgb[1]) + 0.0722 * srgbToLin(rgb[2]); }
+  function wcagContrast(a, b) { var l1 = relLuminance(a), l2 = relLuminance(b); var hi = Math.max(l1, l2), lo = Math.min(l1, l2); return (hi + 0.05) / (lo + 0.05); }
+
+  /* ---- 8 种色觉类型（含正常，用于优化与 canvas 行）---- */
+  var VTYPES = [
+    { key: 'normal', zh: '正常', en: 'Normal', mode: 'identity' },
+    { key: 'protanopia', zh: '红色盲', en: 'Protanopia', mode: 'machado', m: M_PROTAN, sev: 1.0 },
+    { key: 'protanomaly', zh: '红色弱', en: 'Protanomaly', mode: 'machado', m: M_PROTAN, sev: 0.6 },
+    { key: 'deuteranopia', zh: '绿色盲', en: 'Deuteranopia', mode: 'machado', m: M_DEUTAN, sev: 1.0 },
+    { key: 'deuteranomaly', zh: '绿色弱', en: 'Deuteranomaly', mode: 'machado', m: M_DEUTAN, sev: 0.6 },
+    { key: 'tritanopia', zh: '蓝色盲', en: 'Tritanopia', mode: 'machado', m: M_TRITAN, sev: 1.0 },
+    { key: 'tritanomaly', zh: '蓝色弱', en: 'Tritanomaly', mode: 'machado', m: M_TRITAN, sev: 0.6 },
+    { key: 'achromatopsia', zh: '全色盲/灰度', en: 'Achromatopsia', mode: 'gray' }
+  ];
+  var VMAP = {}; VTYPES.forEach(function (t) { VMAP[t.key] = t; });
+
+  function effMatrix(type, sev) {
+    if (type.mode !== 'machado') { return null; }
+    var s = clamp(sev, 0, 1), out = [];
+    for (var i = 0; i < 3; i++) { out.push([0, 0, 0]); for (var j = 0; j < 3; j++) { var id = (i === j) ? 1 : 0; out[i][j] = id + (type.m[i][j] - id) * s; } }
+    return out;
+  }
+  function simulate(rgb, key) {
+    var t = VMAP[key];
+    if (!t || t.mode === 'identity') { return rgb.slice(); }
+    var r = srgbToLin(rgb[0]), g = srgbToLin(rgb[1]), b = srgbToLin(rgb[2]);
+    var o;
+    if (t.mode === 'gray') { var y = 0.2126 * r + 0.7152 * g + 0.0722 * b; o = [y, y, y]; }
+    else {
+      var m = effMatrix(t, t.sev !== undefined ? t.sev : 1);
+      o = [m[0][0] * r + m[0][1] * g + m[0][2] * b, m[1][0] * r + m[1][1] * g + m[1][2] * b, m[2][0] * r + m[2][1] * g + m[2][2] * b];
+    }
+    return [linToSrgb(o[0]), linToSrgb(o[1]), linToSrgb(o[2])];
+  }
+
+  var M_XYZ = [[0.4124564, 0.3575761, 0.1804375], [0.2126729, 0.7151522, 0.0721750], [0.0193339, 0.1191920, 0.9503041]];
+  var WHITE = [0.95047, 1.0, 1.08883];
+  function rgbToLab(rgb) {
+    var r = srgbToLin(rgb[0]), g = srgbToLin(rgb[1]), b = srgbToLin(rgb[2]);
+    var X = (M_XYZ[0][0] * r + M_XYZ[0][1] * g + M_XYZ[0][2] * b) / WHITE[0];
+    var Y = (M_XYZ[1][0] * r + M_XYZ[1][1] * g + M_XYZ[1][2] * b) / WHITE[1];
+    var Z = (M_XYZ[2][0] * r + M_XYZ[2][1] * g + M_XYZ[2][2] * b) / WHITE[2];
+    function f(t) { return t > 0.008856 ? Math.pow(t, 1 / 3) : (7.787 * t + 16 / 116); }
+    return [116 * f(Y) - 16, 500 * (f(X) - f(Y)), 200 * (f(Y) - f(Z))];
+  }
+  function deltaE2000(lab1, lab2) {
+    var L1 = lab1[0], a1 = lab1[1], b1 = lab1[2], L2 = lab2[0], a2 = lab2[1], b2 = lab2[2];
+    var C1 = Math.sqrt(a1 * a1 + b1 * b1), C2 = Math.sqrt(a2 * a2 + b2 * b2);
+    var Cb = (C1 + C2) / 2;
+    var G = 0.5 * (1 - Math.sqrt(Math.pow(Cb, 7) / (Math.pow(Cb, 7) + Math.pow(25, 7))));
+    var a1p = a1 * (1 + G), a2p = a2 * (1 + G);
+    var C1p = Math.sqrt(a1p * a1p + b1 * b1), C2p = Math.sqrt(a2p * a2p + b2 * b2);
+    var h1p = Math.atan2(b1, a1p); if (h1p < 0) { h1p += 2 * Math.PI; }
+    var h2p = Math.atan2(b2, a2p); if (h2p < 0) { h2p += 2 * Math.PI; }
+    var dLp = L2 - L1, dCp = C2p - C1p, dhp = 0;
+    if (C1p * C2p !== 0) { dhp = h2p - h1p; if (dhp > Math.PI) { dhp -= 2 * Math.PI; } else if (dhp < -Math.PI) { dhp += 2 * Math.PI; } }
+    var dHp = 2 * Math.sqrt(C1p * C2p) * Math.sin(dhp / 2);
+    var Lbp = (L1 + L2) / 2, Cbp = (C1p + C2p) / 2;
+    var hbp;
+    if (C1p * C2p === 0) { hbp = h1p + h2p; }
+    else if (Math.abs(h1p - h2p) <= Math.PI) { hbp = (h1p + h2p) / 2; }
+    else if (h1p + h2p < 2 * Math.PI) { hbp = (h1p + h2p + 2 * Math.PI) / 2; }
+    else { hbp = (h1p + h2p - 2 * Math.PI) / 2; }
+    var T = 1 - 0.17 * Math.cos(hbp - Math.PI / 6) + 0.24 * Math.cos(2 * hbp) + 0.32 * Math.cos(3 * hbp + Math.PI / 30) - 0.20 * Math.cos(4 * hbp - 63 * Math.PI / 180);
+    var dTh = 30 * Math.PI / 180 * Math.exp(-Math.pow((hbp * 180 / Math.PI - 275) / 25, 2));
+    var Rc = 2 * Math.sqrt(Math.pow(Cbp, 7) / (Math.pow(Cbp, 7) + Math.pow(25, 7)));
+    var Sl = 1 + (0.015 * Math.pow(Lbp - 50, 2)) / Math.sqrt(20 + Math.pow(Lbp - 50, 2));
+    var Sc = 1 + 0.045 * Cbp, Sh = 1 + 0.015 * Cbp * T;
+    var Rt = -Math.sin(2 * dTh) * Rc;
+    return Math.sqrt(Math.pow(dLp / Sl, 2) + Math.pow(dCp / Sc, 2) + Math.pow(dHp / Sh, 2) + Rt * (dCp / Sc) * (dHp / Sh));
+  }
+  function oklchToRgb(L, C, hDeg) {
+    var h = hDeg * Math.PI / 180;
+    var a = C * Math.cos(h), b = C * Math.sin(h);
+    var l_ = L + 0.3963377774 * a + 0.2158037573 * b;
+    var m_ = L - 0.1055613458 * a - 0.0638541728 * b;
+    var s_ = L - 0.0894841775 * a - 1.2914855480 * b;
+    var l = l_ * l_ * l_, m = m_ * m_ * m_, s = s_ * s_ * s_;
+    var r = 4.0767416621 * l - 3.3077115913 * m + 0.2309699292 * s;
+    var g = -1.2684380046 * l + 2.6097574011 * m - 0.3413193965 * s;
+    var bb = -0.0041960863 * l - 0.7034186147 * m + 1.7076147010 * s;
+    return [linToSrgb(r), linToSrgb(g), linToSrgb(bb)];
+  }
+  function rgbToOklch(rgb) {
+    var r = srgbToLin(rgb[0]), g = srgbToLin(rgb[1]), b = srgbToLin(rgb[2]);
+    var l = 0.4122214708 * r + 0.5363325363 * g + 0.0514459929 * b;
+    var m = 0.2119034982 * r + 0.6806995451 * g + 0.1073969566 * b;
+    var s = 0.0883024619 * r + 0.2817188376 * g + 0.6299787005 * b;
+    var l_ = Math.cbrt(l), m_ = Math.cbrt(m), s_ = Math.cbrt(s);
+    var L = 0.2104542553 * l_ + 0.7936177850 * m_ - 0.0040720468 * s_;
+    var A = 1.9779984951 * l_ - 2.4285922050 * m_ + 0.4505937099 * s_;
+    var B = 0.0259040371 * l_ + 0.7827717662 * m_ - 0.8086757660 * s_;
+    var C = Math.sqrt(A * A + B * B);
+    var h = Math.atan2(B, A) * 180 / Math.PI; if (h < 0) { h += 360; }
+    return [L, C, h];
+  }
+
+  /* 两色在 8 型下的最小 ΔE */
+  function minDeltaAcross8(rgbA, rgbB) {
+    var la = VTYPES.map(function (t) { return rgbToLab(simulate(rgbA, t.key)); });
+    var lb = VTYPES.map(function (t) { return rgbToLab(simulate(rgbB, t.key)); });
+    var mn = Infinity;
+    for (var i = 0; i < VTYPES.length; i++) { var d = deltaE2000(la[i], lb[i]); if (d < mn) { mn = d; } }
+    return mn;
+  }
+
+  /* ============================================================
+   * 2. DOM 助手
+   * ========================================================== */
+  function $(id) { return document.getElementById(id); }
+  function esc(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+  function copyText(t) {
+    if (navigator.clipboard && navigator.clipboard.writeText) { navigator.clipboard.writeText(t).then(function () { toast(B('已复制 ', 'Copied ') + t); }, function () { fallbackCopy(t); }); }
+    else { fallbackCopy(t); }
+  }
+  function fallbackCopy(t) {
+    var ta = document.createElement('textarea'); ta.value = t; ta.style.position = 'fixed'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select();
+    try { document.execCommand('copy'); toast(B('已复制 ', 'Copied ') + t); } catch (e) { toast(B('复制失败', 'Copy failed')); }
+    document.body.removeChild(ta);
+  }
+  var _toastTimer = null;
+  function toast(msg) {
+    var el = $('csToast');
+    if (!el) { el = document.createElement('div'); el.id = 'csToast'; el.style.cssText = 'position:fixed;left:50%;bottom:32px;transform:translateX(-50%) translateY(20px);background:rgba(31,41,55,.94);color:#fff;padding:10px 18px;border-radius:999px;font-size:13px;z-index:9999;opacity:0;transition:.22s;pointer-events:none;box-shadow:0 6px 20px rgba(0,0,0,.2)'; document.body.appendChild(el); }
+    el.textContent = msg; el.style.opacity = '1'; el.style.transform = 'translateX(-50%) translateY(0)';
+    clearTimeout(_toastTimer); _toastTimer = setTimeout(function () { el.style.opacity = '0'; el.style.transform = 'translateX(-50%) translateY(20px)'; }, 1600);
+  }
+  function downloadBlob(data, filename, mime) {
+    var blob = (data instanceof Blob) ? data : new Blob([data], { type: mime || 'application/octet-stream' });
+    var url = URL.createObjectURL(blob); var a = document.createElement('a'); a.href = url; a.download = filename;
+    document.body.appendChild(a); a.click(); setTimeout(function () { document.body.removeChild(a); URL.revokeObjectURL(url); }, 400);
+  }
+
+  /* ============================================================
+   * 3. 状态
+   * ========================================================== */
+  var S = { mode: 'qualitative', count: 6, strategy: 'auto', locks: [], result: null };
+
+  /* ---- 锁定色编辑器 ---- */
+  function renderLocks() {
+    var box = $('csLocks');
+    if (!S.locks.length) { box.innerHTML = '<span class="cs-note" style="margin:0">未锁定颜色。生成将自动选择最优起点。</span>'; return; }
+    var h = '';
+    S.locks.forEach(function (lk, i) {
+      h += '<div class="cs-lock">' +
+        '<div class="row"><input type="checkbox" ' + (lk.locked ? 'checked' : '') + ' data-i="' + i + '" data-act="lock" title="锁定"><button data-i="' + i + '" data-act="del" title="删除">×</button></div>' +
+        '<input type="color" value="' + lk.hex.toLowerCase() + '" data-i="' + i + '" data-act="color">' +
+        '<span class="cs-mono">' + lk.hex + '</span></div>';
+    });
+    box.innerHTML = h;
+  }
+  $('csLocks').addEventListener('click', function (e) {
+    var b = e.target.closest ? e.target.closest('button[data-act="del"]') : null;
+    if (!b) { return; }
+    S.locks.splice(parseInt(b.getAttribute('data-i'), 10), 1); renderLocks();
+  });
+  $('csLocks').addEventListener('change', function (e) {
+    var t = e.target;
+    var i = parseInt(t.getAttribute('data-i'), 10);
+    if (t.getAttribute('data-act') === 'lock') { S.locks[i].locked = t.checked; }
+    else if (t.getAttribute('data-act') === 'color') {
+      var c = hexToRgb(t.value);
+      if (c) { S.locks[i].hex = rgbToHex(c[0], c[1], c[2]); S.locks[i].rgb = c; renderLocks(); }
+    }
+  });
+  $('csAddLock').addEventListener('click', function () {
+    S.locks.push({ hex: '#16A34A', rgb: [22, 163, 74], locked: true });
+    renderLocks();
+  });
+
+  /* ============================================================
+   * 4. 配色生成
+   * ========================================================== */
+  function buildCandidates() {
+    var out = [];
+    for (var h = 0; h < 360; h += 5) {
+      for (var L = 0.34; L <= 0.90; L += 0.06) {
+        for (var C = 0.04; C <= 0.20; C += 0.04) {
+          out.push({ L: L, C: C, h: h, rgb: oklchToRgb(L, C, h) });
+        }
+      }
+    }
+    return out;
+  }
+  var CAND = null;
+  function candLabs(c) { return VTYPES.map(function (t) { return rgbToLab(simulate(c.rgb, t.key)); }); }
+
+  function greedyQualitative(n, seeds) {
+    if (!CAND) { CAND = buildCandidates().map(function (c) { c.labs = candLabs(c); return c; }); }
+    var chosen = seeds.slice();
+    var alt = 0; // 明暗交替
+    while (chosen.length < n) {
+      var targetL = (alt % 2 === 0) ? 0.80 : 0.46; alt++;
+      var best = null, bestScore = -Infinity;
+      for (var i = 0; i < CAND.length; i++) {
+        var c = CAND[i];
+        if (Math.abs(c.L - targetL) > 0.16) { continue; }
+        var minD = Infinity;
+        for (var j = 0; j < chosen.length; j++) {
+          var d = minDeltaAcross8(c.rgb, chosen[j].rgb);
+          if (d < minD) { minD = d; }
+        }
+        if (minD > bestScore) { bestScore = minD; best = c; }
+      }
+      if (!best) { break; }
+      chosen.push(best);
+    }
+    return chosen.map(function (c) { return c.rgb; });
+  }
+
+  function rampSequential(n, seeds) {
+    var hue = 250, C = 0.10;
+    if (seeds.length) { var o = rgbToOklch(seeds[0].rgb || seeds[0]); hue = o[2]; C = clamp(o[1], 0.05, 0.16); }
+    var seq = [];
+    for (var i = 0; i < n; i++) { var t = n === 1 ? 0 : i / (n - 1); var L = 0.90 - 0.58 * t; seq.push(oklchToRgb(L, C, hue)); }
+    // 锁定色覆盖到对应位置
+    seeds.forEach(function (s, k) { if (k < seq.length) { seq[k] = (s.rgb || s); } });
+    return seq;
+  }
+
+  function rampDiverging(n, seeds) {
+    var h1 = 12, h2 = 220, C = 0.13;
+    if (seeds.length >= 1) { h1 = rgbToOklch(seeds[0].rgb || seeds[0])[2]; }
+    if (seeds.length >= 2) { h2 = rgbToOklch(seeds[1].rgb || seeds[1])[2]; }
+    function lerpHue(a, b, t) { var d = ((b - a + 540) % 360) - 180; return (a + d * t + 360) % 360; }
+    var seq = [];
+    for (var i = 0; i < n; i++) {
+      var t = n === 1 ? 0 : i / (n - 1);
+      var L = 0.32 + 0.58 * Math.abs(2 * t - 1); // 中心最亮，两极最暗
+      var h = lerpHue(h1, h2, t);
+      seq.push(oklchToRgb(L, C, h));
+    }
+    seeds.forEach(function (s, k) { if (k < seq.length) { seq[k] = (s.rgb || s); } });
+    return seq;
+  }
+
+  function generate() {
+    var n = S.count;
+    var seeds = S.locks.filter(function (l) { return l.locked && l.rgb; }).map(function (l) { return l; });
+    var mode = S.mode, strat = S.strategy;
+    var seq;
+    if (mode === 'sequential') { seq = rampSequential(n, seeds); }
+    else if (mode === 'diverging') { seq = rampDiverging(n, seeds); }
+    else {
+      // qualitative：strategy 影响起始
+      if (strat === 'lightness' || strat === 'auto') { seq = greedyQualitative(n, seeds); }
+      else { seq = greedyQualitative(n, seeds); }
+    }
+    // 若种子超过 n，截断
+    if (seq.length > n) { seq = seq.slice(0, n); }
+    S.result = seq;
+    return seq;
+  }
+
+  /* ============================================================
+   * 5. 渲染：canvas 8型并排 / 明度阶梯 / WCAG
+   * ========================================================== */
+  function drawCanvas(seq) {
+    var box = $('csCanvasBox');
+    var dpr = window.devicePixelRatio || 1;
+    var cssW = box.clientWidth || 720;
+    var rows = VTYPES.length;
+    var labelW = 96;
+    var rowH = 30;
+    var blockW = (cssW - labelW) / seq.length;
+    var cssH = rows * rowH + 6;
+    var cv = $('csCanvas');
+    cv.width = Math.round(cssW * dpr); cv.height = Math.round(cssH * dpr);
+    cv.style.height = cssH + 'px';
+    var ctx = cv.getContext('2d');
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, cssW, cssH);
+    ctx.textBaseline = 'middle';
+    ctx.font = '11px sans-serif';
+    for (var r = 0; r < rows; r++) {
+      var t = VTYPES[r];
+      var y = r * rowH + 3;
+      ctx.fillStyle = '#6B7280';
+      ctx.fillText(isEn() ? t.en : t.zh, 4, y + rowH / 2);
+      for (var i = 0; i < seq.length; i++) {
+        var o = simulate(seq[i], t.key);
+        ctx.fillStyle = 'rgb(' + o[0] + ',' + o[1] + ',' + o[2] + ')';
+        ctx.fillRect(labelW + i * blockW, y, blockW - 1, rowH - 2);
+      }
+    }
+  }
+
+  function renderLadder(seq) {
+    var h = '';
+    seq.forEach(function (c, i) {
+      var hex = rgbToHex(c[0], c[1], c[2]);
+      h += '<div class="cs-ladder"><div class="sw"><b style="background:' + hex + '"></b>' + hex + '</div>';
+      if (i < seq.length - 1) { h += '<span class="arrow">→</span>'; }
+      h += '</div>';
+    });
+    // 明度阶梯
+    var ls = seq.map(function (c) { return rgbToLab(c)[0]; });
+    var gaps = []; for (var i = 1; i < ls.length; i++) { gaps.push(ls[i] - ls[i - 1]); }
+    var minGap = gaps.length ? Math.min.apply(null, Math.abs(gaps[0]) ? gaps : gaps) : 0;
+    var absGaps = gaps.map(function (g) { return Math.abs(g); });
+    var mg = absGaps.length ? Math.min.apply(null, absGaps) : 0;
+    h += '<div class="cs-note" style="margin:8px 0 0">明度（L*）序列：' + ls.map(function (v) { return v.toFixed(0); }).join(' → ') +
+      '　相邻最小间隔 <b class="' + (mg >= 10 ? 'cs-pass' : 'cs-fail') + '">' + mg.toFixed(1) + '</b>' +
+      (mg >= 10 ? '（≥10，转灰度可分辨）' : '（&lt;10，转灰度可能混淆，建议明暗交替）') + '</div>';
+    $('csLadder').innerHTML = h;
+  }
+
+  function renderWcag(seq) {
+    var h = '<thead><tr><th>颜色</th><th>HEX</th><th>对白底对比</th><th>对黑底对比</th><th>AA 正文</th><th>AAA 正文</th></tr></thead><tbody>';
+    var fails = 0;
+    seq.forEach(function (c) {
+      var hex = rgbToHex(c[0], c[1], c[2]);
+      var cw = wcagContrast(c, [255, 255, 255]);
+      var cb = wcagContrast(c, [0, 0, 0]);
+      var aa = cw >= 4.5 || cb >= 4.5;
+      var aaa = cw >= 7 || cb >= 7;
+      if (!aa) { fails++; }
+      h += '<tr><td class="k"><span style="display:inline-block;width:12px;height:12px;border-radius:3px;background:' + hex + ';vertical-align:-1px;margin-right:5px"></span>' + (isEn() ? 'Swatch' : '色块') + '</td>' +
+        '<td class="cs-mono">' + hex + '</td>' +
+        '<td>' + cw.toFixed(2) + ':1</td><td>' + cb.toFixed(2) + ':1</td>' +
+        '<td class="' + (aa ? 'cs-pass' : 'cs-fail') + '">' + (aa ? '✓' : '✗') + '</td>' +
+        '<td class="' + (aaa ? 'cs-pass' : 'cs-fail') + '">' + (aaa ? '✓' : '✗') + '</td></tr>';
+    });
+    h += '</tbody>';
+    $('csWcag').innerHTML = h;
+
+    // 相邻对比（图例/坐标轴文字常见用法）
+    var adjMin = Infinity, adjPair = null;
+    for (var i = 0; i < seq.length - 1; i++) {
+      var d = wcagContrast(seq[i], seq[i + 1]);
+      if (d < adjMin) { adjMin = d; adjPair = [rgbToHex(seq[i][0], seq[i][1], seq[i][2]), rgbToHex(seq[i + 1][0], seq[i + 1][1], seq[i + 1][2])]; }
+    }
+    var adjOk = adjMin >= 3;
+    $('csWcagVerdict').innerHTML = (fails === 0
+      ? '<div class="cs-ok">✓ 所有颜色对白/黑底的文本对比均达 AA（≥4.5:1）' + (isEn() ? '' : '，适合正文文字。') + '</div>'
+      : '<div class="cs-warn">⚠ 有 ' + fails + ' 个颜色对白或黑底文本对比未达 AA（≥4.5:1），作正文文字时需配合底色块或描边。</div>') +
+      (adjPair ? '<div class="' + (adjOk ? 'cs-ok' : 'cs-warn') + '">' + (adjOk ? '✓' : '⚠') + ' 相邻两色最小对比 ' + adjMin.toFixed(2) + ':1（' + adjPair[0] + ' ↔ ' + adjPair[1] + '）' + (adjOk ? '，达到非文字元素 AA（≥3:1）。' : '，低于非文字元素 AA（≥3:1），相邻摆放时需加分隔或标签。') + '</div>' : '');
+  }
+
+  function renderResult() {
+    var seq = S.result;
+    var out = $('csOut');
+    if (!seq) { out.innerHTML = '<div class="cs-loading">点击「生成安全配色」开始</div>'; return; }
+    var hexes = seq.map(function (c) { return rgbToHex(c[0], c[1], c[2]); });
+
+    // 全局最小 ΔE（8型）
+    var globalMin = Infinity, worst = null;
+    for (var i = 0; i < seq.length; i++) {
+      for (var j = i + 1; j < seq.length; j++) {
+        var d = minDeltaAcross8(seq[i], seq[j]);
+        if (d < globalMin) { globalMin = d; worst = [hexes[i], hexes[j]]; }
+      }
+    }
+    var ok = globalMin >= 12;
+
+    var verdict = (ok
+      ? '<div class="cs-ok">✓ 该组配色在全部 8 种色觉类型下两两最小 ΔE = <b>' + globalMin.toFixed(1) + '</b>（阈值 12），最难分的一对是 <span class="cs-mono">' + worst[0] + '</span> ↔ <span class="cs-mono">' + worst[1] + '</span>。'
+      : '<div class="cs-warn">⚠ 当前约束下搜索到的最小 ΔE = <b>' + globalMin.toFixed(1) + '</b>（目标 12）。最难分的一对是 <span class="cs-mono">' + worst[0] + '</span> ↔ <span class="cs-mono">' + worst[1] + '</span>。可减少颜色数量、改用「明暗交替优先」策略，或换一个明度差更大的锁定色。') + '</div>';
+
+    out.innerHTML =
+      '<div style="margin-top:16px"><strong style="font-size:14px;color:var(--text-primary)">🎨 8 型模拟并排预览（canvas）</strong>' +
+      '<div class="cs-canvas-box" id="csCanvasBox"><canvas id="csCanvas"></canvas></div></div>' +
+      '<div style="margin-top:14px"><strong style="font-size:14px;color:var(--text-primary)">明度阶梯（保证灰度可分辨）</strong><div class="cs-ladder" id="csLadder"></div></div>' +
+      '<div style="margin-top:14px"><strong style="font-size:14px;color:var(--text-primary)">WCAG 2.1 对比度校验</strong><div class="cs-scroll"><table class="cs-tbl" id="csWcag"></table></div><div id="csWcagVerdict"></div></div>' +
+      verdict +
+      '<div class="cs-copyrow">' +
+      '<button class="btn btn-primary" id="csCopyHex">复制 HEX</button>' +
+      '<button class="btn" id="csCopyCss">复制 CSS 变量</button>' +
+      '<button class="btn" id="csCopyJson">复制 JSON</button>' +
+      '<button class="btn" id="csExport">导出 PNG 预览</button>' +
+      '</div>';
+
+    drawCanvas(seq);
+    renderLadder(seq);
+    renderWcag(seq);
+
+    $('csCopyHex').addEventListener('click', function () { copyText(hexes.join(', ')); });
+    $('csCopyCss').addEventListener('click', function () {
+      copyText(':root {\n' + hexes.map(function (x, i) { return '  --cvd-color-' + (i + 1) + ': ' + x + ';'; }).join('\n') + '\n}');
+    });
+    $('csCopyJson').addEventListener('click', function () {
+      copyText(JSON.stringify({ mode: S.mode, count: S.count, palette: hexes, minDeltaE8Types: +globalMin.toFixed(2) }, null, 2));
+    });
+    $('csExport').addEventListener('click', function () {
+      var cv = $('csCanvas');
+      cv.toBlob(function (blob) { if (blob) { downloadBlob(blob, 'cvd-safe-palette.png', 'image/png'); } }, 'image/png');
+    });
+  }
+
+  /* ============================================================
+   * 6. 事件绑定与初始化
+   * ========================================================== */
+  $('csMode').addEventListener('change', function () { S.mode = this.value; });
+  $('csCount').addEventListener('input', function () { S.count = parseInt(this.value, 10); $('csCountv').textContent = this.value; });
+  $('csStrategy').addEventListener('change', function () { S.strategy = this.value; });
+  $('csGen').addEventListener('click', function () {
+    $('csOut').innerHTML = '<div class="cs-loading">正在搜索最优安全配色…</div>';
+    setTimeout(function () { generate(); renderResult(); }, 30);
+  });
+
+  // 初始锁定一个示例色
+  S.locks = [{ hex: '#0EA5E9', rgb: [14, 165, 233], locked: false }];
+  renderLocks();
+  // 首屏自动生成一组
+  setTimeout(function () { generate(); renderResult(); }, 30);
+
+  var _reT = null;
+  document.addEventListener('toolbox:langchange', function () {
+    clearTimeout(_reT);
+    _reT = setTimeout(function () { if (S.result) { renderResult(); } }, 300);
+  });
+})();
+</script>
+</body>
+</html>

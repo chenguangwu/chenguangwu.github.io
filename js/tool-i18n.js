@@ -13,6 +13,8 @@
   'use strict';
   if (!window.I18n) return;
   var I18n = window.I18n;
+  function isEnglish() { return I18n.get() === 'en-US'; }
+  function sharedI18nUrl(name) { return '/i18n/tools/' + name; }
 
   function getIndustry() {
     var m = document.querySelector('meta[name="toolbox"]');
@@ -36,7 +38,7 @@
   // ---- 框架翻译（chrome）：对所有语言（含 zh-CN 做幂等还原）----
   function applyChrome() {
     var lang = I18n.get();
-    var isZh = (lang === 'zh-CN');
+    var isZh = !isEnglish();
 
     // 面包屑：首页
     var bcLinks = document.querySelectorAll('.breadcrumb a');
@@ -148,7 +150,7 @@
   var SLUG_EN = null;
   function loadSlugEn() {
     if (SLUG_EN) return Promise.resolve(SLUG_EN);
-    return fetch('/i18n/tools/slug-en.json')
+    return fetch(sharedI18nUrl('slug-en.json'))
       .then(function (r) { return r.ok ? r.json() : {}; })
       .then(function (d) { SLUG_EN = d || {}; return d || {}; })
       .catch(function () {
@@ -275,7 +277,7 @@
 
   function loadIndustryDict(industry) {
     if (!industry) return;
-    var url = '../../i18n/tools/' + industry + '.json';
+    var url = sharedI18nUrl(industry + '.json');
     if (window.fetch) {
       fetch(url, { cache: 'no-cache' })
         .then(function (r) { return r.ok ? r.json() : null; })
@@ -321,7 +323,7 @@
 
   function loadIndustryBody(industry) {
     if (!industry || BODY_MAP[industry]) return;
-    var url = '../../i18n/tools/' + industry + '-body.json';
+    var url = sharedI18nUrl(industry + '-body.json');
     if (window.fetch) {
       fetch(url, { cache: 'no-cache' })
         .then(function (r) { return r.ok ? r.json() : null; })
@@ -350,12 +352,12 @@
   function loadCommonPhrases() {
     if (COMMON_PHRASES_PROMISE) return COMMON_PHRASES_PROMISE;
     if (!window.fetch) { COMMON_PHRASES_PROMISE = Promise.resolve(null); return COMMON_PHRASES_PROMISE; }
-    COMMON_PHRASES_PROMISE = fetch('../../i18n/tools/common-phrases.json')
+    COMMON_PHRASES_PROMISE = fetch(sharedI18nUrl('common-phrases.json'))
       .then(function (r) { return r.ok ? r.json() : null; })
       .then(function (map) {
         if (map) {
           COMMON_PHRASES = map;
-          if (I18n.get() !== 'zh-CN') translateBodyPhrases(false);
+          if (isEnglish()) translateBodyPhrases(false);
         }
         return COMMON_PHRASES;
       })
@@ -367,7 +369,7 @@
     if (PHRASES_INDEX !== null) return Promise.resolve(PHRASES_INDEX);
     if (PHRASES_INDEX_PROMISE) return PHRASES_INDEX_PROMISE;
     if (!window.fetch) { PHRASES_INDEX = []; return Promise.resolve(PHRASES_INDEX); }
-    PHRASES_INDEX_PROMISE = fetch('../../i18n/tools/phrases-index.json')
+    PHRASES_INDEX_PROMISE = fetch(sharedI18nUrl('phrases-index.json'))
       .then(function (r) { return r.ok ? r.json() : null; })
       .then(function (obj) { PHRASES_INDEX = (obj && obj.industries) || []; return PHRASES_INDEX; })
       .catch(function () { PHRASES_INDEX = []; return PHRASES_INDEX; });
@@ -379,13 +381,13 @@
     if (!window.fetch) return;
     loadPhrasesIndex().then(function (list) {
       if (!list || list.indexOf(ind) < 0) return;   // 该行业无 phrases 数据 → 不发请求（避免 404）
-      var url = '../../i18n/tools/' + ind + '-phrases.json';
+      var url = sharedI18nUrl(ind + '-phrases.json');
       fetch(url, { cache: 'no-cache' })
         .then(function (r) { return r.ok ? r.json() : null; })
         .then(function (map) {
           if (!map) return;
           BODY_IND_PHRASES[ind] = map;
-          if (I18n.get() !== 'zh-CN') translateBodyPhrases(false);
+          if (isEnglish()) translateBodyPhrases(false);
         })
         .catch(function () { /* 字典缺失则忽略，回退中文 */ });
     });
@@ -418,7 +420,7 @@
       ORIG[slug].intro = (_zhI != null) ? _zhI : introP.textContent;
     }
 
-    if (lang === 'zh-CN') {
+    if (!isEnglish()) {
       if (!skipH2 && h2 && ORIG[slug] && ORIG[slug].title != null) h2.textContent = ORIG[slug].title;
       if (!skipIntro && introP && ORIG[slug] && ORIG[slug].intro != null) introP.textContent = ORIG[slug].intro;
       return;
@@ -432,7 +434,7 @@
     var body = BODY_MAP[ind] && BODY_MAP[ind][slug];
     if (!body) {
       // 即便该工具没有 body 数据，切到英文时也要把已就绪的短语应用上去
-      if (lang !== 'zh-CN') {
+      if (isEnglish()) {
         loadCommonPhrases().then(function () { translateBodyPhrases(false); });
       }
       return;
@@ -447,7 +449,7 @@
     }
     // 数据可能已在首次加载（中文态）时就绪，切换语言时 promise 直接命中缓存、
     // 不会再走 then 分支，这里补一次确保短语被应用
-    if (lang !== 'zh-CN') {
+    if (isEnglish()) {
       loadCommonPhrases().then(function () { translateBodyPhrases(false); });
     }
   }
@@ -464,7 +466,7 @@
     applyToolBody();
   }
 
-  var EN_DATA_SRC = '../../js/tool-i18n-en.js';
+  var EN_DATA_SRC = '/js/tool-i18n-en.js';
   function applyAll() {
     applyChrome();
     applyToolContent();
@@ -472,14 +474,14 @@
     loadIndustryPhrases(getIndustry());
   }
   function boot() {
-    if (I18n.get() === 'zh-CN' || window.__TI18N_EN) { init(); return; }
+    if (!isEnglish() || window.__TI18N_EN) { init(); return; }
     var s = document.createElement('script');
     s.src = EN_DATA_SRC;
     s.onload = init; s.onerror = init;
     document.head.appendChild(s);
   }
   function onLangChange() {
-    if (I18n.get() === 'zh-CN' || window.__TI18N_EN) { applyAll(); return; }
+    if (!isEnglish() || window.__TI18N_EN) { applyAll(); return; }
     var s = document.createElement('script');
     s.src = EN_DATA_SRC;
     s.onload = applyAll; s.onerror = applyAll;

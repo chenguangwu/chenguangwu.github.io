@@ -1,0 +1,992 @@
+<!DOCTYPE html>
+<html lang="zh-TW" data-opencc-locale="zh-tw">
+<head>
+
+<script src="/js/tool-page-runtime.js" defer></script>
+<!-- TOOLBOX-TOOL-RUNTIME -->
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="toolbox" content="cat=dev,industry=it,icon=🔐,bg=#e8eaf6">
+<title>JS程式碼混淆器 - ToolBox</title>
+<link rel="canonical" href="https://chenguangwu.github.io/zh-tw/tools/it/js-obfuscator.html">
+<meta property="og:title" content="JS代码混淆器">
+<meta property="og:description" content="纯前端 JavaScript 代码混淆，基于规则替换，保护源代码可读性。所有处理在浏览器本地完成，代码不会上传。">
+<meta property="og:url" content="https://chenguangwu.github.io/zh-tw/tools/it/js-obfuscator.html">
+<meta name="twitter:card" content="summary">
+<meta name="description" content="纯前端 JavaScript 代码混淆，基于规则替换，保护源代码可读性。所有处理在浏览器本地完成，代码不会上传。">
+<link rel="preload" as="style" href="/css/common.css" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="/css/common.css"></noscript>
+<script>window.__tbq=window.__tbq||[];window.ToolBox=window.ToolBox||{};['initToolTheme','addToolStyles','showToast','toast','copyText','copyToClipboard','copyFromElement','downloadText','injectPrivacyBadge','toggleFavTool','addToRecentTool','toggleToolTheme','applyTheme'].forEach(function(k){if(typeof window.ToolBox[k]!=='function')window.ToolBox[k]=function(){window.__tbq.push([k,[].slice.call(arguments)]);};});</script><!-- TOOLBOX-API-STUB -->
+<script src="/js/common.js" defer></script>
+<style>
+.editor-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+.editor-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.editor-panel label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--heading);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.editor-panel textarea {
+  min-height: 280px;
+  font-size: 13px;
+  tab-size: 2;
+}
+.options-section {
+  margin-bottom: 16px;
+}
+.options-section h3 {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--heading);
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.options-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px 16px;
+}
+.option-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: var(--result-bg);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.option-item:hover {
+  border-color: rgba(255,107,53,0.3);
+  background: var(--bg-hover);
+}
+.option-item input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--primary);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.option-item .opt-label {
+  font-size: 13px;
+  color: var(--text);
+  font-weight: 500;
+  cursor: pointer;
+}
+.option-item .opt-desc {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+.stats-bar {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+.stat-chip {
+  padding: 4px 12px;
+  background: var(--result-bg);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+.stat-chip strong {
+  color: var(--primary);
+  font-weight: 600;
+}
+.quick-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+  flex-wrap: wrap;
+}
+.sample-btn {
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 12px;
+  cursor: pointer;
+  border: 1px solid var(--border);
+  background: var(--card-bg);
+  color: var(--text-secondary);
+  transition: all 0.2s;
+}
+.sample-btn:hover {
+  border-color: var(--secondary);
+  color: var(--secondary);
+  background: rgba(124,58,237,0.06);
+}
+@media (max-width: 768px) {
+  .editor-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+  .editor-panel textarea {
+    min-height: 180px;
+  }
+  .options-grid {
+    grid-template-columns: 1fr;
+    gap: 6px;
+  }
+}
+</style>
+
+
+
+<meta property="og:image" content="https://chenguangwu.github.io/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="ToolBox - 5000+免费在线工具">
+<meta name="twitter:image" content="https://chenguangwu.github.io/og-image.png">
+<meta name="twitter:image:alt" content="ToolBox - 5000+免费在线工具">
+    <meta property="og:type" content="website">
+    <meta name="twitter:title" content="JS代码混淆器">
+    <meta name="twitter:description" content="纯前端 JavaScript 代码混淆，基于规则替换，保护源代码可读性。所有处理在浏览器本地完成，代码不会上传。">
+<!-- TOOLBOX-WEBAPP-LD -->
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"JS程式碼混淆器","url":"https://chenguangwu.github.io/zh-tw/tools/it/js-obfuscator.html","applicationCategory":"DeveloperApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":"zh-TW","description":"純前端 JavaScript 程式碼混淆，基於規則替換，保護原始碼可讀性。所有處理在瀏覽器本地完成，程式碼不會上傳。","image":"https://chenguangwu.github.io/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}</script>
+<meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
+<meta http-equiv="X-Content-Type-Options" content="nosniff">
+<meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
+<!-- TOOLBOX-SECURITY -->
+
+<script src="/js/privacy.js" defer></script>
+<!-- TOOLBOX-PRIVACY-SCRIPT -->
+
+<script src="/js/metrics.js" defer></script>
+<!-- TOOLBOX-METRICS-SCRIPT -->
+
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"首頁","item":"https://chenguangwu.github.io/zh-tw/"},{"@type":"ListItem","position":2,"name":"IT 開發","item":"https://chenguangwu.github.io/zh-tw/tools/it/index.html"},{"@type":"ListItem","position":3,"name":"JS程式碼混淆器","item":"https://chenguangwu.github.io/zh-tw/tools/it/js-obfuscator.html"}]}</script>
+
+<script src="/js/i18n.js" defer></script>
+<script src="/js/tool-i18n.js" defer></script>
+<!-- TOOLBOX-I18N-SCRIPT -->
+
+
+<meta name="title-en" content="Js Obfuscator - ToolBox">
+<meta name="desc-en" content="Js Obfuscator - obfuscate and minify online, free. Free online tool on ToolBox — 100% client-side, no data uploaded, no install. Part of the IT Development...">
+<!-- TOOLBOX-HREFLANG -->
+<link rel="alternate" hreflang="zh-CN" href="https://chenguangwu.github.io/tools/it/js-obfuscator.html">
+<link rel="alternate" hreflang="zh-TW" href="https://chenguangwu.github.io/zh-tw/tools/it/js-obfuscator.html">
+<link rel="alternate" hreflang="zh-HK" href="https://chenguangwu.github.io/zh-hk/tools/it/js-obfuscator.html">
+<link rel="alternate" hreflang="en-US" href="https://chenguangwu.github.io/tools/it/js-obfuscator.html?lang=en-US">
+<link rel="alternate" hreflang="x-default" href="https://chenguangwu.github.io/tools/it/js-obfuscator.html">
+<meta property="og:locale" content="zh_TW">
+<meta property="og:locale:alternate" content="zh_CN">
+<meta property="og:locale:alternate" content="zh_HK">
+<meta property="og:locale:alternate" content="en_US">
+</head>
+<body>
+<h1 class="sr-only">JS程式碼混淆器</h1>
+
+<div class="nav">
+  <a href="/zh-tw/index.html">&larr; ToolBox</a>
+  <span>/ JS程式碼混淆器</span>
+  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()">&#127769;</button>
+</div>
+
+
+
+
+
+<nav class="breadcrumb" aria-label="麵包屑導航" data-breadcrumb="1">
+  <a href="/zh-tw/index.html">首頁</a>
+  <span class="bc-sep">‹</span>
+  <a href="/zh-tw/tools/it/index.html">💻 IT 開發</a>
+  <span class="bc-sep">‹</span>
+  <span class="bc-current">JS程式碼混淆器</span>
+</nav>
+<div class="container">
+  <div class="card tool-card-accent" style="--tool-accent:#FF6B35;">
+    <h2 data-zh="&amp;#128274; JS程式碼混淆器">&amp;#Js Obfuscator</h2>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="
+      純前端 JavaScript 程式碼混淆，基於規則替換，保護原始碼可讀性。所有處理在瀏覽器本地完成，程式碼不會上傳。
+    ">Js Obfuscator is available directly in your browser, with no data uploaded.</p>
+
+    <!-- 編輯器區域 -->
+    <div class="editor-grid">
+      <div class="editor-panel">
+        <label>&#128221; 原始程式碼</label>
+        <textarea id="inputCode" placeholder="在此粘贴 JavaScript 代码..." spellcheck="false"></textarea>
+        <div class="quick-actions">
+          <button type="button" class="sample-btn" onclick="loadSample('basic')">示例: 基礎程式碼</button>
+          <button type="button" class="sample-btn" onclick="loadSample('function')">示例: 函式程式碼</button>
+          <button type="button" class="sample-btn" onclick="document.getElementById('inputCode').value='';document.getElementById('outputCode').value='';updateStats()">清空</button>
+        </div>
+      </div>
+      <div class="editor-panel">
+        <label>&#128272; 混淆結果</label>
+        <textarea id="outputCode" placeholder="混淆后的代码将显示在这里..." readonly spellcheck="false"></textarea>
+      </div>
+    </div>
+
+    <!-- 混淆選項 -->
+    <div class="options-section">
+      <h3>&#9881; 混淆選項</h3>
+      <div class="options-grid">
+        <label class="option-item">
+          <input type="checkbox" id="optVarRename" checked>
+          <span class="opt-label">變數名替換</span>
+          <span class="opt-desc">var/let/const</span>
+        </label>
+        <label class="option-item">
+          <input type="checkbox" id="optStringEncrypt" checked>
+          <span class="opt-label">字串加密</span>
+          <span class="opt-desc">\xNN 轉義</span>
+        </label>
+        <label class="option-item">
+          <input type="checkbox" id="optRemoveComments" checked>
+          <span class="opt-label">移除註釋</span>
+          <span class="opt-desc">// 和 /* */</span>
+        </label>
+        <label class="option-item">
+          <input type="checkbox" id="optRemoveWhitespace" checked>
+          <span class="opt-label">移除空白</span>
+          <span class="opt-desc">壓縮空格換行</span>
+        </label>
+        <label class="option-item">
+          <input type="checkbox" id="optNumberHex">
+          <span class="opt-label">數字轉十六進位制</span>
+          <span class="opt-desc">十進位制 &rarr; 0x</span>
+        </label>
+        <label class="option-item">
+          <input type="checkbox" id="optStringArray">
+          <span class="opt-label">字串陣列化</span>
+          <span class="opt-desc">提取到陣列</span>
+        </label>
+      </div>
+    </div>
+
+    <!-- 操作按鈕 -->
+    <div class="toolbar">
+      <button type="button" class="btn primary" onclick="obfuscate()">&#128737; 執行混淆</button>
+      <button type="button" class="btn success" onclick="copyResult()">&#128203; 複製結果</button>
+      <button type="button" class="btn" onclick="downloadResult()">&#11015; 下載檔案</button>
+      <button type="button" class="btn warning" onclick="toggleAllOptions(true)">全選</button>
+      <button type="button" class="btn" onclick="toggleAllOptions(false)">取消全選</button>
+    </div>
+
+    <!-- 統計資訊 -->
+    <div class="stats-bar" id="statsBar">
+      <span class="stat-chip">原始: <strong id="statOriginal">0</strong> 字元</span>
+      <span class="stat-chip">混淆後: <strong id="statObfuscated">0</strong> 字元</span>
+      <span class="stat-chip">壓縮率: <strong id="statRatio">-</strong></span>
+    </div>
+
+    <!-- 安全提示 -->
+    <div class="tip-box tip-warn">
+      <strong>&#9888; 安全提示：</strong>本工具採用基於規則替換的簡單混淆，並非強加密。混淆後的程式碼可以增加閱讀難度，但不能防止逆向工程。如需更高安全級別，請使用專業工具（如 javascript-obfuscator）進行深度混淆。
+    </div>
+  </div>
+
+  <!-- 工具介紹（SEO） -->
+
+</div>
+
+</div>
+
+<!-- 相關工具 -->
+<div class="related-tools" data-related-tools="1">
+  <h3 class="related-tools-title">🔗 相關工具</h3>
+  <div class="related-tools-grid">
+    <a href="/zh-tw/tools/it/properties-parser.html" class="related-tool-card">
+      <span class="rt-icon">🔧</span>
+      <span class="rt-info"><span class="rt-name">.properties 解析器 - 免費開發工具，properties 解析器 | ToolBox免費線上工具箱</span><span class="rt-desc">.properties 解析器</span></span>
+    </a>
+    <a href="/zh-tw/tools/it/ast-viewer.html" class="related-tool-card">
+      <span class="rt-icon">🌳</span>
+      <span class="rt-info"><span class="rt-name">AST抽象語法樹檢視器 - 線上解析JavaScript程式碼生成AST樹形結構，支援節點 | ToolBox免費線上工具箱</span><span class="rt-desc">AST 抽象語法樹檢視器</span></span>
+    </a>
+    <a href="/zh-tw/tools/it/css-minifier.html" class="related-tool-card">
+      <span class="rt-icon">🎨</span>
+      <span class="rt-info"><span class="rt-name">CSS 壓縮/美化工具 - 免費開發工具，CSS 壓縮/格式化/美化 | ToolBox免費線上工具箱</span><span class="rt-desc">CSS 壓縮/格式化/美化</span></span>
+    </a>
+    <a href="/zh-tw/tools/it/css-formatter.html" class="related-tool-card">
+      <span class="rt-icon">🔧</span>
+      <span class="rt-info"><span class="rt-name">CSS 格式化 - 免費開發工具，線上CSS 格式化 | ToolBox免費線上工具箱</span><span class="rt-desc">CSS 格式化</span></span>
+    </a>
+    <a href="/zh-tw/tools/it/cron.html" class="related-tool-card">
+      <span class="rt-icon">⏰</span>
+      <span class="rt-info"><span class="rt-name">Cron 表示式生成器 - 免費開發工具，線上Cron 表示式生成器 | ToolBox免費線上工具箱</span><span class="rt-desc">⏰ Cron 表示式生成器</span></span>
+    </a>
+    <a href="/zh-tw/tools/it/graphql-formatter.html" class="related-tool-card">
+      <span class="rt-icon">🔧</span>
+      <span class="rt-info"><span class="rt-name">GraphQL 格式化 - 免費開發工具，線上GraphQL 格式化 | ToolBox免費線上工具箱</span><span class="rt-desc">◈ GraphQL 格式化</span></span>
+    </a>
+  </div>
+</div>
+<div class="tool-intro">
+    <div class="tool-intro-header" onclick="this.parentElement.classList.toggle('open')">
+      <span class="intro-icon-wrap">
+        <span class="intro-icon">&#128218;</span>
+        工具介紹與常見問題
+      </span>
+      <span class="arrow">&#9660;</span>
+    </div>
+    <div class="tool-intro-body">
+      <p>JS 程式碼混淆器是一款純前端 JavaScript 程式碼保護工具，通過變數名替換、字串加密、註釋移除等規則對原始碼進行混淆處理，增加程式碼閱讀難度，保護智慧財產權。</p>
+
+      <h4><span class="h4-icon">&#128295;</span> 功能特點</h4>
+      <ul class="intro-features">
+        <li>變數名替換</li>
+        <li>字串十六進位制加密</li>
+        <li>移除所有註釋</li>
+        <li>空白壓縮</li>
+        <li>數字十六進位制轉換</li>
+        <li>字串陣列化提取</li>
+        <li>純前端零依賴</li>
+        <li>隱私安全不上傳</li>
+      </ul>
+
+      <h4><span class="h4-icon">&#127968;</span> 使用場景</h4>
+      <ul class="intro-scenes">
+        <li>前端程式碼智慧財產權保護</li>
+        <li>防止原始碼被直接複用</li>
+        <li>減少程式碼可讀性</li>
+        <li>網頁 JS 指令碼釋出前處理</li>
+      </ul>
+
+      <h4><span class="h4-icon">&#10067;</span> 常見問題</h4>
+      <div class="intro-faq-item">
+        <div class="intro-faq-q">混淆後代碼還能正常執行嗎？</div>
+        <div class="intro-faq-a">大部分情況下可以正常執行。但複雜程式碼（如使用 eval、arguments.callee 等）可能受影響，建議混淆後充分測試。</div>
+      </div>
+      <div class="intro-faq-item">
+        <div class="intro-faq-q">混淆和加密有什麼區別？</div>
+        <div class="intro-faq-a">混淆改變程式碼結構使其難以閱讀但功能不變；加密則將程式碼轉為密文，執行時需要解密。本工具提供的是混淆功能。</div>
+      </div>
+      <div class="intro-faq-item">
+        <div class="intro-faq-q">程式碼會上傳到伺服器嗎？</div>
+        <div class="intro-faq-a">不會。所有處理在瀏覽器本地完成，程式碼不會離開您的裝置，完全保護隱私。</div>
+      </div>
+    </div>
+  </div>
+
+<!-- TOOLBOX-DEEP-DIVE -->
+<style>
+.deep-dive{max-width:960px;margin:16px auto;padding:0 16px;}
+.deep-dive > .card{margin-bottom:0;}
+@media(max-width:600px){.deep-dive{margin:14px auto;padding:0 12px;}}
+.deep-dive .dd-list{margin:8px 0 16px;padding-left:20px;}
+.deep-dive .dd-list li{margin:6px 0;line-height:1.75;}
+.deep-dive .dd-example{background:var(--card-bg,#fff);border:1px solid var(--border,#eee);border-radius:10px;padding:12px 14px;margin:8px 0 16px;}
+.deep-dive .dd-ex-title{font-weight:600;color:var(--tool-accent,#FF6B35);margin-bottom:6px;}
+.deep-dive .dd-ex-body{font-size:13px;line-height:1.85;color:var(--text,#333);word-break:break-word;}
+.deep-dive .dd-faq{margin:8px 0 4px;}
+.deep-dive .dd-faq dt{font-weight:600;margin-top:10px;color:var(--text,#333);}
+.deep-dive .dd-faq dd{margin:4px 0 0;font-size:13px;line-height:1.85;color:var(--text-muted,#666);}
+
+</style>
+<section class="deep-dive" data-deep-dive="1">
+<div class="card">
+<h2>📚 深度解析：JS程式碼混淆器</h2>
+<h3>💡 常見使用場景</h3>
+<ul class="dd-list">
+<li>當你在it相關場景中需要基於“&amp;amp;#Js Obfuscator”進行快速計算或校驗時，可先用該工具生成一版標準結果。</li>
+<li>在教學、方案評審、除錯聯調時，可用固定樣本快速復現實驗流程，驗證引數選擇是否正確。</li>
+<li>用於將人工操作轉為可複用步驟：先確認輸入型別，再觀察輸出變化，便於排查規則誤差。</li>
+</ul>
+<div class="dd-example"><div class="dd-ex-title">標準化使用示例</div><div class="dd-ex-body">以一組典型輸入為例：先按業務口徑補充必要欄位，執行工具並記錄輸出；再對比另一組邊界輸入，檢查工具在異常輸入下是否給出穩定提示，便於快速形成操作 SOP。</div></div>
+<h3>❓ 常見問題（FAQ）</h3>
+<dl class="dd-faq">
+<dt>該工具適用於哪些 it 場景？</dt><dd>只要資料可對映到本工具支援的引數結構，就可用於日常分析、篩選、校驗等流程；多數情況下適合前置評估和結果複核。</dd>
+<dt>結果可信度如何保證？</dt><dd>工具預設按前端可見規則即時計算，不依賴外部服務；如有偏差，建議結合歷史基準值做交叉確認。</dd>
+</dl>
+</div>
+</section>
+<!-- 注意事項區塊 -->
+<div class="tool-notes" style="--tool-accent:#FF6B35;">
+  <div class="tool-notes-title">⚠️ 使用說明與注意事項</div>
+  <ul>
+      <li>本工具純前端執行，資料不會上傳到伺服器</li>
+      <li>建議在主流瀏覽器（Chrome/Safari/Firefox/Edge）中使用</li>
+      <li>計算結果僅供參考，請以實際應用場景為準</li>
+  </ul>
+</div>
+<!-- /注意事項區塊 -->
+</div>
+
+<script>
+(function() {
+  'use strict';
+
+  // 随机十六进制字符串生成
+  function randomHexName(len) {
+    len = len || 4;
+    var chars = '0123456789abcdef';
+    var result = '_0x';
+    for (var i = 0; i < len; i++) {
+      result += chars[Math.floor(Math.random() * chars.length)];
+    }
+    return result;
+  }
+
+  // 提取所有字符串和正则字面量，替换为占位符
+  // 返回 { code, tokens } 其中 tokens 是按出现顺序的 [原始内容, quote字符]
+  function extractStringsAndRegex(code) {
+    var tokens = [];
+    var result = '';
+    var i = 0;
+    var len = code.length;
+
+    while (i < len) {
+      // 模板字符串 (简单处理，不处理嵌套)
+      if (code[i] === '`') {
+        var start = i;
+        i++;
+        while (i < len && code[i] !== '`') {
+          if (code[i] === '\\' && i + 1 < len) i++; // skip escaped
+          i++;
+        }
+        if (i < len) i++; // closing `
+        tokens.push(code.substring(start, i));
+        result += '__TK' + (tokens.length - 1) + '__';
+        continue;
+      }
+
+      // 单行字符串
+      if (code[i] === "'" || code[i] === '"') {
+        var quote = code[i];
+        var start = i;
+        i++;
+        while (i < len && code[i] !== quote) {
+          if (code[i] === '\\' && i + 1 < len) {
+            i += 2;
+          } else {
+            i++;
+          }
+        }
+        if (i < len) i++; // closing quote
+        tokens.push(code.substring(start, i));
+        result += '__TK' + (tokens.length - 1) + '__';
+        continue;
+      }
+
+      // 正则字面量 (简化识别)
+      if (code[i] === '/') {
+        // 判断是否是除法而非正则
+        var prevNonSpace = '';
+        for (var j = i - 1; j >= 0; j--) {
+          if (code[j] !== ' ' && code[j] !== '\t' && code[j] !== '\n' && code[j] !== '\r') {
+            prevNonSpace = code[j];
+            break;
+          }
+        }
+        // 如果前一个非空字符是操作符或 ( [ , ; ! ~ & | ? : { } = + - * % ^ ~ < > 这些，可能是正则
+        var couldBeRegex = /^[+\-!~(&|[,;{}?=<>%^*]$/.test(prevNonSpace) || prevNonSpace === '' || prevNonSpace === '\n';
+
+        if (couldBeRegex && i + 1 < len) {
+          var regexStart = i;
+          i++; // skip /
+          while (i < len && code[i] !== '/') {
+            if (code[i] === '\\' && i + 1 < len) {
+              i += 2;
+            } else {
+              i++;
+            }
+          }
+          if (i < len) {
+            i++; // closing /
+            while (i < len && /[gimsuyv]/.test(code[i])) i++; // flags
+            tokens.push(code.substring(regexStart, i));
+            result += '__TK' + (tokens.length - 1) + '__';
+            continue;
+          }
+        }
+      }
+
+      result += code[i];
+      i++;
+    }
+
+    return { code: result, tokens: tokens };
+  }
+
+  // 恢复占位符
+  function restoreTokens(code, tokens) {
+    return code.replace(/__TK(\d+)__/g, function(match, idx) {
+      return tokens[parseInt(idx)];
+    });
+  }
+
+  // 移除注释（字符串和正则已被提取，可安全操作）
+  function removeComments(code) {
+    // 先移除多行注释 /* ... */
+    code = code.replace(/\/\*[\s\S]*?\*\//g, '');
+    // 移除单行注释 // ...
+    code = code.replace(/\/\/.*$/gm, '');
+    return code;
+  }
+
+  // 变量名替换
+  function renameVariables(code, tokens) {
+    var varMap = {};
+    var counter = 0;
+
+    // 提取保留字列表
+    var reserved = new Set([
+      'break','case','catch','continue','debugger','default','delete','do','else',
+      'finally','for','function','if','in','instanceof','new','return','switch',
+      'this','throw','try','typeof','var','void','while','with','class','const',
+      'enum','export','extends','import','super','implements','interface','let',
+      'package','private','protected','public','static','yield','true','false',
+      'null','undefined','NaN','Infinity','arguments','eval',
+      'Array','Boolean','Date','Error','Function','JSON','Math','Number','Object',
+      'String','RegExp','Map','Set','Promise','Symbol','Proxy','Reflect','console',
+      'window','document','navigator','location','history','screen','alert',
+      'confirm','prompt','parseInt','parseFloat','isNaN','isFinite','encodeURI',
+      'decodeURI','encodeURIComponent','decodeURIComponent','setTimeout',
+      'setInterval','clearTimeout','clearInterval','requestAnimationFrame',
+      'cancelAnimationFrame','fetch','Promise','async','await',
+      'getElementById','querySelector','querySelectorAll','addEventListener',
+      'removeEventListener','createElement','appendChild','removeChild',
+      'getAttribute','setAttribute','removeAttribute','classList','className',
+      'innerHTML','innerText','textContent','style','value','length','push',
+      'pop','shift','unshift','splice','slice','concat','join','indexOf',
+      'lastIndexOf','forEach','map','filter','reduce','some','every','find',
+      'findIndex','keys','values','entries','from','of','assign','freeze',
+      'keys','values','entries','toString','valueOf','hasOwnProperty',
+      'prototype','constructor','apply','call','bind',
+      '__proto__','defineProperty','getPrototypeOf','create','defineProperties',
+      'getOwnPropertyNames','getOwnPropertyDescriptor','isExtensible','preventExtensions',
+      'seal','isSealed','freeze','isFrozen','getOwnPropertySymbols'
+    ]);
+
+    function generateName() {
+      var name;
+      do {
+        name = randomHexName(4 + Math.floor(Math.random() * 2));
+      } while (reserved.has(name) || varMap[name]);
+      return name;
+    }
+
+    // 匹配 var/let/const 声明中的变量名
+    var declPattern = /\b(var|let|const)\s+\{([^}]+)\}/g;
+    var declSimple = /\b(var|let|const)\s+([a-zA-Z_$][a-zA-Z0-9_$]*)/g;
+
+    // 处理解构声明 { a, b } 或 { a: alias }
+    var tempCode = code;
+    tempCode = tempCode.replace(declPattern, function(match, keyword, vars) {
+      return vars.split(',').map(function(v) {
+        v = v.trim();
+        // { a: alias } 或 { a } 或 { a = default }
+        var parts = v.split(':');
+        var varName = parts[0].trim().split('=')[0].trim();
+        if (/^[a-zA-Z_$][a-zA-Z0-9_$]*$/.test(varName) && !reserved.has(varName)) {
+          if (!varMap[varName]) {
+            varMap[varName] = generateName();
+          }
+          return varMap[varName] + (parts.length > 1 ? ':' + parts.slice(1).join(':') : '') + (v.includes('=') && !v.includes(':') ? v.substring(varName.length) : v.includes('=') ? '' : '');
+        }
+        return v;
+      }).join(',');
+      // This approach is tricky, let me simplify
+      return match; // keep original for destructuring
+    });
+
+    // 简单声明变量名提取
+    tempCode = code;
+    var simpleDecls = [];
+    var m;
+    var simplePattern = /\b(var|let|const)\s+([a-zA-Z_$][a-zA-Z0-9_$]*)(?:\s*=|;|,|\s*$)/gm;
+    while ((m = simplePattern.exec(tempCode)) !== null) {
+      var varName = m[2];
+      if (!reserved.has(varName) && !varMap[varName]) {
+        varMap[varName] = generateName();
+      }
+    }
+
+    // also match comma-separated declarations: var a, b = 1, c;
+    var commaPattern = /\b(var|let|const)\s+[a-zA-Z_$][a-zA-Z0-9_$]*[^;]*;/g;
+    tempCode = code;
+    while ((m = commaPattern.exec(tempCode)) !== null) {
+      var declBody = m[0];
+      // 去掉前面的关键字
+      declBody = declBody.replace(/^(var|let|const)\s+/, '');
+      declBody = declBody.replace(/;$/, '');
+      // split by comma (careful with template literals already removed)
+      var parts = declBody.split(',');
+      for (var pi = 0; pi < parts.length; pi++) {
+        var part = parts[pi].trim();
+        var nameMatch = part.match(/^([a-zA-Z_$][a-zA-Z0-9_$]*)/);
+        if (nameMatch) {
+          var vn = nameMatch[1];
+          if (!reserved.has(vn) && !varMap[vn]) {
+            varMap[vn] = generateName();
+          }
+        }
+      }
+    }
+
+    // function 参数
+    var funcPattern = /\bfunction\s*[a-zA-Z_$]*\s*\(([^)]*)\)/g;
+    while ((m = funcPattern.exec(code)) !== null) {
+      var params = m[1].split(',');
+      for (var pi2 = 0; pi2 < params.length; pi2++) {
+        var p = params[pi2].trim();
+        var pm = p.match(/^([a-zA-Z_$][a-zA-Z0-9_$]*)/);
+        if (pm && !reserved.has(pm[1]) && !varMap[pm[1]]) {
+          varMap[pm[1]] = generateName();
+        }
+      }
+    }
+
+    // 箭头函数参数
+    var arrowPattern = /\b([a-zA-Z_$][a-zA-Z0-9_$]*)\s*=>/g;
+    while ((m = arrowPattern.exec(code)) !== null) {
+      if (!reserved.has(m[1]) && !varMap[m[1]]) {
+        varMap[m[1]] = generateName();
+      }
+    }
+
+    // 替换变量名 - 使用 word boundary 确保完整匹配
+    var result = code;
+    var varNames = Object.keys(varMap);
+    // 按名称长度降序排列，避免短名称误替换长名称的一部分
+    varNames.sort(function(a, b) { return b.length - a.length; });
+
+    for (var vi = 0; vi < varNames.length; vi++) {
+      var origName = varNames[vi];
+      var newName = varMap[origName];
+      // 使用负向后行断言和前瞻，确保只替换独立的标识符
+      var re = new RegExp('(?<![a-zA-Z0-9_$])' + escapeRegex(origName) + '(?![a-zA-Z0-9_$])', 'g');
+      result = result.replace(re, newName);
+    }
+
+    return result;
+  }
+
+  // 字符串加密 - 将每个字符转为 \xNN
+  function encryptString(str) {
+    var quote = str[0]; // ' or " or `
+    var inner = str.substring(1, str.length - 1);
+    // 处理已有的转义
+    var unescaped = inner
+      .replace(/\\n/g, '\n')
+      .replace(/\\r/g, '\r')
+      .replace(/\\t/g, '\t')
+      .replace(/\\\\/g, '\\')
+      .replace(/\\"/g, '"')
+      .replace(/\\'/g, "'");
+    var result = quote;
+    for (var i = 0; i < unescaped.length; i++) {
+      var ch = unescaped.charCodeAt(i);
+      if (ch < 128 && ch !== 0 && unescaped[i] !== quote) {
+        var hex = ch.toString(16);
+        if (hex.length === 1) hex = '0' + hex;
+        result += '\\x' + hex;
+      } else {
+        result += unescaped[i];
+      }
+    }
+    result += quote;
+    return result;
+  }
+
+  // 字符串加密处理
+  function encryptStrings(tokens) {
+    return tokens.map(function(token) {
+      var first = token[0];
+      if (first === "'" || first === '"') {
+        return encryptString(token);
+      }
+      return token;
+    });
+  }
+
+  // 数字转十六进制（在代码中替换独立的十进制数字）
+  function numbersToHex(code, tokens) {
+    // 不转换已有的 0x 开头的
+    // 匹配独立的数字（不在标识符中，不在占位符中）
+    return code.replace(/\b(\d+)(?![a-zA-Z0-9_])/g, function(match, num) {
+      var n = parseInt(num, 10);
+      if (isNaN(n) || n < 0 || num.length === 0) return match;
+      // 不转换 0 本身
+      if (n === 0) return match;
+      return '0x' + n.toString(16).toUpperCase();
+    });
+  }
+
+  // 移除空白
+  function removeWhitespace(code) {
+    // 去掉行首行尾空白
+    var lines = code.split('\n');
+    lines = lines.map(function(l) { return l.trim(); });
+    code = lines.join('\n');
+    // 压缩连续空格为单个
+    code = code.replace(/[ \t]+/g, ' ');
+    // 压缩连续空行为单行
+    code = code.replace(/\n{2,}/g, '\n');
+    // 去掉空行
+    code = code.split('\n').filter(function(l) { return l.trim().length > 0; }).join('\n');
+    return code;
+  }
+
+  // 字符串数组化
+  function stringifyToArray(code, tokens) {
+    if (tokens.length === 0) return { code: code, tokens: tokens };
+
+    var stringArray = [];
+    var tokenMapping = []; // index in tokens -> index in stringArray
+
+    for (var i = 0; i < tokens.length; i++) {
+      var t = tokens[i];
+      var first = t[0];
+      if (first === "'" || first === '"') {
+        // 提取字符串内容（去掉引号）
+        var inner = t.substring(1, t.length - 1);
+        var existingIdx = stringArray.indexOf(inner);
+        if (existingIdx === -1) {
+          tokenMapping[i] = stringArray.length;
+          stringArray.push(inner);
+        } else {
+          tokenMapping[i] = existingIdx;
+        }
+      } else {
+        tokenMapping[i] = -1; // 不处理
+      }
+    }
+
+    if (stringArray.length === 0) return { code: code, tokens: tokens };
+
+    // 生成字符串数组声明
+    var arrayName = randomHexName(6);
+    var arrayDecl = 'var ' + arrayName + '=[';
+    for (var s = 0; s < stringArray.length; s++) {
+      if (s > 0) arrayDecl += ',';
+      arrayDecl += '"' + stringArray[s].replace(/\\/g, '\\\\').replace(/"/g, '\\"') + '"';
+    }
+    arrayDecl += '];';
+
+    // 替换代码中的字符串引用
+    var result = code.replace(/__TK(\d+)__/g, function(match, idx) {
+      var ti = parseInt(idx);
+      if (tokenMapping[ti] >= 0) {
+        return arrayName + '[' + tokenMapping[ti] + ']';
+      }
+      return match;
+    });
+
+    // 把数组声明加到开头
+    result = arrayDecl + result;
+
+    return { code: result, tokens: tokens };
+  }
+
+  // 正则转义
+  function escapeRegex(str) {
+    return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  }
+
+  // 主混淆函数
+  window.obfuscate = function() {
+    var code = document.getElementById('inputCode').value;
+    if (!code.trim()) {
+      ToolBox.showToast(i18nText('toast.msg684'), 'warning');
+      return;
+    }
+
+    var optVarRename = document.getElementById('optVarRename').checked;
+    var optStringEncrypt = document.getElementById('optStringEncrypt').checked;
+    var optRemoveComments = document.getElementById('optRemoveComments').checked;
+    var optRemoveWhitespace = document.getElementById('optRemoveWhitespace').checked;
+    var optNumberHex = document.getElementById('optNumberHex').checked;
+    var optStringArray = document.getElementById('optStringArray').checked;
+
+    try {
+      // Step 1: 提取字符串和正则字面量
+      var extracted = extractStringsAndRegex(code);
+      var processedCode = extracted.code;
+      var tokens = extracted.tokens.slice();
+
+      // Step 2: 移除注释（字符串已被替换为占位符）
+      if (optRemoveComments) {
+        processedCode = removeComments(processedCode);
+      }
+
+      // Step 3: 变量名替换
+      if (optVarRename) {
+        processedCode = renameVariables(processedCode, tokens);
+      }
+
+      // Step 4: 数字转十六进制
+      if (optNumberHex) {
+        processedCode = numbersToHex(processedCode, tokens);
+      }
+
+      // Step 5: 字符串加密
+      if (optStringEncrypt) {
+        tokens = encryptStrings(tokens);
+      }
+
+      // Step 6: 恢复字符串和正则
+      processedCode = restoreTokens(processedCode, tokens);
+
+      // Step 7: 字符串数组化（需要在恢复占位符之后操作）
+      if (optStringArray) {
+        var arrResult = stringifyToArrayFromCode(processedCode);
+        processedCode = arrResult;
+      }
+
+      // Step 8: 移除空白
+      if (optRemoveWhitespace) {
+        processedCode = removeWhitespace(processedCode);
+      }
+
+      document.getElementById('outputCode').value = processedCode;
+      updateStats(code.length, processedCode.length);
+      ToolBox.showToast(i18nText('toast.msg500'));
+    } catch (e) {
+      ToolBox.showToast('混淆出错: ' + e.message, 'error');
+      console.error(e);
+    }
+  };
+
+  // 字符串数组化（在完整代码上操作）
+  function stringifyToArrayFromCode(code) {
+    // 提取所有字符串字面量
+    var strings = [];
+    var extracted = extractStringsAndRegex(code);
+    var codeBody = extracted.code;
+    var tokens = extracted.tokens;
+
+    var stringArray = [];
+    var mapping = {};
+
+    for (var i = 0; i < tokens.length; i++) {
+      var t = tokens[i];
+      if (t[0] === "'" || t[0] === '"') {
+        var inner = t.substring(1, t.length - 1);
+        if (!(inner in mapping)) {
+          mapping[inner] = stringArray.length;
+          stringArray.push(inner);
+        }
+      }
+    }
+
+    if (stringArray.length === 0) return code;
+
+    var arrName = randomHexName(6);
+    var arrDecl = 'var ' + arrName + '=[';
+    for (var s = 0; s < stringArray.length; s++) {
+      if (s > 0) arrDecl += ',';
+      arrDecl += "'" + stringArray[s].replace(/\\/g, '\\\\').replace(/'/g, "\\'") + "'";
+    }
+    arrDecl += '];';
+
+    // 在代码中替换字符串为索引引用
+    var result = codeBody.replace(/__TK(\d+)__/g, function(match, idx) {
+      var ti = parseInt(idx);
+      var t = tokens[ti];
+      if (t[0] === "'" || t[0] === '"') {
+        var inner = t.substring(1, t.length - 1);
+        return arrName + '[' + mapping[inner] + ']';
+      }
+      return match;
+    });
+
+    result = restoreTokens(result, tokens);
+    // 简单地把非数组部分的字符串也替换掉会比较复杂
+    // 这里用更简单的方式：直接对原始代码做字符串替换
+    return arrDecl + ';' + result;
+  }
+
+  // 复制结果
+  window.copyResult = function() {
+    var output = document.getElementById('outputCode').value;
+    if (!output) {
+      ToolBox.showToast(i18nText(), 'warning');
+      return;
+    }
+    ToolBox.copyText(output);
+  };
+
+  // 下载结果
+  window.downloadResult = function() {
+    var output = document.getElementById('outputCode').value;
+    if (!output) {
+      ToolBox.showToast(i18nText('toast.msg476'), 'warning');
+      return;
+    }
+    ToolBox.downloadText('obfuscated.js', output, 'text/javascript;charset=utf-8');
+    ToolBox.showToast(i18nText('toast.msg391'));
+  };
+
+  // 全选/取消全选
+  window.toggleAllOptions = function(checked) {
+    var boxes = document.querySelectorAll('.options-grid input[type="checkbox"]');
+    boxes.forEach(function(b) { b.checked = checked; });
+  };
+
+  // 更新统计
+  window.updateStats = function(origLen, obfLen) {
+    var orig = origLen || document.getElementById('inputCode').value.length;
+    var obf = obfLen !== undefined ? obfLen : document.getElementById('outputCode').value.length;
+    document.getElementById('statOriginal').textContent = orig.toLocaleString();
+    document.getElementById('statObfuscated').textContent = obf.toLocaleString();
+    if (orig > 0 && obf > 0) {
+      var ratio = ((1 - obf / orig) * 100).toFixed(1);
+      document.getElementById('statRatio').textContent = (ratio > 0 ? ratio + '%' : '+' + Math.abs(ratio) + '%');
+    } else {
+      document.getElementById('statRatio').textContent = '-';
+    }
+  };
+
+  // 加载示例
+  window.loadSample = function(type) {
+    var samples = {
+      basic: 'var userName = "Hello World";\nvar count = 42;\nvar isActive = true;\n\n// Calculate the sum\nfunction add(a, b) {\n  var result = a + b;\n  return result;\n}\n\n/* Main logic */\nvar total = add(count, 10);\nconsole.log("Total: " + total);',
+      function: 'const API_URL = "https://api.example.com/data";\nconst MAX_RETRIES = 3;\nconst TIMEOUT = 5000;\n\n// Fetch data with retry\nasync function fetchData(endpoint) {\n  let attempt = 0;\n  let response = null;\n\n  while (attempt < MAX_RETRIES) {\n    try {\n      response = await fetch(API_URL + endpoint, {\n        method: "GET",\n        headers: {\n          "Content-Type": "application/json",\n          "Authorization": "Bearer token123"\n        }\n      });\n\n      if (response.ok) {\n        const data = await response.json();\n        console.log("Success: " + JSON.stringify(data));\n        return data;\n      }\n    } catch (error) {\n      console.log("Attempt " + attempt + " failed");\n      attempt++;\n    }\n  }\n\n  return null;\n}\n\n/* Initialize */\nvar result = fetchData("/users");\nconsole.log("Result: " + result);'
+    };
+    document.getElementById('inputCode').value = samples[type] || '';
+    updateStats();
+  };
+
+  // 初始化统计
+  updateStats();
+
+})();
+</script>
+
+<!-- SEO 介紹區塊 -->
+<div class="tool-intro open" id="toolIntro">
+  <div class="tool-intro-header">
+    <span class="intro-icon-wrap"><span class="intro-icon">📖</span>關於「JS程式碼混淆器」</span>
+    <span class="arrow">▼</span>
+  </div>
+  <div class="tool-intro-body">
+    <h4><span class="h4-icon">📝</span>工具簡介</h4>
+    <p>&#128274; JS程式碼混淆器。專為開發者打造的線上工具，純前端執行，程式碼不離開瀏覽器。</p>
+
+      </div>
+</div>
+<!-- /SEO 介紹區塊 -->
+
+<script>
+// tool-intro折叠交互
+document.addEventListener('DOMContentLoaded',function(){
+  var headers=document.querySelectorAll('.tool-intro-header');
+  headers.forEach(function(h){
+    h.addEventListener('click',function(){
+      this.parentElement.classList.toggle('open');
+    });
+  });
+});
+</script>
+
+</body>
+</html>

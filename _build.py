@@ -251,8 +251,10 @@ TOOLBOX_API_STUB = (
 # hreflang 采用构建期常量：每个 locale 对应一个规范 URL（语言由 ?lang 客户端切换，
 # 不做 ?lang 查询态 alternate，避免爬取/索引出现 404）。
 # ============================================================
-I18N_LOCALES = ['zh-CN', 'en-US']
-I18N_XDEFAULT = 'en-US'
+I18N_LOCALES = ['zh-CN', 'zh-TW', 'zh-HK', 'en-US']
+I18N_STATIC_LOCALES = ['zh-CN', 'zh-TW', 'zh-HK']
+I18N_STATIC_DIRS = {'zh-TW': 'zh-tw', 'zh-HK': 'zh-hk'}
+I18N_XDEFAULT = 'zh-CN'
 I18N_HREFLANG_MARKER = '<!-- TOOLBOX-HREFLANG -->'
 
 
@@ -261,15 +263,29 @@ def _loc_under(locale):
     return locale.replace('-', '_')
 
 
+def localized_i18n_url(abs_url, locale):
+    """Return the physical static URL for a locale; English remains runtime query mode."""
+    if locale == 'zh-CN':
+        return abs_url
+    if locale == 'en-US':
+        return abs_url + ('&' if '?' in abs_url else '?') + 'lang=en-US'
+    prefix = I18N_STATIC_DIRS[locale]
+    base = 'https://chenguangwu.github.io'
+    suffix = abs_url[len(base):] if abs_url.startswith(base) else abs_url
+    if suffix in ('', '/'):
+        return base + '/' + prefix + '/'
+    return base + '/' + prefix + suffix
+
+
 def build_hreflang_block(abs_url, default_locale='zh-CN'):
     """生成全套 hreflang alternate 链接（含 x-default）+ og:locale。
     幂等：整体包裹在 I18N_HREFLANG_MARKER 注释内，重复构建不叠加。"""
     lines = [I18N_HREFLANG_MARKER]
     for loc in I18N_LOCALES:
         lines.append('<link rel="alternate" hreflang="%s" href="%s">'
-                     % (loc, abs_url))
+                     % (loc, localized_i18n_url(abs_url, loc)))
     lines.append('<link rel="alternate" hreflang="x-default" href="%s">'
-                 % abs_url)
+                 % localized_i18n_url(abs_url, I18N_XDEFAULT))
     lines.append('<meta property="og:locale" content="%s">'
                  % _loc_under(default_locale))
     for loc in I18N_LOCALES:
@@ -301,11 +317,19 @@ def _xhtml_alternates(abs_url):
     canonical，Google 会将其识别为英文版本）。百度/Bing 不跑/晚跑 JS 抓到中文态，
     会忽略或当作中文处理，无害。
     """
-    sep = '?' if '?' not in abs_url else '&'
-    en_url = abs_url + sep + 'lang=en'
-    return ('    <xhtml:link rel="alternate" hreflang="zh-CN" href="%s"/>\n'
-            '    <xhtml:link rel="alternate" hreflang="en-US" href="%s"/>\n'
-            '    <xhtml:link rel="alternate" hreflang="x-default" href="%s"/>') % (abs_url, en_url, abs_url)
+    base = re.sub(r'^https://chenguangwu\.github\.io/zh-(?:tw|hk)(?=/|$)',
+                  'https://chenguangwu.github.io', abs_url)
+    return '\n'.join(
+        '    <xhtml:link rel="alternate" hreflang="%s" href="%s"/>'
+        % (loc, localized_i18n_url(base, loc))
+        for loc in I18N_LOCALES
+    ) + '\n    <xhtml:link rel="alternate" hreflang="x-default" href="%s"/>' % localized_i18n_url(base, I18N_XDEFAULT)
+
+
+def _localized_url_blocks(abs_url, today, freq, prio):
+    """One <url> per crawlable Chinese static locale, each with the complete alternate chain."""
+    return [_url_block_xhtml(localized_i18n_url(abs_url, loc), today, freq, prio)
+            for loc in I18N_STATIC_LOCALES]
 
 # ============================================================
 # Category definitions (functional)
@@ -1426,13 +1450,13 @@ def generate_sitemap(tools, category_inds=None):
     lines = ['<?xml version="1.0" encoding="UTF-8"?>']
     lines.append('<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" '
                  'xmlns:xhtml="http://www.w3.org/1999/xhtml">')
-    lines.append(_url_block_xhtml('https://chenguangwu.github.io/', today, 'daily', '1.0'))
-    lines.append(_url_block_xhtml('https://chenguangwu.github.io/sitemap.html', today, 'weekly', '0.9'))
-    lines.append(_url_block_xhtml('https://chenguangwu.github.io/search.html', today, 'weekly', '0.9'))
+    lines.extend(_localized_url_blocks('https://chenguangwu.github.io/', today, 'daily', '1.0'))
+    lines.extend(_localized_url_blocks('https://chenguangwu.github.io/sitemap.html', today, 'weekly', '0.9'))
+    lines.extend(_localized_url_blocks('https://chenguangwu.github.io/search.html', today, 'weekly', '0.9'))
     # Category index pages
     if category_inds:
         for ind in sorted(category_inds):
-            lines.append(_url_block_xhtml('https://chenguangwu.github.io/tools/%s/index.html' % ind, today, 'weekly', '0.9'))
+            lines.extend(_localized_url_blocks('https://chenguangwu.github.io/tools/%s/index.html' % ind, today, 'weekly', '0.9'))
     # guides/ 指南页（自动扫描，避免重跑构建后丢失）
     # 若某指南存在同名 .en.html 英文版，则声明双向 hreflang（zh 文件 <-> en 文件）；
     # 否则沿用既有 ?lang=en 约定（与工具页一致），保持旧行为、最小 diff。
@@ -1447,22 +1471,16 @@ def generate_sitemap(tools, category_inds=None):
                     lines.append(_url_block_alts(abs_url, today, 'monthly', '0.7',
                                                  _guide_alternates_xml(zh_url, abs_url)))
                 else:
-                    en_fn = fn[:-5] + '.en.html'
-                    if os.path.isfile(os.path.join(guides_dir, en_fn)):
-                        en_url = abs_url[:-5] + '.en.html'
-                        lines.append(_url_block_alts(abs_url, today, 'monthly', '0.8',
-                                                     _guide_alternates_xml(abs_url, en_url)))
-                    else:
-                        lines.append(_url_block_xhtml(abs_url, today, 'monthly', '0.8'))
+                    lines.extend(_localized_url_blocks(abs_url, today, 'monthly', '0.8'))
     # chains.html 工具链页（B3-05）
     if os.path.isfile(os.path.join(ROOT, 'chains.html')):
-        lines.append(_url_block_xhtml('https://chenguangwu.github.io/chains.html', today, 'weekly', '0.8'))
+        lines.extend(_localized_url_blocks('https://chenguangwu.github.io/chains.html', today, 'weekly', '0.8'))
     # about.html 关于我们
     if os.path.isfile(os.path.join(ROOT, 'about.html')):
-        lines.append(_url_block_xhtml('https://chenguangwu.github.io/about.html', today, 'monthly', '0.7'))
+        lines.extend(_localized_url_blocks('https://chenguangwu.github.io/about.html', today, 'monthly', '0.7'))
     for t in tools:
         url = 'https://chenguangwu.github.io/' + t['url']
-        lines.append(_url_block_xhtml(url, today, 'monthly', '0.8'))
+        lines.extend(_localized_url_blocks(url, today, 'monthly', '0.8'))
     lines.append('</urlset>')
     return '\n'.join(lines) + '\n'
 
@@ -1517,18 +1535,18 @@ def generate_core_sitemap(today):
     lines = ['<?xml version="1.0" encoding="UTF-8"?>',
              '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" '
              'xmlns:xhtml="http://www.w3.org/1999/xhtml">']
-    lines.append(_url_block_xhtml('https://chenguangwu.github.io/', today, 'daily', '1.0'))
-    lines.append(_url_block_xhtml('https://chenguangwu.github.io/sitemap.html', today, 'weekly', '0.9'))
-    lines.append(_url_block_xhtml('https://chenguangwu.github.io/search.html', today, 'weekly', '0.9'))
+    lines.extend(_localized_url_blocks('https://chenguangwu.github.io/', today, 'daily', '1.0'))
+    lines.extend(_localized_url_blocks('https://chenguangwu.github.io/sitemap.html', today, 'weekly', '0.9'))
+    lines.extend(_localized_url_blocks('https://chenguangwu.github.io/search.html', today, 'weekly', '0.9'))
     if os.path.isfile(os.path.join(ROOT, 'about.html')):
-        lines.append(_url_block_xhtml('https://chenguangwu.github.io/about.html', today, 'monthly', '0.7'))
+        lines.extend(_localized_url_blocks('https://chenguangwu.github.io/about.html', today, 'monthly', '0.7'))
     # guides/ 目录下的指南页（自动扫描，避免重跑构建后丢失）
     guides_dir = os.path.join(ROOT, 'guides')
     if os.path.isdir(guides_dir):
         for fn in sorted(os.listdir(guides_dir)):
             if fn.endswith('.html') and fn != 'index.html':
-                lines.append(_url_block_xhtml('https://chenguangwu.github.io/guides/%s' % fn,
-                                        today, 'monthly', '0.8'))
+                lines.extend(_localized_url_blocks('https://chenguangwu.github.io/guides/%s' % fn,
+                                                   today, 'monthly', '0.8'))
     lines.append('</urlset>')
     return '\n'.join(lines) + '\n'
 
@@ -1538,10 +1556,10 @@ def generate_industry_sitemap(ind, ind_tools, today):
     lines = ['<?xml version="1.0" encoding="UTF-8"?>',
              '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" '
              'xmlns:xhtml="http://www.w3.org/1999/xhtml">']
-    lines.append(_url_block_xhtml('https://chenguangwu.github.io/tools/%s/index.html' % ind, today, 'weekly', '0.9'))
+    lines.extend(_localized_url_blocks('https://chenguangwu.github.io/tools/%s/index.html' % ind, today, 'weekly', '0.9'))
     for t in sorted(ind_tools, key=lambda x: x['name']):
         url = 'https://chenguangwu.github.io/' + t['url']
-        lines.append(_url_block_xhtml(url, today, 'monthly', '0.8'))
+        lines.extend(_localized_url_blocks(url, today, 'monthly', '0.8'))
     lines.append('</urlset>')
     return '\n'.join(lines) + '\n'
 
@@ -1789,19 +1807,38 @@ def _build_consistency_check(tools, category_inds):
 
     guides_dir = os.path.join(ROOT, 'guides')
     guides_count = 0
+    guide_en_count = 0
     if os.path.isdir(guides_dir):
-        guides_count = len([fn for fn in os.listdir(guides_dir) if fn.endswith('.html') and fn != 'index.html'])
+        guides_count = len([fn for fn in os.listdir(guides_dir)
+                            if fn.endswith('.html') and fn != 'index.html' and not fn.endswith('.en.html')])
+        guide_en_count = len([fn for fn in os.listdir(guides_dir) if fn.endswith('.en.html')])
     has_chains = 1 if os.path.isfile(os.path.join(ROOT, 'chains.html')) else 0
     has_about = 1 if os.path.isfile(os.path.join(ROOT, 'about.html')) else 0
-    expected_sitemap_urls = expected_tools + 3 + len(category_inds) + guides_count + has_chains + has_about
+    expected_sitemap_urls = (
+        (expected_tools + 3 + len(category_inds) + guides_count + has_chains + has_about)
+        * len(I18N_STATIC_LOCALES) + guide_en_count
+    )
     actual_sitemap_urls = _count_xml_urls(SITEMAP_FILE)
     if expected_sitemap_urls != actual_sitemap_urls:
         print('Build consistency failed: sitemap url count mismatch')
         print('  expected=%d actual=%d' % (expected_sitemap_urls, actual_sitemap_urls))
-        print('  formula: tools + core pages + category index + guides + chains + about')
+        print('  formula: static Chinese variants + standalone English guide pages')
         return False
 
     return True
+
+
+def generate_opencc_static_locales():
+    """Generate zh-tw/ and zh-hk/ only after every source HTML/JSON artifact is final."""
+    script = os.path.join(ROOT, 'scripts', 'gen_opencc_locales.mjs')
+    print('\nGenerating static OpenCC locales:')
+    try:
+        subprocess.run(['node', script], cwd=ROOT, check=True)
+        subprocess.run(['node', script, '--check'], cwd=ROOT, check=True)
+    except FileNotFoundError:
+        raise SystemExit('OpenCC locale build requires Node.js. Run npm ci before python3 _build.py.')
+    except subprocess.CalledProcessError as exc:
+        raise SystemExit('OpenCC locale build failed: %s' % exc)
 
 
 def _update_readme_metrics(qc, tool_count, ind_count):
@@ -2912,11 +2949,12 @@ def main():
     # 多语言 SEO：首页注入 hreflang + og:locale（构建期常量，幂等，批次4）
     with open(INDEX_FILE, 'r', encoding='utf-8') as f:
         idx_html = f.read()
-    if I18N_HREFLANG_MARKER not in idx_html:
-        idx_html = inject_hreflang(idx_html, 'https://chenguangwu.github.io/')
+    new_idx_html = inject_hreflang(idx_html, 'https://chenguangwu.github.io/')
+    if new_idx_html != idx_html:
+        idx_html = new_idx_html
         with open(INDEX_FILE, 'w', encoding='utf-8') as f:
             f.write(idx_html)
-        print('Injected hreflang into index.html')
+        print('Updated hreflang in index.html')
 
     # Generate sitemaps: root full urlset + per-industry sitemap.xml (kept for optional submission)
     from datetime import datetime
@@ -2963,6 +3001,9 @@ def main():
     with open(HTML_SITEMAP_FILE, 'w', encoding='utf-8') as f:
         f.write(html_sitemap)
     print('Generated sitemap.html (%d tools)' % len(tools))
+
+    # 只在源页面、JSON 与 sitemap 都已完成后生成繁体静态站，避免复制中间产物。
+    generate_opencc_static_locales()
 
     # Final gate: verify all public pages reference the shared Clarity module.
     # This is the build-time guard to avoid future direct inline regressions.

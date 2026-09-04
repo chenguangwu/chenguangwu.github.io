@@ -1,0 +1,849 @@
+<!DOCTYPE html>
+<html lang="zh-TW" data-opencc-locale="zh-tw">
+<head>
+
+<script src="/js/tool-page-runtime.js" defer></script>
+<!-- TOOLBOX-TOOL-RUNTIME -->
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="toolbox" content="cat=validator,industry=design,icon=⚖️,bg=#fff8e1">
+<title>對比度檢查器 - ToolBox</title>
+<link rel="canonical" href="https://chenguangwu.github.io/zh-tw/tools/design/contrast-checker.html">
+<meta property="og:title" content="对比度检查器">
+<meta property="og:description" content="输入前景色与背景色，实时计算并校验WCAG对比度比值，判断是否达到AA或AAA无障碍标准，帮助设计师与开发者保证文字在网页上的清晰可读。">
+<meta property="og:url" content="https://chenguangwu.github.io/zh-tw/tools/design/contrast-checker.html">
+<meta name="twitter:card" content="summary">
+<meta name="description" content="输入前景色与背景色，实时计算并校验WCAG对比度比值，判断是否达到AA或AAA无障碍标准，帮助设计师与开发者保证文字在网页上的清晰可读。">
+<link rel="preload" as="style" href="/css/common.css" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="/css/common.css"></noscript>
+<script>window.__tbq=window.__tbq||[];window.ToolBox=window.ToolBox||{};['initToolTheme','addToolStyles','showToast','toast','copyText','copyToClipboard','copyFromElement','downloadText','injectPrivacyBadge','toggleFavTool','addToRecentTool','toggleToolTheme','applyTheme'].forEach(function(k){if(typeof window.ToolBox[k]!=='function')window.ToolBox[k]=function(){window.__tbq.push([k,[].slice.call(arguments)]);};});</script><!-- TOOLBOX-API-STUB -->
+<script src="/js/common.js" defer></script>
+<style>
+  .color-input-group {
+    display: flex;
+    gap: 12px;
+    align-items: flex-end;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+  }
+  .color-input-item {
+    flex: 1;
+    min-width: 160px;
+  }
+  .color-input-item label {
+    font-size: 13px;
+    color: var(--text-secondary);
+    display: block;
+    margin-bottom: 6px;
+    font-weight: 600;
+  }
+  .color-picker-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .color-picker-row input[type="color"] {
+    width: 48px;
+    height: 42px;
+    border: 2px solid var(--border);
+    border-radius: 10px;
+    cursor: pointer;
+    padding: 2px;
+    background: var(--card-bg);
+    flex-shrink: 0;
+  }
+  .color-picker-row input[type="color"]::-webkit-color-swatch-wrapper {
+    padding: 2px;
+  }
+  .color-picker-row input[type="color"]::-webkit-color-swatch {
+    border: none;
+    border-radius: 6px;
+  }
+  .color-picker-row input[type="text"] {
+    flex: 1;
+    min-width: 0;
+    font-family: 'SF Mono', 'Courier New', 'Fira Code', monospace;
+    font-size: 14px;
+    text-transform: uppercase;
+  }
+  .swap-btn {
+    width: 42px;
+    height: 42px;
+    border-radius: 12px;
+    border: 1.5px solid var(--border);
+    background: var(--card-bg);
+    color: var(--text);
+    cursor: pointer;
+    font-size: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    flex-shrink: 0;
+    margin-bottom: 0;
+  }
+  .swap-btn:hover {
+    border-color: var(--primary);
+    background: var(--bg-hover);
+    transform: rotate(180deg);
+  }
+  .contrast-display {
+    text-align: center;
+    padding: 24px 16px;
+    margin: 20px 0;
+    border-radius: 16px;
+    background: var(--result-bg);
+    border: 1px solid var(--border);
+  }
+  .contrast-ratio {
+    font-size: 48px;
+    font-weight: 800;
+    line-height: 1;
+    margin-bottom: 4px;
+  }
+  .contrast-ratio .ratio-num {
+    background: var(--gradient-primary);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .contrast-ratio .ratio-label {
+    font-size: 20px;
+    font-weight: 600;
+    color: var(--text-muted);
+  }
+  .contrast-grade {
+    font-size: 14px;
+    color: var(--text-secondary);
+    margin-top: 6px;
+  }
+  .wcag-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin: 16px 0;
+  }
+  .wcag-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 14px 16px;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    background: var(--card-bg);
+    transition: all 0.2s;
+  }
+  .wcag-item .wcag-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    flex-shrink: 0;
+  }
+  .wcag-item .wcag-icon.pass {
+    background: rgba(16, 185, 129, 0.12);
+    color: #059669;
+  }
+  .wcag-item .wcag-icon.fail {
+    background: rgba(239, 68, 68, 0.12);
+    color: #DC2626;
+  }
+  [data-theme="dark"] .wcag-item .wcag-icon.pass {
+    background: rgba(16, 185, 129, 0.15);
+    color: #34D399;
+  }
+  [data-theme="dark"] .wcag-item .wcag-icon.fail {
+    background: rgba(239, 68, 68, 0.15);
+    color: #F87171;
+  }
+  .wcag-item .wcag-info {
+    flex: 1;
+    min-width: 0;
+  }
+  .wcag-item .wcag-level {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+  .wcag-item .wcag-threshold {
+    font-size: 12px;
+    color: var(--text-muted);
+  }
+  .wcag-item .wcag-status {
+    font-size: 12px;
+    font-weight: 600;
+    flex-shrink: 0;
+  }
+  .wcag-item .wcag-status.pass {
+    color: #059669;
+  }
+  .wcag-item .wcag-status.fail {
+    color: #DC2626;
+  }
+  [data-theme="dark"] .wcag-item .wcag-status.pass { color: #34D399; }
+  [data-theme="dark"] .wcag-item .wcag-status.fail { color: #F87171; }
+  .preview-box {
+    border-radius: 16px;
+    padding: 28px 24px;
+    margin: 16px 0;
+    border: 1px solid var(--border);
+    transition: all 0.3s;
+    position: relative;
+    overflow: hidden;
+  }
+  .preview-box::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: var(--gradient-primary);
+  }
+  .preview-normal {
+    font-size: 16px;
+    line-height: 1.6;
+    margin-bottom: 16px;
+  }
+  .preview-large {
+    font-size: 24px;
+    font-weight: 700;
+    line-height: 1.4;
+  }
+  .preview-small {
+    font-size: 12px;
+    line-height: 1.5;
+    margin-top: 12px;
+    opacity: 0.9;
+  }
+  .presets-section {
+    margin-top: 16px;
+  }
+  .presets-section h3 {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--heading);
+    margin-bottom: 10px;
+  }
+  .presets-grid {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .preset-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 14px;
+    border-radius: 10px;
+    border: 1.5px solid var(--border);
+    background: var(--card-bg);
+    cursor: pointer;
+    transition: all 0.2s;
+    font-size: 12px;
+    color: var(--text-secondary);
+    font-weight: 500;
+  }
+  .preset-btn:hover {
+    border-color: var(--primary);
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-sm);
+  }
+  .preset-swatch {
+    width: 22px;
+    height: 22px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    flex-shrink: 0;
+    overflow: hidden;
+    display: flex;
+  }
+  .preset-swatch-half {
+    width: 50%;
+    height: 100%;
+  }
+  .score-bar-wrap {
+    margin: 12px 0 4px;
+  }
+  .score-bar-bg {
+    height: 8px;
+    background: var(--border);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+  .score-bar-fill {
+    height: 100%;
+    border-radius: 4px;
+    transition: width 0.4s ease, background 0.4s ease;
+  }
+  .score-labels {
+    display: flex;
+    justify-content: space-between;
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-top: 4px;
+  }
+  .quick-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 12px;
+    flex-wrap: wrap;
+  }
+  .copy-colors-row {
+    display: flex;
+    gap: 8px;
+    margin-top: 8px;
+  }
+  .copy-colors-row .btn {
+    flex: 1;
+    justify-content: center;
+    font-size: 12px;
+    padding: 8px 12px;
+  }
+  @media (max-width: 768px) {
+    .contrast-ratio {
+      font-size: 36px;
+    }
+    .wcag-grid {
+      grid-template-columns: 1fr;
+    }
+    .color-input-group {
+      gap: 10px;
+    }
+    .swap-btn {
+      align-self: center;
+      margin-bottom: 4px;
+    }
+    .preview-normal {
+      font-size: 15px;
+    }
+    .preview-large {
+      font-size: 20px;
+    }
+    .presets-grid {
+      gap: 6px;
+    }
+    .preset-btn {
+      padding: 7px 10px;
+      font-size: 11px;
+    }
+    .copy-colors-row .btn {
+      font-size: 11px;
+      padding: 7px 10px;
+    }
+  }
+</style>
+
+
+
+<meta property="og:image" content="https://chenguangwu.github.io/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="ToolBox - 5000+免费在线工具">
+<meta name="twitter:image" content="https://chenguangwu.github.io/og-image.png">
+<meta name="twitter:image:alt" content="ToolBox - 5000+免费在线工具">
+    <meta property="og:type" content="website">
+    <meta name="twitter:title" content="对比度检查器">
+    <meta name="twitter:description" content="输入前景色与背景色，实时计算并校验WCAG对比度比值，判断是否达到AA或AAA无障碍标准，帮助设计师与开发者保证文字在网页上的清晰可读。">
+<!-- TOOLBOX-WEBAPP-LD -->
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"對比度檢查器","url":"https://chenguangwu.github.io/zh-tw/tools/design/contrast-checker.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":"zh-TW","description":"輸入前景色與背景色，即時計算並校驗WCAG對比度比值，判斷是否達到AA或AAA無障礙標準，幫助設計師與開發者保證文字在網頁上的清晰可讀。","image":"https://chenguangwu.github.io/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}</script>
+<meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
+<meta http-equiv="X-Content-Type-Options" content="nosniff">
+<meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
+<!-- TOOLBOX-SECURITY -->
+
+<script src="/js/privacy.js" defer></script>
+<!-- TOOLBOX-PRIVACY-SCRIPT -->
+
+<script src="/js/metrics.js" defer></script>
+<!-- TOOLBOX-METRICS-SCRIPT -->
+
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"首頁","item":"https://chenguangwu.github.io/zh-tw/"},{"@type":"ListItem","position":2,"name":"設計創意","item":"https://chenguangwu.github.io/zh-tw/tools/design/index.html"},{"@type":"ListItem","position":3,"name":"對比度檢查器","item":"https://chenguangwu.github.io/zh-tw/tools/design/contrast-checker.html"}]}</script>
+
+<script src="/js/i18n.js" defer></script>
+<script src="/js/tool-i18n.js" defer></script>
+<!-- TOOLBOX-I18N-SCRIPT -->
+
+
+<meta name="title-en" content="Contrast Checker - ToolBox">
+<meta name="desc-en" content="Contrast Checker - check and validate online, free. Free online tool on ToolBox — 100% client-side, no data uploaded, no install. Part of the Design &amp; Cr...">
+<!-- TOOLBOX-HREFLANG -->
+<link rel="alternate" hreflang="zh-CN" href="https://chenguangwu.github.io/tools/design/contrast-checker.html">
+<link rel="alternate" hreflang="zh-TW" href="https://chenguangwu.github.io/zh-tw/tools/design/contrast-checker.html">
+<link rel="alternate" hreflang="zh-HK" href="https://chenguangwu.github.io/zh-hk/tools/design/contrast-checker.html">
+<link rel="alternate" hreflang="en-US" href="https://chenguangwu.github.io/tools/design/contrast-checker.html?lang=en-US">
+<link rel="alternate" hreflang="x-default" href="https://chenguangwu.github.io/tools/design/contrast-checker.html">
+<meta property="og:locale" content="zh_TW">
+<meta property="og:locale:alternate" content="zh_CN">
+<meta property="og:locale:alternate" content="zh_HK">
+<meta property="og:locale:alternate" content="en_US">
+</head>
+<body>
+<h1 class="sr-only">對比度檢查器</h1>
+
+
+<!-- 導航欄 -->
+<div class="nav">
+  <a href="/zh-tw/index.html">&larr; ToolBox</a>
+  <span>/ 對比度檢查器</span>
+  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()">&#127769;</button>
+</div>
+
+
+
+
+
+<nav class="breadcrumb" aria-label="麵包屑導航" data-breadcrumb="1">
+  <a href="/zh-tw/index.html">首頁</a>
+  <span class="bc-sep">‹</span>
+  <a href="/zh-tw/tools/design/index.html">🎨 設計創意</a>
+  <span class="bc-sep">‹</span>
+  <span class="bc-current">對比度檢查器</span>
+</nav>
+<div class="container">
+  <div class="card tool-card-accent" style="--tool-accent:#7C3AED;">
+    <h2 data-zh="&amp;#9878;&amp;#65039; 對比度檢查器">&amp;#Contrast Checker</h2>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:20px;" data-zh="即時檢測前景色與背景色的 WCAG 對比度，確保網頁無障礙可讀性">Contrast Checker is available directly in your browser, with no data uploaded.</p>
+
+    <!-- 顏色輸入區域 -->
+    <div class="color-input-group">
+      <div class="color-input-item">
+        <label>前景色（文字）</label>
+        <div class="color-picker-row">
+          <input type="color" id="fgColor" value="#1F2937" oninput="onFgChange(this.value)">
+          <input type="text" id="fgHex" value="#1F2937" maxlength="7" placeholder="#000000" oninput="onFgHexInput(this.value)">
+        </div>
+      </div>
+      <button type="button" class="swap-btn" onclick="swapColors()" title="交換前景色和背景色">&#8645;</button>
+      <div class="color-input-item">
+        <label>背景色</label>
+        <div class="color-picker-row">
+          <input type="color" id="bgColor" value="#FFFFFF" oninput="onBgChange(this.value)">
+          <input type="text" id="bgHex" value="#FFFFFF" maxlength="7" placeholder="#FFFFFF" oninput="onBgHexInput(this.value)">
+        </div>
+      </div>
+    </div>
+
+    <!-- 常用配色預設 -->
+    <div class="presets-section">
+      <h3>&#127912; 常用配色</h3>
+      <div class="presets-grid" id="presetsGrid"></div>
+    </div>
+
+    <!-- 對比度數值展示 -->
+    <div class="contrast-display" id="contrastDisplay">
+      <div class="contrast-ratio">
+        <span class="ratio-num" id="ratioNum">21.00</span>
+        <span class="ratio-label">: 1</span>
+      </div>
+      <div class="contrast-grade" id="contrastGrade">無障礙評級</div>
+    </div>
+
+    <!-- 對比度評分條 -->
+    <div class="score-bar-wrap">
+      <div class="score-bar-bg">
+        <div class="score-bar-fill" id="scoreBarFill" style="width:100%;background:var(--gradient-primary);"></div>
+      </div>
+      <div class="score-labels">
+        <span>1:1</span>
+        <span>3:1</span>
+        <span>4.5:1</span>
+        <span>7:1</span>
+        <span>21:1</span>
+      </div>
+    </div>
+
+    <!-- WCAG 標準判定 -->
+    <div class="wcag-grid">
+      <div class="wcag-item" id="wcagAA">
+        <div class="wcag-icon" id="wcagAAIcon">&#9989;</div>
+        <div class="wcag-info">
+          <div class="wcag-level">AA 正常文字</div>
+          <div class="wcag-threshold">&ge; 4.5 : 1</div>
+        </div>
+        <div class="wcag-status" id="wcagAAStatus">通過</div>
+      </div>
+      <div class="wcag-item" id="wcagAALarge">
+        <div class="wcag-icon" id="wcagAALargeIcon">&#9989;</div>
+        <div class="wcag-info">
+          <div class="wcag-level">AA 大文字</div>
+          <div class="wcag-threshold">&ge; 3 : 1</div>
+        </div>
+        <div class="wcag-status" id="wcagAALargeStatus">通過</div>
+      </div>
+      <div class="wcag-item" id="wcagAAA">
+        <div class="wcag-icon" id="wcagAAAIcon">&#9989;</div>
+        <div class="wcag-info">
+          <div class="wcag-level">AAA 正常文字</div>
+          <div class="wcag-threshold">&ge; 7 : 1</div>
+        </div>
+        <div class="wcag-status" id="wcagAAAStatus">通過</div>
+      </div>
+      <div class="wcag-item" id="wcagAAALarge">
+        <div class="wcag-icon" id="wcagAAALargeIcon">&#9989;</div>
+        <div class="wcag-info">
+          <div class="wcag-level">AAA 大文字</div>
+          <div class="wcag-threshold">&ge; 4.5 : 1</div>
+        </div>
+        <div class="wcag-status" id="wcagAAALargeStatus">通過</div>
+      </div>
+    </div>
+
+    <!-- 即時預覽 -->
+    <div class="preview-box" id="previewBox">
+      <div class="preview-normal" id="previewNormal">這是一段正常大小的示例文字，用於展示當前前景色在背景色上的可讀性效果。The quick brown fox jumps over the lazy dog.</div>
+      <div class="preview-large" id="previewLarge">大文字示例 24px Bold</div>
+      <div class="preview-small" id="previewSmall">小號輔助文字 12px &mdash; 小字在低對比度下更容易難以辨認，需要更高的對比度來保證可讀性。</div>
+    </div>
+
+    <!-- 快捷操作 -->
+    <div class="quick-actions">
+      <button type="button" class="btn" onclick="copyContrastResult()">&#128203; 複製對比度結果</button>
+      <button type="button" class="btn" onclick="copyCSSDeclaration()">&#128196; 複製 CSS 宣告</button>
+    </div>
+    <div class="copy-colors-row">
+      <button type="button" class="btn" onclick="ToolBox.copyText(document.getElementById('fgHex').value.toUpperCase())">&#128308; 複製前景色</button>
+      <button type="button" class="btn" onclick="ToolBox.copyText(document.getElementById('bgHex').value.toUpperCase())">&#11035; 複製背景色</button>
+    </div>
+  </div>
+
+  <!-- 工具介紹（SEO） -->
+
+</div>
+
+</div>
+
+<!-- 相關工具 -->
+<div class="related-tools" data-related-tools="1">
+  <h3 class="related-tools-title">🔗 相關工具</h3>
+  <div class="related-tools-grid">
+    <a href="/zh-tw/tools/design/generator-10.html" class="related-tool-card">
+      <span class="rt-icon">🎨</span>
+      <span class="rt-info"><span class="rt-name">CSS動畫生成器（關鍵幀視覺化） - 免費線上工具，純前端處理 | ToolBox免費線上工具箱</span><span class="rt-desc">CSS動畫生成器（關鍵幀視覺化）</span></span>
+    </a>
+
+    <a href="/zh-tw/tools/design/web-audio-metronome.html" class="related-tool-card">
+      <span class="rt-icon">🎼</span>
+      <span class="rt-info"><span class="rt-name">Web Audio 節拍器 - 免費生成器工具，線上節拍器 | ToolBox免費線上工具箱</span><span class="rt-desc">線上節拍器</span></span>
+    </a>
+    <a href="/zh-tw/tools/design/generator-8.html" class="related-tool-card">
+      <span class="rt-icon">🎨</span>
+      <span class="rt-info"><span class="rt-name">二維碼生成器（已有，可加強定製） - 免費線上工具，純前端處理 | ToolBox免費線上工具箱</span><span class="rt-desc">二維碼生成器（已有，可加強定製）</span></span>
+    </a>
+    <a href="/zh-tw/tools/design/generator-9.html" class="related-tool-card">
+      <span class="rt-icon">🎨</span>
+      <span class="rt-info"><span class="rt-name">條形碼生成器（EAN-13等） - 免費線上工具，純前端處理 | ToolBox免費線上工具箱</span><span class="rt-desc">條形碼生成器（EAN-13等）</span></span>
+    </a>
+    <a href="/zh-tw/tools/design/generator-6.html" class="related-tool-card">
+      <span class="rt-icon">🎨</span>
+      <span class="rt-info"><span class="rt-name">盒子陰影生成器（視覺化調整） - 免費線上工具，純前端處理 | ToolBox免費線上工具箱</span><span class="rt-desc">盒子陰影生成器（視覺化調整）</span></span>
+    </a>
+  </div>
+</div>
+<div class="tool-intro" id="toolIntro">
+    <div class="tool-intro-header" onclick="toggleIntro()">
+      <span class="intro-icon-wrap"><span class="intro-icon">&#9878;&#65039;</span> 對比度檢查器說明</span>
+      <span class="arrow">&#9660;</span>
+    </div>
+    <div class="tool-intro-body">
+      <p>WCAG（Web 內容無障礙指南）對比度檢查器，幫助設計師和開發者驗證文字顏色與背景顏色之間的對比度是否符合無障礙標準。</p>
+      <h4><span class="h4-icon">&#128204;</span> WCAG 對比度標準</h4>
+      <ul class="intro-features">
+        <li>AA 級正常文字：對比度 &ge; 4.5:1</li>
+        <li>AA 級大文字（18px+ 或 14px 粗體+）：對比度 &ge; 3:1</li>
+        <li>AAA 級正常文字：對比度 &ge; 7:1</li>
+        <li>AAA 級大文字：對比度 &ge; 4.5:1</li>
+      </ul>
+      <h4><span class="h4-icon">&#127919;</span> 使用場景</h4>
+      <ul class="intro-scenes">
+        <li>UI 設計稿配色驗證</li>
+        <li>網頁開發顏色可讀性檢查</li>
+        <li>品牌色與文字色搭配最佳化</li>
+        <li>無障礙合規性審查</li>
+      </ul>
+      <h4><span class="h4-icon">&#10067;</span> 常見問題</h4>
+      <div class="intro-faq-item">
+        <div class="intro-faq-q">什麼算"大文字"？</div>
+        <div class="intro-faq-a">WCAG 定義大文字為 18pt（24px）或 14pt（18.66px）粗體及以上的文字。大文字因為筆畫更粗，在較低對比度下仍可辨識。</div>
+      </div>
+      <div class="intro-faq-item">
+        <div class="intro-faq-q">對比度是如何計算的？</div>
+        <div class="intro-faq-a">先將 sRGB 顏色值線性化，然後按公式 L = 0.2126 &times; R + 0.7152 &times; G + 0.0722 &times; B 計算相對亮度。對比度 = (L1 + 0.05) / (L2 + 0.05)，其中 L1 為較亮的顏色。</div>
+      </div>
+    </div>
+  </div>
+
+<!-- TOOLBOX-DEEP-DIVE -->
+<style>
+.deep-dive{max-width:960px;margin:16px auto;padding:0 16px;}
+.deep-dive > .card{margin-bottom:0;}
+@media(max-width:600px){.deep-dive{margin:14px auto;padding:0 12px;}}
+.deep-dive .dd-list{margin:8px 0 16px;padding-left:20px;}
+.deep-dive .dd-list li{margin:6px 0;line-height:1.75;}
+.deep-dive .dd-example{background:var(--card-bg,#fff);border:1px solid var(--border,#eee);border-radius:10px;padding:12px 14px;margin:8px 0 16px;}
+.deep-dive .dd-ex-title{font-weight:600;color:var(--tool-accent,#FF6B35);margin-bottom:6px;}
+.deep-dive .dd-ex-body{font-size:13px;line-height:1.85;color:var(--text,#333);word-break:break-word;}
+.deep-dive .dd-faq{margin:8px 0 4px;}
+.deep-dive .dd-faq dt{font-weight:600;margin-top:10px;color:var(--text,#333);}
+.deep-dive .dd-faq dd{margin:4px 0 0;font-size:13px;line-height:1.85;color:var(--text-muted,#666);}
+
+</style>
+<section class="deep-dive" data-deep-dive="1">
+<div class="card">
+<h2>📚 深度解析：對比度檢查器</h2>
+<h3>💡 常見使用場景</h3>
+<ul class="dd-list">
+<li>快速核對對比度檢查器：優先統一輸入單位、口徑和引數範圍，再對典型樣例做一遍手工驗算。</li>
+<li>教學與複核：建議固定其餘引數，只變動一個輸入變數，確認輸出變化趨勢，避免“算式正確但口徑錯位”。</li>
+<li>常見場景：&amp;amp;#Contrast Checker</li>
+</ul>
+<div class="dd-example"><div class="dd-ex-title">快速複核「對比度檢查器」</div><div class="dd-ex-body">先輸入一組典型引數跑基準值，再做 ±10%、±20% 調參演算，檢查輸出是否沿業務常識方向變化。</div></div>
+<h3>❓ 常見問題（FAQ）</h3>
+<dl class="dd-faq">
+<dt>對比度檢查器 結果可直接用於決策嗎？</dt><dd>對比度檢查器 適合用於預估與複核，正式決策請結合完整資料口徑說明（口徑定義、時間區間、邊界條件）。</dd>
+<dt>結果偏離預期很大怎麼辦？</dt><dd>先核對輸入單位與是否存在“% 與小數”混用，再確認分母與分子定義是否同口徑，最後替換一組可復現例項複測。</dd>
+</dl>
+</div>
+</section>
+<!-- 注意事項區塊 -->
+<div class="tool-notes" style="--tool-accent:#7C3AED;">
+  <div class="tool-notes-title">⚠️ 使用說明與注意事項</div>
+  <ul>
+      <li>本工具純前端執行，資料不會上傳到伺服器</li>
+      <li>建議在主流瀏覽器（Chrome/Safari/Firefox/Edge）中使用</li>
+      <li>計算結果僅供參考，請以實際應用場景為準</li>
+  </ul>
+</div>
+<!-- /注意事項區塊 -->
+</div>
+
+<script>
+// ===== 预设配色 =====
+var presets = [
+  { name: '黑底白字', fg: '#FFFFFF', bg: '#000000' },
+  { name: '白底黑字', fg: '#1F2937', bg: '#FFFFFF' },
+  { name: '深灰底白字', fg: '#FFFFFF', bg: '#374151' },
+  { name: '橙色强调', fg: '#FFFFFF', bg: '#FF6B35' },
+  { name: '紫色强调', fg: '#FFFFFF', bg: '#7C3AED' },
+  { name: '蓝底白字', fg: '#FFFFFF', bg: '#2563EB' },
+  { name: '红色警告', fg: '#FFFFFF', bg: '#DC2626' },
+  { name: '绿色成功', fg: '#FFFFFF', bg: '#059669' },
+  { name: '浅灰背景', fg: '#374151', bg: '#F3F4F6' },
+  { name: '暖色背景', fg: '#92400E', bg: '#FEF3C7' }
+];
+
+// ===== 初始化预设按钮 =====
+function initPresets() {
+  var grid = document.getElementById('presetsGrid');
+  var html = '';
+  presets.forEach(function(p, i) {
+    html += '<button type="button" class="preset-btn" onclick="applyPreset(' + i + ')">'
+      + '<span class="preset-swatch">'
+      + '<span class="preset-swatch-half" style="background:' + p.fg + '"></span>'
+      + '<span class="preset-swatch-half" style="background:' + p.bg + '"></span>'
+      + '</span>'
+      + p.name
+      + '</button>';
+  });
+  grid.innerHTML = html;
+}
+
+// ===== 颜色转换工具 =====
+function hexToRgb(hex) {
+  hex = hex.replace('#', '');
+  if (hex.length === 3) {
+    hex = hex[0] + hex[0] + hex[1] + hex[1] + hex[2] + hex[2];
+  }
+  var num = parseInt(hex, 16);
+  if (isNaN(num)) return [0, 0, 0];
+  return [(num >> 16) & 255, (num >> 8) & 255, num & 255];
+}
+
+function isValidHex(hex) {
+  return /^[0-9A-Fa-f]{6}$/.test(hex.replace('#', ''));
+}
+
+// ===== WCAG 对比度计算 =====
+function relativeLuminance(r, g, b) {
+  var rgb = [r, g, b].map(function(v) {
+    v /= 255;
+    return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
+  });
+  return 0.2126 * rgb[0] + 0.7152 * rgb[1] + 0.0722 * rgb[2];
+}
+
+function contrastRatio(rgb1, rgb2) {
+  var l1 = relativeLuminance(rgb1[0], rgb1[1], rgb1[2]);
+  var l2 = relativeLuminance(rgb2[0], rgb2[1], rgb2[2]);
+  var lighter = Math.max(l1, l2);
+  var darker = Math.min(l1, l2);
+  return (lighter + 0.05) / (darker + 0.05);
+}
+
+// ===== 主更新逻辑 =====
+function updateAll() {
+  var fgHex = document.getElementById('fgHex').value.replace('#', '').toUpperCase();
+  var bgHex = document.getElementById('bgHex').value.replace('#', '').toUpperCase();
+  var fgColor = '#' + fgHex;
+  var bgColor = '#' + bgHex;
+
+  var fgRgb = hexToRgb(fgHex);
+  var bgRgb = hexToRgb(bgHex);
+
+  // 计算对比度
+  var ratio = contrastRatio(fgRgb, bgRgb);
+  var ratioFixed = ratio.toFixed(2);
+
+  // 更新对比度数值
+  document.getElementById('ratioNum').textContent = ratioFixed;
+
+  // 评级
+  var grade = '';
+  if (ratio >= 7) grade = 'AAA 优秀';
+  else if (ratio >= 4.5) grade = 'AA 良好';
+  else if (ratio >= 3) grade = 'AA 大文字可用';
+  else grade = '不达标';
+  document.getElementById('contrastGrade').textContent = grade;
+
+  // 评分条（1~21 映射到 0~100%）
+  var pct = Math.min(100, (Math.log(ratio) / Math.log(21)) * 100);
+  var barFill = document.getElementById('scoreBarFill');
+  barFill.style.width = pct + '%';
+  if (ratio >= 7) barFill.style.background = 'var(--success)';
+  else if (ratio >= 4.5) barFill.style.background = 'var(--gradient-primary)';
+  else if (ratio >= 3) barFill.style.background = 'var(--warning)';
+  else barFill.style.background = 'var(--danger)';
+
+  // WCAG 判定
+  updateWCAGItem('wcagAA', 'wcagAAIcon', 'wcagAAStatus', ratio >= 4.5);
+  updateWCAGItem('wcagAALarge', 'wcagAALargeIcon', 'wcagAALargeStatus', ratio >= 3);
+  updateWCAGItem('wcagAAA', 'wcagAAAIcon', 'wcagAAAStatus', ratio >= 7);
+  updateWCAGItem('wcagAAALarge', 'wcagAAALargeIcon', 'wcagAAALargeStatus', ratio >= 4.5);
+
+  // 实时预览
+  var previewBox = document.getElementById('previewBox');
+  previewBox.style.backgroundColor = bgColor;
+  previewBox.style.color = fgColor;
+  document.getElementById('previewNormal').style.color = fgColor;
+  document.getElementById('previewLarge').style.color = fgColor;
+  document.getElementById('previewSmall').style.color = fgColor;
+}
+
+function updateWCAGItem(itemId, iconId, statusId, passed) {
+  var icon = document.getElementById(iconId);
+  var status = document.getElementById(statusId);
+  if (passed) {
+    icon.className = 'wcag-icon pass';
+    icon.innerHTML = '&#9989;';
+    status.className = 'wcag-status pass';
+    status.textContent = '通过';
+  } else {
+    icon.className = 'wcag-icon fail';
+    icon.innerHTML = '&#10060;';
+    status.className = 'wcag-status fail';
+    status.textContent = '未通过';
+  }
+}
+
+// ===== 事件处理 =====
+function onFgChange(color) {
+  var hex = color.replace('#', '').toUpperCase();
+  document.getElementById('fgHex').value = hex;
+  document.getElementById('fgColor').value = color;
+  updateAll();
+}
+
+function onBgChange(color) {
+  var hex = color.replace('#', '').toUpperCase();
+  document.getElementById('bgHex').value = hex;
+  document.getElementById('bgColor').value = color;
+  updateAll();
+}
+
+function onFgHexInput(val) {
+  val = val.replace('#', '').toUpperCase();
+  if (isValidHex(val)) {
+    document.getElementById('fgColor').value = '#' + val;
+    updateAll();
+  }
+}
+
+function onBgHexInput(val) {
+  val = val.replace('#', '').toUpperCase();
+  if (isValidHex(val)) {
+    document.getElementById('bgColor').value = '#' + val;
+    updateAll();
+  }
+}
+
+function swapColors() {
+  var fgVal = document.getElementById('fgHex').value;
+  var bgVal = document.getElementById('bgHex').value;
+  document.getElementById('fgHex').value = bgVal;
+  document.getElementById('bgColor').value = '#' + bgVal.replace('#', '');
+  document.getElementById('bgHex').value = fgVal;
+  document.getElementById('fgColor').value = '#' + fgVal.replace('#', '');
+  updateAll();
+  ToolBox.showToast(i18nText('toast.msg153'));
+}
+
+function applyPreset(index) {
+  var p = presets[index];
+  document.getElementById('fgHex').value = p.fg.replace('#', '').toUpperCase();
+  document.getElementById('fgColor').value = p.fg;
+  document.getElementById('bgHex').value = p.bg.replace('#', '').toUpperCase();
+  document.getElementById('bgColor').value = p.bg;
+  updateAll();
+  ToolBox.showToast('已应用预设：' + p.name);
+}
+
+// ===== 复制功能 =====
+function copyContrastResult() {
+  var ratio = document.getElementById('ratioNum').textContent;
+  var fgHex = document.getElementById('fgHex').value.toUpperCase();
+  var bgHex = document.getElementById('bgHex').value.toUpperCase();
+  var grade = document.getElementById('contrastGrade').textContent;
+  var text = '对比度检查结果\n'
+    + '对比度: ' + ratio + ':1\n'
+    + '前景色: #' + fgHex + '\n'
+    + '背景色: #' + bgHex + '\n'
+    + '评级: ' + grade + '\n'
+    + 'AA 正常文字: ' + (parseFloat(ratio) >= 4.5 ? '通过' : '未通过') + '\n'
+    + 'AA 大文字: ' + (parseFloat(ratio) >= 3 ? '通过' : '未通过') + '\n'
+    + 'AAA 正常文字: ' + (parseFloat(ratio) >= 7 ? '通过' : '未通过') + '\n'
+    + 'AAA 大文字: ' + (parseFloat(ratio) >= 4.5 ? '通过' : '未通过');
+  ToolBox.copyText(text);
+}
+
+function copyCSSDeclaration() {
+  var fgHex = document.getElementById('fgHex').value.toUpperCase();
+  var bgHex = document.getElementById('bgHex').value.toUpperCase();
+  var text = 'color: #' + fgHex + ';\nbackground-color: #' + bgHex + ';';
+  ToolBox.copyText(text);
+}
+
+// ===== 折叠介绍 =====
+function toggleIntro() {
+  document.getElementById('toolIntro').classList.toggle('open');
+}
+
+// ===== 初始化 =====
+initPresets();
+updateAll();
+</script><script>
+// tool-intro折叠交互
+document.addEventListener('DOMContentLoaded',function(){
+  var headers=document.querySelectorAll('.tool-intro-header');
+  headers.forEach(function(h){
+    h.addEventListener('click',function(){
+      this.parentElement.classList.toggle('open');
+    });
+  });
+});
+</script>
+
+</body>
+</html>

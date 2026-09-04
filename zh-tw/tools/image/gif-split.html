@@ -1,0 +1,1012 @@
+<!DOCTYPE html>
+<html lang="zh-TW" data-opencc-locale="zh-tw">
+<head>
+
+<script src="/js/tool-page-runtime.js" defer></script>
+<!-- TOOLBOX-TOOL-RUNTIME -->
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="toolbox" content="cat=image,industry=image,icon=🎞️,bg=#e3f2fd">
+<meta name="description" content="在线 GIF 分解工具，浏览器本地解析 GIF89a 逐帧提取画面，支持单帧下载 PNG 与批量导出，用于动图拆解与素材提取，纯前端。">
+<meta name="keywords" content="GIF分解,GIF拆帧,GIF提取帧,GIF to PNG,GIF分离帧,动画分解,GIF帧提取,在线工具,免费工具,ToolBox">
+<meta name="robots" content="index,follow">
+<link rel="canonical" href="https://chenguangwu.github.io/zh-tw/tools/image/gif-split.html">
+<meta property="og:title" content="GIF分解工具">
+<meta property="og:description" content="在线 GIF 分解工具，浏览器本地解析 GIF89a 逐帧提取画面，支持单帧下载 PNG 与批量导出，用于动图拆解与素材提取，纯前端。">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://chenguangwu.github.io/zh-tw/tools/image/gif-split.html">
+<meta name="twitter:card" content="summary">
+
+<title>GIF分解工具 - ToolBox</title>
+<meta name="theme-color" content="#FF6B35">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<link rel="icon" href="/favicon.ico" sizes="16x16 32x32 48x48">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="preload" as="style" href="/css/common.css" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="/css/common.css"></noscript>
+<script>window.__tbq=window.__tbq||[];window.ToolBox=window.ToolBox||{};['initToolTheme','addToolStyles','showToast','toast','copyText','copyToClipboard','copyFromElement','downloadText','injectPrivacyBadge','toggleFavTool','addToRecentTool','toggleToolTheme','applyTheme'].forEach(function(k){if(typeof window.ToolBox[k]!=='function')window.ToolBox[k]=function(){window.__tbq.push([k,[].slice.call(arguments)]);};});</script><!-- TOOLBOX-API-STUB -->
+<script src="/js/common.js" defer></script>
+<script src="https://cdn.jsdelivr.net/npm/jszip@3/dist/jszip.min.js"></script>
+<style>
+/* 上传拖拽区 */
+.drop-zone{
+  border:2px dashed var(--border);
+  border-radius:14px;
+  padding:36px 20px;
+  text-align:center;
+  color:var(--text-muted);
+  cursor:pointer;
+  transition:all 0.2s;
+  background:var(--result-bg);
+}
+.drop-zone:hover,.drop-zone.dragover{
+  border-color:var(--primary);
+  background:rgba(255,107,53,0.06);
+  color:var(--primary);
+}
+.drop-zone .dz-icon{font-size:34px;display:block;margin-bottom:8px;}
+.drop-zone .dz-main{font-size:15px;font-weight:600;color:var(--text-primary);}
+.drop-zone .dz-sub{font-size:12px;margin-top:4px;}
+
+/* 透明背景棋盘格 */
+.checker{
+  background-color:#fff;
+  background-image:
+    linear-gradient(45deg,#d9d9d9 25%,transparent 25%),
+    linear-gradient(-45deg,#d9d9d9 25%,transparent 25%),
+    linear-gradient(45deg,transparent 75%,#d9d9d9 75%),
+    linear-gradient(-45deg,transparent 75%,#d9d9d9 75%);
+  background-size:16px 16px;
+  background-position:0 0,0 8px,8px -8px,-8px 0;
+}
+[data-theme="dark"] .checker{background-color:#1a1a2e;background-image:
+  linear-gradient(45deg,#2f2f4a 25%,transparent 25%),
+  linear-gradient(-45deg,#2f2f4a 25%,transparent 25%),
+  linear-gradient(45deg,transparent 75%,#2f2f4a 75%),
+  linear-gradient(-45deg,transparent 75%,#2f2f4a 75%);}
+
+/* 帧网格 */
+.frame-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(150px,1fr));
+  gap:12px;
+  margin-top:12px;
+}
+.frame-card{
+  background:var(--result-bg);
+  border:1px solid var(--border);
+  border-radius:12px;
+  padding:8px;
+  transition:all 0.2s;
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+}
+.frame-card:hover{border-color:var(--primary);transform:translateY(-2px);box-shadow:var(--shadow-sm);}
+.frame-thumb{
+  border-radius:8px;
+  overflow:hidden;
+  cursor:pointer;
+  position:relative;
+  aspect-ratio:1/1;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+.frame-thumb img{max-width:100%;max-height:100%;display:block;}
+.frame-thumb .zoom-hint{
+  position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+  background:rgba(0,0,0,0.35);color:#fff;font-size:12px;opacity:0;transition:opacity 0.2s;
+}
+.frame-thumb:hover .zoom-hint{opacity:1;}
+.frame-meta{display:flex;justify-content:space-between;align-items:center;font-size:12px;}
+.frame-no{font-weight:600;color:var(--primary);}
+.frame-delay{color:var(--text-muted);}
+.frame-dl{
+  padding:6px 10px;font-size:12px;border-radius:8px;justify-content:center;width:100%;
+}
+
+/* 预览模态框 */
+.modal-overlay{
+  position:fixed;inset:0;background:rgba(0,0,0,0.82);
+  display:none;align-items:center;justify-content:center;
+  z-index:9999;padding:16px;
+}
+.modal-overlay.show{display:flex;}
+.modal-content{
+  background:var(--card-bg);border-radius:16px;padding:14px;
+  max-width:92vw;max-height:92vh;display:flex;flex-direction:column;gap:10px;
+  position:relative;box-shadow:0 24px 64px rgba(0,0,0,0.4);
+}
+.modal-img-wrap{border-radius:10px;overflow:hidden;display:flex;align-items:center;justify-content:center;max-width:86vw;max-height:68vh;}
+.modal-img-wrap canvas{max-width:86vw;max-height:68vh;display:block;}
+.modal-info{font-size:13px;color:var(--text-secondary);text-align:center;}
+.modal-nav{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;}
+.modal-nav .btn{flex:0 1 auto;}
+.modal-close{
+  position:absolute;top:8px;right:8px;width:32px;height:32px;border-radius:8px;
+  border:1px solid var(--border);background:var(--card-bg);color:var(--text);
+  cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;
+}
+.modal-close:hover{border-color:var(--danger);color:var(--danger);}
+
+/* 加载中 */
+.loading-mask{display:none;text-align:center;padding:40px 20px;color:var(--text-muted);}
+.loading-mask.show{display:block;}
+.spinner{
+  width:34px;height:34px;border:3px solid var(--border);border-top-color:var(--primary);
+  border-radius:50%;animation:spin 0.8s linear infinite;margin:0 auto 12px;
+}
+@keyframes spin{to{transform:rotate(360deg);}}
+
+.progress-bar{height:8px;background:var(--border);border-radius:4px;overflow:hidden;margin:8px 0;}
+.progress-fill{height:100%;border-radius:4px;background:var(--gradient-primary);transition:width 0.3s ease;width:0;}
+
+@media(max-width:768px){
+  .frame-grid{grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:10px;}
+  .drop-zone{padding:28px 16px;}
+  .modal-nav .btn{flex:1 1 calc(33% - 6px);justify-content:center;font-size:12px;}
+}
+</style>
+
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"GIF分解工具","description":"線上將GIF動畫分解提取每一幀，匯出為PNG圖片或批次打包ZIP下載。純前端瀏覽器處理，GIF檔案不上傳。","url":"https://chenguangwu.github.io/zh-tw/tools/image/gif-split.html","applicationCategory":"MultimediaApplication","operatingSystem":"Web","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"},"inLanguage":"zh-TW","isAccessibleForFree":true,"browserRequirements":"Requires JavaScript. Requires HTML5 Canvas.","softwareVersion":"1.0"}</script>
+
+
+
+<meta property="og:image" content="https://chenguangwu.github.io/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="ToolBox - 5000+免费在线工具">
+<meta name="twitter:image" content="https://chenguangwu.github.io/og-image.png">
+<meta name="twitter:image:alt" content="ToolBox - 5000+免费在线工具">
+    <meta name="twitter:title" content="GIF分解工具">
+    <meta name="twitter:description" content="在线 GIF 分解工具，浏览器本地解析 GIF89a 逐帧提取画面，支持单帧下载 PNG 与批量导出，用于动图拆解与素材提取，纯前端。">
+<!-- TOOLBOX-WEBAPP-LD -->
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"GIF分解工具","url":"https://chenguangwu.github.io/zh-tw/tools/image/gif-split.html","applicationCategory":"MultimediaApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":"zh-TW","description":"線上 GIF 分解工具，瀏覽器本地解析 GIF89a 逐幀提取畫面，支援單幀下載 PNG 與批次匯出，用於動圖拆解與素材提取，純前端。","image":"https://chenguangwu.github.io/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}</script>
+<meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
+<meta http-equiv="X-Content-Type-Options" content="nosniff">
+<meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
+<!-- TOOLBOX-SECURITY -->
+
+<script src="/js/privacy.js" defer></script>
+<!-- TOOLBOX-PRIVACY-SCRIPT -->
+
+<script src="/js/metrics.js" defer></script>
+<!-- TOOLBOX-METRICS-SCRIPT -->
+
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"首頁","item":"https://chenguangwu.github.io/zh-tw/"},{"@type":"ListItem","position":2,"name":"影像處理","item":"https://chenguangwu.github.io/zh-tw/tools/image/index.html"},{"@type":"ListItem","position":3,"name":"GIF分解工具","item":"https://chenguangwu.github.io/zh-tw/tools/image/gif-split.html"}]}</script>
+
+<script src="/js/i18n.js" defer></script>
+<script src="/js/tool-i18n.js" defer></script>
+<!-- TOOLBOX-I18N-SCRIPT -->
+
+
+<meta name="title-en" content="Gif Split - ToolBox">
+<meta name="desc-en" content="Gif Split - free online tool. Free online tool on ToolBox — 100% client-side, no data uploaded, no install. Part of the Image Processing tools.">
+<!-- TOOLBOX-HREFLANG -->
+<link rel="alternate" hreflang="zh-CN" href="https://chenguangwu.github.io/tools/image/gif-split.html">
+<link rel="alternate" hreflang="zh-TW" href="https://chenguangwu.github.io/zh-tw/tools/image/gif-split.html">
+<link rel="alternate" hreflang="zh-HK" href="https://chenguangwu.github.io/zh-hk/tools/image/gif-split.html">
+<link rel="alternate" hreflang="en-US" href="https://chenguangwu.github.io/tools/image/gif-split.html?lang=en-US">
+<link rel="alternate" hreflang="x-default" href="https://chenguangwu.github.io/tools/image/gif-split.html">
+<meta property="og:locale" content="zh_TW">
+<meta property="og:locale:alternate" content="zh_CN">
+<meta property="og:locale:alternate" content="zh_HK">
+<meta property="og:locale:alternate" content="en_US">
+</head>
+<body>
+<h1 class="sr-only">GIF分解工具</h1>
+<div class="nav">
+  <a href="/zh-tw/index.html">← ToolBox</a>
+  <span>/ GIF分解</span>
+  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()">🌙</button>
+</div>
+
+
+
+
+
+<nav class="breadcrumb" aria-label="麵包屑導航" data-breadcrumb="1">
+  <a href="/zh-tw/index.html">首頁</a>
+  <span class="bc-sep">‹</span>
+  <a href="/zh-tw/tools/image/index.html">🖼️ 影像處理</a>
+  <span class="bc-sep">‹</span>
+  <span class="bc-current">GIF分解工具</span>
+</nav>
+
+<div class="tool-guide-link" data-guide-link="1">
+  <a href="/zh-tw/guides/gif-split-guide.html">📖 檢視「GIF 逐幀拆分與提取使用指南」</a>
+</div>
+<div class="container">
+  <div class="card">
+    <h2 data-zh="🎞️ GIF分解工具">🎞️ Gif Split</h2>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="上傳 GIF 動畫，自動提取每一幀並顯示，可單獨下載 PNG 或批次打包 ZIP，純前端處理檔案不上傳。">Gif Split is available directly in your browser, with no data uploaded.</p>
+
+    <div class="drop-zone" id="dropZone" onclick="document.getElementById('fileInput').click()">
+      <span class="dz-icon">🎞️</span>
+      <div class="dz-main">點選或拖拽 GIF 檔案到這裡</div>
+      <div class="dz-sub">僅支援 .gif 格式，檔案不會上傳到伺服器</div>
+      <input type="file" id="fileInput" accept="image/gif" style="display:none;" onchange="handleFile(this.files[0])">
+    </div>
+
+    <div class="loading-mask" id="loadingMask">
+      <div class="spinner"></div>
+      <div id="loadingText">正在解析 GIF，請稍候...</div>
+    </div>
+
+    <div id="resultArea" style="display:none;">
+      <!-- 統計資訊 -->
+      <div class="stat-grid" id="statGrid"></div>
+
+      <!-- 工具欄 -->
+      <div class="toolbar">
+        <button class="btn primary" id="zipBtn" onclick="downloadAllZip()">📦 批次下載 ZIP</button>
+        <button class="btn" onclick="resetTool()">🔄 重新上傳</button>
+        <span id="zipStatus" style="font-size:12px;color:var(--text-muted);"></span>
+      </div>
+      <div class="progress-bar" id="zipProgress" style="display:none;"><div class="progress-fill" id="zipProgressFill"></div></div>
+
+      <!-- 幀網格 -->
+      <h3 style="margin-top:8px;">幀列表（點選縮圖放大預覽）</h3>
+      <div class="frame-grid" id="frameGrid"></div>
+    </div>
+
+    <div class="info-box">
+      <strong>隱私說明：</strong>所有解析與處理都在你的瀏覽器本地完成，GIF 檔案不會被上傳到任何伺服器，請放心使用。
+    </div>
+  </div>
+
+  <!-- 注意事項 -->
+  <div class="tool-notes">
+    <div class="tool-notes-title">⚠️ 使用說明與注意事項</div>
+    <ul>
+      <li>本工具純前端執行，GIF 檔案不會上傳到伺服器</li>
+      <li>支援 GIF87a 與 GIF89a 格式，自動處理透明色、隔行掃描與幀 disposal 合成</li>
+      <li>每幀可單獨下載為 PNG，也可一鍵打包所有幀為 ZIP</li>
+      <li>幀較多或尺寸較大時，解析與打包可能需要數秒，請耐心等待</li>
+      <li>建議在主流瀏覽器（Chrome / Edge / Safari / Firefox）中使用</li>
+    </ul>
+  </div>
+</div>
+
+<!-- 預覽模態框 -->
+<div class="modal-overlay" id="modal" onclick="if(event.target===this)closePreview()">
+  <div class="modal-content">
+    <button class="modal-close" onclick="closePreview()" aria-label="關閉">✕</button>
+    <div class="modal-img-wrap checker">
+      <canvas id="modalCanvas"></canvas>
+    </div>
+    <div class="modal-info" id="modalInfo"></div>
+    <div class="modal-nav">
+      <button class="btn" onclick="prevPreview()">‹ 上一幀</button>
+      <button class="btn primary" onclick="downloadFrame(currentPreview)">⬇ 下載此幀 PNG</button>
+      <button class="btn" onclick="nextPreview()">下一幀 ›</button>
+    </div>
+  </div>
+</div>
+
+<!-- SEO 介紹區塊 -->
+
+</div>
+
+</div>
+
+<!-- TOOLBOX-DEEP-DIVE -->
+<style>
+.deep-dive{max-width:960px;margin:16px auto;padding:0 16px;}
+.deep-dive > .card{margin-bottom:0;}
+@media(max-width:600px){.deep-dive{margin:14px auto;padding:0 12px;}}
+.deep-dive .dd-list{margin:8px 0 16px;padding-left:20px;}
+.deep-dive .dd-list li{margin:6px 0;line-height:1.75;}
+.deep-dive .dd-example{background:var(--card-bg,#fff);border:1px solid var(--border,#eee);border-radius:10px;padding:12px 14px;margin:8px 0 16px;}
+.deep-dive .dd-ex-title{font-weight:600;color:var(--tool-accent,#FF6B35);margin-bottom:6px;}
+.deep-dive .dd-ex-body{font-size:13px;line-height:1.85;color:var(--text,#333);word-break:break-word;}
+.deep-dive .dd-faq{margin:8px 0 4px;}
+.deep-dive .dd-faq dt{font-weight:600;margin-top:10px;color:var(--text,#333);}
+.deep-dive .dd-faq dd{margin:4px 0 0;font-size:13px;line-height:1.85;color:var(--text-muted,#666);}
+
+</style>
+<section class="deep-dive" data-deep-dive="1">
+<div class="card">
+<h2>📚 深度解析：GIF分解工具</h2>
+<h3>💡 常見使用場景</h3>
+<ul class="dd-list">
+<li>在「GIF分解工具」場景先統一輸入單位與口徑，先做基準算例，再做邊界場景核驗，避免把輸出誤讀為模型差異。</li>
+<li>建議固定關鍵變數並逐步調整其餘輸入，觀察輸出變化方向，快速定位異常源。</li>
+<li>常見場景：GIF分解工具</li>
+</ul>
+<div class="dd-example"><div class="dd-ex-title">快速複核「GIF分解工具」</div><div class="dd-ex-body">先執行工具預設樣例，再做一組極端輸入進行對照；如輸出跳變明顯，優先檢查單位、閾值與是否按新版本口徑切換。</div></div>
+<h3>❓ 常見問題（FAQ）</h3>
+<dl class="dd-faq">
+<dt>GIF分解工具 可直接用於正式報告嗎？</dt><dd>適合用於快速核對和教學演示；正式報告建議補充資料來源、口徑定義、邊界條件與稽核責任鏈。</dd>
+<dt>值跳變或異常偏差怎麼辦？</dt><dd>先核查輸入是否超出定義域、單位是否混用、以及引數是否按同一計算版本口徑切換。</dd>
+</dl>
+</div>
+</section>
+<!-- 相關工具 -->
+<div class="related-tools" data-related-tools="1">
+  <h3 class="related-tools-title">🔗 相關工具</h3>
+  <div class="related-tools-grid">
+    <a href="/zh-tw/tools/image/generator-15.html" class="related-tool-card">
+      <span class="rt-icon">🖼️</span>
+      <span class="rt-info"><span class="rt-name">圓角圖片（生成帶圓角的PNG） - 免費線上工具，純前端處理 | ToolBox免費線上工具箱</span><span class="rt-desc">圓角圖片（生成帶圓角的PNG）</span></span>
+    </a>
+
+    <a href="/zh-tw/tools/image/image-converter.html" class="related-tool-card">
+      <span class="rt-icon">🖼️</span>
+      <span class="rt-info"><span class="rt-name">圖片轉換 - 免費格式轉換工具，圖片格式轉換 | ToolBox免費線上工具箱</span><span class="rt-desc">圖片格式轉換</span></span>
+    </a>
+    <a href="/zh-tw/tools/image/image-compress.html" class="related-tool-card">
+      <span class="rt-icon">🗜️</span>
+      <span class="rt-info"><span class="rt-name">圖片壓縮 - 工具 - 免費線上圖片壓縮，支援 JPEG/WebP/PNG | ToolBox免費線上工具箱</span><span class="rt-desc">圖片壓縮</span></span>
+    </a>
+    <a href="/zh-tw/tools/image/image-collage.html" class="related-tool-card">
+      <span class="rt-icon">🧩</span>
+      <span class="rt-info"><span class="rt-name">圖片拼圖合成工具 - 免費線上拼圖生成器，支援豎排/橫排拼接、2x2/3x3/自定 | ToolBox免費線上工具箱</span><span class="rt-desc">圖片拼圖合成工具</span></span>
+    </a>
+    <a href="/zh-tw/tools/image/image-rotate.html" class="related-tool-card">
+      <span class="rt-icon">🔄</span>
+      <span class="rt-info"><span class="rt-name">圖片旋轉 - 工具 - 免費線上圖片旋轉、翻轉工具，支援任意角度旋轉、90 | ToolBox免費線上工具箱</span><span class="rt-desc">圖片旋轉工具</span></span>
+    </a>
+  </div>
+</div>
+<div class="tool-intro open" id="toolIntro">
+  <div class="tool-intro-header">
+    <span class="intro-icon-wrap"><span class="intro-icon">📖</span>關於「GIF分解工具」</span>
+    <span class="arrow">▼</span>
+  </div>
+  <div class="tool-intro-body">
+    <h4><span class="h4-icon">📝</span>工具簡介</h4>
+    <p>GIF分解工具是一款影像處理類的線上工具，用於將 GIF 動畫逐幀分解提取。工具直接在瀏覽器中解析 GIF 二進位制格式（GIF89a），還原每一幀畫面，支援單幀下載 PNG 與批次打包 ZIP，所有處理本地完成，檔案不上傳。</p>
+    <h4><span class="h4-icon">✨</span>功能特點</h4>
+    <ul class="intro-features">
+      <li>純前端解析，GIF 不離開裝置</li>
+      <li>逐幀提取，顯示幀序號與延遲時間</li>
+      <li>正確處理透明色與幀疊加合成</li>
+      <li>單幀下載 PNG，批次打包 ZIP</li>
+      <li>點選縮圖放大預覽，支援前後切換</li>
+      <li>顯示總幀數、尺寸、迴圈次數等資訊</li>
+      <li>支援深色模式與響應式佈局</li>
+    </ul>
+    <h4><span class="h4-icon">🎯</span>使用場景</h4>
+    <ul class="intro-scenes">
+      <li>提取 GIF 動畫的某一幀做素材</li>
+      <li>將 GIF 轉為 PNG 序列幀</li>
+      <li>分析 GIF 的幀率與延遲設定</li>
+      <li>逐幀檢視動畫細節與過渡</li>
+      <li>獲取 GIF 透明通道的單獨幀</li>
+      <li>隱私敏感的動圖處理需求</li>
+    </ul>
+    <h4><span class="h4-icon">💬</span>常見問題</h4>
+    <div class="intro-faq-item"><div class="intro-faq-q">這個工具是免費的嗎？</div><div class="intro-faq-a">完全免費，無需註冊，直接在瀏覽器中使用。</div></div>
+    <div class="intro-faq-item"><div class="intro-faq-q">我的 GIF 會被上傳嗎？</div><div class="intro-faq-a">不會。所有解析與處理都在瀏覽器本地完成，GIF 檔案不會發送到任何伺服器。</div></div>
+    <div class="intro-faq-item"><div class="intro-faq-q">提取的幀是什麼格式？</div><div class="intro-faq-a">每一幀可匯出為 PNG 格式（支援透明通道），也可批次打包為 ZIP 下載。</div></div>
+    <div class="intro-faq-item"><div class="intro-faq-q">為什麼有的幀看起來是空白的？</div><div class="intro-faq-a">部分 GIF 使用了幀疊加（disposal）與透明色，某些幀只包含變化部分。本工具會按規範合成完整畫面，每幀均為完整可見圖。</div></div>
+    <div class="intro-faq-item"><div class="intro-faq-q">迴圈次數顯示為「無限迴圈」是什麼意思？</div><div class="intro-faq-a">GIF 的 NETSCAPE 迴圈標記為 0 表示無限迴圈；若為 N 則表示迴圈 N 次。</div></div>
+  </div>
+</div>
+
+<script>
+/* ==================== GIF 解析核心 ==================== */
+
+// 解析 GIF 结构，提取元数据与帧数据（不做 LZW 解码）
+function parseGifStructure(bytes){
+  var pos = 6; // 跳过 "GIF87a/89a" 签名
+  var width  = bytes[pos] | (bytes[pos+1] << 8);
+  var height = bytes[pos+2] | (bytes[pos+3] << 8);
+  var packed = bytes[pos+4];
+  pos += 7;
+
+  var gctFlag = (packed & 0x80) !== 0;
+  var gctSize = packed & 0x07;
+  var gct = null;
+  if(gctFlag){
+    var len = 3 * (1 << (gctSize + 1));
+    gct = bytes.subarray(pos, pos + len);
+    pos += len;
+  }
+
+  var loopCount = 1; // 默认循环 1 次（无 NETSCAPE 标记）
+  var frameMetas = [];
+  var gce = null;
+
+  while(pos < bytes.length){
+    var block = bytes[pos++];
+
+    if(block === 0x2C){ // 图像描述符 Image Descriptor
+      var left = bytes[pos]   | (bytes[pos+1] << 8);
+      var top  = bytes[pos+2] | (bytes[pos+3] << 8);
+      var w    = bytes[pos+4] | (bytes[pos+5] << 8);
+      var h    = bytes[pos+6] | (bytes[pos+7] << 8);
+      var ip   = bytes[pos+8];
+      pos += 9;
+
+      var lctFlag = (ip & 0x80) !== 0;
+      var interlace = (ip & 0x40) !== 0;
+      var lctSize = ip & 0x07;
+
+      var colorTable = gct;
+      if(lctFlag){
+        var tlen = 3 * (1 << (lctSize + 1));
+        colorTable = bytes.subarray(pos, pos + tlen);
+        pos += tlen;
+      }
+
+      var lzwMinCodeSize = bytes[pos++];
+      var lzwData = [];
+      while(pos < bytes.length){
+        var sz = bytes[pos++];
+        if(sz === 0) break;
+        for(var i=0;i<sz;i++) lzwData.push(bytes[pos+i]);
+        pos += sz;
+      }
+
+      frameMetas.push({
+        left:left, top:top, w:w, h:h,
+        interlace:interlace,
+        colorTable:colorTable,
+        lzwMinCodeSize:lzwMinCodeSize,
+        lzwData:lzwData,
+        delay: gce ? gce.delay : 0,
+        disposal: gce ? gce.disposal : 0,
+        transparentFlag: gce ? gce.transparentFlag : false,
+        transparentIndex: gce ? gce.transparentIndex : -1
+      });
+      gce = null;
+
+    } else if(block === 0x21){ // 扩展块 Extension
+      var label = bytes[pos++];
+      if(label === 0xF9){ // 图形控制扩展 Graphic Control Extension
+        pos++; // 块大小(4)
+        var gp = bytes[pos];
+        var delay = bytes[pos+1] | (bytes[pos+2] << 8);
+        var tidx = bytes[pos+3];
+        pos += 4;
+        pos++; // 终止符
+        gce = {
+          delay:delay,
+          disposal:(gp >> 2) & 0x07,
+          transparentFlag:(gp & 0x01) !== 0,
+          transparentIndex:tidx
+        };
+      } else if(label === 0xFF){ // 应用扩展 Application Extension
+        var bsz = bytes[pos++];
+        var appId = '';
+        for(var k=0;k<bsz;k++) appId += String.fromCharCode(bytes[pos+k]);
+        pos += bsz;
+        var sub = [];
+        while(pos < bytes.length){
+          var s = bytes[pos++];
+          if(s === 0) break;
+          for(var j=0;j<s;j++) sub.push(bytes[pos+j]);
+          pos += s;
+        }
+        if(appId.indexOf('NETSCAPE') !== -1 && sub.length >= 3 && sub[0] === 1){
+          loopCount = sub[1] | (sub[2] << 8);
+        }
+      } else { // 注释 / 纯文本等，跳过子块
+        while(pos < bytes.length){
+          var ss = bytes[pos++];
+          if(ss === 0) break;
+          pos += ss;
+        }
+      }
+    } else if(block === 0x3B){ // 结束符 Trailer
+      break;
+    } else {
+      break; // 未知块，停止
+    }
+  }
+
+  return { width:width, height:height, loopCount:loopCount, frameMetas:frameMetas };
+}
+
+// LZW 解码
+function lzwDecode(minCodeSize, data){
+  var clearCode = 1 << minCodeSize;
+  var endCode = clearCode + 1;
+  var codeSize = minCodeSize + 1;
+  var dict = [];
+  var nextCode = endCode + 1;
+
+  function initDict(){
+    dict = [];
+    for(var i=0;i<clearCode;i++) dict[i] = [i];
+    nextCode = endCode + 1;
+    codeSize = minCodeSize + 1;
+  }
+  initDict();
+
+  var output = [];
+  var bitBuf = 0, bitCnt = 0, dp = 0;
+  var prev = null;
+
+  function readCode(){
+    while(bitCnt < codeSize){
+      if(dp >= data.length) return -1;
+      bitBuf |= data[dp] << bitCnt;
+      bitCnt += 8;
+      dp++;
+    }
+    var code = bitBuf & ((1 << codeSize) - 1);
+    bitBuf >>= codeSize;
+    bitCnt -= codeSize;
+    return code;
+  }
+
+  while(true){
+    var code = readCode();
+    if(code === -1) break;
+    if(code === clearCode){ initDict(); prev = null; continue; }
+    if(code === endCode) break;
+
+    var entry;
+    if(code < dict.length && dict[code]){
+      entry = dict[code];
+    } else if(prev !== null && dict[prev] && code === nextCode){
+      entry = dict[prev].concat(dict[prev][0]);
+    } else {
+      break; // 数据异常
+    }
+
+    for(var i=0;i<entry.length;i++) output.push(entry[i]);
+
+    if(prev !== null && dict[prev]){
+      dict[nextCode] = dict[prev].concat(entry[0]);
+      nextCode++;
+      if(nextCode === (1 << codeSize) && codeSize < 12){
+        codeSize++;
+      }
+    }
+    prev = code;
+  }
+  return output;
+}
+
+// 反隔行扫描
+function deinterlace(indices, w, h){
+  var out = new Array(indices.length);
+  var passes = [{start:0,step:8},{start:4,step:8},{start:2,step:4},{start:1,step:2}];
+  var srcRow = 0;
+  for(var p=0;p<passes.length;p++){
+    for(var y=passes[p].start; y<h; y+=passes[p].step){
+      for(var x=0;x<w;x++){
+        out[y*w + x] = indices[srcRow*w + x];
+      }
+      srcRow++;
+    }
+  }
+  return out;
+}
+
+// 手动渲染所有帧（含 disposal 合成）
+function renderManually(meta){
+  var width = meta.width, height = meta.height, fms = meta.frameMetas;
+  var work = document.createElement('canvas');
+  work.width = width; work.height = height;
+  var wctx = work.getContext('2d');
+
+  var prevCanvas = null;
+  var rendered = [];
+
+  for(var i=0;i<fms.length;i++){
+    var fm = fms[i];
+
+    if(fm.disposal === 3){
+      prevCanvas = document.createElement('canvas');
+      prevCanvas.width = width; prevCanvas.height = height;
+      prevCanvas.getContext('2d').drawImage(work, 0, 0);
+    }
+
+    var indices = lzwDecode(fm.lzwMinCodeSize, fm.lzwData);
+    if(fm.interlace) indices = deinterlace(indices, fm.w, fm.h);
+
+    var tmp = document.createElement('canvas');
+    tmp.width = Math.max(1, fm.w); tmp.height = Math.max(1, fm.h);
+    var tctx = tmp.getContext('2d');
+    var imgData = tctx.createImageData(tmp.width, tmp.height);
+    var ct = fm.colorTable;
+    var tf = fm.transparentFlag, ti = fm.transparentIndex;
+    for(var p=0;p<indices.length;p++){
+      var ci = indices[p];
+      var o = p*4;
+      if(tf && ci === ti){
+        imgData.data[o+3] = 0;
+      } else if(ct && ci*3+2 < ct.length){
+        imgData.data[o]   = ct[ci*3];
+        imgData.data[o+1] = ct[ci*3+1];
+        imgData.data[o+2] = ct[ci*3+2];
+        imgData.data[o+3] = 255;
+      } else {
+        imgData.data[o+3] = 0;
+      }
+    }
+    tctx.putImageData(imgData, 0, 0);
+
+    wctx.drawImage(tmp, fm.left, fm.top);
+
+    var cap = document.createElement('canvas');
+    cap.width = width; cap.height = height;
+    cap.getContext('2d').drawImage(work, 0, 0);
+    rendered.push({ canvas:cap, delay:fm.delay });
+
+    if(fm.disposal === 2){
+      wctx.clearRect(fm.left, fm.top, fm.w, fm.h);
+    } else if(fm.disposal === 3 && prevCanvas){
+      wctx.clearRect(0, 0, width, height);
+      wctx.drawImage(prevCanvas, 0, 0);
+    }
+  }
+  return rendered;
+}
+
+// 使用 ImageDecoder API 渲染（若可用），含 disposal 合成
+function decodeWithImageDecoder(bytes, meta){
+  return new Promise(function(resolve, reject){
+    if(typeof ImageDecoder === 'undefined'){ reject(new Error('no ImageDecoder')); return; }
+    var decoder;
+    try {
+      decoder = new ImageDecoder({
+        type:'image/gif',
+        data: bytes.slice(), // 传副本，避免影响 meta 的 subarray
+        complete:true
+      });
+    } catch(e){ reject(e); return; }
+
+    var width = meta.width, height = meta.height, fms = meta.frameMetas;
+    decoder.tracks.ready.then(function(){
+      var track = decoder.tracks.selectedTrack;
+      var count = track ? track.frameCount : 0;
+      if(!count || count !== fms.length){ reject(new Error('frame count mismatch')); decoder.close(); return; }
+
+      var work = document.createElement('canvas');
+      work.width = width; work.height = height;
+      var wctx = work.getContext('2d');
+      var prevCanvas = null;
+      var rendered = [];
+
+      var i = 0;
+      function next(){
+        if(i >= count){
+          try { decoder.close(); } catch(e){}
+          resolve(rendered);
+          return;
+        }
+        var idx = i;
+        decoder.decode({ frameIndex: idx }).then(function(fr){
+          var vf = fr.image;
+          var fm = fms[idx];
+          if(fm.disposal === 3){
+            prevCanvas = document.createElement('canvas');
+            prevCanvas.width = width; prevCanvas.height = height;
+            prevCanvas.getContext('2d').drawImage(work, 0, 0);
+          }
+
+          var dw = vf.displayWidth || vf.codedWidth;
+          var dh = vf.displayHeight || vf.codedHeight;
+          var tmp = document.createElement('canvas');
+          tmp.width = Math.max(1, fm.w); tmp.height = Math.max(1, fm.h);
+          try { tmp.getContext('2d').drawImage(vf, 0, 0, dw, dh, 0, 0, tmp.width, tmp.height); }
+          catch(e){ /* 忽略单帧绘制异常 */ }
+
+          wctx.drawImage(tmp, fm.left, fm.top);
+
+          var cap = document.createElement('canvas');
+          cap.width = width; cap.height = height;
+          cap.getContext('2d').drawImage(work, 0, 0);
+          var delayMs = vf.duration ? Math.round(vf.duration / 1000) : (fm.delay * 10);
+          // 优先用 GCE 延迟
+          rendered.push({ canvas:cap, delay: fm.delay ? fm.delay : Math.round(delayMs/10) });
+
+          try { vf.close(); } catch(e){}
+
+          if(fm.disposal === 2){
+            wctx.clearRect(fm.left, fm.top, fm.w, fm.h);
+          } else if(fm.disposal === 3 && prevCanvas){
+            wctx.clearRect(0, 0, width, height);
+            wctx.drawImage(prevCanvas, 0, 0);
+          }
+
+          i++;
+          next();
+        }).catch(function(err){ try{decoder.close();}catch(e){} reject(err); });
+      }
+      next();
+    }).catch(function(err){ try{decoder.close();}catch(e){} reject(err); });
+  });
+}
+
+/* ==================== 工具主逻辑 ==================== */
+
+var gifData = null;     // { width,height,loopCount,frames,fileName,fileSize }
+var currentPreview = 0; // 当前预览帧索引
+
+var $ = function(id){ return document.getElementById(id); };
+
+function handleFile(file){
+  if(!file){ return; }
+  var name = file.name || '';
+  if(!/\.gif$/i.test(name) && file.type !== 'image/gif'){
+    ToolBox.showToast(i18nText('toast.msg927'), 'warning');
+    return;
+  }
+  $('loadingMask').classList.add('show');
+  $('loadingText').textContent = '正在解析 GIF，请稍候...';
+  $('resultArea').style.display = 'none';
+
+  file.arrayBuffer().then(function(buffer){
+    var bytes = new Uint8Array(buffer);
+    // 基本校验
+    if(bytes.length < 13 || bytes[0] !== 0x47 || bytes[1] !== 0x49 || bytes[2] !== 0x46){
+      $('loadingMask').classList.remove('show');
+      ToolBox.showToast(i18nText('toast.msg044'), 'error');
+      return;
+    }
+    var meta;
+    try { meta = parseGifStructure(bytes); }
+    catch(e){
+      $('loadingMask').classList.remove('show');
+      ToolBox.showToast('GIF 解析失败：' + e.message, 'error');
+      return;
+    }
+    if(!meta.frameMetas.length){
+      $('loadingMask').classList.remove('show');
+      ToolBox.showToast(i18nText('toast.msg440'), 'error');
+      return;
+    }
+
+    // 优先使用 ImageDecoder，失败回退手动解析
+    decodeWithImageDecoder(bytes, meta).then(function(frames){
+      finishLoad(meta, frames, file);
+    }).catch(function(){
+      // 回退手动渲染
+      var frames;
+      try { frames = renderManually(meta); }
+      catch(e){
+        $('loadingMask').classList.remove('show');
+        ToolBox.showToast('GIF 帧渲染失败：' + e.message, 'error');
+        return;
+      }
+      finishLoad(meta, frames, file);
+    });
+  }).catch(function(){
+    $('loadingMask').classList.remove('show');
+    ToolBox.showToast(i18nText('toast.msg393'), 'error');
+  });
+}
+
+function finishLoad(meta, frames, file){
+  gifData = {
+    width: meta.width,
+    height: meta.height,
+    loopCount: meta.loopCount,
+    frames: frames,
+    fileName: file.name || 'animation.gif',
+    fileSize: file.size
+  };
+  $('loadingMask').classList.remove('show');
+  $('resultArea').style.display = '';
+  renderStats();
+  renderFrameGrid();
+  ToolBox.showToast('成功提取 ' + frames.length + ' 帧', 'success');
+}
+
+function renderStats(){
+  var loopText = gifData.loopCount === 0 ? '无限循环' : ('循环 ' + gifData.loopCount + ' 次');
+  $('statGrid').innerHTML =
+    statCard(gifData.frames.length, '总帧数') +
+    statCard(gifData.width + '×' + gifData.height, '尺寸 px') +
+    statCard(loopText, '循环次数') +
+    statCard(formatSize(gifData.fileSize), '文件大小');
+}
+
+function statCard(val, lbl){
+  return '<div class="stat-card"><div class="val">' + ToolBox.escHtml(String(val)) + '</div><div class="lbl">' + ToolBox.escHtml(lbl) + '</div></div>';
+}
+
+function renderFrameGrid(){
+  var grid = $('frameGrid');
+  grid.innerHTML = '';
+  gifData.frames.forEach(function(fr, i){
+    var thumb = makeThumb(fr.canvas, 200);
+    var card = document.createElement('div');
+    card.className = 'frame-card';
+    card.innerHTML =
+      '<div class="frame-thumb checker" data-idx="' + i + '" role="button" tabindex="0" aria-label="预览第' + (i+1) + '帧">' +
+        '<img src="/zh-tw/tools/image/' + thumb + '" alt="第' + (i+1) + '帧">' +
+        '<div class="zoom-hint">🔍 点击预览</div>' +
+      '</div>' +
+      '<div class="frame-meta">' +
+        '<span class="frame-no">#' + (i+1) + '</span>' +
+        '<span class="frame-delay">' + formatDelay(fr.delay) + '</span>' +
+      '</div>' +
+      '<button class="btn frame-dl" data-idx="' + i + '">⬇ 下载 PNG</button>';
+    grid.appendChild(card);
+  });
+
+  Array.prototype.forEach.call(grid.querySelectorAll('.frame-thumb'), function(el){
+    el.addEventListener('click', function(){ openPreview(+el.dataset.idx); });
+    el.addEventListener('keydown', function(e){
+      if(e.key === 'Enter' || e.key === ' '){ e.preventDefault(); openPreview(+el.dataset.idx); }
+    });
+  });
+  Array.prototype.forEach.call(grid.querySelectorAll('.frame-dl'), function(el){
+    el.addEventListener('click', function(e){ e.stopPropagation(); downloadFrame(+el.dataset.idx); });
+  });
+}
+
+function makeThumb(canvas, maxW){
+  var scale = Math.min(1, maxW / canvas.width);
+  var w = Math.max(1, Math.round(canvas.width * scale));
+  var h = Math.max(1, Math.round(canvas.height * scale));
+  var c = document.createElement('canvas');
+  c.width = w; c.height = h;
+  c.getContext('2d').drawImage(canvas, 0, 0, w, h);
+  return c.toDataURL('image/png');
+}
+
+function formatDelay(cs){
+  // cs = 1/100 秒
+  if(!cs) return '0ms';
+  var ms = cs * 10;
+  if(ms >= 1000){
+    var s = ms / 1000;
+    return (s % 1 === 0 ? s.toFixed(0) : s.toFixed(2)) + 's';
+  }
+  return ms + 'ms';
+}
+
+function formatSize(b){
+  if(b < 1024) return b + ' B';
+  if(b < 1048576) return (b/1024).toFixed(2) + ' KB';
+  return (b/1048576).toFixed(2) + ' MB';
+}
+
+/* ----- 下载 ----- */
+
+function canvasToBlob(canvas){
+  return new Promise(function(resolve){
+    canvas.toBlob(function(b){ resolve(b); }, 'image/png');
+  });
+}
+
+function downloadFrame(i){
+  if(!gifData || !gifData.frames[i]) return;
+  var fr = gifData.frames[i];
+  var base = gifData.fileName.replace(/\.gif$/i, '');
+  canvasToBlob(fr.canvas).then(function(blob){
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = base + '_frame_' + String(i+1).padStart(3,'0') + '.png';
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(function(){ URL.revokeObjectURL(url); a.remove(); }, 0);
+    ToolBox.showToast('已下载第 ' + (i+1) + ' 帧', 'success');
+  });
+}
+
+function downloadAllZip(){
+  if(!gifData || !gifData.frames.length) return;
+  if(typeof JSZip === 'undefined'){
+    ToolBox.showToast(i18nText('toast.msg028'), 'error');
+    return;
+  }
+  var btn = $('zipBtn');
+  btn.disabled = true;
+  $('zipProgress').style.display = '';
+  $('zipProgressFill').style.width = '0%';
+  $('zipStatus').textContent = '正在打包...';
+
+  var zip = new JSZip();
+  var base = gifData.fileName.replace(/\.gif$/i, '') || 'gif-frame';
+  var total = gifData.frames.length;
+  var done = 0;
+
+  var seq = Promise.resolve();
+  gifData.frames.forEach(function(fr, i){
+    seq = seq.then(function(){
+      return canvasToBlob(fr.canvas).then(function(blob){
+        zip.file(base + '_frame_' + String(i+1).padStart(3,'0') + '.png', blob);
+        done++;
+        $('zipProgressFill').style.width = Math.round(done/total*70) + '%';
+      });
+    });
+  });
+
+  seq.then(function(){
+    $('zipStatus').textContent = '正在生成 ZIP...';
+    return zip.generateAsync({ type:'blob' }, function(meta){
+      $('zipProgressFill').style.width = (70 + Math.round(meta.percent*0.3)) + '%';
+    });
+  }).then(function(content){
+    var url = URL.createObjectURL(content);
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = base + '_frames.zip';
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(function(){ URL.revokeObjectURL(url); a.remove(); }, 0);
+    $('zipProgressFill').style.width = '100%';
+    $('zipStatus').textContent = '';
+    $('zipProgress').style.display = 'none';
+    btn.disabled = false;
+    ToolBox.showToast('已下载 ' + total + ' 帧（ZIP）', 'success');
+  }).catch(function(err){
+    $('zipProgress').style.display = 'none';
+    $('zipStatus').textContent = '';
+    btn.disabled = false;
+    ToolBox.showToast('打包失败：' + err.message, 'error');
+  });
+}
+
+/* ----- 预览模态框 ----- */
+
+function openPreview(i){
+  currentPreview = i;
+  renderPreview();
+  $('modal').classList.add('show');
+}
+function closePreview(){ $('modal').classList.remove('show'); }
+function prevPreview(){
+  if(!gifData) return;
+  currentPreview = (currentPreview - 1 + gifData.frames.length) % gifData.frames.length;
+  renderPreview();
+}
+function nextPreview(){
+  if(!gifData) return;
+  currentPreview = (currentPreview + 1) % gifData.frames.length;
+  renderPreview();
+}
+function renderPreview(){
+  if(!gifData) return;
+  var fr = gifData.frames[currentPreview];
+  var c = $('modalCanvas');
+  c.width = gifData.width;
+  c.height = gifData.height;
+  c.getContext('2d').clearRect(0,0,gifData.width,gifData.height);
+  c.getContext('2d').drawImage(fr.canvas, 0, 0);
+  $('modalInfo').textContent = '第 ' + (currentPreview+1) + ' / ' + gifData.frames.length +
+    ' 帧  ·  延迟 ' + formatDelay(fr.delay) + '  ·  尺寸 ' + gifData.width + '×' + gifData.height;
+}
+
+document.addEventListener('keydown', function(e){
+  if(!$('modal').classList.contains('show')) return;
+  if(e.key === 'Escape') closePreview();
+  else if(e.key === 'ArrowLeft') prevPreview();
+  else if(e.key === 'ArrowRight') nextPreview();
+});
+
+/* ----- 重置 ----- */
+
+function resetTool(){
+  gifData = null;
+  $('resultArea').style.display = 'none';
+  $('fileInput').value = '';
+  $('frameGrid').innerHTML = '';
+  $('statGrid').innerHTML = '';
+}
+
+/* ----- 拖拽交互 ----- */
+
+var dz = $('dropZone');
+dz.addEventListener('dragover', function(e){ e.preventDefault(); dz.classList.add('dragover'); });
+dz.addEventListener('dragleave', function(){ dz.classList.remove('dragover'); });
+dz.addEventListener('drop', function(e){
+  e.preventDefault();
+  dz.classList.remove('dragover');
+  if(e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]);
+});
+
+/* ----- tool-intro 折叠 ----- */
+document.addEventListener('DOMContentLoaded', function(){
+  var headers = document.querySelectorAll('.tool-intro-header');
+  headers.forEach(function(h){
+    h.addEventListener('click', function(){ this.parentElement.classList.toggle('open'); });
+  });
+});
+
+ToolBox.initToolTheme();
+</script>
+</body>
+</html>

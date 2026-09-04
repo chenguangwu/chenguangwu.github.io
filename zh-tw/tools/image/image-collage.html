@@ -1,0 +1,635 @@
+<!DOCTYPE html>
+<html lang="zh-TW" data-opencc-locale="zh-tw">
+<head>
+
+<script src="/js/tool-page-runtime.js" defer></script>
+<!-- TOOLBOX-TOOL-RUNTIME -->
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="toolbox" content="cat=image,industry=image,icon=🧩,bg=#e3f2fd">
+<meta name="description" content="上传多张图片，选择布局模板合成为一张拼图，支持间距、边距、背景色与拖拽排序，一键下载。">
+<title>圖片拼圖合成工具 - ToolBox</title>
+<link rel="canonical" href="https://chenguangwu.github.io/zh-tw/tools/image/image-collage.html">
+<meta property="og:title" content="图片拼图合成工具">
+<meta property="og:description" content="上传多张图片，选择布局模板合成为一张拼图，支持间距、边距、背景色与拖拽排序，一键下载。">
+<meta property="og:url" content="https://chenguangwu.github.io/zh-tw/tools/image/image-collage.html">
+<meta name="twitter:card" content="summary">
+<link rel="preload" as="style" href="/css/common.css" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="/css/common.css"></noscript>
+<script>window.__tbq=window.__tbq||[];window.ToolBox=window.ToolBox||{};['initToolTheme','addToolStyles','showToast','toast','copyText','copyToClipboard','copyFromElement','downloadText','injectPrivacyBadge','toggleFavTool','addToRecentTool','toggleToolTheme','applyTheme'].forEach(function(k){if(typeof window.ToolBox[k]!=='function')window.ToolBox[k]=function(){window.__tbq.push([k,[].slice.call(arguments)]);};});</script><!-- TOOLBOX-API-STUB -->
+<script src="/js/common.js" defer></script>
+<style>
+/* 工具专属样式 */
+.upload-area{border:2px dashed var(--border);border-radius:14px;padding:30px 20px;text-align:center;cursor:pointer;transition:all .2s;background:var(--result-bg);margin-top:14px;}
+.upload-area:hover,.upload-area.dragover{border-color:var(--primary);background:var(--bg-hover);}
+.upload-icon{font-size:36px;line-height:1;margin-bottom:8px;}
+.upload-text{font-size:14px;color:var(--text);font-weight:600;}
+.upload-hint{font-size:12px;color:var(--text-muted);margin-top:4px;}
+.img-list{display:flex;flex-direction:column;gap:8px;margin-top:14px;}
+.img-item{display:flex;align-items:center;gap:10px;padding:8px 10px;border:1px solid var(--border);border-radius:10px;background:var(--card-bg);transition:all .2s;}
+.img-item:hover{border-color:var(--primary);}
+.img-item.drag-over{border-color:var(--primary);border-style:solid;background:var(--bg-active);}
+.img-item.dragging{opacity:.45;}
+.img-idx{width:22px;height:22px;border-radius:6px;background:var(--gradient-primary);color:#fff;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.img-item img{width:48px;height:48px;object-fit:cover;border-radius:8px;flex-shrink:0;background:var(--bg-hover);}
+.img-meta{flex:1;min-width:0;}
+.img-name{font-size:13px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.img-size{font-size:11px;color:var(--text-muted);margin-top:2px;}
+.img-actions{display:flex;gap:4px;flex-shrink:0;}
+.img-actions button{width:28px;height:28px;border-radius:8px;border:1px solid var(--border);background:var(--card-bg);color:var(--text);cursor:pointer;font-size:13px;display:flex;align-items:center;justify-content:center;transition:all .15s;padding:0;}
+.img-actions button:hover{border-color:var(--primary);color:var(--primary);}
+.img-actions button.del:hover{border-color:var(--danger);color:var(--danger);}
+.settings-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-top:16px;}
+.settings-grid > div{display:flex;flex-direction:column;}
+.grid-size-row,.fixed-size-row{display:flex;gap:8px;}
+.grid-size-row > div,.fixed-size-row > div{flex:1;min-width:0;}
+input[type="range"]{width:100%;accent-color:var(--primary);cursor:pointer;height:42px;padding:0;}
+input[type="color"]{width:100%;height:42px;padding:4px;border-radius:12px;border:1.5px solid var(--border);background:var(--card-bg);cursor:pointer;}
+input[type="color"]:disabled{opacity:.45;cursor:not-allowed;}
+.cb-label{display:flex;align-items:center;gap:8px;cursor:pointer;font-weight:500;font-size:13px;color:var(--text-secondary);margin:0;}
+.cb-label input[type="checkbox"]{width:18px;height:18px;accent-color:var(--primary);cursor:pointer;}
+.preview-wrap{margin-top:14px;border:1px solid var(--border);border-radius:12px;background:var(--result-bg);padding:12px;max-height:72vh;overflow:auto;text-align:center;}
+#canvas{max-width:100%;height:auto;border-radius:6px;box-shadow:var(--shadow-sm);display:inline-block;}
+.preview-empty{padding:48px 20px;color:var(--text-muted);font-size:14px;}
+.section-title{font-size:13px;font-weight:600;color:var(--heading);margin:18px 0 4px;display:flex;align-items:center;gap:6px;}
+@media(max-width:768px){
+  .settings-grid{grid-template-columns:1fr;}
+  .preview-wrap{max-height:60vh;}
+}
+</style>
+
+
+
+<meta property="og:image" content="https://chenguangwu.github.io/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="ToolBox - 5000+免费在线工具">
+<meta name="twitter:image" content="https://chenguangwu.github.io/og-image.png">
+<meta name="twitter:image:alt" content="ToolBox - 5000+免费在线工具">
+    <meta property="og:type" content="website">
+    <meta name="twitter:title" content="图片拼图合成工具">
+    <meta name="twitter:description" content="上传多张图片，选择布局模板合成为一张拼图，支持间距、边距、背景色与拖拽排序，一键下载。">
+<!-- TOOLBOX-WEBAPP-LD -->
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"圖片拼圖合成工具","url":"https://chenguangwu.github.io/zh-tw/tools/image/image-collage.html","applicationCategory":"MultimediaApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":"zh-TW","description":"上傳多張圖片，選擇佈局模板合成為一張拼圖，支援間距、邊距、背景色與拖拽排序，一鍵下載。","image":"https://chenguangwu.github.io/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}</script>
+<meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
+<meta http-equiv="X-Content-Type-Options" content="nosniff">
+<meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
+<!-- TOOLBOX-SECURITY -->
+
+<script src="/js/privacy.js" defer></script>
+<!-- TOOLBOX-PRIVACY-SCRIPT -->
+
+<script src="/js/metrics.js" defer></script>
+<!-- TOOLBOX-METRICS-SCRIPT -->
+
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"首頁","item":"https://chenguangwu.github.io/zh-tw/"},{"@type":"ListItem","position":2,"name":"影像處理","item":"https://chenguangwu.github.io/zh-tw/tools/image/index.html"},{"@type":"ListItem","position":3,"name":"圖片拼圖合成工具","item":"https://chenguangwu.github.io/zh-tw/tools/image/image-collage.html"}]}</script>
+
+<script src="/js/i18n.js" defer></script>
+<script src="/js/tool-i18n.js" defer></script>
+<!-- TOOLBOX-I18N-SCRIPT -->
+
+
+<meta name="title-en" content="Image Collage Synthesis - ToolBox">
+<meta name="desc-en" content="Image Collage Synthesis - free online tool. Free online tool on ToolBox — 100% client-side, no data uploaded, no install. Part of the Image Processing tools.">
+<!-- TOOLBOX-HREFLANG -->
+<link rel="alternate" hreflang="zh-CN" href="https://chenguangwu.github.io/tools/image/image-collage.html">
+<link rel="alternate" hreflang="zh-TW" href="https://chenguangwu.github.io/zh-tw/tools/image/image-collage.html">
+<link rel="alternate" hreflang="zh-HK" href="https://chenguangwu.github.io/zh-hk/tools/image/image-collage.html">
+<link rel="alternate" hreflang="en-US" href="https://chenguangwu.github.io/tools/image/image-collage.html?lang=en-US">
+<link rel="alternate" hreflang="x-default" href="https://chenguangwu.github.io/tools/image/image-collage.html">
+<meta property="og:locale" content="zh_TW">
+<meta property="og:locale:alternate" content="zh_CN">
+<meta property="og:locale:alternate" content="zh_HK">
+<meta property="og:locale:alternate" content="en_US">
+</head>
+<body>
+<h1 class="sr-only">圖片拼圖合成工具</h1>
+<div class="nav">
+  <a href="/zh-tw/index.html">← ToolBox</a>
+  <span>/ 圖片拼圖合成工具</span>
+  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()" aria-label="切換主題">🌙</button>
+</div>
+
+
+
+
+<nav class="breadcrumb" aria-label="麵包屑導航" data-breadcrumb="1">
+  <a href="/zh-tw/index.html">首頁</a>
+  <span class="bc-sep">‹</span>
+  <a href="/zh-tw/tools/image/index.html">🖼️ 影像處理</a>
+  <span class="bc-sep">‹</span>
+  <span class="bc-current">圖片拼圖合成工具</span>
+</nav>
+<div class="container">
+  <div class="card">
+    <h2 data-zh="🧩 圖片拼圖合成工具">🧩 Image Collage Synthesis</h2>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="上傳多張圖片，選擇佈局模板合成為一張拼圖，支援間距、邊距、背景色與拖拽排序，一鍵下載。">Image Collage Synthesis is available directly in your browser, with no data uploaded.</p>
+
+    <div class="info-box">🔒 所有圖片僅在瀏覽器本地處理，不會上傳到伺服器，請放心使用。</div>
+
+    <!-- 上傳區 -->
+    <div class="upload-area" id="uploadArea" role="button" tabindex="0" aria-label="點選或拖拽上傳圖片">
+      <input type="file" id="fileInput" accept="image/*" multiple style="display:none">
+      <div class="upload-icon">📁</div>
+      <div class="upload-text">點選選擇圖片或拖拽到此處</div>
+      <div class="upload-hint">支援 PNG / JPG / WEBP / GIF，可多選</div>
+    </div>
+
+    <!-- 圖片列表 -->
+    <div class="img-list" id="imgList"></div>
+
+    <div class="section-title">⚙️ 合成設定</div>
+    <div class="settings-grid">
+      <div>
+        <label for="layout">佈局模板</label>
+        <select id="layout">
+          <option value="v">豎排拼接（長圖）</option>
+          <option value="h">橫排拼接</option>
+          <option value="2x2" selected>2×2 網格</option>
+          <option value="3x3">3×3 網格</option>
+          <option value="custom">自定義網格</option>
+        </select>
+      </div>
+      <div id="gridSizeRow" class="grid-size-row" style="display:none">
+        <div><label for="rows">行數</label><input type="number" id="rows" value="2" min="1" max="20"></div>
+        <div><label for="cols">列數</label><input type="number" id="cols" value="3" min="1" max="20"></div>
+      </div>
+      <div>
+        <label for="sizeMode">尺寸模式</label>
+        <select id="sizeMode"><option value="auto">自適應</option></select>
+      </div>
+      <div id="fixedRow" class="fixed-size-row" style="display:none">
+        <div><label id="fixedLabel" for="fixedVal">固定寬度(px)</label><input type="number" id="fixedVal" value="1200" min="100" max="8000"></div>
+      </div>
+      <div id="fitRow">
+        <label for="fitMode">適應方式（網格）</label>
+        <select id="fitMode">
+          <option value="contain">完整顯示（留白）</option>
+          <option value="cover">填滿裁剪</option>
+          <option value="fill">拉伸填充</option>
+        </select>
+      </div>
+      <div>
+        <label for="bgColor">背景色</label>
+        <input type="color" id="bgColor" value="#ffffff">
+      </div>
+      <div>
+        <label for="gap">圖片間距 <span id="gapVal" style="color:var(--primary);font-weight:700;">8</span> px</label>
+        <input type="range" id="gap" min="0" max="50" value="8">
+      </div>
+      <div>
+        <label for="margin">外邊距 <span id="marginVal" style="color:var(--primary);font-weight:700;">10</span> px</label>
+        <input type="range" id="margin" min="0" max="100" value="10">
+      </div>
+      <div style="grid-column:1/-1;">
+        <label class="cb-label"><input type="checkbox" id="transparentBg"> 透明背景（僅 PNG 有效，JPG 下載時自動填充白底）</label>
+      </div>
+    </div>
+
+    <div class="toolbar">
+      <button type="button" class="btn primary" onclick="render()">🔄 生成預覽</button>
+      <button type="button" class="btn" onclick="download('png')">⬇️ 下載 PNG</button>
+      <button type="button" class="btn" onclick="download('jpeg')">⬇️ 下載 JPG</button>
+      <button type="button" class="btn danger" onclick="clearAll()">🗑️ 清空</button>
+    </div>
+
+    <!-- 預覽 -->
+    <div class="preview-wrap" id="previewWrap">
+      <div class="preview-empty" id="previewEmpty">請先上傳圖片，合成預覽將顯示在此處</div>
+      <canvas id="canvas" style="display:none;"></canvas>
+    </div>
+    <div class="result-box" id="infoBox" style="display:none;"></div>
+  </div>
+
+  <!-- SEO 介紹區塊 -->
+
+</div>
+
+</div>
+
+<!-- TOOLBOX-DEEP-DIVE -->
+<style>
+.deep-dive{max-width:960px;margin:16px auto;padding:0 16px;}
+.deep-dive > .card{margin-bottom:0;}
+@media(max-width:600px){.deep-dive{margin:14px auto;padding:0 12px;}}
+.deep-dive .dd-list{margin:8px 0 16px;padding-left:20px;}
+.deep-dive .dd-list li{margin:6px 0;line-height:1.75;}
+.deep-dive .dd-example{background:var(--card-bg,#fff);border:1px solid var(--border,#eee);border-radius:10px;padding:12px 14px;margin:8px 0 16px;}
+.deep-dive .dd-ex-title{font-weight:600;color:var(--tool-accent,#FF6B35);margin-bottom:6px;}
+.deep-dive .dd-ex-body{font-size:13px;line-height:1.85;color:var(--text,#333);word-break:break-word;}
+.deep-dive .dd-faq{margin:8px 0 4px;}
+.deep-dive .dd-faq dt{font-weight:600;margin-top:10px;color:var(--text,#333);}
+.deep-dive .dd-faq dd{margin:4px 0 0;font-size:13px;line-height:1.85;color:var(--text-muted,#666);}
+
+</style>
+<section class="deep-dive" data-deep-dive="1">
+<div class="card">
+<h2>📚 深度解析：圖片拼圖合成工具</h2>
+<h3>💡 常見使用場景</h3>
+<ul class="dd-list">
+<li>在「圖片拼圖合成工具」場景先統一輸入單位與口徑，先做基準算例，再做邊界場景核驗，避免把輸出誤讀為模型差異。</li>
+<li>建議固定關鍵變數並逐步調整其餘輸入，觀察輸出變化方向，快速定位異常源。</li>
+<li>常見場景：圖片拼圖合成工具</li>
+</ul>
+<div class="dd-example"><div class="dd-ex-title">快速複核「圖片拼圖合成工具」</div><div class="dd-ex-body">先執行工具預設樣例，再做一組極端輸入進行對照；如輸出跳變明顯，優先檢查單位、閾值與是否按新版本口徑切換。</div></div>
+<h3>❓ 常見問題（FAQ）</h3>
+<dl class="dd-faq">
+<dt>圖片拼圖合成工具 可直接用於正式報告嗎？</dt><dd>適合用於快速核對和教學演示；正式報告建議補充資料來源、口徑定義、邊界條件與稽核責任鏈。</dd>
+<dt>值跳變或異常偏差怎麼辦？</dt><dd>先核查輸入是否超出定義域、單位是否混用、以及引數是否按同一計算版本口徑切換。</dd>
+</dl>
+</div>
+</section>
+<!-- 相關工具 -->
+<div class="related-tools" data-related-tools="1">
+  <h3 class="related-tools-title">🔗 相關工具</h3>
+  <div class="related-tools-grid">
+    <a href="/zh-tw/tools/image/generator-15.html" class="related-tool-card">
+      <span class="rt-icon">🖼️</span>
+      <span class="rt-info"><span class="rt-name">圓角圖片（生成帶圓角的PNG） - 免費線上工具，純前端處理 | ToolBox免費線上工具箱</span><span class="rt-desc">圓角圖片（生成帶圓角的PNG）</span></span>
+    </a>
+
+    <a href="/zh-tw/tools/image/image-converter.html" class="related-tool-card">
+      <span class="rt-icon">🖼️</span>
+      <span class="rt-info"><span class="rt-name">圖片轉換 - 免費格式轉換工具，圖片格式轉換 | ToolBox免費線上工具箱</span><span class="rt-desc">圖片格式轉換</span></span>
+    </a>
+    <a href="/zh-tw/tools/image/gif-split.html" class="related-tool-card">
+      <span class="rt-icon">🎞️</span>
+      <span class="rt-info"><span class="rt-name">GIF分解工具 - 線上將GIF動畫分解提取每一幀，匯出為PNG圖片或批次打包Z | ToolBox免費線上工具箱</span><span class="rt-desc">GIF分解工具</span></span>
+    </a>
+    <a href="/zh-tw/tools/image/image-compress.html" class="related-tool-card">
+      <span class="rt-icon">🗜️</span>
+      <span class="rt-info"><span class="rt-name">圖片壓縮 - 工具 - 免費線上圖片壓縮，支援 JPEG/WebP/PNG | ToolBox免費線上工具箱</span><span class="rt-desc">圖片壓縮</span></span>
+    </a>
+    <a href="/zh-tw/tools/image/image-rotate.html" class="related-tool-card">
+      <span class="rt-icon">🔄</span>
+      <span class="rt-info"><span class="rt-name">圖片旋轉 - 工具 - 免費線上圖片旋轉、翻轉工具，支援任意角度旋轉、90 | ToolBox免費線上工具箱</span><span class="rt-desc">圖片旋轉工具</span></span>
+    </a>
+  </div>
+</div>
+<div class="tool-intro open" id="toolIntro">
+    <div class="tool-intro-header">
+      <span class="intro-icon-wrap"><span class="intro-icon">📖</span>關於「圖片拼圖合成工具」</span>
+      <span class="arrow">▼</span>
+    </div>
+    <div class="tool-intro-body">
+      <h4><span class="h4-icon">📝</span>工具簡介</h4>
+      <p>圖片拼圖合成工具是一款免費的線上拼圖生成器，可將多張圖片按豎排、橫排或網格佈局合成為一張長圖或拼圖。基於瀏覽器 Canvas API 即時渲染，支援自定義間距、外邊距、背景色、適應方式與拖拽排序，合成後可匯出 PNG 或 JPG 圖片。所有處理在本地完成，圖片不會上傳伺服器。</p>
+      <h4><span class="h4-icon">✨</span>功能特點</h4>
+      <ul class="intro-features">
+        <li>多圖上傳，支援拖拽排序與上下移動</li>
+        <li>豎排拼接、橫排拼接、2×2 / 3×3 / 自定義網格</li>
+        <li>可調圖片間距（0~50px）與外邊距</li>
+        <li>自定義背景色，支援透明背景（PNG）</li>
+        <li>自適應尺寸或固定寬度/高度</li>
+        <li>網格適應方式：完整顯示、填滿裁剪、拉伸</li>
+        <li>即時預覽，一鍵下載 PNG / JPG</li>
+        <li>純前端處理，圖片不上傳，保護隱私</li>
+      </ul>
+      <h4><span class="h4-icon">🎯</span>使用場景</h4>
+      <ul class="intro-scenes">
+        <li>將多張截圖豎排拼接為長圖分享</li>
+        <li>製作朋友圈、小紅書九宮格拼圖</li>
+        <li>產品多圖合成一張展示圖</li>
+        <li>組合證件照、簽證照排版</li>
+        <li>旅行照片拼接成長卷預覽</li>
+        <li>課程筆記、聊天記錄合併為長圖</li>
+      </ul>
+      <h4><span class="h4-icon">💬</span>常見問題</h4>
+      <div class="intro-faq-item"><div class="intro-faq-q">我的圖片會被上傳到伺服器嗎？</div><div class="intro-faq-a">不會。所有圖片都在你的瀏覽器本地通過 Canvas 處理，不會發送到任何伺服器，隱私安全有保障。</div></div>
+      <div class="intro-faq-item"><div class="intro-faq-q">支援哪些圖片格式？</div><div class="intro-faq-a">支援 PNG、JPG/JPEG、WEBP、GIF、BMP 等瀏覽器可解碼的常見格式，可一次選擇多張。</div></div>
+      <div class="intro-faq-item"><div class="intro-faq-q">網格佈局圖片數量不夠怎麼辦？</div><div class="intro-faq-a">圖片數量少於網格格子數時，多餘格子會顯示為背景色；圖片數量多於格子數時，僅合成前若干張（可在預覽資訊中看到提示）。</div></div>
+      <div class="intro-faq-item"><div class="intro-faq-q">為什麼匯出的圖片很大？</div><div class="intro-faq-a">合成畫布尺寸由圖片數量與佈局決定，圖片越多越大。可在「尺寸模式」中選擇固定寬度/高度來控制輸出尺寸，工具也會在畫布過大時自動等比縮放以保證合成成功。</div></div>
+      <div class="intro-faq-item"><div class="intro-faq-q">透明背景有什麼用？</div><div class="intro-faq-a">勾選透明背景後，匯出的 PNG 會保留透明區域（適合完整顯示留白模式）；若下載 JPG，會自動填充白色背景。</div></div>
+    </div>
+  </div>
+  <!-- /SEO 介紹區塊 -->
+</div>
+
+<script>
+(function(){
+'use strict';
+var $ = function(id){ return document.getElementById(id); };
+function clamp(v,min,max){ return Math.max(min, Math.min(max, v)); }
+
+var images = []; // {img, url, name, w, h}
+var dragIdx = null;
+
+/* ---------- 文件处理 ---------- */
+function handleFiles(files){
+  var arr = Array.prototype.filter.call(files, function(f){ return f.type && f.type.indexOf('image/')===0; });
+  if(!arr.length){ ToolBox.showToast(i18nText('toast.msg933'), 'error'); return; }
+  var pending = arr.length;
+  var added = 0;
+  arr.forEach(function(f){
+    var url = URL.createObjectURL(f);
+    var im = new Image();
+    im.onload = function(){
+      images.push({ img: im, url: url, name: f.name, w: im.naturalWidth, h: im.naturalHeight });
+      added++; pending--;
+      if(pending===0){ renderList(); render(); ToolBox.showToast('已添加 ' + added + ' 张图片'); }
+    };
+    im.onerror = function(){
+      URL.revokeObjectURL(url); pending--;
+      ToolBox.showToast('加载失败：' + f.name, 'error');
+      if(pending===0){ renderList(); render(); }
+    };
+    im.src = url;
+  });
+}
+
+function renderList(){
+  var list = $('imgList');
+  list.innerHTML = '';
+  images.forEach(function(item, idx){
+    var div = document.createElement('div');
+    div.className = 'img-item';
+    div.draggable = true;
+    div.dataset.idx = idx;
+    div.innerHTML =
+      '<span class="img-idx">' + (idx+1) + '</span>' +
+      '<img src="/zh-tw/tools/image/' + item.url + '" alt="' + ToolBox.escHtml(item.name) + '">' +
+      '<div class="img-meta"><div class="img-name">' + ToolBox.escHtml(item.name) + '</div>' +
+      '<div class="img-size">' + item.w + ' × ' + item.h + ' px</div></div>' +
+      '<div class="img-actions">' +
+        '<button title="上移" aria-label="上移" onclick="CollageTool.move(' + idx + ',-1)">↑</button>' +
+        '<button title="下移" aria-label="下移" onclick="CollageTool.move(' + idx + ',1)">↓</button>' +
+        '<button title="删除" class="del" aria-label="删除" onclick="CollageTool.remove(' + idx + ')">✕</button>' +
+      '</div>';
+    (function(index){
+      div.addEventListener('dragstart', function(e){ dragIdx = index; div.classList.add('dragging'); e.dataTransfer.effectAllowed = 'move'; });
+      div.addEventListener('dragend', function(){ div.classList.remove('dragging'); });
+      div.addEventListener('dragover', function(e){ e.preventDefault(); div.classList.add('drag-over'); });
+      div.addEventListener('dragleave', function(){ div.classList.remove('drag-over'); });
+      div.addEventListener('drop', function(e){
+        e.preventDefault(); div.classList.remove('drag-over');
+        if(dragIdx!==null && dragIdx!==index){
+          var moved = images.splice(dragIdx,1)[0];
+          images.splice(index,0,moved);
+          renderList(); render();
+        }
+        dragIdx = null;
+      });
+    })(idx);
+    list.appendChild(div);
+  });
+}
+
+function removeImg(idx){
+  if(idx<0 || idx>=images.length) return;
+  URL.revokeObjectURL(images[idx].url);
+  images.splice(idx,1); renderList(); render();
+}
+function moveImg(idx, dir){
+  var t = idx + dir;
+  if(t<0 || t>=images.length) return;
+  var m = images.splice(idx,1)[0];
+  images.splice(t,0,m);
+  renderList(); render();
+}
+function clearAll(){
+  if(!images.length){ ToolBox.showToast(i18nText('toast.msg344'), 'info'); return; }
+  images.forEach(function(i){ URL.revokeObjectURL(i.url); });
+  images = []; renderList(); render(); ToolBox.showToast(i18nText('toast.msg276'));
+}
+
+/* ---------- UI 联动 ---------- */
+function updateUI(){
+  var layout = $('layout').value;
+  var sel = $('sizeMode');
+  var prev = sel.value;
+  var opts;
+  if(layout==='v') opts = [['auto','自适应'],['fixed-w','固定宽度']];
+  else if(layout==='h') opts = [['auto','自适应'],['fixed-h','固定高度']];
+  else opts = [['auto','自适应'],['fixed-w','固定宽度'],['fixed-h','固定高度']];
+  sel.innerHTML = opts.map(function(o){ return '<option value="'+o[0]+'">'+o[1]+'</option>'; }).join('');
+  if(opts.some(function(o){ return o[0]===prev; })) sel.value = prev; else sel.value = 'auto';
+
+  $('gridSizeRow').style.display = layout==='custom' ? 'flex' : 'none';
+  var isGrid = !(layout==='v' || layout==='h');
+  $('fitRow').style.display = isGrid ? 'block' : 'none';
+  $('fixedRow').style.display = sel.value==='auto' ? 'none' : 'flex';
+  $('fixedLabel').textContent = sel.value==='fixed-h' ? '固定高度(px)' : '固定宽度(px)';
+  var trans = $('transparentBg').checked;
+  $('bgColor').disabled = trans;
+}
+
+/* ---------- 渲染 ---------- */
+function drawImageFit(ctx, img, x, y, cw, ch, fit){
+  var iw = img.naturalWidth, ih = img.naturalHeight;
+  if(fit==='fill'){ ctx.drawImage(img, x, y, cw, ch); return; }
+  var sAspect = cw/ch, iAspect = iw/ih;
+  var dw, dh;
+  if(fit==='contain'){
+    if(iAspect > sAspect){ dw = cw; dh = cw/iAspect; } else { dh = ch; dw = ch*iAspect; }
+  } else { // cover
+    if(iAspect > sAspect){ dh = ch; dw = ch*iAspect; } else { dw = cw; dh = cw/iAspect; }
+  }
+  dw = Math.max(1, dw); dh = Math.max(1, dh);
+  var dx = x + (cw-dw)/2;
+  var dy = y + (ch-dh)/2;
+  ctx.drawImage(img, dx, dy, dw, dh);
+}
+
+function layoutLabel(l){
+  return ({v:'竖排拼接', h:'横排拼接', '2x2':'2×2 网格', '3x3':'3×3 网格', custom:'自定义网格'})[l] || l;
+}
+
+function render(){
+  var canvas = $('canvas');
+  var empty = $('previewEmpty');
+  var info = $('infoBox');
+  if(!images.length){
+    canvas.style.display = 'none';
+    empty.style.display = 'block';
+    info.style.display = 'none';
+    return;
+  }
+
+  var layout = $('layout').value;
+  var gap = +$('gap').value;
+  var margin = +$('margin').value;
+  var bg = $('bgColor').value;
+  var fitMode = $('fitMode').value;
+  var sizeMode = $('sizeMode').value;
+  var fixedVal = clamp(+$('fixedVal').value || 1200, 100, 8000);
+  var transparent = $('transparentBg').checked;
+
+  var dims;
+  if(layout==='v') dims = { type:'sv', rows:images.length, cols:1 };
+  else if(layout==='h') dims = { type:'sh', rows:1, cols:images.length };
+  else if(layout==='2x2') dims = { type:'grid', rows:2, cols:2 };
+  else if(layout==='3x3') dims = { type:'grid', rows:3, cols:3 };
+  else dims = { type:'grid', rows:clamp(+$('rows').value||1,1,20), cols:clamp(+$('cols').value||1,1,20) };
+
+  var plan;
+  if(dims.type==='sv'){
+    var commonW;
+    if(sizeMode==='fixed-w') commonW = fixedVal;
+    else commonW = Math.min(1600, Math.max.apply(null, images.map(function(i){ return i.w; })));
+    commonW = Math.max(1, commonW);
+    var scaled = images.map(function(i){ return { w: commonW, h: Math.max(1, Math.round(commonW / i.w * i.h)) }; });
+    var totalH = scaled.reduce(function(s,x){ return s+x.h; },0) + gap*(scaled.length-1);
+    var cW = commonW + margin*2;
+    var cH = totalH + margin*2;
+    plan = { canvasW:cW, canvasH:cH, draw:function(ctx){
+      for(var i=0;i<scaled.length;i++){
+        var y = margin;
+        for(var j=0;j<i;j++) y += scaled[j].h + gap;
+        ctx.drawImage(images[i].img, margin, y, scaled[i].w, scaled[i].h);
+      }
+    }};
+  } else if(dims.type==='sh'){
+    var commonH;
+    if(sizeMode==='fixed-h') commonH = fixedVal;
+    else commonH = Math.min(1600, Math.max.apply(null, images.map(function(i){ return i.h; })));
+    commonH = Math.max(1, commonH);
+    var scaled2 = images.map(function(i){ return { h: commonH, w: Math.max(1, Math.round(commonH / i.h * i.w)) }; });
+    var totalW = scaled2.reduce(function(s,x){ return s+x.w; },0) + gap*(scaled2.length-1);
+    var cW2 = totalW + margin*2;
+    var cH2 = commonH + margin*2;
+    plan = { canvasW:cW2, canvasH:cH2, draw:function(ctx){
+      for(var i=0;i<scaled2.length;i++){
+        var x = margin;
+        for(var j=0;j<i;j++) x += scaled2[j].w + gap;
+        ctx.drawImage(images[i].img, x, margin, scaled2[i].w, scaled2[i].h);
+      }
+    }};
+  } else {
+    var rows = dims.rows, cols = dims.cols;
+    var avgAspect = images.reduce(function(s,i){ return s + i.w/i.h; },0) / images.length;
+    var cellW, cellH;
+    if(sizeMode==='fixed-w'){
+      cellW = Math.max(1, Math.floor((fixedVal - margin*2 - gap*(cols-1))/cols));
+      cellH = Math.max(1, Math.round(cellW / avgAspect));
+    } else if(sizeMode==='fixed-h'){
+      cellH = Math.max(1, Math.floor((fixedVal - margin*2 - gap*(rows-1))/rows));
+      cellW = Math.max(1, Math.round(cellH * avgAspect));
+    } else {
+      cellH = 300; cellW = Math.max(1, Math.round(cellH * avgAspect));
+      var tw = margin*2 + cols*cellW + gap*(cols-1);
+      var th = margin*2 + rows*cellH + gap*(rows-1);
+      var maxDim = 3000;
+      if(Math.max(tw,th) > maxDim){
+        var s = maxDim / Math.max(tw,th);
+        cellW = Math.max(1, Math.floor(cellW*s));
+        cellH = Math.max(1, Math.floor(cellH*s));
+      }
+    }
+    var gW = margin*2 + cols*cellW + gap*(cols-1);
+    var gH = margin*2 + rows*cellH + gap*(rows-1);
+    plan = { canvasW:gW, canvasH:gH, draw:function(ctx){
+      var count = rows*cols;
+      var n = Math.min(count, images.length);
+      for(var idx=0; idx<n; idx++){
+        var r = Math.floor(idx/cols), c = idx%cols;
+        var x = margin + c*(cellW+gap);
+        var y = margin + r*(cellH+gap);
+        drawImageFit(ctx, images[idx].img, x, y, cellW, cellH, fitMode);
+      }
+    }};
+  }
+
+  // 安全尺寸上限，防止画布过大导致合成失败
+  var MAX = 8000;
+  var scale = 1;
+  if(Math.max(plan.canvasW, plan.canvasH) > MAX){
+    scale = MAX / Math.max(plan.canvasW, plan.canvasH);
+  }
+  canvas.width = Math.max(1, Math.round(plan.canvasW*scale));
+  canvas.height = Math.max(1, Math.round(plan.canvasH*scale));
+  var ctx = canvas.getContext('2d');
+  ctx.setTransform(scale,0,0,scale,0,0);
+  ctx.clearRect(0,0,plan.canvasW,plan.canvasH);
+  if(!transparent){
+    ctx.fillStyle = bg;
+    ctx.fillRect(0,0,plan.canvasW,plan.canvasH);
+  }
+  plan.draw(ctx);
+
+  canvas.style.display = 'inline-block';
+  empty.style.display = 'none';
+  info.style.display = 'block';
+
+  var cells = (dims.type==='grid') ? dims.rows*dims.cols : images.length;
+  var truncTip = images.length > cells ? ' ｜ ⚠️ 图片超过 ' + cells + ' 张，仅合成前 ' + cells + ' 张' : '';
+  info.innerHTML =
+    '<p>画布尺寸：<strong>' + canvas.width + ' × ' + canvas.height + '</strong> px</p>' +
+    '<p>图片数量：' + images.length + ' 张 ｜ 布局：' + layoutLabel(layout) + truncTip + '</p>';
+
+  if(scale < 1){ ToolBox.showToast(i18nText('toast.msg515'), 'warning'); }
+}
+
+/* ---------- 下载 ---------- */
+function download(type){
+  if(!images.length){ ToolBox.showToast(i18nText('toast.msg644'), 'error'); return; }
+  var src = $('canvas');
+  var transparent = $('transparentBg').checked;
+  var mime = type==='png' ? 'image/png' : 'image/jpeg';
+  var ext = type==='png' ? 'png' : 'jpg';
+  var target = src;
+  if(type==='jpeg' && transparent){
+    target = document.createElement('canvas');
+    target.width = src.width; target.height = src.height;
+    var c = target.getContext('2d');
+    c.fillStyle = '#ffffff';
+    c.fillRect(0,0,target.width,target.height);
+    c.drawImage(src,0,0);
+  }
+  target.toBlob(function(blob){
+    if(!blob){ ToolBox.showToast(i18nText('toast.msg511'), 'error'); return; }
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url; a.download = 'collage-' + Date.now() + '.' + ext;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(function(){ URL.revokeObjectURL(url); }, 0);
+    ToolBox.showToast('已下载 ' + ext.toUpperCase() + ' 图片');
+  }, mime, 0.92);
+}
+
+/* ---------- 暴露 ---------- */
+window.CollageTool = {
+  move: moveImg,
+  remove: removeImg
+};
+
+/* ---------- 初始化 ---------- */
+document.addEventListener('DOMContentLoaded', function(){
+  var ua = $('uploadArea');
+  ua.addEventListener('click', function(){ $('fileInput').click(); });
+  ua.addEventListener('keydown', function(e){ if(e.key==='Enter' || e.key===' '){ e.preventDefault(); $('fileInput').click(); } });
+  ua.addEventListener('dragover', function(e){ e.preventDefault(); ua.classList.add('dragover'); });
+  ua.addEventListener('dragleave', function(){ ua.classList.remove('dragover'); });
+  ua.addEventListener('drop', function(e){ e.preventDefault(); ua.classList.remove('dragover'); handleFiles(e.dataTransfer.files); });
+  $('fileInput').addEventListener('change', function(e){ handleFiles(e.target.files); e.target.value = ''; });
+
+  function onChange(id, fn){ $(id).addEventListener('change', fn); }
+  function onInput(id, fn){ $(id).addEventListener('input', fn); }
+  onChange('layout', function(){ updateUI(); render(); });
+  onChange('sizeMode', function(){ updateUI(); render(); });
+  onChange('fitMode', render);
+  onChange('bgColor', render);
+  onChange('transparentBg', function(){ updateUI(); render(); });
+  onInput('rows', render); onChange('rows', render);
+  onInput('cols', render); onChange('cols', render);
+  onInput('fixedVal', render); onChange('fixedVal', render);
+  onInput('gap', function(){ $('gapVal').textContent = $('gap').value; render(); });
+  onInput('margin', function(){ $('marginVal').textContent = $('margin').value; render(); });
+
+  // tool-intro 折叠
+  var headers = document.querySelectorAll('.tool-intro-header');
+  headers.forEach(function(h){
+    h.addEventListener('click', function(){ this.parentElement.classList.toggle('open'); });
+  });
+
+  updateUI();
+  render();
+});
+
+// 暴露给 onclick
+window.render = render;
+window.download = download;
+window.clearAll = clearAll;
+})();
+</script>
+</body>
+</html>

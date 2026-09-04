@@ -1,0 +1,1012 @@
+<!DOCTYPE html>
+<html lang="zh-HK" data-opencc-locale="zh-hk">
+<head>
+
+<script src="/js/tool-page-runtime.js" defer></script>
+<!-- TOOLBOX-TOOL-RUNTIME -->
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="toolbox" content="cat=game,industry=fun,icon=💣,bg=#fff3e0">
+<meta name="description" content="经典扫雷：在三种难度中选择，根据数字提示推断地雷位置并标记，揭开所有安全格子即获胜，纯前端可离线运行。">
+<meta name="keywords" content="扫雷游戏, Minesweeper, 在线扫雷, 经典小游戏, 免费游戏">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<link rel="shortcut icon" href="/favicon.ico">
+<title>掃雷遊戲 - ToolBox</title>
+<link rel="canonical" href="https://chenguangwu.github.io/zh-hk/tools/fun/minesweeper.html">
+<meta property="og:title" content="扫雷游戏">
+<meta property="og:description" content="经典扫雷：在三种难度中选择，根据数字提示推断地雷位置并标记，揭开所有安全格子即获胜，纯前端可离线运行。">
+<meta property="og:url" content="https://chenguangwu.github.io/zh-hk/tools/fun/minesweeper.html">
+<meta name="twitter:card" content="summary">
+<link rel="preload" as="style" href="/css/common.css" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="/css/common.css"></noscript>
+<script>window.__tbq=window.__tbq||[];window.ToolBox=window.ToolBox||{};['initToolTheme','addToolStyles','showToast','toast','copyText','copyToClipboard','copyFromElement','downloadText','injectPrivacyBadge','toggleFavTool','addToRecentTool','toggleToolTheme','applyTheme'].forEach(function(k){if(typeof window.ToolBox[k]!=='function')window.ToolBox[k]=function(){window.__tbq.push([k,[].slice.call(arguments)]);};});</script><!-- TOOLBOX-API-STUB -->
+<script src="/js/common.js" defer></script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"掃雷遊戲","description":"經典掃雷遊戲在線版，支持三種難度，純前端可玩。","applicationCategory":"Game","operatingSystem":"Any","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}</script>
+<style>
+  /* 扫雷游戏专属样式 */
+  .mine-game-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  /* 难度选择 */
+  .difficulty-bar {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+  .diff-btn {
+    padding: 8px 18px;
+    border-radius: 10px;
+    font-size: 13px;
+    cursor: pointer;
+    border: 1px solid var(--border);
+    background: var(--card-bg);
+    color: var(--text);
+    font-weight: 500;
+    transition: all 0.2s;
+  }
+  .diff-btn:hover {
+    border-color: var(--primary);
+    background: var(--bg-hover);
+  }
+  .diff-btn.active {
+    background: var(--gradient-primary);
+    color: #fff;
+    border-color: transparent;
+  }
+
+  /* 状态栏 */
+  .status-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    max-width: 520px;
+    margin-bottom: 12px;
+    padding: 10px 16px;
+    background: var(--result-bg);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    gap: 12px;
+  }
+  .status-display {
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--danger);
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 4px 10px;
+    min-width: 52px;
+    text-align: center;
+    line-height: 1.2;
+    letter-spacing: 1px;
+  }
+  .face-btn {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    border: 2px solid var(--border);
+    background: var(--card-bg);
+    font-size: 22px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s;
+    flex-shrink: 0;
+    user-select: none;
+  }
+  .face-btn:hover {
+    border-color: var(--primary);
+    transform: scale(1.08);
+  }
+  .face-btn:active {
+    transform: scale(0.95);
+  }
+
+  /* 棋盘容器 */
+  .board-outer {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    max-width: 100%;
+    margin-bottom: 16px;
+    border-radius: 12px;
+    border: 2px solid var(--border);
+    background: var(--bg-sidebar);
+    padding: 6px;
+  }
+  .board {
+    display: inline-grid;
+    gap: 1px;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
+  /* 格子 */
+  .cell {
+    width: 30px;
+    height: 30px;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background 0.1s, border-color 0.1s;
+    position: relative;
+    background: linear-gradient(145deg, var(--card-bg), var(--bg-hover));
+    box-shadow: 1px 1px 2px rgba(0,0,0,0.06);
+  }
+  .cell:hover:not(.revealed):not(.exploded) {
+    border-color: var(--primary);
+    background: var(--bg-hover);
+  }
+  .cell:active:not(.revealed):not(.exploded) {
+    box-shadow: none;
+  }
+  .cell.revealed {
+    background: var(--bg);
+    box-shadow: inset 0 1px 3px rgba(0,0,0,0.06);
+    cursor: default;
+    border-color: rgba(0,0,0,0.05);
+  }
+  .cell.exploded {
+    background: var(--danger) !important;
+    color: #fff;
+    box-shadow: none;
+  }
+  .cell.mine-show {
+    background: var(--result-bg);
+  }
+
+  /* 数字颜色 */
+  .cell.n1 { color: #3B82F6; }
+  .cell.n2 { color: #10B981; }
+  .cell.n3 { color: #EF4444; }
+  .cell.n4 { color: #7C3AED; }
+  .cell.n5 { color: #B45309; }
+  .cell.n6 { color: #0891B2; }
+  .cell.n7 { color: #1F2937; }
+  .cell.n8 { color: #6B7280; }
+
+  /* 游戏结束遮罩 */
+  .game-overlay {
+    display: none;
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.45);
+    z-index: 200;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(3px);
+    -webkit-backdrop-filter: blur(3px);
+  }
+  .game-overlay.show {
+    display: flex;
+    animation: overlayIn 0.25s ease;
+  }
+  @keyframes overlayIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+  .overlay-card {
+    background: var(--card-bg);
+    border-radius: 20px;
+    padding: 32px 40px;
+    text-align: center;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+    animation: cardIn 0.3s ease;
+    max-width: 320px;
+    width: 90%;
+  }
+  @keyframes cardIn {
+    from { opacity: 0; transform: scale(0.9) translateY(20px); }
+    to { opacity: 1; transform: scale(1) translateY(0); }
+  }
+  .overlay-card .overlay-icon {
+    font-size: 48px;
+    margin-bottom: 12px;
+    display: block;
+  }
+  .overlay-card h3 {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--heading);
+    margin-bottom: 8px;
+  }
+  .overlay-card p {
+    font-size: 14px;
+    color: var(--text-secondary);
+    margin-bottom: 20px;
+    line-height: 1.6;
+  }
+  .overlay-card .btn {
+    padding: 12px 28px;
+    font-size: 14px;
+  }
+
+  /* 操作提示 */
+  .game-tips {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+    justify-content: center;
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-top: 8px;
+  }
+  .game-tips span {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .tip-key {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2px 8px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 600;
+    background: var(--card-bg);
+    color: var(--text);
+  }
+
+  /* 移动端适配 */
+  @media (max-width: 768px) {
+    .cell {
+      width: 28px;
+      height: 28px;
+      font-size: 13px;
+    }
+    .status-bar {
+      max-width: 100%;
+      padding: 8px 12px;
+    }
+    .status-display {
+      font-size: 18px;
+      padding: 3px 8px;
+      min-width: 46px;
+    }
+    .face-btn {
+      width: 36px;
+      height: 36px;
+      font-size: 20px;
+    }
+    .difficulty-bar {
+      gap: 6px;
+    }
+    .diff-btn {
+      padding: 7px 14px;
+      font-size: 12px;
+    }
+    .overlay-card {
+      padding: 24px 28px;
+    }
+    .overlay-card h3 {
+      font-size: 18px;
+    }
+  }
+  @media (max-width: 480px) {
+    .cell {
+      width: 24px;
+      height: 24px;
+      font-size: 11px;
+      border-radius: 3px;
+    }
+    .board-outer {
+      padding: 4px;
+    }
+    .board {
+      gap: 0;
+    }
+  }
+
+  /* 减少动效 */
+  @media (prefers-reduced-motion: reduce) {
+    .cell, .face-btn, .diff-btn, .overlay-card, .game-overlay {
+      transition: none !important;
+      animation: none !important;
+    }
+  }
+</style>
+
+
+
+<meta property="og:image" content="https://chenguangwu.github.io/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="ToolBox - 5000+免费在线工具">
+<meta name="twitter:image" content="https://chenguangwu.github.io/og-image.png">
+<meta name="twitter:image:alt" content="ToolBox - 5000+免费在线工具">
+    <meta property="og:type" content="website">
+    <meta name="twitter:title" content="扫雷游戏">
+    <meta name="twitter:description" content="经典扫雷：在三种难度中选择，根据数字提示推断地雷位置并标记，揭开所有安全格子即获胜，纯前端可离线运行。">
+<!-- TOOLBOX-WEBAPP-LD -->
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"掃雷遊戲","url":"https://chenguangwu.github.io/zh-hk/tools/fun/minesweeper.html","applicationCategory":"GamesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":"zh-HK","description":"經典掃雷：在三種難度中選擇，根據數字提示推斷地雷位置並標記，揭開所有安全格子即獲勝，純前端可離線運行。","image":"https://chenguangwu.github.io/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}</script>
+<meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
+<meta http-equiv="X-Content-Type-Options" content="nosniff">
+<meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
+<!-- TOOLBOX-SECURITY -->
+
+<script src="/js/privacy.js" defer></script>
+<!-- TOOLBOX-PRIVACY-SCRIPT -->
+
+<script src="/js/metrics.js" defer></script>
+<!-- TOOLBOX-METRICS-SCRIPT -->
+
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"首頁","item":"https://chenguangwu.github.io/zh-hk/"},{"@type":"ListItem","position":2,"name":"娛樂遊戲","item":"https://chenguangwu.github.io/zh-hk/tools/fun/index.html"},{"@type":"ListItem","position":3,"name":"掃雷遊戲","item":"https://chenguangwu.github.io/zh-hk/tools/fun/minesweeper.html"}]}</script>
+
+<script src="/js/i18n.js" defer></script>
+<script src="/js/tool-i18n.js" defer></script>
+<!-- TOOLBOX-I18N-SCRIPT -->
+
+
+<meta name="title-en" content="Minesweeper - ToolBox">
+<meta name="desc-en" content="Minesweeper - free online tool. Free online tool on ToolBox — 100% client-side, no data uploaded, no install. Part of the Games &amp; Entertainment tools.">
+<!-- TOOLBOX-HREFLANG -->
+<link rel="alternate" hreflang="zh-CN" href="https://chenguangwu.github.io/tools/fun/minesweeper.html">
+<link rel="alternate" hreflang="zh-TW" href="https://chenguangwu.github.io/zh-tw/tools/fun/minesweeper.html">
+<link rel="alternate" hreflang="zh-HK" href="https://chenguangwu.github.io/zh-hk/tools/fun/minesweeper.html">
+<link rel="alternate" hreflang="en-US" href="https://chenguangwu.github.io/tools/fun/minesweeper.html?lang=en-US">
+<link rel="alternate" hreflang="x-default" href="https://chenguangwu.github.io/tools/fun/minesweeper.html">
+<meta property="og:locale" content="zh_HK">
+<meta property="og:locale:alternate" content="zh_CN">
+<meta property="og:locale:alternate" content="zh_TW">
+<meta property="og:locale:alternate" content="en_US">
+</head>
+<body>
+<h1 class="sr-only">掃雷遊戲</h1>
+
+
+<div class="nav">
+  <a href="/zh-hk/index.html">&larr; ToolBox</a>
+  <span>/ 掃雷遊戲</span>
+  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()">&#127769;</button>
+</div>
+
+
+
+
+
+<nav class="breadcrumb" aria-label="麪包屑導航" data-breadcrumb="1">
+  <a href="/zh-hk/index.html">首頁</a>
+  <span class="bc-sep">‹</span>
+  <a href="/zh-hk/tools/fun/index.html">🎮 娛樂遊戲</a>
+  <span class="bc-sep">‹</span>
+  <span class="bc-current">掃雷遊戲</span>
+</nav>
+<div class="container">
+  <div class="card tool-card-accent" style="--tool-accent:#EC4899;">
+    <h2 data-zh="&amp;#128163; 掃雷遊戲">&amp;#Minesweeper</h2>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="經典掃雷遊戲，三種難度可選。揭開所有安全格子即可獲勝。">Minesweeper is available directly in your browser, with no data uploaded.</p>
+
+    <div class="mine-game-wrap">
+      <!-- 難度選擇 -->
+      <div class="difficulty-bar">
+        <button type="button" class="diff-btn active" data-diff="easy" onclick="setDifficulty('easy')">簡單 9x9</button>
+        <button type="button" class="diff-btn" data-diff="medium" onclick="setDifficulty('medium')">中等 16x16</button>
+        <button type="button" class="diff-btn" data-diff="hard" onclick="setDifficulty('hard')">困難 16x30</button>
+      </div>
+
+      <!-- 狀態欄：地雷數 | 笑臉 | 計時器 -->
+      <div class="status-bar">
+        <div class="status-display" id="mineCount">10</div>
+        <button type="button" class="face-btn" id="faceBtn" onclick="restartGame()" title="重新開始">&#128578;</button>
+        <div class="status-display" id="timerDisplay">000</div>
+      </div>
+
+      <!-- 棋盤 -->
+      <div class="board-outer">
+        <div class="board" id="board"></div>
+      </div>
+
+      <!-- 操作提示 -->
+      <div class="game-tips">
+        <span><span class="tip-key">左鍵</span> 揭開</span>
+        <span><span class="tip-key">右鍵</span> 標記</span>
+        <span><span class="tip-key">長按</span> 移動標記</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- 遊戲規則 -->
+
+</div>
+
+</div>
+
+<!-- 相關工具 -->
+<div class="related-tools" data-related-tools="1">
+  <h3 class="related-tools-title">🔗 相關工具</h3>
+  <div class="related-tools-grid">
+
+
+    <a href="/zh-hk/tools/fun/generator-2.html" class="related-tool-card">
+      <span class="rt-icon">🎮</span>
+      <span class="rt-info"><span class="rt-name">數獨生成器 / 求解器 - 免費在線工具，純前端處理 | ToolBox免費在線工具箱</span><span class="rt-desc">數獨生成器 / 求解器</span></span>
+    </a>
+    <a href="/zh-hk/tools/fun/laugh-generator.html" class="related-tool-card">
+      <span class="rt-icon">😂</span>
+      <span class="rt-info"><span class="rt-name">笑聲音效生成器 - 免費趣味工具，用Web Audio API合成笑聲 | ToolBox免費在線工具箱</span><span class="rt-desc">笑聲音效生成器</span></span>
+    </a>
+    <a href="/zh-hk/tools/fun/generator-laugh.html" class="related-tool-card">
+      <span class="rt-icon">🔧</span>
+      <span class="rt-info"><span class="rt-name">笑聲音效生成器（合成） - 免費在線工具，純前端處理 | ToolBox免費在線工具箱</span><span class="rt-desc">笑聲音效生成器（合成）</span></span>
+    </a>
+    <a href="/zh-hk/tools/dance/choreography-timeline.html" class="related-tool-card">
+      <span class="rt-icon">🎶</span>
+      <span class="rt-info"><span class="rt-name">編舞時間線 - 8拍分段規劃器，按BPM和小節數生成舞蹈編排時間軸 | ToolBox免費在線工具箱</span><span class="rt-desc">編舞時間線</span></span>
+    </a>
+  </div>
+</div>
+<div class="tool-intro" id="introBlock">
+    <div class="tool-intro-header" onclick="toggleIntro()">
+      <span class="intro-icon-wrap">
+        <span class="intro-icon">&#128218;</span>
+        遊戲規則與技巧
+      </span>
+      <span class="arrow">&#9660;</span>
+    </div>
+    <div class="tool-intro-body">
+      <p>掃雷（Minesweeper）是一款經典單人益智遊戲。目標是在最短時間內揭開所有非地雷格子，同時避免踩到地雷。</p>
+      <h4><span class="h4-icon">&#127919;</span> 基本規則</h4>
+      <ul class="intro-scenes">
+        <li>左鍵點擊格子將其揭開</li>
+        <li>數字表示周圍 8 格中地雷的數量</li>
+        <li>右鍵（或長按）標記懷疑是地雷的格子</li>
+        <li>揭開所有安全格子即為勝利</li>
+      </ul>
+      <h4><span class="h4-icon">&#128161;</span> 進階技巧</h4>
+      <ul class="intro-scenes">
+        <li>首次點擊永遠不會踩雷（安全保護）</li>
+        <li>從角落或邊緣開始更容易推理</li>
+        <li>當某個數字周圍的標記數等於該數字時，可快速揭開相鄰未標記格</li>
+        <li>1-2-1 模式和 1-2-2-1 模式是常見的安全推理模式</li>
+      </ul>
+    </div>
+  </div>
+
+<!-- TOOLBOX-DEEP-DIVE -->
+<style>
+.deep-dive{max-width:960px;margin:16px auto;padding:0 16px;}
+.deep-dive > .card{margin-bottom:0;}
+@media(max-width:600px){.deep-dive{margin:14px auto;padding:0 12px;}}
+.deep-dive .dd-list{margin:8px 0 16px;padding-left:20px;}
+.deep-dive .dd-list li{margin:6px 0;line-height:1.75;}
+.deep-dive .dd-example{background:var(--card-bg,#fff);border:1px solid var(--border,#eee);border-radius:10px;padding:12px 14px;margin:8px 0 16px;}
+.deep-dive .dd-ex-title{font-weight:600;color:var(--tool-accent,#FF6B35);margin-bottom:6px;}
+.deep-dive .dd-ex-body{font-size:13px;line-height:1.85;color:var(--text,#333);word-break:break-word;}
+.deep-dive .dd-faq{margin:8px 0 4px;}
+.deep-dive .dd-faq dt{font-weight:600;margin-top:10px;color:var(--text,#333);}
+.deep-dive .dd-faq dd{margin:4px 0 0;font-size:13px;line-height:1.85;color:var(--text-muted,#666);}
+
+</style>
+<section class="deep-dive" data-deep-dive="1">
+<div class="card">
+<h2>📚 深度解析：掃雷遊戲</h2>
+<h3>💡 常見使用場景</h3>
+<ul class="dd-list">
+<li>掃雷遊戲 場景核驗：統一單位和邊界條件後再跑基準樣本，先確認算式方向是否一致。</li>
+<li>教學/復盤建議：固定 1-2 個變量，逐步掃描關鍵參數，觀察趨勢是否符合預期。</li>
+<li>常見場景：&amp;amp;#Minesweeper</li>
+</ul>
+<div class="dd-example"><div class="dd-ex-title">快速複核「掃雷遊戲」</div><div class="dd-ex-body">先用基礎參數跑一次基準值，再把核心輸入提高 10% 與 50% 做對比運算，確認輸出變化是否合理。</div></div>
+<h3>❓ 常見問題（FAQ）</h3>
+<dl class="dd-faq">
+<dt>掃雷遊戲 結果可用於直接報告嗎？</dt><dd>掃雷遊戲 適合用於內部複核與説明，正式材料請附帶口徑、邊界條件和輸入範圍説明。</dd>
+<dt>結果看似異常，該怎麼快速排查？</dt><dd>先核對是否有百分號/小數口徑衝突，再檢查是否觸發了數學域外定義（如對數、開方、除零）。</dd>
+</dl>
+</div>
+</section>
+<!-- 注意事項區塊 -->
+<div class="tool-notes" style="--tool-accent:#EC4899;">
+  <div class="tool-notes-title">⚠️ 使用説明與注意事項</div>
+  <ul>
+      <li>本工具純前端運行，數據不會上傳到伺服器</li>
+      <li>建議在主流瀏覽器（Chrome/Safari/Firefox/Edge）中使用</li>
+      <li>計算結果僅供參考，請以實際應用場景為準</li>
+  </ul>
+</div>
+<!-- /注意事項區塊 -->
+</div>
+
+<!-- 遊戲結束彈窗 -->
+<div class="game-overlay" id="gameOverlay">
+  <div class="overlay-card">
+    <span class="overlay-icon" id="overlayIcon">&#128578;</span>
+    <h3 id="overlayTitle">遊戲結束</h3>
+    <p id="overlayMsg">...</p>
+    <button type="button" class="btn primary" onclick="closeOverlay(); restartGame();">再來一局</button>
+  </div>
+</div>
+
+<script>
+(function() {
+  "use strict";
+
+  // ===== 游戏配置 =====
+  var DIFFICULTIES = {
+    easy:   { rows: 9,  cols: 9,  mines: 10 },
+    medium: { rows: 16, cols: 16, mines: 40 },
+    hard:   { rows: 16, cols: 30, mines: 99 }
+  };
+
+  // 数字颜色类名
+  var NUM_CLASS = ['', 'n1', 'n2', 'n3', 'n4', 'n5', 'n6', 'n7', 'n8'];
+
+  // ===== 游戏状态 =====
+  var currentDiff = 'easy';
+  var rows, cols, totalMines;
+  var grid = [];       // grid[r][c] = { mine, revealed, flagged, count }
+  var gameState = 'idle'; // idle | playing | won | lost
+  var firstClick = true;
+  var flagCount = 0;
+  var revealedCount = 0;
+  var timerInterval = null;
+  var elapsedTime = 0;
+
+  // DOM 引用
+  var boardEl = document.getElementById('board');
+  var mineCountEl = document.getElementById('mineCount');
+  var timerEl = document.getElementById('timerDisplay');
+  var faceBtn = document.getElementById('faceBtn');
+  var overlay = document.getElementById('gameOverlay');
+
+  // 长按支持
+  var longPressTimer = null;
+  var longPressTriggered = false;
+  var touchCell = null;
+
+  // ===== 初始化 =====
+  function init() {
+    var diff = DIFFICULTIES[currentDiff];
+    rows = diff.rows;
+    cols = diff.cols;
+    totalMines = diff.mines;
+    gameState = 'idle';
+    firstClick = true;
+    flagCount = 0;
+    revealedCount = 0;
+    elapsedTime = 0;
+    stopTimer();
+
+    // 初始化网格
+    grid = [];
+    for (var r = 0; r < rows; r++) {
+      grid[r] = [];
+      for (var c = 0; c < cols; c++) {
+        grid[r][c] = { mine: false, revealed: false, flagged: false, count: 0 };
+      }
+    }
+
+    // 渲染棋盘
+    renderBoard();
+    updateMineCount();
+    updateTimer();
+    faceBtn.innerHTML = '&#128578;';
+  }
+
+  // ===== 放置地雷（首次点击后） =====
+  function placeMines(safeR, safeC) {
+    // 安全区：以首次点击为中心的 3x3
+    var safeSet = {};
+    for (var dr = -1; dr <= 1; dr++) {
+      for (var dc = -1; dc <= 1; dc++) {
+        var nr = safeR + dr, nc = safeC + dc;
+        if (nr >= 0 && nr < rows && nc >= 0 && nc < cols) {
+          safeSet[nr + ',' + nc] = true;
+        }
+      }
+    }
+
+    var placed = 0;
+    while (placed < totalMines) {
+      var r = Math.floor(Math.random() * rows);
+      var c = Math.floor(Math.random() * cols);
+      if (!grid[r][c].mine && !safeSet[r + ',' + c]) {
+        grid[r][c].mine = true;
+        placed++;
+      }
+    }
+
+    // 计算数字
+    for (var r = 0; r < rows; r++) {
+      for (var c = 0; c < cols; c++) {
+        if (grid[r][c].mine) continue;
+        var cnt = 0;
+        forNeighbors(r, c, function(nr, nc) {
+          if (grid[nr][nc].mine) cnt++;
+        });
+        grid[r][c].count = cnt;
+      }
+    }
+  }
+
+  // ===== 遍历邻居 =====
+  function forNeighbors(r, c, fn) {
+    for (var dr = -1; dr <= 1; dr++) {
+      for (var dc = -1; dc <= 1; dc++) {
+        if (dr === 0 && dc === 0) continue;
+        var nr = r + dr, nc = c + dc;
+        if (nr >= 0 && nr < rows && nc >= 0 && nc < cols) {
+          fn(nr, nc);
+        }
+      }
+    }
+  }
+
+  // ===== 渲染棋盘 =====
+  function renderBoard() {
+    boardEl.innerHTML = '';
+    boardEl.style.gridTemplateColumns = 'repeat(' + cols + ', 1fr)';
+
+    for (var r = 0; r < rows; r++) {
+      for (var c = 0; c < cols; c++) {
+        var cell = document.createElement('div');
+        cell.className = 'cell';
+        cell.dataset.r = r;
+        cell.dataset.c = c;
+
+        // 鼠标事件
+        cell.addEventListener('mousedown', onCellMouseDown);
+        cell.addEventListener('contextmenu', function(e) { e.preventDefault(); });
+
+        // 触摸事件（长按标记）
+        cell.addEventListener('touchstart', onCellTouchStart, { passive: false });
+        cell.addEventListener('touchend', onCellTouchEnd);
+        cell.addEventListener('touchmove', onCellTouchCancel);
+        cell.addEventListener('touchcancel', onCellTouchCancel);
+
+        boardEl.appendChild(cell);
+      }
+    }
+  }
+
+  // ===== 获取格子 DOM =====
+  function getCellEl(r, c) {
+    return boardEl.children[r * cols + c];
+  }
+
+  // ===== 鼠标点击 =====
+  function onCellMouseDown(e) {
+    e.preventDefault();
+    var r = +this.dataset.r, c = +this.dataset.c;
+    if (e.button === 0) {
+      // 左键
+      handleReveal(r, c);
+    } else if (e.button === 2) {
+      // 右键
+      handleFlag(r, c);
+    }
+  }
+
+  // ===== 触摸（长按标记） =====
+  function onCellTouchStart(e) {
+    var self = this;
+    touchCell = self;
+    longPressTriggered = false;
+    longPressTimer = setTimeout(function() {
+      longPressTriggered = true;
+      var r = +self.dataset.r, c = +self.dataset.c;
+      handleFlag(r, c);
+    }, 400);
+  }
+
+  function onCellTouchEnd(e) {
+    clearTimeout(longPressTimer);
+    if (!longPressTriggered && touchCell) {
+      e.preventDefault();
+      var r = +touchCell.dataset.r, c = +touchCell.dataset.c;
+      handleReveal(r, c);
+    }
+    touchCell = null;
+  }
+
+  function onCellTouchCancel() {
+    clearTimeout(longPressTimer);
+    touchCell = null;
+  }
+
+  // ===== 揭开格子 =====
+  function handleReveal(r, c) {
+    if (gameState === 'won' || gameState === 'lost') return;
+    var cell = grid[r][c];
+    if (cell.revealed || cell.flagged) return;
+
+    // 首次点击：放置地雷并开始计时
+    if (firstClick) {
+      firstClick = false;
+      gameState = 'playing';
+      placeMines(r, c);
+      startTimer();
+    }
+
+    if (cell.mine) {
+      // 踩雷
+      gameOver(r, c);
+      return;
+    }
+
+    // 揭开（洪水填充）
+    floodReveal(r, c);
+    checkWin();
+  }
+
+  // ===== 洪水填充揭开 =====
+  function floodReveal(r, c) {
+    var stack = [[r, c]];
+    while (stack.length > 0) {
+      var pos = stack.pop();
+      var cr = pos[0], cc = pos[1];
+      var cell = grid[cr][cc];
+      if (cell.revealed || cell.flagged || cell.mine) continue;
+
+      cell.revealed = true;
+      revealedCount++;
+      updateCellDOM(cr, cc);
+
+      // 如果是空白格（count=0），展开邻居
+      if (cell.count === 0) {
+        forNeighbors(cr, cc, function(nr, nc) {
+          if (!grid[nr][nc].revealed && !grid[nr][nc].flagged) {
+            stack.push([nr, nc]);
+          }
+        });
+      }
+    }
+  }
+
+  // ===== 标记旗帜 =====
+  function handleFlag(r, c) {
+    if (gameState === 'won' || gameState === 'lost') return;
+    if (gameState === 'idle') return; // 还没开始
+    var cell = grid[r][c];
+    if (cell.revealed) return;
+
+    cell.flagged = !cell.flagged;
+    flagCount += cell.flagged ? 1 : -1;
+    updateCellDOM(r, c);
+    updateMineCount();
+  }
+
+  // ===== 更新单个格子 DOM =====
+  function updateCellDOM(r, c) {
+    var el = getCellEl(r, c);
+    var cell = grid[r][c];
+
+    // 清理
+    el.className = 'cell';
+    el.innerHTML = '';
+
+    if (cell.revealed) {
+      el.classList.add('revealed');
+      if (cell.count > 0) {
+        el.classList.add(NUM_CLASS[cell.count]);
+        el.textContent = cell.count;
+      }
+    } else if (cell.flagged) {
+      el.classList.add('flagged');
+      el.innerHTML = '&#128681;'; // flag emoji
+    }
+  }
+
+  // ===== 踩雷 =====
+  function gameOver(hitR, hitC) {
+    gameState = 'lost';
+    stopTimer();
+    faceBtn.innerHTML = '&#128565;'; // dizzy face
+
+    // 标记踩中的地雷
+    var hitEl = getCellEl(hitR, hitC);
+    hitEl.className = 'cell revealed exploded';
+    hitEl.innerHTML = '&#128163;';
+
+    // 显示所有地雷，标记错误旗帜
+    for (var r = 0; r < rows; r++) {
+      for (var c = 0; c < cols; c++) {
+        var cell = grid[r][c];
+        var el = getCellEl(r, c);
+        if (cell.mine && !cell.revealed && !cell.flagged) {
+          el.className = 'cell revealed mine-show';
+          el.innerHTML = '&#128163;';
+        } else if (!cell.mine && cell.flagged) {
+          // 标错的旗帜
+          el.className = 'cell revealed';
+          el.innerHTML = '&#10060;'; // cross mark
+        }
+      }
+    }
+
+    // 显示弹窗
+    setTimeout(function() {
+      showOverlay('lost');
+    }, 500);
+  }
+
+  // ===== 检查胜利 =====
+  function checkWin() {
+    var totalSafe = rows * cols - totalMines;
+    if (revealedCount >= totalSafe) {
+      gameState = 'won';
+      stopTimer();
+      faceBtn.innerHTML = '&#128526;'; // grinning face
+
+      // 自动标记所有地雷
+      for (var r = 0; r < rows; r++) {
+        for (var c = 0; c < cols; c++) {
+          if (grid[r][c].mine && !grid[r][c].flagged) {
+            grid[r][c].flagged = true;
+            flagCount++;
+            updateCellDOM(r, c);
+          }
+        }
+      }
+      updateMineCount();
+
+      setTimeout(function() {
+        showOverlay('won');
+      }, 400);
+    }
+  }
+
+  // ===== 弹窗 =====
+  function showOverlay(result) {
+    var iconEl = document.getElementById('overlayIcon');
+    var titleEl = document.getElementById('overlayTitle');
+    var msgEl = document.getElementById('overlayMsg');
+
+    if (result === 'won') {
+      iconEl.innerHTML = '&#127942;';
+      titleEl.textContent = '恭喜通关！';
+      msgEl.textContent = '难度：' + getDiffLabel() + '  |  用时：' + formatTime(elapsedTime);
+    } else {
+      iconEl.innerHTML = '&#128163;';
+      titleEl.textContent = '踩雷了！';
+      msgEl.textContent = '难度：' + getDiffLabel() + '  |  用时：' + formatTime(elapsedTime);
+    }
+
+    overlay.classList.add('show');
+  }
+
+  function closeOverlay() {
+    overlay.classList.remove('show');
+  }
+  window.closeOverlay = closeOverlay;
+
+  function getDiffLabel() {
+    var labels = { easy: '简单', medium: '中等', hard: '困难' };
+    return labels[currentDiff] || '简单';
+  }
+
+  function formatTime(sec) {
+    var m = Math.floor(sec / 60);
+    var s = sec % 60;
+    return (m > 0 ? m + '分' : '') + s + '秒';
+  }
+
+  // ===== 计时器 =====
+  function startTimer() {
+    elapsedTime = 0;
+    updateTimer();
+    timerInterval = setInterval(function() {
+      elapsedTime++;
+      if (elapsedTime > 999) elapsedTime = 999;
+      updateTimer();
+    }, 1000);
+  }
+
+  function stopTimer() {
+    if (timerInterval) {
+      clearInterval(timerInterval);
+      timerInterval = null;
+    }
+  }
+
+  function updateTimer() {
+    timerEl.textContent = String(elapsedTime).padStart(3, '0');
+  }
+
+  function updateMineCount() {
+    var remaining = totalMines - flagCount;
+    if (remaining < 0) remaining = 0;
+    mineCountEl.textContent = String(remaining).padStart(2, '0');
+  }
+
+  // ===== 切换难度 =====
+  window.setDifficulty = function(diff) {
+    currentDiff = diff;
+    // 更新按钮状态
+    var btns = document.querySelectorAll('.diff-btn');
+    btns.forEach(function(btn) {
+      btn.classList.toggle('active', btn.dataset.diff === diff);
+    });
+    init();
+  };
+
+  // ===== 重新开始 =====
+  window.restartGame = function() {
+    closeOverlay();
+    init();
+  };
+
+  // ===== 关闭弹窗（点击外部） =====
+  overlay.addEventListener('click', function(e) {
+    if (e.target === overlay) {
+      closeOverlay();
+    }
+  });
+
+  // ===== 工具介绍折叠 =====
+  window.toggleIntro = function() {
+    document.getElementById('introBlock').classList.toggle('open');
+  };
+
+  // ===== 键盘快捷键 =====
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'r' || e.key === 'R') {
+      restartGame();
+    }
+    if (e.key === '1') setDifficulty('easy');
+    if (e.key === '2') setDifficulty('medium');
+    if (e.key === '3') setDifficulty('hard');
+  });
+
+  // ===== 启动 =====
+  init();
+
+})();
+</script>
+
+<!-- SEO 介紹區塊 -->
+<div class="tool-intro open" id="toolIntro">
+  <div class="tool-intro-header">
+    <span class="intro-icon-wrap"><span class="intro-icon">📖</span>關於「掃雷遊戲」</span>
+    <span class="arrow">▼</span>
+  </div>
+  <div class="tool-intro-body">
+    <h4><span class="h4-icon">📝</span>工具簡介</h4>
+    <p>經典掃雷遊戲，支持簡單、中等、困難三種難度。左鍵揭開格子，右鍵標記地雷，首次點擊保護，純前端可玩。。娛樂遊戲工具，純前端實現，無需安裝，離線可玩。</p>
+    <h4><span class="h4-icon">✨</span>功能特點</h4>
+    <ul class="intro-features">
+      <li>純前端實現，無需安裝</li>
+      <li>操作簡單，上手快速</li>
+      <li>支持多種設備，隨時隨地使用</li>
+      <li>無需聯網，離線可玩</li>
+    </ul>
+    <h4><span class="h4-icon">🎯</span>使用場景</h4>
+    <ul class="intro-scenes">
+      <li>休閒娛樂與放鬆</li>
+      <li>聚會互動小遊戲</li>
+      <li>碎片時間的趣味消遣</li>
+      <li>概率與統計的學習輔助</li>
+    </ul>
+    <h4><span class="h4-icon">💬</span>常見問題</h4>
+      <div class="intro-faq-item"><div class="intro-faq-q">這個工具是免費的嗎？</div><div class="intro-faq-a">完全免費，無需註冊，直接在瀏覽器中使用。</div></div>
+      <div class="intro-faq-item"><div class="intro-faq-q">需要安裝軟件嗎？</div><div class="intro-faq-a">不需要，直接在瀏覽器中打開即可使用。</div></div>
+      <div class="intro-faq-item"><div class="intro-faq-q">支持手機使用嗎？</div><div class="intro-faq-a">支持。頁面已做響應式適配，手機和電腦均可正常使用。</div></div>
+  </div>
+</div>
+<!-- /SEO 介紹區塊 -->
+
+<script>
+// tool-intro折叠交互
+document.addEventListener('DOMContentLoaded',function(){
+  var headers=document.querySelectorAll('.tool-intro-header');
+  headers.forEach(function(h){
+    h.addEventListener('click',function(){
+      this.parentElement.classList.toggle('open');
+    });
+  });
+});
+</script>
+
+</body>
+</html>

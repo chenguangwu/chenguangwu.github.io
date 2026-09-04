@@ -1,0 +1,906 @@
+<!DOCTYPE html>
+<html lang="zh-TW" data-opencc-locale="zh-tw">
+<head>
+
+<script src="/js/tool-page-runtime.js" defer></script>
+<!-- TOOLBOX-TOOL-RUNTIME -->
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="toolbox" content="cat=reference,industry=music,icon=🎸,bg=#e3f2fd">
+<title>Web Audio 調音器 - ToolBox</title>
+<link rel="canonical" href="https://chenguangwu.github.io/zh-tw/tools/music/web-tuner.html">
+<meta property="og:url" content="https://chenguangwu.github.io/zh-tw/tools/music/web-tuner.html">
+<meta name="twitter:card" content="summary">
+<meta name="description" content="调用浏览器麦克风实时采集声音并用Web Audio分析音高，显示当前音名与偏差，辅助吉他、贝斯、尤克里里等弦乐器快速调音，纯前端无需联网。">
+<meta name="keywords" content="调音器,在线调音,吉他调音器,音高检测,Web Audio,乐器调音,tuner">
+<meta name="author" content="ToolBox">
+<meta name="robots" content="index, follow">
+<meta property="og:title" content="Web Audio 调音器">
+<meta property="og:description" content="调用浏览器麦克风实时采集声音并用Web Audio分析音高，显示当前音名与偏差，辅助吉他、贝斯、尤克里里等弦乐器快速调音，纯前端无需联网。">
+<meta property="og:type" content="website">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/favicon.ico" type="image/x-icon">
+<link rel="preload" as="style" href="/css/common.css" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="/css/common.css"></noscript>
+<script>window.__tbq=window.__tbq||[];window.ToolBox=window.ToolBox||{};['initToolTheme','addToolStyles','showToast','toast','copyText','copyToClipboard','copyFromElement','downloadText','injectPrivacyBadge','toggleFavTool','addToRecentTool','toggleToolTheme','applyTheme'].forEach(function(k){if(typeof window.ToolBox[k]!=='function')window.ToolBox[k]=function(){window.__tbq.push([k,[].slice.call(arguments)]);};});</script><!-- TOOLBOX-API-STUB -->
+<script src="/js/common.js" defer></script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"Web Audio 調音器","description":"基於瀏覽器麥克風的線上調音器，即時檢測音高，輔助樂器調音。","applicationCategory":"MusicApplication","operatingSystem":"Any","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"},"featureList":["即時音高檢測","自相關演算法基頻分析","偏差顯示","多參考頻率支援"]}</script>
+<style>
+.tuner-gauge {
+  position: relative;
+  width: 100%;
+  max-width: 360px;
+  height: 180px;
+  margin: 0 auto 24px;
+}
+.tuner-gauge canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+.tuner-note-display {
+  text-align: center;
+  margin-bottom: 20px;
+}
+.tuner-note-name {
+  font-size: 72px;
+  font-weight: 800;
+  line-height: 1;
+  color: var(--heading);
+  transition: color 0.3s;
+}
+.tuner-note-name.in-tune { color: var(--success); }
+.tuner-note-name.sharp { color: var(--danger); }
+.tuner-note-name.flat { color: var(--warning); }
+.tuner-note-octave {
+  font-size: 28px;
+  font-weight: 400;
+  color: var(--text-muted);
+  vertical-align: super;
+}
+.tuner-freq-text {
+  font-size: 18px;
+  color: var(--text-secondary);
+  margin-top: 4px;
+  font-weight: 500;
+}
+.tuner-cents-text {
+  font-size: 15px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+.tuner-status {
+  text-align: center;
+  font-size: 14px;
+  color: var(--text-muted);
+  min-height: 24px;
+  margin-bottom: 16px;
+}
+.tuner-status .label { color: var(--primary); font-weight: 600; }
+.ref-freq-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+.ref-freq-row label {
+  margin-bottom: 0;
+  white-space: nowrap;
+}
+.ref-freq-row select {
+  width: auto;
+  min-width: 100px;
+}
+.ref-freq-row .hz-display {
+  font-size: 14px;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+.tuner-pitch-bar {
+  width: 100%;
+  height: 12px;
+  background: var(--border);
+  border-radius: 6px;
+  position: relative;
+  margin: 16px 0;
+  overflow: visible;
+}
+.tuner-pitch-bar .center-mark {
+  position: absolute;
+  left: 50%;
+  top: -4px;
+  width: 2px;
+  height: 20px;
+  background: var(--text-muted);
+  transform: translateX(-50%);
+  border-radius: 1px;
+}
+.tuner-pitch-bar .pitch-indicator {
+  position: absolute;
+  top: 50%;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--primary);
+  transform: translate(-50%, -50%);
+  transition: left 0.12s ease-out, background 0.3s;
+  box-shadow: 0 2px 8px rgba(255,107,53,0.3);
+}
+.tuner-pitch-bar .pitch-indicator.in-tune { background: var(--success); box-shadow: 0 2px 8px rgba(16,185,129,0.3); }
+.tuner-pitch-bar .pitch-indicator.sharp { background: var(--danger); box-shadow: 0 2px 8px rgba(239,68,68,0.3); }
+.tuner-pitch-bar .pitch-indicator.flat { background: var(--warning); box-shadow: 0 2px 8px rgba(245,158,11,0.3); }
+.pitch-labels {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-bottom: 4px;
+}
+.guitar-strings {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-top: 12px;
+}
+.guitar-strings .string-btn {
+  width: 44px;
+  height: 36px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--card-bg);
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.guitar-strings .string-btn:hover {
+  border-color: var(--primary);
+  background: var(--bg-hover);
+}
+.guitar-strings .string-btn.active {
+  background: var(--gradient-primary);
+  color: #fff;
+  border-color: transparent;
+}
+@media (max-width: 768px) {
+  .tuner-note-name { font-size: 56px; }
+  .tuner-note-octave { font-size: 22px; }
+  .tuner-freq-text { font-size: 16px; }
+  .tuner-gauge { max-width: 300px; height: 150px; }
+}
+</style>
+
+
+
+<meta property="og:image" content="https://chenguangwu.github.io/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="ToolBox - 5000+免费在线工具">
+<meta name="twitter:image" content="https://chenguangwu.github.io/og-image.png">
+<meta name="twitter:image:alt" content="ToolBox - 5000+免费在线工具">
+    <meta name="twitter:title" content="Web Audio 调音器">
+    <meta name="twitter:description" content="调用浏览器麦克风实时采集声音并用Web Audio分析音高，显示当前音名与偏差，辅助吉他、贝斯、尤克里里等弦乐器快速调音，纯前端无需联网。">
+<!-- TOOLBOX-WEBAPP-LD -->
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"Web Audio 調音器","url":"https://chenguangwu.github.io/zh-tw/tools/music/web-tuner.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":"zh-TW","description":"呼叫瀏覽器麥克風即時採集聲音並用Web Audio分析音高，顯示當前音名與偏差，輔助吉他、貝斯、尤克里裡等絃樂器快速調音，純前端無需聯網。","image":"https://chenguangwu.github.io/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}</script>
+<meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
+<meta http-equiv="X-Content-Type-Options" content="nosniff">
+<meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
+<!-- TOOLBOX-SECURITY -->
+
+<script src="/js/privacy.js" defer></script>
+<!-- TOOLBOX-PRIVACY-SCRIPT -->
+
+<script src="/js/metrics.js" defer></script>
+<!-- TOOLBOX-METRICS-SCRIPT -->
+
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"首頁","item":"https://chenguangwu.github.io/zh-tw/"},{"@type":"ListItem","position":2,"name":"音樂藝術","item":"https://chenguangwu.github.io/zh-tw/tools/music/index.html"},{"@type":"ListItem","position":3,"name":"Web Audio 調音器","item":"https://chenguangwu.github.io/zh-tw/tools/music/web-tuner.html"}]}</script>
+
+<script src="/js/i18n.js" defer></script>
+<script src="/js/tool-i18n.js" defer></script>
+<!-- TOOLBOX-I18N-SCRIPT -->
+
+
+<meta name="title-en" content="Web Tuner - ToolBox">
+<meta name="desc-en" content="Web Tuner - free online tool. Free online tool on ToolBox — 100% client-side, no data uploaded, no install. Part of the Music &amp; Arts tools.">
+<!-- TOOLBOX-HREFLANG -->
+<link rel="alternate" hreflang="zh-CN" href="https://chenguangwu.github.io/tools/music/web-tuner.html">
+<link rel="alternate" hreflang="zh-TW" href="https://chenguangwu.github.io/zh-tw/tools/music/web-tuner.html">
+<link rel="alternate" hreflang="zh-HK" href="https://chenguangwu.github.io/zh-hk/tools/music/web-tuner.html">
+<link rel="alternate" hreflang="en-US" href="https://chenguangwu.github.io/tools/music/web-tuner.html?lang=en-US">
+<link rel="alternate" hreflang="x-default" href="https://chenguangwu.github.io/tools/music/web-tuner.html">
+<meta property="og:locale" content="zh_TW">
+<meta property="og:locale:alternate" content="zh_CN">
+<meta property="og:locale:alternate" content="zh_HK">
+<meta property="og:locale:alternate" content="en_US">
+</head>
+<body>
+<h1 class="sr-only">Web Audio 調音器</h1>
+
+
+<div class="nav">
+  <a href="/zh-tw/index.html">&larr; ToolBox</a>
+  <span>/ Web Audio 調音器</span>
+  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()">&#127769;</button>
+</div>
+
+
+
+
+
+<nav class="breadcrumb" aria-label="麵包屑導航" data-breadcrumb="1">
+  <a href="/zh-tw/index.html">首頁</a>
+  <span class="bc-sep">‹</span>
+  <a href="/zh-tw/tools/music/index.html">🎵 音樂藝術</a>
+  <span class="bc-sep">‹</span>
+  <span class="bc-current">Web Audio 調音器</span>
+</nav>
+<div class="container">
+  <div class="card tool-card-accent" style="--tool-accent:#FF6B35;">
+    <h2 data-zh="&amp;#127928; Web Audio 調音器">&amp;#Web Tuner</h2>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="基於瀏覽器麥克風的即時音高檢測，輔助吉他、貝斯、尤克里裡等樂器調音">Web Tuner is available directly in your browser, with no data uploaded.</p>
+
+    <div class="ref-freq-row">
+      <label>參考音 A4：</label>
+      <select id="refFreq">
+        <option value="432">432 Hz</option>
+        <option value="440" selected>440 Hz (標準)</option>
+        <option value="442">442 Hz</option>
+      </select>
+      <span class="hz-display" id="refFreqDisplay">A4 = 440 Hz</span>
+    </div>
+
+    <div class="toolbar">
+      <button type="button" class="btn primary" id="startBtn" onclick="startTuner()">開始調音</button>
+      <button type="button" class="btn danger" id="stopBtn" onclick="stopTuner()" disabled>停止</button>
+    </div>
+
+    <div class="tuner-status" id="status">點選"開始調音"按鈕，授權麥克風後開始檢測音高</div>
+
+    <!-- 音符顯示 -->
+    <div class="tuner-note-display">
+      <div>
+        <span class="tuner-note-name" id="noteName">--</span>
+        <span class="tuner-note-octave" id="noteOctave"></span>
+      </div>
+      <div class="tuner-freq-text" id="freqText">-- Hz</div>
+      <div class="tuner-cents-text" id="centsText"></div>
+    </div>
+
+    <!-- 調音表 -->
+    <div class="tuner-gauge">
+      <canvas id="gaugeCanvas"></canvas>
+    </div>
+
+    <!-- 偏差條 -->
+    <div class="pitch-labels">
+      <span>-50 cents</span>
+      <span>準確</span>
+      <span>+50 cents</span>
+    </div>
+    <div class="tuner-pitch-bar">
+      <div class="center-mark"></div>
+      <div class="pitch-indicator" id="pitchIndicator"></div>
+    </div>
+
+    <!-- 目標弦參考 -->
+    <div class="guitar-strings" id="stringBtns">
+      <button type="button" class="string-btn" data-freq="82.41" onclick="setTarget(this)">E2</button>
+      <button type="button" class="string-btn" data-freq="110.00" onclick="setTarget(this)">A2</button>
+      <button type="button" class="string-btn" data-freq="146.83" onclick="setTarget(this)">D3</button>
+      <button type="button" class="string-btn" data-freq="196.00" onclick="setTarget(this)">G3</button>
+      <button type="button" class="string-btn" data-freq="246.94" onclick="setTarget(this)">B3</button>
+      <button type="button" class="string-btn" data-freq="329.63" onclick="setTarget(this)">E4</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>&#128218; 使用說明</h3>
+    <div class="info-box" style="margin-top:8px;">
+      <p><strong>1.</strong> 點選"開始調音"按鈕，瀏覽器會請求麥克風許可權</p>
+      <p><strong>2.</strong> 對著麥克風彈奏樂器單根弦，等待音高穩定</p>
+      <p><strong>3.</strong> 指標居中（綠色）表示音準，偏左偏低（橙色），偏右偏高（紅色）</p>
+      <p><strong>4.</strong> 可點選底部吉他弦按鈕設定目標音參考</p>
+      <p><strong>5.</strong> 支援切換 A4 參考頻率（432/440/442 Hz）</p>
+    </div>
+  </div>
+
+
+</div>
+
+</div>
+
+
+<!-- 相關工具 -->
+<div class="related-tools" data-related-tools="1">
+  <h3 class="related-tools-title">🔗 相關工具</h3>
+  <div class="related-tools-grid">
+    <a href="/zh-tw/tools/music/chord-progression.html" class="related-tool-card">
+      <span class="rt-icon">🎼</span>
+      <span class="rt-info"><span class="rt-name">和絃進行生成器 - 免費線上和絃進行生成器，隨機生成流行和絃進行</span><span class="rt-desc">&amp;#127926; 和絃進行生成器</span></span>
+    </a>
+    <a href="/zh-tw/tools/music/random-training-rhythm.html" class="related-tool-card">
+      <span class="rt-icon">🎵</span>
+      <span class="rt-info"><span class="rt-name">節奏訓練（隨機節奏點選）</span><span class="rt-desc">節奏訓練（隨機節奏點選）</span></span>
+    </a>
+    <a href="/zh-tw/tools/music/generator-1.html" class="related-tool-card">
+      <span class="rt-icon">🎵</span>
+      <span class="rt-info"><span class="rt-name">音階生成器（大調/小調/五聲音階）</span><span class="rt-desc">音階生成器（大調/小調/五聲音階）</span></span>
+    </a>
+    <a href="/zh-tw/tools/music/bpm-converter.html" class="related-tool-card">
+      <span class="rt-icon">⏱️</span>
+      <span class="rt-info"><span class="rt-name">BPM速度轉換器 - BPM與音符時長、延遲時間、LFO頻率、取樣長度互轉</span><span class="rt-desc">&amp;#9201;&amp;#65039; BPM 速度轉換器</span></span>
+    </a>
+    <a href="/zh-tw/tools/music/convert-speed.html" class="related-tool-card">
+      <span class="rt-icon">🎵</span>
+      <span class="rt-info"><span class="rt-name">歌曲速度轉換（BPM微調）</span><span class="rt-desc">歌曲速度轉換（BPM微調）</span></span>
+    </a>
+    <a href="/zh-tw/tools/music/audio-converter.html" class="related-tool-card">
+      <span class="rt-icon">🔄</span>
+      <span class="rt-info"><span class="rt-name">音訊轉換 - 音樂藝術領域的線上工具</span><span class="rt-desc">音訊格式轉換引數</span></span>
+    </a>
+  </div>
+</div>
+<div class="tool-intro" id="intro">
+    <div class="tool-intro-header" onclick="this.parentElement.classList.toggle('open')">
+      <span class="intro-icon-wrap">
+        <span class="intro-icon">&#127928;</span>
+        工具介紹與常見問題
+      </span>
+      <span class="arrow">&#9660;</span>
+    </div>
+    <div class="tool-intro-body">
+      <h4><span class="h4-icon">&#9889;</span> 功能特點</h4>
+      <ul class="intro-features">
+        <li>即時音高檢測</li>
+        <li>自相關演算法基頻分析</li>
+        <li>指標式調音表視覺化</li>
+        <li>偏差精確到音分(cents)</li>
+        <li>支援 A4=432/440/442 Hz</li>
+        <li>吉他六絃快速參考</li>
+        <li>純前端，無需安裝</li>
+        <li>資料不上傳，隱私安全</li>
+      </ul>
+
+      <h4><span class="h4-icon">&#127911;</span> 適用樂器</h4>
+      <ul class="intro-scenes">
+        <li>吉他 (Guitar)</li>
+        <li>貝斯 (Bass)</li>
+        <li>尤克里裡 (Ukulele)</li>
+        <li>小提琴 (Violin)</li>
+        <li>大提琴 (Cello)</li>
+        <li>其他絃樂器</li>
+      </ul>
+
+      <h4><span class="h4-icon">&#10067;</span> 常見問題</h4>
+      <div class="intro-faq-item">
+        <div class="intro-faq-q">為什麼檢測不到音高？</div>
+        <div class="intro-faq-a">請確保麥克風許可權已授予，且環境噪音不要太大。建議在安靜環境中彈奏單根弦，等待 1-2 秒讓檢測穩定。</div>
+      </div>
+      <div class="intro-faq-item">
+        <div class="intro-faq-q">cents 是什麼意思？</div>
+        <div class="intro-faq-a">Cents（音分）是音高的最小單位，一個半音 = 100 cents。偏差在 ±5 cents 以內即可視為音準。</div>
+      </div>
+      <div class="intro-faq-item">
+        <div class="intro-faq-q">A4=432Hz 和 A4=440Hz 有什麼區別？</div>
+        <div class="intro-faq-a">440Hz 是國際標準音高。432Hz 是一種替代調音標準，音高略低，部分音樂人認為更自然和諧。</div>
+      </div>
+    </div>
+  </div>
+
+<!-- TOOLBOX-DEEP-DIVE -->
+<style>
+.deep-dive{max-width:960px;margin:16px auto;padding:0 16px;}
+.deep-dive > .card{margin-bottom:0;}
+@media(max-width:600px){.deep-dive{margin:14px auto;padding:0 12px;}}
+.deep-dive .dd-list{margin:8px 0 16px;padding-left:20px;}
+.deep-dive .dd-list li{margin:6px 0;line-height:1.75;}
+.deep-dive .dd-example{background:var(--card-bg,#fff);border:1px solid var(--border,#eee);border-radius:10px;padding:12px 14px;margin:8px 0 16px;}
+.deep-dive .dd-ex-title{font-weight:600;color:var(--tool-accent,#FF6B35);margin-bottom:6px;}
+.deep-dive .dd-ex-body{font-size:13px;line-height:1.85;color:var(--text,#333);word-break:break-word;}
+.deep-dive .dd-faq{margin:8px 0 4px;}
+.deep-dive .dd-faq dt{font-weight:600;margin-top:10px;color:var(--text,#333);}
+.deep-dive .dd-faq dd{margin:4px 0 0;font-size:13px;line-height:1.85;color:var(--text-muted,#666);}
+
+</style>
+<section class="deep-dive" data-deep-dive="1">
+<div class="card">
+<h2>📚 深度解析：Web Audio 調音器</h2>
+<h3>💡 常見使用場景</h3>
+<ul class="dd-list">
+<li>在「Web Audio 調音器」場景先統一輸入單位與口徑，先做基準算例，再做邊界場景核驗，避免把輸出誤讀為模型差異。</li>
+<li>建議固定關鍵變數並逐步調整其餘輸入，觀察輸出變化方向，快速定位異常源。</li>
+<li>常見場景：Web Audio 調音器</li>
+</ul>
+<div class="dd-example"><div class="dd-ex-title">快速複核「Web Audio 調音器」</div><div class="dd-ex-body">先執行工具預設樣例，再做一組極端輸入進行對照；如輸出跳變明顯，優先檢查單位、閾值與是否按新版本口徑切換。</div></div>
+<h3>❓ 常見問題（FAQ）</h3>
+<dl class="dd-faq">
+<dt>Web Audio 調音器 可直接用於正式報告嗎？</dt><dd>適合用於快速核對和教學演示；正式報告建議補充資料來源、口徑定義、邊界條件與稽核責任鏈。</dd>
+<dt>值跳變或異常偏差怎麼辦？</dt><dd>先核查輸入是否超出定義域、單位是否混用、以及引數是否按同一計算版本口徑輸入。</dd>
+</dl>
+</div>
+</section>
+<!-- 注意事項區塊 -->
+<div class="tool-notes" style="--tool-accent:#FF6B35;">
+  <div class="tool-notes-title">⚠️ 使用說明與注意事項</div>
+  <ul>
+      <li>本工具純前端執行，資料不會上傳到伺服器</li>
+      <li>建議在主流瀏覽器（Chrome/Safari/Firefox/Edge）中使用</li>
+      <li>計算結果僅供參考，請以實際應用場景為準</li>
+  </ul>
+</div>
+<!-- /注意事項區塊 -->
+</div>
+
+<script>
+(function() {
+  'use strict';
+
+  /* ===== 常量与状态 ===== */
+  const NOTE_NAMES = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+  const C0 = 16.35159783128741; // C0 频率
+
+  let audioCtx = null;
+  let analyser = null;
+  let stream = null;
+  let rafId = null;
+  let isRunning = false;
+  let refA4 = 440;
+  let targetFreq = 0; // 目标弦频率，0 = 自动
+
+  // 平滑显示
+  let smoothFreq = 0;
+  let smoothCents = 0;
+  let lastNote = '';
+  let lastNoteCount = 0;
+
+  /* ===== DOM 引用 ===== */
+  const startBtn = document.getElementById('startBtn');
+  const stopBtn = document.getElementById('stopBtn');
+  const statusEl = document.getElementById('status');
+  const noteNameEl = document.getElementById('noteName');
+  const noteOctaveEl = document.getElementById('noteOctave');
+  const freqTextEl = document.getElementById('freqText');
+  const centsTextEl = document.getElementById('centsText');
+  const pitchIndicator = document.getElementById('pitchIndicator');
+  const refFreqSelect = document.getElementById('refFreqSelect') || document.getElementById('refFreq');
+  const refFreqDisplay = document.getElementById('refFreqDisplay');
+  const gaugeCanvas = document.getElementById('gaugeCanvas');
+  const gaugeCtx = gaugeCanvas.getContext('2d');
+
+  /* ===== 参考频率切换 ===== */
+  if (refFreqSelect) {
+    refFreqSelect.addEventListener('change', function() {
+      refA4 = parseFloat(this.value);
+      refFreqDisplay.textContent = 'A4 = ' + refA4 + ' Hz';
+    });
+  }
+
+  /* ===== 目标弦按钮 ===== */
+  window.setTarget = function(btn) {
+    const btns = document.querySelectorAll('.string-btn');
+    if (btn.classList.contains('active')) {
+      btn.classList.remove('active');
+      targetFreq = 0;
+    } else {
+      btns.forEach(function(b) { b.classList.remove('active'); });
+      btn.classList.add('active');
+      targetFreq = parseFloat(btn.dataset.freq);
+    }
+  };
+
+  /* ===== 音符计算 ===== */
+  function freqToNote(freq) {
+    if (freq <= 0) return null;
+    // 基于 A4 参考频率计算
+    const semitones = 12 * Math.log2(freq / (refA4 / Math.pow(2, 12 * Math.log2(C0) - 12 * Math.log2(refA4) + 12 * Math.log2(16.35159783128741))));
+    // 简化：noteNumber = 12 * log2(freq / C0)
+    const noteNumber = 12 * Math.log2(freq / C0);
+    const roundedNote = Math.round(noteNumber);
+    const cents = (noteNumber - roundedNote) * 100;
+    const noteIndex = ((roundedNote % 12) + 12) % 12;
+    const octave = Math.floor(roundedNote / 12) - 1;
+    return {
+      name: NOTE_NAMES[noteIndex],
+      octave: octave,
+      cents: cents,
+      full: NOTE_NAMES[noteIndex] + octave
+    };
+  }
+
+  /* ===== 自相关基频检测 ===== */
+  function autoCorrelate(buf, sampleRate) {
+    const SIZE = buf.length;
+    let rms = 0;
+    for (let i = 0; i < SIZE; i++) {
+      rms += buf[i] * buf[i];
+    }
+    rms = Math.sqrt(rms / SIZE);
+    if (rms < 0.01) return -1; // 信号太弱
+
+    // 截断检测频率范围 (50Hz - 2000Hz)
+    const minPeriod = Math.floor(sampleRate / 2000);
+    const maxPeriod = Math.floor(sampleRate / 50);
+
+    let bestCorr = 0;
+    let bestOffset = -1;
+
+    // 先做无偏移相关
+    for (let offset = minPeriod; offset < Math.min(maxPeriod, SIZE / 2); offset++) {
+      let corr = 0;
+      for (let i = 0; i < SIZE / 2; i++) {
+        corr += Math.abs(buf[i] - buf[i + offset]);
+      }
+      corr = 1 - corr / (SIZE / 2);
+      if (corr > bestCorr) {
+        bestCorr = corr;
+        bestOffset = offset;
+      }
+    }
+
+    if (bestCorr < 0.3 || bestOffset === -1) return -1;
+
+    // 抛物线插值提高精度
+    let shift = 0;
+    if (bestOffset > 0 && bestOffset < SIZE - 1) {
+      const s0 = getCorrAt(buf, bestOffset - 1, SIZE);
+      const s1 = getCorrAt(buf, bestOffset, SIZE);
+      const s2 = getCorrAt(buf, bestOffset + 1, SIZE);
+      shift = (s2 - s0) / (2 * (2 * s1 - s2 - s0));
+      if (Math.abs(shift) > 1) shift = 0;
+    }
+
+    return sampleRate / (bestOffset + shift);
+  }
+
+  function getCorrAt(buf, offset, size) {
+    let corr = 0;
+    for (let i = 0; i < size / 2; i++) {
+      corr += Math.abs(buf[i] - buf[i + offset]);
+    }
+    return 1 - corr / (size / 2);
+  }
+
+  /* ===== Canvas 调音表绘制 ===== */
+  function initGauge() {
+    const dpr = window.devicePixelRatio || 1;
+    const rect = gaugeCanvas.getBoundingClientRect();
+    gaugeCanvas.width = rect.width * dpr;
+    gaugeCanvas.height = rect.height * dpr;
+    gaugeCtx.scale(dpr, dpr);
+  }
+
+  function drawGauge(cents) {
+    const w = gaugeCanvas.getBoundingClientRect().width;
+    const h = gaugeCanvas.getBoundingClientRect().height;
+    const cx = w / 2;
+    const cy = h * 0.82;
+    const r = Math.min(w / 2 - 20, h * 0.7);
+    const ctx = gaugeCtx;
+
+    ctx.clearRect(0, 0, w, h);
+
+    // 外弧 - 背景弧
+    const startAngle = Math.PI + 0.4;
+    const endAngle = -0.4;
+    const totalAngle = endAngle - startAngle;
+
+    // 颜色分区弧
+    const segments = [
+      { start: 0, end: 0.25, color: '#EF4444' },    // 偏低
+      { start: 0.25, end: 0.42, color: '#F59E0B' }, // 略低
+      { start: 0.42, end: 0.58, color: '#10B981' }, // 准确
+      { start: 0.58, end: 0.75, color: '#F59E0B' }, // 略高
+      { start: 0.75, end: 1, color: '#EF4444' }     // 偏高
+    ];
+
+    segments.forEach(function(seg) {
+      const a1 = startAngle + totalAngle * seg.start;
+      const a2 = startAngle + totalAngle * seg.end;
+      ctx.beginPath();
+      ctx.arc(cx, cy, r, a1, a2);
+      ctx.lineWidth = 12;
+      ctx.strokeStyle = seg.color;
+      ctx.lineCap = 'butt';
+      ctx.stroke();
+    });
+
+    // 刻度线
+    for (let i = -5; i <= 5; i++) {
+      const frac = (i + 5) / 10;
+      const angle = startAngle + totalAngle * frac;
+      const isCenter = i === 0;
+      const innerR = r - (isCenter ? 28 : 22);
+      const outerR = r + (isCenter ? 2 : -4);
+      ctx.beginPath();
+      ctx.moveTo(cx + Math.cos(angle) * innerR, cy + Math.sin(angle) * innerR);
+      ctx.lineTo(cx + Math.cos(angle) * outerR, cy + Math.sin(angle) * outerR);
+      ctx.lineWidth = isCenter ? 3 : 1;
+      ctx.strokeStyle = isCenter ? 'var(--text)' : 'var(--text-muted)';
+      ctx.lineCap = 'round';
+      ctx.stroke();
+
+      // 标签
+      if (Math.abs(i) % 2 === 0) {
+        const labelR = r - 38;
+        const lx = cx + Math.cos(angle) * labelR;
+        const ly = cy + Math.sin(angle) * labelR;
+        ctx.font = '11px sans-serif';
+        ctx.fillStyle = resolveCanvasColor('var(--text-muted)','#6B7280');
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(i === 0 ? '0' : (i > 0 ? '+' + (i * 10) : '' + (i * 10)), lx, ly);
+      }
+    }
+
+    // 指针
+    const clampedCents = Math.max(-50, Math.min(50, cents));
+    const needleFrac = (clampedCents + 50) / 100;
+    const needleAngle = startAngle + totalAngle * needleFrac;
+    const needleLen = r - 44;
+
+    let needleColor = '#F59E0B';
+    let glowColor = 'rgba(245,158,11,0.4)';
+    if (Math.abs(cents) <= 5) {
+      needleColor = '#10B981';
+      glowColor = 'rgba(16,185,129,0.4)';
+    } else if (cents > 5) {
+      needleColor = '#EF4444';
+      glowColor = 'rgba(239,68,68,0.4)';
+    }
+
+    // 指针光晕
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.lineTo(cx + Math.cos(needleAngle) * needleLen, cy + Math.sin(needleAngle) * needleLen);
+    ctx.lineWidth = 6;
+    ctx.strokeStyle = glowColor;
+    ctx.lineCap = 'round';
+    ctx.stroke();
+
+    // 指针本体
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.lineTo(cx + Math.cos(needleAngle) * needleLen, cy + Math.sin(needleAngle) * needleLen);
+    ctx.lineWidth = 3;
+    ctx.strokeStyle = needleColor;
+    ctx.lineCap = 'round';
+    ctx.stroke();
+
+    // 中心圆点
+    ctx.beginPath();
+    ctx.arc(cx, cy, 8, 0, Math.PI * 2);
+    ctx.fillStyle = needleColor;
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(cx, cy, 4, 0, Math.PI * 2);
+    ctx.fillStyle = resolveCanvasColor('var(--card-bg)','#FFFFFF');
+    ctx.fill();
+  }
+
+  /* ===== 更新 UI ===== */
+  function updateDisplay(freq, note) {
+    // 频率文本
+    if (freq > 0 && isFinite(freq)) {
+      freqTextEl.textContent = freq.toFixed(1) + ' Hz';
+    } else {
+      freqTextEl.textContent = '-- Hz';
+      noteNameEl.textContent = '--';
+      noteNameEl.className = 'tuner-note-name';
+      noteOctaveEl.textContent = '';
+      centsTextEl.textContent = '';
+      pitchIndicator.style.left = '50%';
+      pitchIndicator.className = 'pitch-indicator';
+      drawGauge(0);
+      return;
+    }
+
+    if (!note) return;
+
+    // 音符名称
+    noteNameEl.textContent = note.name;
+    noteOctaveEl.textContent = note.octave;
+    const cents = note.cents;
+
+    // cents 文本
+    const sign = cents >= 0 ? '+' : '';
+    centsTextEl.textContent = sign + cents.toFixed(1) + ' cents';
+
+    // 颜色分类
+    let tuneClass = '';
+    if (Math.abs(cents) <= 5) {
+      tuneClass = 'in-tune';
+      centsTextEl.textContent += ' (准确)';
+    } else if (cents > 5) {
+      tuneClass = 'sharp';
+      centsTextEl.textContent += ' (偏高)';
+    } else {
+      tuneClass = 'flat';
+      centsTextEl.textContent += ' (偏低)';
+    }
+
+    noteNameEl.className = 'tuner-note-name ' + tuneClass;
+
+    // 偏差条指示器
+    const pos = ((cents + 50) / 100) * 100;
+    const clampedPos = Math.max(0, Math.min(100, pos));
+    pitchIndicator.style.left = clampedPos + '%';
+    pitchIndicator.className = 'pitch-indicator ' + tuneClass;
+
+    // 调音表
+    drawGauge(cents);
+  }
+
+  /* ===== 音频处理循环 ===== */
+  function processAudio() {
+    if (!isRunning) return;
+
+    const bufferLength = analyser.fftSize;
+    const buffer = new Float32Array(bufferLength);
+    analyser.getFloatTimeDomainData(buffer);
+
+    const freq = autoCorrelate(buffer, audioCtx.sampleRate);
+
+    if (freq > 0 && isFinite(freq)) {
+      // 平滑处理
+      if (smoothFreq === 0) {
+        smoothFreq = freq;
+      } else {
+        smoothFreq = smoothFreq * 0.7 + freq * 0.3;
+      }
+
+      const note = freqToNote(smoothFreq);
+      if (note) {
+        // 音符稳定性检测
+        if (note.full === lastNote) {
+          lastNoteCount++;
+        } else {
+          lastNote = note.full;
+          lastNoteCount = 0;
+        }
+
+        updateDisplay(smoothFreq, note);
+        statusEl.innerHTML = '<span class="label">正在检测</span> | 麦克风已启用，请弹奏乐器';
+      }
+    } else {
+      smoothFreq = 0;
+      lastNote = '';
+      lastNoteCount = 0;
+      updateDisplay(-1, null);
+    }
+
+    rafId = requestAnimationFrame(processAudio);
+  }
+
+  /* ===== 启动/停止 ===== */
+  window.startTuner = async function() {
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({
+        audio: {
+          echoCancellation: false,
+          noiseSuppression: false,
+          autoGainControl: false
+        }
+      });
+
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      analyser = audioCtx.createAnalyser();
+      analyser.fftSize = 4096;
+      analyser.smoothingTimeConstant = 0;
+
+      const source = audioCtx.createMediaStreamSource(stream);
+      source.connect(analyser);
+
+      isRunning = true;
+      smoothFreq = 0;
+      lastNote = '';
+      lastNoteCount = 0;
+
+      startBtn.disabled = true;
+      stopBtn.disabled = false;
+
+      statusEl.innerHTML = '<span class="label">正在检测</span> | 麦克风已启用，请弹奏乐器';
+
+      initGauge();
+      processAudio();
+    } catch (err) {
+      if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+        ToolBox.showToast(i18nText(), 'error');
+      } else if (err.name === 'NotFoundError') {
+        ToolBox.showToast(i18nText(), 'error');
+      } else {
+        ToolBox.showToast('无法启动调音器：' + err.message, 'error');
+      }
+      statusEl.textContent = '启动失败，请检查麦克风权限后重试';
+    }
+  };
+
+  window.stopTuner = function() {
+    isRunning = false;
+    if (rafId) {
+      cancelAnimationFrame(rafId);
+      rafId = null;
+    }
+    if (stream) {
+      stream.getTracks().forEach(function(t) { t.stop(); });
+      stream = null;
+    }
+    if (audioCtx) {
+      audioCtx.close();
+      audioCtx = null;
+    }
+
+    startBtn.disabled = false;
+    stopBtn.disabled = true;
+
+    statusEl.textContent = '调音已停止，点击"开始调音"按钮继续';
+    updateDisplay(-1, null);
+  };
+
+  /* ===== 窗口大小变化时重绘 ===== */
+  let resizeTimer;
+  window.addEventListener('resize', function() {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(function() {
+      initGauge();
+      if (!isRunning) drawGauge(0);
+    }, 200);
+  });
+
+  /* ===== 初始化 ===== */
+  initGauge();
+  drawGauge(0);
+
+})();
+</script>
+
+<!-- SEO 介紹區塊 -->
+<div class="tool-intro open" id="toolIntro">
+  <div class="tool-intro-header">
+    <span class="intro-icon-wrap"><span class="intro-icon">📖</span>關於「Web Audio 調音器」</span>
+    <span class="arrow">▼</span>
+  </div>
+  <div class="tool-intro-body">
+    <h4><span class="h4-icon">📝</span>工具簡介</h4>
+    <p>線上調音器工具，基於 Web Audio API 檢測音高，支援吉他、貝斯、尤克里裡等樂器調音，顯示頻率、音符和偏差值。。音樂藝術工具，純前端實現，支援即時試聽。</p>
+    <h4><span class="h4-icon">✨</span>功能特點</h4>
+    <ul class="intro-features">
+      <li>純前端實現，無需安裝</li>
+      <li>支援多種音樂引數配置</li>
+      <li>即時生成，即時試聽</li>
+      <li>操作簡單，上手快速</li>
+    </ul>
+    <h4><span class="h4-icon">🎯</span>使用場景</h4>
+    <ul class="intro-scenes">
+      <li>音樂創作與編曲輔助</li>
+      <li>樂理學習與練習</li>
+      <li>音訊處理與轉換</li>
+      <li>藝術創作的靈感工具</li>
+    </ul>
+    <h4><span class="h4-icon">💬</span>常見問題</h4>
+      <div class="intro-faq-item"><div class="intro-faq-q">這個工具是免費的嗎？</div><div class="intro-faq-a">完全免費，無需註冊，直接在瀏覽器中使用。</div></div>
+      <div class="intro-faq-item"><div class="intro-faq-q">需要安裝軟體嗎？</div><div class="intro-faq-a">不需要，直接在瀏覽器中開啟即可使用。</div></div>
+      <div class="intro-faq-item"><div class="intro-faq-q">支援手機使用嗎？</div><div class="intro-faq-a">支援。頁面已做響應式適配，手機和電腦均可正常使用。</div></div>
+  </div>
+</div>
+<!-- /SEO 介紹區塊 -->
+
+<script>
+// tool-intro折叠交互
+document.addEventListener('DOMContentLoaded',function(){
+  var headers=document.querySelectorAll('.tool-intro-header');
+  headers.forEach(function(h){
+    h.addEventListener('click',function(){
+      this.parentElement.classList.toggle('open');
+    });
+  });
+});
+</script>
+
+</body>
+</html>

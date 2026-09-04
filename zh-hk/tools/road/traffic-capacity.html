@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="zh-HK" data-opencc-locale="zh-hk">
+<head>
+
+<script src="/js/tool-page-runtime.js" defer></script>
+<!-- TOOLBOX-TOOL-RUNTIME -->
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="toolbox" content="cat=engineer,industry=road,icon=🚗,bg=#fff3e0">
+<meta name="description" content="计算道路基本、可能与设计通行能力，按 V/C 饱和度评估服务水平（LOS），并考虑车道数、大型车等修正系数，辅助交通规划。">
+<title>道路通行能力 - ToolBox</title>
+<link rel="canonical" href="https://chenguangwu.github.io/zh-hk/tools/road/traffic-capacity.html">
+<meta property="og:title" content="道路通行能力">
+<meta property="og:description" content="计算道路基本、可能与设计通行能力，按 V/C 饱和度评估服务水平（LOS），并考虑车道数、大型车等修正系数，辅助交通规划。">
+<meta property="og:url" content="https://chenguangwu.github.io/zh-hk/tools/road/traffic-capacity.html">
+<meta name="twitter:card" content="summary">
+<link rel="preload" as="style" href="/css/common.css" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="/css/common.css"></noscript>
+<script>window.__tbq=window.__tbq||[];window.ToolBox=window.ToolBox||{};['initToolTheme','addToolStyles','showToast','toast','copyText','copyToClipboard','copyFromElement','downloadText','injectPrivacyBadge','toggleFavTool','addToRecentTool','toggleToolTheme','applyTheme'].forEach(function(k){if(typeof window.ToolBox[k]!=='function')window.ToolBox[k]=function(){window.__tbq.push([k,[].slice.call(arguments)]);};});</script><!-- TOOLBOX-API-STUB -->
+<script src="/js/common.js" defer></script>
+<style>
+.formula-box{background:var(--result-bg);border:1px solid var(--border);border-radius:10px;padding:14px;margin:12px 0;font-size:13px;line-height:1.8;color:var(--text-light);}
+.formula-box .formula{font-family:'SF Mono','Courier New',monospace;font-size:14px;text-align:center;padding:10px;background:var(--card-bg);border-radius:8px;margin:8px 0;color:var(--primary);font-weight:600;}
+.stat-grid-2{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin:12px 0;}
+.stat-card{background:var(--result-bg);border:1px solid var(--border);border-radius:10px;padding:14px;text-align:center;}
+.stat-card .val{font-size:20px;font-weight:700;color:var(--primary);}
+.stat-card .lbl{font-size:12px;color:var(--text-muted);margin-top:4px;}
+.grade-tag{display:inline-block;padding:4px 12px;border-radius:20px;font-size:12px;font-weight:600;}
+.los-bar{height:28px;border-radius:8px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:12px;font-weight:700;margin:8px 0;}
+.bar-row{display:flex;align-items:center;gap:8px;margin:6px 0;font-size:13px;}
+.bar-row .bar-bg{flex:1;height:20px;background:var(--border);border-radius:6px;overflow:hidden;}
+.bar-row .bar-fill{height:100%;border-radius:6px;background:var(--gradient-primary);display:flex;align-items:center;padding-left:8px;color:#fff;font-size:11px;font-weight:600;}
+.bar-row .bar-lbl{width:90px;text-align:right;flex-shrink:0;color:var(--text-light);font-size:12px;}
+</style>
+
+
+
+<meta property="og:image" content="https://chenguangwu.github.io/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="ToolBox - 5000+免费在线工具">
+<meta name="twitter:image" content="https://chenguangwu.github.io/og-image.png">
+<meta name="twitter:image:alt" content="ToolBox - 5000+免费在线工具">
+    <meta property="og:type" content="website">
+    <meta name="twitter:title" content="道路通行能力">
+    <meta name="twitter:description" content="计算道路基本、可能与设计通行能力，按 V/C 饱和度评估服务水平（LOS），并考虑车道数、大型车等修正系数，辅助交通规划。">
+<!-- TOOLBOX-WEBAPP-LD -->
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"道路通行能力","url":"https://chenguangwu.github.io/zh-hk/tools/road/traffic-capacity.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":"zh-HK","description":"計算道路基本、可能與設計通行能力，按 V/C 飽和度評估服務水平（LOS），並考慮車道數、大型車等修正係數，輔助交通規劃。","image":"https://chenguangwu.github.io/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}</script>
+<meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
+<meta http-equiv="X-Content-Type-Options" content="nosniff">
+<meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
+<!-- TOOLBOX-SECURITY -->
+
+<script src="/js/privacy.js" defer></script>
+<!-- TOOLBOX-PRIVACY-SCRIPT -->
+
+<script src="/js/metrics.js" defer></script>
+<!-- TOOLBOX-METRICS-SCRIPT -->
+
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"首頁","item":"https://chenguangwu.github.io/zh-hk/"},{"@type":"ListItem","position":2,"name":"道路工程","item":"https://chenguangwu.github.io/zh-hk/tools/road/index.html"},{"@type":"ListItem","position":3,"name":"通行能力計算","item":"https://chenguangwu.github.io/zh-hk/tools/road/traffic-capacity.html"}]}</script>
+
+<script src="/js/i18n.js" defer></script>
+<script src="/js/tool-i18n.js" defer></script>
+<!-- TOOLBOX-I18N-SCRIPT -->
+
+
+<meta name="title-en" content="Traffic Capacity - ToolBox">
+<meta name="desc-en" content="Traffic Capacity - free online tool. Free online tool on ToolBox — 100% client-side, no data uploaded, no install. Part of the Road Engineering tools.">
+<!-- TOOLBOX-HREFLANG -->
+<link rel="alternate" hreflang="zh-CN" href="https://chenguangwu.github.io/tools/road/traffic-capacity.html">
+<link rel="alternate" hreflang="zh-TW" href="https://chenguangwu.github.io/zh-tw/tools/road/traffic-capacity.html">
+<link rel="alternate" hreflang="zh-HK" href="https://chenguangwu.github.io/zh-hk/tools/road/traffic-capacity.html">
+<link rel="alternate" hreflang="en-US" href="https://chenguangwu.github.io/tools/road/traffic-capacity.html?lang=en-US">
+<link rel="alternate" hreflang="x-default" href="https://chenguangwu.github.io/tools/road/traffic-capacity.html">
+<meta property="og:locale" content="zh_HK">
+<meta property="og:locale:alternate" content="zh_CN">
+<meta property="og:locale:alternate" content="zh_TW">
+<meta property="og:locale:alternate" content="en_US">
+</head>
+<body>
+<h1 class="sr-only">通行能力計算</h1>
+
+<div class="nav">
+  <a href="/zh-hk/index.html">← ToolBox</a>
+  <span>/ 通行能力</span>
+  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()">🌙</button>
+</div>
+
+
+
+
+<nav class="breadcrumb" aria-label="麪包屑導航" data-breadcrumb="1">
+  <a href="/zh-hk/index.html">首頁</a>
+  <span class="bc-sep">‹</span>
+  <a href="/zh-hk/tools/road/index.html">🔧 道路工程</a>
+  <span class="bc-sep">‹</span>
+  <span class="bc-current">通行能力計算</span>
+</nav>
+<div class="container">
+<div class="card tool-card-accent" style="--tool-accent:#06B6D4;">
+<h2 data-zh="🚗 道路通行能力">🚗 Traffic Capacity</h2>
+<p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="基本/可能/設計通行能力計算，V/C比與服務水平(LOS)評估">Traffic Capacity is available directly in your browser, with no data uploaded.</p>
+
+<div class="input-row">
+  <div>
+    <label>道路類型</label>
+    <select id="inType" onchange="calc()">
+      <option value="freeway" selected>高速公路/一級</option>
+      <option value="multilane">多車道公路</option>
+      <option value="twolane">雙車道公路</option>
+      <option value="signal">信號交叉口</option>
+    </select>
+  </div>
+  <div>
+    <label>單向車道數 N</label>
+    <select id="inN" onchange="calc()">
+      <option value="1">1</option>
+      <option value="2" selected>2</option>
+      <option value="3">3</option>
+      <option value="4">4</option>
+    </select>
+  </div>
+</div>
+<div class="input-row">
+  <div>
+    <label>設計速度 (km/h)</label>
+    <select id="inV" onchange="calc()">
+      <option value="60">60</option>
+      <option value="80">80</option>
+      <option value="100" selected>100</option>
+      <option value="120">120</option>
+    </select>
+  </div>
+  <div>
+    <label>車道寬度 (m)</label>
+    <select id="inLW" onchange="calc()">
+      <option value="3.0">3.0</option>
+      <option value="3.25">3.25</option>
+      <option value="3.5" selected>3.5</option>
+      <option value="3.75">3.75</option>
+    </select>
+  </div>
+</div>
+<div class="input-row">
+  <div>
+    <label>大型車比例 PT (%)</label>
+    <input type="number" id="inPT" value="15" min="0" max="100" step="1" oninput="calc()">
+  </div>
+  <div>
+    <label>大型車換算係數 ET</label>
+    <select id="inET" onchange="calc()">
+      <option value="1.5">1.5（平原）</option>
+      <option value="2.0" selected>2.0（微丘）</option>
+      <option value="3.0">3.0（重丘）</option>
+    </select>
+  </div>
+</div>
+<div class="input-row">
+  <div>
+    <label>實際高峯流量 (pcu/h)</label>
+    <input type="number" id="inFlow" value="2000" min="0" step="50" oninput="calc()">
+  </div>
+  <div>
+    <label>側向淨寬 (m)</label>
+    <select id="inCL" onchange="calc()">
+      <option value="0.5">0.5（受限）</option>
+      <option value="1.0">1.0</option>
+      <option value="1.5" selected>1.5（充足）</option>
+    </select>
+  </div>
+</div>
+<div class="input-row">
+  <div>
+    <label>駕駛員修正係數 fp</label>
+    <select id="inFp" onchange="calc()">
+      <option value="0.85">0.85（通勤/混合）</option>
+      <option value="0.90">0.90</option>
+      <option value="1.0" selected>1.0（熟練）</option>
+    </select>
+  </div>
+  <div></div>
+</div>
+
+<div class="stat-grid-2">
+  <div class="stat-card"><div class="val" id="resBasic">--</div><div class="lbl">基本通行能力</div></div>
+  <div class="stat-card"><div class="val" id="resPossible">--</div><div class="lbl">可能通行能力</div></div>
+  <div class="stat-card"><div class="val" id="resDesign">--</div><div class="lbl">設計通行能力</div></div>
+  <div class="stat-card"><div class="val" id="resVC">--</div><div class="lbl">V/C 比</div></div>
+</div>
+
+<div class="los-bar" id="losBar">--</div>
+
+<div class="result-box" id="result"></div>
+
+<div class="formula-box">
+  <strong>📐 計算公式</strong>
+  <div class="formula">C = C₀ × N × f_w × f_HV × f_p</div>
+  <div class="formula" style="margin-top:8px;">f_HV = 1 / [1 + P_T×(E_T − 1)]</div>
+  <p>C₀：基本通行能力(pcu/h/ln)；N：車道數；f_w：車道寬/側向淨寬修正<br>
+  f_HV：大型車修正；f_p：駕駛員修正；V/C：飽和度<br>
+  設計通行能力 = 可能通行能力 × (規定設計服務水平對應V/C)</p>
+</div>
+
+<div class="tip-box tip-info">💡 服務水平(LOS)：A級最暢通，F級嚴重擁堵。高速公路設計一般取C級(V/C≤0.7)，城市道路取D級(V/C≤0.85)。</div>
+
+<div class="toolbar">
+  <button type="button" class="btn primary" onclick="calc()">🧮 計算</button>
+  <button type="button" class="btn" onclick="copyResult()">📋 複製結果</button>
+  <button type="button" class="btn" onclick="resetForm()">🔄 重置</button>
+</div>
+</div>
+
+<!-- TOOLBOX-DEEP-DIVE -->
+<style>
+.deep-dive{max-width:960px;margin:16px auto;padding:0 16px;}
+.deep-dive > .card{margin-bottom:0;}
+@media(max-width:600px){.deep-dive{margin:14px auto;padding:0 12px;}}
+.deep-dive .dd-list{margin:8px 0 16px;padding-left:20px;}
+.deep-dive .dd-list li{margin:6px 0;line-height:1.75;}
+.deep-dive .dd-example{background:var(--card-bg,#fff);border:1px solid var(--border,#eee);border-radius:10px;padding:12px 14px;margin:8px 0 16px;}
+.deep-dive .dd-ex-title{font-weight:600;color:var(--tool-accent,#FF6B35);margin-bottom:6px;}
+.deep-dive .dd-ex-body{font-size:13px;line-height:1.85;color:var(--text,#333);word-break:break-word;}
+.deep-dive .dd-faq{margin:8px 0 4px;}
+.deep-dive .dd-faq dt{font-weight:600;margin-top:10px;color:var(--text,#333);}
+.deep-dive .dd-faq dd{margin:4px 0 0;font-size:13px;line-height:1.85;color:var(--text-muted,#666);}
+
+</style>
+<section class="deep-dive" data-deep-dive="1">
+<div class="card">
+<h2>📚 深度解析：道路通行能力</h2>
+<h3>💡 常見使用場景</h3>
+<ul class="dd-list">
+<li>在road業務中，先把Traffic Capacity標準化後再執行對比，避免口徑重複換算導致的偏差。</li>
+<li>用於樣本快速復盤時，可將核心指標分層輸出，形成可審閲的判斷清單。</li>
+<li>建議與歷史版本一起保留，後續可對齊變化來源與改版動因。</li>
+</ul>
+<div class="dd-example"><div class="dd-ex-title">複用模板示例</div><div class="dd-ex-body">使用同口徑的一組標準輸入跑出結果，再切換一組近邊界值輸入複核；最終把差異和處理規則歸檔到團隊手冊。</div></div>
+<h3>❓ 常見問題（FAQ）</h3>
+<dl class="dd-faq">
+<dt>為什麼該工具要保留複用模板？</dt><dd>模板化內容能降低每次錄入時的遺漏風險，避免重複定義業務口徑。</dd>
+<dt>輸出字段夠不夠追溯？</dt><dd>可以把輸入源與關鍵假設一起記錄，配合日誌化管理，做到結果可複核。</dd>
+</dl>
+</div>
+</section>
+<!-- 注意事項區塊 -->
+<div class="tool-notes" style="--tool-accent:#06B6D4;">
+  <div class="tool-notes-title">⚠️ 使用説明與注意事項</div>
+  <ul>
+      <li>本工具純前端運行，數據不會上傳到伺服器</li>
+      <li>建議在主流瀏覽器（Chrome/Safari/Firefox/Edge）中使用</li>
+      <li>計算結果僅供參考，請以實際應用場景為準</li>
+  </ul>
+</div>
+<!-- /注意事項區塊 -->
+</div>
+<script>
+function fmt(v,d){if(!isFinite(v))return '--';return Number(v).toFixed(d!=null?d:0);}
+var BASE_CAP={
+  freeway:{60:2000,80:2100,100:2200,120:2200},
+  multilane:{60:1900,80:2000,100:2100},
+  twolane:{60:1600,80:1700},
+  signal:{60:1800,80:1900,100:2000}
+};
+var LOS_RANGES=[
+  {grade:'A',max:0.35,color:'#10B981',desc:'自由流，畅通'},
+  {grade:'B',max:0.54,color:'#22C55E',desc:'较好，延误小'},
+  {grade:'C',max:0.69,color:'#84CC16',desc:'稳定流'},
+  {grade:'D',max:0.84,color:'#F59E0B',desc:'接近不稳定'},
+  {grade:'E',max:1.0,color:'#EF4444',desc:'不稳定，拥挤'},
+  {grade:'F',max:Infinity,color:'#7F1D1D',desc:'强制流，拥堵'}
+];
+function losGrade(vc){
+  for(var i=0;i<LOS_RANGES.length;i++){
+    if(vc<=LOS_RANGES[i].max)return LOS_RANGES[i];
+  }
+  return LOS_RANGES[LOS_RANGES.length-1];
+}
+function laneWidthAdj(lw){
+  if(lw>=3.75)return 1.0;
+  if(lw>=3.5)return 0.97;
+  if(lw>=3.25)return 0.93;
+  return 0.88;
+}
+function lateralAdj(cl){
+  if(cl>=1.5)return 1.0;
+  if(cl>=1.0)return 0.97;
+  return 0.93;
+}
+function calc(){
+  var type=document.getElementById('inType').value;
+  var N=parseInt(document.getElementById('inN').value,10);
+  var V=parseInt(document.getElementById('inV').value,10);
+  var lw=parseFloat(document.getElementById('inLW').value);
+  var cl=parseFloat(document.getElementById('inCL').value);
+  var PT=parseFloat(document.getElementById('inPT').value)/100;
+  var ET=parseFloat(document.getElementById('inET').value);
+  var flow=parseFloat(document.getElementById('inFlow').value);
+  var fp=parseFloat(document.getElementById('inFp').value);
+  var c0=(BASE_CAP[type]||{})[V]||2000;
+  var fw=laneWidthAdj(lw)*lateralAdj(cl);
+  var fHV=1/(1+PT*(ET-1));
+  var cPossible=c0*N*fw*fHV*fp;
+  var designVC=0.7; // C级设计
+  var cDesign=cPossible*designVC;
+  var vc=flow/cPossible;
+  var los=losGrade(vc);
+  var ok=vc<=0.85;
+  document.getElementById('resBasic').textContent=c0*N+' pcu/h';
+  document.getElementById('resPossible').textContent=fmt(cPossible,0)+' pcu/h';
+  document.getElementById('resDesign').textContent=fmt(cDesign,0)+' pcu/h';
+  document.getElementById('resVC').textContent=vc.toFixed(3);
+  var losBar=document.getElementById('losBar');
+  losBar.textContent='服务水平 LOS '+los.grade+' — '+los.desc+' (V/C='+vc.toFixed(3)+')';
+  losBar.style.background=los.color;
+  // bars
+  var bars=[
+    {lbl:'基本通行能力',val:c0*N,max:c0*N*1.2},
+    {lbl:'可能通行能力',val:cPossible,max:c0*N*1.2},
+    {lbl:'实际流量',val:flow||0,max:c0*N*1.2},
+    {lbl:'设计通行能力',val:cDesign,max:c0*N*1.2}
+  ];
+  var barHtml='';
+  bars.forEach(function(b){
+    var pct=Math.min(Math.round(b.val/b.max*100),100);
+    barHtml+='<div class="bar-row"><span class="bar-lbl">'+b.lbl+'</span>'+
+      '<div class="bar-bg"><div class="bar-fill" style="width:'+pct+'%;">'+fmt(b.val,0)+'</div></div></div>';
+  });
+  document.getElementById('result').innerHTML=
+    '<p><strong>道路类型：</strong>'+({freeway:'高速/一级',multilane:'多车道',twolane:'双车道',signal:'信号交叉口'}[type])+'</p>'+
+    '<p><strong>基本通行能力：</strong>C₀ = '+c0+' pcu/h/ln × '+N+'车道 = '+c0*N+' pcu/h</p>'+
+    '<p><strong>车道宽修正：</strong>f_w = '+laneWidthAdj(lw).toFixed(2)+'(车道) × '+lateralAdj(cl).toFixed(2)+'(侧向) = '+fw.toFixed(3)+'</p>'+
+    '<p><strong>大型车修正：</strong>f_HV = 1/[1+'+(PT*100).toFixed(0)+'%×('+ET+'−1)] = '+fHV.toFixed(3)+'</p>'+
+    '<p><strong>驾驶员修正：</strong>f_p = '+fp+'</p>'+
+    '<p><strong>可能通行能力：</strong>C = '+c0*N+'×'+fw.toFixed(3)+'×'+fHV.toFixed(3)+'×'+fp+' = '+fmt(cPossible,0)+' pcu/h</p>'+
+    '<p><strong>设计通行能力：</strong>'+fmt(cDesign,0)+' pcu/h (C级，V/C=0.7)</p>'+
+    '<p><strong>实际流量：</strong>'+(flow||0)+' pcu/h</p>'+
+    '<p><strong>饱和度 V/C：</strong>'+vc.toFixed(3)+' → LOS '+los.grade+' ('+los.desc+')</p>'+
+    '<p><strong>校核：</strong><span class="grade-tag '+(ok?'grade-excellent':'grade-fail')+'">'+(ok?'满足设计要求':'超出D级，需扩容')+'</span></p>'+
+    '<div style="margin-top:12px;">'+barHtml+'</div>';
+  window._lastResult={basic:c0*N,possible:cPossible,design:cDesign,vc:vc,los:los.grade,flow:flow,ok:ok};
+}
+function copyResult(){
+  if(!window._lastResult)return;
+  var r=window._lastResult;
+  ToolBox.copyText('通行能力计算结果：\n基本通行能力: '+r.basic+' pcu/h\n可能通行能力: '+r.possible.toFixed(0)+' pcu/h\n设计通行能力: '+r.design.toFixed(0)+' pcu/h\n实际流量: '+r.flow+' pcu/h\nV/C比: '+r.vc.toFixed(3)+'\n服务水平: LOS '+r.los+'\n校核: '+(r.ok?'满足':'需扩容'));
+}
+function resetForm(){
+  document.getElementById('inType').value='freeway';
+  document.getElementById('inN').value='2';
+  document.getElementById('inV').value='100';
+  document.getElementById('inLW').value='3.5';
+  document.getElementById('inCL').value='1.5';
+  document.getElementById('inPT').value=15;
+  document.getElementById('inET').value='2.0';
+  document.getElementById('inFlow').value=2000;
+  document.getElementById('inFp').value='1.0';
+  calc();
+}
+calc();
+</script>
+
+<!-- SEO 介紹區塊 -->
+
+</div>
+
+</div>
+
+<!-- 相關工具 -->
+<div class="related-tools" data-related-tools="1">
+  <h3 class="related-tools-title">🔗 相關工具</h3>
+  <div class="related-tools-grid">
+    <a href="/zh-hk/tools/science/text-extract-phones.html" class="related-tool-card">
+      <span class="rt-icon">📝</span>
+      <span class="rt-info"><span class="rt-name">提取電話號碼 - 免費文本處理工具，在線提取電話號碼 | ToolBox免費在線工具箱</span><span class="rt-desc">提取電話號碼</span></span>
+    </a>
+    <a href="/zh-hk/tools/science/barcode-pharmacode.html" class="related-tool-card">
+      <span class="rt-icon">🎲</span>
+      <span class="rt-info"><span class="rt-name">Pharmacode 條形碼 - 免費生成器工具，在線Pharmacode 條形碼 | ToolBox免費在線工具箱</span><span class="rt-desc">Pharmacode 條形碼</span></span>
+    </a>
+    <a href="/zh-hk/tools/science/passphrase-generator.html" class="related-tool-card">
+      <span class="rt-icon">🎲</span>
+      <span class="rt-info"><span class="rt-name">密碼短語生成器 - 免費生成器工具，在線密碼短語生成器 | ToolBox免費在線工具箱</span><span class="rt-desc">密碼短語生成器</span></span>
+    </a>
+    <a href="/zh-hk/tools/misc/magic-square.html" class="related-tool-card">
+      <span class="rt-icon">🪄</span>
+      <span class="rt-info"><span class="rt-name">幻方生成器 - 科學研究在線工具 | ToolBox免費在線工具箱</span><span class="rt-desc">幻方生成器</span></span>
+    </a>
+    <a href="/zh-hk/tools/science/phone-qr.html" class="related-tool-card">
+      <span class="rt-icon">🎲</span>
+      <span class="rt-info"><span class="rt-name">電話二維碼 - 免費生成器工具，在線電話二維碼 | ToolBox免費在線工具箱</span><span class="rt-desc">電話二維碼</span></span>
+    </a>
+    <a href="/zh-hk/tools/misc/truth-table.html" class="related-tool-card">
+      <span class="rt-icon">🔌</span>
+      <span class="rt-info"><span class="rt-name">邏輯真值表生成器 - 科學研究在線工具 | ToolBox免費在線工具箱</span><span class="rt-desc">邏輯真值表生成器</span></span>
+    </a>
+  </div>
+</div>
+<div class="tool-intro open" id="toolIntro">
+  <div class="tool-intro-header">
+    <span class="intro-icon-wrap"><span class="intro-icon">📖</span>關於「通行能力計算」</span>
+    <span class="arrow">▼</span>
+  </div>
+  <div class="tool-intro-body">
+    <h4><span class="h4-icon">📝</span>工具簡介</h4>
+    <p>道路通行能力計算器 - 基本通行能力、可能通行能力與設計通行能力計算，含服務水平評估。。科學研究工具，採用標準科學公式，計算精準。</p>
+    <h4><span class="h4-icon">✨</span>功能特點</h4>
+    <ul class="intro-features">
+      <li>採用標準科學計算公式</li>
+      <li>支持多種參數配置</li>
+      <li>實時計算，即時顯示結果</li>
+      <li>數據不上傳，安全可靠</li>
+    </ul>
+    <h4><span class="h4-icon">🎯</span>使用場景</h4>
+    <ul class="intro-scenes">
+      <li>科學實驗數據分析</li>
+      <li>物理化學計算</li>
+      <li>學術研究輔助</li>
+      <li>學習科學知識</li>
+    </ul>
+    <h4><span class="h4-icon">💬</span>常見問題</h4>
+      <div class="intro-faq-item"><div class="intro-faq-q">這個工具是免費的嗎？</div><div class="intro-faq-a">完全免費，無需註冊，直接在瀏覽器中使用。</div></div>
+      <div class="intro-faq-item"><div class="intro-faq-q">計算結果準確嗎？</div><div class="intro-faq-a">採用標準科學計算公式，結果準確可靠。</div></div>
+      <div class="intro-faq-item"><div class="intro-faq-q">支持手機使用嗎？</div><div class="intro-faq-a">支持。頁面已做響應式適配，手機和電腦均可正常使用。</div></div>
+  </div>
+</div>
+<!-- /SEO 介紹區塊 -->
+
+<script>
+// tool-intro折叠交互
+document.addEventListener('DOMContentLoaded',function(){
+  var headers=document.querySelectorAll('.tool-intro-header');
+  headers.forEach(function(h){
+    h.addEventListener('click',function(){
+      this.parentElement.classList.toggle('open');
+    });
+  });
+});
+</script>
+
+</body>
+</html>

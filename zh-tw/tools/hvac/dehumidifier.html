@@ -1,0 +1,644 @@
+<!DOCTYPE html>
+<html lang="zh-TW" data-opencc-locale="zh-tw">
+<head>
+
+<script src="/js/tool-page-runtime.js" defer></script>
+<!-- TOOLBOX-TOOL-RUNTIME -->
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>除溼量計算器 Dehumidifier Sizing - ToolBox</title>
+<link rel="canonical" href="https://chenguangwu.github.io/zh-tw/tools/hvac/dehumidifier.html">
+<meta property="og:url" content="https://chenguangwu.github.io/zh-tw/tools/hvac/dehumidifier.html">
+<meta name="twitter:card" content="summary">
+<meta name="toolbox" content="cat=calculator,industry=hvac,icon=🌫️,bg=#e8f5e9">
+<meta name="description" content="根据房间体积、温湿度与换气次数，计算除湿负荷并推荐除湿机容量。基于标准大气压(101.325kPa)与 Magnus 饱和蒸汽压公式。">
+<meta name="keywords" content="除湿量计算器,除湿机选型,含湿量计算,露点温度,相对湿度,绝对湿度,湿度比,换气次数,空气密度,焓湿图,除湿负荷,kg/h,L/day">
+<meta name="author" content="ToolBox">
+<meta name="robots" content="index, follow">
+<meta property="og:title" content="除湿量计算器 Dehumidifier Sizing">
+<meta property="og:description" content="根据房间体积、温湿度与换气次数，计算除湿负荷并推荐除湿机容量。基于标准大气压(101.325kPa)与 Magnus 饱和蒸汽压公式。">
+<meta property="og:type" content="website">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/favicon.ico" type="image/x-icon">
+<link rel="preload" as="style" href="/css/common.css" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="/css/common.css"></noscript>
+<script>window.__tbq=window.__tbq||[];window.ToolBox=window.ToolBox||{};['initToolTheme','addToolStyles','showToast','toast','copyText','copyToClipboard','copyFromElement','downloadText','injectPrivacyBadge','toggleFavTool','addToRecentTool','toggleToolTheme','applyTheme'].forEach(function(k){if(typeof window.ToolBox[k]!=='function')window.ToolBox[k]=function(){window.__tbq.push([k,[].slice.call(arguments)]);};});</script><!-- TOOLBOX-API-STUB -->
+<script src="/js/common.js" defer></script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"除溼量計算器","description":"通過溫度、相對溼度、房間體積與換氣次數計算含溼量、露點溫度、空氣密度及除溼量(kg/h、kg/day)，並推薦除溼機選型容量，純前端處理。","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"},"featureList":["含溼量(溼度比)計算","露點溫度計算","空氣密度計算","每小時/每日除溼量","除溼機選型推薦","飽和含溼量參考表","純前端處理"]}</script>
+<style>
+/* ===== 除湿量计算器专属样式 ===== */
+:root{
+  --dh-accent:#00C9A7;
+  --dh-accent-dark:#00A88A;
+  --dh-water:#3B82F6;
+}
+[data-theme="dark"]{
+  --dh-accent:#34D399;
+  --dh-accent-dark:#00C9A7;
+  --dh-water:#60A5FA;
+}
+.dh-tool h2 .sub{font-size:13px;font-weight:400;color:var(--text-muted);margin-left:6px;}
+
+/* 输入分组 */
+.dh-input-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;}
+.dh-input-grid .full{grid-column:1/-1;}
+
+/* RH 状态条 */
+.rh-bar-wrap{margin:14px 0 4px;}
+.rh-bar-wrap .rh-labels{display:flex;justify-content:space-between;font-size:12px;color:var(--text-muted);margin-bottom:6px;}
+.rh-bar{position:relative;height:30px;border-radius:10px;overflow:hidden;background:linear-gradient(90deg,#10B981 0%,#10B981 40%,#F59E0B 60%,#EF4444 100%);}
+.rh-marker{position:absolute;top:-4px;bottom:-4px;width:3px;background:var(--text-primary);border-radius:2px;box-shadow:0 0 0 2px var(--card-bg);transition:left .35s cubic-bezier(.4,0,.2,1);}
+.rh-marker.target{background:var(--dh-accent);box-shadow:0 0 0 2px var(--card-bg);}
+.rh-marker .tag{position:absolute;top:-22px;left:50%;transform:translateX(-50%);font-size:11px;font-weight:600;white-space:nowrap;color:var(--text-primary);background:var(--card-bg);padding:1px 6px;border-radius:6px;border:1px solid var(--border);}
+.rh-legend{display:flex;gap:14px;flex-wrap:wrap;margin-top:10px;font-size:12px;color:var(--text-muted);}
+.rh-legend .dot{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:middle;}
+
+/* 数据卡片强调 */
+.dh-tool .data-card .num{font-size:20px;}
+.dh-tool .data-card .num.water{color:var(--dh-water);}
+.dh-tool .data-card .num.accent{color:var(--dh-accent);}
+.dh-tool .data-card .unit{font-size:12px;color:var(--text-muted);font-weight:500;margin-left:2px;}
+
+/* 计算步骤 */
+.calc-steps{margin-top:10px;}
+
+/* 推荐选型 */
+.recommend-box{background:linear-gradient(135deg,rgba(0,201,167,0.08) 0%,rgba(59,130,246,0.06) 100%);border:1px solid rgba(0,201,167,0.25);border-radius:14px;padding:16px 18px;margin-top:14px;}
+[data-theme="dark"] .recommend-box{background:linear-gradient(135deg,rgba(0,201,167,0.12) 0%,rgba(59,130,246,0.08) 100%);}
+.recommend-box .rec-title{font-size:14px;font-weight:700;color:var(--heading);margin-bottom:8px;display:flex;align-items:center;gap:6px;}
+.recommend-box .rec-cap{font-size:28px;font-weight:800;color:var(--dh-accent);line-height:1.2;}
+.recommend-box .rec-cap .u{font-size:14px;font-weight:600;color:var(--text-secondary);margin-left:4px;}
+.recommend-box .rec-hint{font-size:12.5px;color:var(--text-secondary);margin-top:8px;line-height:1.6;}
+
+/* 参考表容器 */
+.sat-table-wrap{overflow:hidden;border-radius:12px;}
+
+/* 预设按钮 */
+.preset-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:4px;}
+.preset-btn{padding:7px 14px;border-radius:999px;border:1px solid var(--border);background:var(--card-bg);color:var(--text-secondary);font-size:12.5px;cursor:pointer;transition:all .2s;font-weight:500;}
+.preset-btn:hover{border-color:var(--dh-accent);color:var(--dh-accent);background:rgba(0,201,167,0.06);}
+
+@media(max-width:768px){
+  .dh-input-grid{grid-template-columns:1fr;}
+  .dh-tool .data-card .num{font-size:18px;}
+}
+</style>
+
+
+
+<meta property="og:image" content="https://chenguangwu.github.io/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="ToolBox - 5000+免费在线工具">
+<meta name="twitter:image" content="https://chenguangwu.github.io/og-image.png">
+<meta name="twitter:image:alt" content="ToolBox - 5000+免费在线工具">
+    <meta name="twitter:title" content="除湿量计算器 Dehumidifier Sizing">
+    <meta name="twitter:description" content="根据房间体积、温湿度与换气次数，计算除湿负荷并推荐除湿机容量。基于标准大气压(101.325kPa)与 Magnus 饱和蒸汽压公式。">
+<!-- TOOLBOX-WEBAPP-LD -->
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"除溼量計算器 Dehumidifier Sizing","url":"https://chenguangwu.github.io/zh-tw/tools/hvac/dehumidifier.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":"zh-TW","description":"根據房間體積、溫溼度與換氣次數，計算除溼負荷並推薦除溼機容量。基於標準大氣壓(101.325kPa)與 Magnus 飽和蒸汽壓公式。","image":"https://chenguangwu.github.io/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}</script>
+<meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
+<meta http-equiv="X-Content-Type-Options" content="nosniff">
+<meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
+<!-- TOOLBOX-SECURITY -->
+
+<script src="/js/privacy.js" defer></script>
+<!-- TOOLBOX-PRIVACY-SCRIPT -->
+
+<script src="/js/metrics.js" defer></script>
+<!-- TOOLBOX-METRICS-SCRIPT -->
+
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"首頁","item":"https://chenguangwu.github.io/zh-tw/"},{"@type":"ListItem","position":2,"name":"暖通空調","item":"https://chenguangwu.github.io/zh-tw/tools/hvac/index.html"},{"@type":"ListItem","position":3,"name":"除溼量計算器","item":"https://chenguangwu.github.io/zh-tw/tools/hvac/dehumidifier.html"}]}</script>
+
+<script src="/js/i18n.js" defer></script>
+<script src="/js/tool-i18n.js" defer></script>
+<!-- TOOLBOX-I18N-SCRIPT -->
+
+
+<meta name="title-en" content="Dehumidifier - ToolBox">
+<meta name="desc-en" content="Dehumidifier - free online tool. Free online tool on ToolBox — 100% client-side, no data uploaded, no install. Part of the HVAC (Heating, Ventilation, Air ...">
+<!-- TOOLBOX-HREFLANG -->
+<link rel="alternate" hreflang="zh-CN" href="https://chenguangwu.github.io/tools/hvac/dehumidifier.html">
+<link rel="alternate" hreflang="zh-TW" href="https://chenguangwu.github.io/zh-tw/tools/hvac/dehumidifier.html">
+<link rel="alternate" hreflang="zh-HK" href="https://chenguangwu.github.io/zh-hk/tools/hvac/dehumidifier.html">
+<link rel="alternate" hreflang="en-US" href="https://chenguangwu.github.io/tools/hvac/dehumidifier.html?lang=en-US">
+<link rel="alternate" hreflang="x-default" href="https://chenguangwu.github.io/tools/hvac/dehumidifier.html">
+<meta property="og:locale" content="zh_TW">
+<meta property="og:locale:alternate" content="zh_CN">
+<meta property="og:locale:alternate" content="zh_HK">
+<meta property="og:locale:alternate" content="en_US">
+</head>
+<body>
+<h1 class="sr-only">除溼量計算器</h1>
+
+<!-- 導航欄 -->
+<div class="nav">
+  <a href="/zh-tw/index.html">← ToolBox</a>
+  <span>/ 除溼量計算器</span>
+  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()" aria-label="切換主題">🌙</button>
+</div>
+
+<div class="container dh-tool">
+
+  <!-- 輸入區 -->
+
+
+
+
+<nav class="breadcrumb" aria-label="麵包屑導航" data-breadcrumb="1">
+  <a href="/zh-tw/index.html">首頁</a>
+  <span class="bc-sep">‹</span>
+  <a href="/zh-tw/tools/hvac/index.html">🔧 暖通空調</a>
+  <span class="bc-sep">‹</span>
+  <span class="bc-current">除溼量計算器</span>
+</nav>
+<div class="card">
+    <h2 data-zh="🌫️ 除溼量計算器 &lt;span class=&quot;sub&quot;&gt;Dehumidifier Sizing&lt;/span&gt;">🌫️ Dehumidifier</h2>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="根據房間體積、溫溼度與換氣次數，計算除溼負荷並推薦除溼機容量。基於標準大氣壓(101.325kPa)與 Magnus 飽和蒸汽壓公式。">Dehumidifier is available directly in your browser, with no data uploaded.</p>
+
+    <div class="dh-input-grid">
+      <div class="full">
+        <label>房間體積 <span style="color:var(--text-muted);font-weight:400;">(m³)</span></label>
+        <input type="number" id="volume" value="120" min="1" step="1" inputmode="decimal" placeholder="如 面積×層高">
+      </div>
+      <div>
+        <label>當前溫度 <span style="color:var(--text-muted);font-weight:400;">(°C)</span></label>
+        <input type="number" id="temp" value="26" min="-20" max="60" step="0.1" inputmode="decimal">
+      </div>
+      <div>
+        <label>換氣次數 <span style="color:var(--text-muted);font-weight:400;">(次/h)</span></label>
+        <input type="number" id="ach" value="0.5" min="0" step="0.1" inputmode="decimal">
+      </div>
+      <div>
+        <label>當前相對溼度 <span style="color:var(--text-muted);font-weight:400;">(%)</span></label>
+        <input type="number" id="rh1" value="80" min="0" max="100" step="1" inputmode="decimal">
+      </div>
+      <div>
+        <label>目標相對溼度 <span style="color:var(--text-muted);font-weight:400;">(%)</span></label>
+        <input type="number" id="rh2" value="55" min="0" max="100" step="1" inputmode="decimal">
+      </div>
+    </div>
+
+    <!-- 溼度狀態條 -->
+    <div class="rh-bar-wrap">
+      <div class="rh-labels"><span>0%</span><span>相對溼度區間</span><span>100%</span></div>
+      <div class="rh-bar" id="rhBar">
+        <div class="rh-marker" id="rhMarkerCur" style="left:80%;"><span class="tag" id="rhTagCur">當前 80%</span></div>
+        <div class="rh-marker target" id="rhMarkerTar" style="left:55%;"><span class="tag" id="rhTagTar">目標 55%</span></div>
+      </div>
+      <div class="rh-legend">
+        <span><span class="dot" style="background:#10B981;"></span>舒適 40-60%</span>
+        <span><span class="dot" style="background:#F59E0B;"></span>偏溼 60-70%</span>
+        <span><span class="dot" style="background:#EF4444;"></span>過溼 &gt;70%</span>
+      </div>
+    </div>
+
+    <!-- 預設場景 -->
+    <div style="margin-top:14px;">
+      <label style="margin-bottom:6px;">快捷預設</label>
+      <div class="preset-row">
+        <button class="preset-btn" data-preset="basement">地下室</button>
+        <button class="preset-btn" data-preset="warehouse">倉庫</button>
+        <button class="preset-btn" data-preset="bedroom">臥室</button>
+        <button class="preset-btn" data-preset="bathroom">浴室</button>
+        <button class="preset-btn" data-preset="south">南方梅雨</button>
+      </div>
+    </div>
+
+    <div class="toolbar" style="margin-top:16px;">
+      <button class="btn primary" onclick="calc()">📊 開始計算</button>
+      <button class="btn" onclick="copyResult()">📋 複製結果</button>
+      <button class="btn" onclick="resetInputs()">↺ 重置</button>
+    </div>
+  </div>
+
+  <!-- 結果區 -->
+  <div class="card" id="resultCard" style="display:none;">
+    <h2>📈 計算結果</h2>
+
+    <!-- 核心資料卡片 -->
+    <div class="data-grid" id="dataGrid"></div>
+
+    <!-- 計算步驟 -->
+    <div class="result-box">
+      <h3 style="font-size:14px;margin-bottom:10px;">🔢 計算過程</h3>
+      <div class="calc-steps" id="calcSteps"></div>
+    </div>
+
+    <!-- 推薦選型 -->
+    <div class="recommend-box" id="recommendBox">
+      <div class="rec-title">🎯 推薦除溼機選型容量</div>
+      <div class="rec-cap" id="recCap">— <span class="u">L/day</span></div>
+      <div class="rec-hint" id="recHint"></div>
+    </div>
+
+    <div class="info-box" id="adviceBox"></div>
+  </div>
+
+  <!-- 飽和含溼量參考表 -->
+  <div class="card">
+    <h2>📚 飽和含溼量參考表</h2>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:14px;">標準大氣壓(101.325kPa)下，不同溫度對應 100% 相對溼度時的飽和含溼量 d<sub>s</sub>（g/kg 幹空氣）。</p>
+    <div class="sat-table-wrap" id="satTableWrap"></div>
+    <div class="tip-box tip-info" style="margin-top:14px;">
+      💡 <strong>讀表方法</strong>：同一溫度下，實際含溼量 = 飽和含溼量 × 相對溼度(%)。溫度越高，空氣能容納的水分越多，飽和含溼量越大。
+    </div>
+  </div>
+
+</div>
+
+<!-- SEO 介紹區塊 -->
+
+</div>
+
+</div>
+
+<!-- 相關工具 -->
+<div class="related-tools" data-related-tools="1">
+  <h3 class="related-tools-title">🔗 相關工具</h3>
+  <div class="related-tools-grid">
+    <a href="/zh-tw/tools/hvac/cooling-tower.html" class="related-tool-card">
+      <span class="rt-icon">🗼</span>
+      <span class="rt-info"><span class="rt-name">冷卻塔散熱與補水量計算器 - 線上計算冷卻塔散熱量、冷卻範圍、接近度、蒸發損失、飄水損失、 | ToolBox免費線上工具箱</span><span class="rt-desc">冷卻塔散熱與補水量計算器</span></span>
+    </a>
+    <a href="/zh-tw/tools/hvac/chiller-efficiency.html" class="related-tool-card">
+      <span class="rt-icon">🏭</span>
+      <span class="rt-info"><span class="rt-name">冷機COP/EER能效計算器 - 免費線上計算冷水機組效能係數(COP)、能效比(EER)、單 | ToolBox免費線上工具箱</span><span class="rt-desc">&amp;#127981; 冷機COP/EER能效計算器</span></span>
+    </a>
+    <a href="/zh-tw/tools/hvac/fresh-air-load.html" class="related-tool-card">
+      <span class="rt-icon">🍃</span>
+      <span class="rt-info"><span class="rt-name">新風負荷計算器 - 線上計算新風全熱負荷、顯熱負荷、潛熱負荷，基於焓溼圖公式 h | ToolBox免費線上工具箱</span><span class="rt-desc">新風負荷計算器</span></span>
+    </a>
+    <a href="/zh-tw/tools/hvac/pump-calculator.html" class="related-tool-card">
+      <span class="rt-icon">💧</span>
+      <span class="rt-info"><span class="rt-name">水泵揚程流量計算器 - 水泵揚程與流量計算器，線上計算管路流速、沿程阻力損失、區域性阻 | ToolBox免費線上工具箱</span><span class="rt-desc">水泵揚程與流量計算器</span></span>
+    </a>
+    <a href="/zh-tw/tools/hvac/cooling-load.html" class="related-tool-card">
+      <span class="rt-icon">❄️</span>
+      <span class="rt-info"><span class="rt-name">空調負荷計算器 - 基於簡化冷負荷係數法，計算外牆、窗戶、人員、裝置、照明、新風 | ToolBox免費線上工具箱</span><span class="rt-desc">空調負荷計算器</span></span>
+    </a>
+    <a href="/zh-tw/tools/hvac/supply-air.html" class="related-tool-card">
+      <span class="rt-icon">🌀</span>
+      <span class="rt-info"><span class="rt-name">送風量與風速設計計算器 - 免費暖通空調設計工具，線上計算空調送風量、換氣次數、送風口數 | ToolBox免費線上工具箱</span><span class="rt-desc">送風量與風速設計計算器</span></span>
+    </a>
+  </div>
+</div>
+<div class="tool-intro" id="toolIntro" style="max-width:960px;margin:0 auto 20px;padding:0 16px;">
+  <div class="tool-intro-header">
+    <span class="intro-icon-wrap"><span class="intro-icon">🌫️</span>關於「除溼量計算器」</span>
+    <span class="arrow">▼</span>
+  </div>
+  <div class="tool-intro-body">
+    <h4><span class="h4-icon">📝</span>工具簡介</h4>
+    <p>除溼量計算器是一款面向暖通空調(HVAC)與日常防潮除溼場景的線上工具。輸入房間體積、當前溫度、當前相對溼度、目標相對溼度與換氣次數，即可計算當前與目標含溼量(溼度比)、含溼量差、露點溫度、溼空氣密度，並得出每小時(kg/h)與每日(kg/day)的除溼量負荷，最終給出除溼機選型容量推薦(L/day)。計算基於 Magnus 飽和水蒸氣分壓力公式與標準大氣壓(101.325kPa)，所有運算在瀏覽器本地完成，資料不上傳。</p>
+    <h4><span class="h4-icon">✨</span>功能特點</h4>
+    <ul class="intro-features">
+      <li>含溼量(溼度比) d 計算</li>
+      <li>露點溫度計算</li>
+      <li>溼空氣密度 ρ 計算</li>
+      <li>每小時/每日除溼量</li>
+      <li>除溼機選型容量推薦</li>
+      <li>飽和含溼量參考表</li>
+      <li>相對溼度區間視覺化</li>
+      <li>地下室/倉庫/梅雨等預設</li>
+      <li>純前端處理，資料不上傳</li>
+      <li>支援深色模式與響應式</li>
+    </ul>
+    <h4><span class="h4-icon">🎯</span>使用場景</h4>
+    <ul class="intro-scenes">
+      <li>地下室防潮除溼選型</li>
+      <li>倉庫/檔案室溼度控制</li>
+      <li>南方梅雨季除溼配置</li>
+      <li>家庭臥室/客廳除溼</li>
+      <li>浴室/泳池區除溼計算</li>
+      <li>HVAC 除溼負荷估算</li>
+    </ul>
+    <h4><span class="h4-icon">💬</span>常見問題</h4>
+    <div class="intro-faq-item">
+      <div class="intro-faq-q">除溼量公式 W = V × n × ρ × Δd / 1000 是什麼含義？</div>
+      <div class="intro-faq-a">V×n 為每小時通風量(m³/h)，再乘以空氣密度 ρ(kg/m³)得到每小時空氣質量流量(kg/h)；Δd 為當前與目標含溼量之差(g/kg 幹空氣)，二者相乘得到每小時需去除水分(g/h)，除以 1000 換算為 kg/h。</div>
+    </div>
+    <div class="intro-faq-item">
+      <div class="intro-faq-q">換氣次數 n 應該填多少？</div>
+      <div class="intro-faq-a">密閉較好房間取 0.3-0.5 次/h；普通居住房間取 0.5-1.0 次/h；通風頻繁或門窗常開取 1-2 次/h；倉庫、地下室可取 0.5-1.5 次/h。該值表示每小時房間空氣被外界(更溼)空氣替換的比例，值越大除溼負荷越高。</div>
+    </div>
+    <div class="intro-faq-item">
+      <div class="intro-faq-q">推薦的除溼機容量為什麼比計算值大？</div>
+      <div class="intro-faq-a">本工具在計算出的每日除溼負荷基礎上附加約 30% 安全裕量，以應對開門滲溼、人員散溼、額外溼源及銘牌工況差異，確保實際使用中能穩定達到目標溼度。</div>
+    </div>
+    <div class="intro-faq-item">
+      <div class="intro-faq-q">kg/day 與 L/day 怎麼換算？</div>
+      <div class="intro-faq-a">水的密度約 1 kg/L，因此除溼量 1 kg/day ≈ 1 L/day。市售除溼機銘牌通常以 L/day（或名義工況下 L/h）標註額定除溼量，可直接與推薦容量對照。</div>
+    </div>
+  </div>
+</div>
+<!-- /SEO 介紹區塊 -->
+
+<!-- TOOLBOX-DEEP-DIVE -->
+<style>
+.deep-dive{max-width:960px;margin:16px auto;padding:0 16px;}
+.deep-dive > .card{margin-bottom:0;}
+@media(max-width:600px){.deep-dive{margin:14px auto;padding:0 12px;}}
+.deep-dive .dd-list{margin:8px 0 16px;padding-left:20px;}
+.deep-dive .dd-list li{margin:6px 0;line-height:1.75;}
+.deep-dive .dd-example{background:var(--card-bg,#fff);border:1px solid var(--border,#eee);border-radius:10px;padding:12px 14px;margin:8px 0 16px;}
+.deep-dive .dd-ex-title{font-weight:600;color:var(--tool-accent,#FF6B35);margin-bottom:6px;}
+.deep-dive .dd-ex-body{font-size:13px;line-height:1.85;color:var(--text,#333);word-break:break-word;}
+.deep-dive .dd-faq{margin:8px 0 4px;}
+.deep-dive .dd-faq dt{font-weight:600;margin-top:10px;color:var(--text,#333);}
+.deep-dive .dd-faq dd{margin:4px 0 0;font-size:13px;line-height:1.85;color:var(--text-muted,#666);}
+
+</style>
+<section class="deep-dive" data-deep-dive="1">
+<div class="card">
+<h2>📚 深度解析：除溼量計算器 Dehumidifier Sizing</h2>
+<h3>💡 常見使用場景</h3>
+<ul class="dd-list">
+<li>當你在hvac相關場景中需要基於“Dehumidifier”進行快速計算或校驗時，可先用該工具生成一版標準結果。</li>
+<li>在教學、方案評審、除錯聯調時，可用固定樣本快速復現實驗流程，驗證引數選擇是否正確。</li>
+<li>用於將人工操作轉為可複用步驟：先確認輸入型別，再觀察輸出變化，便於排查規則誤差。</li>
+</ul>
+<div class="dd-example"><div class="dd-ex-title">標準化使用示例</div><div class="dd-ex-body">以一組典型輸入為例：先按業務口徑補充必要欄位，執行工具並記錄輸出；再對比另一組邊界輸入，檢查工具在異常輸入下是否給出穩定提示，便於快速形成操作 SOP。</div></div>
+<h3>❓ 常見問題（FAQ）</h3>
+<dl class="dd-faq">
+<dt>該工具適用於哪些 hvac 場景？</dt><dd>只要資料可對映到本工具支援的引數結構，就可用於日常分析、篩選、校驗等流程；多數情況下適合前置評估和結果複核。</dd>
+<dt>結果可信度如何保證？</dt><dd>工具預設按前端可見規則即時計算，不依賴外部服務；如有偏差，建議結合歷史基準值做交叉確認。</dd>
+</dl>
+</div>
+</section>
+<!-- 注意事項區塊 -->
+<div class="tool-notes" style="max-width:960px;margin:0 auto 20px;padding:14px 16px;">
+  <div class="tool-notes-title">⚠️ 使用說明與注意事項</div>
+  <ul>
+    <li>本工具按標準大氣壓(101.325kPa)計算，高海拔地區空氣密度與飽和蒸汽壓略有差異</li>
+    <li>計算結果為理論除溼負荷估算，實際選型需結合房間密閉性、人員數量、溼源等綜合判斷</li>
+    <li>目標相對溼度建議設在 45%-60% 之間，過低易導致乾燥不適，過高則達不到防黴效果</li>
+    <li>純前端執行，輸入資料不會上傳到伺服器，隱私安全</li>
+    <li>建議在主流瀏覽器（Chrome/Safari/Firefox/Edge 最新版）中使用</li>
+  </ul>
+</div>
+<!-- /注意事項區塊 -->
+
+<script>
+(function(){
+'use strict';
+
+var $ = function(id){ return document.getElementById(id); };
+var P_ATM = 101325; // 标准大气压 Pa
+
+/* ===== 湿空气物性计算 ===== */
+
+// 饱和水蒸气分压力 (Pa)，Magnus 公式，T 单位 °C
+function satVaporPressure(T){
+  return 610.94 * Math.exp(17.625 * T / (T + 243.04));
+}
+
+// 含湿量/湿度比 d (g/kg 干空气)，T °C, RH %
+function humidityRatio(T, RH){
+  var Pw = (RH / 100) * satVaporPressure(T);
+  return 621.98 * Pw / (P_ATM - Pw);
+}
+
+// 露点温度 (°C)，T °C, RH %
+function dewPoint(T, RH){
+  if(RH <= 0) return NaN;
+  var rh = Math.min(RH, 100);
+  var gamma = Math.log(rh / 100) + 17.625 * T / (243.04 + T);
+  return 243.04 * gamma / (17.625 - gamma);
+}
+
+// 湿空气密度 ρ (kg/m³)，T °C, RH %
+function moistAirDensity(T, RH){
+  var Tk = T + 273.15;
+  var Pw = (RH / 100) * satVaporPressure(T);
+  var Pdry = P_ATM - Pw;
+  return Pdry / (287.058 * Tk) + Pw / (461.495 * Tk);
+}
+
+/* ===== 工具函数 ===== */
+function fmt(n, d){
+  if(n == null || isNaN(n)) return '—';
+  return Number(n).toFixed(d != null ? d : 2);
+}
+function num(v, def){
+  var n = parseFloat(v);
+  return isNaN(n) ? (def != null ? def : 0) : n;
+}
+
+/* ===== 相对湿度状态条 ===== */
+function updateRhBar(){
+  var rh1 = num($('rh1').value, 0);
+  var rh2 = num($('rh2').value, 0);
+  rh1 = Math.max(0, Math.min(100, rh1));
+  rh2 = Math.max(0, Math.min(100, rh2));
+  $('rhMarkerCur').style.left = rh1 + '%';
+  $('rhMarkerTar').style.left = rh2 + '%';
+  $('rhTagCur').textContent = '当前 ' + fmt(rh1, 0) + '%';
+  $('rhTagTar').textContent = '目标 ' + fmt(rh2, 0) + '%';
+}
+
+/* ===== 预设场景 ===== */
+var PRESETS = {
+  basement: { volume:150, temp:24, rh1:85, rh2:55, ach:0.5 },
+  warehouse:{ volume:600, temp:25, rh1:75, rh2:55, ach:0.6 },
+  bedroom:  { volume:90,  temp:26, rh1:75, rh2:55, ach:0.8 },
+  bathroom: { volume:24,  temp:28, rh1:90, rh2:60, ach:1.5 },
+  south:    { volume:120, temp:28, rh1:88, rh2:55, ach:0.7 }
+};
+
+document.querySelectorAll('.preset-btn').forEach(function(btn){
+  btn.addEventListener('click', function(){
+    var p = PRESETS[btn.dataset.preset];
+    if(!p) return;
+    $('volume').value = p.volume;
+    $('temp').value = p.temp;
+    $('rh1').value = p.rh1;
+    $('rh2').value = p.rh2;
+    $('ach').value = p.ach;
+    updateRhBar();
+    calc();
+    ToolBox.showToast('已套用「' + btn.textContent + '」预设');
+  });
+});
+
+/* ===== 校验 ===== */
+function validate(){
+  var errs = [];
+  var V = num($('volume').value, -1);
+  var T = num($('temp').value, NaN);
+  var rh1 = num($('rh1').value, NaN);
+  var rh2 = num($('rh2').value, NaN);
+  var n = num($('ach').value, -1);
+
+  [['volume',V,0,null],['temp',T,-60,60],['rh1',rh1,0,100],['rh2',rh2,0,100],['ach',n,0,null]].forEach(function(it){
+    var el = $(it[0]);
+    if(isNaN(num(el.value, NaN)) || el.value === ''){
+      ToolBox.markInvalid(el, '请输入有效数字'); errs.push(el.id + ' 无效');
+    } else if(it[2] !== null && it[1] < it[2]){
+      ToolBox.markInvalid(el, '数值过小'); errs.push(el.id + ' 过小');
+    } else if(it[3] !== null && it[1] > it[3]){
+      ToolBox.markInvalid(el, '数值过大'); errs.push(el.id + ' 过大');
+    } else {
+      ToolBox.clearInvalid(el);
+    }
+  });
+
+  if(V <= 0) errs.push('房间体积需大于 0');
+  if(n < 0) errs.push('换气次数不能为负');
+  if(rh2 >= rh1 && rh1 > 0){
+    // 目标湿度高于或等于当前湿度，无需除湿
+  }
+  return { ok: errs.length === 0, errs: errs, V:V, T:T, rh1:rh1, rh2:rh2, n:n };
+}
+
+/* ===== 主计算 ===== */
+function calc(){
+  var r = validate();
+  if(!r.ok){
+    ToolBox.showToast(i18nText('toast.msg967'), 'error');
+    return;
+  }
+
+  var V = r.V, T = r.T, rh1 = r.rh1, rh2 = r.rh2, n = r.n;
+
+  var d1 = humidityRatio(T, rh1);       // 当前含湿量 g/kg
+  var d2 = humidityRatio(T, rh2);       // 目标含湿量 g/kg
+  var dD = d1 - d2;                     // 含湿量差 g/kg
+  var rho = moistAirDensity(T, rh1);    // 湿空气密度 kg/m³
+  var dewT1 = dewPoint(T, rh1);         // 当前露点 °C
+  var dewT2 = dewPoint(T, rh2);         // 目标露点 °C
+  var volFlow = V * n;                  // 通风量 m³/h
+  var massFlow = volFlow * rho;         // 空气质量流量 kg/h
+  var W = massFlow * dD / 1000;         // 每小时除湿量 kg/h
+  var Wday = W * 24;                    // 每日除湿量 kg/day
+
+  // 推荐容量：日负荷 × 1.3 安全裕量，最低保底 6 L/day
+  var recCap = Math.max(6, Wday * 1.3);
+
+  // 显示结果卡片
+  $('resultCard').style.display = 'block';
+
+  var grid = $('dataGrid');
+  grid.innerHTML = '';
+  var cards = [
+    { num: fmt(d1,2), unit:'g/kg', label:'当前含湿量 d₁', cls:'' },
+    { num: fmt(d2,2), unit:'g/kg', label:'目标含湿量 d₂', cls:'accent' },
+    { num: fmt(dD,2), unit:'g/kg', label:'含湿量差 Δd', cls:'water' },
+    { num: fmt(rho,3), unit:'kg/m³', label:'湿空气密度 ρ', cls:'' },
+    { num: fmt(dewT1,1), unit:'°C', label:'当前露点温度', cls:'' },
+    { num: fmt(W,3), unit:'kg/h', label:'每小时除湿量', cls:'water' },
+    { num: fmt(Wday,2), unit:'kg/day', label:'每日除湿量', cls:'water' },
+    { num: fmt(volFlow,1), unit:'m³/h', label:'通风量 V×n', cls:'accent' }
+  ];
+  cards.forEach(function(c){
+    var div = document.createElement('div');
+    div.className = 'data-card';
+    div.innerHTML = '<div class="num ' + c.cls + '">' + c.num + '<span class="unit">' + c.unit + '</span></div>'
+      + '<div class="label">' + c.label + '</div>';
+    grid.appendChild(div);
+  });
+
+  // 计算步骤
+  $('calcSteps').innerHTML = ''
+    + '<div class="step-line">① 饱和蒸汽压 P<sub>ws</sub>(' + fmt(T,1) + '°C) = ' + fmt(satVaporPressure(T),1) + ' Pa</div>'
+    + '<div class="step-line">② 当前含湿量 d₁ = 621.98 × P<sub>w</sub> / (P − P<sub>w</sub>) = ' + fmt(d1,2) + ' g/kg　<span style="color:var(--text-muted);">(P<sub>w</sub>=' + fmt(rh1/100*satVaporPressure(T),1) + 'Pa)</span></div>'
+    + '<div class="step-line">③ 目标含湿量 d₂ = ' + fmt(d2,2) + ' g/kg</div>'
+    + '<div class="step-line">④ 含湿量差 Δd = d₁ − d₂ = ' + fmt(dD,2) + ' g/kg</div>'
+    + '<div class="step-line">⑤ 湿空气密度 ρ = ' + fmt(rho,3) + ' kg/m³　<span style="color:var(--text-muted);">露点 ' + fmt(dewT1,1) + '°C → ' + fmt(dewT2,1) + '°C</span></div>'
+    + '<div class="step-line">⑥ 通风量 V×n = ' + fmt(V,0) + ' × ' + fmt(n,2) + ' = ' + fmt(volFlow,1) + ' m³/h</div>'
+    + '<div class="step-line">⑦ 每小时除湿量 W = V×n×ρ×Δd/1000 = ' + fmt(volFlow,1) + '×' + fmt(rho,3) + '×' + fmt(dD,2) + '/1000 = <strong>' + fmt(W,3) + ' kg/h</strong></div>'
+    + '<div class="step-line">⑧ 每日除湿量 = W × 24 = <strong>' + fmt(Wday,2) + ' kg/day</strong></div>';
+
+  // 推荐选型
+  $('recCap').innerHTML = fmt(recCap,1) + ' <span class="u">L/day</span>';
+  $('recHint').innerHTML = '基于每日除湿负荷 ' + fmt(Wday,2) + ' kg/day，附加 30% 安全裕量'
+    + '（含开门渗湿、人员散湿等余量）。建议选购铭牌额定除湿量 <strong>≥ ' + fmt(recCap,0) + ' L/day</strong> 的除湿机。'
+    + (recCap >= 30 ? ' 可考虑商用/工业级除湿设备。' : ' 家用常规除湿机即可满足。');
+
+  // 建议提示
+  var advice = '✅ 当前配置：将 ' + fmt(V,0) + ' m³ 房间从 ' + fmt(rh1,0) + '%RH 降至 ' + fmt(rh2,0) + '%RH，每小时需除湿 ' + fmt(W,3) + ' kg。';
+  if(rh2 >= rh1){
+    advice = 'ℹ️ 目标相对湿度 ≥ 当前相对湿度，当前无需除湿。如需进一步干燥请调低目标湿度。';
+    $('recCap').innerHTML = '0 <span class="u">L/day</span>';
+    $('recHint').innerHTML = '当前湿度已达到或低于目标，无需开启除湿机。';
+  } else if(rh2 < 40){
+    advice += ' ⚠️ 目标湿度低于 40%，可能偏干，建议保持在 45%-60% 舒适区间。';
+  } else if(rh1 >= 85){
+    advice += ' ⚠️ 当前湿度过高(≥85%)，注意防霉防潮，建议尽快除湿并检查渗漏源。';
+  }
+  $('adviceBox').innerHTML = advice;
+
+  // 滚动到结果
+  try{ $('resultCard').scrollIntoView({ behavior:'smooth', block:'start' }); }catch(e){}
+}
+
+/* ===== 复制结果 ===== */
+window.copyResult = function(){
+  if($('resultCard').style.display === 'none'){
+    ToolBox.showToast(i18nText('toast.msg648'), 'warning');
+    return;
+  }
+  var grid = $('dataGrid');
+  var lines = [];
+  grid.querySelectorAll('.data-card').forEach(function(c){
+    var n = c.querySelector('.num').childNodes[0].nodeValue.trim();
+    var u = c.querySelector('.unit').textContent;
+    var l = c.querySelector('.label').textContent;
+    lines.push(l + ': ' + n + u);
+  });
+  lines.push('推荐除湿机容量: ' + $('recCap').textContent.trim());
+  ToolBox.copyText(lines.join('\n'), i18nText('msg600'));
+};
+
+window.resetInputs = function(){
+  $('volume').value = 120;
+  $('temp').value = 26;
+  $('rh1').value = 80;
+  $('rh2').value = 55;
+  $('ach').value = 0.5;
+  ['volume','temp','rh1','rh2','ach'].forEach(function(id){ ToolBox.clearInvalid($(id)); });
+  updateRhBar();
+  $('resultCard').style.display = 'none';
+  ToolBox.showToast(i18nText());
+};
+
+window.calc = calc;
+
+/* ===== 饱和含湿量参考表 ===== */
+function buildSatTable(){
+  var temps = [0,5,10,15,20,22,24,26,28,30,32,35,40];
+  var headers = ['温度 (°C)', '饱和蒸汽压 (Pa)', '饱和含湿量 dₛ (g/kg)', '相对 30°C 倍数'];
+  var base = humidityRatio(30, 100);
+  var rows = temps.map(function(t){
+    var pws = satVaporPressure(t);
+    var ds = humidityRatio(t, 100);
+    return [fmt(t,0) + ' °C', fmt(pws,1) + ' Pa', fmt(ds,2) + ' g/kg', fmt(ds/base,2) + ' ×'];
+  });
+  $('satTableWrap').innerHTML = ToolBox.createTable(headers, rows);
+}
+
+/* ===== 事件绑定 ===== */
+['volume','temp','rh1','rh2','ach'].forEach(function(id){
+  $(id).addEventListener('input', function(){
+    if(id === 'rh1' || id === 'rh2') updateRhBar();
+  });
+});
+
+// tool-intro 折叠交互
+document.addEventListener('DOMContentLoaded', function(){
+  var headers = document.querySelectorAll('.tool-intro-header');
+  headers.forEach(function(h){
+    h.addEventListener('click', function(){
+      this.parentElement.classList.toggle('open');
+    });
+  });
+});
+
+/* ===== 初始化 ===== */
+buildSatTable();
+updateRhBar();
+calc();
+
+})();
+</script>
+</body>
+</html>

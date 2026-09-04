@@ -1,0 +1,1088 @@
+<!DOCTYPE html>
+<html lang="zh-TW" data-opencc-locale="zh-tw">
+<head>
+
+<script src="/js/tool-page-runtime.js" defer></script>
+<!-- TOOLBOX-TOOL-RUNTIME -->
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="toolbox" content="cat=convert,industry=audio,icon=🌊,bg=#e3f2fd">
+<meta name="description" content="在线音频回声混响工具，调节干湿信号混合比与延迟参数添加空间感，上传音频实时预览并导出，适合配音与音乐制作，纯前端。">
+<meta name="keywords" content="音频回声,音频混响,在线音频效果,Web Audio,ConvolverNode,DelayNode,回声效果,混响效果,WAV导出,音频处理">
+<title>音訊回聲混響效果 - ToolBox</title>
+<link rel="canonical" href="https://chenguangwu.github.io/zh-tw/tools/audio/audio-echo.html">
+<meta property="og:title" content="音频回声混响效果">
+<meta property="og:description" content="在线音频回声混响工具，调节干湿信号混合比与延迟参数添加空间感，上传音频实时预览并导出，适合配音与音乐制作，纯前端。">
+<meta property="og:url" content="https://chenguangwu.github.io/zh-tw/tools/audio/audio-echo.html">
+<meta name="twitter:card" content="summary">
+<link rel="preload" as="style" href="/css/common.css" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="/css/common.css"></noscript>
+<script>window.__tbq=window.__tbq||[];window.ToolBox=window.ToolBox||{};['initToolTheme','addToolStyles','showToast','toast','copyText','copyToClipboard','copyFromElement','downloadText','injectPrivacyBadge','toggleFavTool','addToRecentTool','toggleToolTheme','applyTheme'].forEach(function(k){if(typeof window.ToolBox[k]!=='function')window.ToolBox[k]=function(){window.__tbq.push([k,[].slice.call(arguments)]);};});</script><!-- TOOLBOX-API-STUB -->
+<script src="/js/common.js" defer></script>
+<style>
+/* ===== 本工具专用样式 ===== */
+.drop-zone{
+  border:2px dashed var(--border);
+  border-radius:16px;
+  padding:30px 20px;
+  text-align:center;
+  cursor:pointer;
+  transition:border-color .25s,background .25s,transform .2s;
+  background:var(--result-bg);
+  position:relative;
+}
+.drop-zone:hover{border-color:var(--primary);background:var(--bg-hover);}
+.drop-zone.dragover{border-color:var(--primary);background:var(--bg-active);transform:scale(1.01);}
+.drop-zone .dz-icon{font-size:40px;line-height:1;margin-bottom:10px;display:block;}
+.drop-zone .dz-text{font-size:14px;color:var(--text-secondary);font-weight:500;}
+.drop-zone .dz-hint{font-size:12px;color:var(--text-muted);margin-top:6px;}
+.drop-zone .dz-name{font-size:13px;color:var(--primary);font-weight:600;margin-top:8px;word-break:break-all;}
+#fileInput{display:none;}
+
+/* 波形 */
+.waveform-wrap{
+  width:100%;
+  background:var(--result-bg);
+  border:1px solid var(--border);
+  border-radius:12px;
+  padding:8px 10px;
+  margin:10px 0 6px;
+  cursor:pointer;
+  position:relative;
+}
+.waveform-wrap canvas{display:block;width:100%;height:78px;}
+.time-row{display:flex;justify-content:space-between;font-size:12px;color:var(--text-muted);font-variant-numeric:tabular-nums;padding:0 4px;}
+
+/* 播放控制 */
+.player-controls{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:14px;}
+.play-btn{
+  width:54px;height:54px;border-radius:50%;
+  background:var(--gradient-primary);color:#fff;border:none;cursor:pointer;
+  font-size:20px;display:flex;align-items:center;justify-content:center;
+  box-shadow:0 4px 14px rgba(255,107,53,.35);transition:transform .15s,box-shadow .2s;flex-shrink:0;
+}
+.play-btn:hover{transform:scale(1.06);box-shadow:0 6px 18px rgba(255,107,53,.45);}
+.play-btn:disabled{opacity:.5;cursor:not-allowed;transform:none;box-shadow:none;}
+.play-btn:active{transform:scale(.98);}
+.stop-btn{
+  width:42px;height:42px;border-radius:50%;
+  border:1.5px solid var(--border);background:var(--card-bg);color:var(--text);
+  cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;flex-shrink:0;
+  transition:all .2s;
+}
+.stop-btn:hover{border-color:var(--primary);color:var(--primary);}
+.stop-btn:disabled{opacity:.5;cursor:not-allowed;}
+.player-meta{font-size:13px;color:var(--text-muted);margin-left:auto;}
+.player-meta strong{color:var(--text);font-weight:600;}
+
+/* 预设 */
+.preset-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(108px,1fr));gap:8px;margin-top:8px;}
+.preset-btn{
+  padding:12px 8px;border:1.5px solid var(--border);border-radius:12px;
+  background:var(--card-bg);cursor:pointer;transition:all .2s;
+  display:flex;flex-direction:column;align-items:center;gap:4px;
+  font-size:12.5px;color:var(--text);font-family:inherit;
+}
+.preset-btn:hover{border-color:var(--primary);transform:translateY(-2px);box-shadow:var(--shadow-sm);}
+.preset-btn.active{border-color:var(--primary);background:var(--bg-active);color:var(--primary);font-weight:600;}
+.preset-btn .p-icon{font-size:22px;line-height:1;}
+
+/* 滑块 */
+.param-group{margin-top:14px;}
+.slider-row{margin-bottom:16px;}
+.slider-row:last-child{margin-bottom:4px;}
+.slider-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;}
+.slider-label{font-size:13px;color:var(--text-secondary);font-weight:500;}
+.slider-value{font-size:13px;color:var(--primary);font-weight:700;font-variant-numeric:tabular-nums;}
+input[type="range"]{
+  -webkit-appearance:none;appearance:none;
+  width:100%;height:6px;border-radius:3px;background:var(--border);
+  outline:none;cursor:pointer;
+}
+input[type="range"]::-webkit-slider-thumb{
+  -webkit-appearance:none;appearance:none;
+  width:18px;height:18px;border-radius:50%;
+  background:var(--primary);cursor:pointer;border:3px solid var(--card-bg);
+  box-shadow:0 2px 6px rgba(255,107,53,.4);transition:transform .15s;
+}
+input[type="range"]::-webkit-slider-thumb:hover{transform:scale(1.18);}
+input[type="range"]::-moz-range-thumb{
+  width:18px;height:18px;border-radius:50%;
+  background:var(--primary);cursor:pointer;border:3px solid var(--card-bg);
+  box-shadow:0 2px 6px rgba(255,107,53,.4);
+}
+input[type="range"]:disabled{opacity:.45;cursor:not-allowed;}
+input[type="range"]:disabled::-webkit-slider-thumb{background:var(--text-muted);box-shadow:none;}
+
+/* 信号链可视化 */
+.signal-chain{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:6px;font-size:12px;color:var(--text-muted);}
+.signal-chain .node{padding:4px 10px;border:1px solid var(--border);border-radius:8px;background:var(--card-bg);}
+.signal-chain .node.wet{border-color:var(--primary);color:var(--primary);}
+.signal-chain .arrow{color:var(--text-muted);}
+.signal-chain .node.dry{border-style:dashed;}
+
+.export-row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:6px;}
+.export-hint{font-size:12px;color:var(--text-muted);}
+@media(max-width:768px){
+  .waveform-wrap canvas{height:60px;}
+  .play-btn{width:48px;height:48px;font-size:18px;}
+  .stop-btn{width:40px;height:40px;}
+  .player-meta{margin-left:0;width:100%;font-size:12px;}
+}
+</style>
+
+
+
+<meta property="og:image" content="https://chenguangwu.github.io/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="ToolBox - 5000+免费在线工具">
+<meta name="twitter:image" content="https://chenguangwu.github.io/og-image.png">
+<meta name="twitter:image:alt" content="ToolBox - 5000+免费在线工具">
+    <meta property="og:type" content="website">
+    <meta name="twitter:title" content="音频回声混响效果">
+    <meta name="twitter:description" content="在线音频回声混响工具，调节干湿信号混合比与延迟参数添加空间感，上传音频实时预览并导出，适合配音与音乐制作，纯前端。">
+<!-- TOOLBOX-WEBAPP-LD -->
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"音訊回聲混響效果","url":"https://chenguangwu.github.io/zh-tw/tools/audio/audio-echo.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":"zh-TW","description":"線上音訊回聲混響工具，調節乾溼訊號混合比與延遲引數新增空間感，上傳音訊即時預覽並匯出，適合配音與音樂製作，純前端。","image":"https://chenguangwu.github.io/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}</script>
+<meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
+<meta http-equiv="X-Content-Type-Options" content="nosniff">
+<meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
+<!-- TOOLBOX-SECURITY -->
+
+<script src="/js/privacy.js" defer></script>
+<!-- TOOLBOX-PRIVACY-SCRIPT -->
+
+<script src="/js/metrics.js" defer></script>
+<!-- TOOLBOX-METRICS-SCRIPT -->
+
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"首頁","item":"https://chenguangwu.github.io/zh-tw/"},{"@type":"ListItem","position":2,"name":"音訊工具","item":"https://chenguangwu.github.io/zh-tw/tools/audio/index.html"},{"@type":"ListItem","position":3,"name":"音訊回聲混響效果","item":"https://chenguangwu.github.io/zh-tw/tools/audio/audio-echo.html"}]}</script>
+
+<script src="/js/i18n.js" defer></script>
+<script src="/js/tool-i18n.js" defer></script>
+<!-- TOOLBOX-I18N-SCRIPT -->
+
+
+<meta name="title-en" content="Audio Echo - ToolBox">
+<meta name="desc-en" content="Audio Echo - free online tool. Free online tool on ToolBox — 100% client-side, no data uploaded, no install. Part of the Audio Tools tools.">
+<!-- TOOLBOX-HREFLANG -->
+<link rel="alternate" hreflang="zh-CN" href="https://chenguangwu.github.io/tools/audio/audio-echo.html">
+<link rel="alternate" hreflang="zh-TW" href="https://chenguangwu.github.io/zh-tw/tools/audio/audio-echo.html">
+<link rel="alternate" hreflang="zh-HK" href="https://chenguangwu.github.io/zh-hk/tools/audio/audio-echo.html">
+<link rel="alternate" hreflang="en-US" href="https://chenguangwu.github.io/tools/audio/audio-echo.html?lang=en-US">
+<link rel="alternate" hreflang="x-default" href="https://chenguangwu.github.io/tools/audio/audio-echo.html">
+<meta property="og:locale" content="zh_TW">
+<meta property="og:locale:alternate" content="zh_CN">
+<meta property="og:locale:alternate" content="zh_HK">
+<meta property="og:locale:alternate" content="en_US">
+</head>
+<body>
+<h1 class="sr-only">音訊回聲效果工具</h1>
+
+<div class="nav">
+  <a href="/zh-tw/index.html">← ToolBox</a>
+  <span>/ 音訊回聲混響效果</span>
+  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()">🌙</button>
+</div>
+
+
+
+
+
+<nav class="breadcrumb" aria-label="麵包屑導航" data-breadcrumb="1">
+  <a href="/zh-tw/index.html">首頁</a>
+  <span class="bc-sep">‹</span>
+  <a href="/zh-tw/tools/audio/index.html">🔧 音訊工具</a>
+  <span class="bc-sep">‹</span>
+  <span class="bc-current">音訊回聲混響效果</span>
+</nav>
+<div class="container">
+
+  <!-- 上傳 -->
+  <div class="card tool-card-accent" style="--tool-accent:#FF6B35;">
+    <h2 data-zh="🌊 音訊回聲混響效果">🌊 Audio Echo</h2>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:14px;" data-zh="基於 Web Audio API 的 ConvolverNode 與 DelayNode，為音訊添加回聲 / 混響效果，支援即時試聽與 WAV 匯出。純前端處理，檔案不上傳。">Audio Echo is available directly in your browser, with no data uploaded.</p>
+
+    <div class="drop-zone" id="dropZone">
+      <span class="dz-icon">🎵</span>
+      <div class="dz-text">拖拽音訊檔案到此處，或點選選擇檔案</div>
+      <div class="dz-hint">支援 MP3 / WAV / OGG / M4A / FLAC 等格式，檔案不會上傳</div>
+      <div class="dz-name" id="dzName"></div>
+    </div>
+    <input type="file" id="fileInput" accept="audio/*">
+  </div>
+
+  <!-- 播放器 -->
+  <div class="card">
+    <h3>▶ 播放控制</h3>
+    <div class="waveform-wrap" id="waveformWrap" title="點選波形可跳轉播放位置" role="slider" aria-label="播放進度，點選可跳轉" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+      <canvas id="waveform"></canvas>
+    </div>
+    <div class="time-row">
+      <span id="curTime">0:00</span>
+      <span id="durTime">0:00</span>
+    </div>
+    <div class="player-controls">
+      <button class="play-btn" id="playBtn" onclick="togglePlay()" disabled aria-label="播放/暫停">▶</button>
+      <button class="stop-btn" id="stopBtn" onclick="stopPlay()" disabled aria-label="停止">⏹</button>
+      <span class="player-meta" id="playerMeta">請先上傳音訊檔案</span>
+    </div>
+  </div>
+
+  <!-- 效果設定 -->
+  <div class="card">
+    <h3>🎛️ 效果設定</h3>
+
+    <div class="tabs" id="effectTabs">
+      <button type="button" class="tab-btn active" data-type="echo">🔊 回聲 Echo</button>
+      <button type="button" class="tab-btn" data-type="reverb">🏛️ 混響 Reverb</button>
+    </div>
+
+    <label>快捷預設</label>
+    <div class="preset-grid" id="presetGrid"></div>
+
+    <div class="param-group" id="echoParams">
+      <div class="slider-row">
+        <div class="slider-head">
+          <span class="slider-label">延遲時間（Delay Time）</span>
+          <span class="slider-value" id="delayVal">0.30s</span>
+        </div>
+        <input type="range" id="delaySlider" min="0" max="2" step="0.01" value="0.30">
+      </div>
+      <div class="slider-row">
+        <div class="slider-head">
+          <span class="slider-label">反饋量（Feedback）</span>
+          <span class="slider-value" id="feedbackVal">0.40</span>
+        </div>
+        <input type="range" id="feedbackSlider" min="0" max="0.9" step="0.01" value="0.40">
+      </div>
+    </div>
+
+    <div class="param-group" id="reverbParams" style="display:none;">
+      <div class="slider-row">
+        <div class="slider-head">
+          <span class="slider-label">混響時長（Reverb Decay）</span>
+          <span class="slider-value" id="reverbVal">2.0s</span>
+        </div>
+        <input type="range" id="reverbSlider" min="0.3" max="6" step="0.1" value="2.0">
+      </div>
+    </div>
+
+    <div class="slider-row">
+      <div class="slider-head">
+        <span class="slider-label">溼 / 幹訊號混合比（Wet / Dry Mix）</span>
+        <span class="slider-value" id="mixVal">40%</span>
+      </div>
+      <input type="range" id="mixSlider" min="0" max="100" step="1" value="40">
+    </div>
+
+    <div class="signal-chain" id="signalChain"></div>
+
+    <div class="info-box" style="margin-top:14px;">
+      <p><strong>幹訊號（Dry）</strong>：原始未處理音訊；<strong>溼訊號（Wet）</strong>：經過效果處理後的音訊。混合比越大，效果越明顯。</p>
+    </div>
+  </div>
+
+  <!-- 匯出 -->
+  <div class="card">
+    <h3>💾 匯出處理結果</h3>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:10px;">使用 OfflineAudioContext 離線渲染整段音訊（含效果尾音），匯出為 16-bit PCM WAV 檔案。</p>
+    <div class="export-row">
+      <button class="btn primary" id="exportBtn" onclick="exportWav()">💾 匯出 WAV</button>
+      <span class="export-hint" id="exportHint">上傳音訊後即可匯出</span>
+    </div>
+  </div>
+
+  <!-- 使用說明 -->
+  <div class="card">
+    <h3>📖 使用說明</h3>
+    <div class="info-box" style="margin-top:8px;">
+      <p><strong>1.</strong> 拖拽或點選上傳一段音訊檔案（檔案僅在本地瀏覽器處理）</p>
+      <p><strong>2.</strong> 選擇效果型別：回聲（DelayNode + 反饋）或混響（ConvolverNode + 脈衝響應）</p>
+      <p><strong>3.</strong> 點選快捷預設快速套用效果，或拖動滑塊自定義引數</p>
+      <p><strong>4.</strong> 點選播放按鈕試聽，調節引數即時生效，可點選波形跳轉</p>
+      <p><strong>5.</strong> 滿意後點擊「匯出 WAV」儲存處理後的音訊</p>
+    </div>
+  </div>
+
+  <!-- 注意事項 -->
+  <div class="tool-notes" style="--tool-accent:#FF6B35;">
+    <div class="tool-notes-title">⚠️ 使用說明與注意事項</div>
+    <ul>
+      <li>本工具純前端執行，音訊檔案不會上傳到伺服器，保護隱私</li>
+      <li>建議使用 Chrome / Edge / Firefox / Safari 最新版本瀏覽器</li>
+      <li>首次播放時瀏覽器需要使用者互動來啟動音訊上下文，屬正常現象</li>
+      <li>反饋量過高時可能產生持續回授，已內建動態壓縮器防止爆音</li>
+      <li>匯出檔案包含效果尾音，體積可能略大於原始檔案</li>
+    </ul>
+  </div>
+
+  <!-- SEO 介紹區塊 -->
+
+</div>
+
+</div>
+
+<!-- TOOLBOX-DEEP-DIVE -->
+<style>
+.deep-dive{max-width:960px;margin:16px auto;padding:0 16px;}
+.deep-dive > .card{margin-bottom:0;}
+@media(max-width:600px){.deep-dive{margin:14px auto;padding:0 12px;}}
+.deep-dive .dd-list{margin:8px 0 16px;padding-left:20px;}
+.deep-dive .dd-list li{margin:6px 0;line-height:1.75;}
+.deep-dive .dd-example{background:var(--card-bg,#fff);border:1px solid var(--border,#eee);border-radius:10px;padding:12px 14px;margin:8px 0 16px;}
+.deep-dive .dd-ex-title{font-weight:600;color:var(--tool-accent,#FF6B35);margin-bottom:6px;}
+.deep-dive .dd-ex-body{font-size:13px;line-height:1.85;color:var(--text,#333);word-break:break-word;}
+.deep-dive .dd-faq{margin:8px 0 4px;}
+.deep-dive .dd-faq dt{font-weight:600;margin-top:10px;color:var(--text,#333);}
+.deep-dive .dd-faq dd{margin:4px 0 0;font-size:13px;line-height:1.85;color:var(--text-muted,#666);}
+
+</style>
+<section class="deep-dive" data-deep-dive="1">
+<div class="card">
+<h2>📚 深度解析：音訊回聲混響效果</h2>
+<h3>💡 常見使用場景</h3>
+<ul class="dd-list">
+<li>在audio場景裡，優先把Audio Echo標準化後再執行批次分析，便於統一口徑。</li>
+<li>配合現有流程用於首輪篩選，能快速識別超標/異常樣本並形成待複核清單。</li>
+<li>當團隊成員交接時，可直接用統一欄位解釋結果來源，減少口徑偏差。</li>
+</ul>
+<div class="dd-example"><div class="dd-ex-title">標準流程示例</div><div class="dd-ex-body">用一組真實口徑樣本執行一次計算，儲存輸入截圖與輸出記錄，再對一個邊界場景複測，確認是否穩定。</div></div>
+<h3>❓ 常見問題（FAQ）</h3>
+<dl class="dd-faq">
+<dt>audio 業務裡如何快速落地？</dt><dd>先抽取3-5個典型樣本定義口徑，再把所有輸入按該口徑對映後執行，輸出用於討論決策。</dd>
+<dt>發現輸出不一致怎麼辦？</dt><dd>先確認欄位單位和時點定義，再回傳人工樣本複核，避免直接基於異常結果做業務動作。</dd>
+</dl>
+</div>
+</section>
+<!-- 相關工具 -->
+<div class="related-tools" data-related-tools="1">
+  <h3 class="related-tools-title">🔗 相關工具</h3>
+  <div class="related-tools-grid">
+    <a href="/zh-tw/tools/audio/audio-recorder.html" class="related-tool-card">
+      <span class="rt-icon">🎙️</span>
+      <span class="rt-info"><span class="rt-name">線上錄音工具 - 基於 Web Audio API 與 MediaRecord | ToolBox免費線上工具箱</span><span class="rt-desc">&amp;#127908; 線上錄音工具</span></span>
+    </a>
+    <a href="/zh-tw/tools/audio/audio-volume.html" class="related-tool-card">
+      <span class="rt-icon">🔊</span>
+      <span class="rt-info"><span class="rt-name">audio-volume</span><span class="rt-desc">&amp;#128266; 音訊音量調節</span></span>
+    </a>
+    <a href="/zh-tw/tools/audio/audio-cut.html" class="related-tool-card">
+      <span class="rt-icon">✂️</span>
+      <span class="rt-info"><span class="rt-name">音訊剪下工具 - 純前端線上音訊裁剪器，支援拖拽上傳音訊、波形視覺化、拖選剪下 | ToolBox免費線上工具箱</span><span class="rt-desc">音訊剪下工具</span></span>
+    </a>
+    <a href="/zh-tw/tools/audio/audio-speed.html" class="related-tool-card">
+      <span class="rt-icon">⏩</span>
+      <span class="rt-info"><span class="rt-name">音訊播放速度調節 - 工具，基於 Web Audio API | ToolBox免費線上工具箱</span><span class="rt-desc">⏩ 音訊播放速度調節</span></span>
+    </a>
+
+    <a href="/zh-tw/tools/audio/audio-waveform.html" class="related-tool-card">
+      <span class="rt-icon">📊</span>
+      <span class="rt-info"><span class="rt-name">音訊波形顯示工具 - 免費線上音訊視覺化，支援時域波形、頻域頻譜、靜態波形概覽三種 | ToolBox免費線上工具箱</span><span class="rt-desc">音訊波形顯示工具</span></span>
+    </a>
+  </div>
+</div>
+<div class="tool-intro open" id="toolIntro">
+    <div class="tool-intro-header">
+      <span class="intro-icon-wrap"><span class="intro-icon">📖</span>關於「音訊回聲混響效果」</span>
+      <span class="arrow">▼</span>
+    </div>
+    <div class="tool-intro-body">
+      <h4><span class="h4-icon">📝</span>工具簡介</h4>
+      <p>音訊回聲混響效果工具，基於瀏覽器原生 Web Audio API 實現。通過 DelayNode 構建帶反饋的回聲鏈路，通過 ConvolverNode 配合程式生成的脈衝響應（Impulse Response）實現混響效果，內建大廳混響、小房間、山谷回聲、彈簧混響、板式混響等預設，可調節延遲時間、反饋量、乾溼混合比，並使用 OfflineAudioContext 離線渲染匯出 WAV 檔案。全部處理在瀏覽器本地完成，音訊檔案不上傳。</p>
+      <h4><span class="h4-icon">✨</span>功能特點</h4>
+      <ul class="intro-features">
+        <li>Web Audio API 原生實現</li>
+        <li>回聲 DelayNode + 反饋增益</li>
+        <li>混響 ConvolverNode + 程式生成 IR</li>
+        <li>6 種快捷效果預設</li>
+        <li>延遲 / 反饋 / 乾溼比即時調節</li>
+        <li>波形視覺化與點選跳轉</li>
+        <li>OfflineAudioContext 離線渲染</li>
+        <li>匯出 16-bit WAV 檔案</li>
+        <li>動態壓縮防爆音</li>
+        <li>純前端，資料不上傳</li>
+      </ul>
+      <h4><span class="h4-icon">🎯</span>使用場景</h4>
+      <ul class="intro-scenes">
+        <li>播客 / 配音新增空間感</li>
+        <li>音樂 demo 快速加效果試聽</li>
+        <li>語音訊息製作趣味回聲</li>
+        <li>音訊素材後期處理</li>
+        <li>學習 Web Audio API 原理</li>
+        <li>短影片音效快速生成</li>
+      </ul>
+      <h4><span class="h4-icon">💬</span>常見問題</h4>
+      <div class="intro-faq-item">
+        <div class="intro-faq-q">回聲和混響有什麼區別？</div>
+        <div class="intro-faq-a">回聲（Echo）是聲音的延遲重複，能清晰聽到一個個分離的回聲點；混響（Reverb）是大量密集反射疊加形成的空間餘韻，聽感更自然融合。本工具回聲用 DelayNode 實現，混響用 ConvolverNode 配合脈衝響應實現。</div>
+      </div>
+      <div class="intro-faq-item">
+        <div class="intro-faq-q">匯出的 WAV 和原檔案音質一樣嗎？</div>
+        <div class="intro-faq-a">匯出為 16-bit PCM WAV，取樣率與原檔案一致。若原檔案為壓縮格式（如 MP3），匯出後體積會變大但不會提升音質；若原檔案為 WAV，則保持無損級別。匯出包含效果尾音。</div>
+      </div>
+      <div class="intro-faq-item">
+        <div class="intro-faq-q">我的音訊檔案會被上傳嗎？</div>
+        <div class="intro-faq-a">不會。所有解碼、處理、渲染均在你的瀏覽器本地完成，檔案不會發送到任何伺服器，隱私安全有保障。</div>
+      </div>
+      <div class="intro-faq-item">
+        <div class="intro-faq-q">為什麼反饋量不能調到 1 以上？</div>
+        <div class="intro-faq-a">反饋量達到 1 時能量永不衰減會產生無限回授導致爆音。為安全起見上限設為 0.9，同時內建動態壓縮器進一步防止過載。</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+(function(){
+'use strict';
+
+/* ===== 预设 ===== */
+var PRESETS = {
+  hall:   {label:'大厅混响', icon:'🏛️', type:'reverb', irDuration:3.0, mix:45},
+  room:   {label:'小房间',   icon:'🏠', type:'reverb', irDuration:0.7, mix:25},
+  plate:  {label:'板式混响', icon:'🎹', type:'reverb', irDuration:2.0, mix:35},
+  valley: {label:'山谷回声', icon:'⛰️', type:'echo',   delay:0.45, feedback:0.55, mix:55},
+  spring: {label:'弹簧混响', icon:'🌀', type:'echo',   delay:0.06, feedback:0.35, mix:40},
+  bypass: {label:'原声',     icon:'🔈', type:'echo',   delay:0.10, feedback:0,    mix:0}
+};
+var IR_DECAY = 2.5; // 脉冲响应衰减指数
+
+/* ===== 状态 ===== */
+var audioCtx = null;
+var audioBuffer = null;
+var originalFileName = '';
+var source = null;
+var isPlaying = false;
+var startTime = 0;
+var pausedAt = 0;
+var rafId = null;
+
+// 持久节点
+var effectInput, dryGain, wetGain, masterGain, compressor;
+// 效果链节点
+var delayNode, feedbackGain, convolverNode;
+
+// 参数
+var effectType = 'echo';
+var delayTime = 0.30;
+var feedback = 0.40;
+var mix = 40;          // 0~100
+var irDuration = 2.0;  // 秒
+
+// 波形
+var peaks = null;
+var wfCanvas = document.getElementById('waveform');
+var wfCtx = wfCanvas.getContext('2d');
+
+/* ===== DOM ===== */
+var $ = function(id){ return document.getElementById(id); };
+var dropZone = $('dropZone');
+var fileInput = $('fileInput');
+var dzName = $('dzName');
+var playBtn = $('playBtn');
+var stopBtn = $('stopBtn');
+var playerMeta = $('playerMeta');
+var curTimeEl = $('curTime');
+var durTimeEl = $('durTime');
+var echoParamsEl = $('echoParams');
+var reverbParamsEl = $('reverbParams');
+var delaySlider = $('delaySlider');
+var feedbackSlider = $('feedbackSlider');
+var reverbSlider = $('reverbSlider');
+var mixSlider = $('mixSlider');
+var delayVal = $('delayVal');
+var feedbackVal = $('feedbackVal');
+var reverbVal = $('reverbVal');
+var mixVal = $('mixVal');
+var presetGrid = $('presetGrid');
+var tabBtns = document.querySelectorAll('#effectTabs .tab-btn');
+var signalChain = $('signalChain');
+var exportBtn = $('exportBtn');
+var exportHint = $('exportHint');
+
+/* ===== 工具函数 ===== */
+function fmtTime(s){
+  if(!isFinite(s) || s<0) s=0;
+  var m = Math.floor(s/60);
+  var sec = Math.floor(s%60);
+  return m + ':' + (sec<10?'0':'') + sec;
+}
+function themeColors(){
+  var cs = getComputedStyle(document.documentElement);
+  return {
+    primary: (cs.getPropertyValue('--primary')||'#FF6B35').trim() || '#FF6B35',
+    muted: (cs.getPropertyValue('--text-muted')||'#9CA3AF').trim() || '#9CA3AF'
+  };
+}
+
+/* ===== AudioContext 初始化 ===== */
+function ensureCtx(){
+  if(audioCtx) return;
+  var AC = window.AudioContext || window.webkitAudioContext;
+  audioCtx = new AC();
+  createPersistentNodes();
+  rebuildWetChain();
+}
+function createPersistentNodes(){
+  effectInput = audioCtx.createGain();
+  dryGain = audioCtx.createGain();
+  wetGain = audioCtx.createGain();
+  masterGain = audioCtx.createGain();
+  compressor = audioCtx.createDynamicsCompressor();
+  // 压缩器参数：温和限制，防爆音
+  compressor.threshold.value = -10;
+  compressor.knee.value = 12;
+  compressor.ratio.value = 6;
+  compressor.attack.value = 0.003;
+  compressor.release.value = 0.25;
+
+  effectInput.connect(dryGain);
+  dryGain.connect(masterGain);
+  wetGain.connect(masterGain);
+  masterGain.connect(compressor);
+  compressor.connect(audioCtx.destination);
+  applyMix();
+}
+
+/* ===== 脉冲响应生成 ===== */
+function makeImpulse(ctx, duration, decay, channels){
+  var rate = ctx.sampleRate;
+  var len = Math.max(1, Math.floor(rate * duration));
+  channels = channels || 2;
+  var buf = ctx.createBuffer(channels, len, rate);
+  for(var ch=0; ch<channels; ch++){
+    var data = buf.getChannelData(ch);
+    for(var i=0; i<len; i++){
+      var t = i/len;
+      // 指数衰减噪声
+      data[i] = (Math.random()*2 - 1) * Math.pow(1 - t, decay);
+    }
+  }
+  return buf;
+}
+
+/* ===== 效果链重建（可在播放中切换） ===== */
+function rebuildWetChain(){
+  if(!audioCtx) return;
+  // 断开旧节点
+  if(delayNode){ try{delayNode.disconnect();}catch(e){} delayNode = null; }
+  if(feedbackGain){ try{feedbackGain.disconnect();}catch(e){} feedbackGain = null; }
+  if(convolverNode){ try{convolverNode.disconnect();}catch(e){} convolverNode = null; }
+  // 重连 effectInput 下游
+  try{ effectInput.disconnect(); }catch(e){}
+  effectInput.connect(dryGain);
+
+  if(effectType === 'echo'){
+    delayNode = audioCtx.createDelay(5.0);
+    delayNode.delayTime.value = delayTime;
+    feedbackGain = audioCtx.createGain();
+    feedbackGain.gain.value = feedback;
+    effectInput.connect(delayNode);
+    delayNode.connect(wetGain);
+    delayNode.connect(feedbackGain);
+    feedbackGain.connect(delayNode);
+  } else {
+    convolverNode = audioCtx.createConvolver();
+    convolverNode.buffer = makeImpulse(audioCtx, irDuration, IR_DECAY, 2);
+    effectInput.connect(convolverNode);
+    convolverNode.connect(wetGain);
+  }
+  applyMix();
+  renderSignalChain();
+}
+
+/* ===== 参数应用 ===== */
+function applyMix(){
+  if(!dryGain) return;
+  var m = mix/100;
+  dryGain.gain.value = 1 - m;
+  wetGain.gain.value = m;
+}
+function applyEchoParams(){
+  if(delayNode) delayNode.delayTime.value = delayTime;
+  if(feedbackGain) feedbackGain.gain.value = feedback;
+}
+function applyReverbDecay(){
+  if(convolverNode && audioCtx){
+    convolverNode.buffer = makeImpulse(audioCtx, irDuration, IR_DECAY, 2);
+  }
+}
+
+/* ===== 信号链可视化 ===== */
+function renderSignalChain(){
+  var wetNode = effectType === 'echo' ? '延迟 Delay' : '卷积 Convolver';
+  var html = '<span class="node">音源 Source</span><span class="arrow">→</span>'
+    + '<span class="node dry">干 Dry</span><span class="arrow">↘</span>'
+    + '<span class="node wet">' + wetNode + ' → 湿 Wet</span><span class="arrow">↙</span>'
+    + '<span class="node">混合 Master</span><span class="arrow">→</span>'
+    + '<span class="node">压缩保护</span><span class="arrow">→</span>'
+    + '<span class="node">输出</span>';
+  signalChain.innerHTML = html;
+}
+
+/* ===== 文件加载 ===== */
+function handleFile(file){
+  if(!file) return;
+  var okType = file.type && file.type.indexOf('audio') === 0;
+  var okExt = /\.(mp3|wav|ogg|oga|m4a|aac|flac|webm|opus)$/i.test(file.name);
+  if(!okType && !okExt){
+    ToolBox.showToast(i18nText('toast.msg954'), 'error');
+    return;
+  }
+  originalFileName = file.name;
+  dzName.textContent = '加载中：' + file.name + ' ...';
+  stopPlay();
+  var reader = new FileReader();
+  reader.onload = function(e){
+    ensureCtx();
+    var arrayBuf = e.target.result;
+    var decode = audioCtx.decodeAudioData;
+    // Promise 形式
+    var p = decode.call(audioCtx, arrayBuf);
+    p.then(function(decoded){
+      audioBuffer = decoded;
+      pausedAt = 0;
+      peaks = computePeaks(decoded, 1000);
+      playBtn.disabled = false;
+      stopBtn.disabled = false;
+      exportHint.textContent = '可导出 ' + decoded.numberOfChannels + ' 声道 / ' + decoded.sampleRate + 'Hz';
+      playerMeta.innerHTML = '<strong>' + ToolBox.escHtml(file.name) + '</strong> · ' + decoded.duration.toFixed(1) + 's';
+      durTimeEl.textContent = fmtTime(decoded.duration);
+      curTimeEl.textContent = '0:00';
+      dzName.textContent = '✓ ' + file.name;
+      drawWaveform();
+      ToolBox.showToast('tool.audio_load_ok');
+    }).catch(function(err){
+      dzName.textContent = '';
+      ToolBox.showToast('音频解码失败：' + (err.message||err.name), 'error');
+    });
+  };
+  reader.onerror = function(){
+    ToolBox.showToast('toast.import_failed', 'error');
+    dzName.textContent = '';
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+/* ===== 波形 ===== */
+function computePeaks(buffer, n){
+  var ch0 = buffer.getChannelData(0);
+  var ch1 = buffer.numberOfChannels > 1 ? buffer.getChannelData(1) : null;
+  var total = ch0.length;
+  n = Math.min(n, total);
+  var step = Math.max(1, Math.floor(total / n));
+  var mins = new Float32Array(n);
+  var maxs = new Float32Array(n);
+  for(var x=0; x<n; x++){
+    var start = x*step;
+    var end = Math.min(total, start + step);
+    var mn = 0, mx = 0;
+    for(var i=start; i<end; i++){
+      var v = ch1 ? (ch0[i]+ch1[i])*0.5 : ch0[i];
+      if(v < mn) mn = v;
+      if(v > mx) mx = v;
+    }
+    mins[x] = mn; maxs[x] = mx;
+  }
+  return { mins: mins, maxs: maxs, n: n };
+}
+function drawWaveform(){
+  var dpr = window.devicePixelRatio || 1;
+  var rect = wfCanvas.getBoundingClientRect();
+  var w = rect.width, h = rect.height;
+  if(w < 1) w = wfCanvas.parentElement.clientWidth - 20;
+  if(h < 1) h = 78;
+  if(wfCanvas.width !== Math.round(w*dpr) || wfCanvas.height !== Math.round(h*dpr)){
+    wfCanvas.width = Math.round(w*dpr);
+    wfCanvas.height = Math.round(h*dpr);
+  }
+  var ctx = wfCtx;
+  ctx.save();
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  ctx.clearRect(0,0,w,h);
+
+  if(!audioBuffer || !peaks){
+    var c0 = themeColors();
+    ctx.fillStyle = c0.muted;
+    ctx.font = '13px -apple-system,sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('上传音频后显示波形', w/2, h/2);
+    ctx.restore();
+    return;
+  }
+
+  var dur = audioBuffer.duration;
+  var cur = isPlaying ? (audioCtx.currentTime - startTime) : pausedAt;
+  var pct = dur > 0 ? Math.max(0, Math.min(1, cur/dur)) : 0;
+  var playedX = pct * w;
+  var mid = h/2;
+  var cols = themeColors();
+  var n = peaks.n;
+  var barW = Math.max(1, w/n);
+  for(var i=0; i<n; i++){
+    var x = (i/n)*w;
+    var mn = peaks.mins[i], mx = peaks.maxs[i];
+    var y1 = (1 - mx) * mid;
+    var y2 = (1 - mn) * mid;
+    ctx.fillStyle = x <= playedX ? cols.primary : cols.muted;
+    ctx.fillRect(x, y1, barW + 0.5, Math.max(1, y2 - y1));
+  }
+  // 播放头
+  ctx.fillStyle = cols.primary;
+  ctx.fillRect(playedX - 0.75, 0, 1.5, h);
+  ctx.restore();
+
+  // 更新 aria
+  var wrap = document.getElementById('waveformWrap');
+  if(wrap) wrap.setAttribute('aria-valuenow', Math.round(pct*100));
+}
+
+/* ===== 播放控制 ===== */
+function togglePlay(){
+  if(!audioBuffer){ ToolBox.showToast('tool.file_upload_hint', 'warning'); return; }
+  if(isPlaying) pausePlay(); else startPlay();
+}
+function startPlay(){
+  if(!audioBuffer || isPlaying) return;
+  ensureCtx();
+  if(audioCtx.state === 'suspended') audioCtx.resume();
+  source = audioCtx.createBufferSource();
+  source.buffer = audioBuffer;
+  source.connect(effectInput);
+  source.onended = onSourceEnded;
+  var offset = Math.max(0, Math.min(pausedAt, audioBuffer.duration - 0.001));
+  source.start(0, offset);
+  startTime = audioCtx.currentTime - offset;
+  isPlaying = true;
+  updatePlayBtn();
+  startRaf();
+}
+function pausePlay(){
+  if(!isPlaying) return;
+  pausedAt = audioCtx.currentTime - startTime;
+  if(pausedAt < 0) pausedAt = 0;
+  if(pausedAt > audioBuffer.duration) pausedAt = audioBuffer.duration;
+  isPlaying = false;
+  if(source){ try{ source.onended = null; source.stop(); }catch(e){} source = null; }
+  updatePlayBtn();
+  stopRaf();
+  curTimeEl.textContent = fmtTime(pausedAt);
+  drawWaveform();
+}
+function stopPlay(){
+  if(source){ try{ source.onended = null; source.stop(); }catch(e){} source = null; }
+  isPlaying = false;
+  pausedAt = 0;
+  updatePlayBtn();
+  stopRaf();
+  curTimeEl.textContent = '0:00';
+  drawWaveform();
+}
+function onSourceEnded(){
+  // 自然播放结束
+  if(!isPlaying) return;
+  isPlaying = false;
+  pausedAt = 0;
+  updatePlayBtn();
+  stopRaf();
+  curTimeEl.textContent = '0:00';
+  drawWaveform();
+}
+function updatePlayBtn(){
+  playBtn.textContent = isPlaying ? '⏸' : '▶';
+  playBtn.setAttribute('aria-label', isPlaying ? '暂停' : '播放');
+  stopBtn.disabled = !audioBuffer;
+}
+function seek(pct){
+  if(!audioBuffer) return;
+  pct = Math.max(0, Math.min(1, pct));
+  var t = pct * audioBuffer.duration;
+  pausedAt = t;
+  if(isPlaying){
+    if(source){ try{ source.onended = null; source.stop(); }catch(e){} source = null; }
+    isPlaying = false;
+    startPlay();
+  } else {
+    curTimeEl.textContent = fmtTime(t);
+    drawWaveform();
+  }
+}
+
+/* ===== rAF 循环 ===== */
+function startRaf(){ stopRaf(); rafId = requestAnimationFrame(rafLoop); }
+function stopRaf(){ if(rafId){ cancelAnimationFrame(rafId); rafId = null; } }
+function rafLoop(){
+  if(!isPlaying) return;
+  var cur = audioCtx.currentTime - startTime;
+  var dur = audioBuffer.duration;
+  if(cur >= dur){ onSourceEnded(); return; }
+  pausedAt = cur;
+  curTimeEl.textContent = fmtTime(cur);
+  drawWaveform();
+  rafId = requestAnimationFrame(rafLoop);
+}
+
+/* ===== 效果类型切换 ===== */
+function setEffectType(type){
+  effectType = type;
+  for(var i=0;i<tabBtns.length;i++){
+    tabBtns[i].classList.toggle('active', tabBtns[i].dataset.type === type);
+  }
+  echoParamsEl.style.display = type === 'echo' ? '' : 'none';
+  reverbParamsEl.style.display = type === 'reverb' ? '' : 'none';
+  clearActivePreset();
+  rebuildWetChain();
+  drawWaveform();
+}
+
+/* ===== 预设 ===== */
+function buildPresets(){
+  var html = '';
+  Object.keys(PRESETS).forEach(function(key){
+    var p = PRESETS[key];
+    html += '<button type="button" class="preset-btn" data-preset="'+key+'">'
+      + '<span class="p-icon">'+p.icon+'</span><span>'+p.label+'</span></button>';
+  });
+  presetGrid.innerHTML = html;
+  var btns = presetGrid.querySelectorAll('.preset-btn');
+  btns.forEach(function(btn){
+    btn.addEventListener('click', function(){ applyPreset(btn.dataset.preset); });
+  });
+}
+function applyPreset(key){
+  var p = PRESETS[key];
+  if(!p) return;
+  effectType = p.type;
+  for(var i=0;i<tabBtns.length;i++){
+    tabBtns[i].classList.toggle('active', tabBtns[i].dataset.type === p.type);
+  }
+  echoParamsEl.style.display = p.type === 'echo' ? '' : 'none';
+  reverbParamsEl.style.display = p.type === 'reverb' ? '' : 'none';
+  if(p.type === 'echo'){
+    delayTime = p.delay; feedback = p.feedback;
+    delaySlider.value = delayTime; delayVal.textContent = delayTime.toFixed(2)+'s';
+    feedbackSlider.value = feedback; feedbackVal.textContent = feedback.toFixed(2);
+  } else {
+    irDuration = p.irDuration;
+    reverbSlider.value = irDuration; reverbVal.textContent = irDuration.toFixed(1)+'s';
+  }
+  mix = p.mix; mixSlider.value = mix; mixVal.textContent = mix+'%';
+  setActivePreset(key);
+  rebuildWetChain();
+  if(p.type === 'echo') applyEchoParams();
+  drawWaveform();
+  ToolBox.showToast('已应用预设：' + p.label);
+}
+function setActivePreset(key){
+  var btns = presetGrid.querySelectorAll('.preset-btn');
+  btns.forEach(function(b){ b.classList.toggle('active', b.dataset.preset === key); });
+}
+function clearActivePreset(){
+  var btns = presetGrid.querySelectorAll('.preset-btn');
+  btns.forEach(function(b){ b.classList.remove('active'); });
+}
+
+/* ===== WAV 编码 ===== */
+function audioBufferToWav(buffer){
+  var numCh = buffer.numberOfChannels;
+  var sr = buffer.sampleRate;
+  var frames = buffer.length;
+  var bytesPerSample = 2;
+  var blockAlign = numCh * bytesPerSample;
+  var byteRate = sr * blockAlign;
+  var dataSize = frames * blockAlign;
+  var ab = new ArrayBuffer(44 + dataSize);
+  var view = new DataView(ab);
+  function ws(off, str){ for(var i=0;i<str.length;i++) view.setUint8(off+i, str.charCodeAt(i)); }
+  ws(0,'RIFF'); view.setUint32(4, 36+dataSize, true); ws(8,'WAVE'); ws(12,'fmt ');
+  view.setUint32(16, 16, true); view.setUint16(20, 1, true); view.setUint16(22, numCh, true);
+  view.setUint32(24, sr, true); view.setUint32(28, byteRate, true);
+  view.setUint16(32, blockAlign, true); view.setUint16(34, 16, true);
+  ws(36,'data'); view.setUint32(40, dataSize, true);
+  var channels = [];
+  for(var ch=0; ch<numCh; ch++) channels.push(buffer.getChannelData(ch));
+  var off = 44;
+  for(var i=0; i<frames; i++){
+    for(var c=0; c<numCh; c++){
+      var s = Math.max(-1, Math.min(1, channels[c][i]));
+      s = s < 0 ? s * 0x8000 : s * 0x7FFF;
+      view.setInt16(off, s, true);
+      off += 2;
+    }
+  }
+  return ab;
+}
+
+/* ===== 导出 ===== */
+function exportWav(){
+  if(!audioBuffer){ ToolBox.showToast('tool.file_upload_hint', 'warning'); return; }
+  exportBtn.disabled = true;
+  exportBtn.textContent = '正在渲染...';
+  exportHint.textContent = '离线渲染中，请稍候';
+  try{
+    var sr = audioBuffer.sampleRate;
+    var numCh = audioBuffer.numberOfChannels;
+    var tail = effectType === 'reverb' ? (irDuration + 0.5) : Math.min(6, delayTime + 3);
+    var totalDur = audioBuffer.duration + tail;
+    var length = Math.ceil(totalDur * sr);
+    var OC = window.OfflineAudioContext || window.webkitOfflineAudioContext;
+    var off = new OC(numCh, length, sr);
+
+    var src = off.createBufferSource();
+    src.buffer = audioBuffer;
+    var dry = off.createGain();
+    var wet = off.createGain();
+    var master = off.createGain();
+    var comp = off.createDynamicsCompressor();
+    comp.threshold.value = -10; comp.knee.value = 12; comp.ratio.value = 6;
+    comp.attack.value = 0.003; comp.release.value = 0.25;
+    dry.connect(master); wet.connect(master); master.connect(comp); comp.connect(off.destination);
+    var m = mix/100;
+    dry.gain.value = 1 - m; wet.gain.value = m;
+
+    if(effectType === 'echo'){
+      var d = off.createDelay(5.0); d.delayTime.value = delayTime;
+      var fb = off.createGain(); fb.gain.value = feedback;
+      src.connect(d); d.connect(wet); d.connect(fb); fb.connect(d);
+    } else {
+      var c = off.createConvolver();
+      c.buffer = makeImpulse(off, irDuration, IR_DECAY, numCh);
+      src.connect(c); c.connect(wet);
+    }
+    src.connect(dry);
+    src.start(0);
+
+    var renderPromise = off.startRendering();
+    renderPromise.then(function(rendered){
+      exportBtn.textContent = '正在编码...';
+      try{
+        var wav = audioBufferToWav(rendered);
+        var blob = new Blob([wav], {type:'audio/wav'});
+        var url = URL.createObjectURL(blob);
+        var a = document.createElement('a');
+        var base = (originalFileName || 'audio').replace(/\.[^.]+$/, '');
+        a.href = url; a.download = base + '-效果.wav';
+        document.body.appendChild(a); a.click();
+        setTimeout(function(){ URL.revokeObjectURL(url); a.remove(); }, 0);
+        exportHint.textContent = '导出完成：' + (rendered.duration).toFixed(1) + 's WAV';
+        ToolBox.showToast(i18nText('toast.msg139'));
+      }catch(encErr){
+        exportHint.textContent = '编码失败';
+        ToolBox.showToast('WAV 编码失败：'+encErr.message, 'error');
+      }
+      exportBtn.disabled = false;
+      exportBtn.textContent = '💾 导出 WAV';
+    }).catch(function(err){
+      exportBtn.disabled = false;
+      exportBtn.textContent = '💾 导出 WAV';
+      exportHint.textContent = '渲染失败';
+      ToolBox.showToast('渲染失败：'+(err.message||err.name), 'error');
+    });
+  }catch(e){
+    exportBtn.disabled = false;
+    exportBtn.textContent = '💾 导出 WAV';
+    exportHint.textContent = '导出出错';
+    ToolBox.showToast('导出失败：'+e.message, 'error');
+  }
+}
+
+/* ===== 事件绑定 ===== */
+// 文件上传
+dropZone.addEventListener('click', function(){ fileInput.click(); });
+fileInput.addEventListener('change', function(){ if(fileInput.files[0]) handleFile(fileInput.files[0]); });
+dropZone.addEventListener('dragover', function(e){ e.preventDefault(); dropZone.classList.add('dragover'); });
+dropZone.addEventListener('dragleave', function(){ dropZone.classList.remove('dragover'); });
+dropZone.addEventListener('drop', function(e){
+  e.preventDefault();
+  dropZone.classList.remove('dragover');
+  if(e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]);
+});
+
+// 效果类型 Tab
+tabBtns.forEach(function(btn){
+  btn.addEventListener('click', function(){ setEffectType(btn.dataset.type); });
+});
+
+// 滑块
+delaySlider.addEventListener('input', function(){
+  delayTime = +delaySlider.value;
+  delayVal.textContent = delayTime.toFixed(2)+'s';
+  applyEchoParams();
+  clearActivePreset();
+});
+feedbackSlider.addEventListener('input', function(){
+  feedback = +feedbackSlider.value;
+  feedbackVal.textContent = feedback.toFixed(2);
+  applyEchoParams();
+  clearActivePreset();
+});
+reverbSlider.addEventListener('input', function(){
+  irDuration = +reverbSlider.value;
+  reverbVal.textContent = irDuration.toFixed(1)+'s';
+  applyReverbDecay();
+  clearActivePreset();
+});
+mixSlider.addEventListener('input', function(){
+  mix = +mixSlider.value;
+  mixVal.textContent = mix+'%';
+  applyMix();
+  clearActivePreset();
+});
+
+// 波形点击跳转
+wfCanvas.addEventListener('click', function(e){
+  if(!audioBuffer) return;
+  var rect = wfCanvas.getBoundingClientRect();
+  seek((e.clientX - rect.left) / rect.width);
+});
+// 触摸跳转
+wfCanvas.addEventListener('touchend', function(e){
+  if(!audioBuffer || !e.changedTouches[0]) return;
+  var rect = wfCanvas.getBoundingClientRect();
+  var t = e.changedTouches[0];
+  seek((t.clientX - rect.left) / rect.width);
+  e.preventDefault();
+}, {passive:false});
+
+// 键盘空格播放/暂停
+document.addEventListener('keydown', function(e){
+  if(e.code === 'Space'){
+    var tag = document.activeElement ? document.activeElement.tagName : '';
+    if(/INPUT|TEXTAREA|SELECT|BUTTON/.test(tag)) return;
+    if(audioBuffer){ e.preventDefault(); togglePlay(); }
+  }
+});
+
+// 窗口尺寸变化重绘
+var resizeTimer;
+window.addEventListener('resize', function(){
+  clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(function(){ drawWaveform(); }, 150);
+});
+
+// 主题切换后重绘波形
+var mo = new MutationObserver(function(){ drawWaveform(); });
+mo.observe(document.documentElement, { attributes:true, attributeFilter:['data-theme'] });
+mo.observe(document.body, { attributes:true, attributeFilter:['class'] });
+
+/* ===== 初始化 ===== */
+buildPresets();
+renderSignalChain();
+drawWaveform();
+// 暴露到全局供 onclick 调用
+window.togglePlay = togglePlay;
+window.stopPlay = stopPlay;
+window.exportWav = exportWav;
+
+// tool-intro 折叠
+document.querySelectorAll('.tool-intro-header').forEach(function(h){
+  h.addEventListener('click', function(){ this.parentElement.classList.toggle('open'); });
+});
+
+})();
+</script>
+
+</body>
+</html>

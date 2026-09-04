@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="zh-TW" data-opencc-locale="zh-tw">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="description" content="ToolBox 工具链组合：把多个在线工具串联成一条流水线，上一步输出自动作为下一步输入。预设编码安全链、文档分享链、数据分享链，也可自定义工具链。纯前端运行，数据不上传。">
+<link rel="canonical" href="https://chenguangwu.github.io/zh-tw/chains.html">
+<meta property="og:title" content="工具链组合 - ToolBox">
+<meta property="og:description" content="多个工具一键串联，上一步输出自动填入下一步输入。纯前端运行，数据不上传。">
+<title>工具鏈組合 - ToolBox</title>
+<link rel="stylesheet" href="/css/common.css">
+<script>window.__tbq=window.__tbq||[];window.ToolBox=window.ToolBox||{};['initToolTheme','addToolStyles','showToast','toast','copyText','copyToClipboard','copyFromElement','downloadText','injectPrivacyBadge','toggleFavTool','addToRecentTool','toggleToolTheme','applyTheme'].forEach(function(k){if(typeof window.ToolBox[k]!=='function')window.ToolBox[k]=function(){window.__tbq.push([k,[].slice.call(arguments)]);};});</script><!-- TOOLBOX-API-STUB -->
+<script src="/js/common.js" defer></script>
+<style>
+  body{background:var(--bg,#FFFAF7);}
+  .container{max-width:960px;margin:0 auto;padding:24px 16px 60px;}
+  .page-head h1{font-size:26px;margin:8px 0 6px;}
+  .page-head p{font-size:14px;color:var(--muted,#6B7280);margin:0 0 4px;}
+  .page-head .privacy{margin-top:8px;}
+  .section-title{font-size:19px;margin:30px 0 14px;display:flex;align-items:center;gap:8px;}
+  .chain-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px;}
+  .chain-card{background:var(--card,#fff);border:1px solid var(--border,#E5E7EB);border-radius:16px;padding:18px;display:flex;flex-direction:column;gap:10px;}
+  .chain-card .cc-head{display:flex;align-items:center;gap:10px;}
+  .chain-card .cc-icon{font-size:26px;width:46px;height:46px;border-radius:12px;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#FFF5F0,#F3F0FF);}
+  .chain-card h3{margin:0;font-size:16px;}
+  .chain-card .cc-desc{font-size:13px;color:var(--muted,#6B7280);margin:0;}
+  .chain-card .cc-steps{font-size:12.5px;color:var(--text,#1F2937);background:rgba(0,0,0,.03);border-radius:10px;padding:10px 12px;line-height:1.9;}
+  .chain-card .cc-steps .arrow{opacity:.45;margin:0 4px;}
+  .chain-card .cc-steps .step-done{opacity:.9;}
+  .chain-card .cc-actions{margin-top:auto;display:flex;gap:8px;align-items:center;}
+  .btn-pri{background:linear-gradient(135deg,#FF6B35,#7C3AED);color:#fff;border:0;border-radius:12px;padding:9px 20px;font-size:14px;font-weight:700;cursor:pointer;}
+  .btn-pri:hover{filter:brightness(1.06);}
+  .btn-ghost{background:transparent;border:1px solid var(--border,#E5E7EB);color:var(--text,#1F2937);border-radius:12px;padding:8px 14px;font-size:13px;cursor:pointer;}
+  .btn-ghost:hover{background:rgba(0,0,0,.04);}
+  .custom-panel{background:var(--card,#fff);border:1px solid var(--border,#E5E7EB);border-radius:16px;padding:18px;display:flex;flex-direction:column;gap:12px;}
+  .custom-panel input[type=text]{border:1px solid var(--border,#E5E7EB);border-radius:10px;padding:10px 12px;font-size:14px;width:100%;box-sizing:border-box;background:var(--bg,#FFFAF7);color:var(--text,#1F2937);}
+  .custom-panel input[type=text]:focus{outline:none;border-color:var(--primary,#FF6B35);}
+  .search-box{position:relative;}
+  .search-results{position:absolute;top:calc(100% + 4px);left:0;right:0;background:var(--card,#fff);border:1px solid var(--border,#E5E7EB);border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,.1);max-height:260px;overflow:auto;z-index:20;display:none;}
+  .search-results .sr-item{padding:9px 12px;font-size:13px;cursor:pointer;display:flex;align-items:center;gap:8px;border-bottom:1px solid rgba(0,0,0,.04);}
+  .search-results .sr-item:last-child{border-bottom:0;}
+  .search-results .sr-item:hover{background:rgba(255,107,53,.08);}
+  .search-results .sr-ico{width:26px;height:26px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;}
+  .search-results .sr-meta{opacity:.6;font-size:11.5px;}
+  .search-results .sr-none{padding:12px;font-size:13px;color:var(--muted,#6B7280);text-align:center;}
+  .custom-steps{margin-top:4px;display:flex;flex-direction:column;gap:8px;}
+  .custom-step{display:flex;align-items:center;gap:10px;background:rgba(0,0,0,.03);border-radius:10px;padding:9px 12px;font-size:13.5px;}
+  .custom-step .cs-idx{width:22px;height:22px;border-radius:50%;background:linear-gradient(135deg,#FF6B35,#7C3AED);color:#fff;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+  .custom-step .cs-del{margin-left:auto;background:none;border:0;color:#EF4444;font-size:16px;cursor:pointer;padding:2px 6px;border-radius:6px;}
+  .custom-step .cs-del:hover{background:rgba(239,68,68,.1);}
+  .custom-empty{font-size:13px;color:var(--muted,#6B7280);text-align:center;padding:22px 0;}
+  .custom-list{display:flex;flex-direction:column;gap:10px;margin-top:8px;}
+  .custom-row{background:var(--card,#fff);border:1px solid var(--border,#E5E7EB);border-radius:12px;padding:12px 16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;}
+  .custom-row .cr-name{font-weight:700;font-size:14.5px;}
+  .custom-row .cr-steps{font-size:12px;color:var(--muted,#6B7280);}
+  .custom-row .cr-actions{margin-left:auto;display:flex;gap:8px;}
+  .done-banner{background:rgba(16,185,129,.1);color:#047857;border:1px solid rgba(16,185,129,.3);border-radius:12px;padding:12px 16px;font-size:14px;margin:16px 0 0;display:none;}
+  @media (max-width:640px){ .chain-grid{grid-template-columns:1fr;} }
+</style>
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://chenguangwu.github.io/zh-tw/chains.html">
+    <meta property="og:image" content="https://chenguangwu.github.io/og-image.png">
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:title" content="工具链组合">
+    <meta name="twitter:description" content="ToolBox 工具链组合：把多个在线工具串联成一条流水线，上一步输出自动作为下一步输入。预设编码安全链、文档分享链、数据分享链，也可自定义工具链。纯前端运行，数据不上传。">
+    <meta name="twitter:image" content="https://chenguangwu.github.io/og-image.png">
+
+<!-- TOOLBOX-HREFLANG -->
+<link rel="alternate" hreflang="zh-CN" href="https://chenguangwu.github.io/chains.html">
+<link rel="alternate" hreflang="zh-TW" href="https://chenguangwu.github.io/zh-tw/chains.html">
+<link rel="alternate" hreflang="zh-HK" href="https://chenguangwu.github.io/zh-hk/chains.html">
+<link rel="alternate" hreflang="en-US" href="https://chenguangwu.github.io/chains.html?lang=en-US">
+<link rel="alternate" hreflang="x-default" href="https://chenguangwu.github.io/chains.html">
+<meta property="og:locale" content="zh_TW">
+<meta property="og:locale:alternate" content="zh_CN">
+<meta property="og:locale:alternate" content="zh_HK">
+<meta property="og:locale:alternate" content="en_US">
+</head>
+<body>
+
+<div class="nav">
+  <a href="/zh-tw/index.html">← ToolBox</a>
+  <span>/ 工具鏈組合</span>
+  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()">🌙</button>
+</div>
+
+<div class="container">
+  <div class="page-head">
+    <h1>🧩 工具鏈組合</h1>
+    <p>把多個工具串聯成一條流水線：上一步的輸出會自動填入下一步的輸入，全程純前端、資料不出瀏覽器。</p>
+    <p class="privacy" style="font-size:12.5px;color:var(--muted,#6B7280);">🔒 所有資料僅在本地處理，鏈條狀態儲存在你的瀏覽器 localStorage 中。</p>
+  </div>
+
+  <div class="done-banner" id="doneBanner">✅ 工具鏈已完成！如需再次使用，點選下方「開始」重新執行。</div>
+
+  <h2 class="section-title">✨ 預設工具鏈</h2>
+  <div class="chain-grid" id="presetGrid"></div>
+
+  <h2 class="section-title">🛠️ 自定義工具鏈</h2>
+  <div class="custom-panel">
+    <input type="text" id="chainName" placeholder="給鏈條起個名字，如：我的文本處理流程">
+    <div class="search-box">
+      <input type="text" id="toolSearch" placeholder="搜尋工具，點選加入鏈條（如：URL、Base64、MD5）..." autocomplete="off">
+      <div class="search-results" id="toolResults"></div>
+    </div>
+    <div class="custom-steps" id="customSteps">
+      <div class="custom-empty">還沒有步驟 —— 在上方搜尋工具並點選新增，按順序排成流水線。</div>
+    </div>
+    <div style="display:flex;gap:10px;">
+      <button class="btn-pri" id="saveCustom" style="flex:1;">💾 儲存自定義鏈</button>
+    </div>
+  </div>
+  <div class="custom-list" id="customList"></div>
+
+  <p style="font-size:12px;color:var(--muted,#6B7280);margin-top:28px;line-height:1.8;">
+    💡 小貼士：鏈條中的每一步都會自動填入上一步的結果；若工具輸入框未自動填入，請手動複製貼上（自定義鏈對多輸入工具為盡力而為）。
+  </p>
+</div>
+
+<script>
+(function(){
+  'use strict';
+  var Chain = window.Chain;
+  var pendingSteps = [];        // 自定义链步骤（{file, name, icon, bg}）
+  var searchIndex = null;       // 懒加载 json/search-index.json
+
+  // ---- 预设链渲染 ----
+  function renderPresets(){
+    var grid = document.getElementById('presetGrid');
+    if(!grid || !Chain) return;
+    grid.innerHTML = Chain.PRESETS.map(function(c){
+      var steps = c.steps.map(function(s, i){
+        var arrow = i < c.steps.length - 1 ? '<span class="arrow">→</span>' : '';
+        return '<span class="step-done">' + (s.icon || '🔧') + ' ' + s.name + '</span>' + arrow;
+      }).join('');
+      return '<div class="chain-card">' +
+        '<div class="cc-head"><div class="cc-icon">' + c.icon + '</div><h3>' + c.name + '</h3></div>' +
+        '<p class="cc-desc">' + c.desc + '</p>' +
+        '<div class="cc-steps">' + steps + '</div>' +
+        '<div class="cc-actions">' +
+        '<button class="btn-pri" onclick="Chain.start(\'' + c.id + '\')">▶ 开始</button>' +
+        '</div></div>';
+    }).join('');
+  }
+
+  // ---- 自定义链 ----
+  function renderCustomList(){
+    var list = document.getElementById('customList');
+    if(!list || !Chain) return;
+    var customs = Chain.getCustom();
+    if(!customs.length){ list.innerHTML = ''; return; }
+    list.innerHTML = customs.map(function(c){
+      return '<div class="custom-row">' +
+        '<span class="cr-name">🧩 ' + c.name + '</span>' +
+        '<span class="cr-steps">' + c.steps.length + ' 步 · ' + c.steps.map(function(s){return s.name;}).join(' → ') + '</span>' +
+        '<span class="cr-actions">' +
+        '<button class="btn-pri" style="padding:7px 16px;font-size:13px;" onclick="Chain.start(\'' + c.id + '\')">▶ 开始</button>' +
+        '<button class="btn-ghost" style="padding:7px 14px;font-size:13px;" onclick="deleteCustom(\'' + c.id + '\')">🗑 删除</button>' +
+        '</span></div>';
+    }).join('');
+  }
+  window.deleteCustom = function(id){
+    var customs = Chain.getCustom().filter(function(c){ return c.id !== id; });
+    Chain.setCustom(customs);
+    renderCustomList();
+  };
+
+  function renderPendingSteps(){
+    var box = document.getElementById('customSteps');
+    if(!box) return;
+    if(!pendingSteps.length){
+      box.innerHTML = '<div class="custom-empty">还没有步骤 —— 在上方搜索工具并点击添加，按顺序排成流水线。</div>';
+      return;
+    }
+    box.innerHTML = pendingSteps.map(function(s, i){
+      return '<div class="custom-step">' +
+        '<span class="cs-idx">' + (i + 1) + '</span>' +
+        '<span class="cs-ico" style="width:26px;height:26px;border-radius:8px;background:' + (s.bg || '#eee') + ';display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;">' + (s.icon || '🔧') + '</span>' +
+        '<span>' + s.name + '</span>' +
+        '<span style="font-size:11.5px;opacity:.55;">' + s.file + '</span>' +
+        '<button class="cs-del" onclick="removePending(' + i + ')">✕</button>' +
+        '</div>';
+    }).join('');
+  }
+  window.removePending = function(i){
+    pendingSteps.splice(i, 1);
+    renderPendingSteps();
+  };
+
+  // ---- 工具搜索（懒加载 search-index.json）----
+  var searchInput = document.getElementById('toolSearch');
+  var resultsBox = document.getElementById('toolResults');
+  var searchTimer = null;
+  if(searchInput){
+    searchInput.addEventListener('input', function(){
+      clearTimeout(searchTimer);
+      var q = searchInput.value.trim();
+      if(!q){ resultsBox.style.display = 'none'; return; }
+      searchTimer = setTimeout(function(){ doSearch(q); }, 250);
+    });
+    searchInput.addEventListener('focus', function(){
+      if(searchInput.value.trim()){ resultsBox.style.display = 'block'; }
+    });
+    document.addEventListener('click', function(e){
+      if(!e.target.closest || !e.target.closest('.search-box')) resultsBox.style.display = 'none';
+    });
+  }
+  function doSearch(q){
+    q = q.toLowerCase();
+    if(!searchIndex){
+      fetch('json/search-index.json').then(function(r){ return r.json(); }).then(function(data){
+        searchIndex = data;
+        showResults(q);
+      }).catch(function(){ resultsBox.innerHTML = '<div class="sr-none">搜索索引加载失败</div>'; resultsBox.style.display = 'block'; });
+      return;
+    }
+    showResults(q);
+  }
+  function showResults(q){
+    var hits = [];
+    for (var i = 0; i < searchIndex.length && hits.length < 12; i++) {
+      var t = searchIndex[i];
+      var hay = (t.n + ' ' + (t.d || '') + ' ' + t.u).toLowerCase();
+      if (hay.indexOf(q) !== -1) hits.push(t);
+    }
+    if(!hits.length){
+      resultsBox.innerHTML = '<div class="sr-none">没有匹配的工具，试试其他关键词</div>';
+      resultsBox.style.display = 'block';
+      return;
+    }
+    resultsBox.innerHTML = hits.map(function(t){
+      return '<div class="sr-item" onclick="addPending(\'' + encodeURIComponent(JSON.stringify(t)) + '\')">' +
+        '<span class="sr-ico" style="background:' + (t.b || '#eee') + '">' + (t.ic || '🔧') + '</span>' +
+        '<span>' + t.n + '</span>' +
+        '<span class="sr-meta">' + t.u + '</span>' +
+        '</div>';
+    }).join('');
+    resultsBox.style.display = 'block';
+  }
+  window.addPending = function(encoded){
+    try {
+      var t = JSON.parse(decodeURIComponent(encoded));
+      // 去重（同一工具只允许一次）
+      var exists = pendingSteps.some(function(s){ return s.file === t.u; });
+      if(!exists && pendingSteps.length < 12){
+        pendingSteps.push({ file: t.u, name: t.n, icon: t.ic, bg: t.b });
+      }
+      renderPendingSteps();
+      resultsBox.style.display = 'none';
+      if(searchInput) searchInput.value = '';
+    } catch(e){}
+  };
+
+  // ---- 保存 ----
+  var saveBtn = document.getElementById('saveCustom');
+  if(saveBtn && Chain){
+    saveBtn.addEventListener('click', function(){
+      var name = (document.getElementById('chainName').value || '').trim();
+      if(!name){ alert('请先给链条起个名字'); return; }
+      if(!pendingSteps.length){ alert('请至少添加一个工具步骤'); return; }
+      var customs = Chain.getCustom();
+      customs.push({
+        id: 'custom_' + Date.now(),
+        icon: '🧩',
+        name: name,
+        desc: '自定义工具链（' + pendingSteps.length + ' 步）',
+        custom: true,
+        steps: pendingSteps.map(function(s){ return { file: s.file, icon: s.icon, name: s.name }; })
+      });
+      Chain.setCustom(customs);
+      pendingSteps = [];
+      document.getElementById('chainName').value = '';
+      renderPendingSteps();
+      renderCustomList();
+      alert('✅ 已保存自定义链「' + name + '」，点击「开始」即可运行');
+    });
+  }
+
+  // ---- 完成提示 ----
+  if (new URLSearchParams(location.search).get('done') === '1') {
+    var b = document.getElementById('doneBanner');
+    if (b) b.style.display = 'block';
+  }
+
+  renderPresets();
+  renderCustomList();
+})();
+</script>
+</body>
+</html>

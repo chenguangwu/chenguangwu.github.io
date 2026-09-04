@@ -1,0 +1,613 @@
+<!DOCTYPE html>
+<html lang="zh-TW" data-opencc-locale="zh-tw">
+<head>
+
+<script src="/js/tool-page-runtime.js" defer></script>
+<!-- TOOLBOX-TOOL-RUNTIME -->
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="toolbox" content="cat=math,industry=ecommerce,icon=🔄,bg=#fce4ec">
+<meta name="description" content="记录客户购买历史，计算平均复购周期与购买频次，预测下次购买时间，自动客户分群（一次性/常规/VIP/流失）。">
+<title>復購（週期/頻次）預測 - ToolBox</title>
+<link rel="canonical" href="https://chenguangwu.github.io/zh-tw/tools/ecommerce/cycle-15.html">
+<meta property="og:title" content="复购（周期/频次）预测">
+<meta property="og:description" content="记录客户购买历史，计算平均复购周期与购买频次，预测下次购买时间，自动客户分群（一次性/常规/VIP/流失）。">
+<meta property="og:url" content="https://chenguangwu.github.io/zh-tw/tools/ecommerce/cycle-15.html">
+<meta name="twitter:card" content="summary">
+<link rel="preload" as="style" href="/css/common.css" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="/css/common.css"></noscript>
+<script>window.__tbq=window.__tbq||[];window.ToolBox=window.ToolBox||{};['initToolTheme','addToolStyles','showToast','toast','copyText','copyToClipboard','copyFromElement','downloadText','injectPrivacyBadge','toggleFavTool','addToRecentTool','toggleToolTheme','applyTheme'].forEach(function(k){if(typeof window.ToolBox[k]!=='function')window.ToolBox[k]=function(){window.__tbq.push([k,[].slice.call(arguments)]);};});</script><!-- TOOLBOX-API-STUB -->
+<script src="/js/common.js" defer></script>
+<style>
+.customer-item{border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:10px;background:var(--card-bg);transition:all 0.2s;cursor:pointer;}
+.customer-item:hover{border-color:var(--primary);box-shadow:var(--shadow-sm);}
+.customer-item.active{border-color:var(--primary);background:var(--bg-hover);}
+.cust-head{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;}
+.cust-name{font-weight:600;font-size:15px;color:var(--heading);}
+.cust-meta{font-size:12px;color:var(--text-muted);margin-top:4px;}
+.seg-badge{display:inline-block;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;}
+.seg-vip{background:rgba(124,58,237,0.1);color:#7C3AED;}
+.seg-regular{background:rgba(16,185,129,0.1);color:#059669;}
+.seg-onetime{background:rgba(59,130,246,0.1);color:#2563EB;}
+.seg-churned{background:rgba(239,68,68,0.1);color:#DC2626;}
+[data-theme="dark"] .seg-vip{color:#A78BFA;}
+[data-theme="dark"] .seg-regular{color:#34D399;}
+[data-theme="dark"] .seg-onetime{color:#60A5FA;}
+[data-theme="dark"] .seg-churned{color:#F87171;}
+.purchase-row{display:grid;grid-template-columns:1fr 1fr 1fr 40px;gap:8px;align-items:flex-end;margin-bottom:8px;}
+.purchase-row .del-btn{padding:10px 0;font-size:14px;border-radius:10px;border:1px solid var(--border);background:var(--card-bg);color:var(--danger);cursor:pointer;text-align:center;}
+.timeline{position:relative;padding:20px 0;}
+.timeline-track{position:relative;height:60px;background:var(--result-bg);border-radius:12px;border:1px solid var(--border);overflow:hidden;}
+.timeline-dot{position:absolute;top:50%;transform:translate(-50%,-50%);width:12px;height:12px;border-radius:50%;background:var(--primary);border:2px solid var(--card-bg);cursor:pointer;z-index:2;}
+.timeline-dot.predict{background:var(--secondary);border-style:dashed;width:14px;height:14px;}
+.timeline-label{position:absolute;top:calc(50% + 14px);transform:translateX(-50%);font-size:10px;color:var(--text-muted);white-space:nowrap;}
+.timeline-label.top{top:auto;bottom:calc(50% + 14px);}
+.mini-btn{padding:4px 10px;font-size:12px;border-radius:8px;border:1px solid var(--border);background:var(--card-bg);color:var(--text);cursor:pointer;transition:all 0.2s;}
+.mini-btn:hover{border-color:var(--primary);color:var(--primary);}
+.mini-btn.danger:hover{border-color:var(--danger);color:var(--danger);}
+.prediction-box{border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:10px;background:var(--result-bg);}
+@media(max-width:768px){.purchase-row{grid-template-columns:1fr 1fr 1fr 36px;}}
+</style>
+
+
+
+<meta property="og:image" content="https://chenguangwu.github.io/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="ToolBox - 5000+免费在线工具">
+<meta name="twitter:image" content="https://chenguangwu.github.io/og-image.png">
+<meta name="twitter:image:alt" content="ToolBox - 5000+免费在线工具">
+    <meta property="og:type" content="website">
+    <meta name="twitter:title" content="复购（周期/频次）预测">
+    <meta name="twitter:description" content="记录客户购买历史，计算平均复购周期与购买频次，预测下次购买时间，自动客户分群（一次性/常规/VIP/流失）。">
+<!-- TOOLBOX-WEBAPP-LD -->
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"復購（週期/頻次）預測","url":"https://chenguangwu.github.io/zh-tw/tools/ecommerce/cycle-15.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":"zh-TW","description":"記錄客戶購買歷史，計算平均復購週期與購買頻次，預測下次購買時間，自動客戶分群（一次性/常規/VIP/流失）。","image":"https://chenguangwu.github.io/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}</script>
+<meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
+<meta http-equiv="X-Content-Type-Options" content="nosniff">
+<meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
+<!-- TOOLBOX-SECURITY -->
+
+<script src="/js/privacy.js" defer></script>
+<!-- TOOLBOX-PRIVACY-SCRIPT -->
+
+<script src="/js/metrics.js" defer></script>
+<!-- TOOLBOX-METRICS-SCRIPT -->
+
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"首頁","item":"https://chenguangwu.github.io/zh-tw/"},{"@type":"ListItem","position":2,"name":"電子商務","item":"https://chenguangwu.github.io/zh-tw/tools/ecommerce/index.html"},{"@type":"ListItem","position":3,"name":"復購（週期/頻次）預測","item":"https://chenguangwu.github.io/zh-tw/tools/ecommerce/cycle-15.html"}]}</script>
+
+<script src="/js/i18n.js" defer></script>
+<script src="/js/tool-i18n.js" defer></script>
+<!-- TOOLBOX-I18N-SCRIPT -->
+
+
+<meta name="title-en" content="Cycle 15 - ToolBox">
+<meta name="desc-en" content="Cycle 15 - free online tool. Free online tool on ToolBox — 100% client-side, no data uploaded, no install. Part of the E-commerce tools.">
+<!-- TOOLBOX-HREFLANG -->
+<link rel="alternate" hreflang="zh-CN" href="https://chenguangwu.github.io/tools/ecommerce/cycle-15.html">
+<link rel="alternate" hreflang="zh-TW" href="https://chenguangwu.github.io/zh-tw/tools/ecommerce/cycle-15.html">
+<link rel="alternate" hreflang="zh-HK" href="https://chenguangwu.github.io/zh-hk/tools/ecommerce/cycle-15.html">
+<link rel="alternate" hreflang="en-US" href="https://chenguangwu.github.io/tools/ecommerce/cycle-15.html?lang=en-US">
+<link rel="alternate" hreflang="x-default" href="https://chenguangwu.github.io/tools/ecommerce/cycle-15.html">
+<meta property="og:locale" content="zh_TW">
+<meta property="og:locale:alternate" content="zh_CN">
+<meta property="og:locale:alternate" content="zh_HK">
+<meta property="og:locale:alternate" content="en_US">
+</head>
+<body>
+<h1 class="sr-only">復購（週期/頻次）預測</h1>
+<div class="nav">
+  <a href="/zh-tw/index.html">← ToolBox</a>
+  <span>/ 復購（週期/頻次）預測</span>
+  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()">🌙</button>
+</div>
+
+
+
+
+<nav class="breadcrumb" aria-label="麵包屑導航" data-breadcrumb="1">
+  <a href="/zh-tw/index.html">首頁</a>
+  <span class="bc-sep">‹</span>
+  <a href="/zh-tw/tools/ecommerce/index.html">🔧 電子商務</a>
+  <span class="bc-sep">‹</span>
+  <span class="bc-current">復購（週期/頻次）預測</span>
+</nav>
+<div class="container">
+  <div class="card tool-card-accent" style="--tool-accent:#EC4899;">
+    <h2 data-zh="🔄 復購（週期/頻次）預測">🔄 Cycle 15</h2>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="記錄客戶購買歷史，計算平均復購週期與購買頻次，預測下次購買時間，自動客戶分群（一次性/常規/VIP/流失）。">Cycle 15 is available directly in your browser, with no data uploaded.</p>
+
+    <h3>新增客戶</h3>
+    <div class="input-row">
+      <div><label>客戶名稱/ID</label><input type="text" id="custName" placeholder="如：客戶A 或 user_001"></div>
+      <div><label>流失判定閾值（天）</label><input type="number" id="churnDays" value="90" step="1" min="30"></div>
+    </div>
+    <div class="toolbar">
+      <button type="button" class="btn primary" onclick="addCustomer()">新增客戶</button>
+      <button type="button" class="btn" onclick="exportData()">匯出資料</button>
+      <button type="button" class="btn danger" onclick="clearAll()">清空全部</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>客戶概覽</h3>
+    <div class="stat-grid" id="summaryGrid"></div>
+    <div id="customerList"></div>
+  </div>
+
+  <div class="card" id="detailCard" style="display:none;">
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:14px;">
+      <h3 id="detailTitle" style="margin:0;"></h3>
+      <button type="button" class="mini-btn" onclick="closeDetail()">關閉</button>
+    </div>
+
+    <h3>購買記錄</h3>
+    <div id="purchaseList"></div>
+    <div class="toolbar" style="margin-top:8px;">
+      <button type="button" class="btn primary" onclick="addPurchase()">新增購買記錄</button>
+      <button type="button" class="btn" onclick="analyzeCustomer()">分析預測</button>
+    </div>
+
+    <div id="analysisBox"></div>
+  </div>
+</div>
+
+<!-- TOOLBOX-DEEP-DIVE -->
+<style>
+.deep-dive{max-width:960px;margin:16px auto;padding:0 16px;}
+.deep-dive > .card{margin-bottom:0;}
+@media(max-width:600px){.deep-dive{margin:14px auto;padding:0 12px;}}
+.deep-dive .dd-list{margin:8px 0 16px;padding-left:20px;}
+.deep-dive .dd-list li{margin:6px 0;line-height:1.75;}
+.deep-dive .dd-example{background:var(--card-bg,#fff);border:1px solid var(--border,#eee);border-radius:10px;padding:12px 14px;margin:8px 0 16px;}
+.deep-dive .dd-ex-title{font-weight:600;color:var(--tool-accent,#FF6B35);margin-bottom:6px;}
+.deep-dive .dd-ex-body{font-size:13px;line-height:1.85;color:var(--text,#333);word-break:break-word;}
+.deep-dive .dd-faq{margin:8px 0 4px;}
+.deep-dive .dd-faq dt{font-weight:600;margin-top:10px;color:var(--text,#333);}
+.deep-dive .dd-faq dd{margin:4px 0 0;font-size:13px;line-height:1.85;color:var(--text-muted,#666);}
+
+</style>
+<section class="deep-dive" data-deep-dive="1">
+<div class="card">
+<h2>📚 深度解析：復購（週期/頻次）預測</h2>
+<h3>💡 常見使用場景</h3>
+<ul class="dd-list">
+<li>在「復購（週期/頻次）預測」場景先統一輸入單位與口徑，先做基準算例，再做邊界場景核驗，避免把輸出誤讀為模型差異。</li>
+<li>建議固定關鍵變數並逐步調整其餘輸入，觀察輸出變化方向，快速定位異常源。</li>
+<li>常見場景：復購（週期/頻次）預測</li>
+</ul>
+<div class="dd-example"><div class="dd-ex-title">快速複核「復購（週期/頻次）預測」</div><div class="dd-ex-body">先執行工具預設樣例，再做一組極端輸入進行對照；如輸出跳變明顯，優先檢查單位、閾值與是否按新版本口徑切換。</div></div>
+<h3>❓ 常見問題（FAQ）</h3>
+<dl class="dd-faq">
+<dt>復購（週期/頻次）預測 可直接用於正式報告嗎？</dt><dd>適合用於快速核對和教學演示；正式報告建議補充資料來源、口徑定義、邊界條件與稽核責任鏈。</dd>
+<dt>值跳變或異常偏差怎麼辦？</dt><dd>先核查輸入是否超出定義域、單位是否混用、以及引數是否按同一計算版本口徑輸入。</dd>
+</dl>
+</div>
+</section>
+<!-- 注意事項區塊 -->
+<div class="tool-notes" style="--tool-accent:#EC4899;">
+  <div class="tool-notes-title">⚠️ 使用說明與注意事項</div>
+  <ul>
+    <li>本工具純前端執行，資料不會上傳到伺服器</li>
+    <li>平均復購週期 = 相鄰購買日期間隔的平均值</li>
+    <li>預測下次購買日期 = 最後購買日 + 平均復購週期</li>
+    <li>客戶分群：VIP(≥5次購買) / 常規(2-4次) / 一次性(1次) / 流失(超閾值未復購)</li>
+    <li>復購率 = 購買2次以上的客戶數 / 總客戶數</li>
+  </ul>
+</div>
+
+<script>
+var KEY = 'tb_repurchase_customers';
+var customers = [];
+var currentCustId = null;
+try { customers = JSON.parse(localStorage.getItem(KEY) || '[]'); } catch(e) { customers = []; }
+
+function save() { try { localStorage.setItem(KEY, JSON.stringify(customers)); } catch(e) {} }
+
+function genId() { return 'C' + Date.now().toString(36) + Math.random().toString(36).slice(2,6); }
+
+function fmt(n, d) {
+  d = d != null ? d : 2;
+  if (isNaN(n)) n = 0;
+  return n.toLocaleString('zh-CN', {minimumFractionDigits: d, maximumFractionDigits: d});
+}
+
+function getChurnThreshold() {
+  return parseInt(document.getElementById('churnDays').value) || 90;
+}
+
+function analyzeCust(cust) {
+  var purchases = cust.purchases.slice().sort(function(a, b) { return new Date(a.date) - new Date(b.date); });
+  var count = purchases.length;
+  var totalSpend = purchases.reduce(function(s, p) { return s + (p.amount || 0); }, 0);
+  var avgAmount = count > 0 ? totalSpend / count : 0;
+
+  // 计算购买间隔
+  var intervals = [];
+  for (var i = 1; i < purchases.length; i++) {
+    var diff = (new Date(purchases[i].date) - new Date(purchases[i - 1].date)) / (24 * 3600 * 1000);
+    intervals.push(diff);
+  }
+  var avgCycle = intervals.length > 0 ? intervals.reduce(function(a, b) { return a + b; }, 0) / intervals.length : 0;
+  var minCycle = intervals.length > 0 ? Math.min.apply(null, intervals) : 0;
+  var maxCycle = intervals.length > 0 ? Math.max.apply(null, intervals) : 0;
+
+  // 购买频率（次/月）
+  var firstDate = count > 0 ? new Date(purchases[0].date) : new Date();
+  var lastDate = count > 0 ? new Date(purchases[purchases.length - 1].date) : new Date();
+  var totalDays = (lastDate - firstDate) / (24 * 3600 * 1000);
+  var frequency = totalDays > 0 ? count / (totalDays / 30) : 0;
+
+  // 预测下次购买
+  var nextPurchaseDate = null;
+  var daysSinceLast = null;
+  var predictionConfidence = 'low';
+  if (count >= 2 && avgCycle > 0) {
+    nextPurchaseDate = new Date(lastDate.getTime() + avgCycle * 24 * 3600 * 1000);
+    daysSinceLast = Math.round((new Date() - lastDate) / (24 * 3600 * 1000));
+    // 置信度基于数据量和一致性
+    if (count >= 5 && (maxCycle - minCycle) < avgCycle * 0.5) predictionConfidence = 'high';
+    else if (count >= 3) predictionConfidence = 'medium';
+  }
+
+  // 客户分群
+  var threshold = getChurnThreshold();
+  var segment = 'onetime';
+  if (count === 1) segment = 'onetime';
+  else if (daysSinceLast !== null && daysSinceLast > threshold) segment = 'churned';
+  else if (count >= 5) segment = 'vip';
+  else segment = 'regular';
+
+  return {
+    count: count, totalSpend: totalSpend, avgAmount: avgAmount,
+    avgCycle: avgCycle, minCycle: minCycle, maxCycle: maxCycle,
+    frequency: frequency, nextPurchaseDate: nextPurchaseDate,
+    daysSinceLast: daysSinceLast, predictionConfidence: predictionConfidence,
+    segment: segment, firstDate: purchases[0] ? purchases[0].date : null,
+    lastDate: purchases[purchases.length - 1] ? purchases[purchases.length - 1].date : null,
+    intervals: intervals
+  };
+}
+
+function segLabel(s) {
+  return s === 'vip' ? 'VIP客户' : s === 'regular' ? '常规客户' : s === 'onetime' ? '一次性买家' : s === 'churned' ? '已流失' : s;
+}
+
+function segClass(s) {
+  return 'seg-' + s;
+}
+
+function confLabel(c) {
+  return c === 'high' ? '高置信度' : c === 'medium' ? '中置信度' : '低置信度';
+}
+
+function addCustomer() {
+  var name = document.getElementById('custName').value.trim();
+  if (!name) { ToolBox.showToast(i18nText('toast.msg786'), 'error'); return; }
+  customers.push({
+    id: genId(),
+    name: name,
+    purchases: [{ date: new Date().toISOString().slice(0, 10), amount: 100, note: '首次购买' }]
+  });
+  save();
+  document.getElementById('custName').value = '';
+  ToolBox.showToast(i18nText('toast.msg132'));
+  renderList();
+  renderSummary();
+}
+
+function delCustomer(id) {
+  if (!confirm('确定删除该客户及所有购买记录？')) return;
+  customers = customers.filter(function(c) { return c.id !== id; });
+  save();
+  if (currentCustId === id) closeDetail();
+  ToolBox.showToast(i18nText());
+  renderList();
+  renderSummary();
+}
+
+function clearAll() {
+  if (!customers.length) { ToolBox.showToast(i18nText('toast.empty_data'), 'info'); return; }
+  if (!confirm('确定清空全部客户数据？')) return;
+  customers = [];
+  save();
+  closeDetail();
+  ToolBox.showToast(i18nText());
+  renderList();
+  renderSummary();
+}
+
+function openCustomer(id) {
+  currentCustId = id;
+  var cust = customers.find(function(c) { return c.id === id; });
+  if (!cust) return;
+  document.getElementById('detailCard').style.display = '';
+  document.getElementById('detailTitle').textContent = cust.name + ' — 购买分析';
+  renderPurchases(cust);
+  document.getElementById('analysisBox').innerHTML = '';
+  document.getElementById('detailCard').scrollIntoView({behavior: 'smooth', block: 'start'});
+  renderList();
+}
+
+function closeDetail() {
+  currentCustId = null;
+  document.getElementById('detailCard').style.display = 'none';
+  renderList();
+}
+
+function addPurchase() {
+  var cust = customers.find(function(c) { return c.id === currentCustId; });
+  if (!cust) return;
+  var lastDate = cust.purchases.length ? cust.purchases[cust.purchases.length - 1].date : new Date().toISOString().slice(0, 10);
+  var nextDate = new Date(new Date(lastDate).getTime() + 30 * 24 * 3600 * 1000).toISOString().slice(0, 10);
+  cust.purchases.push({ date: nextDate, amount: 100, note: '' });
+  save();
+  renderPurchases(cust);
+  ToolBox.showToast(i18nText('toast.msg268'));
+}
+
+function updatePurchase(i, field, val) {
+  var cust = customers.find(function(c) { return c.id === currentCustId; });
+  if (!cust) return;
+  if (field === 'amount') cust.purchases[i].amount = parseFloat(val) || 0;
+  else if (field === 'date') cust.purchases[i].date = val;
+  else cust.purchases[i].note = val;
+  save();
+}
+
+function delPurchase(i) {
+  var cust = customers.find(function(c) { return c.id === currentCustId; });
+  if (!cust) return;
+  if (cust.purchases.length <= 1) { ToolBox.showToast(i18nText('toast.msg567'), 'warning'); return; }
+  cust.purchases.splice(i, 1);
+  save();
+  renderPurchases(cust);
+}
+
+function renderPurchases(cust) {
+  var html = '';
+  cust.purchases.forEach(function(p, i) {
+    html += '<div class="purchase-row">';
+    html += '<div><label>购买日期</label><input type="date" value="' + p.date + '" onchange="updatePurchase(' + i + ',\'date\',this.value)"></div>';
+    html += '<div><label>金额（元）</label><input type="number" value="' + p.amount + '" step="0.01" min="0" onchange="updatePurchase(' + i + ',\'amount\',this.value)"></div>';
+    html += '<div><label>备注</label><input type="text" value="' + ToolBox.escHtml(p.note || '') + '" placeholder="商品/备注" onchange="updatePurchase(' + i + ',\'note\',this.value)"></div>';
+    html += '<div class="del-btn" onclick="delPurchase(' + i + ')" title="删除">×</div>';
+    html += '</div>';
+  });
+  document.getElementById('purchaseList').innerHTML = html;
+}
+
+function analyzeCustomer() {
+  var cust = customers.find(function(c) { return c.id === currentCustId; });
+  if (!cust) return;
+  var a = analyzeCust(cust);
+
+  var html = '<h3 style="margin-top:20px;">分析结果</h3>';
+
+  // 统计卡片
+  html += '<div class="data-grid">';
+  html += '<div class="data-card"><div class="num">' + a.count + '</div><div class="label">购买次数</div></div>';
+  html += '<div class="data-card"><div class="num">¥' + fmt(a.totalSpend) + '</div><div class="label">累计消费</div></div>';
+  html += '<div class="data-card"><div class="num">' + fmt(a.avgCycle, 0) + '天</div><div class="label">平均复购周期</div></div>';
+  html += '<div class="data-card"><div class="num">' + fmt(a.frequency, 1) + '次/月</div><div class="label">购买频率</div></div>';
+  html += '</div>';
+
+  // 客户分群
+  html += '<div class="tip-box tip-info" style="margin-top:12px;">';
+  html += '<strong>客户分群：<span class="seg-badge ' + segClass(a.segment) + '">' + segLabel(a.segment) + '</span></strong><br>';
+  if (a.segment === 'vip') html += '高价值客户，购买频次高且稳定，建议重点维护并提供专属服务。';
+  else if (a.segment === 'regular') html += '常规复购客户，有持续购买行为，可通过营销活动提升复购频次。';
+  else if (a.segment === 'onetime') html += '一次性买家，尚未产生复购行为，建议通过优惠券或推送促进二次购买。';
+  else if (a.segment === 'churned') html += '已流失客户，超过' + getChurnThreshold() + '天未复购，建议启动挽回策略（召回优惠券/个性化推荐）。';
+  html += '</div>';
+
+  // 预测
+  if (a.nextPurchaseDate) {
+    var daysToNext = Math.round((a.nextPurchaseDate - new Date()) / (24 * 3600 * 1000));
+    var confCls = a.predictionConfidence === 'high' ? 'tip-success' : (a.predictionConfidence === 'medium' ? 'tip-info' : 'tip-warn');
+    html += '<div class="tip-box ' + confCls + '" style="margin-top:12px;">';
+    html += '<strong>下次购买预测</strong><br>';
+    html += '预计购买日期：<strong>' + a.nextPurchaseDate.toLocaleDateString('zh-CN') + '</strong>';
+    if (daysToNext > 0) html += '（距今 ' + daysToNext + ' 天后）';
+    else if (daysToNext < 0) html += '（已过预期 ' + Math.abs(daysToNext) + ' 天，建议触达）';
+    else html += '（就在今天附近）';
+    html += '<br>预测置信度：' + confLabel(a.predictionConfidence);
+    html += '<br>最后购买距今：' + a.daysSinceLast + ' 天 · 间隔范围：' + fmt(a.minCycle, 0) + '-' + fmt(a.maxCycle, 0) + ' 天';
+    html += '<br>平均客单价：¥' + fmt(a.avgAmount);
+    html += '</div>';
+  } else {
+    html += '<div class="tip-box tip-warn" style="margin-top:12px;">购买记录不足2次，无法预测下次购买时间。请添加更多购买记录。</div>';
+  }
+
+  // 时间线可视化
+  if (a.count >= 2) {
+    html += '<h4 style="margin:16px 0 8px;font-size:13px;color:var(--heading);">购买时间线</h4>';
+    html += '<div class="timeline"><div class="timeline-track" id="timelineTrack"></div></div>';
+    html += '<div style="display:flex;gap:16px;justify-content:center;font-size:11px;color:var(--text-muted);flex-wrap:wrap;">';
+    html += '<span style="display:flex;align-items:center;gap:4px;"><span style="width:10px;height:10px;border-radius:50%;background:var(--primary);"></span>已发生购买</span>';
+    html += '<span style="display:flex;align-items:center;gap:4px;"><span style="width:10px;height:10px;border-radius:50%;background:var(--secondary);border:1px dashed var(--secondary);"></span>预测购买</span>';
+    html += '</div>';
+  }
+
+  document.getElementById('analysisBox').innerHTML = html;
+
+  // 渲染时间线
+  if (a.count >= 2) {
+    renderTimeline(cust, a);
+  }
+}
+
+function renderTimeline(cust, a) {
+  var track = document.getElementById('timelineTrack');
+  if (!track) return;
+  var purchases = cust.purchases.slice().sort(function(x, y) { return new Date(x.date) - new Date(y.date); });
+  var startDate = new Date(purchases[0].date);
+  var endDate = a.nextPurchaseDate ? new Date(a.nextPurchaseDate.getTime()) : new Date(purchases[purchases.length - 1].date);
+  // 延伸一点
+  endDate.setDate(endDate.getDate() + 10);
+  var totalRange = endDate - startDate;
+  if (totalRange <= 0) totalRange = 24 * 3600 * 1000;
+
+  var html = '';
+  purchases.forEach(function(p, i) {
+    var d = new Date(p.date);
+    var pct = ((d - startDate) / totalRange) * 100;
+    pct = Math.max(2, Math.min(98, pct));
+    html += '<div class="timeline-dot" style="left:' + pct + '%;" title="' + p.date + ' ¥' + p.amount + '"></div>';
+    if (i === 0 || i === purchases.length - 1) {
+      html += '<div class="timeline-label" style="left:' + pct + '%;">' + (p.date.slice(5)) + '</div>';
+    }
+  });
+  if (a.nextPurchaseDate) {
+    var pct = ((a.nextPurchaseDate - startDate) / totalRange) * 100;
+    pct = Math.max(2, Math.min(98, pct));
+    html += '<div class="timeline-dot predict" style="left:' + pct + '%;" title="预测: ' + a.nextPurchaseDate.toLocaleDateString('zh-CN') + '"></div>';
+    html += '<div class="timeline-label top" style="left:' + pct + '%;">预测 ' + a.nextPurchaseDate.toISOString().slice(5, 10) + '</div>';
+  }
+  track.innerHTML = html;
+}
+
+function renderSummary() {
+  if (!customers.length) { document.getElementById('summaryGrid').innerHTML = ''; return; }
+  var totalCust = customers.length;
+  var totalPurchases = 0;
+  var totalSpend = 0;
+  var repeatCust = 0;
+  var segCounts = { vip: 0, regular: 0, onetime: 0, churned: 0 };
+
+  customers.forEach(function(c) {
+    var a = analyzeCust(c);
+    totalPurchases += a.count;
+    totalSpend += a.totalSpend;
+    if (a.count >= 2) repeatCust++;
+    segCounts[a.segment]++;
+  });
+
+  var repurchaseRate = totalCust > 0 ? (repeatCust / totalCust) * 100 : 0;
+
+  var html = '';
+  html += '<div class="data-card"><div class="num">' + totalCust + '</div><div class="label">客户总数</div></div>';
+  html += '<div class="data-card"><div class="num">' + totalPurchases + '</div><div class="label">总购买次数</div></div>';
+  html += '<div class="data-card"><div class="num">' + repurchaseRate.toFixed(1) + '%</div><div class="label">复购率</div></div>';
+  html += '<div class="data-card"><div class="num">¥' + fmt(totalSpend) + '</div><div class="label">总消费金额</div></div>';
+  html += '<div class="data-card"><div class="num">' + segCounts.vip + '</div><div class="label">VIP客户</div></div>';
+  html += '<div class="data-card"><div class="num">' + segCounts.churned + '</div><div class="label">已流失</div></div>';
+  document.getElementById('summaryGrid').innerHTML = html;
+}
+
+function renderList() {
+  if (!customers.length) {
+    document.getElementById('customerList').innerHTML = '<div class="empty-state">暂无客户记录，请在上方添加</div>';
+    return;
+  }
+  var html = '';
+  customers.forEach(function(c) {
+    var a = analyzeCust(c);
+    var active = c.id === currentCustId ? ' active' : '';
+    html += '<div class="customer-item' + active + '" onclick="openCustomer(\'' + c.id + '\')">';
+    html += '<div class="cust-head">';
+    html += '<div>';
+    html += '<div class="cust-name">' + ToolBox.escHtml(c.name) + ' <span class="seg-badge ' + segClass(a.segment) + '">' + segLabel(a.segment) + '</span></div>';
+    html += '<div class="cust-meta">' + a.count + '次购买 · ¥' + fmt(a.totalSpend) + ' · 均周期' + fmt(a.avgCycle, 0) + '天';
+    if (a.nextPurchaseDate) html += ' · 预计' + a.nextPurchaseDate.toLocaleDateString('zh-CN');
+    html += '</div>';
+    html += '</div>';
+    html += '<button class="mini-btn danger" onclick="event.stopPropagation();delCustomer(\'' + c.id + '\')">删除</button>';
+    html += '</div>';
+    html += '</div>';
+  });
+  document.getElementById('customerList').innerHTML = html;
+}
+
+function exportData() {
+  if (!customers.length) { ToolBox.showToast(i18nText(), 'info'); return; }
+  var lines = ['客户名称,购买次数,累计消费,平均复购周期(天),购买频率(次/月),客户分群,最后购买日期,预测下次购买'];
+  customers.forEach(function(c) {
+    var a = analyzeCust(c);
+    var nextDate = a.nextPurchaseDate ? a.nextPurchaseDate.toISOString().slice(0, 10) : '';
+    lines.push(['"' + c.name + '"', a.count, a.totalSpend.toFixed(2), a.avgCycle.toFixed(1), a.frequency.toFixed(2), segLabel(a.segment), a.lastDate, nextDate].join(','));
+  });
+  ToolBox.downloadText('复购分析报告.csv', '\uFEFF' + lines.join('\n'), 'text/csv;charset=utf-8');
+  ToolBox.showToast(i18nText());
+}
+
+renderList();
+renderSummary();
+</script>
+
+<!-- SEO 介紹區塊 -->
+
+</div>
+
+</div>
+
+
+<!-- 相關工具 -->
+<div class="related-tools" data-related-tools="1">
+  <h3 class="related-tools-title">🔗 相關工具</h3>
+  <div class="related-tools-grid">
+    <a href="/zh-tw/tools/ecommerce/calc-79.html" class="related-tool-card">
+      <span class="rt-icon">🛒</span>
+      <span class="rt-info"><span class="rt-name">增長率（同比/環比）計算</span><span class="rt-desc">增長率（同比/環比）計算</span></span>
+    </a>
+    <a href="/zh-tw/tools/ecommerce/stats-flow-conversion.html" class="related-tool-card">
+      <span class="rt-icon">🛒</span>
+      <span class="rt-info"><span class="rt-name">流量（UV/PV/轉化）統計</span><span class="rt-desc">流量（UV/PV/轉化）統計</span></span>
+    </a>
+    <a href="/zh-tw/tools/ecommerce/erp-dingdan-caigou-duijie.html" class="related-tool-card">
+      <span class="rt-icon">🛒</span>
+      <span class="rt-info"><span class="rt-name">ERP（訂單/採購）對接</span><span class="rt-desc">ERP（訂單/採購）對接</span></span>
+    </a>
+    <a href="/zh-tw/tools/ecommerce/kedan-jiandanjia-liandailv.html" class="related-tool-card">
+      <span class="rt-icon">🛒</span>
+      <span class="rt-info"><span class="rt-name">客單（件單價/連帶率）</span><span class="rt-desc">客單（件單價/連帶率）</span></span>
+    </a>
+    <a href="/zh-tw/tools/ecommerce/response-2.html" class="related-tool-card">
+      <span class="rt-icon">🛒</span>
+      <span class="rt-info"><span class="rt-name">客服（諮詢/投訴）響應</span><span class="rt-desc">客服（諮詢/投訴）響應</span></span>
+    </a>
+    <a href="/zh-tw/tools/ecommerce/inventory-1.html" class="related-tool-card">
+      <span class="rt-icon">🛒</span>
+      <span class="rt-info"><span class="rt-name">庫存（預警/補貨）自動</span><span class="rt-desc">庫存（預警/補貨）自動</span></span>
+    </a>
+  </div>
+</div>
+<div class="tool-intro open" id="toolIntro">
+  <div class="tool-intro-header">
+    <span class="intro-icon-wrap"><span class="intro-icon">📖</span>關於「復購（週期/頻次）預測」</span>
+    <span class="arrow">▼</span>
+  </div>
+  <div class="tool-intro-body">
+    <h4><span class="h4-icon">📝</span>工具簡介</h4>
+    <p>客戶復購行為分析與預測工具。記錄客戶購買歷史，計算平均復購週期、購買頻次、復購率，預測下次購買時間，自動客戶分群（VIP/常規/一次性/流失）。</p>
+    <h4><span class="h4-icon">✨</span>功能特點</h4>
+    <ul class="intro-features">
+      <li>平均復購週期與購買頻次計算</li>
+      <li>下次購買日期預測與置信度</li>
+      <li>VIP/常規/一次性/流失四類分群</li>
+      <li>購買時間線視覺化</li>
+      <li>復購率與消費統計</li>
+    </ul>
+    <h4><span class="h4-icon">🎯</span>使用場景</h4>
+    <ul class="intro-scenes">
+      <li>電商客戶復購分析</li>
+      <li>客戶生命週期管理</li>
+      <li>精準營銷觸達時機</li>
+      <li>流失客戶預警與挽回</li>
+    </ul>
+    <h4><span class="h4-icon">💬</span>常見問題</h4>
+    <div class="intro-faq-item"><div class="intro-faq-q">這個工具是免費的嗎？</div><div class="intro-faq-a">完全免費，無需註冊，直接在瀏覽器中使用。</div></div>
+    <div class="intro-faq-item"><div class="intro-faq-q">我的資料會被上傳嗎？</div><div class="intro-faq-a">不會。所有處理都在你的瀏覽器本地完成，資料不會發送到任何伺服器。</div></div>
+    <div class="intro-faq-item"><div class="intro-faq-q">預測準確度如何？</div><div class="intro-faq-a">預測基於歷史購買間隔的均值，購買記錄越多、間隔越穩定，置信度越高。至少需要2次以上購買記錄才能進行預測。</div></div>
+  </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  var headers = document.querySelectorAll('.tool-intro-header');
+  headers.forEach(function(h) {
+    h.addEventListener('click', function() { this.parentElement.classList.toggle('open'); });
+  });
+});
+</script>
+</body>
+</html>

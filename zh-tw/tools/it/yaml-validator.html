@@ -1,0 +1,654 @@
+<!DOCTYPE html>
+<html lang="zh-TW" data-opencc-locale="zh-tw">
+<head>
+
+<script src="/js/tool-page-runtime.js" defer></script>
+<!-- TOOLBOX-TOOL-RUNTIME -->
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="toolbox" content="cat=validator,industry=it,icon=📄,bg=#e3f2fd">
+<meta name="description" content="在线校验 YAML 语法、定位错误行列、统计文档结构，并一键转换为格式化 JSON，支持多文档（--- 分隔）。">
+<meta name="keywords" content="YAML验证器,YAML校验,YAML语法检查,YAML转JSON,YAML格式化,在线YAML工具,YAML解析,多文档YAML,YAML错误定位,免费工具,ToolBox">
+<meta name="robots" content="index,follow">
+<link rel="canonical" href="https://chenguangwu.github.io/zh-tw/tools/it/yaml-validator.html">
+<meta property="og:title" content="YAML 语法验证器">
+<meta property="og:description" content="在线校验 YAML 语法、定位错误行列、统计文档结构，并一键转换为格式化 JSON，支持多文档（--- 分隔）。">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://chenguangwu.github.io/zh-tw/tools/it/yaml-validator.html">
+<meta name="twitter:card" content="summary">
+
+<title>YAML 語法驗證器 - ToolBox</title>
+<meta name="theme-color" content="#FF6B35">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<link rel="icon" href="/favicon.ico" sizes="16x16 32x32 48x48">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="preload" as="style" href="/css/common.css" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="/css/common.css"></noscript>
+<script>window.__tbq=window.__tbq||[];window.ToolBox=window.ToolBox||{};['initToolTheme','addToolStyles','showToast','toast','copyText','copyToClipboard','copyFromElement','downloadText','injectPrivacyBadge','toggleFavTool','addToRecentTool','toggleToolTheme','applyTheme'].forEach(function(k){if(typeof window.ToolBox[k]!=='function')window.ToolBox[k]=function(){window.__tbq.push([k,[].slice.call(arguments)]);};});</script><!-- TOOLBOX-API-STUB -->
+<script src="/js/common.js" defer></script>
+<script src="https://cdn.jsdelivr.net/npm/js-yaml@4/dist/js-yaml.min.js"></script>
+<style>
+/* 带行号的代码编辑器 */
+.code-editor{display:flex;border:1.5px solid var(--border);border-radius:12px;overflow:hidden;background:var(--card-bg);transition:border-color 0.2s,box-shadow 0.2s;}
+.code-editor:focus-within{border-color:var(--primary);box-shadow:0 0 0 3px rgba(255,107,53,0.12);}
+.line-numbers{flex-shrink:0;width:46px;padding:12px 0;text-align:right;background:var(--result-bg);border-right:1px solid var(--border);overflow:hidden;user-select:none;}
+.ln-inner{font-family:'SF Mono','Courier New','Fira Code',monospace;font-size:13px;line-height:1.6;color:var(--text-muted);}
+.ln-inner div{height:calc(1.6 * 13px);padding-right:10px;}
+.code-editor textarea{flex:1;border:none;border-radius:0;font-family:'SF Mono','Courier New','Fira Code',monospace;font-size:13px;line-height:1.6;min-height:340px;padding:12px 14px;background:transparent;resize:vertical;tab-size:2;}
+.code-editor textarea:focus{box-shadow:none;border:none;}
+/* JSON 输出 */
+.json-pre{background:var(--result-bg);border:1px solid var(--border);border-radius:10px;padding:14px;font-family:'SF Mono','Courier New','Fira Code',monospace;font-size:13px;line-height:1.6;white-space:pre-wrap;word-break:break-word;max-height:520px;overflow:auto;margin-top:8px;}
+/* 状态横幅 */
+.status-banner{display:flex;align-items:center;gap:10px;padding:12px 16px;border-radius:12px;font-size:14px;font-weight:500;margin-bottom:12px;}
+.status-ok{background:rgba(16,185,129,0.10);border:1px solid rgba(16,185,129,0.25);color:var(--success);}
+.status-err{background:rgba(239,68,68,0.10);border:1px solid rgba(239,68,68,0.25);color:var(--danger);}
+.status-banner .status-icon{font-size:18px;flex-shrink:0;}
+/* 错误详情 */
+.err-detail{background:var(--result-bg);border:1px solid var(--border);border-radius:12px;padding:14px 16px;margin-top:10px;font-size:13px;line-height:1.7;}
+.err-detail .err-row{display:flex;gap:8px;margin:3px 0;}
+.err-detail .err-label{color:var(--text-muted);min-width:64px;flex-shrink:0;}
+.err-detail .err-val{color:var(--text);word-break:break-all;}
+.err-snippet{margin-top:10px;background:var(--card-bg);border:1px solid var(--border);border-radius:8px;padding:10px 12px;font-family:'SF Mono','Courier New',monospace;font-size:12.5px;white-space:pre;overflow-x:auto;color:var(--text);}
+.err-snippet .err-line-marker{color:var(--danger);font-weight:700;}
+/* 标签行内提示 */
+.live-hint{font-size:12px;color:var(--text-muted);margin-left:auto;display:flex;align-items:center;gap:6px;}
+.live-dot{width:8px;height:8px;border-radius:50%;background:var(--text-muted);display:inline-block;}
+.live-dot.ok{background:var(--success);}
+.live-dot.err{background:var(--danger);}
+/* 双栏编辑器（YAML→JSON） */
+.editor-wrap{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.editor-wrap textarea{min-height:340px;font-size:13px;}
+@media(max-width:768px){
+  .editor-wrap{grid-template-columns:1fr;}
+  .code-editor textarea{min-height:260px;font-size:13px;}
+  .ln-inner{font-size:13px;}
+  .ln-inner div{height:calc(1.6 * 13px);}
+  .live-hint{margin-left:0;width:100%;margin-top:6px;}
+}
+</style>
+
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"YAML語法驗證器","description":"YAML語法驗證器 - 免費線上YAML校驗、格式化與轉JSON工具，支援多文件、行號、錯誤定位與結構統計，純前端瀏覽器處理，資料不上傳。","url":"https://chenguangwu.github.io/zh-tw/tools/it/yaml-validator.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Web","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"},"inLanguage":"zh-TW","isAccessibleForFree":true,"browserRequirements":"Requires JavaScript. Requires HTML5.","softwareVersion":"1.0"}</script>
+
+
+
+<meta property="og:image" content="https://chenguangwu.github.io/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="ToolBox - 5000+免费在线工具">
+<meta name="twitter:image" content="https://chenguangwu.github.io/og-image.png">
+<meta name="twitter:image:alt" content="ToolBox - 5000+免费在线工具">
+    <meta name="twitter:title" content="YAML 语法验证器">
+    <meta name="twitter:description" content="在线校验 YAML 语法、定位错误行列、统计文档结构，并一键转换为格式化 JSON，支持多文档（--- 分隔）。">
+<!-- TOOLBOX-WEBAPP-LD -->
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"YAML 語法驗證器","url":"https://chenguangwu.github.io/zh-tw/tools/it/yaml-validator.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":"zh-TW","description":"線上校驗 YAML 語法、定位錯誤行列、統計文件結構，並一鍵轉換為格式化 JSON，支援多文件（--- 分隔）。","image":"https://chenguangwu.github.io/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}</script>
+<meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
+<meta http-equiv="X-Content-Type-Options" content="nosniff">
+<meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
+<!-- TOOLBOX-SECURITY -->
+
+<script src="/js/privacy.js" defer></script>
+<!-- TOOLBOX-PRIVACY-SCRIPT -->
+
+<script src="/js/metrics.js" defer></script>
+<!-- TOOLBOX-METRICS-SCRIPT -->
+
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"首頁","item":"https://chenguangwu.github.io/zh-tw/"},{"@type":"ListItem","position":2,"name":"IT 開發","item":"https://chenguangwu.github.io/zh-tw/tools/it/index.html"},{"@type":"ListItem","position":3,"name":"YAML語法驗證器","item":"https://chenguangwu.github.io/zh-tw/tools/it/yaml-validator.html"}]}</script>
+
+<script src="/js/i18n.js" defer></script>
+<script src="/js/tool-i18n.js" defer></script>
+<!-- TOOLBOX-I18N-SCRIPT -->
+
+
+<meta name="title-en" content="YAML Grammar Verifier - ToolBox">
+<meta name="desc-en" content="YAML Grammar Verifier - check and validate online, free. Free online tool on ToolBox — 100% client-side, no data uploaded, no install. Part of the IT Devel...">
+<!-- TOOLBOX-HREFLANG -->
+<link rel="alternate" hreflang="zh-CN" href="https://chenguangwu.github.io/tools/it/yaml-validator.html">
+<link rel="alternate" hreflang="zh-TW" href="https://chenguangwu.github.io/zh-tw/tools/it/yaml-validator.html">
+<link rel="alternate" hreflang="zh-HK" href="https://chenguangwu.github.io/zh-hk/tools/it/yaml-validator.html">
+<link rel="alternate" hreflang="en-US" href="https://chenguangwu.github.io/tools/it/yaml-validator.html?lang=en-US">
+<link rel="alternate" hreflang="x-default" href="https://chenguangwu.github.io/tools/it/yaml-validator.html">
+<meta property="og:locale" content="zh_TW">
+<meta property="og:locale:alternate" content="zh_CN">
+<meta property="og:locale:alternate" content="zh_HK">
+<meta property="og:locale:alternate" content="en_US">
+</head>
+<body>
+<h1 class="sr-only">YAML語法驗證器</h1>
+<div class="nav">
+  <a href="/zh-tw/index.html">← ToolBox</a>
+  <span>/ IT開發 / YAML語法驗證器</span>
+  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()">🌙</button>
+</div>
+
+
+
+
+<nav class="breadcrumb" aria-label="麵包屑導航" data-breadcrumb="1">
+  <a href="/zh-tw/index.html">首頁</a>
+  <span class="bc-sep">‹</span>
+  <a href="/zh-tw/tools/it/index.html">💻 IT 開發</a>
+  <span class="bc-sep">‹</span>
+  <span class="bc-current">YAML語法驗證器</span>
+</nav>
+
+<div class="tool-guide-link" data-guide-link="1">
+  <a href="/zh-tw/guides/yaml-validator-guide.html">📖 檢視「YAML 校驗與 JSON 互轉使用指南」</a>
+</div>
+<div class="container">
+  <div class="card tool-card-accent" style="--tool-accent:#FF6B35;">
+    <h2 data-zh="📄 YAML 語法驗證器">📄 YAML Grammar Verifier</h2>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="線上校驗 YAML 語法、定位錯誤行列、統計文件結構，並一鍵轉換為格式化 JSON，支援多文件（&lt;code style=&quot;background:var(--bg-hover);padding:1px 5px;border-radius:4px;font-size:12px;&quot;&gt;---&lt;/code&gt; 分隔）。">YAML Grammar Verifier is available directly in your browser, with no data uploaded.</p>
+<!-- TOOLBOX-POLISH -->
+
+<div class="formula-box">
+  <div class="formula-title">📐 工作原理與說明</div>
+  <p class="formula-desc">基於 YAML 解析引擎（js-yaml）做語法校驗。YAML 以<b>縮排（推薦 2 空格）表示層級</b>，鍵值用 <b>key: value</b>，列表項以 <b>- </b> 開頭，禁止用 Tab 縮排；解析失敗時在報錯位置附近高亮提示。</p>
+  <ul class="formula-list">
+    <li>常見錯誤：冒號後缺空格、混用 Tab/空格、字串含特殊字元未加引號。</li>
+    <li>遵循 YAML 1.1/1.2 規範；純前端執行，檔案不離開瀏覽器。</li>
+  </ul>
+</div>
+
+
+
+    <div class="tabs">
+      <button type="button" class="tab-btn active" onclick="switchTab('validate')">語法驗證</button>
+      <button type="button" class="tab-btn" onclick="switchTab('yaml2json')">YAML → JSON</button>
+    </div>
+
+    <!-- 語法驗證 / 格式化 -->
+    <div id="tab-validate" class="tab-content active">
+      <div class="toolbar">
+        <button type="button" class="btn primary" onclick="validateNow(true)">驗證</button>
+        <button type="button" class="btn" onclick="formatToJson()">格式化 JSON</button>
+        <button type="button" class="btn" onclick="loadSample()">載入示例</button>
+        <button type="button" class="btn" onclick="copyResult()">複製結果</button>
+        <button type="button" class="btn danger" onclick="clearAll()">清空</button>
+        <span class="live-hint"><span class="live-dot" id="liveDot"></span><span id="liveText">等待輸入</span></span>
+      </div>
+
+      <label>YAML 輸入（支援 Tab 鍵縮排）</label>
+      <div class="code-editor">
+        <div class="line-numbers" id="lineNumbers"><div class="ln-inner" id="lnInner"></div></div>
+        <textarea id="input" placeholder="在此粘贴 YAML 内容..." spellcheck="false" oninput="onInputChange()" onscroll="syncScroll()" onkeydown="onKeydown(event)"></textarea>
+      </div>
+
+      <div id="statusBanner"></div>
+      <div id="statsArea"></div>
+      <div id="resultArea" style="display:none;">
+        <label style="margin-top:14px;">解析結果（JSON）</label>
+        <pre class="json-pre" id="jsonOutput"></pre>
+      </div>
+      <div id="errorArea" style="display:none;"></div>
+    </div>
+
+    <!-- YAML → JSON -->
+    <div id="tab-yaml2json" class="tab-content">
+      <div class="toolbar">
+        <button type="button" class="btn primary" onclick="convertToJson()">轉換為 JSON</button>
+        <button type="button" class="btn" onclick="copyConvert()">複製 JSON</button>
+        <button type="button" class="btn" onclick="loadSample2()">載入示例</button>
+        <button type="button" class="btn danger" onclick="clearConvert()">清空</button>
+      </div>
+      <div class="editor-wrap">
+        <div>
+          <label>YAML 輸入</label>
+          <textarea id="yamlInput2" placeholder="输入 YAML..." spellcheck="false" onkeydown="onKeydown2(event)"></textarea>
+        </div>
+        <div>
+          <label>JSON 輸出</label>
+          <pre class="json-pre" id="jsonOutput2" style="min-height:340px;">等待转换...</pre>
+        </div>
+      </div>
+      <div id="convertErr" style="margin-top:10px;"></div>
+    </div>
+  </div>
+
+<!-- TOOLBOX-DEEP-DIVE -->
+<style>
+.deep-dive{max-width:960px;margin:16px auto;padding:0 16px;}
+.deep-dive > .card{margin-bottom:0;}
+@media(max-width:600px){.deep-dive{margin:14px auto;padding:0 12px;}}
+.deep-dive .dd-list{margin:8px 0 16px;padding-left:20px;}
+.deep-dive .dd-list li{margin:6px 0;line-height:1.75;}
+.deep-dive .dd-example{background:var(--card-bg,#fff);border:1px solid var(--border,#eee);border-radius:10px;padding:12px 14px;margin:8px 0 16px;}
+.deep-dive .dd-ex-title{font-weight:600;color:var(--tool-accent,#FF6B35);margin-bottom:6px;}
+.deep-dive .dd-ex-body{font-size:13px;line-height:1.85;color:var(--text,#333);word-break:break-word;}
+.deep-dive .dd-faq{margin:8px 0 4px;}
+.deep-dive .dd-faq dt{font-weight:600;margin-top:10px;color:var(--text,#333);}
+.deep-dive .dd-faq dd{margin:4px 0 0;font-size:13px;line-height:1.85;color:var(--text-muted,#666);}
+
+</style>
+<section class="deep-dive" data-deep-dive="1">
+<div class="card">
+<h2>📚 深度解析：YAML 語法驗證器</h2>
+<h3>💡 常見使用場景</h3>
+<ul class="dd-list">
+<li>當你在it相關場景中需要基於“YAML Grammar Verifier”進行快速計算或校驗時，可先用該工具生成一版標準結果。</li>
+<li>在教學、方案評審、除錯聯調時，可用固定樣本快速復現實驗流程，驗證引數選擇是否正確。</li>
+<li>用於將人工操作轉為可複用步驟：先確認輸入型別，再觀察輸出變化，便於排查規則誤差。</li>
+</ul>
+<div class="dd-example"><div class="dd-ex-title">標準化使用示例</div><div class="dd-ex-body">以一組典型輸入為例：先按業務口徑補充必要欄位，執行工具並記錄輸出；再對比另一組邊界輸入，檢查工具在異常輸入下是否給出穩定提示，便於快速形成操作 SOP。</div></div>
+<h3>❓ 常見問題（FAQ）</h3>
+<dl class="dd-faq">
+<dt>該工具適用於哪些 it 場景？</dt><dd>只要資料可對映到本工具支援的引數結構，就可用於日常分析、篩選、校驗等流程；多數情況下適合前置評估和結果複核。</dd>
+<dt>結果可信度如何保證？</dt><dd>工具預設按前端可見規則即時計算，不依賴外部服務；如有偏差，建議結合歷史基準值做交叉確認。</dd>
+</dl>
+</div>
+</section>
+<!-- 注意事項區塊 -->
+<div class="tool-notes" style="--tool-accent:#FF6B35;">
+  <div class="tool-notes-title">⚠️ 使用說明與注意事項</div>
+  <ul>
+    <li>本工具基於 <strong>js-yaml</strong> 庫，純前端執行，YAML 內容不會上傳到任何伺服器</li>
+    <li>支援 YAML 多文件（使用 <code style="background:var(--bg-hover);padding:1px 4px;border-radius:3px;font-size:12px;">---</code> 分隔），結果以 JSON 陣列形式輸出</li>
+    <li>驗證失敗時會顯示錯誤所在行、列及上下文片段，便於快速定位</li>
+    <li>輸入框支援 <kbd>Tab</kbd> 鍵插入 2 空格縮排，便於手動編輯</li>
+    <li>建議在主流瀏覽器（Chrome / Safari / Firefox / Edge）中使用</li>
+  </ul>
+</div>
+<!-- /注意事項區塊 -->
+
+<!-- SEO 介紹區塊 -->
+
+</div>
+
+</div>
+
+<!-- 相關工具 -->
+<div class="related-tools" data-related-tools="1">
+  <h3 class="related-tools-title">🔗 相關工具</h3>
+  <div class="related-tools-grid">
+    <a href="/zh-tw/tools/it/properties-parser.html" class="related-tool-card">
+      <span class="rt-icon">🔧</span>
+      <span class="rt-info"><span class="rt-name">.properties 解析器 - 免費開發工具，properties 解析器 | ToolBox免費線上工具箱</span><span class="rt-desc">.properties 解析器</span></span>
+    </a>
+    <a href="/zh-tw/tools/it/ast-viewer.html" class="related-tool-card">
+      <span class="rt-icon">🌳</span>
+      <span class="rt-info"><span class="rt-name">AST抽象語法樹檢視器 - 線上解析JavaScript程式碼生成AST樹形結構，支援節點 | ToolBox免費線上工具箱</span><span class="rt-desc">AST 抽象語法樹檢視器</span></span>
+    </a>
+    <a href="/zh-tw/tools/it/css-minifier.html" class="related-tool-card">
+      <span class="rt-icon">🎨</span>
+      <span class="rt-info"><span class="rt-name">CSS 壓縮/美化工具 - 免費開發工具，CSS 壓縮/格式化/美化 | ToolBox免費線上工具箱</span><span class="rt-desc">CSS 壓縮/格式化/美化</span></span>
+    </a>
+    <a href="/zh-tw/tools/it/css-formatter.html" class="related-tool-card">
+      <span class="rt-icon">🔧</span>
+      <span class="rt-info"><span class="rt-name">CSS 格式化 - 免費開發工具，線上CSS 格式化 | ToolBox免費線上工具箱</span><span class="rt-desc">CSS 格式化</span></span>
+    </a>
+    <a href="/zh-tw/tools/it/cron.html" class="related-tool-card">
+      <span class="rt-icon">⏰</span>
+      <span class="rt-info"><span class="rt-name">Cron 表示式生成器 - 免費開發工具，線上Cron 表示式生成器 | ToolBox免費線上工具箱</span><span class="rt-desc">⏰ Cron 表示式生成器</span></span>
+    </a>
+    <a href="/zh-tw/tools/it/graphql-formatter.html" class="related-tool-card">
+      <span class="rt-icon">🔧</span>
+      <span class="rt-info"><span class="rt-name">GraphQL 格式化 - 免費開發工具，線上GraphQL 格式化 | ToolBox免費線上工具箱</span><span class="rt-desc">◈ GraphQL 格式化</span></span>
+    </a>
+  </div>
+</div>
+<div class="tool-intro open" id="toolIntro">
+  <div class="tool-intro-header">
+    <span class="intro-icon-wrap"><span class="intro-icon">📖</span>關於「YAML語法驗證器」</span>
+    <span class="arrow">▼</span>
+  </div>
+  <div class="tool-intro-body">
+    <h4><span class="h4-icon">📝</span>工具簡介</h4>
+    <p>YAML 語法驗證器是一款免費的線上工具，用於校驗 YAML 配置檔案的語法正確性。它基於 js-yaml 解析引擎，能即時檢測語法錯誤並精確定位到出錯行與列，同時將 YAML 解析為 JavaScript 物件並以格式化 JSON 展示，還提供文件數量、鍵數量、陣列數量、最大巢狀深度等結構統計。所有處理均在瀏覽器本地完成，資料不上傳，安全可靠。</p>
+    <h4><span class="h4-icon">✨</span>功能特點</h4>
+    <ul class="intro-features">
+      <li>即時語法校驗，輸入即驗證</li>
+      <li>錯誤精確定位（行號 + 列號 + 上下文片段）</li>
+      <li>YAML 轉格式化 JSON，一鍵複製</li>
+      <li>支援多文件 YAML（--- 分隔）</li>
+      <li>文件結構統計（鍵 / 陣列 / 巢狀深度）</li>
+      <li>帶行號的程式碼編輯器，Tab 鍵縮排</li>
+      <li>純前端處理，資料不上傳伺服器</li>
+      <li>支援深色模式與移動端響應式佈局</li>
+    </ul>
+    <h4><span class="h4-icon">🎯</span>使用場景</h4>
+    <ul class="intro-scenes">
+      <li>校驗 CI/CD 配置（GitHub Actions、GitLab CI）</li>
+      <li>檢查 Docker Compose、Kubernetes 清單檔案</li>
+      <li>驗證應用配置檔案（Spring Boot、Helm Chart）</li>
+      <li>排查 YAML 縮排與語法錯誤</li>
+      <li>將 YAML 配置快速轉為 JSON 供程式讀取</li>
+      <li>學習 YAML 語法結構與資料型別</li>
+    </ul>
+    <h4><span class="h4-icon">💬</span>常見問題</h4>
+    <div class="intro-faq-item"><div class="intro-faq-q">YAML 驗證失敗提示縮排錯誤怎麼辦？</div><div class="intro-faq-a">YAML 嚴格要求使用空格縮排且同一層級縮排必須一致，不能混用 Tab 和空格。請根據錯誤提示的行號檢查對應行的縮排，確保使用統一的空格數（通常 2 個），並避免用 Tab 鍵。本工具的輸入框已將 Tab 鍵對映為插入 2 個空格，幫助避免此類問題。</div></div>
+    <div class="intro-faq-item"><div class="intro-faq-q">支援多個 YAML 文件放在一個輸入裡嗎？</div><div class="intro-faq-a">支援。使用三個連字元 <code style="background:var(--bg-hover);padding:1px 4px;border-radius:3px;">---</code> 作為文件分隔符即可在一個輸入中包含多個 YAML 文件。驗證與轉換時會分別解析每個文件，JSON 結果以陣列形式輸出，每個元素對應一個文件。</div></div>
+    <div class="intro-faq-item"><div class="intro-faq-q">我的 YAML 資料會被上傳到伺服器嗎？</div><div class="intro-faq-a">不會。本工具完全在瀏覽器本地執行，所有解析、校驗與轉換都在你的裝置上完成，YAML 內容不會發送到任何伺服器，可放心處理敏感配置。</div></div>
+    <div class="intro-faq-item"><div class="intro-faq-q">為什麼轉換出的 JSON 裡字串變成了數字或布林值？</div><div class="intro-faq-a">這是 YAML 的自動型別推斷機制。YAML 會將 <code>true/false</code> 解析為布林值、純數字解析為數值。若希望保留為字串，可用引號包裹該值，例如 <code>"true"</code> 或 <code>"123"</code>。</div></div>
+    <div class="intro-faq-item"><div class="intro-faq-q">這個工具是免費的嗎？</div><div class="intro-faq-a">完全免費，無需註冊登入，直接在瀏覽器中開啟即可使用，不限制使用次數。</div></div>
+  </div>
+</div>
+<!-- /SEO 介紹區塊 -->
+</div>
+
+<script>
+const SAMPLE_YAML = `# YAML 配置示例
+server:
+  host: localhost
+  port: 8080
+  timeout: 30
+database:
+  primary:
+    host: db.example.com
+    port: 5432
+    credentials:
+      user: admin
+      password: secret
+  replicas:
+    - db1.example.com
+    - db2.example.com
+features:
+  - name: auth
+    enabled: true
+  - name: cache
+    enabled: false
+logging:
+  level: info
+  outputs:
+    - console
+    - file
+metadata:
+  version: 1.2.0
+  tags:
+    - production
+    - critical
+`;
+
+const $ = id => document.getElementById(id);
+
+/* ===== 标签切换 ===== */
+function switchTab(tab) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+  const btn = document.querySelector('[onclick="switchTab(\'' + tab + '\')"]');
+  if (btn) btn.classList.add('active');
+  $('tab-' + tab).classList.add('active');
+}
+
+/* ===== 行号编辑器 ===== */
+function updateLineNumbers() {
+  const input = $('input');
+  const lines = input.value.split('\n').length;
+  let html = '';
+  for (let i = 1; i <= lines; i++) html += '<div>' + i + '</div>';
+  $('lnInner').innerHTML = html;
+}
+function syncScroll() {
+  $('lnInner').style.transform = 'translateY(-' + $('input').scrollTop + 'px)';
+}
+/* Tab 键插入 2 空格 */
+function onKeydown(e) {
+  if (e.key === 'Tab') {
+    e.preventDefault();
+    const ta = e.target;
+    const start = ta.selectionStart, end = ta.selectionEnd;
+    ta.value = ta.value.substring(0, start) + '  ' + ta.value.substring(end);
+    ta.selectionStart = ta.selectionEnd = start + 2;
+    onInputChange();
+  }
+}
+function onKeydown2(e) {
+  if (e.key === 'Tab') {
+    e.preventDefault();
+    const ta = e.target;
+    const start = ta.selectionStart, end = ta.selectionEnd;
+    ta.value = ta.value.substring(0, start) + '  ' + ta.value.substring(end);
+    ta.selectionStart = ta.selectionEnd = start + 2;
+  }
+}
+
+/* ===== 实时输入（防抖） ===== */
+let liveTimer = null;
+function onInputChange() {
+  updateLineNumbers();
+  syncScroll();
+  setLiveHint('输入中...', '');
+  clearTimeout(liveTimer);
+  liveTimer = setTimeout(() => validateNow(false), 450);
+}
+
+/* ===== 核心解析 ===== */
+function parseYaml(text) {
+  // loadAll 支持多文档；空输入返回空数组
+  if (!text || !text.trim()) return { docs: [], ok: true };
+  const docs = jsyaml.loadAll(text);
+  return { docs: docs, ok: true };
+}
+
+/* ===== 结构统计 ===== */
+function analyzeDocs(docs) {
+  const stats = { keys: 0, arrays: 0, scalars: 0, strings: 0, numbers: 0, bools: 0, nulls: 0, maxDepth: 0 };
+  function walk(obj, depth) {
+    if (obj === null) { stats.scalars++; stats.nulls++; return; }
+    if (Array.isArray(obj)) {
+      stats.arrays++;
+      if (depth > stats.maxDepth) stats.maxDepth = depth;
+      obj.forEach(v => walk(v, depth + 1));
+    } else if (typeof obj === 'object') {
+      const keys = Object.keys(obj);
+      stats.keys += keys.length;
+      if (depth > stats.maxDepth) stats.maxDepth = depth;
+      keys.forEach(k => walk(obj[k], depth + 1));
+    } else {
+      stats.scalars++;
+      if (typeof obj === 'string') stats.strings++;
+      else if (typeof obj === 'number') stats.numbers++;
+      else if (typeof obj === 'boolean') stats.bools++;
+    }
+  }
+  docs.forEach(d => walk(d, 0));
+  return stats;
+}
+
+/* ===== 验证主流程 ===== */
+let lastJson = '';
+function validateNow(showToast) {
+  const input = $('input');
+  const text = input.value;
+  if (!text.trim()) {
+    resetResult();
+    setLiveHint('等待输入', '');
+    if (showToast) ToolBox.showToast(i18nText('toast.msg753'), 'warning');
+    return;
+  }
+  let result;
+  try {
+    result = parseYaml(text);
+  } catch (e) {
+    renderError(e, text);
+    setLiveHint('语法错误', 'err');
+    if (showToast) ToolBox.showToast(i18nText('toast.msg026'), 'error');
+    return;
+  }
+  renderSuccess(result.docs, text);
+  setLiveHint('验证通过', 'ok');
+  if (showToast) ToolBox.showToast(i18nText('toast.msg027'), 'success');
+}
+
+function formatToJson() {
+  validateNow(false);
+  if (lastJson) ToolBox.showToast(i18nText('toast.msg250'), 'success');
+}
+
+function renderSuccess(docs, text) {
+  const stats = analyzeDocs(docs);
+  const docCount = docs.length;
+  const lineCount = text.split('\n').length;
+  // 状态横幅
+  $('statusBanner').innerHTML =
+    '<div class="status-banner status-ok">' +
+    '<span class="status-icon">✅</span>' +
+    '<span>YAML 语法验证通过' + (docCount > 1 ? '（共 ' + docCount + ' 个文档）' : '') + '</span>' +
+    '</div>';
+  // 统计卡片
+  $('statsArea').innerHTML =
+    '<div class="stat-grid" style="margin-top:12px;">' +
+    statCard(docCount, '文档数') +
+    statCard(stats.keys, '键数量') +
+    statCard(stats.arrays, '数组数量') +
+    statCard(stats.maxDepth, '最大嵌套深度') +
+    statCard(stats.scalars, '标量值') +
+    statCard(lineCount, '总行数') +
+    '</div>';
+  // JSON 输出
+  const jsonText = JSON.stringify(docCount === 1 ? docs[0] : docs, null, 2);
+  lastJson = jsonText;
+  $('jsonOutput').textContent = jsonText;
+  $('resultArea').style.display = 'block';
+  $('errorArea').style.display = 'none';
+  $('errorArea').innerHTML = '';
+}
+
+function statCard(val, lbl) {
+  return '<div class="stat-card"><div class="val">' + ToolBox.escHtml(String(val)) + '</div><div class="lbl">' + ToolBox.escHtml(lbl) + '</div></div>';
+}
+
+function renderError(e, text) {
+  const mark = e.mark || {};
+  const line = (mark.line != null ? mark.line : -1) + 1;
+  const col = (mark.column != null ? mark.column : -1) + 1;
+  const reason = e.reason || e.message || '未知错误';
+  const name = e.name || 'YAMLException';
+  // 状态横幅
+  $('statusBanner').innerHTML =
+    '<div class="status-banner status-err">' +
+    '<span class="status-icon">❌</span>' +
+    '<span>YAML 语法验证失败：' + ToolBox.escHtml(reason) + '</span>' +
+    '</div>';
+  $('statsArea').innerHTML = '';
+  $('resultArea').style.display = 'none';
+  lastJson = '';
+  // 错误详情
+  let html = '<div class="err-detail">';
+  html += '<div class="err-row"><span class="err-label">错误类型：</span><span class="err-val">' + ToolBox.escHtml(name) + '</span></div>';
+  html += '<div class="err-row"><span class="err-label">错误原因：</span><span class="err-val">' + ToolBox.escHtml(reason) + '</span></div>';
+  if (line > 0) html += '<div class="err-row"><span class="err-label">行号：</span><span class="err-val">第 ' + line + ' 行</span></div>';
+  if (col > 0) html += '<div class="err-row"><span class="err-label">列号：</span><span class="err-val">第 ' + col + ' 列</span></div>';
+  // 上下文片段
+  if (line > 0) html += buildSnippet(text, line, col);
+  html += '</div>';
+  $('errorArea').innerHTML = html;
+  $('errorArea').style.display = 'block';
+}
+
+function buildSnippet(text, line, col) {
+  const lines = text.split('\n');
+  const start = Math.max(0, line - 3);
+  const end = Math.min(lines.length, line + 1);
+  let snippet = '';
+  for (let i = start; i < end; i++) {
+    const n = i + 1;
+    const prefix = (n === line) ? '▶ ' : '  ';
+    snippet += prefix + String(n).padStart(4, ' ') + ' | ' + ToolBox.escHtml(lines[i] || '') + '\n';
+  }
+  // 指示列
+  if (col > 0) {
+    const pad = ' '.repeat(String(line).padStart(4, ' ').length + 6 + (col - 1));
+    snippet += pad + '^ 第 ' + col + ' 列';
+  }
+  return '<div class="err-snippet">' + snippet + '</div>';
+}
+
+function resetResult() {
+  $('statusBanner').innerHTML = '';
+  $('statsArea').innerHTML = '';
+  $('resultArea').style.display = 'none';
+  $('errorArea').style.display = 'none';
+  $('errorArea').innerHTML = '';
+  lastJson = '';
+}
+
+function setLiveHint(text, type) {
+  $('liveText').textContent = text;
+  const dot = $('liveDot');
+  dot.className = 'live-dot' + (type ? ' ' + type : '');
+}
+
+/* ===== 工具栏操作 ===== */
+function loadSample() {
+  $('input').value = SAMPLE_YAML;
+  updateLineNumbers();
+  syncScroll();
+  validateNow(false);
+}
+function copyResult() {
+  const json = $('jsonOutput').textContent;
+  if (!json) { ToolBox.showToast(i18nText('toast.copy_target_missing'), 'warning'); return; }
+  ToolBox.copyText(json, i18nText('msg248'));
+}
+function clearAll() {
+  $('input').value = '';
+  updateLineNumbers();
+  syncScroll();
+  resetResult();
+  setLiveHint('等待输入', '');
+  ToolBox.showToast(i18nText(), 'info');
+}
+
+/* ===== YAML → JSON 标签页 ===== */
+function convertToJson() {
+  const text = $('yamlInput2').value;
+  const errEl = $('convertErr');
+  errEl.innerHTML = '';
+  if (!text.trim()) {
+    $('jsonOutput2').textContent = '等待转换...';
+    ToolBox.showToast(i18nText('toast.msg753'), 'warning');
+    return;
+  }
+  try {
+    const docs = jsyaml.loadAll(text);
+    const out = docs.length === 1 ? docs[0] : docs;
+    $('jsonOutput2').textContent = JSON.stringify(out, null, 2);
+    ToolBox.showToast(i18nText('toast.msg966'), 'success');
+  } catch (e) {
+    const mark = e.mark || {};
+    const line = (mark.line != null ? mark.line : -1) + 1;
+    const col = (mark.column != null ? mark.column : -1) + 1;
+    let msg = (e.reason || e.message || '解析错误');
+    if (line > 0) msg += '（第 ' + line + ' 行' + (col > 0 ? '，第 ' + col + ' 列' : '') + '）';
+    errEl.innerHTML = '<div class="tip-box tip-error">❌ ' + ToolBox.escHtml(msg) + '</div>';
+    $('jsonOutput2').textContent = '转换失败';
+  }
+}
+function copyConvert() {
+  const json = $('jsonOutput2').textContent;
+  if (!json || json === '等待转换...' || json === '转换失败') {
+    ToolBox.showToast(i18nText('toast.copy_target_missing'), 'warning');
+    return;
+  }
+  ToolBox.copyText(json, i18nText('msg247'));
+}
+function loadSample2() {
+  $('yamlInput2').value = SAMPLE_YAML;
+  convertToJson();
+}
+function clearConvert() {
+  $('yamlInput2').value = '';
+  $('jsonOutput2').textContent = '等待转换...';
+  $('convertErr').innerHTML = '';
+}
+
+/* ===== 初始化 ===== */
+(function init() {
+  $('input').value = SAMPLE_YAML;
+  updateLineNumbers();
+  syncScroll();
+  validateNow(false);
+})();
+</script>
+<script>
+// tool-intro 折叠交互
+document.addEventListener('DOMContentLoaded', function () {
+  var headers = document.querySelectorAll('.tool-intro-header');
+  headers.forEach(function (h) {
+    h.addEventListener('click', function () {
+      this.parentElement.classList.toggle('open');
+    });
+  });
+});
+</script>
+</body>
+</html>

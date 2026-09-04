@@ -31,7 +31,7 @@
 
   function apply() {
     var lang = I18n.get();
-    var isZh = (lang === 'zh-CN');
+    var isZh = (lang !== 'en-US');
     var nodes = document.querySelectorAll('[data-i18n^="guide."]');
     for (var i = 0; i < nodes.length; i++) {
       var el = nodes[i];

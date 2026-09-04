@@ -1,4 +1,4 @@
-# ToolBox 多语言开发规范（v1）
+# ToolBox 多语言开发规范（v2）
 
 > 适用范围：所有新增 / 修改的页面（首页、UI 模板、工具页、guides）。本规范为强制约束，新页面 PR 必须过质量门禁。
 > 关联计划：根目录 `DEV-PLAN.md`。引擎实现：`js/i18n.js`。
@@ -10,19 +10,21 @@
 | locale | 说明 | fallback | dir |
 |---|---|---|---|
 | `zh-CN` | 默认中文 | — | ltr |
+| `zh-TW` | 台湾繁体（OpenCC `twp`） | — | ltr |
+| `zh-HK` | 香港繁体（OpenCC `hkp`） | — | ltr |
 | `en-US` | 默认 / 唯一全局回退英文 | — | ltr |
 
-- 当前项目阶段仅启用 `zh-CN` + `en-US`；所有非 `zh-CN` 语言缺失键一律回退 `en-US`；`en-US` 自身缺失回退页面原始中文（`data-i18n-fb`）。
+- `zh-CN` 是唯一源语言；`zh-TW`、`zh-HK` 是由 `opencc-js` 在构建期生成的静态页面和 JSON，不走英文回退。`en-US` 保留既有运行时词包。
 - `zh-CN` 为默认语言，其语言包留空，靠 `data-i18n-fb` 回退原始中文。
-- 新增语言须先在 `js/i18n.js` 的 `LANG_REGISTRY` 注册，并在 `PACKS` 提供对应包（可先空，回退 en-US）。
+- 繁体动态公共 UI 使用构建产物 `i18n/locale-zh-TW.json`、`i18n/locale-zh-HK.json`；页面专有内容以静态 HTML 的繁体 `data-i18n-fb` 为回退。
 
 ## 2. 语言判定与持久化（优先级 高→低）
 
-1. URL `?lang=<locale>` —— 最高优先，切换时写回 URL（`history.replaceState`）与 localStorage
-2. localStorage `toolbox_lang`
-3. `navigator.languages[0]` 的 region 子标签匹配 `REGION_MAP`（zh→zh-CN、en→en-US，未命中→en-US）
-4. `Intl.DateTimeFormat().resolvedOptions().timeZone` 解析地区兜底（目前仅在 zh-CN / en-US 间兜底）
-5. 回退 `en-US`
+1. 物理繁体路径 `/zh-tw/...`、`/zh-hk/...` —— 最高优先；切换到繁体必须整页导航到该路径
+2. URL `?lang=<locale>` —— 英文运行时切换，写回 URL（`history.replaceState`）与 localStorage
+3. localStorage `toolbox_lang`
+4. `navigator.languages[0]` 的 region 子标签匹配 `REGION_MAP`（不自动把普通简体 URL 重定向到繁体）
+5. 页面 `<html lang>`，最终回退 `zh-CN`
 
 约束：每次切换必须 `document.documentElement.lang = locale`；首屏在 `<head>` 内联脚本完成判定，防闪烁。
 
@@ -40,7 +42,7 @@
 - 必须调 `I18n.t(key)` / `indName(info, key)` / `catName(info, key)`，禁字符串硬写中文。
 - 渲染后调用 `I18n.apply(root)`；监听 `toolbox:langchange` 事件，触发后所有动态视图须重渲染并 `apply`。
 - 首页已内置 `_t/_ind/_cat` 与 `refreshI18nViews()` 钩子，新增动态视图照此模式。
-- **工具卡片名/简介**：统一用 `_tn(t)` / `_td(t)` 取 `t.en` / `t.ed`（构建期由 `scripts/zh_en_dict.py` 规则引擎注入，详见 §4.1）；非 `zh-CN` 且 `en` 存在即显示英文，否则回退 `t.n` / `t.name`。所有动态列表（分类浏览 / 质量筛选 / 热门·最近·收藏 / 搜索结果 / 移动端搜索 / 命令面板 cmdk）渲染卡片均经此二函数，**禁止**直接拼 `t.n` / `t.d`。
+- **工具卡片名/简介**：统一用 `_tn(t)` / `_td(t)`；仅 `en-US` 读取 `t.en` / `t.ed`，繁体静态页读取其目录内已 OpenCC 转换的 `json/*.json`。所有动态列表均经此二函数，**禁止**直接拼 `t.n` / `t.d`。
 
 ### 3.4 工具页
 - 每生成页 `<head>` 必含 `<script src="js/i18n.js"></script>`（在 `common.js` 之前）。
@@ -94,18 +96,17 @@
 
 ## 5. SEO 约定（构建期注入，禁手工维护）
 
-由 `_build.py` 基于 `I18N_LOCALES`（顶部常量，当前为 `['zh-CN', 'en-US']`）自动生成：
+由 `_build.py` 基于 `I18N_LOCALES`（`zh-CN`、`zh-TW`、`zh-HK`、`en-US`）自动生成：
 
-- 每页 `<head>` 注入全套 `<link rel="alternate" hreflang="<locale>" href="<absUrl>">`，**`zh-CN` + `en-US` + `x-default` 全部指向同一裸 URL**（即页面原生路径 `https://chenguangwu.github.io<path>`），语言由前端 `?lang` 客户端切换。
-  - **设计取舍（关键）**：hreflang 目标**不使用** `?lang=<locale>` 查询态。原因：爬虫直接抓取 `?lang=xx` 会得到与裸 URL 相同的 HTML，若把 `?lang` 当独立收录页反而可能 404 / 重复判定。单 URL 服务多语言 + 客户端切换，是 GitHub Pages 纯静态托管下唯一可行且无死链的多语言 SEO 方案。
-- `hreflang="x-default"` 同样指向裸 URL（默认回退 `en-US` 内容）。
+- 每页 `<head>` 注入完整 hreflang 链；`zh-TW`、`zh-HK` 指向各自物理目录，只有 `en-US` 使用 `?lang=en-US` 运行时切换。
+- `/zh-tw/...` 与 `/zh-hk/...` 是独立可抓取的实体 HTML，canonical 分别自指；`zh-CN` 指向源路径，`en-US` 继续是源路径的 `?lang=en-US` 运行时版本。
+- `hreflang="x-default"` 指向简体源 URL；sitemap 为每个简体、台湾繁体、香港繁体 URL 输出独立 `<url>`，并在每条中声明完整 alternate 链。
 - `<meta property="og:locale" content="zh_CN">`（页面原生语言，下划线写法） + `og:locale:alternate` 列出其余 locale（如 `en_US`）。
 - JSON-LD `@type: WebApplication` 块含 `"inLanguage": ["zh-CN", "en-US"]`，声明该页覆盖当前 2 种语言。
 - `<link rel="canonical">` **保持**指向页面原生裸 URL（标准做法，不随语言变 `?lang`）。
 - sitemap（根 index / core / 各行业）每个 `<url>` 内用 `xhtml:link` 标全部语言变体（`xmlns:xhtml` 已声明）。
 
-**索引性保障（v1）**：全站统一采用「JS 切换 + hreflang 引导」方案，纯静态托管无 SSR。爬虫首抓见中文，但 `hreflang` / `x-default` 正确指向该 URL，于 Google / Bing 多语言结果中可被正确归类；`og:locale:alternate` 辅助社媒抓取识别语言。
-**v2（可选增强）**：对首页 + Top 工具页做构建期英文文本预渲染（内联英文默认），进一步保证首抓即见英文，长尾页维持 JS 切换。
+**索引性保障**：GitHub Pages 直接响应繁体正文与完整 SEO head，不依赖爬虫执行应用脚本。生成器只复制 HTML 与 JSON；CSS、JS、字体、图片保持根路径共享，避免发布三份公共资产。OpenCC 仅用于构建期通用转换；品牌、术语等需要精校时在 `twp`/`hkp` 覆盖层处理，不修改 `zh-CN` 源文。
 
 ## 6. 质量门禁
 

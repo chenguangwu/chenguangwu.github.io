@@ -1,0 +1,656 @@
+<!DOCTYPE html>
+<html lang="zh-HK" data-opencc-locale="zh-hk">
+<head>
+
+<script src="/js/tool-page-runtime.js" defer></script>
+<!-- TOOLBOX-TOOL-RUNTIME -->
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="toolbox" content="cat=design,industry=design,icon=🎨,bg=#fce4ec">
+<meta name="description" content="在线颜色选择器，支持 HEX/RGB/HSL/HSV/CMYK 多格式互转、屏幕取色与实时预览，内置预设色板，一键复制所需格式颜色值，纯前端运行。">
+<meta name="keywords" content="颜色选择器,取色器,在线配色,RGB转HEX,HEX转RGB,颜色转换,调色工具,设计工具">
+<meta name="robots" content="index,follow">
+<link rel="canonical" href="https://chenguangwu.github.io/zh-hk/tools/design/color-picker.html">
+<meta property="og:title" content="颜色选择器">
+<meta property="og:description" content="在线颜色选择器，支持 HEX/RGB/HSL/HSV/CMYK 多格式互转、屏幕取色与实时预览，内置预设色板，一键复制所需格式颜色值，纯前端运行。">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://chenguangwu.github.io/zh-hk/tools/design/color-picker.html">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="颜色选择器">
+<meta name="twitter:description" content="在线颜色选择器，支持 HEX/RGB/HSL/HSV/CMYK 多格式互转、屏幕取色与实时预览，内置预设色板，一键复制所需格式颜色值，纯前端运行。">
+
+<title>顏色選擇器 - ToolBox</title>
+<meta name="theme-color" content="#FF6B35">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<link rel="icon" href="/favicon.ico" sizes="16x16 32x32 48x48">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="preload" as="style" href="/css/common.css" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="/css/common.css"></noscript>
+<style>
+/* 仅补充 common.css 未覆盖的局部样式 */
+.picker-area{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:12px;}
+.color-preview{border-radius:12px;border:1px solid var(--border);overflow:hidden;position:relative;min-height:200px;}
+.preview-big{height:160px;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:600;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,0.5);}
+.preview-info{padding:10px 14px;background:var(--card-bg);display:flex;justify-content:space-between;align-items:center;font-size:13px;}
+.sv-picker{position:relative;width:100%;height:200px;border-radius:8px;cursor:crosshair;border:1px solid var(--border);background:linear-gradient(to top, #000, transparent), linear-gradient(to right, #fff, hsl(0,100%,50%));}
+.sv-pointer{position:absolute;width:14px;height:14px;border:2px solid #fff;border-radius:50%;transform:translate(-50%,-50%);box-shadow:0 0 0 1px rgba(0,0,0,0.5);pointer-events:none;}
+.hue-slider{position:relative;height:24px;border-radius:12px;margin-top:12px;cursor:pointer;background:linear-gradient(to right, #f00 0%, #ff0 17%, #0f0 33%, #0ff 50%, #00f 67%, #f0f 83%, #f00 100%);}
+.hue-pointer{position:absolute;top:-3px;width:6px;height:30px;background:#fff;border:1px solid #333;border-radius:3px;transform:translateX(-50%);box-shadow:0 2px 4px rgba(0,0,0,0.3);pointer-events:none;}
+.alpha-slider{position:relative;height:24px;border-radius:12px;margin-top:12px;cursor:pointer;background:linear-gradient(to right, transparent, currentColor), repeating-conic-gradient(#eee 0% 25%, #fff 0% 50%) 0/12px 12px;}
+.alpha-pointer{position:absolute;top:-3px;width:6px;height:30px;background:#fff;border:1px solid #333;border-radius:3px;transform:translateX(-50%);box-shadow:0 2px 4px rgba(0,0,0,0.3);pointer-events:none;}
+.format-list{margin-top:12px;display:grid;grid-template-columns:1fr;gap:8px;}
+.format-row{display:flex;align-items:center;gap:8px;padding:10px 12px;background:var(--result-bg);border:1px solid var(--border);border-radius:10px;}
+.format-row .label{min-width:70px;font-size:12px;color:var(--text-muted);font-weight:600;}
+.format-row .value{flex:1;font-family:'SF Mono','Courier New','Fira Code',monospace;font-size:13px;color:var(--primary);word-break:break-all;}
+.format-row .copy{padding:4px 10px;font-size:11px;}
+.history-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(36px,1fr));gap:8px;margin-top:12px;}
+.history-color{width:36px;height:36px;border-radius:8px;cursor:pointer;border:2px solid var(--card-bg);box-shadow:0 0 0 1px var(--border);transition:transform 0.15s;}
+.history-color:hover{transform:scale(1.1);}
+.preset-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(56px,1fr));gap:8px;margin-top:12px;}
+.preset-color{height:40px;border-radius:8px;cursor:pointer;border:1px solid var(--border);transition:transform 0.15s;display:flex;align-items:flex-end;justify-content:center;padding-bottom:2px;font-size:9px;color:#fff;text-shadow:0 1px 1px rgba(0,0,0,0.5);}
+.preset-color:hover{transform:scale(1.05);}
+.eyedropper-btn{padding:10px 16px;border-radius:10px;border:1px solid var(--primary);background:var(--card-bg);color:var(--primary);cursor:pointer;font-size:13px;font-weight:600;transition:all 0.2s;}
+.eyedropper-btn:hover{background:var(--bg-hover);}
+.eyedropper-btn:disabled{opacity:0.5;cursor:not-allowed;}
+@media(max-width:600px){
+  .picker-area{grid-template-columns:1fr;}
+  .preview-big{height:120px;font-size:14px;}
+}
+</style>
+<script>window.__tbq=window.__tbq||[];window.ToolBox=window.ToolBox||{};['initToolTheme','addToolStyles','showToast','toast','copyText','copyToClipboard','copyFromElement','downloadText','injectPrivacyBadge','toggleFavTool','addToRecentTool','toggleToolTheme','applyTheme'].forEach(function(k){if(typeof window.ToolBox[k]!=='function')window.ToolBox[k]=function(){window.__tbq.push([k,[].slice.call(arguments)]);};});</script><!-- TOOLBOX-API-STUB -->
+<script src="/js/common.js" defer></script>
+
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"顏色選擇器","description":"免費在線顏色選擇器，支持RGB/HEX/HSL顏色格式互轉，屏幕取色，調色板，顏色搭配推薦。","url":"https://chenguangwu.github.io/zh-hk/tools/design/color-picker.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Web","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"},"inLanguage":"zh-HK","isAccessibleForFree":true,"browserRequirements":"Requires JavaScript. Requires HTML5.","softwareVersion":"1.0"}</script>
+
+
+<meta property="og:image" content="https://chenguangwu.github.io/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="ToolBox - 5000+免费在线工具">
+<meta name="twitter:image" content="https://chenguangwu.github.io/og-image.png">
+<meta name="twitter:image:alt" content="ToolBox - 5000+免费在线工具">
+<!-- TOOLBOX-WEBAPP-LD -->
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"顏色選擇器","url":"https://chenguangwu.github.io/zh-hk/tools/design/color-picker.html","applicationCategory":"MultimediaApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":"zh-HK","description":"在線顏色選擇器，支持 HEX/RGB/HSL/HSV/CMYK 多格式互轉、屏幕取色與實時預覽，內置預設色板，一鍵複製所需格式顏色值，純前端運行。","image":"https://chenguangwu.github.io/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}</script>
+<meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
+<meta http-equiv="X-Content-Type-Options" content="nosniff">
+<meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
+<!-- TOOLBOX-SECURITY -->
+
+<script src="/js/privacy.js" defer></script>
+<!-- TOOLBOX-PRIVACY-SCRIPT -->
+
+<script src="/js/metrics.js" defer></script>
+<!-- TOOLBOX-METRICS-SCRIPT -->
+
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"首頁","item":"https://chenguangwu.github.io/zh-hk/"},{"@type":"ListItem","position":2,"name":"設計創意","item":"https://chenguangwu.github.io/zh-hk/tools/design/index.html"},{"@type":"ListItem","position":3,"name":"顏色選擇器","item":"https://chenguangwu.github.io/zh-hk/tools/design/color-picker.html"}]}</script>
+
+<script src="/js/i18n.js" defer></script>
+<script src="/js/tool-i18n.js" defer></script>
+<!-- TOOLBOX-I18N-SCRIPT -->
+
+
+<meta name="title-en" content="Color Selector - ToolBox">
+<meta name="desc-en" content="Color Selector - pick and choose online, free. Free online tool on ToolBox — 100% client-side, no data uploaded, no install. Part of the Design &amp; Creativ...">
+<!-- TOOLBOX-HREFLANG -->
+<link rel="alternate" hreflang="zh-CN" href="https://chenguangwu.github.io/tools/design/color-picker.html">
+<link rel="alternate" hreflang="zh-TW" href="https://chenguangwu.github.io/zh-tw/tools/design/color-picker.html">
+<link rel="alternate" hreflang="zh-HK" href="https://chenguangwu.github.io/zh-hk/tools/design/color-picker.html">
+<link rel="alternate" hreflang="en-US" href="https://chenguangwu.github.io/tools/design/color-picker.html?lang=en-US">
+<link rel="alternate" hreflang="x-default" href="https://chenguangwu.github.io/tools/design/color-picker.html">
+<meta property="og:locale" content="zh_HK">
+<meta property="og:locale:alternate" content="zh_CN">
+<meta property="og:locale:alternate" content="zh_TW">
+<meta property="og:locale:alternate" content="en_US">
+</head>
+<body>
+<h1 class="sr-only">Color Picker</h1>
+
+<div class="nav">
+  <a href="/zh-hk/index.html">← ToolBox</a>
+  <span>/ 取色器</span>
+  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()">🌙</button>
+</div>
+
+
+
+<nav class="breadcrumb" aria-label="麪包屑導航" data-breadcrumb="1">
+  <a href="/zh-hk/index.html">首頁</a>
+  <span class="bc-sep">‹</span>
+  <a href="/zh-hk/tools/design/index.html">🎨 設計創意</a>
+  <span class="bc-sep">‹</span>
+  <span class="bc-current">顏色選擇器</span>
+</nav>
+
+<div class="tool-guide-link" data-guide-link="1">
+  <a href="/zh-hk/guides/color-picker-guide.html">📖 查看「顏色選擇器使用指南」</a>
+</div>
+<div class="container">
+  <div class="card tool-card-accent" style="--tool-accent:#7C3AED;">
+    <h2>🎨 <span data-i18n="design.color-picker.title" data-i18n-fb="顏色選擇器">Color Picker</span></h2>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-i18n="design.color-picker.intro" data-i18n-fb="在瀏覽器中直接取色，支持 HEX / RGB / HSL 互轉，數據不上傳。">Color Picker is available directly in your browser, with no data uploaded.</p>
+
+    <div class="picker-area">
+      <div>
+        <div class="sv-picker" id="svPicker">
+          <div class="sv-pointer" id="svPointer" style="left:100%;top:0;"></div>
+        </div>
+        <div class="hue-slider" id="hueSlider">
+          <div class="hue-pointer" id="huePointer" style="left:0;"></div>
+        </div>
+        <div class="alpha-slider" id="alphaSlider" style="color:#667eea;">
+          <div class="alpha-pointer" id="alphaPointer" style="left:100%;"></div>
+        </div>
+      </div>
+
+      <div>
+        <div class="color-preview">
+          <div class="preview-big" id="previewBig" style="background:#667eea;">#667EEA</div>
+          <div class="preview-info">
+            <span id="previewName">主色</span>
+            <button type="button" class="eyedropper-btn" id="eyedropperBtn" onclick="useEyeDropper()">🎯 屏幕取色</button>
+          </div>
+        </div>
+
+        <div class="input-row" style="margin-top:12px;">
+          <div>
+            <label>HEX</label>
+            <input type="text" id="hexInput" value="#667eea" oninput="onHexInput()">
+          </div>
+          <div>
+            <label>H</label>
+            <input type="number" id="hInput" value="234" min="0" max="360" oninput="onHslInput()">
+          </div>
+        </div>
+        <div class="input-row">
+          <div>
+            <label>S (%)</label>
+            <input type="number" id="sInput" value="73" min="0" max="100" oninput="onHslInput()">
+          </div>
+          <div>
+            <label>L (%)</label>
+            <input type="number" id="lInput" value="57" min="0" max="100" oninput="onHslInput()">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="format-list" id="formatList"></div>
+
+    <div class="toolbar" style="margin-top:12px;">
+      <button type="button" class="btn primary" onclick="randomColor()">🎲 隨機顏色</button>
+      <button type="button" class="btn" onclick="copyAll()">複製全部格式</button>
+      <button type="button" class="btn danger" onclick="clearHistory()">清空歷史</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>📜 歷史記錄</h2>
+    <div class="history-list" id="historyList"></div>
+  </div>
+
+  <div class="card">
+    <h2>🎯 預設色板</h2>
+    <div class="preset-list" id="presetList"></div>
+  </div>
+
+  <div class="card">
+    <h2>📊 顏色分析</h2>
+    <div id="analysis"></div>
+  </div>
+
+  <div class="tool-notes" style="--tool-accent:#7C3AED;">
+    <div class="tool-notes-title">⚠️ 使用説明與注意事項</div>
+    <ul>
+      <li>本工具純前端運行，數據不會上傳到伺服器</li>
+      <li>建議在主流瀏覽器（Chrome/Safari/Firefox/Edge）中使用</li>
+      <li>計算結果僅供參考，請以實際應用場景為準</li>
+    </ul>
+  </div>
+</div>
+
+<script>
+let state = {h: 234, s: 73, l: 57, a: 1};
+let history = JSON.parse(localStorage.getItem('colorHistory') || '[]');
+
+const PRESETS = [
+  {name:'Red', hex:'#f44336'}, {name:'Pink', hex:'#e91e63'}, {name:'Purple', hex:'#9c27b0'},
+  {name:'Deep Purple', hex:'#673ab7'}, {name:'Indigo', hex:'#3f51b5'}, {name:'Blue', hex:'#2196f3'},
+  {name:'Light Blue', hex:'#03a9f4'}, {name:'Cyan', hex:'#00bcd4'}, {name:'Teal', hex:'#009688'},
+  {name:'Green', hex:'#4caf50'}, {name:'Light Green', hex:'#8bc34a'}, {name:'Lime', hex:'#cddc39'},
+  {name:'Yellow', hex:'#ffeb3b'}, {name:'Amber', hex:'#ffc107'}, {name:'Orange', hex:'#ff9800'},
+  {name:'Deep Orange', hex:'#ff5722'}, {name:'Brown', hex:'#795548'}, {name:'Grey', hex:'#9e9e9e'},
+  {name:'Blue Grey', hex:'#607d8b'}, {name:'Black', hex:'#000000'}, {name:'White', hex:'#ffffff'},
+  {name:'Primary', hex:'#667eea'}, {name:'Secondary', hex:'#764ba2'}, {name:'Success', hex:'#4caf50'},
+  {name:'Warning', hex:'#ff9800'}, {name:'Danger', hex:'#f44336'}, {name:'Info', hex:'#2196f3'}
+];
+
+// 颜色转换函数
+function hslToRgb(h, s, l){
+  h = h / 360; s = s / 100; l = l / 100;
+  let r, g, b;
+  if(s === 0){
+    r = g = b = l;
+  } else {
+    const hue2rgb = (p, q, t) => {
+      if(t < 0) t += 1;
+      if(t > 1) t -= 1;
+      if(t < 1/6) return p + (q - p) * 6 * t;
+      if(t < 1/2) return q;
+      if(t < 2/3) return p + (q - p) * (2/3 - t) * 6;
+      return p;
+    };
+    const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+    const p = 2 * l - q;
+    r = hue2rgb(p, q, h + 1/3);
+    g = hue2rgb(p, q, h);
+    b = hue2rgb(p, q, h - 1/3);
+  }
+  return [Math.round(r*255), Math.round(g*255), Math.round(b*255)];
+}
+
+function rgbToHsl(r, g, b){
+  r /= 255; g /= 255; b /= 255;
+  const max = Math.max(r,g,b), min = Math.min(r,g,b);
+  let h, s, l = (max + min) / 2;
+  if(max === min){
+    h = s = 0;
+  } else {
+    const d = max - min;
+    s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+    switch(max){
+      case r: h = (g - b) / d + (g < b ? 6 : 0); break;
+      case g: h = (b - r) / d + 2; break;
+      case b: h = (r - g) / d + 4; break;
+    }
+    h /= 6;
+  }
+  return [Math.round(h*360), Math.round(s*100), Math.round(l*100)];
+}
+
+function rgbToHex(r, g, b){
+  return '#' + [r,g,b].map(x => x.toString(16).padStart(2,'0')).join('');
+}
+
+function hexToRgb(hex){
+  hex = hex.replace('#','');
+  if(hex.length === 3) hex = hex.split('').map(c => c+c).join('');
+  if(hex.length !== 6) return null;
+  const r = parseInt(hex.slice(0,2), 16);
+  const g = parseInt(hex.slice(2,4), 16);
+  const b = parseInt(hex.slice(4,6), 16);
+  if(isNaN(r) || isNaN(g) || isNaN(b)) return null;
+  return [r, g, b];
+}
+
+function rgbToHsv(r, g, b){
+  r /= 255; g /= 255; b /= 255;
+  const max = Math.max(r,g,b), min = Math.min(r,g,b);
+  const d = max - min;
+  let h;
+  const s = max === 0 ? 0 : d / max;
+  const v = max;
+  if(d === 0) h = 0;
+  else if(max === r) h = ((g - b) / d) % 6;
+  else if(max === g) h = (b - r) / d + 2;
+  else h = (r - g) / d + 4;
+  h = Math.round(h * 60);
+  if(h < 0) h += 360;
+  return [h, Math.round(s * 100), Math.round(v * 100)];
+}
+
+function getLuminance(r, g, b){
+  const [rs, gs, bs] = [r, g, b].map(c => {
+    c /= 255;
+    return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+  });
+  return 0.2126 * rs + 0.7152 * gs + 0.0722 * bs;
+}
+
+function getColorName(h, s, l){
+  if(l < 8) return '黑色';
+  if(l > 92 && s < 15) return '白色';
+  if(s < 10) return l < 40 ? '深灰' : '灰色';
+  const ranges = [
+    [0, 15, '红色'], [15, 45, '橙色'], [45, 70, '黄色'],
+    [70, 165, '绿色'], [165, 195, '青色'], [195, 255, '蓝色'],
+    [255, 285, '紫色'], [285, 345, '品红'], [345, 361, '红色']
+  ];
+  for(const [min, max, name] of ranges){
+    if(h >= min && h < max){
+      if(l < 30) return '深' + name;
+      if(l > 75) return '浅' + name;
+      return name;
+    }
+  }
+  return '彩色';
+}
+
+function update(){
+  const [r, g, b] = hslToRgb(state.h, state.s, state.l);
+  const hex = rgbToHex(r, g, b);
+  const [h, s, v] = rgbToHsv(r, g, b);
+  const luminance = getLuminance(r, g, b);
+  const isLight = luminance > 0.5;
+  const colorName = getColorName(state.h, state.s, state.l);
+
+  // 预览
+  const previewBig = document.getElementById('previewBig');
+  previewBig.style.background = `rgba(${r},${g},${b},${state.a})`;
+  previewBig.textContent = hex.toUpperCase();
+  previewBig.style.color = isLight ? '#000' : '#fff';
+  previewBig.style.textShadow = isLight ? '0 1px 2px rgba(255,255,255,0.5)' : '0 1px 3px rgba(0,0,0,0.5)';
+  document.getElementById('previewName').textContent = colorName;
+
+  // SV picker 背景
+  document.getElementById('svPicker').style.background =
+    `linear-gradient(to top, #000, transparent), linear-gradient(to right, #fff, hsl(${state.h},100%,50%))`;
+
+  // 输入框
+  if(document.activeElement?.id !== 'hexInput') document.getElementById('hexInput').value = hex;
+  if(document.activeElement?.id !== 'hInput') document.getElementById('hInput').value = state.h;
+  if(document.activeElement?.id !== 'sInput') document.getElementById('sInput').value = state.s;
+  if(document.activeElement?.id !== 'lInput') document.getElementById('lInput').value = state.l;
+
+  // 指针
+  document.getElementById('svPointer').style.left = state.s + '%';
+  document.getElementById('svPointer').style.top = (100 - state.l * 2) + '%';
+  document.getElementById('huePointer').style.left = (state.h / 360 * 100) + '%';
+  document.getElementById('alphaPointer').style.left = (state.a * 100) + '%';
+  document.getElementById('alphaSlider').style.color = hex;
+
+  // 格式列表
+  const formats = [
+    {label:'HEX', value: hex.toUpperCase()},
+    {label:'RGB', value: `rgb(${r}, ${g}, ${b})`},
+    {label:'RGBA', value: `rgba(${r}, ${g}, ${b}, ${state.a.toFixed(2)})`},
+    {label:'HSL', value: `hsl(${state.h}, ${state.s}%, ${state.l}%)`},
+    {label:'HSLA', value: `hsla(${state.h}, ${state.s}%, ${state.l}%, ${state.a.toFixed(2)})`},
+    {label:'HSV', value: `hsv(${h}, ${s}%, ${v}%)`},
+    {label:'CMYK', value: rgbToCmyk(r, g, b)},
+    {label:'CSS Var', value: `--color: ${hex};`},
+    {label:'Tailwind', value: `bg-[${hex}]`},
+  ];
+  document.getElementById('formatList').innerHTML = formats.map(f => `
+    <div class="format-row">
+      <span class="label">${f.label}</span>
+      <span class="value">${f.value}</span>
+      <button type="button" class="btn success copy" onclick="copyText(this, '${f.value.replace(/'/g, "\\'")}')">复制</button>
+    </div>
+  `).join('');
+
+  // 颜色分析
+  document.getElementById('analysis').innerHTML = `
+    <div class="data-grid">
+      <div class="data-card"><div class="num" style="font-size:16px;">${colorName}</div><div class="label">颜色名称</div></div>
+      <div class="data-card"><div class="num">${(luminance * 100).toFixed(1)}%</div><div class="label">亮度</div></div>
+      <div class="data-card"><div class="num">${(1.05 / (luminance + 0.05)).toFixed(2)}:1</div><div class="label">白底对比度</div></div>
+      <div class="data-card"><div class="num">${((luminance + 0.05) / 0.05).toFixed(2)}:1</div><div class="label">黑底对比度</div></div>
+      <div class="data-card"><div class="num" style="font-size:12px;color:${isLight ? '#000' : '#fff'};background:${isLight ? '#fff' : '#000'};padding:2px 8px;border-radius:4px;">${isLight ? '#000000' : '#FFFFFF'}</div><div class="label">推荐文字色</div></div>
+      <div class="data-card"><div class="num" style="display:flex;align-items:center;justify-content:center;gap:6px;"><span style="display:inline-block;width:14px;height:14px;background:${rgbToHex(255-r, 255-g, 255-b)};border-radius:3px;border:1px solid var(--border);"></span>${rgbToHex(255-r, 255-g, 255-b)}</div><div class="label">互补色</div></div>
+    </div>
+  `;
+
+  renderHistory();
+}
+
+function rgbToCmyk(r, g, b){
+  const rr = r/255, gg = g/255, bb = b/255;
+  const k = 1 - Math.max(rr, gg, bb);
+  if(k === 1) return 'cmyk(0%, 0%, 0%, 100%)';
+  const c = (1 - rr - k) / (1 - k);
+  const m = (1 - gg - k) / (1 - k);
+  const y = (1 - bb - k) / (1 - k);
+  return `cmyk(${Math.round(c*100)}%, ${Math.round(m*100)}%, ${Math.round(y*100)}%, ${Math.round(k*100)}%)`;
+}
+
+function onHexInput(){
+  const hex = document.getElementById('hexInput').value;
+  const rgb = hexToRgb(hex);
+  if(rgb){
+    const [h, s, l] = rgbToHsl(...rgb);
+    state.h = h; state.s = s; state.l = l;
+    update();
+  }
+}
+
+function onHslInput(){
+  state.h = parseInt(document.getElementById('hInput').value) || 0;
+  state.s = parseInt(document.getElementById('sInput').value) || 0;
+  state.l = parseInt(document.getElementById('lInput').value) || 0;
+  update();
+}
+
+// SV picker 交互
+const svPicker = document.getElementById('svPicker');
+let svDragging = false;
+svPicker.addEventListener('mousedown', e => { svDragging = true; handleSV(e); });
+document.addEventListener('mousemove', e => { if(svDragging) handleSV(e); });
+document.addEventListener('mouseup', () => { if(svDragging){ svDragging = false; saveHistory(); } });
+svPicker.addEventListener('touchstart', e => { e.preventDefault(); handleSV(e.touches[0]); });
+svPicker.addEventListener('touchmove', e => { e.preventDefault(); handleSV(e.touches[0]); });
+svPicker.addEventListener('touchend', saveHistory);
+
+function handleSV(e){
+  const rect = svPicker.getBoundingClientRect();
+  const x = Math.max(0, Math.min(rect.width, e.clientX - rect.left));
+  const y = Math.max(0, Math.min(rect.height, e.clientY - rect.top));
+  const hsvS = Math.round(x / rect.width * 100);
+  const hsvV = Math.round((1 - y / rect.height) * 100);
+  // HSV -> HSL
+  const l = hsvV * (1 - hsvS/2) / 100;
+  const sL = l === 0 || l === 1 ? 0 : (hsvV - l*100) / Math.min(l*100, 100 - l*100) * 100;
+  state.s = Math.min(100, Math.max(0, Math.round(sL)));
+  state.l = Math.min(100, Math.max(0, Math.round(l)));
+  update();
+}
+
+// Hue slider
+const hueSlider = document.getElementById('hueSlider');
+let hueDragging = false;
+hueSlider.addEventListener('mousedown', e => { hueDragging = true; handleHue(e); });
+document.addEventListener('mousemove', e => { if(hueDragging) handleHue(e); });
+document.addEventListener('mouseup', () => { if(hueDragging){ hueDragging = false; saveHistory(); } });
+
+function handleHue(e){
+  const rect = hueSlider.getBoundingClientRect();
+  const x = Math.max(0, Math.min(rect.width, e.clientX - rect.left));
+  state.h = Math.round(x / rect.width * 360);
+  update();
+}
+
+// Alpha slider
+const alphaSlider = document.getElementById('alphaSlider');
+let alphaDragging = false;
+alphaSlider.addEventListener('mousedown', e => { alphaDragging = true; handleAlpha(e); });
+document.addEventListener('mousemove', e => { if(alphaDragging) handleAlpha(e); });
+document.addEventListener('mouseup', () => { if(alphaDragging){ alphaDragging = false; saveHistory(); } });
+
+function handleAlpha(e){
+  const rect = alphaSlider.getBoundingClientRect();
+  const x = Math.max(0, Math.min(rect.width, e.clientX - rect.left));
+  state.a = +(x / rect.width).toFixed(2);
+  update();
+}
+
+function randomColor(){
+  state.h = Math.floor(Math.random() * 360);
+  state.s = 30 + Math.floor(Math.random() * 70);
+  state.l = 30 + Math.floor(Math.random() * 50);
+  state.a = 1;
+  update();
+  saveHistory();
+}
+
+function useEyeDropper(){
+  if(!window.EyeDropper){
+    ToolBox.showToast(i18nText('toast.msg345'), 'warning');
+    return;
+  }
+  const eyeDropper = new EyeDropper();
+  eyeDropper.open().then(result => {
+    const hex = result.sRGBHex;
+    document.getElementById('hexInput').value = hex;
+    onHexInput();
+    saveHistory();
+  }).catch(() => {});
+}
+
+function saveHistory(){
+  const hex = document.getElementById('hexInput').value;
+  history = history.filter(c => c !== hex);
+  history.unshift(hex);
+  if(history.length > 24) history = history.slice(0, 24);
+  localStorage.setItem('colorHistory', JSON.stringify(history));
+  renderHistory();
+}
+
+function clearHistory(){
+  history = [];
+  localStorage.removeItem('colorHistory');
+  renderHistory();
+}
+
+function renderHistory(){
+  const list = document.getElementById('historyList');
+  if(history.length === 0){
+    list.innerHTML = '<p style="color:var(--text-muted);font-size:13px;grid-column:1/-1;">暂无历史记录</p>';
+    return;
+  }
+  list.innerHTML = history.map(c => `
+    <div class="history-color" style="background:${c};" title="${c}" onclick="loadHistoryColor('${c}')"></div>
+  `).join('');
+}
+
+function loadHistoryColor(hex){
+  document.getElementById('hexInput').value = hex;
+  onHexInput();
+}
+
+function copyText(btn, text){
+  ToolBox.copyText(text, i18nText());
+  const old = btn.textContent;
+  btn.textContent = '✅';
+  setTimeout(() => btn.textContent = old, 1000);
+}
+
+function copyAll(){
+  const text = Array.from(document.querySelectorAll('.format-row .value')).map(v => v.textContent).join('\n');
+  ToolBox.copyText(text, i18nText('msg265'));
+}
+
+// 渲染预设
+document.getElementById('presetList').innerHTML = PRESETS.map(p => `
+  <div class="preset-color" style="background:${p.hex};" title="${p.name} - ${p.hex}" onclick="loadHistoryColor('${p.hex}')">${p.name}</div>
+`).join('');
+
+// 检查 EyeDropper 支持
+if(!window.EyeDropper){
+  document.getElementById('eyedropperBtn').disabled = true;
+  document.getElementById('eyedropperBtn').textContent = '🎯 不支持';
+}
+
+update();
+</script>
+<script>
+// tool-intro折叠交互
+document.addEventListener('DOMContentLoaded',function(){
+  var headers=document.querySelectorAll('.tool-intro-header');
+  headers.forEach(function(h){
+    h.addEventListener('click',function(){
+      this.parentElement.classList.toggle('open');
+    });
+  });
+});
+</script>
+
+<!-- TOOLBOX-DEEP-DIVE -->
+<style>
+.deep-dive{max-width:960px;margin:16px auto;padding:0 16px;}
+.deep-dive > .card{margin-bottom:0;}
+@media(max-width:600px){.deep-dive{margin:14px auto;padding:0 12px;}}
+.deep-dive .dd-list{margin:8px 0 16px;padding-left:20px;}
+.deep-dive .dd-list li{margin:6px 0;line-height:1.75;}
+.deep-dive .dd-example{background:var(--card-bg,#fff);border:1px solid var(--border,#eee);border-radius:10px;padding:12px 14px;margin:8px 0 16px;}
+.deep-dive .dd-ex-title{font-weight:600;color:var(--tool-accent,#FF6B35);margin-bottom:6px;}
+.deep-dive .dd-ex-body{font-size:13px;line-height:1.85;color:var(--text,#333);word-break:break-word;}
+.deep-dive .dd-faq{margin:8px 0 4px;}
+.deep-dive .dd-faq dt{font-weight:600;margin-top:10px;color:var(--text,#333);}
+.deep-dive .dd-faq dd{margin:4px 0 0;font-size:13px;line-height:1.85;color:var(--text-muted,#666);}
+
+</style>
+<section class="deep-dive" data-deep-dive="1">
+<div class="card">
+<h2>📚 深度解析：取色器</h2>
+<h3>💡 常見使用場景</h3>
+<ul class="dd-list">
+<li>從屏幕/圖片中吸取顏色得到 HEX/RGB</li>
+<li>還原設計稿裏的具體色值</li>
+<li>比對兩個顏色的差異</li>
+</ul>
+<div class="dd-example"><div class="dd-ex-title">格式互轉</div><div class="dd-ex-body">吸取某點得到 RGB(52,152,219)，等價 HEX #3498db、HSL(204°,68%,53%)。同一顏色在不同色彩空間數值不同，但指向同一像素。</div></div>
+<div class="dd-example"><div class="dd-ex-title">拾色注意</div><div class="dd-ex-body">屏幕為 sRGB，不同設備有色差；印刷需轉 CMYK，屏幕取的 HEX 直接印可能偏色。</div></div>
+<h3>❓ 常見問題（FAQ）</h3>
+<dl class="dd-faq">
+<dt>HEX 和 RGB 哪個更準？</dt><dd>表示同一顏色，無精度差異。HEX 是 RGB 的十六進制寫法，前端 CSS 兩者都接受；設計協作常用 HEX，代碼裏 RGB/RGBA 便於控制透明度。</dd>
+<dt>取色後和原圖看起來不一樣？</dt><dd>可能是色彩配置（sRGB/Display P3）或顯示器校色差異；以目標輸出設備的色彩空間為準。</dd>
+</dl>
+</div>
+</section>
+<!-- 相關工具 -->
+<div class="related-tools" data-related-tools="1">
+  <h3 class="related-tools-title">🔗 相關工具</h3>
+  <div class="related-tools-grid">
+    <a href="/zh-hk/tools/design/generator-10.html" class="related-tool-card">
+      <span class="rt-icon">🎨</span>
+      <span class="rt-info"><span class="rt-name">CSS動畫生成器（關鍵幀可視化） - 免費在線工具，純前端處理 | ToolBox免費在線工具箱</span><span class="rt-desc">CSS動畫生成器（關鍵幀可視化）</span></span>
+    </a>
+
+    <a href="/zh-hk/tools/design/web-audio-metronome.html" class="related-tool-card">
+      <span class="rt-icon">🎼</span>
+      <span class="rt-info"><span class="rt-name">Web Audio 節拍器 - 免費生成器工具，在線節拍器 | ToolBox免費在線工具箱</span><span class="rt-desc">在線節拍器</span></span>
+    </a>
+    <a href="/zh-hk/tools/design/generator-8.html" class="related-tool-card">
+      <span class="rt-icon">🎨</span>
+      <span class="rt-info"><span class="rt-name">二維碼生成器（已有，可加強定製） - 免費在線工具，純前端處理 | ToolBox免費在線工具箱</span><span class="rt-desc">二維碼生成器（已有，可加強定製）</span></span>
+    </a>
+    <a href="/zh-hk/tools/design/generator-9.html" class="related-tool-card">
+      <span class="rt-icon">🎨</span>
+      <span class="rt-info"><span class="rt-name">條形碼生成器（EAN-13等） - 免費在線工具，純前端處理 | ToolBox免費在線工具箱</span><span class="rt-desc">條形碼生成器（EAN-13等）</span></span>
+    </a>
+    <a href="/zh-hk/tools/design/generator-6.html" class="related-tool-card">
+      <span class="rt-icon">🎨</span>
+      <span class="rt-info"><span class="rt-name">盒子陰影生成器（可視化調整） - 免費在線工具，純前端處理 | ToolBox免費在線工具箱</span><span class="rt-desc">盒子陰影生成器（可視化調整）</span></span>
+    </a>
+  </div>
+</div>
+
+<div class="tool-intro open" id="toolIntro">
+  <div class="tool-intro-header">
+    <span class="intro-icon-wrap"><span class="intro-icon">📖</span>關於「顏色選擇器」</span>
+    <span class="arrow">▼</span>
+  </div>
+  <div class="tool-intro-body">
+    <h4><span class="h4-icon">📝</span>工具簡介</h4>
+    <p>免費在線顏色選擇器，支持RGB/HEX/HSL顏色格式互轉，屏幕取色，調色板，顏色搭配推薦。設計創意工具，可視化操作，一鍵生成 CSS 代碼。</p>
+    <h4><span class="h4-icon">✨</span>功能特點</h4>
+    <ul class="intro-features">
+      <li>可視化操作，所見即所得</li>
+      <li>支持實時預覽與調試</li>
+      <li>一鍵複製 CSS 代碼</li>
+      <li>純前端運行，無需安裝</li>
+    </ul>
+    <h4><span class="h4-icon">🎯</span>使用場景</h4>
+    <ul class="intro-scenes">
+      <li>前端開發中的樣式設計</li>
+      <li>UI 設計師配色與佈局參考</li>
+      <li>快速生成 CSS 效果代碼</li>
+      <li>設計靈感探索與原型製作</li>
+    </ul>
+    <h4><span class="h4-icon">💬</span>常見問題</h4>
+    <div class="intro-faq-item"><div class="intro-faq-q">這個工具是免費的嗎？</div><div class="intro-faq-a">完全免費，無需註冊，直接在瀏覽器中使用。</div></div>
+    <div class="intro-faq-item"><div class="intro-faq-q">生成的代碼可以直接用嗎？</div><div class="intro-faq-a">可以，生成的 CSS 代碼符合標準，可直接複製到項目中使用。</div></div>
+    <div class="intro-faq-item"><div class="intro-faq-q">支持自定義參數嗎？</div><div class="intro-faq-a">支持，提供多種參數調節選項，滿足個性化設計需求。</div></div>
+  </div>
+</div>
+</body>
+</html>

@@ -44,8 +44,8 @@ function _t(k, fb) { return (window.I18n && window.I18n.t) ? window.I18n.t(k, fb
 function _ind(info, key) { return (window.I18n && window.I18n.indName) ? window.I18n.indName(info, key) : (info && info.name || ''); }
 function _cat(info, key) { return (window.I18n && window.I18n.catName) ? window.I18n.catName(info, key) : (info && info.name || ''); }
 // 热门工具网格：按当前语言取 en/ed，否则回退中文（批次2 i18n）
-function _tn(t) { const en = (window.I18n && window.I18n.get && window.I18n.get() !== 'zh-CN'); return (en && t.en) ? t.en : (t.n || t.name || ''); }
-function _td(t) { const en = (window.I18n && window.I18n.get && window.I18n.get() !== 'zh-CN'); return (en && t.ed) ? t.ed : (t.d || t.desc || ''); }
+function _tn(t) { const en = (window.I18n && window.I18n.get && window.I18n.get() === 'en-US'); return (en && t.en) ? t.en : (t.n || t.name || ''); }
+function _td(t) { const en = (window.I18n && window.I18n.get && window.I18n.get() === 'en-US'); return (en && t.ed) ? t.ed : (t.d || t.desc || ''); }
 
 let currentView = 'home';
 let currentIndustry = 'it';

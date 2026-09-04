@@ -1,0 +1,1220 @@
+<!DOCTYPE html>
+<html lang="zh-HK" data-opencc-locale="zh-hk">
+<head>
+
+<script src="/js/tool-page-runtime.js" defer></script>
+<!-- TOOLBOX-TOOL-RUNTIME -->
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="toolbox" content="cat=image,industry=design,icon=⭕,bg=#f3e5f5">
+<title>圓角圖片生成器 - ToolBox</title>
+<link rel="canonical" href="https://chenguangwu.github.io/zh-hk/tools/design/image-rounded-corners.html">
+<meta property="og:title" content="圆角图片生成器">
+<meta property="og:description" content="圆角图片生成器，上传图片设置圆角参数实时预览并导出 PNG，纯前端处理、数据不上传，适合头像与卡片图。">
+<meta property="og:url" content="https://chenguangwu.github.io/zh-hk/tools/design/image-rounded-corners.html">
+<meta name="twitter:card" content="summary">
+<meta name="description" content="圆角图片生成器，上传图片设置圆角参数实时预览并导出 PNG，纯前端处理、数据不上传，适合头像与卡片图。">
+<link rel="preload" as="style" href="/css/common.css" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="/css/common.css"></noscript>
+<script>window.__tbq=window.__tbq||[];window.ToolBox=window.ToolBox||{};['initToolTheme','addToolStyles','showToast','toast','copyText','copyToClipboard','copyFromElement','downloadText','injectPrivacyBadge','toggleFavTool','addToRecentTool','toggleToolTheme','applyTheme'].forEach(function(k){if(typeof window.ToolBox[k]!=='function')window.ToolBox[k]=function(){window.__tbq.push([k,[].slice.call(arguments)]);};});</script><!-- TOOLBOX-API-STUB -->
+<script src="/js/common.js" defer></script>
+<style>
+  .upload-zone {
+    border: 2px dashed var(--border);
+    border-radius: 16px;
+    padding: 40px 20px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.25s ease;
+    background: var(--result-bg);
+    position: relative;
+    overflow: hidden;
+  }
+  .upload-zone:hover, .upload-zone.dragover {
+    border-color: var(--primary);
+    background: rgba(255, 107, 53, 0.05);
+  }
+  .upload-zone.dragover {
+    transform: scale(1.01);
+  }
+  .upload-zone .upload-icon {
+    font-size: 36px;
+    margin-bottom: 10px;
+    display: block;
+  }
+  .upload-zone .upload-text {
+    font-size: 14px;
+    color: var(--text-secondary);
+    line-height: 1.6;
+  }
+  .upload-zone .upload-text strong {
+    color: var(--primary);
+  }
+  .upload-zone input[type="file"] {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    cursor: pointer;
+  }
+  .upload-zone.has-image {
+    padding: 16px;
+    border-style: solid;
+    border-color: var(--accent);
+  }
+  .upload-zone.has-image .upload-placeholder { display: none; }
+  .upload-info {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 13px;
+    color: var(--text-secondary);
+  }
+  .upload-info .img-thumb {
+    width: 48px;
+    height: 48px;
+    border-radius: 10px;
+    object-fit: cover;
+    border: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+  .upload-info .img-name {
+    font-weight: 600;
+    color: var(--text);
+    word-break: break-all;
+  }
+  .upload-info .img-size {
+    color: var(--text-muted);
+    font-size: 12px;
+  }
+  .upload-info .change-btn {
+    margin-left: auto;
+    padding: 6px 14px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: var(--card-bg);
+    color: var(--text);
+    font-size: 12px;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.2s;
+    flex-shrink: 0;
+  }
+  .upload-info .change-btn:hover {
+    border-color: var(--primary);
+    color: var(--primary);
+  }
+
+  /* 参数区域 */
+  .param-section {
+    margin-top: 16px;
+  }
+  .param-section h3 {
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 10px;
+    color: var(--heading);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .param-group {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .param-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .param-row label {
+    min-width: 80px;
+    margin: 0;
+    font-size: 13px;
+    color: var(--text-secondary);
+    flex-shrink: 0;
+  }
+  .param-row .slider-wrap {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .param-row input[type="range"] {
+    flex: 1;
+    -webkit-appearance: none;
+    appearance: none;
+    height: 6px;
+    border-radius: 3px;
+    background: var(--border);
+    outline: none;
+    border: none;
+    padding: 0;
+    box-shadow: none;
+  }
+  .param-row input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: var(--primary);
+    cursor: pointer;
+    border: 3px solid var(--card-bg);
+    box-shadow: 0 2px 6px rgba(255, 107, 53, 0.3);
+    transition: transform 0.15s;
+  }
+  .param-row input[type="range"]::-webkit-slider-thumb:hover {
+    transform: scale(1.15);
+  }
+  .param-row input[type="range"]::-moz-range-thumb {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: var(--primary);
+    cursor: pointer;
+    border: 3px solid var(--card-bg);
+    box-shadow: 0 2px 6px rgba(255, 107, 53, 0.3);
+  }
+  .param-row .val-display {
+    min-width: 48px;
+    text-align: center;
+    padding: 6px 10px;
+    border-radius: 10px;
+    background: var(--result-bg);
+    border: 1px solid var(--border);
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--primary);
+    flex-shrink: 0;
+  }
+
+  /* 圆角类型选择 */
+  .type-selector {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin-bottom: 8px;
+  }
+  .type-btn {
+    padding: 8px 16px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: var(--card-bg);
+    color: var(--text-secondary);
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .type-btn:hover {
+    border-color: var(--primary);
+    color: var(--primary);
+  }
+  .type-btn.active {
+    background: var(--gradient-primary);
+    color: #fff;
+    border-color: transparent;
+    box-shadow: 0 2px 8px rgba(255, 107, 53, 0.25);
+  }
+
+  /* 四角独立设置 */
+  .corner-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-top: 8px;
+    padding: 14px;
+    background: var(--result-bg);
+    border-radius: 12px;
+    border: 1px solid var(--border);
+  }
+  .corner-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    color: var(--text-secondary);
+  }
+  .corner-item span {
+    min-width: 40px;
+    font-weight: 500;
+  }
+  .corner-item input[type="range"] {
+    flex: 1;
+    -webkit-appearance: none;
+    appearance: none;
+    height: 5px;
+    border-radius: 3px;
+    background: var(--border);
+    outline: none;
+    border: none;
+    padding: 0;
+    box-shadow: none;
+  }
+  .corner-item input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: var(--primary);
+    cursor: pointer;
+    border: 2px solid var(--card-bg);
+    box-shadow: 0 1px 4px rgba(255, 107, 53, 0.3);
+  }
+  .corner-item input[type="range"]::-moz-range-thumb {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: var(--primary);
+    cursor: pointer;
+    border: 2px solid var(--card-bg);
+  }
+  .corner-item .corner-val {
+    min-width: 36px;
+    text-align: center;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--primary);
+  }
+
+  /* 背景设置 */
+  .bg-options {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin-bottom: 10px;
+  }
+  .bg-option-btn {
+    padding: 8px 16px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: var(--card-bg);
+    color: var(--text-secondary);
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-weight: 500;
+  }
+  .bg-option-btn:hover {
+    border-color: var(--primary);
+    color: var(--primary);
+  }
+  .bg-option-btn.active {
+    background: var(--gradient-primary);
+    color: #fff;
+    border-color: transparent;
+    box-shadow: 0 2px 8px rgba(255, 107, 53, 0.25);
+  }
+  .bg-settings {
+    padding: 14px;
+    background: var(--result-bg);
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    margin-top: 8px;
+  }
+  .bg-settings-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 8px;
+  }
+  .bg-settings-row:last-child { margin-bottom: 0; }
+  .bg-settings-row label {
+    min-width: 60px;
+    margin: 0;
+    font-size: 13px;
+    color: var(--text-secondary);
+    flex-shrink: 0;
+  }
+  .bg-settings-row input[type="color"] {
+    width: 40px;
+    height: 32px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    cursor: pointer;
+    padding: 2px;
+    background: var(--card-bg);
+    flex-shrink: 0;
+  }
+  .bg-settings-row input[type="text"] {
+    width: 120px;
+    flex-shrink: 0;
+    padding: 8px 10px;
+    font-size: 12px;
+  }
+  .bg-color-preview {
+    width: 40px;
+    height: 32px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+  .bg-gradient-preview {
+    width: 80px;
+    height: 32px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+
+  /* 预览区域 */
+  .preview-section {
+    margin-top: 16px;
+  }
+  .preview-section h3 {
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 10px;
+    color: var(--heading);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .preview-wrap {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 200px;
+    padding: 20px;
+    background: repeating-conic-gradient(var(--border) 0% 25%, transparent 0% 50%) 50% / 20px 20px;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    overflow: hidden;
+    position: relative;
+  }
+  .preview-wrap canvas {
+    max-width: 100%;
+    max-height: 400px;
+    display: block;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  }
+  .preview-empty {
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 14px;
+    padding: 40px 20px;
+  }
+  .preview-empty .empty-icon {
+    font-size: 40px;
+    margin-bottom: 8px;
+    display: block;
+  }
+  .preview-meta {
+    margin-top: 8px;
+    font-size: 12px;
+    color: var(--text-muted);
+    text-align: center;
+  }
+
+  /* 分隔线 */
+  .divider {
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 16px 0;
+  }
+
+  /* 移动端适配 */
+  @media (max-width: 768px) {
+    .param-row {
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .param-row label {
+      min-width: auto;
+    }
+    .corner-grid {
+      grid-template-columns: 1fr;
+      gap: 8px;
+    }
+    .bg-settings-row {
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+    .bg-settings-row label {
+      min-width: auto;
+    }
+    .preview-wrap {
+      min-height: 150px;
+      padding: 14px;
+    }
+    .upload-zone {
+      padding: 30px 16px;
+    }
+  }
+</style>
+
+
+
+<meta property="og:image" content="https://chenguangwu.github.io/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="ToolBox - 5000+免费在线工具">
+<meta name="twitter:image" content="https://chenguangwu.github.io/og-image.png">
+<meta name="twitter:image:alt" content="ToolBox - 5000+免费在线工具">
+    <meta property="og:type" content="website">
+    <meta name="twitter:title" content="圆角图片生成器">
+    <meta name="twitter:description" content="圆角图片生成器，上传图片设置圆角参数实时预览并导出 PNG，纯前端处理、数据不上传，适合头像与卡片图。">
+<!-- TOOLBOX-WEBAPP-LD -->
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"圓角圖片生成器","url":"https://chenguangwu.github.io/zh-hk/tools/design/image-rounded-corners.html","applicationCategory":"MultimediaApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":"zh-HK","description":"圓角圖片生成器，上傳圖片設置圓角參數實時預覽並導出 PNG，純前端處理、數據不上傳，適合頭像與卡片圖。","image":"https://chenguangwu.github.io/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}</script>
+<meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
+<meta http-equiv="X-Content-Type-Options" content="nosniff">
+<meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
+<!-- TOOLBOX-SECURITY -->
+
+<script src="/js/privacy.js" defer></script>
+<!-- TOOLBOX-PRIVACY-SCRIPT -->
+
+<script src="/js/metrics.js" defer></script>
+<!-- TOOLBOX-METRICS-SCRIPT -->
+
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"首頁","item":"https://chenguangwu.github.io/zh-hk/"},{"@type":"ListItem","position":2,"name":"設計創意","item":"https://chenguangwu.github.io/zh-hk/tools/design/index.html"},{"@type":"ListItem","position":3,"name":"圓角圖片生成器","item":"https://chenguangwu.github.io/zh-hk/tools/design/image-rounded-corners.html"}]}</script>
+
+<script src="/js/i18n.js" defer></script>
+<script src="/js/tool-i18n.js" defer></script>
+<!-- TOOLBOX-I18N-SCRIPT -->
+
+
+<meta name="title-en" content="Rounded Corner Image Generator - &amp;# 11099 ; Rounded Corner Image Generator - ToolBox">
+<meta name="desc-en" content="Rounded Corner Image Generator - &amp;# 11099 ; Rounded Corner Image Generator - free online tool. Free online tool on ToolBox — 100% client-side, no data up...">
+<!-- TOOLBOX-HREFLANG -->
+<link rel="alternate" hreflang="zh-CN" href="https://chenguangwu.github.io/tools/design/image-rounded-corners.html">
+<link rel="alternate" hreflang="zh-TW" href="https://chenguangwu.github.io/zh-tw/tools/design/image-rounded-corners.html">
+<link rel="alternate" hreflang="zh-HK" href="https://chenguangwu.github.io/zh-hk/tools/design/image-rounded-corners.html">
+<link rel="alternate" hreflang="en-US" href="https://chenguangwu.github.io/tools/design/image-rounded-corners.html?lang=en-US">
+<link rel="alternate" hreflang="x-default" href="https://chenguangwu.github.io/tools/design/image-rounded-corners.html">
+<meta property="og:locale" content="zh_HK">
+<meta property="og:locale:alternate" content="zh_CN">
+<meta property="og:locale:alternate" content="zh_TW">
+<meta property="og:locale:alternate" content="en_US">
+</head>
+<body>
+<h1 class="sr-only">圓角圖片生成器</h1>
+
+
+<!-- 導航欄 -->
+<div class="nav">
+  <a href="/zh-hk/index.html">&larr; ToolBox</a>
+  <span>/ 圓角圖片生成器</span>
+  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()">&#127769;</button>
+</div>
+
+
+
+
+
+<nav class="breadcrumb" aria-label="麪包屑導航" data-breadcrumb="1">
+  <a href="/zh-hk/index.html">首頁</a>
+  <span class="bc-sep">‹</span>
+  <a href="/zh-hk/tools/design/index.html">🎨 設計創意</a>
+  <span class="bc-sep">‹</span>
+  <span class="bc-current">圓角圖片生成器</span>
+</nav>
+<div class="container">
+  <div class="card tool-card-accent" style="--tool-accent:#7C3AED;">
+    <h2 data-zh="&amp;#11099; 圓角圖片生成器">&amp;#Rounded Corner Image Generator - &amp;# 11099 ; Rounded Corner Image Generator</h2>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="上傳圖片，設置圓角參數，實時預覽並導出為 PNG">Rounded Corner Image Generator - &amp;# 11099 ; Rounded Corner Image Generator is available directly in your browser, with no data uploaded.</p>
+
+    <!-- 圖片上傳 -->
+    <div class="upload-zone" id="uploadZone">
+      <div class="upload-placeholder">
+        <span class="upload-icon">&#128247;</span>
+        <div class="upload-text">
+          拖拽圖片到此處，或 <strong>點擊選擇文件</strong><br>
+          <span style="font-size:12px;color:var(--text-muted)">支持 JPG / PNG / WebP / GIF，圖片僅在本地處理</span>
+        </div>
+      </div>
+      <input type="file" id="fileInput" accept="image/*">
+    </div>
+
+    <!-- 已上傳信息（初始隱藏） -->
+    <div id="uploadInfo" style="display:none;margin-top:10px;">
+      <div class="upload-info">
+        <img class="img-thumb" id="imgThumb" src="" alt="縮略圖">
+        <div>
+          <div class="img-name" id="imgName"></div>
+          <div class="img-size" id="imgSize"></div>
+        </div>
+        <button type="button" class="change-btn" onclick="triggerUpload()">更換圖片</button>
+      </div>
+    </div>
+
+    <hr class="divider">
+
+    <!-- 圓角類型 -->
+    <div class="param-section" id="paramsSection" style="opacity:0.4;pointer-events:none;">
+      <h3>&#9881; 圓角類型</h3>
+      <div class="type-selector">
+        <button class="type-btn active" data-type="radius" onclick="setType('radius')">&#9633; 統一圓角</button>
+        <button class="type-btn" data-type="circle" onclick="setType('circle')">&#9679; 圓形</button>
+        <button class="type-btn" data-type="ellipse" onclick="setType('ellipse')">&#9675; 橢圓</button>
+        <button class="type-btn" data-type="custom" onclick="setType('custom')">&#9998; 四角獨立</button>
+      </div>
+
+      <!-- 統一圓角 -->
+      <div id="radiusControl" style="margin-top:12px;">
+        <div class="param-row">
+          <label>圓角半徑</label>
+          <div class="slider-wrap">
+            <input type="range" id="radiusSlider" min="0" max="200" value="20" oninput="onRadiusChange(this.value)">
+            <div class="val-display" id="radiusVal">20px</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 四角獨立設置 -->
+      <div id="customControl" style="display:none;">
+        <div class="corner-grid">
+          <div class="corner-item">
+            <span>左上</span>
+            <input type="range" id="tlSlider" min="0" max="200" value="20" oninput="onCornerChange()">
+            <span class="corner-val" id="tlVal">20</span>
+          </div>
+          <div class="corner-item">
+            <span>右上</span>
+            <input type="range" id="trSlider" min="0" max="200" value="20" oninput="onCornerChange()">
+            <span class="corner-val" id="trVal">20</span>
+          </div>
+          <div class="corner-item">
+            <span>左下</span>
+            <input type="range" id="blSlider" min="0" max="200" value="20" oninput="onCornerChange()">
+            <span class="corner-val" id="blVal">20</span>
+          </div>
+          <div class="corner-item">
+            <span>右下</span>
+            <input type="range" id="brSlider" min="0" max="200" value="20" oninput="onCornerChange()">
+            <span class="corner-val" id="brVal">20</span>
+          </div>
+        </div>
+      </div>
+
+      <hr class="divider">
+
+      <!-- 背景設置 -->
+      <h3>&#127912; 背景設置</h3>
+      <div class="bg-options">
+        <button type="button" class="bg-option-btn active" data-bg="transparent" onclick="setBg('transparent')">透明</button>
+        <button type="button" class="bg-option-btn" data-bg="solid" onclick="setBg('solid')">純色</button>
+        <button type="button" class="bg-option-btn" data-bg="gradient" onclick="setBg('gradient')">漸變</button>
+      </div>
+
+      <!-- 純色設置 -->
+      <div id="solidSettings" style="display:none;">
+        <div class="bg-settings">
+          <div class="bg-settings-row">
+            <label>背景色</label>
+            <input type="color" id="bgColor" value="#ffffff" oninput="onBgChange()">
+            <input type="text" id="bgColorText" value="#ffffff" oninput="syncColorText()" style="flex:1;">
+            <div class="bg-color-preview" id="bgColorPreview" style="background:#ffffff;"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 漸變設置 -->
+      <div id="gradientSettings" style="display:none;">
+        <div class="bg-settings">
+          <div class="bg-settings-row">
+            <label>起始色</label>
+            <input type="color" id="gradColor1" value="#FF6B35" oninput="onBgChange()">
+            <input type="text" id="gradColor1Text" value="#FF6B35" oninput="syncGradText1()" style="flex:1;">
+          </div>
+          <div class="bg-settings-row">
+            <label>結束色</label>
+            <input type="color" id="gradColor2" value="#7C3AED" oninput="onBgChange()">
+            <input type="text" id="gradColor2Text" value="#7C3AED" oninput="syncGradText2()" style="flex:1;">
+          </div>
+          <div class="bg-settings-row">
+            <label>方向</label>
+            <select id="gradDirection" onchange="onBgChange()" style="flex:1;">
+              <option value="to right">從左到右</option>
+              <option value="to bottom">從上到下</option>
+              <option value="to bottom right" selected>左上到右下</option>
+              <option value="to bottom left">右上到左下</option>
+              <option value="135deg">對角線 135&deg;</option>
+              <option value="radial">徑向漸變</option>
+            </select>
+          </div>
+          <div class="bg-settings-row">
+            <label>預覽</label>
+            <div class="bg-gradient-preview" id="gradPreview" style="background:linear-gradient(to bottom right,#FF6B35,#7C3AED);"></div>
+          </div>
+        </div>
+      </div>
+
+      <hr class="divider">
+
+      <!-- 預覽區域 -->
+      <div class="preview-section">
+        <h3>&#128065; 實時預覽</h3>
+        <div class="preview-wrap" id="previewWrap">
+          <div class="preview-empty" id="previewEmpty">
+            <span class="empty-icon">&#128444;</span>
+            請先上傳圖片
+          </div>
+          <canvas id="previewCanvas" style="display:none;"></canvas>
+        </div>
+        <div class="preview-meta" id="previewMeta"></div>
+      </div>
+
+      <!-- 操作按鈕 -->
+      <div class="toolbar" style="margin-top:16px;">
+        <button type="button" class="btn primary" id="downloadBtn" onclick="downloadResult()" disabled>&#11015; 下載 PNG</button>
+        <button type="button" class="btn" onclick="resetAll()">&#128260; 重置</button>
+      </div>
+    </div>
+  </div>
+
+<!-- TOOLBOX-DEEP-DIVE -->
+<style>
+.deep-dive{max-width:960px;margin:16px auto;padding:0 16px;}
+.deep-dive > .card{margin-bottom:0;}
+@media(max-width:600px){.deep-dive{margin:14px auto;padding:0 12px;}}
+.deep-dive .dd-list{margin:8px 0 16px;padding-left:20px;}
+.deep-dive .dd-list li{margin:6px 0;line-height:1.75;}
+.deep-dive .dd-example{background:var(--card-bg,#fff);border:1px solid var(--border,#eee);border-radius:10px;padding:12px 14px;margin:8px 0 16px;}
+.deep-dive .dd-ex-title{font-weight:600;color:var(--tool-accent,#FF6B35);margin-bottom:6px;}
+.deep-dive .dd-ex-body{font-size:13px;line-height:1.85;color:var(--text,#333);word-break:break-word;}
+.deep-dive .dd-faq{margin:8px 0 4px;}
+.deep-dive .dd-faq dt{font-weight:600;margin-top:10px;color:var(--text,#333);}
+.deep-dive .dd-faq dd{margin:4px 0 0;font-size:13px;line-height:1.85;color:var(--text-muted,#666);}
+
+</style>
+<section class="deep-dive" data-deep-dive="1">
+<div class="card">
+<h2>📚 深度解析：圓角圖片生成器</h2>
+<h3>💡 常見使用場景</h3>
+<ul class="dd-list">
+<li>快速核對圓角圖片生成器：優先統一輸入單位、口徑和參數範圍，再對典型樣例做一遍手工驗算。</li>
+<li>教學與複核：建議固定其餘參數，只變動一個輸入變量，確認輸出變化趨勢，避免“算式正確但口徑錯位”。</li>
+<li>常見場景：&amp;amp;#Rounded Corner Image Generator - &amp;amp;# 11099 ; Rounde...</li>
+</ul>
+<div class="dd-example"><div class="dd-ex-title">快速複核「圓角圖片生成器」</div><div class="dd-ex-body">先輸入一組典型參數跑基準值，再做 ±10%、±20% 調參演算，檢查輸出是否沿業務常識方向變化。</div></div>
+<h3>❓ 常見問題（FAQ）</h3>
+<dl class="dd-faq">
+<dt>圓角圖片生成器 結果可直接用於決策嗎？</dt><dd>圓角圖片生成器 適合用於預估與複核，正式決策請結合完整數據口徑説明（口徑定義、時間區間、邊界條件）。</dd>
+<dt>結果偏離預期很大怎麼辦？</dt><dd>先核對輸入單位與是否存在“% 與小數”混用，再確認分母與分子定義是否同口徑，最後替換一組可復現實例複測。</dd>
+</dl>
+</div>
+</section>
+<!-- 注意事項區塊 -->
+<div class="tool-notes" style="--tool-accent:#7C3AED;">
+  <div class="tool-notes-title">⚠️ 使用説明與注意事項</div>
+  <ul>
+      <li>本工具純前端運行，數據不會上傳到伺服器</li>
+      <li>建議在主流瀏覽器（Chrome/Safari/Firefox/Edge）中使用</li>
+      <li>計算結果僅供參考，請以實際應用場景為準</li>
+  </ul>
+</div>
+<!-- /注意事項區塊 -->
+</div>
+
+<script>
+(function() {
+  'use strict';
+
+  // 状态变量
+  var uploadedImage = null;
+  var cornerType = 'radius';   // radius | circle | ellipse | custom
+  var bgType = 'transparent';   // transparent | solid | gradient
+  var imgFileName = '';
+
+  // DOM 引用
+  var uploadZone = document.getElementById('uploadZone');
+  var fileInput = document.getElementById('fileInput');
+  var uploadInfo = document.getElementById('uploadInfo');
+  var imgThumb = document.getElementById('imgThumb');
+  var imgName = document.getElementById('imgName');
+  var imgSize = document.getElementById('imgSize');
+  var paramsSection = document.getElementById('paramsSection');
+  var previewCanvas = document.getElementById('previewCanvas');
+  var previewEmpty = document.getElementById('previewEmpty');
+  var previewMeta = document.getElementById('previewMeta');
+  var downloadBtn = document.getElementById('downloadBtn');
+
+  // 拖拽上传
+  uploadZone.addEventListener('dragover', function(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    uploadZone.classList.add('dragover');
+  });
+  uploadZone.addEventListener('dragleave', function(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    uploadZone.classList.remove('dragover');
+  });
+  uploadZone.addEventListener('drop', function(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    uploadZone.classList.remove('dragover');
+    var files = e.dataTransfer.files;
+    if (files.length > 0 && files[0].type.startsWith('image/')) {
+      loadImage(files[0]);
+    } else {
+      ToolBox.showToast(i18nText('tool.file_upload_hint'), 'error');
+    }
+  });
+
+  // 点击上传
+  fileInput.addEventListener('change', function(e) {
+    if (e.target.files.length > 0) {
+      loadImage(e.target.files[0]);
+    }
+  });
+
+  // 触发上传（更换图片按钮）
+  window.triggerUpload = function() {
+    fileInput.click();
+  };
+
+  // 加载图片
+  function loadImage(file) {
+    imgFileName = file.name.replace(/\.[^.]+$/, '') || 'image';
+    var sizeMB = (file.size / 1024 / 1024).toFixed(2);
+    imgName.textContent = file.name;
+    imgSize.textContent = formatSize(file.size) + ' (' + file.naturalWidth + ' x ' + file.naturalHeight + ')';
+
+    var reader = new FileReader();
+    reader.onload = function(e) {
+      var img = new Image();
+      img.onload = function() {
+        uploadedImage = img;
+        imgSize.textContent = img.naturalWidth + ' x ' + img.naturalHeight + ' \u00b7 ' + formatSize(file.size);
+        imgThumb.src = e.target.result;
+        uploadInfo.style.display = 'block';
+        uploadZone.classList.add('has-image');
+        paramsSection.style.opacity = '1';
+        paramsSection.style.pointerEvents = 'auto';
+        downloadBtn.disabled = false;
+        updateMaxRadius();
+        render();
+        ToolBox.showToast(i18nText('tool.image_load_ok'));
+      };
+      img.onerror = function() {
+        ToolBox.showToast(i18nText('tool.image_load_error'), 'error');
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  }
+
+  function formatSize(bytes) {
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
+    return (bytes / 1048576).toFixed(2) + ' MB';
+  }
+
+  // 根据图片尺寸动态调整滑块最大值
+  function updateMaxRadius() {
+    if (!uploadedImage) return;
+    var halfMin = Math.floor(Math.min(uploadedImage.naturalWidth, uploadedImage.naturalHeight) / 2);
+    var maxR = Math.min(200, Math.max(halfMin, 20));
+    var sliders = ['radiusSlider', 'tlSlider', 'trSlider', 'blSlider', 'brSlider'];
+    sliders.forEach(function(id) {
+      var el = document.getElementById(id);
+      if (el) {
+        el.max = maxR;
+        if (parseInt(el.value) > maxR) el.value = maxR;
+      }
+    });
+  }
+
+  // 圆角类型切换
+  window.setType = function(type) {
+    cornerType = type;
+    var btns = document.querySelectorAll('.type-btn');
+    btns.forEach(function(b) {
+      b.classList.toggle('active', b.dataset.type === type);
+    });
+    document.getElementById('radiusControl').style.display = (type === 'radius') ? '' : 'none';
+    document.getElementById('customControl').style.display = (type === 'custom') ? '' : 'none';
+    render();
+  };
+
+  // 统一圆角变化
+  window.onRadiusChange = function(val) {
+    document.getElementById('radiusVal').textContent = val + 'px';
+    render();
+  };
+
+  // 四角独立变化
+  window.onCornerChange = function() {
+    var ids = ['tl', 'tr', 'bl', 'br'];
+    ids.forEach(function(id) {
+      var v = document.getElementById(id + 'Slider').value;
+      document.getElementById(id + 'Val').textContent = v;
+    });
+    render();
+  };
+
+  // 背景类型切换
+  window.setBg = function(type) {
+    bgType = type;
+    var btns = document.querySelectorAll('.bg-option-btn');
+    btns.forEach(function(b) {
+      b.classList.toggle('active', b.dataset.bg === type);
+    });
+    document.getElementById('solidSettings').style.display = (type === 'solid') ? '' : 'none';
+    document.getElementById('gradientSettings').style.display = (type === 'gradient') ? '' : 'none';
+    render();
+  };
+
+  // 同步纯色文本输入
+  window.syncColorText = function() {
+    var text = document.getElementById('bgColorText').value.trim();
+    if (/^#[0-9a-fA-F]{6}$/.test(text)) {
+      document.getElementById('bgColor').value = text;
+      document.getElementById('bgColorPreview').style.background = text;
+      onBgChange();
+    }
+  };
+
+  // 同步渐变色文本输入
+  window.syncGradText1 = function() {
+    var text = document.getElementById('gradColor1Text').value.trim();
+    if (/^#[0-9a-fA-F]{6}$/.test(text)) {
+      document.getElementById('gradColor1').value = text;
+      onBgChange();
+    }
+  };
+  window.syncGradText2 = function() {
+    var text = document.getElementById('gradColor2Text').value.trim();
+    if (/^#[0-9a-fA-F]{6}$/.test(text)) {
+      document.getElementById('gradColor2').value = text;
+      onBgChange();
+    }
+  };
+
+  // 背景参数变化
+  window.onBgChange = function() {
+    // 同步 color picker -> text
+    document.getElementById('bgColorText').value = document.getElementById('bgColor').value;
+    document.getElementById('bgColorPreview').style.background = document.getElementById('bgColor').value;
+    document.getElementById('gradColor1Text').value = document.getElementById('gradColor1').value;
+    document.getElementById('gradColor2Text').value = document.getElementById('gradColor2').value;
+
+    // 更新渐变预览
+    var c1 = document.getElementById('gradColor1').value;
+    var c2 = document.getElementById('gradColor2').value;
+    var dir = document.getElementById('gradDirection').value;
+    if (dir === 'radial') {
+      document.getElementById('gradPreview').style.background = 'radial-gradient(circle,' + c1 + ',' + c2 + ')';
+    } else {
+      document.getElementById('gradPreview').style.background = 'linear-gradient(' + dir + ',' + c1 + ',' + c2 + ')';
+    }
+    render();
+  };
+
+  // 获取当前圆角半径配置
+  function getRadius() {
+    if (cornerType === 'circle') {
+      // 取短边的一半
+      return 'circle';
+    }
+    if (cornerType === 'ellipse') {
+      return 'ellipse';
+    }
+    if (cornerType === 'custom') {
+      return {
+        tl: parseInt(document.getElementById('tlSlider').value) || 0,
+        tr: parseInt(document.getElementById('trSlider').value) || 0,
+        bl: parseInt(document.getElementById('blSlider').value) || 0,
+        br: parseInt(document.getElementById('brSlider').value) || 0
+      };
+    }
+    // radius: 统一
+    return parseInt(document.getElementById('radiusSlider').value) || 0;
+  }
+
+  // 获取背景绘制函数
+  function getBackgroundFill(ctx, w, h) {
+    if (bgType === 'transparent') return null;
+    if (bgType === 'solid') {
+      return document.getElementById('bgColor').value;
+    }
+    if (bgType === 'gradient') {
+      var c1 = document.getElementById('gradColor1').value;
+      var c2 = document.getElementById('gradColor2').value;
+      var dir = document.getElementById('gradDirection').value;
+      var grad;
+      if (dir === 'radial') {
+        grad = ctx.createRadialGradient(w / 2, h / 2, 0, w / 2, h / 2, Math.max(w, h) / 2);
+      } else {
+        var angle = parseAngle(dir, w, h);
+        grad = ctx.createLinearGradient(angle.x0, angle.y0, angle.x1, angle.y1);
+      }
+      grad.addColorStop(0, c1);
+      grad.addColorStop(1, c2);
+      return grad;
+    }
+    return null;
+  }
+
+  function parseAngle(dir, w, h) {
+    switch (dir) {
+      case 'to right':       return { x0: 0, y0: 0, x1: w, y1: 0 };
+      case 'to bottom':       return { x0: 0, y0: 0, x1: 0, y1: h };
+      case 'to bottom right': return { x0: 0, y0: 0, x1: w, y1: h };
+      case 'to bottom left':  return { x0: w, y0: 0, x1: 0, y1: h };
+      case '135deg':          return { x0: 0, y0: 0, x1: w, y1: h };
+      default:               return { x0: 0, y0: 0, x1: w, y1: h };
+    }
+  }
+
+  // 绘制圆角矩形路径（支持四角独立）
+  function roundRectPath(ctx, x, y, w, h, r) {
+    ctx.beginPath();
+    if (typeof r === 'number') {
+      r = { tl: r, tr: r, br: r, bl: r };
+    }
+    // 限制最大半径
+    var maxR = Math.min(w / 2, h / 2);
+    var tl = Math.min(r.tl, maxR);
+    var tr = Math.min(r.tr, maxR);
+    var bl = Math.min(r.bl, maxR);
+    var br = Math.min(r.br, maxR);
+
+    ctx.moveTo(x + tl, y);
+    ctx.lineTo(x + w - tr, y);
+    ctx.quadraticCurveTo(x + w, y, x + w, y + tr);
+    ctx.lineTo(x + w, y + h - br);
+    ctx.quadraticCurveTo(x + w, y + h, x + w - br, y + h);
+    ctx.lineTo(x + bl, y + h);
+    ctx.quadraticCurveTo(x, y + h, x, y + h - bl);
+    ctx.lineTo(x, y + tl);
+    ctx.quadraticCurveTo(x, y, x + tl, y);
+    ctx.closePath();
+  }
+
+  // 绘制圆形路径
+  function circlePath(ctx, x, y, w, h) {
+    var cx = x + w / 2;
+    var cy = y + h / 2;
+    var r = Math.min(w, h) / 2;
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, 0, Math.PI * 2);
+    ctx.closePath();
+  }
+
+  // 绘制椭圆路径
+  function ellipsePath(ctx, x, y, w, h) {
+    var cx = x + w / 2;
+    var cy = y + h / 2;
+    var rx = w / 2;
+    var ry = h / 2;
+    ctx.beginPath();
+    ctx.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2);
+    ctx.closePath();
+  }
+
+  // 主渲染函数
+  function render() {
+    if (!uploadedImage) return;
+    var w = uploadedImage.naturalWidth;
+    var h = uploadedImage.naturalHeight;
+    previewCanvas.width = w;
+    previewCanvas.height = h;
+    var ctx = previewCanvas.getContext('2d');
+    ctx.clearRect(0, 0, w, h);
+
+    // 绘制背景
+    var bgFill = getBackgroundFill(ctx, w, h);
+    if (bgFill) {
+      ctx.fillStyle = bgFill;
+      ctx.fillRect(0, 0, w, h);
+    }
+
+    // 裁剪路径
+    var radius = getRadius();
+    ctx.save();
+    if (radius === 'circle') {
+      circlePath(ctx, 0, 0, w, h);
+    } else if (radius === 'ellipse') {
+      ellipsePath(ctx, 0, 0, w, h);
+    } else {
+      roundRectPath(ctx, 0, 0, w, h, radius);
+    }
+    ctx.clip();
+
+    // 绘制图片
+    ctx.drawImage(uploadedImage, 0, 0, w, h);
+    ctx.restore();
+
+    // 显示预览
+    previewEmpty.style.display = 'none';
+    previewCanvas.style.display = 'block';
+
+    // 元信息
+    var typeLabel = { radius: '统一圆角', circle: '圆形', ellipse: '椭圆', custom: '四角独立' };
+    var radiusDesc = '';
+    if (radius === 'circle') {
+      radiusDesc = '圆形裁剪';
+    } else if (radius === 'ellipse') {
+      radiusDesc = '椭圆裁剪';
+    } else if (typeof radius === 'object') {
+      radiusDesc = '左上:' + radius.tl + ' 右上:' + radius.tr + ' 左下:' + radius.bl + ' 右下:' + radius.br;
+    } else {
+      radiusDesc = radius + 'px';
+    }
+    var bgLabel = { transparent: '透明', solid: '纯色', gradient: '渐变' };
+    previewMeta.textContent = w + ' x ' + h + ' | ' + typeLabel[cornerType] + ' ' + radiusDesc + ' | 背景:' + bgLabel[bgType];
+  }
+
+  // 下载结果
+  window.downloadResult = function() {
+    if (!uploadedImage) {
+      ToolBox.showToast(i18nText('tool.file_upload_hint'), 'warning');
+      return;
+    }
+    try {
+      var link = document.createElement('a');
+      link.download = imgFileName + '-rounded.png';
+      link.href = previewCanvas.toDataURL('image/png');
+      document.body.appendChild(link);
+      link.click();
+      setTimeout(function() { link.remove(); }, 0);
+      ToolBox.showToast(i18nText('toast.msg120'));
+    } catch (e) {
+      ToolBox.showToast('下载失败: ' + e.message, 'error');
+    }
+  };
+
+  // 重置
+  window.resetAll = function() {
+    uploadedImage = null;
+    imgFileName = '';
+    cornerType = 'radius';
+    bgType = 'transparent';
+
+    // 重置UI
+    uploadZone.classList.remove('has-image');
+    uploadInfo.style.display = 'none';
+    fileInput.value = '';
+    paramsSection.style.opacity = '0.4';
+    paramsSection.style.pointerEvents = 'none';
+    previewEmpty.style.display = '';
+    previewCanvas.style.display = 'none';
+    previewMeta.textContent = '';
+    downloadBtn.disabled = true;
+
+    // 重置滑块
+    document.getElementById('radiusSlider').value = 20;
+    document.getElementById('radiusVal').textContent = '20px';
+    document.getElementById('tlSlider').value = 20;
+    document.getElementById('trSlider').value = 20;
+    document.getElementById('blSlider').value = 20;
+    document.getElementById('brSlider').value = 20;
+    document.getElementById('tlVal').textContent = '20';
+    document.getElementById('trVal').textContent = '20';
+    document.getElementById('blVal').textContent = '20';
+    document.getElementById('brVal').textContent = '20';
+
+    // 重置类型按钮
+    document.querySelectorAll('.type-btn').forEach(function(b) {
+      b.classList.toggle('active', b.dataset.type === 'radius');
+    });
+    document.getElementById('radiusControl').style.display = '';
+    document.getElementById('customControl').style.display = 'none';
+
+    // 重置背景
+    document.querySelectorAll('.bg-option-btn').forEach(function(b) {
+      b.classList.toggle('active', b.dataset.bg === 'transparent');
+    });
+    document.getElementById('solidSettings').style.display = 'none';
+    document.getElementById('gradientSettings').style.display = 'none';
+    document.getElementById('bgColor').value = '#ffffff';
+    document.getElementById('bgColorText').value = '#ffffff';
+    document.getElementById('bgColorPreview').style.background = '#ffffff';
+
+    // 清空 canvas
+    var ctx = previewCanvas.getContext('2d');
+    ctx.clearRect(0, 0, previewCanvas.width, previewCanvas.height);
+
+    ToolBox.showToast(i18nText());
+  };
+
+  // 初始化主题
+  ToolBox.initToolTheme();
+})();
+</script>
+
+<!-- SEO 介紹區塊 -->
+
+</div>
+
+</div>
+
+<!-- 相關工具 -->
+<div class="related-tools" data-related-tools="1">
+  <h3 class="related-tools-title">🔗 相關工具</h3>
+  <div class="related-tools-grid">
+    <a href="/zh-hk/tools/design/generator-10.html" class="related-tool-card">
+      <span class="rt-icon">🎨</span>
+      <span class="rt-info"><span class="rt-name">CSS動畫生成器（關鍵幀可視化） - 免費在線工具，純前端處理 | ToolBox免費在線工具箱</span><span class="rt-desc">CSS動畫生成器（關鍵幀可視化）</span></span>
+    </a>
+
+    <a href="/zh-hk/tools/design/web-audio-metronome.html" class="related-tool-card">
+      <span class="rt-icon">🎼</span>
+      <span class="rt-info"><span class="rt-name">Web Audio 節拍器 - 免費生成器工具，在線節拍器 | ToolBox免費在線工具箱</span><span class="rt-desc">在線節拍器</span></span>
+    </a>
+    <a href="/zh-hk/tools/design/generator-8.html" class="related-tool-card">
+      <span class="rt-icon">🎨</span>
+      <span class="rt-info"><span class="rt-name">二維碼生成器（已有，可加強定製） - 免費在線工具，純前端處理 | ToolBox免費在線工具箱</span><span class="rt-desc">二維碼生成器（已有，可加強定製）</span></span>
+    </a>
+    <a href="/zh-hk/tools/design/generator-9.html" class="related-tool-card">
+      <span class="rt-icon">🎨</span>
+      <span class="rt-info"><span class="rt-name">條形碼生成器（EAN-13等） - 免費在線工具，純前端處理 | ToolBox免費在線工具箱</span><span class="rt-desc">條形碼生成器（EAN-13等）</span></span>
+    </a>
+    <a href="/zh-hk/tools/design/generator-6.html" class="related-tool-card">
+      <span class="rt-icon">🎨</span>
+      <span class="rt-info"><span class="rt-name">盒子陰影生成器（可視化調整） - 免費在線工具，純前端處理 | ToolBox免費在線工具箱</span><span class="rt-desc">盒子陰影生成器（可視化調整）</span></span>
+    </a>
+  </div>
+</div>
+<div class="tool-intro open" id="toolIntro">
+  <div class="tool-intro-header">
+    <span class="intro-icon-wrap"><span class="intro-icon">📖</span>關於「圓角圖片生成器」</span>
+    <span class="arrow">▼</span>
+  </div>
+  <div class="tool-intro-body">
+    <h4><span class="h4-icon">📝</span>工具簡介</h4>
+    <p>&#11099; 圓角圖片生成器。設計創意工具，可視化操作，一鍵生成 CSS 代碼。</p>
+    <h4><span class="h4-icon">✨</span>功能特點</h4>
+    <ul class="intro-features">
+      <li>可視化操作，所見即所得</li>
+      <li>支持實時預覽與調試</li>
+      <li>一鍵複製 CSS 代碼</li>
+      <li>純前端運行，無需安裝</li>
+    </ul>
+    <h4><span class="h4-icon">🎯</span>使用場景</h4>
+    <ul class="intro-scenes">
+      <li>前端開發中的樣式設計</li>
+      <li>UI 設計師配色與佈局參考</li>
+      <li>快速生成 CSS 效果代碼</li>
+      <li>設計靈感探索與原型製作</li>
+    </ul>
+    <h4><span class="h4-icon">💬</span>常見問題</h4>
+      <div class="intro-faq-item"><div class="intro-faq-q">這個工具是免費的嗎？</div><div class="intro-faq-a">完全免費，無需註冊，直接在瀏覽器中使用。</div></div>
+      <div class="intro-faq-item"><div class="intro-faq-q">生成的代碼可以直接用嗎？</div><div class="intro-faq-a">可以，生成的 CSS 代碼符合標準，可直接複製到項目中使用。</div></div>
+      <div class="intro-faq-item"><div class="intro-faq-q">支持自定義參數嗎？</div><div class="intro-faq-a">支持，提供多種參數調節選項，滿足個性化設計需求。</div></div>
+  </div>
+</div>
+<!-- /SEO 介紹區塊 -->
+
+<script>
+// tool-intro折叠交互
+document.addEventListener('DOMContentLoaded',function(){
+  var headers=document.querySelectorAll('.tool-intro-header');
+  headers.forEach(function(h){
+    h.addEventListener('click',function(){
+      this.parentElement.classList.toggle('open');
+    });
+  });
+});
+</script>
+
+</body>
+</html>

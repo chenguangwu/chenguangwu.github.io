@@ -1,0 +1,797 @@
+<!DOCTYPE html>
+<html lang="zh-TW" data-opencc-locale="zh-tw">
+<head>
+
+<script src="/js/tool-page-runtime.js" defer></script>
+<!-- TOOLBOX-TOOL-RUNTIME -->
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="toolbox" content="cat=convert,industry=astronomy,icon=🌅,bg=#e3f2fd">
+<meta name="description" content="基于 NOAA 太阳算法，根据日期、经纬度与时区精准计算日出日落、太阳正午、日照时长及实时太阳位置">
+<title>日出日落時間計算器 - ToolBox</title>
+<link rel="canonical" href="https://chenguangwu.github.io/zh-tw/tools/astronomy/sunrise-sunset.html">
+<meta property="og:title" content="日出日落时间计算器">
+<meta property="og:description" content="基于 NOAA 太阳算法，根据日期、经纬度与时区精准计算日出日落、太阳正午、日照时长及实时太阳位置">
+<meta property="og:url" content="https://chenguangwu.github.io/zh-tw/tools/astronomy/sunrise-sunset.html">
+<meta name="twitter:card" content="summary">
+<link rel="preload" as="style" href="/css/common.css" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="/css/common.css"></noscript>
+<script>window.__tbq=window.__tbq||[];window.ToolBox=window.ToolBox||{};['initToolTheme','addToolStyles','showToast','toast','copyText','copyToClipboard','copyFromElement','downloadText','injectPrivacyBadge','toggleFavTool','addToRecentTool','toggleToolTheme','applyTheme'].forEach(function(k){if(typeof window.ToolBox[k]!=='function')window.ToolBox[k]=function(){window.__tbq.push([k,[].slice.call(arguments)]);};});</script><!-- TOOLBOX-API-STUB -->
+<script src="/js/common.js" defer></script>
+<style>
+  /* 日期输入对齐公共样式 */
+  input[type="date"]{
+    width:100%;padding:12px 14px;border:1.5px solid var(--border);border-radius:12px;
+    font-size:14px;outline:none;font-family:inherit;background:var(--card-bg);color:var(--text);
+    transition:border-color .2s,box-shadow .2s;
+  }
+  input[type="date"]:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(255,107,53,.12);}
+  [data-theme="dark"] input[type="date"]{color-scheme:dark;}
+
+  /* 城市预设按钮 */
+  .city-presets{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px;}
+  .city-btn{
+    padding:8px 14px;border-radius:10px;border:1px solid var(--border);
+    background:var(--card-bg);color:var(--text-secondary);font-size:13px;cursor:pointer;
+    transition:all .2s;display:inline-flex;align-items:center;gap:5px;font-weight:500;
+  }
+  .city-btn:hover{border-color:var(--primary);color:var(--primary);transform:translateY(-1px);}
+  .city-btn.active{background:var(--gradient-primary);color:#fff;border:none;box-shadow:0 3px 10px rgba(255,107,53,.25);}
+
+  /* 日间时间轴 */
+  .timeline-wrap{margin-top:6px;}
+  .timeline{position:relative;height:44px;background:var(--result-bg);border:1px solid var(--border);border-radius:12px;overflow:hidden;}
+  .timeline-day{position:absolute;top:0;bottom:0;background:linear-gradient(90deg,rgba(255,107,53,.18),rgba(245,158,11,.30),rgba(255,107,53,.18));border-left:2px solid var(--warning);border-right:2px solid var(--warning);}
+  .timeline-noon{position:absolute;top:0;bottom:0;width:2px;background:var(--primary);opacity:.7;}
+  .timeline-noon::after{content:'正午';position:absolute;top:2px;left:4px;font-size:10px;color:var(--primary);font-weight:600;}
+  .timeline-now{position:absolute;top:-3px;bottom:-3px;width:3px;background:var(--secondary);border-radius:2px;box-shadow:0 0 8px rgba(124,58,237,.7);}
+  .timeline-now::after{content:'现在';position:absolute;top:-17px;left:50%;transform:translateX(-50%);font-size:10px;color:var(--secondary);white-space:nowrap;font-weight:700;}
+  .timeline-labels{display:flex;justify-content:space-between;font-size:11px;color:var(--text-muted);margin-top:6px;padding:0 2px;}
+
+  /* 罗盘可视化 */
+  .sun-vis{display:flex;align-items:center;gap:24px;flex-wrap:wrap;margin-top:10px;}
+  .compass-box{flex-shrink:0;}
+  .compass-box svg{display:block;}
+  .compass-legend{font-size:12px;color:var(--text-muted);text-align:center;margin-top:6px;}
+
+  .pos-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;flex:1;min-width:220px;}
+  .pos-card{background:var(--result-bg);border:1px solid var(--border);border-radius:12px;padding:14px;text-align:center;transition:all .2s;}
+  .pos-card:hover{border-color:var(--primary);transform:translateY(-2px);}
+  .pos-card .num{font-size:22px;font-weight:700;color:var(--primary);}
+  .pos-card .sub{font-size:12px;color:var(--text-muted);margin-top:2px;}
+  .pos-card .dir{font-size:13px;color:var(--secondary);font-weight:600;margin-top:2px;}
+
+  .formula-card{background:var(--result-bg);border:1px solid var(--border);border-radius:12px;padding:14px 16px;margin:10px 0;}
+  .formula-card h4{font-size:14px;font-weight:600;color:var(--heading);margin-bottom:8px;}
+  .formula-card p{font-size:13px;color:var(--text-secondary);line-height:1.8;margin:2px 0;}
+  .formula-card code{background:var(--bg-hover);padding:2px 6px;border-radius:6px;font-size:12.5px;color:var(--primary);}
+</style>
+
+
+
+<meta property="og:image" content="https://chenguangwu.github.io/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="ToolBox - 5000+免费在线工具">
+<meta name="twitter:image" content="https://chenguangwu.github.io/og-image.png">
+<meta name="twitter:image:alt" content="ToolBox - 5000+免费在线工具">
+    <meta property="og:type" content="website">
+    <meta name="twitter:title" content="日出日落时间计算器">
+    <meta name="twitter:description" content="基于 NOAA 太阳算法，根据日期、经纬度与时区精准计算日出日落、太阳正午、日照时长及实时太阳位置">
+<!-- TOOLBOX-WEBAPP-LD -->
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"日出日落時間計算器","url":"https://chenguangwu.github.io/zh-tw/tools/astronomy/sunrise-sunset.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":"zh-TW","description":"基於 NOAA 太陽演算法，根據日期、經緯度與時區精準計算日出日落、太陽正午、日照時長及即時太陽位置","image":"https://chenguangwu.github.io/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}</script>
+<meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
+<meta http-equiv="X-Content-Type-Options" content="nosniff">
+<meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
+<!-- TOOLBOX-SECURITY -->
+
+<script src="/js/privacy.js" defer></script>
+<!-- TOOLBOX-PRIVACY-SCRIPT -->
+
+<script src="/js/metrics.js" defer></script>
+<!-- TOOLBOX-METRICS-SCRIPT -->
+
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"首頁","item":"https://chenguangwu.github.io/zh-tw/"},{"@type":"ListItem","position":2,"name":"天文觀測","item":"https://chenguangwu.github.io/zh-tw/tools/astronomy/index.html"},{"@type":"ListItem","position":3,"name":"日出日落時間計算器","item":"https://chenguangwu.github.io/zh-tw/tools/astronomy/sunrise-sunset.html"}]}</script>
+
+<script src="/js/i18n.js" defer></script>
+<script src="/js/tool-i18n.js" defer></script>
+<!-- TOOLBOX-I18N-SCRIPT -->
+
+
+<meta name="title-en" content="Sunrise Sunset - ToolBox">
+<meta name="desc-en" content="Sunrise Sunset - free online tool. Free online tool on ToolBox — 100% client-side, no data uploaded, no install. Part of the Astronomy tools.">
+<!-- TOOLBOX-HREFLANG -->
+<link rel="alternate" hreflang="zh-CN" href="https://chenguangwu.github.io/tools/astronomy/sunrise-sunset.html">
+<link rel="alternate" hreflang="zh-TW" href="https://chenguangwu.github.io/zh-tw/tools/astronomy/sunrise-sunset.html">
+<link rel="alternate" hreflang="zh-HK" href="https://chenguangwu.github.io/zh-hk/tools/astronomy/sunrise-sunset.html">
+<link rel="alternate" hreflang="en-US" href="https://chenguangwu.github.io/tools/astronomy/sunrise-sunset.html?lang=en-US">
+<link rel="alternate" hreflang="x-default" href="https://chenguangwu.github.io/tools/astronomy/sunrise-sunset.html">
+<meta property="og:locale" content="zh_TW">
+<meta property="og:locale:alternate" content="zh_CN">
+<meta property="og:locale:alternate" content="zh_HK">
+<meta property="og:locale:alternate" content="en_US">
+</head>
+<body>
+
+<div class="nav">
+  <a href="/zh-tw/index.html">← ToolBox</a>
+  <span>/ 日出日落時間計算器</span>
+  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()" aria-label="切換主題">🌙</button>
+</div>
+
+
+
+
+
+<nav class="breadcrumb" aria-label="麵包屑導航" data-breadcrumb="1">
+  <a href="/zh-tw/index.html">首頁</a>
+  <span class="bc-sep">‹</span>
+  <a href="/zh-tw/tools/astronomy/index.html">🔧 天文觀測</a>
+  <span class="bc-sep">‹</span>
+  <span class="bc-current">日出日落時間計算器</span>
+</nav>
+<div class="container">
+  <h1 class="sr-only">日出日落時間計算器</h1>
+
+  <!-- 輸入區 -->
+  <div class="card tool-card-accent" style="--tool-accent:#FF6B35;">
+    <h2 data-zh="🌅 日出日落時間計算器">🌅 Sunrise Sunset</h2>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="基於 NOAA 太陽演算法，根據日期、經緯度與時區精準計算日出日落、太陽正午、日照時長及即時太陽位置">Sunrise Sunset is available directly in your browser, with no data uploaded.</p>
+
+    <div class="input-row">
+      <div>
+        <label>日期</label>
+        <input type="date" id="inputDate" oninput="calc()">
+      </div>
+      <div>
+        <label>緯度 (°)</label>
+        <input type="number" id="inputLat" value="39.9" step="0.0001" min="-90" max="90" oninput="calc()">
+      </div>
+      <div>
+        <label>經度 (°)</label>
+        <input type="number" id="inputLon" value="116.4" step="0.0001" min="-180" max="180" oninput="calc()">
+      </div>
+      <div>
+        <label>時區 (UTC 偏移)</label>
+        <input type="number" id="inputTz" value="8" step="0.5" min="-12" max="14" oninput="calc()">
+      </div>
+    </div>
+
+    <label style="margin-bottom:8px;">常用城市預設</label>
+    <div class="city-presets" id="cityPresets">
+      <button type="button" class="city-btn active" data-lat="39.9" data-lon="116.4" data-tz="8" onclick="selectCity(this)">📍 北京</button>
+      <button type="button" class="city-btn" data-lat="31.2" data-lon="121.5" data-tz="8" onclick="selectCity(this)">📍 上海</button>
+      <button type="button" class="city-btn" data-lat="40.7" data-lon="-74.0" data-tz="-5" onclick="selectCity(this)">📍 紐約</button>
+      <button type="button" class="city-btn" data-lat="51.5" data-lon="-0.1" data-tz="0" onclick="selectCity(this)">📍 倫敦</button>
+      <button type="button" class="city-btn" data-lat="35.7" data-lon="139.7" data-tz="9" onclick="selectCity(this)">📍 東京</button>
+    </div>
+
+    <div class="toolbar">
+      <button type="button" class="btn primary" onclick="calc()">計算</button>
+      <button type="button" class="btn" onclick="setToday()">今天</button>
+      <button type="button" class="btn" onclick="useMyLocation()">🌐 定位當前位置</button>
+      <button type="button" class="btn" onclick="copyResult()">複製結果</button>
+    </div>
+
+    <div class="result-box" id="result"></div>
+  </div>
+
+  <!-- 日間時間軸 -->
+  <div class="card">
+    <h2>🕐 一日日照時間軸</h2>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;">橙色區域為白晝時段（含大氣折射修正），紅線為太陽正午，紫線為當前時刻</p>
+    <div class="timeline-wrap">
+      <div class="timeline" id="timeline">
+        <div class="timeline-day" id="tlDay"></div>
+        <div class="timeline-noon" id="tlNoon"></div>
+        <div class="timeline-now" id="tlNow"></div>
+      </div>
+      <div class="timeline-labels">
+        <span>00:00</span><span>06:00</span><span>12:00</span><span>18:00</span><span>24:00</span>
+      </div>
+    </div>
+    <div class="info-box" id="timelineInfo" style="margin-top:14px;"></div>
+  </div>
+
+  <!-- 即時太陽位置 -->
+  <div class="card">
+    <h2>🧭 當前太陽位置</h2>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;">基於所選日期的太陽引數與該地當前時刻計算的太陽高度角與方位角</p>
+    <div class="sun-vis">
+      <div class="compass-box">
+        <div id="compass"></div>
+        <div class="compass-legend" id="compassLegend">天穹投影（圓心=正上方，圓邊=地平線）</div>
+      </div>
+      <div class="pos-grid" id="posGrid"></div>
+    </div>
+    <div class="tip-box tip-info" id="posTip" style="margin-top:14px;"></div>
+  </div>
+
+  <!-- 演算法說明 -->
+  <div class="card">
+    <h2>📐 NOAA 太陽演算法說明</h2>
+    <div class="formula-card">
+      <h4>計算流程</h4>
+      <p>1. 由公曆日期計算 <code>儒略日 (JD)</code>，再得 <code>儒略世纪 T = (JD - 2451545) / 36525</code></p>
+      <p>2. 由 T 計算 <code>太阳几何平黄经 L₀</code>、<code>平近点角 M</code>、<code>地球轨道偏心率 e</code></p>
+      <p>3. 中心方程求得 <code>太阳真黄经</code>，經章動與光行差修正得 <code>视黄经</code></p>
+      <p>4. 由 <code>黄赤交角</code> 與視黃經求得 <code>太阳赤纬 δ</code></p>
+      <p>5. 由 L₀、M、e、黃赤交角求得 <code>时差方程 EoT</code>（分鐘）</p>
+      <p>6. 日出日落時角：<code>cosH = cos(90.833°)/(cosφ·cosδ) - tanφ·tanδ</code></p>
+      <p>7. <code>太阳正午 = 720 - 4·经度 - EoT + 时区×60</code>（分鐘）</p>
+      <p>8. <code>日出 = 正午 - 4·H</code>，<code>日落 = 正午 + 4·H</code></p>
+    </div>
+    <div class="formula-card">
+      <h4>關鍵引數</h4>
+      <p><strong>90.833°</strong>：日出日落的天頂角，= 90° + 0.266°（太陽視半徑）+ 0.566°（大氣折射），計入太陽未完全升至地平線即可被看見的效應。</p>
+      <p><strong>時差方程 EoT</strong>：由於地球橢圓軌道與自轉軸傾斜，太陽實際位置與鐘錶時間的偏差，全年範圍約 -14 ~ +16 分鐘。</p>
+      <p><strong>太陽正午</strong>：太陽到達當地子午圈最高點的時刻，並不一定恰為 12:00，與經度和時區中心經度差異有關。</p>
+    </div>
+    <div class="tip-box tip-warn" style="margin-top:12px;">
+      計算結果為理論天文值，未考慮地形遮擋、海拔及區域性氣象。日出日落時刻精度約 ±1~2 分鐘，高緯度地區誤差略大。
+    </div>
+  </div>
+
+<!-- TOOLBOX-DEEP-DIVE -->
+<style>
+.deep-dive{max-width:960px;margin:16px auto;padding:0 16px;}
+.deep-dive > .card{margin-bottom:0;}
+@media(max-width:600px){.deep-dive{margin:14px auto;padding:0 12px;}}
+.deep-dive .dd-list{margin:8px 0 16px;padding-left:20px;}
+.deep-dive .dd-list li{margin:6px 0;line-height:1.75;}
+.deep-dive .dd-example{background:var(--card-bg,#fff);border:1px solid var(--border,#eee);border-radius:10px;padding:12px 14px;margin:8px 0 16px;}
+.deep-dive .dd-ex-title{font-weight:600;color:var(--tool-accent,#FF6B35);margin-bottom:6px;}
+.deep-dive .dd-ex-body{font-size:13px;line-height:1.85;color:var(--text,#333);word-break:break-word;}
+.deep-dive .dd-faq{margin:8px 0 4px;}
+.deep-dive .dd-faq dt{font-weight:600;margin-top:10px;color:var(--text,#333);}
+.deep-dive .dd-faq dd{margin:4px 0 0;font-size:13px;line-height:1.85;color:var(--text-muted,#666);}
+
+</style>
+<section class="deep-dive" data-deep-dive="1">
+<div class="card">
+<h2>📚 深度解析：日出日落時間計算器</h2>
+<h3>💡 常見使用場景</h3>
+<ul class="dd-list">
+<li>在 日出日落時間計算器 場景先同步定義域與單位，跑標準樣例避免邊界誤差。</li>
+<li>建議固定關鍵變數後逐步調整其餘輸入，觀察輸出變化，快速識別異常源。</li>
+<li>常見場景：Sunrise Sunset</li>
+</ul>
+<div class="dd-example"><div class="dd-ex-title">快速複核「日出日落時間計算器」</div><div class="dd-ex-body">執行一次基準算例，再做 2 組偏移輸入進行對照，確認結果變化是否與常識一致。</div></div>
+<h3>❓ 常見問題（FAQ）</h3>
+<dl class="dd-faq">
+<dt>日出日落時間計算器 可直接用於報告嗎？</dt><dd>適合用於快速核對，正式報告建議補充口徑定義、樣本時間窗與邊界條件。</dd>
+<dt>值跳變或異常怎麼辦？</dt><dd>檢查輸入域外條件、單位不一致、以及公式假設是否仍成立。</dd>
+</dl>
+</div>
+</section>
+<!-- 注意事項區塊 -->
+<div class="tool-notes">
+  <div class="tool-notes-title">⚠️ 使用說明與注意事項</div>
+  <ul>
+    <li>本工具純前端執行，所有計算在瀏覽器本地完成，資料不會上傳到伺服器</li>
+    <li>緯度正值表示北半球，負值表示南半球；經度正值表示東經，負值表示西經</li>
+    <li>時區支援小數（如印度 +5.5、緬甸 +6.5），範圍 -12 ~ +14</li>
+    <li>「定位當前位置」需瀏覽器授權地理定位許可權，且需 HTTPS 環境生效</li>
+    <li>建議在主流瀏覽器（Chrome/Safari/Firefox/Edge 最近兩個版本）中使用</li>
+  </ul>
+</div>
+<!-- /注意事項區塊 -->
+</div>
+
+<script>
+/* ============ 数学工具 ============ */
+var DEG2RAD = Math.PI / 180;
+var RAD2DEG = 180 / Math.PI;
+function rad(x){ return x * DEG2RAD; }
+function deg(x){ return x * RAD2DEG; }
+function norm360(x){ return ((x % 360) + 360) % 360; }
+
+/* ============ NOAA 太阳算法 ============ */
+// 儒略日（0h UT）
+function julianDay(year, month, day){
+  if(month <= 2){ year -= 1; month += 12; }
+  var A = Math.floor(year / 100);
+  var B = 2 - A + Math.floor(A / 4);
+  return Math.floor(365.25 * (year + 4716))
+       + Math.floor(30.6001 * (month + 1))
+       + day + B - 1524.5;
+}
+
+// 儒略世纪
+function julianCentury(JD){ return (JD - 2451545.0) / 36525; }
+
+// 太阳参数（返回太阳赤纬 decl 与时差方程 EoT，单位：度/分钟）
+function solarParams(T){
+  var L0 = norm360(280.46646 + T * (36000.76983 + T * 0.0003032));
+  var M = 357.52911 + T * (35999.05029 - T * 0.0001537);
+  var e = 0.016708634 - T * (0.000042037 + T * 0.0000001267);
+  var Mrad = rad(M);
+  var C = Math.sin(Mrad) * (1.914602 - T * (0.004817 + T * 0.000014))
+        + Math.sin(2 * Mrad) * (0.019993 - T * 0.000101)
+        + Math.sin(3 * Mrad) * 0.000289;
+  var trueLong = L0 + C;
+  var omega = 125.04 - 1934.136 * T;
+  var apparentLong = trueLong - 0.00569 - 0.00478 * Math.sin(rad(omega));
+  var obliq0 = 23 + (26 + ((21.448 - T * (46.815 + T * (0.00059 - T * 0.001813)))) / 60) / 60;
+  var obliq = obliq0 + 0.00256 * Math.cos(rad(omega));
+  var decl = deg(Math.asin(Math.sin(rad(obliq)) * Math.sin(rad(apparentLong))));
+  var y = Math.tan(rad(obliq / 2)) * Math.tan(rad(obliq / 2));
+  var EoT = 4 * deg(
+    y * Math.sin(2 * rad(L0))
+    - 2 * e * Math.sin(Mrad)
+    + 4 * e * y * Math.sin(Mrad) * Math.cos(2 * rad(L0))
+    - 0.5 * y * y * Math.sin(4 * rad(L0))
+    - 1.25 * e * e * Math.sin(2 * Mrad)
+  );
+  return { decl: decl, EoT: EoT };
+}
+
+// 日出日落时角（zenith：90.833=标准日出日落含折射，90=几何地平线）
+function hourAngle(lat, decl, zenith){
+  var latR = rad(lat), declR = rad(decl);
+  var cosH = Math.cos(rad(zenith)) / (Math.cos(latR) * Math.cos(declR)) - Math.tan(latR) * Math.tan(declR);
+  if(cosH < -1) return { status: 'polarDay', HA: null };   // 极昼
+  if(cosH > 1)  return { status: 'polarNight', HA: null };  // 极夜
+  return { status: 'normal', HA: deg(Math.acos(cosH)) };
+}
+
+// 任意时刻太阳位置（localMin：当地自午夜起分钟数）
+function sunPosition(lat, decl, localMin, lon, EoT){
+  var TST = ((localMin + EoT + 4 * lon) % 1440 + 1440) % 1440;
+  var ha = (TST / 4 < 0) ? (TST / 4 + 180) : (TST / 4 - 180);
+  var latR = rad(lat), declR = rad(decl), haR = rad(ha);
+  var cosZen = Math.sin(latR) * Math.sin(declR) + Math.cos(latR) * Math.cos(declR) * Math.cos(haR);
+  cosZen = Math.max(-1, Math.min(1, cosZen));
+  var zenith = deg(Math.acos(cosZen));
+  var elevation = 90 - zenith;
+  // 大气折射修正（NOAA）
+  var elR = rad(elevation), ref;
+  if(elevation > 85) ref = 0;
+  else if(elevation > 5) ref = 58.1 / Math.tan(elR) - 0.07 / Math.pow(Math.tan(elR), 3) + 0.000086 / Math.pow(Math.tan(elR), 5);
+  else if(elevation > -0.575) ref = 1735 + elevation * (-518.2 + elevation * (103.4 + elevation * (-12.79 + elevation * 0.711)));
+  else ref = -20.772 / Math.tan(elR);
+  ref = ref / 3600;
+  var elevationCorr = elevation + ref;
+  // 方位角
+  var azimuth = 0;
+  var denom = Math.cos(latR) * Math.sin(rad(zenith));
+  if(Math.abs(denom) > 1e-9){
+    var cosAz = (Math.sin(latR) * Math.cos(rad(zenith)) - Math.sin(declR)) / denom;
+    cosAz = Math.max(-1, Math.min(1, cosAz));
+    if(ha > 0) azimuth = (deg(Math.acos(cosAz)) + 180) % 360;
+    else azimuth = (540 - deg(Math.acos(cosAz))) % 360;
+  }
+  return { elevation: elevationCorr, azimuth: azimuth, zenith: zenith };
+}
+
+/* ============ 格式化 ============ */
+function minToTime(min){
+  if(min == null || isNaN(min)) return '--:--';
+  min = ((min % 1440) + 1440) % 1440;
+  var h = Math.floor(min / 60);
+  var m = Math.floor(min % 60);
+  return String(h).padStart(2, '0') + ':' + String(m).padStart(2, '0');
+}
+function formatDuration(hours){
+  if(hours >= 23.999) return '24小时00分';
+  if(hours <= 0.001) return '0小时00分';
+  var h = Math.floor(hours);
+  var m = Math.round((hours - h) * 60);
+  if(m === 60){ h++; m = 0; }
+  return h + '小时' + String(m).padStart(2, '0') + '分';
+}
+function azimuthDirection(az){
+  var dirs = ['北','东北','东','东南','南','西南','西','西北','北'];
+  return dirs[Math.round(az / 45)];
+}
+
+/* ============ 主计算 ============ */
+var lastResult = null;
+
+function calc(){
+  var dateStr = document.getElementById('inputDate').value;
+  var lat = parseFloat(document.getElementById('inputLat').value);
+  var lon = parseFloat(document.getElementById('inputLon').value);
+  var tz = parseFloat(document.getElementById('inputTz').value);
+
+  // 校验
+  if(!dateStr){
+    ToolBox.setResult('result', '<p style="color:var(--danger);">请选择日期</p>');
+    return;
+  }
+  if(isNaN(lat) || lat < -90 || lat > 90){
+    ToolBox.setResult('result', '<p style="color:var(--danger);">纬度范围应为 -90° ~ 90°</p>');
+    return;
+  }
+  if(isNaN(lon) || lon < -180 || lon > 180){
+    ToolBox.setResult('result', '<p style="color:var(--danger);">经度范围应为 -180° ~ 180°</p>');
+    return;
+  }
+  if(isNaN(tz) || tz < -12 || tz > 14){
+    ToolBox.setResult('result', '<p style="color:var(--danger);">时区范围应为 -12 ~ +14</p>');
+    return;
+  }
+
+  // 解析日期
+  var parts = dateStr.split('-');
+  var year = +parts[0], month = +parts[1], day = +parts[2];
+
+  var JD = julianDay(year, month, day);
+  var T = julianCentury(JD);
+  var p = solarParams(T);
+
+  // 标准日出日落（天顶 90.833°，含大气折射）
+  var ss = hourAngle(lat, p.decl, 90.833);
+  var solarNoonMin = 720 - 4 * lon - p.EoT + tz * 60; // 不预先取模，保证日出日落相对正确
+
+  var sunriseMin = null, sunsetMin = null, daylightHours = 0, status = ss.status;
+  if(ss.status === 'normal'){
+    sunriseMin = solarNoonMin - ss.HA * 4;
+    sunsetMin = solarNoonMin + ss.HA * 4;
+    daylightHours = ss.HA * 2 / 15;
+  } else if(ss.status === 'polarDay'){
+    daylightHours = 24;
+  } else {
+    daylightHours = 0;
+  }
+
+  // 几何日照时长（天顶 90°，太阳中心在地平线）
+  var ssGeo = hourAngle(lat, p.decl, 90);
+  var sunshineHours = 0;
+  if(ssGeo.status === 'normal') sunshineHours = ssGeo.HA * 2 / 15;
+  else if(ssGeo.status === 'polarDay') sunshineHours = 24;
+
+  // 当前时刻的当地本地时间（由 UTC 推算）
+  var now = new Date();
+  var utcMin = now.getUTCHours() * 60 + now.getUTCMinutes() + now.getUTCSeconds() / 60;
+  var localMin = ((utcMin + tz * 60) % 1440 + 1440) % 1440;
+  var pos = sunPosition(lat, p.decl, localMin, lon, p.EoT);
+
+  lastResult = {
+    date: dateStr, lat: lat, lon: lon, tz: tz,
+    decl: p.decl, EoT: p.EoT,
+    sunrise: sunriseMin, sunset: sunsetMin, solarNoon: solarNoonMin,
+    daylight: daylightHours, sunshine: sunshineHours, status: status,
+    pos: pos, localMin: localMin
+  };
+
+  renderResult(lastResult);
+  renderTimeline(lastResult);
+  renderSunPosition(lastResult);
+}
+
+/* ============ 结果渲染 ============ */
+function renderResult(r){
+  var sunriseStr, sunsetStr, noonStr, daylightStr, sunshineStr;
+  if(r.status === 'normal'){
+    sunriseStr = minToTime(r.sunrise);
+    sunsetStr = minToTime(r.sunset);
+    noonStr = minToTime(r.solarNoon);
+    daylightStr = formatDuration(r.daylight);
+    sunshineStr = formatDuration(r.sunshine) + '（' + r.sunshine.toFixed(2) + ' h）';
+  } else if(r.status === 'polarDay'){
+    sunriseStr = '——';
+    sunsetStr = '——';
+    noonStr = minToTime(r.solarNoon);
+    daylightStr = '24小时00分（极昼）';
+    sunshineStr = '24小时（极昼）';
+  } else {
+    sunriseStr = '——';
+    sunsetStr = '——';
+    noonStr = minToTime(r.solarNoon);
+    daylightStr = '0小时00分（极夜）';
+    sunshineStr = '0小时（极夜）';
+  }
+
+  var hemi = r.lat >= 0 ? '北半球' : '南半球';
+  var html = '<div class="data-grid">' +
+    '<div class="data-card"><div class="num">🌅 ' + sunriseStr + '</div><div class="label">日出时间</div></div>' +
+    '<div class="data-card"><div class="num">🌇 ' + sunsetStr + '</div><div class="label">日落时间</div></div>' +
+    '<div class="data-card"><div class="num">🕛 ' + noonStr + '</div><div class="label">太阳正午</div></div>' +
+    '<div class="data-card"><div class="num">' + daylightStr + '</div><div class="label">白昼时长</div></div>' +
+    '<div class="data-card"><div class="num">' + sunshineStr + '</div><div class="label">日照时长（几何）</div></div>' +
+    '</div>' +
+    '<div class="info-box" style="margin-top:14px;">' +
+      '📍 位置：' + Math.abs(r.lat).toFixed(2) + '°' + (r.lat >= 0 ? 'N' : 'S') + '，' + Math.abs(r.lon).toFixed(2) + '°' + (r.lon >= 0 ? 'E' : 'W') + '（' + hemi + '，UTC' + (r.tz >= 0 ? '+' : '') + r.tz + '）<br>' +
+      '🌞 太阳赤纬 δ = <strong>' + r.decl.toFixed(3) + '°</strong>　|　⏱ 时差方程 EoT = <strong>' + (r.EoT >= 0 ? '+' : '') + r.EoT.toFixed(2) + ' 分钟</strong>' +
+    '</div>';
+
+  if(r.status !== 'normal'){
+    html += '<div class="tip-box tip-warn" style="margin-top:12px;">' +
+      (r.status === 'polarDay' ? '该地当日处于极昼，太阳全天不落山。' : '该地当日处于极夜，太阳全天不升起。') +
+    '</div>';
+  }
+  ToolBox.setResult('result', html);
+}
+
+/* ============ 时间轴渲染 ============ */
+function renderTimeline(r){
+  var dayEl = document.getElementById('tlDay');
+  var noonEl = document.getElementById('tlNoon');
+  var nowEl = document.getElementById('tlNow');
+  var infoEl = document.getElementById('timelineInfo');
+
+  if(r.status === 'normal'){
+    var sr = ((r.sunrise % 1440) + 1440) % 1440;
+    var ss2 = ((r.sunset % 1440) + 1440) % 1440;
+    // 处理跨午夜情况（一般日出<日落，若相反则跨午夜）
+    var leftPct, widthPct;
+    if(sr < ss2){
+      leftPct = sr / 1440 * 100;
+      widthPct = (ss2 - sr) / 1440 * 100;
+    } else {
+      leftPct = ss2 / 1440 * 100;
+      widthPct = (1440 - sr + ss2) / 1440 * 100;
+    }
+    dayEl.style.display = 'block';
+    dayEl.style.left = leftPct + '%';
+    dayEl.style.width = widthPct + '%';
+    var noonPct = (((r.solarNoon % 1440) + 1440) % 1440) / 1440 * 100;
+    noonEl.style.display = 'block';
+    noonEl.style.left = noonPct + '%';
+  } else if(r.status === 'polarDay'){
+    dayEl.style.display = 'block';
+    dayEl.style.left = '0%';
+    dayEl.style.width = '100%';
+    noonEl.style.left = (((r.solarNoon % 1440) + 1440) % 1440) / 1440 * 100 + '%';
+    noonEl.style.display = 'block';
+  } else {
+    dayEl.style.display = 'none';
+    noonEl.style.left = (((r.solarNoon % 1440) + 1440) % 1440) / 1440 * 100 + '%';
+    noonEl.style.display = 'block';
+  }
+
+  var nowPct = r.localMin / 1440 * 100;
+  nowEl.style.left = nowPct + '%';
+  nowEl.style.display = 'block';
+
+  infoEl.innerHTML = '当前当地时间：<strong>' + minToTime(r.localMin) + '</strong>' +
+    '　|　日出 <strong>' + (r.status === 'normal' ? minToTime(r.sunrise) : '—') + '</strong>' +
+    '　|　正午 <strong>' + minToTime(r.solarNoon) + '</strong>' +
+    '　|　日落 <strong>' + (r.status === 'normal' ? minToTime(r.sunset) : '—') + '</strong>';
+}
+
+/* ============ 太阳位置渲染（罗盘天穹投影） ============ */
+function renderSunPosition(r){
+  var el = r.pos.elevation;
+  var az = r.pos.azimuth;
+  var isUp = el > 0;
+
+  var cx = 75, cy = 75, R = 60;
+  var elClamp = Math.max(0, Math.min(90, el));
+  var rSun = R * Math.cos(rad(elClamp));
+  var azR = rad(az);
+  var sx = cx + rSun * Math.sin(azR);
+  var sy = cy - rSun * Math.cos(azR);
+  var sunColor = isUp ? '#FF6B35' : '#9CA3AF';
+  var sunR = isUp ? 7 : 5;
+
+  // 绘制罗盘 SVG
+  var svg = '<svg width="150" height="150" viewBox="0 0 150 150" aria-label="太阳位置罗盘">';
+  // 外圈（地平线）
+  svg += '<circle cx="' + cx + '" cy="' + cy + '" r="' + R + '" fill="none" stroke="var(--border)" stroke-width="1.5"/>';
+  // 30°/60° 高度环
+  svg += '<circle cx="' + cx + '" cy="' + cy + '" r="' + (R * Math.cos(rad(30))).toFixed(2) + '" fill="none" stroke="var(--border)" stroke-width="0.8" stroke-dasharray="2,3"/>';
+  svg += '<circle cx="' + cx + '" cy="' + cy + '" r="' + (R * Math.cos(rad(60))).toFixed(2) + '" fill="none" stroke="var(--border)" stroke-width="0.8" stroke-dasharray="2,3"/>';
+  // 十字线
+  svg += '<line x1="' + cx + '" y1="' + (cy - R) + '" x2="' + cx + '" y2="' + (cy + R) + '" stroke="var(--border)" stroke-width="0.6"/>';
+  svg += '<line x1="' + (cx - R) + '" y1="' + cy + '" x2="' + (cx + R) + '" y2="' + cy + '" stroke="var(--border)" stroke-width="0.6"/>';
+  // 方位标签
+  svg += '<text x="' + cx + '" y="' + (cy - R - 6) + '" text-anchor="middle" font-size="11" font-weight="700" fill="var(--text-secondary)">N</text>';
+  svg += '<text x="' + (cx + R + 8) + '" y="' + (cy + 4) + '" text-anchor="middle" font-size="11" font-weight="700" fill="var(--text-secondary)">E</text>';
+  svg += '<text x="' + cx + '" y="' + (cy + R + 12) + '" text-anchor="middle" font-size="11" font-weight="700" fill="var(--text-secondary)">S</text>';
+  svg += '<text x="' + (cx - R - 8) + '" y="' + (cy + 4) + '" text-anchor="middle" font-size="11" font-weight="700" fill="var(--text-secondary)">W</text>';
+  // 太阳-中心连线
+  if(isUp){
+    svg += '<line x1="' + cx + '" y1="' + cy + '" x2="' + sx.toFixed(2) + '" y2="' + sy.toFixed(2) + '" stroke="' + sunColor + '" stroke-width="1" opacity="0.5"/>';
+  }
+  // 太阳标记
+  svg += '<circle cx="' + sx.toFixed(2) + '" cy="' + sy.toFixed(2) + '" r="' + sunR + '" fill="' + sunColor + '" />';
+  if(isUp){
+    svg += '<circle cx="' + sx.toFixed(2) + '" cy="' + sy.toFixed(2) + '" r="' + (sunR + 3) + '" fill="none" stroke="' + sunColor + '" stroke-width="1" opacity="0.4"/>';
+  }
+  svg += '</svg>';
+  document.getElementById('compass').innerHTML = svg;
+
+  // 位置数据卡片
+  var posHtml = '<div class="pos-card">' +
+      '<div class="num">' + el.toFixed(1) + '°</div>' +
+      '<div class="sub">高度角</div>' +
+      (isUp ? '<div class="dir">地平线以上</div>' : '<div class="dir" style="color:var(--text-muted);">地平线以下</div>') +
+    '</div>' +
+    '<div class="pos-card">' +
+      '<div class="num">' + az.toFixed(1) + '°</div>' +
+      '<div class="sub">方位角</div>' +
+      '<div class="dir">' + azimuthDirection(az) + '方向</div>' +
+    '</div>' +
+    '<div class="pos-card">' +
+      '<div class="num">' + minToTime(r.localMin) + '</div>' +
+      '<div class="sub">当地当前时间</div>' +
+    '</div>' +
+    '<div class="pos-card">' +
+      '<div class="num">' + (90 - r.pos.zenith).toFixed(1) + '°</div>' +
+      '<div class="sub">几何高度（未修正）</div>' +
+    '</div>';
+  document.getElementById('posGrid').innerHTML = posHtml;
+
+  // 提示
+  var tipEl = document.getElementById('posTip');
+  if(isUp){
+    tipEl.className = 'tip-box tip-success';
+    tipEl.innerHTML = '☀️ 太阳当前位于地平线以上，高度角 ' + el.toFixed(1) + '°，方位 ' + az.toFixed(1) + '°（' + azimuthDirection(az) + '）。' +
+      (el > 60 ? '太阳较高，紫外线强烈，注意防晒。' : el > 30 ? '太阳高度适中。' : '太阳较低，光线柔和。');
+  } else {
+    tipEl.className = 'tip-box tip-error';
+    tipEl.innerHTML = '🌙 太阳当前位于地平线以下（高度角 ' + el.toFixed(1) + '°），为夜间时段。' +
+      (r.status === 'polarDay' ? '当日为极昼，但所选时刻太阳瞬时位于地平线下方属正常数值波动。' : '');
+  }
+}
+
+/* ============ 交互 ============ */
+function selectCity(btn){
+  document.querySelectorAll('.city-btn').forEach(function(b){ b.classList.remove('active'); });
+  btn.classList.add('active');
+  document.getElementById('inputLat').value = btn.dataset.lat;
+  document.getElementById('inputLon').value = btn.dataset.lon;
+  document.getElementById('inputTz').value = btn.dataset.tz;
+  calc();
+}
+
+function setToday(){
+  document.getElementById('inputDate').value = todayStr();
+  calc();
+}
+
+function useMyLocation(){
+  if(!navigator.geolocation){
+    ToolBox.showToast(i18nText('toast.msg346'), 'error');
+    return;
+  }
+  ToolBox.showToast(i18nText('toast.msg462'), 'info');
+  navigator.geolocation.getCurrentPosition(function(pos){
+    document.getElementById('inputLat').value = pos.coords.latitude.toFixed(4);
+    document.getElementById('inputLon').value = pos.coords.longitude.toFixed(4);
+    // 根据经度估算时区
+    var estTz = Math.round(pos.coords.longitude / 15);
+    document.getElementById('inputTz').value = estTz;
+    document.querySelectorAll('.city-btn').forEach(function(b){ b.classList.remove('active'); });
+    ToolBox.showToast(i18nText('toast.msg225'), 'success');
+    calc();
+  }, function(err){
+    ToolBox.showToast('定位失败：' + (err.message || '未授权'), 'error');
+  }, { enableHighAccuracy: true, timeout: 8000 });
+}
+
+function copyResult(){
+  if(!lastResult){ ToolBox.showToast(i18nText('toast.copy_target_missing'), 'error'); return; }
+  var r = lastResult;
+  var lines = [];
+  lines.push('日出日落时间计算结果');
+  lines.push('日期：' + r.date);
+  lines.push('位置：' + Math.abs(r.lat).toFixed(2) + '°' + (r.lat >= 0 ? 'N' : 'S') + ', ' + Math.abs(r.lon).toFixed(2) + '°' + (r.lon >= 0 ? 'E' : 'W') + ' (UTC' + (r.tz >= 0 ? '+' : '') + r.tz + ')');
+  lines.push('日出：' + (r.status === 'normal' ? minToTime(r.sunrise) : (r.status === 'polarDay' ? '极昼' : '极夜')));
+  lines.push('日落：' + (r.status === 'normal' ? minToTime(r.sunset) : (r.status === 'polarDay' ? '极昼' : '极夜')));
+  lines.push('太阳正午：' + minToTime(r.solarNoon));
+  lines.push('白昼时长：' + formatDuration(r.daylight));
+  lines.push('日照时长(几何)：' + formatDuration(r.sunshine));
+  lines.push('太阳赤纬：' + r.decl.toFixed(3) + '°');
+  lines.push('时差方程：' + (r.EoT >= 0 ? '+' : '') + r.EoT.toFixed(2) + ' 分钟');
+  lines.push('当前太阳：高度 ' + r.pos.elevation.toFixed(1) + '°, 方位 ' + r.pos.azimuth.toFixed(1) + '° (' + azimuthDirection(r.pos.azimuth) + ')');
+  ToolBox.copyText(lines.join('\n'), i18nText('msg600'));
+}
+
+/* ============ 工具 ============ */
+function todayStr(){
+  var d = new Date();
+  var m = String(d.getMonth() + 1).padStart(2, '0');
+  var day = String(d.getDate()).padStart(2, '0');
+  return d.getFullYear() + '-' + m + '-' + day;
+}
+
+// 用户手动修改经纬度/时区时，取消城市高亮
+['inputLat','inputLon','inputTz'].forEach(function(id){
+  document.getElementById(id).addEventListener('input', function(){
+    document.querySelectorAll('.city-btn').forEach(function(b){ b.classList.remove('active'); });
+  });
+});
+
+// 初始化
+document.getElementById('inputDate').value = todayStr();
+calc();
+
+// 每分钟刷新一次太阳位置（实时）
+setInterval(function(){
+  if(lastResult){ calc(); }
+}, 60000);
+</script>
+
+<!-- SEO 介紹區塊 -->
+
+</div>
+
+</div>
+
+<!-- 相關工具 -->
+<div class="related-tools" data-related-tools="1">
+  <h3 class="related-tools-title">🔗 相關工具</h3>
+  <div class="related-tools-grid">
+    <a href="/zh-tw/tools/astronomy/convert-15.html" class="related-tool-card">
+      <span class="rt-icon">🌌</span>
+      <span class="rt-info"><span class="rt-name">地震震級與能量換算（里氏↔焦耳） - 免費線上工具，純前端處理 | ToolBox免費線上工具箱</span><span class="rt-desc">地震震級與能量換算（里氏↔焦耳）</span></span>
+    </a>
+    <a href="/zh-tw/tools/astronomy/convert-18.html" class="related-tool-card">
+      <span class="rt-icon">🌌</span>
+      <span class="rt-info"><span class="rt-name">大氣壓與海拔轉換（氣壓計讀數） - 免費線上工具，純前端處理 | ToolBox免費線上工具箱</span><span class="rt-desc">大氣壓與海拔轉換（氣壓計讀數）</span></span>
+    </a>
+    <a href="/zh-tw/tools/astronomy/convert-17.html" class="related-tool-card">
+      <span class="rt-icon">🌌</span>
+      <span class="rt-info"><span class="rt-name">時區轉換（內建全球時區） - 免費線上工具，純前端處理 | ToolBox免費線上工具箱</span><span class="rt-desc">時區轉換（內建全球時區）</span></span>
+    </a>
+    <a href="/zh-tw/tools/astronomy/earth-curvature.html" class="related-tool-card">
+      <span class="rt-icon">🌍</span>
+      <span class="rt-info"><span class="rt-name">地球曲率可視距離計算器 - 線上計算地平線距離、地球曲率下降量與目標被遮擋高度，支援大氣 | ToolBox免費線上工具箱</span><span class="rt-desc">地球曲率可視距離計算器</span></span>
+    </a>
+    <a href="/zh-tw/tools/astronomy/observation-conditions.html" class="related-tool-card">
+      <span class="rt-icon">🔭</span>
+      <span class="rt-info"><span class="rt-name">天文觀測條件計算器 - 線上估算月相、月升月落時間、月光干擾與光汙染評分，給出 1- | ToolBox免費線上工具箱</span><span class="rt-desc">天文觀測條件計算器</span></span>
+    </a>
+    <a href="/zh-tw/tools/astronomy/solar-elevation.html" class="related-tool-card">
+      <span class="rt-icon">☀️</span>
+      <span class="rt-info"><span class="rt-name">太陽高度角計算器 - 根據日期、時間、經緯度計算太陽高度角、方位角、太陽赤緯、時角 | ToolBox免費線上工具箱</span><span class="rt-desc">太陽高度角計算器</span></span>
+    </a>
+  </div>
+</div>
+<div class="tool-intro open" id="toolIntro">
+  <div class="tool-intro-header">
+    <span class="intro-icon-wrap"><span class="intro-icon">📖</span>關於「日出日落時間計算器」</span>
+    <span class="arrow">▼</span>
+  </div>
+  <div class="tool-intro-body">
+    <h4><span class="h4-icon">📝</span>工具簡介</h4>
+    <p>日出日落時間計算器是一款天文領域的線上工具，採用美國國家海洋和大氣管理局（NOAA）釋出的標準太陽計算演算法，根據使用者輸入的日期、緯度、經度與時區，精準計算任意地點當日的日出時間、日落時間、太陽正午時刻、白晝時長與日照時長，並即時顯示當前太陽的高度角和方位角。所有計算均在瀏覽器本地完成，無需聯網，資料不上傳。</p>
+    <h4><span class="h4-icon">✨</span>功能特點</h4>
+    <ul class="intro-features">
+      <li>NOAA 標準太陽演算法，精度約 ±1~2 分鐘</li>
+      <li>內建北京、上海、紐約、倫敦、東京等城市預設</li>
+      <li>支援瀏覽器地理定位一鍵獲取當前位置</li>
+      <li>即時計算太陽高度角與方位角並可視化</li>
+      <li>一日日照時間軸直觀展示白晝分佈</li>
+      <li>支援小數時區（如 +5.5、+6.5）</li>
+      <li>自動識別極晝極夜現象</li>
+      <li>純前端執行，資料不上傳，安全可靠</li>
+    </ul>
+    <h4><span class="h4-icon">🎯</span>使用場景</h4>
+    <ul class="intro-scenes">
+      <li>攝影規劃黃金時刻與藍調時刻</li>
+      <li>旅行出行安排日照活動</li>
+      <li>建築採光與光伏發電評估</li>
+      <li>農業種植光照週期計算</li>
+      <li>天文觀測與戶外運動計劃</li>
+      <li>學習天文地理與太陽運動規律</li>
+    </ul>
+    <h4><span class="h4-icon">📐</span>計算原理</h4>
+    <p>工具首先將公曆日期轉換為儒略日（JD），再求得儒略世紀 T，依次計算太陽幾何平黃經、平近點角、地球軌道偏心率，通過中心方程與章動光行差修正得到太陽視黃經，結合黃赤交角求出太陽赤緯與時差方程（EoT）。日出日落採用 90.833° 天頂角（含太陽視半徑與大氣折射修正），通過時角公式 <code>cosH = cos(90.833°)/(cosφ·cosδ) - tanφ·tanδ</code> 求得日出日落時角，進而得到當地日出、日落與太陽正午時刻。</p>
+    <h4><span class="h4-icon">💬</span>常見問題</h4>
+    <div class="intro-faq-item"><div class="intro-faq-q">這個工具是免費的嗎？</div><div class="intro-faq-a">完全免費，無需註冊，直接在瀏覽器中使用，所有計算本地完成。</div></div>
+    <div class="intro-faq-item"><div class="intro-faq-q">計算結果準確嗎？</div><div class="intro-faq-a">採用 NOAA 標準太陽演算法，日出日落時刻精度約 ±1~2 分鐘，已計入大氣折射修正。實際時刻還會受海拔、地形遮擋和區域性氣象影響。</div></div>
+    <div class="intro-faq-item"><div class="intro-faq-q">為什麼太陽正午不是 12:00？</div><div class="intro-faq-a">太陽正午是太陽到達當地子午圈最高點的時刻，受經度與時區中心經度差異、時差方程（EoT）影響，通常與 12:00 有幾分鐘到數十分鐘偏差。</div></div>
+    <div class="intro-faq-item"><div class="intro-faq-q">緯度經度怎麼填？</div><div class="intro-faq-a">緯度北半球為正、南半球為負；經度東經為正、西經為負。也可點選「定位當前位置」自動獲取，或選擇內建城市預設。</div></div>
+    <div class="intro-faq-item"><div class="intro-faq-q">支援手機使用嗎？</div><div class="intro-faq-a">支援。頁面已做響應式適配，手機和電腦均可正常使用。</div></div>
+  </div>
+</div>
+<!-- /SEO 介紹區塊 -->
+
+<script>
+// tool-intro 折叠交互
+document.addEventListener('DOMContentLoaded', function(){
+  var headers = document.querySelectorAll('.tool-intro-header');
+  headers.forEach(function(h){
+    h.addEventListener('click', function(){
+      this.parentElement.classList.toggle('open');
+    });
+  });
+});
+</script>
+
+</body>
+</html>

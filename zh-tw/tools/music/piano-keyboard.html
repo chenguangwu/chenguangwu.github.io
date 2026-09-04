@@ -1,0 +1,1367 @@
+<!DOCTYPE html>
+<html lang="zh-TW" data-opencc-locale="zh-tw">
+<head>
+
+<script src="/js/tool-page-runtime.js" defer></script>
+<!-- TOOLBOX-TOOL-RUNTIME -->
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="toolbox" content="cat=game,industry=music,icon=🎹,bg=#e3f2fd">
+<title>鋼琴鍵盤模擬器 - ToolBox</title>
+<link rel="canonical" href="https://chenguangwu.github.io/zh-tw/tools/music/piano-keyboard.html">
+<meta property="og:title" content="钢琴键盘模拟器">
+<meta property="og:description" content="使用鼠标点击或电脑键盘弹奏音符，支持三种音色切换、八度调节和录制回放。">
+<meta property="og:url" content="https://chenguangwu.github.io/zh-tw/tools/music/piano-keyboard.html">
+<meta name="twitter:card" content="summary">
+<meta name="description" content="使用鼠标点击或电脑键盘弹奏音符，支持三种音色切换、八度调节和录制回放。">
+<meta name="keywords" content="钢琴模拟器,在线钢琴,虚拟钢琴,Web Audio API,键盘弹奏,钢琴音色,电子琴,风琴">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="shortcut icon" href="/favicon.ico">
+<link rel="preload" as="style" href="/css/common.css" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="/css/common.css"></noscript>
+<script>window.__tbq=window.__tbq||[];window.ToolBox=window.ToolBox||{};['initToolTheme','addToolStyles','showToast','toast','copyText','copyToClipboard','copyFromElement','downloadText','injectPrivacyBadge','toggleFavTool','addToRecentTool','toggleToolTheme','applyTheme'].forEach(function(k){if(typeof window.ToolBox[k]!=='function')window.ToolBox[k]=function(){window.__tbq.push([k,[].slice.call(arguments)]);};});</script><!-- TOOLBOX-API-STUB -->
+<script src="/js/common.js" defer></script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"鋼琴鍵盤模擬器","description":"線上鋼琴鍵盤模擬器，支援滑鼠點選和電腦鍵盤彈奏，內建多種音色，可錄製回放。","url":"https://toolbox.chenguangwu.com/tools/music/piano-keyboard.html","applicationCategory":"MusicApplication","operatingSystem":"Any","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}</script>
+<style>
+  /* 钢琴键盘容器 */
+  .piano-wrapper {
+    overflow-x: auto;
+    padding: 8px 0 16px;
+    -webkit-overflow-scrolling: touch;
+  }
+  .piano-scroll-hint {
+    display: none;
+    text-align: center;
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-bottom: 8px;
+  }
+  @media (max-width: 768px) {
+    .piano-scroll-hint { display: block; }
+  }
+  .piano {
+    position: relative;
+    display: flex;
+    min-width: 600px;
+    margin: 0 auto;
+    height: 220px;
+    user-select: none;
+    -webkit-user-select: none;
+    touch-action: none;
+  }
+  @media (max-width: 768px) {
+    .piano { height: 180px; }
+  }
+
+  /* 白键 */
+  .white-key {
+    position: relative;
+    flex: 1;
+    background: linear-gradient(180deg, #ffffff 0%, #f8f8f8 85%, #e8e8e8 100%);
+    border: 1px solid #c8c8c8;
+    border-radius: 0 0 6px 6px;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-end;
+    padding-bottom: 10px;
+    transition: background 0.08s, box-shadow 0.08s;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.12), inset 0 -2px 4px rgba(0,0,0,0.06);
+    z-index: 1;
+    min-width: 44px;
+    max-width: 64px;
+  }
+  .white-key:hover {
+    background: linear-gradient(180deg, #fff8f5 0%, #fff0e6 85%, #ffe0cc 100%);
+    box-shadow: 0 4px 8px rgba(255,107,53,0.15), inset 0 -2px 4px rgba(0,0,0,0.06);
+  }
+  .white-key.active {
+    background: linear-gradient(180deg, var(--primary) 0%, #ff8050 100%);
+    border-color: #cc5520;
+    box-shadow: 0 2px 4px rgba(255,107,53,0.3), inset 0 1px 3px rgba(0,0,0,0.15);
+    transform: scaleY(0.98);
+    transform-origin: top;
+  }
+  .white-key .key-label {
+    font-size: 10px;
+    color: #999;
+    font-weight: 500;
+    pointer-events: none;
+  }
+  .white-key .key-bind {
+    font-size: 9px;
+    color: #bbb;
+    background: rgba(0,0,0,0.04);
+    padding: 1px 4px;
+    border-radius: 3px;
+    margin-top: 2px;
+    pointer-events: none;
+  }
+  .white-key.active .key-label,
+  .white-key.active .key-bind {
+    color: #fff;
+    background: rgba(255,255,255,0.15);
+  }
+
+  /* 黑键 */
+  .black-key {
+    position: absolute;
+    top: 0;
+    width: 32px;
+    height: 55%;
+    background: linear-gradient(180deg, #3a3a3a 0%, #1a1a1a 80%, #111 100%);
+    border-radius: 0 0 4px 4px;
+    cursor: pointer;
+    z-index: 2;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-end;
+    padding-bottom: 6px;
+    transition: background 0.08s, box-shadow 0.08s;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.35), inset 0 -1px 2px rgba(255,255,255,0.05);
+  }
+  @media (max-width: 768px) {
+    .black-key { width: 26px; height: 52%; }
+  }
+  .black-key:hover {
+    background: linear-gradient(180deg, #4a4a4a 0%, #2a2a2a 80%, #1a1a1a 100%);
+  }
+  .black-key.active {
+    background: linear-gradient(180deg, var(--primary) 0%, #cc5020 100%);
+    box-shadow: 0 2px 4px rgba(255,107,53,0.4), inset 0 1px 2px rgba(0,0,0,0.2);
+    height: 54%;
+  }
+  .black-key .key-label {
+    font-size: 9px;
+    color: #888;
+    font-weight: 500;
+    pointer-events: none;
+  }
+  .black-key .key-bind {
+    font-size: 8px;
+    color: #777;
+    background: rgba(255,255,255,0.08);
+    padding: 1px 3px;
+    border-radius: 2px;
+    margin-top: 2px;
+    pointer-events: none;
+  }
+  .black-key.active .key-label {
+    color: #fff;
+  }
+  .black-key.active .key-bind {
+    color: #fff;
+    background: rgba(255,255,255,0.15);
+  }
+
+  /* 音色选择器 */
+  .timbre-selector {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+  }
+  .timbre-btn {
+    padding: 8px 16px;
+    border-radius: 10px;
+    border: 1.5px solid var(--border);
+    background: var(--card-bg);
+    color: var(--text);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .timbre-btn:hover {
+    border-color: var(--primary);
+    background: var(--bg-hover);
+  }
+  .timbre-btn.active {
+    background: var(--gradient-primary);
+    color: #fff;
+    border-color: transparent;
+  }
+
+  /* 八度选择器 */
+  .octave-ctrl {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+  .octave-ctrl label {
+    margin: 0;
+    font-size: 13px;
+    color: var(--text-secondary);
+    white-space: nowrap;
+  }
+  .octave-ctrl .oct-display {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--primary);
+    min-width: 30px;
+    text-align: center;
+  }
+  .oct-btn {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    border: 1.5px solid var(--border);
+    background: var(--card-bg);
+    color: var(--text);
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s;
+  }
+  .oct-btn:hover {
+    border-color: var(--primary);
+    background: var(--bg-hover);
+  }
+  .oct-btn:active {
+    transform: scale(0.95);
+  }
+
+  /* 当前音符显示 */
+  .note-display {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 14px 18px;
+    background: var(--result-bg);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    margin-bottom: 16px;
+    min-height: 56px;
+    transition: all 0.15s;
+  }
+  .note-display .note-icon {
+    font-size: 28px;
+    line-height: 1;
+  }
+  .note-display .note-info {
+    flex: 1;
+  }
+  .note-display .note-name {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--heading);
+  }
+  .note-display .note-freq {
+    font-size: 13px;
+    color: var(--text-muted);
+  }
+  .note-display.idle .note-name {
+    color: var(--text-muted);
+  }
+
+  /* 录制面板 */
+  .record-panel {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .record-dot {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--danger);
+    margin-right: 2px;
+  }
+  .record-dot.recording {
+    animation: recBlink 0.8s ease-in-out infinite;
+  }
+  @keyframes recBlink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.2; }
+  }
+  .record-time {
+    font-size: 13px;
+    color: var(--text-muted);
+    font-variant-numeric: tabular-nums;
+    min-width: 40px;
+  }
+
+  /* 录制列表 */
+  .recordings-list {
+    max-height: 200px;
+    overflow-y: auto;
+    margin-top: 12px;
+  }
+  .recording-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    margin-bottom: 6px;
+    transition: all 0.2s;
+    cursor: default;
+  }
+  .recording-item:hover {
+    border-color: var(--primary);
+    box-shadow: var(--shadow-sm);
+  }
+  .recording-item .rec-info {
+    flex: 1;
+  }
+  .recording-item .rec-name {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--heading);
+  }
+  .recording-item .rec-detail {
+    font-size: 12px;
+    color: var(--text-muted);
+  }
+
+  /* 键盘映射提示 */
+  .key-map-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
+    gap: 6px;
+    margin-top: 8px;
+  }
+  .key-map-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 8px;
+    background: var(--result-bg);
+    border-radius: 8px;
+    font-size: 12px;
+  }
+  .key-map-item .km-key {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 24px;
+    height: 24px;
+    padding: 0 5px;
+    border-radius: 5px;
+    background: var(--bg-active);
+    border: 1px solid var(--border);
+    font-weight: 700;
+    font-size: 11px;
+    color: var(--text-secondary);
+  }
+  .key-map-item .km-note {
+    color: var(--text);
+    font-weight: 500;
+  }
+
+  /* 选项开关 */
+  .toggle-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+  .toggle-row label {
+    margin: 0;
+    font-size: 13px;
+    color: var(--text-secondary);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .toggle-switch {
+    position: relative;
+    width: 40px;
+    height: 22px;
+    appearance: none;
+    -webkit-appearance: none;
+    background: var(--border);
+    border-radius: 11px;
+    outline: none;
+    cursor: pointer;
+    transition: background 0.2s;
+    flex-shrink: 0;
+  }
+  .toggle-switch:checked {
+    background: var(--primary);
+  }
+  .toggle-switch::after {
+    content: '';
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: #fff;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+    transition: transform 0.2s;
+  }
+  .toggle-switch:checked::after {
+    transform: translateX(18px);
+  }
+
+  /* 深色模式钢琴适配 */
+  [data-theme="dark"] .white-key {
+    background: linear-gradient(180deg, #e8e8e8 0%, #d8d8d8 85%, #c8c8c8 100%);
+    border-color: #666;
+  }
+  [data-theme="dark"] .white-key:hover {
+    background: linear-gradient(180deg, #f0e0d0 0%, #e8d0c0 85%, #e0c0b0 100%);
+  }
+  [data-theme="dark"] .white-key .key-label {
+    color: #666;
+  }
+  [data-theme="dark"] .white-key .key-bind {
+    color: #888;
+    background: rgba(255,255,255,0.06);
+  }
+
+  /* 移动端适配 */
+  @media (max-width: 768px) {
+    .piano { min-width: 500px; }
+    .white-key { min-width: 36px; padding-bottom: 6px; }
+    .white-key .key-label { font-size: 9px; }
+    .white-key .key-bind { font-size: 8px; }
+    .black-key .key-label { font-size: 8px; }
+    .black-key .key-bind { display: none; }
+    .note-display { padding: 10px 14px; }
+    .note-display .note-name { font-size: 16px; }
+    .note-display .note-icon { font-size: 22px; }
+    .timbre-selector { gap: 4px; }
+    .timbre-btn { padding: 6px 12px; font-size: 12px; }
+  }
+</style>
+
+
+
+<meta property="og:image" content="https://chenguangwu.github.io/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="ToolBox - 5000+免费在线工具">
+<meta name="twitter:image" content="https://chenguangwu.github.io/og-image.png">
+<meta name="twitter:image:alt" content="ToolBox - 5000+免费在线工具">
+    <meta property="og:type" content="website">
+    <meta name="twitter:title" content="钢琴键盘模拟器">
+    <meta name="twitter:description" content="使用鼠标点击或电脑键盘弹奏音符，支持三种音色切换、八度调节和录制回放。">
+<!-- TOOLBOX-WEBAPP-LD -->
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"鋼琴鍵盤模擬器","url":"https://chenguangwu.github.io/zh-tw/tools/music/piano-keyboard.html","applicationCategory":"GamesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":"zh-TW","description":"使用滑鼠點選或電腦鍵盤彈奏音符，支援三種音色切換、八度調節和錄製回放。","image":"https://chenguangwu.github.io/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}</script>
+<meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
+<meta http-equiv="X-Content-Type-Options" content="nosniff">
+<meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
+<!-- TOOLBOX-SECURITY -->
+
+<script src="/js/privacy.js" defer></script>
+<!-- TOOLBOX-PRIVACY-SCRIPT -->
+
+<script src="/js/metrics.js" defer></script>
+<!-- TOOLBOX-METRICS-SCRIPT -->
+
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"首頁","item":"https://chenguangwu.github.io/zh-tw/"},{"@type":"ListItem","position":2,"name":"音樂藝術","item":"https://chenguangwu.github.io/zh-tw/tools/music/index.html"},{"@type":"ListItem","position":3,"name":"鋼琴鍵盤模擬器","item":"https://chenguangwu.github.io/zh-tw/tools/music/piano-keyboard.html"}]}</script>
+
+<script src="/js/i18n.js" defer></script>
+<script src="/js/tool-i18n.js" defer></script>
+<!-- TOOLBOX-I18N-SCRIPT -->
+
+
+<meta name="title-en" content="Piano Keyboard - ToolBox">
+<meta name="desc-en" content="Piano Keyboard - free online tool. Free online tool on ToolBox — 100% client-side, no data uploaded, no install. Part of the Music &amp; Arts tools.">
+<!-- TOOLBOX-HREFLANG -->
+<link rel="alternate" hreflang="zh-CN" href="https://chenguangwu.github.io/tools/music/piano-keyboard.html">
+<link rel="alternate" hreflang="zh-TW" href="https://chenguangwu.github.io/zh-tw/tools/music/piano-keyboard.html">
+<link rel="alternate" hreflang="zh-HK" href="https://chenguangwu.github.io/zh-hk/tools/music/piano-keyboard.html">
+<link rel="alternate" hreflang="en-US" href="https://chenguangwu.github.io/tools/music/piano-keyboard.html?lang=en-US">
+<link rel="alternate" hreflang="x-default" href="https://chenguangwu.github.io/tools/music/piano-keyboard.html">
+<meta property="og:locale" content="zh_TW">
+<meta property="og:locale:alternate" content="zh_CN">
+<meta property="og:locale:alternate" content="zh_HK">
+<meta property="og:locale:alternate" content="en_US">
+</head>
+<body>
+<h1 class="sr-only">鋼琴鍵盤模擬器</h1>
+
+
+<!-- 導航欄 -->
+<div class="nav">
+  <a href="/zh-tw/index.html">&larr; ToolBox</a>
+  <span>/ 鋼琴鍵盤模擬器</span>
+  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()">&#127769;</button>
+</div>
+
+
+
+
+
+<nav class="breadcrumb" aria-label="麵包屑導航" data-breadcrumb="1">
+  <a href="/zh-tw/index.html">首頁</a>
+  <span class="bc-sep">‹</span>
+  <a href="/zh-tw/tools/music/index.html">🎵 音樂藝術</a>
+  <span class="bc-sep">‹</span>
+  <span class="bc-current">鋼琴鍵盤模擬器</span>
+</nav>
+<div class="container">
+  <!-- 工具標題 -->
+  <div class="card tool-card-accent" style="--tool-accent:#FF6B35;">
+    <h2 data-zh="&amp;#127930; 鋼琴鍵盤模擬器">&amp;#Piano Keyboard</h2>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="
+      使用滑鼠點選或電腦鍵盤彈奏音符，支援三種音色切換、八度調節和錄製回放。
+    ">Piano Keyboard is available directly in your browser, with no data uploaded.</p>
+
+    <!-- 當前音符顯示 -->
+    <div class="note-display idle" id="noteDisplay">
+      <div class="note-icon">&#127925;</div>
+      <div class="note-info">
+        <div class="note-name" id="noteName">等待彈奏...</div>
+        <div class="note-freq" id="noteFreq">--</div>
+      </div>
+    </div>
+
+    <!-- 控制面板 -->
+    <div style="display:flex;flex-wrap:wrap;gap:16px;margin-bottom:16px;align-items:flex-start;">
+      <!-- 音色選擇 -->
+      <div style="flex:1;min-width:200px;">
+        <label style="font-size:12px;color:var(--text-muted);margin-bottom:6px;">音色選擇</label>
+        <div class="timbre-selector" id="timbreSelector">
+          <button type="button" class="timbre-btn active" data-timbre="piano" onclick="setTimbre('piano')">&#127929; 鋼琴</button>
+          <button type="button" class="timbre-btn" data-timbre="electronic" onclick="setTimbre('electronic')">&#128923; 電子琴</button>
+          <button type="button" class="timbre-btn" data-timbre="organ" onclick="setTimbre('organ')">&#127932; 風琴</button>
+        </div>
+      </div>
+
+      <!-- 八度控制 -->
+      <div style="flex:0 0 auto;">
+        <label style="font-size:12px;color:var(--text-muted);margin-bottom:6px;">八度範圍</label>
+        <div class="octave-ctrl">
+          <button type="button" class="oct-btn" onclick="changeOctave(-1)">&minus;</button>
+          <div class="oct-display" id="octaveDisplay">3</div>
+          <button type="button" class="oct-btn" onclick="changeOctave(1)">+</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 選項開關 -->
+    <div class="toggle-row">
+      <label>
+        <input type="checkbox" class="toggle-switch" id="showLabels" checked onchange="toggleLabels()">
+        顯示音符名稱
+      </label>
+      <label style="margin-left:16px;">
+        <input type="checkbox" class="toggle-switch" id="showBinds" checked onchange="toggleBinds()">
+        顯示鍵盤快捷鍵
+      </label>
+    </div>
+  </div>
+
+  <!-- 鋼琴鍵盤 -->
+  <div class="card" style="padding:16px;">
+    <div class="piano-scroll-hint">&larr; 左右滑動檢視完整鍵盤 &rarr;</div>
+    <div class="piano-wrapper">
+      <div class="piano" id="piano"></div>
+    </div>
+  </div>
+
+  <!-- 錄製控制 -->
+  <div class="card">
+    <h3>&#128221; 錄製與回放</h3>
+    <div class="toolbar">
+      <button type="button" class="btn primary" id="recordBtn" onclick="toggleRecord()">
+        &#9679; 開始錄製
+      </button>
+      <button type="button" class="btn" id="playBtn" onclick="playRecording()" disabled>
+        &#9654; 回放
+      </button>
+      <button type="button" class="btn danger" id="clearRecBtn" onclick="clearRecordings()" disabled>
+        &#128465; 清空錄製
+      </button>
+      <div class="record-time" id="recordTime">0:00</div>
+    </div>
+    <div class="recordings-list" id="recordingsList"></div>
+  </div>
+
+  <!-- 鍵盤對映 -->
+  <div class="card">
+    <h3>&#9000; 鍵盤對映</h3>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:10px;">
+      使用電腦鍵盤彈奏當前八度的白鍵和黑鍵：
+    </p>
+    <div class="key-map-grid">
+      <div class="key-map-item"><span class="km-key">A</span><span class="km-note">C</span></div>
+      <div class="key-map-item"><span class="km-key">W</span><span class="km-note">C#</span></div>
+      <div class="key-map-item"><span class="km-key">S</span><span class="km-note">D</span></div>
+      <div class="key-map-item"><span class="km-key">E</span><span class="km-note">D#</span></div>
+      <div class="key-map-item"><span class="km-key">D</span><span class="km-note">E</span></div>
+      <div class="key-map-item"><span class="km-key">F</span><span class="km-note">F</span></div>
+      <div class="key-map-item"><span class="km-key">T</span><span class="km-note">F#</span></div>
+      <div class="key-map-item"><span class="km-key">G</span><span class="km-note">G</span></div>
+      <div class="key-map-item"><span class="km-key">Y</span><span class="km-note">G#</span></div>
+      <div class="key-map-item"><span class="km-key">H</span><span class="km-note">A</span></div>
+      <div class="key-map-item"><span class="km-key">U</span><span class="km-note">A#</span></div>
+      <div class="key-map-item"><span class="km-key">J</span><span class="km-note">B</span></div>
+    </div>
+  </div>
+
+  <!-- 工具介紹 (SEO) -->
+
+</div>
+
+</div>
+
+
+<!-- 相關工具 -->
+<div class="related-tools" data-related-tools="1">
+  <h3 class="related-tools-title">🔗 相關工具</h3>
+  <div class="related-tools-grid">
+    <a href="/zh-tw/tools/music/chord-progression.html" class="related-tool-card">
+      <span class="rt-icon">🎼</span>
+      <span class="rt-info"><span class="rt-name">和絃進行生成器 - 免費線上和絃進行生成器，隨機生成流行和絃進行</span><span class="rt-desc">&amp;#127926; 和絃進行生成器</span></span>
+    </a>
+    <a href="/zh-tw/tools/music/random-training-rhythm.html" class="related-tool-card">
+      <span class="rt-icon">🎵</span>
+      <span class="rt-info"><span class="rt-name">節奏訓練（隨機節奏點選）</span><span class="rt-desc">節奏訓練（隨機節奏點選）</span></span>
+    </a>
+    <a href="/zh-tw/tools/music/generator-1.html" class="related-tool-card">
+      <span class="rt-icon">🎵</span>
+      <span class="rt-info"><span class="rt-name">音階生成器（大調/小調/五聲音階）</span><span class="rt-desc">音階生成器（大調/小調/五聲音階）</span></span>
+    </a>
+    <a href="/zh-tw/tools/music/bpm-converter.html" class="related-tool-card">
+      <span class="rt-icon">⏱️</span>
+      <span class="rt-info"><span class="rt-name">BPM速度轉換器 - BPM與音符時長、延遲時間、LFO頻率、取樣長度互轉</span><span class="rt-desc">&amp;#9201;&amp;#65039; BPM 速度轉換器</span></span>
+    </a>
+    <a href="/zh-tw/tools/music/convert-speed.html" class="related-tool-card">
+      <span class="rt-icon">🎵</span>
+      <span class="rt-info"><span class="rt-name">歌曲速度轉換（BPM微調）</span><span class="rt-desc">歌曲速度轉換（BPM微調）</span></span>
+    </a>
+    <a href="/zh-tw/tools/music/audio-converter.html" class="related-tool-card">
+      <span class="rt-icon">🔄</span>
+      <span class="rt-info"><span class="rt-name">音訊轉換 - 音樂藝術領域的線上工具</span><span class="rt-desc">音訊格式轉換引數</span></span>
+    </a>
+  </div>
+</div>
+<div class="tool-intro" id="toolIntro">
+    <div class="tool-intro-header" onclick="this.parentElement.classList.toggle('open')">
+      <div class="intro-icon-wrap">
+        <span class="intro-icon">&#127930;</span>
+        <span>關於鋼琴鍵盤模擬器</span>
+      </div>
+      <span class="arrow">&#9660;</span>
+    </div>
+    <div class="tool-intro-body">
+      <p>這是一個完全在瀏覽器中執行的虛擬鋼琴，使用 Web Audio API 合成逼真的鋼琴音色。無需安裝任何軟體或外掛，開啟即用。</p>
+      <h4><span class="h4-icon">&#9889;</span> 功能特點</h4>
+      <ul class="intro-features">
+        <li>Web Audio API 合成音色</li>
+        <li>三種音色：鋼琴 / 電子琴 / 風琴</li>
+        <li>鍵盤快捷鍵彈奏</li>
+        <li>錄製彈奏序列</li>
+        <li>可回放錄製內容</li>
+        <li>可切換八度範圍</li>
+        <li>ADSR 包絡模擬</li>
+        <li>響應式設計</li>
+      </ul>
+      <h4><span class="h4-icon">&#127916;</span> 使用場景</h4>
+      <ul class="intro-scenes">
+        <li>音樂學習與練習</li>
+        <li>旋律創作與靈感記錄</li>
+        <li>音高與和絃辨識訓練</li>
+        <li>教學演示與講解</li>
+      </ul>
+      <h4><span class="h4-icon">&#10067;</span> 常見問題</h4>
+      <div class="intro-faq-item">
+        <div class="intro-faq-q">聲音沒有播放怎麼辦？</div>
+        <div class="intro-faq-a">Web Audio API 需要使用者互動後才能啟用。請點選頁面上任意位置後再試。另外請確認裝置沒有靜音。</div>
+      </div>
+      <div class="intro-faq-item">
+        <div class="intro-faq-q">如何在移動端使用？</div>
+        <div class="intro-faq-a">直接用手指點選琴鍵即可彈奏。左右滑動可以檢視完整鍵盤。</div>
+      </div>
+      <div class="intro-faq-item">
+        <div class="intro-faq-q">支援哪些音色？</div>
+        <div class="intro-faq-a">目前提供鋼琴（正弦波+衰減）、電子琴（方波）和風琴（正弦波+諧波）三種音色，每種都有獨立的 ADSR 包絡引數。</div>
+      </div>
+    </div>
+  </div>
+
+<!-- TOOLBOX-DEEP-DIVE -->
+<style>
+.deep-dive{max-width:960px;margin:16px auto;padding:0 16px;}
+.deep-dive > .card{margin-bottom:0;}
+@media(max-width:600px){.deep-dive{margin:14px auto;padding:0 12px;}}
+.deep-dive .dd-list{margin:8px 0 16px;padding-left:20px;}
+.deep-dive .dd-list li{margin:6px 0;line-height:1.75;}
+.deep-dive .dd-example{background:var(--card-bg,#fff);border:1px solid var(--border,#eee);border-radius:10px;padding:12px 14px;margin:8px 0 16px;}
+.deep-dive .dd-ex-title{font-weight:600;color:var(--tool-accent,#FF6B35);margin-bottom:6px;}
+.deep-dive .dd-ex-body{font-size:13px;line-height:1.85;color:var(--text,#333);word-break:break-word;}
+.deep-dive .dd-faq{margin:8px 0 4px;}
+.deep-dive .dd-faq dt{font-weight:600;margin-top:10px;color:var(--text,#333);}
+.deep-dive .dd-faq dd{margin:4px 0 0;font-size:13px;line-height:1.85;color:var(--text-muted,#666);}
+
+</style>
+<section class="deep-dive" data-deep-dive="1">
+<div class="card">
+<h2>📚 深度解析：鋼琴鍵盤模擬器</h2>
+<h3>💡 常見使用場景</h3>
+<ul class="dd-list">
+<li>在「鋼琴鍵盤模擬器」場景先統一輸入單位與口徑，先做基準算例，再做邊界場景核驗，避免把輸出誤讀為模型差異。</li>
+<li>建議固定關鍵變數並逐步調整其餘輸入，觀察輸出變化方向，快速定位異常源。</li>
+<li>常見場景：鋼琴鍵盤模擬器</li>
+</ul>
+<div class="dd-example"><div class="dd-ex-title">快速複核「鋼琴鍵盤模擬器」</div><div class="dd-ex-body">先執行工具預設樣例，再做一組極端輸入進行對照；如輸出跳變明顯，優先檢查單位、閾值與是否按新版本口徑切換。</div></div>
+<h3>❓ 常見問題（FAQ）</h3>
+<dl class="dd-faq">
+<dt>鋼琴鍵盤模擬器 可直接用於正式報告嗎？</dt><dd>適合用於快速核對和教學演示；正式報告建議補充資料來源、口徑定義、邊界條件與稽核責任鏈。</dd>
+<dt>值跳變或異常偏差怎麼辦？</dt><dd>先核查輸入是否超出定義域、單位是否混用、以及引數是否按同一計算版本口徑輸入。</dd>
+</dl>
+</div>
+</section>
+<!-- 注意事項區塊 -->
+<div class="tool-notes" style="--tool-accent:#FF6B35;">
+  <div class="tool-notes-title">⚠️ 使用說明與注意事項</div>
+  <ul>
+      <li>本工具純前端執行，資料不會上傳到伺服器</li>
+      <li>建議在主流瀏覽器（Chrome/Safari/Firefox/Edge）中使用</li>
+      <li>計算結果僅供參考，請以實際應用場景為準</li>
+  </ul>
+</div>
+<!-- /注意事項區塊 -->
+</div>
+
+<script>
+(function() {
+  'use strict';
+
+  /* ========== 常量定义 ========== */
+
+  // 音符名称定义（每个八度12个半音）
+  var NOTE_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+
+  // 白键在12音中的索引
+  var WHITE_NOTE_INDICES = [0, 2, 4, 5, 7, 9, 11]; // C D E F G A B
+
+  // 黑键在12音中的索引及相对位置
+  var BLACK_KEYS = [
+    { noteIdx: 1, afterWhiteIdx: 0 }, // C# 在 C 和 D 之间
+    { noteIdx: 3, afterWhiteIdx: 1 }, // D# 在 D 和 E 之间
+    { noteIdx: 6, afterWhiteIdx: 3 }, // F# 在 F 和 G 之间
+    { noteIdx: 8, afterWhiteIdx: 4 }, // G# 在 G 和 A 之间
+    { noteIdx: 10, afterWhiteIdx: 5 } // A# 在 A 和 B 之间
+  ];
+
+  // 键盘映射（电脑键盘 -> 音符索引）
+  var KEY_MAP = {
+    'a': 0, 'w': 1, 's': 2, 'e': 3, 'd': 4,
+    'f': 5, 't': 6, 'g': 7, 'y': 8, 'h': 9,
+    'u': 10, 'j': 11
+  };
+
+  // 音色配置（ADSR参数）
+  var TIMBRES = {
+    piano: {
+      name: '钢琴',
+      wave: 'sine',
+      attack: 0.01,
+      decay: 0.3,
+      sustain: 0.3,
+      release: 0.5,
+      harmonics: []
+    },
+    electronic: {
+      name: '电子琴',
+      wave: 'square',
+      attack: 0.01,
+      decay: 0.1,
+      sustain: 0.8,
+      release: 0.1,
+      harmonics: []
+    },
+    organ: {
+      name: '风琴',
+      wave: 'sine',
+      attack: 0.02,
+      decay: 0.1,
+      sustain: 0.9,
+      release: 0.2,
+      harmonics: [0.5, 0.25] // 添加2次和3次谐波
+    }
+  };
+
+  // A4 = 440Hz，计算频率的基准
+  var A4_FREQ = 440;
+  var A4_MIDI = 69;
+
+  /* ========== 状态 ========== */
+  var currentOctave = 3;
+  var currentTimbre = 'piano';
+  var audioCtx = null;
+  var activeNotes = {};    // noteKey -> {oscillators, gainNode}
+  var pressedKeys = {};     // keyboard key -> noteKey
+  var isRecording = false;
+  var recordingStartTime = 0;
+  var recordTimer = null;
+  var recordedNotes = [];  // {noteKey, freq, name, time}
+  var recordings = [];      // [{name, notes, duration}]
+  var isPlaying = false;
+  var playTimeouts = [];
+  var showLabels = true;
+  var showBindsFlag = true;
+
+  /* ========== 音频引擎 ========== */
+
+  function ensureAudioCtx() {
+    if (!audioCtx) {
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    }
+    if (audioCtx.state === 'suspended') {
+      audioCtx.resume();
+    }
+    return audioCtx;
+  }
+
+  // 根据音符名和八度计算频率
+  function getFrequency(noteIdx, octave) {
+    var midi = (octave + 1) * 12 + noteIdx;
+    return A4_FREQ * Math.pow(2, (midi - A4_MIDI) / 12);
+  }
+
+  // 获取完整音符名
+  function getNoteName(noteIdx, octave) {
+    return NOTE_NAMES[noteIdx] + octave;
+  }
+
+  // 音符唯一键
+  function getNoteKey(noteIdx, octave) {
+    return noteIdx + '_' + octave;
+  }
+
+  // 开始播放音符
+  function noteOn(noteIdx, octave) {
+    var key = getNoteKey(noteIdx, octave);
+    if (activeNotes[key]) return; // 已在播放
+
+    var ctx = ensureAudioCtx();
+    var timbre = TIMBRES[currentTimbre];
+    var freq = getFrequency(noteIdx, octave);
+
+    var masterGain = ctx.createGain();
+    masterGain.connect(ctx.destination);
+
+    // ADSR: Attack
+    masterGain.gain.setValueAtTime(0, ctx.currentTime);
+    masterGain.gain.linearRampToValueAtTime(0.6, ctx.currentTime + timbre.attack);
+
+    // ADSR: Decay -> Sustain
+    masterGain.gain.linearRampToValueAtTime(
+      timbre.sustain * 0.6,
+      ctx.currentTime + timbre.attack + timbre.decay
+    );
+
+    var oscillators = [];
+
+    // 主振荡器
+    var osc = ctx.createOscillator();
+    osc.type = timbre.wave;
+    osc.frequency.setValueAtTime(freq, ctx.currentTime);
+    osc.connect(masterGain);
+    osc.start(ctx.currentTime);
+    oscillators.push(osc);
+
+    // 谐波（风琴等音色）
+    timbre.harmonics.forEach(function(amp, i) {
+      var harmOsc = ctx.createOscillator();
+      harmOsc.type = timbre.wave;
+      harmOsc.frequency.setValueAtTime(freq * (i + 2), ctx.currentTime);
+      var harmGain = ctx.createGain();
+      harmGain.gain.setValueAtTime(amp, ctx.currentTime);
+      harmOsc.connect(harmGain);
+      harmGain.connect(masterGain);
+      harmOsc.start(ctx.currentTime);
+      oscillators.push(harmOsc);
+    });
+
+    activeNotes[key] = {
+      oscillators: oscillators,
+      gainNode: masterGain,
+      startTime: ctx.currentTime
+    };
+
+    // 更新UI
+    updateKeyUI(noteIdx, octave, true);
+    updateNoteDisplay(noteIdx, octave, freq);
+
+    // 录制
+    if (isRecording) {
+      recordedNotes.push({
+        noteKey: key,
+        noteIdx: noteIdx,
+        octave: octave,
+        freq: freq,
+        name: getNoteName(noteIdx, octave),
+        time: Date.now() - recordingStartTime
+      });
+    }
+  }
+
+  // 停止播放音符
+  function noteOff(noteIdx, octave) {
+    var key = getNoteKey(noteIdx, octave);
+    var note = activeNotes[key];
+    if (!note) return;
+
+    var ctx = ensureAudioCtx();
+    var timbre = TIMBRES[currentTimbre];
+    var now = ctx.currentTime;
+
+    // ADSR: Release
+    note.gainNode.gain.cancelScheduledValues(now);
+    note.gainNode.gain.setValueAtTime(note.gainNode.gain.value, now);
+    note.gainNode.gain.linearRampToValueAtTime(0, now + timbre.release);
+
+    // 延迟后断开
+    (function(n) {
+      setTimeout(function() {
+        n.oscillators.forEach(function(osc) {
+          try { osc.stop(); } catch(e) {}
+        });
+        try { n.gainNode.disconnect(); } catch(e) {}
+      }, timbre.release * 1000 + 50);
+    })(note);
+
+    delete activeNotes[key];
+
+    // 更新UI
+    updateKeyUI(noteIdx, octave, false);
+  }
+
+  // 更新按键高亮
+  function updateKeyUI(noteIdx, octave, isPressed) {
+    var key = getNoteKey(noteIdx, octave);
+    var el = document.querySelector('[data-note-key="' + key + '"]');
+    if (el) {
+      el.classList.toggle('active', isPressed);
+    }
+  }
+
+  // 更新音符显示区
+  function updateNoteDisplay(noteIdx, octave, freq) {
+    var display = document.getElementById('noteDisplay');
+    var nameEl = document.getElementById('noteName');
+    var freqEl = document.getElementById('noteFreq');
+    display.classList.remove('idle');
+    nameEl.textContent = getNoteName(noteIdx, octave);
+    freqEl.textContent = freq.toFixed(2) + ' Hz';
+  }
+
+  /* ========== 钢琴键盘渲染 ========== */
+
+  function renderPiano() {
+    var piano = document.getElementById('piano');
+    piano.innerHTML = '';
+
+    var numOctaves = 2;
+    var totalWhiteKeys = numOctaves * 7;
+
+    // 计算白键宽度百分比
+    var whiteKeyPercent = 100 / totalWhiteKeys;
+    var blackKeyWidthPercent = (whiteKeyPercent * 0.6);
+
+    for (var oct = 0; oct < numOctaves; oct++) {
+      var octave = currentOctave + oct;
+      var whiteIdxOffset = oct * 7;
+
+      // 渲染白键
+      WHITE_NOTE_INDICES.forEach(function(noteIdx, wIdx) {
+        var globalWhiteIdx = whiteIdxOffset + wIdx;
+        var key = getNoteKey(noteIdx, octave);
+        var noteName = NOTE_NAMES[noteIdx] + octave;
+        var bindKey = getBindKeyForNote(noteIdx);
+
+        var whiteKey = document.createElement('div');
+        whiteKey.className = 'white-key';
+        whiteKey.dataset.noteKey = key;
+        whiteKey.dataset.noteIdx = noteIdx;
+        whiteKey.dataset.octave = octave;
+        whiteKey.style.width = whiteKeyPercent + '%';
+
+        var labelSpan = document.createElement('span');
+        labelSpan.className = 'key-label';
+        labelSpan.textContent = noteName;
+        if (!showLabels) labelSpan.style.display = 'none';
+        whiteKey.appendChild(labelSpan);
+
+        if (bindKey && showBindsFlag) {
+          var bindSpan = document.createElement('span');
+          bindSpan.className = 'key-bind';
+          bindSpan.textContent = bindKey.toUpperCase();
+          whiteKey.appendChild(bindSpan);
+        }
+
+        piano.appendChild(whiteKey);
+
+        // 鼠标/触摸事件
+        addPointerEvents(whiteKey, noteIdx, octave);
+      });
+
+      // 渲染黑键
+      BLACK_KEYS.forEach(function(bk) {
+        var noteIdx = bk.noteIdx;
+        var afterWhiteGlobal = whiteIdxOffset + bk.afterWhiteIdx;
+        var key = getNoteKey(noteIdx, octave);
+        var noteName = NOTE_NAMES[noteIdx] + octave;
+        var bindKey = getBindKeyForNote(noteIdx);
+
+        var blackKey = document.createElement('div');
+        blackKey.className = 'black-key';
+        blackKey.dataset.noteKey = key;
+        blackKey.dataset.noteIdx = noteIdx;
+        blackKey.dataset.octave = octave;
+
+        // 定位黑键：在对应白键右侧边缘
+        var leftPos = ((afterWhiteGlobal + 1) * whiteKeyPercent) - (blackKeyWidthPercent / 2);
+        blackKey.style.left = leftPos + '%';
+        blackKey.style.width = blackKeyWidthPercent + '%';
+
+        var labelSpan = document.createElement('span');
+        labelSpan.className = 'key-label';
+        labelSpan.textContent = noteName;
+        if (!showLabels) labelSpan.style.display = 'none';
+        blackKey.appendChild(labelSpan);
+
+        if (bindKey && showBindsFlag) {
+          var bindSpan = document.createElement('span');
+          bindSpan.className = 'key-bind';
+          bindSpan.textContent = bindKey.toUpperCase();
+          blackKey.appendChild(bindSpan);
+        }
+
+        piano.appendChild(blackKey);
+
+        // 鼠标/触摸事件
+        addPointerEvents(blackKey, noteIdx, octave);
+      });
+    }
+  }
+
+  // 获取键盘按键绑定
+  function getBindKeyForNote(noteIdx) {
+    for (var k in KEY_MAP) {
+      if (KEY_MAP[k] === noteIdx) return k;
+    }
+    return null;
+  }
+
+  // 添加指针事件（鼠标+触摸）
+  function addPointerEvents(el, noteIdx, octave) {
+    var isDown = false;
+
+    function onDown(e) {
+      if (e.cancelable) e.preventDefault();
+      if (isDown) return;
+      isDown = true;
+      noteOn(noteIdx, octave);
+    }
+    function onUp(e) {
+      if (e.cancelable) e.preventDefault();
+      if (!isDown) return;
+      isDown = false;
+      noteOff(noteIdx, octave);
+    }
+
+    el.addEventListener('mousedown', onDown);
+    el.addEventListener('mouseup', onUp);
+    el.addEventListener('mouseleave', onUp);
+    el.addEventListener('touchstart', onDown, { passive: false });
+    el.addEventListener('touchend', onUp, { passive: false });
+    el.addEventListener('touchcancel', onUp, { passive: false });
+  }
+
+  /* ========== 电脑键盘控制 ========== */
+
+  document.addEventListener('keydown', function(e) {
+    if (e.repeat) return;
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+
+    var k = e.key.toLowerCase();
+    if (k in KEY_MAP) {
+      e.preventDefault();
+      var noteIdx = KEY_MAP[k];
+      if (pressedKeys[k]) return;
+      pressedKeys[k] = true;
+      noteOn(noteIdx, currentOctave);
+    }
+  });
+
+  document.addEventListener('keyup', function(e) {
+    var k = e.key.toLowerCase();
+    if (k in KEY_MAP && pressedKeys[k]) {
+      e.preventDefault();
+      pressedKeys[k] = false;
+      noteOff(KEY_MAP[k], currentOctave);
+    }
+  });
+
+  /* ========== 音色切换 ========== */
+
+  window.setTimbre = function(timbre) {
+    currentTimbre = timbre;
+    var btns = document.querySelectorAll('.timbre-btn');
+    btns.forEach(function(btn) {
+      btn.classList.toggle('active', btn.dataset.timbre === timbre);
+    });
+    ToolBox.showToast(i18nText('toast.saved', '已切换到' + TIMBRES[timbre].name + '音色'), 'success');
+  };
+
+  /* ========== 八度控制 ========== */
+
+  window.changeOctave = function(delta) {
+    var newOct = currentOctave + delta;
+    if (newOct < 1 || newOct > 7) {
+      ToolBox.showToast(i18nText(), 'warning');
+      return;
+    }
+    // 停止所有当前音符
+    stopAllNotes();
+    currentOctave = newOct;
+    document.getElementById('octaveDisplay').textContent = currentOctave;
+    renderPiano();
+    ToolBox.showToast('八度切换到 C' + currentOctave, 'info');
+  };
+
+  function stopAllNotes() {
+    for (var key in activeNotes) {
+      var parts = key.split('_');
+      noteOff(parseInt(parts[0]), parseInt(parts[1]));
+    }
+    pressedKeys = {};
+  }
+
+  /* ========== 标签切换 ========== */
+
+  window.toggleLabels = function() {
+    showLabels = document.getElementById('showLabels').checked;
+    var labels = document.querySelectorAll('.key-label');
+    labels.forEach(function(l) {
+      l.style.display = showLabels ? '' : 'none';
+    });
+  };
+
+  window.toggleBinds = function() {
+    showBindsFlag = document.getElementById('showBinds').checked;
+    var binds = document.querySelectorAll('.key-bind');
+    binds.forEach(function(b) {
+      b.style.display = showBindsFlag ? '' : 'none';
+    });
+  };
+
+  /* ========== 录制功能 ========== */
+
+  window.toggleRecord = function() {
+    if (isRecording) {
+      stopRecording();
+    } else {
+      startRecording();
+    }
+  };
+
+  function startRecording() {
+    isRecording = true;
+    recordedNotes = [];
+    recordingStartTime = Date.now();
+    var btn = document.getElementById('recordBtn');
+    btn.innerHTML = '<span class="record-dot recording"></span> 停止录制';
+    btn.classList.remove('primary');
+    btn.classList.add('danger');
+    document.getElementById('playBtn').disabled = true;
+    document.getElementById('clearRecBtn').disabled = true;
+
+    // 录制计时器
+    updateRecordTime();
+    recordTimer = setInterval(updateRecordTime, 200);
+
+    ToolBox.showToast(i18nText(), 'info');
+  }
+
+  function stopRecording() {
+    isRecording = false;
+    if (recordTimer) {
+      clearInterval(recordTimer);
+      recordTimer = null;
+    }
+
+    var duration = Date.now() - recordingStartTime;
+    var btn = document.getElementById('recordBtn');
+    btn.innerHTML = '&#9679; 开始录制';
+    btn.classList.remove('danger');
+    btn.classList.add('primary');
+
+    if (recordedNotes.length > 0) {
+      var rec = {
+        name: '录制 ' + (recordings.length + 1),
+        notes: recordedNotes.slice(),
+        duration: duration
+      };
+      recordings.push(rec);
+      renderRecordings();
+      document.getElementById('playBtn').disabled = false;
+      document.getElementById('clearRecBtn').disabled = false;
+      ToolBox.showToast(i18nText('toast.saved', '录制完成，共 ' + recordedNotes.length + ' 个音符'), 'success');
+    } else {
+      ToolBox.showToast(i18nText(), 'warning');
+    }
+  }
+
+  function updateRecordTime() {
+    var elapsed = Math.floor((Date.now() - recordingStartTime) / 1000);
+    var min = Math.floor(elapsed / 60);
+    var sec = elapsed % 60;
+    document.getElementById('recordTime').textContent = min + ':' + (sec < 10 ? '0' : '') + sec;
+  }
+
+  function renderRecordings() {
+    var list = document.getElementById('recordingsList');
+    if (recordings.length === 0) {
+      list.innerHTML = '<div style="text-align:center;padding:20px;color:var(--text-muted);font-size:13px;">暂无录制</div>';
+      return;
+    }
+    var html = '';
+    recordings.forEach(function(rec, idx) {
+      var dur = Math.floor(rec.duration / 1000);
+      var durStr = Math.floor(dur / 60) + ':' + (dur % 60 < 10 ? '0' : '') + (dur % 60);
+      html += '<div class="recording-item">'
+        + '<div class="rec-info">'
+        + '<div class="rec-name">' + rec.name + '</div>'
+        + '<div class="rec-detail">' + rec.notes.length + ' 个音符 / ' + durStr + '</div>'
+        + '</div>'
+        + '<button type="button" class="btn" onclick="playRecordingIdx(' + idx + ')" style="padding:6px 14px;font-size:12px;">&#9654; 播放</button>'
+        + '<button type="button" class="btn danger" onclick="deleteRecording(' + idx + ')" style="padding:6px 10px;font-size:12px;">&#128465;</button>'
+        + '</div>';
+    });
+    list.innerHTML = html;
+  }
+
+  window.playRecording = function() {
+    if (recordings.length === 0) return;
+    playRecordingIdx(recordings.length - 1);
+  };
+
+  window.playRecordingIdx = function(idx) {
+    if (isPlaying) {
+      stopPlayback();
+      return;
+    }
+    var rec = recordings[idx];
+    if (!rec || rec.notes.length === 0) return;
+
+    isPlaying = true;
+    var btn = document.getElementById('playBtn');
+    btn.innerHTML = '&#9632; 停止回放';
+    btn.classList.remove('primary');
+    btn.classList.add('warning');
+
+    // 计算音符时长
+    var noteDurations = [];
+    for (var i = 0; i < rec.notes.length; i++) {
+      if (i < rec.notes.length - 1) {
+        noteDurations.push(rec.notes[i + 1].time - rec.notes[i].time);
+      } else {
+        noteDurations.push(300); // 最后一个音符300ms
+      }
+    }
+
+    rec.notes.forEach(function(note, i) {
+      var onT = setTimeout(function() {
+        noteOn(note.noteIdx, note.octave);
+      }, note.time);
+
+      var offT = setTimeout(function() {
+        noteOff(note.noteIdx, note.octave);
+      }, note.time + Math.min(noteDurations[i], 800));
+
+      playTimeouts.push(onT, offT);
+    });
+
+    // 结束回放
+    var endT = setTimeout(function() {
+      stopPlayback();
+    }, rec.duration + 500);
+    playTimeouts.push(endT);
+
+    ToolBox.showToast('正在回放: ' + rec.name, 'info');
+  };
+
+  function stopPlayback() {
+    playTimeouts.forEach(function(t) { clearTimeout(t); });
+    playTimeouts = [];
+    stopAllNotes();
+    isPlaying = false;
+    var btn = document.getElementById('playBtn');
+    btn.innerHTML = '&#9654; 回放';
+    btn.classList.remove('warning');
+    btn.classList.add('primary');
+  }
+
+  window.clearRecordings = function() {
+    if (isPlaying) stopPlayback();
+    recordings = [];
+    renderRecordings();
+    document.getElementById('playBtn').disabled = true;
+    document.getElementById('clearRecBtn').disabled = true;
+    document.getElementById('recordTime').textContent = '0:00';
+    ToolBox.showToast(i18nText(), 'success');
+  };
+
+  window.deleteRecording = function(idx) {
+    if (isPlaying) stopPlayback();
+    recordings.splice(idx, 1);
+    // 重新编号
+    recordings.forEach(function(rec, i) {
+      rec.name = '录制 ' + (i + 1);
+    });
+    renderRecordings();
+    document.getElementById('playBtn').disabled = recordings.length === 0;
+    document.getElementById('clearRecBtn').disabled = recordings.length === 0;
+  };
+
+  /* ========== 初始化 ========== */
+
+  document.addEventListener('DOMContentLoaded', function() {
+    renderPiano();
+    renderRecordings();
+
+    // 确保Audio Context在首次交互时激活
+    document.addEventListener('click', function initAudio() {
+      ensureAudioCtx();
+      document.removeEventListener('click', initAudio);
+    }, { once: true });
+    document.addEventListener('touchstart', function initAudio() {
+      ensureAudioCtx();
+      document.removeEventListener('touchstart', initAudio);
+    }, { once: true });
+  });
+
+  // 防止页面离开时声音继续
+  window.addEventListener('beforeunload', function() {
+    stopAllNotes();
+  });
+
+})();
+</script><script>
+// tool-intro折叠交互
+document.addEventListener('DOMContentLoaded',function(){
+  var headers=document.querySelectorAll('.tool-intro-header');
+  headers.forEach(function(h){
+    h.addEventListener('click',function(){
+      this.parentElement.classList.toggle('open');
+    });
+  });
+});
+</script>
+
+</body>
+</html>

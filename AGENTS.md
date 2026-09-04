@@ -8,7 +8,7 @@
 
 **项目名称**：ToolBox - 6000+ 免费在线工具百科
 
-**技术栈**：纯前端 HTML5 + CSS3 变量主题 + 原生 ES6 JavaScript + Python 3 构建脚本
+**技术栈**：纯前端 HTML5 + CSS3 变量主题 + 原生 ES6 JavaScript + Python/Node.js 构建脚本
 
 **部署方式**：GitHub Pages 静态托管（Deploy from a branch，`.nojekyll` 强制纯静态直发）
 
@@ -153,9 +153,9 @@ chenguangwu.github.io/
 
 ### 1. 纯前端原则
 - **禁止**引入任何后端服务、API 调用（第三方 CDN 除外，但尽量避免）
-- **禁止**使用任何需要 npm/yarn/pnpm/bun 的构建工具链（React/Vue/Angular/TS 等都不行）
-- **禁止**添加任何构建配置文件（package.json / vite.config / webpack.config 等）
-- 所有工具必须能在浏览器中直接运行，双击 HTML 即可用
+- 允许使用 npm/yarn/pnpm/bun 和前端构建工具；新增依赖必须锁定版本并说明用途。
+- 可以使用 React/Vue/Vite 等框架，但发布产物必须是 GitHub Pages 可直接提供、搜索引擎无需执行应用脚本即可抓取正文的静态 HTML；不得只发布客户端空壳或 hash 路由。
+- 所有工具的最终发布页必须可在浏览器中直接运行；动态 JSON 页面仍需通过 HTTP 服务访问。
 
 #### ❌ 禁止开发的工具类型（需要后端服务）
 以下类型的工具需要后端 API 或实时数据，禁止添加：

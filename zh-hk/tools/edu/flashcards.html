@@ -1,0 +1,1403 @@
+<!DOCTYPE html>
+<html lang="zh-HK" data-opencc-locale="zh-hk">
+<head>
+
+<script src="/js/tool-page-runtime.js" defer></script>
+<!-- TOOLBOX-TOOL-RUNTIME -->
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="toolbox" content="cat=reference,industry=edu,icon=📇,bg=#e8eaf6">
+<title>識字卡片 - ToolBox</title>
+<link rel="canonical" href="https://chenguangwu.github.io/zh-hk/tools/edu/flashcards.html">
+<meta property="og:title" content="识字卡片">
+<meta property="og:description" content="识字卡片，翻转卡片学习汉字与英文单词(含拼音/音标/释义)，支持键盘操作，适合儿童启蒙与记忆。">
+<meta property="og:url" content="https://chenguangwu.github.io/zh-hk/tools/edu/flashcards.html">
+<meta name="twitter:card" content="summary">
+<meta name="description" content="识字卡片，翻转卡片学习汉字与英文单词(含拼音/音标/释义)，支持键盘操作，适合儿童启蒙与记忆。">
+<meta name="keywords" content="识字卡片,汉字学习,英语单词,flashcard,儿童教育,拼音学习,单词记忆,在线学习工具">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<link rel="icon" type="image/x-icon" href="/favicon.ico">
+<link rel="preload" as="style" href="/css/common.css" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="/css/common.css"></noscript>
+<script>window.__tbq=window.__tbq||[];window.ToolBox=window.ToolBox||{};['initToolTheme','addToolStyles','showToast','toast','copyText','copyToClipboard','copyFromElement','downloadText','injectPrivacyBadge','toggleFavTool','addToRecentTool','toggleToolTheme','applyTheme'].forEach(function(k){if(typeof window.ToolBox[k]!=='function')window.ToolBox[k]=function(){window.__tbq.push([k,[].slice.call(arguments)]);};});</script><!-- TOOLBOX-API-STUB -->
+<script src="/js/common.js" defer></script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"識字卡片 - ToolBox","description":"免費在線識字卡片工具，支持漢字識字和英文單詞兩種學習模式，內置豐富詞庫，進度自動保存。","applicationCategory":"EducationalApplication","operatingSystem":"Any","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"},"featureList":["漢字識字卡片","英文單詞卡片","卡片翻轉動畫","學習進度統計","鍵盤快捷鍵操作"]}</script>
+<style>
+/* 卡片翻转容器 */
+.flip-container {
+  perspective: 1000px;
+  width: 100%;
+  max-width: 380px;
+  height: 260px;
+  margin: 0 auto;
+  cursor: pointer;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+.flip-card {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+  transform-style: preserve-3d;
+}
+.flip-card.flipped {
+  transform: rotateY(180deg);
+}
+.flip-front, .flip-back {
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%;
+  height: 100%;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  border-radius: 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  box-shadow: var(--shadow-lg);
+  border: 2px solid var(--border);
+  overflow: hidden;
+}
+.flip-front {
+  background: var(--card-bg);
+  z-index: 2;
+}
+.flip-front::before {
+  content: '';
+  position: absolute;
+  top: -40px; right: -40px;
+  width: 120px; height: 120px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, rgba(255,107,53,0.08), rgba(124,58,237,0.08));
+  pointer-events: none;
+}
+.flip-front::after {
+  content: '';
+  position: absolute;
+  bottom: -30px; left: -30px;
+  width: 100px; height: 100px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, rgba(0,201,167,0.06), rgba(59,130,246,0.06));
+  pointer-events: none;
+}
+.flip-back {
+  background: var(--card-bg);
+  transform: rotateY(180deg);
+}
+.flip-back::before {
+  content: '';
+  position: absolute;
+  top: -40px; left: -40px;
+  width: 120px; height: 120px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, rgba(124,58,237,0.08), rgba(255,107,53,0.08));
+  pointer-events: none;
+}
+
+/* 卡片正面大字 */
+.card-char {
+  font-size: 80px;
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1;
+  position: relative;
+  z-index: 1;
+}
+.card-hint {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin-top: 16px;
+  position: relative;
+  z-index: 1;
+}
+
+/* 卡片背面 */
+.card-pinyin {
+  font-size: 28px;
+  font-weight: 600;
+  color: var(--primary);
+  margin-bottom: 8px;
+  position: relative;
+  z-index: 1;
+}
+.card-meaning {
+  font-size: 18px;
+  color: var(--text);
+  text-align: center;
+  padding: 0 24px;
+  line-height: 1.5;
+  position: relative;
+  z-index: 1;
+}
+.card-phonetic {
+  font-size: 16px;
+  color: var(--secondary);
+  margin-bottom: 6px;
+  font-style: italic;
+  position: relative;
+  z-index: 1;
+}
+.card-translate {
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--text);
+  position: relative;
+  z-index: 1;
+}
+
+/* 导航控制 */
+.nav-controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  margin: 20px auto 0;
+  max-width: 400px;
+}
+.nav-btn {
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  border: 1.5px solid var(--border);
+  background: var(--card-bg);
+  color: var(--text);
+  cursor: pointer;
+  font-size: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+.nav-btn:hover {
+  border-color: var(--primary);
+  background: var(--bg-hover);
+  transform: translateY(-1px);
+}
+.nav-btn:active { transform: translateY(0); }
+.nav-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  transform: none !important;
+}
+.card-counter {
+  font-size: 14px;
+  color: var(--text-muted);
+  font-weight: 500;
+  min-width: 60px;
+  text-align: center;
+}
+
+/* 学习按钮 */
+.learn-btns {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  margin-top: 20px;
+}
+.learn-btn {
+  padding: 14px 32px;
+  border-radius: 14px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  border: 2px solid;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.learn-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow);
+}
+.learn-btn:active { transform: translateY(0); }
+.learn-btn.know {
+  border-color: var(--success);
+  color: var(--success);
+  background: rgba(16,185,129,0.08);
+}
+.learn-btn.know:hover {
+  background: rgba(16,185,129,0.15);
+  box-shadow: 0 4px 16px rgba(16,185,129,0.25);
+}
+.learn-btn.unknown {
+  border-color: var(--danger);
+  color: var(--danger);
+  background: rgba(239,68,68,0.08);
+}
+.learn-btn.unknown:hover {
+  background: rgba(239,68,68,0.15);
+  box-shadow: 0 4px 16px rgba(239,68,68,0.25);
+}
+
+/* 进度指示条 */
+.card-progress {
+  display: flex;
+  gap: 3px;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-top: 16px;
+  max-width: 400px;
+  margin-left: auto;
+  margin-right: auto;
+  padding: 0 8px;
+}
+.progress-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--border);
+  transition: all 0.3s;
+}
+.progress-dot.learned { background: var(--success); }
+.progress-dot.forgot { background: var(--danger); }
+.progress-dot.current {
+  background: var(--primary);
+  transform: scale(1.3);
+  box-shadow: 0 0 0 3px rgba(255,107,53,0.2);
+}
+
+/* 模式选择区 */
+.mode-info {
+  text-align: center;
+  margin-bottom: 20px;
+}
+.mode-title {
+  font-size: 14px;
+  color: var(--text-muted);
+  margin-bottom: 4px;
+}
+.mode-count {
+  font-size: 12px;
+  color: var(--text-muted);
+  opacity: 0.7;
+}
+
+/* 统计区域 */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  margin-top: 24px;
+}
+.stats-item {
+  text-align: center;
+  padding: 14px 8px;
+  border-radius: 14px;
+  background: var(--result-bg);
+  border: 1px solid var(--border);
+  transition: all 0.2s;
+}
+.stats-item:hover { border-color: var(--primary); transform: translateY(-2px); }
+.stats-num {
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+.stats-label {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 4px;
+}
+.stats-num.orange { color: var(--primary); }
+.stats-num.green { color: var(--success); }
+.stats-num.red { color: var(--danger); }
+.stats-num.blue { color: var(--info); }
+
+/* 完成提示 */
+.complete-overlay {
+  display: none;
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.5);
+  z-index: 200;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(4px);
+}
+.complete-overlay.show { display: flex; }
+.complete-box {
+  background: var(--card-bg);
+  border-radius: 24px;
+  padding: 36px 32px;
+  text-align: center;
+  max-width: 360px;
+  width: 90%;
+  box-shadow: var(--shadow-lg);
+  animation: popIn 0.3s ease;
+}
+@keyframes popIn {
+  from { opacity: 0; transform: scale(0.9); }
+  to { opacity: 1; transform: scale(1); }
+}
+.complete-icon {
+  font-size: 56px;
+  margin-bottom: 12px;
+}
+.complete-title {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--heading);
+  margin-bottom: 8px;
+}
+.complete-desc {
+  font-size: 14px;
+  color: var(--text-light);
+  margin-bottom: 8px;
+  line-height: 1.6;
+}
+.complete-rate {
+  font-size: 32px;
+  font-weight: 700;
+  margin: 12px 0;
+}
+.complete-btns {
+  display: flex;
+  gap: 10px;
+  margin-top: 20px;
+}
+.complete-btns .btn { flex: 1; justify-content: center; padding: 12px; }
+
+/* 洗牌按钮 */
+.shuffle-hint {
+  text-align: center;
+  margin-top: 12px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+/* 响应式 */
+@media (max-width: 768px) {
+  .flip-container {
+    height: 220px;
+  }
+  .card-char { font-size: 64px; }
+  .card-pinyin { font-size: 24px; }
+  .card-meaning { font-size: 16px; padding: 0 16px; }
+  .card-phonetic { font-size: 14px; }
+  .card-translate { font-size: 18px; }
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .learn-btn {
+    padding: 12px 24px;
+    font-size: 14px;
+  }
+  .nav-btn { width: 44px; height: 44px; font-size: 18px; }
+  .flip-container { max-width: 320px; }
+}
+</style>
+
+
+
+<meta property="og:image" content="https://chenguangwu.github.io/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="ToolBox - 5000+免费在线工具">
+<meta name="twitter:image" content="https://chenguangwu.github.io/og-image.png">
+<meta name="twitter:image:alt" content="ToolBox - 5000+免费在线工具">
+    <meta property="og:type" content="website">
+    <meta name="twitter:title" content="识字卡片">
+    <meta name="twitter:description" content="识字卡片，翻转卡片学习汉字与英文单词(含拼音/音标/释义)，支持键盘操作，适合儿童启蒙与记忆。">
+<!-- TOOLBOX-WEBAPP-LD -->
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"識字卡片","url":"https://chenguangwu.github.io/zh-hk/tools/edu/flashcards.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":"zh-HK","description":"識字卡片，翻轉卡片學習漢字與英文單詞(含拼音/音標/釋義)，支持鍵盤操作，適合兒童啓蒙與記憶。","image":"https://chenguangwu.github.io/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}</script>
+<meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
+<meta http-equiv="X-Content-Type-Options" content="nosniff">
+<meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
+<!-- TOOLBOX-SECURITY -->
+
+<script src="/js/privacy.js" defer></script>
+<!-- TOOLBOX-PRIVACY-SCRIPT -->
+
+<script src="/js/metrics.js" defer></script>
+<!-- TOOLBOX-METRICS-SCRIPT -->
+
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"首頁","item":"https://chenguangwu.github.io/zh-hk/"},{"@type":"ListItem","position":2,"name":"教育學習","item":"https://chenguangwu.github.io/zh-hk/tools/edu/index.html"},{"@type":"ListItem","position":3,"name":"識字卡片","item":"https://chenguangwu.github.io/zh-hk/tools/edu/flashcards.html"}]}</script>
+
+<script src="/js/i18n.js" defer></script>
+<script src="/js/tool-i18n.js" defer></script>
+<!-- TOOLBOX-I18N-SCRIPT -->
+
+
+<meta name="title-en" content="Chinese Character Flashcards - ToolBox">
+<meta name="desc-en" content="Free online flashcards for learning Chinese characters. Free online tool on ToolBox — 100% client-side, no data uploaded, no install. Part of the Education...">
+<!-- TOOLBOX-HREFLANG -->
+<link rel="alternate" hreflang="zh-CN" href="https://chenguangwu.github.io/tools/edu/flashcards.html">
+<link rel="alternate" hreflang="zh-TW" href="https://chenguangwu.github.io/zh-tw/tools/edu/flashcards.html">
+<link rel="alternate" hreflang="zh-HK" href="https://chenguangwu.github.io/zh-hk/tools/edu/flashcards.html">
+<link rel="alternate" hreflang="en-US" href="https://chenguangwu.github.io/tools/edu/flashcards.html?lang=en-US">
+<link rel="alternate" hreflang="x-default" href="https://chenguangwu.github.io/tools/edu/flashcards.html">
+<meta property="og:locale" content="zh_HK">
+<meta property="og:locale:alternate" content="zh_CN">
+<meta property="og:locale:alternate" content="zh_TW">
+<meta property="og:locale:alternate" content="en_US">
+</head>
+<body>
+<h1 class="sr-only">識字卡片</h1>
+
+
+<!-- 導航欄 -->
+<div class="nav">
+  <a href="/zh-hk/index.html">← ToolBox</a>
+  <span>/ 識字卡片</span>
+  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()">🌙</button>
+</div>
+
+
+
+
+
+<nav class="breadcrumb" aria-label="麪包屑導航" data-breadcrumb="1">
+  <a href="/zh-hk/index.html">首頁</a>
+  <span class="bc-sep">‹</span>
+  <a href="/zh-hk/tools/edu/index.html">📖 教育學習</a>
+  <span class="bc-sep">‹</span>
+  <span class="bc-current">識字卡片</span>
+</nav>
+<div class="container">
+  <div class="card tool-card-accent" style="--tool-accent:#FF6B35;">
+    <h2 data-zh="📇 識字卡片">📇 Chinese Character Flashcards</h2>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="翻轉卡片學習漢字和英文單詞，支持鍵盤操作">Chinese Character Flashcards is available directly in your browser, with no data uploaded.</p>
+
+    <!-- 模式切換 -->
+    <div class="tabs" id="modeTabs">
+      <button type="button" class="tab-btn active" onclick="switchMode('chinese')">漢字識字</button>
+      <button type="button" class="tab-btn" onclick="switchMode('english')">英文單詞</button>
+    </div>
+
+    <!-- 模式信息 -->
+    <div class="mode-info">
+      <div class="mode-title" id="modeTitle">漢字識字模式</div>
+      <div class="mode-count" id="modeCount">共 <span id="totalCount">0</span> 個字</div>
+    </div>
+
+    <!-- 統計 -->
+    <div class="stats-grid">
+      <div class="stats-item">
+        <div class="stats-num orange" id="statTotal">0</div>
+        <div class="stats-label">總數</div>
+      </div>
+      <div class="stats-item">
+        <div class="stats-num green" id="statKnow">0</div>
+        <div class="stats-label">認識</div>
+      </div>
+      <div class="stats-item">
+        <div class="stats-num red" id="statUnknown">0</div>
+        <div class="stats-label">不認識</div>
+      </div>
+      <div class="stats-item">
+        <div class="stats-num blue" id="statRemain">0</div>
+        <div class="stats-label">未學</div>
+      </div>
+    </div>
+
+    <!-- 卡片區域 -->
+    <div style="margin-top:24px;">
+      <div class="flip-container" id="flipContainer" onclick="flipCard()">
+        <div class="flip-card" id="flipCard">
+          <div class="flip-front" id="cardFront">
+            <div class="card-char" id="cardChar">人</div>
+            <div class="card-hint">點擊翻轉查看</div>
+          </div>
+          <div class="flip-back" id="cardBack">
+            <div class="card-pinyin" id="cardPinyin">rén</div>
+            <div class="card-meaning" id="cardMeaning">人；人類；別人</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 導航 -->
+      <div class="nav-controls">
+        <button type="button" class="nav-btn" id="prevBtn" onclick="prevCard()" title="上一張 (←)">◀</button>
+        <div class="card-counter"><span id="currentIndex">1</span> / <span id="totalCards">0</span></div>
+        <button type="button" class="nav-btn" id="nextBtn" onclick="nextCard()" title="下一張 (→)">▶</button>
+      </div>
+
+      <!-- 學習按鈕 -->
+      <div class="learn-btns" id="learnBtns">
+        <button type="button" class="learn-btn unknown" onclick="markCard(false)">
+          <span>✗</span> 不認識
+        </button>
+        <button type="button" class="learn-btn know" onclick="markCard(true)">
+          <span>✓</span> 認識
+        </button>
+      </div>
+
+      <!-- 進度點 -->
+      <div class="card-progress" id="progressDots"></div>
+
+      <!-- 快捷提示 -->
+      <div class="shuffle-hint">
+        鍵盤快捷鍵：← → 翻頁 | 空格 翻轉 | 1 認識 | 2 不認識
+      </div>
+    </div>
+
+    <!-- 操作欄 -->
+    <div class="toolbar" style="margin-top:20px;justify-content:center;">
+      <button type="button" class="btn" onclick="shuffleCards()">🔀 打亂順序</button>
+      <button type="button" class="btn" onclick="resetProgress()">🔄 重置進度</button>
+      <button type="button" class="btn" onclick="reviewMistakes()">📝 複習錯詞</button>
+    </div>
+  </div>
+
+  <!-- 工具介紹（SEO） -->
+
+</div>
+
+</div>
+
+<!-- 相關工具 -->
+<div class="related-tools" data-related-tools="1">
+  <h3 class="related-tools-title">🔗 相關工具</h3>
+  <div class="related-tools-grid">
+    <a href="/zh-hk/tools/edu/pinyin-typing-practice.html" class="related-tool-card">
+      <span class="rt-icon">⌨️</span>
+      <span class="rt-info"><span class="rt-name">拼音打字練習 - 免費開發工具，在線拼音打字練習 | ToolBox免費在線工具箱</span><span class="rt-desc">⌨️ 拼音打字練習</span></span>
+    </a>
+    <a href="/zh-hk/tools/edu/english-vocabulary.html" class="related-tool-card">
+      <span class="rt-icon">📚</span>
+      <span class="rt-info"><span class="rt-name">英語單詞測試 - 免費開發工具，在線英語單詞測試 | ToolBox免費在線工具箱</span><span class="rt-desc">英語單詞測試</span></span>
+    </a>
+    <a href="/zh-hk/tools/edu/study-planner.html" class="related-tool-card">
+      <span class="rt-icon">📅</span>
+      <span class="rt-info"><span class="rt-name">學習計劃制定 - 免費生成器工具，在線學習計劃制定 | ToolBox免費在線工具箱</span><span class="rt-desc">學習計劃制定</span></span>
+    </a>
+    <a href="/zh-hk/tools/edu/generator-4.html" class="related-tool-card">
+      <span class="rt-icon">📚</span>
+      <span class="rt-info"><span class="rt-name">摘要生成器（基於句子權重） - 免費在線工具，純前端處理 | ToolBox免費在線工具箱</span><span class="rt-desc">摘要生成器（基於句子權重）</span></span>
+    </a>
+    <a href="/zh-hk/tools/library/archive-label.html" class="related-tool-card">
+      <span class="rt-icon">🏷️</span>
+      <span class="rt-info"><span class="rt-name">檔案盒標籤生成 - 器 - 檔案盒脊背標籤格式生成，可打印 | ToolBox免費在線工具箱</span><span class="rt-desc">檔案盒標籤生成</span></span>
+    </a>
+    <a href="/zh-hk/tools/kids/memory-palace.html" class="related-tool-card">
+      <span class="rt-icon">🏰</span>
+      <span class="rt-info"><span class="rt-name">記憶宮殿編碼 - 教育學習在線工具 | ToolBox免費在線工具箱</span><span class="rt-desc">記憶宮殿編碼</span></span>
+    </a>
+  </div>
+</div>
+<div class="tool-intro" id="toolIntro">
+    <div class="tool-intro-header" onclick="toggleIntro()">
+      <div class="intro-icon-wrap">
+        <span class="intro-icon">📇</span>
+        <span>工具介紹與使用説明</span>
+      </div>
+      <span class="arrow">▼</span>
+    </div>
+    <div class="tool-intro-body">
+      <p>識字卡片是一款免費的在線學習工具，內置 100+ 常用漢字（含拼音、釋義）和 100+ 英文單詞（含音標、中文釋義），適合兒童識字啓蒙和英語單詞記憶。所有數據在瀏覽器本地處理，無需聯網。</p>
+      <h4><span class="h4-icon">✨</span> 功能特點</h4>
+      <ul class="intro-features">
+        <li>漢字識字模式（拼音 + 釋義）</li>
+        <li>英文單詞模式（音標 + 中文釋義）</li>
+        <li>CSS 3D 翻轉動畫</li>
+        <li>認識 / 不認識標記</li>
+        <li>學習進度統計</li>
+        <li>進度自動保存（localStorage）</li>
+        <li>鍵盤快捷鍵操作</li>
+        <li>錯詞複習功能</li>
+        <li>打亂卡片順序</li>
+      </ul>
+      <h4><span class="h4-icon">📖</span> 使用場景</h4>
+      <ul class="intro-scenes">
+        <li>兒童漢字啓蒙學習</li>
+        <li>小學語文識字練習</li>
+        <li>英語單詞日常記憶</li>
+        <li>考前單詞快速複習</li>
+      </ul>
+      <h4><span class="h4-icon">❓</span> 常見問題</h4>
+      <div class="intro-faq-item">
+        <div class="intro-faq-q">學習進度會保存嗎？</div>
+        <div class="intro-faq-a">會的。學習進度自動保存在瀏覽器本地存儲中，關閉頁面後再次打開會自動恢復。漢字和英文兩種模式的進度分別保存。</div>
+      </div>
+      <div class="intro-faq-item">
+        <div class="intro-faq-q">如何使用鍵盤操作？</div>
+        <div class="intro-faq-a">左右方向鍵切換卡片，空格鍵翻轉卡片，數字鍵 1 標記認識，數字鍵 2 標記不認識。</div>
+      </div>
+      <div class="intro-faq-item">
+        <div class="intro-faq-q">如何複習錯詞？</div>
+        <div class="intro-faq-a">點擊"複習錯詞"按鈕，卡片列表將篩選為標記為"不認識"的單詞，方便針對性複習。</div>
+      </div>
+    </div>
+  </div>
+
+<!-- TOOLBOX-DEEP-DIVE -->
+<style>
+.deep-dive{max-width:960px;margin:16px auto;padding:0 16px;}
+.deep-dive > .card{margin-bottom:0;}
+@media(max-width:600px){.deep-dive{margin:14px auto;padding:0 12px;}}
+.deep-dive .dd-list{margin:8px 0 16px;padding-left:20px;}
+.deep-dive .dd-list li{margin:6px 0;line-height:1.75;}
+.deep-dive .dd-example{background:var(--card-bg,#fff);border:1px solid var(--border,#eee);border-radius:10px;padding:12px 14px;margin:8px 0 16px;}
+.deep-dive .dd-ex-title{font-weight:600;color:var(--tool-accent,#FF6B35);margin-bottom:6px;}
+.deep-dive .dd-ex-body{font-size:13px;line-height:1.85;color:var(--text,#333);word-break:break-word;}
+.deep-dive .dd-faq{margin:8px 0 4px;}
+.deep-dive .dd-faq dt{font-weight:600;margin-top:10px;color:var(--text,#333);}
+.deep-dive .dd-faq dd{margin:4px 0 0;font-size:13px;line-height:1.85;color:var(--text-muted,#666);}
+
+</style>
+<section class="deep-dive" data-deep-dive="1">
+<div class="card">
+<h2>📚 深度解析：識字卡片</h2>
+<h3>💡 常見使用場景</h3>
+<ul class="dd-list">
+<li>核對 識字卡片 的輸入單位和假設邊界後，再進行一次樣例算例，先看結果變化趨勢是否符合預期。</li>
+<li>復盤建議：固定 1-2 個變量做敏感性對比，避免口徑切換導致的“結果反直覺”。</li>
+<li>常見場景：Chinese Character Flashcards</li>
+</ul>
+<div class="dd-example"><div class="dd-ex-title">快速複核「識字卡片」</div><div class="dd-ex-body">先跑一組可復現輸入做基準，再做一次關鍵參數上浮/下調的複測，對照輸出變化是否符合預期。</div></div>
+<h3>❓ 常見問題（FAQ）</h3>
+<dl class="dd-faq">
+<dt>識字卡片 可直接用於決策依據嗎？</dt><dd>更多用於快速預估與複核。正式決策請補充數據來源、邊界條件與單位説明。</dd>
+<dt>結果和歷史表現差異明顯怎麼辦？</dt><dd>先核對是否有百分比/小數口徑混淆，再確認時間窗與樣本口徑是否可比，最後以樣本複測法鎖定偏差點。</dd>
+</dl>
+</div>
+</section>
+<!-- 注意事項區塊 -->
+<div class="tool-notes" style="--tool-accent:#FF6B35;">
+  <div class="tool-notes-title">⚠️ 使用説明與注意事項</div>
+  <ul>
+      <li>本工具純前端運行，數據不會上傳到伺服器</li>
+      <li>建議在主流瀏覽器（Chrome/Safari/Firefox/Edge）中使用</li>
+      <li>計算結果僅供參考，請以實際應用場景為準</li>
+  </ul>
+</div>
+<!-- /注意事項區塊 -->
+</div>
+
+<!-- 完成彈窗 -->
+<div class="complete-overlay" id="completeOverlay" onclick="if(event.target===this)closeComplete()">
+  <div class="complete-box">
+    <div class="complete-icon">🎉</div>
+    <div class="complete-title">本輪學習完成</div>
+    <div class="complete-desc" id="completeDesc"></div>
+    <div class="complete-rate" id="completeRate" style="color:var(--success);">0%</div>
+    <div class="complete-desc" id="completeDetail"></div>
+    <div class="complete-btns">
+      <button type="button" class="btn" onclick="closeComplete()">繼續瀏覽</button>
+      <button type="button" class="btn primary" onclick="closeComplete();resetProgress()">重新開始</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ===== 词库数据 =====
+var CHINESE_DATA = [
+  // 一年级常用字（人教版 + 扩展）
+  {char:"一",pinyin:"yī",meaning:"数字一；第一"},
+  {char:"二",pinyin:"èr",meaning:"数字二；第二"},
+  {char:"三",pinyin:"sān",meaning:"数字三；第三"},
+  {char:"四",pinyin:"sì",meaning:"数字四；第四"},
+  {char:"五",pinyin:"wǔ",meaning:"数字五；第五"},
+  {char:"六",pinyin:"liù",meaning:"数字六；第六"},
+  {char:"七",pinyin:"qī",meaning:"数字七；第七"},
+  {char:"八",pinyin:"bā",meaning:"数字八；第八"},
+  {char:"九",pinyin:"jiǔ",meaning:"数字九；第九"},
+  {char:"十",pinyin:"shí",meaning:"数字十；第十"},
+  {char:"百",pinyin:"bǎi",meaning:"数字一百；百倍"},
+  {char:"千",pinyin:"qiān",meaning:"数字一千；很多"},
+  {char:"万",pinyin:"wàn",meaning:"数字一万；全部"},
+  {char:"人",pinyin:"rén",meaning:"人；人类；别人"},
+  {char:"大",pinyin:"dà",meaning:"大的；规模大"},
+  {char:"小",pinyin:"xiǎo",meaning:"小的；年纪小"},
+  {char:"上",pinyin:"shàng",meaning:"上面；向上；上去"},
+  {char:"下",pinyin:"xià",meaning:"下面；向下；下去"},
+  {char:"左",pinyin:"zuǒ",meaning:"左边；左方"},
+  {char:"右",pinyin:"yòu",meaning:"右边；右方"},
+  {char:"天",pinyin:"tiān",meaning:"天空；白天；一天"},
+  {char:"地",pinyin:"dì",meaning:"大地；地面；田地"},
+  {char:"日",pinyin:"rì",meaning:"太阳；白天；日子"},
+  {char:"月",pinyin:"yuè",meaning:"月亮；月份"},
+  {char:"水",pinyin:"shuǐ",meaning:"水；河流；液体"},
+  {char:"火",pinyin:"huǒ",meaning:"火；火焰"},
+  {char:"山",pinyin:"shān",meaning:"山；山脉"},
+  {char:"石",pinyin:"shí",meaning:"石头；岩石"},
+  {char:"土",pinyin:"tǔ",meaning:"泥土；土地"},
+  {char:"风",pinyin:"fēng",meaning:"风；风气"},
+  {char:"雨",pinyin:"yǔ",meaning:"雨；雨水"},
+  {char:"雪",pinyin:"xuě",meaning:"雪；雪花"},
+  {char:"云",pinyin:"yún",meaning:"云彩；云朵"},
+  {char:"花",pinyin:"huā",meaning:"花朵；花纹"},
+  {char:"草",pinyin:"cǎo",meaning:"草；草地"},
+  {char:"树",pinyin:"shù",meaning:"树木；树"},
+  {char:"木",pinyin:"mù",meaning:"木头；树木；木材"},
+  {char:"林",pinyin:"lín",meaning:"树林；森林"},
+  {char:"田",pinyin:"tián",meaning:"田地；农田"},
+  {char:"马",pinyin:"mǎ",meaning:"马；马匹"},
+  {char:"牛",pinyin:"niú",meaning:"牛；公牛母牛"},
+  {char:"羊",pinyin:"yáng",meaning:"羊；绵羊山羊"},
+  {char:"鸟",pinyin:"niǎo",meaning:"鸟；鸟类"},
+  {char:"鱼",pinyin:"yú",meaning:"鱼；鱼类"},
+  {char:"虫",pinyin:"chóng",meaning:"虫子；昆虫"},
+  {char:"龙",pinyin:"lóng",meaning:"龙；恐龙"},
+  {char:"手",pinyin:"shǒu",meaning:"手；动手"},
+  {char:"足",pinyin:"zú",meaning:"脚；足够"},
+  {char:"目",pinyin:"mù",meaning:"眼睛；目光"},
+  {char:"耳",pinyin:"ěr",meaning:"耳朵；耳环"},
+  {char:"口",pinyin:"kǒu",meaning:"嘴巴；人口"},
+  {char:"心",pinyin:"xīn",meaning:"心脏；内心"},
+  {char:"头",pinyin:"tóu",meaning:"头部；开头"},
+  {char:"牙",pinyin:"yá",meaning:"牙齿；象牙"},
+  {char:"舌",pinyin:"shé",meaning:"舌头"},
+  {char:"父",pinyin:"fù",meaning:"父亲；长辈"},
+  {char:"母",pinyin:"mǔ",meaning:"母亲；母性"},
+  {char:"子",pinyin:"zǐ",meaning:"孩子；儿子"},
+  {char:"女",pinyin:"nǚ",meaning:"女性；女儿"},
+  {char:"男",pinyin:"nán",meaning:"男性；男人"},
+  {char:"王",pinyin:"wáng",meaning:"国王；大王"},
+  {char:"长",pinyin:"cháng",meaning:"长；生长；zhǎng 长大"},
+  {char:"中",pinyin:"zhōng",meaning:"中间；中国"},
+  {char:"国",pinyin:"guó",meaning:"国家；国土"},
+  {char:"家",pinyin:"jiā",meaning:"家庭；家"},
+  {char:"学",pinyin:"xué",meaning:"学习；学校"},
+  {char:"校",pinyin:"xiào",meaning:"学校；校园"},
+  {char:"师",pinyin:"shī",meaning:"老师；师傅"},
+  {char:"生",pinyin:"shēng",meaning:"学生；出生；生长"},
+  {char:"书",pinyin:"shū",meaning:"书本；书籍"},
+  {char:"字",pinyin:"zì",meaning:"汉字；文字"},
+  {char:"笔",pinyin:"bǐ",meaning:"笔；毛笔铅笔"},
+  {char:"纸",pinyin:"zhǐ",meaning:"纸；纸张"},
+  {char:"画",pinyin:"huà",meaning:"画；图画；绘画"},
+  {char:"本",pinyin:"běn",meaning:"书本；本来"},
+  {char:"车",pinyin:"chē",meaning:"汽车；车辆"},
+  {char:"船",pinyin:"chuán",meaning:"船；船只"},
+  {char:"门",pinyin:"mén",meaning:"门；门口"},
+  {char:"窗",pinyin:"chuāng",meaning:"窗户"},
+  {char:"房",pinyin:"fáng",meaning:"房子；房间"},
+  {char:"路",pinyin:"lù",meaning:"道路；路线"},
+  {char:"桥",pinyin:"qiáo",meaning:"桥梁；桥"},
+  {char:"城",pinyin:"chéng",meaning:"城市；城墙"},
+  {char:"村",pinyin:"cūn",meaning:"村庄；村子"},
+  {char:"衣",pinyin:"yī",meaning:"衣服；衣裳"},
+  {char:"帽",pinyin:"mào",meaning:"帽子"},
+  {char:"鞋",pinyin:"xié",meaning:"鞋子"},
+  {char:"裤",pinyin:"kù",meaning:"裤子"},
+  {char:"食",pinyin:"shí",meaning:"食物；吃"},
+  {char:"米",pinyin:"mǐ",meaning:"大米；米"},
+  {char:"饭",pinyin:"fàn",meaning:"米饭；饭菜"},
+  {char:"菜",pinyin:"cài",meaning:"蔬菜；菜肴"},
+  {char:"茶",pinyin:"chá",meaning:"茶叶；茶水"},
+  {char:"酒",pinyin:"jiǔ",meaning:"酒；白酒"},
+  {char:"肉",pinyin:"ròu",meaning:"肉；肉类"},
+  {char:"果",pinyin:"guǒ",meaning:"水果；果实"},
+  {char:"东",pinyin:"dōng",meaning:"东方；东边"},
+  {char:"西",pinyin:"xī",meaning:"西方；西边"},
+  {char:"南",pinyin:"nán",meaning:"南方；南边"},
+  {char:"北",pinyin:"běi",meaning:"北方；北边"},
+  {char:"春",pinyin:"chūn",meaning:"春天；春季"},
+  {char:"夏",pinyin:"xià",meaning:"夏天；夏季"},
+  {char:"秋",pinyin:"qiū",meaning:"秋天；秋季"},
+  {char:"冬",pinyin:"dōng",meaning:"冬天；冬季"},
+  {char:"红",pinyin:"hóng",meaning:"红色"},
+  {char:"白",pinyin:"bái",meaning:"白色；明亮"},
+  {char:"黑",pinyin:"hēi",meaning:"黑色；黑暗"},
+  {char:"蓝",pinyin:"lán",meaning:"蓝色"},
+  {char:"绿",pinyin:"lǜ",meaning:"绿色"},
+  {char:"黄",pinyin:"huáng",meaning:"黄色"},
+  {char:"紫",pinyin:"zǐ",meaning:"紫色"},
+  {char:"金",pinyin:"jīn",meaning:"金子；金色"},
+  {char:"银",pinyin:"yín",meaning:"银子；银色"},
+  {char:"铁",pinyin:"tiě",meaning:"铁；钢铁"},
+  {char:"快",pinyin:"kuài",meaning:"快；快速"},
+  {char:"慢",pinyin:"màn",meaning:"慢；缓慢"},
+  {char:"好",pinyin:"hǎo",meaning:"好；好的"},
+  {char:"坏",pinyin:"huài",meaning:"坏；坏的"},
+  {char:"多",pinyin:"duō",meaning:"多；很多"},
+  {char:"少",pinyin:"shǎo",meaning:"少；少量"},
+  {char:"新",pinyin:"xīn",meaning:"新的；新鲜"},
+  {char:"旧",pinyin:"jiù",meaning:"旧的；老朋友"},
+  {char:"高",pinyin:"gāo",meaning:"高的；高大"},
+  {char:"低",pinyin:"dī",meaning:"低的；低下"},
+  {char:"远",pinyin:"yuǎn",meaning:"远；遥远"},
+  {char:"近",pinyin:"jìn",meaning:"近；附近"},
+  {char:"前",pinyin:"qián",meaning:"前面；以前"},
+  {char:"后",pinyin:"hòu",meaning:"后面；以后"},
+  {char:"来",pinyin:"lái",meaning:"来；来到"},
+  {char:"去",pinyin:"qù",meaning:"去；离去"},
+  {char:"进",pinyin:"jìn",meaning:"进入；进来"},
+  {char:"出",pinyin:"chū",meaning:"出去；出来"},
+  {char:"开",pinyin:"kāi",meaning:"打开；开始"},
+  {char:"关",pinyin:"guān",meaning:"关闭；关口"},
+  {char:"笑",pinyin:"xiào",meaning:"笑；微笑"},
+  {char:"哭",pinyin:"kū",meaning:"哭；哭泣"},
+  {char:"走",pinyin:"zǒu",meaning:"走；行走"},
+  {char:"跑",pinyin:"pǎo",meaning:"跑；奔跑"},
+  {char:"飞",pinyin:"fēi",meaning:"飞；飞翔"},
+  {char:"坐",pinyin:"zuò",meaning:"坐；坐下"},
+  {char:"站",pinyin:"zhàn",meaning:"站立；车站"},
+  {char:"看",pinyin:"kàn",meaning:"看；观看"},
+  {char:"听",pinyin:"tīng",meaning:"听；听见"},
+  {char:"说",pinyin:"shuō",meaning:"说；说话"},
+  {char:"读",pinyin:"dú",meaning:"读；阅读"},
+  {char:"写",pinyin:"xiě",meaning:"写；写字"},
+  {char:"想",pinyin:"xiǎng",meaning:"想；思考"},
+  {char:"爱",pinyin:"ài",meaning:"爱；喜爱"},
+  {char:"怕",pinyin:"pà",meaning:"怕；害怕"},
+  {char:"力",pinyin:"lì",meaning:"力量；力气"},
+  {char:"明",pinyin:"míng",meaning:"明亮；明白"},
+  {char:"亮",pinyin:"liàng",meaning:"光亮；亮"},
+  {char:"暗",pinyin:"àn",meaning:"黑暗；暗"},
+  {char:"冷",pinyin:"lěng",meaning:"冷；寒冷"},
+  {char:"热",pinyin:"rè",meaning:"热；炎热"},
+  {char:"甜",pinyin:"tián",meaning:"甜的；甜蜜"},
+  {char:"苦",pinyin:"kǔ",meaning:"苦的；辛苦"},
+  {char:"香",pinyin:"xiāng",meaning:"香味；芬芳"},
+  {char:"美",pinyin:"měi",meaning:"美丽；美好"},
+  {char:"乐",pinyin:"lè",meaning:"快乐；yuè 音乐"},
+  {char:"气",pinyin:"qì",meaning:"空气；天气"},
+  {char:"光",pinyin:"guāng",meaning:"光线；光明"},
+  {char:"电",pinyin:"diàn",meaning:"电；电力"},
+  {char:"星",pinyin:"xīng",meaning:"星星；行星"},
+  {char:"河",pinyin:"hé",meaning:"河流"},
+  {char:"海",pinyin:"hǎi",meaning:"大海；海洋"},
+  {char:"湖",pinyin:"hú",meaning:"湖泊"},
+  {char:"江",pinyin:"jiāng",meaning:"江河；长江"},
+  {char:"叶",pinyin:"yè",meaning:"树叶；叶片"},
+  {char:"枝",pinyin:"zhī",meaning:"树枝；枝条"},
+  {char:"根",pinyin:"gēn",meaning:"树根；根本"},
+  {char:"果",pinyin:"guǒ",meaning:"水果；结果"}
+];
+
+var ENGLISH_DATA = [
+  // 基础词汇（按主题分组）
+  // 动物
+  {word:"cat",phonetic:"/kæt/",meaning:"猫"},
+  {word:"dog",phonetic:"/dɒɡ/",meaning:"狗"},
+  {word:"bird",phonetic:"/bɜːd/",meaning:"鸟"},
+  {word:"fish",phonetic:"/fɪʃ/",meaning:"鱼"},
+  {word:"horse",phonetic:"/hɔːs/",meaning:"马"},
+  {word:"cow",phonetic:"/kaʊ/",meaning:"牛"},
+  {word:"sheep",phonetic:"/ʃiːp/",meaning:"羊"},
+  {word:"pig",phonetic:"/pɪɡ/",meaning:"猪"},
+  {word:"chicken",phonetic:"/ˈtʃɪkɪn/",meaning:"鸡"},
+  {word:"duck",phonetic:"/dʌk/",meaning:"鸭子"},
+  {word:"rabbit",phonetic:"/ˈræbɪt/",meaning:"兔子"},
+  {word:"tiger",phonetic:"/ˈtaɪɡər/",meaning:"老虎"},
+  {word:"lion",phonetic:"/ˈlaɪən/",meaning:"狮子"},
+  {word:"elephant",phonetic:"/ˈelɪfənt/",meaning:"大象"},
+  {word:"monkey",phonetic:"/ˈmʌŋki/",meaning:"猴子"},
+  {word:"bear",phonetic:"/beər/",meaning:"熊"},
+  {word:"snake",phonetic:"/sneɪk/",meaning:"蛇"},
+  {word:"butterfly",phonetic:"/ˈbʌtəflaɪ/",meaning:"蝴蝶"},
+  // 颜色
+  {word:"red",phonetic:"/red/",meaning:"红色"},
+  {word:"blue",phonetic:"/bluː/",meaning:"蓝色"},
+  {word:"green",phonetic:"/ɡriːn/",meaning:"绿色"},
+  {word:"yellow",phonetic:"/ˈjeləʊ/",meaning:"黄色"},
+  {word:"white",phonetic:"/waɪt/",meaning:"白色"},
+  {word:"black",phonetic:"/blæk/",meaning:"黑色"},
+  {word:"orange",phonetic:"/ˈɒrɪndʒ/",meaning:"橙色；橙子"},
+  {word:"purple",phonetic:"/ˈpɜːpl/",meaning:"紫色"},
+  {word:"pink",phonetic:"/pɪŋk/",meaning:"粉色"},
+  {word:"brown",phonetic:"/braʊn/",meaning:"棕色"},
+  // 身体
+  {word:"head",phonetic:"/hed/",meaning:"头"},
+  {word:"eye",phonetic:"/aɪ/",meaning:"眼睛"},
+  {word:"ear",phonetic:"/ɪər/",meaning:"耳朵"},
+  {word:"nose",phonetic:"/nəʊz/",meaning:"鼻子"},
+  {word:"mouth",phonetic:"/maʊθ/",meaning:"嘴巴"},
+  {word:"hand",phonetic:"/hænd/",meaning:"手"},
+  {word:"foot",phonetic:"/fʊt/",meaning:"脚"},
+  {word:"arm",phonetic:"/ɑːm/",meaning:"手臂"},
+  {word:"leg",phonetic:"/leɡ/",meaning:"腿"},
+  {word:"heart",phonetic:"/hɑːt/",meaning:"心脏；心"},
+  {word:"tooth",phonetic:"/tuːθ/",meaning:"牙齿"},
+  {word:"finger",phonetic:"/ˈfɪŋɡər/",meaning:"手指"},
+  // 食物
+  {word:"apple",phonetic:"/ˈæpl/",meaning:"苹果"},
+  {word:"banana",phonetic:"/bəˈnɑːnə/",meaning:"香蕉"},
+  {word:"bread",phonetic:"/bred/",meaning:"面包"},
+  {word:"milk",phonetic:"/mɪlk/",meaning:"牛奶"},
+  {word:"water",phonetic:"/ˈwɔːtər/",meaning:"水"},
+  {word:"egg",phonetic:"/eɡ/",meaning:"鸡蛋"},
+  {word:"rice",phonetic:"/raɪs/",meaning:"米饭；大米"},
+  {word:"cake",phonetic:"/keɪk/",meaning:"蛋糕"},
+  {word:"meat",phonetic:"/miːt/",meaning:"肉"},
+  {word:"tea",phonetic:"/tiː/",meaning:"茶"},
+  {word:"coffee",phonetic:"/ˈkɒfi/",meaning:"咖啡"},
+  {word:"juice",phonetic:"/dʒuːs/",meaning:"果汁"},
+  {word:"soup",phonetic:"/suːp/",meaning:"汤"},
+  {word:"sugar",phonetic:"/ˈʃʊɡər/",meaning:"糖"},
+  {word:"salt",phonetic:"/sɔːlt/",meaning:"盐"},
+  {word:"chicken",phonetic:"/ˈtʃɪkɪn/",meaning:"鸡肉；鸡"},
+  // 自然
+  {word:"sun",phonetic:"/sʌn/",meaning:"太阳"},
+  {word:"moon",phonetic:"/muːn/",meaning:"月亮"},
+  {word:"star",phonetic:"/stɑːr/",meaning:"星星"},
+  {word:"rain",phonetic:"/reɪn/",meaning:"雨"},
+  {word:"snow",phonetic:"/snəʊ/",meaning:"雪"},
+  {word:"wind",phonetic:"/wɪnd/",meaning:"风"},
+  {word:"cloud",phonetic:"/klaʊd/",meaning:"云"},
+  {word:"sky",phonetic:"/skaɪ/",meaning:"天空"},
+  {word:"river",phonetic:"/ˈrɪvər/",meaning:"河流"},
+  {word:"sea",phonetic:"/siː/",meaning:"大海"},
+  {word:"mountain",phonetic:"/ˈmaʊntɪn/",meaning:"山"},
+  {word:"tree",phonetic:"/triː/",meaning:"树"},
+  {word:"flower",phonetic:"/ˈflaʊər/",meaning:"花"},
+  {word:"grass",phonetic:"/ɡrɑːs/",meaning:"草"},
+  {word:"forest",phonetic:"/ˈfɒrɪst/",meaning:"森林"},
+  {word:"earth",phonetic:"/ɜːθ/",meaning:"地球；大地"},
+  // 家居
+  {word:"house",phonetic:"/haʊs/",meaning:"房子；住宅"},
+  {word:"door",phonetic:"/dɔːr/",meaning:"门"},
+  {word:"window",phonetic:"/ˈwɪndəʊ/",meaning:"窗户"},
+  {word:"table",phonetic:"/ˈteɪbl/",meaning:"桌子"},
+  {word:"chair",phonetic:"/tʃeər/",meaning:"椅子"},
+  {word:"bed",phonetic:"/bed/",meaning:"床"},
+  {word:"book",phonetic:"/bʊk/",meaning:"书；书籍"},
+  {word:"pen",phonetic:"/pen/",meaning:"笔；钢笔"},
+  {word:"pencil",phonetic:"/ˈpensl/",meaning:"铅笔"},
+  {word:"paper",phonetic:"/ˈpeɪpər/",meaning:"纸"},
+  {word:"bag",phonetic:"/bæɡ/",meaning:"包；书包"},
+  {word:"clock",phonetic:"/klɒk/",meaning:"时钟"},
+  {word:"phone",phonetic:"/fəʊn/",meaning:"电话；手机"},
+  {word:"computer",phonetic:"/kəmˈpjuːtər/",meaning:"电脑"},
+  {word:"lamp",phonetic:"/læmp/",meaning:"灯"},
+  // 家庭
+  {word:"family",phonetic:"/ˈfæməli/",meaning:"家庭"},
+  {word:"father",phonetic:"/ˈfɑːðər/",meaning:"父亲"},
+  {word:"mother",phonetic:"/ˈmʌðər/",meaning:"母亲"},
+  {word:"brother",phonetic:"/ˈbrʌðər/",meaning:"兄弟"},
+  {word:"sister",phonetic:"/ˈsɪstər/",meaning:"姐妹"},
+  {word:"son",phonetic:"/sʌn/",meaning:"儿子"},
+  {word:"daughter",phonetic:"/ˈdɔːtər/",meaning:"女儿"},
+  {word:"baby",phonetic:"/ˈbeɪbi/",meaning:"婴儿；宝宝"},
+  {word:"friend",phonetic:"/frend/",meaning:"朋友"},
+  {word:"teacher",phonetic:"/ˈtiːtʃər/",meaning:"老师"},
+  {word:"student",phonetic:"/ˈstjuːdnt/",meaning:"学生"},
+  // 学校
+  {word:"school",phonetic:"/skuːl/",meaning:"学校"},
+  {word:"class",phonetic:"/klɑːs/",meaning:"班级；课"},
+  {word:"lesson",phonetic:"/ˈlesn/",meaning:"课程；课"},
+  {word:"homework",phonetic:"/ˈhəʊmwɜːk/",meaning:"家庭作业"},
+  {word:"exam",phonetic:"/ɪɡˈzæm/",meaning:"考试"},
+  {word:"library",phonetic:"/ˈlaɪbrəri/",meaning:"图书馆"},
+  {word:"english",phonetic:"/ˈɪŋɡlɪʃ/",meaning:"英语"},
+  {word:"math",phonetic:"/mæθ/",meaning:"数学"},
+  {word:"music",phonetic:"/ˈmjuːzɪk/",meaning:"音乐"},
+  {word:"sport",phonetic:"/spɔːt/",meaning:"运动"},
+  {word:"art",phonetic:"/ɑːt/",meaning:"艺术"},
+  {word:"science",phonetic:"/ˈsaɪəns/",meaning:"科学"},
+  // 动作
+  {word:"run",phonetic:"/rʌn/",meaning:"跑"},
+  {word:"walk",phonetic:"/wɔːk/",meaning:"走；散步"},
+  {word:"eat",phonetic:"/iːt/",meaning:"吃"},
+  {word:"drink",phonetic:"/drɪŋk/",meaning:"喝"},
+  {word:"sleep",phonetic:"/sliːp/",meaning:"睡觉"},
+  {word:"read",phonetic:"/riːd/",meaning:"阅读"},
+  {word:"write",phonetic:"/raɪt/",meaning:"写"},
+  {word:"speak",phonetic:"/spiːk/",meaning:"说；讲"},
+  {word:"listen",phonetic:"/ˈlɪsn/",meaning:"听"},
+  {word:"sing",phonetic:"/sɪŋ/",meaning:"唱歌"},
+  {word:"dance",phonetic:"/dɑːns/",meaning:"跳舞"},
+  {word:"play",phonetic:"/pleɪ/",meaning:"玩；播放"},
+  {word:"work",phonetic:"/wɜːk/",meaning:"工作"},
+  {word:"study",phonetic:"/ˈstʌdi/",meaning:"学习"},
+  {word:"cook",phonetic:"/kʊk/",meaning:"做饭；烹饪"},
+  {word:"clean",phonetic:"/kliːn/",meaning:"打扫；干净"},
+  {word:"swim",phonetic:"/swɪm/",meaning:"游泳"},
+  {word:"fly",phonetic:"/flaɪ/",meaning:"飞"},
+  // 形容词
+  {word:"big",phonetic:"/bɪɡ/",meaning:"大的"},
+  {word:"small",phonetic:"/smɔːl/",meaning:"小的"},
+  {word:"tall",phonetic:"/tɔːl/",meaning:"高的"},
+  {word:"short",phonetic:"/ʃɔːt/",meaning:"短的；矮的"},
+  {word:"long",phonetic:"/lɒŋ/",meaning:"长的"},
+  {word:"new",phonetic:"/njuː/",meaning:"新的"},
+  {word:"old",phonetic:"/əʊld/",meaning:"旧的；老的"},
+  {word:"young",phonetic:"/jʌŋ/",meaning:"年轻的"},
+  {word:"happy",phonetic:"/ˈhæpi/",meaning:"开心的；快乐的"},
+  {word:"sad",phonetic:"/sæd/",meaning:"悲伤的"},
+  {word:"hot",phonetic:"/hɒt/",meaning:"热的"},
+  {word:"cold",phonetic:"/kəʊld/",meaning:"冷的"},
+  {word:"fast",phonetic:"/fɑːst/",meaning:"快的"},
+  {word:"slow",phonetic:"/sləʊ/",meaning:"慢的"},
+  {word:"good",phonetic:"/ɡʊd/",meaning:"好的"},
+  {word:"bad",phonetic:"/bæd/",meaning:"坏的"},
+  {word:"beautiful",phonetic:"/ˈbjuːtɪfl/",meaning:"美丽的"},
+  {word:"kind",phonetic:"/kaɪnd/",meaning:"善良的；种类"},
+  {word:"strong",phonetic:"/strɒŋ/",meaning:"强壮的"},
+  {word:"easy",phonetic:"/ˈiːzi/",meaning:"容易的"},
+  {word:"hard",phonetic:"/hɑːd/",meaning:"困难的；硬的"},
+  {word:"busy",phonetic:"/ˈbɪzi/",meaning:"忙碌的"},
+  {word:"hungry",phonetic:"/ˈhʌŋɡri/",meaning:"饥饿的"},
+  {word:"tired",phonetic:"/ˈtaɪəd/",meaning:"疲劳的；累的"},
+  {word:"angry",phonetic:"/ˈæŋɡri/",meaning:"生气的"},
+  {word:"afraid",phonetic:"/əˈfreɪd/",meaning:"害怕的"},
+  {word:"quiet",phonetic:"/ˈkwaɪət/",meaning:"安静的"},
+  {word:"loud",phonetic:"/laʊd/",meaning:"大声的"},
+  // 地点
+  {word:"city",phonetic:"/ˈsɪti/",meaning:"城市"},
+  {word:"country",phonetic:"/ˈkʌntri/",meaning:"国家；乡村"},
+  {word:"road",phonetic:"/rəʊd/",meaning:"道路"},
+  {word:"street",phonetic:"/striːt/",meaning:"街道"},
+  {word:"park",phonetic:"/pɑːk/",meaning:"公园"},
+  {word:"garden",phonetic:"/ˈɡɑːdn/",meaning:"花园"},
+  {word:"shop",phonetic:"/ʃɒp/",meaning:"商店"},
+  {word:"hospital",phonetic:"/ˈhɒspɪtl/",meaning:"医院"},
+  {word:"restaurant",phonetic:"/ˈrestrɒnt/",meaning:"餐厅"},
+  {word:"airport",phonetic:"/ˈeəpɔːt/",meaning:"机场"},
+  {word:"station",phonetic:"/ˈsteɪʃn/",meaning:"车站"},
+  {word:"hotel",phonetic:"/həʊˈtel/",meaning:"酒店"},
+  {word:"museum",phonetic:"/mjuˈziːəm/",meaning:"博物馆"},
+  {word:"cinema",phonetic:"/ˈsɪnəmə/",meaning:"电影院"},
+  {word:"bank",phonetic:"/bæŋk/",meaning:"银行"},
+  // 时间
+  {word:"today",phonetic:"/təˈdeɪ/",meaning:"今天"},
+  {word:"tomorrow",phonetic:"/təˈmɒrəʊ/",meaning:"明天"},
+  {word:"yesterday",phonetic:"/ˈjestədeɪ/",meaning:"昨天"},
+  {word:"morning",phonetic:"/ˈmɔːnɪŋ/",meaning:"早上"},
+  {word:"afternoon",phonetic:"/ˌɑːftəˈnuːn/",meaning:"下午"},
+  {word:"evening",phonetic:"/ˈiːvnɪŋ/",meaning:"傍晚；晚上"},
+  {word:"night",phonetic:"/naɪt/",meaning:"夜晚"},
+  {word:"week",phonetic:"/wiːk/",meaning:"周；星期"},
+  {word:"month",phonetic:"/mʌnθ/",meaning:"月；月份"},
+  {word:"year",phonetic:"/jɪər/",meaning:"年"},
+  {word:"spring",phonetic:"/sprɪŋ/",meaning:"春天"},
+  {word:"summer",phonetic:"/ˈsʌmər/",meaning:"夏天"},
+  {word:"autumn",phonetic:"/ˈɔːtəm/",meaning:"秋天"},
+  {word:"winter",phonetic:"/ˈwɪntər/",meaning:"冬天"},
+  // 数字
+  {word:"one",phonetic:"/wʌn/",meaning:"一"},
+  {word:"two",phonetic:"/tuː/",meaning:"二"},
+  {word:"three",phonetic:"/θriː/",meaning:"三"},
+  {word:"four",phonetic:"/fɔːr/",meaning:"四"},
+  {word:"five",phonetic:"/faɪv/",meaning:"五"},
+  {word:"six",phonetic:"/sɪks/",meaning:"六"},
+  {word:"seven",phonetic:"/ˈsevn/",meaning:"七"},
+  {word:"eight",phonetic:"/eɪt/",meaning:"八"},
+  {word:"nine",phonetic:"/naɪn/",meaning:"九"},
+  {word:"ten",phonetic:"/ten/",meaning:"十"},
+  {word:"hundred",phonetic:"/ˈhʌndrəd/",meaning:"一百"},
+  {word:"thousand",phonetic:"/ˈθaʊznd/",meaning:"一千"},
+  {word:"million",phonetic:"/ˈmɪljən/",meaning:"一百万"}
+];
+
+// 去重
+var seen = {};
+ENGLISH_DATA = ENGLISH_DATA.filter(function(item) {
+  if (seen[item.word]) return false;
+  seen[item.word] = true;
+  return true;
+});
+seen = {};
+CHINESE_DATA = CHINESE_DATA.filter(function(item) {
+  if (seen[item.char]) return false;
+  seen[item.char] = true;
+  return true;
+});
+
+// ===== 状态管理 =====
+var STORAGE_KEY = 'toolbox_flashcards_progress';
+var state = {
+  mode: 'chinese',       // 'chinese' | 'english'
+  currentIndex: 0,
+  progress: {},          // { 'chinese_0': 'know' | 'unknown' }
+  filtered: null,        // null | 'mistakes' (筛选模式)
+  cards: []              // 当前卡片列表（可能被打乱或筛选）
+};
+
+// 初始化卡片列表
+function getBaseCards(mode) {
+  return mode === 'chinese'
+    ? CHINESE_DATA.map(function(d) { return { front: d.char, back1: d.pinyin, back2: d.meaning }; })
+    : ENGLISH_DATA.map(function(d) { return { front: d.word, back1: d.phonetic, back2: d.meaning }; });
+}
+
+function initCards() {
+  if (state.filtered === 'mistakes') {
+    var base = getBaseCards(state.mode);
+    state.cards = base.filter(function(_, i) {
+      return state.progress[state.mode + '_' + i] === 'unknown';
+    });
+    if (state.cards.length === 0) {
+      ToolBox.showToast(i18nText('toast.msg489'));
+      state.filtered = null;
+      state.cards = getBaseCards(state.mode);
+    }
+  } else {
+    state.cards = getBaseCards(state.mode);
+  }
+  if (state.currentIndex >= state.cards.length) state.currentIndex = 0;
+}
+
+// 加载/保存进度
+function loadProgress() {
+  try {
+    var saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) state.progress = JSON.parse(saved);
+  } catch(e) {}
+}
+
+function saveProgress() {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state.progress));
+  } catch(e) {}
+}
+
+// ===== 渲染 =====
+function renderCard() {
+  var cards = state.cards;
+  if (cards.length === 0) {
+    document.getElementById('cardChar').textContent = state.mode === 'chinese' ? '暂无' : 'Empty';
+    document.getElementById('cardPinyin').textContent = '';
+    document.getElementById('cardMeaning').textContent = '';
+    return;
+  }
+  var idx = state.currentIndex;
+  var card = cards[idx];
+  var flipCard = document.getElementById('flipCard');
+  flipCard.classList.remove('flipped');
+
+  if (state.mode === 'chinese') {
+    document.getElementById('cardChar').textContent = card.front;
+    document.getElementById('cardPinyin').textContent = card.back1;
+    document.getElementById('cardMeaning').textContent = card.back2;
+    document.getElementById('cardFront').querySelector('.card-char').style.display = '';
+  } else {
+    // 英文模式：卡片英文更大
+    var charEl = document.getElementById('cardFront').querySelector('.card-char');
+    charEl.textContent = card.front;
+    charEl.style.fontSize = card.front.length > 6 ? '44px' : '56px';
+    document.getElementById('cardPinyin').textContent = card.back1;
+    document.getElementById('cardMeaning').textContent = card.back2;
+  }
+
+  document.getElementById('currentIndex').textContent = idx + 1;
+  document.getElementById('totalCards').textContent = cards.length;
+  document.getElementById('prevBtn').disabled = idx === 0;
+  document.getElementById('nextBtn').disabled = idx >= cards.length - 1;
+}
+
+function renderStats() {
+  var base = getBaseCards(state.mode);
+  var total = base.length;
+  var know = 0, unknown = 0;
+  for (var i = 0; i < total; i++) {
+    var key = state.mode + '_' + i;
+    if (state.progress[key] === 'know') know++;
+    else if (state.progress[key] === 'unknown') unknown++;
+  }
+  var remain = total - know - unknown;
+
+  document.getElementById('statTotal').textContent = total;
+  document.getElementById('statKnow').textContent = know;
+  document.getElementById('statUnknown').textContent = unknown;
+  document.getElementById('statRemain').textContent = remain;
+  document.getElementById('totalCount').textContent = total;
+}
+
+function renderProgressDots() {
+  var cards = state.cards;
+  var container = document.getElementById('progressDots');
+  if (cards.length > 60) {
+    // 太多时不渲染点
+    container.innerHTML = '<span style="font-size:12px;color:var(--text-muted);">卡片较多，进度以统计区显示</span>';
+    return;
+  }
+  var html = '';
+  for (var i = 0; i < cards.length; i++) {
+    var cls = 'progress-dot';
+    var card = cards[i];
+    // 在原始列表中找到索引
+    var baseIdx = findBaseIndex(state.mode, card);
+    if (baseIdx >= 0) {
+      var key = state.mode + '_' + baseIdx;
+      if (state.progress[key] === 'know') cls += ' learned';
+      else if (state.progress[key] === 'unknown') cls += ' forgot';
+    }
+    if (i === state.currentIndex) cls += ' current';
+    html += '<span class="' + cls + '"></span>';
+  }
+  container.innerHTML = html;
+}
+
+function findBaseIndex(mode, card) {
+  var base = getBaseCards(mode);
+  for (var i = 0; i < base.length; i++) {
+    if (base[i].front === card.front) return i;
+  }
+  return -1;
+}
+
+// ===== 交互 =====
+function flipCard() {
+  if (state.cards.length === 0) return;
+  document.getElementById('flipCard').classList.toggle('flipped');
+}
+
+function prevCard() {
+  if (state.currentIndex > 0) {
+    state.currentIndex--;
+    renderCard();
+    renderProgressDots();
+  }
+}
+
+function nextCard() {
+  if (state.currentIndex < state.cards.length - 1) {
+    state.currentIndex++;
+    renderCard();
+    renderProgressDots();
+  }
+}
+
+function markCard(known) {
+  if (state.cards.length === 0) return;
+  var card = state.cards[state.currentIndex];
+  var baseIdx = findBaseIndex(state.mode, card);
+  if (baseIdx < 0) return;
+  var key = state.mode + '_' + baseIdx;
+  state.progress[key] = known ? 'know' : 'unknown';
+  saveProgress();
+  renderStats();
+  renderProgressDots();
+
+  ToolBox.showToast(known ? '✓ 认识' : '✗ 不认识', known ? 'success' : 'error');
+
+  // 自动翻到下一张
+  if (state.currentIndex < state.cards.length - 1) {
+    state.currentIndex++;
+    renderCard();
+    renderProgressDots();
+  } else {
+    // 最后一张，检查是否全部学完
+    checkComplete();
+  }
+}
+
+function switchMode(mode) {
+  state.mode = mode;
+  state.currentIndex = 0;
+  state.filtered = null;
+  initCards();
+
+  // 更新 tab 样式
+  var tabs = document.querySelectorAll('#modeTabs .tab-btn');
+  tabs.forEach(function(t, i) {
+    t.classList.toggle('active', (i === 0 && mode === 'chinese') || (i === 1 && mode === 'english'));
+  });
+
+  document.getElementById('modeTitle').textContent = mode === 'chinese' ? '汉字识字模式' : '英文单词模式';
+
+  renderCard();
+  renderStats();
+  renderProgressDots();
+}
+
+function shuffleCards() {
+  // Fisher-Yates
+  for (var i = state.cards.length - 1; i > 0; i--) {
+    var j = Math.floor(Math.random() * (i + 1));
+    var tmp = state.cards[i];
+    state.cards[i] = state.cards[j];
+    state.cards[j] = tmp;
+  }
+  state.currentIndex = 0;
+  renderCard();
+  renderProgressDots();
+  ToolBox.showToast(i18nText('toast.msg239'));
+}
+
+function resetProgress() {
+  var base = getBaseCards(state.mode);
+  for (var i = 0; i < base.length; i++) {
+    delete state.progress[state.mode + '_' + i];
+  }
+  state.filtered = null;
+  state.currentIndex = 0;
+  initCards();
+  saveProgress();
+  renderCard();
+  renderStats();
+  renderProgressDots();
+  ToolBox.showToast(i18nText('toast.msg972'));
+}
+
+function reviewMistakes() {
+  var base = getBaseCards(state.mode);
+  var hasMistakes = false;
+  for (var i = 0; i < base.length; i++) {
+    if (state.progress[state.mode + '_' + i] === 'unknown') {
+      hasMistakes = true;
+      break;
+    }
+  }
+  if (!hasMistakes) {
+    ToolBox.showToast(i18nText('toast.msg489'), 'info');
+    return;
+  }
+  state.filtered = 'mistakes';
+  state.currentIndex = 0;
+  initCards();
+  renderCard();
+  renderStats();
+  renderProgressDots();
+  ToolBox.showToast(i18nText('toast.msg164'));
+}
+
+function checkComplete() {
+  // 当前筛选模式下全部学完
+  if (state.cards.length === 0) return;
+  var knowCount = 0;
+  for (var i = 0; i < state.cards.length; i++) {
+    var card = state.cards[i];
+    var baseIdx = findBaseIndex(state.mode, card);
+    if (baseIdx >= 0 && state.progress[state.mode + '_' + baseIdx] === 'know') knowCount++;
+  }
+  var rate = Math.round(knowCount / state.cards.length * 100);
+  document.getElementById('completeRate').textContent = rate + '%';
+  document.getElementById('completeRate').style.color =
+    rate >= 80 ? 'var(--success)' : rate >= 50 ? 'var(--warning)' : 'var(--danger)';
+  document.getElementById('completeDesc').textContent =
+    state.filtered === 'mistakes' ? '错词复习完成' : '本轮学习完成';
+  document.getElementById('completeDetail').textContent =
+    '认识 ' + knowCount + ' 个，不认识 ' + (state.cards.length - knowCount) + ' 个';
+  document.getElementById('completeOverlay').classList.add('show');
+}
+
+function closeComplete() {
+  document.getElementById('completeOverlay').classList.remove('show');
+}
+
+function toggleIntro() {
+  document.getElementById('toolIntro').classList.toggle('open');
+}
+
+// ===== 键盘快捷键 =====
+document.addEventListener('keydown', function(e) {
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+  switch(e.key) {
+    case 'ArrowLeft': prevCard(); e.preventDefault(); break;
+    case 'ArrowRight': nextCard(); e.preventDefault(); break;
+    case ' ': flipCard(); e.preventDefault(); break;
+    case '1': markCard(true); break;
+    case '2': markCard(false); break;
+  }
+});
+
+// ===== 初始化 =====
+document.addEventListener('DOMContentLoaded', function() {
+  loadProgress();
+  initCards();
+  renderCard();
+  renderStats();
+  renderProgressDots();
+});
+</script><script>
+// tool-intro折叠交互
+document.addEventListener('DOMContentLoaded',function(){
+  var headers=document.querySelectorAll('.tool-intro-header');
+  headers.forEach(function(h){
+    h.addEventListener('click',function(){
+      this.parentElement.classList.toggle('open');
+    });
+  });
+});
+</script>
+
+</body>
+</html>

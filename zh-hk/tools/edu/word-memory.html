@@ -1,0 +1,674 @@
+<!DOCTYPE html>
+<html lang="zh-HK" data-opencc-locale="zh-hk">
+<head>
+
+<script src="/js/tool-page-runtime.js" defer></script>
+<!-- TOOLBOX-TOOL-RUNTIME -->
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="toolbox" content="cat=reference,industry=edu,icon=📚,bg=#fff3e0">
+<meta name="description" content="单词记忆器，基于艾宾浩斯遗忘曲线以卡片式记忆并支持多词库，辅助长期单词 retention。">
+<meta name="keywords" content="单词记忆,单词记忆在线,在线单词记忆,速查表,教育学习,在线工具,免费工具,ToolBox">
+<meta name="robots" content="index,follow">
+<link rel="canonical" href="https://chenguangwu.github.io/zh-hk/tools/edu/word-memory.html">
+<meta property="og:title" content="单词记忆">
+<meta property="og:description" content="单词记忆器，基于艾宾浩斯遗忘曲线以卡片式记忆并支持多词库，辅助长期单词 retention。">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://chenguangwu.github.io/zh-hk/tools/edu/word-memory.html">
+<meta name="twitter:card" content="summary">
+
+<title>單詞記憶 - ToolBox</title>
+<meta name="theme-color" content="#FF6B35">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<link rel="icon" href="/favicon.ico" sizes="16x16 32x32 48x48">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="preload" as="style" href="/css/common.css" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="/css/common.css"></noscript>
+<script>window.__tbq=window.__tbq||[];window.ToolBox=window.ToolBox||{};['initToolTheme','addToolStyles','showToast','toast','copyText','copyToClipboard','copyFromElement','downloadText','injectPrivacyBadge','toggleFavTool','addToRecentTool','toggleToolTheme','applyTheme'].forEach(function(k){if(typeof window.ToolBox[k]!=='function')window.ToolBox[k]=function(){window.__tbq.push([k,[].slice.call(arguments)]);};});</script><!-- TOOLBOX-API-STUB -->
+<script src="/js/common.js" defer></script>
+<style>
+.tabs{display:flex;gap:0;margin-bottom:16px;border-bottom:1px solid var(--border);}
+.tab{padding:10px 16px;cursor:pointer;font-size:14px;color:var(--text-light);border-bottom:2px solid transparent;transition:all 0.15s;}
+.tab.active{color:var(--primary);border-bottom-color:var(--primary);font-weight:500;}
+.tab:hover{color:var(--primary);}
+.tab-content{display:none;}
+.tab-content.active{display:block;}
+.flashcard{width:100%;height:220px;perspective:1000px;cursor:pointer;margin-bottom:16px;}
+.flashcard-inner{position:relative;width:100%;height:100%;transition:transform 0.5s;transform-style:preserve-3d;}
+.flashcard.flipped .flashcard-inner{transform:rotateY(180deg);}
+.flashcard-front,.flashcard-back{position:absolute;width:100%;height:100%;backface-visibility:hidden;border-radius:12px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;box-sizing:border-box;}
+.flashcard-front{background:linear-gradient(135deg,var(--primary),#7c4dff);color:#fff;}
+.flashcard-back{background:var(--result-bg);border:1px solid var(--border);transform:rotateY(180deg);}
+.flashcard-word{font-size:36px;font-weight:700;margin-bottom:8px;}
+.flashcard-phonetic{font-size:16px;opacity:0.8;}
+.flashcard-meaning{font-size:20px;text-align:center;line-height:1.6;}
+.flashcard-example{font-size:13px;color:var(--text-muted);margin-top:12px;text-align:center;font-style:italic;}
+.familiarity{display:flex;gap:8px;justify-content:center;margin-bottom:16px;}
+.fam-btn{flex:1;padding:10px;border:1px solid var(--border);border-radius:8px;background:var(--result-bg);cursor:pointer;font-size:13px;transition:all 0.15s;}
+.fam-btn:hover{border-color:var(--primary);}
+.fam-btn.active{background:var(--primary);color:#fff;border-color:var(--primary);}
+.progress-info{display:flex;justify-content:space-between;font-size:13px;color:var(--text-muted);margin-bottom:8px;}
+.word-list-item{display:flex;align-items:center;gap:10px;padding:10px;border:1px solid var(--border);border-radius:8px;margin-bottom:6px;transition:all 0.15s;}
+.word-list-item:hover{border-color:var(--primary);}
+.word-main{flex:1;min-width:0;}
+.word-text{font-weight:500;font-size:14px;}
+.word-meaning{font-size:12px;color:var(--text-muted);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.word-level{padding:2px 6px;border-radius:4px;font-size:11px;font-weight:500;flex-shrink:0;}
+.level-new{background:#e3f2fd;color:#1976d2;}
+.level-learning{background:#fff3e0;color:#f57c00;}
+.level-mastered{background:#e8f5e9;color:#388e3c;}
+.book-selector{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:16px;}
+.book-card{padding:12px;border:1px solid var(--border);border-radius:10px;cursor:pointer;transition:all 0.15s;}
+.book-card:hover{border-color:var(--primary);}
+.book-card.active{border-color:var(--primary);background:var(--result-bg);}
+.book-card .book-icon{font-size:24px;margin-bottom:6px;}
+.book-card .book-name{font-weight:500;font-size:14px;}
+.book-card .book-count{font-size:12px;color:var(--text-muted);margin-top:2px;}
+.stat-row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px;}
+.stat-row:last-child{border-bottom:none;}
+</style>
+
+
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"單詞記憶","description":"單詞記憶 - 免費速查表工具，在線單詞記憶，免費使用。","url":"https://chenguangwu.github.io/zh-hk/tools/edu/word-memory.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Web","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"},"inLanguage":"zh-HK","isAccessibleForFree":true,"browserRequirements":"Requires JavaScript. Requires HTML5.","softwareVersion":"1.0"}</script>
+
+
+
+<meta property="og:image" content="https://chenguangwu.github.io/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="ToolBox - 5000+免费在线工具">
+<meta name="twitter:image" content="https://chenguangwu.github.io/og-image.png">
+<meta name="twitter:image:alt" content="ToolBox - 5000+免费在线工具">
+    <meta name="twitter:title" content="单词记忆">
+    <meta name="twitter:description" content="单词记忆器，基于艾宾浩斯遗忘曲线以卡片式记忆并支持多词库，辅助长期单词 retention。">
+<!-- TOOLBOX-WEBAPP-LD -->
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"單詞記憶","url":"https://chenguangwu.github.io/zh-hk/tools/edu/word-memory.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":"zh-HK","description":"單詞記憶器，基於艾賓浩斯遺忘曲線以卡片式記憶並支持多詞庫，輔助長期單詞 retention。","image":"https://chenguangwu.github.io/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}</script>
+<meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
+<meta http-equiv="X-Content-Type-Options" content="nosniff">
+<meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
+<!-- TOOLBOX-SECURITY -->
+
+<script src="/js/privacy.js" defer></script>
+<!-- TOOLBOX-PRIVACY-SCRIPT -->
+
+<script src="/js/metrics.js" defer></script>
+<!-- TOOLBOX-METRICS-SCRIPT -->
+
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"首頁","item":"https://chenguangwu.github.io/zh-hk/"},{"@type":"ListItem","position":2,"name":"教育學習","item":"https://chenguangwu.github.io/zh-hk/tools/edu/index.html"},{"@type":"ListItem","position":3,"name":"單詞記憶","item":"https://chenguangwu.github.io/zh-hk/tools/edu/word-memory.html"}]}</script>
+
+<script src="/js/i18n.js" defer></script>
+<script src="/js/tool-i18n.js" defer></script>
+<!-- TOOLBOX-I18N-SCRIPT -->
+
+
+<meta name="title-en" content="Word Memory - ToolBox">
+<meta name="desc-en" content="Word Memory - free online tool. Free online tool on ToolBox — 100% client-side, no data uploaded, no install. Part of the Education &amp; Learning tools.">
+<!-- TOOLBOX-HREFLANG -->
+<link rel="alternate" hreflang="zh-CN" href="https://chenguangwu.github.io/tools/edu/word-memory.html">
+<link rel="alternate" hreflang="zh-TW" href="https://chenguangwu.github.io/zh-tw/tools/edu/word-memory.html">
+<link rel="alternate" hreflang="zh-HK" href="https://chenguangwu.github.io/zh-hk/tools/edu/word-memory.html">
+<link rel="alternate" hreflang="en-US" href="https://chenguangwu.github.io/tools/edu/word-memory.html?lang=en-US">
+<link rel="alternate" hreflang="x-default" href="https://chenguangwu.github.io/tools/edu/word-memory.html">
+<meta property="og:locale" content="zh_HK">
+<meta property="og:locale:alternate" content="zh_CN">
+<meta property="og:locale:alternate" content="zh_TW">
+<meta property="og:locale:alternate" content="en_US">
+</head>
+<body>
+<h1 class="sr-only">單詞記憶</h1>
+
+<div class="nav">
+  <a href="/zh-hk/index.html">← ToolBox</a>
+  <span>/ 單詞記憶</span>
+  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()">🌙</button>
+</div>
+
+
+
+
+<nav class="breadcrumb" aria-label="麪包屑導航" data-breadcrumb="1">
+  <a href="/zh-hk/index.html">首頁</a>
+  <span class="bc-sep">‹</span>
+  <a href="/zh-hk/tools/edu/index.html">📖 教育學習</a>
+  <span class="bc-sep">‹</span>
+  <span class="bc-current">單詞記憶</span>
+</nav>
+<div class="container">
+  <div class="card tool-card-accent" style="--tool-accent:#FF6B35;">
+    <h2 data-zh="📚 單詞記憶">📚 Word Memory</h2>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="艾賓浩斯遺忘曲線 · 卡片式記憶 · 多詞庫支持">Word Memory is available directly in your browser, with no data uploaded.</p>
+
+    <div class="tabs">
+      <div class="tab active" onclick="switchTab('study')">開始學習</div>
+      <div class="tab" onclick="switchTab('words')">單詞本</div>
+      <div class="tab" onclick="switchTab('books')">選擇詞庫</div>
+      <div class="tab" onclick="switchTab('stats')">學習統計</div>
+    </div>
+
+    <div id="tab-study" class="tab-content active">
+      <div class="progress-info">
+        <span id="progressText">第 0 / 0 個</span>
+        <span id="progressPct">0%</span>
+      </div>
+      <div class="progress-bar" style="margin-bottom:16px;">
+        <div class="progress-fill" id="progressFill" style="width:0%"></div>
+      </div>
+
+      <div class="flashcard" onclick="flipCard()" id="flashcard">
+        <div class="flashcard-inner">
+          <div class="flashcard-front">
+            <div class="flashcard-word" id="cardWord">點擊開始</div>
+            <div class="flashcard-phonetic" id="cardPhonetic">選擇詞庫後開始學習</div>
+          </div>
+          <div class="flashcard-back">
+            <div class="flashcard-meaning" id="cardMeaning">釋義內容</div>
+            <div class="flashcard-example" id="cardExample">例句</div>
+          </div>
+        </div>
+      </div>
+
+      <div style="text-align:center;font-size:12px;color:var(--text-muted);margin-bottom:12px;">👆 點擊卡片翻轉查看釋義</div>
+
+      <div class="familiarity">
+        <button type="button" class="fam-btn" onclick="markWord(0)">😵 不認識</button>
+        <button type="button" class="fam-btn" onclick="markWord(1)">🤔 模糊</button>
+        <button type="button" class="fam-btn" onclick="markWord(2)">😊 認識</button>
+        <button type="button" class="fam-btn" onclick="markWord(3)">🎉 掌握</button>
+      </div>
+
+      <div class="toolbar">
+        <button type="button" class="btn" onclick="prevWord()">← 上一個</button>
+        <button type="button" class="btn primary" onclick="nextWord()">下一個 →</button>
+        <button type="button" class="btn" onclick="shuffleWords()">🔀 亂序</button>
+      </div>
+    </div>
+
+    <div id="tab-words" class="tab-content">
+      <div class="input-row">
+        <label>搜尋單詞</label>
+        <input type="text" id="wordSearch" placeholder="輸入單詞或釋義..." oninput="filterWords()">
+      </div>
+      <div class="toolbar">
+        <select id="filterLevel" onchange="filterWords()" style="padding:8px;border:1px solid var(--border);border-radius:6px;background:var(--result-bg);color:var(--text);">
+          <option value="all">全部</option>
+          <option value="0">不認識</option>
+          <option value="1">模糊</option>
+          <option value="2">認識</option>
+          <option value="3">掌握</option>
+        </select>
+        <button type="button" class="btn" onclick="addCustomWord()">+ 添加單詞</button>
+      </div>
+      <div id="wordList" style="margin-top:12px;max-height:400px;overflow-y:auto;"></div>
+    </div>
+
+    <div id="tab-books" class="tab-content">
+      <h3 style="font-size:14px;margin-bottom:10px;">內置詞庫</h3>
+      <div class="book-selector" id="bookSelector"></div>
+    </div>
+
+    <div id="tab-stats" class="tab-content">
+      <div class="stat-grid" style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px;">
+        <div style="background:var(--result-bg);border:1px solid var(--border);border-radius:10px;padding:12px;text-align:center;">
+          <div style="font-size:20px;font-weight:700;color:var(--primary);" id="statTotal">0</div>
+          <div style="font-size:11px;color:var(--text-muted);">總單詞數</div>
+        </div>
+        <div style="background:var(--result-bg);border:1px solid var(--border);border-radius:10px;padding:12px;text-align:center;">
+          <div style="font-size:20px;font-weight:700;color:#66bb6a;" id="statMastered">0</div>
+          <div style="font-size:11px;color:var(--text-muted);">已掌握</div>
+        </div>
+        <div style="background:var(--result-bg);border:1px solid var(--border);border-radius:10px;padding:12px;text-align:center;">
+          <div style="font-size:20px;font-weight:700;color:#ffa726;" id="statLearning">0</div>
+          <div style="font-size:11px;color:var(--text-muted);">學習中</div>
+        </div>
+        <div style="background:var(--result-bg);border:1px solid var(--border);border-radius:10px;padding:12px;text-align:center;">
+          <div style="font-size:20px;font-weight:700;color:#ef5350;" id="statNew">0</div>
+          <div style="font-size:11px;color:var(--text-muted);">未學習</div>
+        </div>
+      </div>
+
+      <h3 style="font-size:14px;margin-bottom:10px;">掌握程度分佈</h3>
+      <div class="result-box" id="levelDistribution"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>📖 艾賓浩斯記憶法</h3>
+    <div class="step-line"><strong>遺忘曲線：</strong>學習後的第1天遺忘最快，之後逐漸減緩</div>
+    <div class="step-line"><strong>複習週期：</strong>建議在學習後 1天、3天、7天、15天、30天 各複習一次</div>
+    <div class="step-line"><strong>分級記憶：</strong>將單詞分為「不認識→模糊→認識→掌握」四個等級，逐步推進</div>
+    <div class="step-line"><strong>每日目標：</strong>建議每天學習15-30個新單詞，同時複習舊單詞</div>
+  </div>
+
+<!-- TOOLBOX-DEEP-DIVE -->
+<style>
+.deep-dive{max-width:960px;margin:16px auto;padding:0 16px;}
+.deep-dive > .card{margin-bottom:0;}
+@media(max-width:600px){.deep-dive{margin:14px auto;padding:0 12px;}}
+.deep-dive .dd-list{margin:8px 0 16px;padding-left:20px;}
+.deep-dive .dd-list li{margin:6px 0;line-height:1.75;}
+.deep-dive .dd-example{background:var(--card-bg,#fff);border:1px solid var(--border,#eee);border-radius:10px;padding:12px 14px;margin:8px 0 16px;}
+.deep-dive .dd-ex-title{font-weight:600;color:var(--tool-accent,#FF6B35);margin-bottom:6px;}
+.deep-dive .dd-ex-body{font-size:13px;line-height:1.85;color:var(--text,#333);word-break:break-word;}
+.deep-dive .dd-faq{margin:8px 0 4px;}
+.deep-dive .dd-faq dt{font-weight:600;margin-top:10px;color:var(--text,#333);}
+.deep-dive .dd-faq dd{margin:4px 0 0;font-size:13px;line-height:1.85;color:var(--text-muted,#666);}
+
+</style>
+<section class="deep-dive" data-deep-dive="1">
+<div class="card">
+<h2>📚 深度解析：單詞記憶</h2>
+<h3>💡 常見使用場景</h3>
+<ul class="dd-list">
+<li>核對 單詞記憶 的輸入單位和假設邊界後，再進行一次樣例算例，先看結果變化趨勢是否符合預期。</li>
+<li>復盤建議：固定 1-2 個變量做敏感性對比，避免口徑切換導致的“結果反直覺”。</li>
+<li>常見場景：Word Memory</li>
+</ul>
+<div class="dd-example"><div class="dd-ex-title">快速複核「單詞記憶」</div><div class="dd-ex-body">先跑一組可復現輸入做基準，再做一次關鍵參數上浮/下調的複測，對照輸出變化是否符合預期。</div></div>
+<h3>❓ 常見問題（FAQ）</h3>
+<dl class="dd-faq">
+<dt>單詞記憶 可直接用於決策依據嗎？</dt><dd>更多用於快速預估與複核。正式決策請補充數據來源、邊界條件與單位説明。</dd>
+<dt>結果和歷史表現差異明顯怎麼辦？</dt><dd>先核對是否有百分比/小數口徑混淆，再確認時間窗與樣本口徑是否可比，最後以樣本複測法鎖定偏差點。</dd>
+</dl>
+</div>
+</section>
+<!-- 注意事項區塊 -->
+<div class="tool-notes" style="--tool-accent:#FF6B35;">
+  <div class="tool-notes-title">⚠️ 使用説明與注意事項</div>
+  <ul>
+      <li>本工具純前端運行，數據不會上傳到伺服器</li>
+      <li>建議在主流瀏覽器（Chrome/Safari/Firefox/Edge）中使用</li>
+      <li>計算結果僅供參考，請以實際應用場景為準</li>
+  </ul>
+</div>
+<!-- /注意事項區塊 -->
+</div>
+
+<script>
+const DATA_KEY = 'toolbox_word_memory';
+
+const wordBooks = {
+  cet4: {
+    name: '四级核心词',
+    icon: '📘',
+    words: [
+      {word:'abandon', phonetic:'/əˈbændən/', meaning:'v. 放弃，抛弃', example:'He abandoned his car in the snow.'},
+      {word:'ability', phonetic:'/əˈbɪləti/', meaning:'n. 能力，才能', example:'She has the ability to solve problems.'},
+      {word:'absolute', phonetic:'/ˈæbsəluːt/', meaning:'adj. 绝对的，完全的', example:'There is no absolute certainty in life.'},
+      {word:'absorb', phonetic:'/əbˈzɔːb/', meaning:'v. 吸收，吸引', example:'Plants absorb water from the soil.'},
+      {word:'abstract', phonetic:'/ˈæbstrækt/', meaning:'adj. 抽象的 n. 摘要', example:'Abstract art is not easy to understand.'},
+      {word:'abundant', phonetic:'/əˈbʌndənt/', meaning:'adj. 丰富的，充裕的', example:'The region has abundant natural resources.'},
+      {word:'academic', phonetic:'/ˌækəˈdemɪk/', meaning:'adj. 学术的，学院的', example:'He has strong academic ability.'},
+      {word:'accelerate', phonetic:'/əkˈseləreɪt/', meaning:'v. 加速，促进', example:'The car accelerated quickly.'},
+      {word:'access', phonetic:'/ˈækses/', meaning:'n. 通道，使用权 v. 访问', example:'Students have access to the library.'},
+      {word:'accident', phonetic:'/ˈæksɪdənt/', meaning:'n. 事故，意外', example:'He was injured in a car accident.'},
+      {word:'accompany', phonetic:'/əˈkʌmpəni/', meaning:'v. 陪伴，伴随', example:'She accompanied me to the hospital.'},
+      {word:'accomplish', phonetic:'/əˈkɒmplɪʃ/', meaning:'v. 完成，实现', example:'We accomplished our goal on time.'},
+      {word:'account', phonetic:'/əˈkaʊnt/', meaning:'n. 账户，说明 v. 解释', example:'I opened a bank account yesterday.'},
+      {word:'accurate', phonetic:'/ˈækjərət/', meaning:'adj. 准确的，精确的', example:'The data must be accurate.'},
+      {word:'achieve', phonetic:'/əˈtʃiːv/', meaning:'v. 实现，达到', example:'She achieved her dream of becoming a doctor.'},
+      {word:'acknowledge', phonetic:'/əkˈnɒlɪdʒ/', meaning:'v. 承认，感谢', example:'He acknowledged his mistake.'},
+      {word:'acquire', phonetic:'/əˈkwaɪər/', meaning:'v. 获得，习得', example:'She acquired new skills quickly.'},
+      {word:'adapt', phonetic:'/əˈdæpt/', meaning:'v. 适应，改编', example:'Children adapt to new environments easily.'},
+      {word:'adequate', phonetic:'/ˈædɪkwət/', meaning:'adj. 足够的，适当的', example:'We have adequate time to prepare.'},
+      {word:'adjust', phonetic:'/əˈdʒʌst/', meaning:'v. 调整，适应', example:'You need to adjust your study plan.'}
+    ]
+  },
+  cet6: {
+    name: '六级核心词',
+    icon: '📕',
+    words: [
+      {word:'abolish', phonetic:'/əˈbɒlɪʃ/', meaning:'v. 废除，取消', example:'The government decided to abolish the tax.'},
+      {word:'abrupt', phonetic:'/əˈbrʌpt/', meaning:'adj. 突然的，唐突的', example:'His abrupt departure surprised everyone.'},
+      {word:'absurd', phonetic:'/əbˈsɜːd/', meaning:'adj. 荒谬的，可笑的', example:'It is absurd to believe that.'},
+      {word:'abundant', phonetic:'/əˈbʌndənt/', meaning:'adj. 丰富的，大量的', example:'The country has abundant oil reserves.'},
+      {word:'accelerate', phonetic:'/əkˈseləreɪt/', meaning:'v. 加速，加快', example:'We need to accelerate the process.'},
+      {word:'accessory', phonetic:'/əkˈsesəri/', meaning:'n. 配件，附件', example:'She bought some accessories for her phone.'},
+      {word:'acclaim', phonetic:'/əˈkleɪm/', meaning:'v./n. 称赞，欢呼', example:'The film received critical acclaim.'},
+      {word:'accommodate', phonetic:'/əˈkɒmədeɪt/', meaning:'v. 容纳，适应', example:'The hotel can accommodate 200 guests.'},
+      {word:'accumulate', phonetic:'/əˈkjuːmjəleɪt/', meaning:'v. 积累，积聚', example:'We accumulated a lot of experience.'},
+      {word:'accurate', phonetic:'/ˈækjərət/', meaning:'adj. 准确的，精确的', example:'The report is accurate and reliable.'}
+    ]
+  },
+  basic: {
+    name: '基础常用词',
+    icon: '📗',
+    words: [
+      {word:'hello', phonetic:'/həˈləʊ/', meaning:'int. 你好', example:'Hello, nice to meet you!'},
+      {word:'world', phonetic:'/wɜːld/', meaning:'n. 世界', example:'The world is changing fast.'},
+      {word:'love', phonetic:'/lʌv/', meaning:'v./n. 爱，喜欢', example:'I love learning English.'},
+      {word:'friend', phonetic:'/frend/', meaning:'n. 朋友', example:'She is my best friend.'},
+      {word:'family', phonetic:'/ˈfæməli/', meaning:'n. 家庭，家人', example:'I have a happy family.'},
+      {word:'school', phonetic:'/skuːl/', meaning:'n. 学校', example:'I go to school by bike.'},
+      {word:'work', phonetic:'/wɜːk/', meaning:'v./n. 工作', example:'I work in a company.'},
+      {word:'study', phonetic:'/ˈstʌdi/', meaning:'v./n. 学习', example:'I study English every day.'},
+      {word:'happy', phonetic:'/ˈhæpi/', meaning:'adj. 快乐的', example:'I am very happy today.'},
+      {word:'good', phonetic:'/ɡʊd/', meaning:'adj. 好的', example:'This is a good idea.'}
+    ]
+  },
+  custom: {
+    name: '我的单词本',
+    icon: '📓',
+    words: []
+  }
+};
+
+let currentBook = 'cet4';
+let currentIndex = 0;
+let shuffledIndices = [];
+let userData = {};
+
+function init(){
+  loadData();
+  renderBooks();
+  loadCurrentBook();
+}
+
+function loadData(){
+  try{
+    const saved = JSON.parse(localStorage.getItem(DATA_KEY)||'{}');
+    userData = saved || {};
+    if(saved.currentBook) currentBook = saved.currentBook;
+    if(saved.customWords) wordBooks.custom.words = saved.customWords;
+  }catch(e){}
+}
+
+function saveData(){
+  userData.currentBook = currentBook;
+  userData.customWords = wordBooks.custom.words;
+  localStorage.setItem(DATA_KEY, JSON.stringify(userData));
+}
+
+function getBookData(bookKey){
+  if(!userData[bookKey]){
+    userData[bookKey] = wordBooks[bookKey].words.map(()=>({level:0, reviewCount:0, lastReview:0}));
+  }
+  return userData[bookKey];
+}
+
+function loadCurrentBook(){
+  const book = wordBooks[currentBook];
+  const data = getBookData(currentBook);
+  shuffledIndices = book.words.map((_,i)=>i);
+  currentIndex = 0;
+  updateCard();
+  updateStats();
+  renderBooks();
+  filterWords();
+}
+
+function switchTab(tab){
+  document.querySelectorAll('.tab').forEach((t,i)=>{
+    t.classList.toggle('active', ['study','words','books','stats'][i]===tab);
+  });
+  document.querySelectorAll('.tab-content').forEach(c=>c.classList.remove('active'));
+  document.getElementById('tab-'+tab).classList.add('active');
+  if(tab==='stats') updateStats();
+}
+
+function renderBooks(){
+  const el = document.getElementById('bookSelector');
+  let html = '';
+  for(const key in wordBooks){
+    const book = wordBooks[key];
+    const isActive = key === currentBook;
+    html += `
+      <div class="book-card ${isActive?'active':''}" onclick="selectBook('${key}')">
+        <div class="book-icon">${book.icon}</div>
+        <div class="book-name">${book.name}</div>
+        <div class="book-count">${book.words.length} 个单词</div>
+      </div>
+    `;
+  }
+  el.innerHTML = html;
+}
+
+function selectBook(key){
+  currentBook = key;
+  saveData();
+  loadCurrentBook();
+  switchTab('study');
+  ToolBox.showToast('已切换到 ' + wordBooks[key].name);
+}
+
+function updateCard(){
+  const book = wordBooks[currentBook];
+  const data = getBookData(currentBook);
+  if(book.words.length===0){
+    document.getElementById('cardWord').textContent = '暂无单词';
+    document.getElementById('cardPhonetic').textContent = '请添加单词';
+    document.getElementById('cardMeaning').textContent = '-';
+    document.getElementById('cardExample').textContent = '';
+    return;
+  }
+  const idx = shuffledIndices[currentIndex % shuffledIndices.length];
+  const word = book.words[idx];
+  document.getElementById('cardWord').textContent = word.word;
+  document.getElementById('cardPhonetic').textContent = word.phonetic || '';
+  document.getElementById('cardMeaning').textContent = word.meaning;
+  document.getElementById('cardExample').textContent = word.example || '';
+
+  const total = shuffledIndices.length;
+  const pos = currentIndex + 1;
+  document.getElementById('progressText').textContent = `第 ${pos} / ${total} 个`;
+  const pct = Math.round((pos/total)*100);
+  document.getElementById('progressPct').textContent = pct + '%';
+  document.getElementById('progressFill').style.width = pct + '%';
+
+  document.getElementById('flashcard').classList.remove('flipped');
+}
+
+function flipCard(){
+  document.getElementById('flashcard').classList.toggle('flipped');
+}
+
+function nextWord(){
+  const book = wordBooks[currentBook];
+  if(book.words.length===0) return;
+  currentIndex = (currentIndex + 1) % shuffledIndices.length;
+  updateCard();
+}
+
+function prevWord(){
+  const book = wordBooks[currentBook];
+  if(book.words.length===0) return;
+  currentIndex = (currentIndex - 1 + shuffledIndices.length) % shuffledIndices.length;
+  updateCard();
+}
+
+function shuffleWords(){
+  for(let i=shuffledIndices.length-1;i>0;i--){
+    const j = Math.floor(Math.random()*(i+1));
+    [shuffledIndices[i],shuffledIndices[j]] = [shuffledIndices[j],shuffledIndices[i]];
+  }
+  currentIndex = 0;
+  updateCard();
+  ToolBox.showToast(i18nText('toast.msg239'));
+}
+
+function markWord(level){
+  const book = wordBooks[currentBook];
+  const data = getBookData(currentBook);
+  const idx = shuffledIndices[currentIndex % shuffledIndices.length];
+  if(!data[idx]) data[idx] = {level:0, reviewCount:0, lastReview:0};
+  data[idx].level = level;
+  data[idx].reviewCount = (data[idx].reviewCount||0) + 1;
+  data[idx].lastReview = Date.now();
+  saveData();
+  const msgs = ['标记为不认识','标记为模糊','标记为认识','已掌握！太棒了！'];
+  ToolBox.showToast(msgs[level], level===3?'success':'info');
+  nextWord();
+}
+
+function filterWords(){
+  const book = wordBooks[currentBook];
+  const data = getBookData(currentBook);
+  const search = document.getElementById('wordSearch').value.toLowerCase();
+  const levelFilter = document.getElementById('filterLevel').value;
+
+  const el = document.getElementById('wordList');
+  let html = '';
+  let count = 0;
+
+  book.words.forEach((w,i)=>{
+    const wl = data[i]?.level || 0;
+    if(levelFilter!=='all' && wl !== parseInt(levelFilter)) return;
+    if(search && !w.word.toLowerCase().includes(search) && !w.meaning.includes(search)) return;
+
+    const levelClass = wl===0?'level-new':wl===1?'level-learning':'level-mastered';
+    const levelText = wl===0?'不认识':wl===1?'模糊':wl===2?'认识':'掌握';
+    html += `
+      <div class="word-list-item">
+        <div class="word-main">
+          <div class="word-text">${w.word} <span style="font-size:12px;color:var(--text-muted);font-weight:normal;">${w.phonetic||''}</span></div>
+          <div class="word-meaning">${w.meaning}</div>
+        </div>
+        <span class="word-level ${levelClass}">${levelText}</span>
+      </div>
+    `;
+    count++;
+  });
+
+  if(count===0){
+    html = '<p style="text-align:center;color:var(--text-muted);padding:20px;">没有找到匹配的单词</p>';
+  }
+  el.innerHTML = html;
+}
+
+function addCustomWord(){
+  const word = prompt('请输入英文单词：');
+  if(!word) return;
+  const meaning = prompt('请输入中文释义：');
+  if(!meaning) return;
+  const phonetic = prompt('请输入音标（可选）：', '') || '';
+
+  wordBooks.custom.words.push({word: word.trim(), phonetic: phonetic.trim(), meaning: meaning.trim(), example:''});
+  if(userData.custom){
+    userData.custom.push({level:0, reviewCount:0, lastReview:0});
+  }
+  saveData();
+  currentBook = 'custom';
+  loadCurrentBook();
+  ToolBox.showToast(i18nText('toast.msg259'));
+}
+
+function updateStats(){
+  const book = wordBooks[currentBook];
+  const data = getBookData(currentBook);
+
+  let total = book.words.length;
+  let mastered = 0, learning = 0, newW = 0;
+
+  for(let i=0;i<total;i++){
+    const lvl = data[i]?.level || 0;
+    if(lvl===3) mastered++;
+    else if(lvl>=1) learning++;
+    else newW++;
+  }
+
+  document.getElementById('statTotal').textContent = total;
+  document.getElementById('statMastered').textContent = mastered;
+  document.getElementById('statLearning').textContent = learning;
+  document.getElementById('statNew').textContent = newW;
+
+  const el = document.getElementById('levelDistribution');
+  const levels = [
+    {name:'掌握', count:mastered, color:'#66bb6a'},
+    {name:'认识', count:0, color:'#42a5f5'},
+    {name:'模糊', count:learning, color:'#ffa726'},
+    {name:'不认识', count:newW, color:'#ef5350'}
+  ];
+
+  let html = '';
+  levels.forEach(l=>{
+    const pct = total>0 ? ((l.count/total)*100).toFixed(0) : 0;
+    html += `
+      <div class="bar-row">
+        <span class="bar-lbl">${l.name}</span>
+        <div class="bar-bg"><div class="bar-fill" style="width:${pct}%;background:${l.color}">${l.count}个</div></div>
+        <span style="width:50px;text-align:right;font-size:12px;color:var(--text-muted);">${pct}%</span>
+      </div>
+    `;
+  });
+  el.innerHTML = html;
+}
+
+init();
+ToolBox.initToolTheme();
+</script><script>
+// tool-intro折叠交互
+document.addEventListener('DOMContentLoaded',function(){
+  var headers=document.querySelectorAll('.tool-intro-header');
+  headers.forEach(function(h){
+    h.addEventListener('click',function(){
+      this.parentElement.classList.toggle('open');
+    });
+  });
+});
+</script>
+<!-- SEO 介紹區塊 -->
+
+</div>
+
+</div>
+
+<!-- 相關工具 -->
+<div class="related-tools" data-related-tools="1">
+  <h3 class="related-tools-title">🔗 相關工具</h3>
+  <div class="related-tools-grid">
+    <a href="/zh-hk/tools/edu/pinyin-typing-practice.html" class="related-tool-card">
+      <span class="rt-icon">⌨️</span>
+      <span class="rt-info"><span class="rt-name">拼音打字練習 - 免費開發工具，在線拼音打字練習 | ToolBox免費在線工具箱</span><span class="rt-desc">⌨️ 拼音打字練習</span></span>
+    </a>
+    <a href="/zh-hk/tools/edu/english-vocabulary.html" class="related-tool-card">
+      <span class="rt-icon">📚</span>
+      <span class="rt-info"><span class="rt-name">英語單詞測試 - 免費開發工具，在線英語單詞測試 | ToolBox免費在線工具箱</span><span class="rt-desc">英語單詞測試</span></span>
+    </a>
+    <a href="/zh-hk/tools/edu/study-planner.html" class="related-tool-card">
+      <span class="rt-icon">📅</span>
+      <span class="rt-info"><span class="rt-name">學習計劃制定 - 免費生成器工具，在線學習計劃制定 | ToolBox免費在線工具箱</span><span class="rt-desc">學習計劃制定</span></span>
+    </a>
+    <a href="/zh-hk/tools/edu/generator-4.html" class="related-tool-card">
+      <span class="rt-icon">📚</span>
+      <span class="rt-info"><span class="rt-name">摘要生成器（基於句子權重） - 免費在線工具，純前端處理 | ToolBox免費在線工具箱</span><span class="rt-desc">摘要生成器（基於句子權重）</span></span>
+    </a>
+    <a href="/zh-hk/tools/library/archive-label.html" class="related-tool-card">
+      <span class="rt-icon">🏷️</span>
+      <span class="rt-info"><span class="rt-name">檔案盒標籤生成 - 器 - 檔案盒脊背標籤格式生成，可打印 | ToolBox免費在線工具箱</span><span class="rt-desc">檔案盒標籤生成</span></span>
+    </a>
+    <a href="/zh-hk/tools/kids/memory-palace.html" class="related-tool-card">
+      <span class="rt-icon">🏰</span>
+      <span class="rt-info"><span class="rt-name">記憶宮殿編碼 - 教育學習在線工具 | ToolBox免費在線工具箱</span><span class="rt-desc">記憶宮殿編碼</span></span>
+    </a>
+  </div>
+</div>
+<div class="tool-intro open" id="toolIntro">
+  <div class="tool-intro-header">
+    <span class="intro-icon-wrap"><span class="intro-icon">📖</span>關於「單詞記憶」</span>
+    <span class="arrow">▼</span>
+  </div>
+  <div class="tool-intro-body">
+    <h4><span class="h4-icon">📝</span>工具簡介</h4>
+    <p>單詞記憶是一款教育學習領域的在線工具。教育學習工具，輔助學習，提升效率。</p>
+    <h4><span class="h4-icon">✨</span>功能特點</h4>
+    <ul class="intro-features">
+      <li>輔助學習，提升效率</li>
+      <li>計算精準，支持多種參數</li>
+      <li>純前端處理，數據不上傳</li>
+      <li>支持手機使用，隨時隨地學習</li>
+    </ul>
+    <h4><span class="h4-icon">🎯</span>使用場景</h4>
+    <ul class="intro-scenes">
+      <li>學生學習與作業輔助</li>
+      <li>教師教學與成績管理</li>
+      <li>考試備考與知識複習</li>
+      <li>終身學習的工具支持</li>
+    </ul>
+    <h4><span class="h4-icon">💬</span>常見問題</h4>
+      <div class="intro-faq-item"><div class="intro-faq-q">這個工具是免費的嗎？</div><div class="intro-faq-a">完全免費，無需註冊，直接在瀏覽器中使用。</div></div>
+      <div class="intro-faq-item"><div class="intro-faq-q">計算結果準確嗎？</div><div class="intro-faq-a">採用標準教育計算方法，結果準確可靠。</div></div>
+      <div class="intro-faq-item"><div class="intro-faq-q">支持手機使用嗎？</div><div class="intro-faq-a">支持。頁面已做響應式適配，手機和電腦均可正常使用。</div></div>
+  </div>
+</div>
+<!-- /SEO 介紹區塊 -->
+</body>
+</html>

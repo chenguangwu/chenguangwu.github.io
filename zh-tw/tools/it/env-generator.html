@@ -1,0 +1,919 @@
+<!DOCTYPE html>
+<html lang="zh-TW" data-opencc-locale="zh-tw">
+<head>
+
+<script src="/js/tool-page-runtime.js" defer></script>
+<!-- TOOLBOX-TOOL-RUNTIME -->
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="toolbox" content="cat=generate,industry=it,icon=⚙️,bg=#e8f5e9">
+<title>環境變數生成器 - ToolBox</title>
+<link rel="canonical" href="https://chenguangwu.github.io/zh-tw/tools/it/env-generator.html">
+<meta property="og:title" content="环境变量生成器">
+<meta property="og:description" content="快速生成 .env、Docker Compose、JSON、YAML、Shell 等格式的环境变量配置文件">
+<meta property="og:url" content="https://chenguangwu.github.io/zh-tw/tools/it/env-generator.html">
+<meta name="twitter:card" content="summary">
+<meta name="description" content="快速生成 .env、Docker Compose、JSON、YAML、Shell 等格式的环境变量配置文件">
+<link rel="preload" as="style" href="/css/common.css" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="/css/common.css"></noscript>
+<script>window.__tbq=window.__tbq||[];window.ToolBox=window.ToolBox||{};['initToolTheme','addToolStyles','showToast','toast','copyText','copyToClipboard','copyFromElement','downloadText','injectPrivacyBadge','toggleFavTool','addToRecentTool','toggleToolTheme','applyTheme'].forEach(function(k){if(typeof window.ToolBox[k]!=='function')window.ToolBox[k]=function(){window.__tbq.push([k,[].slice.call(arguments)]);};});</script><!-- TOOLBOX-API-STUB -->
+<script src="/js/common.js" defer></script>
+<style>
+.env-section{margin-bottom:20px;}
+.env-section h3{margin-bottom:10px;}
+.type-tag{display:inline-block;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:600;}
+.type-string{background:rgba(59,130,246,0.1);color:#2563EB;}
+.type-number{background:rgba(245,158,11,0.1);color:#D97706;}
+.type-boolean{background:rgba(16,185,129,0.1);color:#059669;}
+.type-json{background:rgba(124,58,237,0.1);color:#7C3AED;}
+.type-secret{background:rgba(239,68,68,0.1);color:#DC2626;}
+[data-theme="dark"] .type-string{background:rgba(59,130,246,0.2);color:#60A5FA;}
+[data-theme="dark"] .type-number{background:rgba(245,158,11,0.2);color:#FBBF24;}
+[data-theme="dark"] .type-boolean{background:rgba(16,185,129,0.2);color:#34D399;}
+[data-theme="dark"] .type-json{background:rgba(124,58,237,0.2);color:#A78BFA;}
+[data-theme="dark"] .type-secret{background:rgba(239,68,68,0.2);color:#F87171;}
+.template-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px;}
+.template-btn{padding:10px 14px;border-radius:12px;border:1px solid var(--border);background:var(--card-bg);color:var(--text);font-size:13px;cursor:pointer;transition:all 0.2s;text-align:center;font-weight:500;}
+.template-btn:hover{border-color:var(--primary);transform:translateY(-1px);box-shadow:var(--shadow-sm);}
+.template-btn .tpl-icon{font-size:18px;display:block;margin-bottom:4px;}
+.var-table-wrap{overflow-x:auto;border-radius:12px;border:1px solid var(--border);}
+.var-table{width:100%;border-collapse:collapse;font-size:13px;}
+.var-table th{background:var(--th-bg);font-weight:600;color:var(--heading);padding:10px 12px;text-align:left;white-space:nowrap;position:sticky;top:0;}
+.var-table td{padding:8px 12px;border-top:1px solid var(--border);vertical-align:middle;}
+.var-table tr:hover td{background:var(--bg-hover);}
+.var-table .key-cell{font-family:'SF Mono','Courier New',monospace;font-weight:600;color:var(--primary);max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.var-table .val-cell{font-family:'SF Mono','Courier New',monospace;max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:pointer;}
+.var-table .val-cell:hover{color:var(--primary);}
+.var-table .action-btns{display:flex;gap:6px;white-space:nowrap;}
+.var-table .action-btns button{padding:4px 10px;border-radius:8px;border:1px solid var(--border);background:var(--card-bg);color:var(--text-secondary);font-size:12px;cursor:pointer;transition:all 0.15s;}
+.var-table .action-btns button:hover{border-color:var(--primary);color:var(--primary);}
+.var-table .action-btns button.del-btn:hover{border-color:var(--danger);color:var(--danger);}
+.empty-state{text-align:center;padding:32px 20px;color:var(--text-muted);font-size:14px;}
+.preview-box{background:var(--result-bg);border:1px solid var(--border);border-radius:12px;padding:0;overflow:hidden;margin-top:12px;}
+.preview-header{display:flex;justify-content:space-between;align-items:center;padding:10px 16px;background:var(--th-bg);border-bottom:1px solid var(--border);font-size:13px;font-weight:600;color:var(--heading);}
+.preview-code{padding:16px;font-family:'SF Mono','Courier New','Fira Code',monospace;font-size:13px;line-height:1.7;white-space:pre-wrap;word-break:break-all;min-height:80px;max-height:400px;overflow-y:auto;tab-size:2;}
+.preview-code .hl-comment{color:var(--text-muted);font-style:italic;}
+.preview-code .hl-key{color:var(--primary);font-weight:600;}
+.preview-code .hl-eq{color:var(--text-muted);}
+.preview-code .hl-str{color:var(--success);}
+.preview-code .hl-num{color:#F59E0B;}
+.preview-code .hl-bool{color:#7C3AED;}
+.preview-code .hl-secret{color:var(--danger);}
+.preview-code .hl-json-key{color:#3B82F6;}
+.import-area{position:relative;}
+.import-area textarea{min-height:80px;font-size:12px;}
+.option-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px;}
+.option-row label{margin:0;font-weight:500;font-size:13px;display:flex;align-items:center;gap:6px;cursor:pointer;}
+.option-row input[type="checkbox"]{width:auto;accent-color:var(--primary);}
+.sort-arrows{cursor:pointer;display:inline-flex;flex-direction:column;gap:0;font-size:10px;line-height:1;color:var(--text-muted);margin-left:4px;user-select:none;}
+.sort-arrows:hover{color:var(--primary);}
+.edit-input{padding:4px 8px;border:1px solid var(--border);border-radius:6px;font-family:'SF Mono','Courier New',monospace;font-size:12px;background:var(--card-bg);color:var(--text);width:100%;}
+.edit-input:focus{border-color:var(--primary);outline:none;}
+.edit-select{padding:4px 8px;border:1px solid var(--border);border-radius:6px;font-size:12px;background:var(--card-bg);color:var(--text);cursor:pointer;}
+.format-select{padding:8px 12px;border-radius:10px;border:1px solid var(--border);background:var(--card-bg);color:var(--text);font-size:13px;cursor:pointer;min-width:140px;}
+.format-select:focus{border-color:var(--primary);outline:none;}
+.counter{font-size:12px;color:var(--text-muted);font-weight:400;margin-left:8px;}
+@media(max-width:768px){
+  .template-grid{grid-template-columns:repeat(3,1fr);}
+  .template-btn{padding:8px 10px;font-size:12px;}
+  .template-btn .tpl-icon{font-size:16px;}
+  .var-table .key-cell,.var-table .val-cell{max-width:120px;}
+  .preview-code{font-size:12px;padding:12px;}
+}
+</style>
+
+
+
+<meta property="og:image" content="https://chenguangwu.github.io/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="ToolBox - 5000+免费在线工具">
+<meta name="twitter:image" content="https://chenguangwu.github.io/og-image.png">
+<meta name="twitter:image:alt" content="ToolBox - 5000+免费在线工具">
+    <meta property="og:type" content="website">
+    <meta name="twitter:title" content="环境变量生成器">
+    <meta name="twitter:description" content="快速生成 .env、Docker Compose、JSON、YAML、Shell 等格式的环境变量配置文件">
+<!-- TOOLBOX-WEBAPP-LD -->
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"環境變數生成器","url":"https://chenguangwu.github.io/zh-tw/tools/it/env-generator.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":"zh-TW","description":"快速生成 .env、Docker Compose、JSON、YAML、Shell 等格式的環境變數配置檔案","image":"https://chenguangwu.github.io/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}</script>
+<meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
+<meta http-equiv="X-Content-Type-Options" content="nosniff">
+<meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
+<!-- TOOLBOX-SECURITY -->
+
+<script src="/js/privacy.js" defer></script>
+<!-- TOOLBOX-PRIVACY-SCRIPT -->
+
+<script src="/js/metrics.js" defer></script>
+<!-- TOOLBOX-METRICS-SCRIPT -->
+
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"首頁","item":"https://chenguangwu.github.io/zh-tw/"},{"@type":"ListItem","position":2,"name":"IT 開發","item":"https://chenguangwu.github.io/zh-tw/tools/it/index.html"},{"@type":"ListItem","position":3,"name":"環境變數生成器","item":"https://chenguangwu.github.io/zh-tw/tools/it/env-generator.html"}]}</script>
+
+<script src="/js/i18n.js" defer></script>
+<script src="/js/tool-i18n.js" defer></script>
+<!-- TOOLBOX-I18N-SCRIPT -->
+
+
+<meta name="title-en" content="Env Generator - ToolBox">
+<meta name="desc-en" content="Env Generator - generate results online, free and instant. Free online tool on ToolBox — 100% client-side, no data uploaded, no install. Part of the IT Dev...">
+<!-- TOOLBOX-HREFLANG -->
+<link rel="alternate" hreflang="zh-CN" href="https://chenguangwu.github.io/tools/it/env-generator.html">
+<link rel="alternate" hreflang="zh-TW" href="https://chenguangwu.github.io/zh-tw/tools/it/env-generator.html">
+<link rel="alternate" hreflang="zh-HK" href="https://chenguangwu.github.io/zh-hk/tools/it/env-generator.html">
+<link rel="alternate" hreflang="en-US" href="https://chenguangwu.github.io/tools/it/env-generator.html?lang=en-US">
+<link rel="alternate" hreflang="x-default" href="https://chenguangwu.github.io/tools/it/env-generator.html">
+<meta property="og:locale" content="zh_TW">
+<meta property="og:locale:alternate" content="zh_CN">
+<meta property="og:locale:alternate" content="zh_HK">
+<meta property="og:locale:alternate" content="en_US">
+</head>
+<body>
+<h1 class="sr-only">環境變數生成器</h1>
+
+<div class="nav">
+  <a href="/zh-tw/index.html">← ToolBox</a>
+  <span>/ 環境變數生成器</span>
+  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()">🌙</button>
+</div>
+
+
+
+
+
+<nav class="breadcrumb" aria-label="麵包屑導航" data-breadcrumb="1">
+  <a href="/zh-tw/index.html">首頁</a>
+  <span class="bc-sep">‹</span>
+  <a href="/zh-tw/tools/it/index.html">💻 IT 開發</a>
+  <span class="bc-sep">‹</span>
+  <span class="bc-current">環境變數生成器</span>
+</nav>
+<div class="container">
+  <div class="card tool-card-accent" style="--tool-accent:#FF6B35;">
+    <h2 data-zh="⚙️ 環境變數生成器">⚙️ Env Generator</h2>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="快速生成 .env、Docker Compose、JSON、YAML、Shell 等格式的環境變數配置檔案">Env Generator is available directly in your browser, with no data uploaded.</p>
+
+    <!-- 預設模板 -->
+    <div class="env-section">
+      <h3>📦 預設模板</h3>
+      <p style="font-size:12px;color:var(--text-muted);margin-bottom:10px;">點選模板快速填充常用變數（不會覆蓋已有變數）</p>
+      <div class="template-grid">
+        <button type="button" class="template-btn" onclick="applyTemplate('database')"><span class="tpl-icon">🗄️</span>資料庫配置</button>
+        <button type="button" class="template-btn" onclick="applyTemplate('api')"><span class="tpl-icon">🔑</span>API 配置</button>
+        <button type="button" class="template-btn" onclick="applyTemplate('jwt')"><span class="tpl-icon">🔐</span>JWT 配置</button>
+        <button type="button" class="template-btn" onclick="applyTemplate('redis')"><span class="tpl-icon">⚡</span>Redis 配置</button>
+        <button type="button" class="template-btn" onclick="applyTemplate('mail')"><span class="tpl-icon">📧</span>郵件配置</button>
+        <button type="button" class="template-btn" onclick="applyTemplate('server')"><span class="tpl-icon">🖥️</span>伺服器配置</button>
+      </div>
+    </div>
+
+    <!-- 新增變數 -->
+    <div class="env-section">
+      <h3>➕ 新增變數</h3>
+      <div class="input-row">
+        <div style="flex:2;">
+          <label>變數名 (Key)</label>
+          <input type="text" id="keyInput" placeholder="例如: DATABASE_URL" onkeydown="if(event.key==='Enter')addVariable()">
+        </div>
+        <div style="flex:3;">
+          <label>變數值 (Value)</label>
+          <input type="text" id="valInput" placeholder="例如: localhost:5432/mydb" onkeydown="if(event.key==='Enter')addVariable()">
+        </div>
+        <div style="flex:1;min-width:120px;">
+          <label>型別</label>
+          <select id="typeInput">
+            <option value="string">字串</option>
+            <option value="number">數字</option>
+            <option value="boolean">布林</option>
+            <option value="json">JSON</option>
+            <option value="secret">金鑰</option>
+          </select>
+        </div>
+        <div style="flex:0 0 auto;">
+          <label>&nbsp;</label>
+          <button type="button" class="btn primary" onclick="addVariable()">新增</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 選項 -->
+    <div class="env-section">
+      <h3>⚙️ 選項</h3>
+      <div class="option-row">
+        <label><input type="checkbox" id="optComment" onchange="generatePreview()"> 生成註釋</label>
+        <label><input type="checkbox" id="optQuote" onchange="generatePreview()"> 字串加引號</label>
+        <label><input type="checkbox" id="optBase64" onchange="generatePreview()"> 金鑰值 Base64 編碼</label>
+        <label><input type="checkbox" id="optSort" onchange="generatePreview()"> 按字母排序</label>
+      </div>
+    </div>
+
+    <!-- 變數列表 -->
+    <div class="env-section">
+      <h3>📋 變數列表 <span class="counter" id="varCount">0 個變數</span></h3>
+      <div class="toolbar" style="margin-top:8px;">
+        <button type="button" class="btn danger" onclick="clearAll()">清空全部</button>
+        <button type="button" class="btn" onclick="importEnv()">匯入 .env</button>
+      </div>
+      <div class="var-table-wrap" id="tableWrap">
+        <div class="empty-state" id="emptyState">暫無變數，請新增或使用預設模板</div>
+      </div>
+    </div>
+
+    <!-- 格式選擇 & 預覽 -->
+    <div class="env-section">
+      <h3>📝 生成預覽</h3>
+      <div class="toolbar">
+        <select class="format-select" id="formatSelect" onchange="generatePreview()">
+          <option value="env">.env 格式</option>
+          <option value="env-local">.env.local 格式</option>
+          <option value="docker">Docker Compose</option>
+          <option value="json">JSON 格式</option>
+          <option value="yaml">YAML 格式</option>
+          <option value="shell">Shell export</option>
+          <option value="properties">Java Properties</option>
+          <option value="toml">TOML 格式</option>
+        </select>
+        <button type="button" class="btn success" onclick="copyResult()">複製全部</button>
+        <button type="button" class="btn primary" onclick="downloadResult()">下載檔案</button>
+      </div>
+      <div class="preview-box">
+        <div class="preview-header">
+          <span id="previewTitle">.env</span>
+          <span id="previewSize">0 B</span>
+        </div>
+        <div class="preview-code" id="previewCode"><span class="hl-comment"># 新增變數後自動生成...</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 匯入 .env 彈窗 -->
+  <div id="importModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:200;display:none;align-items:center;justify-content:center;">
+    <div style="background:var(--card-bg);border-radius:16px;padding:24px;max-width:560px;width:90%;box-shadow:var(--shadow-lg);margin:auto;margin-top:10vh;">
+      <h3 style="margin-bottom:12px;">匯入 .env 檔案</h3>
+      <p style="font-size:12px;color:var(--text-muted);margin-bottom:12px;">貼上 .env 檔案內容，自動解析 KEY=VALUE 對</p>
+      <div class="import-area">
+        <textarea id="importText" placeholder="DB_HOST=localhost&#10;DB_PORT=5432&#10;DB_USER=admin&#10;DB_PASS=secret123&#10;# API_KEY=your_api_key"></textarea>
+      </div>
+      <div class="toolbar" style="margin-top:12px;justify-content:flex-end;">
+        <button type="button" class="btn" onclick="closeImportModal()">取消</button>
+        <button type="button" class="btn primary" onclick="parseImport()">解析並匯入</button>
+      </div>
+    </div>
+  </div>
+
+<!-- TOOLBOX-DEEP-DIVE -->
+<style>
+.deep-dive{max-width:960px;margin:16px auto;padding:0 16px;}
+.deep-dive > .card{margin-bottom:0;}
+@media(max-width:600px){.deep-dive{margin:14px auto;padding:0 12px;}}
+.deep-dive .dd-list{margin:8px 0 16px;padding-left:20px;}
+.deep-dive .dd-list li{margin:6px 0;line-height:1.75;}
+.deep-dive .dd-example{background:var(--card-bg,#fff);border:1px solid var(--border,#eee);border-radius:10px;padding:12px 14px;margin:8px 0 16px;}
+.deep-dive .dd-ex-title{font-weight:600;color:var(--tool-accent,#FF6B35);margin-bottom:6px;}
+.deep-dive .dd-ex-body{font-size:13px;line-height:1.85;color:var(--text,#333);word-break:break-word;}
+.deep-dive .dd-faq{margin:8px 0 4px;}
+.deep-dive .dd-faq dt{font-weight:600;margin-top:10px;color:var(--text,#333);}
+.deep-dive .dd-faq dd{margin:4px 0 0;font-size:13px;line-height:1.85;color:var(--text-muted,#666);}
+
+</style>
+<section class="deep-dive" data-deep-dive="1">
+<div class="card">
+<h2>📚 深度解析：環境變數生成器</h2>
+<h3>💡 常見使用場景</h3>
+<ul class="dd-list">
+<li>當你在it相關場景中需要基於“Env Generator”進行快速計算或校驗時，可先用該工具生成一版標準結果。</li>
+<li>在教學、方案評審、除錯聯調時，可用固定樣本快速復現實驗流程，驗證引數選擇是否正確。</li>
+<li>用於將人工操作轉為可複用步驟：先確認輸入型別，再觀察輸出變化，便於排查規則誤差。</li>
+</ul>
+<div class="dd-example"><div class="dd-ex-title">標準化使用示例</div><div class="dd-ex-body">以一組典型輸入為例：先按業務口徑補充必要欄位，執行工具並記錄輸出；再對比另一組邊界輸入，檢查工具在異常輸入下是否給出穩定提示，便於快速形成操作 SOP。</div></div>
+<h3>❓ 常見問題（FAQ）</h3>
+<dl class="dd-faq">
+<dt>該工具適用於哪些 it 場景？</dt><dd>只要資料可對映到本工具支援的引數結構，就可用於日常分析、篩選、校驗等流程；多數情況下適合前置評估和結果複核。</dd>
+<dt>結果可信度如何保證？</dt><dd>工具預設按前端可見規則即時計算，不依賴外部服務；如有偏差，建議結合歷史基準值做交叉確認。</dd>
+</dl>
+</div>
+</section>
+<!-- 注意事項區塊 -->
+<div class="tool-notes" style="--tool-accent:#FF6B35;">
+  <div class="tool-notes-title">⚠️ 使用說明與注意事項</div>
+  <ul>
+      <li>本工具純前端執行，資料不會上傳到伺服器</li>
+      <li>建議在主流瀏覽器（Chrome/Safari/Firefox/Edge）中使用</li>
+      <li>計算結果僅供參考，請以實際應用場景為準</li>
+  </ul>
+</div>
+<!-- /注意事項區塊 -->
+</div>
+
+<script>
+(function(){
+'use strict';
+
+// State
+let variables = [];
+let editingIdx = -1;
+let sortKey = null;
+let sortDir = 0; // 0=none, 1=asc, -1=desc
+
+// Preset templates
+const templates = {
+  database: [
+    { key: 'DB_HOST', value: 'localhost', type: 'string' },
+    { key: 'DB_PORT', value: '5432', type: 'number' },
+    { key: 'DB_USER', value: 'postgres', type: 'string' },
+    { key: 'DB_PASS', value: '', type: 'secret' },
+    { key: 'DB_NAME', value: 'myapp_db', type: 'string' },
+    { key: 'DB_POOL_SIZE', value: '10', type: 'number' }
+  ],
+  api: [
+    { key: 'API_KEY', value: '', type: 'secret' },
+    { key: 'API_SECRET', value: '', type: 'secret' },
+    { key: 'API_URL', value: 'https://api.example.com/v1', type: 'string' },
+    { key: 'API_TIMEOUT', value: '30000', type: 'number' },
+    { key: 'API_RATE_LIMIT', value: '100', type: 'number' }
+  ],
+  jwt: [
+    { key: 'JWT_SECRET', value: '', type: 'secret' },
+    { key: 'JWT_EXPIRES', value: '7d', type: 'string' },
+    { key: 'JWT_ALGORITHM', value: 'HS256', type: 'string' },
+    { key: 'JWT_REFRESH_EXPIRES', value: '30d', type: 'string' }
+  ],
+  redis: [
+    { key: 'REDIS_HOST', value: 'localhost', type: 'string' },
+    { key: 'REDIS_PORT', value: '6379', type: 'number' },
+    { key: 'REDIS_PASS', value: '', type: 'secret' },
+    { key: 'REDIS_DB', value: '0', type: 'number' }
+  ],
+  mail: [
+    { key: 'MAIL_HOST', value: 'smtp.example.com', type: 'string' },
+    { key: 'MAIL_PORT', value: '587', type: 'number' },
+    { key: 'MAIL_USER', value: '', type: 'secret' },
+    { key: 'MAIL_PASS', value: '', type: 'secret' },
+    { key: 'MAIL_FROM', value: 'noreply@example.com', type: 'string' },
+    { key: 'MAIL_ENCRYPTION', value: 'true', type: 'boolean' }
+  ],
+  server: [
+    { key: 'PORT', value: '3000', type: 'number' },
+    { key: 'HOST', value: '0.0.0.0', type: 'string' },
+    { key: 'NODE_ENV', value: 'production', type: 'string' },
+    { key: 'LOG_LEVEL', value: 'info', type: 'string' },
+    { key: 'DEBUG', value: 'false', type: 'boolean' },
+    { key: 'CORS_ENABLED', value: 'true', type: 'boolean' }
+  ]
+};
+
+const typeLabels = { string: '字符串', number: '数字', boolean: '布尔', json: 'JSON', secret: '密钥' };
+const formatExts = {
+  'env': '.env',
+  'env-local': '.env.local',
+  'docker': '.env.docker',
+  'json': '.env.json',
+  'yaml': '.env.yaml',
+  'shell': '.env.sh',
+  'properties': '.env.properties',
+  'toml': '.env.toml'
+};
+
+// Base64 encode
+function b64Encode(str) {
+  try { return btoa(unescape(encodeURIComponent(str))); } catch(e) { return btoa(str); }
+}
+
+// Apply template
+window.applyTemplate = function(name) {
+  const tpl = templates[name];
+  if (!tpl) return;
+  let added = 0;
+  const existingKeys = new Set(variables.map(v => v.key));
+  tpl.forEach(item => {
+    if (!existingKeys.has(item.key)) {
+      variables.push({ ...item, id: Date.now() + Math.random() });
+      added++;
+    }
+  });
+  if (added > 0) {
+    ToolBox.showToast('已添加 ' + added + ' 个变量');
+  } else {
+    ToolBox.showToast(i18nText('toast.msg367'), 'warning');
+  }
+  renderTable();
+  generatePreview();
+};
+
+// Add variable
+window.addVariable = function() {
+  const keyEl = document.getElementById('keyInput');
+  const valEl = document.getElementById('valInput');
+  const typeEl = document.getElementById('typeInput');
+  let key = keyEl.value.trim().replace(/\s+/g, '_').toUpperCase();
+  if (!key) { ToolBox.showToast(i18nText('toast.msg780'), 'warning'); keyEl.focus(); return; }
+  if (!/^[A-Z_][A-Z0-9_]*$/.test(key)) { ToolBox.showToast(i18nText('toast.msg104'), 'warning'); keyEl.focus(); return; }
+  if (variables.some(v => v.key === key)) { ToolBox.showToast('变量名 ' + key + ' 已存在', 'warning'); keyEl.focus(); return; }
+  variables.push({ key, value: valEl.value, type: typeEl.value, id: Date.now() + Math.random() });
+  keyEl.value = '';
+  valEl.value = '';
+  keyEl.focus();
+  renderTable();
+  generatePreview();
+};
+
+// Delete variable
+function deleteVar(idx) {
+  variables.splice(idx, 1);
+  editingIdx = -1;
+  renderTable();
+  generatePreview();
+}
+
+// Start editing
+function startEdit(idx) {
+  editingIdx = idx;
+  renderTable();
+  const row = document.querySelector('[data-row="' + idx + '"]');
+  if (row) {
+    const first = row.querySelector('.edit-input');
+    if (first) first.focus();
+  }
+}
+
+// Save edit
+function saveEdit(idx) {
+  const row = document.querySelector('[data-row="' + idx + '"]');
+  if (!row) return;
+  const newKey = row.querySelector('.edit-key').value.trim().replace(/\s+/g, '_').toUpperCase();
+  const newVal = row.querySelector('.edit-val').value;
+  const newType = row.querySelector('.edit-type').value;
+  if (!newKey || !/^[A-Z_][A-Z0-9_]*$/.test(newKey)) {
+    ToolBox.showToast(i18nText('toast.msg106'), 'warning');
+    return;
+  }
+  // Check duplicate (excluding current)
+  if (variables.some((v, i) => i !== idx && v.key === newKey)) {
+    ToolBox.showToast(i18nText('toast.msg105'), 'warning');
+    return;
+  }
+  variables[idx].key = newKey;
+  variables[idx].value = newVal;
+  variables[idx].type = newType;
+  editingIdx = -1;
+  renderTable();
+  generatePreview();
+  ToolBox.showToast(i18nText());
+}
+
+// Cancel edit
+function cancelEdit() {
+  editingIdx = -1;
+  renderTable();
+}
+
+// Clear all
+window.clearAll = function() {
+  if (variables.length === 0) return;
+  if (!confirm('确定清空所有变量？')) return;
+  variables = [];
+  editingIdx = -1;
+  renderTable();
+  generatePreview();
+  ToolBox.showToast(i18nText());
+};
+
+// Sort toggle
+function toggleSort(key) {
+  if (sortKey === key) {
+    sortDir = sortDir === 1 ? -1 : (sortDir === -1 ? 0 : 1);
+  } else {
+    sortKey = key;
+    sortDir = 1;
+  }
+  if (sortDir === 0) {
+    sortKey = null;
+  }
+  renderTable();
+}
+
+// Copy value on click
+function copyVal(idx) {
+  const v = variables[idx];
+  const val = getOptBase64() && v.type === 'secret' ? b64Encode(v.value) : v.value;
+  ToolBox.copyText(val, '已复制 ' + v.key);
+}
+
+// Move variable up/down
+function moveVar(idx, dir) {
+  const newIdx = idx + dir;
+  if (newIdx < 0 || newIdx >= variables.length) return;
+  const tmp = variables[idx];
+  variables[idx] = variables[newIdx];
+  variables[newIdx] = tmp;
+  if (editingIdx === idx) editingIdx = newIdx;
+  else if (editingIdx === newIdx) editingIdx = idx;
+  renderTable();
+  generatePreview();
+}
+
+// Get options
+function getOptComment() { return document.getElementById('optComment').checked; }
+function getOptQuote() { return document.getElementById('optQuote').checked; }
+function getOptBase64() { return document.getElementById('optBase64').checked; }
+function getOptSort() { return document.getElementById('optSort').checked; }
+
+// Get sorted vars
+function getSortedVars() {
+  let vars = [...variables];
+  // Column sort
+  if (sortKey && sortDir !== 0) {
+    vars.sort((a, b) => {
+      const va = a[sortKey] || '';
+      const vb = b[sortKey] || '';
+      return sortDir === 1 ? va.localeCompare(vb) : vb.localeCompare(va);
+    });
+  }
+  // Alphabetical sort option
+  if (getOptSort()) {
+    vars.sort((a, b) => a.key.localeCompare(b.key));
+  }
+  return vars;
+}
+
+// Render table
+function renderTable() {
+  const wrap = document.getElementById('tableWrap');
+  const empty = document.getElementById('emptyState');
+  const counter = document.getElementById('varCount');
+  counter.textContent = variables.length + ' 个变量';
+
+  if (variables.length === 0) {
+    wrap.innerHTML = '<div class="empty-state" id="emptyState">暂无变量，请添加或使用预设模板</div>';
+    return;
+  }
+
+  const vars = getSortedVars();
+  // Map back to original index for editing/deletion
+  const sortedIndices = vars.map(v => variables.indexOf(v));
+
+  let html = '<table class="var-table"><thead><tr>';
+  html += '<th style="width:36px;">#</th>';
+  html += '<th onclick="toggleSort(\'key\')" style="cursor:pointer;">Key ' + sortArrow('key') + '</th>';
+  html += '<th onclick="toggleSort(\'value\')" style="cursor:pointer;">Value ' + sortArrow('value') + '</th>';
+  html += '<th onclick="toggleSort(\'type\')" style="cursor:pointer;">Type ' + sortArrow('type') + '</th>';
+  html += '<th style="width:160px;">操作</th>';
+  html += '</tr></thead><tbody>';
+
+  vars.forEach((v, si) => {
+    const oi = sortedIndices[si]; // original index
+    if (oi === editingIdx) {
+      html += '<tr data-row="' + oi + '">';
+      html += '<td style="color:var(--text-muted);">' + (si + 1) + '</td>';
+      html += '<td><input class="edit-input edit-key" value="' + esc(v.key) + '" onkeydown="if(event.key===\'Enter\')saveEdit(' + oi + ');if(event.key===\'Escape\')cancelEdit()"></td>';
+      html += '<td><input class="edit-input edit-val" value="' + esc(v.value) + '" onkeydown="if(event.key===\'Enter\')saveEdit(' + oi + ');if(event.key===\'Escape\')cancelEdit()"></td>';
+      html += '<td><select class="edit-select edit-type">';
+      ['string','number','boolean','json','secret'].forEach(t => {
+        html += '<option value="' + t + '"' + (t === v.type ? ' selected' : '') + '>' + typeLabels[t] + '</option>';
+      });
+      html += '</select></td>';
+      html += '<td class="action-btns"><button onclick="saveEdit(' + oi + ')">保存</button><button onclick="cancelEdit()">取消</button></td>';
+      html += '</tr>';
+    } else {
+      html += '<tr data-row="' + oi + '">';
+      html += '<td style="color:var(--text-muted);">' + (si + 1) + '</td>';
+      html += '<td class="key-cell">' + esc(v.key) + '</td>';
+      html += '<td class="val-cell" onclick="copyVal(' + oi + ')" title="点击复制">' + esc(v.value) + '</td>';
+      html += '<td><span class="type-tag type-' + v.type + '">' + typeLabels[v.type] + '</span></td>';
+      html += '<td class="action-btns">';
+      html += '<button onclick="moveVar(' + oi + ',-1)" title="上移">↑</button>';
+      html += '<button onclick="moveVar(' + oi + ',1)" title="下移">↓</button>';
+      html += '<button onclick="startEdit(' + oi + ')">编辑</button>';
+      html += '<button type="button" class="del-btn" onclick="deleteVar(' + oi + ')">删除</button>';
+      html += '</td></tr>';
+    }
+  });
+
+  html += '</tbody></table>';
+  wrap.innerHTML = html;
+}
+
+function esc(s) { return ToolBox.escHtml(s); }
+
+function sortArrow(key) {
+  if (sortKey !== key || sortDir === 0) return '<span class="sort-arrows">↕</span>';
+  return sortDir === 1 ? '<span class="sort-arrows">↑</span>' : '<span class="sort-arrows">↓</span>';
+}
+
+// Format value for output
+function formatValue(v) {
+  let val = v.value;
+  if (getOptBase64() && v.type === 'secret' && val) {
+    val = b64Encode(val);
+  }
+  if (getOptQuote() && (v.type === 'string' || v.type === 'secret' || v.type === 'json') && val) {
+    val = '"' + val + '"';
+  }
+  return val;
+}
+
+// Generate output by format
+function generateOutput(format, vars) {
+  const comment = getOptComment();
+  const lines = [];
+
+  switch (format) {
+    case 'env':
+    case 'env-local':
+      lines.push('# ' + (format === 'env' ? '.env' : '.env.local') + ' configuration');
+      lines.push('# Generated by ToolBox Env Generator');
+      lines.push('');
+      vars.forEach(v => {
+        if (comment) lines.push('# ' + v.key + ' (' + typeLabels[v.type] + ')');
+        lines.push(v.key + '=' + formatValue(v));
+        lines.push('');
+      });
+      break;
+
+    case 'docker':
+      lines.push('# Docker Compose environment variables');
+      lines.push('environment:');
+      vars.forEach(v => {
+        if (comment) lines.push('  # ' + v.key + ' (' + typeLabels[v.type] + ')');
+        lines.push('  - ' + v.key + '=' + formatValue(v));
+      });
+      break;
+
+    case 'json':
+      const jsonObj = {};
+      vars.forEach(v => {
+        let val = v.value;
+        if (getOptBase64() && v.type === 'secret' && val) val = b64Encode(val);
+        if (v.type === 'number') val = Number(val) || 0;
+        else if (v.type === 'boolean') val = val === 'true';
+        else if (v.type === 'json') {
+          try { val = JSON.parse(val); } catch(e) { /* keep string */ }
+        }
+        jsonObj[v.key] = val;
+      });
+      return JSON.stringify(jsonObj, null, 2);
+
+    case 'yaml':
+      lines.push('# Environment variables (YAML)');
+      vars.forEach(v => {
+        if (comment) lines.push('# ' + v.key + ' (' + typeLabels[v.type] + ')');
+        let val = formatValue(v);
+        if (val === 'true' || val === 'false') {
+          lines.push(v.key + ': ' + val);
+        } else if (val !== '' && !isNaN(Number(val)) && v.type === 'number') {
+          lines.push(v.key + ': ' + Number(val));
+        } else {
+          lines.push(v.key + ': ' + (val ? '"' + val.replace(/"/g, '\\"') + '"' : '""'));
+        }
+        lines.push('');
+      });
+      break;
+
+    case 'shell':
+      lines.push('#!/bin/bash');
+      lines.push('# Shell export script');
+      lines.push('');
+      vars.forEach(v => {
+        if (comment) lines.push('# ' + v.key + ' (' + typeLabels[v.type] + ')');
+        lines.push('export ' + v.key + '=' + formatValue(v));
+        lines.push('');
+      });
+      break;
+
+    case 'properties':
+      lines.push('# Java Properties configuration');
+      vars.forEach(v => {
+        if (comment) lines.push('# ' + v.key + ' (' + typeLabels[v.type] + ')');
+        lines.push(v.key + '=' + formatValue(v));
+        lines.push('');
+      });
+      break;
+
+    case 'toml':
+      lines.push('# TOML configuration');
+      lines.push('');
+      lines.push('[env]');
+      vars.forEach(v => {
+        if (comment) lines.push('# ' + v.key + ' (' + typeLabels[v.type] + ')');
+        let val = formatValue(v);
+        if (v.type === 'number') {
+          lines.push(v.key + ' = ' + Number(v.value || 0));
+        } else if (v.type === 'boolean') {
+          lines.push(v.key + ' = ' + (v.value === 'true'));
+        } else {
+          lines.push(v.key + ' = "' + (v.value || '').replace(/"/g, '\\"') + '"');
+        }
+        lines.push('');
+      });
+      break;
+  }
+
+  return lines.join('\n');
+}
+
+// Syntax highlighting
+function highlightOutput(format, text) {
+  if (format === 'json') {
+    // Simple JSON highlight
+    return text
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/"([^"]+)"(?=\s*:)/g, '<span class="hl-json-key">"$1"</span>')
+      .replace(/:\s*"([^"]*)"/g, ': <span class="hl-str">"$1"</span>')
+      .replace(/:\s*(\d+\.?\d*)/g, ': <span class="hl-num">$1</span>')
+      .replace(/:\s*(true|false)/g, ': <span class="hl-bool">$1</span>');
+  }
+
+  let html = text
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+  // Comments
+  html = html.replace(/^(#.*)$/gm, '<span class="hl-comment">$1</span>');
+
+  // Shell export
+  if (format === 'shell') {
+    html = html.replace(/^(export\s+)(\w+)(=)/gm, '$1<span class="hl-key">$2</span><span class="hl-eq">$3</span>');
+  } else if (format === 'docker') {
+    html = html.replace(/^(\s*-\s*)(\w+)(=)/gm, '$1<span class="hl-key">$2</span><span class="hl-eq">$3</span>');
+  } else if (format === 'toml') {
+    html = html.replace(/^(\[\w+\])/gm, '<span class="hl-comment">$1</span>');
+    html = html.replace(/^(\w+)(\s*=\s*)/gm, '<span class="hl-key">$1</span><span class="hl-eq">$2</span>');
+  } else {
+    // env, env-local, properties, yaml
+    html = html.replace(/^(\w+)(=|:)/gm, '<span class="hl-key">$1</span><span class="hl-eq">$2</span>');
+  }
+
+  return html;
+}
+
+// Generate preview
+window.generatePreview = function() {
+  const format = document.getElementById('formatSelect').value;
+  const vars = getSortedVars();
+  const output = generateOutput(format, vars);
+  const preview = document.getElementById('previewCode');
+  const title = document.getElementById('previewTitle');
+  const size = document.getElementById('previewSize');
+
+  title.textContent = formatExts[format] || format;
+  const bytes = new Blob([output]).size;
+  size.textContent = bytes > 1024 ? (bytes / 1024).toFixed(1) + ' KB' : bytes + ' B';
+
+  if (output.trim()) {
+    preview.innerHTML = highlightOutput(format, output);
+  } else {
+    preview.innerHTML = '<span class="hl-comment"># 添加变量后自动生成...</span>';
+  }
+
+  // Store raw output for copy/download
+  preview.dataset.raw = output;
+};
+
+// Copy result
+window.copyResult = function() {
+  const preview = document.getElementById('previewCode');
+  const text = preview.dataset.raw || '';
+  if (!text.trim()) { ToolBox.showToast(i18nText('toast.msg419'), 'warning'); return; }
+  ToolBox.copyText(text, i18nText('msg270'));
+};
+
+// Download result
+window.downloadResult = function() {
+  const preview = document.getElementById('previewCode');
+  const text = preview.dataset.raw || '';
+  if (!text.trim()) { ToolBox.showToast(i18nText('toast.msg418'), 'warning'); return; }
+  const format = document.getElementById('formatSelect').value;
+  const filename = formatExts[format] || '.env';
+  ToolBox.downloadText(filename, text);
+  ToolBox.showToast('已下载 ' + filename);
+};
+
+// Import modal
+window.importEnv = function() {
+  const modal = document.getElementById('importModal');
+  modal.style.display = 'flex';
+  document.getElementById('importText').value = '';
+  document.getElementById('importText').focus();
+};
+window.closeImportModal = function() {
+  document.getElementById('importModal').style.display = 'none';
+};
+window.parseImport = function() {
+  const text = document.getElementById('importText').value;
+  if (!text.trim()) { ToolBox.showToast(i18nText('toast.msg734'), 'warning'); return; }
+  const lines = text.split('\n');
+  let added = 0;
+  const existingKeys = new Set(variables.map(v => v.key));
+  lines.forEach(line => {
+    line = line.trim();
+    if (!line || line.startsWith('#')) return;
+    const eqIdx = line.indexOf('=');
+    if (eqIdx < 1) return;
+    let key = line.substring(0, eqIdx).trim().replace(/\s+/g, '_').toUpperCase();
+    let value = line.substring(eqIdx + 1).trim();
+    // Remove surrounding quotes
+    if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) {
+      value = value.slice(1, -1);
+    }
+    if (!key || !/^[A-Z_][A-Z0-9_]*$/.test(key)) return;
+    if (existingKeys.has(key)) return;
+    existingKeys.add(key);
+    // Auto-detect type
+    let type = 'string';
+    if (value === 'true' || value === 'false') type = 'boolean';
+    else if (value !== '' && !isNaN(Number(value))) type = 'number';
+    else if ((key.includes('SECRET') || key.includes('PASS') || key.includes('KEY') || key.includes('TOKEN') || key.includes('PASSWORD')) && value) type = 'secret';
+    variables.push({ key, value, type, id: Date.now() + Math.random() });
+    added++;
+  });
+  closeImportModal();
+  if (added > 0) {
+    ToolBox.showToast('已导入 ' + added + ' 个变量');
+    renderTable();
+    generatePreview();
+  } else {
+    ToolBox.showToast(i18nText('toast.msg442'), 'warning');
+  }
+};
+
+// Close modal on backdrop click
+document.getElementById('importModal').addEventListener('click', function(e) {
+  if (e.target === this) closeImportModal();
+});
+
+// Expose functions needed by inline handlers
+window.toggleSort = toggleSort;
+window.deleteVar = deleteVar;
+window.startEdit = startEdit;
+window.saveEdit = saveEdit;
+window.cancelEdit = cancelEdit;
+window.moveVar = moveVar;
+window.copyVal = copyVal;
+
+// Init
+renderTable();
+generatePreview();
+
+})();
+</script>
+
+<!-- SEO 介紹區塊 -->
+
+</div>
+
+</div>
+
+<!-- 相關工具 -->
+<div class="related-tools" data-related-tools="1">
+  <h3 class="related-tools-title">🔗 相關工具</h3>
+  <div class="related-tools-grid">
+    <a href="/zh-tw/tools/it/properties-parser.html" class="related-tool-card">
+      <span class="rt-icon">🔧</span>
+      <span class="rt-info"><span class="rt-name">.properties 解析器 - 免費開發工具，properties 解析器 | ToolBox免費線上工具箱</span><span class="rt-desc">.properties 解析器</span></span>
+    </a>
+    <a href="/zh-tw/tools/it/ast-viewer.html" class="related-tool-card">
+      <span class="rt-icon">🌳</span>
+      <span class="rt-info"><span class="rt-name">AST抽象語法樹檢視器 - 線上解析JavaScript程式碼生成AST樹形結構，支援節點 | ToolBox免費線上工具箱</span><span class="rt-desc">AST 抽象語法樹檢視器</span></span>
+    </a>
+    <a href="/zh-tw/tools/it/css-minifier.html" class="related-tool-card">
+      <span class="rt-icon">🎨</span>
+      <span class="rt-info"><span class="rt-name">CSS 壓縮/美化工具 - 免費開發工具，CSS 壓縮/格式化/美化 | ToolBox免費線上工具箱</span><span class="rt-desc">CSS 壓縮/格式化/美化</span></span>
+    </a>
+    <a href="/zh-tw/tools/it/css-formatter.html" class="related-tool-card">
+      <span class="rt-icon">🔧</span>
+      <span class="rt-info"><span class="rt-name">CSS 格式化 - 免費開發工具，線上CSS 格式化 | ToolBox免費線上工具箱</span><span class="rt-desc">CSS 格式化</span></span>
+    </a>
+    <a href="/zh-tw/tools/it/cron.html" class="related-tool-card">
+      <span class="rt-icon">⏰</span>
+      <span class="rt-info"><span class="rt-name">Cron 表示式生成器 - 免費開發工具，線上Cron 表示式生成器 | ToolBox免費線上工具箱</span><span class="rt-desc">⏰ Cron 表示式生成器</span></span>
+    </a>
+    <a href="/zh-tw/tools/it/graphql-formatter.html" class="related-tool-card">
+      <span class="rt-icon">🔧</span>
+      <span class="rt-info"><span class="rt-name">GraphQL 格式化 - 免費開發工具，線上GraphQL 格式化 | ToolBox免費線上工具箱</span><span class="rt-desc">◈ GraphQL 格式化</span></span>
+    </a>
+  </div>
+</div>
+<div class="tool-intro open" id="toolIntro">
+  <div class="tool-intro-header">
+    <span class="intro-icon-wrap"><span class="intro-icon">📖</span>關於「環境變數生成器」</span>
+    <span class="arrow">▼</span>
+  </div>
+  <div class="tool-intro-body">
+    <h4><span class="h4-icon">📝</span>工具簡介</h4>
+    <p>環境變數生成器是一款IT 開發領域的線上工具。專為開發者打造的線上工具，純前端執行，程式碼不離開瀏覽器。</p>
+
+      </div>
+</div>
+<!-- /SEO 介紹區塊 -->
+
+<script>
+// tool-intro折叠交互
+document.addEventListener('DOMContentLoaded',function(){
+  var headers=document.querySelectorAll('.tool-intro-header');
+  headers.forEach(function(h){
+    h.addEventListener('click',function(){
+      this.parentElement.classList.toggle('open');
+    });
+  });
+});
+</script>
+
+</body>
+</html>

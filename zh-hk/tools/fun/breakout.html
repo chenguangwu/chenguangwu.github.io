@@ -1,0 +1,896 @@
+<!DOCTYPE html>
+<html lang="zh-HK" data-opencc-locale="zh-hk">
+<head>
+
+<script src="/js/tool-page-runtime.js" defer></script>
+<!-- TOOLBOX-TOOL-RUNTIME -->
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="toolbox" content="cat=game,industry=fun,icon=🧱,bg=#fff3e0">
+<meta name="description" content="经典打砖块（Breakout）游戏：用鼠标或键盘移动底部挡板反弹小球，击碎上方所有砖块即过关，纯前端可离线游玩，适合休闲娱乐。">
+<meta name="keywords" content="打砖块,Breakout,在线打砖块,经典游戏,弹球游戏,砖块消除,游戏趣味,娱乐游戏,在线工具,免费工具,ToolBox">
+<meta name="robots" content="index,follow">
+<link rel="canonical" href="https://chenguangwu.github.io/zh-hk/tools/fun/breakout.html">
+<meta property="og:title" content="打砖块">
+<meta property="og:description" content="经典打砖块（Breakout）游戏：用鼠标或键盘移动底部挡板反弹小球，击碎上方所有砖块即过关，纯前端可离线游玩，适合休闲娱乐。">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://chenguangwu.github.io/zh-hk/tools/fun/breakout.html">
+<meta name="twitter:card" content="summary">
+
+<title>打磚塊 - ToolBox</title>
+<meta name="theme-color" content="#FF6B35">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<link rel="icon" href="/favicon.ico" sizes="16x16 32x32 48x48">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="preload" as="style" href="/css/common.css" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="/css/common.css"></noscript>
+<script>window.__tbq=window.__tbq||[];window.ToolBox=window.ToolBox||{};['initToolTheme','addToolStyles','showToast','toast','copyText','copyToClipboard','copyFromElement','downloadText','injectPrivacyBadge','toggleFavTool','addToRecentTool','toggleToolTheme','applyTheme'].forEach(function(k){if(typeof window.ToolBox[k]!=='function')window.ToolBox[k]=function(){window.__tbq.push([k,[].slice.call(arguments)]);};});</script><!-- TOOLBOX-API-STUB -->
+<script src="/js/common.js" defer></script>
+<style>
+.game-wrapper{display:flex;justify-content:center;align-items:flex-start;gap:16px;margin-top:8px;}
+.game-board-area{display:flex;flex-direction:column;align-items:center;gap:8px;}
+#gameCanvas{border:3px solid var(--border);border-radius:12px;background:var(--card-bg);max-width:100%;touch-action:none;cursor:none;}
+.game-side{display:flex;flex-direction:column;gap:12px;min-width:120px;}
+.stat-row{display:flex;flex-direction:column;gap:8px;}
+.stat-item{background:var(--result-bg);border:1px solid var(--border);border-radius:12px;padding:10px 14px;text-align:center;}
+.stat-item .val{font-size:22px;font-weight:700;color:var(--primary);}
+.stat-item .lbl{font-size:11px;color:var(--text-muted);margin-top:2px;}
+.lives-display{display:flex;gap:4px;justify-content:center;margin-top:4px;}
+.life-heart{font-size:18px;transition:all 0.3s;}
+.life-heart.lost{opacity:0.2;transform:scale(0.8);}
+.controls-hint{font-size:12px;color:var(--text-muted);text-align:center;line-height:1.8;}
+.controls-hint kbd{display:inline-block;padding:2px 6px;background:var(--result-bg);border:1px solid var(--border);border-radius:4px;font-size:11px;font-family:inherit;font-weight:600;color:var(--text-secondary);}
+.game-over-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.6);display:flex;align-items:center;justify-content:center;z-index:1000;animation:fadeIn 0.3s ease;}
+@keyframes fadeIn{from{opacity:0;}to{opacity:1;}}
+.game-over-modal{background:var(--card-bg);border-radius:20px;padding:32px;text-align:center;max-width:320px;width:90%;animation:popIn 0.4s ease;}
+@keyframes popIn{0%{transform:scale(0.5);opacity:0;}100%{transform:scale(1);opacity:1;}}
+.game-over-modal h2{font-size:24px;margin-bottom:8px;justify-content:center;}
+.game-over-modal .big-emoji{font-size:56px;margin:12px 0;}
+.game-over-modal .final-score{font-size:32px;font-weight:700;color:var(--primary);margin:8px 0;}
+.game-over-modal .final-label{font-size:13px;color:var(--text-muted);}
+.level-banner{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:var(--card-bg);border-radius:20px;padding:24px 48px;z-index:1001;animation:popIn 0.4s ease;text-align:center;pointer-events:none;}
+.level-banner .level-num{font-size:36px;font-weight:800;background:var(--gradient-primary);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+.level-banner .level-text{font-size:14px;color:var(--text-muted);margin-top:4px;}
+.mobile-controls{display:none;grid-template-columns:1fr 1fr;gap:8px;max-width:280px;margin:8px auto;width:100%;}
+.mobile-btn{padding:14px;border:2px solid var(--border);border-radius:12px;background:var(--card-bg);font-size:22px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.1s;user-select:none;-webkit-tap-highlight-color:transparent;}
+.mobile-btn:active{background:var(--primary);color:#fff;transform:scale(0.95);}
+@media(max-width:768px){
+  .game-wrapper{flex-direction:column;align-items:center;gap:10px;}
+  .game-side{flex-direction:row;flex-wrap:wrap;justify-content:center;min-width:auto;gap:8px;}
+  .stat-item{min-width:90px;padding:8px 12px;}
+  .stat-item .val{font-size:18px;}
+  .controls-hint{display:none;}
+  .mobile-controls{display:grid;}
+}
+</style>
+
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"打磚塊","description":"打磚塊 - 免費在線打磚塊遊戲，經典Breakout玩法，多關卡挑戰，支持鍵盤、滑鼠和觸控操作。","url":"https://chenguangwu.github.io/zh-hk/tools/fun/breakout.html","applicationCategory":"GameApplication","operatingSystem":"Web","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"},"inLanguage":"zh-HK","isAccessibleForFree":true,"browserRequirements":"Requires JavaScript. Requires HTML5 Canvas."}</script>
+
+
+
+<meta property="og:image" content="https://chenguangwu.github.io/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="ToolBox - 5000+免费在线工具">
+<meta name="twitter:image" content="https://chenguangwu.github.io/og-image.png">
+<meta name="twitter:image:alt" content="ToolBox - 5000+免费在线工具">
+    <meta name="twitter:title" content="打砖块">
+    <meta name="twitter:description" content="经典打砖块（Breakout）游戏：用鼠标或键盘移动底部挡板反弹小球，击碎上方所有砖块即过关，纯前端可离线游玩，适合休闲娱乐。">
+<!-- TOOLBOX-WEBAPP-LD -->
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"打磚塊","url":"https://chenguangwu.github.io/zh-hk/tools/fun/breakout.html","applicationCategory":"GamesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":"zh-HK","description":"經典打磚塊（Breakout）遊戲：用滑鼠或鍵盤移動底部擋板反彈小球，擊碎上方所有磚塊即過關，純前端可離線遊玩，適合休閒娛樂。","image":"https://chenguangwu.github.io/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}</script>
+<meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
+<meta http-equiv="X-Content-Type-Options" content="nosniff">
+<meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
+<!-- TOOLBOX-SECURITY -->
+
+<script src="/js/privacy.js" defer></script>
+<!-- TOOLBOX-PRIVACY-SCRIPT -->
+
+<script src="/js/metrics.js" defer></script>
+<!-- TOOLBOX-METRICS-SCRIPT -->
+
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"首頁","item":"https://chenguangwu.github.io/zh-hk/"},{"@type":"ListItem","position":2,"name":"娛樂遊戲","item":"https://chenguangwu.github.io/zh-hk/tools/fun/index.html"},{"@type":"ListItem","position":3,"name":"打磚塊","item":"https://chenguangwu.github.io/zh-hk/tools/fun/breakout.html"}]}</script>
+
+<script src="/js/i18n.js" defer></script>
+<script src="/js/tool-i18n.js" defer></script>
+<!-- TOOLBOX-I18N-SCRIPT -->
+
+
+<meta name="title-en" content="Breakout - ToolBox">
+<meta name="desc-en" content="Breakout - free online tool. Free online tool on ToolBox — 100% client-side, no data uploaded, no install. Part of the Games &amp; Entertainment tools.">
+<!-- TOOLBOX-HREFLANG -->
+<link rel="alternate" hreflang="zh-CN" href="https://chenguangwu.github.io/tools/fun/breakout.html">
+<link rel="alternate" hreflang="zh-TW" href="https://chenguangwu.github.io/zh-tw/tools/fun/breakout.html">
+<link rel="alternate" hreflang="zh-HK" href="https://chenguangwu.github.io/zh-hk/tools/fun/breakout.html">
+<link rel="alternate" hreflang="en-US" href="https://chenguangwu.github.io/tools/fun/breakout.html?lang=en-US">
+<link rel="alternate" hreflang="x-default" href="https://chenguangwu.github.io/tools/fun/breakout.html">
+<meta property="og:locale" content="zh_HK">
+<meta property="og:locale:alternate" content="zh_CN">
+<meta property="og:locale:alternate" content="zh_TW">
+<meta property="og:locale:alternate" content="en_US">
+</head>
+<body>
+<h1 class="sr-only">打磚塊</h1>
+
+
+<div class="nav">
+  <a href="/zh-hk/index.html">← ToolBox</a>
+  <span>/ 打磚塊</span>
+  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()">🌙</button>
+</div>
+
+
+
+
+
+<nav class="breadcrumb" aria-label="麪包屑導航" data-breadcrumb="1">
+  <a href="/zh-hk/index.html">首頁</a>
+  <span class="bc-sep">‹</span>
+  <a href="/zh-hk/tools/fun/index.html">🎮 娛樂遊戲</a>
+  <span class="bc-sep">‹</span>
+  <span class="bc-current">打磚塊</span>
+</nav>
+<div class="container">
+  <div class="card tool-card-accent" style="--tool-accent:#EC4899;">
+    <h2 data-zh="🧱 打磚塊">🧱 Breakout</h2>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="經典 Breakout 彈球消磚遊戲，消滅所有磚塊過關！">Breakout is available directly in your browser, with no data uploaded.</p>
+
+    <div class="game-wrapper">
+      <div class="game-board-area">
+        <canvas id="gameCanvas" width="480" height="560"></canvas>
+        <div class="mobile-controls">
+          <button type="button" class="mobile-btn" id="btnLeft" ontouchstart="mobileDown('left')" ontouchend="mobileUp('left')">◀</button>
+          <button type="button" class="mobile-btn" id="btnRight" ontouchstart="mobileDown('right')" ontouchend="mobileUp('right')">▶</button>
+        </div>
+      </div>
+      <div class="game-side">
+        <div class="stat-row">
+          <div class="stat-item">
+            <div class="val" id="scoreVal">0</div>
+            <div class="lbl">分數</div>
+          </div>
+          <div class="stat-item">
+            <div class="val" id="levelVal">1</div>
+            <div class="lbl">關卡</div>
+          </div>
+          <div class="stat-item">
+            <div class="lives-display" id="livesDisplay"></div>
+            <div class="lbl">生命</div>
+          </div>
+        </div>
+        <div class="toolbar" style="flex-direction:column;">
+          <button type="button" class="btn primary" id="startBtn" onclick="startGame()">開始遊戲</button>
+          <button type="button" class="btn" id="pauseBtn" onclick="togglePause()" disabled>暫停</button>
+          <button type="button" class="btn" onclick="resetGame()">重新開始</button>
+        </div>
+        <div class="controls-hint">
+          <kbd>←</kbd> <kbd>→</kbd> 移動擋板<br>
+          <kbd>Space</kbd> 發球 / 暫停<br>
+          滑鼠控制擋板位置
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+</div>
+
+</div>
+
+<!-- 相關工具 -->
+<div class="related-tools" data-related-tools="1">
+  <h3 class="related-tools-title">🔗 相關工具</h3>
+  <div class="related-tools-grid">
+
+
+    <a href="/zh-hk/tools/fun/generator-2.html" class="related-tool-card">
+      <span class="rt-icon">🎮</span>
+      <span class="rt-info"><span class="rt-name">數獨生成器 / 求解器 - 免費在線工具，純前端處理 | ToolBox免費在線工具箱</span><span class="rt-desc">數獨生成器 / 求解器</span></span>
+    </a>
+    <a href="/zh-hk/tools/fun/laugh-generator.html" class="related-tool-card">
+      <span class="rt-icon">😂</span>
+      <span class="rt-info"><span class="rt-name">笑聲音效生成器 - 免費趣味工具，用Web Audio API合成笑聲 | ToolBox免費在線工具箱</span><span class="rt-desc">笑聲音效生成器</span></span>
+    </a>
+    <a href="/zh-hk/tools/fun/generator-laugh.html" class="related-tool-card">
+      <span class="rt-icon">🔧</span>
+      <span class="rt-info"><span class="rt-name">笑聲音效生成器（合成） - 免費在線工具，純前端處理 | ToolBox免費在線工具箱</span><span class="rt-desc">笑聲音效生成器（合成）</span></span>
+    </a>
+    <a href="/zh-hk/tools/dance/choreography-timeline.html" class="related-tool-card">
+      <span class="rt-icon">🎶</span>
+      <span class="rt-info"><span class="rt-name">編舞時間線 - 8拍分段規劃器，按BPM和小節數生成舞蹈編排時間軸 | ToolBox免費在線工具箱</span><span class="rt-desc">編舞時間線</span></span>
+    </a>
+  </div>
+</div>
+<div class="tool-intro">
+    <div class="tool-intro-header" onclick="this.parentElement.classList.toggle('open')">
+      <div class="intro-icon-wrap">
+        <div class="intro-icon">🧱</div>
+        <span>遊戲説明</span>
+      </div>
+      <span class="arrow">▼</span>
+    </div>
+    <div class="tool-intro-body">
+      <p>打磚塊（Breakout）是經典的街機彈球遊戲，用擋板反彈小球擊碎上方磚塊得分。</p>
+      <h4><span class="h4-icon">🎮</span> 玩法規則</h4>
+      <ul class="intro-scenes">
+        <li>移動底部擋板，反彈小球</li>
+        <li>小球擊碎磚塊獲得分數</li>
+        <li>消滅全部磚塊進入下一關</li>
+        <li>球掉落底部失去一條命</li>
+        <li>三條命用完遊戲結束</li>
+        <li>每關球速遞增，難度提升</li>
+      </ul>
+      <h4><span class="h4-icon">✨</span> 功能特點</h4>
+      <ul class="intro-features">
+        <li>多關卡挑戰</li>
+        <li>磚塊顏色分值</li>
+        <li>鍵盤滑鼠觸控</li>
+        <li>速度遞增機制</li>
+        <li>暫停繼續功能</li>
+        <li>深色主題適配</li>
+      </ul>
+      <h4><span class="h4-icon">❓</span> 常見問題</h4>
+      <div class="intro-faq-item">
+        <div class="intro-faq-q">如何控制擋板？</div>
+        <div class="intro-faq-a">桌面端使用鍵盤左右方向鍵或滑鼠移動；移動端使用屏幕下方的方向按鈕或直接觸摸遊戲區域滑動。</div>
+      </div>
+      <div class="intro-faq-item">
+        <div class="intro-faq-q">不同顏色磚塊的分值一樣嗎？</div>
+        <div class="intro-faq-a">不一樣。紅色磚塊 5 分，紫色 4 分，橙色 3 分，藍色 2 分，綠色 1 分。越靠上分值越高。</div>
+      </div>
+    </div>
+  </div>
+
+<!-- TOOLBOX-DEEP-DIVE -->
+<style>
+.deep-dive{max-width:960px;margin:16px auto;padding:0 16px;}
+.deep-dive > .card{margin-bottom:0;}
+@media(max-width:600px){.deep-dive{margin:14px auto;padding:0 12px;}}
+.deep-dive .dd-list{margin:8px 0 16px;padding-left:20px;}
+.deep-dive .dd-list li{margin:6px 0;line-height:1.75;}
+.deep-dive .dd-example{background:var(--card-bg,#fff);border:1px solid var(--border,#eee);border-radius:10px;padding:12px 14px;margin:8px 0 16px;}
+.deep-dive .dd-ex-title{font-weight:600;color:var(--tool-accent,#FF6B35);margin-bottom:6px;}
+.deep-dive .dd-ex-body{font-size:13px;line-height:1.85;color:var(--text,#333);word-break:break-word;}
+.deep-dive .dd-faq{margin:8px 0 4px;}
+.deep-dive .dd-faq dt{font-weight:600;margin-top:10px;color:var(--text,#333);}
+.deep-dive .dd-faq dd{margin:4px 0 0;font-size:13px;line-height:1.85;color:var(--text-muted,#666);}
+
+</style>
+<section class="deep-dive" data-deep-dive="1">
+<div class="card">
+<h2>📚 深度解析：打磚塊</h2>
+<h3>💡 常見使用場景</h3>
+<ul class="dd-list">
+<li>打磚塊 場景核驗：統一單位和邊界條件後再跑基準樣本，先確認算式方向是否一致。</li>
+<li>教學/復盤建議：固定 1-2 個變量，逐步掃描關鍵參數，觀察趨勢是否符合預期。</li>
+<li>常見場景：Breakout</li>
+</ul>
+<div class="dd-example"><div class="dd-ex-title">快速複核「打磚塊」</div><div class="dd-ex-body">先用基礎參數跑一次基準值，再把核心輸入提高 10% 與 50% 做對比運算，確認輸出變化是否合理。</div></div>
+<h3>❓ 常見問題（FAQ）</h3>
+<dl class="dd-faq">
+<dt>打磚塊 結果可用於直接報告嗎？</dt><dd>打磚塊 適合用於內部複核與説明，正式材料請附帶口徑、邊界條件和輸入範圍説明。</dd>
+<dt>結果看似異常，該怎麼快速排查？</dt><dd>先核對是否有百分號/小數口徑衝突，再檢查是否觸發了數學域外定義（如對數、開方、除零）。</dd>
+</dl>
+</div>
+</section>
+<!-- 注意事項區塊 -->
+<div class="tool-notes" style="--tool-accent:#EC4899;">
+  <div class="tool-notes-title">⚠️ 使用説明與注意事項</div>
+  <ul>
+      <li>本工具純前端運行，數據不會上傳到伺服器</li>
+      <li>建議在主流瀏覽器（Chrome/Safari/Firefox/Edge）中使用</li>
+      <li>計算結果僅供參考，請以實際應用場景為準</li>
+  </ul>
+</div>
+<!-- /注意事項區塊 -->
+</div>
+
+<script>
+(function(){
+  'use strict';
+
+  var canvas = document.getElementById('gameCanvas');
+  var ctx = canvas.getContext('2d');
+
+  // 响应式画布尺寸
+  var BASE_W = 480, BASE_H = 560;
+  var scale = 1;
+
+  function resizeCanvas(){
+    var maxW = Math.min(canvas.parentElement.clientWidth - 4, BASE_W);
+    scale = maxW / BASE_W;
+    canvas.style.width = maxW + 'px';
+    canvas.style.height = (BASE_H * scale) + 'px';
+    canvas.width = BASE_W;
+    canvas.height = BASE_H;
+  }
+  resizeCanvas();
+  window.addEventListener('resize', resizeCanvas);
+
+  // 游戏常量
+  var PADDLE_W = 80, PADDLE_H = 12, PADDLE_Y_OFFSET = 30;
+  var BALL_R = 6;
+  var BRICK_ROWS = 5, BRICK_COLS = 8, BRICK_H = 22, BRICK_PAD = 4, BRICK_TOP = 40;
+  var BRICK_W = (BASE_W - BRICK_PAD * (BRICK_COLS + 1)) / BRICK_COLS;
+
+  // 砖块颜色与分值（从上到下）
+  var ROW_CONFIG = [
+    { color: '#EF4444', points: 5 }, // 红
+    { color: '#A855F7', points: 4 }, // 紫
+    { color: '#F97316', points: 3 }, // 橙
+    { color: '#3B82F6', points: 2 }, // 蓝
+    { color: '#10B981', points: 1 }  // 绿
+  ];
+
+  // 游戏状态
+  var state = {
+    running: false,
+    paused: false,
+    launched: false,
+    score: 0,
+    lives: 3,
+    level: 1,
+    ball: { x: 0, y: 0, dx: 0, dy: 0 },
+    paddle: { x: 0 },
+    bricks: [],
+    particles: [],
+    animId: null
+  };
+
+  var BASE_SPEED = 4;
+  var keys = { left: false, right: false };
+  var mobileKeys = { left: false, right: false };
+  var mouseX = -1;
+  var useMouseControl = false;
+
+  // DOM 引用
+  var scoreEl = document.getElementById('scoreVal');
+  var levelEl = document.getElementById('levelVal');
+  var livesEl = document.getElementById('livesDisplay');
+  var startBtn = document.getElementById('startBtn');
+  var pauseBtn = document.getElementById('pauseBtn');
+
+  function updateUI(){
+    scoreEl.textContent = state.score;
+    levelEl.textContent = state.level;
+    var html = '';
+    for(var i = 0; i < 3; i++){
+      html += '<span class="life-heart' + (i >= state.lives ? ' lost' : '') + '">❤️</span>';
+    }
+    livesEl.innerHTML = html;
+  }
+
+  function initBricks(){
+    state.bricks = [];
+    var rows = Math.min(BRICK_ROWS + Math.floor((state.level - 1) * 0.5), 8);
+    var cfg;
+    for(var r = 0; r < rows; r++){
+      cfg = ROW_CONFIG[r % ROW_CONFIG.length];
+      for(var c = 0; c < BRICK_COLS; c++){
+        // 关卡变化：部分砖块加固（需两次击打）
+        var hp = 1;
+        if(state.level >= 3 && r < 2 && (c + r) % 3 === 0) hp = 2;
+        if(state.level >= 5 && r < 3 && (c + r) % 2 === 0) hp = 2;
+        state.bricks.push({
+          x: BRICK_PAD + c * (BRICK_W + BRICK_PAD),
+          y: BRICK_TOP + r * (BRICK_H + BRICK_PAD),
+          w: BRICK_W,
+          h: BRICK_H,
+          color: cfg.color,
+          points: cfg.points,
+          hp: hp,
+          maxHp: hp,
+          alive: true
+        });
+      }
+    }
+  }
+
+  function resetBall(){
+    state.launched = false;
+    state.ball.x = state.paddle.x + PADDLE_W / 2;
+    state.ball.y = BASE_H - PADDLE_Y_OFFSET - PADDLE_H - BALL_R - 1;
+    var speed = getSpeed();
+    state.ball.dx = speed * 0.7;
+    state.ball.dy = -speed;
+  }
+
+  function getSpeed(){
+    return BASE_SPEED + (state.level - 1) * 0.4;
+  }
+
+  function initLevel(){
+    state.paddle.x = (BASE_W - PADDLE_W) / 2;
+    initBricks();
+    resetBall();
+    state.particles = [];
+    updateUI();
+  }
+
+  function addParticles(x, y, color, count){
+    for(var i = 0; i < count; i++){
+      state.particles.push({
+        x: x, y: y,
+        dx: (Math.random() - 0.5) * 6,
+        dy: (Math.random() - 0.5) * 6,
+        r: Math.random() * 3 + 1,
+        color: color,
+        life: 1
+      });
+    }
+  }
+
+  function updateParticles(){
+    for(var i = state.particles.length - 1; i >= 0; i--){
+      var p = state.particles[i];
+      p.x += p.dx;
+      p.y += p.dy;
+      p.dy += 0.15; // gravity
+      p.life -= 0.03;
+      if(p.life <= 0) state.particles.splice(i, 1);
+    }
+  }
+
+  function drawParticles(){
+    for(var i = 0; i < state.particles.length; i++){
+      var p = state.particles[i];
+      ctx.globalAlpha = Math.max(0, p.life);
+      ctx.fillStyle = p.color;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, Math.max(0.5, p.r * p.life), 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  function isDark(){
+    return document.body.classList.contains('dark') || document.documentElement.getAttribute('data-theme') === 'dark';
+  }
+
+  function draw(){
+    var dark = isDark();
+    var bgColor = dark ? '#252540' : '#FFFFFF';
+    var textColor = dark ? '#F3F4F6' : '#1F2937';
+    var mutedColor = dark ? '#6B7280' : '#9CA3AF';
+    var paddleColor = dark ? '#FF8A5C' : '#FF6B35';
+    var ballColor = dark ? '#F3F4F6' : '#1F2937';
+
+    // 清空
+    ctx.fillStyle = bgColor;
+    ctx.fillRect(0, 0, BASE_W, BASE_H);
+
+    // 网格装饰线
+    ctx.strokeStyle = dark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.03)';
+    ctx.lineWidth = 1;
+    for(var gx = 0; gx < BASE_W; gx += 40){
+      ctx.beginPath(); ctx.moveTo(gx, 0); ctx.lineTo(gx, BASE_H); ctx.stroke();
+    }
+    for(var gy = 0; gy < BASE_H; gy += 40){
+      ctx.beginPath(); ctx.moveTo(0, gy); ctx.lineTo(BASE_W, gy); ctx.stroke();
+    }
+
+    // 画砖块
+    for(var i = 0; i < state.bricks.length; i++){
+      var b = state.bricks[i];
+      if(!b.alive) continue;
+      ctx.fillStyle = b.color;
+      ctx.beginPath();
+      roundRect(ctx, b.x, b.y, b.w, b.h, 4);
+      ctx.fill();
+      // 高光
+      ctx.fillStyle = 'rgba(255,255,255,0.25)';
+      ctx.beginPath();
+      roundRect(ctx, b.x, b.y, b.w, b.h * 0.45, 4);
+      ctx.fill();
+      // 加固标记
+      if(b.hp >= 2){
+        ctx.strokeStyle = 'rgba(255,255,255,0.5)';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        roundRect(ctx, b.x + 2, b.y + 2, b.w - 4, b.h - 4, 3);
+        ctx.stroke();
+      }
+      // 受损效果
+      if(b.maxHp >= 2 && b.hp === 1){
+        ctx.strokeStyle = 'rgba(0,0,0,0.3)';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.moveTo(b.x + b.w * 0.3, b.y);
+        ctx.lineTo(b.x + b.w * 0.5, b.y + b.h * 0.6);
+        ctx.lineTo(b.x + b.w * 0.4, b.y + b.h);
+        ctx.stroke();
+      }
+    }
+
+    // 画挡板
+    var pGrad = ctx.createLinearGradient(state.paddle.x, 0, state.paddle.x + PADDLE_W, 0);
+    pGrad.addColorStop(0, paddleColor);
+    pGrad.addColorStop(1, '#7C3AED');
+    ctx.fillStyle = pGrad;
+    ctx.beginPath();
+    roundRect(ctx, state.paddle.x, BASE_H - PADDLE_Y_OFFSET, PADDLE_W, PADDLE_H, 6);
+    ctx.fill();
+    // 挡板高光
+    ctx.fillStyle = 'rgba(255,255,255,0.3)';
+    ctx.beginPath();
+    roundRect(ctx, state.paddle.x + 2, BASE_H - PADDLE_Y_OFFSET + 1, PADDLE_W - 4, PADDLE_H * 0.5, 4);
+    ctx.fill();
+
+    // 画球
+    ctx.fillStyle = ballColor;
+    ctx.beginPath();
+    ctx.arc(state.ball.x, state.ball.y, BALL_R, 0, Math.PI * 2);
+    ctx.fill();
+    // 球高光
+    ctx.fillStyle = 'rgba(255,255,255,0.4)';
+    ctx.beginPath();
+    ctx.arc(state.ball.x - 1.5, state.ball.y - 1.5, BALL_R * 0.4, 0, Math.PI * 2);
+    ctx.fill();
+
+    // 粒子
+    drawParticles();
+
+    // 未发球提示
+    if(state.running && !state.launched && !state.paused){
+      ctx.fillStyle = mutedColor;
+      ctx.font = '12px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('按空格键或点击发球', BASE_W / 2, BASE_H - PADDLE_Y_OFFSET - 28);
+      ctx.textAlign = 'start';
+    }
+
+    // 暂停提示
+    if(state.paused){
+      ctx.fillStyle = 'rgba(0,0,0,0.4)';
+      ctx.fillRect(0, 0, BASE_W, BASE_H);
+      ctx.fillStyle = '#fff';
+      ctx.font = 'bold 28px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('⏸ 暂停中', BASE_W / 2, BASE_H / 2);
+      ctx.font = '14px sans-serif';
+      ctx.fillStyle = 'rgba(255,255,255,0.7)';
+      ctx.fillText('按空格键继续', BASE_W / 2, BASE_H / 2 + 30);
+      ctx.textAlign = 'start';
+    }
+  }
+
+  function roundRect(c, x, y, w, h, r){
+    r = Math.min(r, w / 2, h / 2);
+    c.moveTo(x + r, y);
+    c.lineTo(x + w - r, y);
+    c.quadraticCurveTo(x + w, y, x + w, y + r);
+    c.lineTo(x + w, y + h - r);
+    c.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+    c.lineTo(x + r, y + h);
+    c.quadraticCurveTo(x, y + h, x, y + h - r);
+    c.lineTo(x, y + r);
+    c.quadraticCurveTo(x, y, x + r, y);
+    c.closePath();
+  }
+
+  function movePaddle(){
+    var speed = 7;
+    if(useMouseControl && mouseX >= 0){
+      state.paddle.x = mouseX - PADDLE_W / 2;
+    } else {
+      if(keys.left || mobileKeys.left) state.paddle.x -= speed;
+      if(keys.right || mobileKeys.right) state.paddle.x += speed;
+    }
+    if(state.paddle.x < 0) state.paddle.x = 0;
+    if(state.paddle.x > BASE_W - PADDLE_W) state.paddle.x = BASE_W - PADDLE_W;
+  }
+
+  function moveBall(){
+    if(!state.launched){
+      state.ball.x = state.paddle.x + PADDLE_W / 2;
+      state.ball.y = BASE_H - PADDLE_Y_OFFSET - PADDLE_H - BALL_R - 1;
+      return;
+    }
+
+    state.ball.x += state.ball.dx;
+    state.ball.y += state.ball.dy;
+
+    // 左右墙壁反弹
+    if(state.ball.x - BALL_R < 0){
+      state.ball.x = BALL_R;
+      state.ball.dx = Math.abs(state.ball.dx);
+    }
+    if(state.ball.x + BALL_R > BASE_W){
+      state.ball.x = BASE_W - BALL_R;
+      state.ball.dx = -Math.abs(state.ball.dx);
+    }
+    // 顶部反弹
+    if(state.ball.y - BALL_R < 0){
+      state.ball.y = BALL_R;
+      state.ball.dy = Math.abs(state.ball.dy);
+    }
+
+    // 挡板碰撞
+    var paddleTop = BASE_H - PADDLE_Y_OFFSET;
+    if(state.ball.dy > 0 &&
+       state.ball.y + BALL_R >= paddleTop &&
+       state.ball.y + BALL_R <= paddleTop + PADDLE_H + 4 &&
+       state.ball.x >= state.paddle.x - 2 &&
+       state.ball.x <= state.paddle.x + PADDLE_W + 2){
+      state.ball.y = paddleTop - BALL_R;
+      // 根据击球位置调整角度
+      var hitPos = (state.ball.x - state.paddle.x) / PADDLE_W; // 0~1
+      var angle = (hitPos - 0.5) * Math.PI * 0.7; // -63° ~ +63°
+      var speed = Math.sqrt(state.ball.dx * state.ball.dx + state.ball.dy * state.ball.dy);
+      state.ball.dx = speed * Math.sin(angle);
+      state.ball.dy = -speed * Math.cos(angle);
+      // 确保最小垂直速度
+      if(Math.abs(state.ball.dy) < speed * 0.3){
+        state.ball.dy = -speed * 0.3 * (state.ball.dy < 0 ? 1 : -1);
+      }
+      addParticles(state.ball.x, paddleTop, '#FF6B35', 5);
+    }
+
+    // 砖块碰撞
+    for(var i = 0; i < state.bricks.length; i++){
+      var b = state.bricks[i];
+      if(!b.alive) continue;
+      if(state.ball.x + BALL_R > b.x &&
+         state.ball.x - BALL_R < b.x + b.w &&
+         state.ball.y + BALL_R > b.y &&
+         state.ball.y - BALL_R < b.y + b.h){
+        // 确定反弹方向
+        var overlapLeft = (state.ball.x + BALL_R) - b.x;
+        var overlapRight = (b.x + b.w) - (state.ball.x - BALL_R);
+        var overlapTop = (state.ball.y + BALL_R) - b.y;
+        var overlapBottom = (b.y + b.h) - (state.ball.y - BALL_R);
+        var minOverlapX = Math.min(overlapLeft, overlapRight);
+        var minOverlapY = Math.min(overlapTop, overlapBottom);
+        if(minOverlapX < minOverlapY){
+          state.ball.dx = -state.ball.dx;
+        } else {
+          state.ball.dy = -state.ball.dy;
+        }
+
+        b.hp--;
+        if(b.hp <= 0){
+          b.alive = false;
+          state.score += b.points;
+          addParticles(b.x + b.w / 2, b.y + b.h / 2, b.color, 10);
+        } else {
+          addParticles(b.x + b.w / 2, b.y + b.h / 2, b.color, 4);
+        }
+        updateUI();
+        break; // 每帧只处理一次碰撞
+      }
+    }
+
+    // 底部掉落
+    if(state.ball.y - BALL_R > BASE_H){
+      state.lives--;
+      updateUI();
+      addParticles(state.ball.x, BASE_H, '#EF4444', 15);
+      if(state.lives <= 0){
+        gameOver();
+      } else {
+        resetBall();
+      }
+    }
+
+    // 检查是否通关
+    var allCleared = true;
+    for(var j = 0; j < state.bricks.length; j++){
+      if(state.bricks[j].alive){ allCleared = false; break; }
+    }
+    if(allCleared && state.launched){
+      nextLevel();
+    }
+  }
+
+  function gameLoop(){
+    if(!state.running) return;
+    if(!state.paused){
+      movePaddle();
+      moveBall();
+      updateParticles();
+    }
+    draw();
+    state.animId = requestAnimationFrame(gameLoop);
+  }
+
+  function startGame(){
+    if(state.running && state.paused){
+      togglePause();
+      return;
+    }
+    state.running = true;
+    state.paused = false;
+    state.score = 0;
+    state.lives = 3;
+    state.level = 1;
+    initLevel();
+    startBtn.textContent = '进行中...';
+    startBtn.disabled = true;
+    pauseBtn.disabled = false;
+    if(state.animId) cancelAnimationFrame(state.animId);
+    gameLoop();
+  }
+
+  function togglePause(){
+    if(!state.running) return;
+    state.paused = !state.paused;
+    pauseBtn.textContent = state.paused ? '继续' : '暂停';
+    if(!state.paused) gameLoop();
+  }
+
+  function resetGame(){
+    if(state.animId) cancelAnimationFrame(state.animId);
+    state.running = false;
+    state.paused = false;
+    state.launched = false;
+    state.score = 0;
+    state.lives = 3;
+    state.level = 1;
+    state.particles = [];
+    initLevel();
+    draw();
+    startBtn.textContent = '开始游戏';
+    startBtn.disabled = false;
+    pauseBtn.textContent = '暂停';
+    pauseBtn.disabled = true;
+    // 清除覆盖层
+    var overlays = document.querySelectorAll('.game-over-overlay,.level-banner');
+    overlays.forEach(function(el){ el.remove(); });
+  }
+
+  function gameOver(){
+    state.running = false;
+    startBtn.textContent = '开始游戏';
+    startBtn.disabled = false;
+    pauseBtn.disabled = true;
+
+    var overlay = document.createElement('div');
+    overlay.className = 'game-over-overlay';
+    overlay.innerHTML = '<div class="game-over-modal">' +
+      '<h2>游戏结束</h2>' +
+      '<div class="big-emoji">💥</div>' +
+      '<div class="final-label">最终得分</div>' +
+      '<div class="final-score">' + state.score + '</div>' +
+      '<div class="final-label">到达第 ' + state.level + ' 关</div>' +
+      '<div style="margin-top:16px;">' +
+      '<button type="button" class="btn primary" onclick="this.closest(\'.game-over-overlay\').remove();startGame();">再来一局</button>' +
+      '</div></div>';
+    document.body.appendChild(overlay);
+    overlay.addEventListener('click', function(e){
+      if(e.target === overlay) overlay.remove();
+    });
+  }
+
+  function nextLevel(){
+    state.level++;
+    state.launched = false;
+    initLevel();
+
+    // 显示关卡提示
+    var banner = document.createElement('div');
+    banner.className = 'level-banner';
+    banner.innerHTML = '<div class="level-num">第 ' + state.level + ' 关</div>' +
+      '<div class="level-text">速度提升！</div>';
+    document.body.appendChild(banner);
+    setTimeout(function(){
+      banner.style.opacity = '0';
+      banner.style.transition = 'opacity 0.5s';
+      setTimeout(function(){ banner.remove(); }, 500);
+    }, 1500);
+  }
+
+  // 键盘控制
+  document.addEventListener('keydown', function(e){
+    if(e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A'){ keys.left = true; useMouseControl = false; e.preventDefault(); }
+    if(e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D'){ keys.right = true; useMouseControl = false; e.preventDefault(); }
+    if(e.key === ' ' || e.key === 'Spacebar'){
+      e.preventDefault();
+      if(!state.running){ startGame(); return; }
+      if(!state.launched){ launchBall(); return; }
+      togglePause();
+    }
+    if(e.key === 'Escape' && state.running){ togglePause(); e.preventDefault(); }
+  });
+  document.addEventListener('keyup', function(e){
+    if(e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') keys.left = false;
+    if(e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') keys.right = false;
+  });
+
+  // 鼠标控制
+  canvas.addEventListener('mousemove', function(e){
+    var rect = canvas.getBoundingClientRect();
+    mouseX = (e.clientX - rect.left) / scale;
+    useMouseControl = true;
+  });
+  canvas.addEventListener('click', function(){
+    if(!state.running){ startGame(); return; }
+    if(!state.launched){ launchBall(); }
+  });
+
+  // 触摸控制（滑动）
+  canvas.addEventListener('touchmove', function(e){
+    e.preventDefault();
+    var rect = canvas.getBoundingClientRect();
+    var touch = e.touches[0];
+    mouseX = (touch.clientX - rect.left) / scale;
+    useMouseControl = true;
+  }, { passive: false });
+  canvas.addEventListener('touchstart', function(e){
+    e.preventDefault();
+    if(!state.running){ startGame(); return; }
+    if(!state.launched){ launchBall(); }
+  }, { passive: false });
+
+  // 移动端按钮控制
+  window.mobileDown = function(dir){
+    mobileKeys[dir] = true;
+    useMouseControl = false;
+  };
+  window.mobileUp = function(dir){
+    mobileKeys[dir] = false;
+  };
+
+  function launchBall(){
+    state.launched = true;
+    var speed = getSpeed();
+    state.ball.dx = speed * 0.7 * (Math.random() > 0.5 ? 1 : -1);
+    state.ball.dy = -speed;
+  }
+
+  // 暴露全局函数
+  window.startGame = startGame;
+  window.togglePause = togglePause;
+  window.resetGame = resetGame;
+
+  // 初始绘制
+  initLevel();
+  draw();
+
+})();
+</script>
+
+<!-- SEO 介紹區塊 -->
+<div class="tool-intro open" id="toolIntro">
+  <div class="tool-intro-header">
+    <span class="intro-icon-wrap"><span class="intro-icon">📖</span>關於「打磚塊」</span>
+    <span class="arrow">▼</span>
+  </div>
+  <div class="tool-intro-body">
+    <h4><span class="h4-icon">📝</span>工具簡介</h4>
+    <p>打磚塊是一款娛樂遊戲領域的在線工具。娛樂遊戲工具，純前端實現，無需安裝，離線可玩。</p>
+    <h4><span class="h4-icon">✨</span>功能特點</h4>
+    <ul class="intro-features">
+      <li>純前端實現，無需安裝</li>
+      <li>操作簡單，上手快速</li>
+      <li>支持多種設備，隨時隨地使用</li>
+      <li>無需聯網，離線可玩</li>
+    </ul>
+    <h4><span class="h4-icon">🎯</span>使用場景</h4>
+    <ul class="intro-scenes">
+      <li>休閒娛樂與放鬆</li>
+      <li>聚會互動小遊戲</li>
+      <li>碎片時間的趣味消遣</li>
+      <li>概率與統計的學習輔助</li>
+    </ul>
+    <h4><span class="h4-icon">💬</span>常見問題</h4>
+      <div class="intro-faq-item"><div class="intro-faq-q">這個工具是免費的嗎？</div><div class="intro-faq-a">完全免費，無需註冊，直接在瀏覽器中使用。</div></div>
+      <div class="intro-faq-item"><div class="intro-faq-q">需要安裝軟件嗎？</div><div class="intro-faq-a">不需要，直接在瀏覽器中打開即可使用。</div></div>
+      <div class="intro-faq-item"><div class="intro-faq-q">支持手機使用嗎？</div><div class="intro-faq-a">支持。頁面已做響應式適配，手機和電腦均可正常使用。</div></div>
+  </div>
+</div>
+<!-- /SEO 介紹區塊 -->
+
+<script>
+// tool-intro折叠交互
+document.addEventListener('DOMContentLoaded',function(){
+  var headers=document.querySelectorAll('.tool-intro-header');
+  headers.forEach(function(h){
+    h.addEventListener('click',function(){
+      this.parentElement.classList.toggle('open');
+    });
+  });
+});
+</script>
+
+</body>
+</html>

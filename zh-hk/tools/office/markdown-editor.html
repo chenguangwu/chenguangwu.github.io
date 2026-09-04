@@ -1,0 +1,842 @@
+<!DOCTYPE html>
+<html lang="zh-HK" data-opencc-locale="zh-hk">
+<head>
+
+<script src="/js/tool-page-runtime.js" defer></script>
+<!-- TOOLBOX-TOOL-RUNTIME -->
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="toolbox" content="cat=text,industry=office,icon=📝,bg=#f5f5f5">
+<meta name="description" content="在线 Markdown 编辑器，左侧编辑右侧实时预览，支持代码高亮、快捷工具栏、自动保存与文件导出。">
+<meta name="keywords" content="Markdown编辑器,Markdown编辑器在线,在线Markdown编辑器,Markdown分屏预览,Markdown实时预览,Markdown转HTML,代码高亮,Markdown工具,在线工具,免费工具,ToolBox">
+<meta name="robots" content="index,follow">
+<link rel="canonical" href="https://chenguangwu.github.io/zh-hk/tools/office/markdown-editor.html">
+<meta property="og:title" content="Markdown 编辑器（分屏预览）">
+<meta property="og:description" content="在线 Markdown 编辑器，左侧编辑右侧实时预览，支持代码高亮、快捷工具栏、自动保存与文件导出。">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://chenguangwu.github.io/zh-hk/tools/office/markdown-editor.html">
+<meta name="twitter:card" content="summary">
+<title>Markdown 編輯器（分屏預覽） - ToolBox</title>
+<meta name="theme-color" content="#FF6B35">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<link rel="icon" href="/favicon.ico" sizes="16x16 32x32 48x48">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="preload" as="style" href="/css/common.css" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="/css/common.css"></noscript>
+<script>window.__tbq=window.__tbq||[];window.ToolBox=window.ToolBox||{};['initToolTheme','addToolStyles','showToast','toast','copyText','copyToClipboard','copyFromElement','downloadText','injectPrivacyBadge','toggleFavTool','addToRecentTool','toggleToolTheme','applyTheme'].forEach(function(k){if(typeof window.ToolBox[k]!=='function')window.ToolBox[k]=function(){window.__tbq.push([k,[].slice.call(arguments)]);};});</script><!-- TOOLBOX-API-STUB -->
+<script src="/js/common.js" defer></script>
+
+<!-- highlight.js 代碼高亮 -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+
+<!-- marked Markdown 解析器 -->
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
+<style>
+/* ===== Markdown 编辑器专属样式 ===== */
+.md-editor-container{max-width:1200px!important;}
+
+/* 格式工具栏 */
+.md-format-bar{
+  display:flex;flex-wrap:wrap;gap:4px;align-items:center;
+  padding:8px;background:var(--result-bg);border:1px solid var(--border);
+  border-radius:12px;margin-bottom:8px;
+}
+.md-format-bar .md-btn{
+  padding:6px 10px;border-radius:8px;font-size:13px;cursor:pointer;
+  border:1px solid var(--border);background:var(--card-bg);color:var(--text);
+  transition:all .15s ease;font-weight:500;line-height:1.4;min-width:32px;
+  display:inline-flex;align-items:center;justify-content:center;
+}
+.md-format-bar .md-btn:hover{
+  border-color:var(--primary);color:var(--primary);transform:translateY(-1px);
+  box-shadow:var(--shadow-sm);
+}
+.md-format-bar .md-btn:active{transform:translateY(0);}
+.md-format-bar .md-sep{
+  width:1px;height:22px;background:var(--border);margin:0 3px;flex-shrink:0;
+}
+
+/* 操作工具栏 */
+.md-action-bar{
+  display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:12px;
+}
+
+/* 分屏布局 */
+.md-split{
+  display:grid;grid-template-columns:1fr 1fr;gap:12px;
+  border:1px solid var(--border);border-radius:12px;overflow:hidden;
+  background:var(--card-bg);
+}
+.md-pane{display:flex;flex-direction:column;min-height:480px;}
+.md-pane-header{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:8px 12px;background:var(--result-bg);
+  border-bottom:1px solid var(--border);font-size:12px;font-weight:600;
+  color:var(--text-secondary);
+}
+.md-pane-header .pane-label{display:flex;align-items:center;gap:6px;}
+.md-pane-header .pane-dot{
+  width:8px;height:8px;border-radius:50%;background:var(--primary);
+}
+.md-pane-header .pane-actions{display:flex;gap:4px;}
+.md-pane-header .pane-action-btn{
+  padding:3px 8px;border-radius:6px;font-size:11px;cursor:pointer;
+  border:1px solid var(--border);background:var(--card-bg);color:var(--text-secondary);
+  transition:all .15s;
+}
+.md-pane-header .pane-action-btn:hover{
+  border-color:var(--primary);color:var(--primary);
+}
+.md-pane-divider{
+  width:4px;background:var(--border);cursor:col-resize;flex-shrink:0;
+  transition:background .15s;
+}
+.md-pane-divider:hover{background:var(--primary);}
+
+/* 编辑器 */
+.md-editor-wrap{flex:1;display:flex;flex-direction:column;overflow:hidden;}
+#mdEditor{
+  flex:1;width:100%;min-height:480px;border:none;border-radius:0;
+  padding:16px;font-family:'SF Mono','Fira Code','Courier New',monospace;
+  font-size:14px;line-height:1.7;resize:none;outline:none;
+  background:var(--card-bg);color:var(--text);
+  tab-size:2;
+}
+#mdEditor:focus{box-shadow:none;border-color:transparent;}
+#mdEditor::placeholder{color:var(--text-muted);}
+
+/* 预览区 */
+.md-preview-wrap{flex:1;display:flex;flex-direction:column;overflow:hidden;}
+.md-preview{
+  flex:1;overflow-y:auto;padding:20px 24px;line-height:1.8;font-size:14px;
+  background:var(--card-bg);color:var(--text);
+}
+.md-preview:empty::before{
+  content:'预览区域 - 在左侧输入 Markdown 内容即可实时预览';
+  color:var(--text-muted);font-size:13px;
+}
+
+/* 预览内容样式 */
+.md-preview h1,.md-preview h2,.md-preview h3,.md-preview h4,.md-preview h5,.md-preview h6{
+  margin:20px 0 10px;font-weight:600;color:var(--heading);line-height:1.4;
+}
+.md-preview h1{font-size:1.8em;border-bottom:2px solid var(--border);padding-bottom:8px;}
+.md-preview h2{font-size:1.5em;border-bottom:1px solid var(--border);padding-bottom:6px;}
+.md-preview h3{font-size:1.25em;}
+.md-preview h4{font-size:1.1em;}
+.md-preview h5{font-size:1em;}
+.md-preview h6{font-size:.9em;color:var(--text-muted);}
+.md-preview p{margin:10px 0;}
+.md-preview ul,.md-preview ol{margin:10px 0;padding-left:28px;}
+.md-preview li{margin:4px 0;}
+.md-preview blockquote{
+  margin:12px 0;padding:10px 16px;border-left:4px solid var(--primary);
+  background:var(--result-bg);border-radius:0 8px 8px 0;color:var(--text-secondary);
+}
+.md-preview blockquote p{margin:4px 0;}
+.md-preview code{
+  background:var(--bg-active);padding:2px 6px;border-radius:4px;
+  font-size:.88em;font-family:'SF Mono','Fira Code','Courier New',monospace;
+  color:var(--primary);
+}
+.md-preview pre{
+  background:#f6f8fa;border:1px solid var(--border);border-radius:8px;
+  padding:14px 16px;overflow-x:auto;margin:12px 0;
+}
+.md-preview pre code{
+  background:none;padding:0;border-radius:0;font-size:13px;
+  color:inherit;line-height:1.6;
+}
+.md-preview a{color:var(--primary);text-decoration:none;}
+.md-preview a:hover{text-decoration:underline;}
+.md-preview img{max-width:100%;border-radius:8px;margin:8px 0;}
+.md-preview hr{border:none;border-top:2px solid var(--border);margin:20px 0;}
+.md-preview table{
+  width:100%;border-collapse:collapse;margin:12px 0;font-size:13px;
+  display:table;overflow-x:auto;
+}
+.md-preview th,.md-preview td{border:1px solid var(--border);padding:8px 12px;text-align:left;}
+.md-preview th{background:var(--th-bg);font-weight:600;}
+.md-preview tr:nth-child(even){background:var(--result-bg);}
+.md-preview input[type="checkbox"]{margin-right:6px;accent-color:var(--primary);}
+.md-preview strong{font-weight:700;color:var(--heading);}
+.md-preview em{font-style:italic;}
+.md-preview del{text-decoration:line-through;color:var(--text-muted);}
+.md-preview mark{background:rgba(255,235,59,.3);padding:1px 3px;border-radius:3px;}
+
+/* 深色模式代码块覆盖 */
+[data-theme="dark"] .md-preview pre{background:#1e1e2e;border-color:var(--border);}
+[data-theme="dark"] .md-preview pre code{color:#cdd6f4;}
+[data-theme="dark"] .md-preview pre code.hljs{background:transparent;padding:0;}
+
+/* 统计栏 */
+.md-stats{
+  display:flex;gap:12px;margin-top:8px;padding:8px 12px;
+  background:var(--result-bg);border:1px solid var(--border);border-radius:8px;
+  font-size:12px;color:var(--text-secondary);flex-wrap:wrap;
+}
+.md-stats .stat-item{display:flex;align-items:center;gap:4px;}
+.md-stats .stat-item strong{color:var(--primary);font-size:14px;font-weight:700;}
+.md-stats .stat-sep{width:1px;height:16px;background:var(--border);}
+
+/* 自动保存指示器 */
+.md-save-indicator{
+  font-size:11px;color:var(--text-muted);display:flex;align-items:center;gap:4px;
+}
+.md-save-indicator.saved{color:var(--success);}
+
+/* 响应式 */
+@media(max-width:768px){
+  .md-editor-container{max-width:100%!important;}
+  .md-split{grid-template-columns:1fr;}
+  .md-pane{min-height:320px;}
+  #mdEditor{min-height:300px;font-size:16px;}
+  .md-preview{padding:14px 16px;font-size:13px;}
+  .md-format-bar{gap:3px;padding:6px;}
+  .md-format-bar .md-btn{padding:6px 8px;font-size:12px;min-width:28px;}
+  .md-format-bar .md-sep{display:none;}
+  .md-action-bar .btn{flex:1 1 calc(50% - 4px);min-width:calc(50% - 4px);justify-content:center;}
+  .md-stats{font-size:11px;gap:8px;}
+  .md-stats .stat-sep{display:none;}
+}
+@media(max-width:480px){
+  .md-format-bar .md-btn{padding:5px 6px;font-size:11px;min-width:26px;}
+  .md-preview h1{font-size:1.5em;}
+  .md-preview h2{font-size:1.3em;}
+  .md-preview h3{font-size:1.15em;}
+}
+</style>
+
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"Markdown 編輯器","description":"免費在線 Markdown 分屏編輯器，支持實時預覽、代碼高亮、工具欄快捷插入、自動保存、導出 HTML/Markdown 文件。","url":"https://chenguangwu.github.io/zh-hk/tools/office/markdown-editor.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Web","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"},"inLanguage":"zh-HK","isAccessibleForFree":true,"browserRequirements":"Requires JavaScript. Requires HTML5.","softwareVersion":"1.0"}</script>
+
+
+
+<meta property="og:image" content="https://chenguangwu.github.io/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="ToolBox - 5000+免费在线工具">
+<meta name="twitter:image" content="https://chenguangwu.github.io/og-image.png">
+<meta name="twitter:image:alt" content="ToolBox - 5000+免费在线工具">
+    <meta name="twitter:title" content="Markdown 编辑器（分屏预览）">
+    <meta name="twitter:description" content="在线 Markdown 编辑器，左侧编辑右侧实时预览，支持代码高亮、快捷工具栏、自动保存与文件导出。">
+<!-- TOOLBOX-WEBAPP-LD -->
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"Markdown 編輯器（分屏預覽）","url":"https://chenguangwu.github.io/zh-hk/tools/office/markdown-editor.html","applicationCategory":"DeveloperApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":"zh-HK","description":"在線 Markdown 編輯器，左側編輯右側實時預覽，支持代碼高亮、快捷工具欄、自動保存與文件導出。","image":"https://chenguangwu.github.io/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}</script>
+<meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
+<meta http-equiv="X-Content-Type-Options" content="nosniff">
+<meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
+<!-- TOOLBOX-SECURITY -->
+
+<script src="/js/privacy.js" defer></script>
+<!-- TOOLBOX-PRIVACY-SCRIPT -->
+
+<script src="/js/metrics.js" defer></script>
+<!-- TOOLBOX-METRICS-SCRIPT -->
+
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"首頁","item":"https://chenguangwu.github.io/zh-hk/"},{"@type":"ListItem","position":2,"name":"辦公文檔","item":"https://chenguangwu.github.io/zh-hk/tools/office/index.html"},{"@type":"ListItem","position":3,"name":"Markdown 編輯器（分屏預覽）","item":"https://chenguangwu.github.io/zh-hk/tools/office/markdown-editor.html"}]}</script>
+
+<script src="/js/i18n.js" defer></script>
+<script src="/js/tool-i18n.js" defer></script>
+<!-- TOOLBOX-I18N-SCRIPT -->
+
+
+<meta name="title-en" content="Markdown Editor - ToolBox">
+<meta name="desc-en" content="Markdown Editor - free online tool. Free online tool on ToolBox — 100% client-side, no data uploaded, no install. Part of the Office &amp; Documents tools.">
+<!-- TOOLBOX-HREFLANG -->
+<link rel="alternate" hreflang="zh-CN" href="https://chenguangwu.github.io/tools/office/markdown-editor.html">
+<link rel="alternate" hreflang="zh-TW" href="https://chenguangwu.github.io/zh-tw/tools/office/markdown-editor.html">
+<link rel="alternate" hreflang="zh-HK" href="https://chenguangwu.github.io/zh-hk/tools/office/markdown-editor.html">
+<link rel="alternate" hreflang="en-US" href="https://chenguangwu.github.io/tools/office/markdown-editor.html?lang=en-US">
+<link rel="alternate" hreflang="x-default" href="https://chenguangwu.github.io/tools/office/markdown-editor.html">
+<meta property="og:locale" content="zh_HK">
+<meta property="og:locale:alternate" content="zh_CN">
+<meta property="og:locale:alternate" content="zh_TW">
+<meta property="og:locale:alternate" content="en_US">
+</head>
+<body>
+
+<h1 class="sr-only">Markdown編輯器</h1>
+
+<div class="nav">
+  <a href="/zh-hk/index.html">← ToolBox</a>
+  <span>/ Markdown 編輯器</span>
+  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()" aria-label="切換主題">🌙</button>
+</div>
+
+<div class="container md-editor-container">
+
+
+
+
+
+<nav class="breadcrumb" aria-label="麪包屑導航" data-breadcrumb="1">
+  <a href="/zh-hk/index.html">首頁</a>
+  <span class="bc-sep">‹</span>
+  <a href="/zh-hk/tools/office/index.html">🔧 辦公文檔</a>
+  <span class="bc-sep">‹</span>
+  <span class="bc-current">Markdown 編輯器（分屏預覽）</span>
+</nav>
+<div class="card">
+    <h2 data-zh="📝 Markdown 編輯器（分屏預覽）">📝 Markdown Editor</h2>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="
+      在線 Markdown 編輯器，左側編輯右側實時預覽，支持代碼高亮、快捷工具欄、自動保存與文件導出。
+    ">Markdown Editor is available directly in your browser, with no data uploaded.</p>
+
+    <!-- 格式工具欄 -->
+    <div class="md-format-bar" role="toolbar" aria-label="Markdown 格式工具欄">
+      <button class="md-btn" onclick="insertWrap('**','**')" title="加粗 (Ctrl+B)" aria-label="加粗"><strong>B</strong></button>
+      <button class="md-btn" onclick="insertWrap('*','*')" title="斜體 (Ctrl+I)" aria-label="斜體"><em>I</em></button>
+      <button class="md-btn" onclick="insertWrap('~~','~~')" title="刪除線" aria-label="刪除線"><del>S</del></button>
+      <span class="md-sep"></span>
+      <button class="md-btn" onclick="insertLinePrefix('# ')" title="一級標題" aria-label="一級標題">H1</button>
+      <button class="md-btn" onclick="insertLinePrefix('## ')" title="二級標題" aria-label="二級標題">H2</button>
+      <button class="md-btn" onclick="insertLinePrefix('### ')" title="三級標題" aria-label="三級標題">H3</button>
+      <span class="md-sep"></span>
+      <button class="md-btn" onclick="insertWrap('[','](https://)')" title="鏈接" aria-label="鏈接">🔗</button>
+      <button class="md-btn" onclick="insertWrap('![alt](',')')" title="圖片" aria-label="圖片">🖼️</button>
+      <button class="md-btn" onclick="insertWrap('`','`')" title="行內代碼" aria-label="行內代碼">`code`</button>
+      <button class="md-btn" onclick="insertCodeBlock()" title="代碼塊" aria-label="代碼塊">```</button>
+      <span class="md-sep"></span>
+      <button class="md-btn" onclick="insertLinePrefix('- ')" title="無序列表" aria-label="無序列表">• 列表</button>
+      <button class="md-btn" onclick="insertLinePrefix('1. ')" title="有序列表" aria-label="有序列表">1. 列表</button>
+      <button class="md-btn" onclick="insertLinePrefix('> ')" title="引用" aria-label="引用">❝ 引用</button>
+      <span class="md-sep"></span>
+      <button class="md-btn" onclick="insertTable()" title="表格" aria-label="表格">表格</button>
+      <button class="md-btn" onclick="insertText('\n---\n')" title="分割線" aria-label="分割線">———</button>
+      <button class="md-btn" onclick="insertWrap('~~','~~')" title="標記" aria-label="標記" style="display:none;">mark</button>
+    </div>
+
+    <!-- 操作工具欄 -->
+    <div class="toolbar md-action-bar">
+      <button class="btn primary" onclick="copyHTML()">複製 HTML</button>
+      <button class="btn" onclick="copyMarkdown()">複製 Markdown</button>
+      <button class="btn" onclick="loadSample()">加載示例</button>
+      <button class="btn" onclick="clearEditor()">清空</button>
+      <button class="btn" onclick="downloadHTML()">下載 HTML</button>
+      <button class="btn" onclick="downloadMD()">下載 .md</button>
+    </div>
+
+    <!-- 分屏編輯預覽 -->
+    <div class="md-split">
+      <div class="md-pane">
+        <div class="md-pane-header">
+          <span class="pane-label"><span class="pane-dot"></span>編輯區</span>
+          <span class="md-save-indicator" id="saveIndicator">就緒</span>
+        </div>
+        <div class="md-editor-wrap">
+          <textarea id="mdEditor" placeholder="在此输入 Markdown 内容..." spellcheck="false" aria-label="Markdown 编辑区"></textarea>
+        </div>
+      </div>
+      <div class="md-pane">
+        <div class="md-pane-header">
+          <span class="pane-label"><span class="pane-dot" style="background:var(--secondary)"></span>預覽區</span>
+          <div class="pane-actions">
+            <button class="pane-action-btn" onclick="scrollPreviewToTop()">↑ 頂部</button>
+          </div>
+        </div>
+        <div class="md-preview-wrap">
+          <div class="md-preview" id="mdPreview"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 字數統計 -->
+    <div class="md-stats">
+      <span class="stat-item">字符數 <strong id="statChars">0</strong></span>
+      <span class="stat-sep"></span>
+      <span class="stat-item">字數 <strong id="statWords">0</strong></span>
+      <span class="stat-sep"></span>
+      <span class="stat-item">行數 <strong id="statLines">0</strong></span>
+      <span class="stat-sep"></span>
+      <span class="stat-item">段落數 <strong id="statParas">0</strong></span>
+      <span class="stat-sep"></span>
+      <span class="stat-item">閲讀時長 <strong id="statReadTime">0</strong> 分鐘</span>
+    </div>
+  </div>
+
+  <!-- 注意事項 -->
+  <div class="tool-notes">
+    <div class="tool-notes-title">⚠️ 使用説明</div>
+    <ul>
+      <li>本工具純前端運行，所有內容僅在瀏覽器本地處理，不會上傳到任何伺服器</li>
+      <li>編輯內容自動保存到瀏覽器 localStorage，下次打開自動恢復</li>
+      <li>支持 Tab 鍵縮進，支持 Ctrl+B 加粗、Ctrl+I 斜體快捷鍵</li>
+      <li>建議在 Chrome、Safari、Firefox、Edge 等主流瀏覽器中使用</li>
+    </ul>
+  </div>
+
+  <!-- SEO 介紹區塊 -->
+
+</div>
+
+</div>
+
+<!-- TOOLBOX-DEEP-DIVE -->
+<style>
+.deep-dive{max-width:960px;margin:16px auto;padding:0 16px;}
+.deep-dive > .card{margin-bottom:0;}
+@media(max-width:600px){.deep-dive{margin:14px auto;padding:0 12px;}}
+.deep-dive .dd-list{margin:8px 0 16px;padding-left:20px;}
+.deep-dive .dd-list li{margin:6px 0;line-height:1.75;}
+.deep-dive .dd-example{background:var(--card-bg,#fff);border:1px solid var(--border,#eee);border-radius:10px;padding:12px 14px;margin:8px 0 16px;}
+.deep-dive .dd-ex-title{font-weight:600;color:var(--tool-accent,#FF6B35);margin-bottom:6px;}
+.deep-dive .dd-ex-body{font-size:13px;line-height:1.85;color:var(--text,#333);word-break:break-word;}
+.deep-dive .dd-faq{margin:8px 0 4px;}
+.deep-dive .dd-faq dt{font-weight:600;margin-top:10px;color:var(--text,#333);}
+.deep-dive .dd-faq dd{margin:4px 0 0;font-size:13px;line-height:1.85;color:var(--text-muted,#666);}
+
+</style>
+<section class="deep-dive" data-deep-dive="1">
+<div class="card">
+<h2>📚 深度解析：Markdown 編輯器（分屏預覽）</h2>
+<h3>💡 常見使用場景</h3>
+<ul class="dd-list">
+<li>在office場景裏，優先把Markdown Editor標準化後再執行批量分析，便於統一口徑。</li>
+<li>配合現有流程用於首輪篩選，能快速識別超標/異常樣本並形成待複核清單。</li>
+<li>當團隊成員交接時，可直接用統一字段解釋結果來源，減少口徑偏差。</li>
+</ul>
+<div class="dd-example"><div class="dd-ex-title">標準流程示例</div><div class="dd-ex-body">用一組真實口徑樣本執行一次計算，保存輸入截圖與輸出記錄，再對一個邊界場景複測，確認是否穩定。</div></div>
+<h3>❓ 常見問題（FAQ）</h3>
+<dl class="dd-faq">
+<dt>office 業務裏如何快速落地？</dt><dd>先抽取3-5個典型樣本定義口徑，再把所有輸入按該口徑映射後運行，輸出用於討論決策。</dd>
+<dt>發現輸出不一致怎麼辦？</dt><dd>先確認字段單位和時點定義，再回傳人工樣本複核，避免直接基於異常結果做業務動作。</dd>
+</dl>
+</div>
+</section>
+<!-- 相關工具 -->
+<div class="related-tools" data-related-tools="1">
+  <h3 class="related-tools-title">🔗 相關工具</h3>
+  <div class="related-tools-grid">
+    <a href="/zh-hk/tools/office/pdf-merge.html" class="related-tool-card">
+      <span class="rt-icon">🔗</span>
+      <span class="rt-info"><span class="rt-name">PDF合併工具 - 免費在線合併多個PDF文件，支持拖拽排序 | ToolBox免費在線工具箱</span><span class="rt-desc">PDF合併工具</span></span>
+    </a>
+    <a href="/zh-hk/tools/office/pdf-split.html" class="related-tool-card">
+      <span class="rt-icon">📄</span>
+      <span class="rt-info"><span class="rt-name">PDF拆分工具 - 在線提取PDF指定頁面 - PDF拆分工具 - 免費在線PDF頁面提取工具 | ToolBox免費在線工具箱</span><span class="rt-desc">PDF 拆分工具</span></span>
+    </a>
+    <a href="/zh-hk/tools/office/pdf-rotate.html" class="related-tool-card">
+      <span class="rt-icon">🔄</span>
+      <span class="rt-info"><span class="rt-name">PDF頁面旋轉工具 - 免費在線PDF頁面旋轉工具，支持單頁旋轉、批量旋轉、全部旋轉 | ToolBox免費在線工具箱</span><span class="rt-desc">PDF頁面旋轉工具</span></span>
+    </a>
+    <a href="/zh-hk/tools/office/mindmap.html" class="related-tool-card">
+      <span class="rt-icon">🧠</span>
+      <span class="rt-info"><span class="rt-name">思維導圖 - 免費在線思維導圖工具，使用 Markdown 語法實時生成可 | ToolBox免費在線工具箱</span><span class="rt-desc">思維導圖編輯器</span></span>
+    </a>
+    <a href="/zh-hk/tools/office/flowchart.html" class="related-tool-card">
+      <span class="rt-icon">🔀</span>
+      <span class="rt-info"><span class="rt-name">流程圖繪製工具（Mermaid） - 流程圖繪製工具 - 基於 Mermaid 的在線流程圖、 | ToolBox免費在線工具箱</span><span class="rt-desc">流程圖繪製工具</span></span>
+    </a>
+  </div>
+</div>
+<div class="tool-intro open" id="toolIntro">
+    <div class="tool-intro-header">
+      <span class="intro-icon-wrap"><span class="intro-icon">📖</span>關於「Markdown 編輯器」</span>
+      <span class="arrow">▼</span>
+    </div>
+    <div class="tool-intro-body">
+      <h4><span class="h4-icon">📝</span>工具簡介</h4>
+      <p>Markdown 編輯器是一款免費的在線分屏 Markdown 編輯工具。左側輸入 Markdown 文本，右側實時渲染 HTML 預覽效果。內置代碼語法高亮（highlight.js）、Markdown 語法工具欄、自動保存、文件導出等功能，適合編寫文檔、博客文章、技術筆記、README 文件等場景。所有數據在瀏覽器本地處理，不上傳伺服器，保護隱私安全。</p>
+      <h4><span class="h4-icon">✨</span>功能特點</h4>
+      <ul class="intro-features">
+        <li>左右分屏實時預覽</li>
+        <li>代碼語法高亮（180+ 語言）</li>
+        <li>工具欄快捷插入 Markdown 語法</li>
+        <li>支持 GFM 表格、任務列表、刪除線</li>
+        <li>自動保存到 localStorage</li>
+        <li>一鍵導出 HTML / Markdown 文件</li>
+        <li>複製 HTML 源碼或 Markdown 原文</li>
+        <li>Tab 鍵縮進與快捷鍵支持</li>
+        <li>字數統計與閲讀時長估算</li>
+        <li>深色模式與移動端適配</li>
+      </ul>
+      <h4><span class="h4-icon">🎯</span>使用場景</h4>
+      <ul class="intro-scenes">
+        <li>編寫 GitHub README 文檔</li>
+        <li>撰寫技術博客與教程</li>
+        <li>編寫項目文檔與 API 説明</li>
+        <li>記錄學習筆記與知識整理</li>
+        <li>編寫 Wiki 與協作文檔</li>
+        <li>排版微信公眾號文章草稿</li>
+        <li>編寫產品需求文檔（PRD）</li>
+        <li>編寫技術方案與設計文檔</li>
+      </ul>
+      <h4><span class="h4-icon">💬</span>常見問題</h4>
+      <div class="intro-faq-item">
+        <div class="intro-faq-q">Markdown 編輯器是免費的嗎？</div>
+        <div class="intro-faq-a">完全免費，無需註冊，直接在瀏覽器中打開即可使用。所有功能均無限制。</div>
+      </div>
+      <div class="intro-faq-item">
+        <div class="intro-faq-q">我的內容會被上傳到伺服器嗎？</div>
+        <div class="intro-faq-a">不會。所有編輯和渲染都在瀏覽器本地完成，內容自動保存在 localStorage 中，不會發送到任何伺服器。</div>
+      </div>
+      <div class="intro-faq-item">
+        <div class="intro-faq-q">支持哪些 Markdown 語法？</div>
+        <div class="intro-faq-a">支持標準 Markdown 語法和 GitHub Flavored Markdown（GFM），包括標題、加粗、斜體、刪除線、鏈接、圖片、代碼塊（帶語法高亮）、列表、引用、表格、分割線、任務列表等。</div>
+      </div>
+      <div class="intro-faq-item">
+        <div class="intro-faq-q">如何導出編輯好的文檔？</div>
+        <div class="intro-faq-a">點擊「下載 HTML」可導出包含樣式的 HTML 文件，點擊「下載 .md」可導出 Markdown 源文件。也可點擊「複製 HTML」或「複製 Markdown」直接複製到剪貼板。</div>
+      </div>
+      <div class="intro-faq-item">
+        <div class="intro-faq-q">關閉頁面後內容會丟失嗎？</div>
+        <div class="intro-faq-a">不會。編輯內容會自動保存到瀏覽器本地存儲中，下次打開同一頁面時會自動恢復。如需清空內容，點擊「清空」按鈕即可。</div>
+      </div>
+      <div class="intro-faq-item">
+        <div class="intro-faq-q">支持手機使用嗎？</div>
+        <div class="intro-faq-a">支持。頁面已做響應式適配，在手機上編輯區和預覽區自動切換為上下排列布局，工具欄按鈕也會自適應排列。</div>
+      </div>
+    </div>
+  </div>
+  <!-- /SEO 介紹區塊 -->
+
+</div>
+
+<script>
+/* ============================================================
+   Markdown 编辑器 - 核心逻辑
+   ============================================================ */
+(function(){
+  'use strict';
+
+  var STORAGE_KEY = 'toolbox_md_editor_content';
+  var editor = document.getElementById('mdEditor');
+  var preview = document.getElementById('mdPreview');
+  var saveIndicator = document.getElementById('saveIndicator');
+
+  /* ---- marked 配置 ---- */
+  function initMarked(){
+    if (typeof marked === 'undefined') return;
+    if (typeof marked.setOptions === 'function'){
+      marked.setOptions({ breaks: true, gfm: true });
+    }
+  }
+
+  /* ---- Markdown 解析 ---- */
+  function parseMarkdown(text){
+    if (typeof marked === 'undefined') return ToolBox.escHtml(text);
+    if (typeof marked.parse === 'function') return marked.parse(text);
+    if (typeof marked === 'function') return marked(text);
+    return ToolBox.escHtml(text);
+  }
+
+  /* ---- 代码高亮 ---- */
+  function highlightCode(){
+    if (typeof hljs === 'undefined') return;
+    var blocks = preview.querySelectorAll('pre code');
+    for (var i = 0; i < blocks.length; i++){
+      hljs.highlightElement(blocks[i]);
+    }
+  }
+
+  /* ---- 渲染预览（防抖 300ms）---- */
+  var renderTimer = null;
+  function scheduleRender(){
+    clearTimeout(renderTimer);
+    renderTimer = setTimeout(doRender, 300);
+  }
+
+  function doRender(){
+    var text = editor.value;
+    var html = parseMarkdown(text);
+    preview.innerHTML = html;
+    highlightCode();
+    updateStats(text);
+    scheduleSave(text);
+  }
+
+  /* ---- 自动保存 ---- */
+  var saveTimer = null;
+  function scheduleSave(text){
+    clearTimeout(saveTimer);
+    saveIndicator.textContent = '保存中...';
+    saveIndicator.classList.remove('saved');
+    saveTimer = setTimeout(function(){
+      try {
+        localStorage.setItem(STORAGE_KEY, text);
+        saveIndicator.textContent = '已自动保存';
+        saveIndicator.classList.add('saved');
+      } catch(e){
+        saveIndicator.textContent = '保存失败';
+      }
+    }, 600);
+  }
+
+  function restoreContent(){
+    try {
+      var saved = localStorage.getItem(STORAGE_KEY);
+      if (saved){
+        editor.value = saved;
+        return true;
+      }
+    } catch(e){}
+    return false;
+  }
+
+  /* ---- 字数统计 ---- */
+  function updateStats(text){
+    var chars = text.length;
+    var lines = text ? text.split('\n').length : 0;
+    var paras = text ? text.split(/\n\s*\n/).filter(function(p){return p.trim().length > 0;}).length : 0;
+
+    // 字数：中文按字计，英文按词计
+    var cnChars = (text.match(/[\u4e00-\u9fa5]/g) || []).length;
+    var enWords = (text.match(/[a-zA-Z0-9]+/g) || []).length;
+    var words = cnChars + enWords;
+
+    // 阅读时长（中文 300字/分钟，英文 200词/分钟，取平均 280）
+    var readMinutes = Math.max(1, Math.ceil(words / 280));
+
+    document.getElementById('statChars').textContent = chars.toLocaleString('zh-CN');
+    document.getElementById('statWords').textContent = words.toLocaleString('zh-CN');
+    document.getElementById('statLines').textContent = lines.toLocaleString('zh-CN');
+    document.getElementById('statParas').textContent = paras.toLocaleString('zh-CN');
+    document.getElementById('statReadTime').textContent = readMinutes;
+  }
+
+  /* ---- 文本插入辅助 ---- */
+  function getSelection(){
+    var start = editor.selectionStart;
+    var end = editor.selectionEnd;
+    return { start: start, end: end, selected: editor.value.substring(start, end) };
+  }
+
+  function insertText(text){
+    var sel = getSelection();
+    editor.value = editor.value.substring(0, sel.start) + text + editor.value.substring(sel.end);
+    var newPos = sel.start + text.length;
+    editor.selectionStart = newPos;
+    editor.selectionEnd = newPos;
+    editor.focus();
+    scheduleRender();
+  }
+
+  function insertWrap(before, after){
+    var sel = getSelection();
+    var selected = sel.selected || '';
+    var newText = before + selected + after;
+    editor.value = editor.value.substring(0, sel.start) + newText + editor.value.substring(sel.end);
+    editor.selectionStart = sel.start + before.length;
+    editor.selectionEnd = sel.start + before.length + selected.length;
+    editor.focus();
+    scheduleRender();
+  }
+
+  function insertLinePrefix(prefix){
+    var sel = getSelection();
+    var val = editor.value;
+    var lineStart = val.lastIndexOf('\n', sel.start - 1) + 1;
+    var before = val.substring(0, lineStart);
+    var after = val.substring(lineStart);
+    editor.value = before + prefix + after;
+    var newPos = sel.start + prefix.length;
+    editor.selectionStart = newPos;
+    editor.selectionEnd = newPos;
+    editor.focus();
+    scheduleRender();
+  }
+
+  function insertCodeBlock(){
+    var sel = getSelection();
+    var selected = sel.selected || '在此输入代码';
+    var block = '```\n' + selected + '\n```';
+    editor.value = editor.value.substring(0, sel.start) + block + editor.value.substring(sel.end);
+    var newPos = sel.start + 4;
+    editor.selectionStart = newPos;
+    editor.selectionEnd = newPos + selected.length;
+    editor.focus();
+    scheduleRender();
+  }
+
+  function insertTable(){
+    var table = '\n| 列1 | 列2 | 列3 |\n|------|------|------|\n| 内容 | 内容 | 内容 |\n| 内容 | 内容 | 内容 |\n';
+    insertText(table);
+  }
+
+  /* ---- 操作功能 ---- */
+  function copyHTML(){
+    var html = preview.innerHTML;
+    if (!html.trim()){
+      ToolBox.showToast(i18nText(), 'warning');
+      return;
+    }
+    ToolBox.copyText(html, i18nText());
+  }
+
+  function copyMarkdown(){
+    var md = editor.value;
+    if (!md.trim()){
+      ToolBox.showToast(i18nText(), 'warning');
+      return;
+    }
+    ToolBox.copyText(md, i18nText());
+  }
+
+  function clearEditor(){
+    if (!editor.value.trim()){
+      ToolBox.showToast(i18nText(), 'info');
+      return;
+    }
+    editor.value = '';
+    doRender();
+    editor.focus();
+    ToolBox.showToast(i18nText(), 'info');
+  }
+
+  function loadSample(){
+    editor.value = SAMPLE_CONTENT;
+    doRender();
+    editor.focus();
+    ToolBox.showToast(i18nText(), 'success');
+  }
+
+  function downloadHTML(){
+    var html = preview.innerHTML;
+    if (!html.trim()){
+      ToolBox.showToast(i18nText(), 'warning');
+      return;
+    }
+    var fullHTML = buildExportHTML(html);
+    ToolBox.downloadText('markdown-export.html', fullHTML, 'text/html;charset=utf-8');
+    ToolBox.showToast(i18nText(), 'success');
+  }
+
+  function downloadMD(){
+    var md = editor.value;
+    if (!md.trim()){
+      ToolBox.showToast(i18nText(), 'warning');
+      return;
+    }
+    ToolBox.downloadText('markdown-document.md', md, 'text/markdown;charset=utf-8');
+    ToolBox.showToast(i18nText(), 'success');
+  }
+
+  function buildExportHTML(bodyHTML){
+    var isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+    var bg = isDark ? '#1a1a2e' : '#ffffff';
+    var color = isDark ? '#f3f4f6' : '#1f2937';
+    return '<!DOCTYPE html>\n<html lang="zh-CN">\n<head>\n<meta charset="UTF-8">\n'
+      + '<meta name="viewport" content="width=device-width,initial-scale=1.0">\n'
+      + '<title>Markdown 导出文档</title>\n'
+      + '<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github.min.css">\n'
+      + '<style>\n'
+      + 'body{max-width:820px;margin:40px auto;padding:0 24px;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC",sans-serif;line-height:1.8;background:' + bg + ';color:' + color + ';font-size:15px;}\n'
+      + 'h1{font-size:1.8em;border-bottom:2px solid #e5e7eb;padding-bottom:8px;}\n'
+      + 'h2{font-size:1.5em;border-bottom:1px solid #e5e7eb;padding-bottom:6px;}\n'
+      + 'h3{font-size:1.25em;}\n'
+      + 'code{background:#f0f0f0;padding:2px 6px;border-radius:4px;font-family:monospace;font-size:.88em;}\n'
+      + 'pre{background:#f6f8fa;border:1px solid #e5e7eb;border-radius:8px;padding:14px 16px;overflow-x:auto;}\n'
+      + 'pre code{background:none;padding:0;}\n'
+      + 'blockquote{border-left:4px solid #FF6B35;padding:10px 16px;background:#fff8f5;border-radius:0 8px 8px 0;color:#6b7280;}\n'
+      + 'table{width:100%;border-collapse:collapse;margin:12px 0;}\n'
+      + 'th,td{border:1px solid #e5e7eb;padding:8px 12px;}\n'
+      + 'th{background:#fff5f0;font-weight:600;}\n'
+      + 'a{color:#FF6B35;}\n'
+      + 'img{max-width:100%;border-radius:8px;}\n'
+      + 'hr{border:none;border-top:2px solid #e5e7eb;margin:20px 0;}\n'
+      + '</style>\n</head>\n<body>\n' + bodyHTML + '\n</body>\n</html>';
+  }
+
+  function scrollPreviewToTop(){
+    preview.scrollTop = 0;
+  }
+
+  /* ---- Tab 键缩进 ---- */
+  function handleTab(e){
+    if (e.key === 'Tab'){
+      e.preventDefault();
+      var sel = getSelection();
+      var val = editor.value;
+      if (e.shiftKey){
+        // 反缩进：移除行首空格
+        var lineStart = val.lastIndexOf('\n', sel.start - 1) + 1;
+        if (val.substring(lineStart, lineStart + 2) === '  '){
+          editor.value = val.substring(0, lineStart) + val.substring(lineStart + 2);
+          editor.selectionStart = sel.start - 2;
+          editor.selectionEnd = sel.end - 2;
+        }
+      } else {
+        editor.value = val.substring(0, sel.start) + '  ' + val.substring(sel.end);
+        editor.selectionStart = sel.start + 2;
+        editor.selectionEnd = sel.end + 2;
+      }
+      scheduleRender();
+    }
+  }
+
+  /* ---- 快捷键 ---- */
+  function handleShortcuts(e){
+    if ((e.ctrlKey || e.metaKey) && !e.altKey){
+      var key = e.key.toLowerCase();
+      if (key === 'b'){
+        e.preventDefault();
+        insertWrap('**', '**');
+      } else if (key === 'i'){
+        e.preventDefault();
+        insertWrap('*', '*');
+      }
+    }
+  }
+
+  /* ---- 示例内容 ---- */
+  var SAMPLE_CONTENT = '# Markdown 编辑器示例\n\n欢迎使用 **ToolBox** Markdown 编辑器！这是一款纯前端的在线编辑工具。\n\n## 功能特性\n\n- ✅ 左右分屏实时预览\n- ✅ 代码语法高亮\n- ✅ 工具栏快捷插入\n- ✅ 自动保存到本地\n- ✅ 导出 HTML / Markdown 文件\n\n## 代码示例\n\n```javascript\nfunction greet(name) {\n  console.log(`Hello, ${name}!`);\n  return true;\n}\n\ngreet("ToolBox");\n```\n\n## 表格\n\n| 工具 | 分类 | 状态 |\n|------|------|------|\n| Markdown 编辑器 | 文本处理 | ✅ 可用 |\n| JSON 格式化 | 开发工具 | ✅ 可用 |\n| 二维码生成 | 生成器 | ✅ 可用 |\n\n## 引用\n\n> 💡 提示：所有工具均在浏览器本地运行，数据不上传服务器。\n\n## 有序列表\n\n1. 在左侧编辑区输入 Markdown\n2. 右侧预览区实时渲染\n3. 点击工具栏插入语法\n4. 导出文件或复制内容\n\n## 行内元素\n\n这是一个 [链接](https://chenguangwu.github.io)，一段 `行内代码`，和 ~~删除线~~ 文本。\n\n---\n\n*感谢使用 ToolBox 在线工具百科*';
+
+  /* ---- 暴露到全局 ---- */
+  window.insertWrap = insertWrap;
+  window.insertLinePrefix = insertLinePrefix;
+  window.insertText = insertText;
+  window.insertCodeBlock = insertCodeBlock;
+  window.insertTable = insertTable;
+  window.copyHTML = copyHTML;
+  window.copyMarkdown = copyMarkdown;
+  window.clearEditor = clearEditor;
+  window.loadSample = loadSample;
+  window.downloadHTML = downloadHTML;
+  window.downloadMD = downloadMD;
+  window.scrollPreviewToTop = scrollPreviewToTop;
+
+  /* ---- 初始化 ---- */
+  function init(){
+    initMarked();
+    var restored = restoreContent();
+    if (!restored){
+      editor.value = SAMPLE_CONTENT;
+    }
+    doRender();
+  }
+
+  /* ---- 事件绑定 ---- */
+  editor.addEventListener('input', scheduleRender);
+  editor.addEventListener('keydown', handleTab);
+  editor.addEventListener('keydown', handleShortcuts);
+
+  // 同步滚动（可选，轻量级）
+  var syncScroll = false;
+  editor.addEventListener('scroll', function(){
+    if (syncScroll) return;
+    syncScroll = true;
+    var ratio = editor.scrollTop / (editor.scrollHeight - editor.clientHeight || 1);
+    preview.scrollTop = ratio * (preview.scrollHeight - preview.clientHeight || 1);
+    requestAnimationFrame(function(){ syncScroll = false; });
+  });
+
+  // tool-intro 折叠交互
+  var introHeader = document.querySelector('.tool-intro-header');
+  if (introHeader){
+    introHeader.addEventListener('click', function(){
+      introHeader.parentElement.classList.toggle('open');
+    });
+  }
+
+  // DOM 就绪后初始化
+  if (document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+})();
+</script>
+
+</body>
+</html>

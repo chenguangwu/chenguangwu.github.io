@@ -1,0 +1,621 @@
+<!DOCTYPE html>
+<html lang="zh-HK" data-opencc-locale="zh-hk">
+<head>
+
+<script src="/js/tool-page-runtime.js" defer></script>
+<!-- TOOLBOX-TOOL-RUNTIME -->
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="toolbox" content="cat=reference,industry=automotive,icon=🚌,bg=#e8f5e9">
+<meta name="description" content="输入公交发车间隔或具体时刻表与当前时间，估算下一班车的到达时刻与已等待时长，支持多线路对比查看。">
+<meta name="keywords" content="公交到站,公交时刻表,到站预估,公交等待,出行规划,公交线路,速查表,在线工具,免费工具,ToolBox">
+<meta name="robots" content="index,follow">
+<link rel="canonical" href="https://chenguangwu.github.io/zh-hk/tools/automotive/bus-arrival-estimator.html">
+<title>公交到站時間預估 - ToolBox</title>
+<meta property="og:title" content="公交到站时间预估">
+<meta property="og:description" content="输入公交发车间隔或具体时刻表与当前时间，估算下一班车的到达时刻与已等待时长，支持多线路对比查看。">
+<meta property="og:url" content="https://chenguangwu.github.io/zh-hk/tools/automotive/bus-arrival-estimator.html">
+<meta name="twitter:card" content="summary">
+<meta name="theme-color" content="#FF6B35">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<link rel="icon" href="/favicon.ico" sizes="16x16 32x32 48x48">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="preload" as="style" href="/css/common.css" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="/css/common.css"></noscript>
+<script>window.__tbq=window.__tbq||[];window.ToolBox=window.ToolBox||{};['initToolTheme','addToolStyles','showToast','toast','copyText','copyToClipboard','copyFromElement','downloadText','injectPrivacyBadge','toggleFavTool','addToRecentTool','toggleToolTheme','applyTheme'].forEach(function(k){if(typeof window.ToolBox[k]!=='function')window.ToolBox[k]=function(){window.__tbq.push([k,[].slice.call(arguments)]);};});</script><!-- TOOLBOX-API-STUB -->
+<script src="/js/common.js" defer></script>
+<style>
+.route-card { background:var(--result-bg); border:1px solid var(--border); border-radius:12px; padding:16px; margin-bottom:12px; }
+.route-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; }
+.route-name { font-weight:600; font-size:15px; color:var(--heading); }
+.route-del { font-size:12px; color:var(--danger); cursor:pointer; padding:4px 8px; border:1px solid var(--border); border-radius:8px; background:none; transition:all .2s; }
+.route-del:hover { border-color:var(--danger); background:rgba(239,68,68,0.06); }
+.mode-select { display:flex; gap:8px; margin-bottom:12px; }
+.mode-btn { padding:8px 16px; border:1.5px solid var(--border); border-radius:10px; background:var(--bg-card); cursor:pointer; font-size:13px; color:var(--text-secondary); transition:all .2s; }
+.mode-btn.active { background:var(--gradient-primary); color:#fff; border-color:transparent; }
+.waiting-progress { margin:12px 0; }
+.waiting-info { display:flex; justify-content:space-between; font-size:13px; margin-bottom:4px; }
+.waiting-bar { height:12px; background:var(--border); border-radius:6px; overflow:hidden; position:relative; }
+.waiting-fill { height:100%; border-radius:6px; transition:width 0.3s ease; }
+.waiting-fill.green { background:linear-gradient(90deg,#10B981,#34D399); }
+.waiting-fill.yellow { background:linear-gradient(90deg,#F59E0B,#FBBF24); }
+.waiting-fill.red { background:linear-gradient(90deg,#EF4444,#F87171); }
+.arrival-info { text-align:center; padding:20px 0; }
+.arrival-time { font-size:36px; font-weight:800; color:var(--primary); }
+.arrival-label { font-size:13px; color:var(--text-muted); margin-top:4px; }
+.schedule-list { margin-top:8px; }
+.schedule-item { display:inline-block; padding:6px 12px; margin:3px; border-radius:8px; background:var(--bg-card); border:1px solid var(--border); font-size:13px; color:var(--text-secondary); }
+.schedule-item.next { background:rgba(255,107,53,0.1); border-color:var(--primary); color:var(--primary); font-weight:600; }
+.schedule-item.past { opacity:0.4; text-decoration:line-through; }
+.multi-result { margin-top:12px; }
+.compare-row { display:flex; align-items:center; gap:12px; padding:10px 0; border-bottom:1px solid var(--border); }
+.compare-row:last-child { border-bottom:none; }
+.compare-route { font-weight:600; font-size:14px; min-width:60px; color:var(--heading); }
+.compare-time { font-size:20px; font-weight:700; color:var(--primary); min-width:70px; }
+.compare-detail { font-size:12px; color:var(--text-muted); }
+@media(max-width:768px) {
+  .arrival-time { font-size:28px; }
+  .mode-select { flex-wrap:wrap; }
+  .compare-row { flex-wrap:wrap; gap:6px; }
+}
+</style>
+
+
+
+<meta property="og:image" content="https://chenguangwu.github.io/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="ToolBox - 5000+免费在线工具">
+<meta name="twitter:image" content="https://chenguangwu.github.io/og-image.png">
+<meta name="twitter:image:alt" content="ToolBox - 5000+免费在线工具">
+    <meta property="og:type" content="website">
+    <meta name="twitter:title" content="公交到站时间预估">
+    <meta name="twitter:description" content="输入公交发车间隔或具体时刻表与当前时间，估算下一班车的到达时刻与已等待时长，支持多线路对比查看。">
+<!-- TOOLBOX-WEBAPP-LD -->
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"公交到站時間預估","url":"https://chenguangwu.github.io/zh-hk/tools/automotive/bus-arrival-estimator.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":"zh-HK","description":"輸入公交發車間隔或具體時刻表與當前時間，估算下一班車的到達時刻與已等待時長，支持多線路對比查看。","image":"https://chenguangwu.github.io/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}</script>
+<meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
+<meta http-equiv="X-Content-Type-Options" content="nosniff">
+<meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
+<!-- TOOLBOX-SECURITY -->
+
+<script src="/js/privacy.js" defer></script>
+<!-- TOOLBOX-PRIVACY-SCRIPT -->
+
+<script src="/js/metrics.js" defer></script>
+<!-- TOOLBOX-METRICS-SCRIPT -->
+
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"首頁","item":"https://chenguangwu.github.io/zh-hk/"},{"@type":"ListItem","position":2,"name":"汽車交通","item":"https://chenguangwu.github.io/zh-hk/tools/automotive/index.html"},{"@type":"ListItem","position":3,"name":"公交到站時間預估","item":"https://chenguangwu.github.io/zh-hk/tools/automotive/bus-arrival-estimator.html"}]}</script>
+
+<script src="/js/i18n.js" defer></script>
+<script src="/js/tool-i18n.js" defer></script>
+<!-- TOOLBOX-I18N-SCRIPT -->
+
+
+<meta name="title-en" content="Bus Arrival Estimator - ToolBox">
+<meta name="desc-en" content="Bus Arrival Estimator - free online tool. Free online tool on ToolBox — 100% client-side, no data uploaded, no install. Part of the Automotive &amp; Transpor...">
+<!-- TOOLBOX-HREFLANG -->
+<link rel="alternate" hreflang="zh-CN" href="https://chenguangwu.github.io/tools/automotive/bus-arrival-estimator.html">
+<link rel="alternate" hreflang="zh-TW" href="https://chenguangwu.github.io/zh-tw/tools/automotive/bus-arrival-estimator.html">
+<link rel="alternate" hreflang="zh-HK" href="https://chenguangwu.github.io/zh-hk/tools/automotive/bus-arrival-estimator.html">
+<link rel="alternate" hreflang="en-US" href="https://chenguangwu.github.io/tools/automotive/bus-arrival-estimator.html?lang=en-US">
+<link rel="alternate" hreflang="x-default" href="https://chenguangwu.github.io/tools/automotive/bus-arrival-estimator.html">
+<meta property="og:locale" content="zh_HK">
+<meta property="og:locale:alternate" content="zh_CN">
+<meta property="og:locale:alternate" content="zh_TW">
+<meta property="og:locale:alternate" content="en_US">
+</head>
+<body>
+<h1 class="sr-only">公交到站時間預估</h1>
+
+
+<div class="nav">
+  <a href="/zh-hk/index.html">&larr; ToolBox</a>
+  <span>/ 公交到站時間預估</span>
+  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()">&#127769;</button>
+</div>
+
+
+
+
+
+<nav class="breadcrumb" aria-label="麪包屑導航" data-breadcrumb="1">
+  <a href="/zh-hk/index.html">首頁</a>
+  <span class="bc-sep">‹</span>
+  <a href="/zh-hk/tools/automotive/index.html">🚗 汽車交通</a>
+  <span class="bc-sep">‹</span>
+  <span class="bc-current">公交到站時間預估</span>
+</nav>
+<div class="container">
+  <div class="card tool-card-accent" style="--tool-accent:#FF6B35;">
+    <h2 data-zh="&amp;#128652; 公交到站時間預估">&amp;#Bus Arrival Estimator</h2>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="輸入公交時刻表，估算下一班車到達時間">Bus Arrival Estimator is available directly in your browser, with no data uploaded.</p>
+
+    <!-- 添加線路 -->
+    <div class="mode-select">
+      <div class="mode-btn active" onclick="selectMode(0,this)">&#128337; 固定間隔模式</div>
+      <div class="mode-btn" onclick="selectMode(1,this)">&#128197; 時刻表模式</div>
+    </div>
+
+    <div class="input-row">
+      <div>
+        <label>線路名稱</label>
+        <input type="text" id="routeName" value="1路公交" placeholder="如：1路公交">
+      </div>
+    </div>
+
+    <!-- 固定間隔模式 -->
+    <div id="intervalMode">
+      <div class="input-row">
+        <div>
+          <label>發車間隔（分鐘）</label>
+          <input type="number" id="interval" value="15" min="1">
+        </div>
+        <div>
+          <label>首班車時間</label>
+          <input type="time" id="firstBus" value="06:00">
+        </div>
+        <div>
+          <label>末班車時間</label>
+          <input type="time" id="lastBus" value="22:00">
+        </div>
+      </div>
+    </div>
+
+    <!-- 時刻表模式 -->
+    <div id="scheduleMode" style="display:none;">
+      <label>班次時刻表（每行一個時間，格式 HH:MM）</label>
+      <textarea id="scheduleInput" rows="6" placeholder="06:00&#10;06:15&#10;06:30&#10;06:45&#10;07:00&#10;07:20">06:00
+06:20
+06:40
+07:00
+07:20
+07:40
+08:00
+08:20
+08:40
+09:00
+09:30
+10:00
+10:30
+11:00
+11:30
+12:00
+12:30
+13:00
+13:30
+14:00
+14:30
+15:00
+15:30
+16:00
+16:30
+17:00
+17:15
+17:30
+17:45
+18:00
+18:15
+18:30
+18:45
+19:00
+19:30
+20:00
+20:30
+21:00
+21:30
+22:00</textarea>
+    </div>
+
+    <!-- 當前時間和等待時長 -->
+    <div class="input-row">
+      <div>
+        <label>當前時間</label>
+        <input type="time" id="currentTime">
+      </div>
+      <div>
+        <label>已等待時長（分鐘，可選）</label>
+        <input type="number" id="waitedMin" value="0" min="0">
+      </div>
+    </div>
+
+    <div class="toolbar">
+      <button type="button" class="btn primary" onclick="addRoute()">&#10133; 添加線路</button>
+      <button type="button" class="btn" onclick="setNow()">&#128336; 使用當前時間</button>
+    </div>
+  </div>
+
+  <!-- 已添加的線路 -->
+  <div class="card" id="routesCard" style="display:none;">
+    <h3>&#128652; 已添加線路</h3>
+    <div id="routesList"></div>
+    <div class="toolbar" style="margin-top:12px;">
+      <button type="button" class="btn danger" onclick="clearAll()">&#128465; 清空所有線路</button>
+    </div>
+  </div>
+
+  <!-- 結果 -->
+  <div class="card" id="resultCard" style="display:none;">
+    <h3>&#128205; 到站預估結果</h3>
+    <div id="result"></div>
+  </div>
+
+  <!-- 工具介紹 -->
+
+</div>
+
+</div>
+
+
+<!-- 相關工具 -->
+<div class="related-tools" data-related-tools="1">
+  <h3 class="related-tools-title">🔗 相關工具</h3>
+  <div class="related-tools-grid">
+    <a href="/zh-hk/tools/automotive/recommender-6.html" class="related-tool-card">
+      <span class="rt-icon">🚙</span>
+      <span class="rt-info"><span class="rt-name">胎壓（監測/充氣）推薦</span><span class="rt-desc">胎壓（監測/充氣）推薦</span></span>
+    </a>
+    <a href="/zh-hk/tools/automotive/calc-2.html" class="related-tool-card">
+      <span class="rt-icon">⚙️</span>
+      <span class="rt-info"><span class="rt-name">發動機功率/扭矩換算</span><span class="rt-desc">發動機功率/扭矩換算</span></span>
+    </a>
+    <a href="/zh-hk/tools/automotive/oil-change-countdown.html" class="related-tool-card">
+      <span class="rt-icon">🛢️</span>
+      <span class="rt-info"><span class="rt-name">機油更換倒計時 - 旅行出行領域的在線工具</span><span class="rt-desc">機油更換倒計時</span></span>
+    </a>
+    <a href="/zh-hk/tools/automotive/countdown-engine-oil.html" class="related-tool-card">
+      <span class="rt-icon">🛢️</span>
+      <span class="rt-info"><span class="rt-name">機油更換里程倒計時（按駕駛習慣） - 機油更換里程倒計時工具根據機油類型（礦物油/半合成/全合</span><span class="rt-desc">機油更換里程倒計時</span></span>
+    </a>
+    <a href="/zh-hk/tools/automotive/calc-3.html" class="related-tool-card">
+      <span class="rt-icon">🛞</span>
+      <span class="rt-info"><span class="rt-name">輪胎胎壓換算 - 汽車交通在線工具</span><span class="rt-desc">輪胎胎壓換算</span></span>
+    </a>
+    <a href="/zh-hk/tools/automotive/transport-calculator.html" class="related-tool-card">
+      <span class="rt-icon">🚗</span>
+      <span class="rt-info"><span class="rt-name">交通物流計算器 - 涵蓋剎車距離、油耗成本、貨物換算、燃油效率、行駛時間</span><span class="rt-desc">交通物流計算器</span></span>
+    </a>
+  </div>
+</div>
+<div class="tool-intro">
+    <div class="tool-intro-header" onclick="this.parentElement.classList.toggle('open')">
+      <span class="intro-icon-wrap"><span class="intro-icon">&#128218;</span> 工具説明</span>
+      <span class="arrow">&#9660;</span>
+    </div>
+    <div class="tool-intro-body">
+      <p>公交到站時間預估工具，根據固定的發車間隔或具體時刻表，估算下一班車的到達時間。支持多線路對比查看。</p>
+      <h4><span class="h4-icon">&#9889;</span> 功能特點</h4>
+      <ul class="intro-features">
+        <li>固定間隔和具體時刻表兩種模式</li>
+        <li>可視化等待進度條</li>
+        <li>多線路同時對比</li>
+        <li>自動標記已過班次和下一班</li>
+      </ul>
+      <h4><span class="h4-icon">&#127760;</span> 使用場景</h4>
+      <ul class="intro-scenes">
+        <li>等公交時預估到站時間</li>
+        <li>規劃公交出行時間</li>
+        <li>對比多條線路的等待時間</li>
+      </ul>
+    </div>
+  </div>
+
+<!-- TOOLBOX-DEEP-DIVE -->
+<style>
+.deep-dive{max-width:960px;margin:16px auto;padding:0 16px;}
+.deep-dive > .card{margin-bottom:0;}
+@media(max-width:600px){.deep-dive{margin:14px auto;padding:0 12px;}}
+.deep-dive .dd-list{margin:8px 0 16px;padding-left:20px;}
+.deep-dive .dd-list li{margin:6px 0;line-height:1.75;}
+.deep-dive .dd-example{background:var(--card-bg,#fff);border:1px solid var(--border,#eee);border-radius:10px;padding:12px 14px;margin:8px 0 16px;}
+.deep-dive .dd-ex-title{font-weight:600;color:var(--tool-accent,#FF6B35);margin-bottom:6px;}
+.deep-dive .dd-ex-body{font-size:13px;line-height:1.85;color:var(--text,#333);word-break:break-word;}
+.deep-dive .dd-faq{margin:8px 0 4px;}
+.deep-dive .dd-faq dt{font-weight:600;margin-top:10px;color:var(--text,#333);}
+.deep-dive .dd-faq dd{margin:4px 0 0;font-size:13px;line-height:1.85;color:var(--text-muted,#666);}
+
+</style>
+<section class="deep-dive" data-deep-dive="1">
+<div class="card">
+<h2>📚 深度解析：公交到站時間預估</h2>
+<h3>💡 常見使用場景</h3>
+<ul class="dd-list">
+<li>將「公交到站時間預估」納入現場複核清單，先固定其它輸入，單獨變化一個參數，確保輸出變化趨勢與工程/金融直覺一致。</li>
+<li>建議保留參數口徑説明（單位、頻率基準、時間窗）以便團隊復現。</li>
+<li>常見場景：&amp;amp;#Bus Arrival Estimator</li>
+</ul>
+<div class="dd-example"><div class="dd-ex-title">複核示例：公交到站時間預估</div><div class="dd-ex-body">先用一組可復現輸入做一次基準運算，再對關鍵輸入乘以 10%、50% 兩檔復算，確認結果是否沿預期方向變化。</div></div>
+<h3>❓ 常見問題（FAQ）</h3>
+<dl class="dd-faq">
+<dt>公交到站時間預估 的誤差是否可快速定位？</dt><dd>可。先檢查輸入邊界、單位、以及分母定義後，通常可在1-2次復算內定位偏差來源。</dd>
+<dt>結果為負值或零值時該怎麼辦？</dt><dd>先確認輸入是否突破有效域（如對數/開方前提、分母是否接近零），再回到定義式檢查口徑。</dd>
+</dl>
+</div>
+</section>
+<!-- 注意事項區塊 -->
+<div class="tool-notes" style="--tool-accent:#FF6B35;">
+  <div class="tool-notes-title">⚠️ 使用説明與注意事項</div>
+  <ul>
+      <li>本工具純前端運行，數據不會上傳到伺服器</li>
+      <li>建議在主流瀏覽器（Chrome/Safari/Firefox/Edge）中使用</li>
+      <li>計算結果僅供參考，請以實際應用場景為準</li>
+  </ul>
+</div>
+<!-- /注意事項區塊 -->
+</div>
+
+<script>
+var routes = [];
+var currentMode = 0;
+
+function selectMode(mode, el) {
+  currentMode = mode;
+  var btns = document.querySelectorAll('.mode-btn');
+  for (var i = 0; i < btns.length; i++) btns[i].classList.remove('active');
+  el.classList.add('active');
+  document.getElementById('intervalMode').style.display = mode === 0 ? 'block' : 'none';
+  document.getElementById('scheduleMode').style.display = mode === 1 ? 'block' : 'none';
+}
+
+function setNow() {
+  var now = new Date();
+  var h = String(now.getHours()).padStart(2, '0');
+  var m = String(now.getMinutes()).padStart(2, '0');
+  document.getElementById('currentTime').value = h + ':' + m;
+}
+
+function timeToMinutes(t) {
+  var parts = t.split(':');
+  return (+parts[0]) * 60 + (+parts[1]);
+}
+
+function minutesToTime(mins) {
+  mins = Math.floor(mins);
+  var h = Math.floor(mins / 60) % 24;
+  var m = mins % 60;
+  return String(h).padStart(2, '0') + ':' + String(m).padStart(2, '0');
+}
+
+function generateSchedule(firstBus, lastBus, interval) {
+  var first = timeToMinutes(firstBus);
+  var last = timeToMinutes(lastBus);
+  var result = [];
+  for (var t = first; t <= last; t += interval) {
+    result.push(t);
+  }
+  return result;
+}
+
+function parseScheduleText(text) {
+  var lines = text.trim().split('\n');
+  var result = [];
+  for (var i = 0; i < lines.length; i++) {
+    var line = lines[i].trim();
+    if (!line) continue;
+    var m = timeToMinutes(line);
+    result.push(m);
+  }
+  result.sort(function(a, b) { return a - b; });
+  return result;
+}
+
+function addRoute() {
+  var name = document.getElementById('routeName').value.trim() || ('线路' + (routes.length + 1));
+  var currentTime = document.getElementById('currentTime').value;
+  if (!currentTime) {
+    ToolBox.showToast(i18nText('toast.msg744'), 'warning');
+    return;
+  }
+  var nowMin = timeToMinutes(currentTime);
+  var waitedMin = +document.getElementById('waitedMin').value || 0;
+
+  var schedule;
+  if (currentMode === 0) {
+    var interval = +document.getElementById('interval').value || 15;
+    var firstBus = document.getElementById('firstBus').value || '06:00';
+    var lastBus = document.getElementById('lastBus').value || '22:00';
+    schedule = generateSchedule(firstBus, lastBus, interval);
+  } else {
+    var text = document.getElementById('scheduleInput').value;
+    schedule = parseScheduleText(text);
+    if (schedule.length === 0) {
+      ToolBox.showToast(i18nText('toast.msg855'), 'warning');
+      return;
+    }
+  }
+
+  routes.push({
+    name: name,
+    schedule: schedule,
+    nowMin: nowMin,
+    waitedMin: waitedMin
+  });
+
+  renderRoutes();
+  ToolBox.showToast('已添加 ' + name);
+}
+
+function removeRoute(idx) {
+  routes.splice(idx, 1);
+  renderRoutes();
+}
+
+function clearAll() {
+  routes = [];
+  renderRoutes();
+}
+
+function renderRoutes() {
+  var routesCard = document.getElementById('routesCard');
+  var routesList = document.getElementById('routesList');
+  var resultCard = document.getElementById('resultCard');
+  var result = document.getElementById('result');
+
+  if (routes.length === 0) {
+    routesCard.style.display = 'none';
+    resultCard.style.display = 'none';
+    return;
+  }
+
+  routesCard.style.display = 'block';
+  resultCard.style.display = 'block';
+
+  // 渲染线路列表
+  var listHtml = '';
+  for (var i = 0; i < routes.length; i++) {
+    var r = routes[i];
+    var nextBus = findNextBus(r.schedule, r.nowMin);
+    var arrivalInfo = nextBus !== null
+      ? (nextBus === r.nowMin ? '即将到站' : minutesToTime(nextBus) + ' 到站（约' + (nextBus - r.nowMin) + '分钟后）')
+      : '今日已停运';
+
+    listHtml += '<div class="route-card">';
+    listHtml += '<div class="route-header"><span class="route-name">' + ToolBox.escHtml(r.name) + '</span>';
+    listHtml += '<button class="route-del" onclick="removeRoute(' + i + ')">&#10005; 删除</button></div>';
+    listHtml += '<p style="font-size:13px;color:var(--text-secondary);">当前时间 ' + minutesToTime(r.nowMin) + ' &nbsp;|&nbsp; ' + (r.waitedMin > 0 ? '已等待 ' + r.waitedMin + ' 分钟 &nbsp;|&nbsp; ' : '') + '共 ' + r.schedule.length + ' 班次</p>';
+    listHtml += '<p style="font-size:14px;font-weight:600;color:var(--primary);margin-top:4px;">&#128688; ' + arrivalInfo + '</p>';
+    listHtml += '</div>';
+  }
+  routesList.innerHTML = listHtml;
+
+  // 渲染结果
+  var resHtml = '';
+  if (routes.length === 1) {
+    // 单线路详细展示
+    var r = routes[0];
+    var nextBus = findNextBus(r.schedule, r.nowMin);
+    var prevBus = findPrevBus(r.schedule, r.nowMin);
+    var prevDiff = prevBus !== null ? r.nowMin - prevBus : 0;
+
+    resHtml += '<div class="arrival-info">';
+    if (nextBus !== null) {
+      var diff = nextBus - r.nowMin;
+      var pct = prevBus !== null ? Math.min(100, ((r.nowMin - prevBus) / (nextBus - prevBus)) * 100) : 0;
+      var barClass = diff <= 3 ? 'green' : (diff <= 10 ? 'yellow' : 'red');
+
+      resHtml += '<div class="arrival-time">' + minutesToTime(nextBus) + '</div>';
+      resHtml += '<div class="arrival-label">下一班车预计到达</div>';
+      resHtml += '<div style="font-size:24px;font-weight:700;color:' + (diff <= 3 ? '#10B981' : diff <= 10 ? '#F59E0B' : '#EF4444') + ';margin:8px 0;">';
+      if (diff === 0) resHtml += '&#128663; 即将到站！';
+      else if (diff <= 3) resHtml += '&#127939; 约 ' + diff + ' 分钟';
+      else resHtml += '&#9201; 约 ' + diff + ' 分钟';
+      resHtml += '</div>';
+
+      // 进度条
+      resHtml += '<div class="waiting-progress">';
+      resHtml += '<div class="waiting-info"><span>' + (prevBus !== null ? minutesToTime(prevBus) : '--:--') + ' 上一班</span><span>下一班 ' + minutesToTime(nextBus) + '</span></div>';
+      resHtml += '<div class="waiting-bar"><div class="waiting-fill ' + barClass + '" style="width:' + pct + '%;"></div></div>';
+      resHtml += '</div>';
+
+      // 时刻表
+      resHtml += '<div style="margin-top:16px;"><h3 style="font-size:14px;margin-bottom:8px;">今日班次时刻表</h3><div class="schedule-list">';
+      for (var j = 0; j < r.schedule.length; j++) {
+        var cls = '';
+        if (r.schedule[j] === nextBus) cls = ' next';
+        else if (r.schedule[j] < r.nowMin) cls = ' past';
+        resHtml += '<span class="schedule-item' + cls + '">' + minutesToTime(r.schedule[j]) + '</span>';
+      }
+      resHtml += '</div></div>';
+    } else {
+      resHtml += '<div class="arrival-time" style="color:var(--danger);">已停运</div>';
+      resHtml += '<div class="arrival-label">今日末班车已过，请乘坐其他交通工具</div>';
+    }
+    resHtml += '</div>';
+  } else {
+    // 多线路对比
+    resHtml += '<div class="multi-result">';
+    resHtml += '<h3 style="font-size:14px;margin-bottom:8px;">多线路到站对比</h3>';
+    var sorted = routes.slice().sort(function(a, b) {
+      var na = findNextBus(a.schedule, a.nowMin);
+      var nb = findNextBus(b.schedule, b.nowMin);
+      if (na === null && nb === null) return 0;
+      if (na === null) return 1;
+      if (nb === null) return -1;
+      return na - nb;
+    });
+    for (var i = 0; i < sorted.length; i++) {
+      var r = sorted[i];
+      var next = findNextBus(r.schedule, r.nowMin);
+      var diff = next !== null ? next - r.nowMin : -1;
+      var color = diff <= 3 ? '#10B981' : diff <= 10 ? '#F59E0B' : '#EF4444';
+      resHtml += '<div class="compare-row">';
+      resHtml += '<span class="compare-route">' + (i === 0 ? '&#127942; ' : '') + ToolBox.escHtml(r.name) + '</span>';
+      if (next !== null) {
+        resHtml += '<span class="compare-time" style="color:' + color + ';">' + diff + '分钟</span>';
+        resHtml += '<span class="compare-detail">' + minutesToTime(next) + ' 到站' + (r.waitedMin > 0 ? ' | 已等' + r.waitedMin + '分钟' : '') + '</span>';
+      } else {
+        resHtml += '<span class="compare-time" style="color:#EF4444;">停运</span>';
+        resHtml += '<span class="compare-detail">末班车已过</span>';
+      }
+      resHtml += '</div>';
+    }
+    resHtml += '</div>';
+  }
+
+  result.innerHTML = resHtml;
+}
+
+function findNextBus(schedule, nowMin) {
+  for (var i = 0; i < schedule.length; i++) {
+    if (schedule[i] >= nowMin) return schedule[i];
+  }
+  return null;
+}
+
+function findPrevBus(schedule, nowMin) {
+  var prev = null;
+  for (var i = 0; i < schedule.length; i++) {
+    if (schedule[i] >= nowMin) break;
+    prev = schedule[i];
+  }
+  return prev;
+}
+
+// 初始化当前时间
+setNow();
+</script>
+
+<!-- SEO 介紹區塊 -->
+<div class="tool-intro open" id="toolIntro">
+  <div class="tool-intro-header">
+    <span class="intro-icon-wrap"><span class="intro-icon">📖</span>關於「公交到站時間預估」</span>
+    <span class="arrow">▼</span>
+  </div>
+  <div class="tool-intro-body">
+    <h4><span class="h4-icon">📝</span>工具簡介</h4>
+    <p>公交到站時間預估。旅行出行工具，出行必備，支持離線使用。</p>
+    <h4><span class="h4-icon">✨</span>功能特點</h4>
+    <ul class="intro-features">
+      <li>計算精準，支持多種參數</li>
+      <li>實時計算，結果即時顯示</li>
+      <li>純前端處理，數據不上傳</li>
+      <li>支持手機使用，出行必備</li>
+    </ul>
+    <h4><span class="h4-icon">🎯</span>使用場景</h4>
+    <ul class="intro-scenes">
+      <li>旅行規劃與時間管理</li>
+      <li>時區轉換與行程安排</li>
+      <li>出行費用計算與預算</li>
+      <li>旅行知識學習</li>
+    </ul>
+    <h4><span class="h4-icon">💬</span>常見問題</h4>
+      <div class="intro-faq-item"><div class="intro-faq-q">這個工具是免費的嗎？</div><div class="intro-faq-a">完全免費，無需註冊，直接在瀏覽器中使用。</div></div>
+      <div class="intro-faq-item"><div class="intro-faq-q">計算結果準確嗎？</div><div class="intro-faq-a">採用標準計算方法，結果準確可靠。</div></div>
+      <div class="intro-faq-item"><div class="intro-faq-q">支持手機使用嗎？</div><div class="intro-faq-a">支持。頁面已做響應式適配，手機和電腦均可正常使用。</div></div>
+  </div>
+</div>
+<!-- /SEO 介紹區塊 -->
+
+<script>
+// tool-intro折叠交互
+document.addEventListener('DOMContentLoaded',function(){
+  var headers=document.querySelectorAll('.tool-intro-header');
+  headers.forEach(function(h){
+    h.addEventListener('click',function(){
+      this.parentElement.classList.toggle('open');
+    });
+  });
+});
+</script>
+
+</body>
+</html>

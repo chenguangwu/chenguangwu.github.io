@@ -1,0 +1,861 @@
+<!DOCTYPE html>
+<html lang="zh-TW" data-opencc-locale="zh-tw">
+<head>
+
+<script src="/js/tool-page-runtime.js" defer></script>
+<!-- TOOLBOX-TOOL-RUNTIME -->
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="toolbox" content="cat=game,industry=fun,icon=🧩,bg=#fff3e0">
+<meta name="description" content="经典数字华容道：将打乱顺序的方块通过滑动逐步还原为从小到大排列，支持数字与图片两种模式，用于思维训练与娱乐。">
+<meta name="keywords" content="滑动拼图,数字华容道,华容道,拼图游戏,15拼图,滑块拼图,益智游戏,在线游戏,免费工具,ToolBox">
+<meta name="robots" content="index,follow">
+<link rel="canonical" href="https://chenguangwu.github.io/zh-tw/tools/fun/sliding-puzzle.html">
+<meta property="og:title" content="滑动拼图">
+<meta property="og:description" content="经典数字华容道：将打乱顺序的方块通过滑动逐步还原为从小到大排列，支持数字与图片两种模式，用于思维训练与娱乐。">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://chenguangwu.github.io/zh-tw/tools/fun/sliding-puzzle.html">
+<meta name="twitter:card" content="summary">
+
+<title>滑動拼圖 - ToolBox</title>
+<meta name="theme-color" content="#FF6B35">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<link rel="icon" href="/favicon.ico" sizes="16x16 32x32 48x48">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="preload" as="style" href="/css/common.css" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="/css/common.css"></noscript>
+<script>window.__tbq=window.__tbq||[];window.ToolBox=window.ToolBox||{};['initToolTheme','addToolStyles','showToast','toast','copyText','copyToClipboard','copyFromElement','downloadText','injectPrivacyBadge','toggleFavTool','addToRecentTool','toggleToolTheme','applyTheme'].forEach(function(k){if(typeof window.ToolBox[k]!=='function')window.ToolBox[k]=function(){window.__tbq.push([k,[].slice.call(arguments)]);};});</script><!-- TOOLBOX-API-STUB -->
+<script src="/js/common.js" defer></script>
+<style>
+.game-wrapper{display:flex;flex-direction:column;align-items:center;gap:16px;}
+.game-header{display:flex;align-items:center;gap:16px;flex-wrap:wrap;justify-content:center;width:100%;}
+.game-header .mode-tabs{display:flex;gap:4px;background:var(--result-bg);border-radius:10px;padding:4px;}
+.game-header .mode-tab{padding:6px 14px;border:none;background:transparent;cursor:pointer;font-size:13px;color:var(--text-muted);border-radius:8px;font-weight:500;transition:all 0.2s;}
+.game-header .mode-tab.active{background:var(--gradient-primary);color:#fff;font-weight:600;}
+.game-header .mode-tab:hover:not(.active){color:var(--primary);background:var(--bg-hover);}
+.size-tabs{display:flex;gap:4px;background:var(--result-bg);border-radius:10px;padding:4px;}
+.size-tab{padding:6px 16px;border:none;background:transparent;cursor:pointer;font-size:13px;color:var(--text-muted);border-radius:8px;font-weight:500;transition:all 0.2s;}
+.size-tab.active{background:var(--primary);color:#fff;font-weight:600;}
+.size-tab:hover:not(.active){color:var(--primary);background:var(--bg-hover);}
+.shuffle-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:center;}
+.shuffle-row label{font-size:13px;color:var(--text-light);margin:0;white-space:nowrap;}
+.shuffle-row input[type="range"]{
+  width:120px;height:6px;accent-color:var(--primary);cursor:pointer;
+  -webkit-appearance:none;appearance:none;background:var(--border);border-radius:3px;outline:none;
+}
+.shuffle-row input[type="range"]::-webkit-slider-thumb{
+  -webkit-appearance:none;appearance:none;width:18px;height:18px;border-radius:50%;
+  background:var(--primary);cursor:pointer;box-shadow:0 2px 6px rgba(255,107,53,0.3);
+}
+.shuffle-val{font-size:13px;font-weight:600;color:var(--primary);min-width:24px;text-align:center;}
+.stats-row{display:flex;gap:12px;flex-wrap:wrap;justify-content:center;}
+.stat-item{background:var(--result-bg);border:1px solid var(--border);border-radius:10px;padding:10px 18px;text-align:center;min-width:90px;transition:all 0.2s;}
+.stat-item:hover{border-color:var(--primary);transform:translateY(-1px);}
+.stat-item .val{font-size:22px;font-weight:700;color:var(--primary);font-variant-numeric:tabular-nums;}
+.stat-item .lbl{font-size:11px;color:var(--text-muted);margin-top:2px;}
+.board-wrap{position:relative;width:100%;max-width:420px;aspect-ratio:1/1;}
+.board{display:grid;gap:6px;width:100%;height:100%;padding:10px;background:var(--border);border-radius:16px;user-select:none;-webkit-user-select:none;}
+.board.animating{pointer-events:none;}
+.tile{
+  display:flex;align-items:center;justify-content:center;
+  border-radius:12px;font-weight:700;cursor:pointer;
+  transition:transform 0.18s cubic-bezier(0.25,0.46,0.45,0.94), box-shadow 0.2s;
+  position:relative;overflow:hidden;
+}
+.tile:not(.tile-empty):hover{
+  box-shadow:0 4px 12px rgba(255,107,53,0.2);
+  transform:scale(1.03);
+}
+.tile:not(.tile-empty):active{transform:scale(0.97);}
+.tile-empty{background:transparent !important;cursor:default;box-shadow:none !important;}
+.tile-empty:hover{transform:none !important;}
+.tile-correct:not(.tile-empty){box-shadow:inset 0 0 0 2px var(--success);}
+.tile-sliding{transition:transform 0.14s cubic-bezier(0.25,0.46,0.45,0.94);}
+/* 数字模式颜色 */
+.num-tile{background:var(--card-bg);color:var(--text);box-shadow:var(--shadow-sm);font-size:clamp(16px,4vw,28px);border:1px solid var(--border);}
+.num-tile.tile-empty{border:none !important;}
+/* 图片模式 */
+.img-tile{border:1px solid var(--border);box-shadow:var(--shadow-sm);background-size:cover;background-position:center;}
+.img-tile.tile-empty{border:none !important;background:none !important;}
+/* 胜利动画 */
+.tile-win{animation:tileWin 0.4s ease forwards;}
+@keyframes tileWin{
+  0%{transform:scale(1);}
+  30%{transform:scale(1.12) rotate(3deg);}
+  60%{transform:scale(1.06) rotate(-2deg);}
+  100%{transform:scale(1) rotate(0deg);}
+}
+.win-overlay{
+  position:fixed;top:0;left:0;right:0;bottom:0;
+  background:rgba(0,0,0,0.5);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);
+  display:flex;align-items:center;justify-content:center;z-index:1000;
+  animation:fadeIn 0.3s ease;
+}
+@keyframes fadeIn{from{opacity:0;}to{opacity:1;}}
+.win-modal{
+  background:var(--card-bg);border-radius:20px;padding:32px;text-align:center;
+  max-width:340px;width:90%;animation:popIn 0.4s ease;
+  box-shadow:var(--shadow-lg);
+}
+@keyframes popIn{0%{transform:scale(0.6);opacity:0;}100%{transform:scale(1);opacity:1;}}
+.win-modal h2{font-size:24px;justify-content:center;margin-bottom:4px;}
+.win-modal .win-emoji{font-size:56px;margin:12px 0;}
+.win-modal .win-stats{font-size:14px;color:var(--text-light);margin-bottom:16px;line-height:1.8;}
+.win-modal .win-stats strong{color:var(--primary);}
+.controls-hint{font-size:12px;color:var(--text-muted);text-align:center;line-height:1.6;}
+.img-upload-area{
+  display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:center;
+  margin-bottom:4px;
+}
+.img-upload-area label.btn{
+  cursor:pointer;margin:0;
+}
+.img-upload-area input[type="file"]{display:none;}
+.img-upload-area .img-preview{width:32px;height:32px;border-radius:8px;object-fit:cover;border:1px solid var(--border);}
+@media(max-width:768px){
+  .board-wrap{max-width:360px;}
+  .board{padding:8px;gap:4px;}
+  .stat-item{padding:8px 12px;min-width:75px;}
+  .stat-item .val{font-size:18px;}
+  .game-header{gap:10px;}
+  .shuffle-row input[type="range"]{width:100px;}
+}
+</style>
+
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"滑動拼圖（數字華容道）","description":"經典數字華容道線上遊戲，支援3x3/4x4/5x5難度，數字模式和圖片模式，免費使用。","url":"https://chenguangwu.github.io/zh-tw/tools/fun/sliding-puzzle.html","applicationCategory":"GameApplication","operatingSystem":"Web","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"},"inLanguage":"zh-TW","isAccessibleForFree":true,"browserRequirements":"Requires JavaScript. Requires HTML5.","softwareVersion":"1.0"}</script>
+
+
+
+<meta property="og:image" content="https://chenguangwu.github.io/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="ToolBox - 5000+免费在线工具">
+<meta name="twitter:image" content="https://chenguangwu.github.io/og-image.png">
+<meta name="twitter:image:alt" content="ToolBox - 5000+免费在线工具">
+    <meta name="twitter:title" content="滑动拼图">
+    <meta name="twitter:description" content="经典数字华容道：将打乱顺序的方块通过滑动逐步还原为从小到大排列，支持数字与图片两种模式，用于思维训练与娱乐。">
+<!-- TOOLBOX-WEBAPP-LD -->
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"滑動拼圖","url":"https://chenguangwu.github.io/zh-tw/tools/fun/sliding-puzzle.html","applicationCategory":"GamesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":"zh-TW","description":"經典數字華容道：將打亂順序的方塊通過滑動逐步還原為從小到大排列，支援數字與圖片兩種模式，用於思維訓練與娛樂。","image":"https://chenguangwu.github.io/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}</script>
+<meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
+<meta http-equiv="X-Content-Type-Options" content="nosniff">
+<meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
+<!-- TOOLBOX-SECURITY -->
+
+<script src="/js/privacy.js" defer></script>
+<!-- TOOLBOX-PRIVACY-SCRIPT -->
+
+<script src="/js/metrics.js" defer></script>
+<!-- TOOLBOX-METRICS-SCRIPT -->
+
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"首頁","item":"https://chenguangwu.github.io/zh-tw/"},{"@type":"ListItem","position":2,"name":"娛樂遊戲","item":"https://chenguangwu.github.io/zh-tw/tools/fun/index.html"},{"@type":"ListItem","position":3,"name":"滑動拼圖","item":"https://chenguangwu.github.io/zh-tw/tools/fun/sliding-puzzle.html"}]}</script>
+
+<script src="/js/i18n.js" defer></script>
+<script src="/js/tool-i18n.js" defer></script>
+<!-- TOOLBOX-I18N-SCRIPT -->
+
+
+<meta name="title-en" content="Sliding Puzzle - ToolBox">
+<meta name="desc-en" content="Sliding Puzzle - free online tool. Free online tool on ToolBox — 100% client-side, no data uploaded, no install. Part of the Games &amp; Entertainment tools.">
+<!-- TOOLBOX-HREFLANG -->
+<link rel="alternate" hreflang="zh-CN" href="https://chenguangwu.github.io/tools/fun/sliding-puzzle.html">
+<link rel="alternate" hreflang="zh-TW" href="https://chenguangwu.github.io/zh-tw/tools/fun/sliding-puzzle.html">
+<link rel="alternate" hreflang="zh-HK" href="https://chenguangwu.github.io/zh-hk/tools/fun/sliding-puzzle.html">
+<link rel="alternate" hreflang="en-US" href="https://chenguangwu.github.io/tools/fun/sliding-puzzle.html?lang=en-US">
+<link rel="alternate" hreflang="x-default" href="https://chenguangwu.github.io/tools/fun/sliding-puzzle.html">
+<meta property="og:locale" content="zh_TW">
+<meta property="og:locale:alternate" content="zh_CN">
+<meta property="og:locale:alternate" content="zh_HK">
+<meta property="og:locale:alternate" content="en_US">
+</head>
+<body>
+<h1 class="sr-only">滑動拼圖</h1>
+
+
+<div class="nav">
+  <a href="/zh-tw/index.html">← ToolBox</a>
+  <span>/ 滑動拼圖</span>
+  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()">🌙</button>
+</div>
+
+
+
+
+
+<nav class="breadcrumb" aria-label="麵包屑導航" data-breadcrumb="1">
+  <a href="/zh-tw/index.html">首頁</a>
+  <span class="bc-sep">‹</span>
+  <a href="/zh-tw/tools/fun/index.html">🎮 娛樂遊戲</a>
+  <span class="bc-sep">‹</span>
+  <span class="bc-current">滑動拼圖</span>
+</nav>
+<div class="container">
+  <div class="card tool-card-accent" style="--tool-accent:#EC4899;">
+    <h2 data-zh="🧩 滑動拼圖">🧩 Sliding Puzzle</h2>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="經典數字華容道，滑動方塊還原順序。支援數字與圖片兩種模式。">Sliding Puzzle is available directly in your browser, with no data uploaded.</p>
+
+    <div class="game-wrapper">
+      <!-- 模式切換 -->
+      <div class="game-header">
+        <div class="mode-tabs">
+          <button class="mode-tab active" data-mode="number" onclick="setMode('number')">數字</button>
+          <button class="mode-tab" data-mode="image" onclick="setMode('image')">圖片</button>
+        </div>
+        <div class="size-tabs">
+          <button class="size-tab" data-size="3" onclick="setSize(3)">3x3</button>
+          <button class="size-tab active" data-size="4" onclick="setSize(4)">4x4</button>
+          <button class="size-tab" data-size="5" onclick="setSize(5)">5x5</button>
+        </div>
+      </div>
+
+      <!-- 圖片上傳區（僅圖片模式顯示） -->
+      <div class="img-upload-area" id="imgUploadArea" style="display:none;">
+        <label class="btn">
+          上傳圖片
+          <input type="file" accept="image/*" id="imgFileInput" onchange="handleImageUpload(event)">
+        </label>
+        <img class="img-preview" id="imgPreview" style="display:none;" alt="預覽">
+        <button type="button" class="btn" onclick="useDefaultImage()">使用預設圖片</button>
+      </div>
+
+      <!-- 打亂設定 -->
+      <div class="shuffle-row">
+        <label>打亂步數</label>
+        <input type="range" id="shuffleSteps" min="10" max="500" value="100" oninput="updateShuffleLabel()">
+        <span class="shuffle-val" id="shuffleLabel">100</span>
+      </div>
+
+      <!-- 統計資訊 -->
+      <div class="stats-row">
+        <div class="stat-item">
+          <div class="val" id="moveCount">0</div>
+          <div class="lbl">步數</div>
+        </div>
+        <div class="stat-item">
+          <div class="val" id="timerDisplay">00:00</div>
+          <div class="lbl">用時</div>
+        </div>
+        <div class="stat-item">
+          <div class="val" id="bestRecord">--</div>
+          <div class="lbl">最佳</div>
+        </div>
+      </div>
+
+      <!-- 拼圖面板 -->
+      <div class="board-wrap">
+        <div class="board" id="board" tabindex="0"></div>
+      </div>
+
+      <!-- 操作按鈕 -->
+      <div class="toolbar">
+        <button type="button" class="btn primary" onclick="startGame()">重新開始</button>
+        <button type="button" class="btn" onclick="solveAnimation()">自動還原</button>
+      </div>
+
+      <!-- 操作提示 -->
+      <div class="controls-hint">
+        點選或方向鍵移動方塊 &middot; 將數字按順序排列即可獲勝
+      </div>
+    </div>
+  </div>
+
+  <!-- 工具介紹（SEO） -->
+
+</div>
+
+</div>
+
+<!-- 相關工具 -->
+<div class="related-tools" data-related-tools="1">
+  <h3 class="related-tools-title">🔗 相關工具</h3>
+  <div class="related-tools-grid">
+
+
+    <a href="/zh-tw/tools/fun/generator-2.html" class="related-tool-card">
+      <span class="rt-icon">🎮</span>
+      <span class="rt-info"><span class="rt-name">數獨生成器 / 求解器 - 免費線上工具，純前端處理 | ToolBox免費線上工具箱</span><span class="rt-desc">數獨生成器 / 求解器</span></span>
+    </a>
+    <a href="/zh-tw/tools/fun/laugh-generator.html" class="related-tool-card">
+      <span class="rt-icon">😂</span>
+      <span class="rt-info"><span class="rt-name">笑聲音效生成器 - 免費趣味工具，用Web Audio API合成笑聲 | ToolBox免費線上工具箱</span><span class="rt-desc">笑聲音效生成器</span></span>
+    </a>
+    <a href="/zh-tw/tools/fun/generator-laugh.html" class="related-tool-card">
+      <span class="rt-icon">🔧</span>
+      <span class="rt-info"><span class="rt-name">笑聲音效生成器（合成） - 免費線上工具，純前端處理 | ToolBox免費線上工具箱</span><span class="rt-desc">笑聲音效生成器（合成）</span></span>
+    </a>
+    <a href="/zh-tw/tools/dance/choreography-timeline.html" class="related-tool-card">
+      <span class="rt-icon">🎶</span>
+      <span class="rt-info"><span class="rt-name">編舞時間線 - 8拍分段規劃器，按BPM和小節數生成舞蹈編排時間軸 | ToolBox免費線上工具箱</span><span class="rt-desc">編舞時間線</span></span>
+    </a>
+  </div>
+</div>
+<div class="tool-intro" id="toolIntro">
+    <div class="tool-intro-header" onclick="toggleIntro()">
+      <span class="intro-icon-wrap">
+        <span class="intro-icon">🧩</span>
+        遊戲介紹與玩法說明
+      </span>
+      <span class="arrow">▼</span>
+    </div>
+    <div class="tool-intro-body">
+      <p>滑動拼圖（Sliding Puzzle）又稱數字華容道或十五拼圖，是一種經典的益智遊戲。玩家需要通過滑動方塊，將打亂的數字按從小到大的順序重新排列。</p>
+      <h4><span class="h4-icon">🎮</span> 玩法說明</h4>
+      <ul class="intro-features">
+        <li>點選空格相鄰的方塊進行滑動</li>
+        <li>使用鍵盤方向鍵控制</li>
+        <li>將所有數字按順序排列，空格在右下角</li>
+        <li>步數越少、用時越短，成績越好</li>
+      </ul>
+      <h4><span class="h4-icon">📐</span> 難度選擇</h4>
+      <ul class="intro-features">
+        <li>3x3 - 簡單（8塊）</li>
+        <li>4x4 - 經典（15塊）</li>
+        <li>5x5 - 困難（24塊）</li>
+      </ul>
+      <h4><span class="h4-icon">🖼️</span> 圖片模式</h4>
+      <p>切換到圖片模式後，可以上傳自定義圖片或使用預設圖片。圖片會被切割成拼圖塊，你需要通過滑動還原完整圖片。</p>
+      <h4><span class="h4-icon">💡</span> 小技巧</h4>
+      <ul class="intro-scenes">
+        <li>先還原第一行，再逐行向下</li>
+        <li>最後兩行使用特殊技巧配合還原</li>
+        <li>避免反覆移動已歸位的方塊</li>
+        <li>從角落開始逐步向中心收攏</li>
+      </ul>
+      <h4><span class="h4-icon">❓</span> 常見問題</h4>
+      <div class="intro-faq-item">
+        <div class="intro-faq-q">如何確保拼圖一定可解？</div>
+        <div class="intro-faq-a">遊戲通過從已完成狀態反向隨機移動來打亂，保證每局拼圖都有解。</div>
+      </div>
+      <div class="intro-faq-item">
+        <div class="intro-faq-q">自動還原功能是怎麼做的？</div>
+        <div class="intro-faq-a">遊戲會記錄打亂時的每一步操作，自動還原時按相反順序回放即可。</div>
+      </div>
+    </div>
+  </div>
+
+<!-- TOOLBOX-DEEP-DIVE -->
+<style>
+.deep-dive{max-width:960px;margin:16px auto;padding:0 16px;}
+.deep-dive > .card{margin-bottom:0;}
+@media(max-width:600px){.deep-dive{margin:14px auto;padding:0 12px;}}
+.deep-dive .dd-list{margin:8px 0 16px;padding-left:20px;}
+.deep-dive .dd-list li{margin:6px 0;line-height:1.75;}
+.deep-dive .dd-example{background:var(--card-bg,#fff);border:1px solid var(--border,#eee);border-radius:10px;padding:12px 14px;margin:8px 0 16px;}
+.deep-dive .dd-ex-title{font-weight:600;color:var(--tool-accent,#FF6B35);margin-bottom:6px;}
+.deep-dive .dd-ex-body{font-size:13px;line-height:1.85;color:var(--text,#333);word-break:break-word;}
+.deep-dive .dd-faq{margin:8px 0 4px;}
+.deep-dive .dd-faq dt{font-weight:600;margin-top:10px;color:var(--text,#333);}
+.deep-dive .dd-faq dd{margin:4px 0 0;font-size:13px;line-height:1.85;color:var(--text-muted,#666);}
+
+</style>
+<section class="deep-dive" data-deep-dive="1">
+<div class="card">
+<h2>📚 深度解析：滑動拼圖</h2>
+<h3>💡 常見使用場景</h3>
+<ul class="dd-list">
+<li>滑動拼圖 場景核驗：統一單位和邊界條件後再跑基準樣本，先確認算式方向是否一致。</li>
+<li>教學/復盤建議：固定 1-2 個變數，逐步掃描關鍵引數，觀察趨勢是否符合預期。</li>
+<li>常見場景：Sliding Puzzle</li>
+</ul>
+<div class="dd-example"><div class="dd-ex-title">快速複核「滑動拼圖」</div><div class="dd-ex-body">先用基礎引數跑一次基準值，再把核心輸入提高 10% 與 50% 做對比運算，確認輸出變化是否合理。</div></div>
+<h3>❓ 常見問題（FAQ）</h3>
+<dl class="dd-faq">
+<dt>滑動拼圖 結果可用於直接報告嗎？</dt><dd>滑動拼圖 適合用於內部複核與說明，正式材料請附帶口徑、邊界條件和輸入範圍說明。</dd>
+<dt>結果看似異常，該怎麼快速排查？</dt><dd>先核對是否有百分號/小數口徑衝突，再檢查是否觸發了數學域外定義（如對數、開方、除零）。</dd>
+</dl>
+</div>
+</section>
+<!-- 注意事項區塊 -->
+<div class="tool-notes" style="--tool-accent:#EC4899;">
+  <div class="tool-notes-title">⚠️ 使用說明與注意事項</div>
+  <ul>
+      <li>本工具純前端執行，資料不會上傳到伺服器</li>
+      <li>建議在主流瀏覽器（Chrome/Safari/Firefox/Edge）中使用</li>
+      <li>計算結果僅供參考，請以實際應用場景為準</li>
+  </ul>
+</div>
+<!-- /注意事項區塊 -->
+</div>
+
+<div class="toast-container"></div>
+
+<script>
+(function() {
+  "use strict";
+
+  // ===== 状态 =====
+  let gridSize = 4;
+  let mode = "number"; // number | image
+  let board = [];
+  let emptyIdx = 0;
+  let moves = 0;
+  let timer = null;
+  let startTime = 0;
+  let elapsed = 0;
+  let playing = false;
+  let won = false;
+  let shuffleHistory = [];
+  let customImage = null;
+  let defaultImageLoaded = false;
+  let defaultImgSrc = null;
+  let canvas = null;
+
+  // ===== DOM =====
+  const boardEl = document.getElementById("board");
+  const moveEl = document.getElementById("moveCount");
+  const timerEl = document.getElementById("timerDisplay");
+  const bestEl = document.getElementById("bestRecord");
+  const shuffleInput = document.getElementById("shuffleSteps");
+  const shuffleLabel = document.getElementById("shuffleLabel");
+  const imgUploadArea = document.getElementById("imgUploadArea");
+  const imgPreview = document.getElementById("imgPreview");
+
+  // ===== 初始化 =====
+  function init() {
+    updateBestDisplay();
+    startGame();
+    document.addEventListener("keydown", handleKeydown);
+    boardEl.addEventListener("click", handleClick);
+  }
+
+  // ===== 模式与大小切换 =====
+  window.setMode = function(m) {
+    mode = m;
+    document.querySelectorAll(".mode-tab").forEach(function(t) {
+      t.classList.toggle("active", t.dataset.mode === m);
+    });
+    imgUploadArea.style.display = m === "image" ? "flex" : "none";
+    if (m === "image" && !customImage && !defaultImageLoaded) {
+      useDefaultImage();
+    }
+    renderBoard();
+  };
+
+  window.setSize = function(s) {
+    gridSize = s;
+    document.querySelectorAll(".size-tab").forEach(function(t) {
+      t.classList.toggle("active", +t.dataset.size === s);
+    });
+    updateBestDisplay();
+    startGame();
+  };
+
+  // ===== 打乱步数标签 =====
+  window.updateShuffleLabel = function() {
+    shuffleLabel.textContent = shuffleInput.value;
+  };
+
+  // ===== 图片上传 =====
+  window.handleImageUpload = function(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function(ev) {
+      loadImage(ev.target.result);
+      imgPreview.src = ev.target.result;
+      imgPreview.style.display = "block";
+    };
+    reader.readAsDataURL(file);
+  };
+
+  function loadImage(src) {
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.onload = function() {
+      customImage = img;
+      renderBoard();
+    };
+    img.onerror = function() {
+      ToolBox.showToast(i18nText('tool.image_load_error'), "error");
+    };
+    img.src = src;
+  }
+
+  window.useDefaultImage = function() {
+    if (defaultImgSrc) {
+      loadImage(defaultImgSrc);
+      imgPreview.style.display = "none";
+      return;
+    }
+    // 生成默认渐变图片
+    canvas = document.createElement("canvas");
+    canvas.width = 400;
+    canvas.height = 400;
+    const ctx = canvas.getContext("2d");
+    const grad = ctx.createLinearGradient(0, 0, 400, 400);
+    grad.addColorStop(0, "#FF6B35");
+    grad.addColorStop(0.3, "#7C3AED");
+    grad.addColorStop(0.6, "#00C9A7");
+    grad.addColorStop(1, "#3B82F6");
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, 400, 400);
+    // 添加数字网格
+    const total = gridSize * gridSize;
+    const cellW = 400 / gridSize;
+    const cellH = 400 / gridSize;
+    ctx.fillStyle = "rgba(255,255,255,0.85)";
+    ctx.font = "bold " + Math.floor(cellW * 0.5) + "px sans-serif";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    for (let i = 0; i < total - 1; i++) {
+      const row = Math.floor(i / gridSize);
+      const col = i % gridSize;
+      const x = col * cellW + cellW / 2;
+      const y = row * cellH + cellH / 2;
+      ctx.fillText(String(i + 1), x, y);
+    }
+    defaultImgSrc = canvas.toDataURL("image/png");
+    defaultImageLoaded = true;
+    loadImage(defaultImgSrc);
+    imgPreview.style.display = "none";
+  };
+
+  // ===== 游戏核心 =====
+  function createSolvedBoard() {
+    const total = gridSize * gridSize;
+    const arr = [];
+    for (let i = 1; i < total; i++) arr.push(i);
+    arr.push(0); // 0 = 空格
+    return arr;
+  }
+
+  function getNeighbors(idx) {
+    const row = Math.floor(idx / gridSize);
+    const col = idx % gridSize;
+    const neighbors = [];
+    if (row > 0) neighbors.push(idx - gridSize); // 上
+    if (row < gridSize - 1) neighbors.push(idx + gridSize); // 下
+    if (col > 0) neighbors.push(idx - 1); // 左
+    if (col < gridSize - 1) neighbors.push(idx + 1); // 右
+    return neighbors;
+  }
+
+  function shuffle() {
+    const steps = +shuffleInput.value || 100;
+    board = createSolvedBoard();
+    emptyIdx = board.indexOf(0);
+    shuffleHistory = [];
+    let lastMove = -1;
+
+    for (let s = 0; s < steps; s++) {
+      const neighbors = getNeighbors(emptyIdx);
+      // 避免来回移动
+      let filtered = neighbors.filter(function(n) { return n !== lastMove; });
+      if (filtered.length === 0) filtered = neighbors;
+      const pick = filtered[Math.floor(Math.random() * filtered.length)];
+      lastMove = emptyIdx;
+      // 记录移动前空格位置，用于自动还原回放
+      shuffleHistory.push(emptyIdx);
+      // 交换
+      board[emptyIdx] = board[pick];
+      board[pick] = 0;
+      emptyIdx = pick;
+    }
+  }
+
+  function isSolved() {
+    const total = gridSize * gridSize;
+    for (let i = 0; i < total - 1; i++) {
+      if (board[i] !== i + 1) return false;
+    }
+    return board[total - 1] === 0;
+  }
+
+  // ===== 计时器 =====
+  function startTimer() {
+    stopTimer();
+    startTime = Date.now() - elapsed * 1000;
+    timer = setInterval(function() {
+      elapsed = Math.floor((Date.now() - startTime) / 1000);
+      timerEl.textContent = formatTime(elapsed);
+    }, 200);
+  }
+
+  function stopTimer() {
+    if (timer) { clearInterval(timer); timer = null; }
+  }
+
+  function resetTimer() {
+    stopTimer();
+    elapsed = 0;
+    timerEl.textContent = "00:00";
+  }
+
+  function formatTime(sec) {
+    const m = Math.floor(sec / 60);
+    const s = sec % 60;
+    return String(m).padStart(2, "0") + ":" + String(s).padStart(2, "0");
+  }
+
+  // ===== 最佳记录 =====
+  function getBestKey() {
+    return "puzzle_best_" + gridSize + "_" + mode;
+  }
+
+  function getBest() {
+    try {
+      const val = localStorage.getItem(getBestKey());
+      return val ? JSON.parse(val) : null;
+    } catch(e) { return null; }
+  }
+
+  function saveBest(movesVal, timeVal) {
+    const prev = getBest();
+    if (!prev || movesVal < prev.moves || (movesVal === prev.moves && timeVal < prev.time)) {
+      try {
+        localStorage.setItem(getBestKey(), JSON.stringify({ moves: movesVal, time: timeVal }));
+      } catch(e) {}
+      return true; // 新纪录
+    }
+    return false;
+  }
+
+  function updateBestDisplay() {
+    const best = getBest();
+    if (best) {
+      bestEl.textContent = best.moves + "步";
+    } else {
+      bestEl.textContent = "--";
+    }
+  }
+
+  // ===== 渲染 =====
+  function renderBoard() {
+    boardEl.innerHTML = "";
+    boardEl.style.gridTemplateColumns = "repeat(" + gridSize + ", 1fr)";
+    boardEl.style.gridTemplateRows = "repeat(" + gridSize + ", 1fr)";
+
+    const total = gridSize * gridSize;
+    const fontSize = gridSize <= 3 ? "28px" : gridSize <= 4 ? "22px" : "16px";
+
+    for (let i = 0; i < total; i++) {
+      const tile = document.createElement("div");
+      tile.className = "tile";
+      tile.dataset.idx = i;
+
+      if (board[i] === 0) {
+        tile.classList.add("tile-empty");
+      } else {
+        if (mode === "number") {
+          tile.classList.add("num-tile");
+          tile.textContent = board[i];
+          tile.style.fontSize = fontSize;
+          // 标记在正确位置的方块
+          if (board[i] === i + 1) {
+            tile.classList.add("tile-correct");
+          }
+        } else {
+          tile.classList.add("img-tile");
+          applyImageTile(tile, board[i]);
+        }
+      }
+
+      boardEl.appendChild(tile);
+    }
+  }
+
+  function applyImageTile(tileEl, num) {
+    if (!customImage) return;
+    const total = gridSize * gridSize;
+    const srcIdx = num - 1; // 1-based to 0-based
+    const srcRow = Math.floor(srcIdx / gridSize);
+    const srcCol = srcIdx % gridSize;
+
+    // 使用 canvas 切割
+    const cellW = customImage.naturalWidth / gridSize;
+    const cellH = customImage.naturalHeight / gridSize;
+
+    // 创建临时 canvas 来裁剪
+    const c = document.createElement("canvas");
+    c.width = Math.max(1, Math.round(cellW));
+    c.height = Math.max(1, Math.round(cellH));
+    const ctx = c.getContext("2d");
+    ctx.drawImage(customImage,
+      srcCol * cellW, srcRow * cellH, cellW, cellH,
+      0, 0, c.width, c.height
+    );
+    tileEl.style.backgroundImage = "url(" + c.toDataURL() + ")";
+    tileEl.style.backgroundSize = "cover";
+    tileEl.style.backgroundPosition = "center";
+  }
+
+  // ===== 移动逻辑 =====
+  function moveTile(idx) {
+    if (won || !playing) return;
+    const neighbors = getNeighbors(emptyIdx);
+    if (neighbors.indexOf(idx) === -1) return;
+
+    // 执行移动
+    board[emptyIdx] = board[idx];
+    board[idx] = 0;
+    emptyIdx = idx;
+    moves++;
+    moveEl.textContent = moves;
+
+    if (!timer) startTimer();
+
+    renderBoard();
+
+    // 胜利检测
+    if (isSolved()) {
+      won = true;
+      playing = false;
+      stopTimer();
+      celebrateWin();
+    }
+  }
+
+  function handleClick(e) {
+    const tile = e.target.closest(".tile");
+    if (!tile || tile.classList.contains("tile-empty")) return;
+    const idx = +tile.dataset.idx;
+    moveTile(idx);
+  }
+
+  function handleKeydown(e) {
+    if (won || !playing) return;
+    // 方向键：移动空格方向
+    const eRow = Math.floor(emptyIdx / gridSize);
+    const eCol = emptyIdx % gridSize;
+    let targetIdx = -1;
+
+    switch (e.key) {
+      case "ArrowUp":
+        // 空格上移 -> 下方方块移上来
+        if (eRow < gridSize - 1) targetIdx = emptyIdx + gridSize;
+        break;
+      case "ArrowDown":
+        if (eRow > 0) targetIdx = emptyIdx - gridSize;
+        break;
+      case "ArrowLeft":
+        if (eCol < gridSize - 1) targetIdx = emptyIdx + 1;
+        break;
+      case "ArrowRight":
+        if (eCol > 0) targetIdx = emptyIdx - 1;
+        break;
+      default:
+        return;
+    }
+
+    if (targetIdx >= 0) {
+      e.preventDefault();
+      moveTile(targetIdx);
+    }
+  }
+
+  // ===== 胜利 =====
+  function celebrateWin() {
+    const isRecord = saveBest(moves, elapsed);
+    updateBestDisplay();
+
+    // 方块弹跳动画
+    const tiles = boardEl.querySelectorAll(".tile:not(.tile-empty)");
+    tiles.forEach(function(t, i) {
+      setTimeout(function() {
+        t.classList.add("tile-win");
+      }, i * 60);
+    });
+
+    // 弹窗
+    setTimeout(function() {
+      showWinModal(isRecord);
+    }, tiles.length * 60 + 300);
+  }
+
+  function showWinModal(isRecord) {
+    const overlay = document.createElement("div");
+    overlay.className = "win-overlay";
+    overlay.innerHTML =
+      '<div class="win-modal">' +
+        '<h2>🎉 拼图完成！</h2>' +
+        '<div class="win-emoji">🧩</div>' +
+        '<div class="win-stats">' +
+          '步数：<strong>' + moves + '</strong> 步<br>' +
+          '用时：<strong>' + formatTime(elapsed) + '</strong><br>' +
+          (isRecord ? '<span style="color:var(--success);font-weight:600;">🏆 新纪录！</span>' : "") +
+        '</div>' +
+        '<div class="toolbar" style="justify-content:center;">' +
+          '<button type="button" class="btn primary" onclick="this.closest(\'.win-overlay\').remove();startGame();">再来一局</button>' +
+          '<button type="button" class="btn" onclick="this.closest(\'.win-overlay\').remove();">关闭</button>' +
+        '</div>' +
+      '</div>';
+    document.body.appendChild(overlay);
+    overlay.addEventListener("click", function(e) {
+      if (e.target === overlay) overlay.remove();
+    });
+  }
+
+  // ===== 自动还原 =====
+  window.solveAnimation = function() {
+    if (won || shuffleHistory.length === 0) {
+      ToolBox.showToast(i18nText('toast.msg343'), "warning");
+      return;
+    }
+    playing = false;
+    stopTimer();
+
+    const reverseSteps = shuffleHistory.slice().reverse();
+    let step = 0;
+    const delay = Math.max(30, Math.min(200, 3000 / reverseSteps.length));
+
+    function doStep() {
+      if (step >= reverseSteps.length) {
+        won = true;
+        celebrateWin();
+        return;
+      }
+      const targetIdx = reverseSteps[step];
+      const neighbors = getNeighbors(emptyIdx);
+      if (neighbors.indexOf(targetIdx) !== -1) {
+        board[emptyIdx] = board[targetIdx];
+        board[targetIdx] = 0;
+        emptyIdx = targetIdx;
+        renderBoard();
+      }
+      step++;
+      setTimeout(doStep, delay);
+    }
+
+    doStep();
+  };
+
+  // ===== 开始游戏 =====
+  window.startGame = function() {
+    // 移除可能存在的胜利弹窗
+    const overlay = document.querySelector(".win-overlay");
+    if (overlay) overlay.remove();
+
+    won = false;
+    playing = true;
+    moves = 0;
+    moveEl.textContent = "0";
+    resetTimer();
+    shuffle();
+    renderBoard();
+  };
+
+  // ===== 工具介绍折叠 =====
+  window.toggleIntro = function() {
+    document.getElementById("toolIntro").classList.toggle("open");
+  };
+
+  // ===== 启动 =====
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", init);
+  } else {
+    init();
+  }
+})();
+</script><script>
+// tool-intro折叠交互
+document.addEventListener('DOMContentLoaded',function(){
+  var headers=document.querySelectorAll('.tool-intro-header');
+  headers.forEach(function(h){
+    h.addEventListener('click',function(){
+      this.parentElement.classList.toggle('open');
+    });
+  });
+});
+</script>
+
+</body>
+</html>

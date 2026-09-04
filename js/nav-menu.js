@@ -58,7 +58,8 @@
   async function loadGroups() {
     if (loaded) return groups;
     try {
-      const res = await fetch('/json/industry-groups.json');
+      const url = window.I18n && I18n.assetUrl ? I18n.assetUrl('/json/industry-groups.json') : '/json/industry-groups.json';
+      const res = await fetch(url);
       groups = await res.json();
       loaded = true;
     } catch (e) {

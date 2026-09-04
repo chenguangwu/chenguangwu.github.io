@@ -1,0 +1,970 @@
+<!DOCTYPE html>
+<html lang="zh-HK" data-opencc-locale="zh-hk">
+<head>
+
+<script src="/js/tool-page-runtime.js" defer></script>
+<!-- TOOLBOX-TOOL-RUNTIME -->
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="toolbox" content="cat=reference,industry=life,icon=📅,bg=#fff3e0">
+<title>中國節假日日曆 - ToolBox</title>
+<link rel="canonical" href="https://chenguangwu.github.io/zh-hk/tools/life/holiday-calendar.html">
+<meta property="og:title" content="中国节假日日历">
+<meta property="og:description" content="2024-2027年法定节假日、24节气、农历速查，支持月份切换与日历导航">
+<meta property="og:url" content="https://chenguangwu.github.io/zh-hk/tools/life/holiday-calendar.html">
+<meta name="twitter:card" content="summary">
+<meta name="description" content="2024-2027年法定节假日、24节气、农历速查，支持月份切换与日历导航">
+<link rel="preload" as="style" href="/css/common.css" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="/css/common.css"></noscript>
+<script>window.__tbq=window.__tbq||[];window.ToolBox=window.ToolBox||{};['initToolTheme','addToolStyles','showToast','toast','copyText','copyToClipboard','copyFromElement','downloadText','injectPrivacyBadge','toggleFavTool','addToRecentTool','toggleToolTheme','applyTheme'].forEach(function(k){if(typeof window.ToolBox[k]!=='function')window.ToolBox[k]=function(){window.__tbq.push([k,[].slice.call(arguments)]);};});</script><!-- TOOLBOX-API-STUB -->
+<script src="/js/common.js" defer></script>
+<style>
+/* 日历网格 */
+.cal-layout{display:grid;grid-template-columns:1fr 280px;gap:16px;align-items:start;}
+@media(max-width:768px){.cal-layout{grid-template-columns:1fr;}}
+
+/* 月份导航 */
+.cal-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px;}
+.cal-nav .month-label{font-size:18px;font-weight:700;color:var(--heading);}
+.cal-nav .nav-btns{display:flex;gap:6px;align-items:center;}
+.cal-nav .nav-btn{
+  padding:8px 14px;border-radius:10px;border:1px solid var(--border);
+  background:var(--card-bg);color:var(--text);cursor:pointer;font-size:13px;
+  font-weight:500;transition:all .2s;display:inline-flex;align-items:center;gap:4px;
+}
+.cal-nav .nav-btn:hover{border-color:var(--primary);background:var(--bg-hover);}
+.cal-nav .today-btn{background:var(--gradient-primary);color:#fff;border:none;}
+.cal-nav .today-btn:hover{box-shadow:0 4px 14px rgba(255,107,53,0.35);}
+
+/* 日历网格 */
+.cal-grid{
+  display:grid;grid-template-columns:repeat(7,1fr);gap:4px;
+  user-select:none;
+}
+.cal-header{text-align:center;font-size:12px;font-weight:600;color:var(--text-muted);padding:8px 0;}
+.cal-header.weekend{color:var(--primary);}
+.cal-cell{
+  aspect-ratio:1;border-radius:10px;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;cursor:pointer;
+  transition:all .2s;position:relative;border:2px solid transparent;
+  font-size:14px;color:var(--text);min-height:48px;
+}
+.cal-cell:hover{background:var(--bg-hover);transform:scale(1.05);}
+.cal-cell.other-month{color:var(--text-muted);opacity:.4;}
+.cal-cell.today{
+  border-color:var(--primary);
+  background:rgba(255,107,53,0.08);
+  font-weight:700;
+  box-shadow:0 0 0 3px rgba(255,107,53,0.12);
+}
+.cal-cell.weekend .cal-day{color:var(--primary);}
+.cal-cell.holiday{
+  background:rgba(255,107,53,0.12);
+  border-color:rgba(255,107,53,0.3);
+}
+.cal-cell.holiday .cal-day{font-weight:600;color:var(--primary);}
+.cal-cell .cal-day{font-size:14px;font-weight:500;line-height:1.2;}
+.cal-cell .cal-lunar{font-size:9px;color:var(--text-muted);line-height:1.1;margin-top:1px;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.cal-cell.holiday .cal-lunar{color:var(--primary);font-weight:500;}
+.cal-cell.solar-term .cal-lunar{color:var(--secondary);font-weight:500;}
+.cal-cell .cal-badge{
+  position:absolute;bottom:2px;width:4px;height:4px;border-radius:50%;
+  background:var(--primary);
+}
+.cal-cell.solar-term .cal-badge{background:var(--secondary);}
+
+/* 工具提示 */
+.cal-cell[data-tip]:hover::after{
+  content:attr(data-tip);position:absolute;bottom:calc(100% + 6px);left:50%;
+  transform:translateX(-50%);background:var(--text-primary);color:var(--card-bg);
+  padding:4px 10px;border-radius:8px;font-size:11px;white-space:nowrap;
+  z-index:10;pointer-events:none;font-weight:500;box-shadow:0 4px 12px rgba(0,0,0,0.2);
+  animation:tipIn .15s ease;
+}
+.cal-cell[data-tip]:hover::before{
+  content:'';position:absolute;bottom:calc(100% + 2px);left:50%;
+  transform:translateX(-50%);border:4px solid transparent;
+  border-top-color:var(--text-primary);z-index:10;pointer-events:none;
+}
+@keyframes tipIn{from{opacity:0;transform:translateX(-50%) translateY(4px);}to{opacity:1;transform:translateX(-50%) translateY(0);}}
+
+/* 右侧节日列表 */
+.holiday-panel{background:var(--result-bg);border:1px solid var(--border);border-radius:16px;padding:18px;}
+.holiday-panel h3{font-size:15px;font-weight:600;color:var(--heading);margin-bottom:12px;display:flex;align-items:center;gap:6px;}
+.holiday-list{list-style:none;padding:0;margin:0;max-height:420px;overflow-y:auto;}
+.holiday-list li{
+  padding:10px 12px;border-radius:10px;margin-bottom:6px;
+  border:1px solid transparent;transition:all .2s;
+  display:flex;align-items:center;gap:10px;cursor:pointer;
+  font-size:13px;
+}
+.holiday-list li:hover{border-color:var(--border);background:var(--card-bg);}
+.holiday-list .h-icon{
+  width:32px;height:32px;border-radius:8px;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;font-size:16px;
+}
+.holiday-list .h-icon.spring{background:rgba(239,68,68,0.1);}
+.holiday-list .h-icon.qingming{background:rgba(16,185,129,0.1);}
+.holiday-list .h-icon.labor{background:rgba(245,158,11,0.1);}
+.holiday-list .h-icon.duanwu{background:rgba(16,185,129,0.1);}
+.holiday-list .h-icon.zhongqiu{background:rgba(255,107,53,0.1);}
+.holiday-list .h-icon.guoqing{background:rgba(239,68,68,0.1);}
+.holiday-list .h-icon.yuandan{background:rgba(59,130,246,0.1);}
+.holiday-list .h-icon.other{background:rgba(124,58,237,0.1);}
+.holiday-list .h-info{flex:1;min-width:0;}
+.holiday-list .h-name{font-weight:600;color:var(--heading);font-size:13px;}
+.holiday-list .h-date{font-size:12px;color:var(--text-muted);margin-top:1px;}
+.holiday-list .h-dur{font-size:11px;color:var(--primary);font-weight:500;margin-top:2px;}
+.holiday-list .empty-msg{text-align:center;padding:30px 10px;color:var(--text-muted);font-size:13px;}
+
+/* 年度统计 */
+.year-stats{margin-top:14px;}
+.year-stats h4{font-size:13px;font-weight:600;color:var(--heading);margin-bottom:10px;}
+.year-stats .stat-row{
+  display:flex;align-items:center;gap:8px;margin-bottom:6px;
+  font-size:12px;color:var(--text-secondary);
+}
+.year-stats .stat-row .s-label{width:60px;text-align:right;flex-shrink:0;}
+.year-stats .stat-row .s-bar{flex:1;height:18px;background:var(--border);border-radius:6px;overflow:hidden;}
+.year-stats .stat-row .s-fill{height:100%;border-radius:6px;display:flex;align-items:center;padding-left:8px;color:#fff;font-size:10px;font-weight:600;}
+
+/* 快捷年份选择 */
+.year-selector{display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap;}
+.year-selector .y-btn{
+  padding:6px 14px;border-radius:20px;border:1px solid var(--border);
+  background:var(--card-bg);color:var(--text);cursor:pointer;font-size:12px;
+  font-weight:500;transition:all .2s;
+}
+.year-selector .y-btn:hover{border-color:var(--primary);}
+.year-selector .y-btn.active{background:var(--gradient-primary);color:#fff;border:none;}
+
+/* 图例 */
+.cal-legend{display:flex;gap:14px;margin-top:12px;flex-wrap:wrap;font-size:12px;color:var(--text-secondary);}
+.cal-legend span{display:flex;align-items:center;gap:4px;}
+.cal-legend .dot{width:10px;height:10px;border-radius:4px;flex-shrink:0;}
+.cal-legend .dot.today-dot{border:2px solid var(--primary);background:rgba(255,107,53,0.08);}
+.cal-legend .dot.holiday-dot{background:rgba(255,107,53,0.2);border:1px solid rgba(255,107,53,0.4);}
+.cal-legend .dot.term-dot{background:rgba(124,58,237,0.2);border:1px solid rgba(124,58,237,0.4);}
+.cal-legend .dot.weekend-dot{background:var(--primary);}
+
+/* 月度信息 */
+.month-info{
+  display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px;
+}
+.month-info .mi-card{
+  text-align:center;padding:10px;border-radius:10px;
+  background:var(--result-bg);border:1px solid var(--border);
+  transition:all .2s;
+}
+.month-info .mi-card:hover{border-color:var(--primary);}
+.month-info .mi-val{font-size:18px;font-weight:700;color:var(--primary);}
+.month-info .mi-lbl{font-size:11px;color:var(--text-muted);margin-top:2px;}
+
+@media(max-width:768px){
+  .cal-cell{min-height:40px;border-radius:8px;}
+  .cal-cell .cal-day{font-size:13px;}
+  .cal-cell .cal-lunar{font-size:8px;}
+  .cal-nav .month-label{font-size:16px;}
+  .month-info{grid-template-columns:repeat(3,1fr);gap:6px;}
+  .month-info .mi-card{padding:8px;}
+  .month-info .mi-val{font-size:16px;}
+  .holiday-list{max-height:300px;}
+}
+</style>
+
+
+
+<meta property="og:image" content="https://chenguangwu.github.io/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="ToolBox - 5000+免费在线工具">
+<meta name="twitter:image" content="https://chenguangwu.github.io/og-image.png">
+<meta name="twitter:image:alt" content="ToolBox - 5000+免费在线工具">
+    <meta property="og:type" content="website">
+    <meta name="twitter:title" content="中国节假日日历">
+    <meta name="twitter:description" content="2024-2027年法定节假日、24节气、农历速查，支持月份切换与日历导航">
+<!-- TOOLBOX-WEBAPP-LD -->
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"中國節假日日曆","url":"https://chenguangwu.github.io/zh-hk/tools/life/holiday-calendar.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":"zh-HK","description":"2024-2027年法定節假日、24節氣、農曆速查，支持月份切換與日曆導航","image":"https://chenguangwu.github.io/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}</script>
+<meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
+<meta http-equiv="X-Content-Type-Options" content="nosniff">
+<meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
+<!-- TOOLBOX-SECURITY -->
+
+<script src="/js/privacy.js" defer></script>
+<!-- TOOLBOX-PRIVACY-SCRIPT -->
+
+<script src="/js/metrics.js" defer></script>
+<!-- TOOLBOX-METRICS-SCRIPT -->
+
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"首頁","item":"https://chenguangwu.github.io/zh-hk/"},{"@type":"ListItem","position":2,"name":"日常生活","item":"https://chenguangwu.github.io/zh-hk/tools/life/index.html"},{"@type":"ListItem","position":3,"name":"節假日日曆","item":"https://chenguangwu.github.io/zh-hk/tools/life/holiday-calendar.html"}]}</script>
+
+<script src="/js/i18n.js" defer></script>
+<script src="/js/tool-i18n.js" defer></script>
+<!-- TOOLBOX-I18N-SCRIPT -->
+
+
+<meta name="title-en" content="Holiday Calendar - ToolBox">
+<meta name="desc-en" content="Holiday Calendar - free online tool. Free online tool on ToolBox — 100% client-side, no data uploaded, no install. Part of the Daily Life tools.">
+<!-- TOOLBOX-HREFLANG -->
+<link rel="alternate" hreflang="zh-CN" href="https://chenguangwu.github.io/tools/life/holiday-calendar.html">
+<link rel="alternate" hreflang="zh-TW" href="https://chenguangwu.github.io/zh-tw/tools/life/holiday-calendar.html">
+<link rel="alternate" hreflang="zh-HK" href="https://chenguangwu.github.io/zh-hk/tools/life/holiday-calendar.html">
+<link rel="alternate" hreflang="en-US" href="https://chenguangwu.github.io/tools/life/holiday-calendar.html?lang=en-US">
+<link rel="alternate" hreflang="x-default" href="https://chenguangwu.github.io/tools/life/holiday-calendar.html">
+<meta property="og:locale" content="zh_HK">
+<meta property="og:locale:alternate" content="zh_CN">
+<meta property="og:locale:alternate" content="zh_TW">
+<meta property="og:locale:alternate" content="en_US">
+</head>
+<body>
+<h1 class="sr-only">節假日日曆</h1>
+
+
+<div class="nav">
+  <a href="/zh-hk/index.html">← ToolBox</a>
+  <span>/ 節假日日曆</span>
+  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()">🌙</button>
+</div>
+
+
+
+
+
+<nav class="breadcrumb" aria-label="麪包屑導航" data-breadcrumb="1">
+  <a href="/zh-hk/index.html">首頁</a>
+  <span class="bc-sep">‹</span>
+  <a href="/zh-hk/tools/life/index.html">🏠 日常生活</a>
+  <span class="bc-sep">‹</span>
+  <span class="bc-current">節假日日曆</span>
+</nav>
+<div class="container">
+  <div class="card tool-card-accent" style="--tool-accent:#3B82F6;">
+    <h2 data-zh="📅 中國節假日日曆">📅 Holiday Calendar</h2>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="
+      2024-2027年法定節假日、24節氣、農曆速查，支持月份切換與日曆導航
+    ">Holiday Calendar is available directly in your browser, with no data uploaded.</p>
+
+    <!-- 月份導航 -->
+    <div class="cal-nav">
+      <div class="nav-btns">
+        <button type="button" class="nav-btn" onclick="prevMonth()">◀</button>
+        <span class="month-label" id="monthLabel"></span>
+        <button type="button" class="nav-btn" onclick="nextMonth()">▶</button>
+      </div>
+      <div class="nav-btns">
+        <button type="button" class="today-btn nav-btn" onclick="goToday()">今天</button>
+      </div>
+    </div>
+
+    <!-- 月度信息 -->
+    <div class="month-info" id="monthInfo"></div>
+
+    <!-- 日曆主體 -->
+    <div class="cal-layout">
+      <div>
+        <!-- 星期頭 -->
+        <div class="cal-grid" id="calHeader"></div>
+        <!-- 日曆格子 -->
+        <div class="cal-grid" id="calGrid"></div>
+        <!-- 圖例 -->
+        <div class="cal-legend">
+          <span><span class="dot today-dot"></span>今天</span>
+          <span><span class="dot holiday-dot"></span>法定假日</span>
+          <span><span class="dot term-dot"></span>節氣</span>
+          <span><span class="dot weekend-dot"></span>週末</span>
+        </div>
+      </div>
+
+      <!-- 右側面板 -->
+      <div class="holiday-panel">
+        <h3>🗓 當月節日</h3>
+        <ul class="holiday-list" id="holidayList"></ul>
+
+        <div class="year-stats" id="yearStats"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 工具介紹 -->
+
+</div>
+
+</div>
+
+<!-- 相關工具 -->
+<div class="related-tools" data-related-tools="1">
+  <h3 class="related-tools-title">🔗 相關工具</h3>
+  <div class="related-tools-grid">
+    <a href="/zh-hk/tools/life/todo-list.html" class="related-tool-card">
+      <span class="rt-icon">✅</span>
+      <span class="rt-info"><span class="rt-name">待辦事項列表 - 日常生活在線工具 | ToolBox免費在線工具箱</span><span class="rt-desc">&amp;#9989; 待辦事項列表</span></span>
+    </a>
+    <a href="/zh-hk/tools/funeral/grave-design.html" class="related-tool-card">
+      <span class="rt-icon">🪦</span>
+      <span class="rt-info"><span class="rt-name">墓地碑文設計器 - 在線設計碑文排版與墓地面積，含碑文模板 | ToolBox免費在線工具箱</span><span class="rt-desc">墓地碑文設計器</span></span>
+    </a>
+    <a href="/zh-hk/tools/wedding/seating-chart.html" class="related-tool-card">
+      <span class="rt-icon">🪑</span>
+      <span class="rt-info"><span class="rt-name">賓客座位圖 - 日常生活在線工具 | ToolBox免費在線工具箱</span><span class="rt-desc">賓客座位圖</span></span>
+    </a>
+    <a href="/zh-hk/tools/life/generator-strength.html" class="related-tool-card">
+      <span class="rt-icon">🔐</span>
+      <span class="rt-info"><span class="rt-name">密碼生成器（帶強度檢測） - 可自定義長度、字符類型，生成高強度隨機密碼並實時評估密碼強度 | ToolBox免費在線工具箱</span><span class="rt-desc">密碼生成器（帶強度檢測）</span></span>
+    </a>
+    <a href="/zh-hk/tools/funeral/ceremony-timeline.html" class="related-tool-card">
+      <span class="rt-icon">⏰</span>
+      <span class="rt-info"><span class="rt-name">追悼會時間軸規劃器 - 在線規劃追悼會流程時間軸，含各環節時長與注意事項 | ToolBox免費在線工具箱</span><span class="rt-desc">⏰ 追悼會時間軸規劃器</span></span>
+    </a>
+    <a href="/zh-hk/tools/life/generator-random-1.html" class="related-tool-card">
+      <span class="rt-icon">🏠</span>
+      <span class="rt-info"><span class="rt-name">隨機數生成器（範圍任意） - 免費在線工具，純前端處理 | ToolBox免費在線工具箱</span><span class="rt-desc">隨機數生成器（範圍任意）</span></span>
+    </a>
+  </div>
+</div>
+<div class="tool-intro" id="toolIntro">
+    <div class="tool-intro-header" onclick="toggleIntro()">
+      <span class="intro-icon-wrap"><span class="intro-icon">📅</span> 工具介紹</span>
+      <span class="arrow">▼</span>
+    </div>
+    <div class="tool-intro-body">
+      <p>中國節假日日曆是一個純前端的中國法定節假日、24節氣、農曆速查工具，內置2024-2027年完整數據，無需網絡即可使用。</p>
+      <h4><span class="h4-icon">✨</span> 功能特點</h4>
+      <ul class="intro-features">
+        <li>月曆網格視圖</li>
+        <li>2024-2027法定假日</li>
+        <li>24節氣標記</li>
+        <li>簡化農曆顯示</li>
+        <li>今日/週末高亮</li>
+        <li>月度假日統計</li>
+        <li>年度假日統計</li>
+        <li>深色模式支持</li>
+      </ul>
+      <h4><span class="h4-icon">📋</span> 使用場景</h4>
+      <ul class="intro-scenes">
+        <li>規劃假期安排</li>
+        <li>查看法定假日日期</li>
+        <li>查詢24節氣時間</li>
+        <li>農曆日期速查</li>
+      </ul>
+    </div></div>
+<!-- TOOLBOX-DEEP-DIVE -->
+<style>
+.deep-dive{max-width:960px;margin:16px auto;padding:0 16px;}
+.deep-dive > .card{margin-bottom:0;}
+@media(max-width:600px){.deep-dive{margin:14px auto;padding:0 12px;}}
+.deep-dive .dd-list{margin:8px 0 16px;padding-left:20px;}
+.deep-dive .dd-list li{margin:6px 0;line-height:1.75;}
+.deep-dive .dd-example{background:var(--card-bg,#fff);border:1px solid var(--border,#eee);border-radius:10px;padding:12px 14px;margin:8px 0 16px;}
+.deep-dive .dd-ex-title{font-weight:600;color:var(--tool-accent,#FF6B35);margin-bottom:6px;}
+.deep-dive .dd-ex-body{font-size:13px;line-height:1.85;color:var(--text,#333);word-break:break-word;}
+.deep-dive .dd-faq{margin:8px 0 4px;}
+.deep-dive .dd-faq dt{font-weight:600;margin-top:10px;color:var(--text,#333);}
+.deep-dive .dd-faq dd{margin:4px 0 0;font-size:13px;line-height:1.85;color:var(--text-muted,#666);}
+
+</style>
+<section class="deep-dive" data-deep-dive="1">
+<div class="card">
+<h2>📚 深度解析：中國節假日日曆</h2>
+<h3>💡 常見使用場景</h3>
+<ul class="dd-list">
+<li>對「中國節假日日曆」先做單位與邊界核對後，再進行一組基礎樣本運算，避免口徑差異造成誤判。</li>
+<li>教學複核建議：固定關鍵變量，逐項調整一個輸入，驗證輸出變化是否符合常識。</li>
+<li>常見場景：Holiday Calendar</li>
+</ul>
+<div class="dd-example"><div class="dd-ex-title">快速複核「中國節假日日曆」</div><div class="dd-ex-body">先跑一組“可復現”的基準輸入，再做 10% 與 50% 的輸入偏移複測，檢查輸出敏感度是否穩定。</div></div>
+<h3>❓ 常見問題（FAQ）</h3>
+<dl class="dd-faq">
+<dt>中國節假日日曆 可以直接用於業務展示嗎？</dt><dd>中國節假日日曆 適合用於快速驗證與教學説明，正式展示建議補充口徑、時間範圍和前置條件。</dd>
+<dt>如果結果超出預期，需要怎麼排查？</dt><dd>先檢查字段是否混用了不同單位/比例，再確認除法分母與分組基準是否一致。</dd>
+</dl>
+</div>
+</section>
+<!-- 注意事項區塊 -->
+<div class="tool-notes" style="--tool-accent:#3B82F6;">
+  <div class="tool-notes-title">⚠️ 使用説明與注意事項</div>
+  <ul>
+      <li>本工具純前端運行，數據不會上傳到伺服器</li>
+      <li>建議在主流瀏覽器（Chrome/Safari/Firefox/Edge）中使用</li>
+      <li>計算結果僅供參考，請以實際應用場景為準</li>
+  </ul>
+</div>
+<!-- /注意事項區塊 -->
+</div>
+
+<script>
+(function(){
+'use strict';
+
+// ========== 节假日数据 (2024-2027) ==========
+// 格式: 'YYYY-MM-DD': { name: '节日名', type: 'holiday类型' }
+// type 用于图标样式: spring/qingming/labor/duanwu/zhongqiu/guoqing/yuandan/other
+var holidayData = {
+  // === 2024 ===
+  '2024-01-01': {name:'元旦', type:'yuandan'},
+  '2024-02-10': {name:'春节', type:'spring'},
+  '2024-02-11': {name:'春节', type:'spring'},
+  '2024-02-12': {name:'春节', type:'spring'},
+  '2024-02-13': {name:'春节', type:'spring'},
+  '2024-02-14': {name:'春节', type:'spring'},
+  '2024-02-15': {name:'春节', type:'spring'},
+  '2024-02-16': {name:'春节', type:'spring'},
+  '2024-02-17': {name:'春节', type:'spring'},
+  '2024-04-04': {name:'清明节', type:'qingming'},
+  '2024-04-05': {name:'清明节', type:'qingming'},
+  '2024-04-06': {name:'清明节', type:'qingming'},
+  '2024-05-01': {name:'劳动节', type:'labor'},
+  '2024-05-02': {name:'劳动节', type:'labor'},
+  '2024-05-03': {name:'劳动节', type:'labor'},
+  '2024-05-04': {name:'劳动节', type:'labor'},
+  '2024-05-05': {name:'劳动节', type:'labor'},
+  '2024-06-08': {name:'端午节', type:'duanwu'},
+  '2024-06-09': {name:'端午节', type:'duanwu'},
+  '2024-06-10': {name:'端午节', type:'duanwu'},
+  '2024-09-15': {name:'中秋节', type:'zhongqiu'},
+  '2024-09-16': {name:'中秋节', type:'zhongqiu'},
+  '2024-09-17': {name:'中秋节', type:'zhongqiu'},
+  '2024-10-01': {name:'国庆节', type:'guoqing'},
+  '2024-10-02': {name:'国庆节', type:'guoqing'},
+  '2024-10-03': {name:'国庆节', type:'guoqing'},
+  '2024-10-04': {name:'国庆节', type:'guoqing'},
+  '2024-10-05': {name:'国庆节', type:'guoqing'},
+  '2024-10-06': {name:'国庆节', type:'guoqing'},
+  '2024-10-07': {name:'国庆节', type:'guoqing'},
+
+  // === 2025 ===
+  '2025-01-01': {name:'元旦', type:'yuandan'},
+  '2025-01-28': {name:'春节', type:'spring'},
+  '2025-01-29': {name:'春节', type:'spring'},
+  '2025-01-30': {name:'春节', type:'spring'},
+  '2025-01-31': {name:'春节', type:'spring'},
+  '2025-02-01': {name:'春节', type:'spring'},
+  '2025-02-02': {name:'春节', type:'spring'},
+  '2025-02-03': {name:'春节', type:'spring'},
+  '2025-02-04': {name:'春节', type:'spring'},
+  '2025-04-04': {name:'清明节', type:'qingming'},
+  '2025-04-05': {name:'清明节', type:'qingming'},
+  '2025-04-06': {name:'清明节', type:'qingming'},
+  '2025-05-01': {name:'劳动节', type:'labor'},
+  '2025-05-02': {name:'劳动节', type:'labor'},
+  '2025-05-03': {name:'劳动节', type:'labor'},
+  '2025-05-04': {name:'劳动节', type:'labor'},
+  '2025-05-05': {name:'劳动节', type:'labor'},
+  '2025-05-31': {name:'端午节', type:'duanwu'},
+  '2025-06-01': {name:'端午节', type:'duanwu'},
+  '2025-06-02': {name:'端午节', type:'duanwu'},
+  '2025-10-01': {name:'国庆节', type:'guoqing'},
+  '2025-10-02': {name:'国庆节', type:'guoqing'},
+  '2025-10-03': {name:'国庆节', type:'guoqing'},
+  '2025-10-04': {name:'国庆节', type:'guoqing'},
+  '2025-10-05': {name:'国庆节', type:'guoqing'},
+  '2025-10-06': {name:'国庆中秋', type:'guoqing'},
+  '2025-10-07': {name:'国庆节', type:'guoqing'},
+  '2025-10-08': {name:'国庆节', type:'guoqing'},
+
+  // === 2026 ===
+  '2026-01-01': {name:'元旦', type:'yuandan'},
+  '2026-01-02': {name:'元旦', type:'yuandan'},
+  '2026-01-03': {name:'元旦', type:'yuandan'},
+  '2026-02-16': {name:'春节', type:'spring'},
+  '2026-02-17': {name:'春节', type:'spring'},
+  '2026-02-18': {name:'春节', type:'spring'},
+  '2026-02-19': {name:'春节', type:'spring'},
+  '2026-02-20': {name:'春节', type:'spring'},
+  '2026-02-21': {name:'春节', type:'spring'},
+  '2026-02-22': {name:'春节', type:'spring'},
+  '2026-04-04': {name:'清明节', type:'qingming'},
+  '2026-04-05': {name:'清明节', type:'qingming'},
+  '2026-04-06': {name:'清明节', type:'qingming'},
+  '2026-05-01': {name:'劳动节', type:'labor'},
+  '2026-05-02': {name:'劳动节', type:'labor'},
+  '2026-05-03': {name:'劳动节', type:'labor'},
+  '2026-05-04': {name:'劳动节', type:'labor'},
+  '2026-05-05': {name:'劳动节', type:'labor'},
+  '2026-06-19': {name:'端午节', type:'duanwu'},
+  '2026-06-20': {name:'端午节', type:'duanwu'},
+  '2026-06-21': {name:'端午节', type:'duanwu'},
+  '2026-09-25': {name:'中秋节', type:'zhongqiu'},
+  '2026-09-26': {name:'中秋节', type:'zhongqiu'},
+  '2026-09-27': {name:'中秋节', type:'zhongqiu'},
+  '2026-10-01': {name:'国庆节', type:'guoqing'},
+  '2026-10-02': {name:'国庆节', type:'guoqing'},
+  '2026-10-03': {name:'国庆节', type:'guoqing'},
+  '2026-10-04': {name:'国庆节', type:'guoqing'},
+  '2026-10-05': {name:'国庆节', type:'guoqing'},
+  '2026-10-06': {name:'国庆节', type:'guoqing'},
+  '2026-10-07': {name:'国庆节', type:'guoqing'},
+
+  // === 2027 ===
+  '2027-01-01': {name:'元旦', type:'yuandan'},
+  '2027-02-05': {name:'春节', type:'spring'},
+  '2027-02-06': {name:'春节', type:'spring'},
+  '2027-02-07': {name:'春节', type:'spring'},
+  '2027-02-08': {name:'春节', type:'spring'},
+  '2027-02-09': {name:'春节', type:'spring'},
+  '2027-02-10': {name:'春节', type:'spring'},
+  '2027-02-11': {name:'春节', type:'spring'},
+  '2027-04-04': {name:'清明节', type:'qingming'},
+  '2027-04-05': {name:'清明节', type:'qingming'},
+  '2027-04-06': {name:'清明节', type:'qingming'},
+  '2027-05-01': {name:'劳动节', type:'labor'},
+  '2027-05-02': {name:'劳动节', type:'labor'},
+  '2027-05-03': {name:'劳动节', type:'labor'},
+  '2027-05-04': {name:'劳动节', type:'labor'},
+  '2027-05-05': {name:'劳动节', type:'labor'},
+  '2027-06-09': {name:'端午节', type:'duanwu'},
+  '2027-06-10': {name:'端午节', type:'duanwu'},
+  '2027-06-11': {name:'端午节', type:'duanwu'},
+  '2027-09-15': {name:'中秋节', type:'zhongqiu'},
+  '2027-09-16': {name:'中秋节', type:'zhongqiu'},
+  '2027-09-17': {name:'中秋节', type:'zhongqiu'},
+  '2027-10-01': {name:'国庆节', type:'guoqing'},
+  '2027-10-02': {name:'国庆节', type:'guoqing'},
+  '2027-10-03': {name:'国庆节', type:'guoqing'},
+  '2027-10-04': {name:'国庆节', type:'guoqing'},
+  '2027-10-05': {name:'国庆节', type:'guoqing'},
+  '2027-10-06': {name:'国庆节', type:'guoqing'},
+  '2027-10-07': {name:'国庆节', type:'guoqing'}
+};
+
+// ========== 24节气数据 (2024-2027) ==========
+var solarTermData = {
+  // 2024
+  '2024-01-06':'小寒','2024-01-20':'大寒','2024-02-04':'立春','2024-02-19':'雨水',
+  '2024-03-05':'惊蛰','2024-03-20':'春分','2024-04-04':'清明','2024-04-19':'谷雨',
+  '2024-05-05':'立夏','2024-05-20':'小满','2024-06-05':'芒种','2024-06-21':'夏至',
+  '2024-07-06':'小暑','2024-07-22':'大暑','2024-08-07':'立秋','2024-08-22':'处暑',
+  '2024-09-07':'白露','2024-09-22':'秋分','2024-10-08':'寒露','2024-10-23':'霜降',
+  '2024-11-07':'立冬','2024-11-22':'小雪','2024-12-07':'大雪','2024-12-21':'冬至',
+  // 2025
+  '2025-01-05':'小寒','2025-01-20':'大寒','2025-02-03':'立春','2025-02-18':'雨水',
+  '2025-03-05':'惊蛰','2025-03-20':'春分','2025-04-04':'清明','2025-04-20':'谷雨',
+  '2025-05-05':'立夏','2025-05-21':'小满','2025-06-05':'芒种','2025-06-21':'夏至',
+  '2025-07-07':'小暑','2025-07-22':'大暑','2025-08-07':'立秋','2025-08-23':'处暑',
+  '2025-09-07':'白露','2025-09-22':'秋分','2025-10-08':'寒露','2025-10-23':'霜降',
+  '2025-11-07':'立冬','2025-11-22':'小雪','2025-12-07':'大雪','2025-12-22':'冬至',
+  // 2026
+  '2026-01-05':'小寒','2026-01-20':'大寒','2026-02-04':'立春','2026-02-18':'雨水',
+  '2026-03-05':'惊蛰','2026-03-20':'春分','2026-04-05':'清明','2026-04-20':'谷雨',
+  '2026-05-05':'立夏','2026-05-21':'小满','2026-06-05':'芒种','2026-06-21':'夏至',
+  '2026-07-07':'小暑','2026-07-23':'大暑','2026-08-07':'立秋','2026-08-23':'处暑',
+  '2026-09-07':'白露','2026-09-23':'秋分','2026-10-08':'寒露','2026-10-23':'霜降',
+  '2026-11-07':'立冬','2026-11-22':'小雪','2026-12-07':'大雪','2026-12-21':'冬至',
+  // 2027
+  '2027-01-05':'小寒','2027-01-20':'大寒','2027-02-04':'立春','2027-02-18':'雨水',
+  '2027-03-05':'惊蛰','2027-03-21':'春分','2027-04-05':'清明','2027-04-20':'谷雨',
+  '2027-05-05':'立夏','2027-05-21':'小满','2027-06-05':'芒种','2027-06-21':'夏至',
+  '2027-07-07':'小暑','2027-07-23':'大暑','2027-08-07':'立秋','2027-08-23':'处暑',
+  '2027-09-07':'白露','2027-09-23':'秋分','2027-10-08':'寒露','2027-10-23':'霜降',
+  '2027-11-07':'立冬','2027-11-22':'小雪','2027-12-07':'大雪','2027-12-22':'冬至'
+};
+
+// ========== 简化农历数据 ==========
+// 每月对应的农历月名和初一公历日期 (2024-2027)
+// lunarMonthFirsts[year][month_index_0based] = { lunarMonth: 1-12, lunarDay: 1, lunarName: '正月', firstDay: Date }
+// 简化方式：存储每月的农历月初对应的公历日期和农历月名
+var lunarInfo = {
+  2024: [
+    {m:'正月', d:'2024-02-10'}, {m:'二月', d:'2024-03-11'}, {m:'三月', d:'2024-04-10'},
+    {m:'四月', d:'2024-05-09'}, {m:'五月', d:'2024-06-07'}, {m:'六月', d:'2024-07-06'},
+    {m:'七月', d:'2024-08-04'}, {m:'八月', d:'2024-09-03'}, {m:'九月', d:'2024-10-02'},
+    {m:'十月', d:'2024-11-01'}, {m:'冬月', d:'2024-12-01'}, {m:'腊月', d:'2024-12-31'}
+  ],
+  2025: [
+    {m:'正月', d:'2025-01-29'}, {m:'二月', d:'2025-02-28'}, {m:'三月', d:'2025-03-29'},
+    {m:'四月', d:'2025-04-28'}, {m:'五月', d:'2025-05-27'}, {m:'六月', d:'2025-06-25'},
+    {m:'闰六月', d:'2025-07-25'}, {m:'七月', d:'2025-08-23'}, {m:'八月', d:'2025-09-22'},
+    {m:'九月', d:'2025-10-21'}, {m:'十月', d:'2025-11-20'}, {m:'冬月', d:'2025-12-20'}, {m:'腊月', d:'2026-01-19'}
+  ],
+  2026: [
+    {m:'腊月', d:'2026-01-19'}, {m:'正月', d:'2026-02-17'}, {m:'二月', d:'2026-03-19'},
+    {m:'三月', d:'2026-04-17'}, {m:'四月', d:'2026-05-17'}, {m:'五月', d:'2026-06-15'},
+    {m:'六月', d:'2026-07-15'}, {m:'七月', d:'2026-08-13'}, {m:'八月', d:'2026-09-12'},
+    {m:'九月', d:'2026-10-11'}, {m:'十月', d:'2026-11-10'}, {m:'冬月', d:'2026-12-10'}, {m:'腊月', d:'2027-01-08'}
+  ],
+  2027: [
+    {m:'正月', d:'2027-02-06'}, {m:'二月', d:'2027-03-08'}, {m:'三月', d:'2027-04-06'},
+    {m:'四月', d:'2027-05-06'}, {m:'五月', d:'2027-06-04'}, {m:'六月', d:'2027-07-04'},
+    {m:'七月', d:'2027-08-02'}, {m:'八月', d:'2027-09-01'}, {m:'九月', d:'2027-10-01'},
+    {m:'十月', d:'2027-10-30'}, {m:'冬月', d:'2027-11-29'}, {m:'腊月', d:'2027-12-29'}
+  ]
+};
+
+// 农历日名
+var lunarDayNames = {
+  1:'初一',2:'初二',3:'初三',4:'初四',5:'初五',6:'初六',7:'初七',8:'初八',9:'初九',10:'初十',
+  11:'十一',12:'十二',13:'十三',14:'十四',15:'十五',16:'十六',17:'十七',18:'十八',19:'十九',20:'二十',
+  21:'廿一',22:'廿二',23:'廿三',24:'廿四',25:'廿五',26:'廿六',27:'廿七',28:'廿八',29:'廿九',30:'三十'
+};
+
+// ========== 工具函数 ==========
+function dateKey(y, m, d) {
+  return y + '-' + String(m+1).padStart(2,'0') + '-' + String(d).padStart(2,'0');
+}
+
+function parseDateKey(key) {
+  var parts = key.split('-');
+  return new Date(+parts[0], +parts[1]-1, +parts[2]);
+}
+
+// 获取农历日期名称
+function getLunarDate(y, m, d) {
+  var key = dateKey(y, m, d);
+  var info = lunarInfo[y];
+  if (!info) return '';
+  // 从后往前找最近的农历月初
+  var prevMonth = null;
+  for (var i = 0; i < info.length; i++) {
+    if (info[i].d <= key) {
+      prevMonth = info[i];
+    } else {
+      break;
+    }
+  }
+  if (!prevMonth) {
+    // 可能是上一年的腊月
+    var prevYear = y - 1;
+    var prevInfo = lunarInfo[prevYear];
+    if (prevInfo && prevInfo.length > 0) {
+      prevMonth = prevInfo[prevInfo.length - 1];
+    } else {
+      return '';
+    }
+  }
+  var firstDate = parseDateKey(prevMonth.d);
+  var curDate = new Date(y, m, d);
+  var diffDays = Math.round((curDate - firstDate) / 86400000);
+  if (diffDays < 0 || diffDays > 30) return '';
+  var lunarDay = diffDays + 1;
+  // 初一显示月名
+  if (lunarDay === 1) return prevMonth.m;
+  return lunarDayNames[lunarDay] || '';
+}
+
+// ========== 状态 ==========
+var now = new Date();
+var currentYear = now.getFullYear();
+var currentMonth = now.getMonth(); // 0-based
+var weekDays = ['一','二','三','四','五','六','日'];
+
+// ========== 渲染星期头 ==========
+function renderHeader() {
+  var html = '';
+  for (var i = 0; i < 7; i++) {
+    var cls = 'cal-header';
+    if (i >= 5) cls += ' weekend';
+    html += '<div class="' + cls + '">周' + weekDays[i] + '</div>';
+  }
+  document.getElementById('calHeader').innerHTML = html;
+}
+
+// ========== 渲染日历 ==========
+function renderCalendar() {
+  var y = currentYear;
+  var m = currentMonth;
+
+  // 月份标签
+  document.getElementById('monthLabel').textContent = y + '年' + (m+1) + '月';
+
+  // 本月第一天和最后一天
+  var firstDay = new Date(y, m, 1);
+  var lastDay = new Date(y, m + 1, 0);
+
+  // 周一为起始，计算偏移
+  var startWeekDay = firstDay.getDay(); // 0=Sun
+  var offset = startWeekDay === 0 ? 6 : startWeekDay - 1; // 转为周一=0
+
+  // 上月填充
+  var prevLastDay = new Date(y, m, 0).getDate();
+
+  var html = '';
+  var today = new Date();
+  var todayKey = dateKey(today.getFullYear(), today.getMonth(), today.getDate());
+
+  // 月度统计
+  var monthHolidays = 0;
+  var monthWeekends = 0;
+  var monthSolarTerms = 0;
+
+  // 上月填充
+  for (var i = offset - 1; i >= 0; i--) {
+    var d = prevLastDay - i;
+    var pm = m === 0 ? 11 : m - 1;
+    var py = m === 0 ? y - 1 : y;
+    var key = dateKey(py, pm, d);
+    var wk = (offset - 1 - i) % 7;
+    var isWk = wk >= 5;
+    var lunar = getLunarDate(py, pm, d);
+    var tip = holidayData[key] ? holidayData[key].name : (solarTermData[key] ? solarTermData[key] : '');
+    html += '<div class="cal-cell other-month' + (isWk ? ' weekend' : '') + '"' + (tip ? ' data-tip="' + tip + '"' : '') + '>'
+      + '<span class="cal-day">' + d + '</span>'
+      + '<span class="cal-lunar">' + (lunar || '') + '</span>'
+      + '</div>';
+  }
+
+  // 本月
+  for (var d = 1; d <= lastDay.getDate(); d++) {
+    var key = dateKey(y, m, d);
+    var wk = (offset + d - 1) % 7;
+    var isWk = wk >= 5;
+    var isToday = key === todayKey;
+    var isHoliday = !!holidayData[key];
+    var isTerm = !!solarTermData[key];
+    var lunar = getLunarDate(y, m, d);
+
+    var cls = 'cal-cell';
+    if (isToday) cls += ' today';
+    if (isWk) cls += ' weekend';
+    if (isHoliday) cls += ' holiday';
+    if (isTerm) cls += ' solar-term';
+
+    // 显示优先级：节气 > 节假日名 > 农历初一(月名) > 农历日
+    var displayLunar = '';
+    if (isTerm) {
+      displayLunar = solarTermData[key];
+    } else if (isHoliday) {
+      displayLunar = holidayData[key].name;
+      // 如果农历是初一且节日不是春节，显示节日名
+      if (lunar && lunar.length <= 2 && holidayData[key].type !== 'spring') {
+        displayLunar = holidayData[key].name;
+      }
+    } else {
+      displayLunar = lunar;
+    }
+
+    var tip = '';
+    if (isHoliday) tip = holidayData[key].name;
+    if (isTerm) tip = (tip ? tip + ' | ' : '') + solarTermData[key] + '(节气)';
+    if (lunar && lunar.length > 2) tip = (tip ? tip + ' | ' : '') + '农历' + lunar;
+
+    if (isHoliday) monthHolidays++;
+    if (isWk) monthWeekends++;
+    if (isTerm) monthSolarTerms++;
+
+    html += '<div class="' + cls + '"' + (tip ? ' data-tip="' + tip + '"' : '') + '>'
+      + '<span class="cal-day">' + d + '</span>'
+      + '<span class="cal-lunar">' + displayLunar + '</span>'
+      + (isHoliday || isTerm ? '<span class="cal-badge"></span>' : '')
+      + '</div>';
+  }
+
+  // 下月填充
+  var totalCells = offset + lastDay.getDate();
+  var remaining = totalCells % 7 === 0 ? 0 : 7 - (totalCells % 7);
+  for (var i = 1; i <= remaining; i++) {
+    var nm = m === 11 ? 0 : m + 1;
+    var ny = m === 11 ? y + 1 : y;
+    var key = dateKey(ny, nm, i);
+    var wk = (offset + lastDay.getDate() + i - 1) % 7;
+    var isWk = wk >= 5;
+    var lunar = getLunarDate(ny, nm, i);
+    var tip = holidayData[key] ? holidayData[key].name : (solarTermData[key] ? solarTermData[key] : '');
+    html += '<div class="cal-cell other-month' + (isWk ? ' weekend' : '') + '"' + (tip ? ' data-tip="' + tip + '"' : '') + '>'
+      + '<span class="cal-day">' + i + '</span>'
+      + '<span class="cal-lunar">' + (lunar || '') + '</span>'
+      + '</div>';
+  }
+
+  document.getElementById('calGrid').innerHTML = html;
+
+  // 月度信息
+  renderMonthInfo(lastDay.getDate(), monthHolidays, monthWeekends, monthSolarTerms);
+
+  // 右侧节日列表
+  renderHolidayList(y, m);
+
+  // 年度统计
+  renderYearStats(y);
+}
+
+// ========== 月度信息卡片 ==========
+function renderMonthInfo(totalDays, holidays, weekends, terms) {
+  var workdays = totalDays - weekends - holidays;
+  if (workdays < 0) workdays = 0;
+  document.getElementById('monthInfo').innerHTML =
+    '<div class="mi-card"><div class="mi-val">' + totalDays + '</div><div class="mi-lbl">总天数</div></div>' +
+    '<div class="mi-card"><div class="mi-val">' + holidays + '</div><div class="mi-lbl">节假日</div></div>' +
+    '<div class="mi-card"><div class="mi-val">' + workdays + '</div><div class="mi-lbl">工作日</div></div>';
+}
+
+// ========== 右侧节日列表 ==========
+function renderHolidayList(y, m) {
+  var lastDay = new Date(y, m + 1, 0).getDate();
+  var found = [];
+  var seen = {};
+
+  for (var d = 1; d <= lastDay; d++) {
+    var key = dateKey(y, m, d);
+    var h = holidayData[key];
+    if (h && !seen[h.name]) {
+      seen[h.name] = true;
+      // 计算连续天数
+      var dur = 0;
+      for (var dd = d; dd <= lastDay; dd++) {
+        var kk = dateKey(y, m, dd);
+        if (holidayData[kk] && holidayData[kk].name === h.name) dur++;
+        else break;
+      }
+      // 检查是否跨月延续
+      found.push({
+        name: h.name,
+        date: (m+1) + '月' + d + '日',
+        dur: dur,
+        type: h.type,
+        key: key
+      });
+    }
+  }
+
+  // 也检查节气
+  var terms = [];
+  for (var d = 1; d <= lastDay; d++) {
+    var key = dateKey(y, m, d);
+    if (solarTermData[key]) {
+      terms.push({
+        name: solarTermData[key],
+        date: (m+1) + '月' + d + '日'
+      });
+    }
+  }
+
+  var html = '';
+  if (found.length === 0 && terms.length === 0) {
+    html = '<div class="empty-msg">本月无节假日</div>';
+  } else {
+    // 节假日图标映射
+    var iconMap = {
+      spring: '🧧', qingming: '🌿', labor: '⚒️', duanwu: '🐉',
+      zhongqiu: '🌕', guoqing: '🇨🇳', yuandan: '🎉', other: '🎊'
+    };
+    for (var i = 0; i < found.length; i++) {
+      var item = found[i];
+      var icon = iconMap[item.type] || iconMap.other;
+      html += '<li onclick="navigateToDate(\'' + item.key + '\')">'
+        + '<span class="h-icon ' + item.type + '">' + icon + '</span>'
+        + '<div class="h-info">'
+        + '<div class="h-name">' + item.name + '</div>'
+        + '<div class="h-date">' + item.date + '</div>'
+        + '<div class="h-dur">假期 ' + item.dur + ' 天</div>'
+        + '</div></li>';
+    }
+    // 节气
+    if (terms.length > 0) {
+      html += '<li style="border-top:1px solid var(--border);padding-top:10px;margin-top:8px;">'
+        + '<span class="h-icon other">🌾</span>'
+        + '<div class="h-info"><div class="h-name">当月节气</div>';
+      for (var j = 0; j < terms.length; j++) {
+        html += '<div class="h-date">' + terms[j].date + ' ' + terms[j].name + '</div>';
+      }
+      html += '</div></li>';
+    }
+  }
+
+  document.getElementById('holidayList').innerHTML = html;
+}
+
+// ========== 年度统计 ==========
+function renderYearStats(y) {
+  var total = 0;
+  var byName = {};
+  var prefix = y + '-';
+
+  for (var key in holidayData) {
+    if (key.indexOf(prefix) !== 0) continue;
+    total++;
+    var name = holidayData[key].name;
+    if (!byName[name]) byName[name] = 0;
+    byName[name]++;
+  }
+
+  // 按2024年国务院假期安排，实际放假天数 vs 公历天数
+  var names = Object.keys(byName);
+  var maxDays = 0;
+  for (var i = 0; i < names.length; i++) {
+    if (byName[names[i]] > maxDays) maxDays = byName[names[i]];
+  }
+
+  var colors = {
+    '元旦':'#3B82F6', '春节':'#EF4444', '清明节':'#10B981',
+    '劳动节':'#F59E0B', '端午节':'#10B981', '中秋节':'#FF6B35', '国庆节':'#EF4444'
+  };
+
+  var html = '<h4>' + y + '年假期统计</h4>';
+  html += '<div class="stat-row"><span class="s-label">合计</span><span style="font-weight:700;color:var(--primary);">' + total + ' 天</span></div>';
+  for (var i = 0; i < names.length; i++) {
+    var n = names[i];
+    var c = colors[n] || '#7C3AED';
+    var pct = Math.round(byName[n] / maxDays * 100);
+    html += '<div class="stat-row">'
+      + '<span class="s-label">' + n + '</span>'
+      + '<span class="s-bar"><span class="s-fill" style="width:' + pct + '%;background:' + c + ';">' + byName[n] + '天</span></span>'
+      + '</div>';
+  }
+
+  document.getElementById('yearStats').innerHTML = html;
+}
+
+// ========== 导航函数 ==========
+function prevMonth() {
+  currentMonth--;
+  if (currentMonth < 0) {
+    currentMonth = 11;
+    currentYear--;
+  }
+  renderCalendar();
+}
+
+function nextMonth() {
+  currentMonth++;
+  if (currentMonth > 11) {
+    currentMonth = 0;
+    currentYear++;
+  }
+  renderCalendar();
+}
+
+function goToday() {
+  var t = new Date();
+  currentYear = t.getFullYear();
+  currentMonth = t.getMonth();
+  renderCalendar();
+  ToolBox.showToast(i18nText('toast.msg306'), 'info');
+}
+
+// 点击节日列表跳转到对应月份
+window.navigateToDate = function(key) {
+  var parts = key.split('-');
+  currentYear = +parts[0];
+  currentMonth = +parts[1] - 1;
+  renderCalendar();
+};
+
+// 工具介绍折叠
+window.toggleIntro = function() {
+  var el = document.getElementById('toolIntro');
+  el.classList.toggle('open');
+};
+
+// 暴露导航函数
+window.prevMonth = prevMonth;
+window.nextMonth = nextMonth;
+window.goToday = goToday;
+
+// ========== 初始化 ==========
+renderHeader();
+renderCalendar();
+
+})();
+</script><script>
+// tool-intro折叠交互
+document.addEventListener('DOMContentLoaded',function(){
+  var headers=document.querySelectorAll('.tool-intro-header');
+  headers.forEach(function(h){
+    h.addEventListener('click',function(){
+      this.parentElement.classList.toggle('open');
+    });
+  });
+});
+</script>
+
+</body>
+</html>

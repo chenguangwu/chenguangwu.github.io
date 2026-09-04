@@ -1,0 +1,707 @@
+<!DOCTYPE html>
+<html lang="zh-TW" data-opencc-locale="zh-tw">
+<head>
+
+<script src="/js/tool-page-runtime.js" defer></script>
+<!-- TOOLBOX-TOOL-RUNTIME -->
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="toolbox" content="cat=reference,industry=edu,icon=📚,bg=#e8f5e9">
+<meta name="description" content="添加错题后自动按学科和错误类型归类，基于间隔重复算法(1/3/7/14天)安排复习，到期自动提醒。">
+<title>錯題本自動歸類與重練提醒 - ToolBox</title>
+<link rel="canonical" href="https://chenguangwu.github.io/zh-tw/tools/edu/reminder-1.html">
+<meta property="og:title" content="错题本自动归类与重练提醒">
+<meta property="og:description" content="添加错题后自动按学科和错误类型归类，基于间隔重复算法(1/3/7/14天)安排复习，到期自动提醒。">
+<meta property="og:url" content="https://chenguangwu.github.io/zh-tw/tools/edu/reminder-1.html">
+<meta name="twitter:card" content="summary">
+<link rel="preload" as="style" href="/css/common.css" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="/css/common.css"></noscript>
+<script>window.__tbq=window.__tbq||[];window.ToolBox=window.ToolBox||{};['initToolTheme','addToolStyles','showToast','toast','copyText','copyToClipboard','copyFromElement','downloadText','injectPrivacyBadge','toggleFavTool','addToRecentTool','toggleToolTheme','applyTheme'].forEach(function(k){if(typeof window.ToolBox[k]!=='function')window.ToolBox[k]=function(){window.__tbq.push([k,[].slice.call(arguments)]);};});</script><!-- TOOLBOX-API-STUB -->
+<script src="/js/common.js" defer></script>
+<style>
+  .q-card{background:var(--result-bg);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:10px;transition:all 0.2s;}
+  .q-card:hover{border-color:var(--primary);}
+  .q-card .q-head{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:8px;}
+  .q-card .q-subj{font-weight:700;font-size:14px;color:var(--primary);}
+  .q-card .q-type{font-size:11px;padding:2px 8px;border-radius:20px;background:var(--bg-active);color:var(--text-secondary);white-space:nowrap;}
+  .q-card .q-body{font-size:13px;color:var(--text);line-height:1.6;margin-bottom:6px;}
+  .q-card .q-ans{font-size:12px;color:var(--success);margin-bottom:4px;}
+  .q-card .q-meta{display:flex;gap:10px;flex-wrap:wrap;font-size:11px;color:var(--text-muted);align-items:center;}
+  .q-card .q-meta .tag{padding:2px 6px;border-radius:6px;}
+  .tag-due{background:rgba(239,68,68,0.12);color:var(--danger);}
+  .tag-soon{background:rgba(245,158,11,0.12);color:var(--warning);}
+  .tag-done{background:rgba(16,185,129,0.12);color:var(--success);}
+  .tag-future{background:var(--th-bg);color:var(--text-muted);}
+  .q-actions{display:flex;gap:6px;margin-top:8px;}
+  .q-actions .icon-btn{border:1px solid var(--border);background:var(--card-bg);border-radius:8px;padding:5px 10px;cursor:pointer;font-size:12px;color:var(--text-secondary);transition:all 0.2s;}
+  .q-actions .icon-btn:hover{border-color:var(--primary);color:var(--primary);}
+  .q-actions .icon-btn.review-btn{border-color:var(--success);color:var(--success);}
+  .subj-filter{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;}
+  .subj-chip{padding:6px 14px;border-radius:20px;font-size:12px;cursor:pointer;border:1px solid var(--border);background:var(--card-bg);color:var(--text-secondary);transition:all 0.2s;}
+  .subj-chip:hover{border-color:var(--primary);}
+  .subj-chip.active{background:var(--gradient-primary);color:#fff;border:none;}
+  .stat-mini{display:flex;flex-direction:column;align-items:center;}
+  .stat-mini .v{font-size:22px;font-weight:700;color:var(--primary);}
+  .stat-mini .l{font-size:11px;color:var(--text-muted);margin-top:2px;}
+  .subj-bar .bar-lbl{width:70px;font-size:12px;}
+  .review-badge{display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:20px;font-size:12px;font-weight:600;}
+  .badge-overdue{background:rgba(239,68,68,0.15);color:var(--danger);}
+  .badge-today{background:rgba(255,107,53,0.15);color:var(--primary);}
+  .badge-soon{background:rgba(245,158,11,0.15);color:var(--warning);}
+  .badge-future{background:var(--th-bg);color:var(--text-muted);}
+  .empty-state{text-align:center;padding:30px 20px;color:var(--text-muted);font-size:14px;}
+  .filter-tabs{display:flex;gap:4px;margin-bottom:14px;overflow-x:auto;-webkit-overflow-scrolling:touch;}
+  .filter-tab{padding:8px 16px;border-radius:10px;font-size:13px;cursor:pointer;border:1px solid var(--border);background:var(--card-bg);color:var(--text-secondary);white-space:nowrap;transition:all 0.2s;font-weight:500;}
+  .filter-tab:hover{border-color:var(--primary);color:var(--primary);}
+  .filter-tab.active{background:var(--gradient-primary);color:#fff;border:none;}
+  .filter-tab .cnt{display:inline-block;background:rgba(255,255,255,0.3);border-radius:10px;padding:0 6px;font-size:11px;margin-left:4px;}
+  .filter-tab:not(.active) .cnt{background:var(--th-bg);color:var(--text-muted);}
+  .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:1000;display:none;align-items:center;justify-content:center;padding:16px;}
+  .modal-overlay.show{display:flex;}
+  .modal-box{background:var(--card-bg);border-radius:20px;padding:24px;max-width:500px;width:100%;max-height:85vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,0.3);}
+  .modal-box h3{margin-bottom:14px;}
+  .modal-close{float:right;cursor:pointer;font-size:20px;color:var(--text-muted);border:none;background:none;}
+  .modal-close:hover{color:var(--danger);}
+  .review-stage{display:inline-block;padding:2px 8px;border-radius:6px;font-size:11px;font-weight:600;}
+  .stage-0{background:rgba(59,130,246,0.12);color:#2563EB;}
+  .stage-1{background:rgba(16,185,129,0.12);color:#059669;}
+  .stage-2{background:rgba(245,158,11,0.12);color:#D97706;}
+  .stage-3{background:rgba(124,58,237,0.12);color:#7C3AED;}
+  .stage-4{background:rgba(0,201,167,0.12);color:#00A387;}
+  @media(max-width:768px){
+    .stat-mini .v{font-size:18px;}
+    .q-card{padding:12px;}
+    .modal-box{border-radius:16px;padding:18px;}
+  }
+</style>
+
+
+
+<meta property="og:image" content="https://chenguangwu.github.io/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="ToolBox - 5000+免费在线工具">
+<meta name="twitter:image" content="https://chenguangwu.github.io/og-image.png">
+<meta name="twitter:image:alt" content="ToolBox - 5000+免费在线工具">
+    <meta property="og:type" content="website">
+    <meta name="twitter:title" content="错题本自动归类与重练提醒">
+    <meta name="twitter:description" content="添加错题后自动按学科和错误类型归类，基于间隔重复算法(1/3/7/14天)安排复习，到期自动提醒。">
+<!-- TOOLBOX-WEBAPP-LD -->
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"錯題本自動歸類與重練提醒","url":"https://chenguangwu.github.io/zh-tw/tools/edu/reminder-1.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":"zh-TW","description":"新增錯題後自動按學科和錯誤型別歸類，基於間隔重複演算法(1/3/7/14天)安排複習，到期自動提醒。","image":"https://chenguangwu.github.io/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}</script>
+<meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
+<meta http-equiv="X-Content-Type-Options" content="nosniff">
+<meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
+<!-- TOOLBOX-SECURITY -->
+
+<script src="/js/privacy.js" defer></script>
+<!-- TOOLBOX-PRIVACY-SCRIPT -->
+
+<script src="/js/metrics.js" defer></script>
+<!-- TOOLBOX-METRICS-SCRIPT -->
+
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"首頁","item":"https://chenguangwu.github.io/zh-tw/"},{"@type":"ListItem","position":2,"name":"教育學習","item":"https://chenguangwu.github.io/zh-tw/tools/edu/index.html"},{"@type":"ListItem","position":3,"name":"錯題本自動歸類與重練提醒","item":"https://chenguangwu.github.io/zh-tw/tools/edu/reminder-1.html"}]}</script>
+
+<script src="/js/i18n.js" defer></script>
+<script src="/js/tool-i18n.js" defer></script>
+<!-- TOOLBOX-I18N-SCRIPT -->
+
+
+<meta name="title-en" content="Reminder 1 - ToolBox">
+<meta name="desc-en" content="Reminder 1 - free online tool. Free online tool on ToolBox — 100% client-side, no data uploaded, no install. Part of the Education &amp; Learning tools.">
+<!-- TOOLBOX-HREFLANG -->
+<link rel="alternate" hreflang="zh-CN" href="https://chenguangwu.github.io/tools/edu/reminder-1.html">
+<link rel="alternate" hreflang="zh-TW" href="https://chenguangwu.github.io/zh-tw/tools/edu/reminder-1.html">
+<link rel="alternate" hreflang="zh-HK" href="https://chenguangwu.github.io/zh-hk/tools/edu/reminder-1.html">
+<link rel="alternate" hreflang="en-US" href="https://chenguangwu.github.io/tools/edu/reminder-1.html?lang=en-US">
+<link rel="alternate" hreflang="x-default" href="https://chenguangwu.github.io/tools/edu/reminder-1.html">
+<meta property="og:locale" content="zh_TW">
+<meta property="og:locale:alternate" content="zh_CN">
+<meta property="og:locale:alternate" content="zh_HK">
+<meta property="og:locale:alternate" content="en_US">
+</head>
+<body>
+<h1 class="sr-only">錯題本自動歸類與重練提醒</h1>
+<div class="nav">
+  <a href="/zh-tw/index.html">← ToolBox</a>
+  <span>/ 錯題本</span>
+  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()">🌙</button>
+</div>
+
+
+
+
+<nav class="breadcrumb" aria-label="麵包屑導航" data-breadcrumb="1">
+  <a href="/zh-tw/index.html">首頁</a>
+  <span class="bc-sep">‹</span>
+  <a href="/zh-tw/tools/edu/index.html">📖 教育學習</a>
+  <span class="bc-sep">‹</span>
+  <span class="bc-current">錯題本自動歸類與重練提醒</span>
+</nav>
+<div class="container">
+  <div class="card">
+    <h2 data-zh="📚 錯題本自動歸類與重練提醒">📚 Reminder 1</h2>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:14px;" data-zh="新增錯題後自動按學科和錯誤型別歸類，基於間隔重複演算法(1/3/7/14天)安排複習，到期自動提醒。">Reminder 1 is available directly in your browser, with no data uploaded.</p>
+
+    <div class="stat-grid" id="statGrid">
+      <div class="data-card"><div class="num" id="stTotal">0</div><div class="label">錯題總數</div></div>
+      <div class="data-card"><div class="num" id="stToday" style="color:var(--danger);">0</div><div class="label">今日待複習</div></div>
+      <div class="data-card"><div class="num" id="stDone" style="color:var(--success);">0</div><div class="label">已掌握</div></div>
+      <div class="data-card"><div class="num" id="stRate" style="color:var(--secondary);">0%</div><div class="label">複習完成率</div></div>
+    </div>
+
+    <div class="toolbar">
+      <button type="button" class="btn primary" onclick="openAddModal()">+ 新增錯題</button>
+      <button type="button" class="btn" onclick="exportData()">匯出資料</button>
+      <button type="button" class="btn danger" onclick="clearAll()">清空全部</button>
+    </div>
+  </div>
+
+  <div class="card" id="reviewCard" style="display:none;">
+    <h3>🔔 今日待複習</h3>
+    <div id="reviewList"></div>
+  </div>
+
+  <div class="card">
+    <h3>📋 全部錯題</h3>
+    <div class="filter-tabs" id="filterTabs">
+      <div class="filter-tab active" data-filter="all" onclick="setFilter('all')">全部<span class="cnt" id="cntAll">0</span></div>
+      <div class="filter-tab" data-filter="overdue" onclick="setFilter('overdue')">已逾期<span class="cnt" id="cntOverdue">0</span></div>
+      <div class="filter-tab" data-filter="today" onclick="setFilter('today')">今日到期<span class="cnt" id="cntToday">0</span></div>
+      <div class="filter-tab" data-filter="soon" onclick="setFilter('soon')">3天內<span class="cnt" id="cntSoon">0</span></div>
+      <div class="filter-tab" data-filter="done" onclick="setFilter('done')">已掌握<span class="cnt" id="cntDone">0</span></div>
+    </div>
+    <div class="subj-filter" id="subjFilter"></div>
+    <div id="qList"></div>
+  </div>
+
+  <div class="card" id="statDetailCard" style="display:none;">
+    <h3>📊 學科分佈</h3>
+    <div id="subjStats"></div>
+  </div>
+</div>
+
+<!-- 新增/編輯錯題模態框 -->
+<div class="modal-overlay" id="addModal">
+  <div class="modal-box">
+    <button class="modal-close" onclick="closeAddModal()">×</button>
+    <h3 id="modalTitle">新增錯題</h3>
+    <div class="input-row">
+      <div>
+        <label>學科 <span style="color:var(--danger);">*</span></label>
+        <select id="qSubject">
+          <option value="数学">數學</option>
+          <option value="语文">語文</option>
+          <option value="英语">英語</option>
+          <option value="物理">物理</option>
+          <option value="化学">化學</option>
+          <option value="生物">生物</option>
+          <option value="历史">歷史</option>
+          <option value="地理">地理</option>
+          <option value="政治">政治</option>
+          <option value="其他">其他</option>
+        </select>
+      </div>
+      <div>
+        <label>錯誤型別</label>
+        <select id="qErrorType">
+          <option value="概念不清">概念不清</option>
+          <option value="计算错误">計算錯誤</option>
+          <option value="审题失误">審題失誤</option>
+          <option value="方法不当">方法不當</option>
+          <option value="粗心大意">粗心大意</option>
+          <option value="知识遗漏">知識遺漏</option>
+          <option value="时间不够">時間不夠</option>
+        </select>
+      </div>
+    </div>
+    <div style="margin-bottom:12px;">
+      <label>題目內容 <span style="color:var(--danger);">*</span></label>
+      <textarea id="qText" placeholder="输入题目内容..." style="min-height:80px;" maxlength="2000"></textarea>
+    </div>
+    <div style="margin-bottom:12px;">
+      <label>正確答案</label>
+      <textarea id="qAnswer" placeholder="输入正确答案或解析..." style="min-height:60px;" maxlength="2000"></textarea>
+    </div>
+    <div class="toolbar">
+      <button type="button" class="btn primary" onclick="saveQuestion()">儲存</button>
+      <button type="button" class="btn" onclick="closeAddModal()">取消</button>
+    </div>
+  </div>
+</div>
+
+<!-- 複習確認模態框 -->
+<div class="modal-overlay" id="reviewModal">
+  <div class="modal-box">
+    <button class="modal-close" onclick="closeReviewModal()">×</button>
+    <h3>複習確認</h3>
+    <div id="reviewContent"></div>
+    <div class="toolbar" style="margin-top:14px;">
+      <button type="button" class="btn success" onclick="markReview(true)">✓ 已掌握</button>
+      <button type="button" class="btn warning" onclick="markReview(false)">✗ 仍不熟</button>
+      <button type="button" class="btn" onclick="closeReviewModal()">稍後再說</button>
+    </div>
+  </div>
+</div>
+
+<div class="tool-notes">
+  <div class="tool-notes-title">⚠️ 使用說明</div>
+  <ul>
+    <li>所有資料儲存在瀏覽器本地（localStorage），不上傳伺服器，更換瀏覽器/裝置不會同步</li>
+    <li>間隔重複複習間隔：第1次→1天后，第2次→3天后，第3次→7天后，第4次→14天后，第5次→標記為已掌握</li>
+    <li>選擇"已掌握"進入下一階段，選擇"仍不熟"重置為第1階段（1天后再複習）</li>
+    <li>建議每天開啟工具檢視"今日待複習"，及時鞏固薄弱知識點</li>
+  </ul>
+</div>
+
+<script>
+var KEY='tb_edu_wrongbook';
+var REVIEW_INTERVALS=[1,3,7,14]; // 天
+var questions=[];
+var currentFilter='all';
+var currentSubjFilter='all';
+var editingId=null;
+var reviewingId=null;
+
+try{questions=JSON.parse(localStorage.getItem(KEY)||'[]');}catch(e){questions=[];}
+
+function save(){localStorage.setItem(KEY,JSON.stringify(questions));}
+function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,6);}
+function todayStr(){var d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
+function addDays(dateStr,days){var d=new Date(dateStr+'T00:00:00');d.setDate(d.getDate()+days);return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
+function daysBetween(d1,d2){var a=new Date(d1+'T00:00:00'),b=new Date(d2+'T00:00:00');return Math.round((b-a)/86400000);}
+
+function getReviewStage(q){
+  if(q.stage>=REVIEW_INTERVALS.length)return 4; // 已掌握
+  return q.stage;
+}
+
+function getNextReviewDate(q){
+  var stage=getReviewStage(q);
+  if(stage>=4)return null;
+  var interval=REVIEW_INTERVALS[stage];
+  return addDays(q.lastReview||q.addDate,interval);
+}
+
+function getReviewStatus(q){
+  var stage=getReviewStage(q);
+  if(stage>=4)return {type:'done',label:'已掌握',days:0};
+  var next=getNextReviewDate(q);
+  var today=todayStr();
+  var diff=daysBetween(today,next);
+  if(diff<0)return {type:'overdue',label:'逾期'+(-diff)+'天',days:diff};
+  if(diff===0)return {type:'today',label:'今日到期',days:0};
+  if(diff<=3)return {type:'soon',label:diff+'天后',days:diff};
+  return {type:'future',label:diff+'天后',days:diff};
+}
+
+// 添加错题
+function openAddModal(id){
+  editingId=id||null;
+  if(id){
+    var q=findQ(id);
+    if(!q)return;
+    document.getElementById('modalTitle').textContent='编辑错题';
+    document.getElementById('qSubject').value=q.subject;
+    document.getElementById('qErrorType').value=q.errorType;
+    document.getElementById('qText').value=q.text;
+    document.getElementById('qAnswer').value=q.answer||'';
+  }else{
+    document.getElementById('modalTitle').textContent='添加错题';
+    document.getElementById('qSubject').value='数学';
+    document.getElementById('qErrorType').value='概念不清';
+    document.getElementById('qText').value='';
+    document.getElementById('qAnswer').value='';
+  }
+  document.getElementById('addModal').classList.add('show');
+}
+
+function closeAddModal(){
+  document.getElementById('addModal').classList.remove('show');
+  editingId=null;
+}
+
+function saveQuestion(){
+  var subject=document.getElementById('qSubject').value;
+  var errorType=document.getElementById('qErrorType').value;
+  var text=document.getElementById('qText').value.trim();
+  var answer=document.getElementById('qAnswer').value.trim();
+  if(!text){ToolBox.showToast(i18nText('toast.msg925'),'warning');return;}
+  if(editingId){
+    var q=findQ(editingId);
+    if(q){
+      q.subject=subject;q.errorType=errorType;q.text=text;q.answer=answer;
+      ToolBox.showToast(i18nText('toast.msg247'));
+    }
+  }else{
+    questions.push({
+      id:uid(),
+      subject:subject,
+      errorType:errorType,
+      text:text,
+      answer:answer,
+      addDate:todayStr(),
+      stage:0,
+      lastReview:todayStr(),
+      reviewCount:0
+    });
+    ToolBox.showToast(i18nText('toast.msg269'));
+  }
+  save();
+  closeAddModal();
+  render();
+}
+
+function findQ(id){for(var i=0;i<questions.length;i++){if(questions[i].id===id)return questions[i];}return null;}
+
+function delQuestion(id){
+  if(!confirm('确定删除这道错题？'))return;
+  for(var i=0;i<questions.length;i++){if(questions[i].id===id){questions.splice(i,1);break;}}
+  save();render();ToolBox.showToast(i18nText());
+}
+
+// 复习
+function openReviewModal(id){
+  var q=findQ(id);
+  if(!q)return;
+  reviewingId=id;
+  var stage=getReviewStage(q);
+  var stageNames=['新错题','第1轮复习','第2轮复习','第3轮复习','已掌握'];
+  var stageColors=['stage-0','stage-1','stage-2','stage-3','stage-4'];
+  var html='<div style="margin-bottom:10px;"><span class="review-stage '+stageColors[stage]+'">'+stageNames[stage]+'</span></div>';
+  html+='<div style="font-size:13px;color:var(--text-muted);margin-bottom:8px;">学科：'+q.subject+' · 错误类型：'+q.errorType+'</div>';
+  html+='<div class="result-box" style="margin-bottom:10px;"><p style="font-weight:600;margin-bottom:6px;">题目：</p><p style="white-space:pre-wrap;">'+ToolBox.escHtml(q.text)+'</p></div>';
+  if(q.answer){
+    html+='<div class="result-box" style="background:rgba(16,185,129,0.06);border-color:rgba(16,185,129,0.2);"><p style="font-weight:600;margin-bottom:6px;color:var(--success);">正确答案：</p><p style="white-space:pre-wrap;">'+ToolBox.escHtml(q.answer)+'</p></div>';
+  }
+  var nextInfo='';
+  if(stage<4){
+    var nextInterval=REVIEW_INTERVALS[stage];
+    nextInfo='<div class="tip-box tip-info" style="margin-top:10px;">选择"已掌握"→'+REVIEW_INTERVALS[Math.min(stage+1,4)]+'天后再复习；选择"仍不熟"→重置为1天后复习</div>';
+  }
+  html+=nextInfo;
+  document.getElementById('reviewContent').innerHTML=html;
+  document.getElementById('reviewModal').classList.add('show');
+}
+
+function closeReviewModal(){
+  document.getElementById('reviewModal').classList.remove('show');
+  reviewingId=null;
+}
+
+function markReview(mastered){
+  if(!reviewingId)return;
+  var q=findQ(reviewingId);
+  if(!q)return;
+  q.reviewCount++;
+  if(mastered){
+    q.stage++;
+    if(q.stage>4)q.stage=4;
+    q.lastReview=todayStr();
+    if(q.stage>=4){
+      ToolBox.showToast(i18nText('toast.msg249'));
+    }else{
+      ToolBox.showToast('已掌握，下次复习：'+getNextReviewDate(q));
+    }
+  }else{
+    q.stage=0;
+    q.lastReview=todayStr();
+    ToolBox.showToast(i18nText('toast.msg331'));
+  }
+  save();
+  closeReviewModal();
+  render();
+}
+
+// 筛选
+function setFilter(f){currentFilter=f;render();}
+
+function setSubjFilter(s){
+  currentSubjFilter=(currentSubjFilter===s&&s!=='all')?'all':s;
+  render();
+}
+
+function getFilteredQuestions(){
+  var list=[];
+  for(var i=0;i<questions.length;i++){
+    var q=questions[i];
+    var st=getReviewStatus(q);
+    var match=true;
+    if(currentFilter==='overdue')match=(st.type==='overdue');
+    else if(currentFilter==='today')match=(st.type==='today'||st.type==='overdue');
+    else if(currentFilter==='soon')match=(st.type==='overdue'||st.type==='today'||st.type==='soon');
+    else if(currentFilter==='done')match=(st.type==='done');
+    if(match&&currentSubjFilter!=='all')match=(q.subject===currentSubjFilter);
+    if(match)list.push(q);
+  }
+  list.sort(function(a,b){
+    var sa=getReviewStatus(a),sb=getReviewStatus(b);
+    var order={overdue:0,today:1,soon:2,future:3,done:4};
+    if(order[sa.type]!==order[sb.type])return order[sa.type]-order[sb.type];
+    return sa.days-sb.days;
+  });
+  return list;
+}
+
+// 渲染
+function render(){
+  // 统计
+  var total=questions.length;
+  var todayCount=0,doneCount=0,overdueCount=0,soonCount=0;
+  var subjMap={};
+  for(var i=0;i<questions.length;i++){
+    var q=questions[i];
+    var st=getReviewStatus(q);
+    if(st.type==='today'||st.type==='overdue')todayCount++;
+    if(st.type==='overdue')overdueCount++;
+    if(st.type==='soon')soonCount++;
+    if(st.type==='done')doneCount++;
+    subjMap[q.subject]=(subjMap[q.subject]||0)+1;
+  }
+  var reviewRate=total>0?Math.round(doneCount/total*100):0;
+
+  document.getElementById('stTotal').textContent=total;
+  document.getElementById('stToday').textContent=todayCount;
+  document.getElementById('stDone').textContent=doneCount;
+  document.getElementById('stRate').textContent=reviewRate+'%';
+
+  // 筛选计数
+  document.getElementById('cntAll').textContent=total;
+  document.getElementById('cntOverdue').textContent=overdueCount;
+  document.getElementById('cntToday').textContent=todayCount;
+  document.getElementById('cntSoon').textContent=overdueCount+todayCount+soonCount;
+  document.getElementById('cntDone').textContent=doneCount;
+
+  // 筛选tab高亮
+  var tabs=document.querySelectorAll('.filter-tab');
+  tabs.forEach(function(t){
+    t.classList.toggle('active',t.dataset.filter===currentFilter);
+  });
+
+  // 学科筛选
+  var subjHtml='<div class="subj-chip'+(currentSubjFilter==='all'?' active':'')+'" onclick="setSubjFilter(\'all\')">全部学科</div>';
+  var subjects=Object.keys(subjMap).sort();
+  subjects.forEach(function(s){
+    subjHtml+='<div class="subj-chip'+(currentSubjFilter===s?' active':'')+'" onclick="setSubjFilter(\''+s+'\')">'+s+' ('+subjMap[s]+')</div>';
+  });
+  document.getElementById('subjFilter').innerHTML=subjHtml;
+
+  // 今日待复习
+  var reviewList=document.getElementById('reviewList');
+  var reviewQs=questions.filter(function(q){
+    var st=getReviewStatus(q);
+    return st.type==='today'||st.type==='overdue';
+  }).sort(function(a,b){
+    var sa=getReviewStatus(a),sb=getReviewStatus(b);
+    return sa.days-sb.days;
+  });
+  if(reviewQs.length===0){
+    document.getElementById('reviewCard').style.display='none';
+  }else{
+    document.getElementById('reviewCard').style.display='';
+    var rh='';
+    reviewQs.forEach(function(q){
+      var st=getReviewStatus(q);
+      var badgeClass=st.type==='overdue'?'badge-overdue':'badge-today';
+      rh+='<div class="q-card" style="border-left:3px solid var(--danger);">';
+      rh+='<div class="q-head"><div class="q-subj">'+q.subject+'</div>';
+      rh+='<span class="review-badge '+badgeClass+'">'+st.label+'</span></div>';
+      rh+='<div class="q-body">'+ToolBox.escHtml(q.text.length>80?q.text.slice(0,80)+'...':q.text)+'</div>';
+      rh+='<div class="q-meta"><span class="q-type">'+q.errorType+'</span>';
+      rh+='<span>已复习 '+q.reviewCount+' 次</span></div>';
+      rh+='<div class="q-actions"><button class="icon-btn review-btn" onclick="openReviewModal(\''+q.id+'\')">开始复习</button>';
+      rh+='<button class="icon-btn" onclick="openAddModal(\''+q.id+'\')">编辑</button>';
+      rh+='<button class="icon-btn" onclick="delQuestion(\''+q.id+'\')">删除</button></div>';
+      rh+='</div>';
+    });
+    reviewList.innerHTML=rh;
+  }
+
+  // 全部错题列表
+  var filtered=getFilteredQuestions();
+  var ql=document.getElementById('qList');
+  if(filtered.length===0){
+    ql.innerHTML='<div class="empty-state">📝 暂无错题<br><span style="font-size:12px;">点击"添加错题"开始记录</span></div>';
+  }else{
+    var h='';
+    filtered.forEach(function(q){
+      var st=getReviewStatus(q);
+      var stage=getReviewStage(q);
+      var stageNames=['新','R1','R2','R3','掌握'];
+      var stageColors=['stage-0','stage-1','stage-2','stage-3','stage-4'];
+      var tagClass='tag-'+st.type;
+      h+='<div class="q-card">';
+      h+='<div class="q-head"><div class="q-subj">'+q.subject+'</div>';
+      h+='<div style="display:flex;gap:4px;align-items:center;">';
+      h+='<span class="review-stage '+stageColors[stage]+'">'+stageNames[stage]+'</span>';
+      h+='<span class="q-type">'+q.errorType+'</span></div></div>';
+      h+='<div class="q-body">'+ToolBox.escHtml(q.text.length>120?q.text.slice(0,120)+'...':q.text)+'</div>';
+      if(q.answer){
+        h+='<div class="q-ans">✓ '+ToolBox.escHtml(q.answer.length>60?q.answer.slice(0,60)+'...':q.answer)+'</div>';
+      }
+      h+='<div class="q-meta">';
+      h+='<span>添加：'+q.addDate+'</span>';
+      h+='<span>复习：'+q.reviewCount+'次</span>';
+      if(st.type!=='done'){
+        h+='<span class="tag '+tagClass+'">'+st.label+'</span>';
+      }else{
+        h+='<span class="tag tag-done">已掌握</span>';
+      }
+      h+='</div>';
+      h+='<div class="q-actions">';
+      if(st.type!=='done'){
+        h+='<button class="icon-btn review-btn" onclick="openReviewModal(\''+q.id+'\')">复习</button>';
+      }
+      h+='<button class="icon-btn" onclick="openAddModal(\''+q.id+'\')">编辑</button>';
+      h+='<button class="icon-btn" onclick="delQuestion(\''+q.id+'\')">删除</button>';
+      h+='</div>';
+      h+='</div>';
+    });
+    ql.innerHTML=h;
+  }
+
+  // 学科统计
+  var sd=document.getElementById('statDetailCard');
+  if(total===0){
+    sd.style.display='none';
+  }else{
+    sd.style.display='';
+    var maxCount=Math.max.apply(null,Object.values(subjMap));
+    var sh='';
+    subjects.forEach(function(s){
+      var cnt=subjMap[s];
+      var pct=Math.round(cnt/maxCount*100);
+      var doneInSubj=questions.filter(function(q){return q.subject===s&&getReviewStage(q)>=4;}).length;
+      var reviewPct=cnt>0?Math.round(doneInSubj/cnt*100):0;
+      sh+='<div class="bar-row"><div class="bar-lbl">'+s+'</div>';
+      sh+='<div class="bar-bg"><div class="bar-fill" style="width:'+pct+'%;">'+cnt+'题</div></div>';
+      sh+='<div style="font-size:11px;color:var(--text-muted);width:56px;text-align:right;">掌握'+reviewPct+'%</div></div>';
+    });
+    document.getElementById('subjStats').innerHTML=sh;
+  }
+}
+
+function exportData(){
+  if(!questions.length){ToolBox.showToast(i18nText('toast.empty_data'),'warning');return;}
+  ToolBox.downloadText('wrongbook-'+todayStr()+'.json',JSON.stringify(questions,null,2));
+}
+
+function clearAll(){
+  if(!questions.length)return;
+  if(!confirm('确定清空全部错题？此操作不可恢复。'))return;
+  questions=[];save();render();ToolBox.showToast(i18nText());
+}
+
+// 点击模态框外部关闭
+document.getElementById('addModal').addEventListener('click',function(e){
+  if(e.target===this)closeAddModal();
+});
+document.getElementById('reviewModal').addEventListener('click',function(e){
+  if(e.target===this)closeReviewModal();
+});
+
+// ESC关闭模态框
+document.addEventListener('keydown',function(e){
+  if(e.key==='Escape'){closeAddModal();closeReviewModal();}
+});
+
+render();
+</script>
+
+
+</div>
+
+</div>
+
+<!-- TOOLBOX-DEEP-DIVE -->
+<style>
+.deep-dive{max-width:960px;margin:16px auto;padding:0 16px;}
+.deep-dive > .card{margin-bottom:0;}
+@media(max-width:600px){.deep-dive{margin:14px auto;padding:0 12px;}}
+.deep-dive .dd-list{margin:8px 0 16px;padding-left:20px;}
+.deep-dive .dd-list li{margin:6px 0;line-height:1.75;}
+.deep-dive .dd-example{background:var(--card-bg,#fff);border:1px solid var(--border,#eee);border-radius:10px;padding:12px 14px;margin:8px 0 16px;}
+.deep-dive .dd-ex-title{font-weight:600;color:var(--tool-accent,#FF6B35);margin-bottom:6px;}
+.deep-dive .dd-ex-body{font-size:13px;line-height:1.85;color:var(--text,#333);word-break:break-word;}
+.deep-dive .dd-faq{margin:8px 0 4px;}
+.deep-dive .dd-faq dt{font-weight:600;margin-top:10px;color:var(--text,#333);}
+.deep-dive .dd-faq dd{margin:4px 0 0;font-size:13px;line-height:1.85;color:var(--text-muted,#666);}
+
+</style>
+<section class="deep-dive" data-deep-dive="1">
+<div class="card">
+<h2>📚 深度解析：錯題本自動歸類與重練提醒</h2>
+<h3>💡 常見使用場景</h3>
+<ul class="dd-list">
+<li>核對 錯題本自動歸類與重練提醒 的輸入單位和假設邊界後，再進行一次樣例算例，先看結果變化趨勢是否符合預期。</li>
+<li>復盤建議：固定 1-2 個變數做敏感性對比，避免口徑切換導致的“結果反直覺”。</li>
+<li>常見場景：Reminder 1</li>
+</ul>
+<div class="dd-example"><div class="dd-ex-title">快速複核「錯題本自動歸類與重練提醒」</div><div class="dd-ex-body">先跑一組可復現輸入做基準，再做一次關鍵引數上浮/下調的複測，對照輸出變化是否符合預期。</div></div>
+<h3>❓ 常見問題（FAQ）</h3>
+<dl class="dd-faq">
+<dt>錯題本自動歸類與重練提醒 可直接用於決策依據嗎？</dt><dd>更多用於快速預估與複核。正式決策請補充資料來源、邊界條件與單位說明。</dd>
+<dt>結果和歷史表現差異明顯怎麼辦？</dt><dd>先核對是否有百分比/小數口徑混淆，再確認時間窗與樣本口徑是否可比，最後以樣本複測法鎖定偏差點。</dd>
+</dl>
+</div>
+</section>
+<!-- 相關工具 -->
+<div class="related-tools" data-related-tools="1">
+  <h3 class="related-tools-title">🔗 相關工具</h3>
+  <div class="related-tools-grid">
+    <a href="/zh-tw/tools/edu/pinyin-typing-practice.html" class="related-tool-card">
+      <span class="rt-icon">⌨️</span>
+      <span class="rt-info"><span class="rt-name">拼音打字練習 - 免費開發工具，線上拼音打字練習 | ToolBox免費線上工具箱</span><span class="rt-desc">⌨️ 拼音打字練習</span></span>
+    </a>
+    <a href="/zh-tw/tools/edu/english-vocabulary.html" class="related-tool-card">
+      <span class="rt-icon">📚</span>
+      <span class="rt-info"><span class="rt-name">英語單詞測試 - 免費開發工具，線上英語單詞測試 | ToolBox免費線上工具箱</span><span class="rt-desc">英語單詞測試</span></span>
+    </a>
+    <a href="/zh-tw/tools/edu/study-planner.html" class="related-tool-card">
+      <span class="rt-icon">📅</span>
+      <span class="rt-info"><span class="rt-name">學習計劃制定 - 免費生成器工具，線上學習計劃制定 | ToolBox免費線上工具箱</span><span class="rt-desc">學習計劃制定</span></span>
+    </a>
+    <a href="/zh-tw/tools/edu/generator-4.html" class="related-tool-card">
+      <span class="rt-icon">📚</span>
+      <span class="rt-info"><span class="rt-name">摘要生成器（基於句子權重） - 免費線上工具，純前端處理 | ToolBox免費線上工具箱</span><span class="rt-desc">摘要生成器（基於句子權重）</span></span>
+    </a>
+    <a href="/zh-tw/tools/library/archive-label.html" class="related-tool-card">
+      <span class="rt-icon">🏷️</span>
+      <span class="rt-info"><span class="rt-name">檔案盒標籤生成 - 器 - 檔案盒脊背標籤格式生成，可列印 | ToolBox免費線上工具箱</span><span class="rt-desc">檔案盒標籤生成</span></span>
+    </a>
+    <a href="/zh-tw/tools/kids/memory-palace.html" class="related-tool-card">
+      <span class="rt-icon">🏰</span>
+      <span class="rt-info"><span class="rt-name">記憶宮殿編碼 - 教育學習線上工具 | ToolBox免費線上工具箱</span><span class="rt-desc">記憶宮殿編碼</span></span>
+    </a>
+  </div>
+</div>
+<div class="tool-intro open" id="toolIntro">
+  <div class="tool-intro-header">
+    <span class="intro-icon-wrap"><span class="intro-icon">📖</span>關於「錯題本自動歸類與重練提醒」</span>
+    <span class="arrow">▼</span>
+  </div>
+  <div class="tool-intro-body">
+    <h4><span class="h4-icon">📝</span>工具簡介</h4>
+    <p>記錄各學科錯題，自動按學科和錯誤型別歸類，基於間隔重複演算法（1天/3天/7天/14天）智慧安排複習計劃，到期自動提醒，幫助高效鞏固薄弱知識點。</p>
+    <h4><span class="h4-icon">✨</span>功能特點</h4>
+    <ul class="intro-features">
+      <li>按學科和錯誤型別自動歸類</li>
+      <li>間隔重複演算法智慧排期</li>
+      <li>今日待複習清單一目瞭然</li>
+      <li>複習掌握度分階段跟蹤</li>
+      <li>學科分佈與掌握率統計</li>
+      <li>資料匯出為JSON備份</li>
+    </ul>
+    <h4><span class="h4-icon">💬</span>常見問題</h4>
+    <div class="intro-faq-item"><div class="intro-faq-q">複習間隔是怎麼安排的？</div><div class="intro-faq-a">新增錯題後1天首次複習，掌握後3天、7天、14天依次遞增，第5次掌握後標記為"已掌握"。選擇"仍不熟"則重置回1天后複習。</div></div>
+    <div class="intro-faq-item"><div class="intro-faq-q">資料會被上傳嗎？</div><div class="intro-faq-a">不會，所有資料儲存在瀏覽器本地，不上傳任何伺服器。建議定期匯出備份。</div></div>
+  </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded',function(){
+  var headers=document.querySelectorAll('.tool-intro-header');
+  headers.forEach(function(h){h.addEventListener('click',function(){this.parentElement.classList.toggle('open');});});
+});
+</script>
+</body>
+</html>

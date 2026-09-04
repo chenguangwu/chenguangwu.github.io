@@ -1,0 +1,955 @@
+<!DOCTYPE html>
+<html lang="zh-TW" data-opencc-locale="zh-tw">
+<head>
+
+<script src="/js/tool-page-runtime.js" defer></script>
+<!-- TOOLBOX-TOOL-RUNTIME -->
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="toolbox" content="cat=finance,industry=finance,icon=💰,bg=#fff8e1">
+<meta name="description" content="毛利率、净利率、营业利润率、EBITDA利润率，支持倒推计算与杜邦分析">
+<meta name="keywords" content="利润率计算器,利润率计算器在线,在线利润率计算器,金融投资,金融财务,在线工具,免费工具,ToolBox">
+<meta name="robots" content="index,follow">
+<link rel="canonical" href="https://chenguangwu.github.io/zh-tw/tools/finance/profit-margin-calculator.html">
+<meta property="og:title" content="利润率计算器">
+<meta property="og:description" content="毛利率、净利率、营业利润率、EBITDA利润率，支持倒推计算与杜邦分析">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://chenguangwu.github.io/zh-tw/tools/finance/profit-margin-calculator.html">
+<meta name="twitter:card" content="summary">
+
+<title>利潤率計算器 - ToolBox</title>
+<meta name="theme-color" content="#FF6B35">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<link rel="icon" href="/favicon.ico" sizes="16x16 32x32 48x48">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="preload" as="style" href="/css/common.css" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="/css/common.css"></noscript>
+<script>window.__tbq=window.__tbq||[];window.ToolBox=window.ToolBox||{};['initToolTheme','addToolStyles','showToast','toast','copyText','copyToClipboard','copyFromElement','downloadText','injectPrivacyBadge','toggleFavTool','addToRecentTool','toggleToolTheme','applyTheme'].forEach(function(k){if(typeof window.ToolBox[k]!=='function')window.ToolBox[k]=function(){window.__tbq.push([k,[].slice.call(arguments)]);};});</script><!-- TOOLBOX-API-STUB -->
+<script src="/js/common.js" defer></script>
+<style>
+.tabs{display:flex;gap:4px;margin-bottom:16px;border-bottom:1px solid var(--border);flex-wrap:wrap;}
+.tab{padding:10px 18px;cursor:pointer;font-size:14px;color:var(--text-light);border-bottom:2px solid transparent;margin-bottom:-1px;transition:all 0.15s;}
+.tab.active{color:var(--primary);border-bottom-color:var(--primary);font-weight:500;}
+.tab:hover{color:var(--primary);}
+.tab-content{display:none;}
+.tab-content.active{display:block;}
+.margin-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin:12px 0;}
+.margin-card{background:var(--result-bg);border:1px solid var(--border);border-radius:10px;padding:14px;text-align:center;}
+.margin-card .val{font-size:24px;font-weight:700;color:var(--primary);}
+.margin-card .lbl{font-size:12px;color:var(--text-muted);margin-top:4px;}
+.margin-card .sub{font-size:11px;color:var(--text-light);margin-top:2px;}
+canvas{width:100%;border-radius:8px;background:var(--card-bg);}
+.chart-container{position:relative;margin:12px 0;}
+.legend{display:flex;gap:16px;flex-wrap:wrap;margin-top:8px;font-size:12px;color:var(--text-light);justify-content:center;}
+.legend-item{display:flex;align-items:center;gap:6px;}
+.legend-dot{width:12px;height:12px;border-radius:50%;}
+.reverse-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:12px;}
+.reverse-card{border:1px solid var(--border);border-radius:10px;padding:16px;background:var(--result-bg);}
+.reverse-card h4{margin-bottom:10px;color:var(--heading);font-size:15px;}
+.dupont-chart{margin:16px 0;text-align:center;}
+.dupont-box{display:inline-block;padding:12px 20px;border:2px solid var(--primary);border-radius:10px;margin:8px;background:var(--card-bg);min-width:140px;}
+.dupont-box.top{background:linear-gradient(135deg,var(--primary),var(--primary-dark));color:#fff;border-color:transparent;}
+.dupont-box .label{font-size:11px;opacity:0.8;}
+.dupont-box .value{font-size:18px;font-weight:700;margin-top:2px;}
+.dupont-arrow{font-size:20px;color:var(--text-muted);margin:0 8px;}
+.dupont-layer{display:flex;justify-content:center;align-items:center;flex-wrap:wrap;}
+.dupont-line{height:30px;width:2px;background:var(--border);margin:0 auto;}
+.industry-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px;}
+.industry-card{padding:12px;border:1px solid var(--border);border-radius:8px;cursor:pointer;transition:all 0.15s;background:var(--card-bg);}
+.industry-card:hover{border-color:var(--primary);transform:translateY(-2px);box-shadow:var(--shadow);}
+.industry-name{font-weight:600;color:var(--heading);font-size:14px;margin-bottom:6px;}
+.industry-metrics{font-size:12px;color:var(--text-light);}
+.industry-metrics span{display:inline-block;margin-right:12px;}
+.bar-row{display:flex;align-items:center;gap:8px;margin:4px 0;font-size:13px;}
+.bar-row .bar-bg{flex:1;height:20px;background:var(--border);border-radius:4px;overflow:hidden;}
+.bar-row .bar-fill{height:100%;border-radius:4px;background:linear-gradient(90deg,var(--primary),var(--primary-dark));transition:width 0.4s;display:flex;align-items:center;padding-left:6px;color:#fff;font-size:11px;}
+.bar-row .bar-lbl{width:100px;text-align:right;flex-shrink:0;color:var(--text-light);font-size:12px;}
+@media(max-width:600px){
+  .tabs{overflow-x:auto;flex-wrap:nowrap;}
+  .tab{flex-shrink:0;}
+  .margin-grid{grid-template-columns:repeat(2,1fr);}
+  .margin-card .val{font-size:20px;}
+}
+</style>
+
+
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"利潤率計算器","description":"利潤率計算器 - 免費金融投資工具，線上利潤率計算器，免費使用。","url":"https://chenguangwu.github.io/zh-tw/tools/finance/profit-margin-calculator.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Web","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"},"inLanguage":"zh-TW","isAccessibleForFree":true,"browserRequirements":"Requires JavaScript. Requires HTML5.","softwareVersion":"1.0"}</script>
+
+
+
+<meta property="og:image" content="https://chenguangwu.github.io/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="ToolBox - 5000+免费在线工具">
+<meta name="twitter:image" content="https://chenguangwu.github.io/og-image.png">
+<meta name="twitter:image:alt" content="ToolBox - 5000+免费在线工具">
+    <meta name="twitter:title" content="利润率计算器">
+    <meta name="twitter:description" content="毛利率、净利率、营业利润率、EBITDA利润率，支持倒推计算与杜邦分析">
+<!-- TOOLBOX-WEBAPP-LD -->
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"利潤率計算器","url":"https://chenguangwu.github.io/zh-tw/tools/finance/profit-margin-calculator.html","applicationCategory":"FinanceApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":"zh-TW","description":"毛利率、淨利率、營業利潤率、EBITDA利潤率，支援倒推計算與杜邦分析","image":"https://chenguangwu.github.io/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}</script>
+<meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
+<meta http-equiv="X-Content-Type-Options" content="nosniff">
+<meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
+<!-- TOOLBOX-SECURITY -->
+
+<script src="/js/privacy.js" defer></script>
+<!-- TOOLBOX-PRIVACY-SCRIPT -->
+
+<script src="/js/metrics.js" defer></script>
+<!-- TOOLBOX-METRICS-SCRIPT -->
+
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"首頁","item":"https://chenguangwu.github.io/zh-tw/"},{"@type":"ListItem","position":2,"name":"金融財務","item":"https://chenguangwu.github.io/zh-tw/tools/finance/index.html"},{"@type":"ListItem","position":3,"name":"利潤率計算器","item":"https://chenguangwu.github.io/zh-tw/tools/finance/profit-margin-calculator.html"}]}</script>
+
+<script src="/js/i18n.js" defer></script>
+<script src="/js/tool-i18n.js" defer></script>
+<!-- TOOLBOX-I18N-SCRIPT -->
+
+
+<meta name="title-en" content="Profit Margin Calculator - ToolBox">
+<meta name="desc-en" content="Profit Margin Calculator - calculate online, free and accurate. Free online tool on ToolBox — 100% client-side, no data uploaded, no install. Part of the F...">
+<!-- TOOLBOX-HREFLANG -->
+<link rel="alternate" hreflang="zh-CN" href="https://chenguangwu.github.io/tools/finance/profit-margin-calculator.html">
+<link rel="alternate" hreflang="zh-TW" href="https://chenguangwu.github.io/zh-tw/tools/finance/profit-margin-calculator.html">
+<link rel="alternate" hreflang="zh-HK" href="https://chenguangwu.github.io/zh-hk/tools/finance/profit-margin-calculator.html">
+<link rel="alternate" hreflang="en-US" href="https://chenguangwu.github.io/tools/finance/profit-margin-calculator.html?lang=en-US">
+<link rel="alternate" hreflang="x-default" href="https://chenguangwu.github.io/tools/finance/profit-margin-calculator.html">
+<meta property="og:locale" content="zh_TW">
+<meta property="og:locale:alternate" content="zh_CN">
+<meta property="og:locale:alternate" content="zh_HK">
+<meta property="og:locale:alternate" content="en_US">
+</head>
+<body>
+<h1 class="sr-only">利潤率計算器</h1>
+
+
+<div class="nav">
+  <a href="/zh-tw/index.html">← ToolBox</a>
+  <span>/ 利潤率計算器</span>
+  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()">🌙</button>
+</div>
+
+
+
+
+
+<nav class="breadcrumb" aria-label="麵包屑導航" data-breadcrumb="1">
+  <a href="/zh-tw/index.html">首頁</a>
+  <span class="bc-sep">‹</span>
+  <a href="/zh-tw/tools/finance/index.html">💰 金融財務</a>
+  <span class="bc-sep">‹</span>
+  <span class="bc-current">利潤率計算器</span>
+</nav>
+<div class="container">
+  <div class="card tool-card-accent" style="--tool-accent:#F59E0B;">
+    <h2 data-zh="💰 利潤率計算器">💰 Profit Margin Calculator</h2>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="毛利率、淨利率、營業利潤率、EBITDA利潤率，支援倒推計算與杜邦分析">Profit Margin Calculator is available directly in your browser, with no data uploaded.</p>
+
+    <div class="tabs">
+      <div class="tab active" data-tab="basic">正向計算</div>
+      <div class="tab" data-tab="reverse">倒推計算</div>
+      <div class="tab" data-tab="detail">成本構成</div>
+      <div class="tab" data-tab="dupont">杜邦分析</div>
+      <div class="tab" data-tab="industry">行業參考</div>
+    </div>
+
+    <div class="tab-content active" id="tab-basic">
+      <h3>📊 收入成本輸入</h3>
+      <div class="input-row">
+        <div><label>營業收入(元)</label><input type="number" id="revenue" value="1000000" step="any" oninput="calc()"></div>
+        <div><label>營業成本(元)</label><input type="number" id="cogs" value="600000" step="any" oninput="calc()"></div>
+      </div>
+      <div class="input-row">
+        <div><label>銷售費用(元)</label><input type="number" id="sellingExp" value="80000" step="any" oninput="calc()"></div>
+        <div><label>管理費用(元)</label><input type="number" id="adminExp" value="100000" step="any" oninput="calc()"></div>
+      </div>
+      <div class="input-row">
+        <div><label>研發費用(元)</label><input type="number" id="rdExp" value="50000" step="any" oninput="calc()"></div>
+        <div><label>財務費用(元)</label><input type="number" id="finExp" value="20000" step="any" oninput="calc()"></div>
+      </div>
+      <div class="input-row">
+        <div><label>折舊與攤銷(元)</label><input type="number" id="da" value="60000" step="any" oninput="calc()"></div>
+        <div><label>所得稅稅率(%)</label><input type="number" id="taxRate" value="25" step="any" oninput="calc()"></div>
+      </div>
+
+      <h3 style="margin-top:16px;">📈 利潤率指標</h3>
+      <div class="margin-grid" id="marginGrid"></div>
+      <div class="result-box" id="res"></div>
+    </div>
+
+    <div class="tab-content" id="tab-reverse">
+      <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;">已知利潤率反推目標成本或售價</p>
+      <div class="reverse-grid">
+        <div class="reverse-card">
+          <h4>🎯 已知收入和利潤率，求目標成本</h4>
+          <div class="input-row">
+            <div><label>收入(元)</label><input type="number" id="revRev" value="1000000" step="any" oninput="calcReverse()"></div>
+            <div><label>目標利潤率型別</label>
+              <select id="marginType1" onchange="calcReverse()">
+                <option value="gross">毛利率</option>
+                <option value="operating">營業利潤率</option>
+                <option value="net">淨利率</option>
+                <option value="ebitda">EBITDA利潤率</option>
+              </select>
+            </div>
+          </div>
+          <div class="input-row">
+            <div><label>目標利潤率(%)</label><input type="number" id="targetMargin1" value="40" step="any" oninput="calcReverse()"></div>
+            <div><label>期間費用率(%)</label><input type="number" id="expRatio1" value="25" step="any" oninput="calcReverse()"></div>
+          </div>
+          <div class="result-box" id="revRes1"></div>
+        </div>
+
+        <div class="reverse-card">
+          <h4>🎯 已知成本和利潤率，求目標售價</h4>
+          <div class="input-row">
+            <div><label>單位成本(元)</label><input type="number" id="costCost" value="60" step="any" oninput="calcReverse()"></div>
+            <div><label>目標利潤率型別</label>
+              <select id="marginType2" onchange="calcReverse()">
+                <option value="gross">毛利率</option>
+                <option value="operating">營業利潤率</option>
+                <option value="net">淨利率</option>
+                <option value="markup">成本加成率</option>
+              </select>
+            </div>
+          </div>
+          <div class="input-row">
+            <div><label>目標利潤率(%)</label><input type="number" id="targetMargin2" value="40" step="any" oninput="calcReverse()"></div>
+            <div><label>所得稅稅率(%)</label><input type="number" id="taxRate2" value="25" step="any" oninput="calcReverse()"></div>
+          </div>
+          <div class="result-box" id="revRes2"></div>
+        </div>
+      </div>
+
+      <div class="reverse-card" style="margin-top:16px;">
+        <h4>📊 批次倒推表（毛利率）</h4>
+        <div class="input-row">
+          <div><label>成本起始值</label><input type="number" id="batchStart" value="10" step="any" oninput="calcBatch()"></div>
+          <div><label>成本結束值</label><input type="number" id="batchEnd" value="100" step="any" oninput="calcBatch()"></div>
+          <div><label>步長</label><input type="number" id="batchStep" value="10" step="any" oninput="calcBatch()"></div>
+        </div>
+        <div class="input-row">
+          <div><label>毛利率1(%)</label><input type="number" id="batchM1" value="20" step="any" oninput="calcBatch()"></div>
+          <div><label>毛利率2(%)</label><input type="number" id="batchM2" value="30" step="any" oninput="calcBatch()"></div>
+          <div><label>毛利率3(%)</label><input type="number" id="batchM3" value="40" step="any" oninput="calcBatch()"></div>
+          <div><label>毛利率4(%)</label><input type="number" id="batchM4" value="50" step="any" oninput="calcBatch()"></div>
+        </div>
+        <div style="overflow-x:auto;"><div id="batchTable"></div></div>
+      </div>
+    </div>
+
+    <div class="tab-content" id="tab-detail">
+      <h3>🥧 成本構成餅圖</h3>
+      <div class="chart-container">
+        <canvas id="pieChart" height="320"></canvas>
+      </div>
+      <div class="legend" id="pieLegend"></div>
+
+      <h3 style="margin-top:20px;">📊 成本結構明細</h3>
+      <div id="costDetail"></div>
+
+      <h3 style="margin-top:20px;">📈 利潤率瀑布圖</h3>
+      <div class="chart-container">
+        <canvas id="waterfallChart" height="280"></canvas>
+      </div>
+    </div>
+
+    <div class="tab-content" id="tab-dupont">
+      <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;">杜邦分析法：ROE = 銷售淨利率 × 資產週轉率 × 權益乘數</p>
+
+      <div class="input-row">
+        <div><label>淨利潤(元)</label><input type="number" id="dupontNI" value="150000" step="any" oninput="calcDupont()"></div>
+        <div><label>營業收入(元)</label><input type="number" id="dupontRev" value="1000000" step="any" oninput="calcDupont()"></div>
+      </div>
+      <div class="input-row">
+        <div><label>平均總資產(元)</label><input type="number" id="dupontAssets" value="2000000" step="any" oninput="calcDupont()"></div>
+        <div><label>平均淨資產(元)</label><input type="number" id="dupontEquity" value="800000" step="any" oninput="calcDupont()"></div>
+      </div>
+
+      <div class="dupont-chart" id="dupontChart"></div>
+
+      <div class="result-box" id="dupontRes"></div>
+    </div>
+
+    <div class="tab-content" id="tab-industry">
+      <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;">點選行業檢視參考資料（資料僅供參考）</p>
+      <div class="industry-grid" id="industryGrid"></div>
+      <div class="result-box" id="industryDetail" style="margin-top:16px;"></div>
+    </div>
+  </div>
+
+<!-- TOOLBOX-DEEP-DIVE -->
+<style>
+.deep-dive{max-width:960px;margin:16px auto;padding:0 16px;}
+.deep-dive > .card{margin-bottom:0;}
+@media(max-width:600px){.deep-dive{margin:14px auto;padding:0 12px;}}
+.deep-dive .dd-list{margin:8px 0 16px;padding-left:20px;}
+.deep-dive .dd-list li{margin:6px 0;line-height:1.75;}
+.deep-dive .dd-example{background:var(--card-bg,#fff);border:1px solid var(--border,#eee);border-radius:10px;padding:12px 14px;margin:8px 0 16px;}
+.deep-dive .dd-ex-title{font-weight:600;color:var(--tool-accent,#FF6B35);margin-bottom:6px;}
+.deep-dive .dd-ex-body{font-size:13px;line-height:1.85;color:var(--text,#333);word-break:break-word;}
+.deep-dive .dd-faq{margin:8px 0 4px;}
+.deep-dive .dd-faq dt{font-weight:600;margin-top:10px;color:var(--text,#333);}
+.deep-dive .dd-faq dd{margin:4px 0 0;font-size:13px;line-height:1.85;color:var(--text-muted,#666);}
+
+</style>
+<section class="deep-dive" data-deep-dive="1">
+<div class="card">
+<h2>📚 深度解析：利潤率計算器</h2>
+<h3>💡 常見使用場景</h3>
+<ul class="dd-list">
+<li>快速核對利潤率計算器：優先統一輸入單位、口徑和引數範圍，再對典型樣例做一遍手工驗算。</li>
+<li>教學與複核：建議固定其餘引數，只變動一個輸入變數，確認輸出變化趨勢，避免“算式正確但口徑錯位”。</li>
+<li>常見場景：Profit Margin Calculator</li>
+</ul>
+<div class="dd-example"><div class="dd-ex-title">快速複核「利潤率計算器」</div><div class="dd-ex-body">先輸入一組典型引數跑基準值，再做 ±10%、±20% 調參演算，檢查輸出是否沿業務常識方向變化。</div></div>
+<h3>❓ 常見問題（FAQ）</h3>
+<dl class="dd-faq">
+<dt>利潤率計算器 結果可直接用於決策嗎？</dt><dd>利潤率計算器 適合用於預估與複核，正式決策請結合完整資料口徑說明（口徑定義、時間區間、邊界條件）。</dd>
+<dt>結果偏離預期很大怎麼辦？</dt><dd>先核對輸入單位與是否存在“% 與小數”混用，再確認分母與分子定義是否同口徑，最後替換一組可復現例項複測。</dd>
+</dl>
+</div>
+</section>
+<!-- 注意事項區塊 -->
+<div class="tool-notes" style="--tool-accent:#F59E0B;">
+  <div class="tool-notes-title">⚠️ 使用說明與注意事項</div>
+  <ul>
+      <li>本工具純前端執行，資料不會上傳到伺服器</li>
+      <li>建議在主流瀏覽器（Chrome/Safari/Firefox/Edge）中使用</li>
+      <li>計算結果僅供參考，請以實際應用場景為準</li>
+  </ul>
+</div>
+<!-- /注意事項區塊 -->
+</div>
+
+<script>
+var industryData = [
+  {name:'互联网软件', gross:75, operating:25, net:20, ebitda:35},
+  {name:'电子商务', gross:35, operating:8, net:6, ebitda:10},
+  {name:'餐饮服务', gross:60, operating:15, net:10, ebitda:20},
+  {name:'零售百货', gross:25, operating:5, net:3, ebitda:7},
+  {name:'制造业', gross:20, operating:8, net:5, ebitda:12},
+  {name:'医药生物', gross:55, operating:20, net:15, ebitda:25},
+  {name:'金融服务', gross:45, operating:30, net:20, ebitda:35},
+  {name:'房地产', gross:30, operating:15, net:10, ebitda:20},
+  {name:'教育培训', gross:50, operating:15, net:10, ebitda:18},
+  {name:'物流运输', gross:15, operating:6, net:4, ebitda:10},
+  {name:'咨询服务', gross:65, operating:25, net:18, ebitda:28},
+  {name:'文化传媒', gross:40, operating:12, net:8, ebitda:15},
+];
+
+function getParams(){
+  return {
+    revenue: +document.getElementById('revenue').value || 0,
+    cogs: +document.getElementById('cogs').value || 0,
+    sellingExp: +document.getElementById('sellingExp').value || 0,
+    adminExp: +document.getElementById('adminExp').value || 0,
+    rdExp: +document.getElementById('rdExp').value || 0,
+    finExp: +document.getElementById('finExp').value || 0,
+    da: +document.getElementById('da').value || 0,
+    taxRate: +document.getElementById('taxRate').value || 0
+  };
+}
+
+function calc(){
+  var p = getParams();
+  var r = p.revenue;
+  var cogs = p.cogs;
+  var gp = r - cogs;
+  var gpm = r > 0 ? gp / r * 100 : 0;
+
+  var opExp = p.sellingExp + p.adminExp + p.rdExp;
+  var opProfit = gp - opExp;
+  var opMargin = r > 0 ? opProfit / r * 100 : 0;
+
+  var ebit = opProfit;
+  var ebitda = ebit + p.da;
+  var ebitdaMargin = r > 0 ? ebitda / r * 100 : 0;
+
+  var ebt = ebit - p.finExp;
+  var tax = ebt > 0 ? ebt * p.taxRate / 100 : 0;
+  var np = ebt - tax;
+  var npm = r > 0 ? np / r * 100 : 0;
+
+  var marginHtml = '';
+  marginHtml += '<div class="margin-card"><div class="val">' + gpm.toFixed(2) + '%</div><div class="lbl">毛利率</div><div class="sub">毛利润 ' + formatMoney(gp) + '</div></div>';
+  marginHtml += '<div class="margin-card"><div class="val">' + opMargin.toFixed(2) + '%</div><div class="lbl">营业利润率</div><div class="sub">营业利润 ' + formatMoney(opProfit) + '</div></div>';
+  marginHtml += '<div class="margin-card"><div class="val">' + ebitdaMargin.toFixed(2) + '%</div><div class="lbl">EBITDA利润率</div><div class="sub">EBITDA ' + formatMoney(ebitda) + '</div></div>';
+  marginHtml += '<div class="margin-card"><div class="val">' + npm.toFixed(2) + '%</div><div class="lbl">净利率</div><div class="sub">净利润 ' + formatMoney(np) + '</div></div>';
+  document.getElementById('marginGrid').innerHTML = marginHtml;
+
+  var html = '';
+  html += '<p><strong>利润表摘要：</strong></p>';
+  html += '<div class="bar-row"><span class="bar-lbl">营业收入</span><div class="bar-bg"><div class="bar-fill" style="width:100%;background:#667eea;">' + formatMoney(r) + '</div></div></div>';
+  html += '<div class="bar-row"><span class="bar-lbl">营业成本</span><div class="bar-bg"><div class="bar-fill" style="width:' + (r > 0 ? cogs / r * 100 : 0) + '%;background:#f44336;">' + formatMoney(cogs) + '</div></div></div>';
+  html += '<div class="bar-row"><span class="bar-lbl">毛利润</span><div class="bar-bg"><div class="bar-fill" style="width:' + (r > 0 ? gp / r * 100 : 0) + '%;background:#4caf50;">' + formatMoney(gp) + ' (' + gpm.toFixed(1) + '%)</div></div></div>';
+  html += '<hr style="border:none;border-top:1px solid var(--border);margin:10px 0;">';
+  html += '<p><strong>期间费用：</strong></p>';
+  html += '<p>销售费用：' + formatMoney(p.sellingExp) + ' 元（占收入 ' + (r > 0 ? (p.sellingExp / r * 100).toFixed(2) : 0) + '%）</p>';
+  html += '<p>管理费用：' + formatMoney(p.adminExp) + ' 元（占收入 ' + (r > 0 ? (p.adminExp / r * 100).toFixed(2) : 0) + '%）</p>';
+  html += '<p>研发费用：' + formatMoney(p.rdExp) + ' 元（占收入 ' + (r > 0 ? (p.rdExp / r * 100).toFixed(2) : 0) + '%）</p>';
+  html += '<p>财务费用：' + formatMoney(p.finExp) + ' 元（占收入 ' + (r > 0 ? (p.finExp / r * 100).toFixed(2) : 0) + '%）</p>';
+  html += '<p>折旧摊销：' + formatMoney(p.da) + ' 元（占收入 ' + (r > 0 ? (p.da / r * 100).toFixed(2) : 0) + '%）</p>';
+  html += '<hr style="border:none;border-top:1px solid var(--border);margin:10px 0;">';
+  html += '<p>营业利润：<strong style="color:' + (opProfit >= 0 ? 'var(--success)' : 'var(--danger)') + ';">' + formatMoney(opProfit) + '</strong> 元（营业利润率 ' + opMargin.toFixed(2) + '%）</p>';
+  html += '<p>EBITDA：<strong>' + formatMoney(ebitda) + '</strong> 元（EBITDA利润率 ' + ebitdaMargin.toFixed(2) + '%）</p>';
+  html += '<p>利润总额：' + formatMoney(ebt) + ' 元</p>';
+  html += '<p>所得税（' + p.taxRate + '%）：' + formatMoney(tax) + ' 元</p>';
+  html += '<p style="font-size:16px;">净利润：<strong style="color:' + (np >= 0 ? 'var(--success)' : 'var(--danger)') + ';">' + formatMoney(np) + '</strong> 元（净利率 ' + npm.toFixed(2) + '%）</p>';
+
+  document.getElementById('res').innerHTML = html;
+
+  if(document.getElementById('tab-detail').classList.contains('active')){
+    drawPieChart();
+    drawWaterfallChart();
+    renderCostDetail();
+  }
+}
+
+function formatMoney(n){
+  if(Math.abs(n) >= 100000000) return (n / 100000000).toFixed(2) + '亿';
+  if(Math.abs(n) >= 10000) return (n / 10000).toFixed(2) + '万';
+  return ToolBox.formatNumber(n, 2);
+}
+
+function calcReverse(){
+  var revRev = +document.getElementById('revRev').value || 0;
+  var mtype1 = document.getElementById('marginType1').value;
+  var target1 = +document.getElementById('targetMargin1').value || 0;
+  var expRatio1 = +document.getElementById('expRatio1').value || 0;
+
+  var res1 = '';
+  var targetCost = 0;
+  if(revRev > 0){
+    if(mtype1 === 'gross'){
+      targetCost = revRev * (1 - target1 / 100);
+      res1 += '<p>目标毛利率：<strong>' + target1 + '%</strong></p>';
+      res1 += '<p>目标毛利：<strong>' + formatMoney(revRev * target1 / 100) + '</strong> 元</p>';
+      res1 += '<p style="font-size:16px;">目标营业成本：<strong style="color:var(--primary);">' + formatMoney(targetCost) + '</strong> 元</p>';
+    } else if(mtype1 === 'operating'){
+      var opProfit = revRev * target1 / 100;
+      var expAmt = revRev * expRatio1 / 100;
+      targetCost = revRev - opProfit - expAmt;
+      res1 += '<p>目标营业利润率：<strong>' + target1 + '%</strong></p>';
+      res1 += '<p>目标营业利润：<strong>' + formatMoney(opProfit) + '</strong> 元</p>';
+      res1 += '<p>期间费用（' + expRatio1 + '%）：' + formatMoney(expAmt) + ' 元</p>';
+      res1 += '<p style="font-size:16px;">目标营业成本：<strong style="color:var(--primary);">' + formatMoney(targetCost) + '</strong> 元</p>';
+      res1 += '<p>对应毛利率：<strong>' + (revRev > 0 ? (revRev - targetCost) / revRev * 100 : 0).toFixed(2) + '%</strong></p>';
+    } else if(mtype1 === 'net'){
+      var pretax = target1 / (1 - (+document.getElementById('taxRate').value || 25) / 100);
+      var netProfit = revRev * target1 / 100;
+      var expAmt2 = revRev * expRatio1 / 100;
+      targetCost = revRev - revRev * pretax / 100 - expAmt2;
+      res1 += '<p>目标净利率：<strong>' + target1 + '%</strong></p>';
+      res1 += '<p>目标净利润：<strong>' + formatMoney(netProfit) + '</strong> 元</p>';
+      res1 += '<p>期间费用（' + expRatio1 + '%）：' + formatMoney(expAmt2) + ' 元</p>';
+      res1 += '<p style="font-size:16px;">目标营业成本：<strong style="color:var(--primary);">' + formatMoney(targetCost) + '</strong> 元</p>';
+      res1 += '<p>对应毛利率：<strong>' + (revRev > 0 ? (revRev - targetCost) / revRev * 100 : 0).toFixed(2) + '%</strong></p>';
+    } else if(mtype1 === 'ebitda'){
+      var ebitdaTarget = revRev * target1 / 100;
+      var expAmt3 = revRev * expRatio1 / 100;
+      targetCost = revRev - ebitdaTarget - expAmt3;
+      res1 += '<p>目标EBITDA利润率：<strong>' + target1 + '%</strong></p>';
+      res1 += '<p>目标EBITDA：<strong>' + formatMoney(ebitdaTarget) + '</strong> 元</p>';
+      res1 += '<p>期间费用（' + expRatio1 + '%）：' + formatMoney(expAmt3) + ' 元</p>';
+      res1 += '<p style="font-size:16px;">目标营业成本+折旧：<strong style="color:var(--primary);">' + formatMoney(targetCost) + '</strong> 元</p>';
+    }
+  }
+  document.getElementById('revRes1').innerHTML = res1 || '<p style="color:var(--text-muted);">请输入收入和目标利润率</p>';
+
+  var costCost = +document.getElementById('costCost').value || 0;
+  var mtype2 = document.getElementById('marginType2').value;
+  var target2 = +document.getElementById('targetMargin2').value || 0;
+  var tax2 = +document.getElementById('taxRate2').value || 25;
+
+  var res2 = '';
+  var targetPrice = 0;
+  if(costCost > 0){
+    if(mtype2 === 'gross'){
+      targetPrice = costCost / (1 - target2 / 100);
+      res2 += '<p>目标毛利率：<strong>' + target2 + '%</strong></p>';
+      res2 += '<p>单位成本：' + ToolBox.formatNumber(costCost, 2) + ' 元</p>';
+      res2 += '<p style="font-size:16px;">目标售价：<strong style="color:var(--primary);">' + ToolBox.formatNumber(targetPrice, 2) + '</strong> 元</p>';
+      res2 += '<p>单位毛利：<strong>' + ToolBox.formatNumber(targetPrice - costCost, 2) + '</strong> 元</p>';
+      res2 += '<p>成本加成率：<strong>' + ((targetPrice - costCost) / costCost * 100).toFixed(2) + '%</strong></p>';
+    } else if(mtype2 === 'markup'){
+      targetPrice = costCost * (1 + target2 / 100);
+      res2 += '<p>目标成本加成率：<strong>' + target2 + '%</strong></p>';
+      res2 += '<p>单位成本：' + ToolBox.formatNumber(costCost, 2) + ' 元</p>';
+      res2 += '<p style="font-size:16px;">目标售价：<strong style="color:var(--primary);">' + ToolBox.formatNumber(targetPrice, 2) + '</strong> 元</p>';
+      res2 += '<p>对应毛利率：<strong>' + ((targetPrice - costCost) / targetPrice * 100).toFixed(2) + '%</strong></p>';
+    } else if(mtype2 === 'operating'){
+      var opRatio = target2 / 100;
+      var expRatio = 0.25;
+      targetPrice = costCost / (1 - opRatio - expRatio);
+      res2 += '<p>目标营业利润率：<strong>' + target2 + '%</strong></p>';
+      res2 += '<p>单位成本：' + ToolBox.formatNumber(costCost, 2) + ' 元</p>';
+      res2 += '<p>假设期间费用率：25%</p>';
+      res2 += '<p style="font-size:16px;">目标售价：<strong style="color:var(--primary);">' + ToolBox.formatNumber(targetPrice, 2) + '</strong> 元</p>';
+      res2 += '<p>对应毛利率：<strong>' + ((targetPrice - costCost) / targetPrice * 100).toFixed(2) + '%</strong></p>';
+    } else if(mtype2 === 'net'){
+      var netRatio = target2 / 100;
+      var pretaxRatio = netRatio / (1 - tax2 / 100);
+      var expRatio2 = 0.25;
+      targetPrice = costCost / (1 - pretaxRatio - expRatio2);
+      res2 += '<p>目标净利率：<strong>' + target2 + '%</strong></p>';
+      res2 += '<p>税率：' + tax2 + '%</p>';
+      res2 += '<p>单位成本：' + ToolBox.formatNumber(costCost, 2) + ' 元</p>';
+      res2 += '<p>假设期间费用率：25%</p>';
+      res2 += '<p style="font-size:16px;">目标售价：<strong style="color:var(--primary);">' + ToolBox.formatNumber(targetPrice, 2) + '</strong> 元</p>';
+      res2 += '<p>对应毛利率：<strong>' + ((targetPrice - costCost) / targetPrice * 100).toFixed(2) + '%</strong></p>';
+    }
+  }
+  document.getElementById('revRes2').innerHTML = res2 || '<p style="color:var(--text-muted);">请输入成本和目标利润率</p>';
+
+  calcBatch();
+}
+
+function calcBatch(){
+  var start = +document.getElementById('batchStart').value || 10;
+  var end = +document.getElementById('batchEnd').value || 100;
+  var step = +document.getElementById('batchStep').value || 10;
+  if(step <= 0) step = 10;
+  if(end <= start) end = start + step * 10;
+
+  var margins = [
+    +document.getElementById('batchM1').value || 20,
+    +document.getElementById('batchM2').value || 30,
+    +document.getElementById('batchM3').value || 40,
+    +document.getElementById('batchM4').value || 50
+  ];
+
+  var headers = ['成本\\毛利率'].concat(margins.map(function(m){ return m + '%'; }));
+  var rows = [];
+  for(var c = start; c <= end; c += step){
+    var row = [ToolBox.formatNumber(c, 2)];
+    margins.forEach(function(m){
+      var price = c / (1 - m / 100);
+      row.push(ToolBox.formatNumber(price, 2));
+    });
+    rows.push(row);
+  }
+  document.getElementById('batchTable').innerHTML = ToolBox.createTable(headers, rows);
+}
+
+function drawPieChart(){
+  var p = getParams();
+  var canvas = document.getElementById('pieChart');
+  var ctx = canvas.getContext('2d');
+  var dpr = window.devicePixelRatio || 1;
+  var rect = canvas.getBoundingClientRect();
+  canvas.width = rect.width * dpr;
+  canvas.height = 320 * dpr;
+  ctx.scale(dpr, dpr);
+
+  var w = rect.width;
+  var h = 320;
+  var cx = w / 2;
+  var cy = h / 2;
+  var radius = Math.min(w, h) * 0.38;
+  var innerRadius = radius * 0.55;
+
+  ctx.clearRect(0, 0, w, h);
+
+  var segments = [
+    {label: '营业成本', value: p.cogs, color: '#f44336'},
+    {label: '销售费用', value: p.sellingExp, color: '#ff9800'},
+    {label: '管理费用', value: p.adminExp, color: '#ffc107'},
+    {label: '研发费用', value: p.rdExp, color: '#9c27b0'},
+    {label: '财务费用', value: p.finExp, color: '#3f51b5'},
+    {label: '折旧摊销', value: p.da, color: '#00bcd4'},
+    {label: '所得税', value: Math.max(0, (p.revenue - p.cogs - p.sellingExp - p.adminExp - p.rdExp - p.finExp) * p.taxRate / 100), color: '#795548'},
+    {label: '净利润', value: Math.max(0, p.revenue - p.cogs - p.sellingExp - p.adminExp - p.rdExp - p.finExp - Math.max(0, (p.revenue - p.cogs - p.sellingExp - p.adminExp - p.rdExp - p.finExp) * p.taxRate / 100)), color: '#4caf50'}
+  ];
+
+  var total = segments.reduce(function(s, seg){ return s + seg.value; }, 0);
+  if(total === 0) return;
+
+  var startAngle = -Math.PI / 2;
+  segments.forEach(function(seg){
+    if(seg.value <= 0) return;
+    var angle = seg.value / total * Math.PI * 2;
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.arc(cx, cy, radius, startAngle, startAngle + angle);
+    ctx.closePath();
+    ctx.fillStyle = seg.color;
+    ctx.fill();
+    startAngle += angle;
+  });
+
+  ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--card-bg') || '#fff';
+  ctx.beginPath();
+  ctx.arc(cx, cy, innerRadius, 0, Math.PI * 2);
+  ctx.fill();
+
+  var isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+  ctx.fillStyle = isDark ? '#e8eaed' : '#333';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.font = 'bold 20px -apple-system,sans-serif';
+  ctx.fillText('总成本', cx, cy - 12);
+  ctx.font = 'bold 18px -apple-system,sans-serif';
+  ctx.fillStyle = resolveCanvasColor('var(--primary)','#FF6B35');
+  ctx.fillText(formatMoney(total), cx, cy + 14);
+
+  var legendHtml = '';
+  segments.forEach(function(seg){
+    if(seg.value <= 0) return;
+    var pct = total > 0 ? seg.value / total * 100 : 0;
+    legendHtml += '<div class="legend-item"><div class="legend-dot" style="background:' + seg.color + ';"></div>' + seg.label + ' ' + pct.toFixed(1) + '%</div>';
+  });
+  document.getElementById('pieLegend').innerHTML = legendHtml;
+}
+
+function renderCostDetail(){
+  var p = getParams();
+  var r = p.revenue;
+  var items = [
+    {name: '营业成本', val: p.cogs, color: '#f44336'},
+    {name: '销售费用', val: p.sellingExp, color: '#ff9800'},
+    {name: '管理费用', val: p.adminExp, color: '#ffc107'},
+    {name: '研发费用', val: p.rdExp, color: '#9c27b0'},
+    {name: '财务费用', val: p.finExp, color: '#3f51b5'},
+    {name: '折旧摊销', val: p.da, color: '#00bcd4'}
+  ];
+
+  var totalCost = p.cogs + p.sellingExp + p.adminExp + p.rdExp + p.finExp + p.da;
+  var html = '';
+  items.forEach(function(item){
+    var pct = r > 0 ? item.val / r * 100 : 0;
+    var costPct = totalCost > 0 ? item.val / totalCost * 100 : 0;
+    html += '<div class="bar-row"><span class="bar-lbl" style="width:120px;">' + item.name + '</span>';
+    html += '<div class="bar-bg"><div class="bar-fill" style="width:' + (r > 0 ? item.val / r * 100 : 0) + '%;background:' + item.color + ';">' + formatMoney(item.val) + '</div></div>';
+    html += '<span style="width:120px;text-align:right;font-size:12px;color:var(--text-muted);">占收入 ' + pct.toFixed(2) + '% / 占成本 ' + costPct.toFixed(1) + '%</span></div>';
+  });
+  document.getElementById('costDetail').innerHTML = html;
+}
+
+function drawWaterfallChart(){
+  var p = getParams();
+  var canvas = document.getElementById('waterfallChart');
+  var ctx = canvas.getContext('2d');
+  var dpr = window.devicePixelRatio || 1;
+  var rect = canvas.getBoundingClientRect();
+  canvas.width = rect.width * dpr;
+  canvas.height = 280 * dpr;
+  ctx.scale(dpr, dpr);
+
+  var w = rect.width;
+  var h = 280;
+  var padding = {left: 60, right: 20, top: 30, bottom: 50};
+  var chartW = w - padding.left - padding.right;
+  var chartH = h - padding.top - padding.bottom;
+
+  ctx.clearRect(0, 0, w, h);
+
+  var items = [
+    {label: '营业收入', val: p.revenue, type: 'total'},
+    {label: '营业成本', val: -p.cogs, type: 'expense'},
+    {label: '销售费用', val: -p.sellingExp, type: 'expense'},
+    {label: '管理费用', val: -p.adminExp, type: 'expense'},
+    {label: '研发费用', val: -p.rdExp, type: 'expense'},
+    {label: '财务费用', val: -p.finExp, type: 'expense'},
+    {label: '净利润', val: p.revenue - p.cogs - p.sellingExp - p.adminExp - p.rdExp - p.finExp - Math.max(0, (p.revenue - p.cogs - p.sellingExp - p.adminExp - p.rdExp - p.finExp) * p.taxRate / 100), type: 'total'}
+  ];
+
+  var maxVal = p.revenue;
+  var minVal = 0;
+  var barW = Math.min(chartW / items.length * 0.6, 50);
+  var gap = chartW / items.length;
+
+  var isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+  var gridColor = isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.06)';
+  var textColor = isDark ? '#a8b0bf' : '#666';
+
+  ctx.strokeStyle = gridColor;
+  ctx.lineWidth = 1;
+  var zeroY = padding.top + chartH * 0.85;
+  ctx.beginPath();
+  ctx.moveTo(padding.left, zeroY);
+  ctx.lineTo(w - padding.right, zeroY);
+  ctx.stroke();
+
+  ctx.font = '11px -apple-system,sans-serif';
+  ctx.fillStyle = textColor;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'top';
+
+  var scale = chartH * 0.85 / maxVal;
+  var cumulative = 0;
+
+  items.forEach(function(item, i){
+    var x = padding.left + gap * i + gap / 2;
+    var val = item.val;
+    var barH = Math.abs(val) * scale;
+
+    if(item.type === 'total'){
+      var y = zeroY - val * scale;
+      ctx.fillStyle = val >= 0 ? '#667eea' : '#f44336';
+      ctx.fillRect(x - barW / 2, y, barW, barH);
+      cumulative = val;
+    } else {
+      var startY = zeroY - cumulative * scale;
+      var endY = startY - val * scale;
+      ctx.fillStyle = val < 0 ? '#f44336' : '#4caf50';
+      ctx.fillRect(x - barW / 2, Math.min(startY, endY), barW, Math.abs(barH));
+      cumulative += val;
+
+      ctx.strokeStyle = isDark ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.2)';
+      ctx.setLineDash([3, 3]);
+      ctx.beginPath();
+      ctx.moveTo(x + barW / 2, endY);
+      ctx.lineTo(x + gap - barW / 2, endY);
+      ctx.stroke();
+      ctx.setLineDash([]);
+    }
+
+    ctx.fillStyle = textColor;
+    ctx.save();
+    ctx.translate(x, h - padding.bottom + 4);
+    ctx.rotate(-Math.PI / 6);
+    ctx.textAlign = 'right';
+    ctx.fillText(item.label, 0, 0);
+    ctx.restore();
+
+    ctx.fillStyle = val >= 0 ? '#4caf50' : '#f44336';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'bottom';
+    var labelY = val >= 0 ? (zeroY - Math.max(cumulative, cumulative - val) * scale - 4) : (zeroY - Math.min(cumulative, cumulative - val) * scale + 14);
+    if(item.type === 'total') labelY = zeroY - val * scale - 4;
+    ctx.fillText(formatMoney(val), x, labelY);
+  });
+}
+
+function calcDupont(){
+  var ni = +document.getElementById('dupontNI').value || 0;
+  var rev = +document.getElementById('dupontRev').value || 0;
+  var assets = +document.getElementById('dupontAssets').value || 0;
+  var equity = +document.getElementById('dupontEquity').value || 0;
+
+  var npm = rev > 0 ? ni / rev * 100 : 0;
+  var at = assets > 0 ? rev / assets : 0;
+  var em = equity > 0 ? assets / equity : 0;
+  var roe = npm / 100 * at * em * 100;
+  var roa = assets > 0 ? ni / assets * 100 : 0;
+
+  var html = '';
+  html += '<div class="dupont-layer">';
+  html += '<div class="dupont-box top"><div class="label">净资产收益率 ROE</div><div class="value">' + roe.toFixed(2) + '%</div></div>';
+  html += '</div>';
+  html += '<div class="dupont-line"></div>';
+  html += '<div class="dupont-layer">';
+  html += '<div class="dupont-box"><div class="label">销售净利率</div><div class="value">' + npm.toFixed(2) + '%</div></div>';
+  html += '<span class="dupont-arrow">×</span>';
+  html += '<div class="dupont-box"><div class="label">总资产周转率</div><div class="value">' + at.toFixed(3) + '</div></div>';
+  html += '<span class="dupont-arrow">×</span>';
+  html += '<div class="dupont-box"><div class="label">权益乘数</div><div class="value">' + em.toFixed(2) + '</div></div>';
+  html += '</div>';
+  html += '<div class="dupont-line" style="margin-left:10%;"></div>';
+  html += '<div class="dupont-layer">';
+  html += '<div class="dupont-box"><div class="label">净利润</div><div class="value">' + formatMoney(ni) + '</div></div>';
+  html += '<div class="dupont-box"><div class="label">营业收入</div><div class="value">' + formatMoney(rev) + '</div></div>';
+  html += '<div class="dupont-box"><div class="label">总资产</div><div class="value">' + formatMoney(assets) + '</div></div>';
+  html += '<div class="dupont-box"><div class="label">净资产</div><div class="value">' + formatMoney(equity) + '</div></div>';
+  html += '</div>';
+
+  document.getElementById('dupontChart').innerHTML = html;
+
+  var resHtml = '';
+  resHtml += '<p><strong>杜邦分析结果：</strong></p>';
+  resHtml += '<p>净资产收益率（ROE）：<strong style="color:var(--primary);font-size:16px;">' + roe.toFixed(2) + '%</strong></p>';
+  resHtml += '<p>总资产收益率（ROA）：<strong>' + roa.toFixed(2) + '%</strong></p>';
+  resHtml += '<p>销售净利率：' + npm.toFixed(2) + '%</p>';
+  resHtml += '<p>总资产周转率：' + at.toFixed(3) + ' 次</p>';
+  resHtml += '<p>权益乘数：' + em.toFixed(2) + ' 倍</p>';
+  resHtml += '<p>资产负债率：<strong>' + (equity > 0 ? (1 - 1 / em) * 100 : 0).toFixed(2) + '%</strong></p>';
+  resHtml += '<hr style="border:none;border-top:1px solid var(--border);margin:10px 0;">';
+  resHtml += '<p><strong>分析说明：</strong></p>';
+  if(roe >= 15){
+    resHtml += '<p style="color:var(--success);">✅ ROE 较高（≥15%），盈利能力较强</p>';
+  } else if(roe >= 8){
+    resHtml += '<p style="color:#ff9800;">⚠️ ROE 一般（8%-15%），处于中等水平</p>';
+  } else {
+    resHtml += '<p style="color:var(--danger);">❌ ROE 较低（<8%），盈利能力有待提升</p>';
+  }
+  if(em > 3){
+    resHtml += '<p style="color:var(--danger);">⚠️ 权益乘数较高，财务杠杆较大，需注意风险</p>';
+  } else if(em < 1.5){
+    resHtml += '<p style="color:#ff9800;">💡 权益乘数较低，财务杠杆利用不足</p>';
+  }
+
+  document.getElementById('dupontRes').innerHTML = resHtml;
+}
+
+function renderIndustries(){
+  var html = '';
+  industryData.forEach(function(ind, i){
+    html += '<div class="industry-card" onclick="showIndustryDetail(' + i + ')">';
+    html += '<div class="industry-name">' + ind.name + '</div>';
+    html += '<div class="industry-metrics">';
+    html += '<span>毛利 ' + ind.gross + '%</span>';
+    html += '<span>净利 ' + ind.net + '%</span>';
+    html += '</div></div>';
+  });
+  document.getElementById('industryGrid').innerHTML = html;
+}
+
+function showIndustryDetail(idx){
+  var ind = industryData[idx];
+  var p = getParams();
+  var r = p.revenue;
+
+  var html = '';
+  html += '<h3>📊 ' + ind.name + ' 行业参考数据</h3>';
+  html += '<div class="margin-grid">';
+  html += '<div class="margin-card"><div class="val">' + ind.gross + '%</div><div class="lbl">行业毛利率</div></div>';
+  html += '<div class="margin-card"><div class="val">' + ind.operating + '%</div><div class="lbl">行业营业利润率</div></div>';
+  html += '<div class="margin-card"><div class="val">' + ind.ebitda + '%</div><div class="lbl">行业EBITDA率</div></div>';
+  html += '<div class="margin-card"><div class="val">' + ind.net + '%</div><div class="lbl">行业净利率</div></div>';
+  html += '</div>';
+
+  if(r > 0){
+    var gp = r - p.cogs;
+    var gpm = gp / r * 100;
+    var opProfit = gp - p.sellingExp - p.adminExp - p.rdExp;
+    var opMargin = opProfit / r * 100;
+    var ebitda = opProfit + p.da;
+    var ebitdaMargin = ebitda / r * 100;
+    var ebt = opProfit - p.finExp;
+    var tax = ebt > 0 ? ebt * p.taxRate / 100 : 0;
+    var np = ebt - tax;
+    var npm = np / r * 100;
+
+    html += '<hr style="border:none;border-top:1px solid var(--border);margin:12px 0;">';
+    html += '<p><strong>与行业对比：</strong></p>';
+    html += '<div class="bar-row"><span class="bar-lbl">毛利率</span><div class="bar-bg"><div class="bar-fill" style="width:' + Math.min(100, gpm / ind.gross * 100) + '%;background:' + (gpm >= ind.gross ? '#4caf50' : '#f44336') + ';">' + gpm.toFixed(1) + '% / ' + ind.gross + '%</div></div><span style="margin-left:8px;font-size:12px;color:' + (gpm >= ind.gross ? 'var(--success)' : 'var(--danger)') + ';">' + (gpm >= ind.gross ? '✓ 高于' : '✗ 低于') + '行业</span></div>';
+    html += '<div class="bar-row"><span class="bar-lbl">营业利润率</span><div class="bar-bg"><div class="bar-fill" style="width:' + Math.min(100, Math.max(0, opMargin) / ind.operating * 100) + '%;background:' + (opMargin >= ind.operating ? '#4caf50' : '#f44336') + ';">' + opMargin.toFixed(1) + '% / ' + ind.operating + '%</div></div><span style="margin-left:8px;font-size:12px;color:' + (opMargin >= ind.operating ? 'var(--success)' : 'var(--danger)') + ';">' + (opMargin >= ind.operating ? '✓ 高于' : '✗ 低于') + '行业</span></div>';
+    html += '<div class="bar-row"><span class="bar-lbl">EBITDA率</span><div class="bar-bg"><div class="bar-fill" style="width:' + Math.min(100, Math.max(0, ebitdaMargin) / ind.ebitda * 100) + '%;background:' + (ebitdaMargin >= ind.ebitda ? '#4caf50' : '#f44336') + ';">' + ebitdaMargin.toFixed(1) + '% / ' + ind.ebitda + '%</div></div><span style="margin-left:8px;font-size:12px;color:' + (ebitdaMargin >= ind.ebitda ? 'var(--success)' : 'var(--danger)') + ';">' + (ebitdaMargin >= ind.ebitda ? '✓ 高于' : '✗ 低于') + '行业</span></div>';
+    html += '<div class="bar-row"><span class="bar-lbl">净利率</span><div class="bar-bg"><div class="bar-fill" style="width:' + Math.min(100, Math.max(0, npm) / ind.net * 100) + '%;background:' + (npm >= ind.net ? '#4caf50' : '#f44336') + ';">' + npm.toFixed(1) + '% / ' + ind.net + '%</div></div><span style="margin-left:8px;font-size:12px;color:' + (npm >= ind.net ? 'var(--success)' : 'var(--danger)') + ';">' + (npm >= ind.net ? '✓ 高于' : '✗ 低于') + '行业</span></div>';
+
+    var targetGp = r * ind.gross / 100;
+    var targetCost = r - targetGp;
+    html += '<hr style="border:none;border-top:1px solid var(--border);margin:12px 0;">';
+    html += '<p><strong>达到行业平均水平的目标：</strong></p>';
+    html += '<p>目标毛利率 ' + ind.gross + '%：目标成本 <strong>' + formatMoney(targetCost) + '</strong> 元（需' + (p.cogs > targetCost ? '降低' : '增加') + ' ' + formatMoney(Math.abs(p.cogs - targetCost)) + ' 元）</p>';
+    html += '<p>目标净利率 ' + ind.net + '%：目标净利润 <strong>' + formatMoney(r * ind.net / 100) + '</strong> 元</p>';
+  }
+
+  document.getElementById('industryDetail').innerHTML = html;
+}
+
+function switchTab(name){
+  document.querySelectorAll('.tab').forEach(function(t){
+    t.classList.toggle('active', t.dataset.tab === name);
+  });
+  document.querySelectorAll('.tab-content').forEach(function(c){
+    c.classList.toggle('active', c.id === 'tab-' + name);
+  });
+  if(name === 'detail'){
+    drawPieChart();
+    drawWaterfallChart();
+    renderCostDetail();
+  }
+  if(name === 'dupont') calcDupont();
+  if(name === 'reverse'){ calcReverse(); }
+}
+
+document.querySelectorAll('.tab').forEach(function(t){
+  t.addEventListener('click', function(){
+    switchTab(t.dataset.tab);
+  });
+});
+
+var _resizeTimer;
+window.addEventListener('resize', function(){
+  clearTimeout(_resizeTimer);
+  _resizeTimer = setTimeout(function(){
+    if(document.getElementById('tab-detail').classList.contains('active')){
+      drawPieChart();
+      drawWaterfallChart();
+    }
+  }, 150);
+});
+
+renderIndustries();
+calc();
+calcReverse();
+calcDupont();
+</script><script>
+// tool-intro折叠交互
+document.addEventListener('DOMContentLoaded',function(){
+  var headers=document.querySelectorAll('.tool-intro-header');
+  headers.forEach(function(h){
+    h.addEventListener('click',function(){
+      this.parentElement.classList.toggle('open');
+    });
+  });
+});
+</script>
+<!-- SEO 介紹區塊 -->
+
+</div>
+
+</div>
+
+<!-- 相關工具 -->
+<div class="related-tools" data-related-tools="1">
+  <h3 class="related-tools-title">🔗 相關工具</h3>
+  <div class="related-tools-grid">
+    <a href="/zh-tw/tools/finance/text-reverse-words.html" class="related-tool-card">
+      <span class="rt-icon">📝</span>
+      <span class="rt-info"><span class="rt-name">單詞順序反轉 - 免費文本處理工具，線上單詞順序反轉 | ToolBox免費線上工具箱</span><span class="rt-desc">單詞順序反轉</span></span>
+    </a>
+    <a href="/zh-tw/tools/finance/word-counter.html" class="related-tool-card">
+      <span class="rt-icon">📝</span>
+      <span class="rt-info"><span class="rt-name">字數統計 - 免費文本處理工具，字數統計工具 | ToolBox免費線上工具箱</span><span class="rt-desc">字數統計工具</span></span>
+    </a>
+    <a href="/zh-tw/tools/finance/word-wrap.html" class="related-tool-card">
+      <span class="rt-icon">📝</span>
+      <span class="rt-info"><span class="rt-name">自動換行 - 免費文本處理工具，線上自動換行 | ToolBox免費線上工具箱</span><span class="rt-desc">自動換行</span></span>
+    </a>
+    <a href="/zh-tw/tools/finance/word-frequency.html" class="related-tool-card">
+      <span class="rt-icon">📝</span>
+      <span class="rt-info"><span class="rt-name">詞頻統計 - 免費文本處理工具，詞頻統計工具 | ToolBox免費線上工具箱</span><span class="rt-desc">詞頻統計工具</span></span>
+    </a>
+    <a href="/zh-tw/tools/finance/mirror-text.html" class="related-tool-card">
+      <span class="rt-icon">📝</span>
+      <span class="rt-info"><span class="rt-name">映象文字 - 免費文本處理工具，線上映象文字 | ToolBox免費線上工具箱</span><span class="rt-desc">映象文字</span></span>
+    </a>
+    <a href="/zh-tw/tools/finance/wifi-password-show.html" class="related-tool-card">
+      <span class="rt-icon">🎲</span>
+      <span class="rt-info"><span class="rt-name">WiFi 密碼顯示 - 免費生成器工具，線上WiFi 密碼顯示 | ToolBox免費線上工具箱</span><span class="rt-desc">WiFi 密碼顯示</span></span>
+    </a>
+  </div>
+</div>
+<div class="tool-intro open" id="toolIntro">
+  <div class="tool-intro-header">
+    <span class="intro-icon-wrap"><span class="intro-icon">📖</span>關於「利潤率計算器」</span>
+    <span class="arrow">▼</span>
+  </div>
+  <div class="tool-intro-body">
+    <h4><span class="h4-icon">📝</span>工具簡介</h4>
+    <p>利潤率計算器。專業金融計算工具，採用標準財務公式，資料本地處理不洩露。</p>
+    <h4><span class="h4-icon">✨</span>功能特點</h4>
+    <ul class="intro-features">
+      <li>採用標準金融計算公式</li>
+      <li>支援多種引數靈活配置</li>
+      <li>即時計算，結果即時顯示</li>
+      <li>財務資料不上傳，安全可靠</li>
+    </ul>
+    <h4><span class="h4-icon">🎯</span>使用場景</h4>
+    <ul class="intro-scenes">
+      <li>個人理財與投資規劃</li>
+      <li>貸款還款方案計算</li>
+      <li>投資收益分析</li>
+      <li>學習金融知識</li>
+    </ul>
+    <h4><span class="h4-icon">💬</span>常見問題</h4>
+      <div class="intro-faq-item"><div class="intro-faq-q">這個工具是免費的嗎？</div><div class="intro-faq-a">完全免費，無需註冊，直接在瀏覽器中使用。</div></div>
+      <div class="intro-faq-item"><div class="intro-faq-q">計算結果準確嗎？</div><div class="intro-faq-a">採用標準金融計算公式，結果準確可靠，可放心參考。</div></div>
+      <div class="intro-faq-item"><div class="intro-faq-q">我的財務資料安全嗎？</div><div class="intro-faq-a">安全。所有計算都在瀏覽器本地完成，資料不會上傳到任何伺服器。</div></div>
+  </div>
+</div>
+<!-- /SEO 介紹區塊 -->
+</body>
+</html>

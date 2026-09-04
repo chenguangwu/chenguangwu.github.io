@@ -1,0 +1,699 @@
+<!DOCTYPE html>
+<html lang="zh-TW" data-opencc-locale="zh-tw">
+<head>
+
+<script src="/js/tool-page-runtime.js" defer></script>
+<!-- TOOLBOX-TOOL-RUNTIME -->
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="toolbox" content="cat=generate,industry=it,icon=💳,bg=#e8f5e9">
+<title>隨機銀行卡號生成器 - ToolBox</title>
+<link rel="canonical" href="https://chenguangwu.github.io/zh-tw/tools/it/bank-card-generator.html">
+<meta property="og:title" content="随机银行卡号生成器">
+<meta property="og:description" content="基于真实银行 BIN 前缀，使用 Luhn 算法生成符合校验规则的随机银行卡号">
+<meta property="og:url" content="https://chenguangwu.github.io/zh-tw/tools/it/bank-card-generator.html">
+<meta name="twitter:card" content="summary">
+<meta name="description" content="基于真实银行 BIN 前缀，使用 Luhn 算法生成符合校验规则的随机银行卡号">
+<link rel="preload" as="style" href="/css/common.css" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="/css/common.css"></noscript>
+<script>window.__tbq=window.__tbq||[];window.ToolBox=window.ToolBox||{};['initToolTheme','addToolStyles','showToast','toast','copyText','copyToClipboard','copyFromElement','downloadText','injectPrivacyBadge','toggleFavTool','addToRecentTool','toggleToolTheme','applyTheme'].forEach(function(k){if(typeof window.ToolBox[k]!=='function')window.ToolBox[k]=function(){window.__tbq.push([k,[].slice.call(arguments)]);};});</script><!-- TOOLBOX-API-STUB -->
+<script src="/js/common.js" defer></script>
+<style>
+  .gen-section {
+    margin-bottom: 20px;
+  }
+  .gen-section h3 {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .option-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+  .option-btn {
+    padding: 6px 16px;
+    border: 1.5px solid var(--border-color);
+    border-radius: 20px;
+    background: var(--bg-card);
+    color: var(--text-primary);
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .option-btn:hover {
+    border-color: var(--primary);
+    color: var(--primary);
+  }
+  .option-btn.active {
+    background: var(--primary);
+    border-color: var(--primary);
+    color: #fff;
+  }
+  .card-result {
+    background: var(--bg-body);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 14px 16px;
+    margin-bottom: 10px;
+    position: relative;
+    transition: background 0.2s;
+  }
+  .card-result:hover {
+    border-color: var(--primary);
+  }
+  .card-number {
+    font-family: 'Courier New', Consolas, monospace;
+    font-size: 18px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    color: var(--text-primary);
+    margin-bottom: 6px;
+    word-break: break-all;
+  }
+  .card-meta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .card-tag {
+    display: inline-block;
+    padding: 2px 10px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 500;
+  }
+  .tag-bank {
+    background: rgba(255,107,53,0.12);
+    color: #FF6B35;
+  }
+  .tag-type {
+    background: rgba(124,58,237,0.12);
+    color: #7C3AED;
+  }
+  .card-copy-btn {
+    position: absolute;
+    top: 14px;
+    right: 14px;
+    width: 32px;
+    height: 32px;
+    border: none;
+    border-radius: 8px;
+    background: var(--bg-card);
+    color: var(--text-secondary);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+    transition: all 0.2s;
+  }
+  .card-copy-btn:hover {
+    background: var(--primary);
+    color: #fff;
+  }
+  .verify-section {
+    margin-top: 24px;
+    padding-top: 20px;
+    border-top: 1px dashed var(--border-color);
+  }
+  .verify-result {
+    margin-top: 12px;
+    padding: 12px 16px;
+    border-radius: 12px;
+    font-size: 14px;
+    display: none;
+  }
+  .verify-result.valid {
+    background: rgba(16,185,129,0.10);
+    color: #10B981;
+    border: 1px solid rgba(16,185,129,0.25);
+  }
+  .verify-result.invalid {
+    background: rgba(239,68,68,0.10);
+    color: #EF4444;
+    border: 1px solid rgba(239,68,68,0.25);
+  }
+  .disclaimer {
+    margin-top: 20px;
+    padding: 12px 16px;
+    background: rgba(245,158,11,0.10);
+    border: 1px solid rgba(245,158,11,0.25);
+    border-radius: 12px;
+    font-size: 12px;
+    color: var(--text-secondary);
+    line-height: 1.6;
+  }
+  .disclaimer strong {
+    color: #F59E0B;
+  }
+  .result-area {
+    max-height: 500px;
+    overflow-y: auto;
+  }
+  .empty-state {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--text-muted);
+    font-size: 14px;
+  }
+  .empty-state .icon {
+    font-size: 40px;
+    margin-bottom: 10px;
+    opacity: 0.5;
+  }
+  .gen-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+  .gen-header .toolbar {
+    margin-bottom: 0;
+  }
+</style>
+
+
+
+<meta property="og:image" content="https://chenguangwu.github.io/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="ToolBox - 5000+免费在线工具">
+<meta name="twitter:image" content="https://chenguangwu.github.io/og-image.png">
+<meta name="twitter:image:alt" content="ToolBox - 5000+免费在线工具">
+    <meta property="og:type" content="website">
+    <meta name="twitter:title" content="随机银行卡号生成器">
+    <meta name="twitter:description" content="基于真实银行 BIN 前缀，使用 Luhn 算法生成符合校验规则的随机银行卡号">
+<!-- TOOLBOX-WEBAPP-LD -->
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"隨機銀行卡號生成器","url":"https://chenguangwu.github.io/zh-tw/tools/it/bank-card-generator.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":"zh-TW","description":"基於真實銀行 BIN 字首，使用 Luhn 演算法生成符合校驗規則的隨機銀行卡號","image":"https://chenguangwu.github.io/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}</script>
+<meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
+<meta http-equiv="X-Content-Type-Options" content="nosniff">
+<meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
+<!-- TOOLBOX-SECURITY -->
+
+<script src="/js/privacy.js" defer></script>
+<!-- TOOLBOX-PRIVACY-SCRIPT -->
+
+<script src="/js/metrics.js" defer></script>
+<!-- TOOLBOX-METRICS-SCRIPT -->
+
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"首頁","item":"https://chenguangwu.github.io/zh-tw/"},{"@type":"ListItem","position":2,"name":"IT 開發","item":"https://chenguangwu.github.io/zh-tw/tools/it/index.html"},{"@type":"ListItem","position":3,"name":"隨機銀行卡號生成器","item":"https://chenguangwu.github.io/zh-tw/tools/it/bank-card-generator.html"}]}</script>
+
+<script src="/js/i18n.js" defer></script>
+<script src="/js/tool-i18n.js" defer></script>
+<!-- TOOLBOX-I18N-SCRIPT -->
+
+
+<meta name="title-en" content="Bank Card Generator - ToolBox">
+<meta name="desc-en" content="Bank Card Generator - generate results online, free and instant. Free online tool on ToolBox — 100% client-side, no data uploaded, no install. Part of the ...">
+<!-- TOOLBOX-HREFLANG -->
+<link rel="alternate" hreflang="zh-CN" href="https://chenguangwu.github.io/tools/it/bank-card-generator.html">
+<link rel="alternate" hreflang="zh-TW" href="https://chenguangwu.github.io/zh-tw/tools/it/bank-card-generator.html">
+<link rel="alternate" hreflang="zh-HK" href="https://chenguangwu.github.io/zh-hk/tools/it/bank-card-generator.html">
+<link rel="alternate" hreflang="en-US" href="https://chenguangwu.github.io/tools/it/bank-card-generator.html?lang=en-US">
+<link rel="alternate" hreflang="x-default" href="https://chenguangwu.github.io/tools/it/bank-card-generator.html">
+<meta property="og:locale" content="zh_TW">
+<meta property="og:locale:alternate" content="zh_CN">
+<meta property="og:locale:alternate" content="zh_HK">
+<meta property="og:locale:alternate" content="en_US">
+</head>
+<body>
+<h1 class="sr-only">隨機銀行卡號生成器</h1>
+
+
+<div class="nav">
+  <a href="/zh-tw/index.html">← ToolBox</a>
+  <span>/ 隨機銀行卡號生成器</span>
+  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()">🌙</button>
+</div>
+
+
+
+
+
+<nav class="breadcrumb" aria-label="麵包屑導航" data-breadcrumb="1">
+  <a href="/zh-tw/index.html">首頁</a>
+  <span class="bc-sep">‹</span>
+  <a href="/zh-tw/tools/it/index.html">💻 IT 開發</a>
+  <span class="bc-sep">‹</span>
+  <span class="bc-current">隨機銀行卡號生成器</span>
+</nav>
+<div class="container">
+  <div class="card tool-card-accent" style="--tool-accent:#FF6B35;">
+    <h2 data-zh="💳 隨機銀行卡號生成器">💳 Bank Card Generator</h2>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:20px;" data-zh="
+      基於真實銀行 BIN 字首，使用 Luhn 演算法生成符合校驗規則的隨機銀行卡號
+    ">Bank Card Generator is available directly in your browser, with no data uploaded.</p>
+
+    <!-- 生成選項 -->
+    <div class="gen-section">
+      <h3>🔢 生成數量</h3>
+      <div class="option-group" id="countGroup">
+        <button type="button" class="option-btn active" data-value="1">1 張</button>
+        <button type="button" class="option-btn" data-value="5">5 張</button>
+        <button type="button" class="option-btn" data-value="10">10 張</button>
+        <button type="button" class="option-btn" data-value="50">50 張</button>
+      </div>
+    </div>
+
+    <div class="gen-section">
+      <h3>🏦 選擇銀行</h3>
+      <div class="option-group" id="bankGroup">
+        <button type="button" class="option-btn active" data-value="random">隨機銀行</button>
+        <button type="button" class="option-btn" data-value="icbc">工商銀行</button>
+        <button type="button" class="option-btn" data-value="ccb">建設銀行</button>
+        <button type="button" class="option-btn" data-value="abc">農業銀行</button>
+        <button type="button" class="option-btn" data-value="boc">中國銀行</button>
+        <button type="button" class="option-btn" data-value="cmb">招商銀行</button>
+        <button type="button" class="option-btn" data-value="bocom">交通銀行</button>
+        <button type="button" class="option-btn" data-value="psbc">郵儲銀行</button>
+      </div>
+    </div>
+
+    <div class="gen-section">
+      <h3>💳 卡型別</h3>
+      <div class="option-group" id="typeGroup">
+        <button type="button" class="option-btn active" data-value="debit">簽帳金融卡</button>
+        <button type="button" class="option-btn" data-value="credit">信用卡</button>
+      </div>
+    </div>
+
+    <!-- 生成按鈕 -->
+    <div class="gen-header">
+      <div class="toolbar">
+        <button type="button" class="btn primary" onclick="generateCards()">🎲 生成卡號</button>
+        <button type="button" class="btn" onclick="copyAll()">📋 複製全部</button>
+      </div>
+    </div>
+
+    <!-- 結果展示區 -->
+    <div class="result-area" id="resultArea">
+      <div class="empty-state">
+        <div class="icon">💳</div>
+        <p>點選「生成卡號」按鈕生成隨機銀行卡號</p>
+      </div>
+    </div>
+
+    <!-- 重要宣告 -->
+    <div class="disclaimer">
+      <strong>⚠️ 重要宣告：</strong>本工具生成的卡號僅供軟體測試、開發和教學使用，
+      不具有任何金融交易功能。嚴禁用於任何非法用途，使用本工具產生的任何後果由使用者自行承擔。
+    </div>
+
+    <!-- 卡號驗證區 -->
+    <div class="verify-section">
+      <h3>✅ 卡號驗證</h3>
+      <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;">
+        輸入銀行卡號，驗證 Luhn 校驗是否通過並識別髮卡銀行
+      </p>
+      <div class="input-row" style="margin-bottom:12px;">
+        <label>卡號</label>
+        <input type="text" id="verifyInput" placeholder="請輸入銀行卡號" maxlength="19"
+          style="flex:1;font-family:'Courier New',Consolas,monospace;letter-spacing:1px;">
+      </div>
+      <div class="toolbar" style="margin-bottom:0;">
+        <button type="button" class="btn primary" onclick="verifyCard()">驗證卡號</button>
+        <button type="button" class="btn" onclick="clearVerify()">清空</button>
+      </div>
+      <div class="verify-result" id="verifyResult"></div>
+    </div></div>
+
+<!-- TOOLBOX-DEEP-DIVE -->
+<style>
+.deep-dive{max-width:960px;margin:16px auto;padding:0 16px;}
+.deep-dive > .card{margin-bottom:0;}
+@media(max-width:600px){.deep-dive{margin:14px auto;padding:0 12px;}}
+.deep-dive .dd-list{margin:8px 0 16px;padding-left:20px;}
+.deep-dive .dd-list li{margin:6px 0;line-height:1.75;}
+.deep-dive .dd-example{background:var(--card-bg,#fff);border:1px solid var(--border,#eee);border-radius:10px;padding:12px 14px;margin:8px 0 16px;}
+.deep-dive .dd-ex-title{font-weight:600;color:var(--tool-accent,#FF6B35);margin-bottom:6px;}
+.deep-dive .dd-ex-body{font-size:13px;line-height:1.85;color:var(--text,#333);word-break:break-word;}
+.deep-dive .dd-faq{margin:8px 0 4px;}
+.deep-dive .dd-faq dt{font-weight:600;margin-top:10px;color:var(--text,#333);}
+.deep-dive .dd-faq dd{margin:4px 0 0;font-size:13px;line-height:1.85;color:var(--text-muted,#666);}
+
+</style>
+<section class="deep-dive" data-deep-dive="1">
+<div class="card">
+<h2>📚 深度解析：隨機銀行卡號生成器</h2>
+<h3>💡 常見使用場景</h3>
+<ul class="dd-list">
+<li>當你在it相關場景中需要基於“Bank Card Generator”進行快速計算或校驗時，可先用該工具生成一版標準結果。</li>
+<li>在教學、方案評審、除錯聯調時，可用固定樣本快速復現實驗流程，驗證引數選擇是否正確。</li>
+<li>用於將人工操作轉為可複用步驟：先確認輸入型別，再觀察輸出變化，便於排查規則誤差。</li>
+</ul>
+<div class="dd-example"><div class="dd-ex-title">標準化使用示例</div><div class="dd-ex-body">以一組典型輸入為例：先按業務口徑補充必要欄位，執行工具並記錄輸出；再對比另一組邊界輸入，檢查工具在異常輸入下是否給出穩定提示，便於快速形成操作 SOP。</div></div>
+<h3>❓ 常見問題（FAQ）</h3>
+<dl class="dd-faq">
+<dt>該工具適用於哪些 it 場景？</dt><dd>只要資料可對映到本工具支援的引數結構，就可用於日常分析、篩選、校驗等流程；多數情況下適合前置評估和結果複核。</dd>
+<dt>結果可信度如何保證？</dt><dd>工具預設按前端可見規則即時計算，不依賴外部服務；如有偏差，建議結合歷史基準值做交叉確認。</dd>
+</dl>
+</div>
+</section>
+<!-- 注意事項區塊 -->
+<div class="tool-notes" style="--tool-accent:#FF6B35;">
+  <div class="tool-notes-title">⚠️ 使用說明與注意事項</div>
+  <ul>
+      <li>本工具純前端執行，資料不會上傳到伺服器</li>
+      <li>建議在主流瀏覽器（Chrome/Safari/Firefox/Edge）中使用</li>
+      <li>計算結果僅供參考，請以實際應用場景為準</li>
+  </ul>
+</div>
+<!-- /注意事項區塊 -->
+</div>
+
+<script>
+// ==================== 银行BIN前缀数据 ====================
+const BANK_DATA = {
+  icbc: {
+    name: '工商银行',
+    debit:  ['622202','622203','622208','621226','621227','621225','620054','621281','900000','955880','955881','955882','955883'],
+    credit: ['622230','622231','622232','622233','622234','622235','622236','622237','622238','622239','625800','625900','622848','628288']
+  },
+  ccb: {
+    name: '建设银行',
+    debit:  ['622700','622280','621700','436742','622516','622517','622518','622519','621284','621667','621668','621669','622260','622262','622263'],
+    credit: ['532420','532421','532422','436718','489592','528820','531658','531666','531668','544210','544211','544212','622168','622166','622167','628266','622680','622688']
+  },
+  abc: {
+    name: '农业银行',
+    debit:  ['622848','622849','620059','621336','621671','621672','621335','622841','622842','622843','622844','622845','622846','622847','95599','95598','95597'],
+    credit: ['622820','622821','622822','622823','625996','625997','625998','625999','525998','520083','622836','622837','622838','622839','552599','544243']
+  },
+  boc: {
+    name: '中国银行',
+    debit:  ['621660','621661','621662','621663','621665','621666','621667','621668','621669','621670','456351','456352','601382','621256','621257','621258','621259','622273','621282','621790'],
+    credit: ['622518','622513','622514','622515','512315','512316','512411','512412','518477','518478','518479','518480','622530','622531','622532','628288','622576','625900','625910','625911','625912','625913','625140','625141','625142','620040','620041','620210','620211','620011']
+  },
+  cmb: {
+    name: '招商银行',
+    debit:  ['622588','621485','621486','621487','621488','621489','622580','622581','622582','622583','622578','622579','621490','621491','621492','621493','621494','621495','621496','621497','621498','621499'],
+    credit: ['622575','622576','622577','622578','622579','622581','622582','622588','622525','622526','622527','439188','439189','439226','439227','524047','524048','524049','518810','518811','625803','625804','625805','625806','625807','625808','625809','628260','628261']
+  },
+  bocom: {
+    name: '交通银行',
+    debit:  ['622260','622261','622262','622263','622264','622265','622266','622267','622268','622269','622270','621069','621071','621072','621073','621074','621075','621076','621077','621078','621079'],
+    credit: ['622250','622251','622252','622253','622254','622255','622256','622257','622258','622259','625928','625929','625930','625931','625932','625933','625934','625935','625936','625937','521899','458123','458124','458125','458126','628216','628217','628218','628219']
+  },
+  psbc: {
+    name: '邮储银行',
+    debit:  ['622150','622151','622152','622153','622154','622155','622156','622157','622158','622159','621790','621791','621792','621793','621794','621795','621796','621797','621798','621799','622188','622189','968000','968001'],
+    credit: ['622599','622600','622601','622602','622603','625919','625920','625921','625922','625923','625924','625925','625926','625927','518810','628220','628221','628222','628223','628224','628225','625900']
+  }
+};
+
+// ==================== 状态管理 ====================
+let selectedCount = 1;
+let selectedBank = 'random';
+let selectedType = 'debit';
+let generatedCards = [];
+
+// ==================== 选项组交互 ====================
+function setupOptionGroup(groupId, callback) {
+  const group = document.getElementById(groupId);
+  if (!group) return;
+  group.addEventListener('click', (e) => {
+    const btn = e.target.closest('.option-btn');
+    if (!btn) return;
+    group.querySelectorAll('.option-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    callback(btn.dataset.value);
+  });
+}
+
+setupOptionGroup('countGroup', (val) => { selectedCount = parseInt(val); });
+setupOptionGroup('bankGroup', (val) => { selectedBank = val; });
+setupOptionGroup('typeGroup', (val) => { selectedType = val; });
+
+// ==================== Luhn 算法 ====================
+function luhnCheck(num) {
+  let sum = 0;
+  let isEven = false;
+  for (let i = num.length - 1; i >= 0; i--) {
+    let digit = parseInt(num[i], 10);
+    if (isNaN(digit)) return false;
+    if (isEven) {
+      digit *= 2;
+      if (digit > 9) digit -= 9;
+    }
+    sum += digit;
+    isEven = !isEven;
+  }
+  return sum % 10 === 0;
+}
+
+function luhnGenerate(prefix, length) {
+  let num = prefix;
+  while (num.length < length - 1) {
+    num += Math.floor(Math.random() * 10);
+  }
+  // 计算校验位
+  let sum = 0;
+  let isEven = true;
+  for (let i = num.length - 1; i >= 0; i--) {
+    let digit = parseInt(num[i], 10);
+    if (isEven) {
+      digit *= 2;
+      if (digit > 9) digit -= 9;
+    }
+    sum += digit;
+    isEven = !isEven;
+  }
+  const check = (10 - sum % 10) % 10;
+  return num + check;
+}
+
+// ==================== 格式化卡号 ====================
+function formatCardNumber(num) {
+  // 每4位加一个空格
+  return num.replace(/(.{4})/g, '$1 ').trim();
+}
+
+// ==================== 识别银行 ====================
+function identifyBank(cardNum) {
+  for (const [code, data] of Object.entries(BANK_DATA)) {
+    const allBins = [...data.debit, ...data.credit];
+    for (const bin of allBins) {
+      if (cardNum.startsWith(bin)) {
+        const isCredit = data.credit.some(b => cardNum.startsWith(b));
+        return { code, name: data.name, type: isCredit ? '信用卡' : '借记卡' };
+      }
+    }
+  }
+  return null;
+}
+
+// ==================== 生成卡号 ====================
+function generateOneCard() {
+  // 确定银行
+  const bankKeys = Object.keys(BANK_DATA);
+  let bankCode = selectedBank;
+  if (bankCode === 'random') {
+    bankCode = bankKeys[Math.floor(Math.random() * bankKeys.length)];
+  }
+
+  const bank = BANK_DATA[bankCode];
+  if (!bank) return null;
+
+  // 确定卡类型
+  const cardType = selectedType;
+  const bins = bank[cardType];
+  if (!bins || bins.length === 0) return null;
+
+  // 随机选一个BIN
+  const bin = bins[Math.floor(Math.random() * bins.length)];
+
+  // 确定卡号长度：借记卡通常19位，信用卡通常16位
+  const length = cardType === 'credit' ? 16 : (Math.random() > 0.5 ? 19 : 16);
+
+  // 生成卡号
+  const cardNum = luhnGenerate(bin, length);
+
+  return {
+    number: cardNum,
+    formatted: formatCardNumber(cardNum),
+    bank: bank.name,
+    type: cardType === 'credit' ? '信用卡' : '借记卡',
+    typeClass: cardType === 'credit' ? 'credit' : 'debit'
+  };
+}
+
+function generateCards() {
+  generatedCards = [];
+  for (let i = 0; i < selectedCount; i++) {
+    const card = generateOneCard();
+    if (card) generatedCards.push(card);
+  }
+  renderResults();
+}
+
+// ==================== 渲染结果 ====================
+function renderResults() {
+  const area = document.getElementById('resultArea');
+  if (generatedCards.length === 0) {
+    area.innerHTML = '<div class="empty-state"><div class="icon">💳</div><p>点击「生成卡号」按钮生成随机银行卡号</p></div>';
+    return;
+  }
+
+  let html = '';
+  generatedCards.forEach((card, idx) => {
+    html += `
+      <div class="card-result">
+        <div class="card-number">${card.formatted}</div>
+        <div class="card-meta">
+          <span class="card-tag tag-bank">${card.bank}</span>
+          <span class="card-tag tag-type">${card.type}</span>
+        </div>
+        <button type="button" class="card-copy-btn" onclick="copySingle(${idx})" title="复制卡号">📋</button>
+      </div>`;
+  });
+  area.innerHTML = html;
+}
+
+// ==================== 复制功能 ====================
+function copySingle(idx) {
+  const card = generatedCards[idx];
+  if (!card) return;
+  ToolBox.copyText(card.number, () => {
+    ToolBox.showToast(i18nText('toast.msg093'));
+  });
+}
+
+function copyAll() {
+  if (generatedCards.length === 0) {
+    ToolBox.showToast(i18nText('toast.msg653'));
+    return;
+  }
+  const text = generatedCards.map(c => `${c.number}  ${c.bank} ${c.type}`).join('\n');
+  ToolBox.copyText(text, () => {
+    ToolBox.showToast(`已复制 ${generatedCards.length} 个卡号`);
+  });
+}
+
+// ==================== 卡号验证 ====================
+function verifyCard() {
+  const input = document.getElementById('verifyInput');
+  const result = document.getElementById('verifyResult');
+  const num = (input.value || '').replace(/\s/g, '');
+
+  if (!num) {
+    result.className = 'verify-result invalid';
+    result.style.display = 'block';
+    result.innerHTML = '请输入银行卡号';
+    return;
+  }
+
+  if (!/^\d{13,19}$/.test(num)) {
+    result.className = 'verify-result invalid';
+    result.style.display = 'block';
+    result.innerHTML = '❌ 卡号格式无效：银行卡号应为 13-19 位数字';
+    return;
+  }
+
+  const valid = luhnCheck(num);
+  const bank = identifyBank(num);
+
+  if (valid) {
+    let info = '✅ <strong>Luhn 校验通过</strong>，该卡号格式有效';
+    if (bank) {
+      info += `<br>🏦 发卡银行：<strong>${bank.name}</strong>　💳 卡类型：${bank.type}`;
+    } else {
+      info += '<br>⚠️ 未能识别发卡银行（可能不在本工具的 BIN 数据库中）';
+    }
+    result.className = 'verify-result valid';
+    result.style.display = 'block';
+    result.innerHTML = info;
+  } else {
+    result.className = 'verify-result invalid';
+    result.style.display = 'block';
+    result.innerHTML = '❌ <strong>Luhn 校验未通过</strong>，该卡号格式无效';
+    if (bank) {
+      result.innerHTML += `<br>🏦 可能的发卡银行：${bank.name}`;
+    }
+  }
+}
+
+function clearVerify() {
+  document.getElementById('verifyInput').value = '';
+  document.getElementById('verifyResult').style.display = 'none';
+}
+
+// 监听验证输入框回车
+document.getElementById('verifyInput').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') verifyCard();
+});
+</script>
+
+<!-- SEO 介紹區塊 -->
+
+</div>
+
+</div>
+
+<!-- 相關工具 -->
+<div class="related-tools" data-related-tools="1">
+  <h3 class="related-tools-title">🔗 相關工具</h3>
+  <div class="related-tools-grid">
+    <a href="/zh-tw/tools/it/properties-parser.html" class="related-tool-card">
+      <span class="rt-icon">🔧</span>
+      <span class="rt-info"><span class="rt-name">.properties 解析器 - 免費開發工具，properties 解析器 | ToolBox免費線上工具箱</span><span class="rt-desc">.properties 解析器</span></span>
+    </a>
+    <a href="/zh-tw/tools/it/ast-viewer.html" class="related-tool-card">
+      <span class="rt-icon">🌳</span>
+      <span class="rt-info"><span class="rt-name">AST抽象語法樹檢視器 - 線上解析JavaScript程式碼生成AST樹形結構，支援節點 | ToolBox免費線上工具箱</span><span class="rt-desc">AST 抽象語法樹檢視器</span></span>
+    </a>
+    <a href="/zh-tw/tools/it/css-minifier.html" class="related-tool-card">
+      <span class="rt-icon">🎨</span>
+      <span class="rt-info"><span class="rt-name">CSS 壓縮/美化工具 - 免費開發工具，CSS 壓縮/格式化/美化 | ToolBox免費線上工具箱</span><span class="rt-desc">CSS 壓縮/格式化/美化</span></span>
+    </a>
+    <a href="/zh-tw/tools/it/css-formatter.html" class="related-tool-card">
+      <span class="rt-icon">🔧</span>
+      <span class="rt-info"><span class="rt-name">CSS 格式化 - 免費開發工具，線上CSS 格式化 | ToolBox免費線上工具箱</span><span class="rt-desc">CSS 格式化</span></span>
+    </a>
+    <a href="/zh-tw/tools/it/cron.html" class="related-tool-card">
+      <span class="rt-icon">⏰</span>
+      <span class="rt-info"><span class="rt-name">Cron 表示式生成器 - 免費開發工具，線上Cron 表示式生成器 | ToolBox免費線上工具箱</span><span class="rt-desc">⏰ Cron 表示式生成器</span></span>
+    </a>
+    <a href="/zh-tw/tools/it/graphql-formatter.html" class="related-tool-card">
+      <span class="rt-icon">🔧</span>
+      <span class="rt-info"><span class="rt-name">GraphQL 格式化 - 免費開發工具，線上GraphQL 格式化 | ToolBox免費線上工具箱</span><span class="rt-desc">◈ GraphQL 格式化</span></span>
+    </a>
+  </div>
+</div>
+<div class="tool-intro open" id="toolIntro">
+  <div class="tool-intro-header">
+    <span class="intro-icon-wrap"><span class="intro-icon">📖</span>關於「隨機銀行卡號生成器」</span>
+    <span class="arrow">▼</span>
+  </div>
+  <div class="tool-intro-body">
+    <h4><span class="h4-icon">📝</span>工具簡介</h4>
+    <p>隨機銀行卡號生成器是一款IT 開發領域的線上工具。專為開發者打造的線上工具，純前端執行，程式碼不離開瀏覽器。</p>
+
+      </div>
+</div>
+<!-- /SEO 介紹區塊 -->
+
+<script>
+// tool-intro折叠交互
+document.addEventListener('DOMContentLoaded',function(){
+  var headers=document.querySelectorAll('.tool-intro-header');
+  headers.forEach(function(h){
+    h.addEventListener('click',function(){
+      this.parentElement.classList.toggle('open');
+    });
+  });
+});
+</script>
+
+</body>
+</html>

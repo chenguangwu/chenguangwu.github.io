@@ -1,0 +1,601 @@
+<!DOCTYPE html>
+<html lang="zh-HK" data-opencc-locale="zh-hk">
+<head>
+
+<script src="/js/tool-page-runtime.js" defer></script>
+<!-- TOOLBOX-TOOL-RUNTIME -->
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="toolbox" content="cat=generate,industry=it,icon=🎲,bg=#e3f2fd">
+<meta name="description" content="在线秒表与倒计时工具，支持开始/暂停/计圈记录每圈耗时，可设多组倒计时提醒，适合运动训练与计时场景，纯前端运行。">
+<meta name="keywords" content="秒表/倒计时,秒表/倒计时在线,在线秒表/倒计时,生成器,IT开发,秒表,倒计时,计圈记录,在线工具,免费工具,ToolBox">
+<meta name="robots" content="index,follow">
+<link rel="canonical" href="https://chenguangwu.github.io/zh-hk/tools/it/stopwatch.html">
+<meta property="og:title" content="计圈记录">
+<meta property="og:description" content="在线秒表与倒计时工具，支持开始/暂停/计圈记录每圈耗时，可设多组倒计时提醒，适合运动训练与计时场景，纯前端运行。">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://chenguangwu.github.io/zh-hk/tools/it/stopwatch.html">
+<meta name="twitter:card" content="summary">
+
+<title>計圈記錄 - ToolBox</title>
+<meta name="theme-color" content="#FF6B35">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<link rel="icon" href="/favicon.ico" sizes="16x16 32x32 48x48">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="preload" as="style" href="/css/common.css" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="/css/common.css"></noscript>
+<script>window.__tbq=window.__tbq||[];window.ToolBox=window.ToolBox||{};['initToolTheme','addToolStyles','showToast','toast','copyText','copyToClipboard','copyFromElement','downloadText','injectPrivacyBadge','toggleFavTool','addToRecentTool','toggleToolTheme','applyTheme'].forEach(function(k){if(typeof window.ToolBox[k]!=='function')window.ToolBox[k]=function(){window.__tbq.push([k,[].slice.call(arguments)]);};});</script><!-- TOOLBOX-API-STUB -->
+<script src="/js/common.js" defer></script>
+<style>
+.tabs{display:flex;gap:8px;margin-bottom:16px;}
+.tabs button{
+  flex:1;padding:12px;border-radius:10px;border:1px solid var(--border);
+  background:#fff;cursor:pointer;font-size:14px;color:var(--text-light);
+}
+.tabs button.active{
+  background:linear-gradient(135deg,var(--primary),var(--primary-dark));
+  color:#fff;border-color:transparent;font-weight:600;
+}
+.timer-display{
+  text-align:center;padding:32px 16px;background:#1a1a2e;color:#fff;
+  border-radius:16px;margin-bottom:16px;
+}
+.timer-time{
+  font-size:64px;font-weight:300;font-family:'SF Mono','Courier New',monospace;
+  line-height:1.2;letter-spacing:2px;
+}
+.timer-ms{font-size:32px;color:#667eea;}
+.timer-label{font-size:13px;color:#888;margin-top:6px;}
+.timer-controls{
+  display:grid;grid-template-columns:repeat(3,1fr);gap:8px;
+}
+.timer-controls .btn{padding:14px;font-size:15px;}
+.lap-list{margin-top:16px;max-height:300px;overflow:auto;}
+.lap-row{
+  display:flex;justify-content:space-between;padding:10px 12px;
+  border-bottom:1px solid var(--border);font-family:monospace;font-size:14px;
+}
+.lap-row.fastest{background:#e8f5e9;color:#2e7d32;}
+.lap-row.slowest{background:#ffebee;color:#c62828;}
+.countdown-input{
+  display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:16px;
+}
+.countdown-input > div{display:flex;flex-direction:column;align-items:center;gap:6px;}
+.countdown-input input{
+  font-size:32px;text-align:center;padding:12px;font-family:monospace;
+  border:2px solid var(--border);border-radius:10px;width:100%;
+}
+.countdown-input label{font-size:12px;color:var(--text-muted);}
+.progress-ring{
+  position:relative;width:200px;height:200px;margin:16px auto;
+}
+.progress-ring svg{transform:rotate(-90deg);}
+.progress-ring .bg{stroke:#eee;fill:none;stroke-width:8;}
+.progress-ring .fg{stroke:var(--primary);fill:none;stroke-width:8;stroke-linecap:round;transition:stroke-dashoffset 0.3s;}
+.progress-text{
+  position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+  text-align:center;
+}
+.preset-btns{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;}
+.preset-btns button{
+  padding:8px 14px;border-radius:16px;border:1px solid var(--border);
+  background:#fff;cursor:pointer;font-size:12px;color:var(--text-light);
+}
+.preset-btns button:hover{border-color:var(--primary);color:var(--primary);}
+@media(max-width:600px){
+  .timer-time{font-size:48px;}
+  .timer-ms{font-size:24px;}
+  .timer-controls{grid-template-columns:1fr;}
+  .countdown-input input{font-size:24px;}
+  .progress-ring{width:160px;height:160px;}
+}
+</style>
+
+
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"秒錶/倒計時","description":"秒錶/倒計時 - 免費生成器工具，計圈記錄。","url":"https://chenguangwu.github.io/zh-hk/tools/it/stopwatch.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Web","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"},"inLanguage":"zh-HK","isAccessibleForFree":true,"browserRequirements":"Requires JavaScript. Requires HTML5.","softwareVersion":"1.0"}</script>
+
+
+
+<meta property="og:image" content="https://chenguangwu.github.io/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="ToolBox - 5000+免费在线工具">
+<meta name="twitter:image" content="https://chenguangwu.github.io/og-image.png">
+<meta name="twitter:image:alt" content="ToolBox - 5000+免费在线工具">
+    <meta name="twitter:title" content="计圈记录">
+    <meta name="twitter:description" content="在线秒表与倒计时工具，支持开始/暂停/计圈记录每圈耗时，可设多组倒计时提醒，适合运动训练与计时场景，纯前端运行。">
+<!-- TOOLBOX-WEBAPP-LD -->
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"計圈記錄","url":"https://chenguangwu.github.io/zh-hk/tools/it/stopwatch.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":"zh-HK","description":"在線秒錶與倒計時工具，支持開始/暫停/計圈記錄每圈耗時，可設多組倒計時提醒，適合運動訓練與計時場景，純前端運行。","image":"https://chenguangwu.github.io/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}</script>
+<meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
+<meta http-equiv="X-Content-Type-Options" content="nosniff">
+<meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
+<!-- TOOLBOX-SECURITY -->
+
+<script src="/js/privacy.js" defer></script>
+<!-- TOOLBOX-PRIVACY-SCRIPT -->
+
+<script src="/js/metrics.js" defer></script>
+<!-- TOOLBOX-METRICS-SCRIPT -->
+
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"首頁","item":"https://chenguangwu.github.io/zh-hk/"},{"@type":"ListItem","position":2,"name":"IT 開發","item":"https://chenguangwu.github.io/zh-hk/tools/it/index.html"},{"@type":"ListItem","position":3,"name":"秒錶/倒計時","item":"https://chenguangwu.github.io/zh-hk/tools/it/stopwatch.html"}]}</script>
+
+<script src="/js/i18n.js" defer></script>
+<script src="/js/tool-i18n.js" defer></script>
+<!-- TOOLBOX-I18N-SCRIPT -->
+
+
+<meta name="title-en" content="Stopwatch - ToolBox">
+<meta name="desc-en" content="Stopwatch - free online tool. Free online tool on ToolBox — 100% client-side, no data uploaded, no install. Part of the IT Development tools.">
+<!-- TOOLBOX-HREFLANG -->
+<link rel="alternate" hreflang="zh-CN" href="https://chenguangwu.github.io/tools/it/stopwatch.html">
+<link rel="alternate" hreflang="zh-TW" href="https://chenguangwu.github.io/zh-tw/tools/it/stopwatch.html">
+<link rel="alternate" hreflang="zh-HK" href="https://chenguangwu.github.io/zh-hk/tools/it/stopwatch.html">
+<link rel="alternate" hreflang="en-US" href="https://chenguangwu.github.io/tools/it/stopwatch.html?lang=en-US">
+<link rel="alternate" hreflang="x-default" href="https://chenguangwu.github.io/tools/it/stopwatch.html">
+<meta property="og:locale" content="zh_HK">
+<meta property="og:locale:alternate" content="zh_CN">
+<meta property="og:locale:alternate" content="zh_TW">
+<meta property="og:locale:alternate" content="en_US">
+</head>
+<body>
+<h1 class="sr-only">秒錶/倒計時</h1>
+
+
+<div class="nav">
+  <a href="/zh-hk/index.html">← ToolBox</a>
+  <span>/ 秒錶/倒計時</span>
+  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()">🌙</button>
+</div>
+
+
+
+
+
+<nav class="breadcrumb" aria-label="麪包屑導航" data-breadcrumb="1">
+  <a href="/zh-hk/index.html">首頁</a>
+  <span class="bc-sep">‹</span>
+  <a href="/zh-hk/tools/it/index.html">💻 IT 開發</a>
+  <span class="bc-sep">‹</span>
+  <span class="bc-current">秒錶/倒計時</span>
+</nav>
+<div class="container">
+  <div class="card tool-card-accent" style="--tool-accent:#FF6B35;">
+    <div class="tabs">
+      <button data-mode="stopwatch" onclick="switchMode('stopwatch')">⏱️ 秒錶</button>
+      <button class="active" data-mode="countdown" onclick="switchMode('countdown')">⏰ 倒計時</button>
+    </div>
+
+    <!-- 秒錶模式 -->
+    <div id="stopwatchMode" style="display:none;">
+      <div class="timer-display">
+        <div class="timer-time" id="swTime">00:00<span class="timer-ms">.00</span></div>
+        <div class="timer-label" id="swLabel">點擊開始計時</div>
+      </div>
+      <div class="timer-controls">
+        <button type="button" class="btn primary" id="swStartBtn" onclick="swToggle()">▶ 開始</button>
+        <button type="button" class="btn" onclick="swLap()" id="swLapBtn" disabled>⏸ 計圈</button>
+        <button type="button" class="btn danger" onclick="swReset()">↺ 重置</button>
+      </div>
+      <div class="lap-list" id="lapList"></div>
+    </div>
+
+    <!-- 倒計時模式 -->
+    <div id="countdownMode">
+      <div class="countdown-input">
+        <div>
+          <input type="number" id="cdHours" value="0" min="0" max="23" oninput="cdUpdatePreset()">
+          <label>小時</label>
+        </div>
+        <div>
+          <input type="number" id="cdMinutes" value="5" min="0" max="59" oninput="cdUpdatePreset()">
+          <label>分鐘</label>
+        </div>
+        <div>
+          <input type="number" id="cdSeconds" value="0" min="0" max="59" oninput="cdUpdatePreset()">
+          <label>秒</label>
+        </div>
+      </div>
+
+      <div class="preset-btns">
+        <button onclick="cdPreset(0,1,0)">1 分鐘</button>
+        <button onclick="cdPreset(0,5,0)">5 分鐘</button>
+        <button onclick="cdPreset(0,10,0)">10 分鐘</button>
+        <button onclick="cdPreset(0,25,0)">🍅 番茄 25 分</button>
+        <button onclick="cdPreset(1,0,0)">1 小時</button>
+        <button onclick="cdPreset(0,0,30)">30 秒</button>
+      </div>
+
+      <div class="progress-ring">
+        <svg width="200" height="200">
+          <circle class="bg" cx="100" cy="100" r="90"/>
+          <circle class="fg" id="cdRing" cx="100" cy="100" r="90" stroke-dasharray="565.48" stroke-dashoffset="0"/>
+        </svg>
+        <div class="progress-text">
+          <div class="timer-time" id="cdTime" style="font-size:32px;color:var(--text);">05:00</div>
+          <div style="font-size:12px;color:var(--text-muted);margin-top:4px;" id="cdStatus">設置時間開始</div>
+        </div>
+      </div>
+
+      <div class="timer-controls">
+        <button type="button" class="btn primary" id="cdStartBtn" onclick="cdToggle()">▶ 開始</button>
+        <button type="button" class="btn" onclick="cdPause()" id="cdPauseBtn" disabled>⏸ 暫停</button>
+        <button type="button" class="btn danger" onclick="cdReset()">↺ 重置</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2 data-zh="📊 計圈記錄">📊 Stopwatch</h2>
+    <div id="lapStats" style="font-size:13px;color:var(--text-muted);text-align:center;padding:20px;">暫無記錄</div>
+  </div>
+
+<!-- TOOLBOX-DEEP-DIVE -->
+<style>
+.deep-dive{max-width:960px;margin:16px auto;padding:0 16px;}
+.deep-dive > .card{margin-bottom:0;}
+@media(max-width:600px){.deep-dive{margin:14px auto;padding:0 12px;}}
+.deep-dive .dd-list{margin:8px 0 16px;padding-left:20px;}
+.deep-dive .dd-list li{margin:6px 0;line-height:1.75;}
+.deep-dive .dd-example{background:var(--card-bg,#fff);border:1px solid var(--border,#eee);border-radius:10px;padding:12px 14px;margin:8px 0 16px;}
+.deep-dive .dd-ex-title{font-weight:600;color:var(--tool-accent,#FF6B35);margin-bottom:6px;}
+.deep-dive .dd-ex-body{font-size:13px;line-height:1.85;color:var(--text,#333);word-break:break-word;}
+.deep-dive .dd-faq{margin:8px 0 4px;}
+.deep-dive .dd-faq dt{font-weight:600;margin-top:10px;color:var(--text,#333);}
+.deep-dive .dd-faq dd{margin:4px 0 0;font-size:13px;line-height:1.85;color:var(--text-muted,#666);}
+
+</style>
+<section class="deep-dive" data-deep-dive="1">
+<div class="card">
+<h2>📚 深度解析：計圈記錄</h2>
+<h3>💡 常見使用場景</h3>
+<ul class="dd-list">
+<li>當你在it相關場景中需要基於“Stopwatch”進行快速計算或校驗時，可先用該工具生成一版標準結果。</li>
+<li>在教學、方案評審、調試聯調時，可用固定樣本快速復現實驗流程，驗證參數選擇是否正確。</li>
+<li>用於將人工操作轉為可複用步驟：先確認輸入類型，再觀察輸出變化，便於排查規則誤差。</li>
+</ul>
+<div class="dd-example"><div class="dd-ex-title">標準化使用示例</div><div class="dd-ex-body">以一組典型輸入為例：先按業務口徑補充必要字段，運行工具並記錄輸出；再對比另一組邊界輸入，檢查工具在異常輸入下是否給出穩定提示，便於快速形成操作 SOP。</div></div>
+<h3>❓ 常見問題（FAQ）</h3>
+<dl class="dd-faq">
+<dt>該工具適用於哪些 it 場景？</dt><dd>只要數據可映射到本工具支持的參數結構，就可用於日常分析、篩選、校驗等流程；多數情況下適合前置評估和結果複核。</dd>
+<dt>結果可信度如何保證？</dt><dd>工具默認按前端可見規則實時計算，不依賴外部服務；如有偏差，建議結合歷史基準值做交叉確認。</dd>
+</dl>
+</div>
+</section>
+<!-- 注意事項區塊 -->
+<div class="tool-notes" style="--tool-accent:#FF6B35;">
+  <div class="tool-notes-title">⚠️ 使用説明與注意事項</div>
+  <ul>
+      <li>本工具純前端運行，數據不會上傳到伺服器</li>
+      <li>建議在主流瀏覽器（Chrome/Safari/Firefox/Edge）中使用</li>
+      <li>計算結果僅供參考，請以實際應用場景為準</li>
+  </ul>
+</div>
+<!-- /注意事項區塊 -->
+</div>
+
+<audio id="beepAudio"></audio>
+
+<script>
+let currentMode = 'countdown';
+let swState = {running: false, startTime: 0, elapsed: 0, laps: []};
+let cdState = {running: false, total: 300000, remaining: 300000, endTime: 0};
+let swRaf = null;
+let cdRaf = null;
+
+function switchMode(mode){
+  currentMode = mode;
+  document.querySelectorAll('.tabs button').forEach(b => b.classList.toggle('active', b.dataset.mode === mode));
+  document.getElementById('stopwatchMode').style.display = mode === 'stopwatch' ? 'block' : 'none';
+  document.getElementById('countdownMode').style.display = mode === 'countdown' ? 'block' : 'none';
+}
+
+// ====== 秒表 ======
+function swToggle(){
+  if(swState.running) swPause();
+  else swStart();
+}
+
+function swStart(){
+  swState.running = true;
+  swState.startTime = Date.now() - swState.elapsed;
+  document.getElementById('swStartBtn').textContent = '⏸ 暂停';
+  document.getElementById('swStartBtn').classList.remove('primary');
+  document.getElementById('swLapBtn').disabled = false;
+  document.getElementById('swLabel').textContent = '计时中...';
+  swLoop();
+}
+
+function swPause(){
+  swState.running = false;
+  document.getElementById('swStartBtn').textContent = '▶ 继续';
+  document.getElementById('swStartBtn').classList.add('primary');
+  document.getElementById('swLapBtn').disabled = true;
+  document.getElementById('swLabel').textContent = '已暂停';
+  cancelAnimationFrame(swRaf);
+}
+
+function swReset(){
+  swState = {running: false, startTime: 0, elapsed: 0, laps: []};
+  cancelAnimationFrame(swRaf);
+  document.getElementById('swStartBtn').textContent = '▶ 开始';
+  document.getElementById('swStartBtn').classList.add('primary');
+  document.getElementById('swLapBtn').disabled = true;
+  document.getElementById('swLabel').textContent = '点击开始计时';
+  document.getElementById('swTime').innerHTML = '00:00<span class="timer-ms">.00</span>';
+  renderLaps();
+}
+
+function swLap(){
+  if(!swState.running) return;
+  swState.laps.push({
+    index: swState.laps.length + 1,
+    total: swState.elapsed,
+    lap: swState.laps.length === 0 ? swState.elapsed : swState.elapsed - swState.laps[swState.laps.length-1].total
+  });
+  renderLaps();
+}
+
+function swLoop(){
+  if(!swState.running) return;
+  swState.elapsed = Date.now() - swState.startTime;
+  updateSwDisplay();
+  swRaf = requestAnimationFrame(swLoop);
+}
+
+function updateSwDisplay(){
+  const t = swState.elapsed;
+  const min = Math.floor(t / 60000);
+  const sec = Math.floor((t % 60000) / 1000);
+  const ms = Math.floor((t % 1000) / 10);
+  document.getElementById('swTime').innerHTML =
+    `${pad(min)}:${pad(sec)}<span class="timer-ms">.${pad(ms)}</span>`;
+}
+
+function renderLaps(){
+  const list = document.getElementById('lapList');
+  const stats = document.getElementById('lapStats');
+  if(swState.laps.length === 0){
+    list.innerHTML = '';
+    stats.innerHTML = '暂无记录';
+    return;
+  }
+  const laps = swState.laps;
+  let fastest = laps[0].lap, slowest = laps[0].lap, fastestIdx = 0, slowestIdx = 0;
+  laps.forEach((l, i) => {
+    if(l.lap < fastest){ fastest = l.lap; fastestIdx = i; }
+    if(l.lap > slowest){ slowest = l.lap; slowestIdx = i; }
+  });
+  list.innerHTML = laps.slice().reverse().map((l, i) => {
+    const realIdx = laps.length - 1 - i;
+    const cls = realIdx === fastestIdx ? 'fastest' : realIdx === slowestIdx ? 'slowest' : '';
+    return `<div class="lap-row ${cls}">
+      <span>第 ${l.index} 圈</span>
+      <span style="color:var(--primary);">+${formatTime(l.lap)}</span>
+      <span style="color:var(--text-muted);">${formatTime(l.total)}</span>
+    </div>`;
+  }).join('');
+  const avg = laps.reduce((s, l) => s + l.lap, 0) / laps.length;
+  stats.innerHTML = `
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;">
+      <div><strong style="color:var(--primary);">${laps.length}</strong><br>总圈数</div>
+      <div><strong style="color:#2e7d32;">${formatTime(fastest)}</strong><br>最快圈</div>
+      <div><strong style="color:#c62828;">${formatTime(slowest)}</strong><br>最慢圈</div>
+      <div><strong>${formatTime(avg)}</strong><br>平均</div>
+    </div>
+  `;
+}
+
+function formatTime(ms){
+  const min = Math.floor(ms / 60000);
+  const sec = Math.floor((ms % 60000) / 1000);
+  const cs = Math.floor((ms % 1000) / 10);
+  return `${pad(min)}:${pad(sec)}.${pad(cs)}`;
+}
+
+function pad(n){ return String(n).padStart(2, '0'); }
+
+// ====== 倒计时 ======
+function cdToggle(){
+  if(cdState.running) return cdPause();
+  if(cdState.remaining <= 0) cdReset();
+  cdStart();
+}
+
+function cdStart(){
+  if(cdState.remaining <= 0){
+    cdState.total = cdGetInputMs();
+    cdState.remaining = cdState.total;
+  }
+  cdState.running = true;
+  cdState.endTime = Date.now() + cdState.remaining;
+  document.getElementById('cdStartBtn').textContent = '⏸ 暂停';
+  document.getElementById('cdStartBtn').classList.remove('primary');
+  document.getElementById('cdPauseBtn').disabled = false;
+  document.getElementById('cdStatus').textContent = '倒计时中...';
+  cdLoop();
+}
+
+function cdPause(){
+  cdState.running = false;
+  document.getElementById('cdStartBtn').textContent = '▶ 继续';
+  document.getElementById('cdStartBtn').classList.add('primary');
+  document.getElementById('cdPauseBtn').disabled = true;
+  document.getElementById('cdStatus').textContent = '已暂停';
+  cancelAnimationFrame(cdRaf);
+}
+
+function cdReset(){
+  cdState = {running: false, total: cdGetInputMs(), remaining: cdGetInputMs(), endTime: 0};
+  cancelAnimationFrame(cdRaf);
+  document.getElementById('cdStartBtn').textContent = '▶ 开始';
+  document.getElementById('cdStartBtn').classList.add('primary');
+  document.getElementById('cdPauseBtn').disabled = true;
+  document.getElementById('cdStatus').textContent = '设置时间开始';
+  cdUpdateDisplay();
+}
+
+function cdLoop(){
+  if(!cdState.running) return;
+  cdState.remaining = Math.max(0, cdState.endTime - Date.now());
+  cdUpdateDisplay();
+  if(cdState.remaining <= 0){
+    cdFinish();
+    return;
+  }
+  cdRaf = requestAnimationFrame(cdLoop);
+}
+
+function cdUpdateDisplay(){
+  const t = cdState.remaining;
+  const hrs = Math.floor(t / 3600000);
+  const min = Math.floor((t % 3600000) / 60000);
+  const sec = Math.floor((t % 60000) / 1000);
+  const text = hrs > 0 ? `${pad(hrs)}:${pad(min)}:${pad(sec)}` : `${pad(min)}:${pad(sec)}`;
+  document.getElementById('cdTime').textContent = text;
+  // 进度环
+  const circumference = 2 * Math.PI * 90;
+  const progress = cdState.total > 0 ? (cdState.total - cdState.remaining) / cdState.total : 0;
+  document.getElementById('cdRing').style.strokeDasharray = circumference;
+  document.getElementById('cdRing').style.strokeDashoffset = circumference * (1 - progress);
+  // 颜色变化
+  if(progress < 0.5) document.getElementById('cdRing').style.stroke = 'var(--primary)';
+  else if(progress < 0.8) document.getElementById('cdRing').style.stroke = '#ff9800';
+  else document.getElementById('cdRing').style.stroke = 'var(--danger)';
+}
+
+function cdFinish(){
+  cdState.running = false;
+  document.getElementById('cdStartBtn').textContent = '▶ 开始';
+  document.getElementById('cdStartBtn').classList.add('primary');
+  document.getElementById('cdPauseBtn').disabled = true;
+  document.getElementById('cdStatus').textContent = '⏰ 时间到！';
+  playBeep();
+  // 闪烁
+  document.querySelector('.timer-display').style.background = '#c62828';
+  setTimeout(() => {
+    document.querySelector('.timer-display').style.background = '';
+  }, 5000);
+}
+
+function cdGetInputMs(){
+  const h = parseInt(document.getElementById('cdHours').value) || 0;
+  const m = parseInt(document.getElementById('cdMinutes').value) || 0;
+  const s = parseInt(document.getElementById('cdSeconds').value) || 0;
+  return (h * 3600 + m * 60 + s) * 1000;
+}
+
+function cdPreset(h, m, s){
+  document.getElementById('cdHours').value = h;
+  document.getElementById('cdMinutes').value = m;
+  document.getElementById('cdSeconds').value = s;
+  cdReset();
+}
+
+function cdUpdatePreset(){
+  if(!cdState.running){
+    cdState.total = cdGetInputMs();
+    cdState.remaining = cdState.total;
+    cdUpdateDisplay();
+  }
+}
+
+// 蜂鸣声
+function playBeep(){
+  try{
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    for(let i = 0; i < 3; i++){
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.frequency.value = 800;
+      osc.type = 'sine';
+      gain.gain.setValueAtTime(0, ctx.currentTime + i * 0.4);
+      gain.gain.linearRampToValueAtTime(0.3, ctx.currentTime + i * 0.4 + 0.05);
+      gain.gain.linearRampToValueAtTime(0, ctx.currentTime + i * 0.4 + 0.35);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(ctx.currentTime + i * 0.4);
+      osc.stop(ctx.currentTime + i * 0.4 + 0.4);
+    }
+  }catch(e){}
+}
+
+// 键盘快捷键
+document.addEventListener('keydown', (e) => {
+  if(e.target.tagName === 'INPUT') return;
+  if(e.code === 'Space'){
+    e.preventDefault();
+    if(currentMode === 'stopwatch') swToggle();
+    else cdToggle();
+  } else if(e.key === 'r' || e.key === 'R'){
+    if(currentMode === 'stopwatch') swReset();
+    else cdReset();
+  } else if(e.key === 'l' || e.key === 'L'){
+    if(currentMode === 'stopwatch') swLap();
+  }
+});
+
+// 初始化
+cdState.total = cdGetInputMs();
+cdState.remaining = cdState.total;
+cdUpdateDisplay();
+</script><script>
+// tool-intro折叠交互
+document.addEventListener('DOMContentLoaded',function(){
+  var headers=document.querySelectorAll('.tool-intro-header');
+  headers.forEach(function(h){
+    h.addEventListener('click',function(){
+      this.parentElement.classList.toggle('open');
+    });
+  });
+});
+</script>
+<!-- SEO 介紹區塊 -->
+
+</div>
+
+</div>
+
+<!-- 相關工具 -->
+<div class="related-tools" data-related-tools="1">
+  <h3 class="related-tools-title">🔗 相關工具</h3>
+  <div class="related-tools-grid">
+    <a href="/zh-hk/tools/it/properties-parser.html" class="related-tool-card">
+      <span class="rt-icon">🔧</span>
+      <span class="rt-info"><span class="rt-name">.properties 解析器 - 免費開發工具，properties 解析器 | ToolBox免費在線工具箱</span><span class="rt-desc">.properties 解析器</span></span>
+    </a>
+    <a href="/zh-hk/tools/it/ast-viewer.html" class="related-tool-card">
+      <span class="rt-icon">🌳</span>
+      <span class="rt-info"><span class="rt-name">AST抽象語法樹查看器 - 在線解析JavaScript代碼生成AST樹形結構，支持節點 | ToolBox免費在線工具箱</span><span class="rt-desc">AST 抽象語法樹查看器</span></span>
+    </a>
+    <a href="/zh-hk/tools/it/css-minifier.html" class="related-tool-card">
+      <span class="rt-icon">🎨</span>
+      <span class="rt-info"><span class="rt-name">CSS 壓縮/美化工具 - 免費開發工具，CSS 壓縮/格式化/美化 | ToolBox免費在線工具箱</span><span class="rt-desc">CSS 壓縮/格式化/美化</span></span>
+    </a>
+    <a href="/zh-hk/tools/it/css-formatter.html" class="related-tool-card">
+      <span class="rt-icon">🔧</span>
+      <span class="rt-info"><span class="rt-name">CSS 格式化 - 免費開發工具，在線CSS 格式化 | ToolBox免費在線工具箱</span><span class="rt-desc">CSS 格式化</span></span>
+    </a>
+    <a href="/zh-hk/tools/it/cron.html" class="related-tool-card">
+      <span class="rt-icon">⏰</span>
+      <span class="rt-info"><span class="rt-name">Cron 表達式生成器 - 免費開發工具，在線Cron 表達式生成器 | ToolBox免費在線工具箱</span><span class="rt-desc">⏰ Cron 表達式生成器</span></span>
+    </a>
+    <a href="/zh-hk/tools/it/graphql-formatter.html" class="related-tool-card">
+      <span class="rt-icon">🔧</span>
+      <span class="rt-info"><span class="rt-name">GraphQL 格式化 - 免費開發工具，在線GraphQL 格式化 | ToolBox免費在線工具箱</span><span class="rt-desc">◈ GraphQL 格式化</span></span>
+    </a>
+  </div>
+</div>
+<div class="tool-intro open" id="toolIntro">
+  <div class="tool-intro-header">
+    <span class="intro-icon-wrap"><span class="intro-icon">📖</span>關於「秒錶/倒計時」</span>
+    <span class="arrow">▼</span>
+  </div>
+  <div class="tool-intro-body">
+    <h4><span class="h4-icon">📝</span>工具簡介</h4>
+    <p data-zh="秒錶/倒計時。專為開發者打造的在線工具，純前端運行，代碼不離開瀏覽器。">Stopwatch is available directly in your browser, with no data uploaded.</p>
+
+      </div>
+</div>
+<!-- /SEO 介紹區塊 -->
+</body>
+</html>

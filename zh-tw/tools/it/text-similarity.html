@@ -1,0 +1,762 @@
+<!DOCTYPE html>
+<html lang="zh-TW" data-opencc-locale="zh-tw">
+<head>
+
+<script src="/js/tool-page-runtime.js" defer></script>
+<!-- TOOLBOX-TOOL-RUNTIME -->
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="toolbox" content="cat=text,industry=it,icon=📊,bg=#e3f2fd">
+<title>文本相似度計算器 - ToolBox</title>
+<link rel="canonical" href="https://chenguangwu.github.io/zh-tw/tools/it/text-similarity.html">
+<meta property="og:title" content="文本相似度计算器">
+<meta property="og:description" content="支持余弦相似度、Jaccard相似度、莱文斯坦距离和汉明距离，中英文均可使用。">
+<meta property="og:url" content="https://chenguangwu.github.io/zh-tw/tools/it/text-similarity.html">
+<meta name="twitter:card" content="summary">
+<meta name="description" content="支持余弦相似度、Jaccard相似度、莱文斯坦距离和汉明距离，中英文均可使用。">
+<link rel="preload" as="style" href="/css/common.css" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="/css/common.css"></noscript>
+<script>window.__tbq=window.__tbq||[];window.ToolBox=window.ToolBox||{};['initToolTheme','addToolStyles','showToast','toast','copyText','copyToClipboard','copyFromElement','downloadText','injectPrivacyBadge','toggleFavTool','addToRecentTool','toggleToolTheme','applyTheme'].forEach(function(k){if(typeof window.ToolBox[k]!=='function')window.ToolBox[k]=function(){window.__tbq.push([k,[].slice.call(arguments)]);};});</script><!-- TOOLBOX-API-STUB -->
+<script src="/js/common.js" defer></script>
+<style>
+.text-pair{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;}
+.text-pair .input-group label{margin-bottom:6px;}
+.text-pair .char-count{font-size:12px;color:var(--text-muted);text-align:right;margin-top:4px;}
+.sim-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:16px 0;}
+.sim-card{background:var(--result-bg);border:1px solid var(--border);border-radius:12px;padding:16px;transition:all 0.2s;}
+.sim-card:hover{border-color:var(--primary);transform:translateY(-1px);}
+.sim-card .sim-title{font-size:13px;font-weight:600;color:var(--heading);margin-bottom:6px;display:flex;align-items:center;gap:6px;}
+.sim-card .sim-value{font-size:28px;font-weight:700;color:var(--primary);margin-bottom:6px;}
+.sim-card .sim-pct{font-size:13px;color:var(--text-muted);margin-bottom:8px;}
+.sim-card .sim-bar{height:8px;background:var(--border);border-radius:4px;overflow:hidden;}
+.sim-card .sim-bar-fill{height:100%;border-radius:4px;background:var(--gradient-primary);transition:width 0.5s ease;}
+.diff-section{margin-top:16px;}
+.diff-label{font-size:13px;font-weight:600;color:var(--heading);margin-bottom:8px;}
+.diff-box{background:var(--result-bg);border:1px solid var(--border);border-radius:12px;padding:14px;font-size:14px;line-height:1.8;word-break:break-all;min-height:60px;white-space:pre-wrap;font-family:'SF Mono','Courier New','Fira Code',monospace;}
+.diff-box .diff-same{color:var(--text);}
+.diff-box .diff-del{background:rgba(239,68,68,0.15);color:#DC2626;text-decoration:line-through;border-radius:3px;padding:1px 2px;}
+.diff-box .diff-ins{background:rgba(16,185,129,0.15);color:#059669;border-radius:3px;padding:1px 2px;}
+.diff-box .diff-empty{color:var(--text-muted);font-style:italic;}
+.lev-steps{margin-top:12px;font-size:13px;color:var(--text-secondary);line-height:1.8;}
+.lev-steps .step{padding:4px 8px;margin:2px 0;background:var(--result-bg);border-radius:6px;display:inline-block;}
+.ngram-option{display:none;}
+.settings-row{display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;margin-bottom:12px;}
+.settings-row > *{flex:1;min-width:120px;}
+.settings-row .ngram-field{flex:0 0 100px;}
+@media(max-width:768px){
+  .text-pair{grid-template-columns:1fr;gap:10px;}
+  .sim-grid{grid-template-columns:1fr;gap:10px;}
+  .sim-card .sim-value{font-size:24px;}
+}
+</style>
+
+
+
+<meta property="og:image" content="https://chenguangwu.github.io/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="ToolBox - 5000+免费在线工具">
+<meta name="twitter:image" content="https://chenguangwu.github.io/og-image.png">
+<meta name="twitter:image:alt" content="ToolBox - 5000+免费在线工具">
+    <meta property="og:type" content="website">
+    <meta name="twitter:title" content="文本相似度计算器">
+    <meta name="twitter:description" content="支持余弦相似度、Jaccard相似度、莱文斯坦距离和汉明距离，中英文均可使用。">
+<!-- TOOLBOX-WEBAPP-LD -->
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"文本相似度計算器","url":"https://chenguangwu.github.io/zh-tw/tools/it/text-similarity.html","applicationCategory":"DeveloperApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":"zh-TW","description":"支援餘弦相似度、Jaccard相似度、萊文斯坦距離和漢明距離，中英文均可使用。","image":"https://chenguangwu.github.io/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}</script>
+<meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
+<meta http-equiv="X-Content-Type-Options" content="nosniff">
+<meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
+<!-- TOOLBOX-SECURITY -->
+
+<script src="/js/privacy.js" defer></script>
+<!-- TOOLBOX-PRIVACY-SCRIPT -->
+
+<script src="/js/metrics.js" defer></script>
+<!-- TOOLBOX-METRICS-SCRIPT -->
+
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"首頁","item":"https://chenguangwu.github.io/zh-tw/"},{"@type":"ListItem","position":2,"name":"IT 開發","item":"https://chenguangwu.github.io/zh-tw/tools/it/index.html"},{"@type":"ListItem","position":3,"name":"文本相似度計算器","item":"https://chenguangwu.github.io/zh-tw/tools/it/text-similarity.html"}]}</script>
+
+<script src="/js/i18n.js" defer></script>
+<script src="/js/tool-i18n.js" defer></script>
+<!-- TOOLBOX-I18N-SCRIPT -->
+
+
+<meta name="title-en" content="Text Similarity - ToolBox">
+<meta name="desc-en" content="Text Similarity - free online tool. Free online tool on ToolBox — 100% client-side, no data uploaded, no install. Part of the IT Development tools.">
+<!-- TOOLBOX-HREFLANG -->
+<link rel="alternate" hreflang="zh-CN" href="https://chenguangwu.github.io/tools/it/text-similarity.html">
+<link rel="alternate" hreflang="zh-TW" href="https://chenguangwu.github.io/zh-tw/tools/it/text-similarity.html">
+<link rel="alternate" hreflang="zh-HK" href="https://chenguangwu.github.io/zh-hk/tools/it/text-similarity.html">
+<link rel="alternate" hreflang="en-US" href="https://chenguangwu.github.io/tools/it/text-similarity.html?lang=en-US">
+<link rel="alternate" hreflang="x-default" href="https://chenguangwu.github.io/tools/it/text-similarity.html">
+<meta property="og:locale" content="zh_TW">
+<meta property="og:locale:alternate" content="zh_CN">
+<meta property="og:locale:alternate" content="zh_HK">
+<meta property="og:locale:alternate" content="en_US">
+</head>
+<body>
+<h1 class="sr-only">文本相似度計算器</h1>
+
+
+<div class="nav">
+  <a href="/zh-tw/index.html">&larr; ToolBox</a>
+  <span>/ 文本相似度計算器</span>
+  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()">&#127769;</button>
+</div>
+
+
+
+
+
+<nav class="breadcrumb" aria-label="麵包屑導航" data-breadcrumb="1">
+  <a href="/zh-tw/index.html">首頁</a>
+  <span class="bc-sep">‹</span>
+  <a href="/zh-tw/tools/it/index.html">💻 IT 開發</a>
+  <span class="bc-sep">‹</span>
+  <span class="bc-current">文本相似度計算器</span>
+</nav>
+<div class="container">
+  <div class="card tool-card-accent" style="--tool-accent:#FF6B35;">
+    <h2 data-zh="&amp;#128202; 文本相似度計算器">&amp;#Text Similarity</h2>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="支援餘弦相似度、Jaccard相似度、萊文斯坦距離和漢明距離，中英文均可使用。">Text Similarity is available directly in your browser, with no data uploaded.</p>
+<!-- TOOLBOX-POLISH -->
+
+<div class="formula-box">
+  <div class="formula-title">📐 工作原理與說明</div>
+  <p class="formula-desc">提供多種文本相似度度量：<b>餘弦相似度</b>（向量空間，TF 或字元 n-gram，∈[0,1]）；<b>Jaccard</b>（交集÷並集）；<b>Levenshtein 編輯距離</b>（最少插入/刪除/替換次數，越小越像）；<b>漢明距離</b>（等長串對應位差異數）。</p>
+  <ul class="formula-list">
+    <li>中英文均可；短文本建議用字元級 n-gram 或編輯距離。</li>
+    <li>餘弦=1 表示方向完全一致，編輯距離=0 表示完全相同。</li>
+    <li>純前端計算，資料不上傳。</li>
+  </ul>
+</div>
+
+
+
+    <!-- 分詞方式設定 -->
+    <div class="settings-row">
+      <div>
+        <label>分詞方式</label>
+        <select id="tokenMode" onchange="onTokenModeChange()">
+          <option value="char">按字元（中文適用）</option>
+          <option value="word">按單詞（英文適用）</option>
+          <option value="bigram">2-gram</option>
+          <option value="trigram">3-gram</option>
+        </select>
+      </div>
+      <div>
+        <label>比較模式</label>
+        <select id="compareMode">
+          <option value="full">完整文本比較</option>
+          <option value="char">逐字元比較（差異高亮）</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- 文本輸入 -->
+    <div class="text-pair">
+      <div class="input-group">
+        <label>文本 A</label>
+        <textarea id="textA" placeholder="输入第一段文本..." oninput="autoCalc()"></textarea>
+        <div class="char-count"><span id="countA">0</span> 字元</div>
+      </div>
+      <div class="input-group">
+        <label>文本 B</label>
+        <textarea id="textB" placeholder="输入第二段文本..." oninput="autoCalc()"></textarea>
+        <div class="char-count"><span id="countB">0</span> 字元</div>
+      </div>
+    </div>
+
+    <!-- 操作按鈕 -->
+    <div class="toolbar">
+      <button type="button" class="btn primary" onclick="calculate()">&#128640; 計算相似度</button>
+      <button type="button" class="btn" onclick="swapText()">&#128260; 交換文本</button>
+      <button type="button" class="btn" onclick="clearAll()">&#128465; 清空</button>
+      <button type="button" class="btn" onclick="copyResult()">&#128203; 複製結果</button>
+    </div>
+
+    <!-- 綜合評分 -->
+    <div id="overallBox" style="display:none;">
+      <div class="stat-grid" id="overallGrid"></div>
+    </div>
+
+    <!-- 相似度結果 -->
+    <div id="resultBox" style="display:none;">
+      <h3 style="margin-top:16px;">相似度分析結果</h3>
+
+      <div class="sim-grid">
+        <div class="sim-card">
+          <div class="sim-title">&#128308; 餘弦相似度</div>
+          <div class="sim-value" id="cosineVal">-</div>
+          <div class="sim-pct" id="cosinePct">-</div>
+          <div class="sim-bar"><div class="sim-bar-fill" id="cosineBar" style="width:0%"></div></div>
+        </div>
+        <div class="sim-card">
+          <div class="sim-title">&#128994; Jaccard 相似度</div>
+          <div class="sim-value" id="jaccardVal">-</div>
+          <div class="sim-pct" id="jaccardPct">-</div>
+          <div class="sim-bar"><div class="sim-bar-fill" id="jaccardBar" style="width:0%"></div></div>
+        </div>
+        <div class="sim-card">
+          <div class="sim-title">&#129351; 萊文斯坦相似度</div>
+          <div class="sim-value" id="levVal">-</div>
+          <div class="sim-pct" id="levPct">-</div>
+          <div class="sim-bar"><div class="sim-bar-fill" id="levBar" style="width:0%"></div></div>
+        </div>
+        <div class="sim-card">
+          <div class="sim-title">&#128302; 漢明距離</div>
+          <div class="sim-value" id="hammingVal">-</div>
+          <div class="sim-pct" id="hammingPct">-</div>
+          <div class="sim-bar"><div class="sim-bar-fill" id="hammingBar" style="width:0%"></div></div>
+        </div>
+      </div>
+
+      <!-- 萊文斯坦編輯詳情 -->
+      <div id="levDetail" class="result-box" style="display:none;">
+        <p><strong>萊文斯坦距離詳情</strong></p>
+        <p id="levDistInfo"></p>
+        <p id="levStepsInfo" class="lev-steps"></p>
+      </div>
+
+      <!-- 漢明距離詳情 -->
+      <div id="hammingDetail" class="result-box" style="display:none;">
+        <p><strong>漢明距離詳情</strong></p>
+        <p id="hammingDistInfo"></p>
+      </div>
+
+      <!-- 差異高亮 -->
+      <div class="diff-section">
+        <div class="diff-label">差異對比（逐字元）</div>
+        <div style="margin-bottom:8px;">
+          <label style="font-size:12px;color:var(--text-muted);margin-bottom:4px;display:block;">文本 A</label>
+          <div class="diff-box" id="diffA"><span class="diff-empty">等待輸入...</span></div>
+        </div>
+        <div>
+          <label style="font-size:12px;color:var(--text-muted);margin-bottom:4px;display:block;">文本 B</label>
+          <div class="diff-box" id="diffB"><span class="diff-empty">等待輸入...</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 工具介紹（SEO） -->
+
+</div>
+
+</div>
+
+<!-- 相關工具 -->
+<div class="related-tools" data-related-tools="1">
+  <h3 class="related-tools-title">🔗 相關工具</h3>
+  <div class="related-tools-grid">
+    <a href="/zh-tw/tools/it/properties-parser.html" class="related-tool-card">
+      <span class="rt-icon">🔧</span>
+      <span class="rt-info"><span class="rt-name">.properties 解析器 - 免費開發工具，properties 解析器 | ToolBox免費線上工具箱</span><span class="rt-desc">.properties 解析器</span></span>
+    </a>
+    <a href="/zh-tw/tools/it/ast-viewer.html" class="related-tool-card">
+      <span class="rt-icon">🌳</span>
+      <span class="rt-info"><span class="rt-name">AST抽象語法樹檢視器 - 線上解析JavaScript程式碼生成AST樹形結構，支援節點 | ToolBox免費線上工具箱</span><span class="rt-desc">AST 抽象語法樹檢視器</span></span>
+    </a>
+    <a href="/zh-tw/tools/it/css-minifier.html" class="related-tool-card">
+      <span class="rt-icon">🎨</span>
+      <span class="rt-info"><span class="rt-name">CSS 壓縮/美化工具 - 免費開發工具，CSS 壓縮/格式化/美化 | ToolBox免費線上工具箱</span><span class="rt-desc">CSS 壓縮/格式化/美化</span></span>
+    </a>
+    <a href="/zh-tw/tools/it/css-formatter.html" class="related-tool-card">
+      <span class="rt-icon">🔧</span>
+      <span class="rt-info"><span class="rt-name">CSS 格式化 - 免費開發工具，線上CSS 格式化 | ToolBox免費線上工具箱</span><span class="rt-desc">CSS 格式化</span></span>
+    </a>
+    <a href="/zh-tw/tools/it/cron.html" class="related-tool-card">
+      <span class="rt-icon">⏰</span>
+      <span class="rt-info"><span class="rt-name">Cron 表示式生成器 - 免費開發工具，線上Cron 表示式生成器 | ToolBox免費線上工具箱</span><span class="rt-desc">⏰ Cron 表示式生成器</span></span>
+    </a>
+    <a href="/zh-tw/tools/it/graphql-formatter.html" class="related-tool-card">
+      <span class="rt-icon">🔧</span>
+      <span class="rt-info"><span class="rt-name">GraphQL 格式化 - 免費開發工具，線上GraphQL 格式化 | ToolBox免費線上工具箱</span><span class="rt-desc">◈ GraphQL 格式化</span></span>
+    </a>
+  </div>
+</div>
+<div class="tool-intro" id="toolIntro">
+    <div class="tool-intro-header" onclick="toggleIntro()">
+      <span class="intro-icon-wrap">
+        <span class="intro-icon">&#128218;</span>
+        <span>工具介紹與使用幫助</span>
+      </span>
+      <span class="arrow">&#9660;</span>
+    </div>
+    <div class="tool-intro-body">
+      <p>文本相似度計算器是一款純前端線上工具，支援多種經典演算法同時計算兩段文本的相似程度，所有資料在瀏覽器本地處理，不上傳伺服器。</p>
+
+      <h4><span class="h4-icon">&#127919;</span> 功能特點</h4>
+      <ul class="intro-features">
+        <li>餘弦相似度（Cosine Similarity）</li>
+        <li>Jaccard 相似度</li>
+        <li>萊文斯坦距離（編輯距離）</li>
+        <li>漢明距離</li>
+        <li>多種分詞方式（字元/單詞/N-gram）</li>
+        <li>視覺化進度條展示</li>
+        <li>逐字元差異高亮對比</li>
+        <li>編輯操作步驟詳情</li>
+        <li>深色模式支援</li>
+      </ul>
+
+      <h4><span class="h4-icon">&#128100;</span> 使用場景</h4>
+      <ul class="intro-scenes">
+        <li>論文查重初篩</li>
+        <li>文案對比審查</li>
+        <li>程式碼片段比較</li>
+        <li>翻譯質量評估</li>
+      </ul>
+
+      <h4><span class="h4-icon">&#10067;</span> 常見問題</h4>
+      <div class="intro-faq-item">
+        <div class="intro-faq-q">各種相似度演算法有什麼區別？</div>
+        <div class="intro-faq-a">餘弦相似度基於詞頻向量夾角，適合長文本；Jaccard 基於集合交併比，適合短文本；萊文斯坦距離衡量字元編輯代價，精確但計算量大；漢明距離僅適用於等長字串的逐位比較。</div>
+      </div>
+      <div class="intro-faq-item">
+        <div class="intro-faq-q">中文文本應該選擇哪種分詞方式？</div>
+        <div class="intro-faq-a">建議使用"按字元"模式，每個漢字作為獨立 token。對於英文文本，使用"按單詞"模式效果更好。N-gram 模式適合需要捕捉相鄰字元組合特徵的場景。</div>
+      </div>
+      <div class="intro-faq-item">
+        <div class="intro-faq-q">漢明距離為什麼顯示不適用？</div>
+        <div class="intro-faq-a">漢明距離僅適用於兩段等長字串的逐位對比。如果兩段文本長度不同，該指標無法計算，這是演算法本身的限制。</div>
+      </div>
+    </div>
+  </div>
+
+<!-- TOOLBOX-DEEP-DIVE -->
+<style>
+.deep-dive{max-width:960px;margin:16px auto;padding:0 16px;}
+.deep-dive > .card{margin-bottom:0;}
+@media(max-width:600px){.deep-dive{margin:14px auto;padding:0 12px;}}
+.deep-dive .dd-list{margin:8px 0 16px;padding-left:20px;}
+.deep-dive .dd-list li{margin:6px 0;line-height:1.75;}
+.deep-dive .dd-example{background:var(--card-bg,#fff);border:1px solid var(--border,#eee);border-radius:10px;padding:12px 14px;margin:8px 0 16px;}
+.deep-dive .dd-ex-title{font-weight:600;color:var(--tool-accent,#FF6B35);margin-bottom:6px;}
+.deep-dive .dd-ex-body{font-size:13px;line-height:1.85;color:var(--text,#333);word-break:break-word;}
+.deep-dive .dd-faq{margin:8px 0 4px;}
+.deep-dive .dd-faq dt{font-weight:600;margin-top:10px;color:var(--text,#333);}
+.deep-dive .dd-faq dd{margin:4px 0 0;font-size:13px;line-height:1.85;color:var(--text-muted,#666);}
+
+</style>
+<section class="deep-dive" data-deep-dive="1">
+<div class="card">
+<h2>📚 深度解析：文本相似度計算器</h2>
+<h3>💡 常見使用場景</h3>
+<ul class="dd-list">
+<li>當你在it相關場景中需要基於“&amp;amp;#Text Similarity”進行快速計算或校驗時，可先用該工具生成一版標準結果。</li>
+<li>在教學、方案評審、除錯聯調時，可用固定樣本快速復現實驗流程，驗證引數選擇是否正確。</li>
+<li>用於將人工操作轉為可複用步驟：先確認輸入型別，再觀察輸出變化，便於排查規則誤差。</li>
+</ul>
+<div class="dd-example"><div class="dd-ex-title">標準化使用示例</div><div class="dd-ex-body">以一組典型輸入為例：先按業務口徑補充必要欄位，執行工具並記錄輸出；再對比另一組邊界輸入，檢查工具在異常輸入下是否給出穩定提示，便於快速形成操作 SOP。</div></div>
+<h3>❓ 常見問題（FAQ）</h3>
+<dl class="dd-faq">
+<dt>該工具適用於哪些 it 場景？</dt><dd>只要資料可對映到本工具支援的引數結構，就可用於日常分析、篩選、校驗等流程；多數情況下適合前置評估和結果複核。</dd>
+<dt>結果可信度如何保證？</dt><dd>工具預設按前端可見規則即時計算，不依賴外部服務；如有偏差，建議結合歷史基準值做交叉確認。</dd>
+</dl>
+</div>
+</section>
+<!-- 注意事項區塊 -->
+<div class="tool-notes" style="--tool-accent:#FF6B35;">
+  <div class="tool-notes-title">⚠️ 使用說明與注意事項</div>
+  <ul>
+      <li>本工具純前端執行，資料不會上傳到伺服器</li>
+      <li>建議在主流瀏覽器（Chrome/Safari/Firefox/Edge）中使用</li>
+      <li>計算結果僅供參考，請以實際應用場景為準</li>
+  </ul>
+</div>
+<!-- /注意事項區塊 -->
+</div>
+
+<script>
+var lastResult = '';
+
+function onTokenModeChange() {
+  autoCalc();
+}
+
+function autoCalc() {
+  var a = document.getElementById('textA').value;
+  var b = document.getElementById('textB').value;
+  document.getElementById('countA').textContent = a.length;
+  document.getElementById('countB').textContent = b.length;
+  if (a.trim() && b.trim()) {
+    calculate();
+  }
+}
+
+function tokenize(text, mode) {
+  mode = mode || 'char';
+  if (!text) return [];
+  switch (mode) {
+    case 'char':
+      // 按字符分词（过滤空白）
+      return text.replace(/\s/g, '').split('');
+    case 'word':
+      // 按空格/标点分词
+      return text.toLowerCase().split(/[\s,.\-;:!?"'()\[\]{}\/\\]+/).filter(function(w) { return w.length > 0; });
+    case 'bigram':
+      return ngramize(text, 2);
+    case 'trigram':
+      return ngramize(text, 3);
+    default:
+      return text.split('');
+  }
+}
+
+function ngramize(text, n) {
+  var cleaned = text.replace(/\s/g, '');
+  var result = [];
+  for (var i = 0; i <= cleaned.length - n; i++) {
+    result.push(cleaned.substring(i, i + n));
+  }
+  return result;
+}
+
+function tokensToFreqVec(tokens) {
+  var vec = {};
+  tokens.forEach(function(t) {
+    vec[t] = (vec[t] || 0) + 1;
+  });
+  return vec;
+}
+
+function tokensToSet(tokens) {
+  return new Set(tokens);
+}
+
+// 余弦相似度
+function cosineSimilarity(vec1, vec2) {
+  var dot = 0, mag1 = 0, mag2 = 0;
+  var allKeys = new Set([].concat(Object.keys(vec1), Object.keys(vec2)));
+  allKeys.forEach(function(k) {
+    var a = vec1[k] || 0, b = vec2[k] || 0;
+    dot += a * b;
+    mag1 += a * a;
+    mag2 += b * b;
+  });
+  return (mag1 && mag2) ? dot / (Math.sqrt(mag1) * Math.sqrt(mag2)) : 0;
+}
+
+// Jaccard 相似度
+function jaccardSimilarity(set1, set2) {
+  var inter = 0;
+  set1.forEach(function(x) { if (set2.has(x)) inter++; });
+  var union = new Set([].concat(Array.from(set1), Array.from(set2))).size;
+  return union ? inter / union : 0;
+}
+
+// 莱文斯坦距离
+function levenshtein(s1, s2) {
+  var m = s1.length, n = s2.length;
+  var d = [];
+  for (var i = 0; i <= m; i++) {
+    d[i] = [i];
+  }
+  for (var j = 0; j <= n; j++) {
+    d[0][j] = j;
+  }
+  for (var i = 1; i <= m; i++) {
+    for (var j = 1; j <= n; j++) {
+      var cost = s1[i - 1] === s2[j - 1] ? 0 : 1;
+      d[i][j] = Math.min(
+        d[i - 1][j] + 1,     // 删除
+        d[i][j - 1] + 1,     // 插入
+        d[i - 1][j - 1] + cost // 替换/匹配
+      );
+    }
+  }
+  return { distance: d[m][n], matrix: d };
+}
+
+// 回溯编辑操作
+function backtrackOps(s1, s2, d) {
+  var ops = [];
+  var i = s1.length, j = s2.length;
+  var insertions = 0, deletions = 0, substitutions = 0;
+  while (i > 0 || j > 0) {
+    if (i > 0 && j > 0 && s1[i - 1] === s2[j - 1]) {
+      ops.unshift({ type: 'match', from: s1[i - 1], to: s2[j - 1], pos: i - 1 });
+      i--; j--;
+    } else if (i > 0 && j > 0 && d[i][j] === d[i - 1][j - 1] + 1) {
+      ops.unshift({ type: 'substitute', from: s1[i - 1], to: s2[j - 1], pos: i - 1 });
+      substitutions++;
+      i--; j--;
+    } else if (j > 0 && d[i][j] === d[i][j - 1] + 1) {
+      ops.unshift({ type: 'insert', from: '', to: s2[j - 1], pos: i });
+      insertions++;
+      j--;
+    } else {
+      ops.unshift({ type: 'delete', from: s1[i - 1], to: '', pos: i - 1 });
+      deletions++;
+      i--;
+    }
+  }
+  return { ops: ops, insertions: insertions, deletions: deletions, substitutions: substitutions };
+}
+
+// 汉明距离
+function hammingDistance(s1, s2) {
+  if (s1.length !== s2.length) return -1;
+  var dist = 0;
+  for (var i = 0; i < s1.length; i++) {
+    if (s1[i] !== s2[i]) dist++;
+  }
+  return dist;
+}
+
+// 差异高亮（LCS 基础）
+function computeDiff(textA, textB) {
+  var a = textA, b = textB;
+  var m = a.length, n = b.length;
+  // LCS DP
+  var dp = [];
+  for (var i = 0; i <= m; i++) {
+    dp[i] = [];
+    for (var j = 0; j <= n; j++) {
+      if (i === 0 || j === 0) dp[i][j] = 0;
+      else if (a[i - 1] === b[j - 1]) dp[i][j] = dp[i - 1][j - 1] + 1;
+      else dp[i][j] = Math.max(dp[i - 1][j], dp[i][j - 1]);
+    }
+  }
+  // Backtrack
+  var i = m, j = n;
+  var diffA = [], diffB = [];
+  while (i > 0 || j > 0) {
+    if (i > 0 && j > 0 && a[i - 1] === b[j - 1]) {
+      diffA.unshift({ ch: a[i - 1], type: 'same' });
+      diffB.unshift({ ch: b[j - 1], type: 'same' });
+      i--; j--;
+    } else if (j > 0 && (i === 0 || dp[i][j - 1] >= dp[i - 1][j])) {
+      diffB.unshift({ ch: b[j - 1], type: 'ins' });
+      j--;
+    } else {
+      diffA.unshift({ ch: a[i - 1], type: 'del' });
+      i--;
+    }
+  }
+  return { diffA: diffA, diffB: diffB };
+}
+
+function renderDiff(diff, containerId) {
+  var el = document.getElementById(containerId);
+  if (!diff || diff.length === 0) {
+    el.innerHTML = '<span class="diff-empty">(无内容)</span>';
+    return;
+  }
+  var html = '';
+  var inBlock = false, blockType = '';
+  diff.forEach(function(item) {
+    if (item.type === 'same') {
+      if (inBlock) { html += '</span>'; inBlock = false; }
+      html += ToolBox.escHtml(item.ch);
+    } else if (item.type === 'del') {
+      if (!inBlock || blockType !== 'del') {
+        if (inBlock) html += '</span>';
+        html += '<span class="diff-del">';
+        inBlock = true; blockType = 'del';
+      }
+      html += ToolBox.escHtml(item.ch);
+    } else if (item.type === 'ins') {
+      if (!inBlock || blockType !== 'ins') {
+        if (inBlock) html += '</span>';
+        html += '<span class="diff-ins">';
+        inBlock = true; blockType = 'ins';
+      }
+      html += ToolBox.escHtml(item.ch);
+    }
+  });
+  if (inBlock) html += '</span>';
+  el.innerHTML = html;
+}
+
+function getGrade(score) {
+  if (score >= 0.9) return { label: '极度相似', cls: 'grade-excellent' };
+  if (score >= 0.7) return { label: '高度相似', cls: 'grade-excellent' };
+  if (score >= 0.5) return { label: '中等相似', cls: 'grade-good' };
+  if (score >= 0.3) return { label: '低度相似', cls: 'grade-pass' };
+  return { label: '差异较大', cls: 'grade-fail' };
+}
+
+function calculate() {
+  var textA = document.getElementById('textA').value;
+  var textB = document.getElementById('textB').value;
+
+  if (!textA.trim() && !textB.trim()) {
+    document.getElementById('resultBox').style.display = 'none';
+    document.getElementById('overallBox').style.display = 'none';
+    return;
+  }
+
+  var mode = document.getElementById('tokenMode').value;
+  var compareMode = document.getElementById('compareMode').value;
+
+  // 分词
+  var tokensA = tokenize(textA, mode);
+  var tokensB = tokenize(textB, mode);
+
+  // 1. 余弦相似度
+  var freqA = tokensToFreqVec(tokensA);
+  var freqB = tokensToFreqVec(tokensB);
+  var cosScore = cosineSimilarity(freqA, freqB);
+
+  // 2. Jaccard 相似度
+  var setA = tokensToSet(tokensA);
+  var setB = tokensToSet(tokensB);
+  var jacScore = jaccardSimilarity(setA, setB);
+
+  // 3. 莱文斯坦距离（基于原始文本）
+  var levResult = levenshtein(textA, textB);
+  var levDist = levResult.distance;
+  var maxLen = Math.max(textA.length, textB.length);
+  var levScore = maxLen ? 1 - (levDist / maxLen) : (textA === textB ? 1 : 0);
+
+  // 4. 汉明距离（基于原始文本）
+  var hamDist = hammingDistance(textA, textB);
+  var hamScore = -1;
+  if (hamDist >= 0) {
+    hamScore = textA.length ? 1 - (hamDist / textA.length) : (textA === textB ? 1 : 0);
+  }
+
+  // 显示结果
+  document.getElementById('resultBox').style.display = 'block';
+  document.getElementById('overallBox').style.display = 'block';
+
+  // 余弦
+  document.getElementById('cosineVal').textContent = cosScore.toFixed(4);
+  document.getElementById('cosinePct').textContent = (cosScore * 100).toFixed(2) + '%';
+  document.getElementById('cosineBar').style.width = (cosScore * 100).toFixed(1) + '%';
+
+  // Jaccard
+  document.getElementById('jaccardVal').textContent = jacScore.toFixed(4);
+  document.getElementById('jaccardPct').textContent = (jacScore * 100).toFixed(2) + '%';
+  document.getElementById('jaccardBar').style.width = (jacScore * 100).toFixed(1) + '%';
+
+  // 莱文斯坦
+  document.getElementById('levVal').textContent = levScore.toFixed(4);
+  document.getElementById('levPct').textContent = (levScore * 100).toFixed(2) + '%  (距离: ' + levDist + ')';
+  document.getElementById('levBar').style.width = (levScore * 100).toFixed(1) + '%';
+
+  // 汉明
+  if (hamDist >= 0) {
+    document.getElementById('hammingVal').textContent = hamScore.toFixed(4);
+    document.getElementById('hammingPct').textContent = (hamScore * 100).toFixed(2) + '%  (距离: ' + hamDist + ')';
+    document.getElementById('hammingBar').style.width = (hamScore * 100).toFixed(1) + '%';
+  } else {
+    document.getElementById('hammingVal').textContent = 'N/A';
+    document.getElementById('hammingPct').textContent = '长度不等，不适用';
+    document.getElementById('hammingBar').style.width = '0%';
+  }
+
+  // 莱文斯坦编辑详情
+  var levDetail = document.getElementById('levDetail');
+  levDetail.style.display = 'block';
+  var ops = backtrackOps(textA, textB, levResult.matrix);
+  document.getElementById('levDistInfo').innerHTML =
+    '编辑距离: <strong>' + levDist + '</strong> &nbsp;|&nbsp; ' +
+    '文本A长度: ' + textA.length + ' &nbsp;|&nbsp; ' +
+    '文本B长度: ' + textB.length;
+  var stepsHtml = '操作统计: ';
+  if (ops.insertions > 0) stepsHtml += '<span class="step">插入 ' + ops.insertions + ' 次</span> ';
+  if (ops.deletions > 0) stepsHtml += '<span class="step">删除 ' + ops.deletions + ' 次</span> ';
+  if (ops.substitutions > 0) stepsHtml += '<span class="step">替换 ' + ops.substitutions + ' 次</span> ';
+  if (ops.insertions === 0 && ops.deletions === 0 && ops.substitutions === 0) {
+    stepsHtml += '<span class="step">完全一致</span>';
+  }
+  document.getElementById('levStepsInfo').innerHTML = stepsHtml;
+
+  // 汉明详情
+  var hamDetail = document.getElementById('hammingDetail');
+  hamDetail.style.display = 'block';
+  if (hamDist >= 0) {
+    document.getElementById('hammingDistInfo').innerHTML =
+      '汉明距离: <strong>' + hamDist + '</strong> &nbsp;|&nbsp; ' +
+      '不同位数: ' + hamDist + ' / ' + textA.length + ' (' + (hamDist / textA.length * 100).toFixed(1) + '%)';
+  } else {
+    document.getElementById('hammingDistInfo').innerHTML =
+      '文本长度不等（A: ' + textA.length + ', B: ' + textB.length + '），汉明距离仅适用于等长字符串。';
+  }
+
+  // 差异高亮（基于原始文本的逐字符对比）
+  var diff = computeDiff(textA, textB);
+  renderDiff(diff.diffA, 'diffA');
+  renderDiff(diff.diffB, 'diffB');
+
+  // 综合评分
+  var avg = (cosScore + jacScore + levScore) / 3;
+  var grade = getGrade(avg);
+  document.getElementById('overallGrid').innerHTML =
+    '<div class="stat-card"><div class="val">' + avg.toFixed(2) + '</div><div class="lbl">综合相似度</div></div>' +
+    '<div class="stat-card"><div class="val">' + cosScore.toFixed(2) + '</div><div class="lbl">余弦</div></div>' +
+    '<div class="stat-card"><div class="val">' + jacScore.toFixed(2) + '</div><div class="lbl">Jaccard</div></div>' +
+    '<div class="stat-card"><div class="val">' + levScore.toFixed(2) + '</div><div class="lbl">莱文斯坦</div></div>' +
+    '<div class="stat-card"><div class="val"><span class="grade-tag ' + grade.cls + '">' + grade.label + '</span></div><div class="lbl">相似等级</div></div>';
+
+  // 保存结果文本
+  lastResult = '文本相似度计算结果\n' +
+    '====================\n' +
+    '余弦相似度: ' + (cosScore * 100).toFixed(2) + '%\n' +
+    'Jaccard相似度: ' + (jacScore * 100).toFixed(2) + '%\n' +
+    '莱文斯坦相似度: ' + (levScore * 100).toFixed(2) + '% (距离: ' + levDist + ')\n' +
+    '汉明距离: ' + (hamDist >= 0 ? (hamScore * 100).toFixed(2) + '% (距离: ' + hamDist + ')' : '不适用（长度不等）') + '\n' +
+    '综合相似度: ' + (avg * 100).toFixed(2) + '%\n' +
+    '相似等级: ' + grade.label + '\n' +
+    '分词方式: ' + document.getElementById('tokenMode').selectedOptions[0].text;
+}
+
+function swapText() {
+  var a = document.getElementById('textA');
+  var b = document.getElementById('textB');
+  var temp = a.value;
+  a.value = b.value;
+  b.value = temp;
+  document.getElementById('countA').textContent = a.value.length;
+  document.getElementById('countB').textContent = b.value.length;
+  autoCalc();
+  ToolBox.showToast(i18nText('toast.msg154'));
+}
+
+function clearAll() {
+  document.getElementById('textA').value = '';
+  document.getElementById('textB').value = '';
+  document.getElementById('countA').textContent = '0';
+  document.getElementById('countB').textContent = '0';
+  document.getElementById('resultBox').style.display = 'none';
+  document.getElementById('overallBox').style.display = 'none';
+  document.getElementById('diffA').innerHTML = '<span class="diff-empty">等待输入...</span>';
+  document.getElementById('diffB').innerHTML = '<span class="diff-empty">等待输入...</span>';
+  lastResult = '';
+  ToolBox.showToast(i18nText());
+}
+
+function copyResult() {
+  if (!lastResult) {
+    ToolBox.showToast(i18nText('toast.msg672'), 'warning');
+    return;
+  }
+  ToolBox.copyText(lastResult);
+}
+
+function toggleIntro() {
+  document.getElementById('toolIntro').classList.toggle('open');
+}
+
+// 页面加载初始化
+document.getElementById('textA').value = '今天天气真好，适合出去散步。';
+document.getElementById('textB').value = '今天天气不错，很适合出去走走。';
+document.getElementById('countA').textContent = document.getElementById('textA').value.length;
+document.getElementById('countB').textContent = document.getElementById('textB').value.length;
+calculate();
+</script><script>
+// tool-intro折叠交互
+document.addEventListener('DOMContentLoaded',function(){
+  var headers=document.querySelectorAll('.tool-intro-header');
+  headers.forEach(function(h){
+    h.addEventListener('click',function(){
+      this.parentElement.classList.toggle('open');
+    });
+  });
+});
+</script>
+
+</body>
+</html>

@@ -1,0 +1,641 @@
+<!DOCTYPE html>
+<html lang="zh-TW" data-opencc-locale="zh-tw">
+<head>
+
+<script src="/js/tool-page-runtime.js" defer></script>
+<!-- TOOLBOX-TOOL-RUNTIME -->
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="toolbox" content="cat=convert,industry=music,icon=🔉,bg=#e3f2fd">
+<meta name="description" content="Hz 频率与音符名称双向转换 · 十二平均律 · Web Audio 试听">
+<meta name="keywords" content="频率转换,音符转换,A4频率,十二平均律,MIDI,音高,Hz转音符,音符转Hz,在线工具,免费工具,ToolBox">
+<meta name="robots" content="index,follow">
+<link rel="canonical" href="https://chenguangwu.github.io/zh-tw/tools/music/freq-note-converter.html">
+<meta property="og:title" content="频率音符转换器">
+<meta property="og:description" content="Hz 频率与音符名称双向转换 · 十二平均律 · Web Audio 试听">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://chenguangwu.github.io/zh-tw/tools/music/freq-note-converter.html">
+<meta name="twitter:card" content="summary">
+
+<title>頻率音符轉換器 - ToolBox</title>
+<meta name="theme-color" content="#FF6B35">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<link rel="icon" href="/favicon.ico" sizes="16x16 32x32 48x48">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="preload" as="style" href="/css/common.css" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="/css/common.css"></noscript>
+<script>window.__tbq=window.__tbq||[];window.ToolBox=window.ToolBox||{};['initToolTheme','addToolStyles','showToast','toast','copyText','copyToClipboard','copyFromElement','downloadText','injectPrivacyBadge','toggleFavTool','addToRecentTool','toggleToolTheme','applyTheme'].forEach(function(k){if(typeof window.ToolBox[k]!=='function')window.ToolBox[k]=function(){window.__tbq.push([k,[].slice.call(arguments)]);};});</script><!-- TOOLBOX-API-STUB -->
+<script src="/js/common.js" defer></script>
+<style>
+.ref-table-wrap{max-height:420px;overflow-y:auto;border:1px solid var(--border);border-radius:12px;margin-top:8px;}
+.ref-table-wrap::-webkit-scrollbar{width:6px;}
+.ref-table-wrap::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px;}
+.ref-table-wrap::-webkit-scrollbar-thumb:hover{background:var(--text-muted);}
+.ref-table{width:100%;border-collapse:collapse;font-size:13px;white-space:nowrap;}
+.ref-table th,.ref-table td{padding:8px 10px;text-align:center;border:1px solid var(--border);}
+.ref-table th{background:var(--th-bg);position:sticky;top:0;z-index:1;font-weight:600;color:var(--heading);}
+.ref-table td{cursor:pointer;transition:all 0.15s;}
+.ref-table td:hover{background:var(--bg-hover);color:var(--primary);}
+.ref-table td.sharp{background:var(--bg-hover);}
+.ref-table td.sharp:hover{background:var(--bg-active);}
+.ref-table .oct-label{background:var(--th-bg);font-weight:600;color:var(--heading);cursor:default;position:sticky;left:0;z-index:2;}
+.playing-cell{background:rgba(255,107,53,0.2)!important;color:var(--primary)!important;}
+.ref-legend{display:flex;gap:16px;margin-top:8px;font-size:12px;color:var(--text-muted);flex-wrap:wrap;}
+.ref-legend span{display:flex;align-items:center;gap:4px;}
+.ref-legend .dot{width:12px;height:12px;border-radius:3px;border:1px solid var(--border);}
+.dot-white{background:var(--card-bg);}
+.dot-sharp{background:var(--bg-hover);}
+.tuning-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:16px;}
+.tuning-row label{margin:0;white-space:nowrap;}
+.tuning-preset{display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap;}
+.tuning-preset button{padding:6px 14px;border-radius:8px;font-size:12px;cursor:pointer;border:1px solid var(--border);background:var(--card-bg);color:var(--text-secondary);transition:all 0.15s;font-weight:500;}
+.tuning-preset button:hover{border-color:var(--primary);color:var(--primary);}
+.tuning-preset button.active{background:var(--primary);color:#fff;border-color:var(--primary);}
+.cents-bar{height:10px;background:var(--border);border-radius:5px;overflow:hidden;margin:8px 0;width:100%;max-width:300px;position:relative;}
+.cents-indicator{position:absolute;top:0;height:100%;width:3px;background:var(--primary);border-radius:2px;transition:left 0.3s;}
+.cents-center{position:absolute;top:0;left:50%;width:1px;height:100%;background:var(--text-muted);transform:translateX(-50%);}
+.cents-labels{display:flex;justify-content:space-between;font-size:11px;color:var(--text-muted);max-width:300px;}
+.result-note-display{display:flex;align-items:baseline;gap:8px;margin:8px 0;}
+.result-note-name{font-size:28px;font-weight:800;color:var(--primary);letter-spacing:1px;}
+.result-note-freq{font-size:16px;color:var(--text);font-weight:600;}
+.result-note-cents{font-size:14px;padding:3px 10px;border-radius:20px;font-weight:600;}
+.cents-flat{background:rgba(59,130,246,0.1);color:#2563EB;}
+.cents-sharp{background:rgba(239,68,68,0.1);color:#DC2626;}
+.cents-in-tune{background:rgba(16,185,129,0.1);color:#059669;}
+[data-theme="dark"] .cents-flat{background:rgba(59,130,246,0.2);color:#60A5FA;}
+[data-theme="dark"] .cents-sharp{background:rgba(239,68,68,0.2);color:#F87171;}
+[data-theme="dark"] .cents-in-tune{background:rgba(16,185,129,0.2);color:#34D399;}
+.freq-input-group{display:flex;gap:10px;align-items:flex-end;}
+.freq-input-group input{flex:1;}
+.freq-input-group .unit-label{font-size:14px;color:var(--text-muted);font-weight:500;padding-bottom:14px;}
+.note-select-row{display:flex;gap:10px;align-items:flex-end;}
+.note-select-row select{flex:1;}
+.octave-input{width:80px;flex:none!important;}
+.stop-btn{padding:8px 16px;border-radius:10px;font-size:12px;cursor:pointer;border:1px solid var(--danger);color:var(--danger);background:rgba(239,68,68,0.08);transition:all 0.15s;font-weight:500;}
+.stop-btn:hover{background:rgba(239,68,68,0.15);}
+@media(max-width:768px){
+  .result-note-name{font-size:22px;}
+  .result-note-freq{font-size:14px;}
+  .tuning-row{flex-direction:column;align-items:stretch;}
+  .note-select-row{flex-direction:column;align-items:stretch;}
+  .octave-input{width:100%;}
+  .freq-input-group{flex-direction:column;align-items:stretch;}
+  .freq-input-group .unit-label{padding-bottom:0;}
+}
+</style>
+
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"頻率音符轉換器","description":"Hz頻率與音符名稱雙向轉換工具，支援自定義A4參考頻率，十二平均律參考表與Web Audio試聽。","url":"https://chenguangwu.github.io/zh-tw/tools/music/freq-note-converter.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Web","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"},"inLanguage":"zh-TW","isAccessibleForFree":true,"browserRequirements":"Requires JavaScript. Requires HTML5.","softwareVersion":"1.0"}</script>
+
+
+
+<meta property="og:image" content="https://chenguangwu.github.io/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="ToolBox - 5000+免费在线工具">
+<meta name="twitter:image" content="https://chenguangwu.github.io/og-image.png">
+<meta name="twitter:image:alt" content="ToolBox - 5000+免费在线工具">
+    <meta name="twitter:title" content="频率音符转换器">
+    <meta name="twitter:description" content="Hz 频率与音符名称双向转换 · 十二平均律 · Web Audio 试听">
+<!-- TOOLBOX-WEBAPP-LD -->
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"頻率音符轉換器","url":"https://chenguangwu.github.io/zh-tw/tools/music/freq-note-converter.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":"zh-TW","description":"Hz 頻率與音符名稱雙向轉換 · 十二平均律 · Web Audio 試聽","image":"https://chenguangwu.github.io/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}</script>
+<meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
+<meta http-equiv="X-Content-Type-Options" content="nosniff">
+<meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
+<!-- TOOLBOX-SECURITY -->
+
+<script src="/js/privacy.js" defer></script>
+<!-- TOOLBOX-PRIVACY-SCRIPT -->
+
+<script src="/js/metrics.js" defer></script>
+<!-- TOOLBOX-METRICS-SCRIPT -->
+
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"首頁","item":"https://chenguangwu.github.io/zh-tw/"},{"@type":"ListItem","position":2,"name":"音樂藝術","item":"https://chenguangwu.github.io/zh-tw/tools/music/index.html"},{"@type":"ListItem","position":3,"name":"頻率音符轉換器","item":"https://chenguangwu.github.io/zh-tw/tools/music/freq-note-converter.html"}]}</script>
+
+<script src="/js/i18n.js" defer></script>
+<script src="/js/tool-i18n.js" defer></script>
+<!-- TOOLBOX-I18N-SCRIPT -->
+
+
+<meta name="title-en" content="Freq Note Converter - ToolBox">
+<meta name="desc-en" content="Freq Note Converter - convert values online, free and instant. Free online tool on ToolBox — 100% client-side, no data uploaded, no install. Part of the Mu...">
+<!-- TOOLBOX-HREFLANG -->
+<link rel="alternate" hreflang="zh-CN" href="https://chenguangwu.github.io/tools/music/freq-note-converter.html">
+<link rel="alternate" hreflang="zh-TW" href="https://chenguangwu.github.io/zh-tw/tools/music/freq-note-converter.html">
+<link rel="alternate" hreflang="zh-HK" href="https://chenguangwu.github.io/zh-hk/tools/music/freq-note-converter.html">
+<link rel="alternate" hreflang="en-US" href="https://chenguangwu.github.io/tools/music/freq-note-converter.html?lang=en-US">
+<link rel="alternate" hreflang="x-default" href="https://chenguangwu.github.io/tools/music/freq-note-converter.html">
+<meta property="og:locale" content="zh_TW">
+<meta property="og:locale:alternate" content="zh_CN">
+<meta property="og:locale:alternate" content="zh_HK">
+<meta property="og:locale:alternate" content="en_US">
+</head>
+<body>
+<h1 class="sr-only">頻率音符轉換器</h1>
+
+<div class="nav">
+  <a href="/zh-tw/index.html">← ToolBox</a>
+  <span>/ 頻率音符轉換器</span>
+  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()">🌙</button>
+</div>
+
+
+
+
+
+<nav class="breadcrumb" aria-label="麵包屑導航" data-breadcrumb="1">
+  <a href="/zh-tw/index.html">首頁</a>
+  <span class="bc-sep">‹</span>
+  <a href="/zh-tw/tools/music/index.html">🎵 音樂藝術</a>
+  <span class="bc-sep">‹</span>
+  <span class="bc-current">頻率音符轉換器</span>
+</nav>
+<div class="container">
+  <div class="card tool-card-accent" style="--tool-accent:#FF6B35;">
+    <h2 data-zh="🔉 頻率音符轉換器">🔉 Freq Note Converter</h2>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="Hz 頻率與音符名稱雙向轉換 · 十二平均律 · Web Audio 試聽">Freq Note Converter is available directly in your browser, with no data uploaded.</p>
+
+    <!-- A4 參考頻率 -->
+    <h3>A4 參考頻率</h3>
+    <div class="tuning-preset" id="tuningPresets">
+      <button class="active" data-freq="440">440 Hz（標準）</button>
+      <button data-freq="432">432 Hz</button>
+      <button data-freq="442">442 Hz</button>
+      <button data-freq="443">443 Hz</button>
+      <button data-freq="415">415 Hz（巴洛克）</button>
+    </div>
+    <div class="tuning-row">
+      <label>自定義：</label>
+      <input type="number" id="a4Input" value="440" min="400" max="480" step="0.1" oninput="onCustomA4()" style="width:120px;">
+      <span style="font-size:13px;color:var(--text-muted);">Hz</span>
+    </div>
+
+    <!-- 模式切換 -->
+    <div class="tabs">
+      <button type="button" class="tab-btn active" onclick="switchMode('freq')">頻率 → 音符</button>
+      <button type="button" class="tab-btn" onclick="switchMode('note')">音符 → 頻率</button>
+    </div>
+
+    <!-- 頻率→音符 -->
+    <div class="tab-content active" id="tab-freq">
+      <div class="freq-input-group">
+        <label>輸入頻率</label>
+        <input type="number" id="freqInput" value="440" min="16" max="20000" step="0.1" oninput="calcFreq2Note()">
+        <span class="unit-label">Hz</span>
+      </div>
+      <div class="toolbar">
+        <button type="button" class="btn primary" onclick="calcFreq2Note()">轉換</button>
+        <button type="button" class="btn" onclick="playFreq()">試聽</button>
+        <button type="button" class="btn stop-btn" onclick="stopAudio()">停止</button>
+        <button type="button" class="btn" onclick="copyResult('freq2note')">複製結果</button>
+      </div>
+      <div class="result-box" id="freq2note"></div>
+    </div>
+
+    <!-- 音符→頻率 -->
+    <div class="tab-content" id="tab-note">
+      <div class="note-select-row">
+        <div>
+          <label>音符</label>
+          <select id="noteSelect" onchange="calcNote2Freq()">
+            <option>C</option><option>C# / Db</option><option>D</option>
+            <option>D# / Eb</option><option>E</option><option>F</option>
+            <option>F# / Gb</option><option>G</option><option>G# / Ab</option>
+            <option>A</option><option>A# / Bb</option><option>B</option>
+          </select>
+        </div>
+        <div>
+          <label>八度</label>
+          <input type="number" id="octaveInput" class="octave-input" value="4" min="0" max="8" step="1" oninput="calcNote2Freq()">
+        </div>
+      </div>
+      <div class="toolbar">
+        <button type="button" class="btn primary" onclick="calcNote2Freq()">計算</button>
+        <button type="button" class="btn" onclick="playNoteFreq()">試聽</button>
+        <button type="button" class="btn stop-btn" onclick="stopAudio()">停止</button>
+        <button type="button" class="btn" onclick="copyResult('note2freq')">複製結果</button>
+      </div>
+      <div class="result-box" id="note2freq"></div>
+    </div>
+  </div>
+
+  <!-- 十二平均律參考表 -->
+  <div class="card">
+    <h3>十二平均律參考表</h3>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:8px;">點選任意音符可試聽（A4 = <span id="tableA4Label">440</span> Hz）</p>
+    <div class="ref-table-wrap" id="refTableWrap">
+      <table class="ref-table" id="refTable"></table>
+    </div>
+    <div class="ref-legend">
+      <span><span class="dot dot-white"></span>自然音</span>
+      <span><span class="dot dot-sharp"></span>升/降音</span>
+    </div>
+  </div>
+
+  <!-- 工具介紹 SEO -->
+
+</div>
+
+</div>
+
+
+<!-- 相關工具 -->
+<div class="related-tools" data-related-tools="1">
+  <h3 class="related-tools-title">🔗 相關工具</h3>
+  <div class="related-tools-grid">
+    <a href="/zh-tw/tools/music/chord-progression.html" class="related-tool-card">
+      <span class="rt-icon">🎼</span>
+      <span class="rt-info"><span class="rt-name">和絃進行生成器 - 免費線上和絃進行生成器，隨機生成流行和絃進行</span><span class="rt-desc">&amp;#127926; 和絃進行生成器</span></span>
+    </a>
+    <a href="/zh-tw/tools/music/random-training-rhythm.html" class="related-tool-card">
+      <span class="rt-icon">🎵</span>
+      <span class="rt-info"><span class="rt-name">節奏訓練（隨機節奏點選）</span><span class="rt-desc">節奏訓練（隨機節奏點選）</span></span>
+    </a>
+    <a href="/zh-tw/tools/music/generator-1.html" class="related-tool-card">
+      <span class="rt-icon">🎵</span>
+      <span class="rt-info"><span class="rt-name">音階生成器（大調/小調/五聲音階）</span><span class="rt-desc">音階生成器（大調/小調/五聲音階）</span></span>
+    </a>
+    <a href="/zh-tw/tools/music/bpm-converter.html" class="related-tool-card">
+      <span class="rt-icon">⏱️</span>
+      <span class="rt-info"><span class="rt-name">BPM速度轉換器 - BPM與音符時長、延遲時間、LFO頻率、取樣長度互轉</span><span class="rt-desc">&amp;#9201;&amp;#65039; BPM 速度轉換器</span></span>
+    </a>
+    <a href="/zh-tw/tools/music/convert-speed.html" class="related-tool-card">
+      <span class="rt-icon">🎵</span>
+      <span class="rt-info"><span class="rt-name">歌曲速度轉換（BPM微調）</span><span class="rt-desc">歌曲速度轉換（BPM微調）</span></span>
+    </a>
+    <a href="/zh-tw/tools/music/audio-converter.html" class="related-tool-card">
+      <span class="rt-icon">🔄</span>
+      <span class="rt-info"><span class="rt-name">音訊轉換 - 音樂藝術領域的線上工具</span><span class="rt-desc">音訊格式轉換引數</span></span>
+    </a>
+  </div>
+</div>
+<div class="tool-intro" id="toolIntro">
+    <div class="tool-intro-header" onclick="toggleIntro()">
+      <span class="intro-icon-wrap"><span class="intro-icon">📖</span> 工具介紹與常見問題</span>
+      <span class="arrow">▼</span>
+    </div>
+    <div class="tool-intro-body">
+      <p>頻率音符轉換器基於十二平均律（Equal Temperament），實現 Hz 頻率與音符名稱的雙向轉換，適用於音樂調音、音訊工程、樂器校準等場景。</p>
+      <h4><span class="h4-icon">✦</span> 功能特點</h4>
+      <ul class="intro-features">
+        <li>頻率→音符轉換（含偏差 cents 顯示）</li>
+        <li>音符→頻率轉換（C0 ~ B8）</li>
+        <li>A4 參考頻率可調（432/440/442/443/415/自定義）</li>
+        <li>十二平均律全表（C0 到 B8）</li>
+        <li>Web Audio API 即時試聽</li>
+        <li>純前端運算，資料不上傳</li>
+      </ul>
+      <h4><span class="h4-icon">✦</span> 使用場景</h4>
+      <ul class="intro-scenes">
+        <li>樂器調音時確認標準頻率</li>
+        <li>音訊工程中的音高參考</li>
+        <li>學習樂理與十二平均律</li>
+        <li>電子音樂製作頻率查詢</li>
+      </ul>
+      <h4><span class="h4-icon">✦</span> 常見問題</h4>
+      <div class="intro-faq-item">
+        <div class="intro-faq-q">什麼是十二平均律？</div>
+        <div class="intro-faq-a">將一個八度等分為12個半音的律制，每個半音的頻率比為 2^(1/12) ≈ 1.0595。這是現代音樂最常用的律制。</div>
+      </div>
+      <div class="intro-faq-item">
+        <div class="intro-faq-q">偏差（cents）是什麼意思？</div>
+        <div class="intro-faq-a">1 cent 等於一個半音的 1/100。如果偏差為 +50 cents，說明頻率比最近的音符高半個半音，剛好在兩個音之間。</div>
+      </div>
+      <div class="intro-faq-item">
+        <div class="intro-faq-q">A4 = 432 Hz 和 440 Hz 有什麼區別？</div>
+        <div class="intro-faq-a">440 Hz 是國際標準音高（ISO 16）。432 Hz 被部分人認為更"自然"，但兩者差僅約 32 cents（約 0.32 個半音），在音樂實踐中有明顯音高差異。</div>
+      </div>
+      <div class="intro-faq-item">
+        <div class="intro-faq-q">試聽功能為什麼沒有聲音？</div>
+        <div class="intro-faq-a">請確認瀏覽器未靜音且音量已開啟。試聽使用瀏覽器原生的 Web Audio API 生成正弦波，需要使用者先與頁面互動（點選）後才能播放。</div>
+      </div>
+    </div>
+  </div>
+
+<!-- TOOLBOX-DEEP-DIVE -->
+<style>
+.deep-dive{max-width:960px;margin:16px auto;padding:0 16px;}
+.deep-dive > .card{margin-bottom:0;}
+@media(max-width:600px){.deep-dive{margin:14px auto;padding:0 12px;}}
+.deep-dive .dd-list{margin:8px 0 16px;padding-left:20px;}
+.deep-dive .dd-list li{margin:6px 0;line-height:1.75;}
+.deep-dive .dd-example{background:var(--card-bg,#fff);border:1px solid var(--border,#eee);border-radius:10px;padding:12px 14px;margin:8px 0 16px;}
+.deep-dive .dd-ex-title{font-weight:600;color:var(--tool-accent,#FF6B35);margin-bottom:6px;}
+.deep-dive .dd-ex-body{font-size:13px;line-height:1.85;color:var(--text,#333);word-break:break-word;}
+.deep-dive .dd-faq{margin:8px 0 4px;}
+.deep-dive .dd-faq dt{font-weight:600;margin-top:10px;color:var(--text,#333);}
+.deep-dive .dd-faq dd{margin:4px 0 0;font-size:13px;line-height:1.85;color:var(--text-muted,#666);}
+
+</style>
+<section class="deep-dive" data-deep-dive="1">
+<div class="card">
+<h2>📚 深度解析：頻率音符轉換器</h2>
+<h3>💡 常見使用場景</h3>
+<ul class="dd-list">
+<li>在「頻率音符轉換器」場景先統一輸入單位與口徑，先做基準算例，再做邊界場景核驗，避免把輸出誤讀為模型差異。</li>
+<li>建議固定關鍵變數並逐步調整其餘輸入，觀察輸出變化方向，快速定位異常源。</li>
+<li>常見場景：頻率音符轉換器</li>
+</ul>
+<div class="dd-example"><div class="dd-ex-title">快速複核「頻率音符轉換器」</div><div class="dd-ex-body">先執行工具預設樣例，再做一組極端輸入進行對照；如輸出跳變明顯，優先檢查單位、閾值與是否按新版本口徑切換。</div></div>
+<h3>❓ 常見問題（FAQ）</h3>
+<dl class="dd-faq">
+<dt>頻率音符轉換器 可直接用於正式報告嗎？</dt><dd>適合用於快速核對和教學演示；正式報告建議補充資料來源、口徑定義、邊界條件與稽核責任鏈。</dd>
+<dt>值跳變或異常偏差怎麼辦？</dt><dd>先核查輸入是否超出定義域、單位是否混用、以及引數是否按同一計算版本口徑輸入。</dd>
+</dl>
+</div>
+</section>
+<!-- 注意事項區塊 -->
+<div class="tool-notes" style="--tool-accent:#FF6B35;">
+  <div class="tool-notes-title">⚠️ 使用說明與注意事項</div>
+  <ul>
+      <li>本工具純前端執行，資料不會上傳到伺服器</li>
+      <li>建議在主流瀏覽器（Chrome/Safari/Firefox/Edge）中使用</li>
+      <li>計算結果僅供參考，請以實際應用場景為準</li>
+  </ul>
+</div>
+<!-- /注意事項區塊 -->
+</div>
+
+<script>
+(function() {
+  'use strict';
+
+  /* ===== 常量 ===== */
+  var NOTE_NAMES = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+  var NOTE_LABELS = ['C','C#/Db','D','D#/Eb','E','F','F#/Gb','G','G#/Ab','A','A#/Bb','B'];
+  var A4_MIDI = 69; // A4 的 MIDI 编号
+  var a4Freq = 440; // 当前 A4 参考频率
+  var audioCtx = null;
+  var currentOsc = null;
+  var currentGain = null;
+
+  /* ===== 工具函数 ===== */
+  function midiToFreq(midi) {
+    return a4Freq * Math.pow(2, (midi - A4_MIDI) / 12);
+  }
+
+  function freqToMidi(freq) {
+    if (freq <= 0) return -1;
+    return 69 + 12 * Math.log2(freq / a4Freq);
+  }
+
+  function midiToNoteName(midi) {
+    var rounded = Math.round(midi);
+    var noteIndex = ((rounded % 12) + 12) % 12;
+    var octave = Math.floor(rounded / 12) - 1;
+    return { name: NOTE_NAMES[noteIndex], fullName: NOTE_NAMES[noteIndex] + octave, octave: octave, noteIndex: noteIndex };
+  }
+
+  function freqToNote(freq) {
+    var midi = freqToMidi(freq);
+    if (midi < 0) return null;
+    var rounded = Math.round(midi);
+    var exactFreq = midiToFreq(rounded);
+    var cents = 1200 * Math.log2(freq / exactFreq);
+    var info = midiToNoteName(rounded);
+    return {
+      name: info.fullName,
+      noteName: info.name,
+      octave: info.octave,
+      exactFreq: exactFreq,
+      cents: cents,
+      midi: rounded
+    };
+  }
+
+  function noteToFreq(noteIndex, octave) {
+    var midi = (octave + 1) * 12 + noteIndex;
+    return midiToFreq(midi);
+  }
+
+  /* ===== Tab 切换 ===== */
+  window.switchMode = function(mode) {
+    var tabs = document.querySelectorAll('.tab-btn');
+    tabs.forEach(function(t) { t.classList.remove('active'); });
+    var contents = document.querySelectorAll('.tab-content');
+    contents.forEach(function(c) { c.classList.remove('active'); });
+
+    if (mode === 'freq') {
+      tabs[0].classList.add('active');
+      document.getElementById('tab-freq').classList.add('active');
+    } else {
+      tabs[1].classList.add('active');
+      document.getElementById('tab-note').classList.add('active');
+    }
+  };
+
+  /* ===== A4 参考频率 ===== */
+  function initTuningPresets() {
+    var btns = document.querySelectorAll('#tuningPresets button');
+    btns.forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        var freq = parseFloat(this.dataset.freq);
+        setA4(freq);
+        btns.forEach(function(b) { b.classList.remove('active'); });
+        this.classList.add('active');
+      });
+    });
+  }
+
+  function setA4(freq) {
+    a4Freq = freq;
+    document.getElementById('a4Input').value = freq;
+    document.getElementById('tableA4Label').textContent = freq;
+    calcFreq2Note();
+    calcNote2Freq();
+    buildRefTable();
+  }
+
+  window.onCustomA4 = function() {
+    var val = parseFloat(document.getElementById('a4Input').value);
+    if (val && val >= 200 && val <= 1000) {
+      document.querySelectorAll('#tuningPresets button').forEach(function(b) { b.classList.remove('active'); });
+      setA4(val);
+    }
+  };
+
+  /* ===== 频率→音符 ===== */
+  window.calcFreq2Note = function() {
+    var freq = parseFloat(document.getElementById('freqInput').value);
+    var box = document.getElementById('freq2note');
+    if (!freq || freq <= 0) {
+      box.innerHTML = '<p style="color:var(--text-muted);">请输入有效的频率值（> 0 Hz）</p>';
+      return;
+    }
+    var result = freqToNote(freq);
+    if (!result) {
+      box.innerHTML = '<p style="color:var(--danger);">频率超出可识别范围</p>';
+      return;
+    }
+
+    var centsClass = 'cents-in-tune';
+    var centsSign = '';
+    if (result.cents > 2) { centsClass = 'cents-sharp'; centsSign = '+'; }
+    else if (result.cents < -2) { centsClass = 'cents-flat'; }
+
+    var centsPercent = Math.max(0, Math.min(100, 50 + (result.cents / 50) * 50));
+
+    box.innerHTML =
+      '<div class="result-note-display">' +
+        '<span class="result-note-name">' + result.name + '</span>' +
+        '<span class="result-note-freq">' + result.exactFreq.toFixed(4) + ' Hz</span>' +
+        '<span class="result-note-cents ' + centsClass + '">' + centsSign + result.cents.toFixed(1) + ' cents</span>' +
+      '</div>' +
+      '<div class="cents-bar">' +
+        '<div class="cents-center"></div>' +
+        '<div class="cents-indicator" style="left:' + centsPercent + '%"></div>' +
+      '</div>' +
+      '<div class="cents-labels"><span>-50 cents</span><span>0</span><span>+50 cents</span></div>' +
+      '<p style="margin-top:8px;">MIDI 编号：<strong>' + result.midi + '</strong></p>' +
+      '<p>输入频率：<strong>' + freq + ' Hz</strong> → 最接近 <strong>' + result.name + '</strong>（' + result.exactFreq.toFixed(4) + ' Hz）</p>';
+
+    box.dataset.copyValue = result.name + ' ' + result.exactFreq.toFixed(4) + ' Hz, ' + centsSign + result.cents.toFixed(1) + ' cents';
+  };
+
+  /* ===== 音符→频率 ===== */
+  window.calcNote2Freq = function() {
+    var sel = document.getElementById('noteSelect');
+    var noteIndex = sel.selectedIndex;
+    var octave = parseInt(document.getElementById('octaveInput').value);
+    var box = document.getElementById('note2freq');
+
+    if (isNaN(octave) || octave < 0 || octave > 8) {
+      box.innerHTML = '<p style="color:var(--text-muted);">八度范围：0 ~ 8</p>';
+      return;
+    }
+
+    var freq = noteToFreq(noteIndex, octave);
+    var noteName = NOTE_NAMES[noteIndex] + octave;
+    var midi = (octave + 1) * 12 + noteIndex;
+
+    box.innerHTML =
+      '<div class="result-note-display">' +
+        '<span class="result-note-name">' + noteName + '</span>' +
+        '<span class="result-note-freq">' + freq.toFixed(4) + ' Hz</span>' +
+      '</div>' +
+      '<p>MIDI 编号：<strong>' + midi + '</strong></p>' +
+      '<p>A4 参考：<strong>' + a4Freq + ' Hz</strong></p>' +
+      '<p>计算公式：<strong>' + a4Freq + ' × 2^(' + (midi - 69) + '/12) = ' + freq.toFixed(4) + ' Hz</strong></p>';
+
+    box.dataset.copyValue = noteName + ' = ' + freq.toFixed(4) + ' Hz';
+  };
+
+  /* ===== 复制结果 ===== */
+  window.copyResult = function(id) {
+    var el = document.getElementById(id);
+    if (el && el.dataset.copyValue) {
+      ToolBox.copyText(el.dataset.copyValue);
+    } else {
+      ToolBox.copyText(el ? el.textContent : '');
+    }
+  };
+
+  /* ===== Web Audio 试听 ===== */
+  function getAudioCtx() {
+    if (!audioCtx) {
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    }
+    if (audioCtx.state === 'suspended') {
+      audioCtx.resume();
+    }
+    return audioCtx;
+  }
+
+  function playTone(freq, duration) {
+    stopAudio();
+    var ctx = getAudioCtx();
+    var osc = ctx.createOscillator();
+    var gain = ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(Math.max(20, Math.min(freq, 20000)), ctx.currentTime);
+    gain.gain.setValueAtTime(0.3, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + (duration || 1));
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start(ctx.currentTime);
+    osc.stop(ctx.currentTime + (duration || 1));
+    currentOsc = osc;
+    currentGain = gain;
+  }
+
+  window.playFreq = function() {
+    var freq = parseFloat(document.getElementById('freqInput').value);
+    if (freq && freq > 0) playTone(freq, 1.5);
+  };
+
+  window.playNoteFreq = function() {
+    var sel = document.getElementById('noteSelect');
+    var noteIndex = sel.selectedIndex;
+    var octave = parseInt(document.getElementById('octaveInput').value);
+    if (isNaN(octave) || octave < 0 || octave > 8) return;
+    var freq = noteToFreq(noteIndex, octave);
+    playTone(freq, 1.5);
+  };
+
+  window.stopAudio = function() {
+    try {
+      if (currentOsc) { currentOsc.stop(); currentOsc = null; }
+    } catch(e) { currentOsc = null; }
+  };
+
+  /* ===== 十二平均律参考表 ===== */
+  function buildRefTable() {
+    var table = document.getElementById('refTable');
+    var html = '<thead><tr><th>八度</th>';
+    for (var i = 0; i < 12; i++) {
+      html += '<th>' + NOTE_LABELS[i] + '</th>';
+    }
+    html += '</tr></thead><tbody>';
+
+    for (var oct = 0; oct <= 8; oct++) {
+      html += '<tr><td class="oct-label">' + oct + '</td>';
+      for (var n = 0; n < 12; n++) {
+        var midi = (oct + 1) * 12 + n;
+        var freq = midiToFreq(midi);
+        var isSharp = NOTE_NAMES[n].includes('#');
+        var cls = isSharp ? 'sharp' : '';
+        html += '<td class="' + cls + '" data-midi="' + midi + '" data-freq="' + freq.toFixed(4) + '" onclick="playTableCell(this)" title="' + NOTE_NAMES[n] + oct + ' = ' + freq.toFixed(4) + ' Hz">' +
+          freq.toFixed(1) + '</td>';
+      }
+      html += '</tr>';
+    }
+    html += '</tbody>';
+    table.innerHTML = html;
+  }
+
+  window.playTableCell = function(td) {
+    var freq = parseFloat(td.dataset.freq);
+    playTone(freq, 0.8);
+    // 高亮效果
+    var prev = document.querySelector('.playing-cell');
+    if (prev) prev.classList.remove('playing-cell');
+    td.classList.add('playing-cell');
+    setTimeout(function() { td.classList.remove('playing-cell'); }, 800);
+  };
+
+  /* ===== 工具介绍折叠 ===== */
+  window.toggleIntro = function() {
+    var el = document.getElementById('toolIntro');
+    if (el) el.classList.toggle('open');
+  };
+
+  /* ===== 初始化 ===== */
+  initTuningPresets();
+  calcFreq2Note();
+  calcNote2Freq();
+  buildRefTable();
+
+})();
+</script><script>
+// tool-intro折叠交互
+document.addEventListener('DOMContentLoaded',function(){
+  var headers=document.querySelectorAll('.tool-intro-header');
+  headers.forEach(function(h){
+    h.addEventListener('click',function(){
+      this.parentElement.classList.toggle('open');
+    });
+  });
+});
+</script>
+
+</body>
+</html>

@@ -1,0 +1,753 @@
+<!DOCTYPE html>
+<html lang="zh-TW" data-opencc-locale="zh-tw">
+<head>
+
+<script src="/js/tool-page-runtime.js" defer></script>
+<!-- TOOLBOX-TOOL-RUNTIME -->
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="toolbox" content="cat=text,industry=it,icon=🔄,bg=#e0f7fa">
+<title>文本替換工具 - ToolBox</title>
+<link rel="canonical" href="https://chenguangwu.github.io/zh-tw/tools/it/text-replace.html">
+<meta property="og:title" content="文本替换工具">
+<meta property="og:description" content="在原文中执行文本替换，既支持普通字符串替换，也支持正则表达式替换，实时标出所有匹配位置并预览替换结果，方便在批量修改前确认改动范围。">
+<meta property="og:url" content="https://chenguangwu.github.io/zh-tw/tools/it/text-replace.html">
+<meta name="twitter:card" content="summary">
+<meta name="description" content="在原文中执行文本替换，既支持普通字符串替换，也支持正则表达式替换，实时标出所有匹配位置并预览替换结果，方便在批量修改前确认改动范围。">
+<link rel="preload" as="style" href="/css/common.css" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="/css/common.css"></noscript>
+<script>window.__tbq=window.__tbq||[];window.ToolBox=window.ToolBox||{};['initToolTheme','addToolStyles','showToast','toast','copyText','copyToClipboard','copyFromElement','downloadText','injectPrivacyBadge','toggleFavTool','addToRecentTool','toggleToolTheme','applyTheme'].forEach(function(k){if(typeof window.ToolBox[k]!=='function')window.ToolBox[k]=function(){window.__tbq.push([k,[].slice.call(arguments)]);};});</script><!-- TOOLBOX-API-STUB -->
+<script src="/js/common.js" defer></script>
+<style>
+  .replace-preview {
+    font-family: 'SF Mono', 'Courier New', 'Fira Code', monospace;
+    font-size: 14px;
+    line-height: 1.7;
+    white-space: pre-wrap;
+    word-break: break-all;
+    max-height: 300px;
+    overflow-y: auto;
+  }
+  .match-highlight {
+    background: rgba(255, 107, 53, 0.25);
+    border-radius: 3px;
+    padding: 1px 2px;
+    border-bottom: 2px solid var(--primary);
+  }
+  .match-info-row {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 12px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+  .match-info-row .info-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 500;
+    background: rgba(255, 107, 53, 0.08);
+    border: 1px solid rgba(255, 107, 53, 0.2);
+    color: var(--primary);
+  }
+  .match-info-row .info-chip .chip-val {
+    font-weight: 700;
+    font-size: 15px;
+  }
+  .context-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+  .context-list li {
+    padding: 8px 12px;
+    margin-bottom: 6px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-family: 'SF Mono', 'Courier New', 'Fira Code', monospace;
+    line-height: 1.6;
+    word-break: break-all;
+    background: var(--result-bg);
+    border: 1px solid var(--border);
+    color: var(--text);
+  }
+  .context-list li .ctx-num {
+    color: var(--text-muted);
+    font-size: 12px;
+    margin-right: 8px;
+    user-select: none;
+  }
+  .error-tip {
+    color: var(--danger);
+    font-size: 13px;
+    margin-top: 8px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  [data-theme="dark"] .match-highlight {
+    background: rgba(255, 138, 92, 0.3);
+  }
+  [data-theme="dark"] .match-info-row .info-chip {
+    background: rgba(255, 138, 92, 0.12);
+    border-color: rgba(255, 138, 92, 0.3);
+  }
+  @media (max-width: 768px) {
+    .replace-preview { font-size: 13px; }
+    .match-info-row { gap: 8px; }
+    .match-info-row .info-chip { font-size: 12px; padding: 5px 10px; }
+    .match-info-row .info-chip .chip-val { font-size: 14px; }
+  }
+</style>
+
+
+
+<meta property="og:image" content="https://chenguangwu.github.io/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="ToolBox - 5000+免费在线工具">
+<meta name="twitter:image" content="https://chenguangwu.github.io/og-image.png">
+<meta name="twitter:image:alt" content="ToolBox - 5000+免费在线工具">
+    <meta property="og:type" content="website">
+    <meta name="twitter:title" content="文本替换工具">
+    <meta name="twitter:description" content="在原文中执行文本替换，既支持普通字符串替换，也支持正则表达式替换，实时标出所有匹配位置并预览替换结果，方便在批量修改前确认改动范围。">
+<!-- TOOLBOX-WEBAPP-LD -->
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"文本替換工具","url":"https://chenguangwu.github.io/zh-tw/tools/it/text-replace.html","applicationCategory":"DeveloperApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":"zh-TW","description":"在原文中執行文本替換，既支援普通字串替換，也支援正規表示式替換，即時標出所有匹配位置並預覽替換結果，方便在批次修改前確認改動範圍。","image":"https://chenguangwu.github.io/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}</script>
+<meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
+<meta http-equiv="X-Content-Type-Options" content="nosniff">
+<meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
+<!-- TOOLBOX-SECURITY -->
+
+<script src="/js/privacy.js" defer></script>
+<!-- TOOLBOX-PRIVACY-SCRIPT -->
+
+<script src="/js/metrics.js" defer></script>
+<!-- TOOLBOX-METRICS-SCRIPT -->
+
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"首頁","item":"https://chenguangwu.github.io/zh-tw/"},{"@type":"ListItem","position":2,"name":"IT 開發","item":"https://chenguangwu.github.io/zh-tw/tools/it/index.html"},{"@type":"ListItem","position":3,"name":"文本替換工具","item":"https://chenguangwu.github.io/zh-tw/tools/it/text-replace.html"}]}</script>
+
+<script src="/js/i18n.js" defer></script>
+<script src="/js/tool-i18n.js" defer></script>
+<!-- TOOLBOX-I18N-SCRIPT -->
+
+
+<meta name="title-en" content="Text Replace - ToolBox">
+<meta name="desc-en" content="Text Replace - free online tool. Free online tool on ToolBox — 100% client-side, no data uploaded, no install. Part of the IT Development tools.">
+<!-- TOOLBOX-HREFLANG -->
+<link rel="alternate" hreflang="zh-CN" href="https://chenguangwu.github.io/tools/it/text-replace.html">
+<link rel="alternate" hreflang="zh-TW" href="https://chenguangwu.github.io/zh-tw/tools/it/text-replace.html">
+<link rel="alternate" hreflang="zh-HK" href="https://chenguangwu.github.io/zh-hk/tools/it/text-replace.html">
+<link rel="alternate" hreflang="en-US" href="https://chenguangwu.github.io/tools/it/text-replace.html?lang=en-US">
+<link rel="alternate" hreflang="x-default" href="https://chenguangwu.github.io/tools/it/text-replace.html">
+<meta property="og:locale" content="zh_TW">
+<meta property="og:locale:alternate" content="zh_CN">
+<meta property="og:locale:alternate" content="zh_HK">
+<meta property="og:locale:alternate" content="en_US">
+</head>
+<body>
+<h1 class="sr-only">文本替換工具</h1>
+
+
+<!-- 導航欄 -->
+<div class="nav">
+  <a href="/zh-tw/index.html">← ToolBox</a>
+  <span>/ 文本替換工具</span>
+  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()">🌙</button>
+</div>
+
+
+
+
+
+<nav class="breadcrumb" aria-label="麵包屑導航" data-breadcrumb="1">
+  <a href="/zh-tw/index.html">首頁</a>
+  <span class="bc-sep">‹</span>
+  <a href="/zh-tw/tools/it/index.html">💻 IT 開發</a>
+  <span class="bc-sep">‹</span>
+  <span class="bc-current">文本替換工具</span>
+</nav>
+<div class="container">
+
+  <!-- 主卡片 -->
+  <div class="card tool-card-accent" style="--tool-accent:#FF6B35;">
+    <h2 data-zh="🔄 文本替換工具">🔄 Text Replace</h2>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="支援普通文本替換和正規表示式替換，即時預覽匹配位置">Text Replace is available directly in your browser, with no data uploaded.</p>
+
+    <!-- 原始文本輸入 -->
+    <label>原始文本</label>
+    <textarea id="sourceText" rows="8" placeholder="在此输入或粘贴需要处理的文本内容..."></textarea>
+
+    <div style="margin-top:16px;"></div>
+
+    <!-- 查詢與替換輸入 -->
+    <div class="input-row">
+      <div>
+        <label>查詢內容</label>
+        <input type="text" id="findInput" placeholder="輸入要查詢的文本或正規表示式">
+      </div>
+      <div>
+        <label>替換為</label>
+        <input type="text" id="replaceInput" placeholder="輸入替換後的文本（支援 $1 $2 引用）">
+      </div>
+    </div>
+
+    <!-- 選項設定 -->
+    <div class="checkbox-row">
+      <label><input type="checkbox" id="optCase"> 區分大小寫</label>
+      <label><input type="checkbox" id="optRegex"> 使用正規表示式</label>
+      <label><input type="checkbox" id="optGlobal" checked> 全域性替換</label>
+      <label><input type="checkbox" id="optMultiline"> 多行模式</label>
+    </div>
+
+    <!-- 操作按鈕 -->
+    <div class="toolbar">
+      <button type="button" class="btn primary" onclick="doReplace()">替換</button>
+      <button type="button" class="btn" onclick="previewMatch()">預覽匹配</button>
+      <button type="button" class="btn warning" onclick="undoReplace()">撤銷</button>
+      <button type="button" class="btn success" onclick="copyResult()">複製結果</button>
+      <button type="button" class="btn" onclick="downloadResult()">下載結果</button>
+      <button type="button" class="btn danger" onclick="clearAll()">清空</button>
+    </div>
+
+    <!-- 錯誤提示區 -->
+    <div id="errorArea"></div>
+
+    <!-- 統計資訊 -->
+    <div id="statsArea" style="display:none;">
+      <div class="match-info-row">
+        <span class="info-chip">匹配數量 <span class="chip-val" id="matchCount">0</span></span>
+        <span class="info-chip">替換次數 <span class="chip-val" id="replaceCount">0</span></span>
+        <span class="info-chip">字元變化 <span class="chip-val" id="charDelta">0</span></span>
+      </div>
+    </div>
+
+    <!-- 匹配預覽 -->
+    <div id="previewArea" style="display:none;">
+      <h3 style="margin-bottom:8px;">匹配預覽</h3>
+      <div class="result-box">
+        <div class="replace-preview" id="previewContent"></div>
+      </div>
+      <div id="contextArea"></div>
+    </div>
+
+    <!-- 替換結果 -->
+    <div id="resultArea" style="display:none;">
+      <h3 style="margin-bottom:8px;">替換結果</h3>
+      <textarea id="resultText" rows="8" readonly style="background:var(--result-bg);cursor:text;"></textarea>
+    </div>
+  </div>
+
+  <!-- SEO 工具介紹 -->
+
+</div>
+
+</div>
+
+<!-- 相關工具 -->
+<div class="related-tools" data-related-tools="1">
+  <h3 class="related-tools-title">🔗 相關工具</h3>
+  <div class="related-tools-grid">
+    <a href="/zh-tw/tools/it/properties-parser.html" class="related-tool-card">
+      <span class="rt-icon">🔧</span>
+      <span class="rt-info"><span class="rt-name">.properties 解析器 - 免費開發工具，properties 解析器 | ToolBox免費線上工具箱</span><span class="rt-desc">.properties 解析器</span></span>
+    </a>
+    <a href="/zh-tw/tools/it/ast-viewer.html" class="related-tool-card">
+      <span class="rt-icon">🌳</span>
+      <span class="rt-info"><span class="rt-name">AST抽象語法樹檢視器 - 線上解析JavaScript程式碼生成AST樹形結構，支援節點 | ToolBox免費線上工具箱</span><span class="rt-desc">AST 抽象語法樹檢視器</span></span>
+    </a>
+    <a href="/zh-tw/tools/it/css-minifier.html" class="related-tool-card">
+      <span class="rt-icon">🎨</span>
+      <span class="rt-info"><span class="rt-name">CSS 壓縮/美化工具 - 免費開發工具，CSS 壓縮/格式化/美化 | ToolBox免費線上工具箱</span><span class="rt-desc">CSS 壓縮/格式化/美化</span></span>
+    </a>
+    <a href="/zh-tw/tools/it/css-formatter.html" class="related-tool-card">
+      <span class="rt-icon">🔧</span>
+      <span class="rt-info"><span class="rt-name">CSS 格式化 - 免費開發工具，線上CSS 格式化 | ToolBox免費線上工具箱</span><span class="rt-desc">CSS 格式化</span></span>
+    </a>
+    <a href="/zh-tw/tools/it/cron.html" class="related-tool-card">
+      <span class="rt-icon">⏰</span>
+      <span class="rt-info"><span class="rt-name">Cron 表示式生成器 - 免費開發工具，線上Cron 表示式生成器 | ToolBox免費線上工具箱</span><span class="rt-desc">⏰ Cron 表示式生成器</span></span>
+    </a>
+    <a href="/zh-tw/tools/it/graphql-formatter.html" class="related-tool-card">
+      <span class="rt-icon">🔧</span>
+      <span class="rt-info"><span class="rt-name">GraphQL 格式化 - 免費開發工具，線上GraphQL 格式化 | ToolBox免費線上工具箱</span><span class="rt-desc">◈ GraphQL 格式化</span></span>
+    </a>
+  </div>
+</div>
+<div class="tool-intro">
+    <div class="tool-intro-header" onclick="toggleIntro(this)">
+      <span class="intro-icon-wrap"><span class="intro-icon">🔄</span> 文本替換工具介紹</span>
+      <span class="arrow">▼</span>
+    </div>
+    <div class="tool-intro-body">
+      <p>純前端文本替換工具，支援普通查詢替換和正規表示式替換，所有處理在瀏覽器本地完成，資料不上傳。</p>
+
+      <h4><span class="h4-icon">✨</span> 功能特點</h4>
+      <ul class="intro-features">
+        <li>普通文本替換</li>
+        <li>正規表示式替換</li>
+        <li>區分大小寫</li>
+        <li>全域性替換</li>
+        <li>多行模式</li>
+        <li>匹配預覽高亮</li>
+        <li>替換計數統計</li>
+        <li>撤銷恢復</li>
+        <li>結果複製下載</li>
+        <li>純前端零上傳</li>
+      </ul>
+
+      <h4><span class="h4-icon">📍</span> 使用場景</h4>
+      <ul class="intro-scenes">
+        <li>批次修改文本中的關鍵詞</li>
+        <li>用正則清理日誌檔案格式</li>
+        <li>程式碼重構時的批次變數重新命名</li>
+        <li>CSV/文本資料的批次格式化</li>
+        <li>HTML 標籤清理與替換</li>
+        <li>多行文本的行首行尾處理</li>
+      </ul>
+
+      <h4><span class="h4-icon">❓</span> 常見問題</h4>
+      <div class="intro-faq-item">
+        <div class="intro-faq-q">正規表示式支援哪些語法？</div>
+        <div class="intro-faq-a">支援 JavaScript 標準正則語法，包括捕獲組 ($1, $2)、非捕獲組 (?:)、前瞻 (?=) 等。替換內容中可用 $&amp; 引用整個匹配、$1 引用第一個捕獲組。</div>
+      </div>
+      <div class="intro-faq-item">
+        <div class="intro-faq-q">多行模式有什麼作用？</div>
+        <div class="intro-faq-a">啟用多行模式後，^ 和 $ 將匹配每行的開頭和結尾，而不是整個文本的開頭和結尾。適合逐行處理文本。</div>
+      </div>
+      <div class="intro-faq-item">
+        <div class="intro-faq-q">我的資料安全嗎？</div>
+        <div class="intro-faq-a">完全安全。所有文本處理均在瀏覽器本地完成，不會上傳到任何伺服器，關閉頁面後資料即消失。</div>
+      </div>
+    </div>
+  </div>
+
+
+<!-- TOOLBOX-DEEP-DIVE -->
+<style>
+.deep-dive{max-width:960px;margin:16px auto;padding:0 16px;}
+.deep-dive > .card{margin-bottom:0;}
+@media(max-width:600px){.deep-dive{margin:14px auto;padding:0 12px;}}
+.deep-dive .dd-list{margin:8px 0 16px;padding-left:20px;}
+.deep-dive .dd-list li{margin:6px 0;line-height:1.75;}
+.deep-dive .dd-example{background:var(--card-bg,#fff);border:1px solid var(--border,#eee);border-radius:10px;padding:12px 14px;margin:8px 0 16px;}
+.deep-dive .dd-ex-title{font-weight:600;color:var(--tool-accent,#FF6B35);margin-bottom:6px;}
+.deep-dive .dd-ex-body{font-size:13px;line-height:1.85;color:var(--text,#333);word-break:break-word;}
+.deep-dive .dd-faq{margin:8px 0 4px;}
+.deep-dive .dd-faq dt{font-weight:600;margin-top:10px;color:var(--text,#333);}
+.deep-dive .dd-faq dd{margin:4px 0 0;font-size:13px;line-height:1.85;color:var(--text-muted,#666);}
+
+</style>
+<section class="deep-dive" data-deep-dive="1">
+<div class="card">
+<h2>📚 深度解析：文本替換工具</h2>
+<h3>💡 常見使用場景</h3>
+<ul class="dd-list">
+<li>當你在it相關場景中需要基於“Text Replace”進行快速計算或校驗時，可先用該工具生成一版標準結果。</li>
+<li>在教學、方案評審、除錯聯調時，可用固定樣本快速復現實驗流程，驗證引數選擇是否正確。</li>
+<li>用於將人工操作轉為可複用步驟：先確認輸入型別，再觀察輸出變化，便於排查規則誤差。</li>
+</ul>
+<div class="dd-example"><div class="dd-ex-title">標準化使用示例</div><div class="dd-ex-body">以一組典型輸入為例：先按業務口徑補充必要欄位，執行工具並記錄輸出；再對比另一組邊界輸入，檢查工具在異常輸入下是否給出穩定提示，便於快速形成操作 SOP。</div></div>
+<h3>❓ 常見問題（FAQ）</h3>
+<dl class="dd-faq">
+<dt>該工具適用於哪些 it 場景？</dt><dd>只要資料可對映到本工具支援的引數結構，就可用於日常分析、篩選、校驗等流程；多數情況下適合前置評估和結果複核。</dd>
+<dt>結果可信度如何保證？</dt><dd>工具預設按前端可見規則即時計算，不依賴外部服務；如有偏差，建議結合歷史基準值做交叉確認。</dd>
+</dl>
+</div>
+</section>
+<!-- 注意事項區塊 -->
+<div class="tool-notes" style="--tool-accent:#FF6B35;">
+  <div class="tool-notes-title">⚠️ 使用說明與注意事項</div>
+  <ul>
+      <li>本工具純前端執行，資料不會上傳到伺服器</li>
+      <li>建議在主流瀏覽器（Chrome/Safari/Firefox/Edge）中使用</li>
+      <li>計算結果僅供參考，請以實際應用場景為準</li>
+  </ul>
+</div>
+<!-- /注意事項區塊 -->
+</div>
+
+<script>
+(function() {
+  'use strict';
+
+  // 保存原始文本用于撤销
+  let originalText = '';
+  let lastResultText = '';
+
+  // 获取选项状态
+  function getOptions() {
+    return {
+      caseSensitive: document.getElementById('optCase').checked,
+      useRegex: document.getElementById('optRegex').checked,
+      global: document.getElementById('optGlobal').checked,
+      multiline: document.getElementById('optMultiline').checked
+    };
+  }
+
+  // 构建正则标志
+  function buildFlags(opts) {
+    let flags = '';
+    if (!opts.caseSensitive) flags += 'i';
+    if (opts.global) flags += 'g';
+    if (opts.multiline) flags += 'm';
+    return flags;
+  }
+
+  // 安全构建正则
+  function buildRegex(pattern, opts) {
+    const flags = buildFlags(opts);
+    return new RegExp(pattern, flags);
+  }
+
+  // 执行查找，返回匹配信息
+  function findMatches(text, pattern, opts) {
+    if (!pattern) return { matches: [], count: 0, error: null };
+
+    try {
+      if (opts.useRegex) {
+        const regex = buildRegex(pattern, opts);
+        const matches = [];
+        let m;
+        const searchRegex = new RegExp(pattern, buildFlags(opts));
+        // For counting, we need global flag temporarily
+        const countRegex = new RegExp(pattern, buildFlags({ ...opts, global: true }));
+        const allMatches = text.match(countRegex);
+        const count = allMatches ? allMatches.length : 0;
+
+        // Collect match positions for preview (limit to first 200)
+        const posRegex = new RegExp(pattern, buildFlags({ ...opts, global: true }));
+        let match;
+        let idx = 0;
+        while ((match = posRegex.exec(text)) !== null && idx < 200) {
+          matches.push({ index: match.index, length: match[0].length, text: match[0] });
+          idx++;
+          if (match[0].length === 0) posRegex.lastIndex++; // Avoid infinite loop on zero-length matches
+        }
+        return { matches, count, error: null };
+      } else {
+        // Plain text search
+        const searchStr = opts.caseSensitive ? pattern : pattern.toLowerCase();
+        const targetStr = opts.caseSensitive ? text : text.toLowerCase();
+        const matches = [];
+        let count = 0;
+        let startIdx = 0;
+
+        while (true) {
+          const foundIdx = targetStr.indexOf(searchStr, startIdx);
+          if (foundIdx === -1) break;
+          matches.push({ index: foundIdx, length: searchStr.length, text: pattern });
+          count++;
+          if (!opts.global) break;
+          startIdx = foundIdx + 1;
+          if (count > 500) break; // Safety limit
+        }
+        return { matches, count, error: null };
+      }
+    } catch (e) {
+      return { matches: [], count: 0, error: e.message };
+    }
+  }
+
+  // 高亮预览文本
+  function highlightText(text, matches) {
+    if (matches.length === 0) return ToolBox.escHtml(text);
+
+    // Sort matches by index ascending
+    const sorted = matches.slice().sort((a, b) => a.index - b.index);
+    const MAX_CHARS = 8000; // Limit preview length
+    const result = [];
+    let lastEnd = 0;
+
+    for (let i = 0; i < sorted.length; i++) {
+      const m = sorted[i];
+      if (m.index >= MAX_CHARS) break;
+
+      // Add text before match
+      if (m.index > lastEnd) {
+        result.push(ToolBox.escHtml(text.substring(lastEnd, m.index)));
+      }
+
+      // Add highlighted match
+      const matchText = text.substring(m.index, m.index + m.length);
+      result.push('<span class="match-highlight">' + ToolBox.escHtml(matchText) + '</span>');
+      lastEnd = m.index + m.length;
+    }
+
+    // Add remaining text
+    if (lastEnd < MAX_CHARS) {
+      result.push(ToolBox.escHtml(text.substring(lastEnd, MAX_CHARS)));
+    }
+
+    return result.join('');
+  }
+
+  // 生成匹配上下文列表（最多显示 10 个）
+  function buildContextList(text, matches) {
+    if (matches.length === 0) return '';
+    const sorted = matches.slice().sort((a, b) => a.index - b.index);
+    const show = sorted.slice(0, 10);
+    const CONTEXT = 30; // 前后字符数
+
+    let html = '<h3 style="margin-top:12px;margin-bottom:8px;">匹配位置（前 10 个）</h3><ul class="context-list">';
+    show.forEach((m, i) => {
+      const start = Math.max(0, m.index - CONTEXT);
+      const end = Math.min(text.length, m.index + m.length + CONTEXT);
+      let ctx = text.substring(start, end).replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      // Highlight the match portion
+      const localStart = m.index - start;
+      const localEnd = localStart + m.length;
+      ctx = ToolBox.escHtml(text.substring(start, m.index))
+        + '<span class="match-highlight">' + ToolBox.escHtml(m.text) + '</span>'
+        + ToolBox.escHtml(text.substring(m.index + m.length, end));
+      html += '<li><span class="ctx-num">#' + (i + 1) + ' [' + m.index + ']</span>' + ctx + '</li>';
+    });
+    html += '</ul>';
+    return html;
+  }
+
+  // 执行替换
+  window.doReplace = function() {
+    const text = document.getElementById('sourceText').value;
+    const pattern = document.getElementById('findInput').value;
+    const replacement = document.getElementById('replaceInput').value;
+    const opts = getOptions();
+
+    // Clear previous
+    document.getElementById('errorArea').innerHTML = '';
+    document.getElementById('previewArea').style.display = 'none';
+
+    if (!text) {
+      ToolBox.showToast(i18nText('toast.msg685'), 'warning');
+      return;
+    }
+    if (!pattern) {
+      ToolBox.showToast(i18nText('toast.msg875'), 'warning');
+      return;
+    }
+
+    // Find matches for counting
+    const matchInfo = findMatches(text, pattern, opts);
+    if (matchInfo.error) {
+      document.getElementById('errorArea').innerHTML =
+        '<div class="error-tip">正则表达式错误：' + ToolBox.escHtml(matchInfo.error) + '</div>';
+      ToolBox.showToast(i18nText('toast.msg454'), 'error');
+      return;
+    }
+
+    let result;
+    let replaceCount = matchInfo.count;
+
+    try {
+      if (opts.useRegex) {
+        if (opts.global) {
+          const regex = buildRegex(pattern, opts);
+          result = text.replace(regex, replacement);
+        } else {
+          // Non-global: only replace first match
+          const regex = buildRegex(pattern, opts);
+          result = text.replace(regex, replacement);
+        }
+      } else {
+        if (opts.global) {
+          if (!opts.caseSensitive) {
+            const parts = text.toLowerCase().split(pattern.toLowerCase());
+            result = parts.join(replacement);
+          } else {
+            const parts = text.split(pattern);
+            result = parts.join(replacement);
+          }
+        } else {
+          // Non-global case-insensitive plain replace
+          const searchStr = opts.caseSensitive ? pattern : pattern.toLowerCase();
+          const targetStr = opts.caseSensitive ? text : text.toLowerCase();
+          const idx = targetStr.indexOf(searchStr);
+          if (idx !== -1) {
+            result = text.substring(0, idx) + replacement + text.substring(idx + pattern.length);
+          } else {
+            result = text;
+          }
+        }
+      }
+    } catch (e) {
+      document.getElementById('errorArea').innerHTML =
+        '<div class="error-tip">替换执行错误：' + ToolBox.escHtml(e.message) + '</div>';
+      ToolBox.showToast(i18nText('toast.msg436'), 'error');
+      return;
+    }
+
+    // Save for undo
+    originalText = text;
+    lastResultText = result;
+
+    // Calculate char delta
+    const delta = result.length - text.length;
+
+    // Show stats
+    document.getElementById('statsArea').style.display = 'block';
+    document.getElementById('matchCount').textContent = matchInfo.count;
+    document.getElementById('replaceCount').textContent = replaceCount;
+    document.getElementById('charDelta').textContent = (delta >= 0 ? '+' : '') + delta;
+
+    // Show result
+    document.getElementById('resultArea').style.display = 'block';
+    document.getElementById('resultText').value = result;
+
+    if (matchInfo.count === 0) {
+      ToolBox.showToast(i18nText('toast.msg441'), 'info');
+    } else {
+      ToolBox.showToast('替换完成，共 ' + replaceCount + ' 处', 'success');
+    }
+  };
+
+  // 预览匹配
+  window.previewMatch = function() {
+    const text = document.getElementById('sourceText').value;
+    const pattern = document.getElementById('findInput').value;
+    const opts = getOptions();
+
+    document.getElementById('errorArea').innerHTML = '';
+    document.getElementById('resultArea').style.display = 'none';
+
+    if (!text) {
+      ToolBox.showToast(i18nText('toast.msg685'), 'warning');
+      return;
+    }
+    if (!pattern) {
+      ToolBox.showToast(i18nText('toast.msg875'), 'warning');
+      return;
+    }
+
+    const matchInfo = findMatches(text, pattern, opts);
+    if (matchInfo.error) {
+      document.getElementById('errorArea').innerHTML =
+        '<div class="error-tip">正则表达式错误：' + ToolBox.escHtml(matchInfo.error) + '</div>';
+      ToolBox.showToast(i18nText('toast.msg454'), 'error');
+      return;
+    }
+
+    // Show stats
+    document.getElementById('statsArea').style.display = 'block';
+    document.getElementById('matchCount').textContent = matchInfo.count;
+    document.getElementById('replaceCount').textContent = '—';
+    document.getElementById('charDelta').textContent = '—';
+
+    // Show preview
+    document.getElementById('previewArea').style.display = 'block';
+    document.getElementById('previewContent').innerHTML =
+      matchInfo.count > 0
+        ? highlightText(text, matchInfo.matches)
+        : '<span style="color:var(--text-muted);">未找到匹配内容</span>';
+
+    // Show context list
+    document.getElementById('contextArea').innerHTML =
+      matchInfo.count > 0 ? buildContextList(text, matchInfo.matches) : '';
+
+    if (matchInfo.count === 0) {
+      ToolBox.showToast(i18nText('toast.msg441'), 'info');
+    } else {
+      ToolBox.showToast('找到 ' + matchInfo.count + ' 个匹配', 'info');
+    }
+  };
+
+  // 撤销替换
+  window.undoReplace = function() {
+    if (!originalText) {
+      ToolBox.showToast(i18nText('toast.msg481'), 'warning');
+      return;
+    }
+    document.getElementById('sourceText').value = originalText;
+    document.getElementById('resultArea').style.display = 'none';
+    document.getElementById('statsArea').style.display = 'none';
+    document.getElementById('previewArea').style.display = 'none';
+    document.getElementById('errorArea').innerHTML = '';
+    originalText = '';
+    lastResultText = '';
+    ToolBox.showToast(i18nText('toast.msg235'), 'success');
+  };
+
+  // 复制结果
+  window.copyResult = function() {
+    const text = document.getElementById('resultText').value;
+    if (!text) {
+      ToolBox.showToast(i18nText('toast.copy_target_missing'), 'warning');
+      return;
+    }
+    ToolBox.copyText(text, i18nText());
+  };
+
+  // 下载结果
+  window.downloadResult = function() {
+    const text = document.getElementById('resultText').value;
+    if (!text) {
+      ToolBox.showToast(i18nText('toast.empty_download'), 'warning');
+      return;
+    }
+    ToolBox.downloadText('replaced-text.txt', text);
+    ToolBox.showToast(i18nText('toast.msg392'), 'success');
+  };
+
+  // 清空
+  window.clearAll = function() {
+    document.getElementById('sourceText').value = '';
+    document.getElementById('findInput').value = '';
+    document.getElementById('replaceInput').value = '';
+    document.getElementById('resultArea').style.display = 'none';
+    document.getElementById('statsArea').style.display = 'none';
+    document.getElementById('previewArea').style.display = 'none';
+    document.getElementById('errorArea').innerHTML = '';
+    originalText = '';
+    lastResultText = '';
+    ToolBox.showToast(i18nText('toast.msg275'), 'success');
+  };
+
+  // 切换工具介绍折叠
+  window.toggleIntro = function(header) {
+    header.parentElement.classList.toggle('open');
+  };
+
+  // 快捷键：Enter 执行替换
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter' && !e.shiftKey && !e.ctrlKey && !e.metaKey) {
+      const tag = document.activeElement.tagName;
+      if (tag === 'INPUT' && document.activeElement.type === 'text') {
+        e.preventDefault();
+        doReplace();
+      }
+    }
+  });
+
+})();
+</script>
+
+
+<!-- SEO 介紹區塊 -->
+<div class="tool-intro open" id="toolIntro">
+  <div class="tool-intro-header">
+    <span class="intro-icon-wrap"><span class="intro-icon">📖</span>關於「文本替換工具」</span>
+    <span class="arrow">▼</span>
+  </div>
+  <div class="tool-intro-body">
+    <h4><span class="h4-icon">📝</span>工具簡介</h4>
+    <p>文本替換工具是一款IT 開發領域的線上工具。專為開發者打造的線上工具，純前端執行，程式碼不離開瀏覽器。</p>
+
+      </div>
+</div>
+<!-- /SEO 介紹區塊 -->
+
+<script>
+// tool-intro折叠交互
+document.addEventListener('DOMContentLoaded',function(){
+  var headers=document.querySelectorAll('.tool-intro-header');
+  headers.forEach(function(h){
+    h.addEventListener('click',function(){
+      this.parentElement.classList.toggle('open');
+    });
+  });
+});
+</script>
+
+</body>
+</html>

@@ -1,0 +1,779 @@
+<!DOCTYPE html>
+<html lang="zh-HK" data-opencc-locale="zh-hk">
+<head>
+
+<script src="/js/tool-page-runtime.js" defer></script>
+<!-- TOOLBOX-TOOL-RUNTIME -->
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="toolbox" content="cat=image,industry=image,icon=🗜️,bg=#e3f2fd">
+<meta name="description" content="在线压缩图片，支持 JPEG / WebP / PNG 格式、质量调节、尺寸限制与批量处理，所有处理在浏览器本地完成，图片不上传服务器。">
+<meta name="keywords" content="图片压缩,在线图片压缩,图片压缩工具,JPEG压缩,WebP压缩,PNG压缩,批量压缩图片,图片优化,压缩图片,缩小图片,在线工具,免费工具,ToolBox">
+<meta name="robots" content="index,follow">
+<link rel="canonical" href="https://chenguangwu.github.io/zh-hk/tools/image/image-compress.html">
+<meta property="og:title" content="图片压缩（图像）">
+<meta property="og:description" content="在线压缩图片，支持 JPEG / WebP / PNG 格式、质量调节、尺寸限制与批量处理，所有处理在浏览器本地完成，图片不上传服务器。">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://chenguangwu.github.io/zh-hk/tools/image/image-compress.html">
+<meta name="twitter:card" content="summary">
+
+<title>圖片壓縮（圖像） - ToolBox</title>
+<meta name="theme-color" content="#FF6B35">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<link rel="icon" href="/favicon.ico" sizes="16x16 32x32 48x48">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="preload" as="style" href="/css/common.css" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="/css/common.css"></noscript>
+<script>window.__tbq=window.__tbq||[];window.ToolBox=window.ToolBox||{};['initToolTheme','addToolStyles','showToast','toast','copyText','copyToClipboard','copyFromElement','downloadText','injectPrivacyBadge','toggleFavTool','addToRecentTool','toggleToolTheme','applyTheme'].forEach(function(k){if(typeof window.ToolBox[k]!=='function')window.ToolBox[k]=function(){window.__tbq.push([k,[].slice.call(arguments)]);};});</script><!-- TOOLBOX-API-STUB -->
+<script src="/js/common.js" defer></script>
+<style>
+/* 拖拽上传区 */
+.drop-zone{
+  border:2px dashed var(--border);
+  border-radius:14px;
+  padding:36px 20px;
+  text-align:center;
+  color:var(--text-muted);
+  cursor:pointer;
+  transition:all .2s;
+  background:var(--result-bg);
+}
+.drop-zone:hover,.drop-zone.dragover{
+  border-color:var(--primary);
+  background:rgba(255,107,53,0.06);
+  color:var(--primary);
+}
+.drop-zone .dz-icon{font-size:38px;display:block;margin-bottom:8px;}
+.drop-zone .dz-text{font-size:15px;font-weight:600;color:var(--text-primary);margin-bottom:4px;}
+.drop-zone .dz-hint{font-size:12px;color:var(--text-muted);}
+.drop-zone .dz-formats{margin-top:10px;display:flex;gap:6px;justify-content:center;flex-wrap:wrap;}
+.drop-zone .dz-formats span{font-size:11px;padding:2px 8px;border-radius:20px;background:var(--bg-hover);color:var(--text-secondary);}
+
+/* 设置区 */
+.settings-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:16px;}
+.setting-item{background:var(--result-bg);border:1px solid var(--border);border-radius:12px;padding:12px 14px;}
+.setting-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;}
+.setting-head label{margin:0;font-weight:600;color:var(--text-primary);}
+.quality-val{font-size:15px;font-weight:700;color:var(--primary);font-variant-numeric:tabular-nums;}
+.setting-item select{padding:9px 12px;}
+input[type="range"]{
+  -webkit-appearance:none;appearance:none;
+  width:100%;height:6px;border-radius:3px;
+  background:var(--border);outline:none;cursor:pointer;margin:4px 0;
+}
+input[type="range"]::-webkit-slider-thumb{
+  -webkit-appearance:none;appearance:none;
+  width:20px;height:20px;border-radius:50%;
+  background:var(--gradient-primary);cursor:pointer;
+  border:2px solid #fff;box-shadow:0 2px 6px rgba(255,107,53,.4);
+  transition:transform .15s;
+}
+input[type="range"]::-webkit-slider-thumb:hover{transform:scale(1.15);}
+input[type="range"]::-moz-range-thumb{
+  width:20px;height:20px;border-radius:50%;
+  background:#FF6B35;cursor:pointer;border:2px solid #fff;
+  box-shadow:0 2px 6px rgba(255,107,53,.4);
+}
+input[type="range"]:disabled{opacity:.45;cursor:not-allowed;}
+input[type="range"]:disabled::-webkit-slider-thumb{cursor:not-allowed;}
+
+/* 对比滑块 */
+.cmp-slider{
+  position:relative;width:100%;overflow:hidden;
+  border-radius:12px;background:var(--bg-hover);
+  cursor:ew-resize;user-select:none;line-height:0;
+  max-height:480px;
+}
+.cmp-img{display:block;width:100%;height:auto;max-height:480px;object-fit:contain;}
+.cmp-before{position:absolute;top:0;left:0;clip-path:inset(0 50% 0 0);}
+.cmp-tag{
+  position:absolute;top:10px;padding:3px 10px;border-radius:20px;
+  font-size:11px;font-weight:600;line-height:1.6;letter-spacing:.5px;
+  background:rgba(0,0,0,.55);color:#fff;backdrop-filter:blur(4px);z-index:5;
+}
+.cmp-tag-l{left:10px;}
+.cmp-tag-r{right:10px;}
+.cmp-handle{
+  position:absolute;top:0;bottom:0;width:2px;
+  background:#fff;box-shadow:0 0 8px rgba(0,0,0,.4);
+  transform:translateX(-1px);z-index:6;pointer-events:none;
+}
+.cmp-arrow{
+  position:absolute;top:50%;left:50%;
+  transform:translate(-50%,-50%);
+  width:36px;height:36px;border-radius:50%;
+  background:var(--gradient-primary);color:#fff;
+  display:flex;align-items:center;justify-content:center;
+  font-size:16px;font-weight:700;
+  box-shadow:0 2px 10px rgba(255,107,53,.5);
+}
+.cmp-hint{text-align:center;font-size:12px;color:var(--text-muted);margin:8px 0 4px;}
+
+/* 批量列表 */
+.batch-list{margin-top:12px;}
+.batch-item{
+  display:flex;align-items:center;gap:12px;
+  padding:10px;border:1px solid var(--border);
+  border-radius:12px;margin-bottom:8px;
+  background:var(--card-bg);transition:all .2s;
+}
+.batch-item:hover{border-color:var(--primary);box-shadow:var(--shadow-sm);}
+.batch-thumb{
+  width:56px;height:56px;border-radius:8px;object-fit:cover;
+  flex-shrink:0;background:var(--bg-hover);border:1px solid var(--border);
+}
+.batch-thumb.placeholder{
+  display:flex;align-items:center;justify-content:center;font-size:22px;
+}
+.batch-info{flex:1;min-width:0;}
+.batch-name{font-size:13px;font-weight:600;color:var(--text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.batch-meta{font-size:12px;color:var(--text-muted);margin-top:2px;}
+.batch-saved{
+  font-size:15px;font-weight:700;flex-shrink:0;min-width:56px;text-align:center;
+  font-variant-numeric:tabular-nums;
+}
+.batch-actions{display:flex;gap:6px;flex-shrink:0;}
+.batch-actions .btn{padding:7px 12px;font-size:12px;}
+
+.saved-positive{color:var(--success);}
+.saved-negative{color:var(--warning);}
+
+@media(max-width:768px){
+  .settings-grid{grid-template-columns:1fr;gap:10px;}
+  .batch-item{flex-wrap:wrap;}
+  .batch-info{flex:1 1 calc(100% - 68px);}
+  .batch-saved{order:3;}
+  .batch-actions{order:4;margin-left:auto;}
+  .drop-zone{padding:28px 16px;}
+}
+</style>
+
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"圖片壓縮","description":"免費在線圖片壓縮工具，支持 JPEG/WebP/PNG 格式轉換、質量調節、尺寸限制與批量壓縮，純前端處理，圖片不上傳。","url":"https://chenguangwu.github.io/zh-hk/tools/image/image-compress.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Web","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"},"inLanguage":"zh-HK","isAccessibleForFree":true,"browserRequirements":"Requires JavaScript. Requires HTML5 Canvas.","softwareVersion":"1.0"}</script>
+
+
+
+<meta property="og:image" content="https://chenguangwu.github.io/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="ToolBox - 5000+免费在线工具">
+<meta name="twitter:image" content="https://chenguangwu.github.io/og-image.png">
+<meta name="twitter:image:alt" content="ToolBox - 5000+免费在线工具">
+    <meta name="twitter:title" content="图片压缩（图像）">
+    <meta name="twitter:description" content="在线压缩图片，支持 JPEG / WebP / PNG 格式、质量调节、尺寸限制与批量处理，所有处理在浏览器本地完成，图片不上传服务器。">
+<!-- TOOLBOX-WEBAPP-LD -->
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"圖片壓縮（圖像）","url":"https://chenguangwu.github.io/zh-hk/tools/image/image-compress.html","applicationCategory":"MultimediaApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":"zh-HK","description":"在線壓縮圖片，支持 JPEG / WebP / PNG 格式、質量調節、尺寸限制與批量處理，所有處理在瀏覽器本地完成，圖片不上傳伺服器。","image":"https://chenguangwu.github.io/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}</script>
+<meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
+<meta http-equiv="X-Content-Type-Options" content="nosniff">
+<meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
+<!-- TOOLBOX-SECURITY -->
+
+<script src="/js/privacy.js" defer></script>
+<!-- TOOLBOX-PRIVACY-SCRIPT -->
+
+<script src="/js/metrics.js" defer></script>
+<!-- TOOLBOX-METRICS-SCRIPT -->
+
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"首頁","item":"https://chenguangwu.github.io/zh-hk/"},{"@type":"ListItem","position":2,"name":"圖像處理","item":"https://chenguangwu.github.io/zh-hk/tools/image/index.html"},{"@type":"ListItem","position":3,"name":"圖片壓縮（圖像）","item":"https://chenguangwu.github.io/zh-hk/tools/image/image-compress.html"}]}</script>
+
+<script src="/js/i18n.js" defer></script>
+<script src="/js/tool-i18n.js" defer></script>
+<!-- TOOLBOX-I18N-SCRIPT -->
+
+
+<meta name="title-en" content="Image Compress ( Image ) - ToolBox">
+<meta name="desc-en" content="Image Compress ( Image ) - free online tool. Free online tool on ToolBox — 100% client-side, no data uploaded, no install. Part of the Image Processing tools.">
+<!-- TOOLBOX-HREFLANG -->
+<link rel="alternate" hreflang="zh-CN" href="https://chenguangwu.github.io/tools/image/image-compress.html">
+<link rel="alternate" hreflang="zh-TW" href="https://chenguangwu.github.io/zh-tw/tools/image/image-compress.html">
+<link rel="alternate" hreflang="zh-HK" href="https://chenguangwu.github.io/zh-hk/tools/image/image-compress.html">
+<link rel="alternate" hreflang="en-US" href="https://chenguangwu.github.io/tools/image/image-compress.html?lang=en-US">
+<link rel="alternate" hreflang="x-default" href="https://chenguangwu.github.io/tools/image/image-compress.html">
+<meta property="og:locale" content="zh_HK">
+<meta property="og:locale:alternate" content="zh_CN">
+<meta property="og:locale:alternate" content="zh_TW">
+<meta property="og:locale:alternate" content="en_US">
+</head>
+<body>
+<h1 class="sr-only">圖片壓縮工具</h1>
+<div class="nav">
+  <a href="/zh-hk/index.html">← ToolBox</a>
+  <span>/ 圖片壓縮</span>
+  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()">🌙</button>
+</div>
+
+
+
+
+<nav class="breadcrumb" aria-label="麪包屑導航" data-breadcrumb="1">
+  <a href="/zh-hk/index.html">首頁</a>
+  <span class="bc-sep">‹</span>
+  <a href="/zh-hk/tools/image/index.html">🖼️ 圖像處理</a>
+  <span class="bc-sep">‹</span>
+  <span class="bc-current">圖片壓縮（圖像）</span>
+</nav>
+
+<div class="tool-guide-link" data-guide-link="1">
+  <a href="/zh-hk/guides/image-compress-guide.html">📖 查看「圖片壓縮使用指南」</a>
+</div>
+<div class="container">
+
+  <!-- 上傳與設置 -->
+  <div class="card tool-card-accent" style="--tool-accent:#FF6B35;">
+    <h2 data-zh="🗜️ 圖片壓縮（圖像）">🗜️ Image Compress ( Image )</h2>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="在線壓縮圖片，支持 JPEG / WebP / PNG 格式、質量調節、尺寸限制與批量處理，所有處理在瀏覽器本地完成，圖片不上傳伺服器。">Image Compress ( Image ) is available directly in your browser, with no data uploaded.</p>
+
+    <div class="drop-zone" id="drop-zone">
+      <span class="dz-icon">📁</span>
+      <div class="dz-text">點擊或拖拽圖片到這裏</div>
+      <div class="dz-hint">支持多張圖片批量上傳 · 可選 JPEG / PNG / WebP / GIF 等</div>
+      <div class="dz-formats">
+        <span>JPEG</span><span>PNG</span><span>WebP</span><span>GIF</span><span>BMP</span>
+      </div>
+      <input type="file" id="file-input" accept="image/*" multiple style="display:none;">
+    </div>
+
+    <div class="settings-grid">
+      <div class="setting-item">
+        <div class="setting-head">
+          <label for="fmt">輸出格式</label>
+        </div>
+        <select id="fmt">
+          <option value="webp">WebP（現代格式 · 推薦）</option>
+          <option value="jpeg">JPEG（照片 · 有損）</option>
+          <option value="png">PNG（無損 · 透明）</option>
+        </select>
+      </div>
+      <div class="setting-item">
+        <div class="setting-head">
+          <label for="max-size">最大尺寸（等比縮放）</label>
+        </div>
+        <select id="max-size">
+          <option value="0">不限制</option>
+          <option value="4096">4096px（4K）</option>
+          <option value="1920" selected>1920px（全高清）</option>
+          <option value="1280">1280px（高清）</option>
+          <option value="800">800px（網頁）</option>
+          <option value="480">480px（縮略圖）</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="setting-item" id="quality-row" style="margin-top:14px;">
+      <div class="setting-head">
+        <label for="quality">壓縮質量</label>
+        <span class="quality-val" id="quality-val">80%</span>
+      </div>
+      <input type="range" id="quality" min="1" max="100" value="80">
+      <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text-muted);margin-top:2px;">
+        <span>更小體積</span>
+        <span>更高質量</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- 結果區 -->
+  <div class="card" id="results-card" style="display:none;">
+    <div id="single-view" style="display:none;"></div>
+    <div id="batch-view" style="display:none;"></div>
+  </div>
+
+  <!-- 注意事項 -->
+  <div class="tool-notes" style="--tool-accent:#FF6B35;">
+    <div class="tool-notes-title">⚠️ 使用説明與注意事項</div>
+    <ul>
+      <li>本工具純前端運行，圖片不會上傳到任何伺服器，保護隱私安全</li>
+      <li>JPEG 為有損格式，不支持透明背景（透明區域會填充白色）</li>
+      <li>WebP 兼容現代瀏覽器（Chrome/Edge/Firefox/Safari 14+），壓縮率最優</li>
+      <li>PNG 為無損格式，質量滑塊不生效；對照片壓縮效果有限</li>
+      <li>「最大尺寸」會等比縮放圖片，使長邊不超過設定值</li>
+      <li>部分舊瀏覽器可能不支持 WebP 輸出，如遇失敗請改選 JPEG</li>
+    </ul>
+  </div>
+
+  <!-- SEO 介紹區塊 -->
+
+</div>
+
+</div>
+
+<!-- TOOLBOX-DEEP-DIVE -->
+<style>
+.deep-dive{max-width:960px;margin:16px auto;padding:0 16px;}
+.deep-dive > .card{margin-bottom:0;}
+@media(max-width:600px){.deep-dive{margin:14px auto;padding:0 12px;}}
+.deep-dive .dd-list{margin:8px 0 16px;padding-left:20px;}
+.deep-dive .dd-list li{margin:6px 0;line-height:1.75;}
+.deep-dive .dd-example{background:var(--card-bg,#fff);border:1px solid var(--border,#eee);border-radius:10px;padding:12px 14px;margin:8px 0 16px;}
+.deep-dive .dd-ex-title{font-weight:600;color:var(--tool-accent,#FF6B35);margin-bottom:6px;}
+.deep-dive .dd-ex-body{font-size:13px;line-height:1.85;color:var(--text,#333);word-break:break-word;}
+.deep-dive .dd-faq{margin:8px 0 4px;}
+.deep-dive .dd-faq dt{font-weight:600;margin-top:10px;color:var(--text,#333);}
+.deep-dive .dd-faq dd{margin:4px 0 0;font-size:13px;line-height:1.85;color:var(--text-muted,#666);}
+
+</style>
+<section class="deep-dive" data-deep-dive="1">
+<div class="card">
+<h2>📚 深度解析：圖片壓縮（圖像）</h2>
+<h3>💡 常見使用場景</h3>
+<ul class="dd-list">
+<li>在「圖片壓縮（圖像）」場景先統一輸入單位與口徑，先做基準算例，再做邊界場景核驗，避免把輸出誤讀為模型差異。</li>
+<li>建議固定關鍵變量並逐步調整其餘輸入，觀察輸出變化方向，快速定位異常源。</li>
+<li>常見場景：圖片壓縮（圖像）</li>
+</ul>
+<div class="dd-example"><div class="dd-ex-title">快速複核「圖片壓縮（圖像）」</div><div class="dd-ex-body">先運行工具默認樣例，再做一組極端輸入進行對照；如輸出跳變明顯，優先檢查單位、閾值與是否按新版本口徑切換。</div></div>
+<h3>❓ 常見問題（FAQ）</h3>
+<dl class="dd-faq">
+<dt>圖片壓縮（圖像） 可直接用於正式報告嗎？</dt><dd>適合用於快速核對和教學演示；正式報告建議補充數據來源、口徑定義、邊界條件與審核責任鏈。</dd>
+<dt>值跳變或異常偏差怎麼辦？</dt><dd>先核查輸入是否超出定義域、單位是否混用、以及參數是否按同一計算版本口徑切換。</dd>
+</dl>
+</div>
+</section>
+<!-- 相關工具 -->
+<div class="related-tools" data-related-tools="1">
+  <h3 class="related-tools-title">🔗 相關工具</h3>
+  <div class="related-tools-grid">
+    <a href="/zh-hk/tools/image/generator-15.html" class="related-tool-card">
+      <span class="rt-icon">🖼️</span>
+      <span class="rt-info"><span class="rt-name">圓角圖片（生成帶圓角的PNG） - 免費在線工具，純前端處理 | ToolBox免費在線工具箱</span><span class="rt-desc">圓角圖片（生成帶圓角的PNG）</span></span>
+    </a>
+
+    <a href="/zh-hk/tools/image/image-converter.html" class="related-tool-card">
+      <span class="rt-icon">🖼️</span>
+      <span class="rt-info"><span class="rt-name">圖片轉換 - 免費格式轉換工具，圖片格式轉換 | ToolBox免費在線工具箱</span><span class="rt-desc">圖片格式轉換</span></span>
+    </a>
+    <a href="/zh-hk/tools/image/gif-split.html" class="related-tool-card">
+      <span class="rt-icon">🎞️</span>
+      <span class="rt-info"><span class="rt-name">GIF分解工具 - 在線將GIF動畫分解提取每一幀，導出為PNG圖片或批量打包Z | ToolBox免費在線工具箱</span><span class="rt-desc">GIF分解工具</span></span>
+    </a>
+    <a href="/zh-hk/tools/image/image-collage.html" class="related-tool-card">
+      <span class="rt-icon">🧩</span>
+      <span class="rt-info"><span class="rt-name">圖片拼圖合成工具 - 免費在線拼圖生成器，支持豎排/橫排拼接、2x2/3x3/自定 | ToolBox免費在線工具箱</span><span class="rt-desc">圖片拼圖合成工具</span></span>
+    </a>
+    <a href="/zh-hk/tools/image/image-rotate.html" class="related-tool-card">
+      <span class="rt-icon">🔄</span>
+      <span class="rt-info"><span class="rt-name">圖片旋轉 - 工具 - 免費在線圖片旋轉、翻轉工具，支持任意角度旋轉、90 | ToolBox免費在線工具箱</span><span class="rt-desc">圖片旋轉工具</span></span>
+    </a>
+  </div>
+</div>
+<div class="tool-intro open" id="toolIntro">
+    <div class="tool-intro-header">
+      <span class="intro-icon-wrap"><span class="intro-icon">📖</span>關於「圖片壓縮」</span>
+      <span class="arrow">▼</span>
+    </div>
+    <div class="tool-intro-body">
+      <h4><span class="h4-icon">📝</span>工具簡介</h4>
+      <p>圖片壓縮工具是一款在線圖像處理工具，利用瀏覽器 Canvas API 對圖片進行壓縮與優化。支持 JPEG、WebP、PNG 三種輸出格式，可自由調節壓縮質量（1%～100%），並可設置最大尺寸進行等比縮放。支持單張實時對比預覽與多張批量壓縮，所有處理在本地瀏覽器完成，圖片不離開設備。</p>
+      <h4><span class="h4-icon">✨</span>功能特點</h4>
+      <ul class="intro-features">
+        <li>純前端 Canvas 壓縮，圖片不上傳</li>
+        <li>支持 JPEG / WebP / PNG 三種格式</li>
+        <li>質量滑塊 1%～100% 實時調節</li>
+        <li>最大尺寸等比縮放限制</li>
+        <li>拖拽滑塊對比壓縮前後效果</li>
+        <li>批量壓縮多張圖片</li>
+        <li>顯示壓縮率、節省體積、尺寸變化</li>
+        <li>一鍵下載壓縮結果</li>
+        <li>支持深色模式與響應式佈局</li>
+      </ul>
+      <h4><span class="h4-icon">🎯</span>使用場景</h4>
+      <ul class="intro-scenes">
+        <li>網頁圖片優化，提升加載速度</li>
+        <li>郵件附件體積過大需要縮小</li>
+        <li>社交媒體上傳前壓縮圖片</li>
+        <li>批量處理產品圖、文章配圖</li>
+        <li>將 PNG 截圖轉為 WebP 減小體積</li>
+        <li>博客/網站素材壓縮優化</li>
+        <li>手機照片壓縮節省存儲空間</li>
+        <li>隱私敏感圖片的本地處理</li>
+      </ul>
+      <h4><span class="h4-icon">💬</span>常見問題</h4>
+      <div class="intro-faq-item"><div class="intro-faq-q">圖片會被上傳到伺服器嗎？</div><div class="intro-faq-a">不會。所有壓縮處理都在你自己的瀏覽器中通過 Canvas API 完成，圖片數據不會發送到任何伺服器，完全保護隱私。</div></div>
+      <div class="intro-faq-item"><div class="intro-faq-q">為什麼壓縮後圖片反而變大了？</div><div class="intro-faq-a">當原圖本身已是高度壓縮的格式（如小體積 JPEG），轉成 PNG 無損格式時體積可能增大。建議照片使用 JPEG 或 WebP 格式，圖標/截圖使用 PNG。</div></div>
+      <div class="intro-faq-item"><div class="intro-faq-q">WebP 和 JPEG 哪個更好？</div><div class="intro-faq-a">WebP 在同等畫質下通常比 JPEG 體積更小（約小 25%-35%），且支持透明通道。現代瀏覽器均支持 WebP，推薦優先使用。如需兼容老舊環境，可選 JPEG。</div></div>
+      <div class="intro-faq-item"><div class="intro-faq-q">質量滑塊設為多少合適？</div><div class="intro-faq-a">一般 70%-85% 即可在體積與畫質間取得良好平衡。網頁用圖建議 70%-80%，需要高清保留細節可設 85%-95%。可拖動對比滑塊實時查看效果。</div></div>
+      <div class="intro-faq-item"><div class="intro-faq-q">支持哪些圖片格式上傳？</div><div class="intro-faq-a">支持所有瀏覽器能解析的圖片格式，包括 JPEG、PNG、WebP、GIF（靜態）、BMP 等。輸出僅支持 JPEG、WebP、PNG 三種常見格式。</div></div>
+    </div>
+  </div>
+  <!-- /SEO 介紹區塊 -->
+
+</div>
+
+<script>
+/* ===== 状态管理 ===== */
+var images = [];   // {id,file,name,origSize,origType,img,url,origW,origH,blob,compUrl,compW,compH,compSize,compType,status,error}
+var nextId = 1;
+var compressTimer = null;
+
+/* 滑块对比状态（document 级监听，仅初始化一次） */
+var sliderState = { active:false, slider:null, before:null, handle:null, lastPct:50 };
+
+/* ===== 工具函数 ===== */
+function formatSize(b){
+  if(b < 1024) return b + ' B';
+  if(b < 1048576) return (b/1024).toFixed(1) + ' KB';
+  return (b/1048576).toFixed(2) + ' MB';
+}
+function mimeFor(fmt){ return fmt==='jpeg'?'image/jpeg':fmt==='webp'?'image/webp':'image/png'; }
+function extFor(fmt){ return fmt==='jpeg'?'jpg':fmt==='webp'?'webp':'png'; }
+function fmtLabel(fmt){ return fmt==='jpeg'?'JPEG':fmt==='webp'?'WebP':'PNG'; }
+
+function getSettings(){
+  var fmt = document.getElementById('fmt').value;
+  var quality = parseInt(document.getElementById('quality').value,10)/100;
+  var maxSize = parseInt(document.getElementById('max-size').value,10)||0;
+  return { format:fmt, quality:quality, maxSize:maxSize };
+}
+
+function loadImage(file){
+  return new Promise(function(resolve,reject){
+    var img = new Image();
+    img.onload = function(){ resolve(img); };
+    img.onerror = function(){ reject(new Error('图片加载失败')); };
+    img.src = URL.createObjectURL(file);
+  });
+}
+
+function calcDims(w,h,s){
+  if(!s.maxSize || (w<=s.maxSize && h<=s.maxSize)) return {w:w,h:h};
+  var ratio = w/h;
+  if(w>=h) return {w:s.maxSize, h:Math.round(s.maxSize/ratio)};
+  return {h:s.maxSize, w:Math.round(s.maxSize*ratio)};
+}
+
+function compressImage(img,s){
+  return new Promise(function(resolve,reject){
+    var d = calcDims(img.naturalWidth,img.naturalHeight,s);
+    var canvas = document.createElement('canvas');
+    canvas.width = d.w; canvas.height = d.h;
+    var ctx = canvas.getContext('2d');
+    // JPEG 无透明，填充白色背景
+    if(s.format==='jpeg'){ ctx.fillStyle='#ffffff'; ctx.fillRect(0,0,d.w,d.h); }
+    ctx.drawImage(img,0,0,d.w,d.h);
+    var mime = mimeFor(s.format);
+    var q = s.format==='png' ? undefined : s.quality;
+    canvas.toBlob(function(blob){
+      if(!blob){ reject(new Error('压缩失败，浏览器可能不支持 '+fmtLabel(s.format)+' 输出')); return; }
+      resolve({blob:blob,w:d.w,h:d.h,type:mime});
+    }, mime, q);
+  });
+}
+
+/* ===== 文件处理 ===== */
+function addFiles(fileList){
+  var files = Array.from(fileList).filter(function(f){ return f.type.startsWith('image/'); });
+  if(!files.length){ ToolBox.showToast(i18nText('toast.msg942'),'warning'); return; }
+  ToolBox.showToast('已添加 '+files.length+' 张图片','success');
+  files.forEach(function(file){
+    var item = {
+      id: nextId++, file: file, name: file.name,
+      origSize: file.size, origType: file.type, status:'loading'
+    };
+    images.push(item);
+    loadImage(file).then(function(img){
+      item.img = img;
+      item.url = img.src;
+      item.origW = img.naturalWidth;
+      item.origH = img.naturalHeight;
+      item.status = 'ready';
+      compressOne(item);
+    }).catch(function(e){
+      item.status = 'error';
+      item.error = e.message;
+      renderResults();
+    });
+  });
+  document.getElementById('results-card').style.display = '';
+  renderResults();
+}
+
+function compressOne(item){
+  if(!item.img || item.status==='error') return;
+  var s = getSettings();
+  compressImage(item.img,s).then(function(res){
+    if(item.compUrl) URL.revokeObjectURL(item.compUrl);
+    item.blob = res.blob;
+    item.compUrl = URL.createObjectURL(res.blob);
+    item.compW = res.w;
+    item.compH = res.h;
+    item.compType = res.type;
+    item.compSize = res.blob.size;
+    item.status = 'done';
+    renderResults();
+  }).catch(function(e){
+    item.status = 'error';
+    item.error = e.message;
+    renderResults();
+  });
+}
+
+function compressAll(){ images.forEach(compressOne); }
+function recompressAll(){ ToolBox.showToast(i18nText('toast.msg981'),'info'); compressAll(); }
+
+function onSettingsChange(){
+  var q = document.getElementById('quality');
+  document.getElementById('quality-val').textContent = q.value + '%';
+  var fmt = document.getElementById('fmt').value;
+  var qRow = document.getElementById('quality-row');
+  qRow.style.opacity = (fmt==='png') ? '0.45' : '1';
+  q.disabled = (fmt==='png');
+  clearTimeout(compressTimer);
+  compressTimer = setTimeout(compressAll, 300);
+}
+
+/* ===== 渲染 ===== */
+function renderResults(){
+  var card = document.getElementById('results-card');
+  if(!images.length){ card.style.display='none'; sliderState.slider=null; return; }
+  card.style.display = '';
+  if(images.length===1){ renderSingle(images[0]); }
+  else { renderBatch(); }
+}
+
+function renderSingle(item){
+  document.getElementById('batch-view').style.display='none';
+  var sv = document.getElementById('single-view');
+  sv.style.display='';
+
+  if(item.status==='loading'){
+    sv.innerHTML = '<div class="empty-state">⏳ 图片加载中...</div>';
+    sliderState.slider = null;
+    return;
+  }
+  if(item.status==='error'){
+    sv.innerHTML = '<div class="empty-state">⚠️ ' + (item.error||'图片处理失败') + '</div>';
+    sliderState.slider = null;
+    return;
+  }
+  if(item.status==='ready' && !item.blob){
+    sv.innerHTML = '<div class="empty-state">⏳ 压缩处理中...</div>';
+    sliderState.slider = null;
+    return;
+  }
+
+  var saved = item.origSize - item.compSize;
+  var savedPct = item.origSize>0 ? (saved/item.origSize*100) : 0;
+  var dimSame = (item.origW===item.compW && item.origH===item.compH);
+  var dimText = dimSame ? '尺寸不变' : item.origW+'×'+item.origH+' → '+item.compW+'×'+item.compH;
+  var sClass = savedPct>=0 ? 'saved-positive' : 'saved-negative';
+  var sText = savedPct>=0 ? '节省 '+Math.abs(savedPct).toFixed(1)+'%' : '增大 '+Math.abs(savedPct).toFixed(1)+'%';
+
+  sv.innerHTML =
+    '<div class="cmp-slider" id="cmp-slider">' +
+      '<img class="cmp-img cmp-after" id="cmp-after" src="/zh-hk/tools/image/'+item.compUrl+'" alt="压缩后图片">' +
+      '<img class="cmp-img cmp-before" id="cmp-before" src="/zh-hk/tools/image/'+item.url+'" alt="原始图片">' +
+      '<span class="cmp-tag cmp-tag-l">原图</span>' +
+      '<span class="cmp-tag cmp-tag-r">压缩后</span>' +
+      '<div class="cmp-handle" id="cmp-handle"><div class="cmp-arrow">⇄</div></div>' +
+    '</div>' +
+    '<div class="cmp-hint">← 拖动中间滑块对比压缩前后效果 →</div>' +
+    '<div class="data-grid">' +
+      '<div class="data-card"><div class="num">'+formatSize(item.origSize)+'</div><div class="label">原始大小</div></div>' +
+      '<div class="data-card"><div class="num">'+formatSize(item.compSize)+'</div><div class="label">压缩后大小</div></div>' +
+      '<div class="data-card"><div class="num '+sClass+'">'+sText+'</div><div class="label">压缩率</div></div>' +
+      '<div class="data-card"><div class="num" style="font-size:15px;">'+dimText+'</div><div class="label">尺寸变化</div></div>' +
+    '</div>' +
+    '<div class="result-box">' +
+      '<p>文件名：<strong>'+ToolBox.escHtml(item.name)+'</strong></p>' +
+      '<p>格式：<strong>'+item.origType+'</strong> → <strong>'+fmtLabel(getSettings().format)+'</strong>（'+item.compType+'）</p>' +
+      '<p>尺寸：<strong>'+item.origW+' × '+item.origH+'px</strong> → <strong>'+item.compW+' × '+item.compH+'px</strong></p>' +
+      '<p>质量参数：<strong>'+document.getElementById('quality').value+'%</strong></p>' +
+    '</div>' +
+    '<div class="toolbar" style="margin-top:12px;">' +
+      '<button class="btn primary" onclick="downloadItem('+item.id+')">⬇ 下载压缩图片</button>' +
+      '<button class="btn" onclick="copyResult('+item.id+')">📋 复制压缩信息</button>' +
+    '</div>';
+  initSlider();
+}
+
+function renderBatch(){
+  document.getElementById('single-view').style.display='none';
+  sliderState.slider = null;
+  var bv = document.getElementById('batch-view');
+  bv.style.display='';
+
+  var done = images.filter(function(i){ return i.status==='done'; });
+  var totalOrig = done.reduce(function(s,i){ return s+i.origSize; },0);
+  var totalComp = done.reduce(function(s,i){ return s+i.compSize; },0);
+  var totalSaved = totalOrig - totalComp;
+  var totalPct = totalOrig>0 ? (totalSaved/totalOrig*100) : 0;
+
+  var summary = '';
+  if(done.length){
+    var tClass = totalPct>=0?'saved-positive':'saved-negative';
+    var tText = totalPct>=0?'节省 ':'增大 ';
+    summary = '<div class="data-grid">' +
+      '<div class="data-card"><div class="num">'+images.length+'</div><div class="label">图片总数</div></div>' +
+      '<div class="data-card"><div class="num">'+done.length+'</div><div class="label">已压缩</div></div>' +
+      '<div class="data-card"><div class="num">'+formatSize(totalOrig)+'</div><div class="label">原始总大小</div></div>' +
+      '<div class="data-card"><div class="num">'+formatSize(totalComp)+'</div><div class="label">压缩后总大小</div></div>' +
+      '<div class="data-card"><div class="num '+tClass+'">'+tText+Math.abs(totalPct).toFixed(1)+'%</div><div class="label">总压缩率</div></div>' +
+    '</div>';
+  }
+
+  var list = images.map(function(item){
+    if(item.status==='loading'){
+      return '<div class="batch-item"><div class="batch-thumb placeholder">⏳</div><div class="batch-info"><div class="batch-name">'+ToolBox.escHtml(item.name)+'</div><div class="batch-meta">加载中...</div></div></div>';
+    }
+    if(item.status==='error'){
+      return '<div class="batch-item"><div class="batch-thumb placeholder">⚠️</div><div class="batch-info"><div class="batch-name">'+ToolBox.escHtml(item.name)+'</div><div class="batch-meta">'+ToolBox.escHtml(item.error||'处理失败')+'</div></div><div class="batch-actions"><button class="btn danger" onclick="removeItem('+item.id+')">✕</button></div></div>';
+    }
+    if(item.status==='ready' && !item.blob){
+      return '<div class="batch-item"><div class="batch-thumb placeholder">⏳</div><div class="batch-info"><div class="batch-name">'+ToolBox.escHtml(item.name)+'</div><div class="batch-meta">压缩中...</div></div></div>';
+    }
+    var saved = item.origSize - item.compSize;
+    var pct = item.origSize>0 ? (saved/item.origSize*100) : 0;
+    var sClass = pct>=0?'saved-positive':'saved-negative';
+    var sText = pct>=0 ? '-'+Math.abs(pct).toFixed(0)+'%' : '+'+Math.abs(pct).toFixed(0)+'%';
+    var dimSame = (item.origW===item.compW && item.origH===item.compH);
+    var dimText = dimSame ? item.origW+'×'+item.origH : item.origW+'×'+item.origH+'→'+item.compW+'×'+item.compH;
+    return '<div class="batch-item">' +
+      '<img class="batch-thumb" src="/zh-hk/tools/image/'+item.compUrl+'" alt="">' +
+      '<div class="batch-info">' +
+        '<div class="batch-name">'+ToolBox.escHtml(item.name)+'</div>' +
+        '<div class="batch-meta">'+dimText+' · '+formatSize(item.origSize)+' → '+formatSize(item.compSize)+'</div>' +
+      '</div>' +
+      '<div class="batch-saved '+sClass+'">'+sText+'</div>' +
+      '<div class="batch-actions">' +
+        '<button class="btn primary" onclick="downloadItem('+item.id+')">下载</button>' +
+        '<button class="btn danger" onclick="removeItem('+item.id+')">✕</button>' +
+      '</div>' +
+    '</div>';
+  }).join('');
+
+  bv.innerHTML = summary +
+    '<div class="toolbar">' +
+      '<button class="btn primary" onclick="downloadAll()">⬇ 全部下载</button>' +
+      '<button class="btn" onclick="recompressAll()">🔄 重新压缩</button>' +
+      '<button class="btn danger" onclick="clearAll()">🗑 清空全部</button>' +
+    '</div>' +
+    '<div class="batch-list">'+list+'</div>';
+}
+
+/* ===== 对比滑块 ===== */
+function setSliderPos(p){
+  var pct = Math.max(0,Math.min(100,p));
+  sliderState.lastPct = pct;
+  if(sliderState.before) sliderState.before.style.clipPath = 'inset(0 '+(100-pct)+'% 0 0)';
+  if(sliderState.handle) sliderState.handle.style.left = pct+'%';
+}
+function initSlider(){
+  sliderState.slider = document.getElementById('cmp-slider');
+  sliderState.before = document.getElementById('cmp-before');
+  sliderState.handle = document.getElementById('cmp-handle');
+  sliderState.active = false;
+  setSliderPos(sliderState.lastPct);
+}
+(function(){
+  function getXPct(e){
+    if(!sliderState.slider) return 50;
+    var rect = sliderState.slider.getBoundingClientRect();
+    var cx = (e.touches && e.touches[0]) ? e.touches[0].clientX : e.clientX;
+    return ((cx - rect.left)/rect.width)*100;
+  }
+  document.addEventListener('mousedown',function(e){
+    if(!sliderState.slider) return;
+    if(e.target.closest('.cmp-slider')){
+      sliderState.active = true;
+      setSliderPos(getXPct(e));
+    }
+  });
+  document.addEventListener('mousemove',function(e){
+    if(sliderState.active) setSliderPos(getXPct(e));
+  });
+  document.addEventListener('mouseup',function(){ sliderState.active=false; });
+  document.addEventListener('touchstart',function(e){
+    if(!sliderState.slider) return;
+    if(e.target.closest('.cmp-slider')){
+      sliderState.active = true;
+      setSliderPos(getXPct(e));
+      e.preventDefault();
+    }
+  },{passive:false});
+  document.addEventListener('touchmove',function(e){
+    if(sliderState.active){ setSliderPos(getXPct(e)); e.preventDefault(); }
+  },{passive:false});
+  document.addEventListener('touchend',function(){ sliderState.active=false; });
+})();
+
+/* ===== 下载与管理 ===== */
+function downloadItem(id){
+  var item = images.find(function(i){ return i.id===id; });
+  if(!item || !item.blob){ ToolBox.showToast(i18nText('toast.msg119'),'warning'); return; }
+  var s = getSettings();
+  var baseName = item.name.replace(/\.[^.]+$/,'');
+  var fname = baseName + '_compressed.' + extFor(s.format);
+  var a = document.createElement('a');
+  a.href = item.compUrl;
+  a.download = fname;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  ToolBox.showToast('已下载：'+fname,'success');
+}
+function downloadAll(){
+  var done = images.filter(function(i){ return i.status==='done'; });
+  if(!done.length){ ToolBox.showToast(i18nText('toast.msg477'),'warning'); return; }
+  ToolBox.showToast('开始下载 '+done.length+' 张图片...','info');
+  done.forEach(function(item,idx){
+    setTimeout(function(){ downloadItem(item.id); }, idx*500);
+  });
+}
+function copyResult(id){
+  var item = images.find(function(i){ return i.id===id; });
+  if(!item || !item.blob) return;
+  var saved = item.origSize - item.compSize;
+  var pct = item.origSize>0 ? (saved/item.origSize*100).toFixed(1) : '0';
+  var text = '图片压缩结果\n' +
+    '文件名: '+item.name+'\n' +
+    '原始: '+formatSize(item.origSize)+' ('+item.origW+'×'+item.origH+' '+item.origType+')\n' +
+    '压缩后: '+formatSize(item.compSize)+' ('+item.compW+'×'+item.compH+' '+item.compType+')\n' +
+    (pct>=0 ? '节省: '+pct+'%' : '增大: '+Math.abs(pct)+'%');
+  ToolBox.copyText(text, i18nText('msg274'));
+}
+function removeItem(id){
+  var idx = images.findIndex(function(i){ return i.id===id; });
+  if(idx<0) return;
+  var item = images[idx];
+  if(item.url) URL.revokeObjectURL(item.url);
+  if(item.compUrl) URL.revokeObjectURL(item.compUrl);
+  images.splice(idx,1);
+  renderResults();
+}
+function clearAll(){
+  images.forEach(function(item){
+    if(item.url) URL.revokeObjectURL(item.url);
+    if(item.compUrl) URL.revokeObjectURL(item.compUrl);
+  });
+  images = [];
+  renderResults();
+  ToolBox.showToast(i18nText('toast.cleared'),'info');
+}
+
+/* ===== 事件绑定 ===== */
+var dropZone = document.getElementById('drop-zone');
+var fileInput = document.getElementById('file-input');
+dropZone.addEventListener('click',function(){ fileInput.click(); });
+dropZone.addEventListener('dragover',function(e){ e.preventDefault(); this.classList.add('dragover'); });
+dropZone.addEventListener('dragleave',function(){ this.classList.remove('dragover'); });
+dropZone.addEventListener('drop',function(e){
+  e.preventDefault();
+  this.classList.remove('dragover');
+  if(e.dataTransfer.files.length) addFiles(e.dataTransfer.files);
+});
+fileInput.addEventListener('change',function(){
+  if(this.files.length) addFiles(this.files);
+  this.value = '';
+});
+document.getElementById('fmt').addEventListener('change',onSettingsChange);
+document.getElementById('quality').addEventListener('input',onSettingsChange);
+document.getElementById('max-size').addEventListener('change',onSettingsChange);
+
+// tool-intro 折叠交互
+document.querySelectorAll('.tool-intro-header').forEach(function(h){
+  h.addEventListener('click',function(){ this.parentElement.classList.toggle('open'); });
+});
+
+ToolBox.initToolTheme();
+</script>
+</body>
+</html>

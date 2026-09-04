@@ -1,0 +1,1035 @@
+<!DOCTYPE html>
+<html lang="zh-HK" data-opencc-locale="zh-hk">
+<head>
+
+<script src="/js/tool-page-runtime.js" defer></script>
+<!-- TOOLBOX-TOOL-RUNTIME -->
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="toolbox" content="cat=game,industry=fun,icon=⚪,bg=#fff3e0">
+<meta name="description" content="翻转棋 Othello / Reversi — 落子翻转夹住的对方棋子，终局棋子多者胜">
+<meta name="keywords" content="黑白棋,翻转棋,Othello,Reversi,在线黑白棋,AI黑白棋,棋类游戏,游戏趣味,娱乐游戏,在线工具,免费工具,ToolBox">
+<meta name="robots" content="index,follow">
+<link rel="canonical" href="https://chenguangwu.github.io/zh-hk/tools/fun/othello.html">
+<meta property="og:title" content="黑白棋">
+<meta property="og:description" content="翻转棋 Othello / Reversi — 落子翻转夹住的对方棋子，终局棋子多者胜">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://chenguangwu.github.io/zh-hk/tools/fun/othello.html">
+<meta name="twitter:card" content="summary">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"黑白棋 - Othello/Reversi","url":"https://chenguangwu.github.io/zh-hk/tools/fun/othello.html","description":"黑白棋（翻轉棋/Othello/Reversi）在線遊戲，支持雙人對戰和AI對弈，純前端運行，數據不上傳。","applicationCategory":"GameApplication","operatingSystem":"Any","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"},"author":{"@type":"Person","name":"ToolBox"}}</script>
+
+<title>黑白棋 - ToolBox</title>
+<meta name="theme-color" content="#FF6B35">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<link rel="icon" href="/favicon.ico" sizes="16x16 32x32 48x48">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="preload" as="style" href="/css/common.css" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="/css/common.css"></noscript>
+<script>window.__tbq=window.__tbq||[];window.ToolBox=window.ToolBox||{};['initToolTheme','addToolStyles','showToast','toast','copyText','copyToClipboard','copyFromElement','downloadText','injectPrivacyBadge','toggleFavTool','addToRecentTool','toggleToolTheme','applyTheme'].forEach(function(k){if(typeof window.ToolBox[k]!=='function')window.ToolBox[k]=function(){window.__tbq.push([k,[].slice.call(arguments)]);};});</script><!-- TOOLBOX-API-STUB -->
+<script src="/js/common.js" defer></script>
+<style>
+/* 模式/难度选择 */
+.mode-row, .difficulty-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+.mode-btn, .diff-btn {
+  flex: 1;
+  min-width: 80px;
+  padding: 8px;
+  border: 2px solid var(--border);
+  border-radius: 10px;
+  background: var(--card-bg);
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text);
+  transition: all 0.2s;
+  text-align: center;
+}
+.mode-btn:hover, .diff-btn:hover {
+  border-color: var(--primary);
+}
+.mode-btn.active, .diff-btn.active {
+  border-color: var(--primary);
+  background: var(--primary);
+  color: #fff;
+}
+
+/* 棋盘容器 */
+.board-wrap {
+  display: flex;
+  justify-content: center;
+  margin: 16px auto;
+  position: relative;
+}
+#board {
+  cursor: pointer;
+  border-radius: 8px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.12);
+  touch-action: none;
+}
+
+/* 状态栏 */
+.status-bar {
+  text-align: center;
+  font-size: 15px;
+  font-weight: 600;
+  margin-bottom: 12px;
+  min-height: 24px;
+}
+.turn-black { color: #1a1a1a; }
+.turn-white { color: #888; }
+
+/* 比分 */
+.score-row {
+  display: flex;
+  justify-content: center;
+  gap: 20px;
+  margin-bottom: 16px;
+  align-items: center;
+}
+.score-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 16px;
+  font-weight: 600;
+}
+.score-dot {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: inline-block;
+  border: 2px solid var(--border);
+}
+.score-dot.black {
+  background: radial-gradient(circle at 35% 35%, #555, #1a1a1a);
+  border-color: #333;
+}
+.score-dot.white {
+  background: radial-gradient(circle at 35% 35%, #fff, #e0e0e0);
+  border-color: #bbb;
+}
+.score-num {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--text);
+  min-width: 28px;
+  text-align: center;
+}
+.score-vs {
+  font-size: 13px;
+  color: var(--text-muted);
+  font-weight: 400;
+}
+
+/* 游戏结束弹层 */
+.game-over-overlay {
+  display: none;
+  position: absolute;
+  inset: 0;
+  background: rgba(0,0,0,0.55);
+  border-radius: 8px;
+  z-index: 10;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+.game-over-overlay.show {
+  display: flex;
+  animation: fadeIn 0.3s ease;
+}
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+.game-over-text {
+  color: #fff;
+  font-size: 22px;
+  font-weight: 700;
+  text-shadow: 0 2px 8px rgba(0,0,0,0.4);
+}
+.game-over-detail {
+  color: rgba(255,255,255,0.85);
+  font-size: 14px;
+}
+
+/* 操作提示 */
+.move-log {
+  max-height: 180px;
+  overflow-y: auto;
+  font-size: 12px;
+  color: var(--text-light);
+  line-height: 1.8;
+  padding: 8px 0;
+}
+.move-log::-webkit-scrollbar {
+  width: 4px;
+}
+.move-log::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 2px;
+}
+.move-entry {
+  padding: 2px 0;
+  border-bottom: 1px solid var(--border);
+}
+.move-entry:last-child {
+  border-bottom: none;
+}
+
+/* 移动端适配 */
+@media (max-width: 768px) {
+  .board-wrap {
+    margin: 12px auto;
+  }
+  .score-row {
+    gap: 14px;
+  }
+  .score-num {
+    font-size: 20px;
+  }
+  .game-over-text {
+    font-size: 18px;
+  }
+}
+</style>
+
+
+
+<meta property="og:image" content="https://chenguangwu.github.io/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="ToolBox - 5000+免费在线工具">
+<meta name="twitter:image" content="https://chenguangwu.github.io/og-image.png">
+<meta name="twitter:image:alt" content="ToolBox - 5000+免费在线工具">
+    <meta name="twitter:title" content="黑白棋">
+    <meta name="twitter:description" content="翻转棋 Othello / Reversi — 落子翻转夹住的对方棋子，终局棋子多者胜">
+<!-- TOOLBOX-WEBAPP-LD -->
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"黑白棋","url":"https://chenguangwu.github.io/zh-hk/tools/fun/othello.html","applicationCategory":"GamesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":"zh-HK","description":"翻轉棋 Othello / Reversi — 落子翻轉夾住的對方棋子，終局棋子多者勝","image":"https://chenguangwu.github.io/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}</script>
+<meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
+<meta http-equiv="X-Content-Type-Options" content="nosniff">
+<meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
+<!-- TOOLBOX-SECURITY -->
+
+<script src="/js/privacy.js" defer></script>
+<!-- TOOLBOX-PRIVACY-SCRIPT -->
+
+<script src="/js/metrics.js" defer></script>
+<!-- TOOLBOX-METRICS-SCRIPT -->
+
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"首頁","item":"https://chenguangwu.github.io/zh-hk/"},{"@type":"ListItem","position":2,"name":"娛樂遊戲","item":"https://chenguangwu.github.io/zh-hk/tools/fun/index.html"},{"@type":"ListItem","position":3,"name":"黑白棋","item":"https://chenguangwu.github.io/zh-hk/tools/fun/othello.html"}]}</script>
+
+<script src="/js/i18n.js" defer></script>
+<script src="/js/tool-i18n.js" defer></script>
+<!-- TOOLBOX-I18N-SCRIPT -->
+
+
+<meta name="title-en" content="Othello - ToolBox">
+<meta name="desc-en" content="Othello - free online tool. Free online tool on ToolBox — 100% client-side, no data uploaded, no install. Part of the Games &amp; Entertainment tools.">
+<!-- TOOLBOX-HREFLANG -->
+<link rel="alternate" hreflang="zh-CN" href="https://chenguangwu.github.io/tools/fun/othello.html">
+<link rel="alternate" hreflang="zh-TW" href="https://chenguangwu.github.io/zh-tw/tools/fun/othello.html">
+<link rel="alternate" hreflang="zh-HK" href="https://chenguangwu.github.io/zh-hk/tools/fun/othello.html">
+<link rel="alternate" hreflang="en-US" href="https://chenguangwu.github.io/tools/fun/othello.html?lang=en-US">
+<link rel="alternate" hreflang="x-default" href="https://chenguangwu.github.io/tools/fun/othello.html">
+<meta property="og:locale" content="zh_HK">
+<meta property="og:locale:alternate" content="zh_CN">
+<meta property="og:locale:alternate" content="zh_TW">
+<meta property="og:locale:alternate" content="en_US">
+</head>
+<body>
+<h1 class="sr-only">黑白棋</h1>
+
+
+<div class="nav">
+  <a href="/zh-hk/index.html">← ToolBox</a>
+  <span>/ 黑白棋</span>
+  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()">🌙</button>
+</div>
+
+
+
+
+
+<nav class="breadcrumb" aria-label="麪包屑導航" data-breadcrumb="1">
+  <a href="/zh-hk/index.html">首頁</a>
+  <span class="bc-sep">‹</span>
+  <a href="/zh-hk/tools/fun/index.html">🎮 娛樂遊戲</a>
+  <span class="bc-sep">‹</span>
+  <span class="bc-current">黑白棋</span>
+</nav>
+<div class="container">
+  <div class="card tool-card-accent" style="--tool-accent:#EC4899;">
+    <h2 data-zh="⚪ 黑白棋">⚪ Othello</h2>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="翻轉棋 Othello / Reversi — 落子翻轉夾住的對方棋子，終局棋子多者勝">Othello is available directly in your browser, with no data uploaded.</p>
+
+    <!-- 模式選擇 -->
+    <div style="margin-bottom:8px;">
+      <label style="margin-bottom:6px;">遊戲模式</label>
+    </div>
+    <div class="mode-row">
+      <button type="button" class="mode-btn active" data-mode="ai" onclick="setMode('ai')">人機對戰</button>
+      <button type="button" class="mode-btn" data-mode="pvp" onclick="setMode('pvp')">雙人對戰</button>
+    </div>
+
+    <!-- AI難度 -->
+    <div id="difficulty-section">
+      <label style="margin-bottom:6px;">AI 難度</label>
+      <div class="difficulty-row">
+        <button type="button" class="diff-btn active" data-diff="easy" onclick="setDifficulty('easy')">簡單</button>
+        <button type="button" class="diff-btn" data-diff="medium" onclick="setDifficulty('medium')">中等</button>
+      </div>
+    </div>
+
+    <!-- 比分 -->
+    <div class="score-row">
+      <div class="score-item">
+        <span class="score-dot black"></span>
+        <span class="score-num" id="score-black">2</span>
+      </div>
+      <span class="score-vs">VS</span>
+      <div class="score-item">
+        <span class="score-dot white"></span>
+        <span class="score-num" id="score-white">2</span>
+      </div>
+    </div>
+
+    <!-- 回合提示 -->
+    <div class="status-bar" id="status">
+      <span class="turn-black">⚫ 黑棋回合</span>
+    </div>
+
+    <!-- 棋盤 -->
+    <div class="board-wrap">
+      <canvas id="board" width="400" height="400"></canvas>
+      <div class="game-over-overlay" id="game-over">
+        <div class="game-over-text" id="game-over-text"></div>
+        <div class="game-over-detail" id="game-over-detail"></div>
+      </div>
+    </div>
+
+    <!-- 操作按鈕 -->
+    <div class="toolbar">
+      <button type="button" class="btn primary" onclick="restartGame()">重新開始</button>
+      <button type="button" class="btn" onclick="undoMove()">悔棋</button>
+      <button type="button" class="btn" onclick="toggleHints()">提示: 開</button>
+    </div>
+
+    <!-- 落子記錄 -->
+    <div class="result-box" id="move-log-box" style="display:none;">
+      <h3 style="margin-bottom:8px;font-size:14px;">落子記錄</h3>
+      <div class="move-log" id="move-log"></div>
+    </div>
+
+    <!-- 規則説明 -->
+    <div class="tip-info tip-box" style="margin-top:16px;">
+      <strong>規則説明：</strong>黑棋先手，落子後在8個方向上夾住對方棋子的全部翻轉為己方顏色。必須至少翻轉一枚對方棋子才能落子。無合法步時自動跳過，雙方都無步則遊戲結束，棋子多者獲勝。
+    </div>
+  </div>
+
+  <!-- SEO 工具介紹 -->
+
+</div>
+
+</div>
+
+<!-- 相關工具 -->
+<div class="related-tools" data-related-tools="1">
+  <h3 class="related-tools-title">🔗 相關工具</h3>
+  <div class="related-tools-grid">
+
+
+    <a href="/zh-hk/tools/fun/generator-2.html" class="related-tool-card">
+      <span class="rt-icon">🎮</span>
+      <span class="rt-info"><span class="rt-name">數獨生成器 / 求解器 - 免費在線工具，純前端處理 | ToolBox免費在線工具箱</span><span class="rt-desc">數獨生成器 / 求解器</span></span>
+    </a>
+    <a href="/zh-hk/tools/fun/laugh-generator.html" class="related-tool-card">
+      <span class="rt-icon">😂</span>
+      <span class="rt-info"><span class="rt-name">笑聲音效生成器 - 免費趣味工具，用Web Audio API合成笑聲 | ToolBox免費在線工具箱</span><span class="rt-desc">笑聲音效生成器</span></span>
+    </a>
+    <a href="/zh-hk/tools/fun/generator-laugh.html" class="related-tool-card">
+      <span class="rt-icon">🔧</span>
+      <span class="rt-info"><span class="rt-name">笑聲音效生成器（合成） - 免費在線工具，純前端處理 | ToolBox免費在線工具箱</span><span class="rt-desc">笑聲音效生成器（合成）</span></span>
+    </a>
+    <a href="/zh-hk/tools/dance/choreography-timeline.html" class="related-tool-card">
+      <span class="rt-icon">🎶</span>
+      <span class="rt-info"><span class="rt-name">編舞時間線 - 8拍分段規劃器，按BPM和小節數生成舞蹈編排時間軸 | ToolBox免費在線工具箱</span><span class="rt-desc">編舞時間線</span></span>
+    </a>
+  </div>
+</div>
+<div class="tool-intro">
+    <div class="tool-intro-header" onclick="this.parentElement.classList.toggle('open')">
+      <span class="intro-icon-wrap">
+        <span class="intro-icon">⚪</span>
+        關於黑白棋
+      </span>
+      <span class="arrow">▼</span>
+    </div>
+    <div class="tool-intro-body">
+      <p>黑白棋（Othello / Reversi）是一種經典的兩人對弈策略棋類遊戲，起源於19世紀的英國，後在日本和美國得到廣泛發展。</p>
+      <h4><span class="h4-icon">🎮</span> 功能特點</h4>
+      <ul class="intro-features">
+        <li>8×8 標準棋盤 Canvas 渲染</li>
+        <li>雙人對戰 / AI 對弈</li>
+        <li>AI 貪心策略 + 位置權重策略</li>
+        <li>合法落子位置高亮提示</li>
+        <li>悔棋功能</li>
+        <li>落子記錄回放</li>
+        <li>移動端觸屏支持</li>
+      </ul>
+      <h4><span class="h4-icon">🎯</span> 使用場景</h4>
+      <ul class="intro-scenes">
+        <li>休閒娛樂打發時間</li>
+        <li>鍛鍊策略思維能力</li>
+        <li>學習黑白棋技巧</li>
+        <li>與朋友雙人對弈</li>
+      </ul>
+    </div>
+  </div>
+
+<!-- TOOLBOX-DEEP-DIVE -->
+<style>
+.deep-dive{max-width:960px;margin:16px auto;padding:0 16px;}
+.deep-dive > .card{margin-bottom:0;}
+@media(max-width:600px){.deep-dive{margin:14px auto;padding:0 12px;}}
+.deep-dive .dd-list{margin:8px 0 16px;padding-left:20px;}
+.deep-dive .dd-list li{margin:6px 0;line-height:1.75;}
+.deep-dive .dd-example{background:var(--card-bg,#fff);border:1px solid var(--border,#eee);border-radius:10px;padding:12px 14px;margin:8px 0 16px;}
+.deep-dive .dd-ex-title{font-weight:600;color:var(--tool-accent,#FF6B35);margin-bottom:6px;}
+.deep-dive .dd-ex-body{font-size:13px;line-height:1.85;color:var(--text,#333);word-break:break-word;}
+.deep-dive .dd-faq{margin:8px 0 4px;}
+.deep-dive .dd-faq dt{font-weight:600;margin-top:10px;color:var(--text,#333);}
+.deep-dive .dd-faq dd{margin:4px 0 0;font-size:13px;line-height:1.85;color:var(--text-muted,#666);}
+
+</style>
+<section class="deep-dive" data-deep-dive="1">
+<div class="card">
+<h2>📚 深度解析：黑白棋</h2>
+<h3>💡 常見使用場景</h3>
+<ul class="dd-list">
+<li>黑白棋 場景核驗：統一單位和邊界條件後再跑基準樣本，先確認算式方向是否一致。</li>
+<li>教學/復盤建議：固定 1-2 個變量，逐步掃描關鍵參數，觀察趨勢是否符合預期。</li>
+<li>常見場景：Othello</li>
+</ul>
+<div class="dd-example"><div class="dd-ex-title">快速複核「黑白棋」</div><div class="dd-ex-body">先用基礎參數跑一次基準值，再把核心輸入提高 10% 與 50% 做對比運算，確認輸出變化是否合理。</div></div>
+<h3>❓ 常見問題（FAQ）</h3>
+<dl class="dd-faq">
+<dt>黑白棋 結果可用於直接報告嗎？</dt><dd>黑白棋 適合用於內部複核與説明，正式材料請附帶口徑、邊界條件和輸入範圍説明。</dd>
+<dt>結果看似異常，該怎麼快速排查？</dt><dd>先核對是否有百分號/小數口徑衝突，再檢查是否觸發了數學域外定義（如對數、開方、除零）。</dd>
+</dl>
+</div>
+</section>
+<!-- 注意事項區塊 -->
+<div class="tool-notes" style="--tool-accent:#EC4899;">
+  <div class="tool-notes-title">⚠️ 使用説明與注意事項</div>
+  <ul>
+      <li>本工具純前端運行，數據不會上傳到伺服器</li>
+      <li>建議在主流瀏覽器（Chrome/Safari/Firefox/Edge）中使用</li>
+      <li>計算結果僅供參考，請以實際應用場景為準</li>
+  </ul>
+</div>
+<!-- /注意事項區塊 -->
+</div>
+
+<script>
+(function() {
+  'use strict';
+
+  // ==================== 常量 ====================
+  const EMPTY = 0, BLACK = 1, WHITE = 2;
+  const SIZE = 8;
+  const DIRS = [[-1,-1],[-1,0],[-1,1],[0,-1],[0,1],[1,-1],[1,0],[1,1]];
+  const COLS = 'ABCDEFGH';
+
+  // ==================== 状态 ====================
+  let board = [];
+  let currentPlayer = BLACK;
+  let gameMode = 'ai';       // 'ai' | 'pvp'
+  let aiDifficulty = 'easy'; // 'easy' | 'medium'
+  let showHints = true;
+  let gameOver = false;
+  let history = [];          // 用于悔棋
+  let moveLogData = [];      // 落子记录
+  let aiThinking = false;
+  let lastPlaced = null;     // 最后一手位置
+  let lastFlipped = [];      // 最后翻转的位置
+
+  // ==================== DOM ====================
+  const canvas = document.getElementById('board');
+  const ctx = canvas.getContext('2d');
+  const statusEl = document.getElementById('status');
+  const scoreBlackEl = document.getElementById('score-black');
+  const scoreWhiteEl = document.getElementById('score-white');
+  const gameOverEl = document.getElementById('game-over');
+  const gameOverTextEl = document.getElementById('game-over-text');
+  const gameOverDetailEl = document.getElementById('game-over-detail');
+  const moveLogBox = document.getElementById('move-log-box');
+  const moveLogEl = document.getElementById('move-log');
+
+  // ==================== 棋盘尺寸自适应 ====================
+  function resizeCanvas() {
+    const wrap = canvas.parentElement;
+    const maxW = Math.min(wrap.clientWidth - 8, 480);
+    const size = Math.floor(maxW / SIZE) * SIZE;
+    canvas.width = size;
+    canvas.height = size;
+    canvas.style.width = size + 'px';
+    canvas.style.height = size + 'px';
+    drawBoard();
+  }
+
+  function cellSize() {
+    return canvas.width / SIZE;
+  }
+
+  // ==================== 初始化棋盘 ====================
+  function initBoard() {
+    board = Array.from({ length: SIZE }, () => Array(SIZE).fill(EMPTY));
+    // 中心4子：D4白 E4黑 D5黑 E5白
+    board[3][3] = WHITE; // D4
+    board[3][4] = BLACK; // E4
+    board[4][3] = BLACK; // D5
+    board[4][4] = WHITE; // E5
+    currentPlayer = BLACK;
+    gameOver = false;
+    history = [];
+    moveLogData = [];
+    lastPlaced = null;
+    lastFlipped = [];
+    aiThinking = false;
+    moveLogEl.innerHTML = '';
+    moveLogBox.style.display = 'none';
+    gameOverEl.classList.remove('show');
+  }
+
+  // ==================== 游戏逻辑 ====================
+
+  // 检查在 (r,c) 落子 color 后能翻转哪些棋子
+  function getFlips(r, c, color) {
+    if (board[r][c] !== EMPTY) return [];
+    const opp = color === BLACK ? WHITE : BLACK;
+    let allFlips = [];
+    for (const [dr, dc] of DIRS) {
+      let flips = [];
+      let nr = r + dr, nc = c + dc;
+      while (nr >= 0 && nr < SIZE && nc >= 0 && nc < SIZE && board[nr][nc] === opp) {
+        flips.push([nr, nc]);
+        nr += dr;
+        nc += dc;
+      }
+      if (flips.length > 0 && nr >= 0 && nr < SIZE && nc >= 0 && nc < SIZE && board[nr][nc] === color) {
+        allFlips = allFlips.concat(flips);
+      }
+    }
+    return allFlips;
+  }
+
+  // 获取所有合法落子位置
+  function getValidMoves(color) {
+    const moves = [];
+    for (let r = 0; r < SIZE; r++) {
+      for (let c = 0; c < SIZE; c++) {
+        const flips = getFlips(r, c, color);
+        if (flips.length > 0) {
+          moves.push({ r, c, flips });
+        }
+      }
+    }
+    return moves;
+  }
+
+  // 计分
+  function countPieces() {
+    let b = 0, w = 0;
+    for (let r = 0; r < SIZE; r++) {
+      for (let c = 0; c < SIZE; c++) {
+        if (board[r][c] === BLACK) b++;
+        else if (board[r][c] === WHITE) w++;
+      }
+    }
+    return { black: b, white: w };
+  }
+
+  // 保存状态（用于悔棋）
+  function saveState() {
+    history.push({
+      board: board.map(row => row.slice()),
+      currentPlayer,
+      lastPlaced: lastPlaced ? lastPlaced.slice() : null,
+      lastFlipped: lastFlipped.map(f => f.slice()),
+      moveLogLen: moveLogData.length
+    });
+    // 最多保留100步
+    if (history.length > 100) history.shift();
+  }
+
+  // 执行落子
+  function makeMove(r, c) {
+    const flips = getFlips(r, c, currentPlayer);
+    if (flips.length === 0) return false;
+
+    saveState();
+
+    board[r][c] = currentPlayer;
+    for (const [fr, fc] of flips) {
+      board[fr][fc] = currentPlayer;
+    }
+    lastPlaced = [r, c];
+    lastFlipped = flips.slice();
+
+    // 记录
+    const posName = COLS[c] + (r + 1);
+    const playerName = currentPlayer === BLACK ? '⚫黑棋' : '⚪白棋';
+    const flipCount = flips.length;
+    moveLogData.push(`${moveLogData.length + 1}. ${playerName} ${posName}（翻转${flipCount}子）`);
+
+    // 切换
+    currentPlayer = currentPlayer === BLACK ? WHITE : BLACK;
+    updateUI();
+    drawBoard();
+
+    // 检查游戏状态
+    checkTurnState();
+
+    return true;
+  }
+
+  // 检查当前回合状态
+  function checkTurnState() {
+    const currentMoves = getValidMoves(currentPlayer);
+    const oppPlayer = currentPlayer === BLACK ? WHITE : BLACK;
+    const oppMoves = getValidMoves(oppPlayer);
+
+    if (currentMoves.length === 0 && oppMoves.length === 0) {
+      // 双方都无法走，游戏结束
+      endGame();
+    } else if (currentMoves.length === 0) {
+      // 当前方无步，跳过
+      const name = currentPlayer === BLACK ? '黑棋' : '白棋';
+      ToolBox.showToast(`${name}无合法步，自动跳过`, 'info');
+      currentPlayer = oppPlayer;
+      updateStatus();
+      drawBoard();
+
+      // 如果是AI回合
+      if (gameMode === 'ai' && currentPlayer === WHITE) {
+        scheduleAiMove();
+      }
+    } else {
+      // 如果是AI回合
+      if (gameMode === 'ai' && currentPlayer === WHITE) {
+        scheduleAiMove();
+      }
+    }
+  }
+
+  // 游戏结束
+  function endGame() {
+    gameOver = true;
+    const { black, white } = countPieces();
+    let text = '';
+    let detail = `⚫ ${black} : ⚪ ${white}`;
+
+    if (black > white) {
+      text = '⚫ 黑棋胜！';
+    } else if (white > black) {
+      text = '⚪ 白棋胜！';
+    } else {
+      text = '平局！';
+    }
+
+    gameOverTextEl.textContent = text;
+    gameOverDetailEl.textContent = detail;
+    gameOverEl.classList.add('show');
+
+    // 更新落子记录
+    moveLogData.push(`--- 游戏结束 ${detail} ---`);
+    renderMoveLog();
+  }
+
+  // ==================== AI ====================
+
+  // 位置权重表（中等难度）
+  const WEIGHT_MAP = [
+    [120, -20, 20,  5,  5, 20, -20, 120],
+    [-20, -40, -5, -5, -5, -5, -40, -20],
+    [ 20,  -5, 15,  3,  3, 15,  -5,  20],
+    [  5,  -5,  3,  3,  3,  3,  -5,   5],
+    [  5,  -5,  3,  3,  3,  3,  -5,   5],
+    [ 20,  -5, 15,  3,  3, 15,  -5,  20],
+    [-20, -40, -5, -5, -5, -5, -40, -20],
+    [120, -20, 20,  5,  5, 20, -20, 120]
+  ];
+
+  function aiChooseMove() {
+    const moves = getValidMoves(WHITE);
+    if (moves.length === 0) return null;
+
+    if (aiDifficulty === 'easy') {
+      // 简单：选翻转最多的位置
+      moves.sort((a, b) => b.flips.length - a.flips.length);
+      return moves[0];
+    } else {
+      // 中等：位置权重 + 翻转数量
+      let best = null;
+      let bestScore = -Infinity;
+      for (const move of moves) {
+        const posScore = WEIGHT_MAP[move.r][move.c];
+        const flipScore = move.flips.length * 2;
+        const total = posScore + flipScore;
+        if (total > bestScore) {
+          bestScore = total;
+          best = move;
+        }
+      }
+      return best;
+    }
+  }
+
+  function scheduleAiMove() {
+    if (gameOver || aiThinking) return;
+    aiThinking = true;
+    updateStatus();
+    // 短暂延迟，更自然
+    setTimeout(() => {
+      if (gameOver) { aiThinking = false; return; }
+      const move = aiChooseMove();
+      aiThinking = false;
+      if (move) {
+        makeMove(move.r, move.c);
+      }
+    }, 400);
+  }
+
+  // ==================== UI 更新 ====================
+
+  function updateUI() {
+    const { black, white } = countPieces();
+    scoreBlackEl.textContent = black;
+    scoreWhiteEl.textContent = white;
+    updateStatus();
+    renderMoveLog();
+  }
+
+  function updateStatus() {
+    if (gameOver) {
+      statusEl.innerHTML = '<span style="color:var(--primary);">游戏结束</span>';
+      return;
+    }
+    if (aiThinking) {
+      statusEl.innerHTML = '<span style="color:var(--text-muted);">⚪ AI 思考中...</span>';
+      return;
+    }
+    if (currentPlayer === BLACK) {
+      statusEl.innerHTML = '<span class="turn-black">⚫ 黑棋回合</span>';
+    } else {
+      statusEl.innerHTML = '<span class="turn-white">⚪ 白棋回合</span>';
+    }
+  }
+
+  function renderMoveLog() {
+    if (moveLogData.length === 0) {
+      moveLogBox.style.display = 'none';
+      return;
+    }
+    moveLogBox.style.display = 'block';
+    moveLogEl.innerHTML = moveLogData.map(m =>
+      `<div class="move-entry">${m}</div>`
+    ).join('');
+    moveLogEl.scrollTop = moveLogEl.scrollHeight;
+  }
+
+  // ==================== Canvas 绘制 ====================
+
+  function drawBoard() {
+    const cs = cellSize();
+    const w = canvas.width;
+    const validMoves = (!gameOver && showHints) ? getValidMoves(currentPlayer) : [];
+
+    // 背景
+    ctx.fillStyle = '#2d7d32';
+    ctx.fillRect(0, 0, w, w);
+
+    // 网格线
+    ctx.strokeStyle = '#1b5e20';
+    ctx.lineWidth = 1;
+    for (let i = 0; i <= SIZE; i++) {
+      const pos = i * cs;
+      ctx.beginPath();
+      ctx.moveTo(pos, 0);
+      ctx.lineTo(pos, w);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(0, pos);
+      ctx.lineTo(w, pos);
+      ctx.stroke();
+    }
+
+    // 星位
+    const dots = [[2,2],[2,6],[6,2],[6,6]];
+    ctx.fillStyle = '#1b5e20';
+    for (const [r, c] of dots) {
+      ctx.beginPath();
+      ctx.arc(c * cs, r * cs, Math.max(3, cs * 0.06), 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    // 最后翻转高亮
+    for (const [fr, fc] of lastFlipped) {
+      ctx.fillStyle = 'rgba(255, 193, 7, 0.2)';
+      ctx.fillRect(fc * cs, fr * cs, cs, cs);
+    }
+
+    // 合法落子提示
+    if (!gameOver && showHints && !aiThinking) {
+      for (const move of validMoves) {
+        const cx = move.c * cs + cs / 2;
+        const cy = move.r * cs + cs / 2;
+        ctx.fillStyle = currentPlayer === BLACK
+          ? 'rgba(0,0,0,0.25)'
+          : 'rgba(255,255,255,0.35)';
+        ctx.beginPath();
+        ctx.arc(cx, cy, Math.max(4, cs * 0.12), 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+
+    // 棋子
+    for (let r = 0; r < SIZE; r++) {
+      for (let c = 0; c < SIZE; c++) {
+        if (board[r][c] === EMPTY) continue;
+        drawPiece(r, c, board[r][c]);
+      }
+    }
+
+    // 最后一手标记
+    if (lastPlaced) {
+      const [lr, lc] = lastPlaced;
+      const cx = lc * cs + cs / 2;
+      const cy = lr * cs + cs / 2;
+      const markColor = board[lr][lc] === BLACK ? 'rgba(255,255,255,0.7)' : 'rgba(0,0,0,0.5)';
+      ctx.fillStyle = markColor;
+      ctx.beginPath();
+      ctx.arc(cx, cy, Math.max(3, cs * 0.1), 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+
+  function drawPiece(r, c, color) {
+    const cs = cellSize();
+    const cx = c * cs + cs / 2;
+    const cy = r * cs + cs / 2;
+    const radius = Math.max(2, cs * 0.4);
+
+    // 阴影
+    ctx.save();
+    ctx.shadowColor = 'rgba(0,0,0,0.3)';
+    ctx.shadowBlur = Math.max(2, cs * 0.08);
+    ctx.shadowOffsetX = Math.max(1, cs * 0.03);
+    ctx.shadowOffsetY = Math.max(1, cs * 0.03);
+
+    ctx.beginPath();
+    ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+
+    if (color === BLACK) {
+      const grad = ctx.createRadialGradient(
+        cx - radius * 0.3, cy - radius * 0.3, radius * 0.1,
+        cx, cy, radius
+      );
+      grad.addColorStop(0, '#555');
+      grad.addColorStop(1, '#1a1a1a');
+      ctx.fillStyle = grad;
+    } else {
+      const grad = ctx.createRadialGradient(
+        cx - radius * 0.3, cy - radius * 0.3, radius * 0.1,
+        cx, cy, radius
+      );
+      grad.addColorStop(0, '#ffffff');
+      grad.addColorStop(1, '#d0d0d0');
+      ctx.fillStyle = grad;
+    }
+    ctx.fill();
+    ctx.restore();
+
+    // 边框
+    ctx.strokeStyle = color === BLACK ? 'rgba(0,0,0,0.4)' : 'rgba(150,150,150,0.5)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+
+  // ==================== 交互 ====================
+
+  canvas.addEventListener('click', function(e) {
+    if (gameOver || aiThinking) return;
+
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    const x = (e.clientX - rect.left) * scaleX;
+    const y = (e.clientY - rect.top) * scaleY;
+    const cs = cellSize();
+    const c = Math.floor(x / cs);
+    const r = Math.floor(y / cs);
+
+    if (r < 0 || r >= SIZE || c < 0 || c >= SIZE) return;
+    makeMove(r, c);
+  });
+
+  // 触屏支持
+  canvas.addEventListener('touchstart', function(e) {
+    e.preventDefault();
+  }, { passive: false });
+
+  canvas.addEventListener('touchend', function(e) {
+    e.preventDefault();
+    if (gameOver || aiThinking) return;
+    if (e.changedTouches.length === 0) return;
+
+    const touch = e.changedTouches[0];
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    const x = (touch.clientX - rect.left) * scaleX;
+    const y = (touch.clientY - rect.top) * scaleY;
+    const cs = cellSize();
+    const c = Math.floor(x / cs);
+    const r = Math.floor(y / cs);
+
+    if (r < 0 || r >= SIZE || c < 0 || c >= SIZE) return;
+    makeMove(r, c);
+  }, { passive: false });
+
+  // ==================== 控制函数 ====================
+
+  window.setMode = function(mode) {
+    gameMode = mode;
+    document.querySelectorAll('.mode-btn').forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.mode === mode);
+    });
+    document.getElementById('difficulty-section').style.display = mode === 'ai' ? 'block' : 'none';
+    restartGame();
+  };
+
+  window.setDifficulty = function(diff) {
+    aiDifficulty = diff;
+    document.querySelectorAll('.diff-btn').forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.diff === diff);
+    });
+    restartGame();
+  };
+
+  window.restartGame = function() {
+    initBoard();
+    updateUI();
+    drawBoard();
+  };
+
+  window.undoMove = function() {
+    if (history.length === 0) {
+      ToolBox.showToast(i18nText('toast.msg482'), 'warning');
+      return;
+    }
+    if (aiThinking) return;
+
+    // AI模式下需要撤两步（玩家+AI）
+    if (gameMode === 'ai' && history.length >= 2) {
+      history.pop(); // 撤销AI的步
+      const state = history.pop(); // 撤销玩家的步
+      board = state.board;
+      currentPlayer = state.currentPlayer;
+      lastPlaced = state.lastPlaced;
+      lastFlipped = state.lastFlipped;
+      // 移除落子记录
+      moveLogData.splice(state.moveLogLen);
+    } else {
+      const state = history.pop();
+      board = state.board;
+      currentPlayer = state.currentPlayer;
+      lastPlaced = state.lastPlaced;
+      lastFlipped = state.lastFlipped;
+      moveLogData.splice(state.moveLogLen);
+    }
+
+    gameOver = false;
+    gameOverEl.classList.remove('show');
+    updateUI();
+    drawBoard();
+  };
+
+  window.toggleHints = function() {
+    showHints = !showHints;
+    const btns = document.querySelectorAll('.toolbar .btn');
+    for (const btn of btns) {
+      if (btn.textContent.includes('提示')) {
+        btn.textContent = showHints ? '提示: 开' : '提示: 关';
+        btn.classList.toggle('success', showHints);
+        break;
+      }
+    }
+    drawBoard();
+  };
+
+  // ==================== 启动 ====================
+
+  window.addEventListener('resize', resizeCanvas);
+  initBoard();
+  resizeCanvas();
+  updateUI();
+
+})();
+</script>
+
+<!-- SEO 介紹區塊 -->
+<div class="tool-intro open" id="toolIntro">
+  <div class="tool-intro-header">
+    <span class="intro-icon-wrap"><span class="intro-icon">📖</span>關於「黑白棋」</span>
+    <span class="arrow">▼</span>
+  </div>
+  <div class="tool-intro-body">
+    <h4><span class="h4-icon">📝</span>工具簡介</h4>
+    <p>黑白棋（翻轉棋/Othello/Reversi）在線遊戲，支持雙人對戰和AI對弈，純前端運行，免費使用。。娛樂遊戲工具，純前端實現，無需安裝，離線可玩。</p>
+    <h4><span class="h4-icon">✨</span>功能特點</h4>
+    <ul class="intro-features">
+      <li>純前端實現，無需安裝</li>
+      <li>操作簡單，上手快速</li>
+      <li>支持多種設備，隨時隨地使用</li>
+      <li>無需聯網，離線可玩</li>
+    </ul>
+    <h4><span class="h4-icon">🎯</span>使用場景</h4>
+    <ul class="intro-scenes">
+      <li>休閒娛樂與放鬆</li>
+      <li>聚會互動小遊戲</li>
+      <li>碎片時間的趣味消遣</li>
+      <li>概率與統計的學習輔助</li>
+    </ul>
+    <h4><span class="h4-icon">💬</span>常見問題</h4>
+      <div class="intro-faq-item"><div class="intro-faq-q">這個工具是免費的嗎？</div><div class="intro-faq-a">完全免費，無需註冊，直接在瀏覽器中使用。</div></div>
+      <div class="intro-faq-item"><div class="intro-faq-q">需要安裝軟件嗎？</div><div class="intro-faq-a">不需要，直接在瀏覽器中打開即可使用。</div></div>
+      <div class="intro-faq-item"><div class="intro-faq-q">支持手機使用嗎？</div><div class="intro-faq-a">支持。頁面已做響應式適配，手機和電腦均可正常使用。</div></div>
+  </div>
+</div>
+<!-- /SEO 介紹區塊 -->
+
+<script>
+// tool-intro折叠交互
+document.addEventListener('DOMContentLoaded',function(){
+  var headers=document.querySelectorAll('.tool-intro-header');
+  headers.forEach(function(h){
+    h.addEventListener('click',function(){
+      this.parentElement.classList.toggle('open');
+    });
+  });
+});
+</script>
+
+</body>
+</html>

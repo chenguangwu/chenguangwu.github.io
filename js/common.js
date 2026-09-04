@@ -1808,7 +1808,7 @@ function buildDynRes(){
 }
 function isEnglishMode(){
   try {
-    if (window.I18n && typeof window.I18n.get === 'function') return window.I18n.get() !== 'zh-CN';
+    if (window.I18n && typeof window.I18n.get === 'function') return window.I18n.get() === 'en-US';
   } catch(e){}
   try { return (document.documentElement.getAttribute('lang') || 'zh-CN').indexOf('zh') !== 0; } catch(e){}
   return false;
@@ -2279,7 +2279,7 @@ function renderRelatedTools(){
   if(!ind) return;
   var relatedTitle = i18nText('tool.related', '🔗 相关工具');
   var loadingText = i18nText('common.loading', '加载中…');
-  var cur = (location.pathname || '').replace(/^\/+/, '');
+  var cur = (location.pathname || '').replace(/^\/+/, '').replace(/^zh-(?:tw|hk)\//i, '');
   var wrap = document.createElement('div');
   wrap.className = 'related-tools card';
   wrap.style.marginTop = '20px';
@@ -2306,12 +2306,13 @@ function renderRelatedTools(){
         relatedTitle +
         '</h3><div class="rt-grid">' +
         top.map(function(t){
-          var n = isZh ? (t.name || t.desc || t.url) : (t.en || t.ed || t.name || t.desc || t.url);
-          var d = isZh ? (t.d || t.desc || t.name || t.url) : (t.ed || t.desc || t.name || t.url);
+          var english = isEnglishMode();
+          var n = english ? (t.en || t.ed || t.name || t.desc || t.url) : (t.name || t.desc || t.url);
+          var d = english ? (t.ed || t.desc || t.name || t.url) : (t.d || t.desc || t.name || t.url);
           if (n === d) {
             d = '';
           }
-          return '<a class="rt-item" href="../../' + escHtml(t.url) + '">' +
+          return '<a class="rt-item" href="' + toolPageRootPrefix() + escHtml(t.url) + '">' +
             '<span class="rt-ico">' + escHtml(t.icon || '🔧') + '</span>' +
             '<span class="rt-info"><span class="rt-name">' + escHtml(n) + '</span><span class="rt-desc">' + escHtml(d || '') + '</span></span></a>';
         }).join('') + '</div>';
@@ -2787,6 +2788,13 @@ function toolPageRootPrefix(){
   try {
     var p = location.pathname || '';
     var seg = p.split('/').filter(Boolean);
+    if (seg[0] === 'zh-tw' || seg[0] === 'zh-hk') {
+      seg.shift();
+      if (seg.length >= 2 && seg[0] === 'tools') return '../../../';
+      if (seg.length >= 1 && seg[0] === 'tools') return '../../';
+      if (seg.length >= 1 && seg[0] === 'guides') return '../../';
+      return '../';
+    }
     // tools/industry/xxx.html → 两级
     if (seg.length >= 2 && seg[0] === 'tools') return '../../';
     if (seg.length >= 1 && seg[0] === 'tools') return '../';
@@ -2834,7 +2842,7 @@ function buildUnifiedHeader(){
   desk.innerHTML =
     '<div class="nav-logo" onclick="location.href=\'' + root + 'index.html\'" style="cursor:pointer">' +
       '<img src="' + root + 'logo.svg" alt="ToolBox Logo">' +
-      '<div class="nav-logo-text"><span class="nav-logo-name">ToolBox</span><span class="nav-logo-sub">工具百科</span></div>' +
+      '<div class="nav-logo-text"><span class="nav-logo-name">ToolBox</span><span class="nav-logo-sub" data-i18n="brand.sub" data-i18n-fb="工具百科">工具百科</span></div>' +
     '</div>' +
     '<form class="nav-search" action="' + root + 'search.html" method="GET" onsubmit="if(!this.q.value.trim()){event.preventDefault();return false;}">' +
       '<svg class="nav-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>' +
