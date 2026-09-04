@@ -581,7 +581,7 @@
 | **G03** | 首页热门分类 | `js/app.js` → `HOT_INDUSTRIES` 追加 `cognition`、`colorvision`、`psychology`、`ophthalmology`；`CAT_INFO` 如需新增 cat 同步补 | 首页分类 tag 出现四个新分类，点击可筛选 |
 | **G04** | 英文 override | `i18n/tools/_en_override.json` + `slug-en.json` 各补 26 条（`indent=1`；英文禁止 slug 直译） | `_test_static.py` 映射缺失 = 0 |
 | **G05** | 正文 i18n | `i18n/tools/<ind>.json`（双语 h1/title/intro/note/desc）+ `<ind>-body.json` + `<ind>-phrases.json` 补齐（phrases 覆盖页面内**全部**中文串） | 切英文后页面无残留中文（人工抽验 5 页） |
-| **G06** | 构建 + 四道门禁 | `python3 _build.py` → `_test_static.py` → `_audit_links.py --check` → `_audit_assets.py --check` | 静态 0 失败 0 告警；死链 0；资产 0 异常 |
+| **G06** | 构建 + 五道门禁 | `python3 scripts/run_gates.py`（build → `_test_static.py` → `_audit_links.py --check` → `_audit_assets.py --check` → `node scripts/verify_calc.js`），本机需先 `npm ci` | 五道全 PASS；静态 0 失败 0 告警；死链 0；资产 0 异常；公式回归 0 失败 |
 | **G07** | 提交发布 | `git add -A && git commit && git push origin master`；提醒老板手动跑 `python3 _submit_indexnow.py` | GitHub Pages 更新；提醒已发出 |
 
 ---
@@ -602,7 +602,7 @@
 | **第 9 批** | G02 G03 G04 G05 | 首页露出 + i18n 收口 |
 | **第 10 批** | G06 G07 | 门禁 + 提交发布 |
 
-**每批执行纪律（不可跳过）**：逐个工具开发 → 每个工具写完立刻补自己的 4 处 i18n（en_override / slug-en / industry.json 三件套）→ 批内全部完成后 `python3 _build.py` → 四道门禁 → `git commit`。**禁止跨批堆积后一次性提交。**
+**每批执行纪律（不可跳过）**：逐个工具开发 → 每个工具写完立刻补自己的 4 处 i18n（en_override / slug-en / industry.json 三件套）→ 批内全部完成后 `python3 scripts/run_gates.py`（五道门禁）→ `git commit`。**禁止跨批堆积后一次性提交。**
 
 ---
 

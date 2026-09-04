@@ -16,7 +16,7 @@
     [phase 2: develop] 每个工具一个 agent 串行开发
         |               使用同一模型（由主调用层配置）
         v
-    主 agent 收尾：python3 _build.py → 四道门禁 → commit
+    主 agent 收尾：python3 scripts/run_gates.py（五道门禁） → commit
 
 **流式无屏障**：两阶段用 `pipeline` 串联，同一批次走完 verify 即可进入 develop，无需等全部批次校验完——省时。
 
@@ -54,13 +54,19 @@ script 内嵌 `DEFAULT_BATCHES`：批次1（4 个通用刚需）+ 批次2（8 �
 
 ### 3. 收尾（workflow 结束后，由主 agent 串行执行）
 
-    python3 _build.py
+    npm ci                             # 首次或 package.json 变更后；opencc-js 是繁体站点构建依赖
+    python3 scripts/run_gates.py       # 五道门禁：build → 静态 → 死链 → 资产 → 公式回归
     python3 scripts/check_clarity_refs.py   # 可选：若 _build 未运行，手动快速验收所有页面 Clarity 引用
-    python3 _test_static.py
-    python3 _audit_links.py --check
-    python3 _audit_assets.py --check
 
-四道全绿后 `git add -A && git commit -m "feat(tools): 批次N - xxx"`（索引提交仅提醒用户手动跑 `_submit_indexnow.py`）。
+五道全 PASS 后 `git add -A && git commit -m "feat(tools): 批次N - xxx"`（索引提交仅提醒用户手动跑 `_submit_indexnow.py`）。
+
+> 不提交 `zh-tw/`（构建产物，已 gitignore）。发布走 GitHub Actions：push `master` 后等 `ToolBox Build and Deploy` 成功，并验证简体首页、`/zh-tw/`、一个繁体工具页、根 `sitemap.xml` 均 200。
+
+> 本机跑全量 build 可能报 `SAFE_DELETE_BULK_CONFIRM_REQUIRED`：CLI 的批量删除保护拦截了 `zh-tw/` 重建（17436 文件 > 500 阈值）。
+> **处理纪律（不可违反）**：
+> 1. 先走**可恢复**路径——只改 JS/JSON/CSS 时用 `python3 scripts/run_gates.py --skip-build`（不触发 `zh-tw/` 删除），再用 `git diff` 核对产物；
+> 2. 确需全量重建时，**由人工手动删除 `zh-tw/`**（例如移到废纸篓），再跑 build；
+> 3. **禁止** agent 为绕过保护而设置 `CODEBUDDY_SAFE_DELETE_ENABLED=0` 或自行批量删除。CI 无此 shim，不受影响。
 
 ---
 
