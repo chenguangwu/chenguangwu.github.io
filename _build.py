@@ -43,6 +43,13 @@ except Exception:
     def translate_text(s):
         return s or ''
 
+try:
+    from gen_hot_tools import HOT_TOOL_URLS
+except Exception:
+    HOT_TOOL_URLS = ()
+
+HOT_TOOL_URL_SET = set(HOT_TOOL_URLS)
+
 # 高频可见工具英文覆盖字典（scripts/gen_en_override.py 生成，AI 批量预翻）
 OVERRIDE_PATH = os.path.join(ROOT, 'i18n', 'tools', '_en_override.json')
 try:
@@ -2566,6 +2573,20 @@ def fix_tool_pages_seo(tools):
         ux_block = '\n<script src="/js/tool-ux.js" defer></script>\n<!-- TOOLBOX-TOOL-UX -->\n'
         if not _head_contains(content, '/js/tool-ux.js'):
             content = _inject_into_document_head(content, ux_block)
+
+        # The editorial popular set gets a shared productivity layer. Keeping
+        # the membership in gen_hot_tools.py makes homepage cards and page UX
+        # impossible to drift apart.
+        hot_ux_block = '\n<script src="/js/hot-tool-enhancements.js" defer></script>\n<!-- TOOLBOX-HOT-TOOL-UX -->\n'
+        hot_ux_pattern = re.compile(
+            r'\s*<script src="/js/hot-tool-enhancements\.js" defer></script>\s*'
+            r'<!-- TOOLBOX-HOT-TOOL-UX -->\s*'
+        )
+        if t['url'] in HOT_TOOL_URL_SET:
+            if not _head_contains(content, '/js/hot-tool-enhancements.js'):
+                content = _inject_into_document_head(content, hot_ux_block)
+        elif 'TOOLBOX-HOT-TOOL-UX' in content:
+            content = hot_ux_pattern.sub('\n', content, count=1)
 
         if content != original:
             with open(filepath, 'w', encoding='utf-8') as f:
