@@ -6,7 +6,7 @@ import os, re, glob, json
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 TOOLS = os.path.join(ROOT, "tools")
-data = json.load(open(os.path.join(ROOT, "tools.json"), encoding="utf-8"))
+data = json.load(open(os.path.join(ROOT, "json", "tools.json"), encoding="utf-8"))
 grade = {d["path"]: d.get("quality") for d in data}
 
 EQ = re.compile(r'=')

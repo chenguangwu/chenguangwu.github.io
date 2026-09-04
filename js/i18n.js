@@ -14,7 +14,6 @@
 var LANG_REGISTRY = [
   { code: 'zh-CN', label: '中文',    dir: 'ltr', fallback: null,    isDefault: true },
   { code: 'zh-TW', label: '繁體中文（台灣）', dir: 'ltr', fallback: null },
-  { code: 'zh-HK', label: '繁體中文（香港）', dir: 'ltr', fallback: null },
   { code: 'en-US', label: 'English', dir: 'ltr', fallback: null }
 ];
 
@@ -37,7 +36,6 @@ var LANG_REGISTRY = [
   var PACKS = {
     'zh-CN': {},
     'zh-TW': {},
-    'zh-HK': {},
     'en-US': {
       // 通用 UI
       'app.name': 'ToolBox',
@@ -285,7 +283,8 @@ var LANG_REGISTRY = [
     if (isValidLang(lang)) return lang;
     var lower = lang.toLowerCase();
     if (lower === 'zh-tw' || lower === 'zh-hant-tw') return 'zh-TW';
-    if (lower === 'zh-hk' || lower === 'zh-hant-hk') return 'zh-HK';
+    // 香港浏览器与旧偏好统一使用保留的台湾繁体静态版本。
+    if (lower === 'zh-hk' || lower === 'zh-hant-hk') return 'zh-TW';
     var base = lang.split('-')[0].toLowerCase();
     if (REGION_MAP[base]) return REGION_MAP[base];
     return null;
@@ -321,12 +320,11 @@ var LANG_REGISTRY = [
 
   function get() { return current; }
   function isEnglish() { return current === 'en-US'; }
-  function isStaticTraditional() { return current === 'zh-TW' || current === 'zh-HK'; }
+  function isStaticTraditional() { return current === 'zh-TW'; }
 
   function localeFromPath() {
     var path = (location.pathname || '').replace(/^\/+/, '');
     if (path === 'zh-tw' || path.indexOf('zh-tw/') === 0) return 'zh-TW';
-    if (path === 'zh-hk' || path.indexOf('zh-hk/') === 0) return 'zh-HK';
     return null;
   }
 
@@ -337,14 +335,14 @@ var LANG_REGISTRY = [
 
   function assetUrl(url) {
     if (!url || /^(?:[a-z][a-z0-9+.-]*:|\/\/)/i.test(url)) return url;
-    var prefix = current === 'zh-TW' ? '/zh-tw' : (current === 'zh-HK' ? '/zh-hk' : '');
+    var prefix = current === 'zh-TW' ? '/zh-tw' : '';
     if (!prefix) return url;
     return prefix + (url.charAt(0) === '/' ? url : '/' + url);
   }
 
   function routeFor(lang) {
     var path = sourcePath();
-    var prefix = lang === 'zh-TW' ? '/zh-tw/' : (lang === 'zh-HK' ? '/zh-hk/' : '/');
+    var prefix = lang === 'zh-TW' ? '/zh-tw/' : '/';
     var target = prefix + path;
     if (!path) target = prefix;
     var query = '';
@@ -590,9 +588,9 @@ var LANG_REGISTRY = [
     opts = opts || {};
     var nl = normalize(lang);
     if (!nl) nl = FALLBACK;
-    // 台湾/香港是独立静态 URL，切换时整页导航，确保搜索引擎与无 JS 客户端都拿到繁体 HTML。
+    // 台湾繁体是独立静态 URL，切换时整页导航，确保搜索引擎与无 JS 客户端都拿到繁体 HTML。
     var target = routeFor(nl);
-    if ((isStaticTraditional() || nl === 'zh-TW' || nl === 'zh-HK') && target !== location.pathname + location.search + location.hash) {
+    if ((isStaticTraditional() || nl === 'zh-TW') && target !== location.pathname + location.search + location.hash) {
       if (opts.persist !== false) {
         try { localStorage.setItem(KEY, nl); } catch (e) {}
       }
@@ -634,7 +632,7 @@ var LANG_REGISTRY = [
 
   function loadRegionalPack() {
     if (!isStaticTraditional() || !window.fetch) return;
-    var file = current === 'zh-TW' ? '/i18n/locale-zh-TW.json' : '/i18n/locale-zh-HK.json';
+    var file = '/i18n/locale-zh-TW.json';
     fetch(file, { cache: 'no-cache' })
       .then(function (r) { return r.ok ? r.json() : null; })
       .then(function (pack) {

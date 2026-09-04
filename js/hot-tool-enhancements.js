@@ -43,12 +43,6 @@
       copied: '結果已複製', downloaded: '結果已匯出', empty: '暫無可複製的結果，請先執行工具',
       restored: '已恢復頁面範例', cleared: '輸入已清空', chars: '字元', lines: '行', fields: '個參數', files: '個檔案入口'
     },
-    'zh-HK': {
-      badge: '⚡ 效率工具列', local: '本機處理', run: '執行', copy: '複製結果',
-      export: '匯出結果', sample: '恢復範例', clear: '清空輸入', shortcut: 'Ctrl/⌘ + Enter 快速執行',
-      copied: '結果已複製', downloaded: '結果已匯出', empty: '暫無可複製的結果，請先執行工具',
-      restored: '已恢復頁面範例', cleared: '輸入已清空', chars: '字元', lines: '行', fields: '個參數', files: '個檔案入口'
-    },
     'en-US': {
       badge: '⚡ Productivity bar', local: 'Local only', run: 'Run', copy: 'Copy result',
       export: 'Export result', sample: 'Restore sample', clear: 'Clear inputs', shortcut: 'Ctrl/⌘ + Enter to run',
@@ -72,7 +66,7 @@
     const value = explicit || (window.I18n && window.I18n.get && window.I18n.get()) || document.documentElement.lang || '';
     const normalized = String(value).toLowerCase();
     if (normalized.includes('tw')) return 'zh-TW';
-    if (normalized.includes('hk')) return 'zh-HK';
+    if (normalized.includes('hk')) return 'zh-TW';
     if (normalized.startsWith('en')) return 'en-US';
     return 'zh-CN';
   }

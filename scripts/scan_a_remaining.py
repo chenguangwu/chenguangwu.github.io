@@ -7,7 +7,7 @@ import os, re, json
 from collections import Counter
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-data = json.load(open(os.path.join(ROOT, "tools.json"), encoding="utf-8"))
+data = json.load(open(os.path.join(ROOT, "json", "tools.json"), encoding="utf-8"))
 
 def inline_scripts(h):
     return re.findall(r'<script(?![^>]*\bsrc=)[^>]*>(.*?)</script>', h, re.S)

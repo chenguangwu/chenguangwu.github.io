@@ -258,9 +258,9 @@ TOOLBOX_API_STUB = (
 # hreflang 采用构建期常量：每个 locale 对应一个规范 URL（语言由 ?lang 客户端切换，
 # 不做 ?lang 查询态 alternate，避免爬取/索引出现 404）。
 # ============================================================
-I18N_LOCALES = ['zh-CN', 'zh-TW', 'zh-HK', 'en-US']
-I18N_STATIC_LOCALES = ['zh-CN', 'zh-TW', 'zh-HK']
-I18N_STATIC_DIRS = {'zh-TW': 'zh-tw', 'zh-HK': 'zh-hk'}
+I18N_LOCALES = ['zh-CN', 'zh-TW', 'en-US']
+I18N_STATIC_LOCALES = ['zh-CN', 'zh-TW']
+I18N_STATIC_DIRS = {'zh-TW': 'zh-tw'}
 I18N_XDEFAULT = 'zh-CN'
 I18N_HREFLANG_MARKER = '<!-- TOOLBOX-HREFLANG -->'
 
@@ -334,8 +334,13 @@ def _xhtml_alternates(abs_url):
 
 
 def _localized_url_blocks(abs_url, today, freq, prio):
-    """One <url> per crawlable Chinese static locale, each with the complete alternate chain."""
-    return [_url_block_xhtml(localized_i18n_url(abs_url, loc), today, freq, prio)
+    """One compact <url> per crawlable Chinese static locale.
+
+    Locale relationships already live in every page's hreflang head. Repeating
+    the same alternate chain for every sitemap URL inflated sitemap.xml by more
+    than ten megabytes without adding another crawlable page.
+    """
+    return [_url_block(localized_i18n_url(abs_url, loc), today, freq, prio)
             for loc in I18N_STATIC_LOCALES]
 
 # ============================================================
@@ -1455,8 +1460,7 @@ def generate_sitemap(tools, category_inds=None):
     from datetime import datetime
     today = datetime.now().strftime('%Y-%m-%d')
     lines = ['<?xml version="1.0" encoding="UTF-8"?>']
-    lines.append('<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" '
-                 'xmlns:xhtml="http://www.w3.org/1999/xhtml">')
+    lines.append('<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">')
     lines.extend(_localized_url_blocks('https://chenguangwu.github.io/', today, 'daily', '1.0'))
     lines.extend(_localized_url_blocks('https://chenguangwu.github.io/sitemap.html', today, 'weekly', '0.9'))
     lines.extend(_localized_url_blocks('https://chenguangwu.github.io/search.html', today, 'weekly', '0.9'))
@@ -1473,10 +1477,7 @@ def generate_sitemap(tools, category_inds=None):
             if fn.endswith('.html') and fn != 'index.html':
                 abs_url = 'https://chenguangwu.github.io/guides/%s' % fn
                 if fn.endswith('.en.html'):
-                    zh_fn = fn[:-len('.en.html')] + '.html'
-                    zh_url = 'https://chenguangwu.github.io/guides/%s' % zh_fn
-                    lines.append(_url_block_alts(abs_url, today, 'monthly', '0.7',
-                                                 _guide_alternates_xml(zh_url, abs_url)))
+                    lines.append(_url_block(abs_url, today, 'monthly', '0.7'))
                 else:
                     lines.extend(_localized_url_blocks(abs_url, today, 'monthly', '0.8'))
     # chains.html 工具链页（B3-05）
@@ -1836,7 +1837,7 @@ def _build_consistency_check(tools, category_inds):
 
 
 def generate_opencc_static_locales():
-    """Generate zh-tw/ and zh-hk/ only after every source HTML/JSON artifact is final."""
+    """Generate zh-tw/ only after every source HTML/JSON artifact is final."""
     script = os.path.join(ROOT, 'scripts', 'gen_opencc_locales.mjs')
     print('\nGenerating static OpenCC locales:')
     try:
@@ -2946,10 +2947,12 @@ def main():
         json.dump(tools, f, ensure_ascii=False, indent=2)
     print('Saved json/tools.json (%d entries)' % len(tools))
 
-    # Also save to root for backward compatibility
+    # Remove the historical root duplicate. Runtime and maintained scripts use
+    # json/tools.json; keeping both added a multi-megabyte diff to every build.
     tools_json_root = os.path.join(ROOT, 'tools.json')
-    with open(tools_json_root, 'w', encoding='utf-8') as f:
-        json.dump(tools, f, ensure_ascii=False, indent=2)
+    if os.path.exists(tools_json_root):
+        os.remove(tools_json_root)
+        print('Removed legacy root tools.json duplicate')
     
     # Generate split JSON files (per industry + search index)
     print('\nGenerating split JSON files:')
@@ -2998,7 +3001,8 @@ def main():
             f.write(idx_html)
         print('Updated hreflang in index.html')
 
-    # Generate sitemaps: root full urlset + per-industry sitemap.xml (kept for optional submission)
+    # Generate one root sitemap. Per-industry sitemap files duplicated the same
+    # URLs and added hundreds of generated files to every build and commit.
     from datetime import datetime
     today = datetime.now().strftime('%Y-%m-%d')
     by_industry = {}
@@ -3026,17 +3030,17 @@ def main():
     global _LASTMOD_MAP
     _LASTMOD_MAP = ensure_lastmod_map(all_urls, today)
 
-    for ind in sorted(by_industry.keys()):
-        ind_dir = os.path.join(TOOLS_DIR, ind)
-        os.makedirs(ind_dir, exist_ok=True)
-        content = generate_industry_sitemap(ind, by_industry[ind], today)
-        with open(os.path.join(ind_dir, 'sitemap.xml'), 'w', encoding='utf-8') as f:
-            f.write(content)
+    removed_industry_sitemaps = 0
+    for ind in os.listdir(TOOLS_DIR):
+        stale_sitemap = os.path.join(TOOLS_DIR, ind, 'sitemap.xml')
+        if os.path.isfile(stale_sitemap):
+            os.remove(stale_sitemap)
+            removed_industry_sitemaps += 1
 
     with open(SITEMAP_FILE, 'w', encoding='utf-8') as f:
         f.write(generate_sitemap(tools, category_inds))
-    print('Generated sitemap.xml (full urlset: %d tools + %d categories + guides) + %d industry sitemaps'
-          % (len(tools), len(category_inds), len(by_industry)))
+    print('Generated compact root sitemap.xml (full urlset: %d tools + %d categories + guides); removed %d industry sitemaps'
+          % (len(tools), len(category_inds), removed_industry_sitemaps))
     
     # Generate HTML sitemap
     html_sitemap = generate_html_sitemap(tools)

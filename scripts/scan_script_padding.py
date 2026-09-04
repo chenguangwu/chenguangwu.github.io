@@ -4,7 +4,7 @@
 # 标记"被注水"脚本（注释+空白占比过高 / 重复行多 / 无实际计算），交人工复核。
 import os, re, json
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-data = json.load(open(os.path.join(ROOT, "tools.json"), encoding="utf-8"))
+data = json.load(open(os.path.join(ROOT, "json", "tools.json"), encoding="utf-8"))
 
 def inline_scripts(h):
     return re.findall(r'<script(?![^>]*\bsrc=)[^>]*>(.*?)</script>', h, re.S)

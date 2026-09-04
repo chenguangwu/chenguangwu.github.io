@@ -2,7 +2,7 @@
 /**
  * Generate SEO-crawlable Traditional Chinese pages from the zh-CN source.
  *
- * Source pages remain canonical. zh-tw/ and zh-hk/ are generated artifacts:
+ * Source pages remain canonical. zh-tw/ is the generated artifact:
  * HTML and JSON are localized, while shared CSS/JS/images stay at the root.
  * Run through _build.py or `npm run build:i18n`; never edit locale output.
  */
@@ -16,8 +16,7 @@ const SITE = 'https://chenguangwu.github.io';
 const MARKER = '.toolbox-opencc-locale';
 const ROOT_PAGES = ['index.html', 'search.html', 'chains.html', 'about.html', 'sitemap.html', 'embed.html', '404.html'];
 const LOCALES = [
-  { code: 'zh-TW', dir: 'zh-tw', to: 'twp', og: 'zh_TW' },
-  { code: 'zh-HK', dir: 'zh-hk', to: 'hkp', og: 'zh_HK' }
+  { code: 'zh-TW', dir: 'zh-tw', to: 'twp', og: 'zh_TW' }
 ];
 const PUBLIC_PREFIXES = ['tools/', 'guides/'];
 const SKIP_TAGS = new Set(['script', 'style', 'pre', 'code', 'textarea', 'template']);
@@ -179,21 +178,18 @@ async function writeRegionalPack(locale, converter) {
 
 function localeHead(rel, locale) {
   const cn = originalUrl(rel);
-  const tw = localeUrl(LOCALES[0], rel);
-  const hk = localeUrl(LOCALES[1], rel);
   const en = `${cn}${cn.includes('?') ? '&' : '?'}lang=en-US`;
-  return [
+  const links = [
     '<!-- TOOLBOX-HREFLANG -->',
     `<link rel="alternate" hreflang="zh-CN" href="${cn}">`,
-    `<link rel="alternate" hreflang="zh-TW" href="${tw}">`,
-    `<link rel="alternate" hreflang="zh-HK" href="${hk}">`,
+    ...LOCALES.map((item) => `<link rel="alternate" hreflang="${item.code}" href="${localeUrl(item, rel)}">`),
     `<link rel="alternate" hreflang="en-US" href="${en}">`,
     `<link rel="alternate" hreflang="x-default" href="${cn}">`,
     `<meta property="og:locale" content="${locale.og}">`,
     '<meta property="og:locale:alternate" content="zh_CN">',
-    `<meta property="og:locale:alternate" content="${locale.code === 'zh-TW' ? 'zh_HK' : 'zh_TW'}">`,
     '<meta property="og:locale:alternate" content="en_US">'
-  ].join('\n') + '\n';
+  ];
+  return links.join('\n') + '\n';
 }
 
 function rewriteSeo(html, rel, locale) {

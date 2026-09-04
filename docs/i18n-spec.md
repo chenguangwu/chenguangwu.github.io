@@ -11,16 +11,15 @@
 |---|---|---|---|
 | `zh-CN` | 默认中文 | — | ltr |
 | `zh-TW` | 台湾繁体（OpenCC `twp`） | — | ltr |
-| `zh-HK` | 香港繁体（OpenCC `hkp`） | — | ltr |
 | `en-US` | 默认 / 唯一全局回退英文 | — | ltr |
 
-- `zh-CN` 是唯一源语言；`zh-TW`、`zh-HK` 是由 `opencc-js` 在构建期生成的静态页面和 JSON，不走英文回退。`en-US` 保留既有运行时词包。
+- `zh-CN` 是唯一源语言；`zh-TW` 由 `opencc-js` 在构建期生成静态页面和 JSON，不走英文回退。`en-US` 保留既有运行时词包。
 - `zh-CN` 为默认语言，其语言包留空，靠 `data-i18n-fb` 回退原始中文。
-- 繁体动态公共 UI 使用构建产物 `i18n/locale-zh-TW.json`、`i18n/locale-zh-HK.json`；页面专有内容以静态 HTML 的繁体 `data-i18n-fb` 为回退。
+- 繁体动态公共 UI 使用构建产物 `i18n/locale-zh-TW.json`；页面专有内容以静态 HTML 的繁体 `data-i18n-fb` 为回退。香港浏览器语言和旧 `zh-HK` 偏好统一归一化到 `zh-TW`。
 
 ## 2. 语言判定与持久化（优先级 高→低）
 
-1. 物理繁体路径 `/zh-tw/...`、`/zh-hk/...` —— 最高优先；切换到繁体必须整页导航到该路径
+1. 物理繁体路径 `/zh-tw/...` —— 最高优先；切换到繁体必须整页导航到该路径
 2. URL `?lang=<locale>` —— 英文运行时切换，写回 URL（`history.replaceState`）与 localStorage
 3. localStorage `toolbox_lang`
 4. `navigator.languages[0]` 的 region 子标签匹配 `REGION_MAP`（不自动把普通简体 URL 重定向到繁体）
@@ -96,17 +95,17 @@
 
 ## 5. SEO 约定（构建期注入，禁手工维护）
 
-由 `_build.py` 基于 `I18N_LOCALES`（`zh-CN`、`zh-TW`、`zh-HK`、`en-US`）自动生成：
+由 `_build.py` 基于 `I18N_LOCALES`（`zh-CN`、`zh-TW`、`en-US`）自动生成：
 
-- 每页 `<head>` 注入完整 hreflang 链；`zh-TW`、`zh-HK` 指向各自物理目录，只有 `en-US` 使用 `?lang=en-US` 运行时切换。
-- `/zh-tw/...` 与 `/zh-hk/...` 是独立可抓取的实体 HTML，canonical 分别自指；`zh-CN` 指向源路径，`en-US` 继续是源路径的 `?lang=en-US` 运行时版本。
-- `hreflang="x-default"` 指向简体源 URL；sitemap 为每个简体、台湾繁体、香港繁体 URL 输出独立 `<url>`，并在每条中声明完整 alternate 链。
+- 每页 `<head>` 注入完整 hreflang 链；`zh-TW` 指向物理目录，只有 `en-US` 使用 `?lang=en-US` 运行时切换。
+- `/zh-tw/...` 是独立可抓取的实体 HTML且 canonical 自指；`zh-CN` 指向源路径，`en-US` 继续是源路径的 `?lang=en-US` 运行时版本。
+- `hreflang="x-default"` 指向简体源 URL；根 sitemap 为简体和台湾繁体 URL 输出独立 `<url>`。语言 alternate 关系由每页静态 `<head>` 声明，不在 sitemap 内重复数万次。
 - `<meta property="og:locale" content="zh_CN">`（页面原生语言，下划线写法） + `og:locale:alternate` 列出其余 locale（如 `en_US`）。
 - JSON-LD `@type: WebApplication` 块含 `"inLanguage": ["zh-CN", "en-US"]`，声明该页覆盖当前 2 种语言。
 - `<link rel="canonical">` **保持**指向页面原生裸 URL（标准做法，不随语言变 `?lang`）。
-- sitemap（根 index / core / 各行业）每个 `<url>` 内用 `xhtml:link` 标全部语言变体（`xmlns:xhtml` 已声明）。
+- 全站只生成根 `sitemap.xml`，不再生成各行业重复 sitemap。
 
-**索引性保障**：GitHub Pages 直接响应繁体正文与完整 SEO head，不依赖爬虫执行应用脚本。生成器只复制 HTML 与 JSON；CSS、JS、字体、图片保持根路径共享，避免发布三份公共资产。OpenCC 仅用于构建期通用转换；品牌、术语等需要精校时在 `twp`/`hkp` 覆盖层处理，不修改 `zh-CN` 源文。
+**索引性保障**：GitHub Pages 直接响应繁体正文与完整 SEO head，不依赖爬虫执行应用脚本。生成器只复制 HTML 与 JSON；CSS、JS、字体、图片保持根路径共享，避免重复公共资产。OpenCC 仅用于构建期通用转换；品牌、术语等需要精校时在 `twp` 覆盖层处理，不修改 `zh-CN` 源文。
 
 ## 6. 质量门禁
 
@@ -121,7 +120,7 @@
 
 ## 7. Non-goals（v1 不做什么）
 
-- 仅保留 `zh-CN` / `en-US`（含大陆、港澳台地区识别的 `zh-CN` 回退），不启用其他语种、不启用 RTL。
+- 仅保留 `zh-CN` / `zh-TW` / `en-US`，不启用其他语种、不启用 RTL。
 - 翻译数学公式 / 符号 / 单位本身（如 `ax²+bx+c=0`、`Δ`、`√` 保持原样），仅译说明文字。
 - 后端 / SSR i18n，维持纯前端 + 构建期注入。
 - 接入机器翻译 API（字典由人工 / 构建脚本维护）。

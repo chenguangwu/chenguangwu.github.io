@@ -2788,7 +2788,7 @@ function toolPageRootPrefix(){
   try {
     var p = location.pathname || '';
     var seg = p.split('/').filter(Boolean);
-    if (seg[0] === 'zh-tw' || seg[0] === 'zh-hk') {
+    if (seg[0] === 'zh-tw') {
       seg.shift();
       // 繁体根页（index/search/chains/about 等）须留在当前 locale 目录，
       // 不能退回简体根目录；工具页与指南页再按目录深度回退。
@@ -2812,8 +2812,8 @@ function toolPageRootPrefix(){
 function isHomepage(){
   var p = location.pathname || '';
   var seg = p.split('/').filter(Boolean);
-  // zh-tw/ 与 zh-hk/ 是独立静态首页，不是简体首页的子内容页。
-  if (seg[0] === 'zh-tw' || seg[0] === 'zh-hk') seg.shift();
+  // zh-tw/ 是独立静态首页，不是简体首页的子内容页。
+  if (seg[0] === 'zh-tw') seg.shift();
   if (seg.length === 0) return true;                 // 根路径 "/"
   if (seg.length === 1 && seg[0] === 'index.html') return true;
   return false;
