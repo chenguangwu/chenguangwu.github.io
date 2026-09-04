@@ -10,8 +10,6 @@ var RECENT_MAX = 50;
 function $(id){ return document.getElementById(id); }
 
 var I18N_MSG = {
-  "msg001": ") : '无'}`, '结果已复制",
-  "msg002": "));if(ToolBox.showToast)ToolBox.showToast('已复制全部端口",
   "msg003": "ADR评估报告已复制",
   "msg004": "AKI分期结果已复制",
   "msg005": "ANCA分型结果已复制",
@@ -26,7 +24,6 @@ var I18N_MSG = {
   "msg014": "Bishop评分结果已复制",
   "msg015": "C-ACT评分结果已复制",
   "msg016": "C-SSRS评估报告已复制",
-  "msg017": "CAT评分报告已复制",
   "msg018": "CAT评分结果已复制",
   "msg019": "CD-RISC评分报告已复制",
   "msg020": "CDAI评分结果已复制",
@@ -62,7 +59,6 @@ var I18N_MSG = {
   "msg050": "Greeks计算结果已复制",
   "msg051": "HAS-BLED评分结果已复制",
   "msg052": "HLH评估结果已复制",
-  "msg053": "HTML 已复制",
   "msg054": "HTML 已复制到剪贴板",
   "msg055": "Hirschberg眼位评估结果已复制",
   "msg056": "Holter分级结果已复制",
@@ -74,7 +70,6 @@ var I18N_MSG = {
   "msg062": "IPSS-R评分结果已复制",
   "msg063": "ITP评估结果已复制",
   "msg064": "IgG4评估结果已复制",
-  "msg065": "JSON已复制",
   "msg066": "JavaScript 代码已复制",
   "msg067": "Johnsen评分报告已复制",
   "msg068": "Kt/V评价结果已复制",
@@ -87,7 +82,6 @@ var I18N_MSG = {
   "msg075": "MDA5抗体评估结果已复制",
   "msg076": "METs换算结果已复制",
   "msg077": "MPN结果已复制",
-  "msg078": "Markdown 已复制",
   "msg079": "Mayo评分结果已复制",
   "msg080": "M蛋白分析结果已复制",
   "msg081": "NCS/EMG定位结果已复制",
@@ -97,12 +91,7 @@ var I18N_MSG = {
   "msg085": "OGTT诊断结果已复制",
   "msg086": "OLGIM评估结果已复制",
   "msg087": "PCOS评估结果已复制",
-  "msg088": "PDF 加载完成，共 ' + state.numPages + ' 页",
-  "msg089": "PDF 加载成功，共 ' + totalPages + ' 页",
   "msg090": "PET分型结果已复制",
-  "msg091": "PNG 导出失败",
-  "msg092": "PNG 导出失败，请改用 SVG",
-  "msg093": "PNG 已下载",
   "msg094": "PNH检测结果已复制",
   "msg095": "PSQI评分结果已复制",
   "msg096": "Pearl指数结果已复制",
@@ -114,7 +103,6 @@ var I18N_MSG = {
   "msg102": "SLEDAI评分结果已复制",
   "msg103": "SSA/SSB抗体评估结果已复制",
   "msg104": "STOP-BANG筛查结果已复制",
-  "msg105": "SVG 已下载",
   "msg106": "TG分析结果已复制",
   "msg107": "THI预警已复制",
   "msg108": "TIMI评分结果已复制",
@@ -167,7 +155,6 @@ var I18N_MSG = {
   "msg155": "农机油耗结果已复制",
   "msg156": "农药稀释结果已复制",
   "msg157": "冠脉钙化积分解读结果已复制",
-  "msg158": "冷知识已复制",
   "msg159": "准备金计算结果已复制",
   "msg160": "出栏预测已复制",
   "msg161": "出血源定位结果已复制",
@@ -175,7 +162,6 @@ var I18N_MSG = {
   "msg163": "分型结果已复制",
   "msg164": "分期结果已复制",
   "msg165": "分析结果已复制",
-  "msg166": "分类号 '+selectedCode+' 已复制",
   "msg167": "分类结果已复制",
   "msg168": "分级结果已复制",
   "msg169": "分配结果已复制",
@@ -193,10 +179,7 @@ var I18N_MSG = {
   "msg181": "压降结果已复制",
   "msg182": "参考信息已复制",
   "msg183": "发动机评分报告已复制",
-  "msg184": "发现 '+conflicts.length+' 项配伍禁忌",
   "msg185": "发育评估结果已复制",
-  "msg186": "号码 ' + num + ' 已复制",
-  "msg187": "号码 ' + phone + ' 已复制",
   "msg188": "合规评估报告已复制",
   "msg189": "后坐力数据已复制",
   "msg190": "听力筛查结果已复制",
@@ -245,15 +228,6 @@ var I18N_MSG = {
   "msg233": "尿电解质计算结果已复制",
   "msg234": "展开结果已复制",
   "msg235": "差异已复制",
-  "msg236": "已切换到' + TIMBRES[timbre].name + '音色",
-  "msg237": "已加载 ' + currentType + ' 示例",
-  "msg238": "已加载示例",
-  "msg239": "已加载：' + p.name),'info",
-  "msg240": "已填入油价 '+p+' 元/L",
-  "msg241": "已复制 ' + generatedResults.length + ' 个身份证号码",
-  "msg242": "已复制 ' + type.toUpperCase() + ' 到剪贴板",
-  "msg243": "已复制 '+e.site+' 的密码",
-  "msg244": "已复制 Data URL（' + (dataUrl.length / 1024).toFixed(1) + ' KB）",
   "msg245": "已复制 IP 信息",
   "msg246": "已复制 IPv6 信息",
   "msg247": "已复制 JSON",
@@ -356,7 +330,6 @@ var I18N_MSG = {
   "msg344": "已复制规划方案",
   "msg345": "已复制视场角数据",
   "msg346": "已复制解析结果",
-  "msg347": "已复制解读",
   "msg348": "已复制计分结果",
   "msg349": "已复制计算结果",
   "msg350": "已复制记录条目",
@@ -366,7 +339,6 @@ var I18N_MSG = {
   "msg354": "已复制财务比率报告",
   "msg355": "已复制转换结果",
   "msg356": "已复制过滤器参数",
-  "msg357": "已复制运势",
   "msg358": "已复制运费结果",
   "msg359": "已复制退税估算结果",
   "msg360": "已复制配伍禁忌检测结果",
@@ -379,13 +351,6 @@ var I18N_MSG = {
   "msg367": "已复制预算数据",
   "msg368": "已复制频率对照表",
   "msg369": "已导出到剪贴板",
-  "msg370": "已抽取 '+picked.length+' 条话术",
-  "msg371": "已清理 '+removed+' 条过期记录",
-  "msg372": "已清空",
-  "msg373": "已生成 ' + selected.length + ' 个体式序列",
-  "msg374": "已生成 '+sc+' 场景清单（'+arr.length+' 项）",
-  "msg375": "已设置建议平均速度 '+sug+' km/h",
-  "msg376": "已采用最佳周期 '+w+' s",
   "msg377": "帧率转换结果已复制",
   "msg378": "年金计算结果已复制",
   "msg379": "年龄换算已复制",
@@ -395,7 +360,6 @@ var I18N_MSG = {
   "msg383": "弹药数据已复制",
   "msg384": "弹道数据已复制",
   "msg385": "归因报告已复制",
-  "msg386": "录制完成，共 ' + recordedNotes.length + ' 个音符",
   "msg387": "得率结果已复制",
   "msg388": "微量白蛋白评估结果已复制",
   "msg389": "心包积液评估结果已复制",
@@ -424,8 +388,6 @@ var I18N_MSG = {
   "msg412": "损失率评估报告已复制",
   "msg413": "换算结果已复制",
   "msg414": "换药计划已复制",
-  "msg415": "推荐中心距 '+Math.round(aRec)+' mm（范围 '+Math.round(aMin)+'~'+Math.round(aRec*1.2)+'）",
-  "msg416": "推荐转速 '+nRec+' rpm（v='+vMid+' m/min）",
   "msg417": "搭配结果已复制",
   "msg418": "搭配评分已复制",
   "msg419": "摘要已复制到剪贴板",
@@ -488,10 +450,8 @@ var I18N_MSG = {
   "msg476": "注塑周期结果已复制",
   "msg477": "注射方案已复制",
   "msg478": "浇灌排程已复制",
-  "msg479": "测试报告已复制",
   "msg480": "测试方案已复制",
   "msg481": "测距数据已复制",
-  "msg482": "测量点 '+name+' 已记录",
   "msg483": "浴比计算结果已复制",
   "msg484": "涂料检测报告已复制",
   "msg485": "清洁工时已复制",
@@ -568,8 +528,6 @@ var I18N_MSG = {
   "msg556": "结核耐药分析结果已复制",
   "msg557": "结论已复制",
   "msg558": "维护方案已复制",
-  "msg559": "编码表已复制",
-  "msg560": "缩略图生成失败：' + (err.message || '未知错误",
   "msg561": "羊水指数结果已复制",
   "msg562": "肌酐清除率结果已复制",
   "msg563": "肝性脑病分级结果已复制",
@@ -608,16 +566,12 @@ var I18N_MSG = {
   "msg596": "表格已复制",
   "msg597": "规划方案已复制",
   "msg598": "视觉阈值已复制",
-  "msg599": "解析到 '+subtitles.length+' 条字幕",
   "msg600": "计算结果已复制",
   "msg601": "训练记录已复制",
   "msg602": "记录已复制",
   "msg603": "评估报告已复制",
   "msg604": "评估结果已复制",
-  "msg605": "评分报告已复制",
   "msg606": "评分结果已复制",
-  "msg607": "该进行仅支持' + (scaleType === 'major' ? '大调' : '小调",
-  "msg608": "请先输入内容",
   "msg609": "调光曲线结果已复制",
   "msg610": "调色板已复制",
   "msg611": "调色配方已复制",
@@ -632,8 +586,6 @@ var I18N_MSG = {
   "msg620": "辣度换算结果已复制",
   "msg621": "迁移量结果已复制",
   "msg622": "过氧化值结果已复制",
-  "msg623": "运势已复制",
-  "msg624": "还有'+unanswered+'个问题未作答",
   "msg625": "追溯报告已复制",
   "msg626": "逆行射精检测报告已复制",
   "msg627": "选址评估报告已复制",
@@ -2114,6 +2066,27 @@ global.ToolBox = {
   addToRecentTool: addToRecentTool,
   getToolUrl: getToolUrl
 };
+
+// 回放 compat 桩收集到的早期调用（见 _build.py 注入的 TOOLBOX-API-STUB）。
+// 场景：common.js 改为 defer 后，页面内联脚本会先于本文件执行，
+// 其顶层对 ToolBox.xxx() 的调用被桩收进 window.__tbq，此处按序回放，行为与同步加载时一致。
+(function replayToolBoxQueue(){
+  try {
+    var q = global.__tbq;
+    if (!q || !q.length) return;
+    var pending = q.slice();
+    q.length = 0;
+    global.__tbq = pending; // 保留引用，便于调试；已消费项由下方逐个取出
+    for (var i = 0; i < pending.length; i++) {
+      var item = pending[i];
+      var fn = global.ToolBox && global.ToolBox[item[0]];
+      if (typeof fn === 'function') {
+        try { fn.apply(null, item[1]); } catch (e) {}
+      }
+    }
+    global.__tbq = [];
+  } catch (e) {}
+})();
 
 document.addEventListener('DOMContentLoaded', initToolTheme);
 document.addEventListener('DOMContentLoaded', applyEmbedMode);

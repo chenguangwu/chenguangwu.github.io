@@ -217,6 +217,27 @@ TOOL_RUNTIME_MARKER = '<!-- TOOLBOX-TOOL-RUNTIME -->'
 CLARITY_MARKER = '<!-- TOOLBOX-CLARITY -->'
 
 # ============================================================
+# common.js 异步化（defer）+ API 兼容桩
+# ------------------------------------------------------------
+# 背景：国内访问 github.io 较慢，common.js（约 170KB / gzip 42KB）若在 <head>
+#       同步加载会阻塞 HTML 解析，弱网下表现为长时间白屏。改为 defer 后
+#       HTML/CSS 立即渲染，脚本在 DOM 解析完成后、DOMContentLoaded 之前执行。
+# 风险：改 defer 后页面内联脚本会先于 common.js 执行，其顶层 ToolBox.xxx()
+#       调用会抛 TypeError。故注入本桩：先把调用收进 window.__tbq 队列，
+#       common.js 就绪后回放（见 js/common.js 的 replayToolBoxQueue）。
+# 幂等：注入内容带 TOOLBOX_API_STUB_MARKER，重复构建不会重复插入。
+# ============================================================
+TOOLBOX_API_STUB_MARKER = '<!-- TOOLBOX-API-STUB -->'
+TOOLBOX_API_STUB = (
+    '<script>window.__tbq=window.__tbq||[];window.ToolBox=window.ToolBox||{};'
+    "['initToolTheme','addToolStyles','showToast','toast','copyText','copyToClipboard',"
+    "'copyFromElement','downloadText','injectPrivacyBadge','toggleFavTool','addToRecentTool',"
+    "'toggleToolTheme','applyTheme'].forEach(function(k){if(typeof window.ToolBox[k]!=='function')"
+    'window.ToolBox[k]=function(){window.__tbq.push([k,[].slice.call(arguments)]);};});</script>'
+    + TOOLBOX_API_STUB_MARKER + '\n'
+)
+
+# ============================================================
 # 多语言（i18n）常量 —— 与 js/i18n.js LANG_REGISTRY 保持一致
 # hreflang 采用构建期常量：每个 locale 对应一个规范 URL（语言由 ?lang 客户端切换，
 # 不做 ?lang 查询态 alternate，避免爬取/索引出现 404）。
@@ -1580,7 +1601,8 @@ h2 { font-size: 1.3rem; margin: 25px 0 15px; padding-bottom: 8px; border-bottom:
 .count { font-size: 12px; color: #6B7280; font-weight: normal; margin-left: 8px; }
 .footer { margin-top: 40px; padding-top: 20px; border-top: 1px solid #E5E7EB; text-align: center; color: #9CA3AF; font-size: 12px; }
 </style>
-<script src="/js/common.js"></script>
+<script>window.__tbq=window.__tbq||[];window.ToolBox=window.ToolBox||{};['initToolTheme','addToolStyles','showToast','toast','copyText','copyToClipboard','copyFromElement','downloadText','injectPrivacyBadge','toggleFavTool','addToRecentTool','toggleToolTheme','applyTheme'].forEach(function(k){if(typeof window.ToolBox[k]!=='function')window.ToolBox[k]=function(){window.__tbq.push([k,[].slice.call(arguments)]);};});</script><!-- TOOLBOX-API-STUB -->
+<script src="/js/common.js" defer></script>
 </head>
 <body>
 <a href="/" class="back">← 返回首页</a>
@@ -2553,7 +2575,8 @@ def generate_category_indexes(tools):
         if '/js/analytics.js' not in ''.join(parts):
             parts.append('<script src="/js/analytics.js" defer></script>\n')
             parts.append(CLARITY_MARKER + '\n')
-        parts.append('<script src="../../js/common.js"></script>\n')
+        parts.append(TOOLBOX_API_STUB)
+        parts.append('<script src="../../js/common.js" defer></script>\n')
         parts.append('<script src="/js/tool-page-runtime.js" defer></script>\n')
         parts.append(TOOL_RUNTIME_MARKER + '\n')
         parts.append('<script src="../../js/i18n.js" defer></script>\n')
