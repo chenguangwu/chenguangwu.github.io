@@ -38,15 +38,12 @@
 .editor-card label .tag{font-size:11px;padding:2px 8px;border-radius:20px;background:rgba(255,107,53,0.08);color:var(--primary);font-weight:600;}
 .editor-card textarea{background:var(--card-bg);min-height:180px;margin-bottom:0;}
 
-.view-tabs{display:flex;gap:4px;margin-bottom:12px;border-bottom:1px solid var(--border);padding-bottom:4px;}
-.view-tabs .tab-btn{padding:8px 16px;font-size:13px;border-radius:8px 8px 0 0;background:transparent;color:var(--text-muted);}
-.view-tabs .tab-btn.active{background:var(--result-bg);color:var(--primary);}
-
 .json-output{
-  background:#1e1e2e;
-  color:#cdd6f4;
+  background:var(--result-bg);
+  color:var(--text);
   border-radius:12px;
   padding:14px;
+  border:1px solid var(--border);
   font-family:'SF Mono','Courier New',monospace;
   font-size:13px;
   line-height:1.7;
@@ -56,22 +53,27 @@
   white-space:pre;
 }
 .json-output.raw{white-space:pre;}
-.tree-view{padding:0;background:transparent;min-height:200px;max-height:500px;}
-.tree-item{padding-left:20px;position:relative;}
-.tree-toggle{position:absolute;left:0;cursor:pointer;user-select:none;width:16px;display:inline-block;color:#89b4fa;}
-.tree-key{color:#89b4fa;}
-.tree-string{color:#a6e3a1;}
-.tree-number{color:#fab387;}
-.tree-boolean{color:#cba6f7;}
-.tree-null{color:#6c7086;font-style:italic;}
-.tree-bracket{color:#f38ba8;}
-.tree-count{color:#6c7086;font-size:12px;margin-left:6px;}
-
-.jh-key{color:#89b4fa;}
-.jh-string{color:#a6e3a1;}
-.jh-number{color:#fab387;}
-.jh-boolean{color:#cba6f7;}
-.jh-null{color:#6c7086;font-style:italic;}
+.json-tree{white-space:normal;padding:12px 10px;}
+.tree-line{display:flex;align-items:center;gap:3px;min-height:28px;padding-left:calc(var(--tree-level) * 20px);white-space:nowrap;}
+.tree-toggle,.tree-spacer{width:18px;flex:0 0 18px;text-align:center;}
+.tree-toggle{border:0;background:transparent;color:#7aa8f8;cursor:pointer;padding:0;font:inherit;line-height:1;}
+.tree-toggle:hover{color:var(--primary);}
+.tree-token{border:0;background:transparent;font:inherit;font-family:inherit;line-height:1.5;padding:1px 3px;border-radius:5px;cursor:copy;white-space:pre-wrap;text-align:left;}
+.tree-token:hover,.tree-token:focus-visible{background:rgba(255,107,53,.10);outline:none;}
+.tree-copy-mark{margin-left:4px;font-family:inherit;font-size:11px;opacity:.45;}
+.tree-token:hover .tree-copy-mark,.tree-token:focus-visible .tree-copy-mark{opacity:1;color:var(--primary);}
+.tree-key{color:#4b83ec;}
+.tree-string{color:#16a06b;}
+.tree-number{color:#dc6d24;}
+.tree-boolean{color:#8b5bd6;}
+.tree-null{color:#7b8798;font-style:italic;}
+.tree-bracket{color:#e35d76;font-weight:600;}
+.tree-count{color:var(--text-muted);font-size:12px;margin-left:4px;}
+.tree-close{color:#e35d76;}
+body.dark .json-tree{background:#1e1e2e;border-color:#34344f;}
+body.dark .tree-key{color:#89b4fa;} body.dark .tree-string{color:#a6e3a1;}
+body.dark .tree-number{color:#fab387;} body.dark .tree-boolean{color:#cba6f7;}
+body.dark .tree-null,.dark .tree-count{color:#a6adc8;} body.dark .tree-bracket,.dark .tree-close{color:#f38ba8;}
 
 .output-meta{display:flex;gap:12px;align-items:center;flex-wrap:wrap;}
 .output-meta .status{font-size:12px;display:inline-flex;align-items:center;gap:4px;}
@@ -87,9 +89,8 @@
   .json-actions .btn-group{width:100%;}
   .json-actions .btn-group .btn{flex:1 1 calc(50% - 2px);min-width:calc(50% - 2px);padding:9px 10px;font-size:12px;justify-content:center;}
   .json-actions label{width:100%;justify-content:space-between;}
-  .view-tabs{overflow-x:auto;-webkit-overflow-scrolling:touch;flex-wrap:nowrap;margin:0 -18px 12px;padding:0 18px 4px;}
-  .view-tabs .tab-btn{flex-shrink:0;white-space:nowrap;}
   .json-output{min-height:160px;font-size:12px;padding:12px;}
+  .tree-line{padding-left:calc(var(--tree-level) * 14px);}
 }
 </style>
 
@@ -676,15 +677,7 @@ body.dark .tb-mobile-drawer-close{background: #252540; color: #94a3b8;}
       </label>
     </div>
 
-    <div class="view-tabs">
-      <button type="button" class="tab-btn active" onclick="switchView('highlight')">🎨 高亮</button>
-      <button type="button" class="tab-btn" onclick="switchView('tree')">🌳 树形</button>
-      <button type="button" class="tab-btn" onclick="switchView('raw')">📝 纯文本</button>
-    </div>
-
-    <div id="viewHighlight" class="json-output">等待输入...</div>
-    <div id="viewTree" class="json-output tree-view" style="display:none;">等待输入...</div>
-    <pre id="viewRaw" class="json-output raw" style="display:none;">等待输入...</pre>
+    <div id="viewJson" class="json-output json-tree" aria-live="polite">等待输入...</div>
 
     <div class="toolbar" style="margin-top:12px;margin-bottom:0;">
       <button type="button" class="btn primary" onclick="copyResult()">📋 复制结果</button>
@@ -741,25 +734,12 @@ body.dark .tb-mobile-drawer-close{background: #252540; color: #94a3b8;}
 </div>
 
 <script>
-let currentView = 'highlight';
 let lastValidJSON = null;
+let treeCopyValues = [];
 
 const input = document.getElementById('input');
-const viewHighlight = document.getElementById('viewHighlight');
-const viewTree = document.getElementById('viewTree');
-const viewRaw = document.getElementById('viewRaw');
+const viewJson = document.getElementById('viewJson');
 const inputTag = document.getElementById('inputTag');
-
-function switchView(view) {
-  currentView = view;
-  document.querySelectorAll('.view-tabs .tab-btn').forEach((t, i) => {
-    t.classList.toggle('active', ['highlight', 'tree', 'raw'][i] === view);
-  });
-  viewHighlight.style.display = view === 'highlight' ? 'block' : 'none';
-  viewTree.style.display = view === 'tree' ? 'block' : 'none';
-  viewRaw.style.display = view === 'raw' ? 'block' : 'none';
-  if (lastValidJSON) renderOutput();
-}
 
 function getIndent() {
   const v = document.getElementById('indent').value;
@@ -798,102 +778,87 @@ function autoValidate() {
 }
 
 function renderEmpty() {
-  viewHighlight.textContent = '等待输入...';
-  viewTree.textContent = '等待输入...';
-  viewRaw.textContent = '等待输入...';
+  treeCopyValues = [];
+  viewJson.textContent = '等待输入...';
   document.getElementById('resultStat').textContent = '';
 }
 
-function highlightJSON(obj) {
-  const jsonStr = JSON.stringify(obj, null, getIndent() || 2);
-  let html = jsonStr
-    .replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?)/g, function(match) {
-      let cls = 'jh-string';
-      if (/:$/.test(match)) cls = 'jh-key';
-      return '<span class="' + cls + '">' + match + '</span>';
-    })
-    .replace(/\b(true|false)\b/g, '<span class="jh-boolean">$1</span>')
-    .replace(/\b(null)\b/g, '<span class="jh-null">$1</span>')
-    .replace(/\b(-?\d+\.?\d*(?:[eE][+-]?\d+)?)\b/g, '<span class="jh-number">$1</span>');
-  return html;
+function storeTreeCopy(value) {
+  treeCopyValues.push(String(value));
+  return treeCopyValues.length - 1;
 }
 
-function renderTree(obj, parentKey = '', level = 0) {
-  const indent = '  '.repeat(level);
-  if (obj === null) return `<div style="padding-left:${level * 20}px;"><span class="tree-null">null</span></div>`;
-  if (Array.isArray(obj)) {
-    const id = 'tree_' + Math.random().toString(36).substr(2, 9);
-    let html = `<div class="tree-item" style="padding-left:${level * 20}px;">`;
-    html += `<span class="tree-toggle" onclick="toggleTree('${id}')">▼</span>`;
-    html += `<span class="tree-bracket">[</span>`;
-    html += `<span class="tree-count">${obj.length} 项</span>`;
-    html += `<div id="${id}">`;
-    obj.forEach((item, i) => {
-      html += renderTree(item, i, level + 1);
-    });
-    html += `</div>`;
-    html += `<div style="padding-left:0;"><span class="tree-bracket">]</span></div>`;
-    html += `</div>`;
-    return html;
-  }
-  if (typeof obj === 'object') {
-    const keys = Object.keys(obj);
-    const id = 'tree_' + Math.random().toString(36).substr(2, 9);
-    let html = `<div class="tree-item" style="padding-left:${level * 20}px;">`;
-    html += `<span class="tree-toggle" onclick="toggleTree('${id}')">▼</span>`;
-    html += `<span class="tree-bracket">{</span>`;
-    html += `<span class="tree-count">${keys.length} 字段</span>`;
-    html += `<div id="${id}">`;
-    for (const key of keys) {
-      const val = obj[key];
-      html += `<div style="padding-left:20px;">`;
-      if (val !== null && typeof val === 'object') {
-        html += `<span class="tree-key">"${key}"</span>: `;
-        html += renderTree(val, key, 0).trim();
-      } else {
-        html += `<span class="tree-key">"${key}"</span>: ${renderValue(val)}`;
-      }
-      html += `</div>`;
-    }
-    html += `</div>`;
-    html += `<div style="padding-left:0;"><span class="tree-bracket">}</span></div>`;
-    html += `</div>`;
-    return html;
-  }
-  return `<div style="padding-left:${level * 20}px;">${renderValue(obj)}</div>`;
+function treeToken(text, cssClass, copyValue, label) {
+  const id = storeTreeCopy(copyValue);
+  return `<button type="button" class="tree-token ${cssClass}" onclick="copyTreePart(${id}, '${label}')" title="点击复制${label}">${text}<span class="tree-copy-mark" aria-hidden="true">⧉</span></button>`;
 }
 
 function renderValue(val) {
-  if (val === null) return '<span class="tree-null">null</span>';
-  if (typeof val === 'string') return `<span class="tree-string">"${escapeHtml(val)}"</span>`;
-  if (typeof val === 'number') return `<span class="tree-number">${val}</span>`;
-  if (typeof val === 'boolean') return `<span class="tree-boolean">${val}</span>`;
-  return escapeHtml(String(val));
+  if (val === null) return treeToken('null', 'tree-null', 'null', '值');
+  if (typeof val === 'string') return treeToken(`&quot;${escapeHtml(val)}&quot;`, 'tree-string', val, '值');
+  if (typeof val === 'number') return treeToken(String(val), 'tree-number', val, '值');
+  if (typeof val === 'boolean') return treeToken(String(val), 'tree-boolean', val, '值');
+  return treeToken(escapeHtml(String(val)), '', String(val), '值');
 }
 
 function escapeHtml(s) {
   return String(s).replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
 }
 
-function toggleTree(id) {
+function toggleTree(id, button) {
   const el = document.getElementById(id);
-  const toggle = el.previousElementSibling;
   if (el.style.display === 'none') {
     el.style.display = 'block';
-    toggle.textContent = '▼';
+    button.textContent = '▼';
   } else {
     el.style.display = 'none';
-    toggle.textContent = '▶';
+    button.textContent = '▶';
   }
+}
+
+function copyTreePart(index, label) {
+  const value = treeCopyValues[index];
+  if (value == null) return;
+  ToolBox.copyText(value);
+  ToolBox.showToast(`已复制${label}`);
+}
+
+function renderTree(value, level = 0, key = null) {
+  const hasKey = key !== null;
+  const prefix = hasKey
+    ? `${treeToken(`&quot;${escapeHtml(key)}&quot;`, 'tree-key', key, '键')}<span>: </span>`
+    : '';
+  const isCollection = value !== null && typeof value === 'object';
+  if (!isCollection) {
+    return `<div class="tree-line" style="--tree-level:${level}"><span class="tree-spacer"></span>${prefix}${renderValue(value)}</div>`;
+  }
+
+  const isArray = Array.isArray(value);
+  const entries = isArray ? value : Object.keys(value);
+  const id = `tree_${Math.random().toString(36).slice(2, 11)}`;
+  const open = isArray ? '[' : '{';
+  const close = isArray ? ']' : '}';
+  const countLabel = `${entries.length} ${isArray ? '项' : '字段'}`;
+  const serialized = JSON.stringify(value, null, getIndent() || 2);
+  let html = `<div class="tree-line" style="--tree-level:${level}">`;
+  html += `<button type="button" class="tree-toggle" onclick="toggleTree('${id}', this)" aria-label="折叠">▼</button>${prefix}`;
+  html += `<span class="tree-bracket">${open}</span><span class="tree-count">${countLabel}</span>`;
+  html += treeToken('复制', 'tree-container-copy', serialized, isArray ? '数组' : '对象');
+  html += `</div><div id="${id}" class="tree-children">`;
+  if (isArray) {
+    value.forEach((item) => { html += renderTree(item, level + 1); });
+  } else {
+    Object.keys(value).forEach((childKey) => { html += renderTree(value[childKey], level + 1, childKey); });
+  }
+  html += `</div><div class="tree-line tree-close" style="--tree-level:${level}"><span class="tree-spacer"></span><span>${close}</span></div>`;
+  return html;
 }
 
 function renderOutput() {
   if (!lastValidJSON) return;
   const ind = getIndent();
-
-  viewHighlight.innerHTML = highlightJSON(lastValidJSON);
-  viewTree.innerHTML = renderTree(lastValidJSON);
-  viewRaw.textContent = JSON.stringify(lastValidJSON, null, ind);
+  treeCopyValues = [];
+  viewJson.innerHTML = renderTree(lastValidJSON);
 
   const size = JSON.stringify(lastValidJSON).length;
   const lines = JSON.stringify(lastValidJSON, null, ind).split('\n').length;
@@ -1033,9 +998,7 @@ function extractJSON() {
 }
 
 function copyResult() {
-  let text = '';
-  if (currentView === 'raw') text = viewRaw.textContent;
-  else if (lastValidJSON) text = JSON.stringify(lastValidJSON, null, getIndent());
+  const text = lastValidJSON ? JSON.stringify(lastValidJSON, null, getIndent()) : '';
   if (!text || text === '等待输入...') { ToolBox.showToast(i18nText('toast.msg474')); return; }
   ToolBox.copyText(text);
 }
