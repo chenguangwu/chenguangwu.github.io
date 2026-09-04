@@ -6,7 +6,7 @@
 
 ## 📋 项目概览
 
-**项目名称**：ToolBox - 6000+ 免费在线工具百科
+**项目名称**：ToolBox - 5000+ 免费在线工具百科
 
 **技术栈**：纯前端 HTML5 + CSS3 变量主题 + 原生 ES6 JavaScript + Python/Node.js 构建脚本
 
@@ -14,7 +14,7 @@
 
 **核心特性**：
 - 响应式设计（桌面 + 移动端底部Tab栏）
-- 6277 工具，256 个子行业目录
+- 5009 个工具，268 个子行业目录（以 `_build.py` 实时统计为准）
 - 纯前端处理，数据不上传
 - 活泼专业的视觉风格
 - AI 工具（浏览器本地推理）、工具链组合、中英双语 i18n、PWA 离线、质量分级
@@ -112,10 +112,10 @@ chenguangwu.github.io/
 ├── json/
 │   ├── tools.json          # 全量工具数据（备用，非首页使用）
 │   ├── search-index.json   # 轻量搜索索引（首次搜索时加载）
-│   ├── industry-*.json     # 按行业拆分数据（256 个，与子行业目录一一对应）
+│   ├── industry-*.json     # 按行业拆分数据（当前 268 个，与子行业目录一一对应）
 │   ├── guides.json         # 工具页 → 使用指南映射（common.js 读取注入「📖 使用指南」）
 │   └── channel.json        # 渠道/分类配置
-├── tools/                  # 工具页面（按 256 个子行业分子目录）
+├── tools/                  # 工具页面（按 268 个子行业分子目录）
 │   ├── it/  finance/  design/  biz/  marketing/  science/  health/
 │   ├── life/  edu/  legal/  fun/  travel/   # ← 原始 12 个一级行业
 │   ├── ai/  encode/  eco/  photo/  statistics/  healthcare/  ...  # ← 其余细分行业
@@ -127,7 +127,6 @@ chenguangwu.github.io/
 │   ├── audit_seo.py        # SEO 审计脚本
 │   └── seo_fix2.py         # SEO 批量修复脚本
 ├── chains.html             # 工具链组合页（B3-05）
-├── embed.html              # 工具嵌入 API 文档
 ├── search.html             # 站内搜索页
 ├── _build.py               # 构建脚本（最重要的脚本，含 SEO/结构化数据/面包屑注入）
 ├── _test_static.py         # 静态测试（标题/元数据/结构合规检查，忽略分类落地页与重定向桩）
@@ -138,7 +137,7 @@ chenguangwu.github.io/
 ├── _gen_blank_tools.py     # 空白行业批量填充生成器（历史）
 ├── _gen_guides.py          # 指南生成器（历史 20 篇，新版在 scripts/gen_guides2.py）
 ├── _add_tools.py           # 批量工具生成脚本（历史）
-├── sitemap.xml             # SEO 站点地图（构建产物，全量 urlset ~6600 URL）
+├── sitemap.xml             # 根站点地图（构建产物，简体 + 台湾繁体，当前约 11045 URL）
 ├── sitemap.html            # 可视化站点地图（构建产物）
 ├── robots.txt              # 爬虫规则
 ├── og-image.png            # 1200×630 社交分享图（全站 og:image 引用，勿删）
@@ -197,10 +196,31 @@ chenguangwu.github.io/
 - 不要手动修改 `index.html` 中的工具列表/统计数据，它们由构建脚本注入
 - **所有公开页面必须引用 `/js/common.js`**（工具页/行业落地页/首页由 `_build.py` 统一注入；guides/静态页等非 `_build.py` 处理的页面须手动保留该引用，遗漏可用 `python3 scripts/inject_common_js.py` 幂等补全）。`js/common.js` 会在加载时兜底补引统一统计入口 `js/analytics.js`，因此「引 common.js」即同时获得公共功能与百度/Clarity/51.la 统计覆盖。**例外：Google 站点验证文件（`google*.html`）不引入任何脚本、保持原样。**
 
+### 4.1 台湾繁体构建产物（重要）
+
+- `zh-tw/` 是 `_build.py` 生成的完整静态站点，不是源代码；权威源仍是简体 HTML、i18n 配置和 OpenCC 覆盖词典。
+- 根 `.gitignore` 必须持续包含 `/zh-tw/`，**禁止** `git add -f zh-tw/`、修改忽略规则或重新提交该目录。
+- 本地调试应保留生成后的 `zh-tw/`，这样 `/zh-tw/` 页面可通过本地 HTTP 服务直接访问；不要把删除它作为日常清理步骤。
+- 首次克隆、目录缺失或源页面更新后，先运行 `python3 _build.py`；完整交付前运行 `python3 scripts/run_gates.py`，两者都会重新生成繁体站点。
+- 根 `sitemap.xml` 根据 `I18N_STATIC_LOCALES` 生成简体和台湾繁体 URL，与本地 `zh-tw/` 是否存在无关。目录缺失时本地 sitemap 中的繁体链接会 404，因此启动调试服务前必须先构建。
+- 构建完成后可用 `git check-ignore -v zh-tw/index.html` 验证忽略规则，并用 `git ls-files 'zh-tw/**'` 确认跟踪数为 0。
+
+### 4.2 GitHub Pages Actions 发布（重要）
+
+- GitHub 仓库 `Settings → Pages → Build and deployment → Source` 必须保持为 **GitHub Actions**，禁止切回 `Deploy from a branch`。
+- `.github/workflows/quality-gates.yml` 是唯一 Pages 发布流程：pull request 只执行门禁，推送到 `master` 才构建、上传 artifact 并部署。
+- Actions 必须先执行 `scripts/run_gates.py` 生成 `zh-tw/` 并通过五项门禁；任何门禁失败都不得上传或发布。
+- 上传前必须移出 `node_modules`，并运行 `scripts/check_pages_artifact.py`；达到 900MiB 安全阈值时应失败，不能绕过检查。
+- `actions/upload-pages-artifact` 必须保留隐藏文件以发布 `.nojekyll`，同时不得把 `.git`、`.github` 或依赖目录打进 Pages artifact。
+- 发布完成后至少验证：简体首页 200、`/zh-tw/` 200、一个繁体工具页 200、根 sitemap 200 且包含繁体 URL。
+
 ### 4.5 索引提交约定（重要）
 - **不要自动执行**索引提交（全量跑约 19 分钟，拖慢会话）
 - 每次 `_build.py` 重建后，**只提醒用户手动运行** `python3 _submit_indexnow.py`
 - 定时任务已由用户终端 crontab 管理：IndexNow 14:00 / Bing 15:00 / GSC Sitemap 15:30 / GSC 收录监控 16:00
+- Bing URL API 必须保持小批量流式提交（当前默认 10 条/批），并按日期在 sitemap 正序/倒序之间轮换；禁止恢复为一次性万条批量提交。
+- Bing 密钥必须通过 `BING_API_KEY` 环境变量注入，**禁止**把密钥写入仓库、日志、命令行参数或 crontab 命令文本。
+- `_submit_bing_url_api.py` 必须先查询当日/月度剩余额度并据此限流；额度查询失败时安全停止，不得盲目继续。
 
 ### 5. 兼容性约束
 - 不要使用过于激进的新特性，确保主流浏览器（Chrome/Safari/Firefox/Edge 最近两个大版本）可用
@@ -234,12 +254,13 @@ chenguangwu.github.io/
 2. 从 `<meta name="toolbox">` 标签提取元数据
 3. 根据文件名和关键词自动分配功能分类（cat）和行业（industry）
 4. 生成 `json/tools.json` 全量数据
-5. 生成 `json/industry-*.json` 按行业拆分数据（256 个）
+5. 生成 `json/industry-*.json` 按行业拆分数据（当前 268 个）
 6. 生成 `json/search-index.json` 轻量搜索索引
 7. 更新 `index.html` 中的统计数据
-8. 生成 `sitemap.xml` 站点地图（**全量 urlset**，含 guides/ 与 chains.html，约 6600 URL）
+8. 生成根 `sitemap.xml`（**全量 urlset**，含简体、台湾繁体、guides/ 与 chains.html，当前约 11045 URL）
 9. **SEO 注入**（`fix_tool_pages_seo`，幂等）：h1、面包屑导航、BreadcrumbList + WebApplication JSON-LD、og:image/twitter:image、相关工具区
-10. **质量分级**（`classify_quality`）：按页面独有脚本量分 A/B/C 三级
+10. 生成 `zh-tw/` 台湾繁体静态站点（本地保留调试、Git 忽略、Actions 发布）
+11. **质量分级**（`classify_quality`）：按页面独有脚本量分 A/B/C 三级
 
 ### 运行方式
 ```bash
@@ -262,9 +283,9 @@ python3 _build.py
 - 如：`bmi-calculator.html`、`json-formatter.html`
 - 放入对应行业子目录：`tools/<industry>/xxx.html`
 
-### 2. 行业分类（200+ 细分行业，256 个子目录）
+### 2. 行业分类（200+ 细分行业，当前 268 个子目录）
 
-> 项目已远超最初 12 个一级行业，现按 **256 个子行业目录** 组织（如 `cardiology`、`metallurgy`、`agriculture`、`automotive` 等）。`industry` 字段取值即目录名，由构建脚本从 `<meta name="toolbox">` 读取，**无需在本文穷举**——新增子行业直接新建目录即可，构建会自动生成对应 `industry-<dir>.json` 与分类落地页 `index.html`。
+> 项目已远超最初 12 个一级行业，现按 **268 个子行业目录** 组织（以 `_build.py` 实时统计为准，如 `cardiology`、`metallurgy`、`agriculture`、`automotive` 等）。`industry` 字段取值即目录名，由构建脚本从 `<meta name="toolbox">` 读取，**无需在本文穷举**——新增子行业直接新建目录即可，构建会自动生成对应 `industry-<dir>.json` 与分类落地页 `index.html`。
 
 **原始 12 个一级行业（仍是最常用的 industry 取值）：**
 
@@ -481,6 +502,8 @@ calc();
 
 ```bash
 cd /Users/cgw/project/cgw/chenguangwu.github.io
+# 首次克隆、zh-tw/ 缺失或源页面更新后先构建
+python3 _build.py
 python3 -m http.server 8765
 ```
 
@@ -503,6 +526,8 @@ python3 -m http.server 8765
 
 因为使用了 `fetch` 加载 JSON，必须通过 HTTP 服务器访问，不能直接双击 HTML。
 
+本地需要验证台湾繁体页面时，先确认 `zh-tw/index.html` 存在；若不存在就运行 `python3 _build.py`。`zh-tw/` 应留在本地用于调试，但始终保持 Git 忽略。
+
 ---
 
 ## 📦 发布流程
@@ -513,6 +538,7 @@ python3 -m http.server 8765
 4. `git commit -m "feat: xxx"` 提交
 5. `git push origin master` 推送到 GitHub
 6. `ToolBox Build and Deploy` 会重新生成 `zh-tw/`、执行门禁并部署 GitHub Pages
+7. 等待 Actions 成功后验证简体首页、繁体首页、繁体工具页和根 sitemap；不要只以 `git push` 成功作为发布完成
 
 ---
 
