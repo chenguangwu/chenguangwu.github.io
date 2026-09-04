@@ -599,6 +599,18 @@ body.dark .tb-mobile-drawer-close{background: #252540; color: #94a3b8;}
         <button type="button" class="btn primary" onclick="convertTimestamp()">🔁 时间戳转日期</button>
         <button type="button" class="btn" onclick="nowTimestamp()">⏰ 填入当前时间戳</button>
       </div>
+      <div class="input-row" style="margin-top:12px;">
+        <div>
+          <label for="timezoneSelect">显示与解析时区</label>
+          <select id="timezoneSelect" onchange="refreshLastResult()">
+            <option value="local">浏览器本地时区</option>
+            <option value="UTC">UTC（+00:00）</option>
+            <option value="480">中国标准时间（UTC+08:00）</option>
+            <option value="540">日本标准时间（UTC+09:00）</option>
+            <option value="-300">北美东部标准时间（UTC-05:00）</option>
+          </select>
+        </div>
+      </div>
     </div>
 
     <div class="tab-content" id="tab-date2ts">
@@ -623,7 +635,7 @@ body.dark .tb-mobile-drawer-close{background: #252540; color: #94a3b8;}
       <div class="data-grid" style="margin:0 0 12px;">
         <div class="data-card">
           <div class="num" id="dateResult">--</div>
-          <div class="label">日期时间</div>
+          <div class="label">所选时区日期时间</div>
         </div>
         <div class="data-card">
           <div class="num" id="msResult">--</div>
@@ -635,11 +647,13 @@ body.dark .tb-mobile-drawer-close{background: #252540; color: #94a3b8;}
         </div>
       </div>
       <p><strong>UTC 时间：</strong><span id="utcResult"></span></p>
+      <p><strong>ISO 8601：</strong><span id="isoResult"></span></p>
       <p><strong>相对时间：</strong><span id="relativeResult"></span></p>
       <div class="toolbar" style="margin-top:12px;margin-bottom:0;">
         <button type="button" class="btn success" onclick="copyResult('msResult')">复制毫秒时间戳</button>
         <button type="button" class="btn" onclick="copyResult('sResult')">复制秒时间戳</button>
         <button type="button" class="btn" onclick="copyResult('dateResult')">复制日期时间</button>
+        <button type="button" class="btn" onclick="copyResult('isoResult')">复制 ISO 8601</button>
       </div>
     </div>
   </div>
@@ -672,6 +686,17 @@ body.dark .tb-mobile-drawer-close{background: #252540; color: #94a3b8;}
         <p class="qvalue" onclick="copyText(this.textContent)">--</p>
       </div>
     </div>
+  </div>
+
+  <div class="card">
+    <h2>📋 批量时间戳转换</h2>
+    <p style="font-size:13px;color:var(--text-muted);margin:0 0 12px;">每行一个秒或毫秒时间戳，自动识别单位；结果仅在当前浏览器内生成。</p>
+    <textarea id="batchInput" placeholder="例如：&#10;1704067200&#10;1704067200000"></textarea>
+    <div class="toolbar" style="margin-top:12px;">
+      <button type="button" class="btn primary" onclick="convertBatch()">转换全部</button>
+      <button type="button" class="btn" onclick="copyBatchResult()">复制结果</button>
+    </div>
+    <pre id="batchResult" class="result-box" style="display:none;white-space:pre-wrap;margin:0;"></pre>
   </div>
 
 <!-- TOOLBOX-DEEP-DIVE -->
@@ -719,14 +744,45 @@ body.dark .tb-mobile-drawer-close{background: #252540; color: #94a3b8;}
 </div>
 
 <script>
+let lastResultDate = null;
+
+function selectedZone() {
+  return document.getElementById('timezoneSelect').value;
+}
+
+function dateInSelectedZone(date) {
+  const zone = selectedZone();
+  if (zone === 'local') return date;
+  const offset = zone === 'UTC' ? 0 : Number(zone);
+  return new Date(date.getTime() + offset * 60000);
+}
+
+function dateParts(date) {
+  const zone = selectedZone();
+  const displayDate = dateInSelectedZone(date);
+  if (zone === 'local') {
+    return [displayDate.getFullYear(), displayDate.getMonth() + 1, displayDate.getDate(), displayDate.getHours(), displayDate.getMinutes(), displayDate.getSeconds(), displayDate.getMilliseconds()];
+  }
+  return [displayDate.getUTCFullYear(), displayDate.getUTCMonth() + 1, displayDate.getUTCDate(), displayDate.getUTCHours(), displayDate.getUTCMinutes(), displayDate.getUTCSeconds(), displayDate.getUTCMilliseconds()];
+}
+
+function formatZoneLabel() {
+  const zone = selectedZone();
+  if (zone === 'local') return '浏览器本地时区';
+  if (zone === 'UTC') return 'UTC+00:00';
+  const offset = Number(zone);
+  const sign = offset >= 0 ? '+' : '-';
+  return `UTC${sign}${String(Math.floor(Math.abs(offset) / 60)).padStart(2, '0')}:${String(Math.abs(offset) % 60).padStart(2, '0')}`;
+}
+
 function formatDate(date) {
-  const y = date.getFullYear();
-  const m = String(date.getMonth() + 1).padStart(2, '0');
-  const d = String(date.getDate()).padStart(2, '0');
-  const h = String(date.getHours()).padStart(2, '0');
-  const min = String(date.getMinutes()).padStart(2, '0');
-  const s = String(date.getSeconds()).padStart(2, '0');
-  const ms = String(date.getMilliseconds()).padStart(3, '0');
+  const [y, month, day, hour, minute, second, millisecond] = dateParts(date);
+  const m = String(month).padStart(2, '0');
+  const d = String(day).padStart(2, '0');
+  const h = String(hour).padStart(2, '0');
+  const min = String(minute).padStart(2, '0');
+  const s = String(second).padStart(2, '0');
+  const ms = String(millisecond).padStart(3, '0');
   return `${y}-${m}-${d} ${h}:${min}:${s}.${ms}`;
 }
 
@@ -781,18 +837,33 @@ function convertDate() {
   const d = document.getElementById('dateInput').value;
   const t = document.getElementById('timeInput').value || '00:00';
   if (!d) { ToolBox.showToast(i18nText(), 'warning'); return; }
-  const date = new Date(d + 'T' + t + ':00+08:00');
+  const [year, month, day] = d.split('-').map(Number);
+  const [hour, minute] = t.split(':').map(Number);
+  const zone = selectedZone();
+  let date;
+  if (zone === 'local') date = new Date(year, month - 1, day, hour, minute, 0);
+  else {
+    const offset = zone === 'UTC' ? 0 : Number(zone);
+    date = new Date(Date.UTC(year, month - 1, day, hour, minute, 0) - offset * 60000);
+  }
   if (isNaN(date.getTime())) { ToolBox.showToast(i18nText('toast.msg412'), 'error'); return; }
   showResult(date);
 }
 
 function showResult(date) {
+  lastResultDate = date;
   document.getElementById('dateResult').textContent = formatDate(date);
   document.getElementById('msResult').textContent = date.getTime();
   document.getElementById('sResult').textContent = Math.floor(date.getTime() / 1000);
   document.getElementById('utcResult').textContent = formatUtc(date);
+  document.getElementById('isoResult').textContent = date.toISOString();
   document.getElementById('relativeResult').textContent = getRelativeTime(date);
+  document.getElementById('dateResult').title = formatZoneLabel();
   document.getElementById('resultBox').style.display = 'block';
+}
+
+function refreshLastResult() {
+  if (lastResultDate) showResult(lastResultDate);
 }
 
 function nowTimestamp() {
@@ -803,8 +874,9 @@ function nowTimestamp() {
 
 function setNowDate() {
   const now = new Date();
-  document.getElementById('dateInput').value = now.toISOString().slice(0, 10);
-  document.getElementById('timeInput').value = String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0');
+  const [year, month, day, hour, minute] = dateParts(now);
+  document.getElementById('dateInput').value = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+  document.getElementById('timeInput').value = String(hour).padStart(2, '0') + ':' + String(minute).padStart(2, '0');
   convertDate();
 }
 
@@ -819,6 +891,27 @@ function copyResult(id) {
 
 function copyText(text) {
   ToolBox.copyText(text, '已复制：' + text);
+}
+
+function convertBatch() {
+  const lines = document.getElementById('batchInput').value.split(/\r?\n/).map(value => value.trim()).filter(Boolean);
+  const result = lines.map(value => {
+    const ms = parseTimestamp(value);
+    const date = new Date(ms);
+    return isNaN(date.getTime()) ? `${value} → 无效时间戳` : `${value} → ${formatDate(date)} (${formatZoneLabel()}) | ${date.toISOString()}`;
+  }).join('\n');
+  const output = document.getElementById('batchResult');
+  output.textContent = result || '请先输入至少一个时间戳';
+  output.style.display = 'block';
+}
+
+function copyBatchResult() {
+  const output = document.getElementById('batchResult');
+  if (output.style.display === 'none' || !output.textContent) {
+    ToolBox.showToast('请先转换批量时间戳', 'warning');
+    return;
+  }
+  ToolBox.copyText(output.textContent, '已复制批量转换结果');
 }
 
 function updateNowCards() {

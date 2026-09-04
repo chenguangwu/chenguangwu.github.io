@@ -608,6 +608,26 @@ body.dark .tb-mobile-drawer-close{background: #252540; color: #94a3b8;}
       <label class="field-label" for="textInput">輸入文本或網址</label>
       <textarea id="textInput" placeholder="输入文本或网址...">https://toolbox.example.com</textarea>
       <div class="row">
+        <label for="contentTemplate">內容模板</label>
+        <select id="contentTemplate" style="flex:1;">
+          <option value="">自定義文本 / URL</option>
+          <option value="https://example.com">網址示例</option>
+          <option value="WIFI:T:WPA;S:MyWiFi;P:password;;">Wi‑Fi（WPA）</option>
+          <option value="BEGIN:VCARD&#10;VERSION:3.0&#10;FN:张三&#10;TEL:13800000000&#10;EMAIL:hello@example.com&#10;END:VCARD">電子名片（vCard）</option>
+          <option value="SMSTO:13800000000:你好，欢迎联系我。">短信</option>
+        </select>
+        <button type="button" class="btn" style="padding:8px 12px;" onclick="applyTemplate()">填入</button>
+      </div>
+      <div class="row">
+        <label for="errorLevel">糾錯等級</label>
+        <select id="errorLevel" style="flex:1;">
+          <option value="L">L（約 7%，內容優先）</option>
+          <option value="M" selected>M（約 15%，推薦）</option>
+          <option value="Q">Q（約 25%，適合印刷）</option>
+          <option value="H">H（約 30%，適合小面積遮擋）</option>
+        </select>
+      </div>
+      <div class="row">
         <label>尺寸</label>
         <input type="range" id="size" min="128" max="512" step="16" value="256">
         <span class="val" id="sizeVal">256px</span>
@@ -623,13 +643,17 @@ body.dark .tb-mobile-drawer-close{background: #252540; color: #94a3b8;}
         <span style="font-size:13px;color:#666;" id="bgVal">#ffffff</span>
       </div>
       <button type="button" class="btn" onclick="generate()">生 成</button>
-      <p class="tip">Generate QR codes for links, text, Wi-Fi, contacts, and more in-browser.</p>
+      <p class="tip">支持網址、文本、Wi‑Fi、名片和短信；二維碼內容始終留在瀏覽器本地。</p>
     </div>
 
     <div class="card qr-panel qr-preview">
       <h3>🔍 預覽與下載</h3>
       <div id="qrcode"><p style="color:#999;">輸入內容後自動生成</p></div>
-      <button type="button" class="btn" style="margin-top:16px;" onclick="downloadQR()">下載 PNG</button>
+      <div class="toolbar" style="margin-top:16px;margin-bottom:0;justify-content:center;">
+        <button type="button" class="btn" onclick="downloadQR()">下載 PNG</button>
+        <button type="button" class="btn" onclick="downloadSVG()">下載 SVG</button>
+        <button type="button" class="btn" onclick="copyQRContent()">複製內容</button>
+      </div>
     </div>
   </div>
 
@@ -686,25 +710,35 @@ var fgColor = document.getElementById('fgColor');
 var bgColor = document.getElementById('bgColor');
 var fgVal = document.getElementById('fgVal');
 var bgVal = document.getElementById('bgVal');
+var errorLevel = document.getElementById('errorLevel');
+var lastQr = null;
 
 sizeEl.addEventListener('input', function() { sizeVal.textContent = sizeEl.value + 'px'; generate(); });
 fgColor.addEventListener('input', function() { fgVal.textContent = fgColor.value; generate(); });
 bgColor.addEventListener('input', function() { bgVal.textContent = bgColor.value; generate(); });
+errorLevel.addEventListener('change', generate);
 textInput.addEventListener('input', debounce(generate, 500));
+
+function applyTemplate() {
+  var value = document.getElementById('contentTemplate').value;
+  if (!value) return;
+  textInput.value = value;
+  generate();
+}
 
 function generate() {
   var container = document.getElementById('qrcode');
   var text = textInput.value.trim();
 
   if (!text) {
+    lastQr = null;
     container.innerHTML = '<p style="color:#999;">输入内容后自动生成二维码</p>';
     return;
   }
 
   try {
-    // 使用 qrcode-generator 库生成
-    // typeNumber=0 自动选择版本，errorCorrectionLevel='M'
-    var qr = qrcode(0, 'M');
+    // 使用 qrcode-generator 库生成；typeNumber=0 自动选择版本。
+    var qr = qrcode(0, errorLevel.value);
     qr.addData(text);
     qr.make();
 
@@ -740,10 +774,40 @@ function generate() {
 
     container.innerHTML = '';
     container.appendChild(canvas);
+    lastQr = qr;
   } catch (e) {
+    lastQr = null;
     container.innerHTML = '<p class="err">生成出错：' + e.message + '</p>';
     console.error(e);
   }
+}
+
+function copyQRContent() {
+  var text = textInput.value.trim();
+  if (!text) { ToolBox.showToast('请先输入二维码内容', 'warning'); return; }
+  ToolBox.copyText(text, '已复制二维码内容');
+}
+
+function downloadSVG() {
+  if (!lastQr) { ToolBox.showToast('请先生成二维码', 'warning'); return; }
+  var moduleCount = lastQr.getModuleCount();
+  var pixelSize = parseInt(sizeEl.value);
+  var margin = 4;
+  var cellSize = pixelSize / (moduleCount + margin * 2);
+  var paths = [];
+  for (var row = 0; row < moduleCount; row++) {
+    for (var col = 0; col < moduleCount; col++) {
+      if (lastQr.isDark(row, col)) paths.push('M' + ((col + margin) * cellSize) + ' ' + ((row + margin) * cellSize) + 'h' + cellSize + 'v' + cellSize + 'h-' + cellSize + 'z');
+    }
+  }
+  var svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ' + pixelSize + ' ' + pixelSize + '" role="img" aria-label="QR code"><rect width="100%" height="100%" fill="' + bgColor.value + '"/><path d="' + paths.join('') + '" fill="' + fgColor.value + '"/></svg>';
+  var blob = new Blob([svg], { type: 'image/svg+xml;charset=utf-8' });
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a');
+  a.download = 'qrcode-' + Date.now() + '.svg';
+  a.href = url;
+  a.click();
+  setTimeout(function() { URL.revokeObjectURL(url); }, 1000);
 }
 
 function downloadQR() {

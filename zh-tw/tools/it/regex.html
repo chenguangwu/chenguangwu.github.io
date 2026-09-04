@@ -588,9 +588,9 @@ body.dark .tb-mobile-drawer-close{background: #252540; color: #94a3b8;}
     </div>
 
     <div class="tabs">
-      <div class="tab active" onclick="switchTab('match')">🎯 匹配測試</div>
-      <div class="tab" onclick="switchTab('replace')">🔄 替換功能</div>
-      <div class="tab" onclick="switchTab('presets')">📚 常用正則</div>
+      <div class="tab active" onclick="switchTab('match', this)">🎯 匹配測試</div>
+      <div class="tab" onclick="switchTab('replace', this)">🔄 替換功能</div>
+      <div class="tab" onclick="switchTab('presets', this)">📚 常用正則</div>
     </div>
 
     <div id="tab-match" class="tab-content active">
@@ -612,8 +612,11 @@ IP: 192.168.1.1, 10.0.0.255
         <button type="button" class="btn primary" onclick="testRegex()">執行匹配</button>
         <button type="button" class="btn" onclick="copyMatches()">複製匹配結果</button>
         <button type="button" class="btn" onclick="copyPattern()">複製正則</button>
+        <button type="button" class="btn" onclick="copyShareLink()">複製分享連結</button>
         <button type="button" class="btn danger" onclick="clearAll()">清空</button>
       </div>
+
+      <p style="font-size:12px;color:var(--text-muted);margin:-2px 0 12px;">使用瀏覽器 JavaScript 正則引擎；結果與前端 <code>RegExp</code> 行為一致。</p>
 
       <label>匹配結果</label>
       <div id="matchResult" style="font-size:13px;color:var(--text-muted);">輸入正則後將自動匹配...</div>
@@ -824,10 +827,10 @@ function onFlagsChange() {
   doReplace();
 }
 
-function switchTab(name) {
+function switchTab(name, trigger) {
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
   document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
-  event.target.classList.add('active');
+  if (trigger) trigger.classList.add('active');
   document.getElementById('tab-' + name).classList.add('active');
   if (name === 'replace') doReplace();
 }
@@ -882,6 +885,7 @@ function testRegex(){
 
     let html = `<p style="margin-bottom:8px;">✅ 共匹配 <strong style="color:var(--primary);">${matches.length}</strong> 处</p>`;
     matches.slice(0, 100).forEach((m, i) => {
+      const location = getLineColumn(text, m.index);
       html += `<div class="match-item"><span class="group">#${i+1}</span> <mark>${escapeHtml(m[0])}</mark>`;
       if(m.length > 1){
         html += '<br><span style="color:var(--text-muted);font-size:11px;">分组: </span>';
@@ -889,7 +893,13 @@ function testRegex(){
           html += `<span class="group">[${j}]</span>${escapeHtml(m[j] || '(空)')} `;
         }
       }
-      html += `<span style="color:var(--text-muted);font-size:11px;margin-left:8px;">位置: ${m.index}</span></div>`;
+      if (m.groups && Object.keys(m.groups).length) {
+        html += '<br><span style="color:var(--text-muted);font-size:11px;">命名分组: </span>';
+        Object.entries(m.groups).forEach(([name, value]) => {
+          html += `<span class="group">${escapeHtml(name)}</span>${escapeHtml(value || '(空)')} `;
+        });
+      }
+      html += `<span style="color:var(--text-muted);font-size:11px;margin-left:8px;">位置: ${m.index}（第 ${location.line} 行，第 ${location.column} 列）</span></div>`;
     });
     if (matches.length > 100) {
       html += `<p style="text-align:center;color:var(--text-muted);font-size:12px;margin-top:8px;">仅显示前 100 条结果，共 ${matches.length} 条</p>`;
@@ -935,17 +945,10 @@ function doReplace() {
 
   try {
     const regex = new RegExp(pattern, flags.includes('g') ? flags : flags + 'g');
-    let count = 0;
-    const result = text.replace(regex, function() {
-      count++;
-      return replaceWith.replace(/\$(\d+|&|`|')/g, function(match, p1) {
-        if (p1 === '&') return arguments[0];
-        if (p1 === '`') return arguments[arguments.length - 2].substring(0, arguments[arguments.length - 1]);
-        if (p1 === "'") return arguments[arguments.length - 2].substring(arguments[arguments.length - 1] + arguments[0].length);
-        const idx = parseInt(p1);
-        return arguments[idx] || '';
-      });
-    });
+    const matches = text.match(regex) || [];
+    const count = matches.length;
+    // 使用原生 replace，完整支持 $&, $1…$99、$`、$' 和 $<name> 命名分组引用。
+    const result = text.replace(regex, replaceWith);
 
     countEl.textContent = count;
     newLenEl.textContent = result.length;
@@ -960,6 +963,12 @@ function doReplace() {
 function escapeHtml(s){
   if (s == null) return '';
   return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function getLineColumn(text, index){
+  const before = text.slice(0, index);
+  const lines = before.split('\n');
+  return { line: lines.length, column: lines[lines.length - 1].length + 1 };
 }
 
 function copyMatches(){
@@ -982,6 +991,30 @@ function copyPattern() {
   const pattern = document.getElementById('pattern').value;
   const flags = document.getElementById('flags').value;
   ToolBox.copyText('/' + pattern + '/' + flags);
+}
+
+function copyShareLink() {
+  const payload = {
+    p: document.getElementById('pattern').value,
+    f: document.getElementById('flags').value,
+    t: document.getElementById('testText').value
+  };
+  const encoded = btoa(unescape(encodeURIComponent(JSON.stringify(payload))));
+  const url = location.href.split('#')[0] + '#regex=' + encoded;
+  ToolBox.copyText(url, '已复制分享链接');
+}
+
+function restoreSharedRegex() {
+  const encoded = new URLSearchParams(location.hash.slice(1)).get('regex');
+  if (!encoded) return;
+  try {
+    const payload = JSON.parse(decodeURIComponent(escape(atob(encoded))));
+    if (typeof payload.p === 'string') document.getElementById('pattern').value = payload.p;
+    if (typeof payload.f === 'string') document.getElementById('flags').value = payload.f;
+    if (typeof payload.t === 'string') document.getElementById('testText').value = payload.t;
+  } catch (error) {
+    // 无效片段仅忽略，避免阻碍本地编辑。
+  }
 }
 
 function copyReplaceResult() {
@@ -1008,6 +1041,7 @@ function clearAll(){
   document.getElementById('execTime').textContent = '0';
 }
 
+restoreSharedRegex();
 initPresets();
 syncFlagButtons();
 testRegex();

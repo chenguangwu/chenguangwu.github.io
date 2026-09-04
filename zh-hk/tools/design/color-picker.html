@@ -42,6 +42,18 @@
 .format-row .label{min-width:70px;font-size:12px;color:var(--text-muted);font-weight:600;}
 .format-row .value{flex:1;font-family:'SF Mono','Courier New','Fira Code',monospace;font-size:13px;color:var(--primary);word-break:break-all;}
 .format-row .copy{padding:4px 10px;font-size:11px;}
+.channel-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px;}
+.channel-grid label{display:block;margin-bottom:5px;font-size:12px;color:var(--text-muted);font-weight:600;}
+.channel-grid input{width:100%;}
+.picker-actions{display:flex;gap:8px;align-items:center;margin-top:12px;flex-wrap:wrap;}
+.native-color{width:42px;height:38px;padding:2px;border:1px solid var(--border);border-radius:9px;background:var(--card-bg);cursor:pointer;}
+.harmony-list{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px;margin-top:12px;}
+.harmony-color{min-height:72px;border:1px solid var(--border);border-radius:10px;cursor:pointer;padding:8px;display:flex;align-items:flex-end;justify-content:center;font-family:'SF Mono','Courier New',monospace;font-size:11px;font-weight:600;text-shadow:0 1px 2px rgba(0,0,0,.45);transition:transform .15s,box-shadow .15s;}
+.harmony-color:hover{transform:translateY(-2px);box-shadow:var(--shadow);}
+.contrast-grid{display:grid;grid-template-columns:1fr auto 1fr;gap:10px;align-items:end;margin-top:12px;}
+.contrast-swatch{height:42px;border:1px solid var(--border);border-radius:10px;cursor:pointer;padding:0 10px;font-family:'SF Mono','Courier New',monospace;font-size:12px;}
+.contrast-score{min-width:92px;text-align:center;font-weight:700;color:var(--primary);padding-bottom:10px;}
+.contrast-result{margin-top:10px;font-size:13px;color:var(--text-secondary);}
 .history-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(36px,1fr));gap:8px;margin-top:12px;}
 .history-color{width:36px;height:36px;border-radius:8px;cursor:pointer;border:2px solid var(--card-bg);box-shadow:0 0 0 1px var(--border);transition:transform 0.15s;}
 .history-color:hover{transform:scale(1.1);}
@@ -54,6 +66,8 @@
 @media(max-width:600px){
   .picker-area{grid-template-columns:1fr;}
   .preview-big{height:120px;font-size:14px;}
+  .contrast-grid{grid-template-columns:1fr 1fr;}
+  .contrast-score{grid-column:1/-1;grid-row:2;padding-bottom:0;}
 }
 </style>
 <script>window.__tbq=window.__tbq||[];window.ToolBox=window.ToolBox||{};['initToolTheme','addToolStyles','showToast','toast','copyText','copyToClipboard','copyFromElement','downloadText','injectPrivacyBadge','toggleFavTool','addToRecentTool','toggleToolTheme','applyTheme'].forEach(function(k){if(typeof window.ToolBox[k]!=='function')window.ToolBox[k]=function(){window.__tbq.push([k,[].slice.call(arguments)]);};});</script><!-- TOOLBOX-API-STUB -->
@@ -586,7 +600,7 @@ body.dark .tb-mobile-drawer-close{background: #252540; color: #94a3b8;}
 
       <div>
         <div class="color-preview">
-          <div class="preview-big" id="previewBig" style="background:#667eea;">#667EEA</div>
+          <div class="preview-big" id="previewBig" style="background:#4151e1;">#4151E1</div>
           <div class="preview-info">
             <span id="previewName">主色</span>
             <button type="button" class="eyedropper-btn" id="eyedropperBtn" onclick="useEyeDropper()">🎯 屏幕取色</button>
@@ -596,7 +610,7 @@ body.dark .tb-mobile-drawer-close{background: #252540; color: #94a3b8;}
         <div class="input-row" style="margin-top:12px;">
           <div>
             <label>HEX</label>
-            <input type="text" id="hexInput" value="#667eea" oninput="onHexInput()">
+            <input type="text" id="hexInput" value="#4151e1" inputmode="text" autocomplete="off" spellcheck="false" oninput="onHexInput()" aria-label="HEX 顏色值">
           </div>
           <div>
             <label>H</label>
@@ -612,6 +626,25 @@ body.dark .tb-mobile-drawer-close{background: #252540; color: #94a3b8;}
             <label>L (%)</label>
             <input type="number" id="lInput" value="57" min="0" max="100" oninput="onHslInput()">
           </div>
+        </div>
+        <div class="channel-grid" aria-label="RGB 顏色輸入">
+          <div>
+            <label for="rInput">R 紅</label>
+            <input type="number" id="rInput" value="65" min="0" max="255" inputmode="numeric" oninput="onRgbInput()">
+          </div>
+          <div>
+            <label for="gInput">G 綠</label>
+            <input type="number" id="gInput" value="81" min="0" max="255" inputmode="numeric" oninput="onRgbInput()">
+          </div>
+          <div>
+            <label for="bInput">B 藍</label>
+            <input type="number" id="bInput" value="225" min="0" max="255" inputmode="numeric" oninput="onRgbInput()">
+          </div>
+        </div>
+        <div class="picker-actions">
+          <label for="nativeColor" style="font-size:12px;color:var(--text-muted);font-weight:600;">快速選色</label>
+          <input class="native-color" type="color" id="nativeColor" value="#4151e1" oninput="onNativeColorInput()" aria-label="快速選擇顏色">
+          <span style="font-size:12px;color:var(--text-muted);">RGB、HEX、HSL 均可直接輸入</span>
         </div>
       </div>
     </div>
@@ -640,6 +673,34 @@ body.dark .tb-mobile-drawer-close{background: #252540; color: #94a3b8;}
     <div id="analysis"></div>
   </div>
 
+  <div class="card">
+    <h2>🎨 配色建議</h2>
+    <p style="font-size:13px;color:var(--text-muted);margin:0;">基於當前顏色生成互補、相鄰與三角色，點擊色塊即可繼續編輯。</p>
+    <div class="toolbar" style="margin-top:12px;margin-bottom:0;">
+      <button type="button" class="btn primary" onclick="setHarmonyMode('analogous')">相鄰色</button>
+      <button type="button" class="btn" onclick="setHarmonyMode('complementary')">互補色</button>
+      <button type="button" class="btn" onclick="setHarmonyMode('triadic')">三角色</button>
+    </div>
+    <div class="harmony-list" id="harmonyList"></div>
+  </div>
+
+  <div class="card">
+    <h2>♿ 文字可讀性（WCAG）</h2>
+    <p style="font-size:13px;color:var(--text-muted);margin:0;">以當前顏色和背景色計算對比度；可調整背景色以檢查實際界面。</p>
+    <div class="contrast-grid">
+      <div>
+        <label for="contrastForeground" style="display:block;margin-bottom:5px;font-size:12px;color:var(--text-muted);font-weight:600;">當前顏色</label>
+        <button type="button" class="contrast-swatch" id="contrastForeground" onclick="copyContrastColor()"></button>
+      </div>
+      <div class="contrast-score" id="contrastScore"></div>
+      <div>
+        <label for="contrastBackground" style="display:block;margin-bottom:5px;font-size:12px;color:var(--text-muted);font-weight:600;">背景色</label>
+        <input type="color" class="contrast-swatch" id="contrastBackground" value="#ffffff" oninput="update()" aria-label="選擇對比背景色">
+      </div>
+    </div>
+    <div class="contrast-result" id="contrastResult"></div>
+  </div>
+
   <div class="tool-notes" style="--tool-accent:#7C3AED;">
     <div class="tool-notes-title">⚠️ 使用説明與注意事項</div>
     <ul>
@@ -653,6 +714,7 @@ body.dark .tb-mobile-drawer-close{background: #252540; color: #94a3b8;}
 <script>
 let state = {h: 234, s: 73, l: 57, a: 1};
 let history = JSON.parse(localStorage.getItem('colorHistory') || '[]');
+let harmonyMode = 'analogous';
 
 const PRESETS = [
   {name:'Red', hex:'#f44336'}, {name:'Pink', hex:'#e91e63'}, {name:'Purple', hex:'#9c27b0'},
@@ -690,7 +752,7 @@ function hslToRgb(h, s, l){
   return [Math.round(r*255), Math.round(g*255), Math.round(b*255)];
 }
 
-function rgbToHsl(r, g, b){
+function rgbToHsl(r, g, b, precise = false){
   r /= 255; g /= 255; b /= 255;
   const max = Math.max(r,g,b), min = Math.min(r,g,b);
   let h, s, l = (max + min) / 2;
@@ -706,7 +768,7 @@ function rgbToHsl(r, g, b){
     }
     h /= 6;
   }
-  return [Math.round(h*360), Math.round(s*100), Math.round(l*100)];
+  return precise ? [h * 360, s * 100, l * 100] : [Math.round(h*360), Math.round(s*100), Math.round(l*100)];
 }
 
 function rgbToHex(r, g, b){
@@ -789,13 +851,17 @@ function update(){
 
   // 输入框
   if(document.activeElement?.id !== 'hexInput') document.getElementById('hexInput').value = hex;
-  if(document.activeElement?.id !== 'hInput') document.getElementById('hInput').value = state.h;
-  if(document.activeElement?.id !== 'sInput') document.getElementById('sInput').value = state.s;
-  if(document.activeElement?.id !== 'lInput') document.getElementById('lInput').value = state.l;
+  if(document.activeElement?.id !== 'hInput') document.getElementById('hInput').value = Math.round(state.h);
+  if(document.activeElement?.id !== 'sInput') document.getElementById('sInput').value = Math.round(state.s);
+  if(document.activeElement?.id !== 'lInput') document.getElementById('lInput').value = Math.round(state.l);
+  if(document.activeElement?.id !== 'rInput') document.getElementById('rInput').value = r;
+  if(document.activeElement?.id !== 'gInput') document.getElementById('gInput').value = g;
+  if(document.activeElement?.id !== 'bInput') document.getElementById('bInput').value = b;
+  if(document.activeElement?.id !== 'nativeColor') document.getElementById('nativeColor').value = hex;
 
   // 指针
-  document.getElementById('svPointer').style.left = state.s + '%';
-  document.getElementById('svPointer').style.top = (100 - state.l * 2) + '%';
+  document.getElementById('svPointer').style.left = s + '%';
+  document.getElementById('svPointer').style.top = (100 - v) + '%';
   document.getElementById('huePointer').style.left = (state.h / 360 * 100) + '%';
   document.getElementById('alphaPointer').style.left = (state.a * 100) + '%';
   document.getElementById('alphaSlider').style.color = hex;
@@ -805,8 +871,8 @@ function update(){
     {label:'HEX', value: hex.toUpperCase()},
     {label:'RGB', value: `rgb(${r}, ${g}, ${b})`},
     {label:'RGBA', value: `rgba(${r}, ${g}, ${b}, ${state.a.toFixed(2)})`},
-    {label:'HSL', value: `hsl(${state.h}, ${state.s}%, ${state.l}%)`},
-    {label:'HSLA', value: `hsla(${state.h}, ${state.s}%, ${state.l}%, ${state.a.toFixed(2)})`},
+    {label:'HSL', value: `hsl(${Math.round(state.h)}, ${Math.round(state.s)}%, ${Math.round(state.l)}%)`},
+    {label:'HSLA', value: `hsla(${Math.round(state.h)}, ${Math.round(state.s)}%, ${Math.round(state.l)}%, ${state.a.toFixed(2)})`},
     {label:'HSV', value: `hsv(${h}, ${s}%, ${v}%)`},
     {label:'CMYK', value: rgbToCmyk(r, g, b)},
     {label:'CSS Var', value: `--color: ${hex};`},
@@ -832,6 +898,9 @@ function update(){
     </div>
   `;
 
+  renderHarmony();
+  renderContrast(r, g, b, hex);
+
   renderHistory();
 }
 
@@ -849,16 +918,40 @@ function onHexInput(){
   const hex = document.getElementById('hexInput').value;
   const rgb = hexToRgb(hex);
   if(rgb){
-    const [h, s, l] = rgbToHsl(...rgb);
+    const [h, s, l] = rgbToHsl(...rgb, true);
     state.h = h; state.s = s; state.l = l;
     update();
   }
 }
 
 function onHslInput(){
-  state.h = parseInt(document.getElementById('hInput').value) || 0;
-  state.s = parseInt(document.getElementById('sInput').value) || 0;
-  state.l = parseInt(document.getElementById('lInput').value) || 0;
+  state.h = clampInput('hInput', 0, 360);
+  state.s = clampInput('sInput', 0, 100);
+  state.l = clampInput('lInput', 0, 100);
+  update();
+}
+
+function clampInput(id, min, max){
+  const value = Number(document.getElementById(id).value);
+  return Number.isFinite(value) ? Math.min(max, Math.max(min, Math.round(value))) : min;
+}
+
+function onRgbInput(){
+  const rgb = ['rInput', 'gInput', 'bInput'].map(id => clampInput(id, 0, 255));
+  const [h, s, l] = rgbToHsl(...rgb, true);
+  state.h = h;
+  state.s = s;
+  state.l = l;
+  update();
+}
+
+function onNativeColorInput(){
+  const rgb = hexToRgb(document.getElementById('nativeColor').value);
+  if(!rgb) return;
+  const [h, s, l] = rgbToHsl(...rgb, true);
+  state.h = h;
+  state.s = s;
+  state.l = l;
   update();
 }
 
@@ -978,6 +1071,50 @@ function copyText(btn, text){
 function copyAll(){
   const text = Array.from(document.querySelectorAll('.format-row .value')).map(v => v.textContent).join('\n');
   ToolBox.copyText(text, i18nText('msg265'));
+}
+
+function hueToHex(hue){
+  return rgbToHex(...hslToRgb((hue + 360) % 360, state.s, state.l));
+}
+
+function setHarmonyMode(mode){
+  harmonyMode = mode;
+  renderHarmony();
+}
+
+function renderHarmony(){
+  const offsets = harmonyMode === 'complementary'
+    ? [-30, -15, 0, 165, 180]
+    : harmonyMode === 'triadic'
+      ? [-15, 0, 15, 120, 240]
+      : [-60, -30, 0, 30, 60];
+  const list = document.getElementById('harmonyList');
+  list.innerHTML = offsets.map(offset => {
+    const hex = hueToHex(state.h + offset);
+    const [r, g, b] = hexToRgb(hex);
+    const light = getLuminance(r, g, b) > 0.5;
+    return `<button type="button" class="harmony-color" style="background:${hex};color:${light ? '#111' : '#fff'};" title="使用 ${hex.toUpperCase()}" onclick="loadHistoryColor('${hex}')">${hex.toUpperCase()}</button>`;
+  }).join('');
+}
+
+function renderContrast(r, g, b, hex){
+  const bgHex = document.getElementById('contrastBackground').value;
+  const [br, bg, bb] = hexToRgb(bgHex);
+  const foregroundLum = getLuminance(r, g, b);
+  const backgroundLum = getLuminance(br, bg, bb);
+  const ratio = (Math.max(foregroundLum, backgroundLum) + .05) / (Math.min(foregroundLum, backgroundLum) + .05);
+  const normal = ratio >= 4.5 ? '通过 AA 正常文字' : '未通过 AA 正常文字';
+  const large = ratio >= 3 ? '通过 AA 大号文字' : '未通过 AA 大号文字';
+  const foreground = document.getElementById('contrastForeground');
+  foreground.style.background = hex;
+  foreground.style.color = foregroundLum > .5 ? '#000' : '#fff';
+  foreground.textContent = hex.toUpperCase();
+  document.getElementById('contrastScore').textContent = `${ratio.toFixed(2)}:1`;
+  document.getElementById('contrastResult').textContent = `${normal}；${large}。`;
+}
+
+function copyContrastColor(){
+  ToolBox.copyText(document.getElementById('hexInput').value.toUpperCase(), '已复制当前颜色');
 }
 
 // 渲染预设
