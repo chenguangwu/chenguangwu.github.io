@@ -8,7 +8,7 @@
 - 无账号、无后端业务接口，工具数据默认只在当前浏览器处理。
 - 支持中英文界面、拼音搜索、模糊搜索、收藏、最近使用和深浅主题。
 - 支持移动端布局、PWA 离线缓存和本地隐私管理。
-- GitHub Pages 静态托管，构建产物直接发布。
+- GitHub Actions 构建并通过 GitHub Pages 发布静态产物。
 
 ## 实时统计
 
@@ -51,6 +51,9 @@ python3 scripts/run_gates.py
 - `node scripts/verify_calc.js`：执行计算工具回归用例。
 
 GitHub Actions 会在 pull request 和推送到 `master` 时自动执行同一套门禁。
+`master` 门禁通过后，Actions 会上传完整静态 artifact 并部署到 GitHub Pages。
+`zh-tw/` 为构建期生成目录，不再提交到源码仓库。
+发布前会运行 `scripts/check_pages_artifact.py`，产物达到 900MiB 安全阈值时停止部署。
 
 ## 目录说明
 
@@ -82,8 +85,8 @@ GitHub Actions 会在 pull request 和推送到 `master` 时自动执行同一�
 
 1. 在本地 HTTP 服务中验证首页、搜索、工具页和移动端布局。
 2. 运行 `python3 scripts/run_gates.py`，确保五项门禁全部通过。
-3. 提交源文件和由构建产生的必要产物。
-4. 推送到 `master`，等待 GitHub Actions 和 GitHub Pages 完成部署。
+3. 提交源文件和需要版本化的构建产物；不提交 `zh-tw/`。
+4. 推送到 `master`，等待 `ToolBox Build and Deploy` 完成门禁、artifact 上传和 Pages 部署。
 5. 索引提交由用户侧定时任务管理；不要在普通开发会话自动运行 `_submit_*` 脚本。
 
 ## 相关文档

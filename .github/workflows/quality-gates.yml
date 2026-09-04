@@ -1,10 +1,11 @@
-name: ToolBox Quality Gates
+name: ToolBox Build and Deploy
 
 on:
   pull_request:
   push:
     branches:
       - master
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -14,27 +15,67 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  quality:
+  build:
     name: Build and test
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    permissions:
+      contents: read
+      pages: read
 
     steps:
       - name: Check out repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: "3.x"
 
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: "lts/*"
+          package-manager-cache: false
 
       - name: Install Node dependencies
         run: npm ci --ignore-scripts --no-audit
 
       - name: Run ToolBox quality gates
         run: python3 scripts/run_gates.py
+
+      - name: Configure GitHub Pages
+        if: github.event_name != 'pull_request'
+        uses: actions/configure-pages@v5
+
+      - name: Exclude build dependencies from Pages artifact
+        if: github.event_name != 'pull_request'
+        run: mv node_modules "$RUNNER_TEMP/toolbox-node_modules"
+
+      - name: Check GitHub Pages artifact size
+        if: github.event_name != 'pull_request'
+        run: python3 scripts/check_pages_artifact.py
+
+      - name: Upload GitHub Pages artifact
+        if: github.event_name != 'pull_request'
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: .
+          include-hidden-files: true
+
+  deploy:
+    name: Deploy GitHub Pages
+    if: github.event_name != 'pull_request'
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

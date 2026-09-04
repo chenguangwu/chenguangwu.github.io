@@ -10,7 +10,7 @@
 
 **技术栈**：纯前端 HTML5 + CSS3 变量主题 + 原生 ES6 JavaScript + Python/Node.js 构建脚本
 
-**部署方式**：GitHub Pages 静态托管（Deploy from a branch，`.nojekyll` 强制纯静态直发）
+**部署方式**：GitHub Actions 构建后上传静态 artifact，由 GitHub Pages 发布（`.nojekyll` 强制纯静态直发）
 
 **核心特性**：
 - 响应式设计（桌面 + 移动端底部Tab栏）
@@ -508,11 +508,11 @@ python3 -m http.server 8765
 ## 📦 发布流程
 
 1. 本地开发和测试完成
-2. 运行 `python3 _build.py` 确保索引最新
-3. `git add -A` 暂存所有改动
+2. 运行 `python3 scripts/run_gates.py` 确保五项门禁全部通过
+3. `git add -A` 暂存所有改动（`zh-tw/` 由 Actions 构建，已忽略）
 4. `git commit -m "feat: xxx"` 提交
 5. `git push origin master` 推送到 GitHub
-6. GitHub Pages 会自动部署，几分钟后生效
+6. `ToolBox Build and Deploy` 会重新生成 `zh-tw/`、执行门禁并部署 GitHub Pages
 
 ---
 

@@ -105,7 +105,7 @@
 - `<link rel="canonical">` **保持**指向页面原生裸 URL（标准做法，不随语言变 `?lang`）。
 - 全站只生成根 `sitemap.xml`，不再生成各行业重复 sitemap。
 
-**索引性保障**：GitHub Pages 直接响应繁体正文与完整 SEO head，不依赖爬虫执行应用脚本。生成器只复制 HTML 与 JSON；CSS、JS、字体、图片保持根路径共享，避免重复公共资产。OpenCC 仅用于构建期通用转换；品牌、术语等需要精校时在 `twp` 覆盖层处理，不修改 `zh-CN` 源文。
+**索引性保障**：GitHub Actions 在发布前生成 `zh-tw/`，GitHub Pages 直接响应繁体正文与完整 SEO head，不依赖爬虫执行应用脚本。`zh-tw/` 是可再生的 artifact，不进入 Git 源码树。生成器只复制 HTML 与 JSON；CSS、JS、字体、图片保持根路径共享，避免重复公共资产。OpenCC 仅用于构建期通用转换；品牌、术语等需要精校时在 `twp` 覆盖层处理，不修改 `zh-CN` 源文。
 
 ## 6. 质量门禁
 
@@ -127,6 +127,6 @@
 
 ## 8. 提交与上线
 
-- 每批次独立 commit/push：`git add -A && git commit -m "feat(i18n): <批次>" && git push origin master`（触发 GitHub Pages）。
+- 每批次独立 commit/push：`git add -A && git commit -m "feat(i18n): <批次>" && git push origin master`（触发 Actions 构建与 GitHub Pages 部署）。
 - 异常即 `git revert <sha>` 后 push，纯前端回退即恢复旧 JS/HTML。
 - 索引提交（IndexNow/Bing/GSC）由用户侧 cron 自动运行，会话内不手动触发。
