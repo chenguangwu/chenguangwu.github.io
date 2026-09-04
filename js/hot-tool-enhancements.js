@@ -119,7 +119,10 @@
       '[id$="Stats"]', '[id$="Display"]', '.result-grid', '.stat-grid',
       'textarea[readonly]', 'pre.code-block'
     ].join(',');
-    const candidates = Array.from((toolCard || document).querySelectorAll(selectors)).filter(visible);
+    // Some legacy tools render their output outside the first card after the
+    // browser repairs imperfect historical markup. Search the page for the
+    // deliberately narrow result selectors so copy/export still works.
+    const candidates = Array.from(document.querySelectorAll(selectors)).filter(visible);
     const chunks = [];
     const seen = new Set();
     candidates.forEach((element) => {
