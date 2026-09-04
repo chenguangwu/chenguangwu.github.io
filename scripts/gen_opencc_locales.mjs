@@ -8,6 +8,8 @@
  */
 import fs from 'node:fs/promises';
 import path from 'node:path';
+import { availableParallelism } from 'node:os';
+import { Worker, isMainThread, parentPort, workerData } from 'node:worker_threads';
 import { fileURLToPath } from 'node:url';
 import OpenCC from 'opencc-js';
 
@@ -21,6 +23,7 @@ const LOCALES = [
 const PUBLIC_PREFIXES = ['tools/', 'guides/'];
 const SKIP_TAGS = new Set(['script', 'style', 'pre', 'code', 'textarea', 'template']);
 const TRANSLATABLE_ATTRS = new Set(['title', 'placeholder', 'aria-label', 'alt', 'data-i18n-fb', 'data-i18n-ph-fb', 'data-i18n-title-fb', 'data-zh']);
+const DEFAULT_WORKERS = Math.min(4, Math.max(1, availableParallelism()));
 
 function normalizeRel(rel) {
   return rel.split(path.sep).join('/').replace(/^\.\//, '');
@@ -176,6 +179,19 @@ async function writeRegionalPack(locale, converter) {
     `${JSON.stringify(out, null, 2)}\n`, 'utf8');
 }
 
+async function readHtmlHead(file) {
+  // Locale metadata is injected before </head>. Reading the whole multi-MB
+  // tool body during --check added avoidable I/O on CI and sandbox disks.
+  const handle = await fs.open(file, 'r');
+  try {
+    const buffer = Buffer.allocUnsafe(128 * 1024);
+    const { bytesRead } = await handle.read(buffer, 0, buffer.length, 0);
+    return buffer.toString('utf8', 0, bytesRead);
+  } finally {
+    await handle.close();
+  }
+}
+
 function localeHead(rel, locale) {
   const cn = originalUrl(rel);
   const en = `${cn}${cn.includes('?') ? '&' : '?'}lang=en-US`;
@@ -265,6 +281,30 @@ function transformHtml(raw, rel, locale, converter) {
   return html.replace(/[ \t]+(?=\r?\n)/g, '');
 }
 
+async function buildPageChunk(locale, pages) {
+  const converter = OpenCC.Converter({ from: 'cn', to: locale.to });
+  const destination = path.join(ROOT, locale.dir);
+  for (const page of pages) {
+    const rel = normalizeRel(path.relative(ROOT, page));
+    const out = path.join(destination, rel);
+    const raw = await fs.readFile(page, 'utf8');
+    await fs.writeFile(out, transformHtml(raw, rel, locale, converter), 'utf8');
+  }
+}
+
+function runPageWorker(locale, pages) {
+  return new Promise((resolve, reject) => {
+    const worker = new Worker(new URL(import.meta.url), {
+      workerData: { task: 'build-pages', locale, pages }
+    });
+    worker.once('error', reject);
+    worker.once('exit', (code) => {
+      if (code === 0) resolve();
+      else reject(new Error(`OpenCC worker exited with code ${code}`));
+    });
+  });
+}
+
 async function buildLocale(locale, pages) {
   const destination = path.join(ROOT, locale.dir);
   if (await exists(destination)) {
@@ -274,18 +314,29 @@ async function buildLocale(locale, pages) {
     await fs.rm(destination, { recursive: true, force: true });
   }
   await fs.mkdir(destination, { recursive: true });
-  const converter = OpenCC.Converter({ from: 'cn', to: locale.to });
-  for (const page of pages) {
-    const rel = normalizeRel(path.relative(ROOT, page));
-    const out = path.join(destination, rel);
-    await fs.mkdir(path.dirname(out), { recursive: true });
-    const raw = await fs.readFile(page, 'utf8');
-    await fs.writeFile(out, transformHtml(raw, rel, locale, converter), 'utf8');
+  const outputDirs = new Set(pages.map((page) =>
+    path.dirname(path.join(destination, normalizeRel(path.relative(ROOT, page))))
+  ));
+  await Promise.all([...outputDirs].map((dir) => fs.mkdir(dir, { recursive: true })));
+
+  const requestedWorkers = Number.parseInt(process.env.TOOLBOX_OPENCC_WORKERS || '', 10);
+  const workerCount = Math.min(
+    pages.length,
+    Number.isFinite(requestedWorkers) && requestedWorkers > 0 ? requestedWorkers : DEFAULT_WORKERS
+  );
+  if (workerCount === 1) {
+    await buildPageChunk(locale, pages);
+  } else {
+    const chunks = Array.from({ length: workerCount }, () => []);
+    pages.forEach((page, index) => chunks[index % workerCount].push(page));
+    await Promise.all(chunks.map((chunk) => runPageWorker(locale, chunk)));
   }
+
+  const converter = OpenCC.Converter({ from: 'cn', to: locale.to });
   await copyLocalizedJson(locale, converter);
   await writeRegionalPack(locale, converter);
   await fs.writeFile(path.join(destination, MARKER), `generated from zh-CN by scripts/gen_opencc_locales.mjs\n`, 'utf8');
-  console.log(`[opencc] ${locale.dir}: ${pages.length} HTML pages + localized JSON`);
+  console.log(`[opencc] ${locale.dir}: ${pages.length} HTML pages + localized JSON (${workerCount} workers)`);
 }
 
 async function check() {
@@ -298,7 +349,7 @@ async function check() {
       const rel = normalizeRel(path.relative(ROOT, page));
       const file = path.join(root, rel);
       if (!await exists(file)) { console.error(`[opencc] missing ${locale.dir}/${rel}`); failed = true; continue; }
-      const html = await fs.readFile(file, 'utf8');
+      const html = await readHtmlHead(file);
       if (!html.includes(`lang="${locale.code}"`) || !html.includes(`hreflang="${locale.code}"`)) {
         console.error(`[opencc] invalid locale head: ${locale.dir}/${rel}`); failed = true;
       }
@@ -308,6 +359,12 @@ async function check() {
   else console.log(`[opencc] verified ${pages.length} pages for ${LOCALES.length} locales`);
 }
 
-const pages = await sourcePages();
-if (process.argv.includes('--check')) await check();
-else for (const locale of LOCALES) await buildLocale(locale, pages);
+if (!isMainThread) {
+  if (workerData?.task !== 'build-pages') throw new Error('Unknown OpenCC worker task');
+  await buildPageChunk(workerData.locale, workerData.pages);
+  parentPort?.postMessage({ ok: true });
+} else {
+  const pages = await sourcePages();
+  if (process.argv.includes('--check')) await check();
+  else for (const locale of LOCALES) await buildLocale(locale, pages);
+}

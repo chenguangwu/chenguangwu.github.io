@@ -21,10 +21,38 @@ import glob
 import hashlib
 import subprocess
 import html
+from concurrent.futures import ThreadPoolExecutor
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
 README_PATH = os.path.join(ROOT, 'README.md')
 sys.path.insert(0, os.path.join(ROOT, 'scripts'))
+
+
+def _configured_build_workers(item_count=None):
+    """Return a conservative worker count for independent per-file work.
+
+    CI and sandbox hosts can expose a very large CPU count while providing much
+    less real I/O capacity. Cap the default to avoid making cold builds slower
+    through disk contention; TOOLBOX_BUILD_WORKERS=1 remains the deterministic
+    troubleshooting escape hatch.
+    """
+    raw = os.environ.get('TOOLBOX_BUILD_WORKERS', '').strip()
+    try:
+        requested = int(raw) if raw else min(8, max(1, os.cpu_count() or 1))
+    except ValueError:
+        requested = min(8, max(1, os.cpu_count() or 1))
+    workers = max(1, requested)
+    if item_count is not None:
+        workers = min(workers, max(1, item_count))
+    return workers
+
+
+def _round_robin_chunks(items, chunk_count):
+    chunks = [[] for _ in range(max(1, chunk_count))]
+    for index, item in enumerate(items):
+        chunks[index % len(chunks)].append(item)
+    return [chunk for chunk in chunks if chunk]
+
 
 # 工具页 / 落地页 critical CSS 内联（弱网首屏防白屏/FOUC）。单一来源 scripts/critical_tool_css.txt。
 CRITICAL_TOOL_CSS = ''
@@ -114,6 +142,25 @@ HOME_PRE_RENDER_I18N_EN = {
 }
 
 _TOP_TOOL_BODY_CACHE = {}
+_TOOL_BODY_FILE_CACHE = {}
+
+
+def _load_tool_body_file(i18n_dir, industry):
+    """Load one industry's body dictionary once for the whole build."""
+    file_key = (i18n_dir, industry)
+    if file_key in _TOOL_BODY_FILE_CACHE:
+        return _TOOL_BODY_FILE_CACHE[file_key]
+
+    path = os.path.join(i18n_dir, '%s-body.json' % industry)
+    try:
+        with open(path, encoding='utf-8') as f:
+            body = json.load(f)
+        if not isinstance(body, dict):
+            body = {}
+    except Exception:
+        body = {}
+    _TOOL_BODY_FILE_CACHE[file_key] = body
+    return body
 
 def _load_tool_body(i18n_dir, industry, slug):
     """按行业 + slug 读取 body 翻译：title/intro 英文稿。"""
@@ -121,18 +168,9 @@ def _load_tool_body(i18n_dir, industry, slug):
     if key in _TOP_TOOL_BODY_CACHE:
         return _TOP_TOOL_BODY_CACHE[key]
 
-    p = os.path.join(i18n_dir, '%s-body.json' % industry)
-    if not os.path.exists(p):
-        _TOP_TOOL_BODY_CACHE[key] = {}
-        return {}
-
-    try:
-        with open(p, encoding='utf-8') as f:
-            body = json.load(f)
-        entry = body.get(slug, {}) if isinstance(body, dict) else {}
-        if not isinstance(entry, dict):
-            entry = {}
-    except Exception:
+    body = _load_tool_body_file(i18n_dir, industry)
+    entry = body.get(slug, {})
+    if not isinstance(entry, dict):
         entry = {}
 
     _TOP_TOOL_BODY_CACHE[key] = entry
@@ -263,6 +301,12 @@ I18N_STATIC_LOCALES = ['zh-CN', 'zh-TW']
 I18N_STATIC_DIRS = {'zh-TW': 'zh-tw'}
 I18N_XDEFAULT = 'zh-CN'
 I18N_HREFLANG_MARKER = '<!-- TOOLBOX-HREFLANG -->'
+I18N_HREFLANG_BLOCK_RE = re.compile(
+    r'<!-- TOOLBOX-HREFLANG -->\s*'
+    r'(?:<link rel="alternate" hreflang="[^"]+" href="[^"]*">\s*)+'
+    r'(?:<meta property="og:locale(?::alternate)?" content="[^"]+">\s*)+',
+    re.I,
+)
 
 
 def _loc_under(locale):
@@ -304,12 +348,15 @@ def build_hreflang_block(abs_url, default_locale='zh-CN'):
 
 def inject_hreflang(content, abs_url, default_locale='zh-CN'):
     """向 <head> 注入 hreflang / og:locale（幂等）。"""
+    block = build_hreflang_block(abs_url, default_locale)
     if I18N_HREFLANG_MARKER in content:
+        updated, count = I18N_HREFLANG_BLOCK_RE.subn(block, content, count=1)
+        if count:
+            return updated
         marker_pos = content.find(I18N_HREFLANG_MARKER)
         end_pos = content.find('</head>', marker_pos)
         if end_pos != -1:
-            return content[:marker_pos] + build_hreflang_block(abs_url, default_locale) + content[end_pos:]
-    block = build_hreflang_block(abs_url, default_locale)
+            return content[:marker_pos] + block + content[end_pos:]
     if '</head>' in content:
         content = content.replace('</head>', block + '</head>', 1)
     return content
@@ -989,6 +1036,20 @@ def parse_toolbox_meta(content):
 _SHARED_SCRIPTS = None
 SHARED_SCRIPT_MIN_FILES = 20   # 出现在 >=20 个页面的脚本块视为公共样板，不计入工具自身逻辑
 
+
+def _shared_script_hashes(filepath):
+    try:
+        with open(filepath, 'r', encoding='utf-8') as f:
+            content = f.read()
+    except Exception:
+        return ()
+    if 'TOOLBOX-REDIRECT' in content:
+        return ()
+    return {
+        hashlib.md5(block.encode('utf-8')).hexdigest()
+        for block in re.findall(r'<script>(.*?)</script>', content, re.S)
+    }
+
 def build_shared_script_index():
     """扫描全部工具页，统计脚本块出现频次，识别公共样板代码。
 
@@ -1000,22 +1061,19 @@ def build_shared_script_index():
     global _SHARED_SCRIPTS
     if _SHARED_SCRIPTS is not None:
         return _SHARED_SCRIPTS
-    freq = {}
+    page_files = []
     for root, dirs, files in os.walk(TOOLS_DIR):
         for fn in files:
             if not fn.endswith('.html'):
                 continue
-            try:
-                with open(os.path.join(root, fn), 'r', encoding='utf-8') as f:
-                    c = f.read()
-            except Exception:
-                continue
-            if 'TOOLBOX-REDIRECT' in c:
-                continue
-            seen = set()
-            for b in re.findall(r'<script>(.*?)</script>', c, re.S):
-                h = hashlib.md5(b.encode('utf-8')).hexdigest()
-                seen.add(h)
+            page_files.append(os.path.join(root, fn))
+
+    workers = _configured_build_workers(len(page_files))
+    with ThreadPoolExecutor(max_workers=workers) as executor:
+        page_hashes = executor.map(_shared_script_hashes, page_files)
+
+        freq = {}
+        for seen in page_hashes:
             for h in seen:
                 freq[h] = freq.get(h, 0) + 1
     _SHARED_SCRIPTS = {h for h, n in freq.items() if n >= SHARED_SCRIPT_MIN_FILES}
@@ -1946,22 +2004,38 @@ def esc_html_py(s):
     return s
 
 
+_HEAD_OPEN_RE = re.compile(r'<head(?:\s[^>]*)?>', re.I)
+_HEAD_CLOSE_RE = re.compile(r'</head\s*>', re.I)
+
+
 def _document_head_bounds(content):
     """Return the real document head boundaries, ignoring HTML fragments in JS strings."""
-    opening = re.search(r'<head(?:\s[^>]*)?>', content, re.I)
+    opening = _HEAD_OPEN_RE.search(content)
     if not opening:
         return None
-    closing = re.search(r'</head\s*>', content[opening.end():], re.I)
+    # Pattern.search(..., pos) avoids copying the complete (sometimes multi-MB)
+    # body merely to find a closing tag near the beginning of the document.
+    closing = _HEAD_CLOSE_RE.search(content, opening.end())
     if not closing:
         return None
-    close_start = opening.end() + closing.start()
-    close_end = opening.end() + closing.end()
-    return opening.start(), opening.end(), close_start, close_end
+    return opening.start(), opening.end(), closing.start(), closing.end()
 
 
 def _head_contains(content, needle):
     bounds = _document_head_bounds(content)
     return bool(bounds and needle in content[bounds[1]:bounds[2]])
+
+
+def _sub_in_document_head(pattern, repl, content, count=0, flags=0):
+    """Apply a regex only to the real document head, not a multi-MB body."""
+    bounds = _document_head_bounds(content)
+    if not bounds:
+        return content
+    head = content[bounds[1]:bounds[2]]
+    updated = re.sub(pattern, repl, head, count=count, flags=flags)
+    if updated == head:
+        return content
+    return content[:bounds[1]] + updated + content[bounds[2]:]
 
 
 def _inject_into_document_head(content, block):
@@ -2018,6 +2092,14 @@ def _build_deep_dive_html(d):
     return '\n'.join(parts)
 
 
+_DEEP_DIVE_BLOCK_RE = re.compile(
+    r'<!-- TOOLBOX-DEEP-DIVE -->\s*'
+    r'<style>\s*\.deep-dive[\s\S]*?</style>\s*'
+    r'<section class="deep-dive"[^>]*>[\s\S]*?</section>',
+    re.I,
+)
+
+
 def _css_nonblocking(content):
     """仅把非关键 nav-menu.css 改为非阻塞加载。
 
@@ -2055,7 +2137,7 @@ def _css_nonblocking(content):
     return c2
 
 
-def fix_tool_pages_seo(tools):
+def fix_tool_pages_seo(tools, target_tools=None, report=True, existing_html_paths=None):
     """Post-process all tool pages: ensure h1, add breadcrumbs, related tools, structured data."""
     by_industry = {}
     for t in tools:
@@ -2100,6 +2182,13 @@ def fix_tool_pages_seo(tools):
             CURATED_RT = {}
     # 跨行业引用需要按路径查工具元数据（name/desc/icon）
     _tools_by_path = {t['path']: t for t in tools}
+    if existing_html_paths is None:
+        existing_html_paths = {
+            os.path.normpath(os.path.join(root, filename))
+            for root, _, filenames in os.walk(TOOLS_DIR)
+            for filename in filenames
+            if filename.endswith('.html')
+        }
     curated_applied = 0
     curated_missing = []
 
@@ -2194,7 +2283,7 @@ def fix_tool_pages_seo(tools):
         zh_title = _zh_title_of(industry, base) or t.get('name') or ''
         return '%s - 免费在线工具，纯前端运行，数据不上传。' % zh_title
 
-    for t in tools:
+    for t in target_tools if target_tools is not None else tools:
         filepath = os.path.join(TOOLS_DIR, t['path'])
         if not os.path.exists(filepath):
             continue
@@ -2275,10 +2364,6 @@ def fix_tool_pages_seo(tools):
             re.S
         )
 
-        # Keep Clarity as shared script reference (B10) to avoid inline script drift across tool pages.
-        if not _head_contains(content, '/js/analytics.js'):
-            content = _inject_into_document_head(content, clarity_block)
-
         # Ensure tool runtime script is loaded, while preserving compatibility with old inline bootstrap blocks.
         if not _head_contains(content, '/js/tool-page-runtime.js'):
             replaced = False
@@ -2315,17 +2400,28 @@ def fix_tool_pages_seo(tools):
             pattern = re.compile(
                 r'(?:<!--\s*TOOLBOX-WEBAPP-LD\s*-->\s*)*'
                 r'<script type="application/ld\+json">.*?</script>', re.S)
-            for m in pattern.finditer(src):
-                body = m.group(0)
-                if '"@type":"WebApplication"' in body:
-                    head = src[:m.start()].rstrip('\n')
-                    tail = src[m.end():].lstrip('\n')
-                    return head + app_json_block + '\n' + tail
-            return src
+            matches = [
+                match for match in pattern.finditer(src)
+                if '"@type":"WebApplication"' in match.group(0)
+            ]
+            if not matches:
+                return src, False
 
-        before_replace = content
-        content = _replace_webapp_ld(content)
-        if content == before_replace:
+            # Remove all historical duplicates from the end, then put exactly
+            # one normalized block back at the first block's original position.
+            insert_at = matches[0].start()
+            updated = src
+            for index, match in reversed(list(enumerate(matches))):
+                start = match.start()
+                if index > 0 and start > 0 and updated[start - 1] == '\n':
+                    start -= 1
+                updated = updated[:start] + updated[match.end():]
+            head = updated[:insert_at].rstrip('\n')
+            tail = updated[insert_at:].lstrip('\n')
+            return head + app_json_block + '\n' + tail, True
+
+        content, app_ld_found = _replace_webapp_ld(content)
+        if not app_ld_found:
             content = content.replace('</head>', app_json_block + '\n</head>', 1)
 
         # 4. Add og:image / twitter:image (idempotent)
@@ -2339,9 +2435,21 @@ def fix_tool_pages_seo(tools):
         # og:title / twitter:title 跟随中文。注意：title-en 注入到 I18N_HREFLANG_MARKER 之前，
         # 否则 inject_hreflang 会截断 marker→</head> 间内容导致丢失（已踩坑修复）。
         _seo_slug = _slug_of(t)
-        if _seo_slug in EN_OVERRIDE and EN_OVERRIDE[_seo_slug].get('en'):
-            _en_t = EN_OVERRIDE[_seo_slug]['en']
-            _m_t = re.search(r'<title>([^<]*)</title>', content)
+        _seo_override = EN_OVERRIDE.get(_seo_slug, {})
+        _en_t = _seo_override.get('en')
+        _en_desc = _seo_override.get('ed') or ''
+        _m_t = re.search(r'<title>([^<]*)</title>', content) if _en_t else None
+        _obsolete_meta_names = []
+        if _m_t:
+            _obsolete_meta_names.extend(('title-zh', 'title-en'))
+        if _en_desc:
+            _obsolete_meta_names.append('desc-en')
+        if _obsolete_meta_names:
+            content = _sub_in_document_head(
+                r'[ \t]*<meta name="(?:%s)" content="[^"]*">[ \t]*\n?'
+                % '|'.join(_obsolete_meta_names), '', content)
+
+        if _en_t:
             if _m_t:
                 _base = os.path.splitext(os.path.basename(t['path']))[0]
                 _zh_title = _zh_title_of(industry, _base) or t.get('name') or tool_name_esc
@@ -2349,10 +2457,7 @@ def fix_tool_pages_seo(tools):
                 _en_full = _en_t if _en_t.endswith('ToolBox') else (_en_t + ' - ToolBox')
                 # 初始 title 渲染中文（中文优先）
                 content = content.replace(_m_t.group(0), '<title>%s</title>' % esc_once(_zh_t), 1)
-                # 清理旧 title-zh 残留（不再使用），避免 HTML 冗余
-                content = re.sub(r'[ \t]*<meta name="title-zh" content="[^"]*">[ \t]*\n?', '', content)
-                # 英文标题存 title-en：先删旧再注入，保证幂等
-                content = re.sub(r'[ \t]*<meta name="title-en" content="[^"]*">[ \t]*\n?', '', content)
+                # 旧 title-zh/title-en/desc-en 已在一次 head 扫描中统一清理。
                 _en_meta = '<meta name="title-en" content="%s">' % esc_once(_en_full)
                 if I18N_HREFLANG_MARKER in content:
                     content = content.replace(I18N_HREFLANG_MARKER, _en_meta + '\n' + I18N_HREFLANG_MARKER, 1)
@@ -2371,9 +2476,6 @@ def fix_tool_pages_seo(tools):
         # 4.1a 中文优先 meta description（2026-08-29 反转：目标用户以中文为主）。
         # 初始 description 渲染为中文（优先 per-industry 字典 zh-CN.intro/desc，其次页面中文正文），
         # 英文描述存 <meta name="desc-en"> 供前端 en-US 切换（见 js/i18n.js syncDesc）。
-        _en_desc = ''
-        if _seo_slug in EN_OVERRIDE and EN_OVERRIDE[_seo_slug].get('ed'):
-            _en_desc = EN_OVERRIDE[_seo_slug]['ed']
         _zh_desc_raw = extract_zh_desc(content, t, industry, entry)
         seo_desc = esc_once(_zh_desc_raw[:120])
         anchor = I18N_HREFLANG_MARKER if I18N_HREFLANG_MARKER in content else '</head>'
@@ -2394,7 +2496,6 @@ def fix_tool_pages_seo(tools):
         # 英文描述存 desc-en（供 JS en-US 切换）：注入到 I18N_HREFLANG_MARKER 之前，
         # 否则 inject_hreflang 会截断 marker→</head> 间内容导致丢失（已踩坑修复）。
         if _en_desc:
-            content = re.sub(r'[ \t]*<meta name="desc-en" content="[^"]*">[ \t]*\n?', '', content)
             _en_d = '<meta name="desc-en" content="%s">' % esc_once(_en_desc[:160])
             if I18N_HREFLANG_MARKER in content:
                 content = content.replace(I18N_HREFLANG_MARKER, _en_d + '\n' + I18N_HREFLANG_MARKER, 1)
@@ -2497,7 +2598,7 @@ def fix_tool_pages_seo(tools):
                 if not _hm:
                     return _a
                 _target = os.path.normpath(os.path.join(os.path.dirname(filepath), _hm.group(1)))
-                if os.path.exists(_target):
+                if _target in existing_html_paths:
                     return _a
                 _rtc['removed'] += 1
                 return ''
@@ -2533,18 +2634,25 @@ def fix_tool_pages_seo(tools):
         #    幂等：先清除已有深度块（兼容旧构建无 marker 残留 / 重复注入），再注入，重跑构建不叠加。
         #    锚点三级回退：手工页「注意事项区块」→ 生成页「相关工具」(step5 注入) → 纯 JS 计算页兜底「</body>」(全页存在)。
         if _seo_slug in DEEP_DIVE:
-            content = re.sub(r'<!-- TOOLBOX-DEEP-DIVE -->\s*', '', content)
-            content = re.sub(r'<style>\s*\.deep-dive[\s\S]*?</style>\s*', '', content)
-            content = re.sub(r'<section class="deep-dive"[^>]*>[\s\S]*?</section>\s*', '', content)
-            if '<!-- 注意事项区块 -->' in content:
-                _anchor = '<!-- 注意事项区块 -->'
-            elif '<!-- 相关工具 -->' in content:
-                _anchor = '<!-- 相关工具 -->'
-            else:
-                _anchor = '</body>'
             _dd_html = _build_deep_dive_html(DEEP_DIVE[_seo_slug])
-            if _dd_html and _anchor in content:
-                content = content.replace(_anchor, _dd_html + '\n' + _anchor, 1)
+            # 绝大多数构建中配置与已提交 HTML 完全一致。先做快速精确
+            # 命中，避免对约 5000 个完整页面反复执行三次删除正则再原样插回。
+            if _dd_html and _dd_html not in content:
+                content, _dd_replaced = _DEEP_DIVE_BLOCK_RE.subn(
+                    _dd_html, content, count=1)
+                if not _dd_replaced:
+                    # 兼容 marker 缺失或旧版残片，保留原来的清理语义。
+                    content = re.sub(r'<!-- TOOLBOX-DEEP-DIVE -->\s*', '', content)
+                    content = re.sub(r'<style>\s*\.deep-dive[\s\S]*?</style>\s*', '', content)
+                    content = re.sub(r'<section class="deep-dive"[^>]*>[\s\S]*?</section>\s*', '', content)
+                    if '<!-- 注意事项区块 -->' in content:
+                        _anchor = '<!-- 注意事项区块 -->'
+                    elif '<!-- 相关工具 -->' in content:
+                        _anchor = '<!-- 相关工具 -->'
+                    else:
+                        _anchor = '</body>'
+                    if _anchor in content:
+                        content = content.replace(_anchor, _dd_html + '\n' + _anchor, 1)
 
         # 7. 注入 critical CSS + 全站 2 级分类导航资源（幂等）。
         #    - common.css 保持阻塞，确保统一顶部搜索框不会无样式闪烁；
@@ -2589,17 +2697,79 @@ def fix_tool_pages_seo(tools):
         elif 'TOOLBOX-HOT-TOOL-UX' in content:
             content = hot_ux_pattern.sub('\n', content, count=1)
 
+        # Keep analytics last so hreflang normalization cannot discard it.
+        if not _head_contains(content, '/js/analytics.js'):
+            content = _inject_into_document_head(content, clarity_block)
+
         if content != original:
             with open(filepath, 'w', encoding='utf-8') as f:
                 f.write(content)
 
-    print('  h1 added: %d, breadcrumbs: %d, related tools: %d (recomputed), removed stale blocks: %d, nav injected: %d' % (fixed_h1, fixed_bc, fixed_rt, fixed_rt_removed, fixed_nav))
-    if CURATED_RT:
-        print('  curated related-tools: %d applied (config: %d)' % (curated_applied, len(CURATED_RT)))
-        if curated_missing:
+    result = {
+        'fixed_h1': fixed_h1,
+        'fixed_bc': fixed_bc,
+        'fixed_rt': fixed_rt,
+        'fixed_rt_removed': fixed_rt_removed,
+        'fixed_nav': fixed_nav,
+        'curated_applied': curated_applied,
+        'curated_missing': curated_missing,
+        'curated_config': len(CURATED_RT),
+    }
+    if report:
+        _report_tool_seo_result(result)
+    return result
+
+
+def _report_tool_seo_result(result):
+    print('  h1 added: %d, breadcrumbs: %d, related tools: %d (recomputed), removed stale blocks: %d, nav injected: %d' %
+          (result['fixed_h1'], result['fixed_bc'], result['fixed_rt'],
+           result['fixed_rt_removed'], result['fixed_nav']))
+    if result['curated_config']:
+        print('  curated related-tools: %d applied (config: %d)' %
+              (result['curated_applied'], result['curated_config']))
+        if result['curated_missing']:
             print('  [WARN] 策划表指向了不存在的工具（已跳过）:')
-            for _m in curated_missing[:20]:
-                print('    - ' + _m)
+            for message in result['curated_missing'][:20]:
+                print('    - ' + message)
+
+
+def fix_tool_pages_seo_parallel(tools):
+    """Rewrite distinct tool files concurrently while preserving stage order."""
+    workers = _configured_build_workers(len(tools))
+    if workers == 1:
+        return fix_tool_pages_seo(tools)
+
+    i18n_dir = os.path.join(ROOT, 'i18n', 'tools')
+    for industry in {tool['industry'] for tool in tools}:
+        _load_tool_body_file(i18n_dir, industry)
+    existing_html_paths = {
+        os.path.normpath(os.path.join(root, filename))
+        for root, _, filenames in os.walk(TOOLS_DIR)
+        for filename in filenames
+        if filename.endswith('.html')
+    }
+    chunks = _round_robin_chunks(tools, workers)
+    with ThreadPoolExecutor(max_workers=workers) as executor:
+        futures = [
+            executor.submit(
+                fix_tool_pages_seo, tools, chunk, False, existing_html_paths)
+            for chunk in chunks
+        ]
+        results = [future.result() for future in futures]
+
+    combined = {
+        'fixed_h1': sum(item['fixed_h1'] for item in results),
+        'fixed_bc': sum(item['fixed_bc'] for item in results),
+        'fixed_rt': sum(item['fixed_rt'] for item in results),
+        'fixed_rt_removed': sum(item['fixed_rt_removed'] for item in results),
+        'fixed_nav': sum(item['fixed_nav'] for item in results),
+        'curated_applied': sum(item['curated_applied'] for item in results),
+        'curated_missing': [message for item in results for message in item['curated_missing']],
+        'curated_config': max(item['curated_config'] for item in results),
+    }
+    _report_tool_seo_result(combined)
+    print('  parallel workers: %d' % workers)
+    return combined
 
 # 行业聚合页 meta description 覆盖（仅影响列出的行业；工具数为动态带入，避免下次 build 被模板覆盖）
 CATEGORY_DESC_OVERRIDE = {
@@ -2772,26 +2942,6 @@ def generate_category_indexes(tools):
     return list(by_industry.keys())
 
 
-def ensure_tool_clarity_refs(tools):
-    """Final pass to make sure every tool page includes shared Clarity loader."""
-    changed = 0
-    clarity_block = '\n<script src="/js/analytics.js" defer></script>\n' + CLARITY_MARKER + '\n'
-    for t in tools:
-        filepath = os.path.join(TOOLS_DIR, t['path'])
-        if not os.path.exists(filepath):
-            continue
-        with open(filepath, 'r', encoding='utf-8') as f:
-            content = f.read()
-
-        original = content
-        if not _head_contains(content, '/js/analytics.js'):
-            content = _inject_into_document_head(content, clarity_block)
-            if content != original:
-                with open(filepath, 'w', encoding='utf-8') as f:
-                    f.write(content)
-                changed += 1
-    print('  Ensured clarity refs on tool pages: %d' % changed)
-
 def fix_hot_tools_desc():
     """首页热门工具 json/hot-tools.json 的 d(中文描述) 字段，在多个候选里优先取「含中文」者，
     避免中文模式热门卡片显示英文描述（与 generate_split_jsons 搜索索引的 d 字段同源修复）。
@@ -2870,11 +3020,13 @@ def main():
     files.sort()
     print('Found %d HTML files in tools/' % len(files))
 
-    tools = []
-    for f in files:
-        info = get_tool_info(f)
-        if info:
-            tools.append(info)
+    # Quality classification needs the shared-script set. Build it once before
+    # metadata workers start so no thread races the lazy global initialization.
+    build_shared_script_index()
+    workers = _configured_build_workers(len(files))
+    with ThreadPoolExecutor(max_workers=workers) as executor:
+        tools = [info for info in executor.map(get_tool_info, files) if info]
+    print('Parsed tool metadata with %d workers' % workers)
 
     # Sort: by category order then name
     cat_order = ['dev','encode','text','generate','convert','math','calculator','design','image',
@@ -2963,8 +3115,7 @@ def main():
 
     # SEO: Fix tool pages (h1, breadcrumbs, related tools, structured data)
     print('\nFixing tool pages SEO:')
-    fix_tool_pages_seo(tools)
-    ensure_tool_clarity_refs(tools)
+    fix_tool_pages_seo_parallel(tools)
 
     # SEO: Generate category index pages
     print('\nGenerating category index pages:')
