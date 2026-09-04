@@ -84,9 +84,9 @@ function refreshI18nViews() {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
+  loadHotTools(); // 优先请求热门工具数据（配合 index.html 的 preload，提升首屏可见速度）
   initTheme();
   renderBreadcrumbNav();
-  loadHotTools();
   renderCategoryTags();
   renderQualityTags();
   renderExploreGuide();
@@ -196,7 +196,7 @@ function toggleBreadcrumbNav() {
 function renderHotSpotlight() {
   const grid = document.getElementById('hotSpotlightGrid');
   if (!grid) return;
-  grid.innerHTML = HOT_TOOLS.slice(0, 8).map(t => {
+  grid.innerHTML = HOT_TOOLS.map(t => {
     const url = t.u || t.url;
     return `<a class="hot-spotlight-card" href="${url}" target="_blank" rel="noopener" onclick="addToRecent('${url}')">
       <div class="hot-spotlight-icon" style="background:${t.b || t.bg || '#f5f5f5'}">${t.ic || t.icon || '🔧'}</div>
