@@ -259,12 +259,52 @@
     } catch (e) {}
   }
 
+  function ensureInputInvalidStyle(){
+    try {
+      if (document.getElementById('tb-invalid-style')) return;
+      var s = document.createElement('style');
+      s.id = 'tb-invalid-style';
+      s.textContent = '.tb-invalid{border-color:#EF4444!important;box-shadow:0 0 0 2px rgba(239,68,68,.15)!important;}';
+      (document.head || document.body || document.documentElement).appendChild(s);
+    } catch (e) {}
+  }
+
+  function enhanceInputValidation(){
+    try {
+      ensureInputInvalidStyle();
+      var main = findMainButton();
+      if (!main) return; // 实时计算类工具（无主按钮）不注入
+      main.addEventListener('click', function () {
+        var raw = document.querySelectorAll('input,textarea');
+        for (var i = 0; i < raw.length; i++) {
+          var n = raw[i];
+          if (n.type === 'hidden' || n.type === 'submit' || n.type === 'button' ||
+              n.type === 'reset' || n.type === 'image' || n.type === 'checkbox' ||
+              n.type === 'radio' || n.type === 'range') continue;
+          if (n.offsetParent === null) continue;
+          if (n.closest && n.closest('.tb-result-actions')) continue;
+          if (n.value && String(n.value).trim() !== '') {
+            n.classList.remove('tb-invalid');
+            n.removeAttribute('title');
+            continue;
+          }
+          n.classList.add('tb-invalid');
+          n.setAttribute('title', '请填写此字段后再计算');
+        }
+      });
+      document.addEventListener('focusout', function (e) {
+        if (e.target && e.target.classList) e.target.classList.remove('tb-invalid');
+      });
+    } catch (e) {}
+  }
+
   function ensureRuntime(){
     initToolTheme();
     registerServiceWorker();
     initToolIntro();
     enhanceToolResults();
     enhanceExampleFill();
+    enhanceInputValidation();
   }
 
   if (document.readyState === 'loading') {
