@@ -68,7 +68,7 @@
 - [x] #50 `tools/signal/first-order-rise.html` — 上升时间（t_r ≈ 2.2·τ）（输入1）
 - [x] #51 `tools/statistics/mean-absolute-deviation.html` — 由数值序列求平均绝对偏差（输入1）
 - [x] #52 `tools/statistics/sample-variance.html` — 样本方差计算器（输入1）
-- [ ] #53 `tools/structural/section-modulus-circle.html` — 由直径求圆截面抗弯模量（输入1）
+- [x] #53 `tools/structural/section-modulus-circle.html` — 由直径求圆截面抗弯模量（输入1）
 - [ ] #54 `tools/tcm-diagnosis/meridian-differentiation.html` — 经络辨证疼痛对应器（输入1）
 
 ## 批次 4（18 个）
@@ -76,7 +76,7 @@
 - [ ] #55 `tools/urology/iief5-score.html` — 勃起功能(IIEF-5)评分器（输入1）
 - [ ] #56 `tools/yi/yi-divination.html` — 周易占卜（输入1）
 - [ ] #57 `tools/accounting/debt-service-coverage.html` — 由经营现金流与债务偿付额求保障倍数（输入2）
-- [ ] #58 `tools/ballistics/caliber-conversion.html` — 口径换算器（输入2）
+- [x] #58 `tools/ballistics/caliber-conversion.html` — 口径换算器（输入2）
 - [x] #59 `tools/banking/fisher-real-rate.html` — 费雪实际利率计算器（输入2）
 - [ ] #60 `tools/biz/superscript-text.html` — 上标文字（输入2）
 - [ ] #61 `tools/blasting/delay-blasting.html` — 微差延迟优化器（输入2）
@@ -106,17 +106,17 @@
 - [x] #82 `tools/kinematics/angular-accel.html` — 角加速度计算器（输入2）
 - [x] #83 `tools/kinematics/height-fall-distance.html` — 由下落时间求下落距离（输入2）
 - [x] #84 `tools/kinematics/relative-velocity-1d.html` — 由两物体速度求相对速度（输入2）
-- [ ] #85 `tools/life/concentration-converter.html` — 浓度换算器（输入2）
+- [x] #85 `tools/life/concentration-converter.html` — 浓度换算器（输入2）
 - [x] #86 `tools/life/density-converter.html` — 密度换算器（输入2）
 - [x] #87 `tools/life/length-converter.html` — 长度换算器（输入2）
-- [ ] #88 `tools/life/magnet-converter.html` — 磁场强度换算器（输入2）
+- [x] #88 `tools/life/magnet-converter.html` — 磁场强度换算器（输入2）
 - [ ] #89 `tools/life/radiation-converter.html` — 辐射剂量换算器（输入2）
 - [x] #90 `tools/life/volume-converter.html` — 体积换算器（输入2）
 
 ## 批次 6（18 个）
 
-- [ ] #91 `tools/materials/bulk-modulus.html` — 体积模量（K = E / (3(1−2ν))）（输入2）
-- [ ] #92 `tools/materials/hooke-strain.html` — 轴向应变（ε = σ / E）（输入2）
+- [x] #91 `tools/materials/bulk-modulus.html` — 体积模量（K = E / (3(1−2ν))）（输入2）
+- [x] #92 `tools/materials/hooke-strain.html` — 轴向应变（ε = σ / E）（输入2）
 - [x] #93 `tools/math/gcd-lcm.html` — GCD / LCM 计算器（输入2）
 - [x] #94 `tools/math/log-base.html` — 任意底数对数计算器（输入2）
 - [ ] #95 `tools/medical2/medical-abbrev.html` — 医学术语缩写（输入2）
@@ -125,10 +125,10 @@
 - [x] #98 `tools/nuclear/effective-halflife.html` — 由物理与生物半衰期求有效半衰期（输入2）
 - [ ] #99 `tools/ophthalmology/visual-acuity-converter.html` — 视力表(Snellen/logMAR)换算器（输入2）
 - [ ] #100 `tools/optical/blue-light-filter.html` — 防蓝光透射比计算器（输入2）
-- [ ] #101 `tools/optics/angular-magnification.html` — 由明视距离与焦距求简单放大镜角放大率（输入2）
-- [ ] #102 `tools/optics/resolving-power.html` — 由孔径与波长求圆形孔径分辨本领（输入2）
-- [ ] #103 `tools/quantum/fermi-energy-3d.html` — 由自由电子密度求费米能（输入2）
-- [ ] #104 `tools/quantum/thermal-de-broglie.html` — 由温度与质量求热德布罗意波长（输入2）
+- [x] #101 `tools/optics/angular-magnification.html` — 由明视距离与焦距求简单放大镜角放大率（输入2）
+- [x] #102 `tools/optics/resolving-power.html` — 由孔径与波长求圆形孔径分辨本领（输入2）
+- [x] #103 `tools/quantum/fermi-energy-3d.html` — 由自由电子密度求费米能（输入2）
+- [x] #104 `tools/quantum/thermal-de-broglie.html` — 由温度与质量求热德布罗意波长（输入2）
 - [ ] #105 `tools/reproductive-medicine/anti-sperm-antibody.html` — 抗精子抗体 MAR 结果器（输入2）
 - [ ] #106 `tools/reproductive-medicine/liquefaction-time.html` — 精液液化时间判定器（输入2）
 - [ ] #107 `tools/reproductive-medicine/semen-volume.html` — 精液量评估器（输入2）
@@ -143,7 +143,7 @@
 - [x] #113 `tools/signal/pwm-average.html` — 平均电压（V_avg = D · V_cc）（输入2）
 - [x] #114 `tools/signal/rc-time-constant.html` — 时间常数（τ = R·C）（输入2）
 - [x] #115 `tools/statistics/linear-regression.html` — 最小二乘回归计算器（输入2）
-- [ ] #116 `tools/surveying/external-distance-curve.html` — 由半径与转角求外距（输入2）
+- [x] #116 `tools/surveying/external-distance-curve.html` — 由半径与转角求外距（输入2）
 - [ ] #117 `tools/tax/reverse-charge.html` — 由代扣金额与征收率求代扣代缴税额（输入2）
 - [x] #118 `tools/tax/vat-output.html` — 由销售额与增值税率求销项税额（输入2）
 - [ ] #119 `tools/textile2/dye-temp.html` — 染色温度对照表（输入2）
