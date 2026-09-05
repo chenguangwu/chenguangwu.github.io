@@ -23,6 +23,25 @@ import subprocess
 import html
 from concurrent.futures import ThreadPoolExecutor
 
+
+def _clean_en_desc(s):
+    """Strip the identical boilerplate suffix from English meta descriptions.
+
+    Source data (industry-*.json `ed` / EN_OVERRIDE `ed`) may carry the identical
+    template "Free online tool on ToolBox — 100% client-side..." which hurts SEO
+    uniqueness; keep only each tool's unique English prefix. Also guards against
+    re-injecting the template on every build (it otherwise overwrites hand-trimmed
+    desc-en edits in tools/*.html).
+    """
+    if not s:
+        return s
+    s = str(s)
+    for marker in ('Free online tool on ToolBox', 'Free online tool on toolbox'):
+        idx = s.find(marker)
+        if idx != -1:
+            return s[:idx].strip().rstrip('.').strip()
+    return s
+
 ROOT = os.path.dirname(os.path.abspath(__file__))
 README_PATH = os.path.join(ROOT, 'README.md')
 sys.path.insert(0, os.path.join(ROOT, 'scripts'))
@@ -2554,7 +2573,7 @@ def fix_tool_pages_seo(tools, target_tools=None, report=True, existing_html_path
         _seo_slug = _slug_of(t)
         _seo_override = EN_OVERRIDE.get(_seo_slug, {})
         _en_t = _seo_override.get('en')
-        _en_desc = _seo_override.get('ed') or ''
+        _en_desc = _clean_en_desc(_seo_override.get('ed') or '')
         _m_t = re.search(r'<title>([^<]*)</title>', content) if _en_t else None
         _obsolete_meta_names = []
         if _m_t:
