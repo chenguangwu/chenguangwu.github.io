@@ -28,6 +28,18 @@
     if (!l) l = document.documentElement.lang || '';
     return String(l).toLowerCase().indexOf('en') === 0;
   }
+  // 繁体静态站点(/zh-tw)：站内绝对路径链接统一加 /zh-tw 前缀，避免点击跳回简体根。
+  // 资源(/js /css /json /i18n 及静态文件)不加前缀。相对路径保持原样（繁体页下自然解析正确）。
+  function localeUrl(h) {
+    try {
+      if (typeof h !== 'string' || h.charAt(0) !== '/') return h;
+      if (location.pathname.indexOf('/zh-tw') !== 0) return h;   // 非繁体页不处理
+      if (h.indexOf('/zh-tw') === 0) return h;                    // 已带前缀
+      if (/^\/(?:js|css|json|i18n)\b/.test(h)) return h;         // 资源目录
+      if (/\.(?:png|jpe?g|gif|svg|ico|webp|avif|xml|txt|json|css|js|woff2?|ttf|eot|map|pdf|zip|gz|mp4|webm|mp3|webmanifest)$/.test(h)) return h; // 静态资源
+      return '/zh-tw' + h;
+    } catch (e) { return h; }
+  }
   // 名称/描述按语言取：英文态优先 en，否则中文
   function nOf(o) { return (isEn() && o && o.en) ? o.en : ((o && o.name) || ''); }
   function dOf(o) {
@@ -212,14 +224,14 @@
     if (!c) return;
     toolsCol.innerHTML = '';
     const header = ce('div', 'tb-megapanel-tools-header');
-    header.innerHTML = `<span class="tb-tools-header-icon">${c.icon}</span><span class="tb-tools-header-name">${nOf(c)}</span><a class="tb-tools-header-more" href="/tools/${c.key}/index.html">${isEn() ? 'View all' : '查看全部'} ${c.count} ${isEn() ? 'tools' : '个工具'} →</a>`;
+    header.innerHTML = `<span class="tb-tools-header-icon">${c.icon}</span><span class="tb-tools-header-name">${nOf(c)}</span><a class="tb-tools-header-more" href="${localeUrl('/tools/'+c.key+'/index.html')}">${isEn() ? 'View all' : '查看全部'} ${c.count} ${isEn() ? 'tools' : '个工具'} →</a>`;
     toolsCol.appendChild(header);
 
     const grid = ce('div', 'tb-megapanel-tools-grid');
     if (c.top && c.top.length) {
       c.top.forEach(t => {
         const card = ce('a', 'tb-megapanel-tool-card');
-        card.href = t.url;
+        card.href = localeUrl(t.url);
         card.title = titleOf(t);
         card.innerHTML = `
           <span class="tb-tool-icon" style="background:${t.bg || '#f5f5f5'}">${t.icon || '🔧'}</span>
@@ -283,7 +295,7 @@
       g.children.forEach(c => {
         const li = ce('li', 'tb-mobile-section-item');
         const a = ce('a');
-        a.href = `/tools/${c.key}/index.html`;
+        a.href = localeUrl('/tools/'+c.key+'/index.html');
         a.innerHTML = `<span class="tb-mobile-cat-icon">${c.icon}</span><span>${nOf(c)}</span><span class="tb-mobile-cat-count">${c.count}</span>`;
         li.appendChild(a);
         list.appendChild(li);

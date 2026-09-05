@@ -655,6 +655,9 @@ var LANG_REGISTRY = [
     syncDesc();
     autoMount();
     loadRegionalPack();
+    // 启动站内链接前缀修正的 MutationObserver：捕获 nav-menu.js 等运行时动态注入的
+    // 绝对路径站内链接(/tools/...、/chains.html)，在繁体页统一加 /zh-tw 前缀，避免点击跳回简体。
+    startAnchorObserver();
   }
 
   function loadRegionalPack() {
