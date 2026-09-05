@@ -156,10 +156,13 @@ async function copyLocalizedJson(locale, converter) {
   }
 }
 
-async function writeRegionalPack(locale, converter) {
-  // Dynamic chrome is shared JS, so it is not part of the converted HTML. Keep
-  // this compact pack for its stable i18n keys; page-specific content uses its
-  // already converted static text and data-i18n fallback attributes.
+async function buildFullPack(locale, converter) {
+  // Dynamic chrome (header/footer/nav injected by common.js & nav-menu.js) is
+  // shared JS, not part of the converted HTML, so its data-i18n fallback text
+  // stays Simplified. This pack supplies the Traditional Chinese values for every
+  // data-i18n key used across the site, so the static /zh-tw/ pages render fully
+  // Traditional (otherwise the chrome would fall back to Simplified Chinese).
+  const keys = {};
   const base = {
     'brand.sub': '工具百科',
     'bc.home': '首页',
@@ -173,10 +176,38 @@ async function writeRegionalPack(locale, converter) {
     'search.placeholder': '搜索工具、分类或功能...',
     'state.load_fail': '加载失败，请刷新后重试'
   };
+  for (const [k, v] of Object.entries(base)) if (!(k in keys)) keys[k] = v;
+
+  // Scan all source HTML + injected chrome JS (exclude zh-tw/ output and the
+  // generated locale pack itself) for data-i18n + data-i18n-fb pairs.
+  const files = [];
+  for (const name of ROOT_PAGES) {
+    const f = path.join(ROOT, name);
+    if (await exists(f)) files.push(f);
+  }
+  for (const prefix of ['tools/', 'guides/']) {
+    files.push(...await walk(path.join(ROOT, prefix), '.html'));
+  }
+  const jsDir = path.join(ROOT, 'js');
+  if (await exists(jsDir)) files.push(...await walk(jsDir, '.js'));
+
+  const reFbBefore = /data-i18n="([^"]+)"[^>]*data-i18n-fb="([^"]*)"/g;
+  const reFbAfter = /data-i18n-fb="([^"]*)"[^>]*data-i18n="([^"]+)"/g;
+  for (const file of files) {
+    let txt;
+    try { txt = await fs.readFile(file, 'utf8'); } catch { continue; }
+    let m;
+    reFbBefore.lastIndex = 0;
+    while ((m = reFbBefore.exec(txt))) { if (!(m[1] in keys)) keys[m[1]] = m[2]; }
+    reFbAfter.lastIndex = 0;
+    while ((m = reFbAfter.exec(txt))) { if (!(m[2] in keys)) keys[m[2]] = m[1]; }
+  }
+
   const out = {};
-  for (const [key, value] of Object.entries(base)) out[key] = converter(value);
+  for (const [k, v] of Object.entries(keys)) out[k] = converter(v == null ? '' : String(v));
   await fs.writeFile(path.join(ROOT, 'i18n', `locale-${locale.code}.json`),
     `${JSON.stringify(out, null, 2)}\n`, 'utf8');
+  console.log(`[opencc] locale-${locale.code}.json: ${Object.keys(out).length} keys`);
 }
 
 async function readHtmlHead(file) {
@@ -307,13 +338,18 @@ function runPageWorker(locale, pages) {
 
 async function buildLocale(locale, pages) {
   const destination = path.join(ROOT, locale.dir);
-  if (await exists(destination)) {
-    if (!await exists(path.join(destination, MARKER))) {
-      throw new Error(`Refusing to overwrite ${locale.dir}: missing ${MARKER}`);
+  const haveMarker = await exists(destination) && await exists(path.join(destination, MARKER));
+  if (haveMarker) {
+    // 增量重建：直接覆盖重写当前源页，不删除整个目录。
+    // zh-tw 是 git 忽略的可重建产物，整目录删除会触发批量删除保护；
+    // 增量覆盖既能正常重建，又无需删除，残留的旧文件无害（不提交、线上 Actions 会重建）。
+    await fs.mkdir(destination, { recursive: true });
+  } else {
+    if (await exists(destination)) {
+      await fs.rm(destination, { recursive: true, force: true });
     }
-    await fs.rm(destination, { recursive: true, force: true });
+    await fs.mkdir(destination, { recursive: true });
   }
-  await fs.mkdir(destination, { recursive: true });
   const outputDirs = new Set(pages.map((page) =>
     path.dirname(path.join(destination, normalizeRel(path.relative(ROOT, page))))
   ));
@@ -334,7 +370,7 @@ async function buildLocale(locale, pages) {
 
   const converter = OpenCC.Converter({ from: 'cn', to: locale.to });
   await copyLocalizedJson(locale, converter);
-  await writeRegionalPack(locale, converter);
+  await buildFullPack(locale, converter);
   await fs.writeFile(path.join(destination, MARKER), `generated from zh-CN by scripts/gen_opencc_locales.mjs\n`, 'utf8');
   console.log(`[opencc] ${locale.dir}: ${pages.length} HTML pages + localized JSON (${workerCount} workers)`);
 }

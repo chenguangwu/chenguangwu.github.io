@@ -290,19 +290,22 @@ var LANG_REGISTRY = [
     return null;
   }
 
-  // 判定语言（优先级：?lang > localStorage > 浏览器含中文变体?中文 : 页面默认<html lang>）
+  // 判定语言（优先级：URL 路径(/zh-tw) > ?lang > localStorage > 浏览器/页面默认）
+  // 关键约束：zh-TW 是「静态站点语言」，只能由 URL 路径 /zh-tw/ 决定。
+  // 非 /zh-tw 路径的页面(localStorage 里残留的 zh-TW 或 ?lang=zh-TW)一律无效，
+  // 避免从繁体页点绝对链接跳回简体根后，切换器被 localStorage 污染误显示「繁体」。
   function detect() {
     var pathLocale = localeFromPath();
     if (pathLocale) return pathLocale;
     try {
       var params = new URLSearchParams(location.search);
       var u = normalize(params.get('lang'));
-      if (u) return u;
+      if (u && u !== 'zh-TW') return u;
     } catch (e) {}
     try {
       var s = localStorage.getItem(KEY);
       var sn = normalize(s);
-      if (sn) return sn;
+      if (sn && sn !== 'zh-TW') return sn;
     } catch (e) {}
     // 中文优先：未显式指定(?lang/localStorage)时，默认跟随页面 <html lang>（中文），
     // 确保中文搜索引擎(含 Googlebot, 其渲染 locale=en-US)渲染后索引中文；
@@ -354,6 +357,30 @@ var LANG_REGISTRY = [
       query = rendered ? '?' + rendered : '';
     } catch (e) {}
     return target + query + (location.hash || '');
+  }
+
+  // ===== 繁体静态站点：站内页面链接前缀修正 =====
+  // 繁体页是独立静态路径 /zh-tw/，但部分注入的导航/卡片链接写死绝对路径
+  // (/tools/...、/chains.html 等，无 /zh-tw 前缀)，点击会跳回简体根。
+  // 此处把所有站内「页面」链接统一加 /zh-tw 前缀；资源(/js /css /json /logo 等)不动。
+  var _anchorObserver = null;
+  var RES_LINK_PREFIX = /^\/(?:zh-tw|js|css|json|i18n|images?|assets?|fonts?|libs?|vendor|\.well-known|wp-)/i;
+  var RES_LINK_SUFFIX = /\.(?:png|jpe?g|gif|svg|ico|webp|avif|xml|txt|json|css|js|woff2?|ttf|eot|map|pdf|zip|gz|mp4|webm|mp3|webmanifest)$/i;
+  function rewriteLocaleAnchors() {
+    if (!isStaticTraditional()) return;
+    var links = document.querySelectorAll('a[href^="/"]');
+    for (var i = 0; i < links.length; i++) {
+      var a = links[i];
+      var href = a.getAttribute('href');
+      if (!href || href.indexOf('/zh-tw') === 0) continue;   // 已是繁体路径
+      if (RES_LINK_PREFIX.test(href) || RES_LINK_SUFFIX.test(href)) continue;  // 资源不动
+      a.setAttribute('href', '/zh-tw' + href);
+    }
+  }
+  function startAnchorObserver() {
+    if (_anchorObserver || !isStaticTraditional() || !window.MutationObserver) return;
+    _anchorObserver = new MutationObserver(function () { rewriteLocaleAnchors(); });
+    _anchorObserver.observe(document.documentElement, { childList: true, subtree: true });
   }
 
   // 回退链解析：current -> current.fallback -> ... -> en-US
@@ -667,9 +694,13 @@ var LANG_REGISTRY = [
       if (q && q !== current) set(q, { persist: false });
     } catch (e) {}
   }
-  if (document.readyState === 'complete') {
+  function onLoad() {
     ensureLangFromQuery();
+    if (isStaticTraditional()) rewriteLocaleAnchors();
+  }
+  if (document.readyState === 'complete') {
+    onLoad();
   } else {
-    window.addEventListener('load', ensureLangFromQuery);
+    window.addEventListener('load', onLoad);
   }
 })();
