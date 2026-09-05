@@ -3044,6 +3044,7 @@ def generate_category_indexes(tools):
         parts.append('<noscript><link rel="stylesheet" href="/css/nav-menu.css"></noscript>\n')
         parts.append('<script src="/js/industry-info.js" defer></script>\n')
         parts.append('<script src="/js/nav-menu.js" defer></script>\n')
+        parts.append('<script src="/js/category-index.js" defer></script>\n')
         # 多语言 SEO：hreflang + og:locale（构建期常量，批次4）
         parts.append(build_hreflang_block('https://chenguangwu.github.io/tools/%s/index.html' % ind))
         # CollectionPage structured data
@@ -3060,20 +3061,17 @@ def generate_category_indexes(tools):
         parts.append('<div class="container">\n  <div class="card">\n')
         parts.append('    <h2>%s %s工具</h2>\n' % (ind_icon, esc_html_py(ind_name)))
         parts.append('    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;">共 %d 个免费在线工具，纯前端处理，数据不上传</p>\n' % count)
-        parts.append('    <div class="category-tool-list">\n')
+        parts.append('    <div class="category-tool-list" data-ind="%s">\n' % ind)
         index_ref_dir = 'tools/' + ind
         # 加载本行业中文 i18n 字典，供分类页卡片 .t-zh 描述使用
         i18n_path = os.path.join(ROOT, 'i18n', 'tools', '%s.json' % ind)
         ind_i18n = json.load(open(i18n_path, encoding='utf-8')) if os.path.exists(i18n_path) else {}
 
         for t in ind_tools_sorted:
-            # 卡片样式对齐顶部分类下拉（tb-megapanel-tool-card）：图标 + 名称 + 描述。
-            # 中文模式显示「中文名 + 中文描述」(i18n zh-CN.desc/intro)，与下拉 dOf 中文态一致；
-            # 英文模式显示「英文名 + 英文描述」(t['en']/t['ed'])，沿用原双层 lang 切换框架。
+            # 精简静态链接：仅内联 href + 中文名 + 中文描述（SEO 锚文本与可见描述，繁体页由 OpenCC 自动转繁体）；
+            # 图标/英文名/英文描述由 js/category-index.js 运行时 fetch json/industry-<ind>.json 增强，
+            # 避免每个行业把全部工具卡片（含英文描述长文本）内联进 HTML（原每卡 ~580B，现 ~200B，省约 65%）。
             _zh_name = t['name'] if _has_cjk(t['name']) else (t.get('desc', '') if _has_cjk(t.get('desc', '')) else t['name'])
-            _en_name = t.get('en') or t['name']
-            # 中文描述优先从 i18n/tools/<ind>.json 的 zh-CN.desc / zh-CN.intro 取；
-            # 若 desc 为空、无中文、或只是标题重复/过短，改取中文 intro；仍弱则回退中文名，避免中文模式露英文
             slug = t['file'].replace('.html', '')
             zh_i18n = (ind_i18n.get(slug, {}) or {}).get('zh-CN', {}) or {}
             _zh_desc = (zh_i18n.get('desc') or '') if isinstance(zh_i18n.get('desc'), str) else ''
@@ -3083,12 +3081,8 @@ def generate_category_indexes(tools):
                     _zh_desc = intro[:100] + ('…' if len(intro) > 100 else '')
             if _is_weak_desc(_zh_desc, _zh_name):         # 仍弱 → 回退中文名
                 _zh_desc = _zh_name
-            _en_desc = t.get('ed') or ''
-            if _en_desc == _en_name:           # 英文描述与英文名相同则视为无描述（同 dOf）
-                _en_desc = ''
-            t_icon = t.get('icon', '🔧')
             tool_href = os.path.relpath(t['url'], index_ref_dir).replace(os.sep, '/')
-            parts.append('      <a href="%s" class="tb-megapanel-tool-card cat-tool">\n        <span class="tb-tool-icon" style="background:#f5f5f5">%s</span>\n        <span class="tb-tool-body">\n          <span class="tb-tool-name"><span class="t-zh">%s</span><span class="t-en">%s</span></span>\n          <span class="tb-tool-desc"><span class="t-zh">%s</span><span class="t-en">%s</span></span>\n        </span>\n      </a>\n' % (tool_href, t_icon, esc_html_py(_zh_name), esc_html_py(_en_name), esc_html_py(_zh_desc), esc_html_py(_en_desc)))
+            parts.append('      <a href="%s" class="cat-tool"><span class="t-zh">%s</span><span class="t-zh-desc">%s</span></a>\n' % (tool_href, esc_html_py(_zh_name), esc_html_py(_zh_desc)))
         parts.append('    </div>\n  </div>\n')
         # SEO intro
         parts.append('  <div class="tool-intro open">\n    <div class="tool-intro-header"><span class="intro-icon-wrap"><span class="intro-icon">📖</span>关于「%s工具」</span><span class="arrow">▼</span></div>\n' % esc_html_py(ind_name))
