@@ -133,7 +133,7 @@ async function measure(page, url) {
 function budgetCheck(device, m, pageName) {
   const b = BUDGETS[device];
   const alerts = [];
-  // search 页需加载完整 search-index.json（~2.1MB）以支持离线即时搜索，属预期例外
+  // search 页需加载完整 tools.json（含 al/py/pyi 搜索字段，~3.6MB）以支持离线即时搜索，属预期例外
   const totalBudget = pageName === 'search' ? 3000 : b.totalKB;
   if (m.lcp > b.lcp) alerts.push('LCP ' + m.lcp.toFixed(0) + 'ms > ' + b.lcp);
   if (m.cls > b.cls) alerts.push('CLS ' + m.cls.toFixed(3) + ' > ' + b.cls);

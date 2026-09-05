@@ -134,6 +134,37 @@ body.dark .tb-mobile-section-item a:hover { … }
 ## 附：扫描口径说明
 
 - 阈值按 **200 KB = 204800 字节** 计（非 200,000）。
-- 分类页判定正则：`^\./tools/[^/]+/index\.html$`，命中 276 个，全部排除。
+- 分类页判定正则：`^\./tools/[^/]+/index\.html$`，命中 276 个（首轮扫描按排除项跳过，本次已专项优化，见第六节）。
 - gzip 体积取 `gzip` 压缩等级 6，用于衡量真实传输成本（GitHub Pages 默认开启压缩）。
 - `zh-tw/` 为构建产物且被 `.gitignore` 忽略，不纳入扫描。
+
+---
+
+## 六、分类落地页优化（2026-09-05 已发布 + 线上验收）
+
+> 老板在 P1/P2 完成后要求：分类 index 页面也优化（首轮按「排除项」跳过）。
+
+### 现状
+- 276 个分类页合计 **5.7 MB**，最大 `tools/it/index.html` **256 KB**（it 行业 345 个工具，每个富卡片内联 ~580 字节）。
+- CSS **已是公共引用**（P1 已生效，0% 内联 style），体积全部耗在「构建期内联全量工具卡片」。
+- 现成数据源 `json/industry-<ind>.json` 已存在（271 个，含 file/icon/en/ed 字段），可直接消费。
+
+### 方案（老板选：静态保 SEO + JSON 增强）
+分类页是着陆页，项目 `AGENTS.md` 硬约束「发布产物必须搜索引擎无需执行 JS 即可抓取正文，不得客户端空壳」。故**不采用纯 JSON 渲染空壳**，改为：
+- **静态轻量链接**：每个工具仅 `<a href class="cat-tool"><span class="t-zh">中文名</span><span class="t-zh-desc">中文描述</span></a>`（href+中文名作 SEO 锚文本、中文描述可见可被抓；繁体页由 OpenCC 自动转繁体）。
+- **运行时增强**：`js/category-index.js` 读容器 `data-ind` → fetch `/json/industry-<ind>.json` → 按 file slug 匹配 → 重建为富卡片（图标+中文名[静态已转繁体]+英文名+中文描述[静态]+英文描述，均取 json）；fetch 失败兜底保留静态链接。
+
+### 改动
+- `_build.py` `generate_category_indexes()`：工具循环改精简链接 + 容器加 `data-ind` + head 引入 `category-index.js`（3 处）。
+- `js/category-index.js`（新增）：fetch json 增强 + 失败兜底 + 繁体兼容。
+- `css/common.css`：`.cat-tool` 补卡片基础外观（与 `.tb-megapanel-tool-card` 视觉一致，JS 未加载时静态也好看）。
+
+### 效果
+| 项 | 优化前 | 优化后 |
+|----|--------|--------|
+| 全部分类页合计 | 5.7 MB | **3.5 MB（-39%）** |
+| `tools/it/index.html` | 256 KB | **93 KB（-64%）** |
+| 质量分级 | A 5009 | A 5009（100%） |
+
+- 五道门禁全过；无头 Chrome 实机验证：简/繁 it 分类页 345 卡片全增强、json fetch 200、本地资源零错误。
+- 提交 `b3134acb0` 推送 master；线上验收：部署生效（线上 it 93KB、category-index.js 引用、data-ind、精简链接 345、旧富卡片残留 0）、`json/industry-it.json` 200。

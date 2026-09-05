@@ -64,7 +64,7 @@
   - `translate_text()`：类型后缀英文化 + 拆 ASCII/中文段 + 中文段短语级翻译 + 清理空格。
   - **安全回退（v2 关键约束）**：`translate_name` / `translate_text` 一旦结果仍含中文（整句未翻出），立即返回**干净原文中文**，绝不输出中英混杂乱码。这是不可违反的硬规则——英文模式最多"显示干净中文"，但永远不显示乱码。
   - **真实覆盖率（v2 实测）**：规则引擎（语义短语级）单用工具名干净英文 `en` 仅 ~19.5%（零中英混排垃圾）；叠加「slug 直译覆盖字典」后达到 **100%（5254/5254）**：`en`/`ed` 均为干净英文（无汉字、无全角标点）。含 ① slug 直译（绝大多数 slug 本就是英文）② 171 个 `calc-N` 占位符逐行业人工翻译 ③ 134 个拼音 slug 工具结合中文名+行业语境逐条人工翻译（老板要求、无 MT）④ 保守拼音判定（仅无连字符长串或拼音专属复韵母 iao/iang/uang/iong/ü 判拼音，剔除 van/uen 误伤英文词）。规则引擎上限根因：5254 工具名含 **4275 个不同"概念头"、长尾极散**——已被「slug 直译」绕过（绝大多数 slug 本就是英文，直接还原比逐字翻中文更准）。
-- **构建期注入**：`_build.py` 在写出 `json/search-index.json`、`json/industry-*.json`、`json/tools.json` 前，对每个工具注入 `en = translate_name(name)`、`ed = translate_text(desc)`；带 `try/except` 兜底，缺失引擎不阻断构建。
+- **构建期注入**：`_build.py` 在写出 `json/industry-*.json`、`json/tools.json` 前，对每个工具注入 `en = translate_name(name)`、`ed = translate_text(desc)`，并把搜索专用字段 `al`(别名)/`py`(拼音)/`pyi`(拼音首字母) 一并注入 `tools.json`（合并自原 search-index.json，单一数据源）；带 `try/except` 兜底，缺失引擎不阻断构建。
 - **运行时消费**：`js/app.js` 的 `_tn(t)` / `_td(t)` 取 `t.en` / `t.ed`，非 `zh-CN` 且字段存在即显示英文，否则回退 `t.n` / `t.name`。所有动态列表（分类浏览 / 质量筛选 / 热门·最近·收藏 / 搜索结果 / 移动端搜索 / 命令面板 cmdk）经此二函数渲染，无中文残留、无乱码。
 
 - **slug 直译覆盖字典（已落地 · 老板拍板「批量预翻高频工具」）**：`scripts/gen_en_override.py` 构建期生成 `i18n/tools/_en_override.json`（覆盖字典现为全站 **5254 条**，每个工具一份 `en`/`ed`，构建期由 `gen_en_override.py` 一次性算出），`_build.py` 于三处注入点（industry JSON / search-index / tools.json）优先采用 `apply_en_override()` 覆盖规则引擎结果。机制：

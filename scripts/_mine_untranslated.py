@@ -8,7 +8,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(ROOT, 'scripts'))
 from zh_en_dict import translate_name, translate_text, _ZH_RUN, DOMAIN, TYPE_SUFFIX  # noqa: E402
 
-SI = os.path.join(ROOT, 'json', 'search-index.json')
+SI = os.path.join(ROOT, 'json', 'tools.json')
 si = json.load(open(SI, encoding='utf-8'))
 
 names = [t.get('name') or t.get('n') or '' for t in si]

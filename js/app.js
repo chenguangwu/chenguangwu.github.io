@@ -672,11 +672,19 @@ function addToRecent(url) {
 
 function updateCounts() {}
 
+function _toolToShort(t) {
+  return {
+    n: t.name, d: t.desc, en: t.en, ed: t.ed, i: t.industry, c: t.cat,
+    u: t.url, ic: t.icon, b: t.bg, q: t.quality,
+    s: (t.file || '').replace(/\.html$/, ''),
+    al: t.al || [], py: t.py || '', pyi: t.pyi || ''
+  };
+}
 async function ensureSearchIndexLoaded() {
   if (allSearchIndex) return allSearchIndex;
   try {
-    const res = await fetch('json/search-index.json');
-    allSearchIndex = await res.json();
+    const res = await fetch('/json/tools.json');
+    allSearchIndex = (await res.json()).map(_toolToShort);
     searchIndexLoaded = true;
     return allSearchIndex;
   } catch (e) {

@@ -14,7 +14,7 @@ gen_tool_i18n_en.py — 工具页正文英文翻译生成器（v2 收尾）
 
 规则：
   - title 优先用 search-index 的 en（高质量工具名）；缺失则 translate_name(name)
-  - intro 优先用 search-index 的 ed；缺失则 translate_text(desc)
+  - intro 优先用 tools.json 的 ed；缺失则 translate_text(desc)
   - 若已有 i18n/tools/<ind>.json 的 en-US.title / en-US.intro（手工翻译），优先采用，避免覆盖
   - 幂等：重复运行结果稳定
 """
@@ -26,7 +26,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(ROOT, 'scripts'))
 from zh_en_dict import translate_name, translate_text  # noqa: E402
 
-SI_PATH = os.path.join(ROOT, 'json', 'search-index.json')
+SI_PATH = os.path.join(ROOT, 'json', 'tools.json')
 DICT_DIR = os.path.join(ROOT, 'i18n', 'tools')
 OUT_SUFFIX = '-body.json'
 

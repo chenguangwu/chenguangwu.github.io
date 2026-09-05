@@ -5,7 +5,7 @@ Batch2 修复 P1-09：164 个工具的名称被「公式字符串」替换（如
 
 根因：per-industry 字典 i18n/tools/<industry>.json 的 zh-CN.title 被写成了公式，
 _build.py 在 fix_tool_pages_seo 阶段用该 title 重写 HTML <title>/og:title 并生成
-search-index.json 的 n 字段，导致全站（搜索结果/分享卡片/浏览器标签）显示公式。
+tools.json 的 name 字段，导致全站（搜索结果/分享卡片/浏览器标签）显示公式。
 
 修复策略（与构建系统对齐，避免手工改 HTML 后被下次 build 覆盖）：
   把每个坏条目的 zh-CN.title 改为其页面 <h1> 的正确中文名（已抽样验证 164 个 h1 均正确），
@@ -16,7 +16,7 @@ search-index.json 的 n 字段，导致全站（搜索结果/分享卡片/浏览
 import json, re, os, sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-SYS = os.path.join(ROOT, 'json', 'search-index.json')
+SYS = os.path.join(ROOT, 'json', 'tools.json')
 I18N_DIR = os.path.join(ROOT, 'i18n', 'tools')
 
 FORMULA_OPS = set('=+-−×÷√∑≈')
@@ -48,14 +48,14 @@ def detect_indent(raw):
 
 def main():
     data = json.load(open(SYS, encoding='utf-8'))
-    broken = [t for t in data if is_broken(t.get('n', ''))]
+    broken = [t for t in data if is_broken(t.get('name') or t.get('n') or '')]
     print('坏名称总数:', len(broken))
 
     touched = {}  # filepath -> {base: (old_title, new_title)}
     skipped = []
     for t in broken:
-        ind = t.get('i')
-        path = t.get('u')
+        ind = t.get('industry') or t.get('i')
+        path = t.get('url') or t.get('u')
         if not ind or not path or not os.path.isfile(path):
             skipped.append((path, '文件缺失/无行业'))
             continue

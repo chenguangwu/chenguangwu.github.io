@@ -8,8 +8,8 @@
   非逐字翻中文），如 hex-to-text -> Hex to Text、jwt-debugger -> JWT Debugger。
 - 少数占位符 slug（calc-N）按中文名语义手翻（PLACEHOLDER 表）。
 - 简介(ed) 按标题中的动作词生成简洁英文描述。
-产物被 _build.py 在写出 search-index/industry-*/tools.json 前覆盖 en/ed；
-gen_tool_i18n_en.py 读 search-index 即自动继承，无需单独处理。
+产物被 _build.py 在写出 industry-*/tools.json 前覆盖 en/ed；
+gen_tool_i18n_en.py 读 tools.json 即自动继承，无需单独处理。
 
 用法：python3 scripts/gen_en_override.py
 """
@@ -23,7 +23,7 @@ sys.path.insert(0, os.path.join(ROOT, 'scripts'))
 from zh_en_dict import translate_name, _ZH_RUN  # noqa: E402
 
 TOP_INDUSTRIES = None  # None = 全站；或设为 {'it','general',...} 限定头部行业
-SI_PATH = os.path.join(ROOT, 'json', 'search-index.json')
+SI_PATH = os.path.join(ROOT, 'json', 'tools.json')
 OUT_PATH = os.path.join(ROOT, 'i18n', 'tools', '_en_override.json')
 
 ACRONYMS = {

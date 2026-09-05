@@ -1410,7 +1410,7 @@ def title_pinyin_initials(name):
 
 # 中文描述字段 d 的统一取源（治本）：运行时渲染器按 t.d(中文) || t.desc(英文) 取描述，
 # 但此前 tools.json / industry-*.json 缺 d 字段，导致 SPA 行业网格在中文模式回退英文 desc。
-# 此处补上 d，优先级与 search-index.json 保持一致：
+# 此处补上 d，优先级与 tools.json（合并后的搜索单一数据源）保持一致：
 #   i18n zh-CN.desc > zh-CN.intro > 工具自带 desc > 中文名；全无中文才回退英文原名。
 _zh_desc_i18n_cache = {}
 def _load_zh_desc_i18n(ind):
@@ -1470,51 +1470,6 @@ def generate_split_jsons(tools):
             json.dump([], f)
         print('  cleared orphan %s' % base)
     
-    # Lightweight search index (name, desc, industry, cat, url only)
-    _ind_i18n_cache = {}
-    def _load_ind_i18n(ind):
-        if ind not in _ind_i18n_cache:
-            fp = os.path.join(ROOT, 'i18n', 'tools', ind + '.json')
-            try:
-                _ind_i18n_cache[ind] = json.load(open(fp, encoding='utf-8')) if os.path.isfile(fp) else {}
-            except Exception:
-                _ind_i18n_cache[ind] = {}
-        return _ind_i18n_cache[ind]
-    light_index = []
-    for t in tools:
-        aliases = build_search_aliases(t)
-        apply_en_override(t)
-        # 中文描述 d：在多个候选里优先取「含中文」者，避免回退成英文（也避免覆盖工具自带的中文 desc）。
-        # 候选优先级：i18n zh-CN.desc > zh-CN.intro > 工具自带 desc(原 d 源) > 中文名；
-        # 仅当全部无中文时才回退英文原名（该工具本就只有英文名）。
-        _zh = (_load_ind_i18n(t.get('industry', 'it')).get((t.get('file') or '').replace('.html', ''), {}) or {}).get('zh-CN', {}) or {}
-        _d = ''
-        for _cand in (_zh.get('desc'), _zh.get('intro'), t.get('desc', ''), t.get('name', '')):
-            if isinstance(_cand, str) and _has_cjk(_cand):
-                _d = _cand[:80] + ('…' if len(_cand) > 80 else '')
-                break
-        if not _d:                           # 全无中文 → 回退英文原名
-            _d = t.get('name', '')
-        light_index.append({
-            'n': t['name'],
-            'en': t.get('en') or translate_name(t['name']),
-            'd': _d,
-            'ed': t.get('ed') or translate_text(t.get('desc', '')),
-            'al': aliases,
-            'i': t['industry'],
-            'c': t['cat'],
-            'u': t['url'],
-            'ic': t.get('icon', '🔧'),
-            'b': t.get('bg', '#f5f5f5'),
-            'q': t.get('quality', 'B'),
-            's': (t.get('file') or '').replace('.html', ''),
-            'py': title_pinyin(t['name']),
-            'pyi': title_pinyin_initials(t['name']),
-        })
-    idx_path = os.path.join(json_dir, 'search-index.json')
-    with open(idx_path, 'w', encoding='utf-8') as f:
-        json.dump(light_index, f, ensure_ascii=False)
-    print('  search-index  %3d tools  %5.1fKB' % (len(light_index), os.path.getsize(idx_path) / 1024))
 
 # 全站 lastmod 映射（{url: 'YYYY-MM-DD'}），由 main() 在构建时填充为模块全局，
 # _lastmod_for() 直接读取，避免逐处传参。数据持久化于仓库根 sitemap_lastmod.json。
@@ -1911,7 +1866,7 @@ def compute_sw_build():
                 if fn.endswith(exts):
                     files.append(os.path.join(d, fn))
     jdir = os.path.join(ROOT, 'json')
-    for name in ('tools.json', 'search-index.json', 'guides.json', 'channel.json'):
+    for name in ('tools.json', 'guides.json', 'channel.json'):
         p = os.path.join(jdir, name)
         if os.path.isfile(p):
             files.append(p)
@@ -3250,6 +3205,14 @@ def main():
             t['ed'] = translate_text(t.get('desc', ''))
         apply_en_override(t)
         t['d'] = compute_zh_desc(t)   # 治本：补中文 d，确保 tools.json 与 industry-*.json 同源一致
+        # 合并 search-index.json：把搜索专用字段并入 tools.json（单一数据源，删 search-index.json）。
+        # al=别名、py=拼音、pyi=拼音首字母，支撑前端 Fuse.js + 滑动窗口拼音 typo 纠错。
+        if 'al' not in t:
+            t['al'] = build_search_aliases(t)
+        if 'py' not in t:
+            t['py'] = title_pinyin(t.get('name', ''))
+        if 'pyi' not in t:
+            t['pyi'] = title_pinyin_initials(t.get('name', ''))
 
     # Save tools.json to json/ directory
     os.makedirs(os.path.dirname(TOOLS_JSON_FILE), exist_ok=True)

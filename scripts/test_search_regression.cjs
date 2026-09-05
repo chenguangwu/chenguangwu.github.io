@@ -13,7 +13,15 @@ const fs = require('fs');
 const Fuse = require(path.join(__dirname, '..', 'vendor', 'fuse.min.js'));
 
 const ROOT = path.join(__dirname, '..');
-const index = JSON.parse(fs.readFileSync(path.join(ROOT, 'json', 'search-index.json'), 'utf-8'));
+const rawIndex = JSON.parse(fs.readFileSync(path.join(ROOT, 'json', 'tools.json'), 'utf-8'));
+const index = rawIndex.map(function(t){
+  return {
+    n: t.name, d: t.desc, en: t.en, ed: t.ed, i: t.industry, c: t.cat,
+    u: t.url, ic: t.icon, b: t.bg, q: t.quality,
+    s: (t.file || '').replace(/\.html$/, ''),
+    al: t.al || [], py: t.py || '', pyi: t.pyi || ''
+  };
+});
 const PINYIN = JSON.parse(fs.readFileSync(path.join(ROOT, 'scripts', '_pinyin_map.json'), 'utf-8'));
 
 const fuse = new Fuse(index, {

@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 中文工具名/描述 -> 英文 的「语义短语级」翻译引擎（规则版，无外部 API）。
-用于 _build.py 在生成 search-index.json / tools.json 时给每个工具注入 en / ed 字段，
+用于 _build.py 在写出 tools.json 时给每个工具注入 en / ed 字段（搜索字段 al/py/pyi 一并注入），
 使英文模式下首页与行业页卡片显示英文。
 
 设计原则（v2 语义化重构，杜绝机械逐字翻译）：

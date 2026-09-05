@@ -110,8 +110,7 @@ chenguangwu.github.io/
 │   ├── chart.js            # 零依赖 Canvas 图表库（懒加载，data-viz 用）
 │   └── qrcode.js           # 二维码库（第三方，MIT）
 ├── json/
-│   ├── tools.json          # 全量工具数据（备用，非首页使用）
-│   ├── search-index.json   # 轻量搜索索引（首次搜索时加载）
+│   ├── tools.json          # 全量工具数据（含搜索字段 al/py/pyi，搜索单一数据源）
 │   ├── industry-*.json     # 按行业拆分数据（当前 268 个，与子行业目录一一对应）
 │   ├── guides.json         # 工具页 → 使用指南映射（common.js 读取注入「📖 使用指南」）
 │   └── channel.json        # 渠道/分类配置
@@ -255,8 +254,7 @@ chenguangwu.github.io/
 3. 根据文件名和关键词自动分配功能分类（cat）和行业（industry）
 4. 生成 `json/tools.json` 全量数据
 5. 生成 `json/industry-*.json` 按行业拆分数据（当前 268 个）
-6. 生成 `json/search-index.json` 轻量搜索索引
-7. 更新 `index.html` 中的统计数据
+6. 更新 `index.html` 中的统计数据
 8. 生成根 `sitemap.xml`（**全量 urlset**，含简体、台湾繁体、guides/ 与 chains.html，当前约 11045 URL）
 9. **SEO 注入**（`fix_tool_pages_seo`，幂等）：h1、面包屑导航、BreadcrumbList + WebApplication JSON-LD、og:image/twitter:image、相关工具区
 10. 生成 `zh-tw/` 台湾繁体静态站点（本地保留调试、Git 忽略、Actions 发布）
@@ -478,9 +476,9 @@ calc();
 ### 两阶段搜索
 
 1. **无搜索时**：只加载当前行业数据（~6-54KB），性能好
-2. **有搜索时**：懒加载 `search-index.json`（~89KB，精简字段），在全量数据中搜索
+2. **有搜索时**：懒加载 `tools.json`（含 al/py/pyi 搜索字段），在全量数据中搜索
 
-### search-index.json 字段说明
+### tools.json 搜索字段说明（前端运行时投影为短字段）
 
 字段都用单字母缩写，减小体积：
 

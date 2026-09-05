@@ -9,14 +9,14 @@ from pypinyin import pinyin, Style
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 MAP_PATH = os.path.join(ROOT, 'scripts', '_pinyin_map.json')
-IDX = os.path.join(ROOT, 'json', 'search-index.json')
+IDX = os.path.join(ROOT, 'json', 'tools.json')
 
 chars = set()
 if os.path.exists(IDX):
     data = json.load(open(IDX, encoding='utf-8'))
     for t in data:
-        chars.update(t.get('n', ''))
-        chars.update(t.get('d', ''))
+        chars.update(t.get('name', ''))
+        chars.update(t.get('desc', ''))
 
 # also scan tool page titles directly for completeness
 import glob
