@@ -13,7 +13,7 @@
 // ===== 语言注册表（LANG_REGISTRY）=====
 var LANG_REGISTRY = [
   { code: 'zh-CN', label: '中文',    dir: 'ltr', fallback: null,    isDefault: true },
-  { code: 'zh-TW', label: '繁體中文（台灣）', dir: 'ltr', fallback: null },
+  { code: 'zh-TW', label: '繁體中文', dir: 'ltr', fallback: null },
   { code: 'en-US', label: 'English', dir: 'ltr', fallback: null }
 ];
 

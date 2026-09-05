@@ -2842,7 +2842,7 @@ function buildUnifiedHeader(){
   desk.className = 'nav-top desktop-only';
   desk.innerHTML =
     '<div class="nav-logo" onclick="location.href=\'' + root + 'index.html\'" style="cursor:pointer">' +
-      '<img src="' + root + 'logo.svg" alt="ToolBox Logo">' +
+      '<img src="/logo.svg" alt="ToolBox Logo">' +
       '<div class="nav-logo-text"><span class="nav-logo-name">ToolBox</span><span class="nav-logo-sub" data-i18n="brand.sub" data-i18n-fb="工具百科">工具百科</span></div>' +
     '</div>' +
     '<form class="nav-search" action="' + root + 'search.html" method="GET" onsubmit="if(!this.q.value.trim()){event.preventDefault();return false;}">' +
@@ -2871,7 +2871,7 @@ function buildUnifiedHeader(){
   mob.className = 'nav-mobile mobile-only';
   mob.innerHTML =
     '<div class="nav-mobile-logo" onclick="location.href=\'' + root + 'index.html\'" style="cursor:pointer">' +
-      '<img src="' + root + 'logo.svg" alt="ToolBox Logo"><span>ToolBox</span>' +
+      '<img src="/logo.svg" alt="ToolBox Logo"><span>ToolBox</span>' +
     '</div>' +
     '<div class="nav-mobile-actions">' +
       '<button class="nav-icon-btn" onclick="if(window.openMobileSearch)openMobileSearch();else location.href=\'' + root + 'search.html\'" title="搜索工具" aria-label="搜索工具" data-i18n-title="nav.search">' +
@@ -2897,7 +2897,7 @@ function buildUnifiedFooter(){
     '<div class="footer-inner">' +
       '<div class="footer-grid">' +
         '<div>' +
-          '<div class="footer-brand"><img src="' + root + 'logo-32.png" alt="ToolBox"><span>ToolBox</span></div>' +
+          '<div class="footer-brand"><img src="/logo-32.png" alt="ToolBox"><span>ToolBox</span></div>' +
           '<p class="footer-desc" data-i18n="footer.desc" data-i18n-fb="5000+ 跨行业纯前端在线工具，数据不出浏览器，保护你的隐私安全。">5000+ 跨行业纯前端在线工具，数据不出浏览器，保护你的隐私安全。</p>' +
         '</div>' +
         '<div class="desktop-only-block">' +
