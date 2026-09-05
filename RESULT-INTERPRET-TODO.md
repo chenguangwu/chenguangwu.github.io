@@ -61,7 +61,7 @@
 - [x] #43 `tools/quantum/mass-energy-equivalence.html` — 质能等价计算器（输入1）
 - [ ] #44 `tools/rehabilitation/fim-scale.html` — 康复结局(FIM)量表总分计算器（输入1）
 - [ ] #45 `tools/science/barcode-pharmacode.html` — Pharmacode 条形码（输入1）
-- [ ] #46 `tools/science/median-calculator.html` — 中位数计算器（输入1）
+- [x] #46 `tools/science/median-calculator.html` — 中位数计算器（输入1）
 - [ ] #47 `tools/science/nato-phonetic.html` — NATO 音标字母（输入1）
 - [ ] #48 `tools/science/phone-qr.html` — 电话二维码（输入1）
 - [ ] #49 `tools/science/physics-calculator.html` — 物理计算器（输入1）
@@ -77,17 +77,17 @@
 - [ ] #56 `tools/yi/yi-divination.html` — 周易占卜（输入1）
 - [ ] #57 `tools/accounting/debt-service-coverage.html` — 由经营现金流与债务偿付额求保障倍数（输入2）
 - [ ] #58 `tools/ballistics/caliber-conversion.html` — 口径换算器（输入2）
-- [ ] #59 `tools/banking/fisher-real-rate.html` — 费雪实际利率计算器（输入2）
+- [x] #59 `tools/banking/fisher-real-rate.html` — 费雪实际利率计算器（输入2）
 - [ ] #60 `tools/biz/superscript-text.html` — 上标文字（输入2）
 - [ ] #61 `tools/blasting/delay-blasting.html` — 微差延迟优化器（输入2）
 - [ ] #62 `tools/cardiology/statin-dose.html` — 他汀(降脂幅度)剂量换算器（输入2）
-- [ ] #63 `tools/chemistry/molality.html` — 质量摩尔浓度（b = n / m_溶剂）（输入2）
+- [x] #63 `tools/chemistry/molality.html` — 质量摩尔浓度（b = n / m_溶剂）（输入2）
 - [ ] #64 `tools/data/csv-analyzer.html` — CSV 分析器（输入2）
-- [ ] #65 `tools/design/rem-to-px.html` — Rem to Px Converter（输入2）
-- [ ] #66 `tools/economics/inflation-rate.html` — 通货膨胀率计算器（输入2）
+- [x] #65 `tools/design/rem-to-px.html` — Rem to Px Converter（输入2）
+- [x] #66 `tools/economics/inflation-rate.html` — 通货膨胀率计算器（输入2）
 - [x] #67 `tools/electromagnetism/energy-inductor.html` — 由电感与电流求储能（输入2）
 - [x] #68 `tools/electromagnetism/magnetic-flux.html` — 磁通（Φ = B·A）（输入2）
-- [ ] #69 `tools/encode/binary-to-ascii.html` — Binary / Hex to ASCII（输入2）
+- [x] #69 `tools/encode/binary-to-ascii.html` — Binary / Hex to ASCII（输入2）
 - [ ] #70 `tools/endocrinology/calc-1.html` — HOMA-IR 胰岛素抵抗指数（输入2）
 - [ ] #71 `tools/energy/air-purifier-area.html` — 空气净化器适用面积计算（输入2）
 - [ ] #72 `tools/energy/electrical-power.html` — 由电压与电流求电功率（输入2）
@@ -107,11 +107,11 @@
 - [x] #83 `tools/kinematics/height-fall-distance.html` — 由下落时间求下落距离（输入2）
 - [x] #84 `tools/kinematics/relative-velocity-1d.html` — 由两物体速度求相对速度（输入2）
 - [ ] #85 `tools/life/concentration-converter.html` — 浓度换算器（输入2）
-- [ ] #86 `tools/life/density-converter.html` — 密度换算器（输入2）
-- [ ] #87 `tools/life/length-converter.html` — 长度换算器（输入2）
+- [x] #86 `tools/life/density-converter.html` — 密度换算器（输入2）
+- [x] #87 `tools/life/length-converter.html` — 长度换算器（输入2）
 - [ ] #88 `tools/life/magnet-converter.html` — 磁场强度换算器（输入2）
 - [ ] #89 `tools/life/radiation-converter.html` — 辐射剂量换算器（输入2）
-- [ ] #90 `tools/life/volume-converter.html` — 体积换算器（输入2）
+- [x] #90 `tools/life/volume-converter.html` — 体积换算器（输入2）
 
 ## 批次 6（18 个）
 
@@ -145,7 +145,7 @@
 - [x] #115 `tools/statistics/linear-regression.html` — 最小二乘回归计算器（输入2）
 - [ ] #116 `tools/surveying/external-distance-curve.html` — 由半径与转角求外距（输入2）
 - [ ] #117 `tools/tax/reverse-charge.html` — 由代扣金额与征收率求代扣代缴税额（输入2）
-- [ ] #118 `tools/tax/vat-output.html` — 由销售额与增值税率求销项税额（输入2）
+- [x] #118 `tools/tax/vat-output.html` — 由销售额与增值税率求销项税额（输入2）
 - [ ] #119 `tools/textile2/dye-temp.html` — 染色温度对照表（输入2）
 - [ ] #120 `tools/urology/calc-1.html` — IPSS 前列腺症状评分（输入2）
 - [ ] #121 `tools/urology/ipss-score.html` — IPSS评分(国际前列腺症状)自动计算器（输入2）
