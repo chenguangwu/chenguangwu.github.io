@@ -25,7 +25,7 @@
 - [x] #13 `tools/acoustics/sound-intensity-level.html` — 声强级（L_I = 10·log₁₀(I / I₀)）（输入1）
 - [x] #14 `tools/astronomy/atmospheric-refraction.html` — 折射量（R = 1.02 / tan(h + 10.3/(h+5.11)) ′）（输入1）
 - [x] #15 `tools/astronomy/moon-illumination.html` — 照明比例（k = (1 − cos(2π·D/29.53)) / 2）（输入1）
-- [ ] #16 `tools/biz/markdown-quote.html` — Markdown 引用转换器（输入1）
+- [x] #16 `tools/biz/markdown-quote.html` — Markdown 引用转换器（输入1）
 - [x] #17 `tools/chemistry/poh-to-ph.html` — 由 [OH⁻] 求 pOH 与 pH（输入1）
 - [ ] #18 `tools/chinese-cook/cutting-sizes.html` — 切配尺寸对照（输入1）
 
@@ -43,11 +43,11 @@
 - [ ] #28 `tools/fun/keyboard-heatmap.html` — 键盘热力图（输入1）
 - [ ] #29 `tools/fun/roulette-simulator.html` — 轮盘模拟器（输入1）
 - [ ] #30 `tools/gardening/pot-capacity.html` — 花盆容量计算（输入1）
-- [ ] #31 `tools/it/html-nesting-checker.html` — HTML 嵌套检查器（输入1）
-- [ ] #32 `tools/it/pdf-signature-checker.html` — PDF 签名检查（输入1）
+- [x] #31 `tools/it/html-nesting-checker.html` — HTML 嵌套检查器（输入1）
+- [x] #32 `tools/it/pdf-signature-checker.html` — PDF 签名检查（输入1）
 - [ ] #33 `tools/it/text-statistics.html` — 文本统计分析（输入1）
-- [ ] #34 `tools/language/grammar-checker.html` — 语法检查（输入1）
-- [ ] #35 `tools/language/spanish-accent-rules.html` — 西班牙语重音位置判断（输入1）
+- [x] #34 `tools/language/grammar-checker.html` — 语法检查（输入1）
+- [x] #35 `tools/language/spanish-accent-rules.html` — 西班牙语重音位置判断（输入1）
 - [x] #36 `tools/math/circular-permutation.html` — 由元素个数求环形排列数（输入1）
 
 ## 批次 3（18 个）
@@ -60,10 +60,10 @@
 - [ ] #42 `tools/quantum/angular-momentum-quant.html` — 由主量子数求角动量（输入1）
 - [x] #43 `tools/quantum/mass-energy-equivalence.html` — 质能等价计算器（输入1）
 - [ ] #44 `tools/rehabilitation/fim-scale.html` — 康复结局(FIM)量表总分计算器（输入1）
-- [ ] #45 `tools/science/barcode-pharmacode.html` — Pharmacode 条形码（输入1）
+- [x] #45 `tools/science/barcode-pharmacode.html` — Pharmacode 条形码（输入1）
 - [x] #46 `tools/science/median-calculator.html` — 中位数计算器（输入1）
-- [ ] #47 `tools/science/nato-phonetic.html` — NATO 音标字母（输入1）
-- [ ] #48 `tools/science/phone-qr.html` — 电话二维码（输入1）
+- [x] #47 `tools/science/nato-phonetic.html` — NATO 音标字母（输入1）
+- [x] #48 `tools/science/phone-qr.html` — 电话二维码（输入1）
 - [ ] #49 `tools/science/physics-calculator.html` — 物理计算器（输入1）
 - [x] #50 `tools/signal/first-order-rise.html` — 上升时间（t_r ≈ 2.2·τ）（输入1）
 - [x] #51 `tools/statistics/mean-absolute-deviation.html` — 由数值序列求平均绝对偏差（输入1）
@@ -97,10 +97,10 @@
 - [ ] #73 `tools/energy/joule-heating.html` — 由电流与电阻求热功率（输入2）
 - [ ] #74 `tools/futures/option-payoff.html` — 期权盈亏图（输入2）
 - [x] #75 `tools/geometry/pyramid-volume.html` — 由底面积与高求棱锥体积（输入2）
-- [ ] #76 `tools/it/bip39-generator.html` — BIP39 助记词生成器（输入2）
+- [x] #76 `tools/it/bip39-generator.html` — BIP39 助记词生成器（输入2）
 - [ ] #77 `tools/it/calc-1.html` — 文件大小单位换算（输入2）
 - [ ] #78 `tools/it/calc-4.html` — CSS单位换算（px / em / rem / pt / %）（输入2）
-- [ ] #79 `tools/it/mac-generator.html` — MAC Address Generator（输入2）
+- [x] #79 `tools/it/mac-generator.html` — MAC Address Generator（输入2）
 - [ ] #80 `tools/it/numeronym-generator.html` — Numeronym 数字缩写（输入2）
 - [ ] #81 `tools/it/phone-parser.html` — Phone Number Parser &amp; Formatter（输入2）
 - [x] #82 `tools/kinematics/angular-accel.html` — 角加速度计算器（输入2）
