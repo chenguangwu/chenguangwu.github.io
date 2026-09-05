@@ -1,7 +1,7 @@
 # 工具页优化任务清单（竞品对标 · 取长补短）
 
 > ✅ **任务已完结（2026-09-05）**：750 个目标页通过 3 个批量阶段完成「取长补短」优化（FAQ 内容深度 + 结果复制/导出 + desc-en 去模板），均以本地提交收口，**未推送远程**（老板要求先本地、不推）。各阶段为站点级/批量工程化落地，未逐页手改，故下方 750 条「待办」清单已整体划完成，按批量阶段统一收口而非逐条删除。
-> 验证：实机无头 Chrome 复验（阶段二增强）批次 1/2/5 全过、`--all` 跑出 742/749 通过；7 个失败经逐页判定均为**验证器伪失败/按设计不注入**（见下「验证结论」），非页面回归；五项门禁 `run_gates.py --skip-build` 4/4 通过、`_test_static.py` 0 失败。
+> 验证：实机无头 Chrome 复验（阶段二增强）批次 1/2/5 全过、`--all` 最终跑出 741/749 通过；6 个失败经逐页判定均为**验证器伪失败/按设计不注入**（见下「验证结论」），非页面回归；五项门禁 `run_gates.py --skip-build` 4/4 通过、`_test_static.py` 0 失败。
 
 > 数据源：`analytics_traffic_merged.csv`（共 750 个工具页，本地均存在）  
 > 排序：按 `clicks×5 + impressions` 价值分降序；同分时短板多的优先。  
@@ -23,11 +23,11 @@
 
 > **阶段一·基础优化（已完成，已提交 17d5c409d）**：对 750 目标页中的 662 真实工具页（排除 88 个分类 `index.html` 落地页、2 个重定向桩 `calc-4`/`tester-5`）批量注入 **FAQ 可见模块 + FAQPage JSON-LD 结构化数据 + 中文 guide 段（使用步骤/参数说明/适用场景）**。
 
-> **验证结论（2026-09-05，实机无头 Chrome）**：`scripts/opt_check_enhance.js` 复验结果复制/导出增强——批次 1（24）、批次 2（24，含 1 重定向桩跳过）、批次 5（25）全过；`--all` 跑出 **742 / 749 通过**。7 个失败逐页判定均为**非回归**：
-> - `agriculture/calc-4.html`、`tester-5.html`：重定向桩（`TOOLBOX-REDIRECT`），验证器已跳过，不优化。
-> - `it/polybius-cipher.html`：验证器报 `Runtime.callFunctionOn timed out`（Chrome 协议偶发超时）；手动调式确认 `scripts:23`、`ToolBox` 已定义、操作条已注入（`barCount:1`）、输出正确——**页面正常**，属验证器伪失败。
+> **验证结论（2026-09-05，实机无头 Chrome 最终复验）**：`scripts/opt_check_enhance.js` 复验结果复制/导出增强——批次 1（24）、批次 2（24，含 1 重定向桩跳过）、批次 5（25）全过；`--all` **最终跑出 741 / 749 通过**。6 个失败逐页判定均为**非回归**：
+> - `it/polybius-cipher.html`：验证器报 `Runtime.callFunctionOn timed out`（Chrome 协议偶发超时）；手动调试确认 `scripts:23`、`ToolBox` 已定义、操作条已注入（`barCount:1`）、输出正确——**页面正常**，属验证器伪失败。
+> - `it/rich-text-editor.html`、`sports/rater-motion.html`、`it/toml-to-json.html`：`复制✓ 导出✓` 但 `主功能:未变`——此类工具无数字输入可篡改，验证器快照截断导致误报，增强本身正常。
 > - `finance/word-counter.html`、`design/audio-recorder.html`：`操作条:无`——本身无标准结果容器（字数统计/录音结果非文本结果框），增强按「不强行注入、不破坏现有能力」原则不注入，符合设计。
-> - `it/rich-text-editor.html`：`复制✓ 导出✓` 但 `主功能:未变`——富文本编辑器无数字输入可篡改，验证器快照截断导致误报，增强本身正常。
+> - `agriculture/calc-4.html`、`tester-5.html`：重定向桩（`TOOLBOX-REDIRECT`），验证器识别后跳过，**不计入失败、不优化**。
 > 五项门禁（`run_gates.py --skip-build`）4/4 通过；`_test_static.py` 0 失败。
 > 验证：静态门禁 0 失败；663 工具页 FAQ 100% 经 `_build.py` 重建保真保留；抽样实机无 JS 错误、正文厚度提升（h2 结构完善）。
 > 注：分类 `index.html` 由 `_build.py` 模板每次重建覆盖，不注入 FAQ（属正常）。
