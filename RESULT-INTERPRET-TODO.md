@@ -18,8 +18,8 @@
 - [ ] #6 `tools/fun/color-memory.html` — 颜色记忆（Simon）（输入0）
 - [ ] #7 `tools/fun/pattern-memory.html` — 图案记忆（输入0）
 - [x] #8 `tools/it/keycode-info.html` — 按键码 Keycode 查询（输入0）
-- [ ] #9 `tools/psychiatry/isi-insomnia.html` — 睡眠(ISI)失眠严重度评估器（输入0）
-- [ ] #10 `tools/psychiatry/phq9-depression.html` — 抑郁(PHQ-9)量表评估器（输入0）
+- [x] #9 `tools/psychiatry/isi-insomnia.html` — 睡眠(ISI)失眠严重度评估器（输入0）
+- [x] #10 `tools/psychiatry/phq9-depression.html` — 抑郁(PHQ-9)量表评估器（输入0）
 - [ ] #11 `tools/tcm-diagnosis/disease-nature.html` — 病性辨析器（六淫）（输入0）
 - [x] #12 `tools/acoustics/intensity-level.html` — 由声强求声强级（I₀=10⁻¹² W/m²）（输入1）
 - [x] #13 `tools/acoustics/sound-intensity-level.html` — 声强级（L_I = 10·log₁₀(I / I₀)）（输入1）
@@ -33,12 +33,12 @@
 
 - [ ] #19 `tools/chinese-cook/ingredient-substitute.html` — 食材替代查询（输入1）
 - [ ] #20 `tools/chinese-cook/oil-temp.html` — 油温烹饪指南（输入1）
-- [ ] #21 `tools/data/chart-generator.html` — 图表生成器（输入1）
+- [x] #21 `tools/data/chart-generator.html` — 图表生成器（输入1）
 - [ ] #22 `tools/finance/credit-card-bin.html` — 信用卡 BIN 查询（输入1）
-- [ ] #23 `tools/finance/iccid-validator.html` — ICCID 验证（SIM 卡号）（输入1）
-- [ ] #24 `tools/finance/ird-validator.html` — 新西兰 IRD 验证（输入1）
-- [ ] #25 `tools/finance/license-key-validator.html` — 许可证密钥验证（输入1）
-- [ ] #26 `tools/finance/pan-validator.html` — 印度 PAN 卡验证（输入1）
+- [x] #23 `tools/finance/iccid-validator.html` — ICCID 验证（SIM 卡号）（输入1）
+- [x] #24 `tools/finance/ird-validator.html` — 新西兰 IRD 验证（输入1）
+- [x] #25 `tools/finance/license-key-validator.html` — 许可证密钥验证（输入1）
+- [x] #26 `tools/finance/pan-validator.html` — 印度 PAN 卡验证（输入1）
 - [ ] #27 `tools/finance/tax-bracket.html` — 税率档次速查（输入1）
 - [ ] #28 `tools/fun/keyboard-heatmap.html` — 键盘热力图（输入1）
 - [ ] #29 `tools/fun/roulette-simulator.html` — 轮盘模拟器（输入1）
@@ -55,8 +55,8 @@
 - [ ] #37 `tools/math/factorial-calc.html` — 阶乘计算器（输入1）
 - [x] #38 `tools/meteorology/isa-temperature.html` — 温度（输入1）
 - [x] #39 `tools/misc/truth-table.html` — 逻辑真值表生成器（输入1）
-- [ ] #40 `tools/neurology/calc-1.html` — NIHSS 脑卒中评分（输入1）
-- [ ] #41 `tools/ophthalmology/osdi-scale.html` — 干眼症(OSDI)自评量表（输入1）
+- [x] #40 `tools/neurology/calc-1.html` — NIHSS 脑卒中评分（输入1）
+- [x] #41 `tools/ophthalmology/osdi-scale.html` — 干眼症(OSDI)自评量表（输入1）
 - [ ] #42 `tools/quantum/angular-momentum-quant.html` — 由主量子数求角动量（输入1）
 - [x] #43 `tools/quantum/mass-energy-equivalence.html` — 质能等价计算器（输入1）
 - [ ] #44 `tools/rehabilitation/fim-scale.html` — 康复结局(FIM)量表总分计算器（输入1）
@@ -73,7 +73,7 @@
 
 ## 批次 4（18 个）
 
-- [ ] #55 `tools/urology/iief5-score.html` — 勃起功能(IIEF-5)评分器（输入1）
+- [x] #55 `tools/urology/iief5-score.html` — 勃起功能(IIEF-5)评分器（输入1）
 - [ ] #56 `tools/yi/yi-divination.html` — 周易占卜（输入1）
 - [ ] #57 `tools/accounting/debt-service-coverage.html` — 由经营现金流与债务偿付额求保障倍数（输入2）
 - [x] #58 `tools/ballistics/caliber-conversion.html` — 口径换算器（输入2）
@@ -82,7 +82,7 @@
 - [ ] #61 `tools/blasting/delay-blasting.html` — 微差延迟优化器（输入2）
 - [ ] #62 `tools/cardiology/statin-dose.html` — 他汀(降脂幅度)剂量换算器（输入2）
 - [x] #63 `tools/chemistry/molality.html` — 质量摩尔浓度（b = n / m_溶剂）（输入2）
-- [ ] #64 `tools/data/csv-analyzer.html` — CSV 分析器（输入2）
+- [x] #64 `tools/data/csv-analyzer.html` — CSV 分析器（输入2）
 - [x] #65 `tools/design/rem-to-px.html` — Rem to Px Converter（输入2）
 - [x] #66 `tools/economics/inflation-rate.html` — 通货膨胀率计算器（输入2）
 - [x] #67 `tools/electromagnetism/energy-inductor.html` — 由电感与电流求储能（输入2）
@@ -101,8 +101,8 @@
 - [ ] #77 `tools/it/calc-1.html` — 文件大小单位换算（输入2）
 - [ ] #78 `tools/it/calc-4.html` — CSS单位换算（px / em / rem / pt / %）（输入2）
 - [x] #79 `tools/it/mac-generator.html` — MAC Address Generator（输入2）
-- [ ] #80 `tools/it/numeronym-generator.html` — Numeronym 数字缩写（输入2）
-- [ ] #81 `tools/it/phone-parser.html` — Phone Number Parser &amp; Formatter（输入2）
+- [x] #80 `tools/it/numeronym-generator.html` — Numeronym 数字缩写（输入2）
+- [x] #81 `tools/it/phone-parser.html` — Phone Number Parser &amp; Formatter（输入2）
 - [x] #82 `tools/kinematics/angular-accel.html` — 角加速度计算器（输入2）
 - [x] #83 `tools/kinematics/height-fall-distance.html` — 由下落时间求下落距离（输入2）
 - [x] #84 `tools/kinematics/relative-velocity-1d.html` — 由两物体速度求相对速度（输入2）
@@ -144,9 +144,9 @@
 - [x] #114 `tools/signal/rc-time-constant.html` — 时间常数（τ = R·C）（输入2）
 - [x] #115 `tools/statistics/linear-regression.html` — 最小二乘回归计算器（输入2）
 - [x] #116 `tools/surveying/external-distance-curve.html` — 由半径与转角求外距（输入2）
-- [ ] #117 `tools/tax/reverse-charge.html` — 由代扣金额与征收率求代扣代缴税额（输入2）
+- [x] #117 `tools/tax/reverse-charge.html` — 由代扣金额与征收率求代扣代缴税额（输入2）
 - [x] #118 `tools/tax/vat-output.html` — 由销售额与增值税率求销项税额（输入2）
 - [ ] #119 `tools/textile2/dye-temp.html` — 染色温度对照表（输入2）
 - [ ] #120 `tools/urology/calc-1.html` — IPSS 前列腺症状评分（输入2）
 - [ ] #121 `tools/urology/ipss-score.html` — IPSS评分(国际前列腺症状)自动计算器（输入2）
-- [ ] #122 `tools/wedding/countdown-timeline.html` — 婚礼倒计时（输入2）
+- [x] #122 `tools/wedding/countdown-timeline.html` — 婚礼倒计时（输入2）
