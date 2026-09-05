@@ -59,7 +59,7 @@
 - [x] #41 `tools/ophthalmology/osdi-scale.html` — 干眼症(OSDI)自评量表（输入1）
 - [ ] #42 `tools/quantum/angular-momentum-quant.html` — 由主量子数求角动量（输入1）
 - [x] #43 `tools/quantum/mass-energy-equivalence.html` — 质能等价计算器（输入1）
-- [ ] #44 `tools/rehabilitation/fim-scale.html` — 康复结局(FIM)量表总分计算器（输入1）
+- [x] #44 `tools/rehabilitation/fim-scale.html` — 康复结局(FIM)量表总分计算器（输入1）
 - [x] #45 `tools/science/barcode-pharmacode.html` — Pharmacode 条形码（输入1）
 - [x] #46 `tools/science/median-calculator.html` — 中位数计算器（输入1）
 - [x] #47 `tools/science/nato-phonetic.html` — NATO 音标字母（输入1）
@@ -88,7 +88,7 @@
 - [x] #67 `tools/electromagnetism/energy-inductor.html` — 由电感与电流求储能（输入2）
 - [x] #68 `tools/electromagnetism/magnetic-flux.html` — 磁通（Φ = B·A）（输入2）
 - [x] #69 `tools/encode/binary-to-ascii.html` — Binary / Hex to ASCII（输入2）
-- [ ] #70 `tools/endocrinology/calc-1.html` — HOMA-IR 胰岛素抵抗指数（输入2）
+- [x] #70 `tools/endocrinology/calc-1.html` — HOMA-IR 胰岛素抵抗指数（输入2）
 - [ ] #71 `tools/energy/air-purifier-area.html` — 空气净化器适用面积计算（输入2）
 - [ ] #72 `tools/energy/electrical-power.html` — 由电压与电流求电功率（输入2）
 
@@ -129,15 +129,15 @@
 - [x] #102 `tools/optics/resolving-power.html` — 由孔径与波长求圆形孔径分辨本领（输入2）
 - [x] #103 `tools/quantum/fermi-energy-3d.html` — 由自由电子密度求费米能（输入2）
 - [x] #104 `tools/quantum/thermal-de-broglie.html` — 由温度与质量求热德布罗意波长（输入2）
-- [ ] #105 `tools/reproductive-medicine/anti-sperm-antibody.html` — 抗精子抗体 MAR 结果器（输入2）
-- [ ] #106 `tools/reproductive-medicine/liquefaction-time.html` — 精液液化时间判定器（输入2）
-- [ ] #107 `tools/reproductive-medicine/semen-volume.html` — 精液量评估器（输入2）
-- [ ] #108 `tools/reproductive-medicine/sperm-dfi.html` — 精子 DNA 碎片(DFI)指数评估器（输入2）
+- [x] #105 `tools/reproductive-medicine/anti-sperm-antibody.html` — 抗精子抗体 MAR 结果器（输入2）
+- [x] #106 `tools/reproductive-medicine/liquefaction-time.html` — 精液液化时间判定器（输入2）
+- [x] #107 `tools/reproductive-medicine/semen-volume.html` — 精液量评估器（输入2）
+- [x] #108 `tools/reproductive-medicine/sperm-dfi.html` — 精子 DNA 碎片(DFI)指数评估器（输入2）
 
 ## 批次 7（14 个）
 
-- [ ] #109 `tools/reproductive-medicine/sperm-morphology.html` — 精子形态分类器（严格标准）（输入2）
-- [ ] #110 `tools/reproductive-medicine/total-sperm-count.html` — 总精子数计算器（输入2）
+- [x] #109 `tools/reproductive-medicine/sperm-morphology.html` — 精子形态分类器（严格标准）（输入2）
+- [x] #110 `tools/reproductive-medicine/total-sperm-count.html` — 总精子数计算器（输入2）
 - [ ] #111 `tools/robotics/end-effector-reach.html` — 二连杆工作空间计算器（输入2）
 - [x] #112 `tools/science/newtons-second.html` — 牛顿第二定律 F = ma（输入2）
 - [x] #113 `tools/signal/pwm-average.html` — 平均电压（V_avg = D · V_cc）（输入2）
@@ -147,6 +147,6 @@
 - [x] #117 `tools/tax/reverse-charge.html` — 由代扣金额与征收率求代扣代缴税额（输入2）
 - [x] #118 `tools/tax/vat-output.html` — 由销售额与增值税率求销项税额（输入2）
 - [ ] #119 `tools/textile2/dye-temp.html` — 染色温度对照表（输入2）
-- [ ] #120 `tools/urology/calc-1.html` — IPSS 前列腺症状评分（输入2）
-- [ ] #121 `tools/urology/ipss-score.html` — IPSS评分(国际前列腺症状)自动计算器（输入2）
+- [x] #120 `tools/urology/calc-1.html` — IPSS 前列腺症状评分（输入2）
+- [x] #121 `tools/urology/ipss-score.html` — IPSS评分(国际前列腺症状)自动计算器（输入2）
 - [x] #122 `tools/wedding/countdown-timeline.html` — 婚礼倒计时（输入2）
