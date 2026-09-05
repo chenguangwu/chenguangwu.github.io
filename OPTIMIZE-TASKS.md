@@ -8,7 +8,7 @@
 
 | 总数 | 阶段一·基础优化(FAQ) | 阶段二·功能取长补短 | 当前阶段 |
 |---|---|---|---|
-| 750 | 658 页已完成（2026-09-05） | 748 页待做（排除 2 重定向桩） | 阶段二 |
+| 750 | 658 页已完成（2026-09-05） | 747 页待做（排除 2 重定向桩+factorial） | 阶段二·功能优化(已完1:factorial) |
 
 > **阶段一·基础优化（已完成，commit 待落）**：对 750 目标页中的 662 真实工具页（排除 88 个分类 `index.html` 落地页、2 个重定向桩 `calc-4`/`tester-5`）批量注入 **FAQ 可见模块 + FAQPage JSON-LD 结构化数据 + 中文 guide 段（使用步骤/参数说明/适用场景）**。
 > 验证：静态门禁 0 失败；663 工具页 FAQ 100% 经 `_build.py` 重建保真保留；抽样实机无 JS 错误、正文厚度提升（h2 结构完善）。
@@ -54,7 +54,6 @@ python3 scripts/opt_verify.py <批次号>                          # 无头 Chro
 - [ ] #7 `tools/finance/iccid-validator.html` | imp=4 clk=2 pos=4.50 | 待办: 正文(856),英文套话,功能(1)
 - [ ] #8 `tools/it/invite-code-generator.html` | imp=9 clk=1 pos=5.89 | 待办: 正文(811),英文套话
 - [ ] #9 `tools/health/blood-type-calculator.html` | imp=3 clk=2 pos=4.00 | 待办: 正文(1037),英文套话
-- [ ] #10 `tools/science/factorial-calculator.html` | imp=12 clk=0 pos=8.08 | 待办: 正文(655),英文套话,功能(1)
 - [ ] #11 `tools/it/password-generator.html` | imp=8 clk=0 pos=3.10 | 待办: 正文(1019)
 - [ ] #12 `tools/edu/capital-quiz.html` | imp=2 clk=1 pos=1.50 | 待办: 正文(759),英文套话,功能(0)
 - [ ] #13 `tools/design/iso-noise-reference.html` | imp=2 clk=1 pos=2.00 | 待办: 正文(1331),英文套话
