@@ -1188,6 +1188,17 @@ def classify_quality(content):
     for b in re.findall(r'<script>(.*?)</script>', content, re.S):
         if hashlib.md5(b.encode('utf-8')).hexdigest() not in shared:
             own_len += len(b)
+    # 外置的页面专属脚本（由 scripts/extract_inline_scripts.py 从内联块搬移到
+    # js/tools/<name>.js）仍是本页自研逻辑，须计入 own_len；否则 HTML 瘦身会让
+    # 这些页的 own_len 归零、质量分级从 A 误降为 B（2026-09-05 实测踩到）。
+    # 这类文件与页面一一对应，不属于跨页共享模板，无需走 shared 去重。
+    for _src in re.findall(r'<script src="(/js/tools/[^"]+\.js)"', content):
+        _p = os.path.join(ROOT, _src.lstrip('/'))
+        try:
+            with open(_p, encoding='utf-8') as _f:
+                own_len += len(_f.read())
+        except OSError:
+            pass
     rich = ('formula-box' in content) or ('<canvas' in content) or ('data-viz' in content)
     uses_template_engine = 'function getV0()' in content
     has_calc = 'function calc' in content
@@ -2323,6 +2334,7 @@ def fix_tool_pages_seo(tools, target_tools=None, report=True, existing_html_path
     fixed_rt = 0
     fixed_rt_removed = 0
     fixed_nav = 0
+    dropped_crit = 0
     i18n_dir = os.path.join(ROOT, 'i18n', 'tools')
     _ind_cache = {}
 
@@ -2800,7 +2812,19 @@ def fix_tool_pages_seo(tools, target_tools=None, report=True, existing_html_path
         # 切勿用裸 re.sub：二次 build 时裸 re.sub 会再次匹配 noscript 内部的回退 stylesheet，
         # 嵌套 <noscript> 破坏结构（build13 曾因此损坏 4993 页）。
         content = _css_nonblocking(content)
-        if 'id="critical-css"' not in content and CRITICAL_TOOL_CSS and '</head>' in content:
+        # critical CSS 瘦身（2026-09-05）：实测 scripts/critical_tool_css.txt 的 178 条选择器
+        # 100% 被 css/common.css + css/nav-menu.css 覆盖，零条独有；且 _css_nonblocking()
+        # 只把 nav-menu.css 改非阻塞、common.css 保持阻塞，首次渲染前必生效，删除无 FOUC 风险。
+        # 故凡引用 common.css 的页面一律移除内联副本（每页省约 23KB，全站约 132MB）；
+        # 未引用 common.css 的页面（ui/ 设计稿、重定向桩等）仍注入，作为兜底。
+        # 幂等：二次 build 时已无 critical-css，'common.css' 分支自然跳过，不会重复删除。
+        if 'common.css' in content:
+            if 'id="critical-css"' in content:
+                content = re.sub(
+                    r'<style id="critical-css">[\s\S]*?</style>\s*', '', content, count=1)
+                dropped_crit += 1
+        elif ('id="critical-css"' not in content and CRITICAL_TOOL_CSS
+              and '</head>' in content):
             _crit = '<style id="critical-css">\n%s\n</style>\n' % CRITICAL_TOOL_CSS
             content = content.replace('</head>', _crit + '</head>', 1)
         if 'js/nav-menu.js' not in content:
@@ -2847,6 +2871,7 @@ def fix_tool_pages_seo(tools, target_tools=None, report=True, existing_html_path
         'fixed_rt': fixed_rt,
         'fixed_rt_removed': fixed_rt_removed,
         'fixed_nav': fixed_nav,
+        'dropped_crit': dropped_crit,
         'curated_applied': curated_applied,
         'curated_missing': curated_missing,
         'curated_config': len(CURATED_RT),
@@ -2860,6 +2885,9 @@ def _report_tool_seo_result(result):
     print('  h1 added: %d, breadcrumbs: %d, related tools: %d (recomputed), removed stale blocks: %d, nav injected: %d' %
           (result['fixed_h1'], result['fixed_bc'], result['fixed_rt'],
            result['fixed_rt_removed'], result['fixed_nav']))
+    if result.get('dropped_crit'):
+        print('  critical-css removed (redundant with common.css): %d pages' %
+              result['dropped_crit'])
     if result['curated_config']:
         print('  curated related-tools: %d applied (config: %d)' %
               (result['curated_applied'], result['curated_config']))
@@ -2899,6 +2927,7 @@ def fix_tool_pages_seo_parallel(tools):
         'fixed_rt': sum(item['fixed_rt'] for item in results),
         'fixed_rt_removed': sum(item['fixed_rt_removed'] for item in results),
         'fixed_nav': sum(item['fixed_nav'] for item in results),
+        'dropped_crit': sum(item['dropped_crit'] for item in results),
         'curated_applied': sum(item['curated_applied'] for item in results),
         'curated_missing': [message for item in results for message in item['curated_missing']],
         'curated_config': max(item['curated_config'] for item in results),
@@ -2999,8 +3028,7 @@ def generate_category_indexes(tools):
         parts.append('<title>%s</title>\n' % esc_html_py(title_zh))
         parts.append('<link rel="canonical" href="https://chenguangwu.github.io/tools/%s/index.html">\n' % ind)
         parts.append('<link rel="icon" type="image/svg+xml" href="/favicon.svg">\n')
-        # critical CSS 内联；common.css 保持阻塞，避免运行时顶栏无样式闪烁
-        parts.append('<style id="critical-css">\n' + CRITICAL_TOOL_CSS + '\n</style>\n')
+        # critical CSS 不再内联：其规则 100% 被下方阻塞加载的 common.css 覆盖（详见 2804 行注释）。
         parts.append('<link rel="stylesheet" href="../../css/common.css">\n')
         if '/js/analytics.js' not in ''.join(parts):
             parts.append('<script src="/js/analytics.js" defer></script>\n')

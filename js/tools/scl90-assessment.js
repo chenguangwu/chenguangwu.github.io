@@ -1,0 +1,793 @@
+/* scl90-assessment.js
+ * 自动外置自 tools/tools/psychology/scl90-assessment.html —— 由 scripts/extract_inline_scripts.py 生成。
+ * 请勿直接编辑本文件；修改请改源 HTML 后重跑脚本。
+ */
+(function () {
+  'use strict';
+
+  /* ============================================================
+   * 0. 语言助手
+   * ========================================================== */
+  function isEn() { return !!(window.I18n && window.I18n.get && window.I18n.get() === 'en-US'); }
+  function B(zh, en) { return isEn() ? en : zh; }
+
+  /* ============================================================
+   * 1. 维度定义
+   * ========================================================== */
+  var DIMS = [
+    { key: 'som', zh: '躯体化', en: 'Somatization', desc: '反映主观的身体不适感，集中在心血管、胃肠道、呼吸系统及头痛、肌肉酸痛等躯体部位。', descEn: 'Reflects distress arising from bodily perceptions — cardiovascular, gastrointestinal and respiratory complaints, plus headaches and muscle soreness.' },
+    { key: 'oc', zh: '强迫症状', en: 'Obsessive-Compulsive', desc: '明知没必要却难以摆脱的念头、冲动与行为，也包括注意力与记忆方面的认知障碍体验。', descEn: 'Thoughts, impulses and actions experienced as unremitting and unwanted, together with cognitive complaints about attention and memory.' },
+    { key: 'is', zh: '人际关系敏感', en: 'Interpersonal Sensitivity', desc: '与人相处时的不自在与自卑感，在人际互动中过分在意别人的评价与自身表现。', descEn: 'Feelings of personal inadequacy and self-consciousness in social interaction, with heightened concern about how others judge you.' },
+    { key: 'dep', zh: '抑郁', en: 'Depression', desc: '苦闷的情绪与心境，兴趣减退、动力不足、活力丧失，也包括绝望与消极认知。', descEn: 'Dysphoric mood, loss of interest and drive, low vital energy, together with hopelessness and negative cognition.' },
+    { key: 'anx', zh: '焦虑', en: 'Anxiety', desc: '紧张、坐立不安、神经过敏，以及由此产生的躯体化表现与惊恐发作体验。', descEn: 'Nervousness, restlessness and tension, along with the bodily correlates of anxiety and panic-like experiences.' },
+    { key: 'hos', zh: '敌对', en: 'Hostility', desc: '从思维、情感到行为三方面反映敌对表现：厌烦感、争论、摔物直到不可控制的脾气爆发。', descEn: 'Hostility across thought, feeling and action: annoyance, arguing, throwing things, up to uncontrollable outbursts.' },
+    { key: 'pho', zh: '恐怖', en: 'Phobic Anxiety', desc: '对特定场所、交通工具、人群或独处的持续害怕与回避，其程度与实际危险不相称。', descEn: 'Persistent fear and avoidance of places, travel, crowds or being alone, disproportionate to the actual danger.' },
+    { key: 'par', zh: '偏执', en: 'Paranoid Ideation', desc: '投射性思维、猜疑、被害观念与关系观念，倾向于把问题归因于外界的恶意。', descEn: 'Projective thinking, suspiciousness, ideas of reference and delusion-like beliefs about others\u2019 hostile intent.' },
+    { key: 'psy', zh: '精神病性', en: 'Psychoticism', desc: '从轻度的人际隔离到明显的精神病性体验，如被控制感、思维被洞悉、幻听等。', descEn: 'Ranges from mild interpersonal alienation to clear psychotic-like experiences such as thought broadcasting or hearing voices.' },
+    { key: 'add', zh: '附加项目', en: 'Additional Items', desc: '睡眠与饮食相关的 7 个条目，不计入九个主因子，但在临床上常作为整体困扰水平的补充指标。', descEn: 'Seven sleep- and appetite-related items outside the nine primary factors, often used clinically as a supplementary index of overall distress.' }
+  ];
+  var DIM_MAP = {};
+  DIMS.forEach(function (d, i) { DIM_MAP[d.key] = d; d.idx = i; });
+
+  var LEVELS = [
+    { v: 1, zh: '没有', en: 'None' },
+    { v: 2, zh: '很轻', en: 'Very mild' },
+    { v: 3, zh: '中等', en: 'Moderate' },
+    { v: 4, zh: '偏重', en: 'Quite a bit' },
+    { v: 5, zh: '严重', en: 'Extreme' }
+  ];
+
+  /* ============================================================
+   * 2. 90 题题库（标准条目顺序与因子归属）
+   * ========================================================== */
+  var ITEMS = [
+    { i: 1, dim: 'som', text: '头痛', en: 'Headaches' },
+    { i: 2, dim: 'anx', text: '神经过敏，心中不踏实', en: 'Nervousness or shakiness inside' },
+    { i: 3, dim: 'oc', text: '头脑中有不必要的想法或字句盘旋', en: 'Unwanted thoughts or words that will not leave your mind' },
+    { i: 4, dim: 'psy', text: '头昏或昏倒', en: 'Faintness or dizziness' },
+    { i: 5, dim: 'dep', text: '对异性的兴趣减退', en: 'Loss of sexual interest or pleasure' },
+    { i: 6, dim: 'is', text: '对旁人求全责备', en: 'Feeling critical of others' },
+    { i: 7, dim: 'psy', text: '感到别人能控制您的思想', en: 'The idea that someone else can control your thoughts' },
+    { i: 8, dim: 'par', text: '责怪别人制造麻烦', en: 'Feeling others are to blame for most of your troubles' },
+    { i: 9, dim: 'oc', text: '忘记性大', en: 'Trouble remembering things' },
+    { i: 10, dim: 'oc', text: '担心自己的衣饰整齐及仪态的端正', en: 'Worried about sloppiness or carelessness' },
+    { i: 11, dim: 'hos', text: '容易烦恼和激动', en: 'Feeling easily annoyed or irritated' },
+    { i: 12, dim: 'som', text: '胸痛', en: 'Pains in heart or chest' },
+    { i: 13, dim: 'pho', text: '害怕空旷的场所或街道', en: 'Feeling afraid in open spaces or on the streets' },
+    { i: 14, dim: 'dep', text: '感到自己的精力下降，活动减慢', en: 'Feeling low in energy or slowed down' },
+    { i: 15, dim: 'dep', text: '想结束自己的生命', en: 'Thoughts of ending your life' },
+    { i: 16, dim: 'psy', text: '听到旁人听不到的声音', en: 'Hearing voices that other people do not hear' },
+    { i: 17, dim: 'anx', text: '发抖', en: 'Trembling' },
+    { i: 18, dim: 'par', text: '感到大多数人都不可信任', en: 'Feeling that most people cannot be trusted' },
+    { i: 19, dim: 'add', text: '胃口不好', en: 'Poor appetite' },
+    { i: 20, dim: 'dep', text: '容易哭泣', en: 'Crying easily' },
+    { i: 21, dim: 'is', text: '同异性相处时感到害羞不自在', en: 'Feeling shy or uneasy with the opposite sex' },
+    { i: 22, dim: 'dep', text: '感到受骗、中了圈套或有人想抓住您', en: 'Feelings of being trapped or caught' },
+    { i: 23, dim: 'anx', text: '无缘无故地突然感到害怕', en: 'Suddenly scared for no reason' },
+    { i: 24, dim: 'hos', text: '自己不能控制地大发脾气', en: 'Temper outbursts you could not control' },
+    { i: 25, dim: 'pho', text: '怕单独出门', en: 'Feeling afraid to go out of your house alone' },
+    { i: 26, dim: 'dep', text: '经常责怪自己', en: 'Blaming yourself for things' },
+    { i: 27, dim: 'som', text: '腰痛', en: 'Pains in lower back' },
+    { i: 28, dim: 'oc', text: '感到难以完成任务', en: 'Feeling blocked in getting things done' },
+    { i: 29, dim: 'dep', text: '感到孤独', en: 'Feeling lonely' },
+    { i: 30, dim: 'dep', text: '感到苦闷', en: 'Feeling blue' },
+    { i: 31, dim: 'dep', text: '过分担忧', en: 'Worrying too much about things' },
+    { i: 32, dim: 'dep', text: '对事物不感兴趣', en: 'Feeling no interest in things' },
+    { i: 33, dim: 'anx', text: '感到害怕', en: 'Feeling fearful' },
+    { i: 34, dim: 'is', text: '您的感情容易受到伤害', en: 'Your feelings being easily hurt' },
+    { i: 35, dim: 'psy', text: '旁人能知道您的私下想法', en: 'Other people being aware of your private thoughts' },
+    { i: 36, dim: 'is', text: '感到别人不理解您、不同情您', en: 'Feeling others do not understand you or are unsympathetic' },
+    { i: 37, dim: 'is', text: '感到人们对您不友好，不喜欢您', en: 'Feeling that people are unfriendly or dislike you' },
+    { i: 38, dim: 'oc', text: '做事必须做得很慢以保证做得正确', en: 'Having to do things very slowly to ensure correctness' },
+    { i: 39, dim: 'anx', text: '心跳得很厉害', en: 'Heart pounding or racing' },
+    { i: 40, dim: 'som', text: '恶心或胃部不舒服', en: 'Nausea or upset stomach' },
+    { i: 41, dim: 'is', text: '感到比不上他人', en: 'Feeling inferior to others' },
+    { i: 42, dim: 'som', text: '肌肉酸痛', en: 'Soreness of your muscles' },
+    { i: 43, dim: 'par', text: '感到有人在监视您、谈论您', en: 'Feeling that you are watched or talked about by others' },
+    { i: 44, dim: 'add', text: '难以入睡', en: 'Trouble falling asleep' },
+    { i: 45, dim: 'oc', text: '做事必须反复检查', en: 'Having to check and double-check what you do' },
+    { i: 46, dim: 'oc', text: '难以作出决定', en: 'Difficulty making decisions' },
+    { i: 47, dim: 'pho', text: '怕乘电车、公共汽车、地铁或火车', en: 'Feeling afraid to travel on buses, subways or trains' },
+    { i: 48, dim: 'som', text: '呼吸有困难', en: 'Trouble getting your breath' },
+    { i: 49, dim: 'som', text: '一阵阵发冷或发热', en: 'Hot or cold spells' },
+    { i: 50, dim: 'pho', text: '因为感到害怕而避开某些东西、场合或活动', en: 'Avoiding things, places or activities because they frighten you' },
+    { i: 51, dim: 'oc', text: '脑子变空了', en: 'Your mind going blank' },
+    { i: 52, dim: 'som', text: '身体发麻或刺痛', en: 'Numbness or tingling in parts of your body' },
+    { i: 53, dim: 'som', text: '喉咙有梗塞感', en: 'A lump in your throat' },
+    { i: 54, dim: 'dep', text: '感到前途没有希望', en: 'Feeling hopeless about the future' },
+    { i: 55, dim: 'oc', text: '不能集中注意力', en: 'Trouble concentrating' },
+    { i: 56, dim: 'som', text: '感到身体的某一部分软弱无力', en: 'Feeling weak in parts of your body' },
+    { i: 57, dim: 'anx', text: '感到紧张或容易紧张', en: 'Feeling tense or keyed up' },
+    { i: 58, dim: 'som', text: '感到手或脚发重', en: 'Heavy feelings in your arms or legs' },
+    { i: 59, dim: 'psy', text: '想到死亡的事', en: 'Thoughts of death or dying' },
+    { i: 60, dim: 'add', text: '吃得太多', en: 'Overeating' },
+    { i: 61, dim: 'is', text: '当别人看着您或谈论您时感到不自在', en: 'Feeling uneasy when people are watching or talking about you' },
+    { i: 62, dim: 'psy', text: '有一些不属于您自己的想法', en: 'Having thoughts that are not your own' },
+    { i: 63, dim: 'hos', text: '有想打人或伤害他人的冲动', en: 'Having urges to beat, injure or harm someone' },
+    { i: 64, dim: 'add', text: '醒得太早', en: 'Awakening in the early morning' },
+    { i: 65, dim: 'oc', text: '必须反复洗手、点数目或触摸某些东西', en: 'Having to repeat the same actions such as touching, counting or washing' },
+    { i: 66, dim: 'add', text: '睡得不稳不深', en: 'Sleep that is restless or disturbed' },
+    { i: 67, dim: 'hos', text: '有想摔坏或破坏东西的冲动', en: 'Having urges to break or smash things' },
+    { i: 68, dim: 'par', text: '有一些别人没有的想法或念头', en: 'Having ideas or beliefs that others do not share' },
+    { i: 69, dim: 'is', text: '感到对别人神经过敏', en: 'Feeling very self-conscious with others' },
+    { i: 70, dim: 'pho', text: '在商店或电影院等人多的地方感到不自在', en: 'Feeling uneasy in crowds, such as shopping or at a movie' },
+    { i: 71, dim: 'dep', text: '感到任何事情都很困难', en: 'Feeling everything is an effort' },
+    { i: 72, dim: 'anx', text: '一阵阵恐惧或惊恐', en: 'Spells of terror or panic' },
+    { i: 73, dim: 'is', text: '感到在公共场合吃东西很不舒服', en: 'Feeling uncomfortable about eating or drinking in public' },
+    { i: 74, dim: 'hos', text: '经常与人争论', en: 'Getting into frequent arguments' },
+    { i: 75, dim: 'pho', text: '单独一人时神经很紧张', en: 'Feeling nervous when you are left alone' },
+    { i: 76, dim: 'par', text: '别人对您的成绩没有作出恰当的评价', en: 'Others not giving you proper credit for your achievements' },
+    { i: 77, dim: 'psy', text: '即使和别人在一起也感到孤单', en: 'Feeling lonely even when you are with people' },
+    { i: 78, dim: 'anx', text: '感到坐立不安、心神不定', en: 'Feeling so restless you could not sit still' },
+    { i: 79, dim: 'dep', text: '感到自己没有什么价值', en: 'Feelings of worthlessness' },
+    { i: 80, dim: 'anx', text: '感到熟悉的东西变成陌生或不像是真的', en: 'The feeling that something bad is going to happen to you' },
+    { i: 81, dim: 'hos', text: '大叫或摔东西', en: 'Shouting or throwing things' },
+    { i: 82, dim: 'pho', text: '害怕会在公共场合昏倒', en: 'Feeling afraid you will faint in public' },
+    { i: 83, dim: 'par', text: '感到别人想占您的便宜', en: 'Feeling that people will take advantage of you if you let them' },
+    { i: 84, dim: 'psy', text: '为一些有关性的想法而很苦恼', en: 'Having thoughts about sex that bother you a lot' },
+    { i: 85, dim: 'psy', text: '认为应该因为自己的过错而受到惩罚', en: 'The idea that you should be punished for your sins' },
+    { i: 86, dim: 'anx', text: '感到要很快把事情做完', en: 'Feeling pushed to get things done' },
+    { i: 87, dim: 'psy', text: '感到自己的身体有严重问题', en: 'The idea that something serious is wrong with your body' },
+    { i: 88, dim: 'psy', text: '从未感到和其他人很亲近', en: 'Never feeling close to another person' },
+    { i: 89, dim: 'add', text: '感到自己有罪', en: 'Feelings of guilt' },
+    { i: 90, dim: 'psy', text: '感到自己的脑子有毛病', en: 'The idea that something is wrong with your mind' }
+  ];
+
+  /* 因子条目数校验用：按 dim 分组 */
+  var GROUPS = {};
+  ITEMS.forEach(function (it) {
+    if (!GROUPS[it.dim]) { GROUPS[it.dim] = []; }
+    GROUPS[it.dim].push(it);
+  });
+
+  /* ============================================================
+   * 3. 逐维度解读库（分三档：正常 / 轻度 / 中度以上）
+   * ========================================================== */
+  var INTERP = {
+    som: {
+      a: '躯体化因子处于正常范围，说明你近一周较少把情绪压力体验为身体上的不适。身体信号与心理状态之间的通路目前是通畅的，这本身是很好的资源：当你感到累时能识别为「累」，而不是被一连串检查不出原因的疼痛困住。',
+      aEn: 'Somatization is within the normal range, meaning you rarely translated emotional pressure into bodily discomfort this week. The channel between bodily signals and mental state is open, which is a real resource: when you are tired you can name it as tiredness instead of being trapped by pains no examination can explain.',
+      b: '躯体化因子轻度升高，提示近一周出现了一些说不清来源的身体不适——可能是头痛、胸口发闷、胃里不舒服或肌肉酸痛。这类症状常在压力较大的阶段出现，医学检查往往查不出明确病因。建议先排查睡眠时长、久坐姿势与咖啡因摄入这三项最常见的诱因，并把身体感受与当天的事件一起记录一周，你大概会看到明显的对应关系。',
+      bEn: 'Somatization is mildly elevated, suggesting bodily discomfort with no clear source this week — headaches, chest tightness, stomach upset or muscle soreness. Such symptoms often appear during high-pressure periods and rarely show a definite cause on examination. Start by checking the three most common triggers: sleep duration, prolonged sitting posture and caffeine intake. Then log your bodily sensations alongside the day\u2019s events for a week; the correspondence usually becomes obvious.',
+      c: '躯体化因子明显升高，身体不适已经比较密集地占据了你的注意力。需要两条线同时走：一是到内科做必要的躯体检查以排除器质性问题，二是把「压力—身体反应」这条链条纳入心理层面的处理。反复检查却查不出问题会本身制造新的焦虑，因此更值得做的是学习身体扫描、腹式呼吸等调节方法，并在专业人员的陪伴下工作。',
+      cEn: 'Somatization is clearly elevated and bodily discomfort now occupies much of your attention. Two tracks are needed at once: get the necessary medical work-up to rule out organic disease, and treat the pressure-to-body chain as a psychological issue in its own right. Repeated tests that find nothing generate fresh anxiety, so learning body-scan and diaphragmatic breathing techniques with professional support is usually more productive.'
+    },
+    oc: {
+      a: '强迫症状因子在正常范围，说明重复念头、反复检查、注意力涣散这类困扰目前不构成负担，思维的启动与切换都比较顺畅。',
+      aEn: 'The obsessive-compulsive factor is within the normal range: intrusive repetitive thoughts, repeated checking and attentional lapses are not a burden right now, and starting and switching tasks feels fluid.',
+      b: '强迫症状因子轻度升高。典型表现是某个念头反复回放、做完事要再确认一遍、或者觉得脑子有点转不动、记性变差。适度的检查是有适应意义的，但当「再确认一次」变成常规动作，它反而会加固不确定感。可以尝试给检查设一个上限（例如只查一次），并允许那份不舒服自然衰减。',
+      bEn: 'The obsessive-compulsive factor is mildly elevated. Typical signs are a thought replaying itself, needing one more check after finishing something, or a sense that your mind is slow and your memory patchy. Moderate checking is adaptive, but once "just one more check" becomes routine it actually reinforces uncertainty. Try setting a hard cap (for example, check exactly once) and let the discomfort fade on its own.',
+      c: '强迫症状因子明显升高，重复的念头或行为很可能已经占用了大量时间与心力，也可能伴随注意力和记忆方面的抱怨。强迫相关困扰对规范化治疗（暴露与反应阻止法、必要时配合药物）的反应通常不错，但自助方法效果有限，建议尽早找精神科或临床心理专业人员做评估。',
+      cEn: 'The obsessive-compulsive factor is clearly elevated; repetitive thoughts or actions are probably consuming substantial time and energy, often alongside complaints about attention and memory. Obsessive-compulsive difficulties respond well to structured treatment (exposure and response prevention, with medication where indicated), but self-help alone tends to fall short — an early assessment by a psychiatrist or clinical psychologist is advisable.'
+    },
+    is: {
+      a: '人际关系敏感因子处于正常范围，与人相处时你基本能保持自在，别人的评价不至于持续牵动你的自我价值感。',
+      aEn: 'Interpersonal sensitivity is within the normal range: you can stay reasonably at ease around other people, and their judgements do not keep tugging at your sense of self-worth.',
+      b: '人际关系敏感因子轻度升高，提示你在人际场合里比较容易感到不自在，会反复琢磨别人话里的意思，也容易觉得自己不如别人。这类敏感常与高标准的自我要求相伴。一个可操作的练习是：把「他一定觉得我很差」写下来，再列出支持与反对它的具体证据，你会发现结论多半缺乏证据支撑。',
+      bEn: 'Interpersonal sensitivity is mildly elevated: social situations make you uneasy, you replay what people meant, and you readily feel inferior. This sensitivity usually travels with high self-imposed standards. A concrete exercise: write down the thought "he must think I am terrible", then list the specific evidence for and against it. Most of the time the conclusion turns out to be unsupported.',
+      c: '人际关系敏感因子明显升高，自卑感与被评价的紧张可能已经影响到你实际的社交选择，出现回避聚会、不敢表达需求、过度讨好等模式。这类困扰的根源常涉及早年的关系经验，值得在心理咨询中系统地梳理，单靠意志力提醒自己「别在意」通常收效不大。',
+      cEn: 'Interpersonal sensitivity is clearly elevated. Feelings of inadequacy and fear of being judged may already be shaping your actual social choices — avoiding gatherings, not voicing needs, over-accommodating others. The roots often lie in early relational experience, which is worth working through systematically in therapy; simply telling yourself to stop caring rarely helps.'
+    },
+    dep: {
+      a: '抑郁因子处于正常范围，情绪基调、兴趣与动力目前维持在可用的水平上。',
+      aEn: 'The depression factor is within the normal range: mood tone, interest and drive are all at workable levels right now.',
+      b: '抑郁因子轻度升高，提示近一周情绪偏低落，可能伴随兴趣下降、动力不足、容易自责或对未来偏悲观。此时最有效的往往不是「想开点」，而是先恢复两个基础节律：规律的睡眠时间与每天二十分钟以上的身体活动，再逐步加回一两件曾让你有成就感的小事。',
+      bEn: 'The depression factor is mildly elevated, suggesting low mood over the past week, possibly with reduced interest, low drive, self-blame or pessimism about the future. What helps here is rarely "cheer up" — it is restoring two basic rhythms first: a regular sleep schedule and at least twenty minutes of physical activity a day. Then gradually add back one or two small activities that used to give you a sense of accomplishment.',
+      c: '抑郁因子明显升高，低落情绪、兴趣丧失与自我否定的强度已经不低，需要认真对待。请特别留意其中的第 15 题（想结束自己的生命）：如果你在这一题上有任何非零的作答，请立即联系信任的人并寻求专业帮助，不要独自消化。抑郁是可治疗的，越早介入恢复越快。',
+      cEn: 'The depression factor is clearly elevated: low mood, loss of interest and self-devaluation are substantial and deserve serious attention. Pay particular attention to item 15 (thoughts of ending your life): if you endorsed it at any level above "none", reach out to someone you trust and seek professional help immediately rather than carrying it alone. Depression is treatable, and earlier intervention means faster recovery.'
+    },
+    anx: {
+      a: '焦虑因子处于正常范围，紧张与不安的水平在正常波动区间内，身体也没有持续处在警戒状态。',
+      aEn: 'The anxiety factor is within the normal range: tension and unease sit inside the usual band of fluctuation, and your body is not stuck in a state of alarm.',
+      b: '焦虑因子轻度升高，提示近一周比较容易紧张、心里不踏实，可能伴随心跳加快、发抖、坐立不安。焦虑的核心机制是对威胁的过度预警，短期可以用延长呼气的方式（吸气 4 秒、呼气 6—8 秒）直接降低生理唤醒，中期则需要把担忧写下来，区分「可控的」与「不可控的」两类，只对前者制定行动。',
+      bEn: 'The anxiety factor is mildly elevated: you tense up easily and feel unsettled, perhaps with a racing heart, trembling or restlessness. Anxiety is essentially an over-tuned threat alarm. In the short term, lengthening the exhale (inhale 4 seconds, exhale 6–8) lowers physiological arousal directly. Over the medium term, write your worries down, sort them into controllable and uncontrollable, and plan action only for the former.',
+      c: '焦虑因子明显升高，可能已经出现一阵阵的惊恐体验或持续的躯体紧张。持续的高唤醒会挤占睡眠与注意资源，形成恶性循环。建议尽早接受专业评估：认知行为治疗对焦虑障碍有充分的证据支持，必要时配合药物可以更快打断循环。',
+      cEn: 'The anxiety factor is clearly elevated, possibly with panic-like surges or persistent bodily tension. Sustained high arousal eats into sleep and attention, creating a vicious circle. An early professional assessment is advisable: cognitive behavioural therapy has strong evidence for anxiety disorders, and medication can break the cycle faster where indicated.'
+    },
+    hos: {
+      a: '敌对因子处于正常范围，在被冒犯或受挫时，你的情绪反应与行为控制基本处在可管理的状态。',
+      aEn: 'The hostility factor is within the normal range: when offended or frustrated, your emotional reaction and behavioural control remain manageable.',
+      b: '敌对因子轻度升高，提示近一周容易烦躁、易被激怒，可能出现争论增多或想摔东西的冲动。愤怒常是其他情绪的外壳——底下往往是委屈、疲惫或不被理解。当冲动升起时，先离开现场几分钟再回应，可以显著降低事后的懊悔。',
+      bEn: 'The hostility factor is mildly elevated: you are irritable and quick to anger, perhaps arguing more or feeling urges to smash things. Anger is often a shell around something else — underneath there is usually hurt, exhaustion or a sense of not being understood. Stepping away for a few minutes before responding markedly reduces later regret.',
+      c: '敌对因子明显升高，脾气爆发可能已经难以控制并影响到关系与工作。这既是情绪调节的问题，也常与长期的睡眠不足与压力累积有关。建议寻求专业帮助学习具体的愤怒管理技术；如果曾出现伤害他人或损毁物品的行为，请把它作为优先处理的议题。',
+      cEn: 'The hostility factor is clearly elevated; outbursts may already be hard to control and are affecting relationships and work. This is partly emotion regulation and often also the product of chronic sleep debt and accumulated stress. Seek professional help to learn concrete anger-management skills, and if you have harmed someone or damaged property, treat that as the top priority.'
+    },
+    pho: {
+      a: '恐怖因子处于正常范围，对场所、交通工具、人群或独处没有明显的害怕与回避。',
+      aEn: 'The phobic anxiety factor is within the normal range: no marked fear or avoidance of places, travel, crowds or being alone.',
+      b: '恐怖因子轻度升高，提示对某些特定情境（人多的地方、独自出门、乘坐交通工具等）存在超出实际危险的害怕，并可能已经开始回避。回避会短期减轻不安，长期却让恐惧范围扩大。可以按由易到难排一个梯度清单，从最轻的一级开始反复暴露，每级停留到不适下降一半以上再进阶。',
+      bEn: 'The phobic anxiety factor is mildly elevated: certain situations (crowds, going out alone, public transport) frighten you beyond the real danger, and avoidance may already have begun. Avoidance relieves unease in the short run but widens the fear over time. Build a graded ladder from easiest to hardest, repeat exposure at the lowest step, and stay there until the discomfort halves before moving up.',
+      c: '恐怖因子明显升高，回避行为很可能已经限制了你的活动范围与生活半径。恐惧症对暴露疗法的反应相当好，但自行暴露若操作不当容易造成二次挫败，建议在专业人员的指导下按计划进行。',
+      cEn: 'The phobic anxiety factor is clearly elevated and avoidance has probably narrowed the radius of your daily life. Phobias respond well to exposure therapy, but self-directed exposure done badly often produces a second failure experience — work to a plan under professional guidance.'
+    },
+    par: {
+      a: '偏执因子处于正常范围，对他人动机的解读大体保持平衡，不倾向于过度归因于恶意。',
+      aEn: 'The paranoid ideation factor is within the normal range: your reading of other people\u2019s motives stays broadly balanced, without over-attributing hostile intent.',
+      b: '偏执因子轻度升高，提示近一周比较容易怀疑他人动机、觉得自己被议论或被亏待。适度的警觉是保护性的，但当猜疑先于证据出现，它会自我印证：你的防备会引出对方的疏远，疏远又被读成敌意。试着为一次令你不快的互动写出三种可能解释，其中至少一种不涉及对方的恶意。',
+      bEn: 'The paranoid ideation factor is mildly elevated: you readily doubt others\u2019 motives and feel talked about or short-changed. Some vigilance is protective, but when suspicion runs ahead of evidence it becomes self-confirming — your guardedness invites distance, and the distance reads as hostility. For one unpleasant interaction, write three possible explanations, at least one of which involves no ill will.',
+      c: '偏执因子明显升高，猜疑与被害感的强度已经较高，可能显著影响关系与工作协作。这一维度的升高需要专业鉴别——它既可能是长期压力与不安全感的表现，也可能提示需要更细致的精神科评估。建议尽早就诊。',
+      cEn: 'The paranoid ideation factor is clearly elevated; suspicion and a sense of being wronged are strong enough to affect relationships and collaboration at work. Elevation here needs professional differentiation — it can reflect chronic stress and insecurity, or it can signal the need for a more detailed psychiatric assessment. Seeking care early is advisable.'
+    },
+    psy: {
+      a: '精神病性因子处于正常范围，未出现明显的人际隔离感或异常知觉体验。',
+      aEn: 'The psychoticism factor is within the normal range: no marked sense of interpersonal alienation and no unusual perceptual experiences.',
+      b: '精神病性因子轻度升高。这一维度包含很宽的谱系：多数轻度升高只反映强烈的孤独感、与人「隔着一层」的疏离感，或对身体与念头的不寻常关注，并不意味着精神疾病。严重睡眠剥夺、强烈应激或物质使用都可能带来类似体验，值得先检查这几项。',
+      bEn: 'The psychoticism factor is mildly elevated. This dimension spans a wide spectrum: most mild elevations simply reflect intense loneliness, a sense of being separated from others by a pane of glass, or unusual preoccupation with your body and thoughts — they do not indicate psychotic illness. Severe sleep deprivation, acute stress and substance use can all produce similar experiences, so check those first.',
+      c: '精神病性因子明显升高。如果你确实体验到被控制感、思维被他人知晓或听到别人听不到的声音，请务必尽快到精神科就诊做专业评估——这类体验的鉴别需要面对面的临床访谈，自评量表无法承担。请不要独自等待观察，也不要因为担心「被贴标签」而延迟就医。',
+      cEn: 'The psychoticism factor is clearly elevated. If you genuinely experience a sense of being controlled, of your thoughts being known to others, or of hearing voices others do not hear, please see a psychiatrist as soon as possible. Differentiating these experiences requires a face-to-face clinical interview that no self-report scale can substitute for. Do not wait it out alone, and do not delay care out of fear of being labelled.'
+    },
+    add: {
+      a: '附加项目（睡眠与饮食）处于正常范围，入睡、睡眠连续性与食欲都比较稳定。',
+      aEn: 'The additional items (sleep and appetite) are within the normal range: falling asleep, sleep continuity and appetite are all reasonably stable.',
+      b: '附加项目轻度升高，提示近一周的睡眠或食欲出现了波动：可能是难以入睡、睡不深、早醒，或食欲下降与暴食。睡眠是几乎所有心理症状的放大器，优先修复它常能带来全局改善：固定起床时间、上床前一小时离开屏幕、白天见足光照，这三条的性价比最高。',
+      bEn: 'The additional items are mildly elevated, indicating fluctuation in sleep or appetite this week: trouble falling asleep, shallow sleep, early waking, reduced appetite or overeating. Sleep amplifies almost every psychological symptom, so fixing it first often improves everything else. The three highest-yield steps are a fixed wake-up time, no screens in the hour before bed, and enough daylight exposure during the day.',
+      c: '附加项目明显升高，睡眠与饮食的紊乱程度已经不容忽视。持续的失眠会显著加重情绪与焦虑症状，也会削弱其他干预的效果。建议把睡眠问题作为独立议题处理，失眠的认知行为治疗（CBT-I）是首选方案，必要时请医生评估是否需要短期药物辅助。',
+      cEn: 'The additional items are clearly elevated; the disturbance of sleep and appetite can no longer be ignored. Persistent insomnia markedly worsens mood and anxiety symptoms and blunts the effect of other interventions. Treat sleep as a problem in its own right: cognitive behavioural therapy for insomnia (CBT-I) is first-line, with a clinician deciding whether short-term medication is warranted.'
+    }
+  };
+
+  /* ============================================================
+   * 4. DOM 助手
+   * ========================================================== */
+  function $(id) { return document.getElementById(id); }
+  function esc(s) {
+    return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+  var _toastT = null;
+  function toast(msg) {
+    var el = $('s9Toast');
+    if (!el) {
+      el = document.createElement('div');
+      el.id = 's9Toast';
+      el.style.cssText = 'position:fixed;left:50%;bottom:30px;transform:translateX(-50%) translateY(18px);background:rgba(31,41,55,.94);color:#fff;padding:10px 18px;border-radius:999px;font-size:13px;z-index:9999;opacity:0;transition:.22s;pointer-events:none;box-shadow:0 6px 20px rgba(0,0,0,.2)';
+      document.body.appendChild(el);
+    }
+    el.textContent = msg;
+    el.style.opacity = '1'; el.style.transform = 'translateX(-50%) translateY(0)';
+    clearTimeout(_toastT);
+    _toastT = setTimeout(function () {
+      el.style.opacity = '0'; el.style.transform = 'translateX(-50%) translateY(18px)';
+    }, 1700);
+  }
+  function download(data, filename, mime) {
+    var blob = (data instanceof Blob) ? data : new Blob([data], { type: mime || 'text/plain;charset=utf-8' });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url; a.download = filename;
+    document.body.appendChild(a); a.click();
+    setTimeout(function () { document.body.removeChild(a); URL.revokeObjectURL(url); }, 400);
+  }
+  function cssVar(name, fb) {
+    try {
+      var v = getComputedStyle(document.documentElement).getPropertyValue(name);
+      return (v && v.trim()) ? v.trim() : fb;
+    } catch (e) { return fb; }
+  }
+
+  /* ============================================================
+   * 5. 渲染题目
+   * ========================================================== */
+  var ANS = {};                     // { itemIndex: 1..5 }
+  var DRAFT_KEY = 'toolbox.scl90.draft.v1';
+  var LAST_KEY = 'toolbox.scl90.last.v1';
+
+  function dimName(k) { var d = DIM_MAP[k]; return isEn() ? d.en : d.zh; }
+
+  function renderForm() {
+    var order = ['som', 'oc', 'is', 'dep', 'anx', 'hos', 'pho', 'par', 'psy', 'add'];
+    var html = '';
+    var jump = '';
+    order.forEach(function (dk) {
+      var g = GROUPS[dk] || [];
+      if (!g.length) { return; }
+      jump += '<button type="button" data-go="sec-' + dk + '">' + esc(dimName(dk)) + ' (' + g.length + ')</button>';
+      html += '<section class="s9-sec" id="sec-' + dk + '">' +
+        '<div class="s9-sech"><span>' + esc(dimName(dk)) + '</span>' +
+        '<span class="tag">' + g.length + B(' 题', ' items') + ' · ' + B('已答 ', 'answered ') + '<span data-done="' + dk + '">0</span></span></div>';
+      g.forEach(function (it) {
+        html += '<div class="s9-q" id="q-' + it.i + '"><div class="s9-qt"><b>' + it.i + '.</b>' +
+          esc(isEn() ? it.en : it.text) + '</div><div class="s9-opts">';
+        LEVELS.forEach(function (lv) {
+          var id = 'i' + it.i + '-' + lv.v;
+          html += '<span class="s9-opt"><input type="radio" name="q' + it.i + '" id="' + id + '" value="' + lv.v + '">' +
+            '<label for="' + id + '"><i>' + lv.v + '</i><span>' + esc(isEn() ? lv.en : lv.zh) + '</span></label></span>';
+        });
+        html += '</div></div>';
+      });
+      html += '</section>';
+    });
+    $('s9Form').innerHTML = html;
+    $('s9Jump').innerHTML = jump;
+
+    $('s9Jump').addEventListener('click', function (e) {
+      var b = e.target.closest ? e.target.closest('[data-go]') : null;
+      if (!b) { return; }
+      var t = $(b.getAttribute('data-go'));
+      if (t) { t.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+    });
+
+    $('s9Form').addEventListener('change', function (e) {
+      var t = e.target;
+      if (!t || t.type !== 'radio') { return; }
+      var idx = parseInt(String(t.name).slice(1), 10);
+      ANS[idx] = parseInt(t.value, 10);
+      var q = $('q-' + idx);
+      if (q) { q.classList.remove('miss'); }
+      updateProgress();
+      saveDraft();
+    });
+  }
+
+  function applyAnswers() {
+    ITEMS.forEach(function (it) {
+      var v = ANS[it.i];
+      if (!v) { return; }
+      var el = $('i' + it.i + '-' + v);
+      if (el) { el.checked = true; }
+    });
+  }
+
+  function updateProgress() {
+    var n = 0;
+    ITEMS.forEach(function (it) { if (ANS[it.i]) { n++; } });
+    $('s9Cnt').textContent = n + ' / 90';
+    $('s9Fill').style.width = (n / 90 * 100).toFixed(1) + '%';
+    var per = {};
+    ITEMS.forEach(function (it) { if (ANS[it.i]) { per[it.dim] = (per[it.dim] || 0) + 1; } });
+    Array.prototype.forEach.call(document.querySelectorAll('[data-done]'), function (el) {
+      el.textContent = per[el.getAttribute('data-done')] || 0;
+    });
+    return n;
+  }
+
+  /* ============================================================
+   * 6. 断点续答
+   * ========================================================== */
+  function saveDraft() {
+    try {
+      localStorage.setItem(DRAFT_KEY, JSON.stringify({ t: Date.now(), a: ANS }));
+    } catch (e) { /* 隐私模式或配额不足时静默降级 */ }
+  }
+  function loadDraft() {
+    try {
+      var raw = localStorage.getItem(DRAFT_KEY);
+      if (!raw) { return null; }
+      var o = JSON.parse(raw);
+      if (!o || !o.a) { return null; }
+      return o;
+    } catch (e) { return null; }
+  }
+  function clearDraft() {
+    try { localStorage.removeItem(DRAFT_KEY); } catch (e) { /* 忽略 */ }
+  }
+  function showDraftBar(o) {
+    var n = Object.keys(o.a).length;
+    if (!n) { return; }
+    var d = new Date(o.t);
+    var ts = d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2) +
+      ' ' + ('0' + d.getHours()).slice(-2) + ':' + ('0' + d.getMinutes()).slice(-2);
+    var bar = $('s9Draft');
+    bar.innerHTML = B('检测到未完成的作答草稿（', 'Found an unfinished draft (') + ts + B('，已答 ', ', ') + n +
+      B(' 题）。', ' items answered). ') +
+      '<button class="btn" id="s9Resume" style="margin-left:8px;padding:4px 12px;font-size:12px">' + B('继续作答', 'Resume') + '</button> ' +
+      '<button class="btn" id="s9Drop" style="padding:4px 12px;font-size:12px">' + B('丢弃草稿', 'Discard') + '</button>';
+    bar.classList.add('on');
+    $('s9Resume').addEventListener('click', function () {
+      ANS = o.a;
+      applyAnswers();
+      updateProgress();
+      bar.classList.remove('on');
+      toast(B('已恢复草稿', 'Draft restored'));
+    });
+    $('s9Drop').addEventListener('click', function () {
+      clearDraft();
+      bar.classList.remove('on');
+    });
+  }
+
+  /* ============================================================
+   * 7. 计分引擎
+   * ========================================================== */
+  function score() {
+    var total = 0, pos = 0, posSum = 0;
+    var sums = {};
+    ITEMS.forEach(function (it) {
+      var v = ANS[it.i] || 1;
+      total += v;
+      if (v >= 2) { pos++; posSum += v; }
+      sums[it.dim] = (sums[it.dim] || 0) + v;
+    });
+    var neg = 90 - pos;
+    // 阳性症状均分：仅在有症状条目上求均值
+    var psdi = pos > 0 ? (total - neg) / pos : 0;
+    var factors = {};
+    DIMS.forEach(function (d) {
+      var g = GROUPS[d.key] || [];
+      factors[d.key] = g.length ? (sums[d.key] || 0) / g.length : 0;
+    });
+    var over2 = [];
+    DIMS.forEach(function (d) {
+      if (d.key === 'add') { return; }
+      if (factors[d.key] > 2) { over2.push(d.key); }
+    });
+    return {
+      total: total,
+      mean: total / 90,
+      pos: pos,
+      neg: neg,
+      psdi: psdi,
+      factors: factors,
+      over2: over2,
+      flagTotal: total > 160,
+      flagPos: pos > 43
+    };
+  }
+
+  function levelOf(f) { return f <= 2 ? 'a' : (f <= 3 ? 'b' : 'c'); }
+  function levelLabel(f) {
+    if (f <= 2) { return { cls: 'lvA', txt: B('正常范围', 'Within normal range'), td: 'lv1' }; }
+    if (f <= 3) { return { cls: 'lvB', txt: B('轻度困扰', 'Mild distress'), td: 'lv2' }; }
+    if (f <= 4) { return { cls: 'lvC', txt: B('中度困扰', 'Moderate distress'), td: 'lv3' }; }
+    return { cls: 'lvC', txt: B('偏重', 'Marked distress'), td: 'lv3' };
+  }
+
+  /* ============================================================
+   * 8. 雷达图（canvas 自绘）
+   * ========================================================== */
+  function drawRadar(res) {
+    var cv = $('s9Radar');
+    if (!cv || !cv.getContext) { return; }
+    var dpr = Math.min(2, window.devicePixelRatio || 1);
+    var W = 640, H = 560;
+    cv.width = W * dpr; cv.height = H * dpr;
+    cv.style.width = W + 'px'; cv.style.height = H + 'px';
+    var x = cv.getContext('2d');
+    x.setTransform(dpr, 0, 0, dpr, 0, 0);
+    x.clearRect(0, 0, W, H);
+
+    var line = cssVar('--border', '#e5e7eb');
+    var txtM = cssVar('--text-muted', '#9ca3af');
+    var txtP = cssVar('--text-primary', '#111827');
+    var pri = cssVar('--primary', '#ff6b35');
+
+    var keys = ['som', 'oc', 'is', 'dep', 'anx', 'hos', 'pho', 'par', 'psy'];
+    var n = keys.length;
+    var cx = W / 2, cy = H / 2 + 6, R = 178;
+    var MAXV = 5, MINV = 1;
+
+    function pt(i, val) {
+      var ang = -Math.PI / 2 + i * 2 * Math.PI / n;
+      var r = R * (val - MINV) / (MAXV - MINV);
+      return [cx + Math.cos(ang) * r, cy + Math.sin(ang) * r];
+    }
+
+    // 同心网格（1..5）
+    for (var g = 1; g <= 5; g++) {
+      var v = MINV + (MAXV - MINV) * g / 5;
+      x.beginPath();
+      for (var i = 0; i < n; i++) {
+        var p = pt(i, v);
+        if (i === 0) { x.moveTo(p[0], p[1]); } else { x.lineTo(p[0], p[1]); }
+      }
+      x.closePath();
+      x.strokeStyle = line;
+      x.lineWidth = g === 5 ? 1.5 : 1;
+      x.stroke();
+      x.fillStyle = txtM;
+      x.font = '10px sans-serif';
+      x.textAlign = 'right'; x.textBaseline = 'middle';
+      x.fillText(v.toFixed(0), cx - 4, cy - R * g / 5);
+    }
+
+    // 阈值环（因子分 = 2 的警戒线）
+    x.beginPath();
+    for (var t = 0; t < n; t++) {
+      var pp = pt(t, 2);
+      if (t === 0) { x.moveTo(pp[0], pp[1]); } else { x.lineTo(pp[0], pp[1]); }
+    }
+    x.closePath();
+    x.strokeStyle = 'rgba(239,68,68,.65)';
+    x.lineWidth = 1.5;
+    x.setLineDash([5, 4]);
+    x.stroke();
+    x.setLineDash([]);
+
+    // 轴线 + 标签
+    for (var a = 0; a < n; a++) {
+      var e = pt(a, MAXV);
+      x.beginPath(); x.moveTo(cx, cy); x.lineTo(e[0], e[1]);
+      x.strokeStyle = line; x.lineWidth = 1; x.stroke();
+
+      var ang2 = -Math.PI / 2 + a * 2 * Math.PI / n;
+      var lx = cx + Math.cos(ang2) * (R + 34);
+      var ly = cy + Math.sin(ang2) * (R + 30);
+      x.fillStyle = txtP;
+      x.font = 'bold 12px sans-serif';
+      x.textAlign = Math.abs(Math.cos(ang2)) < 0.25 ? 'center' : (Math.cos(ang2) > 0 ? 'left' : 'right');
+      x.textBaseline = 'middle';
+      var nm = dimName(keys[a]);
+      x.fillText(nm, lx, ly - 7);
+      var fv = res.factors[keys[a]];
+      x.fillStyle = fv > 2 ? cssVar('--danger', '#ef4444') : txtM;
+      x.font = 'bold 11px sans-serif';
+      x.fillText(fv.toFixed(2), lx, ly + 8);
+    }
+
+    // 数据多边形
+    x.beginPath();
+    for (var d2 = 0; d2 < n; d2++) {
+      var q = pt(d2, Math.max(MINV, Math.min(MAXV, res.factors[keys[d2]])));
+      if (d2 === 0) { x.moveTo(q[0], q[1]); } else { x.lineTo(q[0], q[1]); }
+    }
+    x.closePath();
+    var grad = x.createRadialGradient(cx, cy, 8, cx, cy, R);
+    grad.addColorStop(0, 'rgba(255,107,53,.42)');
+    grad.addColorStop(1, 'rgba(142,36,170,.26)');
+    x.fillStyle = grad; x.fill();
+    x.strokeStyle = pri; x.lineWidth = 2.2; x.stroke();
+
+    // 数据点
+    for (var k = 0; k < n; k++) {
+      var pp2 = pt(k, Math.max(MINV, Math.min(MAXV, res.factors[keys[k]])));
+      x.beginPath(); x.arc(pp2[0], pp2[1], 4.2, 0, Math.PI * 2);
+      x.fillStyle = res.factors[keys[k]] > 2 ? cssVar('--danger', '#ef4444') : pri;
+      x.fill();
+      x.strokeStyle = cssVar('--bg-card', '#fff'); x.lineWidth = 1.6; x.stroke();
+    }
+
+    // 图例
+    x.fillStyle = txtM;
+    x.font = '11px sans-serif';
+    x.textAlign = 'left'; x.textBaseline = 'top';
+    x.fillText(B('实线：你的因子分', 'Solid: your factor scores'), 12, 12);
+    x.fillStyle = 'rgba(239,68,68,.9)';
+    x.fillText(B('红色虚线：因子分 = 2 的关注阈值', 'Red dashed: factor score = 2 attention threshold'), 12, 28);
+  }
+
+  /* ============================================================
+   * 9. 结果渲染
+   * ========================================================== */
+  var LAST_RES = null;
+
+  function renderResult(res) {
+    LAST_RES = res;
+
+    // 结论
+    var flags = [];
+    if (res.flagTotal) { flags.push(B('总分 ' + res.total + ' > 160', 'total score ' + res.total + ' > 160')); }
+    if (res.flagPos) { flags.push(B('阳性项目数 ' + res.pos + ' > 43', 'positive item count ' + res.pos + ' > 43')); }
+    if (res.over2.length) {
+      flags.push(B(res.over2.length + ' 个因子分 > 2（' + res.over2.map(dimName).join('、') + '）',
+        res.over2.length + ' factor score(s) > 2 (' + res.over2.map(dimName).join(', ') + ')'));
+    }
+    var v;
+    if (!flags.length) {
+      v = '<div class="s9-interp" style="border-left-color:var(--success)"><b>' +
+        B('筛查结果：未达到阳性标准。', 'Screening result: below the positive threshold.') + '</b> ' +
+        B('总分 ' + res.total + '（阈值 160）、阳性项目数 ' + res.pos + '（阈值 43），九个因子分均不超过 2。这说明你近一周报告的症状困扰整体处在常见范围内。量表只覆盖最近一周，若近期经历重大生活事件，建议隔一两周再测一次做纵向对照。',
+          'Total score ' + res.total + ' (threshold 160) and ' + res.pos + ' positive items (threshold 43); all nine factor scores are at or below 2. Your reported distress over the past week falls within the commonly observed range. The scale only covers the past week, so if you have just been through a major life event, consider retesting in one or two weeks for comparison.') +
+        '</div>';
+    } else {
+      v = '<div class="s9-interp" style="border-left-color:var(--danger)"><b>' +
+        B('筛查结果：达到阳性标准，建议进一步专业评估。', 'Screening result: positive — further professional assessment is advised.') + '</b><br>' +
+        B('触发的判定条件：', 'Criteria triggered: ') + esc(flags.join('；')) + '<br>' +
+        B('这不是诊断，只说明你在这一周内报告的困扰比常见水平更多、更集中。合理的下一步是带着这份结果找精神科医师或心理治疗师做一次面对面的评估，由专业人员结合病史、社会功能与病程做判断。',
+          'This is not a diagnosis. It only indicates that the distress you reported over the past week is more frequent and more concentrated than typical. A reasonable next step is to bring this result to a psychiatrist or psychotherapist for a face-to-face assessment that also considers your history, functioning and course over time.') +
+        '</div>';
+    }
+    $('s9Verdict').innerHTML = v;
+
+    // KPI
+    var kp = [
+      { k: B('总分', 'Total score'), v: res.total, u: B('范围 90 – 450 · 阈值 160', 'range 90–450 · threshold 160'), cls: res.flagTotal ? 'bad' : '' },
+      { k: B('总均分', 'Global mean'), v: res.mean.toFixed(2), u: B('总分 ÷ 90', 'total ÷ 90'), cls: res.mean > 1.78 ? 'hi' : '' },
+      { k: B('阳性项目数', 'Positive items'), v: res.pos, u: B('单题 ≥ 2 的题数 · 阈值 43', 'items scored ≥ 2 · threshold 43'), cls: res.flagPos ? 'bad' : '' },
+      { k: B('阴性项目数', 'Negative items'), v: res.neg, u: B('单题 = 1 的题数', 'items scored 1'), cls: '' },
+      { k: B('阳性症状均分', 'Symptom distress index'), v: res.psdi.toFixed(2), u: B('有症状条目的平均严重度', 'mean severity of endorsed items'), cls: res.psdi > 2.5 ? 'hi' : '' },
+      { k: B('因子分 > 2 的维度', 'Factors above 2'), v: res.over2.length, u: B('共 9 个主因子', 'out of 9 primary factors'), cls: res.over2.length ? 'hi' : '' }
+    ];
+    $('s9Kpi').innerHTML = kp.map(function (o) {
+      return '<div class="s9-kbox ' + o.cls + '"><div class="k">' + esc(o.k) + '</div><div class="v">' + o.v + '</div><div class="u">' + esc(o.u) + '</div></div>';
+    }).join('');
+
+    // 因子表
+    var th = '<thead><tr><th>' + B('维度', 'Factor') + '</th><th>' + B('题数', 'Items') + '</th><th>' + B('维度总分', 'Sum') + '</th><th>' +
+      B('因子分', 'Factor score') + '</th><th>' + B('判读', 'Level') + '</th><th>' + B('维度释义', 'What it measures') + '</th></tr></thead><tbody>';
+    var body = '';
+    DIMS.forEach(function (d) {
+      var g = GROUPS[d.key] || [];
+      var sum = 0;
+      g.forEach(function (it) { sum += (ANS[it.i] || 1); });
+      var f = res.factors[d.key];
+      var L = levelLabel(f);
+      body += '<tr><td class="k">' + esc(isEn() ? d.en : d.zh) + (d.key === 'add' ? ' *' : '') + '</td>' +
+        '<td>' + g.length + '</td><td>' + sum + '</td>' +
+        '<td class="' + L.td + '">' + f.toFixed(2) + '</td>' +
+        '<td class="' + L.td + '">' + esc(L.txt) + '</td>' +
+        '<td class="d">' + esc(isEn() ? d.descEn : d.desc) + '</td></tr>';
+    });
+    $('s9Tbl').innerHTML = th + body + '</tbody>';
+
+    // 逐维度解读：按因子分降序，正常维度合并为一句
+    var sorted = DIMS.slice().sort(function (a, b) { return res.factors[b.key] - res.factors[a.key]; });
+    var ih = '', normals = [];
+    sorted.forEach(function (d) {
+      var f = res.factors[d.key];
+      var lv = levelOf(f);
+      if (lv === 'a' && d.key !== sorted[0].key) { normals.push(isEn() ? d.en : d.zh); return; }
+      var L = levelLabel(f);
+      var txt = isEn() ? (INTERP[d.key][lv + 'En'] || INTERP[d.key][lv]) : INTERP[d.key][lv];
+      ih += '<div class="s9-interp"><b>' + esc(isEn() ? d.en : d.zh) + '　' + f.toFixed(2) + '</b>' +
+        '<span class="lv ' + L.cls + '">' + esc(L.txt) + '</span><br>' + esc(txt) + '</div>';
+    });
+    if (normals.length) {
+      ih += '<div class="s9-interp" style="border-left-color:var(--success)"><b>' +
+        B('以下维度均在正常范围：', 'The following factors are all within the normal range: ') + '</b>' +
+        esc(normals.join('、')) + B('。这些维度的因子分不超过 2，说明相应症状在最近一周内没有构成明显困扰。', '. Their factor scores do not exceed 2, indicating these symptom clusters did not cause notable distress in the past week.') +
+        '</div>';
+    }
+    $('s9Interp').innerHTML = ih;
+
+    // 分享卡
+    var top3 = DIMS.filter(function (d) { return d.key !== 'add'; })
+      .slice().sort(function (a, b) { return res.factors[b.key] - res.factors[a.key]; }).slice(0, 3);
+    var dstr = new Date();
+    var card = B('SCL-90 症状自评量表 · 结果摘要', 'SCL-90 Symptom Checklist · Result summary') + '\n' +
+      '────────────────────────\n' +
+      B('测评日期：', 'Date: ') + dstr.getFullYear() + '-' + ('0' + (dstr.getMonth() + 1)).slice(-2) + '-' + ('0' + dstr.getDate()).slice(-2) + '\n' +
+      B('总分：', 'Total: ') + res.total + ' / 450' + B('（阈值 160）', ' (threshold 160)') + '\n' +
+      B('总均分：', 'Global mean: ') + res.mean.toFixed(2) + '\n' +
+      B('阳性项目数：', 'Positive items: ') + res.pos + ' / 90' + B('（阈值 43）', ' (threshold 43)') + '\n' +
+      B('阳性症状均分：', 'Symptom distress index: ') + res.psdi.toFixed(2) + '\n' +
+      B('得分最高三维度：', 'Top three factors: ') + top3.map(function (d) {
+        return (isEn() ? d.en : d.zh) + ' ' + res.factors[d.key].toFixed(2);
+      }).join(' · ') + '\n' +
+      B('筛查判定：', 'Screening: ') + (flags.length ? B('阳性，建议进一步专业评估', 'positive — further professional assessment advised') : B('未达阳性标准', 'below positive threshold')) + '\n' +
+      '────────────────────────\n' +
+      B('本测评结果为自测参考，不替代专业心理/医学诊断。', 'This self-assessment is for reference only and does not replace professional psychological or medical diagnosis.');
+    $('s9Share').textContent = card;
+
+    // 与上次对比
+    var extra = B('说明：带 * 的「附加项目」不计入九个主因子，仅作为睡眠与饮食困扰的补充参考。因子分区间判读：≤2 正常范围、2–3 轻度困扰、3–4 中度困扰、>4 偏重。',
+      'Note: the starred "additional items" are not part of the nine primary factors and serve only as a supplementary index of sleep and appetite complaints. Factor score bands: ≤2 normal, 2–3 mild, 3–4 moderate, >4 marked.');
+    try {
+      var prev = localStorage.getItem(LAST_KEY);
+      if (prev) {
+        var p = JSON.parse(prev);
+        if (p && typeof p.total === 'number') {
+          var dt = res.total - p.total;
+          extra += '\n' + B('　纵向对照：上次测评总分 ' + p.total + '（' + p.date + '），本次 ' + res.total + '，变化 ' + (dt > 0 ? '+' : '') + dt + '。',
+            '　Longitudinal comparison: previous total ' + p.total + ' (' + p.date + '), current ' + res.total + ', change ' + (dt > 0 ? '+' : '') + dt + '.');
+        }
+      }
+      var nd = new Date();
+      localStorage.setItem(LAST_KEY, JSON.stringify({
+        total: res.total,
+        date: nd.getFullYear() + '-' + ('0' + (nd.getMonth() + 1)).slice(-2) + '-' + ('0' + nd.getDate()).slice(-2)
+      }));
+    } catch (e) { /* 忽略存储异常 */ }
+    $('s9Extra').textContent = extra;
+
+    drawRadar(res);
+    $('s9Res').classList.add('on');
+    $('s9Res').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  /* ============================================================
+   * 10. 事件
+   * ========================================================== */
+  $('s9Calc').addEventListener('click', function () {
+    var miss = [];
+    ITEMS.forEach(function (it) {
+      var q = $('q-' + it.i);
+      if (!ANS[it.i]) {
+        miss.push(it.i);
+        if (q) { q.classList.add('miss'); }
+      } else if (q) { q.classList.remove('miss'); }
+    });
+    if (miss.length) {
+      toast(B('还有 ' + miss.length + ' 题未作答，已高亮标出', miss.length + ' item(s) still unanswered — highlighted'));
+      var f = $('q-' + miss[0]);
+      if (f) { f.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
+      return;
+    }
+    renderResult(score());
+    clearDraft();
+  });
+
+  $('s9Fill1').addEventListener('click', function () {
+    ITEMS.forEach(function (it) { ANS[it.i] = 1; });
+    applyAnswers(); updateProgress(); saveDraft();
+    toast(B('已全部标记为「没有」', 'All items set to "None"'));
+  });
+
+  $('s9Demo').addEventListener('click', function () {
+    // 生成一份有区分度的示例作答：抑郁/焦虑偏高，其余偏低
+    var bias = { dep: 2.1, anx: 2.0, add: 1.9, oc: 1.5, is: 1.4, som: 1.3, hos: 1.2, pho: 1.1, par: 1.2, psy: 1.05 };
+    ITEMS.forEach(function (it, k) {
+      var base = bias[it.dim] || 1.2;
+      var jitter = ((k * 37 + it.i * 11) % 7) / 7 - 0.35;
+      var v = Math.round(base + jitter);
+      ANS[it.i] = Math.max(1, Math.min(5, v));
+    });
+    ANS[15] = 1; // 示例数据不在自杀意念条目上造假
+    applyAnswers(); updateProgress(); saveDraft();
+    toast(B('已载入示例作答（抑郁 / 焦虑偏高）', 'Sample answers loaded (elevated depression / anxiety)'));
+  });
+
+  $('s9Clear').addEventListener('click', function () {
+    ANS = {};
+    Array.prototype.forEach.call($('s9Form').querySelectorAll('input[type=radio]'), function (r) { r.checked = false; });
+    Array.prototype.forEach.call(document.querySelectorAll('.s9-q'), function (q) { q.classList.remove('miss'); });
+    updateProgress();
+    clearDraft();
+    $('s9Res').classList.remove('on');
+    toast(B('已清空', 'Cleared'));
+  });
+
+  $('s9Copy').addEventListener('click', function () {
+    var t = $('s9Share').textContent;
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(t).then(function () { toast(B('已复制到剪贴板', 'Copied to clipboard')); }, fb);
+    } else { fb(); }
+    function fb() {
+      var ta = document.createElement('textarea');
+      ta.value = t; ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta); ta.select();
+      try { document.execCommand('copy'); toast(B('已复制到剪贴板', 'Copied to clipboard')); } catch (e) { toast(B('复制失败', 'Copy failed')); }
+      document.body.removeChild(ta);
+    }
+  });
+
+  $('s9Csv').addEventListener('click', function () {
+    if (!LAST_RES) { toast(B('请先计算结果', 'Please calculate the result first')); return; }
+    var rows = [];
+    rows.push([B('题号', 'Item'), B('题目', 'Question'), B('所属维度', 'Factor'), B('得分', 'Score')]);
+    ITEMS.forEach(function (it) {
+      rows.push([it.i, isEn() ? it.en : it.text, dimName(it.dim), ANS[it.i] || '']);
+    });
+    rows.push([]);
+    rows.push([B('指标', 'Metric'), B('数值', 'Value')]);
+    rows.push([B('总分', 'Total score'), LAST_RES.total]);
+    rows.push([B('总均分', 'Global mean'), LAST_RES.mean.toFixed(3)]);
+    rows.push([B('阳性项目数', 'Positive items'), LAST_RES.pos]);
+    rows.push([B('�긍性项目数', 'Negative items').replace('긍', '阴'), LAST_RES.neg]);
+    rows.push([B('阳性症状均分', 'Symptom distress index'), LAST_RES.psdi.toFixed(3)]);
+    rows.push([]);
+    rows.push([B('因子', 'Factor'), B('因子分', 'Factor score'), B('判读', 'Level')]);
+    DIMS.forEach(function (d) {
+      rows.push([isEn() ? d.en : d.zh, LAST_RES.factors[d.key].toFixed(3), levelLabel(LAST_RES.factors[d.key]).txt]);
+    });
+    var csv = '\ufeff' + rows.map(function (r) {
+      return r.map(function (c) {
+        var s = String(c === undefined || c === null ? '' : c);
+        return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+      }).join(',');
+    }).join('\r\n');
+    download(csv, 'scl90-result.csv', 'text/csv;charset=utf-8');
+  });
+
+  $('s9Print').addEventListener('click', function () {
+    if (!LAST_RES) { toast(B('请先计算结果', 'Please calculate the result first')); return; }
+    window.print();
+  });
+
+  /* ============================================================
+   * 11. 初始化
+   * ========================================================== */
+  renderForm();
+  updateProgress();
+  var dr = loadDraft();
+  if (dr) { showDraftBar(dr); }
+
+  var _rt = null;
+  document.addEventListener('toolbox:langchange', function () {
+    clearTimeout(_rt);
+    _rt = setTimeout(function () {
+      renderForm();
+      applyAnswers();
+      updateProgress();
+      if (LAST_RES) { renderResult(LAST_RES); }
+    }, 320);
+  });
+})();

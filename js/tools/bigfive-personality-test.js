@@ -1,0 +1,961 @@
+/* bigfive-personality-test.js
+ * 自动外置自 tools/tools/psychology/bigfive-personality-test.html —— 由 scripts/extract_inline_scripts.py 生成。
+ * 请勿直接编辑本文件；修改请改源 HTML 后重跑脚本。
+ */
+(function () {
+  'use strict';
+
+  function isEn() { return !!(window.I18n && window.I18n.get && window.I18n.get() === 'en-US'); }
+  function B(zh, en) { return isEn() ? en : zh; }
+  function $(id) { return document.getElementById(id); }
+  function esc(s) {
+    return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+  function clamp(v, a, b) { return v < a ? a : (v > b ? b : v); }
+  function cssVar(n, fb) {
+    try { var v = getComputedStyle(document.documentElement).getPropertyValue(n); return (v && v.trim()) || fb; }
+    catch (e) { return fb; }
+  }
+  var _tt = null;
+  function toast(m) {
+    var el = $('b5Toast');
+    if (!el) {
+      el = document.createElement('div'); el.id = 'b5Toast';
+      el.style.cssText = 'position:fixed;left:50%;bottom:30px;transform:translateX(-50%) translateY(18px);background:rgba(31,41,55,.94);color:#fff;padding:10px 18px;border-radius:999px;font-size:13px;z-index:9999;opacity:0;transition:.22s;pointer-events:none';
+      document.body.appendChild(el);
+    }
+    el.textContent = m; el.style.opacity = '1'; el.style.transform = 'translateX(-50%) translateY(0)';
+    clearTimeout(_tt);
+    _tt = setTimeout(function () { el.style.opacity = '0'; el.style.transform = 'translateX(-50%) translateY(18px)'; }, 1700);
+  }
+  function download(data, fn, mime) {
+    var blob = (data instanceof Blob) ? data : new Blob([data], { type: mime || 'text/plain;charset=utf-8' });
+    var u = URL.createObjectURL(blob), a = document.createElement('a');
+    a.href = u; a.download = fn; document.body.appendChild(a); a.click();
+    setTimeout(function () { document.body.removeChild(a); URL.revokeObjectURL(u); }, 400);
+  }
+
+  /* ============================================================
+   * 1. 维度与子维度
+   * ========================================================== */
+  var DIMS = [
+    { k: 'O', zh: '开放性', en: 'Openness', color: '#7C3AED', hi: '想象力丰富、对新观念和美的体验敏感、喜欢探索抽象问题', hiEn: 'imaginative, sensitive to new ideas and aesthetic experience, drawn to abstract problems', lo: '务实、偏好熟悉与确定、更信任经验证过的做法', loEn: 'practical, prefers the familiar and certain, trusts proven methods' },
+    { k: 'C', zh: '尽责性', en: 'Conscientiousness', color: '#0EA5E9', hi: '自律、有条理、目标导向，能为长期回报延迟满足', hiEn: 'self-disciplined, organized and goal-directed, able to delay gratification', lo: '灵活随性、不受计划束缚，但容易拖延与虎头蛇尾', loEn: 'flexible and spontaneous, unconstrained by plans, but prone to procrastination and unfinished starts' },
+    { k: 'E', zh: '外向性', en: 'Extraversion', color: '#F59E0B', hi: '热情、乐于社交、在人群中获得能量，表达直接', hiEn: 'warm, sociable, energized by people, direct in expression', lo: '安静内敛、偏好深度而非广度的交往，独处能恢复能量', loEn: 'quiet and reserved, prefers depth over breadth in relationships, recharges alone' },
+    { k: 'A', zh: '宜人性', en: 'Agreeableness', color: '#10B981', hi: '信任他人、乐于合作与利他，冲突中倾向让步', hiEn: 'trusting, cooperative and altruistic, inclined to yield in conflict', lo: '直接、有竞争意识、敢于坚持立场，但可能显得强硬', loEn: 'direct, competitive, willing to hold a position, though it can read as abrasive' },
+    { k: 'N', zh: '神经质', en: 'Neuroticism', color: '#EF4444', hi: '情绪敏感、易感受压力与负面情绪，对威胁信号警觉', hiEn: 'emotionally sensitive, reactive to stress and negative affect, alert to threat cues', lo: '情绪稳定、抗压、在混乱中能保持冷静', loEn: 'emotionally stable, resilient, stays calm amid disorder' }
+  ];
+  var DIM_MAP = {}; DIMS.forEach(function (d) { DIM_MAP[d.k] = d; });
+
+  var FACETS = [
+    { k: 'aes', dim: 'O', zh: '审美', en: 'Aesthetics', d: '对艺术、音乐与美的形式的感受强度', dEn: 'Intensity of response to art, music and beautiful form' },
+    { k: 'int', dim: 'O', zh: '求知', en: 'Intellect', d: '主动追问、乐于处理抽象与理论问题的程度', dEn: 'Drive to inquire and appetite for abstract, theoretical problems' },
+    { k: 'cre', dim: 'O', zh: '创造', en: 'Creativity', d: '产生新想法与尝试未做过的事情的倾向', dEn: 'Tendency to generate novel ideas and try untested things' },
+    { k: 'dis', dim: 'C', zh: '自律', en: 'Self-Discipline', d: '把已决定的事推到完成的执行力', dEn: 'Follow-through: pushing a decided task to completion' },
+    { k: 'ord', dim: 'C', zh: '条理', en: 'Orderliness', d: '对秩序、计划与流程的偏好', dEn: 'Preference for order, planning and defined process' },
+    { k: 'ach', dim: 'C', zh: '成就动机', en: 'Achievement Striving', d: '自我设定标准的高度与为目标付出的意愿', dEn: 'Height of self-set standards and willingness to invest for goals' },
+    { k: 'war', dim: 'E', zh: '热情', en: 'Warmth', d: '主动亲近他人、表达友好的自然程度', dEn: 'Ease of approaching others and expressing friendliness' },
+    { k: 'gre', dim: 'E', zh: '乐群', en: 'Gregariousness', d: '从群体互动中获得能量而非消耗能量', dEn: 'Gaining rather than spending energy in group interaction' },
+    { k: 'ass', dim: 'E', zh: '果断', en: 'Assertiveness', d: '主动发声、承担带头角色与推动决策的倾向', dEn: 'Speaking up, taking the lead and driving decisions' },
+    { k: 'tru', dim: 'A', zh: '信任', en: 'Trust', d: '默认假设他人动机良善的程度', dEn: 'Default assumption that others mean well' },
+    { k: 'alt', dim: 'A', zh: '利他', en: 'Altruism', d: '主动照顾他人处境与投入时间帮忙的意愿', dEn: 'Attending to others\u2019 circumstances and giving time to help' },
+    { k: 'com', dim: 'A', zh: '顺从', en: 'Compliance', d: '冲突中让步以维护关系的倾向', dEn: 'Yielding in conflict to preserve the relationship' },
+    { k: 'anx', dim: 'N', zh: '焦虑', en: 'Anxiety', d: '对未发生之事的担忧与紧张唤醒水平', dEn: 'Worry about what has not happened and baseline tension' },
+    { k: 'vul', dim: 'N', zh: '脆弱', en: 'Vulnerability', d: '压力下的失序程度与情绪恢复速度', dEn: 'Disorganization under pressure and speed of emotional recovery' },
+    { k: 'ang', dim: 'N', zh: '易怒', en: 'Anger', d: '受挫时被激怒的门槛高低', dEn: 'Threshold for irritation when frustrated' }
+  ];
+  var FACET_MAP = {}; FACETS.forEach(function (f) { FACET_MAP[f.k] = f; });
+
+  var LIKERT = [
+    { v: 1, zh: '非常不同意', en: 'Strongly disagree' },
+    { v: 2, zh: '比较不同意', en: 'Disagree' },
+    { v: 3, zh: '中立', en: 'Neutral' },
+    { v: 4, zh: '比较同意', en: 'Agree' },
+    { v: 5, zh: '非常同意', en: 'Strongly agree' }
+  ];
+
+  /* ============================================================
+   * 2. 60 题题库
+   * ========================================================== */
+  var ITEMS = [
+    { i: 1, f: 'aes', r: 0, zh: '我常被音乐、绘画或诗歌深深打动。', en: 'Music, painting or poetry often moves me deeply.' },
+    { i: 2, f: 'aes', r: 0, zh: '走在城市里，我会留意建筑与光线的细节。', en: 'Walking through a city, I notice details of architecture and light.' },
+    { i: 3, f: 'aes', r: 1, zh: '艺术展览或音乐会对我没什么吸引力。', en: 'Art exhibitions and concerts hold little appeal for me.' },
+    { i: 4, f: 'aes', r: 0, zh: '一段好的旋律能让我起鸡皮疙瘩。', en: 'A good melody can give me goosebumps.' },
+    { i: 5, f: 'int', r: 0, zh: '我喜欢琢磨抽象的概念和理论。', en: 'I enjoy turning over abstract concepts and theories.' },
+    { i: 6, f: 'int', r: 0, zh: '遇到没听过的说法，我会主动去查清楚。', en: 'When I hear a claim I do not know, I go and look it up.' },
+    { i: 7, f: 'int', r: 1, zh: '讨论哲学或科学问题让我觉得无聊。', en: 'Discussing philosophy or science bores me.' },
+    { i: 8, f: 'int', r: 0, zh: '我享受那种需要动脑筋才能读懂的书。', en: 'I enjoy books that take real mental effort to follow.' },
+    { i: 9, f: 'cre', r: 0, zh: '我经常想到别人没想过的做法。', en: 'I often think of approaches nobody else has considered.' },
+    { i: 10, f: 'cre', r: 0, zh: '我喜欢尝试完全没做过的事情。', en: 'I like trying things I have never done before.' },
+    { i: 11, f: 'cre', r: 1, zh: '我更愿意按已经验证过的方式做事。', en: 'I would rather do things the way that has already been proven.' },
+    { i: 12, f: 'cre', r: 0, zh: '我的脑子里常有各种新点子冒出来。', en: 'New ideas keep popping into my head.' },
+    { i: 13, f: 'dis', r: 0, zh: '我说要做的事，基本都会做完。', en: 'What I say I will do, I generally finish.' },
+    { i: 14, f: 'dis', r: 1, zh: '我很容易被无关的事情带走注意力。', en: 'Irrelevant things pull my attention away easily.' },
+    { i: 15, f: 'dis', r: 0, zh: '就算不想做，我也能按计划把任务推完。', en: 'Even when I do not feel like it, I can push a task through as planned.' },
+    { i: 16, f: 'dis', r: 1, zh: '我常常拖到最后一刻才动手。', en: 'I usually put things off until the last moment.' },
+    { i: 17, f: 'ord', r: 0, zh: '我的东西摆放得整齐有序。', en: 'My things are kept tidy and in order.' },
+    { i: 18, f: 'ord', r: 0, zh: '我做事前会先列清单或计划。', en: 'I make a list or a plan before starting.' },
+    { i: 19, f: 'ord', r: 1, zh: '我的桌面和文件常常一片混乱。', en: 'My desk and files are often a mess.' },
+    { i: 20, f: 'ord', r: 0, zh: '我喜欢有固定的流程和规矩可依。', en: 'I like having a fixed process and clear rules to follow.' },
+    { i: 21, f: 'ach', r: 0, zh: '我给自己设的标准比别人对我的要求更高。', en: 'The standards I set for myself are higher than what others ask of me.' },
+    { i: 22, f: 'ach', r: 0, zh: '把一件事做到优秀比做完更重要。', en: 'Doing something excellently matters more to me than merely finishing it.' },
+    { i: 23, f: 'ach', r: 1, zh: '差不多能过关就行，我不太追求更好。', en: 'Good enough is fine — I do not chase better.' },
+    { i: 24, f: 'ach', r: 0, zh: '我愿意为长期目标放弃眼前的舒服。', en: 'I will give up present comfort for a long-term goal.' },
+    { i: 25, f: 'war', r: 0, zh: '我很容易和陌生人聊起来。', en: 'I strike up conversations with strangers easily.' },
+    { i: 26, f: 'war', r: 0, zh: '别人说我看起来热情、好接近。', en: 'People tell me I come across as warm and approachable.' },
+    { i: 27, f: 'war', r: 1, zh: '我在人前话不多，显得比较冷淡。', en: 'I say little around others and can seem aloof.' },
+    { i: 28, f: 'war', r: 0, zh: '我喜欢主动关心身边的人。', en: 'I like to check in on the people around me.' },
+    { i: 29, f: 'gre', r: 0, zh: '人多热闹的场合让我感到充电。', en: 'Busy, crowded occasions recharge me.' },
+    { i: 30, f: 'gre', r: 0, zh: '周末我更想约朋友出去而不是独处。', en: 'At weekends I would rather go out with friends than be alone.' },
+    { i: 31, f: 'gre', r: 1, zh: '长时间社交之后我会明显疲惫，需要独处恢复。', en: 'After a long stretch of socializing I am drained and need to be alone.' },
+    { i: 32, f: 'gre', r: 0, zh: '我喜欢成为一群人当中的一员。', en: 'I like being one of a group.' },
+    { i: 33, f: 'ass', r: 0, zh: '在团队里我常自然而然地承担带头的角色。', en: 'In a team I naturally end up taking the lead.' },
+    { i: 34, f: 'ass', r: 0, zh: '我能坦率地表达不同意见。', en: 'I can state a dissenting view frankly.' },
+    { i: 35, f: 'ass', r: 1, zh: '需要拍板的时候，我倾向于让别人先说。', en: 'When a decision must be made, I prefer to let others speak first.' },
+    { i: 36, f: 'ass', r: 0, zh: '我说话的时候，别人通常会听。', en: 'When I speak, people generally listen.' },
+    { i: 37, f: 'tru', r: 0, zh: '我倾向于相信别人的出发点是好的。', en: 'I tend to assume other people mean well.' },
+    { i: 38, f: 'tru', r: 0, zh: '我很少怀疑别人对我有什么盘算。', en: 'I rarely suspect that others have an angle on me.' },
+    { i: 39, f: 'tru', r: 1, zh: '对不熟的人，我会先假设他有所隐瞒。', en: 'With people I do not know well, I assume something is being withheld.' },
+    { i: 40, f: 'tru', r: 0, zh: '就算被辜负过，我还是愿意再给人机会。', en: 'Even after being let down, I am willing to give someone another chance.' },
+    { i: 41, f: 'alt', r: 0, zh: '帮别人一把让我觉得踏实。', en: 'Giving someone a hand leaves me feeling settled.' },
+    { i: 42, f: 'alt', r: 0, zh: '我会主动为身边的人考虑他们的处境。', en: 'I actively think about the situation the people around me are in.' },
+    { i: 43, f: 'alt', r: 1, zh: '别人的麻烦不是我该操心的事。', en: 'Other people\u2019s troubles are not mine to worry about.' },
+    { i: 44, f: 'alt', r: 0, zh: '我愿意花时间倾听别人的困难。', en: 'I am willing to spend time listening to someone\u2019s difficulties.' },
+    { i: 45, f: 'com', r: 0, zh: '有分歧时我更愿意让一步，把关系保住。', en: 'In a disagreement I would rather give ground and keep the relationship.' },
+    { i: 46, f: 'com', r: 0, zh: '我不喜欢和人硬碰硬地争。', en: 'I dislike head-on arguments.' },
+    { i: 47, f: 'com', r: 1, zh: '只要我认为对，我会一直坚持到别人让步。', en: 'If I believe I am right, I hold out until the other side gives in.' },
+    { i: 48, f: 'com', r: 0, zh: '我会尽量避免让场面变得难看。', en: 'I try hard to keep a situation from turning ugly.' },
+    { i: 49, f: 'anx', r: 0, zh: '我常常为还没发生的事担心。', en: 'I often worry about things that have not happened.' },
+    { i: 50, f: 'anx', r: 0, zh: '一点小状况就能让我心里发紧。', en: 'A minor hitch is enough to tighten my chest.' },
+    { i: 51, f: 'anx', r: 1, zh: '我大部分时候都很放松、不容易紧张。', en: 'Most of the time I am relaxed and not easily tense.' },
+    { i: 52, f: 'anx', r: 0, zh: '睡前我的脑子常停不下来。', en: 'My mind often will not stop at bedtime.' },
+    { i: 53, f: 'vul', r: 0, zh: '压力一大，我就容易乱掉阵脚。', en: 'When pressure mounts, I lose my footing easily.' },
+    { i: 54, f: 'vul', r: 0, zh: '被批评之后我会难受很久。', en: 'Criticism leaves me hurting for a long time.' },
+    { i: 55, f: 'vul', r: 1, zh: '遇到突发状况我通常能冷静应对。', en: 'I usually stay calm when something unexpected happens.' },
+    { i: 56, f: 'vul', r: 0, zh: '我的情绪起落比多数人明显。', en: 'My moods swing more visibly than most people\u2019s.' },
+    { i: 57, f: 'ang', r: 0, zh: '事情不顺时我很容易上火。', en: 'When things go wrong I flare up easily.' },
+    { i: 58, f: 'ang', r: 0, zh: '我对别人的失误缺乏耐心。', en: 'I have little patience for other people\u2019s mistakes.' },
+    { i: 59, f: 'ang', r: 1, zh: '就算被冒犯，我也很少真的生气。', en: 'Even when slighted, I rarely get genuinely angry.' },
+    { i: 60, f: 'ang', r: 0, zh: '我发过火之后常常后悔。', en: 'After losing my temper I often regret it.' }
+  ];
+
+  /* 常模参数（12 题维度 / 4 题子维度，1—5 计分） */
+  var NORM_DIM = {
+    O: { m: 42.0, sd: 6.4 }, C: { m: 41.0, sd: 7.0 }, E: { m: 38.0, sd: 7.4 },
+    A: { m: 43.0, sd: 6.2 }, N: { m: 35.5, sd: 7.8 }
+  };
+  var NORM_FACET = {};
+  FACETS.forEach(function (f) {
+    var nd = NORM_DIM[f.dim];
+    NORM_FACET[f.k] = { m: nd.m / 3, sd: nd.sd / 2.55 };
+  });
+  var WEIGHT = { O: 1, C: 1, E: 1, A: 1, N: 1.2 };
+
+  /* ============================================================
+   * 3. 28 种人格原型（质心：偏高 60 / 偏低 40）
+   * ========================================================== */
+  function C(o, c, e, a, n) { return { O: o ? 60 : 40, C: c ? 60 : 40, E: e ? 60 : 40, A: a ? 60 : 40, N: n ? 60 : 40 }; }
+  var TYPES = [
+    {
+      key: 'driven-innovator', name: '锋锐创造者', en: 'The Driven Innovator', centroid: C(1, 1, 1, 0, 1),
+      desc: '你既有源源不断的新想法，又有把想法落地的执行纪律，还敢在会议上直接说出「这样不行」。代价是情绪波动明显：项目顺利时你能一个人带动整支队伍，遇到阻力时又会在深夜反复推翻自己的方案。你的锋利来自不愿妥协的标准，而不是想伤害谁。',
+      descEn: 'You have a steady supply of new ideas, the discipline to ship them, and the nerve to say "this will not work" out loud. The cost is visible emotional swing: when a project runs well you can carry a whole team, and when it stalls you rewrite your own plan at midnight. Your sharpness comes from refusing to lower your standard, not from wanting to hurt anyone.',
+      strengths: ['从零到一的开创力强，能把模糊构想变成可执行方案', '标准高且敢于直言，能在早期挡掉平庸的决定', '压力下的紧张感会转化为高强度的产出'],
+      strengthsEn: ['Strong zero-to-one drive: turns vague concepts into executable plans', 'High standards and willingness to speak plainly stop mediocre decisions early', 'Tension under pressure converts into high-intensity output'],
+      blindspots: ['直率容易被读成攻击，团队会在你面前隐藏坏消息', '完美主义与情绪起伏叠加，容易反复推翻已定方案', '低宜人性让你低估「先照顾情绪再谈事实」的必要性'],
+      blindspotsEn: ['Bluntness reads as attack, so the team hides bad news from you', 'Perfectionism plus mood swing leads to repeatedly reopening settled plans', 'Low agreeableness makes you underestimate the need to handle feelings before facts'],
+      careers: ['产品创新 / 0-1 产品经理', '创业公司技术合伙人', '研发项目负责人', '创意总监', '战略咨询顾问'],
+      careersEn: ['Product innovation / 0-1 product manager', 'Startup technical co-founder', 'R&D project lead', 'Creative director', 'Strategy consultant']
+    },
+    {
+      key: 'expedition-commander', name: '远征指挥官', en: 'The Expedition Commander', centroid: C(1, 1, 1, 0, 0),
+      desc: '开放、自律、外向、直接，而且情绪稳定——这是典型的开拓型领导画像。你能在信息不全的时候拍板，也能在被质疑时不动摇。你不太需要别人的安慰，也因此常常忘了别人需要。',
+      descEn: 'Open, disciplined, outgoing, direct — and emotionally steady. This is the classic pioneering-leader profile: you can commit with incomplete information and stay unmoved when challenged. You need little reassurance yourself, which is exactly why you forget that others do.',
+      strengths: ['在不确定中做决策的能力突出，行动速度快', '情绪稳定让你成为团队在危机中的定盘星', '既能提出新方向，又能建立执行节奏'],
+      strengthsEn: ['Outstanding at deciding under uncertainty, and fast to act', 'Emotional stability makes you the team\u2019s anchor in a crisis', 'Sets a new direction and builds the execution cadence for it'],
+      blindspots: ['容易低估他人的情绪成本，把「扛得住」当作默认标准', '推进速度过快时，团队跟不上却不敢开口', '对反复讨论缺乏耐心，可能错过关键的异议'],
+      blindspotsEn: ['Underestimates others\u2019 emotional cost, treating resilience as the default standard', 'Moves so fast the team falls behind but dares not say so', 'Little patience for repeated discussion, so key objections get missed'],
+      careers: ['业务负责人 / 总经理', '新市场开拓与增长负责人', '投资与并购', '大型项目总监', '军警与应急指挥类岗位'],
+      careersEn: ['Business unit head / general manager', 'New-market and growth lead', 'Investment and M&A', 'Large-project director', 'Command roles in emergency or uniformed services']
+    },
+    {
+      key: 'reflective-guardian', name: '沉思守护者', en: 'The Reflective Guardian', centroid: C(1, 1, 0, 1, 1),
+      desc: '你安静、可靠、心思细腻，会替别人想到他自己都没注意的细节。你在意的事情很深，因此也容易把别人的情绪一并背在身上。你需要独处，不是因为不在乎人，而是因为太在乎。',
+      descEn: 'Quiet, reliable and fine-grained, you notice details on someone\u2019s behalf that they missed themselves. You care deeply, which is also why you end up carrying other people\u2019s feelings. You need solitude not because you care little, but because you care too much.',
+      strengths: ['细致周全，交给你的事很少出纰漏', '共情能力强，是别人愿意讲真话的对象', '思想上开放，能接受与自己不同的观点'],
+      strengthsEn: ['Thorough and careful — what you take on rarely goes wrong', 'Strong empathy: people tell you the truth', 'Intellectually open, genuinely able to accept views unlike your own'],
+      blindspots: ['过度承担别人的情绪，自己的需求排到最后', '担忧倾向让你在决策前反复演练最坏情况', '不擅长在众人面前主张自己的贡献'],
+      blindspotsEn: ['Takes on others\u2019 emotions until your own needs come last', 'A worrying tendency makes you rehearse worst cases before deciding', 'Poor at claiming credit for your contribution in public'],
+      careers: ['心理咨询与社会工作', '研究与学术写作', '编辑 / 内容审校', '用户研究', '医疗护理与康复'],
+      careersEn: ['Counselling and social work', 'Research and academic writing', 'Editing and copy review', 'User research', 'Nursing and rehabilitation']
+    },
+    {
+      key: 'quiet-craftsman', name: '深耕匠人', en: 'The Quiet Craftsman', centroid: C(1, 1, 0, 1, 0),
+      desc: '你喜欢把一件事做深做透，讨厌喧闹与表演式的推进。开放性给了你审美与好奇，尽责性给了你把它变成成品的耐心，情绪稳定让你能在长周期里不焦躁。你是那种十年后仍在同一领域越做越好的人。',
+      descEn: 'You like to take one thing deep, and you dislike noise and performative momentum. Openness gives you taste and curiosity, conscientiousness gives you the patience to finish, and emotional stability lets you work long cycles without getting jumpy. You are the sort of person who is still getting better in the same field ten years later.',
+      strengths: ['长期专注的能力稀缺，产出质量高且稳定', '既有审美又有交付纪律，作品完成度好', '与人合作时温和不争，冲突成本低'],
+      strengthsEn: ['A rare capacity for long-term focus, with high and stable output quality', 'Taste plus delivery discipline yields genuinely finished work', 'Gentle and non-contentious in collaboration, so conflict costs stay low'],
+      blindspots: ['不主动争取资源与曝光，价值容易被低估', '过于安静，重要的意见常在会后才说', '习惯打磨细节，可能错过更重要的取舍'],
+      blindspotsEn: ['Does not push for resources or visibility, so your value is undervalued', 'So quiet that important views only surface after the meeting', 'Habitual polishing can cause you to miss the bigger trade-off'],
+      careers: ['专业技术专家 / 架构师', '设计与工艺类职业', '学术研究', '数据分析与建模', '出版与翻译'],
+      careersEn: ['Domain technical expert / architect', 'Design and craft professions', 'Academic research', 'Data analysis and modelling', 'Publishing and translation']
+    },
+    {
+      key: 'solitary-critic', name: '孤峰思辨者', en: 'The Solitary Critic', centroid: C(1, 1, 0, 0, 1),
+      desc: '你思维锐利、标准极高，对含糊与虚话有近乎生理性的反感。你不需要热闹，也不打算迁就；你的判断常常是对的，代价是过程中会得罪人，而且你自己也活得不轻松。',
+      descEn: 'Sharp-minded and exacting, you have an almost physical aversion to vagueness and empty talk. You do not need company and do not intend to accommodate. Your judgements are often right; the price is that people get offended along the way — and that you do not have an easy time of it yourself.',
+      strengths: ['批判性思维强，能识别论证与数据中的漏洞', '不受社会压力左右，敢于给出不受欢迎的结论', '自律与深度思考结合，产出有分量'],
+      strengthsEn: ['Strong critical thinking: you spot the holes in arguments and data', 'Unswayed by social pressure, willing to deliver unwelcome conclusions', 'Discipline plus deep thinking produces work with real weight'],
+      blindspots: ['尖锐的表达让有价值的判断被情绪化地拒绝', '缺少支持性关系，压力只能自己消化', '容易把「别人不理解」归因于别人的智识不足'],
+      blindspotsEn: ['Sharp delivery gets valuable judgements rejected on emotional grounds', 'Few supportive relationships, so pressure has nowhere to go but inward', 'Tends to attribute "they do not understand" to others\u2019 lack of intellect'],
+      careers: ['学术研究与评审', '调查报道', '风险与合规审查', '安全与漏洞研究', '哲学与批评写作'],
+      careersEn: ['Academic research and peer review', 'Investigative journalism', 'Risk and compliance review', 'Security and vulnerability research', 'Philosophy and critical writing']
+    },
+    {
+      key: 'independent-strategist', name: '独立策略家', en: 'The Independent Strategist', centroid: C(1, 1, 0, 0, 0),
+      desc: '安静、理性、目标明确，不需要掌声也不容易被激怒。你在人少的环境里思考得最好，擅长把复杂局面拆成几条清晰的路径。你不是不合作，只是不在意合作过程里的仪式感。',
+      descEn: 'Quiet, rational and clear about the goal, you need no applause and are not easily provoked. You think best where there are few people, and you excel at cutting a complex situation into a few clear paths. You are not uncooperative — you simply do not care about the ceremony of cooperation.',
+      strengths: ['冷静客观，能在压力下做出不受情绪影响的判断', '深度分析能力强，善于设计长期结构', '不需要外部认可，因此不易被短期利益带偏'],
+      strengthsEn: ['Calm and objective, able to judge without emotional interference under pressure', 'Strong deep analysis; good at designing long-term structures', 'Needs no external validation, so short-term incentives rarely divert you'],
+      blindspots: ['沟通过于精简，别人常不知道你已经想到哪一步', '对人际维护投入不足，关键时刻缺少盟友', '容易独自决定，减少了纠错的机会'],
+      blindspotsEn: ['Communication is so terse that others cannot tell how far your thinking has gone', 'Under-invests in relationships, so allies are thin when it matters', 'Decides alone, which removes chances to be corrected'],
+      careers: ['战略规划', '量化研究与算法', '系统架构', '法律与政策研究', '独立顾问'],
+      careersEn: ['Strategic planning', 'Quantitative research and algorithms', 'Systems architecture', 'Law and policy research', 'Independent consulting']
+    },
+    {
+      key: 'restless-wanderer', name: '热望漫游者', en: 'The Restless Wanderer', centroid: C(1, 0, 1, 1, 1),
+      desc: '你热情、好奇、对人对世界都敞开，但很难把兴趣维持到收尾。你的生活里堆着许多刚开始就被下一件事打断的计划。你也容易被别人的情绪牵动，一句无心的话能让你想很久。',
+      descEn: 'Warm, curious and open to both people and the world, you find it hard to carry an interest through to the end. Your life is stacked with plans interrupted by the next plan. You are also easily moved by other people\u2019s emotions — one careless remark can occupy you for days.',
+      strengths: ['结识人与发现机会的能力极强', '共情与热情让你成为团队的情绪润滑剂', '接受度高，能在跨界与多元环境中如鱼得水'],
+      strengthsEn: ['Exceptional at meeting people and spotting opportunities', 'Empathy and warmth make you the team\u2019s emotional lubricant', 'High receptivity lets you thrive in cross-disciplinary, diverse settings'],
+      blindspots: ['执行与收尾是最大短板，需要外部结构来兜底', '过度在意他人评价，容易答应超出承受范围的请求', '兴趣分散，长期积累不足'],
+      blindspotsEn: ['Execution and follow-through are your weakest link; you need external structure', 'Over-attentive to others\u2019 opinions, so you agree to more than you can carry', 'Scattered interests leave long-term accumulation thin'],
+      careers: ['公关与品牌传播', '社群运营', '旅行与文化内容创作', '销售与商务拓展', '活动策划'],
+      careersEn: ['PR and brand communications', 'Community management', 'Travel and culture content creation', 'Sales and business development', 'Event planning']
+    },
+    {
+      key: 'inspired-connector', name: '灵感连接者', en: 'The Inspired Connector', centroid: C(1, 0, 1, 1, 0),
+      desc: '你带着轻快的能量到处走，把不同的人和想法撞在一起，然后从中冒出新东西。你不擅长按流程做事，但很擅长让事情自然发生。情绪稳定让你在混乱里也不慌。',
+      descEn: 'You move around with a light energy, colliding different people and ideas until something new falls out. You are not good at following process, but you are very good at letting things happen. Emotional stability keeps you unflustered in the mess.',
+      strengths: ['跨领域连接能力强，是天然的信息与人际枢纽', '亲和且稳定，很少树敌', '对新事物接受快，学习曲线陡'],
+      strengthsEn: ['Strong cross-domain connecting: a natural hub for information and people', 'Likeable and steady, so you rarely make enemies', 'Fast to accept the new, with a steep learning curve'],
+      blindspots: ['缺少条理，重要事项容易在热闹中被漏掉', '不设边界，日程被别人的需求填满', '难以在需要长期钻研的领域建立深度'],
+      blindspotsEn: ['Low orderliness means important items slip through the buzz', 'Weak boundaries let other people\u2019s needs fill your calendar', 'Hard to build depth in fields that demand sustained study'],
+      careers: ['商务合作与生态运营', '创新孵化与加速器', '内容策划与主持', '培训与教练', '设计思维工作坊带领'],
+      careersEn: ['Partnerships and ecosystem operations', 'Innovation incubation and accelerators', 'Content planning and hosting', 'Training and coaching', 'Facilitating design-thinking workshops']
+    },
+    {
+      key: 'provocateur', name: '破局挑衅者', en: 'The Provocateur', centroid: C(1, 0, 1, 0, 1),
+      desc: '你的存在本身就是对现状的挑战：想法新、说话冲、情绪起伏大、不吃「大家都这么做」这一套。你能在僵局里撬开一条缝，但也可能在无关紧要的事情上把火烧大。',
+      descEn: 'Your presence is itself a challenge to the status quo: novel ideas, blunt speech, visible mood swings, and no appetite for "this is how it is done". You can pry open a crack in a deadlock — and you can also set fire to something that did not matter.',
+      strengths: ['敢于说出所有人都想到但没人说的话', '创造性与冲击力结合，善于打破僵化局面', '对不合理的规则天生免疫'],
+      strengthsEn: ['Willing to say the thing everyone thought and nobody voiced', 'Creativity plus impact: good at breaking rigid situations open', 'Naturally immune to unreasonable rules'],
+      blindspots: ['冲突成本高，好想法常因为呈现方式被否掉', '缺乏收尾纪律，破局之后没人接手重建', '情绪主导时会把手段和目标搞混'],
+      blindspotsEn: ['High conflict cost: good ideas get rejected because of how they are presented', 'Little closing discipline — after breaking things open, nobody rebuilds', 'When emotion leads, you confuse the means with the goal'],
+      careers: ['创意广告与文案', '独立创作与自媒体', '增长黑客', '产品早期探索', '评论与脱口秀'],
+      careersEn: ['Creative advertising and copywriting', 'Independent creation and self-publishing', 'Growth hacking', 'Early-stage product exploration', 'Commentary and stand-up']
+    },
+    {
+      key: 'freewheeling-experimenter', name: '自由试验家', en: 'The Freewheeling Experimenter', centroid: C(1, 0, 1, 0, 0),
+      desc: '你活得轻，不太在意别人怎么看，也不太计划。新鲜的东西吸引你，规则和承诺让你窒息。因为情绪稳定，你的即兴不带焦虑，反而有一种令人放松的洒脱。',
+      descEn: 'You travel light, care little what people think, and plan even less. Novelty pulls you; rules and commitments suffocate you. Because you are emotionally steady, your improvisation carries no anxiety — it has a relaxing kind of ease.',
+      strengths: ['行动门槛极低，想到就去试', '心态稳定，失败不留伤口', '对权威与惯例免疫，容易发现被忽略的路径'],
+      strengthsEn: ['Extremely low barrier to action: you try things the moment you think of them', 'Steady temperament, so failure leaves no wound', 'Immune to authority and convention, so you find overlooked paths'],
+      blindspots: ['缺乏纪律与承诺，别人难以依赖你', '短期刺激优先，长期资产薄弱', '低宜人性叠加低尽责性，容易被贴上「不靠谱」的标签'],
+      blindspotsEn: ['Low discipline and commitment make you hard to rely on', 'Short-term stimulation wins, so long-term assets stay thin', 'Low agreeableness plus low conscientiousness invites the "unreliable" label'],
+      careers: ['自由职业与接单创作', '户外与极限运动相关行业', '摄影与旅拍', '短视频与直播', '创业早期探索者'],
+      careersEn: ['Freelance and commission-based creation', 'Outdoor and extreme-sports industries', 'Photography and travel shooting', 'Short video and livestreaming', 'Early-stage venture explorer']
+    },
+    {
+      key: 'tender-dreamer', name: '内向梦想家', en: 'The Tender Dreamer', centroid: C(1, 0, 0, 1, 1),
+      desc: '你的内心世界比外部生活丰富得多：细腻的感受、复杂的想象、对他人真诚的关切。同时你也非常容易受伤，缺少纪律去保护和实现自己的构想。你需要的不是更用力，而是更小的第一步。',
+      descEn: 'Your inner world is far richer than your outer life: fine-grained feeling, complex imagination, genuine concern for others. You are also easily wounded, and you lack the discipline to protect and realize what you imagine. What you need is not more force, but a smaller first step.',
+      strengths: ['感受力与想象力出色，是创作的原始素材', '真诚温柔，容易建立深度而非广度的关系', '思想开放，很少评判别人'],
+      strengthsEn: ['Outstanding sensitivity and imagination — the raw material of creative work', 'Sincere and gentle, forming deep rather than broad relationships', 'Open-minded and rarely judgemental'],
+      blindspots: ['把想法留在脑内，缺少落地的最小步骤', '过度共情导致自我耗竭', '被批评后长时间停摆'],
+      blindspotsEn: ['Ideas stay inside your head with no minimum viable step', 'Over-empathizing drains you', 'A single criticism can halt you for a long time'],
+      careers: ['写作与插画', '心理与艺术治疗', '图书编辑', '独立音乐创作', '博物与档案工作'],
+      careersEn: ['Writing and illustration', 'Psychological and art therapy', 'Book editing', 'Independent music', 'Museum and archival work']
+    },
+    {
+      key: 'gentle-contemplator', name: '温和观想者', en: 'The Gentle Contemplator', centroid: C(1, 0, 0, 1, 0),
+      desc: '你不争不抢，安静地过着有内容的生活。好奇心让你不断读到新东西，情绪稳定让你不被外界的躁动裹走，低尽责性则意味着你不打算把自己的时间填满。这种组合在当代很稀缺。',
+      descEn: 'You neither compete nor grab; you live a quiet life with real content in it. Curiosity keeps bringing you new material, emotional stability keeps outside agitation from sweeping you along, and low conscientiousness means you have no intention of filling your time. This combination is scarce today.',
+      strengths: ['内在稳定，几乎不被评价与比较扰动', '好奇心持久，知识面自然拓宽', '对人温和，是让人放松的存在'],
+      strengthsEn: ['Inner steadiness: judgement and comparison barely disturb you', 'Durable curiosity naturally broadens what you know', 'Gentle with people; your presence relaxes others'],
+      blindspots: ['缺少目标与紧迫感，能力难以转化为成果', '过于顺从，需求长期不被表达', '容易在舒适区停留过久'],
+      blindspotsEn: ['Little goal pressure, so ability does not convert into results', 'Too compliant: your needs go unexpressed for years', 'Prone to staying in the comfort zone too long'],
+      careers: ['图书馆与知识管理', '园艺与自然教育', '手工与修复', '陪伴型服务岗位', '兼职研究与资料整理'],
+      careersEn: ['Libraries and knowledge management', 'Horticulture and nature education', 'Craft and restoration', 'Companion-type service roles', 'Part-time research and archival organization']
+    },
+    {
+      key: 'edgewalker', name: '边缘异想者', en: 'The Edgewalker', centroid: C(1, 0, 0, 0, 1),
+      desc: '你的想法离主流很远，人际上也保持距离，加上情绪敏感，让你时常觉得世界与你不在同一频率。这个位置很孤独，但也是许多原创性工作的起点——前提是你能给自己搭一点结构。',
+      descEn: 'Your thinking sits far from the mainstream, you keep interpersonal distance, and you are emotionally sensitive — so the world often feels out of frequency with you. It is a lonely position, and also the starting point of much original work, provided you can build yourself a little structure.',
+      strengths: ['视角独特，容易看到别人视野之外的问题', '不受群体共识约束，思想自由度高', '敏感带来的细节感知是创作资源'],
+      strengthsEn: ['A genuinely distinct vantage point on problems others cannot see', 'Unconstrained by group consensus, with a high degree of intellectual freedom', 'Sensitivity yields a fineness of perception that fuels creative work'],
+      blindspots: ['缺少支持系统与执行结构，想法难以成形', '容易把孤立解释为「他们不懂」，从而更加封闭', '情绪起伏无人缓冲，消耗大'],
+      blindspotsEn: ['Without a support system or execution structure, ideas never take form', 'Easy to read isolation as "they do not get it", which closes you further', 'Mood swings with no buffer are costly'],
+      careers: ['实验性艺术与文学', '理论研究', '独立游戏与音乐制作', '小众领域的深度写作', '自由技术研究'],
+      careersEn: ['Experimental art and literature', 'Theoretical research', 'Independent game and music production', 'Deep writing in niche fields', 'Independent technical research']
+    },
+    {
+      key: 'detached-mind', name: '冷眼漫思者', en: 'The Detached Musing Mind', centroid: C(1, 0, 0, 0, 0),
+      desc: '你聪明、独立、情绪平稳，也不觉得非要参与什么。世界的热闹在你看来大多是噪音。你把时间给了自己真正感兴趣的东西，代价是几乎没有外部结构推着你产出。',
+      descEn: 'Clever, independent and even-tempered, you do not feel obliged to take part in anything. Most of the world\u2019s bustle looks like noise to you. You give your time to what genuinely interests you, at the cost of having almost no external structure pushing you to produce.',
+      strengths: ['独立思考，不被舆论与情绪裹走', '心态平稳，长期不易崩', '兴趣纯粹，探索不为功利'],
+      strengthsEn: ['Independent thought, unswept by opinion or emotion', 'Even temperament that holds up over the long run', 'Pure interest: exploration without utilitarian motive'],
+      blindspots: ['缺少目标与人际推力，成果稀薄', '疏离感让别人难以了解你的价值', '不主动求助，问题常被拖到很晚'],
+      blindspotsEn: ['With neither goals nor social push, output stays thin', 'Detachment makes it hard for others to see your value', 'You do not ask for help, so problems get addressed very late'],
+      careers: ['自由研究者', '技术顾问（按项目）', '棋类 / 逻辑竞技', '收藏与鉴定', '远程独立工作岗位'],
+      careersEn: ['Independent researcher', 'Project-based technical advisor', 'Board games and logic competition', 'Collecting and appraisal', 'Remote solo-work roles']
+    },
+    {
+      key: 'conscientious-coordinator', name: '尽责协调者', en: 'The Conscientious Coordinator', centroid: C(0, 1, 1, 1, 1),
+      desc: '你负责、热心、把事情记得清清楚楚，是团队里那个把所有细节兜住的人。同时你也承担了大量情绪劳动：别人一有不满，你先自我检讨。你的可靠是真的，压力也是真的。',
+      descEn: 'Responsible, warm and precise about detail, you are the one who catches everything in the team. You also carry a great deal of emotional labour: at the first sign of anyone\u2019s displeasure, you audit yourself first. Your reliability is real, and so is the strain.',
+      strengths: ['组织与跟进能力强，事情交到你手上不会掉', '亲和且负责，是团队信任的中心', '对风险敏感，能提前发现问题'],
+      strengthsEn: ['Strong organization and follow-up: nothing you hold gets dropped', 'Likeable and responsible — the trust centre of a team', 'Risk-sensitive, spotting problems early'],
+      blindspots: ['承担过多，长期处在轻度耗竭状态', '过度自责，把系统问题当成个人失误', '对变化与不确定感到不适，倾向坚持既有流程'],
+      blindspotsEn: ['Takes on too much and lives in a state of low-grade depletion', 'Over-blames yourself, treating system problems as personal failures', 'Uncomfortable with change and ambiguity, so you cling to existing process'],
+      careers: ['项目管理 / PMO', '行政与人力运营', '客户成功', '教务与教学管理', '医院与机构协调岗'],
+      careersEn: ['Project management / PMO', 'Administration and HR operations', 'Customer success', 'Academic affairs and teaching administration', 'Hospital and institutional coordination']
+    },
+    {
+      key: 'steady-organizer', name: '稳健组织者', en: 'The Steady Organizer', centroid: C(0, 1, 1, 1, 0),
+      desc: '这是最经典的「让组织跑起来」的人格组合：负责、外向、亲和、情绪稳定。你不追求奇思妙想，但你能让一群人按时把事做完，而且氛围还不错。稳定本身就是稀缺资源。',
+      descEn: 'This is the classic make-the-organization-run profile: responsible, outgoing, agreeable and steady. You do not chase brilliance, but you get a group of people to finish on time in a decent atmosphere. Stability is itself a scarce resource.',
+      strengths: ['执行与协调兼备，落地率高', '情绪稳定又亲和，团队愿意跟随', '流程意识强，能把经验沉淀成制度'],
+      strengthsEn: ['Both execution and coordination, with a high landing rate', 'Steady and likeable, so teams follow you willingly', 'Process-minded: turns experience into working systems'],
+      blindspots: ['对创新与变革的容忍度较低，可能压制新方案', '习惯稳态，遇到范式变化反应偏慢', '过于照顾关系，问题反馈不够锐利'],
+      blindspotsEn: ['Lower tolerance for innovation, which can suppress new proposals', 'Attuned to steady state, so slow to respond to paradigm shifts', 'Protects relationships so much that feedback loses its edge'],
+      careers: ['团队管理与运营总监', '供应链与生产管理', '门店与区域管理', '教育机构管理', '公共服务管理'],
+      careersEn: ['Team management and operations director', 'Supply chain and production management', 'Store and regional management', 'Education institution management', 'Public service administration']
+    },
+    {
+      key: 'exacting-supervisor', name: '严格督导者', en: 'The Exacting Supervisor', centroid: C(0, 1, 1, 0, 1),
+      desc: '你标准高、说话直、对错误零容忍，而且自己的紧张感很高。你能把混乱的场面整治得井井有条，但过程里下属会很怕你。你的严格往往源自对失控的恐惧，而不是对人的敌意。',
+      descEn: 'High standards, blunt speech, zero tolerance for error — and a high level of internal tension. You can bring order to a chaotic operation, but people will be afraid of you while you do it. Your strictness usually comes from a fear of losing control, not from hostility towards people.',
+      strengths: ['质量把关能力强，能发现被忽略的错误', '推动力强，敢于施加必要的压力', '责任感重，不会在关键节点掉链子'],
+      strengthsEn: ['Strong quality gatekeeping: you catch errors others let through', 'Strong push, willing to apply necessary pressure', 'Heavy sense of responsibility; you do not drop the critical handoff'],
+      blindspots: ['高压管理导致坏消息被隐藏，风险反而变大', '自身焦虑外溢为对他人的苛责', '不擅长表达认可，团队缺少正向反馈'],
+      blindspotsEn: ['High-pressure management hides bad news, which increases risk', 'Your own anxiety spills over as harshness towards others', 'Poor at expressing recognition, so the team lacks positive feedback'],
+      careers: ['质量管理与审计', '生产与工程督导', '财务与内控', '安全监管', '合规与法务执行'],
+      careersEn: ['Quality management and audit', 'Production and engineering supervision', 'Finance and internal control', 'Safety regulation', 'Compliance and legal enforcement']
+    },
+    {
+      key: 'results-driver', name: '执行推进者', en: 'The Results Driver', centroid: C(0, 1, 1, 0, 0),
+      desc: '目标、节奏、结果——你的世界很简单。你不纠缠情绪，也不追求新奇，只关心事情有没有按时做到位。这种务实与稳定的组合在需要硬落地的场景里价值极高。',
+      descEn: 'Goal, cadence, result — your world is simple. You do not get tangled in feelings and you do not chase novelty; you only care whether the thing got done on time and properly. This blend of pragmatism and stability is extremely valuable wherever hard delivery is required.',
+      strengths: ['目标导向清晰，推进速度快而稳', '情绪不干扰判断，能承受长期高压', '不被新概念分散，专注核心指标'],
+      strengthsEn: ['Clear goal orientation with fast, steady momentum', 'Emotion does not interfere with judgement; you sustain long-term pressure', 'Not distracted by new concepts; you stay on core metrics'],
+      blindspots: ['对人的感受关注不足，团队易感到工具化', '路径依赖强，环境变化时调整慢', '把「做完」当成成功，可能忽视方向本身是否正确'],
+      blindspotsEn: ['Too little attention to how people feel; the team can feel instrumentalized', 'Strong path dependence makes you slow to adjust when the environment shifts', 'Treats "done" as success, potentially ignoring whether the direction was right'],
+      careers: ['销售管理与业绩负责人', '项目交付经理', '工程施工管理', '物流与仓储运营', '连锁运营督导'],
+      careersEn: ['Sales management and revenue owner', 'Project delivery manager', 'Construction and engineering management', 'Logistics and warehouse operations', 'Chain-operations supervision']
+    },
+    {
+      key: 'careful-steward', name: '谨慎后勤官', en: 'The Careful Steward', centroid: C(0, 1, 0, 1, 1),
+      desc: '你安静、细心、替所有人操心。规章与流程让你安心，变动让你不安。你不站在台前，但很多事情之所以没出问题，正是因为你在后面一遍遍地核对。',
+      descEn: 'Quiet, meticulous and worried on everyone\u2019s behalf. Rules and process reassure you; change unsettles you. You do not stand at the front, but a great many things go right precisely because you checked them again from behind.',
+      strengths: ['细节把控极强，出错率非常低', '责任心与体贴兼具，同事有安全感', '风险意识高，提前准备备用方案'],
+      strengthsEn: ['Exceptional detail control with a very low error rate', 'Both responsible and considerate, giving colleagues a sense of safety', 'High risk awareness; you prepare contingencies in advance'],
+      blindspots: ['担忧过度，为低概率风险付出高成本', '不敢拒绝，工作量长期超载', '面对必要的变革时倾向拖延'],
+      blindspotsEn: ['Excessive worry: you pay high costs for low-probability risks', 'Unable to refuse, so your workload stays chronically over capacity', 'Inclined to stall in the face of necessary change'],
+      careers: ['财务与会计', '合同与档案管理', '实验室管理', '药房与器械管理', '后勤与设施保障'],
+      careersEn: ['Finance and accounting', 'Contract and records management', 'Laboratory management', 'Pharmacy and equipment management', 'Facilities and logistics support']
+    },
+    {
+      key: 'dependable-anchor', name: '可靠支柱', en: 'The Dependable Anchor', centroid: C(0, 1, 0, 1, 0),
+      desc: '你安静、负责、温和、稳定，是那种在任何组织里都不可替代的底座型人物。你不制造声浪，也不制造麻烦；你只是把该做的事一年一年地做好。',
+      descEn: 'Quiet, responsible, gentle and steady — the bedrock figure who is irreplaceable in any organization. You make no noise and no trouble; you simply do what needs doing, year after year.',
+      strengths: ['稳定可靠到可以被制度化依赖', '不争不抢，团队关系摩擦极小', '长期主义，经验积累深厚'],
+      strengthsEn: ['So dependable that systems can be built around you', 'Non-contentious, with minimal relational friction', 'Long-termist, with deep accumulated experience'],
+      blindspots: ['过于低调，贡献长期不被看见', '不主动提要求，容易被安排在低价值任务上', '对新方法保守，技能更新偏慢'],
+      blindspotsEn: ['So low-profile that your contribution goes unseen for years', 'Does not ask, so you get assigned to low-value tasks', 'Conservative about new methods, so skills update slowly'],
+      careers: ['技术运维与保障', '基础教育教师', '公共事业与窗口服务', '文档与知识库维护', '会计与出纳'],
+      careersEn: ['Technical operations and maintenance', 'Primary and secondary school teaching', 'Public utilities and front-desk service', 'Documentation and knowledge-base upkeep', 'Bookkeeping and cashiering']
+    },
+    {
+      key: 'meticulous-auditor', name: '苛刻校验者', en: 'The Meticulous Auditor', centroid: C(0, 1, 0, 0, 1),
+      desc: '你不擅社交、标准严苛、对偏差极其敏感，而且内心的紧张度很高。你是那种能在一千行数据里找出唯一错误的人。你不需要被喜欢，但你确实需要一点让你放松的东西。',
+      descEn: 'Not socially inclined, exacting in standard, extremely sensitive to deviation — and internally quite tense. You are the person who finds the single error in a thousand rows of data. You do not need to be liked, but you do need something that lets you relax.',
+      strengths: ['纠错能力极强，是流程与数据的最后一道防线', '不受人情影响，判断保持独立', '专注度高，能长时间处理枯燥而关键的工作'],
+      strengthsEn: ['Exceptional error-finding: the last line of defence for process and data', 'Unaffected by personal relationships, so judgement stays independent', 'High focus, able to sustain dull but critical work for long stretches'],
+      blindspots: ['沟通方式生硬，正确的结论容易被抵触', '过度追求零缺陷，效率与成本失衡', '紧张长期不缓解，身体容易出现症状'],
+      blindspotsEn: ['Stiff communication makes correct conclusions easy to resist', 'Chasing zero defects unbalances efficiency and cost', 'Chronic unrelieved tension often shows up in the body'],
+      careers: ['审计与内控', '测试与质量工程', '税务与合规', '数据校验与治理', '专利与技术文书审查'],
+      careersEn: ['Audit and internal control', 'Testing and quality engineering', 'Tax and compliance', 'Data validation and governance', 'Patent and technical document review']
+    },
+    {
+      key: 'rule-keeper', name: '规则守门人', en: 'The Rule Keeper', centroid: C(0, 1, 0, 0, 0),
+      desc: '你相信规则的价值，也愿意为它承担不受欢迎的角色。你不需要热闹，不容易被情绪影响，也不打算为了让人舒服而放宽标准。秩序在你手里是可靠的。',
+      descEn: 'You believe in the value of rules and will take the unpopular role required to uphold them. You need no bustle, are not easily moved by feeling, and have no intention of relaxing a standard to make someone comfortable. Order is safe in your hands.',
+      strengths: ['原则性强，不会因人情让底线松动', '情绪稳定，在冲突中能坚持立场', '执行一致，制度落地不走形'],
+      strengthsEn: ['Strong on principle: the line does not move for personal favour', 'Emotionally steady, able to hold a position in conflict', 'Consistent enforcement keeps systems from being watered down'],
+      blindspots: ['灵活性不足，例外情况处理僵硬', '沟通缺少温度，容易被视为官僚', '对必要的规则演进抱有抵触'],
+      blindspotsEn: ['Insufficient flexibility, so exceptions are handled rigidly', 'Communication lacks warmth and can read as bureaucratic', 'Resistant to necessary evolution of the rules themselves'],
+      careers: ['法务与监管', '标准制定与认证', '仲裁与纪检', '证照与资质审核', '图书与档案规范管理'],
+      careersEn: ['Legal affairs and regulation', 'Standards setting and certification', 'Arbitration and disciplinary inspection', 'Licensing and qualification review', 'Archival and cataloguing standards']
+    },
+    {
+      key: 'warm-improviser', name: '热闹随和者', en: 'The Warm Improviser', centroid: C(0, 0, 1, 1, 1),
+      desc: '你外向、随和、心软，也很容易被牵动。你活在关系里：谁高兴、谁不高兴，你都第一时间知道。计划和条理不是你的强项，但把气氛做起来是你的天赋。',
+      descEn: 'Outgoing, easygoing, soft-hearted and easily affected. You live inside relationships: you know at once who is pleased and who is not. Planning and order are not your strengths, but lifting the mood is your gift.',
+      strengths: ['人缘极好，能迅速融入任何群体', '情绪敏感度高，善于察觉他人状态', '灵活随机应变，不被计划绑住'],
+      strengthsEn: ['Excellent with people; you fit into any group fast', 'High emotional sensitivity, quick to read other people\u2019s state', 'Flexible and adaptable, not bound by plans'],
+      blindspots: ['难以拒绝，边界感弱，容易被消耗', '缺少条理与收尾，承诺经常落空', '情绪随环境起伏，自我状态不稳定'],
+      blindspotsEn: ['Hard to say no; weak boundaries leave you drained', 'Low orderliness and follow-through mean promises often fall through', 'Mood tracks the environment, so your own state is unstable'],
+      careers: ['服务与接待', '门店销售', '幼教与陪伴', '社区与志愿服务', '演艺与活动执行'],
+      careersEn: ['Service and hospitality', 'Retail sales', 'Early childhood education and care', 'Community and volunteer service', 'Performance and event execution']
+    },
+    {
+      key: 'easygoing-companion', name: '快乐同伴', en: 'The Easygoing Companion', centroid: C(0, 0, 1, 1, 0),
+      desc: '你是那种让人一见就放松的人：热情、善良、不较真、情绪好。你不太规划未来，也不太内耗；生活对你来说主要发生在此刻和身边的人身上。',
+      descEn: 'You are the sort of person people relax around immediately: warm, kind, not fussy, in good spirits. You do not plan far ahead and you do not churn inside; life for you happens mostly in this moment and among the people nearby.',
+      strengths: ['亲和力与情绪稳定并存，是天然的关系粘合剂', '心态好，逆境中恢复很快', '不评判他人，容纳度高'],
+      strengthsEn: ['Warmth plus emotional stability makes you a natural relational glue', 'Good outlook; you bounce back quickly from setbacks', 'Non-judgemental with a high tolerance for difference'],
+      blindspots: ['缺少长期目标与积累，成长曲线平缓', '过度随和导致自身利益被忽略', '不擅长处理需要坚持与冲突的场合'],
+      blindspotsEn: ['Few long-term goals or accumulation, so the growth curve is flat', 'Excessive accommodation means your own interests get overlooked', 'Poor at situations that require persistence and confrontation'],
+      careers: ['客户服务与前台', '导游与旅游服务', '餐饮与零售运营', '康养与陪护', '社群与用户运营'],
+      careersEn: ['Customer service and reception', 'Tour guiding and travel services', 'Food service and retail operations', 'Wellness and caregiving', 'Community and user operations']
+    },
+    {
+      key: 'impulsive-spark', name: '情绪先锋', en: 'The Impulsive Spark', centroid: C(0, 0, 1, 0, 1),
+      desc: '你反应快、表达冲、情绪来得直接，讨厌拐弯抹角。你在需要有人立刻站出来的场合非常有用，但事后收拾往往落在别人身上。你的问题不是不够真诚，而是缺少一个缓冲。',
+      descEn: 'Quick to react, blunt in expression, direct with emotion, allergic to indirection. You are extremely useful when someone must step forward right now, but the clean-up afterwards usually lands on someone else. Your problem is not a lack of sincerity — it is the lack of a buffer.',
+      strengths: ['反应极快，敢于在第一时间行动', '真实不做作，情绪表达坦率', '能打破沉默，把问题摆到桌面上'],
+      strengthsEn: ['Very fast reaction and the nerve to act immediately', 'Genuine and unposed, frank about what you feel', 'Breaks the silence and puts the problem on the table'],
+      blindspots: ['冲动后果需要别人承担，信任逐渐流失', '缺少计划与耐性，长期项目难以完成', '情绪与低宜人性叠加，冲突升级快'],
+      blindspotsEn: ['Others absorb the consequences of your impulses, and trust drains away', 'Little planning or patience, so long projects go unfinished', 'Emotionality plus low agreeableness escalates conflict fast'],
+      careers: ['现场应急与调度', '短周期销售', '体育竞技', '直播与街头表演', '一线执法与安保'],
+      careersEn: ['On-site emergency response and dispatch', 'Short-cycle sales', 'Competitive sport', 'Livestreaming and street performance', 'Front-line enforcement and security']
+    },
+    {
+      key: 'spontaneous-doer', name: '即兴行动派', en: 'The Spontaneous Doer', centroid: C(0, 0, 1, 0, 0),
+      desc: '你活在当下，说做就做，不纠结也不焦虑。你不喜欢计划、不追求新奇、也不在意别人怎么想——你只是按自己的节奏往前走，而且过得挺自在。',
+      descEn: 'You live in the present, act as you speak, and neither agonize nor worry. You dislike planning, do not chase novelty and do not mind what people think — you simply move at your own pace, and rather comfortably at that.',
+      strengths: ['行动力强，不被犹豫拖住', '心态稳定，抗挫能力好', '实事求是，不玩虚的'],
+      strengthsEn: ['Strong drive to act, never held up by hesitation', 'Steady temperament with good frustration tolerance', 'Down to earth, with no pretence'],
+      blindspots: ['缺少规划，成果依赖运气', '不太在意他人感受，合作中摩擦多', '兴趣与视野较窄，成长空间受限'],
+      blindspotsEn: ['Without planning, results depend on luck', 'Little regard for others\u2019 feelings, so collaboration has friction', 'Narrower interests and outlook limit room to grow'],
+      careers: ['技工与现场作业', '配送与运输', '体力技能型创业', '维修与安装', '农林牧渔生产'],
+      careersEn: ['Skilled trades and on-site work', 'Delivery and transport', 'Hands-on skill-based ventures', 'Repair and installation', 'Agriculture, forestry and fisheries']
+    },
+    {
+      key: 'quiet-ally', name: '沉默陪伴者', en: 'The Quiet Ally', centroid: C(0, 0, 0, 1, 1),
+      desc: '你不说话，但你在。你善良、体贴、敏感，习惯把自己放在最后。你几乎不给别人添麻烦，也几乎不为自己争取什么。这种温柔值得被看见，也需要被保护。',
+      descEn: 'You say little, but you are there. Kind, considerate and sensitive, you habitually put yourself last. You almost never trouble anyone, and almost never ask for anything. This gentleness deserves to be seen — and it needs protecting.',
+      strengths: ['共情与陪伴能力强，是别人最安心的存在', '不争不显，团队关系极少冲突', '细腻，能注意到他人未说出的需要'],
+      strengthsEn: ['Strong empathy and presence: the safest person for others to be around', 'Unassuming, with almost no relational conflict', 'Fine-grained; you notice needs others have not spoken'],
+      blindspots: ['长期压抑自身需求，容易积累委屈与耗竭', '缺少主张，机会被他人拿走', '敏感叠加低果断，被越界时难以维权'],
+      blindspotsEn: ['Long-term suppression of your own needs accumulates resentment and depletion', 'Without assertion, opportunities go to others', 'Sensitivity plus low assertiveness makes it hard to push back when a line is crossed'],
+      careers: ['护理与照护', '幕后支持岗位', '手作与工艺', '动物照护', '资料整理与录入'],
+      careersEn: ['Nursing and caregiving', 'Behind-the-scenes support roles', 'Handicraft and artisanal work', 'Animal care', 'Data organization and entry']
+    },
+    {
+      key: 'placid-traditionalist', name: '安宁守常者', en: 'The Placid Traditionalist', centroid: C(0, 0, 0, 1, 0),
+      desc: '你安静、平和、好相处，喜欢熟悉的生活节奏，也不急着改变什么。低神经质给了你难得的内在安宁——很多人拼命追求的「不焦虑」，在你这里是默认状态。',
+      descEn: 'Quiet, placid and easy to be with, you like a familiar rhythm and are in no hurry to change anything. Low neuroticism gives you a rare inner calm — the freedom from anxiety that many people chase is your default setting.',
+      strengths: ['情绪稳定又亲和，几乎不与人冲突', '知足，不被比较与焦虑消耗', '在需要长期稳定的角色中非常可靠'],
+      strengthsEn: ['Steady and likeable, with almost no interpersonal conflict', 'Content, and not drained by comparison or anxiety', 'Highly reliable in roles that need long-term steadiness'],
+      blindspots: ['变化适应慢，环境转型时被动', '缺少目标推力，能力提升有限', '过度顺从，重要场合难以表达立场'],
+      blindspotsEn: ['Slow to adapt, and passive when the environment shifts', 'Without goal pressure, skill growth is limited', 'Over-compliant, so you struggle to state a position when it matters'],
+      careers: ['行政事务与后勤', '固定流程的技术岗', '社区与家政服务', '园艺与养殖', '基础制造与装配'],
+      careersEn: ['Administrative affairs and logistics', 'Technical roles with fixed process', 'Community and household services', 'Horticulture and animal husbandry', 'Basic manufacturing and assembly']
+    }
+  ];
+
+  /* 人际相处建议：按维度高低组合动态生成 */
+  var REL_TIPS = {
+    Ohi: { zh: '你需要精神层面的新鲜感，长期停留在重复对话里会让你走神。主动把「一起学点新东西」列进关系日程。', en: 'You need intellectual novelty; staying in repetitive conversation makes you drift. Put "learn something new together" on the relationship agenda.' },
+    Olo: { zh: '你更看重踏实与可预期，别把伴侣或同事的天马行空当作不靠谱，先问「具体怎么做」再判断。', en: 'You value solidity and predictability. Do not read a partner\u2019s or colleague\u2019s flights of fancy as flakiness — ask "how exactly" before judging.' },
+    Chi: { zh: '你的高标准容易变成对别人的隐性要求。把期待说出口，比默默失望有效得多。', en: 'Your high standards easily become implicit demands on others. Saying the expectation out loud works far better than quietly being disappointed.' },
+    Clo: { zh: '你需要外部结构而不是更多决心。和对方约定可见的检查点，比承诺「这次一定」更管用。', en: 'You need external structure, not more resolve. Agreeing on visible checkpoints beats promising "this time for sure".' },
+    Ehi: { zh: '你的表达速度快，容易占满对话空间。刻意留三秒的停顿，安静的人才有机会说话。', en: 'You speak fast and fill the conversational space. Deliberately leave a three-second pause so quieter people can enter.' },
+    Elo: { zh: '你的沉默常被解读为不感兴趣。不必变得外向，只需在结束时补一句「我听进去了，我需要点时间想」。', en: 'Your silence is often read as disinterest. You need not become outgoing — just add "I took that in, I need time to think" at the end.' },
+    Ahi: { zh: '你让步太快，对方甚至不知道你曾有异议。学会说「我愿意配合，但我想先说清我的顾虑」。', en: 'You concede so fast that the other side never knows you objected. Learn to say "I will go along, but let me first name my concern".' },
+    Alo: { zh: '你的直接常被听成否定。把「这不行」换成「我担心的是……」，同样的内容会得到完全不同的接收。', en: 'Your directness is heard as rejection. Swap "that will not work" for "what worries me is…" and the same content lands entirely differently.' },
+    Nhi: { zh: '在情绪高点做的决定往往在低点被推翻。给自己一条规则：重要沟通推迟到情绪平复之后。', en: 'Decisions made at an emotional peak get reversed at the trough. Give yourself a rule: postpone important conversations until things settle.' },
+    Nlo: { zh: '你的稳定是资源，但也让你难以理解对方为什么「小事这么大反应」。承认对方的感受真实，不必先认同它合理。', en: 'Your steadiness is a resource, but it also makes it hard to see why a small thing hits someone so hard. Acknowledge that their feeling is real before deciding whether it is proportionate.' }
+  };
+
+  /* ============================================================
+   * 4. 渲染题目
+   * ========================================================== */
+  var ANS = {};
+  var DRAFT = 'toolbox.bigfive.draft.v1';
+
+  function fName(k) { var f = FACET_MAP[k]; return isEn() ? f.en : f.zh; }
+  function dName(k) { var d = DIM_MAP[k]; return isEn() ? d.en : d.zh; }
+
+  function renderForm() {
+    var html = '';
+    DIMS.forEach(function (d) {
+      var fs = FACETS.filter(function (f) { return f.dim === d.k; });
+      var ids = [];
+      fs.forEach(function (f) { ITEMS.forEach(function (it) { if (it.f === f.k) { ids.push(it); } }); });
+      html += '<section class="b5-sec" id="sec-' + d.k + '">' +
+        '<div class="b5-sech"><span>' + esc(dName(d.k)) + ' · ' + esc(fs.map(function (f) { return fName(f.k); }).join(' / ')) + '</span>' +
+        '<span class="tag">' + ids.length + B(' 题 · 已答 ', ' items · answered ') + '<span data-done="' + d.k + '">0</span></span></div>';
+      ids.forEach(function (it) {
+        html += '<div class="b5-q" id="q-' + it.i + '"><div class="b5-qt"><b>' + it.i + '.</b>' +
+          esc(isEn() ? it.en : it.zh) + '<em>' + esc(fName(it.f)) + (it.r ? B(' · 反向', ' · reverse') : '') + '</em></div><div class="b5-opts">';
+        LIKERT.forEach(function (l) {
+          var id = 'b' + it.i + '-' + l.v;
+          html += '<span class="b5-opt"><input type="radio" name="b' + it.i + '" id="' + id + '" value="' + l.v + '">' +
+            '<label for="' + id + '"><i>' + l.v + '</i><span>' + esc(isEn() ? l.en : l.zh) + '</span></label></span>';
+        });
+        html += '</div></div>';
+      });
+      html += '</section>';
+    });
+    $('b5Form').innerHTML = html;
+    $('b5Form').addEventListener('change', function (e) {
+      var t = e.target;
+      if (!t || t.type !== 'radio') { return; }
+      var i = parseInt(String(t.name).slice(1), 10);
+      ANS[i] = parseInt(t.value, 10);
+      var q = $('q-' + i); if (q) { q.classList.remove('miss'); }
+      updateProgress(); saveDraft();
+    });
+  }
+
+  function applyAnswers() {
+    ITEMS.forEach(function (it) {
+      if (!ANS[it.i]) { return; }
+      var el = $('b' + it.i + '-' + ANS[it.i]);
+      if (el) { el.checked = true; }
+    });
+  }
+
+  function updateProgress() {
+    var n = 0, per = {};
+    ITEMS.forEach(function (it) {
+      if (ANS[it.i]) { n++; var dk = FACET_MAP[it.f].dim; per[dk] = (per[dk] || 0) + 1; }
+    });
+    $('b5Cnt').textContent = n + ' / 60';
+    $('b5Fill').style.width = (n / 60 * 100).toFixed(1) + '%';
+    Array.prototype.forEach.call(document.querySelectorAll('[data-done]'), function (el) {
+      el.textContent = per[el.getAttribute('data-done')] || 0;
+    });
+    return n;
+  }
+
+  function saveDraft() { try { localStorage.setItem(DRAFT, JSON.stringify(ANS)); } catch (e) { /* 忽略 */ } }
+  function loadDraft() {
+    try { var r = localStorage.getItem(DRAFT); return r ? JSON.parse(r) : null; } catch (e) { return null; }
+  }
+
+  /* ============================================================
+   * 5. 计分引擎
+   * ========================================================== */
+  function score() {
+    var fRaw = {}, dRaw = {};
+    FACETS.forEach(function (f) { fRaw[f.k] = 0; });
+    DIMS.forEach(function (d) { dRaw[d.k] = 0; });
+    ITEMS.forEach(function (it) {
+      var v = ANS[it.i] || 3;
+      if (it.r) { v = 6 - v; }
+      fRaw[it.f] += v;
+      dRaw[FACET_MAP[it.f].dim] += v;
+    });
+    function T(raw, nm) { return clamp(50 + 10 * (raw - nm.m) / nm.sd, 20, 80); }
+    var dT = {}, fT = {};
+    DIMS.forEach(function (d) { dT[d.k] = T(dRaw[d.k], NORM_DIM[d.k]); });
+    FACETS.forEach(function (f) { fT[f.k] = T(fRaw[f.k], NORM_FACET[f.k]); });
+
+    // 原型匹配
+    var ranked = TYPES.map(function (t) {
+      var s = 0;
+      DIMS.forEach(function (d) {
+        var diff = dT[d.k] - t.centroid[d.k];
+        s += WEIGHT[d.k] * diff * diff;
+      });
+      var d2 = Math.sqrt(s);
+      return { t: t, dist: d2, fit: Math.max(35, Math.round(100 - 0.62 * d2)) };
+    }).sort(function (a, b) { return a.dist - b.dist; });
+
+    return { dRaw: dRaw, fRaw: fRaw, dT: dT, fT: fT, ranked: ranked };
+  }
+
+  function band(t) {
+    if (t > 55) { return { k: 'hi', zh: '偏高', en: 'High' }; }
+    if (t < 45) { return { k: 'lo', zh: '偏低', en: 'Low' }; }
+    return { k: 'mid', zh: '中等', en: 'Average' };
+  }
+
+  /* ============================================================
+   * 6. canvas 柱状图
+   * ========================================================== */
+  function drawBars(res) {
+    var cv = $('b5Bar'); if (!cv || !cv.getContext) { return; }
+    var dpr = Math.min(2, window.devicePixelRatio || 1);
+    var W = 640, H = 330;
+    cv.width = W * dpr; cv.height = H * dpr;
+    cv.style.width = W + 'px'; cv.style.height = H + 'px';
+    var x = cv.getContext('2d'); x.setTransform(dpr, 0, 0, dpr, 0, 0);
+    x.clearRect(0, 0, W, H);
+    var line = cssVar('--border', '#e5e7eb'), tm = cssVar('--text-muted', '#9ca3af'), tp = cssVar('--text-primary', '#111827');
+
+    var padL = 46, padR = 18, padT = 22, padB = 62;
+    var plotW = W - padL - padR, plotH = H - padT - padB;
+    var lo = 20, hi = 80;
+    function y(v) { return padT + plotH * (hi - v) / (hi - lo); }
+
+    // 网格
+    for (var g = 20; g <= 80; g += 10) {
+      x.beginPath(); x.moveTo(padL, y(g)); x.lineTo(W - padR, y(g));
+      x.strokeStyle = g === 50 ? tm : line;
+      x.lineWidth = g === 50 ? 1.4 : 1;
+      if (g === 50) { x.setLineDash([5, 4]); } else { x.setLineDash([]); }
+      x.stroke(); x.setLineDash([]);
+      x.fillStyle = tm; x.font = '10px sans-serif'; x.textAlign = 'right'; x.textBaseline = 'middle';
+      x.fillText(String(g), padL - 6, y(g));
+    }
+    x.fillStyle = tm; x.font = '10px sans-serif'; x.textAlign = 'left'; x.textBaseline = 'bottom';
+    x.fillText(B('T 分数（常模均值 50）', 'T score (norm mean 50)'), padL, padT - 6);
+
+    var n = DIMS.length, slot = plotW / n, bw = Math.min(58, slot * 0.5);
+    DIMS.forEach(function (d, i) {
+      var t = res.dT[d.k];
+      var cx = padL + slot * (i + 0.5);
+      var yy = y(t), y0 = y(50);
+      var top = Math.min(yy, y0), h = Math.max(2, Math.abs(yy - y0));
+      var gr = x.createLinearGradient(0, top, 0, top + h);
+      gr.addColorStop(0, d.color); gr.addColorStop(1, d.color + '77');
+      x.fillStyle = gr;
+      x.beginPath();
+      if (x.roundRect) { x.roundRect(cx - bw / 2, top, bw, h, 5); } else { x.rect(cx - bw / 2, top, bw, h); }
+      x.fill();
+      // 数值
+      x.fillStyle = tp; x.font = 'bold 13px sans-serif'; x.textAlign = 'center'; x.textBaseline = 'bottom';
+      x.fillText(t.toFixed(1), cx, (t >= 50 ? top - 4 : top + h + 15));
+      // 标签
+      x.fillStyle = tp; x.font = 'bold 12px sans-serif'; x.textBaseline = 'top';
+      x.fillText(dName(d.k), cx, H - padB + 12);
+      var bd = band(t);
+      x.fillStyle = bd.k === 'hi' ? d.color : (bd.k === 'lo' ? tm : tm);
+      x.font = '11px sans-serif';
+      x.fillText(isEn() ? bd.en : bd.zh, cx, H - padB + 30);
+      x.fillStyle = tm; x.font = '10px sans-serif';
+      x.fillText(B('原始 ', 'raw ') + res.dRaw[d.k] + '/60', cx, H - padB + 46);
+    });
+    x.beginPath(); x.moveTo(padL, y(lo)); x.lineTo(W - padR, y(lo));
+    x.strokeStyle = line; x.lineWidth = 1; x.stroke();
+  }
+
+  /* ============================================================
+   * 7. 结果卡 canvas
+   * ========================================================== */
+  function drawCard(res) {
+    var cv = $('b5Card'); if (!cv || !cv.getContext) { return; }
+    var dpr = Math.min(2, window.devicePixelRatio || 1);
+    var W = 640, H = 800;
+    cv.width = W * dpr; cv.height = H * dpr;
+    cv.style.width = W + 'px'; cv.style.height = H + 'px';
+    var x = cv.getContext('2d'); x.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+    // 背景渐变
+    var bg = x.createLinearGradient(0, 0, W, H);
+    bg.addColorStop(0, '#1e1b4b'); bg.addColorStop(0.55, '#4c1d95'); bg.addColorStop(1, '#7c2d6f');
+    x.fillStyle = bg; x.fillRect(0, 0, W, H);
+    // 装饰圆
+    for (var i = 0; i < 26; i++) {
+      var r = 6 + ((i * 53) % 34);
+      x.beginPath();
+      x.arc((i * 137) % W, (i * 229) % H, r, 0, Math.PI * 2);
+      x.fillStyle = 'rgba(255,255,255,' + (0.012 + (i % 5) * 0.008) + ')';
+      x.fill();
+    }
+
+    var top = res.ranked[0], sub = res.ranked[1];
+    x.textAlign = 'center';
+    x.fillStyle = 'rgba(255,255,255,.62)'; x.font = '13px sans-serif'; x.textBaseline = 'top';
+    x.fillText(B('大五人格测试 · 15 维度 28 型', 'Big Five Personality Test · 15 Facets, 28 Types'), W / 2, 34);
+
+    x.fillStyle = '#fff'; x.font = 'bold 38px sans-serif';
+    x.fillText(isEn() ? top.t.en : top.t.name, W / 2, 66);
+    x.fillStyle = 'rgba(255,255,255,.68)'; x.font = '15px sans-serif';
+    x.fillText(isEn() ? top.t.name : top.t.en, W / 2, 116);
+    x.fillStyle = '#fcd34d'; x.font = 'bold 15px sans-serif';
+    x.fillText(B('契合度 ', 'Match ') + top.fit + '%　·　' + B('次要型：', 'Secondary: ') + (isEn() ? sub.t.en : sub.t.name), W / 2, 144);
+
+    // 五维条
+    var bx = 72, bw = W - 144, by = 190;
+    DIMS.forEach(function (d, k) {
+      var t = res.dT[d.k];
+      var yy = by + k * 48;
+      x.textAlign = 'left'; x.fillStyle = 'rgba(255,255,255,.9)'; x.font = 'bold 14px sans-serif'; x.textBaseline = 'alphabetic';
+      x.fillText(dName(d.k), bx, yy - 6);
+      x.textAlign = 'right'; x.fillStyle = '#fcd34d'; x.font = 'bold 14px sans-serif';
+      x.fillText(t.toFixed(0), bx + bw, yy - 6);
+      x.fillStyle = 'rgba(255,255,255,.16)';
+      if (x.roundRect) { x.beginPath(); x.roundRect(bx, yy, bw, 13, 7); x.fill(); }
+      else { x.fillRect(bx, yy, bw, 13); }
+      var w = bw * clamp((t - 20) / 60, 0, 1);
+      var g2 = x.createLinearGradient(bx, 0, bx + bw, 0);
+      g2.addColorStop(0, d.color); g2.addColorStop(1, '#fff');
+      x.fillStyle = g2;
+      if (x.roundRect) { x.beginPath(); x.roundRect(bx, yy, Math.max(10, w), 13, 7); x.fill(); }
+      else { x.fillRect(bx, yy, Math.max(10, w), 13); }
+      // 50 刻度
+      x.fillStyle = 'rgba(255,255,255,.5)';
+      x.fillRect(bx + bw / 2 - 0.5, yy - 3, 1, 19);
+    });
+
+    // 子维度前三 / 后三
+    var fs = FACETS.slice().sort(function (a, b) { return res.fT[b.k] - res.fT[a.k]; });
+    x.textAlign = 'left'; x.fillStyle = 'rgba(255,255,255,.62)'; x.font = '12px sans-serif';
+    x.fillText(B('最突出的子维度', 'Highest facets'), bx, 452);
+    x.fillStyle = '#fff'; x.font = 'bold 15px sans-serif';
+    x.fillText(fs.slice(0, 3).map(function (f) { return fName(f.k) + ' ' + res.fT[f.k].toFixed(0); }).join('　'), bx, 476);
+    x.fillStyle = 'rgba(255,255,255,.62)'; x.font = '12px sans-serif';
+    x.fillText(B('最低的子维度', 'Lowest facets'), bx, 504);
+    x.fillStyle = '#fff'; x.font = 'bold 15px sans-serif';
+    x.fillText(fs.slice(-3).map(function (f) { return fName(f.k) + ' ' + res.fT[f.k].toFixed(0); }).join('　'), bx, 528);
+
+    // 一句话优势
+    x.fillStyle = 'rgba(255,255,255,.62)'; x.font = '12px sans-serif';
+    x.fillText(B('核心优势', 'Core strength'), bx, 560);
+    var st = (isEn() ? top.t.strengthsEn : top.t.strengths)[0];
+    x.fillStyle = '#fff'; x.font = '14px sans-serif';
+    wrap(x, st, bx, 584, bw, 21);
+
+    x.fillStyle = 'rgba(255,255,255,.62)'; x.font = '12px sans-serif';
+    x.fillText(B('需要留意', 'Watch out for'), bx, 646);
+    var bl = (isEn() ? top.t.blindspotsEn : top.t.blindspots)[0];
+    x.fillStyle = '#fff'; x.font = '14px sans-serif';
+    wrap(x, bl, bx, 670, bw, 21);
+
+    x.textAlign = 'center';
+    x.fillStyle = 'rgba(255,255,255,.42)'; x.font = '11px sans-serif';
+    x.fillText(B('本测评结果为自测参考，不替代专业心理/医学诊断', 'For self-reference only; not a substitute for professional diagnosis'), W / 2, H - 44);
+    x.fillStyle = 'rgba(255,255,255,.55)'; x.font = 'bold 12px sans-serif';
+    x.fillText('ToolBox · ' + B('大五人格测试', 'Big Five Personality Test'), W / 2, H - 24);
+  }
+
+  function wrap(ctx, text, x0, y0, maxW, lh) {
+    var s = String(text), line = '', yy = y0;
+    var chunks = /[\u4e00-\u9fa5]/.test(s) ? s.split('') : s.split(' ');
+    var joiner = /[\u4e00-\u9fa5]/.test(s) ? '' : ' ';
+    for (var i = 0; i < chunks.length; i++) {
+      var test = line ? (line + joiner + chunks[i]) : chunks[i];
+      if (ctx.measureText(test).width > maxW && line) {
+        ctx.fillText(line, x0, yy); line = chunks[i]; yy += lh;
+      } else { line = test; }
+    }
+    if (line) { ctx.fillText(line, x0, yy); }
+    return yy;
+  }
+
+  /* ============================================================
+   * 8. 结果渲染
+   * ========================================================== */
+  var LAST = null;
+
+  function renderResult(res) {
+    LAST = res;
+    var top = res.ranked[0], sub = res.ranked[1];
+
+    function typeCard(r, isSub) {
+      var t = r.t;
+      var code = DIMS.map(function (d) { return d.k + (t.centroid[d.k] > 50 ? '+' : '-'); }).join(' ');
+      return '<div class="b5-type' + (isSub ? ' sub' : '') + '">' +
+        '<span class="fit">' + B('契合度 ', 'Match ') + r.fit + '%</span>' +
+        '<h4>' + (isSub ? B('次要型 · ', 'Secondary · ') : B('主导型 · ', 'Dominant · ')) + esc(isEn() ? t.en : t.name) +
+        '<span class="code">' + code + '</span></h4>' +
+        '<div class="en">' + esc(isEn() ? t.name : t.en) + B('　距离 d = ', '　distance d = ') + r.dist.toFixed(1) + '</div>' +
+        '<p>' + esc(isEn() ? t.descEn : t.desc) + '</p></div>';
+    }
+    $('b5Types').innerHTML = typeCard(top, false) + typeCard(sub, true) +
+      '<div class="b5-note">' + B('其余原型按匹配距离排序（越小越接近）：', 'Remaining archetypes by matching distance (smaller is closer): ') +
+      esc(res.ranked.slice(2, 8).map(function (r) { return (isEn() ? r.t.en : r.t.name) + ' ' + r.dist.toFixed(1); }).join('　·　')) + ' …</div>';
+
+    drawBars(res);
+
+    // 维度表
+    var th = '<thead><tr><th>' + B('维度', 'Dimension') + '</th><th>' + B('原始分', 'Raw') + '</th><th>T</th><th>' +
+      B('水平', 'Level') + '</th><th>' + B('该水平的行为特征', 'What this level looks like') + '</th></tr></thead><tbody>';
+    var tb = '';
+    DIMS.forEach(function (d) {
+      var t = res.dT[d.k], bd = band(t);
+      var txt = bd.k === 'hi' ? (isEn() ? d.hiEn : d.hi) : (bd.k === 'lo' ? (isEn() ? d.loEn : d.lo) :
+        B('介于两端之间：在' + d.zh + '上你能根据情境灵活切换，不会被单一倾向锁定。',
+          'Between the poles: on ' + d.en + ' you can switch flexibly with the situation rather than being locked into one tendency.'));
+      tb += '<tr><td class="k" style="border-left:3px solid ' + d.color + '">' + esc(dName(d.k)) + '</td>' +
+        '<td>' + res.dRaw[d.k] + ' / 60</td>' +
+        '<td class="' + (bd.k === 'mid' ? '' : bd.k) + '">' + t.toFixed(1) + '</td>' +
+        '<td class="' + (bd.k === 'mid' ? '' : bd.k) + '">' + esc(isEn() ? bd.en : bd.zh) + '</td>' +
+        '<td class="d">' + esc(txt) + '</td></tr>';
+    });
+    $('b5DimTbl').innerHTML = th + tb + '</tbody>';
+
+    // 子维度剖面
+    var fh = '';
+    DIMS.forEach(function (d) {
+      fh += '<div class="b5-fgrp" style="color:' + d.color + '">' + esc(dName(d.k)) + '</div>';
+      FACETS.filter(function (f) { return f.dim === d.k; }).forEach(function (f) {
+        var t = res.fT[f.k];
+        var w = clamp((t - 20) / 60 * 100, 2, 100);
+        fh += '<div class="b5-frow" title="' + esc(isEn() ? f.dEn : f.d) + '">' +
+          '<span class="fn">' + esc(fName(f.k)) + '</span>' +
+          '<span class="fb"><i style="width:' + w.toFixed(1) + '%;background:' + d.color + '"></i><u></u></span>' +
+          '<span class="fv">' + t.toFixed(0) + '</span></div>';
+      });
+    });
+    fh += '<div class="b5-note">' + B('条形长度对应 T 分数在 20—80 区间的位置，中间的细竖线为常模均值 50。鼠标悬停可看子维度定义。同一维度内部子维度差异较大时（例如尽责性总分中等但「条理」很低、「成就动机」很高），说明维度层面的标签会掩盖真实模式，应优先看子维度剖面。',
+      'Bar length maps the T score onto the 20–80 range; the thin vertical line marks the norm mean of 50. Hover a row for the facet definition. When facets inside one dimension diverge widely (for example an average conscientiousness score with very low orderliness and very high achievement striving), the dimension-level label hides the real pattern — read the facet profile first.') + '</div>';
+    $('b5Facets').innerHTML = fh;
+
+    // 优势 / 盲点 / 职业 / 人际
+    var relKeys = DIMS.map(function (d) { return d.k + (res.dT[d.k] >= 50 ? 'hi' : 'lo'); });
+    var rel = relKeys.map(function (k) { return isEn() ? REL_TIPS[k].en : REL_TIPS[k].zh; });
+    function box(t, arr) {
+      return '<div class="b5-box"><div class="t">' + esc(t) + '</div><ul>' +
+        arr.map(function (s) { return '<li>' + esc(s) + '</li>'; }).join('') + '</ul></div>';
+    }
+    $('b5Advice').innerHTML =
+      box(B('✅ 优势', '✅ Strengths'), isEn() ? top.t.strengthsEn : top.t.strengths) +
+      box(B('⚠️ 盲点', '⚠️ Blind spots'), isEn() ? top.t.blindspotsEn : top.t.blindspots) +
+      box(B('💼 适配职业方向', '💼 Fitting career directions'), isEn() ? top.t.careersEn : top.t.careers) +
+      box(B('🤝 人际相处建议', '🤝 Relationship tips'), rel);
+
+    drawCard(res);
+
+    // 分享文案
+    var fs = FACETS.slice().sort(function (a, b) { return res.fT[b.k] - res.fT[a.k]; });
+    var share = B('我的大五人格结果：', 'My Big Five result: ') + (isEn() ? top.t.en : top.t.name) +
+      '（' + (isEn() ? top.t.name : top.t.en) + '）' + B('，契合度 ', ', match ') + top.fit + '%\n' +
+      DIMS.map(function (d) { return dName(d.k) + ' ' + res.dT[d.k].toFixed(0) + '(' + (isEn() ? band(res.dT[d.k]).en : band(res.dT[d.k]).zh) + ')'; }).join('　') + '\n' +
+      B('最突出子维度：', 'Highest facets: ') + fs.slice(0, 3).map(function (f) { return fName(f.k); }).join('、') +
+      B('　最低子维度：', '　Lowest facets: ') + fs.slice(-3).map(function (f) { return fName(f.k); }).join('、') + '\n' +
+      B('次要型：', 'Secondary type: ') + (isEn() ? sub.t.en : sub.t.name) + '\n' +
+      B('本测评结果为自测参考，不替代专业心理/医学诊断。', 'This self-assessment is for reference only and does not replace professional psychological or medical diagnosis.');
+    $('b5Share').textContent = share;
+
+    $('b5Note').textContent = B('说明：T 分数以通用参考常模换算，均值 50、标准差 10，理论上约 68% 的人落在 40—60 之间。T 在 45—55 之间属于中等区，此时的「偏高 / 偏低」标签并不稳定，隔一段时间重测可能改变。28 种原型来自五维高低的 32 种组合，剔除了 4 个在实证样本中几乎不出现的极端组合（五维同向全高、五维同向全低，以及 OCEA 全高且神经质极低、OCEA 全低且神经质极高）。原型只是描述你最靠近的参照点，不是对你的定义。',
+      'Note: T scores use a general reference norm with a mean of 50 and a standard deviation of 10, so roughly 68% of people fall between 40 and 60. Scores from 45 to 55 form a middle band where the high/low label is unstable and may change on retest. The 28 archetypes come from the 32 high/low combinations of the five dimensions, minus four extremes that almost never occur in empirical samples (all five high, all five low, OCEA all high with very low neuroticism, and OCEA all low with very high neuroticism). An archetype names the reference point you sit closest to; it does not define you.');
+
+    $('b5Res').classList.add('on');
+    $('b5Res').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  /* ============================================================
+   * 9. 事件
+   * ========================================================== */
+  $('b5Calc').addEventListener('click', function () {
+    var miss = [];
+    ITEMS.forEach(function (it) {
+      var q = $('q-' + it.i);
+      if (!ANS[it.i]) { miss.push(it.i); if (q) { q.classList.add('miss'); } }
+      else if (q) { q.classList.remove('miss'); }
+    });
+    if (miss.length) {
+      toast(B('还有 ' + miss.length + ' 题未作答', miss.length + ' item(s) unanswered'));
+      var f = $('q-' + miss[0]); if (f) { f.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
+      return;
+    }
+    renderResult(score());
+  });
+
+  $('b5Mid').addEventListener('click', function () {
+    ITEMS.forEach(function (it) { ANS[it.i] = 3; });
+    applyAnswers(); updateProgress(); saveDraft();
+    toast(B('已全部标记为「中立」', 'All items set to Neutral'));
+  });
+
+  $('b5Demo').addEventListener('click', function () {
+    // 构造一份高开放 / 高尽责 / 中外向 / 低宜人 / 中神经质的示例
+    var target = { aes: 4.4, int: 4.6, cre: 4.3, dis: 4.2, ord: 3.6, ach: 4.5, war: 3.1, gre: 2.4, ass: 4.0, tru: 2.5, alt: 3.0, com: 2.1, anx: 3.6, vul: 2.9, ang: 3.3 };
+    ITEMS.forEach(function (it, k) {
+      var base = target[it.f] || 3;
+      var j = ((k * 29 + it.i * 7) % 5) / 5 - 0.4;
+      var v = Math.round(base + j);
+      v = clamp(v, 1, 5);
+      ANS[it.i] = it.r ? (6 - v) : v;
+    });
+    applyAnswers(); updateProgress(); saveDraft();
+    toast(B('已载入示例作答', 'Sample answers loaded'));
+  });
+
+  $('b5Clear').addEventListener('click', function () {
+    ANS = {};
+    Array.prototype.forEach.call($('b5Form').querySelectorAll('input[type=radio]'), function (r) { r.checked = false; });
+    Array.prototype.forEach.call(document.querySelectorAll('.b5-q'), function (q) { q.classList.remove('miss'); });
+    updateProgress();
+    try { localStorage.removeItem(DRAFT); } catch (e) { /* 忽略 */ }
+    $('b5Res').classList.remove('on');
+    toast(B('已清空', 'Cleared'));
+  });
+
+  $('b5Png').addEventListener('click', function () {
+    if (!LAST) { return; }
+    var cv = $('b5Card');
+    if (cv.toBlob) {
+      cv.toBlob(function (b) { if (b) { download(b, 'bigfive-result-card.png', 'image/png'); } }, 'image/png');
+    } else {
+      var a = document.createElement('a');
+      a.href = cv.toDataURL('image/png'); a.download = 'bigfive-result-card.png'; a.click();
+    }
+  });
+
+  $('b5Copy').addEventListener('click', function () {
+    var t = $('b5Share').textContent;
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(t).then(function () { toast(B('已复制', 'Copied')); }, fb);
+    } else { fb(); }
+    function fb() {
+      var ta = document.createElement('textarea');
+      ta.value = t; ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta); ta.select();
+      try { document.execCommand('copy'); toast(B('已复制', 'Copied')); } catch (e) { toast(B('复制失败', 'Copy failed')); }
+      document.body.removeChild(ta);
+    }
+  });
+
+  $('b5Csv').addEventListener('click', function () {
+    if (!LAST) { toast(B('请先生成报告', 'Generate the report first')); return; }
+    var rows = [[B('题号', 'Item'), B('题目', 'Question'), B('子维度', 'Facet'), B('维度', 'Dimension'), B('反向', 'Reverse'), B('原始作答', 'Raw answer'), B('计分后', 'Scored')]];
+    ITEMS.forEach(function (it) {
+      var v = ANS[it.i] || '';
+      rows.push([it.i, isEn() ? it.en : it.zh, fName(it.f), dName(FACET_MAP[it.f].dim), it.r ? 'Y' : '', v, v ? (it.r ? 6 - v : v) : '']);
+    });
+    rows.push([]);
+    rows.push([B('维度', 'Dimension'), B('原始分', 'Raw'), 'T', B('水平', 'Level')]);
+    DIMS.forEach(function (d) {
+      rows.push([dName(d.k), LAST.dRaw[d.k], LAST.dT[d.k].toFixed(2), isEn() ? band(LAST.dT[d.k]).en : band(LAST.dT[d.k]).zh]);
+    });
+    rows.push([]);
+    rows.push([B('子维度', 'Facet'), B('原始分', 'Raw'), 'T']);
+    FACETS.forEach(function (f) { rows.push([fName(f.k), LAST.fRaw[f.k], LAST.fT[f.k].toFixed(2)]); });
+    rows.push([]);
+    rows.push([B('原型', 'Archetype'), B('距离', 'Distance'), B('契合度%', 'Match %')]);
+    LAST.ranked.forEach(function (r) { rows.push([isEn() ? r.t.en : r.t.name, r.dist.toFixed(2), r.fit]); });
+    var csv = '\ufeff' + rows.map(function (r) {
+      return r.map(function (c) {
+        var s = String(c === undefined || c === null ? '' : c);
+        return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+      }).join(',');
+    }).join('\r\n');
+    download(csv, 'bigfive-result.csv', 'text/csv;charset=utf-8');
+  });
+
+  /* ============================================================
+   * 10. 初始化
+   * ========================================================== */
+  renderForm();
+  var d0 = loadDraft();
+  if (d0 && typeof d0 === 'object') { ANS = d0; applyAnswers(); }
+  updateProgress();
+
+  var _rt = null;
+  document.addEventListener('toolbox:langchange', function () {
+    clearTimeout(_rt);
+    _rt = setTimeout(function () {
+      renderForm(); applyAnswers(); updateProgress();
+      if (LAST) { renderResult(LAST); }
+    }, 320);
+  });
+})();
