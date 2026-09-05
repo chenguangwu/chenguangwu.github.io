@@ -280,14 +280,90 @@ CLARITY_MARKER = '<!-- TOOLBOX-CLARITY -->'
 #       调用会抛 TypeError。故注入本桩：先把调用收进 window.__tbq 队列，
 #       common.js 就绪后回放（见 js/common.js 的 replayToolBoxQueue）。
 # 幂等：注入内容带 TOOLBOX_API_STUB_MARKER，重复构建不会重复插入。
+#
+# 2026-09-05 补充：桩原先只覆盖 13 个「无返回值」方法。页面内联脚本顶层若调用
+# escHtml / formatNumber / createTable / debounce（有返回值）或
+# setResult / markInvalid（DOM 写入）等方法，会因方法不存在直接抛 TypeError，
+# 表现为整页功能不可用（实测：braille-translator、grave-design、arbitration-fee、
+# paper/basis-weight、compound-interest 等）。故按返回值特性分两类补齐：
+#   A. 有返回值 → <head> 阶段即可运行的等价实现；
+#   B. 无返回值的 DOM 写入 → 入 __tbq 队列，等 common.js 就绪后回放（此时元素才存在）。
+# common.js 加载完成后其整体赋值 global.ToolBox = {...} 覆盖为完整版，行为一致。
+# 版本：升级逻辑见 _upgrade_toolbox_api_stub，指纹为 __stubV。
 # ============================================================
+# 桩版本号：新增早期 API 时必须 +1，否则历史页面不会被升级。
+# 指纹判定见 _upgrade_toolbox_api_stub（解析 __stubV=N 后做数值比较）。
+TOOLBOX_STUB_VERSION = 3
 TOOLBOX_API_STUB_MARKER = '<!-- TOOLBOX-API-STUB -->'
+
+# ToolBox 早期 API（逐个与 js/common.js 对齐，勿单边修改）
+#
+# 分两类处理：
+#   A. 有返回值（纯函数 / DOM 查询）→ 直接提供等价实现。调用方需要立刻拿到返回值，
+#      入队无意义，且这些实现在 <head> 阶段即可安全工作（查不到元素返回 null，不抛错）。
+#   B. 无返回值的 DOM 写入类（setResult / markInvalid / clearInvalid / addToolStyles）
+#      → 入 window.__tbq 队列。common.js 就绪后由 replayToolBoxQueue 回放，此时 DOM
+#      已解析完成，写入才真正生效（若在 <head> 阶段直接执行，元素尚不存在会静默丢失）。
+_TOOLBOX_EARLY_API = (
+    "(function(){var T=window.ToolBox;"
+    # --- 版本号：_upgrade_toolbox_api_stub 解析 __stubV=N 做数值比较，判断是否需升级 ---
+    "T.__stubV=" + str(TOOLBOX_STUB_VERSION) + ";"
+    # --- A. 有返回值：等价实现 ---
+    "if(typeof T.escHtml!=='function')T.escHtml=function(s){"
+    "var d=document.createElement('div');d.textContent=s;return d.innerHTML;};"
+    "if(typeof T.formatNumber!=='function')T.formatNumber=function(n,dec){"
+    "if(typeof n!=='number'||isNaN(n))return String(n);"
+    "dec=dec!=null?dec:0;"
+    "return n.toLocaleString('zh-CN',{minimumFractionDigits:dec,maximumFractionDigits:dec});};"
+    "if(typeof T.createTable!=='function')T.createTable=function(h,r){"
+    "var x='<table><thead><tr>';"
+    "h.forEach(function(t){x+='<th>'+T.escHtml(t)+'</th>';});"
+    "x+='</tr></thead><tbody>';"
+    "r.forEach(function(row){x+='<tr>';"
+    "row.forEach(function(c){x+='<td>'+(c!=null?T.escHtml(String(c)):'')+'</td>';});"
+    "x+='</tr>';});"
+    "return x+'</tbody></table>';};"
+    "if(typeof T.debounce!=='function')T.debounce=function(fn,ms){"
+    "var t;return function(){var a=arguments,s=this;clearTimeout(t);"
+    "t=setTimeout(function(){fn.apply(s,a);},ms);};};"
+    "if(typeof T.$!=='function')T.$=function(id){return document.getElementById(id);};"
+    "if(typeof T.qs!=='function')T.qs=function(s,c){return (c||document).querySelector(s);};"
+    "if(typeof T.qsa!=='function')T.qsa=function(s,c){"
+    "return Array.prototype.slice.call((c||document).querySelectorAll(s));};"
+    "if(typeof T.validateNumberInput!=='function')T.validateNumberInput=function(el){"
+    "if(!el||el.type!=='number')return true;"
+    "return el.value===''||!isNaN(parseFloat(el.value));};"
+    # --- B. 无返回值的 DOM 写入类：入队，等 common.js 回放 ---
+    "['setResult','markInvalid','clearInvalid','addToolStyles'].forEach(function(k){"
+    "if(typeof T[k]!=='function')T[k]=function(){"
+    "window.__tbq.push([k,[].slice.call(arguments)]);};});"
+    # --- C. common.js 末尾挂载的全局函数（非 ToolBox 命名空间）---
+    # 这些函数在 common.js 文件尾部才挂到 window，同样受 defer 时序影响：
+    # 页面若在顶层绘制 canvas（如 compound-interest 的 drawChart）或取文案，会 ReferenceError。
+    "if(typeof window.resolveCanvasColor!=='function')window.resolveCanvasColor=function(v,f){"
+    "var c=String(v||'').trim(),m=c.match(/^var\\((--[\\w-]+)\\)$/);"
+    "if(m)c=getComputedStyle(document.documentElement).getPropertyValue(m[1]).trim();"
+    "return c||f;};"
+    "if(typeof window.canvasColorWithAlpha!=='function')window.canvasColorWithAlpha=function(v,f,a){"
+    "var c=window.resolveCanvasColor(v,f),h=c.match(/^#([0-9a-f]{6})$/i);"
+    "if(h){var n=parseInt(h[1],16);"
+    "return 'rgba('+(n>>16)+','+((n>>8)&255)+','+(n&255)+','+a+')';}"
+    "var s=c.match(/^#([0-9a-f]{3})$/i);"
+    "if(s)return window.canvasColorWithAlpha('#'+s[1].split('').map(function(x){return x+x;}).join(''),f,a);"
+    "var r=c.match(/^rgb\\(([^)]+)\\)$/i);if(r)return 'rgba('+r[1]+','+a+')';return c;};"
+    # i18nText 依赖 common.js 的 I18N_MSG 词典，早期阶段只能降级为返回 fallback（与词典缺失时行为一致）
+    "if(typeof window.i18nText!=='function')window.i18nText=function(k,f){return f!=null?f:k;};"
+    "})();"
+)
+
 TOOLBOX_API_STUB = (
     '<script>window.__tbq=window.__tbq||[];window.ToolBox=window.ToolBox||{};'
     "['initToolTheme','addToolStyles','showToast','toast','copyText','copyToClipboard',"
     "'copyFromElement','downloadText','injectPrivacyBadge','toggleFavTool','addToRecentTool',"
     "'toggleToolTheme','applyTheme'].forEach(function(k){if(typeof window.ToolBox[k]!=='function')"
-    'window.ToolBox[k]=function(){window.__tbq.push([k,[].slice.call(arguments)]);};});</script>'
+    "window.ToolBox[k]=function(){window.__tbq.push([k,[].slice.call(arguments)]);};});"
+    + _TOOLBOX_EARLY_API +
+    '</script>'
     + TOOLBOX_API_STUB_MARKER + '\n'
 )
 
@@ -1694,7 +1770,7 @@ h2 { font-size: 1.3rem; margin: 25px 0 15px; padding-bottom: 8px; border-bottom:
 .count { font-size: 12px; color: #6B7280; font-weight: normal; margin-left: 8px; }
 .footer { margin-top: 40px; padding-top: 20px; border-top: 1px solid #E5E7EB; text-align: center; color: #9CA3AF; font-size: 12px; }
 </style>
-<script>window.__tbq=window.__tbq||[];window.ToolBox=window.ToolBox||{};['initToolTheme','addToolStyles','showToast','toast','copyText','copyToClipboard','copyFromElement','downloadText','injectPrivacyBadge','toggleFavTool','addToRecentTool','toggleToolTheme','applyTheme'].forEach(function(k){if(typeof window.ToolBox[k]!=='function')window.ToolBox[k]=function(){window.__tbq.push([k,[].slice.call(arguments)]);};});</script><!-- TOOLBOX-API-STUB -->
+<script>window.__tbq=window.__tbq||[];window.ToolBox=window.ToolBox||{};['initToolTheme','addToolStyles','showToast','toast','copyText','copyToClipboard','copyFromElement','downloadText','injectPrivacyBadge','toggleFavTool','addToRecentTool','toggleToolTheme','applyTheme'].forEach(function(k){if(typeof window.ToolBox[k]!=='function')window.ToolBox[k]=function(){window.__tbq.push([k,[].slice.call(arguments)]);};});(function(){var T=window.ToolBox;if(typeof T.escHtml!=='function')T.escHtml=function(s){var d=document.createElement('div');d.textContent=s;return d.innerHTML;};if(typeof T.formatNumber!=='function')T.formatNumber=function(n,dec){if(typeof n!=='number'||isNaN(n))return String(n);dec=dec!=null?dec:0;return n.toLocaleString('zh-CN',{minimumFractionDigits:dec,maximumFractionDigits:dec});};if(typeof T.createTable!=='function')T.createTable=function(h,r){var x='<table><thead><tr>';h.forEach(function(t){x+='<th>'+T.escHtml(t)+'</th>';});x+='</tr></thead><tbody>';r.forEach(function(row){x+='<tr>';row.forEach(function(c){x+='<td>'+(c!=null?T.escHtml(String(c)):'')+'</td>';});x+='</tr>';});return x+'</tbody></table>';};if(typeof T.debounce!=='function')T.debounce=function(fn,ms){var t;return function(){var a=arguments,s=this;clearTimeout(t);t=setTimeout(function(){fn.apply(s,a);},ms);};};})();</script><!-- TOOLBOX-API-STUB -->
 <script src="/js/common.js" defer></script>
 </head>
 <body>
@@ -1731,7 +1807,8 @@ h2 { font-size: 1.3rem; margin: 25px 0 15px; padding-bottom: 8px; border-bottom:
 </div>
 </body>
 </html>'''
-    return html
+    # 模板里的 ToolBox 桩为硬编码旧版，统一走升级函数，与 TOOLBOX_API_STUB 常量保持同步
+    return _upgrade_toolbox_api_stub(html)
 
 
 def run_clarity_gate():
@@ -2137,6 +2214,36 @@ def _css_nonblocking(content):
     return c2
 
 
+# 旧桩特征：<script>window.__tbq= ... </script><!-- TOOLBOX-API-STUB -->
+_TOOLBOX_STUB_OLD_RE = re.compile(
+    r'<script>window\.__tbq=[\s\S]*?</script>' + re.escape(TOOLBOX_API_STUB_MARKER)
+)
+
+
+def _upgrade_toolbox_api_stub(content):
+    """把页面里「只覆盖 13 个无返回值方法」的旧 ToolBox 桩，原地升级为含纯函数实现的新桩。
+
+    背景：scripts/gen_*.py 生成器把旧桩硬编码进页面（存量 5270 个）。旧桩缺
+    escHtml / formatNumber / createTable / debounce，页面内联脚本顶层一旦调用即抛
+    TypeError，整页功能不可用（详见 TOOLBOX_API_STUB 注释）。
+
+    幂等判定：以 stub 版本号 __stubV 为指纹。不可用方法名（如 T.escHtml）做指纹——
+    一旦后续往早期 API 里新增方法，历史页面会被误判为「已升级」而跳过，新版无法下发。
+    """
+    if TOOLBOX_API_STUB_MARKER not in content:
+        return content
+    # 数值比较版本号：解析页面现有 __stubV=N，已 >= 当前版本则幂等返回。
+    # 不能用方法名（如 T.escHtml）做指纹——后续往早期 API 新增方法时，历史页面
+    # 会被误判为「已升级」而跳过，新版无法下发。
+    _m = re.search(r'__stubV=(\d+)', content)
+    if _m and int(_m.group(1)) >= TOOLBOX_STUB_VERSION:
+        return content
+    new_stub = TOOLBOX_API_STUB.rstrip('\n')
+    # 必须用 lambda 传入替换串：stub 内含 \w、\( 等正则转义，直接作为模板会被 re 解析而报 bad escape
+    new_content, n = _TOOLBOX_STUB_OLD_RE.subn(lambda _m: new_stub, content, count=1)
+    return new_content if n else content
+
+
 def fix_tool_pages_seo(tools, target_tools=None, report=True, existing_html_paths=None):
     """Post-process all tool pages: ensure h1, add breadcrumbs, related tools, structured data."""
     by_industry = {}
@@ -2290,7 +2397,17 @@ def fix_tool_pages_seo(tools, target_tools=None, report=True, existing_html_path
         with open(filepath, 'r', encoding='utf-8') as f:
             content = f.read()
 
+        # ------------------------------------------------------------------
+        # ToolBox API 桩升级（2026-09-05）
+        # 各生成器脚本（scripts/gen_*.py） historically 把「只覆盖 13 个无返回值方法」的旧桩
+        # 硬编码进页面（存量 5000+）。页面内联脚本若在顶层调用 escHtml / formatNumber /
+        # createTable 这类有返回值的纯函数，会因方法不存在抛 TypeError，整页功能直接不可用。
+        # 此处在构建期把旧桩原地升级为含纯函数早期实现的新桩。
+        # 注意：必须放在 `original = content` 之后——只有 content != original 才会写回磁盘。
+        # 幂等：新桩自带 T.escHtml 指纹，已升级页面直接返回原内容。
+        # ------------------------------------------------------------------
         original = content
+        content = _upgrade_toolbox_api_stub(content)
 
         industry = t['industry']
         ind_def = INDUSTRY_DEFS.get(industry, ('🔧', industry))
