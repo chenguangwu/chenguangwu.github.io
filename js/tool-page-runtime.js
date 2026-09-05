@@ -91,10 +91,76 @@
     });
   }
 
+  // 竞品通用能力「取长补短」：工具页结果区自动注入「复制结果 / 导出 TXT」操作条。
+  // 这是从 calculator.net / rapidtables 等竞品学来的通用交互实践（仅加能力，不抄文案/代码），
+  // 一次性覆盖全部工具页，无需逐页改动 HTML，也不影响各页原有 calc 逻辑。
+  function enhanceToolResults(){
+    try {
+      var TB = window.ToolBox;
+      if (!TB || typeof TB.copyFromElement !== 'function') return;
+      var el = null;
+      var selectors = [
+        '#result', '#result-box', '#resultBox', '#output', '#output-box', '#outputBox',
+        '.result-box', '.result', '[data-result]'
+      ];
+      for (var i = 0; i < selectors.length; i++) {
+        var c = document.querySelector(selectors[i]);
+        if (c) { el = c; break; }
+      }
+      // 兜底：任意含 result/output 的 id（排除注释/提示/计数等非结果节点）
+      if (!el) {
+        var all = document.querySelectorAll('[id]');
+        for (var j = 0; j < all.length; j++) {
+          var e2 = all[j];
+          var id2 = (e2.id || '').toLowerCase();
+          if (/result|output/.test(id2) && !/note|tip|hint|label|desc|count/.test(id2)) {
+            var tag = e2.tagName;
+            if (tag !== 'INPUT' && tag !== 'TEXTAREA' && tag !== 'SELECT' && tag !== 'BUTTON' && tag !== 'A' && tag !== 'META' && tag !== 'LINK') {
+              el = e2; break;
+            }
+          }
+        }
+      }
+      if (!el) return;
+      if (!el.id) el.id = 'tb-tool-result';
+      // 防止重复注入
+      if (el.parentNode && el.parentNode.querySelector('.tb-result-actions')) return;
+      var bar = document.createElement('div');
+      bar.className = 'tb-result-actions toolbar';
+      bar.style.marginTop = '12px';
+      bar.style.gap = '8px';
+      bar.style.display = 'flex';
+      bar.style.flexWrap = 'wrap';
+      var h1 = document.querySelector('h1');
+      var rawName = (h1 ? h1.textContent : (document.title || 'tool')).trim();
+      var name = rawName.replace(/\s+/g, '-').replace(/[^\w\u4e00-\u9fa5-]/g, '') || 'tool';
+      var fname = name + '-result.txt';
+      var copyBtn = document.createElement('button');
+      copyBtn.type = 'button';
+      copyBtn.className = 'btn';
+      copyBtn.textContent = '📋 复制结果';
+      copyBtn.addEventListener('click', function () { TB.copyFromElement(el.id, '结果已复制'); });
+      var expBtn = document.createElement('button');
+      expBtn.type = 'button';
+      expBtn.className = 'btn';
+      expBtn.textContent = '⬇️ 导出 TXT';
+      expBtn.addEventListener('click', function () {
+        var t = (el.innerText || el.textContent || '').trim();
+        if (!t) { if (TB.toast) TB.toast('暂无结果可导出'); return; }
+        TB.downloadText(fname, t);
+      });
+      bar.appendChild(copyBtn);
+      bar.appendChild(expBtn);
+      if (el.nextSibling) el.parentNode.insertBefore(bar, el.nextSibling);
+      else el.parentNode.appendChild(bar);
+    } catch (e) {}
+  }
+
   function ensureRuntime(){
     initToolTheme();
     registerServiceWorker();
     initToolIntro();
+    enhanceToolResults();
   }
 
   if (document.readyState === 'loading') {
