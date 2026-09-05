@@ -168,3 +168,38 @@ body.dark .tb-mobile-section-item a:hover { … }
 
 - 五道门禁全过；无头 Chrome 实机验证：简/繁 it 分类页 345 卡片全增强、json fetch 200、本地资源零错误。
 - 提交 `b3134acb0` 推送 master；线上验收：部署生效（线上 it 93KB、category-index.js 引用、data-ind、精简链接 345、旧富卡片残留 0）、`json/industry-it.json` 200。
+
+---
+
+## 七、json 数据源合并（tools.json ↔ search-index.json）
+
+### 背景（老板发现）
+`json/tools.json`（2.86MB）与 `json/search-index.json`（2.73MB）体积相近，初看疑似重复。调查结论：**两文件不是简单副本**。
+
+- `json/tools.json`：格式化 5009 条，字段 `name/cat/industry/icon/bg/url/desc/file/path/quality/en/ed/d`；被大量 `scripts/*.py` 构建脚本 + 首页数据源消费。
+- `json/search-index.json`：压缩单行 5009 条（与 tools 同序），字段 `n/en/d/ed/al/i/c/u/ic/b/q/s/py/pyi`——**独有搜索专用字段 `al`(别名)、`py`(拼音)、`pyi`(拼音首字母)**。
+- `py/pyi` 是「拼音 typo 滑动窗口纠正(Levenshtein≤2)」的支撑数据（老板此前重点要求的能力）。直接删 search-index 让搜索改读 tools.json 会丢此功能。
+
+### 方案（老板确认：执行合并）
+- 给 `json/tools.json` 补 `al/py/pyi`（在 `_build.py` 写 tools.json 前的循环注入，复用 `build_search_aliases`/`title_pinyin`/`title_pinyin_initials`）。
+- 删除 `_build.py` 的 `search-index.json` 生成段（1473–1517 行），并去 consistency check / 文件列表里的引用。
+- 前端 4 页（`js/app.js`、`search.html`、`404.html`、`chains.html`）fetch 改读 `/json/tools.json`，加载后做一次「长字段→短字段」投影（`name→n, desc→d, url→u, icon→ic, bg→b, quality→q, file→s`，`al/py/pyi/en/ed` 直传），搜索/拼音纠错渲染逻辑不变。
+- 6 个消费脚本改读 `tools.json` 并适配字段：`gen_en_override.py`、`gen_tool_i18n_en.py`、`_extract_pinyin.py`、`_mine_untranslated.py`、`fix_formula_titles.py`、`test_search_regression.cjs`。
+- 同步文档：`AGENTS.md`（目录树/构建步骤/搜索流程）、`docs/i18n-spec.md`、`scripts/perf_baseline.cjs` 及脚本 docstring。
+
+### 效果
+| 项 | 优化前 | 优化后 |
+|----|--------|--------|
+| `json/search-index.json` | 2.73 MB | **删除（0）** |
+| `json/tools.json` | 2.86 MB | 3.69 MB（+0.83MB，含新字段） |
+| **净省包体积** | — | **~1.9 MB** |
+| 质量分级 | A 5009 | A 5009（100%） |
+
+### 验证
+- 五道质量门禁全过（`All 5 quality gates passed`）。
+- 无头 Chrome 实机搜索验证（简体）：中文「计算器」✅、全拼 `jisuanqi` ✅、拼音 typo `jisqanqi` ✅（证明 `py/pyi` 注入生效、滑动窗口纠正保留）、`tools.json` 加载 5009 条、本地资源零错误。
+- 提交 `c30d9f0a8`（287 文件，删 `search-index.json`）推送 master；线上验收：`search-index.json` 404（已删）、`tools.json` 含 `pyi/al` 字段 → 部署生效。
+
+### 本轮经验（防复发）
+- **Bash 工具参数名是 `command` 不是 `arguments`**：此前 agent 误写 `arguments` 导致所有 Bash 调用被工具层拒绝、误判为沙箱拦截，让用户去关沙箱——实为调用格式错。已写入用户级 `~MEMORY.md`。
+
