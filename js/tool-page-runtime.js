@@ -156,11 +156,115 @@
     } catch (e) {}
   }
 
+  // 阶段二·取长补短：示例填充（试算）通用增强
+  // 对所有「固定输入 + 主操作按钮 + 无既有试算按钮」的工具页注入「✨ 试算示例」按钮，
+  // 点击时自动填充合理示例值并触发主计算，让用户一键看到工具效果（对标竞品标配示例）。
+  // 动态生成输入的工具（如选公式后才 innerHTML 出 input）初始 DOM 无输入，自动跳过，安全。
+  function enhanceExampleFill(){
+    try {
+      var TB = window.ToolBox;
+      if (!TB) return;
+      var injected = false;
+      function tryInject(){
+        if (injected) return;
+        var raw = document.querySelectorAll('input,select,textarea');
+        var inputs = [];
+        for (var i = 0; i < raw.length; i++) {
+          var n = raw[i];
+          if (n.type === 'hidden' || n.type === 'submit' || n.type === 'button' ||
+              n.type === 'reset' || n.type === 'image') continue;
+          if (n.offsetParent === null) continue; // 不可见跳过
+          if (n.closest && n.closest('.tb-result-actions')) continue;
+          inputs.push(n);
+        }
+        if (inputs.length < 1) return; // 无输入（动态生成类尚未出现）暂不注入
+        var main = findMainButton();
+        if (!main) return;
+        var allBtns = document.querySelectorAll('button');
+        for (var k = 0; k < allBtns.length; k++) {
+          if (/试算|示例|example|fill|填入|demo/i.test(allBtns[k].textContent || '')) return;
+        }
+        if (main.parentNode && main.parentNode.querySelector('.tb-demo-btn')) return;
+        var demo = document.createElement('button');
+        demo.type = 'button';
+        demo.className = 'btn tb-demo-btn';
+        demo.textContent = '✨ 试算示例';
+        demo.addEventListener('click', function () { fillAndDemo(main); });
+        if (main.nextSibling) main.parentNode.insertBefore(demo, main.nextSibling);
+        else main.parentNode.appendChild(demo);
+        injected = true;
+      }
+      tryInject();
+      if (injected) return;
+      // 动态生成输入的工具（选公式/类型后才 innerHTML 出 input）：监听 DOM 变化重试注入
+      if (window.MutationObserver) {
+        var pending = false;
+        var mo = new MutationObserver(function () {
+          if (pending) return;
+          pending = true;
+          setTimeout(function () {
+            pending = false;
+            if (tryInject()) { try { mo.disconnect(); } catch (e2) {} }
+          }, 300);
+        });
+        mo.observe(document.body, { childList: true, subtree: true });
+        setTimeout(function () { try { mo.disconnect(); } catch (e2) {} }, 12000);
+      }
+    } catch (e) {}
+  }
+
+  function findMainButton(){
+    var b = document.querySelector('button.primary, .btn.primary, [class*="primary"]');
+    if (b) return b;
+    var kw = /(计算|转换|换算|生成|试算|运行|提交|开始|求值|加密|解密|编码|解码|格式化|解析|→|=>|＝)/;
+    var btns = document.querySelectorAll('button, input[type="submit"], input[type="button"]');
+    for (var i = 0; i < btns.length; i++) {
+      var t = (btns[i].textContent || btns[i].value || '');
+      if (kw.test(t)) return btns[i];
+    }
+    return null;
+  }
+
+  function placeholderNum(el){
+    var p = el.placeholder || '';
+    var m = p.match(/-?\d+(\.\d+)?/);
+    return m ? parseFloat(m[0]) : null;
+  }
+
+  function fillAndDemo(main){
+    try {
+      var raw = document.querySelectorAll('input,select,textarea');
+      for (var i = 0; i < raw.length; i++) {
+        var el = raw[i];
+        if (el.type === 'hidden' || el.type === 'submit' || el.type === 'button' ||
+            el.type === 'reset' || el.type === 'image') continue;
+        if (el.offsetParent === null) continue;
+        if (el.closest && el.closest('.tb-result-actions')) continue;
+        if (el.value && String(el.value).trim() !== '') continue; // 不覆盖已填
+        if (el.tagName === 'SELECT') {
+          var opt = el.querySelector('option:not([disabled])');
+          if (opt) el.value = opt.value;
+        } else if (el.type === 'number') {
+          var v = placeholderNum(el);
+          if (v === null && el.min !== '' && !isNaN(parseFloat(el.min))) v = parseFloat(el.min);
+          if (v === null) v = 1;
+          el.value = String(v);
+        } else {
+          el.value = el.placeholder || '示例';
+        }
+        el.dispatchEvent(new Event('input', { bubbles: true }));
+        el.dispatchEvent(new Event('change', { bubbles: true }));
+      }
+      if (main) main.click();
+    } catch (e) {}
+  }
+
   function ensureRuntime(){
     initToolTheme();
     registerServiceWorker();
     initToolIntro();
     enhanceToolResults();
+    enhanceExampleFill();
   }
 
   if (document.readyState === 'loading') {

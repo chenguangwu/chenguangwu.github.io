@@ -29,6 +29,8 @@
 > - `finance/word-counter.html`、`design/audio-recorder.html`：`操作条:无`——本身无标准结果容器（字数统计/录音结果非文本结果框），增强按「不强行注入、不破坏现有能力」原则不注入，符合设计。
 > - `agriculture/calc-4.html`、`tester-5.html`：重定向桩（`TOOLBOX-REDIRECT`），验证器识别后跳过，**不计入失败、不优化**。
 > 五项门禁（`run_gates.py --skip-build`）4/4 通过；`_test_static.py` 0 失败。
+
+> **阶段四·功能短板（试算示例增强，2026-09-05 已实机复验）**：站点级 `enhanceExampleFill()` 自动检测「可见输入 + 主操作按钮」并注入「✨ 试算示例」按钮，点击即填示例值并触发主计算；对动态生成输入的工具（如 physics-calculator 选公式后才出 input）用 `MutationObserver` 兜底注入。覆盖全站有输入+主按钮的工具页（含 211 个原无示例按钮的 inputs<3 短板页）。批次 1/15/30 共 75 页实机复验 74/75 通过；2 失败均非增强因果：`polybius-cipher`（验证器协议超时伪失败，已手动证实正常）、`rich-text-editor`（`fmtBlock is not defined` 系该页自身 inline 既有 bug，被点击主按钮触发，非增强引入）。
 > 验证：静态门禁 0 失败；663 工具页 FAQ 100% 经 `_build.py` 重建保真保留；抽样实机无 JS 错误、正文厚度提升（h2 结构完善）。
 > 注：分类 `index.html` 由 `_build.py` 模板每次重建覆盖，不注入 FAQ（属正常）。
 

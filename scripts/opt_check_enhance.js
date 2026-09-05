@@ -85,13 +85,26 @@ async function checkPage(page, base, rel) {
         if (b.classList.contains("theme-btn")) return false;
         if (b.closest(".nav, header, footer, .tb-mobile-section")) return false;
         const t = (b.innerText || b.textContent || "").trim();
+        if (b.classList.contains("tb-demo-btn")) return false;
         return t && !skip.test(t);
       });
       return {
         hasBar: !!bar,
+        hasDemo: !!document.querySelector('.tb-demo-btn'),
         before, btnCount: btns.length,
       };
     });
+    // 先验证「试算示例」增强：点击注入的 demo 按钮，确认填示例并触发主计算、无 JS 错误
+    if (res.hasDemo) {
+      await page.evaluate(() => { var d = document.querySelector('.tb-demo-btn'); if (d) d.click(); });
+      await new Promise((r) => setTimeout(r, 500));
+      const afterDemo = await page.evaluate(() => {
+        const sc = document.querySelector('.container') || document.body;
+        return (sc.innerText || sc.textContent || '').trim().slice(0, 800);
+      });
+      res.demoClicked = true;
+      res.demoResponded = afterDemo !== res.before && afterDemo.replace(res.before, '').trim().length > 0;
+    }
     // 篡改输入触发计算链路
     await page.evaluate(() => {
       const sc = document.querySelector(".container") || document.body;
@@ -114,8 +127,9 @@ async function checkPage(page, base, rel) {
           const b = [...scope.querySelectorAll("button, a.btn, .btn")].filter((x) => {
             if (x.classList.contains("theme-btn")) return false;
             if (x.closest(".nav, header, footer, .tb-mobile-section")) return false;
-            const t = (x.innerText || x.textContent || "").trim();
-            return t && !skip.test(t);
+          const t = (x.innerText || x.textContent || "").trim();
+          if (x.classList.contains("tb-demo-btn")) return false;
+        return t && !skip.test(t);
           })[idx];
           if (b) b.click();
         }, i);
@@ -173,7 +187,7 @@ async function checkPage(page, base, rel) {
       continue;
     }
     const mark = issues.length ? "✗" : "✓";
-    console.log(`${mark} ${rel} [操作条:${r.hasBar ? "有" : "无"} 复制:${r.enhance && r.enhance.copyClicked ? "✓" : "-"} 导出:${r.enhance && r.enhance.expClicked ? "✓" : "-"} 主功能:${r.responded ? "响应" : "未变"}]${issues.length ? "\n    └ " + issues.join("; ") : ""}`);
+    console.log(`${mark} ${rel} [操作条:${r.hasBar ? "有" : "无"} 试算:${r.demoClicked ? (r.demoResponded ? "✓" : "?") : "-"} 复制:${r.enhance && r.enhance.copyClicked ? "✓" : "-"} 导出:${r.enhance && r.enhance.expClicked ? "✓" : "-"} 主功能:${r.responded ? "响应" : "未变"}]${issues.length ? "\n    └ " + issues.join("; ") : ""}`);
     (issues.length ? fail : pass).push(rel);
   }
   try { await ctx.browser.close(); } catch (_) {}
