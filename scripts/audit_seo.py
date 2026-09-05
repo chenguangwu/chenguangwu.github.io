@@ -2,7 +2,7 @@
 """全站 SEO 审计：扫描工具页/分类落地页/核心页的元数据覆盖与质量问题。"""
 import os, re, json, collections
 
-ROOT = os.path.dirname(os.path.abspath(__file__))
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 tools_dir = os.path.join(ROOT, 'tools')
 
 def read(p):
@@ -57,9 +57,13 @@ agg = collections.Counter()
 samples = {}
 desc_map = collections.defaultdict(list)
 title_map = collections.defaultdict(list)
+redirect_n = 0
 for p in all_pages:
     html = read(p)
     if not html: continue
+    if 'TOOLBOX-REDIRECT' in html:   # 合并残留重定向桩：已 noindex+canonical，非真工具页，排除
+        redirect_n += 1
+        continue
     issues, (t, d) = audit_html(p, html)
     for k, v in issues.items():
         agg[k] += len(v)
@@ -68,6 +72,7 @@ for p in all_pages:
     if t: title_map[t].append(p)
 
 print(f'扫描页面总数: {len(all_pages)}（工具 {len(tool_pages)} / 分类 {len(cat_pages)} / 核心 {len(core_pages)} / 指南 {len(guide_pages)}）\n')
+print(f'排除重定向桩(TOOLBOX-REDIRECT): {redirect_n}（已 noindex+canonical，非真工具页）\n')
 print('== 问题统计 ==')
 for k, c in agg.most_common():
     print(f'  {k}: {c}')
