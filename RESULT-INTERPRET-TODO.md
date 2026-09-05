@@ -58,16 +58,16 @@
 - [ ] #40 `tools/neurology/calc-1.html` — NIHSS 脑卒中评分（输入1）
 - [ ] #41 `tools/ophthalmology/osdi-scale.html` — 干眼症(OSDI)自评量表（输入1）
 - [ ] #42 `tools/quantum/angular-momentum-quant.html` — 由主量子数求角动量（输入1）
-- [ ] #43 `tools/quantum/mass-energy-equivalence.html` — 质能等价计算器（输入1）
+- [x] #43 `tools/quantum/mass-energy-equivalence.html` — 质能等价计算器（输入1）
 - [ ] #44 `tools/rehabilitation/fim-scale.html` — 康复结局(FIM)量表总分计算器（输入1）
 - [ ] #45 `tools/science/barcode-pharmacode.html` — Pharmacode 条形码（输入1）
 - [ ] #46 `tools/science/median-calculator.html` — 中位数计算器（输入1）
 - [ ] #47 `tools/science/nato-phonetic.html` — NATO 音标字母（输入1）
 - [ ] #48 `tools/science/phone-qr.html` — 电话二维码（输入1）
 - [ ] #49 `tools/science/physics-calculator.html` — 物理计算器（输入1）
-- [ ] #50 `tools/signal/first-order-rise.html` — 上升时间（t_r ≈ 2.2·τ）（输入1）
-- [ ] #51 `tools/statistics/mean-absolute-deviation.html` — 由数值序列求平均绝对偏差（输入1）
-- [ ] #52 `tools/statistics/sample-variance.html` — 样本方差计算器（输入1）
+- [x] #50 `tools/signal/first-order-rise.html` — 上升时间（t_r ≈ 2.2·τ）（输入1）
+- [x] #51 `tools/statistics/mean-absolute-deviation.html` — 由数值序列求平均绝对偏差（输入1）
+- [x] #52 `tools/statistics/sample-variance.html` — 样本方差计算器（输入1）
 - [ ] #53 `tools/structural/section-modulus-circle.html` — 由直径求圆截面抗弯模量（输入1）
 - [ ] #54 `tools/tcm-diagnosis/meridian-differentiation.html` — 经络辨证疼痛对应器（输入1）
 
@@ -85,8 +85,8 @@
 - [ ] #64 `tools/data/csv-analyzer.html` — CSV 分析器（输入2）
 - [ ] #65 `tools/design/rem-to-px.html` — Rem to Px Converter（输入2）
 - [ ] #66 `tools/economics/inflation-rate.html` — 通货膨胀率计算器（输入2）
-- [ ] #67 `tools/electromagnetism/energy-inductor.html` — 由电感与电流求储能（输入2）
-- [ ] #68 `tools/electromagnetism/magnetic-flux.html` — 磁通（Φ = B·A）（输入2）
+- [x] #67 `tools/electromagnetism/energy-inductor.html` — 由电感与电流求储能（输入2）
+- [x] #68 `tools/electromagnetism/magnetic-flux.html` — 磁通（Φ = B·A）（输入2）
 - [ ] #69 `tools/encode/binary-to-ascii.html` — Binary / Hex to ASCII（输入2）
 - [ ] #70 `tools/endocrinology/calc-1.html` — HOMA-IR 胰岛素抵抗指数（输入2）
 - [ ] #71 `tools/energy/air-purifier-area.html` — 空气净化器适用面积计算（输入2）
@@ -96,16 +96,16 @@
 
 - [ ] #73 `tools/energy/joule-heating.html` — 由电流与电阻求热功率（输入2）
 - [ ] #74 `tools/futures/option-payoff.html` — 期权盈亏图（输入2）
-- [ ] #75 `tools/geometry/pyramid-volume.html` — 由底面积与高求棱锥体积（输入2）
+- [x] #75 `tools/geometry/pyramid-volume.html` — 由底面积与高求棱锥体积（输入2）
 - [ ] #76 `tools/it/bip39-generator.html` — BIP39 助记词生成器（输入2）
 - [ ] #77 `tools/it/calc-1.html` — 文件大小单位换算（输入2）
 - [ ] #78 `tools/it/calc-4.html` — CSS单位换算（px / em / rem / pt / %）（输入2）
 - [ ] #79 `tools/it/mac-generator.html` — MAC Address Generator（输入2）
 - [ ] #80 `tools/it/numeronym-generator.html` — Numeronym 数字缩写（输入2）
 - [ ] #81 `tools/it/phone-parser.html` — Phone Number Parser &amp; Formatter（输入2）
-- [ ] #82 `tools/kinematics/angular-accel.html` — 角加速度计算器（输入2）
-- [ ] #83 `tools/kinematics/height-fall-distance.html` — 由下落时间求下落距离（输入2）
-- [ ] #84 `tools/kinematics/relative-velocity-1d.html` — 由两物体速度求相对速度（输入2）
+- [x] #82 `tools/kinematics/angular-accel.html` — 角加速度计算器（输入2）
+- [x] #83 `tools/kinematics/height-fall-distance.html` — 由下落时间求下落距离（输入2）
+- [x] #84 `tools/kinematics/relative-velocity-1d.html` — 由两物体速度求相对速度（输入2）
 - [ ] #85 `tools/life/concentration-converter.html` — 浓度换算器（输入2）
 - [ ] #86 `tools/life/density-converter.html` — 密度换算器（输入2）
 - [ ] #87 `tools/life/length-converter.html` — 长度换算器（输入2）
@@ -117,12 +117,12 @@
 
 - [ ] #91 `tools/materials/bulk-modulus.html` — 体积模量（K = E / (3(1−2ν))）（输入2）
 - [ ] #92 `tools/materials/hooke-strain.html` — 轴向应变（ε = σ / E）（输入2）
-- [ ] #93 `tools/math/gcd-lcm.html` — GCD / LCM 计算器（输入2）
-- [ ] #94 `tools/math/log-base.html` — 任意底数对数计算器（输入2）
+- [x] #93 `tools/math/gcd-lcm.html` — GCD / LCM 计算器（输入2）
+- [x] #94 `tools/math/log-base.html` — 任意底数对数计算器（输入2）
 - [ ] #95 `tools/medical2/medical-abbrev.html` — 医学术语缩写（输入2）
 - [ ] #96 `tools/meteorology/wet-bulb-temperature.html` — 湿球温度 T_w（输入2）
-- [ ] #97 `tools/nuclear/activity-from-halflife.html` — 由半衰期与原子核数求活度（输入2）
-- [ ] #98 `tools/nuclear/effective-halflife.html` — 由物理与生物半衰期求有效半衰期（输入2）
+- [x] #97 `tools/nuclear/activity-from-halflife.html` — 由半衰期与原子核数求活度（输入2）
+- [x] #98 `tools/nuclear/effective-halflife.html` — 由物理与生物半衰期求有效半衰期（输入2）
 - [ ] #99 `tools/ophthalmology/visual-acuity-converter.html` — 视力表(Snellen/logMAR)换算器（输入2）
 - [ ] #100 `tools/optical/blue-light-filter.html` — 防蓝光透射比计算器（输入2）
 - [ ] #101 `tools/optics/angular-magnification.html` — 由明视距离与焦距求简单放大镜角放大率（输入2）
@@ -139,10 +139,10 @@
 - [ ] #109 `tools/reproductive-medicine/sperm-morphology.html` — 精子形态分类器（严格标准）（输入2）
 - [ ] #110 `tools/reproductive-medicine/total-sperm-count.html` — 总精子数计算器（输入2）
 - [ ] #111 `tools/robotics/end-effector-reach.html` — 二连杆工作空间计算器（输入2）
-- [ ] #112 `tools/science/newtons-second.html` — 牛顿第二定律 F = ma（输入2）
-- [ ] #113 `tools/signal/pwm-average.html` — 平均电压（V_avg = D · V_cc）（输入2）
-- [ ] #114 `tools/signal/rc-time-constant.html` — 时间常数（τ = R·C）（输入2）
-- [ ] #115 `tools/statistics/linear-regression.html` — 最小二乘回归计算器（输入2）
+- [x] #112 `tools/science/newtons-second.html` — 牛顿第二定律 F = ma（输入2）
+- [x] #113 `tools/signal/pwm-average.html` — 平均电压（V_avg = D · V_cc）（输入2）
+- [x] #114 `tools/signal/rc-time-constant.html` — 时间常数（τ = R·C）（输入2）
+- [x] #115 `tools/statistics/linear-regression.html` — 最小二乘回归计算器（输入2）
 - [ ] #116 `tools/surveying/external-distance-curve.html` — 由半径与转角求外距（输入2）
 - [ ] #117 `tools/tax/reverse-charge.html` — 由代扣金额与征收率求代扣代缴税额（输入2）
 - [ ] #118 `tools/tax/vat-output.html` — 由销售额与增值税率求销项税额（输入2）
