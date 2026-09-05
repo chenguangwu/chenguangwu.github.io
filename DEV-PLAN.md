@@ -32,6 +32,12 @@
 - SEO-D：无流量页治理需连续周期 Bing+Clarity 数据到位，单期不治理（原要求保留）。
 - Analytics-C：Bing 数据仍稀疏（站点爬取爬升期），等周期数据到位后再滚动扩面。
 
+### 心理分类全量重做（2026-09-06 启动，进行中）
+- 目标：把 `tools/psychology/` 全部工具统一到 `tester-2.html`(MBTI) 的「逐题作答」生产级标准：真实题库 + 逐题引擎（进度条/单题卡片/5档/题号速览回跳/键盘/本机存进度）+ 真实计分 + 深度解读；清掉所有"生理常数/常见场景：XXX"套话、链着生成器的相关工具。
+- 分诊结论：仅 MBTI 已是逐题引擎；其余 19 个均为老式整页罗列。其中 PSS/PHQ-9/PSQI/SAS 核心计分正确但外壳烂；holland(72题)/bubble-tea(48题)/enneagram/bigfive/attachment(ECR)/scl90/tester-3(VARK) 有真实题库但老布局；calc-12(幸福感)/calc-self-assess(乐观)/assessor(拖延)/rater(PSQI简化)/self-assess(EQ)/analysis-2(性格色彩)/generator-20/random-12 偏薄或偏生成器。
+- 顺序（一道题一道题）：①self-test-pressure(PSS) ②sas(已修计分,升逐题) ③phq9 ④psqi ⑤calc-12(幸福感) ⑥calc-self-assess(乐观) ⑦assessor(拖延) ⑧self-assess(EQ) ⑨analysis-2(性格色彩) ⑩rater(PSQI简化) ⑪tester-3(VARK) ⑫holland ⑬bigfive ⑭enneagram ⑮attachment ⑯scl90 ⑰bubble-tea ⑱generator-20 ⑲random-12。每完成一个跑 `_build.py` + `_test_static.py`，按"批量多文件合并提交"原则分批 commit。
+- 改动方式：python 正则精准替换正文区块（保留 head 脚手架），避免整文件重写误伤 toolbox 桩。
+
 ### 本次清理（2026-09-05，按老板要求）
 - 删 `RESULT-INTERPRET-TODO.md`：阶段六 122 工具结果解读，全 `[x]` 完成。
 - 删 `gap-report.md`：竞品(it-tools)覆盖率 100%，无缺失项。

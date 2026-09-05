@@ -98,7 +98,7 @@
 </nav>
 <div class="container">
   <div class="card">
-    <h2 data-zh="😟 SAS 焦虑自评">😟 SAS Anxiety Self-Assessment</h2>
+    <h2 data-zh="😟 SAS 焦虑自评">😟 SAS Anxiety Self-Rating Scale (Zung, 1971)</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="SAS（焦虑自评量表，Zung 1971）含 20 个条目，请按「过去一周」的实际感受作答。结果仅供自我了解与参考，不构成医学诊断。">SAS (Zung Self-Rating Anxiety Scale, 1971) has 20 items. Rate how you felt over the past week. For self-understanding only, not a medical diagnosis.</p>
 <div class="formula-box">
   <div class="formula-title">📐 评分原理</div>
@@ -106,104 +106,166 @@
 </div>
 
 
-    <div id="rows"></div>
-    <p style="font-size:12px;color:var(--text-muted);margin:2px 0 14px;line-height:1.7;">标注 <span style="color:var(--secondary,#7C3AED);font-weight:600;">*</span> 的为<strong>反向计分题</strong>：陈述的是「无焦虑」状态，选「很少」反而记高分，请按真实感受作答。</p>
-    <div class="toolbar">
-      <button class="btn primary" onclick="calcSas()">计算得分</button>
-      <button class="btn" onclick="copyResult()">复制结果</button>
+    
+<style>
+.mt-wrap{margin-top:2px;}
+.mt-progress-top{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px;}
+.mt-dim-tag{display:inline-block;padding:2px 10px;border-radius:999px;background:var(--bg-hover);border:1px solid var(--border);color:var(--primary);font-weight:700;font-size:12px;}
+.mt-count{font-size:12px;color:var(--text-secondary);font-variant-numeric:tabular-nums;}
+.mt-bar{height:8px;border-radius:999px;background:var(--bg-hover);border:1px solid var(--border);overflow:hidden;}
+.mt-bar-fill{height:100%;width:0;border-radius:999px;background:var(--gradient-primary);transition:width .28s ease;}
+.mt-q-card{background:var(--card-bg);border:1px solid var(--border);border-radius:var(--radius-lg);padding:18px;margin:14px 0 14px;box-shadow:var(--shadow-sm);}
+.mt-q-num{font-size:12px;font-weight:800;color:var(--primary);letter-spacing:.1em;}
+.mt-q-text{font-size:19px;line-height:1.65;font-weight:600;color:var(--text);margin-top:6px;word-break:break-word;}
+.mt-opts{display:flex;flex-direction:column;gap:10px;}
+.mt-opt{display:flex;align-items:center;gap:12px;width:100%;text-align:left;font-family:inherit;font-size:15px;line-height:1.55;color:var(--text);background:var(--card-bg);border:1.5px solid var(--border);border-radius:var(--radius-md);padding:13px 16px;cursor:pointer;transition:border-color .15s,background .15s,box-shadow .15s,transform .08s;-webkit-tap-highlight-color:transparent;}
+.mt-opt:hover{border-color:var(--primary);background:var(--bg-hover);}
+.mt-opt:active{transform:scale(.995);}
+.mt-opt:focus-visible{outline:2px solid var(--primary);outline-offset:2px;}
+.mt-opt.on{border-color:var(--primary);background:var(--bg-active);box-shadow:0 0 0 3px rgba(255,107,53,.14);font-weight:600;}
+.mt-key{flex:0 0 auto;width:24px;height:24px;border-radius:7px;background:var(--bg-hover);border:1px solid var(--border);color:var(--text-secondary);font-size:12px;font-weight:800;display:flex;align-items:center;justify-content:center;}
+.mt-opt.on .mt-key{background:var(--primary);border-color:var(--primary);color:#fff;}
+.mt-opt-label{flex:1;}
+.mt-opt.on .mt-opt-label{color:var(--text);}
+.mt-tick{flex:0 0 auto;width:20px;height:20px;border-radius:50%;border:1.5px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:11px;color:transparent;}
+.mt-opt.on .mt-tick{background:var(--primary);border-color:var(--primary);color:#fff;}
+.mt-nav{display:flex;align-items:center;gap:10px;margin-top:18px;flex-wrap:wrap;}
+.mt-nav .btn{min-width:110px;}
+.mt-hint{flex:1;text-align:center;font-size:12px;color:var(--text-muted);}
+.mt-grid-card{margin-top:18px;padding:12px 14px;border:1px solid var(--border);border-radius:var(--radius-md);background:var(--card-bg);}
+.mt-grid-title{font-size:12px;color:var(--text-secondary);margin-bottom:9px;font-weight:600;}
+.mt-grid{display:grid;grid-template-columns:repeat(10,1fr);gap:5px;}
+.mt-cell{border:1px solid var(--border);border-radius:6px;background:var(--bg);color:var(--text-muted);font-size:11px;font-weight:700;cursor:pointer;padding:0;min-height:26px;font-family:inherit;transition:background .15s,border-color .15s,color .15s;}
+.mt-cell:hover{border-color:var(--primary);color:var(--primary);}
+.mt-cell.done{background:var(--bg-active);border-color:var(--primary);color:var(--primary);}
+.mt-cell.cur{outline:2px solid var(--primary);outline-offset:1px;}
+.mt-type{text-align:center;padding:10px 0 4px;}
+.mt-type-code{font-size:40px;font-weight:800;letter-spacing:.04em;background:var(--gradient-primary);-webkit-background-clip:text;background-clip:text;color:transparent;}
+.mt-type-name{font-size:18px;font-weight:800;color:var(--text);margin-top:2px;}
+.mt-dbar{margin:14px 0 10px;}
+.mt-dbar-top{display:flex;justify-content:space-between;font-size:12px;color:var(--text-secondary);margin-bottom:5px;}
+.mt-dbar-top b{color:var(--text);}
+.mt-dbar-track{height:10px;border-radius:999px;background:var(--bg-hover);border:1px solid var(--border);overflow:hidden;}
+.mt-dbar-a{background:var(--primary);height:100%;}
+.mt-sec{margin-top:12px;padding:12px 14px;border:1px solid var(--border);border-radius:var(--radius-md);background:var(--bg);}
+.mt-sec h4{font-size:14px;margin-bottom:6px;color:var(--primary);}
+.mt-notice{margin-top:18px;border-style:dashed;background:transparent;}
+.mt-sec ul{margin:0;padding-left:18px;}
+.mt-sec li{font-size:13px;line-height:1.85;color:var(--text-secondary);}
+.info-box{margin-top:12px;padding:12px 14px;border:1px solid var(--border);border-left:4px solid var(--primary);border-radius:var(--radius-md);background:var(--bg);font-size:13px;line-height:1.8;color:var(--text-secondary);}
+.info-box strong{color:var(--text);}
+@media(max-width:640px){
+  .mt-grid{grid-template-columns:repeat(5,1fr);}
+  .mt-q-text{font-size:17px;}
+  .mt-nav .btn{flex:1;min-width:0;}
+  .mt-hint{order:3;flex-basis:100%;}
+  .mt-type-code{font-size:34px;}
+}
+</style>
+
+<div class="mt-wrap" id="mtWrap">
+  <div class="mt-progress">
+    <div class="mt-progress-top">
+      <span class="mt-dim-tag" id="mtDimTag">焦虑自评量表</span>
+      <span class="mt-count" id="mtCount">第 1 / 20 题</span>
     </div>
-    <div id="result" class="result-box"></div>
+    <div class="mt-bar"><div class="mt-bar-fill" id="mtBarFill"></div></div>
   </div>
+  <div class="mt-q-card">
+    <div class="mt-q-num" id="mtQNum">Q1</div>
+    <div class="mt-q-text" id="mtQText">加载中…</div>
+  </div>
+  <div class="mt-opts" id="mtOpts"></div>
+  <div class="mt-nav">
+    <button type="button" class="btn" id="mtPrev" onclick="pGo(-1)">← 上一题</button>
+    <span class="mt-hint" id="mtHint">点选项文字即可作答，也可用键盘 1–4 / ← →</span>
+    <button type="button" class="btn primary" id="mtNext" onclick="pGo(1)">下一题 →</button>
+  </div>
+  <div class="mt-grid-card">
+    <div class="mt-grid-title">题号速览（点任意题号可回去改答案）</div>
+    <div class="mt-grid" id="mtGrid"></div>
+  </div>
+  <div class="mt-sec mt-notice">
+    <h4>⚠️ 答题须知</h4>
+    <ul>
+      <li>SAS 评估的是「过去一周」你的实际感受，不是某一天或一辈子的状态</li>
+      <li>20 题中第 5、9、13、17、19 题为反向计分题（陈述的是「无焦虑」状态），系统会自动翻转，请按真实感受作答</li>
+      <li>每题 4 档从「很少」到「总在」，拿不准就选最接近的一档</li>
+      <li>答题进度仅保存在本机浏览器，点「重新测试」即可清空，数据不会上传</li>
+    </ul>
+  </div>
+  <div class="toolbar">
+    <button type="button" class="btn primary" onclick="calc()">查看结果</button>
+    <button type="button" class="btn" onclick="pReset()">重新测试</button>
+    <button type="button" class="btn" onclick="copyResult()">复制结果</button>
+  </div>
+  <div class="result-box" id="res"></div>
 </div>
 
 <script>
-const ITEMS = [
-  {t:'我觉得比平常容易紧张和着急', s:'焦虑'},
-  {t:'我无缘无故地感到害怕', s:'害怕'},
-  {t:'我容易心里烦乱或觉得惊恐', s:'惊恐'},
-  {t:'我觉得我可能将要发疯', s:'发疯感'},
-  {t:'我觉得一切都很好，也不会发生什么不幸', s:'不幸预感', rev:true},
-  {t:'我手脚发抖打颤', s:'手足颤抖'},
-  {t:'我因为头痛、颈痛和背痛而苦恼', s:'躯体疼痛'},
-  {t:'我感到容易衰弱和疲乏', s:'乏力'},
-  {t:'我觉得心平气和，并且容易安静坐着', s:'静坐不能', rev:true},
-  {t:'我觉得心跳得很快', s:'心悸'},
-  {t:'我因为一阵阵头晕而苦恼', s:'头昏'},
-  {t:'我有晕倒发作，或觉得要晕倒似的', s:'晕厥感'},
-  {t:'我呼气、吸气都感到很容易', s:'呼吸困难', rev:true},
-  {t:'我手脚麻木和刺痛', s:'手足刺痛'},
-  {t:'我因为胃痛和消化不良而苦恼', s:'胃痛或消化不良'},
-  {t:'我常常要小便', s:'尿意频数'},
-  {t:'我的手常常是干燥温暖的', s:'多汗', rev:true},
-  {t:'我脸红发热', s:'面部潮红'},
-  {t:'我容易入睡并且一夜睡得很好', s:'睡眠障碍', rev:true},
-  {t:'我做恶梦', s:'恶梦'}
+var SAS_QS=[
+'我觉得比平常容易紧张和着急',
+'我无缘无故地感到害怕',
+'我容易心里烦乱或觉得惊恐',
+'我觉得我可能将要发疯',
+'我觉得一切都很好，也不会发生什么不幸',
+'我手脚发抖打颤',
+'我因为头痛、颈痛和背痛而苦恼',
+'我感到容易衰弱和疲乏',
+'我觉得心平气和，并且容易安静坐着',
+'我觉得心跳得很快',
+'我因为一阵阵头晕而苦恼',
+'我有晕倒发作，或觉得要晕倒似的',
+'我呼气、吸气都感到很容易',
+'我手脚麻木和刺痛',
+'我因为胃痛和消化不良而苦恼',
+'我常常要小便',
+'我的手常常是干燥温暖的',
+'我脸红发热',
+'我容易入睡并且一夜睡得很好',
+'我做恶梦'
 ];
-const SCALE = [
-  {v:1, l:'很少'},
-  {v:2, l:'有时'},
-  {v:3, l:'较多'},
-  {v:4, l:'总在'}
-];
-
-function render() {
-  const rows = document.getElementById('rows');
-  rows.innerHTML = '';
-  ITEMS.forEach(function (it, i) {
-    let opts = '';
-    SCALE.forEach(function (sc, k) {
-      const name = 's' + i;
-      const checked = k === 0 ? ' checked' : '';
-      opts += '<div><label>' + sc.v + ' ' + sc.l + '</label><input type="radio" name="' + name + '" value="' + sc.v + '"' + checked + '></div>';
-    });
-    const star = it.rev ? ' <span style="color:var(--secondary,#7C3AED);font-weight:600;" title="反向计分题">*</span>' : '';
-    const row = document.createElement('div');
-    row.className = 'input-row';
-    row.style.display = 'grid';
-    row.style.gridTemplateColumns = '1.3fr repeat(4,1fr)';
-    row.style.gap = '8px';
-    row.style.marginBottom = '10px';
-    row.innerHTML = '<div><label>' + (i + 1) + '. ' + it.t + star + '<br><span style="font-size:11px;color:var(--text-muted);">（' + it.s + '）</span></label></div>' + opts;
-    rows.appendChild(row);
-  });
-}
-
-function calcSas() {
-  let raw = 0;
-  const highs = [];
-  ITEMS.forEach(function (it, i) {
-    const sel = document.querySelector('input[name="s' + i + '"]:checked');
-    const v = Number(sel ? sel.value : 1);
-    const score = it.rev ? (5 - v) : v; // 反向题：1↔4、2↔3
-    raw += score;
-    const signal = it.rev ? (5 - v) : v; // 焦虑信号：越高越焦虑
-    if (signal >= 3) highs.push(it.s);
-  });
-  const std = Math.round(raw * 1.25);
-
-  let level, color, advice;
-  if (std >= 70) { level = '重度焦虑'; color = 'var(--danger)'; advice = '焦虑水平较高，建议尽快到精神科或心理科就诊评估，必要时接受专业干预。'; }
-  else if (std >= 60) { level = '中度焦虑'; color = 'var(--warning, #f59e0b)'; advice = '焦虑已较明显并可能影响日常生活，建议预约心理咨询或就医。'; }
-  else if (std >= 50) { level = '轻度焦虑'; color = 'var(--primary)'; advice = '存在一定焦虑倾向，注意规律作息与放松训练；若持续 2 周以上不适，可咨询专业人员。'; }
-  else { level = '正常（无明显焦虑）'; color = 'var(--success)'; advice = '当前评分处于正常区间，保持良好作息即可。'; }
-
-  let html = '<p>粗分：<strong>' + raw + ' / 80</strong></p>'
-    + '<p>标准分：<strong style="color:' + color + ';font-size:22px;">' + std + ' / 100</strong></p>'
-    + '<p>分级：<strong style="color:' + color + ';">' + level + '</strong></p>';
-  if (highs.length) {
-    html += '<p style="margin-top:8px;">近期反映较明显的方面：<strong>' + highs.join('、') + '</strong></p>';
-  }
-  html += '<p style="margin-top:8px;color:var(--text-muted);font-size:13px;line-height:1.7;">' + advice + ' 本结果仅供自我参考，不能替代专业医学诊断。</p>';
-  document.getElementById('result').innerHTML = html;
-}
-
-function copyResult() {
-  const text = document.getElementById('result').innerText || '';
-  ToolBox.copyText(text, i18nText('toast.msg544'));
-}
-
-render();
+var SAS_SYM=['紧张着急','害怕','心烦惊恐','发疯感','不幸预感(反向)','手足颤抖','躯体疼痛','乏力','静坐不能(反向)','心悸','头昏','晕厥感','呼吸困难(反向)','手足刺痛','胃痛消化不良','尿意频数','多汗(反向)','面部潮红','睡眠障碍(反向)','恶梦'];
+var SAS_SCALE=[{t:'很少',v:1},{t:'有时',v:2},{t:'较多',v:3},{t:'总在',v:4}];
+var SAS_REV={4:1,8:1,12:1,16:1,18:1};
+var SAS_STORE='sasTestV1';
+var SAS_ANS=[];
+var SAS_CUR=0;
+function pEl(id){return document.getElementById(id);}
+function pLoad(){SAS_ANS=[];for(var i=0;i<SAS_QS.length;i++)SAS_ANS.push(null);try{var r=window.localStorage?localStorage.getItem(SAS_STORE):null;if(r){var a=JSON.parse(r);if(a&&a.length===SAS_QS.length)SAS_ANS=a;}}catch(e){}}
+function pSave(){try{if(window.localStorage)localStorage.setItem(SAS_STORE,JSON.stringify(SAS_ANS));}catch(e){}}
+function pAns(){var n=0;for(var i=0;i<SAS_ANS.length;i++)if(SAS_ANS[i]!==null)n++;return n;}
+function pNextUn(){for(var i=0;i<SAS_ANS.length;i++)if(SAS_ANS[i]===null)return i;return SAS_QS.length-1;}
+function pBuildGrid(){var g=pEl('mtGrid');if(!g)return;var h='';for(var i=0;i<SAS_QS.length;i++){var cl='mt-cell'+(SAS_ANS[i]!==null?' done':'')+(i===SAS_CUR?' cur':'');h+='<button type="button" class="'+cl+'" onclick="pJump('+i+')" aria-label="第'+(i+1)+'题">'+(i+1)+'</button>';}g.innerHTML=h;}
+function pRender(){pEl('mtQNum').textContent='Q'+(SAS_CUR+1);pEl('mtQText').textContent=SAS_QS[SAS_CUR];pEl('mtCount').textContent='第 '+(SAS_CUR+1)+' / '+SAS_QS.length+' 题';var d=pAns();pEl('mtBarFill').style.width=(d/SAS_QS.length*100).toFixed(1)+'%';var h='';for(var i=0;i<SAS_SCALE.length;i++){var on=(SAS_ANS[SAS_CUR]===SAS_SCALE[i].v);h+='<button type="button" class="mt-opt'+(on?' on':'')+'" data-v="'+SAS_SCALE[i].v+'" aria-pressed="'+(on?'true':'false')+'" onclick="pPick('+SAS_SCALE[i].v+')"><span class="mt-key">'+(i+1)+'</span><span class="mt-opt-label">'+SAS_SCALE[i].t+'</span><span class="mt-tick">✓</span></button>';}pEl('mtOpts').innerHTML=h;pEl('mtPrev').disabled=(SAS_CUR===0);pEl('mtNext').textContent=(SAS_CUR===SAS_QS.length-1)?'完成，看结果':'下一题 →';pBuildGrid();}
+function pPick(v){try{if(document.activeElement&&document.activeElement.blur)document.activeElement.blur();}catch(e){}SAS_ANS[SAS_CUR]=v;pSave();var o=pEl('mtOpts').getElementsByClassName('mt-opt');for(var i=0;i<o.length;i++){var on=(parseInt(o[i].getAttribute('data-v'),10)===v);o[i].className='mt-opt'+(on?' on':'');o[i].setAttribute('aria-pressed',on?'true':'false');}pBuildGrid();var d=pAns();pEl('mtBarFill').style.width=(d/SAS_QS.length*100).toFixed(1)+'%';if(d===SAS_QS.length){calc();return;}setTimeout(function(){if(SAS_CUR<SAS_QS.length-1){SAS_CUR++;pRender();}},160);}
+function pGo(s){var t=SAS_CUR+s;if(t<0)return;if(t>SAS_QS.length-1){calc();return;}SAS_CUR=t;pRender();}
+function pJump(i){if(i<0||i>=SAS_QS.length)return;SAS_CUR=i;pRender();}
+function pReset(){for(var i=0;i<SAS_ANS.length;i++)SAS_ANS[i]=null;try{if(window.localStorage)localStorage.removeItem(SAS_STORE);}catch(e){}SAS_CUR=0;pRender();var r=pEl('res');if(r){r.innerHTML='';r.removeAttribute('data-copy-value');}}
+function calc(){var d=pAns();var resEl=pEl('res');if(!resEl)return;if(d<SAS_QS.length){resEl.innerHTML='<p style="color:var(--warning);font-weight:600;">还有 '+(SAS_QS.length-d)+' 题未作答（已完成 '+d+'/'+SAS_QS.length+'），答完会自动出结果。</p>';SAS_CUR=pNextUn();pRender();var w=pEl('mtWrap');if(w&&w.scrollIntoView)w.scrollIntoView({behavior:'smooth',block:'start'});return;}
+var raw=0,highs=[];for(var i=0;i<SAS_QS.length;i++){var v=SAS_ANS[i];var sc=SAS_REV[i]?(5-v):v;raw+=sc;var sig=SAS_REV[i]?(5-v):v;if(sig>=3)highs.push(SAS_SYM[i]);}
+var std=Math.round(raw*1.25);
+var g,c,it;
+if(std>=70){g='重度焦虑';c='var(--danger)';it='焦虑水平很高，已明显影响生活，建议尽快到精神科或心理科就诊评估，必要时接受专业干预。';}
+else if(std>=60){g='中度焦虑';c='var(--warning,#f59e0b)';it='焦虑已较明显，可能干扰日常工作与睡眠，建议预约心理咨询或就医。';}
+else if(std>=50){g='轻度焦虑';c='var(--primary)';it='存在一定焦虑倾向，注意规律作息与放松训练；若持续 2 周以上不适，可咨询专业人员。';}
+else{g='正常（无明显焦虑）';c='var(--success)';it='当前评分处于正常区间，保持良好作息与心态即可。';}
+var h='<div class="mt-type"><div class="mt-type-code">'+std+'<span style="font-size:18px;color:var(--text-muted);"> / 100</span></div><div class="mt-type-name">'+g+'</div></div>';
+h+='<div class="mt-dbar"><div class="mt-dbar-top"><span><b>标准分</b> '+std+'（粗分 '+raw+'/80）</span><span>分界 50</span></div><div class="mt-dbar-track"><div class="mt-dbar-a" style="width:'+Math.min(100,Math.round(std))+'%"></div></div></div>';
+if(highs.length){h+='<div class="mt-sec"><h4>🔍 近期反映较明显的方面</h4><ul><li>'+highs.join('</li><li>')+'</li></ul></div>';}
+h+='<div class="info-box"><strong>评估结果：</strong>'+it+' 本结果仅供自我参考，不能替代专业医学诊断。</div>';
+resEl.innerHTML=h;
+var copy='【SAS 焦虑自评】
+粗分：'+raw+' / 80
+标准分：'+std+' / 100（'+g+'）
+'+it+'
+（Zung 1971 标准 20 题，含 5 道反向题；结果仅保存在本机浏览器）';
+resEl.setAttribute('data-copy-value',copy);}
+function copyResult(){var e=pEl('res');if(!e)return;var t=e.getAttribute('data-copy-value')||e.textContent;if(window.ToolBox&&ToolBox.copyText){ToolBox.copyText(t,'tool.copy_ok');}}
+document.addEventListener('keydown',function(ev){if(!ev||!ev.key)return;var tag=(ev.target&&ev.target.tagName)?String(ev.target.tagName).toLowerCase():'';if(tag==='input'||tag==='textarea')return;if(ev.key==='ArrowLeft')pGo(-1);else if(ev.key==='ArrowRight')pGo(1);else if(ev.key>='1'&&ev.key<='4')pPick(SAS_SCALE[parseInt(ev.key,10)-1].v);});
+pLoad();SAS_CUR=pNextUn();if(SAS_CUR>=SAS_QS.length)SAS_CUR=0;pRender();if(pAns()===SAS_QS.length)calc();
 </script>
+
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto;padding:0 16px;}
@@ -236,6 +298,5 @@ render();
 </dl>
 </div>
 </section>
-<section class="opt-guide"><h2>如何使用 SAS 焦虑自评</h2><ol><li>按「过去一周」的真实感受，逐题为每个条目选择频度（很少 / 有时 / 较多 / 总在）。</li><li>点击「计算得分」按钮运行。</li><li>查看粗分、标准分、焦虑分级与近期高发方面，可点击「复制结果」保存或发给咨询师。</li></ol><h2>评分说明</h2><ul class="param-list"><li>4 级频度：1 很少（没有或很少时间）／2 有时（小部分时间）／3 较多（相当多时间）／4 总在（绝大部分或全部时间）</li><li>反向计分题：第 5、9、13、17、19 题，由工具自动反向计 1↔4、2↔3</li><li>粗分 = 20 题得分之和（20~80）；标准分 = 粗分 × 1.25（取整数，25~100）</li></ul><h2>适用场景</h2><p>自我情绪觉察、心理咨询前后对比、心理健康科普与筛查提示。</p></section><section class="opt-faq"><h2>常见问题</h2><dl class="faq-list"><dt>SAS 焦虑自评是做什么的？</dt><dd>SAS（焦虑自评量表，Zung 1971）用 20 个条目评估近一周的焦虑主观感受，自动换算标准分并给出焦虑分级，用于自我了解与初步筛查。</dd><dt>评分怎么算？</dt><dd>每题 1~4 分，其中 5 道反向题由工具自动反向计分；20 题相加得到粗分，再乘以 1.25 取整得到标准分。</dd><dt>计算结果准确吗？</dt><dd>计算在你的本地浏览器实时完成，不依赖服务器；但量表结果受主观作答影响，仅作筛查参考，不作为正式依据。</dd><dt>SAS 焦虑自评适合哪些场景？</dt><dd>自我情绪觉察、心理咨询前后对比、心理健康科普与筛查提示。</dd><dt>使用本工具需要联网或上传数据吗？</dt><dd>不需要。所有作答与计算均在你的设备本地完成，数据不会上传到任何服务器，可放心使用。</dd></dl></section>
 </body>
 </html>
