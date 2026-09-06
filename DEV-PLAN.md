@@ -93,9 +93,8 @@ cognition 8 工具（stroop-test/nback-training/digit-span-test/corsi-block-test
 
 ---
 
-## 九、分类总清单（待办，完成一个删一个；剩 234 个目录）
+## 九、分类总清单（待办，完成一个删一个；剩 233 个目录）
 
-- [ ] colorvision
 - [ ] community
 - [ ] construction
 - [ ] consulting
