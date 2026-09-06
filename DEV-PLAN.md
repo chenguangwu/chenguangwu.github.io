@@ -79,9 +79,9 @@
 ## 七、已完成分类归档
 > 本区仅保留**最近一个（最新）已完成分类**的归档记录，更早历史不再保留，以控制文件体积。完成新分类时，用新记录替换本条。
 
-### ✅ cnc（1 工具，内容层全达标）
+### ✅ cognition（8 工具，内容层全达标）
 
-cnc 仅 1 工具 detector-23（CNC 加工尺寸检测反馈：在线/脱机/激光三方式、尺寸偏差、IT 公差等级判定、刀补与加工调整建议）：① content_deepdive 1 key 为**「在cnc场景中先确认Detector 23口径与边界，再输出可复核结论」泛化变体**（summary 原 None、scenarios/examples/faqs 偏通用流程描述），scripts/opt_cnc_content.py 重写为真实 CNC 尺寸检测场景（实测/理论偏差核算、IT 公差带判定、激光非接触校准要点，去诊断化免责）并补 summary（不覆盖 title，title 已真实）；② tool-intro 三段块已真实（CNC 加工尺寸检测功能/场景，无套话、块完整），无需清；③ formula-desc 清理仅 1 页（detector-23，校验变体「本校验工具依据对应数据格式…」→真实 CNC 检测说明，meta/JSON-LD 已真实无回灌）；④ opt 套话 0 页。+ zh-tw 同步 + 五项门禁全过。
+cognition 8 工具（stroop-test/nback-training/digit-span-test/corsi-block-test/schulte-table/human-benchmark/cognitive-assessment/time-perception）原**内容层全缺**（deep-dive 0 key、tool-intro 块 0 页、opt-guide 0 页），formula-desc 已是真实认知科学文本（无需清）：① scripts/opt_cognition_content.py 新建 content_deepdive 8 key 真实条目（summary+3 scenarios+1 example+3 faqs），覆盖 Stroop 干扰/N-back 工作记忆/数字广度/视觉空间广度/注意力搜索/综合认知画像/时间知觉，去伪科学、非临床诊断免责（不覆盖 title）；② scripts/opt_cognition_hardcode.py 为 8 页插入真实 tool-intro 三段块（均原生缺失块，按 `<div class="tool-intro open" id="toolIntro">` 手风琴插 `</body>` 前 + 折叠 script，header「关于「工具名」」），与临床护理 cycle-7/reminder-time-1 同法、build 后存活；③ _build.py 注入 deep-dive 与 tool-intro 块均在 `</body>` 前独立完整（deep-dive 在 tool-intro 前），zh-tw 同步。+ 五项门禁全过。
 
 ---
 ## 八、当前进行中分类：（无，cnc 已归档）
@@ -93,9 +93,8 @@ cnc 仅 1 工具 detector-23（CNC 加工尺寸检测反馈：在线/脱机/激�
 
 ---
 
-## 九、分类总清单（待办，完成一个删一个；剩 235 个目录）
+## 九、分类总清单（待办，完成一个删一个；剩 234 个目录）
 
-- [ ] cognition
 - [ ] colorvision
 - [ ] community
 - [ ] construction
