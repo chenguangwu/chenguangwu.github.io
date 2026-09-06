@@ -115,16 +115,21 @@
 
 ---
 
-## 八、当前进行中分类：（无，acupuncture 已归档）
+### ✅ admin（8 工具，内容层全达标）
 
-> acupuncture（23 工具）内容层全达标，已归档至第七节「✅ acupuncture」。
-> 下一进行中分类按字母序为 **admin**（见第九节清单），待下一批次置进行中并展开待优化清单。
+1 批次发布：真实化 content_deepdive 的 8 条目（行政费用/预算/保密合规自查/会议冲突检测/固定资产折旧/办公用品预测/差旅补贴/文件版本管理，含财务与人事合规免责）+ 删 2 个旧套话 FAQPage LD（checker-manager-training-hr / detector-time）+ 8 工具真实 FAQPage 结构化数据全到位（负向后顾注入文档级 </body>）+ 标题保持纯工具名（不加免费/不加 - ToolBox）+ zh-tw 同步 + 五项门禁全过。
+
+---
+
+## 八、当前进行中分类：（无，admin 已归档）
+
+> admin（8 工具）内容层全达标，已归档至第七节「✅ admin」。
+> 下一进行中分类按字母序为 **advertising**（见第九节清单），待下一批次置进行中并展开待优化清单。
 
 ---
 
 ## 九、分类总清单（待办，完成一个删一个；剩 273 个目录）
 
-- [ ] admin
 - [ ] advertising
 - [ ] aerospace
 - [ ] agriculture
