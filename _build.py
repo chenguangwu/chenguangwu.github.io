@@ -23,6 +23,12 @@ import subprocess
 import html
 from concurrent.futures import ThreadPoolExecutor
 
+# 全站工具描述的唯一权威源：scripts/tool_desc_source.py
+# 分类页 .t-zh-desc 与 compute_zh_desc（→ tools.json 的 d，供搜索/首页/导航消费）
+# 必须共用同一套解析逻辑，否则又会出现「分类页有描述、搜索与导航没有」的不一致。
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), 'scripts'))
+import tool_desc_source as TDS
+
 
 def _clean_en_desc(s):
     """Strip the identical boilerplate suffix from English meta descriptions.
@@ -271,14 +277,18 @@ def _slug_of(t):
     return base
 
 def apply_en_override(t):
-    """覆盖字典优先：slug 命中则采用人工/语义预翻的 en/ed（绝覆盖规则引擎产物）。"""
+    """覆盖字典优先：slug 命中则采用人工/语义预翻的 en（英文名称）。
+
+    注意：ed（英文描述）不再由此函数覆写。EN_OVERRIDE[slug].ed 实为 gen_en_override.py
+    批量吐出的「Free online tool…」模板套话，若在此覆盖会抵消 TDS.en_desc 的清洗，
+    导致分类页(industry-*.json)的 ed 被重新污染、与导航(industry-groups.json)出现不一致。
+    ed 现统一由 TDS.en_desc 产出（已内含 DESC_OVERRIDE 人工精翻与套话剥离），三端同源。
+    """
     slug = _slug_of(t)
     if slug and slug in EN_OVERRIDE:
         ov = EN_OVERRIDE[slug]
         if ov.get('en'):
             t['en'] = ov['en']
-        if ov.get('ed'):
-            t['ed'] = ov['ed']
     return t
 
 TOOLS_DIR = os.path.join(ROOT, 'tools')
@@ -1423,13 +1433,13 @@ def _load_zh_desc_i18n(ind):
     return _zh_desc_i18n_cache[ind]
 
 def compute_zh_desc(t):
-    ind = t.get('industry', 'it')
-    base = (t.get('file') or '').replace('.html', '')
-    _zh = (_load_zh_desc_i18n(ind).get(base, {}) or {}).get('zh-CN', {}) or {}
-    for cand in (_zh.get('desc'), _zh.get('intro'), t.get('desc', ''), t.get('name', '')):
-        if isinstance(cand, str) and _has_cjk(cand):
-            return cand[:80] + ('…' if len(cand) > 80 else '')
-    return t.get('name', '')
+    """中文描述（写入 tools.json 的 d，供搜索/首页/导航消费）。
+
+    注意：历史上这里只判「含中文」就返回，而 i18n 的 zh-CN.desc 往往就是标题本身
+    （如「矩阵转置」），导致描述退化成名称。现统一走 TDS.zh_desc()，
+    按 强desc → intro → 页面meta → 中文名 的优先级取真实描述。
+    """
+    return TDS.zh_desc(t, max_len=80)
 
 
 def generate_split_jsons(tools):
@@ -1447,9 +1457,15 @@ def generate_split_jsons(tools):
 
     for ind, items in industries.items():
         for t in items:
-            t['en'] = translate_name(t.get('name', ''))
-            t['ed'] = translate_text(t.get('desc', ''))
+            # 注意：t['en'] 已由主循环（main 中 for t in tools 统一赋值）设好，
+            # 此处不可再无条件 translate_name 覆盖——translate_name 对未收录词会
+            # 回退返回中文名，既污染「英文名称」字段，又会让下方 TDS.en_desc 误把
+            # 中文名当英文前缀削掉，造成分类页与 tools.json 的 en/ed 双不一致。
+            if 'en' not in t:
+                t['en'] = translate_name(t.get('name', ''))
+            # 先应用英文名称覆盖（与主循环顺序一致），确保 en_desc 用可靠英文名削前缀
             apply_en_override(t)
+            t['ed'] = TDS.en_desc(t, max_len=60)   # 与 tools.json / 导航共用单一权威英文描述
             t['d'] = compute_zh_desc(t)   # 治本：补中文 d，消除 SPA 网格中文模式英文描述泄漏
         path = os.path.join(json_dir, 'industry-%s.json' % ind)
         with open(path, 'w', encoding='utf-8') as f:
@@ -2902,29 +2918,20 @@ CATEGORY_DESC_OVERRIDE = {
 
 
 def _has_cjk(s):
-    """返回字符串是否含中日韩（中文）字符，用于判定工具名/描述的语言。"""
-    return bool(re.search(r'[一-鿿]', s or ''))
+    """返回字符串是否含中日韩（中文）字符，用于判定工具名/描述的语言。
+
+    实现委托 scripts/tool_desc_source.py —— 全站（分类页/搜索/首页/导航）共用一份，
+    避免两份实现各自漂移导致描述又不一致。
+    """
+    return TDS.has_cjk(s)
 
 
 def _is_weak_desc(desc, title):
-    """判定中文描述是否只是标题重复或缺乏信息量，需要从 intro 取长描述。"""
-    if not desc or not _has_cjk(desc):
-        return True
-    d = (desc or '').strip()
-    t = (title or '').strip()
-    if not t:
-        return len(d) < 12
-    # desc 完全等于标题，或只是标题加少量无意义后缀
-    if d == t:
-        return True
-    if d.startswith(t) and len(d) <= len(t) + 8:
-        return True
-    if t.startswith(d) and len(t) <= len(d) + 8:
-        return True
-    # desc 比标题还短，显然不是描述
-    if len(d) <= max(len(t), 12):
-        return True
-    return False
+    """判定中文描述是否只是标题重复或缺乏信息量，需要从 intro 取长描述。
+
+    实现委托 scripts/tool_desc_source.py（同 _has_cjk）。
+    """
+    return TDS.is_weak_desc(desc, title)
 
 
 def generate_category_indexes(tools):
@@ -3028,14 +3035,10 @@ def generate_category_indexes(tools):
             # 精简静态链接：仅内联 href + 中文名 + 中文描述（SEO 锚文本与可见描述，繁体页由 OpenCC 自动转繁体）；
             # 图标/英文名/英文描述由 js/category-index.js 运行时 fetch json/industry-<ind>.json 增强，
             # 避免每个行业把全部工具卡片（含英文描述长文本）内联进 HTML（原每卡 ~580B，现 ~200B，省约 65%）。
-            _zh_name = t['name'] if _has_cjk(t['name']) else (t.get('desc', '') if _has_cjk(t.get('desc', '')) else t['name'])
-            slug = t['file'].replace('.html', '')
-            zh_i18n = (ind_i18n.get(slug, {}) or {}).get('zh-CN', {}) or {}
-            _zh_desc = (zh_i18n.get('desc') or '') if isinstance(zh_i18n.get('desc'), str) else ''
-            if _is_weak_desc(_zh_desc, _zh_name):          # desc 弱（无中文/标题重复/过短）→ 改用中文 intro
-                intro = (zh_i18n.get('intro') or '') if isinstance(zh_i18n.get('intro'), str) else ''
-                if intro:
-                    _zh_desc = intro[:100] + ('…' if len(intro) > 100 else '')
+            _zh_name = TDS.slug_name(t)
+            # 统一走权威描述源（与 tools.json 的 d、顶部导航卡片同源），
+            # 保证分类页 / 搜索 / 首页 / 导航四处展示的描述完全一致
+            _zh_desc = TDS.zh_desc(t, max_len=100)
             if _is_weak_desc(_zh_desc, _zh_name):         # 仍弱 → 回退中文名
                 _zh_desc = _zh_name
             tool_href = os.path.relpath(t['url'], index_ref_dir).replace(os.sep, '/')
@@ -3203,9 +3206,12 @@ def main():
     for t in tools:
         if 'en' not in t:
             t['en'] = translate_name(t.get('name', ''))
-        if 'ed' not in t:
-            t['ed'] = translate_text(t.get('desc', ''))
+        # 先应用英文名称覆盖（EN_OVERRIDE 预翻），确保 en_desc 用「可靠的英文名」削前缀；
+        # 否则未收录词回退中文名当 name_en，会漏削英文描述前缀 → 主循环与 split 两次
+        # en_desc 结果不同（一个带名、一个被削名），三端 ed 不一致
         apply_en_override(t)
+        # ed 统一为 TDS.en_desc（覆盖历史生成器套话，与分类页/导航单一权威源一致）
+        t['ed'] = TDS.en_desc(t, max_len=60)
         t['d'] = compute_zh_desc(t)   # 治本：补中文 d，确保 tools.json 与 industry-*.json 同源一致
         # 合并 search-index.json：把搜索专用字段并入 tools.json（单一数据源，删 search-index.json）。
         # al=别名、py=拼音、pyi=拼音首字母，支撑前端 Fuse.js + 滑动窗口拼音 typo 纠错。
@@ -3353,3 +3359,9 @@ def main():
 
 if __name__ == '__main__':
     main()
+    # 全站生成完成后刷新顶部导航数据（读刚写好的 tools.json，保证 ed 与原 ed 同源一致，
+    # 消除「导航先跑、读旧 tools.json」导致的不对称）。gen_industry_groups 本身幂等。
+    _gen_nav = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'scripts', 'gen_industry_groups.py')
+    _r = subprocess.run([sys.executable, _gen_nav], check=False)
+    if _r.returncode != 0:
+        print('[warn] gen_industry_groups 返回非零，导航数据可能未更新', file=sys.stderr)

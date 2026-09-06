@@ -673,8 +673,10 @@ function addToRecent(url) {
 function updateCounts() {}
 
 function _toolToShort(t) {
+  // d 优先取 tools.json 的 d（构建期由权威源算出的真实中文描述）；
+  // 旧版取 desc，而 desc 是中文名 → 搜索/首页卡片曾把「名称当成描述」显示
   return {
-    n: t.name, d: t.desc, en: t.en, ed: t.ed, i: t.industry, c: t.cat,
+    n: t.name, d: (t.d || t.desc), en: t.en, ed: t.ed, i: t.industry, c: t.cat,
     u: t.url, ic: t.icon, b: t.bg, q: t.quality,
     s: (t.file || '').replace(/\.html$/, ''),
     al: t.al || [], py: t.py || '', pyi: t.pyi || ''

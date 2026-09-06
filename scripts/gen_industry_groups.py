@@ -9,20 +9,19 @@ B1: 生成 json/industry-groups.json —— 266 个子行业 → ~10 个一级�
 用法：python3 scripts/gen_industry_groups.py
       _build.py 后续会自动调用（幂等）。
 """
-import html
 import json
 import os
 import re
 import sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-
-# 人工补齐的工具描述（源数据确实没写的那批）
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-try:
-    from tool_desc_override import DESC_OVERRIDE
-except ImportError:      # pragma: no cover - 数据文件缺失时降级为空表
-    DESC_OVERRIDE = {}
+
+# 全站工具描述的唯一权威源：与 _build.py（分类页 .t-zh-desc / tools.json 的 d）共用一套解析逻辑，
+# 修好之前「分类页有描述、导航 92% 卡片没描述」的不一致
+import tool_desc_source as TDS
+
+# 工具描述（中/英）统一由 scripts/tool_desc_source.py 产出，DESC_OVERRIDE 已并入其中
 
 # ---- 中英文名/描述选取 ----------------------------------------------------
 # 背景：_build.py 会对部分页面做「英文 title 预渲染」，导致 tools.json 里
@@ -34,9 +33,6 @@ CJK = re.compile(r'[\u4e00-\u9fff]')
 
 # 质量优先序：下拉面板/首页展示优先挑 A 级工具，避免只按文件名取到低质页
 QUALITY_ORDER = {'A': 0, 'B': 1, 'C': 2}
-
-_desc_cache = {}
-
 
 def zh_name(t):
     """中文名：name 与 desc 中含中文的那个。"""
@@ -56,46 +52,8 @@ def en_name(t):
     return re.sub(r'^[\s.]+', '', v) or n
 
 
-# ed 字段里大量「Free online tool on ToolBox — 100% client-side」这类模板签名，
-# 直接展示会满屏套话（实测 1648 条中 1519 条、92% 是模板腔），先剥掉再判断有无实质内容
-ED_BOILERPLATE = [
-    r'\s*[.\-–—,]?\s*Free online tool on ToolBox.*$',
-    r'\s*[.\-–—,]?\s*\d+%\s*client[-\s]side.*$',
-    r'\s*[.\-–—,]?\s*Free online tool\b.*$',
-    r'\s*[.\-–—,]?\s*Free and (secure|instant)\.?\s*$',
-    r'\s*[.\-–—,]?\s*Browser[-\s]only\.?\s*$',
-    r'\s*[.\-–—,]?\s*No sign[- ]up\.?\s*$',
-    # 「encode and decode online / calculate online, free and accurate」这类
-    # 只说动作不说内容的空话，同样没有信息量
-    r'\s*[.\-–—,]?\s*\w+\s+(and\s+\w+\s+)?online\b.*$',
-    r'\s*,\s*free and \w+[\w\s]*$',
-    r'\s*[.\-–—,]?\s*Free\s*$',
-]
-
-
-def strip_ed_boilerplate(s):
-    for pat in ED_BOILERPLATE:
-        s = re.sub(pat, '', s, flags=re.I)
-    return s.strip().rstrip(' .,-–—:·|')
-
-
-def en_desc(t):
-    """英文描述：取 tools.json 的 ed 字段，去掉「英文名 - 」前缀后截断。
-
-    ed 形如 ".gitignore Generator - Pick stacks ... Free, browser-only."，
-    直接显示会和卡片标题重复，故先剥掉名字前缀。
-    """
-    raw = (t.get('ed') or '').strip()
-    if not raw:
-        return ''
-    name = en_name(t)
-    if name and raw.startswith(name):
-        stripped = raw[len(name):].lstrip(' -–—:·|')
-        if stripped:
-            raw = stripped
-    clean = strip_ed_boilerplate(raw)
-    # 洗掉模板腔后没剩多少实质内容，就不显示描述（宁缺毋滥，避免满屏套话）
-    return clip(clean, 60) if len(clean) >= 20 else ''
+# 英文描述的模板套话清洗与优先级已统一到 tool_desc_source.en_desc()，
+# 此处不再保留第二份实现（两份实现历史上各自漂移，是描述不一致的根源之一）
 
 
 def clip(s, n=32):
@@ -105,21 +63,7 @@ def clip(s, n=32):
     return s[:n - 1].rstrip('，,。、；;：: ') + '…'
 
 
-def meta_desc(path):
-    """从工具页 <meta name="description"> 取中文描述（只读前 12KB，带缓存）。"""
-    if path in _desc_cache:
-        return _desc_cache[path]
-    d = ''
-    try:
-        with open(os.path.join(ROOT, 'tools', path), encoding='utf-8', errors='ignore') as f:
-            head = f.read(12000)
-        m = re.search(r'<meta name="description" content="([^"]*)"', head)
-        if m:
-            d = html.unescape(m.group(1)).strip()
-    except Exception:
-        d = ''
-    _desc_cache[path] = d
-    return d
+# 页面 <meta name="description"> 的读取也已统一到 tool_desc_source.meta_desc()（带缓存）
 
 
 def tool_sort_key(t):
@@ -345,25 +289,16 @@ def main():
         # 避免右侧只铺两行半、下方大片空白让用户误以为工具很少
         for t in tools_sorted[:24]:
             name_zh = zh_name(t)
-            md = meta_desc(t.get('path', ''))
-            # 中文描述优先级：① 工具自带中文 d（_build.py 注入，权威中文描述）→ ② 页面中文 meta
-            # → ③ 中文名。d 优先于页面 meta，避免页面 meta 夹零星中文却主体为英文时卡片仍露英文。
-            d_zh = (clip(t.get('d') or '', 32) if CJK.search(t.get('d') or '') else
-                    clip(md, 32) if CJK.search(md or '') else
-                    clip(name_zh, 40))
-            d_en = en_desc(t)
-            ov = DESC_OVERRIDE.get(name_zh)
-            if ov:
-                # 人工补齐表：任一侧留空表示沿用上面自动提取的结果
-                if ov[0]:
-                    d_zh = ov[0]
-                if ov[1]:
-                    d_en = ov[1]
+            # 统一走权威描述源 tool_desc_source（i18n desc/intro → DESC_OVERRIDE 人工精翻
+            # → 页面 meta → 中文名 → 英文翻译/兜底），与分类页 .t-zh-desc、tools.json 的
+            # d 完全同源。DESC_OVERRIDE 已并入 TDS，此处不再重复消费，避免双源漂移。
+            d_zh = TDS.zh_desc(t, max_len=32)
+            d_en = TDS.en_desc(t, max_len=60)
             top.append({
                 'name': name_zh,            # 中文名（导航中文态用）
                 'en': en_name(t),            # 英文名（导航英文态用）
-                'desc': clip(d_zh, 32),      # 中文描述
-                'ed': clip(d_en, 60),        # 英文描述（导航英文态用）
+                'desc': d_zh,                # 中文描述
+                'ed': d_en,                  # 英文描述（导航英文态用）
                 'url': '/' + t.get('url', ''),
                 'icon': t.get('icon', ''),
                 'bg': t.get('bg', '#f5f5f5'),
