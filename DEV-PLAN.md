@@ -79,24 +79,23 @@
 ## 七、已完成分类归档
 > 本区仅保留**最近一个（最新）已完成分类**的归档记录，更早历史不再保留，以控制文件体积。完成新分类时，用新记录替换本条。
 
-### ✅ casting（2 工具，内容层全达标）
+### ✅ chemistry（28 工具，内容层全达标）
 
-analysis-36（铸件缺陷气孔/缩松/夹渣分析）/ detector-24（铸件无损探伤 RT/UT/PT）真实化：① content_deepdive 2 key 占位为**第六种变体**（「在casting场景中，先对 X 进行输入校验，再输出可复查结果」+ 通用 examples/faqs，summary 原为 None），scripts/opt_casting_content.py 重写为真实铸造场景并补 summary（analysis-36=气孔缺陷率统计/缩松评级复核/夹渣缺陷溯源 + 描述统计演练 + 3 FAQ 含 GB/T 9438；detector-24=射线(RT)等级评定/超声(UT)焊缝/渗透(PT)表面缺陷 + 默认参数演练 + 3 FAQ 含 GB/T 3323/11345/9443）；② formula-desc 清理仅 detector-24（本校验工具依据对应数据格式与语法规范→真实 GB/T 3323/11345/9443 说明），**analysis-36 formula-desc 已真实（本计算器基于标准数学运算…缺陷分析）保留**；③ tool-intro 套话清理仅 analysis-36（功能特点/使用场景通用科学套话→真实铸造缺陷分析场景），**detector-24 tool-intro 已真实（RT/UT/PT 探伤、质量验收/焊接接头/压力容器/出厂检验）保留**；④ opt-guide/opt-faq 通用套话清理仅 detector-24（工作与生活中的相关计算与查询，含 JSON-LD FAQ + opt-guide `<p>` + opt-faq `<dd>` 三处同步），scripts/opt_casting_hardcode.py 用真实探伤场景替换。+ zh-tw 同步 + 五项门禁全过。
+chemistry 28 工具 deep-dive 真实化（酸碱滴定/阿伦尼乌斯/沸点升高/Henderson–Hasselbalch/稀释四量/最简式/理想气体密度/吉布斯/理想气体体积/KpKc/限量反应物/质量分数/质量百分数/质量转摩尔/质量摩尔浓度/摩尔浓度/摩尔分数/能斯特/当量浓度/道尔顿分压/pH从Ka/pH转H⁺/pOH转pH/反应商/反应产率/电阻率/溶度积/溶液稀释）：① content_deepdive 28 key 占位为**第九种变体**（「核对 X 的输入假设（单位、范围、基准）后再跑一遍基准案例，降低口径误差风险」+ 通用 examples/faqs，summary 原为 None），scripts/opt_chemistry_content.py 重写为真实化学场景并补 summary（不覆盖 title，28 title 均已真实专业），含缓冲配制/冰点降低/依数性/平衡方向/电极电势等真实演练；② chemistry 页**无标准 tool-intro 三段块**、formula-desc 26 页已真实、2 页无块，**均不需清**；③ opt-guide/opt-faq 通用套话清理仅 4 页（buffer-ph/molality/poh-to-ph/empirical-formula，含 JSON-LD FAQ + opt-guide `<p>` + opt-faq `<dd>` 三处同步「工作与生活中的相关计算与查询」→真实化学场景），scripts/opt_chemistry_optguide.py。+ zh-tw 同步 + 五项门禁全过。
 
-> 注：占位模板已发现六种——「先做单位与边界核对」「在X场景中先确认…口径与边界」「在building-material场景下先对 X 建模统一口径」「在X场景下先把 X 标准化再批量执行可追溯流程」「在X场景先同步定义域与单位跑标准样例避免边界误差」「在X场景中先对 X 进行输入校验，再输出可复查结果」；此外**医学专属套话**与 **opt-guide/opt-faq 通用套话**（含 JSON-LD/opt-guide <p>/opt-faq <dd> 三处）为两类独立硬编码，检测需全覆盖否则漏判。
+> 注：占位模板已发现九种——前八种见历史批次；第九种为「核对 X 的输入假设（单位、范围、基准）后再跑一遍基准案例，降低口径误差风险」（化学/物理类多见）。此外**医学专属套话**与 **opt-guide/opt-faq 通用套话**（含 JSON-LD/opt-guide <p>/opt-faq <dd> 三处）为两类独立硬编码，检测需全覆盖否则漏判；**部分分类工具页无标准 tool-intro 三段块**（其「常见使用场景/FAQ」属 deep-dive 区块由 content 驱动，只需真实化 content_deepdive 即可，勿误判为缺块）。
 
 ---
-## 八、当前进行中分类：（无，casting 已归档）
+## 八、当前进行中分类：（无，chemistry 已归档）
 
-> biz/blasting/bonding/brand/bridge/building-material/cable/cardiology/casting 内容层均已达标，已依次归档至第七节。下一进行中分类按字母序为 **ceramics**（见第九节清单），待下一批次置进行中并展开待优化清单。
+> biz/blasting/bonding/brand/bridge/building-material/cable/cardiology/casting/ceramics/chemical/chemistry 内容层均已达标，已依次归档至第七节。下一进行中分类按字母序为 **chess**（见第九节清单），待下一批次置进行中并展开待优化清单。
 
 > 优化模式（沿用已验证路径）：写真实 content_deepdive 条目 → 清理工具页硬编码套话（opt_cleanup_intro_faq.py --cat <cat> 或仿 opt_biz_optguide.py 按结构清 tool-intro）→ 构建 + 五项门禁 → 提交发布。
 
 ---
 
-## 九、分类总清单（待办，完成一个删一个；剩 244 个目录）
+## 九、分类总清单（待办，完成一个删一个；剩 243 个目录）
 
-- [ ] chemistry
 - [ ] chess
 - [ ] chinese
 - [ ] chinese-cook
