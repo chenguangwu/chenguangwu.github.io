@@ -133,6 +133,14 @@
 
 ---
 
+### ✅ audit（5 工具，内容层全达标）
+
+1 批次发布：真实化 content_deepdive 的 5 条目（NPV 逐期折现/折旧方法对比直线·双倍余额·年数总和/IRR 试算表内部收益率/财务比率分析偿债营运盈利/审计抽样样本量属性与变量抽样 5 个真实财务与审计计算知识，含现值系数 1/(1+r)^t、双倍余额递减法率 2/n 且最后两年改直线、IRR 线性插值、流动/速动/资产负债率、属性抽样风险系数法 n=风险系数÷可容忍偏差率 等）+ **三处同清旧套话**（5 工具真实 FAQPage 结构化数据全到位（负向后顾注入文档级 </body>，depreciation-compare 旧 LD 先删后注）+ depreciation-compare 的 opt-faq/适用场景套话（"在对应的输入框或选项中填写…"/"工作与生活中的相关计算与查询"→ 真实 faqs 与 scenarios[0]）+ 标题保持纯工具名 + zh-tw 同步 + 五项门禁全过 + 提交 4ea17edae、Actions run 结论 success。
+
+> 注：audit 仅 depreciation-compare 有旧 opt-faq/适用场景/FAQPage LD（早期残留），其余 4 文件仅 deep-dive（由 content_deepdive 驱动）需清；无 formula-desc 套话；5 key 全部对应 5 工具页，无 orphan。
+
+---
+
 ### ✅ audio（7 工具，内容层全达标）
 
 1 批次发布：真实化 content_deepdive 的 7 条目（audio-speed 变速不变调 WSOLA/audio-recorder MediaRecorder 录音/audio-cut 波形裁剪淡变/audio-waveform 时域波形与 FFT 频谱/analysis-1 频谱分析频率分辨率/audio-echo 延迟线与混响/audio-volume 增益 dB 与归一化 7 个真实音频处理前端技术知识与示例）+ **三处同清旧套话**（7 工具真实 FAQPage 结构化数据全到位（负向后顾注入文档级 </body>）+ analysis-1 的 formula-desc 模板套话（"本计算器基于标准数学运算与单位换算约定…工具名称："→ 真实 FFT 频谱分析原理说明）+ 标题保持纯工具名 + zh-tw 同步 + 五项门禁全过 + 提交 5c6ca4441、Actions run 结论 success。
@@ -197,16 +205,15 @@
 
 ---
 
-## 八、当前进行中分类：（无，audio 已归档）
+## 八、当前进行中分类：（无，audit 已归档）
 
-> audio（7 工具）内容层全达标，已归档至第七节「✅ audio」。
-> 下一进行中分类按字母序为 **audit**（见第九节清单），待下一批次置进行中并展开待优化清单。
+> audit（5 工具）内容层全达标，已归档至第七节「✅ audit」。
+> 下一进行中分类按字母序为 **auto-beauty**（见第九节清单），待下一批次置进行中并展开待优化清单。
 
 ---
 
-## 九、分类总清单（待办，完成一个删一个；剩 265 个目录）
+## 九、分类总清单（待办，完成一个删一个；剩 264 个目录）
 
-- [ ] audit
 - [ ] auto-beauty
 - [ ] automation
 - [ ] automotive
