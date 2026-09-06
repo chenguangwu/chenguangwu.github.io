@@ -188,6 +188,14 @@
 
 ---
 
+### ✅ beauty（21 工具，内容层全达标）
+
+1 批次发布：真实化 content_deepdive 的 21 条目（BMI 美容版/体脂率估算/三庭五眼·黄金比例 facial 分析/色轮互补色/明度色温/毛发直径强度/染发剂调配比例/调色（粉底遮瑕）/妆容色彩搭配/指甲色彩和谐/烫发杠直径与卷度/皮肤 TEWL 经皮失水/护肤流程生成/肤质—发型匹配/年龄视觉估算/皮肤检测数据解读/化妆品安全风险评估/美甲评分/皮肤类型问卷/肌肤测试周期推荐 等 21 个真实美容皮肤与色彩理论知识与数值示例）+ **三处同清旧套话**（21 工具真实 FAQPage 结构化数据全到位（负向后顾注入文档级 </body>）+ 3 文件 assessor-risk-12/analysis-detector-diagnosis/calc-1 opt-faq/适用场景/opt-guide 套话→真实 faqs/scenarios[0]/真实用法说明 + 10 文件 formula-desc 模板套话→真实计算原理说明）+ 标题保持纯工具名 + zh-tw 同步 + 五项门禁全过 + 提交 fc0de51e0、Actions run 结论 success。
+
+> 注：beauty 21 key 对应 21 工具页，另有 1 orphan key（`self-assess-1`，无对应 html，本批未改动，与 prior 孤儿处理一致）。本批发现 **3 个旧模板页（assessor-risk-12/analysis-detector-diagnosis/calc-1）既缺 hreflang 又带 opt-guide 套话**，已用 fix_hreflang_beauty.py + opt_beauty_optguide.py 同批修复（其余 18 页结构正常自动跳过）。**全站扫描确认：修完这 3 页后，全站 4987 个工具页不再有缺 TOOLBOX-HREFLANG 者**（autombile 46 + banking 1 + beauty 3 已分批改完），hreflang 缺失连锁问题已彻底根治。
+
+---
+
 ### ✅ audio（7 工具，内容层全达标）
 
 1 批次发布：真实化 content_deepdive 的 7 条目（audio-speed 变速不变调 WSOLA/audio-recorder MediaRecorder 录音/audio-cut 波形裁剪淡变/audio-waveform 时域波形与 FFT 频谱/analysis-1 频谱分析频率分辨率/audio-echo 延迟线与混响/audio-volume 增益 dB 与归一化 7 个真实音频处理前端技术知识与示例）+ **三处同清旧套话**（7 工具真实 FAQPage 结构化数据全到位（负向后顾注入文档级 </body>）+ analysis-1 的 formula-desc 模板套话（"本计算器基于标准数学运算与单位换算约定…工具名称："→ 真实 FFT 频谱分析原理说明）+ 标题保持纯工具名 + zh-tw 同步 + 五项门禁全过 + 提交 5c6ca4441、Actions run 结论 success。
@@ -252,16 +260,15 @@
 
 ---
 
-## 八、当前进行中分类：（无，banking 已归档）
+## 八、当前进行中分类：（无，beauty 已归档）
 
-> banking（27 工具）内容层全达标，已归档至第七节「✅ banking」；automation 为空分类（仅 index.html、无工具页）已标记跳过。
-> 下一进行中分类按字母序为 **beauty**（见第九节清单），待下一批次置进行中并展开待优化清单。
+> beauty（21 工具）内容层全达标，已归档至第七节「✅ beauty」；automation 为空分类（仅 index.html、无工具页）已标记跳过。
+> 下一进行中分类按字母序为 **beekeeping**（见第九节清单），待下一批次置进行中并展开待优化清单。
 
 ---
 
-## 九、分类总清单（待办，完成一个删一个；剩 258 个目录）
+## 九、分类总清单（待办，完成一个删一个；剩 257 个目录）
 
-- [ ] beauty
 - [ ] beekeeping
 - [ ] beneficiation
 - [ ] biz
