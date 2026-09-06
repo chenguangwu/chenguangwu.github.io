@@ -79,24 +79,23 @@
 ## 七、已完成分类归档
 > 本区仅保留**最近一个（最新）已完成分类**的归档记录，更早历史不再保留，以控制文件体积。完成新分类时，用新记录替换本条。
 
-### ✅ cable（3 工具，内容层全达标）
+### ✅ cardiology（25 工具，内容层全达标）
 
-cable-tray-sizing（桥架选型）/ analysis-cost-price-5（电缆成本价格统计）/ tester-19（电缆安装检测）真实化：① content_deepdive 3 key 占位为**第四种变体**（「在cable场景下，先把 X 标准化，再批量执行可追溯流程」+ 通用 examples/faqs），scripts/opt_cable_content.py 重写为真实电缆场景（cable-tray-sizing=动力配电/数据弱电/改造扩容桥架选型 + GB/T 29415 演练 + 3 FAQ；analysis-cost-price-5=铜价跟踪/多供应商比价/成本波动描述统计 + 3 FAQ；tester-19=敷设竣工/运维/故障排查检测 + GB/T 3048 演练 + 3 FAQ）；② formula-desc 清理（仅 analysis-cost-price-5 本计算依据通用财务→真实描述统计说明），scripts/opt_cable_hardcode.py 替换；③ tool-intro 套话清理加判定，opt_cable_hardcode.py 仅替换含通用套话词页（analysis-cost-price-5：日常办公与学习/开发调试），**tester-19 功能特点/使用场景与注意事项区块（GB/T 3048 系列）已是真实内容、cable-tray-sizing 无标准 tool-intro 块，均跳过保留**；④ cable-tray-sizing 英文 opt-guide/opt-faq 套话「工作与生活中的相关计算与查询」替换为真实英文场景。+ zh-tw 同步 + 五项门禁全过。
+25 个心血管工具真实化：① content_deepdive 25 个有页面 key（跳过孤儿 calc-2）占位为**第五种变体**（「在X场景先同步定义域与单位，跑标准样例避免边界误差」+ 通用 examples/faqs），scripts/opt_cardiology_content.py 重写为真实心血管场景（CHA₂DS₂-VASc/CHA₂DS₂-VASc 抗凝、HAS-BLED 出血、GRACE/NSTE-ACS 危险分层、NYHA 分级、CKD-EPI 肾功能、NT-proBNP、他汀强度、CPET 运动耐量、冠脉 CTA 心肌桥、主动脉夹层 Stanford 分型等，均标注「仅供参考」并引用 ESC/ACC/AHA 2023 与中国指南）；② formula-desc 清理 6 页（antiarrhythmic-class/calc-3/chads2-vasc/nyha-classification/rater-11/rater-risk-3 标准占位→真实医学说明，数据不出浏览器）；③ tool-intro 套话清理 22 页，scripts/opt_cardiology_hardcode.py 用**医学专属套话模板**（基于权威医学标准/支持多种临床参数/实时计算/临床计算与评估辅助/医学学习与考试备考/科研数据分析→真实功能特点+使用场景，使用场景取 content_deepdive scenarios），convert-rehab 通用科学套话同步清理；④ 工具简介尾部通用声明「医疗专业工具，基于权威医学标准，仅供参考」20 页清理（与 features ul 套话同源）；⑤ opt-guide/opt-faq 通用套话「工作与生活中的相关计算与查询」6 页清理（antiarrhythmic-class/cpet-analysis/grace-score/myocardial-bridge/rater-risk-3/statin-dose，含 JSON-LD FAQ + opt-guide `<p>` + opt-faq `<dd>` 三处同步），scripts/opt_cardiology_optguide.py 用真实场景替换。保留：rater-11/rater-risk-3 tool-intro 已真实（仅清 formula-desc）、calc-1/calc-3 无 tool-intro 块不动、各页注意事项（GB/T/ESC/中国指南）真实保留。+ zh-tw 同步 + 五项门禁全过。
 
-> 注：占位模板已发现四种——「先做单位与边界核对」「在X场景中先确认…口径与边界」「在building-material场景下先对 X 建模统一口径」「在X场景下先把 X 标准化再批量执行可追溯流程」，检测需全覆盖否则漏判。
+> 注：占位模板已发现五种——「先做单位与边界核对」「在X场景中先确认…口径与边界」「在building-material场景下先对 X 建模统一口径」「在X场景下先把 X 标准化再批量执行可追溯流程」「在X场景先同步定义域与单位跑标准样例避免边界误差」；此外**医学专属套话**（基于权威医学标准/临床计算与评估辅助…）与 **opt-guide/opt-faq 通用套话**（工作与生活中的相关计算与查询，含 JSON-LD/opt-guide <p>/opt-faq <dd> 三处）为两类独立硬编码，检测需三类全覆盖否则漏判。
 
 ---
-## 八、当前进行中分类：（无，cable 已归档）
+## 八、当前进行中分类：（无，cardiology 已归档）
 
-> biz/blasting/bonding/brand/bridge/building-material/cable 内容层均已达标，已依次归档至第七节。下一进行中分类按字母序为 **cardiology**（见第九节清单），待下一批次置进行中并展开待优化清单。
+> biz/blasting/bonding/brand/bridge/building-material/cable/cardiology 内容层均已达标，已依次归档至第七节。下一进行中分类按字母序为 **casting**（见第九节清单），待下一批次置进行中并展开待优化清单。
 
 > 优化模式（沿用已验证路径）：写真实 content_deepdive 条目 → 清理工具页硬编码套话（opt_cleanup_intro_faq.py --cat <cat> 或仿 opt_biz_optguide.py 按结构清 tool-intro）→ 构建 + 五项门禁 → 提交发布。
 
 ---
 
-## 九、分类总清单（待办，完成一个删一个；剩 248 个目录）
+## 九、分类总清单（待办，完成一个删一个；剩 247 个目录）
 
-- [ ] cardiology
 - [ ] casting
 - [ ] ceramics
 - [ ] chemical
