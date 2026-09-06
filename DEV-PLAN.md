@@ -79,23 +79,21 @@
 ## 七、已完成分类归档
 > 本区仅保留**最近一个（最新）已完成分类**的归档记录，更早历史不再保留，以控制文件体积。完成新分类时，用新记录替换本条。
 
-### ✅ cognition（8 工具，内容层全达标）
+### ✅ community（3 工具，内容层全达标）
 
-cognition 8 工具（stroop-test/nback-training/digit-span-test/corsi-block-test/schulte-table/human-benchmark/cognitive-assessment/time-perception）原**内容层全缺**（deep-dive 0 key、tool-intro 块 0 页、opt-guide 0 页），formula-desc 已是真实认知科学文本（无需清）：① scripts/opt_cognition_content.py 新建 content_deepdive 8 key 真实条目（summary+3 scenarios+1 example+3 faqs），覆盖 Stroop 干扰/N-back 工作记忆/数字广度/视觉空间广度/注意力搜索/综合认知画像/时间知觉，去伪科学、非临床诊断免责（不覆盖 title）；② scripts/opt_cognition_hardcode.py 为 8 页插入真实 tool-intro 三段块（均原生缺失块，按 `<div class="tool-intro open" id="toolIntro">` 手风琴插 `</body>` 前 + 折叠 script，header「关于「工具名」」），与临床护理 cycle-7/reminder-time-1 同法、build 后存活；③ _build.py 注入 deep-dive 与 tool-intro 块均在 `</body>` 前独立完整（deep-dive 在 tool-intro 前），zh-tw 同步。+ 五项门禁全过。
+community 3 工具（analysis-74 竞争分析 / analysis-cost-9 成本体系 / stats-13 预售统计）原 content_deepdive 3 key 为**第十六种占位变体**（「在community场景下，先把 XX 标准化，再批量执行可追溯流程…」，summary 原 None），tool-intro 三段块 3 页均含通用模板套话：① scripts/opt_community_content.py 真实化 3 key（summary+3 scenarios+1 example+3 faqs），覆盖竞品象限对标/成本结构拆解/预售转化漏斗，去伪科学、非决策免责（不覆盖 title）；② scripts/opt_community_hardcode.py 清 analysis-cost-9 的 formula-desc 财务变体 1 页（→真实成本说明，meta/JSON-LD 已真实无回灌）+ 替换 3 页 tool-intro 三段块通用套话（简介/功能/场景→真实竞品/成本/统计）；③ og:image:alt 的「ToolBox - 5000+免费在线工具」是全站统一品牌描述（站点级真实特性），非占位、不清理。+ zh-tw 同步 + 五项门禁全过。
 
 ---
-## 八、当前进行中分类：（无，cnc 已归档）
-## 八、当前进行中分类：（无，clinical-nursing 已归档）
+## 八、当前进行中分类：（无，community 已归档）
 
-> biz/blasting/bonding/brand/bridge/building-material/cable/cardiology/casting/ceramics/chemical/chemistry/chess/chinese/chinese-cook/civil/cleaning/clinical-lab/clinical-nursing/cnc 内容层均已达标，已依次归档至第七节。下一进行中分类按字母序为 **cognition**（见第九节清单），待下一批次置进行中并展开待优化清单。
+> biz/blasting/bonding/brand/bridge/building-material/cable/cardiology/casting/ceramics/chemical/chemistry/chess/chinese/chinese-cook/civil/cleaning/clinical-lab/clinical-nursing/cnc/cognition/colorvision/community 内容层均已达标，已依次归档至第七节。下一进行中分类按字母序为 **construction**（见第九节清单），待下一批次置进行中并展开待优化清单。
 
 > 优化模式（沿用已验证路径）：写真实 content_deepdive 条目 → 清理工具页硬编码套话（opt_cleanup_intro_faq.py --cat <cat> 或仿 opt_biz_optguide.py 按结构清 tool-intro）→ 构建 + 五项门禁 → 提交发布。
 
 ---
 
-## 九、分类总清单（待办，完成一个删一个；剩 233 个目录）
+## 九、分类总清单（待办，完成一个删一个；剩 232 个目录）
 
-- [ ] community
 - [ ] construction
 - [ ] consulting
 - [ ] content
