@@ -133,6 +133,14 @@
 
 ---
 
+### ✅ audio（7 工具，内容层全达标）
+
+1 批次发布：真实化 content_deepdive 的 7 条目（audio-speed 变速不变调 WSOLA/audio-recorder MediaRecorder 录音/audio-cut 波形裁剪淡变/audio-waveform 时域波形与 FFT 频谱/analysis-1 频谱分析频率分辨率/audio-echo 延迟线与混响/audio-volume 增益 dB 与归一化 7 个真实音频处理前端技术知识与示例）+ **三处同清旧套话**（7 工具真实 FAQPage 结构化数据全到位（负向后顾注入文档级 </body>）+ analysis-1 的 formula-desc 模板套话（"本计算器基于标准数学运算与单位换算约定…工具名称："→ 真实 FFT 频谱分析原理说明）+ 标题保持纯工具名 + zh-tw 同步 + 五项门禁全过 + 提交 5c6ca4441、Actions run 结论 success。
+
+> 注：audio 仅 analysis-1 有旧 formula-desc 套话，无旧 opt-faq/适用场景区块；7 key 全部对应 7 工具页，无 orphan。
+
+---
+
 ### ✅ astronomy（25 工具，内容层全达标）
 
 1 批次发布：真实化 content_deepdive 的 25 条目（距离模数/大气折射 Bennett 近似/地震震级能量 Gutenberg-Richter/时区转换/大气压海拔/陨石撞击坑 Schmidt-Holsapple/地球曲率视距/逃逸速度/万有引力/地平线距离/哈勃红移 d=cz/H₀/干湿球湿度 Magnus/开普勒方程/开普勒第三定律/光行时/星等亮度比 Pogson/月相照明/Bortle 观测条件/环绕速度/史瓦西半径/太阳赤纬 Cooper/太阳高度角/恒星视差/NOAA 日出日落/平衡潮理论 25 个真实天文物理知识与数值示例）+ **三处同清旧套话**（25 工具真实 FAQPage 结构化数据全到位（负向后顾注入文档级 </body>，其中 5 文件旧 LD 先删后注）+ 5 文件 opt-faq/适用场景套话（"在对应的输入框或选项中填写…"/"工作与生活中的相关计算与查询"→ 真实 faqs 与 scenarios[0]）+ 3 文件 formula-desc 模板套话（convert-15/17/18 "本工具用于单位与格式换算…工具名称："→ 真实计算原理）+ 标题保持纯工具名 + zh-tw 同步 + 五项门禁全过 + 提交 80ff2c657、Actions run 结论 success。
@@ -189,16 +197,15 @@
 
 ---
 
-## 八、当前进行中分类：（无，astronomy 已归档）
+## 八、当前进行中分类：（无，audio 已归档）
 
-> astronomy（25 工具）内容层全达标，已归档至第七节「✅ astronomy」。
-> 下一进行中分类按字母序为 **audio**（见第九节清单），待下一批次置进行中并展开待优化清单。
+> audio（7 工具）内容层全达标，已归档至第七节「✅ audio」。
+> 下一进行中分类按字母序为 **audit**（见第九节清单），待下一批次置进行中并展开待优化清单。
 
 ---
 
-## 九、分类总清单（待办，完成一个删一个；剩 266 个目录）
+## 九、分类总清单（待办，完成一个删一个；剩 265 个目录）
 
-- [ ] audio
 - [ ] audit
 - [ ] auto-beauty
 - [ ] automation
