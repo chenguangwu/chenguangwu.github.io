@@ -133,6 +133,14 @@
 
 ---
 
+### ✅ antiques（5 工具，内容层全达标）
+
+1 批次发布：真实化 content_deepdive 的 5 条目（青铜器/瓷器/古典家具/印章/书法 5 张鉴定对照表的真实断代辨伪要点、示例与 FAQ）+ **三处同清旧套话**（5 工具真实 FAQPage 结构化数据全到位（负向后顾注入文档级 </body>）+ 5 文件 formula-desc 模板套话（"本速查内容依据权威标准…工具名称：…"）→ 真实对照表用途说明 + 标题保持纯工具名 + zh-tw 同步 + 五项门禁全过 + 提交 d8077cb50、Actions run 结论 success。
+
+> 注：antiques 无旧 opt-faq/适用场景区块，仅 deep-dive（由 content_deepdive 驱动）与 formula-desc 两处需清；5 key 全部对应 5 工具页，无 orphan。
+
+---
+
 ### ✅ ai（64 工具，内容层全达标）
 
 1 批次发布：真实化 content_deepdive 的 64 条目（欧氏距离/Softmax/Sigmoid/交叉熵/混淆矩阵指标/MCC/Cohen Kappa/RMSE/RAG 召回/注意力 FLOPs/Transformer 参数量/训练算力(Kaplan 6ND)/显存估算/量化压缩比/学习率预热与衰减/Dropout/手肘法/K-Means/贝叶斯后验等真实公式与示例）+ **三处同清旧套话**（64 工具真实 FAQPage 结构化数据全到位（负向后顾注入文档级 </body>）+ 清理 6 文件可见 opt-faq/opt-guide 套话区块（ai-4/ai-6/ai-9/roc-auc/attention-head-dim/flops：opt-faq 替换为真实 faqs、适用场景替换为 scenarios[0]、使用说明短语规范化）+ 修复 3 个 formula-desc 占位套话 ai-code-review/ai-text-summarizer/ai-prompt-generator（"工具名称："/"本计算器基于标准数学运算"→真实计算原理）+ 标题保持纯工具名 + zh-tw 同步 + 五项门禁全过 + 提交 29ff7280b、Actions run 结论 success。
@@ -149,16 +157,15 @@
 
 ---
 
-## 八、当前进行中分类：（无，ai 已归档）
+## 八、当前进行中分类：（无，antiques 已归档）
 
-> ai（64 工具）内容层全达标，已归档至第七节「✅ ai」。
-> 下一进行中分类按字母序为 **antiques**（见第九节清单），待下一批次置进行中并展开待优化清单。
+> antiques（5 工具）内容层全达标，已归档至第七节「✅ antiques」。
+> 下一进行中分类按字母序为 **aquaculture**（见第九节清单），待下一批次置进行中并展开待优化清单。
 
 ---
 
-## 九、分类总清单（待办，完成一个删一个；剩 271 个目录）
+## 九、分类总清单（待办，完成一个删一个；剩 270 个目录）
 
-- [ ] antiques
 - [ ] aquaculture
 - [ ] archaeology
 - [ ] archive
