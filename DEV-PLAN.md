@@ -79,24 +79,23 @@
 ## 七、已完成分类归档
 > 本区仅保留**最近一个（最新）已完成分类**的归档记录，更早历史不再保留，以控制文件体积。完成新分类时，用新记录替换本条。
 
-### ✅ blasting（20 工具，内容层全达标）
+### ✅ bonding（5 工具，内容层全达标）
 
-blast-monitoring / demolition-method / structural-weakening 三个工具补清 formula-desc 套话（原「本速查内容依据权威标准与公开资料整理」通用免责 + 半真实工具名），替换为对齐 agriculture 范本的真实说明（依据 GB 6722 等标准 + 真实原理 + 用途 + 数据不出浏览器）；scripts/opt_blasting_formuladesc.py 幂等定点替换。其余 17 工具此前批次已真实化（content_deepdive 0 占位、tool-intro/FAQ 均为真实），本批仅补齐遗漏。+ zh-tw 同步 + 五项门禁全过。
+5 工具页（analysis-cost-4 / analysis-resolution / assessor-cycle-lifespan / detector-26 / detector-27）清两处硬编码套话：① tool-intro「功能特点/使用场景」通用套话（「操作简单，一键完成」「日常办公与学习」等），scripts/opt_bonding_optguide.py 替换为真实 scenarios+通用特性，**保留「工具简介」块**（修正 biz 版正则误吞前面 h4 的缺陷）；② formula-desc 占位套话（「本计算依据通用财务/本校验工具依据/本工程计算基于标准物理」+工具名），scripts/opt_bonding_formuladesc.py 替换为对齐 agriculture 范本的真实说明（依据标准+原理+用途+数据不出浏览器）。content_deepdive 0 占位、FAQ 为真实，无需重写。+ zh-tw 同步 + 五项门禁全过。
 
-> 注：blasting 的「常见问题（FAQ）」块经抽查为工具特定真实内容（如「爆破孔间距排距计算器可直接用于正式报告吗？」），非通用套话，未清理；content_deepdive 无遗留孤儿 key。
+> 注：bonding 的「常见问题（FAQ）」块为工具特定真实内容（如「bonding 场景下该工具如何避免重复劳动？」），非通用套话，未清理；index.html 落地页「功能特点」为中性分类描述、无真实 scenarios 可替换，保留。
 
 ---
-## 八、当前进行中分类：（无，biz 已归档）
+## 八、当前进行中分类：（无，bonding 已归档）
 
-> biz（62 工具）内容层全达标，已归档至第七节「✅ biz」。下一进行中分类按字母序为 **blasting**（见第九节清单），待下一批次置进行中并展开待优化清单。
+> biz/blasting/bonding 内容层均已达标，已依次归档至第七节。下一进行中分类按字母序为 **brand**（见第九节清单），待下一批次置进行中并展开待优化清单。
 
 > 优化模式（沿用已验证路径）：写真实 content_deepdive 条目 → 清理工具页硬编码套话（opt_cleanup_intro_faq.py --cat <cat> 或仿 opt_biz_optguide.py 按结构清 tool-intro）→ 构建 + 五项门禁 → 提交发布。
 
 ---
 
-## 九、分类总清单（待办，完成一个删一个；剩 253 个目录）
+## 九、分类总清单（待办，完成一个删一个；剩 252 个目录）
 
-- [ ] bonding
 - [ ] brand
 - [ ] bridge
 - [ ] building-material
