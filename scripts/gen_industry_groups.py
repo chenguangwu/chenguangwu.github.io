@@ -341,7 +341,9 @@ def main():
         # A 级优先、同级按文件名，保证展示质量且每次构建结果稳定
         tools_sorted = sorted(industry_tools.get(key, []), key=tool_sort_key)
         top = []
-        for t in tools_sorted[:8]:
+        # 24 个 = 下拉面板右侧 3 列 × 8 行，可与左侧多列分类列表的高度对齐，
+        # 避免右侧只铺两行半、下方大片空白让用户误以为工具很少
+        for t in tools_sorted[:24]:
             name_zh = zh_name(t)
             md = meta_desc(t.get('path', ''))
             # 中文描述优先级：① 工具自带中文 d（_build.py 注入，权威中文描述）→ ② 页面中文 meta
