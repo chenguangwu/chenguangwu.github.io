@@ -133,6 +133,14 @@
 
 ---
 
+### ✅ ai（64 工具，内容层全达标）
+
+1 批次发布：真实化 content_deepdive 的 64 条目（欧氏距离/Softmax/Sigmoid/交叉熵/混淆矩阵指标/MCC/Cohen Kappa/RMSE/RAG 召回/注意力 FLOPs/Transformer 参数量/训练算力(Kaplan 6ND)/显存估算/量化压缩比/学习率预热与衰减/Dropout/手肘法/K-Means/贝叶斯后验等真实公式与示例）+ **三处同清旧套话**（64 工具真实 FAQPage 结构化数据全到位（负向后顾注入文档级 </body>）+ 清理 6 文件可见 opt-faq/opt-guide 套话区块（ai-4/ai-6/ai-9/roc-auc/attention-head-dim/flops：opt-faq 替换为真实 faqs、适用场景替换为 scenarios[0]、使用说明短语规范化）+ 修复 3 个 formula-desc 占位套话 ai-code-review/ai-text-summarizer/ai-prompt-generator（"工具名称："/"本计算器基于标准数学运算"→真实计算原理）+ 标题保持纯工具名 + zh-tw 同步 + 五项门禁全过 + 提交 29ff7280b、Actions run 结论 success。
+
+> 注：ai 分类无孤立 orphan key，64 key 全部对应 64 工具页（含 ai.html 对应 key `ai/ai`）。
+
+---
+
 ### ✅ agriculture（60 工具，内容层全达标）
 
 1 批次发布：真实化 content_deepdive 的 60 条目（种植密度/肥料/农药/灌溉/收获/温室/农机/病虫害等真实场景与示例，含农业合规免责）+ **三处同清旧套话**（60 工具真实 FAQPage 结构化数据全到位（负向后顾注入文档级 </body>）+ 清理 60 文件可见 opt-faq/opt-guide 套话区块（适用场景替换为真实 scenarios[0]、使用说明短语规范化）+ 修复 5 个 formula-desc 占位套话 assessor-1/calc-2/convert-content-1/estimate-analysis/irrigation-uniformity）+ **全站系统性清除硬编码 intro-faq「常见问题」套话（"这个工具是免费的吗？"等）共 3136 个工具页**（含已发布分类 aerospace/it/general 等——此前所有批次都漏清的源 html 硬编码块；仅 tools/aerospace/lift-coefficient.html 因可视化编辑器持有、data-page-node-id 噪声无法落盘，留待编辑器关闭后 `git checkout` 清理，本批已排除出提交）+ 标题保持纯工具名 + zh-tw 同步 + 五项门禁全过。
@@ -141,16 +149,15 @@
 
 ---
 
-## 八、当前进行中分类：（无，agriculture 已归档）
+## 八、当前进行中分类：（无，ai 已归档）
 
-> agriculture（60 工具）内容层全达标，已归档至第七节「✅ agriculture」。
-> 下一进行中分类按字母序为 **ai**（见第九节清单），待下一批次置进行中并展开待优化清单。
+> ai（64 工具）内容层全达标，已归档至第七节「✅ ai」。
+> 下一进行中分类按字母序为 **antiques**（见第九节清单），待下一批次置进行中并展开待优化清单。
 
 ---
 
-## 九、分类总清单（待办，完成一个删一个；剩 272 个目录）
+## 九、分类总清单（待办，完成一个删一个；剩 271 个目录）
 
-- [ ] ai
 - [ ] antiques
 - [ ] aquaculture
 - [ ] archaeology
