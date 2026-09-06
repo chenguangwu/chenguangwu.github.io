@@ -121,16 +121,21 @@
 
 ---
 
-## 八、当前进行中分类：（无，admin 已归档）
+### ✅ advertising（16 工具，内容层全达标）
 
-> admin（8 工具）内容层全达标，已归档至第七节「✅ admin」。
-> 下一进行中分类按字母序为 **advertising**（见第九节清单），待下一批次置进行中并展开待优化清单。
+1 批次发布：真实化 content_deepdive 的 16 条目（广告尺寸/色彩/竞品分析/LTV/到达率/分镜/CTR测试等真实场景与示例，含媒体数据合规免责）+ **三处同清旧套话**（删 1 个旧套话 FAQPage LD convert-27 + 清理 convert-27 可见 opt-faq/opt-guide 套话区块，吸取12文件只清 JSON-LD 漏可见区块的教训）+ 16 工具真实 FAQPage 结构化数据全到位（负向后顾注入文档级 </body>）+ 标题保持纯工具名 + zh-tw 同步 + 五项门禁全过。
+
+---
+
+## 八、当前进行中分类：（无，advertising 已归档）
+
+> advertising（16 工具）内容层全达标，已归档至第七节「✅ advertising」。
+> 下一进行中分类按字母序为 **aerospace**（见第九节清单），待下一批次置进行中并展开待优化清单。
 
 ---
 
 ## 九、分类总清单（待办，完成一个删一个；剩 273 个目录）
 
-- [ ] advertising
 - [ ] aerospace
 - [ ] agriculture
 - [ ] ai
