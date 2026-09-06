@@ -1,47 +1,720 @@
-# DEV-PLAN
+# DEV-PLAN.md — 全站工具优化总计划（超大规模工程）
 
-## 当前未完成任务
+> 状态：计划起草完成，待老板确认后分批次推进。**完成一项删一项**，不做完不收手。
+> 本文件为权威分批计划载体；所有改动落盘后按"批量多文件合并提交"原则分批 commit / push master 触发发布。
 
-### SEO-D：长期无流量页治理（进行中）
-- [进行中] 无流量页候选清单已生成（`json/seo_d_lowtraffic.json`：4320/4983 工具页无流量，按行业 it279/general154/finance94/design88…）；noindex/合并/删除动作按原要求需连续周期数据到位后执行，单期数据不立即治理。
-- [保留] 禁止全站批量重写 Description，所有改动先基于页面数据和搜索意图确认。
+---
 
-## 数据使用边界
-- Clarity 只使用聚合统计，不导出会话明细、消息、时间线或可识别个人的数据。
-- 51.la 仅保留聚合指标；认证失败或站点未授权时不生成候选数据。
-- 百度统计暂不纳入本轮数据源。
-- 站点内容优化基于 Bing + Clarity 真实流量数据确定优先级。
+## 一、总体目标
 
-## 待续 / 滚动扩面
-- Analytics-C 高曝光低点击优化：首批 21 页已重写 Title/Description/H1/首段并补使用指南，Bing 数据仍稀疏（站点爬取爬升期），后续周期数据到位后再滚动扩面。
+目前线上大部分工具都不合格，需优化成**成熟、可直接线上使用**的工具，且要比竞品工具更强、有一定优势（功能更全、内容更专业、UI 更现代、结果更可信）。
 
-## 待核查 / 收尾（2026-09-05 清理任务文件时归并）
+---
 
-### PLAN-V2 认知脑力 26 工具：已落盘 + 质量验收通过（2026-09-05 21:30 核查）
-- 路径核查：T01–T26 共 26 路径全部 EXISTS；`classify_quality` 实测 **26/26 全 A 级**。
-- i18n 八件套数据层补齐：`i18n/tools/_en_override.json` 26/26、`i18n/tools/slug-en.json` 26/26、行业 i18n(`i18n/tools/<ind>.json`) 26/26 全覆盖（key 格式：英文数据源为 `ind/slug`，行业 i18n 为裸 `slug`）；抽查 scl90 英文 en/ed 已生成。
-- 文档状态滞后已在清理时解决（`PLAN-V2-BRAIN-SENSES.md` 已删，结论归并本文件）。**PLAN-V2 收尾 ①②③ 已验证通过、无遗留。**
+## 二、当前存在的主要问题（10 项，逐条对照验收）
 
-### T22 色盲模拟器升级收尾（已完成，方案 A，2026-09-05 执行）
-- 已执行方案 A：`git rm tools/design/color-blindness-simulator.html`（旧 4 型）+ `guides/color-blindness-sim-guide.html` 硬链接改指向 `tools/colorvision/colorblind-simulator.html` + 清 5 个 i18n 旧 slug key（`design.json`/`_en_override.json`/`slug-en.json`/`design-body.json`/`content_deepdive.json`，新版对应数据已补齐不丢功能）。
-- `_build.py` 重建自动清 `industry-design.json`/`tools.json`/`sitemap.xml`/`sitemap.html`/`design/index.html` 旧引用（扫描 tools/ 不再含旧文件）；A 级 **5008**（删 1 页后总数正确）。
-- 五道门禁全过（含死链 `_audit_links --check`）；无头 Chrome 实机验证：design 分类页无旧链接(103 卡)、guide 页 DOM 含新版链接、colorvision 新版 h1 正常、本地资源零错误（第三方 403 已排除）。
-- 注：旧 URL `tools/design/color-blindness-simulator.html` 现已 404（方案 A 不保留旧 URL 权重）；如需保已收录权重，后续可加 301 重定向桩（即方案 B）。
+1. **工具只是个壳**：里面内容只是占位、没任何意义 → 必须填充真实可用的内容 / 功能。
+2. **UI 太丑**：没有一点现代化网站的设计 → 统一现代化视觉（遵循 `ui/设计规范.md` + 参考 MBTI `tester-2.html` 风格）。
+3. **内容不够丰富**：补真实使用场景、示例、参考表、可视化（明细表 / 图表 / 日历等）。
+4. **逻辑错误误导用户**：工具内部存在计算 / 计分 / 判定错误 → 必须验证结果正确，不误导。
+5. **缺使用指南**：重要的专业工具没加使用指南 → 补「📖 使用指南」+ 深度解析（FAQ）。
+6. **中英文数据缺失或 bug**：补齐 i18n 数据（标题 / 简介 / 英文 slug / 行业 i18n），修中英文 bug。
+7. **名称 / 描述 / SEO 不合适不完善**：让人一眼看懂是干啥的，可加「免费使用」等描述；完善 Title / Description / H1。
+8. **下拉选项只是占位或不合理**：选项要真实、合理、有业务意义。
+9. **结果正确性未验证**：需验证工具使用结果正确（最好专业可验证）。
+10. **专业名称缺外链**：部分专业名称可加百度百科外链跳转。
 
-### SEO-D / Analytics-C（仍卡数据依赖，本次未推进）
-- SEO-D：无流量页治理需连续周期 Bing+Clarity 数据到位，单期不治理（原要求保留）。
-- Analytics-C：Bing 数据仍稀疏（站点爬取爬升期），等周期数据到位后再滚动扩面。
+---
 
-### 心理分类全量重做（2026-09-06 启动，进行中）
-- 目标：把 `tools/psychology/` 全部工具统一到 `tester-2.html`(MBTI) 的「逐题作答」生产级标准：真实题库 + 逐题引擎（进度条/单题卡片/5档/题号速览回跳/键盘/本机存进度）+ 真实计分 + 深度解读；清掉所有"生理常数/常见场景：XXX"套话、链着生成器的相关工具。
-- 分诊结论：仅 MBTI 已是逐题引擎；其余 19 个均为老式整页罗列。其中 PSS/PHQ-9/PSQI/SAS 核心计分正确但外壳烂；holland(72题)/bubble-tea(48题)/enneagram/bigfive/attachment(ECR)/scl90/tester-3(VARK) 有真实题库但老布局；calc-12(幸福感)/calc-self-assess(乐观)/assessor(拖延)/rater(PSQI简化)/self-assess(EQ)/analysis-2(性格色彩)/generator-20/random-12 偏薄或偏生成器。
-- 顺序（一道题一道题）：①self-test-pressure(PSS) ②sas(已修计分,升逐题) ③phq9 ④psqi ⑤calc-12(幸福感) ⑥calc-self-assess(乐观) ⑦assessor(拖延) ⑧self-assess(EQ) ⑨analysis-2(性格色彩) ⑩rater(PSQI简化) ⑪tester-3(VARK) ⑫holland ⑬bigfive ⑭enneagram ⑮attachment ⑯scl90 ⑰bubble-tea ⑱generator-20 ⑲random-12。每完成一个跑 `_build.py` + `_test_static.py`，按"批量多文件合并提交"原则分批 commit。
-- 改动方式：python 正则精准替换正文区块（保留 head 脚手架），避免整文件重写误伤 toolbox 桩。
+## 三、注意事项
 
-### 本次清理（2026-09-05，按老板要求）
-- 删 `RESULT-INTERPRET-TODO.md`：阶段六 122 工具结果解读，全 `[x]` 完成。
-- 删 `gap-report.md`：竞品(it-tools)覆盖率 100%，无缺失项。
-- 删 `backlink-plan.md`：外链作战清单，无勾选待办，纯运营方案（可复跑 `scripts/gen_backlink_plan.py`）。
-- 删 `PLAN-V2-BRAIN-SENSES.md`：26 工具已落盘、文档滞后，收尾项已归并上方。
-- 删 `HTML-SIZE-TODO.md`：本会话大文件优化清单，已落地、执行记归档于 `.workbuddy/memory/2026-09-05.md`。
-- 保留 `DEV-PLAN.md`：本文件，项目权威分批计划载体。
+1. 工具都必须是**纯前端**的；实在不适合本项目的工具（需后端 / 实时数据 / 登录认证等）直接删。
+2. 所有**答题类工具**参考样式：`/tools/psychology/tester-2.html`（逐题作答引擎：进度条 + 单题卡片 + 题号速览 + 键盘操作 + 本机存进度 + 真实计分 + 深度解读）。
+3. 有好建议也可补充，只要能提升用户体验和效率的都能加。
+4. 之前项目里不合理的约束可以去掉，按最好的方式开发。
+
+---
+
+## 四、开发规则（强制）
+
+- **全部分类**加入下方「分类总清单」，完成一个删一个。
+- **进行中的分类**：把该分类下**全部工具**加入「当前进行中分类」的待优化清单，按顺序**一个一个优化**，完成一个删一个。
+- 某分类全部工具优化完，才开下个分类；再把它工具放入待优化清单，直到所有分类优化完。
+- **psychology 已优化过一遍**：先按上面 10 条标准**验证**是否满足，全满足则直接跳过该分类；否则先优化该分类里不满足的工具。
+- 每完成一批（或一个工具）跑 `python3 _build.py` + `python3 _test_static.py`，确保门禁通过、繁体 `zh-tw/` 同步。
+- **提交发布节奏**：最好**一个分类提交发布一次**；分类下工具多的（如 `it` 345 / `general` 180 / `finance` 112），可分批提交，**每批至少 10 个工具**，避免单工具频繁发布。
+- **改 deep-dive / 使用指南等被构建重建的区块，必须改数据源 `i18n/tools/content_deepdive.json`**（直接改源 html 会被 `_build.py` 覆盖，见下方踩坑备忘）。
+
+---
+
+## 五、验收标准（对照 10 项逐条 tick）
+
+每个工具优化完成前，须确认：
+
+- [ ] 1. 非壳：有真实功能 / 真实内容，无占位文字（如"常见场景：XXX""先统一输入单位与口径""本校验工具"等套话清零）。
+- [ ] 2. UI 现代：遵循设计规范（主色 / 圆角 / 卡片 / 响应式），无 raw 丑布局。
+- [ ] 3. 内容丰富：含真实使用场景 + 真实示例 +（专业工具）参考表 / 可视化。
+- [ ] 4. 逻辑正确：计算 / 计分 / 判定经自测或 node 纯函数验证，无误导。
+- [ ] 5. 有使用指南：专业工具补「📖 使用指南」+ 深度解析 FAQPage 结构化数据。
+- [ ] 6. 中英文齐全：i18n 八件套数据层补齐，无中英文 bug。
+- [ ] 7. 名称 / 描述 / SEO：一眼看懂用途，可含「免费使用」，Title/Description/H1 完善。
+- [ ] 8. 下拉选项真实合理，无占位符。
+- [ ] 9. 结果可验证正确（专业工具优先）。
+- [ ] 10. 关键专业名词加百度百科外链跳转。
+
+---
+
+## 六、踩坑 / 约束备忘
+
+- **deep-dive 由 `_build.py` 按 `i18n/tools/content_deepdive.json` 重建**：直接改源 html 的 deep-dive 区块会被构建覆盖。改 deep-dive / 场景 / 示例 / FAQ → 改 JSON 数据源。
+- **FAQPage 结构化数据不被 `_build.py` 重建**：手动加的合法 JSON-LD 会保留，但注入坏 JSON 不会被自动修复，须自测解析合法。
+- **繁体 `zh-tw/` 是构建产物**：改源文件 + 跑 `_build.py` 后自动同步；勿手动改 `zh-tw/`（被 `.gitignore` 忽略）。
+- **i18n 八件套**：标题/简介走 `_en_override.json` + `slug-en.json`；行业 i18n 走 `i18n/tools/<ind>.json`；凡引 `common.js` 的静态页须引 `i18n.js`。
+- **门禁**：`python3 _test_static.py` 须 0 失败 0 告警；死链 `_audit_links --check` 与资产 `_audit_assets --check` 须 exit 0。
+- **提交**：批量多文件改动合并提交，commit + push master 触发 GitHub Pages 发布；不可逆操作前先核验。
+
+---
+## 七、已完成分类归档
+
+### ✅ psychology（20 工具，已全部达标）
+
+按第五节 10 条标准逐工具验证：20 个工具全部满足（无套话 / 真实 deep-dive / FAQPage 结构化数据 / 使用指南就位 / 繁体同步）。整类标记完成。
+
+- 上轮：11 个量表/测评升级为逐题作答引擎；9 个保留专业引擎（大五/依恋/九型/霍兰德/SCL-90/奶茶/词云/偏差卡/分类页）。
+- 本轮收尾：补 7 个专业引擎工具（依恋/大五/奶茶/九型/霍兰德/SCL-90/MBTI）真实 deep-dive 数据 + FAQPage LD + 使用指南文章（大五/SCL-90/MBTI 三篇新建，另 4 篇已有真实内容）。
+
+---
+
+## 八、当前进行中分类：it（345 工具）
+
+> 规则：该分类下全部工具加入下方待优化清单，按顺序一个一个优化，完成一个删一个。
+> 答题类参考 /tools/psychology/tester-2.html 样式；每批至少 10 个工具提交一次。
+
+### 待优化工具（按文件名序，完成一个删一个）
+
+- [ ] a1z26-cipher
+- [ ] adfgvx-cipher
+- [ ] aes-encryptor
+- [ ] affine-cipher
+- [ ] api-sign-generator
+- [ ] area-code-lookup
+- [ ] ascii-art
+- [ ] ascii-table
+- [ ] ascii-tree-generator
+- [ ] ast-viewer
+- [ ] atbash-cipher
+- [ ] bacon-cipher
+- [ ] bank-card-generator
+- [ ] barcode-codabar
+- [ ] barcode-code128
+- [ ] barcode-code39
+- [ ] barcode-ean
+- [ ] barcode-itf
+- [ ] barcode-msi
+- [ ] barcode-upc
+- [ ] base32-encode
+- [ ] base58-encode
+- [ ] base64-file
+- [ ] base64
+- [ ] base85-encode
+- [ ] basic-auth-generator
+- [ ] baudot-code
+- [ ] bayes-theorem
+- [ ] bcrypt
+- [ ] benchmark-builder
+- [ ] binary-encode
+- [ ] binary-to-text
+- [ ] binomial-distribution
+- [ ] bip39-generator
+- [ ] bitwise-calculator
+- [ ] bluetooth-version
+- [ ] box-shadow-generator
+- [ ] c-string-escape
+- [ ] caa-record-generator
+- [ ] caesar-cipher
+- [ ] calc-1
+- [ ] calc-10
+- [ ] calc-2
+- [ ] calc-3
+- [ ] calc-4
+- [ ] calc-5
+- [ ] calc-7
+- [ ] calc-8
+- [ ] camera-recorder
+- [ ] captcha-generator
+- [ ] case-converter
+- [ ] char-encoder
+- [ ] charset-detector
+- [ ] chinese-name-generator
+- [ ] chmod-calculator
+- [ ] clamp-calculator
+- [ ] code-highlighter
+- [ ] code-line-counter
+- [ ] code-runner
+- [ ] color-converter
+- [ ] confidence-interval
+- [ ] country-code-lookup
+- [ ] country-flag
+- [ ] coupon-code-generator
+- [ ] cpp-cheatsheet
+- [ ] crc-calculator
+- [ ] cron
+- [ ] crontab-generator
+- [ ] csharp-cheatsheet
+- [ ] css-escape
+- [ ] css-formatter
+- [ ] css-minifier
+- [ ] css-minify
+- [ ] css-properties
+- [ ] csv-to-html-table
+- [ ] csv-to-json
+- [ ] csv-to-yaml
+- [ ] csv-validator
+- [ ] cuid-generator
+- [ ] curl-parser
+- [ ] date-duration
+- [ ] decimal-encode
+- [ ] des
+- [ ] device-info
+- [ ] docker-cheatsheet
+- [ ] docker-run-converter
+- [ ] dockerfile-generator
+- [ ] domain-name-generator
+- [ ] ecdsa
+- [ ] emacs-cheatsheet
+- [ ] email-normalizer
+- [ ] email-qr
+- [ ] emoji-cheatsheet
+- [ ] emoji-meaning
+- [ ] emoji-picker
+- [ ] env-generator
+- [ ] exponential-distribution
+- [ ] fake-data
+- [ ] gamertag-generator
+- [ ] generator-16
+- [ ] git-commands
+- [ ] gitignore-generator
+- [ ] go-cheatsheet
+- [ ] go-escape
+- [ ] graphql-formatter
+- [ ] hash-id-generator
+- [ ] hash-identifier
+- [ ] hash-multi
+- [ ] hash
+- [ ] hex-encode
+- [ ] hex-to-text
+- [ ] hill-cipher
+- [ ] hmac-generator
+- [ ] html-entities-encode
+- [ ] html-entities
+- [ ] html-entity-encoder
+- [ ] html-escape
+- [ ] html-minifier
+- [ ] html-nesting-checker
+- [ ] html-tags
+- [ ] html-to-markdown
+- [ ] http-cache
+- [ ] http-cookies
+- [ ] http-headers
+- [ ] http-methods-reference
+- [ ] http-methods
+- [ ] http-response-headers
+- [ ] http-status
+- [ ] hypergeometric-distribution
+- [ ] hypothesis-test
+- [ ] id-card-generator
+- [ ] image-to-base64
+- [ ] ini-parser
+- [ ] integer-base-converter
+- [ ] invite-code-generator
+- [ ] ip-calculator
+- [ ] ipv4-range-expander
+- [ ] ipv6-converter
+- [ ] ipv6-ula
+- [ ] java-cheatsheet
+- [ ] java-escape
+- [ ] js-escape
+- [ ] js-formatter
+- [ ] js-minifier
+- [ ] js-minify
+- [ ] js-obfuscator
+- [ ] json-diff
+- [ ] json-formatter
+- [ ] json-minify
+- [ ] json-path
+- [ ] json-repair
+- [ ] json-schema-generator
+- [ ] json-schema-validator
+- [ ] json-to-code
+- [ ] json-to-csv
+- [ ] json-to-toml
+- [ ] json-to-tsv
+- [ ] json-to-xml
+- [ ] json-to-yaml
+- [ ] jwt-debugger
+- [ ] jwt
+- [ ] keycode-info
+- [ ] keyword-density
+- [ ] keyword-extractor
+- [ ] ksuid-generator
+- [ ] kubernetes-cheatsheet
+- [ ] kubernetes-yaml-generator
+- [ ] language-code-lookup
+- [ ] latex
+- [ ] less-compiler
+- [ ] line-ending-converter
+- [ ] linux-cheatsheet
+- [ ] list-converter
+- [ ] locale-lookup
+- [ ] location-qr
+- [ ] lorem
+- [ ] mac-generator
+- [ ] mac-lookup
+- [ ] margin-of-error
+- [ ] markdown-editor
+- [ ] markdown-lint
+- [ ] markdown-table-generator
+- [ ] markdown-to-html
+- [ ] math-evaluator
+- [ ] matrix-determinant
+- [ ] matrix-inverter
+- [ ] matrix-multiplier
+- [ ] matrix-transpose
+- [ ] md5
+- [ ] meta-tags-generator
+- [ ] mime-type-lookup
+- [ ] mime-type
+- [ ] mongodb-cheatsheet
+- [ ] morse-decode-advanced
+- [ ] morse
+- [ ] msisdn-lookup
+- [ ] mysql-cheatsheet
+- [ ] nanoid-generator
+- [ ] nato-alphabet
+- [ ] nginx-cheatsheet
+- [ ] nginx-config-generator
+- [ ] nickname-generator
+- [ ] normal-distribution
+- [ ] number-base-converter
+- [ ] numeronym-generator
+- [ ] octal-encode
+- [ ] og-meta-tag-generator
+- [ ] otp-generator
+- [ ] password-generator
+- [ ] password-strength
+- [ ] pbkdf2
+- [ ] pdf-signature-checker
+- [ ] phone-parser
+- [ ] phone-screen-sizes
+- [ ] php-cheatsheet
+- [ ] php-escape
+- [ ] pin-generator
+- [ ] playfair-cipher
+- [ ] plist-parser
+- [ ] poisson-distribution
+- [ ] polybius-cipher
+- [ ] pomodoro
+- [ ] postgresql-cheatsheet
+- [ ] prime-checker
+- [ ] properties-parser
+- [ ] protobuf-parser
+- [ ] punycode
+- [ ] python-cheatsheet
+- [ ] python-escape
+- [ ] python-formatter
+- [ ] qr-beautify
+- [ ] qr-decoder
+- [ ] qrcode
+- [ ] quoted-printable
+- [ ] rabbit
+- [ ] rail-fence-cipher
+- [ ] random-port-generator
+- [ ] random-string
+- [ ] random
+- [ ] rc4
+- [ ] recovery-code-generator
+- [ ] redis-cheatsheet
+- [ ] regex-cheatsheet
+- [ ] regex-common
+- [ ] regex-escape
+- [ ] regex-visualizer
+- [ ] regex
+- [ ] rest-api-cheatsheet
+- [ ] rich-text-editor
+- [ ] robots-txt-generator
+- [ ] roman-numeral-converter
+- [ ] rot-cipher
+- [ ] rsa
+- [ ] ruby-cheatsheet
+- [ ] rust-cheatsheet
+- [ ] rust-escape
+- [ ] safelink-decoder
+- [ ] serial-key-generator
+- [ ] sha
+- [ ] shell-script-formatter
+- [ ] short-link-generator
+- [ ] sitemap-generator
+- [ ] slug-generator-advanced
+- [ ] slugify
+- [ ] sms-qr
+- [ ] sql-cheatsheet
+- [ ] sql-escape
+- [ ] sql-formatter
+- [ ] sqlite-cheatsheet
+- [ ] sqlite-runner
+- [ ] ssl-info
+- [ ] standard-deviation
+- [ ] statistical-power
+- [ ] stopwatch
+- [ ] string-obfuscator
+- [ ] summary-generator
+- [ ] svg-placeholder-generator
+- [ ] team-name-generator
+- [ ] text-cleaner
+- [ ] text-dedupe-sort
+- [ ] text-diff
+- [ ] text-qr
+- [ ] text-replace
+- [ ] text-similarity
+- [ ] text-statistics
+- [ ] text-steganography
+- [ ] text-to-ascii
+- [ ] text-to-binary
+- [ ] text-to-decimal
+- [ ] text-to-hex
+- [ ] text-to-octal
+- [ ] text-to-unicode
+- [ ] text-truncate
+- [ ] time-format-converter
+- [ ] timestamp-converter
+- [ ] tiny-url
+- [ ] tmux-cheatsheet
+- [ ] token-generator
+- [ ] toml-formatter
+- [ ] toml-to-json
+- [ ] toml-to-xml
+- [ ] toml-to-yaml
+- [ ] triangle-calculator
+- [ ] typescript-cheatsheet
+- [ ] typescript-compiler
+- [ ] typing-test
+- [ ] ulid-generator
+- [ ] unicode-lookup
+- [ ] uniform-distribution
+- [ ] unit-converter-advanced
+- [ ] url-encode
+- [ ] url-encoder-advanced
+- [ ] url-params
+- [ ] url-parser
+- [ ] url-qr
+- [ ] usb-version
+- [ ] user-agent-parser
+- [ ] username-generator
+- [ ] uuencode
+- [ ] uuid-generator
+- [ ] uuid-v4-generator
+- [ ] uuid-v5-generator
+- [ ] uuid-v7-generator
+- [ ] vector-cross-product
+- [ ] vector-dot-product
+- [ ] vector-magnitude
+- [ ] video-bitrate
+- [ ] vigenere-visualizer
+- [ ] vim-cheatsheet
+- [ ] whitespace
+- [ ] wifi-qr-generator
+- [ ] wifi-qr
+- [ ] xml-formatter
+- [ ] xml-to-json
+- [ ] xml-to-toml
+- [ ] xml-to-yaml
+- [ ] xml-validator
+- [ ] xor-cipher
+- [ ] xxencode
+- [ ] xxtea
+- [ ] yaml-formatter
+- [ ] yaml-to-json
+- [ ] yaml-to-toml
+- [ ] yaml-to-xml
+- [ ] yaml-validator
+
+---
+
+## 九、分类总清单（待办，完成一个删一个；含 323 个目录）
+
+- [ ] accessibility (5)
+- [ ] accounting (35)
+- [ ] acoustics (28)
+- [ ] acupuncture (23)
+- [ ] admin (8)
+- [ ] advertising (16)
+- [ ] aerospace (37)
+- [ ] agriculture (60)
+- [ ] ai (64)
+- [ ] antiques (5)
+- [ ] aquaculture (5)
+- [ ] archaeology (6)
+- [ ] archive (3)
+- [ ] astronomy (25)
+- [ ] audio (7)
+- [ ] audit (5)
+- [ ] auto-beauty (2)
+- [ ] automation (0 · 空目录)
+- [ ] automotive (53)
+- [ ] baking (9)
+- [ ] ballistics (24)
+- [ ] banking (27)
+- [ ] beauty (21)
+- [ ] beekeeping (3)
+- [ ] beneficiation (1)
+- [ ] biz (62)
+- [ ] blasting (20)
+- [ ] bonding (5)
+- [ ] brand (1)
+- [ ] bridge (5)
+- [ ] building-material (2)
+- [ ] cable (3)
+- [ ] cardiology (25)
+- [ ] casting (2)
+- [ ] ceramics (5)
+- [ ] chemical (12)
+- [ ] chemistry (28)
+- [ ] chess (5)
+- [ ] chinese (5)
+- [ ] chinese-cook (6)
+- [ ] civil (21)
+- [ ] cleaning (8)
+- [ ] clinical-lab (25)
+- [ ] clinical-nursing (26)
+- [ ] cnc (1)
+- [ ] cognition (8)
+- [ ] colorvision (4)
+- [ ] community (3)
+- [ ] construction (26)
+- [ ] consulting (3)
+- [ ] content (4)
+- [ ] convenience (4)
+- [ ] cosmetic-derm (33)
+- [ ] cosmetics (1)
+- [ ] customer-service (3)
+- [ ] daily-goods (1)
+- [ ] dailychem (0 · 空目录)
+- [ ] dance (7)
+- [ ] data (20)
+- [ ] decor (8)
+- [ ] defense (2)
+- [ ] dental (0 · 见 dentistry)
+- [ ] dentistry (26)
+- [ ] dermatology (24)
+- [ ] design (103)
+- [ ] discipline (4)
+- [ ] domestic (4)
+- [ ] dyeing (13)
+- [ ] dynamics (28)
+- [ ] eco (34)
+- [ ] ecommerce (21)
+- [ ] economics (28)
+- [ ] edu (44)
+- [ ] edu2 (5)
+- [ ] elderly (11)
+- [ ] electrical (19)
+- [ ] electromagnetism (28)
+- [ ] electronics (24)
+- [ ] embedded (1)
+- [ ] encode (29)
+- [ ] endocrinology (23)
+- [ ] energy (46)
+- [ ] engineering (14)
+- [ ] ent (30)
+- [ ] entertainment (0 · 空目录)
+- [ ] environment (4)
+- [ ] event (1)
+- [ ] exam (4)
+- [ ] exhibition (6)
+- [ ] express (1)
+- [ ] fengshui (5)
+- [ ] film (6)
+- [ ] finance (112)
+- [ ] fire (11)
+- [ ] fire-rescue (40)
+- [ ] fishery (41)
+- [ ] fitness (35)
+- [ ] floral (6)
+- [ ] fluid (28)
+- [ ] food (24)
+- [ ] food-processing (21)
+- [ ] food-safety (3)
+- [ ] food-testing (24)
+- [ ] forensic-medicine (22)
+- [ ] forestry (20)
+- [ ] forex (5)
+- [ ] fortune (0 · 空目录)
+- [ ] fresh (3)
+- [ ] fun (74)
+- [ ] funeral (6)
+- [ ] furniture (2)
+- [ ] futures (5)
+- [ ] gardening (12)
+- [ ] gardening2 (5)
+- [ ] gas (11)
+- [ ] gastroenterology (23)
+- [ ] general (180)
+- [ ] geology (37)
+- [ ] geometry (28)
+- [ ] gis (4)
+- [ ] glass (5)
+- [ ] hardware (0 · 空目录)
+- [ ] health (46)
+- [ ] healthcare (33)
+- [ ] heattreat (2)
+- [ ] hematology (27)
+- [ ] history (3)
+- [ ] home (6)
+- [ ] hotel (7)
+- [ ] hr (21)
+- [ ] hvac (10)
+- [ ] hydraulic (55)
+- [ ] image (14)
+- [ ] insurance (33)
+- [ ] interior (1)
+- [ ] investment (28)
+- [ ] jewelry (6)
+- [ ] kids (5)
+- [ ] kinematics (28)
+- [ ] knowledge (1)
+- [ ] labor-protection (0 · 空目录)
+- [ ] landscape (2)
+- [ ] language (18)
+- [ ] leather (15)
+- [ ] legal (54)
+- [ ] legal2 (5)
+- [ ] library (5)
+- [ ] life (62)
+- [ ] livestock (27)
+- [ ] livestream (2)
+- [ ] logistics (8)
+- [ ] logistics2 (5)
+- [ ] machinery (37)
+- [ ] manufacturing (5)
+- [ ] maritime (5)
+- [ ] marketing (44)
+- [ ] martial (5)
+- [ ] martial-arts (2)
+- [ ] materials (28)
+- [ ] math (36)
+- [ ] mechanical (14)
+- [ ] media (6)
+- [ ] medical (14)
+- [ ] medical2 (5)
+- [ ] metallurgy (16)
+- [ ] metalwork (29)
+- [ ] meteorology (42)
+- [ ] metrology (28)
+- [ ] mining (14)
+- [ ] misc (12)
+- [ ] misc2 (10)
+- [ ] mold (3)
+- [ ] municipal (3)
+- [ ] museum (5)
+- [ ] music (19)
+- [ ] nephrology (24)
+- [ ] network (4)
+- [ ] neurology (27)
+- [ ] niche (16)
+- [ ] nuclear (28)
+- [ ] nutrition (18)
+- [ ] obstetrics (32)
+- [ ] office (7)
+- [ ] ophthalmology (32)
+- [ ] optical (41)
+- [ ] optics (28)
+- [ ] outdoor (1)
+- [ ] packaging (6)
+- [ ] paint (1)
+- [ ] paper (12)
+- [ ] parenting (7)
+- [ ] pediatrics (25)
+- [ ] pet (10)
+- [ ] pet-training (5)
+- [ ] petrochem (5)
+- [ ] pets (5)
+- [ ] pharma (0 · 空目录·见 pharmacy/tcm-pharmacy)
+- [ ] pharmacy (2)
+- [ ] photo (29)
+- [ ] photo2 (5)
+- [ ] photography (3)
+- [ ] pipe (0 · 空目录)
+- [ ] plastic (5)
+- [ ] pneumatic (4)
+- [ ] port (0 · 空目录)
+- [ ] pr (13)
+- [ ] printing (7)
+- [ ] process (14)
+- [ ] procurement (10)
+- [ ] project (5)
+- [ ] property (21)
+- [ ] psychiatry (25)
+- [ ] pulmonology (26)
+- [ ] quantum (28)
+- [ ] railway (5)
+- [ ] realestate (54)
+- [ ] rehabilitation (24)
+- [ ] rental (8)
+- [ ] reproductive-medicine (28)
+- [ ] research (8)
+- [ ] restaurant (8)
+- [ ] rheumatology (25)
+- [ ] road (6)
+- [ ] robotics (28)
+- [ ] rubber (5)
+- [ ] safety (16)
+- [ ] sales (9)
+- [ ] science (99)
+- [ ] securities (38)
+- [ ] security (11)
+- [ ] security-guard (2)
+- [ ] seismology (5)
+- [ ] service (5)
+- [ ] shipping (5)
+- [ ] signal (28)
+- [ ] sports (75)
+- [ ] sports-event (2)
+- [ ] stage (5)
+- [ ] startup (6)
+- [ ] statistics (55)
+- [ ] stats (5)
+- [ ] steel (3)
+- [ ] stone (1)
+- [ ] structural (28)
+- [ ] supplychain (1)
+- [ ] surface (2)
+- [ ] surveying (40)
+- [ ] tax (29)
+- [ ] tcm-chemistry (23)
+- [ ] tcm-diagnosis (21)
+- [ ] tcm-pharmacy (24)
+- [ ] telecom (8)
+- [ ] text (11)
+- [ ] textile (21)
+- [ ] textile2 (4)
+- [ ] thermodynamics (28)
+- [ ] timber (2)
+- [ ] transport (15)
+- [ ] travel (21)
+- [ ] tunnel (5)
+- [ ] uiux (4)
+- [ ] unitedfront (3)
+- [ ] urban (6)
+- [ ] urology (25)
+- [ ] usedcar (11)
+- [ ] valve (0 · 空目录)
+- [ ] video (6)
+- [ ] warehouse (2)
+- [ ] water (2)
+- [ ] wedding (8)
+- [ ] welding (15)
+- [ ] woodwork (3)
+- [ ] woodworking (5)
+- [ ] writing (1)
+- [ ] yi (5)
+- [ ] yoga (2)
