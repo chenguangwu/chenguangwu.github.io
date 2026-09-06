@@ -97,50 +97,16 @@
 
 1 批次发布：清 3 套套话（formula-desc 占位 / 错误归类「健康医疗领域」段落 / braille-translator opt-guide+旧套话 FAQPage LD）+ 5 工具真实 FAQPage 全到位。
 
+### ✅ accounting（35 工具，内容层全达标）
+
+1 批次发布：真实化 content_deepdive 的 35 条目（场景/示例/FAQ 全部重写为专业真实内容，清除"使用前先核对输入口径""教学复核建议""常见场景：Ebit"等套话）+ 删 3 个旧套话 FAQPage LD（report-2 / assessor-risk-11 / debt-service-coverage）+ 35 工具真实 FAQPage 结构化数据全到位（负向后顾注入文档级 </body>）+ 35 工具 title 加"免费" + zh-tw 同步 + 五项门禁全过。
+
 ---
 
-## 八、当前进行中分类：accounting（35 工具）
+## 八、当前进行中分类：（无，accounting 已归档）
 
-> 规则：该分类下全部工具加入下方待优化清单，按顺序一个一个优化，完成一个删一个。
-> 答题类参考 /tools/psychology/tester-2.html 样式；每批至少 10 个工具提交一次。
-
-### 待优化工具（按文件名序，完成一个删一个）
-
-- [ ] amortization-intangible
-- [ ] analysis-46
-- [ ] analysis-cost-5
-- [ ] assessor-risk-11
-- [ ] asset-turnover
-- [ ] break-even-units
-- [ ] calc-1
-- [ ] calc-2
-- [ ] cash-conversion-cycle
-- [ ] contribution-margin
-- [ ] current-ratio
-- [ ] days-payable-outstanding
-- [ ] days-sales-outstanding
-- [ ] debt-service-coverage
-- [ ] debt-to-asset
-- [ ] depreciation-declining
-- [ ] depreciation-straight
-- [ ] depreciation-syd
-- [ ] ebit
-- [ ] ebitda
-- [ ] free-cash-flow
-- [ ] gross-margin
-- [ ] gross-profit
-- [ ] interest-coverage
-- [ ] inventory-days
-- [ ] inventory-turnover
-- [ ] net-profit-margin
-- [ ] operating-cash-flow
-- [ ] quick-ratio
-- [ ] report-2
-- [ ] roa-calc
-- [ ] roe-calc
-- [ ] roe-dupont
-- [ ] split-bill
-- [ ] working-capital
+> accounting（35 工具）内容层全达标，已归档至第七节「✅ accounting」。
+> 下一进行中分类按字母序为 **acoustics**（见第九节清单），待下一批次置进行中并展开待优化清单。
 
 ---
 
