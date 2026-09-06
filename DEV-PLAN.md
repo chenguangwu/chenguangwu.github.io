@@ -94,9 +94,8 @@ chinese 5 工具 deep-dive 真实化（汉字查询/中文文化工具箱/偏旁
 
 ---
 
-## 九、分类总清单（待办，完成一个删一个；剩 241 个目录）
+## 九、分类总清单（待办，完成一个删一个；剩 240 个目录）
 
-- [ ] chinese-cook
 - [ ] civil
 - [ ] cleaning
 - [ ] clinical-lab
