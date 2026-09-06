@@ -164,6 +164,14 @@
 
 ---
 
+### ✅ baking（9 工具，内容层全达标）
+
+1 批次发布：真实化 content_deepdive 的 9 条目（配方缩放比例换算/烤箱温度 C↔F 与对流(风炉)补偿/烘焙百分比(面粉100%基准)/模具容积(圆柱π r² h、长方体、中空环柱)与填充比例/面团含水量/由总重反推各料/不同形状模具容积匹配/温度转换+风温补偿/发酵时间 Q10 温度修正 9 个真实烘焙计算知识与示例）+ **三处同清旧套话**（9 工具真实 FAQPage 结构化数据全到位（负向后顾注入文档级 </body>）+ 5 文件 formula-desc 模板套话（recipe-scaler "纯前端本地处理…工具名称："、oven-temp/convert-28/convert-temp "本工具用于单位与格式换算…工具名称："、mold "本工程计算基于标准物理…工具名称："→ 各自真实计算原理说明）+ 标题保持纯工具名 + zh-tw 同步 + 五项门禁全过 + 提交 ad396ae27、Actions run 结论 success。
+
+> 注：baking 9 key 全部对应 9 工具页，无 orphan；无旧 opt-faq/适用场景区块，仅需清 deep-dive + formula-desc 两处。本批顺便发现并**还原被本地 `_build.py` 覆盖的全局产物退化内容**（json/tools.json 等被改写为英文 desc→中文模板、quality A→C），已 `git checkout --` 还原到 HEAD 好版本、不混入提交。
+
+---
+
 ### ✅ audio（7 工具，内容层全达标）
 
 1 批次发布：真实化 content_deepdive 的 7 条目（audio-speed 变速不变调 WSOLA/audio-recorder MediaRecorder 录音/audio-cut 波形裁剪淡变/audio-waveform 时域波形与 FFT 频谱/analysis-1 频谱分析频率分辨率/audio-echo 延迟线与混响/audio-volume 增益 dB 与归一化 7 个真实音频处理前端技术知识与示例）+ **三处同清旧套话**（7 工具真实 FAQPage 结构化数据全到位（负向后顾注入文档级 </body>）+ analysis-1 的 formula-desc 模板套话（"本计算器基于标准数学运算与单位换算约定…工具名称："→ 真实 FFT 频谱分析原理说明）+ 标题保持纯工具名 + zh-tw 同步 + 五项门禁全过 + 提交 5c6ca4441、Actions run 结论 success。
@@ -228,16 +236,15 @@
 
 ---
 
-## 八、当前进行中分类：（无，automotive 已归档）
+## 八、当前进行中分类：（无，baking 已归档）
 
-> automotive（53 工具）内容层全达标，已归档至第七节「✅ automotive」；automation 为空分类（仅 index.html、无工具页）已标记跳过。
-> 下一进行中分类按字母序为 **baking**（见第九节清单），待下一批次置进行中并展开待优化清单。
+> baking（9 工具）内容层全达标，已归档至第七节「✅ baking」；automation 为空分类（仅 index.html、无工具页）已标记跳过。
+> 下一进行中分类按字母序为 **ballistics**（见第九节清单），待下一批次置进行中并展开待优化清单。
 
 ---
 
-## 九、分类总清单（待办，完成一个删一个；剩 261 个目录）
+## 九、分类总清单（待办，完成一个删一个；剩 260 个目录）
 
-- [ ] baking
 - [ ] ballistics
 - [ ] banking
 - [ ] beauty
