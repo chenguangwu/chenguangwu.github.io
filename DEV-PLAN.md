@@ -79,11 +79,11 @@
 ## 七、已完成分类归档
 > 本区仅保留**最近一个（最新）已完成分类**的归档记录，更早历史不再保留，以控制文件体积。完成新分类时，用新记录替换本条。
 
-### ✅ biz（62 工具，内容层全达标）
+### ✅ blasting（20 工具，内容层全达标）
 
-1 批次发布：真实化 content_deepdive 的 62 条目（会议成本/名称生成/文本处理/商业计算/编码计时/装饰文本等真实场景与示例，含合规免责）+ 清除 61 个 biz 工具页 tool-intro 通用套话（功能特点/使用场景区块替换为真实 scenarios 与通用特性，消除「操作简单，一键完成」等套话）+ 修复 4 处内容反斜杠（\d/\. 等正则展示触发 _build.py 注入 bad escape，改为 [0-9]/. 等价写法）+ 标题保持纯工具名 + zh-tw 同步 + 五项门禁全过。
+blast-monitoring / demolition-method / structural-weakening 三个工具补清 formula-desc 套话（原「本速查内容依据权威标准与公开资料整理」通用免责 + 半真实工具名），替换为对齐 agriculture 范本的真实说明（依据 GB 6722 等标准 + 真实原理 + 用途 + 数据不出浏览器）；scripts/opt_blasting_formuladesc.py 幂等定点替换。其余 17 工具此前批次已真实化（content_deepdive 0 占位、tool-intro/FAQ 均为真实），本批仅补齐遗漏。+ zh-tw 同步 + 五项门禁全过。
 
-> 注：unit-price-compare 无标准 tool-intro 套话（其 deep-dive 套话由 _build.py 用真实 content_deepdive 重建覆盖）；content_deepdive 无遗留孤儿 key。
+> 注：blasting 的「常见问题（FAQ）」块经抽查为工具特定真实内容（如「爆破孔间距排距计算器可直接用于正式报告吗？」），非通用套话，未清理；content_deepdive 无遗留孤儿 key。
 
 ---
 ## 八、当前进行中分类：（无，biz 已归档）
@@ -94,9 +94,8 @@
 
 ---
 
-## 九、分类总清单（待办，完成一个删一个；剩 254 个目录）
+## 九、分类总清单（待办，完成一个删一个；剩 253 个目录）
 
-- [ ] blasting
 - [ ] bonding
 - [ ] brand
 - [ ] bridge
