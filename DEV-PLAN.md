@@ -133,6 +133,12 @@
 
 ---
 
+### ✅ automation（0 工具，空分类跳过）
+
+> automation 目录仅有 index.html 分类首页、无工具页、无 content_deepdive key，无可优化内容，按字母序标记完成并跳过；下一有效分类为 **automotive**。
+
+---
+
 ### ✅ auto-beauty（2 工具，内容层全达标）
 
 1 批次发布：真实化 content_deepdive 的 2 条目（镀晶/打蜡周期 按上次护理日期+项目建议周期推算下次护理与剩余天数、镀晶 1–3 年/封体剂 3–6 月/打蜡 1–3 月、超期先抛光再镀晶；雨刷胶条周期 常规橡胶 6–12 月、按气候与磨损征兆提前换、整支 vs 换胶条 2 个真实汽车美容养护知识+数值示例+FAQ）+ **三处同清旧套话**（2 工具真实 FAQPage 结构化数据全到位（负向后顾注入文档级 </body>）+ calc-1 的 formula-desc 套话（data-zh="本计算基于标准数学定义…工具名称："→ 真实镀晶打蜡周期计算原理说明）+ 标题保持纯工具名 + zh-tw 同步 + 五项门禁全过 + 提交 5fe207999、Actions run 结论 success。
@@ -215,15 +221,13 @@
 
 ## 八、当前进行中分类：（无，auto-beauty 已归档）
 
-> auto-beauty（2 工具）内容层全达标，已归档至第七节「✅ auto-beauty」。
-> 下一进行中分类按字母序为 **automation**（见第九节清单），待下一批次置进行中并展开待优化清单。
+> auto-beauty（2 工具）内容层全达标，已归档至第七节「✅ auto-beauty」；automation 为空分类（仅 index.html、无工具页）已标记跳过。
+> 下一进行中分类按字母序为 **automotive**（见第九节清单），待下一批次置进行中并展开待优化清单。
 
 ---
 
-## 九、分类总清单（待办，完成一个删一个；剩 263 个目录）
+## 九、分类总清单（待办，完成一个删一个；剩 262 个目录）
 
-- [ ] automation
-- [ ] automation
 - [ ] automotive
 - [ ] baking
 - [ ] ballistics
