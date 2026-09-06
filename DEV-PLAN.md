@@ -99,7 +99,7 @@
 
 ### ✅ accounting（35 工具，内容层全达标）
 
-1 批次发布：真实化 content_deepdive 的 35 条目（场景/示例/FAQ 全部重写为专业真实内容，清除"使用前先核对输入口径""教学复核建议""常见场景：Ebit"等套话）+ 删 3 个旧套话 FAQPage LD（report-2 / assessor-risk-11 / debt-service-coverage）+ 35 工具真实 FAQPage 结构化数据全到位（负向后顾注入文档级 </body>）+ 35 工具 title 加"免费" + zh-tw 同步 + 五项门禁全过。
+1 批次发布：真实化 content_deepdive 的 35 条目（场景/示例/FAQ 全部重写为专业真实内容，清除"使用前先核对输入口径""教学复核建议""常见场景：Ebit"等套话）+ 删 3 个旧套话 FAQPage LD（report-2 / assessor-risk-11 / debt-service-coverage）+ 35 工具真实 FAQPage 结构化数据全到位（负向后顾注入文档级 </body>）+ zh-tw 同步 + 五项门禁全过。title 不加"免费"（按老板要求统一去除免费标注）。
 
 ---
 

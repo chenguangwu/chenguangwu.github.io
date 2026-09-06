@@ -2556,11 +2556,10 @@ def fix_tool_pages_seo(tools, target_tools=None, report=True, existing_html_path
             if _m_t:
                 _base = os.path.splitext(os.path.basename(t['path']))[0]
                 _zh_title = _zh_title_of(industry, _base) or t.get('name') or tool_name_esc
-                # 标准7 SEO：会计分类工具 title 标注「（免费）」（accounting 优化批次要求）；
-                # 若源 title 已手动含「（免费）」亦保留，避免被规范化覆盖。
-                _had_free = ('（免费）' in (_m_t.group(1) if _m_t else '')) or (industry == 'accounting')
-                _zh_t = _zh_title if _zh_title.endswith('ToolBox') else (_zh_title + ('（免费） - ToolBox' if _had_free else ' - ToolBox'))
-                _en_full = _en_t if _en_t.endswith('ToolBox') else (_en_t + ' - ToolBox')
+                # 标题只显示工具名，不再追加「 - ToolBox」品牌后缀（老板要求）；
+                # 同时幂等剥离可能残留的「（免费）」「免费在线工具」「 - ToolBox / | ToolBox」。
+                _zh_t = _zh_title.replace('（免费）', '').replace('免费在线工具', '').replace(' - ToolBox', '').replace(' | ToolBox', '').strip()
+                _en_full = _en_t.replace('（免费）', '').replace('免费在线工具', '').replace(' - ToolBox', '').replace(' | ToolBox', '').strip() if _en_t else _zh_t
                 # 初始 title 渲染中文（中文优先）
                 content = content.replace(_m_t.group(0), '<title>%s</title>' % esc_once(_zh_t), 1)
                 # 旧 title-zh/title-en/desc-en 已在一次 head 扫描中统一清理。
@@ -2569,8 +2568,8 @@ def fix_tool_pages_seo(tools, target_tools=None, report=True, existing_html_path
                     content = content.replace(I18N_HREFLANG_MARKER, _en_meta + '\n' + I18N_HREFLANG_MARKER, 1)
                 else:
                     content = content.replace('</head>', _en_meta + '\n</head>', 1)
-                # og:title / twitter:title 跟随中文
-                _og_t = esc_once(_zh_t[:-len(' - ToolBox')] if _zh_t.endswith(' - ToolBox') else _zh_t)
+                # og:title / twitter:title 跟随中文（纯工具名）
+                _og_t = esc_once(_zh_t)
                 content = re.sub(r'<meta property="og:title" content="[^"]*">', lambda m: '<meta property="og:title" content="%s">' % _og_t, content, count=1)
                 content = re.sub(r'<meta name="twitter:title" content="[^"]*">', lambda m: '<meta name="twitter:title" content="%s">' % _og_t, content, count=1)
 
