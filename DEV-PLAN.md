@@ -78,633 +78,344 @@
 ---
 ## 七、已完成分类归档
 
-### ✅ psychology（20 工具，已全部达标）
+### ✅ psychology（20 工具，全部达标）
 
-按第五节 10 条标准逐工具验证：20 个工具全部满足（无套话 / 真实 deep-dive / FAQPage 结构化数据 / 使用指南就位 / 繁体同步）。整类标记完成。
+按第五节 10 条标准逐工具验证：20 个工具全部满足（无套话 / 真实 deep-dive / FAQPage 结构化数据 / 使用指南就位 / 繁体同步）。
 
-- 上轮：11 个量表/测评升级为逐题作答引擎；9 个保留专业引擎（大五/依恋/九型/霍兰德/SCL-90/奶茶/词云/偏差卡/分类页）。
-- 本轮收尾：补 7 个专业引擎工具（依恋/大五/奶茶/九型/霍兰德/SCL-90/MBTI）真实 deep-dive 数据 + FAQPage LD + 使用指南文章（大五/SCL-90/MBTI 三篇新建，另 4 篇已有真实内容）。
+- 11 个量表/测评升级为逐题作答引擎；9 个保留专业引擎（大五/依恋/九型/霍兰德/SCL-90/奶茶/词云/偏差卡）。
+- 收尾：补 7 个专业引擎工具真实 deep-dive + FAQPage LD + 使用指南文章（大五/SCL-90/MBTI）。
+
+### ✅ it（345 工具，内容层全达标）
+
+5 批次发布：① 套话清零(68 opt_content 套话) ② 算法修复(xxtea 中文乱码/base32 解码抛错) ③ 277 FAQPage 结构化数据 ④ SEO title/description ⑤ 10 个专业工具使用指南。
+
+### ✅ general（180 工具，内容层全达标）
+
+1 批次发布：真实化 content_deepdive.json 的 general 180 条目 + 清 opt-guide 套话 + 57 个 formula-desc 占位重写 + 180 FAQPage 全到位。
+
+### ✅ accessibility（5 工具，内容层全达标）
+
+1 批次发布：清 3 套套话（formula-desc 占位 / 错误归类「健康医疗领域」段落 / braille-translator opt-guide+旧套话 FAQPage LD）+ 5 工具真实 FAQPage 全到位。
 
 ---
 
-## 八、当前进行中分类：it（345 工具）
+## 八、当前进行中分类：accounting（35 工具）
 
 > 规则：该分类下全部工具加入下方待优化清单，按顺序一个一个优化，完成一个删一个。
 > 答题类参考 /tools/psychology/tester-2.html 样式；每批至少 10 个工具提交一次。
 
 ### 待优化工具（按文件名序，完成一个删一个）
 
-- [ ] a1z26-cipher
-- [ ] adfgvx-cipher
-- [ ] aes-encryptor
-- [ ] affine-cipher
-- [ ] api-sign-generator
-- [ ] area-code-lookup
-- [ ] ascii-art
-- [ ] ascii-table
-- [ ] ascii-tree-generator
-- [ ] ast-viewer
-- [ ] atbash-cipher
-- [ ] bacon-cipher
-- [ ] bank-card-generator
-- [ ] barcode-codabar
-- [ ] barcode-code128
-- [ ] barcode-code39
-- [ ] barcode-ean
-- [ ] barcode-itf
-- [ ] barcode-msi
-- [ ] barcode-upc
-- [ ] base32-encode
-- [ ] base58-encode
-- [ ] base64-file
-- [ ] base64
-- [ ] base85-encode
-- [ ] basic-auth-generator
-- [ ] baudot-code
-- [ ] bayes-theorem
-- [ ] bcrypt
-- [ ] benchmark-builder
-- [ ] binary-encode
-- [ ] binary-to-text
-- [ ] binomial-distribution
-- [ ] bip39-generator
-- [ ] bitwise-calculator
-- [ ] bluetooth-version
-- [ ] box-shadow-generator
-- [ ] c-string-escape
-- [ ] caa-record-generator
-- [ ] caesar-cipher
+- [ ] amortization-intangible
+- [ ] analysis-46
+- [ ] analysis-cost-5
+- [ ] assessor-risk-11
+- [ ] asset-turnover
+- [ ] break-even-units
 - [ ] calc-1
-- [ ] calc-10
 - [ ] calc-2
-- [ ] calc-3
-- [ ] calc-4
-- [ ] calc-5
-- [ ] calc-7
-- [ ] calc-8
-- [ ] camera-recorder
-- [ ] captcha-generator
-- [ ] char-encoder
-- [ ] charset-detector
-- [ ] chinese-name-generator
-- [ ] chmod-calculator
-- [ ] clamp-calculator
-- [ ] code-highlighter
-- [ ] code-line-counter
-- [ ] code-runner
-- [ ] color-converter
-- [ ] confidence-interval
-- [ ] country-code-lookup
-- [ ] country-flag
-- [ ] coupon-code-generator
-- [ ] cpp-cheatsheet
-- [ ] crc-calculator
-- [ ] cron
-- [ ] crontab-generator
-- [ ] csharp-cheatsheet
-- [ ] css-escape
-- [ ] css-formatter
-- [ ] css-minifier
-- [ ] css-minify
-- [ ] css-properties
-- [ ] csv-to-html-table
-- [ ] csv-to-yaml
-- [ ] csv-validator
-- [ ] cuid-generator
-- [ ] curl-parser
-- [ ] date-duration
-- [ ] decimal-encode
-- [ ] des
-- [ ] device-info
-- [ ] docker-cheatsheet
-- [ ] docker-run-converter
-- [ ] dockerfile-generator
-- [ ] domain-name-generator
-- [ ] ecdsa
-- [ ] emacs-cheatsheet
-- [ ] email-normalizer
-- [ ] email-qr
-- [ ] emoji-cheatsheet
-- [ ] emoji-meaning
-- [ ] emoji-picker
-- [ ] env-generator
-- [ ] exponential-distribution
-- [ ] fake-data
-- [ ] gamertag-generator
-- [ ] generator-16
-- [ ] git-commands
-- [ ] gitignore-generator
-- [ ] go-cheatsheet
-- [ ] go-escape
-- [ ] graphql-formatter
-- [ ] hash-id-generator
-- [ ] hash-identifier
-- [ ] hash-multi
-- [ ] hash
-- [ ] hex-encode
-- [ ] hex-to-text
-- [ ] hill-cipher
-- [ ] hmac-generator
-- [ ] html-entities-encode
-- [ ] html-entities
-- [ ] html-entity-encoder
-- [ ] html-escape
-- [ ] html-minifier
-- [ ] html-tags
-- [ ] html-to-markdown
-- [ ] http-cache
-- [ ] http-cookies
-- [ ] http-headers
-- [ ] http-methods-reference
-- [ ] http-methods
-- [ ] http-response-headers
-- [ ] http-status
-- [ ] hypergeometric-distribution
-- [ ] hypothesis-test
-- [ ] id-card-generator
-- [ ] image-to-base64
-- [ ] ini-parser
-- [ ] integer-base-converter
-- [ ] invite-code-generator
-- [ ] ip-calculator
-- [ ] ipv4-range-expander
-- [ ] ipv6-converter
-- [ ] ipv6-ula
-- [ ] java-cheatsheet
-- [ ] java-escape
-- [ ] js-escape
-- [ ] js-formatter
-- [ ] js-minifier
-- [ ] js-minify
-- [ ] js-obfuscator
-- [ ] json-diff
-- [ ] json-minify
-- [ ] json-path
-- [ ] json-repair
-- [ ] json-schema-generator
-- [ ] json-to-code
-- [ ] json-to-csv
-- [ ] json-to-toml
-- [ ] json-to-tsv
-- [ ] json-to-xml
-- [ ] json-to-yaml
-- [ ] jwt-debugger
-- [ ] jwt
-- [ ] keycode-info
-- [ ] keyword-density
-- [ ] keyword-extractor
-- [ ] ksuid-generator
-- [ ] kubernetes-cheatsheet
-- [ ] kubernetes-yaml-generator
-- [ ] language-code-lookup
-- [ ] latex
-- [ ] less-compiler
-- [ ] line-ending-converter
-- [ ] linux-cheatsheet
-- [ ] list-converter
-- [ ] locale-lookup
-- [ ] location-qr
-- [ ] lorem
-- [ ] mac-generator
-- [ ] mac-lookup
-- [ ] margin-of-error
-- [ ] markdown-editor
-- [ ] markdown-lint
-- [ ] markdown-table-generator
-- [ ] math-evaluator
-- [ ] matrix-determinant
-- [ ] matrix-inverter
-- [ ] matrix-multiplier
-- [ ] matrix-transpose
-- [ ] md5
-- [ ] meta-tags-generator
-- [ ] mime-type-lookup
-- [ ] mime-type
-- [ ] mongodb-cheatsheet
-- [ ] morse-decode-advanced
-- [ ] morse
-- [ ] msisdn-lookup
-- [ ] mysql-cheatsheet
-- [ ] nanoid-generator
-- [ ] nato-alphabet
-- [ ] nginx-cheatsheet
-- [ ] nginx-config-generator
-- [ ] nickname-generator
-- [ ] normal-distribution
-- [ ] number-base-converter
-- [ ] numeronym-generator
-- [ ] octal-encode
-- [ ] og-meta-tag-generator
-- [ ] otp-generator
-- [ ] password-generator
-- [ ] password-strength
-- [ ] pbkdf2
-- [ ] pdf-signature-checker
-- [ ] phone-screen-sizes
-- [ ] php-cheatsheet
-- [ ] php-escape
-- [ ] pin-generator
-- [ ] playfair-cipher
-- [ ] plist-parser
-- [ ] poisson-distribution
-- [ ] polybius-cipher
-- [ ] pomodoro
-- [ ] postgresql-cheatsheet
-- [ ] prime-checker
-- [ ] properties-parser
-- [ ] protobuf-parser
-- [ ] punycode
-- [ ] python-cheatsheet
-- [ ] python-escape
-- [ ] python-formatter
-- [ ] qr-beautify
-- [ ] qr-decoder
-- [ ] qrcode
-- [ ] quoted-printable
-- [ ] rabbit
-- [ ] rail-fence-cipher
-- [ ] random-port-generator
-- [ ] random-string
-- [ ] random
-- [ ] rc4
-- [ ] recovery-code-generator
-- [ ] redis-cheatsheet
-- [ ] regex-cheatsheet
-- [ ] regex-common
-- [ ] regex-escape
-- [ ] regex-visualizer
-- [ ] regex
-- [ ] rest-api-cheatsheet
-- [ ] rich-text-editor
-- [ ] robots-txt-generator
-- [ ] roman-numeral-converter
-- [ ] rot-cipher
-- [ ] rsa
-- [ ] ruby-cheatsheet
-- [ ] rust-cheatsheet
-- [ ] rust-escape
-- [ ] safelink-decoder
-- [ ] serial-key-generator
-- [ ] sha
-- [ ] shell-script-formatter
-- [ ] short-link-generator
-- [ ] sitemap-generator
-- [ ] slug-generator-advanced
-- [ ] slugify
-- [ ] sms-qr
-- [ ] sql-cheatsheet
-- [ ] sql-escape
-- [ ] sql-formatter
-- [ ] sqlite-cheatsheet
-- [ ] sqlite-runner
-- [ ] ssl-info
-- [ ] standard-deviation
-- [ ] statistical-power
-- [ ] stopwatch
-- [ ] string-obfuscator
-- [ ] summary-generator
-- [ ] svg-placeholder-generator
-- [ ] team-name-generator
-- [ ] text-cleaner
-- [ ] text-dedupe-sort
-- [ ] text-diff
-- [ ] text-qr
-- [ ] text-replace
-- [ ] text-similarity
-- [ ] text-steganography
-- [ ] text-to-ascii
-- [ ] text-to-binary
-- [ ] text-to-decimal
-- [ ] text-to-hex
-- [ ] text-to-octal
-- [ ] text-to-unicode
-- [ ] text-truncate
-- [ ] timestamp-converter
-- [ ] tiny-url
-- [ ] tmux-cheatsheet
-- [ ] token-generator
-- [ ] toml-formatter
-- [ ] triangle-calculator
-- [ ] typescript-cheatsheet
-- [ ] typescript-compiler
-- [ ] typing-test
-- [ ] ulid-generator
-- [ ] unicode-lookup
-- [ ] uniform-distribution
-- [ ] unit-converter-advanced
-- [ ] url-encode
-- [ ] url-encoder-advanced
-- [ ] url-params
-- [ ] url-parser
-- [ ] url-qr
-- [ ] usb-version
-- [ ] user-agent-parser
-- [ ] username-generator
-- [ ] uuencode
-- [ ] uuid-generator
-- [ ] uuid-v4-generator
-- [ ] uuid-v5-generator
-- [ ] uuid-v7-generator
-- [ ] vector-cross-product
-- [ ] vector-dot-product
-- [ ] vector-magnitude
-- [ ] video-bitrate
-- [ ] vigenere-visualizer
-- [ ] vim-cheatsheet
-- [ ] whitespace
-- [ ] wifi-qr-generator
-- [ ] wifi-qr
-- [ ] xml-formatter
-- [ ] xml-to-json
-- [ ] xml-to-toml
-- [ ] xml-to-yaml
-- [ ] xml-validator
-- [ ] xor-cipher
-- [ ] xxencode
-- [ ] xxtea
-- [ ] yaml-formatter
-- [ ] yaml-to-json
-- [ ] yaml-to-toml
-- [ ] yaml-to-xml
-- [ ] yaml-validator
+- [ ] cash-conversion-cycle
+- [ ] contribution-margin
+- [ ] current-ratio
+- [ ] days-payable-outstanding
+- [ ] days-sales-outstanding
+- [ ] debt-service-coverage
+- [ ] debt-to-asset
+- [ ] depreciation-declining
+- [ ] depreciation-straight
+- [ ] depreciation-syd
+- [ ] ebit
+- [ ] ebitda
+- [ ] free-cash-flow
+- [ ] gross-margin
+- [ ] gross-profit
+- [ ] interest-coverage
+- [ ] inventory-days
+- [ ] inventory-turnover
+- [ ] net-profit-margin
+- [ ] operating-cash-flow
+- [ ] quick-ratio
+- [ ] report-2
+- [ ] roa-calc
+- [ ] roe-calc
+- [ ] roe-dupont
+- [ ] split-bill
+- [ ] working-capital
 
 ---
 
-## 九、分类总清单（待办，完成一个删一个；含 323 个目录）
+## 九、分类总清单（待办，完成一个删一个；剩 273 个目录）
 
-- [ ] accessibility (5)
-- [ ] accounting (35)
-- [ ] acoustics (28)
-- [ ] acupuncture (23)
-- [ ] admin (8)
-- [ ] advertising (16)
-- [ ] aerospace (37)
-- [ ] agriculture (60)
-- [ ] ai (64)
-- [ ] antiques (5)
-- [ ] aquaculture (5)
-- [ ] archaeology (6)
-- [ ] archive (3)
-- [ ] astronomy (25)
-- [ ] audio (7)
-- [ ] audit (5)
-- [ ] auto-beauty (2)
-- [ ] automation (0 · 空目录)
-- [ ] automotive (53)
-- [ ] baking (9)
-- [ ] ballistics (24)
-- [ ] banking (27)
-- [ ] beauty (21)
-- [ ] beekeeping (3)
-- [ ] beneficiation (1)
-- [ ] biz (62)
-- [ ] blasting (20)
-- [ ] bonding (5)
-- [ ] brand (1)
-- [ ] bridge (5)
-- [ ] building-material (2)
-- [ ] cable (3)
-- [ ] cardiology (25)
-- [ ] casting (2)
-- [ ] ceramics (5)
-- [ ] chemical (12)
-- [ ] chemistry (28)
-- [ ] chess (5)
-- [ ] chinese (5)
-- [ ] chinese-cook (6)
-- [ ] civil (21)
-- [ ] cleaning (8)
-- [ ] clinical-lab (25)
-- [ ] clinical-nursing (26)
-- [ ] cnc (1)
-- [ ] cognition (8)
-- [ ] colorvision (4)
-- [ ] community (3)
-- [ ] construction (26)
-- [ ] consulting (3)
-- [ ] content (4)
-- [ ] convenience (4)
-- [ ] cosmetic-derm (33)
-- [ ] cosmetics (1)
-- [ ] customer-service (3)
-- [ ] daily-goods (1)
-- [ ] dailychem (0 · 空目录)
-- [ ] dance (7)
-- [ ] data (20)
-- [ ] decor (8)
-- [ ] defense (2)
-- [ ] dental (0 · 见 dentistry)
-- [ ] dentistry (26)
-- [ ] dermatology (24)
-- [ ] design (103)
-- [ ] discipline (4)
-- [ ] domestic (4)
-- [ ] dyeing (13)
-- [ ] dynamics (28)
-- [ ] eco (34)
-- [ ] ecommerce (21)
-- [ ] economics (28)
-- [ ] edu (44)
-- [ ] edu2 (5)
-- [ ] elderly (11)
-- [ ] electrical (19)
-- [ ] electromagnetism (28)
-- [ ] electronics (24)
-- [ ] embedded (1)
-- [ ] encode (29)
-- [ ] endocrinology (23)
-- [ ] energy (46)
-- [ ] engineering (14)
-- [ ] ent (30)
-- [ ] entertainment (0 · 空目录)
-- [ ] environment (4)
-- [ ] event (1)
-- [ ] exam (4)
-- [ ] exhibition (6)
-- [ ] express (1)
-- [ ] fengshui (5)
-- [ ] film (6)
-- [ ] finance (112)
-- [ ] fire (11)
-- [ ] fire-rescue (40)
-- [ ] fishery (41)
-- [ ] fitness (35)
-- [ ] floral (6)
-- [ ] fluid (28)
-- [ ] food (24)
-- [ ] food-processing (21)
-- [ ] food-safety (3)
-- [ ] food-testing (24)
-- [ ] forensic-medicine (22)
-- [ ] forestry (20)
-- [ ] forex (5)
-- [ ] fortune (0 · 空目录)
-- [ ] fresh (3)
-- [ ] fun (74)
-- [ ] funeral (6)
-- [ ] furniture (2)
-- [ ] futures (5)
-- [ ] gardening (12)
-- [ ] gardening2 (5)
-- [ ] gas (11)
-- [ ] gastroenterology (23)
-- [ ] general (180)
-- [ ] geology (37)
-- [ ] geometry (28)
-- [ ] gis (4)
-- [ ] glass (5)
-- [ ] hardware (0 · 空目录)
-- [ ] health (46)
-- [ ] healthcare (33)
-- [ ] heattreat (2)
-- [ ] hematology (27)
-- [ ] history (3)
-- [ ] home (6)
-- [ ] hotel (7)
-- [ ] hr (21)
-- [ ] hvac (10)
-- [ ] hydraulic (55)
-- [ ] image (14)
-- [ ] insurance (33)
-- [ ] interior (1)
-- [ ] investment (28)
-- [ ] jewelry (6)
-- [ ] kids (5)
-- [ ] kinematics (28)
-- [ ] knowledge (1)
-- [ ] labor-protection (0 · 空目录)
-- [ ] landscape (2)
-- [ ] language (18)
-- [ ] leather (15)
-- [ ] legal (54)
-- [ ] legal2 (5)
-- [ ] library (5)
-- [ ] life (62)
-- [ ] livestock (27)
-- [ ] livestream (2)
-- [ ] logistics (8)
-- [ ] logistics2 (5)
-- [ ] machinery (37)
-- [ ] manufacturing (5)
-- [ ] maritime (5)
-- [ ] marketing (44)
-- [ ] martial (5)
-- [ ] martial-arts (2)
-- [ ] materials (28)
-- [ ] math (36)
-- [ ] mechanical (14)
-- [ ] media (6)
-- [ ] medical (14)
-- [ ] medical2 (5)
-- [ ] metallurgy (16)
-- [ ] metalwork (29)
-- [ ] meteorology (42)
-- [ ] metrology (28)
-- [ ] mining (14)
-- [ ] misc (12)
-- [ ] misc2 (10)
-- [ ] mold (3)
-- [ ] municipal (3)
-- [ ] museum (5)
-- [ ] music (19)
-- [ ] nephrology (24)
-- [ ] network (4)
-- [ ] neurology (27)
-- [ ] niche (16)
-- [ ] nuclear (28)
-- [ ] nutrition (18)
-- [ ] obstetrics (32)
-- [ ] office (7)
-- [ ] ophthalmology (32)
-- [ ] optical (41)
-- [ ] optics (28)
-- [ ] outdoor (1)
-- [ ] packaging (6)
-- [ ] paint (1)
-- [ ] paper (12)
-- [ ] parenting (7)
-- [ ] pediatrics (25)
-- [ ] pet (10)
-- [ ] pet-training (5)
-- [ ] petrochem (5)
-- [ ] pets (5)
-- [ ] pharma (0 · 空目录·见 pharmacy/tcm-pharmacy)
-- [ ] pharmacy (2)
-- [ ] photo (29)
-- [ ] photo2 (5)
-- [ ] photography (3)
-- [ ] pipe (0 · 空目录)
-- [ ] plastic (5)
-- [ ] pneumatic (4)
-- [ ] port (0 · 空目录)
-- [ ] pr (13)
-- [ ] printing (7)
-- [ ] process (14)
-- [ ] procurement (10)
-- [ ] project (5)
-- [ ] property (21)
-- [ ] psychiatry (25)
-- [ ] pulmonology (26)
-- [ ] quantum (28)
-- [ ] railway (5)
-- [ ] realestate (54)
-- [ ] rehabilitation (24)
-- [ ] rental (8)
-- [ ] reproductive-medicine (28)
-- [ ] research (8)
-- [ ] restaurant (8)
-- [ ] rheumatology (25)
-- [ ] road (6)
-- [ ] robotics (28)
-- [ ] rubber (5)
-- [ ] safety (16)
-- [ ] sales (9)
-- [ ] science (99)
-- [ ] securities (38)
-- [ ] security (11)
-- [ ] security-guard (2)
-- [ ] seismology (5)
-- [ ] service (5)
-- [ ] shipping (5)
-- [ ] signal (28)
-- [ ] sports (75)
-- [ ] sports-event (2)
-- [ ] stage (5)
-- [ ] startup (6)
-- [ ] statistics (55)
-- [ ] stats (5)
-- [ ] steel (3)
-- [ ] stone (1)
-- [ ] structural (28)
-- [ ] supplychain (1)
-- [ ] surface (2)
-- [ ] surveying (40)
-- [ ] tax (29)
-- [ ] tcm-chemistry (23)
-- [ ] tcm-diagnosis (21)
-- [ ] tcm-pharmacy (24)
-- [ ] telecom (8)
-- [ ] text (11)
-- [ ] textile (21)
-- [ ] textile2 (4)
-- [ ] thermodynamics (28)
-- [ ] timber (2)
-- [ ] transport (15)
-- [ ] travel (21)
-- [ ] tunnel (5)
-- [ ] uiux (4)
-- [ ] unitedfront (3)
-- [ ] urban (6)
-- [ ] urology (25)
-- [ ] usedcar (11)
-- [ ] valve (0 · 空目录)
-- [ ] video (6)
-- [ ] warehouse (2)
-- [ ] water (2)
-- [ ] wedding (8)
-- [ ] welding (15)
-- [ ] woodwork (3)
-- [ ] woodworking (5)
-- [ ] writing (1)
-- [ ] yi (5)
-- [ ] yoga (2)
+- [ ] acoustics
+- [ ] acupuncture
+- [ ] admin
+- [ ] advertising
+- [ ] aerospace
+- [ ] agriculture
+- [ ] ai
+- [ ] antiques
+- [ ] aquaculture
+- [ ] archaeology
+- [ ] archive
+- [ ] astronomy
+- [ ] audio
+- [ ] audit
+- [ ] auto-beauty
+- [ ] automation
+- [ ] automotive
+- [ ] baking
+- [ ] ballistics
+- [ ] banking
+- [ ] beauty
+- [ ] beekeeping
+- [ ] beneficiation
+- [ ] biz
+- [ ] blasting
+- [ ] bonding
+- [ ] brand
+- [ ] bridge
+- [ ] building-material
+- [ ] cable
+- [ ] cardiology
+- [ ] casting
+- [ ] ceramics
+- [ ] chemical
+- [ ] chemistry
+- [ ] chess
+- [ ] chinese
+- [ ] chinese-cook
+- [ ] civil
+- [ ] cleaning
+- [ ] clinical-lab
+- [ ] clinical-nursing
+- [ ] cnc
+- [ ] cognition
+- [ ] colorvision
+- [ ] community
+- [ ] construction
+- [ ] consulting
+- [ ] content
+- [ ] convenience
+- [ ] cosmetic-derm
+- [ ] cosmetics
+- [ ] customer-service
+- [ ] daily-goods
+- [ ] dailychem
+- [ ] dance
+- [ ] data
+- [ ] decor
+- [ ] defense
+- [ ] dentistry
+- [ ] dermatology
+- [ ] design
+- [ ] discipline
+- [ ] domestic
+- [ ] dyeing
+- [ ] dynamics
+- [ ] eco
+- [ ] ecommerce
+- [ ] economics
+- [ ] edu
+- [ ] edu2
+- [ ] elderly
+- [ ] electrical
+- [ ] electromagnetism
+- [ ] electronics
+- [ ] embedded
+- [ ] encode
+- [ ] endocrinology
+- [ ] energy
+- [ ] engineering
+- [ ] ent
+- [ ] entertainment
+- [ ] environment
+- [ ] event
+- [ ] exam
+- [ ] exhibition
+- [ ] express
+- [ ] fengshui
+- [ ] film
+- [ ] finance
+- [ ] fire
+- [ ] fire-rescue
+- [ ] fishery
+- [ ] fitness
+- [ ] floral
+- [ ] fluid
+- [ ] food
+- [ ] food-processing
+- [ ] food-safety
+- [ ] food-testing
+- [ ] forensic-medicine
+- [ ] forestry
+- [ ] forex
+- [ ] fortune
+- [ ] fresh
+- [ ] fun
+- [ ] funeral
+- [ ] furniture
+- [ ] futures
+- [ ] gardening
+- [ ] gardening2
+- [ ] gas
+- [ ] gastroenterology
+- [ ] geology
+- [ ] geometry
+- [ ] gis
+- [ ] glass
+- [ ] hardware
+- [ ] health
+- [ ] healthcare
+- [ ] heattreat
+- [ ] hematology
+- [ ] history
+- [ ] home
+- [ ] hotel
+- [ ] hr
+- [ ] hvac
+- [ ] hydraulic
+- [ ] image
+- [ ] insurance
+- [ ] interior
+- [ ] investment
+- [ ] jewelry
+- [ ] kids
+- [ ] kinematics
+- [ ] knowledge
+- [ ] labor-protection
+- [ ] landscape
+- [ ] language
+- [ ] leather
+- [ ] legal
+- [ ] legal2
+- [ ] library
+- [ ] life
+- [ ] livestock
+- [ ] livestream
+- [ ] logistics
+- [ ] logistics2
+- [ ] machinery
+- [ ] manufacturing
+- [ ] maritime
+- [ ] marketing
+- [ ] martial
+- [ ] martial-arts
+- [ ] materials
+- [ ] math
+- [ ] mechanical
+- [ ] media
+- [ ] medical
+- [ ] medical2
+- [ ] metallurgy
+- [ ] metalwork
+- [ ] meteorology
+- [ ] metrology
+- [ ] mining
+- [ ] misc
+- [ ] misc2
+- [ ] mold
+- [ ] municipal
+- [ ] museum
+- [ ] music
+- [ ] nephrology
+- [ ] network
+- [ ] neurology
+- [ ] niche
+- [ ] nuclear
+- [ ] nutrition
+- [ ] obstetrics
+- [ ] office
+- [ ] ophthalmology
+- [ ] optical
+- [ ] optics
+- [ ] outdoor
+- [ ] packaging
+- [ ] paint
+- [ ] paper
+- [ ] parenting
+- [ ] pediatrics
+- [ ] pet
+- [ ] pet-training
+- [ ] petrochem
+- [ ] pets
+- [ ] pharma
+- [ ] pharmacy
+- [ ] photo
+- [ ] photo2
+- [ ] photography
+- [ ] pipe
+- [ ] plastic
+- [ ] pneumatic
+- [ ] port
+- [ ] pr
+- [ ] printing
+- [ ] process
+- [ ] procurement
+- [ ] project
+- [ ] property
+- [ ] psychiatry
+- [ ] pulmonology
+- [ ] quality
+- [ ] quantum
+- [ ] railway
+- [ ] realestate
+- [ ] rehabilitation
+- [ ] rental
+- [ ] reproductive-medicine
+- [ ] research
+- [ ] restaurant
+- [ ] rheumatology
+- [ ] road
+- [ ] robotics
+- [ ] rubber
+- [ ] safety
+- [ ] sales
+- [ ] science
+- [ ] securities
+- [ ] security
+- [ ] security-guard
+- [ ] seismology
+- [ ] service
+- [ ] shipping
+- [ ] signal
+- [ ] sports
+- [ ] sports-event
+- [ ] stage
+- [ ] startup
+- [ ] statistics
+- [ ] stats
+- [ ] steel
+- [ ] stone
+- [ ] structural
+- [ ] supplychain
+- [ ] surface
+- [ ] surveying
+- [ ] tax
+- [ ] tcm-chemistry
+- [ ] tcm-diagnosis
+- [ ] tcm-pharmacy
+- [ ] telecom
+- [ ] text
+- [ ] textile
+- [ ] textile2
+- [ ] thermodynamics
+- [ ] timber
+- [ ] transport
+- [ ] travel
+- [ ] tunnel
+- [ ] uiux
+- [ ] unitedfront
+- [ ] urban
+- [ ] urology
+- [ ] usedcar
+- [ ] valve
+- [ ] video
+- [ ] warehouse
+- [ ] water
+- [ ] wedding
+- [ ] welding
+- [ ] woodwork
+- [ ] woodworking
+- [ ] writing
+- [ ] yi
+- [ ] yoga
