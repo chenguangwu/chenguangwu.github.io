@@ -79,24 +79,23 @@
 ## 七、已完成分类归档
 > 本区仅保留**最近一个（最新）已完成分类**的归档记录，更早历史不再保留，以控制文件体积。完成新分类时，用新记录替换本条。
 
-### ✅ brand（1 工具，内容层全达标）
+### ✅ bridge（5 工具，内容层全达标）
 
-assessor-51（品牌资产评估，Interbrand 模型）真实化：① content_deepdive 条目用的是**另一种占位模板**（「在brand场景中先确认 Assessor 51 口径与边界…」），scripts/opt_brand_content.py 重写为真实 Interbrand 场景（并购尽调/年度品牌审计/战略规划 + 默认参数演练 + 4 专业 FAQ，含 IAS 38 披露提示）；② formula-desc 占位（「本校验工具依据对应数据格式…品牌资产评估工具」），scripts/opt_brand_formuladesc.py 替换为真实说明（Interbrand 模型原理+用途+数据不出浏览器）。**工具页 tool-intro 功能特点/使用场景、注意事项区块、常见问题 FAQ 经核查已是真实内容（Interbrand 模型/7 维度/折现现金流），未清理**。+ zh-tw 同步 + 五项门禁全过。
+span-calc/deflection-calc/load-calc/material-qty/foundation-calc（桥梁工程计算）真实化：① content_deepdive 5 个 key 的占位模板为「在bridge场景中先统一 X Calc 口径」+「bridge 场景下该工具如何避免重复劳动」，scripts/opt_bridge_content.py 重写为真实桥梁工程场景（方案比选/既有复核/教学交底 + 默认参数演练 + 3 专业 FAQ 含 JTG 规范提示）；② 工具页 tool-intro「功能特点/使用场景」通用科学套话（科学实验数据分析/物理化学计算等），scripts/opt_bridge_optguide.py 替换为通用特性 + 真实桥梁场景（取 content_deepdive scenarios），保留「工具简介」块。**formula-desc 占位 0、常见问题 FAQ 由 content_deepdive 注入随真实化更新，均无需额外清理**。+ zh-tw 同步 + 五项门禁全过。
 
 > 注：检测占位需用两种模板（「先做单位与边界核对」+「在X场景中先确认…口径与边界」），否则会漏判 brand 这类。
 
 ---
-## 八、当前进行中分类：（无，brand 已归档）
+## 八、当前进行中分类：（无，bridge 已归档）
 
-> biz/blasting/bonding/brand 内容层均已达标，已依次归档至第七节。下一进行中分类按字母序为 **bridge**（见第九节清单），待下一批次置进行中并展开待优化清单。
+> biz/blasting/bonding/brand/bridge 内容层均已达标，已依次归档至第七节。下一进行中分类按字母序为 **building-material**（见第九节清单），待下一批次置进行中并展开待优化清单。
 
 > 优化模式（沿用已验证路径）：写真实 content_deepdive 条目 → 清理工具页硬编码套话（opt_cleanup_intro_faq.py --cat <cat> 或仿 opt_biz_optguide.py 按结构清 tool-intro）→ 构建 + 五项门禁 → 提交发布。
 
 ---
 
-## 九、分类总清单（待办，完成一个删一个；剩 251 个目录）
+## 九、分类总清单（待办，完成一个删一个；剩 250 个目录）
 
-- [ ] bridge
 - [ ] building-material
 - [ ] cable
 - [ ] cardiology
