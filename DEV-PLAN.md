@@ -79,24 +79,23 @@
 ## 七、已完成分类归档
 > 本区仅保留**最近一个（最新）已完成分类**的归档记录，更早历史不再保留，以控制文件体积。完成新分类时，用新记录替换本条。
 
-### ✅ chemistry（28 工具，内容层全达标）
+### ✅ chess（5 工具，内容层全达标）
 
-chemistry 28 工具 deep-dive 真实化（酸碱滴定/阿伦尼乌斯/沸点升高/Henderson–Hasselbalch/稀释四量/最简式/理想气体密度/吉布斯/理想气体体积/KpKc/限量反应物/质量分数/质量百分数/质量转摩尔/质量摩尔浓度/摩尔浓度/摩尔分数/能斯特/当量浓度/道尔顿分压/pH从Ka/pH转H⁺/pOH转pH/反应商/反应产率/电阻率/溶度积/溶液稀释）：① content_deepdive 28 key 占位为**第九种变体**（「核对 X 的输入假设（单位、范围、基准）后再跑一遍基准案例，降低口径误差风险」+ 通用 examples/faqs，summary 原为 None），scripts/opt_chemistry_content.py 重写为真实化学场景并补 summary（不覆盖 title，28 title 均已真实专业），含缓冲配制/冰点降低/依数性/平衡方向/电极电势等真实演练；② chemistry 页**无标准 tool-intro 三段块**、formula-desc 26 页已真实、2 页无块，**均不需清**；③ opt-guide/opt-faq 通用套话清理仅 4 页（buffer-ph/molality/poh-to-ph/empirical-formula，含 JSON-LD FAQ + opt-guide `<p>` + opt-faq `<dd>` 三处同步「工作与生活中的相关计算与查询」→真实化学场景），scripts/opt_chemistry_optguide.py。+ zh-tw 同步 + 五项门禁全过。
+chess 5 工具 deep-dive 真实化（桥牌计分/Elo等级分/围棋目数/五子棋禁手/象棋残局）：① content_deepdive 5 key 占位为**「在chess场景下，先使用X建立输入边界，后续再对关键指标拆分归因」变体**（含通用 examples/faqs，summary 原为 None），scripts/opt_chess_content.py 重写为真实棋类场景并补 summary（不覆盖 title，5 title 均已真实）；② tool-intro 5 页（bridge-scoring/elo-rating/go-territory/gomoku-forbidden/xiangqi-endgame）简介/功能/场景均为真实棋类内容，**保留不需清**；③ formula-desc 清理仅 2 页（gomoku-forbidden/xiangqi-endgame，本速查内容依据权威标准…速查占位→真实棋类说明）；④ opt-guide/opt-faq 通用套话清理仅 1 页（bridge-scoring，工作与生活中的相关计算与查询，含 JSON-LD FAQ + opt-guide `<p>` + opt-faq `<dd>` 三处同步→真实桥牌场景），scripts/opt_chess_hardcode.py。+ zh-tw 同步 + 五项门禁全过。
 
-> 注：占位模板已发现九种——前八种见历史批次；第九种为「核对 X 的输入假设（单位、范围、基准）后再跑一遍基准案例，降低口径误差风险」（化学/物理类多见）。此外**医学专属套话**与 **opt-guide/opt-faq 通用套话**（含 JSON-LD/opt-guide <p>/opt-faq <dd> 三处）为两类独立硬编码，检测需全覆盖否则漏判；**部分分类工具页无标准 tool-intro 三段块**（其「常见使用场景/FAQ」属 deep-dive 区块由 content 驱动，只需真实化 content_deepdive 即可，勿误判为缺块）。
+> 注：占位模板已发现第十种——「在X场景下，先使用X建立输入边界，后续再对关键指标拆分归因」（棋类/博弈类多见，标题含「Bridge Scoring/Elo Rating/Go Territory…」）。其余九种见历史批次；**医学专属套话**与 **opt-guide/opt-faq 通用套话**（三处同步）为两类独立硬编码，检测需全覆盖否则漏判。
 
 ---
-## 八、当前进行中分类：（无，chemistry 已归档）
+## 八、当前进行中分类：（无，chess 已归档）
 
-> biz/blasting/bonding/brand/bridge/building-material/cable/cardiology/casting/ceramics/chemical/chemistry 内容层均已达标，已依次归档至第七节。下一进行中分类按字母序为 **chess**（见第九节清单），待下一批次置进行中并展开待优化清单。
+> biz/blasting/bonding/brand/bridge/building-material/cable/cardiology/casting/ceramics/chemical/chemistry/chess 内容层均已达标，已依次归档至第七节。下一进行中分类按字母序为 **chinese**（见第九节清单），待下一批次置进行中并展开待优化清单。
 
 > 优化模式（沿用已验证路径）：写真实 content_deepdive 条目 → 清理工具页硬编码套话（opt_cleanup_intro_faq.py --cat <cat> 或仿 opt_biz_optguide.py 按结构清 tool-intro）→ 构建 + 五项门禁 → 提交发布。
 
 ---
 
-## 九、分类总清单（待办，完成一个删一个；剩 243 个目录）
+## 九、分类总清单（待办，完成一个删一个；剩 242 个目录）
 
-- [ ] chess
 - [ ] chinese
 - [ ] chinese-cook
 - [ ] civil
