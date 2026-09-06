@@ -86,16 +86,16 @@
 > 注：content_deepdive 中 5 个遗留孤儿 key（calc-3/4/5/11/14）无对应 html 文件，未改动。
 
 ---
-## 八、当前进行中分类：（无，beneficiation 已归档）
+## 八、当前进行中分类：biz（62 工具，进行中）
 
-> beneficiation（1 工具）内容层全达标，已归档至第七节「✅ beneficiation」；automation 为空分类（仅 index.html、无工具页）已标记跳过。
-> 下一进行中分类按字母序为 **biz**（见第九节清单），待下一批次置进行中并展开待优化清单。
+> 待优化清单（完成一个划掉一个）：app-name-generator, barcode-generator, brand-name-generator, char-frequency, comment-generator, fancy-text, fullwidth-halfwidth, justify-text, lorem-ipsum-advanced, markdown, markdown-quote, meeting-cost-calculator, motto-generator, name-generator, presentation-timer, product-name-generator, simplified-traditional, small-caps, strawberry-text, superscript-text, team-roster-generator, text-box-drawing, text-case, text-case-advanced, text-compare, text-dedup, text-diff, text-extract, text-extract-chinese, text-extract-dates, text-extract-emails, text-extract-english, text-extract-html-tags, text-extract-ips, text-extract-numbers, text-extract-urls, text-filter-lines, text-indent, text-keep-only, text-line-numbers, text-merge, text-pad, text-prefix-suffix, text-remove-duplicates-lines, text-remove-numbers, text-repeat, text-replace-advanced, text-reverse, text-reverse-lines, text-shuffle, text-sort, text-sort-advanced, text-split, text-stats, text-to-banner, text-to-slug, text-trim, text-wrap, unicode-normalize, unit-price-compare, upside-down-text, zalgo-text
+>
+> 优化模式（同 agriculture）：写真实 content_deepdive 条目 → opt_cleanup_intro_faq.py --cat biz 清硬编码套话 → 构建 + 五项门禁 → 提交发布。
 
 ---
 
 ## 九、分类总清单（待办，完成一个删一个；剩 255 个目录）
 
-- [ ] biz
 - [ ] blasting
 - [ ] bonding
 - [ ] brand
