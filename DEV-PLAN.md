@@ -133,6 +133,14 @@
 
 ---
 
+### ✅ aquaculture（5 工具，内容层全达标）
+
+1 批次发布：真实化 content_deepdive 的 5 条目（增氧机功率/面积配备、运输密度与存活率、投喂率/粒径优化、孵化水流溶氧条件、总碱度/硬度调节 5 个真实水产养殖工程计算，含单位面积功率 0.3~0.75 kW/亩、投喂率随水温 2%~4%、孵化交换率 2~5 倍/小时、小苏打 1.68 系数等真实公式与示例）+ **三处同清旧套话**（5 工具真实 FAQPage 结构化数据全到位（负向后顾注入文档级 </body>）；无旧 opt-faq/适用场景/formula-desc 残留，仅 deep-dive 由 content_deepdive 驱动需清）+ 标题保持纯工具名 + zh-tw 同步 + 五项门禁全过 + 提交 842f62c13、Actions run 结论 success。
+
+> 注：aquaculture 无旧 opt-faq/适用场景/formula-desc 区块，仅 deep-dive 需清；5 key 全部对应 5 工具页，无 orphan。
+
+---
+
 ### ✅ antiques（5 工具，内容层全达标）
 
 1 批次发布：真实化 content_deepdive 的 5 条目（青铜器/瓷器/古典家具/印章/书法 5 张鉴定对照表的真实断代辨伪要点、示例与 FAQ）+ **三处同清旧套话**（5 工具真实 FAQPage 结构化数据全到位（负向后顾注入文档级 </body>）+ 5 文件 formula-desc 模板套话（"本速查内容依据权威标准…工具名称：…"）→ 真实对照表用途说明 + 标题保持纯工具名 + zh-tw 同步 + 五项门禁全过 + 提交 d8077cb50、Actions run 结论 success。
@@ -157,16 +165,15 @@
 
 ---
 
-## 八、当前进行中分类：（无，antiques 已归档）
+## 八、当前进行中分类：（无，aquaculture 已归档）
 
-> antiques（5 工具）内容层全达标，已归档至第七节「✅ antiques」。
-> 下一进行中分类按字母序为 **aquaculture**（见第九节清单），待下一批次置进行中并展开待优化清单。
+> aquaculture（5 工具）内容层全达标，已归档至第七节「✅ aquaculture」。
+> 下一进行中分类按字母序为 **archaeology**（见第九节清单），待下一批次置进行中并展开待优化清单。
 
 ---
 
-## 九、分类总清单（待办，完成一个删一个；剩 270 个目录）
+## 九、分类总清单（待办，完成一个删一个；剩 269 个目录）
 
-- [ ] aquaculture
 - [ ] archaeology
 - [ ] archive
 - [ ] astronomy
