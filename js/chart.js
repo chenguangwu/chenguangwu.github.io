@@ -196,10 +196,14 @@
   // 主题切换后重绘所有图表
   if (window.ToolBox && !window.ToolBox._chartBound) {
     window.ToolBox._chartBound = true;
+    // 注意：只缓存这一次，且必须是函数才调用。若本文件将来被提前到 common.js 之前
+    // 加载，此处拿到会是入队占位实现 —— 届时应改为点击时动态解析 window.ToolBox。
     var origToggle = window.ToolBox.toggleToolTheme;
     window.ToolBox.toggleToolTheme = function () {
-      if (origToggle) origToggle.apply(this, arguments);
-      redrawAll();
+      if (typeof origToggle === 'function') {
+        try { origToggle.apply(this, arguments); } catch (e) {}
+      }
+      try { redrawAll(); } catch (e) {}
     };
     document.addEventListener('DOMContentLoaded', function () {
       window.addEventListener('resize', debounce(redrawAll, 200));

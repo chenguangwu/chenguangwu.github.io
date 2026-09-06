@@ -171,8 +171,8 @@
   // 动态生成输入的工具（如选公式后才 innerHTML 出 input）初始 DOM 无输入，自动跳过，安全。
   function enhanceExampleFill(){
     try {
-      var TB = window.ToolBox;
-      if (!TB) return;
+      // 仅做存在性判断，不缓存引用（缓存会在 common.js 替换 ToolBox 后失效）
+      if (!window.ToolBox) return;
       var injected = false;
       function tryInject(){
         if (injected) return;

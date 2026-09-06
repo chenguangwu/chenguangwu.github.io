@@ -2036,6 +2036,9 @@ function validateNumberInput(el){
   return true;
 }
 
+// 保存替换前的旧对象引用（通常是页面 <head> 注入的 compat 占位桩），供下方回填使用。
+var __tbPrevToolBox = global.ToolBox;
+
 global.ToolBox = {
   $: $,
   qs: qs,
@@ -2066,6 +2069,29 @@ global.ToolBox = {
   addToRecentTool: addToRecentTool,
   getToolUrl: getToolUrl
 };
+
+// 回填旧占位对象：根治「defer 脚本闭包持有旧 window.ToolBox 引用」这一类隐患。
+// 场景：本文件用全新对象整体替换 window.ToolBox 后，任何在此之前把该引用缓存进闭包的
+// 脚本都会永久指向旧对象。旧对象上的占位方法只把调用 push 进 window.__tbq，而该队列
+// 仅在下方回放一次 —— 此后（用户在点击时才发生的）入队调用再无消费者，表现为
+// 「按钮点了没反应，且不报任何错」。
+// 此处把旧对象的同名方法改指向真实实现，使这些历史引用同样可用。
+(function backfillPrevToolBox(){
+  try {
+    var prev = __tbPrevToolBox;
+    if (!prev || prev === global.ToolBox) return;
+    var keys = Object.keys(global.ToolBox);
+    for (var i = 0; i < keys.length; i++) {
+      (function (k) {
+        var fn = global.ToolBox[k];
+        if (typeof fn !== 'function') return;
+        try {
+          prev[k] = function () { return fn.apply(global.ToolBox, arguments); };
+        } catch (e) {}
+      })(keys[i]);
+    }
+  } catch (e) {}
+})();
 
 // 回放 compat 桩收集到的早期调用（见 _build.py 注入的 TOOLBOX-API-STUB）。
 // 场景：common.js 改为 defer 后，页面内联脚本会先于本文件执行，
