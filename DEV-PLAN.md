@@ -188,6 +188,14 @@
 
 ---
 
+### ✅ beneficiation（1 工具，内容层全达标）
+
+1 批次发布：真实化 content_deepdive 的 1 条目（analysis-grade 尾矿分析：原矿品位转尾矿品位 T_t=((1−R)·g_o−γ·g_c)/(1−R−γ)、回收率 R=γ·g_c/(g_o)·100%、产率 γ=精矿产率、金属平衡与流失率、精矿/尾矿/原矿三品位的相对关系 等真实矿物加工(选矿)工程知识与数值示例）+ **三处同清旧套话**（1 工具真实 FAQPage 结构化数据全到位（负向后顾注入文档级 </body>）+ 1 文件 analysis-grade formula-desc 模板套话→真实尾矿品位/回收率计算原理说明 + 标题保持纯工具名 + zh-tw 同步 + 五项门禁全过 + 提交 2f5030bf8、Actions run 结论 success。
+
+> 注：beneficiation 仅 1 key 对应 1 工具页（analysis-grade），无 orphan；无旧 opt-faq/适用场景区块、页面已含 hreflang（无 stale 缺 </head> 问题），仅需清 deep-dive + formula-desc 两处。本批为极小批次(1 工具)，完成后 hreflang 缺失连锁问题已全站根治（无需再跑 fix_hreflang_*）。
+
+---
+
 ### ✅ beekeeping（3 工具，内容层全达标）
 
 1 批次发布：真实化 content_deepdive 的 3 条目（摇蜜周期推算 上次摇蜜日期+蜂群强壮度/天气与蜜源→下次摇蜜间隔(流蜜期 7–10 天、非流蜜期 15–30 天、弱群/阴雨延长)、封盖蜜判断；蜂螨寄生率 落螨数÷抖蜂蜂数×100、夏季警戒线 3%–5% 须治、糖粉震落法/粘板法；发酵花粉(蜂粮)营养 蛋白质 15%–25%、还原糖/水分/脂肪含量、10 帧巢脾储粮量估测 3 个真实养蜂知识与数值示例）+ **三处同清旧套话**（3 工具真实 FAQPage 结构化数据全到位（负向后顾注入文档级 </body>）+ 1 文件 detector-13 formula-desc 英文模板套话("Detector 13 is available for use...")→真实蜂螨寄生率计算原理说明 + 标题保持纯工具名 + zh-tw 同步 + 五项门禁全过 + 提交 4cb210996、Actions run 结论 success。
@@ -268,16 +276,15 @@
 
 ---
 
-## 八、当前进行中分类：（无，beekeeping 已归档）
+## 八、当前进行中分类：（无，beneficiation 已归档）
 
-> beekeeping（3 工具）内容层全达标，已归档至第七节「✅ beekeeping」；automation 为空分类（仅 index.html、无工具页）已标记跳过。
-> 下一进行中分类按字母序为 **beneficiation**（见第九节清单），待下一批次置进行中并展开待优化清单。
+> beneficiation（1 工具）内容层全达标，已归档至第七节「✅ beneficiation」；automation 为空分类（仅 index.html、无工具页）已标记跳过。
+> 下一进行中分类按字母序为 **biz**（见第九节清单），待下一批次置进行中并展开待优化清单。
 
 ---
 
-## 九、分类总清单（待办，完成一个删一个；剩 256 个目录）
+## 九、分类总清单（待办，完成一个删一个；剩 255 个目录）
 
-- [ ] beneficiation
 - [ ] biz
 - [ ] blasting
 - [ ] bonding
