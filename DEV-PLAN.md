@@ -79,24 +79,23 @@
 ## 七、已完成分类归档
 > 本区仅保留**最近一个（最新）已完成分类**的归档记录，更早历史不再保留，以控制文件体积。完成新分类时，用新记录替换本条。
 
-### ✅ bonding（5 工具，内容层全达标）
+### ✅ brand（1 工具，内容层全达标）
 
-5 工具页（analysis-cost-4 / analysis-resolution / assessor-cycle-lifespan / detector-26 / detector-27）清两处硬编码套话：① tool-intro「功能特点/使用场景」通用套话（「操作简单，一键完成」「日常办公与学习」等），scripts/opt_bonding_optguide.py 替换为真实 scenarios+通用特性，**保留「工具简介」块**（修正 biz 版正则误吞前面 h4 的缺陷）；② formula-desc 占位套话（「本计算依据通用财务/本校验工具依据/本工程计算基于标准物理」+工具名），scripts/opt_bonding_formuladesc.py 替换为对齐 agriculture 范本的真实说明（依据标准+原理+用途+数据不出浏览器）。content_deepdive 0 占位、FAQ 为真实，无需重写。+ zh-tw 同步 + 五项门禁全过。
+assessor-51（品牌资产评估，Interbrand 模型）真实化：① content_deepdive 条目用的是**另一种占位模板**（「在brand场景中先确认 Assessor 51 口径与边界…」），scripts/opt_brand_content.py 重写为真实 Interbrand 场景（并购尽调/年度品牌审计/战略规划 + 默认参数演练 + 4 专业 FAQ，含 IAS 38 披露提示）；② formula-desc 占位（「本校验工具依据对应数据格式…品牌资产评估工具」），scripts/opt_brand_formuladesc.py 替换为真实说明（Interbrand 模型原理+用途+数据不出浏览器）。**工具页 tool-intro 功能特点/使用场景、注意事项区块、常见问题 FAQ 经核查已是真实内容（Interbrand 模型/7 维度/折现现金流），未清理**。+ zh-tw 同步 + 五项门禁全过。
 
-> 注：bonding 的「常见问题（FAQ）」块为工具特定真实内容（如「bonding 场景下该工具如何避免重复劳动？」），非通用套话，未清理；index.html 落地页「功能特点」为中性分类描述、无真实 scenarios 可替换，保留。
+> 注：检测占位需用两种模板（「先做单位与边界核对」+「在X场景中先确认…口径与边界」），否则会漏判 brand 这类。
 
 ---
-## 八、当前进行中分类：（无，bonding 已归档）
+## 八、当前进行中分类：（无，brand 已归档）
 
-> biz/blasting/bonding 内容层均已达标，已依次归档至第七节。下一进行中分类按字母序为 **brand**（见第九节清单），待下一批次置进行中并展开待优化清单。
+> biz/blasting/bonding/brand 内容层均已达标，已依次归档至第七节。下一进行中分类按字母序为 **bridge**（见第九节清单），待下一批次置进行中并展开待优化清单。
 
 > 优化模式（沿用已验证路径）：写真实 content_deepdive 条目 → 清理工具页硬编码套话（opt_cleanup_intro_faq.py --cat <cat> 或仿 opt_biz_optguide.py 按结构清 tool-intro）→ 构建 + 五项门禁 → 提交发布。
 
 ---
 
-## 九、分类总清单（待办，完成一个删一个；剩 252 个目录）
+## 九、分类总清单（待办，完成一个删一个；剩 251 个目录）
 
-- [ ] brand
 - [ ] bridge
 - [ ] building-material
 - [ ] cable
