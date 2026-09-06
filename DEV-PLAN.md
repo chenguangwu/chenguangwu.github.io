@@ -79,22 +79,22 @@
 ## 七、已完成分类归档
 > 本区仅保留**最近一个（最新）已完成分类**的归档记录，更早历史不再保留，以控制文件体积。完成新分类时，用新记录替换本条。
 
-### ✅ agriculture（60 工具，内容层全达标）
+### ✅ biz（62 工具，内容层全达标）
 
-1 批次发布：真实化 content_deepdive 的 60 条目（种植密度/肥料/农药/灌溉/收获/温室/农机/病虫害等真实场景与示例，含农业合规免责）+ **三处同清旧套话**（60 工具真实 FAQPage 结构化数据全到位（负向后顾注入文档级 </body>）+ 清理 60 文件可见 opt-faq/opt-guide 套话区块（适用场景替换为真实 scenarios[0]、使用说明短语规范化）+ 修复 5 个 formula-desc 占位套话 assessor-1/calc-2/convert-content-1/estimate-analysis/irrigation-uniformity）+ **全站系统性清除硬编码 intro-faq「常见问题」套话（"这个工具是免费的吗？"等）共 3136 个工具页**（含已发布分类 aerospace/it/general 等——此前所有批次都漏清的源 html 硬编码块；仅 tools/aerospace/lift-coefficient.html 因可视化编辑器持有、data-page-node-id 噪声无法落盘，留待编辑器关闭后 `git checkout` 清理，本批已排除出提交）+ 标题保持纯工具名 + zh-tw 同步 + 五项门禁全过。
+1 批次发布：真实化 content_deepdive 的 62 条目（会议成本/名称生成/文本处理/商业计算/编码计时/装饰文本等真实场景与示例，含合规免责）+ 清除 61 个 biz 工具页 tool-intro 通用套话（功能特点/使用场景区块替换为真实 scenarios 与通用特性，消除「操作简单，一键完成」等套话）+ 修复 4 处内容反斜杠（\d/\. 等正则展示触发 _build.py 注入 bad escape，改为 [0-9]/. 等价写法）+ 标题保持纯工具名 + zh-tw 同步 + 五项门禁全过。
 
-> 注：content_deepdive 中 5 个遗留孤儿 key（calc-3/4/5/11/14）无对应 html 文件，未改动。
-
----
-## 八、当前进行中分类：biz（62 工具，进行中）
-
-> 待优化清单（完成一个划掉一个）：app-name-generator, barcode-generator, brand-name-generator, char-frequency, comment-generator, fancy-text, fullwidth-halfwidth, justify-text, lorem-ipsum-advanced, markdown, markdown-quote, meeting-cost-calculator, motto-generator, name-generator, presentation-timer, product-name-generator, simplified-traditional, small-caps, strawberry-text, superscript-text, team-roster-generator, text-box-drawing, text-case, text-case-advanced, text-compare, text-dedup, text-diff, text-extract, text-extract-chinese, text-extract-dates, text-extract-emails, text-extract-english, text-extract-html-tags, text-extract-ips, text-extract-numbers, text-extract-urls, text-filter-lines, text-indent, text-keep-only, text-line-numbers, text-merge, text-pad, text-prefix-suffix, text-remove-duplicates-lines, text-remove-numbers, text-repeat, text-replace-advanced, text-reverse, text-reverse-lines, text-shuffle, text-sort, text-sort-advanced, text-split, text-stats, text-to-banner, text-to-slug, text-trim, text-wrap, unicode-normalize, unit-price-compare, upside-down-text, zalgo-text
->
-> 优化模式（同 agriculture）：写真实 content_deepdive 条目 → opt_cleanup_intro_faq.py --cat biz 清硬编码套话 → 构建 + 五项门禁 → 提交发布。
+> 注：unit-price-compare 无标准 tool-intro 套话（其 deep-dive 套话由 _build.py 用真实 content_deepdive 重建覆盖）；content_deepdive 无遗留孤儿 key。
 
 ---
+## 八、当前进行中分类：（无，biz 已归档）
 
-## 九、分类总清单（待办，完成一个删一个；剩 255 个目录）
+> biz（62 工具）内容层全达标，已归档至第七节「✅ biz」。下一进行中分类按字母序为 **blasting**（见第九节清单），待下一批次置进行中并展开待优化清单。
+
+> 优化模式（沿用已验证路径）：写真实 content_deepdive 条目 → 清理工具页硬编码套话（opt_cleanup_intro_faq.py --cat <cat> 或仿 opt_biz_optguide.py 按结构清 tool-intro）→ 构建 + 五项门禁 → 提交发布。
+
+---
+
+## 九、分类总清单（待办，完成一个删一个；剩 254 个目录）
 
 - [ ] blasting
 - [ ] bonding
