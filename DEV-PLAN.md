@@ -79,24 +79,23 @@
 ## 七、已完成分类归档
 > 本区仅保留**最近一个（最新）已完成分类**的归档记录，更早历史不再保留，以控制文件体积。完成新分类时，用新记录替换本条。
 
-### ✅ cleaning（8 工具，内容层全达标）
+### ✅ clinical-lab（25 工具，内容层全达标）
 
-cleaning 8 工具 deep-dive 真实化（家电清洁周期/清洁工时估算/保洁质量考核/流程标准化评估/地毯养护周期/清洁剂稀释比例/保洁排班/清洁用品消耗）：① content_deepdive 8 key 占位为**「在cleaning场景里，先统一 X 的输入口径，再输出可复用结构」变体**（含通用 examples/faqs，summary 原为 None），scripts/opt_cleaning_content.py 重写为真实清洁/家政场景（含稀释比/养护周期/排班/考核评分）并补 summary（不覆盖 title，8 title 均已真实）；② 8 工具页 tool-intro 三段块（简介/功能/场景）全部已真实化、无套话，不需清；③ formula-desc 清理仅 1 页（appliance-cycle，变体「本速查内容依据权威标准与公开资料整理…」→真实家电清洁说明；本批 `<head>` meta/JSON-LD 已真实无回灌，仅 formula-desc 块需清），scripts/opt_cleaning_hardcode.py；④ opt-guide/opt-faq 套话 0 页（全无），不需清。+ zh-tw 同步 + 五项门禁全过。
+clinical-lab 25 工具 deep-dive 真实化（医学检验：血气代偿/凝血INR/糖化换算/甲功模式/肿瘤标志物倍增/精液/尿沉渣/药敏折点/自身抗体/寄生虫卵等）：① content_deepdive 25 key 占位为**「在「XX（检验）」场景先统一输入单位与口径，先做基准算例，再做边界场景核验」变体**（含通用 examples/faqs，summary 原为 None），scripts/opt_clinicallab_content.py 重写为真实医学检验场景（参考区间/单位换算/代偿公式，去诊断化免责）并补 summary（不覆盖 title，25 title 均已真实）；② 25 工具页 tool-intro 三段块全含通用医学/隐私套话（「医疗专业工具基于权威医学标准」20 页 +「免费在线工具隐私」5 页），scripts/opt_clinicallab_hardcode.py 全替换为真实检验功能/场景；③ formula-desc 清理 8 页（三变体：校验×2/工程×1/速查×5，仅 formula-desc 块内，meta/JSON-LD 已真实无回灌→真实检验说明）；④ opt-guide/opt-faq 套话仅 2 页（flow-cytometry-ratio/mic-breakpoint，仅 opt-guide `<p>` 一处「工作与生活中的相关计算与查询」→真实检验场景）；⑤ 关联推荐卡 rt-name 套话后缀「 - 医疗专业领域的在线工具」25 页全清（build 不重写 rt-name，源码清理有效）。+ zh-tw 同步 + 五项门禁全过。
 
-> 注：占位模板已发现第十四种——「在cleaning场景里，先统一 X 的输入口径，再输出可复用结构」（清洁/家政类多见，标题含「Appliance Cycle/Area Hours/Dilution Ratio/Staff Schedule…」）。**部分分类工具页 tool-intro 三段块已真实化无需清理**（cleaning 8 页均真实）；**formula-desc 占位仅 formula-desc 块内**（本批 meta/JSON-LD 已真实无回灌），清理只需替换该块即可。
+> 注：占位模板已发现第十五种——「在「XX（检验）」场景先统一输入单位与口径，先做基准算例，再做边界场景核验，避免把结果误读为模型差异」（医学检验类多见，标题含「Blood Gas/Coagulation INR/MIC Breakpoint/HbA1c…」）。**分类落地页 index.html 的「纯前端处理，数据不上传」是站点级真实隐私特性描述（全站统一卖点，见 _build.py 标题/副标题），非占位变体，不在清理范围**；**关联推荐卡 rt-name 通用后缀「 - 医疗专业领域的在线工具」需随工具页一并清**（build 不重写 rt-name，源码清理有效，已验证 build 后不复活）。
 
 ---
-## 八、当前进行中分类：（无，cleaning 已归档）
+## 八、当前进行中分类：（无，clinical-lab 已归档）
 
-> biz/blasting/bonding/brand/bridge/building-material/cable/cardiology/casting/ceramics/chemical/chemistry/chess/chinese/chinese-cook/civil/cleaning 内容层均已达标，已依次归档至第七节。下一进行中分类按字母序为 **clinical-lab**（见第九节清单），待下一批次置进行中并展开待优化清单。
+> biz/blasting/bonding/brand/bridge/building-material/cable/cardiology/casting/ceramics/chemical/chemistry/chess/chinese/chinese-cook/civil/cleaning/clinical-lab 内容层均已达标，已依次归档至第七节。下一进行中分类按字母序为 **clinical-nursing**（见第九节清单），待下一批次置进行中并展开待优化清单。
 
 > 优化模式（沿用已验证路径）：写真实 content_deepdive 条目 → 清理工具页硬编码套话（opt_cleanup_intro_faq.py --cat <cat> 或仿 opt_biz_optguide.py 按结构清 tool-intro）→ 构建 + 五项门禁 → 提交发布。
 
 ---
 
-## 九、分类总清单（待办，完成一个删一个；剩 238 个目录）
+## 九、分类总清单（待办，完成一个删一个；剩 237 个目录）
 
-- [ ] clinical-lab
 - [ ] clinical-nursing
 - [ ] cnc
 - [ ] cognition
