@@ -127,17 +127,29 @@
 
 ---
 
-## 八、当前进行中分类：（无，advertising 已归档）
+### ✅ aerospace（37 工具，内容层全达标）
 
-> advertising（16 工具）内容层全达标，已归档至第七节「✅ advertising」。
-> 下一进行中分类按字母序为 **aerospace**（见第九节清单），待下一批次置进行中并展开待优化清单。
+1 批次发布：真实化 content_deepdive 的 37 条目（航空/航天物理：展弦比/升力系数/布雷盖航程/火箭 Δv/逃逸速度/轨道周期/马赫数/推重比等，含公式与典型数值示例 + "理论值，以飞行手册/适航标准为准"合规免责）+ **三处同清旧套话**（删 2 个旧套话 FAQPage LD lift-coefficient/rocket-delta-v + 清理这 2 文件可见 opt-faq/opt-guide 套话区块 + 修复 2 个 formula-desc 占位套话 assessor-capacity/stats-weight-luggage）+ 37 工具真实 FAQPage 结构化数据全到位（负向后顾注入文档级 </body>）+ 标题保持纯工具名 + zh-tw 同步 + 五项门禁全过。
 
 ---
 
-## 九、分类总清单（待办，完成一个删一个；剩 273 个目录）
+### ✅ agriculture（60 工具，内容层全达标）
 
-- [ ] aerospace
-- [ ] agriculture
+1 批次发布：真实化 content_deepdive 的 60 条目（种植密度/肥料/农药/灌溉/收获/温室/农机/病虫害等真实场景与示例，含农业合规免责）+ **三处同清旧套话**（60 工具真实 FAQPage 结构化数据全到位（负向后顾注入文档级 </body>）+ 清理 60 文件可见 opt-faq/opt-guide 套话区块（适用场景替换为真实 scenarios[0]、使用说明短语规范化）+ 修复 5 个 formula-desc 占位套话 assessor-1/calc-2/convert-content-1/estimate-analysis/irrigation-uniformity）+ **全站系统性清除硬编码 intro-faq「常见问题」套话（"这个工具是免费的吗？"等）共 3136 个工具页**（含已发布分类 aerospace/it/general 等——此前所有批次都漏清的源 html 硬编码块；仅 tools/aerospace/lift-coefficient.html 因可视化编辑器持有、data-page-node-id 噪声无法落盘，留待编辑器关闭后 `git checkout` 清理，本批已排除出提交）+ 标题保持纯工具名 + zh-tw 同步 + 五项门禁全过。
+
+> 注：content_deepdive 中 5 个遗留孤儿 key（calc-3/4/5/11/14）无对应 html 文件，未改动。
+
+---
+
+## 八、当前进行中分类：（无，agriculture 已归档）
+
+> agriculture（60 工具）内容层全达标，已归档至第七节「✅ agriculture」。
+> 下一进行中分类按字母序为 **ai**（见第九节清单），待下一批次置进行中并展开待优化清单。
+
+---
+
+## 九、分类总清单（待办，完成一个删一个；剩 272 个目录）
+
 - [ ] ai
 - [ ] antiques
 - [ ] aquaculture
