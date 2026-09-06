@@ -500,15 +500,15 @@ input[type=range].vol-range::-moz-range-thumb{
 <h2>📚 深度解析：音频音量调节</h2>
 <h3>💡 常见使用场景</h3>
 <ul class="dd-list">
-<li>在audio场景里，优先把&amp;amp;#Audio Volume标准化后再执行批量分析，便于统一口径。</li>
-<li>配合现有流程用于首轮筛选，能快速识别超标/异常样本并形成待复核清单。</li>
-<li>当团队成员交接时，可直接用统一字段解释结果来源，减少口径偏差。</li>
+<li>统一一批录音素材的响度，避免剪辑后一段大一段小。</li>
+<li>把过轻的人声整体提升，同时监控峰值防止导出后削波失真。</li>
+<li>对素材做归一化，让最响处到达目标电平（如 −1dBFS）便于分发。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">标准流程示例</div><div class="dd-ex-body">用一组真实口径样本执行一次计算，保存输入截图与输出记录，再对一个边界场景复测，确认是否稳定。</div></div>
+<div class="dd-example"><div class="dd-ex-title">增益与归一化示例</div><div class="dd-ex-body">音量调节本质是采样值乘以增益系数 g。若用 dB 表示增益，则 g=10^(dB/20)；例如 +6dB 对应 g≈1.995（约翻倍振幅）。归一化到峰值 −1dBFS：先找当前最大采样绝对值 A_max，目标峰值 10^(−1/20)≈0.891，则增益 g=0.891/A_max。若 g 过大使某采样超过 ±1.0 会被削平产生失真，故提升后需检查峰值。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
-<dt>audio 业务里如何快速落地？</dt><dd>先抽取3-5个典型样本定义口径，再把所有输入按该口径映射后运行，输出用于讨论决策。</dd>
-<dt>发现输出不一致怎么办？</dt><dd>先确认字段单位和时点定义，再回传人工样本复核，避免直接基于异常结果做业务动作。</dd>
+<dt>音量和响度是一回事吗？</dt><dd>不是。音量是简单的振幅增益，响度是人体感知的 loudness（常用 LUFS 度量）。单纯加倍振幅不一定听感上响一倍。分发前建议用响度标准化（如 −14LUFS）而非只看峰值。</dd>
+<dt>为什么调大音量后声音破了？</dt><dd>因为采样值被乘数放大后超过 ±1.0，超出可表示范围被硬削平（削波），产生刺耳失真。应先留足余量，用软削波或先降再升，提升后检查峰值不超过 0dBFS。</dd>
 </dl>
 </div>
 </section>
@@ -1149,5 +1149,29 @@ window.addEventListener('beforeunload', function(){
 })();
 </script>
 
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "音量和响度是一回事吗？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "不是。音量是简单的振幅增益，响度是人体感知的 loudness（常用 LUFS 度量）。单纯加倍振幅不一定听感上响一倍。分发前建议用响度标准化（如 −14LUFS）而非只看峰值。"
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "为什么调大音量后声音破了？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "因为采样值被乘数放大后超过 ±1.0，超出可表示范围被硬削平（削波），产生刺耳失真。应先留足余量，用软削波或先降再升，提升后检查峰值不超过 0dBFS。"
+      }
+    }
+  ]
+}
+</script>
 </body>
 </html>

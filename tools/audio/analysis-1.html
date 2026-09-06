@@ -98,7 +98,7 @@
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="可视化">Analysis 1 is available directly in your browser, with no data uploaded.</p>
 <div class="formula-box">
   <div class="formula-title">📐 工作原理与说明</div>
-  <p class="formula-desc">本计算器基于标准数学运算与单位换算约定，输入按数字格式解析，结果实时输出；纯前端本地计算，数据不上传服务器。 工具名称：频谱分析（可视化） - 音频工具在线工具。</p>
+  <p class="formula-desc">频谱分析对输入时域信号做快速傅里叶变换（FFT），把各采样点映射为不同频率分量的复数系数；其模长代表该频率的能量（常取 20·log10 转成 dB 显示），相位代表时间偏移。频率分辨率等于采样率除以 FFT 长度，加汉宁窗可抑制帧边界不连续带来的频谱泄漏。全部在浏览器本地计算，数据不上传服务器。</p>
 </div>
 
 <label>输入数据（逗号或换行分隔）</label>
@@ -127,15 +127,15 @@
 <h2>📚 深度解析：频谱分析（可视化）</h2>
 <h3>💡 常见使用场景</h3>
 <ul class="dd-list">
-<li>在audio场景里，优先把Analysis 1标准化后再执行批量分析，便于统一口径。</li>
-<li>配合现有流程用于首轮筛选，能快速识别超标/异常样本并形成待复核清单。</li>
-<li>当团队成员交接时，可直接用统一字段解释结果来源，减少口径偏差。</li>
+<li>对一段录音做 FFT，找出主要频率成分，判断是否存在 50/60Hz 工频干扰或设备共振。</li>
+<li>分析乐器或人声的谐波结构，辅助调音、辨音与声学实验。</li>
+<li>检测机械振动信号中的特征频率，用于简易故障初筛。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">标准流程示例</div><div class="dd-ex-body">用一组真实口径样本执行一次计算，保存输入截图与输出记录，再对一个边界场景复测，确认是否稳定。</div></div>
+<div class="dd-example"><div class="dd-ex-title">频率分辨率计算示例</div><div class="dd-ex-body">对采样率 44100Hz 的信号做 N=4096 点 FFT，频率分辨率 Δf = 44100÷4096 ≈ 10.77Hz，可分辨的频率点依次为 0、10.77、21.53……Hz。若某峰值落在第 200 个 bin，则其对应频率约为 200×10.77≈2153Hz。窗函数（如汉宁窗）会使主瓣展宽约 2~3 个 bin，实际定位需考虑此展宽。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
-<dt>audio 业务里如何快速落地？</dt><dd>先抽取3-5个典型样本定义口径，再把所有输入按该口径映射后运行，输出用于讨论决策。</dd>
-<dt>发现输出不一致怎么办？</dt><dd>先确认字段单位和时点定义，再回传人工样本复核，避免直接基于异常结果做业务动作。</dd>
+<dt>频谱里的毛刺是真实信号吗？</dt><dd>不一定。未加窗或信号在帧边界不连续会产生频谱泄漏，表现为本应单一的峰向两侧扩散的毛刺；加窗并对稳态信号取足够长帧可抑制。瞬态信号本身就有宽频成分，需结合时域判断。</dd>
+<dt>怎样提高频谱读数的准确度？</dt><dd>提高 FFT 长度以提升频率分辨率，使用合适的窗函数抑制泄漏，并对多次结果平均降低随机噪声；同时注意采样率要高于目标最高频率的两倍（奈奎斯特）才不会混叠。</dd>
 </dl>
 </div>
 </section>
@@ -225,5 +225,29 @@ document.addEventListener('DOMContentLoaded',function(){
 });
 </script>
 
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "频谱里的毛刺是真实信号吗？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "不一定。未加窗或信号在帧边界不连续会产生频谱泄漏，表现为本应单一的峰向两侧扩散的毛刺；加窗并对稳态信号取足够长帧可抑制。瞬态信号本身就有宽频成分，需结合时域判断。"
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "怎样提高频谱读数的准确度？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "提高 FFT 长度以提升频率分辨率，使用合适的窗函数抑制泄漏，并对多次结果平均降低随机噪声；同时注意采样率要高于目标最高频率的两倍（奈奎斯特）才不会混叠。"
+      }
+    }
+  ]
+}
+</script>
 </body>
 </html>
