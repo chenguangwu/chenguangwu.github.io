@@ -155,6 +155,15 @@
 
 ---
 
+### ✅ automotive（53 工具，内容层全达标）
+
+1 批次发布：真实化 content_deepdive 的 53 条目（车贷等额本息/车险/保养周期/机油/胎压/刹车片磨损/油耗/制冷量/电瓶/故障码/四轮定位/尾气/拖车/记分/运输等真实汽车工程知识与示例）+ **三处同清旧套话**（53 工具真实 FAQPage 结构化数据全到位（负向后顾注入文档级 </body>）+ 7 文件 opt-faq/适用场景套话→真实 faqs/scenarios[0]、13 文件 formula-desc 模板套话→真实计算原理、7 文件 opt-guide「如何使用」套话→真实用法说明）+ 标题保持纯工具名 + zh-tw 同步。
+**关键修复**：automotive 46 个 stale 源码页（单引号属性、<head> 未闭合、无 <body> 开标签）缺 `</head>` 锚点，导致 `inject_hreflang` 与 `gen_opencc` 无法注入 hreflang，繁体校验（`gen_opencc_locales.mjs --check`）整类失败。脚本 `fix_hreflang_automotive.py` 在 `</body>` 前补 `</head>` 并用与 `_build.py` 完全一致的 `inject_hreflang` 逻辑注入多语言区块（另 7 个原已正常的页跳过）；重跑 `node scripts/gen_opencc_locales.mjs` 重建 zh-tw（5483 页），校验 0 失败、五项门禁全过、提交 4fc6eecd1、Actions run 结论 success。
+
+> 注：automotive 53 key 全部对应 53 工具页，无 orphan；本批首次暴露「stale 页结构缺 </head>」系统性风险，已用可幂等复用的 `fix_hreflang_*.py` 模式兜底。
+
+---
+
 ### ✅ audio（7 工具，内容层全达标）
 
 1 批次发布：真实化 content_deepdive 的 7 条目（audio-speed 变速不变调 WSOLA/audio-recorder MediaRecorder 录音/audio-cut 波形裁剪淡变/audio-waveform 时域波形与 FFT 频谱/analysis-1 频谱分析频率分辨率/audio-echo 延迟线与混响/audio-volume 增益 dB 与归一化 7 个真实音频处理前端技术知识与示例）+ **三处同清旧套话**（7 工具真实 FAQPage 结构化数据全到位（负向后顾注入文档级 </body>）+ analysis-1 的 formula-desc 模板套话（"本计算器基于标准数学运算与单位换算约定…工具名称："→ 真实 FFT 频谱分析原理说明）+ 标题保持纯工具名 + zh-tw 同步 + 五项门禁全过 + 提交 5c6ca4441、Actions run 结论 success。
@@ -219,16 +228,15 @@
 
 ---
 
-## 八、当前进行中分类：（无，auto-beauty 已归档）
+## 八、当前进行中分类：（无，automotive 已归档）
 
-> auto-beauty（2 工具）内容层全达标，已归档至第七节「✅ auto-beauty」；automation 为空分类（仅 index.html、无工具页）已标记跳过。
-> 下一进行中分类按字母序为 **automotive**（见第九节清单），待下一批次置进行中并展开待优化清单。
+> automotive（53 工具）内容层全达标，已归档至第七节「✅ automotive」；automation 为空分类（仅 index.html、无工具页）已标记跳过。
+> 下一进行中分类按字母序为 **baking**（见第九节清单），待下一批次置进行中并展开待优化清单。
 
 ---
 
-## 九、分类总清单（待办，完成一个删一个；剩 262 个目录）
+## 九、分类总清单（待办，完成一个删一个；剩 261 个目录）
 
-- [ ] automotive
 - [ ] baking
 - [ ] ballistics
 - [ ] banking
