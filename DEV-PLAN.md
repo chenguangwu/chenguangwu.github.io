@@ -79,24 +79,23 @@
 ## 七、已完成分类归档
 > 本区仅保留**最近一个（最新）已完成分类**的归档记录，更早历史不再保留，以控制文件体积。完成新分类时，用新记录替换本条。
 
-### ✅ building-material（2 工具，内容层全达标）
+### ✅ cable（3 工具，内容层全达标）
 
-analysis-cost-profit-2（建材成本/财务数据描述统计）/ detector-35（建材质量检测追溯）真实化：① content_deepdive 2 key 占位为**第三种变体**（「在building-material场景下，先对 X 建模统一口径，再输出可复核结论」+ 通用 examples/faqs），scripts/opt_building_material_content.py 重写为真实建材场景（analysis-cost-profit-2=材料采购单价汇总/多供应商报价离散度/预算执行偏差分析 + 描述统计说明 + 3 FAQ；detector-35=水泥出厂检验/混凝土强度评定/砌体进场验收 + GB/T 标准演练 + 3 FAQ）；② 2 文件 formula-desc 标准占位（本计算依据通用财务/本校验工具依据），scripts/opt_building_material_formuladesc.py 替换为真实说明（描述统计原理 / GB/T 判定+追溯报告，数据不出浏览器）；③ tool-intro 套话清理加判定，scripts/opt_building_material_optguide.py 仅替换含通用套话词页（analysis-cost-profit-2：日常办公与学习/开发调试），**detector-35 功能特点/使用场景与注意事项区块（GB/T 标准）已是真实内容，跳过保留**。+ zh-tw 同步 + 五项门禁全过。
+cable-tray-sizing（桥架选型）/ analysis-cost-price-5（电缆成本价格统计）/ tester-19（电缆安装检测）真实化：① content_deepdive 3 key 占位为**第四种变体**（「在cable场景下，先把 X 标准化，再批量执行可追溯流程」+ 通用 examples/faqs），scripts/opt_cable_content.py 重写为真实电缆场景（cable-tray-sizing=动力配电/数据弱电/改造扩容桥架选型 + GB/T 29415 演练 + 3 FAQ；analysis-cost-price-5=铜价跟踪/多供应商比价/成本波动描述统计 + 3 FAQ；tester-19=敷设竣工/运维/故障排查检测 + GB/T 3048 演练 + 3 FAQ）；② formula-desc 清理（仅 analysis-cost-price-5 本计算依据通用财务→真实描述统计说明），scripts/opt_cable_hardcode.py 替换；③ tool-intro 套话清理加判定，opt_cable_hardcode.py 仅替换含通用套话词页（analysis-cost-price-5：日常办公与学习/开发调试），**tester-19 功能特点/使用场景与注意事项区块（GB/T 3048 系列）已是真实内容、cable-tray-sizing 无标准 tool-intro 块，均跳过保留**；④ cable-tray-sizing 英文 opt-guide/opt-faq 套话「工作与生活中的相关计算与查询」替换为真实英文场景。+ zh-tw 同步 + 五项门禁全过。
 
-> 注：占位模板已发现三种——「先做单位与边界核对」「在X场景中先确认…口径与边界」「在building-material场景下先对 X 建模统一口径」，检测需全覆盖否则漏判。
+> 注：占位模板已发现四种——「先做单位与边界核对」「在X场景中先确认…口径与边界」「在building-material场景下先对 X 建模统一口径」「在X场景下先把 X 标准化再批量执行可追溯流程」，检测需全覆盖否则漏判。
 
 ---
-## 八、当前进行中分类：（无，building-material 已归档）
+## 八、当前进行中分类：（无，cable 已归档）
 
-> biz/blasting/bonding/brand/bridge/building-material 内容层均已达标，已依次归档至第七节。下一进行中分类按字母序为 **cable**（见第九节清单），待下一批次置进行中并展开待优化清单。
+> biz/blasting/bonding/brand/bridge/building-material/cable 内容层均已达标，已依次归档至第七节。下一进行中分类按字母序为 **cardiology**（见第九节清单），待下一批次置进行中并展开待优化清单。
 
 > 优化模式（沿用已验证路径）：写真实 content_deepdive 条目 → 清理工具页硬编码套话（opt_cleanup_intro_faq.py --cat <cat> 或仿 opt_biz_optguide.py 按结构清 tool-intro）→ 构建 + 五项门禁 → 提交发布。
 
 ---
 
-## 九、分类总清单（待办，完成一个删一个；剩 249 个目录）
+## 九、分类总清单（待办，完成一个删一个；剩 248 个目录）
 
-- [ ] cable
 - [ ] cardiology
 - [ ] casting
 - [ ] ceramics
