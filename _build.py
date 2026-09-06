@@ -2556,7 +2556,10 @@ def fix_tool_pages_seo(tools, target_tools=None, report=True, existing_html_path
             if _m_t:
                 _base = os.path.splitext(os.path.basename(t['path']))[0]
                 _zh_title = _zh_title_of(industry, _base) or t.get('name') or tool_name_esc
-                _zh_t = _zh_title if _zh_title.endswith('ToolBox') else (_zh_title + ' - ToolBox')
+                # 标准7 SEO：会计分类工具 title 标注「（免费）」（accounting 优化批次要求）；
+                # 若源 title 已手动含「（免费）」亦保留，避免被规范化覆盖。
+                _had_free = ('（免费）' in (_m_t.group(1) if _m_t else '')) or (industry == 'accounting')
+                _zh_t = _zh_title if _zh_title.endswith('ToolBox') else (_zh_title + ('（免费） - ToolBox' if _had_free else ' - ToolBox'))
                 _en_full = _en_t if _en_t.endswith('ToolBox') else (_en_t + ' - ToolBox')
                 # 初始 title 渲染中文（中文优先）
                 content = content.replace(_m_t.group(0), '<title>%s</title>' % esc_once(_zh_t), 1)
