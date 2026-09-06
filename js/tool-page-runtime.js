@@ -135,19 +135,28 @@
       var rawName = (h1 ? h1.textContent : (document.title || 'tool')).trim();
       var name = rawName.replace(/\s+/g, '-').replace(/[^\w\u4e00-\u9fa5-]/g, '') || 'tool';
       var fname = name + '-result.txt';
+      // 注意：本文件为 defer 脚本，执行时 common.js 可能尚未加载完毕，
+      // 此时 window.ToolBox 上的方法仍是「入队占位(stub)」实现。common.js 就绪后会用
+      // 一个全新的对象整体替换 window.ToolBox，导致此处闭包捕获的 TB 永久指向旧的
+      // 占位对象 —— 表现为按钮点击无任何效果。因此点击时必须重新解析 window.ToolBox。
+      function liveTB(){ return window.ToolBox || TB; }
       var copyBtn = document.createElement('button');
       copyBtn.type = 'button';
       copyBtn.className = 'btn';
       copyBtn.textContent = '📋 复制结果';
-      copyBtn.addEventListener('click', function () { TB.copyFromElement(el.id, '结果已复制'); });
+      copyBtn.addEventListener('click', function () {
+        var T = liveTB();
+        if (T && typeof T.copyFromElement === 'function') T.copyFromElement(el.id, '结果已复制');
+      });
       var expBtn = document.createElement('button');
       expBtn.type = 'button';
       expBtn.className = 'btn';
       expBtn.textContent = '⬇️ 导出 TXT';
       expBtn.addEventListener('click', function () {
         var t = (el.innerText || el.textContent || '').trim();
-        if (!t) { if (TB.toast) TB.toast('暂无结果可导出'); return; }
-        TB.downloadText(fname, t);
+        var T = liveTB();
+        if (!t) { if (T && T.toast) T.toast('暂无结果可导出'); return; }
+        if (T && typeof T.downloadText === 'function') T.downloadText(fname, t);
       });
       bar.appendChild(copyBtn);
       bar.appendChild(expBtn);
