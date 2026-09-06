@@ -180,6 +180,14 @@
 
 ---
 
+### ✅ banking（27 工具，内容层全达标）
+
+1 批次发布：真实化 content_deepdive 的 27 条目（复利/连续复利/APY 实际年利率/EMI 月供/年金现值终值/永续年金/增长永续/贷款剩余本金/贷款期限/Loan-to-Value/Debt-to-Income/净现值/净 Worth/免税等价收益率/债券当期收益率/定期存款季度复利/大额存单到期/储蓄目标月供/名义↔实际利率 等 27 个真实金融银行公式与数值示例）+ **三处同清旧套话**（27 工具真实 FAQPage 结构化数据全到位（负向后顾注入文档级 </body>）+ 1 文件 fisher-real-rate opt-faq/适用场景/opt-guide 套话→真实 faqs/scenarios[0]/真实用法说明 + 20 文件 formula-desc 由短公式描述升级为含公式+免责的详实计算原理说明）+ 标题保持纯工具名 + zh-tw 同步 + 五项门禁全过 + 提交 62e292d7a、Actions run 结论 success。
+
+> 注：banking 27 key 全部对应 27 工具页，无 orphan。本批发现 **fisher-real-rate.html 缺 hreflang 区块**（旧模板页从未整页 regenerate），导致 gen_opencc 繁体校验失败，已用 fix_hreflang_banking.py 复刻 _build.py 的 inject_hreflang 注入修复（其余 26 页结构正常自动跳过）；20 个 formula-desc 实为真实公式描述但偏短，已统一升级质量以与 automotive/ai 等已优化分类一致。
+
+---
+
 ### ✅ audio（7 工具，内容层全达标）
 
 1 批次发布：真实化 content_deepdive 的 7 条目（audio-speed 变速不变调 WSOLA/audio-recorder MediaRecorder 录音/audio-cut 波形裁剪淡变/audio-waveform 时域波形与 FFT 频谱/analysis-1 频谱分析频率分辨率/audio-echo 延迟线与混响/audio-volume 增益 dB 与归一化 7 个真实音频处理前端技术知识与示例）+ **三处同清旧套话**（7 工具真实 FAQPage 结构化数据全到位（负向后顾注入文档级 </body>）+ analysis-1 的 formula-desc 模板套话（"本计算器基于标准数学运算与单位换算约定…工具名称："→ 真实 FFT 频谱分析原理说明）+ 标题保持纯工具名 + zh-tw 同步 + 五项门禁全过 + 提交 5c6ca4441、Actions run 结论 success。
@@ -244,16 +252,15 @@
 
 ---
 
-## 八、当前进行中分类：（无，ballistics 已归档）
+## 八、当前进行中分类：（无，banking 已归档）
 
-> ballistics（24 工具）内容层全达标，已归档至第七节「✅ ballistics」；automation 为空分类（仅 index.html、无工具页）已标记跳过。
-> 下一进行中分类按字母序为 **banking**（见第九节清单），待下一批次置进行中并展开待优化清单。
+> banking（27 工具）内容层全达标，已归档至第七节「✅ banking」；automation 为空分类（仅 index.html、无工具页）已标记跳过。
+> 下一进行中分类按字母序为 **beauty**（见第九节清单），待下一批次置进行中并展开待优化清单。
 
 ---
 
-## 九、分类总清单（待办，完成一个删一个；剩 259 个目录）
+## 九、分类总清单（待办，完成一个删一个；剩 258 个目录）
 
-- [ ] banking
 - [ ] beauty
 - [ ] beekeeping
 - [ ] beneficiation
