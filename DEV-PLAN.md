@@ -79,24 +79,23 @@
 ## 七、已完成分类归档
 > 本区仅保留**最近一个（最新）已完成分类**的归档记录，更早历史不再保留，以控制文件体积。完成新分类时，用新记录替换本条。
 
-### ✅ chinese（5 工具，内容层全达标）
+### ✅ civil（21 工具，内容层全达标）
 
-chinese 5 工具 deep-dive 真实化（汉字查询/中文文化工具箱/偏旁部首查询/农历公历互转/笔画笔顺演示）：① content_deepdive 5 key 占位为**「chinese 场景下建议先校准X口径后再批量输出」变体**（含通用 examples/faqs，summary 原为 None），scripts/opt_chinese_content.py 重写为真实中文文化场景并补 summary（不覆盖 title，5 title 均已真实）；② chinese-radical-lookup/stroke-order-viewer 仅有 deep-dive 区（无标准 tool-intro 三段块），内容真实化即修复；③ formula-desc 清理仅 3 页（chinese-character/chinese-radical-lookup/stroke-order-viewer，本速查内容依据权威标准…速查占位 + `<head>` meta/JSON-LD 同句回灌→真实中文说明），scripts/opt_chinese_hardcode.py；④ tool-intro 套话清理仅 3 页（chinese-character/chinese-culture/lunar-calendar，通用科学套话「中华文化工具，传承国学经典」+ 功能场景套话→真实中文工具功能/场景）；⑤ opt-guide/opt-faq 套话全 5 页均无，不需清。+ zh-tw 同步 + 五项门禁全过。
+civil 21 工具 deep-dive 真实化（朗金土压力/简支梁均布/混凝土配合比/钢筋下料/碳化深度/钢管混凝土轴压/基坑支护/独立基础等土木结构工具）：① content_deepdive 21 key 占位为**「XX（土木）场景先统一输入单位与口径后再批量复核」变体**（含通用 examples/faqs，summary 原为 None），scripts/opt_civil_content.py 重写为真实土木/结构工程场景（引用标准公式如 Rankine 土压力、简支梁弯矩、ACI 配合比、钢筋锚固）并补 summary（不覆盖 title，21 title 均已真实）；② 21 工具页均无标准 tool-intro 三段块（场景由 deep-dive 驱动），不需清 tool-intro；③ formula-desc 清理仅 1 页（rock-mass-rating，变体「本工程计算基于标准物理与材料公式…」+ `<head>` meta/JSON-LD 同句回灌→真实岩土说明），scripts/opt_civil_hardcode.py；④ opt-guide/opt-faq 套话仅 2 页（cft-capacity/excavation-earth，工作与生活中的相关计算与查询，含 JSON-LD FAQ + opt-guide <p> + opt-faq <dd> 三处同步→真实工程场景），其余 19 页无 opt 套话。+ zh-tw 同步 + 五项门禁全过。
 
-> 注：占位模板已发现第十一种——「chinese 场景下建议先校准X口径后再批量输出」（中华文化类多见，标题含「Chinese Character/Chinese Culture/Lunar Calendar…」）。**部分分类工具页无标准 tool-intro 三段块**（其「常见使用场景/FAQ」属 deep-dive 区块由 content 驱动，只需真实化 content_deepdive 即可）；**formula-desc 占位会回灌到 `<head>` meta/JSON-LD 描述**，清理须同步覆盖否则漏判。
+> 注：占位模板已发现第十三种——「XX（土木）场景先统一输入单位与口径后再批量复核」（土木/结构类多见，标题含「Active Earth Pressure/Rankine/Beam/Concrete Mix/Rebar…」）。**部分分类工具页无标准 tool-intro 三段块**（其「常见使用场景/FAQ」属 deep-dive 区块由 content 驱动，只需真实化 content_deepdive 即可）；**formula-desc 占位会回灌到 `<head>` meta/JSON-LD 描述**，清理须同步覆盖否则漏判。
 
 ---
-## 八、当前进行中分类：（无，chinese 已归档）
+## 八、当前进行中分类：（无，civil 已归档）
 
-> biz/blasting/bonding/brand/bridge/building-material/cable/cardiology/casting/ceramics/chemical/chemistry/chess/chinese 内容层均已达标，已依次归档至第七节。下一进行中分类按字母序为 **chinese-cook**（见第九节清单），待下一批次置进行中并展开待优化清单。
+> biz/blasting/bonding/brand/bridge/building-material/cable/cardiology/casting/ceramics/chemical/chemistry/chess/chinese/chinese-cook/civil 内容层均已达标，已依次归档至第七节。下一进行中分类按字母序为 **cleaning**（见第九节清单），待下一批次置进行中并展开待优化清单。
 
 > 优化模式（沿用已验证路径）：写真实 content_deepdive 条目 → 清理工具页硬编码套话（opt_cleanup_intro_faq.py --cat <cat> 或仿 opt_biz_optguide.py 按结构清 tool-intro）→ 构建 + 五项门禁 → 提交发布。
 
 ---
 
-## 九、分类总清单（待办，完成一个删一个；剩 240 个目录）
+## 九、分类总清单（待办，完成一个删一个；剩 239 个目录）
 
-- [ ] civil
 - [ ] cleaning
 - [ ] clinical-lab
 - [ ] clinical-nursing
