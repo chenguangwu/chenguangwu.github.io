@@ -103,16 +103,21 @@
 
 ---
 
-## 八、当前进行中分类：（无，accounting 已归档）
+### ✅ acoustics（28 工具，内容层全达标）
 
-> accounting（35 工具）内容层全达标，已归档至第七节「✅ accounting」。
-> 下一进行中分类按字母序为 **acoustics**（见第九节清单），待下一批次置进行中并展开待优化清单。
+1 批次发布：真实化 content_deepdive 的 28 条目（声学分贝/SPL/混响/多普勒/房间模态等真实场景与示例）+ 删 3 个旧套话 FAQPage LD（intensity-level / sound-intensity-level / critical-distance）+ 28 工具真实 FAQPage 结构化数据全到位（负向后顾注入文档级 </body>）+ 全站标题统一去除「免费」与「- ToolBox」（按老板要求，仅留纯工具名）+ zh-tw 同步 + 五项门禁全过。
+
+---
+
+## 八、当前进行中分类：（无，acoustics 已归档）
+
+> acoustics（28 工具）内容层全达标，已归档至第七节「✅ acoustics」。
+> 下一进行中分类按字母序为 **acupuncture**（见第九节清单），待下一批次置进行中并展开待优化清单。
 
 ---
 
 ## 九、分类总清单（待办，完成一个删一个；剩 273 个目录）
 
-- [ ] acoustics
 - [ ] acupuncture
 - [ ] admin
 - [ ] advertising
