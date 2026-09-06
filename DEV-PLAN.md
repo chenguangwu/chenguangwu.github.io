@@ -172,6 +172,14 @@
 
 ---
 
+### ✅ ballistics（24 工具，内容层全达标）
+
+1 批次发布：真实化 content_deepdive 的 24 条目（枪口动能 E=½mv²/膛线缠度 Greenhill 公式/后坐冲量/横风漂移/弹道计算/密位 mil 分划/口径英寸↔毫米/装药燃速/枪管寿命/弹着散布 CEP/瞄准修正/夜间暗适应/激光指示/支架贴腮/弹群组/消音器/战术再装填/弹头解剖 24 个公开弹道与武器工程物理知识与示例）+ **三处同清旧套话**（24 工具真实 FAQPage 结构化数据全到位（负向后顾注入文档级 </body>，其中 7 旧 LD 先删后注）+ 7 文件 opt-faq/适用场景套话→真实 faqs/scenarios[0] + 4 文件 formula-desc 模板套话（analysis-16/barrel-life/caliber-conversion/sight-adjustment "本计算器基于标准数学运算…工具名称："→ 真实计算原理说明）+ 标题保持纯工具名 + zh-tw 同步 + 五项门禁全过 + 提交 ee1d17e86、Actions run 结论 success。
+
+> 注：ballistics 24 key 全部对应 24 工具页，无 orphan；页结构正常无 automotive 那种 stale 缺 </head> 问题。本批脚本因 Write 路径少前导斜杠一度写错位置，已重建成正确路径并重跑（教训：Write 必须带绝对路径 `/` 开头）。
+
+---
+
 ### ✅ audio（7 工具，内容层全达标）
 
 1 批次发布：真实化 content_deepdive 的 7 条目（audio-speed 变速不变调 WSOLA/audio-recorder MediaRecorder 录音/audio-cut 波形裁剪淡变/audio-waveform 时域波形与 FFT 频谱/analysis-1 频谱分析频率分辨率/audio-echo 延迟线与混响/audio-volume 增益 dB 与归一化 7 个真实音频处理前端技术知识与示例）+ **三处同清旧套话**（7 工具真实 FAQPage 结构化数据全到位（负向后顾注入文档级 </body>）+ analysis-1 的 formula-desc 模板套话（"本计算器基于标准数学运算与单位换算约定…工具名称："→ 真实 FFT 频谱分析原理说明）+ 标题保持纯工具名 + zh-tw 同步 + 五项门禁全过 + 提交 5c6ca4441、Actions run 结论 success。
@@ -236,16 +244,15 @@
 
 ---
 
-## 八、当前进行中分类：（无，baking 已归档）
+## 八、当前进行中分类：（无，ballistics 已归档）
 
-> baking（9 工具）内容层全达标，已归档至第七节「✅ baking」；automation 为空分类（仅 index.html、无工具页）已标记跳过。
-> 下一进行中分类按字母序为 **ballistics**（见第九节清单），待下一批次置进行中并展开待优化清单。
+> ballistics（24 工具）内容层全达标，已归档至第七节「✅ ballistics」；automation 为空分类（仅 index.html、无工具页）已标记跳过。
+> 下一进行中分类按字母序为 **banking**（见第九节清单），待下一批次置进行中并展开待优化清单。
 
 ---
 
-## 九、分类总清单（待办，完成一个删一个；剩 260 个目录）
+## 九、分类总清单（待办，完成一个删一个；剩 259 个目录）
 
-- [ ] ballistics
 - [ ] banking
 - [ ] beauty
 - [ ] beekeeping
