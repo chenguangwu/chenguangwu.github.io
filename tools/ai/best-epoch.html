@@ -132,15 +132,15 @@
 <h2>📚 深度解析：最佳轮次选择</h2>
 <h3>💡 常见使用场景</h3>
 <ul class="dd-list">
-<li>将「最佳轮次选择」纳入现场复核清单，先固定其它输入，单独变化一个参数，确保输出变化趋势与工程/金融直觉一致。</li>
-<li>建议保留参数口径说明（单位、频率基准、时间窗）以便团队复现。</li>
-<li>常见场景：Best Epoch</li>
+<li>在记录中各轮验证指标(如验证 loss/F1)取最优轮次，作为部署权重。</li>
+<li>监控指标上升即早停，并回退到最佳轮 checkpoint，避免用过拟合权重。</li>
+<li>若多指标冲突(如 loss 最低但 F1 非最高)，按业务优先级选定主指标。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">复核示例：最佳轮次选择</div><div class="dd-ex-body">先用一组可复现输入做一次基准运算，再对关键输入乘以 10%、50% 两档复算，确认结果是否沿预期方向变化。</div></div>
+<div class="dd-example"><div class="dd-ex-title">选最优轮</div><div class="dd-ex-body">10 轮验证 F1 为 [0.80,0.83,0.85,0.86,0.87,0.87,0.86,0.85,0.84,0.83]，最佳为第 6 轮(0.87)，应加载第 6 轮权重而非最后一轮。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
-<dt>最佳轮次选择 的误差是否可快速定位？</dt><dd>可。先检查输入边界、单位、以及分母定义后，通常可在1-2次复算内定位偏差来源。</dd>
-<dt>结果为负值或零值时该怎么办？</dt><dd>先确认输入是否突破有效域（如对数/开方前提、分母是否接近零），再回到定义式检查口径。</dd>
+<dt>用 loss 还是 F1 选最佳轮？</dt><dd>看目标。回归用验证 loss/RMSE；分类常看 F1/Accuracy；若关注误杀率则看精确率。主指标应直接对应业务收益。</dd>
+<dt>验证指标波动怎么选？</dt><dd>取平滑后的最优且要求持续优势(patience)，避免单点噪声误导；也可在最佳轮附近做少量额外验证确认稳定。</dd>
 </dl>
 </div>
 </section>
@@ -197,6 +197,31 @@ function copyResult() {
   });
 }
 calc();
+</script>
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "用 loss 还是 F1 选最佳轮？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "看目标。回归用验证 loss/RMSE；分类常看 F1/Accuracy；若关注误杀率则看精确率。主指标应直接对应业务收益。"
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "验证指标波动怎么选？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "取平滑后的最优且要求持续优势(patience)，避免单点噪声误导；也可在最佳轮附近做少量额外验证确认稳定。"
+      }
+    }
+  ]
+}
 </script>
 </body>
 </html>

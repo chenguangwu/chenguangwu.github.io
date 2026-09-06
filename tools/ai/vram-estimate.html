@@ -130,15 +130,15 @@
 <h2>📚 深度解析：模型显存估算</h2>
 <h3>💡 常见使用场景</h3>
 <ul class="dd-list">
-<li>将「模型显存估算」纳入现场复核清单，先固定其它输入，单独变化一个参数，确保输出变化趋势与工程/金融直觉一致。</li>
-<li>建议保留参数口径说明（单位、频率基准、时间窗）以便团队复现。</li>
-<li>常见场景：Vram Estimate</li>
+<li>权重显存≈参数量×每参数字节数(FP16=2, INT8=1, FP32=4)。</li>
+<li>推理显存还需加激活/KV 缓存，训练另需梯度与优化器状态(常数倍于权重)。</li>
+<li>估算用于硬件选型、batch 设定与显存溢出预警。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">复核示例：模型显存估算</div><div class="dd-ex-body">先用一组可复现输入做一次基准运算，再对关键输入乘以 10%、50% 两档复算，确认结果是否沿预期方向变化。</div></div>
+<div class="dd-example"><div class="dd-ex-title">7B 模型显存</div><div class="dd-ex-body">7B 参数 FP16：权重≈7e9×2=14GB；加 KV 缓存与激活后推理约 16~18GB，可在 24GB 显卡跑；若训则需额外梯度+优化器(约 3~4 倍权重)。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
-<dt>模型显存估算 的误差是否可快速定位？</dt><dd>可。先检查输入边界、单位、以及分母定义后，通常可在1-2次复算内定位偏差来源。</dd>
-<dt>结果为负值或零值时该怎么办？</dt><dd>先确认输入是否突破有效域（如对数/开方前提、分母是否接近零），再回到定义式检查口径。</dd>
+<dt>为什么训练显存远大于推理？</dt><dd>训练需保留前向激活供反向、存梯度(同尺寸)与优化器状态(Adam 约 2 倍权重)，常使总显存达权重 3~4 倍；推理只需权重+少量激活。</dd>
+<dt>显存不够怎么办？</dt><dd>量化降权重字节数、用梯度检查点换计算省激活、降 batch、或模型并行/张量并行分片；必要时上更大显存或分布式。</dd>
 </dl>
 </div>
 </section>
@@ -193,6 +193,31 @@ function copyResult() {
   });
 }
 calc();
+</script>
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "为什么训练显存远大于推理？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "训练需保留前向激活供反向、存梯度(同尺寸)与优化器状态(Adam 约 2 倍权重)，常使总显存达权重 3~4 倍；推理只需权重+少量激活。"
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "显存不够怎么办？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "量化降权重字节数、用梯度检查点换计算省激活、降 batch、或模型并行/张量并行分片；必要时上更大显存或分布式。"
+      }
+    }
+  ]
+}
 </script>
 </body>
 </html>

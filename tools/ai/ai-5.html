@@ -130,15 +130,15 @@
 <h2>📚 深度解析：批量大小迭代次数</h2>
 <h3>💡 常见使用场景</h3>
 <ul class="dd-list">
-<li>将「批量大小迭代次数」纳入现场复核清单，先固定其它输入，单独变化一个参数，确保输出变化趋势与工程/金融直觉一致。</li>
-<li>建议保留参数口径说明（单位、频率基准、时间窗）以便团队复现。</li>
-<li>常见场景：Batch Size Iteration Count</li>
+<li>每轮迭代步数 steps=⌈N/batch_size⌉，N 为训练样本总数。</li>
+<li>总优化步数=epochs×steps；batch 越大单轮步数越少但显存与通信开销越高。</li>
+<li>分布式有效批次=单卡 batch×梯度累积步数×GPU 数。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">复核示例：批量大小迭代次数</div><div class="dd-ex-body">先用一组可复现输入做一次基准运算，再对关键输入乘以 10%、50% 两档复算，确认结果是否沿预期方向变化。</div></div>
+<div class="dd-example"><div class="dd-ex-title">一万样本每批 32</div><div class="dd-ex-body">N=10000, batch=32 → steps=⌈10000/32⌉=313 步/轮；训练 10 轮共约 3130 步。若 4 卡数据并行每卡 batch=32，等效 batch=128，steps 降至 79/轮。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
-<dt>批量大小迭代次数 的误差是否可快速定位？</dt><dd>可。先检查输入边界、单位、以及分母定义后，通常可在1-2次复算内定位偏差来源。</dd>
-<dt>结果为负值或零值时该怎么办？</dt><dd>先确认输入是否突破有效域（如对数/开方前提、分母是否接近零），再回到定义式检查口径。</dd>
+<dt>batch size 是不是越大越好？</dt><dd>不是。大 batch 收敛快但泛化常变差，需配合更大学习率与更强正则；小 batch 梯度噪声大却常泛化更好，需在显存与泛化间权衡。</dd>
+<dt>最后一个不完整的 batch 怎么处理？</dt><dd>默认保留尾批(大小不足 batch)；也可 drop_last 丢弃以避免形状不一致，步数用向上取整即包含该尾批。</dd>
 </dl>
 </div>
 </section>
@@ -195,6 +195,31 @@ function copyResult() {
   });
 }
 calc();
+</script>
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "batch size 是不是越大越好？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "不是。大 batch 收敛快但泛化常变差，需配合更大学习率与更强正则；小 batch 梯度噪声大却常泛化更好，需在显存与泛化间权衡。"
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "最后一个不完整的 batch 怎么处理？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "默认保留尾批(大小不足 batch)；也可 drop_last 丢弃以避免形状不一致，步数用向上取整即包含该尾批。"
+      }
+    }
+  ]
+}
 </script>
 </body>
 </html>

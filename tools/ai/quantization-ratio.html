@@ -130,15 +130,15 @@
 <h2>📚 深度解析：量化压缩比</h2>
 <h3>💡 常见使用场景</h3>
 <ul class="dd-list">
-<li>将「量化压缩比」纳入现场复核清单，先固定其它输入，单独变化一个参数，确保输出变化趋势与工程/金融直觉一致。</li>
-<li>建议保留参数口径说明（单位、频率基准、时间窗）以便团队复现。</li>
-<li>常见场景：Quantization Ratio</li>
+<li>压缩比=量化前位数/量化后位数，如 FP32(32bit)→INT8(8bit) 理论压缩 4×。</li>
+<li>实际显存节省还需扣减反量化层与激活的精度开销，常略低于理论值。</li>
+<li>量化分训练后(PTQ)与量化感知训练(QAT)，后者精度损失更小。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">复核示例：量化压缩比</div><div class="dd-ex-body">先用一组可复现输入做一次基准运算，再对关键输入乘以 10%、50% 两档复算，确认结果是否沿预期方向变化。</div></div>
+<div class="dd-example"><div class="dd-ex-title">FP32→INT8</div><div class="dd-ex-body">7B 模型 FP16 权重≈14GB，量化 INT8≈3.5GB(约 4× 压缩)，可在消费级显卡部署；若进一步 INT4≈1.75GB 但精度损失更明显，需实测可接受度。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
-<dt>量化压缩比 的误差是否可快速定位？</dt><dd>可。先检查输入边界、单位、以及分母定义后，通常可在1-2次复算内定位偏差来源。</dd>
-<dt>结果为负值或零值时该怎么办？</dt><dd>先确认输入是否突破有效域（如对数/开方前提、分母是否接近零），再回到定义式检查口径。</dd>
+<dt>量化一定会掉精度吗？</dt><dd>会损失一定精度，但 PTQ+校准或 QAT 可把损失压到很小；小模型/低比特(INT4)损失更大，需以下游任务指标验证。</dd>
+<dt>压缩比和推理速度是一回事？</dt><dd>相关但不等价。低比特省显存、提升访存带宽利用率，常提速；但是否真正加速还取决于硬件对低比特算子与反量化的支持。</dd>
 </dl>
 </div>
 </section>
@@ -195,6 +195,31 @@ function copyResult() {
   });
 }
 calc();
+</script>
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "量化一定会掉精度吗？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "会损失一定精度，但 PTQ+校准或 QAT 可把损失压到很小；小模型/低比特(INT4)损失更大，需以下游任务指标验证。"
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "压缩比和推理速度是一回事？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "相关但不等价。低比特省显存、提升访存带宽利用率，常提速；但是否真正加速还取决于硬件对低比特算子与反量化的支持。"
+      }
+    }
+  ]
+}
 </script>
 </body>
 </html>

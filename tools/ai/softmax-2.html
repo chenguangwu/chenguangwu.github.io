@@ -131,15 +131,15 @@
 <h2>📚 深度解析：温度缩放 Softmax</h2>
 <h3>💡 常见使用场景</h3>
 <ul class="dd-list">
-<li>将「温度缩放 Softmax」纳入现场复核清单，先固定其它输入，单独变化一个参数，确保输出变化趋势与工程/金融直觉一致。</li>
-<li>建议保留参数口径说明（单位、频率基准、时间窗）以便团队复现。</li>
-<li>常见场景：Temperature Scaling Softmax</li>
+<li>温度缩放 y_i=exp(z_i/T)/Σexp(z_j/T)，T&gt;1 使分布更平滑(更不确定)，T&lt;1 更尖锐。</li>
+<li>T→∞ 趋近均匀分布，T→0 趋近 one-hot(argmax)。</li>
+<li>温度常用于调节生成多样性与模型校准，不改变 argmax 类别。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">复核示例：温度缩放 Softmax</div><div class="dd-ex-body">先用一组可复现输入做一次基准运算，再对关键输入乘以 10%、50% 两档复算，确认结果是否沿预期方向变化。</div></div>
+<div class="dd-example"><div class="dd-ex-title">温度影响分布</div><div class="dd-ex-body">logits=[2,1,0.5]，T=1 → 概率≈[0.56,0.21,0.23]；T=2 → [0.46,0.30,0.24] 更平滑；T=0.5 → [0.76,0.17,0.07] 更尖锐。argmax 始终为第 1 类。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
-<dt>温度缩放 Softmax 的误差是否可快速定位？</dt><dd>可。先检查输入边界、单位、以及分母定义后，通常可在1-2次复算内定位偏差来源。</dd>
-<dt>结果为负值或零值时该怎么办？</dt><dd>先确认输入是否突破有效域（如对数/开方前提、分母是否接近零），再回到定义式检查口径。</dd>
+<dt>温度能校准模型吗？</dt><dd>温度缩放是最简单的后校准方法，调 T 使输出置信度匹配实际准确率；但它只缩放分布、不能修正错误预测的方向。</dd>
+<dt>生成时温度设多高？</dt><dd>创意写作用较高 T(0.7~1.0)增多样性，事实问答用低 T(0~0.3)增确定性；过高会胡言乱语，过低则重复僵化。</dd>
 </dl>
 </div>
 </section>
@@ -199,6 +199,31 @@ function copyResult() {
   });
 }
 calc();
+</script>
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "温度能校准模型吗？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "温度缩放是最简单的后校准方法，调 T 使输出置信度匹配实际准确率；但它只缩放分布、不能修正错误预测的方向。"
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "生成时温度设多高？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "创意写作用较高 T(0.7~1.0)增多样性，事实问答用低 T(0~0.3)增确定性；过高会胡言乱语，过低则重复僵化。"
+      }
+    }
+  ]
+}
 </script>
 </body>
 </html>

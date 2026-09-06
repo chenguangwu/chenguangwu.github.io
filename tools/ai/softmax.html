@@ -131,15 +131,15 @@
 <h2>📚 深度解析：Softmax 概率</h2>
 <h3>💡 常见使用场景</h3>
 <ul class="dd-list">
-<li>将「Softmax 概率」纳入现场复核清单，先固定其它输入，单独变化一个参数，确保输出变化趋势与工程/金融直觉一致。</li>
-<li>建议保留参数口径说明（单位、频率基准、时间窗）以便团队复现。</li>
-<li>常见场景：Softmax Probability</li>
+<li>softmax(z)_i=exp(z_i)/Σⱼexp(z_j)，将 logits 归一化为和为 1 的概率分布。</li>
+<li>输出具平移不变性(全体加常数不变)，但对尺度敏感(乘系数放大差异)。</li>
+<li>多分类输出层标配，配合交叉熵作损失；数值上先减最大值防溢出。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">复核示例：Softmax 概率</div><div class="dd-ex-body">先用一组可复现输入做一次基准运算，再对关键输入乘以 10%、50% 两档复算，确认结果是否沿预期方向变化。</div></div>
+<div class="dd-example"><div class="dd-ex-title">概率归一化</div><div class="dd-ex-body">logits=[2,1,0.1]，减最大值 2 得 [0,−1,−1.9]，exp=[1,0.368,0.149]，Σ=1.517 → 概率=[0.659,0.243,0.098]，和为 1。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
-<dt>Softmax 概率 的误差是否可快速定位？</dt><dd>可。先检查输入边界、单位、以及分母定义后，通常可在1-2次复算内定位偏差来源。</dd>
-<dt>结果为负值或零值时该怎么办？</dt><dd>先确认输入是否突破有效域（如对数/开方前提、分母是否接近零），再回到定义式检查口径。</dd>
+<dt>为什么要减去最大值？</dt><dd>exp 大数会溢出。softmax 具平移不变性，先减最大值不改变结果却把所有指数压到 ≤0，避免 exp 上溢、数值稳定。</dd>
+<dt>softmax 和 sigmoid 在二分类下等价吗？</dt><dd>等价。二分类 softmax 两维概率互为补数，与对单 logit 用 sigmoid 一致；多分类才必须用 softmax 归一化。</dd>
 </dl>
 </div>
 </section>
@@ -199,6 +199,31 @@ function copyResult() {
   });
 }
 calc();
+</script>
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "为什么要减去最大值？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "exp 大数会溢出。softmax 具平移不变性，先减最大值不改变结果却把所有指数压到 ≤0，避免 exp 上溢、数值稳定。"
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "softmax 和 sigmoid 在二分类下等价吗？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "等价。二分类 softmax 两维概率互为补数，与对单 logit 用 sigmoid 一致；多分类才必须用 softmax 归一化。"
+      }
+    }
+  ]
+}
 </script>
 </body>
 </html>

@@ -130,15 +130,15 @@
 <h2>📚 深度解析：早停耐心估算</h2>
 <h3>💡 常见使用场景</h3>
 <ul class="dd-list">
-<li>将「早停耐心估算」纳入现场复核清单，先固定其它输入，单独变化一个参数，确保输出变化趋势与工程/金融直觉一致。</li>
-<li>建议保留参数口径说明（单位、频率基准、时间窗）以便团队复现。</li>
-<li>常见场景：⏱️ Early Stopping Patience Estimate</li>
+<li>patience 表示验证指标连续多少轮未改善即停止，用于防止过拟合。</li>
+<li>预计总时长≈(当前轮次+剩余耐心轮次)×单轮耗时，辅助算力排期。</li>
+<li>patience 过小易早停漏掉后期收敛，过大则浪费算力，常用 5~20。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">复核示例：早停耐心估算</div><div class="dd-ex-body">先用一组可复现输入做一次基准运算，再对关键输入乘以 10%、50% 两档复算，确认结果是否沿预期方向变化。</div></div>
+<div class="dd-example"><div class="dd-ex-title">耐心与训练时长</div><div class="dd-ex-body">已训练 30 轮、单轮 4 分钟、patience=10。若验证已 10 轮未改善则立即停止；最坏还需 10×4=40 分钟。据此可提前规划 GPU 释放。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
-<dt>早停耐心估算 的误差是否可快速定位？</dt><dd>可。先检查输入边界、单位、以及分母定义后，通常可在1-2次复算内定位偏差来源。</dd>
-<dt>结果为负值或零值时该怎么办？</dt><dd>先确认输入是否突破有效域（如对数/开方前提、分母是否接近零），再回到定义式检查口径。</dd>
+<dt>patience 设多大合适？</dt><dd>取决于训练曲线波动。噪声大(如小 batch)需更大 patience 避免误停；平滑训练可设小些。常取总轮次的 10%~20%。</dd>
+<dt>早停后要不要回退到最优轮？</dt><dd>要。监控最佳验证权重并单独保存(model checkpoint)，停止后加载该 checkpoint 而非最后一轮，否则可能用的是已过拟合的权重。</dd>
 </dl>
 </div>
 </section>
@@ -195,6 +195,31 @@ function copyResult() {
   });
 }
 calc();
+</script>
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "patience 设多大合适？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "取决于训练曲线波动。噪声大(如小 batch)需更大 patience 避免误停；平滑训练可设小些。常取总轮次的 10%~20%。"
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "早停后要不要回退到最优轮？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "要。监控最佳验证权重并单独保存(model checkpoint)，停止后加载该 checkpoint 而非最后一轮，否则可能用的是已过拟合的权重。"
+      }
+    }
+  ]
+}
 </script>
 </body>
 </html>

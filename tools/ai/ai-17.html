@@ -131,15 +131,15 @@
 <h2>📚 深度解析：提示词上下文窗口</h2>
 <h3>💡 常见使用场景</h3>
 <ul class="dd-list">
-<li>将「提示词上下文窗口」纳入现场复核清单，先固定其它输入，单独变化一个参数，确保输出变化趋势与工程/金融直觉一致。</li>
-<li>建议保留参数口径说明（单位、频率基准、时间窗）以便团队复现。</li>
-<li>常见场景：Prompt Context Window</li>
+<li>上下文占用=累计 token 数 / 模型上下文窗口长度(如 8k/32k/128k)。</li>
+<li>多轮对话需扣除历史 token，超出窗口须裁剪或摘要压缩，否则被截断。</li>
+<li>占用比越高越易触发截断与成本上升，长对话应定期清理低价值历史。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">复核示例：提示词上下文窗口</div><div class="dd-ex-body">先用一组可复现输入做一次基准运算，再对关键输入乘以 10%、50% 两档复算，确认结果是否沿预期方向变化。</div></div>
+<div class="dd-example"><div class="dd-ex-title">长对话溢出预警</div><div class="dd-ex-body">窗口 32k，当前累计 28k token → 占用 87.5%，剩余 4k 仅够约一句长回复。若再追加 5k 历史将溢出，应裁剪最早 6k 或用摘要替代原文。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
-<dt>提示词上下文窗口 的误差是否可快速定位？</dt><dd>可。先检查输入边界、单位、以及分母定义后，通常可在1-2次复算内定位偏差来源。</dd>
-<dt>结果为负值或零值时该怎么办？</dt><dd>先确认输入是否突破有效域（如对数/开方前提、分母是否接近零），再回到定义式检查口径。</dd>
+<dt>为什么超出窗口会被截断？</dt><dd>模型注意力只能覆盖固定长度上下文，超出的前缀会被丢弃(或报错)。裁剪应保留最近对话与关键事实，避免丢失约束指令。</dd>
+<dt>压缩历史会丢信息吗？</dt><dd>会。摘要压缩以语义概括替代原文，可能损失细节；权衡做法是保留最近 N 轮原文、更早的做摘要，关键参数始终置顶。</dd>
 </dl>
 </div>
 </section>
@@ -199,6 +199,31 @@ function copyResult() {
   });
 }
 calc();
+</script>
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "为什么超出窗口会被截断？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "模型注意力只能覆盖固定长度上下文，超出的前缀会被丢弃(或报错)。裁剪应保留最近对话与关键事实，避免丢失约束指令。"
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "压缩历史会丢信息吗？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "会。摘要压缩以语义概括替代原文，可能损失细节；权衡做法是保留最近 N 轮原文、更早的做摘要，关键参数始终置顶。"
+      }
+    }
+  ]
+}
 </script>
 </body>
 </html>

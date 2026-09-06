@@ -130,15 +130,15 @@
 <h2>📚 深度解析：学习率预热步数</h2>
 <h3>💡 常见使用场景</h3>
 <ul class="dd-list">
-<li>将「学习率预热步数」纳入现场复核清单，先固定其它输入，单独变化一个参数，确保输出变化趋势与工程/金融直觉一致。</li>
-<li>建议保留参数口径说明（单位、频率基准、时间窗）以便团队复现。</li>
-<li>常见场景：Lr Warmup</li>
+<li>预热步数=总步数×预热比例；期间 lr 从 0(或很小)线性升到峰值。</li>
+<li>避免训练初期大 lr 破坏随机初始化、造成梯度震荡或不稳定。</li>
+<li>常用预热比例 0~10%，与余弦衰减衔接形成 warmup+decay 调度。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">复核示例：学习率预热步数</div><div class="dd-ex-body">先用一组可复现输入做一次基准运算，再对关键输入乘以 10%、50% 两档复算，确认结果是否沿预期方向变化。</div></div>
+<div class="dd-example"><div class="dd-ex-title">预热区间</div><div class="dd-ex-body">总步数 10000、预热比例 5% → 预热步数=500，前 500 步 lr 从 0 线性增至峰值(如 1e-3)，之后进入衰减。无预热时首步即 1e-3 易震荡。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
-<dt>学习率预热步数 的误差是否可快速定位？</dt><dd>可。先检查输入边界、单位、以及分母定义后，通常可在1-2次复算内定位偏差来源。</dd>
-<dt>结果为负值或零值时该怎么办？</dt><dd>先确认输入是否突破有效域（如对数/开方前提、分母是否接近零），再回到定义式检查口径。</dd>
+<dt>预热一定要吗？</dt><dd>大模型/大 batch 通常必要，能稳定初期训练；小模型小学习率可省略。跳过预热常出现首轮 loss 尖峰甚至 NaN。</dd>
+<dt>预热比例多大合适？</dt><dd>常见 0~10%，Transformer 训练多用 1%~6%；过大则有效训练步数被浪费，过小保护不足，以验证曲线平滑为准。</dd>
 </dl>
 </div>
 </section>
@@ -193,6 +193,31 @@ function copyResult() {
   });
 }
 calc();
+</script>
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "预热一定要吗？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "大模型/大 batch 通常必要，能稳定初期训练；小模型小学习率可省略。跳过预热常出现首轮 loss 尖峰甚至 NaN。"
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "预热比例多大合适？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "常见 0~10%，Transformer 训练多用 1%~6%；过大则有效训练步数被浪费，过小保护不足，以验证曲线平滑为准。"
+      }
+    }
+  ]
+}
 </script>
 </body>
 </html>

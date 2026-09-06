@@ -130,15 +130,15 @@
 <h2>📚 深度解析：每轮训练步数</h2>
 <h3>💡 常见使用场景</h3>
 <ul class="dd-list">
-<li>将「每轮训练步数」纳入现场复核清单，先固定其它输入，单独变化一个参数，确保输出变化趋势与工程/金融直觉一致。</li>
-<li>建议保留参数口径说明（单位、频率基准、时间窗）以便团队复现。</li>
-<li>常见场景：Steps Per Epoch</li>
+<li>每轮步数 steps=⌈数据集样本数/batch_size⌉，决定单轮迭代次数。</li>
+<li>分布式下每卡步数=⌈N/(batch×world_size)⌉，注意尾批与丢弃策略。</li>
+<li>步数×单步耗时≈单轮时长，是训练排期与进度估算的基础。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">复核示例：每轮训练步数</div><div class="dd-ex-body">先用一组可复现输入做一次基准运算，再对关键输入乘以 10%、50% 两档复算，确认结果是否沿预期方向变化。</div></div>
+<div class="dd-example"><div class="dd-ex-title">步数计算</div><div class="dd-ex-body">N=50000, batch=64 → steps=⌈50000/64⌉=782 步/轮。4 卡数据并行每卡 batch=64 则每卡 782 步(总样本不变)，等效 batch=256 使收敛更快。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
-<dt>每轮训练步数 的误差是否可快速定位？</dt><dd>可。先检查输入边界、单位、以及分母定义后，通常可在1-2次复算内定位偏差来源。</dd>
-<dt>结果为负值或零值时该怎么办？</dt><dd>先确认输入是否突破有效域（如对数/开方前提、分母是否接近零），再回到定义式检查口径。</dd>
+<dt>分布式每卡步数变少吗？</dt><dd>若每卡 batch 不变，每卡处理的样本数减少，步数按每卡样本算会减少；总计算量不变，只是并行加速，等效 batch 变大了。</dd>
+<dt>尾批怎么影响步数？</dt><dd>向上取整已含尾批(不足 batch 的余量)。若启用 drop_last 则步数=⌊N/batch⌋，少算一个不完整批，需在指标上对应处理。</dd>
 </dl>
 </div>
 </section>
@@ -193,6 +193,31 @@ function copyResult() {
   });
 }
 calc();
+</script>
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "分布式每卡步数变少吗？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "若每卡 batch 不变，每卡处理的样本数减少，步数按每卡样本算会减少；总计算量不变，只是并行加速，等效 batch 变大了。"
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "尾批怎么影响步数？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "向上取整已含尾批(不足 batch 的余量)。若启用 drop_last 则步数=⌊N/batch⌋，少算一个不完整批，需在指标上对应处理。"
+      }
+    }
+  ]
+}
 </script>
 </body>
 </html>

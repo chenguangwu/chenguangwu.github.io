@@ -130,15 +130,15 @@
 <h2>📚 深度解析：推理吞吐估算</h2>
 <h3>💡 常见使用场景</h3>
 <ul class="dd-list">
-<li>将「推理吞吐估算」纳入现场复核清单，先固定其它输入，单独变化一个参数，确保输出变化趋势与工程/金融直觉一致。</li>
-<li>建议保留参数口径说明（单位、频率基准、时间窗）以便团队复现。</li>
-<li>常见场景：Inference Throughput</li>
+<li>吞吐≈生成 token 数 / 端到端时延(tokens/s)，衡量服务处理速度。</li>
+<li>受模型大小、批大小、KV 缓存与硬件带宽共同影响，非仅由 FLOPs 决定。</li>
+<li>容量规划用 吞吐×并发上限 估算峰值 QPS，需预留余量防雪崩。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">复核示例：推理吞吐估算</div><div class="dd-ex-body">先用一组可复现输入做一次基准运算，再对关键输入乘以 10%、50% 两档复算，确认结果是否沿预期方向变化。</div></div>
+<div class="dd-example"><div class="dd-ex-title">单请求吞吐</div><div class="dd-ex-body">生成 200 token 耗时 4s → 吞吐=50 tokens/s。若单卡支持 4 并发且各 50 tok/s，总吞吐≈200 tok/s；但实际共享 KV 缓存与带宽，并发增益低于线性。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
-<dt>推理吞吐估算 的误差是否可快速定位？</dt><dd>可。先检查输入边界、单位、以及分母定义后，通常可在1-2次复算内定位偏差来源。</dd>
-<dt>结果为负值或零值时该怎么办？</dt><dd>先确认输入是否突破有效域（如对数/开方前提、分母是否接近零），再回到定义式检查口径。</dd>
+<dt>为什么吞吐不随并发线性增长？</dt><dd>显存带宽与算力是共享瓶颈，多请求竞争 KV 缓存与计算单元，边际吞吐递减；需实测找到拐点再定并发上限。</dd>
+<dt>首 token 延迟和吞吐冲突吗？</dt><dd>常冲突。大模型首 token 受预填充耗时影响，吞吐受解码并行影响；优化方向相反时按业务(对话要低延迟、批处理要高吞吐)取舍。</dd>
 </dl>
 </div>
 </section>
@@ -193,6 +193,31 @@ function copyResult() {
   });
 }
 calc();
+</script>
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "为什么吞吐不随并发线性增长？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "显存带宽与算力是共享瓶颈，多请求竞争 KV 缓存与计算单元，边际吞吐递减；需实测找到拐点再定并发上限。"
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "首 token 延迟和吞吐冲突吗？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "常冲突。大模型首 token 受预填充耗时影响，吞吐受解码并行影响；优化方向相反时按业务(对话要低延迟、批处理要高吞吐)取舍。"
+      }
+    }
+  ]
+}
 </script>
 </body>
 </html>

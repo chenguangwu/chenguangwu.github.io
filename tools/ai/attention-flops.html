@@ -130,15 +130,15 @@
 <h2>📚 深度解析：注意力计算量</h2>
 <h3>💡 常见使用场景</h3>
 <ul class="dd-list">
-<li>将「注意力计算量」纳入现场复核清单，先固定其它输入，单独变化一个参数，确保输出变化趋势与工程/金融直觉一致。</li>
-<li>建议保留参数口径说明（单位、频率基准、时间窗）以便团队复现。</li>
-<li>常见场景：Attention Flops</li>
+<li>单头注意力 FLOPs≈2·S²·d（QKᵀ 与 AV 两次矩阵乘），S 为序列长、d 为维度。</li>
+<li>多头总计算≈2·S²·h·d_head + 4·S·d²（含 Q/K/V/O 投影），S² 项使长序列算力平方增长。</li>
+<li>与 FFN 相比，注意力在长序列时 dominated by S²，是推理成本优化的重点。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">复核示例：注意力计算量</div><div class="dd-ex-body">先用一组可复现输入做一次基准运算，再对关键输入乘以 10%、50% 两档复算，确认结果是否沿预期方向变化。</div></div>
+<div class="dd-example"><div class="dd-ex-title">单层注意力算力</div><div class="dd-ex-body">S=1024, h=16, d_head=64(总 d=1024)：S² 项≈2×1024²×1024≈2.15×10⁹ FLOPs；投影 4·S·d²=4×1024×1024²≈4.29×10⁹。单层约 6.4×10⁹ FLOPs，12 层约 7.7×10¹⁰。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
-<dt>注意力计算量 的误差是否可快速定位？</dt><dd>可。先检查输入边界、单位、以及分母定义后，通常可在1-2次复算内定位偏差来源。</dd>
-<dt>结果为负值或零值时该怎么办？</dt><dd>先确认输入是否突破有效域（如对数/开方前提、分母是否接近零），再回到定义式检查口径。</dd>
+<dt>为什么长文本推理特别慢？</dt><dd>注意力核心项是 S²·d，序列翻倍算力翻约 4 倍；KV 缓存虽降重算，但注意力矩阵仍随上下文长度平方增长，故长上下文成本陡增。</dd>
+<dt>FLOPs 和显存是一回事吗？</dt><dd>不是。FLOPs 衡量算力(时间)，显存衡量参数与激活的存储(空间)。量化降显存但不降 FLOPs，稀疏/蒸馏可同时降两者。</dd>
 </dl>
 </div>
 </section>
@@ -193,6 +193,31 @@ function copyResult() {
   });
 }
 calc();
+</script>
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "为什么长文本推理特别慢？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "注意力核心项是 S²·d，序列翻倍算力翻约 4 倍；KV 缓存虽降重算，但注意力矩阵仍随上下文长度平方增长，故长上下文成本陡增。"
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "FLOPs 和显存是一回事吗？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "不是。FLOPs 衡量算力(时间)，显存衡量参数与激活的存储(空间)。量化降显存但不降 FLOPs，稀疏/蒸馏可同时降两者。"
+      }
+    }
+  ]
+}
 </script>
 </body>
 </html>

@@ -130,15 +130,15 @@
 <h2>📚 深度解析：交叉熵损失</h2>
 <h3>💡 常见使用场景</h3>
 <ul class="dd-list">
-<li>将「交叉熵损失」纳入现场复核清单，先固定其它输入，单独变化一个参数，确保输出变化趋势与工程/金融直觉一致。</li>
-<li>建议保留参数口径说明（单位、频率基准、时间窗）以便团队复现。</li>
-<li>常见场景：Cross Entropy Loss</li>
+<li>二分类交叉熵 CE=−[y·log(p)+(1−y)·log(1−p)]，y∈{0,1}, p 为预测正类概率。</li>
+<li>多分类用 −Σyᵢlog(pᵢ)，要求 p 经 softmax 且和为 1。</li>
+<li>CE 对错误预测惩罚重(对数放大)，是分类模型训练的标准损失。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">复核示例：交叉熵损失</div><div class="dd-ex-body">先用一组可复现输入做一次基准运算，再对关键输入乘以 10%、50% 两档复算，确认结果是否沿预期方向变化。</div></div>
+<div class="dd-example"><div class="dd-ex-title">单样本损失</div><div class="dd-ex-body">真实 y=1，预测 p=0.9 → CE=−log(0.9)=0.105；若 p=0.1 → CE=−log(0.1)=2.303。预测越错损失越大，驱动模型修正。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
-<dt>交叉熵损失 的误差是否可快速定位？</dt><dd>可。先检查输入边界、单位、以及分母定义后，通常可在1-2次复算内定位偏差来源。</dd>
-<dt>结果为负值或零值时该怎么办？</dt><dd>先确认输入是否突破有效域（如对数/开方前提、分母是否接近零），再回到定义式检查口径。</dd>
+<dt>为什么用交叉熵而不是均方误差？</dt><dd>CE 对概率错误更敏感且在 sigmoid/softmax 下梯度更优，MSE 用于概率会产生饱和、收敛慢；CE 是分类自然对应的对数似然损失。</dd>
+<dt>p 为 0 或 1 会怎样？</dt><dd>log(0) 得 −∞ 导致数值爆炸。实践中对 p 做裁剪(clip 到 ε~1−ε)或用带 logits 的稳定实现(直接吃 raw score 算 softmax)避免。</dd>
 </dl>
 </div>
 </section>
@@ -193,6 +193,31 @@ function copyResult() {
   });
 }
 calc();
+</script>
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "为什么用交叉熵而不是均方误差？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "CE 对概率错误更敏感且在 sigmoid/softmax 下梯度更优，MSE 用于概率会产生饱和、收敛慢；CE 是分类自然对应的对数似然损失。"
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "p 为 0 或 1 会怎样？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "log(0) 得 −∞ 导致数值爆炸。实践中对 p 做裁剪(clip 到 ε~1−ε)或用带 logits 的稳定实现(直接吃 raw score 算 softmax)避免。"
+      }
+    }
+  ]
+}
 </script>
 </body>
 </html>

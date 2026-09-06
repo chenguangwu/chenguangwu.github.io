@@ -130,15 +130,15 @@
 <h2>📚 深度解析：Dropout 保留期望</h2>
 <h3>💡 常见使用场景</h3>
 <ul class="dd-list">
-<li>将「Dropout 保留期望」纳入现场复核清单，先固定其它输入，单独变化一个参数，确保输出变化趋势与工程/金融直觉一致。</li>
-<li>建议保留参数口径说明（单位、频率基准、时间窗）以便团队复现。</li>
-<li>常见场景：Dropout</li>
+<li>训练期以概率 p 随机丢弃神经元，期望输出 E[out]=p·x，破坏 co-adaptation 起正则作用。</li>
+<li>推理期若不做缩放，需将权重乘 p(或训练期除以 p)使期望一致，即 inverted dropout。</li>
+<li>常用 p=0.5 于隐藏层、0.0~0.2 于输入层；过大 p 会欠拟合。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">复核示例：Dropout 保留期望</div><div class="dd-ex-body">先用一组可复现输入做一次基准运算，再对关键输入乘以 10%、50% 两档复算，确认结果是否沿预期方向变化。</div></div>
+<div class="dd-example"><div class="dd-ex-title">期望与缩放</div><div class="dd-ex-body">输入 x=2.0, p=0.5：训练期期望输出=0.5×2=1.0。推理期若保留全部神经元，须把权重×0.5 使输出期望仍为 1.0( inverted dropout 在训练时先除 p)。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
-<dt>Dropout 保留期望 的误差是否可快速定位？</dt><dd>可。先检查输入边界、单位、以及分母定义后，通常可在1-2次复算内定位偏差来源。</dd>
-<dt>结果为负值或零值时该怎么办？</dt><dd>先确认输入是否突破有效域（如对数/开方前提、分母是否接近零），再回到定义式检查口径。</dd>
+<dt>为什么推理时要缩放？</dt><dd>训练丢弃使激活期望变为 p·x，若不缩放推理输出会比训练期望大 1/p 倍，分布错位导致性能下降；缩放恢复一致期望。</dd>
+<dt>dropout 现在还常用吗？</dt><dd>在 Transformer 等大模型中常被 LayerNorm/BatchNorm 与权重衰减部分替代，但仍是有效正则；现代多用 dropout 配合注意力 dropout 与随机深度。</dd>
 </dl>
 </div>
 </section>
@@ -197,6 +197,31 @@ function copyResult() {
   });
 }
 calc();
+</script>
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "为什么推理时要缩放？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "训练丢弃使激活期望变为 p·x，若不缩放推理输出会比训练期望大 1/p 倍，分布错位导致性能下降；缩放恢复一致期望。"
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "dropout 现在还常用吗？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "在 Transformer 等大模型中常被 LayerNorm/BatchNorm 与权重衰减部分替代，但仍是有效正则；现代多用 dropout 配合注意力 dropout 与随机深度。"
+      }
+    }
+  ]
+}
 </script>
 </body>
 </html>

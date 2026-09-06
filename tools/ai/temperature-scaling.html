@@ -130,15 +130,15 @@
 <h2>📚 深度解析：温度缩放 Logits</h2>
 <h3>💡 常见使用场景</h3>
 <ul class="dd-list">
-<li>将「温度缩放 Logits」纳入现场复核清单，先固定其它输入，单独变化一个参数，确保输出变化趋势与工程/金融直觉一致。</li>
-<li>建议保留参数口径说明（单位、频率基准、时间窗）以便团队复现。</li>
-<li>常见场景：Temperature Scaling Logits</li>
+<li>在 softmax 前对 logits 做 z/T，演示温度对概率形态的影响，不改变 argmax。</li>
+<li>T&gt;1 平滑分布(置信度降低)，T&lt;1 锐化(更自信)，是模型校准常用手段。</li>
+<li>与生成温度同源：同一机制既可用于校准也可调生成多样性。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">复核示例：温度缩放 Logits</div><div class="dd-ex-body">先用一组可复现输入做一次基准运算，再对关键输入乘以 10%、50% 两档复算，确认结果是否沿预期方向变化。</div></div>
+<div class="dd-example"><div class="dd-ex-title">校准演示</div><div class="dd-ex-body">logits=[3,1,0]，T=1 概率≈[0.79,0.11,0.10]；T=2 → [0.59,0.23,0.18] 更不确定；模型原自信 79% 经校准可能更接近真实准确率。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
-<dt>温度缩放 Logits 的误差是否可快速定位？</dt><dd>可。先检查输入边界、单位、以及分母定义后，通常可在1-2次复算内定位偏差来源。</dd>
-<dt>结果为负值或零值时该怎么办？</dt><dd>先确认输入是否突破有效域（如对数/开方前提、分母是否接近零），再回到定义式检查口径。</dd>
+<dt>温度缩放能提升准确率吗？</dt><dd>不直接提升分类准确率(argmax 不变)，只让输出置信度更'诚实'地反映正确率，对需要可靠概率的应用(如风险决策)很有价值。</dd>
+<dt>T 用什么值校准？</dt><dd>在验证集上用负对数似然最小化搜索最优 T(通常略大于 1)，使预测置信度与经验准确率对齐；是后处理、不改模型权重。</dd>
 </dl>
 </div>
 </section>
@@ -193,6 +193,31 @@ function copyResult() {
   });
 }
 calc();
+</script>
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "温度缩放能提升准确率吗？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "不直接提升分类准确率(argmax 不变)，只让输出置信度更'诚实'地反映正确率，对需要可靠概率的应用(如风险决策)很有价值。"
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "T 用什么值校准？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "在验证集上用负对数似然最小化搜索最优 T(通常略大于 1)，使预测置信度与经验准确率对齐；是后处理、不改模型权重。"
+      }
+    }
+  ]
+}
 </script>
 </body>
 </html>
