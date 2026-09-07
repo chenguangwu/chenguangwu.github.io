@@ -111,18 +111,20 @@ design 103 工具页（analysis 图片调色板提取/audio-recorder 录音转�
 ### ✅ discipline（4 工具，内容层全达标）
 discipline 4 工具（assessor-28 政治生态画像评估器/assessor-risk-7 廉政风险评估器/stats-analysis 监督执纪四种形态统计分析器/tester-training-hr 纪律教育测试题库）原 content_deepdive 4 key 为**第二十九种占位变体**（「在discipline场景中，先按 <Title> 的口径预先约束输入范围，再输出可复核结论。」，summary 原 None、faqs 仅 2 条）：① scripts/opt_discipline_content.py 真实化 4 key（summary+3 scenarios+1 example+3 faqs，example 用 body 字段），覆盖政治生态 6 维度画像评分(6-30 分风险等级)/廉政风险 5 维度识别(防控重点+等级)/监督执纪四种形态线索与处置占比趋势汇总/纪律教育 5 题测验自动判分与解析等真实党建纪检场景，统一补「结果仅供单位内部政治生态分析、廉政风险排查与纪律教育学习参考，不替代组织程序与正式考核评估，敏感数据本机处理勿外传」免责（不覆盖 title）；② scripts/opt_discipline_hardcode.py 清 assessor-28/assessor-risk-7/tester-training-hr 的「本校验工具依据对应数据格式与语法规范进行合法性检查」错配 FD 校验变体（→真实廉政/纪律/政治生态评估描述，保留「工具名称：」后缀与「纯前端运行，数据不离开浏览器」真实特性，JSON-LD 合法）+ 清 4 页 tool-intro-body 块内 6 类通用套话（简介尾随「免费在线工具，纯前端处理」+功能特点「操作简单，一键完成」+使用场景 4 项全通用→真实党建纪检场景，含「纯前端处理/数据不上传」真实特性保留），stats-analysis 无 formula-desc 不涉及 A 类；③ og:image:alt「ToolBox - 5000+免费在线工具」与 meta「纯前端处理，数据不上传」为全站统一真实特性，非占位、不清理。+ zh-tw 同步 + 五项门禁全过。
 ---
-## 八、当前进行中分类：（无，discipline 已归档）
+### ✅ domestic（4 工具，内容层全达标）
+domestic 4 工具（cycle-4 清洁用品消耗量与补货周期/generator-price 合同（服务/价格/条款）生成/recommender-8 保险（责任/意外/雇主）推荐/reminder-cycle 家电深度清洁周期提醒）原 content_deepdive 4 key 为**第三十种占位变体**（「domestic 场景下建议先校准 <Title> 口径后再批量输出。」，summary 原 None、faqs 仅 2 条）：① scripts/opt_domestic_content.py 真实化 4 key（summary+3 scenarios+1 example+3 faqs，example 用 body 字段），覆盖清洁用品库存消耗推算与低库存预警/合同（家政劳务）草稿生成/保险（雇主责任+意外+责任）组合推荐/家电深度清洁周期排队与要点等真实生活家政场景，统一补「结果仅供家庭与个人事务管理参考、合同与保险类文本请结合正式法律与投保要求、必要时咨询专业人士、不构成法律或投保意见」免责（不覆盖 title）；② scripts/opt_domestic_hardcode.py 清 generator-price/recommender-8 的 tool-intro-body 块内 6 类通用套话（简介尾随「免费在线工具，纯前端处理，数据不上传，保护隐私安全」+功能特点「操作简单，一键完成」+使用场景 4 项全通用→真实家政场景，含「纯前端处理/数据不上传/支持复制下载/实时显示」真实特性保留），A 类 generator-price/recommender-8 的「本生成器依据指定格式规范在前端按规则随机或确定性生成内容」为生成器标准变体（语义相符保留）、B 类 opt 套话 0 命中；③ og:image:alt「ToolBox - 5000+免费在线工具」与 meta「纯前端处理，数据不上传」为全站统一真实特性，非占位、不清理。+ zh-tw 同步 + 五项门禁全过。
+---
+## 八、当前进行中分类：（无，domestic 已归档）
 
-> biz/blasting/bonding/brand/bridge/building-material/cable/cardiology/casting/ceramics/chemical/chemistry/chess/chinese/chinese-cook/civil/cleaning/clinical-lab/clinical-nursing/cnc/cognition/colorvision/community/construction/consulting/content/convenience/cosmetic-derm/cosmetics/customer-service/daily-goods/dance/data/decor/defense/dentistry/design/discipline 内容层均已达标，已依次归档至第七节。下一进行中分类按字母序为 **domestic**（见第九节清单），待下一批次置进行中并展开待优化清单。
+> biz/blasting/bonding/brand/bridge/building-material/cable/cardiology/casting/ceramics/chemical/chemistry/chess/chinese/chinese-cook/civil/cleaning/clinical-lab/clinical-nursing/cnc/cognition/colorvision/community/construction/consulting/content/convenience/cosmetic-derm/cosmetics/customer-service/daily-goods/dance/data/decor/defense/dentistry/design/discipline/domestic 内容层均已达标，已依次归档至第七节。下一进行中分类按字母序为 **dyeing**（见第九节清单），待下一批次置进行中并展开待优化清单。
 
 > 优化模式（沿用已验证路径）：写真实 content_deepdive 条目 → 清理工具页硬编码套话（opt_cleanup_intro_faq.py --cat <cat> 或仿 opt_biz_optguide.py 按结构清 tool-intro）→ 构建 + 五项门禁 → 提交发布。
 
 ---
 
-## 九、分类总清单（待办，完成一个删一个；剩 203 个目录）
+## 九、分类总清单（待办，完成一个删一个；剩 202 个目录）
 
 - [ ] dermatology
-- [ ] domestic
 - [ ] dyeing
 - [ ] dynamics
 - [ ] eco
