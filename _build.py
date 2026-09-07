@@ -28,6 +28,8 @@ from concurrent.futures import ThreadPoolExecutor
 # 必须共用同一套解析逻辑，否则又会出现「分类页有描述、搜索与导航没有」的不一致。
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), 'scripts'))
 import tool_desc_source as TDS
+# 分类聚合页差异化 SEO 正文（修复 GSC「Thin Content」：全站共用套话导致页面互为重复）
+import category_seo_content as CSEOC
 
 
 def _clean_en_desc(s):
@@ -2957,13 +2959,24 @@ def generate_category_indexes(tools):
         ind_tools_sorted = sorted(ind_tools, key=lambda x: x['name'])
         count = len(ind_tools_sorted)
         en_name = _IND_EN.get(ind, ind_name)
+        # 定制 SEO 内容（scripts/category_seo_content.py）：覆盖中文 title / 中英文 description /
+        # 正文（栏目简介 + 核心功能 + FAQ）。未定制的行业完整回退原模板。
+        _seo = CSEOC.get(ind)
         title = ('%s (%s) Tools Collection - ToolBox' % (en_name, ind)) if len(name_to_inds.get(ind_name, set())) > 1 else ('%s Tools Collection - ToolBox' % en_name)
-        title_zh = ('%s（%s）工具集合 - ToolBox' % (ind_name, ind)) if len(name_to_inds.get(ind_name, set())) > 1 else ('%s工具集合 - ToolBox' % ind_name)
-        if ind in CATEGORY_DESC_OVERRIDE:
+        if _seo and _seo.get('title_zh'):
+            title_zh = _seo['title_zh']
+        else:
+            title_zh = ('%s（%s）工具集合 - ToolBox' % (ind_name, ind)) if len(name_to_inds.get(ind_name, set())) > 1 else ('%s工具集合 - ToolBox' % ind_name)
+        if _seo and _seo.get('desc_en'):
+            desc_meta = _seo['desc_en'] % count
+        elif ind in CATEGORY_DESC_OVERRIDE:
             desc_meta = CATEGORY_DESC_OVERRIDE[ind] % count
         else:
             desc_meta = '%s tools collection with %d free online tools. All run client-side in your browser, no data uploaded.' % (en_name, count)
-        desc_meta_zh = '%s工具集合，共%d个免费在线工具，纯前端处理数据不上传。' % (ind_name, count)
+        if _seo and _seo.get('desc_zh'):
+            desc_meta_zh = _seo['desc_zh'] % count
+        else:
+            desc_meta_zh = '%s工具集合，共%d个免费在线工具，纯前端处理数据不上传。' % (ind_name, count)
 
         parts = []
         parts.append('<!DOCTYPE html>\n<html lang="zh-CN">\n<head>\n')
@@ -3015,6 +3028,9 @@ def generate_category_indexes(tools):
         parts.append('<script type="application/ld+json">\n{"@context":"https://schema.org","@type":"CollectionPage","name":"%s工具","url":"https://chenguangwu.github.io/tools/%s/index.html","description":"%s"}\n</script>\n' % (esc_html_py(ind_name), ind, esc_html_py(desc_meta_zh)))
         # BreadcrumbList structured data
         parts.append('<script type="application/ld+json">\n{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"首页","item":"https://chenguangwu.github.io/"},{"@type":"ListItem","position":2,"name":"%s","item":"https://chenguangwu.github.io/tools/%s/index.html"}]}\n</script>\n' % (esc_html_py(ind_name), ind))
+        # FAQPage 结构化数据（仅定制行业）：与页面可见 FAQ 文本一致，强化索引信号
+        if _seo:
+            parts.append(CSEOC.faq_ld(_seo, count))
         parts.append('</head>\n<body>\n')
         parts.append('<h1 class="sr-only">%s %s工具</h1>\n' % (ind_icon, esc_html_py(ind_name)))
         # Breadcrumb
@@ -3046,8 +3062,13 @@ def generate_category_indexes(tools):
         parts.append('    </div>\n  </div>\n')
         # SEO intro
         parts.append('  <div class="tool-intro open">\n    <div class="tool-intro-header"><span class="intro-icon-wrap"><span class="intro-icon">📖</span>关于「%s工具」</span><span class="arrow">▼</span></div>\n' % esc_html_py(ind_name))
-        parts.append('    <div class="tool-intro-body">\n      <h4><span class="h4-icon">📝</span>分类简介</h4>\n      <p>%s工具集合，涵盖%d个免费在线工具。所有工具纯前端运行，数据不上传服务器，保护隐私安全。</p>\n' % (esc_html_py(ind_name), count))
-        parts.append('      <h4><span class="h4-icon">✨</span>功能特点</h4>\n      <ul class="intro-features"><li>纯前端处理，数据不上传</li><li>免费使用，无需注册</li><li>支持移动端和桌面端</li><li>实时计算，即用即走</li></ul>\n')
+        parts.append('    <div class="tool-intro-body">\n')
+        if _seo:
+            # 差异化正文：栏目简介 + 核心功能与适用场景 + 常见问题
+            parts.append(CSEOC.render_body(_seo, count))
+        else:
+            parts.append('      <h4><span class="h4-icon">📝</span>分类简介</h4>\n      <p>%s工具集合，涵盖%d个免费在线工具。所有工具纯前端运行，数据不上传服务器，保护隐私安全。</p>\n' % (esc_html_py(ind_name), count))
+            parts.append('      <h4><span class="h4-icon">✨</span>功能特点</h4>\n      <ul class="intro-features"><li>纯前端处理，数据不上传</li><li>免费使用，无需注册</li><li>支持移动端和桌面端</li><li>实时计算，即用即走</li></ul>\n')
         parts.append('    </div>\n  </div>\n')
         parts.append('</div>\n')
         parts.append('</body>\n</html>\n')
