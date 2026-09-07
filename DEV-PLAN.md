@@ -87,17 +87,19 @@ convenience 4 工具（analysis-80 损耗体系 / analysis-cost-10 成本体系 
 ### ✅ cosmetic-derm（33 工具，内容层全达标）
 cosmetic-derm 33 工具（光老化Glogau分型/防晒SPF-PA/果酸焕肤/肉毒素玻尿酸单位/激光波长靶点/微针渗透/水光配比/射频紧肤/线雕向量/VISIA色斑分层等皮肤科医美）原 content_deepdive 33 key 为**第二十种占位变体**（「XX 的常见复核路径：先检核单位与输入边界…」，summary 原 None）：① scripts/opt_cosmetic_derm_content.py 真实化 33 key（summary+3 scenarios+1 example+3 faqs，example 用 body 字段），覆盖光老化分级/防晒量化/果酸深度/注射单位/激光靶点/微针渗透/水光配比/射频紧肤/线雕向量/色斑分层等真实场景，医美类统一补「仅供自评与科普参考，不能替代执业医师面诊诊断」免责（不覆盖 title）；② scripts/opt_cosmetic_derm_hardcode.py 清 6 页 opt 套话「工作与生活中的相关计算与查询」各 3 处（JSON-LD/适用场景段/FAQ dd→真实场景），A 类 formula-desc 变体 0 页、C 类块内 6 类通用套话 0 页均无需处理；③ 顺带 scripts/opt_fix_example_body.py 全站修复 examples 字段 code→body（construction/consulting/content/convenience 共 39 处误用 code 致示例区渲染空白），确保全站 deep-dive 示例正常渲染；④ og:image:alt「ToolBox - 5000+免费在线工具」与 meta「纯前端处理，数据不上传」为全站统一真实特性，非占位、不清理。+ zh-tw 同步 + 五项门禁全过。
 ---
-## 八、当前进行中分类：（无，cosmetic-derm 已归档）
+### ✅ cosmetics（1 工具，内容层全达标）
+cosmetics 1 工具（assessor-67 化妆品注册备案合规评估）原 content_deepdive 1 key 为**第二十一种占位变体**（「在cosmetics场景中先确认Assessor 67口径与边界…」，summary 原 None）：① scripts/opt_cosmetics_content.py 真实化 1 key（summary+3 scenarios+1 example+3 faqs，example 用 body 字段），覆盖新品备案前自筛/工厂来料出厂管控/客诉监管应对等真实合规场景，补「不替代官方检测报告与监管决定、以最新法规为准」免责（不覆盖 title）；② scripts/opt_cosmetics_hardcode.py 清 assessor-67 的 formula-desc 校验变体 1 页（「本校验工具依据对应数据格式…」→真实合规描述，JSON-LD 合法），B 类 opt 套话 0 页、C 类块内 6 类通用套话 0 页均无需处理；③ og:image:alt「ToolBox - 5000+免费在线工具」与 meta「纯前端处理，数据不上传」为全站统一真实特性，非占位、不清理。+ zh-tw 同步 + 五项门禁全过。
+---
+## 八、当前进行中分类：（无，cosmetics 已归档）
 
-> biz/blasting/bonding/brand/bridge/building-material/cable/cardiology/casting/ceramics/chemical/chemistry/chess/chinese/chinese-cook/civil/cleaning/clinical-lab/clinical-nursing/cnc/cognition/colorvision/community/construction/consulting/content/convenience/cosmetic-derm 内容层均已达标，已依次归档至第七节。下一进行中分类按字母序为 **cosmetics**（见第九节清单），待下一批次置进行中并展开待优化清单。
+> biz/blasting/bonding/brand/bridge/building-material/cable/cardiology/casting/ceramics/chemical/chemistry/chess/chinese/chinese-cook/civil/cleaning/clinical-lab/clinical-nursing/cnc/cognition/colorvision/community/construction/consulting/content/convenience/cosmetic-derm/cosmetics 内容层均已达标，已依次归档至第七节。下一进行中分类按字母序为 **customer-service**（见第九节清单），待下一批次置进行中并展开待优化清单。
 
 > 优化模式（沿用已验证路径）：写真实 content_deepdive 条目 → 清理工具页硬编码套话（opt_cleanup_intro_faq.py --cat <cat> 或仿 opt_biz_optguide.py 按结构清 tool-intro）→ 构建 + 五项门禁 → 提交发布。
 
 ---
 
-## 九、分类总清单（待办，完成一个删一个；剩 213 个目录）
+## 九、分类总清单（待办，完成一个删一个；剩 212 个目录）
 
-- [ ] cosmetics
 - [ ] customer-service
 - [ ] daily-goods
 - [ ] dance
