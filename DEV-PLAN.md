@@ -79,8 +79,8 @@
 ## 七、已完成分类归档
 > 本区仅保留**最近一个（最新）已完成分类**的归档记录，更早历史不再保留，以控制文件体积。完成新分类时，用新记录替换本条。
 
-### ✅ endocrinology（22 工具，内容层全达标 + B类/英文套话清零 + cat 修正 + 重复清理）
-endocrinology 共 22 个工具页（原 23，删除与 homa-ir.html 重复的 calc-1.html；calc-1 为占位命名实为 HOMA-IR，与 homa-ir.html 重复，且是全站 guides basename 错配根源）。① scripts/opt_endocrinology_content.py 重写全部 22 条 content_deepdive 为真实内分泌/代谢医学内容（summary+3 真实场景+1 真实算例+2 faqs，覆盖 FRAX 骨折风险、HOMA-IR、OGTT、PCOS 鹿特丹、TI-RADS、Whipple 三联征、醛固酮肾素比、钙-PTH 轴、皮质醇节律、GH 激发试验、儿茶酚胺代谢等），0 summary None；② B类套话"工作与生活中的相关计算与查询。"在 mage-index/short-stature-prediction/graves-trab/calc-1(已删)/calcium-pth-axis/detector-metabolism 六页的 FAQ JSON-LD+opt-guide+opt-faq 共 17 处替换为真实内分泌场景；③ 英文 i18n 套话"free online tool"在 slug-en.json/_en_override.json 共 20 键清零并补真实英文标题与描述；④ toolbox meta 的 cat 错标修正 3 处（frax-score finance→health、detector-metabolism validator→health、cycle-hormone math→health）；⑤ 删除重复的 calc-1.html（与 homa-ir.html 重复，且根除其被 guides basename 错配为增值税指南的问题），并清理三套数据源对应键。名称（中文）保持不变。+ zh-tw 同步 + 五项门禁全过。
+### ✅ energy（47 工具，内容层全达标 + B类/英文套话清零 + 领域错标修正 + cat 修正）
+energy 共 47 个工具页（content_deepdive 含 2 个孤儿 key）。① scripts/opt_energy_content.py 重写全部 48 条 content_deepdive 为真实能源/电力/热力学/光伏/风电/电池/碳环境内容（summary+3 真实场景+1 真实算例+2 faqs，覆盖 LCOE、COP/SCOP、卡诺效率、三相功率、焦耳热、动能/势能、电池比能量与能量密度、燃料热值、碳足迹、TDS 等），0 summary None；② B类套话"工作与生活中的相关计算与查询。"在 lcoe/electrical-power/air-purifier-area/energy-efficiency/joule-heating/fridge-power-estimator 六页的 opt-guide+FAQ JSON-LD+opt-faq 共 18 处替换为真实能源场景；③ tool-intro 领域错标（"科学研究领域的在线工具"等）在 19 页共 55 处批量替换为能源电力真实表述；④ 英文 i18n 套话"free online tool/free and accurate"在 slug-en.json(46 键)/_en_override.json(48 键)清零并补真实英文标题与描述；⑤ toolbox meta 的 cat 错标修正 2 处（air-purifier-area finance→energy、calculator-calc-power-usage finance→calculator）。名称（中文）保持不变。+ zh-tw 同步 + 五项门禁全过。
 
 ## 八、当前进行中分类：energy（待展开，内容层真实化中）
 
@@ -92,7 +92,6 @@ endocrinology 共 22 个工具页（原 23，删除与 homa-ir.html 重复的 ca
 
 ## 九、分类总清单（待办，完成一个删一个；剩 187 个目录）
 
-- [ ] energy
 - [ ] engineering
 - [ ] ent
 - [ ] environment
