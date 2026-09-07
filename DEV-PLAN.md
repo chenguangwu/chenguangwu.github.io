@@ -79,12 +79,12 @@
 ## 七、已完成分类归档
 > 本区仅保留**最近一个（最新）已完成分类**的归档记录，更早历史不再保留，以控制文件体积。完成新分类时，用新记录替换本条。
 
-### ✅ elderly（11 工具，内容层全达标）
-elderly 11 工具（aid-height 辅助器具高度/assessor-35 护理等级/assessor-36 社工/assessor-37 质量体系/assessor-risk-1 防跌倒室内环境/bp-trend 血压血糖趋势/elderlycare-level 养老护理等级速查/fall-risk 防跌倒评估/medication-schedule 用药提醒表/reminder-time 用药时间提醒/wheelchair-width 轮椅通道）原 content_deepdive 11 key 为占位变体（summary 原 None、faqs 仅 2 条）：① scripts/opt_elderly_content.py 真实化 11 key（summary+3 scenarios+1 example+3 faqs），覆盖辅助器具高度推算/护理分级(Barthel/ADL)/社工介入三维/质量结构-过程-结果/防跌倒环境问卷/血压血糖趋势/养老护理等级速查/防跌倒综合因子/用药提醒表/用药时间轴/轮椅通道净宽等适老化与健康管理真实场景，统一补「仅供健康管理与科普参考、不替代执业医师诊断与专业护理评估」免责（不覆盖 title）；② scripts/opt_elderly_hardcode.py 清 C 类 8 页（reminder-time 真实 li 保留、elderlycare-level/medication-schedule 无 tool-intro-body 跳过）两套通用 li（health 8 句如「基于权威健康标准计算」「健康知识学习」+ assessor 8 句如「纯前端处理，数据不上传服务器」「操作简单，一键完成」）+ 简介后缀（health「健康指标计算工具，基于权威医学标准，数据本地处理保护隐私」/ assessor「免费在线工具，纯前端处理，数据不上传，保护隐私安全」）+ 删空 ul/h4；清 A 类 assessor-35/36/37/risk-1 4 页 formula-desc「校验工具」错配→真实评估量表描述（elderlycare-level「速查」/medication-schedule「健康工具」语义相符保留）；③ 全站 elderly 套话复检 0 残留。+ zh-tw 同步 + 五项门禁全过。
+### ✅ electrical（19 工具，内容层全达标）
+electrical 19 工具（battery-bank 蓄电池组/breaker-sizing 断路器选型/calc-1 电缆载流量/calc-2 三相功率/calc-power-capacitance 补偿电容/current-divider 电流分流/home-load-estimate 家庭负荷/led-resistor LED 限流电阻/load-curve 24h 日负荷曲线/opamp-gain 运放增益/power-factor 功率因数/rc-filter RC 低通滤波/rlc-resonance RLC 谐振/transformer-sizing 变压器选型/voltage-capacity-battery 蓄电池串并联/voltage-divider 分压器/voltage-drop 电压降/wire-gauge-selector 线规/wire-resistance 导线电阻）原 content_deepdive 19 key 为占位变体（summary 原 None、faqs 仅 2 条）：① scripts/opt_electrical_content.py 真实化 19 key（summary+3 scenarios+1 example+3 faqs），覆盖 UPS 备电/光伏储能/启动电瓶/基站后备/住宅配电/工业电机/光伏直流/机房机柜/分接断路器/电缆载流 IEC60364/三相有功无功视在/补偿柜选型/谐波抑制/PCB 分流/家用月用电/5V Arduino 限流/24h 峰谷/反相同相运放/电力系统/滤波定时/无线充电谐振/变压器容量/电池组均衡/ADC 前端分压/电机末端压降/AWG 换算/集肤效应温度等真实电气工程场景，统一补「结果仅供方案设计、工程预研与教学参考、不替代正式电气设计、IEC/NEC 标准与持证工程师的最终判定」免责（不覆盖 title）；② scripts/opt_electrical_hardcode.py 清 A 类 2 页 formula-desc（calc-power-capacitance 「输入两个参数」通用占位 + voltage-capacity-battery 「本工程计算基于标准物理与材料公式」工程错配→真实领域描述，9 页真实领域描述如 RC 滤波/三相功率/分压器等保留）；清 B 类 battery-bank JSON-LD 1 处「工作与生活中的相关计算与查询」→「UPS/光伏/通信/电动车场景」；清 C 类 calc-power-capacitance / voltage-capacity-battery 8 句通用 li + 简介后缀 + 空 ul/h4；清 5 页 intro 段「是一款IT 开发领域的在线工具。专为开发者打造…」→真实电气领域描述（battery-bank/load-curve/power-factor/transformer-sizing/voltage-drop）；③ 全站 electrical 套话复检 0 残留，3 处 JSON-LD 全 legal。+ zh-tw 同步 + 五项门禁全过。
 
-## 八、当前进行中分类：electrical（待展开，内容层真实化中）
+## 八、当前进行中分类：electromagnetism（待展开，内容层真实化中）
 
-> biz/blasting/bonding/brand/bridge/building-material/cable/cardiology/casting/ceramics/chemical/chemistry/chess/chinese/chinese-cook/civil/cleaning/clinical-lab/clinical-nursing/cnc/cognition/colorvision/community/construction/consulting/content/convenience/cosmetic-derm/cosmetics/customer-service/daily-goods/dance/data/decor/defense/dentistry/design/discipline/domestic/dermatology/dyeing/dynamics/eco/ecommerce/economics/edu/edu2/elderly 内容层均已达标，已依次归档至第七节。下一进行中分类按字母序为 **electrical**（见第九节清单），待展开待优化清单。
+> biz/blasting/bonding/brand/bridge/building-material/cable/cardiology/casting/ceramics/chemical/chemistry/chess/chinese/chinese-cook/civil/cleaning/clinical-lab/clinical-nursing/cnc/cognition/colorvision/community/construction/consulting/content/convenience/cosmetic-derm/cosmetics/customer-service/daily-goods/dance/data/decor/defense/dentistry/design/discipline/domestic/dermatology/dyeing/dynamics/eco/ecommerce/economics/edu/edu2/elderly/electrical 内容层均已达标，已依次归档至第七节。下一进行中分类按字母序为 **electromagnetism**（见第九节清单），待展开待优化清单。
 
 > 优化模式（沿用已验证路径）：写真实 content_deepdive 条目 → 清理工具页硬编码套话 → 构建 + 五项门禁 → 提交发布。
 
@@ -101,7 +101,7 @@ elderly 11 工具（aid-height 辅助器具高度/assessor-35 护理等级/asses
 - [x] edu
 - [x] edu2
 - [x] elderly
-- [ ] electrical
+- [x] electrical
 - [ ] electromagnetism
 - [ ] electronics
 - [ ] embedded
