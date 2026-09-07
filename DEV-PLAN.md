@@ -99,17 +99,19 @@ data 20 工具（calc-1 CSV转JSON/calc-2 JSON格式化/chart-generator 图表�
 ### ✅ decor（8 工具，内容层全达标）
 decor 8 工具（ceiling-panel-quantity 吊顶板材用量/curtain-fabric 窗帘布料/detector-18 室内空气质量检测判定/paint-color-mix 乳胶漆调色/room-illumination 房间照度配置/scheduler 施工工序工期排程/skirting-length 踢脚线长度/wallpaper-quantity 壁纸用量）原 content_deepdive 8 key 为**第二十五种占位变体**（「在decor场景里，先统一 <Title> 的输入口径，再输出可复用结构…」，summary 原 None、faqs 仅 2 条）：① scripts/opt_decor_content.py 真实化 8 key（summary+3 scenarios+1 example+3 faqs，example 用 body 字段），覆盖吊顶板材用量/窗帘布料/室内空气质量判定(GB/T 18883)/乳胶漆调色/房间照度配置(GB 50034)/施工CPM排程/踢脚线长度/壁纸用量等真实装修场景，统一补「结果仅为估算参考、实际以现场复尺与国标规范及专业施工/设计意见为准、不替代验收或专业测算」免责（不覆盖 title）；② scripts/opt_decor_hardcode.py 清 detector-18 的「本校验工具依据对应数据格式与语法规范进行合法性检查」错配 FD 校验变体（→真实 GB/T 18883 描述，保留生成器模板「工具名称：」后缀，JSON-LD 合法）+ 清 wallpaper-quantity/skirting-length 的「工作与生活中的相关计算与查询」各 3 处（JSON-LD/适用场景段/FAQ dd→真实装修场景，共 6 处，JSON-LD 合法），ceiling-panel-quantity FD 为「标准数学运算与单位换算」变体（语义相符保留）、C 类块内 6 类通用套话 0 页均无需处理；③ og:image:alt「ToolBox - 5000+免费在线工具」与 meta「纯前端处理，数据不上传」为全站统一真实特性，非占位、不清理。+ zh-tw 同步 + 五项门禁全过。
 ---
-## 八、当前进行中分类：（无，decor 已归档）
+### ✅ defense（2 工具，内容层全达标）
+defense 2 工具（calc-rater 射击弹道与修正计算/rater-38 军事体育训练考核评分）原 content_deepdive 2 key 为**第二十六种占位变体**（「在defense场景下，先对 <Title> 建模统一口径，再输出可复核结论。」，summary 原 None、faqs 仅 2 条）：① scripts/opt_defense_content.py 真实化 2 key（summary+3 scenarios+1 example+3 faqs，example 用 body 字段），覆盖射击弹道降/横风偏移/MOA密位修正/靶环评分与军体考核（引体/双杠/仰卧/俯卧撑/3000米跑按《军事体育训练大纲》参考标准分年龄性别评分）等真实国防/军事场景，统一补「射击/军体类结果为估算参考、不替代实弹校枪与专业训练指导及正式考核裁判、标准以现役官方版本为准」免责（不覆盖 title）；② scripts/opt_defense_hardcode.py 检测 A/B/C 三类（FD 错配变体/opt 套话「工作与生活中的相关计算与查询」/块内 6 类通用套话）均 0 命中，defense 2 页无 formula-desc、无套话，无需清理直接跳过；③ og:image:alt「ToolBox - 5000+免费在线工具」与 meta「纯前端处理，数据不上传」为全站统一真实特性，非占位、不清理。+ zh-tw 同步 + 五项门禁全过。
+---
+## 八、当前进行中分类：（无，defense 已归档）
 
-> biz/blasting/bonding/brand/bridge/building-material/cable/cardiology/casting/ceramics/chemical/chemistry/chess/chinese/chinese-cook/civil/cleaning/clinical-lab/clinical-nursing/cnc/cognition/colorvision/community/construction/consulting/content/convenience/cosmetic-derm/cosmetics/customer-service/daily-goods/dance/data/decor 内容层均已达标，已依次归档至第七节。下一进行中分类按字母序为 **defense**（见第九节清单），待下一批次置进行中并展开待优化清单。
+> biz/blasting/bonding/brand/bridge/building-material/cable/cardiology/casting/ceramics/chemical/chemistry/chess/chinese/chinese-cook/civil/cleaning/clinical-lab/clinical-nursing/cnc/cognition/colorvision/community/construction/consulting/content/convenience/cosmetic-derm/cosmetics/customer-service/daily-goods/dance/data/decor/defense 内容层均已达标，已依次归档至第七节。下一进行中分类按字母序为 **dentistry**（见第九节清单），待下一批次置进行中并展开待优化清单。
 
 > 优化模式（沿用已验证路径）：写真实 content_deepdive 条目 → 清理工具页硬编码套话（opt_cleanup_intro_faq.py --cat <cat> 或仿 opt_biz_optguide.py 按结构清 tool-intro）→ 构建 + 五项门禁 → 提交发布。
 
 ---
 
-## 九、分类总清单（待办，完成一个删一个；剩 207 个目录）
+## 九、分类总清单（待办，完成一个删一个；剩 206 个目录）
 
-- [ ] defense
 - [ ] dentistry
 - [ ] dermatology
 - [ ] design
