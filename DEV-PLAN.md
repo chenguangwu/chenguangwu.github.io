@@ -79,12 +79,12 @@
 ## 七、已完成分类归档
 > 本区仅保留**最近一个（最新）已完成分类**的归档记录，更早历史不再保留，以控制文件体积。完成新分类时，用新记录替换本条。
 
-### ✅ ecommerce（21 工具，内容层全达标）
-ecommerce 21 工具（analysis-25 竞品比价监控分析/analysis-conversion-funnel 转化漏斗分析/analysis-cost-8 成本分析/calc-79 增长率同比环比/calc-commission-2 佣金计算/conversion-4 直播观看成交转化/cycle-15 复购周期频次预测/discount 促销折扣满减优惠券/erp-dingdan-caigou-duijie ERP订单采购对接/estimate-ranking 排名搜索权重估算/groupon-filler 满减凑单计算器/inventory-1 库存预警补货/kaidian-yunyingyuguizeduibijisuanqi 开店运营规则对比/kedan-jiandanjia-liandailv 客单件单价连带率/pingjia-chaping-tuihuo-lv 评价差评退货率/report BI报表可视化/response-2 客服咨询投诉响应/stats-flow-conversion 流量UV/PV转化统计/stats-profit 利润率单品店铺统计/wuliu-fahuo-cangchu-gongyinglian-zhenghe 物流发货仓储供应链整合/wuliu-lanshou-qianshou-shixiao 物流揽收签收时效）原 content_deepdive 21 key 为占位变体（summary 原 None、faqs 仅 2 条）：① scripts/opt_ecommerce_content.py 真实化 21 key（summary+3 scenarios+1 example+3 faqs），覆盖竞品比价/转化漏斗/成本毛利/同比环比增长/佣金结算/直播GPM/复购预测/促销到手价/ERP再订货点/搜索权重/满减凑单/库存预警/开店成本对比/客单连带/评价退货率/BI看板/客服响应/流量转化/利润率/物流整合与时效等真实电商运营场景，统一补「仅供电商运营测算与决策参考、不替代平台规则与正式对账」免责（不覆盖 title）；② scripts/opt_ecommerce_hardcode.py 清 A 类 14 页 formula-desc（12 页「输入两个参数，自动计算常用结果」+kaidian「输入各项参数，自动计算对比结果。」+analysis-25「本工程计算基于标准物理与材料公式」工程错配→真实领域描述，JSON-LD 合法），5 页财务/数学领域变体（analysis-conversion-funnel/stats-profit/analysis-cost-8/report/stats-flow-conversion）语义相符保留；清 C 类 19 页 tool-intro-body 块内 6 类通用套话（→真实电商场景，cycle-15 块内已真实、groupon-filler 无块不处理）；③ B 类 opt 套话「工作与生活中的相关计算与查询」0 命中、og:image:alt「ToolBox - 5000+免费在线工具」与 meta「纯前端处理，数据不上传」为全站统一真实特性，非占位、不清理。+ zh-tw 同步 + 五项门禁全过。
+### ✅ economics（28 工具，内容层全达标）
+economics 28 工具（average-propensity-consume APC/C/balance-of-trade 贸易差额/cagr 复合增长率/cobb-douglas 生产函数/compound-amount 复利终值/cross-elasticity 交叉价格弹性/elasticity-demand 需求价格弹性/fisher-equation 费雪方程/fv-annuity 年金终值/gdp-expenditure 支出法GDP/gdp-growth-rate GDP增长率/income-elasticity 收入弹性/inflation-rate 通胀率/labor-force-participation 劳动参与率/labor-force 劳动力/marginal-product-labor 劳动边际产量/marginal-propensity-consume MPC/mpc-from-multiplier 乘数反推MPC/nominal-to-real 名义转实际/okuns-law 奥肯定律/present-value 现值/pv-annuity 年金现值/real-gdp 实际GDP/rule-of-72 72法则/spending-multiplier 政府支出乘数/tax-multiplier 税收乘数/unemployment-rate 失业率/velocity-of-money 货币流通速度）原 content_deepdive 28 key 为占位变体（summary 原 None、faqs 仅 2 条）：① scripts/opt_economics_content.py 真实化 28 key（summary+3 scenarios+1 example+3 faqs），覆盖消费倾向/贸易差额/CAGR/生产函数/复利/弹性/费雪方程/年金/GDP/奥肯/现值/72法则/乘数/失业率/货币流速等真实宏观经济与微观经济学场景，统一补「仅作经济学教学与测算参考、不替代专业经济分析与官方统计」免责（不覆盖 title）；② scripts/opt_economics_hardcode.py 清 B 类 inflation-rate 1 页 3 处 opt 套话「工作与生活中的相关计算与查询」（→真实通胀测算场景，JSON-LD 合法）；③ A 类 25 页 formula-desc 经核验全为真实领域描述（如「输入消费 C 与收入 Y，求平均消费倾向」），语义相符保留；C 类 tool-intro-body 套话 0 命中。+ zh-tw 同步 + 五项门禁全过。
 
-## 八、当前进行中分类：economics（待展开，内容层真实化中）
+## 八、当前进行中分类：edu（待展开，内容层真实化中）
 
-> biz/blasting/bonding/brand/bridge/building-material/cable/cardiology/casting/ceramics/chemical/chemistry/chess/chinese/chinese-cook/civil/cleaning/clinical-lab/clinical-nursing/cnc/cognition/colorvision/community/construction/consulting/content/convenience/cosmetic-derm/cosmetics/customer-service/daily-goods/dance/data/decor/defense/dentistry/design/discipline/domestic/dermatology/dyeing/dynamics/eco/ecommerce 内容层均已达标，已依次归档至第七节。下一进行中分类按字母序为 **economics**（见第九节清单），待展开待优化清单。
+> biz/blasting/bonding/brand/bridge/building-material/cable/cardiology/casting/ceramics/chemical/chemistry/chess/chinese/chinese-cook/civil/cleaning/clinical-lab/clinical-nursing/cnc/cognition/colorvision/community/construction/consulting/content/convenience/cosmetic-derm/cosmetics/customer-service/daily-goods/dance/data/decor/defense/dentistry/design/discipline/domestic/dermatology/dyeing/dynamics/eco/ecommerce/economics 内容层均已达标，已依次归档至第七节。下一进行中分类按字母序为 **edu**（见第九节清单），待展开待优化清单。
 
 > 优化模式（沿用已验证路径）：写真实 content_deepdive 条目 → 清理工具页硬编码套话 → 构建 + 五项门禁 → 提交发布。
 
@@ -97,7 +97,7 @@ ecommerce 21 工具（analysis-25 竞品比价监控分析/analysis-conversion-f
 - [x] dynamics（已发布）
 - [x] eco
 - [x] ecommerce
-- [ ] economics
+- [x] economics
 - [ ] edu
 - [ ] edu2
 - [ ] elderly
