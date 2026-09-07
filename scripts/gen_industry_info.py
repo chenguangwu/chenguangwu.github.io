@@ -5,16 +5,38 @@ B0: 生成 js/industry-info.js —— 全量行业（中文名 + emoji 图标）
 
 背景：js/app.js 里 INDUSTRY_INFO 只有 77 个行业有中文名，其余 192 个缺失，
 导致首页分类导航只能显示英文 slug（accounting/acoustics…）。
-本脚本从 tools/<key>/index.html 的 <title> 提取中文名（行业页 title 由
-_build.py 生成，是权威来源），配上语义 emoji，输出 window.INDUSTRY_INFO。
+本脚本从 _build.py 的 INDUSTRY_DEFS 取权威中文短名（覆盖 268/268 全量行业），
+配上语义 emoji，输出 window.INDUSTRY_INFO。
+
+⚠️ 重要规则（2026-09-07 老板明确）：
+  - name（行业显示名）只取**短名**（如 "设计创意"），不要再写成描述长串
+    （如 "设计创意在线工具集合 - 免费实用的设计创意工具箱"）。
+  - 真正的描述走 tools/<key>/index.html 的 <meta description> 与 og:description,
+    不再被抽进 name。
+  - 解析顺序：NAME_OVERRIDE（导航别名） > INDUSTRY_DEFS 短名（权威） > title 截断（兜底）。
 
 用法：python3 scripts/gen_industry_info.py
 """
 import json
 import os
 import re
+import sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+# 加载 _build.py 中的 INDUSTRY_DEFS 作为权威短名源（268/268 覆盖）
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+try:
+    from _build import INDUSTRY_DEFS as _INDUSTRY_DEFS
+except Exception:
+    # 退路：直接正则抽
+    _src = open(os.path.join(ROOT, '_build.py'), encoding='utf-8').read()
+    _INDUSTRY_DEFS = {}
+    _m = re.search(r'INDUSTRY_DEFS\s*=\s*\{', _src)
+    if _m:
+        _end = _src.index('\n}\n', _m.end()) + 3
+        _seg = _src[_m.start():_end]
+        for _mm in re.finditer(r"'([^']+)'\s*:\s*\(\s*'[^']+'\s*,\s*'([^']+)'", _seg):
+            _INDUSTRY_DEFS[_mm.group(1)] = _mm.group(2)
 
 # 导航显示别名：解决不同 slug 提取出相同中文名的问题（行业页 title 不动，仅导航显示用）
 NAME_OVERRIDE = {
@@ -80,9 +102,16 @@ DEFAULT_ICON = '🔧'
 
 
 def extract_info(key):
-    """从行业页提取 (中文名, h1 自带 emoji)。
-    title: '会计审计工具集合 - ToolBox' -> '会计审计'
-    h1   : '🔊 声学工具'                 -> '🔊'（若为默认 🔧 则忽略）"""
+    """兜底：从行业页 title 抽出**短名**（仅在 INDUSTRY_DEFS 没收录时用）。
+
+    原则：name 必须保持短名，不再允许把描述（如"…在线工具集合 - 免费实用的…工具箱"）
+    灌进 name。title 当前格式为「<短名>在线工具集合 - 免费实用的<短名>工具箱」，故优先
+    匹配前缀 token；不匹配时再 fallback 到去后缀解析。
+
+    例：
+      '设计创意在线工具集合 - 免费实用的设计创意工具箱' -> '设计创意'
+      '会计审计工具集合 - ToolBox'                       -> '会计审计'
+    """
     p = os.path.join(ROOT, 'tools', key, 'index.html')
     if not os.path.exists(p):
         return None, None
@@ -90,10 +119,20 @@ def extract_info(key):
     m = re.search(r'<title>([^<]*)</title>', src)
     if not m:
         return None, None
-    name = m.group(1).replace('工具集合 - ToolBox', '').strip()
-    # 清掉 title 里可能带的英文 slug 后缀，如 '宠物养护（pet）'
-    name = re.sub(r'[（(]\s*[a-z0-9\-]+\s*[)）]', '', name).strip()
-    name = re.sub(r'工具$', '', name).strip()
+    raw = m.group(1).strip()
+
+    # 规则 1：剥历史后缀 '工具集合 - ToolBox'（旧版短 title）
+    s = raw.replace('工具集合 - ToolBox', '').strip()
+
+    # 规则 2：尝试按当前长 title 模板「X 在线工具集合 - 免费实用的X工具箱」取 X
+    mt = re.match(r'^(.+?)在线工具集合\s*-\s*免费实用的.+?工具箱$', s)
+    if mt:
+        name = mt.group(1).strip()
+    else:
+        # 规则 3：通用去后缀（如「X 工具集合」/「X 工具」）
+        s = re.sub(r'[（(]\s*[a-z0-9\-]+\s*[)）]', '', s).strip()
+        s = re.sub(r'工具(?:集合)?\s*$', '', s).strip()
+        name = s
 
     h1_icon = None
     h = re.search(r'<h1[^>]*>([^<]*)</h1>', src)
@@ -111,9 +150,16 @@ def main():
     rows = []
     missing = []
     for k in inds:
-        # 1) 导航别名优先（解决同名冲突）
+        # 1) 导航别名优先（解决同名冲突，如 pets/service/water/uiux）
         h1_icon = None
         name = NAME_OVERRIDE.get(k)
+        # 2) INDUSTRY_DEFS 权威短名（覆盖 268/268，2026-09-07 老板明确禁止把
+        #    description 灌进 name，所以此处作为 name 的首选来源）
+        if not name:
+            _def = _INDUSTRY_DEFS.get(k)
+            if _def:
+                name = _def[1] if isinstance(_def, (tuple, list)) else _def
+        # 3) 兜底：从 tools/<key>/index.html 的 title 抽取短名
         if not name:
             name, h1_icon = extract_info(k)
         if not name:
@@ -134,7 +180,7 @@ def main():
     # 生成 js/industry-info.js
     lines = [
         '/* 全站行业字典（中文名 + emoji 图标）—— 由 scripts/gen_industry_info.py 生成，勿手改 */',
-        '/* 数据来源：tools/<key>/index.html 的 <title>（_build.py 生成，权威） + 语义 emoji 映射 */',
+        '/* 数据来源：_build.py INDUSTRY_DEFS 短名（权威，268/268）+ 语义 emoji 映射；仅显示用短名，描述走页面 meta */',
         'window.INDUSTRY_INFO = {',
     ]
     width = max(len(k) for k, _, _ in rows)
