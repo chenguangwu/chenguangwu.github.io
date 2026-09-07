@@ -108,18 +108,20 @@ dentistry 25 工具页（alveolar-bone-loss 牙槽骨吸收根长比例分级器
 ### ✅ design（104 key / 103 工具页，内容层全达标）
 design 103 工具页（analysis 图片调色板提取/audio-recorder 录音转文字稿/avatar-generator 头像生成器/aztec-code 阿兹特克码生成器/badge-generator 徽章生成器/base64-to-image Base64 转图片/bpm-tapper BPM 节拍测速器/blueprint-grid 蓝图网格生成器/breakpoint-queries 响应式断点查询器/card-generator 卡片生成器/checkerboard-generator 棋盘格生成器/color-contrast-check 对比度校验器/color-palette 配色方案生成器/color-picker 颜色选取器/color-scheme-generator 配色方案生成器(别名 key)/color-shade-generator 色阶生成器/color-temperature-converter 色温转换器/contrast-checker 对比度检查器/css-animation-generator CSS 动画生成器/css-border-radius 圆角生成器/css-box-shadow-generator 盒阴影生成器/css-grid-generator 网格布局生成器/css-text-shadow 文字阴影生成器/data-matrix 数据矩阵码生成器/depth-of-field-calculator 景深计算器/dot-pattern 圆点纹理生成器/exposure-triangle-calculator 曝光三角计算器/favicon-* 系列图标生成器/flexbox-generator 弹性布局生成器/focal-length-equivalent 等效焦距换算器/font-pairing 字体搭配器/font-preview 字体预览器/generator-6~12 盒子阴影/边框/二维码/条形码/CSS动画/背景纹理/粒子特效生成器/glassmorphism-generator 毛玻璃生成器/gradient 渐变生成器/gradient-from-color 取色渐变生成器/grid-pattern 网格纹理生成器/identicon-generator 识别图标生成器/image-* 系列图像工具/initials-avatar 姓名缩写头像/iso-noise-reference ISO 噪点参考/isometric-grid 等距网格生成器/loading-dots 加载点生成器/material-color Material 配色生成器/mesh-gradient 网格渐变生成器/music-scale-reference 音阶参考器/shadow-generator 阴影生成器/web-audio-metronome Web Audio 节拍器/loading-dots 加载动画等，含别名 key color-scheme-generator 复用主 key）原 content_deepdive 104 key 为**第二十八种占位变体**（「快速核对 <Title>：优先统一输入单位、口径和参数范围，再对典型样例做一遍手工验算」，summary 原 None、faqs 仅 2 条）：① scripts/opt_design_content_a.py + opt_design_content_b.py 真实化 104 key（split a: analysis~mesh-gradient 69 key / b: music-scale-reference~web-audio-metronome 35 key，各自补 faqs 至 3 条），覆盖图片调色板提取/录音转写/头像与缩写头像/阿兹特克码/徽章/Base64 图/BPM 测速/蓝图网格/响应式断点/卡片/棋盘格/对比度校验/配色/取色/色温转换/CSS 动画圆角盒阴影网格文字阴影/数据矩阵码/景深/圆点纹理/曝光三角/图标/flexbox/等效焦距/字体搭配/二维码条形码/CSS动画背景纹理粒子/毛玻璃/渐变/网格纹理/识别图标/图像压缩裁剪旋转水印等/ISO噪点/等距网格/加载动画/Material配色/网格渐变/音阶/阴影/Web Audio节拍器等真实设计前端场景，统一补「结果仅供设计草稿与前端调试参考、具体视觉与可访问性以实际渲染与团队规范为准、不替代专业设计评审」设计免责（不覆盖 title）；② scripts/opt_design_hardcode.py 检测 A/B/C 三类（FD 错配变体/opt 套话「工作与生活中的相关计算与查询」/块内 6 类通用套话）：A 类 103 页 FD 全部语义相符（快门速度/景深/等效焦距=BPM=物理变体、音阶=速查变体、色温=SI 变体、各生成器/设计工具=对应变体），**无错配**；B/C 类均 0 命中，无需清理直接跳过（可追溯）；③ og:image:alt「ToolBox - 5000+免费在线工具」与 meta「纯前端处理，数据不上传」为全站统一真实特性，非占位、不清理。+ zh-tw 同步 + 五项门禁全过。
 ---
-## 八、当前进行中分类：（无，design 已归档）
+### ✅ discipline（4 工具，内容层全达标）
+discipline 4 工具（assessor-28 政治生态画像评估器/assessor-risk-7 廉政风险评估器/stats-analysis 监督执纪四种形态统计分析器/tester-training-hr 纪律教育测试题库）原 content_deepdive 4 key 为**第二十九种占位变体**（「在discipline场景中，先按 <Title> 的口径预先约束输入范围，再输出可复核结论。」，summary 原 None、faqs 仅 2 条）：① scripts/opt_discipline_content.py 真实化 4 key（summary+3 scenarios+1 example+3 faqs，example 用 body 字段），覆盖政治生态 6 维度画像评分(6-30 分风险等级)/廉政风险 5 维度识别(防控重点+等级)/监督执纪四种形态线索与处置占比趋势汇总/纪律教育 5 题测验自动判分与解析等真实党建纪检场景，统一补「结果仅供单位内部政治生态分析、廉政风险排查与纪律教育学习参考，不替代组织程序与正式考核评估，敏感数据本机处理勿外传」免责（不覆盖 title）；② scripts/opt_discipline_hardcode.py 清 assessor-28/assessor-risk-7/tester-training-hr 的「本校验工具依据对应数据格式与语法规范进行合法性检查」错配 FD 校验变体（→真实廉政/纪律/政治生态评估描述，保留「工具名称：」后缀与「纯前端运行，数据不离开浏览器」真实特性，JSON-LD 合法）+ 清 4 页 tool-intro-body 块内 6 类通用套话（简介尾随「免费在线工具，纯前端处理」+功能特点「操作简单，一键完成」+使用场景 4 项全通用→真实党建纪检场景，含「纯前端处理/数据不上传」真实特性保留），stats-analysis 无 formula-desc 不涉及 A 类；③ og:image:alt「ToolBox - 5000+免费在线工具」与 meta「纯前端处理，数据不上传」为全站统一真实特性，非占位、不清理。+ zh-tw 同步 + 五项门禁全过。
+---
+## 八、当前进行中分类：（无，discipline 已归档）
 
-> biz/blasting/bonding/brand/bridge/building-material/cable/cardiology/casting/ceramics/chemical/chemistry/chess/chinese/chinese-cook/civil/cleaning/clinical-lab/clinical-nursing/cnc/cognition/colorvision/community/construction/consulting/content/convenience/cosmetic-derm/cosmetics/customer-service/daily-goods/dance/data/decor/defense/dentistry/design 内容层均已达标，已依次归档至第七节。下一进行中分类按字母序为 **discipline**（见第九节清单），待下一批次置进行中并展开待优化清单。
+> biz/blasting/bonding/brand/bridge/building-material/cable/cardiology/casting/ceramics/chemical/chemistry/chess/chinese/chinese-cook/civil/cleaning/clinical-lab/clinical-nursing/cnc/cognition/colorvision/community/construction/consulting/content/convenience/cosmetic-derm/cosmetics/customer-service/daily-goods/dance/data/decor/defense/dentistry/design/discipline 内容层均已达标，已依次归档至第七节。下一进行中分类按字母序为 **domestic**（见第九节清单），待下一批次置进行中并展开待优化清单。
 
 > 优化模式（沿用已验证路径）：写真实 content_deepdive 条目 → 清理工具页硬编码套话（opt_cleanup_intro_faq.py --cat <cat> 或仿 opt_biz_optguide.py 按结构清 tool-intro）→ 构建 + 五项门禁 → 提交发布。
 
 ---
 
-## 九、分类总清单（待办，完成一个删一个；剩 204 个目录）
+## 九、分类总清单（待办，完成一个删一个；剩 203 个目录）
 
 - [ ] dermatology
-- [ ] discipline
 - [ ] domestic
 - [ ] dyeing
 - [ ] dynamics
