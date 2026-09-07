@@ -79,22 +79,22 @@
 ## 七、已完成分类归档
 > 本区仅保留**最近一个（最新）已完成分类**的归档记录，更早历史不再保留，以控制文件体积。完成新分类时，用新记录替换本条。
 
-### ✅ content（4 工具，内容层全达标）
+### ✅ convenience（4 工具，内容层全达标）
 
-content 4 工具（checker-5 内容校验 / generator-33 小说生成 / generator-34 PPT 生成 / generator-time-1 字幕时间轴）原 content_deepdive 4 key 为**第十八种占位变体**（「content 场景下建议先校准 XX 口径后再批量输出。对重复场景采用同一模板…」，summary 原 None）：① scripts/opt_content_content.py 真实化 4 key（summary+3 scenarios+1 example+3 faqs），覆盖文本结构校验/小说大纲人设/汇报PPT大纲/字幕时间轴调整，去伪科学、非代写非出版免责（不覆盖 title）；② scripts/opt_content_hardcode.py 清 checker-5 的 formula-desc 校验变体 1 页（「本校验工具依据…」→真实校验描述，JSON-LD 合法）+ 清 generator-33/generator-time-1 的「工作与生活中的相关计算与查询」各 3 处（适用场景/FAQ/JSON-LD→真实内容场景）+ 整体替换 generator-33/34/time-1 的 tool-intro 三段块 6 类通用套话（→真实内容生成场景）+ 为缺块 checker-5 插入真实 tool-intro 手风琴块（generator-33/34/time-1 的 formula-desc 生成器描述为真实功能说明，不清理）；③ og:image:alt「ToolBox - 5000+免费在线工具」与 meta「纯前端处理，数据不上传」为全站统一真实特性，非占位、不清理。+ zh-tw 同步 + 五项门禁全过。
+convenience 4 工具（analysis-80 损耗体系 / analysis-cost-10 成本体系 / assessor-target 选址评估 / report-profit 利润核算）原 content_deepdive 4 key 为**第十九种占位变体**（「在convenience场景中，先按 XX 的口径预先约束输入范围，再输出可复核结论…」，summary 原 None）：① scripts/opt_convenience_content.py 真实化 4 key（summary+3 scenarios+1 example+3 faqs），覆盖门店损耗管控/成本结构拆解/便利店选址五维评分/小微门店利润核算，财务类补非专业建议免责、评估类补模型仅供参考免责（不覆盖 title）；② scripts/opt_convenience_hardcode.py 清 4 页 formula-desc 变体（analysis-80 工程变体「本工程计算基于标准物理…」/analysis-cost-10+report-profit 财务变体「本计算依据通用财务…」/assessor-target 校验变体「本校验工具依据…」→真实领域描述，JSON-LD 合法）+ 清 assessor-target 的「工作与生活中的相关计算与查询」3 处（适用场景/opt-faq/JSON-LD→真实选址场景）+ 整体替换 analysis-80/cost-10/profit 的 tool-intro 三段块 6 类通用套话（→真实便利店场景，assessor-target 块内已真实不处理）；③ og:image:alt「ToolBox - 5000+免费在线工具」与 meta「纯前端处理，数据不上传」为全站统一真实特性，非占位、不清理。+ zh-tw 同步 + 五项门禁全过。
 
 ---
-## 八、当前进行中分类：（无，content 已归档）
+## 八、当前进行中分类：（无，convenience 已归档）
 
-> biz/blasting/bonding/brand/bridge/building-material/cable/cardiology/casting/ceramics/chemical/chemistry/chess/chinese/chinese-cook/civil/cleaning/clinical-lab/clinical-nursing/cnc/cognition/colorvision/community/construction/consulting/content 内容层均已达标，已依次归档至第七节。下一进行中分类按字母序为 **convenience**（见第九节清单），待下一批次置进行中并展开待优化清单。
+> biz/blasting/bonding/brand/bridge/building-material/cable/cardiology/casting/ceramics/chemical/chemistry/chess/chinese/chinese-cook/civil/cleaning/clinical-lab/clinical-nursing/cnc/cognition/colorvision/community/construction/consulting/content/convenience 内容层均已达标，已依次归档至第七节。下一进行中分类按字母序为 **conversion**（见第九节清单），待下一批次置进行中并展开待优化清单。
 
 > 优化模式（沿用已验证路径）：写真实 content_deepdive 条目 → 清理工具页硬编码套话（opt_cleanup_intro_faq.py --cat <cat> 或仿 opt_biz_optguide.py 按结构清 tool-intro）→ 构建 + 五项门禁 → 提交发布。
 
 ---
 
-## 九、分类总清单（待办，完成一个删一个；剩 229 个目录）
+## 九、分类总清单（待办，完成一个删一个；剩 228 个目录）
 
-- [ ] convenience
+- [ ] conversion
 - [ ] cosmetic-derm
 - [ ] cosmetics
 - [ ] customer-service

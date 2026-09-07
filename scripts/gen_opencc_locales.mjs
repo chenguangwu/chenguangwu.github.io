@@ -288,6 +288,15 @@ function transformHtml(raw, rel, locale, converter) {
     return token.replace(/\s([\w:-]+)=(["'])([\s\S]*?)\2/g, (match, attr, quote, value) => {
       const lower = attr.toLowerCase();
       if (TRANSLATABLE_ATTRS.has(lower)) return ` ${attr}=${quote}${converter(value)}${quote}`;
+      // meta description / og:description / og:title 的 content 也需转繁体。
+      // 原 TRANSLATABLE_ATTRS 仅含 title/placeholder/alt 等属性，漏了 description 类 content，
+      // 导致繁体页 <meta name="description"> 仍是简体（<title> 因是文本节点已被转换）。
+      if (tag === 'meta' && lower === 'content') {
+        if (/\bname=["']description["']/i.test(token)
+            || /\bproperty=["']og:(?:description|title)["']/i.test(token)) {
+          return ` ${attr}=${quote}${converter(value)}${quote}`;
+        }
+      }
       return match;
     });
   }).join('');
