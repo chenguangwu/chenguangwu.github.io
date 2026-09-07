@@ -79,18 +79,17 @@
 ## 七、已完成分类归档
 > 本区仅保留**最近一个（最新）已完成分类**的归档记录，更早历史不再保留，以控制文件体积。完成新分类时，用新记录替换本条。
 
-### ✅ engineering（14 工具，内容层全达标 + 英文套话清零）
-engineering 共 14 个工具页（轴扭转/弯曲应力/截面惯性矩/泊松应变/悬臂挠度/热膨胀/焊缝强度/螺栓预紧/轴向应力/压力容器/梁挠度/传热/材料质量/应力综合）。① scripts/opt_engineering_content.py 重写全部 14 条 content_deepdive 为真实工程力学内容（summary+3 真实场景+1 真实算例+2 faqs，覆盖 τ=Tr/J、σ=My/I、平行轴定理、ε_lat=−νε、δ=PL³/3EI、ΔL=αLΔT、τ=F/(0.707aL)、T=KFd、σ=F/A、薄壁 σθ=pd/2t、梁挠度、Q=kAΔT/δ、截面质量等），0 summary None；② 英文 i18n 套话"free online tool/free and accurate/calculate online, free"在 slug-en.json(14 键)/_en_override.json(14 键)清零并补真实英文标题与描述；③ B类套话/tool-intro 领域错标/cat 错标 engineering 均无需处理（工程类领域本正确）；④ C类通用套话（related-tools 卡片/WebApplication JSON-LD/tool-intro 功能特点）与 energy 批一致未单独清理，留作后续全站专项。名称（中文）保持不变。+ zh-tw 同步 + 五项门禁全过。
+### ✅ ent（30 工具，内容层全达标 + 英文套话清零 + cat 错标修正 + guides 错配修复）
+ent 共 30 个耳鼻喉科工具页。① content_deepdive.json 全 30 条真实化（summary+3 场景+1 算例+2 FAQ；补建 pure-tone-audiometry/temporal-resolution-hearing 2 个缺失条目）；② 英文 i18n 套话"free online tool"在 _en_override.json(30 键) 清零并补真实英文 ed，slug-en 7 个占位标题(Assessor/Rater/Checker/Analysis/Tester)改真实英文名；③ cat 错标修正：8 个 engineer/calculator 页改 health/reference/validator（分布 5 health/15 reference/10 validator）；④ guides calc-1 错配修复：ent/calc-1(鼻炎TNSS)误挂增值税指南→新建 guides/tnss-guide.html 改指向；⑤ 7 对占位重复(rater-9≡lund-kennedy 等)经全站引用排查确认有源页硬编码指向(analysis-13 被 9 页引用)，按"禁止擅自批量删除"规则**保留未删**，待老板授权后做全站去重专项。提交 a387a594e + 五项门禁全过 + 线上部署核对通过。
 
-## 八、当前进行中分类：ent
+## 八、当前进行中分类：environment
 
-> 优化模式（沿用已验证路径）：写真实 content_deepdive 条目 → 清理工具页硬编码套话 → 构建 + 五项门禁 → 提交发布。
+> 优化模式（沿用已验证路径）：写真实 content_deepdive 条目 → 清理工具页硬编码套话 → 英文 i18n 清理 → cat 错标修正 → 构建 + 五项门禁 → 提交发布。
 
 ---
 
-## 九、分类总清单（待办，完成一个删一个；剩 185 个目录）
+## 九、分类总清单（待办，完成一个删一个；剩 184 个目录）
 
-- [ ] ent
 - [ ] environment
 - [ ] event
 - [ ] exam
