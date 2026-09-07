@@ -79,20 +79,19 @@
 ## 七、已完成分类归档
 > 本区仅保留**最近一个（最新）已完成分类**的归档记录，更早历史不再保留，以控制文件体积。完成新分类时，用新记录替换本条。
 
-### ✅ encode（31 工具，内容层全达标 + B类套话清零）
-encode 共 31 条 content_deepdive 键（对应 29 个 HTML 页面 + 2 个数据源孤儿键 base32-length/utf8-bytes 无对应页面，已按真实页面 base32.html/utf8-bytes.html 处理）。① scripts/opt_encode_content.py 重写全部 31 条为真实编码领域内容（summary+真实场景+真实示例+真实 FAQ，覆盖 Base64/Base32/Base58/Base85/Base62、URL 编码、HTML 实体、二进制/十六进制、Unicode/UTF-8 码点、Caesar/ROT13/Atbash、摩斯电码、URL slug、哈希摘要、进制转换等），0 summary None、无 stray 键；② B类套话"工作与生活中的相关计算与查询。"在 encode-5（二维码版本容量）、binary-to-ascii（Binary/Hex to ASCII）两页的 FAQ JSON-LD text + opt-guide 适用场景 + opt-faq 三处共 6 处统一替换为真实编码场景描述；③ 确认 encode 目录无 C类工具页套话（站级 og:image:alt 不属于工具页套话）、A类=0。名称（中文）保持不变。+ zh-tw 同步 + 五项门禁全过。
+### ✅ endocrinology（22 工具，内容层全达标 + B类/英文套话清零 + cat 修正 + 重复清理）
+endocrinology 共 22 个工具页（原 23，删除与 homa-ir.html 重复的 calc-1.html；calc-1 为占位命名实为 HOMA-IR，与 homa-ir.html 重复，且是全站 guides basename 错配根源）。① scripts/opt_endocrinology_content.py 重写全部 22 条 content_deepdive 为真实内分泌/代谢医学内容（summary+3 真实场景+1 真实算例+2 faqs，覆盖 FRAX 骨折风险、HOMA-IR、OGTT、PCOS 鹿特丹、TI-RADS、Whipple 三联征、醛固酮肾素比、钙-PTH 轴、皮质醇节律、GH 激发试验、儿茶酚胺代谢等），0 summary None；② B类套话"工作与生活中的相关计算与查询。"在 mage-index/short-stature-prediction/graves-trab/calc-1(已删)/calcium-pth-axis/detector-metabolism 六页的 FAQ JSON-LD+opt-guide+opt-faq 共 17 处替换为真实内分泌场景；③ 英文 i18n 套话"free online tool"在 slug-en.json/_en_override.json 共 20 键清零并补真实英文标题与描述；④ toolbox meta 的 cat 错标修正 3 处（frax-score finance→health、detector-metabolism validator→health、cycle-hormone math→health）；⑤ 删除重复的 calc-1.html（与 homa-ir.html 重复，且根除其被 guides basename 错配为增值税指南的问题），并清理三套数据源对应键。名称（中文）保持不变。+ zh-tw 同步 + 五项门禁全过。
 
-## 八、当前进行中分类：endocrinology（待展开，内容层真实化中）
+## 八、当前进行中分类：energy（待展开，内容层真实化中）
 
-> biz/blasting/bonding/brand/bridge/building-material/cable/cardiology/casting/ceramics/chemical/chemistry/chess/chinese/chinese-cook/civil/cleaning/clinical-lab/clinical-nursing/cnc/cognition/colorvision/community/construction/consulting/content/convenience/cosmetic-derm/cosmetics/customer-service/daily-goods/dance/data/decor/defense/dentistry/design/discipline/domestic/dermatology/dyeing/dynamics/eco/ecommerce/economics/edu/edu2/elderly/electrical/electromagnetism/electronics/embedded/encode 内容层均已达标，已依次归档至第七节。下一进行中分类按字母序为 **endocrinology**（见第九节清单），待展开待优化清单。
+> biz/blasting/bonding/brand/bridge/building-material/cable/cardiology/casting/ceramics/chemical/chemistry/chess/chinese/chinese-cook/civil/cleaning/clinical-lab/clinical-nursing/cnc/cognition/colorvision/community/construction/consulting/content/convenience/cosmetic-derm/cosmetics/customer-service/daily-goods/dance/data/decor/defense/dentistry/design/discipline/domestic/dermatology/dyeing/dynamics/eco/ecommerce/economics/edu/edu2/elderly/electrical/electromagnetism/electronics/embedded/encode/endocrinology 内容层均已达标，已依次归档至第七节。下一进行中分类按字母序为 **energy**（见第九节清单），待展开待优化清单。
 
 > 优化模式（沿用已验证路径）：写真实 content_deepdive 条目 → 清理工具页硬编码套话 → 构建 + 五项门禁 → 提交发布。
 
 ---
 
-## 九、分类总清单（待办，完成一个删一个；剩 188 个目录）
+## 九、分类总清单（待办，完成一个删一个；剩 187 个目录）
 
-- [ ] endocrinology
 - [ ] energy
 - [ ] engineering
 - [ ] ent
