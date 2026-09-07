@@ -79,8 +79,8 @@
 ## 七、已完成分类归档
 > 本区仅保留**最近一个（最新）已完成分类**的归档记录，更早历史不再保留，以控制文件体积。完成新分类时，用新记录替换本条。
 
-### ✅ environment（4 工具，内容层全达标 + 英文套话清零 + cat 错标修正）
-environment 共 4 个环保工具页（碳足迹计算与抵消/空气质量指数AQI类别换算/垃圾分类指南/垃圾产生量计算器）。① content_deepdive.json 4 条模板占位壳全真实化（原 scenarios/examples/faqs 为通用"版本比对示例/离群样本"套话，补 summary+3 真实场景+1 真实算例+2 真实 FAQ）；② 英文 i18n 套话"free online tool"在 _en_override.json(4 键)/slug-en 清零并补真实英文 ed；③ convert-air-aqi 错名"Air Quality Exponent"改"AQI Converter"；④ cat 错标修正：recycling-guide calculator→reference；⑤ waste-calculator body 英文 fallback 套话清理。提交 805691536 + 五项门禁全过 + 线上 MD5 核对 4 页全一致。
+### ✅ event（1 工具，内容层全达标 + 英文套话清零 + cat 错标修正 + 字典同步）
+event 共 1 个工具页 assessor-65（活动效果评估）：四维度加权评分（到场率25%/预算执行贴合度20%/满意度30%/目标达成率25%，0–100 分四档等级+改进建议），计算逻辑经自测算例验证（500 人会议=87.25→卓越）。① content_deepdive.json 占位壳（通用"版本比对/复核演练"套话）全真实化（summary+3 真实场景+1 算例+2 FAQ）；② 英文 i18n 机翻坏名 "Evaluate ( Effect / Report / Improvement ) System" 改 "Event Effectiveness Assessment"，"free online tool" 套话在 slug-en/_en_override/event.json 清零并补真实 ed；③ cat 错标 validator→calculator；④ formula-box validator 模板残留改写为真实工作原理；⑤ 同步 event-phrases.json / tool_desc_override.py 旧名键→新名。提交 ddb06a819 + 五项门禁全过 + 线上 MD5 核对。
 
 ## 八、当前进行中分类：event
 
@@ -88,7 +88,7 @@ environment 共 4 个环保工具页（碳足迹计算与抵消/空气质量指�
 
 ---
 
-## 九、分类总清单（待办，完成一个删一个；剩 183 个目录）
+## 九、分类总清单（待办，完成一个删一个；剩 182 个目录）
 
 - [ ] event
 - [ ] event
