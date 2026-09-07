@@ -2845,13 +2845,15 @@ function buildUnifiedHeader(){
   var root = toolPageRootPrefix();
 
   // 统一顶栏注入范围：首页 / 工具页(/tools/) / 指南页(/guides/) / 关于我们(/about.html)
-  // / 含旧 .nav 的页面。search/chains/sitemap 等无 .nav 的页面维持原状，
-  // 不被本次统一改造波及。
+  // / 工具链组合(/chains.html) / 站点地图(/sitemap.html) / 含旧 .nav 的页面。
+  // search.html 作为搜索跳转页维持原状，不被统一改造波及。
   var path = location.pathname || '';
   var isTarget = path.indexOf('/tools/') !== -1
               || path.indexOf('/guides/') !== -1
               || isHomepage()
               || path.indexOf('/about.html') !== -1
+              || path.indexOf('/chains.html') !== -1
+              || path.indexOf('/sitemap.html') !== -1
               || !!document.querySelector('.nav');
   if (!isTarget) return null;
 
@@ -3059,11 +3061,16 @@ function injectUnifiedChrome(){
       if (mobActions) window.I18n.mountSwitcher(mobActions);
     }
 
-    // guide 页自带的简陋 <footer> 版权与注入的 .footer 深色页脚重复，先移除
-    var oldFooters = document.querySelectorAll('body > footer');
+    // guide 页/站点地图自带的简陋 <footer> 或 <div class="footer"> 版权块
+    // 与注入的 .footer 深色页脚重复，先移除；站点地图专有的 .back 返回链接同理清理
+    var oldFooters = document.querySelectorAll('body > footer, body > .footer');
     for (var fi = 0; fi < oldFooters.length; fi++) {
       var fo = oldFooters[fi];
       if (fo.parentNode) fo.parentNode.removeChild(fo);
+    }
+    var oldBacks = document.querySelectorAll('body > a.back');
+    for (var bi = 0; bi < oldBacks.length; bi++) {
+      if (oldBacks[bi].parentNode) oldBacks[bi].parentNode.removeChild(oldBacks[bi]);
     }
 
     // 移除旧导航（此时已将其中的语言切换器救出）
