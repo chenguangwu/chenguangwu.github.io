@@ -79,6 +79,12 @@
 ## 七、已完成分类归档
 > 本区仅保留**最近一个（最新）已完成分类**的归档记录，更早历史不再保留，以控制文件体积。完成新分类时，用新记录替换本条。
 
+### ✅ dynamics（28 工具，内容层全达标）
+dynamics 28 工具（angular-momentum 角动量/angular-momentum-conservation 角动量守恒/banked-curve 弯道设计速度/coefficient-restitution 恢复系数/drag-force 阻力/elastic-collision-1d 一维弹性碰撞/gravitational-potential 重力势能/hooke-force 胡克定律/impulse 冲量/inclined-plane-accel 斜面加速度/inelastic-collision 完全非弹性/kinetic-energy 动能/kinetic-friction 动摩擦/moment-of-inertia-point 质点转动惯量/momentum 动量/momentum-conservation 动量守恒/newtons-second 牛顿第二/period-pendulum 单摆周期/power-force 功率/power-rotational 旋转功率/rotational-kinetic-energy 转动动能/spring-potential 弹簧势能/static-friction-max 最大静摩擦/terminal-velocity 终端速度/torque-force 力矩/weight-force 重力/work-done 做功/work-energy-theorem 动能定理）原 content_deepdive 28 key 为「在「<Title>」场景先统一输入单位与口径…」占位变体（summary 原 None、faqs 仅 2 条）：① scripts/opt_dynamics_content.py 真实化 28 key（summary+3 scenarios+1 example+3 faqs，example 用 body 字段），覆盖刚体转动/碰撞/摩擦/斜面/圆周/弹簧/功与能等经典力学公式与应用场景，统一补力学免责（不覆盖 title）；② scripts/opt_dynamics_hardcode.py 清 banked-curve 的「工作与生活中的相关计算与查询」JSON-LD 占位（→真实弯道设计场景），A 类 formula-desc 多为真实/语义相符描述（elastic-collision-1d「本动力学计算基于标准力学公式」变体语义相符保留）、C 类 0 命中；③ og:image:alt「ToolBox - 5000+免费在线工具」与 meta「纯前端处理，数据不上传」为全站统一真实特性，非占位、不清理。+ zh-tw 同步 + 五项门禁全过 + Actions 发布成功。
+
+### ✅ dermatology（24 工具，内容层全达标）
+dermatology 24 工具（actinic-keratosis 日光性角化/assessor-14+seborrheic-dermatitis 脂溢性皮炎/calc-1 烧伤九分法/chilblain-grading 冻疮分级/contact-dermatitis-patch 斑贴试验/dermatoscopy-abcd 皮肤镜ABCD/easi-eczema 湿疹EASI/gags-acne 痤疮GAGS/hdss-hyperhidrosis 多汗HDSS/insect-bite-reaction+rater-29 虫咬反应/leprosy-grading 麻风WHO/miliaria-classification 痱子分型/onychomycosis-grading 甲癣镜检/pasi-score 银屑病PASI/pityriasis-rosea 玫瑰糠疹鉴别/rater-28+vss-scar 疤痕VSS/salt-alopecia 斑秃SALT/scorad-index 特应性皮炎SCORAD/vasi-vitiligo 白癜风VASI/wood-lamp 伍德灯/zoster-phn 带状疱疹PHN）原 content_deepdive 24 key 为「在「<Title>」场景先统一输入单位与口径…」占位变体（summary 原 None、faqs 仅 2 条）：① scripts/opt_dermatology_content.py 真实化 24 key（summary+3 scenarios+1 example+3 faqs，example 用 body 字段），覆盖各皮肤病评分体系（PASI/SCORAD/EASI/GAGS/HDSS/SALT/VSS/VASI/ABCD/九分法等）真实场景，统一补医疗免责（不覆盖 title）；② scripts/opt_dermatology_hardcode.py 清 5 页错配/通用 formula-desc（assessor-14/rater-28/rater-29「本校验工具…」+seborrheic-dermatitis/vss-scar「本健康工具…」→真实领域描述，JSON-LD 合法）+ 清 chilblain 的「工作与生活中的相关计算与查询」JSON-LD 占位 + 清 assessor-14/rater-28/rater-29 的 tool-intro-body 块内 6 类通用套话（→真实皮肤科内容）；③ og:image:alt「ToolBox - 5000+免费在线工具」与 meta「纯前端处理，数据不上传」为全站统一真实特性，非占位、不清理。+ zh-tw 同步 + 五项门禁全过 + Actions 发布成功。
+
 ### ✅ convenience（4 工具，内容层全达标）
 
 convenience 4 工具（analysis-80 损耗体系 / analysis-cost-10 成本体系 / assessor-target 选址评估 / report-profit 利润核算）原 content_deepdive 4 key 为**第十九种占位变体**（「在convenience场景中，先按 XX 的口径预先约束输入范围，再输出可复核结论…」，summary 原 None）：① scripts/opt_convenience_content.py 真实化 4 key（summary+3 scenarios+1 example+3 faqs），覆盖门店损耗管控/成本结构拆解/便利店选址五维评分/小微门店利润核算，财务类补非专业建议免责、评估类补模型仅供参考免责（不覆盖 title）；② scripts/opt_convenience_hardcode.py 清 4 页 formula-desc 变体（analysis-80 工程变体「本工程计算基于标准物理…」/analysis-cost-10+report-profit 财务变体「本计算依据通用财务…」/assessor-target 校验变体「本校验工具依据…」→真实领域描述，JSON-LD 合法）+ 清 assessor-target 的「工作与生活中的相关计算与查询」3 处（适用场景/opt-faq/JSON-LD→真实选址场景）+ 整体替换 analysis-80/cost-10/profit 的 tool-intro 三段块 6 类通用套话（→真实便利店场景，assessor-target 块内已真实不处理）；③ og:image:alt「ToolBox - 5000+免费在线工具」与 meta「纯前端处理，数据不上传」为全站统一真实特性，非占位、不清理。+ zh-tw 同步 + 五项门禁全过。
@@ -114,21 +120,19 @@ discipline 4 工具（assessor-28 政治生态画像评估器/assessor-risk-7 �
 ### ✅ domestic（4 工具，内容层全达标）
 domestic 4 工具（cycle-4 清洁用品消耗量与补货周期/generator-price 合同（服务/价格/条款）生成/recommender-8 保险（责任/意外/雇主）推荐/reminder-cycle 家电深度清洁周期提醒）原 content_deepdive 4 key 为**第三十种占位变体**（「domestic 场景下建议先校准 <Title> 口径后再批量输出。」，summary 原 None、faqs 仅 2 条）：① scripts/opt_domestic_content.py 真实化 4 key（summary+3 scenarios+1 example+3 faqs，example 用 body 字段），覆盖清洁用品库存消耗推算与低库存预警/合同（家政劳务）草稿生成/保险（雇主责任+意外+责任）组合推荐/家电深度清洁周期排队与要点等真实生活家政场景，统一补「结果仅供家庭与个人事务管理参考、合同与保险类文本请结合正式法律与投保要求、必要时咨询专业人士、不构成法律或投保意见」免责（不覆盖 title）；② scripts/opt_domestic_hardcode.py 清 generator-price/recommender-8 的 tool-intro-body 块内 6 类通用套话（简介尾随「免费在线工具，纯前端处理，数据不上传，保护隐私安全」+功能特点「操作简单，一键完成」+使用场景 4 项全通用→真实家政场景，含「纯前端处理/数据不上传/支持复制下载/实时显示」真实特性保留），A 类 generator-price/recommender-8 的「本生成器依据指定格式规范在前端按规则随机或确定性生成内容」为生成器标准变体（语义相符保留）、B 类 opt 套话 0 命中；③ og:image:alt「ToolBox - 5000+免费在线工具」与 meta「纯前端处理，数据不上传」为全站统一真实特性，非占位、不清理。+ zh-tw 同步 + 五项门禁全过。
 ---
-## 八、当前进行中分类：dermatology（24 工具，内容层已真实化，待门禁通过+提交发布）
+## 八、当前进行中分类：eco（34 工具，内容层真实化中）
 
-> dermatology 24 工具（actinic-keratosis 日光性角化/assessor-14 脂溢性皮炎/calc-1 烧伤九分法/chilblain-grading 冻疮分级/contact-dermatitis-patch 斑贴试验/dermatoscopy-abcd 皮肤镜ABCD/ easi-eczema 湿疹EASI/gags-acne 痤疮GAGS/hdss-hyperhidrosis 多汗HDSS/insect-bite-reaction 虫咬反应/leprosy-grading 麻风WHO/miliaria-classification 痱子分型/onychomycosis-grading 甲癣镜检/pasi-score 银屑病PASI/pityriasis-rosea 玫瑰糠疹鉴别/rater-28 疤痕VSS/seborrheic-dermatitis 脂溢性皮炎评估/salt-alopecia 斑秃SALT/scorad-index 特应性皮炎SCORAD/vasi-vitiligo 白癜风VASI/vss-scar 疤痕VSS/wood-lamp 伍德灯/zoster-phn 带状疱疹PHN）：内容层全达标，正在跑五项门禁并准备提交发布。
+> biz/blasting/bonding/brand/bridge/building-material/cable/cardiology/casting/ceramics/chemical/chemistry/chess/chinese/chinese-cook/civil/cleaning/clinical-lab/clinical-nursing/cnc/cognition/colorvision/community/construction/consulting/content/convenience/cosmetic-derm/cosmetics/customer-service/daily-goods/dance/data/decor/defense/dentistry/design/discipline/domestic/dermatology/dyeing/dynamics 内容层均已达标，已依次归档至第七节。下一进行中分类按字母序为 **eco**（见第九节清单），待展开待优化清单。
 
-> biz/blasting/bonding/brand/bridge/building-material/cable/cardiology/casting/ceramics/chemical/chemistry/chess/chinese/chinese-cook/civil/cleaning/clinical-lab/clinical-nursing/cnc/cognition/colorvision/community/construction/consulting/content/convenience/cosmetic-derm/cosmetics/customer-service/daily-goods/dance/data/decor/defense/dentistry/design/discipline/domestic/dermatology 内容层均已达标或在进行中，已依次归档至第七节或置进行中。下一新分类按字母序为 **dyeing**（见第九节清单），待 dermatology 发布后展开。
-
-> 优化模式（沿用已验证路径）：写真实 content_deepdive 条目 → 清理工具页硬编码套话（opt_dermatology_hardcode.py）→ 构建 + 五项门禁 → 提交发布。
+> 优化模式（沿用已验证路径）：写真实 content_deepdive 条目 → 清理工具页硬编码套话 → 构建 + 五项门禁 → 提交发布。
 
 ---
 
 ## 九、分类总清单（待办，完成一个删一个；剩 202 个目录）
 
-- [x] dermatology（进行中，待发布）
-- [ ] dyeing
-- [ ] dynamics
+- [x] dermatology（已发布）
+- [x] dyeing（已发布，内容早达标）
+- [x] dynamics（已发布）
 - [ ] eco
 - [ ] ecommerce
 - [ ] economics
