@@ -90,8 +90,6 @@ event 共 1 个工具页 assessor-65（活动效果评估）：四维度加权�
 
 ## 九、分类总清单（待办，完成一个删一个；剩 182 个目录）
 
-- [ ] event
-- [ ] event
 - [ ] exam
 - [ ] exhibition
 - [ ] express
