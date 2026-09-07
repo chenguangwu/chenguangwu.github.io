@@ -79,12 +79,12 @@
 ## 七、已完成分类归档
 > 本区仅保留**最近一个（最新）已完成分类**的归档记录，更早历史不再保留，以控制文件体积。完成新分类时，用新记录替换本条。
 
-### ✅ eco（34 工具，内容层全达标）
-eco 34 工具（碳排放核算/碳汇计量/AQI 空气质量指数/储能容量配置/光伏装机容量/风电发电量/建筑能耗/废水固废/噪声等效声级/雨水径流/水足迹等环境核算计算器）原 content_deepdive 34 key 为占位变体：① scripts/opt_eco_content.py 真实化 34 key（summary+3 scenarios+1 example+3 faqs），覆盖碳排放核算/碳汇估算/AQI 解读/储能容量/光伏方阵/风电出力/建筑能效/废水固废产排/噪声 Leq/雨水径流/水足迹等真实环境核算场景，统一补「结果仅供环境核算与科普参考、不替代环评报告与官方核算、以最新标准规范为准」免责（不覆盖 title）；② 经检测 A 类 formula-desc 变体 / B 类 opt 套话「工作与生活中的相关计算与查询」/ C 类 tool-intro-body 块内 6 类通用套话均为 0 命中，eco 34 页无需 hardcode 清理；③ og:image:alt「ToolBox - 5000+免费在线工具」与 meta「纯前端处理，数据不上传」为全站统一真实特性，非占位、不清理。+ zh-tw 同步 + 五项门禁全过。
+### ✅ ecommerce（21 工具，内容层全达标）
+ecommerce 21 工具（analysis-25 竞品比价监控分析/analysis-conversion-funnel 转化漏斗分析/analysis-cost-8 成本分析/calc-79 增长率同比环比/calc-commission-2 佣金计算/conversion-4 直播观看成交转化/cycle-15 复购周期频次预测/discount 促销折扣满减优惠券/erp-dingdan-caigou-duijie ERP订单采购对接/estimate-ranking 排名搜索权重估算/groupon-filler 满减凑单计算器/inventory-1 库存预警补货/kaidian-yunyingyuguizeduibijisuanqi 开店运营规则对比/kedan-jiandanjia-liandailv 客单件单价连带率/pingjia-chaping-tuihuo-lv 评价差评退货率/report BI报表可视化/response-2 客服咨询投诉响应/stats-flow-conversion 流量UV/PV转化统计/stats-profit 利润率单品店铺统计/wuliu-fahuo-cangchu-gongyinglian-zhenghe 物流发货仓储供应链整合/wuliu-lanshou-qianshou-shixiao 物流揽收签收时效）原 content_deepdive 21 key 为占位变体（summary 原 None、faqs 仅 2 条）：① scripts/opt_ecommerce_content.py 真实化 21 key（summary+3 scenarios+1 example+3 faqs），覆盖竞品比价/转化漏斗/成本毛利/同比环比增长/佣金结算/直播GPM/复购预测/促销到手价/ERP再订货点/搜索权重/满减凑单/库存预警/开店成本对比/客单连带/评价退货率/BI看板/客服响应/流量转化/利润率/物流整合与时效等真实电商运营场景，统一补「仅供电商运营测算与决策参考、不替代平台规则与正式对账」免责（不覆盖 title）；② scripts/opt_ecommerce_hardcode.py 清 A 类 14 页 formula-desc（12 页「输入两个参数，自动计算常用结果」+kaidian「输入各项参数，自动计算对比结果。」+analysis-25「本工程计算基于标准物理与材料公式」工程错配→真实领域描述，JSON-LD 合法），5 页财务/数学领域变体（analysis-conversion-funnel/stats-profit/analysis-cost-8/report/stats-flow-conversion）语义相符保留；清 C 类 19 页 tool-intro-body 块内 6 类通用套话（→真实电商场景，cycle-15 块内已真实、groupon-filler 无块不处理）；③ B 类 opt 套话「工作与生活中的相关计算与查询」0 命中、og:image:alt「ToolBox - 5000+免费在线工具」与 meta「纯前端处理，数据不上传」为全站统一真实特性，非占位、不清理。+ zh-tw 同步 + 五项门禁全过。
 
-## 八、当前进行中分类：eco（34 工具，内容层真实化中）
+## 八、当前进行中分类：economics（待展开，内容层真实化中）
 
-> biz/blasting/bonding/brand/bridge/building-material/cable/cardiology/casting/ceramics/chemical/chemistry/chess/chinese/chinese-cook/civil/cleaning/clinical-lab/clinical-nursing/cnc/cognition/colorvision/community/construction/consulting/content/convenience/cosmetic-derm/cosmetics/customer-service/daily-goods/dance/data/decor/defense/dentistry/design/discipline/domestic/dermatology/dyeing/dynamics 内容层均已达标，已依次归档至第七节。下一进行中分类按字母序为 **eco**（见第九节清单），待展开待优化清单。
+> biz/blasting/bonding/brand/bridge/building-material/cable/cardiology/casting/ceramics/chemical/chemistry/chess/chinese/chinese-cook/civil/cleaning/clinical-lab/clinical-nursing/cnc/cognition/colorvision/community/construction/consulting/content/convenience/cosmetic-derm/cosmetics/customer-service/daily-goods/dance/data/decor/defense/dentistry/design/discipline/domestic/dermatology/dyeing/dynamics/eco/ecommerce 内容层均已达标，已依次归档至第七节。下一进行中分类按字母序为 **economics**（见第九节清单），待展开待优化清单。
 
 > 优化模式（沿用已验证路径）：写真实 content_deepdive 条目 → 清理工具页硬编码套话 → 构建 + 五项门禁 → 提交发布。
 
@@ -96,7 +96,7 @@ eco 34 工具（碳排放核算/碳汇计量/AQI 空气质量指数/储能容量
 - [x] dyeing（已发布，内容早达标）
 - [x] dynamics（已发布）
 - [x] eco
-- [ ] ecommerce
+- [x] ecommerce
 - [ ] economics
 - [ ] edu
 - [ ] edu2
