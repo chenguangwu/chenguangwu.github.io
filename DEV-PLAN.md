@@ -79,12 +79,12 @@
 ## 七、已完成分类归档
 > 本区仅保留**最近一个（最新）已完成分类**的归档记录，更早历史不再保留，以控制文件体积。完成新分类时，用新记录替换本条。
 
-### ✅ economics（28 工具，内容层全达标）
-economics 28 工具（average-propensity-consume APC/C/balance-of-trade 贸易差额/cagr 复合增长率/cobb-douglas 生产函数/compound-amount 复利终值/cross-elasticity 交叉价格弹性/elasticity-demand 需求价格弹性/fisher-equation 费雪方程/fv-annuity 年金终值/gdp-expenditure 支出法GDP/gdp-growth-rate GDP增长率/income-elasticity 收入弹性/inflation-rate 通胀率/labor-force-participation 劳动参与率/labor-force 劳动力/marginal-product-labor 劳动边际产量/marginal-propensity-consume MPC/mpc-from-multiplier 乘数反推MPC/nominal-to-real 名义转实际/okuns-law 奥肯定律/present-value 现值/pv-annuity 年金现值/real-gdp 实际GDP/rule-of-72 72法则/spending-multiplier 政府支出乘数/tax-multiplier 税收乘数/unemployment-rate 失业率/velocity-of-money 货币流通速度）原 content_deepdive 28 key 为占位变体（summary 原 None、faqs 仅 2 条）：① scripts/opt_economics_content.py 真实化 28 key（summary+3 scenarios+1 example+3 faqs），覆盖消费倾向/贸易差额/CAGR/生产函数/复利/弹性/费雪方程/年金/GDP/奥肯/现值/72法则/乘数/失业率/货币流速等真实宏观经济与微观经济学场景，统一补「仅作经济学教学与测算参考、不替代专业经济分析与官方统计」免责（不覆盖 title）；② scripts/opt_economics_hardcode.py 清 B 类 inflation-rate 1 页 3 处 opt 套话「工作与生活中的相关计算与查询」（→真实通胀测算场景，JSON-LD 合法）；③ A 类 25 页 formula-desc 经核验全为真实领域描述（如「输入消费 C 与收入 Y，求平均消费倾向」），语义相符保留；C 类 tool-intro-body 套话 0 命中。+ zh-tw 同步 + 五项门禁全过。
+### ✅ edu（44 工具，内容层全达标）
+edu 44 工具（24-point-solver 24点/calc-2 Z分数/calc-3 学习计划分配/calc-4 成绩目标反推/capital-quiz 首都测验/chinese-stroke-counter 汉字笔画/chinese-zodiac 生肖/color-quiz 颜色/convert-1 时区/convert-2 颜色代码/convert-3 进制/convert-4 编码/convert-area-volume 综合单位/countdown-5 考试倒计时/country-quiz 国家/ebbinghaus-curve 艾宾浩斯/edu-unit-converter 教育单位/exam-score-calculator 分数/exam 类/gpa-calculator GPA/grade-calculator 成绩/grade-weight-calculator 加权/math-quiz 数学/multiplication-table 乘法表/number-memory 数字记忆/pinyin-converter 拼音/pinyin-typing-practice 打字/quiz-score-percentage 正确率/ranking 排名/std/reading-speed-calculator 阅读速度/reminder-1 错题本/stats 字数/study-planner 计划/timezone-converter 世界时钟/typing-game 打字游戏/wenbenquzhong-paixu-fanzhuan 文本处理/word-count-pages 论文字数/word-memory 单词/xml-html-css 格式化等）原 content_deepdive 44 key 为占位变体（summary 原 None、faqs 仅 2 条）：① scripts/opt_edu_content.py 真实化 44 key（summary+3 scenarios+1 example+3 faqs），覆盖 24 点求解/Z 分数/学习计划/成绩目标/首都测验/汉字笔画/生肖/颜色/时区/进制/编码/单位换算/考试倒计时/艾宾浩斯/单词测试/作文字数/GPA/成绩加权/乘法表/数字记忆/拼音/阅读速度/错题本/世界时钟/代码格式化等真实学习教育场景，统一补「仅供学习辅助与自我评测参考、不替代学校教学、教师评定与官方考试标准」免责（不覆盖 title）；② scripts/opt_edu_hardcode.py 清 C 类 43 页（24-point-solver 无 tool-intro-body 跳过）tool-intro-body 套话：删通用 li 8 类（辅助学习提升效率/计算精准/纯前端不上传/手机随时学/学生作业/教师教学/备考复习/终身学习）+ 简介后缀「教育学习工具，辅助学习，提升效率」+ 删空 ul 及其 h4，保留各工具真实 li（如「动态添加/删除科目」「可视化条形图」）；③ A 类 17 页 formula-desc 经核验全为真实领域描述（如「本计算基于标准数学定义」「换算因子依据国际单位制(SI)」），语义相符保留；B 类 0。+ zh-tw 同步 + 五项门禁全过。
 
-## 八、当前进行中分类：edu（待展开，内容层真实化中）
+## 八、当前进行中分类：edu2（待展开，内容层真实化中）
 
-> biz/blasting/bonding/brand/bridge/building-material/cable/cardiology/casting/ceramics/chemical/chemistry/chess/chinese/chinese-cook/civil/cleaning/clinical-lab/clinical-nursing/cnc/cognition/colorvision/community/construction/consulting/content/convenience/cosmetic-derm/cosmetics/customer-service/daily-goods/dance/data/decor/defense/dentistry/design/discipline/domestic/dermatology/dyeing/dynamics/eco/ecommerce/economics 内容层均已达标，已依次归档至第七节。下一进行中分类按字母序为 **edu**（见第九节清单），待展开待优化清单。
+> biz/blasting/bonding/brand/bridge/building-material/cable/cardiology/casting/ceramics/chemical/chemistry/chess/chinese/chinese-cook/civil/cleaning/clinical-lab/clinical-nursing/cnc/cognition/colorvision/community/construction/consulting/content/convenience/cosmetic-derm/cosmetics/customer-service/daily-goods/dance/data/decor/defense/dentistry/design/discipline/domestic/dermatology/dyeing/dynamics/eco/ecommerce/economics/edu 内容层均已达标，已依次归档至第七节。下一进行中分类按字母序为 **edu2**（见第九节清单），待展开待优化清单。
 
 > 优化模式（沿用已验证路径）：写真实 content_deepdive 条目 → 清理工具页硬编码套话 → 构建 + 五项门禁 → 提交发布。
 
@@ -98,7 +98,7 @@ economics 28 工具（average-propensity-consume APC/C/balance-of-trade 贸易�
 - [x] eco
 - [x] ecommerce
 - [x] economics
-- [ ] edu
+- [x] edu
 - [ ] edu2
 - [ ] elderly
 - [ ] electrical
