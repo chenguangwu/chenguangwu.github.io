@@ -102,17 +102,19 @@ decor 8 工具（ceiling-panel-quantity 吊顶板材用量/curtain-fabric 窗帘
 ### ✅ defense（2 工具，内容层全达标）
 defense 2 工具（calc-rater 射击弹道与修正计算/rater-38 军事体育训练考核评分）原 content_deepdive 2 key 为**第二十六种占位变体**（「在defense场景下，先对 <Title> 建模统一口径，再输出可复核结论。」，summary 原 None、faqs 仅 2 条）：① scripts/opt_defense_content.py 真实化 2 key（summary+3 scenarios+1 example+3 faqs，example 用 body 字段），覆盖射击弹道降/横风偏移/MOA密位修正/靶环评分与军体考核（引体/双杠/仰卧/俯卧撑/3000米跑按《军事体育训练大纲》参考标准分年龄性别评分）等真实国防/军事场景，统一补「射击/军体类结果为估算参考、不替代实弹校枪与专业训练指导及正式考核裁判、标准以现役官方版本为准」免责（不覆盖 title）；② scripts/opt_defense_hardcode.py 检测 A/B/C 三类（FD 错配变体/opt 套话「工作与生活中的相关计算与查询」/块内 6 类通用套话）均 0 命中，defense 2 页无 formula-desc、无套话，无需清理直接跳过；③ og:image:alt「ToolBox - 5000+免费在线工具」与 meta「纯前端处理，数据不上传」为全站统一真实特性，非占位、不清理。+ zh-tw 同步 + 五项门禁全过。
 ---
-## 八、当前进行中分类：（无，defense 已归档）
+### ✅ dentistry（30 key / 25 工具页，内容层全达标）
+dentistry 25 工具页（alveolar-bone-loss 牙槽骨吸收根长比例分级器/analysis-11 桥体跨度力学分析/assessor-5 氧化锆透光率美学评估/bite-contact 咬合接触平衡点分析器/bridge-span 桥体跨度分析器/bruxism-force 夜磨牙咬合力估算器/calc-1 DMFT 龋齿指数/caries-risk 龋病风险 Cariogram 评分器/complete-denture 全口义齿颌位关系转移器/dental-arch-development 儿童牙弓发育评估器/gingival-index 牙龈指数评估器/implant-dimensions 种植体直径长度选择器/kouqiangai-tnm-shaichagongju 口腔癌 TNM 筛查工具/length-3 儿童牙弓长度宽度发育/oral-cancer-screening 口腔癌 TNM 筛查器/oral-ulcer 口腔溃疡阿弗它分期器/orthodontic-force 正畸力与牙移动评估器/periodontal-pocket 牙周袋深度与附着丧失评估器/rater-risk-2 龋病风险 Cariogram 评分/root-canal-length 根管长度与工作长度计算器/salivary-flow 唾液流率评估器/sialography 腺体造影判读器/tongue-oral-health 舌诊与口腔健康关联器/tooth-preparation 牙体预备聚合度与固位力评估器/wisdom-tooth 阻生智齿 Pell-Gregory 分类器/zirconia-aesthetics 氧化锆美学评估器，含 5 个别名 key：estimate-27/kouqiangkuiyang-afuta-fenqi/quankouyichi-heweiguanxi-zhuanyi/ratio-13 复用主 key）原 content_deepdive 30 key 为**第二十七种占位变体**（「<Title> 的常见复核路径：先检核单位与输入边界，再做基准样例核验…」，summary 原 None、faqs 仅 2 条）：① scripts/opt_dentistry_content.py 真实化 30 key（summary+3 scenarios+1 example+3 faqs，example 用 body 字段），覆盖牙槽骨吸收分级/桥体跨度力学(Ante 法则)/氧化锆透代次/咬合接触平衡(T-Scan)/DMFT/龋病风险 Cariogram/全口义齿颌位/牙弓发育/牙龈指数/种植体尺寸/口腔癌 TNM(AJCC 第8版)/口腔溃疡 RAS/正畸力/牙周袋 CAL/根管工作长度/唾液流率/腺体造影/舌诊/牙体预备固位/智齿分类等真实口腔场景，统一补「结果仅供口腔健康科普与初筛参考、不替代口腔检查/影像与专业诊断、异常及时就医」医疗免责（不覆盖 title）；② scripts/opt_dentistry_hardcode.py 清 rater-risk-2 的「本校验工具依据对应数据格式与语法规范进行合法性检查」错配 FD 校验变体（→真实 Cariogram 描述，保留「工具名称：」后缀，JSON-LD 合法）+ 清 dental-arch-development/assessor-5/zirconia-aesthetics 的「工作与生活中的相关计算与查询」各 3 处（JSON-LD text/适用场景段/FAQ dd→真实口腔场景，共 9 处，JSON-LD 合法）+ 清 length-3/analysis-11/kouqiangai-tnm-shaichagongju 的 tool-intro-body 块内 6 类通用套话（简介尾随通用语+功能特点 2 项+使用场景 4 项全通用，共 21 处→真实口腔内容，含「纯前端处理/支持复制下载」真实特性保留），analysis-11 的「本工程计算基于标准物理与材料公式」为物理变体（桥体跨度力学语义相符保留）；③ og:image:alt「ToolBox - 5000+免费在线工具」与 meta「纯前端处理，数据不上传」为全站统一真实特性，非占位、不清理。+ zh-tw 同步（C 类块内套话经 _build.py 重建后 zh-tw 仍为 0，证明不覆盖 tool-intro-body 块）+ 五项门禁全过。
+---
+## 八、当前进行中分类：（无，dentistry 已归档）
 
-> biz/blasting/bonding/brand/bridge/building-material/cable/cardiology/casting/ceramics/chemical/chemistry/chess/chinese/chinese-cook/civil/cleaning/clinical-lab/clinical-nursing/cnc/cognition/colorvision/community/construction/consulting/content/convenience/cosmetic-derm/cosmetics/customer-service/daily-goods/dance/data/decor/defense 内容层均已达标，已依次归档至第七节。下一进行中分类按字母序为 **dentistry**（见第九节清单），待下一批次置进行中并展开待优化清单。
+> biz/blasting/bonding/brand/bridge/building-material/cable/cardiology/casting/ceramics/chemical/chemistry/chess/chinese/chinese-cook/civil/cleaning/clinical-lab/clinical-nursing/cnc/cognition/colorvision/community/construction/consulting/content/convenience/cosmetic-derm/cosmetics/customer-service/daily-goods/dance/data/decor/defense/dentistry 内容层均已达标，已依次归档至第七节。下一进行中分类按字母序为 **design**（见第九节清单），待下一批次置进行中并展开待优化清单。
 
 > 优化模式（沿用已验证路径）：写真实 content_deepdive 条目 → 清理工具页硬编码套话（opt_cleanup_intro_faq.py --cat <cat> 或仿 opt_biz_optguide.py 按结构清 tool-intro）→ 构建 + 五项门禁 → 提交发布。
 
 ---
 
-## 九、分类总清单（待办，完成一个删一个；剩 206 个目录）
+## 九、分类总清单（待办，完成一个删一个；剩 205 个目录）
 
-- [ ] dentistry
 - [ ] dermatology
 - [ ] design
 - [ ] discipline
