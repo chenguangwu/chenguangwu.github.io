@@ -79,20 +79,19 @@
 ## 七、已完成分类归档
 > 本区仅保留**最近一个（最新）已完成分类**的归档记录，更早历史不再保留，以控制文件体积。完成新分类时，用新记录替换本条。
 
-### ✅ embedded（1 工具，内容层全达标 + 逻辑纠偏）
-embedded 仅 1 工具 analysis-22（功耗（动态/静态）分析）。原 JS 实为通用统计（均值/中位数/方差），与名称「功耗分析」严重错配、误导用户：① scripts/opt_embedded_content.py 重写工具逻辑为真实嵌入式功耗分析（供电电压 V / 动态电流 I_active / 静态电流 I_sleep / 占空比 duty / 电池容量 C → 平均电流 I_avg=I_active×duty+I_sleep×(1−duty)、平均功耗 P_avg=V×I_avg、续航 t=C/I_avg），formula-desc→真实功耗公式，h2 及副标题英文→「Power (Dynamic/Static) Analysis」，tool-intro-body 套话清理+真实「使用场景」；② content_deepdive 真实化（summary+3 scenarios+1 example+3 faqs，覆盖休眠/唤醒核算、电池续航预估、占空比权衡）；③ i18n _en_override.json/slug-en.json 英文标题描述改真实功耗分析，删除「Analysis 22」占位。名称（中文）保持不变。+ zh-tw 同步 + 五项门禁全过。
+### ✅ encode（31 工具，内容层全达标 + B类套话清零）
+encode 共 31 条 content_deepdive 键（对应 29 个 HTML 页面 + 2 个数据源孤儿键 base32-length/utf8-bytes 无对应页面，已按真实页面 base32.html/utf8-bytes.html 处理）。① scripts/opt_encode_content.py 重写全部 31 条为真实编码领域内容（summary+真实场景+真实示例+真实 FAQ，覆盖 Base64/Base32/Base58/Base85/Base62、URL 编码、HTML 实体、二进制/十六进制、Unicode/UTF-8 码点、Caesar/ROT13/Atbash、摩斯电码、URL slug、哈希摘要、进制转换等），0 summary None、无 stray 键；② B类套话"工作与生活中的相关计算与查询。"在 encode-5（二维码版本容量）、binary-to-ascii（Binary/Hex to ASCII）两页的 FAQ JSON-LD text + opt-guide 适用场景 + opt-faq 三处共 6 处统一替换为真实编码场景描述；③ 确认 encode 目录无 C类工具页套话（站级 og:image:alt 不属于工具页套话）、A类=0。名称（中文）保持不变。+ zh-tw 同步 + 五项门禁全过。
 
-## 八、当前进行中分类：encode（待展开，内容层真实化中）
+## 八、当前进行中分类：endocrinology（待展开，内容层真实化中）
 
-> biz/blasting/bonding/brand/bridge/building-material/cable/cardiology/casting/ceramics/chemical/chemistry/chess/chinese/chinese-cook/civil/cleaning/clinical-lab/clinical-nursing/cnc/cognition/colorvision/community/construction/consulting/content/convenience/cosmetic-derm/cosmetics/customer-service/daily-goods/dance/data/decor/defense/dentistry/design/discipline/domestic/dermatology/dyeing/dynamics/eco/ecommerce/economics/edu/edu2/elderly/electrical/electromagnetism/electronics/embedded 内容层均已达标，已依次归档至第七节。下一进行中分类按字母序为 **encode**（见第九节清单），待展开待优化清单。
+> biz/blasting/bonding/brand/bridge/building-material/cable/cardiology/casting/ceramics/chemical/chemistry/chess/chinese/chinese-cook/civil/cleaning/clinical-lab/clinical-nursing/cnc/cognition/colorvision/community/construction/consulting/content/convenience/cosmetic-derm/cosmetics/customer-service/daily-goods/dance/data/decor/defense/dentistry/design/discipline/domestic/dermatology/dyeing/dynamics/eco/ecommerce/economics/edu/edu2/elderly/electrical/electromagnetism/electronics/embedded/encode 内容层均已达标，已依次归档至第七节。下一进行中分类按字母序为 **endocrinology**（见第九节清单），待展开待优化清单。
 
 > 优化模式（沿用已验证路径）：写真实 content_deepdive 条目 → 清理工具页硬编码套话 → 构建 + 五项门禁 → 提交发布。
 
 ---
 
-## 九、分类总清单（待办，完成一个删一个；剩 189 个目录）
+## 九、分类总清单（待办，完成一个删一个；剩 188 个目录）
 
-- [ ] encode
 - [ ] endocrinology
 - [ ] energy
 - [ ] engineering
