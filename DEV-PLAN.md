@@ -93,17 +93,19 @@ cosmetics 1 工具（assessor-67 化妆品注册备案合规评估）原 content
 ### ✅ customer-service（3 工具，内容层全达标）\ncustomer-service 3 工具（random-script 标准话术模板随机抽取器/stats-time-response 客服平均响应时间解决率统计/summary-rater-csat 客户满意度CSAT评分汇总）原 content_deepdive 3 key 为**第二十二种占位变体**（「在customer-service场景下，先把<Title>标准化，再批量执行可追溯流程…」，summary 原 None、faqs 仅 2 条）：① scripts/opt_customer_service_content.py 真实化 3 key（summary+3 scenarios+1 example+3 faqs，example 用 body 字段），覆盖话术抽取岗前演练/响应时长解决率统计/CSAT汇总低分归因等真实客服场景，统一补「数据仅在本地浏览器处理、不上传，统计仅供参考」隐私与统计免责（不覆盖 title）；② scripts/opt_customer_service_hardcode.py 清 stats-time-response 的「单位与格式换算」错配 FD 变体 + summary-rater-csat 的「通用财务」错配 FD 变体（→真实统计/CSAT描述，JSON-LD 合法），random-script 的 formula-desc 为生成器变体（与「话术抽取器」语义相符）保留、B 类 opt 套话 0 页无需处理，并整体替换 3 页 tool-intro 块内 6 类通用套话（→真实客服场景）；③ og:image:alt「ToolBox - 5000+免费在线工具」与 meta「纯前端处理，数据不上传」为全站统一真实特性，非占位、不清理。+ zh-tw 同步 + 五项门禁全过。\n---\n### ✅ daily-goods（1 工具，内容层全达标）\ndaily-goods 1 工具（parking-fee 停车费计算器）原 content_deepdive 1 key 为**第十九种占位变体**（「在daily-goods场景下先确认停车费计算器口径与边界，再输出可复核结论…」，summary 原 None、faqs 仅 2 条）：① scripts/opt_daily_goods_content.py 真实化 1 key（summary+3 scenarios+1 example+3 faqs，example 用 body 字段），覆盖商场/路边按时计费封顶/医院机场分段封顶/时段差异分段求和等真实停车费估算场景，补「结果仅供参考、以现场公示费率与收费终端为准」免责（不覆盖英文 title「Parking Fee Calculator」）；② 经检测 A 类 formula-desc 为「本日常工具基于通用常识与经验公式」变体（停车费属日常工具、语义相符保留，非错配）、B 类 opt 套话 0 页、C 类 tool-intro-body 块在该页不存在故块内套话 0 页，均无需 hardcode 清理；③ og:image:alt「ToolBox - 5000+免费在线工具」与 meta「纯前端处理，数据不上传」为全站统一真实特性，非占位、不清理。+ zh-tw 同步 + 五项门禁全过。\n---\n### ✅ dance（7 工具，内容层全达标）
 dance 7 工具（assessor-csat-1 学员满意度CSAT评估/bpm-rhythm BPM节拍匹配/choreography-timeline 编舞时间线/flexibility-test 柔韧度测试/partner-distance 舞伴间距/rotation-stability 旋转稳定性/tester-4 坐位体前屈百分等级）原 content_deepdive 7 key 为**第二十三种占位变体**（「在dance场景里，优先把<Title>标准化后再执行批量分析，便于统一口径…」，summary 原 None、faqs 仅 2 条）：① scripts/opt_dance_content.py 真实化 7 key（summary+3 scenarios+1 example+3 faqs，example 用 body 字段），覆盖考核评分/BPM节奏匹配/编舞时间线排练/柔韧度自测/舞伴间距走位/旋转稳定训练/体前屈百分等级等真实舞蹈场景，统一补「结果仅作训练参考、不替代专业教练评估与运动医学建议」免责（不覆盖 title）；② scripts/opt_dance_hardcode.py 清 assessor-csat-1/tester-4/partner-distance 的「工作与生活中的相关计算与查询」各 3 处（JSON-LD/适用场景段/FAQ dd→真实舞蹈场景，共 9 处，JSON-LD 合法），A 类 formula-desc 7 页全无（跳过）、C 类块内 6 类通用套话 0 页均无需处理；③ og:image:alt「ToolBox - 5000+免费在线工具」与 meta「纯前端处理，数据不上传」为全站统一真实特性，非占位、不清理。+ zh-tw 同步 + 五项门禁全过。
 ---
-## 八、当前进行中分类：（无，dance 已归档）
+### ✅ data（20 工具，内容层全达标）
+data 20 工具（calc-1 CSV转JSON/calc-2 JSON格式化/chart-generator 图表生成器/csv-analyzer CSV分析器/data-cleaner 数据清洗/data-visualizer 数据可视化/generator-13 假数据生成/generator-14 条码二维码/generator-35 直方图/generator-random-2 随机身份证/generator-report 报表模板/pivot-table 透视表/random-1 随机颜色/random-3 随机密码/random-4 验证码/random-5 中文名/random-6 随机数字/random-7 随机日期/random-8 银行卡/random-9 句子段落）原 content_deepdive 20 key 为**第二十四种占位变体**（「在「<Title>」场景先统一输入单位与口径，先做基准算例，再做边界场景核验…」，summary 原 None、faqs 仅 2 条）：① scripts/opt_data_content.py 真实化 20 key（summary+3 scenarios+1 example+3 faqs，example 用 body 字段），覆盖 CSV/JSON 转换、图表生成、CSV 列分析、数据清洗、直方图/箱线/热力、假数据/条码/身份证/报表生成、透视表、随机颜色/密码/验证码/姓名/数字/日期/银行卡/句子等真实数据场景，统一补「数据仅本地浏览器处理、不上传，结果仅供测试/演示/脱敏样例、不替代专业数据分析」免责（不覆盖 title）；② scripts/opt_data_hardcode.py 清 calc-1 的「本工具用于单位与格式换算(SI)」错配 FD 变体（→真实 CSV转JSON 描述，保留生成器模板「工具名称：」后缀，JSON-LD 合法）+ 清 random-6/csv-analyzer/chart-generator/data-cleaner/generator-14 的「工作与生活中的相关计算与查询」各 3 处（JSON-LD/适用场景段/FAQ dd→真实数据场景，共 15 处，JSON-LD 合法），calc-2/csv-analyzer/data-cleaner 等 18 页 FD 为「开发工具/文本工具/生成器」标准变体（语义相符保留）、C 类块内 6 类通用套话 0 页均无需处理；③ og:image:alt「ToolBox - 5000+免费在线工具」与 meta「纯前端处理，数据不上传」为全站统一真实特性，非占位、不清理。+ zh-tw 同步 + 五项门禁全过。
+---
+## 八、当前进行中分类：（无，data 已归档）
 
-> biz/blasting/bonding/brand/bridge/building-material/cable/cardiology/casting/ceramics/chemical/chemistry/chess/chinese/chinese-cook/civil/cleaning/clinical-lab/clinical-nursing/cnc/cognition/colorvision/community/construction/consulting/content/convenience/cosmetic-derm/cosmetics/customer-service/daily-goods/dance 内容层均已达标，已依次归档至第七节。下一进行中分类按字母序为 **data**（见第九节清单），待下一批次置进行中并展开待优化清单。
+> biz/blasting/bonding/brand/bridge/building-material/cable/cardiology/casting/ceramics/chemical/chemistry/chess/chinese/chinese-cook/civil/cleaning/clinical-lab/clinical-nursing/cnc/cognition/colorvision/community/construction/consulting/content/convenience/cosmetic-derm/cosmetics/customer-service/daily-goods/dance/data 内容层均已达标，已依次归档至第七节。下一进行中分类按字母序为 **decor**（见第九节清单），待下一批次置进行中并展开待优化清单。
 
 > 优化模式（沿用已验证路径）：写真实 content_deepdive 条目 → 清理工具页硬编码套话（opt_cleanup_intro_faq.py --cat <cat> 或仿 opt_biz_optguide.py 按结构清 tool-intro）→ 构建 + 五项门禁 → 提交发布。
 
 ---
 
-## 九、分类总清单（待办，完成一个删一个；剩 209 个目录）
+## 九、分类总清单（待办，完成一个删一个；剩 208 个目录）
 
-- [ ] data
 - [ ] decor
 - [ ] defense
 - [ ] dentistry
