@@ -1,0 +1,305 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""真实化 content_deepdive 中 design/ 第 70~104 个 key（music-scale-reference ~ web-audio-metronome）。
+占位变体：第二十八种「快速核对<Title>：优先统一输入单位、口径和参数范围，再对典型样例做一遍手工验算」
+summary 原 None、faqs 仅 2 条。
+本脚本写 summary + 3 scenarios + 1 example(body) + 第1条真实 faqs；第2/3条由 opt_design_content_b_fix.py 补到 3 条。
+统一补「纯前端本地处理、结果以浏览器实时计算为准、样式代码仅作快速产出参考、正式项目以设计系统与实测为准」免责，不覆盖 title。
+"""
+import json
+P='i18n/tools/content_deepdive.json'
+d=json.load(open(P,encoding='utf-8'))
+
+DATA = {
+ 'music-scale-reference': dict(
+   summary='列出大调/小调音阶的音名、唱名与音程关系，辅助乐理学习与编曲。',
+   scenarios=['学吉他却认音阶位置。',
+              '写旋律时查调内音。',
+              '教学演示音程。'],
+   example=dict(title='查 C 大调音阶',
+     body='<p><strong>输入：</strong>C 大调。</p><p><strong>处理：</strong>按全全半全全全半排列。</p><p><strong>输出：</strong>C D E F G A B 及对应唱名，可切换自然/和声小调。</p>'),
+   faqs=[dict(q='和弦怎么推？', a='同调内取 1、3、5 级音叠加即三和弦；不同级数决定和弦性质，可据此编配。')]),
+ 'neomorphism-generator': dict(
+   summary='生成新拟态（柔和凹凸）UI 效果 CSS，调光源与深浅，实时预览。',
+   scenarios=['做柔和卡片、按钮。',
+              '现代 dashboard 组件。',
+              '演示新拟态风格。'],
+   example=dict(title='生成浅色新拟态卡',
+     body='<p><strong>输入：</strong>底 #E0E5EC、光白影深灰。</p><p><strong>处理：</strong>双向 box-shadow 模拟凹凸。</p><p><strong>输出：</strong>CSS 与预览，需浅底衬托。'+'</p>'),
+   faqs=[dict(q='为什么深底看不出？', a='新拟态依赖与背景同色的高低光，深底对比弱；多用浅灰底效果最明显。')]),
+ 'palette-extractor': dict(
+   summary='上传图片用 Canvas 提取主色与占比，得到可复制调色板。',
+   scenarios=['从参考图取色。',
+              '品牌图派生配色。',
+              '插画主色分析。'],
+   example=dict(title='提取海报主色',
+     body='<p><strong>输入：</strong>上传海报。</p><p><strong>处理：</strong>像素统计取前 N 主色。</p><p><strong>输出：</strong>主色 HEX 与占比，可复制。'+'</p>'),
+   faqs=[dict(q='透明背景影响吗？', a='透明像素通常不计入主色统计，避免被背景色干扰。')]),
+ 'particle-effect-generator': dict(
+   summary='调粒子参数实时预览动画，导出的 canvas 代码或图，用于网页特效。',
+   scenarios=['活动页背景。',
+              '落地页氛围。',
+              '教学 canvas。'],
+   example=dict(title='生成上浮粒子',
+     body='<p><strong>输入：</strong>粒子 80、慢速、橙白。</p><p><strong>处理：</strong>canvas 实时绘制。</p><p><strong>输出：</strong>预览与导出代码。'+'</p>'),
+   faqs=[dict(q='移动端卡吗？', a='粒子越多越耗性能，移动端建议降低数量与频率。')]),
+ 'pattern-generator': dict(
+   summary='调参数生成可平铺 CSS 背景图案，实时预览导出。',
+   scenarios=['网页背景。',
+              '卡片底纹。',
+              '活动页装饰。'],
+   example=dict(title='生成点阵背景',
+     body='<p><strong>输入：</strong>点径 2px、距 16px。</p><p><strong>处理：</strong>渐变平铺。</p><p><strong>输出：</strong>background 代码与预览。'+'</p>'),
+   faqs=[dict(q='接缝怎么避免？', a='参数取整除周期可无缝；否则会出现可见接缝。')]),
+ 'photo-aspect-ratio-calculator': dict(
+   summary='按目标宽高比换算照片裁剪尺寸，辅助构图与输出。',
+   scenarios=['社媒图定比例。',
+              '打印前算尺寸。',
+              '视频封面定宽。'],
+   example=dict(title='3:2 转 4:5',
+     body='<p><strong>输入：</strong>原 6000×4000、目标 4:5。</p><p><strong>处理：</strong>按比例算裁剪框。</p><p><strong>输出：</strong>建议裁到 4000×5000 或留边。'+'</p>'),
+   faqs=[dict(q='变形吗？', a='只裁剪不拉伸，按比例取框保原比例。')]),
+ 'photo-print-size': dict(
+   summary='按打印尺寸与 DPI 算所需像素，指导出图分辨率。',
+   scenarios=['冲印 6 寸照。',
+              '海报输出。',
+              '确认够不够清。'],
+   example=dict(title='6 寸 300DPI',
+     body='<p><strong>输入：</strong>6 寸(102×152mm)、300DPI。</p><p><strong>处理：</strong>换算像素。</p><p><strong>输出：</strong>约 1200×1800px，低于此会发虚。'+'</p>'),
+   faqs=[dict(q='DPI 低能印吗？', a='低 DPI 近看有颗粒；墙面大图可放宽，手持照片建议 ≥300。')]),
+ 'photo-storage-calculator': dict(
+   summary='按分辨率、位深与张数估算照片存储占用，辅助备容量规划。',
+   scenarios=['出行拍照备卡。',
+              '批量导出预估。',
+              '云盘空间核算。'],
+   example=dict(title='1000 张 2400 万像素',
+     body='<p><strong>输入：</strong>2400万像素、JPG 质量 90、1000 张。</p><p><strong>处理：</strong>按平均文件估算。</p><p><strong>输出：</strong>约 3~5GB，RAW 需乘数倍。'+'</p>'),
+   faqs=[dict(q='RAW 比 JPG 大多少？', a='RAW 含未压缩数据，通常数倍于 JPG，具体看相机。')]),
+ 'pixel-art': dict(
+   summary='在网格上绘制像素画，调色板与导出，纯本地编辑。',
+   scenarios=['做图标、头像。',
+              '游戏素材。',
+              '像素风插画。'],
+   example=dict(title='画 16×16 小图标',
+     body='<p><strong>输入：</strong>网格 16×16、选色落格。</p><p><strong>处理：</strong>逐格上色。</p><p><strong>输出：</strong>导出 PNG，本地完成。'+'</p>'),
+   faqs=[dict(q='能放大不糊吗？', a='像素画靠邻近采样放大保硬边；矢量放大才会糊。')]),
+ 'pixel-art-generator': dict(
+   summary='将图片转为像素风，调块大小与色板，导出结果。',
+   scenarios=['照片像素化。',
+              '头像复古。',
+              '游戏素材。'],
+   example=dict(title='照片转 32 色像素',
+     body='<p><strong>输入：</strong>上传图、块 12px、限 32 色。</p><p><strong>处理：</strong>区域取平均并量化。</p><p><strong>输出：</strong>像素风图下载。'+'</p>'),
+   faqs=[dict(q='色越多越真？', a='是，但失像素味；按风格权衡色数。')]),
+ 'png-to-svg': dict(
+   summary='将位图描摹或转矢量轮廓，导出 SVG，便于缩放不失真。',
+   scenarios=['logo 矢量化。',
+              '图标放大。',
+              '印刷素材。'],
+   example=dict(title='logo 转 SVG',
+     body='<p><strong>输入：</strong>上传 PNG logo。</p><p><strong>处理：</strong>边缘描摹为路径。</p><p><strong>输出：</strong>SVG 可缩放下载。'+'</p>'),
+   faqs=[dict(q='复杂图能转吗？', a='简单图形描摹好；照片类转矢量易失真，建议手绘路径。')]),
+ 'progress-bar-generator': dict(
+   summary='生成进度条样式与动画 CSS，可调色与圆角，导出。',
+   scenarios=['上传/下载进度。',
+              '步骤指示。',
+              '加载反馈。'],
+   example=dict(title='生成蓝色进度条',
+     body='<p><strong>输入：</strong>主色 #FF6B35、圆角 999px。</p><p><strong>处理：</strong>组合轨道与填充。</p><p><strong>输出：</strong>CSS 与预览。'+'</p>'),
+   faqs=[dict(q='怎么做动画过渡？', a='用 width 配合 transition 即可平滑；不确定值可用 indeterminate 样式。')]),
+ 'px-to-rem': dict(
+   summary='在 px 与 rem 间换算，按根字号得到比例，辅助响应式。',
+   scenarios=['重构为 rem。',
+              '适配根字号。',
+              '核对组件尺寸。'],
+   example=dict(title='16px @根16',
+     body='<p><strong>输入：</strong>16px、根字号 16px。</p><p><strong>处理：</strong>相除。</p><p><strong>输出：</strong>1rem；根字号变则等比缩放。'+'</p>'),
+   faqs=[dict(q='根字号改了？', a='rem 随根字号缩放；px 固定不随，故响应式多用 rem。')]),
+ 'qr-code-styled': dict(
+   summary='生成可定制圆点/渐变/Logo 的样式二维码，导出图片。',
+   scenarios=['品牌物料扫码。',
+              '海报美化。',
+              '活动页入口。'],
+   example=dict(title='生成圆点紫渐变码',
+     body='<p><strong>输入：</strong>网址、圆点、紫渐变。</p><p><strong>处理：</strong>编码并美化。</p><p><strong>输出：</strong>样式二维码下载。'+'</p>'),
+   faqs=[dict(q='太花扫不出？', a='装饰会降低容错，建议保留足够静区与对比，关键场景用标准码。')]),
+ 'rem-to-px': dict(
+   summary='在 rem 与 px 间换算，按根字号得到像素值。',
+   scenarios=['核对实际像素。',
+              '调试布局。',
+              '与设计稿对齐。'],
+   example=dict(title='2rem @根16',
+     body='<p><strong>输入：</strong>2rem、根 16px。</p><p><strong>处理：</strong>相乘。</p><p><strong>输出：</strong>32px。'+'</p>'),
+   faqs=[dict(q='不同浏览器根？', a='多数默认 16px，用户可改；以实际根字号折算。')]),
+ 'ripple-effect': dict(
+   summary='生成点击涟漪扩散效果 CSS/JS，调色与速度，导出。',
+   scenarios=['按钮反馈。',
+              '卡片点击。',
+              'Material 风格。'],
+   example=dict(title='生成水波点击',
+     body='<p><strong>输入：</strong>色 #FF6B35、0.6s。</p><p><strong>处理：</strong>生成扩散动画。</p><p><strong>输出：</strong>代码与预览。'+'</p>'),
+   faqs=[dict(q='要 JS 吗？', a='纯 CSS 难定位点击点，精准涟漪通常需少量 JS 驱动。')]),
+ 'shadow-generator': dict(
+   summary='可视化调盒阴影并生成 CSS，支持单层与内阴影。',
+   scenarios=['卡片投影。',
+              '按钮悬浮。',
+              '凹陷效果。'],
+   example=dict(title='生成柔和阴影',
+     body='<p><strong>输入：</strong>y8 模糊24 色淡。</p><p><strong>处理：</strong>拼 box-shadow。</p><p><strong>输出：</strong>CSS 与预览。'+'</p>'),
+   faqs=[dict(q='多层怎么写？', a='逗号分隔多个 shadow 值即可叠加。')]),
+ 'shadow-generator-advanced': dict(
+   summary='生成多层、彩色与滤镜阴影 CSS，精细调参数导出。',
+   scenarios=['高级卡片。',
+              '霓虹发光。',
+              '拟物阴影。'],
+   example=dict(title='生成彩色发光',
+     body='<p><strong>输入：</strong>两层彩影、模糊大。</p><p><strong>处理：</strong>组合多层。</p><p><strong>输出：</strong>CSS 与预览。'+'</p>'),
+   faqs=[dict(q='性能注意？', a='多层大模糊阴影渲染成本高，复杂场景适当减少层数。')]),
+ 'shutter-speed-calculator': dict(
+   summary='由曝光时间算等效快门与运动模糊，辅助拍摄设定。',
+   scenarios=['拍运动防抖。',
+              '长曝计算。',
+              '教学快门。'],
+   example=dict(title='1/500 防手抖',
+     body='<p><strong>输入：</strong>焦距 50mm、1/500s。</p><p><strong>处理：</strong>比对安全快门。</p><p><strong>输出：</strong>高于安全快门，手持稳。'+'</p>'),
+   faqs=[dict(q='安全快门？', a='约 1/焦距秒；防抖镜头可放慢几档，但仍以实测为准。')]),
+ 'signature-pad': dict(
+   summary='在画布上手写签名，调笔触与背景，导出 PNG/SVG。',
+   scenarios=['合同签名。',
+              '电子表单。',
+              '本地签署。'],
+   example=dict(title='手写签名导出',
+     body='<p><strong>输入：</strong>鼠标/触屏书写。</p><p><strong>处理：</strong>canvas 绘制路径。</p><p><strong>输出：</strong>签名图下载，本地完成。'+'</p>'),
+   faqs=[dict(q='有法律效力吗？', a='电子签名效力视业务与法规；本工具仅生成图像，不代表认证。')]),
+ 'skeleton-loader': dict(
+   summary='生成骨架屏占位样式，调块形状与动画，导出 CSS。',
+   scenarios=['列表加载占位。',
+              '图文骨架。',
+              '提升等待感。'],
+   example=dict(title='生成卡片骨架',
+     body='<p><strong>输入：</strong>圆角块、微光动画。</p><p><strong>处理：</strong>组合占位块。</p><p><strong>输出：</strong>CSS 与预览。'+'</p>'),
+   faqs=[dict(q='和 spinner 区别？', a='骨架屏模拟内容结构，比转圈更能降低等待焦虑。')]),
+ 'spacing-scale': dict(
+   summary='生成间距比例（如 4/8/16…）token，导出 CSS 变量。',
+   scenarios=['统一组件间距。',
+              '设计系统 token。',
+              '栅格留白。'],
+   example=dict(title='生成 4 倍数列',
+     body='<p><strong>输入：</strong>基 4、档 8。</p><p><strong>处理：</strong>生成比例。</p><p><strong>输出：</strong>--space-1…8 变量。'+'</p>'),
+   faqs=[dict(q='基值怎么选？', a='4/8 常见；与组件高度对齐更协调，按体系定。')]),
+ 'spectrum-visualizer': dict(
+   summary='将音频实时分析为频谱并可视化，本地处理。',
+   scenarios=['音乐可视化。',
+              '教学 FFT。',
+              '播放器特效。'],
+   example=dict(title='实时频谱',
+     body='<p><strong>输入：</strong>播放/麦克风音频。</p><p><strong>处理：</strong>FFT 分析频段。</p><p><strong>输出：</strong>频谱条动画，本地完成。'+'</p>'),
+   faqs=[dict(q='需要文件吗？', a='可用麦克风或音频输入，均本地分析不上传。')]),
+ 'spinner-generator': dict(
+   summary='生成加载转圈动画 CSS，调速度大小与颜色，导出。',
+   scenarios=['按钮等待。',
+              '页面加载。',
+              '异步反馈。'],
+   example=dict(title='生成橙色转圈',
+     body='<p><strong>输入：</strong>尺寸 24、0.8s、橙。</p><p><strong>处理：</strong>border 动画。</p><p><strong>输出：</strong>CSS 与预览。'+'</p>'),
+   faqs=[dict(q='能换形状？', a='本工具为圆环；点状用 loading-dots 类。')]),
+ 'stripe-pattern': dict(
+   summary='生成条纹背景图案，调角度密度色，导出 CSS/图。',
+   scenarios=['背景纹理。',
+              '警示底纹。',
+              '装饰。'],
+   example=dict(title='45° 条纹',
+     body='<p><strong>输入：</strong>45°、密 10px、双色。</p><p><strong>处理：</strong>linear 平铺。</p><p><strong>输出：</strong>背景代码与预览。'+'</p>'),
+   faqs=[dict(q='角度任意？', a='任意角度均可，密度越小越密。')]),
+ 'svg-minifier': dict(
+   summary='压缩 SVG 去除冗余与空白，减小体积，本地处理。',
+   scenarios=['精简图标。',
+              '减小资源。',
+              'Inline SVG 优化。'],
+   example=dict(title='压缩图标 SVG',
+     body='<p><strong>输入：</strong>粘贴 SVG。</p><p><strong>处理：</strong>去注释/空格/合并路径。</p><p><strong>输出：</strong>更小 SVG 可复制。'+'</p>'),
+   faqs=[dict(q='会改形状吗？', a='仅去冗余不删路径；如结果异常请保留原文件核对。')]),
+ 'svg-to-png': dict(
+   summary='将 SVG 渲染为 PNG 图片，调尺寸导出，本地完成。',
+   scenarios=['图标出图。',
+              '素材转换。',
+              '设计交付。'],
+   example=dict(title='SVG 转 512 PNG',
+     body='<p><strong>输入：</strong>上传 SVG、512px。</p><p><strong>处理：</strong>canvas 绘制。</p><p><strong>输出：</strong>PNG 下载。'+'</p>'),
+   faqs=[dict(q='透明保留吗？', a='导出 PNG 支持透明；如需白底可自行垫底。')]),
+ 'svg-viewer': dict(
+   summary='粘贴或上传 SVG 预览渲染效果，辅助检查与调试。',
+   scenarios=['查 SVG 是否正确。',
+              '调试路径。',
+              '对比代码与图。'],
+   example=dict(title='预览 SVG',
+     body='<p><strong>输入：</strong>粘贴 SVG 代码。</p><p><strong>处理：</strong>渲染预览。</p><p><strong>输出：</strong>可视化结果与代码对照。'+'</p>'),
+   faqs=[dict(q='不显示怎么办？', a='多为语法或外部引用缺失；检查标签闭合与资源路径。')]),
+ 'tailwind-colors': dict(
+   summary='展示 Tailwind 调色板与明度档，复制色值或类名。',
+   scenarios=['用 Tailwind 配色。',
+              '取 primary/surface。',
+              '对齐设计系统。'],
+   example=dict(title='浏览 orange 档',
+     body='<p><strong>输入：</strong>选 orange。</p><p><strong>处理：</strong>列 50~950。</p><p><strong>输出：</strong>色块与类名/HEX 可复制。'+'</p>'),
+   faqs=[dict(q='和自定义色？', a='可延用同档位思路自建，保证层级一致。')]),
+ 'text-shadow-generator': dict(
+   summary='生成文字阴影 CSS，支持多层与发光，实时预览。',
+   scenarios=['标题描边。',
+              '霓虹字。',
+              '水印。'],
+   example=dict(title='生成发光字',
+     body='<p><strong>输入：</strong>0 0 8px 青、两层。</p><p><strong>处理：</strong>拼 text-shadow。</p><p><strong>输出：</strong>CSS 与预览。'+'</p>'),
+   faqs=[dict(q='多层顺序？', a='逗号分隔，先画的后层叠在下。')]),
+ 'toast-generator': dict(
+   summary='生成 Toast 提示样式与出现动画 CSS，调位置配色，导出。',
+   scenarios=['操作成功提示。',
+              '错误反馈。',
+              '消息通知。'],
+   example=dict(title='生成顶部成功 Toast',
+     body='<p><strong>输入：</strong>绿底、顶部滑入 0.3s。</p><p><strong>处理：</strong>组合样式与动画。</p><p><strong>输出：</strong>CSS 与预览。'+'</p>'),
+   faqs=[dict(q='自动消失？', a='样式生成；自动关闭需少量 JS 控制定时器。')]),
+ 'typography-scale': dict(
+   summary='生成字体比例（如 1.25 模数）各档字号，导出 CSS 变量。',
+   scenarios=['统一标题层级。',
+              '设计系统字号。',
+              '排版规范。'],
+   example=dict(title='生成 1.25 比例',
+     body='<p><strong>输入：</strong>基 16px、比 1.25、6 档。</p><p><strong>处理：</strong>递推字号。</p><p><strong>输出：</strong>--text-1…6 变量。'+'</p>'),
+   faqs=[dict(q='比例选多大？', a='1.2 紧凑、1.25 通用、1.333 舒展；按气质选。')]),
+ 'vh-vw': dict(
+   summary='在 vh/vw 与 px 间换算，按视口尺寸得到值，辅助全屏布局。',
+   scenarios=['全屏区块。',
+              '视口单位换算。',
+              '响应式高度。'],
+   example=dict(title='50vw @宽1280',
+     body='<p><strong>输入：</strong>50vw、视口宽 1280。</p><p><strong>处理：</strong>相乘。</p><p><strong>输出：</strong>640px；随视口变。'+'</p>'),
+   faqs=[dict(q='移动端地址栏？', a='vh 受地址栏影响有波动，关键布局可用 dvh 等新版单位。')]),
+ 'waveform-visualizer': dict(
+   summary='将音频渲染为波形图，本地分析，辅助剪辑与预览。',
+   scenarios=['音频波形查看。',
+              '剪辑定位。',
+              '教学振幅。'],
+   example=dict(title='显示音频波形',
+     body='<p><strong>输入：</strong>上传音频。</p><p><strong>处理：</strong>取峰值绘制。</p><p><strong>输出：</strong>波形图，本地完成。'+'</p>'),
+   faqs=[dict(q='能编辑吗？', a='本工具仅可视化；剪辑需音频编辑软件。')]),
+ 'web-audio-metronome': dict(
+   summary='基于 Web Audio 生成可调 BPM 节拍音，本地播放，辅助练琴。',
+   scenarios=['练琴跟拍。',
+              '节拍训练。',
+              '教学示范。'],
+   example=dict(title='120 BPM 节拍',
+     body='<p><strong>输入：</strong>BPM 120、拍号 4/4。</p><p><strong>处理：</strong>Web Audio 定时发声。</p><p><strong>输出：</strong>稳定节拍声，本地播放。'+'</p>'),
+   faqs=[dict(q='准吗？', a='Web Audio 时钟较准；极端后台可能被节流，以实测为准。')]),
+}
+
+miss=[k for k in DATA if ('design/'+k) not in d]
+assert not miss, '以下 key 不在 content_deepdive: %s'%miss
+for k,v in DATA.items():
+    key='design/'+k
+    d[key]['summary']=v['summary']
+    d[key]['scenarios']=v['scenarios']
+    d[key]['examples']=[v['example']]
+    d[key]['faqs']=[v['faqs'][0]]  # 仅写第1条，fix 补2/3
+json.dump(d,open(P,'w',encoding='utf-8'),ensure_ascii=False,indent=2)
+print('design b 批主脚本已写入 %d key（faqs 暂1条，待 fix 补到3）'%len(DATA))
