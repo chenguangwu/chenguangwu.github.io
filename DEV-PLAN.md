@@ -79,18 +79,18 @@
 ## 七、已完成分类归档
 > 本区仅保留**最近一个（最新）已完成分类**的归档记录，更早历史不再保留，以控制文件体积。完成新分类时，用新记录替换本条。
 
-### ✅ ent（30 工具，内容层全达标 + 英文套话清零 + cat 错标修正 + guides 错配修复）
-ent 共 30 个耳鼻喉科工具页。① content_deepdive.json 全 30 条真实化（summary+3 场景+1 算例+2 FAQ；补建 pure-tone-audiometry/temporal-resolution-hearing 2 个缺失条目）；② 英文 i18n 套话"free online tool"在 _en_override.json(30 键) 清零并补真实英文 ed，slug-en 7 个占位标题(Assessor/Rater/Checker/Analysis/Tester)改真实英文名；③ cat 错标修正：8 个 engineer/calculator 页改 health/reference/validator（分布 5 health/15 reference/10 validator）；④ guides calc-1 错配修复：ent/calc-1(鼻炎TNSS)误挂增值税指南→新建 guides/tnss-guide.html 改指向；⑤ 7 对占位重复(rater-9≡lund-kennedy 等)经全站引用排查确认有源页硬编码指向(analysis-13 被 9 页引用)，按"禁止擅自批量删除"规则**保留未删**，待老板授权后做全站去重专项。提交 a387a594e + 五项门禁全过 + 线上部署核对通过。
+### ✅ environment（4 工具，内容层全达标 + 英文套话清零 + cat 错标修正）
+environment 共 4 个环保工具页（碳足迹计算与抵消/空气质量指数AQI类别换算/垃圾分类指南/垃圾产生量计算器）。① content_deepdive.json 4 条模板占位壳全真实化（原 scenarios/examples/faqs 为通用"版本比对示例/离群样本"套话，补 summary+3 真实场景+1 真实算例+2 真实 FAQ）；② 英文 i18n 套话"free online tool"在 _en_override.json(4 键)/slug-en 清零并补真实英文 ed；③ convert-air-aqi 错名"Air Quality Exponent"改"AQI Converter"；④ cat 错标修正：recycling-guide calculator→reference；⑤ waste-calculator body 英文 fallback 套话清理。提交 805691536 + 五项门禁全过 + 线上 MD5 核对 4 页全一致。
 
-## 八、当前进行中分类：environment
+## 八、当前进行中分类：event
 
 > 优化模式（沿用已验证路径）：写真实 content_deepdive 条目 → 清理工具页硬编码套话 → 英文 i18n 清理 → cat 错标修正 → 构建 + 五项门禁 → 提交发布。
 
 ---
 
-## 九、分类总清单（待办，完成一个删一个；剩 184 个目录）
+## 九、分类总清单（待办，完成一个删一个；剩 183 个目录）
 
-- [ ] environment
+- [ ] event
 - [ ] event
 - [ ] exam
 - [ ] exhibition

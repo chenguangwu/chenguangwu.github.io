@@ -1412,7 +1412,7 @@ DESC_OVERRIDE = {
     '保安服务质量检查': ('', 'Security service quality check'),
     '品牌（资产/评估/审计）体系': ('', 'Brand equity and audit system'),
     '环保（材料/标准/检测）控制': ('', 'Eco-material control for interiors'),
-    '评估（效果/报告/改进）体系': ('', 'Event evaluation and improvement'),
+    '活动效果评估': ('', 'Event Effectiveness Assessment'),
     '烧钱率计算器': ('', 'Startup burn-rate calculator'),
     '商业计划书生成器': ('', 'Business plan generator'),
     '股权计算器': ('', 'Equity calculator'),

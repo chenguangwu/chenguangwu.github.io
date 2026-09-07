@@ -1758,6 +1758,7 @@ def generate_html_sitemap(tools):
 <meta name="description" content="ToolBox 在线工具站点地图，快速浏览所有工具分类和页面。">
 <link rel="canonical" href="https://chenguangwu.github.io/sitemap.html">
 <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<link rel="stylesheet" href="/css/site-chrome.css">
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
 body { font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', sans-serif; background: #FFFAF7; color: #1E1E2E; line-height: 1.6; padding: 20px; max-width: 1200px; margin: 0 auto; }
