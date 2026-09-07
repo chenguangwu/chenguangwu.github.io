@@ -79,12 +79,12 @@
 ## 七、已完成分类归档
 > 本区仅保留**最近一个（最新）已完成分类**的归档记录，更早历史不再保留，以控制文件体积。完成新分类时，用新记录替换本条。
 
-### ✅ edu2（5 工具，内容层全达标）
-edu2 5 工具（exam-analysis 成绩分析/exam-countdown 考试倒计时/schedule-conflict 课程表冲突检测/study-progress 学习进度仪表/wrong-book 错题本管理）原 content_deepdive 5 key 为占位变体（summary 原 None、faqs 仅 2 条）：① scripts/opt_edu2_content.py 真实化 5 key（summary+3 scenarios+1 example+3 faqs），覆盖成绩趋势/波动/薄弱定位/多考试并行倒计时/课程周次节次冲突检测/进度完成度与预计完工日/错题按学科错因归类订正等真实教育场景，统一补「仅供学习辅助与自我评测参考、不替代学校教学、教师评定与官方考试标准」免责（不覆盖 title）；② scripts/opt_edu2_hardcode.py 清 C 类 5 页 tool-intro-body 套话（同 edu 8 类通用 li+简介后缀「教育学习工具，辅助学习，提升效率」+删空 ul/h4，保留真实 li）；清 B 类 study-progress 3 处 opt 套话「工作与生活中的相关计算与查询」→真实进度跟踪场景（JSON-LD 合法）；清 A 类 schedule-conflict formula-desc 工程错配（「本工程计算基于标准物理与材料公式」→真实课程表冲突描述）；③ 全站 edu2 套话复检 0 残留。+ zh-tw 同步 + 五项门禁全过。
+### ✅ elderly（11 工具，内容层全达标）
+elderly 11 工具（aid-height 辅助器具高度/assessor-35 护理等级/assessor-36 社工/assessor-37 质量体系/assessor-risk-1 防跌倒室内环境/bp-trend 血压血糖趋势/elderlycare-level 养老护理等级速查/fall-risk 防跌倒评估/medication-schedule 用药提醒表/reminder-time 用药时间提醒/wheelchair-width 轮椅通道）原 content_deepdive 11 key 为占位变体（summary 原 None、faqs 仅 2 条）：① scripts/opt_elderly_content.py 真实化 11 key（summary+3 scenarios+1 example+3 faqs），覆盖辅助器具高度推算/护理分级(Barthel/ADL)/社工介入三维/质量结构-过程-结果/防跌倒环境问卷/血压血糖趋势/养老护理等级速查/防跌倒综合因子/用药提醒表/用药时间轴/轮椅通道净宽等适老化与健康管理真实场景，统一补「仅供健康管理与科普参考、不替代执业医师诊断与专业护理评估」免责（不覆盖 title）；② scripts/opt_elderly_hardcode.py 清 C 类 8 页（reminder-time 真实 li 保留、elderlycare-level/medication-schedule 无 tool-intro-body 跳过）两套通用 li（health 8 句如「基于权威健康标准计算」「健康知识学习」+ assessor 8 句如「纯前端处理，数据不上传服务器」「操作简单，一键完成」）+ 简介后缀（health「健康指标计算工具，基于权威医学标准，数据本地处理保护隐私」/ assessor「免费在线工具，纯前端处理，数据不上传，保护隐私安全」）+ 删空 ul/h4；清 A 类 assessor-35/36/37/risk-1 4 页 formula-desc「校验工具」错配→真实评估量表描述（elderlycare-level「速查」/medication-schedule「健康工具」语义相符保留）；③ 全站 elderly 套话复检 0 残留。+ zh-tw 同步 + 五项门禁全过。
 
-## 八、当前进行中分类：elderly（待展开，内容层真实化中）
+## 八、当前进行中分类：electrical（待展开，内容层真实化中）
 
-> biz/blasting/bonding/brand/bridge/building-material/cable/cardiology/casting/ceramics/chemical/chemistry/chess/chinese/chinese-cook/civil/cleaning/clinical-lab/clinical-nursing/cnc/cognition/colorvision/community/construction/consulting/content/convenience/cosmetic-derm/cosmetics/customer-service/daily-goods/dance/data/decor/defense/dentistry/design/discipline/domestic/dermatology/dyeing/dynamics/eco/ecommerce/economics/edu/edu2 内容层均已达标，已依次归档至第七节。下一进行中分类按字母序为 **elderly**（见第九节清单），待展开待优化清单。
+> biz/blasting/bonding/brand/bridge/building-material/cable/cardiology/casting/ceramics/chemical/chemistry/chess/chinese/chinese-cook/civil/cleaning/clinical-lab/clinical-nursing/cnc/cognition/colorvision/community/construction/consulting/content/convenience/cosmetic-derm/cosmetics/customer-service/daily-goods/dance/data/decor/defense/dentistry/design/discipline/domestic/dermatology/dyeing/dynamics/eco/ecommerce/economics/edu/edu2/elderly 内容层均已达标，已依次归档至第七节。下一进行中分类按字母序为 **electrical**（见第九节清单），待展开待优化清单。
 
 > 优化模式（沿用已验证路径）：写真实 content_deepdive 条目 → 清理工具页硬编码套话 → 构建 + 五项门禁 → 提交发布。
 
@@ -100,7 +100,7 @@ edu2 5 工具（exam-analysis 成绩分析/exam-countdown 考试倒计时/schedu
 - [x] economics
 - [x] edu
 - [x] edu2
-- [ ] elderly
+- [x] elderly
 - [ ] electrical
 - [ ] electromagnetism
 - [ ] electronics
