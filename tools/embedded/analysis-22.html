@@ -53,8 +53,8 @@
 <!-- TOOLBOX-I18N-SCRIPT -->
 
 
-<meta name="title-en" content="Analysis 22">
-<meta name="desc-en" content="Analysis 22 - free online tool">
+<meta name="title-en" content="Power (Dynamic/Static) Analysis">
+<meta name="desc-en" content="Power (Dynamic/Static) Analysis - free online tool">
 <!-- TOOLBOX-HREFLANG -->
 <link rel="alternate" hreflang="zh-CN" href="https://chenguangwu.github.io/tools/embedded/analysis-22.html">
 <link rel="alternate" hreflang="zh-TW" href="https://chenguangwu.github.io/zh-tw/tools/embedded/analysis-22.html">
@@ -94,16 +94,24 @@
 </nav>
 <div class="container">
   <div class="card tool-card-accent" style="--tool-accent:#FF6B35;">
-    <h2 data-zh="🔧 功耗（动态/静态）分析">🔧 Analysis 22</h2>
-    <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="动态/静态">Analysis 22 is available directly in your browser, with no data uploaded.</p>
+    <h2 data-zh="🔧 功耗（动态/静态）分析">🔧 Power (Dynamic/Static) Analysis</h2>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="动态/静态">Power (Dynamic/Static) Analysis runs entirely in your browser — enter supply voltage, active/sleep current and duty cycle to estimate average current, average power and battery life. No data uploaded.</p>
 <div class="formula-box">
   <div class="formula-title">📐 工作原理与说明</div>
-  <p class="formula-desc">本计算器基于标准数学运算与单位换算约定，输入按数字格式解析，结果实时输出；纯前端本地计算，数据不上传服务器。 工具名称：功耗（动态/静态）分析。</p>
+  <p class="formula-desc">本工具按 I_avg = I_active×占空比 + I_sleep×(1−占空比) 求平均电流，平均功耗 P_avg = V × I_avg（电压 V 单位 V、电流单位 mA，得 mW），给定电池容量 C(mAh) 时续航 t = C / I_avg（小时）。纯前端本地计算，数据不上传服务器。</p>
 </div>
 
-<label>输入数据（逗号或换行分隔）</label>
-<textarea id="data" rows="4" oninput="calc()" placeholder="例如: 10,20,30,40,50">10,20,30,40,50,60,70,80</textarea>
-<div class="toolbar"><button type="button" class="btn primary" onclick="calc()">统计分析</button><button type="button" class="btn" onclick="copyRes()">复制</button></div>
+<label>供电电压 V (V)</label>
+<input type="number" id="V" value="3.7" step="0.1" min="0">
+<label>动态（工作）电流 I_active (mA)</label>
+<input type="number" id="Ia" value="25" step="0.1" min="0">
+<label>静态（休眠）电流 I_sleep (mA)</label>
+<input type="number" id="Is" value="0.05" step="0.001" min="0">
+<label>占空比 duty (%) — 工作时间占比</label>
+<input type="number" id="duty" value="5" step="0.1" min="0" max="100">
+<label>电池容量 C (mAh，可选 — 用于估算续航)</label>
+<input type="number" id="C" value="2000" step="1" min="0">
+<div class="toolbar"><button type="button" class="btn primary" onclick="calc()">计算</button><button type="button" class="btn" onclick="copyRes()">复制</button></div>
 <div class="result-box" id="res"></div>
   </div>
 
@@ -127,15 +135,16 @@
 <h2>📚 深度解析：功耗（动态/静态）分析</h2>
 <h3>💡 常见使用场景</h3>
 <ul class="dd-list">
-<li>在embedded场景中先确认Analysis 22口径与边界，再输出可复核结论。</li>
-<li>适用于流程复用、异常复核、版本变更对照。</li>
-<li>建议同步输入来源与处理假设，降低追溯成本。</li>
+<li>物联网终端休眠/唤醒电流核算：设备在睡眠态仅耗 μA 级电流、工作态 mA 级，按占空比加权得平均电流，评估对续航的影响。</li>
+<li>电池供电产品续航预估：给定电池容量（mAh）与平均电流，估算可工作时长，指导容量选型与充电周期规划。</li>
+<li>占空比与功耗权衡优化：在响应时延允许范围内降低占空比可显著延长续航，用于低功耗策略的量级验证。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">复核演练示例</div><div class="dd-ex-body">以同一输入样本测试默认和边界情况，输出差异并形成处理建议。</div></div>
+<div class="dd-example"><div class="dd-ex-title">示例：纽扣电池物联网节点</div><div class="dd-ex-body">V=3.7V、I_active=25mA、I_sleep=0.05mA、占空比 5%、电池 2000mAh。平均电流≈1.27mA，平均功耗≈4.7mW，理论续航≈65 天。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
-<dt>为什么要记录假设？</dt><dd>口径和假设是结果可追溯的关键。</dd>
-<dt>结果可直接执行吗？</dt><dd>建议在复核通过后再进入下游流程。</dd>
+<dt>平均电流如何计算？</dt><dd>I_avg = I_active×占空比 + I_sleep×(1−占空比)，即按工作时间占比对动态/静态电流加权，单位与输入电流一致（mA）。</dd>
+<dt>结果可直接用于正式电池选型吗？</dt><dd>适合方案预研与量级估算；正式选型应叠加电源转换效率、自放电、温度与老化折减，并以实测为准。</dd>
+<dt>为什么静态电流很重要？</dt><dd>低占空比设备大部分时间处于休眠，静态电流虽小却主导平均电流与续航，μA 级差异即可显著改变电池寿命。</dd>
 </dl>
 </div>
 </section>
@@ -151,7 +160,34 @@
 <!-- /注意事项区块 -->
 </div>
 <script>
-function calc(){const raw=document.getElementById("data").value.split(/[,\n\s]+/).map(s=>parseFloat(s.trim())).filter(v=>!isNaN(v));if(!raw.length){document.getElementById("res").innerHTML='<p>请输入数据</p>';return;}const n=raw.length,sum=raw.reduce((a,b)=>a+b,0),mean=sum/n;const sorted=[...raw].sort((a,b)=>a-b);const med=n%2?sorted[Math.floor(n/2)]:(sorted[n/2-1]+sorted[n/2])/2;const varr=raw.reduce((a,b)=>a+(b-mean)**2,0)/n;const std=Math.sqrt(varr);document.getElementById("res").innerHTML=`<p>数据量：<strong>${n}</strong></p><p>总和：<strong>${sum.toFixed(2)}</strong></p><p>平均值：<strong style="color:var(--primary);">${mean.toFixed(2)}</strong></p><p>中位数：<strong>${med.toFixed(2)}</strong></p><p>最小值：<strong>${sorted[0]}</strong></p><p>最大值：<strong>${sorted[n-1]}</strong></p><p>极差：<strong>${(sorted[n-1]-sorted[0]).toFixed(2)}</strong></p><p>方差：<strong>${varr.toFixed(2)}</strong></p><p>标准差：<strong>${std.toFixed(2)}</strong></p>`;}calc();function copyRes(){ToolBox.copyText(document.getElementById("res").innerText);}
+function calc(){
+  const V=+document.getElementById("V").value||0;
+  const Ia=+document.getElementById("Ia").value||0;
+  const Is=+document.getElementById("Is").value||0;
+  const duty=Math.min(100,Math.max(0,+document.getElementById("duty").value||0));
+  const C=+document.getElementById("C").value||0;
+  if(V<=0||Ia<0||Is<0){document.getElementById("res").innerHTML='<p>请输入有效电压与电流</p>';return;}
+  const d=duty/100;
+  const Iavg=Ia*d+Is*(1-d);          // mA
+  const Pavg=V*Iavg;                 // mW
+  const Pactive=V*Ia;                // mW 动态峰值
+  const Psleep=V*Is;                 // mW 静态
+  let html='';
+  html+='<p>平均电流：<strong style="color:var(--primary);">'+Iavg.toFixed(4)+' mA</strong></p>';
+  html+='<p>平均功耗：<strong style="color:var(--primary);">'+Pavg.toFixed(3)+' mW</strong>（'+(Pavg/1000).toFixed(5)+' W）</p>';
+  html+='<p>动态峰值功耗：<strong>'+Pactive.toFixed(3)+' mW</strong></p>';
+  html+='<p>静态休眠功耗：<strong>'+Psleep.toFixed(4)+' mW</strong></p>';
+  html+='<p>占空比：<strong>'+duty.toFixed(1)+' %</strong></p>';
+  if(C>0){
+    const lifeH=C/Iavg;
+    html+='<p>理论续航：<strong>'+(isFinite(lifeH)?lifeH.toFixed(2):'∞')+' 小时</strong>（'+(lifeH/24).toFixed(2)+' 天，容量 '+C+' mAh）</p>';
+  }else{
+    html+='<p>续航：<span style="color:var(--text-muted)">未填电池容量，仅给出平均电流与平均功耗</span></p>';
+  }
+  document.getElementById("res").innerHTML=html;
+}
+calc();
+function copyRes(){ToolBox.copyText(document.getElementById("res").innerText);}
 </script>
 
 <!-- SEO 介绍区块 -->
@@ -167,20 +203,15 @@ function calc(){const raw=document.getElementById("data").value.split(/[,\n\s]+/
   </div>
   <div class="tool-intro-body">
     <h4><span class="h4-icon">📝</span>工具简介</h4>
-    <p>功耗（动态/静态）分析。免费在线工具，纯前端处理，数据不上传，保护隐私安全。</p>
-    <h4><span class="h4-icon">✨</span>功能特点</h4>
-    <ul class="intro-features">
-      <li>纯前端处理，数据不上传服务器</li>
-      <li>操作简单，一键完成</li>
-      <li>实时显示结果，所见即所得</li>
-      <li>支持复制和下载结果</li>
-    </ul>
+    <p>功耗（动态/静态）分析是一款嵌入式系统功耗评估工具，输入供电电压、动态/静态电流与占空比，估算平均电流、平均功耗与电池续航，辅助低功耗设计与电池容量选型，纯前端运行、数据不上传。</p>
+    
+    
     <h4><span class="h4-icon">🎯</span>使用场景</h4>
     <ul class="intro-scenes">
-      <li>日常办公与学习</li>
-      <li>开发调试与数据处理</li>
-      <li>快速计算与格式转换</li>
-      <li>信息查询与参考</li>
+            <li>低功耗 MCU 休眠/唤醒电流核算</li>
+      <li>电池供电设备续航预估</li>
+      <li>占空比与功耗权衡优化</li>
+      <li>物联网终端能效评估</li>
     </ul>
     </div>
 </div>
