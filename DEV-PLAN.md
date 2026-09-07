@@ -79,22 +79,21 @@
 ## 七、已完成分类归档
 > 本区仅保留**最近一个（最新）已完成分类**的归档记录，更早历史不再保留，以控制文件体积。完成新分类时，用新记录替换本条。
 
-### ✅ construction（26 工具，内容层全达标）
+### ✅ consulting（3 工具，内容层全达标）
 
-construction 26 工具原 content_deepdive 28 key 全为**占位变体**（「核对 XX 的输入假设（单位、范围、基准）后再跑一遍基准案例，降低口径误差风险」，summary 全 None），其中 2 个多余 key（estimate-area-dosage-1=隔音材料用量计算、estimate-volume-load=暖气片数量，与 soundproof-material/radiator-calculator 历史重复命名）无对应页亦一并真实化；tool-intro 三段块 23/26 页已存在（3 页缺块）、7 页块内含「操作简单，一键完成」套话、soundproof-material 的 formula-desc 为工程变体（「本工程计算基于标准物理…」）、estimate-area-dosage 的「工作与生活中的相关计算与查询」套话 3 处：① scripts/opt_construction_content.py 真实化 28 key（summary+3 scenarios+1 example+3 faqs），覆盖空调匹数/建筑面积/图纸比例/砖块/脚手架/木材材积/遮阳系数/照明瓦数/地板瓷砖用量/电路负载/混凝土配比/水泥砂浆/造价/粉刷/隔音/暖气片/钢筋/人工费/水管流量等真实建筑场景，去伪科学、非施工/临床确诊免责（不覆盖 title）；② scripts/opt_construction_hardcode.py 清 soundproof-material 的 formula-desc 工程变体 1 页（→真实隔音用量说明，JSON-LD 替换后合法）+ 替换 estimate-area-dosage 的「工作与生活中的相关计算与查询」3 处（适用场景/FAQ/JSON-LD→真实墙面粉刷场景）+ 整体替换 7 页 tool-intro 三段块套话（简介/功能/场景→真实建筑场景）+ 为缺块 3 页（calc-1/cement-mortar-ratio/renovation-labor-cost）插入真实 tool-intro 手风琴块；③ og:image:alt「ToolBox - 5000+免费在线工具」与 meta「纯前端处理，数据不上传」为全站统一真实特性，非占位、不清理。+ zh-tw 同步 + 五项门禁全过。
+consulting 3 工具（analysis-47 战略分析框架 / analysis-manager 财务经营诊断 / assessor-49 岗位胜任力评估）原 content_deepdive 3 key 为**第十七种占位变体**（「在consulting场景下，先把 XX 标准化，再批量执行可追溯流程。适合做统一复核点输出…」，summary 原 None）：① scripts/opt_consulting_content.py 真实化 3 key（summary+3 scenarios+1 example+3 faqs），覆盖 SWOT/波特五力战略复盘、收支利现经营诊断、六维加权胜任力评估，去伪科学、非专业诊断免责（不覆盖 title）；② scripts/opt_consulting_hardcode.py 清 assessor-49 的 formula-desc 校验变体 1 页（「本校验工具依据对应数据格式…」→真实胜任力描述，JSON-LD 合法）+ 整体替换 analysis-47/analysis-manager 的 tool-intro 三段块 6 类通用套话（免费在线工具/操作简单/日常办公/开发调试/快速计算/信息查询→真实咨询场景），assessor-49 块内已真实仅清 FD；③ og:image:alt「ToolBox - 5000+免费在线工具」与 meta「纯前端处理，数据不上传」为全站统一真实特性，非占位、不清理。+ zh-tw 同步 + 五项门禁全过。
 
 ---
-## 八、当前进行中分类：（无，construction 已归档）
+## 八、当前进行中分类：（无，consulting 已归档）
 
-> biz/blasting/bonding/brand/bridge/building-material/cable/cardiology/casting/ceramics/chemical/chemistry/chess/chinese/chinese-cook/civil/cleaning/clinical-lab/clinical-nursing/cnc/cognition/colorvision/community/construction 内容层均已达标，已依次归档至第七节。下一进行中分类按字母序为 **consulting**（见第九节清单），待下一批次置进行中并展开待优化清单。
+> biz/blasting/bonding/brand/bridge/building-material/cable/cardiology/casting/ceramics/chemical/chemistry/chess/chinese/chinese-cook/civil/cleaning/clinical-lab/clinical-nursing/cnc/cognition/colorvision/community/construction/consulting 内容层均已达标，已依次归档至第七节。下一进行中分类按字母序为 **content**（见第九节清单），待下一批次置进行中并展开待优化清单。
 
 > 优化模式（沿用已验证路径）：写真实 content_deepdive 条目 → 清理工具页硬编码套话（opt_cleanup_intro_faq.py --cat <cat> 或仿 opt_biz_optguide.py 按结构清 tool-intro）→ 构建 + 五项门禁 → 提交发布。
 
 ---
 
-## 九、分类总清单（待办，完成一个删一个；剩 231 个目录）
+## 九、分类总清单（待办，完成一个删一个；剩 230 个目录）
 
-- [ ] consulting
 - [ ] content
 - [ ] convenience
 - [ ] cosmetic-derm
