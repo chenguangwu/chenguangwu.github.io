@@ -79,19 +79,17 @@
 ## 七、已完成分类归档
 > 本区仅保留**最近一个（最新）已完成分类**的归档记录，更早历史不再保留，以控制文件体积。完成新分类时，用新记录替换本条。
 
-### ✅ event（1 工具，内容层全达标 + 英文套话清零 + cat 错标修正 + 字典同步）
-event 共 1 个工具页 assessor-65（活动效果评估）：四维度加权评分（到场率25%/预算执行贴合度20%/满意度30%/目标达成率25%，0–100 分四档等级+改进建议），计算逻辑经自测算例验证（500 人会议=87.25→卓越）。① content_deepdive.json 占位壳（通用"版本比对/复核演练"套话）全真实化（summary+3 真实场景+1 算例+2 FAQ）；② 英文 i18n 机翻坏名 "Evaluate ( Effect / Report / Improvement ) System" 改 "Event Effectiveness Assessment"，"free online tool" 套话在 slug-en/_en_override/event.json 清零并补真实 ed；③ cat 错标 validator→calculator；④ formula-box validator 模板残留改写为真实工作原理；⑤ 同步 event-phrases.json / tool_desc_override.py 旧名键→新名。提交 ddb06a819 + 五项门禁全过 + 线上 MD5 核对。
+### ✅ exhibition（6 工具，内容层全达标 + 英文套话清零 + cat 错标修正）
+exhibition 共 6 个工具页：analysis-61（预算费用/控制/优化分析，描述统计计算器）、analysis-pnl（预算收入/支出/盈亏分析，描述统计计算器）、assessor-60（会后评估/报告/跟进总结，ROI/转化/单线索成本计算器）、assessor-61（会展评估/指标/优化体系，6 维 1–5 评分计算器）、assessor-evacuation（安全疏散/消防/承重评估，疏散/承重/消防测算计算器）、stats-12（观众统计/行为/反馈研究，描述统计计算器）。① content_deepdive.json 6 占位壳（"复用模板/口径重复换算"套话）全真实化（title+3 真实场景+1 算例+3 FAQ）；② 英文 i18n 套话 "free online tool" 在 slug-en/_en_override/exhibition.json 清零并补真实 ed，坏名 Assessor 60/61→Post-show Evaluation Report/Exhibition Scorecard、Budget→Exhibition Cost/P&L Statistics、Security→Venue Safety Assessment、Stats 12→Audience Statistics；③ cat 错标 assessor-60/61/evacuation validator→calculator；④ 可见 h2 英文名与 <p> 英文 fallback 同步修正；⑤ 繁简 deep-dive 均真实化、线上 MD5 核对。
 
-## 八、当前进行中分类：event
+## 八、当前进行中分类：exhibition
 
 > 优化模式（沿用已验证路径）：写真实 content_deepdive 条目 → 清理工具页硬编码套话 → 英文 i18n 清理 → cat 错标修正 → 构建 + 五项门禁 → 提交发布。
 
 ---
 
-## 九、分类总清单（待办，完成一个删一个；剩 182 个目录）
+## 九、分类总清单（待办，完成一个删一个；剩 180 个目录）
 
-- [ ] exam
-- [ ] exhibition
 - [ ] express
 - [ ] fengshui
 - [ ] film
