@@ -2845,7 +2845,8 @@ function buildUnifiedHeader(){
   var root = toolPageRootPrefix();
 
   // 统一顶栏注入范围：首页 / 工具页(/tools/) / 指南页(/guides/) / 关于我们(/about.html)
-  // / 工具链组合(/chains.html) / 站点地图(/sitemap.html) / 含旧 .nav 的页面。
+  // / 工具链组合(/chains.html) / 站点地图(/sitemap.html) / 404 页 / 工具嵌入文档(embed.html)
+  // / 发布质量看板(release_dashboard.html) / 含旧 .nav 的页面。
   // search.html 作为搜索跳转页维持原状，不被统一改造波及。
   var path = location.pathname || '';
   var isTarget = path.indexOf('/tools/') !== -1
@@ -2854,6 +2855,9 @@ function buildUnifiedHeader(){
               || path.indexOf('/about.html') !== -1
               || path.indexOf('/chains.html') !== -1
               || path.indexOf('/sitemap.html') !== -1
+              || path.indexOf('/404.html') !== -1
+              || path.indexOf('/embed.html') !== -1
+              || path.indexOf('/release_dashboard.html') !== -1
               || !!document.querySelector('.nav');
   if (!isTarget) return null;
 
