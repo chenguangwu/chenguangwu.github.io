@@ -79,12 +79,12 @@
 ## 七、已完成分类归档
 > 本区仅保留**最近一个（最新）已完成分类**的归档记录，更早历史不再保留，以控制文件体积。完成新分类时，用新记录替换本条。
 
-### ✅ electrical（19 工具，内容层全达标）
-electrical 19 工具（battery-bank 蓄电池组/breaker-sizing 断路器选型/calc-1 电缆载流量/calc-2 三相功率/calc-power-capacitance 补偿电容/current-divider 电流分流/home-load-estimate 家庭负荷/led-resistor LED 限流电阻/load-curve 24h 日负荷曲线/opamp-gain 运放增益/power-factor 功率因数/rc-filter RC 低通滤波/rlc-resonance RLC 谐振/transformer-sizing 变压器选型/voltage-capacity-battery 蓄电池串并联/voltage-divider 分压器/voltage-drop 电压降/wire-gauge-selector 线规/wire-resistance 导线电阻）原 content_deepdive 19 key 为占位变体（summary 原 None、faqs 仅 2 条）：① scripts/opt_electrical_content.py 真实化 19 key（summary+3 scenarios+1 example+3 faqs），覆盖 UPS 备电/光伏储能/启动电瓶/基站后备/住宅配电/工业电机/光伏直流/机房机柜/分接断路器/电缆载流 IEC60364/三相有功无功视在/补偿柜选型/谐波抑制/PCB 分流/家用月用电/5V Arduino 限流/24h 峰谷/反相同相运放/电力系统/滤波定时/无线充电谐振/变压器容量/电池组均衡/ADC 前端分压/电机末端压降/AWG 换算/集肤效应温度等真实电气工程场景，统一补「结果仅供方案设计、工程预研与教学参考、不替代正式电气设计、IEC/NEC 标准与持证工程师的最终判定」免责（不覆盖 title）；② scripts/opt_electrical_hardcode.py 清 A 类 2 页 formula-desc（calc-power-capacitance 「输入两个参数」通用占位 + voltage-capacity-battery 「本工程计算基于标准物理与材料公式」工程错配→真实领域描述，9 页真实领域描述如 RC 滤波/三相功率/分压器等保留）；清 B 类 battery-bank JSON-LD 1 处「工作与生活中的相关计算与查询」→「UPS/光伏/通信/电动车场景」；清 C 类 calc-power-capacitance / voltage-capacity-battery 8 句通用 li + 简介后缀 + 空 ul/h4；清 5 页 intro 段「是一款IT 开发领域的在线工具。专为开发者打造…」→真实电气领域描述（battery-bank/load-curve/power-factor/transformer-sizing/voltage-drop）；③ 全站 electrical 套话复检 0 残留，3 处 JSON-LD 全 legal。+ zh-tw 同步 + 五项门禁全过。
+### ✅ electromagnetism（28 工具，内容层全达标）
+electromagnetism 28 工具（b-field-wire 安培定律/capacitance-parallel-plate 平板电容/capacitive-reactance 容抗/capacitors-parallel-series 串并联电容/coil-torque 磁力矩/coulomb-force 库仑力/current-density 电流密度/drift-velocity 漂移速度/electric-field-point 点电荷电场/electric-potential-point 点电荷电势/electric-power 电功率/energy-capacitor 电容储能/energy-inductor 电感储能/faraday-induction 法拉第感应/force-wire-field 安培力/free-space-impedance 真空波阻抗/inductance-solenoid 螺线管电感/inductors-parallel-series 串并联电感/lc-resonance LC谐振/magnetic-flux 磁通/ohms-law 欧姆定律/resistivity-law 电阻率/resistors-parallel-series 串并联电阻/rl-time-constant RL 时间常数/solenoid-field 螺线管磁场）原 content_deepdive 28 key 为占位变体（summary 原 None、faqs 仅 2 条）：① scripts/opt_electromagnetism_content.py 真实化 28 key（summary+3 scenarios+1 example+3 faqs），覆盖母线磁场估算/PCB 平面电容/RC滤波移相/储能阵列分压/电机扬声器/电子-质子/PCB 走线/电迁移/高压电场/避雷针/光伏DC-Link/心脏除颤器/开关电源纹波/无线充电/电动扬声器/EMC 抗扰度/空心线圈/电感并联耦合/谐振电路/变压器磁路/继电器保险/导线电阻率/电机绕组等真实电磁学与电路基础场景，统一补「结果仅供教学与方案预研参考、不替代正式工程设计、电磁兼容标准与持证工程师的判定」免责（不覆盖 title）；② scripts/opt_electromagnetism_hardcode.py 清 B 类 energy-inductor + magnetic-flux 各 3 处「工作与生活中的相关计算与查询」→真实电磁场景描述（JSON-LD 全部合法）；③ A 类 27 页 formula-desc 经核验全为真实领域描述（如「输入两电荷 q1、q2 与距离 r，求库仑力大小」），语义相符保留；C 类 tool-intro-body 套话 0 命中。+ zh-tw 同步 + 五项门禁全过。
 
-## 八、当前进行中分类：electromagnetism（待展开，内容层真实化中）
+## 八、当前进行中分类：electronics（待展开，内容层真实化中）
 
-> biz/blasting/bonding/brand/bridge/building-material/cable/cardiology/casting/ceramics/chemical/chemistry/chess/chinese/chinese-cook/civil/cleaning/clinical-lab/clinical-nursing/cnc/cognition/colorvision/community/construction/consulting/content/convenience/cosmetic-derm/cosmetics/customer-service/daily-goods/dance/data/decor/defense/dentistry/design/discipline/domestic/dermatology/dyeing/dynamics/eco/ecommerce/economics/edu/edu2/elderly/electrical 内容层均已达标，已依次归档至第七节。下一进行中分类按字母序为 **electromagnetism**（见第九节清单），待展开待优化清单。
+> biz/blasting/bonding/brand/bridge/building-material/cable/cardiology/casting/ceramics/chemical/chemistry/chess/chinese/chinese-cook/civil/cleaning/clinical-lab/clinical-nursing/cnc/cognition/colorvision/community/construction/consulting/content/convenience/cosmetic-derm/cosmetics/customer-service/daily-goods/dance/data/decor/defense/dentistry/design/discipline/domestic/dermatology/dyeing/dynamics/eco/ecommerce/economics/edu/edu2/elderly/electrical/electromagnetism 内容层均已达标，已依次归档至第七节。下一进行中分类按字母序为 **electronics**（见第九节清单），待展开待优化清单。
 
 > 优化模式（沿用已验证路径）：写真实 content_deepdive 条目 → 清理工具页硬编码套话 → 构建 + 五项门禁 → 提交发布。
 
@@ -102,7 +102,7 @@ electrical 19 工具（battery-bank 蓄电池组/breaker-sizing 断路器选型/
 - [x] edu2
 - [x] elderly
 - [x] electrical
-- [ ] electromagnetism
+- [x] electromagnetism
 - [ ] electronics
 - [ ] embedded
 - [ ] encode
