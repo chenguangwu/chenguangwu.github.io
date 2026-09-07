@@ -3030,7 +3030,7 @@ def generate_category_indexes(tools):
         # Content
         parts.append('<div class="container">\n  <div class="card">\n')
         parts.append('    <h2>%s %s工具</h2>\n' % (ind_icon, esc_html_py(ind_name)))
-        parts.append('    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;">共 %d 个免费在线工具，纯前端处理，数据不上传</p>\n' % count)
+        parts.append('    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;">共 %d 个免费在线工具</p>\n' % count)
         parts.append('    <div class="category-tool-list" data-ind="%s">\n' % ind)
         index_ref_dir = 'tools/' + ind
         # 加载本行业中文 i18n 字典，供分类页卡片 .t-zh 描述使用
