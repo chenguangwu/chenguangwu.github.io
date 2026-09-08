@@ -128,25 +128,23 @@
 ## 七、已完成分类归档
 > 本区仅保留**最近一个（最新）已完成分类**的归档记录，更早历史不再保留，以控制文件体积。完成新分类时，用新记录替换本条。
 
-### ✅ fluid（28 工具，完整分类收口）
-- 分 3 批全量收口：批1（bernoulli-pressure…froude-number，commit c7bb1babd / CI 34205910630）、批2（hydraulic-diameter…poiseuille-flow，commit 1ce0eba7c / CI 34207150119）、批3（pressure-drop-darcy…weber-number，commit 4f95c9634 / CI 34207676098），均 success。
-- deep-dive 现状本已为真实公式+数字算例+2FAQ（非套话）：批1 补 chezy/cavitation 数字算例；批2 修 manning 笔误 1.94→1.53（node 复核 1.5324）、laplace 补算例（单界面145.6/肥皂泡291.2 Pa）；批3 修 weber 笔误 1374→13736（node 复核 13736.3）、terminal/venturi 补算例。
-- 按 §4.4 全 28 工具生成独立使用指南页（guides.json 298→326）；terminal-velocity.html 源 HTML opt-guide/opt-faq 套话块手工清零（前2后0）。
-- 全程公式独立数值/node 复核，五项门禁全 PASS，构建繁体同步，发布以 GitHub Actions Pages 为准。
+### ✅ food-processing（22 条，完整分类收口）
+- 分 2 批全量收口（批1 11 + 批2 10 工具，含 1 条孤儿 tester-5 套话清理），commit 待推送、CI 待查 success。
+- 21 工具 + 1 孤儿 deep-dive 原全为「快速复核」套话占位，全量重写为真实内容（3 场景 + 公式/算例双条目 + 2 专业 FAQ），算例数字按工具 JS 公式手算 / node 复核（吸水率62.0%、ESI 84.0%、发酵酒精6.58%、灌装362.3mL、过滤419.5L、失水率5.0%、均质0.99μm、得率97.1%、残氧5.4%、保质期69天、F₀=15、Aw 阈值等）。
+- 按 §4.4 全 21 工具生成独立使用指南页（guides.json 350→371）；清理源 HTML opt-guide/opt-faq 套话块 1 处（recipe-cost-calculator 前2后0）。
+- 全程公式手算 / node 复核，五项门禁全 PASS，构建繁体同步，发布以 GitHub Actions Pages 为准。
 ------
 
 
 
 ## 八、当前进行中分类
 
-### 🔄 food（24 工具，deep-dive 真实化 + 指南页 + 套话清零）
+### 🔄 food-safety（2 工具，deep-dive 真实化 + 指南页 + 套话清零）
+- 工具清单（完成一个勾一个）：assessor-risk-6, generator-31（summary 为汇总页非工具），另含 food-processing/tester-5 已随上批清理。
 - 按 §4.4：专业度高/热门工具补独立使用指南页。
-- 工具清单（完成一个勾一个）：analysis-cost-6, analysis-menu, beer-gravity-estimator, calc-concentration, calorie-calculator, checker-13, convert-19, convert-20, convert-concentration, convert-ratio-seasoning, cooking-converter, dough-fermentation-time, food-calculator, food-pairing, nutrition-calculator, oil-absorption-estimator, recipe-generator, report-cost-profit, soup-ratio-optimizer, stats-ingredient, stats-simulator-flavor, syrup-brix-converter, vitamin-c-compare, wine-alcohol-converter
 
-## 九、分类总清单（待办，完成一个删一个；剩 176 个目录）
+## 九、分类总清单（待办，完成一个删一个；剩 175 个目录）
 
-- [ ] food-processing
-- [ ] food-safety
 - [ ] food-testing
 - [ ] forensic-medicine
 - [ ] forestry
