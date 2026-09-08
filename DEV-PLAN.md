@@ -128,28 +128,23 @@
 ## 七、已完成分类归档
 > 本区仅保留**最近一个（最新）已完成分类**的归档记录，更早历史不再保留，以控制文件体积。完成新分类时，用新记录替换本条。
 
-### ✅ health（46 工具，完整分类收口）
-- 全 46 工具 deep-dive 已由「快速复核」模板套话全量重写为真实内容（3 场景 + 1 可复现算例 + 2 专业 FAQ），示例数字取自工具真实输出或源码公式手算（LMP+280 天、IOM 2009 增重分级、矫正月龄=(今天−EDD)/30.44、Mifflin-St Jeor BMR、Cooper VO2max、WHR 性别阈值、伤口「部位×类型×大小×年龄」因子表等）；由 apply_health_deepdive1~5.py 写入 `i18n/tools/content_deepdive.json`，scenarios 归一化为字符串列表以兼容 _build.py 与 gen_guide_pages。
-- 按 §4.4 为专业度高/热门工具批量生成独立使用指南页，health 46 工具全覆盖（guides.json 累计 223→260；工具页注入「📖 使用指南」链接，指南页去 .en.html/hreflang、引 common.js）。
-- 13 个源 HTML 的 opt-guide/opt-faq 套话块（26 处）已手工清零，全分类 grep 确认无残留。
-- i18n 八件套同步（content_deepdive 46 条 + slug-en/_en_override/health/health-body 清理补全）；中文/繁体/英文元信息一致。
-- 已完成构建与五项门禁（静态/死链/资产/公式全 PASS）、提交并发布；以 GitHub Actions Pages 部署结果为准。
+### ✅ fitness（35 工具，完整分类收口）
+- 全 35 工具 deep-dive 由「快速复核」模板套话全量重写为真实内容（3 场景 + 1 可复现算例 + 2 专业 FAQ），算例数字均用源码公式手算核对（线性递增 2.5%+每4周减载、Katch-McArdle BMR、Cooper VO₂max 距离/1.5英里双公式、BIA 阻抗体脂、Epley 估算 1RM、Navy 体脂、围度对称评分、肌筋膜压痛分级、拉伸方案生成等）；由 apply_fitness_deepdive1~3.py 写入 `i18n/tools/content_deepdive.json`，scenarios 归一化为字符串列表以兼容 _build.py 与 gen_guide_pages。
+- 按 §4.4 为专业度高/热门工具批量生成独立使用指南页，fitness 35 工具全覆盖（guides.json 累计 260→292；工具页注入「📖 使用指南」链接，指南页去 .en.html/hreflang、引 common.js）。
+- 3 个源 HTML（calc-heart-rate/circuit-timer/rater-time）的 opt-guide/opt-faq 套话块已手工清零，全分类 grep 确认无残留。
+- i18n 八件套同步（content_deepdive 35 条）；中文/繁体/英文元信息一致。
+- 已完成构建与五项门禁（静态/死链/资产/公式全 PASS）、分三批提交并发布；以 GitHub Actions Pages 部署结果为准。
 ------
 
 
 
 ## 八、当前进行中分类
 
-### 🔄 fitness（35 工具，deep-dive 全量重写为真实内容 + 指南页 + 套话清零）
-- 现状：35 工具 deep-dive 均为「快速复核」模板套话（与 health 同款，无真实算例数字），需全量重写为真实内容（3 场景 + 1 可复现算例 + 2 FAQ）；3 个源 HTML 含 opt-guide/opt-faq 套话块须手工清理。
-- 按 §4.4：专业度高 / 热门工具补独立使用指南页（fitness 多为训练/营养计算器，建议尽量都加）。
-- 工具清单（完成一个勾一个）：
-- 批1（✅ 已完成 12/35）：deep-dive 真实化（3场景+可复现算例+2FAQ）+ 3 个 opt 套话块清理（calc-heart-rate/circuit-timer/rater-time）+ 12 篇指南页 + 五项门禁通过
-  - [x] angle-motion  [x] assessor-18  [x] assessor-63  [x] bodyfat-caliper  [x] calc-2  [x] calc-3  [x] calc-4  [x] calc-5  [x] calc-heart-rate  [x] calc  [x] calculator-calc-13  [x] calculator-calc-constitution
-- 批2（✅ 已完成 12/35）：deep-dive 真实化（3场景+可复现算例+2FAQ）+ 12 篇指南页 + 五项门禁通过
-  - [x] calculator-calc-heart-rate  [x] calculator-calc-metabolism  [x] carbon-ratio  [x] circuit-timer  [x] convert  [x] cycle-5  [x] detector-15  [x] estimate-1  [x] estimate-2  [x] estimate  [x] generator  [x] jianzhinengliangquekoujisuan
-- 批3（待做 11）：load, macro-ratio, rater-time, ratio-19, reminder, resistance, time-stretch, training-volume, vo2max-12min, weight-capacity-training, zuidasheyanglianggusuan
-
+### 🔄 floral（6 工具，deep-dive 真实化 + 指南页 + 套话清零）
+- 现状：floral 分类共 6 个工具（不含 index 落地页）；deep-dive 现状待探查（源页未含「快速复核」套话，可能缺条目或需补真实内容）；wedding-flowers 含 1 处 opt-guide/opt-faq 套话块须清理。
+- 按 §4.4：专业度高/热门工具补独立使用指南页（花艺多为设计/换算类，按判定标准择要补）。
+- 工具清单（完成一个勾一个，整分类一次收口）：
+  - [ ] bloom-stage  [ ] golden-ratio  [ ] preservative  [ ] price  [ ] spiral-bouquet  [ ] wedding-flowers
 ## 九、分类总清单（待办，完成一个删一个；剩 176 个目录）
 
 - [ ] floral
