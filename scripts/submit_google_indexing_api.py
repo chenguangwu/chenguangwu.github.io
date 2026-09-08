@@ -67,7 +67,7 @@ TIMEZONE = 'America/Los_Angeles'
 
 # Google's current initial default is 200 publish requests/day/project. Keep
 # 20 requests in reserve for another process or an untracked manual request.
-DEFAULT_DAILY_LIMIT = 180
+DEFAULT_DAILY_LIMIT = 198
 TIMEOUT = 45
 MAX_RETRIES = 2
 RETRY_BACKOFF = 5
