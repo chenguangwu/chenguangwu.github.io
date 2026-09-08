@@ -128,24 +128,14 @@
 ## 七、已完成分类归档
 > 本区仅保留**最近一个（最新）已完成分类**的归档记录，更早历史不再保留，以控制文件体积。完成新分类时，用新记录替换本条。
 
-### ✅ fishery（41 工具，完整分类收口）
-- 全 41 工具 deep-dive 已由占位套话全量重写为真实内容（3 场景 + 1 可复现算例 + 2 FAQ），示例数字取自工具真实输出或源码公式手算；由 apply_fishery_deepdive.py / apply_fishery_deepdive2.py / apply_fishery_deepdive3.py / apply_fishery_deepdive4.py 写入 `i18n/tools/content_deepdive.json`。
-- 修复 5 个通用壳工具：calc-power（P=V×I）、density-1（放养密度=尾数/面积）、estimate-23（基准×(1+增长率/100)）、ratio-hormone（最简整数比/占比/倍数）、temp-density（水温—饱和溶氧与饱和度），原为共用"通用计算器"空壳（输出恒空），由 `scripts/fix_fishery_shells.py` 重写为领域专用真实算法并经 Node 实测验证。
-- 删除 3 个与已优化工具完全重复的空壳长名工具：yuleishengzhangquxian-tedingshengzhanglv-nihe（=fish-growth-curve）、yutangrongyangliang-shuiwen-qiya-yuce（=dissolved-oxygen）、zengyangjikaiqishichang-rongyangxiajiangmoxing（=aerator-duration）；删除前已核验并移除 5 处反向 related-tool 链接，清理 i18n 孤儿条目，重建后死链/资产门禁 0 死链。
-- 按 §4.4 为专业度高/热门工具批量生成独立使用指南页（fishery 累计 25 篇），合并 `json/guides.json`（累计 207→223），工具页注入「📖 使用指南」链接；指南页去除英文 .en.html 链接与 hreflang，引 common.js。
-- i18n 八件套覆盖：content_deepdive.json 41 条、slug-en.json/_en_override.json/fishery.json/fishery-body.json 同步清理与补全；中文/繁体/英文元信息一致。
-- cycle-6 多池塘清淤周期管理（calcParams 真实公式：有机质残留 30%→月浓度增量→临界 15 mg/L 反推周期）逻辑真实保留并补 deep-dive。
-- 已完成构建与五项门禁（静态/死链/资产/繁体/质量全 PASS）、提交并发布；以 GitHub Actions Pages 部署结果为准。
+### ✅ health（46 工具，完整分类收口）
+- 全 46 工具 deep-dive 已由「快速复核」模板套话全量重写为真实内容（3 场景 + 1 可复现算例 + 2 专业 FAQ），示例数字取自工具真实输出或源码公式手算（LMP+280 天、IOM 2009 增重分级、矫正月龄=(今天−EDD)/30.44、Mifflin-St Jeor BMR、Cooper VO2max、WHR 性别阈值、伤口「部位×类型×大小×年龄」因子表等）；由 apply_health_deepdive1~5.py 写入 `i18n/tools/content_deepdive.json`，scenarios 归一化为字符串列表以兼容 _build.py 与 gen_guide_pages。
+- 按 §4.4 为专业度高/热门工具批量生成独立使用指南页，health 46 工具全覆盖（guides.json 累计 223→260；工具页注入「📖 使用指南」链接，指南页去 .en.html/hreflang、引 common.js）。
+- 13 个源 HTML 的 opt-guide/opt-faq 套话块（26 处）已手工清零，全分类 grep 确认无残留。
+- i18n 八件套同步（content_deepdive 46 条 + slug-en/_en_override/health/health-body 清理补全）；中文/繁体/英文元信息一致。
+- 已完成构建与五项门禁（静态/死链/资产/公式全 PASS）、提交并发布；以 GitHub Actions Pages 部署结果为准。
 ------
 
-## 八、当前进行中分类
-
-### 🔄 health（46 工具，deep-dive 全量重写为真实内容 + 指南页 + 套话清零）
-- 现状：46 工具 deep-dive 均为「快速复核」模板套话（scenarios/examples/faqs 通用话术，无真实算例数字），需全量重写为真实内容（3 场景 + 1 可复现算例 + 2 FAQ）；13 个源 HTML 含 opt-guide/opt-faq 套话块须手工清理。
-- 按 §4.4：专业度高 / 热门工具补独立使用指南页（health 多为高频健康计算器，建议尽量都加）。
-- 工具清单（完成一个勾一个）：
-- [x] alcohol-units  [x] blood-pressure-classifier  [x] blood-sugar-converter  [x] blood-type-calculator  [x] bmi-calculator  [x] bmr-calculator  [x] body-fat-calculator  [x] body-surface-area  [x] breath-timer  [x] caffeine-limit  [x] calc-1  [x] calc-2  [x] calc-3  [x] calorie-needs  [x] child-bmi-calculator  [x] child-height-predictor  [x] child-medication-dose  [x] cholesterol-ratio  [x] dumbbell-weight-calculator  [x] dysphagia-food-guide  [x] fracture-healing  [x] gfr-calculator  [x] heart-rate-zones
-- [x] ibw-calculator  [x] ideal-weight  [x] insulin-dose  [x] milk-tea-calories  [x] one-rep-max  [x] ovulation-calculator  [x] pace-calculator  [ ] pregnancy-due-date  [ ] pregnancy-weight-gain  [ ] premature-age-calculator  [ ] protein-needs  [ ] rehab-timer  [ ] running-calories  [ ] safe-period-calculator  [ ] sleep-cycle-calculator  [ ] smoking-cost-calculator  [ ] stretch-generator  [ ] symptom-checker  [ ] tdee-calculator  [ ] vo2-max-calculator  [ ] waist-hip-ratio  [ ] water-intake-calculator  [ ] wound-healing-time
 
 
 ## 九、分类总清单（待办，完成一个删一个；剩 178 个目录）
@@ -173,7 +163,6 @@
 - [ ] geometry
 - [ ] gis
 - [ ] glass
-- [ ] health
 - [ ] healthcare
 - [ ] heattreat
 - [ ] hematology
