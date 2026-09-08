@@ -166,14 +166,20 @@
 - 五项门禁全 PASS，构建繁体同步，发布以 GitHub Actions Pages 为准。
 ------
 
+### ✅ fun（74 工具，完整分类收口）
+- 74 工具（最大分类）deep-dive 原全为「快速复核」套话，分 6 批（12×5+14）全量重写为真实内容（3 场景 + 公式/算例双条目 + 2 专业 FAQ），娱乐类强调纯前端、结果仅供参考非建议。
+- 计算/统计类算例按公式手算（bbq 12串/350g肉/200g菜/700ml饮、blackjack 1.5倍赔率、step-stride 0.70×120=5.04km/h、stats-3 掌长身高 r≈0.99、zodiac 火×火95分、spinner 权重1:2:3→概率1/6,2/6,3/6、tetris 消4行3200分等）。
+- 清理 9 处源 HTML opt-guide/opt-faq 套话块（bbq-portion/coin-flip/color-guess/color-memory/dice-roller/keyboard-heatmap/pattern-memory/roulette-simulator/word-scramble，各前2后0）；生成 74 篇使用指南页（guides.json 446→518）。
+- 五项门禁全 PASS，构建繁体同步，发布以 GitHub Actions Pages 为准。
+------
+
 ## 八、当前进行中分类
 
-### 🔄 fun（待核查，deep-dive 真实化 + 指南页 + 套话清零）
-- 接 fresh 之后的下一个分类，按 §4.4 补独立使用指南页，完成一个勾一个。
+### 🔄 funeral（待核查，deep-dive 真实化 + 指南页 + 套话清零）
+- 接 fun 之后的下一个分类，按 §4.4 补独立使用指南页，完成一个勾一个。
 
-## 九、分类总清单（待办，完成一个删一个；剩 169 个目录）
+## 九、分类总清单（待办，完成一个删一个；剩 168 个目录）
 
-- [ ] fun
 - [ ] funeral
 - [ ] furniture
 - [ ] furniture
