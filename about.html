@@ -53,8 +53,12 @@
   .about-stat{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:18px 14px;text-align:center;}
   .about-stat-num{font-size:26px;font-weight:800;background:linear-gradient(135deg,var(--primary),var(--secondary));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
   .about-stat-label{font-size:12px;color:var(--muted);margin-top:6px;}
-  .la-widget-wrap{display:flex;justify-content:center;margin-top:4px;}
+  /* 挂件与其他 about-section 一样左对齐（不再居中）：
+     51.la widget 自带居中样式，用后代选择器强制覆盖 */
+  .la-widget-wrap{display:block;margin-top:4px;text-align:left;}
   .la-widget-wrap > *{max-width:100%;}
+  .la-widget-wrap *{text-align:left;}
+  #aboutAd .tool-ad-banner{margin-top:0;}
 </style>
 </head>
 <body data-page-node-id="3MiA0K15CjoM6So7qv1YhZ">
@@ -64,7 +68,6 @@
 <main class="about-page" data-page-node-id="yskSThWSQIgFfFTGQk4WeR">
   <div class="page-head" data-page-node-id="AzXCmd3rXWVA5XSDCEKQBc">
     <h1 data-i18n="about.title" data-i18n-fb="关于 ToolBox" data-page-node-id="9kxALKIgQfYUx0eLBWol5f">关于 ToolBox</h1>
-    <p data-i18n="about.sub" data-i18n-fb="不是又一个套壳工具站，而是真正站在你这边的工具箱" data-page-node-id="T1wZUPPQGxh2JcDShTRSSc">不是又一个套壳工具站，而是真正站在你这边的工具箱</p>
   </div>
 
   <section class="about-section" aria-labelledby="why-title" data-page-node-id="TYLCpKKux8qoKUWCZhEOKa">
@@ -113,7 +116,11 @@
     <p data-i18n="about.support_p3" data-i18n-fb="如果你觉得 ToolBox 帮到了你，这就是对我们最大的支持。感谢每一份用得顺手的体验。">如果你觉得 ToolBox 帮到了你，这就是对我们最大的支持。感谢每一份用得顺手的体验。</p>
   </section>
 
-  <section class="about-section" aria-labelledby="live-title" style="text-align:center;">
+  <section class="about-section" aria-label="推广" id="aboutAdSection" hidden>
+    <div id="aboutAd"></div>
+  </section>
+
+  <section class="about-section" aria-labelledby="live-title">
     <div class="la-widget-wrap" id="laDataWidget" aria-label="ToolBox 实时访问数据"></div>
   </section>
 </main>
@@ -152,6 +159,34 @@
     new MutationObserver(mount).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
   }
 })();
+</script>
+<script>
+/* 淘宝联盟推广位（about 页）：链接必须调 ToolBox.toolboxTaobaoAdUrl()，
+   PC/WAP 双链唯一维护点在 js/common.js（手机走 PC 链会被淘宝强制登录→转化归零），此处禁止硬编码。
+   common.js 为 IIFE 且 defer 加载，函数挂在其 ToolBox 命名空间上，故推迟到 DOMContentLoaded 再取。 */
+document.addEventListener('DOMContentLoaded', function(){
+  setTimeout(function(){
+    var sec = document.getElementById('aboutAdSection');
+    var ad = document.getElementById('aboutAd');
+    if(!sec || !ad) return;
+    var fn = (window.ToolBox && typeof window.ToolBox.toolboxTaobaoAdUrl === 'function')
+      ? window.ToolBox.toolboxTaobaoAdUrl : null;
+    var standalone = (window.ToolBox && typeof window.ToolBox.isStandaloneMode === 'function')
+      ? window.ToolBox.isStandaloneMode() : false;
+    if(!fn || standalone) return;                 // 函数缺失或 PWA 已安装 → 不展示广告位
+    ad.innerHTML = '<div class="tool-ad-label" data-i18n="ad.label_promo" data-i18n-fb="— 推广 —">— 推广 —</div>'
+      + '<div class="tool-ad-banner" data-ad-pos="about-bottom">'
+      + '<a class="tool-ad-card" href="' + fn() + '" target="_blank" rel="noopener sponsored">'
+      + '<div class="tool-ad-content">'
+      + '<div class="tool-ad-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg></div>'
+      + '<div class="tool-ad-text"><span class="tool-ad-title" data-i18n="ad.taobao_title" data-i18n-fb="淘宝精选">淘宝精选</span>'
+      + '<span class="tool-ad-desc" data-i18n="ad.taobao_desc" data-i18n-fb="精选好物，限时优惠">精选好物，限时优惠</span></div>'
+      + '<span class="tool-ad-cta" data-i18n="ad.taobao_cta" data-i18n-fb="去看看 →">去看看 →</span>'
+      + '</div></a></div>';
+    sec.hidden = false;
+    if(window.I18n && typeof window.I18n.apply === 'function') window.I18n.apply(ad);
+  }, 0);
+});
 </script>
 </body>
 </html>

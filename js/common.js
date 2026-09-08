@@ -2446,6 +2446,9 @@ var TOOLBOX_TAOBAO_AD_URL = {
 function toolboxTaobaoAdUrl(){
   return (window.innerWidth < 768) ? TOOLBOX_TAOBAO_AD_URL.m : TOOLBOX_TAOBAO_AD_URL.pc;
 }
+// 暴露到 ToolBox 命名空间：供非工具页（如 about.html）复用同一条 PC/WAP 双链逻辑，
+// 避免各页面各自硬编码断点判断导致手机端误走 PC 链（会被淘宝强制登录→转化归零）。
+if (global.ToolBox) global.ToolBox.toolboxTaobaoAdUrl = toolboxTaobaoAdUrl;
 
 // Auto-insert Taobao ad banner into tool pages
 (function(){
@@ -2764,6 +2767,7 @@ function isStandaloneMode(){
   } catch(e){}
   return false;
 }
+if (global.ToolBox) global.ToolBox.isStandaloneMode = isStandaloneMode;
 function injectAdBanner(){
   try {
     if (isStandaloneMode()) return;              // PWA 安装后不展示广告位
