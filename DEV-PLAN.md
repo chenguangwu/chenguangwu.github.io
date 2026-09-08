@@ -82,17 +82,15 @@
 ### ✅ fengshui（5 工具，内容层全达标 + 英文套话清零 + good-day 算法重写为真实建除）
 fengshui 共 5 个工具页：zodiac-lookup（生肖/五行/六合三合六冲/婚配，数据真实）、birthday-analysis（四柱八字排盘+五行分布，数据真实）、fengshui-calculator（八卦/二十四山/坐向分析，FAQ 第4条套话改真实）、fengshui-guide（风水知识手册 20+ 真实条目+搜索，内容真实）、good-day-selector（原伪随机评分→重写为真实「十二建除」算法：日干支+建除十二神+冲煞+活动宜忌评分，node 验证可复现）。① content_deepdive.json 占位壳（"fengshui 场景下建议先校准"套话）5 键全真实化（title+3 真实场景+1 算例+2 FAQ）；② 英文 i18n 套话在 slug-en/_en_override/fengshui.json 清零并补真实 ed；③ 5 页 formula-desc / desc-en meta / JSON-LD description 套话清零、可见 h2 英文名保留；④ 繁简 deep-dive 均真实化、五项门禁全过、线上 MD5 核对。
 
-## 八、当前进行中分类：fengshui
+## 八、当前进行中分类：film
 
 > 优化模式（沿用已验证路径）：写真实 content_deepdive 条目 → 清理工具页硬编码套话 → 英文 i18n 清理 → cat 错标修正 → 构建 + 五项门禁 → 提交发布。
 
 ---
 
-## 九、分类总清单（待办，完成一个删一个；剩 179 个目录）
+## 九、分类总清单（待办，完成一个删一个；剩 178 个目录）
 
-- [ ] fengshui
-- [ ] fengshui
-- [ ] film
+- [x] film
 - [ ] finance
 - [ ] fire
 - [ ] fire-rescue
