@@ -136,7 +136,18 @@
 - i18n 八件套覆盖：content_deepdive.json 41 条、slug-en.json/_en_override.json/fishery.json/fishery-body.json 同步清理与补全；中文/繁体/英文元信息一致。
 - cycle-6 多池塘清淤周期管理（calcParams 真实公式：有机质残留 30%→月浓度增量→临界 15 mg/L 反推周期）逻辑真实保留并补 deep-dive。
 - 已完成构建与五项门禁（静态/死链/资产/繁体/质量全 PASS）、提交并发布；以 GitHub Actions Pages 部署结果为准。
----
+------
+
+## 八、当前进行中分类
+
+### 🔄 health（46 工具，deep-dive 全量重写为真实内容 + 指南页 + 套话清零）
+- 现状：46 工具 deep-dive 均为「快速复核」模板套话（scenarios/examples/faqs 通用话术，无真实算例数字），需全量重写为真实内容（3 场景 + 1 可复现算例 + 2 FAQ）；13 个源 HTML 含 opt-guide/opt-faq 套话块须手工清理。
+- 按 §4.4：专业度高 / 热门工具补独立使用指南页（health 多为高频健康计算器，建议尽量都加）。
+- 工具清单（完成一个勾一个）：
+- [x] alcohol-units  [x] blood-pressure-classifier  [x] blood-sugar-converter  [x] blood-type-calculator  [x] bmi-calculator  [x] bmr-calculator  [x] body-fat-calculator  [x] body-surface-area  [x] breath-timer  [x] caffeine-limit  [ ] calc-1  [ ] calc-2  [ ] calc-3  [ ] calorie-needs  [ ] child-bmi-calculator  [ ] child-height-predictor  [ ] child-medication-dose  [ ] cholesterol-ratio  [ ] dumbbell-weight-calculator  [ ] dysphagia-food-guide  [ ] fracture-healing  [ ] gfr-calculator  [ ] heart-rate-zones
+- [ ] ibw-calculator  [ ] ideal-weight  [ ] insulin-dose  [ ] milk-tea-calories  [ ] one-rep-max  [ ] ovulation-calculator  [ ] pace-calculator  [ ] pregnancy-due-date  [ ] pregnancy-weight-gain  [ ] premature-age-calculator  [ ] protein-needs  [ ] rehab-timer  [ ] running-calories  [ ] safe-period-calculator  [ ] sleep-cycle-calculator  [ ] smoking-cost-calculator  [ ] stretch-generator  [ ] symptom-checker  [ ] tdee-calculator  [ ] vo2-max-calculator  [ ] waist-hip-ratio  [ ] water-intake-calculator  [ ] wound-healing-time
+
+
 ## 九、分类总清单（待办，完成一个删一个；剩 178 个目录）
 
 - [ ] fitness
