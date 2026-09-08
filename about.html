@@ -125,39 +125,34 @@
 /* 51.la 数据挂件接入：theme 顺序 = 边框,#标题,#主文字,#数值,#背景,#徽章文字,字号
    颜色取自 ui/设计规范.md 主色板（主色 #FF6B35 白底对比度仅 2.83:1 不达 AA，
    故浅色模式数值用同色系深调 #C2410C；暗色模式数值可直用主色，对比度 5.66:1）
-   宽高响应式：手机 240 / 桌面 360，固定 h=260，跨断点重挂 */
+   display=0,1,1,1,1,1,0,0 控制 8 个指标槽位（最近活跃访客/今日访问人数/今日访问量/
+   昨日访问人数/昨日访问量/本月访问人数/本月访问量/[第8个]）的显隐，0 隐藏 1 显示
+   挂件默认宽度自适应父容器、不需要 w/h/col 参数 */
 (function(){
   var box=document.getElementById('laDataWidget');
   if(!box) return;
   var LIGHT='#E5E7EB,#1F2937,#6B7280,#C2410C,#FFFFFF,#C2410C,14';
   var DARK='#2A2A42,#E5E7EB,#9CA3AF,#FF6B35,#1E1E2E,#FF8C5A,14';
+  var DISPLAY='0,1,1,1,1,1,0,0';
   function pick(){return document.documentElement.getAttribute('data-theme')==='dark'?DARK:LIGHT;}
-  function calcW(){var cw=box.clientWidth||document.documentElement.clientWidth||360;return Math.max(240,Math.min(360,Math.floor(cw)));}
-  var cur=pick(),W=calcW(),H=260;
+  function buildUrl(t){return 'https://v6-widget.51.la/v6/3R0rVW6KKmLfdAFz/quote.js?theme='+t+'&f=14&display='+DISPLAY;}
+  var cur='';
   function mount(){
+    var t=pick();
+    if(t===cur) return;
+    cur=t;
     box.innerHTML='';
     var s=document.createElement('script');
     s.id='LA-DATA-WIDGET';
     s.crossOrigin='anonymous';
     s.charset='UTF-8';
-    s.src='https://v6-widget.51.la/v6/3R0rVW6KKmLfdAFz/quote.js?theme='+cur+'&w='+W+'&h='+H+'&col=true&f=14';
+    s.src=buildUrl(t);
     box.appendChild(s);
   }
   mount();
   if(window.MutationObserver){
-    new MutationObserver(function(){
-      var t=pick();
-      if(t!==cur){cur=t;mount();}
-    }).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
+    new MutationObserver(mount).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
   }
-  var rt=null;
-  window.addEventListener('resize',function(){
-    clearTimeout(rt);
-    rt=setTimeout(function(){
-      var nw=calcW();
-      if(Math.abs(nw-W)>20){W=nw;mount();}
-    },300);
-  });
 })();
 </script>
 </body>
