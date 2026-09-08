@@ -79,8 +79,8 @@
 ## 七、已完成分类归档
 > 本区仅保留**最近一个（最新）已完成分类**的归档记录，更早历史不再保留，以控制文件体积。完成新分类时，用新记录替换本条。
 
-### ✅ express（1 工具，内容层全达标 + 英文套话清零 + cat 错标修正）
-express 共 1 个工具页：checker-6（品控流程，快递四项品控率对照 YZ/T 0168 评级 A–E 的计算器）。① content_deepdive.json 占位壳（"确认口径与边界/复核演练"套话）全真实化（title+3 真实场景+1 算例+3 FAQ）；② 英文 i18n 套话 "free online tool"/"check and validate online, free" 在 slug-en/_en_override/express.json 清零并补真实 ed，坏名 Checker 6→Express QC Metrics；③ cat 错标 validator→calculator；④ 可见 h2 英文名与 <p> 英文 fallback 同步修正；⑤ 繁简 deep-dive 均真实化、线上 MD5 核对。
+### ✅ fengshui（5 工具，内容层全达标 + 英文套话清零 + good-day 算法重写为真实建除）
+fengshui 共 5 个工具页：zodiac-lookup（生肖/五行/六合三合六冲/婚配，数据真实）、birthday-analysis（四柱八字排盘+五行分布，数据真实）、fengshui-calculator（八卦/二十四山/坐向分析，FAQ 第4条套话改真实）、fengshui-guide（风水知识手册 20+ 真实条目+搜索，内容真实）、good-day-selector（原伪随机评分→重写为真实「十二建除」算法：日干支+建除十二神+冲煞+活动宜忌评分，node 验证可复现）。① content_deepdive.json 占位壳（"fengshui 场景下建议先校准"套话）5 键全真实化（title+3 真实场景+1 算例+2 FAQ）；② 英文 i18n 套话在 slug-en/_en_override/fengshui.json 清零并补真实 ed；③ 5 页 formula-desc / desc-en meta / JSON-LD description 套话清零、可见 h2 英文名保留；④ 繁简 deep-dive 均真实化、五项门禁全过、线上 MD5 核对。
 
 ## 八、当前进行中分类：fengshui
 
