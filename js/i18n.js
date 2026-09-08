@@ -259,7 +259,15 @@ var LANG_REGISTRY = [
       'ad.taobao_desc': 'Curated quality products, limited-time offers',
       'ad.taobao_cta': 'Check it out →',
       'ad.track_event': 'Ad click',
-      'ad.fallback_text': '⭐ Bookmark ToolBox: 5000+ free tools anytime · Pure frontend · Data stays in browser'
+      'ad.fallback_text': '⭐ Bookmark ToolBox: 5000+ free tools anytime · Pure frontend · Data stays in browser',
+      // 页脚友情链接（淘宝客文字广告）
+      'footer.friend_link': 'Friend link: Taobao Picks',
+      'footer.friend_tip': '(orders via this link support us)',
+      // 关于页面 - 支持我们（淘宝客说明）
+      'about.support_title': 'Support Us',
+      'about.support_p1': 'ToolBox is free forever, no login, no sign-up. We keep the project running through small Taobao affiliate commissions.',
+      'about.support_p2': 'When you find something nice on Taobao, just enter through the "Taobao Picks" link on our pages — the price is identical to opening Taobao directly, you pay nothing extra. We receive a small commission from that order.',
+      'about.support_p3': 'If ToolBox has helped you, this is the best support you can offer. Thanks for every smooth experience.'
     }
   };
 

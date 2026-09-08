@@ -2802,8 +2802,8 @@ function injectAdBanner(){
       box.innerHTML = '<a class="tool-ad-card" href="' + toolboxTaobaoAdUrl() + '" target="_blank" rel="noopener sponsored">'
         + '<div class="tool-ad-content">'
         + '<div class="tool-ad-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg></div>'
-        + '<div class="tool-ad-text"><span class="tool-ad-title">淘宝好物推荐</span><span class="tool-ad-desc">精选好物，品质保障，限时优惠中</span></div>'
-        + '<span class="tool-ad-cta">去看看 →</span>'
+        + '<div class="tool-ad-text"><span class="tool-ad-title" data-i18n="ad.taobao_title" data-i18n-fb="淘宝好物推荐">淘宝好物推荐</span><span class="tool-ad-desc" data-i18n="ad.taobao_desc" data-i18n-fb="精选好物，品质保障，限时优惠中">精选好物，品质保障，限时优惠中</span></div>'
+        + '<span class="tool-ad-cta" data-i18n="ad.taobao_cta" data-i18n-fb="去看看 →">去看看 →</span>'
         + '</div></a>';
     }
     ad.appendChild(label);
@@ -2942,6 +2942,11 @@ function buildUnifiedFooter(){
         '<div>' +
           '<div class="footer-brand"><img src="/logo-32.png" alt="ToolBox"><span>ToolBox</span></div>' +
           '<p class="footer-desc" data-i18n="footer.desc" data-i18n-fb="5000+ 跨行业纯前端在线工具，数据不出浏览器，保护你的隐私安全。">5000+ 跨行业纯前端在线工具，数据不出浏览器，保护你的隐私安全。</p>' +
+          '<div class="footer-friend">' +
+            '<span class="footer-friend-label" data-i18n="ad.label" data-i18n-fb="— 推广 —">— 推广 —</span>' +
+            '<a class="footer-friend-link" href="' + toolboxTaobaoAdUrl() + '" target="_blank" rel="noopener sponsored" data-i18n="footer.friend_link" data-i18n-fb="友情链接：淘宝精选好物">友情链接：淘宝精选好物</a>' +
+            '<span class="footer-friend-tip" data-i18n="footer.friend_tip" data-i18n-fb="（通过此链接下单可支持我们）">（通过此链接下单可支持我们）</span>' +
+          '</div>' +
         '</div>' +
         '<div class="desktop-only-block">' +
           '<h2 data-i18n="section.hotcat" data-i18n-fb="热门分类">热门分类</h2>' +
