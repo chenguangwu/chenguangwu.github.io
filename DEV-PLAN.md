@@ -128,27 +128,28 @@
 ## 七、已完成分类归档
 > 本区仅保留**最近一个（最新）已完成分类**的归档记录，更早历史不再保留，以控制文件体积。完成新分类时，用新记录替换本条。
 
-### ✅ fitness（35 工具，完整分类收口）
-- 全 35 工具 deep-dive 由「快速复核」模板套话全量重写为真实内容（3 场景 + 1 可复现算例 + 2 专业 FAQ），算例数字均用源码公式手算核对（线性递增 2.5%+每4周减载、Katch-McArdle BMR、Cooper VO₂max 距离/1.5英里双公式、BIA 阻抗体脂、Epley 估算 1RM、Navy 体脂、围度对称评分、肌筋膜压痛分级、拉伸方案生成等）；由 apply_fitness_deepdive1~3.py 写入 `i18n/tools/content_deepdive.json`，scenarios 归一化为字符串列表以兼容 _build.py 与 gen_guide_pages。
-- 按 §4.4 为专业度高/热门工具批量生成独立使用指南页，fitness 35 工具全覆盖（guides.json 累计 260→292；工具页注入「📖 使用指南」链接，指南页去 .en.html/hreflang、引 common.js）。
-- 3 个源 HTML（calc-heart-rate/circuit-timer/rater-time）的 opt-guide/opt-faq 套话块已手工清零，全分类 grep 确认无残留。
-- i18n 八件套同步（content_deepdive 35 条）；中文/繁体/英文元信息一致。
-- 已完成构建与五项门禁（静态/死链/资产/公式全 PASS）、分三批提交并发布；以 GitHub Actions Pages 部署结果为准。
+### ✅ floral（6 工具，完整分类收口）
+- 全 6 工具 deep-dive 由「复用模板示例」占位套话全量重写为真实内容（3 场景 + 1 可复现算例 + 2 专业 FAQ），算例数字用源码公式手算（花艺黄金比例=花器×风格系数、保鲜液商用/自制配比、螺旋花束主花/配花/叶材拆分、婚礼花材 perUnit 累加+12%备用、开放度 6 级判定等）；由 apply_floral_deepdive.py 写入 `i18n/tools/content_deepdive.json`。
+- 按 §4.4 为专业度高/热门工具批量生成独立使用指南页，floral 6 工具全覆盖（guides.json 累计 292→298；工具页注入「📖 使用指南」链接，指南页去 .en.html/hreflang、引 common.js）。
+- wedding-flowers.html 的 opt-guide/opt-faq 套话块已手工清零，全分类 grep 确认无残留。
+- i18n 八件套同步（content_deepdive 6 条）；中文/繁体/英文元信息一致。
+- 已完成构建与五项门禁（静态/死链/资产/公式全 PASS）、提交并发布；以 GitHub Actions Pages 部署结果为准。
 ------
 
 
 
 ## 八、当前进行中分类
 
-### 🔄 floral（6 工具，deep-dive 真实化 + 指南页 + 套话清零）
-- 现状：floral 分类共 6 个工具（不含 index 落地页）；deep-dive 现状待探查（源页未含「快速复核」套话，可能缺条目或需补真实内容）；wedding-flowers 含 1 处 opt-guide/opt-faq 套话块须清理。
-- 按 §4.4：专业度高/热门工具补独立使用指南页（花艺多为设计/换算类，按判定标准择要补）。
-- 工具清单（完成一个勾一个，整分类一次收口）：
-  - [ ] bloom-stage  [ ] golden-ratio  [ ] preservative  [ ] price  [ ] spiral-bouquet  [ ] wedding-flowers
+### 🔄 fluid（28 工具，deep-dive 真实化 + 指南页 + 套话清零）
+- 现状：fluid 分类共 28 个工具（不含 index 落地页）；deep-dive 现状待探查（源页未含「快速复核/复用模板」套话，可能缺条目或需补真实内容）；terminal-velocity 含 1 处 opt-guide/opt-faq 套话块须清理。
+- 按 §4.4：专业度高/热门工具补独立使用指南页（流体力学多为计算类，建议尽量都加）。
+- 工具清单（完成一个勾一个，分 3 批）：
+  - 批1（待做 10）：bernoulli-pressure, buoyancy-force, capillary-pressure, capillary-rise, cavitation-number, chezy-velocity, continuity-equation, drag-force, dynamic-pressure, froude-number
+  - 批2（待做 10）：hydraulic-diameter, hydrostatic-pressure, kinematic-viscosity, laplace-sphere-pressure, mach-number, manning-velocity, minor-loss-head, orifice-discharge, pitot-velocity, poiseuille-flow
+  - 批3（待做 8）：pressure-drop-darcy, reynolds-number, stagnation-pressure, stokes-settling, terminal-velocity, venturi-flow-rate, volume-flow-rate, weber-number
+
 ## 九、分类总清单（待办，完成一个删一个；剩 176 个目录）
 
-- [ ] floral
-- [ ] fluid
 - [ ] food
 - [ ] food-processing
 - [ ] food-safety
