@@ -187,15 +187,15 @@
 <h2>📚 深度解析：化学品泄漏处置器</h2>
 <h3>💡 常见使用场景</h3>
 <ul class="dd-list">
-<li>化学品泄漏处置器 使用前先核对输入口径、单位与边界条件，再跑基准样例。</li>
-<li>教学复核建议：固定一到两个参数，逐项变动其余参数确认趋势，以验证模型一致性。</li>
-<li>常见场景：Chemical Spill</li>
+<li>危化品运输事故到场初期，按品名快速确定防护等级、处置剂与疏散警戒范围。</li>
+<li>企业应急演练中作为情景脚本生成器，按不同化学品与泄漏量生成处置流程与洗消要求。</li>
+<li>应急预案编制时核对各化学品的 IDLH、爆炸下限与禁忌处置方式（如氯气严禁直接冲水）。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">快速复核「化学品泄漏处置器」</div><div class="dd-ex-body">执行基准演算后，按 10%/30% 进行对照调参，判断输出变化是否沿预期方向变化。</div></div>
+<div class="dd-example"><div class="dd-ex-title">氯气 100 kg 室内泄漏的处置要点</div><div class="dd-ex-body">按默认参数（氯气 Cl₂、100 kg、室内泄漏、风速 3 m/s）：防护等级 A 级，下风向警戒距离 500 m（风速 &gt;5 m/s 时 ×1.5、泄漏量 &gt;500 kg 时 ×1.3）；IDLH 仅 10 ppm，必须用正压空气呼吸器 + 全封闭防化服；处置剂为碱性溶液（氢氧化钠/碳酸钠）吸收，严禁直接冲水以免产生次生危害，并须设置洗消通道。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
-<dt>化学品泄漏处置器 的结果可直接交付吗？</dt><dd>化学品泄漏处置器 适合用于复核与教学说明，正式交付建议补充前提假设、样本来源和单位说明。</dd>
-<dt>出现非预期符号或负值怎么办？</dt><dd>优先核实是否出现分母为零、对数/开方域外输入或负值比例等定义域问题。</dd>
+<dt>警戒距离是怎么算出来的？</dt><dd>以该化学品在数据库里的基准距离为基础（氯气 500 m），再按现场条件放大：风速超过 5 m/s 乘 1.5、泄漏量超过 500 kg 乘 1.3；室内泄漏或大泄漏量时防护等级直接提升到 A 级。</dd>
+<dt>IDLH 有什么用？</dt><dd>IDLH 是「立即危及生命或健康的浓度」，是选择呼吸防护等级的核心依据。IDLH 低至 10 ppm 的剧毒气体（如氯气）必须使用正压式空气呼吸器，过滤式防毒面具不适用。</dd>
 </dl>
 </div>
 </section>
@@ -254,13 +254,15 @@ function calc(){
   var c=DB[chemIdx];
   var sceneNames={'indoor':'室内泄漏','outdoor':'室外泄漏','tank':'储罐泄漏','transport':'运输泄漏'};
 
-  // 确定防护等级
-  var ppeLevel=c.ppe;
-  if(amount>500)ppeLevel='A级';
-  if(scene==='indoor')ppeLevel='A级';
+  // 确定防护等级：统一归一化为 A/B/C，页面输出时再补「级」，避免「A级级」
+  var ppeLevel=((c.ppe||'B').match(/[A-Ca-c]/)||['B'])[0].toUpperCase();
+  if(amount>500)ppeLevel='A';
+  if(scene==='indoor')ppeLevel='A';
 
-  // 警戒距离调整
-  var evacDist=parseInt(c.evac.match(/\d+/)||[100])[0];
+  // 警戒距离调整：先取首个数字串，再按风速与泄漏量放大
+  var _dm=c.evac.match(/\d+/);
+  var evacDist=_dm?parseInt(_dm[0],10):100;
+  if(!isFinite(evacDist)||evacDist<=0)evacDist=100;
   if(wind>5)evacDist=Math.round(evacDist*1.5);
   if(amount>500)evacDist=Math.round(evacDist*1.3);
 

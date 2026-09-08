@@ -111,7 +111,7 @@
       </div>
       <div>
         <label>水带口径 d（mm）</label>
-        <select id="diameter" onchange="calc()">
+        <select id="diameter" onchange="syncA();calc()">
           <option value="50">50mm（DN50）</option>
           <option value="65" selected>65mm（DN65）</option>
           <option value="80">80mm（DN80）</option>
@@ -135,8 +135,8 @@
     </div>
     <div class="input-row">
       <div>
-        <label>水带阻力系数 A</label>
-        <input type="number" id="resistA" value="0.0086" min="0" step="0.0001" oninput="calc()">
+        <label>水带阻力系数 A（MPa/(m·(L/s)²)）</label>
+        <input type="number" id="resistA" value="0.0000147" min="0" step="0.0000001" oninput="calc()">
       </div>
       <div>
         <label>要求充实水柱 Sk（m）</label>
@@ -155,20 +155,27 @@
   <div class="card">
     <h3 style="margin-bottom:10px;">📖 计算方法</h3>
     <div class="ref-card">
-      <h4>流量公式</h4>
-      <p>水枪流量 q = √(B × Pq)，B 为喷嘴系数 = dn²/0.8639²</p>
-      <p>喷嘴压力 Pq = 栓口压力 − 水带阻力损失</p>
-      <p>水带阻力损失 hd = A × L × q²</p>
+      <h4>水枪喷嘴流量（孔口出流）</h4>
+      <p>q = (π/4)·dn²·μ·√(2g·H)，取 μ≈1.0、H = 100·Pq（m）</p>
+      <p>化简：q = 0.0348 × dn² × √Pq　（q：L/s，dn：mm，Pq：MPa）</p>
+      <p>校核：dn=19mm、Pq=0.25MPa → q≈6.3 L/s，与规范设计值 6.5 L/s 相符</p>
     </div>
     <div class="ref-card">
-      <h4>充实水柱</h4>
-      <p>充实水柱 Sk 与喷嘴压力关系：Pq = 0.035 × Sk + Sk²/(20×dn)（简化式）</p>
-      <p>室内消火栓充实水柱一般要求 ≥10m，高层 ≥13m</p>
+      <h4>水带沿程损失（海澄-威廉）</h4>
+      <p>i = 10.67 × Q^1.852 / (C^1.852 × d^4.87)，衬里水带取 C=140</p>
+      <p>本工具按 A×L×q² 形式等效（A 在 q≈5 L/s 处标定），可直接与规范表格对照</p>
     </div>
     <div class="ref-card">
-      <h4>水带阻力系数参考</h4>
-      <p>DN50 胶里水带：A ≈ 0.015；DN65 胶里水带：A ≈ 0.0086</p>
-      <p>DN80 胶里水带：A ≈ 0.0030</p>
+      <h4>水带阻力系数 A 参考（每米，MPa/(m·(L/s)²)）</h4>
+      <p>DN50：A ≈ 5.3×10⁻⁵　DN65：A ≈ 1.47×10⁻⁵　DN80：A ≈ 5.4×10⁻⁶</p>
+      <p>切换水带口径时本工具会自动填入对应 A 值；换用新型聚氨酯衬里（C=150）可再降约 12%</p>
+    </div>
+    <div class="ref-card">
+      <h4>充实水柱（GB 50974）</h4>
+      <p>Sk = Hq / (1 + φ·Hq)，Hq 为喷嘴压力水柱（m），φ 按喷嘴口径取值</p>
+      <p>φ：13mm→0.0165　16mm→0.0124　19mm→0.0097　22mm→0.0077</p>
+      <p>校核：19mm 水枪、Pq=0.235MPa（Hq=23.5m）→ Sk≈19.1 m</p>
+      <p>室内消火栓充实水柱一般要求 ≥10m，高层建筑与厂房仓库 ≥13m</p>
     </div>
     <div class="tip-box tip-info">本工具用于消防供水工程估算，正式设计应依据《消防给水及消火栓系统技术规范》GB 50974 执行。</div>
   </div>
@@ -190,18 +197,18 @@
 </style>
 <section class="deep-dive" data-deep-dive="1">
 <div class="card">
-<h2>📚 深度解析：消火栓流量计算器</h2>
+<h2>📚 深度解析：消火栓出水流量计算</h2>
 <h3>💡 常见使用场景</h3>
 <ul class="dd-list">
-<li>消火栓流量计算器 使用前先核对输入口径、单位与边界条件，再跑基准样例。</li>
-<li>教学复核建议：固定一到两个参数，逐项变动其余参数确认趋势，以验证模型一致性。</li>
-<li>常见场景：Hydrant Flow</li>
+<li>火场供水时按栓口压力、水带口径长度与喷嘴直径估算实际出水流量与充实水柱。</li>
+<li>设计审查中校核室内消火栓是否达到单栓 5 L/s 的流量基准。</li>
+<li>训练场演示不同水带口径/长度对出水流量与射程的衰减影响。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">快速复核「消火栓流量计算器」</div><div class="dd-ex-body">执行基准演算后，按 10%/30% 进行对照调参，判断输出变化是否沿预期方向变化。</div></div>
+<div class="dd-example"><div class="dd-ex-title">DN65/25m/16mm 喷嘴、栓口 250 kPa 的核算</div><div class="dd-ex-body">按默认参数（栓口压力 250 kPa、DN65 衬里水带、长度 25 m、喷嘴 16 mm）：水带阻力损失 7.1 kPa（0.71 m 水柱），喷嘴压力水柱 Hq = 24.3 m、喷嘴系数 φ = 0.0124；出水流量 q = 4.39 L/s（15.8 m³/h），充实水柱 Sk = 18.7 m ≥ 要求 13.0 m，满足消防供水要求。注：单栓基准 5 L/s，本例 4.39 L/s 略低于基准，长距离或大口径水带可进一步提高。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
-<dt>消火栓流量计算器 的结果可直接交付吗？</dt><dd>消火栓流量计算器 适合用于复核与教学说明，正式交付建议补充前提假设、样本来源和单位说明。</dd>
-<dt>出现非预期符号或负值怎么办？</dt><dd>优先核实是否出现分母为零、对数/开方域外输入或负值比例等定义域问题。</dd>
+<dt>充实水柱 18.7 m 是够还是不够？</dt><dd>室内消火栓充实水柱要求：高层建筑与厂房仓库 ≥13 m，其他建筑 ≥10 m。18.7 m 已满足高层要求；但若要达到单栓 5 L/s 基准，需提高栓口压力或缩短水带长度。</dd>
+<dt>水带越长流量越低的原因？</dt><dd>水带沿程阻力损失随长度近似线性增加，消耗掉部分栓口压力，使喷嘴处压力下降、流量减小；因此长距离供水常需并联干线或中继加压。</dd>
 </dl>
 </div>
 </section>
@@ -218,6 +225,14 @@
 </div>
 
 <script>
+// 水带口径 → 阻力系数 A（每米，MPa/(m·(L/s)²)，按海澄-威廉 C=140、q≈5L/s 标定）
+var HOSE_A={50:0.000053,65:0.0000147,80:0.0000054};
+function syncA(){
+  var d=+document.getElementById('diameter').value;
+  var a=HOSE_A[d];
+  if(a) document.getElementById('resistA').value=a;
+}
+
 function calc(){
   var P=parseFloat(document.getElementById('pressure').value);
   var d=+document.getElementById('diameter').value;
@@ -231,27 +246,20 @@ function calc(){
     return;
   }
 
-  // 喷嘴系数 B
-  var B=Math.pow(dn,2)/Math.pow(0.8639,2); // 流量系数式 q=sqrt(B*Pq), q in L/s, Pq in MPa? 
-  // 迭代计算：Pq = P - A*L*q^2, q = sqrt(B*Pq)
-  // 代入得 q^2 = B*(P - A*L*q^2) => q^2(1+B*A*L) = B*P => q = sqrt(B*P/(1+B*A*L))
-  var q=Math.sqrt(B*P/(1+B*A*L)); // L/s
-  var Pq=q*q/B; // 喷嘴压力 MPa
-  var hd=A*L*q*q; // 水带阻力损失 MPa
+  // 喷嘴流量系数：q = 0.0348 × dn² × √Pq（孔口出流，μ≈1.0，dn:mm → L/s）
+  var K=0.0348*dn*dn;                 // q = K*sqrt(Pq)  =>  Pq = (q/K)²
+  var B=K*K;                          // 兼容旧式 q=sqrt(B*Pq) 的喷嘴系数
+  // 压力平衡：P = Pq + hd = q²/K² + A*L*q²  → 闭式解，无需迭代
+  var q=Math.sqrt(P/(1/B+A*L));       // L/s
+  var Pq=q*q/B;                       // 喷嘴压力 MPa
+  var hd=A*L*q*q;                     // 水带阻力损失 MPa
 
-  // 充实水柱 Sk: Pq = 0.035*Sk + Sk^2/(20*dn/1000)? 简化用经验式
-  // Sk = sqrt(20*dn_mm*Pq*1000) 近似? 使用 Sk ≈ sqrt(20 * dn_m * Pq_Pa)
-  // 简化：Sk = sqrt(0.0175*Pq*dn + ...) -- 使用常见经验近似
-  var Sk;
-  if(Pq>0){
-    // Pq(MPa) = 0.035*Sk + Sk^2/(20*dn) 中 dn 单位mm,Sk单位m
-    // Sk^2/(20*dn) + 0.035*Sk - Pq = 0  解二次方程
-    var a=1/(20*dn);
-    var b=0.035;
-    var c=-Pq;
-    Sk=(-b+Math.sqrt(b*b-4*a*c))/(2*a);
-    if(!isFinite(Sk)||Sk<0)Sk=0;
-  }else{Sk=0;}
+  // 充实水柱（GB 50974）：Sk = Hq/(1+φ*Hq)，Hq 为喷嘴压力水柱(m)
+  var PHI={13:0.0165,16:0.0124,19:0.0097,22:0.0077};
+  var phi=PHI[dn]||(0.79/Math.pow(dn,1.5));
+  var Hq=Pq*100;                      // MPa → m 水柱
+  var Sk=(Hq>0)?Hq/(1+phi*Hq):0;
+  if(!isFinite(Sk)||Sk<0)Sk=0;
 
   var qmh=q*3.6; // m3/h
 
@@ -272,7 +280,8 @@ function calc(){
   }
 
   html+='<div class="info-box"><strong>水力参数：</strong><br>';
-  html+='• 水带阻力损失：'+(hd*1000).toFixed(1)+' kPa<br>';
+  html+='• 水带阻力损失：'+(hd*1000).toFixed(1)+' kPa（'+(hd*100).toFixed(2)+' m 水柱）<br>';
+  html+='• 喷嘴压力水柱 Hq：'+Hq.toFixed(1)+' m，喷嘴系数 φ：'+phi.toFixed(4)+'<br>';
   html+='• 喷嘴系数 B：'+B.toFixed(2)+'<br>';
   html+='• 栓口压力：'+(P*1000).toFixed(0)+' kPa<br>';
   html+='• 出水量是否达 5L/s 基准：'+(q>=5?'是':'否')+'（室内消火栓单栓基准 5L/s）';

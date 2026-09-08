@@ -2256,7 +2256,12 @@ def fix_tool_pages_seo(tools, target_tools=None, report=True, existing_html_path
         by_industry.setdefault(ind, []).append(t)
 
     # 预加载指南映射：工具 basename -> (指南相对路径, 标题)，用于工具页注入"使用指南"链接
+    # 注意：basename 在同一行业外会重名（如 calc-1.html 存在于 42 个行业目录），
+    # 仅按 basename 匹配会把「增值税计算使用指南」注入到消防/医疗等无关页面。
+    # 因此额外构建「行业/basename」精确映射 GUIDE_MAP_IND，注入时优先命中。
     GUIDE_MAP = {}
+    GUIDE_MAP_IND = {}
+    GUIDE_INDS = {}          # basename -> set(已确认归属行业)，用于识别跨行业重名
     _guide_json_path = os.path.join(ROOT, 'json', 'guides.json')
     if os.path.isfile(_guide_json_path):
         try:
@@ -2268,6 +2273,21 @@ def fix_tool_pages_seo(tools, target_tools=None, report=True, existing_html_path
                     if _title and '使用指南' not in _title:
                         _title = _title + '使用指南'
                     GUIDE_MAP[_gt] = (_g.get('guide', ''), _title)
+                    # 反查指南页正文里指向归属工具页的绝对 URL，得到精确行业归属
+                    _gp = os.path.join(ROOT, (_g.get('guide', '') or '').replace('../../', ''))
+                    if os.path.isfile(_gp):
+                        try:
+                            _gs = open(_gp, encoding='utf-8', errors='ignore').read()
+                            for _m in re.finditer(
+                                r'https://chenguangwu\.github\.io/tools/([A-Za-z0-9_-]+)/([A-Za-z0-9_.-]+\.html)',
+                                    _gs):
+                                _gind, _gbase = _m.group(1), _m.group(2)
+                                if _gbase == _gt:
+                                    GUIDE_MAP_IND[_gind + '/' + _gt] = (_g.get('guide', ''), _title)
+                                    GUIDE_INDS.setdefault(_gt, set()).add(_gind)
+                                    break
+                        except Exception:
+                            pass
         except Exception:
             pass
 
@@ -2458,8 +2478,14 @@ def fix_tool_pages_seo(tools, target_tools=None, report=True, existing_html_path
         # 2.5 Add "使用指南" link (idempotent via data-guide-link)
         if 'data-guide-link' not in content:
             _tb = os.path.basename(t['path'])
-            if _tb in GUIDE_MAP:
-                _g_url, _g_title = GUIDE_MAP[_tb]
+            # 优先用「行业/basename」精确命中；若该 basename 已确认归属别的行业
+            # （如 calc-1.html 属于 accounting），则不得回退到 basename 全局匹配，
+            # 否则会把「增值税计算使用指南」注入消防 / 医疗等无关页面。
+            _gitem = GUIDE_MAP_IND.get(industry + '/' + _tb)
+            if not _gitem and _tb not in GUIDE_INDS:
+                _gitem = GUIDE_MAP.get(_tb)
+            if _gitem:
+                _g_url, _g_title = _gitem
                 if _g_url:
                     _g_title_esc = esc_html_py(_g_title)
                     gl_html = '\n<div class="tool-guide-link" data-guide-link="1">\n  <a href="%s">📖 查看「%s」</a>\n</div>\n' % (_g_url, _g_title_esc)

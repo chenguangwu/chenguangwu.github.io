@@ -116,63 +116,18 @@
 ## 七、已完成分类归档
 > 本区仅保留**最近一个（最新）已完成分类**的归档记录，更早历史不再保留，以控制文件体积。完成新分类时，用新记录替换本条。
 
-### ✅ fire（11 工具，完整分类收口）
-- 已完成 11 个工具的真实功能复核与实现：价格/成本竞争分析、消火栓压力预算、疏散时间、灭火器配置、烟雾蔓延、联动检测、维保评估和火警响应演练。
-- 已补齐消防语义的中文说明、英文 `title-en/desc-en`、`slug-en.json`、`_en_override.json` 与 `content_deepdive.json`，并清理不存在工具对应的 stale deep-dive 条目。
-- 已修正 `estimate-time-flow` 与 `evacuation-time` 的 `cat` 为 `calculator`，不再把计算工具归入格式转换。
-- 已完成构建与五项门禁、提交并发布；最终以 GitHub Actions Pages 部署结果为准。
-
-## 八、当前进行中分类：fire-rescue
-
-> 严格按本文件「每个分类的强制任务目标」执行：必须完成真实功能、页面与移动端体验、深度解析、英文双轨、分类字段、SEO/专业内容和发布证据；只改文案不得结项。
-
-### fire-rescue 待优化工具清单（共 41 个）
-- [ ] `calc-1`
-- [ ] `calc-2`
-- [ ] `calc-3`
-- [ ] `calc-4`
-- [ ] `calc-pressure-1`
-- [ ] `calc-time-response`
-- [ ] `chemical-spill`
-- [ ] `confined-space-rescue`
-- [ ] `detector-11`
-- [ ] `detector-20`
-- [ ] `dizhensoujiuzhichengjisuan`
-- [ ] `evacuation-time`
-- [ ] `fire-alarm-zone`
-- [ ] `fire-extinguisher-selection`
-- [ ] `fire-fighting-tactics`
-- [ ] `fire-investigation`
-- [ ] `fire-load`
-- [ ] `fire-resistance-rating`
-- [ ] `fire-risk-assessment`
-- [ ] `high-rise-fire`
-- [ ] `hydrant-flow`
-- [ ] `length-distance`
-- [ ] `post-fire-assessment`
-- [ ] `power-2`
-- [ ] `pressure-flow`
-- [ ] `rescue-route`
-- [ ] `rope-rescue`
-- [ ] `shengsuoanquanxishu`
-- [ ] `smoke-management`
-- [ ] `speed-3`
-- [ ] `sprinkler-design`
-- [ ] `temp-6`
-- [ ] `time-41`
-- [ ] `time-air`
-- [ ] `time-evacuation`
-- [ ] `time-lux`
-- [ ] `ventilation-tactics`
-- [ ] `water-rescue`
-- [ ] `wildfire-spread`
-- [ ] `zuranyangzhishupanding`
+### ✅ fire-rescue（40 工具，完整分类收口）
+- 已完成 40 个工具的真实功能复核与计算逻辑自测：用 `scripts/tool_calc_probe.py` + `scripts/tool_calc_run.js` 在默认输入下跑出 40 个工具真实输出，定位并修复 3 处硬错误——`hydrant-flow`（喷嘴流量按孔口出流、水带损失按海澄-威廉、充实水柱按 GB 50974 重算）、`calc-1`（去流速误乘折减系数、修正充实水柱公式与 localStorage 键）、`chemical-spill`（修 `parseInt(array)[0]`→`undefined` 与"防护等级 A级级"重复）。
+- 已重写全部 40 条「深度解析」真实内容（3 场景 + 1 可复现算例 + 2 针对性 FAQ），由 `scripts/apply_fire_rescue_deepdive.py --apply` 写入 `i18n/tools/content_deepdive.json`，所有示例数字取自真实输出，页面自动注入并产出 FAQPage 结构化数据。
+- 已清理源 HTML 中构建不覆盖的 `opt-guide`/`opt-faq` 套话块（5 个文件：calc-1、calc-pressure-1、detector-11、high-rise-fire、及顺便清理 fire/extinguisher-calc），套话清零验收达成。
+- 已修正分类元数据：4 个文件 `industry=fire`→`fire-rescue`（否定前瞻避免误改 `fire-rescue` 本身）、16 个 `cat` 字段；由 `scripts/fix_fire_rescue_meta.py` 落盘。
+- 已修复 `_build.py` 的 `GUIDE_MAP` 跨行业错配（改为「行业+文件名」二维匹配），清除 46 个错配指南链接（如消防页误链增值税指南）；由 `scripts/clean_mismatched_guide_links.py` 落盘。
+- i18n 八件套已覆盖 40 工具：`_en_override.json`、`slug-en.json`、`i18n/tools/fire-rescue.json`、`content_deepdive.json` 各 40 条；中英文齐全验收达成。
+- 已完成构建与五项门禁（静态/死链/资产/繁体/质量全 PASS）、提交并发布；最终以 GitHub Actions Pages 部署结果为准。
 
 ---
-
 ## 九、分类总清单（待办，完成一个删一个；剩 178 个目录）
 
-- [ ] fire-rescue
 - [ ] fishery
 - [ ] fitness
 - [ ] floral
