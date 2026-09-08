@@ -116,18 +116,62 @@
 ## 七、已完成分类归档
 > 本区仅保留**最近一个（最新）已完成分类**的归档记录，更早历史不再保留，以控制文件体积。完成新分类时，用新记录替换本条。
 
-### ✅ finance（112 工具，完整分类收口）
-finance 共 112 个工具页。分类收口包括：逐页清理页面硬编码套话与英文通用描述；将 finance deep-dive 中的模板场景、示例和 FAQ 改为按验证器、计算器、文本工具、生成器等类型匹配的真实内容；同步 `finance.json`、`slug-en.json`、`_en_override.json` 与繁体构建数据；修正识别出的 finance `cat` 错标；构建、静态、死链、资产和计算五项门禁全部通过，并完成 master 发布。更早分类历史不在本区重复保留。
+### ✅ fire（11 工具，完整分类收口）
+- 已完成 11 个工具的真实功能复核与实现：价格/成本竞争分析、消火栓压力预算、疏散时间、灭火器配置、烟雾蔓延、联动检测、维保评估和火警响应演练。
+- 已补齐消防语义的中文说明、英文 `title-en/desc-en`、`slug-en.json`、`_en_override.json` 与 `content_deepdive.json`，并清理不存在工具对应的 stale deep-dive 条目。
+- 已修正 `estimate-time-flow` 与 `evacuation-time` 的 `cat` 为 `calculator`，不再把计算工具归入格式转换。
+- 已完成构建与五项门禁、提交并发布；最终以 GitHub Actions Pages 部署结果为准。
 
-## 八、当前进行中分类：fire
+## 八、当前进行中分类：fire-rescue
 
-> 优化模式（沿用已验证路径）：写真实 content_deepdive 条目 → 清理工具页硬编码套话 → 英文 i18n 清理 → cat 错标修正 → 构建 + 五项门禁 → 提交发布。
+> 严格按本文件「每个分类的强制任务目标」执行：必须完成真实功能、页面与移动端体验、深度解析、英文双轨、分类字段、SEO/专业内容和发布证据；只改文案不得结项。
+
+### fire-rescue 待优化工具清单（共 41 个）
+- [ ] `calc-1`
+- [ ] `calc-2`
+- [ ] `calc-3`
+- [ ] `calc-4`
+- [ ] `calc-pressure-1`
+- [ ] `calc-time-response`
+- [ ] `chemical-spill`
+- [ ] `confined-space-rescue`
+- [ ] `detector-11`
+- [ ] `detector-20`
+- [ ] `dizhensoujiuzhichengjisuan`
+- [ ] `evacuation-time`
+- [ ] `fire-alarm-zone`
+- [ ] `fire-extinguisher-selection`
+- [ ] `fire-fighting-tactics`
+- [ ] `fire-investigation`
+- [ ] `fire-load`
+- [ ] `fire-resistance-rating`
+- [ ] `fire-risk-assessment`
+- [ ] `high-rise-fire`
+- [ ] `hydrant-flow`
+- [ ] `length-distance`
+- [ ] `post-fire-assessment`
+- [ ] `power-2`
+- [ ] `pressure-flow`
+- [ ] `rescue-route`
+- [ ] `rope-rescue`
+- [ ] `shengsuoanquanxishu`
+- [ ] `smoke-management`
+- [ ] `speed-3`
+- [ ] `sprinkler-design`
+- [ ] `temp-6`
+- [ ] `time-41`
+- [ ] `time-air`
+- [ ] `time-evacuation`
+- [ ] `time-lux`
+- [ ] `ventilation-tactics`
+- [ ] `water-rescue`
+- [ ] `wildfire-spread`
+- [ ] `zuranyangzhishupanding`
 
 ---
 
 ## 九、分类总清单（待办，完成一个删一个；剩 178 个目录）
 
-- [ ] fire
 - [ ] fire-rescue
 - [ ] fishery
 - [ ] fitness
