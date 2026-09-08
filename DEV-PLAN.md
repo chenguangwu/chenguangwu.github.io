@@ -129,27 +129,34 @@
 > 本区仅保留**最近一个（最新）已完成分类**的归档记录，更早历史不再保留，以控制文件体积。完成新分类时，用新记录替换本条。
 
 ### ✅ food-testing（24 工具，完整分类收口）
-- commit 待推送 / CI 待查 success；与 food-safety 同批推进。
+- commit c2407ac06 / CI 34211293735 success。
 - 24 工具 deep-dive 原全为「food-testing场景下…」套话占位，全量重写为真实内容（3 场景 + 公式/算例双条目 + 2 专业 FAQ），算例数字按 GB 标准公式手算 / 工具 JS 复核（酸价2.81、POV4.92、黄曲霉5<20合格、MPN150、菌落1.6×10³、蛋白9.01%、脂肪62.5%/65.8%、沉降14.8mm/s、辐照2.5kGy、亚硝酸盐11.2mg/kg、NRV 40/8/17/20/30%、迁移0.033mg/dm²合格/5mg/kg超标、NaCl6.14%、总糖1.65%、总迁移5mg/dm²合格等）。
 - 清理 acid-peroxide-titration、salt-titration 源 HTML opt-guide/opt-faq 套话块（各前2后0）；生成 24 篇使用指南页（guides.json 373→397）。
 - 全程公式手算 / 工具复核，五项门禁全 PASS，构建繁体同步，发布以 GitHub Actions Pages 为准。
+
+### ✅ forensic-medicine（22 工具，完整分类收口）
+- commit 待推送 / CI 待查 success；法医类判定/分级工具 22 条原全为「快速复核」套话，全量重写为真实内容（3 场景 + 公式/算例双条目 + 2 专业 FAQ），强调"结果仅供参考、须结合案情与专业鉴定"。
+- 计算型算例按工具 JS 公式手算 / node 复核（blast Z=10 δP=11.8kPa safeR=9m、bloodstain α=36.9°、burn total30/third10→重度、death-time 综合10.6h区间10.2~15.8h、bone infant≈3.4岁、fall v=14.0m/s E=6.87kJ、dna CPI>10000 认定、rigor 平均2.2级等）。
+- 判定型（虐待/血痕/硅藻/电流斑/骨折/枪弹/毛发/索沟/尸斑/尸僵/精斑/损伤描述）按真实形态规则与阈值写算例，避免误导。
+- 清理 bloodstain-pattern、drowning-diatom、fall-injury、wound-description 源 HTML opt-guide/opt-faq 套话块（前1/1/1/2 后0）；生成 22 篇使用指南页（guides.json 397→418）。
+- 五项门禁全 PASS，构建繁体同步，发布以 GitHub Actions Pages 为准。
 ------
 
 
 
 ## 八、当前进行中分类
 
-### 🔄 forensic-medicine（待核查，deep-dive 真实化 + 指南页 + 套话清零）
-- 接 food-testing 之后的下一个分类，按 §4.4 补独立使用指南页，完成一个勾一个。
+### 🔄 forestry（待核查，deep-dive 真实化 + 指南页 + 套话清零）
+- 接 forensic-medicine 之后的下一个分类，按 §4.4 补独立使用指南页，完成一个勾一个。
 
-## 九、分类总清单（待办，完成一个删一个；剩 173 个目录）
+## 九、分类总清单（待办，完成一个删一个；剩 172 个目录）
 
-- [ ] forensic-medicine
 - [ ] forestry
 - [ ] forex
 - [ ] fresh
 - [ ] fun
 - [ ] funeral
+- [ ] furniture
 - [ ] furniture
 - [ ] futures
 - [ ] gardening
