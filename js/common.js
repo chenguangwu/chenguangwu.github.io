@@ -2436,6 +2436,17 @@ document.addEventListener('DOMContentLoaded', function trackToolLaunch(){
   });
 })();
 
+// 淘宝推广链接（全站唯一维护点，勿在别处硬编码）
+// PC 与移动端是两条不同的落地页：手机浏览器打开 PC 落地页会被淘宝强制要求登录，
+// 因此移动端必须走 WAP 链接（免登录）。断点与 css/common.css 的 mobile-only 一致：max-width:767px。
+var TOOLBOX_TAOBAO_AD_URL = {
+  pc: 'https://s.click.taobao.com/UItQ6Hk',
+  m: 'https://s.click.taobao.com/5e6P6Hk'
+};
+function toolboxTaobaoAdUrl(){
+  return (window.innerWidth < 768) ? TOOLBOX_TAOBAO_AD_URL.m : TOOLBOX_TAOBAO_AD_URL.pc;
+}
+
 // Auto-insert Taobao ad banner into tool pages
 (function(){
   document.addEventListener('DOMContentLoaded', function(){
@@ -2444,10 +2455,7 @@ document.addEventListener('DOMContentLoaded', function trackToolLaunch(){
       if(document.querySelector('.tool-ad-banner')) return;
       var container = document.querySelector('.container');
       if(!container) return;
-      var isMobile = window.innerWidth < 768;
-      var adUrl = isMobile
-        ? 'https://s.click.taobao.com/5e6P6Hk'
-        : 'https://s.click.taobao.com/UItQ6Hk';
+      var adUrl = toolboxTaobaoAdUrl();
       var label = document.createElement('div');
       label.className = 'tool-ad-label';
       label.setAttribute('data-i18n', 'ad.label_promo');
@@ -2456,6 +2464,7 @@ document.addEventListener('DOMContentLoaded', function trackToolLaunch(){
       container.parentNode.insertBefore(label, container);
       var adDiv = document.createElement('div');
       adDiv.className = 'tool-ad-banner';
+      adDiv.setAttribute('data-ad-pos', 'tool-top');
       adDiv.innerHTML = '<a class="tool-ad-card" href="' + adUrl + '" target="_blank" rel="noopener sponsored">'
         + '<div class="tool-ad-content">'
         + '<div class="tool-ad-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg></div>'
@@ -2787,8 +2796,10 @@ function injectAdBanner(){
       }
     } else {
       // 淘宝联盟推广（与首页 index.html 的 .ad-banner 一致）
+      // 注意：必须按设备选择 PC / 移动端链接，移动端用 PC 链接会被淘宝要求登录。
       box.className = 'tool-ad-banner';
-      box.innerHTML = '<a class="tool-ad-card" href="https://s.click.taobao.com/UItQ6Hk" target="_blank" rel="noopener sponsored">'
+      box.setAttribute('data-ad-pos', 'tool-bottom');
+      box.innerHTML = '<a class="tool-ad-card" href="' + toolboxTaobaoAdUrl() + '" target="_blank" rel="noopener sponsored">'
         + '<div class="tool-ad-content">'
         + '<div class="tool-ad-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg></div>'
         + '<div class="tool-ad-text"><span class="tool-ad-title">淘宝好物推荐</span><span class="tool-ad-desc">精选好物，品质保障，限时优惠中</span></div>'
