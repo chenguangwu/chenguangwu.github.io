@@ -2943,9 +2943,9 @@ function buildUnifiedFooter(){
           '<div class="footer-brand"><img src="/logo-32.png" alt="ToolBox"><span>ToolBox</span></div>' +
           '<p class="footer-desc" data-i18n="footer.desc" data-i18n-fb="5000+ 跨行业纯前端在线工具，数据不出浏览器，保护你的隐私安全。">5000+ 跨行业纯前端在线工具，数据不出浏览器，保护你的隐私安全。</p>' +
           '<div class="footer-friend">' +
-            '<span class="footer-friend-label" data-i18n="ad.label" data-i18n-fb="— 推广 —">— 推广 —</span>' +
+            '<div class="footer-friend-label" data-i18n="ad.label" data-i18n-fb="— 推广 —">— 推广 —</div>' +
             '<a class="footer-friend-link" href="' + toolboxTaobaoAdUrl() + '" target="_blank" rel="noopener sponsored" data-i18n="footer.friend_link" data-i18n-fb="友情链接：淘宝精选好物">友情链接：淘宝精选好物</a>' +
-            '<span class="footer-friend-tip" data-i18n="footer.friend_tip" data-i18n-fb="（通过此链接下单可支持我们）">（通过此链接下单可支持我们）</span>' +
+            '<div class="footer-friend-tip" data-i18n="footer.friend_tip" data-i18n-fb="（通过此链接下单可支持我们）">（通过此链接下单可支持我们）</div>' +
           '</div>' +
         '</div>' +
         '<div class="desktop-only-block">' +
