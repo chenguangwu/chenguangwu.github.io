@@ -180,14 +180,20 @@
 - 五项门禁全 PASS，构建繁体同步，发布以 GitHub Actions Pages 为准。
 ------
 
+### ✅ furniture（2 工具，完整分类收口）
+- 2 工具（desk-dimensions 人体工学桌高 / detector-32 家具质量等级）deep-dive 原缺数字算例，全量重写为真实内容（3 场景 + 公式/算例双条目 + 2 专业 FAQ）。
+- 算例按工具 JS 公式手算（身高170：坐姿桌高78/椅面44/屏心121/深70、站立105/162；detector 木家具四项全达标→一等品E1级、甲醛0.4→优等品E0级、加载力800→不合格）。
+- 源 HTML 无 opt-guide/opt-faq 套话块；生成 2 篇使用指南页（guides.json 524→526）。
+- 五项门禁全 PASS，构建繁体同步，发布以 GitHub Actions Pages 为准。
+------
+
 ## 八、当前进行中分类
 
-### 🔄 furniture（待核查，deep-dive 真实化 + 指南页 + 套话清零）
-- 接 funeral 之后的下一个分类，按 §4.4 补独立使用指南页，完成一个勾一个。
+### 🔄 futures（待核查，deep-dive 真实化 + 指南页 + 套话清零）
+- 接 furniture 之后的下一个分类，按 §4.4 补独立使用指南页，完成一个勾一个。
 
-## 九、分类总清单（待办，完成一个删一个；剩 167 个目录）
+## 九、分类总清单（待办，完成一个删一个；剩 166 个目录）
 
-- [ ] furniture
 - [ ] furniture
 - [ ] futures
 - [ ] gardening
