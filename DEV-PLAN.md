@@ -128,22 +128,21 @@
 ## 七、已完成分类归档
 > 本区仅保留**最近一个（最新）已完成分类**的归档记录，更早历史不再保留，以控制文件体积。完成新分类时，用新记录替换本条。
 
-### ✅ food-safety（2 工具，完整分类收口）
-- commit d671d1b79 / CI 34209916733 success（与 food-processing 整批同 commit）；food-safety 收口。
-- 2 工具 deep-dive 由「food-safety场景下…」套话占位重写为真实内容：assessor-risk-6 按 GB 29921-2021 风险评分累加（沙门/O157 不得检出各+5、金葡/李斯特/弧菌>100 各+3~4、菌落总数超限+2、等级阈值 0/≤3/≤8/>8）；generator-31 按 GTIN-批次-日期-流水结构。
-- 清理 assessor-risk-6 源 HTML opt-guide/opt-faq 套话块（前2后0）；生成 2 篇指南页（guides.json 371→373）。
-- 五项门禁全 PASS，发布以 GitHub Actions Pages 为准。
+### ✅ food-testing（24 工具，完整分类收口）
+- commit 待推送 / CI 待查 success；与 food-safety 同批推进。
+- 24 工具 deep-dive 原全为「food-testing场景下…」套话占位，全量重写为真实内容（3 场景 + 公式/算例双条目 + 2 专业 FAQ），算例数字按 GB 标准公式手算 / 工具 JS 复核（酸价2.81、POV4.92、黄曲霉5<20合格、MPN150、菌落1.6×10³、蛋白9.01%、脂肪62.5%/65.8%、沉降14.8mm/s、辐照2.5kGy、亚硝酸盐11.2mg/kg、NRV 40/8/17/20/30%、迁移0.033mg/dm²合格/5mg/kg超标、NaCl6.14%、总糖1.65%、总迁移5mg/dm²合格等）。
+- 清理 acid-peroxide-titration、salt-titration 源 HTML opt-guide/opt-faq 套话块（各前2后0）；生成 24 篇使用指南页（guides.json 373→397）。
+- 全程公式手算 / 工具复核，五项门禁全 PASS，构建繁体同步，发布以 GitHub Actions Pages 为准。
 ------
 
 
 
 ## 八、当前进行中分类
 
-### 🔄 food-testing（24 工具，deep-dive 真实化 + 指南页 + 套话清零）
-- 按 §4.4：专业度高/热门工具补独立使用指南页。
-- 工具清单（完成一个勾一个，分 2 批）：acid-peroxide-titration, aflatoxin-limit, allergen-cross-risk, coliform-mpn, colony-count, convert-36, convert-37, detector-3, elisa-conversion, fat-soxhlet, foreign-matter-density, generator-27, heavy-metal-migration, ingredient-sorter, irradiation-dose, nitrite-colorimetric, nutrition-label-nrv, packaging-migration, pesticide-residue-test, protein-kjeldahl, salmonella-serotype, salt-titration, sugar-fehling, total-migration
+### 🔄 forensic-medicine（待核查，deep-dive 真实化 + 指南页 + 套话清零）
+- 接 food-testing 之后的下一个分类，按 §4.4 补独立使用指南页，完成一个勾一个。
 
-## 九、分类总清单（待办，完成一个删一个；剩 174 个目录）
+## 九、分类总清单（待办，完成一个删一个；剩 173 个目录）
 
 - [ ] forensic-medicine
 - [ ] forestry
