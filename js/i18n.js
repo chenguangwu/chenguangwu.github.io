@@ -181,8 +181,6 @@ var LANG_REGISTRY = [
       'about.stat_industries': 'Industries',
       'about.stat_upload': 'Data Uploads',
       'about.stat_free': 'Free Forever',
-      'about.live_title': 'Live Site Stats',
-      'about.live_desc': 'Traffic figures below come from 51.la in real time, showing how active ToolBox is right now.',
       'hero.badge1': 'Runs pure-frontend',
       'hero.badge2': 'Data stays in browser',
       'hero.badge3': 'No login required',
