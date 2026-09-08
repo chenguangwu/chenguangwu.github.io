@@ -146,7 +146,8 @@
 - 工具清单（完成一个勾一个）：
 - 批1（✅ 已完成 12/35）：deep-dive 真实化（3场景+可复现算例+2FAQ）+ 3 个 opt 套话块清理（calc-heart-rate/circuit-timer/rater-time）+ 12 篇指南页 + 五项门禁通过
   - [x] angle-motion  [x] assessor-18  [x] assessor-63  [x] bodyfat-caliper  [x] calc-2  [x] calc-3  [x] calc-4  [x] calc-5  [x] calc-heart-rate  [x] calc  [x] calculator-calc-13  [x] calculator-calc-constitution
-- 批2（待做 12）：calculator-calc-heart-rate, calculator-calc-metabolism, carbon-ratio, circuit-timer, convert, cycle-5, detector-15, estimate-1, estimate-2, estimate, generator, jianzhinengliangquekoujisuan
+- 批2（✅ 已完成 12/35）：deep-dive 真实化（3场景+可复现算例+2FAQ）+ 12 篇指南页 + 五项门禁通过
+  - [x] calculator-calc-heart-rate  [x] calculator-calc-metabolism  [x] carbon-ratio  [x] circuit-timer  [x] convert  [x] cycle-5  [x] detector-15  [x] estimate-1  [x] estimate-2  [x] estimate  [x] generator  [x] jianzhinengliangquekoujisuan
 - 批3（待做 11）：load, macro-ratio, rater-time, ratio-19, reminder, resistance, time-stretch, training-volume, vo2max-12min, weight-capacity-training, zuidasheyanglianggusuan
 
 ## 九、分类总清单（待办，完成一个删一个；剩 176 个目录）
