@@ -84,6 +84,18 @@
 
 严禁以下不完整状态：只把待办改成 `[x]` 不删除、只更新归档不删除待办、只删除待办不写归档、当前进行中标题与清单分类不一致、清单未空就开始下一个分类。
 
+### 4.4 使用指南增强规则（老板 2026-09-08 明确授权）
+
+每个分类除按 §4.1 完成基础优化外，**须主动识别「专业度高且热门」的工具并补充独立使用指南页**，使其同时具备深度解析（deep-dive FAQPage）与系统化「📖 使用指南」独立页。
+
+- **判定标准（agent 自主判断，老板授权）**：
+  - *专业度高*：计算 / 判定 / 法规 / 工程 / 医疗 / 金融 / 养殖等技术类工具，结果影响用户决策或有行业依据（如池塘容载量、投饵率、溶解氧、用药休药期、收益测算等）。
+  - *热门*：用户常用、搜索量大的高频工具（各类计算器、收益测算、单位 / 密度换算等）。
+  - 满足其一且非纯娱乐 / 纯展示的简单工具即应补指南；纯娱乐（骰子、抛硬币）、纯文本格式转换等低专业度工具可不加。
+- **落地动作**：用通用脚本 `scripts/gen_guide_pages.py` 批量生成 `guides/<slug>-guide.html`，自动合并 `json/guides.json` 并追加 `guides/index.html`；模板须去除英文版 `.en.html` 链接与独立英文 `hreflang`（英文走 `?lang=en-US`，遵循 §4.48）。
+- **内容要求**：指南页须含适用场景、操作步骤、注意事项、针对性 FAQ，内容真实专业，禁止「常见场景：XXX」等套话；可基于该工具 deep-dive 的真实场景 / 算例 / FAQ 扩展，但须系统化、可读性强。
+- **已收口分类**（如 fire-rescue）若属专业度高的工具集中，后续批次可择要补指南，不强制回退已发布版本。
+
 ---
 
 ## 五、验收标准（对照 10 项逐条 tick）
@@ -126,6 +138,23 @@
 - 已完成构建与五项门禁（静态/死链/资产/繁体/质量全 PASS）、提交并发布；最终以 GitHub Actions Pages 部署结果为准。
 
 ---
+## 八、当前进行中分类
+
+### 🔄 fishery（41 工具，进行中；完成一个删一个）
+- 工具清单（行业 `fishery`，共 41 个，完成一个删一个）：
+  - [x] aerator-duration  [x] assessor-risk-4  [ ] breeding-cycle  [ ] calc-39  [ ] calc-power
+  - [ ] cycle-6  [ ] density-1  [x] dissolved-oxygen  [x] drug-withdrawal-fish  [ ] estimate-23
+  - [x] feed-calculator  [ ] feed-protein-fat  [ ] feed-rate-calculator  [ ] feeding-rate  [ ] fish-disease-risk
+  - [ ] fish-growth-curve  [x] fish-weight  [ ] fry-transport-survival  [ ] harvest-size-price  [ ] mesh-size-guide
+  - [ ] oxygen-machine  [ ] parasite-lifecycle  [ ] plankton-biomass  [x] pond-capacity  [ ] pond-desilting
+  - [x] profit-calculator  [ ] ratio-hormone  [x] salinity-calculator  [ ] seafood-cold-storage  [ ] spawning-hormone
+  - [x] stocking-density  [ ] tank-volume  [ ] temp-density  [ ] wastewater-cod  [ ] water-exchange-rate
+  - [ ] water-oxygen  [ ] water-quality-threshold  [ ] winter-heating  [ ] yuleishengzhangquxian-tedingshengzhanglv-nihe
+  - [ ] yutangrongyangliang-shuiwen-qiya-yuce  [ ] zengyangjikaiqishichang-rongyangxiajiangmoxing
+- 注：deep-dive 历史写入为占位套话，须全量重写为真实内容（3 场景 + 1 可复现算例 + 2 FAQ）。专业度高/热门工具补独立使用指南页（§4.4）。
+
+---
+
 ## 九、分类总清单（待办，完成一个删一个；剩 178 个目录）
 
 - [ ] fishery
