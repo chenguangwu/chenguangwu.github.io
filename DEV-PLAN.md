@@ -128,24 +128,23 @@
 ## 七、已完成分类归档
 > 本区仅保留**最近一个（最新）已完成分类**的归档记录，更早历史不再保留，以控制文件体积。完成新分类时，用新记录替换本条。
 
-### ✅ food-processing（22 条，完整分类收口）
-- 分 2 批全量收口（批1 11 + 批2 10 工具，含 1 条孤儿 tester-5 套话清理），commit 待推送、CI 待查 success。
-- 21 工具 + 1 孤儿 deep-dive 原全为「快速复核」套话占位，全量重写为真实内容（3 场景 + 公式/算例双条目 + 2 专业 FAQ），算例数字按工具 JS 公式手算 / node 复核（吸水率62.0%、ESI 84.0%、发酵酒精6.58%、灌装362.3mL、过滤419.5L、失水率5.0%、均质0.99μm、得率97.1%、残氧5.4%、保质期69天、F₀=15、Aw 阈值等）。
-- 按 §4.4 全 21 工具生成独立使用指南页（guides.json 350→371）；清理源 HTML opt-guide/opt-faq 套话块 1 处（recipe-cost-calculator 前2后0）。
-- 全程公式手算 / node 复核，五项门禁全 PASS，构建繁体同步，发布以 GitHub Actions Pages 为准。
+### ✅ food-safety（2 工具，完整分类收口）
+- commit d671d1b79 / CI 34209916733 success（与 food-processing 整批同 commit）；food-safety 收口。
+- 2 工具 deep-dive 由「food-safety场景下…」套话占位重写为真实内容：assessor-risk-6 按 GB 29921-2021 风险评分累加（沙门/O157 不得检出各+5、金葡/李斯特/弧菌>100 各+3~4、菌落总数超限+2、等级阈值 0/≤3/≤8/>8）；generator-31 按 GTIN-批次-日期-流水结构。
+- 清理 assessor-risk-6 源 HTML opt-guide/opt-faq 套话块（前2后0）；生成 2 篇指南页（guides.json 371→373）。
+- 五项门禁全 PASS，发布以 GitHub Actions Pages 为准。
 ------
 
 
 
 ## 八、当前进行中分类
 
-### 🔄 food-safety（2 工具，deep-dive 真实化 + 指南页 + 套话清零）
-- 工具清单（完成一个勾一个）：assessor-risk-6, generator-31（summary 为汇总页非工具），另含 food-processing/tester-5 已随上批清理。
+### 🔄 food-testing（24 工具，deep-dive 真实化 + 指南页 + 套话清零）
 - 按 §4.4：专业度高/热门工具补独立使用指南页。
+- 工具清单（完成一个勾一个，分 2 批）：acid-peroxide-titration, aflatoxin-limit, allergen-cross-risk, coliform-mpn, colony-count, convert-36, convert-37, detector-3, elisa-conversion, fat-soxhlet, foreign-matter-density, generator-27, heavy-metal-migration, ingredient-sorter, irradiation-dose, nitrite-colorimetric, nutrition-label-nrv, packaging-migration, pesticide-residue-test, protein-kjeldahl, salmonella-serotype, salt-titration, sugar-fehling, total-migration
 
-## 九、分类总清单（待办，完成一个删一个；剩 175 个目录）
+## 九、分类总清单（待办，完成一个删一个；剩 174 个目录）
 
-- [ ] food-testing
 - [ ] forensic-medicine
 - [ ] forestry
 - [ ] forex
