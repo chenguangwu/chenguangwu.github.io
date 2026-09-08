@@ -128,29 +128,23 @@
 ## 七、已完成分类归档
 > 本区仅保留**最近一个（最新）已完成分类**的归档记录，更早历史不再保留，以控制文件体积。完成新分类时，用新记录替换本条。
 
-### ✅ floral（6 工具，完整分类收口）
-- 全 6 工具 deep-dive 由「复用模板示例」占位套话全量重写为真实内容（3 场景 + 1 可复现算例 + 2 专业 FAQ），算例数字用源码公式手算（花艺黄金比例=花器×风格系数、保鲜液商用/自制配比、螺旋花束主花/配花/叶材拆分、婚礼花材 perUnit 累加+12%备用、开放度 6 级判定等）；由 apply_floral_deepdive.py 写入 `i18n/tools/content_deepdive.json`。
-- 按 §4.4 为专业度高/热门工具批量生成独立使用指南页，floral 6 工具全覆盖（guides.json 累计 292→298；工具页注入「📖 使用指南」链接，指南页去 .en.html/hreflang、引 common.js）。
-- wedding-flowers.html 的 opt-guide/opt-faq 套话块已手工清零，全分类 grep 确认无残留。
-- i18n 八件套同步（content_deepdive 6 条）；中文/繁体/英文元信息一致。
-- 已完成构建与五项门禁（静态/死链/资产/公式全 PASS）、提交并发布；以 GitHub Actions Pages 部署结果为准。
+### ✅ fluid（28 工具，完整分类收口）
+- 分 3 批全量收口：批1（bernoulli-pressure…froude-number，commit c7bb1babd / CI 34205910630）、批2（hydraulic-diameter…poiseuille-flow，commit 1ce0eba7c / CI 34207150119）、批3（pressure-drop-darcy…weber-number，commit 4f95c9634 / CI 34207676098），均 success。
+- deep-dive 现状本已为真实公式+数字算例+2FAQ（非套话）：批1 补 chezy/cavitation 数字算例；批2 修 manning 笔误 1.94→1.53（node 复核 1.5324）、laplace 补算例（单界面145.6/肥皂泡291.2 Pa）；批3 修 weber 笔误 1374→13736（node 复核 13736.3）、terminal/venturi 补算例。
+- 按 §4.4 全 28 工具生成独立使用指南页（guides.json 298→326）；terminal-velocity.html 源 HTML opt-guide/opt-faq 套话块手工清零（前2后0）。
+- 全程公式独立数值/node 复核，五项门禁全 PASS，构建繁体同步，发布以 GitHub Actions Pages 为准。
 ------
 
 
 
 ## 八、当前进行中分类
 
-### 🔄 fluid（28 工具，deep-dive 真实化 + 指南页 + 套话清零）
-- 现状：fluid 分类共 28 个工具（不含 index 落地页）；deep-dive 现状待探查（源页未含「快速复核/复用模板」套话，可能缺条目或需补真实内容）；terminal-velocity 含 1 处 opt-guide/opt-faq 套话块须清理。
-- 按 §4.4：专业度高/热门工具补独立使用指南页（流体力学多为计算类，建议尽量都加）。
-- 工具清单（完成一个勾一个，分 3 批）：
-  - 批1（待做 10）：bernoulli-pressure, buoyancy-force, capillary-pressure, capillary-rise, cavitation-number, chezy-velocity, continuity-equation, drag-force, dynamic-pressure, froude-number
-  - 批2（待做 10）：hydraulic-diameter, hydrostatic-pressure, kinematic-viscosity, laplace-sphere-pressure, mach-number, manning-velocity, minor-loss-head, orifice-discharge, pitot-velocity, poiseuille-flow
-  - 批3（待做 8）：pressure-drop-darcy, reynolds-number, stagnation-pressure, stokes-settling, terminal-velocity, venturi-flow-rate, volume-flow-rate, weber-number
+### 🔄 food（24 工具，deep-dive 真实化 + 指南页 + 套话清零）
+- 按 §4.4：专业度高/热门工具补独立使用指南页。
+- 工具清单（完成一个勾一个）：analysis-cost-6, analysis-menu, beer-gravity-estimator, calc-concentration, calorie-calculator, checker-13, convert-19, convert-20, convert-concentration, convert-ratio-seasoning, cooking-converter, dough-fermentation-time, food-calculator, food-pairing, nutrition-calculator, oil-absorption-estimator, recipe-generator, report-cost-profit, soup-ratio-optimizer, stats-ingredient, stats-simulator-flavor, syrup-brix-converter, vitamin-c-compare, wine-alcohol-converter
 
 ## 九、分类总清单（待办，完成一个删一个；剩 176 个目录）
 
-- [ ] food
 - [ ] food-processing
 - [ ] food-safety
 - [ ] food-testing
