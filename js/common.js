@@ -3023,6 +3023,27 @@ function injectUnifiedChrome(){
     var footer = buildUnifiedFooter();
     document.body.appendChild(footer);
 
+    // 全站二级分类导航（首页同款行业下拉大面板 .tb-topnav）：只有首页静态引用了
+    // nav-menu.js，其余统一导航页面在此动态补齐，避免逐页手改静态 HTML。
+    // zh-tw 页面的 JSON 由 nav-menu.js 内部经 I18n.assetUrl 定位到 /zh-tw/json/；
+    // css/js 为全站共享静态资源，固定用根路径（zh-tw/ 下无 css/js 目录）。
+    // embed.html 为 iframe 嵌入态，不注入。
+    try {
+      var isEmbedded = document.documentElement.classList.contains('embedded');
+      var hasNavMenu = document.getElementById('tbTopnav')
+        || document.querySelector('script[src$="nav-menu.js"]');
+      if (!isEmbedded && !hasNavMenu) {
+        var nmCss = document.createElement('link');
+        nmCss.rel = 'stylesheet';
+        nmCss.href = '/css/nav-menu.css';
+        document.head.appendChild(nmCss);
+        var nmJs = document.createElement('script');
+        nmJs.src = '/js/nav-menu.js';
+        nmJs.defer = true;
+        document.head.appendChild(nmJs);
+      }
+    } catch (e) { /* nav-menu 注入失败不影响统一导航 */ }
+
     // footer/header 是运行时注入的，i18n 初始化时还没这段 DOM，
     // 必须补一次 apply，否则英文态下注入的文案（如 footer.desc）仍是中文
     try {
