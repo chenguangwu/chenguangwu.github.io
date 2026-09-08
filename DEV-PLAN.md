@@ -142,14 +142,14 @@
 
 ### 🔄 fishery（41 工具，进行中；完成一个删一个）
 - 工具清单（行业 `fishery`，共 41 个，完成一个删一个）：
-  - [x] aerator-duration  [x] assessor-risk-4  [ ] breeding-cycle  [ ] calc-39  [ ] calc-power
-  - [ ] cycle-6  [ ] density-1  [x] dissolved-oxygen  [x] drug-withdrawal-fish  [ ] estimate-23
-  - [x] feed-calculator  [ ] feed-protein-fat  [ ] feed-rate-calculator  [ ] feeding-rate  [ ] fish-disease-risk
-  - [ ] fish-growth-curve  [x] fish-weight  [ ] fry-transport-survival  [ ] harvest-size-price  [ ] mesh-size-guide
-  - [ ] oxygen-machine  [ ] parasite-lifecycle  [ ] plankton-biomass  [x] pond-capacity  [ ] pond-desilting
-  - [x] profit-calculator  [ ] ratio-hormone  [x] salinity-calculator  [ ] seafood-cold-storage  [ ] spawning-hormone
-  - [x] stocking-density  [ ] tank-volume  [ ] temp-density  [ ] wastewater-cod  [ ] water-exchange-rate
-  - [ ] water-oxygen  [ ] water-quality-threshold  [ ] winter-heating  [ ] yuleishengzhangquxian-tedingshengzhanglv-nihe
+  - [x] aerator-duration  [x] assessor-risk-4  [x] breeding-cycle  [x] calc-39  [x] calc-power
+  - [x] cycle-6  [x] density-1  [x] dissolved-oxygen  [x] drug-withdrawal-fish  [x] estimate-23
+  - [x] feed-calculator  [x] feed-protein-fat  [x] feed-rate-calculator  [x] feeding-rate  [x] fish-disease-risk
+  - [x] fish-growth-curve  [x] fish-weight  [x] fry-transport-survival  [x] harvest-size-price  [x] mesh-size-guide
+  - [x] oxygen-machine  [x] parasite-lifecycle  [x] plankton-biomass  [x] pond-capacity  [x] pond-desilting
+  - [x] profit-calculator  [x] ratio-hormone  [x] salinity-calculator  [x] seafood-cold-storage  [x] spawning-hormone
+  - [x] stocking-density  [x] tank-volume  [x] temp-density  [x] wastewater-cod  [x] water-exchange-rate
+  - [x] water-oxygen  [x] water-quality-threshold  [x] winter-heating  [ ] yuleishengzhangquxian-tedingshengzhanglv-nihe
   - [ ] yutangrongyangliang-shuiwen-qiya-yuce  [ ] zengyangjikaiqishichang-rongyangxiajiangmoxing
 - 注：deep-dive 历史写入为占位套话，须全量重写为真实内容（3 场景 + 1 可复现算例 + 2 FAQ）。专业度高/热门工具补独立使用指南页（§4.4）。
 

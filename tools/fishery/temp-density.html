@@ -93,18 +93,22 @@
   <span class="bc-current">鱼苗运输成活率（温度/密度）</span>
 </nav>
 <div class="container">
+<div class="tool-guide-link" data-guide-link="1">
+  <a href="../../guides/temp-density-guide.html">📖 查看「水温—饱和溶氧与饱和度使用指南」</a>
+</div>
+
   <div class="card tool-card-accent" style="--tool-accent:#FF6B35;--tool-accent-dark:#FF6B35;">
-    <h2 data-zh="🐟 鱼苗运输成活率（温度/密度）">🐟 Temp Density</h2>
+    <h2 data-zh="🐟 水温—饱和溶氧与饱和度">🐟 Temp Density</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="输入两个参数，自动计算常用结果">Temp Density is available directly in your browser, with no data uploaded.</p>
     <div class="formula-box">
       <div class="formula-title">📐 计算公式</div>
-      <div class="formula-eq">运输成活率 = f(温度, 密度)</div>
-      <p class="formula-desc">输入两个参数，自动计算常用结果</p>
+      <div class="formula-eq">饱和溶氧 ≈ 14.652 − 0.41022T + 0.007991T² − 0.000077774T³</div>
+      <p class="formula-desc">饱和溶氧随温度升高而下降；饱和度 = 实测 ÷ 饱和。</p>
     </div>
     <div class="input-row">
-      <div><label>温度</label><input type="number" id="v0" value="100" step="any" oninput="calc()" enterkeyhint="done" aria-label="温度"></div>
+      <div><label>水温 (℃)</label><input type="number" id="v0" value="25" step="any" oninput="calc()" enterkeyhint="done" aria-label="温度"></div>
       <div style="display:flex;align-items:flex-end;justify-content:center;padding-bottom:8px;"><button class="btn" type="button" onclick="swapValues()" title="互换 A/B" aria-label="互换 A/B" style="padding:10px 12px;">⇄</button></div>
-      <div><label>密度</label><input type="number" id="v1" value="50" step="any" oninput="calc()" enterkeyhint="done" aria-label="密度"></div>
+      <div><label>实测溶氧 (mg/L)</label><input type="number" id="v1" value="6.5" step="any" oninput="calc()" enterkeyhint="done" aria-label="密度"></div>
     </div>
     <div class="toolbar">
       <button class="btn primary" type="button" onclick="calc()">🧮 计算</button>
@@ -112,7 +116,7 @@
       <button class="btn" type="button" onclick="resetAll()">🗑️ 重置</button>
     </div>
     <div class="result-box" id="res"></div>
-    <div class="info-box">💡 公式提示：温度转换：°F = °C × 9/5 + 32，K = °C + 273.15</div>
+    <div class="info-box">💡 公式提示：饱和度 = 实测溶氧 ÷ 该温度饱和溶氧 ×100%。</div>
 <div class="tool-notes" style="--tool-accent:#FF6B35;">
   <div class="tool-notes-title">⚠️ 使用说明与注意事项</div>
   <ul>
@@ -145,292 +149,29 @@ function readInputs(){
   return {a:isNaN(a)?0:a,b:isNaN(b)?0:b,valid:!isNaN(a)&&!isNaN(b)};
 }
 function calc(){
-
   var iv=readInputs();
-  var a=iv.a,b=iv.b;
-  var labelEls=document.querySelectorAll('.input-row label');
-  var lA=labelEls[0]?labelEls[0].textContent.replace(/\s*\([^)]*\)/g,'').trim():'A';
-  var lB=labelEls[1]?labelEls[1].textContent.replace(/\s*\([^)]*\)/g,'').trim():'B';
-  var title=document.querySelector('h1')?document.querySelector('h1').textContent:'';
-  var html='';
-  if(/分级|分型|分度|分层|风险|判读|判定|鉴别|诊断|严重度|定量|程度|监测|评估/.test(title)){
-    var score=(a+b)/2;
-    var level=score<25?'正常':score<50?'轻度':score<75?'中度':'重度';
-    var color=score<25?'#10B981':score<50?'#F59E0B':score<75?'#FF6B35':'#EF4444';
-    html='<div class="data-grid">'+
-    '<div class="data-card"><div class="num" style="color:'+color+';font-size:1.4em">'+level+'</div><div class="label">评估结果</div></div>'+
-    '<div class="data-card"><div class="num">'+score.toFixed(1)+'</div><div class="label">综合评分</div></div>'+
-    '<div class="data-card"><div class="num">'+a.toFixed(2)+'</div><div class="label">'+lA+'</div></div>'+
-    '<div class="data-card"><div class="num">'+b.toFixed(2)+'</div><div class="label">'+lB+'</div></div>'+
+  var T=iv.a, doMeas=iv.b;
+  var sat = 14.652 - 0.41022*T + 0.007991*T*T - 0.000077774*T*T*T;
+  var pct = sat>0 ? (doMeas/sat*100) : 0;
+  var level = pct>=100?'充足':pct>=70?'可接受':'偏低';
+  var html='<div class="data-grid">'+
+    '<div class="data-card"><div class="num">'+sat.toFixed(2)+' mg/L</div><div class="label">饱和溶氧</div></div>'+
+    '<div class="data-card"><div class="num">'+pct.toFixed(1)+'%</div><div class="label">饱和度</div></div>'+
+    '<div class="data-card"><div class="num">'+doMeas.toFixed(2)+' mg/L</div><div class="label">实测溶氧</div></div>'+
+    '<div class="data-card"><div class="num">'+level+'</div><div class="label">评价</div></div>'+
     '</div>';
-  }else if(/比例|比率|占比|百分比|转化率|利用率|配比|稀释/.test(title)){
-    var g=b?gcd(a,b):0;
-    var sr=g?(a/g)+':'+(b/g):'-';
-    var pct=b?(a/b*100).toFixed(2)+'%':'-';
-    var ratio=b?(a/b).toFixed(4):'-';
-    html='<div class="data-grid">'+
-    '<div class="data-card"><div class="num">'+sr+'</div><div class="label">最简比</div></div>'+
-    '<div class="data-card"><div class="num">'+pct+'</div><div class="label">'+lA+'占比</div></div>'+
-    '<div class="data-card"><div class="num">'+ratio+'</div><div class="label">'+lA+'/'+lB+'</div></div>'+
-    '<div class="data-card"><div class="num">'+(a+b).toFixed(2)+'</div><div class="label">总量</div></div>'+
-    '</div>';
-  }else if(/成本|费用|价格|利润|收益|回报|估值|预算|报价|保费|费率|费收|佣金/.test(title)){
-    var total=a*b;
-    var profit=a-b;
-    var margin=b?(a/b*100).toFixed(2)+'%':'-';
-    html='<div class="data-grid">'+
-    '<div class="data-card"><div class="num">\u00a5'+total.toFixed(2)+'</div><div class="label">总额(A\u00d7B)</div></div>'+
-    '<div class="data-card"><div class="num">\u00a5'+profit.toFixed(2)+'</div><div class="label">差额(A-B)</div></div>'+
-    '<div class="data-card"><div class="num">\u00a5'+a.toFixed(2)+'</div><div class="label">'+lA+'</div></div>'+
-    '<div class="data-card"><div class="num">\u00a5'+b.toFixed(2)+'</div><div class="label">'+lB+'</div></div>'+
-    '</div>';
-  }else if(/面积|体积|容积/.test(title)){
-    var area=a*b;
-    var peri=2*(a+b);
-    var diag=Math.sqrt(a*a+b*b);
-    var lbl=/体积|容积/.test(title)?'体积':'面积';
-    html='<div class="data-grid">'+
-    '<div class="data-card"><div class="num">'+area.toFixed(2)+'</div><div class="label">'+lbl+'(A\u00d7B)</div></div>'+
-    '<div class="data-card"><div class="num">'+peri.toFixed(2)+'</div><div class="label">周长2(A+B)</div></div>'+
-    '<div class="data-card"><div class="num">'+diag.toFixed(2)+'</div><div class="label">对角线</div></div>'+
-    '<div class="data-card"><div class="num">'+(b?(a/b).toFixed(4):'-')+'</div><div class="label">长宽比</div></div>'+
-    '</div>';
-  }else if(/效率|速率|收率|产出/.test(title)){
-    var eff=b?(a/b*100).toFixed(2)+'%':'-';
-    var loss=b-a;
-    html='<div class="data-grid">'+
-    '<div class="data-card"><div class="num">'+eff+'</div><div class="label">效率</div></div>'+
-    '<div class="data-card"><div class="num">'+loss.toFixed(2)+'</div><div class="label">损耗</div></div>'+
-    '<div class="data-card"><div class="num">'+a.toFixed(2)+'</div><div class="label">'+lA+'</div></div>'+
-    '<div class="data-card"><div class="num">'+b.toFixed(2)+'</div><div class="label">'+lB+'</div></div>'+
-    '</div>';
-  }else if(/浓度|含量/.test(title)){
-    var conc=b?(a/b*1000).toFixed(2)+' g/L':'-';
-    var pct=b?(a/(a+b)*100).toFixed(2)+'%':'-';
-    html='<div class="data-grid">'+
-    '<div class="data-card"><div class="num">'+conc+'</div><div class="label">浓度</div></div>'+
-    '<div class="data-card"><div class="num">'+pct+'</div><div class="label">质量百分比</div></div>'+
-    '<div class="data-card"><div class="num">'+a.toFixed(2)+'</div><div class="label">'+lA+'</div></div>'+
-    '<div class="data-card"><div class="num">'+b.toFixed(2)+'</div><div class="label">'+lB+'</div></div>'+
-    '</div>';
-  }else if(/速度|转速|频率|BPM/.test(title)){
-    var speed=b?(a/b).toFixed(2):'-';
-    html='<div class="data-grid">'+
-    '<div class="data-card"><div class="num">'+speed+'</div><div class="label">速率(A/B)</div></div>'+
-    '<div class="data-card"><div class="num">'+((a+b)/2).toFixed(2)+'</div><div class="label">平均值</div></div>'+
-    '<div class="data-card"><div class="num">'+(a-b).toFixed(2)+'</div><div class="label">差值</div></div>'+
-    '<div class="data-card"><div class="num">'+(b?(a/b).toFixed(4):'-')+'</div><div class="label">比值</div></div>'+
-    '</div>';
-  }else if(/温度|温升/.test(title)){
-    var avg=(a+b)/2;
-    var diff=a-b;
-    var aF=a*9/5+32;
-    var aK=a+273.15;
-    html='<div class="data-grid">'+
-    '<div class="data-card"><div class="num">'+avg.toFixed(2)+' \u2103</div><div class="label">平均温度</div></div>'+
-    '<div class="data-card"><div class="num">'+diff.toFixed(2)+' \u2103</div><div class="label">温差</div></div>'+
-    '<div class="data-card"><div class="num">'+aF.toFixed(2)+' \u2109</div><div class="label">A(华氏)</div></div>'+
-    '<div class="data-card"><div class="num">'+aK.toFixed(2)+' K</div><div class="label">A(开尔文)</div></div>'+
-    '</div>';
-  }else if(/压力|压降|压强/.test(title)){
-    var diff=a-b;
-    var pct=b?(diff/b*100).toFixed(2)+'%':'-';
-    html='<div class="data-grid">'+
-    '<div class="data-card"><div class="num">'+diff.toFixed(2)+' kPa</div><div class="label">压差</div></div>'+
-    '<div class="data-card"><div class="num">'+pct+'</div><div class="label">变化率</div></div>'+
-    '<div class="data-card"><div class="num">'+a.toFixed(2)+'</div><div class="label">'+lA+'</div></div>'+
-    '<div class="data-card"><div class="num">'+b.toFixed(2)+'</div><div class="label">'+lB+'</div></div>'+
-    '</div>';
-  }else if(/功率|能耗|电量/.test(title)){
-    var power=a*b;
-    html='<div class="data-grid">'+
-    '<div class="data-card"><div class="num">'+power.toFixed(2)+' W</div><div class="label">功率(A\u00d7B)</div></div>'+
-    '<div class="data-card"><div class="num">'+(power/1000).toFixed(4)+' kW</div><div class="label">功率(kW)</div></div>'+
-    '<div class="data-card"><div class="num">'+a.toFixed(2)+'</div><div class="label">'+lA+'</div></div>'+
-    '<div class="data-card"><div class="num">'+b.toFixed(2)+'</div><div class="label">'+lB+'</div></div>'+
-    '</div>';
-  }else if(/距离|长度|高度|宽度|半径|直径|厚度|深度|间距/.test(title)){
-    var sum=a+b;
-    var diff=a-b;
-    var pct=b?(a/b*100).toFixed(2)+'%':'-';
-    html='<div class="data-grid">'+
-    '<div class="data-card"><div class="num">'+sum.toFixed(2)+'</div><div class="label">总和</div></div>'+
-    '<div class="data-card"><div class="num">'+diff.toFixed(2)+'</div><div class="label">差值</div></div>'+
-    '<div class="data-card"><div class="num">'+(b?(a/b).toFixed(4):'-')+'</div><div class="label">比值</div></div>'+
-    '<div class="data-card"><div class="num">'+pct+'</div><div class="label">百分比</div></div>'+
-    '</div>';
-  }else if(/时间|时长|周期/.test(title)){
-    var totalMin=a+b;
-    var hours=Math.floor(totalMin/60);
-    var mins=totalMin%60;
-    html='<div class="data-grid">'+
-    '<div class="data-card"><div class="num">'+hours+'h'+mins+'m</div><div class="label">总时间</div></div>'+
-    '<div class="data-card"><div class="num">'+(a-b).toFixed(2)+'</div><div class="label">时间差</div></div>'+
-    '<div class="data-card"><div class="num">'+a.toFixed(2)+'</div><div class="label">'+lA+'</div></div>'+
-    '<div class="data-card"><div class="num">'+b.toFixed(2)+'</div><div class="label">'+lB+'</div></div>'+
-    '</div>';
-  }else if(/收缩|膨胀|压缩/.test(title)){
-    var rate=b?((a-b)/b*100).toFixed(2)+'%':'-';
-    html='<div class="data-grid">'+
-    '<div class="data-card"><div class="num">'+rate+'</div><div class="label">变化率</div></div>'+
-    '<div class="data-card"><div class="num">'+(a-b).toFixed(2)+'</div><div class="label">变化量</div></div>'+
-    '<div class="data-card"><div class="num">'+a.toFixed(2)+'</div><div class="label">'+lA+'</div></div>'+
-    '<div class="data-card"><div class="num">'+b.toFixed(2)+'</div><div class="label">'+lB+'</div></div>'+
-    '</div>';
-  }else if(/系数|因子|参数/.test(title)){
-    var product=a*b;
-    var ratio=b?(a/b).toFixed(4):'-';
-    html='<div class="data-grid">'+
-    '<div class="data-card"><div class="num">'+product.toFixed(4)+'</div><div class="label">乘积(A\u00d7B)</div></div>'+
-    '<div class="data-card"><div class="num">'+ratio+'</div><div class="label">比值(A/B)</div></div>'+
-    '<div class="data-card"><div class="num">'+(a+b).toFixed(4)+'</div><div class="label">和(A+B)</div></div>'+
-    '<div class="data-card"><div class="num">'+(a-b).toFixed(4)+'</div><div class="label">差(A-B)</div></div>'+
-    '</div>';
-  }else if(/承载力|荷载|强度/.test(title)){
-    var stress=b?(a/b).toFixed(2):'-';
-    var safety=b?(b/a).toFixed(2):'-';
-    html='<div class="data-grid">'+
-    '<div class="data-card"><div class="num">'+stress+'</div><div class="label">应力(A/B)</div></div>'+
-    '<div class="data-card"><div class="num">'+safety+'</div><div class="label">安全系数(B/A)</div></div>'+
-    '<div class="data-card"><div class="num">'+a.toFixed(2)+'</div><div class="label">'+lA+'</div></div>'+
-    '<div class="data-card"><div class="num">'+b.toFixed(2)+'</div><div class="label">'+lB+'</div></div>'+
-    '</div>';
-  }else if(/流量|流速/.test(title)){
-    var velocity=b?(a/b).toFixed(2):'-';
-    html='<div class="data-grid">'+
-    '<div class="data-card"><div class="num">'+velocity+'</div><div class="label">流速(A/B)</div></div>'+
-    '<div class="data-card"><div class="num">'+(a+b).toFixed(2)+'</div><div class="label">总流量</div></div>'+
-    '<div class="data-card"><div class="num">'+(a-b).toFixed(2)+'</div><div class="label">流量差</div></div>'+
-    '<div class="data-card"><div class="num">'+(b?(a/b*100).toFixed(2)+'%':'-')+'</div><div class="label">占比</div></div>'+
-    '</div>';
-  }else if(/排放|碳|CO2|碳足迹/.test(title)){
-    var emission=a*b;
-    html='<div class="data-grid">'+
-    '<div class="data-card"><div class="num">'+emission.toFixed(2)+' kg</div><div class="label">排放量(A\u00d7B)</div></div>'+
-    '<div class="data-card"><div class="num">'+(emission/1000).toFixed(4)+' t</div><div class="label">排放量(吨)</div></div>'+
-    '<div class="data-card"><div class="num">'+a.toFixed(2)+'</div><div class="label">'+lA+'</div></div>'+
-    '<div class="data-card"><div class="num">'+b.toFixed(2)+'</div><div class="label">'+lB+'</div></div>'+
-    '</div>';
-  }else if(/利息|折现|现值/.test(title)){
-    var interest=a*b/100;
-    var total=a+interest;
-    html='<div class="data-grid">'+
-    '<div class="data-card"><div class="num">\u00a5'+interest.toFixed(2)+'</div><div class="label">利息(A\u00d7B%)</div></div>'+
-    '<div class="data-card"><div class="num">\u00a5'+total.toFixed(2)+'</div><div class="label">本息合计</div></div>'+
-    '<div class="data-card"><div class="num">\u00a5'+a.toFixed(2)+'</div><div class="label">'+lA+'</div></div>'+
-    '<div class="data-card"><div class="num">'+b.toFixed(2)+'%</div><div class="label">'+lB+'</div></div>'+
-    '</div>';
-  }else if(/违约金|赔偿|补偿/.test(title)){
-    var penalty=a*b;
-    html='<div class="data-grid">'+
-    '<div class="data-card"><div class="num">\u00a5'+penalty.toFixed(2)+'</div><div class="label">金额(A\u00d7B)</div></div>'+
-    '<div class="data-card"><div class="num">\u00a5'+a.toFixed(2)+'</div><div class="label">'+lA+'</div></div>'+
-    '<div class="data-card"><div class="num">'+b.toFixed(2)+'</div><div class="label">'+lB+'</div></div>'+
-    '<div class="data-card"><div class="num">\u00a5'+(a*b*0.05).toFixed(2)+'</div><div class="label">额外5%</div></div>'+
-    '</div>';
-  }else if(/坡度|坡率|倾斜/.test(title)){
-    var slope=b?(a/b*100).toFixed(2)+'%':'-';
-    var angle=b?(Math.atan(a/b)*180/Math.PI).toFixed(2)+'\u00b0':'-';
-    html='<div class="data-grid">'+
-    '<div class="data-card"><div class="num">'+slope+'</div><div class="label">坡度</div></div>'+
-    '<div class="data-card"><div class="num">'+angle+'</div><div class="label">角度</div></div>'+
-    '<div class="data-card"><div class="num">'+a.toFixed(2)+'</div><div class="label">'+lA+'</div></div>'+
-    '<div class="data-card"><div class="num">'+b.toFixed(2)+'</div><div class="label">'+lB+'</div></div>'+
-    '</div>';
-  }else if(/估算|预测|预估/.test(title)){
-    var estimated=a*(1+b/100);
-    var growth=a*b/100;
-    html='<div class="data-grid">'+
-    '<div class="data-card"><div class="num">'+estimated.toFixed(2)+'</div><div class="label">预测值</div></div>'+
-    '<div class="data-card"><div class="num">'+growth.toFixed(2)+'</div><div class="label">增长量</div></div>'+
-    '<div class="data-card"><div class="num">'+a.toFixed(2)+'</div><div class="label">基准值</div></div>'+
-    '<div class="data-card"><div class="num">'+b.toFixed(2)+'%</div><div class="label">增长率</div></div>'+
-    '</div>';
-  }else if(/评分|得分|指数/.test(title)){
-    var total=a+b;
-    var avg=(a+b)/2;
-    var diff=Math.abs(a-b);
-    html='<div class="data-grid">'+
-    '<div class="data-card"><div class="num">'+total.toFixed(1)+'</div><div class="label">总分</div></div>'+
-    '<div class="data-card"><div class="num">'+avg.toFixed(1)+'</div><div class="label">平均分</div></div>'+
-    '<div class="data-card"><div class="num">'+a.toFixed(1)+'</div><div class="label">'+lA+'</div></div>'+
-    '<div class="data-card"><div class="num">'+b.toFixed(1)+'</div><div class="label">'+lB+'</div></div>'+
-    '</div>';
-  }else if(/尺寸|规格|孔径/.test(title)){
-    var area=a*b;
-    var ratio=b?(a/b).toFixed(4):'-';
-    html='<div class="data-grid">'+
-    '<div class="data-card"><div class="num">'+area.toFixed(2)+'</div><div class="label">面积(A\u00d7B)</div></div>'+
-    '<div class="data-card"><div class="num">'+ratio+'</div><div class="label">比例(A/B)</div></div>'+
-    '<div class="data-card"><div class="num">'+a.toFixed(2)+'</div><div class="label">'+lA+'</div></div>'+
-    '<div class="data-card"><div class="num">'+b.toFixed(2)+'</div><div class="label">'+lB+'</div></div>'+
-    '</div>';
-  }else if(/角度|方位|走向/.test(title)){
-    var sum=a+b;
-    var diff=a-b;
-    var complement=90-a;
-    html='<div class="data-grid">'+
-    '<div class="data-card"><div class="num">'+sum.toFixed(2)+'\u00b0</div><div class="label">角度和</div></div>'+
-    '<div class="data-card"><div class="num">'+diff.toFixed(2)+'\u00b0</div><div class="label">角度差</div></div>'+
-    '<div class="data-card"><div class="num">'+complement.toFixed(2)+'\u00b0</div><div class="label">余角(90-A)</div></div>'+
-    '<div class="data-card"><div class="num">'+(a*Math.PI/180).toFixed(4)+' rad</div><div class="label">A(弧度)</div></div>'+
-    '</div>';
-  }else if(/照度|亮度/.test(title)){
-    var lux=a*b;
-    html='<div class="data-grid">'+
-    '<div class="data-card"><div class="num">'+lux.toFixed(2)+' lx</div><div class="label">照度(A\u00d7B)</div></div>'+
-    '<div class="data-card"><div class="num">'+a.toFixed(2)+'</div><div class="label">'+lA+'</div></div>'+
-    '<div class="data-card"><div class="num">'+b.toFixed(2)+'</div><div class="label">'+lB+'</div></div>'+
-    '<div class="data-card"><div class="num">'+(b?(a/b).toFixed(4):'-')+'</div><div class="label">比值</div></div>'+
-    '</div>';
-  }else if(/噪声|声压|分贝/.test(title)){
-    var combined=10*Math.log10(Math.pow(10,a/10)+Math.pow(10,b/10));
-    var diff=Math.abs(a-b);
-    html='<div class="data-grid">'+
-    '<div class="data-card"><div class="num">'+combined.toFixed(2)+' dB</div><div class="label">叠加噪声</div></div>'+
-    '<div class="data-card"><div class="num">'+diff.toFixed(2)+' dB</div><div class="label">差值</div></div>'+
-    '<div class="data-card"><div class="num">'+a.toFixed(2)+'</div><div class="label">'+lA+'</div></div>'+
-    '<div class="data-card"><div class="num">'+b.toFixed(2)+'</div><div class="label">'+lB+'</div></div>'+
-    '</div>';
-  }else if(/安全库存|订货点/.test(title)){
-    var safety=Math.round(a*b);
-    var reorder=Math.round(safety+a*b);
-    html='<div class="data-grid">'+
-    '<div class="data-card"><div class="num">'+safety+'</div><div class="label">安全库存</div></div>'+
-    '<div class="data-card"><div class="num">'+reorder+'</div><div class="label">订货点</div></div>'+
-    '<div class="data-card"><div class="num">'+a.toFixed(0)+'</div><div class="label">'+lA+'</div></div>'+
-    '<div class="data-card"><div class="num">'+b.toFixed(0)+'</div><div class="label">'+lB+'</div></div>'+
-    '</div>';
-  }else{
-    var sum=a+b,diff=a-b;
-    var ratio=b?(a/b).toFixed(4):'-';
-    var pct=b?(a/b*100).toFixed(2)+'%':'-';
-    var avg=((a+b)/2).toFixed(2);
-    var larger=a>0&&b>0?(a>b?lA:(a<b?lB:'相等')):'-';
-    html='<div class="data-grid">'+
-    '<div class="data-card"><div class="num">'+a.toFixed(2)+'</div><div class="label">'+lA+'</div></div>'+
-    '<div class="data-card"><div class="num">'+b.toFixed(2)+'</div><div class="label">'+lB+'</div></div>'+
-    '<div class="data-card"><div class="num">'+ratio+'</div><div class="label">比值('+lA+'/'+lB+')</div></div>'+
-    '<div class="data-card"><div class="num">'+diff.toFixed(2)+'</div><div class="label">差值</div></div>'+
-    '</div>'+
-    '<div class="data-grid" style="margin-top:8px;">'+
-    '<div class="data-card"><div class="num">'+pct+'</div><div class="label">'+lA+'占'+lB+'</div></div>'+
-    '<div class="data-card"><div class="num">'+avg+'</div><div class="label">平均值</div></div>'+
-    '<div class="data-card"><div class="num">'+sum.toFixed(2)+'</div><div class="label">总和</div></div>'+
-    '<div class="data-card"><div class="num">'+larger+'</div><div class="label">较大者</div></div>'+
-    '</div>';
-  }
   document.getElementById('res').innerHTML=html;
-  if(iv.valid) saveHistory(a,b);
+  if(iv.valid) saveHistory(T,doMeas);
 }
+
 function copyRes(){
   var text=document.getElementById('res').innerText;
   if(!text||text.trim()===''){ToolBox.showToast(i18nText(),'warning');return;}
   ToolBox.copyText(text);
 }
 function resetAll(){
-  document.getElementById('v0').value=100;
-  document.getElementById('v1').value=50;
+  document.getElementById('v0').value=25;
+  document.getElementById('v1').value=6.5;
   setInvalid(document.getElementById('v0'),false);
   setInvalid(document.getElementById('v1'),false);
   calc();
@@ -520,18 +261,18 @@ calc();
 </style>
 <section class="deep-dive" data-deep-dive="1">
 <div class="card">
-<h2>📚 深度解析：鱼苗运输成活率（温度/密度）</h2>
+<h2>📚 深度解析：水温—饱和溶氧与饱和度</h2>
 <h3>💡 常见使用场景</h3>
 <ul class="dd-list">
-<li>在核对鱼苗运输成活率（温度/密度）时先统一单位与时间口径，再做一轮基准算例确认结果方向。</li>
-<li>按变量敏感度复核：每次仅改变一项关键输入，观察输出趋势是否合理。</li>
-<li>常见场景：Temp Density</li>
+<li>按水温估算该温度下的饱和溶氧参考值</li>
+<li>由实测溶氧算饱和度，判断溶氧是否充足</li>
+<li>高温季节夜间缺氧风险的快速评估</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">快速复核「鱼苗运输成活率（温度/密度）」</div><div class="dd-ex-body">先以常见参数跑出一组标准结果，再做输入放大/缩小复测，确认输出曲线变化是否随变量合理调整。</div></div>
+<div class="dd-example"><div class="dd-ex-title">25℃ 溶氧饱和度</div><div class="dd-ex-body">水温 25℃、实测溶氧 6.5 mg/L：该温度饱和溶氧约 8.18 mg/L，饱和度 = 6.5 / 8.18 × 100% ≈ 79.5%，属可接受区间；夜间与凌晨易继续下降，须关注。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
-<dt>鱼苗运输成活率（温度/密度） 结果能直接用于交付吗？</dt><dd>适用于预估与复核，正式交付仍建议写明边界、单位和假设条件，便于复现与追责。</dd>
-<dt>结果异常或为负值怎么办？</dt><dd>优先排查分母是否过小、单位是否混淆、是否发生了定义域外输入。</dd>
+<dt>饱和溶氧随温度怎么变？</dt><dd>随水温升高而下降（气体溶解度降低），因此夏季高温时更易缺氧，须加强增氧与巡塘。</dd>
+<dt>饱和度多少算安全？</dt><dd>一般要求 ≥5 mg/L、饱和度尽量≥70%~80%；凌晨与高密度时是最易缺氧时段，建议留有余地。</dd>
 </dl>
 </div>
 </section>
