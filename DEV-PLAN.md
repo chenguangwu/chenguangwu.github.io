@@ -128,36 +128,17 @@
 ## 七、已完成分类归档
 > 本区仅保留**最近一个（最新）已完成分类**的归档记录，更早历史不再保留，以控制文件体积。完成新分类时，用新记录替换本条。
 
-### ✅ fire-rescue（40 工具，完整分类收口）
-- 已完成 40 个工具的真实功能复核与计算逻辑自测：用 `scripts/tool_calc_probe.py` + `scripts/tool_calc_run.js` 在默认输入下跑出 40 个工具真实输出，定位并修复 3 处硬错误——`hydrant-flow`（喷嘴流量按孔口出流、水带损失按海澄-威廉、充实水柱按 GB 50974 重算）、`calc-1`（去流速误乘折减系数、修正充实水柱公式与 localStorage 键）、`chemical-spill`（修 `parseInt(array)[0]`→`undefined` 与"防护等级 A级级"重复）。
-- 已重写全部 40 条「深度解析」真实内容（3 场景 + 1 可复现算例 + 2 针对性 FAQ），由 `scripts/apply_fire_rescue_deepdive.py --apply` 写入 `i18n/tools/content_deepdive.json`，所有示例数字取自真实输出，页面自动注入并产出 FAQPage 结构化数据。
-- 已清理源 HTML 中构建不覆盖的 `opt-guide`/`opt-faq` 套话块（5 个文件：calc-1、calc-pressure-1、detector-11、high-rise-fire、及顺便清理 fire/extinguisher-calc），套话清零验收达成。
-- 已修正分类元数据：4 个文件 `industry=fire`→`fire-rescue`（否定前瞻避免误改 `fire-rescue` 本身）、16 个 `cat` 字段；由 `scripts/fix_fire_rescue_meta.py` 落盘。
-- 已修复 `_build.py` 的 `GUIDE_MAP` 跨行业错配（改为「行业+文件名」二维匹配），清除 46 个错配指南链接（如消防页误链增值税指南）；由 `scripts/clean_mismatched_guide_links.py` 落盘。
-- i18n 八件套已覆盖 40 工具：`_en_override.json`、`slug-en.json`、`i18n/tools/fire-rescue.json`、`content_deepdive.json` 各 40 条；中英文齐全验收达成。
-- 已完成构建与五项门禁（静态/死链/资产/繁体/质量全 PASS）、提交并发布；最终以 GitHub Actions Pages 部署结果为准。
-
+### ✅ fishery（41 工具，完整分类收口）
+- 全 41 工具 deep-dive 已由占位套话全量重写为真实内容（3 场景 + 1 可复现算例 + 2 FAQ），示例数字取自工具真实输出或源码公式手算；由 apply_fishery_deepdive.py / apply_fishery_deepdive2.py / apply_fishery_deepdive3.py / apply_fishery_deepdive4.py 写入 `i18n/tools/content_deepdive.json`。
+- 修复 5 个通用壳工具：calc-power（P=V×I）、density-1（放养密度=尾数/面积）、estimate-23（基准×(1+增长率/100)）、ratio-hormone（最简整数比/占比/倍数）、temp-density（水温—饱和溶氧与饱和度），原为共用"通用计算器"空壳（输出恒空），由 `scripts/fix_fishery_shells.py` 重写为领域专用真实算法并经 Node 实测验证。
+- 删除 3 个与已优化工具完全重复的空壳长名工具：yuleishengzhangquxian-tedingshengzhanglv-nihe（=fish-growth-curve）、yutangrongyangliang-shuiwen-qiya-yuce（=dissolved-oxygen）、zengyangjikaiqishichang-rongyangxiajiangmoxing（=aerator-duration）；删除前已核验并移除 5 处反向 related-tool 链接，清理 i18n 孤儿条目，重建后死链/资产门禁 0 死链。
+- 按 §4.4 为专业度高/热门工具批量生成独立使用指南页（fishery 累计 25 篇），合并 `json/guides.json`（累计 207→223），工具页注入「📖 使用指南」链接；指南页去除英文 .en.html 链接与 hreflang，引 common.js。
+- i18n 八件套覆盖：content_deepdive.json 41 条、slug-en.json/_en_override.json/fishery.json/fishery-body.json 同步清理与补全；中文/繁体/英文元信息一致。
+- cycle-6 多池塘清淤周期管理（calcParams 真实公式：有机质残留 30%→月浓度增量→临界 15 mg/L 反推周期）逻辑真实保留并补 deep-dive。
+- 已完成构建与五项门禁（静态/死链/资产/繁体/质量全 PASS）、提交并发布；以 GitHub Actions Pages 部署结果为准。
 ---
-## 八、当前进行中分类
-
-### 🔄 fishery（41 工具，进行中；完成一个删一个）
-- 工具清单（行业 `fishery`，共 41 个，完成一个删一个）：
-  - [x] aerator-duration  [x] assessor-risk-4  [x] breeding-cycle  [x] calc-39  [x] calc-power
-  - [x] cycle-6  [x] density-1  [x] dissolved-oxygen  [x] drug-withdrawal-fish  [x] estimate-23
-  - [x] feed-calculator  [x] feed-protein-fat  [x] feed-rate-calculator  [x] feeding-rate  [x] fish-disease-risk
-  - [x] fish-growth-curve  [x] fish-weight  [x] fry-transport-survival  [x] harvest-size-price  [x] mesh-size-guide
-  - [x] oxygen-machine  [x] parasite-lifecycle  [x] plankton-biomass  [x] pond-capacity  [x] pond-desilting
-  - [x] profit-calculator  [x] ratio-hormone  [x] salinity-calculator  [x] seafood-cold-storage  [x] spawning-hormone
-  - [x] stocking-density  [x] tank-volume  [x] temp-density  [x] wastewater-cod  [x] water-exchange-rate
-  - [x] water-oxygen  [x] water-quality-threshold  [x] winter-heating  [ ] yuleishengzhangquxian-tedingshengzhanglv-nihe
-  - [ ] yutangrongyangliang-shuiwen-qiya-yuce  [ ] zengyangjikaiqishichang-rongyangxiajiangmoxing
-- 注：deep-dive 历史写入为占位套话，须全量重写为真实内容（3 场景 + 1 可复现算例 + 2 FAQ）。专业度高/热门工具补独立使用指南页（§4.4）。
-
----
-
 ## 九、分类总清单（待办，完成一个删一个；剩 178 个目录）
 
-- [ ] fishery
 - [ ] fitness
 - [ ] floral
 - [ ] fluid
