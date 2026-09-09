@@ -446,10 +446,10 @@
 - 门禁 5/5 通过。DEV-PLAN §9 reproductive-medicine 收口（移除，现剩 102 个目录，robotics 排首）。
 - 门禁 5/5 通过。DEV-PLAN §9 robotics 收口（移除，现剩 101 个目录，structural 排首）。
 - 门禁 5/5 通过。DEV-PLAN §9 structural 收口（移除，现剩 100 个目录，thermodynamics 排首）。
+- 门禁 5/5 通过。DEV-PLAN §9 thermodynamics 收口（移除，现剩 99 个目录，livestock 排首）。
 
-## 九、分类总清单（待办，完成一个删一个；剩 100 个目录）
+## 九、分类总清单（待办，完成一个删一个；剩 99 个目录）
 
-- [ ] thermodynamics
 - [ ] livestock
 - [ ] neurology
 - [ ] pulmonology
