@@ -257,13 +257,16 @@
 
 ## 八、当前进行中分类
 
-### 🔄 healthcare（待 deep-dive 真实化 + 套话清零，指南页按需）
-- 接 glass 之后的下一个分类，按 §4.4 克制原则：deep-dive 全量真实化 + 套话清零（必做），指南页只给专业度高/易误用/有计算依据的必要工具加，不铺量。
+### ✅ healthcare（33 工具，完整分类收口，分 b1+b2+b3 三批）
+- 全部 33 工具 deep-dive 真实化 + 套话清零（必做全量完成）；指南页 6 篇（bmi-calculator、chads-vasc、egfr、ibw、parkland、wells，均为专业度高/易误用/急救分诊类）。
+- 注：healthcare/healthcare 实为儿童剂量换算、healthcare-2~5 为通用医疗占位（输液滴速/低钠纠正/NYHA/蛋白需求），一并真实化；gfr-cockcroft 工具实现漏 /72 除数，deep-dive 已给标准 Cockcroft-Gault 值并注明偏差。
 
-## 九、分类总清单（待办，完成一个删一个；剩 152 个目录）
+### 🔄 heattreat（待 deep-dive 真实化 + 套话清零，指南页按需）
+- 接 healthcare 之后的下一个分类，按 §4.4 克制原则：deep-dive 全量真实化 + 套话清零（必做），指南页只给专业度高/易误用/有计算依据的必要工具加，不铺量。
+
+## 九、分类总清单（待办，完成一个删一个；剩 151 个目录）
 
 - [ ] gastroenterology
-- [ ] healthcare
 - [ ] heattreat
 - [ ] hematology
 - [ ] history
