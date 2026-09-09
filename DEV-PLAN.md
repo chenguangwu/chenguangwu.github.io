@@ -147,6 +147,12 @@
 - gastroenterology 全量套话残留清零（grep「快速复核」/「{'title':」均为 0）。
 - 五项门禁全 PASS，构建繁体同步，发布以 GitHub Actions Pages 为准。
 
+### ✅ geology（37 工具，完整分类收口，分 b1+b2+b3 三批）
+- b1 commit 4e8dc7083（15 工具）+ b2 commit d77255ac5（15 工具）+ b3 commit 4e28bb133（7 工具）；CI #34301843260(b1)/d77255(success)/4e28bb(in_progress→success) 均 PASS，线上 6 页抽检验证套话=0、真实数字就位（50.5%、492.26kPa、9.543m/d、15.08千吨TNT、1.177中污染等）。
+- 37 工具 deep-dive 原全为「快速复核」/「{'title':」套话占位，分 3 批全量重写为真实内容（3 场景 + 公式/算例双条目 + 2 专业 FAQ），算例数字按工具 JS 公式 node 复核（verify_b15/b16/b17 共 73/73 OK）。
+- 强方法工具按 §4.4 克制加指南页共 6 篇（dijichengzailijisuan、dizhiwurandiaochapinggu、shuiwendizhishentoushiyan、huanjingdizhipingjia、tester-16、weight-sample；guides.json 579→585）。
+- geology 全量套话残留清零（grep「快速复核」/「{'title':」均为 0）；五项门禁全 PASS，构建繁体同步，发布以 GitHub Actions Pages 为准。
+
 ### ✅ general（180 工具，最大分类收口，分 12 批 b1-b12）
 - commit 9a8c0c54e（b11）+ c9c9b7607（b12）/ CI 34258593516（b12 run #513）success，b11 线上 15/15 MATCH。
 - 180 工具 deep-dive 原全为「快速复核」套话占位，分 12 批全量重写为真实内容（3 场景 + 公式/算例双条目 + 2 专业 FAQ），算例数字按工具 JS 公式 node 复核。
@@ -238,13 +244,12 @@
 
 ## 八、当前进行中分类
 
-### 🔄 geology（待 deep-dive 真实化 + 套话清零，指南页按需）
-- 接 gastroenterology 之后的下一个分类，按 §4.4 克制原则：deep-dive 全量真实化 + 套话清零（必做），指南页只给专业度高/易误用/有计算依据的必要工具加，不铺量。
+### 🔄 geometry（待 deep-dive 真实化 + 套话清零，指南页按需）
+- 接 geology 之后的下一个分类，按 §4.4 克制原则：deep-dive 全量真实化 + 套话清零（必做），指南页只给专业度高/易误用/有计算依据的必要工具加，不铺量。
 
-## 九、分类总清单（待办，完成一个删一个；剩 154 个目录）
+## 九、分类总清单（待办，完成一个删一个；剩 153 个目录）
 
 - [ ] gastroenterology
-- [ ] geology
 - [ ] geometry
 - [ ] gis
 - [ ] glass
