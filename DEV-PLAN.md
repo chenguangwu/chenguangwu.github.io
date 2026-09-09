@@ -290,9 +290,13 @@
 - 原 deep-dive 为第六型泛化「快速复核」模板（"先运行工具默认样例，再做一组极端输入进行对照…"），与 home/hotel 同构，已替换为真实领域内容（工龄计档 5/10/15 天、21.75 折算加班费、五险一金比例拆分、税后反推税前迭代、招聘漏斗逐段转化率与 CPO、绩效加权与归一、薪酬带宽 ±50% 等）。
 - 门禁 5/5 通过。DEV-PLAN §9 146→145（剩 hvac 待办排首）。
 
+### ✅ hvac（10 工具，完整分类收口）
+- 全部 10 工具（air-filter/chiller-efficiency/cooling-load/cooling-tower/dehumidifier/duct-calculator/fan-selector/fresh-air-load/pump-calculator/supply-air）deep-dive 真实化 + 套话清零；指南页 0 篇（暖通工程类非高风险，§4.4 克制）。
+- 原 deep-dive 为弱泛化模板（examples 写「先按业务口径补充必要字段，运行工具并记录输出…」无真实算例），与六型不同构但本质仍为填充套话；已重写为带具体数字的真实算例（COP=500/142.17≈3.52、蒸发水量 G×ΔT/580≈5.17、风速=3600/0.2/3600=5.0、轴功率=10000×800/(3600×1000×0.75)≈2.96、新风焓差 Q≈19.3kW 等）。另修 fresh-air-load 正文场景列表遗留「设计方案快速复核」为「改造前后新风负荷对比」。
+- 门禁 5/5 通过。DEV-PLAN §9 145→144（剩 hydraulic 待办排首）。
+
 ## 九、分类总清单（待办，完成一个删一个；剩 146 个目录）
 
-- [ ] hvac
 - [ ] hydraulic
 - [ ] image
 - [ ] insurance
