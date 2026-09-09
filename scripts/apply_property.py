@@ -618,10 +618,10 @@ def main():
             changed += 1
     # 仅校验本批写入的 property 键，避免其他待办分类残留占位误报
     sub = {s: data[s] for s in KB}
-    raw = json.dumps(sub, ensure_ascii=False, indent=1)
-    if BAD_RE.search(raw):
+    if BAD_RE.search(json.dumps(sub, ensure_ascii=False, indent=1)):
         print("ERROR: property 本批内容仍含第六型/弱泛化占位，已中止写入")
         sys.exit(1)
+    raw = json.dumps(data, ensure_ascii=False, indent=1)
     with open(PATH, "w", encoding="utf-8") as f:
         f.write(raw + "\n")
     print("property 真实化完成：KB=%d，实际写入变更=%d" % (len(KB), changed))
