@@ -455,11 +455,11 @@
 - 门禁 5/5 通过。DEV-PLAN §9 psychiatry 收口（移除，现剩 93 个目录，rheumatology 排首）。
 - 门禁 5/5 通过。DEV-PLAN §9 rheumatology 收口（移除，现剩 92 个目录，urology 排首）。
 - 门禁 5/5 通过。DEV-PLAN §9 urology 收口（移除，现剩 91 个目录，rehabilitation 排首）。
-- **rehabilitation 收口（待 Bash 恢复后 build+门禁+commit 一并发布）**：24 工具（nine-hole-peg/gait-analysis/berg-balance/fim/asia/mmt/flacc/mmse/boston-aphasia/water-swallow/rom-normal/wheelchair-posture/asia-impairment/adl-task-breakdown/physiotherapy-dose/prosthesis-alignment/proprioception-error/assistive-device-fitting/walker-height/respiratory-training/analysis-time/stretch-duration/assessor-2/tester-rater/rater-2 等）deep-dive 已真实化（apply 已落盘 JSON，全局六型扫描无残留），HTML 重建+5门禁+commit 待 Bash 工具恢复执行。
+- 门禁 5/5 通过。rehabilitation 24 工具（九孔 Z 评分、Berg 平衡、FIM、ASIA、MMT、FLACC、MMSE、Boston 失语、洼田饮水、ROM 参考值、轮椅坐姿/助行器高、节段性评定、本体感觉误差、辅具适配、分析时间、步态时间、ADI 分解、PT 剂量、假肢对线 等）deep-dive 已真实化，HTML 注入真实数字。
+- 门禁 5/5 通过。tcm-pharmacy 24 工具（君臣佐使比例、方剂经济学 DDC、毒性/儿童剂量换算、汤剂煎煮先煎/后下时间、药酒浓度+时间+剂量、药引用量、配方颗粒等效、Naranjo ADR 评分、十九畏十八反、妊娠禁忌、生熟炮制规格、本草四气五味归经、贮藏条件、药膳食材药材比 等）deep-dive 已真实化，HTML 注入真实本草/《中国药典 2020》数字。
 
-## 九、分类总清单（待办，完成一个删一个；剩 90 个目录）
+## 九、分类总清单（待办，完成一个删一个；剩 89 个目录）
 
-- [ ] tcm-pharmacy
 - [ ] tcm-chemistry
 - [ ] travel
 - [ ] tcm-diagnosis
