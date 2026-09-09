@@ -454,10 +454,10 @@
 - 门禁 5/5 通过。DEV-PLAN §9 pediatrics 收口（移除，现剩 94 个目录，psychiatry 排首）。
 - 门禁 5/5 通过。DEV-PLAN §9 psychiatry 收口（移除，现剩 93 个目录，rheumatology 排首）。
 - 门禁 5/5 通过。DEV-PLAN §9 rheumatology 收口（移除，现剩 92 个目录，urology 排首）。
+- 门禁 5/5 通过。DEV-PLAN §9 urology 收口（移除，现剩 91 个目录，rehabilitation 排首）。
 
-## 九、分类总清单（待办，完成一个删一个；剩 92 个目录）
+## 九、分类总清单（待办，完成一个删一个；剩 91 个目录）
 
-- [ ] urology
 - [ ] rehabilitation
 - [ ] tcm-pharmacy
 - [ ] tcm-chemistry
