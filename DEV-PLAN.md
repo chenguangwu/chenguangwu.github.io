@@ -273,7 +273,6 @@
 
 ## 九、分类总清单（待办，完成一个删一个；剩 148 个目录）
 
-- [ ] gastroenterology
 - [ ] home
 - [ ] hotel
 - [ ] hr
