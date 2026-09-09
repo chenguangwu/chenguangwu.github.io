@@ -3045,7 +3045,13 @@ function mountFooterLaWidget(){
     if (typeof isStandaloneMode === 'function' && isStandaloneMode()) return;  // PWA 安装后不展示
     var box = document.getElementById('footerLaWidget');
     if (!box) return;
-    var THEME = '#2A2A42,#E5E7EB,#94A3B8,#FF6B35,#17172A,#FF8C5A,14';
+    // theme 字段顺序：borderColor,titleColor,color,numberColor,backgroundColor,iconColor,fontSize
+    // - backgroundColor #0F0F1E：比 footer 主体更深的"嵌入式卡片"质感
+    // - borderColor     #262640：比 background 略亮的暗色，弱化数据间分隔线、整行更干净
+    // - titleColor      #E5E7EB：标题文字（亮白）
+    // - color           #94A3B8：描述文字（灰）
+    // - numberColor     #FF6B35：数字（主色橙）
+    var THEME = '#262640,#E5E7EB,#94A3B8,#FF6B35,#0F0F1E,#FF8C5A,14';
     var DISPLAY = '1,1,1,1,1,1,1,0';
     var done = false;
     function mount(){
