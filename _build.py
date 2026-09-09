@@ -2788,8 +2788,10 @@ def fix_tool_pages_seo(tools, target_tools=None, report=True, existing_html_path
             # 绝大多数构建中配置与已提交 HTML 完全一致。先做快速精确
             # 命中，避免对约 5000 个完整页面反复执行三次删除正则再原样插回。
             if _dd_html and _dd_html not in content:
+                # 用 lambda 作为 repl，避免 re.sub 把 deep-dive 内容里的反斜杠
+                # 当作转义模板（如 \d、\n、\$ 等合法字符会触发 bad escape）。
                 content, _dd_replaced = _DEEP_DIVE_BLOCK_RE.subn(
-                    _dd_html, content, count=1)
+                    lambda m: _dd_html, content, count=1)
                 if not _dd_replaced:
                     # 兼容 marker 缺失或旧版残片，保留原来的清理语义。
                     content = re.sub(r'<!-- TOOLBOX-DEEP-DIVE -->\s*', '', content)
