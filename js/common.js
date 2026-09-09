@@ -3033,7 +3033,13 @@ function buildUnifiedFooter(){
      背景取 #17172A（渐变中下段近似值）使 widget 与 footer 视觉无缝。
    - 数值用主色 #FF6B35：暗底对比度 5.66:1 达 WCAG AA，且与 footer 橙色高亮调性一致。
    - 懒加载：footer 位于页面底部，用 IntersectionObserver 等它滚入视口再注入脚本，
-     避免 5000+ 工具页首屏就多一次第三方脚本请求（首屏 0 影响）。 */
+     避免 5000+ 工具页首屏就多一次第三方脚本请求（首屏 0 影响）。
+   - **不能加 s.crossOrigin='anonymous'**：curl 验证 51.la v6 widget.js 服务器
+     不返回 Access-Control-Allow-Origin 头（HTTP 200 但无 CORS），
+     动态插入的 script 在有 crossOrigin 属性时会被浏览器默默丢弃（不发警告、不 fetch），
+     而静态写在 HTML 里的 <script crossorigin> 浏览器允许不校验——所以官方代码（直接贴 HTML）
+     能显示、动态创建的就静默失败。51.la 官方给的代码用 crossorigin 是为了内联静态写法，
+     动态挂载必须去掉这个属性。 */
 function mountFooterLaWidget(){
   try {
     if (typeof isStandaloneMode === 'function' && isStandaloneMode()) return;  // PWA 安装后不展示
@@ -3047,8 +3053,9 @@ function mountFooterLaWidget(){
       done = true;
       var s = document.createElement('script');
       s.id = 'LA-DATA-WIDGET-FOOTER';
-      s.crossOrigin = 'anonymous';
       s.charset = 'UTF-8';
+      // 关键：不设 crossOrigin 属性。51.la v6 widget 服务器无 CORS 头（curl 验证），
+      // 设了 crossOrigin='anonymous' 会导致浏览器默默丢弃请求、不发警告。
       s.src = 'https://v6-widget.51.la/v6/3R0rVW6KKmLfdAFz/quote.js?theme=' + THEME + '&f=14&display=' + DISPLAY;
       box.appendChild(s);
     }
