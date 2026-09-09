@@ -355,10 +355,13 @@
 
 - 原 deep-dive 为第六型/弱泛化 SOP 占位（sports 共 75 工具：VO2max/1RM/马拉松配速/HRR/血乳酸阈/游泳SWOLF 等），已替换为真实运动科学算例（Cooper 12分跑2.4km→VO2max≈42.6、Epley 100kg×5→1RM116.7、马拉松3:30→配速4:58/km、HRR 60%区=138、乳酸阈4mmol/L、SWOLF=划数+秒 等）。门禁 5/5 通过。DEV-PLAN §9 123→122（剩 life 待办排首）。
 
-## 九、分类总清单（待办，完成一个删一个；剩 120 个目录）
+### ✅ realestate（54 工具，完整分类收口）
+- 全部 54 工具（assessor-23 成新率、assessor-38 按揭可贷、assessor-39 税费、assessor-40 重置成本、assessor-42 土地补偿、assessor-43 企业价值、assessor-44 无形资产、assessor-return NOI资本化率、assessor-second-hand 市场比较法、calc-1 房贷对比、calc-2 租金回报率、calc-70 楼面价、calc-assessor 拆迁补偿、calc-return REITs股息率、down-payment 首付、estimate-37 空置损失、fund-loan 公积金额度、layout-score 得房率、market-valuation 评估单价、analysis-* 市场/风险分析等）deep-dive 真实化 + 套话清零（必做全量完成）；指南页 0 篇（房地产评估/房贷/租金类虽涉金额但工具已内置公式与算例、非交易建议，按 §4.4 克制）。
+- 原 deep-dive 为第六型/弱泛化 SOP 占位（examples 写「先按业务口径补充必要字段，运行工具并记录输出」「对比另一组边界输入」无真实算例），已重写为带具体数字的真实算例（成新率=(耐用年限−已使用)/耐用年限×100、value=建筑原值×成新率；按揭可贷=评估值×成数、月供等额本息；契税1-3%/增值税不满2年5%/房产税0.1%或1.2%/个税1%或2%；NOI/资本化率；楼面价=成交价/(面积×容积率)；首付=总价×首付%、贷款=总价−首付；REITs股息率=dpu/市价、溢价=(市价−NAV)/NAV；得房率=使用面积/建筑面积×100；市场评估单价=基价×楼层×朝向×装修×学区×(1+extra/100)×房龄系数 等）。
+- 门禁 5/5 通过。DEV-PLAN §9 120→118（realestate 重复 2 条一并移除；剩 marketing 待办排首）。
 
-- [ ] realestate
-- [ ] realestate
+## 九、分类总清单（待办，完成一个删一个；剩 118 个目录）
+
 - [ ] marketing
 - [ ] meteorology
 - [ ] optical
