@@ -455,10 +455,10 @@
 - 门禁 5/5 通过。DEV-PLAN §9 psychiatry 收口（移除，现剩 93 个目录，rheumatology 排首）。
 - 门禁 5/5 通过。DEV-PLAN §9 rheumatology 收口（移除，现剩 92 个目录，urology 排首）。
 - 门禁 5/5 通过。DEV-PLAN §9 urology 收口（移除，现剩 91 个目录，rehabilitation 排首）。
+- **rehabilitation 收口（待 Bash 恢复后 build+门禁+commit 一并发布）**：24 工具（nine-hole-peg/gait-analysis/berg-balance/fim/asia/mmt/flacc/mmse/boston-aphasia/water-swallow/rom-normal/wheelchair-posture/asia-impairment/adl-task-breakdown/physiotherapy-dose/prosthesis-alignment/proprioception-error/assistive-device-fitting/walker-height/respiratory-training/analysis-time/stretch-duration/assessor-2/tester-rater/rater-2 等）deep-dive 已真实化（apply 已落盘 JSON，全局六型扫描无残留），HTML 重建+5门禁+commit 待 Bash 工具恢复执行。
 
-## 九、分类总清单（待办，完成一个删一个；剩 91 个目录）
+## 九、分类总清单（待办，完成一个删一个；剩 90 个目录）
 
-- [ ] rehabilitation
 - [ ] tcm-pharmacy
 - [ ] tcm-chemistry
 - [ ] travel
