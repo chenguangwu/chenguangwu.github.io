@@ -264,13 +264,15 @@
 ### ✅ heattreat（2 工具，完整分类收口）
 - 全部 2 工具（analysis-39 金相统计、recorder-9 控温记录）deep-dive 真实化 + 套话清零。注：原 deep-dive 为"统一口径建模"泛化占位（非"快速复核"那套，此前检测遗漏），已替换为真实方法/算例/数字；指南页 1 篇（recorder-9 保温时间估算）。
 
-### 🔄 hematology（待 deep-dive 真实化 + 套话清零，指南页按需）
-- 接 heattreat 之后的下一个分类，按 §4.4 克制原则：deep-dive 全量真实化 + 套话清零（必做），指南页只给专业度高/易误用/有计算依据的必要工具加，不铺量。占位检测须覆盖四种模板：快速复核 / 高频复用模板 / 统一口径演示 / 统一口径建模。
+### ✅ hematology（27 工具，完整分类收口，分 b1+b2+b3 三批）
+- 全部 27 工具 deep-dive 真实化 + 套话清零（标准「快速复核」占位），分 3 批提交（b1/b2/b3 各 9 工具，5 门禁均过）。指南页 6 篇：dic-scoring、aps-diagnosis、hlh-diagnosis、mm-staging、ipss-r、coagulation-factor（诊断/预后/治疗计算型易误用工具）。算例数字均经 node 复算（verify_b26/27/28 全过）。anemia-classification 工具 MCH 实现漏 /10 除数，deep-dive 已给标准 MCH=HGB/RBC 值。
 
-## 九、分类总清单（待办，完成一个删一个；剩 150 个目录）
+### 🔄 history（待 deep-dive 真实化 + 套话清零，指南页按需）
+- 接 hematology 之后的下一个分类，按 §4.4 克制原则：deep-dive 全量真实化 + 套话清零（必做），指南页只给专业度高/易误用/有计算依据的必要工具加，不铺量。占位检测须覆盖四种模板：快速复核 / 高频复用模板 / 统一口径演示 / 统一口径建模。
+
+## 九、分类总清单（待办，完成一个删一个；剩 149 个目录）
 
 - [ ] gastroenterology
-- [ ] hematology
 - [ ] history
 - [ ] home
 - [ ] hotel
