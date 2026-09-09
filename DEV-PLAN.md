@@ -450,10 +450,10 @@
 - 门禁 5/5 通过。DEV-PLAN §9 livestock 收口（移除，现剩 98 个目录，neurology 排首）。
 - 门禁 5/5 通过。DEV-PLAN §9 neurology 收口（移除，现剩 97 个目录，pulmonology 排首）。
 - 门禁 5/5 通过。DEV-PLAN §9 pulmonology 收口（移除，现剩 96 个目录，nephrology 排首）。
+- 门禁 5/5 通过。DEV-PLAN §9 nephrology 收口（移除，现剩 95 个目录，pediatrics 排首）。
 
-## 九、分类总清单（待办，完成一个删一个；剩 96 个目录）
+## 九、分类总清单（待办，完成一个删一个；剩 95 个目录）
 
-- [ ] nephrology
 - [ ] pediatrics
 - [ ] psychiatry
 - [ ] rheumatology
