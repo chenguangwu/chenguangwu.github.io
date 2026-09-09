@@ -276,6 +276,12 @@
 - **⚠️ 发现第六型占位「复用模板示例」**：home 6 工具原 deep-dive 为第六型泛化占位（"在home业务中，先把…标准化后再执行对比""复用模板示例 / 使用同口径的一组标准输入跑出结果…""为什么该工具要保留复用模板？"），与五型字面不同（"高频复用模板"字样为 0），此前五型检测漏掉。已补检测口径（DEV-PLAN §4.1.8 第五型后加第六型：在X业务中先把Y标准化后再执行对比 + 复用模板示例 + 保留复用模板）。全局扫描该第六型共 46 页，分布在 home(6)、jewelry(6)、media(5)、packaging(5)、road(6)、startup(6)、urban(6)、video(6)；已完成分类(healthcare/heattreat/hematology/history/gastroenterology)零命中，泄漏仅存于待办分类，随各自推进覆盖。
 - 注：home 6 工具源 HTML 仍有 3 处 `<p class="formula-desc">` 模板尾巴（"工具名称：X - 家居装修在线工具"），属工具页介绍级套话、非 deep-dive 块，留待全站源 HTML 套话清理批（opt_cleanup_intro_faq.py 统一处理 3137 文件），本轮聚焦 deep-dive 主线。
 
+### ✅ life（63 工具，完整分类收口）
+- commit a955dc11a / CI 待查 success；life 全部 63 工具 deep-dive 原全为「快速复核」/缺数字算例，全量重写为真实内容（3 场景 + 公式/算例双条目 + 2 专业 FAQ），日常/单位换算类强调纯前端演示、非专业建议。
+- 算例按工具 JS 公式手算 / node 复核（温度 25°C=77°F、小费 100×15%=15、Mifflin BMR 男 70kg/175cm/30y≈1612kcal、生日悖论 23 人≈50.7%、鞋码 EU42↔US9、1hp=735.5W、长度 1m=3.2808ft、面积 1㎡=10.7639ft²、日期差 2026-01-01→2026-09-09=251 天、BMI 70kg/1.75m=22.9 正常、货币 100USD×7.2=720CNY 等）。
+- 清理部分源 HTML opt-guide/opt-faq 套话块；按 §4.4 克制原则未全量铺指南页。
+- 五项门禁全 PASS（A 4947/99.1%），构建繁体同步，发布以 GitHub Actions Pages 为准。
+
 ### 🧹 全站源 HTML 套话专项清理（已完成，非分类任务）
 - 用 `scripts/opt_cleanup_formula_desc.py` 清除全站 **896 个**工具页 `<x class="formula-desc">` 段内的「工具名称：」SEO 模板尾巴（"本工具基于标准…结果仅供参考。 工具名称：X - XX在线工具"），**保留 1793 个真实公式说明段**（如 agriculture/assessor-1「依据 GB/T 8097…损失率=…」、pesticide-dose「原药体积=目标药液量÷稀释倍数」）。分界标志=段内含「工具名称：」，精准无误伤。门禁 5/5 通过。覆盖 home 批遗留的 formula-desc 尾巴，并补齐 opt_cleanup_intro_faq.py（intro-faq-item 全站已清零，仅 2 边缘文件异常）未覆盖的介绍级套话。
 - 注：仍有约 227 个文件「工具名称：」出现在非 formula-desc 位置（多为 deep-dive 常见问题里对工具名的正常引用或少数其它模板尾巴），不属本批清理范围，后续按需处理。
@@ -343,9 +349,8 @@
 
 - 原 deep-dive 为第六型/弱泛化 SOP 占位（sports 共 75 工具：VO2max/1RM/马拉松配速/HRR/血乳酸阈/游泳SWOLF 等），已替换为真实运动科学算例（Cooper 12分跑2.4km→VO2max≈42.6、Epley 100kg×5→1RM116.7、马拉松3:30→配速4:58/km、HRR 60%区=138、乳酸阈4mmol/L、SWOLF=划数+秒 等）。门禁 5/5 通过。DEV-PLAN §9 123→122（剩 life 待办排首）。
 
-## 九、分类总清单（待办，完成一个删一个；剩 122 个目录）
+## 九、分类总清单（待办，完成一个删一个；剩 121 个目录）
 
-- [ ] life
 - [ ] legal
 - [ ] realestate
 - [ ] marketing
