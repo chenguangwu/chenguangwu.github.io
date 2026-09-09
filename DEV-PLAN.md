@@ -140,6 +140,12 @@
 ## 七、已完成分类归档
 > 本区仅保留**最近一个（最新）已完成分类**的归档记录，更早历史不再保留，以控制文件体积。完成新分类时，用新记录替换本条。
 
+### ✅ geometry（28 工具，完整分类收口，分 b1+b2 两批）
+- b1 commit 8bf155d0e（14 工具）+ b2 commit b87caa8ae（14 工具）；CI 均 success，线上抽检验证套话=0、真实数字就位（15.7080m 弧长、14.1421m 弦长、37.6991m³ 圆锥、13.000m 空间距、47.1239m² 椭圆、25.1327m³ 椭球、113.097m² 球表、523.599m³ 球体积、98.696m³ 环体、6.0000/84.0000m² 海伦等）。
+- 28 工具 deep-dive 原全为「快速复核」/「{'title':」套话占位，分 2 批全量重写为真实内容（3 场景 + 公式/算例双条目 + 2 专业 FAQ），算例数字按工具 JS 公式 node 复核（verify_b18/b19 共 88/88 OK）。
+- 按 §4.4 克制加指南页共 4 篇（cone-volume、cylinder-volume、sphere-volume、triangle-heron；guides.json 585→589）。
+- geometry 全量套话残留清零（grep「快速复核」/「{'title':」均为 0）；五项门禁全 PASS，构建繁体同步，发布以 GitHub Actions Pages 为准。
+
 ### ✅ gastroenterology（23 工具，完整分类收口，分 b13+b14 两批）
 - commit 170e511aa（b13，前 12）+ b14（后 11）/ CI 170e511aa in_progress。
 - 23 工具 deep-dive 原全为「快速复核」套话，分 b13(12)+b14(11) 全量重写为真实内容（3 场景 + 公式/算例双条目 + 2 专业 FAQ），医学评分数字按工具 JS node 复核（Child-Pugh 6/13 分、CDAI 154/482、Glasgow 4/9 分、Mayo 8/12 分、SAAG 16/5 g/L、OLGIM III/0 期、FIT+FC 联合解读等）。
@@ -244,13 +250,12 @@
 
 ## 八、当前进行中分类
 
-### 🔄 geometry（待 deep-dive 真实化 + 套话清零，指南页按需）
-- 接 geology 之后的下一个分类，按 §4.4 克制原则：deep-dive 全量真实化 + 套话清零（必做），指南页只给专业度高/易误用/有计算依据的必要工具加，不铺量。
+### 🔄 gis（待 deep-dive 真实化 + 套话清零，指南页按需）
+- 接 geometry 之后的下一个分类，按 §4.4 克制原则：deep-dive 全量真实化 + 套话清零（必做），指南页只给专业度高/易误用/有计算依据的必要工具加，不铺量。
 
 ## 九、分类总清单（待办，完成一个删一个；剩 153 个目录）
 
 - [ ] gastroenterology
-- [ ] geometry
 - [ ] gis
 - [ ] glass
 - [ ] healthcare
