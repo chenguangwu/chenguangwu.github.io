@@ -448,10 +448,10 @@
 - 门禁 5/5 通过。DEV-PLAN §9 structural 收口（移除，现剩 100 个目录，thermodynamics 排首）。
 - 门禁 5/5 通过。DEV-PLAN §9 thermodynamics 收口（移除，现剩 99 个目录，livestock 排首）。
 - 门禁 5/5 通过。DEV-PLAN §9 livestock 收口（移除，现剩 98 个目录，neurology 排首）。
+- 门禁 5/5 通过。DEV-PLAN §9 neurology 收口（移除，现剩 97 个目录，pulmonology 排首）。
 
-## 九、分类总清单（待办，完成一个删一个；剩 98 个目录）
+## 九、分类总清单（待办，完成一个删一个；剩 97 个目录）
 
-- [ ] neurology
 - [ ] pulmonology
 - [ ] nephrology
 - [ ] pediatrics
