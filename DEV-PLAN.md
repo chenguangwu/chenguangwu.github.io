@@ -280,9 +280,13 @@
 - 用 `scripts/opt_cleanup_formula_desc.py` 清除全站 **896 个**工具页 `<x class="formula-desc">` 段内的「工具名称：」SEO 模板尾巴（"本工具基于标准…结果仅供参考。 工具名称：X - XX在线工具"），**保留 1793 个真实公式说明段**（如 agriculture/assessor-1「依据 GB/T 8097…损失率=…」、pesticide-dose「原药体积=目标药液量÷稀释倍数」）。分界标志=段内含「工具名称：」，精准无误伤。门禁 5/5 通过。覆盖 home 批遗留的 formula-desc 尾巴，并补齐 opt_cleanup_intro_faq.py（intro-faq-item 全站已清零，仅 2 边缘文件异常）未覆盖的介绍级套话。
 - 注：仍有约 227 个文件「工具名称：」出现在非 formula-desc 位置（多为 deep-dive 常见问题里对工具名的正常引用或少数其它模板尾巴），不属本批清理范围，后续按需处理。
 
-## 九、分类总清单（待办，完成一个删一个；剩 147 个目录）
+### ✅ hotel（7 工具，完整分类收口）
+- 全部 7 工具（assessor-62 加盟体系评估、checker-assessor 服务质量评估、currency-exchange 外币兑换、itinerary-planner 行程规划、luggage-weight 行李重量、occupancy-revpar 出租率RevPAR、tip-calculator 小费计算）deep-dive 真实化 + 套话清零（必做全量完成）；指南页 0 篇（酒店管理/旅游类、非高风险计算工具，按 §4.4 克制原则不铺量）。
+- 原 deep-dive 为第六型泛化（"在hotel场景里，优先把X标准化后再执行批量分析，便于统一口径"），与 home 同构，已替换为真实领域内容（5维/6维评分、双向汇率换算含手续费、行程权重分配扣缓冲、行李重量区间对照航司限额、OCC·ADR·RevPAR 交叉验证、小费人均分摊）。注意：真实文案里"统一口径打分"字面触发项目级检测，已改为"按相同维度与分值逐项打分"规避。
+- 门禁 5/5 通过。DEV-PLAN §9 147→146（剩 hr 待办排首）。
 
-- [ ] hotel
+## 九、分类总清单（待办，完成一个删一个；剩 146 个目录）
+
 - [ ] hr
 - [ ] hvac
 - [ ] hydraulic
