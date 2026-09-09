@@ -457,10 +457,10 @@
 - 门禁 5/5 通过。DEV-PLAN §9 urology 收口（移除，现剩 91 个目录，rehabilitation 排首）。
 - 门禁 5/5 通过。rehabilitation 24 工具（九孔 Z 评分、Berg 平衡、FIM、ASIA、MMT、FLACC、MMSE、Boston 失语、洼田饮水、ROM 参考值、轮椅坐姿/助行器高、节段性评定、本体感觉误差、辅具适配、分析时间、步态时间、ADI 分解、PT 剂量、假肢对线 等）deep-dive 已真实化，HTML 注入真实数字。
 - 门禁 5/5 通过。tcm-pharmacy 24 工具（君臣佐使比例、方剂经济学 DDC、毒性/儿童剂量换算、汤剂煎煮先煎/后下时间、药酒浓度+时间+剂量、药引用量、配方颗粒等效、Naranjo ADR 评分、十九畏十八反、妊娠禁忌、生熟炮制规格、本草四气五味归经、贮藏条件、药膳食材药材比 等）deep-dive 已真实化，HTML 注入真实本草/《中国药典 2020》数字。
+- 门禁 5/5 通过。tcm-chemistry 23 工具（LD50 种属等效换算/HED、药代 Cmax·T1/2·蓄积因子、内标法校正因子、一测多评 RRF、指纹图谱相似度、TLC 杂质限量、Antoine 减压沸点、结晶收率、胶囊流动性 Hausner、硅胶柱梯度、十八反/理化禁忌、萃取次数 1/(1+K·r)、Higuchi 软膏释放、Arrhenius 有效期、颗粒粒度 d50/d90、IR/UV/NMR/MS 解析 等）deep-dive 已真实化，HTML 注入真实中药化学数字。
 
-## 九、分类总清单（待办，完成一个删一个；剩 89 个目录）
+## 九、分类总清单（待办，完成一个删一个；剩 88 个目录）
 
-- [ ] tcm-chemistry
 - [ ] travel
 - [ ] tcm-diagnosis
 - [ ] property
