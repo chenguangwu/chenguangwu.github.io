@@ -452,10 +452,10 @@
 - 门禁 5/5 通过。DEV-PLAN §9 pulmonology 收口（移除，现剩 96 个目录，nephrology 排首）。
 - 门禁 5/5 通过。DEV-PLAN §9 nephrology 收口（移除，现剩 95 个目录，pediatrics 排首）。
 - 门禁 5/5 通过。DEV-PLAN §9 pediatrics 收口（移除，现剩 94 个目录，psychiatry 排首）。
+- 门禁 5/5 通过。DEV-PLAN §9 psychiatry 收口（移除，现剩 93 个目录，rheumatology 排首）。
 
-## 九、分类总清单（待办，完成一个删一个；剩 94 个目录）
+## 九、分类总清单（待办，完成一个删一个；剩 93 个目录）
 
-- [ ] psychiatry
 - [ ] rheumatology
 - [ ] urology
 - [ ] rehabilitation
