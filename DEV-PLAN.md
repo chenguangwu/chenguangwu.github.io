@@ -425,10 +425,13 @@
 - 原 deep-dive 为第六型/弱泛化 SOP 占位（examples 写「先按业务口径补充必要字段，运行工具并记录输出」无真实算例），已重写为带具体数字的真实算例（吸收0.05Gy；A=100×e⁻¹≈36.79Bq；C14活度≈3.83e8Bq；λ=3.834e-12；年代1.808e11s≈5730年；比结合能8.78MeV/核子；结合能491.8MeV；碳十四5730年；衰变份额0.632；当量2×20=40Sv；有效半衰期6.32年；裂变3.2GJ；γ 100×e^-0.5≈60.65；半径4.59fm；511keV；Q≈1.02MeV；存活e⁻¹≈0.368；比活度1.65e14Bq/kg 等）。
 - 门禁 5/5 通过。DEV-PLAN §9 106→105（剩 ophthalmology 待办排首）。
 
-## 九、分类总清单（待办，完成一个删一个；剩 105 个目录）
+### ✅ ophthalmology（28 工具，完整分类收口）
+- 全部 28 工具（弱视立体视/视野缺损MD·PSD/眼轴声速校正/眼压校正(CCT)/SRK-II生物测量IOL/杯盘比/视力表换算/角膜曲率与散光/角膜内皮密度/儿童立体视阈值/荧光素染色0-15/人工晶体SRK-II·T/多公式眼压校正/Ehlers·Doughty·Feltgen/石原色觉/睑板腺MGD 0-15/OCT-RNFL与ISNT/OSDI 0-100/翼状胬肉覆盖比/瞳孔RAPD/van Bijsterveld 0-9/视疲劳VAS/屈光误差功率矢量J0·J45/干眼自评/斜视角棱镜度↔度/泪膜破裂BUT/视力记法互转/视野MD·PSD·VFI·GHT 等）deep-dive 真实化 + 套话清零（4 个纯可视化工具 amsler/astigmatism-chart/eye-chart-toolkit/vision-screening-21 本就无 deepdive key，未纳入）。
+- 原 deep-dive 为第六型/弱泛化 SOP 占位，已重写为带具体数字的真实算例（轴长校正23.5×1555/1532≈23.86、iolDelta≈0.9D；眼压校正19.12/17.2；SRK-II 20.28D；SRK/T≈21.1D；杯盘OD0.6·OS0.3不对称0.3；K1/2=43.5/44→ast0.5D·rFlat7.76mm；内皮CD2500；立体视400″/60″；荧光素3/15；OSDI45分；胬肉覆盖34.8%面积6mm²；屈光S-3C-1@180→M-3.5·J0-0.5·逆规·转+S-4C+1@90；BUT8s临界；视野MD-6 PSD4 VFI80中期；20/200→logMAR1.0·5分4.0 等）。
+- 门禁 5/5 通过。DEV-PLAN §9 105→104（剩 optics 待办排首，并去重重复条目）。
 
-- [ ] ophthalmology
-- [ ] optics
+## 九、分类总清单（待办，完成一个删一个；剩 104 个目录）
+
 - [ ] optics
 - [ ] quantum
 - [ ] reproductive-medicine
