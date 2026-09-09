@@ -3052,7 +3052,12 @@ function mountFooterLaWidget(){
       if (done) return;
       done = true;
       var s = document.createElement('script');
-      s.id = 'LA-DATA-WIDGET-FOOTER';
+      // 关键：id 必须精确等于 'LA-DATA-WIDGET'。51.la v6 widget SDK 内部硬编码
+      // document.getElementsByTagName('script') 循环匹配 "LA-DATA-WIDGET"===id，
+      // 改成任何其他名字（如 LA-DATA-WIDGET-FOOTER）都匹配不到 → n() 返回 null
+      // → 走 console.error("can not found this script element") 分支，widget 不渲染。
+      // 全站只保留这一个挂载点，不要在同页再加第二个同 id 的 script。
+      s.id = 'LA-DATA-WIDGET';
       s.charset = 'UTF-8';
       // 关键：不设 crossOrigin 属性。51.la v6 widget 服务器无 CORS 头（curl 验证），
       // 设了 crossOrigin='anonymous' 会导致浏览器默默丢弃请求、不发警告。
