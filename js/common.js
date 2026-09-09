@@ -2982,6 +2982,7 @@ function buildUnifiedFooter(){
           '</ul>' +
         '</div>' +
       '</div>' +
+      '<div id="footerLaWidget" class="footer-la-widget" aria-label="ToolBox 实时访问数据"></div>' +
       '<div class="footer-copy" data-i18n="footer.privacy" data-i18n-fb="© 2026 ToolBox · 纯前端在线工具 · 数据不上传，安全可靠">© 2026 ToolBox · 纯前端在线工具 · 数据不上传，安全可靠</div>' +
     '</div>';
 
@@ -3026,6 +3027,41 @@ function buildUnifiedFooter(){
   return wrap;
 }
 
+/* 51.la 实时数据挂件（全站 footer 版权行上方）
+   - 配色固定走"暗底"档：footer 背景是 #1A1A2E→#141425 的固定深色渐变、不随 data-theme 变化，
+     因此不像 about.html 那样挂 MutationObserver 监听主题；
+     背景取 #17172A（渐变中下段近似值）使 widget 与 footer 视觉无缝。
+   - 数值用主色 #FF6B35：暗底对比度 5.66:1 达 WCAG AA，且与 footer 橙色高亮调性一致。
+   - 懒加载：footer 位于页面底部，用 IntersectionObserver 等它滚入视口再注入脚本，
+     避免 5000+ 工具页首屏就多一次第三方脚本请求（首屏 0 影响）。 */
+function mountFooterLaWidget(){
+  try {
+    if (typeof isStandaloneMode === 'function' && isStandaloneMode()) return;  // PWA 安装后不展示
+    var box = document.getElementById('footerLaWidget');
+    if (!box) return;
+    var THEME = '#2A2A42,#E5E7EB,#94A3B8,#FF6B35,#17172A,#FF8C5A,14';
+    var DISPLAY = '1,1,1,1,1,1,1,0';
+    var done = false;
+    function mount(){
+      if (done) return;
+      done = true;
+      var s = document.createElement('script');
+      s.id = 'LA-DATA-WIDGET-FOOTER';
+      s.crossOrigin = 'anonymous';
+      s.charset = 'UTF-8';
+      s.src = 'https://v6-widget.51.la/v6/3R0rVW6KKmLfdAFz/quote.js?theme=' + THEME + '&f=14&display=' + DISPLAY;
+      box.appendChild(s);
+    }
+    if (!window.IntersectionObserver) { mount(); return; }
+    var io = new IntersectionObserver(function(entries){
+      for (var i = 0; i < entries.length; i++) {
+        if (entries[i].isIntersecting) { io.disconnect(); mount(); break; }
+      }
+    }, { rootMargin: '200px' });
+    io.observe(box);
+  } catch(e){}
+}
+
 function syncToolThemeIcon(){
   var dark = document.documentElement.getAttribute('data-theme') === 'dark' ||
              (document.body && document.body.classList.contains('dark'));
@@ -3042,6 +3078,7 @@ function injectUnifiedChrome(){
 
     var footer = buildUnifiedFooter();
     document.body.appendChild(footer);
+    mountFooterLaWidget();
 
     // 全站二级分类导航（首页同款行业下拉大面板 .tb-topnav）：只有首页静态引用了
     // nav-menu.js，其余统一导航页面在此动态补齐，避免逐页手改静态 HTML。
