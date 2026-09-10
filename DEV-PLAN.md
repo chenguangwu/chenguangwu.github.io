@@ -145,18 +145,17 @@
 ## 七、已完成分类归档
 > 本区仅保留**最近一个（最新）已完成分类**的归档记录，更早历史不再保留，以控制文件体积。完成新分类时，用新记录替换本条。
 
-### ✅ food-safety（3 键 3 工具，1 真占位键 + 3 HTML 残留；本轮真实化收口）
-- 扫描无孤儿键。JSON「占位」键 food-safety/summary（重金属（限量）汇总）命中 7 个六型占位指纹（统一复核/减少重复确认成本/形成标准复核清单/边界样本建议单独标注/可复核输出/沿用模板逐项核对/降低上手门槛），且 scenarios 出现未替换变量名 "Summary"（"在food-safety场景下先把Summary标准化"），确属真占位。经 apply_food_safety_summary.py 替换为真实重金属限量汇总内容（scenarios=多批次原料合规筛查/成品多元素终检汇总/供应商横向比对；examples=稻米重金属汇总示例含 GB 2762 限量判定；faqs=限量标准/检测限记法/多批次汇总），键数守恒 5022。
-- HTML 三处残留：area4 → clean_food_safety_intro.py 替换 generator-31（食品追溯编码生成）/summary 的通用 intro-scenes（日常办公与学习等 4 条）→ 各自真实食品检测场景；area3 → opt_faq_ld_sync --cat food-safety 同步 assessor-risk-6（微生物致病菌风险评估）FAQPage LD 2 条真实 FAQ（GB 29921 零容忍/菌落总数分级），LD json.loads 合法。
-- 复验 scan_cat.py food-safety：JSON 三键无占位指纹、HTML 三处残留全 0、assessor-risk-6 LD 套话=0。键数守恒 5022。
-- 五道门禁全过（run_gates 完整 build+4 检查，含 build 规范化连带 dyeing 1 文件 meta 重排随提交）。commit 9b07c84cc / Pages 部署核验中（Actions #714，sleep 后复验 summary deep-dive 真实上线、3 页 area2/3/4 全 0）。§9 6->5（writing 排首）。
+### ✅ writing（1 键 1 工具，1 真占位键；本轮真实化收口）
+- 扫描无孤儿键；全 1 键 deep-dive 占位指纹=0（scanner 报全键无占位）。**但经人工通读发现真占位**：writing/text-polisher（文本润色工具）scenarios 为 "在writing场景下先确认Text Polisher口径与边界，再输出可复核结论" + "适用于流程复用、异常复核、版本变更对照" + "降低追溯成本"，且出现大写未替换变量名 "Text Polisher"——与 food-safety/summary 同模板（"在X场景下先确认Y口径与边界，再输出可复核结论"）。
+- **关键：scanner 精确指纹词被同义变体规避漏报**（可复核输出→可复核结论、降低上手门槛→降低追溯成本、统一复核→异常复核），故 scanner 未报。经 apply_writing.py 替换为真实文本润色内容（scenarios=公文邮件润色/论文报告改写/社媒文案打磨；examples=邮件润色示例"那个事情你尽快看看弄一下→烦请尽快跟进并处理该事项"；faqs=是否改原意/支持风格），键数守恒 5022。
+- 复验 text-polisher.html deep-dive：占位模板 "在writing场景下先确认"=0、公文/邮件润色=真、可复核结论=0。建扫描器盲区记录：六型占位存在同义变体，需补强 scan_cat.py（加 "在X场景下先确认Y口径" 模板 + 大写变量名检测）。
+- 五道门禁全过（run_gates 完整 build+4 检查，含 build 规范化连带 dyeing/food-safety 文件 meta 重排随提交）。commit 8605a174e / Pages 部署核验中（Actions #715，sleep 后复验 text-polisher deep-dive 真实上线）。§9 5->4（supplychain 排首）。
 ## 八、当前进行中分类
 
 > 当前无进行中分类。新分类开工时先在此登记（目录 + 工具数），收口后写入第七节并覆盖旧归档记录（§4.3 第 4 步）。
 
-## 九、分类总清单（待办，完成一个删一个；剩 5 个目录）
+## 九、分类总清单（待办，完成一个删一个；剩 4 个目录）
 
-- [ ] writing
 - [ ] supplychain
 - [ ] outdoor
 - [ ] paint
