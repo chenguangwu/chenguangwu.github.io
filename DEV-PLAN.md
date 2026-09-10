@@ -145,18 +145,18 @@
 ## 七、已完成分类归档
 > 本区仅保留**最近一个（最新）已完成分类**的归档记录，更早历史不再保留，以控制文件体积。完成新分类时，用新记录替换本条。
 
-### ✅ service（5 键，真实化收口，最新一条）
-- 5 个工具全部真实化（script-template 客服话术模板抽取 6类18条 / response-time 客服响应时间统计 SLA·P分位 / ticket-priority 工单优先级=紧急度×重要度 / complaint-analysis 投诉分类关键词匹配 / csat-score CSAT·NPS 评分），每个含 3 真实场景 + 1 算例 + 2 专业 FAQ。
-- 读取 5 个 HTML 的 calc() 逻辑（含 percentile 线性插值、parseKeywords 词库、SCRIPTS 话术表）后按真实算法重写，算例数字全部 node 实跑复核（/tmp/verify_service.js）：response-time 内置8单→解决率87.5%/均响应18.5分/SLA30达标75%/P50=13.5·P90=38.0·P99=44.3/均解115.7分；ticket-priority 3×4=12·5×5=25·1×2=2；csat 100评价(5星50/4星30/3星12/2星5/1星3)→CSAT80.0%/NPS42/均星4.19/贬损8%；complaint 6条→物流/质量/服务/价格/售后各1·其他1，覆盖率83%。
-- 全部 5 个 service 键经六型指纹(含"先统一"变体)扫描 = 0 占位残留；5 个 HTML + index 逐文件 grep 占位=0、真实关键词≥1（response-time 14/票priority 22/csat 26/complaint 11/script 1/index 7）；五道门禁全过（GATES_EXIT=0）；键数守恒 5022。脚本：scripts/apply_service.py。
+### ✅ seismology（5 键，真实化收口，最新一条）
+- 5 个工具全部真实化（generator-drill 应急预案生成器 8类场所模板 / stats-attenuation 余震序列描述统计 / analysis-stress 震源应力场描述统计 / assessor-30 GB/T 17742 烈度评估 PGA·PGV·震害指数·宏观现象 / assessor-31 综合震害 建筑+生命线+地质三因子加权0.40/0.35/0.25），每个含 3 真实场景 + 1 算例 + 2 专业 FAQ。
+- 读取 5 个 HTML 的 calc() 逻辑（含烈度阈值表、建筑 A/B/C 修正、震害指数加权公式）后按真实地球物理算法重写，算例数字全部 node 实跑复核（/tmp/verify_seismo.js）：assessor-30 PGA200/PGV20/DI0.35(A类)→VIII度；assessor-31 1000栋(轻200/中100/重50/局倒20/全倒10)+生命线(水30/电40/气2/路50/通60)+地质(滑20/落10/裂5/液3)→bldgDI0.099/life58/geo50/overall0.3676→严重震害(II级)；stats 余震[4.2,3.8,5.1,4.0,3.5]→均4.12/标差0.5418；analysis-stress [5.2,4.8,5.5,4.6,5.0]→均5.02/标差0.3124。
+- **关键坑**：assessor-30/31/generator-drill 3 个源 HTML 除 deep-dive 占野外，还残留可见 opt-guide 套话块（"在对应的输入框或选项中填写…"）与旧 FAQPage JSON-LD 旧套话；先用 opt_faq_ld_sync.py --cat seismology 同步 LD 为真实 FAQ，再用 opt_cleanup_opt_blocks.py --cat seismology 整段删 opt-guide/opt-faq（共 6 段），方归零。其余 2 文件无残留。
+- 全部 5 个 seismology 键经六型指纹(含"先统一"变体)扫描 + 可见 opt 块扫描 = 0 占位残留；5 个 HTML + index 逐文件 grep 占位=0、真实关键词≥1；五道门禁全过（GATES_EXIT=0）；键数守恒 5022。脚本：scripts/apply_seismology.py。
 
 ## 八、当前进行中分类
 
 > 当前无进行中分类。新分类开工时先在此登记（目录 + 工具数），收口后写入第七节并覆盖旧归档记录（§4.3 第 4 步）。
 
-## 九、分类总清单（待办，完成一个删一个；剩 44 个目录）
+## 九、分类总清单（待办，完成一个删一个；剩 43 个目录）
 
-- [ ] seismology
 - [ ] library
 - [ ] petrochem
 - [ ] martial
