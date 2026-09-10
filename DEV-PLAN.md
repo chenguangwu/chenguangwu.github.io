@@ -145,11 +145,11 @@
 ## 七、已完成分类归档
 > 本区仅保留**最近一个（最新）已完成分类**的归档记录，更早历史不再保留，以控制文件体积。完成新分类时，用新记录替换本条。
 
-### ✅ photography（3 键，真实化收口，最新一条）
-- 3 个工具全部真实化（摄影摄像内容）：convert-focal 镜头焦距与视场角换算（通用量级换算壳 r=v×rate×f/t，绑定焦距/视场角度数单位统一）、calc-exposure-aperture 曝光三角形（EV100=log2(N²/t)-log2(S/100)，含互易律求解光圈/快门/ISO）、capacity-fps 视频帧率与时长/存储（归一化指标=帧率×时长÷容量）。每个含 3 真实场景 + 1 算例 + 2 专业 FAQ。
-- 算例数字全部 node 实跑复核（/tmp/verify_photography.js）：convert-focal 2500毫→2.5、2.5→0.0025千；calc-exposure-aperture a8/1-125/iso100→EV10012.97(阴天/明亮阴影)，互易律 tev15/f16/iso100→快门0.00781s(1/125)、tev15/1-125/iso100→光圈16.19(f/16)、tev15/f16/1-125→ISO98；capacity-fps 100×50/10=500.00、合计160.00。
-- 第四处 intro-scenes 通用占位仅 convert-focal 与 capacity-fps 命中（日常办公等4条），经 clean_photography_intro.py 替换为真实摄影场景；calc-exposure-aperture 该块已是真实摄影内容不处理。无 opt 块、无 FAQPage LD 旧套话，无需双清。五道门禁全过（含 build 重建）；六型+GEN(高频复用模板)+旧套话+opt块+第四处通用占位扫描 0 残留；键数守恒 5022。脚本：scripts/apply_photography.py、scripts/clean_photography_intro.py。
-- commit 987781bfb / CI #34507071228 success（线上 3 页落盘核验 HTTP200、占位=0、真实关键词>=26）。§9 26->25（下一目录排首）。
+### ✅ mold（3 键，真实化收口，最新一条）
+- 3 个工具全部真实化（模具工程内容）：analysis-simulator 模流模拟（描述统计壳 n/sum/mean/median/var/std/min/max/range，绑定模流填充压力序列）、analysis-35 试模流程（同构统计壳，绑定缺陷严重度评分）、detector-mold 三坐标测量报告（各轴偏差=实测-理论、空间偏差=√(Σd²)、各轴独立±公差判定）。每个含 3 真实场景 + 1 算例 + 2 专业 FAQ。
+- 算例数字全部 node 实跑复核（/tmp/verify_mold.js）：analysis-simulator 模流填充压力[10..80]→均值45/标准差22.91/极差70（统计壳用总体方差÷n，非样本方差）；analysis-35 缺陷严重度[3,5,2,4,6]→均值4.0/标准差1.41；detector-mold 理论(50,30,20)/实测(50.015,29.988,20.022)/公差±0.020→X+0.015/Y-0.012/Z+0.022/空间偏差0.0292/不合格(Z超差)，对照实测(50.012,29.995,20.010)→全合格空间偏差0.0164。
+- 第四处 intro-scenes 通用占位仅 analysis-simulator 与 analysis-35 命中（日常办公等4条），经 clean_mold_intro.py 替换为真实模具场景；detector-mold 该块已是真实模具内容不处理。无 opt 块、无 FAQPage LD 旧套话，无需双清。五道门禁全过（含 build 重建）；六型+GEN(高频复用模板)+旧套话+opt块+第四处通用占位扫描 0 残留；键数守恒 5022。脚本：scripts/apply_mold.py、scripts/clean_mold_intro.py。
+- commit 6d0577a34 / CI #34507777103 success（线上 3 页落盘核验 HTTP200、占位=0、真实关键词>=26）。§9 25->24（下一目录排首）。
 
 ### ✅ woodwork（3 键，真实化收口）
 - 3 个工具全部真实化（木工制作内容）：convert-30 木材含水率与收缩率换算（通用量级换算壳 r=v×rate×f/t，绑定含水率/收缩率单位统一）、angle-1 曲线锯斜切角度（倒角宽=t·tanθ、刃口行程=t/cosθ、曲线锯跑偏 K=0.04、补偿角、复合斜切冠角 M/B 公式）、calculator-calc-15 榫头尺寸（榫厚=p×T、榫长=1.5×T、榫眼深=tl+2、榫宽=W−2×端肩、双榫中间榫肩）。每个含 3 真实场景 + 1 算例 + 2 专业 FAQ。
@@ -168,9 +168,8 @@
 
 > 当前无进行中分类。新分类开工时先在此登记（目录 + 工具数），收口后写入第七节并覆盖旧归档记录（§4.3 第 4 步）。
 
-## 九、分类总清单（待办，完成一个删一个；剩 25 个目录）
+## 九、分类总清单（待办，完成一个删一个；剩 24 个目录）
 
-- [ ] mold
 - [ ] steel
 - [ ] pharmacy
 - [ ] water
