@@ -145,18 +145,16 @@
 ## 七、已完成分类归档
 > 本区仅保留**最近一个（最新）已完成分类**的归档记录，更早历史不再保留，以控制文件体积。完成新分类时，用新记录替换本条。
 
-### ✅ audit（5 键 5 工具，deep-dive 早已真实化；本轮零改动收口）
-- 扫描无孤儿键；全 5 键 deep-dive 占位指纹=0（已真实）。JSON「占位」键 audit/npv-discount 命中「统一口径」经通读确认为误报（真实场景"用年金或逐期折现模式统一口径后横向对比"），未改（同 data/generator-35、film/editing-timecode 规律）。
-- **关键判断（延续 psychology/dyeing 教训）**：扫描器对 depreciation-compare.html 报「area2-opt块=2」。经通读，该 opt块**不含**占位套话"在对应的输入框或选项中填写"（grep 全量=0），而是真实折旧内容（参数说明：资产原值/预计残值/使用年限；适用场景：直线法/双倍余额递减/年数总和对比；2 条真实 FAQ 讲双倍余额递减改直线法原因与所得税影响）。与 psychology/tester-3 同类——**保留真实 opt 块、不跑 blanket 删除**。
-- 全 5 文件全量复核：套话=0、opt块含真实内容（depreciation-compare）其余 0、area4 通用 intro=0，仅 npv-discount「统一口径」JSON 误报。本轮 audit 无需任何源文件改动，属"早已真实化但 §9 待收口"分类（同 health/fishery/film）。
-- 门禁 run_gates --skip-build 四道全过。复验 scan_cat.py audit：HTML 三处残留全 0（npv-discount 误报仍标但无需改）。键数守恒 5022。§9 8->7（customer-service 排首）。
+### ✅ customer-service（3 键 3 工具，deep-dive 早已真实化；本轮零改动收口）
+- 扫描无孤儿键；3 键 3 文件 1:1。全 3 键 deep-dive 占位指纹=0（已真实）。JSON「占位」键 customer-service/random-script 命中「降低上手门槛/沿用模板逐项核对/可复核输出」经通读确认为误报（真实标准话术模板随机抽取器内容：scenarios=岗前话术演练/班前会抽查/话术 A/B 轮换；examples=催付话术对练示例；faqs=可复核输出/新成员交接/隐私合规，均为真实客服培训表述），未改（同 data/generator-35 规律）。
+- 全 3 文件（random-script/stats-time-response/summary-rater-csat）全量复核：套话=0、opt块=0、area4 通用 intro=0，无任何占位残留。
+- 本轮 customer-service 无需任何源文件改动，属"早已真实化但 §9 待收口"分类（同 health/fishery/film/audit）。门禁 run_gates --skip-build 四道全过。复验 scan_cat.py customer-service：HTML 三处残留全 0（random-script 误报仍标但无需改）。键数守恒 5022。§9 7->6（food-safety 排首）。
 ## 八、当前进行中分类
 
 > 当前无进行中分类。新分类开工时先在此登记（目录 + 工具数），收口后写入第七节并覆盖旧归档记录（§4.3 第 4 步）。
 
-## 九、分类总清单（待办，完成一个删一个；剩 7 个目录）
+## 九、分类总清单（待办，完成一个删一个；剩 6 个目录）
 
-- [ ] customer-service
 - [ ] food-safety
 - [ ] writing
 - [ ] supplychain
