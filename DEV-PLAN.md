@@ -170,7 +170,7 @@
 - [x] pneumatic (4: calc-flow-1/calc-speed/cycle-19/tester-blast) ✅
 - [x] shipping (5: calc-76/convert-speed-1/convert-time-speed/estimate-length/tide) ✅
 - [x] stage (5: beam-angle/color-temperature/dimmer-curve/light-position/power-load) ✅
-- [ ] stats (5: confidence-interval/data-distribution/regression-analysis/sample-size/statistical-tests)
+- [x] stats (5: confidence-interval/data-distribution/regression-analysis/sample-size/statistical-tests) ✅
 - [ ] unitedfront (3: assessor-training-hr-1/recommender-7/stats-9)
 - [ ] woodworking (5: angle-cut/board-feet/moisture-content/mortise-size/wood-screws)
 
