@@ -477,9 +477,14 @@
 
 - 门禁 5/5 通过。welding 15 工具（IIW 碳当量 CEV=C+Mn/6+(Cr+Mo+V)/5+(Ni+Cu)/15 与预热 T=80+(CEV−0.4)×200 分段、保温 2.5×板厚、气体配比归一化与喷嘴流速、焊材等强匹配 Q235→J422/Q345→J507/304→A102、能耗 Parc=UI/1000 与 Pin=Parc/η 与 Pavg=Pin×负载持续率、WPS 热输入 HI=UI/v/1000 与熔敷速率、层间温度上限(碳钢300/低合金250/奥氏体150/马氏体350)、参数基准电流=材质系数(碳钢40/不锈钢35/铝30)×板厚×位置系数、变形横向 0.1×焊脚+0.2 与角变形 0.02×焊脚/板厚×57.3 与残余应力 σ=σs×拘束度、通风 Q=产烟量/2×60 与换气次数、夹具夹紧点=ceil(L/500)+2 与力=重×9.8×1.5、电流类型系数(纤维素40-50/钛钙35-50/碱性30-45)与位置系数、自动化回收期=投资/年节省、NDT NB/T 47013 Ⅰ~Ⅳ 级评定 等）deep-dive 已真实化（替换第六型占位，按工具专属真实公式/算例/FAQ），HTML 注入真实焊接数字，六型扫描零残留。
 
-## 九、分类总清单（待办，完成一个删一个；剩 74 个目录）
+- 门禁 5/5 通过。process 14 工具（cp-index Cp / cpk-index Cpk / cpk-with-shift 偏移后Cpk / defect-probability 超规格概率 / dpmo-calc DPMO / first-pass-yield 一次通过率 / measurement-uncertainty 合成不确定度 / pp-index Pp / ppk-index Ppk / rolled-throughput-yield RTY / sigma-level 西格玛水平 / tolerance-rss 公差RSS / tolerance-worst-case 公差最差 / xbar-control-limits X̄控制限）deep-dive 已真实化（替换「快速复核」占位，按工具专属真实公式/算例/FAQ），HTML 注入真实质量工程数字，六型扫描零残留。
+- 算例按工具 JS 公式 node 独立复核（Cp=0.10/0.06≈1.667、σ=0.02→0.833；Cpk μ=10.0→1.667、μ=10.02→1.000；偏移 0.02→Cpk 1.000、μ=10.0200；z=2.5→超上规格概率 0.6210%、DPMO 6209.7；DPMO=124÷(2000×10)×1e6=6200.0；FPY=950/1000=95.00%；uc=√0.38≈0.6164；RTY=0.98×0.97×0.99=94.11%；DPMO 6210→Z_bench 2.500→4.00σ；RSS=√0.0725≈0.269；WC=0.450；X̄ SE=2/√5≈0.8944、UCL 52.683 / LCL 47.317 / CL 50.000）。
+- 注：defect-probability 的 DPMO 经 node 复算实为 6209.7（非 6210.0），已按工具实际输出落盘，杜绝凭印象写数。
+- 源 HTML 无 opt-guide/opt-faq 套话块、无「工具名称：」模板尾巴；指南页 0 篇（质量工程计算类已内置公式与算例，按 §4.4 克制）。
+- 脚本：scripts/apply_process.py（KB 14 条，写全量 json.dumps indent=1 + 键数守恒断言）。DEV-PLAN §9 74→73（剩 mechanical 排首）。
 
-- [ ] process
+## 九、分类总清单（待办，完成一个删一个；剩 73 个目录）
+
 - [ ] mechanical
 - [ ] medical
 - [ ] mining
