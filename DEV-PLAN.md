@@ -145,20 +145,19 @@
 ## 七、已完成分类归档
 > 本区仅保留**最近一个（最新）已完成分类**的归档记录，更早历史不再保留，以控制文件体积。完成新分类时，用新记录替换本条。
 
-### ✅ bonding（5 键，真实化收口，最新一条）
-- 5 个工具全部真实化：analysis-cost-4/analysis-resolution 实为描述性统计器（n/sum/mean/med/var/std/min/max/range），deep-dive 按「粘接工艺成本批间波动 / 失效案例样本统计」业务语境写真实算例（5 批胶成本 mean90.00/std3.41、10 例故障评分 mean3.50/std1.02）；assessor-cycle-lifespan 为 Goodman 修正+S-N(m=5) 疲劳寿命（σE=σb×0.5×β/Kt、σEq=Δσ/2/(1−σm/σb)、N=(σE/σEq)^5×1e6、sf=N/designN）；detector-27 超声粘接检测（回波≥−6dB/底波衰减≤4dB 阈值、缺陷面积比=信号数/max(面积/10,1)×100%、四态判定）；detector-26 胶层厚度（平均/最大偏差/均匀性 cv、合格/需返修/不合格）。每个含 3 真实场景 + 1 算例 + 2 专业 FAQ。
-- 算例 node 复核（/tmp/verify_bonding.js）：assessor σb800/Δσ200/σm100/Kt2/design50万/β0.8 → σE160/σEq114.29/N5,378,240/sf10.76 安全，默认 σb600 → σE120/σEq120/N100万/sf1.00 临界；detector-26 合格(0.20,0.21,0.19,0.20,0.20,0.19,0.21,0.20) avg0.200/最大偏差5.0%/cv10.0% 合格，默认(0.18,0.22,0.19,0.21,0.17,0.23,0.20,0.19) avg0.199/最大偏差15.0%/cv30.2% 需返修；detector-27 默认 echo−6/att3/sig2 基本合格(面积比20.0%)、sig6 不合格(60.0%)、sig0 粘接良好(0%)；两分析器统计数精确。
-- 关键发现（重要）：tool-intro-body 区块（「关于工具」SEO 介绍里的 intro-scenes 列表）是继 deep-dive section / opt-guide·opt-faq 可见块 / FAQPage JSON-LD 之后的**第四处占位残留区**，`_build.py` 只重建 `data-deep-dive` section、不重建 tool-intro-body，故本批 5 页 intro-scenes 仍残留 STY3 占位。已新增 scripts/clean_bonding_intro.py 替换 5 页 intro-scenes 为真实场景。**此前所有批次（petrochem/seismology/library/project/tunnel 等）可能均未清理此第四处**，建议后续批次将 intro-scenes 清理纳入标准步骤（见 §6 备忘新增条目）。
-- 五道门禁全过（清理后复跑）；六型占位指纹(含"先统一"变体)+intro-scenes 第四处扫描 0 残留；真实关键词覆盖 5 页；键数守恒 5022。脚本：scripts/apply_bonding.py + scripts/clean_bonding_intro.py。
-- commit afad47c4d / CI #34501109456 success（线上 5 页落盘核验 HTTP200、占位=0、真实关键词≥3）。§9 33→32（railway 排首）。
+### ✅ railway（5 键，真实化收口，最新一条）
+- 5 个工具全部真实化：noise-1 噪声控制（声级能量叠加 10×log10(10^(A/10)+10^(B/10))）、power-5 机车牵引匹配（轮周功率 P=F×v）、qiaoliang 桥梁桥墩支座荷载（应力比 A/B、安全系数 B/A）、slope-4 线路坡度曲线（坡度=高差/水平×100%、倾角=arctan(高/距)）、diaoche 调车作业优化（作业效率=有效/计划×100%、损耗=计划-有效）。5 个均为二元通用计算壳（依标题正则分支输出），deep-dive 按各工具 formula-box 明示公式写真实算例，calc 壳保持不动；每个含 3 真实场景 + 1 算例 + 2 专业 FAQ。
+- 算例 node 复核（/tmp/verify_railway.js）：noise 90/75 -> 90.14dB、85/80 -> 86.19、90/60 -> 90.00；power 300000×30 -> 9000kW、480000×25 -> 12000、200000×35 -> 7000；qiaoliang 4800/6000 -> 应力0.800/SF1.250、5200/6000 -> 0.867/1.154、9000/6000 -> 1.500/0.667；slope 12/300 -> 4.00%/2.29°、9/400 -> 2.25%/1.29°、6/600 -> 1.00%/0.57°；diaoche 120/108 -> 90.0%/损耗12、150/126 -> 84.0%/24、200/170 -> 85.0%/30。
+- **第四处占位清理确认**：intro-scenes（tool-intro-body 内「使用场景」列表）原为「日常办公与学习/开发调试与数据处理/快速计算与格式转换/信息查询与参考」全站通用默认占位（非六型 STY3，但属与工具无关的 boilerplate），本次用 scripts/clean_railway_intro.py 替换为铁路工程真实场景，与 bonding 批次同源处理、纳入标准步骤。另 data-deep-dive section 经 apply+_build 重建清掉 STY3 占位。
+- 五道门禁全过；六型占位指纹(含"先统一"变体)+STY3+第四处通用占位扫描 0 残留；真实铁路关键词 5 页全注入（noise14/power7/qiaoliang8/slope25/diaoche11）；键数守恒 5022。脚本：scripts/apply_railway.py + scripts/clean_railway_intro.py。
+- commit 6b68ad688 / CI #34502041594 success（线上 5 页落盘核验 HTTP200、占位=0、真实关键词>=7）。§9 32->31（yi 排首）。
 
 ## 八、当前进行中分类
 
 > 当前无进行中分类。新分类开工时先在此登记（目录 + 工具数），收口后写入第七节并覆盖旧归档记录（§4.3 第 4 步）。
 
-## 九、分类总清单（待办，完成一个删一个；剩 32 个目录）
+## 九、分类总清单（待办，完成一个删一个；剩 31 个目录）
 
-- [ ] railway
 - [ ] yi
 - [ ] uiux
 - [ ] network
