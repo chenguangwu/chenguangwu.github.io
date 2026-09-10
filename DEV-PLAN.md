@@ -145,20 +145,19 @@
 ## 七、已完成分类归档
 > 本区仅保留**最近一个（最新）已完成分类**的归档记录，更早历史不再保留，以控制文件体积。完成新分类时，用新记录替换本条。
 
-### ✅ uiux（4 键，真实化收口，最新一条）
-- 4 个工具全部真实化（UI/UX 工程内容）：generator-38 AI（辅助/生成/优化）探索（12 类 UI/UX AI 任务模板随机抽 N 条：文案/配色/图标/竞品/流程/可用性脚本/无障碍等）、analysis-64 竞品分析（描述统计壳：均值/中位数/标准差，[18,24,30]→均值24/标准差4.90）、tester-assessor 可用性测试（任务绩效分+10题SUS量表+综合分，例综合82.50/SUS50(D)/综合63）、detector-29 无障碍检测（WCAG 对比度+清单评分，#1F2937/#FFF=14.68:1 超AAA）。每个含 3 真实场景 + 1 算例 + 2 专业 FAQ。
-- 算例数字全部 node 实跑复核（/tmp/verify_uiux.js）：tester 任务10/成功9/耗时4/预期3/错误2/求助1/满意5(1-7)/SUS全4→任务绩效82.50、SUS50.00(D)、综合63（可用性一般）；detector 对比度 #1F2937/#FFF=14.68、#666/#FFF=5.74、#FF6B35/#FFF=2.84、#000/#FFF=21.00；analysis-64 [18,24,30] 均值24.00/标准差4.90。
-- **双清（重要）**：analysis-64 源 HTML 含 FAQPage JSON-LD 旧套话（"在对应的输入框或选项中填写"/"工作与生活中的相关计算与查询"）+ 可见 opt-guide/opt-faq 套话块，经 opt_faq_ld_sync(--cat uiux 同步2条真实FAQ)+opt_cleanup_opt_blocks(--cat uiux 删2块)清零，JSON 合法校验通过；generator-38/tester-assessor/detector-29 无 FAQPage/opt 套话。第四处 intro-scenes 通用占位（日常办公等4条）在 generator-38/analysis-64 经 clean_uiux_intro.py 替换为真实 UI/UX 场景。
-- 五道门禁全过（双清后复跑）；六型+GEN(高频复用模板)+旧套话+opt块+第四处通用占位扫描 0 残留；真实 UI/UX 关键词 4 页覆盖；键数守恒 5022。脚本：scripts/apply_uiux.py、scripts/clean_uiux_intro.py。
-- commit 077e32757 / CI #34504007392 success（线上 4 页落盘核验 HTTP200、占位=0、真实关键词>=6）。§9 30->29（network 排首）。
+### ✅ network（4 键，真实化收口，最新一条）
+- 4 个工具全部真实化（网络工程内容）：convert-11 IP转换（点分十进制↔32位整数↔二进制，192.168.1.1→3232235777/11000000.10101000.00000001.00000001）、calc-subnet 子网掩码（CIDR/子网划分，192.168.1.100/24→网络.0/广播.255/掩码255.255.255.0/可用254）、analysis-manager-1 工具分析（描述统计壳：均值/中位数/标准差）、analysis-66 效果监测（描述统计壳）。每个含 3 真实场景 + 1 算例 + 2 专业 FAQ。
+- 算例数字全部 node 实跑复核（/tmp/verify_network.js）：convert-11 192.168.1.1→十进制3232235777/二进制11000000.10101000.00000001.00000001；calc-subnet 192.168.1.100/24→网络192.168.1.0/广播.255/掩码255.255.255.0/总256/可用254；analysis-manager-1 [12,18,9,22,15]→均值15.20/标准差4.53；analysis-66 [3.2,2.8,2.5,2.1,1.9]→均值2.50/标准差0.47。
+- **双清（重要）**：analysis-66 源 HTML 含 FAQPage JSON-LD 旧套话（"在对应的输入框或选项中填写"/"工作与生活中的相关计算与查询"）+ 可见 opt-guide/opt-faq 套话块，经 opt_faq_ld_sync(--cat network 同步2条真实FAQ)+opt_cleanup_opt_blocks(--cat network 删2块)清零，JSON 合法校验通过；convert-11/calc-subnet/analysis-manager-1 无 FAQPage/opt 套话。第四处 intro-scenes 通用占位（日常办公等4条）在 convert-11/analysis-manager-1/analysis-66 经 clean_network_intro.py 替换为真实网络场景（calc-subnet 已真实不处理）。
+- 五道门禁全过（双清后复跑）；六型+GEN(高频复用模板)+旧套话+opt块+第四处通用占位扫描 0 残留；真实网络关键词 4 页覆盖；键数守恒 5022。脚本：scripts/apply_network.py、scripts/clean_network_intro.py。
+- commit 3d422792a / CI #34504789772 success（线上 4 页落盘核验 HTTP200、占位=0、真实关键词>=8）。§9 29->28（textile2 排首）。
 
 ## 八、当前进行中分类
 
 > 当前无进行中分类。新分类开工时先在此登记（目录 + 工具数），收口后写入第七节并覆盖旧归档记录（§4.3 第 4 步）。
 
-## 九、分类总清单（待办，完成一个删一个；剩 29 个目录）
+## 九、分类总清单（待办，完成一个删一个；剩 28 个目录）
 
-- [ ] network
 - [ ] textile2
 - [ ] woodwork
 - [ ] photography
