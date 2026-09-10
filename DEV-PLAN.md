@@ -145,18 +145,17 @@
 ## 七、已完成分类归档
 > 本区仅保留**最近一个（最新）已完成分类**的归档记录，更早历史不再保留，以控制文件体积。完成新分类时，用新记录替换本条。
 
-### ✅ rubber（5 键，真实化收口，最新一条）
-- 5 个工具全部真实化（abrasion-test 阿克隆/DIN/格拉西尔三标准互算·阿克隆≤0.2 良好 / cure-time 阿伦尼乌斯 t=refT×exp(Ea/R·(1/T2−1/T1)) + 范德霍夫10℃规则 / hardness-calc Shore A↔D↔IRHD 近似 + Gent 模量 E=0.0981×(0.1375·HA²/(100−HA)+2.963) / mixing-ratio 按 phr 反算各组分重量 / tensile-strength 拉伸=力/(宽×厚)·伸长=(断−原)/原×100），每个含 3 真实场景 + 1 算例 + 2 专业 FAQ。
-- 算例数字全部 node 实跑复核（/tmp/verify_rubber.js）：abrasion 阿克隆0.15→DIN19.50/格0.18/良好、DIN20→阿克隆0.1538；cure 150/10/90/160→阿伦5.5min·范5.0·1.81×、140℃→18.6min·0.54×；hard A70→D14/IRHD71/E2.494MPa/G0.831、D60→A100/IRHD101；mix 总量10kg/总157.2phr→NR6.361/ZnO0.318/SA0.127/S0.159/DM0.076/4010NA0.095/N3302.545/油0.318；tensile 500N/6×2/25→125→面积12/41.67MPa/400%。
-- cure-time 与 hardness-calc 含旧版 opt-guide/opt-faq 套话块(各2个)+FAQPage LD 旧套话，经 opt_cleanup_opt_blocks(--cat rubber 删4块)+opt_faq_ld_sync(--cat rubber 同步2文件)清零；其余 3 文件原 LD 干净无残留。五道门禁全过；六型指纹(含"先统一"变体)+可见 opt 块扫描 0 残留；真实关键词 abrasion8/cure14/hard4/mix1/tensile1；键数守恒 5022。脚本：scripts/apply_rubber.py。
+### ✅ edu2（5 键，真实化收口，最新一条）
+- 5 个工具全部真实化（exam-analysis 均值/总体标准差/及格率/优秀率/五段分布·满分制折算 / exam-countdown ceil 总天数 + 工作日/周末拆分(可扣法定节假日) / schedule-conflict 教师+教室时间重叠冲突检测 / study-progress 剩余学时→需天数→预计完成日 vs 目标 onTrack / wrong-book 本地错题本管理(参考型)），每个含 3 真实场景 + 1 算例 + 2 专业 FAQ（wrong-book 为参考型）。
+- 算例数字全部 node 实跑复核（/tmp/verify_edu2.js）：exam 8人[88,92,76,65,95,58,83,70]→均值78.38/σ12.48/最高95最低58/及格7(87.5%)/优秀3(37.5%)/段[2,2,2,1,1]；countdown 09-10→10-01 总21·工作日15·周末6；conflict A&B同师不同室→教师冲突1、A&C同室不同师→教室冲突1；study 数学8/10(1.5)·英语12/20(1)·物理5/8(2)·日4h·目标10-01→剩余17h/总进度65.8%/需5天/预计09-15/onTrack。
+- study-progress 含旧版 opt-guide/opt-faq 套话块(2个)+FAQPage LD 旧套话，经 opt_cleanup_opt_blocks(--cat edu2 删2块)+opt_faq_ld_sync(--cat edu2 同步2条)清零；其余 4 文件原 LD 干净无残留。五道门禁全过；六型指纹(含"先统一"变体)+可见 opt 块扫描 0 残留；真实关键词 exam1/countdown4/conflict15/study1/wrong3；键数守恒 5022。脚本：scripts/apply_edu2.py。
 
 ## 八、当前进行中分类
 
 > 当前无进行中分类。新分类开工时先在此登记（目录 + 工具数），收口后写入第七节并覆盖旧归档记录（§4.3 第 4 步）。
 
-## 九、分类总清单（待办，完成一个删一个；剩 38 个目录）
+## 九、分类总清单（待办，完成一个删一个；剩 37 个目录）
 
-- [ ] edu2
 - [ ] logistics2
 - [ ] gardening2
 - [ ] tunnel
