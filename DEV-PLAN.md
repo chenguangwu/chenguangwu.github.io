@@ -145,11 +145,11 @@
 ## 七、已完成分类归档
 > 本区仅保留**最近一个（最新）已完成分类**的归档记录，更早历史不再保留，以控制文件体积。完成新分类时，用新记录替换本条。
 
-### ✅ unitedfront（3 键 3 工具，3 真占位键；补扫扩展批次第 9 分类真实化收口）
-- 补强全站 scanner 捕获 3 真占位键（assessor-training-hr-1/recommender-7/stats-9），模板="在unitedfront场景中，先按[VarName]的口径预先约束输入范围" + 通用套话 + 未翻译英文变量名（Assessor Training Hr 1/Recommender 7/Stats 9）。
-- 经 apply_unitedfront.py 真实化：assessor-training-hr-1 按 Kirkpatrick 四级 + ADDIE 评分（课程均分=(c0+c1+c2+c3)/4、师资=(t0+t1+t2)/3、效果=(l1*0.2+l2*0.3+l3*0.3+l4*5*0.2)/100*10、综合=课程*0.3+师资*0.3+效果*0.4）→ 示例 8.0/8.3/7.67/综合 7.97 评级「良好（B级）」、L1-L4 全达标；recommender-7 8 类人才画像随机生成器（民主党派/无党派/民族/宗教/港澳台侨/党外干部/网络人士等），抽「党外干部」输出「有意识留位子、搭台子、压担子」；stats-9 描述统计（n/sum/mean/median/min/max/range/var/std），8 数据(10..80)→n8/sum360/mean45/median45/range70/var525/std22.91。示例数字全部 node 实跑复核。
-- HTML 三处残留：assessor 的 area4 intro-scenes 已是真实场景（企业培训项目评估/干部教育培训考核/培训课程设计评审/培训体系建设）保留；recommender-7 与 stats-9 的 area4 通用套话（"日常办公与学习"等 4 条）手动 Edit 替换为真实统战场景（党外代表人士队伍建设画像梳理/新的社会阶层人士分层联络/党外干部培养选拔参考/统战对象分层分类管理；统战调研问卷数据快速汇总/民主党派组织成员结构分析/民族团结进步创建量化评估/港澳台侨联络服务数据统计）；area2/area3 经 grep 确认无模板，双清无需运行；deep-dive 区块经 _build.py 由 JSON 重建为真实内容。键数守恒 5022。
-- 五道门禁全过（run_gates 完整 build+4 检查）。§9b 待办 2→1（剩 woodworking 排末）。
+### ✅ woodworking（5 键 5 工具，5 真占位键；补扫扩展批次第 10 分类真实化收口，§9-b 全部完成）
+- 补强全站 scanner 捕获 5 真占位键（angle-cut/board-feet/moisture-content/mortise-size/wood-screws），模板="在woodworking场景下，先使用[VarName]建立输入边界" + 通用套话 + 未翻译英文变量名（Angle Cut/Board Feet/Moisture Content/Mortise Size/Wood Screws）。
+- 经 apply_woodworking.py 真实化：angle-cut 含斜接/复合斜切/锥切三模式（每段角度=总角/段数、斜接角=(180−每段角)/2、锯台=90−斜接角；复合实际斜接=atan(tan ma·cos ba)、实际斜切=asin(sin ba·cos ma)、真实角=atan(tan ma/cos ba)；锥切单侧=atan(差/2÷长)）；board-feet BF=厚×宽×长÷12、换算 m³/ft³/MBF、费用=BF×单价；moisture-content mc=(湿−绝干)/绝干×100、状态分档(窑干≤8/气干≤12/半干≤18/湿材≤25/生材)、从纤维饱和点30%按树种系数算径向/弦向/体积收缩；mortise-size 按榫型系数算榫厚(板厚×系数×硬度因子)/榫宽(板宽×系数)/榫深(板厚×系数)/肩宽/颊高；wood-screws 按总厚与木材硬度推荐规格(#6~#14)、长度(上层+下层×0.67/0.7 取整到5mm档)、预钻孔径(按硬度插值)、沉头孔径(外径×2)。示例数字全部 node 实跑复核（斜接90/2段：45.00/67.50/22.50；复合45/30：40.89/20.70/49.11；锥切40/30/300：0.95/1.91/0.0333；板英尺1×6×8×10：4.00/40.00/0.0944m³/$80；橡木含水120/100：20.0%/1.70/3.60/5.20；贯通榫25/100：榫厚10(40%)/榫宽70(70%)/榫深75/肩宽15/颊高8；螺丝30/15中硬面板平头：#10×30mm/外径4.8/预钻3.5/沉头9.6/穿透100%）。
+- HTML 三处残留：area4 intro-scenes 五文件已是真实木工场景（多边形框架制作/斜接锯角度设置、木材采购计算/材积单位换算、木材干燥评估/收缩变形预测、家具榫卯设计/传统榫卯制作、木工螺丝选型/预钻孔径确定），保留；angle-cut 含 area2 opt-guide/opt-faq 与 area3 FAQPage LD 旧套话（"在对应的输入框或选项中填写"），经 opt_cleanup_opt_blocks.py --cat woodworking 整段删除 + opt_faq_ld_sync.py --cat woodworking 同步为 3 条真实 FAQ；其余 4 文件 area2/area3 经 grep 确认无模板。deep-dive 区块经 _build.py 由 JSON 重建为真实内容。键数守恒 5022，英文变量名零残留（页面英文工具名属 i18n en-US 合法位保留）。
+- 五道门禁全过（run_gates 完整 build+4 检查）。§9b 待办 1→0（全部完成）。
 ## 八、当前进行中分类
 
 > 当前无进行中分类。新分类开工时先在此登记（目录 + 工具数），收口后写入第七节并覆盖旧归档记录（§4.3 第 4 步）。
@@ -158,7 +158,7 @@
 
 > ✅ §9 全部完成（customer-service 零改动 + food-safety/writing/supplychain/outdoor/paint/stone 共 6 个真占位键真实化收口，键数守恒 5022，五道门禁全过，五处占位 0 残留，线上核验通过）。
 
-## 九-b、补扫扩展批次（scanner 同义变体漏报捕获；待办 1 分类 / 5 真占位键）
+## 九-b、补扫扩展批次（scanner 同义变体漏报捕获；✅ 全部完成 / 0 待办分类）
 
 > **背景**：§9 队列基于补强前旧扫描建立，本身不完整。用补强后全站 scanner 重扫 5022 键，发现 §9 之外另有 10 个分类共 47 个 deep-dive 真占位键（同一套模板：在[X]场景下先使用[VarName]建立输入边界 + 通用套话 + 未翻译英文变量名）。须按 §9 同款流水线逐分类真实化收口。
 > **规则**：每分类走完整流水线（apply 脚本→`_build.py`→五道门禁→发布核验→DEV-PLAN 状态机更新→记忆日志）；键数守恒 5022；模板/变量名/套话三重清零。
@@ -172,5 +172,5 @@
 - [x] stage (5: beam-angle/color-temperature/dimmer-curve/light-position/power-load) ✅
 - [x] stats (5: confidence-interval/data-distribution/regression-analysis/sample-size/statistical-tests) ✅
 - [x] unitedfront (3: assessor-training-hr-1/recommender-7/stats-9) ✅
-- [ ] woodworking (5: angle-cut/board-feet/moisture-content/mortise-size/wood-screws)
+- [x] woodworking (5: angle-cut/board-feet/moisture-content/mortise-size/wood-screws) ✅
 
