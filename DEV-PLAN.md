@@ -145,20 +145,18 @@
 ## 七、已完成分类归档
 > 本区仅保留**最近一个（最新）已完成分类**的归档记录，更早历史不再保留，以控制文件体积。完成新分类时，用新记录替换本条。
 
-### ✅ sales（10 工具，完整分类收口，最新一条）
-- 10 工具（calc-1 提成孤儿键 / commission-calc 佣金阶梯 / commission-calculator 提成四模式 / conversion-funnel 转化漏斗 / cost-price-margin 成本售价利润率 / moving-average 移动平均预测 / price-calculator 定价四策略 / sales-forecast 销售预测 / stacked-discount 叠加折扣 / target-breakdown 目标分解）deep-dive 全量真实化（替换通用模板占位，按各工具真实逻辑写 3 场景+1 算例+2 FAQ）。
-- 算例 node 复核：commission-calc 阶梯3/5/8%累进 50万→2.9万（全额累进则4万）；cost-price 成本100/毛利25%→售价125/利润25；moving-average SMA(3) 序列[100,120,110,130,140]→[110,120,126.67]、下期126.67、WMA(3)133.33、α=0.5；sales-forecast MA(3)预测2期[126.67,132.22]；stacked 原价500先8折后满300减50→350省150（先满减后折=360，顺序有别）；funnel 10000→3000→1200→800 各步30%/40%/66.67%、总转化8%；price-calc 成本80/加成25/固定2000→售价100/毛利20/毛利率20%/盈亏平衡100件；target-breakdown 100万权重30/25/20/25→张三30万李四25万王五20万赵六25万。
-- calc-1 为孤儿键（无对应 HTML，标题「销售提成计算」）仍真实化 JSON 内容；其余 9 标题与功能一致保留。
-- sales 源 HTML 无可见 opt 块、无 FAQPage LD 旧套话（dry-run 0 文件），无需清理；build 随 JSON 重建注入真实 deep-dive（grep 核验六型占位全 0、真实关键词命中）。
-- 五道门禁全过；detect_placeholders.py（SIX+GEN+STY3）sales 归零，键数守恒 5022。脚本：scripts/apply_sales.py。
+### ✅ office（7 工具，完整分类收口，最新一条）
+- 7 工具（excel-formula-reference Excel公式速查 / flowchart 流程图(Mermaid) / markdown-editor Markdown编辑器 / mindmap 思维导图 / pdf-merge PDF合并 / pdf-rotate PDF旋转 / pdf-split PDF拆分）deep-dive 全量真实化（替换 STY3「在office场景里优先把…标准化」占位，按各工具真实功能写 3 场景+1 操作示例+2 FAQ；编辑器类无数值计算，examples 写真实操作步骤）。
+- 真实内容来自 HTML 功能列表：flowchart 七种图表一键切换/500ms防抖实时渲染/导出SVG与PNG；markdown-editor 左右分屏/180+语言高亮/GFM表格/Ctrl+B加粗/Ctrl+I斜体/导出HTML与MD；mindmap #与-缩进表达层级/滚轮缩放拖拽/适应屏幕后导出PNG；pdf-merge 列表顺序即合并页码顺序/加密损坏文件跳过提示；pdf-rotate 单页/批量/全部三模式/仅改方向不动内容/一键重置；pdf-split 页码范围1-3,5,7-10/缩略图勾选/奇偶页快捷。
+- excel-formula-reference 与 pdf-rotate 含旧版 opt-guide/opt-faq 占位块（各2个）+ FAQPage LD 旧套话，已实际清理：opt_cleanup_opt_blocks.py 删 4 块、opt_faq_ld_sync.py 同步 2 文件为真实内容；其余 5 工具无 opt 套话(dry-run 0)。
+- 五道门禁全过；detect_placeholders.py（SIX+GEN+STY3）office 归零，键数守恒 5022。脚本：scripts/apply_office.py。
 
 ## 八、当前进行中分类
 
 > 当前无进行中分类。新分类开工时先在此登记（目录 + 工具数），收口后写入第七节并覆盖旧归档记录（§4.3 第 4 步）。
 
-## 九、分类总清单（待办，完成一个删一个；剩 57 个目录）
+## 九、分类总清单（待办，完成一个删一个；剩 56 个目录）
 
-- [ ] office
 - [ ] printing
 - [ ] parenting
 - [ ] urban
