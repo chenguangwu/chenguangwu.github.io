@@ -145,11 +145,11 @@
 ## 七、已完成分类归档
 > 本区仅保留**最近一个（最新）已完成分类**的归档记录，更早历史不再保留，以控制文件体积。完成新分类时，用新记录替换本条。
 
-### ✅ pneumatic（4 键 4 工具，4 真占位键；补扫扩展批次第 5 分类真实化收口）
-- 补强全站 scanner 捕获 4 真占位键（calc-flow-1/calc-speed/cycle-19/tester-blast），模板="在pneumatic场景下，先使用[VarName]建立输入边界" + 通用套话 + 未翻译英文变量名（Calc Flow 1/Calc Speed/Cycle 19/Tester Blast）。
-- 经 apply_pneumatic.py 真实化（各工具按真实 calc 逻辑写场景/算例/FAQ：真空吸盘吸附力=面积×真空压差、所需流量=吸附容积/响应时间×1.1余量、最小吸盘直径反推；气缸推力=面积×压力×效率、排气流量≈2·口通径²·bar、速度=流量/面积、缓冲动能 KE vs 气垫吸收；压力容器试验压力=设计×1.25(液)/1.15(气)、爆破压力=2t·σb·φ/(D+t−t/10)、安全系数≥3.0 依据 GB/T 150/TSG 21；维护周期管理=上次+周期天推算到期与逾期）；示例数字全部 python 复刻 JS 核验（如 4吸盘∅40/60%：单76.4N总305.6N安全152.8N、流量0.905→0.995L/min、最小∅22.7mm；缸∅40/0.5MPa/15kg：实际推57.6kgf、均速2227mm/s、循环0.172s、动能37.2J>气垫9.42J提示缓冲不足；DN200/10MPa/8mm：试验12.5MPa、爆破34.13MPa、安全3.41合格、应力比78%）。
-- HTML 三处残留：opt_cleanup_opt_blocks + opt_faq_ld_sync --cat pneumatic 清 calc-flow-1.html（area2 opt块 2→0、area3 FAQPage LD 同步 2 条真实 FAQ），其余 3 文件 area2/3/4 扫描 0。键数守恒 5022。
-- 五道门禁全过（run_gates 完整 build+4 检查）。§9b 待办 6→5（shipping 排首）。
+### ✅ shipping（5 键 5 工具，5 真占位键；补扫扩展批次第 6 分类真实化收口）
+- 补强全站 scanner 捕获 5 真占位键（calc-76/convert-speed-1/convert-time-speed/estimate-length/tide），模板="在shipping场景下，先使用[VarName]建立输入边界" + 通用套话 + 未翻译英文变量名（Vessel Displacement & Deadweight Calculator/Convert Speed 1/Convert Time Speed/Estimate Length/Tide）。
+- 经 apply_shipping.py 真实化（各工具按真实 calc 逻辑写场景/算例/FAQ：排水量=Cb·L·B·Tmean·ρ、TPC=Aw·ρ/100、MTC=Δ·GML/(100L)；航速单位 kn↔m/s↔km/h=1.852/0.5144、航程=航速×时间；锚泊 scope=3+风/流/底质增量限3~8、出链=scope×(水深+船首高)、风力=0.5·ρ·Cd·A·v²；副港潮高=参考潮高×比、潮差=max高−min低）；示例数字全部 python 复刻 JS 核验（如 LBP100/B16/T5.0-5.2-5.4/Cb0.7/ρ1.025：排水量5969.6t、TPC13.12、MTC87.47、尾倾0.4m、DWT3969.6t；水深20/风15m·s⁻¹/砾石：scope6.0、出链168m、风力31431N；20kn=10.289m/s=37.040km/h；15kn×10h=150nm=277.8km；副港潮差1.67m）。
+- HTML 三处残留：opt_cleanup_opt_blocks + opt_faq_ld_sync --cat shipping 清 convert-speed-1.html（area2 opt块 2→0、area3 FAQPage LD 同步 2 条真实 FAQ），并手动替换 convert-speed-1.html 与 convert-time-speed.html 的 area4 通用 intro（"日常办公与学习"等4条→真实航速换算场景）；其余 3 文件 area2/3/4 扫描 0。键数守恒 5022。
+- 五道门禁全过（run_gates 完整 build+4 检查）。§9b 待办 5→4（stage 排首）。
 ## 八、当前进行中分类
 
 > 当前无进行中分类。新分类开工时先在此登记（目录 + 工具数），收口后写入第七节并覆盖旧归档记录（§4.3 第 4 步）。
@@ -158,7 +158,7 @@
 
 > ✅ §9 全部完成（customer-service 零改动 + food-safety/writing/supplychain/outdoor/paint/stone 共 6 个真占位键真实化收口，键数守恒 5022，五道门禁全过，五处占位 0 残留，线上核验通过）。
 
-## 九-b、补扫扩展批次（scanner 同义变体漏报捕获；待办 5 分类 / 23 真占位键）
+## 九-b、补扫扩展批次（scanner 同义变体漏报捕获；待办 4 分类 / 18 真占位键）
 
 > **背景**：§9 队列基于补强前旧扫描建立，本身不完整。用补强后全站 scanner 重扫 5022 键，发现 §9 之外另有 10 个分类共 47 个 deep-dive 真占位键（同一套模板：在[X]场景下先使用[VarName]建立输入边界 + 通用套话 + 未翻译英文变量名）。须按 §9 同款流水线逐分类真实化收口。
 > **规则**：每分类走完整流水线（apply 脚本→`_build.py`→五道门禁→发布核验→DEV-PLAN 状态机更新→记忆日志）；键数守恒 5022；模板/变量名/套话三重清零。
@@ -168,7 +168,7 @@
 - [x] museum (5: audio-guide-timer/exhibit-spacing/lighting-lux/showcase-monitor/visitor-route) ✅
 - [x] plastic (5: blow-molding/extrusion-rate/injection-cycle/material-select/shrinkage-calc) ✅
 - [x] pneumatic (4: calc-flow-1/calc-speed/cycle-19/tester-blast) ✅
-- [ ] shipping (5: calc-76/convert-speed-1/convert-time-speed/estimate-length/tide)
+- [x] shipping (5: calc-76/convert-speed-1/convert-time-speed/estimate-length/tide) ✅
 - [ ] stage (5: beam-angle/color-temperature/dimmer-curve/light-position/power-load)
 - [ ] stats (5: confidence-interval/data-distribution/regression-analysis/sample-size/statistical-tests)
 - [ ] unitedfront (3: assessor-training-hr-1/recommender-7/stats-9)
