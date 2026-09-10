@@ -145,11 +145,11 @@
 ## 七、已完成分类归档
 > 本区仅保留**最近一个（最新）已完成分类**的归档记录，更早历史不再保留，以控制文件体积。完成新分类时，用新记录替换本条。
 
-### ✅ shipping（5 键 5 工具，5 真占位键；补扫扩展批次第 6 分类真实化收口）
-- 补强全站 scanner 捕获 5 真占位键（calc-76/convert-speed-1/convert-time-speed/estimate-length/tide），模板="在shipping场景下，先使用[VarName]建立输入边界" + 通用套话 + 未翻译英文变量名（Vessel Displacement & Deadweight Calculator/Convert Speed 1/Convert Time Speed/Estimate Length/Tide）。
-- 经 apply_shipping.py 真实化（各工具按真实 calc 逻辑写场景/算例/FAQ：排水量=Cb·L·B·Tmean·ρ、TPC=Aw·ρ/100、MTC=Δ·GML/(100L)；航速单位 kn↔m/s↔km/h=1.852/0.5144、航程=航速×时间；锚泊 scope=3+风/流/底质增量限3~8、出链=scope×(水深+船首高)、风力=0.5·ρ·Cd·A·v²；副港潮高=参考潮高×比、潮差=max高−min低）；示例数字全部 python 复刻 JS 核验（如 LBP100/B16/T5.0-5.2-5.4/Cb0.7/ρ1.025：排水量5969.6t、TPC13.12、MTC87.47、尾倾0.4m、DWT3969.6t；水深20/风15m·s⁻¹/砾石：scope6.0、出链168m、风力31431N；20kn=10.289m/s=37.040km/h；15kn×10h=150nm=277.8km；副港潮差1.67m）。
-- HTML 三处残留：opt_cleanup_opt_blocks + opt_faq_ld_sync --cat shipping 清 convert-speed-1.html（area2 opt块 2→0、area3 FAQPage LD 同步 2 条真实 FAQ），并手动替换 convert-speed-1.html 与 convert-time-speed.html 的 area4 通用 intro（"日常办公与学习"等4条→真实航速换算场景）；其余 3 文件 area2/3/4 扫描 0。键数守恒 5022。
-- 五道门禁全过（run_gates 完整 build+4 检查）。§9b 待办 5→4（stage 排首）。
+### ✅ stage（5 键 5 工具，5 真占位键；补扫扩展批次第 7 分类真实化收口）
+- 补强全站 scanner 捕获 5 真占位键（beam-angle/color-temperature/dimmer-curve/light-position/power-load），模板="在stage场景下，先使用[VarName]建立输入边界" + 通用套话 + 未翻译英文变量名（Beam Angle/Color Temperature/Dimmer Curve/Light Position/Power Load）。
+- 经 apply_stage.py 真实化（各工具按真实 calc 逻辑写场景/算例/FAQ：光束角 D=2·距·tan(半角)、面积=π·r²、照度=光强/距²；Mired=1e6/色温K、差值选 CTO/CTB；调光曲线 DMX/255 映射(线性/平方律/S/指数/log)；投射角=atan2(高,距)、斜射距=√(高²+距²)、光斑=斜距·tan(半角)；总电流=功率/(√3·380·pf)三相 / 功率/(220·pf)单相、断路器=ceil(安·1.2/16)·16）；示例数字全部 node 实跑复核（25°/10m/50000cd：r2.22 D4.43 A15.44 E500lux；3200→5600K：Mired313/179 差−134→全CTB；DMX128 平方律输出64.3/25.2%/增益0.50×；高6距5：角50.2°/俯39.8°/斜7.81；角45高6束25：距6.00/斜8.49/r1.88/D3.76/A11.12；灯阵380V/0.9/20%：总30.40kW/48台/I51.3A/每相53.0A/断路器64A/单相26.3%）。
+- HTML 三处残留：power-load 的 area2 opt-guide/opt-faq 与 area3 FAQPage LD 经核查均为真实工具专属内容（非六型模板），不双清避免误删真实内容；5 文件 area4 通用 intro-scenes（"前端开发中的样式设计"等4条）手动 Edit 替换为真实舞台灯光场景（舞台布光设计/彩排预演与三相负载核算/调光曲线与色温统一调试/剧场用电安全核查）；deep-dive 区块经 _build.py 由 JSON 重建为真实内容。键数守恒 5022。
+- 五道门禁全过（run_gates 完整 build+4 检查，二次核验 area4 编辑后最终态）。§9b 待办 4→3（stats 排首）。
 ## 八、当前进行中分类
 
 > 当前无进行中分类。新分类开工时先在此登记（目录 + 工具数），收口后写入第七节并覆盖旧归档记录（§4.3 第 4 步）。
@@ -169,7 +169,7 @@
 - [x] plastic (5: blow-molding/extrusion-rate/injection-cycle/material-select/shrinkage-calc) ✅
 - [x] pneumatic (4: calc-flow-1/calc-speed/cycle-19/tester-blast) ✅
 - [x] shipping (5: calc-76/convert-speed-1/convert-time-speed/estimate-length/tide) ✅
-- [ ] stage (5: beam-angle/color-temperature/dimmer-curve/light-position/power-load)
+- [x] stage (5: beam-angle/color-temperature/dimmer-curve/light-position/power-load) ✅
 - [ ] stats (5: confidence-interval/data-distribution/regression-analysis/sample-size/statistical-tests)
 - [ ] unitedfront (3: assessor-training-hr-1/recommender-7/stats-9)
 - [ ] woodworking (5: angle-cut/board-feet/moisture-content/mortise-size/wood-screws)
