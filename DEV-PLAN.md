@@ -145,21 +145,19 @@
 ## 七、已完成分类归档
 > 本区仅保留**最近一个（最新）已完成分类**的归档记录，更早历史不再保留，以控制文件体积。完成新分类时，用新记录替换本条。
 
-### ✅ printing（7 工具，完整分类收口，最新一条）
-- 7 工具（analysis-7 灯箱亮度均匀度统计 / box-area 包装盒展开面积 / carton-design 折叠纸盒结构参数 / convert-gsm 纸张克重换算 / estimate-ink 油墨量按覆盖率 / ink-coverage 油墨消耗量 / sheet-calc 印张数量）deep-dive 全量真实化（替换 STY3「在printing场景里优先把…标准化」占位，按各工具真实逻辑写 3 场景+1 算例+2 FAQ；算例数字均 node 实跑复核）。
-- 算例 node 复核：analysis-7 8点亮度→均值351.13/中位数353/极差52/标准差15.30；box-area rect(300×200×100,粘口30,出血3)→表面积2200cm²/展开2380cm²/纸板1036×336mm/千个246.16m²；carton-size(外200×150×100,厚3)→内194×144×94/容积2626mL/展开691×243mm；carton-vol(1000mL,r2,hwr1.5,厚2)→内138.7×69.3×104/外142.7×73.3×108/展开431×178.3mm；convert-gsm(150,0.8,1,2)=60；estimate-ink single(0.5m²,40%,1.2μm,1.2,1万,5%)→单张0.288g/总3.024kg/损耗144g、cmyk[40,30,25,90]→13.99kg；ink-coverage(700×1000,5000,30%,1.0,4色,80元,5%)→单张0.7m²/0.84g/总4.41kg/352.8元；sheet-calc(320页,16开,2000册,8%,双面)→每册10印张/总21600张/43.2令。
-- 标题均匹配功能（analysis-7 保留「灯箱亮度均匀度分析」场景化命名与统计逻辑一致、其余均为专业术语），无需校正；无孤儿键（7 键均有对应 HTML）。
-- printing 源 HTML 无可见 opt 块、无 FAQPage LD 旧套话（dry-run 0 文件），无需清理；build 随 JSON 重建注入真实 deep-dive（grep 核验六型占位全 0、真实关键词命中）。
-- 五道门禁全过；detect_placeholders.py（SIX+GEN+STY3）printing 归零，键数守恒 5022。脚本：scripts/apply_printing.py。
+### ✅ parenting（7 工具，完整分类收口，最新一条）
+- 7 工具（diaper-usage 纸尿裤用量 / due-date 预产期 / feeding-amount-baby 婴儿每日奶量 / feeding-schedule 婴儿喂养计划 / formula-mixing 配方奶冲调 / growth-chart 儿童生长曲线 / pumping-plan 背奶储奶计划）deep-dive 全量真实化（替换 STY3「在parenting场景里优先把…标准化」占位，按各工具真实逻辑写 3 场景+1 算例+2 FAQ；算例数字均 node 实跑复核）。
+- 算例 node 复核：diaper-usage 6月/2元/30天→每日7片/总210片/420元/M码；due-date 末次2025-12-20周期28→预产期2026-09-26（Naegele LMP+280天，周期30则+2天→09-28）、截至09-10孕37周5天；feeding-amount-baby 4月/6kg/6餐→按体重900ml+月龄参考900ml/每日900ml/每餐150ml；formula-mixing 180ml/30ml每勺→6勺/水180ml/冲调后206ml；feeding-schedule 4月/6kg/08:00起→每日720ml/每餐103ml/7次/间隔3h；growth-chart 男12月/75.7cm/9.6kg→身高P50+体重P50（均中等）、80cm→P85；pumping-plan 上班9h/4月→3次/间隔3h/单次175ml/储备525ml/宝宝日需700ml。
+- 标题校正：diaper-usage(Diaper Usage→纸尿裤用量估算)、feeding-amount-baby(Feeding Amount Baby→婴儿每日奶量估算)、formula-mixing(Formula Mixing→配方奶冲调配比)、pumping-plan(Pumping Plan→背奶储奶计划) 由英文改为中文，与其余 3 个中文标题（预产期计算器/婴儿喂养计划/儿童生长曲线）一致；无孤儿键（7 键均有对应 HTML）。
+- growth-chart 含旧版 opt-guide/opt-faq 占位块（各1个）+ FAQPage LD 旧套话，已实际清理：opt_cleanup_opt_blocks.py 删2块、opt_faq_ld_sync.py 同步1文件为真实内容；其余 6 工具无 opt 套话(dry-run 0)。build 随 JSON 重建注入真实 deep-dive（grep 核验六型占位0、opt块0、真实关键词命中 21–41）。
+- 五道门禁全过；detect_placeholders.py（SIX+GEN+STY3）parenting 归零，键数守恒 5022。脚本：scripts/apply_parenting.py。
 
 ## 八、当前进行中分类
 
 > 当前无进行中分类。新分类开工时先在此登记（目录 + 工具数），收口后写入第七节并覆盖旧归档记录（§4.3 第 4 步）。
 
-## 九、分类总清单（待办，完成一个删一个；剩 55 个目录）
+## 九、分类总清单（待办，完成一个删一个；剩 54 个目录）
 
-- [ ] parenting
-- [ ] urban
 - [ ] urban
 - [ ] road
 - [ ] startup
