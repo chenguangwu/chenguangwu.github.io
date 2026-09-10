@@ -145,11 +145,11 @@
 ## 七、已完成分类归档
 > 本区仅保留**最近一个（最新）已完成分类**的归档记录，更早历史不再保留，以控制文件体积。完成新分类时，用新记录替换本条。
 
-### ✅ museum（5 键 5 工具，5 真占位键；补扫扩展批次第 3 分类真实化收口）
-- 补强全站 scanner 捕获 5 真占位键（audio-guide-timer/exhibit-spacing/lighting-lux/showcase-monitor/visitor-route），模板="在museum场景下，先使用[VarName]建立输入边界" + 通用套话 + 未翻译英文变量名（Audio Guide Timer/Exhibit Spacing/Lighting Lux/Showcase Monitor/Visitor Route）。
-- 经 apply_museum.py 真实化（各工具按真实 calc 逻辑写场景/算例/FAQ：语音导览总时长=件数×单件+移动×(件−1)+开场、观看距离=半幅/tan半角取水平垂直较大、展柜平均照度 E=Φ/A 与中心 E=I/d² 对照 GB/T 23863 限值、材质温湿度 WW/T 0016 达标判定、Dijkstra 最短动线）；示例数字全部 python 复刻核验（如 5件×120+4×30+60=780s/可用20min差420s、最佳观看167.9cm/间距98cm、4×500×0.7=1400lm→平均140lx远超高敏感50lx、书画19℃/52%达标、A→B→C=50m<直连80m）。
-- HTML 三处残留：5 文件 area2/3/4 扫描全 0（无旧 opt/FAQPage 套话，无需双清）。键数守恒 5022。
-- 五道门禁全过（run_gates 完整 build+4 检查）。§9b 待办 8→7（plastic 排首）。
+### ✅ plastic（5 键 5 工具，5 真占位键；补扫扩展批次第 4 分类真实化收口）
+- 补强全站 scanner 捕获 5 真占位键（blow-molding/extrusion-rate/injection-cycle/material-select/shrinkage-calc），模板="在plastic场景下，先使用[VarName]建立输入边界" + 通用套话 + 未翻译英文变量名（Blow Molding/Extrusion Rate/Injection Cycle/Material Select/Shrinkage Calc）。
+- 经 apply_plastic.py 真实化（各工具按真实 calc 逻辑写场景/算例/FAQ：吹胀比=型坯径/口模、壁厚=单面重/BUR、最小型坯压力=2σ壁/直径×安全系数1.5、注塑周期产能=3600/周期×腔数×日有效×良率、螺槽排量阿基米德螺线×转速×熔体密度×效率、收缩率反推模腔尺寸=成品/(1−缩率)、材料库按耐温/强度/成本筛选）；示例数字全部 python 复刻核验（如 BUR=100/30≈3.33、壁厚4/3.33≈1.2mm、最小压力2×30×1.2/80≈0.9MPa→推荐1.35MPa、周期25s→日产能5500/良品5225、挤出20.7g/min→0.75kg/h、缩率2%→模腔100/0.98≈102.0mm）。
+- HTML 三处残留：opt_cleanup_opt_blocks + opt_faq_ld_sync --cat plastic 清 blow-molding.html（area2 opt块 2→0、area3 FAQPage LD 同步 2 条真实 FAQ），其余 4 文件 area2/3/4 扫描 0。键数守恒 5022。
+- 五道门禁全过（run_gates 完整 build+4 检查）。§9b 待办 7→6（pneumatic 排首）。
 ## 八、当前进行中分类
 
 > 当前无进行中分类。新分类开工时先在此登记（目录 + 工具数），收口后写入第七节并覆盖旧归档记录（§4.3 第 4 步）。
@@ -158,7 +158,7 @@
 
 > ✅ §9 全部完成（customer-service 零改动 + food-safety/writing/supplychain/outdoor/paint/stone 共 6 个真占位键真实化收口，键数守恒 5022，五道门禁全过，五处占位 0 残留，线上核验通过）。
 
-## 九-b、补扫扩展批次（scanner 同义变体漏报捕获；待办 7 分类 / 32 真占位键）
+## 九-b、补扫扩展批次（scanner 同义变体漏报捕获；待办 6 分类 / 27 真占位键）
 
 > **背景**：§9 队列基于补强前旧扫描建立，本身不完整。用补强后全站 scanner 重扫 5022 键，发现 §9 之外另有 10 个分类共 47 个 deep-dive 真占位键（同一套模板：在[X]场景下先使用[VarName]建立输入边界 + 通用套话 + 未翻译英文变量名）。须按 §9 同款流水线逐分类真实化收口。
 > **规则**：每分类走完整流水线（apply 脚本→`_build.py`→五道门禁→发布核验→DEV-PLAN 状态机更新→记忆日志）；键数守恒 5022；模板/变量名/套话三重清零。
@@ -166,7 +166,7 @@
 - [x] manufacturing (5: capacity-planning/defect-rate/inventory-calculator/production-efficiency/quality-control) ✅
 - [x] maritime (5: anchorage-capacity/compass-correction/speed-distance/stowage-factor/tide-window) ✅
 - [x] museum (5: audio-guide-timer/exhibit-spacing/lighting-lux/showcase-monitor/visitor-route) ✅
-- [ ] plastic (5: blow-molding/extrusion-rate/injection-cycle/material-select/shrinkage-calc)
+- [x] plastic (5: blow-molding/extrusion-rate/injection-cycle/material-select/shrinkage-calc) ✅
 - [ ] pneumatic (4: calc-flow-1/calc-speed/cycle-19/tester-blast)
 - [ ] shipping (5: calc-76/convert-speed-1/convert-time-speed/estimate-length/tide)
 - [ ] stage (5: beam-angle/color-temperature/dimmer-curve/light-position/power-load)
