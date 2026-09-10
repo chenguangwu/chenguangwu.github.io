@@ -145,19 +145,18 @@
 ## 七、已完成分类归档
 > 本区仅保留**最近一个（最新）已完成分类**的归档记录，更早历史不再保留，以控制文件体积。完成新分类时，用新记录替换本条。
 
-### ✅ misc（12 工具，完整分类收口，最新一条）
-- 12 工具（complex-number 复数计算器 / date-diff 日期差 / function-plotter 数学图形绘制 / linear-regression 线性回归 / magic-square 幻方 / matrix-calculator 矩阵运算 / number-puzzle 24点 / physics-constants 物理常数 / scientific-notation 科学记数法 / statistics-distribution 统计分布 / truth-table 真值表 / unit-prefix 单位前缀）deep-dive 已真实化（替换「快速复核」占位，按工具专属真实公式/算例/FAQ），六型扫描零残留。
-- 算例按工具公式 node 独立复算（complex |A|=5/|B|=2.2361/arg(A)=53.13°/A×B=11−2i/A÷B=−1+2i；date-diff 2026-01-01→07-29 自然日209/工作日150；linreg b=2.0179/a=−0.0429/pred(10)=20.1357/R²=0.9992；magic M=65；matrix A+B/A×B/det=−2/Aᵀ；sci 6.02214076×10²³；stats Φ(1)=0.8413/Poisson(3,2)=0.2240/Binom(10,0.5,5)=0.2461；truth A&(B|!C)=00001011；unit 1km=1000m/1mm=0.001m/1km=1e6mm；physics c/G/h/e/NA；puzzle 8/(3−8/3)=24；plotter 振幅1/周期2π=6.2832）。
-- 3 文件（physics-constants/scientific-notation/truth-table）源 HTML 含旧 opt-guide/opt-faq 套话 section + FAQPage JSON-LD 旧套话，已用 opt_cleanup_opt_blocks.py + opt_faq_ld_sync.py 清零并同步真实 FAQ（2 条/页）；truth-table 的 opt-result-interpret「结果解读」真实块保留。其余 9 文件仅 deep-dive 占位，build 随 JSON 重建。
-- commit 38fcd69f7 / CI Run #630 success；§9 69→68（剩 paper 排首）。脚本：scripts/apply_misc.py。
+### ✅ paper（12 工具，完整分类收口，最新一条）
+- 12 工具（basis-weight 定量令重 / calc-concentration-1 纸浆浓度 / carbon-5 纸张碳足迹 / detector-17 纸张缺陷检测 / moisture-calc 水分 / naipo-dingpo-zhishu 耐破指数 / paper-grade 纸张分级 / pulp-yield 制浆得率 / roll-length 卷筒纸长度 / strength-1 瓦楞边压堆码 / strength-9 环压 / strength-10 抗张）deep-dive 已真实化（替换「快速复核」占位，按工具专属真实公式/算例/FAQ），六型扫描零残留。
+- 算例按工具公式 node 独立复算（basis-weight 正度 area=0.8594 m²/sheet=60.16 g/ream=30.08 kg≈66.3 lb；concentration dryFiber=100.00 kg/volConc=208.3 g/L/高浓/diluteAdd=2833.33 kg/finalMass=3333.33 kg；detector-17 印刷+孔洞 lim{size:2,count:5}→ds=2.5/dps=8/area=10→sizePass=false/countPass=false/totalDef=80/不合格；moisture water=8.00/wb=8.00%/db=8.70%/dryRate=92.00%；pulp-yield yield=48.00% 化学浆/perTon=0.4800；roll-length L=7808.62 m/layers=4620/target500m→D=263.5 mm；strength-1 FLUTE{A:1.53,C:1.46,B:1.32,E:1.27}/ECT=5913 N/m/BCT=2464 N(251 kgf)/safe=821 N/maxTiers=6/stackH=1.8 m；carbon-5/naipo/strength-9/strength-10 同构双输入 else 分支 sum=150/diff=50/ratio=2.0000/avg=75.00，默认 v0=100,v1=50）。
+- 2 文件（basis-weight/calc-concentration-1）源 HTML 含旧 opt-guide/opt-faq 套话 section + FAQPage JSON-LD 旧套话，已用 opt_cleanup_opt_blocks.py + opt_faq_ld_sync.py 清零并同步真实 FAQ（2 条/页）。其余 10 文件仅 deep-dive 占位，build 随 JSON 重建。paper-grade 为纯查表工具（buildTable/filterTable 无公式），写对照表使用指南型。
+- 五道门禁全过（build→静态→死链→资产→公式回归）；占位/套话核验全 0，键数守恒 5022。脚本：scripts/apply_paper.py。
 
 ## 八、当前进行中分类
 
 > 当前无进行中分类。新分类开工时先在此登记（目录 + 工具数），收口后写入第七节并覆盖旧归档记录（§4.3 第 4 步）。
 
-## 九、分类总清单（待办，完成一个删一个；剩 68 个目录）
+## 九、分类总清单（待办，完成一个删一个；剩 67 个目录）
 
-- [ ] paper
 - [ ] math
 - [ ] fire
 - [ ] elderly
