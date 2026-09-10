@@ -145,19 +145,17 @@
 ## 七、已完成分类归档
 > 本区仅保留**最近一个（最新）已完成分类**的归档记录，更早历史不再保留，以控制文件体积。完成新分类时，用新记录替换本条。
 
-### ✅ clinical-lab（25 键 25 工具，deep-dive 早已真实化；本次仅 2 文件 area2/3 双清）
-- 25 个 JSON 键对应 25 个工具页，无孤儿键（1:1）。25 键 deep-dive 早已真实化（血气分析代偿、流式细胞术比值、MIC 折点、凝血、生化组合等含真实公式与算例）。
-- JSON 占位扫描命中 clinical-lab/blood-gas-analysis 的"快速复核"，经通读确认为真实 summary「辅助血气报告快速复核」名词短语（非 SIX 模板占位标题），误报、无需改。
-- area2：opt_cleanup_opt_blocks --cat clinical-lab 清 2 文件（flow-cytometry-ratio/mic-breakpoint）前 4→后 0；area3：opt_faq_ld_sync --cat clinical-lab 同步 2 文件真实 FAQ（各 3 条）；area4（日常办公与学习类）扫描 0。
-- 五道门禁全过（run_gates --skip-build）。无 apply 脚本（无 JSON 占位键需替换）。
-- commit 8d00a1fa7 / Pages 部署核验中（sleep150 复验 area2/3/4 全 0 残留）。§9 15->14（food-testing 排首）。
+### ✅ food-testing（25 键 24 工具，deep-dive 早已真实化；本次清理 1 孤儿占位键 + 5 文件 area3/area4 双清）
+- 25 个 JSON 键对应 24 个工具页；孤儿占位键 food-testing/rater-risk（无 rater-risk.html，同域真实页为 allergen-cross-risk.html，键 food-testing/allergen-cross-risk 已真实化，8 因子评分满分40、≤8低→>24高）。经 apply_food_testing.py 替换为真实过敏原交叉污染风险评分内容，键数守恒 5022。
+- area3：opt_faq_ld_sync --cat food-testing 同步 2 文件（acid-peroxide-titration/salt-titration）FAQ（各2条）；area4：clean_food_testing_intro.py 清 3 文件（convert-36/convert-37/generator-27）通用 intro「日常办公与学习」4 项→真实食品检测场景（酸价过氧化值滴定/凯氏定氮系数/菌落总数报告）；area2 opt块 扫描 0。
+- 五道门禁全过（run_gates --skip-build）。脚本：scripts/apply_food_testing.py + scripts/clean_food_testing_intro.py。
+- commit 163eddac2 / Pages 部署核验中（sleep150 复验 area2/3/4 全 0 残留）。§9 14->13（beauty 排首）。
 ## 八、当前进行中分类
 
 > 当前无进行中分类。新分类开工时先在此登记（目录 + 工具数），收口后写入第七节并覆盖旧归档记录（§4.3 第 4 步）。
 
-## 九、分类总清单（待办，完成一个删一个；剩 14 个目录）
+## 九、分类总清单（待办，完成一个删一个；剩 13 个目录）
 
-- [ ] food-testing
 - [ ] beauty
 - [ ] data
 - [ ] psychology
