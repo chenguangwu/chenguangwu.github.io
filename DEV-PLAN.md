@@ -145,20 +145,21 @@
 ## 七、已完成分类归档
 > 本区仅保留**最近一个（最新）已完成分类**的归档记录，更早历史不再保留，以控制文件体积。完成新分类时，用新记录替换本条。
 
-### ✅ office（7 工具，完整分类收口，最新一条）
-- 7 工具（excel-formula-reference Excel公式速查 / flowchart 流程图(Mermaid) / markdown-editor Markdown编辑器 / mindmap 思维导图 / pdf-merge PDF合并 / pdf-rotate PDF旋转 / pdf-split PDF拆分）deep-dive 全量真实化（替换 STY3「在office场景里优先把…标准化」占位，按各工具真实功能写 3 场景+1 操作示例+2 FAQ；编辑器类无数值计算，examples 写真实操作步骤）。
-- 真实内容来自 HTML 功能列表：flowchart 七种图表一键切换/500ms防抖实时渲染/导出SVG与PNG；markdown-editor 左右分屏/180+语言高亮/GFM表格/Ctrl+B加粗/Ctrl+I斜体/导出HTML与MD；mindmap #与-缩进表达层级/滚轮缩放拖拽/适应屏幕后导出PNG；pdf-merge 列表顺序即合并页码顺序/加密损坏文件跳过提示；pdf-rotate 单页/批量/全部三模式/仅改方向不动内容/一键重置；pdf-split 页码范围1-3,5,7-10/缩略图勾选/奇偶页快捷。
-- excel-formula-reference 与 pdf-rotate 含旧版 opt-guide/opt-faq 占位块（各2个）+ FAQPage LD 旧套话，已实际清理：opt_cleanup_opt_blocks.py 删 4 块、opt_faq_ld_sync.py 同步 2 文件为真实内容；其余 5 工具无 opt 套话(dry-run 0)。
-- 五道门禁全过；detect_placeholders.py（SIX+GEN+STY3）office 归零，键数守恒 5022。脚本：scripts/apply_office.py。
+### ✅ printing（7 工具，完整分类收口，最新一条）
+- 7 工具（analysis-7 灯箱亮度均匀度统计 / box-area 包装盒展开面积 / carton-design 折叠纸盒结构参数 / convert-gsm 纸张克重换算 / estimate-ink 油墨量按覆盖率 / ink-coverage 油墨消耗量 / sheet-calc 印张数量）deep-dive 全量真实化（替换 STY3「在printing场景里优先把…标准化」占位，按各工具真实逻辑写 3 场景+1 算例+2 FAQ；算例数字均 node 实跑复核）。
+- 算例 node 复核：analysis-7 8点亮度→均值351.13/中位数353/极差52/标准差15.30；box-area rect(300×200×100,粘口30,出血3)→表面积2200cm²/展开2380cm²/纸板1036×336mm/千个246.16m²；carton-size(外200×150×100,厚3)→内194×144×94/容积2626mL/展开691×243mm；carton-vol(1000mL,r2,hwr1.5,厚2)→内138.7×69.3×104/外142.7×73.3×108/展开431×178.3mm；convert-gsm(150,0.8,1,2)=60；estimate-ink single(0.5m²,40%,1.2μm,1.2,1万,5%)→单张0.288g/总3.024kg/损耗144g、cmyk[40,30,25,90]→13.99kg；ink-coverage(700×1000,5000,30%,1.0,4色,80元,5%)→单张0.7m²/0.84g/总4.41kg/352.8元；sheet-calc(320页,16开,2000册,8%,双面)→每册10印张/总21600张/43.2令。
+- 标题均匹配功能（analysis-7 保留「灯箱亮度均匀度分析」场景化命名与统计逻辑一致、其余均为专业术语），无需校正；无孤儿键（7 键均有对应 HTML）。
+- printing 源 HTML 无可见 opt 块、无 FAQPage LD 旧套话（dry-run 0 文件），无需清理；build 随 JSON 重建注入真实 deep-dive（grep 核验六型占位全 0、真实关键词命中）。
+- 五道门禁全过；detect_placeholders.py（SIX+GEN+STY3）printing 归零，键数守恒 5022。脚本：scripts/apply_printing.py。
 
 ## 八、当前进行中分类
 
 > 当前无进行中分类。新分类开工时先在此登记（目录 + 工具数），收口后写入第七节并覆盖旧归档记录（§4.3 第 4 步）。
 
-## 九、分类总清单（待办，完成一个删一个；剩 56 个目录）
+## 九、分类总清单（待办，完成一个删一个；剩 55 个目录）
 
-- [ ] printing
 - [ ] parenting
+- [ ] urban
 - [ ] urban
 - [ ] road
 - [ ] startup
