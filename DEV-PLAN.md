@@ -150,7 +150,7 @@
 - 算例按工具 JS 公式 node 独立复算（结石风险默认 rs=2 低风险、尿酸结石高犯 rs=19 极高风险；能量需求 男 BMR1568/TDEE1881、女 BMR1249/TDEE1936；儿科剂量 20kg q6h 日1000mg(上限1200未超)、30kg 日1800=上限封顶；预产期 末次2026-01-01周期28→2026-10-08(受孕2026-01-15)；输液滴速 500ml/4h/15→31 gtt/min、125 ml/h；临床评分 GCS15 轻度、ASAⅠ、CHA2DS2-VASc=4 高风险、CURB-65 3项 30天死亡率17%、MELD(5,2,1.8,Na130)=15；血糖 5.6 mmol/L→100.9 mg/dL、100.9 mg/dL→5.60 mmol/L；BSA 剂量 体表法单次16.8mg；基础代谢 男均值1555(体脂20%)、女均值1268；近效期 余21天/112天；描述统计 n=8 mean45 std22.91）。
 - 清理 stats-4 源 HTML 的 opt-guide/opt-faq 套话块（2 块，前 2 后 0），并把该页旧 FAQPage JSON-LD（旧套话「在对应的输入框或选项中填写…」）同步为 deep-dive 真实 FAQ，JSON-LD 解析校验合法。
 - 两个换算工具 convert-glucose / convert-time-infusion 的原始 JS 公式与标准医学换算方向需注明：deep-dive 已就工具实际行为（mmol→mg 同向、输液时间输出单位为秒）如实描述，避免误导。
-- commit 本批次（提交后补录） / CI 见 Actions（推送后查）；§9 72→71（剩 mining 排首）。脚本：scripts/apply_medical.py。
+- commit 12a858e8b / CI #624 success；§9 72→71（剩 mining 排首）。脚本：scripts/apply_medical.py。
 
 ---
 
