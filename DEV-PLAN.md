@@ -145,18 +145,17 @@
 ## 七、已完成分类归档
 > 本区仅保留**最近一个（最新）已完成分类**的归档记录，更早历史不再保留，以控制文件体积。完成新分类时，用新记录替换本条。
 
-### ✅ pets（5 键，真实化收口，最新一条）
-- 5 个工具全部真实化（feeding-amount 犬猫 RER=70×体重^0.75 再乘阶段/活动系数得 DER÷热量密度 / kennel-space 单舍+共享活动区面积·长期>14天×1.2 / pet-age-convert 犬按体型系数+4~+7·猫固定+4 / vaccine-reminder 联苗·狂犬365天·体内驱虫90天·体外/心丝虫30天 到期汇总 / grooming-guide 品种造型图鉴参考型），每个含 3 真实场景 + 1 算例 + 2 专业 FAQ（grooming-guide 为参考型）。
-- 算例数字全部 node 实跑复核（/tmp/verify_pets.js）：feeding 成年犬10kg/3.5/正常→RER394/DER630/180g/次90g、幼犬5kg/高活→RER234/DER843/241g/次60g、成年猫4kg→277/79g、孕猫→396/113g；kennel 中型犬×3/20天→单舍6·犬舍18·活动36·总54.0㎡、小型犬×1→4/8/12、大型猫×2/30天→2.5/5/9/14；age 中型犬5岁39/小型36/巨型45/大型42、猫5岁36、猫10岁56；vaccine 犬联苗 last2025-09-01→−9天已到期、体内驱虫 last2026-08-01→+50天正常。
-- pets 5 个源 HTML 原 LD 即干净、无 opt-guide 旧套话（opt_faq_ld_sync 与 opt_cleanup_opt_blocks dry-run 均 0），无需清理。五道门禁全过；六型指纹(含"先统一"变体)+可见 opt 块扫描 0 残留；真实关键词 feeding5/kennel9/petage7/vaccine8/grooming9；键数守恒 5022。脚本：scripts/apply_pets.py。
+### ✅ rubber（5 键，真实化收口，最新一条）
+- 5 个工具全部真实化（abrasion-test 阿克隆/DIN/格拉西尔三标准互算·阿克隆≤0.2 良好 / cure-time 阿伦尼乌斯 t=refT×exp(Ea/R·(1/T2−1/T1)) + 范德霍夫10℃规则 / hardness-calc Shore A↔D↔IRHD 近似 + Gent 模量 E=0.0981×(0.1375·HA²/(100−HA)+2.963) / mixing-ratio 按 phr 反算各组分重量 / tensile-strength 拉伸=力/(宽×厚)·伸长=(断−原)/原×100），每个含 3 真实场景 + 1 算例 + 2 专业 FAQ。
+- 算例数字全部 node 实跑复核（/tmp/verify_rubber.js）：abrasion 阿克隆0.15→DIN19.50/格0.18/良好、DIN20→阿克隆0.1538；cure 150/10/90/160→阿伦5.5min·范5.0·1.81×、140℃→18.6min·0.54×；hard A70→D14/IRHD71/E2.494MPa/G0.831、D60→A100/IRHD101；mix 总量10kg/总157.2phr→NR6.361/ZnO0.318/SA0.127/S0.159/DM0.076/4010NA0.095/N3302.545/油0.318；tensile 500N/6×2/25→125→面积12/41.67MPa/400%。
+- cure-time 与 hardness-calc 含旧版 opt-guide/opt-faq 套话块(各2个)+FAQPage LD 旧套话，经 opt_cleanup_opt_blocks(--cat rubber 删4块)+opt_faq_ld_sync(--cat rubber 同步2文件)清零；其余 3 文件原 LD 干净无残留。五道门禁全过；六型指纹(含"先统一"变体)+可见 opt 块扫描 0 残留；真实关键词 abrasion8/cure14/hard4/mix1/tensile1；键数守恒 5022。脚本：scripts/apply_rubber.py。
 
 ## 八、当前进行中分类
 
 > 当前无进行中分类。新分类开工时先在此登记（目录 + 工具数），收口后写入第七节并覆盖旧归档记录（§4.3 第 4 步）。
 
-## 九、分类总清单（待办，完成一个删一个；剩 39 个目录）
+## 九、分类总清单（待办，完成一个删一个；剩 38 个目录）
 
-- [ ] rubber
 - [ ] edu2
 - [ ] logistics2
 - [ ] gardening2
