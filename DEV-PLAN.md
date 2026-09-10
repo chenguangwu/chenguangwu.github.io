@@ -145,20 +145,19 @@
 ## 七、已完成分类归档
 > 本区仅保留**最近一个（最新）已完成分类**的归档记录，更早历史不再保留，以控制文件体积。完成新分类时，用新记录替换本条。
 
-### ✅ misc2（10 工具，完整分类收口，最新一条）
-- 10 工具（car-residual 二手车残值三法 / cigarette-tar 焦油摄入 / coin-grade 钱币品相分级 / instrument-tuning 十二平均律音准 / insurance-fee 快递保价费 / lottery-tax 彩票个税 / luggage-size 行李箱尺寸 / screen-size 屏幕 PPI / shoe-size 鞋码换算 / tax-refund 境外退税）deep-dive 全量真实化（替换通用模板占位，按各工具真实逻辑写 3 场景+1 算例+2 FAQ）。
-- 算例 node 复核：car-residual 直线法(20万,5年)→折旧率51%/残值9.8万、年数总和法更快；screen 1920×1080@23.8→PPI92.56/物理51.0×28.6cm/16:9/点距0.274mm，2560×1440@27→PPI108.79；shoe 260mm→CN26/EU41/US男17/US女18.5/UK16；instrument C4=261.63Hz(A4=440)、C5=523.25；tax-refund JP(10万日元×4.8%)→退税9500日元≈¥456、DE(2000欧×19%)→退税380欧≈¥2964；lottery 500万→税100万/到手400万（超1万才征）、8000免税；insurance 顺丰(1万×0.5%)=50元、EMS(×1%)=100元；cigarette 10mg/1mg/20支→日吸200mg焦油/年73g/吸收25%。
-- 标题均匹配功能，无需校正；无孤儿键（10 键均有对应 HTML）；coin-grade 7 级品相(UNC/AU/XF/VF/F/G/POOR)、luggage 18–30 寸、tax-refund 8 国税率均为真实查表数据。
-- misc2 源 HTML 无可见 opt 块、无 FAQPage LD 旧套话（dry-run 0 文件），无需清理；build 随 JSON 重建注入真实 deep-dive（grep 核验六型占位全 0、真实关键词命中）。
-- 五道门禁全过；detect_placeholders.py（SIX+GEN+STY3）misc2 归零，键数守恒 5022。脚本：scripts/apply_misc2.py。
+### ✅ sales（10 工具，完整分类收口，最新一条）
+- 10 工具（calc-1 提成孤儿键 / commission-calc 佣金阶梯 / commission-calculator 提成四模式 / conversion-funnel 转化漏斗 / cost-price-margin 成本售价利润率 / moving-average 移动平均预测 / price-calculator 定价四策略 / sales-forecast 销售预测 / stacked-discount 叠加折扣 / target-breakdown 目标分解）deep-dive 全量真实化（替换通用模板占位，按各工具真实逻辑写 3 场景+1 算例+2 FAQ）。
+- 算例 node 复核：commission-calc 阶梯3/5/8%累进 50万→2.9万（全额累进则4万）；cost-price 成本100/毛利25%→售价125/利润25；moving-average SMA(3) 序列[100,120,110,130,140]→[110,120,126.67]、下期126.67、WMA(3)133.33、α=0.5；sales-forecast MA(3)预测2期[126.67,132.22]；stacked 原价500先8折后满300减50→350省150（先满减后折=360，顺序有别）；funnel 10000→3000→1200→800 各步30%/40%/66.67%、总转化8%；price-calc 成本80/加成25/固定2000→售价100/毛利20/毛利率20%/盈亏平衡100件；target-breakdown 100万权重30/25/20/25→张三30万李四25万王五20万赵六25万。
+- calc-1 为孤儿键（无对应 HTML，标题「销售提成计算」）仍真实化 JSON 内容；其余 9 标题与功能一致保留。
+- sales 源 HTML 无可见 opt 块、无 FAQPage LD 旧套话（dry-run 0 文件），无需清理；build 随 JSON 重建注入真实 deep-dive（grep 核验六型占位全 0、真实关键词命中）。
+- 五道门禁全过；detect_placeholders.py（SIX+GEN+STY3）sales 归零，键数守恒 5022。脚本：scripts/apply_sales.py。
 
 ## 八、当前进行中分类
 
 > 当前无进行中分类。新分类开工时先在此登记（目录 + 工具数），收口后写入第七节并覆盖旧归档记录（§4.3 第 4 步）。
 
-## 九、分类总清单（待办，完成一个删一个；剩 58 个目录）
+## 九、分类总清单（待办，完成一个删一个；剩 57 个目录）
 
-- [ ] sales
 - [ ] office
 - [ ] printing
 - [ ] parenting
