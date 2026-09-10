@@ -145,11 +145,10 @@
 ## 七、已完成分类归档
 > 本区仅保留**最近一个（最新）已完成分类**的归档记录，更早历史不再保留，以控制文件体积。完成新分类时，用新记录替换本条。
 
-### ✅ woodworking（5 键 5 工具，5 真占位键；补扫扩展批次第 10 分类真实化收口，§9-b 全部完成）
-- 补强全站 scanner 捕获 5 真占位键（angle-cut/board-feet/moisture-content/mortise-size/wood-screws），模板="在woodworking场景下，先使用[VarName]建立输入边界" + 通用套话 + 未翻译英文变量名（Angle Cut/Board Feet/Moisture Content/Mortise Size/Wood Screws）。
-- 经 apply_woodworking.py 真实化：angle-cut 含斜接/复合斜切/锥切三模式（每段角度=总角/段数、斜接角=(180−每段角)/2、锯台=90−斜接角；复合实际斜接=atan(tan ma·cos ba)、实际斜切=asin(sin ba·cos ma)、真实角=atan(tan ma/cos ba)；锥切单侧=atan(差/2÷长)）；board-feet BF=厚×宽×长÷12、换算 m³/ft³/MBF、费用=BF×单价；moisture-content mc=(湿−绝干)/绝干×100、状态分档(窑干≤8/气干≤12/半干≤18/湿材≤25/生材)、从纤维饱和点30%按树种系数算径向/弦向/体积收缩；mortise-size 按榫型系数算榫厚(板厚×系数×硬度因子)/榫宽(板宽×系数)/榫深(板厚×系数)/肩宽/颊高；wood-screws 按总厚与木材硬度推荐规格(#6~#14)、长度(上层+下层×0.67/0.7 取整到5mm档)、预钻孔径(按硬度插值)、沉头孔径(外径×2)。示例数字全部 node 实跑复核（斜接90/2段：45.00/67.50/22.50；复合45/30：40.89/20.70/49.11；锥切40/30/300：0.95/1.91/0.0333；板英尺1×6×8×10：4.00/40.00/0.0944m³/$80；橡木含水120/100：20.0%/1.70/3.60/5.20；贯通榫25/100：榫厚10(40%)/榫宽70(70%)/榫深75/肩宽15/颊高8；螺丝30/15中硬面板平头：#10×30mm/外径4.8/预钻3.5/沉头9.6/穿透100%）。
-- HTML 三处残留：area4 intro-scenes 五文件已是真实木工场景（多边形框架制作/斜接锯角度设置、木材采购计算/材积单位换算、木材干燥评估/收缩变形预测、家具榫卯设计/传统榫卯制作、木工螺丝选型/预钻孔径确定），保留；angle-cut 含 area2 opt-guide/opt-faq 与 area3 FAQPage LD 旧套话（"在对应的输入框或选项中填写"），经 opt_cleanup_opt_blocks.py --cat woodworking 整段删除 + opt_faq_ld_sync.py --cat woodworking 同步为 3 条真实 FAQ；其余 4 文件 area2/area3 经 grep 确认无模板。deep-dive 区块经 _build.py 由 JSON 重建为真实内容。键数守恒 5022，英文变量名零残留（页面英文工具名属 i18n en-US 合法位保留）。
-- 五道门禁全过（run_gates 完整 build+4 检查）。§9b 待办 1→0（全部完成）。
+### ✅ medical2（5 键 5 工具，5 真占位键；第四波漏报批次第 1 分类真实化收口）
+- 全站 deep-dive 占位复扫发现的**第四波**真占位（模板变体：在{英文分类名}场景下，先使用{未翻译英文变量名}建立输入边界，后续再对关键指标拆分归因）。medical2 5 键（iv-drip-speed/bed-occupancy/medical-abbrev/surgery-duration/drug-expiry）经 apply_medical2.py 真实化：iv-drip-speed 滴速=总量×滴系数÷时间、滴速分级(<20慢/20-60常/60-80中/>80快)；bed-occupancy 使用率=占用床日÷开放床日、周转=出院÷开放床位、平均住院日；surgery-duration 多术式 min/max 求和+接台(准备/复苏/清洁n-1)+15%缓冲；medical-abbrev 缩写表模糊检索(qd/bid/tid/qid/po/iv)；drug-expiry 按剩余天数分级(默认近效期180/临期紧急30/过期)。示例数字全部 node 实跑复核（1000ml/8h/系数15→滴速31.3/125mlh；50床30天1200床日140出院→使用率80.0%/周转2.80/住院8.57天；2术式+接台→375/420/465分+缓冲63；效期2026-12-31距今111天→近效期）。
+- HTML 三处残留：iv-drip-speed/bed-occupancy/surgery-duration 仅 area4 intro-scenes 通用占位（4 条同款套话"日常健康监测/健身计划/体检解读/健康知识"）→ clean_medical2_intro.py 替换为真实医疗运营场景；medical-abbrev/drug-expiry 含 area2 opt 块（前2→后0）+ area3 FAQPage LD 套话（"在对应的输入框或选项中填写"）→ opt_cleanup_opt_blocks.py --cat medical2 删块 + opt_faq_ld_sync.py --cat medical2 同步 2 条真实 FAQ。deep-dive 区块经 _build.py 由 JSON 重建为真实内容。键数守恒 5022，英文变量名零残留。
+- 五道门禁全过（run_gates 完整 build+4 检查）。§9c 待办 3→2（photo2 排首）。
 ## 八、当前进行中分类
 
 > 当前无进行中分类。新分类开工时先在此登记（目录 + 工具数），收口后写入第七节并覆盖旧归档记录（§4.3 第 4 步）。
@@ -173,4 +172,13 @@
 - [x] stats (5: confidence-interval/data-distribution/regression-analysis/sample-size/statistical-tests) ✅
 - [x] unitedfront (3: assessor-training-hr-1/recommender-7/stats-9) ✅
 - [x] woodworking (5: angle-cut/board-feet/moisture-content/mortise-size/wood-screws) ✅
+
+## 九-c、第四波漏报真占位批次（全站复扫新发现的英文分类名模板变体；待办 3 分类 / 15 真占位键）
+
+> **背景**：§9 / §9-b / 全站扫描队列三波收官后，全站 deep-dive 占位复扫发现**第四波**真占位——模板变体为「在{英文分类名}场景下，先使用{未翻译英文变量名}建立输入边界，后续再对关键指标拆分归因」，分布在 medical2/photo2/pet-training 3 个分类共 15 键。该变体因场景前缀用英文名（非中文）且混用「后续再对关键指标拆分归因」套话，此前所有 scanner 均漏报。
+> **规则**：每分类走完整流水线（apply 脚本→area4 替换→双清 area2/area3→`_build.py`重建→五道门禁→发布核验→DEV-PLAN 状态机→记忆日志）；键数守恒 5022；JSON 占位/area2/area3/area4 四重清零。
+
+- [x] medical2 (5: iv-drip-speed/bed-occupancy/medical-abbrev/surgery-duration/drug-expiry) ✅
+- [ ] photo2 (5: exposure-triangle/focal-length/video-storage/print-size/color-temperature)
+- [ ] pet-training (5: leash-length/elimination-predict/command-repetition/treat-calories/clicker-timing)
 
