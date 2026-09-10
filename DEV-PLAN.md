@@ -145,19 +145,17 @@
 ## 七、已完成分类归档
 > 本区仅保留**最近一个（最新）已完成分类**的归档记录，更早历史不再保留，以控制文件体积。完成新分类时，用新记录替换本条。
 
-### ✅ seismology（5 键，真实化收口，最新一条）
-- 5 个工具全部真实化（generator-drill 应急预案生成器 8类场所模板 / stats-attenuation 余震序列描述统计 / analysis-stress 震源应力场描述统计 / assessor-30 GB/T 17742 烈度评估 PGA·PGV·震害指数·宏观现象 / assessor-31 综合震害 建筑+生命线+地质三因子加权0.40/0.35/0.25），每个含 3 真实场景 + 1 算例 + 2 专业 FAQ。
-- 读取 5 个 HTML 的 calc() 逻辑（含烈度阈值表、建筑 A/B/C 修正、震害指数加权公式）后按真实地球物理算法重写，算例数字全部 node 实跑复核（/tmp/verify_seismo.js）：assessor-30 PGA200/PGV20/DI0.35(A类)→VIII度；assessor-31 1000栋(轻200/中100/重50/局倒20/全倒10)+生命线(水30/电40/气2/路50/通60)+地质(滑20/落10/裂5/液3)→bldgDI0.099/life58/geo50/overall0.3676→严重震害(II级)；stats 余震[4.2,3.8,5.1,4.0,3.5]→均4.12/标差0.5418；analysis-stress [5.2,4.8,5.5,4.6,5.0]→均5.02/标差0.3124。
-- **关键坑**：assessor-30/31/generator-drill 3 个源 HTML 除 deep-dive 占野外，还残留可见 opt-guide 套话块（"在对应的输入框或选项中填写…"）与旧 FAQPage JSON-LD 旧套话；先用 opt_faq_ld_sync.py --cat seismology 同步 LD 为真实 FAQ，再用 opt_cleanup_opt_blocks.py --cat seismology 整段删 opt-guide/opt-faq（共 6 段），方归零。其余 2 文件无残留。
-- 全部 5 个 seismology 键经六型指纹(含"先统一"变体)扫描 + 可见 opt 块扫描 = 0 占位残留；5 个 HTML + index 逐文件 grep 占位=0、真实关键词≥1；五道门禁全过（GATES_EXIT=0）；键数守恒 5022。脚本：scripts/apply_seismology.py。
+### ✅ library（5 键，真实化收口，最新一条）
+- 5 个工具全部真实化（archive-label 档案盒标签生成 档号=全宗-目录-盒号 / overdue-fine 借阅逾期阶梯罚款 前7天1x·8-30天1.5x·30+天2x 可封顶 / citation-format GB/T 7714 多类型文献著录 / shelf-capacity 书架容量设计 每层=层长×填充率÷书厚 / clc-classifier 中图法 22 大类查表+索书号补全），每个含 3 真实场景 + 1 示例 + 2 专业 FAQ。
+- 读取 5 个 HTML 的 calc()/render() 逻辑后按真实图书馆学规则重写，数值算例全部 node 实跑复核（/tmp/verify_library.js）：overdue 逾期40天/0.5元/2本/阶梯→单本30.75元、总61.50元；shelf 6层/2m/双面/3cm/90%/5000册→每层60、单架720、需7架、2排、排架20m、面积34.0㎡。
+- 全部 5 个 library 键经六型指纹(含"先统一"变体)扫描 + 可见 opt 块扫描 = 0 占位残留（本批 5 个源 HTML 原 LD 即干净，无 opt-guide 旧套话）；5 个 HTML + index 逐文件 grep 占位=0、真实关键词≥1（clc 31/citation 12/archive 14/overdue 29/shelf 23/index 9）；五道门禁全过（GATES_EXIT=0）；键数守恒 5022。脚本：scripts/apply_library.py。
 
 ## 八、当前进行中分类
 
 > 当前无进行中分类。新分类开工时先在此登记（目录 + 工具数），收口后写入第七节并覆盖旧归档记录（§4.3 第 4 步）。
 
-## 九、分类总清单（待办，完成一个删一个；剩 43 个目录）
+## 九、分类总清单（待办，完成一个删一个；剩 42 个目录）
 
-- [ ] library
 - [ ] petrochem
 - [ ] martial
 - [ ] pets
