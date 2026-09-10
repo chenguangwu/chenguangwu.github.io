@@ -145,19 +145,18 @@
 ## 七、已完成分类归档
 > 本区仅保留**最近一个（最新）已完成分类**的归档记录，更早历史不再保留，以控制文件体积。完成新分类时，用新记录替换本条。
 
-### ✅ startup（6 工具，完整分类收口，最新一条）
-- 6 工具（business-plan 商业计划书生成器 / pitch-deck 路演PPT大纲 / valuation-calculator 创业估值(5法) / calc-1 创业成本估算 / burn-rate 烧钱率 / equity-calculator 股权计算）deep-dive 全量真实化（替换 STY3「在startup业务中，先把…标准化后再执行对比」占位）。business-plan/pitch-deck 为结构生成器（标准 BP 10 板块 / 标准 10 页路演），写标准结构+结构化示例；其余 4 个按真实算法写 3 场景+1 算例+2 FAQ；算例数字均 node 实跑复核。
-- node 复核：calc-1 默认参数→一次性9.3万+月运营4.3万+运营资金51.6万+储备12.9万=73.8万、跑道17.2月；burn-rate(现金50万/入2万/月支12.5万)→净烧10.5万、跑道4.8月(<6高危)、18月建议融资139万；equity A60/B40+池10%→A54%B36%池10%，一轮pre1000万/amt500万→A36%B24%池6.67%投资人33.33%；valuation Berkus1500万/Scorecard2100万/VC(post2082.5,pre582.5,持股72%)/DCF≈11169万/PS对标6000–16000万。
-- 标题均匹配功能无需校正；无孤儿键（6 键均有对应 HTML）。calc-1 含旧版 opt-guide/opt-faq 占位块(2块)+FAQPage LD 旧套话，已实际清理：opt_cleanup_opt_blocks.py 删2块、opt_faq_ld_sync.py 同步2条真实FAQ；其余 5 工具无 opt 套话。build 随 JSON 重建注入真实 deep-dive（grep 核验六型占位全 0、真实关键词命中 15–61）。
-- 五道门禁全过；detect_placeholders.py（SIX+GEN+STY3）startup 归零，键数守恒 5022。脚本：scripts/apply_startup.py。
+### ✅ video（6 工具，完整分类收口，最新一条）
+- 6 工具（subtitle-tool 字幕时间轴调整 / analysis-69 描述性统计(竞品对标) / video-speed 倍速时长计算 / video-trimmer 剪切时间规划 / video-compressor 压缩参数计算 / video-converter 格式转换参考）deep-dive 全量真实化（替换 STY3「在video业务中，先把…标准化后再执行对比」占位）。按各工具 HTML calc() 真实算法写 3 场景+1 算例+2 FAQ；算例数字均 node 实跑复核。
+- node 复核：subtitle 倍率25/24=1.0417→start 5000×1.0417≈5208ms、合并偏移−500≈4708ms；analysis 8数均值125.6/中位115/方差1484/标准差38.5/极差120；speed 2700s→1.5x=1800s(省33%)/2x=1350s(省50%)/反向1.5x/81000帧；trimmer 三段5+8+6=19min、删41min(68.3%)；compressor 100MB×8×1024÷600=1365kbps总码率、视频1237kbps、H.265原估167MB(省40%)；converter YouTube1080p10min视频585.9MB+音频28.1MB≈614MB(0.60GB)、H.265省38%。
+- 标题均匹配功能无需校正（analysis-69 名"竞品研究"但实为描述性统计计算器，deep-dive 按真实统计能力写、并挂钩竞品对标用途）；无孤儿键（6 键均有对应 HTML）。subtitle-tool 与 video-speed 含旧版 opt-guide/opt-faq 占位块(各2块)+FAQPage LD 旧套话，已实际清理：opt_cleanup_opt_blocks.py 各删2块、opt_faq_ld_sync.py 各同步2条真实FAQ；其余 4 工具无 opt 套话。build 随 JSON 重建注入真实 deep-dive（grep 核验六型占位全 0、真实关键词命中 6–35）。
+- 五道门禁全过；detect_placeholders.py（SIX+GEN+STY3）video 归零，键数守恒 5022。脚本：scripts/apply_video.py。
 
 ## 八、当前进行中分类
 
 > 当前无进行中分类。新分类开工时先在此登记（目录 + 工具数），收口后写入第七节并覆盖旧归档记录（§4.3 第 4 步）。
 
-## 九、分类总清单（待办，完成一个删一个；剩 51 个目录）
+## 九、分类总清单（待办，完成一个删一个；剩 50 个目录）
 
-- [ ] video
 - [ ] packaging
 - [ ] media
 - [ ] agriculture
