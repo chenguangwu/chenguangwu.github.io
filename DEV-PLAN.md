@@ -145,18 +145,17 @@
 ## 七、已完成分类归档
 > 本区仅保留**最近一个（最新）已完成分类**的归档记录，更早历史不再保留，以控制文件体积。完成新分类时，用新记录替换本条。
 
-### ✅ legal2（5 键，真实化收口，最新一条）
-- 5 个工具全部真实化（compensation-n1 N+1补偿测算 / contract-dates 合同日期校验 / ip-protection 知识产权保护期 / keyword-extract 法律关键词提取 / statute-deadline 诉讼时效计算），每个含 3 真实场景 + 1 算例 + 2 专业 FAQ。
-- 关键发现：本分类此前被误判为"已真实化"，实际 5 键仍全部为 GEN/STY3 占位模板（指纹"在legal2相关场景里，先统一<Name>口径…"）。本次读取 5 个 HTML 的 calc() 逻辑后按各领域真实规则重写，算例数字全部 node 实跑复核（/tmp/verify_legal2.js）：compensation-n1 3年8个月→N=4、N+1=75000元(免税)；高收入封顶 N=12、N+1=390000元(税900)；2N=720000元(税58080)；contract-dates 期限365天、提前30天通知截止2025-12-01；ip-protection 发明2030-03-01、商标续展2027-06-15~2028-06-15宽展至2028-12-15、外观2037-01-01；statute-deadline 普通3年→2024-01-01、中断重算→2025-06-01、中止123天→2024-05-03。
-- 全部 5 个 legal2 键经六型指纹(含"先统一"变体)扫描 = 0 占位残留；5 个 HTML 逐文件 grep 占位=0、真实关键词 15~55；五道门禁全过（ALL OK）；键数守恒 5022。脚本：scripts/apply_legal2.py。
+### ✅ accessibility（5 键，真实化收口，最新一条）
+- 5 个工具全部真实化（accessible-restroom 无障碍卫生间 GB55019 尺寸/扶手核查 / braille-translator 盲文转译 点位映射 / ramp-slope 轮椅坡度 水平与斜长 / sign-language 手语词汇 43词6类 / voice-synthesis 语音合成 Web Speech），每个含 3 真实场景 + 1 算例 + 2 专业 FAQ。
+- 读取 5 个 HTML 的 calc() 逻辑后按真实规范重写，算例数字全部 node 实跑复核（/tmp/verify_accessibility.js）：ramp H40 X12→水平4.80m/斜长4.82m/坡度8.33%(4.76°)；H40 X20→8.00m/5%(2.86°)；H30 X8→2.40m/12.5%(7.13°)；braille "12"=3格、「ab」=2格、「hello 2026」=11格(5字母4数字)；sign 43词/6类/8称谓；voice 默认文本23字。
+- 全部 5 个 accessibility 键经六型指纹(含"先统一"变体)扫描 = 0 占位残留；5 个 HTML + index 逐文件 grep 占位=0、真实关键词≥1（GB55019 6处 / 盲文26 / 手语20 / 语音合成22 / 算例5处）；五道门禁全过（GATES_EXIT=0）；键数守恒 5022。脚本：scripts/apply_accessibility.py。
 
 ## 八、当前进行中分类
 
 > 当前无进行中分类。新分类开工时先在此登记（目录 + 工具数），收口后写入第七节并覆盖旧归档记录（§4.3 第 4 步）。
 
-## 九、分类总清单（待办，完成一个删一个；剩 46 个目录）
+## 九、分类总清单（待办，完成一个删一个；剩 45 个目录）
 
-- [ ] accessibility
 - [ ] service
 - [ ] seismology
 - [ ] library
