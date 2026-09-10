@@ -145,50 +145,17 @@
 ## 七、已完成分类归档
 > 本区仅保留**最近一个（最新）已完成分类**的归档记录，更早历史不再保留，以控制文件体积。完成新分类时，用新记录替换本条。
 
-### ✅ security-guard（2 键，真实化收口，最新一条）
-- 2 个工具全部真实化（安保服务内容）：checker-8 保安服务质量检查（四维度加权 人员25%/流程30%/装备20%/满意25%，响应时间映射 rtScore、月投诉>5每超1扣3分）、assessor-risk-8 安全风险排查（5×5风险矩阵 likelihood×impact，四级判定，场景措施库5类）。每个含 3 真实场景 + 1 算例 + 2 专业 FAQ。
-- 算例数字全部 node 实跑复核（/tmp/verify_security_guard.js）：checker-8 默认→p92/s88/e91/c86/total89 良好（响应5分钟映射80分、投诉3次不罚）；投诉8次→c77/total87；assessor-risk-8 默认3风险点→maxRisk10 高风险（人员非法闯入3×3=9/消防2×5=10/设备3×2=6）、5×5=25极高需立即处置。
-- 两页 intro-scenes 已是真实安保场景（保安自查/物业考核/招投标 / 楼宇园区/大型活动/仓储信息生产）、无 opt 块、无 FAQPage LD 旧套话，无需清理或双清。五道门禁全过（含 build 重建）；六型+GEN(高频复用模板)+旧套话+opt块+第四处通用占位扫描 0 残留；真实安保关键词 2 页全注入；键数守恒 5022。脚本：scripts/apply_security_guard.py。
-- commit d59770ab4 / CI #34510400562 success（线上 2 页落盘核验占位=0、真实关键词>=37）。§9 21->20（surface 排首）。
-
-### ✅ water（2 键，真实化收口，最新一条）
-- 2 个工具全部真实化（水利工程内容）：calc-pressure 管径计算（海曾-威廉 Hazen-Williams 压力流 + 曼宁 Manning 重力流，解标准管径 DN）、assessor-22 节水评估（GB 25501/30717/28378/28377，按 perUse 算年节水量与回收期）。每个含 3 真实场景 + 1 算例 + 2 专业 FAQ。
-- 算例数字全部 node 实跑复核（/tmp/verify_water.js）：calc-pressure 压力流 Q=50L/s/PVC C=150/L=500m/hf=10m→D≈233.4mm→标准DN250（v1.02m/s、雷诺数3.8e5、沿程hf9.8m）；曼宁重力流 Q=30L/s/n=0.013/i=0.005→D≈372mm→DN400（v0.24m/s）；assessor-22 水嘴0.12L/s vs 基准0.20、50次×30s×4人×365→年节水量35.9m³、节水率40.0%、回收期约2.4年。
-- calc-pressure 含 FAQPage JSON-LD 旧套话（在对应的输入框或选项中填写）+ 可见 opt-guide 套话块，经 opt_faq_ld_sync(--cat water 同步3条真实FAQ)+opt_cleanup_opt_blocks(--cat water 删2块)清零（JSON 合法校验通过）；assessor-22 无 opt/FAQPage 旧块不处理。五道门禁全过（双清后复跑）；六型+GEN(高频复用模板)+旧套话+opt块扫描 0 残留；真实水利关键词 2 页全注入；键数守恒 5022。脚本：scripts/apply_water.py。
-- commit 4db8f7cd5 / CI #34509872965 success（线上 2 页落盘核验占位=0、真实关键词>=26）。§9 22->21（security-guard 排首）。
-
-### ✅ pharmacy（2 键，真实化收口，最新一条）
-- 2 个工具全部真实化（药店经营内容）：analysis-report-cost 财务成本分析（描述统计壳，绑定进货单价/毛利序列，总体方差÷n）、checker-manager 质量（GSP）管理检查（八维度1-10评分+阴凉库温湿度判定，综合分/80×100%=合规等级A/B/C/D）。每个含 3 真实场景 + 1 算例 + 2 专业 FAQ。
-- 算例数字全部 node 实跑复核（/tmp/verify_pharmacy.js）：analysis-report-cost [10..80]→均值45/总体方差525/标准差22.91/极差70；checker-manager 八维度9/8/9/8/7/9/8/8+温18°C/湿55%→综合66/80=82.5%(B级)、整改项 储存与养护管理(7分)。
-- 第四处 intro-scenes 通用占位仅 analysis-report-cost 命中（日常办公等4条），经 clean_pharmacy_intro.py 替换为真实药店财务场景；checker-manager 该块已是真实 GSP 内容（零售自查/批发审计/药监检查/体系评审）不处理。无 opt 块、无 FAQPage LD 旧套话，无需双清。五道门禁全过（含 build 重建）；六型+GEN(高频复用模板)+旧套话+opt块+第四处通用占位扫描 0 残留；真实药店关键词 2 页全注入；键数守恒 5022。脚本：scripts/apply_pharmacy.py、scripts/clean_pharmacy_intro.py。
-- commit 06d39e15c / CI #34509181377 success（线上 2 页落盘核验占位=0、真实关键词>=7）。§9 23->22（water 排首）。
-
-### ✅ steel（3 键，真实化收口，最新一条）
-- 3 个工具全部真实化（钢铁冶金内容）：steel-profile-weight 钢材型材重量（圆钢 a²×0.00617、方钢 a²×0.00785、扁钢 a×b×0.00785、等边角钢 (2a-t)×t×0.00785、槽钢 (a+b-2t)×t×0.00785×1.05，密度 7.85 g/cm³）、analysis-price-1 价格行情统计（描述统计壳，绑定螺纹钢周报价序列）、calc-1 钢结构焊缝（角焊缝 he=0.7hf、A=he×lw、复合应力 √[(σf/βf)²+τf²]、对接折算应力 √(σ²+3τ²)）。每个含 3 真实场景 + 1 算例 + 2 专业 FAQ。
-- 算例数字全部 node 实跑复核（/tmp/verify_steel.js）：steel-profile-weight 圆钢 20²×0.00617=2.468kg/m(总14.81)、方钢 3.14(18.84)、扁钢 20×10×0.00785=1.57(9.42)、角钢 (40-3)×3×0.00785=0.871(5.23)、槽钢 (20+10-6)×3×0.00785×1.05=0.593(3.56)；calc-1 角焊缝 hf8/lw200/N120/V50/M8/ffw160/βf1.22→he5.6/A1120/σf107.14/τf44.64/σfM214.29/复合267.22/应力比167.0%不满足，对接 t10 同荷载→σ180/τ25/折算185.14/115.7%不满足；analysis-price-1 [10..80]→均值45/标准差22.91(÷n)/极差70。
-- steel-profile-weight 含 FAQPage JSON-LD 旧套话（在对应的输入框或选项中填写/工作与生活中的相关计算与查询）+ 可见 opt-guide/opt-faq 套话块，经 opt_faq_ld_sync(--cat steel 同步2条真实FAQ)+opt_cleanup_opt_blocks(--cat steel 删2块)清零（JSON 合法校验通过）；第四处 intro-scenes 通用占位仅 analysis-price-1 命中（日常办公等4条），经 clean_steel_intro.py 替换为真实价格分析场景，steel-profile-weight/calc-1 无此块不处理。五道门禁全过（双清后复跑）；六型+GEN(高频复用模板)+旧套话+opt块+第四处通用占位扫描 0 残留；真实钢铁关键词 3 页全注入；键数守恒 5022。脚本：scripts/apply_steel.py、scripts/clean_steel_intro.py。
-- commit 1463578be / CI #34508535725 success（线上 3 页落盘核验 HTTP200、占位=0、真实关键词>=19）。§9 24->23（下一目录排首）。
-
-### ✅ woodwork（3 键，真实化收口）
-- 3 个工具全部真实化（木工制作内容）：convert-30 木材含水率与收缩率换算（通用量级换算壳 r=v×rate×f/t，绑定含水率/收缩率单位统一）、angle-1 曲线锯斜切角度（倒角宽=t·tanθ、刃口行程=t/cosθ、曲线锯跑偏 K=0.04、补偿角、复合斜切冠角 M/B 公式）、calculator-calc-15 榫头尺寸（榫厚=p×T、榫长=1.5×T、榫眼深=tl+2、榫宽=W−2×端肩、双榫中间榫肩）。每个含 3 真实场景 + 1 算例 + 2 专业 FAQ。
-- 算例数字全部 node 实跑复核（/tmp/verify_woodwork.js）：convert-30 2500毫→2.5木材、2.5木材→0.0025千；angle-1 45°/20mm/曲线锯标准刃→倒角20.0/行程28.28/跑偏0.80/补偿1.62，复合90°外角→M35.26°/B30.00°；calculator-calc-15 T30/W80/1:3/暗榫/Tr60/端肩6→榫厚9.99(卡10.0)/榫长45.0/榫眼深47.0/榫宽68.0/单边榫肩10.00/总胶接61.20cm²（注：单边榫肩浮点 30-9.99=20.00999…/2=10.0049…→toFixed(2)=10.00，非10.01）。
-- 第四处 intro-scenes 通用占位仅 convert-30 命中（日常办公等4条），经 clean_woodwork_intro.py 替换为真实木材场景；angle-1/calculator-calc-15 该块已是真实木工内容不处理。无 opt 块、无 FAQPage LD 旧套话，无需双清。五道门禁全过（含 build 重建）；六型+GEN(高频复用模板)+旧套话+opt块+第四处通用占位扫描 0 残留；键数守恒 5022。脚本：scripts/apply_woodwork.py、scripts/clean_woodwork_intro.py。
-- commit f7ba467d5 / CI #34506378290 success（线上 3 页落盘核验 HTTP200、占位=0、真实关键词>=25）。§9 27->26（photography 排首）。
-
-### ✅ textile2（4 键，真实化收口）
-- 4 个工具全部真实化（纺织印染内容）：dyeing-time 染色时间（升温时间=(目标-起始)/速率、多段累计、反算速率）、liquor-ratio 浴比（总液量=布重×浴比、g/L 与 owf% 互算）、dye-temp 染色温度对照（活性 60-80°C/分散 130°C 高温高压/酸性 95-100°C）、color-fastness 色牢度评级（GB/T 标准 1-5 级与 ΔE 区间）。每个含 3 真实场景 + 1 算例 + 2 专业 FAQ。
-- 算例数字全部 node 实跑复核（/tmp/verify_textile2.js）：dyeing-time 20→60/2°C/min/保温30→升温20min、总50min/0.83h；反向 20→100/40min→速率2.00°C/min、总70min/1.17h；liquor-ratio 10kg×1:10/20g/密度1→总液100L、加水99.98L、浓度0.20g/L、owf0.20%，owf2%→200g/2.00g/L，50kg×1:15→750L。
-- **双清（重要）**：dye-temp 源 HTML 含 FAQPage JSON-LD 旧套话（"在对应的输入框或选项中填写"/"工作与生活中的相关计算与查询"）+ 可见 opt-guide/opt-faq 套话块，经 opt_faq_ld_sync(--cat textile2 同步2条真实FAQ)+opt_cleanup_opt_blocks(--cat textile2 删2块)清零，JSON 合法校验通过；其余 3 页无 FAQPage/opt 套话。第四处 intro-scenes 通用占位（日常办公等4条）在 4 页经 clean_textile2_intro.py 替换为真实纺织场景（_build.py 不重建）。
-- 五道门禁全过（双清后复跑）；六型+GEN(高频复用模板)+旧套话+opt块+第四处通用占位扫描 0 残留；真实纺织关键词 4 页覆盖；键数守恒 5022。脚本：scripts/apply_textile2.py、scripts/clean_textile2_intro.py。
-- commit 78dd5b7ba / CI #34505561729 success（线上 4 页落盘核验 HTTP200、占位=0、真实关键词>=38）。§9 28->27（woodwork 排首）。
-
+### ✅ surface（2 键，真实化收口，最新一条）
+- 2 个工具全部真实化（表面处理内容）：detector-hardness 涂层（结合力/厚度/硬度）检测（划格 GB/T 9286 0-5级映射100/85/65/40/20/0、拉拔 ISO 4624 MPa 分段、厚度实测/标准比值分段评分、铅笔硬度 6B..9H 16级转分 round(10+pIdx×6)、综合=结合力×0.4+厚度×0.3+硬度×0.3）、assessor-34 盐雾试验结果评估（腐蚀面积→Rp 基础分 GB/T 6461、生锈×0.5/起泡×0.3/开裂×0.5/红锈−2 扣分、finalRp=max(基础−扣分,0)、isPass=Rp≥要求且无红锈）。每个含 3 真实场景 + 1 算例 + 2 专业 FAQ。
+- 算例数字全部 node 实跑复核（/tmp/verify_surface.js）：detector-hardness 默认划格0级/厚50μm标40μm(HB pIdx6→硬46)→综合83.8≈84分 涂层质量良好、合格；铅笔2H(pIdx9→硬58)→87.4≈87分 优秀；assessor-34 腐蚀0.1%→Rp8.0 耐蚀性优秀、合格；腐蚀0.05%+时长480h≥240h→Rp9.0 极优；腐蚀3%+起泡2/锈Ri2/裂1→Rp基础4−0.6−1.0−0.5=1.9 不合格。
+- 两页 intro-scenes 已是真实表面处理场景（涂层/镀层质量验收、表面处理工艺评估、涂层配方优化对比、检测报告辅助 / 镀层耐蚀性验收、表面处理工艺评估、材料选型对比、盐雾试验报告辅助）、无 opt 块、无 FAQPage LD 旧套话，无需清理或双清。五道门禁全过（含 build 重建）；六型+GEN(高频复用模板)+旧套话+opt块+第四处通用占位扫描 0 残留；真实表面处理关键词 2 页全注入；键数守恒 5022。脚本：scripts/apply_surface.py。
+- commit 4ac88c23c / Pages 部署完成（线上 2 页落盘核验占位=0、真实关键词命中 detector-hardness 3处 / assessor-34 2处）。§9 20->19（health 排首）。
 ## 八、当前进行中分类
 
 > 当前无进行中分类。新分类开工时先在此登记（目录 + 工具数），收口后写入第七节并覆盖旧归档记录（§4.3 第 4 步）。
 
-## 九、分类总清单（待办，完成一个删一个；剩 20 个目录）
+## 九、分类总清单（待办，完成一个删一个；剩 19 个目录）
 
-- [ ] surface
 - [ ] health
 - [ ] fishery
 - [ ] hematology
