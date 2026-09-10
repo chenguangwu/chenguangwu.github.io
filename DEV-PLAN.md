@@ -145,19 +145,19 @@
 ## 七、已完成分类归档
 > 本区仅保留**最近一个（最新）已完成分类**的归档记录，更早历史不再保留，以控制文件体积。完成新分类时，用新记录替换本条。
 
-### ✅ elderly（11 工具，完整分类收口，最新一条）
-- 11 工具（aid-height 助行器具高度 / assessor-35 Barthel 护理等级 / assessor-36 介入需求 / assessor-37 服务质量 / assessor-risk-1 居家跌倒环境 / bp-trend 血压趋势 / eldercare-level 照护等级 / fall-risk 跌倒风险 / medication-schedule 用药计划 / reminder-time 提醒 / wheelchair-width 轮椅通道）deep-dive 已真实化（替换「快速复核」占位，按工具专属真实公式/算例/FAQ），六型扫描零残留；bp-trend/fall-risk/medication-schedule/reminder-time 为交互式记录/评估/生成器（无计算公式），写参考指南型。
-- 算例按工具逻辑 node 独立复算（aid-height 身高170+鞋2→有效172cm，手杖172×0.46≈79cm/46%、腋杖×0.77≈132cm/77%、前臂杖×0.50≈86cm、助行器×0.49≈84cm；assessor-35 Barthel85&认知0→四级自理、Barthel50&认知1→二级中度；assessor-36 四项均0→低需求(/12)、均2→总分8高需求；assessor-37 五维均5→25/均值5.00优秀、均3→15/3.00一般；assessor-risk-1 八项均0→低风险(/24)、合计16→高风险；eldercare-level 七项均0→一级轻度、合计8→二级中度、≥10→三级重度；wheelchair-width 门洞手动轮椅≥800mm、走廊自行≥1200/协助≥1500mm、电动700/护理740mm 同法）。
-- elderly 源 HTML 无旧 opt-guide/opt-faq 可见块，亦无 FAQPage JSON-LD 旧套话（dry-run 0 文件），无需清理。其余文件仅 deep-dive 占位，build 随 JSON 重建。
-- 五道门禁全过（build→静态→死链→资产→公式回归）；占位/套话核验全 0，键数守恒 5022。脚本：scripts/apply_elderly.py。
+### ✅ text（11 工具，完整分类收口，最新一条）
+- 11 工具（analysis-density 描述性统计 / calc-1 文本差异对比 / convert-6 大小写转换 / convert-7 系数法单位换算 / lorem-ipsum-generator 占位文本 / reading-time-estimator 阅读时长 / sensitive-word-filter 敏感词 / stats-1 描述性统计 / text-to-1337 Leet语 / text-to-ascii-art ASCII艺术字 / text-to-braille 盲文）deep-dive 全量真实化（替换通用模板"当你在text相关场景中需要基于…"占位，按各工具真实功能写 3 场景+1 算例+2 FAQ）。
+- analysis-density 与 stats-1 实为描述统计（均值/中位数/标准差/方差），convert-7 实为系数法单位换算（r=v×rate×f/t），但源 JSON 标题误写"关键词密度分析/字数统计/驼峰转换"，已校正标题匹配真实功能（标题仅作深度解析 h2，无其它依赖）；其余 8 标题与功能一致保留。
+- 算例按工具逻辑 node/手算复核：analysis-density/stats-1 输入 10..80→n8/sum360/mean45/med45/range70/var525/std22.91；reading-time 1200中字+80英词÷(300,200)→4.4→4min；convert-7 2×1×1000/1=2000(2km=2000m)；1337 "leet speak is fun"→"1337 5p34k 15 fun"；braille "Hello 123!"→"⠓⠑⠇⠇⠕ ⠂⠆⠒⠖"；convert-6 "hello world"→大写/小写/首字母三态；calc-1 LCS 差异；sensitive "免费领取大奖"→"免费领取***"；ascii-art 5×5 点阵。
+- text 源 HTML 无可见 opt-guide/opt-faq 块、无 FAQPage JSON-LD 旧套话（dry-run 0 文件），无需清理；build 随 JSON 重建注入真实 deep-dive，另 fire/extinguisher-calc.html 随 build 规范化去一空行一并固化。
+- 五道门禁全过；主检测器 detect_placeholders.py（覆盖 SIX+GEN+STY3 三套指纹）text 归零，键数守恒 5022。脚本：scripts/apply_text.py + scripts/detect_placeholders.py（主检测器，供后续批次复用）。
 
 ## 八、当前进行中分类
 
 > 当前无进行中分类。新分类开工时先在此登记（目录 + 工具数），收口后写入第七节并覆盖旧归档记录（§4.3 第 4 步）。
 
-## 九、分类总清单（待办，完成一个删一个；剩 64 个目录）
+## 九、分类总清单（待办，完成一个删一个；剩 63 个目录）
 
-- [ ] text
 - [ ] pet
 - [ ] security
 - [ ] procurement
