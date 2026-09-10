@@ -145,19 +145,18 @@
 ## 七、已完成分类归档
 > 本区仅保留**最近一个（最新）已完成分类**的归档记录，更早历史不再保留，以控制文件体积。完成新分类时，用新记录替换本条。
 
-### ✅ cardiology（26 键 25 工具，deep-dive 早已真实化；本次清理 1 孤儿占位键 + 6 文件 area2/3 双清）
-- 26 个 JSON 键对应 25 个工具页（calc-2 为孤儿占位键，无 calc-2.html，git 历史已将其并入 chads2-vasc.html）。25 键早已真实化（CHA2DS2-VASc、HAS-BLED、GRACE、TIMI、NYHA、肾功能 CKD-EPI、他汀强度、心脏康复 METs、主动脉夹层、心包积液、冠脉钙化、运动心肺 CPET、动态心电图分级、抗心律失常分类、心肌桥、超声报告等含真实公式与算例）。
-- 孤儿键 cardiology/calc-2 内容即"房颤 CHA₂DS₂-VASc 栓塞风险评估"（与 chads2-vasc 同域），STY3 占位（"快速复核/常见场景："），经 apply_cardiology.py 替换为真实 CHA2DS2-VASc 内容（评分累加、抗凝指征男≥2/女≥3、HAS-BLED 高出血风险纠正可逆因素而非停抗凝），键数守恒 5022。
-- area2：opt_cleanup_opt_blocks --cat cardiology 清 6 文件（antiarrhythmic-class/cpet-analysis/grace-score/myocardial-bridge/rater-risk-3/statin-dose）前 12→后 0；area3：opt_faq_ld_sync --cat cardiology 同步 6 文件真实 FAQ（各 3 条）；area4（日常办公与学习类）扫描 0。
-- 五道门禁全过（run_gates --skip-build）。脚本：scripts/apply_cardiology.py。
-- commit 3a89ceffb / Pages 部署核验中（sleep150 复验 area2/3/4 全 0 残留）。§9 16->15（clinical-lab 排首）。
+### ✅ clinical-lab（25 键 25 工具，deep-dive 早已真实化；本次仅 2 文件 area2/3 双清）
+- 25 个 JSON 键对应 25 个工具页，无孤儿键（1:1）。25 键 deep-dive 早已真实化（血气分析代偿、流式细胞术比值、MIC 折点、凝血、生化组合等含真实公式与算例）。
+- JSON 占位扫描命中 clinical-lab/blood-gas-analysis 的"快速复核"，经通读确认为真实 summary「辅助血气报告快速复核」名词短语（非 SIX 模板占位标题），误报、无需改。
+- area2：opt_cleanup_opt_blocks --cat clinical-lab 清 2 文件（flow-cytometry-ratio/mic-breakpoint）前 4→后 0；area3：opt_faq_ld_sync --cat clinical-lab 同步 2 文件真实 FAQ（各 3 条）；area4（日常办公与学习类）扫描 0。
+- 五道门禁全过（run_gates --skip-build）。无 apply 脚本（无 JSON 占位键需替换）。
+- commit 8d00a1fa7 / Pages 部署核验中（sleep150 复验 area2/3/4 全 0 残留）。§9 15->14（food-testing 排首）。
 ## 八、当前进行中分类
 
 > 当前无进行中分类。新分类开工时先在此登记（目录 + 工具数），收口后写入第七节并覆盖旧归档记录（§4.3 第 4 步）。
 
-## 九、分类总清单（待办，完成一个删一个；剩 15 个目录）
+## 九、分类总清单（待办，完成一个删一个；剩 14 个目录）
 
-- [ ] clinical-lab
 - [ ] food-testing
 - [ ] beauty
 - [ ] data
