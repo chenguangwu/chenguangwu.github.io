@@ -145,19 +145,18 @@
 ## 七、已完成分类归档
 > 本区仅保留**最近一个（最新）已完成分类**的归档记录，更早历史不再保留，以控制文件体积。完成新分类时，用新记录替换本条。
 
-### ✅ video（6 工具，完整分类收口，最新一条）
-- 6 工具（subtitle-tool 字幕时间轴调整 / analysis-69 描述性统计(竞品对标) / video-speed 倍速时长计算 / video-trimmer 剪切时间规划 / video-compressor 压缩参数计算 / video-converter 格式转换参考）deep-dive 全量真实化（替换 STY3「在video业务中，先把…标准化后再执行对比」占位）。按各工具 HTML calc() 真实算法写 3 场景+1 算例+2 FAQ；算例数字均 node 实跑复核。
-- node 复核：subtitle 倍率25/24=1.0417→start 5000×1.0417≈5208ms、合并偏移−500≈4708ms；analysis 8数均值125.6/中位115/方差1484/标准差38.5/极差120；speed 2700s→1.5x=1800s(省33%)/2x=1350s(省50%)/反向1.5x/81000帧；trimmer 三段5+8+6=19min、删41min(68.3%)；compressor 100MB×8×1024÷600=1365kbps总码率、视频1237kbps、H.265原估167MB(省40%)；converter YouTube1080p10min视频585.9MB+音频28.1MB≈614MB(0.60GB)、H.265省38%。
-- 标题均匹配功能无需校正（analysis-69 名"竞品研究"但实为描述性统计计算器，deep-dive 按真实统计能力写、并挂钩竞品对标用途）；无孤儿键（6 键均有对应 HTML）。subtitle-tool 与 video-speed 含旧版 opt-guide/opt-faq 占位块(各2块)+FAQPage LD 旧套话，已实际清理：opt_cleanup_opt_blocks.py 各删2块、opt_faq_ld_sync.py 各同步2条真实FAQ；其余 4 工具无 opt 套话。build 随 JSON 重建注入真实 deep-dive（grep 核验六型占位全 0、真实关键词命中 6–35）。
-- 五道门禁全过；detect_placeholders.py（SIX+GEN+STY3）video 归零，键数守恒 5022。脚本：scripts/apply_video.py。
+### ✅ packaging（6 工具，完整分类收口，最新一条）
+- 6 工具（calc-1 外箱尺寸 / calc-2 缓冲厚度 / calc-66 纸箱抗压堆码(McKee) / strength-12 封箱胶带·热熔胶强度 / strength-11 瓦楞楞型·强度设计 / shousuomo 收缩膜收缩率·热封参数）deep-dive 全量真实化（替换 STY3「在packaging业务中，先把…标准化后再执行对比」占位）。按各工具 HTML calc() 真实算法写 3 场景+1 算例+2 FAQ；算例数字均 node 实跑复核（/tmp/verify_packaging.js）。
+- node 复核：calc-1 产品400×300×200+缓冲15+纸板6→外箱442×342×242mm、内0.024m³/外0.0366m³、利用率65.6%；calc-2 跌落90/G40/EPE C2.5/重3/接触80→56.25mm、动应力147.10kPa；calc-66 400×300×250 BC堆2.5m K3 毛重12→Z1.4m、BCT3348N≈341kgf、10层需3178N、安全余量小；strength-12 胶带38/热熔25→强度比1.52、相对0.66；strength-11 C楞ECT6.0/需求5.0→强度比1.20、相对0.83；shousuomo 标称60实测63→+5.00%、实测57→−5.00%。
+- 三通用双输入计算器（strength-12/strength-11/shousuomo）标题路由分支已确认：strength-12/11 命中「强度」分支(stress=A/B、safety=B/A)，shousuomo 命中「收缩」分支(变化率=(A−B)/B×100%)；deep-dive 按实际路由输出公式写，未套用通用模板。无孤儿键（6 键均有对应 HTML）。6 文件均无旧 opt-guide/opt-faq 块、无 FAQPage LD 旧套话，无需 opt 清理。
+- 五道门禁全过（build+静态+死链+资产+公式回归 ALL OK）；grep 核验六型占位全 0、真实关键词命中 2–35；键数守恒 5022。脚本：scripts/apply_packaging.py。
 
 ## 八、当前进行中分类
 
 > 当前无进行中分类。新分类开工时先在此登记（目录 + 工具数），收口后写入第七节并覆盖旧归档记录（§4.3 第 4 步）。
 
-## 九、分类总清单（待办，完成一个删一个；剩 50 个目录）
+## 九、分类总清单（待办，完成一个删一个；剩 49 个目录）
 
-- [ ] packaging
 - [ ] media
 - [ ] agriculture
 - [ ] legal2
