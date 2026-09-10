@@ -145,19 +145,17 @@
 ## 七、已完成分类归档
 > 本区仅保留**最近一个（最新）已完成分类**的归档记录，更早历史不再保留，以控制文件体积。完成新分类时，用新记录替换本条。
 
-### ✅ film（6 键 6 工具，deep-dive 早已真实化；本轮零改动收口）
-- 扫描无孤儿键；全 6 键 deep-dive 占位指纹=0（已真实）。JSON「占位」键 film/editing-timecode 命中「统一口径」经通读确认为误报（真实场景"字幕、音效和后期特效团队常用'时间码转总帧'的统一口径快速同步交付点"），未改（同 data/generator-35 规律）。
-- 全 6 文件全量复核：套话=0、opt块=0、area4 通用 intro=0，无任何占位残留。
-- 本轮 film 无需任何源文件改动（deep-dive 早已真实、HTML 三处残留均为 0），属"早已真实化但 §9 待收口"分类（同 health/fishery 性质）。门禁 run_gates --skip-build 四道全过（无源改动不重建，避免 build 规范化噪声）。
-- 复验 scan_cat.py film：HTML 三处残留全 0（JSON「统一口径」误报仍标但无需改）。键数守恒 5022。§9 9->8（audit 排首）。
+### ✅ audit（5 键 5 工具，deep-dive 早已真实化；本轮零改动收口）
+- 扫描无孤儿键；全 5 键 deep-dive 占位指纹=0（已真实）。JSON「占位」键 audit/npv-discount 命中「统一口径」经通读确认为误报（真实场景"用年金或逐期折现模式统一口径后横向对比"），未改（同 data/generator-35、film/editing-timecode 规律）。
+- **关键判断（延续 psychology/dyeing 教训）**：扫描器对 depreciation-compare.html 报「area2-opt块=2」。经通读，该 opt块**不含**占位套话"在对应的输入框或选项中填写"（grep 全量=0），而是真实折旧内容（参数说明：资产原值/预计残值/使用年限；适用场景：直线法/双倍余额递减/年数总和对比；2 条真实 FAQ 讲双倍余额递减改直线法原因与所得税影响）。与 psychology/tester-3 同类——**保留真实 opt 块、不跑 blanket 删除**。
+- 全 5 文件全量复核：套话=0、opt块含真实内容（depreciation-compare）其余 0、area4 通用 intro=0，仅 npv-discount「统一口径」JSON 误报。本轮 audit 无需任何源文件改动，属"早已真实化但 §9 待收口"分类（同 health/fishery/film）。
+- 门禁 run_gates --skip-build 四道全过。复验 scan_cat.py audit：HTML 三处残留全 0（npv-discount 误报仍标但无需改）。键数守恒 5022。§9 8->7（customer-service 排首）。
 ## 八、当前进行中分类
 
 > 当前无进行中分类。新分类开工时先在此登记（目录 + 工具数），收口后写入第七节并覆盖旧归档记录（§4.3 第 4 步）。
 
-## 九、分类总清单（待办，完成一个删一个；剩 9 个目录）
+## 九、分类总清单（待办，完成一个删一个；剩 7 个目录）
 
-- [ ] film
-- [ ] audit
 - [ ] customer-service
 - [ ] food-safety
 - [ ] writing
