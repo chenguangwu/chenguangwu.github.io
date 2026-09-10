@@ -145,20 +145,19 @@
 ## 七、已完成分类归档
 > 本区仅保留**最近一个（最新）已完成分类**的归档记录，更早历史不再保留，以控制文件体积。完成新分类时，用新记录替换本条。
 
-### ✅ text（11 工具，完整分类收口，最新一条）
-- 11 工具（analysis-density 描述性统计 / calc-1 文本差异对比 / convert-6 大小写转换 / convert-7 系数法单位换算 / lorem-ipsum-generator 占位文本 / reading-time-estimator 阅读时长 / sensitive-word-filter 敏感词 / stats-1 描述性统计 / text-to-1337 Leet语 / text-to-ascii-art ASCII艺术字 / text-to-braille 盲文）deep-dive 全量真实化（替换通用模板"当你在text相关场景中需要基于…"占位，按各工具真实功能写 3 场景+1 算例+2 FAQ）。
-- analysis-density 与 stats-1 实为描述统计（均值/中位数/标准差/方差），convert-7 实为系数法单位换算（r=v×rate×f/t），但源 JSON 标题误写"关键词密度分析/字数统计/驼峰转换"，已校正标题匹配真实功能（标题仅作深度解析 h2，无其它依赖）；其余 8 标题与功能一致保留。
-- 算例按工具逻辑 node/手算复核：analysis-density/stats-1 输入 10..80→n8/sum360/mean45/med45/range70/var525/std22.91；reading-time 1200中字+80英词÷(300,200)→4.4→4min；convert-7 2×1×1000/1=2000(2km=2000m)；1337 "leet speak is fun"→"1337 5p34k 15 fun"；braille "Hello 123!"→"⠓⠑⠇⠇⠕ ⠂⠆⠒⠖"；convert-6 "hello world"→大写/小写/首字母三态；calc-1 LCS 差异；sensitive "免费领取大奖"→"免费领取***"；ascii-art 5×5 点阵。
-- text 源 HTML 无可见 opt-guide/opt-faq 块、无 FAQPage JSON-LD 旧套话（dry-run 0 文件），无需清理；build 随 JSON 重建注入真实 deep-dive，另 fire/extinguisher-calc.html 随 build 规范化去一空行一并固化。
-- 五道门禁全过；主检测器 detect_placeholders.py（覆盖 SIX+GEN+STY3 三套指纹）text 归零，键数守恒 5022。脚本：scripts/apply_text.py + scripts/detect_placeholders.py（主检测器，供后续批次复用）。
+### ✅ pet（11 工具，完整分类收口，最新一条）
+- 11 工具（analysis-cost-profit-1 描述性统计 / checker-16 经营合规评分 / checker-diagnosis 诊疗鉴别 / convert-25 系数法换算 / kouling 训练负荷 / pet-age-converter 年龄换算 / pet-feeding-calc 喂食量 / pet-food 喂食量 / pet-medicine 药量 / reminder 疫苗驱虫提醒 / training-planner 训练计划）deep-dive 全量真实化（替换通用模板"当你在pet相关场景中…"占位，按各工具真实功能写 3 场景+1 算例+2 FAQ）。
+- analysis-cost-profit-1 实为描述统计（均值/中位数/标准差/方差），原标题误写"成本分析"，已校正标题；pet-food 无对应 HTML 页面（孤儿键），仍真实化其 JSON 内容；其余 9 标题与功能一致保留。
+- 算例按工具逻辑 node/手算复核：analysis-cost-profit-1 输入10..80→n8/sum360/mean45/med45/range70/var525/std22.91；checker-16 资质100%+法规80%+检查70%→86 合规良好（资质<85%硬判不合格）；pet-age 猫3岁→20、小型犬5岁→57、大型犬3岁→41 人类岁；feeding 10kg犬400kcal/100g→731kcal/183g；kouling 5×10/3≈16.67；pet-medicine 10kg犬5–10mg/kg→50–100mg(均75)/q12h→100–200mg/天；reminder 上次+间隔天数=下次到期。
+- pet 源 HTML 无可见 opt-guide/opt-faq 块、无 FAQPage LD 旧套话（dry-run 0 文件），无需清理；build 随 JSON 重建注入真实 deep-dive。
+- 五道门禁全过；detect_placeholders.py（SIX+GEN+STY3）pet 归零，键数守恒 5022。脚本：scripts/apply_pet.py。
 
 ## 八、当前进行中分类
 
 > 当前无进行中分类。新分类开工时先在此登记（目录 + 工具数），收口后写入第七节并覆盖旧归档记录（§4.3 第 4 步）。
 
-## 九、分类总清单（待办，完成一个删一个；剩 63 个目录）
+## 九、分类总清单（待办，完成一个删一个；剩 62 个目录）
 
-- [ ] pet
 - [ ] security
 - [ ] procurement
 - [ ] usedcar
