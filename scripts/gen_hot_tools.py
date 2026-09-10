@@ -17,72 +17,92 @@ OUTPUT_PATH = os.path.join(ROOT, 'json', 'hot-tools.json')
 
 
 # Ordered by expected general usefulness, not a claim about real-time traffic.
-# Keep the list at 60: developer/data, visual/document, and everyday work all
-# need representation on the homepage.
+# Keep this list limited to tools that can run entirely in the browser. AI
+# service pages are deliberately excluded from the homepage editorial list.
 HOT_TOOL_URLS = (
-    # Developer, data, and text (36)
+    # Developer, data, and text
     'tools/it/json-formatter.html',
     'tools/it/qrcode.html',
-    'tools/it/password-generator.html',
-    'tools/it/regex.html',
-    'tools/life/timestamp.html',
     'tools/it/base64.html',
+    'tools/it/regex.html',
+    'tools/it/timestamp-converter.html',
     'tools/it/url-encode.html',
+    'tools/it/cron.html',
     'tools/it/uuid-generator.html',
-    'tools/it/jwt-debugger.html',
-    'tools/it/hash-multi.html',
-    'tools/it/json-diff.html',
+    'tools/it/password-generator.html',
+    'tools/it/md5.html',
+    'tools/it/sql-formatter.html',
+    'tools/it/jwt.html',
+    'tools/it/yaml-formatter.html',
+    'tools/it/sha.html',
+    'tools/it/markdown-editor.html',
     'tools/it/json-to-csv.html',
     'tools/it/csv-to-json.html',
-    'tools/it/json-to-yaml.html',
-    'tools/it/yaml-to-json.html',
-    'tools/it/xml-formatter.html',
-    'tools/it/xml-to-json.html',
-    'tools/it/yaml-validator.html',
-    'tools/it/sql-formatter.html',
-    'tools/it/markdown-to-html.html',
-    'tools/it/html-entity-encoder.html',
-    'tools/it/css-minify.html',
-    'tools/it/css-formatter.html',
-    'tools/it/js-minify.html',
-    'tools/it/slugify.html',
-    'tools/it/case-converter.html',
     'tools/it/text-diff.html',
-    'tools/it/unicode-lookup.html',
-    'tools/it/csv-validator.html',
-    'tools/it/mime-type-lookup.html',
-    'tools/it/user-agent-parser.html',
-    'tools/it/ip-calculator.html',
-    'tools/it/cron.html',
-    'tools/it/wifi-qr.html',
-    'tools/it/lorem.html',
-    'tools/it/base64-file.html',
-    # Design, images, documents (11)
+    'tools/it/js-formatter.html',
+    'tools/it/css-minifier.html',
+    'tools/it/random.html',
+    'tools/it/code-runner.html',
+    'tools/it/aes-encryptor.html',
+    'tools/it/xml-formatter.html',
+    'tools/it/http-status.html',
+    'tools/it/markdown-table-generator.html',
+    'tools/it/json-diff.html',
+    # Design, images, and documents
     'tools/design/color-picker.html',
     'tools/design/image-compress.html',
     'tools/design/image-format-converter.html',
-    'tools/design/image-cropper.html',
+    'tools/design/image-resizer.html',
     'tools/design/favicon-generator.html',
-    'tools/design/shadow-generator.html',
-    'tools/it/color-converter.html',
-    'tools/biz/barcode-generator.html',
+    'tools/design/gradient.html',
+    'tools/design/base64-to-image.html',
+    'tools/design/image-color-picker.html',
+    'tools/design/image-watermark.html',
+    'tools/image/image-crop.html',
+    'tools/image/image-converter.html',
+    'tools/image/image-collage.html',
     'tools/office/pdf-merge.html',
     'tools/office/pdf-split.html',
     'tools/office/pdf-rotate.html',
-    # Everyday, study, and work (13)
+    # Everyday, study, finance, health, and work
     'tools/life/unit-converter.html',
+    'tools/life/tip-calculator.html',
+    'tools/life/weight-converter.html',
+    'tools/life/length-converter.html',
+    'tools/life/temperature-converter.html',
     'tools/life/percentage-calculator.html',
     'tools/life/age-calculator.html',
     'tools/life/date-diff.html',
-    'tools/edu/timezone-converter.html',
-    'tools/edu/gpa-calculator.html',
-    'tools/marketing/utm-builder.html',
-    'tools/finance/roi-calculator.html',
+    'tools/life/world-clock.html',
+    'tools/life/countdown.html',
+    'tools/life/workday-calculator.html',
+    'tools/life/calorie-calculator.html',
+    'tools/health/bmi-calculator.html',
+    'tools/health/bmr-calculator.html',
+    'tools/health/tdee-calculator.html',
+    'tools/health/sleep-cycle-calculator.html',
+    'tools/health/body-fat-calculator.html',
+    'tools/health/pregnancy-due-date.html',
+    'tools/finance/tax-calculator.html',
     'tools/finance/mortgage-calculator.html',
     'tools/finance/compound-interest.html',
-    'tools/finance/invoice-generator.html',
-    'tools/it/random-string.html',
-    'tools/it/device-info.html',
+    'tools/finance/currency-converter.html',
+    'tools/finance/roi-calculator.html',
+    'tools/finance/car-loan-calculator.html',
+    'tools/finance/loan-amortization.html',
+    'tools/finance/discount-calculator.html',
+    'tools/finance/word-counter.html',
+    'tools/science/calculator.html',
+    'tools/edu/gpa-calculator.html',
+    'tools/biz/simplified-traditional.html',
+    'tools/office/excel-formula-reference.html',
+    'tools/office/flowchart.html',
+    'tools/marketing/utm-builder.html',
+    'tools/marketing/marketing-keyword-density.html',
+    'tools/legal/labor-compensation-n1.html',
+    'tools/legal/court-fee.html',
+    'tools/travel/world-timezone-converter.html',
+    'tools/travel/travel-budget-calculator.html',
 )
 
 
@@ -113,13 +133,13 @@ def main():
     by_url = {tool.get('url'): tool for tool in tools if isinstance(tool, dict)}
     missing = [url for url in HOT_TOOL_URLS if url not in by_url]
     duplicate_count = len(HOT_TOOL_URLS) - len(set(HOT_TOOL_URLS))
-    if missing or duplicate_count or len(HOT_TOOL_URLS) != 60:
+    if missing or duplicate_count or len(HOT_TOOL_URLS) != 80:
         if missing:
             print('Missing selected hot tools:', ', '.join(missing), file=sys.stderr)
         if duplicate_count:
             print('Duplicate selected hot tools: %d' % duplicate_count, file=sys.stderr)
-        if len(HOT_TOOL_URLS) != 60:
-            print('Expected 60 selected tools, got %d' % len(HOT_TOOL_URLS), file=sys.stderr)
+        if len(HOT_TOOL_URLS) != 80:
+            print('Expected 80 selected tools, got %d' % len(HOT_TOOL_URLS), file=sys.stderr)
         raise SystemExit(1)
 
     cards = [hot_card(by_url[url]) for url in HOT_TOOL_URLS]
