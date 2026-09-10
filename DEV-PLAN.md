@@ -145,10 +145,10 @@
 ## 七、已完成分类归档
 > 本区仅保留**最近一个（最新）已完成分类**的归档记录，更早历史不再保留，以控制文件体积。完成新分类时，用新记录替换本条。
 
-### ✅ medical2（5 键 5 工具，5 真占位键；第四波漏报批次第 1 分类真实化收口）
-- 全站 deep-dive 占位复扫发现的**第四波**真占位（模板变体：在{英文分类名}场景下，先使用{未翻译英文变量名}建立输入边界，后续再对关键指标拆分归因）。medical2 5 键（iv-drip-speed/bed-occupancy/medical-abbrev/surgery-duration/drug-expiry）经 apply_medical2.py 真实化：iv-drip-speed 滴速=总量×滴系数÷时间、滴速分级(<20慢/20-60常/60-80中/>80快)；bed-occupancy 使用率=占用床日÷开放床日、周转=出院÷开放床位、平均住院日；surgery-duration 多术式 min/max 求和+接台(准备/复苏/清洁n-1)+15%缓冲；medical-abbrev 缩写表模糊检索(qd/bid/tid/qid/po/iv)；drug-expiry 按剩余天数分级(默认近效期180/临期紧急30/过期)。示例数字全部 node 实跑复核（1000ml/8h/系数15→滴速31.3/125mlh；50床30天1200床日140出院→使用率80.0%/周转2.80/住院8.57天；2术式+接台→375/420/465分+缓冲63；效期2026-12-31距今111天→近效期）。
-- HTML 三处残留：iv-drip-speed/bed-occupancy/surgery-duration 仅 area4 intro-scenes 通用占位（4 条同款套话"日常健康监测/健身计划/体检解读/健康知识"）→ clean_medical2_intro.py 替换为真实医疗运营场景；medical-abbrev/drug-expiry 含 area2 opt 块（前2→后0）+ area3 FAQPage LD 套话（"在对应的输入框或选项中填写"）→ opt_cleanup_opt_blocks.py --cat medical2 删块 + opt_faq_ld_sync.py --cat medical2 同步 2 条真实 FAQ。deep-dive 区块经 _build.py 由 JSON 重建为真实内容。键数守恒 5022，英文变量名零残留。
-- 五道门禁全过（run_gates 完整 build+4 检查）。§9c 待办 3→2（photo2 排首）。
+### ✅ photo2（5 键 5 工具，5 真占位键；第四波漏报批次第 2 分类真实化收口）
+- 全站 deep-dive 占位复扫发现的**第四波**真占位（模板变体同 medical2：在{英文分类名}场景下，先使用{未翻译英文变量名}建立输入边界，后续再对关键指标拆分归因）。photo2 5 键（exposure-triangle/focal-length/video-storage/print-size/color-temperature）经 apply_photo2.py 真实化：exposure-triangle EV=log₂(N²/t)-log₂(iso/100) 联动曝光三角；focal-length 视场角 FoV=2×arctan(宽/2f)、等效焦距=焦距×(参考画幅对角线/当前画幅对角线)；video-storage 文件大小=(视频码率+音频码率)×时长÷8÷1024×编码系数；print-size 物理尺寸=像素÷DPI×25.4、300DPI 质量评级；color-temperature Mired=1000000/K 与黑体辐射近似 RGB。示例数字全部 node 实跑复核（f/5.6+1/60s+ISO100→EV10.9晴天户外；50mm@M4/3→等效100mm×0.50；1080P 20Mbps 1h→8.85GB/32GB卡3.6h/H.265 4.42GB；3000×2000@300DPI→254×169mm 3:2 MP6.0；5500K→Mired182 RGB(255,237,222)#ffedde）。
+- HTML 三处残留：5 个工具页 tool-intro-body 均为「设计创意/CSS」错位套话（简介+intro-features+intro-scenes）→ clean_photo2_intro.py 替换为真实摄影场景与功能特点；5 工具页无 area2 opt 块、无 area3 FAQPage LD（仅 WebApplication+BreadcrumbList），双清不适用。deep-dive 区块经 _build.py 由 JSON 重建为真实内容。键数守恒 5022，英文变量名零残留。
+- 五道门禁全过（run_gates 完整 build+4 检查）。§9c 待办 3→1（pet-training 排首）。
 ## 八、当前进行中分类
 
 > 当前无进行中分类。新分类开工时先在此登记（目录 + 工具数），收口后写入第七节并覆盖旧归档记录（§4.3 第 4 步）。
@@ -179,6 +179,6 @@
 > **规则**：每分类走完整流水线（apply 脚本→area4 替换→双清 area2/area3→`_build.py`重建→五道门禁→发布核验→DEV-PLAN 状态机→记忆日志）；键数守恒 5022；JSON 占位/area2/area3/area4 四重清零。
 
 - [x] medical2 (5: iv-drip-speed/bed-occupancy/medical-abbrev/surgery-duration/drug-expiry) ✅
-- [ ] photo2 (5: exposure-triangle/focal-length/video-storage/print-size/color-temperature)
+- [x] photo2 (5: exposure-triangle/focal-length/video-storage/print-size/color-temperature) ✅
 - [ ] pet-training (5: leash-length/elimination-predict/command-repetition/treat-calories/clicker-timing)
 
