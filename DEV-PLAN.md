@@ -145,18 +145,17 @@
 ## 七、已完成分类归档
 > 本区仅保留**最近一个（最新）已完成分类**的归档记录，更早历史不再保留，以控制文件体积。完成新分类时，用新记录替换本条。
 
-### ✅ fishery（39 键，deep-dive 早已真实化；本次清理 1 孤儿占位键 + area3 残留）
-- 39 个工具中 38 键 + fishery/wastewater-cod 早已真实化（增氧机 0.825 mg/L·h、W=aLᵇ 草鱼 a=0.0207/b=3.05、溶氧饱和 8.02 mg/L、投饵 7200 元等含真实公式与算例）。仅 fishery/estimate-emission-wastewater 为 STY3 孤儿占位（无对应 HTML，线上页由 fishery/wastewater-cod 真实注入），已替换为真实 COD 估算内容（算例 node 实跑：100kg×0.35→35.0kg/天、浓度70.0mg/L、超标2.33倍、稀释666.7m³/天），键数守恒 5022。
-- area3：7 文件（mesh-size-guide/feeding-rate/harvest-size-price/winter-heating/spawning-hormone/feed-calculator/feed-rate-calculator）含 FAQPage JSON-LD 旧套话，经 opt_faq_ld_sync --cat fishery 同步真实 FAQ（各2条）；area2/area4(日常办公与学习类) 均 0。
-- 五道门禁全过；同批 health（46 键，此前已真实化）补齐 FAQPage LD 旧套话 13 处清零。脚本：scripts/apply_fishery.py。
-- commit 9e4faa762 / Pages 部署完成（线上 4 页抽检占位=0、真实 FAQ 已上线）。§9 18->17（hematology 排首）。
+### ✅ hematology（28 键，deep-dive 早已真实化；本次清理 1 孤儿占位键 + area2/3/4 三处残留）
+- 28 个工具中 27 键早已真实化（缺铁/巨幼/溶血鉴别、铁过载、凝血因子、白血病分型、PNH 流式、凝血酶生成 TG 分析等含真实公式与算例）。仅 hematology/assessor-4 为 STY3 孤儿占位（无对应 HTML，线上页由 hematology/iron-overload 真实注入），已替换为真实铁过载评估内容（铁蛋白参考上限男300/女200 ng/mL、>1000 高负荷、转铁蛋白饱和度>45% 等，算例 node 实跑），键数守恒 5022。
+- area2：opt_cleanup_opt_blocks --cat hematology 清 3 文件（coagulation-factor/leukemia-classification/pnh-flow）前6→后0；area3：opt_faq_ld_sync --cat hematology 同步 3 文件真实 FAQ（各2条）；area4：clean_hematology_intro.py 清 2 文件（quetie-juyou-rongxue-shiyanshijianbie/generator-analysis）"日常办公与学习"通用 intro，替换为真实血液学场景（缺铁/巨幼/溶血 4 场景、TG 分析 4 场景）。
+- 五道门禁全过。脚本：scripts/apply_hematology.py + scripts/clean_hematology_intro.py。
+- commit 54a1f7b91 / Pages 部署完成（sleep150 复验：area2/area3 全 0 残留、generator-analysis area4 0、quetie 真实场景短语命中 3、日常办公 0）。§9 17->16（cardiology 排首）。
 ## 八、当前进行中分类
 
 > 当前无进行中分类。新分类开工时先在此登记（目录 + 工具数），收口后写入第七节并覆盖旧归档记录（§4.3 第 4 步）。
 
-## 九、分类总清单（待办，完成一个删一个；剩 17 个目录）
+## 九、分类总清单（待办，完成一个删一个；剩 16 个目录）
 
-- [ ] hematology
 - [ ] cardiology
 - [ ] clinical-lab
 - [ ] food-testing
