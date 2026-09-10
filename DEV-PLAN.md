@@ -145,18 +145,18 @@
 ## 七、已完成分类归档
 > 本区仅保留**最近一个（最新）已完成分类**的归档记录，更早历史不再保留，以控制文件体积。完成新分类时，用新记录替换本条。
 
-### ✅ library（5 键，真实化收口，最新一条）
-- 5 个工具全部真实化（archive-label 档案盒标签生成 档号=全宗-目录-盒号 / overdue-fine 借阅逾期阶梯罚款 前7天1x·8-30天1.5x·30+天2x 可封顶 / citation-format GB/T 7714 多类型文献著录 / shelf-capacity 书架容量设计 每层=层长×填充率÷书厚 / clc-classifier 中图法 22 大类查表+索书号补全），每个含 3 真实场景 + 1 示例 + 2 专业 FAQ。
-- 读取 5 个 HTML 的 calc()/render() 逻辑后按真实图书馆学规则重写，数值算例全部 node 实跑复核（/tmp/verify_library.js）：overdue 逾期40天/0.5元/2本/阶梯→单本30.75元、总61.50元；shelf 6层/2m/双面/3cm/90%/5000册→每层60、单架720、需7架、2排、排架20m、面积34.0㎡。
-- 全部 5 个 library 键经六型指纹(含"先统一"变体)扫描 + 可见 opt 块扫描 = 0 占位残留（本批 5 个源 HTML 原 LD 即干净，无 opt-guide 旧套话）；5 个 HTML + index 逐文件 grep 占位=0、真实关键词≥1（clc 31/citation 12/archive 14/overdue 29/shelf 23/index 9）；五道门禁全过（GATES_EXIT=0）；键数守恒 5022。脚本：scripts/apply_library.py。
+### ✅ petrochem（5 键，真实化收口，最新一条）
+- 5 个工具全部真实化（api-gravity API度↔相对密度 SG=141.5/(API+131.5) 与分类 / tank-capacity 储罐容量 立式圆柱·卧式弓形 / catalyst-calc 空速LHSV=流量/催化剂量·停留时间=3600/LSV / distillation-yield 精馏收率与物料平衡 / pipe-pressure 达西压降 Re=ρvD/μ·Swamee-Jain 摩擦系数），每个含 3 真实场景 + 1 算例 + 2 专业 FAQ。
+- 读取 5 个 HTML 的 calc()/calcApi()/calcLsv() 逻辑后按真实石化规则重写，算例数字全部 node 实跑复核（/tmp/verify_petro.js）：api 30→SG0.8762/中质、35→0.8498/轻质；tank 立式D4L10液位8→125.66m³/85.45吨/80.0%、卧式D3L8半满→56.55/21.21吨/50.0%；catalyst 1000kg/h·LSV2·密度800·堆700→0.625m³/437.5kg/停留1800s；dist feed1000[480,290]→收率77.0%/损失230/23.0%；pipe 过渡流100m³/h·D200·L500·ρ900·μ50→Re3183/f0.0442/ΔP38.84kPa、层流1m³/h·D50·μ100→Re71/f0.9048/ΔP18.11kPa。
+- **关键坑**：pipe-pressure 源 HTML 残留可见 opt-guide 块(2段) + 旧 FAQPage JSON-LD 旧套话。处理链路：①opt_faq_ld_sync.py --cat petrochem 同步 LD 2 条真实 FAQ；②opt_cleanup_opt_blocks.py --cat petrochem 整段删 opt-guide/opt-faq(2段) 方归零。其余 4 文件无残留。
+- 全部 5 个 petrochem 键六型指纹(含"先统一"变体)+可见 opt 块扫描 = 0 占位残留；6 个 HTML 逐文件 grep 占位=0、真实关键词≥1（api24/catalyst46/tank30/dist32/pipe35/index11）；五道门禁全过（GATES_EXIT=0）；键数守恒 5022。脚本：scripts/apply_petrochem.py。
 
 ## 八、当前进行中分类
 
 > 当前无进行中分类。新分类开工时先在此登记（目录 + 工具数），收口后写入第七节并覆盖旧归档记录（§4.3 第 4 步）。
 
-## 九、分类总清单（待办，完成一个删一个；剩 42 个目录）
+## 九、分类总清单（待办，完成一个删一个；剩 41 个目录）
 
-- [ ] petrochem
 - [ ] martial
 - [ ] pets
 - [ ] rubber
