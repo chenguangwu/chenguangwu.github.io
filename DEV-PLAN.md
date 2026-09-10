@@ -145,11 +145,11 @@
 ## 七、已完成分类归档
 > 本区仅保留**最近一个（最新）已完成分类**的归档记录，更早历史不再保留，以控制文件体积。完成新分类时，用新记录替换本条。
 
-### ✅ stone（1 键 1 工具，1 真占位键；本轮真实化收口）
-- 扫描无孤儿键；全 1 键 deep-dive 补强 scanner 后捕获真占位：stone/detector-strength-color-diff（质量（色差/强度/标准）检测）scenarios="在stone场景下先确认Detector Strength Color Diff口径与边界，再输出可复核结论"+"适用于流程复用、异常复核、版本变更对照"+"降低追溯成本"，含大写未替换变量名 "Detector Strength Color Diff"，与前述同模板。HTML 三处残留扫描为空（area4 干净）。
-- 经 apply_stone.py 替换为真实质量色差/强度检测判定内容（scenarios=色差判定(ΔE/CIEDE2000)/强度检测判定(抗折·抗压)/多批次一致性比对；examples=石材色差判定示例 ΔE≈0.9<1.5 合格；faqs=色差用什么标准/强度单位不一致怎么办），键数守恒 5022。
-- 复验 detector-strength-color-diff.html deep-dive：占位模板 "在stone场景下先确认"=0、色差判定=真、可复核结论=0；"Detector Strength Color Diff" 仅留工具英文名。
-- 五道门禁全过（run_gates 完整 build+4 检查）。commit 16ebfd039 / Pages 部署核验中（Actions #719，sleep 后复验 detector-strength-color-diff deep-dive 真实上线）。§9 1->0（全部完成）。
+### ✅ manufacturing（5 键 5 工具，5 真占位键；补扫扩展批次首分类真实化收口）
+- 补强全站 scanner 捕获 5 真占位键（capacity-planning/defect-rate/inventory-calculator/production-efficiency/quality-control），模板="在manufacturing场景下，先使用[VarName]建立输入边界" + 通用套话 + 未翻译英文变量名（Capacity Planning/Defect Rate/Inventory Calculator/OEE Production Efficiency Calculate/Quality Control）。
+- 经 apply_manufacturing.py 真实化（各工具按真实 calc 逻辑写场景/算例/FAQ：产能月产能=设备×台日×班次、不良率/RTY=直通率连乘/DPMO→σ查表、EOQ=√(2DS/H)/安全库存=Z·σ·√L/ROP、OEE=可用率×性能率×合格率、CPK=min(CPU,CPL)）；示例数字全部 python 复刻 JS 公式核验（如 5×200×22×2=44000、RTY=0.995²≈99.0%、EOQ≈775、OEE≈81.2%、CPK=1.67）。
+- HTML 三处残留：opt_cleanup_opt_blocks + opt_faq_ld_sync --cat manufacturing 清 quality-control.html（area2 opt块 2→0、area3 FAQPage LD 同步 2 条真实 FAQ），其余 4 文件 area2/3/4 扫描 0。键数守恒 5022。
+- 五道门禁全过（run_gates 完整 build+4 检查）。§9b 待办 10→9（maritime 排首）。
 ## 八、当前进行中分类
 
 > 当前无进行中分类。新分类开工时先在此登记（目录 + 工具数），收口后写入第七节并覆盖旧归档记录（§4.3 第 4 步）。
@@ -157,3 +157,20 @@
 ## 九、分类总清单（待办，完成一个删一个；✅ §9 队列已全部完成）
 
 > ✅ §9 全部完成（customer-service 零改动 + food-safety/writing/supplychain/outdoor/paint/stone 共 6 个真占位键真实化收口，键数守恒 5022，五道门禁全过，五处占位 0 残留，线上核验通过）。
+
+## 九-b、补扫扩展批次（scanner 同义变体漏报捕获；待办 9 分类 / 42 真占位键）
+
+> **背景**：§9 队列基于补强前旧扫描建立，本身不完整。用补强后全站 scanner 重扫 5022 键，发现 §9 之外另有 10 个分类共 47 个 deep-dive 真占位键（同一套模板：在[X]场景下先使用[VarName]建立输入边界 + 通用套话 + 未翻译英文变量名）。须按 §9 同款流水线逐分类真实化收口。
+> **规则**：每分类走完整流水线（apply 脚本→`_build.py`→五道门禁→发布核验→DEV-PLAN 状态机更新→记忆日志）；键数守恒 5022；模板/变量名/套话三重清零。
+
+- [x] manufacturing (5: capacity-planning/defect-rate/inventory-calculator/production-efficiency/quality-control) ✅
+- [ ] maritime (5: anchorage-capacity/compass-correction/speed-distance/stowage-factor/tide-window)
+- [ ] museum (5: audio-guide-timer/exhibit-spacing/lighting-lux/showcase-monitor/visitor-route)
+- [ ] plastic (5: blow-molding/extrusion-rate/injection-cycle/material-select/shrinkage-calc)
+- [ ] pneumatic (4: calc-flow-1/calc-speed/cycle-19/tester-blast)
+- [ ] shipping (5: calc-76/convert-speed-1/convert-time-speed/estimate-length/tide)
+- [ ] stage (5: beam-angle/color-temperature/dimmer-curve/light-position/power-load)
+- [ ] stats (5: confidence-interval/data-distribution/regression-analysis/sample-size/statistical-tests)
+- [ ] unitedfront (3: assessor-training-hr-1/recommender-7/stats-9)
+- [ ] woodworking (5: angle-cut/board-feet/moisture-content/mortise-size/wood-screws)
+
