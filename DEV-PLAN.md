@@ -145,18 +145,17 @@
 ## 七、已完成分类归档
 > 本区仅保留**最近一个（最新）已完成分类**的归档记录，更早历史不再保留，以控制文件体积。完成新分类时，用新记录替换本条。
 
-### ✅ martial（5 键，真实化收口，最新一条）
-- 5 个工具全部真实化（routine-timer 套路计时 标准时长比对与扣分 / kick-height 踢腿高度比·腿长比·估算角度 / stance-center 桩功重心偏移·稳定性·耐力 / breathing-rhythm 呼吸周期·吸呼屏时长·匹配指数 / strike-resistance 抗击打硬度指数 BODY_PARTS 年限×频率系数），每个含 3 真实场景 + 1 算例 + 2 专业 FAQ。
-- 读取 5 个 HTML 的 calc() 逻辑（含 STANDARDS/STANCE_PARAMS/ACTION_BREATH/BODY_PARTS 常量表）后按真实武学规则重写，算例数字全部 node 实跑复核（/tmp/verify_martial.js）：breath 发力击打 rate12/吸呼0.5/中级→周期5.00s·吸1.67·呼3.33·屏0.25·匹配100；kick 170cm/腿76.5/踢165前踢→高度比97.1%/腿长比215.7%/90.0°/良好；stance 马步步距80/前脚50%/蹲30/5分→重心46.5cm/27.4%/稳定100/耐力52；strike 3年/周2/前臂=86(较硬)·未训练=40(较弱)；routine 长拳实测85→偏差+5/在范围/扣分0、实测95→偏慢/扣分2.5。
-- martial 5 个源 HTML 原 LD 即干净、无 opt-guide 旧套话（opt_faq_ld_sync 与 opt_cleanup_opt_blocks dry-run 均 0），无需清理。五道门禁全过；六型指纹(含"先统一"变体)+可见 opt 块扫描 0 残留；真实关键词 strike15/routine29/kick42/stance38/breathing18/index9；键数守恒 5022。脚本：scripts/apply_martial.py。
+### ✅ pets（5 键，真实化收口，最新一条）
+- 5 个工具全部真实化（feeding-amount 犬猫 RER=70×体重^0.75 再乘阶段/活动系数得 DER÷热量密度 / kennel-space 单舍+共享活动区面积·长期>14天×1.2 / pet-age-convert 犬按体型系数+4~+7·猫固定+4 / vaccine-reminder 联苗·狂犬365天·体内驱虫90天·体外/心丝虫30天 到期汇总 / grooming-guide 品种造型图鉴参考型），每个含 3 真实场景 + 1 算例 + 2 专业 FAQ（grooming-guide 为参考型）。
+- 算例数字全部 node 实跑复核（/tmp/verify_pets.js）：feeding 成年犬10kg/3.5/正常→RER394/DER630/180g/次90g、幼犬5kg/高活→RER234/DER843/241g/次60g、成年猫4kg→277/79g、孕猫→396/113g；kennel 中型犬×3/20天→单舍6·犬舍18·活动36·总54.0㎡、小型犬×1→4/8/12、大型猫×2/30天→2.5/5/9/14；age 中型犬5岁39/小型36/巨型45/大型42、猫5岁36、猫10岁56；vaccine 犬联苗 last2025-09-01→−9天已到期、体内驱虫 last2026-08-01→+50天正常。
+- pets 5 个源 HTML 原 LD 即干净、无 opt-guide 旧套话（opt_faq_ld_sync 与 opt_cleanup_opt_blocks dry-run 均 0），无需清理。五道门禁全过；六型指纹(含"先统一"变体)+可见 opt 块扫描 0 残留；真实关键词 feeding5/kennel9/petage7/vaccine8/grooming9；键数守恒 5022。脚本：scripts/apply_pets.py。
 
 ## 八、当前进行中分类
 
 > 当前无进行中分类。新分类开工时先在此登记（目录 + 工具数），收口后写入第七节并覆盖旧归档记录（§4.3 第 4 步）。
 
-## 九、分类总清单（待办，完成一个删一个；剩 40 个目录）
+## 九、分类总清单（待办，完成一个删一个；剩 39 个目录）
 
-- [ ] pets
 - [ ] rubber
 - [ ] edu2
 - [ ] logistics2
