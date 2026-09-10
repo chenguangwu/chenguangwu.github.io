@@ -145,8 +145,12 @@
 ## 七、已完成分类归档
 > 本区仅保留**最近一个（最新）已完成分类**的归档记录，更早历史不再保留，以控制文件体积。完成新分类时，用新记录替换本条。
 
-### ✅ parenting（7 工具，完整分类收口，最新一条）
-- 7 工具（diaper-usage 纸尿裤用量 / due-date 预产期 / feeding-amount-baby 婴儿每日奶量 / feeding-schedule 婴儿喂养计划 / formula-mixing 配方奶冲调 / growth-chart 儿童生长曲线 / pumping-plan 背奶储奶计划）deep-dive 全量真实化（替换 STY3「在parenting场景里优先把…标准化」占位，按各工具真实逻辑写 3 场景+1 算例+2 FAQ；算例数字均 node 实跑复核）。
+### ✅ urban（6 工具，完整分类收口，最新一条）
+- 6 工具（building-height 建筑限高 / calc-spacing 日照间距 / green-ratio 绿地率 / land-use 用地平衡 / parking-ratio 配建车位 / population-density 人口密度）deep-dive 全量真实化（替换 STY3「在urban业务/场景中优先把…标准化」占位，按各工具真实逻辑写 3 场景+1 算例+2 FAQ；算例数字均 node 实跑复核）。
+- 算例 node 复核：building-height 日照模式(楼距40m/纬度30/层高3m/auto系数1.2)→限高33.33m/11层、航空模式(起飞爬升面标高50m/距机场2000m/坡度1.5%/安全余量10m)→限高70m；calc-spacing 冬至(φ=30°,T=2h)→正午太阳高度36.56°、临界方位角15°、楼间距D≈52.36m；green-ratio 总5万㎡/绿地8000/树下2000/人口2000→绿地率16%、绿化覆盖率20%、人均4㎡；land-use 1万人/总用地1100亩→人均110㎡、R占比27.3%(达标25–40%)；parking-ratio 住宅(500户/大城0.8)→400车位/访客40/无障碍8/占地1万㎡、办公(5万㎡/大城0.8)→400车位/访客20/无障碍8/占地1.4万㎡；population-density 5万人/500ha/居住250ha→毛密度100人/ha、净密度200人/ha、人均100㎡、容量5万人。
+- 标题均匹配功能（building-height/calc-spacing/green-ratio/land-use/parking-ratio/population-density 均为专业术语），无需校正；无孤儿键（6 键均有对应 HTML）；源 HTML 无 opt 套话(dry-run 0)。
+- urban 源 HTML 无可见 opt 块、无 FAQPage LD 旧套话（dry-run 0 文件），无需清理；build 随 JSON 重建注入真实 deep-dive（grep 核验六型占位全 0、真实关键词命中 39–71）。
+- 五道门禁全过；detect_placeholders.py（SIX+GEN+STY3）urban 归零，键数守恒 5022。脚本：scripts/apply_urban.py。
 - 算例 node 复核：diaper-usage 6月/2元/30天→每日7片/总210片/420元/M码；due-date 末次2025-12-20周期28→预产期2026-09-26（Naegele LMP+280天，周期30则+2天→09-28）、截至09-10孕37周5天；feeding-amount-baby 4月/6kg/6餐→按体重900ml+月龄参考900ml/每日900ml/每餐150ml；formula-mixing 180ml/30ml每勺→6勺/水180ml/冲调后206ml；feeding-schedule 4月/6kg/08:00起→每日720ml/每餐103ml/7次/间隔3h；growth-chart 男12月/75.7cm/9.6kg→身高P50+体重P50（均中等）、80cm→P85；pumping-plan 上班9h/4月→3次/间隔3h/单次175ml/储备525ml/宝宝日需700ml。
 - 标题校正：diaper-usage(Diaper Usage→纸尿裤用量估算)、feeding-amount-baby(Feeding Amount Baby→婴儿每日奶量估算)、formula-mixing(Formula Mixing→配方奶冲调配比)、pumping-plan(Pumping Plan→背奶储奶计划) 由英文改为中文，与其余 3 个中文标题（预产期计算器/婴儿喂养计划/儿童生长曲线）一致；无孤儿键（7 键均有对应 HTML）。
 - growth-chart 含旧版 opt-guide/opt-faq 占位块（各1个）+ FAQPage LD 旧套话，已实际清理：opt_cleanup_opt_blocks.py 删2块、opt_faq_ld_sync.py 同步1文件为真实内容；其余 6 工具无 opt 套话(dry-run 0)。build 随 JSON 重建注入真实 deep-dive（grep 核验六型占位0、opt块0、真实关键词命中 21–41）。
@@ -156,9 +160,8 @@
 
 > 当前无进行中分类。新分类开工时先在此登记（目录 + 工具数），收口后写入第七节并覆盖旧归档记录（§4.3 第 4 步）。
 
-## 九、分类总清单（待办，完成一个删一个；剩 54 个目录）
+## 九、分类总清单（待办，完成一个删一个；剩 53 个目录）
 
-- [ ] urban
 - [ ] road
 - [ ] startup
 - [ ] video
