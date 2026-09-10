@@ -483,9 +483,14 @@
 - 源 HTML 无 opt-guide/opt-faq 套话块、无「工具名称：」模板尾巴；指南页 0 篇（质量工程计算类已内置公式与算例，按 §4.4 克制）。
 - 脚本：scripts/apply_process.py（KB 14 条，写全量 json.dumps indent=1 + 键数守恒断言）。DEV-PLAN §9 74→73（剩 mechanical 排首）。
 
-## 九、分类总清单（待办，完成一个删一个；剩 73 个目录）
+- 门禁 5/5 通过。mechanical 14 工具（beam-point-load 简支梁跨中集中力 / bearing-life 轴承寿命 / belt-drive 皮带传动设计 / bolt-torque 螺栓扭矩 / calc-1 皮带传动计算 / calc-2 链传动 / centrifugal-force 离心力 / cutting-speed 切削速度 / flywheel-energy 飞轮动能 / gear-parameters 齿轮参数 / gear-ratio 齿轮传动比 / lever-advantage 杠杆增益 / spring-rate 弹簧刚度 / torque-power 转矩-功率-转速换算）deep-dive 已真实化（替换「快速复核」占位，按工具专属真实公式/算例/FAQ），HTML 注入真实机械数字，六型扫描零残留。
+- 算例按工具 JS 公式 node 独立复核（简支梁 M=10.00 kN·m / δ≈8.89 mm / W=2.25×10⁶ mm³ / σ≈4.44 MPa；轴承 L10=6.25³≈2.44×10² 百万转、L10h≈2713 h、P/C=0.160；皮带 i=3.000、n₂≈473.7、v≈9.11 m/s、L≈1782.8 mm、α₁≈152.2°；螺栓 As≈80.5 mm²、F≈38.6 kN、K≈0.243、T≈112.6 N·m；calc-1 i′≈2.56、v≈9.49、Ld≈2302.4 mm、F≈579.5 N；链 i=3.00、v≈4.88 m/s、Lp=102 节、α₁≈110.9°；离心 F≈19739.2 N(19.74 kN)、ω≈62.83 rad/s；切削 v≈125.66 m/min（碳钢+硬质合金 120~200 判合理）；飞轮 I=2.250、E≈12337.0 J(12.34 kJ)；齿轮 d1=48/da1=52/df1=43/db1≈45.105、a=60.000、i=1.500；传动比 i=2.000、n₂=750.0、T₂=194.0；杠杆 MA=5.00（1/MA=0.20）；弹簧 k≈38.10 N/mm；转矩 T≈49.4 N·m、功率回算 7.5 kW 自校验）。
+- 清理 bearing-life / bolt-torque / gear-ratio 源 HTML 的 opt-guide/opt-faq 套话块（共 6 块，前 6 后 0），并把这 3 处旧 FAQPage JSON-LD（旧套话"在对应的输入框或选项中填写…"）同步为 deep-dive 真实 FAQ，结构化数据与可见内容一致；JSON-LD 解析校验全部合法。
+- 注：新增两个通用可复用脚本 scripts/opt_cleanup_opt_blocks.py（§4.5.2 整段删除 opt-guide/opt-faq）与 scripts/opt_faq_ld_sync.py（FAQPage LD 同步真实 FAQ），后续分类直接 --cat 复用。
+- 脚本：scripts/apply_mechanical.py（KB 14 条）。DEV-PLAN §9 73→72（剩 medical 排首）。
 
-- [ ] mechanical
+## 九、分类总清单（待办，完成一个删一个；剩 72 个目录）
+
 - [ ] medical
 - [ ] mining
 - [ ] pr
