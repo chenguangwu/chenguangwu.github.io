@@ -145,18 +145,17 @@
 ## 七、已完成分类归档
 > 本区仅保留**最近一个（最新）已完成分类**的归档记录，更早历史不再保留，以控制文件体积。完成新分类时，用新记录替换本条。
 
-### ✅ food-testing（25 键 24 工具，deep-dive 早已真实化；本次清理 1 孤儿占位键 + 5 文件 area3/area4 双清）
-- 25 个 JSON 键对应 24 个工具页；孤儿占位键 food-testing/rater-risk（无 rater-risk.html，同域真实页为 allergen-cross-risk.html，键 food-testing/allergen-cross-risk 已真实化，8 因子评分满分40、≤8低→>24高）。经 apply_food_testing.py 替换为真实过敏原交叉污染风险评分内容，键数守恒 5022。
-- area3：opt_faq_ld_sync --cat food-testing 同步 2 文件（acid-peroxide-titration/salt-titration）FAQ（各2条）；area4：clean_food_testing_intro.py 清 3 文件（convert-36/convert-37/generator-27）通用 intro「日常办公与学习」4 项→真实食品检测场景（酸价过氧化值滴定/凯氏定氮系数/菌落总数报告）；area2 opt块 扫描 0。
-- 五道门禁全过（run_gates --skip-build）。脚本：scripts/apply_food_testing.py + scripts/clean_food_testing_intro.py。
-- commit 163eddac2 / Pages 部署核验中（sleep150 复验 area2/3/4 全 0 残留）。§9 14->13（beauty 排首）。
+### ✅ beauty（22 键 21 工具，deep-dive 早已真实化；本次清理 1 孤儿占位键 + 3 文件 area2 双清）
+- 22 个 JSON 键对应 21 个工具页；孤儿占位键 beauty/self-assess-1（无 self-assess-1.html，同域真实页为 skin-tewl.html，键 beauty/skin-tewl 已真实化，TEWL 分级 <10 正常/10–20 轻/>20 重）。经 apply_beauty.py 替换为真实皮肤水分流失（TEWL）自评内容，键数守恒 5022。
+- area2：opt_cleanup_opt_blocks --cat beauty 清 3 文件（analysis-detector-diagnosis/assessor-risk-12/calc-1）前 6→后 0；area3：opt_faq_ld_sync --cat beauty 同步 0（21 文件均已是真实 FAQ，跳过）；area4 扫描 0。
+- 五道门禁全过（run_gates --skip-build）。脚本：scripts/apply_beauty.py。
+- commit 2edd367a2 / Pages 部署核验中（sleep150 复验 area2/3/4 全 0 残留）。§9 13->12（data 排首）。
 ## 八、当前进行中分类
 
 > 当前无进行中分类。新分类开工时先在此登记（目录 + 工具数），收口后写入第七节并覆盖旧归档记录（§4.3 第 4 步）。
 
-## 九、分类总清单（待办，完成一个删一个；剩 13 个目录）
+## 九、分类总清单（待办，完成一个删一个；剩 12 个目录）
 
-- [ ] beauty
 - [ ] data
 - [ ] psychology
 - [ ] dyeing
