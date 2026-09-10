@@ -145,18 +145,18 @@
 ## 七、已完成分类归档
 > 本区仅保留**最近一个（最新）已完成分类**的归档记录，更早历史不再保留，以控制文件体积。完成新分类时，用新记录替换本条。
 
-### ✅ hematology（28 键，deep-dive 早已真实化；本次清理 1 孤儿占位键 + area2/3/4 三处残留）
-- 28 个工具中 27 键早已真实化（缺铁/巨幼/溶血鉴别、铁过载、凝血因子、白血病分型、PNH 流式、凝血酶生成 TG 分析等含真实公式与算例）。仅 hematology/assessor-4 为 STY3 孤儿占位（无对应 HTML，线上页由 hematology/iron-overload 真实注入），已替换为真实铁过载评估内容（铁蛋白参考上限男300/女200 ng/mL、>1000 高负荷、转铁蛋白饱和度>45% 等，算例 node 实跑），键数守恒 5022。
-- area2：opt_cleanup_opt_blocks --cat hematology 清 3 文件（coagulation-factor/leukemia-classification/pnh-flow）前6→后0；area3：opt_faq_ld_sync --cat hematology 同步 3 文件真实 FAQ（各2条）；area4：clean_hematology_intro.py 清 2 文件（quetie-juyou-rongxue-shiyanshijianbie/generator-analysis）"日常办公与学习"通用 intro，替换为真实血液学场景（缺铁/巨幼/溶血 4 场景、TG 分析 4 场景）。
-- 五道门禁全过。脚本：scripts/apply_hematology.py + scripts/clean_hematology_intro.py。
-- commit 54a1f7b91 / Pages 部署完成（sleep150 复验：area2/area3 全 0 残留、generator-analysis area4 0、quetie 真实场景短语命中 3、日常办公 0）。§9 17->16（cardiology 排首）。
+### ✅ cardiology（26 键 25 工具，deep-dive 早已真实化；本次清理 1 孤儿占位键 + 6 文件 area2/3 双清）
+- 26 个 JSON 键对应 25 个工具页（calc-2 为孤儿占位键，无 calc-2.html，git 历史已将其并入 chads2-vasc.html）。25 键早已真实化（CHA2DS2-VASc、HAS-BLED、GRACE、TIMI、NYHA、肾功能 CKD-EPI、他汀强度、心脏康复 METs、主动脉夹层、心包积液、冠脉钙化、运动心肺 CPET、动态心电图分级、抗心律失常分类、心肌桥、超声报告等含真实公式与算例）。
+- 孤儿键 cardiology/calc-2 内容即"房颤 CHA₂DS₂-VASc 栓塞风险评估"（与 chads2-vasc 同域），STY3 占位（"快速复核/常见场景："），经 apply_cardiology.py 替换为真实 CHA2DS2-VASc 内容（评分累加、抗凝指征男≥2/女≥3、HAS-BLED 高出血风险纠正可逆因素而非停抗凝），键数守恒 5022。
+- area2：opt_cleanup_opt_blocks --cat cardiology 清 6 文件（antiarrhythmic-class/cpet-analysis/grace-score/myocardial-bridge/rater-risk-3/statin-dose）前 12→后 0；area3：opt_faq_ld_sync --cat cardiology 同步 6 文件真实 FAQ（各 3 条）；area4（日常办公与学习类）扫描 0。
+- 五道门禁全过（run_gates --skip-build）。脚本：scripts/apply_cardiology.py。
+- commit 3a89ceffb / Pages 部署核验中（sleep150 复验 area2/3/4 全 0 残留）。§9 16->15（clinical-lab 排首）。
 ## 八、当前进行中分类
 
 > 当前无进行中分类。新分类开工时先在此登记（目录 + 工具数），收口后写入第七节并覆盖旧归档记录（§4.3 第 4 步）。
 
-## 九、分类总清单（待办，完成一个删一个；剩 16 个目录）
+## 九、分类总清单（待办，完成一个删一个；剩 15 个目录）
 
-- [ ] cardiology
 - [ ] clinical-lab
 - [ ] food-testing
 - [ ] beauty
