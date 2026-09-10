@@ -145,19 +145,18 @@
 ## 七、已完成分类归档
 > 本区仅保留**最近一个（最新）已完成分类**的归档记录，更早历史不再保留，以控制文件体积。完成新分类时，用新记录替换本条。
 
-### ✅ road（6 工具，完整分类收口，最新一条）
-- 6 工具（convert-angle-slope 坡度%↔°互转 / curve-calc 平曲线半径与超高 / grade-calc 纵坡与横坡 / pavement-design 路面厚度 AASHTO / sight-distance 停车·超车·决策视距 / traffic-capacity 道路通行能力）deep-dive 全量真实化（替换 STY3「在road业务中，先把…标准化后再执行对比」占位；此前该分类从未落地，git 无 feat(road) 提交、源 JSON 6 条均为占位，本次为首次真实化）。按各工具真实算法写 3 场景+1 算例+2 FAQ；算例数字均 node 实跑复核。
-- node 复核关键数字：convert-angle-slope 5%→2.86°、3°→5.24%、8%→4.57°；curve-calc V60/e6%/f0.15/α60°→R=135.0m(≥最小125满足)、Lc=141.4m、Ls=56.2m、T=106.1m、E=21.9m、曲线总长253.9m；grade-calc 纵坡(100→108m/200m)=4.00%(≤6%限、坡长200≤700满足)、横坡(半宽7.5m抬15cm)=2.00%(沥青1.5~2.0上限)；pavement-design W18=1e7/R95/S0=0.45/MR80/p0=4.5/pt=2.5→SN≈4.33→取整4.4，面层10cm(a1=0.44,SN1=1.73)+基层20cm(a2=0.14)+底基层37cm(a3=0.11)→总67cm、实际SN4.44≥4.4满足；sight-distance 停车 V60/t2.5/f0.35/G0→d反41.7m+d制40.5m=SSD82.2m(≥75满足)、下坡G-3%→86.0m，决策 stop_urban V60/t3/a2.0→DSD119.4m(≥110满足)；traffic-capacity 高速双车道V100/3.5m/cl1.5/PT15%/ET2.0/q2520→基本4400、fw=0.97、fHV=0.870、可能3711、设计2598(C级)、V/C=0.679→LOS C(≤0.85满足)。
-- 标题均已匹配功能（均为道路工程专业术语），无需校正；无孤儿键（6 键均有对应 HTML）。road 工具页无 FAQPage LD（仅 WebApplication+BreadcrumbList），无可见 opt 块、无 FAQPage LD 旧套话，无需清理。
-- build 随 JSON 重建注入真实 deep-dive；grep 核验六型占位全 0、真实关键词命中 25–50。五道门禁全过；detect_placeholders.py（SIX+GEN+STY3）road 归零，键数守恒 5022。脚本：scripts/apply_road.py。
+### ✅ startup（6 工具，完整分类收口，最新一条）
+- 6 工具（business-plan 商业计划书生成器 / pitch-deck 路演PPT大纲 / valuation-calculator 创业估值(5法) / calc-1 创业成本估算 / burn-rate 烧钱率 / equity-calculator 股权计算）deep-dive 全量真实化（替换 STY3「在startup业务中，先把…标准化后再执行对比」占位）。business-plan/pitch-deck 为结构生成器（标准 BP 10 板块 / 标准 10 页路演），写标准结构+结构化示例；其余 4 个按真实算法写 3 场景+1 算例+2 FAQ；算例数字均 node 实跑复核。
+- node 复核：calc-1 默认参数→一次性9.3万+月运营4.3万+运营资金51.6万+储备12.9万=73.8万、跑道17.2月；burn-rate(现金50万/入2万/月支12.5万)→净烧10.5万、跑道4.8月(<6高危)、18月建议融资139万；equity A60/B40+池10%→A54%B36%池10%，一轮pre1000万/amt500万→A36%B24%池6.67%投资人33.33%；valuation Berkus1500万/Scorecard2100万/VC(post2082.5,pre582.5,持股72%)/DCF≈11169万/PS对标6000–16000万。
+- 标题均匹配功能无需校正；无孤儿键（6 键均有对应 HTML）。calc-1 含旧版 opt-guide/opt-faq 占位块(2块)+FAQPage LD 旧套话，已实际清理：opt_cleanup_opt_blocks.py 删2块、opt_faq_ld_sync.py 同步2条真实FAQ；其余 5 工具无 opt 套话。build 随 JSON 重建注入真实 deep-dive（grep 核验六型占位全 0、真实关键词命中 15–61）。
+- 五道门禁全过；detect_placeholders.py（SIX+GEN+STY3）startup 归零，键数守恒 5022。脚本：scripts/apply_startup.py。
 
 ## 八、当前进行中分类
 
 > 当前无进行中分类。新分类开工时先在此登记（目录 + 工具数），收口后写入第七节并覆盖旧归档记录（§4.3 第 4 步）。
 
-## 九、分类总清单（待办，完成一个删一个；剩 52 个目录）
+## 九、分类总清单（待办，完成一个删一个；剩 51 个目录）
 
-- [ ] startup
 - [ ] video
 - [ ] packaging
 - [ ] media
