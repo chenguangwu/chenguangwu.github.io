@@ -145,19 +145,18 @@
 ## 七、已完成分类归档
 > 本区仅保留**最近一个（最新）已完成分类**的归档记录，更早历史不再保留，以控制文件体积。完成新分类时，用新记录替换本条。
 
-### ✅ math（11 工具 deep-dive 真实化 + 9 文件 opt 套话清零，完整分类收口，最新一条）
-- 11 工具（calc-1 百分比 / calc-2 比例 / calc-3 勾股定理 / calc-4 圆 / calculus-tools 数值微积分 / equation-solver 方程 / exponent-solve 指数 / formula-calculator 公式速查 / geometry-calculator 几何 / multinomial-coefficient 多项式系数 / nth-term-geometric 等比第n项）deep-dive 已真实化（替换「快速复核」占位，按工具专属真实公式/算例/FAQ），六型扫描零残留；formula-calculator 为公式速查参考型（无计算公式），写参考指南型。
-- 算例按工具公式 node 独立复算（calc-1 of(200,15)=30.0000/percent(30,200)=15.0000%/whole=200.0000/change(200→230)=+15.0000%；calc-2 2:3=4:d→d=6.000000（校验 2×6=12=3×4）；calc-3 3,4→c=5.000000/∠A=36.87°/∠B=53.13°；calc-4 r=5→d=10.0000/S=78.5398/C=31.4159；calculus-tools f=x² f'(3)=6.000000/∫₀¹x²=0.333333/lim x→0 x²=0.000000；equation-solver 2x−6=0→x=3.000000/x²−5x+6=0→Δ=1,x₁=3.000000,x₂=2.000000；exponent-solve log2(8)=3.0000/log3(81)=4.0000；geometry-calculator rect4×5→S=20.00/C=18.00/diag=6.40、square4→S=16.00/C=16.00/diag=5.66；multinomial C(5;2,2,1)=30/C(6;3,2,1)=60；nth-term a₁=2,r=3,n=5→162.000、a₁=1,r=2,n=6→32.000）。
-- 9 文件（calculus-tools/circular-permutation/factorial-calc/formula-calculator/gcd-lcm/geometry-calculator/herons-area/log-base/multinomial-coefficient）源 HTML 含旧 opt-guide/opt-faq 套话 section + FAQPage JSON-LD 旧套话，已用 opt_cleanup_opt_blocks.py + opt_faq_ld_sync.py 清零并同步真实 FAQ（2 条/页）；其中 circular-permutation/factorial-calc/gcd-lcm/herons-area/log-base 为前批已真实但残留 opt 套话，本次一并收口。
-- 五道门禁全过（build→静态→死链→资产→公式回归）；占位/套话核验全 0，键数守恒 5022。脚本：scripts/apply_math.py。
+### ✅ fire（11 工具 deep-dive 真实化，完整分类收口，最新一条）
+- 11 工具（analysis-cost-price-8 竞品定价 / calc-water-pressure-hydrant 消火栓压力校核 / detector-176 消防联动 / detector-178 设施维保 / detector-44 灭火器状态 / estimate-time-flow 疏散时间 / evacuation-time RSET/ASET / extinguisher-calc 灭火器配置 / hydrant-pressure 栓系统压力 / response-drill 演练生成器 / smoke-spread 烟气蔓延）deep-dive 已真实化（替换「快速复核」占位，按工具专属真实公式/算例/FAQ），六型扫描零残留；response-drill 为交互式演练生成器（无计算公式），写参考指南型。
+- 算例按工具公式 node 独立复算（analysis 售价100/成本60/竞品[80,90,100,110,120]→毛利40.00/毛利率40.00%/均价100.00/处于竞品区间；water-pressure 静压0.8/标高30/栓口0.25/管损0.1→所需0.644 MPa/余量+0.156 满足；detector-176 全0→联动正常(/18)、单故障2→基本正常；detector-178 全0周期2→维保合格(/17)、周期4→+2基本合格；detector-44 水基6个月→合格；estimate 100人/宽2/流1.5/距30/速1.2/预30→总88.3s(1.47min)/出口3.00人·s⁻¹；evacuation P100/W2/F1.5/L30/v1.2/pre30/ASET120→tflow33.3/ttravel25.0/RSET63.3/余量56.7/比值1.89；extinguisher 中危300m²/K1/2A→Q4.0A/N2具、轻危600m²/1A→Q6.0A/2点×3具=6具；hydrant 高差10/喷嘴20/Φ65带20m/5L·s⁻¹/管网50m/Φ100/C100→Hd0.85/hf0.428/Hw0.471/H31.32m(0.313MPa)；smoke Q500kW/H3m→D0.798/Hf2.01/m56.6kg·s⁻¹/ΔT8.83K/V45.2m³·s⁻¹/v_jet0.89m·s⁻¹）。
+- fire 源 HTML 无旧 opt-guide/opt-faq 可见块；仅 extinguisher-calc.html 的 FAQPage JSON-LD 含旧套话，已用 opt_faq_ld_sync.py 同步真实 FAQ（2 条）。其余 10 文件仅 deep-dive 占位，build 随 JSON 重建。
+- 五道门禁全过（build→静态→死链→资产→公式回归）；占位/套话核验全 0，键数守恒 5022。脚本：scripts/apply_fire.py。
 
 ## 八、当前进行中分类
 
 > 当前无进行中分类。新分类开工时先在此登记（目录 + 工具数），收口后写入第七节并覆盖旧归档记录（§4.3 第 4 步）。
 
-## 九、分类总清单（待办，完成一个删一个；剩 66 个目录）
+## 九、分类总清单（待办，完成一个删一个；剩 65 个目录）
 
-- [ ] fire
 - [ ] elderly
 - [ ] text
 - [ ] pet
