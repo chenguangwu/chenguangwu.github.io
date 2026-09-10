@@ -145,17 +145,17 @@
 ## 七、已完成分类归档
 > 本区仅保留**最近一个（最新）已完成分类**的归档记录，更早历史不再保留，以控制文件体积。完成新分类时，用新记录替换本条。
 
-### ✅ customer-service（3 键 3 工具，deep-dive 早已真实化；本轮零改动收口）
-- 扫描无孤儿键；3 键 3 文件 1:1。全 3 键 deep-dive 占位指纹=0（已真实）。JSON「占位」键 customer-service/random-script 命中「降低上手门槛/沿用模板逐项核对/可复核输出」经通读确认为误报（真实标准话术模板随机抽取器内容：scenarios=岗前话术演练/班前会抽查/话术 A/B 轮换；examples=催付话术对练示例；faqs=可复核输出/新成员交接/隐私合规，均为真实客服培训表述），未改（同 data/generator-35 规律）。
-- 全 3 文件（random-script/stats-time-response/summary-rater-csat）全量复核：套话=0、opt块=0、area4 通用 intro=0，无任何占位残留。
-- 本轮 customer-service 无需任何源文件改动，属"早已真实化但 §9 待收口"分类（同 health/fishery/film/audit）。门禁 run_gates --skip-build 四道全过。复验 scan_cat.py customer-service：HTML 三处残留全 0（random-script 误报仍标但无需改）。键数守恒 5022。§9 7->6（food-safety 排首）。
+### ✅ food-safety（3 键 3 工具，1 真占位键 + 3 HTML 残留；本轮真实化收口）
+- 扫描无孤儿键。JSON「占位」键 food-safety/summary（重金属（限量）汇总）命中 7 个六型占位指纹（统一复核/减少重复确认成本/形成标准复核清单/边界样本建议单独标注/可复核输出/沿用模板逐项核对/降低上手门槛），且 scenarios 出现未替换变量名 "Summary"（"在food-safety场景下先把Summary标准化"），确属真占位。经 apply_food_safety_summary.py 替换为真实重金属限量汇总内容（scenarios=多批次原料合规筛查/成品多元素终检汇总/供应商横向比对；examples=稻米重金属汇总示例含 GB 2762 限量判定；faqs=限量标准/检测限记法/多批次汇总），键数守恒 5022。
+- HTML 三处残留：area4 → clean_food_safety_intro.py 替换 generator-31（食品追溯编码生成）/summary 的通用 intro-scenes（日常办公与学习等 4 条）→ 各自真实食品检测场景；area3 → opt_faq_ld_sync --cat food-safety 同步 assessor-risk-6（微生物致病菌风险评估）FAQPage LD 2 条真实 FAQ（GB 29921 零容忍/菌落总数分级），LD json.loads 合法。
+- 复验 scan_cat.py food-safety：JSON 三键无占位指纹、HTML 三处残留全 0、assessor-risk-6 LD 套话=0。键数守恒 5022。
+- 五道门禁全过（run_gates 完整 build+4 检查，含 build 规范化连带 dyeing 1 文件 meta 重排随提交）。commit 9b07c84cc / Pages 部署核验中（Actions #714，sleep 后复验 summary deep-dive 真实上线、3 页 area2/3/4 全 0）。§9 6->5（writing 排首）。
 ## 八、当前进行中分类
 
 > 当前无进行中分类。新分类开工时先在此登记（目录 + 工具数），收口后写入第七节并覆盖旧归档记录（§4.3 第 4 步）。
 
-## 九、分类总清单（待办，完成一个删一个；剩 6 个目录）
+## 九、分类总清单（待办，完成一个删一个；剩 5 个目录）
 
-- [ ] food-safety
 - [ ] writing
 - [ ] supplychain
 - [ ] outdoor
