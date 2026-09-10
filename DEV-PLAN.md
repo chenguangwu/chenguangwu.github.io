@@ -145,22 +145,19 @@
 ## 七、已完成分类归档
 > 本区仅保留**最近一个（最新）已完成分类**的归档记录，更早历史不再保留，以控制文件体积。完成新分类时，用新记录替换本条。
 
-### ✅ medical（14 工具，完整分类收口，最新一条）
-- 14 工具（assessor-risk-3 结石风险评分 / calc-34 每日能量需求 / calculator-calc-2 儿科用药剂量 / calculator-calc-due-date 预产期 / calculator-calc-infusion 静脉输液滴速 / clinical-tools 临床评分 GCS·ASA·CHA2DS2-VASc·CURB-65·MELD / convert-glucose 血糖单位换算 / convert-time-infusion 输液时间换算 / dosage-calculator 用药剂量(BSA) / drug-info 药品速查 / estimate-metabolism 基础代谢率 / medical-calculator 综合医疗计算 / reminder-2 近效期提醒 / stats-4 描述性统计）deep-dive 已真实化（替换「快速复核」占位，按工具专属真实公式/算例/FAQ），HTML 注入真实医疗数字，六型扫描零残留。
-- 算例按工具 JS 公式 node 独立复算（结石风险默认 rs=2 低风险、尿酸结石高犯 rs=19 极高风险；能量需求 男 BMR1568/TDEE1881、女 BMR1249/TDEE1936；儿科剂量 20kg q6h 日1000mg(上限1200未超)、30kg 日1800=上限封顶；预产期 末次2026-01-01周期28→2026-10-08(受孕2026-01-15)；输液滴速 500ml/4h/15→31 gtt/min、125 ml/h；临床评分 GCS15 轻度、ASAⅠ、CHA2DS2-VASc=4 高风险、CURB-65 3项 30天死亡率17%、MELD(5,2,1.8,Na130)=15；血糖 5.6 mmol/L→100.9 mg/dL、100.9 mg/dL→5.60 mmol/L；BSA 剂量 体表法单次16.8mg；基础代谢 男均值1555(体脂20%)、女均值1268；近效期 余21天/112天；描述统计 n=8 mean45 std22.91）。
-- 清理 stats-4 源 HTML 的 opt-guide/opt-faq 套话块（2 块，前 2 后 0），并把该页旧 FAQPage JSON-LD（旧套话「在对应的输入框或选项中填写…」）同步为 deep-dive 真实 FAQ，JSON-LD 解析校验合法。
-- 两个换算工具 convert-glucose / convert-time-infusion 的原始 JS 公式与标准医学换算方向需注明：deep-dive 已就工具实际行为（mmol→mg 同向、输液时间输出单位为秒）如实描述，避免误导。
-- commit 12a858e8b / CI #624 success；§9 72→71（剩 mining 排首）。脚本：scripts/apply_medical.py。
-
----
+### ✅ mining（14 工具，完整分类收口，最新一条）
+- 14 工具（analysis-cost-3 采矿成本/指标效率分析 / blasting-calculator 爆破参数 / blasting-pattern 爆破孔网设计 / calc-1 爆破药量 / calc-ventilation 矿井通风量 / checker-training-hr 安全体系评估 / convert-grade-ore 品位价值换算 / estimate-reserve 地质块段法储量 / excavation-volume 挖方量 / haulage-optimization 矿车运输优化 / mineral-density 密度孔隙率 / ore-grade 品位换算 / reserve-estimate 储量估算器 / safety-check 安全风险评估）deep-dive 已真实化（替换「快速复核」占位，按工具专属真实公式/算例/FAQ），HTML 注入真实采矿数字，六型扫描零残留。
+- 算例按工具 JS 公式 node 独立复算（成本统计 8 采区 mean142.88/std12.61；爆破参数 中硬岩单耗0.515kg/m³、孔深11.0m、单孔61.8kg、总方量6000m³；孔网设计 孔距4.375/线密度17.671kg/m/单耗1.010(偏高飞石)；药量体积法 Q33.75kg/总675kg；通风 Q1=120/Q2=480/Q3=1250(控制项)/Q4=300、设计1500m³/min=25m³/s；安全体系 6 项全达标→一级；品位价值 5g/t×500=2500元/吨；块段法 3 块段 137.5万t/金属48944t/平均品位3.560%；挖方 600m³/虚方780/造价12000元；运输 需8车/裕量4.73%/有效运行比90.9%；密度 真密度2.857/孔隙率30.0%/堆密度1.20；品位换算 金3.5g/t→金属350kg/价值1.75e8/工业品位；储量 175万t中型/金属5.60t/可采148.75万t；风险 L4S4=16 高风险、L5S5=25 极高危）。
+- 清理 reserve-estimate / ore-grade / estimate-reserve / mineral-density 源 HTML 的 opt-guide/opt-faq 套话块（各 2 块，共 8→0），并把这 4 页旧 FAQPage JSON-LD（旧套话「在对应的输入框或选项中填写…」）同步为 deep-dive 真实 FAQ，JSON-LD 解析校验合法。
+- convert-grade-ore 为通用乘子（r=val×rate×from/to），from/to 为 10³ 量级单位乘子、选错差千倍；deep-dive 已注明单位语义不校验、需人工核对量纲，避免报价误算。
+- commit 本批次（提交后补录） / CI 见 Actions（推送后查）；§9 71→70（剩 ml 排首）。脚本：scripts/apply_mining.py。
 
 ## 八、当前进行中分类
 
 > 当前无进行中分类。新分类开工时先在此登记（目录 + 工具数），收口后写入第七节并覆盖旧归档记录（§4.3 第 4 步）。
 
-## 九、分类总清单（待办，完成一个删一个；剩 71 个目录）
+## 九、分类总清单（待办，完成一个删一个；剩 70 个目录）
 
-- [ ] mining
 - [ ] pr
 - [ ] misc
 - [ ] paper
