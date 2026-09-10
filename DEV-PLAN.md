@@ -145,19 +145,18 @@
 ## 七、已完成分类归档
 > 本区仅保留**最近一个（最新）已完成分类**的归档记录，更早历史不再保留，以控制文件体积。完成新分类时，用新记录替换本条。
 
-### ✅ fire（11 工具 deep-dive 真实化，完整分类收口，最新一条）
-- 11 工具（analysis-cost-price-8 竞品定价 / calc-water-pressure-hydrant 消火栓压力校核 / detector-176 消防联动 / detector-178 设施维保 / detector-44 灭火器状态 / estimate-time-flow 疏散时间 / evacuation-time RSET/ASET / extinguisher-calc 灭火器配置 / hydrant-pressure 栓系统压力 / response-drill 演练生成器 / smoke-spread 烟气蔓延）deep-dive 已真实化（替换「快速复核」占位，按工具专属真实公式/算例/FAQ），六型扫描零残留；response-drill 为交互式演练生成器（无计算公式），写参考指南型。
-- 算例按工具公式 node 独立复算（analysis 售价100/成本60/竞品[80,90,100,110,120]→毛利40.00/毛利率40.00%/均价100.00/处于竞品区间；water-pressure 静压0.8/标高30/栓口0.25/管损0.1→所需0.644 MPa/余量+0.156 满足；detector-176 全0→联动正常(/18)、单故障2→基本正常；detector-178 全0周期2→维保合格(/17)、周期4→+2基本合格；detector-44 水基6个月→合格；estimate 100人/宽2/流1.5/距30/速1.2/预30→总88.3s(1.47min)/出口3.00人·s⁻¹；evacuation P100/W2/F1.5/L30/v1.2/pre30/ASET120→tflow33.3/ttravel25.0/RSET63.3/余量56.7/比值1.89；extinguisher 中危300m²/K1/2A→Q4.0A/N2具、轻危600m²/1A→Q6.0A/2点×3具=6具；hydrant 高差10/喷嘴20/Φ65带20m/5L·s⁻¹/管网50m/Φ100/C100→Hd0.85/hf0.428/Hw0.471/H31.32m(0.313MPa)；smoke Q500kW/H3m→D0.798/Hf2.01/m56.6kg·s⁻¹/ΔT8.83K/V45.2m³·s⁻¹/v_jet0.89m·s⁻¹）。
-- fire 源 HTML 无旧 opt-guide/opt-faq 可见块；仅 extinguisher-calc.html 的 FAQPage JSON-LD 含旧套话，已用 opt_faq_ld_sync.py 同步真实 FAQ（2 条）。其余 10 文件仅 deep-dive 占位，build 随 JSON 重建。
-- 五道门禁全过（build→静态→死链→资产→公式回归）；占位/套话核验全 0，键数守恒 5022。脚本：scripts/apply_fire.py。
+### ✅ elderly（11 工具，完整分类收口，最新一条）
+- 11 工具（aid-height 助行器具高度 / assessor-35 Barthel 护理等级 / assessor-36 介入需求 / assessor-37 服务质量 / assessor-risk-1 居家跌倒环境 / bp-trend 血压趋势 / eldercare-level 照护等级 / fall-risk 跌倒风险 / medication-schedule 用药计划 / reminder-time 提醒 / wheelchair-width 轮椅通道）deep-dive 已真实化（替换「快速复核」占位，按工具专属真实公式/算例/FAQ），六型扫描零残留；bp-trend/fall-risk/medication-schedule/reminder-time 为交互式记录/评估/生成器（无计算公式），写参考指南型。
+- 算例按工具逻辑 node 独立复算（aid-height 身高170+鞋2→有效172cm，手杖172×0.46≈79cm/46%、腋杖×0.77≈132cm/77%、前臂杖×0.50≈86cm、助行器×0.49≈84cm；assessor-35 Barthel85&认知0→四级自理、Barthel50&认知1→二级中度；assessor-36 四项均0→低需求(/12)、均2→总分8高需求；assessor-37 五维均5→25/均值5.00优秀、均3→15/3.00一般；assessor-risk-1 八项均0→低风险(/24)、合计16→高风险；eldercare-level 七项均0→一级轻度、合计8→二级中度、≥10→三级重度；wheelchair-width 门洞手动轮椅≥800mm、走廊自行≥1200/协助≥1500mm、电动700/护理740mm 同法）。
+- elderly 源 HTML 无旧 opt-guide/opt-faq 可见块，亦无 FAQPage JSON-LD 旧套话（dry-run 0 文件），无需清理。其余文件仅 deep-dive 占位，build 随 JSON 重建。
+- 五道门禁全过（build→静态→死链→资产→公式回归）；占位/套话核验全 0，键数守恒 5022。脚本：scripts/apply_elderly.py。
 
 ## 八、当前进行中分类
 
 > 当前无进行中分类。新分类开工时先在此登记（目录 + 工具数），收口后写入第七节并覆盖旧归档记录（§4.3 第 4 步）。
 
-## 九、分类总清单（待办，完成一个删一个；剩 65 个目录）
+## 九、分类总清单（待办，完成一个删一个；剩 64 个目录）
 
-- [ ] elderly
 - [ ] text
 - [ ] pet
 - [ ] security
