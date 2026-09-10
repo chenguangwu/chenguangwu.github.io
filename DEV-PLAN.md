@@ -155,7 +155,7 @@
 
 ## 九、分类总清单（待办，完成一个删一个；✅ §9 队列已全部完成）
 
-> ✅ §9 全部完成（customer-service 零改动 + food-safety/writing/supplychain/outdoor/paint/stone 共 6 个真占位键真实化收口，键数守恒 5022，五道门禁全过，五处占位 0 残留，线上核验通过）。
+> ✅ §9 全部完成（customer-service 原判「零改动」，后全站六型复扫发现 random-script 含六型占位「可复核输出/沿用模板逐项核对/降低上手门槛」属漏检，已补清；food-safety/writing/supplychain/outdoor/paint/stone 共 6 个真占位键真实化收口；键数守恒 5022，五道门禁全过，六型占位 0 残留，线上核验通过）。
 
 ## 九-b、补扫扩展批次（scanner 同义变体漏报捕获；✅ 全部完成 / 0 待办分类）
 
@@ -180,5 +180,5 @@
 
 - [x] medical2 (5: iv-drip-speed/bed-occupancy/medical-abbrev/surgery-duration/drug-expiry) ✅
 - [x] photo2 (5: exposure-triangle/focal-length/video-storage/print-size/color-temperature) ✅
-- [ ] pet-training (5: leash-length/elimination-predict/command-repetition/treat-calories/clicker-timing)
+- [x] pet-training (5: leash-length/elimination-predict/command-repetition/treat-calories/clicker-timing) ✅
 
