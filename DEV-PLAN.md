@@ -145,19 +145,17 @@
 ## 七、已完成分类归档
 > 本区仅保留**最近一个（最新）已完成分类**的归档记录，更早历史不再保留，以控制文件体积。完成新分类时，用新记录替换本条。
 
-### ✅ surface（2 键，真实化收口，最新一条）
-- 2 个工具全部真实化（表面处理内容）：detector-hardness 涂层（结合力/厚度/硬度）检测（划格 GB/T 9286 0-5级映射100/85/65/40/20/0、拉拔 ISO 4624 MPa 分段、厚度实测/标准比值分段评分、铅笔硬度 6B..9H 16级转分 round(10+pIdx×6)、综合=结合力×0.4+厚度×0.3+硬度×0.3）、assessor-34 盐雾试验结果评估（腐蚀面积→Rp 基础分 GB/T 6461、生锈×0.5/起泡×0.3/开裂×0.5/红锈−2 扣分、finalRp=max(基础−扣分,0)、isPass=Rp≥要求且无红锈）。每个含 3 真实场景 + 1 算例 + 2 专业 FAQ。
-- 算例数字全部 node 实跑复核（/tmp/verify_surface.js）：detector-hardness 默认划格0级/厚50μm标40μm(HB pIdx6→硬46)→综合83.8≈84分 涂层质量良好、合格；铅笔2H(pIdx9→硬58)→87.4≈87分 优秀；assessor-34 腐蚀0.1%→Rp8.0 耐蚀性优秀、合格；腐蚀0.05%+时长480h≥240h→Rp9.0 极优；腐蚀3%+起泡2/锈Ri2/裂1→Rp基础4−0.6−1.0−0.5=1.9 不合格。
-- 两页 intro-scenes 已是真实表面处理场景（涂层/镀层质量验收、表面处理工艺评估、涂层配方优化对比、检测报告辅助 / 镀层耐蚀性验收、表面处理工艺评估、材料选型对比、盐雾试验报告辅助）、无 opt 块、无 FAQPage LD 旧套话，无需清理或双清。五道门禁全过（含 build 重建）；六型+GEN(高频复用模板)+旧套话+opt块+第四处通用占位扫描 0 残留；真实表面处理关键词 2 页全注入；键数守恒 5022。脚本：scripts/apply_surface.py。
-- commit 4ac88c23c / Pages 部署完成（线上 2 页落盘核验占位=0、真实关键词命中 detector-hardness 3处 / assessor-34 2处）。
-- 后续补齐：health 分类 46 键 deep-dive 早已真实化，仅清 FAQPage LD 旧套话 13 处（opt_faq_ld_sync --cat health，commit 2cd68215b），五道门禁全过；health 不在 §9 待办。§9 19->18（fishery 排首）。
+### ✅ fishery（39 键，deep-dive 早已真实化；本次清理 1 孤儿占位键 + area3 残留）
+- 39 个工具中 38 键 + fishery/wastewater-cod 早已真实化（增氧机 0.825 mg/L·h、W=aLᵇ 草鱼 a=0.0207/b=3.05、溶氧饱和 8.02 mg/L、投饵 7200 元等含真实公式与算例）。仅 fishery/estimate-emission-wastewater 为 STY3 孤儿占位（无对应 HTML，线上页由 fishery/wastewater-cod 真实注入），已替换为真实 COD 估算内容（算例 node 实跑：100kg×0.35→35.0kg/天、浓度70.0mg/L、超标2.33倍、稀释666.7m³/天），键数守恒 5022。
+- area3：7 文件（mesh-size-guide/feeding-rate/harvest-size-price/winter-heating/spawning-hormone/feed-calculator/feed-rate-calculator）含 FAQPage JSON-LD 旧套话，经 opt_faq_ld_sync --cat fishery 同步真实 FAQ（各2条）；area2/area4(日常办公与学习类) 均 0。
+- 五道门禁全过；同批 health（46 键，此前已真实化）补齐 FAQPage LD 旧套话 13 处清零。脚本：scripts/apply_fishery.py。
+- commit 9e4faa762 / Pages 部署完成（线上 4 页抽检占位=0、真实 FAQ 已上线）。§9 18->17（hematology 排首）。
 ## 八、当前进行中分类
 
 > 当前无进行中分类。新分类开工时先在此登记（目录 + 工具数），收口后写入第七节并覆盖旧归档记录（§4.3 第 4 步）。
 
-## 九、分类总清单（待办，完成一个删一个；剩 18 个目录）
+## 九、分类总清单（待办，完成一个删一个；剩 17 个目录）
 
-- [ ] fishery
 - [ ] hematology
 - [ ] cardiology
 - [ ] clinical-lab
