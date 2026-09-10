@@ -145,19 +145,17 @@
 ## 七、已完成分类归档
 > 本区仅保留**最近一个（最新）已完成分类**的归档记录，更早历史不再保留，以控制文件体积。完成新分类时，用新记录替换本条。
 
-### ✅ petrochem（5 键，真实化收口，最新一条）
-- 5 个工具全部真实化（api-gravity API度↔相对密度 SG=141.5/(API+131.5) 与分类 / tank-capacity 储罐容量 立式圆柱·卧式弓形 / catalyst-calc 空速LHSV=流量/催化剂量·停留时间=3600/LSV / distillation-yield 精馏收率与物料平衡 / pipe-pressure 达西压降 Re=ρvD/μ·Swamee-Jain 摩擦系数），每个含 3 真实场景 + 1 算例 + 2 专业 FAQ。
-- 读取 5 个 HTML 的 calc()/calcApi()/calcLsv() 逻辑后按真实石化规则重写，算例数字全部 node 实跑复核（/tmp/verify_petro.js）：api 30→SG0.8762/中质、35→0.8498/轻质；tank 立式D4L10液位8→125.66m³/85.45吨/80.0%、卧式D3L8半满→56.55/21.21吨/50.0%；catalyst 1000kg/h·LSV2·密度800·堆700→0.625m³/437.5kg/停留1800s；dist feed1000[480,290]→收率77.0%/损失230/23.0%；pipe 过渡流100m³/h·D200·L500·ρ900·μ50→Re3183/f0.0442/ΔP38.84kPa、层流1m³/h·D50·μ100→Re71/f0.9048/ΔP18.11kPa。
-- **关键坑**：pipe-pressure 源 HTML 残留可见 opt-guide 块(2段) + 旧 FAQPage JSON-LD 旧套话。处理链路：①opt_faq_ld_sync.py --cat petrochem 同步 LD 2 条真实 FAQ；②opt_cleanup_opt_blocks.py --cat petrochem 整段删 opt-guide/opt-faq(2段) 方归零。其余 4 文件无残留。
-- 全部 5 个 petrochem 键六型指纹(含"先统一"变体)+可见 opt 块扫描 = 0 占位残留；6 个 HTML 逐文件 grep 占位=0、真实关键词≥1（api24/catalyst46/tank30/dist32/pipe35/index11）；五道门禁全过（GATES_EXIT=0）；键数守恒 5022。脚本：scripts/apply_petrochem.py。
+### ✅ martial（5 键，真实化收口，最新一条）
+- 5 个工具全部真实化（routine-timer 套路计时 标准时长比对与扣分 / kick-height 踢腿高度比·腿长比·估算角度 / stance-center 桩功重心偏移·稳定性·耐力 / breathing-rhythm 呼吸周期·吸呼屏时长·匹配指数 / strike-resistance 抗击打硬度指数 BODY_PARTS 年限×频率系数），每个含 3 真实场景 + 1 算例 + 2 专业 FAQ。
+- 读取 5 个 HTML 的 calc() 逻辑（含 STANDARDS/STANCE_PARAMS/ACTION_BREATH/BODY_PARTS 常量表）后按真实武学规则重写，算例数字全部 node 实跑复核（/tmp/verify_martial.js）：breath 发力击打 rate12/吸呼0.5/中级→周期5.00s·吸1.67·呼3.33·屏0.25·匹配100；kick 170cm/腿76.5/踢165前踢→高度比97.1%/腿长比215.7%/90.0°/良好；stance 马步步距80/前脚50%/蹲30/5分→重心46.5cm/27.4%/稳定100/耐力52；strike 3年/周2/前臂=86(较硬)·未训练=40(较弱)；routine 长拳实测85→偏差+5/在范围/扣分0、实测95→偏慢/扣分2.5。
+- martial 5 个源 HTML 原 LD 即干净、无 opt-guide 旧套话（opt_faq_ld_sync 与 opt_cleanup_opt_blocks dry-run 均 0），无需清理。五道门禁全过；六型指纹(含"先统一"变体)+可见 opt 块扫描 0 残留；真实关键词 strike15/routine29/kick42/stance38/breathing18/index9；键数守恒 5022。脚本：scripts/apply_martial.py。
 
 ## 八、当前进行中分类
 
 > 当前无进行中分类。新分类开工时先在此登记（目录 + 工具数），收口后写入第七节并覆盖旧归档记录（§4.3 第 4 步）。
 
-## 九、分类总清单（待办，完成一个删一个；剩 41 个目录）
+## 九、分类总清单（待办，完成一个删一个；剩 40 个目录）
 
-- [ ] martial
 - [ ] pets
 - [ ] rubber
 - [ ] edu2
