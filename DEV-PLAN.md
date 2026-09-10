@@ -145,18 +145,17 @@
 ## 七、已完成分类归档
 > 本区仅保留**最近一个（最新）已完成分类**的归档记录，更早历史不再保留，以控制文件体积。完成新分类时，用新记录替换本条。
 
-### ✅ writing（1 键 1 工具，1 真占位键；本轮真实化收口）
-- 扫描无孤儿键；全 1 键 deep-dive 占位指纹=0（scanner 报全键无占位）。**但经人工通读发现真占位**：writing/text-polisher（文本润色工具）scenarios 为 "在writing场景下先确认Text Polisher口径与边界，再输出可复核结论" + "适用于流程复用、异常复核、版本变更对照" + "降低追溯成本"，且出现大写未替换变量名 "Text Polisher"——与 food-safety/summary 同模板（"在X场景下先确认Y口径与边界，再输出可复核结论"）。
-- **关键：scanner 精确指纹词被同义变体规避漏报**（可复核输出→可复核结论、降低上手门槛→降低追溯成本、统一复核→异常复核），故 scanner 未报。经 apply_writing.py 替换为真实文本润色内容（scenarios=公文邮件润色/论文报告改写/社媒文案打磨；examples=邮件润色示例"那个事情你尽快看看弄一下→烦请尽快跟进并处理该事项"；faqs=是否改原意/支持风格），键数守恒 5022。
-- 复验 text-polisher.html deep-dive：占位模板 "在writing场景下先确认"=0、公文/邮件润色=真、可复核结论=0。建扫描器盲区记录：六型占位存在同义变体，需补强 scan_cat.py（加 "在X场景下先确认Y口径" 模板 + 大写变量名检测）。
-- 五道门禁全过（run_gates 完整 build+4 检查，含 build 规范化连带 dyeing/food-safety 文件 meta 重排随提交）。commit 8605a174e / Pages 部署核验中（Actions #715，sleep 后复验 text-polisher deep-dive 真实上线）。§9 5->4（supplychain 排首）。
+### ✅ supplychain（1 键 1 工具，1 真占位键；本轮真实化收口）
+- 扫描无孤儿键；全 1 键 deep-dive scanner 原报"无占位"，**补强 scanner 后捕获真占位**：supplychain/cycle-16（供应链 KPI 仪表盘）scenarios="在supplychain场景下先确认Cycle 16口径与边界，再输出可复核结论"+ "适用于流程复用、异常复核、版本变更对照"+ "降低追溯成本"，含大写未替换变量名 "Cycle 16"，与 writing/food-safety 同模板。
+- 经 apply_supplychain.py 替换为真实供应链 KPI 内容（scenarios=履约与交付监控/库存效率评估/供应商交付对比；examples=月度供应链 KPI 看板示例含准时交付率预警；faqs=指标口径不一致怎么办/数据来源与上传统计），键数守恒 5022。
+- 复验 cycle-16.html deep-dive：占位模板 "在supplychain场景下先确认"=0、履约与交付监控=真、可复核结论=0。"Cycle 16" 仅留工具英文名（标题），非占位。
+- 五道门禁全过（run_gates 完整 build+4 检查，含 build 规范化连带 food-safety 文件 meta 重排随提交）。commit 0e9392c75 / Pages 部署核验中（Actions #716，sleep 后复验 cycle-16 deep-dive 真实上线）。§9 4->3（outdoor 排首）。
 ## 八、当前进行中分类
 
 > 当前无进行中分类。新分类开工时先在此登记（目录 + 工具数），收口后写入第七节并覆盖旧归档记录（§4.3 第 4 步）。
 
-## 九、分类总清单（待办，完成一个删一个；剩 4 个目录）
+## 九、分类总清单（待办，完成一个删一个；剩 3 个目录）
 
-- [ ] supplychain
 - [ ] outdoor
 - [ ] paint
 - [ ] stone
