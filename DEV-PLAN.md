@@ -145,21 +145,19 @@
 ## 七、已完成分类归档
 > 本区仅保留**最近一个（最新）已完成分类**的归档记录，更早历史不再保留，以控制文件体积。完成新分类时，用新记录替换本条。
 
-### ✅ usedcar（11 工具，完整分类收口，最新一条）
-- 11 工具（calc-73 保值率/残值 / car-purchase-cost 购车费用 / checker-3 / detector-19 / ershouchetanpanyijiakongjianyuce 议价空间 / estimate-38 过户费 / rater-37 发动机评分 / recorder-maintenance 维保完整度 / tester-12 / usedcar-valuation 估价 / wear 里程磨损）deep-dive 全量真实化（替换通用模板占位，按各工具真实逻辑写 3 场景+1 算例+2 FAQ）。
-- 算例 node 复核：calc-73 20万/5年/8万km/合资/良好/基准2万→retained(5)=0.85×0.91⁴≈0.5829、品牌1.05、车况1.00、里程1.01→残值≈12.36万、保值率61.82%（自主品牌同口径≈10.6万）；ershouche 报价20/预算18/5年/12万km/良好/正常/常规→议价空间12%、合理区间17.6–18.8万、首报17.6万；wear 超额里程×单价、价值调整±偏差×0.30封顶25%/+5%；estimate-38 购置税=price/1.13×10%、TRANSFER{t1/2/3=800/600/400}、VVT按排量180–4500、交强险950；recorder 完整度>90→残值+12.5%/≥70→+7.5%/≥50→+2.5%/否则-5%；usedcar-valuation usedRate=min(1-年龄×0.05,1-里程×0.03) clamp[0.45,1]。
-- 标题均匹配功能（calc-73 保值率/残值、ershouche 议价、wear 磨损、estimate-38 过户、recorder 维保完整度等），无需校正；无孤儿键（11 键均有对应 HTML）。
-- usedcar 源 HTML 无可见 opt-guide/opt-faq 块（build 重渲已移除旧 opt 块）、FAQPage LD 已真实（faq_ld dry-run 同步0/跳过已真实1），无需清理；build 随 JSON 重建注入真实 deep-dive（grep 核验六型占位全 0、真实关键词命中）。
-- 注：本批首次 run_gates 的 build 偶发未重渲 usedcar 正文 deep-dive（仅 FAQPage LD 更新），单独重跑 `_build.py` 后补正，二次完整 run_gates 五道门禁全过。
-- 五道门禁全过；detect_placeholders.py（SIX+GEN+STY3）usedcar 归零，键数守恒 5022。脚本：scripts/apply_usedcar.py。
+### ✅ misc2（10 工具，完整分类收口，最新一条）
+- 10 工具（car-residual 二手车残值三法 / cigarette-tar 焦油摄入 / coin-grade 钱币品相分级 / instrument-tuning 十二平均律音准 / insurance-fee 快递保价费 / lottery-tax 彩票个税 / luggage-size 行李箱尺寸 / screen-size 屏幕 PPI / shoe-size 鞋码换算 / tax-refund 境外退税）deep-dive 全量真实化（替换通用模板占位，按各工具真实逻辑写 3 场景+1 算例+2 FAQ）。
+- 算例 node 复核：car-residual 直线法(20万,5年)→折旧率51%/残值9.8万、年数总和法更快；screen 1920×1080@23.8→PPI92.56/物理51.0×28.6cm/16:9/点距0.274mm，2560×1440@27→PPI108.79；shoe 260mm→CN26/EU41/US男17/US女18.5/UK16；instrument C4=261.63Hz(A4=440)、C5=523.25；tax-refund JP(10万日元×4.8%)→退税9500日元≈¥456、DE(2000欧×19%)→退税380欧≈¥2964；lottery 500万→税100万/到手400万（超1万才征）、8000免税；insurance 顺丰(1万×0.5%)=50元、EMS(×1%)=100元；cigarette 10mg/1mg/20支→日吸200mg焦油/年73g/吸收25%。
+- 标题均匹配功能，无需校正；无孤儿键（10 键均有对应 HTML）；coin-grade 7 级品相(UNC/AU/XF/VF/F/G/POOR)、luggage 18–30 寸、tax-refund 8 国税率均为真实查表数据。
+- misc2 源 HTML 无可见 opt 块、无 FAQPage LD 旧套话（dry-run 0 文件），无需清理；build 随 JSON 重建注入真实 deep-dive（grep 核验六型占位全 0、真实关键词命中）。
+- 五道门禁全过；detect_placeholders.py（SIX+GEN+STY3）misc2 归零，键数守恒 5022。脚本：scripts/apply_misc2.py。
 
 ## 八、当前进行中分类
 
 > 当前无进行中分类。新分类开工时先在此登记（目录 + 工具数），收口后写入第七节并覆盖旧归档记录（§4.3 第 4 步）。
 
-## 九、分类总清单（待办，完成一个删一个；剩 59 个目录）
+## 九、分类总清单（待办，完成一个删一个；剩 58 个目录）
 
-- [ ] misc2
 - [ ] sales
 - [ ] office
 - [ ] printing
