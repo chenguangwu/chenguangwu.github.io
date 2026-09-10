@@ -145,11 +145,11 @@
 ## 七、已完成分类归档
 > 本区仅保留**最近一个（最新）已完成分类**的归档记录，更早历史不再保留，以控制文件体积。完成新分类时，用新记录替换本条。
 
-### ✅ stage（5 键 5 工具，5 真占位键；补扫扩展批次第 7 分类真实化收口）
-- 补强全站 scanner 捕获 5 真占位键（beam-angle/color-temperature/dimmer-curve/light-position/power-load），模板="在stage场景下，先使用[VarName]建立输入边界" + 通用套话 + 未翻译英文变量名（Beam Angle/Color Temperature/Dimmer Curve/Light Position/Power Load）。
-- 经 apply_stage.py 真实化（各工具按真实 calc 逻辑写场景/算例/FAQ：光束角 D=2·距·tan(半角)、面积=π·r²、照度=光强/距²；Mired=1e6/色温K、差值选 CTO/CTB；调光曲线 DMX/255 映射(线性/平方律/S/指数/log)；投射角=atan2(高,距)、斜射距=√(高²+距²)、光斑=斜距·tan(半角)；总电流=功率/(√3·380·pf)三相 / 功率/(220·pf)单相、断路器=ceil(安·1.2/16)·16）；示例数字全部 node 实跑复核（25°/10m/50000cd：r2.22 D4.43 A15.44 E500lux；3200→5600K：Mired313/179 差−134→全CTB；DMX128 平方律输出64.3/25.2%/增益0.50×；高6距5：角50.2°/俯39.8°/斜7.81；角45高6束25：距6.00/斜8.49/r1.88/D3.76/A11.12；灯阵380V/0.9/20%：总30.40kW/48台/I51.3A/每相53.0A/断路器64A/单相26.3%）。
-- HTML 三处残留：power-load 的 area2 opt-guide/opt-faq 与 area3 FAQPage LD 经核查均为真实工具专属内容（非六型模板），不双清避免误删真实内容；5 文件 area4 通用 intro-scenes（"前端开发中的样式设计"等4条）手动 Edit 替换为真实舞台灯光场景（舞台布光设计/彩排预演与三相负载核算/调光曲线与色温统一调试/剧场用电安全核查）；deep-dive 区块经 _build.py 由 JSON 重建为真实内容。键数守恒 5022。
-- 五道门禁全过（run_gates 完整 build+4 检查，二次核验 area4 编辑后最终态）。§9b 待办 4→3（stats 排首）。
+### ✅ unitedfront（3 键 3 工具，3 真占位键；补扫扩展批次第 9 分类真实化收口）
+- 补强全站 scanner 捕获 3 真占位键（assessor-training-hr-1/recommender-7/stats-9），模板="在unitedfront场景中，先按[VarName]的口径预先约束输入范围" + 通用套话 + 未翻译英文变量名（Assessor Training Hr 1/Recommender 7/Stats 9）。
+- 经 apply_unitedfront.py 真实化：assessor-training-hr-1 按 Kirkpatrick 四级 + ADDIE 评分（课程均分=(c0+c1+c2+c3)/4、师资=(t0+t1+t2)/3、效果=(l1*0.2+l2*0.3+l3*0.3+l4*5*0.2)/100*10、综合=课程*0.3+师资*0.3+效果*0.4）→ 示例 8.0/8.3/7.67/综合 7.97 评级「良好（B级）」、L1-L4 全达标；recommender-7 8 类人才画像随机生成器（民主党派/无党派/民族/宗教/港澳台侨/党外干部/网络人士等），抽「党外干部」输出「有意识留位子、搭台子、压担子」；stats-9 描述统计（n/sum/mean/median/min/max/range/var/std），8 数据(10..80)→n8/sum360/mean45/median45/range70/var525/std22.91。示例数字全部 node 实跑复核。
+- HTML 三处残留：assessor 的 area4 intro-scenes 已是真实场景（企业培训项目评估/干部教育培训考核/培训课程设计评审/培训体系建设）保留；recommender-7 与 stats-9 的 area4 通用套话（"日常办公与学习"等 4 条）手动 Edit 替换为真实统战场景（党外代表人士队伍建设画像梳理/新的社会阶层人士分层联络/党外干部培养选拔参考/统战对象分层分类管理；统战调研问卷数据快速汇总/民主党派组织成员结构分析/民族团结进步创建量化评估/港澳台侨联络服务数据统计）；area2/area3 经 grep 确认无模板，双清无需运行；deep-dive 区块经 _build.py 由 JSON 重建为真实内容。键数守恒 5022。
+- 五道门禁全过（run_gates 完整 build+4 检查）。§9b 待办 2→1（剩 woodworking 排末）。
 ## 八、当前进行中分类
 
 > 当前无进行中分类。新分类开工时先在此登记（目录 + 工具数），收口后写入第七节并覆盖旧归档记录（§4.3 第 4 步）。
@@ -158,7 +158,7 @@
 
 > ✅ §9 全部完成（customer-service 零改动 + food-safety/writing/supplychain/outdoor/paint/stone 共 6 个真占位键真实化收口，键数守恒 5022，五道门禁全过，五处占位 0 残留，线上核验通过）。
 
-## 九-b、补扫扩展批次（scanner 同义变体漏报捕获；待办 4 分类 / 18 真占位键）
+## 九-b、补扫扩展批次（scanner 同义变体漏报捕获；待办 1 分类 / 5 真占位键）
 
 > **背景**：§9 队列基于补强前旧扫描建立，本身不完整。用补强后全站 scanner 重扫 5022 键，发现 §9 之外另有 10 个分类共 47 个 deep-dive 真占位键（同一套模板：在[X]场景下先使用[VarName]建立输入边界 + 通用套话 + 未翻译英文变量名）。须按 §9 同款流水线逐分类真实化收口。
 > **规则**：每分类走完整流水线（apply 脚本→`_build.py`→五道门禁→发布核验→DEV-PLAN 状态机更新→记忆日志）；键数守恒 5022；模板/变量名/套话三重清零。
@@ -171,6 +171,6 @@
 - [x] shipping (5: calc-76/convert-speed-1/convert-time-speed/estimate-length/tide) ✅
 - [x] stage (5: beam-angle/color-temperature/dimmer-curve/light-position/power-load) ✅
 - [x] stats (5: confidence-interval/data-distribution/regression-analysis/sample-size/statistical-tests) ✅
-- [ ] unitedfront (3: assessor-training-hr-1/recommender-7/stats-9)
+- [x] unitedfront (3: assessor-training-hr-1/recommender-7/stats-9) ✅
 - [ ] woodworking (5: angle-cut/board-feet/moisture-content/mortise-size/wood-screws)
 
