@@ -145,18 +145,18 @@
 ## 七、已完成分类归档
 > 本区仅保留**最近一个（最新）已完成分类**的归档记录，更早历史不再保留，以控制文件体积。完成新分类时，用新记录替换本条。
 
-### ✅ beauty（22 键 21 工具，deep-dive 早已真实化；本次清理 1 孤儿占位键 + 3 文件 area2 双清）
-- 22 个 JSON 键对应 21 个工具页；孤儿占位键 beauty/self-assess-1（无 self-assess-1.html，同域真实页为 skin-tewl.html，键 beauty/skin-tewl 已真实化，TEWL 分级 <10 正常/10–20 轻/>20 重）。经 apply_beauty.py 替换为真实皮肤水分流失（TEWL）自评内容，键数守恒 5022。
-- area2：opt_cleanup_opt_blocks --cat beauty 清 3 文件（analysis-detector-diagnosis/assessor-risk-12/calc-1）前 6→后 0；area3：opt_faq_ld_sync --cat beauty 同步 0（21 文件均已是真实 FAQ，跳过）；area4 扫描 0。
-- 五道门禁全过（run_gates --skip-build）。脚本：scripts/apply_beauty.py。
-- commit 2edd367a2 / Pages 部署核验中（sleep150 复验 area2/3/4 全 0 残留）。§9 13->12（data 排首）。
+### ✅ dyeing（13 键 13 工具，deep-dive 早已真实化；本次清理 1 文件 area2+area3 占位）
+- 扫描无孤儿键；全 13 键 deep-dive 占位指纹=0（已真实）。JSON「占位」键 dyeing/temp-time-humidity-1 命中「快速复核」经通读确认为误报（真实场景"新配方或换品种时快速复核蒸化条件避免固色不足"），未改。
+- 全 14 文件全量核查：仅 temp-time-humidity-1.html 含占位（area2 opt块 2 段 + area3 FAQPage LD 套话"在对应的输入框或选项中填写"各 2 处），其余 13 文件 opt块/套话/area4 全 0。opt_cleanup_opt_blocks --cat dyeing 删 2 段(opt块)、opt_faq_ld_sync --cat dyeing 同步 3 条真实 FAQ（LD json.loads 合法）；area4 扫描 0。
+- **与 psychology 对照**：本批 temp-time-humidity-1 的 opt块/FAQPage LD 确实含占位套话（"在对应的输入框或选项中填写"），属真占位应删；psychology/tester-3 的 opt块 无套话、为真实 VARK 内容故保留——两批共同印证"扫描命中须通读确认是否真占位"原则。
+- 复验 scan_cat.py dyeing：HTML 三处残留全 0（JSON「快速复核」误报仍标但无需改）。键数守恒 5022。
+- 五道门禁全过（run_gates 完整 build+4 检查，含 build 规范化连带 data 2 文件 meta 重排随提交）。commit 08a49dc14 / Pages 部署核验中（Actions，sleep 后复验 temp-time-humidity-1 area2/3 全 0）。§9 10->9（film 排首）。
 ## 八、当前进行中分类
 
 > 当前无进行中分类。新分类开工时先在此登记（目录 + 工具数），收口后写入第七节并覆盖旧归档记录（§4.3 第 4 步）。
 
-## 九、分类总清单（待办，完成一个删一个；剩 10 个目录）
+## 九、分类总清单（待办，完成一个删一个；剩 9 个目录）
 
-- [ ] dyeing
 - [ ] film
 - [ ] audit
 - [ ] customer-service
