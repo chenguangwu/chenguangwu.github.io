@@ -145,19 +145,19 @@
 ## 七、已完成分类归档
 > 本区仅保留**最近一个（最新）已完成分类**的归档记录，更早历史不再保留，以控制文件体积。完成新分类时，用新记录替换本条。
 
-### ✅ project（5 键，真实化收口，最新一条）
-- 5 个工具全部真实化：manager-cost(EVM 成本/进度联合监控，CV/SV/CPI/SPI/EAC/ETC/VAC + S 曲线)、analysis-28(由纯统计壳改造为干系人权力-利益矩阵分析器：输入权力/利益 1-5，输出四象限 重点管理/令其满意/随时告知/监控观察 + 应对策略)、checker-training-hr-1(HSE 实施 10 项检查表评分 优秀/良好/一般/不合格)、checker-12(监理工作 10 项检查表评分)、assessor-risk-9(风险矩阵 概率×影响=风险值 1-25 四级 + 应对策略)。每个含 3 真实场景 + 1 算例 + 2 专业 FAQ。
-- 算例数字全部 node 实跑复核（/tmp/verify_project.js）：manager-cost BAC150万/3期 → CV-150000/SV-100000/CPI0.88/SPI0.92/EAC1704545/ETC454545/VAC-204545/完成率73.3%/预测工期109天；analysis-28 业主(5,5)→重点管理25、政府(5,2)→令其满意10、施工(2,5)→随时告知10、居民(1,2)→监控观察2；checker-12 混合16分→良好80%；checker-training 12分→一般60%；assessor-risk 成本超支(4,4)16极高/工期(3,3)9中/质量(2,5)10高/安全(1,2)2低/需求(5,3)15高。
-- analysis-28 原 calc 为纯统计壳（与「干系人分析」标题严重不符），本次重写为干系人权力-利益矩阵分析器（renderSh/addSh/delSh/calc），与 deep-dive 一致；其余 4 个工具 calc 本就真实，仅 deep-dive 真实化。
-- 五道门禁全过；六型指纹(含"先统一"变体)+旧套话全局扫描 0 残留（5 个工具页无可见 opt 块、无 FAQPage LD，无需双清）；真实关键词覆盖 5 页；键数守恒 5022。脚本：scripts/apply_project.py。
+### ✅ bonding（5 键，真实化收口，最新一条）
+- 5 个工具全部真实化：analysis-cost-4/analysis-resolution 实为描述性统计器（n/sum/mean/med/var/std/min/max/range），deep-dive 按「粘接工艺成本批间波动 / 失效案例样本统计」业务语境写真实算例（5 批胶成本 mean90.00/std3.41、10 例故障评分 mean3.50/std1.02）；assessor-cycle-lifespan 为 Goodman 修正+S-N(m=5) 疲劳寿命（σE=σb×0.5×β/Kt、σEq=Δσ/2/(1−σm/σb)、N=(σE/σEq)^5×1e6、sf=N/designN）；detector-27 超声粘接检测（回波≥−6dB/底波衰减≤4dB 阈值、缺陷面积比=信号数/max(面积/10,1)×100%、四态判定）；detector-26 胶层厚度（平均/最大偏差/均匀性 cv、合格/需返修/不合格）。每个含 3 真实场景 + 1 算例 + 2 专业 FAQ。
+- 算例 node 复核（/tmp/verify_bonding.js）：assessor σb800/Δσ200/σm100/Kt2/design50万/β0.8 → σE160/σEq114.29/N5,378,240/sf10.76 安全，默认 σb600 → σE120/σEq120/N100万/sf1.00 临界；detector-26 合格(0.20,0.21,0.19,0.20,0.20,0.19,0.21,0.20) avg0.200/最大偏差5.0%/cv10.0% 合格，默认(0.18,0.22,0.19,0.21,0.17,0.23,0.20,0.19) avg0.199/最大偏差15.0%/cv30.2% 需返修；detector-27 默认 echo−6/att3/sig2 基本合格(面积比20.0%)、sig6 不合格(60.0%)、sig0 粘接良好(0%)；两分析器统计数精确。
+- 关键发现（重要）：tool-intro-body 区块（「关于工具」SEO 介绍里的 intro-scenes 列表）是继 deep-dive section / opt-guide·opt-faq 可见块 / FAQPage JSON-LD 之后的**第四处占位残留区**，`_build.py` 只重建 `data-deep-dive` section、不重建 tool-intro-body，故本批 5 页 intro-scenes 仍残留 STY3 占位。已新增 scripts/clean_bonding_intro.py 替换 5 页 intro-scenes 为真实场景。**此前所有批次（petrochem/seismology/library/project/tunnel 等）可能均未清理此第四处**，建议后续批次将 intro-scenes 清理纳入标准步骤（见 §6 备忘新增条目）。
+- 五道门禁全过（清理后复跑）；六型占位指纹(含"先统一"变体)+intro-scenes 第四处扫描 0 残留；真实关键词覆盖 5 页；键数守恒 5022。脚本：scripts/apply_bonding.py + scripts/clean_bonding_intro.py。
+- commit afad47c4d / CI #34501109456 success（线上 5 页落盘核验 HTTP200、占位=0、真实关键词≥3）。§9 33→32（railway 排首）。
 
 ## 八、当前进行中分类
 
 > 当前无进行中分类。新分类开工时先在此登记（目录 + 工具数），收口后写入第七节并覆盖旧归档记录（§4.3 第 4 步）。
 
-## 九、分类总清单（待办，完成一个删一个；剩 33 个目录）
+## 九、分类总清单（待办，完成一个删一个；剩 32 个目录）
 
-- [ ] bonding
 - [ ] railway
 - [ ] yi
 - [ ] uiux
