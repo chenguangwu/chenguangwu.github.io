@@ -149,7 +149,7 @@
 - 13 工具（analysis-6 舆情情感词频分析 / analysis-assessor 赞助回报分析 / analysis-density-1 新闻稿关键词密度 / assessor-56 活动全案 / assessor-57 CSR 策划 / assessor-58 KOL 机制 / assessor-59 公关效果体系 / assessor-manager-2 声誉策略 / assessor-risk 活动风险评估 / keyword-density 关键词密度 / media-invite 媒体邀请跟踪 / press-conference 发布会流程 / risk-assessment 通用风险评估）deep-dive 已真实化（替换「快速复核」占位，按工具专属真实公式/算例/FAQ），HTML 注入真实公关数字，六型扫描零残留。
 - 算例按工具 JS 公式 node 独立复算（三描述统计工具 data=10..80 → n=8/sum=360/mean=45/std=22.91；活动全案 28 优秀/9 不合格；CSR 22 优秀/13 合格；KOL 优选 score=18/CPM=66.67/CPE=0.04、不合作 score=7/CPM=500；公关效果 14 优秀(coreRatio40%)/8 合格；声誉 23 卓越/7 风险(5 维全≤2)；活动风险 25 极高(hi=4)/9 中(hi=0)；关键词密度 98 字 AI 5 次 密度 5.10%；媒体邀请 10 家 确认4/出席2 确认率40%/出席率20%；发布会 product 模板 10 环节 总时长 155 分钟(14:00→16:35)；风险评估 3×3=9 中/5×5=25 极高/1×2=2 低）。
 - 本批次 pr 源 HTML 无可见 opt-guide/opt-faq 套话块、无 FAQPage JSON-LD 旧套话（仅 index 落地页有构建注入 FAQPage，不动），故无需套话清理。
-- commit 本批次（提交后补录） / CI 见 Actions（推送后查）；§9 70→69（剩 misc 排首）。脚本：scripts/apply_pr.py。
+- commit 37112e8ded / CI Run #628 success；§9 70→69（剩 misc 排首）。脚本：scripts/apply_pr.py。
 
 ## 八、当前进行中分类
 
