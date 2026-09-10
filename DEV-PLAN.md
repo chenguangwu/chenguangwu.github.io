@@ -149,7 +149,7 @@
 - 12 工具（complex-number 复数计算器 / date-diff 日期差 / function-plotter 数学图形绘制 / linear-regression 线性回归 / magic-square 幻方 / matrix-calculator 矩阵运算 / number-puzzle 24点 / physics-constants 物理常数 / scientific-notation 科学记数法 / statistics-distribution 统计分布 / truth-table 真值表 / unit-prefix 单位前缀）deep-dive 已真实化（替换「快速复核」占位，按工具专属真实公式/算例/FAQ），六型扫描零残留。
 - 算例按工具公式 node 独立复算（complex |A|=5/|B|=2.2361/arg(A)=53.13°/A×B=11−2i/A÷B=−1+2i；date-diff 2026-01-01→07-29 自然日209/工作日150；linreg b=2.0179/a=−0.0429/pred(10)=20.1357/R²=0.9992；magic M=65；matrix A+B/A×B/det=−2/Aᵀ；sci 6.02214076×10²³；stats Φ(1)=0.8413/Poisson(3,2)=0.2240/Binom(10,0.5,5)=0.2461；truth A&(B|!C)=00001011；unit 1km=1000m/1mm=0.001m/1km=1e6mm；physics c/G/h/e/NA；puzzle 8/(3−8/3)=24；plotter 振幅1/周期2π=6.2832）。
 - 3 文件（physics-constants/scientific-notation/truth-table）源 HTML 含旧 opt-guide/opt-faq 套话 section + FAQPage JSON-LD 旧套话，已用 opt_cleanup_opt_blocks.py + opt_faq_ld_sync.py 清零并同步真实 FAQ（2 条/页）；truth-table 的 opt-result-interpret「结果解读」真实块保留。其余 9 文件仅 deep-dive 占位，build 随 JSON 重建。
-- commit 待回填 / CI Run 待回填；§9 69→68（剩 paper 排首）。脚本：scripts/apply_misc.py。
+- commit 38fcd69f7 / CI Run #630 success；§9 69→68（剩 paper 排首）。脚本：scripts/apply_misc.py。
 
 ## 八、当前进行中分类
 
