@@ -145,20 +145,18 @@
 ## 七、已完成分类归档
 > 本区仅保留**最近一个（最新）已完成分类**的归档记录，更早历史不再保留，以控制文件体积。完成新分类时，用新记录替换本条。
 
-### ✅ pet（11 工具，完整分类收口，最新一条）
-- 11 工具（analysis-cost-profit-1 描述性统计 / checker-16 经营合规评分 / checker-diagnosis 诊疗鉴别 / convert-25 系数法换算 / kouling 训练负荷 / pet-age-converter 年龄换算 / pet-feeding-calc 喂食量 / pet-food 喂食量 / pet-medicine 药量 / reminder 疫苗驱虫提醒 / training-planner 训练计划）deep-dive 全量真实化（替换通用模板"当你在pet相关场景中…"占位，按各工具真实功能写 3 场景+1 算例+2 FAQ）。
-- analysis-cost-profit-1 实为描述统计（均值/中位数/标准差/方差），原标题误写"成本分析"，已校正标题；pet-food 无对应 HTML 页面（孤儿键），仍真实化其 JSON 内容；其余 9 标题与功能一致保留。
-- 算例按工具逻辑 node/手算复核：analysis-cost-profit-1 输入10..80→n8/sum360/mean45/med45/range70/var525/std22.91；checker-16 资质100%+法规80%+检查70%→86 合规良好（资质<85%硬判不合格）；pet-age 猫3岁→20、小型犬5岁→57、大型犬3岁→41 人类岁；feeding 10kg犬400kcal/100g→731kcal/183g；kouling 5×10/3≈16.67；pet-medicine 10kg犬5–10mg/kg→50–100mg(均75)/q12h→100–200mg/天；reminder 上次+间隔天数=下次到期。
-- pet 源 HTML 无可见 opt-guide/opt-faq 块、无 FAQPage LD 旧套话（dry-run 0 文件），无需清理；build 随 JSON 重建注入真实 deep-dive。
-- 五道门禁全过；detect_placeholders.py（SIX+GEN+STY3）pet 归零，键数守恒 5022。脚本：scripts/apply_pet.py。
+### ✅ security（11 工具，完整分类收口，最新一条）
+- 11 工具（anti-fraud-cards 防诈卡片 / data-erase-simulator 数据销毁 / detector-45 安防产品防护等级 / earthquake-escape 地震逃生 / emergency-contacts 紧急联络 / first-aid-kit 急救包 / flood-level 洪水水位 / port-scan-simulator 端口扫描模拟 / smoke-alarm-test 烟感自检 / typhoon-scale 台风等级 / virtual-safe 虚拟保险箱）deep-dive 全量真实化（替换通用模板"当你在security相关场景中…"占位，按各工具真实逻辑写 3 场景+1 算例+2 FAQ）。
+- 各工具真实数据已落盘：anti-fraud-cards 50+ 诈骗手法/6 大类；data-erase 4 算法（零填充1遍/随机1遍/DoD 5220.22-M 3遍/Gutmann 35遍）；detector-45 判定阈值（门 GB17565 特/甲/乙/丙、锁 GA374 C/B/A、视监控 GB-T28181/报警器 GB15463 I–IV）；emergency-contacts 110/119/120/122/12395/12119 等；first-aid-kit 4 场景；flood-level 5 级(蓝≥50/黄≥100/橙≥150/红≥200/紫≥250cm)；port-scan 端口风险；smoke-alarm 8 步/15 秒；typhoon-scale 热带气旋 6 级(m/s↔km/h)；virtual-safe FNV-1a(password+salt) 教学级本地加密。
+- security 源 HTML 无可见 opt-guide/opt-faq 块、无 FAQPage LD 旧套话（dry-run 0 文件），无需清理；build 随 JSON 重建注入真实 deep-dive（已 grep 核验 GB 17565/冒充公检法/热带气旋/Gutmann 命中、占位指纹 0）。
+- 五道门禁全过；detect_placeholders.py（SIX+GEN+STY3）security 归零，键数守恒 5022。脚本：scripts/apply_security.py。
 
 ## 八、当前进行中分类
 
 > 当前无进行中分类。新分类开工时先在此登记（目录 + 工具数），收口后写入第七节并覆盖旧归档记录（§4.3 第 4 步）。
 
-## 九、分类总清单（待办，完成一个删一个；剩 62 个目录）
+## 九、分类总清单（待办，完成一个删一个；剩 61 个目录）
 
-- [ ] security
 - [ ] procurement
 - [ ] usedcar
 - [ ] misc2
