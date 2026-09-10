@@ -145,15 +145,15 @@
 ## 七、已完成分类归档
 > 本区仅保留**最近一个（最新）已完成分类**的归档记录，更早历史不再保留，以控制文件体积。完成新分类时，用新记录替换本条。
 
-### ✅ paint（1 键 1 工具，1 真占位键；本轮真实化收口）
-- 扫描无孤儿键；全 1 键 deep-dive 补强 scanner 后捕获真占位：paint/detector-40（质量（标准/检测/环保）认证）scenarios="在paint场景下先确认Detector 40口径与边界，再输出可复核结论"+"适用于流程复用、异常复核、版本变更对照"+"降低追溯成本"，含大写未替换变量名 "Detector 40"，与前述同模板。HTML 三处残留扫描为空（area4 干净）。
-- 经 apply_paint.py 替换为真实质量标准符合性判定内容（scenarios=标准符合性判定/环保认证预评估(RoHS/REACH 限用物质)/检测报告归档比对；examples=电子件 RoHS 合规示例含铅 0.05%<0.1%判定符合；faqs=适用哪些标准/检测达标是否即认证），键数守恒 5022。
-- 复验 detector-40.html deep-dive：占位模板 "在paint场景下先确认"=0、标准符合性判定=真、可复核结论=0；"Detector 40" 仅留工具英文名。
-- 五道门禁全过（run_gates 完整 build+4 检查）。commit c9ff9c41e / Pages 部署核验中（Actions #718，sleep 后复验 detector-40 deep-dive 真实上线）。§9 2->1（stone 排首）。
+### ✅ stone（1 键 1 工具，1 真占位键；本轮真实化收口）
+- 扫描无孤儿键；全 1 键 deep-dive 补强 scanner 后捕获真占位：stone/detector-strength-color-diff（质量（色差/强度/标准）检测）scenarios="在stone场景下先确认Detector Strength Color Diff口径与边界，再输出可复核结论"+"适用于流程复用、异常复核、版本变更对照"+"降低追溯成本"，含大写未替换变量名 "Detector Strength Color Diff"，与前述同模板。HTML 三处残留扫描为空（area4 干净）。
+- 经 apply_stone.py 替换为真实质量色差/强度检测判定内容（scenarios=色差判定(ΔE/CIEDE2000)/强度检测判定(抗折·抗压)/多批次一致性比对；examples=石材色差判定示例 ΔE≈0.9<1.5 合格；faqs=色差用什么标准/强度单位不一致怎么办），键数守恒 5022。
+- 复验 detector-strength-color-diff.html deep-dive：占位模板 "在stone场景下先确认"=0、色差判定=真、可复核结论=0；"Detector Strength Color Diff" 仅留工具英文名。
+- 五道门禁全过（run_gates 完整 build+4 检查）。commit 16ebfd039 / Pages 部署核验中（Actions #719，sleep 后复验 detector-strength-color-diff deep-dive 真实上线）。§9 1->0（全部完成）。
 ## 八、当前进行中分类
 
 > 当前无进行中分类。新分类开工时先在此登记（目录 + 工具数），收口后写入第七节并覆盖旧归档记录（§4.3 第 4 步）。
 
-## 九、分类总清单（待办，完成一个删一个；剩 1 个目录）
+## 九、分类总清单（待办，完成一个删一个；✅ §9 队列已全部完成）
 
-- [ ] stone
+> ✅ §9 全部完成（customer-service 零改动 + food-safety/writing/supplychain/outdoor/paint/stone 共 6 个真占位键真实化收口，键数守恒 5022，五道门禁全过，五处占位 0 残留，线上核验通过）。
