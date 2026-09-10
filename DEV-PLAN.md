@@ -145,10 +145,10 @@
 ## 七、已完成分类归档
 > 本区仅保留**最近一个（最新）已完成分类**的归档记录，更早历史不再保留，以控制文件体积。完成新分类时，用新记录替换本条。
 
-### ✅ photo2（5 键 5 工具，5 真占位键；第四波漏报批次第 2 分类真实化收口）
-- 全站 deep-dive 占位复扫发现的**第四波**真占位（模板变体同 medical2：在{英文分类名}场景下，先使用{未翻译英文变量名}建立输入边界，后续再对关键指标拆分归因）。photo2 5 键（exposure-triangle/focal-length/video-storage/print-size/color-temperature）经 apply_photo2.py 真实化：exposure-triangle EV=log₂(N²/t)-log₂(iso/100) 联动曝光三角；focal-length 视场角 FoV=2×arctan(宽/2f)、等效焦距=焦距×(参考画幅对角线/当前画幅对角线)；video-storage 文件大小=(视频码率+音频码率)×时长÷8÷1024×编码系数；print-size 物理尺寸=像素÷DPI×25.4、300DPI 质量评级；color-temperature Mired=1000000/K 与黑体辐射近似 RGB。示例数字全部 node 实跑复核（f/5.6+1/60s+ISO100→EV10.9晴天户外；50mm@M4/3→等效100mm×0.50；1080P 20Mbps 1h→8.85GB/32GB卡3.6h/H.265 4.42GB；3000×2000@300DPI→254×169mm 3:2 MP6.0；5500K→Mired182 RGB(255,237,222)#ffedde）。
-- HTML 三处残留：5 个工具页 tool-intro-body 均为「设计创意/CSS」错位套话（简介+intro-features+intro-scenes）→ clean_photo2_intro.py 替换为真实摄影场景与功能特点；5 工具页无 area2 opt 块、无 area3 FAQPage LD（仅 WebApplication+BreadcrumbList），双清不适用。deep-dive 区块经 _build.py 由 JSON 重建为真实内容。键数守恒 5022，英文变量名零残留。
-- 五道门禁全过（run_gates 完整 build+4 检查）。§9c 待办 3→1（pet-training 排首）。
+### ✅ pet-training（5 键 5 工具，5 真占位键；第四波漏报批次第 3/最后 1 分类真实化收口）
+- 全站 deep-dive 占位复扫发现的**第四波**真占位（模板变体：在{英文分类名}场景下，先使用{未翻译英文变量名}建立输入边界，后续再对关键指标拆分归因）。pet-training 5 键（leash-length/elimination-predict/command-repetition/treat-calories/clicker-timing）经 apply_pet_training.py 真实化：leash-length 最大可达=绳长+（0.5+体重/20），场景系数 urban0.6/park1.0/crowd0.4/trail0.7、制动距离=最大可达×0.3×反应系数（fast0.8/normal1.0/slow1.4）；elimination-predict 幼犬憋尿≈月龄+1小时（上限8h）、猫月龄+2小时（上限10h），排便窗 睡醒5min/饮水15-30min/玩耍10min；command-repetition 遗忘系数 s=难度系数×年龄因子(幼犬1.3/成年1.0/老犬1.4) 上限0.95、保留率=e^(−s·t/√次数)、8级间隔复习表；treat-calories 犬 RER=70×体重^0.75、猫 RER=40×体重+20，DER=RER×活动/绝育系数，零食≤每日10%；clicker-timing 绿点=行为出现、<200ms完美/<350优秀/<500良好/<800一般。示例数字全部 node 实跑复核（15kg犬1.5m绳城市可控净距≈0.82m、公园1.93m、人群0.28m、步道1.1m；口令5次/4h/中等保留率40.9%、8级表 1h后80%/4h后44%/12h后10%；10kg犬15kcal×5颗占比11.9%→最多4颗、4kg猫5kcal×3颗占比6.94%）。
+- HTML 三处残留：5 工具页 tool-intro-body **已是真实内容**（便溺/口令/零食/响片/牵引各自真实简介+features+scenes），与 photo2「设计创意」错位套话不同，**无需 clean 脚本**；5 工具页无 area2 opt 块、无 area3 FAQPage LD（仅 WebApplication+BreadcrumbList），双清不适用。deep-dive 区块经 _build.py 由 JSON 重建为真实内容。键数守恒 5022，英文变量名零残留。
+- 五道门禁全过（run_gates 完整 build+4 检查）。**第四波 3 分类（medical2/photo2/pet-training）共 15 键全部真实化收口，全站「建立输入边界」占位 = 0**。
 ## 八、当前进行中分类
 
 > 当前无进行中分类。新分类开工时先在此登记（目录 + 工具数），收口后写入第七节并覆盖旧归档记录（§4.3 第 4 步）。
