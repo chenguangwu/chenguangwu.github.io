@@ -145,11 +145,11 @@
 ## 七、已完成分类归档
 > 本区仅保留**最近一个（最新）已完成分类**的归档记录，更早历史不再保留，以控制文件体积。完成新分类时，用新记录替换本条。
 
-### ✅ plastic（5 键 5 工具，5 真占位键；补扫扩展批次第 4 分类真实化收口）
-- 补强全站 scanner 捕获 5 真占位键（blow-molding/extrusion-rate/injection-cycle/material-select/shrinkage-calc），模板="在plastic场景下，先使用[VarName]建立输入边界" + 通用套话 + 未翻译英文变量名（Blow Molding/Extrusion Rate/Injection Cycle/Material Select/Shrinkage Calc）。
-- 经 apply_plastic.py 真实化（各工具按真实 calc 逻辑写场景/算例/FAQ：吹胀比=型坯径/口模、壁厚=单面重/BUR、最小型坯压力=2σ壁/直径×安全系数1.5、注塑周期产能=3600/周期×腔数×日有效×良率、螺槽排量阿基米德螺线×转速×熔体密度×效率、收缩率反推模腔尺寸=成品/(1−缩率)、材料库按耐温/强度/成本筛选）；示例数字全部 python 复刻核验（如 BUR=100/30≈3.33、壁厚4/3.33≈1.2mm、最小压力2×30×1.2/80≈0.9MPa→推荐1.35MPa、周期25s→日产能5500/良品5225、挤出20.7g/min→0.75kg/h、缩率2%→模腔100/0.98≈102.0mm）。
-- HTML 三处残留：opt_cleanup_opt_blocks + opt_faq_ld_sync --cat plastic 清 blow-molding.html（area2 opt块 2→0、area3 FAQPage LD 同步 2 条真实 FAQ），其余 4 文件 area2/3/4 扫描 0。键数守恒 5022。
-- 五道门禁全过（run_gates 完整 build+4 检查）。§9b 待办 7→6（pneumatic 排首）。
+### ✅ pneumatic（4 键 4 工具，4 真占位键；补扫扩展批次第 5 分类真实化收口）
+- 补强全站 scanner 捕获 4 真占位键（calc-flow-1/calc-speed/cycle-19/tester-blast），模板="在pneumatic场景下，先使用[VarName]建立输入边界" + 通用套话 + 未翻译英文变量名（Calc Flow 1/Calc Speed/Cycle 19/Tester Blast）。
+- 经 apply_pneumatic.py 真实化（各工具按真实 calc 逻辑写场景/算例/FAQ：真空吸盘吸附力=面积×真空压差、所需流量=吸附容积/响应时间×1.1余量、最小吸盘直径反推；气缸推力=面积×压力×效率、排气流量≈2·口通径²·bar、速度=流量/面积、缓冲动能 KE vs 气垫吸收；压力容器试验压力=设计×1.25(液)/1.15(气)、爆破压力=2t·σb·φ/(D+t−t/10)、安全系数≥3.0 依据 GB/T 150/TSG 21；维护周期管理=上次+周期天推算到期与逾期）；示例数字全部 python 复刻 JS 核验（如 4吸盘∅40/60%：单76.4N总305.6N安全152.8N、流量0.905→0.995L/min、最小∅22.7mm；缸∅40/0.5MPa/15kg：实际推57.6kgf、均速2227mm/s、循环0.172s、动能37.2J>气垫9.42J提示缓冲不足；DN200/10MPa/8mm：试验12.5MPa、爆破34.13MPa、安全3.41合格、应力比78%）。
+- HTML 三处残留：opt_cleanup_opt_blocks + opt_faq_ld_sync --cat pneumatic 清 calc-flow-1.html（area2 opt块 2→0、area3 FAQPage LD 同步 2 条真实 FAQ），其余 3 文件 area2/3/4 扫描 0。键数守恒 5022。
+- 五道门禁全过（run_gates 完整 build+4 检查）。§9b 待办 6→5（shipping 排首）。
 ## 八、当前进行中分类
 
 > 当前无进行中分类。新分类开工时先在此登记（目录 + 工具数），收口后写入第七节并覆盖旧归档记录（§4.3 第 4 步）。
@@ -158,7 +158,7 @@
 
 > ✅ §9 全部完成（customer-service 零改动 + food-safety/writing/supplychain/outdoor/paint/stone 共 6 个真占位键真实化收口，键数守恒 5022，五道门禁全过，五处占位 0 残留，线上核验通过）。
 
-## 九-b、补扫扩展批次（scanner 同义变体漏报捕获；待办 6 分类 / 27 真占位键）
+## 九-b、补扫扩展批次（scanner 同义变体漏报捕获；待办 5 分类 / 23 真占位键）
 
 > **背景**：§9 队列基于补强前旧扫描建立，本身不完整。用补强后全站 scanner 重扫 5022 键，发现 §9 之外另有 10 个分类共 47 个 deep-dive 真占位键（同一套模板：在[X]场景下先使用[VarName]建立输入边界 + 通用套话 + 未翻译英文变量名）。须按 §9 同款流水线逐分类真实化收口。
 > **规则**：每分类走完整流水线（apply 脚本→`_build.py`→五道门禁→发布核验→DEV-PLAN 状态机更新→记忆日志）；键数守恒 5022；模板/变量名/套话三重清零。
@@ -167,7 +167,7 @@
 - [x] maritime (5: anchorage-capacity/compass-correction/speed-distance/stowage-factor/tide-window) ✅
 - [x] museum (5: audio-guide-timer/exhibit-spacing/lighting-lux/showcase-monitor/visitor-route) ✅
 - [x] plastic (5: blow-molding/extrusion-rate/injection-cycle/material-select/shrinkage-calc) ✅
-- [ ] pneumatic (4: calc-flow-1/calc-speed/cycle-19/tester-blast)
+- [x] pneumatic (4: calc-flow-1/calc-speed/cycle-19/tester-blast) ✅
 - [ ] shipping (5: calc-76/convert-speed-1/convert-time-speed/estimate-length/tide)
 - [ ] stage (5: beam-angle/color-temperature/dimmer-curve/light-position/power-load)
 - [ ] stats (5: confidence-interval/data-distribution/regression-analysis/sample-size/statistical-tests)
