@@ -145,20 +145,19 @@
 ## 七、已完成分类归档
 > 本区仅保留**最近一个（最新）已完成分类**的归档记录，更早历史不再保留，以控制文件体积。完成新分类时，用新记录替换本条。
 
-### ✅ network（4 键，真实化收口，最新一条）
-- 4 个工具全部真实化（网络工程内容）：convert-11 IP转换（点分十进制↔32位整数↔二进制，192.168.1.1→3232235777/11000000.10101000.00000001.00000001）、calc-subnet 子网掩码（CIDR/子网划分，192.168.1.100/24→网络.0/广播.255/掩码255.255.255.0/可用254）、analysis-manager-1 工具分析（描述统计壳：均值/中位数/标准差）、analysis-66 效果监测（描述统计壳）。每个含 3 真实场景 + 1 算例 + 2 专业 FAQ。
-- 算例数字全部 node 实跑复核（/tmp/verify_network.js）：convert-11 192.168.1.1→十进制3232235777/二进制11000000.10101000.00000001.00000001；calc-subnet 192.168.1.100/24→网络192.168.1.0/广播.255/掩码255.255.255.0/总256/可用254；analysis-manager-1 [12,18,9,22,15]→均值15.20/标准差4.53；analysis-66 [3.2,2.8,2.5,2.1,1.9]→均值2.50/标准差0.47。
-- **双清（重要）**：analysis-66 源 HTML 含 FAQPage JSON-LD 旧套话（"在对应的输入框或选项中填写"/"工作与生活中的相关计算与查询"）+ 可见 opt-guide/opt-faq 套话块，经 opt_faq_ld_sync(--cat network 同步2条真实FAQ)+opt_cleanup_opt_blocks(--cat network 删2块)清零，JSON 合法校验通过；convert-11/calc-subnet/analysis-manager-1 无 FAQPage/opt 套话。第四处 intro-scenes 通用占位（日常办公等4条）在 convert-11/analysis-manager-1/analysis-66 经 clean_network_intro.py 替换为真实网络场景（calc-subnet 已真实不处理）。
-- 五道门禁全过（双清后复跑）；六型+GEN(高频复用模板)+旧套话+opt块+第四处通用占位扫描 0 残留；真实网络关键词 4 页覆盖；键数守恒 5022。脚本：scripts/apply_network.py、scripts/clean_network_intro.py。
-- commit 3d422792a / CI #34504789772 success（线上 4 页落盘核验 HTTP200、占位=0、真实关键词>=8）。§9 29->28（textile2 排首）。
+### ✅ textile2（4 键，真实化收口，最新一条）
+- 4 个工具全部真实化（纺织印染内容）：dyeing-time 染色时间（升温时间=(目标-起始)/速率、多段累计、反算速率）、liquor-ratio 浴比（总液量=布重×浴比、g/L 与 owf% 互算）、dye-temp 染色温度对照（活性 60-80°C/分散 130°C 高温高压/酸性 95-100°C）、color-fastness 色牢度评级（GB/T 标准 1-5 级与 ΔE 区间）。每个含 3 真实场景 + 1 算例 + 2 专业 FAQ。
+- 算例数字全部 node 实跑复核（/tmp/verify_textile2.js）：dyeing-time 20→60/2°C/min/保温30→升温20min、总50min/0.83h；反向 20→100/40min→速率2.00°C/min、总70min/1.17h；liquor-ratio 10kg×1:10/20g/密度1→总液100L、加水99.98L、浓度0.20g/L、owf0.20%，owf2%→200g/2.00g/L，50kg×1:15→750L。
+- **双清（重要）**：dye-temp 源 HTML 含 FAQPage JSON-LD 旧套话（"在对应的输入框或选项中填写"/"工作与生活中的相关计算与查询"）+ 可见 opt-guide/opt-faq 套话块，经 opt_faq_ld_sync(--cat textile2 同步2条真实FAQ)+opt_cleanup_opt_blocks(--cat textile2 删2块)清零，JSON 合法校验通过；其余 3 页无 FAQPage/opt 套话。第四处 intro-scenes 通用占位（日常办公等4条）在 4 页经 clean_textile2_intro.py 替换为真实纺织场景（_build.py 不重建）。
+- 五道门禁全过（双清后复跑）；六型+GEN(高频复用模板)+旧套话+opt块+第四处通用占位扫描 0 残留；真实纺织关键词 4 页覆盖；键数守恒 5022。脚本：scripts/apply_textile2.py、scripts/clean_textile2_intro.py。
+- commit 78dd5b7ba / CI #34505561729 success（线上 4 页落盘核验 HTTP200、占位=0、真实关键词>=38）。§9 28->27（woodwork 排首）。
 
 ## 八、当前进行中分类
 
 > 当前无进行中分类。新分类开工时先在此登记（目录 + 工具数），收口后写入第七节并覆盖旧归档记录（§4.3 第 4 步）。
 
-## 九、分类总清单（待办，完成一个删一个；剩 28 个目录）
+## 九、分类总清单（待办，完成一个删一个；剩 27 个目录）
 
-- [ ] textile2
 - [ ] woodwork
 - [ ] photography
 - [ ] mold
