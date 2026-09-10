@@ -145,17 +145,16 @@
 ## 七、已完成分类归档
 > 本区仅保留**最近一个（最新）已完成分类**的归档记录，更早历史不再保留，以控制文件体积。完成新分类时，用新记录替换本条。
 
-### ✅ supplychain（1 键 1 工具，1 真占位键；本轮真实化收口）
-- 扫描无孤儿键；全 1 键 deep-dive scanner 原报"无占位"，**补强 scanner 后捕获真占位**：supplychain/cycle-16（供应链 KPI 仪表盘）scenarios="在supplychain场景下先确认Cycle 16口径与边界，再输出可复核结论"+ "适用于流程复用、异常复核、版本变更对照"+ "降低追溯成本"，含大写未替换变量名 "Cycle 16"，与 writing/food-safety 同模板。
-- 经 apply_supplychain.py 替换为真实供应链 KPI 内容（scenarios=履约与交付监控/库存效率评估/供应商交付对比；examples=月度供应链 KPI 看板示例含准时交付率预警；faqs=指标口径不一致怎么办/数据来源与上传统计），键数守恒 5022。
-- 复验 cycle-16.html deep-dive：占位模板 "在supplychain场景下先确认"=0、履约与交付监控=真、可复核结论=0。"Cycle 16" 仅留工具英文名（标题），非占位。
-- 五道门禁全过（run_gates 完整 build+4 检查，含 build 规范化连带 food-safety 文件 meta 重排随提交）。commit 0e9392c75 / Pages 部署核验中（Actions #716，sleep 后复验 cycle-16 deep-dive 真实上线）。§9 4->3（outdoor 排首）。
+### ✅ outdoor（1 键 1 工具，1 真占位键 + 1 area4 残留；本轮真实化收口）
+- 扫描无孤儿键；全 1 键 deep-dive 补强 scanner 后捕获真占位：outdoor/analysis-spacing（攀岩挂片间距与受力分析）scenarios="在outdoor场景下先确认Analysis Spacing口径与边界，再输出可复核结论"+"适用于流程复用、异常复核、版本变更对照"+"降低追溯成本"，含大写未替换变量名 "Analysis Spacing"，与 writing/food-safety/supplychain 同模板。HTML area4 另含通用 intro 占位（日常办公与学习等 4 条）。
+- 经 apply_outdoor.py 替换为真实攀岩保护站受力内容（scenarios=多锚点保护站受力分配/夹角因子评估/顶绳先锋布点校验；examples=双挂片保护站受力示例含角度因子 0.58/0.71；faqs=夹角越大越安全吗/间距与受力关系），键数守恒 5022。area4 → clean_outdoor_intro.py 替换通用 intro 为真实攀岩场景（保护站挂片布点规划/多锚点受力分配核算/夹角因子与安全性评估/顶绳先锋锚点校验）。
+- 复验 analysis-spacing.html：deep-dive 真实注入（多锚点保护站受力分配=真）、占位模板 "在outdoor场景下先确认"=0、可复核结论=0、area4 通用占位=0。
+- 五道门禁全过（run_gates 完整 build+4 检查）。commit 9d69b58b0 / Pages 部署核验中（Actions #717，sleep 后复验 analysis-spacing deep-dive+area4 真实上线）。§9 3->2（paint 排首）。
 ## 八、当前进行中分类
 
 > 当前无进行中分类。新分类开工时先在此登记（目录 + 工具数），收口后写入第七节并覆盖旧归档记录（§4.3 第 4 步）。
 
-## 九、分类总清单（待办，完成一个删一个；剩 3 个目录）
+## 九、分类总清单（待办，完成一个删一个；剩 2 个目录）
 
-- [ ] outdoor
 - [ ] paint
 - [ ] stone
