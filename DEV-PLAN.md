@@ -145,20 +145,20 @@
 ## 七、已完成分类归档
 > 本区仅保留**最近一个（最新）已完成分类**的归档记录，更早历史不再保留，以控制文件体积。完成新分类时，用新记录替换本条。
 
-### ✅ procurement（11 工具，完整分类收口，最新一条）
-- 11 工具（analysis-cost 描述统计 / assessor-26 供应商准入评估 / calc-15 EOQ孤儿键 / eoq 经济订货批量 / inventory-turnover 库存周转 / rater-price 供应商评分对比 / stats-on-time-1 描述统计 / stats-on-time-qualified 描述统计 / supplier-score 供应商综合评分 / wuliu 物流运费比对 / zhaobiao 招标方式对比）deep-dive 全量真实化（替换通用模板占位，按各工具真实逻辑写 3 场景+1 算例+2 FAQ）。
-- 算例 node 复核：assessor-26 优质样本（资本2000万/经营12年/资质4/ISO4/营收8000万/负债40%/信用4/产能160%/设备4/合格99%/客诉1%/准时97%/合作6年）→五维(92/87/88/89.4/98.2)总分91→战略供应商；eoq D1200/S50/H2→EOQ244.95/周期74.5天/总成本489.9；inventory 3 SKU 综合周转4.13次/88.4天/滞销2；rater-price B97.4>A95.8>C92.3；supplier-score B89.4>A89.0>D84.9>C84.5；wuliu 快递120 vs 零担80→占比150%；zhaobiao 公开50000 vs 邀请35000→占比142.86%。
-- 标题校正：analysis-cost/stats-on-time-1/stats-on-time-qualified 原误标为"成本(节约额)分析/准时率统计/合格率统计"，实际 calc 均为描述统计（n/sum/mean/med/range/var/std），已校正标题为"描述性统计"；calc-15 为孤儿键（无对应 HTML）仍真实化 EOQ 教学内容。
-- procurement 源 HTML 无可见 opt-guide/opt-faq 块、无 FAQPage LD 旧套话（dry-run 0 文件），无需清理；build 随 JSON 重建注入真实 deep-dive（已 grep 核验六型占位 0、真实关键词命中）。
-- 五道门禁全过；detect_placeholders.py（SIX+GEN+STY3）procurement 归零，键数守恒 5022。脚本：scripts/apply_procurement.py。
+### ✅ usedcar（11 工具，完整分类收口，最新一条）
+- 11 工具（calc-73 保值率/残值 / car-purchase-cost 购车费用 / checker-3 / detector-19 / ershouchetanpanyijiakongjianyuce 议价空间 / estimate-38 过户费 / rater-37 发动机评分 / recorder-maintenance 维保完整度 / tester-12 / usedcar-valuation 估价 / wear 里程磨损）deep-dive 全量真实化（替换通用模板占位，按各工具真实逻辑写 3 场景+1 算例+2 FAQ）。
+- 算例 node 复核：calc-73 20万/5年/8万km/合资/良好/基准2万→retained(5)=0.85×0.91⁴≈0.5829、品牌1.05、车况1.00、里程1.01→残值≈12.36万、保值率61.82%（自主品牌同口径≈10.6万）；ershouche 报价20/预算18/5年/12万km/良好/正常/常规→议价空间12%、合理区间17.6–18.8万、首报17.6万；wear 超额里程×单价、价值调整±偏差×0.30封顶25%/+5%；estimate-38 购置税=price/1.13×10%、TRANSFER{t1/2/3=800/600/400}、VVT按排量180–4500、交强险950；recorder 完整度>90→残值+12.5%/≥70→+7.5%/≥50→+2.5%/否则-5%；usedcar-valuation usedRate=min(1-年龄×0.05,1-里程×0.03) clamp[0.45,1]。
+- 标题均匹配功能（calc-73 保值率/残值、ershouche 议价、wear 磨损、estimate-38 过户、recorder 维保完整度等），无需校正；无孤儿键（11 键均有对应 HTML）。
+- usedcar 源 HTML 无可见 opt-guide/opt-faq 块（build 重渲已移除旧 opt 块）、FAQPage LD 已真实（faq_ld dry-run 同步0/跳过已真实1），无需清理；build 随 JSON 重建注入真实 deep-dive（grep 核验六型占位全 0、真实关键词命中）。
+- 注：本批首次 run_gates 的 build 偶发未重渲 usedcar 正文 deep-dive（仅 FAQPage LD 更新），单独重跑 `_build.py` 后补正，二次完整 run_gates 五道门禁全过。
+- 五道门禁全过；detect_placeholders.py（SIX+GEN+STY3）usedcar 归零，键数守恒 5022。脚本：scripts/apply_usedcar.py。
 
 ## 八、当前进行中分类
 
 > 当前无进行中分类。新分类开工时先在此登记（目录 + 工具数），收口后写入第七节并覆盖旧归档记录（§4.3 第 4 步）。
 
-## 九、分类总清单（待办，完成一个删一个；剩 60 个目录）
+## 九、分类总清单（待办，完成一个删一个；剩 59 个目录）
 
-- [ ] usedcar
 - [ ] misc2
 - [ ] sales
 - [ ] office
