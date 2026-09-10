@@ -145,19 +145,19 @@
 ## 七、已完成分类归档
 > 本区仅保留**最近一个（最新）已完成分类**的归档记录，更早历史不再保留，以控制文件体积。完成新分类时，用新记录替换本条。
 
-### ✅ security（11 工具，完整分类收口，最新一条）
-- 11 工具（anti-fraud-cards 防诈卡片 / data-erase-simulator 数据销毁 / detector-45 安防产品防护等级 / earthquake-escape 地震逃生 / emergency-contacts 紧急联络 / first-aid-kit 急救包 / flood-level 洪水水位 / port-scan-simulator 端口扫描模拟 / smoke-alarm-test 烟感自检 / typhoon-scale 台风等级 / virtual-safe 虚拟保险箱）deep-dive 全量真实化（替换通用模板"当你在security相关场景中…"占位，按各工具真实逻辑写 3 场景+1 算例+2 FAQ）。
-- 各工具真实数据已落盘：anti-fraud-cards 50+ 诈骗手法/6 大类；data-erase 4 算法（零填充1遍/随机1遍/DoD 5220.22-M 3遍/Gutmann 35遍）；detector-45 判定阈值（门 GB17565 特/甲/乙/丙、锁 GA374 C/B/A、视监控 GB-T28181/报警器 GB15463 I–IV）；emergency-contacts 110/119/120/122/12395/12119 等；first-aid-kit 4 场景；flood-level 5 级(蓝≥50/黄≥100/橙≥150/红≥200/紫≥250cm)；port-scan 端口风险；smoke-alarm 8 步/15 秒；typhoon-scale 热带气旋 6 级(m/s↔km/h)；virtual-safe FNV-1a(password+salt) 教学级本地加密。
-- security 源 HTML 无可见 opt-guide/opt-faq 块、无 FAQPage LD 旧套话（dry-run 0 文件），无需清理；build 随 JSON 重建注入真实 deep-dive（已 grep 核验 GB 17565/冒充公检法/热带气旋/Gutmann 命中、占位指纹 0）。
-- 五道门禁全过；detect_placeholders.py（SIX+GEN+STY3）security 归零，键数守恒 5022。脚本：scripts/apply_security.py。
+### ✅ procurement（11 工具，完整分类收口，最新一条）
+- 11 工具（analysis-cost 描述统计 / assessor-26 供应商准入评估 / calc-15 EOQ孤儿键 / eoq 经济订货批量 / inventory-turnover 库存周转 / rater-price 供应商评分对比 / stats-on-time-1 描述统计 / stats-on-time-qualified 描述统计 / supplier-score 供应商综合评分 / wuliu 物流运费比对 / zhaobiao 招标方式对比）deep-dive 全量真实化（替换通用模板占位，按各工具真实逻辑写 3 场景+1 算例+2 FAQ）。
+- 算例 node 复核：assessor-26 优质样本（资本2000万/经营12年/资质4/ISO4/营收8000万/负债40%/信用4/产能160%/设备4/合格99%/客诉1%/准时97%/合作6年）→五维(92/87/88/89.4/98.2)总分91→战略供应商；eoq D1200/S50/H2→EOQ244.95/周期74.5天/总成本489.9；inventory 3 SKU 综合周转4.13次/88.4天/滞销2；rater-price B97.4>A95.8>C92.3；supplier-score B89.4>A89.0>D84.9>C84.5；wuliu 快递120 vs 零担80→占比150%；zhaobiao 公开50000 vs 邀请35000→占比142.86%。
+- 标题校正：analysis-cost/stats-on-time-1/stats-on-time-qualified 原误标为"成本(节约额)分析/准时率统计/合格率统计"，实际 calc 均为描述统计（n/sum/mean/med/range/var/std），已校正标题为"描述性统计"；calc-15 为孤儿键（无对应 HTML）仍真实化 EOQ 教学内容。
+- procurement 源 HTML 无可见 opt-guide/opt-faq 块、无 FAQPage LD 旧套话（dry-run 0 文件），无需清理；build 随 JSON 重建注入真实 deep-dive（已 grep 核验六型占位 0、真实关键词命中）。
+- 五道门禁全过；detect_placeholders.py（SIX+GEN+STY3）procurement 归零，键数守恒 5022。脚本：scripts/apply_procurement.py。
 
 ## 八、当前进行中分类
 
 > 当前无进行中分类。新分类开工时先在此登记（目录 + 工具数），收口后写入第七节并覆盖旧归档记录（§4.3 第 4 步）。
 
-## 九、分类总清单（待办，完成一个删一个；剩 61 个目录）
+## 九、分类总清单（待办，完成一个删一个；剩 60 个目录）
 
-- [ ] procurement
 - [ ] usedcar
 - [ ] misc2
 - [ ] sales
