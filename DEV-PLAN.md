@@ -145,18 +145,17 @@
 ## 七、已完成分类归档
 > 本区仅保留**最近一个（最新）已完成分类**的归档记录，更早历史不再保留，以控制文件体积。完成新分类时，用新记录替换本条。
 
-### ✅ accessibility（5 键，真实化收口，最新一条）
-- 5 个工具全部真实化（accessible-restroom 无障碍卫生间 GB55019 尺寸/扶手核查 / braille-translator 盲文转译 点位映射 / ramp-slope 轮椅坡度 水平与斜长 / sign-language 手语词汇 43词6类 / voice-synthesis 语音合成 Web Speech），每个含 3 真实场景 + 1 算例 + 2 专业 FAQ。
-- 读取 5 个 HTML 的 calc() 逻辑后按真实规范重写，算例数字全部 node 实跑复核（/tmp/verify_accessibility.js）：ramp H40 X12→水平4.80m/斜长4.82m/坡度8.33%(4.76°)；H40 X20→8.00m/5%(2.86°)；H30 X8→2.40m/12.5%(7.13°)；braille "12"=3格、「ab」=2格、「hello 2026」=11格(5字母4数字)；sign 43词/6类/8称谓；voice 默认文本23字。
-- 全部 5 个 accessibility 键经六型指纹(含"先统一"变体)扫描 = 0 占位残留；5 个 HTML + index 逐文件 grep 占位=0、真实关键词≥1（GB55019 6处 / 盲文26 / 手语20 / 语音合成22 / 算例5处）；五道门禁全过（GATES_EXIT=0）；键数守恒 5022。脚本：scripts/apply_accessibility.py。
+### ✅ service（5 键，真实化收口，最新一条）
+- 5 个工具全部真实化（script-template 客服话术模板抽取 6类18条 / response-time 客服响应时间统计 SLA·P分位 / ticket-priority 工单优先级=紧急度×重要度 / complaint-analysis 投诉分类关键词匹配 / csat-score CSAT·NPS 评分），每个含 3 真实场景 + 1 算例 + 2 专业 FAQ。
+- 读取 5 个 HTML 的 calc() 逻辑（含 percentile 线性插值、parseKeywords 词库、SCRIPTS 话术表）后按真实算法重写，算例数字全部 node 实跑复核（/tmp/verify_service.js）：response-time 内置8单→解决率87.5%/均响应18.5分/SLA30达标75%/P50=13.5·P90=38.0·P99=44.3/均解115.7分；ticket-priority 3×4=12·5×5=25·1×2=2；csat 100评价(5星50/4星30/3星12/2星5/1星3)→CSAT80.0%/NPS42/均星4.19/贬损8%；complaint 6条→物流/质量/服务/价格/售后各1·其他1，覆盖率83%。
+- 全部 5 个 service 键经六型指纹(含"先统一"变体)扫描 = 0 占位残留；5 个 HTML + index 逐文件 grep 占位=0、真实关键词≥1（response-time 14/票priority 22/csat 26/complaint 11/script 1/index 7）；五道门禁全过（GATES_EXIT=0）；键数守恒 5022。脚本：scripts/apply_service.py。
 
 ## 八、当前进行中分类
 
 > 当前无进行中分类。新分类开工时先在此登记（目录 + 工具数），收口后写入第七节并覆盖旧归档记录（§4.3 第 4 步）。
 
-## 九、分类总清单（待办，完成一个删一个；剩 45 个目录）
+## 九、分类总清单（待办，完成一个删一个；剩 44 个目录）
 
-- [ ] service
 - [ ] seismology
 - [ ] library
 - [ ] petrochem
