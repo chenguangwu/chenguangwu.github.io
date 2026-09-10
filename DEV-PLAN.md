@@ -145,6 +145,12 @@
 ## 七、已完成分类归档
 > 本区仅保留**最近一个（最新）已完成分类**的归档记录，更早历史不再保留，以控制文件体积。完成新分类时，用新记录替换本条。
 
+### ✅ water（2 键，真实化收口，最新一条）
+- 2 个工具全部真实化（水利工程内容）：calc-pressure 管径计算（海曾-威廉 Hazen-Williams 压力流 + 曼宁 Manning 重力流，解标准管径 DN）、assessor-22 节水评估（GB 25501/30717/28378/28377，按 perUse 算年节水量与回收期）。每个含 3 真实场景 + 1 算例 + 2 专业 FAQ。
+- 算例数字全部 node 实跑复核（/tmp/verify_water.js）：calc-pressure 压力流 Q=50L/s/PVC C=150/L=500m/hf=10m→D≈233.4mm→标准DN250（v1.02m/s、雷诺数3.8e5、沿程hf9.8m）；曼宁重力流 Q=30L/s/n=0.013/i=0.005→D≈372mm→DN400（v0.24m/s）；assessor-22 水嘴0.12L/s vs 基准0.20、50次×30s×4人×365→年节水量35.9m³、节水率40.0%、回收期约2.4年。
+- calc-pressure 含 FAQPage JSON-LD 旧套话（在对应的输入框或选项中填写）+ 可见 opt-guide 套话块，经 opt_faq_ld_sync(--cat water 同步3条真实FAQ)+opt_cleanup_opt_blocks(--cat water 删2块)清零（JSON 合法校验通过）；assessor-22 无 opt/FAQPage 旧块不处理。五道门禁全过（双清后复跑）；六型+GEN(高频复用模板)+旧套话+opt块扫描 0 残留；真实水利关键词 2 页全注入；键数守恒 5022。脚本：scripts/apply_water.py。
+- commit 4db8f7cd5 / CI #34509872965 success（线上 2 页落盘核验占位=0、真实关键词>=26）。§9 22->21（security-guard 排首）。
+
 ### ✅ pharmacy（2 键，真实化收口，最新一条）
 - 2 个工具全部真实化（药店经营内容）：analysis-report-cost 财务成本分析（描述统计壳，绑定进货单价/毛利序列，总体方差÷n）、checker-manager 质量（GSP）管理检查（八维度1-10评分+阴凉库温湿度判定，综合分/80×100%=合规等级A/B/C/D）。每个含 3 真实场景 + 1 算例 + 2 专业 FAQ。
 - 算例数字全部 node 实跑复核（/tmp/verify_pharmacy.js）：analysis-report-cost [10..80]→均值45/总体方差525/标准差22.91/极差70；checker-manager 八维度9/8/9/8/7/9/8/8+温18°C/湿55%→综合66/80=82.5%(B级)、整改项 储存与养护管理(7分)。
@@ -174,9 +180,8 @@
 
 > 当前无进行中分类。新分类开工时先在此登记（目录 + 工具数），收口后写入第七节并覆盖旧归档记录（§4.3 第 4 步）。
 
-## 九、分类总清单（待办，完成一个删一个；剩 22 个目录）
+## 九、分类总清单（待办，完成一个删一个；剩 21 个目录）
 
-- [ ] water
 - [ ] security-guard
 - [ ] surface
 - [ ] health
