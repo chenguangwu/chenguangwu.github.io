@@ -145,19 +145,18 @@
 ## 七、已完成分类归档
 > 本区仅保留**最近一个（最新）已完成分类**的归档记录，更早历史不再保留，以控制文件体积。完成新分类时，用新记录替换本条。
 
-### ✅ paper（12 工具，完整分类收口，最新一条）
-- 12 工具（basis-weight 定量令重 / calc-concentration-1 纸浆浓度 / carbon-5 纸张碳足迹 / detector-17 纸张缺陷检测 / moisture-calc 水分 / naipo-dingpo-zhishu 耐破指数 / paper-grade 纸张分级 / pulp-yield 制浆得率 / roll-length 卷筒纸长度 / strength-1 瓦楞边压堆码 / strength-9 环压 / strength-10 抗张）deep-dive 已真实化（替换「快速复核」占位，按工具专属真实公式/算例/FAQ），六型扫描零残留。
-- 算例按工具公式 node 独立复算（basis-weight 正度 area=0.8594 m²/sheet=60.16 g/ream=30.08 kg≈66.3 lb；concentration dryFiber=100.00 kg/volConc=208.3 g/L/高浓/diluteAdd=2833.33 kg/finalMass=3333.33 kg；detector-17 印刷+孔洞 lim{size:2,count:5}→ds=2.5/dps=8/area=10→sizePass=false/countPass=false/totalDef=80/不合格；moisture water=8.00/wb=8.00%/db=8.70%/dryRate=92.00%；pulp-yield yield=48.00% 化学浆/perTon=0.4800；roll-length L=7808.62 m/layers=4620/target500m→D=263.5 mm；strength-1 FLUTE{A:1.53,C:1.46,B:1.32,E:1.27}/ECT=5913 N/m/BCT=2464 N(251 kgf)/safe=821 N/maxTiers=6/stackH=1.8 m；carbon-5/naipo/strength-9/strength-10 同构双输入 else 分支 sum=150/diff=50/ratio=2.0000/avg=75.00，默认 v0=100,v1=50）。
-- 2 文件（basis-weight/calc-concentration-1）源 HTML 含旧 opt-guide/opt-faq 套话 section + FAQPage JSON-LD 旧套话，已用 opt_cleanup_opt_blocks.py + opt_faq_ld_sync.py 清零并同步真实 FAQ（2 条/页）。其余 10 文件仅 deep-dive 占位，build 随 JSON 重建。paper-grade 为纯查表工具（buildTable/filterTable 无公式），写对照表使用指南型。
-- 五道门禁全过（build→静态→死链→资产→公式回归）；占位/套话核验全 0，键数守恒 5022。脚本：scripts/apply_paper.py。
+### ✅ math（11 工具 deep-dive 真实化 + 9 文件 opt 套话清零，完整分类收口，最新一条）
+- 11 工具（calc-1 百分比 / calc-2 比例 / calc-3 勾股定理 / calc-4 圆 / calculus-tools 数值微积分 / equation-solver 方程 / exponent-solve 指数 / formula-calculator 公式速查 / geometry-calculator 几何 / multinomial-coefficient 多项式系数 / nth-term-geometric 等比第n项）deep-dive 已真实化（替换「快速复核」占位，按工具专属真实公式/算例/FAQ），六型扫描零残留；formula-calculator 为公式速查参考型（无计算公式），写参考指南型。
+- 算例按工具公式 node 独立复算（calc-1 of(200,15)=30.0000/percent(30,200)=15.0000%/whole=200.0000/change(200→230)=+15.0000%；calc-2 2:3=4:d→d=6.000000（校验 2×6=12=3×4）；calc-3 3,4→c=5.000000/∠A=36.87°/∠B=53.13°；calc-4 r=5→d=10.0000/S=78.5398/C=31.4159；calculus-tools f=x² f'(3)=6.000000/∫₀¹x²=0.333333/lim x→0 x²=0.000000；equation-solver 2x−6=0→x=3.000000/x²−5x+6=0→Δ=1,x₁=3.000000,x₂=2.000000；exponent-solve log2(8)=3.0000/log3(81)=4.0000；geometry-calculator rect4×5→S=20.00/C=18.00/diag=6.40、square4→S=16.00/C=16.00/diag=5.66；multinomial C(5;2,2,1)=30/C(6;3,2,1)=60；nth-term a₁=2,r=3,n=5→162.000、a₁=1,r=2,n=6→32.000）。
+- 9 文件（calculus-tools/circular-permutation/factorial-calc/formula-calculator/gcd-lcm/geometry-calculator/herons-area/log-base/multinomial-coefficient）源 HTML 含旧 opt-guide/opt-faq 套话 section + FAQPage JSON-LD 旧套话，已用 opt_cleanup_opt_blocks.py + opt_faq_ld_sync.py 清零并同步真实 FAQ（2 条/页）；其中 circular-permutation/factorial-calc/gcd-lcm/herons-area/log-base 为前批已真实但残留 opt 套话，本次一并收口。
+- 五道门禁全过（build→静态→死链→资产→公式回归）；占位/套话核验全 0，键数守恒 5022。脚本：scripts/apply_math.py。
 
 ## 八、当前进行中分类
 
 > 当前无进行中分类。新分类开工时先在此登记（目录 + 工具数），收口后写入第七节并覆盖旧归档记录（§4.3 第 4 步）。
 
-## 九、分类总清单（待办，完成一个删一个；剩 67 个目录）
+## 九、分类总清单（待办，完成一个删一个；剩 66 个目录）
 
-- [ ] math
 - [ ] fire
 - [ ] elderly
 - [ ] text
