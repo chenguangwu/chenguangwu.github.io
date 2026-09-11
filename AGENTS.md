@@ -19,6 +19,11 @@
 - 活泼专业的视觉风格
 - AI 工具（浏览器本地推理）、工具链组合、中英双语 i18n、PWA 离线、质量分级
 
+> ⚡ **动手前必读**：文末「**§ 项目特有坑与速查**」记录了反复踩到、且无法从代码推断的坑（构建/SW 缓存、i18n 英文态、内容质量判定、无头浏览器验证）。三条最高频红线先记牢：
+> 1. 改任何 `css/js/json` 前必须先 `python3 _build.py`（否则 SW 旧缓存不失效）
+> 2. 凡引 `js/common.js` 的页面必须同时引 `js/i18n.js`（否则 `?lang=en-US` 整页回退中文）
+> 3. `push master` 后必须查 Actions run + 线上落盘 MD5 逐文件比对，禁止以 push 成功即收尾
+
 ---
 
 ## 🎨 设计规范（必须遵守）
@@ -661,6 +666,42 @@ python3 -m http.server 8765
 
 ---
 
-> **最后更新**：2026-09-03（新增「硬性约束 §6 单 Agent 串行执行」）
+## ⚠️ 项目特有坑与速查（Agent 必读）
+
+> 本节收录长期实践中反复踩到、且无法从代码或其它文档直接推断的坑。改动相关模块前先读本节。
+
+### 构建与缓存
+- 改任何 `css/js/json` 都必须先跑 `python3 _build.py`：Service Worker 的 BUILD 戳按内容 hash 注入，不重建则旧缓存永不失效
+- 构建幂等：只读 `git --no-optional-locks status`；撞 `.git/index.lock` 用 `rm -f .git/index.lock`
+- 构建产物变化一律**全量核对随提交**，禁止只挑部分文件回退；新建文件前先确认是否已存在（曾发生 Write 覆盖）
+- SW v4 分三桶（`tb-shell-v4` / `tb-rt-v4-<BUILD>` / `tb-tools-v4-<BUILD>`）：CSS/JS/JSON 网络优先 3s 回退、图片字体 cache-first；紧急开关 `sw-kill.json` = `{"disabled":true}`
+- 统计统一收口 `js/analytics.js`（引 `common.js` 即自动获得，勿再单独引）
+
+### i18n（中英 / 繁体）
+- **凡引 `js/common.js` 的页面必须同时引 `js/i18n.js`**，否则 `?lang=en-US` 下整页回退中文；`guides/*.html` 等静态页须手动保留，幂等补注脚本 `scripts/inject_i18n_js.py`（正则须吞掉 `</script>`，否则插入标签不闭合）
+- `I18n.apply(root)` **只扫描 root 的后代、不含 root 自身** —— 给 root 自身带 `data-i18n` 的元素必须显式调 `I18n.t()`
+- `i18n.js` 以 defer 加载，**同步内联脚本早于它执行**：依赖 I18n 的渲染（如 404 的热门工具/分类）必须延后到 `DOMContentLoaded`
+- `i18n.js` 的 `ind_*` 键仅约 50 个而行业有 279 个 → 分类页行业名**不要用 `ind_*`**，改用构建期双语层（`i18n/industry-en.json` 全覆盖 + `.t-zh/.t-en` + CSS `html[lang]` 显隐）；双语容器为 `.cat-tool` / `.tb-bi` / `.tool-intro` / `.tool-link`，分类页正文由 `scripts/category_auto_content.py` 生成
+- 英文态排查判据（`?lang=en-US`）：① `[data-i18n]` 元素运行后仍含汉字 = 字典缺键或未加载；② 可见文本含汉字 —— **必须**用 `getClientRects().length === 0` 排除 CSS 隐藏的 `.t-zh`，否则大量误报
+- 繁体页核验必须**源页配对**（`conv(源页值)` vs 繁体页值）：直接对繁体页做转换属二次转换，`twp` 非幂等（文档→文件→檔案）会大量误报；判字形残留用 OpenCC `tw` 而非 `twp`；`data-zh` / `data-i18n-*-fb` 保留简体是运行时回退设计，不是残留
+
+### 内容质量
+- **A 级硬标准**：`own_len ≥ 6000`，或 `≥ 3000 且 inputs ≥ 3`；含 `formula-box` / `canvas` / `data-viz` 直接判 A；**禁止用代码膨胀凑数**
+- **head-only 死壳**特征：`<body>` 无开标签 / 无 `input`+`select` / deep-dive 段误置 `<head>`（线上打开空白）。扫法 `'<body>' not in c`；重建库 `scripts/auto_shell_lib.py` + `rebuild_<cat>_batchN.py`；收口前必做三方终检（title = h1 = i18n 标题、deep-dive 仅注入 body、每页有输入控件）
+- **两套套话残留**（逐分类必查）：① 可见 `opt-guide` / `opt-faq` → `scripts/opt_cleanup_opt_blocks.py --cat X`；② FAQPage JSON-LD 里的旧套话 → `scripts/opt_faq_ld_sync.py --cat X`。**_build.py 不重建工具页的 FAQPage LD**，必须手改并 `json.loads` 校验
+- deep-dive 算例数字一律用 node 实跑取（含 `toFixed` 四舍五入），禁止凭印象写
+- `i18n/tools/content_deepdive.json` 仓库规范 `indent=1`（`_build.py` 只读不写），apply 脚本必须 `json.dump(indent=1)`，否则全量重排成巨大噪音 diff
+- **defer 脚本闭包死引用**：`common.js` 整体替换后旧 stub 引用失效 → 「📋复制 / ⬇️导出」点击无反应。根治方式为替换前保存旧对象、替换后回填同名方法指向真实实现；审计脚本 `scripts/audit_toolbox_stub_refs.py`
+- **淘宝客双链**：PC 链 `s.click.taobao.com/UItQ6Hk`、WAP 免登录链 `s.click.taobao.com/5e6P6Hk`；手机上打开 PC 链会被强制登录 → 转化归零。全站唯一维护点 `js/common.js` 的 `toolboxTaobaoAdUrl()`（断点 `innerWidth < 768`），禁止再硬编码
+- `scripts/gen_guide_pages.py`：`guides/index.html` 是纯追加（不按 slug 去重），重生成同 slug 会在指南中心重复卡片；重跑前先按行删掉该 slug 旧卡片
+
+### 无头浏览器验证
+- Chrome 绝对路径 `/Applications/Google Chrome.app/Contents/MacOS/Google Chrome`（不在 PATH）；`puppeteer-core` 用 managed 绝对路径 require；启动参数 `headless:'new'` + `--no-sandbox --disable-setuid-sandbox --disable-dev-shm-usage`
+- 本地服务 `python3 -m http.server 8137 --directory <项目根>`（后台），用完 `pkill -f "http.server 8137"`
+- 须真触发事件（`.tb-nav-link` click 才生成 megapanel）；繁体页 `set()` 会整页跳转，`goto` 后轮询 `page.url()` 稳定后再 evaluate
+
+---
+
+> **最后更新**：2026-09-11（新增「§ 项目特有坑与速查」，内容自 `.workbuddy/memory/MEMORY.md` 迁入）
 > 
 > 本文件是 AI 开发本项目的权威指南，如有疑问以本文件为准。
