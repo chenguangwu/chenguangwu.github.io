@@ -264,6 +264,19 @@ function transformHtml(raw, rel, locale, converter) {
       (match, name, quote, value) => ` ${name}=${quote}${rewriteAssetUrl(rel, value, locale)}${quote}`);
     return `<${tag}${rewritten}>`;
   });
+  // 先抽出受保护块（script/style/pre/code/textarea/template）再切分标签。
+  // 这些块的内容不参与语言转换，但块内可能出现裸 "<"（例如 JSON-LD 的 FAQ
+  // 文本写「<P3 或短期明显下降」）。若不先抽出，标签切分正则会把 "<P3 …"
+  // 当成标签并一路吞到后面的 ">"，连带吃掉 </script>，使 depth 计数失衡；
+  // 其后所有 meta 都会被判定为受保护内容而跳过转换（growth-chart 的
+  // twitter:title / twitter:description 即因此残留简体）。
+  const protectedBlocks = [];
+  html = html.replace(
+    /<(script|style|pre|code|textarea|template)\b([^>]*)>([\s\S]*?)<\/\1>/gi,
+    (all, tag, attrs, body) => {
+      protectedBlocks.push({ tag: tag.toLowerCase(), attrs, body, all });
+      return `\u0000TB-PROTECT-${protectedBlocks.length - 1}\u0000`;
+    });
   let depth = 0;
   // Split only on a real tag (a letter must immediately follow '<'). This
   // deliberately leaves prose such as "<120 mmHg" as text rather than
@@ -288,24 +301,29 @@ function transformHtml(raw, rel, locale, converter) {
     return token.replace(/\s([\w:-]+)=(["'])([\s\S]*?)\2/g, (match, attr, quote, value) => {
       const lower = attr.toLowerCase();
       if (TRANSLATABLE_ATTRS.has(lower)) return ` ${attr}=${quote}${converter(value)}${quote}`;
-      // meta description / og:description / og:title 的 content 也需转繁体。
-      // 原 TRANSLATABLE_ATTRS 仅含 title/placeholder/alt 等属性，漏了 description 类 content，
-      // 导致繁体页 <meta name="description"> 仍是简体（<title> 因是文本节点已被转换）。
+      // meta 的 content 一律转繁体。
+      // 此处原为白名单（description / og:description / og:title），实测漏转了
+      // twitter:title、twitter:description、og:image:alt、twitter:image:alt，
+      // 导致繁体页残留简体元数据（分享卡片、聚合摘要与页面标题语言不一致）。
+      // OpenCC 对 ASCII、URL、数字均无影响，故不再维护这份易漏的白名单。
       if (tag === 'meta' && lower === 'content') {
-        if (/\bname=["']description["']/i.test(token)
-            || /\bproperty=["']og:(?:description|title)["']/i.test(token)) {
-          return ` ${attr}=${quote}${converter(value)}${quote}`;
-        }
+        return ` ${attr}=${quote}${converter(value)}${quote}`;
       }
       return match;
     });
   }).join('');
-  html = html.replace(/<script\b([^>]*type=["']application\/ld\+json["'][^>]*)>([\s\S]*?)<\/script>/gi, (all, attrs, data) => {
-    try {
-      const parsed = rewriteJsonLdUrls(setJsonLdLocale(convertJson(JSON.parse(data), converter), locale), rel, locale);
-      const json = JSON.stringify(parsed);
-      return `<script${attrs}>${json}</script>`;
-    } catch { return all; }
+  // 放回受保护块。JSON-LD 需要解析后转换文本值并重写其中的 URL，
+  // 其余块（含内联脚本、样式表）原样还原。
+  html = html.replace(/\u0000TB-PROTECT-(\d+)\u0000/g, (all, index) => {
+    const block = protectedBlocks[Number(index)];
+    if (!block) return all;
+    if (block.tag === 'script' && /\btype=["']application\/ld\+json["']/i.test(block.attrs)) {
+      try {
+        const parsed = rewriteJsonLdUrls(setJsonLdLocale(convertJson(JSON.parse(block.body), converter), locale), rel, locale);
+        return `<script${block.attrs}>${JSON.stringify(parsed)}</script>`;
+      } catch { return block.all; }
+    }
+    return block.all;
   });
   // The homepage deliberately pre-renders a few English i18n nodes. Restore
   // only those known, simple nodes from their source fallback. A generic
