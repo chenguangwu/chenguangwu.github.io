@@ -148,7 +148,8 @@
 > 当前批次推进（已落地）：
 > - ① 批量清 FAQPage 占位套话 + desc-en「free online tool」套话（§4.1.5）：FAQPage 占位 319 文件已于 `b76bacad8` 清零；**desc-en「free online tool」上轮未真正落盘（git diff 仅含 FAQPage 移除），本批次补做并还清欠账——175 文件全部清零、残留 0**。
 > - ② 标杆深优化高频专业工具：bcrypt（上轮完成 formula+deep-dive+OWASP 外链）；**本批次 jwt（formula 空壳补全真实原理 + RFC 7519 外链）、json-formatter（deep-dive 由 1/1/1 弱内容补强至 3/2/3 真实场景/算例/FAQ + RFC 8259 外链）、timestamp-converter（加 Unix time 权威外链）**；rsa 待下一批。
-> 剩余系统性缺口（§4.3 未收口前不删 §9.2）：英文 p 占位「is available directly in your browser」263 文件、formula 空框（jwt 类标题在而原理缺失）、缺使用指南入口、全分类 UI/逻辑/i18n 逐项核对——后续批次逐工具/分批推进，禁止只挑简单任务就标记分类完成。
+> - ③ 英文 p 通用描述真实化（§4.1.5 红线）：本批次对 45 个最高频核心 it 工具（编码/加密/JSON/文本/生成器/网络/数学/安全/开发）手写真实英文描述替换占位串「is available directly in your browser, with no data uploaded.」，保留 `data-zh` 中文态不变；脚本用「捕获 </p> 单标签 + 单 p 内匹配」防双 `</p>` 与跨段破坏（首次写正则用前瞻 + 手动补 `</p>` 曾导致 csv-to-json 等双 `</p>`，已回滚重写修正）。剩余英文 p 占位 **218 文件**；其中 **data-i18n 机制工具（base64、json-minify 等约 2 个）英文态走 i18n key，标签体改了仅改善初始 HTML/SEO，英文态彻底修复需另加英文资源，单列专门批次**。
+> 剩余系统性缺口（§4.3 未收口前不删 §9.2）：英文 p 占位「is available directly in your browser」218 文件（含约 2 个 data-i18n 机制待专门批次）、formula 空框（合计覆盖全部 345）、缺使用指南入口（按 §4.4 克制原则精选专业工具补）、全分类 UI/逻辑/i18n 逐项核对——后续批次逐工具/分批推进，禁止只挑简单任务就标记分类完成。
 
 ## 九、未完成任务清单
 
