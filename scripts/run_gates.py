@@ -24,6 +24,9 @@ GATES = (
     ("dead-link audit", ("python3", "_audit_links.py", "--check")),
     ("asset audit", ("python3", "_audit_assets.py", "--check")),
     ("calculation regression", ("node", "scripts/verify_calc.js")),
+    # 与上一项区别：verify_calc 是「冒烟」（不报错即可），本项是「正确性」
+    # ——注入已知输入后按权威测试向量断言输出（§4.1.1）。用例写在脚本内，逐分类扩充。
+    ("it calc correctness", ("node", "scripts/verify_it_calc.js")),
 )
 
 
