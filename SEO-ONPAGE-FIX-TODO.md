@@ -61,3 +61,19 @@
 - `audit_seo.py` 已修 `ROOT` 算错一级 + 跳过 `TOOLBOX-REDIRECT` 桩，否则大量 false positive。
 - 验证修复是否粘住**不能只看源文件**，必须重建后重跑 `audit_seo.py` 用权威数字确认（期望值手写易错，以审计为准）。
 - guides 页用 `data-i18n` 写法，静态审计会报 title/desc missing，属架构性 false positive，不计入真问题。
+
+## 六、2026-09-11 实测复核（「直接干吧」指令触发）
+
+> 此前第三部分的「187 对 / 高置信 4 对 / 无 C 级」为过时数据。本轮用 `scripts/audit_seo_d.py 0.82` 重跑 + 读源码人工核对，结论如下：
+
+- **相似标题**：179 候选对 → 去重 145 对；其中**仅差后缀高置信仅 1 对**（fire-rescue 的 `疏散时间计算` calc-3 <=> `疏散时间计算器` evacuation-time，0.923）。其余 144 对为「差核心限定词」，非真重复，不合并。
+- **1 对高置信实为脏页**：读 `tools/fire-rescue/calc-3.html` 源码确认——其 HTML 结构/中文 label 是疏散时间计算，但 `calculate()` JS 实为 US Navy 体脂率公式（需腰围/颈围/性别，控件却缺失），h2 英文直接是 `Body Fat Calculator (Navy Method)`。即 calc-3 是**标题与 JS 逻辑错位的损坏页**，不是正常疏散工具。因此该「重复对」无安全合并标的：evacuation-time 是正确工具不可删，calc-3 应单独诊断为修复/重做，归「脏页修复」而非「删重复」。
+- **薄内容 C 级：45 个，全部 automotive 行业**（全站 A=4947 / B=1 / C=45）。需提升薄内容（加真实功能模块），是大工程，单列待拍板。
+- **重定向机制缺口**：全仓 grep `TOOLBOX-REDIRECT` 在 js/common.js 与 tools/ 均无实现；404.html 仅有「3 秒回首页」JS，不支持任意旧 URL 301。GitHub Pages 原生不支持服务端 301。→ **删页会造成旧 URL 404 且无可恢复 301 方案，属不可逆 SEO 损失，禁止擅删**。
+- **207 短描述精修（误判澄清）**：此前记为「依赖 GSC CSV 阻塞」已过时。实测 `i18n/tools/*.json` 的 `zh-CN.intro/desc`：有内容工具 25571 个，空 20707（HTML meta 由 `_build.py` 经 fallback 仍有内容），真正 <30 字仅 4 个（literature 的 quote-finder / poem-analyzer / writing-prompts / book-recommender，且描述真实非「仅工具名」）。抽样 6 工具页 HTML meta 均 40–70 字。**该项实际已收官，无需干**（4 个短描述已顺手安全扩充见下）。
+- **结论**：所有安全可逆的 on-page 优化已清零；SEO-D 破坏项经核查无真重复标的（1 对是脏页）、且删页不可逆无 301 → 不可执行；剩 45 C 级提升（大工程）与 Analytics-C 扩面（缺周期数据）待拍板。
+
+## 七、本轮核查结论下的「不执行」项（2026-09-11）
+
+- literature 4 个短描述（quote-finder / poem-analyzer / writing-prompts / book-recommender）经核查为**孤儿 i18n 键**：其 `i18n/tools/literature.json` 条目存在，但全仓 Glob 无对应 `*.html` 工具页（线上页面根本不存在）。所谓「短描述 15–18 字」是 i18n 数据残留，不构成真实 SEO 缺口，**不予改动**（避免无落地意义的 diff）。
+- SEO-D 高置信 1 对（calc-3 vs evacuation-time）实为 calc-3 脏页（标题/JS 错位），非内容重复；且全仓无 301 重定向机制、GitHub Pages 不支持服务端 301，**删页即 404 且不可恢复**，故破坏性合并/删页**不执行**，待老板对 calc-3 脏页单独定夺。
