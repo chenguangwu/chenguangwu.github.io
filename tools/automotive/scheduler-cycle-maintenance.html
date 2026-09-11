@@ -82,38 +82,6 @@
   ]
 }
 </script>
-<!-- TOOLBOX-DEEP-DIVE -->
-<style>
-.deep-dive{max-width:960px;margin:16px auto;padding:0 16px;}
-.deep-dive > .card{margin-bottom:0;}
-@media(max-width:600px){.deep-dive{margin:14px auto;padding:0 12px;}}
-.deep-dive .dd-list{margin:8px 0 16px;padding-left:20px;}
-.deep-dive .dd-list li{margin:6px 0;line-height:1.75;}
-.deep-dive .dd-example{background:var(--card-bg,#fff);border:1px solid var(--border,#eee);border-radius:10px;padding:12px 14px;margin:8px 0 16px;}
-.deep-dive .dd-ex-title{font-weight:600;color:var(--tool-accent,#FF6B35);margin-bottom:6px;}
-.deep-dive .dd-ex-body{font-size:13px;line-height:1.85;color:var(--text,#333);word-break:break-word;}
-.deep-dive .dd-faq{margin:8px 0 4px;}
-.deep-dive .dd-faq dt{font-weight:600;margin-top:10px;color:var(--text,#333);}
-.deep-dive .dd-faq dd{margin:4px 0 0;font-size:13px;line-height:1.85;color:var(--text-muted,#666);}
-
-</style>
-<section class="deep-dive" data-deep-dive="1">
-<div class="card">
-<h2>📚 深度解析：车队周期保养排程</h2>
-<h3>💡 常见使用场景</h3>
-<ul class="dd-list">
-<li>按每辆车的里程/日期阈值批量生成保养工单，均衡车间产能。</li>
-<li>结合运营淡旺季错峰安排，避免集中停工影响运力。</li>
-<li>追踪超期未保车辆并预警，保障合规与安全。</li>
-</ul>
-<div class="dd-example"><div class="dd-ex-title">按阈值到达顺序排程</div><div class="dd-ex-body">50 辆车机油周期 1 万 km，系统按当前里程排序，里程 9500–10000km 的 8 辆本周排保，下一周顺延。叠加 12 个月时间阈值过滤长期低里程车，生成合并工单。</div></div>
-<h3>❓ 常见问题（FAQ）</h3>
-<dl class="dd-faq">
-<dt>多阈值怎么合并排程？</dt><dd>取里程与时间先到者触发，再把同车多项保养（机油+三滤+检查）合并一次施工，减少进店次数与工时。</dd>
-<dt>如何避免保养挤在同一周？</dt><dd>按阈值到达顺序滚动排程并设每周上限，超量顺延，同时留缓冲应对突发维修。</dd>
-</dl>
-</div>
-</section>
 <meta name="title-en" content="Scheduler Cycle Maintenance">
 <meta name="desc-en" content="Scheduler Cycle Maintenance - free online tool">
 <!-- TOOLBOX-HREFLANG -->
@@ -156,5 +124,279 @@
 <script src="/js/analytics.js" defer></script>
 <!-- TOOLBOX-CLARITY -->
 </head>
+<body>
+<h1 class="sr-only">车辆保养项目周期排程表</h1>
+<div class="nav">
+  <a href="../../index.html">← ToolBox</a>
+  <span>/ 车辆保养项目周期排程表</span>
+  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()">🌙</button>
+</div>
+<nav class="breadcrumb" aria-label="面包屑导航" data-breadcrumb="1">
+  <a href="../../index.html">首页</a>
+  <span class="bc-sep">‹</span>
+  <a href="index.html">🚗 汽车交通</a>
+  <span class="bc-sep">‹</span>
+  <span class="bc-current">车辆保养项目周期排程表</span>
+</nav>
+<div class="container">
+  <div class="card tool-card-accent" style="--tool-accent:#0369a1;">
+    <h2 data-zh="🔧 车辆保养项目周期排程表">🔧 Scheduler Cycle Maintenance</h2>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="输入当前里程，自动生成到期/超期/即将保养清单，支持记录完成与历史日志">Scheduler Cycle Maintenance is available directly in your browser, with no data uploaded.</p>
+    <div class="input-row">
+      <div><label>当前里程 (km)</label><input type="number" id="km" value="52000" oninput="calc()" min="0" step="500"></div>
+      <div><label>上次保养里程 (km)</label><input type="number" id="last" value="45000" oninput="calc()" min="0" step="500"></div>
+    </div>
+    <div class="input-row">
+      <div><label>月均行驶里程 (km)</label><input type="number" id="kmM" value="1500" oninput="calc()" min="1" step="100"></div>
+      <div><label>提醒提前量 (km)</label><input type="number" id="ahead" value="1000" oninput="calc()" min="0" step="100"></div>
+    </div>
+    <div class="input-row">
+      <div><label>机油类型</label>
+        <select id="oil" onchange="calc()">
+          <option value="5000">矿物油（5000 km）</option>
+          <option value="7500">半合成（7500 km）</option>
+          <option value="10000" selected>全合成（10000 km）</option>
+        </select>
+      </div>
+      <div><label>使用工况</label>
+        <select id="cond" onchange="calc()">
+          <option value="1.0" selected>标准工况</option>
+          <option value="0.8">严苛工况（短途拥堵/多尘/重载）</option>
+        </select>
+      </div>
+    </div>
+    <div class="safe-main" id="result"></div>
+    <div class="dist-grid" id="distGrid"></div>
+    <div class="formula-box" id="formulaBox"></div>
+    <div id="adviceBox"></div>
+  </div>
+  <div class="card">
+    <h3>📋 排程项目与基准周期</h3>
+    <table style="width:100%;border-collapse:collapse;font-size:13px;margin-bottom:12px;">
+      <tr>
+        <th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--border,#e5e7eb);">项目</th>
+        <th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--border,#e5e7eb);">基准周期</th>
+        <th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--border,#e5e7eb);">时间上限</th>
+        <th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--border,#e5e7eb);">严苛工况</th>
+      </tr>
+      <tr><td style="padding:6px 8px;">机油 + 机滤</td><td style="padding:6px 8px;">按所选机油类型</td><td style="padding:6px 8px;">6~12 月</td><td style="padding:6px 8px;">×0.8</td></tr>
+      <tr><td style="padding:6px 8px;">空气滤芯</td><td style="padding:6px 8px;">15000 km</td><td style="padding:6px 8px;">12 月</td><td style="padding:6px 8px;">×0.8</td></tr>
+      <tr><td style="padding:6px 8px;">空调滤芯</td><td style="padding:6px 8px;">15000 km</td><td style="padding:6px 8px;">12 月</td><td style="padding:6px 8px;">×0.8</td></tr>
+      <tr><td style="padding:6px 8px;">汽油滤芯</td><td style="padding:6px 8px;">35000 km</td><td style="padding:6px 8px;">24 月</td><td style="padding:6px 8px;">×0.8</td></tr>
+      <tr><td style="padding:6px 8px;">刹车油</td><td style="padding:6px 8px;">40000 km</td><td style="padding:6px 8px;">24 月</td><td style="padding:6px 8px;">×0.8</td></tr>
+      <tr><td style="padding:6px 8px;">防冻液</td><td style="padding:6px 8px;">60000 km</td><td style="padding:6px 8px;">48 月</td><td style="padding:6px 8px;">×0.9</td></tr>
+      <tr><td style="padding:6px 8px;">火花塞</td><td style="padding:6px 8px;">45000 km</td><td style="padding:6px 8px;">—</td><td style="padding:6px 8px;">×0.8</td></tr>
+      <tr><td style="padding:6px 8px;">变速箱油</td><td style="padding:6px 8px;">70000 km</td><td style="padding:6px 8px;">48 月</td><td style="padding:6px 8px;">×0.8</td></tr>
+      <tr><td style="padding:6px 8px;">正时皮带</td><td style="padding:6px 8px;">80000 km</td><td style="padding:6px 8px;">60 月</td><td style="padding:6px 8px;">按手册</td></tr>
+    </table>
+    <div class="scene-card">
+      <h4>🗂️ 完成记录与历史日志</h4>
+      <p>清单确认后点「记录本次保养完成」，当前里程与时间会写入浏览器本地存储，历史日志按时间倒序列出。数据仅保存在本机浏览器，不会上传，清除浏览器数据会一并丢失。</p>
+    </div>
+    <div class="scene-card">
+      <h4>📐 排程口径</h4>
+      <p>各项目按「基准周期 × 工况系数」得实际周期，再按周期整倍数滚动定位下次到期里程（如 10000 km 周期、当前 52000 km 则下次 60000 km）。剩余里程小于提前量即列入「即将到期」，超期则列入「已逾期」。</p>
+    </div>
+    <div class="info-box">💡 本表为通用参考排程，不同车型手册差异较大，实际以随车保养手册与 4S 店记录为准。</div>
+  </div>
+<!-- TOOLBOX-DEEP-DIVE -->
+<style>
+.deep-dive{max-width:960px;margin:16px auto;padding:0 16px;}
+.deep-dive > .card{margin-bottom:0;}
+@media(max-width:600px){.deep-dive{margin:14px auto;padding:0 12px;}}
+.deep-dive .dd-list{margin:8px 0 16px;padding-left:20px;}
+.deep-dive .dd-list li{margin:6px 0;line-height:1.75;}
+.deep-dive .dd-example{background:var(--card-bg,#fff);border:1px solid var(--border,#eee);border-radius:10px;padding:12px 14px;margin:8px 0 16px;}
+.deep-dive .dd-ex-title{font-weight:600;color:var(--tool-accent,#FF6B35);margin-bottom:6px;}
+.deep-dive .dd-ex-body{font-size:13px;line-height:1.85;color:var(--text,#333);word-break:break-word;}
+.deep-dive .dd-faq{margin:8px 0 4px;}
+.deep-dive .dd-faq dt{font-weight:600;margin-top:10px;color:var(--text,#333);}
+.deep-dive .dd-faq dd{margin:4px 0 0;font-size:13px;line-height:1.85;color:var(--text-muted,#666);}
+
+</style>
+<section class="deep-dive" data-deep-dive="1">
+<div class="card">
+<h2>📚 深度解析：保养项目排程与阈值触发</h2>
+<h3>💡 常见使用场景</h3>
+<ul class="dd-list">
+<li>按每辆车的里程/日期阈值批量生成保养工单，均衡车间产能。</li>
+<li>结合运营淡旺季错峰安排，避免集中停工影响运力。</li>
+<li>追踪超期未保车辆并预警，保障合规与安全。</li>
+</ul>
+<div class="dd-example"><div class="dd-ex-title">按整倍数滚动定位下次到期里程</div><div class="dd-ex-body">当前里程 52000 km、全合成机油周期 10000 km 时，下次到期里程取周期整倍数 60000 km，剩余 8000 km；空气滤芯与空调滤芯周期 15000 km 同样落在 60000 km，可与机油并入同一次进店施工；汽油滤芯（35000 km）落在 70000 km，刹车油（40000 km）落在 80000 km。月均 1500 km 时，机油剩余里程折合约 5.3 个月。</div></div>
+<h3>❓ 常见问题（FAQ）</h3>
+<dl class="dd-faq">
+<dt>多阈值怎么合并排程？</dt><dd>取里程与时间先到者触发，再把同车多项保养（机油+三滤+检查）合并一次施工，减少进店次数与工时。</dd>
+<dt>如何避免保养挤在同一周？</dt><dd>按阈值到达顺序滚动排程并设每周上限，超量顺延，同时留缓冲应对突发维修。</dd>
+</dl>
+</div>
+</section>
+<!-- 注意事项区块 -->
+<div class="tool-notes" style="--tool-accent:#0369a1;">
+  <div class="tool-notes-title">⚠️ 使用说明与注意事项</div>
+  <ul>
+    <li>本工具纯前端运行，数据不会上传到服务器</li>
+    <li>建议在主流浏览器（Chrome/Safari/Firefox/Edge）中使用</li>
+    <li>各项目按「基准周期 × 工况系数」的整倍数滚动排程，实际以随车保养手册为准；记录仅存本机浏览器</li>
+  </ul>
+</div>
+</div>
+<!-- 相关工具 -->
+<div class="related-tools" data-related-tools="1">
+  <h3 class="related-tools-title">🔗 相关工具</h3>
+  <div class="related-tools-grid">
+    <a href="recommender-6.html" class="related-tool-card">
+      <span class="rt-icon">🚙</span>
+      <span class="rt-info"><span class="rt-name">胎压（监测/充气）推荐</span><span class="rt-desc">胎压（监测/充气）推荐</span></span>
+    </a>
+    <a href="calc-2.html" class="related-tool-card">
+      <span class="rt-icon">⚙️</span>
+      <span class="rt-info"><span class="rt-name">发动机功率/扭矩换算</span><span class="rt-desc">发动机功率/扭矩换算</span></span>
+    </a>
+    <a href="oil-change-countdown.html" class="related-tool-card">
+      <span class="rt-icon">🛢️</span>
+      <span class="rt-info"><span class="rt-name">机油更换倒计时</span><span class="rt-desc">机油更换倒计时</span></span>
+    </a>
+    <a href="countdown-engine-oil.html" class="related-tool-card">
+      <span class="rt-icon">🛢️</span>
+      <span class="rt-info"><span class="rt-name">机油更换里程倒计时</span><span class="rt-desc">机油更换里程倒计时</span></span>
+    </a>
+    <a href="calc-3.html" class="related-tool-card">
+      <span class="rt-icon">🛞</span>
+      <span class="rt-info"><span class="rt-name">轮胎胎压换算</span><span class="rt-desc">轮胎胎压换算</span></span>
+    </a>
+    <a href="transport-calculator.html" class="related-tool-card">
+      <span class="rt-icon">🚗</span>
+      <span class="rt-info"><span class="rt-name">交通物流计算器</span><span class="rt-desc">交通物流计算器</span></span>
+    </a>
+  </div>
+</div>
+<script>
+function fmtNum(n,d){d=d==null?2:d;if(!isFinite(n))return '--';return parseFloat(n.toFixed(d)).toString();}
+function val(id){return parseFloat(document.getElementById(id).value);}
+function str(id){return document.getElementById(id).value;}
+var SC_KEY='tb_auto_maint_log_v1';
+function scLog(){
+  try{ var s=localStorage.getItem(SC_KEY); return s?JSON.parse(s):[]; }catch(e){ return []; }
+}
+function scSave(a){
+  try{ localStorage.setItem(SC_KEY, JSON.stringify(a)); }catch(e){}
+}
+function scRender(){
+  var box=document.getElementById('logBox');
+  if(!box) return;
+  var a=scLog();
+  if(!a.length){ box.innerHTML='<div class="scene-card"><p>暂无记录。完成保养后点击上方按钮即可留下日志。</p></div>'; return; }
+  var s='<div class="scene-card"><h4>历史日志（'+a.length+' 条）</h4>';
+  for(var i=0;i<a.length;i++){
+    var r=a[i];
+    s+='<p>· '+r.d+' | '+fmtNum(r.km,0)+' km | '+r.items+'</p>';
+  }
+  s+='</div>';
+  box.innerHTML=s;
+}
+function scRecord(){
+  var km=val('km'), ahead=val('ahead');
+  var oilIv=val('oil'), cond=val('cond');
+  var ITEMS=scItems(oilIv,cond);
+  var hit=[];
+  for(var i=0;i<ITEMS.length;i++){
+    var o=ITEMS[i], left=o.next-km;
+    if(left<=ahead) hit.push(o.name);
+  }
+  var now=new Date();
+  var ds=now.getFullYear()+'-'+('0'+(now.getMonth()+1)).slice(-2)+'-'+('0'+now.getDate()).slice(-2);
+  var a=scLog();
+  a.unshift({d:ds, km:km, items:hit.length?hit.join('、'):'常规检查'});
+  if(a.length>20) a=a.slice(0,20);
+  scSave(a); scRender();
+  var b=document.getElementById('logTip');
+  if(b) b.innerHTML='<div class="tip-info">✅ 已记录 '+ds+' · '+fmtNum(km,0)+' km · '+(hit.length?hit.join('、'):'常规检查')+'</div>';
+}
+function scItems(oilIv, cond){
+  var raw=[
+    ['机油 + 机滤', oilIv, 12, cond],
+    ['空气滤芯', 15000, 12, cond*0.8+0.2],
+    ['空调滤芯', 15000, 12, cond*0.8+0.2],
+    ['汽油滤芯', 35000, 24, cond*0.8+0.2],
+    ['刹车油', 40000, 24, cond*0.8+0.2],
+    ['防冻液', 60000, 48, cond*0.9+0.1],
+    ['火花塞', 45000, 0, cond*0.8+0.2],
+    ['变速箱油', 70000, 48, cond*0.8+0.2],
+    ['正时皮带', 80000, 60, 1.0]
+  ];
+  var km=val('km'), out=[];
+  for(var i=0;i<raw.length;i++){
+    var cyc=raw[i][1]*raw[i][3];
+    if(cyc<1000) cyc=1000;
+    var next=Math.ceil(km/cyc)*cyc;
+    if(next<=km) next=km+cyc;
+    out.push({name:raw[i][0], cyc:cyc, monBase:raw[i][2], next:next, left:next-km});
+  }
+  return out;
+}
+function calc(){
+  var R=document.getElementById('result'),G=document.getElementById('distGrid'),
+      F=document.getElementById('formulaBox'),A=document.getElementById('adviceBox');
+  var km=val('km'), last=val('last'), kmM=val('kmM'), ahead=val('ahead');
+  var oilIv=val('oil'), cond=val('cond');
+  var ITEMS=scItems(oilIv,cond);
+
+  var overdue=[], soon=[], ok=[];
+  var rows='';
+  for(var i=0;i<ITEMS.length;i++){
+    var o=ITEMS[i], left=o.left;
+    var st, col;
+    if(left<=0){ st='已逾期'; col='#dc2626'; overdue.push(o.name); }
+    else if(left<=ahead){ st='即将到期'; col='#d97706'; soon.push(o.name); }
+    else { st='正常'; col='#059669'; ok.push(o.name); }
+    var lm=kmM>0?left/kmM:Infinity;
+    rows+='<tr><td style="padding:5px 8px;">'+o.name+'</td>'
+      +'<td style="padding:5px 8px;">'+fmtNum(o.cyc,0)+'</td>'
+      +'<td style="padding:5px 8px;">'+fmtNum(o.next,0)+'</td>'
+      +'<td style="padding:5px 8px;color:'+col+';">'+fmtNum(left,0)+'</td>'
+      +'<td style="padding:5px 8px;">'+(isFinite(lm)&&lm>=0?fmtNum(lm,1):'—')+'</td>'
+      +'<td style="padding:5px 8px;color:'+col+';">'+st+'</td></tr>';
+  }
+
+  var sinceKm=km-last;
+  R.innerHTML='<div class="result-grid">'
+    +'<div class="result-item"><div class="result-label">已逾期</div><div class="result-value">'+overdue.length+' 项</div></div>'
+    +'<div class="result-item"><div class="result-label">即将到期</div><div class="result-value">'+soon.length+' 项</div></div>'
+    +'<div class="result-item"><div class="result-label">状态正常</div><div class="result-value">'+ok.length+' 项</div></div>'
+    +'<div class="result-item"><div class="result-label">距上次保养</div><div class="result-value">'+fmtNum(sinceKm,0)+' km</div></div>'
+    +'</div>';
+
+  G.innerHTML='<div class="dist-grid">'
+    +'<div class="dist-card"><h4>本次建议施工</h4><p>'+(overdue.length+soon.length?overdue.concat(soon).join('、'):'暂无需进店')+'</p><p>合并一次施工可省工时</p></div>'
+    +'<div class="dist-card"><h4>机油实际周期</h4><p>'+fmtNum(oilIv*cond,0)+' km</p><p>基准 '+fmtNum(oilIv,0)+' km × 工况 '+fmtNum(cond,2)+'</p></div>'
+    +'<div class="dist-card"><h4>最短剩余</h4><p>'+fmtNum(Math.min.apply(null,ITEMS.map(function(x){return x.left;})),0)+' km</p><p>按提前量 '+fmtNum(ahead,0)+' km 预警</p></div>'
+    +'<div class="dist-card"><h4>里程折算</h4><p>'+(kmM>0?fmtNum(kmM/30.44,1)+' km/天':'—')+'</p><p>月均 '+fmtNum(kmM,0)+' km</p></div>'
+    +'</div>';
+
+  F.innerHTML='<div class="formula-title">📐 排程口径</div>'
+    +'<div class="formula-line">实际周期 = 基准周期 × 工况系数（严苛工况 0.8）</div>'
+    +'<div class="formula-line">下次到期里程 = ⌈当前里程 ÷ 实际周期⌉ × 实际周期</div>'
+    +'<div class="formula-line">剩余里程 = 下次到期里程 − 当前里程；剩余月数 = 剩余里程 ÷ 月均里程</div>'
+    +'<table style="width:100%;border-collapse:collapse;font-size:13px;margin-top:10px;">'
+    +'<tr><th style="text-align:left;padding:5px 8px;border-bottom:1px solid var(--border,#e5e7eb);">项目</th>'
+    +'<th style="text-align:left;padding:5px 8px;border-bottom:1px solid var(--border,#e5e7eb);">实际周期</th>'
+    +'<th style="text-align:left;padding:5px 8px;border-bottom:1px solid var(--border,#e5e7eb);">下次到期</th>'
+    +'<th style="text-align:left;padding:5px 8px;border-bottom:1px solid var(--border,#e5e7eb);">剩余 (km)</th>'
+    +'<th style="text-align:left;padding:5px 8px;border-bottom:1px solid var(--border,#e5e7eb);">剩余 (月)</th>'
+    +'<th style="text-align:left;padding:5px 8px;border-bottom:1px solid var(--border,#e5e7eb);">状态</th></tr>'
+    +rows+'</table>'
+    +'<div style="margin-top:10px;"><button type="button" onclick="scRecord()" style="padding:8px 14px;border:0;border-radius:10px;background:#0369a1;color:#fff;cursor:pointer;font-size:13px;">记录本次保养完成</button></div>'
+    +'<div id="logTip"></div>';
+
+  var ad='';
+  if(overdue.length) ad+='<div class="tip-bad">⛔ 已逾期 '+overdue.length+' 项：'+overdue.join('、')+'，应尽快安排施工，逾期过久会加速磨损并影响质保。</div>';
+  if(soon.length) ad+='<div class="tip-warn">⚠️ 即将到期 '+soon.length+' 项：'+soon.join('、')+'，建议并入同一次进店施工以减少工时。</div>';
+  if(!overdue.length&&!soon.length) ad+='<div class="tip-info">✅ 全部项目状态正常，最近一项尚有 '+fmtNum(Math.min.apply(null,ITEMS.map(function(x){return x.left;})),0)+' km 到期，无需提前保养。</div>';
+  A.innerHTML=ad+'<div id="logBox"></div>';
+  scRender();
+}
+calc();
+</script>
 </body>
 </html>
