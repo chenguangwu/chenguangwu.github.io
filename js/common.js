@@ -2465,6 +2465,12 @@ if (global.ToolBox) global.ToolBox.toolboxTaobaoAdUrl = toolboxTaobaoAdUrl;
       label.setAttribute('data-i18n-fb', '— 推广 —');
       label.textContent = '— 推广 —';
       container.parentNode.insertBefore(label, container);
+      // 注：I18n.apply(root) 只扫描 root 的后代、不含 root 自身，故 label 自身
+      //     无法通过 apply 翻译，必须在此显式翻译一次；后续切换语言由
+      //     I18n 的 apply(document) 统一处理（label 已在 DOM 中且带 data-i18n）。
+      if (window.I18n && typeof window.I18n.t === 'function') {
+        label.textContent = window.I18n.t('ad.label_promo', '— 推广 —');
+      }
       var adDiv = document.createElement('div');
       adDiv.className = 'tool-ad-banner';
       adDiv.setAttribute('data-ad-pos', 'tool-top');
@@ -3473,8 +3479,12 @@ document.addEventListener('DOMContentLoaded', enhanceNumberInputs);
     box.className = 'tool-disclaimer';
     box.setAttribute('style',
       'margin:0 0 14px 0;padding:12px 14px;border:1px solid #F59E0B;border-radius:12px;background:rgba(245,158,11,0.12);color:#92400E;line-height:1.6;');
-    box.innerHTML = '<div style="font-weight:700;margin-bottom:4px;">⚠️ 专业工具免责声明</div>' +
-      '<div>本工具结果为' + msg + '请结合现场评估与规范流程使用。</div>';
+    // data-i18n-fb 内联完整中文（含行业相关提示 msg），英文态由 i18n 字典覆盖；
+    // apply(box) 后两种语言各自正确（zh 走 fb，en 走 pack）。
+    var _msgEsc = String(msg).replace(/"/g, '&quot;').replace(/</g, '&lt;');
+    box.innerHTML = '<div style="font-weight:700;margin-bottom:4px;" data-i18n="disc.title" data-i18n-fb="⚠️ 专业工具免责声明">⚠️ 专业工具免责声明</div>' +
+      '<div data-i18n="disc.body" data-i18n-fb="本工具结果为' + _msgEsc + '请结合现场评估与规范流程使用。">本工具结果为' + msg + '请结合现场评估与规范流程使用。</div>';
+    if (window.I18n && typeof window.I18n.apply === 'function') window.I18n.apply(box);
 
     if (h2 && h2.parentNode === target) {
       if (h2.nextElementSibling) {

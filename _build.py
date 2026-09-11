@@ -1773,14 +1773,18 @@ h2 { font-size: 1.3rem; margin: 25px 0 15px; padding-bottom: 8px; border-bottom:
 .back:hover { background: #E55A25; }
 .count { font-size: 12px; color: #6B7280; font-weight: normal; margin-left: 8px; }
 .footer { margin-top: 40px; padding-top: 20px; border-top: 1px solid #E5E7EB; text-align: center; color: #9CA3AF; font-size: 12px; }
+/* 中英双语：工具链接名称各含两层，由 html[lang] 切换显隐（与 css/common.css 的 .cat-tool 规则同构） */
+html[lang="en-US"] .tool-link .t-zh{display:none !important;}
+html:not([lang="en-US"]) .tool-link .t-en{display:none !important;}
 </style>
 <script>window.__tbq=window.__tbq||[];window.ToolBox=window.ToolBox||{};['initToolTheme','addToolStyles','showToast','toast','copyText','copyToClipboard','copyFromElement','downloadText','injectPrivacyBadge','toggleFavTool','addToRecentTool','toggleToolTheme','applyTheme'].forEach(function(k){if(typeof window.ToolBox[k]!=='function')window.ToolBox[k]=function(){window.__tbq.push([k,[].slice.call(arguments)]);};});(function(){var T=window.ToolBox;if(typeof T.escHtml!=='function')T.escHtml=function(s){var d=document.createElement('div');d.textContent=s;return d.innerHTML;};if(typeof T.formatNumber!=='function')T.formatNumber=function(n,dec){if(typeof n!=='number'||isNaN(n))return String(n);dec=dec!=null?dec:0;return n.toLocaleString('zh-CN',{minimumFractionDigits:dec,maximumFractionDigits:dec});};if(typeof T.createTable!=='function')T.createTable=function(h,r){var x='<table><thead><tr>';h.forEach(function(t){x+='<th>'+T.escHtml(t)+'</th>';});x+='</tr></thead><tbody>';r.forEach(function(row){x+='<tr>';row.forEach(function(c){x+='<td>'+(c!=null?T.escHtml(String(c)):'')+'</td>';});x+='</tr>';});return x+'</tbody></table>';};if(typeof T.debounce!=='function')T.debounce=function(fn,ms){var t;return function(){var a=arguments,s=this;clearTimeout(t);t=setTimeout(function(){fn.apply(s,a);},ms);};};})();</script><!-- TOOLBOX-API-STUB -->
+<script src="/js/i18n.js" defer></script>
 <script src="/js/common.js" defer></script>
 </head>
 <body>
-<a href="/" class="back">← 返回首页</a>
+<a href="/" class="back" data-i18n="sitemap.back" data-i18n-fb="← 返回首页">← 返回首页</a>
 <h1><a href="/">🧰 ToolBox</a></h1>
-<p class="subtitle">站点地图 · 共 %d 个免费在线工具 · 更新于 %s</p>
+<p class="subtitle"><span data-i18n="sitemap.subtitle_a" data-i18n-fb="站点地图 · 共 ">站点地图 · 共 </span>%d<span data-i18n="sitemap.subtitle_b" data-i18n-fb=" 个免费在线工具 · 更新于 "> 个免费在线工具 · 更新于 </span>%s</p>
 ''' % (len(tools), today)
     
     for ind in ind_order:
@@ -1790,24 +1794,24 @@ h2 { font-size: 1.3rem; margin: 25px 0 15px; padding-bottom: 8px; border-bottom:
         ind_def = INDUSTRY_DEFS.get(ind, ('🔧', ind, ''))
         icon = ind_def[0]
         name = ind_def[1]
-        html += f'<h2>{icon} {name}<span class="count">({len(tlist)}个工具)</span></h2>\n'
+        html += f'<h2>{icon} <span data-i18n="ind_{ind}" data-i18n-fb="{name}">{name}</span><span class="count">({len(tlist)}<span data-i18n="sitemap.count_suffix" data-i18n-fb="个工具">个工具</span>)</span></h2>\n'
         html += '<div class="grid">\n'
         for t in sorted(tlist, key=lambda x: x['name']):
-            html += f'  <a class="tool-link" href="/{t["url"]}">{t["icon"]} {t["name"]}</a>\n'
+            html += f'  <a class="tool-link" href="/{t["url"]}"><span class="t-zh">{t["icon"]} {t["name"]}</span><span class="t-en">{t["icon"]} {t.get("en") or t["name"]}</span></a>\n'
         html += '</div>\n'
     
     for ind in sorted(ind_tools.keys()):
         if ind not in ind_order:
             tlist = ind_tools[ind]
-            html += f'<h2>🔧 {ind}<span class="count">({len(tlist)}个工具)</span></h2>\n'
+            html += f'<h2>🔧 <span data-i18n="ind_{ind}" data-i18n-fb="{ind}">{ind}</span><span class="count">({len(tlist)}<span data-i18n="sitemap.count_suffix" data-i18n-fb="个工具">个工具</span>)</span></h2>\n'
             html += '<div class="grid">\n'
             for t in sorted(tlist, key=lambda x: x['name']):
-                html += f'  <a class="tool-link" href="/{t["url"]}">{t["icon"]} {t["name"]}</a>\n'
+                html += f'  <a class="tool-link" href="/{t["url"]}"><span class="t-zh">{t["icon"]} {t["name"]}</span><span class="t-en">{t["icon"]} {t.get("en") or t["name"]}</span></a>\n'
             html += '</div>\n'
     
     html += '''<div class="footer">
-<p><a href="/sitemap.xml">XML Sitemap</a> · <a href="/">返回首页</a></p>
-<p>© 2026 ToolBox - 免费在线工具集合</p>
+<p><a href="/sitemap.xml">XML Sitemap</a> · <a href="/" data-i18n="sitemap.back_home" data-i18n-fb="返回首页">返回首页</a></p>
+<p data-i18n="sitemap.copyright" data-i18n-fb="© 2026 ToolBox - 免费在线工具集合">© 2026 ToolBox - 免费在线工具集合</p>
 </div>
 </body>
 </html>'''
@@ -2992,7 +2996,9 @@ def generate_category_indexes(tools):
         # 生成独一无二的 title / 中英文 description / 正文（栏目简介 + 核心功能 + FAQ）。
         # 全站 268 个分类页因此不再互为重复内容（修复 GSC 报的 Thin Content）。
         _names = [t['name'] for t in ind_tools_sorted]
-        _seo = CAUTO.build_content(ind, ind_name, en_name, count, _names)
+        # 英文工具名列表：供分类页正文（.t-en 层）与英文 description 使用
+        _names_en = [(t.get('en') or t['name']) for t in ind_tools_sorted]
+        _seo = CAUTO.build_content(ind, ind_name, en_name, count, _names, _names_en)
         title = ('%s (%s) Tools Collection - ToolBox' % (en_name, ind)) if len(name_to_inds.get(ind_name, set())) > 1 else ('%s Tools Collection - ToolBox' % en_name)
         title_zh = _seo['title_zh']
         desc_meta = _seo['desc_en']
@@ -3051,15 +3057,15 @@ def generate_category_indexes(tools):
         # FAQPage 结构化数据：与页面可见 FAQ 文本一致，强化索引信号（全站覆盖）
         parts.append(CAUTO.faq_ld(_seo, count))
         parts.append('</head>\n<body>\n')
-        parts.append('<h1 class="sr-only">%s %s工具</h1>\n' % (ind_icon, esc_html_py(ind_name)))
+        parts.append('<h1 class="sr-only tb-bi"><span class="t-zh">%s %s工具</span><span class="t-en">%s %s Tools</span></h1>\n' % (ind_icon, esc_html_py(ind_name), ind_icon, esc_html_py(en_name)))
         # Breadcrumb
-        parts.append('<nav class="breadcrumb" aria-label="面包屑导航">\n  <a href="../../index.html" data-i18n="bc.home" data-i18n-fb="首页">首页</a>\n  <span class="bc-sep">‹</span>\n  <span class="bc-current">%s <span data-i18n="ind_%s" data-i18n-fb="%s">%s</span></span>\n</nav>\n' % (ind_icon, ind, esc_html_py(ind_name), esc_html_py(ind_name)))
+        parts.append('<nav class="breadcrumb" aria-label="面包屑导航">\n  <a href="../../index.html" data-i18n="bc.home" data-i18n-fb="首页">首页</a>\n  <span class="bc-sep">‹</span>\n  <span class="bc-current tb-bi">%s <span class="t-zh">%s</span><span class="t-en">%s</span></span>\n</nav>\n' % (ind_icon, esc_html_py(ind_name), esc_html_py(en_name)))
         # Nav
-        parts.append('<div class="nav">\n  <a href="../../index.html">← ToolBox</a>\n  <span>/ <span data-i18n="ind_%s" data-i18n-fb="%s">%s</span><span data-i18n="cat.suffix_tools" data-i18n-fb="工具">工具</span></span>\n  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()">🌙</button>\n</div>\n' % (ind, esc_html_py(ind_name), esc_html_py(ind_name)))
+        parts.append('<div class="nav">\n  <a href="../../index.html">← ToolBox</a>\n  <span class="tb-bi">/ <span class="t-zh">%s工具</span><span class="t-en">%s Tools</span></span>\n  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()">🌙</button>\n</div>\n' % (esc_html_py(ind_name), esc_html_py(en_name)))
         # Content
         parts.append('<div class="container">\n  <div class="card">\n')
-        parts.append('    <h2>%s %s工具</h2>\n' % (ind_icon, esc_html_py(ind_name)))
-        parts.append('    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;">共 %d 个免费在线工具</p>\n' % count)
+        parts.append('    <h2 class="tb-bi">%s <span class="t-zh">%s工具</span><span class="t-en">%s %s Tools</span></h2>\n' % (ind_icon, esc_html_py(ind_name), ind_icon, esc_html_py(en_name)))
+        parts.append('    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;"><span data-i18n="cat.total_prefix" data-i18n-fb="共">共</span> %d<span data-i18n="cat.total_suffix" data-i18n-fb="个免费在线工具">个免费在线工具</span></p>\n' % count)
         parts.append('    <div class="category-tool-list" data-ind="%s">\n' % ind)
         index_ref_dir = 'tools/' + ind
         # 加载本行业中文 i18n 字典，供分类页卡片 .t-zh 描述使用
@@ -3080,7 +3086,7 @@ def generate_category_indexes(tools):
             parts.append('      <a href="%s" class="cat-tool"><span class="t-zh">%s</span><span class="t-zh-desc">%s</span></a>\n' % (tool_href, esc_html_py(_zh_name), esc_html_py(_zh_desc)))
         parts.append('    </div>\n  </div>\n')
         # SEO intro
-        parts.append('  <div class="tool-intro open">\n    <div class="tool-intro-header"><span class="intro-icon-wrap"><span class="intro-icon">📖</span>关于「%s工具」</span><span class="arrow">▼</span></div>\n' % esc_html_py(ind_name))
+        parts.append('  <div class="tool-intro open">\n    <div class="tool-intro-header"><span class="intro-icon-wrap"><span class="intro-icon">📖</span><span class="t-zh">关于「%s工具」</span><span class="t-en">About %s Tools</span></span><span class="arrow">▼</span></div>\n' % (esc_html_py(ind_name), esc_html_py(en_name)))
         parts.append('    <div class="tool-intro-body">\n')
         # 差异化正文：栏目简介 + 核心功能与适用场景 + 常见问题（全站自动生成）
         parts.append(CAUTO.render_body(_seo, count))

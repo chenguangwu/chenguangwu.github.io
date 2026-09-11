@@ -45,31 +45,45 @@ mark{background:rgba(255,107,53,0.2);color:inherit;border-radius:2px;padding:0 2
 
 </head>
 <body>
-<h1 class="sr-only">搜索工具</h1>
+<h1 class="sr-only" data-i18n="search.title" data-i18n-fb="搜索工具">搜索工具</h1>
 
 <div class="nav">
   <a href="index.html">← ToolBox</a>
-  <span>/ 搜索工具</span>
+  <span data-i18n="search.breadcrumb" data-i18n-fb="/ 搜索工具">/ 搜索工具</span>
   <button class="theme-btn" onclick="ToolBox.toggleToolTheme()">🌙</button>
 </div>
 
 <div class="container">
   <div class="card search-header">
-    <h2>🔍 搜索工具</h2>
-    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;">输入关键词，搜索全部 <strong id="totalCount">...</strong> 个免费在线工具</p>
+    <h2 data-i18n="search.title_icon" data-i18n-fb="🔍 搜索工具">🔍 搜索工具</h2>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;"><span data-i18n="search.hint_prefix" data-i18n-fb="输入关键词，搜索全部">输入关键词，搜索全部</span> <strong id="totalCount">...</strong><span data-i18n="search.hint_suffix" data-i18n-fb="个免费在线工具">个免费在线工具</span></p>
     <div class="input-row">
-      <input type="search" id="searchInput" placeholder="例如 JSON 格式化、二维码生成、BMI 计算器..." oninput="onSearch(this.value)" autofocus>
+      <input type="search" id="searchInput" placeholder="例如 JSON 格式化、二维码生成、BMI 计算器..." data-i18n-ph="search.input_ph" data-i18n-ph-fb="例如 JSON 格式化、二维码生成、BMI 计算器..." oninput="onSearch(this.value)" autofocus>
     </div>
   </div>
 
   <div id="resultsContainer">
-    <div class="empty-state"><span class="icon">🔍</span>输入关键词开始搜索</div>
+    <div class="empty-state"><span class="icon">🔍</span><span data-i18n="search.placeholder_hint" data-i18n-fb="输入关键词开始搜索">输入关键词开始搜索</span></div>
   </div>
 </div>
 
 <script>
 (function(){
   'use strict';
+
+  // i18n 辅助：与站点其他页面一致，英文态用英文工具名/描述与英文行业名
+  function _en() {
+    try { return !!(window.I18n && window.I18n.get && window.I18n.get() === 'en-US'); } catch (e) {}
+    return false;
+  }
+  function _t(key, fb) {
+    try { if (window.I18n && window.I18n.t) return window.I18n.t(key, fb); } catch (e) {}
+    return fb;
+  }
+  function _ind(k) {
+    if (_en()) { var v = _t('ind_' + k, ''); if (v && v.indexOf('ind_') !== 0) return v; }
+    return INDUSTRY_NAMES[k] || '';
+  }
 
   let allTools = [];
   let timer = null;
@@ -107,8 +121,8 @@ mark{background:rgba(255,107,53,0.2);color:inherit;border-radius:2px;padding:0 2
         }
       })
       .catch(function(e){
-        console.error('加载搜索索引失败', e);
-        document.getElementById('resultsContainer').innerHTML = '<div class="empty-state">加载失败，请刷新重试</div>';
+        console.error('Failed to load search index', e);
+        document.getElementById('resultsContainer').innerHTML = '<div class="empty-state">' + _t('state.load_fail', '加载失败，请刷新重试') + '</div>';
       });
   }
 
@@ -164,7 +178,7 @@ mark{background:rgba(255,107,53,0.2);color:inherit;border-radius:2px;padding:0 2
     var container = document.getElementById('resultsContainer');
     if (!container) return;
     if (!q) {
-      container.innerHTML = '<div class="empty-state"><span class="icon">🔍</span>输入关键词开始搜索</div>';
+      container.innerHTML = '<div class="empty-state"><span class="icon">🔍</span>' + _t('search.placeholder_hint', '输入关键词开始搜索') + '</div>';
       updateUrl('');
       return;
     }
@@ -272,26 +286,29 @@ mark{background:rgba(255,107,53,0.2);color:inherit;border-radius:2px;padding:0 2
     var container = document.getElementById('resultsContainer');
     if (!container) return;
     if (tools.length === 0) {
-      var sug = ['JSON', '换算', '二维码', '二维码生成', '时间戳'].map(function(k) {
+      var sugWords = _en()
+        ? ['JSON', 'convert', 'QR code', 'QR code generator', 'timestamp']
+        : ['JSON', '换算', '二维码', '二维码生成', '时间戳'];
+      var sug = sugWords.map(function(k) {
         return '<a href="javascript:void(0)" onclick="doSearch(\'' + k + '\')" style="color:var(--color-primary);margin:0 6px;cursor:pointer;text-decoration:none">' + k + '</a>';
       }).join('');
-      container.innerHTML = '<div class="empty-state"><span class="icon">🔍</span>未找到与 “' + ToolBox.escHtml(q) + '” 相关的工具' +
-        '<p style="margin:10px 0;font-size:13px;color:var(--text-muted)">试试：' + sug + '</p>' +
+      container.innerHTML = '<div class="empty-state"><span class="icon">🔍</span>' + _t('search.no_match', '未找到匹配的工具') + ' “' + ToolBox.escHtml(q) + '”' +
+        '<p style="margin:10px 0;font-size:13px;color:var(--text-muted)">' + _t('search.try_these', '试试：') + sug + '</p>' +
         '<button onclick="document.getElementById(\'searchInput\').value=\'\';doSearch(\'\')" style="margin-top:6px;padding:6px 16px;border:1px solid var(--color-border);border-radius:8px;background:var(--color-card);color:var(--text-primary);cursor:pointer">清空搜索</button></div>';
       return;
     }
-    var html = '<div class="tools-header"><h2 class="tools-title">搜索结果 <span class="tools-count">' + tools.length + ' 个工具</span></h2></div>';
+    var html = '<div class="tools-header"><h2 class="tools-title">' + _t('search.results', '搜索结果') + ' <span class="tools-count">' + tools.length + _t('cat.suffix_tools', '个工具') + '</span></h2></div>';
     html += '<div class="results-grid">';
     html += tools.map(function(t) {
       var url = t.u || t.url || '#';
-      var indName = INDUSTRY_NAMES[t.i || t.industry] || '';
+      var indName = _ind(t.i || t.industry);
       return '<a class="result-card" href="' + url + '" target="_blank" rel="noopener">' +
         '<div class="result-head">' +
           '<span class="result-icon" style="background:' + (t.b || t.bg || '#f5f5f5') + '">' + (t.ic || t.icon || '🔧') + '</span>' +
           (indName ? '<span class="result-cat">' + ToolBox.escHtml(indName) + '</span>' : '') +
         '</div>' +
-        '<div class="result-name">' + highlight(t.n || t.name || '', q) + '</div>' +
-        '<div class="result-desc">' + highlight(t.d || t.desc || '', q) + '</div>' +
+        '<div class="result-name">' + highlight(_en() && t.en ? t.en : (t.n || t.name || ''), q) + '</div>' +
+        '<div class="result-desc">' + highlight(_en() && t.ed ? t.ed : (t.d || t.desc || ''), q) + '</div>' +
       '</a>';
     }).join('');
     html += '</div>';

@@ -264,7 +264,7 @@
       <div class="tb-mobile-drawer-mask" onclick="window.tbNavCloseDrawer()"></div>
       <div class="tb-mobile-drawer-panel">
         <div class="tb-mobile-drawer-head">
-          <span class="tb-mobile-drawer-title">分类导航</span>
+          <span class="tb-mobile-drawer-title" data-i18n="home.cats_title" data-i18n-fb="分类导航">${_t('home.cats_title', '分类导航')}</span>
           <button class="tb-mobile-drawer-close" onclick="window.tbNavCloseDrawer()">✕</button>
         </div>
         <div class="tb-mobile-drawer-body"></div>
