@@ -25,14 +25,24 @@
 <link rel="stylesheet" href="../../css/common.css">
 <script>window.__tbq=window.__tbq||[];window.ToolBox=window.ToolBox||{};['initToolTheme','addToolStyles','showToast','toast','copyText','copyToClipboard','copyFromElement','downloadText','injectPrivacyBadge','toggleFavTool','addToRecentTool','toggleToolTheme','applyTheme'].forEach(function(k){if(typeof window.ToolBox[k]!=='function')window.ToolBox[k]=function(){window.__tbq.push([k,[].slice.call(arguments)]);};});(function(){var T=window.ToolBox;T.__stubV=3;if(typeof T.escHtml!=='function')T.escHtml=function(s){var d=document.createElement('div');d.textContent=s;return d.innerHTML;};if(typeof T.formatNumber!=='function')T.formatNumber=function(n,dec){if(typeof n!=='number'||isNaN(n))return String(n);dec=dec!=null?dec:0;return n.toLocaleString('zh-CN',{minimumFractionDigits:dec,maximumFractionDigits:dec});};if(typeof T.createTable!=='function')T.createTable=function(h,r){var x='<table><thead><tr>';h.forEach(function(t){x+='<th>'+T.escHtml(t)+'</th>';});x+='</tr></thead><tbody>';r.forEach(function(row){x+='<tr>';row.forEach(function(c){x+='<td>'+(c!=null?T.escHtml(String(c)):'')+'</td>';});x+='</tr>';});return x+'</tbody></table>';};if(typeof T.debounce!=='function')T.debounce=function(fn,ms){var t;return function(){var a=arguments,s=this;clearTimeout(t);t=setTimeout(function(){fn.apply(s,a);},ms);};};if(typeof T.$!=='function')T.$=function(id){return document.getElementById(id);};if(typeof T.qs!=='function')T.qs=function(s,c){return (c||document).querySelector(s);};if(typeof T.qsa!=='function')T.qsa=function(s,c){return Array.prototype.slice.call((c||document).querySelectorAll(s));};if(typeof T.validateNumberInput!=='function')T.validateNumberInput=function(el){if(!el||el.type!=='number')return true;return el.value===''||!isNaN(parseFloat(el.value));};['setResult','markInvalid','clearInvalid','addToolStyles'].forEach(function(k){if(typeof T[k]!=='function')T[k]=function(){window.__tbq.push([k,[].slice.call(arguments)]);};});if(typeof window.resolveCanvasColor!=='function')window.resolveCanvasColor=function(v,f){var c=String(v||'').trim(),m=c.match(/^var\((--[\w-]+)\)$/);if(m)c=getComputedStyle(document.documentElement).getPropertyValue(m[1]).trim();return c||f;};if(typeof window.canvasColorWithAlpha!=='function')window.canvasColorWithAlpha=function(v,f,a){var c=window.resolveCanvasColor(v,f),h=c.match(/^#([0-9a-f]{6})$/i);if(h){var n=parseInt(h[1],16);return 'rgba('+(n>>16)+','+((n>>8)&255)+','+(n&255)+','+a+')';}var s=c.match(/^#([0-9a-f]{3})$/i);if(s)return window.canvasColorWithAlpha('#'+s[1].split('').map(function(x){return x+x;}).join(''),f,a);var r=c.match(/^rgb\(([^)]+)\)$/i);if(r)return 'rgba('+r[1]+','+a+')';return c;};if(typeof window.i18nText!=='function')window.i18nText=function(k,f){return f!=null?f:k;};})();</script><!-- TOOLBOX-API-STUB -->
 <script src="../../js/common.js" defer></script>
+<script src="../../js/barcode-lib.js" defer></script>
 <style>
 .barcode-preview{background:#fff;border-radius:8px;padding:20px;text-align:center;margin:16px 0;min-height:180px;display:flex;align-items:center;justify-content:center;flex-direction:column;}
 .barcode-preview canvas{max-width:100%;}
-.barcode-text{font-family:'SF Mono',monospace;font-size:14px;margin-top:8px;letter-spacing:2px;}
+.barcode-text{font-family:'SF Mono',monospace;font-size:12.5px;margin-top:10px;letter-spacing:0;color:var(--text-secondary);line-height:1.7;}
 .type-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:8px;margin:12px 0;}
 .type-card{border:1px solid var(--border);border-radius:8px;padding:12px;text-align:center;cursor:pointer;font-size:13px;transition:all 0.2s;}
 .type-card.active{border-color:var(--primary);background:var(--bg-active);}
 .type-card:hover{border-color:var(--primary);}
+.bc-err{background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.28);color:#b91c1c;border-radius:10px;padding:12px 14px;font-size:13px;line-height:1.7;margin:14px 0;text-align:left;}
+.bc-meta{display:grid;grid-template-columns:repeat(auto-fill,minmax(132px,1fr));gap:10px;margin:14px 0;}
+.bc-meta div{background:var(--bg-hover,#f8f8f8);border-radius:10px;padding:10px 12px;text-align:left;}
+.bc-meta span{display:block;font-size:11.5px;color:var(--text-secondary);margin-bottom:3px;}
+.bc-meta b{font-size:15px;color:var(--heading,#111);font-weight:600;}
+.bc-table{width:100%;border-collapse:collapse;font-size:12.5px;margin:10px 0 4px;}
+.bc-table th,.bc-table td{border:1px solid var(--border);padding:7px 9px;text-align:left;line-height:1.6;}
+.bc-table th{background:var(--bg-hover,#f8f8f8);font-weight:600;white-space:nowrap;}
+.bc-table code{font-family:'SF Mono',ui-monospace,Menlo,monospace;font-size:12px;}
 </style>
 
 
@@ -145,7 +155,7 @@
     <div class="input-row">
       <div>
         <label id="contentLabel">条码内容</label>
-        <input type="text" id="content" value="Hello123" placeholder="输入条码内容">
+        <input type="text" id="content" value="Hello123" placeholder="输入条码内容" oninput="scheduleGenerate()">
       </div>
     </div>
     
@@ -153,32 +163,32 @@
       <div class="input-row">
         <div>
           <label>宽度缩放</label>
-          <input type="number" id="scale" value="2" min="1" max="10" step="0.5">
+          <input type="number" id="scale" value="2" min="0.5" max="10" step="0.5" oninput="generate()">
         </div>
       </div>
       <div class="input-row">
         <div>
           <label>高度</label>
-          <input type="number" id="height" value="80" min="30" max="300">
+          <input type="number" id="height" value="80" min="20" max="400" oninput="generate()">
         </div>
       </div>
       <div class="input-row">
         <div>
           <label>前景色</label>
-          <input type="color" id="fg" value="#000000">
+          <input type="color" id="fg" value="#000000" onchange="generate()">
         </div>
       </div>
       <div class="input-row">
         <div>
           <label>背景色</label>
-          <input type="color" id="bg" value="#ffffff">
+          <input type="color" id="bg" value="#ffffff" onchange="generate()">
         </div>
       </div>
     </div>
     
     <div class="input-row">
       <label style="display:flex;align-items:center;gap:8px;">
-        <input type="checkbox" id="showText" checked> 显示文字
+        <input type="checkbox" id="showText" checked onchange="generate()"> 显示文字
       </label>
     </div>
     
@@ -187,22 +197,42 @@
       <button type="button" class="btn" onclick="downloadPNG()">📥 下载PNG</button>
       <button type="button" class="btn" onclick="downloadSVG()">📥 下载SVG</button>
       <button type="button" class="btn" onclick="preset('product')">🛒 商品示例</button>
+      <button type="button" class="btn" onclick="preset('logistics')">🚚 物流示例</button>
     </div>
-    
+
+    <div id="bcMessage"></div>
+
     <div class="barcode-preview" id="preview">
       <canvas id="canvas"></canvas>
       <div class="barcode-text" id="bcText"></div>
     </div>
+
+    <div class="bc-meta" id="bcMeta"></div>
   </div>
 
   <div class="card">
     <h3>📋 条码类型说明</h3>
+    <table class="bc-table">
+      <thead><tr><th>码制</th><th>字符集</th><th>长度</th><th>校验位</th><th>模块数（n = 数据符号数）</th><th>典型场景</th></tr></thead>
+      <tbody>
+        <tr><td>Code 128</td><td>ASCII 0~127</td><td>可变；纯数字偶数长度自动用 Code C 压缩</td><td>必填，模 103</td><td><code>11×(n+2) + 13</code></td><td>物流面单、资产管理、内部货号</td></tr>
+        <tr><td>EAN-13</td><td>数字 0~9</td><td>固定 13 位</td><td>第 13 位，模 10</td><td><code>95</code>（固定）</td><td>零售商品（需 GS1 厂商识别码）</td></tr>
+        <tr><td>UPC-A</td><td>数字 0~9</td><td>固定 12 位</td><td>第 12 位，模 10</td><td><code>95</code>（固定）</td><td>北美零售商品</td></tr>
+        <tr><td>Code 39</td><td>0-9 A-Z 空格 - .</td><td>可变</td><td>无，靠结构自校验</td><td><code>12×(n+2) + (n+1)</code></td><td>工业件、资产标签、票券</td></tr>
+      </tbody>
+    </table>
+    <div class="formula-box">
+      <div class="formula-title">🧮 校验位计算</div>
+      <div class="formula-eq">EAN-13：C = (10 − (Σ 加权数字 mod 10)) mod 10<br>权重：从左起奇数位 ×1、偶数位 ×3<br>UPC-A：C = (10 − (Σ 加权数字 mod 10)) mod 10<br>权重：从左起奇数位 ×3、偶数位 ×1<br>Code 128：C = (V<sub>start</sub> + Σ<sub>i=1…n</sub> V<sub>i</sub> × i) mod 103</div>
+      <p class="formula-desc">EAN-13 与 UPC-A 用的是同一个加权模 10 算法，区别仅在于奇偶位的权重互换（EAN-13 首位 ×1，UPC-A 首位 ×3）。Code 128 的校验位是强制项、占据一个完整符号位，起始符权重为 1、第一个数据符号权重也为 1，故累加式写作 V<sub>start</sub> + ΣV<sub>i</sub>×i；纯数字偶数长度时改用 Code C，每两位数字压缩为一个符号，条码更短。Code 39 不带校验位，依靠「每个字符恰好 3 个宽元素」的结构实现自校验。</p>
+    </div>
     <div class="ref-card">
       <h4><span class="h4-icon">🎯</span>使用场景</h4>
     <ul class="intro-scenes">
       <li>商品入库/出库贴码：把内部货号或 EAN-13 数字生成条码图片，打印后贴于包装，供扫码枪快速录入。</li><li>活动入场券与资产标签：为每张票或每台设备生成唯一码，现场扫码核销或盘点。</li><li>教学演示码制差异：对比 Code128（可变长字母数字）与 EAN-13（固定 13 位商品码）的适用场景。</li>
     </ul>
     </div>
+    <p style="font-size:12.5px;color:var(--text-secondary);line-height:1.8;margin:12px 0 0;">⚠️ 打印提示：条码两侧须留出不小于 10 倍最窄模块宽的静区（EAN-13 建议左侧 11 模块、右侧 7 模块），并保证白底黑条、打印分辨率不低于 300 dpi，否则扫码枪容易误读。本工具生成的取景已按各码制标准预留静区。</p>
 </div>
 <!-- /SEO 介绍区块 -->
 <!-- TOOLBOX-DEEP-DIVE -->
@@ -237,5 +267,171 @@
 </dl>
 </div>
 </section>
+<script>
+// 条形码生成器：编码与绘制由 /js/barcode-lib.js 提供
+//   Code 128 —— ISO/IEC 15417:2007，加权模 103 校验位
+//   EAN-13 / UPC-A —— GS1 General Specifications，加权模 10 校验位
+//   Code 39 —— ISO/IEC 16388，9 元素中 3 宽、无校验位
+(function () {
+  var TYPES = {
+    code128: { label: '条码内容（ASCII 可打印字符）', ph: '如：SHIP20260911001', demo: 'SHIP20260911001' },
+    ean13:   { label: '12 位数字（第 13 位校验位自动计算）', ph: '如：690123456789', demo: '690123456789' },
+    upca:    { label: '11 位数字（第 12 位校验位自动计算）', ph: '如：03600029145', demo: '03600029145' },
+    code39:  { label: '条码内容（大写字母 / 数字 / 空格 - .）', ph: '如：ABC-1234', demo: 'ABC-1234' }
+  };
+  var CURRENT = 'code128';
+  var LAST = null;
+  var timer = null;
+
+  function el(id) { return document.getElementById(id); }
+  function lib() { return window.ToolBoxBarcode; }
+
+  function message(html) { var m = el('bcMessage'); if (m) m.innerHTML = html || ''; }
+
+  function meta(rows) {
+    var box = el('bcMeta');
+    if (!box) return;
+    if (!rows || !rows.length) { box.innerHTML = ''; return; }
+    var h = '';
+    for (var i = 0; i < rows.length; i++) {
+      h += '<div><span>' + rows[i][0] + '</span><b>' + rows[i][1] + '</b></div>';
+    }
+    box.innerHTML = h;
+  }
+
+  function readOptions(res) {
+    var d = (res && res.detail) || {};
+    return {
+      scale: parseFloat(el('scale').value) || 2,
+      height: parseFloat(el('height').value) || 80,
+      fg: el('fg').value || '#000000',
+      bg: el('bg').value || '#ffffff',
+      showText: !!el('showText').checked,
+      text: res ? res.text : '',
+      quiet: d.quiet == null ? 10 : d.quiet
+    };
+  }
+
+  function blank(tip) {
+    var cv = el('canvas');
+    if (!cv) return;
+    cv.width = 340; cv.height = 90;
+    cv.style.width = '340px'; cv.style.height = '90px';
+    var ctx = cv.getContext('2d');
+    ctx.fillStyle = el('bg') ? el('bg').value : '#ffffff';
+    ctx.fillRect(0, 0, 340, 90);
+    ctx.fillStyle = '#9ca3af';
+    ctx.font = '13px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(tip || '', 170, 50);
+    var t = el('bcText');
+    if (t) t.textContent = '';
+  }
+
+  function buildMeta(res) {
+    var d = res.detail || {};
+    var rows = [['条码内容', res.text]];
+    if (CURRENT === 'code128') {
+      rows.push(['子集', 'Code ' + d.subset]);
+      rows.push(['数据符号数', d.symbolCount]);
+      rows.push(['校验位', d.checksum]);
+      rows.push(['校验加权和', d.checksumRaw]);
+    } else if (CURRENT === 'ean13' || CURRENT === 'upca') {
+      rows.push(['校验位', d.checksum]);
+      rows.push(['左侧编码', d.parity ? ('L/G ' + d.parity) : 'L 码']);
+    } else if (CURRENT === 'code39') {
+      rows.push(['校验位', '无（自校验）']);
+      rows.push(['宽窄比', d.ratio]);
+    }
+    rows.push(['模块总数', d.widthModules]);
+    return rows;
+  }
+
+  window.setType = function (type, node) {
+    if (!TYPES[type]) return;
+    CURRENT = type;
+    var cards = document.querySelectorAll('.type-card');
+    for (var i = 0; i < cards.length; i++) cards[i].classList.remove('active');
+    if (node) node.classList.add('active');
+    if (el('contentLabel')) el('contentLabel').textContent = TYPES[type].label;
+    if (el('content')) el('content').placeholder = TYPES[type].ph;
+    generate();
+  };
+
+  window.scheduleGenerate = function () {
+    clearTimeout(timer);
+    timer = setTimeout(generate, 350);
+  };
+
+  window.generate = function () {
+    var B = lib();
+    if (!B) { message('<div class="bc-err">编码库尚未加载完成，请稍候重试。</div>'); return; }
+    var text = (el('content').value || '').trim();
+    if (!text) {
+      LAST = null;
+      message('<div class="bc-err">请输入条码内容。</div>');
+      meta([]); blank('请输入条码内容'); return;
+    }
+    var res = B.encode(CURRENT, text);
+    if (!res.ok) {
+      LAST = null;
+      message('<div class="bc-err">⚠️ ' + res.error + '</div>');
+      meta([]); blank('无法生成条码'); return;
+    }
+    LAST = res;
+    message('');
+    var old = el('canvas');
+    var fresh = B.renderCanvas(res.bits, readOptions(res));
+    fresh.id = 'canvas';
+    if (old && old.parentNode) old.parentNode.replaceChild(fresh, old);
+    else el('preview').appendChild(fresh);
+    if (el('bcText')) el('bcText').textContent = '内容：' + res.text;
+    meta(buildMeta(res));
+  };
+
+  function safeName(s) {
+    return String(s).replace(/[^\w\u4e00-\u9fa5-]+/g, '_').slice(0, 40) || 'barcode';
+  }
+
+  function save(blobOrUrl, filename, revoke) {
+    var a = document.createElement('a');
+    a.href = blobOrUrl;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    if (revoke) setTimeout(function () { URL.revokeObjectURL(blobOrUrl); }, 1500);
+  }
+
+  window.downloadPNG = function () {
+    if (!LAST) { message('<div class="bc-err">请先生成条码后再下载。</div>'); return; }
+    var cv = el('canvas');
+    if (!cv) return;
+    save(cv.toDataURL('image/png'), 'barcode-' + safeName(LAST.text) + '.png', false);
+  };
+
+  window.downloadSVG = function () {
+    if (!LAST) { message('<div class="bc-err">请先生成条码后再下载。</div>'); return; }
+    var svg = lib().renderSVG(LAST.bits, readOptions(LAST));
+    var blob = new Blob([svg], { type: 'image/svg+xml;charset=utf-8' });
+    save(URL.createObjectURL(blob), 'barcode-' + safeName(LAST.text) + '.svg', true);
+  };
+
+  window.preset = function (kind) {
+    var cards = document.querySelectorAll('.type-card');
+    if (kind === 'product') {
+      el('content').value = TYPES.ean13.demo;
+      setType('ean13', cards[1]);
+    } else {
+      el('content').value = TYPES.code128.demo;
+      setType('code128', cards[0]);
+    }
+  };
+
+  document.addEventListener('DOMContentLoaded', function () {
+    setType('code128', document.querySelector('.type-card'));
+  });
+})();
+</script>
 </body>
 </html>

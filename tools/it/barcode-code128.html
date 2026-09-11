@@ -25,6 +25,7 @@
 <link rel="stylesheet" href="../../css/common.css">
 <script>window.__tbq=window.__tbq||[];window.ToolBox=window.ToolBox||{};['initToolTheme','addToolStyles','showToast','toast','copyText','copyToClipboard','copyFromElement','downloadText','injectPrivacyBadge','toggleFavTool','addToRecentTool','toggleToolTheme','applyTheme'].forEach(function(k){if(typeof window.ToolBox[k]!=='function')window.ToolBox[k]=function(){window.__tbq.push([k,[].slice.call(arguments)]);};});(function(){var T=window.ToolBox;T.__stubV=3;if(typeof T.escHtml!=='function')T.escHtml=function(s){var d=document.createElement('div');d.textContent=s;return d.innerHTML;};if(typeof T.formatNumber!=='function')T.formatNumber=function(n,dec){if(typeof n!=='number'||isNaN(n))return String(n);dec=dec!=null?dec:0;return n.toLocaleString('zh-CN',{minimumFractionDigits:dec,maximumFractionDigits:dec});};if(typeof T.createTable!=='function')T.createTable=function(h,r){var x='<table><thead><tr>';h.forEach(function(t){x+='<th>'+T.escHtml(t)+'</th>';});x+='</tr></thead><tbody>';r.forEach(function(row){x+='<tr>';row.forEach(function(c){x+='<td>'+(c!=null?T.escHtml(String(c)):'')+'</td>';});x+='</tr>';});return x+'</tbody></table>';};if(typeof T.debounce!=='function')T.debounce=function(fn,ms){var t;return function(){var a=arguments,s=this;clearTimeout(t);t=setTimeout(function(){fn.apply(s,a);},ms);};};if(typeof T.$!=='function')T.$=function(id){return document.getElementById(id);};if(typeof T.qs!=='function')T.qs=function(s,c){return (c||document).querySelector(s);};if(typeof T.qsa!=='function')T.qsa=function(s,c){return Array.prototype.slice.call((c||document).querySelectorAll(s));};if(typeof T.validateNumberInput!=='function')T.validateNumberInput=function(el){if(!el||el.type!=='number')return true;return el.value===''||!isNaN(parseFloat(el.value));};['setResult','markInvalid','clearInvalid','addToolStyles'].forEach(function(k){if(typeof T[k]!=='function')T[k]=function(){window.__tbq.push([k,[].slice.call(arguments)]);};});if(typeof window.resolveCanvasColor!=='function')window.resolveCanvasColor=function(v,f){var c=String(v||'').trim(),m=c.match(/^var\((--[\w-]+)\)$/);if(m)c=getComputedStyle(document.documentElement).getPropertyValue(m[1]).trim();return c||f;};if(typeof window.canvasColorWithAlpha!=='function')window.canvasColorWithAlpha=function(v,f,a){var c=window.resolveCanvasColor(v,f),h=c.match(/^#([0-9a-f]{6})$/i);if(h){var n=parseInt(h[1],16);return 'rgba('+(n>>16)+','+((n>>8)&255)+','+(n&255)+','+a+')';}var s=c.match(/^#([0-9a-f]{3})$/i);if(s)return window.canvasColorWithAlpha('#'+s[1].split('').map(function(x){return x+x;}).join(''),f,a);var r=c.match(/^rgb\(([^)]+)\)$/i);if(r)return 'rgba('+r[1]+','+a+')';return c;};if(typeof window.i18nText!=='function')window.i18nText=function(k,f){return f!=null?f:k;};})();</script><!-- TOOLBOX-API-STUB -->
 <script src="../../js/common.js" defer></script>
+<script src="../../js/barcode-lib.js" defer></script>
 <style>
 .bar-wrap{display:flex;justify-content:center;margin:12px 0;}
 canvas{background:#fff;border:6px solid #fff;border-radius:8px;box-shadow:var(--shadow);max-width:100%;}
@@ -132,7 +133,8 @@ canvas{background:#fff;border:6px solid #fff;border-radius:8px;box-shadow:var(--
     <h2 data-zh="📊 Code128 条形码">📊 Code128 Barcode</h2>
 <div class="formula-box">
   <div class="formula-title">📐 工作原理与说明</div>
-  <p class="formula-desc" data-zh="本生成器依据指定格式规范在前端按规则随机或确定性生成内容，结果可直接复制使用，数据不离开浏览器。 工具名称：Code128 条形码 - 免费生成器工具，在线Code128 条形码，免费使用。">Code128 Barcode is available directly in your browser, with no data uploaded.</p>
+  <div class="formula-eq">总模块数 = 11 × (1 起始符 + n 数据符号 + 1 校验符) + 13 终止符<br>校验位 C = (V<sub>Start</sub> + Σ<sub>i=1…n</sub> V<sub>i</sub> × i) mod 103</div>
+  <p class="formula-desc" data-zh="Code 128 的每个符号固定占 11 个模块（3 条 3 空，条宽之和为偶数、空宽之和为奇数），终止符特殊、占 13 个模块。校验位按加权模 103 计算：起始符权重为 1，其后第 i 个数据符号权重为 i，把加权和除以 103 取余即得校验符号值。输入为纯数字且长度为偶数时，本页自动改用 Code C，每两位数字压缩为一个符号，条码更短。">Each Code 128 symbol is fixed at 11 modules; the stop pattern occupies 13 modules. The check symbol is a weighted modulo-103 sum: the start symbol has weight 1, and the i-th data symbol has weight i. Pure-digit even-length input automatically switches to Code Set C, encoding two digits per symbol.</p>
 </div>
 
     <label>文本（ASCII 字符）</label>
@@ -186,58 +188,35 @@ canvas{background:#fff;border:6px solid #fff;border-radius:8px;box-shadow:var(--
 <!-- /注意事项区块 -->
 </div>
 <script>
-// Code128 subset C (numeric only) used for digits, fallback to subset B for non-digit chars
-const CODE128B=[
-'11011001100','11010010000','11010010010','11010011100','11010011010','11010010110',
-'11010001010','11001010000','11001010010','11001011100','11001011010','11001010110',
-'11001001010','11000101000','11000101010','11000101110','11000100110','11000110100',
-'11000110110','11000101100','11000100110','11011010100','11011010010','11011001010',
-'11010110100','11010110010','11010011010','11010010110','11001010100','11001010010',
-'11001001010','11000101010','11010100100','11010100010','11010010100','11010010010',
-'11010001010','11001010100','11001010010','11001001010','11000101010','11010100010',
-'11010010100','11010010010','11010001010','11001010100','11001010010','11000101010',
-'11001001010','11000101010','11010100110','11010100010','11010010100','11010010010',
-'11001010100','11001001010','11000101010','11010110010','11001010010','11001001010',
-'11000101010','11010100110','11010100010','11010010100','11010010010','11001010100',
-'11001001010','11000101010','11010100110','11010100010','11010010100','11010010010',
-'11001010100','11001001010','11000101010','11010011010','11001011010','11001010110',
-'11001001010','11000101010','11000101010','11010100110','11010100010','11010010100',
-'11010010010','11001010100','11001001010','11000101010','11010100110','11010100010',
-'11010010100','11010010010','11001010100','11001001010','11000101010','11010100110',
-'11010010010','11001010100','11001001010','11000101010','11010100110','11010100010',
-'11010010100','11001010100','11001001010','11000101010'];
-const START_B=104;const STOP=106;
-function buildCode128B(text){
-  const values=[];
-  for(const c of text){values.push(c.charCodeAt(0)-32);}
-  let sum=START_B;
-  for(let i=0;i<values.length;i++){sum+=values[i]*(i+1);}
-  const checksum=sum%103;
-  let bits=CODE128B[START_B];
-  for(const v of values)bits+=CODE128B[v];
-  bits+=CODE128B[checksum];
-  bits+=CODE128B[STOP];
-  bits+='11'; // termination
-  return bits;
-}
-function drawBarcode(bits,text){
-  const N=bits.length;const modW=2;const barH=120;const textH=22;
-  const w=N*modW+20;const h=barH+textH;
-  const canvas=document.createElement('canvas');canvas.width=w;canvas.height=h;
-  const ctx=canvas.getContext('2d');ctx.fillStyle='#fff';ctx.fillRect(0,0,w,h);
-  ctx.fillStyle='#000';
-  for(let i=0;i<N;i++){if(bits[i]==='1')ctx.fillRect(10+i*modW,5,modW,barH);}
-  ctx.fillStyle='#000';ctx.font='14px monospace';ctx.textAlign='center';
-  ctx.fillText(text,w/2,barH+18);
-  return canvas;
-}
+// 编码逻辑由共享库 /js/barcode-lib.js 提供（Code 128，ISO/IEC 15417:2007）。
+// 说明：本页早先内嵌的编码表存在重复项与错位（value 1 起即与标准表不符，Stop 亦非
+// 标准的 13 模块图案），生成的条码并非合法 Code 128，扫码枪无法识别。现统一改用
+// 标准表，与 EAN-13 / UPC-A / Code 39 共用同一套编码实现。
 function generate(){
-  const text=document.getElementById('data').value||' ';
-  const bits=buildCode128B(text);
-  const canvas=drawBarcode(bits,text);
-  const out=document.getElementById('output');
-  out.innerHTML='<div class="bar-wrap"></div><div class="bar-text">'+escapeHtml(text)+'</div>';
-  out.querySelector('.bar-wrap').appendChild(canvas);
+  var out = document.getElementById('output');
+  var B = window.ToolBoxBarcode;
+  if(!B){ out.innerHTML = '<div class="bar-text">编码库尚未加载完成，请稍后重试。</div>'; return; }
+  var text = document.getElementById('data').value || '';
+  var res = B.encode('code128', text || ' ');
+  if(!res.ok){
+    out.innerHTML = '<div class="bar-text" style="color:#b91c1c;">' + escapeHtml(res.error) + '</div>';
+    return;
+  }
+  var canvas = B.renderCanvas(res.bits, {
+    scale: 2, height: 120, showText: true, text: res.text, quiet: 10,
+    fg: '#000000', bg: '#ffffff'
+  });
+  out.innerHTML = '';
+  var wrap = document.createElement('div');
+  wrap.className = 'bar-wrap';
+  wrap.appendChild(canvas);
+  out.appendChild(wrap);
+  var info = document.createElement('div');
+  info.className = 'bar-text';
+  info.textContent = res.text + ' · Code ' + res.detail.subset + ' · ' +
+    res.detail.symbolCount + ' 个符号 · 校验位 ' + res.detail.checksum + ' · ' +
+    res.detail.widthModules + ' 模块';
+  out.appendChild(info);
 }
 function escapeHtml(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 function copyResult(){
@@ -327,5 +306,7 @@ document.addEventListener('DOMContentLoaded',function(){
 <script type="application/ld+json">
 {"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "该工具适用于哪些 it 场景？", "acceptedAnswer": {"@type": "Answer", "text": "只要数据可映射到本工具支持的参数结构，就可用于日常分析、筛选、校验等流程；多数情况下适合前置评估和结果复核。"}}, {"@type": "Question", "name": "结果可信度如何保证？", "acceptedAnswer": {"@type": "Answer", "text": "工具默认按前端可见规则实时计算，不依赖外部服务；如有偏差，建议结合历史基准值做交叉确认。"}}]}
 </script>
+<!-- AUTO-GENERATE-ON-LOAD -->
+<script>document.addEventListener("DOMContentLoaded",function(){if(typeof generate==="function")generate();});</script>
 </body>
 </html>
