@@ -97,38 +97,6 @@
   ]
 }
 </script>
-<!-- TOOLBOX-DEEP-DIVE -->
-<style>
-.deep-dive{max-width:960px;margin:16px auto;padding:0 16px;}
-.deep-dive > .card{margin-bottom:0;}
-@media(max-width:600px){.deep-dive{margin:14px auto;padding:0 12px;}}
-.deep-dive .dd-list{margin:8px 0 16px;padding-left:20px;}
-.deep-dive .dd-list li{margin:6px 0;line-height:1.75;}
-.deep-dive .dd-example{background:var(--card-bg,#fff);border:1px solid var(--border,#eee);border-radius:10px;padding:12px 14px;margin:8px 0 16px;}
-.deep-dive .dd-ex-title{font-weight:600;color:var(--tool-accent,#FF6B35);margin-bottom:6px;}
-.deep-dive .dd-ex-body{font-size:13px;line-height:1.85;color:var(--text,#333);word-break:break-word;}
-.deep-dive .dd-faq{margin:8px 0 4px;}
-.deep-dive .dd-faq dt{font-weight:600;margin-top:10px;color:var(--text,#333);}
-.deep-dive .dd-faq dd{margin:4px 0 0;font-size:13px;line-height:1.85;color:var(--text-muted,#666);}
-
-</style>
-<section class="deep-dive" data-deep-dive="1">
-<div class="card">
-<h2>📚 深度解析：公交到站时间预估</h2>
-<h3>💡 常见使用场景</h3>
-<ul class="dd-list">
-<li>候车乘客输入线路发车间隔或时刻表与当前时间，估算下一班车到达时刻与已等待时长，决定是否改乘或继续等。</li>
-<li>多线路比选时，并列查看各线下一班预计到达，选择最快出发的方案。</li>
-<li>调度或家属远程查看时，用平均间隔加站点偏移粗略预估，作为实时 GPS 数据的补充参考。</li>
-</ul>
-<div class="dd-example"><div class="dd-ex-title">按固定间隔估算</div><div class="dd-ex-body">某线发车间隔 10 分钟，上一班离站时刻 09:05，当前时刻 09:12，则下一班约 09:15 到达，已等待 7 分钟、还需约 3 分钟；若按平均误差 ±2 分钟，建议预留 09:13–09:17 的到达窗口。</div></div>
-<h3>❓ 常见问题（FAQ）</h3>
-<dl class="dd-faq">
-<dt>为什么估算和实际情况常有偏差？</dt><dd>固定间隔只是计划值，实际受路况、红绿灯、上下客时长、司机驾驶节奏影响会波动。精确到站应以车载 GPS 实时回传为准，本估算适合无实时数据的粗略参考。</dd>
-<dt>换乘该怎么用？</dt><dd>把前一条线的预计到达时刻加上步行与候车时间，再叠加上一条线的发车间隔，判断能否赶上衔接班次；两条线间隔接近时建议预留 5 分钟以上缓冲，避免追尾式误车。</dd>
-</dl>
-</div>
-</section>
 <meta name="title-en" content="Bus Arrival Estimator">
 <meta name="desc-en" content="Bus Arrival Estimator - free online tool">
 <!-- TOOLBOX-HREFLANG -->
@@ -171,5 +139,222 @@
 <script src="/js/analytics.js" defer></script>
 <!-- TOOLBOX-CLARITY -->
 </head>
+<body>
+<h1 class="sr-only">公交到站时间预估</h1>
+<div class="nav">
+  <a href="../../index.html">← ToolBox</a>
+  <span>/ 公交到站时间预估</span>
+  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()">🌙</button>
+</div>
+<nav class="breadcrumb" aria-label="面包屑导航" data-breadcrumb="1">
+  <a href="../../index.html">首页</a>
+  <span class="bc-sep">‹</span>
+  <a href="index.html">🚗 汽车交通</a>
+  <span class="bc-sep">‹</span>
+  <span class="bc-current">公交到站时间预估</span>
+</nav>
+<div class="container">
+  <div class="card tool-card-accent" style="--tool-accent:#0f766e;">
+    <h2 data-zh="🚌 公交到站时间预估">🚌 Bus Arrival Estimator</h2>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="输入公交发车间隔或具体时刻表与当前时间，估算下一班车的到达时刻与已等待时长，支持多线路对比查看。">Bus Arrival Estimator is available directly in your browser, with no data uploaded.</p>
+    <div class="input-row">
+      <div><label>发车间隔 (分钟)</label><input type="number" id="interval" value="10" oninput="calc()" min="1" step="1"></div>
+      <div><label>上一班离站时刻</label><input type="time" id="last" value="09:05" oninput="calc()"></div>
+    </div>
+    <div class="input-row">
+      <div><label>当前时刻</label><input type="time" id="now" value="09:12" oninput="calc()"></div>
+      <div><label>起点到本站行驶时间 (分钟)</label><input type="number" id="ride" value="0" oninput="calc()" min="0" step="1"></div>
+    </div>
+    <div class="input-row">
+      <div><label>平均误差 (±分钟)</label><input type="number" id="err" value="2" oninput="calc()" min="0" step="1"></div>
+      <div><label>线路</label>
+        <select id="line" onchange="calc()">
+          <option value="1">1 路</option>
+          <option value="2">2 路</option>
+          <option value="3">3 路</option>
+        </select>
+      </div>
+    </div>
+    <div class="input-row">
+      <div><label>对比线路发车间隔 (分钟)</label><input type="number" id="iv2" value="15" oninput="calc()" min="1" step="1"></div>
+      <div><label>对比线路上一班离站</label><input type="time" id="last2" value="09:02" oninput="calc()"></div>
+    </div>
+    <div class="safe-main" id="result"></div>
+    <div class="dist-grid" id="distGrid"></div>
+    <div class="formula-box" id="formulaBox"></div>
+    <div id="adviceBox"></div>
+  </div>
+  <div class="card">
+    <h3>⏱️ 等待时长与发车间隔关系</h3>
+    <table style="width:100%;border-collapse:collapse;font-size:13px;margin-bottom:12px;">
+      <tr>
+        <th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--border,#e5e7eb);">发车间隔</th>
+        <th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--border,#e5e7eb);">平均等待</th>
+        <th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--border,#e5e7eb);">最长等待</th>
+        <th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--border,#e5e7eb);">建议预留</th>
+      </tr>
+      <tr><td style="padding:6px 8px;">5 分钟</td><td style="padding:6px 8px;">2.5 分钟</td><td style="padding:6px 8px;">5 分钟</td><td style="padding:6px 8px;">7 分钟</td></tr>
+      <tr><td style="padding:6px 8px;">10 分钟</td><td style="padding:6px 8px;">5 分钟</td><td style="padding:6px 8px;">10 分钟</td><td style="padding:6px 8px;">13 分钟</td></tr>
+      <tr><td style="padding:6px 8px;">15 分钟</td><td style="padding:6px 8px;">7.5 分钟</td><td style="padding:6px 8px;">15 分钟</td><td style="padding:6px 8px;">19 分钟</td></tr>
+      <tr><td style="padding:6px 8px;">20 分钟</td><td style="padding:6px 8px;">10 分钟</td><td style="padding:6px 8px;">20 分钟</td><td style="padding:6px 8px;">25 分钟</td></tr>
+    </table>
+    <div class="scene-card">
+      <h4>🔁 换乘衔接</h4>
+      <p>把前一条线的预计到达时刻加上步行与候车时间，再叠加换乘线路的发车间隔，判断能否赶上衔接班次。两条线间隔接近时建议预留 5 分钟以上缓冲。</p>
+    </div>
+    <div class="scene-card">
+      <h4>📡 估算与实时的差别</h4>
+      <p>固定间隔只是计划值，实际受路况、红绿灯、上下客时长与驾驶节奏影响会波动。精确到站应以车载 GPS 实时回传为准，本估算适合无实时数据的粗略参考。</p>
+    </div>
+    <div class="info-box">💡 早高峰与平峰发车间隔通常不同，建议按所在时段选用对应间隔；跨零点线路应注意时刻表跨日。</div>
+  </div>
+<!-- TOOLBOX-DEEP-DIVE -->
+<style>
+.deep-dive{max-width:960px;margin:16px auto;padding:0 16px;}
+.deep-dive > .card{margin-bottom:0;}
+@media(max-width:600px){.deep-dive{margin:14px auto;padding:0 12px;}}
+.deep-dive .dd-list{margin:8px 0 16px;padding-left:20px;}
+.deep-dive .dd-list li{margin:6px 0;line-height:1.75;}
+.deep-dive .dd-example{background:var(--card-bg,#fff);border:1px solid var(--border,#eee);border-radius:10px;padding:12px 14px;margin:8px 0 16px;}
+.deep-dive .dd-ex-title{font-weight:600;color:var(--tool-accent,#FF6B35);margin-bottom:6px;}
+.deep-dive .dd-ex-body{font-size:13px;line-height:1.85;color:var(--text,#333);word-break:break-word;}
+.deep-dive .dd-faq{margin:8px 0 4px;}
+.deep-dive .dd-faq dt{font-weight:600;margin-top:10px;color:var(--text,#333);}
+.deep-dive .dd-faq dd{margin:4px 0 0;font-size:13px;line-height:1.85;color:var(--text-muted,#666);}
+
+</style>
+<section class="deep-dive" data-deep-dive="1">
+<div class="card">
+<h2>📚 深度解析：公交到站时间预估</h2>
+<h3>💡 常见使用场景</h3>
+<ul class="dd-list">
+<li>候车乘客输入线路发车间隔或时刻表与当前时间，估算下一班车到达时刻与已等待时长，决定是否改乘或继续等。</li>
+<li>多线路比选时，并列查看各线下一班预计到达，选择最快出发的方案。</li>
+<li>调度或家属远程查看时，用平均间隔加站点偏移粗略预估，作为实时 GPS 数据的补充参考。</li>
+</ul>
+<div class="dd-example"><div class="dd-ex-title">按固定间隔估算</div><div class="dd-ex-body">某线发车间隔 10 分钟，上一班离站时刻 09:05，当前时刻 09:12，则下一班约 09:15 到达，已等待 7 分钟、还需约 3 分钟；若按平均误差 ±2 分钟，建议预留 09:13–09:17 的到达窗口。</div></div>
+<h3>❓ 常见问题（FAQ）</h3>
+<dl class="dd-faq">
+<dt>为什么估算和实际情况常有偏差？</dt><dd>固定间隔只是计划值，实际受路况、红绿灯、上下客时长、司机驾驶节奏影响会波动。精确到站应以车载 GPS 实时回传为准，本估算适合无实时数据的粗略参考。</dd>
+<dt>换乘该怎么用？</dt><dd>把前一条线的预计到达时刻加上步行与候车时间，再叠加上一条线的发车间隔，判断能否赶上衔接班次；两条线间隔接近时建议预留 5 分钟以上缓冲，避免追尾式误车。</dd>
+</dl>
+</div>
+</section>
+<!-- 注意事项区块 -->
+<div class="tool-notes" style="--tool-accent:#0f766e;">
+  <div class="tool-notes-title">⚠️ 使用说明与注意事项</div>
+  <ul>
+    <li>本工具纯前端运行，数据不会上传到服务器</li>
+    <li>建议在主流浏览器（Chrome/Safari/Firefox/Edge）中使用</li>
+    <li>按固定间隔估算，实际受路况与上下客影响，精确到站请以实时 GPS 数据为准</li>
+  </ul>
+</div>
+</div>
+<!-- 相关工具 -->
+<div class="related-tools" data-related-tools="1">
+  <h3 class="related-tools-title">🔗 相关工具</h3>
+  <div class="related-tools-grid">
+    <a href="recommender-6.html" class="related-tool-card">
+      <span class="rt-icon">🚙</span>
+      <span class="rt-info"><span class="rt-name">胎压（监测/充气）推荐</span><span class="rt-desc">胎压（监测/充气）推荐</span></span>
+    </a>
+    <a href="calc-2.html" class="related-tool-card">
+      <span class="rt-icon">⚙️</span>
+      <span class="rt-info"><span class="rt-name">发动机功率/扭矩换算</span><span class="rt-desc">发动机功率/扭矩换算</span></span>
+    </a>
+    <a href="oil-change-countdown.html" class="related-tool-card">
+      <span class="rt-icon">🛢️</span>
+      <span class="rt-info"><span class="rt-name">机油更换倒计时</span><span class="rt-desc">机油更换倒计时</span></span>
+    </a>
+    <a href="countdown-engine-oil.html" class="related-tool-card">
+      <span class="rt-icon">🛢️</span>
+      <span class="rt-info"><span class="rt-name">机油更换里程倒计时</span><span class="rt-desc">机油更换里程倒计时</span></span>
+    </a>
+    <a href="calc-3.html" class="related-tool-card">
+      <span class="rt-icon">🛞</span>
+      <span class="rt-info"><span class="rt-name">轮胎胎压换算</span><span class="rt-desc">轮胎胎压换算</span></span>
+    </a>
+    <a href="transport-calculator.html" class="related-tool-card">
+      <span class="rt-icon">🚗</span>
+      <span class="rt-info"><span class="rt-name">交通物流计算器</span><span class="rt-desc">交通物流计算器</span></span>
+    </a>
+  </div>
+</div>
+<script>
+function fmtNum(n,d){d=d==null?2:d;if(!isFinite(n))return '--';return parseFloat(n.toFixed(d)).toString();}
+function val(id){return parseFloat(document.getElementById(id).value);}
+function str(id){return document.getElementById(id).value;}
+function toMin(s){
+  var p=(s||'').split(':'); if(p.length<2) return NaN;
+  return parseInt(p[0],10)*60+parseInt(p[1],10);
+}
+function fmtT(m){
+  m=((m%1440)+1440)%1440;
+  var h=Math.floor(m/60), mm=m%60;
+  return (h<10?'0':'')+h+':'+(mm<10?'0':'')+mm;
+}
+function nextArrival(last, iv, now, ride){
+  var n=last+iv;
+  if(iv<=0) return NaN;
+  while(n<now) n+=iv;
+  return n+ride;
+}
+function calc(){
+  var R=document.getElementById('result'),G=document.getElementById('distGrid'),
+      F=document.getElementById('formulaBox'),A=document.getElementById('adviceBox');
+  var iv=val('interval'), last=toMin(str('last')), now=toMin(str('now'));
+  var ride=val('ride'), err=val('err');
+  var iv2=val('iv2'), last2=toMin(str('last2'));
+  var lineN=str('line');
+
+  var arr=nextArrival(last,iv,now,ride);
+  var wait=now-last, togo=arr-now;
+  var wLo=arr-err, wHi=arr+err;
+  var arr2=nextArrival(last2,iv2,now,ride);
+
+  var best=(arr2&&arr2<arr)?'对比线路更早':'本线路更早';
+  var who=arr2? (best==='对比线路更早'?'对比线路':'本线路') : '本线路';
+
+  R.innerHTML='<div class="result-grid">'
+    +'<div class="result-item"><div class="result-label">下一班到达</div><div class="result-value">'+fmtT(arr)+'</div></div>'
+    +'<div class="result-item"><div class="result-label">已等待</div><div class="result-value">'+fmtNum(wait,0)+' 分钟</div></div>'
+    +'<div class="result-item"><div class="result-label">还需等待</div><div class="result-value">'+fmtNum(togo,0)+' 分钟</div></div>'
+    +'<div class="result-item"><div class="result-label">到达窗口</div><div class="result-value">'+fmtT(wLo)+' ~ '+fmtT(wHi)+'</div></div>'
+    +'</div>';
+
+  G.innerHTML='<div class="dist-grid">'
+    +'<div class="dist-card"><h4>本线路（'+lineN+' 路）</h4><p>间隔 '+fmtNum(iv,0)+' 分钟</p><p>到达 '+fmtT(arr)+'（约 '+fmtNum(togo,0)+' 分钟后）</p></div>'
+    +'<div class="dist-card"><h4>对比线路</h4><p>间隔 '+fmtNum(iv2,0)+' 分钟</p><p>到达 '+(arr2?fmtT(arr2):'—')+'（'+(arr2?('约 '+fmtNum(arr2-now,0)+' 分钟后'):'—')+'）</p></div>'
+    +'<div class="dist-card"><h4>建议出发</h4><p>'+who+'</p><p>提前 '+fmtNum(Math.max(0,err+1),0)+' 分钟到站</p></div>'
+    +'<div class="dist-card"><h4>线路平均间隔</h4><p>'+fmtNum((iv+iv2)/2,1)+' 分钟</p><p>综合平均等待约 '+fmtNum((iv+iv2)/4,1)+' 分钟</p></div>'
+    +'</div>';
+
+  var rows='';
+  for(var i=0;i<8;i++){
+    var tag=(i===0)?'下一班':'第 '+(i+1)+' 班';
+    rows+='<tr><td style="padding:5px 8px;">'+tag+'</td>'
+      +'<td style="padding:5px 8px;">'+fmtT(arr+i*iv)+'</td>'
+      +'<td style="padding:5px 8px;">'+fmtNum(arr+i*iv-now,0)+'</td>'
+      +'<td style="padding:5px 8px;">'+fmtT(arr+i*iv-err)+' ~ '+fmtT(arr+i*iv+err)+'</td></tr>';
+  }
+  F.innerHTML='<div class="formula-title">📐 估算口径</div>'
+    +'<div class="formula-line">下一班发车 = 上一班离站时刻 + n × 发车间隔（取首个晚于当前时刻者）</div>'
+    +'<div class="formula-line">预计到达 = 下一班发车时刻 + 起点到本站行驶时间</div>'
+    +'<div class="formula-line">已等待 = 当前时刻 − 上一班离站时刻；还需等待 = 预计到达 − 当前时刻</div>'
+    +'<table style="width:100%;border-collapse:collapse;font-size:13px;margin-top:10px;">'
+    +'<tr><th style="text-align:left;padding:5px 8px;border-bottom:1px solid var(--border,#e5e7eb);">班次</th>'
+    +'<th style="text-align:left;padding:5px 8px;border-bottom:1px solid var(--border,#e5e7eb);">到达时刻</th>'
+    +'<th style="text-align:left;padding:5px 8px;border-bottom:1px solid var(--border,#e5e7eb);">距现在 (分钟)</th>'
+    +'<th style="text-align:left;padding:5px 8px;border-bottom:1px solid var(--border,#e5e7eb);">到达窗口</th></tr>'
+    +rows+'</table>';
+
+  var ad='';
+  ad+='<div class="tip-info">🚌 本线路下一班约 '+fmtT(arr)+' 到达，已等待 '+fmtNum(wait,0)+' 分钟，还需约 '+fmtNum(togo,0)+' 分钟；建议预留 '+fmtT(wLo)+'~'+fmtT(wHi)+' 的到达窗口。</div>';
+  if(arr2&&arr2<arr) ad+='<div class="tip-warn">⚠️ 对比线路预计 '+fmtT(arr2)+' 到达，比本线路早 '+fmtNum(arr-arr2,0)+' 分钟，赶时间可考虑改乘。</div>';
+  if(togo<=err) ad+='<div class="tip-warn">⚠️ 剩余等待已小于平均误差，建议立即到站等候，避免错过班次。</div>';
+  A.innerHTML=ad;
+}
+calc();
+</script>
 </body>
 </html>
