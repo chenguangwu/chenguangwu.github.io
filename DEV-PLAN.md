@@ -150,7 +150,8 @@
 > - ② 标杆深优化高频专业工具：bcrypt（上轮完成 formula+deep-dive+OWASP 外链）；**本批次 jwt（formula 空壳补全真实原理 + RFC 7519 外链）、json-formatter（deep-dive 由 1/1/1 弱内容补强至 3/2/3 真实场景/算例/FAQ + RFC 8259 外链）、timestamp-converter（加 Unix time 权威外链）**；rsa 待下一批。
 > - ③ 英文 p 通用描述真实化（§4.1.5 红线）：本批次对 **44 个**最高频核心 it 工具（编码/加密/JSON/文本/生成器/网络/数学/安全/开发；json-minify 因 data-i18n 注入被 build 还原、未落盘，单列专门批次）手写真实英文描述替换占位串「is available directly in your browser, with no data uploaded.」，保留 `data-zh` 中文态不变；脚本用「捕获 </p> 单标签 + 单 p 内匹配」防双 `</p>` 与跨段破坏（首次写正则用前瞻 + 手动补 `</p>` 曾导致 csv-to-json 等双 `</p>`，已回滚重写修正）。**线上核验：43 个 data-zh/裸 p 机制真实化生效（占位 0）；base64 / json-minify 等 data-i18n 机制线上仍占位**——其英文 p 由 `_build.py` 从 i18n 数据源注入、手改源 html 被 build 覆盖（与 desc-en 同理），须改 i18n 数据源才能根治，单列专门批次。剩余英文 p 占位 **218 文件**（含 data-i18n 机制数）。
 > - ④ 英文 p 通用描述真实化收口（§4.1.5 红线，本批次闭环）：前序已 block-safe 真实化 204 个 data-zh/裸 p 工具（含一次正则误伤 JS 串、全量 `git checkout` 回滚重写）；base64 / json-minify 等 data-i18n 机制改 i18n 数据源（`i18n/tools/it-body.json`）根治（2 个）；**本批次根治最后 13 个「中文 intro 工具」**：根因是 `_build.py` 的 `_prerender_tool_body` 用 `count=1` 总先匹配到 JS 错误串里的 `<p style=... data-zh="...">`（英文无 CJK）而跳过，真正的可见中文 intro 永远拿不到英文注入——故改源文件，把 `<p>中文</p>` 转为 `<p data-zh="中文">真实英文</p>`（英文取自 it-body.json，与运行时一致），并清理 JS 串里的占位。**it 分类英文 p 占位串「is available directly in your browser, with no data uploaded.」构建产物 grep = 0，已全站清零**；五道门禁全过。
-> 剩余系统性缺口（§4.3 未收口前不删 §9.2）：formula 空框（合计覆盖全部 345，须补真实原理/算例/参考表）、缺使用指南入口（按 §4.4 克制原则精选专业工具补）、全分类 UI/逻辑/i18n 逐项核对、FAQPage/desc-en 上轮已清零须保持——后续批次逐工具/分批推进，禁止只挑简单任务就标记分类完成。
+> - ⑤ formula「📐 工作原理与说明」全量补齐（§4.1.4，本批次收口）：审计出 345 个工具中仅 74 个有真实 formula、**107 个空框 + 164 个完全缺失**；分 8 批逐工具手写真实原理（加密/编码/散列/网络/统计/数据库/编辑器/构建工具等各自的算法、公式、边界与安全注意事项），落地采用「有空框则整体替换、无框则在工具标题 `<h2>` 后插入」的统一策略。**复审 345/345 全部内容充实（≥80 字），空框 0、缺失 0**，五道门禁全过。
+> 剩余系统性缺口（§4.3 未收口前不删 §9.2）：缺使用指南入口（按 §4.4 克制原则精选专业工具补）、全分类 UI/逻辑/i18n 逐项核对、FAQPage/desc-en 上轮已清零须保持——后续批次逐工具/分批推进，禁止只挑简单任务就标记分类完成。
 
 ## 九、未完成任务清单
 
