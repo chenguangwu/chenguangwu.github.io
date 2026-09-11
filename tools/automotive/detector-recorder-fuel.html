@@ -56,38 +56,6 @@
   ]
 }
 </script>
-<!-- TOOLBOX-DEEP-DIVE -->
-<style>
-.deep-dive{max-width:960px;margin:16px auto;padding:0 16px;}
-.deep-dive > .card{margin-bottom:0;}
-@media(max-width:600px){.deep-dive{margin:14px auto;padding:0 12px;}}
-.deep-dive .dd-list{margin:8px 0 16px;padding-left:20px;}
-.deep-dive .dd-list li{margin:6px 0;line-height:1.75;}
-.deep-dive .dd-example{background:var(--card-bg,#fff);border:1px solid var(--border,#eee);border-radius:10px;padding:12px 14px;margin:8px 0 16px;}
-.deep-dive .dd-ex-title{font-weight:600;color:var(--tool-accent,#FF6B35);margin-bottom:6px;}
-.deep-dive .dd-ex-body{font-size:13px;line-height:1.85;color:var(--text,#333);word-break:break-word;}
-.deep-dive .dd-faq{margin:8px 0 4px;}
-.deep-dive .dd-faq dt{font-weight:600;margin-top:10px;color:var(--text,#333);}
-.deep-dive .dd-faq dd{margin:4px 0 0;font-size:13px;line-height:1.85;color:var(--text-muted,#666);}
-
-</style>
-<section class="deep-dive" data-deep-dive="1">
-<div class="card">
-<h2>📚 深度解析：油耗异常波动检测器（输入记录）</h2>
-<h3>💡 常见使用场景</h3>
-<ul class="dd-list">
-<li>车主粘贴一段时期的加油与里程记录，自动算平均油耗并标出偏离过大的区间，发现油耗突增。</li>
-<li>车队管理中，对每辆车油耗做异常筛查，定位可能存在故障（积碳、胎压低、氧传感失准）的车辆。</li>
-<li>怀疑油品或驾驶习惯变化时，用波动检测区分偶发尖峰与持续恶化。</li>
-</ul>
-<div class="dd-example"><div class="dd-ex-title">按均值±2σ 标异常</div><div class="dd-ex-body">12 次加油记录折算百公里油耗均值 8.0L、标准差 0.5L；2σ 上限=9.0L。若某次记录 10.5L 超出 9.0L，标记为异常区间，结合该期是否长途空调/短途拥堵判断是真实工况还是车辆故障前兆。</div></div>
-<h3>❓ 常见问题（FAQ）</h3>
-<dl class="dd-faq">
-<dt>单次油耗高就是车坏了吗？</dt><dd>不一定。冬季、短途、空调满载、胎压偏低都会抬升油耗；应看记录的趋势而非单点。持续多期高于 2σ 且排除工况变化，再查积碳、点火、氧传感器与制动拖滞。</dd>
-<dt>记录怎么记才准？</dt><dd>每次加满至跳枪并记下里程与加油量，下次再加满时用『加油量÷区间里程×100』得区间真实油耗，比表显更接近实际。长期同一加油站、同一加油方式可减少误差。</dd>
-</dl>
-</div>
-</section>
 <meta name="title-en" content="Detector Recorder Fuel">
 <meta name="desc-en" content="Detector Recorder Fuel - free online tool">
 <!-- TOOLBOX-HREFLANG -->
@@ -130,5 +98,265 @@
 <script src="/js/analytics.js" defer></script>
 <!-- TOOLBOX-CLARITY -->
 </head>
+<body>
+<h1 class="sr-only">油耗异常波动检测器（输入记录）</h1>
+<div class="nav">
+  <a href="../../index.html">← ToolBox</a>
+  <span>/ 油耗异常波动检测器（输入记录）</span>
+  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()">🌙</button>
+</div>
+<nav class="breadcrumb" aria-label="面包屑导航" data-breadcrumb="1">
+  <a href="../../index.html">首页</a>
+  <span class="bc-sep">‹</span>
+  <a href="index.html">🚗 汽车交通</a>
+  <span class="bc-sep">‹</span>
+  <span class="bc-current">油耗异常波动检测器（输入记录）</span>
+</nav>
+<div class="container">
+  <div class="card tool-card-accent" style="--tool-accent:#475569;">
+    <h2 data-zh="🚙 油耗异常波动检测器（输入记录）">🚙 Detector Recorder Fuel</h2>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="粘贴一段时期的油耗记录，自动计算平均值并标出偏离过大的异常区间，帮助发现车辆油耗突变与潜在故障。">Detector Recorder Fuel is available directly in your browser, with no data uploaded.</p>
+    <div class="input-row" style="display:block;">
+      <div><label>油耗记录（每行一条：填写百公里油耗 L/100km，或填「里程 加油量」自动折算）</label>
+        <textarea id="data" rows="10" oninput="calc()" style="width:100%;padding:10px;border-radius:10px;border:1px solid var(--border,#e5e7eb);font-family:monospace;font-size:13px;">8.0
+7.8
+8.2
+7.9
+8.1
+8.3
+7.7
+8.0
+8.1
+7.8
+8.2
+10.5</textarea>
+      </div>
+    </div>
+    <div class="input-row">
+      <div><label>异常判定倍数</label>
+        <select id="k" onchange="calc()">
+          <option value="2">2σ（常规筛查，约覆盖 95%）</option>
+          <option value="1.5">1.5σ（更敏感，约覆盖 87%）</option>
+          <option value="3">3σ（仅抓极端值，约覆盖 99.7%）</option>
+        </select>
+      </div>
+      <div><label>趋势判断窗口（后 N 条）</label>
+        <input type="number" id="win" value="4" oninput="calc()" min="2" step="1">
+      </div>
+    </div>
+    <div class="input-row">
+      <div><label>车辆名称</label><input type="text" id="car" value="我的车" oninput="calc()" placeholder="可选"></div>
+      <div><label>统计口径</label>
+        <select id="sd" onchange="calc()">
+          <option value="sample">样本标准差（n−1，推荐）</option>
+          <option value="pop">总体标准差（n）</option>
+        </select>
+      </div>
+    </div>
+    <div class="safe-main" id="result"></div>
+    <div class="dist-grid" id="distGrid"></div>
+    <div class="formula-box" id="formulaBox"></div>
+    <div id="adviceBox"></div>
+  </div>
+  <div class="card">
+    <h3>📝 怎么记录才准确</h3>
+    <table style="width:100%;border-collapse:collapse;font-size:13px;margin-bottom:12px;">
+      <tr>
+        <th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--border,#e5e7eb);">做法</th>
+        <th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--border,#e5e7eb);">说明</th>
+      </tr>
+      <tr><td style="padding:6px 8px;">加满至跳枪</td><td style="padding:6px 8px;">每次加满后记录里程与加油量，下次加满再计算，避免估价误差</td></tr>
+      <tr><td style="padding:6px 8px;">固定油站与标号</td><td style="padding:6px 8px;">减少油品密度与标号变化带来的波动</td></tr>
+      <tr><td style="padding:6px 8px;">记录工况备注</td><td style="padding:6px 8px;">如长途、空调、拥堵、胎压异常，便于区分真实工况波动与故障</td></tr>
+      <tr><td style="padding:6px 8px;">至少 8~12 条</td><td style="padding:6px 8px;">样本过少时均值与标准差不可靠，容易误报异常</td></tr>
+    </table>
+    <div class="scene-card">
+      <h4>📈 单点 vs 趋势</h4>
+      <p>冬季、短途、满载空调、胎压偏低都会抬高油耗，单点偏高属正常。真正值得警惕的是「连续多期高于上限」的持续恶化，往往指向积碳、点火不良、氧传感器失准或制动拖滞。</p>
+    </div>
+    <div class="scene-card">
+      <h4>🔧 排查顺序建议</h4>
+      <p>先排除工况与胎压因素 → 检查空气滤芯与节气门积碳 → 读 OBD 看长期燃油修正与氧传感器 → 再查点火系统与制动拖滞。按此顺序可避免盲目换件。</p>
+    </div>
+    <div class="info-box">💡 表显油耗通常比实际偏低 3%~10%，长期对比请统一使用「加油量 ÷ 区间里程」的实测值。</div>
+  </div>
+<!-- TOOLBOX-DEEP-DIVE -->
+<style>
+.deep-dive{max-width:960px;margin:16px auto;padding:0 16px;}
+.deep-dive > .card{margin-bottom:0;}
+@media(max-width:600px){.deep-dive{margin:14px auto;padding:0 12px;}}
+.deep-dive .dd-list{margin:8px 0 16px;padding-left:20px;}
+.deep-dive .dd-list li{margin:6px 0;line-height:1.75;}
+.deep-dive .dd-example{background:var(--card-bg,#fff);border:1px solid var(--border,#eee);border-radius:10px;padding:12px 14px;margin:8px 0 16px;}
+.deep-dive .dd-ex-title{font-weight:600;color:var(--tool-accent,#FF6B35);margin-bottom:6px;}
+.deep-dive .dd-ex-body{font-size:13px;line-height:1.85;color:var(--text,#333);word-break:break-word;}
+.deep-dive .dd-faq{margin:8px 0 4px;}
+.deep-dive .dd-faq dt{font-weight:600;margin-top:10px;color:var(--text,#333);}
+.deep-dive .dd-faq dd{margin:4px 0 0;font-size:13px;line-height:1.85;color:var(--text-muted,#666);}
+
+</style>
+<section class="deep-dive" data-deep-dive="1">
+<div class="card">
+<h2>📚 深度解析：油耗异常波动检测器（输入记录）</h2>
+<h3>💡 常见使用场景</h3>
+<ul class="dd-list">
+<li>车主粘贴一段时期的加油与里程记录，自动算平均油耗并标出偏离过大的区间，发现油耗突增。</li>
+<li>车队管理中，对每辆车油耗做异常筛查，定位可能存在故障（积碳、胎压低、氧传感失准）的车辆。</li>
+<li>怀疑油品或驾驶习惯变化时，用波动检测区分偶发尖峰与持续恶化。</li>
+</ul>
+<div class="dd-example"><div class="dd-ex-title">按均值±2σ 标异常</div><div class="dd-ex-body">12 次加油记录折算百公里油耗均值 8.22L、样本标准差 0.74L；2σ 区间≈6.73~9.70L。若某次记录 10.5L 超出上限 9.70L，标记为异常区间，结合该期是否长途空调/短途拥堵判断是真实工况还是车辆故障前兆；标准差占均值约 9%，说明日常波动本身不大，单点越界更值得关注。</div></div>
+<h3>❓ 常见问题（FAQ）</h3>
+<dl class="dd-faq">
+<dt>单次油耗高就是车坏了吗？</dt><dd>不一定。冬季、短途、空调满载、胎压偏低都会抬升油耗；应看记录的趋势而非单点。持续多期高于 2σ 且排除工况变化，再查积碳、点火、氧传感器与制动拖滞。</dd>
+<dt>记录怎么记才准？</dt><dd>每次加满至跳枪并记下里程与加油量，下次再加满时用『加油量÷区间里程×100』得区间真实油耗，比表显更接近实际。长期同一加油站、同一加油方式可减少误差。</dd>
+</dl>
+</div>
+</section>
+<!-- 注意事项区块 -->
+<div class="tool-notes" style="--tool-accent:#475569;">
+  <div class="tool-notes-title">⚠️ 使用说明与注意事项</div>
+  <ul>
+    <li>本工具纯前端运行，数据不会上传到服务器</li>
+    <li>建议在主流浏览器（Chrome/Safari/Firefox/Edge）中使用</li>
+    <li>支持「单值」与「里程 加油量」两种格式；样本少于 8 条时统计结果参考性有限</li>
+  </ul>
+</div>
+</div>
+<!-- 相关工具 -->
+<div class="related-tools" data-related-tools="1">
+  <h3 class="related-tools-title">🔗 相关工具</h3>
+  <div class="related-tools-grid">
+    <a href="recommender-6.html" class="related-tool-card">
+      <span class="rt-icon">🚙</span>
+      <span class="rt-info"><span class="rt-name">胎压（监测/充气）推荐</span><span class="rt-desc">胎压（监测/充气）推荐</span></span>
+    </a>
+    <a href="calc-2.html" class="related-tool-card">
+      <span class="rt-icon">⚙️</span>
+      <span class="rt-info"><span class="rt-name">发动机功率/扭矩换算</span><span class="rt-desc">发动机功率/扭矩换算</span></span>
+    </a>
+    <a href="oil-change-countdown.html" class="related-tool-card">
+      <span class="rt-icon">🛢️</span>
+      <span class="rt-info"><span class="rt-name">机油更换倒计时</span><span class="rt-desc">机油更换倒计时</span></span>
+    </a>
+    <a href="countdown-engine-oil.html" class="related-tool-card">
+      <span class="rt-icon">🛢️</span>
+      <span class="rt-info"><span class="rt-name">机油更换里程倒计时</span><span class="rt-desc">机油更换里程倒计时</span></span>
+    </a>
+    <a href="calc-3.html" class="related-tool-card">
+      <span class="rt-icon">🛞</span>
+      <span class="rt-info"><span class="rt-name">轮胎胎压换算</span><span class="rt-desc">轮胎胎压换算</span></span>
+    </a>
+    <a href="transport-calculator.html" class="related-tool-card">
+      <span class="rt-icon">🚗</span>
+      <span class="rt-info"><span class="rt-name">交通物流计算器</span><span class="rt-desc">交通物流计算器</span></span>
+    </a>
+  </div>
+</div>
+<script>
+function fmtNum(n,d){d=d==null?2:d;if(!isFinite(n))return '--';return parseFloat(n.toFixed(d)).toString();}
+function val(id){return parseFloat(document.getElementById(id).value);}
+function str(id){return document.getElementById(id).value;}
+function sdOf(a,sample){
+  if(a.length<2) return 0;
+  var m=0,i; for(i=0;i<a.length;i++) m+=a[i]; m/=a.length;
+  var s=0; for(i=0;i<a.length;i++) s+=(a[i]-m)*(a[i]-m);
+  return Math.sqrt(s/(sample?a.length-1:a.length));
+}
+function meanOf(a){
+  if(!a.length) return 0;
+  var m=0,i; for(i=0;i<a.length;i++) m+=a[i];
+  return m/a.length;
+}
+function calc(){
+  var R=document.getElementById('result'),G=document.getElementById('distGrid'),
+      F=document.getElementById('formulaBox'),A=document.getElementById('adviceBox');
+  var raw=str('data')||'';
+  var k=val('k'), win=Math.max(2,Math.round(val('win')));
+  var sample=str('sd')==='sample';
+
+  var lines=raw.split(/\r?\n/), vals=[], notes=[], bad=0;
+  for(var i=0;i<lines.length;i++){
+    var s=(lines[i]||'').trim();
+    if(!s) continue;
+    var parts=s.split(/[\s,，;；\t]+/).filter(function(x){return x!=='';});
+    if(parts.length>=2){
+      var km=parseFloat(parts[0]), L=parseFloat(parts[1]);
+      if(isFinite(km)&&isFinite(L)&&km>0){ vals.push(L/km*100); notes.push('第 '+(i+1)+' 行（按里程+加油量折算）'); continue; }
+    }
+    var v=parseFloat(s);
+    if(isFinite(v)){ vals.push(v); notes.push('第 '+(i+1)+' 行'); }
+    else bad++;
+  }
+
+  if(vals.length<2){
+    R.innerHTML='<div class="result-grid"><div class="result-item"><div class="result-label">有效记录</div><div class="result-value">'+vals.length+' 条</div></div>'
+      +'<div class="result-item"><div class="result-label">提示</div><div class="result-value">至少需要 2 条</div></div></div>';
+    G.innerHTML=''; F.innerHTML='<div class="formula-line">请在文本框中输入至少 2 条有效记录。</div>';
+    A.innerHTML='<div class="tip-warn">⚠️ 记录不足，无法计算均值与标准差。建议累计 8~12 条后再做异常筛查。</div>';
+    return;
+  }
+
+  var mean=meanOf(vals), sd=sdOf(vals,sample);
+  var up=mean+k*sd, lo=Math.max(0,mean-k*sd);
+  var hi=[], rowId=0;
+  for(var i=0;i<vals.length;i++){
+    if(vals[i]>up||vals[i]<lo) hi.push({i:i+1, v:vals[i], tag:notes[i]});
+  }
+  var tail=vals.slice(Math.max(0,vals.length-win));
+  var tMean=meanOf(tail);
+  var trend = tMean>mean*1.05 ? '近 '+win+' 条均值高于总体 5% 以上，油耗呈上升趋势'
+            : (tMean<mean*0.95 ? '近 '+win+' 条均值低于总体 5% 以上，油耗下降'
+            : '近 '+win+' 条与总体基本持平');
+  var tCls = tMean>mean*1.05 ? 'warn' : 'ok';
+
+  R.innerHTML='<div class="result-grid">'
+    +'<div class="result-item"><div class="result-label">有效记录</div><div class="result-value">'+vals.length+' 条</div></div>'
+    +'<div class="result-item"><div class="result-label">平均油耗</div><div class="result-value">'+fmtNum(mean,2)+' L/100km</div></div>'
+    +'<div class="result-item"><div class="result-label">标准差 σ</div><div class="result-value">'+fmtNum(sd,2)+' L</div></div>'
+    +'<div class="result-item"><div class="result-label">异常记录</div><div class="result-value">'+hi.length+' 条</div></div>'
+    +'</div>';
+
+  var rr=fmtNum(hi[0]?hi[0].v:0,2);
+  G.innerHTML='<div class="dist-grid">'
+    +'<div class="dist-card"><h4>正常区间</h4><p>'+fmtNum(lo,2)+' ~ '+fmtNum(up,2)+' L</p><p>均值 ± '+fmtNum(k,1)+'σ</p></div>'
+    +'<div class="dist-card"><h4>最低 / 最高</h4><p>'+fmtNum(Math.min.apply(null,vals),2)+' / '+fmtNum(Math.max.apply(null,vals),2)+'</p><p>极差 '+fmtNum(Math.max.apply(null,vals)-Math.min.apply(null,vals),2)+' L</p></div>'
+    +'<div class="dist-card"><h4>近期趋势</h4><p style="font-size:12px;">'+trend+'</p><p>近 '+win+' 条均值 '+fmtNum(tMean,2)+' L</p></div>'
+    +'<div class="dist-card"><h4>波动离散度</h4><p>'+fmtNum(mean>0?sd/mean*100:0,1)+' %</p><p>'+(sd/mean>0.15?'波动较大':'波动平稳')+'</p></div>'
+    +'</div>';
+
+  var rows='';
+  for(var i=0;i<vals.length;i++){
+    var isHi=(vals[i]>up||vals[i]<lo);
+    rows+='<tr><td style="padding:5px 8px;">'+(i+1)+'</td>'
+      +'<td style="padding:5px 8px;">'+fmtNum(vals[i],2)+'</td>'
+      +'<td style="padding:5px 8px;">'+fmtNum(vals[i]-mean,2)+'</td>'
+      +'<td style="padding:5px 8px;">'+fmtNum(sd>0?(vals[i]-mean)/sd:0,2)+'σ</td>'
+      +'<td style="padding:5px 8px;color:'+(isHi?'#dc2626':'#059669')+';">'+(isHi?'异常':'正常')+'</td></tr>';
+  }
+  F.innerHTML='<div class="formula-title">📐 计算口径</div>'
+    +'<div class="formula-line">均值 μ = Σx ÷ n；标准差 σ = √(Σ(x−μ)² ÷ '+(sample?'(n−1)':'n')+')</div>'
+    +'<div class="formula-line">正常区间 = μ ± '+fmtNum(k,1)+'σ ；超出者标记为异常记录</div>'
+    +'<div class="formula-line">里程折算：[加油量 L ÷ 区间里程 km × 100] = 百公里油耗</div>'
+    +'<table style="width:100%;border-collapse:collapse;font-size:13px;margin-top:10px;">'
+    +'<tr><th style="text-align:left;padding:5px 8px;border-bottom:1px solid var(--border,#e5e7eb);">序</th>'
+    +'<th style="text-align:left;padding:5px 8px;border-bottom:1px solid var(--border,#e5e7eb);">油耗 (L/100km)</th>'
+    +'<th style="text-align:left;padding:5px 8px;border-bottom:1px solid var(--border,#e5e7eb);">与均值差</th>'
+    +'<th style="text-align:left;padding:5px 8px;border-bottom:1px solid var(--border,#e5e7eb);">偏离 σ</th>'
+    +'<th style="text-align:left;padding:5px 8px;border-bottom:1px solid var(--border,#e5e7eb);">判定</th></tr>'
+    +rows+'</table>';
+
+  var ad='';
+  if(!hi.length) ad+='<div class="tip-info">✅ 共 '+vals.length+' 条记录，均值 '+fmtNum(mean,2)+' L/100km，未见超出 '+fmtNum(k,1)+'σ（'+fmtNum(lo,2)+'~'+fmtNum(up,2)+' L）的异常值，油耗表现稳定。</div>';
+  else{
+    var names=hi.map(function(x){return x.tag+'='+fmtNum(x.v,2)+'L';}).join('、');
+    ad+='<div class="tip-warn">⚠️ 检出 '+hi.length+' 条异常记录：'+names+'。请结合当期工况（长途/空调/拥堵）判断，若排除工况后仍持续偏高，再排查车辆状态。</div>';
+  }
+  if(tCls==='warn') ad+='<div class="tip-warn">⚠️ '+trend+'，建议提前检查空气滤芯、节气门积碳、氧传感器与胎压。</div>';
+  else ad+='<div class="tip-info">📈 '+trend+'。</div>';
+  if(bad) ad+='<div class="tip-warn">⚠️ 有 '+bad+' 行无法解析已忽略（支持「油耗值」或「里程 加油量」两种格式）。</div>';
+  A.innerHTML=ad;
+}
+calc();
+</script>
 </body>
 </html>
