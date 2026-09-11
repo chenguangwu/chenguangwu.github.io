@@ -60,6 +60,32 @@ ED_BOILERPLATE = [
 _I18N_CACHE = {}
 _META_CACHE = {}
 
+# 生成表：AI 批量产出的英文描述（scripts/gen_en_desc.py 维护），按 industry/slug 索引
+_EN_DESC_PATH = os.path.join(ROOT, 'i18n', 'tools', '_en_desc.json')
+_EN_DESC_CACHE = None
+
+
+def _load_generated():
+    global _EN_DESC_CACHE
+    if _EN_DESC_CACHE is None:
+        try:
+            with open(_EN_DESC_PATH, encoding='utf-8') as f:
+                d = json.load(f)
+            _EN_DESC_CACHE = d if isinstance(d, dict) else {}
+        except Exception:
+            _EN_DESC_CACHE = {}
+    return _EN_DESC_CACHE
+
+
+def _generated_desc(t):
+    """按 industry/slug 取生成表里的英文描述；未收录返回 ''。"""
+    ind = t.get('industry', '')
+    slug = slug_of(t)
+    if not ind or not slug:
+        return ''
+    v = _load_generated().get(ind + '/' + slug)
+    return v.strip() if isinstance(v, str) else ''
+
 # 人工补齐的中英文描述表：scripts/tool_desc_override.py -> DESC_OVERRIDE
 # key 为工具中文名 -> (中文描述, 英文描述)。属于「人工精翻」，优先级高于
 # tools.json 的脏 ed / 空 meta 回退。_build.py 与 gen_industry_groups.py
@@ -253,8 +279,8 @@ def zh_desc(t, max_len=None, use_meta=True):
     return clip(name, max_len) if max_len else name
 
 
-def en_desc(t, max_len=None):
-    """权威英文描述：i18n en-US.intro → DESC_OVERRIDE[1] → 翻译中文 zh_desc → 中文兜底。
+def en_desc(t, max_len=None, use_generated=True):
+    """权威英文描述：i18n en-US.intro → 人工精翻表 → _en_desc.json → 词典翻译 → 英文名。
 
     不再读取 t['ed'] 自身作为来源：t['ed'] 是历史生成器产物（92% 为套话
     「X is a free online tool…」），且构建期 t['en'] 状态不可靠（HTML 扫描时未收录
@@ -262,6 +288,11 @@ def en_desc(t, max_len=None):
     generate_split_jsons 与主循环两次调用拿到不同结果，造成三端不一致。
     _build.py / gen_industry_groups 仍把本结果写回 t['ed'] 字段并落盘，供搜索索引
     与导航/分类页消费，故三端最终完全同源。
+
+    英文态不得回落中文（2026-09-11 修复）：原第 4 步「中文兜底」会让首页热门卡片、
+    分类导航、搜索卡片在 ?lang=en-US 下显示中文（实测 3210 个工具命中）。
+    现改为回落英文名；缺口由 i18n/tools/_en_desc.json（scripts/gen_en_desc.py 生成）
+    补齐，见该脚本说明。
     """
     entry = i18n_entry(t) or {}
     en = entry.get('en-US') or {}
@@ -280,6 +311,13 @@ def en_desc(t, max_len=None):
         if c:
             return clip(c, max_len) if max_len else c
 
+    # 2. 生成表 i18n/tools/_en_desc.json（industry/slug 索引，scripts/gen_en_desc.py 维护）
+    if use_generated:
+        g = _generated_desc(t)
+        if g:
+            c = _clean_en(g, name_en) or g
+            return clip(c, max_len) if max_len else c
+
     # （不再读取 t['ed'] 自身：历史生成器套话，且会引入三端不一致，见函数 docstring）
 
     # 3. 翻译中文 zh_desc（本地词典，能翻出英文则用之）
@@ -290,6 +328,6 @@ def en_desc(t, max_len=None):
             c = _clean_en(tr, name_en)
             if c:
                 return clip(c, max_len) if max_len else c
-        # 4. 兜底中文：英文缺失时展示中文，确保英文态也有内容、与中文态一致
-        return clip(zh, max_len) if max_len else zh
-    return ''
+
+    # 4. 兜底英文名（绝不再回落中文：英文态出现中文会被判为 i18n 缺陷）
+    return name_en
