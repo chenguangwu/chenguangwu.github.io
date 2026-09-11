@@ -677,6 +677,15 @@ python3 -m http.server 8765
 - SW v4 分三桶（`tb-shell-v4` / `tb-rt-v4-<BUILD>` / `tb-tools-v4-<BUILD>`）：CSS/JS/JSON 网络优先 3s 回退、图片字体 cache-first；紧急开关 `sw-kill.json` = `{"disabled":true}`
 - 统计统一收口 `js/analytics.js`（引 `common.js` 即自动获得，勿再单独引）
 
+### 页面内容与 _build.py 的交互（逐分类推进必读）
+- **`_prerender_tool_body` 只处理文档首个 `<p>`（`count=1`）**，且仅当正文含 CJK 时才用 `i18n/tools/<ind>-body.json` 的 `intro` 覆盖正文、原文写入 `data-zh`。由此产生三个必踩陷阱：
+  - **插在首个 `<p>` 之前的中文 `<p>` 会被覆盖**：把 `formula-desc`（中文）放在工具标题 `<h2>` 后，它就成为首个 `<p>`，被 body JSON 的 intro 覆盖；若该条目 intro 仍是占位串，页面即显示占位（曾一次回归 128 处）。**解法：这类说明块用 `<div class="formula-desc">` 而非 `<p>`** —— build 只认 `<p>`，CSS 为 `.formula-box .formula-desc { margin:0 }`，换标签渲染一致。
+  - **首个 `<p>` 若是 JS 字符串里的 `<p …>`**（错误提示 / 空状态，英文无 CJK），build 匹配它后即跳过，真正的中文 intro 永远拿不到英文注入（13 个统计类工具踩过）→ 解法：直接把源 intro 改为 `<p data-zh="中文">真实英文</p>`，不要指望 body JSON 注入。
+  - **空壳 `<p class="formula-desc"></p>` 会「吸收」这次 `count=1`**，使其后的中文 intro 侥幸躲过预渲染；一旦改成 div 或填入中文，这批会集中暴露（53 个工具踩过）→ 推进时应主动全量补齐这些 intro，别依赖这个巧合。
+- **终端审计不能只看文本长度**：占位串本身也有 80+ 字，仅判「≥80 字」会得到假绿（曾出现「345/345 合格」实为占位）。必须**同时**查占位指纹（如 `is available directly in your browser, with no data uploaded.`）与套话指纹（如「本速查内容依据权威标准」「本计算基于标准数学定义」）。
+- **英文 p 三种来源机制不同，改错位置会被 build 还原**：① `data-zh` 机制 → 改源 html，安全持久；② `data-i18n` 机制 → 由 build 从 `<ind>-body.json` 注入，手改源 html 无效，**必须改数据源**；③ 中文 intro → build 注入或改源。
+- **替换 JS 字符串里的占位必须替换「含工具名的整短语」**（如 `Statistical Power is available directly…`）。只替换核心句会残留工具名前缀，显示成 `Bayes Theorem Please enter valid parameters.` 这类串味文本。另：`re.sub` 的替换串里不要写 `\x27`（会报 `bad escape \x`），改用 `str.replace()` 最稳。
+
 ### i18n（中英 / 繁体）
 - **凡引 `js/common.js` 的页面必须同时引 `js/i18n.js`**，否则 `?lang=en-US` 下整页回退中文；`guides/*.html` 等静态页须手动保留，幂等补注脚本 `scripts/inject_i18n_js.py`（正则须吞掉 `</script>`，否则插入标签不闭合）
 - `I18n.apply(root)` **只扫描 root 的后代、不含 root 自身** —— 给 root 自身带 `data-i18n` 的元素必须显式调 `I18n.t()`
@@ -702,6 +711,6 @@ python3 -m http.server 8765
 
 ---
 
-> **最后更新**：2026-09-11（新增「§ 项目特有坑与速查」，内容自 `.workbuddy/memory/MEMORY.md` 迁入）
+> **最后更新**：2026-09-11（新增「§ 项目特有坑与速查」；新增「页面内容与 _build.py 的交互」——`_prerender_tool_body` 首个 `<p>` 预渲染的三个陷阱与审计须查占位指纹）
 > 
 > 本文件是 AI 开发本项目的权威指南，如有疑问以本文件为准。
