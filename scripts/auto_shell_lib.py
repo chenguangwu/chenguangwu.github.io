@@ -93,15 +93,20 @@ def render(title, icon, accent, desc, inputs, cards, notes, js):
     return out
 
 
-def rebuild(slug, head_subs=None, **kwargs):
-    """重建单个工具页：head 清洗（可选文本替换）+ body 渲染 + 写回。返回 (ok, msg)。"""
+def rebuild(slug, head_subs=None, strict_subs=True, **kwargs):
+    """重建单个工具页：head 清洗（可选文本替换）+ body 渲染 + 写回。返回 (ok, msg)。
+
+    strict_subs=False 时，head_subs 中未命中的条目跳过（支持脚本幂等重跑）。
+    """
     p = os.path.join(ROOT, 'tools/automotive', slug + '.html')
     if not os.path.exists(p):
         return False, '文件不存在: %s' % p
     head = clean_head(p)
     for old, new in (head_subs or []):
         if old not in head:
-            return False, 'head 替换未命中: %s' % old[:60]
+            if strict_subs:
+                return False, 'head 替换未命中: %s' % old[:60]
+            continue
         head = head.replace(old, new)
     body = render(**kwargs)
     full = head + '\n<body>\n' + body + '\n</body>\n</html>\n'
