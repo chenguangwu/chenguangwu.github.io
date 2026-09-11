@@ -1,6 +1,6 @@
 # DEV-PLAN.md — 全站工具优化总计划（超大规模工程）
 
-> 状态：计划起草完成，待老板确认后分批次推进。**完成一项删一项**，不做完不收手。
+> 状态：按分类逐行优化中。**一个分类必须把 §4.1 八项目标全部干完才进行下一项**（硬约束唯一权威见 §4.3）。完成一个分类从 §9.2 删一个，不做完不收手。
 > 本文件为权威分批计划载体；所有改动落盘后按"批量多文件合并提交"原则分批 commit / push master 触发发布。
 
 ---
@@ -11,18 +11,18 @@
 
 ---
 
-## 二、当前存在的主要问题（10 项，逐条对照验收）
+## 二、未完成的主要问题（逐条对照验收，已完成项已移除）
 
-1. **工具只是个壳**：里面内容只是占位、没任何意义 → 必须填充真实可用的内容 / 功能。
-2. **UI 太丑**：没有一点现代化网站的设计 → 统一现代化视觉（遵循 `ui/设计规范.md` + 参考 MBTI `tester-2.html` 风格）。
-3. **内容不够丰富**：补真实使用场景、示例、参考表、可视化（明细表 / 图表 / 日历等）。
-4. **逻辑错误误导用户**：工具内部存在计算 / 计分 / 判定错误 → 必须验证结果正确，不误导。
-5. **缺使用指南**：重要的专业工具没加使用指南 → 补「📖 使用指南」+ 深度解析（FAQ）。
-6. **中英文数据缺失或 bug**：补齐 i18n 数据（标题 / 简介 / 英文 slug / 行业 i18n），修中英文 bug。
-7. **名称 / 描述 / SEO 不合适不完善**：让人一眼看懂是干啥的，可加「免费使用」等描述；完善 Title / Description / H1。
-8. **下拉选项只是占位或不合理**：选项要真实、合理、有业务意义。
-9. **结果正确性未验证**：需验证工具使用结果正确（最好专业可验证）。
-10. **专业名称缺外链**：部分专业名称可加百度百科外链跳转。
+> 以下为 git 实测后**仍未全站收口**的问题（已完成深度真实化与 i18n 修复的项已移出本清单）。
+
+1. **UI 太丑**：没有一点现代化网站的设计 → 统一现代化视觉（遵循 `ui/设计规范.md` + 参考 MBTI `tester-2.html` 风格）。（对应 §4.1.3）
+2. **内容不够丰富**：补真实使用场景、示例、参考表、可视化（明细表 / 图表 / 日历等）。（对应 §4.1.2）
+3. **逻辑错误误导用户**：工具内部存在计算 / 计分 / 判定错误 → 必须验证结果正确，不误导。（对应 §4.1.1）
+4. **缺使用指南**：重要的专业工具没加使用指南 → 补「📖 使用指南」+ 深度解析（FAQ）。（对应 §4.1.4）
+5. **SEO 描述不合适不完善**：名称 / 标题重复已清零，但 Description 仍有 69 组重复未修复；让人一眼看懂用途，完善 Description / H1。（对应 §4.1.7）
+6. **下拉选项只是占位或不合理**：选项要真实、合理、有业务意义。（对应 §4.1.3 页面下拉项）
+7. **结果正确性未验证**：需验证工具使用结果正确（最好专业可验证）。（对应 §4.1.1）
+8. **专业名称缺外链**：部分专业名称可加百度百科外链跳转。（对应 §4.1.7）
 
 ---
 
@@ -37,10 +37,9 @@
 
 ## 四、开发规则（强制）
 
-- **全部分类**加入下方「分类总清单」，完成一个删一个。
-- **进行中的分类**：把该分类下**全部工具**加入「当前进行中分类」的待优化清单，按顺序**一个一个优化**，完成一个删一个。
-- 某分类全部工具优化完，才开下个分类；再把它工具放入待优化清单，直到所有分类优化完。
-- 分类状态必须按固定状态机推进：待办分类保留在「分类总清单」；开始后同时写入「当前进行中分类」并登记全部工具；完成后从这两处删除，并用本次最新完成分类替换「已完成分类归档」。三处状态必须在同一次任务中同步更新。
+- **恢复逐分类完整优化清单（按热度排序）**：全站 268/268 分类虽已完成 deep-dive 六型占位真实化（git 实测 285 commit / `content_deepdive.json` 提交 316 次，键数守恒 5022），但 **§4.1 八项目标的其余维度（UI / 指南 / 下拉 / 外链 / 逻辑验证 / SEO 描述等）仍全站未收口**。故恢复「按分类逐行优化」模式：所有分类按**热度（分类下工具页数量，覆盖用户面代理）降序**列入 §9.2 待办，从最热的分类开始。历史已完整优化的分类见 §9.1 白名单，不列入 §9.2。
+- **进行中的分类**：在「当前进行中分类」登记（分类名 + 工具数 + 当前进度），列全部分类下工具。
+- 分类状态按状态机推进（权威定义见 §4.3）：待办分类保留在「§9.2 分类优化清单」；开始后写入「当前进行中分类」；完成即同时从「当前进行中分类」和「§9.2」删除该分类条目。状态须在同一次任务中同步更新。
 - **psychology 已优化过一遍**：先按上面 10 条标准**验证**是否满足，全满足则直接跳过该分类；否则先优化该分类里不满足的工具。
 - 每完成一批（或一个工具）跑 `python3 _build.py` + `python3 _test_static.py`，确保门禁通过、繁体 `zh-tw/` 同步。
 - **提交发布节奏**：最好**一个分类提交发布一次**；分类下工具多的（如 `it` 345 / `general` 180 / `finance` 112），可分批提交，**每批至少 10 个工具**，避免单工具频繁发布。
@@ -50,7 +49,7 @@
 
 ### 4.1 每个分类的强制任务目标
 
-每个分类必须覆盖该分类下的全部工具，不能只挑页面清理文案。开始分类前，先在“当前进行中分类”登记完整工具清单；每完成一个工具就从清单中删除，并保留可追溯的改动证据。
+每个分类必须覆盖该分类下的全部工具，不能只挑页面清理文案。开始分类前，先在「当前进行中分类」登记完整工具清单；每完成一个工具就从清单中删除，并保留可追溯的改动证据。
 
 每个工具必须同时完成以下目标，缺一项都不能结束分类：
 
@@ -63,7 +62,7 @@
 7. **SEO 与专业性**：Title、Description、H1、JSON-LD 和面包屑用途一致；关键专业名词按需补权威外链，并确保不制造死链。
 8. **发布证据**：分类全部工具完成后，必须有构建、五项门禁、远端 Actions 成功和提交 SHA；只证明“套话不存在”不能作为完成证据。
 
-若本批只改了 `desc-en`、`slug-en`、meta 或其他文案，不得标记分类完成，必须继续补齐功能、内容、deep-dive、i18n 和分类校验。完成分类后，必须从“当前进行中分类”清单和“分类总清单”中删除该分类条目，不得改成 `[x]` 后长期保留。
+若本批只改了 `desc-en`、`slug-en`、meta 或其他文案，不得标记分类完成，必须继续补齐该分类在 §4.1 八项目标下的其余内容（UI / 指南 / 外链 / 逻辑验证等）。完成一个分类后，必须从「当前进行中分类」和「§9.2 分类优化清单」中删除该分类条目，不得改成 `[x]` 后长期保留（硬约束与严禁项见 §4.3）。
 
 ### 4.2 提交与发布文件边界
 
@@ -76,13 +75,15 @@
 
 每个分类只能按以下顺序收口，不得跳步：
 
-1. **建立范围**：读取该分类实际目录，登记全部工具页；分类总数必须与构建扫描结果一致。
+1. **建立范围**：读取该分类实际目录，登记全部工具页（含工具数，须与 §9.2 热度计数一致）；分类下每个工具都必须走完 §4.1 八项目标。
 2. **逐工具处理**：逐个完成功能、内容、页面、deep-dive、i18n、cat、SEO 和验证目标；工具完成一项就从进行中清单删除。
-3. **完成前审计**：确认进行中清单为空，检查分类下没有占位套话、缺失 deep-dive、英文通用描述、cat 错标或未验证的关键逻辑。
-4. **同步状态**：从「当前进行中分类」和「分类总清单」删除分类；将本分类写入「已完成分类归档」，并覆盖旧归档记录。
+3. **完成前审计**：确认进行中清单为空，且分类下**没有**：占位套话、缺失 deep-dive、英文通用描述、cat 错标、未验证的关键逻辑、缺使用指南（专业工具）、缺专业外链、UI 未现代化、Description 重复。**八项目标缺任一项即视为未收口**。
+4. **同步状态**：从「当前进行中分类」和「§9.2 分类优化清单」删除该分类条目，确认本分类完整收口。
 5. **发布收口**：状态同步后才能跑门禁、提交和推送；归档未更新、清单未删除或文件范围未核对时，禁止宣称分类完成。
 
-严禁以下不完整状态：只把待办改成 `[x]` 不删除、只更新归档不删除待办、只删除待办不写归档、当前进行中标题与清单分类不一致、清单未空就开始下一个分类。
+> **硬约束（老板 2026-09-11 明确，违反即违规）**：**一个分类必须把 §4.1 八项目标在该分类下全部工具上完全干完，才能开始下一个分类**；**禁止只挑简单任务**（如只清占位 / 只补 deep-dive 内容）就标记分类完成、跳过 UI / 指南 / 外链 / 逻辑验证等难项。清单未清空（本分类仍有工具未完成或八项目标有缺项）**不得开始下一个分类**。
+
+严禁以下不完整状态：只把待办改成 `[x]` 不删除、当前进行中标题与清单分类不一致、清单未空就开始下一个分类、本分类八项目标有缺项却标记完成。
 
 ### 4.4 使用指南增强规则（老板 2026-09-08 明确授权）
 
@@ -110,24 +111,24 @@
 
 ---
 
-## 五、验收标准（对照 10 项逐条 tick）
+## 五、验收标准
 
-每个工具优化完成前，须确认：
+> 验收 = §4.1 八项目标的**可勾选版**，须与 §4.1 逐条同步更新（避免三套清单各自漂移）。每个分类收口前，逐项确认 §4.1 八项目标全部达标，即视为验收通过。
 
-- [ ] 1. 非壳：有真实功能 / 真实内容，无占位文字（如"常见场景：XXX""先统一输入单位与口径""本校验工具"等套话清零）。
-- [ ] 2. UI 现代：遵循设计规范（主色 / 圆角 / 卡片 / 响应式），无 raw 丑布局。
-- [ ] 3. 内容丰富：含真实使用场景 + 真实示例 +（专业工具）参考表 / 可视化。
-- [ ] 4. 逻辑正确：计算 / 计分 / 判定经自测或 node 纯函数验证，无误导。
-- [ ] 5. 有使用指南：专业工具补「📖 使用指南」+ 深度解析 FAQPage 结构化数据。
-- [ ] 6. 中英文齐全：i18n 八件套数据层补齐，无中英文 bug。
-- [ ] 7. 名称 / 描述 / SEO：一眼看懂用途，可含「免费使用」，Title/Description/H1 完善。
-- [ ] 8. 下拉选项真实合理，无占位符。
-- [ ] 9. 结果可验证正确（专业工具优先）。
-- [ ] 10. 关键专业名词加百度百科外链跳转。
+- [ ] 1. 功能：真实可用 + 独立验证（对应 §4.1.1）
+- [ ] 2. 内容：真实场景 / 示例 / 参考表 / 可视化（对应 §4.1.2）
+- [ ] 3. 页面：UI / 移动端 / 下拉 / 按钮（对应 §4.1.3）
+- [ ] 4. 深度内容：deep-dive 真实条目 + 指南（对应 §4.1.4）
+- [ ] 5. i18n：中 / 英 / 繁完整（对应 §4.1.5）
+- [ ] 6. 分类：industry / cat 无误标（对应 §4.1.6）
+- [ ] 7. SEO 与专业性：Title / Description / H1 / 外链（对应 §4.1.7）
+- [ ] 8. 发布证据：构建 + 门禁 + Actions + SHA（对应 §4.1.8）
 
 ---
 
 ## 六、踩坑 / 约束备忘
+
+> 质量红线类约束（套话清零 / 占位六型 / 算例复算）已固化于 §4.5，本节仅保留**环境级 / 工程级**约束，不重复。
 
 - **deep-dive 由 `_build.py` 按 `i18n/tools/content_deepdive.json` 重建**：直接改源 html 的 deep-dive 区块会被构建覆盖。改 deep-dive / 场景 / 示例 / FAQ → 改 JSON 数据源。
 - **FAQPage 结构化数据不被 `_build.py` 重建**：手动加的合法 JSON-LD 会保留，但注入坏 JSON 不会被自动修复，须自测解析合法。
@@ -135,55 +136,304 @@
 - **i18n 八件套**：标题/简介走 `_en_override.json` + `slug-en.json`；行业 i18n 走 `i18n/tools/<ind>.json`；凡引 `common.js` 的静态页须引 `i18n.js`。
 - **门禁**：`python3 _test_static.py` 须 0 失败 0 告警；死链 `_audit_links --check` 与资产 `_audit_assets --check` 须 exit 0。
 - **提交**：批量多文件改动合并提交，commit + push master 触发 GitHub Pages 发布；不可逆操作前先核验。
-- **占位六型检测（逐分类必查）**：快速复核 / 统一口径(建模·演示) / 统一复核(标准化…可追溯流程) / 高频复用模板 / 复用模板示例(在X业务中先把Y标准化后再执行对比) / 结构性泛化短语（减少重复确认成本、降低上手门槛、形成标准复核清单、沿用模板逐项核对…）。六型字面互不相同，只扫前几型必漏检。
-- **两套独立套话残留**：①可见 `opt-guide`/`opt-faq` section → `scripts/opt_cleanup_opt_blocks.py --cat X`（整段删，前 N 后 0）；②FAQPage JSON-LD 里的旧套话（"在对应的输入框或选项中填写…"）→ `scripts/opt_faq_ld_sync.py --cat X`（同步为 deep-dive 真实 FAQ，自动跳过已真实的）。`_build.py` **不重建工具页 FAQPage LD**（3052 行只管行业落地页），故②必须手改，改后须 `json.loads` 校验合法。
 - **计算函数名不统一**：`calcTool()` / `calc()` / `calcBelt()` / `calcChain()` 等。抽取时在**整个 html** 里多候选 `function <name>(` + 花括号配平，勿用 `max(scripts, key=count('calcTool'))`（会选中 stub）。依赖 select 与常量表的工具（GRADE_DATA / MAT_SPEED / stressArea / torqueCoef）须先抽 `<select id=...>(.*?)</select>` 默认项与 `const X = {` 常量表。
-- **算例数字一律 node 实跑取**：勿凭印象写（如 defect-probability 的 DPMO 实为 6209.7 非 6210.0，差在 toFixed 四舍五入）。
 - **deep-dive JSON 格式**：`content_deepdive.json` 仓库规范 `indent=1`（`_build.py` 只读不写、不归一化），apply 脚本须 `json.dump(indent=1)`，否则全 ~12.7 万行重排成噪音 diff。
 
 ---
-## 七、已完成分类归档
-> 本区仅保留**最近一个（最新）已完成分类**的归档记录，更早历史不再保留，以控制文件体积。完成新分类时，用新记录替换本条。
 
-### ✅ automotive（53 工具，45 个 head-only 死壳全量重建，13 批收口）
-- **问题**：automotive 是 C 级薄内容最集中的分类——45 个页面为「head-only 死壳」（`<body>` 无开标签、无 UI 无 calc 逻辑、deep-dive 段被误置 `<head>` 致浏览器不渲染，线上打开一片空白），违反 AGENTS.md「不得只发布客户端空壳」。按 13 批（每批 2~7 页）逐页重建为完整工具。
-- **重建标准（每页统一）**：表单输入区 + 实时 calc + 结果卡 + formula-box（rich 判定 → A 级）+ 参考对照表 + 场景卡 + 注意事项；deep-dive 由 `<head>` 误置段改为 body 内 `<!-- TOOLBOX-DEEP-DIVE -->` 占位，交 `_build.py` 从 content_deepdive.json 重建。新增通用重建库 `scripts/auto_shell_lib.py` + 各批 `rebuild_automotive_batchN.py`。
-- **代表性工具**：fuel-economy 油耗 / engine-oil 机油黏度（SAE J300）/ tire-pressure 胎压 / oil-change 换油周期 / wear-brake 刹车盘 / lux-1 车灯光型照度 / maintenance-schedule 保养排程 / qichekongtiaoxuanxing 空调冷负荷选型 / recommender-6 胎压推荐 / shipping-cost-compare 运费比价 / speed-tire 轮胎规格 / tester-10 喷油嘴均衡 / tester-11 电池 CCA 与内阻 / time-maintenance 保养双阈值 / traffic-fine-calculator 违章记分（公安部令 163 号）/ xuanguatanhuangzunitexing 悬挂弹簧阻尼 / calc-1 百公里加速两段模型 / voltage-2 发电机电压调节与线路压降。
-- **deep-dive 校正**：多条 deep-dive 主题与页面口径完全不符（recommender-6「车型推荐匹配」、tester-10「四轮定位参数检测」、tester-11「尾气与 OBD 排放检测」等），逐条整条重写；其余按页面默认算例精确校准（indent=1 保持，diff 12~21 行/批）。
-- **发布前复核发现并修正的真实错误（全部 node 实跑确认）**：maintenance-schedule 剩余月数单位错误（月均里程被再除 12：机油 50 月 → 4.2 月）；lux-1 判定口径改为「折算 10 m 基准后比较」；qichekongtiaoxuanxing 环境温度原先不入计算 → 引入 COP 工况修正；recommender-6「同轴左右差」概念错误（p1/p2 实为前后轴）→ 改「前后压差」；tester-11 剩余可用期单位错误（按 3.5% 衰减输出「3 个月」实为年 → 改年均 5% 输出「3 年」）；time-maintenance 双阈值误用「里程折算月数」替代「时间周期剩余月数」（上次保养已 11 个月仍判「未到期」）；traffic-fine-calculator 累计满分仍提示「未满 12 分」，且 deep-dive 示例「超速 10%~20% 记 3 分」与 2022 版办法相悖（普通小型车超速 20% 以下不记分）；xuanguatanhuangzunitexing 默认参数不自洽（舒适取向却算出 1.69 Hz → 调为 f=1.33 Hz、ζ=0.30）；calc-1 为无输入控件的残缺页、batch11 脚本一处全角括号致 JS 语法错误。
-- **行业级终检**：53 页三方一致性（title = h1 = i18n 标题）+ deep-dive 仅注入 body + 每页均有 number/select 输入控件 → 0 异常。
-- **质量**：automotive C 44→0、A 9→53；全站 A 级 4993、B 1、C 0。
-- **发布**：13 批提交推送，每批发布前五道门禁全过、发布后 CI success 核验（如 #34564510877 / #34564624224 / #34564879326）。
 ## 八、当前进行中分类
 
-> 当前无进行中分类。新分类开工时先在此登记（目录 + 工具数），收口后写入第七节并覆盖旧归档记录（§4.3 第 4 步）。
+> **进行中：`it` (345) — 按 §4.3 从零推进，八项目标全干完才收口；未收口前不删 §9.2 条目、不写 `[x]`。**
+> 进度纪律：分类下每个工具走完 §4.1 八项目标，完成一个从本清单删一个；进行中清单清空且审计零套话/零缺项才同步删 §9.2。
+> 当前批次推进：① 全量批量收口英文「free online tool」套话描述（§4.1.5，覆盖 178 文件）；② 标杆深优化高频专业工具 bcrypt / json-formatter / jwt / timestamp-converter / rsa（真实 deep-dive + 针对性 FAQ + 使用指南 + 专业外链 + 原理公式），为逐工具深优化立样板。
 
-## 九、分类总清单（待办，完成一个删一个；✅ §9 队列已全部完成）
+## 九、未完成任务清单
 
-> ✅ §9 全部完成（customer-service 原判「零改动」，后全站六型复扫发现 random-script 含六型占位「可复核输出/沿用模板逐项核对/降低上手门槛」属漏检，已补清；food-safety/writing/supplychain/outdoor/paint/stone 共 6 个真占位键真实化收口；键数守恒 5022，五道门禁全过，六型占位 0 残留，线上核验通过）。
+> **推进方式**：恢复「按分类逐行优化」。分类按**热度（分类下工具页数量，覆盖用户面代理）降序**排列于 §9.2，从最热的 `it`(345) 起逐分类推进。**历史已完整优化的分类见 §9.1 白名单，不列入本清单**。§9.3 为跨分类 / 独立的孤立未完成任务，可穿插推进但不替代逐分类收口。硬约束唯一权威见 §4.3。
 
-## 九-b、补扫扩展批次（scanner 同义变体漏报捕获；✅ 全部完成 / 0 待办分类）
+### 9.1 历史已优化分类白名单（开工前先审计，满足则跳过）
 
-> **背景**：§9 队列基于补强前旧扫描建立，本身不完整。用补强后全站 scanner 重扫 5022 键，发现 §9 之外另有 10 个分类共 47 个 deep-dive 真占位键（同一套模板：在[X]场景下先使用[VarName]建立输入边界 + 通用套话 + 未翻译英文变量名）。须按 §9 同款流水线逐分类真实化收口。
-> **规则**：每分类走完整流水线（apply 脚本→`_build.py`→五道门禁→发布核验→DEV-PLAN 状态机更新→记忆日志）；键数守恒 5022；模板/变量名/套话三重清零。
+> 以下分类此前已完整走完 §4.1 八项目标（git 实测），**不重新从零做**；开工首批即先按 §4.1 八项目标审计，满足则标记完成移出待办，不满足仅补缺项后移出。
 
-- [x] manufacturing (5: capacity-planning/defect-rate/inventory-calculator/production-efficiency/quality-control) ✅
-- [x] maritime (5: anchorage-capacity/compass-correction/speed-distance/stowage-factor/tide-window) ✅
-- [x] museum (5: audio-guide-timer/exhibit-spacing/lighting-lux/showcase-monitor/visitor-route) ✅
-- [x] plastic (5: blow-molding/extrusion-rate/injection-cycle/material-select/shrinkage-calc) ✅
-- [x] pneumatic (4: calc-flow-1/calc-speed/cycle-19/tester-blast) ✅
-- [x] shipping (5: calc-76/convert-speed-1/convert-time-speed/estimate-length/tide) ✅
-- [x] stage (5: beam-angle/color-temperature/dimmer-curve/light-position/power-load) ✅
-- [x] stats (5: confidence-interval/data-distribution/regression-analysis/sample-size/statistical-tests) ✅
-- [x] unitedfront (3: assessor-training-hr-1/recommender-7/stats-9) ✅
-- [x] woodworking (5: angle-cut/board-feet/moisture-content/mortise-size/wood-screws) ✅
+- ✅ automotive (53)：45 死壳重建、C 级清零、八项目标全覆盖（git 实测）
+- ✅ fire-rescue (40)：已收口分类（§4.4 明示）
+- ✅ psychology (20)：已优化过一遍（§4 开头「先验证后跳过」指令）
 
-## 九-c、第四波漏报真占位批次（全站复扫新发现的英文分类名模板变体；待办 3 分类 / 15 真占位键）
+> 跳过规则：上述分类**不列入 §9.2 待办**；其余分类按 §9.2 热度顺序从零推进。
 
-> **背景**：§9 / §9-b / 全站扫描队列三波收官后，全站 deep-dive 占位复扫发现**第四波**真占位——模板变体为「在{英文分类名}场景下，先使用{未翻译英文变量名}建立输入边界，后续再对关键指标拆分归因」，分布在 medical2/photo2/pet-training 3 个分类共 15 键。该变体因场景前缀用英文名（非中文）且混用「后续再对关键指标拆分归因」套话，此前所有 scanner 均漏报。
-> **规则**：每分类走完整流水线（apply 脚本→area4 替换→双清 area2/area3→`_build.py`重建→五道门禁→发布核验→DEV-PLAN 状态机→记忆日志）；键数守恒 5022；JSON 占位/area2/area3/area4 四重清零。
+### 9.2 分类优化清单（265 分类，按热度降序，完成一个删一个）
 
-- [x] medical2 (5: iv-drip-speed/bed-occupancy/medical-abbrev/surgery-duration/drug-expiry) ✅
-- [x] photo2 (5: exposure-triangle/focal-length/video-storage/print-size/color-temperature) ✅
-- [x] pet-training (5: leash-length/elimination-predict/command-repetition/treat-calories/clicker-timing) ✅
+> 清单由脚本按 `tools/` 目录工具数生成；每行 = 分类名 + 工具数。当前进行中的分类在 §8 同步登记。
 
+- [ ] it (345)
+- [ ] general (180)
+- [ ] finance (112)
+- [ ] design (103)
+- [ ] science (99)
+- [ ] sports (75)
+- [ ] fun (74)
+- [ ] ai (64)
+- [ ] biz (62)
+- [ ] life (62)
+- [ ] agriculture (60)
+- [ ] hydraulic (55)
+- [ ] statistics (55)
+- [ ] legal (54)
+- [ ] realestate (54)
+- [ ] energy (46)
+- [ ] health (46)
+- [ ] edu (44)
+- [ ] marketing (44)
+- [ ] meteorology (42)
+- [ ] optical (41)
+- [ ] surveying (40)
+- [ ] fishery (38)
+- [ ] securities (38)
+- [ ] aerospace (37)
+- [ ] geology (37)
+- [ ] machinery (37)
+- [ ] math (36)
+- [ ] accounting (35)
+- [ ] fitness (35)
+- [ ] eco (34)
+- [ ] cosmetic-derm (33)
+- [ ] healthcare (33)
+- [ ] insurance (33)
+- [ ] obstetrics (32)
+- [ ] ophthalmology (32)
+- [ ] encode (29)
+- [ ] metalwork (29)
+- [ ] photo (29)
+- [ ] tax (29)
+- [ ] acoustics (28)
+- [ ] chemistry (28)
+- [ ] dynamics (28)
+- [ ] economics (28)
+- [ ] electromagnetism (28)
+- [ ] fluid (28)
+- [ ] geometry (28)
+- [ ] investment (28)
+- [ ] kinematics (28)
+- [ ] materials (28)
+- [ ] metrology (28)
+- [ ] nuclear (28)
+- [ ] optics (28)
+- [ ] quantum (28)
+- [ ] reproductive-medicine (28)
+- [ ] robotics (28)
+- [ ] signal (28)
+- [ ] structural (28)
+- [ ] thermodynamics (28)
+- [ ] banking (27)
+- [ ] hematology (27)
+- [ ] livestock (27)
+- [ ] neurology (27)
+- [ ] clinical-nursing (26)
+- [ ] construction (26)
+- [ ] dentistry (26)
+- [ ] pulmonology (26)
+- [ ] astronomy (25)
+- [ ] cardiology (25)
+- [ ] clinical-lab (25)
+- [ ] pediatrics (25)
+- [ ] psychiatry (25)
+- [ ] rheumatology (25)
+- [ ] urology (25)
+- [ ] ballistics (24)
+- [ ] dermatology (24)
+- [ ] electronics (24)
+- [ ] food (24)
+- [ ] food-testing (24)
+- [ ] nephrology (24)
+- [ ] rehabilitation (24)
+- [ ] tcm-pharmacy (24)
+- [ ] acupuncture (23)
+- [ ] ent (23)
+- [ ] gastroenterology (23)
+- [ ] tcm-chemistry (23)
+- [ ] endocrinology (22)
+- [ ] forensic-medicine (22)
+- [ ] beauty (21)
+- [ ] civil (21)
+- [ ] ecommerce (21)
+- [ ] food-processing (21)
+- [ ] hr (21)
+- [ ] property (21)
+- [ ] tcm-diagnosis (21)
+- [ ] textile (21)
+- [ ] travel (21)
+- [ ] blasting (20)
+- [ ] data (20)
+- [ ] forestry (20)
+- [ ] electrical (19)
+- [ ] music (19)
+- [ ] language (18)
+- [ ] nutrition (18)
+- [ ] advertising (16)
+- [ ] metallurgy (16)
+- [ ] niche (16)
+- [ ] safety (16)
+- [ ] leather (15)
+- [ ] transport (15)
+- [ ] welding (15)
+- [ ] engineering (14)
+- [ ] image (14)
+- [ ] mechanical (14)
+- [ ] medical (14)
+- [ ] mining (14)
+- [ ] process (14)
+- [ ] dyeing (13)
+- [ ] pr (13)
+- [ ] chemical (12)
+- [ ] gardening (12)
+- [ ] misc (12)
+- [ ] paper (12)
+- [ ] elderly (11)
+- [ ] fire (11)
+- [ ] gas (11)
+- [ ] security (11)
+- [ ] text (11)
+- [ ] usedcar (11)
+- [ ] hvac (10)
+- [ ] misc2 (10)
+- [ ] pet (10)
+- [ ] procurement (10)
+- [ ] baking (9)
+- [ ] sales (9)
+- [ ] admin (8)
+- [ ] cleaning (8)
+- [ ] cognition (8)
+- [ ] decor (8)
+- [ ] logistics (8)
+- [ ] quality (8)
+- [ ] rental (8)
+- [ ] research (8)
+- [ ] restaurant (8)
+- [ ] telecom (8)
+- [ ] wedding (8)
+- [ ] audio (7)
+- [ ] dance (7)
+- [ ] hotel (7)
+- [ ] office (7)
+- [ ] parenting (7)
+- [ ] printing (7)
+- [ ] archaeology (6)
+- [ ] chinese-cook (6)
+- [ ] exhibition (6)
+- [ ] film (6)
+- [ ] floral (6)
+- [ ] funeral (6)
+- [ ] home (6)
+- [ ] jewelry (6)
+- [ ] media (6)
+- [ ] packaging (6)
+- [ ] road (6)
+- [ ] startup (6)
+- [ ] urban (6)
+- [ ] video (6)
+- [ ] accessibility (5)
+- [ ] antiques (5)
+- [ ] aquaculture (5)
+- [ ] audit (5)
+- [ ] bonding (5)
+- [ ] bridge (5)
+- [ ] ceramics (5)
+- [ ] chess (5)
+- [ ] chinese (5)
+- [ ] edu2 (5)
+- [ ] fengshui (5)
+- [ ] forex (5)
+- [ ] futures (5)
+- [ ] gardening2 (5)
+- [ ] glass (5)
+- [ ] kids (5)
+- [ ] legal2 (5)
+- [ ] library (5)
+- [ ] logistics2 (5)
+- [ ] manufacturing (5)
+- [ ] maritime (5)
+- [ ] martial (5)
+- [ ] medical2 (5)
+- [ ] museum (5)
+- [ ] pet-training (5)
+- [ ] petrochem (5)
+- [ ] pets (5)
+- [ ] photo2 (5)
+- [ ] plastic (5)
+- [ ] project (5)
+- [ ] railway (5)
+- [ ] rubber (5)
+- [ ] seismology (5)
+- [ ] service (5)
+- [ ] shipping (5)
+- [ ] stage (5)
+- [ ] stats (5)
+- [ ] tunnel (5)
+- [ ] woodworking (5)
+- [ ] yi (5)
+- [ ] colorvision (4)
+- [ ] content (4)
+- [ ] convenience (4)
+- [ ] discipline (4)
+- [ ] domestic (4)
+- [ ] environment (4)
+- [ ] exam (4)
+- [ ] gis (4)
+- [ ] network (4)
+- [ ] pneumatic (4)
+- [ ] textile2 (4)
+- [ ] uiux (4)
+- [ ] archive (3)
+- [ ] beekeeping (3)
+- [ ] cable (3)
+- [ ] community (3)
+- [ ] consulting (3)
+- [ ] customer-service (3)
+- [ ] food-safety (3)
+- [ ] fresh (3)
+- [ ] history (3)
+- [ ] mold (3)
+- [ ] municipal (3)
+- [ ] photography (3)
+- [ ] steel (3)
+- [ ] unitedfront (3)
+- [ ] woodwork (3)
+- [ ] auto-beauty (2)
+- [ ] building-material (2)
+- [ ] casting (2)
+- [ ] defense (2)
+- [ ] furniture (2)
+- [ ] heattreat (2)
+- [ ] landscape (2)
+- [ ] livestream (2)
+- [ ] martial-arts (2)
+- [ ] pharmacy (2)
+- [ ] security-guard (2)
+- [ ] sports-event (2)
+- [ ] surface (2)
+- [ ] timber (2)
+- [ ] warehouse (2)
+- [ ] water (2)
+- [ ] yoga (2)
+- [ ] beneficiation (1)
+- [ ] brand (1)
+- [ ] cnc (1)
+- [ ] cosmetics (1)
+- [ ] daily-goods (1)
+- [ ] embedded (1)
+- [ ] event (1)
+- [ ] express (1)
+- [ ] interior (1)
+- [ ] knowledge (1)
+- [ ] outdoor (1)
+- [ ] paint (1)
+- [ ] stone (1)
+- [ ] supplychain (1)
+- [ ] writing (1)
+
+### 9.3 独立未完成任务（跨分类 / 孤立项，可穿插推进）
+
+- [ ] `fire-rescue/calc-3` 脏页（英文 h2 / formula-desc 与控件错位）
+- [ ] 内容翻译三类：指南 441 篇 / 工具页正文 48 处 / embed 25 处（英文内容层）
+- [ ] Analytics-C 扩面（缺 Bing / Clarity 周期数据）
+- [ ] SEO 描述：Description 重复 69 组未清零（全站级，可并入逐分类时顺手修）
