@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PBKDF2 密钥派生使用指南 - ToolBox</title>
+<meta name="description" content="PBKDF2 密钥派生使用指南：从口令派生加密密钥，带盐与迭代次数。">
+<meta property="og:title" content="PBKDF2 密钥派生使用指南 - ToolBox">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="ToolBox">
+<meta property="og:url" content="https://chenguangwu.github.io/guides/pbkdf2-guide.html">
+<meta property="og:description" content="PBKDF2 密钥派生使用指南：从口令派生加密密钥，带盐与迭代次数。">
+<meta property="og:image" content="https://chenguangwu.github.io/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="PBKDF2 密钥派生使用指南 - ToolBox">
+<meta name="twitter:description" content="PBKDF2 密钥派生使用指南：从口令派生加密密钥，带盐与迭代次数。">
+<meta name="twitter:image" content="https://chenguangwu.github.io/og-image.png">
+<link rel="canonical" href="https://chenguangwu.github.io/guides/pbkdf2-guide.html">
+<script type="application/ld+json">
+{{"@context":"https://schema.org","@type":"Article","headline":"PBKDF2 密钥派生使用指南","description":"PBKDF2 密钥派生使用指南：从口令派生加密密钥，带盐与迭代次数。","author":{{"@type":"Organization","name":"ToolBox"}}}}
+</script>
+<style>
+:root{{--primary:#FF6B35;--text:#1F2937;--muted:#6B7280;--border:#E5E7EB;--bg:#FFFAF7;}}
+*{{box-sizing:border-box;}}
+body{{margin:0;font-family:"Noto Sans SC","Plus Jakarta Sans",system-ui,sans-serif;color:var(--text);background:var(--bg);line-height:1.75;}}
+header{{padding:18px 20px;border-bottom:1px solid var(--border);background:#fff;}}
+.breadcrumb a{{color:var(--primary);text-decoration:none;margin-right:6px;}}
+main{{max-width:780px;margin:0 auto;padding:28px 20px 60px;}}
+h1{{font-size:28px;margin:0 0 8px;}}
+.lead{{font-size:16px;color:var(--muted);margin:0 0 22px;}}
+h2{{font-size:20px;margin:28px 0 10px;color:var(--primary);}}
+ul,ol{{padding-left:22px;}}
+li{{margin:6px 0;}}
+dl{{margin:0;}}
+dt{{font-weight:700;margin-top:12px;}}
+dd{{margin:4px 0 0;color:var(--muted);}}
+.back{{margin-top:30px;padding:16px;background:#fff;border:1px solid var(--border);border-radius:14px;}}
+.back a{{color:var(--primary);font-weight:700;text-decoration:none;}}
+footer{{text-align:center;color:var(--muted);font-size:13px;padding:24px;border-top:1px solid var(--border);}}
+</style>
+<script src="/js/analytics.js" defer></script>
+<script src="../js/i18n.js" defer></script>
+<script src="../js/common.js" defer></script>
+<link rel="stylesheet" href="../css/common.css">
+</head>
+<body>
+<header><nav class="breadcrumb"><a href="https://chenguangwu.github.io/">ToolBox</a> / <a href="https://chenguangwu.github.io/#guides">使用指南</a> / <span>PBKDF2 密钥派生</span></nav></header>
+<main>
+<h1>PBKDF2 密钥派生 使用指南</h1>
+<p class="lead">口令 + salt（16字节）+ 迭代 100000 + SHA256 → 固定长度密钥；迭代越多越抗暴力。…</p>
+<h2>核心功能</h2>
+<ul><li>从口令派生定长密钥，支持 SHA-1 / SHA-256 / SHA-384 / SHA-512</li><li>可指定盐值、迭代次数与输出长度，参数影响抗爆破强度</li><li>输出可选十六进制、Base64 或二进制字符串</li><li>用于复算与验证新旧实现的派生结果是否一致</li></ul>
+<h2>适用场景</h2>
+<ul><li>从口令派生加密密钥，带盐与迭代次数。</li><li>给已有系统做口令哈希迁移：按约定的盐、迭代次数与输出长度复算，确认与新实现结果一致后再切换。</li></ul>
+<h2>使用步骤</h2>
+<ol><li>输入要派生的口令（不要填明文密码以外的敏感信息）</li><li>填盐值：每个用户应各不相同，且长度不低于 16 字节</li><li>设迭代次数：口令哈希场景建议不低于 600000 次（OWASP 量级），密钥派生可低一些但别低于 10000</li><li>选择输出长度（字节）与输出格式</li><li>迁移旧系统时，用旧参数复算一遍并与库里的值比对，一致再切换新参数</li></ol>
+<h2>实用技巧</h2>
+<ul><li>同时每个口令必须用独立随机盐，并把算法参数与密文一起存储以便将来升级</li><li>给已有系统做口令哈希迁移：按约定的盐、迭代次数与输出长度复算，确认与新实现结果一致后再切换。</li></ul>
+<h2>常见问题</h2>
+<dl><dt>PBKDF2 与 bcrypt 怎么选？</dt><dd>存储口令二者皆可，PBKDF2 更通用，bcrypt 实现更简单安全。</dd><dt>迭代次数设多少合适？</dt><dd>原则是「在可接受延迟内取最大值」：常取使单次计算耗时约 100–250 毫秒的数值，随硬件提升逐年上调。OWASP 给出的参考量级是 PBKDF2-HMAC-SHA256 不少于 60 万次（会随时间调整）。同时每个口令必须用独立随机盐，并把算法参数与密文一起存储以便将来升级。</dd></dl>
+<div class="back"><a href="https://chenguangwu.github.io/tools/it/pbkdf2.html">→ 去使用 PBKDF2 密钥派生（免费 · 纯前端 · 数据不上传）</a></div>
+</main>
+<footer>© 2026 ToolBox · 纯前端在线工具 · 数据不上传，安全可靠</footer>
+</body>
+</html>

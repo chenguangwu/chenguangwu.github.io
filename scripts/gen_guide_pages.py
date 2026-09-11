@@ -111,6 +111,14 @@ def extract_tips(faqs, scenarios):
     return tips[:5] if tips else ['结果以工具实时计算为准，输入参数请使用真实数据。']
 
 
+def clean_plain(s):
+    """把 deep-dive 示例正文转成适合 intro 的纯文本：去 markdown 反引号/星号，压平换行。"""
+    s = re.sub(r'`([^`]*)`', r'「\1」', str(s))
+    s = s.replace('`', '').replace('**', '')
+    s = re.sub(r'\s+', ' ', s).strip()
+    return s
+
+
 def derive(v):
     title = v.get('title', '') or ''
     sc = v.get('scenarios', []) or []
@@ -122,7 +130,8 @@ def derive(v):
     tips = v.get('tips') or extract_tips(faqs, sc)
     faqs_pairs = [(f.get('q', ''), f.get('a', '')) for f in faqs] or [
         ('本工具适合谁用？', title + '适用于相关专业人员与爱好者，结果仅供参考。')]
-    intro = v.get('intro') or ((ex[0].get('body', '')[:90] + '…') if ex else title)
+    _raw_intro = clean_plain(ex[0].get('body', '')) if ex else ''
+    intro = v.get('intro') or ((_raw_intro[:110] + ('…' if len(_raw_intro) > 110 else '')) or title)
     desc = v.get('desc') or (title + '使用指南：' + (sc[0][:40] if sc else '提供专业在线计算与结果解读。'))
     return title, desc, intro, features, scenarios, steps, tips, faqs_pairs
 
@@ -131,6 +140,8 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('--industry', required=True)
     ap.add_argument('--slugs', default='', help='逗号分隔的 slug；留空则扫描该分类全部工具')
+    ap.add_argument('--prefix', default='',
+                    help='指南页文件名前缀（如 it-）。用于跨分类同名 slug，避免 guides/<slug>-guide.html 互相覆盖')
     ap.add_argument('--dry', action='store_true', help='只预览不落盘')
     args = ap.parse_args()
 
@@ -155,7 +166,7 @@ def main():
             skipped.append(key)
             continue
         title, desc, intro, features, scenarios, steps, tips, faqs_pairs = derive(v)
-        fn = '%s-guide.html' % slug
+        fn = '%s%s-guide.html' % (args.prefix, slug)
         canonical = '%s/guides/%s' % (SITE, fn)
         page = (TPL
                 .replace('{title}', html.escape(title))
@@ -193,15 +204,19 @@ def main():
     ip = os.path.join(GUIDES_DIR, 'index.html')
     if os.path.exists(ip) and guide_map:
         s = open(ip, encoding='utf-8').read()
+        # 去重：重跑脚本时已收录的指南不再重复插入（否则 index 会出现重复条目）
+        fresh = [m for m in guide_map if '/guides/%s' % m['guide'].split('/')[-1] not in s]
+        if not fresh:
+            print('guides/index.html 已含全部条目，跳过追加')
         new_li = ''.join(
             '<li><a href="https://chenguangwu.github.io/guides/%s-guide.html">%s使用指南</a>'
             '<span style="color:var(--muted);font-size:13px;"> — %s</span></li>'
             % (m['guide'].split('/')[-1].replace('-guide.html', ''), html.escape(m['title'].replace('使用指南', '')),
-               html.escape(desc[:50])) for m in guide_map)
-        if '</ul>' in s:
+               html.escape(desc[:50])) for m in fresh)
+        if '</ul>' in s and fresh:
             s = s.replace('</ul>', new_li + '</ul>', 1)
             open(ip, 'w', encoding='utf-8').write(s)
-            print('guides/index.html 追加 %d 条' % len(guide_map))
+            print('guides/index.html 追加 %d 条' % len(fresh))
 
     print('完成：生成 %d 篇，跳过 %d 篇' % (len(guide_map), len(skipped)))
     return 0
