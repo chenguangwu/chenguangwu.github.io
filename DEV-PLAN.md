@@ -145,10 +145,15 @@
 ## 七、已完成分类归档
 > 本区仅保留**最近一个（最新）已完成分类**的归档记录，更早历史不再保留，以控制文件体积。完成新分类时，用新记录替换本条。
 
-### ✅ pet-training（5 键 5 工具，5 真占位键；第四波漏报批次第 3/最后 1 分类真实化收口）
-- 全站 deep-dive 占位复扫发现的**第四波**真占位（模板变体：在{英文分类名}场景下，先使用{未翻译英文变量名}建立输入边界，后续再对关键指标拆分归因）。pet-training 5 键（leash-length/elimination-predict/command-repetition/treat-calories/clicker-timing）经 apply_pet_training.py 真实化：leash-length 最大可达=绳长+（0.5+体重/20），场景系数 urban0.6/park1.0/crowd0.4/trail0.7、制动距离=最大可达×0.3×反应系数（fast0.8/normal1.0/slow1.4）；elimination-predict 幼犬憋尿≈月龄+1小时（上限8h）、猫月龄+2小时（上限10h），排便窗 睡醒5min/饮水15-30min/玩耍10min；command-repetition 遗忘系数 s=难度系数×年龄因子(幼犬1.3/成年1.0/老犬1.4) 上限0.95、保留率=e^(−s·t/√次数)、8级间隔复习表；treat-calories 犬 RER=70×体重^0.75、猫 RER=40×体重+20，DER=RER×活动/绝育系数，零食≤每日10%；clicker-timing 绿点=行为出现、<200ms完美/<350优秀/<500良好/<800一般。示例数字全部 node 实跑复核（15kg犬1.5m绳城市可控净距≈0.82m、公园1.93m、人群0.28m、步道1.1m；口令5次/4h/中等保留率40.9%、8级表 1h后80%/4h后44%/12h后10%；10kg犬15kcal×5颗占比11.9%→最多4颗、4kg猫5kcal×3颗占比6.94%）。
-- HTML 三处残留：5 工具页 tool-intro-body **已是真实内容**（便溺/口令/零食/响片/牵引各自真实简介+features+scenes），与 photo2「设计创意」错位套话不同，**无需 clean 脚本**；5 工具页无 area2 opt 块、无 area3 FAQPage LD（仅 WebApplication+BreadcrumbList），双清不适用。deep-dive 区块经 _build.py 由 JSON 重建为真实内容。键数守恒 5022，英文变量名零残留。
-- 五道门禁全过（run_gates 完整 build+4 检查）。**第四波 3 分类（medical2/photo2/pet-training）共 15 键全部真实化收口，全站「建立输入边界」占位 = 0**。
+### ✅ automotive（53 工具，45 个 head-only 死壳全量重建，13 批收口）
+- **问题**：automotive 是 C 级薄内容最集中的分类——45 个页面为「head-only 死壳」（`<body>` 无开标签、无 UI 无 calc 逻辑、deep-dive 段被误置 `<head>` 致浏览器不渲染，线上打开一片空白），违反 AGENTS.md「不得只发布客户端空壳」。按 13 批（每批 2~7 页）逐页重建为完整工具。
+- **重建标准（每页统一）**：表单输入区 + 实时 calc + 结果卡 + formula-box（rich 判定 → A 级）+ 参考对照表 + 场景卡 + 注意事项；deep-dive 由 `<head>` 误置段改为 body 内 `<!-- TOOLBOX-DEEP-DIVE -->` 占位，交 `_build.py` 从 content_deepdive.json 重建。新增通用重建库 `scripts/auto_shell_lib.py` + 各批 `rebuild_automotive_batchN.py`。
+- **代表性工具**：fuel-economy 油耗 / engine-oil 机油黏度（SAE J300）/ tire-pressure 胎压 / oil-change 换油周期 / wear-brake 刹车盘 / lux-1 车灯光型照度 / maintenance-schedule 保养排程 / qichekongtiaoxuanxing 空调冷负荷选型 / recommender-6 胎压推荐 / shipping-cost-compare 运费比价 / speed-tire 轮胎规格 / tester-10 喷油嘴均衡 / tester-11 电池 CCA 与内阻 / time-maintenance 保养双阈值 / traffic-fine-calculator 违章记分（公安部令 163 号）/ xuanguatanhuangzunitexing 悬挂弹簧阻尼 / calc-1 百公里加速两段模型 / voltage-2 发电机电压调节与线路压降。
+- **deep-dive 校正**：多条 deep-dive 主题与页面口径完全不符（recommender-6「车型推荐匹配」、tester-10「四轮定位参数检测」、tester-11「尾气与 OBD 排放检测」等），逐条整条重写；其余按页面默认算例精确校准（indent=1 保持，diff 12~21 行/批）。
+- **发布前复核发现并修正的真实错误（全部 node 实跑确认）**：maintenance-schedule 剩余月数单位错误（月均里程被再除 12：机油 50 月 → 4.2 月）；lux-1 判定口径改为「折算 10 m 基准后比较」；qichekongtiaoxuanxing 环境温度原先不入计算 → 引入 COP 工况修正；recommender-6「同轴左右差」概念错误（p1/p2 实为前后轴）→ 改「前后压差」；tester-11 剩余可用期单位错误（按 3.5% 衰减输出「3 个月」实为年 → 改年均 5% 输出「3 年」）；time-maintenance 双阈值误用「里程折算月数」替代「时间周期剩余月数」（上次保养已 11 个月仍判「未到期」）；traffic-fine-calculator 累计满分仍提示「未满 12 分」，且 deep-dive 示例「超速 10%~20% 记 3 分」与 2022 版办法相悖（普通小型车超速 20% 以下不记分）；xuanguatanhuangzunitexing 默认参数不自洽（舒适取向却算出 1.69 Hz → 调为 f=1.33 Hz、ζ=0.30）；calc-1 为无输入控件的残缺页、batch11 脚本一处全角括号致 JS 语法错误。
+- **行业级终检**：53 页三方一致性（title = h1 = i18n 标题）+ deep-dive 仅注入 body + 每页均有 number/select 输入控件 → 0 异常。
+- **质量**：automotive C 44→0、A 9→53；全站 A 级 4993、B 1、C 0。
+- **发布**：13 批提交推送，每批发布前五道门禁全过、发布后 CI success 核验（如 #34564510877 / #34564624224 / #34564879326）。
 ## 八、当前进行中分类
 
 > 当前无进行中分类。新分类开工时先在此登记（目录 + 工具数），收口后写入第七节并覆盖旧归档记录（§4.3 第 4 步）。
