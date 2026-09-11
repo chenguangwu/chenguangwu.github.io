@@ -61,38 +61,6 @@
   ]
 }
 </script>
-<!-- TOOLBOX-DEEP-DIVE -->
-<style>
-.deep-dive{max-width:960px;margin:16px auto;padding:0 16px;}
-.deep-dive > .card{margin-bottom:0;}
-@media(max-width:600px){.deep-dive{margin:14px auto;padding:0 12px;}}
-.deep-dive .dd-list{margin:8px 0 16px;padding-left:20px;}
-.deep-dive .dd-list li{margin:6px 0;line-height:1.75;}
-.deep-dive .dd-example{background:var(--card-bg,#fff);border:1px solid var(--border,#eee);border-radius:10px;padding:12px 14px;margin:8px 0 16px;}
-.deep-dive .dd-ex-title{font-weight:600;color:var(--tool-accent,#FF6B35);margin-bottom:6px;}
-.deep-dive .dd-ex-body{font-size:13px;line-height:1.85;color:var(--text,#333);word-break:break-word;}
-.deep-dive .dd-faq{margin:8px 0 4px;}
-.deep-dive .dd-faq dt{font-weight:600;margin-top:10px;color:var(--text,#333);}
-.deep-dive .dd-faq dd{margin:4px 0 0;font-size:13px;line-height:1.85;color:var(--text-muted,#666);}
-
-</style>
-<section class="deep-dive" data-deep-dive="1">
-<div class="card">
-<h2>📚 深度解析：发动机功率/扭矩换算</h2>
-<h3>💡 常见使用场景</h3>
-<ul class="dd-list">
-<li>看参数表时把 kW 与 PS（公制马力）、hp（英制马力）互转，横向对比不同标注体系的车型。</li>
-<li>已知扭矩与转速求功率，或从功率与转速反推扭矩，校核厂家数据是否合理。</li>
-<li>改装后对比轮上功率与发动机标定功率，估算传动损耗比例。</li>
-</ul>
-<div class="dd-example"><div class="dd-ex-title">扭矩转速求功率</div><div class="dd-ex-body">某发动机最大扭矩 T=250N·m、对应转速 n=4000rpm；功率 P=T·2πn/60=250×2π×4000/60≈104.7kW；换算为 PS：1kW=1.36PS，约 142PS。若标注 110kW/150PS，说明峰值功率出现在更高转速，与扭矩点不同。</div></div>
-<h3>❓ 常见问题（FAQ）</h3>
-<dl class="dd-faq">
-<dt>kW、PS、hp 怎么换算？</dt><dd>1kW≈1.36PS（公制马力），1kW≈1.34hp（英制马力）。国内参数多用 kW，德系常标 PS，美系用 hp，三者差约 1–2%，对比时统一成一种再比。</dd>
-<dt>功率和扭矩到底看哪个？</dt><dd>扭矩决定低速爆发力与起步提速，功率决定极速与后段再加速。日常城市驾驶更感知扭矩，高速超车更依赖功率；两者峰值对应的转速区间同样重要。</dd>
-</dl>
-</div>
-</section>
 <meta name="title-en" content="Engine Power / Torque Converter">
 <meta name="desc-en" content="Convert engine power and torque">
 <!-- TOOLBOX-HREFLANG -->
@@ -135,5 +103,173 @@
 <script src="/js/analytics.js" defer></script>
 <!-- TOOLBOX-CLARITY -->
 </head>
+<body>
+<h1 class="sr-only">发动机功率/扭矩换算</h1>
+<div class="nav">
+  <a href="../../index.html">← ToolBox</a>
+  <span>/ 发动机功率/扭矩换算</span>
+  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()">🌙</button>
+</div>
+<nav class="breadcrumb" aria-label="面包屑导航" data-breadcrumb="1">
+  <a href="../../index.html">首页</a>
+  <span class="bc-sep">‹</span>
+  <a href="index.html">🚗 汽车交通</a>
+  <span class="bc-sep">‹</span>
+  <span class="bc-current">发动机功率/扭矩换算</span>
+</nav>
+<div class="container">
+  <div class="card tool-card-accent" style="--tool-accent:#0f766e;">
+    <h2 data-zh="⚙️ 发动机功率/扭矩换算">⚙️ Engine Power / Torque Converter</h2>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="在 kW、PS、hp 之间换算功率，并由扭矩与转速计算功率或反推扭矩，校核厂家参数。">Convert engine power and torque.</p>
+    <div class="input-row">
+      <div><label>发动机扭矩 (N·m)</label><input type="number" id="tq" value="250" oninput="calc()" min="0" step="any"></div>
+      <div><label>对应转速 (rpm)</label><input type="number" id="rpm" value="4000" oninput="calc()" min="0" step="any"></div>
+    </div>
+    <div class="input-row">
+      <div><label>已知功率 (kW，可留空)</label><input type="number" id="kw" value="" oninput="calc()" min="0" step="any"></div>
+      <div><label>反推转速 (rpm，留空按上行)</label><input type="number" id="rpm2" value="" oninput="calc()" min="0" step="any"></div>
+    </div>
+    <div class="safe-main" id="result"></div>
+    <div class="dist-grid" id="distGrid"></div>
+    <div class="formula-box" id="formulaBox"></div>
+    <div id="adviceBox"></div>
+  </div>
+  <div class="card">
+    <h3>📖 功率单位与换算系数</h3>
+    <table style="width:100%;border-collapse:collapse;font-size:13px;margin-bottom:12px;">
+      <tr>
+        <th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--border,#e5e7eb);">单位</th>
+        <th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--border,#e5e7eb);">定义</th>
+        <th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--border,#e5e7eb);">使用地区</th>
+      </tr>
+      <tr><td style="padding:6px 8px;">kW 千瓦</td><td style="padding:6px 8px;">国际单位制功率</td><td style="padding:6px 8px;">中国大陆、欧洲参数表</td></tr>
+      <tr><td style="padding:6px 8px;">PS 公制马力</td><td style="padding:6px 8px;">1PS = 735.5W</td><td style="padding:6px 8px;">德系、日系部分标注</td></tr>
+      <tr><td style="padding:6px 8px;">hp 英制马力</td><td style="padding:6px 8px;">1hp = 745.7W</td><td style="padding:6px 8px;">美系、英制市场</td></tr>
+    </table>
+    <div class="scene-card">
+      <h4>↔️ 换算关系</h4>
+      <p>1kW ≈ 1.360PS ≈ 1.341hp；1PS ≈ 0.7355kW；1hp ≈ 0.7457kW。三者相差约 1%~2%，对比不同市场车型时务必统一单位。</p>
+    </div>
+    <div class="scene-card">
+      <h4>📈 扭矩与功率的关系</h4>
+      <p>功率 = 扭矩 × 角速度。同一扭矩下转速越高功率越大，因此最大功率点总出现在高转速区，而最大扭矩点多在中等转速。</p>
+    </div>
+    <div class="info-box">💡 厂家标注的峰值功率与峰值扭矩往往不在同一转速，比较动力时应同时看「数值 + 对应转速区间」。</div>
+  </div>
+<!-- TOOLBOX-DEEP-DIVE -->
+<style>
+.deep-dive{max-width:960px;margin:16px auto;padding:0 16px;}
+.deep-dive > .card{margin-bottom:0;}
+@media(max-width:600px){.deep-dive{margin:14px auto;padding:0 12px;}}
+.deep-dive .dd-list{margin:8px 0 16px;padding-left:20px;}
+.deep-dive .dd-list li{margin:6px 0;line-height:1.75;}
+.deep-dive .dd-example{background:var(--card-bg,#fff);border:1px solid var(--border,#eee);border-radius:10px;padding:12px 14px;margin:8px 0 16px;}
+.deep-dive .dd-ex-title{font-weight:600;color:var(--tool-accent,#FF6B35);margin-bottom:6px;}
+.deep-dive .dd-ex-body{font-size:13px;line-height:1.85;color:var(--text,#333);word-break:break-word;}
+.deep-dive .dd-faq{margin:8px 0 4px;}
+.deep-dive .dd-faq dt{font-weight:600;margin-top:10px;color:var(--text,#333);}
+.deep-dive .dd-faq dd{margin:4px 0 0;font-size:13px;line-height:1.85;color:var(--text-muted,#666);}
+
+</style>
+<section class="deep-dive" data-deep-dive="1">
+<div class="card">
+<h2>📚 深度解析：发动机功率/扭矩换算</h2>
+<h3>💡 常见使用场景</h3>
+<ul class="dd-list">
+<li>看参数表时把 kW 与 PS（公制马力）、hp（英制马力）互转，横向对比不同标注体系的车型。</li>
+<li>已知扭矩与转速求功率，或从功率与转速反推扭矩，校核厂家数据是否合理。</li>
+<li>改装后对比轮上功率与发动机标定功率，估算传动损耗比例。</li>
+</ul>
+<div class="dd-example"><div class="dd-ex-title">扭矩转速求功率</div><div class="dd-ex-body">某发动机最大扭矩 T=250N·m、对应转速 n=4000rpm；功率 P=T·2πn/60=250×2π×4000/60≈104.7kW；换算为 PS：1kW=1.36PS，约 142PS。若标注 110kW/150PS，说明峰值功率出现在更高转速，与扭矩点不同。</div></div>
+<h3>❓ 常见问题（FAQ）</h3>
+<dl class="dd-faq">
+<dt>kW、PS、hp 怎么换算？</dt><dd>1kW≈1.36PS（公制马力），1kW≈1.34hp（英制马力）。国内参数多用 kW，德系常标 PS，美系用 hp，三者差约 1–2%，对比时统一成一种再比。</dd>
+<dt>功率和扭矩到底看哪个？</dt><dd>扭矩决定低速爆发力与起步提速，功率决定极速与后段再加速。日常城市驾驶更感知扭矩，高速超车更依赖功率；两者峰值对应的转速区间同样重要。</dd>
+</dl>
+</div>
+</section>
+<!-- 注意事项区块 -->
+<div class="tool-notes" style="--tool-accent:#0f766e;">
+  <div class="tool-notes-title">⚠️ 使用说明与注意事项</div>
+  <ul>
+    <li>本工具纯前端运行，数据不会上传到服务器</li>
+    <li>建议在主流浏览器（Chrome/Safari/Firefox/Edge）中使用</li>
+    <li>换算系数为国际标准值，各厂商标注口径可能略有取整差异</li>
+  </ul>
+</div>
+</div>
+<!-- 相关工具 -->
+<div class="related-tools" data-related-tools="1">
+  <h3 class="related-tools-title">🔗 相关工具</h3>
+  <div class="related-tools-grid">
+    <a href="recommender-6.html" class="related-tool-card">
+      <span class="rt-icon">🚙</span>
+      <span class="rt-info"><span class="rt-name">胎压（监测/充气）推荐</span><span class="rt-desc">胎压（监测/充气）推荐</span></span>
+    </a>
+    <a href="oil-change-countdown.html" class="related-tool-card">
+      <span class="rt-icon">🛢️</span>
+      <span class="rt-info"><span class="rt-name">机油更换倒计时</span><span class="rt-desc">机油更换倒计时</span></span>
+    </a>
+    <a href="countdown-engine-oil.html" class="related-tool-card">
+      <span class="rt-icon">🛢️</span>
+      <span class="rt-info"><span class="rt-name">机油更换里程倒计时</span><span class="rt-desc">机油更换里程倒计时</span></span>
+    </a>
+    <a href="calc-3.html" class="related-tool-card">
+      <span class="rt-icon">🛞</span>
+      <span class="rt-info"><span class="rt-name">轮胎胎压换算</span><span class="rt-desc">轮胎胎压换算</span></span>
+    </a>
+    <a href="transport-calculator.html" class="related-tool-card">
+      <span class="rt-icon">🚗</span>
+      <span class="rt-info"><span class="rt-name">交通物流计算器</span><span class="rt-desc">交通物流计算器</span></span>
+    </a>
+    <a href="wear-brake.html" class="related-tool-card">
+      <span class="rt-icon">🚗</span>
+      <span class="rt-info"><span class="rt-name">刹车片磨损限度</span><span class="rt-desc">刹车片磨损限度</span></span>
+    </a>
+  </div>
+</div>
+<script>
+function fmtNum(n,d){d=d==null?2:d;if(!isFinite(n))return '--';return parseFloat(n.toFixed(d)).toString();}
+function val(id){return parseFloat(document.getElementById(id).value);}
+function str(id){return document.getElementById(id).value;}
+var K_PS=1.35962, K_HP=1.34102;
+function calc(){
+  var R=document.getElementById('result'),G=document.getElementById('distGrid'),
+      F=document.getElementById('formulaBox'),A=document.getElementById('adviceBox');
+  var tq=val('tq'),rpm=val('rpm');
+  var kwIn=parseFloat(document.getElementById('kw').value);
+  var rpm2=parseFloat(document.getElementById('rpm2').value);
+  var kw,ps,hp,usedRpm;
+  if(!isNaN(kwIn)&&kwIn>0){
+    kw=kwIn; usedRpm=(!isNaN(rpm2)&&rpm2>0)?rpm2:rpm;
+    tq=(usedRpm>0)?kw*9550/usedRpm:NaN;
+  } else {
+    if(isNaN(tq)||isNaN(rpm)||rpm<=0){
+      R.innerHTML='<div class="safe-val">--</div><div class="safe-sub">请输入扭矩与转速，或直接输入功率</div>';
+      G.innerHTML='';F.innerHTML='';A.innerHTML='';return;
+    }
+    usedRpm=rpm;
+    kw=tq*2*Math.PI*rpm/60/1000;
+  }
+  ps=kw*K_PS; hp=kw*K_HP;
+  R.innerHTML='<div class="safe-val">'+fmtNum(kw,1)+' kW</div>'+
+    '<div class="safe-sub">'+fmtNum(ps,0)+' PS · '+fmtNum(hp,0)+' hp · 扭矩 '+fmtNum(tq,1)+' N·m @ '+fmtNum(usedRpm,0)+' rpm</div>';
+  G.innerHTML=
+    '<div class="dist-card"><div class="v">'+fmtNum(kw,1)+'</div><div class="l">功率 (kW)</div></div>'+
+    '<div class="dist-card"><div class="v">'+fmtNum(ps,0)+'</div><div class="l">功率 (PS 公制)</div></div>'+
+    '<div class="dist-card"><div class="v">'+fmtNum(hp,0)+'</div><div class="l">功率 (hp 英制)</div></div>'+
+    '<div class="dist-card"><div class="v">'+fmtNum(tq,1)+'</div><div class="l">扭矩 (N·m)</div></div>'+
+    '<div class="dist-card"><div class="v">'+fmtNum(usedRpm,0)+'</div><div class="l">对应转速 (rpm)</div></div>'+
+    '<div class="dist-card"><div class="v">'+fmtNum(tq*2*Math.PI*usedRpm/60/1000/(kw>0?kw:1)*100,0)+'%</div><div class="l">功率构成校验</div></div>';
+  F.innerHTML=
+    '<div class="fb-title">核心公式</div>'+
+    '<div class="fb-row">功率 P(kW) = 扭矩 T(N·m) × 2π × 转速 n(rpm) ÷ 60 ÷ 1000</div>'+
+    '<div class="fb-row">反推扭矩 T = 9550 × P(kW) ÷ n(rpm)</div>'+
+    '<div class="fb-row">PS = kW × 1.35962；hp = kW × 1.34102</div>'+
+    '<div class="fb-row">本次：'+fmtNum(tq,1)+' N·m @ '+fmtNum(usedRpm,0)+' rpm → '+fmtNum(kw,2)+' kW</div>';
+  A.innerHTML='<div class="tip-info">ℹ️ 峰值功率出现在高转速区、峰值扭矩在中低转速区，两者不可互换表述。改装后实测轮上功率通常为标定功率的 85%~92%（传动损耗）。</div>';
+}
+calc();
+</script>
 </body>
 </html>

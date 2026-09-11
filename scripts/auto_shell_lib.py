@@ -115,7 +115,8 @@ def rebuild(slug, head_subs=None, **kwargs):
         'head_deepdive': '<!-- TOOLBOX-DEEP-DIVE -->' in full.split('</head>')[0],
     }
     if not (checks['<body>'] and checks['</body>'] and checks['formula-box']
-            and checks['input'] >= 3 and checks['calc'] and not checks['head_deepdive']):
+            and (checks['input'] + checks['select']) >= 3 and checks['calc']
+            and not checks['head_deepdive']):
         return False, '自检未通过: %s' % checks
     open(p, 'w', encoding='utf-8').write(full)
     return True, 'ok inputs=%d lines=%d' % (checks['input'], full.count('\n'))
