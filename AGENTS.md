@@ -711,6 +711,18 @@ python3 -m http.server 8765
 
 ---
 
-> **最后更新**：2026-09-11（新增「§ 项目特有坑与速查」；新增「页面内容与 _build.py 的交互」——`_prerender_tool_body` 首个 `<p>` 预渲染的三个陷阱与审计须查占位指纹）
+## 热度排序约定（2026-09-12，老板明确要求）
+
+- **全站「分类内工具」与「分类本身」的排序统一按热度分 `hot`（整数，越大越热），不再按工具名(name) 字母序排序。**
+- `hot` 由 `_build.py` 的 `compute_hot()` 在 `main()` 统一计算并持久化进 `json/tools.json`，所有入口消费：
+  - 分类页 `tools/<ind>/index.html` → `_build.py` 的 `generate_category_indexes`（按 `hot_sort_key`）
+  - 站点地图页 `sitemap.html` → `_build.py` 的 `generate_html_sitemap`（工具 + 分类段均按热度）
+  - 导航 mega menu → `scripts/gen_industry_groups.py` 的 `tool_sort_key`（工具、子行业、一级分类均按热度）
+  - 首页 → `js/app.js`（面包屑/热门行业直达/选中分类工具）+ `scripts/gen_industry_info.py` 给 `INDUSTRY_INFO` 注入聚合 `hot`
+  - 运行时分类页 → 消费 `json/industry-<ind>.json`（`generate_split_jsons` 已按热度排序）
+- **口径**：`hot-tools.json` 的 80 个「编辑精选热门工具」（老板用多 AI 整合的排名）作为热度金字塔顶端，严格保持原序不动；其余工具由 `compute_hot()` 按「通用工具类型权重（参考热门工具类型分布：转换器/计算器/生成器/编解码/哈希/二维码/密码/时间戳…）+ 质量等级 + 可发现性 + 分类加成」给确定性热度分（模型可复现、构建幂等、不抖动）。
+- ⚠️ **后续新增工具页**：无需手动排序——`main()` 会为所有工具（含新增）计算 `hot`，自动按热度排。**禁止在任一生成函数里改回按 `name`/`file` 排序**。真实流量（51.la URL 级接口 / GSC 逐页 clicks·impressions）到位后，只需重算 `hot` 字段即可，排序逻辑无需改动。
+
+> **最后更新**：2026-09-12（新增「§ 热度排序约定」——全站分类内工具与分类本身统一按热度分 `hot` 排序，新增工具自动按热度排）
 > 
 > 本文件是 AI 开发本项目的权威指南，如有疑问以本文件为准。

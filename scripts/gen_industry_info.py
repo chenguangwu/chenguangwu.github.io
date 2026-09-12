@@ -149,6 +149,12 @@ def extract_info(key):
 
 def main():
     tools = json.load(open(os.path.join(ROOT, 'json', 'tools.json'), encoding='utf-8'))
+    # 分类聚合热度（供首页按热度给行业排序；hot 字段由 _build.py 统一计算并写入 tools.json）
+    agg_hot = {}
+    for t in tools:
+        ind = t.get('industry')
+        if ind:
+            agg_hot[ind] = agg_hot.get(ind, 0) + t.get('hot', 0)
     inds = sorted({t.get('industry') for t in tools if t.get('industry')})
 
     rows = []
@@ -173,11 +179,11 @@ def main():
         # 说明：INDUSTRY_DEFS[0] 已补全语义 emoji（无 🔧），作为分类图标的单一权威源，
         # 与行业页 H1 / sitemap / 面包屑保持一致；ICON_MAP 仅作手工微调覆盖（一般保持同步）。
         icon = _INDUSTRY_DEFS.get(k, (DEFAULT_ICON, k))[0] or ICON_MAP.get(k) or h1_icon or DEFAULT_ICON
-        rows.append((k, name, icon))
+        rows.append((k, name, icon, agg_hot.get(k, 0)))
 
     # 同名检测（导航里两个相同中文名会造成困惑，告警但不阻塞）
     from collections import Counter
-    dup = [n for n, c in Counter(n for _, n, _ in rows).items() if c > 1]
+    dup = [n for n, c in Counter(n for _, n, _, _ in rows).items() if c > 1]
     if dup:
         print(f'⚠️  重复中文名 {len(dup)} 个: {dup}')
     if missing:
@@ -189,10 +195,12 @@ def main():
         '/* 数据来源：_build.py INDUSTRY_DEFS 短名（权威，268/268）+ 语义 emoji 映射；仅显示用短名，描述走页面 meta */',
         'window.INDUSTRY_INFO = {',
     ]
-    width = max(len(k) for k, _, _ in rows)
-    for k, name, icon in rows:
+    # 行业按聚合热度降序输出（首页「查看全部行业」与默认展示置顶最热分类）
+    rows.sort(key=lambda r: -r[3])
+    width = max(len(k) for k, _, _, _ in rows)
+    for k, name, icon, hot in rows:
         # key 含连字符（如 auto-beauty），必须加引号，否则 JS 语法错误
-        lines.append(f"  '{k}'".ljust(width + 4) + f": {{ name: '{name}', icon: '{icon}' }},")
+        lines.append(f"  '{k}'".ljust(width + 4) + f": {{ name: '{name}', icon: '{icon}', hot: {hot} }},")
     lines.append('};')
     lines.append('')
     out = os.path.join(ROOT, 'js', 'industry-info.js')

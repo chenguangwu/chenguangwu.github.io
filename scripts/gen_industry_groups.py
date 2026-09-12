@@ -67,7 +67,8 @@ def clip(s, n=32):
 
 
 def tool_sort_key(t):
-    return (QUALITY_ORDER.get(t.get('quality', 'C'), 3), t.get('file', ''))
+    # 分类内工具按热度降序（参考 _build.py 热度排序模型）；同热度时质量优先、再按文件名稳定
+    return (-t.get('hot', 0), QUALITY_ORDER.get(t.get('quality', 'C'), 3), t.get('file', ''))
 
 # 一级分类：(group_key, 中文名, icon, 英文名) —— 英文名供英文态导航使用
 GROUPS = [
@@ -258,6 +259,13 @@ def main():
         if ind:
             counts[ind] = counts.get(ind, 0) + 1
 
+    # 分类聚合热度（子行业/一级分类按热度排序用）
+    agg_hot = {}
+    for t in tools:
+        ind = t.get('industry')
+        if ind:
+            agg_hot[ind] = agg_hot.get(ind, 0) + t.get('hot', 0)
+
     # 从 js/industry-info.js 提取中文名/图标（正则读 JS 对象，不 eval）
     info_src = open(os.path.join(ROOT, 'js', 'industry-info.js'), encoding='utf-8').read()
     m = re.search(r'window\.INDUSTRY_INFO = \{(.*?)\n\};', info_src, re.S)
@@ -305,15 +313,17 @@ def main():
             })
         grouped.setdefault(gk, []).append({
             'key': key, 'name': info['name'], 'en': key_to_en(key), 'icon': info['icon'],
-            'count': c, 'top': top,
+            'count': c, 'top': top, 'hot': agg_hot.get(key, 0),
         })
 
-    # 每个一级分类内按工具数降序
+    # 每个一级分类内按聚合热度降序（分类排序页需求）
     for gk in grouped:
-        grouped[gk].sort(key=lambda x: -x['count'])
+        grouped[gk].sort(key=lambda x: -x.get('hot', 0))
 
+    # 一级分类按聚合热度降序
+    group_hot = {gk: sum(c.get('hot', 0) for c in grouped[gk]) for gk in grouped}
     out = []
-    for gk, gname, gicon, gename in GROUPS:
+    for gk, gname, gicon, gename in sorted(GROUPS, key=lambda g: -group_hot.get(g[0], 0)):
         out.append({
             'key': gk,
             'name': gname,

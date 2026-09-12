@@ -180,8 +180,8 @@ function renderBreadcrumbNav() {
   const entries = Object.entries(INDUSTRY_INFO).map(([key, info]) => ({
     key, info, count: counts[key] || 0
   }));
-  // 按工具数量降序排序，数量相同的按名称
-  entries.sort((a, b) => b.count - a.count || a.info.name.localeCompare(b.info.name, 'zh'));
+  // 按聚合热度降序排序（参考 _build.py 热度排序模型），同热度按工具数、再按名称
+  entries.sort((a, b) => (b.info.hot || 0) - (a.info.hot || 0) || b.count - a.count || a.info.name.localeCompare(b.info.name, 'zh'));
   const DEFAULT_VISIBLE = 16; // 4列 x 4行，分批展示
   const visibleEntries = breadcrumbExpanded ? entries : entries.slice(0, DEFAULT_VISIBLE);
   const hasMore = entries.length > DEFAULT_VISIBLE;
@@ -282,7 +282,7 @@ function renderExploreGuide() {
   const top = Object.entries(INDUSTRY_INFO)
     .map(([k, v]) => ({ k, ...v, count: counts[k] || 0 }))
     .filter(x => x.count > 0)
-    .sort((a, b) => b.count - a.count)
+    .sort((a, b) => (b.hot || 0) - (a.hot || 0) || b.count - a.count)
     .slice(0, 10);
   const chips = top.map(x =>
     `<a class="guide-chip" href="tools/${x.k}/index.html"><span class="gc-icon">${x.icon}</span><span class="gc-name">${_ind(x, x.k)}</span><span class="gc-count">${x.count}</span></a>`
@@ -308,8 +308,10 @@ function renderCategoryBrowse(cat) {
   const titleEl = document.getElementById('toolsGridTitle');
   if (titleEl) titleEl.textContent = `${info.icon} ${_cat(info, cat)}`;
   let tools = (allSearchIndex || []).filter(t => t.c === cat)
-    .map(t => ({ n: t.n, d: t.d, i: t.i, c: t.c, u: t.u, ic: t.ic, b: t.b, q: t.q, en: t.en, ed: t.ed }));
+    .map(t => ({ n: t.n, d: t.d, i: t.i, c: t.c, u: t.u, ic: t.ic, b: t.b, q: t.q, en: t.en, ed: t.ed, hot: t.hot }));
   tools = applyQuality(tools);
+  // 分类内工具按热度降序（hot 字段由 _build.py 统一计算并写入 tools.json）
+  tools.sort((a, b) => (b.hot || 0) - (a.hot || 0));
   const countEl = document.getElementById('resultCount');
   if (countEl) countEl.textContent = `${tools.length} ${_t('cat.suffix_tools', '个工具')}`;
   const grid = document.getElementById('toolsGrid');

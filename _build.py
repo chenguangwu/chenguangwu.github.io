@@ -105,6 +105,142 @@ except Exception:
 
 HOT_TOOL_URL_SET = set(HOT_TOOL_URLS)
 
+# ============================================================
+# 热度排序模型（2026-09-12）
+# ------------------------------------------------------------
+# 全站「分类内工具」与「分类本身」的排序统一改用热度分 hot（整数，越大越热）。
+# 数据现状：51.la 仅站点级概览、URL 级接口被限流(5005)；GSC 无逐页表现导出，
+# 故无逐工具真实访问量。口径（老板定）：
+#   1) hot-tools.json 的 80 个「编辑精选热门工具」（老板用多 AI 整合的排名）作为热度金字塔
+#      顶端，严格保持原顺序不动（HOT_TIER_BASE - 排名）。
+#   2) 其余工具：由确定性评分模型 compute_hot() 根据工具名/语义分析初始化热度分，
+#      权重参考热门工具的类型分布（转换器/计算器/生成器/编解码/哈希/二维码/密码/时间戳…
+#      这类通用工具天然高流量），叠加质量等级与可发现性。模型可复现、可构建幂等、不抖动。
+#   3) hot 持久化进 tools.json，所有入口（分类页/导航/站点地图/首页）按 hot 降序；
+#      分类本身按聚合 hot 降序。新增工具在 main() 统一计算 hot，自动按热度排。
+# 真正流量到位后，只需用真实 PV/CTR 重算 hot 字段即可，排序逻辑无需改动。
+# ⚠️ 后续新增工具页：务必在 main() 计算 hot（已统一处理），不要改回按 name 排序。
+# ============================================================
+HOT_RANK = {url: i for i, url in enumerate(HOT_TOOL_URLS)}  # 0..79，越小越热
+HOT_TIER_BASE = 1000000   # 热门工具热度起点，确保整体高于非热门（非热门上限约 <20000）
+
+QUALITY_RANK = {'A': 0, 'B': 1, 'C': 2, 'D': 3}
+
+# 通用高流量工具类型权重（参考热门工具类型分布 + 通用工具站经验）。
+# 英文键按「词 token」匹配（slug/en 切分后成员判定，避免 age∈package 类误命中）；
+# 中文键按工具名子串匹配（中文关键词区分度高，误命中极低）。
+UTILITY_WEIGHTS = {
+    # 转换器/换算/计算（最高流量）
+    'converter': 3000, 'convert': 3000, '换算': 3000, '转换': 3000,
+    'calculator': 3000, 'calc': 3000, '计算': 3000, '计算器': 3000,
+    # 生成器
+    'generator': 2500, 'generate': 2500, '生成': 2500, '生成器': 2500,
+    # 格式化
+    'formatter': 2200, 'format': 2200, '格式化': 2200,
+    # 编解码/加密
+    'encoder': 2200, 'encode': 2200, '编解码': 2200, '编码': 2200, '解码': 2200,
+    'encrypt': 1500, '加密': 1500, 'decrypt': 1500, '解密': 1500,
+    # 二维码/密码/哈希/时间戳
+    'qr': 2000, '二维码': 2000,
+    'password': 2000, '密码': 2000,
+    'hash': 1800, '哈希': 1800, 'md5': 1800, 'sha': 1800,
+    'timestamp': 1800, '时间戳': 1800,
+    # 校验/验证
+    'validator': 1800, 'validate': 1800, '校验': 1800, '验证': 1800,
+    # 压缩/混淆
+    'compress': 1500, '压缩': 1500, 'minify': 1500, 'minifier': 1500,
+    # 取色/调色/颜色
+    'picker': 1500, '取色': 1500, '调色': 1500, 'color': 1000, '颜色': 1000, '色彩': 1000,
+    # 对比/差异
+    'diff': 1200, '对比': 1200, '比较': 1200, '差异': 1200,
+    # 合并/分割
+    'merge': 1200, 'split': 1200, '合并': 1200, '分割': 1200, '拆分': 1200,
+    # 计数/统计
+    'count': 1200, '计数': 1200, '字数': 1200, '统计': 1200,
+    # 随机
+    'random': 1200, '随机': 1200,
+    # 时间/日期/时区
+    'clock': 1200, '时间': 1200, '时钟': 1200, 'date': 1200, '日期': 1200,
+    'timezone': 1000, '时区': 1000, 'zone': 1000, '世界': 1000,
+    # 图片/图像
+    'image': 1000, '图片': 1000, '图像': 1000,
+    'resizer': 1000, 'resize': 1000, '缩放': 1000, 'crop': 1000, '裁剪': 1000,
+    'watermark': 800, '水印': 800, 'favicon': 800, 'gradient': 1000, '渐变': 1000,
+    # PDF / 文档
+    'pdf': 1000,
+    # 数据格式
+    'json': 800, 'csv': 800, 'yaml': 800, 'xml': 800, 'sql': 800, 'html': 800,
+    'css': 800, 'markdown': 800, '正则': 1000, 'regex': 1000, 'cron': 1000, 'jwt': 1000,
+    # 网络/URL
+    'url': 1000, '网址': 1000, '域名': 1000,
+    # 翻译/简繁
+    'translate': 1200, '翻译': 1200, '简繁': 1200, '繁体': 1200,
+    # 生活/财务通用
+    'interest': 800, '利率': 800, '利息': 800, 'loan': 800, '贷款': 800, '房贷': 800,
+    'mortgage': 800, '复利': 800, '税务': 800, '税': 800, 'tax': 800,
+    'age': 800, '年龄': 800, 'bmi': 800, '体重': 800, '卡路里': 800, 'calorie': 800,
+    '孕期': 800, '预算': 800, 'budget': 800, '小费': 800, 'tip': 800, '折扣': 800,
+    'discount': 800, '百分比': 800, 'percentage': 800, 'roi': 800, 'gpa': 800, '成绩': 800,
+    'uuid': 800,
+}
+# 分类加成：核心通用工具分类整体更可能被使用
+_HOT_CAT_BOOST = 500
+_HOT_CATS = {'convert', 'calculator', 'finance', 'encode', 'generate', 'dev', 'text', 'design', 'life'}
+
+
+def _tool_hot_text_tokens(tool):
+    """返回 (中文名文本, 英文小写 token 集合) 用于热度匹配。"""
+    name = (tool.get('name') or '')
+    en = (tool.get('en') or '')
+    slug = (tool.get('file') or '').replace('.html', '')
+    al = tool.get('al') or []
+    toks = set()
+    for s in (en, slug):
+        for tok in str(s).lower().replace('.html', '').replace('_', '-').split('-'):
+            if tok:
+                toks.add(tok)
+    for a in al:
+        for tok in str(a).lower().split():
+            if tok:
+                toks.add(tok)
+    return name, toks
+
+
+def compute_hot(tool):
+    """返回工具热度分（整数，越大越热）。确定性、可复现。
+
+    - 编辑精选热门工具：HOT_TIER_BASE - 其排名（严格保持 hot-tools.json 原序）。
+    - 其余工具：质量等级 + 通用工具类型权重(参考热门类型分布) + 可发现性 + 分类加成。
+    """
+    url = tool.get('url')
+    if url in HOT_RANK:
+        return HOT_TIER_BASE - HOT_RANK[url]   # 0 名最高=1,000,000 … 79 名=921,000
+    score = 0
+    q = tool.get('quality', 'C')
+    score += {'A': 5000, 'B': 2500, 'C': 800, 'D': 200}.get(q, 800)
+    name_zh, toks = _tool_hot_text_tokens(tool)
+    for tok, w in UTILITY_WEIGHTS.items():
+        if tok.isascii():
+            if tok in toks:
+                score += w
+        else:
+            if tok in name_zh:
+                score += w
+    # 可发现性：别名/关键词越多越易被搜到 → 间接反映潜在使用
+    al = tool.get('al') or []
+    score += min(len(al) * 6, 500)
+    d = tool.get('d') or tool.get('desc') or ''
+    score += min(len(d) // 8, 300)
+    if tool.get('cat') in _HOT_CATS:
+        score += _HOT_CAT_BOOST
+    return score
+
+
+def hot_sort_key(tool):
+    """统一排序键：热度降序 → 质量升序(同热度时 A 在前) → 名称(稳定)。"""
+    return (-tool.get('hot', 0), QUALITY_RANK.get(tool.get('quality', 'C'), 3), tool.get('name', ''))
+
+
 # 高频可见工具英文覆盖字典（scripts/gen_en_override.py 生成，AI 批量预翻）
 OVERRIDE_PATH = os.path.join(ROOT, 'i18n', 'tools', '_en_override.json')
 try:
@@ -1796,6 +1932,7 @@ def generate_split_jsons(tools):
             apply_en_override(t)
             t['ed'] = TDS.en_desc(t, max_len=60)   # 与 tools.json / 导航共用单一权威英文描述
             t['d'] = compute_zh_desc(t)   # 治本：补中文 d，消除 SPA 网格中文模式英文描述泄漏
+        items = sorted(items, key=hot_sort_key)   # 行业内工具按热度降序（驱动运行时分类页/导航）
         path = os.path.join(json_dir, 'industry-%s.json' % ind)
         with open(path, 'w', encoding='utf-8') as f:
             json.dump(items, f, ensure_ascii=False, indent=2)
@@ -2059,6 +2196,8 @@ def generate_html_sitemap(tools):
         if ind not in ind_tools:
             ind_tools[ind] = []
         ind_tools[ind].append(t)
+    # 分类聚合热度（分类自身按热度排序用）
+    agg_hot = {ind: sum(t.get('hot', 0) for t in tl) for ind, tl in ind_tools.items()}
     
     ind_order = [
         'it','ai','data','engineering','electronics',
@@ -2114,7 +2253,7 @@ html:not([lang="en-US"]) .tool-link .t-en{display:none !important;}
 <p class="subtitle"><span data-i18n="sitemap.subtitle_a" data-i18n-fb="站点地图 · 共 ">站点地图 · 共 </span>%d<span data-i18n="sitemap.subtitle_b" data-i18n-fb=" 个免费在线工具 · 更新于 "> 个免费在线工具 · 更新于 </span>%s</p>
 ''' % (len(tools), today)
     
-    for ind in ind_order:
+    for ind in sorted([i for i in ind_order if i in ind_tools], key=lambda i: -agg_hot.get(i, 0)):
         if ind not in ind_tools:
             continue
         tlist = ind_tools[ind]
@@ -2123,17 +2262,17 @@ html:not([lang="en-US"]) .tool-link .t-en{display:none !important;}
         name = ind_def[1]
         html += f'<h2>{icon} <span data-i18n="ind_{ind}" data-i18n-fb="{name}">{name}</span><span class="count">({len(tlist)}<span data-i18n="sitemap.count_suffix" data-i18n-fb="个工具">个工具</span>)</span></h2>\n'
         html += '<div class="grid">\n'
-        for t in sorted(tlist, key=lambda x: x['name']):
+        for t in sorted(tlist, key=hot_sort_key):
             html += f'  <a class="tool-link" href="/{t["url"]}"><span class="t-zh">{t["icon"]} {t["name"]}</span><span class="t-en">{t["icon"]} {t.get("en") or t["name"]}</span></a>\n'
         html += '</div>\n'
     
-    for ind in sorted(ind_tools.keys()):
+    for ind in sorted(ind_tools.keys(), key=lambda i: -agg_hot.get(i, 0)):
         if ind not in ind_order:
             tlist = ind_tools[ind]
             _def = INDUSTRY_DEFS.get(ind, ('🗂️', ind))
             html += f'<h2>{_def[0]} <span data-i18n="ind_{ind}" data-i18n-fb="{_def[1]}">{_def[1]}</span><span class="count">({len(tlist)}<span data-i18n="sitemap.count_suffix" data-i18n-fb="个工具">个工具</span>)</span></h2>\n'
             html += '<div class="grid">\n'
-            for t in sorted(tlist, key=lambda x: x['name']):
+            for t in sorted(tlist, key=hot_sort_key):
                 html += f'  <a class="tool-link" href="/{t["url"]}"><span class="t-zh">{t["icon"]} {t["name"]}</span><span class="t-en">{t["icon"]} {t.get("en") or t["name"]}</span></a>\n'
             html += '</div>\n'
     
@@ -3336,7 +3475,7 @@ def generate_category_indexes(tools):
         ind_dir = os.path.join(TOOLS_DIR, ind)
         os.makedirs(ind_dir, exist_ok=True)
 
-        ind_tools_sorted = sorted(ind_tools, key=lambda x: x['name'])
+        ind_tools_sorted = sorted(ind_tools, key=hot_sort_key)
         count = len(ind_tools_sorted)
         en_name = _IND_EN.get(ind, ind_name)
         # 自动差异化 SEO 内容（scripts/category_auto_content.py）：基于该行业真实工具列表
@@ -3615,6 +3754,10 @@ def main():
             t['py'] = title_pinyin(t.get('name', ''))
         if 'pyi' not in t:
             t['pyi'] = title_pinyin_initials(t.get('name', ''))
+        # 热度分：统一在 main() 计算并持久化到 tools.json（见顶部热度排序模型说明）。
+        # 新增工具自动获得 hot，全站按 hot 降序排序，无需在各生成函数里重复算。
+        if 'hot' not in t:
+            t['hot'] = compute_hot(t)
 
     # Save tools.json to json/ directory
     os.makedirs(os.path.dirname(TOOLS_JSON_FILE), exist_ok=True)
