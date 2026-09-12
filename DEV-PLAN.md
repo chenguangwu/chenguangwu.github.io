@@ -156,6 +156,8 @@
 
 ## 八、分类推进记录
 
+> 🔄 **当前进行中：`finance` (112)**（2026-09-12 起）。八项基线审计：deep-dive 112/112 达标、UI 零缺项、cat 0 错标、英文 p 占位 0；缺口：① 英文态数据源（finance-body.json intro 占位 94 + 缺 4、title 代号 5；finance.json en-US 套话 56 + 缺 7；_en_override ed 套话 35；industry-finance ed 不达标 6）② formula（无框 39 / formula-desc 套话 41 / 有框无 desc 26）③ 计算验证 0 ④ 指南 12。批次：**A 英文态数据源（✅ 已完成清零）** → B formula → C 计算验证（第 8 道门禁）→ D 指南。
+
 > ✅ **`general` (180) 已收口**（2026-09-12，八项目标全达标，部署 run 34672625411 success）。历史 `it` (345) 归档见 §9.1 白名单（其跨分类经验已沉淀至 §4.5 / §6）。
 > **`general` 批次明细（已完成，留存备查）：**
 > - **八项审计（2026-09-12）**：deep-dive 180/180 达标；UI（common.js/i18n.js/viewport/lang/toolbox）181/181；下拉 0 占位。缺口：英文 p 占位 139 文件、ed 套话 181/181、formula 无框 105 + 结构异常 4、计算验证 0、指南 0。
