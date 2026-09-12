@@ -29,6 +29,8 @@ GATES = (
     ("it calc correctness", ("node", "scripts/verify_it_calc.js")),
     # general 分类的正确性验证（工程标准公式 / 独立复算），与 it 分开维护用例集。
     ("general calc correctness", ("node", "scripts/verify_general_calc.js")),
+    # finance 分类的正确性验证（校验位算法 / 金融公式），用例集独立维护。
+    ("finance calc correctness", ("node", "scripts/verify_finance_calc.js")),
 )
 
 
