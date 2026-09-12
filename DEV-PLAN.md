@@ -160,6 +160,11 @@
 
 ## 八、分类推进记录
 
+> 🔄 **当前进行中：`design` (103)**（2026-09-12 开工）。工具清单 = `tools/design/*.html`（103 个，与 §9.2 热度计数一致）。
+> **八项基线审计（2026-09-12）**：deep-dive **103/103 条数达标且套话≈0**（仅 `font-pairing` examples 1 处 + 5 处英文名嵌入）；UI（common.js/i18n.js/viewport/lang/toolbox）**零缺项**；cat **0 错标**；无输入项仅 `bpm-tapper`（按钮驱动）。缺口：① **英文 p 占位 92** ② **formula 缺 49** ③ **计算验证 0** ④ **指南 7/103**。
+> **英文态数据源（混合半成品）**：`design-body.json` 缺 9 条 + 孤儿 3（generator-5 / color-scheme-generator / simulator-2，全站无页面）；intro 占位/旧套话 94、title 代号 6；`design.json` 缺 9、en-US 套话 52；`_en_override` en 代号 6、ed 不达标 96；`industry-design` ed 不达标 3。
+> **计划批次**：A 英文态数据源根治 103 → B formula/参考表 49 → C 计算验证（第 9 道门禁）→ D deep-dive 收尾 + 指南精选 → 收口归档。
+
 > ✅ **`finance` (112) 已收口**（2026-09-12，八项目标全达标，部署 run 34673915217 success）。历史 `it` (345) / `general` (180) 归档见 §9.1 白名单（跨分类经验已沉淀至 §4.5 / §6）。
 > **`finance` 批次明细（已完成，留存备查）：**
 > - **八项基线审计（2026-09-12）**：deep-dive 112/112 达标、UI 零缺项、cat 0 错标、英文 p 占位 0。缺口：① 英文态数据源（finance-body.json intro 占位 94 + 缺 4、title 代号 5；finance.json en-US 套话 56 + 缺 7；_en_override ed 套话 35；industry-finance ed 不达标 6）② formula（无框 39 / formula-desc 套话 41 / 有框无 desc 26）③ 计算验证 0 ④ 指南 12（**且 deep-dive 覆盖率 100% 但达标率不足，见下**）。
