@@ -152,22 +152,23 @@
 - **计算验证 DOM stub 框架（复用 `scripts/verify_<ind>_calc.js`）六条踩坑**：① 页面多用 DOMContentLoaded，stub 须收集并执行；② 大量工具用内联 `oninput=`，须解析 HTML 属性；③ 内联 handler 在全局作用域执行，window 须指向 globalThis 且把 `new Function` 顶层函数导出到全局（否则恒报 `xxx is not defined`）；④ 顶层函数枚举须含 `async function` 且 await 结果；⑤ 结果可能写 textContent 或 appendChild 到父节点，采集须覆盖 value/innerHTML/textContent 并在 appendChild 时回写父节点；⑥ 用例间须清理挂到 globalThis 的页面函数。**依赖「今天」的日期类用例不可纳入**（门禁会随运行日期失败，general/calc-14 实测）。
 - **静态审计两处已知误报（勿报）**：页面无 `id="result"`（结果区用各自命名 grid/detail/astTree…）、无 `data-theme`（主题由 `js/common.js` 运行时写到 documentElement）均为**非缺陷**。
 
+- **deep-dive「覆盖率 ≠ 达标率」有三层套话（finance 收口教训）**：`content_deepdive.json` 有条目 / 条数够 ≠ 达标。逐条比对须分三处独立查：① `scenarios` / `faqs` 模板（如「输入完整的Xxx Validator…」「先清理空格、连字符和分组符号」「工具会上传文本吗」）② `examples` 模板（「{Xxx}的反例复核」「{Xxx}基准复核」+ 通用描述、无真实算例）③ 英文名嵌入中文（`[A-Z][a-z]+ Validator` 出现在中文句里 = 代号型套话）。finance 覆盖率 100% 但三项分别命中 74 / 90 / 若干 —— 只查条数会整体漏掉。
+- **跨分类重名 slug 的指南必须走 `--prefix`**：`guides.json` 按 `tool` basename 去重、指南页落盘为 `guides/<slug>-guide.html`，故同名 slug（如 `calc-2` 存在于 22 个分类）新增指南会被去重跳过或直接互覆。处理顺序：先 grep 目标指南页正文的 `/tools/<ind>/<slug>.html` 判断现有归属，重名的用 `--prefix <ind>-` 生成 `guides/<ind>-<slug>-guide.html`；`_build.py` 靠指南页正文的**绝对 URL** 反查行业建 `GUIDE_MAP_IND`，命中则不回退 `GUIDE_MAP`，故相对路径 `/tools/...` 的指南页不会建立精确映射（会误挂同 basename 的其他分类）。
+- **审计脚本自身的坑 —— Python `a = b = []` 多变量共享同一 list**：`no_title=no_h1=no_jsonld=no_bread=[]` 会让四个变量指向**同一个**列表对象，任一 append 都会进同一个 list，导致四项计数完全相同（finance 审计时误报「缺 JSON-LD 6 / 缺面包屑 6」，实为 title 的 6 处且判据过严——中文 4 字标题 `<title>[^<]{5,}</title>` 被判为「缺」）。写审计脚本时多列表必须**逐个独立赋值**，或显式 `a, b = [], []`；计数异常一致时应先怀疑脚本而非项目。
+
 ---
 
 ## 八、分类推进记录
 
-> 🔄 **当前进行中：`finance` (112)**（2026-09-12 起）。八项基线审计：deep-dive 112/112 达标、UI 零缺项、cat 0 错标、英文 p 占位 0；缺口：① 英文态数据源（finance-body.json intro 占位 94 + 缺 4、title 代号 5；finance.json en-US 套话 56 + 缺 7；_en_override ed 套话 35；industry-finance ed 不达标 6）② formula（无框 39 / formula-desc 套话 41 / 有框无 desc 26）③ 计算验证 0 ④ 指南 12。批次：**A 英文态数据源（✅ 已完成清零）** → B formula → C 计算验证（第 8 道门禁）→ D 指南。
-
-> ✅ **`general` (180) 已收口**（2026-09-12，八项目标全达标，部署 run 34672625411 success）。历史 `it` (345) 归档见 §9.1 白名单（其跨分类经验已沉淀至 §4.5 / §6）。
-> **`general` 批次明细（已完成，留存备查）：**
-> - **八项审计（2026-09-12）**：deep-dive 180/180 达标；UI（common.js/i18n.js/viewport/lang/toolbox）181/181；下拉 0 占位。缺口：英文 p 占位 139 文件、ed 套话 181/181、formula 无框 105 + 结构异常 4、计算验证 0、指南 0。
-> - **① 英文描述层全维度清零（p / desc-en / ed，4 批 180 工具）**：`fix_general_en_p.py`（EN_MAP 字典驱动）+ `fix_general_en_meta.py`（复用 EN_MAP 同步 desc-en 与 ed）。p 占位 139→0、ed 套话 181→0、desc-en 套话 →0；顺带清理孤儿 i18n 键 `general/random-10`（181→180 对齐）。`_build.py` 只规范化 meta 位置、不覆盖手写 formula-box 与真实英文（每批门禁后均验证不反弹）。
-> - **② formula 全量补齐（2 批 105 无框 + 4 空 desc）**：`fix_general_formula.py` 在 `tool-card-accent` 内、首个 `input-row` 前插入 `formula-box`，补真实工程公式与标准依据（增值税、十二平均律、法拉第电解、GB/T 150 壁厚、GB 3836 防爆、ISO 281 轴承、Arrhenius 寿命、FDM 打印…）。无框 105→0、空 desc 4→0，**180/180 均有真实 formula**。
-> - **③ 计算验证 19 用例（第 7 道门禁）**：新建 `scripts/verify_general_calc.js`（复用 verify_it_calc.js 的 DOM stub），期望值全部由标准公式 / 独立复算得出并显式注入固定输入；依赖「今天」的日期类工具（calc-14 年龄）刻意不纳入。`run_gates.py` 由 6 项扩为 7 项，本批 7/7 全过。
-> - **④ 使用指南 31 篇修复（§4.4）**：审计发现 general 已有 31 篇指南页但 **31/31 模板化**（核心功能=适用场景、使用步骤=示例标题）；新建 `fix_general_guide_fields.py` 补真实 features(4)/steps(5)/tips(4) 后重跑 `gen_guide_pages.py --industry general`，复检 31/31 合格。
-> - **⑤ 英文态数据源根治（本批关键，审计盲区）**：前四批只修页面 HTML 可见英文，未同步 build 预渲染与运行时 i18n 的数据源 → `?lang=en-US` 仍显示占位串与工具代号（body intro 140/180 占位、title 96 条代号；`general.json` 的 en-US 是 industry JSON 的 ed 最高优先级源）。新建 `fix_general_body_i18n.py`（补 180 个真实英文名 + intro 至 `_en_override.json` / `general-body.json` / `general.json`，三端一致）+ `fix_general_prerender_reset.py`（还原已预渲染 h2 / formula-desc 让 build 重新注入）；另补全 calc-197 / calc-203 过短描述，并给 `fix_general_en_p.py` 加「已真实英文 `<p>`」同步能力（EN_MAP 单一数据源）。
-> - **最终结果**：deep-dive 180/180、UI 零缺项、p 占位 0、formula 缺失 0、ed / desc-en 套话 0（最短 42 字符）、计算验证 19、指南 31；**八项目标全达标**。7 道门禁全过，Actions `34672625411` success，线上落盘核验通过（calc-197 / calc-203 / assessor-19 / calculator-calc-10 / frequency-3 关键词命中 + 占位 0；industry-general.json ed 不达标 0/180）。
-> - **遗留（非 general 缺口）**：`i18n/tools/general-body.json` 中 107 条非 general 的占位 intro 均为**全站无对应页面的孤儿条目**，记入 §9.3。
+> ✅ **`finance` (112) 已收口**（2026-09-12，八项目标全达标，部署 run 34673850975 success）。历史 `it` (345) / `general` (180) 归档见 §9.1 白名单（跨分类经验已沉淀至 §4.5 / §6）。
+> **`finance` 批次明细（已完成，留存备查）：**
+> - **八项基线审计（2026-09-12）**：deep-dive 112/112 达标、UI 零缺项、cat 0 错标、英文 p 占位 0。缺口：① 英文态数据源（finance-body.json intro 占位 94 + 缺 4、title 代号 5；finance.json en-US 套话 56 + 缺 7；_en_override ed 套话 35；industry-finance ed 不达标 6）② formula（无框 39 / formula-desc 套话 41 / 有框无 desc 26）③ 计算验证 0 ④ 指南 12（**且 deep-dive 覆盖率 100% 但达标率不足，见下**）。
+> - **① 英文态数据源根治（批次 A）**：新建 `fix_finance_body_i18n.py` 为 112 工具写真实英文名 + 描述，同步 `_en_override.json`（en/ed）、`finance-body.json`（title/h1/intro + en 嵌套）、`finance.json`（en-US）三端，并补 4 + 7 条缺失条目。**关键踩坑**：45 个公式页的 formula-desc 是「首个 `<p>`」，被 `_prerender_tool_body` 注入 intro；改 `<div>` 后首个 `<p>` 会落到 `<script>` 内的 JS 模板字符串（41 页）→ 新建 `fix_formula_intro_p.py` 在 formula-box 后补中文 intro `<p>`，实测 script 内注入 0。`fix_general_prerender_reset.py` 泛化为 `fix_prerender_reset.py`（`--industry` + `--intro-p`）。
+> - **② formula 全量补齐（批次 B）**：新建 `fix_finance_formula.py`（MAP 字典驱动），31 处无框插入完整框 + 26 处补 desc（含补缺失 eq）+ 41 处套话换真实算法说明；刻意不补 8 个非计算类（不编造公式）。识别修正：`cpf-validator`/`iccid-validator` 已有真实静态原理说明、`lottery-odds-calculator` 运行时动态填充 `formulaBox`，均非缺口。
+> - **③ 计算验证 20 用例（批次 C，第 8 道门禁）**：新建 `scripts/verify_finance_calc.js`（复用 DOM stub 框架）：校验位算法 13 例（Luhn / ABA 3-7-1 / ISO 13616 mod-97 / CPF、CNPJ 模 11 / ABN mod 89 / ISBN-13 / SIN / DNI mod 23 / NPI / Verhoeff / TFN、IRD 反例）+ 金融公式 7 例（单利 / 等额本息月供 / ROI / NPV / 盈亏平衡 / 增值税倒推 / 数字转英文）。`run_gates.py` 由 7 项扩为 8 项。
+> - **④ deep-dive 套话真实化 + 指南精选（批次 D）**：**本批关键** —— 覆盖率 112/112 ≠ 达标率，按 §4.5.8 逐条比对发现 scenarios/faqs 74 个、examples 90 个为批量模板（「输入完整的Xxx Validator…」/「{Xxx}的反例复核」）。新建 `fix_finance_deepdive.py`（72 工具真实 scenarios/faqs）+ `fix_finance_examples.py`（90 工具真实示例，数值全部 python 独立复算：IRR 15.24%、NPV 19,781.30、月供 4,890.17、凯利 0.325、股票净收益 1,983.78 等）+ `fix_finance_guide_fields.py`（20 工具 features(4)/steps(5)/tips(4)）→ 跑 `gen_guide_pages.py --industry finance` 生成 20 篇指南（校验 10 + 计算 10），指南 6 → 26 篇，`guides.json` 651→671。
+> - **最终结果**：deep-dive 达标 112/112、scenarios/faqs 与 examples 套话 0、UI 零缺项、cat 0 错标、formula 全覆盖（104/112 有真实公式框，余 8 为规范中的非计算类）、英文态三端套话 0、计算验证 20、指南 26、指南链接注入 20/20；**八项目标全达标**。8 道门禁全过，Actions `34673850975` success（B/C 批 `338d3d920` / `d1473af59` 亦 success）。
+> - **遗留（非 finance 缺口，记入 §9.3）**：① finance 混入 10+ 个非金融工具（currency-converter / driver-license-validator / mirror-text / word-scramble / word-search / word-wrap / dns-record-info / password 等），分类归属待老板确认后处理；② 跨分类重名 slug（calc-2~5 属 fitness、simple-interest 属 banking、word-scramble 属 fun）未补 finance 版指南（如需可 `--prefix finance-` 处理）。
 
 ## 九、未完成任务清单
 
@@ -182,14 +183,14 @@
 - ✅ psychology (20)：已优化过一遍（§4 开头「先验证后跳过」指令）
 - ✅ it (345)：八项目标全覆盖（deep-dive 345/345、套话/占位/公式 0、指南 40、计算验证 28/28、英文描述 297 真实化、页面 UI 100%；部署 run 34632953856 success），git 实测
 - ✅ general (180)：八项目标全覆盖（deep-dive 180/180、p 占位/套话/formula 缺失 0、ed 与 desc-en 套话 0、指南 31、计算验证 19、英文态数据源根治；部署 run 34672625411 success），git 实测
+- ✅ finance (112)：八项目标全覆盖（deep-dive 达标 112/112、scenarios/faqs 与 examples 套话 0、formula 全覆盖、英文态三端套话 0、计算验证 20、指南 26、指南链接注入 20/20；部署 run 34673850975 success），git 实测
 
 > 跳过规则：上述分类**不列入 §9.2 待办**；其余分类按 §9.2 热度顺序从零推进。
 
-### 9.2 分类优化清单（263 分类，按热度降序，完成一个删一个）
+### 9.2 分类优化清单（262 分类，按热度降序，完成一个删一个）
 
 > 清单由脚本按 `tools/` 目录工具数生成；每行 = 分类名 + 工具数。当前进行中的分类在 §8 同步登记。
 
-- [ ] finance (112)
 - [ ] design (103)
 - [ ] science (99)
 - [ ] sports (75)
@@ -460,3 +461,5 @@
 - [ ] Analytics-C 扩面（缺 Bing / Clarity 周期数据）
 - [ ] SEO 描述：Description 重复 69 组未清零（全站级，可并入逐分类时顺手修）
 - [ ] `i18n/tools/general-body.json` 中 107 条非 general 的占位 intro —— 全站无对应页面的**孤儿条目**（general 收口时发现），清理前先确认无页面 / 分类页引用
+- [ ] `finance` 分类混入 10+ 个非金融工具（currency-converter / driver-license-validator / mirror-text / word-scramble / word-search / word-wrap / dns-record-info / password / password-generator-advanced / vcard-qr / wifi-password-show 等），属分类错放，**动分类前须先与老板确认**（涉及 URL 归属与 SEO）
+- [ ] 跨分类重名 slug 的指南缺口（finance/calc-2~5 属 fitness、finance/simple-interest 属 banking、finance/word-scramble 属 fun 等）：因 `guides.json` 按 basename 去重、`guides/<slug>-guide.html` 会互覆，需 `--prefix <ind>-` 方案，暂缓
