@@ -59,19 +59,36 @@ def find_box_span(s):
 
 
 def insert_anchor(s):
-    """返回插入公式框的位置下标（插在该位置之前）。"""
+    """返回插入公式框的位置下标（插在该位置之前）。
+
+    关键约束：公式框必须落在页面层（<script> 块之外），否则会被误插进
+    JS 模板字符串（如 `let html = '<div class="input-row">'`）破坏源码。
+    因此任何锚点命中 <script> 内时一律跳过，fallback 到安全位置。
+    """
+    spans = [(m.start(), m.end()) for m in re.finditer(r'<script\b[\s\S]*?</script>', s, re.I)]
+    def in_script(pos):
+        return any(a <= pos < b for a, b in spans)
+    # 优先：页面层（script 外）的 input-row
     for a in ('<div class="input-row">', '<div class="input-row2">'):
         i = s.find(a)
-        if i > 0:
+        if i > 0 and not in_script(i):
             return i
+    # fallback：h2 之后（且必须在 script 外）
     m = re.search(r'</h2>', s)
-    if m:
+    if m and not in_script(m.end()):
         p = re.search(r'<p\b[^>]*>[\s\S]*?</p>', s[m.end():])
-        if p:
+        if p and not in_script(m.end() + p.end()):
             return m.end() + p.end()
-        return m.end() + 1
+        if not in_script(m.end() + 1):
+            return m.end() + 1
+    # fallback：页面层 container（script 外）
     i = s.find('<div class="container">')
-    return i if i > 0 else len(s)
+    if i > 0 and not in_script(i):
+        return i
+    # 兜底：最后一个 script 之后，绝不在 script 内
+    if spans:
+        return spans[-1][1]
+    return len(s)
 
 
 def process_html(s, entry, title=TITLE):
@@ -86,10 +103,14 @@ def process_html(s, entry, title=TITLE):
     desc = entry['desc'].strip()
     has_eq = 'formula-eq' in box
     has_desc = 'formula-desc' in box
+    force_eq = bool(entry.get('force_eq'))   # 页面已有 eq 但内容错误/空泛时，强制替换
     nb = box
     if has_desc:
         nb = re.sub(r'(<(?:div|p) class="formula-desc"[^>]*>)[\s\S]*?(</(?:div|p)>)',
                     lambda m: m.group(1) + desc + m.group(2), nb, count=1)
+    if entry.get('title') and re.search(r'<div class="formula-title"[^>]*>', nb):
+        nb = re.sub(r'(<div class="formula-title"[^>]*>)[\s\S]*?(</div>)',
+                    lambda m: m.group(1) + entry['title'] + m.group(2), nb, count=1)
 
     def _meta_end(text):
         ms = list(re.finditer(r'<div class="formula-(?:title|eq)">[\s\S]*?</div>', text))
@@ -98,7 +119,10 @@ def process_html(s, entry, title=TITLE):
         m0 = BOX_RE.search(text)
         return m0.end() if m0 else 0
 
-    if eq and not has_eq:
+    if eq and has_eq and force_eq:
+        nb = re.sub(r'(<div class="formula-eq"[^>]*>)[\s\S]*?(</div>)',
+                    lambda m: m.group(1) + eq + m.group(2), nb, count=1)
+    elif eq and not has_eq:
         at = _meta_end(nb)
         nb = nb[:at] + '\n      <div class="formula-eq">%s</div>' % eq + nb[at:]
     if not has_desc:

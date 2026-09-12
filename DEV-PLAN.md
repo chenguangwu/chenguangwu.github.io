@@ -161,6 +161,12 @@
 
 ## 八、分类推进记录
 
+> ✅ **`science` (99) 已收口**（2026-09-12 开工并完成）。**范围**：`tools/science/` 全部 99 个工具页。
+> **八项基线审计（2026-09-12）**：deep-dive 99/99 **条目存在且内容真实**，但**条数不达标**（scenarios 恒为 1、faqs 恒为 1 —— 与 finance 的「套话」、design 的「达标」均不同，是第三种缺口形态）；UI（common.js/i18n.js/viewport/lang/toolbox）零缺项；cat 0 错标；无输入项 2（`calculator` / `logic-gate-simulator`，待核实）。**缺口**：① deep-dive 条数 99 ② 英文 p 占位 93 ③ formula 缺 25 ④ 计算验证 0 ⑤ 指南 15/99。
+> **数据源现状**：`science-body.json` 103 条（孤儿 4：`convert-5` / `calculator-calc` / `simulator-circuit` / `simulator-3`）、intro 占位 94、title 代号 5（cycle / fibonacci / pHCalculator / prime-number / xianxingfangchengzuqiujie-2yuan-3yuan）；`science.json` 98 条、缺 1（`significant-figures`）、en-US 套话 83；`_en_override` en 代号 5、ed 不达标 93；`industry-science` ed 不达标 3。
+> **批次计划（全部完成）**：A 英文态数据源根治 → B deep-dive 条数补齐 + formula → C 计算验证（第 10 道门禁）→ D 指南精选 → 收口归档。
+> **收口结果（2026-09-12）**：① deep-dive 99/99 各补 1 scenario+1 faq（fix_science_deepdive）② 英文态七维全清零（fix_science_body_i18n + 全站 `fix_h2_entities` 修复 32 页 h2 实体多重转义损坏）③ formula 覆盖 99/99 + 修正 calc-1 错公式、移除 cycle 重复工具、根因修复 script 内 formula-box 误注入（fix_formula/fix_science_formula_map）④ 计算验证第 10 道门禁 verify_science_calc.js 8/8 通过 ⑤ 指南 15→23（新增 8 篇旗舰计算器指南，gen_science_guides）⑥ cycle 重复工具移除、4 个孤儿键记入 §9.3。十道质量门禁全过，部署 run 待核验。
+>
 > ✅ **`design` (103) 已收口**（2026-09-12，八项目标全达标，部署 run 34674667024 success）。历史 `it` (345) / `general` (180) / `finance` (112) 归档见 §9.1 白名单（跨分类经验已沉淀至 §4.5 / §6）。
 > **`design` 批次明细（已完成，留存备查）：**
 > - **八项基线审计（2026-09-12）**：deep-dive **103/103 条数达标且套话≈0**（仅 `font-pairing` examples 1 处）；UI（common.js/i18n.js/viewport/lang/toolbox）零缺项；cat 0 错标；无输入项仅 `bpm-tapper`（按钮驱动节拍器，合理）。缺口：① 英文 p 占位 92 ② formula 缺 49 ③ 计算验证 0 ④ 指南 7/103。数据源（混合半成品）：`design-body.json` 缺 9 + 孤儿 3（generator-5 / color-scheme-generator / simulator-2）、intro 占位 94、title 代号 6；`design.json` 缺 9、en-US 套话 52；`_en_override` en 代号 6、ed 不达标 96；`industry-design` ed 不达标 3。
@@ -186,14 +192,14 @@
 - ✅ general (180)：八项目标全覆盖（deep-dive 180/180、p 占位/套话/formula 缺失 0、ed 与 desc-en 套话 0、指南 31、计算验证 19、英文态数据源根治；部署 run 34672625411 success），git 实测
 - ✅ finance (112)：八项目标全覆盖（deep-dive 达标 112/112、scenarios/faqs 与 examples 套话 0、formula 全覆盖、英文态三端套话 0、计算验证 20、指南 26、指南链接注入 20/20；部署 run 34673915217 success），git 实测
 - ✅ design (103)：八项目标全覆盖（deep-dive 103/103 达标且套话≈0、formula 覆盖 103/103、英文态七维全清零、计算验证 12、指南 22、指南链接注入 15/15；部署 run 34674667024 success），git 实测
+- ✅ science (99)：八项目标全覆盖（deep-dive 99/99 条数补齐、英文态七维全清零含全站 h2 实体修复 32 页、formula 覆盖 99/99 + calc-1 错公式修正、计算验证 8/8（第 10 道门禁 verify_science_calc.js）、指南 23（精选新增 8 篇旗舰指南）、cycle 重复工具移除、script 内 formula-box 误注入根因修复；部署 run 待核验），git 实测
 
 > 跳过规则：上述分类**不列入 §9.2 待办**；其余分类按 §9.2 热度顺序从零推进。
 
-### 9.2 分类优化清单（261 分类，按热度降序，完成一个删一个）
+### 9.2 分类优化清单（260 分类，按热度降序，完成一个删一个）
 
 > 清单由脚本按 `tools/` 目录工具数生成；每行 = 分类名 + 工具数。当前进行中的分类在 §8 同步登记。
 
-- [ ] science (99)
 - [ ] sports (75)
 - [ ] fun (74)
 - [ ] ai (64)
@@ -457,6 +463,9 @@
 
 ### 9.3 独立未完成任务（跨分类 / 孤立项，可穿插推进）
 
+- [ ] `science-body.json` 4 个孤儿键（`convert-5` / `calculator-calc` / `simulator-circuit` / `simulator-3`）全站无对应页面（science 收口时发现），清理前先确认无页面 / 分类页引用
+- [ ] `science/calc-1` 错公式已修正：原写 pH 公式（张冠李戴），实为自由落体工具，已改为 s=½gt²（fix_science_formula_map + fix_formula 支持替换错误 eq）
+- [ ] `science/cycle` 重复工具（与 `periodic-table` 功能完全重叠的「交互式元素周期表」）已从 `science-body.json` / `science.json` / MAP 移除并 `git checkout` 回退污染页；属分类错放，已在 science 收口时处理
 - [ ] `fire-rescue/calc-3` 脏页（英文 h2 / formula-desc 与控件错位）
 - [ ] 内容翻译三类：指南 441 篇 / 工具页正文 48 处 / embed 25 处（英文内容层）
 - [ ] Analytics-C 扩面（缺 Bing / Clarity 周期数据）

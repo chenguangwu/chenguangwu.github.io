@@ -33,6 +33,8 @@ GATES = (
     ("finance calc correctness", ("node", "scripts/verify_finance_calc.js")),
     # design 分类的正确性验证（单位换算 / 色度学 / 摄影光学），用例集独立维护。
     ("design calc correctness", ("node", "scripts/verify_design_calc.js")),
+    # science 分类的正确性验证（经典力学 / 电学 / 化学 / 统计），用例集独立维护。
+    ("science calc correctness", ("node", "scripts/verify_science_calc.js")),
 )
 
 
