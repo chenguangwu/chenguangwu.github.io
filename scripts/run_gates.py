@@ -37,6 +37,8 @@ GATES = (
     ("science calc correctness", ("node", "scripts/verify_science_calc.js")),
     # sports 分类的正确性验证（力量 1RM / VO2max / 心率 / 氧脉搏 / 齿比 / 坡度 / SWOLF / 出汗率）。
     ("sports calc correctness", ("node", "scripts/verify_sports_calc.js")),
+    # fun 分类的正确性验证（烧烤/火锅分量、冥想分段、婚宴桌数、步幅速度换算）。
+    ("fun calc correctness", ("node", "scripts/verify_fun_calc.js")),
 )
 
 
