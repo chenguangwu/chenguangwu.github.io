@@ -14,7 +14,7 @@ const targets = [
   "aerospace/aspect-ratio", "aerospace/wing-area-from-loading",
   "aerospace/reynolds-number", "aerospace/bank-angle-load",
   // N4-02 batch 01 (it tools)
-  "it/url-params", "it/image-to-base64", "it/csv-to-html-table",
+  "it/url-params", "encode/image-to-base64", "it/csv-to-html-table",
   "it/line-ending-converter", "it/code-line-counter",
   // N4-02 batch 02 (finance/securities/health)
   "finance/installment-real-rate", "securities/bond-duration",
