@@ -35,6 +35,8 @@ GATES = (
     ("design calc correctness", ("node", "scripts/verify_design_calc.js")),
     # science 分类的正确性验证（经典力学 / 电学 / 化学 / 统计），用例集独立维护。
     ("science calc correctness", ("node", "scripts/verify_science_calc.js")),
+    # sports 分类的正确性验证（力量 1RM / VO2max / 心率 / 氧脉搏 / 齿比 / 坡度 / SWOLF / 出汗率）。
+    ("sports calc correctness", ("node", "scripts/verify_sports_calc.js")),
 )
 
 

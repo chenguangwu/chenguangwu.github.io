@@ -161,6 +161,11 @@
 
 ## 八、分类推进记录
 
+> ✅ **`sports` (75) 已收口**（2026-09-12 开工并完成）。**范围**：`tools/sports/` 全部 75 个工具页。
+> **八项基线审计（2026-09-12）**：deep-dive 原 75/75 条目存在但条数不达标（scenarios 恒为 1、faqs 恒为 1，同 science 第三种缺口形态）；UI 零缺项；cat 0 错标；英文 p 占位 47；formula 缺 24；计算验证 0；指南 0；英文态七维（body intro 占位 47、title 代号 3、en_override 代号 22、en-US 缺 0、ed 不达标 2、industry ed 不达标 2、HTML 可见英文占位串未注入）。
+> **批次计划（全部完成）**：A 英文态数据源根治 → B formula 框补齐 → C 计算验证（第 11 道门禁）→ D 指南精选 → E deep-dive 条数补齐（§4.5）→ 收口归档。
+> **收口结果（2026-09-12）**：① deep-dive 75/75 补齐至 §4.5 标准（场景≥2 且 示例≥1 且 FAQ≥2 且 无套话，fill_sports_deepdive，150 场景/75 示例/150 FAQ，达标率 100%）② 英文态七维全清零 + 修复 build 非 CJK 占位页英文未注入根因（sports 75 页 h2/首个 p 由英文占位串改写为真实英文、data-zh 中文保留；_build.py 改动因波及全站已回退，sports 页修正落盘保留，全站缺陷记入 §9.3）③ formula 覆盖 24 页补框（fix_sports_formula_map，TITLE_CALC='📐 计算公式 / 原理'）④ 计算验证第 11 道门禁 verify_sports_calc.js 8/8 通过 ⑤ 指南 0→8（gen_sports_guides，estimate-tester/tester-1/calc-heart-rate-1/calculator-calc-time/swimming-stroke-efficiency/calculator-calc-9/estimate-35/xuerusuanyuzhiceding）⑥ 清 6 孤儿键。十一道质量门禁全过（部署 run 见发布核验回填）。
+
 > ✅ **`science` (99) 已收口**（2026-09-12 开工并完成）。**范围**：`tools/science/` 全部 99 个工具页。
 > **八项基线审计（2026-09-12）**：deep-dive 99/99 **条目存在且内容真实**，但**条数不达标**（scenarios 恒为 1、faqs 恒为 1 —— 与 finance 的「套话」、design 的「达标」均不同，是第三种缺口形态）；UI（common.js/i18n.js/viewport/lang/toolbox）零缺项；cat 0 错标；无输入项 2（`calculator` / `logic-gate-simulator`，待核实）。**缺口**：① deep-dive 条数 99 ② 英文 p 占位 93 ③ formula 缺 25 ④ 计算验证 0 ⑤ 指南 15/99。
 > **数据源现状**：`science-body.json` 103 条（孤儿 4：`convert-5` / `calculator-calc` / `simulator-circuit` / `simulator-3`）、intro 占位 94、title 代号 5（cycle / fibonacci / pHCalculator / prime-number / xianxingfangchengzuqiujie-2yuan-3yuan）；`science.json` 98 条、缺 1（`significant-figures`）、en-US 套话 83；`_en_override` en 代号 5、ed 不达标 93；`industry-science` ed 不达标 3。
@@ -474,6 +479,8 @@
 - [ ] `finance` 分类混入 10+ 个非金融工具（currency-converter / driver-license-validator / mirror-text / word-scramble / word-search / word-wrap / dns-record-info / password / password-generator-advanced / vcard-qr / wifi-password-show 等），属分类错放，**动分类前须先与老板确认**（涉及 URL 归属与 SEO）
 - [ ] 跨分类重名 slug 的指南缺口（finance/calc-2~5 属 fitness、finance/simple-interest 属 banking、finance/word-scramble 属 fun 等）：因 `guides.json` 按 basename 去重、`guides/<slug>-guide.html` 会互覆，需 `--prefix <ind>-` 方案，暂缓
 - [ ] `design-body.json` 3 个孤儿键（generator-5 / color-scheme-generator / simulator-2）全站无对应页面（design 收口时发现），清理前先确认无页面 / 分类页引用
+- [ ] `sports` 收口遗留：① 6 孤儿键（compare-temp / simulator-composition / tool-005-47 / tool-011-27 / tool-011-29 / zhuanxiang-pao-tiao-tou-jishufenjie）全站无页面，已从 `sports-body.json` 删除 ② `yoga-pose-generator`（cat=generate）无 formula-box 属合理例外（生成器非计算工具），不计入 formula 缺口 ③ `sports-calculator` / `swimming-stroke-efficiency` 公式框在 `<script>` 内（innerHTML 动态渲染，功能完好），非死串 bug，保留 ④ `audit_sports.py`【1】判定口径已对齐 §4.5（场景≥2 且 示例≥1 且 FAQ≥2 且 无套话），避免"数量达标≠内容达标"假阳性
+- [ ] `_build.py` `_prerender_tool_body` 非 CJK 占位页英文未注入缺陷（全站级）：sports 75 页已落盘修正（h2/首个 p 由英文占位串改真实英文 + 保留 data-zh），但修复改动因波及数百非 sports 页已回退 `_build.py`；该全站缺陷待老板确认单独开一轮处理（不改 `_build.py` 则未来重构建不会自动修复同形态英文占位页的其他行业）
 - [ ] `design/color-shade-generator` 亮色梯度实现缺陷：`mix()` 退化为 `Math.round(t)`，浅色档位与基色无关（结果近似纯灰度），属工具自身算法 bug，需重写混色逻辑后再决定是否纳入门禁
 - [ ] `design` 分类主题重复工具：`contrast-checker` 与 `color-contrast-check`（已有指南）/ `checker`（已有指南）功能重叠，**去重前须先与老板确认**（涉及 URL 归属与 SEO）
 - [ ] `design` 跨分类重名 slug 的指南缺口（audio-recorder / image-compress / image-mosaic / image-to-base64 / image-watermark）：同 finance 情况，需 `--prefix design-` 方案，暂缓
