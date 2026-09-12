@@ -6795,7 +6795,6 @@ window.__TI18N_EN = {
     '心脏康复(METs)等价换算器': 'Cardiac rehab (METs) equivalent converter',
     '快冷材料热疲劳': 'Rapid-cooling material thermal fatigue',
     '急救包清单生成器': 'First aid kit list generator',
-    '性取向(Kinsey)量表评估器': 'Sexual orientation (Kinsey) scale assessor',
     '性激素(LH/FSH/E2/T)周期解读器': 'Sex hormone (LH/FSH/E2/T) cycle interpreter',
     '性激素（LH/FSH/E2/T）周期解读': 'Sex hormone (LH/FSH/E2/T) cycle interpretation',
     '总体方差计算器': 'Population variance calculator',
