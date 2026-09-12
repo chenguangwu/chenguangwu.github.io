@@ -144,48 +144,28 @@
 - **提交**：批量多文件改动合并提交，commit + push master 触发 GitHub Pages 发布；不可逆操作前先核验。
 - **计算函数名不统一**：`calcTool()` / `calc()` / `calcBelt()` / `calcChain()` 等。抽取时在**整个 html** 里多候选 `function <name>(` + 花括号配平，勿用 `max(scripts, key=count('calcTool'))`（会选中 stub）。依赖 select 与常量表的工具（GRADE_DATA / MAT_SPEED / stressArea / torqueCoef）须先抽 `<select id=...>(.*?)</select>` 默认项与 `const X = {` 常量表。
 - **deep-dive JSON 格式**：`content_deepdive.json` 仓库规范 `indent=1`（`_build.py` 只读不写、不归一化），apply 脚本须 `json.dump(indent=1)`，否则全 ~12.7 万行重排成噪音 diff。
+- **英文 p 三种机制（改法不同）**：① `data-zh` 机制 —— 英文写在源 HTML 里，改源文件即可；② 裸 `<p>中文</p>` —— `_prerender_tool_body` 会用 `<ind>-body.json` 覆盖，**必须改数据源**；③ `data-i18n` 机制 —— 由 build 从 i18n 注入，同样改数据源。页面 grep 到占位串只是表象，根治必须同步数据源（it base64/json-minify、general 全部实测同一坑）。
+- **英文态数据源三处（最易漏）**：除页面可见英文（p / `desc-en` meta / `ed`）外，`?lang=en-US` 与 industry JSON 还取决于：`i18n/tools/<ind>-body.json`（title/h1/intro）、`i18n/tools/<ind>.json` 的 `en-US`（**同时是 industry JSON 的 `ed` 最高优先级源**）、`_en_override.json`（en/ed）。只改页面 → 英文态仍显示占位串与工具代号（general 实测：body intro 140/180 占位、title 96 条代号）。
+- **build 预渲染陷阱（最高频事故）**：`_prerender_tool_body` 用 `count=1` 命中文档**首个 `<p>`**；任何插在首个 `<p>` 之前的中文 `<p>`（如 formula-desc）都会被 intro 覆盖。修法：改成 `<div>`（不匹配 `<p>`）或补 `data-zh`。该函数**幂等**（检测到已英文即跳过），故改数据源后必须先把页面「还原」（去英文与 `data-zh`）再 build，新值才会注入（it ⑥ / general 均踩）。
+- **`desc-en` meta 权威源是 build**：`_build.py` 用硬截断重写 `desc-en` meta，脚本写的「词边界截断」版会被 build 覆盖——无需手改 meta，改 EN_MAP / 数据源即可。
+- **指南页模板化识别**：`gen_guide_pages.py` 在缺 `features/steps` 时用「适用场景」派生「核心功能」、用「示例标题」派生「使用步骤」。审计判据：核心功能 ≠ 适用场景、使用步骤 ≠ 示例标题且 ≥5 条、实用技巧 ≥4 条；不达标先在 `content_deepdive.json` 补真实字段（indent=1）再重跑 `--industry <ind> --slugs ...`。跨分类重名用 `--prefix`。
+- **计算验证 DOM stub 框架（复用 `scripts/verify_<ind>_calc.js`）六条踩坑**：① 页面多用 DOMContentLoaded，stub 须收集并执行；② 大量工具用内联 `oninput=`，须解析 HTML 属性；③ 内联 handler 在全局作用域执行，window 须指向 globalThis 且把 `new Function` 顶层函数导出到全局（否则恒报 `xxx is not defined`）；④ 顶层函数枚举须含 `async function` 且 await 结果；⑤ 结果可能写 textContent 或 appendChild 到父节点，采集须覆盖 value/innerHTML/textContent 并在 appendChild 时回写父节点；⑥ 用例间须清理挂到 globalThis 的页面函数。**依赖「今天」的日期类用例不可纳入**（门禁会随运行日期失败，general/calc-14 实测）。
+- **静态审计两处已知误报（勿报）**：页面无 `id="result"`（结果区用各自命名 grid/detail/astTree…）、无 `data-theme`（主题由 `js/common.js` 运行时写到 documentElement）均为**非缺陷**。
 
 ---
 
 ## 八、分类推进记录
 
-> ✅ **`it` (345) 已收口**（2026-09-11，八项目标全达标，部署 run 34632953856 success）。
-> **`it` 历史批次明细（已完成，留存备查）：**
-> 当前批次推进（已落地）：
-> - ① 批量清 FAQPage 占位套话 + desc-en「free online tool」套话（§4.1.5）：FAQPage 占位 319 文件已于 `b76bacad8` 清零；**desc-en「free online tool」上轮未真正落盘（git diff 仅含 FAQPage 移除），本批次补做并还清欠账——175 文件全部清零、残留 0**。
-> - ② 标杆深优化高频专业工具：bcrypt（上轮完成 formula+deep-dive+OWASP 外链）；**本批次 jwt（formula 空壳补全真实原理 + RFC 7519 外链）、json-formatter（deep-dive 由 1/1/1 弱内容补强至 3/2/3 真实场景/算例/FAQ + RFC 8259 外链）、timestamp-converter（加 Unix time 权威外链）**；rsa 待下一批。
-> - ③ 英文 p 通用描述真实化（§4.1.5 红线）：本批次对 **44 个**最高频核心 it 工具（编码/加密/JSON/文本/生成器/网络/数学/安全/开发；json-minify 因 data-i18n 注入被 build 还原、未落盘，单列专门批次）手写真实英文描述替换占位串「is available directly in your browser, with no data uploaded.」，保留 `data-zh` 中文态不变；脚本用「捕获 </p> 单标签 + 单 p 内匹配」防双 `</p>` 与跨段破坏（首次写正则用前瞻 + 手动补 `</p>` 曾导致 csv-to-json 等双 `</p>`，已回滚重写修正）。**线上核验：43 个 data-zh/裸 p 机制真实化生效（占位 0）；base64 / json-minify 等 data-i18n 机制线上仍占位**——其英文 p 由 `_build.py` 从 i18n 数据源注入、手改源 html 被 build 覆盖（与 desc-en 同理），须改 i18n 数据源才能根治，单列专门批次。剩余英文 p 占位 **218 文件**（含 data-i18n 机制数）。
-> - ④ 英文 p 通用描述真实化收口（§4.1.5 红线，本批次闭环）：前序已 block-safe 真实化 204 个 data-zh/裸 p 工具（含一次正则误伤 JS 串、全量 `git checkout` 回滚重写）；base64 / json-minify 等 data-i18n 机制改 i18n 数据源（`i18n/tools/it-body.json`）根治（2 个）；**本批次根治最后 13 个「中文 intro 工具」**：根因是 `_build.py` 的 `_prerender_tool_body` 用 `count=1` 总先匹配到 JS 错误串里的 `<p style=... data-zh="...">`（英文无 CJK）而跳过，真正的可见中文 intro 永远拿不到英文注入——故改源文件，把 `<p>中文</p>` 转为 `<p data-zh="中文">真实英文</p>`（英文取自 it-body.json，与运行时一致），并清理 JS 串里的占位。**it 分类英文 p 占位串「is available directly in your browser, with no data uploaded.」构建产物 grep = 0，已全站清零**；五道门禁全过。
-> - ⑤ formula「📐 工作原理与说明」全量补齐（§4.1.4，本批次收口）：审计出 345 个工具中仅 74 个有真实 formula、**107 个空框 + 164 个完全缺失**；分 8 批逐工具手写真实原理（加密/编码/散列/网络/统计/数据库/编辑器/构建工具等各自的算法、公式、边界与安全注意事项），落地采用「有空框则整体替换、无框则在工具标题 `<h2>` 后插入」的统一策略。**复审 345/345 全部内容充实（≥80 字），空框 0、缺失 0**，五道门禁全过。
-> - ⑥ 补齐 ⑤ 引出的回归与残留（本批次一并收口）：
->   - **回归根因**：⑤ 把 formula 插在工具标题 `<h2>` 之后，使中文 `formula-desc` 的 `<p>` 成为文档首个 `<p>`；`_build.py` 的 `_prerender_tool_body` 检测到 CJK 就用 `it-body.json` 的 intro 覆盖正文（198 处），其中 128 处被覆盖成占位串。**教训：任何插在首个 `<p>` 之前的中文 `<p>` 都会被 build 预渲染覆盖；终端审计不能只看长度，必须同时查占位串指纹。**
->   - **修复**：把 `formula-desc` 由 `<p>` 改为 `<div>`（CSS 为 `.formula-box .formula-desc` 且 `margin:0`，渲染一致），build 不再触碰，中文内容原样保留；
->   - **连带暴露**：53 个工具原本靠「空 formula-desc 的 `<p>`」吸收 build 的 `count=1` 而躲过预渲染，改 div 后首个 `<p>` 变回中文 intro，被注入占位 → 统一改为 `<p data-zh="中文">真实英文</p>` 并同步 `it-body.json`（53 条）；
->   - 另清理 8 个 JS 错误/空状态字符串里的占位（与 ④ 同类）、替换 8 个「本速查内容依据权威标准…」速查表套话 formula。
->   - **最终核验：占位串 0 / formula 缺失 0 / 过短 0 / 套话 0，345/345 全部合格**，五道门禁全过。
-> - ⑦ deep-dive 深度内容补强（§4.1.4，本批次收口 + 全量清零）：
->   - **收口审计暴露的真实缺口**：345 条 deep-dive 里**只有 8 条**满足「场景≥2 且 FAQ≥2」（§4.1.4 硬要求），316 个场景不足、337 个 FAQ 不足——此前只审计了「条目是否存在」，没审计「条目是否达标」，属审计维度缺失。
->   - 分 6 批补齐 337 个工具（50 / 60 / 60 / 60 / 60 / 47），每批走完 dry-run → apply → build → 五道门禁 → commit → push → Actions → 线上落盘核验。
->   - **泛化内容一并替换**：barcode 类 7 个原写「生成/识别 XX 码用于仓储、零售或资产标签」、http-* 类 6 个原写「开发/联调时查阅 HTTP 规范与取值」——数量达标但内容无信息量，按各码制 / 各头字段的真实排错场景重写。
->   - **新增套话指纹**：`本生成器依据指定格式规范…`（23 个：barcode 6 + 生成器 16 + yaml-to-toml 1），旧指纹未覆盖；另 `统一口径` 会误伤正常措辞（如「先约定统计口径」），写内容时应避开该词组。
->   - **最终全量复检：345/345 满足场景≥2 + 示例≥1 + FAQ≥2 且无套话，不合格 0**；线上抽 8 个工具按关键词落盘核验全部命中。
-> - ⑧ 使用指南（§4.1.4，本批次收口）：按 §4.4 克制原则精选 40 个「专业度高且易被误用/需说明步骤/有计算依据」的工具生成指南页 —— 密码学与密钥派生 7、哈希与校验 5、统计推断 11、线性代数 7、运维 4、开发 6；纯娱乐与纯格式转换类按原则不加。**质量前提**：指南页的 features/steps 原由「场景」「示例标题」派生（场景≠功能、示例标题≠步骤），故先为 40 个工具在 `content_deepdive.json` 补真实 features/steps 字段（`_build.py` 只读 title/scenarios/examples/faqs，新增字段不影响构建）。**跨分类重名**：bayes-theorem / confidence-interval / margin-of-error / keyword-density 在 statistics、stats、pr 分类同样存在，给 `gen_guide_pages.py` 加 `--prefix` 生成 `it-*.html`；另修该脚本三处缺陷（intro 未清理示例正文的 markdown 反引号/换行、index.html 重跑重复追加、输出文案误导）。**验证**：40/40 工具页注入入口且链接正确，guides.json 611→651 无重复，新增页无 `.en.html` 死链。
-> - ⑨ 关键计算逻辑「正确性」验证（§4.1.1，本批次建立能力并接入门禁）：既有 `scripts/verify_calc.js` 只是冒烟（跑 calcTool 不报错），无法发现「算得对不对」。新增 `scripts/verify_it_calc.js`：注入已知输入后用权威测试向量/独立实现断言输出，覆盖 28 个工具（MD5/SHA-256 对照 RFC 1321 与 NIST；Base64/32/58/Hex/二进制/十进制/八进制/URL/HTML 实体；CRC32= CBF43926；进制/凯撒/ROT13/摩斯/罗马数字/Unix 时间戳/标准差）。期望值一律由 python base64 或自实现算法独立计算，不凭记忆。**DOM stub 六条踩坑**（后续分类复用）：① 页面多用 DOMContentLoaded 初始化，stub 须收集并执行；② 大量工具用内联 `oninput=` 而非 addEventListener，须解析 HTML 属性；③ 内联 handler 在全局作用域执行 —— stub 的 window 必须指向 globalThis，且要把 new Function 编译出的顶层函数导出到全局，否则恒报 `xxx is not defined`；④ 顶层函数枚举须含 `async function`，且 async 结果要 await；⑤ 结果可能写 textContent 或 appendChild 到父节点，采集须覆盖 value/innerHTML/textContent 并在 appendChild 时回写父节点；⑥ 用例间须清理挂到 globalThis 的页面函数。`run_gates.py` 增列第 6 道门禁（5 项 → 6 项）。
-> - ⑩ 英文描述（ed）全量真实化（§4.1.5，本批次收口）：`_en_override.json` 覆盖率本就 100%，但**内容**不达标 —— 123 条是模板套话「…generate results online, free and instant. Free online tool on ToolBox — 100% client-side…」，139 条仅工具名（如 `ed="A1Z26 Password"`），补写中又发现 35 条 25–40 字符的短描述（多为「XX Quick Reference」）。分 6 批为 **297 个工具**手写英文描述，每条写清「做什么 + 典型用途 + 关键注意点」（md5 注明 not for storing passwords；rc4/des 注明 legacy interop only；银行卡/身份证生成器注明 for QA only, never real data）。**复检 345/345 达标**（无套话、长度均 ≥40）。**教训**：覆盖率 100% ≠ 内容达标，与 §4.5.8 同源。
-> - ⑪ 页面与分类静态审计（§4.1.3 / §4.1.6，本批次）：viewport、common.css、common.js、i18n.js、`<html lang>`、按钮 6 项 345/345 全覆盖；下拉选项 0 占位（9 个空 select 均为 JS 动态填充）；`<meta name="toolbox">` 的 industry/cat 345/345 正确。**两处非缺陷的误报已排除**：58 个页面无 `id="result"` 是因为结果区用各自命名（grid/detail、astTree、consoleBody…）；278 个页面无 `data-theme` 是因为主题由 `js/common.js` 运行时写到 documentElement，源码无需声明。
-> 剩余系统性缺口（§4.3 未收口前不删 §9.2）：**关键计算逻辑仅覆盖 28/345**（框架与门禁已建，需按分类继续扩充用例至全部可验证工具）；UI 现代化与移动端布局未做逐页人工核对（静态审计已过，但「UI 太丑」类问题需人工判断）。
-
-> **进行中：`general` (180) — 按 §4.3 从零推进，八项目标全干完才收口；开工首批先按 §4.1 八项目标审计（覆盖率 vs 达标率），再分批改。**
-> 当前批次推进（待首批审计后落地）：
-> - **八项审计结论（2026-09-12）**：deep-dive 180/180 达标（场景≥2 + 示例≥1 + FAQ≥2，套话 0）；UI（common.js/i18n.js/viewport/lang 181/181、toolbox 180/181 缺项应为 index 落地页）达标；下拉 0 占位。**缺口**：英文 p 占位串 139 文件、英文 ed 套话 181/181（均值 152 字符同模板）、formula 无框 105 + 结构异常 4、计算验证 0 覆盖（verify_it_calc.js 未含 general）、指南 0（需按 §4.4 精选）。**首批顺序**：英文 p 真实化 → 英文 ed 真实化 → formula 补真实原理 → 计算验证 / 指南。
-> - **本批首批落地（2026-09-12，general 首刀）**：英文 p 真实化 **50 个清晰型**（`scripts/fix_general_en_p.py`，占位串 139→89，保留 data-zh 中文）；`desc-en` meta 与 `ed` 套话**同批真实化**（`scripts/fix_general_en_meta.py` 复用 EN_MAP，三处英文一致：desc-en 截断≤155 做 meta、ed 不截断，ed 套话 181→131、desc-en 181→131）；**6 道门禁全过**，`build` 后验证 p/desc-en/ed 三处真实英文均保留未回归（新风险点已排除）。
-> - **第二批落地（2026-09-12）**：p 再真实化 **40 个清晰型**（功率/压力/扭矩/电气/材料/切割类，EN_MAP 第二批），占位串 89→49；desc-en/ed 同批真实化 40，ed 套话 131→91、desc-en 套话剩 46（初始非全 181，约 45 个本来非套话）；6 道门禁全过，`build` 验证三处英文不反弹（desc-en 46、p 49、ed 91 均稳定）。
-> - **第三批落地（2026-09-12）**：p 真实化 **49 个（detector 多指标合规评估 38 + 专项工具 9：analysis/assessor/calc-stats/generator/recommender/stats-energy/tester）**，占位串 49→0，**general p 维度彻底清零**；desc-en/ed 同批真实化 49，ed 套话 91→42、desc-en 套话 46→1；6 道门禁全过，build 验证三处英文不反弹（p 0/ed 42/desc-en 1 稳定）。**关键发现**：general 180 页中仅 139 个曾有 p 占位串，另 41 页 p 本就是真实英文（如 `Size a heat exchanger by LMTD method.`），无需处理；剩余 ed/desc-en 套话 42/1 全部集中在未进 EN_MAP 的 41 页（其 p 已真实），留作英文描述层收尾。
-> - **第四批落地（2026-09-12，英文描述层收尾）**：把未进 EN_MAP 的 41 页（40 个 ed 有套话尾巴 + analysis-21 纯套话）全部加进 EN_MAP（值=真实英文），`fix_general_en_meta.py` 同批重置 ed（去尾巴）/ desc-en（幂等）；另清理 1 个孤儿 i18n 键 `general/random-10`（无对应 html，删后 general 键数 181→180 对齐）；analysis-21 的 formula-desc 块单独中英双语化。**结果：p 0 占位 / ed 0 套话(180) / desc-en 0 套话，general 英文描述层三处全维度清零**。6 道门禁全过，build 验证三处英文不反弹、孤儿键清理持久化。
-> - **第五批落地（2026-09-12，formula 第一批 45）**：`scripts/fix_general_formula.py` 在 `tool-card-accent` 容器内、首个 `input-row` 前规范插入 `formula-box`（与 bearing-1 同构，CSS 类 formula-title/eq/desc 已定义），补 45 个无框页真实计算原理（标准工程公式 + 复用正文依据/标准，如重力力矩平衡、V 带张力、激光/等离子/电子束加工、换热器 LMTD、风机/泵选型、电化学钝化等）。**结果：general 有 formula-box 页 75→120，无框 105→60**；6 道门禁全过，`build` 后验证 45 个 formula-box 全部保留未反弹（缺失 0）。
-> - **第六批落地（2026-09-12，formula 第二批 60 + 修 4 异常）**：`fix_general_formula.py` 续补 60 个无框页真实计算原理（💡公式标记 15 个直接复用正文公式 + 44 个标准工程/评估/选型类写真实依据，如增值税计税、十二平均律、法拉第电解、GB/T 150 压力容器壁厚、GB 3836 防爆、ISO 281 陶瓷轴承、Arrhenius 寿命、FDM 打印时间等）；另用正则给 4 个「有框空 desc」异常页（detector-175 泵功率、calculator-calc-10 最小二乘、frequency-3 十二平均律、assessor-19 GB 50009 风荷载）补真实依据。**结果：general 无框 60→0、空 desc 异常 4→0，180/180 工具页均有 formula-box 且 desc 真实（套话 0）；formula 维度彻底清零**。6 道门禁全过，`build` 后验证 180 页 formula-box 全部保留不反弹（无框 0/空 desc 0/套话 0）。
-> - **剩余缺口**：英文描述层 0；formula 0（维度完成）；计算验证 0（DOM stub 复用，verify_it_calc.js 未含 general）；指南 0（§4.4 精选）。
-> - **下批方向**：① 计算验证（复用 verify_it_calc.js DOM stub，扩 general 用例至可验证工具）② 指南（§4.4 精选补 general 专业工具）。
+> ✅ **`general` (180) 已收口**（2026-09-12，八项目标全达标，部署 run 34672625411 success）。历史 `it` (345) 归档见 §9.1 白名单（其跨分类经验已沉淀至 §4.5 / §6）。
+> **`general` 批次明细（已完成，留存备查）：**
+> - **八项审计（2026-09-12）**：deep-dive 180/180 达标；UI（common.js/i18n.js/viewport/lang/toolbox）181/181；下拉 0 占位。缺口：英文 p 占位 139 文件、ed 套话 181/181、formula 无框 105 + 结构异常 4、计算验证 0、指南 0。
+> - **① 英文描述层全维度清零（p / desc-en / ed，4 批 180 工具）**：`fix_general_en_p.py`（EN_MAP 字典驱动）+ `fix_general_en_meta.py`（复用 EN_MAP 同步 desc-en 与 ed）。p 占位 139→0、ed 套话 181→0、desc-en 套话 →0；顺带清理孤儿 i18n 键 `general/random-10`（181→180 对齐）。`_build.py` 只规范化 meta 位置、不覆盖手写 formula-box 与真实英文（每批门禁后均验证不反弹）。
+> - **② formula 全量补齐（2 批 105 无框 + 4 空 desc）**：`fix_general_formula.py` 在 `tool-card-accent` 内、首个 `input-row` 前插入 `formula-box`，补真实工程公式与标准依据（增值税、十二平均律、法拉第电解、GB/T 150 壁厚、GB 3836 防爆、ISO 281 轴承、Arrhenius 寿命、FDM 打印…）。无框 105→0、空 desc 4→0，**180/180 均有真实 formula**。
+> - **③ 计算验证 19 用例（第 7 道门禁）**：新建 `scripts/verify_general_calc.js`（复用 verify_it_calc.js 的 DOM stub），期望值全部由标准公式 / 独立复算得出并显式注入固定输入；依赖「今天」的日期类工具（calc-14 年龄）刻意不纳入。`run_gates.py` 由 6 项扩为 7 项，本批 7/7 全过。
+> - **④ 使用指南 31 篇修复（§4.4）**：审计发现 general 已有 31 篇指南页但 **31/31 模板化**（核心功能=适用场景、使用步骤=示例标题）；新建 `fix_general_guide_fields.py` 补真实 features(4)/steps(5)/tips(4) 后重跑 `gen_guide_pages.py --industry general`，复检 31/31 合格。
+> - **⑤ 英文态数据源根治（本批关键，审计盲区）**：前四批只修页面 HTML 可见英文，未同步 build 预渲染与运行时 i18n 的数据源 → `?lang=en-US` 仍显示占位串与工具代号（body intro 140/180 占位、title 96 条代号；`general.json` 的 en-US 是 industry JSON 的 ed 最高优先级源）。新建 `fix_general_body_i18n.py`（补 180 个真实英文名 + intro 至 `_en_override.json` / `general-body.json` / `general.json`，三端一致）+ `fix_general_prerender_reset.py`（还原已预渲染 h2 / formula-desc 让 build 重新注入）；另补全 calc-197 / calc-203 过短描述，并给 `fix_general_en_p.py` 加「已真实英文 `<p>`」同步能力（EN_MAP 单一数据源）。
+> - **最终结果**：deep-dive 180/180、UI 零缺项、p 占位 0、formula 缺失 0、ed / desc-en 套话 0（最短 42 字符）、计算验证 19、指南 31；**八项目标全达标**。7 道门禁全过，Actions `34672625411` success，线上落盘核验通过（calc-197 / calc-203 / assessor-19 / calculator-calc-10 / frequency-3 关键词命中 + 占位 0；industry-general.json ed 不达标 0/180）。
+> - **遗留（非 general 缺口）**：`i18n/tools/general-body.json` 中 107 条非 general 的占位 intro 均为**全站无对应页面的孤儿条目**，记入 §9.3。
 
 ## 九、未完成任务清单
 
@@ -199,14 +179,14 @@
 - ✅ fire-rescue (40)：已收口分类（§4.4 明示）
 - ✅ psychology (20)：已优化过一遍（§4 开头「先验证后跳过」指令）
 - ✅ it (345)：八项目标全覆盖（deep-dive 345/345、套话/占位/公式 0、指南 40、计算验证 28/28、英文描述 297 真实化、页面 UI 100%；部署 run 34632953856 success），git 实测
+- ✅ general (180)：八项目标全覆盖（deep-dive 180/180、p 占位/套话/formula 缺失 0、ed 与 desc-en 套话 0、指南 31、计算验证 19、英文态数据源根治；部署 run 34672625411 success），git 实测
 
 > 跳过规则：上述分类**不列入 §9.2 待办**；其余分类按 §9.2 热度顺序从零推进。
 
-### 9.2 分类优化清单（264 分类，按热度降序，完成一个删一个）
+### 9.2 分类优化清单（263 分类，按热度降序，完成一个删一个）
 
 > 清单由脚本按 `tools/` 目录工具数生成；每行 = 分类名 + 工具数。当前进行中的分类在 §8 同步登记。
 
-- [ ] general (180)
 - [ ] finance (112)
 - [ ] design (103)
 - [ ] science (99)
@@ -477,3 +457,4 @@
 - [ ] 内容翻译三类：指南 441 篇 / 工具页正文 48 处 / embed 25 处（英文内容层）
 - [ ] Analytics-C 扩面（缺 Bing / Clarity 周期数据）
 - [ ] SEO 描述：Description 重复 69 组未清零（全站级，可并入逐分类时顺手修）
+- [ ] `i18n/tools/general-body.json` 中 107 条非 general 的占位 intro —— 全站无对应页面的**孤儿条目**（general 收口时发现），清理前先确认无页面 / 分类页引用
