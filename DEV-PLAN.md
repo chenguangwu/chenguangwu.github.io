@@ -183,8 +183,9 @@
 > - **第三批落地（2026-09-12）**：p 真实化 **49 个（detector 多指标合规评估 38 + 专项工具 9：analysis/assessor/calc-stats/generator/recommender/stats-energy/tester）**，占位串 49→0，**general p 维度彻底清零**；desc-en/ed 同批真实化 49，ed 套话 91→42、desc-en 套话 46→1；6 道门禁全过，build 验证三处英文不反弹（p 0/ed 42/desc-en 1 稳定）。**关键发现**：general 180 页中仅 139 个曾有 p 占位串，另 41 页 p 本就是真实英文（如 `Size a heat exchanger by LMTD method.`），无需处理；剩余 ed/desc-en 套话 42/1 全部集中在未进 EN_MAP 的 41 页（其 p 已真实），留作英文描述层收尾。
 > - **第四批落地（2026-09-12，英文描述层收尾）**：把未进 EN_MAP 的 41 页（40 个 ed 有套话尾巴 + analysis-21 纯套话）全部加进 EN_MAP（值=真实英文），`fix_general_en_meta.py` 同批重置 ed（去尾巴）/ desc-en（幂等）；另清理 1 个孤儿 i18n 键 `general/random-10`（无对应 html，删后 general 键数 181→180 对齐）；analysis-21 的 formula-desc 块单独中英双语化。**结果：p 0 占位 / ed 0 套话(180) / desc-en 0 套话，general 英文描述层三处全维度清零**。6 道门禁全过，build 验证三处英文不反弹、孤儿键清理持久化。
 > - **第五批落地（2026-09-12，formula 第一批 45）**：`scripts/fix_general_formula.py` 在 `tool-card-accent` 容器内、首个 `input-row` 前规范插入 `formula-box`（与 bearing-1 同构，CSS 类 formula-title/eq/desc 已定义），补 45 个无框页真实计算原理（标准工程公式 + 复用正文依据/标准，如重力力矩平衡、V 带张力、激光/等离子/电子束加工、换热器 LMTD、风机/泵选型、电化学钝化等）。**结果：general 有 formula-box 页 75→120，无框 105→60**；6 道门禁全过，`build` 后验证 45 个 formula-box 全部保留未反弹（缺失 0）。
-> - **剩余缺口**：英文描述层 0（维度完成）；formula 无框 60 + 结构异常 4；计算验证 0（DOM stub 复用）；指南 0（§4.4 精选）。
-> - **下批方向**：① formula 补剩余 60（含修 4 结构异常）② 计算验证（复用 verify_it_calc.js DOM stub，扩 general 用例）③ 指南（§4.4 精选补 general 专业工具）。
+> - **第六批落地（2026-09-12，formula 第二批 60 + 修 4 异常）**：`fix_general_formula.py` 续补 60 个无框页真实计算原理（💡公式标记 15 个直接复用正文公式 + 44 个标准工程/评估/选型类写真实依据，如增值税计税、十二平均律、法拉第电解、GB/T 150 压力容器壁厚、GB 3836 防爆、ISO 281 陶瓷轴承、Arrhenius 寿命、FDM 打印时间等）；另用正则给 4 个「有框空 desc」异常页（detector-175 泵功率、calculator-calc-10 最小二乘、frequency-3 十二平均律、assessor-19 GB 50009 风荷载）补真实依据。**结果：general 无框 60→0、空 desc 异常 4→0，180/180 工具页均有 formula-box 且 desc 真实（套话 0）；formula 维度彻底清零**。6 道门禁全过，`build` 后验证 180 页 formula-box 全部保留不反弹（无框 0/空 desc 0/套话 0）。
+> - **剩余缺口**：英文描述层 0；formula 0（维度完成）；计算验证 0（DOM stub 复用，verify_it_calc.js 未含 general）；指南 0（§4.4 精选）。
+> - **下批方向**：① 计算验证（复用 verify_it_calc.js DOM stub，扩 general 用例至可验证工具）② 指南（§4.4 精选补 general 专业工具）。
 
 ## 九、未完成任务清单
 
