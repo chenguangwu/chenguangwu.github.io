@@ -678,6 +678,8 @@ python3 -m http.server 8765
 - 构建产物变化一律**全量核对随提交**，禁止只挑部分文件回退；新建文件前先确认是否已存在（曾发生 Write 覆盖）
 - SW v4 分三桶（`tb-shell-v4` / `tb-rt-v4-<BUILD>` / `tb-tools-v4-<BUILD>`）：CSS/JS/JSON 网络优先 3s 回退、图片字体 cache-first；紧急开关 `sw-kill.json` = `{"disabled":true}`
 - 统计统一收口 `js/analytics.js`（引 `common.js` 即自动获得，勿再单独引）
+- **手改工具页后第一次 `_build.py` 会「一次性大改写」该页并冲掉手改内容**（相关工具重算 + 索引重建），第二次起才幂等。判据：插入 `<!--M1-->` 标记再构建，标记存活即证明构建本身不清除该区域。**对策：手改 → 构建 → 必须复查改动存活**（`grep -c` 关键串），被冲掉就把全部改动写进一个**幂等 apply 脚本**重跑，不要逐次手补
+- **`<h1 class="sr-only">`、`bc-current` 面包屑、面包屑 JSON-LD 是「只写一次」字段**：构建仅在缺失时注入，已存在则不刷新。改工具名必须**同时**改 i18n 字典（`i18n/tools/<行业>.json` 的 `title`/`h1`）+ `json/tools.json` 的 `name` + 页面磁盘里的 h1/面包屑/JSON-LD，`<title>`/`og:title`/WebApplication `name` 则由构建每次刷新
 
 ### 页面内容与 _build.py 的交互（逐分类推进必读）
 - **`_prerender_tool_body` 只处理文档首个 `<p>`（`count=1`）**，且仅当正文含 CJK 时才用 `i18n/tools/<ind>-body.json` 的 `intro` 覆盖正文、原文写入 `data-zh`。由此产生三个必踩陷阱：
