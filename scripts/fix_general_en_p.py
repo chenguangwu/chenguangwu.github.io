@@ -183,7 +183,6 @@ EN_MAP = {
     'calc-204': "Compute formwork support spacing by bearing-area method.",
     'calc-205': "Compute steel quantity for double-row coupler scaffolds.",
     'calc-206': "Verify single-standard coupler scaffold safety under load.",
-    'calc-21': "Compute windfall tax and net lottery prize.",
     'calc-94': "Adjust project cost by material, labor and equipment indices.",
     'dianhuaxuedunhuakongzhi': "Control electrochemical passivation of iron by the Pourbaix (E-pH) diagram.",
     'fengjixuanxingjisuan': "Size fan shaft and motor power from airflow and pressure.",
@@ -214,7 +213,6 @@ EN_MAP = {
     'zhilengshebeixuanxing': "Size refrigeration equipment and estimate ideal Carnot COP from cooling load and temperatures.",
     'zhiliangyanshouchouyang': "Plan acceptance sampling by lot size N and standard attribute plans.",
 }
-
 
 def main():
     do_apply = '--apply' in sys.argv
@@ -257,7 +255,6 @@ def main():
     for slug, reason in skipped[:30]:
         print('  skip  %-32s %s' % (slug, reason))
     return 0
-
 
 if __name__ == '__main__':
     sys.exit(main())

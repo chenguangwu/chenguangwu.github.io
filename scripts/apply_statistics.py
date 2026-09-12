@@ -292,19 +292,6 @@ KB = {
     {'q': 'OR 和 RR 区别？', 'a': 'RR=发病率比（队列），OR=odds 比（病例对照）。罕见病 OR≈RR，常见病 OR 高估 RR。'},
     {'q': 'OR 能直接当风险倍数？', 'a': '仅当疾病罕见时近似，否则 OR 高于 RR，需谨慎解读。'}],
 },
-'statistics/odds-to-probability': {
-  'title': '赔率转概率',
-  'scenarios': [
-    'p=o/(1+o)，由 odds 求概率。',
-    '博彩赔率、logistic 输出解读。',
-    'o=1 等价 p=0.5。'],
-  'examples': [
-    {'title': '赔率 3', 'body': 'o=3：p=3/(1+3)=0.75，即 75% 概率发生。'},
-    {'title': '赔率 0.5', 'body': 'o=0.5：p=0.5/1.5≈0.333，约 33.3%。'}],
-  'faqs': [
-    {'q': 'odds 和概率区别？', 'a': '概率 p 是发生/总；odds=p/(1−p) 是发生/不发生之比。odds 可 >1，概率恒 ≤1。'},
-    {'q': 'logistic 回归输出？', 'a': '常输出 logit=ln(odds)，需 exp 得 odds 再转概率。'}],
-},
 'statistics/one-sample-t-test': {
   'title': '单样本 t 检验',
   'scenarios': [

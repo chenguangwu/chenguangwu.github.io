@@ -254,29 +254,6 @@ TOOLS = [
         "notes": ["95% 置信常取 z=1.96。", "1.96×0.05 → 0.098。"],
     },
     {
-        "slug": "odds-to-probability",
-        "industry": "statistics",
-        "cat": "statistics",
-        "icon": "shuffle",
-        "bg": "from-violet-500 to-purple-600",
-        "title": "赔率转概率计算器",
-        "h1": "p = o / (1 + o)",
-        "h2": "由赔率求对应概率",
-        "intro": "输入赔率 o，求概率。",
-        "desc": "赔率转概率：输入 赔率，输出 p。",
-        "inputs": [
-            {"id": "o", "label": "赔率 o", "value": "2", "step": "0.2", "unit": ""},
-        ],
-        "calc": """
-            const o=num('o');
-            const p=o/(1+o);
-            ToolBox.setResult('result', dataGrid([
-                [p.toFixed(4),'概率 p']
-            ]));
-        """,
-        "notes": ["赔率 1:1 对应概率 0.5。", "o=2 → 2/3 ≈ 0.667。"],
-    },
-    {
         "slug": "probability-complement",
         "industry": "statistics",
         "cat": "statistics",

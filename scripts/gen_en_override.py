@@ -102,7 +102,6 @@ _PINYIN_MARK = re.compile(r'(zh|ch|sh|ng|iao|iang|uang|iong|ü|ue|uan|uen)')
 # （influencer/frequent 含 uen，而汉语拼音 uen 写作 un，从不存在 uen 书写）。
 _PINYIN_EXCLUSIVE = re.compile(r'(iao|iang|uang|iong|ü)')
 
-
 def is_pinyin_slug(slug):
     """仅在高度确信 slug 为拼音时才返回 True（保守策略，避免误伤英文 slug）。
 
@@ -254,7 +253,6 @@ PLACEHOLDER_KEY = {
     ('procurement', 'calc-15'): {'en': 'Economic Order Quantity (EOQ) Calculator', 'ed': 'Find optimal order quantity and total cost (EOQ).'},
     ('legal', 'calc-16'): {'en': 'Limitation Period (Statute of Limitations) Calculator', 'ed': 'Compute expiration of general civil limitation under Civil Code Art. 188.'},
     ('legal', 'calc-17'): {'en': 'IP Protection Term Calculator', 'ed': 'Compute terms for invention patents, utility models, designs and trademarks.'},
-    ('general', 'calc-21'): {'en': 'Lottery After-Tax Prize Calculator', 'ed': 'Compute windfall tax and net lottery prize.'},
     ('geology', 'calc-25'): {'en': 'Earthquake Epicentral Distance Calculator', 'ed': 'Estimate epicentral distance from P-S wave time difference.'},
     ('hydraulic', 'calc-26'): {'en': 'Open Channel Uniform Flow Calculator (Manning\'s)', 'ed': 'Compute uniform flow in open channels (Manning\'s formula).'},
     ('securities', 'calc-29'): {'en': 'Bollinger Bands Calculator (Upper / Lower / Std Dev)', 'ed': 'Compute Bollinger Bands: midline, bands, %B and bandwidth.'},
@@ -442,9 +440,7 @@ PLACEHOLDER_KEY = {
     ('surveying', 'triangulation-side'): {'en': 'Triangulation Side Calculator', 'ed': 'Compute a triangle side by the law of sines from known side and opposite angles.'},
 }
 
-
 _FULL_PUNCT = re.compile(r'[\u3000-\u303f\uff00-\uffef]')
-
 
 def _halfwidth(s):
     """全角标点/空格 -> 半角，避免英文标题残留中文标点（如 AST （ ... ））。"""
@@ -464,7 +460,6 @@ def _halfwidth(s):
         else:
             out.append(ch)
     return ''.join(out)
-
 
 def slug_to_name(slug):
     """英文 slug -> 自然英文标题；占位符/拼音/非英文 slug 返回 None。"""
@@ -487,7 +482,6 @@ def slug_to_name(slug):
         if low in LOWER:
             words[i] = low
     return ' '.join(words)
-
 
 def slug_to_intro(en_name, slug):
     """按标题/动作词生成简洁英文简介。"""
@@ -515,7 +509,6 @@ def slug_to_intro(en_name, slug):
     if 'picker' in s or 'selector' in s:
         return en_name + ' - pick and choose online, free.'
     return en_name + ' - free online tool.'
-
 
 def main():
     si = json.load(open(SI_PATH, encoding='utf-8'))
@@ -556,7 +549,6 @@ def main():
     json.dump(ov, open(OUT_PATH, 'w', encoding='utf-8'),
               ensure_ascii=False, indent=0, separators=(',', ':'))
     print('[gen_en_override] tools=%d -> %s' % (len(ov), OUT_PATH))
-
 
 if __name__ == '__main__':
     main()

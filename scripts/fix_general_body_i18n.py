@@ -47,7 +47,6 @@ NAME = {
     "calc-204": "Formwork Prop Spacing Calculator",
     "calc-205": "Scaffold Steel Consumption Estimate",
     "calc-206": "Scaffold Standard Stability Check",
-    "calc-21": "Lottery Prize After-Tax Calculator",
     "calc-94": "Construction Cost Index Adjustment",
     "calc-flow": "Crop-Spraying Flow & Dosage",
     "calc-ratio-2": "Solution Dilution Ratio Calculator",
@@ -211,7 +210,6 @@ NAME = {
     "zhiliangyanshouchouyang": "Quality Acceptance Sampling",
 }
 
-
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--dry-run", action="store_true")
@@ -271,7 +269,6 @@ def main():
     json.dump(gis, open(GIS, "w", encoding="utf-8"), ensure_ascii=False, indent=2)
     print("已写入 _en_override.json(1) / general-body.json(2) / general.json(2)")
     return 0
-
 
 if __name__ == "__main__":
     raise SystemExit(main())
