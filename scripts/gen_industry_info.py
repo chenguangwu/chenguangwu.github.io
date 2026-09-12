@@ -165,8 +165,10 @@ def main():
         if not name:
             missing.append(k)
             name = k
-        # 图标优先级：手工 ICON_MAP > 行业页 h1 自带专属图标 > 默认 🔧
-        icon = ICON_MAP.get(k) or h1_icon or DEFAULT_ICON
+        # 图标优先级：INDUSTRY_DEFS[0] 权威源 > 手工 ICON_MAP 覆盖 > 行业页 h1 图标 > 默认 🔧
+        # 说明：INDUSTRY_DEFS[0] 已补全语义 emoji（无 🔧），作为分类图标的单一权威源，
+        # 与行业页 H1 / sitemap / 面包屑保持一致；ICON_MAP 仅作手工微调覆盖（一般保持同步）。
+        icon = _INDUSTRY_DEFS.get(k, (DEFAULT_ICON, k))[0] or ICON_MAP.get(k) or h1_icon or DEFAULT_ICON
         rows.append((k, name, icon))
 
     # 同名检测（导航里两个相同中文名会造成困惑，告警但不阻塞）

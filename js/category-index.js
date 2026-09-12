@@ -35,7 +35,7 @@
     // 中文名/描述来自静态 DOM（繁体页已被 OpenCC 转繁体），增强时不覆盖，保持繁体一致
     var zhName = zhNameEl ? zhNameEl.textContent : (a.getAttribute('data-zh') || '');
     var zhDesc = zhDescEl ? zhDescEl.textContent : (a.getAttribute('data-zhdesc') || '');
-    var icon = (rec && rec.icon) || '🔧';
+    var icon = (rec && rec.icon) || '🛠️';
     var enName = (rec && rec.en) || '';
     var enDesc = (rec && rec.ed) || '';
     a.classList.add('tb-megapanel-tool-card');

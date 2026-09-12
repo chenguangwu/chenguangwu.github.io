@@ -2339,7 +2339,7 @@ function renderRelatedTools(){
             d = '';
           }
           return '<a class="rt-item" href="' + toolPageRootPrefix() + escHtml(t.url) + '">' +
-            '<span class="rt-ico">' + escHtml(t.icon || '🔧') + '</span>' +
+            '<span class="rt-ico">' + escHtml(t.icon || '🛠️') + '</span>' +
             '<span class="rt-info"><span class="rt-name">' + escHtml(n) + '</span><span class="rt-desc">' + escHtml(d || '') + '</span></span></a>';
         }).join('') + '</div>';
     })

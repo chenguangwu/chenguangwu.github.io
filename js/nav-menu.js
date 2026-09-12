@@ -234,7 +234,7 @@
         card.href = localeUrl(t.url);
         card.title = titleOf(t);
         card.innerHTML = `
-          <span class="tb-tool-icon" style="background:${t.bg || '#f5f5f5'}">${t.icon || '🔧'}</span>
+          <span class="tb-tool-icon" style="background:${t.bg || '#f5f5f5'}">${t.icon || '🛠️'}</span>
           <span class="tb-tool-body">
             <span class="tb-tool-name">${nOf(t)}</span>
             <span class="tb-tool-desc">${dOf(t)}</span>

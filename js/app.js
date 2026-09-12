@@ -6,7 +6,7 @@ const INDUSTRY_INFO = (typeof window !== 'undefined' && window.INDUSTRY_INFO) ||
 const HOT_INDUSTRIES = ['it','design','biz','life','finance','health','edu','science','fun','marketing','travel','legal'];
 
 const CAT_INFO = {
-  dev:       { name: '开发工具', icon: '🔧' },
+  dev:       { name: '开发工具', icon: '💻' },
   encode:    { name: '编码解码', icon: '🔐' },
   text:      { name: '文本处理', icon: '📝' },
   generate:  { name: '生成器',   icon: '🎲' },
@@ -220,7 +220,7 @@ function renderHotSpotlight() {
   grid.innerHTML = HOT_TOOLS.map(t => {
     const url = canonicalToolUrl(t.u || t.url);
     return `<a class="hot-spotlight-card" href="${url}" target="_blank" rel="noopener" onclick="addToRecent('${url}')">
-      <div class="hot-spotlight-icon" style="background:${t.b || t.bg || '#f5f5f5'}">${t.ic || t.icon || '🔧'}</div>
+      <div class="hot-spotlight-icon" style="background:${t.b || t.bg || '#f5f5f5'}">${t.ic || t.icon || '🛠️'}</div>
       <div class="hot-spotlight-info">
         <div class="hot-spotlight-name">${_tn(t)}</div>
         <div class="hot-spotlight-desc">${_td(t)}</div>
@@ -627,7 +627,7 @@ function renderHotRecentFav() {
 function renderToolCards(tools) {
   const favSet = new Set(favorites);
   return tools.map((t, i) => {
-    const icon = t.ic || t.icon || '🔧';
+    const icon = t.ic || t.icon || '🛠️';
     const bg = t.b || t.bg || '#f5f5f5';
     const url = canonicalToolUrl(t.u || t.url);
     const name = _tn(t);
@@ -796,7 +796,7 @@ function renderMobileSearchResults() {
       ? sug.map(t => `
     <a href="${t.u}" class="mobile-search-item" onclick="addToRecent('${t.u}');closeMobileSearch()">
       <div class="mobile-search-item-head">
-        <div class="mobile-search-icon">${t.ic || '🔧'}</div>
+        <div class="mobile-search-icon">${t.ic || t.icon || '🛠️'}</div>
         <div style="flex:1;min-width:0">
           <div class="mobile-search-name">${escapeHtml(_tn(t))}</div>
           <div class="mobile-search-desc">${_t('search.related', '相关推荐')}</div>
@@ -810,7 +810,7 @@ function renderMobileSearchResults() {
   container.innerHTML = tools.map(t => `
     <a href="${t.u}" class="mobile-search-item" onclick="addToRecent('${t.u}');closeMobileSearch()">
       <div class="mobile-search-item-head">
-        <div class="mobile-search-icon">${t.ic || '🔧'}</div>
+        <div class="mobile-search-icon">${t.ic || t.icon || '🛠️'}</div>
         <div style="flex:1;min-width:0">
           <div class="mobile-search-name">${_tn(t)}</div>
           <div class="mobile-search-desc">${_td(t) || ''}</div>
@@ -1134,13 +1134,13 @@ function cmdkRender(query) {
 }
 
 function cmdkItemHtml(t, i, name, desc, isSearch, matches) {
-  const industry = INDUSTRY_INFO[t.i] || { name: t.i || '', icon: '🔧' };
+  const industry = INDUSTRY_INFO[t.i] || { name: t.i || '', icon: '🛠️' };
   const cat = CAT_INFO[t.c] || { name: t.c || '' };
   const nameHtml = isSearch ? cmdkHighlight(name, matches) : escapeHtml(name);
   const descHtml = isSearch ? cmdkHighlight(desc || '', matches) : escapeHtml(desc || '');
   return `<div class="cmdk-item${i === cmdkActive ? ' active' : ''}" data-idx="${i}" data-url="${t.u}"
       onmouseenter="cmdkSetActive(${i})" onclick="cmdkGo(${i})">
-    <div class="cmdk-item-ic" style="background:${t.b || '#f3f4f6'}">${t.ic || '🔧'}</div>
+    <div class="cmdk-item-ic" style="background:${t.b || '#f3f4f6'}">${t.ic || t.icon || '🛠️'}</div>
     <div class="cmdk-item-body">
       <div class="cmdk-item-name">${nameHtml}</div>
       <div class="cmdk-item-desc">${descHtml}</div>

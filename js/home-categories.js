@@ -39,7 +39,7 @@
 
   function renderToolCard(t) {
     return ce('a', 'hc-tool-card', `
-      <span class="hc-tool-icon" style="background:${t.bg || '#f5f5f5'}">${t.icon || '🔧'}</span>
+      <span class="hc-tool-icon" style="background:${t.bg || '#f5f5f5'}">${t.icon || '🛠️'}</span>
       <span class="hc-tool-body">
         <span class="hc-tool-name">${nOf(t)}</span>
         <span class="hc-tool-desc">${dOf(t)}</span>
