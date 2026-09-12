@@ -180,8 +180,9 @@
 > - **八项审计结论（2026-09-12）**：deep-dive 180/180 达标（场景≥2 + 示例≥1 + FAQ≥2，套话 0）；UI（common.js/i18n.js/viewport/lang 181/181、toolbox 180/181 缺项应为 index 落地页）达标；下拉 0 占位。**缺口**：英文 p 占位串 139 文件、英文 ed 套话 181/181（均值 152 字符同模板）、formula 无框 105 + 结构异常 4、计算验证 0 覆盖（verify_it_calc.js 未含 general）、指南 0（需按 §4.4 精选）。**首批顺序**：英文 p 真实化 → 英文 ed 真实化 → formula 补真实原理 → 计算验证 / 指南。
 > - **本批首批落地（2026-09-12，general 首刀）**：英文 p 真实化 **50 个清晰型**（`scripts/fix_general_en_p.py`，占位串 139→89，保留 data-zh 中文）；`desc-en` meta 与 `ed` 套话**同批真实化**（`scripts/fix_general_en_meta.py` 复用 EN_MAP，三处英文一致：desc-en 截断≤155 做 meta、ed 不截断，ed 套话 181→131、desc-en 181→131）；**6 道门禁全过**，`build` 后验证 p/desc-en/ed 三处真实英文均保留未回归（新风险点已排除）。
 > - **第二批落地（2026-09-12）**：p 再真实化 **40 个清晰型**（功率/压力/扭矩/电气/材料/切割类，EN_MAP 第二批），占位串 89→49；desc-en/ed 同批真实化 40，ed 套话 131→91、desc-en 套话剩 46（初始非全 181，约 45 个本来非套话）；6 道门禁全过，`build` 验证三处英文不反弹（desc-en 46、p 49、ed 91 均稳定）。
-> - **剩余缺口**：p 49（detector 参数三连 38 + 极简关键词 11，需逐页读功能写实）；ed 91、desc-en 46；formula 无框 105 + 结构异常 4；计算验证 0（DOM stub 复用）；指南 0（§4.4 精选）。
-> - **下批方向**：① detector 类 p 真实化（逐页读功能，硬骨头）② formula 补真实原理 ③ 计算验证 / 指南。
+> - **第三批落地（2026-09-12）**：p 真实化 **49 个（detector 多指标合规评估 38 + 专项工具 9：analysis/assessor/calc-stats/generator/recommender/stats-energy/tester）**，占位串 49→0，**general p 维度彻底清零**；desc-en/ed 同批真实化 49，ed 套话 91→42、desc-en 套话 46→1；6 道门禁全过，build 验证三处英文不反弹（p 0/ed 42/desc-en 1 稳定）。**关键发现**：general 180 页中仅 139 个曾有 p 占位串，另 41 页 p 本就是真实英文（如 `Size a heat exchanger by LMTD method.`），无需处理；剩余 ed/desc-en 套话 42/1 全部集中在未进 EN_MAP 的 41 页（其 p 已真实），留作英文描述层收尾。
+> - **剩余缺口**：p 0（维度完成）；ed 42、desc-en 1（均集中在未覆盖 EN_MAP 的 41 页，其 p 已真实英文）；formula 无框 105 + 结构异常 4；计算验证 0（DOM stub 复用）；指南 0（§4.4 精选）。
+> - **下批方向**：① 英文描述层收尾（未覆盖 EN_MAP 的 41 页：清 ed 42/desc-en 1，复用其已有真实英文 p 或重写；analysis-21 等 desc-en 套话明确清）② formula 补真实原理 ③ 计算验证 / 指南。
 
 ## 九、未完成任务清单
 
