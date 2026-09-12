@@ -198,6 +198,7 @@ chenguangwu.github.io/
 - 资产完整性门禁：`python3 _audit_assets.py --check` 必须 exit 0（0 局部资产死链 / 0 `<html lang>` 缺失 / 0 页面内重复 id）。同样排除 `<script>/<style>` 块示例与 GSC/Bing 验证文件（无 `<html>` 标签），避免误报；发布前必须跑通
 - **不要手动修改** `json/*.json` 和 `sitemap.xml`，它们是构建产物
 - **提交前必须最后跑一次 `python3 _build.py`**（改完 i18n / 数据源 / 工具页后，构建必须是提交前的最后一步）。反例（2026-09-12 fun 收口）：中文 title/intro 补齐后未重跑构建即提交 → 页面落盘为陈旧产物（`icon=🎮` 残留行业默认、JSON-LD `name` 残留英文占位 `Bbq Portion`），而 CI 从同一 HEAD 重建产出正确值 → **本地 MD5 ≠ 线上 MD5**。判定方法：从干净 HEAD 重跑 `_build.py`，若本地变为与线上一致，即为「提交前漏构建」。抽查派生字段：`meta[name=toolbox]` 的 `icon=`、JSON-LD `WebApplication.name`、`<title>`。
+- **判定「计算类工具」（是否需要 formula-box）一律用客观口径：页面中 `type="number"` 的 input ≥2 → 计算类，必须有框；否则为交互 demo，豁免。严禁照抄行业 `cat` 字段做豁免**（见 § 项目特有坑与速查「formula 计算类判定」）。反例（2026-09-13 ai 收口）：ai 行业 8 个文本/图像 demo（OCR/语音/情感/图像分类）被标 `calculator` 且**有框**，而 56 个真计算器（欧氏距离/余弦相似度/交叉熵/显存估算）被标 `math`/`dev` 且**全无框**——cat 与「是否计算工具」无对应关系，照抄 fun 的 `CALC_CATS={'calculator','convert','health'}` 会把 56 个真计算器全判成豁免。补框时公式须逐条对照页面 `function calc()` 里的 `__vN = (表达式)` 撰写，杜绝 science calc-1 式的错公式。
 - 不要手动修改 `index.html` 中的工具列表/统计数据，它们由构建脚本注入
 - **所有公开页面必须引用 `/js/common.js`**（工具页/行业落地页/首页由 `_build.py` 统一注入；guides/静态页等非 `_build.py` 处理的页面须手动保留该引用，遗漏可用 `python3 scripts/inject_common_js.py` 幂等补全）。`js/common.js` 会在加载时兜底补引统一统计入口 `js/analytics.js`，因此「引 common.js」即同时获得公共功能与百度/Clarity/51.la 统计覆盖。**例外：Google 站点验证文件（`google*.html`）不引入任何脚本、保持原样。**
 

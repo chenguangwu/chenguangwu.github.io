@@ -210,7 +210,7 @@
 - ✅ science (99)：八项目标全覆盖（deep-dive 99/99 条数补齐、英文态七维全清零含全站 h2 实体修复 32 页、formula 覆盖 99/99 + calc-1 错公式修正、计算验证 8/8（第 10 道门禁 verify_science_calc.js）、指南 23（精选新增 8 篇旗舰指南）、cycle 重复工具移除、script 内 formula-box 误注入根因修复；部署 run 34684543764 success），git 实测
 - ✅ sports (75)：八项目标全覆盖（deep-dive 75/75 达 §4.5 标准、英文态七维全清零、formula 覆盖 24/24 补框、计算验证 8/8（第 11 道门禁 verify_sports_calc.js）、指南 8、6 孤儿键清理；部署 run 34688676392 success（线上 MD5 逐字节一致）），git 实测
 - ✅ fun (64)：八项目标全覆盖（deep-dive 64/64 已达 §4.5、英文态八维全清零含三端 59 个孤儿键清理、中文 title/intro 补齐 6、formula 计算类覆盖 11/11、计算验证 5/5（第 12 道门禁 verify_fun_calc.js）、指南 64/64、修复 3 个空 select；部署 run 34703760306 success（线上 MD5 逐字节一致）），git 实测
-- ✅ ai (64)：八项目标全覆盖（deep-dive 64/64 达 §4.5、英文态八维全清零、formula 口径纠正后计算类覆盖 56/56、计算验证 9/9（第 13 道门禁 verify_ai_calc.js）、指南 0→64；部署 run 见发布核验回填），git 实测
+- ✅ ai (64)：八项目标全覆盖（deep-dive 64/64 达 §4.5、英文态八维全清零、formula 口径纠正后计算类覆盖 56/56、计算验证 9/9（第 13 道门禁 verify_ai_calc.js）、指南 0→64；部署 run 34706025645 success（线上 MD5 逐字节一致）），git 实测
 
 > 跳过规则：上述分类**不列入 §9.2 待办**；其余分类按 §9.2 热度顺序从零推进。
 
