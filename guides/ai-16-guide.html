@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>模型融合加权投票 使用指南 - ToolBox</title>
+<meta name="description" content="按各模型权重计算加权投票或加权平均的集成输出概率，适用于集成学习、模型融合与预测精度提升方案评估。">
+<meta property="og:title" content="模型融合加权投票 使用指南">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="ToolBox">
+<meta property="og:url" content="https://chenguangwu.github.io/guides/ai-16-guide.html">
+<meta property="og:description" content="按各模型权重计算加权投票或加权平均的集成输出概率，适用于集成学习、模型融合与预测精度提升方案评估。">
+<meta name="twitter:title" content="模型融合加权投票 使用指南">
+<meta name="twitter:description" content="按各模型权重计算加权投票或加权平均的集成输出概率，适用于集成学习、模型融合与预测精度提升方案评估。">
+<meta name="twitter:image" content="https://chenguangwu.github.io/og-image.png">
+<meta name="twitter:image:alt" content="ToolBox - 免费在线工具与使用指南">
+<meta property="og:image" content="https://chenguangwu.github.io/og-image.png">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="canonical" href="https://chenguangwu.github.io/guides/ai-16-guide.html">
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "Article", "headline": "模型融合加权投票 使用指南", "description": "按各模型权重计算加权投票或加权平均的集成输出概率，适用于集成学习、模型融合与预测精度提升方案评估。", "author": {"@type": "Organization", "name": "ToolBox"}, "datePublished": "2026-09-13", "dateModified": "2026-09-13", "mainEntityOfPage": {"@type": "WebPage", "@id": "https://chenguangwu.github.io/guides/ai-16-guide.html"}}</script>
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "ToolBox", "item": "https://chenguangwu.github.io/"}, {"@type": "ListItem", "position": 2, "name": "使用指南", "item": "https://chenguangwu.github.io/guides/index.html"}, {"@type": "ListItem", "position": 3, "name": "模型融合加权投票 使用指南", "item": "https://chenguangwu.github.io/guides/ai-16-guide.html"}]}</script>
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "融合一定比单模型好吗？", "acceptedAnswer": {"@type": "Answer", "text": "不一定。若基模型高度相关(同源训练)，融合增益很小甚至过拟合；只有误差多样、互补的模型融合才稳定提升。"}}, {"@type": "Question", "name": "权重怎么定？", "acceptedAnswer": {"@type": "Answer", "text": "常用各模型在验证集的准确率或 AUC 作权重，也可用网格搜索/线性规划优化组合系数，避免随意设定。"}}]}</script>
+<style>
+:root{--primary:#FF6B35;--text:#1F2937;--muted:#6B7280;--border:#E5E7EB;--bg:#FFFAF7;}
+*{box-sizing:border-box;}
+body{margin:0;font-family:"Noto Sans SC","Plus Jakarta Sans",system-ui,sans-serif;color:var(--text);background:var(--bg);line-height:1.75;}
+.breadcrumb a{color:var(--primary);text-decoration:none;margin-right:6px;}
+.breadcrumb a:hover{text-decoration:underline;}
+main{max-width:820px;margin:0 auto;padding:28px 20px 60px;}
+h1{font-size:28px;margin:0 0 8px;}
+.lead{font-size:16px;color:var(--muted);margin:0 0 22px;}
+h2{font-size:20px;margin:28px 0 10px;color:var(--primary);}
+ul,ol{padding-left:22px;}
+li{margin:8px 0;}
+.related{margin-top:26px;padding:16px;background:#fff;border:1px solid var(--border);border-radius:14px;}
+.related h3{margin:0 0 10px;font-size:16px;color:var(--text);}
+.tool-chip{display:inline-block;margin:4px 6px 4px 0;padding:6px 12px;border:1px solid var(--border);border-radius:999px;color:var(--primary);text-decoration:none;font-size:14px;}
+.tool-chip:hover{background:var(--primary);color:#fff;}
+.faq{margin-top:26px;}
+.faq dt{font-weight:700;margin-top:14px;}
+.faq dd{margin:4px 0 0;color:var(--muted);}
+.back{margin-top:30px;padding:16px;background:#fff;border:1px solid var(--border);border-radius:14px;}
+.back a{color:var(--primary);font-weight:700;text-decoration:none;}
+</style>
+<script src="/js/analytics.js" defer></script>
+<link rel="stylesheet" href="../css/site-chrome.css">
+<link rel="stylesheet" href="../css/common.css">
+<script src="/js/i18n.js" defer></script>
+<script src="../js/common.js" defer></script>
+<meta name="title-zh" content="模型融合加权投票 使用指南">
+</head>
+<body>
+<nav class="breadcrumb"><a href="https://chenguangwu.github.io/">ToolBox</a> / <a href="https://chenguangwu.github.io/guides/index.html">使用指南</a> / <span>模型融合加权投票 使用指南</span></nav>
+<main>
+<h1>模型融合加权投票 使用指南</h1>
+<p class="lead">按各模型权重计算加权投票或加权平均的集成输出概率，适用于集成学习、模型融合与预测精度提升方案评估。</p>
+<h2>计算公式与原理</h2>
+<p><strong>加权平均概率 = Σpᵢwᵢ / Σwᵢ；硬投票 = Σ[pᵢ ≥ 0.5] ≥ 2 判正类；集成置信度 = |加权概率 − 0.5| × 2</strong></p><p>软投票用权重平均概率，能利用模型输出的置信度信息，通常优于硬投票的多数决。权重可按各模型验证集表现分配；若子模型同质性太强（同一架构不同种子），集成增益会非常有限。</p>
+<h2>使用步骤</h2>
+<ol><li>填写「模型1概率」。</li><li>填写「模型1权重」。</li><li>填写「模型2概率」。</li><li>填写「模型2权重」。</li><li>填写「模型3概率」。</li><li>填写「模型3权重」。</li><li>结果区会即时更新；可一键复制结果用于记录或汇报。</li></ol>
+<h2>典型使用场景</h2>
+<ul><li>加权投票：对各类别累加各模型输出概率×权重，取最大者为预测。</li><li>加权平均直接对各模型输出概率做加权和，权重常按单模型验证准确率设定。</li><li>融合能降低方差、提升稳健性，前提是基模型具备多样性(误差不相关)。</li></ul>
+<h2>算例参考</h2>
+<ul><li><strong>两模型加权融合</strong>：模型A对类别1概率0.7(权重0.6)，模型B 0.4(权重0.4) → 融合=0.7×0.6+0.4×0.4=0.58，仍判为类别1。若B权重更高(0.7)则=0.7×0.3+0.4×0.7=0.49 翻转为类别0。</li></ul>
+<h2>注意事项</h2>
+<p>结果为按上述公式得到的<strong>理论估算值</strong>，实际表现受数据分布、实现细节与运行环境影响，落地决策请以实测为准；本工具纯前端运行，输入不上传服务器。</p>
+<div class="related">
+<h3>相关工具</h3>
+<a class="tool-chip" href="https://chenguangwu.github.io/tools/ai/ai-17.html">提示词上下文窗口</a>
+<a class="tool-chip" href="https://chenguangwu.github.io/tools/ai/ai-4.html">欧氏距离</a>
+<a class="tool-chip" href="https://chenguangwu.github.io/tools/ai/ai-5.html">批量大小迭代次数</a>
+<a class="tool-chip" href="https://chenguangwu.github.io/tools/ai/ai-6.html">参数数量估算</a>
+</div>
+<dl class="faq">
+<dt>融合一定比单模型好吗？</dt><dd>不一定。若基模型高度相关(同源训练)，融合增益很小甚至过拟合；只有误差多样、互补的模型融合才稳定提升。</dd>
+<dt>权重怎么定？</dt><dd>常用各模型在验证集的准确率或 AUC 作权重，也可用网格搜索/线性规划优化组合系数，避免随意设定。</dd>
+</dl>
+<div class="back"><a href="https://chenguangwu.github.io/tools/ai/ai-16.html">→ 打开模型融合加权投票工具</a></div>
+</main>
+</body>
+</html>

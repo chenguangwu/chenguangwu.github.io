@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>早停耐心估算 使用指南 - ToolBox</title>
+<meta name="description" content="早停参数估算器，根据训练速度估算 patience 与预计总训练时间，辅助深度学习训练早停策略与算力规划。">
+<meta property="og:title" content="早停耐心估算 使用指南">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="ToolBox">
+<meta property="og:url" content="https://chenguangwu.github.io/guides/ai-13-guide.html">
+<meta property="og:description" content="早停参数估算器，根据训练速度估算 patience 与预计总训练时间，辅助深度学习训练早停策略与算力规划。">
+<meta name="twitter:title" content="早停耐心估算 使用指南">
+<meta name="twitter:description" content="早停参数估算器，根据训练速度估算 patience 与预计总训练时间，辅助深度学习训练早停策略与算力规划。">
+<meta name="twitter:image" content="https://chenguangwu.github.io/og-image.png">
+<meta name="twitter:image:alt" content="ToolBox - 免费在线工具与使用指南">
+<meta property="og:image" content="https://chenguangwu.github.io/og-image.png">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="canonical" href="https://chenguangwu.github.io/guides/ai-13-guide.html">
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "Article", "headline": "早停耐心估算 使用指南", "description": "早停参数估算器，根据训练速度估算 patience 与预计总训练时间，辅助深度学习训练早停策略与算力规划。", "author": {"@type": "Organization", "name": "ToolBox"}, "datePublished": "2026-09-13", "dateModified": "2026-09-13", "mainEntityOfPage": {"@type": "WebPage", "@id": "https://chenguangwu.github.io/guides/ai-13-guide.html"}}</script>
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "ToolBox", "item": "https://chenguangwu.github.io/"}, {"@type": "ListItem", "position": 2, "name": "使用指南", "item": "https://chenguangwu.github.io/guides/index.html"}, {"@type": "ListItem", "position": 3, "name": "早停耐心估算 使用指南", "item": "https://chenguangwu.github.io/guides/ai-13-guide.html"}]}</script>
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "patience 设多大合适？", "acceptedAnswer": {"@type": "Answer", "text": "取决于训练曲线波动。噪声大(如小 batch)需更大 patience 避免误停；平滑训练可设小些。常取总轮次的 10%~20%。"}}, {"@type": "Question", "name": "早停后要不要回退到最优轮？", "acceptedAnswer": {"@type": "Answer", "text": "要。监控最佳验证权重并单独保存(model checkpoint)，停止后加载该 checkpoint 而非最后一轮，否则可能用的是已过拟合的权重。"}}]}</script>
+<style>
+:root{--primary:#FF6B35;--text:#1F2937;--muted:#6B7280;--border:#E5E7EB;--bg:#FFFAF7;}
+*{box-sizing:border-box;}
+body{margin:0;font-family:"Noto Sans SC","Plus Jakarta Sans",system-ui,sans-serif;color:var(--text);background:var(--bg);line-height:1.75;}
+.breadcrumb a{color:var(--primary);text-decoration:none;margin-right:6px;}
+.breadcrumb a:hover{text-decoration:underline;}
+main{max-width:820px;margin:0 auto;padding:28px 20px 60px;}
+h1{font-size:28px;margin:0 0 8px;}
+.lead{font-size:16px;color:var(--muted);margin:0 0 22px;}
+h2{font-size:20px;margin:28px 0 10px;color:var(--primary);}
+ul,ol{padding-left:22px;}
+li{margin:8px 0;}
+.related{margin-top:26px;padding:16px;background:#fff;border:1px solid var(--border);border-radius:14px;}
+.related h3{margin:0 0 10px;font-size:16px;color:var(--text);}
+.tool-chip{display:inline-block;margin:4px 6px 4px 0;padding:6px 12px;border:1px solid var(--border);border-radius:999px;color:var(--primary);text-decoration:none;font-size:14px;}
+.tool-chip:hover{background:var(--primary);color:#fff;}
+.faq{margin-top:26px;}
+.faq dt{font-weight:700;margin-top:14px;}
+.faq dd{margin:4px 0 0;color:var(--muted);}
+.back{margin-top:30px;padding:16px;background:#fff;border:1px solid var(--border);border-radius:14px;}
+.back a{color:var(--primary);font-weight:700;text-decoration:none;}
+</style>
+<script src="/js/analytics.js" defer></script>
+<link rel="stylesheet" href="../css/site-chrome.css">
+<link rel="stylesheet" href="../css/common.css">
+<script src="/js/i18n.js" defer></script>
+<script src="../js/common.js" defer></script>
+<meta name="title-zh" content="早停耐心估算 使用指南">
+</head>
+<body>
+<nav class="breadcrumb"><a href="https://chenguangwu.github.io/">ToolBox</a> / <a href="https://chenguangwu.github.io/guides/index.html">使用指南</a> / <span>早停耐心估算 使用指南</span></nav>
+<main>
+<h1>早停耐心估算 使用指南</h1>
+<p class="lead">早停参数估算器，根据训练速度估算 patience 与预计总训练时间，辅助深度学习训练早停策略与算力规划。</p>
+<h2>计算公式与原理</h2>
+<p><strong>早停等待时间(分钟) = 耐心轮数 × 单轮时长 / 60；最大建议轮数 = 最小轮数 + 耐心 × 3</strong></p><p>早停用"连续多少轮验证指标未改善就停止"防止无效训练与过拟合。耐心值太小会在平台期提前终止（验证损失常先震荡后下降），太大则浪费算力；一般给 5–20 轮，并按单轮时长折算可接受的等待成本。</p>
+<h2>使用步骤</h2>
+<ol><li>填写「每 epoch 秒」。</li><li>填写「耐心 epoch 数」。</li><li>填写「最小 epoch」。</li><li>结果区会即时更新；可一键复制结果用于记录或汇报。</li></ol>
+<h2>典型使用场景</h2>
+<ul><li>patience 表示验证指标连续多少轮未改善即停止，用于防止过拟合。</li><li>预计总时长≈(当前轮次+剩余耐心轮次)×单轮耗时，辅助算力排期。</li><li>patience 过小易早停漏掉后期收敛，过大则浪费算力，常用 5~20。</li></ul>
+<h2>算例参考</h2>
+<ul><li><strong>耐心与训练时长</strong>：已训练 30 轮、单轮 4 分钟、patience=10。若验证已 10 轮未改善则立即停止；最坏还需 10×4=40 分钟。据此可提前规划 GPU 释放。</li></ul>
+<h2>注意事项</h2>
+<p>结果为按上述公式得到的<strong>理论估算值</strong>，实际表现受数据分布、实现细节与运行环境影响，落地决策请以实测为准；本工具纯前端运行，输入不上传服务器。</p>
+<div class="related">
+<h3>相关工具</h3>
+<a class="tool-chip" href="https://chenguangwu.github.io/tools/ai/ai-14.html">词嵌入余弦检索</a>
+<a class="tool-chip" href="https://chenguangwu.github.io/tools/ai/ai-15.html">贝叶斯后验概率</a>
+<a class="tool-chip" href="https://chenguangwu.github.io/tools/ai/ai-16.html">模型融合加权投票</a>
+<a class="tool-chip" href="https://chenguangwu.github.io/tools/ai/ai-17.html">提示词上下文窗口</a>
+</div>
+<dl class="faq">
+<dt>patience 设多大合适？</dt><dd>取决于训练曲线波动。噪声大(如小 batch)需更大 patience 避免误停；平滑训练可设小些。常取总轮次的 10%~20%。</dd>
+<dt>早停后要不要回退到最优轮？</dt><dd>要。监控最佳验证权重并单独保存(model checkpoint)，停止后加载该 checkpoint 而非最后一轮，否则可能用的是已过拟合的权重。</dd>
+</dl>
+<div class="back"><a href="https://chenguangwu.github.io/tools/ai/ai-13.html">→ 打开早停耐心估算工具</a></div>
+</main>
+</body>
+</html>

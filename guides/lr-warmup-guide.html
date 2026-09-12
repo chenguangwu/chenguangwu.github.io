@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>学习率预热步数 使用指南 - ToolBox</title>
+<meta name="description" content="依据总训练步数与预热比例，计算学习率线性预热的步数区间，适用于稳定训练初期、避免梯度震荡的调度设计。">
+<meta property="og:title" content="学习率预热步数 使用指南">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="ToolBox">
+<meta property="og:url" content="https://chenguangwu.github.io/guides/lr-warmup-guide.html">
+<meta property="og:description" content="依据总训练步数与预热比例，计算学习率线性预热的步数区间，适用于稳定训练初期、避免梯度震荡的调度设计。">
+<meta name="twitter:title" content="学习率预热步数 使用指南">
+<meta name="twitter:description" content="依据总训练步数与预热比例，计算学习率线性预热的步数区间，适用于稳定训练初期、避免梯度震荡的调度设计。">
+<meta name="twitter:image" content="https://chenguangwu.github.io/og-image.png">
+<meta name="twitter:image:alt" content="ToolBox - 免费在线工具与使用指南">
+<meta property="og:image" content="https://chenguangwu.github.io/og-image.png">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="canonical" href="https://chenguangwu.github.io/guides/lr-warmup-guide.html">
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "Article", "headline": "学习率预热步数 使用指南", "description": "依据总训练步数与预热比例，计算学习率线性预热的步数区间，适用于稳定训练初期、避免梯度震荡的调度设计。", "author": {"@type": "Organization", "name": "ToolBox"}, "datePublished": "2026-09-13", "dateModified": "2026-09-13", "mainEntityOfPage": {"@type": "WebPage", "@id": "https://chenguangwu.github.io/guides/lr-warmup-guide.html"}}</script>
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "ToolBox", "item": "https://chenguangwu.github.io/"}, {"@type": "ListItem", "position": 2, "name": "使用指南", "item": "https://chenguangwu.github.io/guides/index.html"}, {"@type": "ListItem", "position": 3, "name": "学习率预热步数 使用指南", "item": "https://chenguangwu.github.io/guides/lr-warmup-guide.html"}]}</script>
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "预热一定要吗？", "acceptedAnswer": {"@type": "Answer", "text": "大模型/大 batch 通常必要，能稳定初期训练；小模型小学习率可省略。跳过预热常出现首轮 loss 尖峰甚至 NaN。"}}, {"@type": "Question", "name": "预热比例多大合适？", "acceptedAnswer": {"@type": "Answer", "text": "常见 0~10%，Transformer 训练多用 1%~6%；过大则有效训练步数被浪费，过小保护不足，以验证曲线平滑为准。"}}]}</script>
+<style>
+:root{--primary:#FF6B35;--text:#1F2937;--muted:#6B7280;--border:#E5E7EB;--bg:#FFFAF7;}
+*{box-sizing:border-box;}
+body{margin:0;font-family:"Noto Sans SC","Plus Jakarta Sans",system-ui,sans-serif;color:var(--text);background:var(--bg);line-height:1.75;}
+.breadcrumb a{color:var(--primary);text-decoration:none;margin-right:6px;}
+.breadcrumb a:hover{text-decoration:underline;}
+main{max-width:820px;margin:0 auto;padding:28px 20px 60px;}
+h1{font-size:28px;margin:0 0 8px;}
+.lead{font-size:16px;color:var(--muted);margin:0 0 22px;}
+h2{font-size:20px;margin:28px 0 10px;color:var(--primary);}
+ul,ol{padding-left:22px;}
+li{margin:8px 0;}
+.related{margin-top:26px;padding:16px;background:#fff;border:1px solid var(--border);border-radius:14px;}
+.related h3{margin:0 0 10px;font-size:16px;color:var(--text);}
+.tool-chip{display:inline-block;margin:4px 6px 4px 0;padding:6px 12px;border:1px solid var(--border);border-radius:999px;color:var(--primary);text-decoration:none;font-size:14px;}
+.tool-chip:hover{background:var(--primary);color:#fff;}
+.faq{margin-top:26px;}
+.faq dt{font-weight:700;margin-top:14px;}
+.faq dd{margin:4px 0 0;color:var(--muted);}
+.back{margin-top:30px;padding:16px;background:#fff;border:1px solid var(--border);border-radius:14px;}
+.back a{color:var(--primary);font-weight:700;text-decoration:none;}
+</style>
+<script src="/js/analytics.js" defer></script>
+<link rel="stylesheet" href="../css/site-chrome.css">
+<link rel="stylesheet" href="../css/common.css">
+<script src="/js/i18n.js" defer></script>
+<script src="../js/common.js" defer></script>
+<meta name="title-zh" content="学习率预热步数 使用指南">
+</head>
+<body>
+<nav class="breadcrumb"><a href="https://chenguangwu.github.io/">ToolBox</a> / <a href="https://chenguangwu.github.io/guides/index.html">使用指南</a> / <span>学习率预热步数 使用指南</span></nav>
+<main>
+<h1>学习率预热步数 使用指南</h1>
+<p class="lead">依据总训练步数与预热比例，计算学习率线性预热的步数区间，适用于稳定训练初期、避免梯度震荡的调度设计。</p>
+<h2>计算公式与原理</h2>
+<p><strong>预热步数 = 总步数 × 比例；预热末 LR = 峰值 LR</strong></p><p>训练最初若干步把学习率从 0 线性升到峰值，给 Adam 的二阶动量估计留出稳定时间，避免大 batch 训练初期因梯度方差大而发散。典型配置是总步数的 1%–5%，之后接 cosine 或线性衰减。</p>
+<h2>使用步骤</h2>
+<ol><li>填写「总步数」。</li><li>填写「预热比例」。</li><li>填写「峰值 LR」。</li><li>结果区会即时更新；可一键复制结果用于记录或汇报。</li></ol>
+<h2>典型使用场景</h2>
+<ul><li>预热步数=总步数×预热比例；期间 lr 从 0(或很小)线性升到峰值。</li><li>避免训练初期大 lr 破坏随机初始化、造成梯度震荡或不稳定。</li><li>常用预热比例 0~10%，与余弦衰减衔接形成 warmup+decay 调度。</li></ul>
+<h2>算例参考</h2>
+<ul><li><strong>预热区间</strong>：总步数 10000、预热比例 5% → 预热步数=500，前 500 步 lr 从 0 线性增至峰值(如 1e-3)，之后进入衰减。无预热时首步即 1e-3 易震荡。</li></ul>
+<h2>注意事项</h2>
+<p>结果为按上述公式得到的<strong>理论估算值</strong>，实际表现受数据分布、实现细节与运行环境影响，落地决策请以实测为准；本工具纯前端运行，输入不上传服务器。</p>
+<div class="related">
+<h3>相关工具</h3>
+<a class="tool-chip" href="https://chenguangwu.github.io/tools/ai/min-max.html">特征缩放 Min-Max</a>
+<a class="tool-chip" href="https://chenguangwu.github.io/tools/ai/model-accuracy.html">模型准确率</a>
+<a class="tool-chip" href="https://chenguangwu.github.io/tools/ai/multi-agent-overhead.html">多智能体通信开销</a>
+<a class="tool-chip" href="https://chenguangwu.github.io/tools/ai/ocr.html">OCR 文字识别</a>
+</div>
+<dl class="faq">
+<dt>预热一定要吗？</dt><dd>大模型/大 batch 通常必要，能稳定初期训练；小模型小学习率可省略。跳过预热常出现首轮 loss 尖峰甚至 NaN。</dd>
+<dt>预热比例多大合适？</dt><dd>常见 0~10%，Transformer 训练多用 1%~6%；过大则有效训练步数被浪费，过小保护不足，以验证曲线平滑为准。</dd>
+</dl>
+<div class="back"><a href="https://chenguangwu.github.io/tools/ai/lr-warmup.html">→ 打开学习率预热步数工具</a></div>
+</main>
+</body>
+</html>

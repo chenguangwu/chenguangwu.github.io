@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>学习率衰减 使用指南 - ToolBox</title>
+<meta name="description" content="按指数或阶梯衰减策略计算当前训练步的学习率，适用于学习率调度配置、收敛速度调优与训练曲线诊断。">
+<meta property="og:title" content="学习率衰减 使用指南">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="ToolBox">
+<meta property="og:url" content="https://chenguangwu.github.io/guides/lr-decay-guide.html">
+<meta property="og:description" content="按指数或阶梯衰减策略计算当前训练步的学习率，适用于学习率调度配置、收敛速度调优与训练曲线诊断。">
+<meta name="twitter:title" content="学习率衰减 使用指南">
+<meta name="twitter:description" content="按指数或阶梯衰减策略计算当前训练步的学习率，适用于学习率调度配置、收敛速度调优与训练曲线诊断。">
+<meta name="twitter:image" content="https://chenguangwu.github.io/og-image.png">
+<meta name="twitter:image:alt" content="ToolBox - 免费在线工具与使用指南">
+<meta property="og:image" content="https://chenguangwu.github.io/og-image.png">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="canonical" href="https://chenguangwu.github.io/guides/lr-decay-guide.html">
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "Article", "headline": "学习率衰减 使用指南", "description": "按指数或阶梯衰减策略计算当前训练步的学习率，适用于学习率调度配置、收敛速度调优与训练曲线诊断。", "author": {"@type": "Organization", "name": "ToolBox"}, "datePublished": "2026-09-13", "dateModified": "2026-09-13", "mainEntityOfPage": {"@type": "WebPage", "@id": "https://chenguangwu.github.io/guides/lr-decay-guide.html"}}</script>
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "ToolBox", "item": "https://chenguangwu.github.io/"}, {"@type": "ListItem", "position": 2, "name": "使用指南", "item": "https://chenguangwu.github.io/guides/index.html"}, {"@type": "ListItem", "position": 3, "name": "学习率衰减 使用指南", "item": "https://chenguangwu.github.io/guides/lr-decay-guide.html"}]}</script>
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "余弦退火为什么流行？", "acceptedAnswer": {"@type": "Answer", "text": "它在训练中后段平滑降到很低，利于精细收敛且对超参不敏感，常配合预热使用；相比阶梯衰减更平滑、易复现好结果。"}}, {"@type": "Question", "name": "学习率衰减和预热能同时用吗？", "acceptedAnswer": {"@type": "Answer", "text": "能且常见：先线性预热到峰值再余弦衰减(warmup+cosine)，兼顾初期稳定与后期收敛，是大模型训练标配。"}}]}</script>
+<style>
+:root{--primary:#FF6B35;--text:#1F2937;--muted:#6B7280;--border:#E5E7EB;--bg:#FFFAF7;}
+*{box-sizing:border-box;}
+body{margin:0;font-family:"Noto Sans SC","Plus Jakarta Sans",system-ui,sans-serif;color:var(--text);background:var(--bg);line-height:1.75;}
+.breadcrumb a{color:var(--primary);text-decoration:none;margin-right:6px;}
+.breadcrumb a:hover{text-decoration:underline;}
+main{max-width:820px;margin:0 auto;padding:28px 20px 60px;}
+h1{font-size:28px;margin:0 0 8px;}
+.lead{font-size:16px;color:var(--muted);margin:0 0 22px;}
+h2{font-size:20px;margin:28px 0 10px;color:var(--primary);}
+ul,ol{padding-left:22px;}
+li{margin:8px 0;}
+.related{margin-top:26px;padding:16px;background:#fff;border:1px solid var(--border);border-radius:14px;}
+.related h3{margin:0 0 10px;font-size:16px;color:var(--text);}
+.tool-chip{display:inline-block;margin:4px 6px 4px 0;padding:6px 12px;border:1px solid var(--border);border-radius:999px;color:var(--primary);text-decoration:none;font-size:14px;}
+.tool-chip:hover{background:var(--primary);color:#fff;}
+.faq{margin-top:26px;}
+.faq dt{font-weight:700;margin-top:14px;}
+.faq dd{margin:4px 0 0;color:var(--muted);}
+.back{margin-top:30px;padding:16px;background:#fff;border:1px solid var(--border);border-radius:14px;}
+.back a{color:var(--primary);font-weight:700;text-decoration:none;}
+</style>
+<script src="/js/analytics.js" defer></script>
+<link rel="stylesheet" href="../css/site-chrome.css">
+<link rel="stylesheet" href="../css/common.css">
+<script src="/js/i18n.js" defer></script>
+<script src="../js/common.js" defer></script>
+<meta name="title-zh" content="学习率衰减 使用指南">
+</head>
+<body>
+<nav class="breadcrumb"><a href="https://chenguangwu.github.io/">ToolBox</a> / <a href="https://chenguangwu.github.io/guides/index.html">使用指南</a> / <span>学习率衰减 使用指南</span></nav>
+<main>
+<h1>学习率衰减 使用指南</h1>
+<p class="lead">按指数或阶梯衰减策略计算当前训练步的学习率，适用于学习率调度配置、收敛速度调优与训练曲线诊断。</p>
+<h2>计算公式与原理</h2>
+<p><strong>lr(epoch) = lr₀ × γ^epoch（指数衰减，γ&lt;1）</strong></p><p>指数衰减让学习率随轮数几何级下降，早期大步探索、后期小步精修，有利于跳出尖锐极小值。γ 常取 0.9–0.99 或按验证指标下降时再降（ReduceOnPlateau）；搭配 warmup 可避免训练初期大学习率导致发散。</p>
+<h2>使用步骤</h2>
+<ol><li>填写「初始 LR」。</li><li>填写「衰减率」。</li><li>填写「轮数」。</li><li>结果区会即时更新；可一键复制结果用于记录或汇报。</li></ol>
+<h2>典型使用场景</h2>
+<ul><li>指数衰减 lr=lr₀·γ^t；阶梯衰减每 N 步乘一次因子；余弦退火平滑降至近 0。</li><li>衰减让训练初期大步探索、后期细调，提升收敛质量与稳定性。</li><li>衰减策略需与总步数匹配，过早或过猛会陷入局部或过慢。</li></ul>
+<h2>算例参考</h2>
+<ul><li><strong>指数衰减</strong>：lr₀=0.1, γ=0.95, 第 20 步 → lr=0.1×0.95²⁰≈0.0359。每步小幅下降，20 步后约为初始的 36%。</li></ul>
+<h2>注意事项</h2>
+<p>结果为按上述公式得到的<strong>理论估算值</strong>，实际表现受数据分布、实现细节与运行环境影响，落地决策请以实测为准；本工具纯前端运行，输入不上传服务器。</p>
+<div class="related">
+<h3>相关工具</h3>
+<a class="tool-chip" href="https://chenguangwu.github.io/tools/ai/lr-warmup.html">学习率预热步数</a>
+<a class="tool-chip" href="https://chenguangwu.github.io/tools/ai/min-max.html">特征缩放 Min-Max</a>
+<a class="tool-chip" href="https://chenguangwu.github.io/tools/ai/model-accuracy.html">模型准确率</a>
+<a class="tool-chip" href="https://chenguangwu.github.io/tools/ai/multi-agent-overhead.html">多智能体通信开销</a>
+</div>
+<dl class="faq">
+<dt>余弦退火为什么流行？</dt><dd>它在训练中后段平滑降到很低，利于精细收敛且对超参不敏感，常配合预热使用；相比阶梯衰减更平滑、易复现好结果。</dd>
+<dt>学习率衰减和预热能同时用吗？</dt><dd>能且常见：先线性预热到峰值再余弦衰减(warmup+cosine)，兼顾初期稳定与后期收敛，是大模型训练标配。</dd>
+</dl>
+<div class="back"><a href="https://chenguangwu.github.io/tools/ai/lr-decay.html">→ 打开学习率衰减工具</a></div>
+</main>
+</body>
+</html>

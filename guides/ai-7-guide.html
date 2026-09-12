@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>混淆矩阵指标 使用指南 - ToolBox</title>
+<meta name="description" content="输入 TP/FP/FN/TN 计算马修斯相关系数 MCC 和 FPR。">
+<meta property="og:title" content="混淆矩阵指标 使用指南">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="ToolBox">
+<meta property="og:url" content="https://chenguangwu.github.io/guides/ai-7-guide.html">
+<meta property="og:description" content="输入 TP/FP/FN/TN 计算马修斯相关系数 MCC 和 FPR。">
+<meta name="twitter:title" content="混淆矩阵指标 使用指南">
+<meta name="twitter:description" content="输入 TP/FP/FN/TN 计算马修斯相关系数 MCC 和 FPR。">
+<meta name="twitter:image" content="https://chenguangwu.github.io/og-image.png">
+<meta name="twitter:image:alt" content="ToolBox - 免费在线工具与使用指南">
+<meta property="og:image" content="https://chenguangwu.github.io/og-image.png">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="canonical" href="https://chenguangwu.github.io/guides/ai-7-guide.html">
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "Article", "headline": "混淆矩阵指标 使用指南", "description": "输入 TP/FP/FN/TN 计算马修斯相关系数 MCC 和 FPR。", "author": {"@type": "Organization", "name": "ToolBox"}, "datePublished": "2026-09-13", "dateModified": "2026-09-13", "mainEntityOfPage": {"@type": "WebPage", "@id": "https://chenguangwu.github.io/guides/ai-7-guide.html"}}</script>
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "ToolBox", "item": "https://chenguangwu.github.io/"}, {"@type": "ListItem", "position": 2, "name": "使用指南", "item": "https://chenguangwu.github.io/guides/index.html"}, {"@type": "ListItem", "position": 3, "name": "混淆矩阵指标 使用指南", "item": "https://chenguangwu.github.io/guides/ai-7-guide.html"}]}</script>
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "为什么准确率高分却不可信？", "acceptedAnswer": {"@type": "Answer", "text": "正负样本极不平衡时全猜负类也能得高准确率。MCC 同时用四类计数，能暴露这种假象，是更稳健的单一指标。"}}, {"@type": "Question", "name": "FPR 和 FNR 有何不同？", "acceptedAnswer": {"@type": "Answer", "text": "FPR=FP/(FP+TN) 是负类误判率；FNR=FN/(FN+TP) 是漏检率。医学筛查通常压低 FNR(少漏诊)，反垃圾则压低 FPR(少误杀)。"}}]}</script>
+<style>
+:root{--primary:#FF6B35;--text:#1F2937;--muted:#6B7280;--border:#E5E7EB;--bg:#FFFAF7;}
+*{box-sizing:border-box;}
+body{margin:0;font-family:"Noto Sans SC","Plus Jakarta Sans",system-ui,sans-serif;color:var(--text);background:var(--bg);line-height:1.75;}
+.breadcrumb a{color:var(--primary);text-decoration:none;margin-right:6px;}
+.breadcrumb a:hover{text-decoration:underline;}
+main{max-width:820px;margin:0 auto;padding:28px 20px 60px;}
+h1{font-size:28px;margin:0 0 8px;}
+.lead{font-size:16px;color:var(--muted);margin:0 0 22px;}
+h2{font-size:20px;margin:28px 0 10px;color:var(--primary);}
+ul,ol{padding-left:22px;}
+li{margin:8px 0;}
+.related{margin-top:26px;padding:16px;background:#fff;border:1px solid var(--border);border-radius:14px;}
+.related h3{margin:0 0 10px;font-size:16px;color:var(--text);}
+.tool-chip{display:inline-block;margin:4px 6px 4px 0;padding:6px 12px;border:1px solid var(--border);border-radius:999px;color:var(--primary);text-decoration:none;font-size:14px;}
+.tool-chip:hover{background:var(--primary);color:#fff;}
+.faq{margin-top:26px;}
+.faq dt{font-weight:700;margin-top:14px;}
+.faq dd{margin:4px 0 0;color:var(--muted);}
+.back{margin-top:30px;padding:16px;background:#fff;border:1px solid var(--border);border-radius:14px;}
+.back a{color:var(--primary);font-weight:700;text-decoration:none;}
+</style>
+<script src="/js/analytics.js" defer></script>
+<link rel="stylesheet" href="../css/site-chrome.css">
+<link rel="stylesheet" href="../css/common.css">
+<script src="/js/i18n.js" defer></script>
+<script src="../js/common.js" defer></script>
+<meta name="title-zh" content="混淆矩阵指标 使用指南">
+</head>
+<body>
+<nav class="breadcrumb"><a href="https://chenguangwu.github.io/">ToolBox</a> / <a href="https://chenguangwu.github.io/guides/index.html">使用指南</a> / <span>混淆矩阵指标 使用指南</span></nav>
+<main>
+<h1>混淆矩阵指标 使用指南</h1>
+<p class="lead">输入 TP/FP/FN/TN 计算马修斯相关系数 MCC 和 FPR。</p>
+<h2>计算公式与原理</h2>
+<p><strong>MCC = (TP·TN − FP·FN)/√[(TP+FP)(TP+FN)(TN+FP)(TN+FN)]；FPR = FP/(FP+TN)；TNR = TN/(FP+TN)；FDR = FP/(TP+FP)</strong></p><p>MCC 同时用到混淆矩阵四格，取值 [−1,1]，0 表示与随机猜测相当，在不平衡数据上比准确率稳健。FDR 回答"报为正的结果里有多少是误报"，与精确率互补（P = 1 − FDR），常用于多重假设检验的校正判读。</p>
+<h2>使用步骤</h2>
+<ol><li>填写「TP」。</li><li>填写「FP」。</li><li>填写「FN」。</li><li>填写「TN」。</li><li>结果区会即时更新；可一键复制结果用于记录或汇报。</li></ol>
+<h2>典型使用场景</h2>
+<ul><li>马修斯相关系数 MCC=(TP·TN−FP·FN)/√((TP+FP)(TP+FN)(TN+FP)(TN+FN))，综合四类计数，类别不平衡时优于准确率。</li><li>假正率 FPR=FP/(FP+TN)，衡量负类被误判为正的比例。</li><li>MCC 取值 [−1,1]，1 为完美、0 为随机、负值为反向相关。</li></ul>
+<h2>算例参考</h2>
+<ul><li><strong>不平衡二分类</strong>：TP=80, FP=20, FN=10, TN=890：准确率=(80+890)/1000=97%，但 MCC=(80×890−20×10)/√(100×90×910×900)=71000/√7371000000≈0.827，FPR=20/(20+890)=2.2%。</li></ul>
+<h2>注意事项</h2>
+<p>结果为按上述公式得到的<strong>理论估算值</strong>，实际表现受数据分布、实现细节与运行环境影响，落地决策请以实测为准；本工具纯前端运行，输入不上传服务器。</p>
+<div class="related">
+<h3>相关工具</h3>
+<a class="tool-chip" href="https://chenguangwu.github.io/tools/ai/ai-8.html">梯度下降一步</a>
+<a class="tool-chip" href="https://chenguangwu.github.io/tools/ai/ai-9.html">信息增益近似</a>
+<a class="tool-chip" href="https://chenguangwu.github.io/tools/ai/ai-code-review.html">AI 代码审查</a>
+<a class="tool-chip" href="https://chenguangwu.github.io/tools/ai/ai-prompt-generator.html">AI 提示词生成器</a>
+</div>
+<dl class="faq">
+<dt>为什么准确率高分却不可信？</dt><dd>正负样本极不平衡时全猜负类也能得高准确率。MCC 同时用四类计数，能暴露这种假象，是更稳健的单一指标。</dd>
+<dt>FPR 和 FNR 有何不同？</dt><dd>FPR=FP/(FP+TN) 是负类误判率；FNR=FN/(FN+TP) 是漏检率。医学筛查通常压低 FNR(少漏诊)，反垃圾则压低 FPR(少误杀)。</dd>
+</dl>
+<div class="back"><a href="https://chenguangwu.github.io/tools/ai/ai-7.html">→ 打开混淆矩阵指标工具</a></div>
+</main>
+</body>
+</html>

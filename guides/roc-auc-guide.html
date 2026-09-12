@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ROC AUC 近似 使用指南 - ToolBox</title>
+<meta name="description" content="输入正负样本预测得分，估算 ROC 曲线下面积 AUC，评估分类器排序能力，适用于模型选型、阈值无关性能对比与报告。">
+<meta property="og:title" content="ROC AUC 近似 使用指南">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="ToolBox">
+<meta property="og:url" content="https://chenguangwu.github.io/guides/roc-auc-guide.html">
+<meta property="og:description" content="输入正负样本预测得分，估算 ROC 曲线下面积 AUC，评估分类器排序能力，适用于模型选型、阈值无关性能对比与报告。">
+<meta name="twitter:title" content="ROC AUC 近似 使用指南">
+<meta name="twitter:description" content="输入正负样本预测得分，估算 ROC 曲线下面积 AUC，评估分类器排序能力，适用于模型选型、阈值无关性能对比与报告。">
+<meta name="twitter:image" content="https://chenguangwu.github.io/og-image.png">
+<meta name="twitter:image:alt" content="ToolBox - 免费在线工具与使用指南">
+<meta property="og:image" content="https://chenguangwu.github.io/og-image.png">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="canonical" href="https://chenguangwu.github.io/guides/roc-auc-guide.html">
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "Article", "headline": "ROC AUC 近似 使用指南", "description": "输入正负样本预测得分，估算 ROC 曲线下面积 AUC，评估分类器排序能力，适用于模型选型、阈值无关性能对比与报告。", "author": {"@type": "Organization", "name": "ToolBox"}, "datePublished": "2026-09-13", "dateModified": "2026-09-13", "mainEntityOfPage": {"@type": "WebPage", "@id": "https://chenguangwu.github.io/guides/roc-auc-guide.html"}}</script>
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "ToolBox", "item": "https://chenguangwu.github.io/"}, {"@type": "ListItem", "position": 2, "name": "使用指南", "item": "https://chenguangwu.github.io/guides/index.html"}, {"@type": "ListItem", "position": 3, "name": "ROC AUC 近似 使用指南", "item": "https://chenguangwu.github.io/guides/roc-auc-guide.html"}]}</script>
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "AUC 高但线上效果差？", "acceptedAnswer": {"@type": "Answer", "text": "AUC 只反映排序能力，不保证某业务阈值下的准确率/召回；且训练/验证分布若与线上偏移，AUC 高也可能落地差。"}}, {"@type": "Question", "name": "样本极不平衡 AUC 还准吗？", "acceptedAnswer": {"@type": "Answer", "text": "AUC 本身对不平衡稳健(基于排序)，但正类极少时估计方差大、且业务更关心正类召回，应辅以 PR-AUC。"}}]}</script>
+<style>
+:root{--primary:#FF6B35;--text:#1F2937;--muted:#6B7280;--border:#E5E7EB;--bg:#FFFAF7;}
+*{box-sizing:border-box;}
+body{margin:0;font-family:"Noto Sans SC","Plus Jakarta Sans",system-ui,sans-serif;color:var(--text);background:var(--bg);line-height:1.75;}
+.breadcrumb a{color:var(--primary);text-decoration:none;margin-right:6px;}
+.breadcrumb a:hover{text-decoration:underline;}
+main{max-width:820px;margin:0 auto;padding:28px 20px 60px;}
+h1{font-size:28px;margin:0 0 8px;}
+.lead{font-size:16px;color:var(--muted);margin:0 0 22px;}
+h2{font-size:20px;margin:28px 0 10px;color:var(--primary);}
+ul,ol{padding-left:22px;}
+li{margin:8px 0;}
+.related{margin-top:26px;padding:16px;background:#fff;border:1px solid var(--border);border-radius:14px;}
+.related h3{margin:0 0 10px;font-size:16px;color:var(--text);}
+.tool-chip{display:inline-block;margin:4px 6px 4px 0;padding:6px 12px;border:1px solid var(--border);border-radius:999px;color:var(--primary);text-decoration:none;font-size:14px;}
+.tool-chip:hover{background:var(--primary);color:#fff;}
+.faq{margin-top:26px;}
+.faq dt{font-weight:700;margin-top:14px;}
+.faq dd{margin:4px 0 0;color:var(--muted);}
+.back{margin-top:30px;padding:16px;background:#fff;border:1px solid var(--border);border-radius:14px;}
+.back a{color:var(--primary);font-weight:700;text-decoration:none;}
+</style>
+<script src="/js/analytics.js" defer></script>
+<link rel="stylesheet" href="../css/site-chrome.css">
+<link rel="stylesheet" href="../css/common.css">
+<script src="/js/i18n.js" defer></script>
+<script src="../js/common.js" defer></script>
+<meta name="title-zh" content="ROC AUC 近似 使用指南">
+</head>
+<body>
+<nav class="breadcrumb"><a href="https://chenguangwu.github.io/">ToolBox</a> / <a href="https://chenguangwu.github.io/guides/index.html">使用指南</a> / <span>ROC AUC 近似 使用指南</span></nav>
+<main>
+<h1>ROC AUC 近似 使用指南</h1>
+<p class="lead">输入正负样本预测得分，估算 ROC 曲线下面积 AUC，评估分类器排序能力，适用于模型选型、阈值无关性能对比与报告。</p>
+<h2>计算公式与原理</h2>
+<p><strong>AUC ≈ 0.5 + 0.5·erf[(μ₊ − μ₋)/√(2(σ₊² + σ₋²))]；分离度 d' = (μ₊ − μ₋)/√[(σ₊² + σ₋²)/2]</strong></p><p>在正负样本得分各自近似正态的假设下，AUC 可由两分布的均值差与方差直接算出，无需逐对比较，适合只有汇总统计量的快速估算。若真实分布长尾或严重偏态，该近似会偏离实测 AUC，此时应改用秩次法。</p>
+<h2>使用步骤</h2>
+<ol><li>填写「正例平均得分」。</li><li>填写「负例平均得分」。</li><li>填写「正例标准差」。</li><li>填写「负例标准差」。</li><li>结果区会即时更新；可一键复制结果用于记录或汇报。</li></ol>
+<h2>典型使用场景</h2>
+<ul><li>AUC 为 ROC 曲线下面积，等价于随机正样本得分高于随机负样本的概率。</li><li>AUC=0.5 为随机分类，1 为完美；对类别不平衡与阈值选择不敏感。</li><li>近似可用梯形法逐点算 ROC 下面积，或 Mann-Whitney 由秩和估算。</li></ul>
+<h2>算例参考</h2>
+<ul><li><strong>AUC 解读</strong>：某模型 AUC=0.85：随机抽取一正一负样本，正样本得分更高概率 85%。相比准确率需固定阈值，AUC 给出整体排序质量。</li></ul>
+<h2>注意事项</h2>
+<p>结果为按上述公式得到的<strong>理论估算值</strong>，实际表现受数据分布、实现细节与运行环境影响，落地决策请以实测为准；本工具纯前端运行，输入不上传服务器。</p>
+<div class="related">
+<h3>相关工具</h3>
+<a class="tool-chip" href="https://chenguangwu.github.io/tools/ai/sentiment-analysis.html">情感分析</a>
+<a class="tool-chip" href="https://chenguangwu.github.io/tools/ai/sigmoid.html">Sigmoid 输出</a>
+<a class="tool-chip" href="https://chenguangwu.github.io/tools/ai/softmax.html">Softmax 概率</a>
+<a class="tool-chip" href="https://chenguangwu.github.io/tools/ai/softmax-2.html">温度缩放 Softmax</a>
+</div>
+<dl class="faq">
+<dt>AUC 高但线上效果差？</dt><dd>AUC 只反映排序能力，不保证某业务阈值下的准确率/召回；且训练/验证分布若与线上偏移，AUC 高也可能落地差。</dd>
+<dt>样本极不平衡 AUC 还准吗？</dt><dd>AUC 本身对不平衡稳健(基于排序)，但正类极少时估计方差大、且业务更关心正类召回，应辅以 PR-AUC。</dd>
+</dl>
+<div class="back"><a href="https://chenguangwu.github.io/tools/ai/roc-auc.html">→ 打开ROC AUC 近似工具</a></div>
+</main>
+</body>
+</html>

@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>交叉熵损失 使用指南 - ToolBox</title>
+<meta name="description" content="输入真实标签与预测概率，计算二分类交叉熵损失，评估模型预测偏差，适用于机器学习训练监控、损失函数调试与分类模型评估。">
+<meta property="og:title" content="交叉熵损失 使用指南">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="ToolBox">
+<meta property="og:url" content="https://chenguangwu.github.io/guides/cross-entropy-guide.html">
+<meta property="og:description" content="输入真实标签与预测概率，计算二分类交叉熵损失，评估模型预测偏差，适用于机器学习训练监控、损失函数调试与分类模型评估。">
+<meta name="twitter:title" content="交叉熵损失 使用指南">
+<meta name="twitter:description" content="输入真实标签与预测概率，计算二分类交叉熵损失，评估模型预测偏差，适用于机器学习训练监控、损失函数调试与分类模型评估。">
+<meta name="twitter:image" content="https://chenguangwu.github.io/og-image.png">
+<meta name="twitter:image:alt" content="ToolBox - 免费在线工具与使用指南">
+<meta property="og:image" content="https://chenguangwu.github.io/og-image.png">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="canonical" href="https://chenguangwu.github.io/guides/cross-entropy-guide.html">
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "Article", "headline": "交叉熵损失 使用指南", "description": "输入真实标签与预测概率，计算二分类交叉熵损失，评估模型预测偏差，适用于机器学习训练监控、损失函数调试与分类模型评估。", "author": {"@type": "Organization", "name": "ToolBox"}, "datePublished": "2026-09-13", "dateModified": "2026-09-13", "mainEntityOfPage": {"@type": "WebPage", "@id": "https://chenguangwu.github.io/guides/cross-entropy-guide.html"}}</script>
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "ToolBox", "item": "https://chenguangwu.github.io/"}, {"@type": "ListItem", "position": 2, "name": "使用指南", "item": "https://chenguangwu.github.io/guides/index.html"}, {"@type": "ListItem", "position": 3, "name": "交叉熵损失 使用指南", "item": "https://chenguangwu.github.io/guides/cross-entropy-guide.html"}]}</script>
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "为什么用交叉熵而不是均方误差？", "acceptedAnswer": {"@type": "Answer", "text": "CE 对概率错误更敏感且在 sigmoid/softmax 下梯度更优，MSE 用于概率会产生饱和、收敛慢；CE 是分类自然对应的对数似然损失。"}}, {"@type": "Question", "name": "p 为 0 或 1 会怎样？", "acceptedAnswer": {"@type": "Answer", "text": "log(0) 得 −∞ 导致数值爆炸。实践中对 p 做裁剪(clip 到 ε~1−ε)或用带 logits 的稳定实现(直接吃 raw score 算 softmax)避免。"}}]}</script>
+<style>
+:root{--primary:#FF6B35;--text:#1F2937;--muted:#6B7280;--border:#E5E7EB;--bg:#FFFAF7;}
+*{box-sizing:border-box;}
+body{margin:0;font-family:"Noto Sans SC","Plus Jakarta Sans",system-ui,sans-serif;color:var(--text);background:var(--bg);line-height:1.75;}
+.breadcrumb a{color:var(--primary);text-decoration:none;margin-right:6px;}
+.breadcrumb a:hover{text-decoration:underline;}
+main{max-width:820px;margin:0 auto;padding:28px 20px 60px;}
+h1{font-size:28px;margin:0 0 8px;}
+.lead{font-size:16px;color:var(--muted);margin:0 0 22px;}
+h2{font-size:20px;margin:28px 0 10px;color:var(--primary);}
+ul,ol{padding-left:22px;}
+li{margin:8px 0;}
+.related{margin-top:26px;padding:16px;background:#fff;border:1px solid var(--border);border-radius:14px;}
+.related h3{margin:0 0 10px;font-size:16px;color:var(--text);}
+.tool-chip{display:inline-block;margin:4px 6px 4px 0;padding:6px 12px;border:1px solid var(--border);border-radius:999px;color:var(--primary);text-decoration:none;font-size:14px;}
+.tool-chip:hover{background:var(--primary);color:#fff;}
+.faq{margin-top:26px;}
+.faq dt{font-weight:700;margin-top:14px;}
+.faq dd{margin:4px 0 0;color:var(--muted);}
+.back{margin-top:30px;padding:16px;background:#fff;border:1px solid var(--border);border-radius:14px;}
+.back a{color:var(--primary);font-weight:700;text-decoration:none;}
+</style>
+<script src="/js/analytics.js" defer></script>
+<link rel="stylesheet" href="../css/site-chrome.css">
+<link rel="stylesheet" href="../css/common.css">
+<script src="/js/i18n.js" defer></script>
+<script src="../js/common.js" defer></script>
+<meta name="title-zh" content="交叉熵损失 使用指南">
+</head>
+<body>
+<nav class="breadcrumb"><a href="https://chenguangwu.github.io/">ToolBox</a> / <a href="https://chenguangwu.github.io/guides/index.html">使用指南</a> / <span>交叉熵损失 使用指南</span></nav>
+<main>
+<h1>交叉熵损失 使用指南</h1>
+<p class="lead">输入真实标签与预测概率，计算二分类交叉熵损失，评估模型预测偏差，适用于机器学习训练监控、损失函数调试与分类模型评估。</p>
+<h2>计算公式与原理</h2>
+<p><strong>单样本 L = −[y·ln p + (1 − y)·ln(1 − p)]；批量 L = 单样本 × n</strong></p><p>二分类交叉熵对 confident 且错误的预测给出极大惩罚（p→0 而 y=1 时趋于无穷），梯度形式简洁 (p − y)，配合 sigmoid 反向传播非常干净。实现时要注意对 p 做 eps 截断防止 log(0)。</p>
+<h2>使用步骤</h2>
+<ol><li>填写「真实标签 0/1」。</li><li>填写「预测概率」。</li><li>填写「样本数」。</li><li>结果区会即时更新；可一键复制结果用于记录或汇报。</li></ol>
+<h2>典型使用场景</h2>
+<ul><li>二分类交叉熵 CE=−[y·log(p)+(1−y)·log(1−p)]，y∈{0,1}, p 为预测正类概率。</li><li>多分类用 −Σyᵢlog(pᵢ)，要求 p 经 softmax 且和为 1。</li><li>CE 对错误预测惩罚重(对数放大)，是分类模型训练的标准损失。</li></ul>
+<h2>算例参考</h2>
+<ul><li><strong>单样本损失</strong>：真实 y=1，预测 p=0.9 → CE=−log(0.9)=0.105；若 p=0.1 → CE=−log(0.1)=2.303。预测越错损失越大，驱动模型修正。</li></ul>
+<h2>注意事项</h2>
+<p>结果为按上述公式得到的<strong>理论估算值</strong>，实际表现受数据分布、实现细节与运行环境影响，落地决策请以实测为准；本工具纯前端运行，输入不上传服务器。</p>
+<div class="related">
+<h3>相关工具</h3>
+<a class="tool-chip" href="https://chenguangwu.github.io/tools/ai/dropout.html">Dropout 保留期望</a>
+<a class="tool-chip" href="https://chenguangwu.github.io/tools/ai/elbow-wcss.html">手肘法 WCSS 降幅</a>
+<a class="tool-chip" href="https://chenguangwu.github.io/tools/ai/epoch-time.html">单轮训练时长</a>
+<a class="tool-chip" href="https://chenguangwu.github.io/tools/ai/flops.html">模型 flops 估算</a>
+</div>
+<dl class="faq">
+<dt>为什么用交叉熵而不是均方误差？</dt><dd>CE 对概率错误更敏感且在 sigmoid/softmax 下梯度更优，MSE 用于概率会产生饱和、收敛慢；CE 是分类自然对应的对数似然损失。</dd>
+<dt>p 为 0 或 1 会怎样？</dt><dd>log(0) 得 −∞ 导致数值爆炸。实践中对 p 做裁剪(clip 到 ε~1−ε)或用带 logits 的稳定实现(直接吃 raw score 算 softmax)避免。</dd>
+</dl>
+<div class="back"><a href="https://chenguangwu.github.io/tools/ai/cross-entropy.html">→ 打开交叉熵损失工具</a></div>
+</main>
+</body>
+</html>

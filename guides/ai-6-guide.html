@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>参数数量估算 使用指南 - ToolBox</title>
+<meta name="description" content="输入层宽、卷积核数与通道数，估算全连接层与卷积层参数量，适用于模型规模评估、显存预算与轻量化设计。">
+<meta property="og:title" content="参数数量估算 使用指南">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="ToolBox">
+<meta property="og:url" content="https://chenguangwu.github.io/guides/ai-6-guide.html">
+<meta property="og:description" content="输入层宽、卷积核数与通道数，估算全连接层与卷积层参数量，适用于模型规模评估、显存预算与轻量化设计。">
+<meta name="twitter:title" content="参数数量估算 使用指南">
+<meta name="twitter:description" content="输入层宽、卷积核数与通道数，估算全连接层与卷积层参数量，适用于模型规模评估、显存预算与轻量化设计。">
+<meta name="twitter:image" content="https://chenguangwu.github.io/og-image.png">
+<meta name="twitter:image:alt" content="ToolBox - 免费在线工具与使用指南">
+<meta property="og:image" content="https://chenguangwu.github.io/og-image.png">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="canonical" href="https://chenguangwu.github.io/guides/ai-6-guide.html">
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "Article", "headline": "参数数量估算 使用指南", "description": "输入层宽、卷积核数与通道数，估算全连接层与卷积层参数量，适用于模型规模评估、显存预算与轻量化设计。", "author": {"@type": "Organization", "name": "ToolBox"}, "datePublished": "2026-09-13", "dateModified": "2026-09-13", "mainEntityOfPage": {"@type": "WebPage", "@id": "https://chenguangwu.github.io/guides/ai-6-guide.html"}}</script>
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "ToolBox", "item": "https://chenguangwu.github.io/"}, {"@type": "ListItem", "position": 2, "name": "使用指南", "item": "https://chenguangwu.github.io/guides/index.html"}, {"@type": "ListItem", "position": 3, "name": "参数数量估算 使用指南", "item": "https://chenguangwu.github.io/guides/ai-6-guide.html"}]}</script>
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "为什么卷积层参数量远小于全连接？", "acceptedAnswer": {"@type": "Answer", "text": "卷积权值共享且局部连接，参数只与核大小、通道数有关，与特征图尺寸无关；全连接则随输入输出维度乘积增长。"}}, {"@type": "Question", "name": "偏置是否总要加？", "acceptedAnswer": {"@type": "Answer", "text": "并非必须。BN 后接的卷积常设 bias=False 以免冗余；最后一层或需学习截距时保留偏置。"}}]}</script>
+<style>
+:root{--primary:#FF6B35;--text:#1F2937;--muted:#6B7280;--border:#E5E7EB;--bg:#FFFAF7;}
+*{box-sizing:border-box;}
+body{margin:0;font-family:"Noto Sans SC","Plus Jakarta Sans",system-ui,sans-serif;color:var(--text);background:var(--bg);line-height:1.75;}
+.breadcrumb a{color:var(--primary);text-decoration:none;margin-right:6px;}
+.breadcrumb a:hover{text-decoration:underline;}
+main{max-width:820px;margin:0 auto;padding:28px 20px 60px;}
+h1{font-size:28px;margin:0 0 8px;}
+.lead{font-size:16px;color:var(--muted);margin:0 0 22px;}
+h2{font-size:20px;margin:28px 0 10px;color:var(--primary);}
+ul,ol{padding-left:22px;}
+li{margin:8px 0;}
+.related{margin-top:26px;padding:16px;background:#fff;border:1px solid var(--border);border-radius:14px;}
+.related h3{margin:0 0 10px;font-size:16px;color:var(--text);}
+.tool-chip{display:inline-block;margin:4px 6px 4px 0;padding:6px 12px;border:1px solid var(--border);border-radius:999px;color:var(--primary);text-decoration:none;font-size:14px;}
+.tool-chip:hover{background:var(--primary);color:#fff;}
+.faq{margin-top:26px;}
+.faq dt{font-weight:700;margin-top:14px;}
+.faq dd{margin:4px 0 0;color:var(--muted);}
+.back{margin-top:30px;padding:16px;background:#fff;border:1px solid var(--border);border-radius:14px;}
+.back a{color:var(--primary);font-weight:700;text-decoration:none;}
+</style>
+<script src="/js/analytics.js" defer></script>
+<link rel="stylesheet" href="../css/site-chrome.css">
+<link rel="stylesheet" href="../css/common.css">
+<script src="/js/i18n.js" defer></script>
+<script src="../js/common.js" defer></script>
+<meta name="title-zh" content="参数数量估算 使用指南">
+</head>
+<body>
+<nav class="breadcrumb"><a href="https://chenguangwu.github.io/">ToolBox</a> / <a href="https://chenguangwu.github.io/guides/index.html">使用指南</a> / <span>参数数量估算 使用指南</span></nav>
+<main>
+<h1>参数数量估算 使用指南</h1>
+<p class="lead">输入层宽、卷积核数与通道数，估算全连接层与卷积层参数量，适用于模型规模评估、显存预算与轻量化设计。</p>
+<h2>计算公式与原理</h2>
+<p><strong>全连接参数 = in × out + out（偏置）；3×3 卷积参数 = in × out × 9 + out；显存 MB = 参数 × 4 / 1024 / 1024</strong></p><p>按层的权重矩阵规模累加估算参数量，再按每参数 4 字节（FP32）折算显存。这只是推理权重的下限，训练还要额外放梯度、优化器状态（Adam 再翻 2 倍）与激活值，实际占用通常是权重的 4–6 倍。</p>
+<h2>使用步骤</h2>
+<ol><li>填写「输入维度」。</li><li>填写「输出维度」。</li><li>填写「是否含偏置 1=是」。</li><li>填写「是否卷积 1=是」。</li><li>结果区会即时更新；可一键复制结果用于记录或汇报。</li></ol>
+<h2>典型使用场景</h2>
+<ul><li>全连接层参数=(输入维度+1)×输出维度，+1 为偏置。</li><li>卷积层参数=(k²×C_in+1)×C_out，k 为核边长；深度可分离卷积参数量显著降低。</li><li>参数量直接决定显存(≈参数量×精度字节)与推理延迟，是轻量化设计的核心约束。</li></ul>
+<h2>算例参考</h2>
+<ul><li><strong>卷积层参数量</strong>：3×3 卷积、输入通道 64、输出通道 128：参数=(3²×64+1)×128=(576+1)×128=73728。若改为深度可分离(3×3×64+1×64×128)=576+8192=8768，仅为原先约 12%。</li></ul>
+<h2>注意事项</h2>
+<p>结果为按上述公式得到的<strong>理论估算值</strong>，实际表现受数据分布、实现细节与运行环境影响，落地决策请以实测为准；本工具纯前端运行，输入不上传服务器。</p>
+<div class="related">
+<h3>相关工具</h3>
+<a class="tool-chip" href="https://chenguangwu.github.io/tools/ai/ai-7.html">混淆矩阵指标</a>
+<a class="tool-chip" href="https://chenguangwu.github.io/tools/ai/ai-8.html">梯度下降一步</a>
+<a class="tool-chip" href="https://chenguangwu.github.io/tools/ai/ai-9.html">信息增益近似</a>
+<a class="tool-chip" href="https://chenguangwu.github.io/tools/ai/ai-code-review.html">AI 代码审查</a>
+</div>
+<dl class="faq">
+<dt>为什么卷积层参数量远小于全连接？</dt><dd>卷积权值共享且局部连接，参数只与核大小、通道数有关，与特征图尺寸无关；全连接则随输入输出维度乘积增长。</dd>
+<dt>偏置是否总要加？</dt><dd>并非必须。BN 后接的卷积常设 bias=False 以免冗余；最后一层或需学习截距时保留偏置。</dd>
+</dl>
+<div class="back"><a href="https://chenguangwu.github.io/tools/ai/ai-6.html">→ 打开参数数量估算工具</a></div>
+</main>
+</body>
+</html>

@@ -161,6 +161,11 @@
 
 ## 八、分类推进记录
 
+> ✅ **`ai` (64) 已收口**（2026-09-13 开工并完成）。**范围**：`tools/ai/` 全部 64 个工具页。
+> **八项基线审计（2026-09-13）**：deep-dive **已达 §4.5**（64/64，3 场景 / 2 FAQ / 1 示例，192/64/128，无套话）；UI 零缺项；cat 0 错标；**英文 p 占位 63**；**formula 口径完全反了**（8 个文本/图像 demo 反而有框，56 个真计算器全无框）；计算验证 0；**指南 0**；英文态（intro 占位 64、真代号 3 `Ai 8/9/12`、ed 不达标 1）。中文态无缺口。
+> **批次计划（全部完成）**：A 英文态数据源根治 → B 英文占位正文注入 → C formula 补框（口径纠正后 56 页）→ D 计算验证（第 13 道门禁）→ E 指南 0→64 → 收口归档。
+> **收口结果（2026-09-13）**：① 英文态八维全清零（64 条真实英文名 + 英文描述三端同步；消除 `Ai 8/9/12` 代号）② 63 页英文占位正文改真实英文 + data-zh 中文保留（沿用已验证流程：临时改 `_prerender_tool_body` → build → 只保留 ai 落盘 → 回退 `_build.py` 与其它行业改动）③ **纠正 formula 判定口径**：`math/dev/reference/calculator` 四类 cat 与「是否计算工具」无对应关系，改用客观口径（`type="number"` 输入 ≥2 判计算类）；据此为 **56 个真计算器全部补框**（公式逐条对照页面 `function calc()` 实现撰写），计算类覆盖 56/56，8 个交互 demo（OCR/语音/情感/图像分类等）豁免 ④ 新增第 13 道门禁 `verify_ai_calc.js` **9/9** 通过 ⑤ 指南 0→64（数据驱动生成器，内容取自 ai.json 中文 title/intro + formula MAP + deep-dive 场景/示例/FAQ + 页面 input 标签，非套话）。十三道质量门禁全过。
+
 > ✅ **`fun` (64) 已收口**（2026-09-12 开工并完成）。**范围**：`tools/fun/` 全部 64 个工具页。
 > **八项基线审计（2026-09-12）**：deep-dive **已达 §4.5**（64/64，(3 场景 / 2 FAQ / 2 示例)，192/128/128，无套话）；UI 零缺项；cat 0 错标；**英文 p 占位 55**；formula 缺 25（其中计算类仅 4 个，21 个为 game/generate 豁免）；计算验证 0；**指南 64/64 已全覆盖**；英文态（body intro 占位 82、title 代号 7、en_override 代号 7、ed 不达标 3、**孤儿键 26**）。
 > **批次计划（全部完成）**：A 英文态数据源根治（含三端孤儿键清理 + 中文 title/intro 补齐）→ B 英文占位正文注入 → C formula 补框 → D 计算验证（第 12 道门禁）→ 收口归档。
@@ -205,14 +210,14 @@
 - ✅ science (99)：八项目标全覆盖（deep-dive 99/99 条数补齐、英文态七维全清零含全站 h2 实体修复 32 页、formula 覆盖 99/99 + calc-1 错公式修正、计算验证 8/8（第 10 道门禁 verify_science_calc.js）、指南 23（精选新增 8 篇旗舰指南）、cycle 重复工具移除、script 内 formula-box 误注入根因修复；部署 run 34684543764 success），git 实测
 - ✅ sports (75)：八项目标全覆盖（deep-dive 75/75 达 §4.5 标准、英文态七维全清零、formula 覆盖 24/24 补框、计算验证 8/8（第 11 道门禁 verify_sports_calc.js）、指南 8、6 孤儿键清理；部署 run 34688676392 success（线上 MD5 逐字节一致）），git 实测
 - ✅ fun (64)：八项目标全覆盖（deep-dive 64/64 已达 §4.5、英文态八维全清零含三端 59 个孤儿键清理、中文 title/intro 补齐 6、formula 计算类覆盖 11/11、计算验证 5/5（第 12 道门禁 verify_fun_calc.js）、指南 64/64、修复 3 个空 select；部署 run 34703760306 success（线上 MD5 逐字节一致）），git 实测
+- ✅ ai (64)：八项目标全覆盖（deep-dive 64/64 达 §4.5、英文态八维全清零、formula 口径纠正后计算类覆盖 56/56、计算验证 9/9（第 13 道门禁 verify_ai_calc.js）、指南 0→64；部署 run 见发布核验回填），git 实测
 
 > 跳过规则：上述分类**不列入 §9.2 待办**；其余分类按 §9.2 热度顺序从零推进。
 
-### 9.2 分类优化清单（258 分类，按热度降序，完成一个删一个）
+### 9.2 分类优化清单（257 分类，按热度降序，完成一个删一个）
 
 > 清单由脚本按 `tools/` 目录工具数生成；每行 = 分类名 + 工具数。当前进行中的分类在 §8 同步登记。
 
-- [ ] ai (64)
 - [ ] biz (62)
 - [ ] life (62)
 - [ ] agriculture (60)
@@ -484,6 +489,8 @@
 - [ ] `finance` 分类混入 10+ 个非金融工具（currency-converter / driver-license-validator / mirror-text / word-scramble / word-search / word-wrap / dns-record-info / password / password-generator-advanced / vcard-qr / wifi-password-show 等），属分类错放，**动分类前须先与老板确认**（涉及 URL 归属与 SEO）
 - [ ] 跨分类重名 slug 的指南缺口（finance/calc-2~5 属 fitness、finance/simple-interest 属 banking、finance/word-scramble 属 fun 等）：因 `guides.json` 按 basename 去重、`guides/<slug>-guide.html` 会互覆，需 `--prefix <ind>-` 方案，暂缓
 - [ ] `design-body.json` 3 个孤儿键（generator-5 / color-scheme-generator / simulator-2）全站无对应页面（design 收口时发现），清理前先确认无页面 / 分类页引用
+- [ ] `ai` 收口遗留：① 行业 cat 字段（math/dev/reference/calculator）与「是否计算工具」无对应关系——8 个文本/图像 demo 被标 calculator、56 个真计算器被标 math/dev，`audit_ai.py`【5】已改用客观口径（数值输入 ≥2 判计算类），后续分类若照抄 fun 的 cat 豁免口径会重蹈覆辙 ② `_build.py` 非 CJK 占位页英文未注入缺陷**第三次遇到**（sports 75 + fun 55 + ai 63），仍按「临时改 → build → 只保留本行业 → 回退」处理
+- [ ] `psychiatry.json` 存在并行进程的未提交改动（合规去敏类改名，mtime 2026-09-13 00:22），非本轮 ai 批次产物，未提交也未回退，需老板确认归属后再处理
 - [ ] `fun` 收口遗留：① 21 个 game/generate 类工具无 formula-box（游戏与生成器无计算公式，按 §4.1.2 属合理豁免，`audit_fun.py`【5】已按 cat 区分判定）② `convert-speed-stride` 单位换算 select 选项值为 1/0/1000，选 0 会除零且语义不清，实现薄弱待重构 ③ fun 行业 h2 图标被语义重分配为 🎮（含计算类工具如烧烤分量计算器），图标与工具语义不符，待确认是否按 cat 细分图标规则
 - [ ] `_build.py` `_prerender_tool_body` 非 CJK 占位页英文未注入缺陷（全站级，第二次遇到）：sports 75 页 + fun 55 页已分别落盘修正（h2/首个 p 由英文占位串改真实英文 + 保留 data-zh），但修复改动因波及数百非本行业页已两次回退 `_build.py`；建议单独开一轮由老板确认后统一修复（否则每个同形态分类都要重复一次「临时改 → build → 只保留本行业 → 回退」流程）
 - [ ] `sports` 收口遗留：① 6 孤儿键（compare-temp / simulator-composition / tool-005-47 / tool-011-27 / tool-011-29 / zhuanxiang-pao-tiao-tou-jishufenjie）全站无页面，已从 `sports-body.json` 删除 ② `yoga-pose-generator`（cat=generate）无 formula-box 属合理例外（生成器非计算工具），不计入 formula 缺口 ③ `sports-calculator` / `swimming-stroke-efficiency` 公式框在 `<script>` 内（innerHTML 动态渲染，功能完好），非死串 bug，保留 ④ `audit_sports.py`【1】判定口径已对齐 §4.5（场景≥2 且 示例≥1 且 FAQ≥2 且 无套话），避免“数量达标≠内容达标”假阳性

@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>模型显存估算 使用指南 - ToolBox</title>
+<meta name="description" content="按参数量、精度字节数与激活占用估算模型权重与推理显存，适用于部署硬件选型、批量大小设定与显存溢出预警。">
+<meta property="og:title" content="模型显存估算 使用指南">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="ToolBox">
+<meta property="og:url" content="https://chenguangwu.github.io/guides/vram-estimate-guide.html">
+<meta property="og:description" content="按参数量、精度字节数与激活占用估算模型权重与推理显存，适用于部署硬件选型、批量大小设定与显存溢出预警。">
+<meta name="twitter:title" content="模型显存估算 使用指南">
+<meta name="twitter:description" content="按参数量、精度字节数与激活占用估算模型权重与推理显存，适用于部署硬件选型、批量大小设定与显存溢出预警。">
+<meta name="twitter:image" content="https://chenguangwu.github.io/og-image.png">
+<meta name="twitter:image:alt" content="ToolBox - 免费在线工具与使用指南">
+<meta property="og:image" content="https://chenguangwu.github.io/og-image.png">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="canonical" href="https://chenguangwu.github.io/guides/vram-estimate-guide.html">
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "Article", "headline": "模型显存估算 使用指南", "description": "按参数量、精度字节数与激活占用估算模型权重与推理显存，适用于部署硬件选型、批量大小设定与显存溢出预警。", "author": {"@type": "Organization", "name": "ToolBox"}, "datePublished": "2026-09-13", "dateModified": "2026-09-13", "mainEntityOfPage": {"@type": "WebPage", "@id": "https://chenguangwu.github.io/guides/vram-estimate-guide.html"}}</script>
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "ToolBox", "item": "https://chenguangwu.github.io/"}, {"@type": "ListItem", "position": 2, "name": "使用指南", "item": "https://chenguangwu.github.io/guides/index.html"}, {"@type": "ListItem", "position": 3, "name": "模型显存估算 使用指南", "item": "https://chenguangwu.github.io/guides/vram-estimate-guide.html"}]}</script>
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "为什么训练显存远大于推理？", "acceptedAnswer": {"@type": "Answer", "text": "训练需保留前向激活供反向、存梯度(同尺寸)与优化器状态(Adam 约 2 倍权重)，常使总显存达权重 3~4 倍；推理只需权重+少量激活。"}}, {"@type": "Question", "name": "显存不够怎么办？", "acceptedAnswer": {"@type": "Answer", "text": "量化降权重字节数、用梯度检查点换计算省激活、降 batch、或模型并行/张量并行分片；必要时上更大显存或分布式。"}}]}</script>
+<style>
+:root{--primary:#FF6B35;--text:#1F2937;--muted:#6B7280;--border:#E5E7EB;--bg:#FFFAF7;}
+*{box-sizing:border-box;}
+body{margin:0;font-family:"Noto Sans SC","Plus Jakarta Sans",system-ui,sans-serif;color:var(--text);background:var(--bg);line-height:1.75;}
+.breadcrumb a{color:var(--primary);text-decoration:none;margin-right:6px;}
+.breadcrumb a:hover{text-decoration:underline;}
+main{max-width:820px;margin:0 auto;padding:28px 20px 60px;}
+h1{font-size:28px;margin:0 0 8px;}
+.lead{font-size:16px;color:var(--muted);margin:0 0 22px;}
+h2{font-size:20px;margin:28px 0 10px;color:var(--primary);}
+ul,ol{padding-left:22px;}
+li{margin:8px 0;}
+.related{margin-top:26px;padding:16px;background:#fff;border:1px solid var(--border);border-radius:14px;}
+.related h3{margin:0 0 10px;font-size:16px;color:var(--text);}
+.tool-chip{display:inline-block;margin:4px 6px 4px 0;padding:6px 12px;border:1px solid var(--border);border-radius:999px;color:var(--primary);text-decoration:none;font-size:14px;}
+.tool-chip:hover{background:var(--primary);color:#fff;}
+.faq{margin-top:26px;}
+.faq dt{font-weight:700;margin-top:14px;}
+.faq dd{margin:4px 0 0;color:var(--muted);}
+.back{margin-top:30px;padding:16px;background:#fff;border:1px solid var(--border);border-radius:14px;}
+.back a{color:var(--primary);font-weight:700;text-decoration:none;}
+</style>
+<script src="/js/analytics.js" defer></script>
+<link rel="stylesheet" href="../css/site-chrome.css">
+<link rel="stylesheet" href="../css/common.css">
+<script src="/js/i18n.js" defer></script>
+<script src="../js/common.js" defer></script>
+<meta name="title-zh" content="模型显存估算 使用指南">
+</head>
+<body>
+<nav class="breadcrumb"><a href="https://chenguangwu.github.io/">ToolBox</a> / <a href="https://chenguangwu.github.io/guides/index.html">使用指南</a> / <span>模型显存估算 使用指南</span></nav>
+<main>
+<h1>模型显存估算 使用指南</h1>
+<p class="lead">按参数量、精度字节数与激活占用估算模型权重与推理显存，适用于部署硬件选型、批量大小设定与显存溢出预警。</p>
+<h2>计算公式与原理</h2>
+<p><strong>权重显存 ≈ 参数量 × 每参数字节数；总显存 ≈ 权重 + 激活/1000</strong></p><p>推理显存主要由权重决定：FP16 为 2 字节、INT8 为 1 字节、FP32 为 4 字节。训练还要加梯度与 Adam 状态（各再占 1 份与 2 份权重），加上随批量与序列长度增长的激活值，常是权重本身的数倍。</p>
+<h2>使用步骤</h2>
+<ol><li>填写「参数量(十亿)」。</li><li>填写「每参数字节」。</li><li>填写「激活 MB」。</li><li>结果区会即时更新；可一键复制结果用于记录或汇报。</li></ol>
+<h2>典型使用场景</h2>
+<ul><li>权重显存≈参数量×每参数字节数(FP16=2, INT8=1, FP32=4)。</li><li>推理显存还需加激活/KV 缓存，训练另需梯度与优化器状态(常数倍于权重)。</li><li>估算用于硬件选型、batch 设定与显存溢出预警。</li></ul>
+<h2>算例参考</h2>
+<ul><li><strong>7B 模型显存</strong>：7B 参数 FP16：权重≈7e9×2=14GB；加 KV 缓存与激活后推理约 16~18GB，可在 24GB 显卡跑；若训则需额外梯度+优化器(约 3~4 倍权重)。</li></ul>
+<h2>注意事项</h2>
+<p>结果为按上述公式得到的<strong>理论估算值</strong>，实际表现受数据分布、实现细节与运行环境影响，落地决策请以实测为准；本工具纯前端运行，输入不上传服务器。</p>
+<div class="related">
+<h3>相关工具</h3>
+<a class="tool-chip" href="https://chenguangwu.github.io/tools/ai/ai.html">分类准确率评估</a>
+<a class="tool-chip" href="https://chenguangwu.github.io/tools/ai/ai-10.html">图像卷积输出尺寸</a>
+<a class="tool-chip" href="https://chenguangwu.github.io/tools/ai/ai-11.html">过拟合诊断</a>
+<a class="tool-chip" href="https://chenguangwu.github.io/tools/ai/ai-12.html">数据增强有效量</a>
+</div>
+<dl class="faq">
+<dt>为什么训练显存远大于推理？</dt><dd>训练需保留前向激活供反向、存梯度(同尺寸)与优化器状态(Adam 约 2 倍权重)，常使总显存达权重 3~4 倍；推理只需权重+少量激活。</dd>
+<dt>显存不够怎么办？</dt><dd>量化降权重字节数、用梯度检查点换计算省激活、降 batch、或模型并行/张量并行分片；必要时上更大显存或分布式。</dd>
+</dl>
+<div class="back"><a href="https://chenguangwu.github.io/tools/ai/vram-estimate.html">→ 打开模型显存估算工具</a></div>
+</main>
+</body>
+</html>

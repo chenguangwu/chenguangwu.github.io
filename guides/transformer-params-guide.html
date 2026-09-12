@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Transformer 参数量 使用指南 - ToolBox</title>
+<meta name="description" content="Transformer 参数量估算器，输入层数、维度等估算主体与嵌入参数量，用于模型规模评估与显存预估。">
+<meta property="og:title" content="Transformer 参数量 使用指南">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="ToolBox">
+<meta property="og:url" content="https://chenguangwu.github.io/guides/transformer-params-guide.html">
+<meta property="og:description" content="Transformer 参数量估算器，输入层数、维度等估算主体与嵌入参数量，用于模型规模评估与显存预估。">
+<meta name="twitter:title" content="Transformer 参数量 使用指南">
+<meta name="twitter:description" content="Transformer 参数量估算器，输入层数、维度等估算主体与嵌入参数量，用于模型规模评估与显存预估。">
+<meta name="twitter:image" content="https://chenguangwu.github.io/og-image.png">
+<meta name="twitter:image:alt" content="ToolBox - 免费在线工具与使用指南">
+<meta property="og:image" content="https://chenguangwu.github.io/og-image.png">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="canonical" href="https://chenguangwu.github.io/guides/transformer-params-guide.html">
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "Article", "headline": "Transformer 参数量 使用指南", "description": "Transformer 参数量估算器，输入层数、维度等估算主体与嵌入参数量，用于模型规模评估与显存预估。", "author": {"@type": "Organization", "name": "ToolBox"}, "datePublished": "2026-09-13", "dateModified": "2026-09-13", "mainEntityOfPage": {"@type": "WebPage", "@id": "https://chenguangwu.github.io/guides/transformer-params-guide.html"}}</script>
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "ToolBox", "item": "https://chenguangwu.github.io/"}, {"@type": "ListItem", "position": 2, "name": "使用指南", "item": "https://chenguangwu.github.io/guides/index.html"}, {"@type": "ListItem", "position": 3, "name": "Transformer 参数量 使用指南", "item": "https://chenguangwu.github.io/guides/transformer-params-guide.html"}]}</script>
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "为什么 FFN 占参数最多？", "acceptedAnswer": {"@type": "Answer", "text": "标准 FFN 内部维度常 4d，其两层权重约 8d²，而注意力 Q/K/V/O 共 4d²，故 FFN 占每层约 2/3 参数；这也是大模型压缩的重点。"}}, {"@type": "Question", "name": "词表越大参数越多吗？", "acceptedAnswer": {"@type": "Answer", "text": "是。嵌入层≈V·d 随词表线性增长；为控参数量常用子词分词限制 V，或用因子分解嵌入降低维度开销。"}}]}</script>
+<style>
+:root{--primary:#FF6B35;--text:#1F2937;--muted:#6B7280;--border:#E5E7EB;--bg:#FFFAF7;}
+*{box-sizing:border-box;}
+body{margin:0;font-family:"Noto Sans SC","Plus Jakarta Sans",system-ui,sans-serif;color:var(--text);background:var(--bg);line-height:1.75;}
+.breadcrumb a{color:var(--primary);text-decoration:none;margin-right:6px;}
+.breadcrumb a:hover{text-decoration:underline;}
+main{max-width:820px;margin:0 auto;padding:28px 20px 60px;}
+h1{font-size:28px;margin:0 0 8px;}
+.lead{font-size:16px;color:var(--muted);margin:0 0 22px;}
+h2{font-size:20px;margin:28px 0 10px;color:var(--primary);}
+ul,ol{padding-left:22px;}
+li{margin:8px 0;}
+.related{margin-top:26px;padding:16px;background:#fff;border:1px solid var(--border);border-radius:14px;}
+.related h3{margin:0 0 10px;font-size:16px;color:var(--text);}
+.tool-chip{display:inline-block;margin:4px 6px 4px 0;padding:6px 12px;border:1px solid var(--border);border-radius:999px;color:var(--primary);text-decoration:none;font-size:14px;}
+.tool-chip:hover{background:var(--primary);color:#fff;}
+.faq{margin-top:26px;}
+.faq dt{font-weight:700;margin-top:14px;}
+.faq dd{margin:4px 0 0;color:var(--muted);}
+.back{margin-top:30px;padding:16px;background:#fff;border:1px solid var(--border);border-radius:14px;}
+.back a{color:var(--primary);font-weight:700;text-decoration:none;}
+</style>
+<script src="/js/analytics.js" defer></script>
+<link rel="stylesheet" href="../css/site-chrome.css">
+<link rel="stylesheet" href="../css/common.css">
+<script src="/js/i18n.js" defer></script>
+<script src="../js/common.js" defer></script>
+<meta name="title-zh" content="Transformer 参数量 使用指南">
+</head>
+<body>
+<nav class="breadcrumb"><a href="https://chenguangwu.github.io/">ToolBox</a> / <a href="https://chenguangwu.github.io/guides/index.html">使用指南</a> / <span>Transformer 参数量 使用指南</span></nav>
+<main>
+<h1>Transformer 参数量 使用指南</h1>
+<p class="lead">Transformer 参数量估算器，输入层数、维度等估算主体与嵌入参数量，用于模型规模评估与显存预估。</p>
+<h2>计算公式与原理</h2>
+<p><strong>主体参数 ≈ 12·L·d²；嵌入参数 ≈ vocab × d</strong></p><p>每层含 Q/K/V/O 四个 d×d 矩阵（4d²）与两层 FFN（通常 4d 宽，共 8d²），合计 12d²，乘层数 L 即得主体规模；词表嵌入另计 vocab×d（若解绑则输出层再加一份）。实际模型还有 LayerNorm 等小量参数，估算值略偏小。</p>
+<h2>使用步骤</h2>
+<ol><li>填写「层数」。</li><li>填写「隐藏维度」。</li><li>填写「词表大小」。</li><li>结果区会即时更新；可一键复制结果用于记录或汇报。</li></ol>
+<h2>典型使用场景</h2>
+<ul><li>标准 Transformer 每层参数量≈12·L·d²(L 层数、d 模型维度)，含自注意力与 FFN。</li><li>token 嵌入≈V·d(V 词表大小)，位置编码若可学习再加 d 或 V·d。</li><li>总参数量用于显存与算力预算，是模型规模评估的核心指标。</li></ul>
+<h2>算例参考</h2>
+<ul><li><strong>参数量估算</strong>：L=12, d=768, V=50000：每层≈12×768²≈7.08M，12 层≈85M；嵌入 50000×768≈38.4M；合计≈123M(典型 BERT-base 量级)。</li></ul>
+<h2>注意事项</h2>
+<p>结果为按上述公式得到的<strong>理论估算值</strong>，实际表现受数据分布、实现细节与运行环境影响，落地决策请以实测为准；本工具纯前端运行，输入不上传服务器。</p>
+<div class="related">
+<h3>相关工具</h3>
+<a class="tool-chip" href="https://chenguangwu.github.io/tools/ai/vram-estimate.html">模型显存估算</a>
+<a class="tool-chip" href="https://chenguangwu.github.io/tools/ai/ai.html">分类准确率评估</a>
+<a class="tool-chip" href="https://chenguangwu.github.io/tools/ai/ai-10.html">图像卷积输出尺寸</a>
+<a class="tool-chip" href="https://chenguangwu.github.io/tools/ai/ai-11.html">过拟合诊断</a>
+</div>
+<dl class="faq">
+<dt>为什么 FFN 占参数最多？</dt><dd>标准 FFN 内部维度常 4d，其两层权重约 8d²，而注意力 Q/K/V/O 共 4d²，故 FFN 占每层约 2/3 参数；这也是大模型压缩的重点。</dd>
+<dt>词表越大参数越多吗？</dt><dd>是。嵌入层≈V·d 随词表线性增长；为控参数量常用子词分词限制 V，或用因子分解嵌入降低维度开销。</dd>
+</dl>
+<div class="back"><a href="https://chenguangwu.github.io/tools/ai/transformer-params.html">→ 打开Transformer 参数量工具</a></div>
+</main>
+</body>
+</html>

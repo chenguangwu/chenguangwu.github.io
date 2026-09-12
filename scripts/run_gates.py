@@ -39,6 +39,9 @@ GATES = (
     ("sports calc correctness", ("node", "scripts/verify_sports_calc.js")),
     # fun 分类的正确性验证（烧烤/火锅分量、冥想分段、婚宴桌数、步幅速度换算）。
     ("fun calc correctness", ("node", "scripts/verify_fun_calc.js")),
+    # ai 分类的正确性验证（混淆矩阵四指标 / 欧氏曼哈顿余弦 / 交叉熵 / Sigmoid / Softmax /
+    # Cohen's Kappa / AUC 秩次 / 学习率衰减 / Transformer 参数量）。
+    ("ai calc correctness", ("node", "scripts/verify_ai_calc.js")),
 )
 
 

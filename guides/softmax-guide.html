@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Softmax 概率 使用指南 - ToolBox</title>
+<meta name="description" content="Softmax 概率转换器，将一组 logits 归一化为概率分布(和为1)，用于多分类模型输出层概率化。">
+<meta property="og:title" content="Softmax 概率 使用指南">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="ToolBox">
+<meta property="og:url" content="https://chenguangwu.github.io/guides/softmax-guide.html">
+<meta property="og:description" content="Softmax 概率转换器，将一组 logits 归一化为概率分布(和为1)，用于多分类模型输出层概率化。">
+<meta name="twitter:title" content="Softmax 概率 使用指南">
+<meta name="twitter:description" content="Softmax 概率转换器，将一组 logits 归一化为概率分布(和为1)，用于多分类模型输出层概率化。">
+<meta name="twitter:image" content="https://chenguangwu.github.io/og-image.png">
+<meta name="twitter:image:alt" content="ToolBox - 免费在线工具与使用指南">
+<meta property="og:image" content="https://chenguangwu.github.io/og-image.png">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="canonical" href="https://chenguangwu.github.io/guides/softmax-guide.html">
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "Article", "headline": "Softmax 概率 使用指南", "description": "Softmax 概率转换器，将一组 logits 归一化为概率分布(和为1)，用于多分类模型输出层概率化。", "author": {"@type": "Organization", "name": "ToolBox"}, "datePublished": "2026-09-13", "dateModified": "2026-09-13", "mainEntityOfPage": {"@type": "WebPage", "@id": "https://chenguangwu.github.io/guides/softmax-guide.html"}}</script>
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "ToolBox", "item": "https://chenguangwu.github.io/"}, {"@type": "ListItem", "position": 2, "name": "使用指南", "item": "https://chenguangwu.github.io/guides/index.html"}, {"@type": "ListItem", "position": 3, "name": "Softmax 概率 使用指南", "item": "https://chenguangwu.github.io/guides/softmax-guide.html"}]}</script>
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "为什么要减去最大值？", "acceptedAnswer": {"@type": "Answer", "text": "exp 大数会溢出。softmax 具平移不变性，先减最大值不改变结果却把所有指数压到 ≤0，避免 exp 上溢、数值稳定。"}}, {"@type": "Question", "name": "softmax 和 sigmoid 在二分类下等价吗？", "acceptedAnswer": {"@type": "Answer", "text": "等价。二分类 softmax 两维概率互为补数，与对单 logit 用 sigmoid 一致；多分类才必须用 softmax 归一化。"}}]}</script>
+<style>
+:root{--primary:#FF6B35;--text:#1F2937;--muted:#6B7280;--border:#E5E7EB;--bg:#FFFAF7;}
+*{box-sizing:border-box;}
+body{margin:0;font-family:"Noto Sans SC","Plus Jakarta Sans",system-ui,sans-serif;color:var(--text);background:var(--bg);line-height:1.75;}
+.breadcrumb a{color:var(--primary);text-decoration:none;margin-right:6px;}
+.breadcrumb a:hover{text-decoration:underline;}
+main{max-width:820px;margin:0 auto;padding:28px 20px 60px;}
+h1{font-size:28px;margin:0 0 8px;}
+.lead{font-size:16px;color:var(--muted);margin:0 0 22px;}
+h2{font-size:20px;margin:28px 0 10px;color:var(--primary);}
+ul,ol{padding-left:22px;}
+li{margin:8px 0;}
+.related{margin-top:26px;padding:16px;background:#fff;border:1px solid var(--border);border-radius:14px;}
+.related h3{margin:0 0 10px;font-size:16px;color:var(--text);}
+.tool-chip{display:inline-block;margin:4px 6px 4px 0;padding:6px 12px;border:1px solid var(--border);border-radius:999px;color:var(--primary);text-decoration:none;font-size:14px;}
+.tool-chip:hover{background:var(--primary);color:#fff;}
+.faq{margin-top:26px;}
+.faq dt{font-weight:700;margin-top:14px;}
+.faq dd{margin:4px 0 0;color:var(--muted);}
+.back{margin-top:30px;padding:16px;background:#fff;border:1px solid var(--border);border-radius:14px;}
+.back a{color:var(--primary);font-weight:700;text-decoration:none;}
+</style>
+<script src="/js/analytics.js" defer></script>
+<link rel="stylesheet" href="../css/site-chrome.css">
+<link rel="stylesheet" href="../css/common.css">
+<script src="/js/i18n.js" defer></script>
+<script src="../js/common.js" defer></script>
+<meta name="title-zh" content="Softmax 概率 使用指南">
+</head>
+<body>
+<nav class="breadcrumb"><a href="https://chenguangwu.github.io/">ToolBox</a> / <a href="https://chenguangwu.github.io/guides/index.html">使用指南</a> / <span>Softmax 概率 使用指南</span></nav>
+<main>
+<h1>Softmax 概率 使用指南</h1>
+<p class="lead">Softmax 概率转换器，将一组 logits 归一化为概率分布(和为1)，用于多分类模型输出层概率化。</p>
+<h2>计算公式与原理</h2>
+<p><strong>Pᵢ = e^{zᵢ} / Σⱼ e^{zⱼ}</strong></p><p>Softmax 把 logits 变成和为 1 的概率分布，指数放大差距使最大值更突出。实现上通常先减去 max(z) 再取指数以避免上溢；输出概率并不等于模型置信度，未经校准的模型常过度自信。</p>
+<h2>使用步骤</h2>
+<ol><li>填写「Logit 1」。</li><li>填写「Logit 2」。</li><li>填写「Logit 3」。</li><li>填写「Logit 4」。</li><li>结果区会即时更新；可一键复制结果用于记录或汇报。</li></ol>
+<h2>典型使用场景</h2>
+<ul><li>softmax(z)_i=exp(z_i)/Σⱼexp(z_j)，将 logits 归一化为和为 1 的概率分布。</li><li>输出具平移不变性(全体加常数不变)，但对尺度敏感(乘系数放大差异)。</li><li>多分类输出层标配，配合交叉熵作损失；数值上先减最大值防溢出。</li></ul>
+<h2>算例参考</h2>
+<ul><li><strong>概率归一化</strong>：logits=[2,1,0.1]，减最大值 2 得 [0,−1,−1.9]，exp=[1,0.368,0.149]，Σ=1.517 → 概率=[0.659,0.243,0.098]，和为 1。</li></ul>
+<h2>注意事项</h2>
+<p>结果为按上述公式得到的<strong>理论估算值</strong>，实际表现受数据分布、实现细节与运行环境影响，落地决策请以实测为准；本工具纯前端运行，输入不上传服务器。</p>
+<div class="related">
+<h3>相关工具</h3>
+<a class="tool-chip" href="https://chenguangwu.github.io/tools/ai/softmax-2.html">温度缩放 Softmax</a>
+<a class="tool-chip" href="https://chenguangwu.github.io/tools/ai/specificity.html">特异度计算</a>
+<a class="tool-chip" href="https://chenguangwu.github.io/tools/ai/speech-to-text.html">语音转文字</a>
+<a class="tool-chip" href="https://chenguangwu.github.io/tools/ai/steps-per-epoch.html">每轮训练步数</a>
+</div>
+<dl class="faq">
+<dt>为什么要减去最大值？</dt><dd>exp 大数会溢出。softmax 具平移不变性，先减最大值不改变结果却把所有指数压到 ≤0，避免 exp 上溢、数值稳定。</dd>
+<dt>softmax 和 sigmoid 在二分类下等价吗？</dt><dd>等价。二分类 softmax 两维概率互为补数，与对单 logit 用 sigmoid 一致；多分类才必须用 softmax 归一化。</dd>
+</dl>
+<div class="back"><a href="https://chenguangwu.github.io/tools/ai/softmax.html">→ 打开Softmax 概率工具</a></div>
+</main>
+</body>
+</html>

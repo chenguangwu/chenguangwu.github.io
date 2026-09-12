@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>注意力计算量 使用指南 - ToolBox</title>
+<meta name="description" content="按序列长度、头数与隐藏维度估算单层及全模型注意力的浮点运算量 FLOPs，适用于大模型算力评估、推理成本测算与硬件选型。">
+<meta property="og:title" content="注意力计算量 使用指南">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="ToolBox">
+<meta property="og:url" content="https://chenguangwu.github.io/guides/attention-flops-guide.html">
+<meta property="og:description" content="按序列长度、头数与隐藏维度估算单层及全模型注意力的浮点运算量 FLOPs，适用于大模型算力评估、推理成本测算与硬件选型。">
+<meta name="twitter:title" content="注意力计算量 使用指南">
+<meta name="twitter:description" content="按序列长度、头数与隐藏维度估算单层及全模型注意力的浮点运算量 FLOPs，适用于大模型算力评估、推理成本测算与硬件选型。">
+<meta name="twitter:image" content="https://chenguangwu.github.io/og-image.png">
+<meta name="twitter:image:alt" content="ToolBox - 免费在线工具与使用指南">
+<meta property="og:image" content="https://chenguangwu.github.io/og-image.png">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="canonical" href="https://chenguangwu.github.io/guides/attention-flops-guide.html">
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "Article", "headline": "注意力计算量 使用指南", "description": "按序列长度、头数与隐藏维度估算单层及全模型注意力的浮点运算量 FLOPs，适用于大模型算力评估、推理成本测算与硬件选型。", "author": {"@type": "Organization", "name": "ToolBox"}, "datePublished": "2026-09-13", "dateModified": "2026-09-13", "mainEntityOfPage": {"@type": "WebPage", "@id": "https://chenguangwu.github.io/guides/attention-flops-guide.html"}}</script>
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "ToolBox", "item": "https://chenguangwu.github.io/"}, {"@type": "ListItem", "position": 2, "name": "使用指南", "item": "https://chenguangwu.github.io/guides/index.html"}, {"@type": "ListItem", "position": 3, "name": "注意力计算量 使用指南", "item": "https://chenguangwu.github.io/guides/attention-flops-guide.html"}]}</script>
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "为什么长文本推理特别慢？", "acceptedAnswer": {"@type": "Answer", "text": "注意力核心项是 S²·d，序列翻倍算力翻约 4 倍；KV 缓存虽降重算，但注意力矩阵仍随上下文长度平方增长，故长上下文成本陡增。"}}, {"@type": "Question", "name": "FLOPs 和显存是一回事吗？", "acceptedAnswer": {"@type": "Answer", "text": "不是。FLOPs 衡量算力(时间)，显存衡量参数与激活的存储(空间)。量化降显存但不降 FLOPs，稀疏/蒸馏可同时降两者。"}}]}</script>
+<style>
+:root{--primary:#FF6B35;--text:#1F2937;--muted:#6B7280;--border:#E5E7EB;--bg:#FFFAF7;}
+*{box-sizing:border-box;}
+body{margin:0;font-family:"Noto Sans SC","Plus Jakarta Sans",system-ui,sans-serif;color:var(--text);background:var(--bg);line-height:1.75;}
+.breadcrumb a{color:var(--primary);text-decoration:none;margin-right:6px;}
+.breadcrumb a:hover{text-decoration:underline;}
+main{max-width:820px;margin:0 auto;padding:28px 20px 60px;}
+h1{font-size:28px;margin:0 0 8px;}
+.lead{font-size:16px;color:var(--muted);margin:0 0 22px;}
+h2{font-size:20px;margin:28px 0 10px;color:var(--primary);}
+ul,ol{padding-left:22px;}
+li{margin:8px 0;}
+.related{margin-top:26px;padding:16px;background:#fff;border:1px solid var(--border);border-radius:14px;}
+.related h3{margin:0 0 10px;font-size:16px;color:var(--text);}
+.tool-chip{display:inline-block;margin:4px 6px 4px 0;padding:6px 12px;border:1px solid var(--border);border-radius:999px;color:var(--primary);text-decoration:none;font-size:14px;}
+.tool-chip:hover{background:var(--primary);color:#fff;}
+.faq{margin-top:26px;}
+.faq dt{font-weight:700;margin-top:14px;}
+.faq dd{margin:4px 0 0;color:var(--muted);}
+.back{margin-top:30px;padding:16px;background:#fff;border:1px solid var(--border);border-radius:14px;}
+.back a{color:var(--primary);font-weight:700;text-decoration:none;}
+</style>
+<script src="/js/analytics.js" defer></script>
+<link rel="stylesheet" href="../css/site-chrome.css">
+<link rel="stylesheet" href="../css/common.css">
+<script src="/js/i18n.js" defer></script>
+<script src="../js/common.js" defer></script>
+<meta name="title-zh" content="注意力计算量 使用指南">
+</head>
+<body>
+<nav class="breadcrumb"><a href="https://chenguangwu.github.io/">ToolBox</a> / <a href="https://chenguangwu.github.io/guides/index.html">使用指南</a> / <span>注意力计算量 使用指南</span></nav>
+<main>
+<h1>注意力计算量 使用指南</h1>
+<p class="lead">按序列长度、头数与隐藏维度估算单层及全模型注意力的浮点运算量 FLOPs，适用于大模型算力评估、推理成本测算与硬件选型。</p>
+<h2>计算公式与原理</h2>
+<p><strong>单层 FLOPs ≈ 2S²d (QKᵀ) + 2S²d (AV) = 4S²d；全模型 GFLOPs = 单层 × 层数 / 10⁹</strong></p><p>自注意力的两次矩阵乘各为 S×S×d 规模，乘加各算一次故乘 2，合计 4S²d，随序列长度呈平方增长——这正是长上下文成本暴涨的原因。线性注意力与稀疏注意力正是为打破这一 S² 项。</p>
+<h2>使用步骤</h2>
+<ol><li>填写「序列长度」。</li><li>填写「维度」。</li><li>填写「层数」。</li><li>结果区会即时更新；可一键复制结果用于记录或汇报。</li></ol>
+<h2>典型使用场景</h2>
+<ul><li>单头注意力 FLOPs≈2·S²·d（QKᵀ 与 AV 两次矩阵乘），S 为序列长、d 为维度。</li><li>多头总计算≈2·S²·h·d_head + 4·S·d²（含 Q/K/V/O 投影），S² 项使长序列算力平方增长。</li><li>与 FFN 相比，注意力在长序列时 dominated by S²，是推理成本优化的重点。</li></ul>
+<h2>算例参考</h2>
+<ul><li><strong>单层注意力算力</strong>：S=1024, h=16, d_head=64(总 d=1024)：S² 项≈2×1024²×1024≈2.15×10⁹ FLOPs；投影 4·S·d²=4×1024×1024²≈4.29×10⁹。单层约 6.4×10⁹ FLOPs，12 层约 7.7×10¹⁰。</li></ul>
+<h2>注意事项</h2>
+<p>结果为按上述公式得到的<strong>理论估算值</strong>，实际表现受数据分布、实现细节与运行环境影响，落地决策请以实测为准；本工具纯前端运行，输入不上传服务器。</p>
+<div class="related">
+<h3>相关工具</h3>
+<a class="tool-chip" href="https://chenguangwu.github.io/tools/ai/attention-head-dim.html">注意力头维度</a>
+<a class="tool-chip" href="https://chenguangwu.github.io/tools/ai/auc-rank.html">AUC 秩次估算</a>
+<a class="tool-chip" href="https://chenguangwu.github.io/tools/ai/augmentation-multiplier.html">数据增强倍数</a>
+<a class="tool-chip" href="https://chenguangwu.github.io/tools/ai/best-epoch.html">最佳轮次选择</a>
+</div>
+<dl class="faq">
+<dt>为什么长文本推理特别慢？</dt><dd>注意力核心项是 S²·d，序列翻倍算力翻约 4 倍；KV 缓存虽降重算，但注意力矩阵仍随上下文长度平方增长，故长上下文成本陡增。</dd>
+<dt>FLOPs 和显存是一回事吗？</dt><dd>不是。FLOPs 衡量算力(时间)，显存衡量参数与激活的存储(空间)。量化降显存但不降 FLOPs，稀疏/蒸馏可同时降两者。</dd>
+</dl>
+<div class="back"><a href="https://chenguangwu.github.io/tools/ai/attention-flops.html">→ 打开注意力计算量工具</a></div>
+</main>
+</body>
+</html>
