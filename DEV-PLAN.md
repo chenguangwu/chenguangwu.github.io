@@ -155,25 +155,21 @@
 - **deep-dive「覆盖率 ≠ 达标率」有三层套话（finance 收口教训）**：`content_deepdive.json` 有条目 / 条数够 ≠ 达标。逐条比对须分三处独立查：① `scenarios` / `faqs` 模板（如「输入完整的Xxx Validator…」「先清理空格、连字符和分组符号」「工具会上传文本吗」）② `examples` 模板（「{Xxx}的反例复核」「{Xxx}基准复核」+ 通用描述、无真实算例）③ 英文名嵌入中文（`[A-Z][a-z]+ Validator` 出现在中文句里 = 代号型套话）。finance 覆盖率 100% 但三项分别命中 74 / 90 / 若干 —— 只查条数会整体漏掉。
 - **跨分类重名 slug 的指南必须走 `--prefix`**：`guides.json` 按 `tool` basename 去重、指南页落盘为 `guides/<slug>-guide.html`，故同名 slug（如 `calc-2` 存在于 22 个分类）新增指南会被去重跳过或直接互覆。处理顺序：先 grep 目标指南页正文的 `/tools/<ind>/<slug>.html` 判断现有归属，重名的用 `--prefix <ind>-` 生成 `guides/<ind>-<slug>-guide.html`；`_build.py` 靠指南页正文的**绝对 URL** 反查行业建 `GUIDE_MAP_IND`，命中则不回退 `GUIDE_MAP`，故相对路径 `/tools/...` 的指南页不会建立精确映射（会误挂同 basename 的其他分类）。
 - **审计脚本自身的坑 —— Python `a = b = []` 多变量共享同一 list**：`no_title=no_h1=no_jsonld=no_bread=[]` 会让四个变量指向**同一个**列表对象，任一 append 都会进同一个 list，导致四项计数完全相同（finance 审计时误报「缺 JSON-LD 6 / 缺面包屑 6」，实为 title 的 6 处且判据过严——中文 4 字标题 `<title>[^<]{5,}</title>` 被判为「缺」）。写审计脚本时多列表必须**逐个独立赋值**，或显式 `a, b = [], []`；计数异常一致时应先怀疑脚本而非项目。
+- **同一逻辑在多个分类重复实现时，抽通用脚本而非复制**：`fix_finance_formula.py` → `scripts/fix_formula.py`（`--industry` + `--map module:VAR`，数据单放 `fix_<ind>_formula_map.py`，锚点 input-row → input-row2 → h2 后首个 `<p>`）；`fix_general_prerender_reset.py` → `fix_prerender_reset.py`（`--industry` + `--intro-p`）；`fix_formula_intro_p.py` 本身即通用。收益：① 逻辑修复一次即全分类生效（如 `vh-vw` 空壳框识别、script 内误注入防护）② 脚本数量不随分类数线性膨胀。老板明确偏好「直接复用而非复制」，新分类开工前先 `ls scripts/` 查是否有可加 `--industry` 的现成脚本。
 
 ---
 
 ## 八、分类推进记录
 
-> 🔄 **当前进行中：`design` (103)**（2026-09-12 开工）。工具清单 = `tools/design/*.html`（103 个，与 §9.2 热度计数一致）。
-> **八项基线审计（2026-09-12）**：deep-dive **103/103 条数达标且套话≈0**（仅 `font-pairing` examples 1 处 + 5 处英文名嵌入）；UI（common.js/i18n.js/viewport/lang/toolbox）**零缺项**；cat **0 错标**；无输入项仅 `bpm-tapper`（按钮驱动）。缺口：① **英文 p 占位 92** ② **formula 缺 49** ③ **计算验证 0** ④ **指南 7/103**。
-> **英文态数据源（混合半成品）**：`design-body.json` 缺 9 条 + 孤儿 3（generator-5 / color-scheme-generator / simulator-2，全站无页面）；intro 占位/旧套话 94、title 代号 6；`design.json` 缺 9、en-US 套话 52；`_en_override` en 代号 6、ed 不达标 96；`industry-design` ed 不达标 3。
-> **计划批次**：A 英文态数据源根治 103 → B formula/参考表 49 → C 计算验证（第 9 道门禁）→ D deep-dive 收尾 + 指南精选 → 收口归档。
-
-> ✅ **`finance` (112) 已收口**（2026-09-12，八项目标全达标，部署 run 34673915217 success）。历史 `it` (345) / `general` (180) 归档见 §9.1 白名单（跨分类经验已沉淀至 §4.5 / §6）。
-> **`finance` 批次明细（已完成，留存备查）：**
-> - **八项基线审计（2026-09-12）**：deep-dive 112/112 达标、UI 零缺项、cat 0 错标、英文 p 占位 0。缺口：① 英文态数据源（finance-body.json intro 占位 94 + 缺 4、title 代号 5；finance.json en-US 套话 56 + 缺 7；_en_override ed 套话 35；industry-finance ed 不达标 6）② formula（无框 39 / formula-desc 套话 41 / 有框无 desc 26）③ 计算验证 0 ④ 指南 12（**且 deep-dive 覆盖率 100% 但达标率不足，见下**）。
-> - **① 英文态数据源根治（批次 A）**：新建 `fix_finance_body_i18n.py` 为 112 工具写真实英文名 + 描述，同步 `_en_override.json`（en/ed）、`finance-body.json`（title/h1/intro + en 嵌套）、`finance.json`（en-US）三端，并补 4 + 7 条缺失条目。**关键踩坑**：45 个公式页的 formula-desc 是「首个 `<p>`」，被 `_prerender_tool_body` 注入 intro；改 `<div>` 后首个 `<p>` 会落到 `<script>` 内的 JS 模板字符串（41 页）→ 新建 `fix_formula_intro_p.py` 在 formula-box 后补中文 intro `<p>`，实测 script 内注入 0。`fix_general_prerender_reset.py` 泛化为 `fix_prerender_reset.py`（`--industry` + `--intro-p`）。
-> - **② formula 全量补齐（批次 B）**：新建 `fix_finance_formula.py`（MAP 字典驱动），31 处无框插入完整框 + 26 处补 desc（含补缺失 eq）+ 41 处套话换真实算法说明；刻意不补 8 个非计算类（不编造公式）。识别修正：`cpf-validator`/`iccid-validator` 已有真实静态原理说明、`lottery-odds-calculator` 运行时动态填充 `formulaBox`，均非缺口。
-> - **③ 计算验证 20 用例（批次 C，第 8 道门禁）**：新建 `scripts/verify_finance_calc.js`（复用 DOM stub 框架）：校验位算法 13 例（Luhn / ABA 3-7-1 / ISO 13616 mod-97 / CPF、CNPJ 模 11 / ABN mod 89 / ISBN-13 / SIN / DNI mod 23 / NPI / Verhoeff / TFN、IRD 反例）+ 金融公式 7 例（单利 / 等额本息月供 / ROI / NPV / 盈亏平衡 / 增值税倒推 / 数字转英文）。`run_gates.py` 由 7 项扩为 8 项。
-> - **④ deep-dive 套话真实化 + 指南精选（批次 D）**：**本批关键** —— 覆盖率 112/112 ≠ 达标率，按 §4.5.8 逐条比对发现 scenarios/faqs 74 个、examples 90 个为批量模板（「输入完整的Xxx Validator…」/「{Xxx}的反例复核」）。新建 `fix_finance_deepdive.py`（72 工具真实 scenarios/faqs）+ `fix_finance_examples.py`（90 工具真实示例，数值全部 python 独立复算：IRR 15.24%、NPV 19,781.30、月供 4,890.17、凯利 0.325、股票净收益 1,983.78 等）+ `fix_finance_guide_fields.py`（20 工具 features(4)/steps(5)/tips(4)）→ 跑 `gen_guide_pages.py --industry finance` 生成 20 篇指南（校验 10 + 计算 10），指南 6 → 26 篇，`guides.json` 651→671。
-> - **最终结果**：deep-dive 达标 112/112、scenarios/faqs 与 examples 套话 0、UI 零缺项、cat 0 错标、formula 全覆盖（104/112 有真实公式框，余 8 为规范中的非计算类）、英文态三端套话 0、计算验证 20、指南 26、指南链接注入 20/20；**八项目标全达标**。8 道门禁全过，Actions `34673915217` success（批次 D 提交 `02b4812d9` 触发的 run `34673850975` 被紧随的状态机推送取消 —— GitHub Actions 并发策略下新 run 取代进行中的旧 run，属正常；`34673915217` 已含 D 全部内容；B/C 批 `338d3d920` / `d1473af59` 亦 success）。
-> - **遗留（非 finance 缺口，记入 §9.3）**：① finance 混入 10+ 个非金融工具（currency-converter / driver-license-validator / mirror-text / word-scramble / word-search / word-wrap / dns-record-info / password 等），分类归属待老板确认后处理；② 跨分类重名 slug（calc-2~5 属 fitness、simple-interest 属 banking、word-scramble 属 fun）未补 finance 版指南（如需可 `--prefix finance-` 处理）。
+> ✅ **`design` (103) 已收口**（2026-09-12，八项目标全达标，部署 run 34674667024 success）。历史 `it` (345) / `general` (180) / `finance` (112) 归档见 §9.1 白名单（跨分类经验已沉淀至 §4.5 / §6）。
+> **`design` 批次明细（已完成，留存备查）：**
+> - **八项基线审计（2026-09-12）**：deep-dive **103/103 条数达标且套话≈0**（仅 `font-pairing` examples 1 处）；UI（common.js/i18n.js/viewport/lang/toolbox）零缺项；cat 0 错标；无输入项仅 `bpm-tapper`（按钮驱动节拍器，合理）。缺口：① 英文 p 占位 92 ② formula 缺 49 ③ 计算验证 0 ④ 指南 7/103。数据源（混合半成品）：`design-body.json` 缺 9 + 孤儿 3（generator-5 / color-scheme-generator / simulator-2）、intro 占位 94、title 代号 6；`design.json` 缺 9、en-US 套话 52；`_en_override` en 代号 6、ed 不达标 96；`industry-design` ed 不达标 3。
+> - **① 英文态数据源根治（批次 A）**：新建 `fix_design_body_i18n.py` 为 103 工具写真实英文名 + 描述，同步 `_en_override.json`（en/ed）、`design-body.json`（title/h1/intro + en 嵌套）、`design.json`（en-US）三端，并补 9 + 9 条缺失条目与 9 条缺失 zh-CN。复用已泛化脚本：`fix_formula_intro_p.py --industry design`（30 个公式页的 formula-desc 是首个 `<p>`，改 `<div>` 并在框后补中文 intro `<p>` —— 否则首个 `<p>` 会落到 `<script>` 内 JS 模板串，41 页）、`fix_prerender_reset.py --industry design --intro-p`（还原已预渲染 h2 92 处 + 首个 `<p>` 61 处让 build 重注入）。
+> - **② formula 全量补齐（批次 B）**：把 `fix_finance_formula.py` 的插入/更新逻辑**抽为通用** `scripts/fix_formula.py`（`--industry` + `--map module:VAR`，锚点 input-row → input-row2 → h2 后首个 `<p>`），数据单放 `fix_design_formula_map.py`。共 91 处：49 无框插入完整框（单位换算 px/rem/vw/vh、DPI、冲印尺寸；色度学 WCAG 相对亮度、色温近似式；摄影光学 景深/超焦距、等效焦距与视角；版式 间距/字阶等比数列）、24 有框无 desc 补依据、16 套话换真实说明；纯生成器类按 §4.1.2 给「参数参考表/核心算法说明」，不编造公式。识别修正：`vh-vw` 原有空壳框（仅 title）遗漏在首轮统计外，补入 MAP 后修复。→ **103/103 均有真实 formula**。
+> - **③ 计算验证 12 用例（批次 C，第 9 道门禁）**：新建 `scripts/verify_design_calc.js`（复用 DOM stub 框架）：单位换算 7（px↔rem、px→vw、像素↔英寸 DPI、冲印尺寸 cm、间距/字阶等比数列）+ 色度学 3（WCAG 对比度 ×2：`#1F2937`/白 = 14.68:1、`#333`/白 = 12.63:1；Tanner Helland 色温近似式 5500K → `#FFEDDE`）+ 摄影光学 2（景深/超焦距 f=50 N=1.8 c=0.03mm → H 46.3m、近点 1.92m；等效焦距视角 50mm 全画幅 → 39.6°×27.0°）。期望值全部标准公式独立复算并显式注入；依赖 canvas / WebAudio / 点击 / 「今天」的工具不纳入。刻意排除 `color-shade-generator`（亮色梯度经 `mix()` 退化为纯灰度、与基色无关，属工具自身实现缺陷，不可为其背书，另记 §9.3）。`run_gates.py` 由 8 项扩为 9 项。
+> - **④ 指南精选 15 篇 + deep-dive 复检（批次 D）**：deep-dive 103/103 条数达标，scenarios/faqs 与 examples 套话均为 0（无 finance 那类模板）；入库初判的「英文名嵌中文 5 处」经逐字段核查为**误报**（命中的是 `title` 字段本身的英文名，属预期）。已有指南 7 篇（5 篇真实 + `image-to-ascii` 为「原理/参数/FAQ」内容集群版式）内容真实、仅条数 3–4 条非模板，保留不改。新增 15 篇（单位换算 7 / 色度学 1 / 摄影光学 4 / 存储配色 3），新建 `fix_design_guide_fields.py` 补真实 features(4)/steps(5)/tips(4) 后跑 `gen_guide_pages.py --industry design`；跨分类重名 slug（audio-recorder / image-compress / image-mosaic / image-to-base64 / image-watermark）不纳入，避免与既有 `guides/<slug>-guide.html` 互覆。
+> - **最终结果**：deep-dive 达标 103/103（套话 0）、UI 零缺项、cat 0 错标、formula 覆盖 103/103、**英文态七维全清零**（页面残留 0 / script 内误注入 0 / h2 代号 0 / body.intro 0 / body.title 0 / `design.json` en-US 0 / ov.en 0 / ov.ed 0 / industry-design ed 0）、计算验证 12、指南 22（7→22）、指南链接注入 15/15；**八项目标全达标**。9 道门禁全过（design 12/12、finance 20/20、general 19/19、it 28/28），Actions `2a57f8ab4` / `5273b8cda` / `7c4fbb699`（run `34674667024`）全 success。
+> - **遗留（非 design 缺口，记入 §9.3）**：① `design-body.json` 3 个孤儿键（generator-5 / color-scheme-generator / simulator-2）全站无页面；② `color-shade-generator` 亮色梯度实现缺陷（`mix()` 退化为纯灰度）；③ `contrast-checker` 与 `color-contrast-check` / `checker` 主题重复，分类去重待老板确认；④ 5 个跨分类重名 slug 的指南缺口。
 
 ## 九、未完成任务清单
 
@@ -189,14 +185,14 @@
 - ✅ it (345)：八项目标全覆盖（deep-dive 345/345、套话/占位/公式 0、指南 40、计算验证 28/28、英文描述 297 真实化、页面 UI 100%；部署 run 34632953856 success），git 实测
 - ✅ general (180)：八项目标全覆盖（deep-dive 180/180、p 占位/套话/formula 缺失 0、ed 与 desc-en 套话 0、指南 31、计算验证 19、英文态数据源根治；部署 run 34672625411 success），git 实测
 - ✅ finance (112)：八项目标全覆盖（deep-dive 达标 112/112、scenarios/faqs 与 examples 套话 0、formula 全覆盖、英文态三端套话 0、计算验证 20、指南 26、指南链接注入 20/20；部署 run 34673915217 success），git 实测
+- ✅ design (103)：八项目标全覆盖（deep-dive 103/103 达标且套话≈0、formula 覆盖 103/103、英文态七维全清零、计算验证 12、指南 22、指南链接注入 15/15；部署 run 34674667024 success），git 实测
 
 > 跳过规则：上述分类**不列入 §9.2 待办**；其余分类按 §9.2 热度顺序从零推进。
 
-### 9.2 分类优化清单（262 分类，按热度降序，完成一个删一个）
+### 9.2 分类优化清单（261 分类，按热度降序，完成一个删一个）
 
 > 清单由脚本按 `tools/` 目录工具数生成；每行 = 分类名 + 工具数。当前进行中的分类在 §8 同步登记。
 
-- [ ] design (103)
 - [ ] science (99)
 - [ ] sports (75)
 - [ ] fun (74)
@@ -468,3 +464,7 @@
 - [ ] `i18n/tools/general-body.json` 中 107 条非 general 的占位 intro —— 全站无对应页面的**孤儿条目**（general 收口时发现），清理前先确认无页面 / 分类页引用
 - [ ] `finance` 分类混入 10+ 个非金融工具（currency-converter / driver-license-validator / mirror-text / word-scramble / word-search / word-wrap / dns-record-info / password / password-generator-advanced / vcard-qr / wifi-password-show 等），属分类错放，**动分类前须先与老板确认**（涉及 URL 归属与 SEO）
 - [ ] 跨分类重名 slug 的指南缺口（finance/calc-2~5 属 fitness、finance/simple-interest 属 banking、finance/word-scramble 属 fun 等）：因 `guides.json` 按 basename 去重、`guides/<slug>-guide.html` 会互覆，需 `--prefix <ind>-` 方案，暂缓
+- [ ] `design-body.json` 3 个孤儿键（generator-5 / color-scheme-generator / simulator-2）全站无对应页面（design 收口时发现），清理前先确认无页面 / 分类页引用
+- [ ] `design/color-shade-generator` 亮色梯度实现缺陷：`mix()` 退化为 `Math.round(t)`，浅色档位与基色无关（结果近似纯灰度），属工具自身算法 bug，需重写混色逻辑后再决定是否纳入门禁
+- [ ] `design` 分类主题重复工具：`contrast-checker` 与 `color-contrast-check`（已有指南）/ `checker`（已有指南）功能重叠，**去重前须先与老板确认**（涉及 URL 归属与 SEO）
+- [ ] `design` 跨分类重名 slug 的指南缺口（audio-recorder / image-compress / image-mosaic / image-to-base64 / image-watermark）：同 finance 情况，需 `--prefix design-` 方案，暂缓
