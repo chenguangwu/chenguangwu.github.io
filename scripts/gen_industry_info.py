@@ -25,6 +25,9 @@ import sys
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 # 加载 _build.py 中的 INDUSTRY_DEFS 作为权威短名源（268/268 覆盖）
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+# 关键：脚本在 scripts/ 下运行时 sys.path[0] 是 scripts/ 而非项目根，必须把 ROOT 也加入，
+# 否则 from _build import 会失败掉进 except 退路（退路正则与 (emoji,name) 顺序不匹配 → icon 错成首字）
+sys.path.insert(0, ROOT)
 try:
     from _build import INDUSTRY_DEFS as _INDUSTRY_DEFS
 except Exception:
@@ -35,8 +38,9 @@ except Exception:
     if _m:
         _end = _src.index('\n}\n', _m.end()) + 3
         _seg = _src[_m.start():_end]
-        for _mm in re.finditer(r"'([^']+)'\s*:\s*\(\s*'[^']+'\s*,\s*'([^']+)'", _seg):
-            _INDUSTRY_DEFS[_mm.group(1)] = _mm.group(2)
+        for _mm in re.finditer(r"'([^']+)'\s*:\s*\(\s*'([^']+)'\s*,\s*'([^']+)'", _seg):
+            # 元组顺序与 _build.py 一致：(emoji, 中文短名)；存元组而非字符串，避免 [0] 取到 name[0]
+            _INDUSTRY_DEFS[_mm.group(1)] = (_mm.group(2), _mm.group(3))
 
 # 导航显示别名：解决不同 slug 提取出相同中文名的问题（行业页 title 不动，仅导航显示用）
 NAME_OVERRIDE = {
