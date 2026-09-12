@@ -181,8 +181,9 @@
 > - **本批首批落地（2026-09-12，general 首刀）**：英文 p 真实化 **50 个清晰型**（`scripts/fix_general_en_p.py`，占位串 139→89，保留 data-zh 中文）；`desc-en` meta 与 `ed` 套话**同批真实化**（`scripts/fix_general_en_meta.py` 复用 EN_MAP，三处英文一致：desc-en 截断≤155 做 meta、ed 不截断，ed 套话 181→131、desc-en 181→131）；**6 道门禁全过**，`build` 后验证 p/desc-en/ed 三处真实英文均保留未回归（新风险点已排除）。
 > - **第二批落地（2026-09-12）**：p 再真实化 **40 个清晰型**（功率/压力/扭矩/电气/材料/切割类，EN_MAP 第二批），占位串 89→49；desc-en/ed 同批真实化 40，ed 套话 131→91、desc-en 套话剩 46（初始非全 181，约 45 个本来非套话）；6 道门禁全过，`build` 验证三处英文不反弹（desc-en 46、p 49、ed 91 均稳定）。
 > - **第三批落地（2026-09-12）**：p 真实化 **49 个（detector 多指标合规评估 38 + 专项工具 9：analysis/assessor/calc-stats/generator/recommender/stats-energy/tester）**，占位串 49→0，**general p 维度彻底清零**；desc-en/ed 同批真实化 49，ed 套话 91→42、desc-en 套话 46→1；6 道门禁全过，build 验证三处英文不反弹（p 0/ed 42/desc-en 1 稳定）。**关键发现**：general 180 页中仅 139 个曾有 p 占位串，另 41 页 p 本就是真实英文（如 `Size a heat exchanger by LMTD method.`），无需处理；剩余 ed/desc-en 套话 42/1 全部集中在未进 EN_MAP 的 41 页（其 p 已真实），留作英文描述层收尾。
-> - **剩余缺口**：p 0（维度完成）；ed 42、desc-en 1（均集中在未覆盖 EN_MAP 的 41 页，其 p 已真实英文）；formula 无框 105 + 结构异常 4；计算验证 0（DOM stub 复用）；指南 0（§4.4 精选）。
-> - **下批方向**：① 英文描述层收尾（未覆盖 EN_MAP 的 41 页：清 ed 42/desc-en 1，复用其已有真实英文 p 或重写；analysis-21 等 desc-en 套话明确清）② formula 补真实原理 ③ 计算验证 / 指南。
+> - **第四批落地（2026-09-12，英文描述层收尾）**：把未进 EN_MAP 的 41 页（40 个 ed 有套话尾巴 + analysis-21 纯套话）全部加进 EN_MAP（值=真实英文），`fix_general_en_meta.py` 同批重置 ed（去尾巴）/ desc-en（幂等）；另清理 1 个孤儿 i18n 键 `general/random-10`（无对应 html，删后 general 键数 181→180 对齐）；analysis-21 的 formula-desc 块单独中英双语化。**结果：p 0 占位 / ed 0 套话(180) / desc-en 0 套话，general 英文描述层三处全维度清零**。6 道门禁全过，build 验证三处英文不反弹、孤儿键清理持久化。
+> - **剩余缺口**：英文描述层 0（维度完成）；formula 无框 105 + 结构异常 4；计算验证 0（DOM stub 复用）；指南 0（§4.4 精选）。
+> - **下批方向**：① formula 补真实原理（无框 105 + 异常 4）② 计算验证（复用 verify_it_calc.js DOM stub，扩 general 用例）③ 指南（§4.4 精选补 general 专业工具）。
 
 ## 九、未完成任务清单
 
