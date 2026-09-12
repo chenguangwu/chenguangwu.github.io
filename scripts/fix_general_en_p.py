@@ -23,6 +23,10 @@ PLACE = 'is available directly in your browser'
 PAT = re.compile(
     r'(<p\b[^>]*data-zh="[^"]*"[^>]*>)([^<]*' + re.escape(PLACE) + r'[^<]*)(</p>)'
 )
+# 更新模式：页面 <p> 已是真实英文（无占位串）时，按 data-zh 定位唯一英文 <p>，
+# 让 EN_MAP 始终是页面 intro 的单一数据源（改 EN_MAP → 重跑 --apply 即同步）。
+PAT_ANY = re.compile(r'(<p\b[^>]*data-zh="[^"]*"[^>]*>)([^<]*)(</p>)')
+CJK = re.compile(r'[\u4e00-\u9fff]')
 
 # ---- 首批：中文描述清晰、可直接写成有信息量英文的 50 个 ----
 EN_MAP = {
@@ -173,9 +177,9 @@ EN_MAP = {
     'calc-13': "Compute calendar and workday differences between two dates.",
     'calc-14': "Compute exact age in years, months and days.",
     'calc-196': "Compute insulation thickness to control surface temperature.",
-    'calc-197': "Size a heat exchanger by LMTD method.",
+    'calc-197': "Compute the LMTD and required heat-transfer area from heat duty, fluid temperatures and the overall heat-transfer coefficient.",
     'calc-200': "Compute required motor power from load and efficiency.",
-    'calc-203': "Compute mold fits per ISO 286 (GB/T).",
+    'calc-203': "Per ISO 286 (GB/T 1800), compute hole and shaft deviations and the resulting clearance or interference from the basic size and a fit code such as H7/g6.",
     'calc-204': "Compute formwork support spacing by bearing-area method.",
     'calc-205': "Compute steel quantity for double-row coupler scaffolds.",
     'calc-206': "Verify single-standard coupler scaffold safety under load.",
@@ -225,14 +229,22 @@ def main():
             skipped.append((slug, 'file-missing'))
             continue
         src = open(path, encoding='utf-8').read()
+        src_pat = PAT
         hits = list(PAT.finditer(src))
+        if not hits:
+            # 回退：页面 <p> 已是真实英文，按 data-zh 定位唯一英文 <p> 以同步 EN_MAP 变更
+            cand = [m for m in PAT_ANY.finditer(src)
+                    if m.group(2).strip() and not CJK.search(m.group(2))]
+            if len(cand) == 1:
+                hits = cand
+                src_pat = PAT_ANY
         if not hits:
             skipped.append((slug, 'no-match'))
             continue
         if len(hits) > 1:
             skipped.append((slug, 'multi-match:%d' % len(hits)))
             continue
-        new_src = PAT.sub(lambda m: m.group(1) + en + m.group(3), src, count=1)
+        new_src = src_pat.sub(lambda m: m.group(1) + en + m.group(3), src, count=1)
         if new_src == src:
             skipped.append((slug, 'no-change'))
             continue
