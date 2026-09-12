@@ -25,7 +25,7 @@ const targets = [
   "construction/renovation-labor-cost", "construction/cement-mortar-ratio",
   "electrical/wire-gauge-selector",
   // N4-02 batch 04 (electrical/steel/fun)
-  "electrical/breaker-sizing", "steel/steel-profile-weight",
+  "electrical/breaker-sizing", "metallurgy/steel-profile-weight",
   "fun/hotpot-portion", "fun/bbq-portion", "fun/random-name-gen",
   // N4-02 batch 05 (ecommerce/sales/hr)
   "ecommerce/groupon-filler", "sales/cost-price-margin",
@@ -40,8 +40,8 @@ const targets = [
   "finance/credit-card-grace-period",
   // P3-1 batch 08 (finance/fun/gardening/furniture/cable)
   "finance/points-redemption-value", "fun/wedding-banquet",
-  "gardening/balcony-sunlight", "furniture/desk-dimensions",
-  "cable/cable-tray-sizing",
+  "gardening/balcony-sunlight", "woodwork/desk-dimensions",
+  "metalwork/cable-tray-sizing",
   // P3-1 batch 09 (it/design)
   "it/markdown-to-html", "it/regex-common",
   "design/css-grid-generator", "design/breakpoint-queries",
