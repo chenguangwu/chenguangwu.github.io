@@ -160,14 +160,14 @@
 
 ## 八、分类推进记录
 
-> ✅ **`finance` (112) 已收口**（2026-09-12，八项目标全达标，部署 run 34673850975 success）。历史 `it` (345) / `general` (180) 归档见 §9.1 白名单（跨分类经验已沉淀至 §4.5 / §6）。
+> ✅ **`finance` (112) 已收口**（2026-09-12，八项目标全达标，部署 run 34673915217 success）。历史 `it` (345) / `general` (180) 归档见 §9.1 白名单（跨分类经验已沉淀至 §4.5 / §6）。
 > **`finance` 批次明细（已完成，留存备查）：**
 > - **八项基线审计（2026-09-12）**：deep-dive 112/112 达标、UI 零缺项、cat 0 错标、英文 p 占位 0。缺口：① 英文态数据源（finance-body.json intro 占位 94 + 缺 4、title 代号 5；finance.json en-US 套话 56 + 缺 7；_en_override ed 套话 35；industry-finance ed 不达标 6）② formula（无框 39 / formula-desc 套话 41 / 有框无 desc 26）③ 计算验证 0 ④ 指南 12（**且 deep-dive 覆盖率 100% 但达标率不足，见下**）。
 > - **① 英文态数据源根治（批次 A）**：新建 `fix_finance_body_i18n.py` 为 112 工具写真实英文名 + 描述，同步 `_en_override.json`（en/ed）、`finance-body.json`（title/h1/intro + en 嵌套）、`finance.json`（en-US）三端，并补 4 + 7 条缺失条目。**关键踩坑**：45 个公式页的 formula-desc 是「首个 `<p>`」，被 `_prerender_tool_body` 注入 intro；改 `<div>` 后首个 `<p>` 会落到 `<script>` 内的 JS 模板字符串（41 页）→ 新建 `fix_formula_intro_p.py` 在 formula-box 后补中文 intro `<p>`，实测 script 内注入 0。`fix_general_prerender_reset.py` 泛化为 `fix_prerender_reset.py`（`--industry` + `--intro-p`）。
 > - **② formula 全量补齐（批次 B）**：新建 `fix_finance_formula.py`（MAP 字典驱动），31 处无框插入完整框 + 26 处补 desc（含补缺失 eq）+ 41 处套话换真实算法说明；刻意不补 8 个非计算类（不编造公式）。识别修正：`cpf-validator`/`iccid-validator` 已有真实静态原理说明、`lottery-odds-calculator` 运行时动态填充 `formulaBox`，均非缺口。
 > - **③ 计算验证 20 用例（批次 C，第 8 道门禁）**：新建 `scripts/verify_finance_calc.js`（复用 DOM stub 框架）：校验位算法 13 例（Luhn / ABA 3-7-1 / ISO 13616 mod-97 / CPF、CNPJ 模 11 / ABN mod 89 / ISBN-13 / SIN / DNI mod 23 / NPI / Verhoeff / TFN、IRD 反例）+ 金融公式 7 例（单利 / 等额本息月供 / ROI / NPV / 盈亏平衡 / 增值税倒推 / 数字转英文）。`run_gates.py` 由 7 项扩为 8 项。
 > - **④ deep-dive 套话真实化 + 指南精选（批次 D）**：**本批关键** —— 覆盖率 112/112 ≠ 达标率，按 §4.5.8 逐条比对发现 scenarios/faqs 74 个、examples 90 个为批量模板（「输入完整的Xxx Validator…」/「{Xxx}的反例复核」）。新建 `fix_finance_deepdive.py`（72 工具真实 scenarios/faqs）+ `fix_finance_examples.py`（90 工具真实示例，数值全部 python 独立复算：IRR 15.24%、NPV 19,781.30、月供 4,890.17、凯利 0.325、股票净收益 1,983.78 等）+ `fix_finance_guide_fields.py`（20 工具 features(4)/steps(5)/tips(4)）→ 跑 `gen_guide_pages.py --industry finance` 生成 20 篇指南（校验 10 + 计算 10），指南 6 → 26 篇，`guides.json` 651→671。
-> - **最终结果**：deep-dive 达标 112/112、scenarios/faqs 与 examples 套话 0、UI 零缺项、cat 0 错标、formula 全覆盖（104/112 有真实公式框，余 8 为规范中的非计算类）、英文态三端套话 0、计算验证 20、指南 26、指南链接注入 20/20；**八项目标全达标**。8 道门禁全过，Actions `34673850975` success（B/C 批 `338d3d920` / `d1473af59` 亦 success）。
+> - **最终结果**：deep-dive 达标 112/112、scenarios/faqs 与 examples 套话 0、UI 零缺项、cat 0 错标、formula 全覆盖（104/112 有真实公式框，余 8 为规范中的非计算类）、英文态三端套话 0、计算验证 20、指南 26、指南链接注入 20/20；**八项目标全达标**。8 道门禁全过，Actions `34673915217` success（批次 D 提交 `02b4812d9` 触发的 run `34673850975` 被紧随的状态机推送取消 —— GitHub Actions 并发策略下新 run 取代进行中的旧 run，属正常；`34673915217` 已含 D 全部内容；B/C 批 `338d3d920` / `d1473af59` 亦 success）。
 > - **遗留（非 finance 缺口，记入 §9.3）**：① finance 混入 10+ 个非金融工具（currency-converter / driver-license-validator / mirror-text / word-scramble / word-search / word-wrap / dns-record-info / password 等），分类归属待老板确认后处理；② 跨分类重名 slug（calc-2~5 属 fitness、simple-interest 属 banking、word-scramble 属 fun）未补 finance 版指南（如需可 `--prefix finance-` 处理）。
 
 ## 九、未完成任务清单
@@ -183,7 +183,7 @@
 - ✅ psychology (20)：已优化过一遍（§4 开头「先验证后跳过」指令）
 - ✅ it (345)：八项目标全覆盖（deep-dive 345/345、套话/占位/公式 0、指南 40、计算验证 28/28、英文描述 297 真实化、页面 UI 100%；部署 run 34632953856 success），git 实测
 - ✅ general (180)：八项目标全覆盖（deep-dive 180/180、p 占位/套话/formula 缺失 0、ed 与 desc-en 套话 0、指南 31、计算验证 19、英文态数据源根治；部署 run 34672625411 success），git 实测
-- ✅ finance (112)：八项目标全覆盖（deep-dive 达标 112/112、scenarios/faqs 与 examples 套话 0、formula 全覆盖、英文态三端套话 0、计算验证 20、指南 26、指南链接注入 20/20；部署 run 34673850975 success），git 实测
+- ✅ finance (112)：八项目标全覆盖（deep-dive 达标 112/112、scenarios/faqs 与 examples 套话 0、formula 全覆盖、英文态三端套话 0、计算验证 20、指南 26、指南链接注入 20/20；部署 run 34673915217 success），git 实测
 
 > 跳过规则：上述分类**不列入 §9.2 待办**；其余分类按 §9.2 热度顺序从零推进。
 
