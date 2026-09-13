@@ -7,7 +7,7 @@ window.INDUSTRY_INFO = {
   'design'               : { name: '设计创意', icon: '🎨', hot: 8213157 },
   'image'                : { name: '图像处理', icon: '🖼️', hot: 5082261 },
   'office'               : { name: '办公文档', icon: '📄', hot: 5005146 },
-  'health'               : { name: '健康医疗', icon: '❤️', hot: 3490450 },
+  'health'               : { name: '健康医疗', icon: '❤️', hot: 3513066 },
   'healthcare'           : { name: '医疗保健', icon: '🩺', hot: 3191752 },
   'legal'                : { name: '法律合规', icon: '⚖️', hot: 2707454 },
   'marketing'            : { name: '营销推广', icon: '📢', hot: 2610373 },

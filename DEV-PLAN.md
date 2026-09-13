@@ -166,6 +166,11 @@
 > **批次计划（全部完成）**：A 英文态数据源根治 → B 英文占位正文注入 → C formula 无需补框（41/41 达标）+ 修 2 处 cat 误标 → D 计算验证（第 20 道门禁）→ E 指南 3→54 → 收口归档。
 > **收口结果（2026-09-13）**：① 英文态八维全清零（54 条真实英文名 + 英文描述四端同步：`realestate-body.json` / `realestate.json`(en-US) / `_en_override.json` / `industry-realestate.json`(en+ed)；消除 24 个 body 代号与 22 个 en_override 代号；清 2 个孤儿键 tool-013-33 / tool-014-72；修 analysis-42 ed 不达标）② 48 页英文占位正文改真实英文 + data-zh 中文保留（因 `_build.py` `_prerender_tool_body` 仅对含中文节点注入英文、已是英文占位的页面会被跳过，改用「直接同步页面静态英文」绕过该缺陷，未改共享构建脚本）③ cat 误标修正 2 处（analysis-42 engineer→finance、layout-score health→validator）④ 新增第 20 道门禁 `verify_realestate_calc.js` **24/24** 通过（房贷等额本息/等额本金总利息、租金毛·净回报率、首付与月供、公积金额度双轨取小+上限封顶、按揭可贷额度与月供·总利息、二手房契税与增值税及附加、单位地价·楼面地价与溢价率、REITs 股息率与资本化率、市场比较法估价、建筑面积换算）⑤ 指南 3→**54**（`gen_realestate_guides.py` 数据驱动；排除 `summary-second-hand`（名实不符待整改）；**跨行业重名改用「追加」语义**——calc-1 / calc-2 在 40+ 行业同名，按 legal 版「同 basename 即覆盖」会顶掉 hydraulic 的正确映射，故指南文件用 `realestate-` 前缀消歧、guides.json 以「是否已归属 realestate」判定新增或更新；`_build.py` 的 `GUIDE_MAP_IND` 按指南正文绝对 URL 反查行业，同 basename 多条记录可各自精确命中、互不干扰）。二十道质量门禁全过。
 
+> ✅ **`health` (41) 已收口**（2026-09-13 开工并完成）。**范围**：`tools/health/` 全部 41 个工具页（**§9.2 计数 46 有误，实测 41**）。
+> **八项基线审计（2026-09-13）**：deep-dive **40/41**（唯一缺项 `blood-sugar-converter` 被套话正则误判：真实文案含"统一口径"撞上套话词表，已将文案改为"对齐单位"）；UI 零缺项；**cat 回退 23 页**（`cat='health'` 行业名当功能值）+ 2 处口径偏差（`breath-timer` dev→generate、`body-surface-area` math→calculator）；**英文 p 占位 32**、desc-en 占位 22；**formula 计算类 32、缺框 22（覆盖率仅 31.2%，本批唯一需补框的分类）**；计算验证 0；**指南表面 41/41，但 `calc-1/calc-2/calc-3` 实际串味到 hydraulic**（每日饮水量 / 睡眠质量 / 屏幕时间 → 管道水力 / 水泵扬程 / 沿程水头损失）；英文态（body intro 占位 37、en_override 代号 0、industry ed 不达标 3、`health-body.json` 跨分类残留键 5：`tdee-calculator` / `ideal-weight` / `heart-rate-zones` / `bmr-calculator` / `bmi-calculator`（均属 healthcare 且其 body 已含同键））。
+> **批次计划（全部完成）**：A 英文态数据源根治 → B 英文占位正文注入 → C formula 补框 22 页（31.2%→100%）→ D 计算验证（第 22 道门禁）→ E 指南修正 3 篇串味 → 收口归档。
+> **收口结果（2026-09-13）**：① 英文态八维全清零（41 条真实英文名 + 英文描述四端同步；清 5 个跨分类残留键；**中文名修正 3 条**——`milk-tea-calories` / `pregnancy-weight-gain` / `safe-period-calculator` 数据源 `name` 为英文、i18n 缺 zh-CN，已按页面 h1 补回中文）；cat 修正 25 处。② deep-dive 41/41。③ formula 覆盖率 32/32（新增 `scripts/add_health_formula.py`，32 页补真实公式框，公式文本逐条取自各页 `calc()` 实现）。④ 第 22 道门禁 `verify_health_calc.js` **27/27**（血醇 BAC、血压脉压与 MAP、血糖单位换算、海军法体脂、BSA 三公式、WHR、Devine 理想体重、儿童 BMI 与靶身高、Mifflin BMR/TDEE、蛋白质需求、饮水量、咖啡因上限、睡眠与屏幕时间评分、胆固醇四项比值、eGFR 三公式（CKD-EPI/MDRD/Cockcroft）、餐时胰岛素、孕期增重、安全期、1RM 五公式、Cooper VO₂max、哑铃配重、吸烟成本）。⑤ 指南：`calc-1/2/3` 生成 health 专属版（`health-calc-*-guide.html`），并**手工移除 3 页历史上被错误注入的 hydraulic 指南链接**（注入逻辑幂等，不移除则不会重注），guides/index 1202→1205。
+
 > ✅ **`energy` (43) 已收口**（2026-09-13 开工并完成）。**范围**：`tools/energy/` 全部 43 个工具页（**§9.2 计数 46 有误，实测 43**，历史下架未同步）。
 > **八项基线审计（2026-09-13）**：deep-dive **42/43**（唯一缺项 `power-factor-calc`：JSON 数据源无键，但页面 HTML 已有深解析块——按「构建会用 JSON 覆盖 HTML」铁律，属待丢失内容）；UI 零缺项；**cat 回退 25 页**（`cat='energy'` 即行业名，非功能值；已收口分类 legal/hydraulic/statistics 均用功能值）+ 4 处口径偏差；**英文 p 占位 36**；desc-en / title-en 占位 0；**formula 计算类 40、缺框 0**（40/40 本就达标，C 批次无需补框）；计算验证 0；**指南 0/43**；英文态（body intro 占位 46、body title 代号 2：`calculator-calc-4` / `calculator-calc-5`、en_override 代号 0、industry ed 不达标 13、`energy-body.json` 孤儿键 6 + 跨分类残留键 3：`wind-power`(eco) / `kinetic-energy`(science) / `gravitational-potential`(science)）。
 > **批次计划（全部完成）**：A 英文态数据源根治 → B 英文占位正文注入 → C formula 无需补框（40/40 达标）+ cat 回退修正 → D 计算验证（第 21 道门禁）→ E 指南 0→43 → 收口归档。
@@ -260,11 +265,10 @@
 
 > 跳过规则：上述分类**不列入 §9.2 待办**；其余分类按 §9.2 热度顺序从零推进。
 
-### 9.2 分类优化清单（250 分类，按热度降序，完成一个删一个）
+### 9.2 分类优化清单（249 分类，按热度降序，完成一个删一个）
 
 > 清单由脚本按 `tools/` 目录工具数生成；每行 = 分类名 + 工具数。当前进行中的分类在 §8 同步登记。
 
-- [ ] health (46)
 - [ ] edu (44)
 - [ ] marketing (44)
 - [ ] meteorology (42)
@@ -515,6 +519,11 @@
 - [ ] writing (1)
 
 ### 9.3 独立未完成任务（跨分类 / 孤立项，可穿插推进）
+
+- [ ] **【P0·全站】指南错误注入专项排查**：`_build.py` 注入「使用指南」链接的逻辑是**幂等**的（页面已有 `data-guide-link` 就不再替换），导致跨行业重名 slug（如 `calc-1.html` 存在于 42 个行业目录）在历史批次被**错误注入他行业指南**后，即使后来补了本行业专属指南也不会更新。health 批次已发现并手工修 3 页（`health/calc-1/2/3` → 原指向 hydraulic 的管道水力/水泵扬程/沿程水头损失）。**需全站扫描**：对每个工具页，取其 `data-guide-link` 指向的指南，反查指南正文绝对 URL 的行业归属，列出「归属 ≠ 本行业」的全部页面，批量移除错误块后重建。
+- [ ] **【P1】§9.2 分类计数普遍偏差**：health 记 46 实测 41、energy 记 46 实测 43（历史下架未同步）。建议写脚本按 `tools/<ind>/*.html` 实测数全量校验并重写 §9.2。
+- [ ] **【P2】deep-dive 套话正则误报**：`audit_industry.py` 的 `FP` 词表含「统一口径」，会把真实文案（如 `blood-sugar-converter` 场景"双向换算统一口径"）误判为套话。本批以改文案规避；建议将词表改为「整句/高频模板匹配」而非裸子串，并复核已按此规则"治理"过的条目是否被误改。
+- [ ] **【P2】A 级率 100% 失真**：`classify_quality()` 仅凭页面存在 `formula-box` 即判 A，占位公式页同样判 A（health 补框后 A 级率亦升至 100%）。未改，避免影响全站分级。
 
 - [ ] **`realestate/summary-second-hand` 名实不符**：名为「二手房税费汇总」（intro 亦写契税/个税/增值税），但 `calc()` 实为通用统计（n / 总和 / 均值 / 中位数 / 极差 / 方差 / 标准差）。本批已将其排除出指南生成，避免固化错误语义；待整改（改实现为税费汇总，或改名与文案为统计分析）
 - [ ] **A 级质量分级口径失真（`_build.py` `classify_quality()`）**：`rich` 判定仅看页面是否存在 `formula-box`（或 `<canvas>` / `data-viz`），**占位公式**（如「输入两个参数，自动计算常用结果」）的页面同样判 A，致当前全站 A 级率显示 100%（4825/4825），不能反映真实内容质量。建议改为校验公式与说明是否已真实化后再计入。本批仅记录未改，避免影响全站分级

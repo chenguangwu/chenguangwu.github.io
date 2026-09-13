@@ -86,6 +86,7 @@ if extra:
 
 # ---- A：四端数据源 ----
 n_new = n_cat = 0
+n_zh = []
 for slug, v in EN_MAP.items():
     name, intro = v['name'], v['intro']
     created = slug not in body
@@ -103,6 +104,16 @@ for slug, v in EN_MAP.items():
         if v.get('cat') and it.get('cat') != v['cat']:
             it['cat'] = v['cat']
             n_cat += 1
+        # 中文名缺失/为英文时按数据文件修正（name 与 desc 不一致即视为待修）
+        if v.get('zh') and it.get('name') != v['zh']:
+            it['name'] = v['zh']
+            n_zh.append(slug)
+    if v.get('zh'):
+        z = sj.setdefault(slug, {}).setdefault('zh-CN', {})
+        if z.get('title') != v['zh'] or z.get('h1') != v['zh']:
+            z['title'] = v['zh']
+            z['h1'] = v['zh']
+            sj[slug] = sj[slug]
     if created:
         n_new += 1
 
@@ -122,6 +133,8 @@ print('  写入真实英文 %d 条（新建键 %d），cat 修正 %d，清孤儿
       % (len(EN_MAP), n_new, n_cat, len(removed), (': ' + ', '.join(removed)) if removed else ''))
 print('  清跨分类残留键 %d%s' % (len(cross_removed),
                            (': ' + ', '.join(cross_removed)) if cross_removed else ''))
+if n_zh:
+    print('  中文名修正 %d: %s' % (len(n_zh), ', '.join(n_zh)))
 
 # ---- B：页面静态英文 ----
 n_title = n_desc = n_h2 = n_p = 0
@@ -157,6 +170,18 @@ for slug, v in EN_MAP.items():
             n_p += 1
             s = s2
             break
+    else:
+        # 兜底：首个 <p> 若为「X is available directly in your browser」套话，直接替换内文
+        ph = re.compile(r'is available directly in your browser', re.I)
+        def _first_p(m):
+            open_tag, inner, close = m.group(1), m.group(2), m.group(3)
+            if not ph.search(inner):
+                return m.group(0)
+            return '%s%s%s' % (open_tag, esc_html(intro), close)
+        s2 = re.sub(r'(<p\b[^>]*>)([\s\S]*?)(</p>)', _first_p, s, count=1)
+        if s2 != s:
+            n_p += 1
+            s = s2
 
     if _a.apply:
         with open(fp, 'w', encoding='utf-8') as f:
