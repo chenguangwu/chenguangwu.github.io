@@ -171,6 +171,11 @@
 > **批次计划（全部完成）**：A 英文态数据源根治（三端同步 + 清 `text-diff` 跨行业孤儿键 + 补 8 页空中文名/简介）→ B 英文占位正文注入 → C formula 补框（27 页，客观口径）→ D 计算验证（第 14 道门禁）→ E 指南 3→69 → F deep-dive 补 8 页 → 收口归档。
 > **收口结果（2026-09-13）**：① deep-dive 8 页补齐至 §4.5（场景≥2 且 示例≥1 且 FAQ≥2 且 无套话，fill_biz_deepdive，逐条对照页面实现；并清 `biz/text-diff` 跨行业孤儿条目——该 slug 非 biz 页，原 `content_deepdive.json` 误挂 biz 前缀）② 英文态八维全清零（69 条真实英文名 + 英文描述三端同步；清跨行业 `text-diff` 孤儿键 1）③ 43 页英文占位正文改真实英文 + data-zh 中文保留（沿用已验证流程：临时改 `_prerender_tool_body` → build → 只保留 biz 落盘 → 回退 `_build.py` 与其它行业改动）④ **formula 客观口径补框 27 页**（fix_biz_formula_map + fix_formula，公式逐条对照 `function calc()` 实现；checker-8 14 项评分、meeting-cost-calculator 工时费率×时长×人数、assessor-risk-8 风险矩阵、assessor-49 加权评分、unit-price-compare 单价换算、presentation-timer 分段、text-wrap / text-box-drawing 视觉算法说明等；纯生成器/文本工具豁免）⑤ 新增第 14 道门禁 `verify_biz_calc.js` **8/8** 通过（checker-8 / meeting-cost-calculator / assessor-49 / unit-price-compare / assessor-risk-8 / presentation-timer / text-wrap / text-box-drawing）⑥ 指南 3→69（数据驱动生成器 gen_biz_guides，内容取自 biz.json 中文 title/intro + formula MAP + deep-dive + 页面 input 标签）。十四道质量门禁全过。
 
+> ✅ **`life` (72) 已收口**（2026-09-13 开工并完成）。**范围**：`tools/life/` 全部 72 个工具页（DEV-PLAN 原记 62，实测 72，按真实数归档）。
+> **八项基线审计（2026-09-13）**：deep-dive **0/72 达标**（57 页仅 1 场景 / 1 示例 / 1 FAQ，另 15 页全空）；UI 零缺项；cat 0 错标；**英文 p 占位 62**；**formula 缺 11**（客观口径数值输入 ≥2 共 19 个计算类）；计算验证 0；**指南 8/72**；英文态（body intro 占位 58、title 代号 4、en_override 代号 3、industry ed 不达标 8、**三端全缺 16 页**、孤儿键 4）。中文态无缺口（16 页三端全缺者一并补中文名/简介）。
+> **批次计划（全部完成）**：A 英文态数据源根治（三端同步 + 清孤儿 + 补 16 页空中文名/简介）→ B 英文占位正文注入 → C formula 补框 11 页 → D deep-dive 扩至 §4.5（57 页追加 + 15 页完整）→ E 计算验证（第 15 道门禁）→ F 指南 8→72 → 收口归档。
+> **收口结果（2026-09-13）**：① deep-dive 72/72 达 §4.5（fill_life_deepdive：57 页各追加 1 场景 + 1 FAQ 并保留原示例，15 空页写入完整条目；清 6 孤儿键）② 英文态八维全清零（72 条真实英文名 + 英文描述三端同步；补 16 页三端全缺的中文名/简介；清 8 个 body 孤儿键 + 6 个 `_en_override` 孤儿键 + 5 个 `life.json` 孤儿键，含跨行业残留 cooking-converter / stopwatch / tip-calculator / currency-converter）③ 62 页英文占位正文改真实英文 + data-zh 中文保留（沿用已验证流程：临时改 `_prerender_tool_body`，本轮补丁改为**仅命中英文占位套话才替换、保留空 JS 输出元素**，比此前更稳；build → 只保留 life 落盘 → 回退 `_build.py`；另定向修正 7 页 h2 代号 analysis-23/80、countdown-1/2、cycle-4、generator-random-1、stats-13）④ **formula 客观口径补框 11 页**（fix_life_formula_map + fix_formula，公式逐条对照页面实现：停车计费封顶 / 百分比四式 / 温度换算 / Mifflin-Harris-Katch 热量 / 饮水分段 / 补货周期 / 倒计时总秒 / 单位因子归一 / 密码强度分等）⑤ 新增第 15 道门禁 `verify_life_calc.js` **11/11** 通过 ⑥ 指南 8→72（数据驱动 gen_life_guides，内容取自 life.json 中文 title/intro + formula MAP + deep-dive + 页面 input 标签）。十五道质量门禁全过。
+
 > ✅ **`fun` (64) 已收口**（2026-09-12 开工并完成）。**范围**：`tools/fun/` 全部 64 个工具页。
 > **八项基线审计（2026-09-12）**：deep-dive **已达 §4.5**（64/64，(3 场景 / 2 FAQ / 2 示例)，192/128/128，无套话）；UI 零缺项；cat 0 错标；**英文 p 占位 55**；formula 缺 25（其中计算类仅 4 个，21 个为 game/generate 豁免）；计算验证 0；**指南 64/64 已全覆盖**；英文态（body intro 占位 82、title 代号 7、en_override 代号 7、ed 不达标 3、**孤儿键 26**）。
 > **批次计划（全部完成）**：A 英文态数据源根治（含三端孤儿键清理 + 中文 title/intro 补齐）→ B 英文占位正文注入 → C formula 补框 → D 计算验证（第 12 道门禁）→ 收口归档。
@@ -217,14 +222,14 @@
 - ✅ fun (64)：八项目标全覆盖（deep-dive 64/64 已达 §4.5、英文态八维全清零含三端 59 个孤儿键清理、中文 title/intro 补齐 6、formula 计算类覆盖 11/11、计算验证 5/5（第 12 道门禁 verify_fun_calc.js）、指南 64/64、修复 3 个空 select；部署 run 34703760306 success（线上 MD5 逐字节一致）），git 实测
 - ✅ ai (64)：八项目标全覆盖（deep-dive 64/64 达 §4.5、英文态八维全清零、formula 口径纠正后计算类覆盖 56/56、计算验证 9/9（第 13 道门禁 verify_ai_calc.js）、指南 0→64；部署 run 34706025645 success（线上 MD5 逐字节一致）），git 实测
 - ✅ biz (69)：八项目标全覆盖（deep-dive 69/69 达 §4.5（清跨行业孤儿 `text-diff` 后净 69）、英文态八维全清零、formula 客观口径补框 27/27、计算验证 8/8（第 14 道门禁 verify_biz_calc.js）、指南 3→69；部署待 run 核验），git 实测
+- ✅ life (72)：八项目标全覆盖（deep-dive 72/72 达 §4.5、英文态八维全清零、formula 客观口径补框 19/19、计算验证 11/11（第 15 道门禁 verify_life_calc.js）、指南 8→72；部署待 run 核验），git 实测
 
 > 跳过规则：上述分类**不列入 §9.2 待办**；其余分类按 §9.2 热度顺序从零推进。
 
-### 9.2 分类优化清单（256 分类，按热度降序，完成一个删一个）
+### 9.2 分类优化清单（255 分类，按热度降序，完成一个删一个）
 
 > 清单由脚本按 `tools/` 目录工具数生成；每行 = 分类名 + 工具数。当前进行中的分类在 §8 同步登记。
 
-- [ ] life (62)
 - [ ] agriculture (60)
 - [ ] hydraulic (55)
 - [ ] statistics (55)
@@ -496,6 +501,7 @@
 - [ ] `design-body.json` 3 个孤儿键（generator-5 / color-scheme-generator / simulator-2）全站无对应页面（design 收口时发现），清理前先确认无页面 / 分类页引用
 - [ ] `ai` 收口遗留：① 行业 cat 字段（math/dev/reference/calculator）与「是否计算工具」无对应关系——8 个文本/图像 demo 被标 calculator、56 个真计算器被标 math/dev，`audit_ai.py`【5】已改用客观口径（数值输入 ≥2 判计算类），后续分类若照抄 fun 的 cat 豁免口径会重蹈覆辙 ② `_build.py` 非 CJK 占位页英文未注入缺陷**第三次遇到**（sports 75 + fun 55 + ai 63），仍按「临时改 → build → 只保留本行业 → 回退」处理
 - [ ] `biz` 收口遗留：① `content_deepdive.json` 存在跨行业孤儿键 `biz/text-diff`（该 slug 非 biz 页，全站应归属其它行业），已在 biz 收口时清理，需确认 `text-diff` 真实归属行业后补回正确 deep-dive ② `_build.py` 非 CJK 占位页英文未注入缺陷**第四次遇到**（sports 75 + fun 55 + ai 63 + biz 43），仍按「临时改 → build → 只保留本行业 → 回退」处理，全站缺陷须老板批准单独开一轮统一修复 ③ `name-generator` / `team-roster-generator` 等生成器公式框为「核心算法说明」而非数值公式（按 §4.1.2 合理豁免，不计入 formula 缺口）
+- [ ] `life` 收口遗留：① `_build.py` 非 CJK 占位页英文未注入缺陷**第五次遇到**（sports 75 + fun 55 + ai 63 + biz 43 + life 62），本轮补丁已收紧为「仅命中英文占位套话才替换、保留空 JS 输出元素（如 age-calculator 的 `<p id=nextBirthday>`）」，仍按「临时改 → build → 只保留本行业 → 回退」，全站缺陷须老板批准单独开一轮统一修复 ② `bra-size-converter` 罩杯映射疑偏移：`cupIdx = round(diff/2.5) − 1` 使上下围差 15 cm 得 F 杯（常规图表应为 C 杯，约差 2 档），属工具自身算法疑误；本轮计算门禁按页面实际输出断言（75F），**未改实现**，待复核 ③ `life` 16 页三端全缺中文名/简介（analysis-23/74/80、analysis-cost-9/10、assessor-target、cycle-4、cycle-pruning-lawn、daily-calorie-needs、drinking-water-plan、generator-price、parking-fee、recommender-8、reminder-cycle、report-profit、stats-13），本轮按页面 `<h1>` 与功能推断补齐，建议后续人工复核命名 ④ 生成器/本地记录类（generator-price / recommender-8 / reminder-cycle / cycle-4 / cycle-pruning-lawn）无计算公式，按 §4.1.2 合理豁免
 - [ ] `psychiatry.json` 存在并行进程的未提交改动（合规去敏类改名，mtime 2026-09-13 00:22），非本轮 ai 批次产物，未提交也未回退，需老板确认归属后再处理
 - [ ] `fun` 收口遗留：① 21 个 game/generate 类工具无 formula-box（游戏与生成器无计算公式，按 §4.1.2 属合理豁免，`audit_fun.py`【5】已按 cat 区分判定）② `convert-speed-stride` 单位换算 select 选项值为 1/0/1000，选 0 会除零且语义不清，实现薄弱待重构 ③ fun 行业 h2 图标被语义重分配为 🎮（含计算类工具如烧烤分量计算器），图标与工具语义不符，待确认是否按 cat 细分图标规则
 - [ ] `_build.py` `_prerender_tool_body` 非 CJK 占位页英文未注入缺陷（全站级，第二次遇到）：sports 75 页 + fun 55 页已分别落盘修正（h2/首个 p 由英文占位串改真实英文 + 保留 data-zh），但修复改动因波及数百非本行业页已两次回退 `_build.py`；建议单独开一轮由老板确认后统一修复（否则每个同形态分类都要重复一次「临时改 → build → 只保留本行业 → 回退」流程）

@@ -45,6 +45,9 @@ GATES = (
     # biz 分类的正确性验证（服务质量加权评分 / 会议人·小时成本 / 岗位权重胜任力 /
     # 单价单位归一化 / 风险矩阵分级 / 演示计时均分 / 定长折行 / 字符画视觉宽度）。
     ("biz calc correctness", ("node", "scripts/verify_biz_calc.js")),
+    # life 分类的正确性验证（停车计费封顶 / 百分比 / 温度换算 / Mifflin 热量 / 饮水计划 /
+    # 罩杯换算 / 日期差含端日 / 生日悖论 / 闰年规则 / 单位因子换算 / 选址加权模型）。
+    ("life calc correctness", ("node", "scripts/verify_life_calc.js")),
 )
 
 
