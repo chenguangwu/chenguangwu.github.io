@@ -56,6 +56,13 @@ GATES = (
     # 曼宁明渠 / 局部水头损失 / 水泵功率 / 矩形堰 / 由流量求流速 / 明渠均匀流 / 能量分解 /
     # 水力发电 / 泵站效率 / 蓄能器容量 / 水锤防护 / 液压伺服 / 水泵扬程）。
     ("hydraulic calc correctness", ("node", "scripts/verify_hydraulic_calc.js")),
+    # statistics 分类的正确性验证（Z 分数 / 单样本 t / 变异系数 / 加权平均 / 标准误 /
+    # 对立事件 / 四分位距与异常值 / 正态区间概率 / 二项 PMF·CDF / 正态 CDF / 泊松 PMF /
+    # 百分等级 / 比例置信区间 / 均值·比例样本量 / 相对风险 / 比值比 / 相关系数 /
+    # 均值中位数极差 / 标准差方差 / 偏度峰度 / 单样本 t 检验 / F 方差齐性 / 卡方检验 /
+    # 最小二乘回归 / 几何·调和平均 / 极差 / MAD / 样本方差·标准差 / 总体方差）。
+    # 注：statistics-4 置信区间、statistics-5 样本量的逆正态 z 反解实现有误，未纳入（见 DEV-PLAN §9.3）。
+    ("statistics calc correctness", ("node", "scripts/verify_statistics_calc.js")),
 )
 
 
