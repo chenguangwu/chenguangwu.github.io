@@ -171,6 +171,11 @@
 > **批次计划（全部完成）**：A 英文态数据源根治 → B 英文占位正文注入 → C formula 补框 22 页（31.2%→100%）→ D 计算验证（第 22 道门禁）→ E 指南修正 3 篇串味 → 收口归档。
 > **收口结果（2026-09-13）**：① 英文态八维全清零（41 条真实英文名 + 英文描述四端同步；清 5 个跨分类残留键；**中文名修正 3 条**——`milk-tea-calories` / `pregnancy-weight-gain` / `safe-period-calculator` 数据源 `name` 为英文、i18n 缺 zh-CN，已按页面 h1 补回中文）；cat 修正 25 处。② deep-dive 41/41。③ formula 覆盖率 32/32（新增 `scripts/add_health_formula.py`，32 页补真实公式框，公式文本逐条取自各页 `calc()` 实现）。④ 第 22 道门禁 `verify_health_calc.js` **27/27**（血醇 BAC、血压脉压与 MAP、血糖单位换算、海军法体脂、BSA 三公式、WHR、Devine 理想体重、儿童 BMI 与靶身高、Mifflin BMR/TDEE、蛋白质需求、饮水量、咖啡因上限、睡眠与屏幕时间评分、胆固醇四项比值、eGFR 三公式（CKD-EPI/MDRD/Cockcroft）、餐时胰岛素、孕期增重、安全期、1RM 五公式、Cooper VO₂max、哑铃配重、吸烟成本）。⑤ 指南：`calc-1/2/3` 生成 health 专属版（`health-calc-*-guide.html`），并**手工移除 3 页历史上被错误注入的 hydraulic 指南链接**（注入逻辑幂等，不移除则不会重注），guides/index 1202→1205。
 
+> ✅ **`healthcare` (35) 已收口**（2026-09-14 开工并完成）。**范围**：`tools/healthcare/` 全部 35 个工具页（**§9.2 计数 33 有误，实测 35**）。
+> **八项基线审计（2026-09-14）**：deep-dive **33/35**（缺 `analysis-report-cost` / `checker-manager` 两项，JSON 无键）；UI 零缺项；**cat 回退 33 页**（`cat='health'` 行业名当功能值）+ 2 处口径偏差（`analysis-report-cost` finance、`checker-manager` validator）；**英文 p 占位 33**、desc-en 占位 27、title-en 0；**formula 计算类 34、表面缺框 34**（实为审计正则假阴性：30 页用 `class="card formula-box"` 复合类名被 `'class="formula-box"'` 判缺，真实缺口仅 5 页）；计算验证 0；**指南 11/35**；英文态（body intro 占位 36、body title 代号 5：`bmi-2` / `healthcare-2..5`、en_override 代号 5、industry ed 不达标 5、`healthcare-body.json` 孤儿键 5：`manager-humidity-classify-1` / `classify-34` / `bmi` / `fagui-guanggaofa-shipinanquan-shencha` / `tool-019-111`）。
+> **批次计划（全部完成）**：A 英文态数据源根治 → B 英文占位正文注入 → C formula 补框 5 页 + 审计正则修正 → D 计算验证（第 23 道门禁）→ E 指南 11→35 → 收口归档。
+> **收口结果（2026-09-14）**：① 英文态八维全清零（35 条真实英文名 + 英文描述四端同步；清 5 个孤儿键；消除 5 个 body/en_override 代号）。② cat 修正 34 处，**并根因修复「cat 修正从未生效」的系统性缺陷**（见 §9.3 P0）。③ deep-dive 35/35（补 `analysis-report-cost` 描述性统计、`checker-manager` 管理体系自查；`content_deepdive.json` 纯增量 +56 行）。④ formula 覆盖率 34/34（新增 `scripts/add_healthcare_formula.py`；同时修正 `scripts/audit_industry.py` 的 `formula-box` 复合类名正则假阴性）。⑤ 第 23 道门禁 `verify_healthcare_calc.js` **35/35**（儿童退热液量、儿科剂量换算与按体重给药、Apgar、CHA₂DS₂-VASc、Morse、NRS2002、Wells、体系自查达标率、血压分级、MAP、QTc 三法、BMI、Mifflin BMR、体脂率、BSA、Devine 理想体重双页、蛋白质需求、减脂缺口、饮水量、CKD-EPI / MDRD / Cockcroft-Gault、输液滴速、低钠纠正、Parkland、NYHA、呼吸频率、BAC、孕周预产期、儿童 BMI Z 值、描述性统计、Karvonen 心率区间、Katch-McArdle TDEE）。⑥ **修正 3 处真实计算错误**：`egfr` CKD-EPI 的 κ 误用乘（应为 `Scr÷κ`）、`gfr-cockcroft` 缺 `÷72`（CrCl 虚高 72 倍）、`bac-calculator` 酒精量纲差 10 倍且 abv 语义与标签不符（已改百分比语义 + `/10`，同步更新公式框）。⑦ 指南 11→35（`morse` 因跨行业重名改用 `healthcare-` 前缀）；全 35 页指南链接零串味。
+
 > ✅ **`energy` (43) 已收口**（2026-09-13 开工并完成）。**范围**：`tools/energy/` 全部 43 个工具页（**§9.2 计数 46 有误，实测 43**，历史下架未同步）。
 > **八项基线审计（2026-09-13）**：deep-dive **42/43**（唯一缺项 `power-factor-calc`：JSON 数据源无键，但页面 HTML 已有深解析块——按「构建会用 JSON 覆盖 HTML」铁律，属待丢失内容）；UI 零缺项；**cat 回退 25 页**（`cat='energy'` 即行业名，非功能值；已收口分类 legal/hydraulic/statistics 均用功能值）+ 4 处口径偏差；**英文 p 占位 36**；desc-en / title-en 占位 0；**formula 计算类 40、缺框 0**（40/40 本就达标，C 批次无需补框）；计算验证 0；**指南 0/43**；英文态（body intro 占位 46、body title 代号 2：`calculator-calc-4` / `calculator-calc-5`、en_override 代号 0、industry ed 不达标 13、`energy-body.json` 孤儿键 6 + 跨分类残留键 3：`wind-power`(eco) / `kinetic-energy`(science) / `gravitational-potential`(science)）。
 > **批次计划（全部完成）**：A 英文态数据源根治 → B 英文占位正文注入 → C formula 无需补框（40/40 达标）+ cat 回退修正 → D 计算验证（第 21 道门禁）→ E 指南 0→43 → 收口归档。
@@ -265,7 +270,7 @@
 
 > 跳过规则：上述分类**不列入 §9.2 待办**；其余分类按 §9.2 热度顺序从零推进。
 
-### 9.2 分类优化清单（249 分类，按热度降序，完成一个删一个）
+### 9.2 分类优化清单（248 分类，按热度降序，完成一个删一个）
 
 > 清单由脚本按 `tools/` 目录工具数生成；每行 = 分类名 + 工具数。当前进行中的分类在 §8 同步登记。
 
@@ -284,7 +289,6 @@
 - [ ] fitness (35)
 - [ ] eco (34)
 - [ ] cosmetic-derm (33)
-- [ ] healthcare (33)
 - [ ] insurance (33)
 - [ ] obstetrics (32)
 - [ ] ophthalmology (32)
@@ -521,7 +525,10 @@
 ### 9.3 独立未完成任务（跨分类 / 孤立项，可穿插推进）
 
 - [ ] **【P0·全站】指南错误注入专项排查**：`_build.py` 注入「使用指南」链接的逻辑是**幂等**的（页面已有 `data-guide-link` 就不再替换），导致跨行业重名 slug（如 `calc-1.html` 存在于 42 个行业目录）在历史批次被**错误注入他行业指南**后，即使后来补了本行业专属指南也不会更新。health 批次已发现并手工修 3 页（`health/calc-1/2/3` → 原指向 hydraulic 的管道水力/水泵扬程/沿程水头损失）。**需全站扫描**：对每个工具页，取其 `data-guide-link` 指向的指南，反查指南正文绝对 URL 的行业归属，列出「归属 ≠ 本行业」的全部页面，批量移除错误块后重建。
+- [x] **【P0·已于 2026-09-14 修复】cat 修正从未真正生效（全站系统性缺陷）**：`fix_industry_body_i18n.py` 原只写 `json/industry-<ind>.json` 的 `cat`，但**权威源是页面 `<meta name="toolbox" content="cat=...">`**——`_build.py` 的 `get_tool_info()` 读 `tb_meta.get('cat')`，并据此重建 `tools.json` 与 `industry-*.json`，故每次构建都把 cat 覆盖回行业名。已收口的 energy / health / realestate 三分类的「cat 修正」实际全部未落地（构建后仍为 energy 25 / health 23 / finance 35）。**修复**：脚本改为同时写 ① 页面 meta 的 `cat=` ② `tools.json` 条目 ③ `industry-<ind>.json`；并已对 healthcare(34) / energy(29) / health(25) 回溯补齐，重建后实测生效。**教训**：改数据源前先定位构建脚本的真实读取点（`grep "'cat'" _build.py`），不要以「脚本报告成功」为准，须在下一次构建后复核。
+- [ ] **【P1】realestate 缺 `scripts/enmap/realestate.json`**：realestate 收口早于三脚本通用化，cat 修正当年由专用脚本完成、同样踩上述 P0（未写 meta），至今 `tools.json` 仍为 `finance` 35 + `health` 1（其中 `health` 1 系明确的跨行业误标）。需补写 54 条 enmap（name/intro/cat/zh）后重跑 `fix_industry_body_i18n.py --ind realestate --apply`。
 - [ ] **【P1】§9.2 分类计数普遍偏差**：health 记 46 实测 41、energy 记 46 实测 43（历史下架未同步）。建议写脚本按 `tools/<ind>/*.html` 实测数全量校验并重写 §9.2。
+- [x] **【P2·已于 2026-09-14 修复】`audit_industry.py` formula 判定假阴性**：原判 `'class="formula-box"' not in s`，而站点内大量页面用复合类名 `class="card formula-box"`（healthcare 30/35 页），被误报「缺框」。已改为 `re.search(r'class="[^"]*\bformula-box\b[^"]*"', s)`。
 - [ ] **【P2】deep-dive 套话正则误报**：`audit_industry.py` 的 `FP` 词表含「统一口径」，会把真实文案（如 `blood-sugar-converter` 场景"双向换算统一口径"）误判为套话。本批以改文案规避；建议将词表改为「整句/高频模板匹配」而非裸子串，并复核已按此规则"治理"过的条目是否被误改。
 - [ ] **【P2】A 级率 100% 失真**：`classify_quality()` 仅凭页面存在 `formula-box` 即判 A，占位公式页同样判 A（health 补框后 A 级率亦升至 100%）。未改，避免影响全站分级。
 

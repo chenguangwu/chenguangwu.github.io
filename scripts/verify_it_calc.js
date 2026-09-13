@@ -201,6 +201,18 @@ const CASES = [
 ];
 
 // ---------------------------------------------------------------- DOM stub
+// canvas 2D 上下文桩（所有方法为空实现，measureText 返回零宽度以适配排版计算）
+const CTX2D = new Proxy(
+  { measureText: () => ({ width: 0 }), createLinearGradient: () => ({ addColorStop() {} }), canvas: { width: 0, height: 0 } },
+  {
+    get(t, k) {
+      if (k in t) return t[k];
+      return () => {};   // arc / fill / fillText / beginPath … 一律空实现
+    },
+    set() { return true; }, // ctx.fillStyle = … 等属性写入
+  }
+);
+
 function makeEl(val) {
   const handlers = {};
   const el = {
@@ -234,6 +246,9 @@ function makeEl(val) {
     click() {},
     remove() {},
     getBoundingClientRect() { return { width: 0, height: 0, top: 0, left: 0 }; },
+    // canvas 2D 上下文桩：含图表的页面（如 healthcare/tdee-calculator 的热量环形图）
+    // 在 calc() 里直接 ctx.arc/fillText，缺了会抛 "getContext is not a function" 使整页无法验证。
+    getContext() { return CTX2D; },
   };
   let _h = "";
   Object.defineProperty(el, "innerHTML", {
@@ -413,6 +428,9 @@ async function runCaseInner(c) {
   win.navigator = navigator;
   win.document = document;
   win.ToolBox = ToolBox;
+  // 图表页会读 CSS 变量取色（如 healthcare/tdee-calculator 的 resolveCanvasColor），
+  // 没有 getComputedStyle 会在 calc() 首行抛 "getComputedStyle is not defined"。
+  win.getComputedStyle = () => ({ getPropertyValue: () => "" });
 
   const names = [...script.matchAll(/^\s*(?:async\s+)?function\s+([A-Za-z_$][\w$]*)\s*\(/gm)].map((m) => m[1]);
   const PRIO = ["calcTool", "calc", "calculate", "compute", "convert", "run", "update", "render"];

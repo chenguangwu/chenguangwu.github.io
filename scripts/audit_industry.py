@@ -149,7 +149,9 @@ for slug in tools:
     n_num = len(re.findall(r'<input\b[^>]*type="number"[^>]*>', s))
     if n_num >= 2:
         calc_total += 1
-        if 'class="formula-box"' not in s:
+        # 必须按 class 属性匹配：既有页面多用 class="card formula-box"，
+        # 直接判 'class="formula-box"' 会把 30 页复合类名误判为缺框（2026-09-14 实证）
+        if not re.search(r'class="[^"]*\bformula-box\b[^"]*"', s):
             fb_missing.append(slug)
     else:
         fb_exempt.append(slug)

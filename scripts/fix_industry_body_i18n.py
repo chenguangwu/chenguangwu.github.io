@@ -70,6 +70,17 @@ sj = load(os.path.join(I18N, '%s.json' % IND))
 enov = load(os.path.join(I18N, '_en_override.json'))
 ind = load(os.path.join(JSONDIR, 'industry-%s.json' % IND))
 ind_by_file = {e.get('file', '').replace('.html', ''): e for e in ind}
+# cat 的权威源是 json/tools.json：_build.py 每次构建都由它重建 industry-<ind>.json，
+# 只改 industry 文件的 cat 会在下一次构建被覆盖（2026-09-14 healthcare 实证：
+# 脚本报「cat 修正 34」，构建后仍回到 industry 名）。故此处同步改 tools.json 条目。
+tools_all = load(os.path.join(JSONDIR, 'tools.json'))
+tools_by_file = {}
+for _t in tools_all:
+    _p = (_t.get('path') or _t.get('file') or '')
+    if not _p.startswith(IND + '/'):
+        _p = _p[len('tools/'):] if _p.startswith('tools/') else _p
+    if _p.startswith(IND + '/'):
+        tools_by_file[_p[len(IND) + 1:].replace('.html', '')] = _t
 
 pages = sorted(os.path.basename(f)[:-5] for f in os.listdir(TOOLS)
                if f.endswith('.html') and f != 'index.html')
@@ -85,7 +96,7 @@ if extra:
     print('  多余:', extra)
 
 # ---- A：四端数据源 ----
-n_new = n_cat = 0
+n_new = n_cat = n_cat_tools = 0
 n_zh = []
 for slug, v in EN_MAP.items():
     name, intro = v['name'], v['intro']
@@ -104,6 +115,10 @@ for slug, v in EN_MAP.items():
         if v.get('cat') and it.get('cat') != v['cat']:
             it['cat'] = v['cat']
             n_cat += 1
+        _tt = tools_by_file.get(slug)
+        if _tt is not None and v.get('cat') and _tt.get('cat') != v['cat']:
+            _tt['cat'] = v['cat']
+            n_cat_tools += 1
         # 中文名缺失/为英文时按数据文件修正（name 与 desc 不一致即视为待修）
         if v.get('zh') and it.get('name') != v['zh']:
             it['name'] = v['zh']
@@ -129,8 +144,8 @@ for k in ORPHANS + CROSS:
         del enov[ek]
 
 print('\n=== A 批次 ===')
-print('  写入真实英文 %d 条（新建键 %d），cat 修正 %d，清孤儿键 %d%s'
-      % (len(EN_MAP), n_new, n_cat, len(removed), (': ' + ', '.join(removed)) if removed else ''))
+print('  写入真实英文 %d 条（新建键 %d），cat 修正 %d（industry 文件 %d + tools.json %d），清孤儿键 %d%s'
+      % (len(EN_MAP), n_new, n_cat + n_cat_tools, n_cat, n_cat_tools, len(removed), (': ' + ', '.join(removed)) if removed else ''))
 print('  清跨分类残留键 %d%s' % (len(cross_removed),
                            (': ' + ', '.join(cross_removed)) if cross_removed else ''))
 if n_zh:
@@ -138,6 +153,7 @@ if n_zh:
 
 # ---- B：页面静态英文 ----
 n_title = n_desc = n_h2 = n_p = 0
+n_meta = [0]
 for slug, v in EN_MAP.items():
     fp = os.path.join(TOOLS, slug + '.html')
     if not os.path.exists(fp):
@@ -183,22 +199,39 @@ for slug, v in EN_MAP.items():
             n_p += 1
             s = s2
 
+    # cat 的权威源是页面 meta name="toolbox" 的 cat= 字段：_build.py 的 get_tool_info()
+    # 直接读它（tb_meta.get('cat')），并据此重建 tools.json / industry-<ind>.json。
+    # 只改 json 不改 meta，下次构建就会被 industry 名覆盖回去（2026-09-14 实证）。
+    if v.get('cat'):
+        def _cat(m):
+            if m.group(2) == v['cat']:
+                return m.group(0)
+            n_meta[0] += 1
+            return '%s%s%s' % (m.group(1), v['cat'], m.group(3))
+        s2 = re.sub(r'(<meta\b[^>]*\bname="toolbox"[^>]*\bcontent="[^"]*\bcat=)([^,"]*)([,"])',
+                    _cat, s, count=1)
+        s = s2
+
     if _a.apply:
         with open(fp, 'w', encoding='utf-8') as f:
             f.write(s)
 
 print('\n=== B 批次（页面静态英文）===')
-print('  title-en=%d  desc-en=%d  h2=%d  p=%d  （共 %d 页）' % (n_title, n_desc, n_h2, n_p, len(EN_MAP)))
+print('  title-en=%d  desc-en=%d  h2=%d  p=%d  meta cat=%d  （共 %d 页）'
+      % (n_title, n_desc, n_h2, n_p, n_meta[0], len(EN_MAP)))
 
 if _a.apply:
-    def dump(p, obj, indt):
+    def dump(p, obj, indt, nl=True):
         with open(p, 'w', encoding='utf-8') as f:
             json.dump(obj, f, ensure_ascii=False, indent=indt)
-            f.write('\n')
+            if nl:
+                f.write('\n')
     dump(os.path.join(I18N, '%s-body.json' % IND), body, 2)
     dump(os.path.join(I18N, '%s.json' % IND), sj, 2)
     dump(os.path.join(I18N, '_en_override.json'), enov, 1)
     dump(os.path.join(JSONDIR, 'industry-%s.json' % IND), ind, 1)
+    # tools.json 原文件无尾随换行，保持一致以免产生无关 diff
+    dump(os.path.join(JSONDIR, 'tools.json'), tools_all, 2, nl=False)
     print('\n已落盘（--apply）')
 else:
     print('\nDRY-RUN：未写任何文件，加 --apply 落盘')
