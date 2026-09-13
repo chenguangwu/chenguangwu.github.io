@@ -76,6 +76,7 @@ GATES = (
     ("health calc correctness", ("node", "scripts/verify_health_calc.js")),
     ("healthcare calc correctness", ("node", "scripts/verify_healthcare_calc.js")),
     ("edu calc correctness", ("node", "scripts/verify_edu_calc.js")),
+    ("marketing calc correctness", ("node", "scripts/verify_marketing_calc.js")),
 )
 
 
