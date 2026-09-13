@@ -161,6 +161,11 @@
 
 ## 八、分类推进记录
 
+> ✅ **`realestate` (54) 已收口**（2026-09-13 开工并完成）。**范围**：`tools/realestate/` 全部 54 个工具页（与 §9.2 计数一致）。
+> **八项基线审计（2026-09-13）**：deep-dive **已达 §4.5**（54/54 全含 3 场景 / 2 FAQ / 1 示例）；UI 零缺项；**cat 误标 2**（`analysis-42` 竞品监测标 engineer 应为 finance、`layout-score` 户型评分标 health 应为 validator）；**英文 p 占位 48**；**desc-en 占位 45**；**formula 计算类 41、缺框 0**（41/41 本就达标，C 批次无需补框）；计算验证 0；**指南 3/54**（其中 2 篇系跨行业重名串味：`calc-1` 实为 hydraulic 的「增值税计算」、`calc-2` 实为 hydraulic 的「睡眠质量评分」，均非本行业内容）；英文态（body intro 占位 50、body title 代号 24、en_override 代号 22、industry ed 不达标 1：analysis-42、`realestate-body.json` 孤儿键 2：tool-013-33 / tool-014-72）。
+> **批次计划（全部完成）**：A 英文态数据源根治 → B 英文占位正文注入 → C formula 无需补框（41/41 达标）+ 修 2 处 cat 误标 → D 计算验证（第 20 道门禁）→ E 指南 3→54 → 收口归档。
+> **收口结果（2026-09-13）**：① 英文态八维全清零（54 条真实英文名 + 英文描述四端同步：`realestate-body.json` / `realestate.json`(en-US) / `_en_override.json` / `industry-realestate.json`(en+ed)；消除 24 个 body 代号与 22 个 en_override 代号；清 2 个孤儿键 tool-013-33 / tool-014-72；修 analysis-42 ed 不达标）② 48 页英文占位正文改真实英文 + data-zh 中文保留（因 `_build.py` `_prerender_tool_body` 仅对含中文节点注入英文、已是英文占位的页面会被跳过，改用「直接同步页面静态英文」绕过该缺陷，未改共享构建脚本）③ cat 误标修正 2 处（analysis-42 engineer→finance、layout-score health→validator）④ 新增第 20 道门禁 `verify_realestate_calc.js` **24/24** 通过（房贷等额本息/等额本金总利息、租金毛·净回报率、首付与月供、公积金额度双轨取小+上限封顶、按揭可贷额度与月供·总利息、二手房契税与增值税及附加、单位地价·楼面地价与溢价率、REITs 股息率与资本化率、市场比较法估价、建筑面积换算）⑤ 指南 3→**54**（`gen_realestate_guides.py` 数据驱动；排除 `summary-second-hand`（名实不符待整改）；**跨行业重名改用「追加」语义**——calc-1 / calc-2 在 40+ 行业同名，按 legal 版「同 basename 即覆盖」会顶掉 hydraulic 的正确映射，故指南文件用 `realestate-` 前缀消歧、guides.json 以「是否已归属 realestate」判定新增或更新；`_build.py` 的 `GUIDE_MAP_IND` 按指南正文绝对 URL 反查行业，同 basename 多条记录可各自精确命中、互不干扰）。二十道质量门禁全过。
+
 > ✅ **`legal` (54) 已收口**（2026-09-13 开工并完成）。**范围**：`tools/legal/` 全部 54 个工具页（与 §9.2 计数一致）。
 > **八项基线审计（2026-09-13）**：deep-dive **已达 §4.5**（54/54，3 场景 / 2 FAQ / 1 示例，162/108/108，宽套话命中 0，抽查内容真实专业：加班费 21.75 计薪、离婚财产分割、工伤八级 11 个月、仲裁费分段、逾期 LPR 倍数)；UI 零缺项；cat 无异常（finance 24 / convert 4 / health 1 / engineer 3 / calculator 10 / reference 9 / generate 3)；**英文 p 占位 49**；**desc-en 占位 43+（泛化 "free online tool" 类）**；**formula 计算类 34、缺框 6**（覆盖率 28/34，豁免 20 交互 demo：calendar / calendar-qr / contract-templates / will-template-generator / falvwenshuguanjiancizidongtiqu 等)；计算验证 0；**指南 2/54**（arbitration-fee / calc-8)；英文态（body intro 占位 56=49 真实工具+7 孤儿键、body title 代号 6：generator-17 / generator-18(孤儿) / estimate-12 / estimate-40 / calculator-calc-6 / simulator-37(孤儿)、en_override 代号 4、legal.json 缺 en-US 0、industry ed 不达标 4：arbitration-fee / calc-interest / calculator-calc-6 / legal-reference、legal-body.json 孤儿键 7：generator-18 / estimate-accident / lookup-classify-1 / lookup-19 / lookup-social / lookup-register / simulator-37)。
 > **收口结果（2026-09-13）**：① 英文态八维全清零（54 条真实英文名 + 英文描述三端同步；消除 6 个 body 代号与 4 个 en_override 代号；清 body 7 + ov 4 孤儿键，含跨行业残留 lookup-classify-1 / lookup-19 / lookup-social / lookup-register / simulator-37；修 4 页 industry ed 不达标：arbitration-fee / calc-interest / calculator-calc-6 / legal-reference）② 49 页英文占位正文改真实英文 + data-zh 中文保留（沿用已验证流程：临时改 `_prerender_tool_body` → build → 只保留 legal 落盘 → 回退 `_build.py` 与其它行业改动）③ formula 客观口径补框 **34/34**（缺框 6 页逐条对照 `function calc()` 实现撰写：calc-17 / calc-8 / calc-interest / legal-aid-eligibility / traffic-accident-compensation / work-injury-compensation；20 个交互 demo 豁免）④ 新增第 19 道门禁 `verify_legal_calc.js` **13/13** 通过（加班费 / 违法解除2N / 经济补偿N / N+1 / 逾期付款利息 / 抚养费 / 离婚财产分割 / 诉讼费 / 知识产权保护期 / 年终奖个税 / 民间借贷利息 / 法律援助资格 / 工伤赔偿）⑤ 指南 2→**50**（gen_legal_guides 数据驱动；克制排除 4 个纯展示/低专业度工具：calendar-qr / calendar / legal-reference / legal-calculator；calc-8 跨行业重名消歧为 `legal-calc-8-guide.html`，不影响 `agriculture/calc-8-guide.html`）。十九道质量门禁全过。**部署核验（2026-09-13）**：提交 `dc641dd49`，线上 4 文件 MD5 逐字节一致（guides/legal-calc-8-guide.html / guides/index.html / json/guides.json / tools/legal/overtime-pay.html）。
@@ -249,11 +254,10 @@
 
 > 跳过规则：上述分类**不列入 §9.2 待办**；其余分类按 §9.2 热度顺序从零推进。
 
-### 9.2 分类优化清单（252 分类，按热度降序，完成一个删一个）
+### 9.2 分类优化清单（251 分类，按热度降序，完成一个删一个）
 
 > 清单由脚本按 `tools/` 目录工具数生成；每行 = 分类名 + 工具数。当前进行中的分类在 §8 同步登记。
 
-- [ ] realestate (54)
 - [ ] energy (46)
 - [ ] health (46)
 - [ ] edu (44)
@@ -507,6 +511,11 @@
 
 ### 9.3 独立未完成任务（跨分类 / 孤立项，可穿插推进）
 
+- [ ] **`realestate/summary-second-hand` 名实不符**：名为「二手房税费汇总」（intro 亦写契税/个税/增值税），但 `calc()` 实为通用统计（n / 总和 / 均值 / 中位数 / 极差 / 方差 / 标准差）。本批已将其排除出指南生成，避免固化错误语义；待整改（改实现为税费汇总，或改名与文案为统计分析）
+- [ ] **A 级质量分级口径失真（`_build.py` `classify_quality()`）**：`rich` 判定仅看页面是否存在 `formula-box`（或 `<canvas>` / `data-viz`），**占位公式**（如「输入两个参数，自动计算常用结果」）的页面同样判 A，致当前全站 A 级率显示 100%（4825/4825），不能反映真实内容质量。建议改为校验公式与说明是否已真实化后再计入。本批仅记录未改，避免影响全站分级
+- [ ] **`_build.py` `_prerender_tool_body` 非 CJK 占位未注入缺陷（第 10 次遇到）**：该函数仅对含中文的节点注入英文，已是英文占位的页面会被跳过，导致英文仍未落地。realestate 本批改用「直接同步页面静态英文」绕过，未改共享构建脚本；建议后续统一修复该函数
+- [ ] `verify_it_calc.js` 死用例已修：原 `it/base64` 用例在「跨分类重复工具治理（批次六）」后文件已合并删除，用例长期指向不存在的 slug（门禁 27/28），已改指现存 `it/base64-converter`（28/28）
+- [ ] realestate 三页 `calc-93` / `pv` / `depreciation-2` 为跨行业通用 A/B 双输入模板（按 h1 标题正则分流，268 行业复用），验证它等于验证模板，未纳入本行业计算门禁
 - [ ] `science-body.json` 4 个孤儿键（`convert-5` / `calculator-calc` / `simulator-circuit` / `simulator-3`）全站无对应页面（science 收口时发现），清理前先确认无页面 / 分类页引用
 - [ ] `science/calc-1` 错公式已修正：原写 pH 公式（张冠李戴），实为自由落体工具，已改为 s=½gt²（fix_science_formula_map + fix_formula 支持替换错误 eq）
 - [ ] `science/cycle` 重复工具（与 `periodic-table` 功能完全重叠的「交互式元素周期表」）已从 `science-body.json` / `science.json` / MAP 移除并 `git checkout` 回退污染页；属分类错放，已在 science 收口时处理

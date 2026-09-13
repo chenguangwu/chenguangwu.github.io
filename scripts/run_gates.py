@@ -67,6 +67,11 @@ GATES = (
     # 离婚财产分割 / 诉讼费 / 知识产权保护期 / 年终奖个税 / 民间借贷利息 / 法律援助资格 / 工伤赔偿）。
     # 注：traffic-accident-compensation 伤残赔偿系数倒置缺陷未纳入（见 DEV-PLAN §9.3）。
     ("legal calc correctness", ("node", "scripts/verify_legal_calc.js")),
+    # realestate 分类的正确性验证（房贷等额本息/等额本金总利息、租金毛·净回报率、首付与月供、
+    # 公积金额度双轨取小 + 当地上限封顶、按揭可贷额度与月供·总利息、二手房契税与增值税及附加、
+    # 单位地价·楼面地价与溢价率、REITs 股息率与资本化率、市场比较法估价、建筑面积换算）。
+    # 注：calc-93/pv/depreciation-2 为跨行业通用 A/B 模板、summary-second-hand 名实不符，均未纳入。
+    ("realestate calc correctness", ("node", "scripts/verify_realestate_calc.js")),
 )
 
 

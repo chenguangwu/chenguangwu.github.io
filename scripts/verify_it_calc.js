@@ -24,7 +24,9 @@ const TOOLS_DIR = path.join(ROOT, "tools");
 // ---------------------------------------------------------------- 用例
 const CASES = [
   {
-    slug: "it/base64",
+    // 原 it/base64 已在「跨分类重复工具治理（批次六）」合并进 base64-converter，
+    // 旧 slug 不再存在。用例改指现存工具，避免死用例长期拖挂门禁。
+    slug: "it/base64-converter",
     inputs: { input: "hello" },
     expect: ["aGVsbG8="],
     ref: "Base64('hello') = aGVsbG8=（RFC 4648 标准测试向量）",
@@ -348,7 +350,17 @@ async function runCaseInner(c) {
   const readyCbs = [];
   const document = {
     getElementById: getEl,
-    querySelector: () => makeEl(""),
+    querySelector(sel) {
+      // 与真实 DOM 对齐：查询「已选中项」时，未选中应返回 null。
+      // stub 原先恒返回空元素（truthy），会让 `el ? el.value : fallback` 拿到空串 ""
+      // 从而误入非默认分支（如 down-payment 的还款方式掉进等额本金）。
+      // 用例可用 checks 声明选中项，此处返回首个选中值。
+      if (/:checked/.test(sel)) {
+        if (c.checks && c.checks.length) return { value: c.checks[0], checked: true };
+        return null;
+      }
+      return makeEl("");
+    },
     querySelectorAll(sel) {
       // 支持 ':checked' 类选择器：用例可用 checks 声明哪些复选框处于选中态
       if (/checked/.test(sel) && c.checks) return c.checks.map((v) => ({ value: v, checked: true }));
@@ -370,6 +382,25 @@ async function runCaseInner(c) {
     escapeHtml: (x) => String(x == null ? "" : x),
     copy: () => {}, copyText: () => {}, toast: () => {}, showToast: () => {},
     t: (k, d) => d || k,
+    // 与页面 TOOLBOX-API-STUB 保持一致：多数工具的 fmt() 直接转发到 formatNumber，
+    // 缺了它依赖千分位格式化的页面会在 calc() 首行抛错，导致整页无法验证。
+    formatNumber: (n, dec) => {
+      if (typeof n !== "number" || isNaN(n)) return String(n);
+      dec = dec != null ? dec : 0;
+      return n.toLocaleString("zh-CN", { minimumFractionDigits: dec, maximumFractionDigits: dec });
+    },
+    // 同 stub：明细表渲染。返回 HTML 字符串即可，collectStrings 会剥离标签后再断言。
+    createTable: (headers, rows) => {
+      let x = "<table><thead><tr>";
+      (headers || []).forEach((t) => { x += "<th>" + (t == null ? "" : String(t)) + "</th>"; });
+      x += "</tr></thead><tbody>";
+      (rows || []).forEach((row) => {
+        x += "<tr>";
+        (row || []).forEach((c) => { x += "<td>" + (c != null ? String(c) : "") + "</td>"; });
+        x += "</tr>";
+      });
+      return x + "</tbody></table>";
+    },
   };
   const navigator = { userAgent: "node", clipboard: { writeText() {} } };
   // window 直接用 globalThis：内联 on* 属性编译出的函数在全局作用域执行，
