@@ -161,6 +161,11 @@
 
 ## 八、分类推进记录
 
+> ✅ **`edu` (49) 已收口**（2026-09-14 开工并完成）。**范围**：`tools/edu/` 全部 49 个工具页（**§9.2 计数 44 有误，实测 49**，5 个缺失键在收口时补入）。
+> **八项基线审计（2026-09-14）**：deep-dive **44/49 用旧格式**（`content_deepdive.json` 的 edu 段用 `summary` 单字符串 + `example` 单字符串，而 `_build.py` 的 `_build_deep_dive_html` 只读 `title` / `examples`（数组）/ `scenarios` / `faqs`，旧键不渲染 → 44 页 title 与 examples 块全空、审计显示 examples=0）；UI 零缺项；cat 0 回退（edu 已用功能值 calculator/convert/reference/math/engineer/validator/dev/game/generate，无行业名回退）；**英文 p 占位 49**、desc-en 占位 49、title-en 0；**formula 计算类 22、缺框 0**（22/22 已有框，但公式文本多为占位/套话待真实化）；计算验证 0；**指南 4/49**（其中 `calc-2` / `calc-3` / `calc-4` 为跨行业重名，原 `guides/calc-2-guide.html` 等属他行业，需以 `edu-` 前缀消歧）；英文态（body intro 占位 49、body title 代号 34、en_override 代号 0、industry ed 不达标 0、`edu-body.json` 孤儿键 3：`pinyin-chart` / `idiom-dictionary` / `trivia-quiz`）。
+> **批次计划（全部完成）**：A 英文态数据源根治 → B 英文占位正文注入 → C formula 补真实公式文本 → D 计算验证（第 24 道门禁）→ E 指南 4→49 → 收口归档。
+> **收口结果（2026-09-14）**：① 英文态八维全清零（49 条真实英文名 + 英文描述四端同步：`edu-body.json` / `edu.json`(en-US) / `_en_override.json` / `industry-edu.json`(en+ed)；消除 34 个 body title 代号；清 3 个孤儿键 `pinyin-chart` / `idiom-dictionary` / `trivia-quiz`）。② **deep-dive 旧格式缺陷根治**：发现 edu 段 44 条用旧键 `summary`/`example`（单字符串），`_build.py` 不渲染 → 44 页 title 与 examples 块全空。脚本化转写 `summary`→`title`、`example`→`examples=[{title:"示例",body:ex}]`，并清 132 条 FAQ 套话免责声明（edu 专属，含 "。。" 双句号 bug）；补 5 个缺失键（`assessor-27` / `certificate-check` / `exam-gpa-calculator` / `exam-study-planner` / `exam-timer`）真实示例 → deep-dive **49/49（100%）**，`content_deepdive.json` 纯增量、非 edu 段 0 改动（已逐键核对）。③ formula 真实公式文本补 22 页（`scripts/add_edu_formula.py`，逐条对照 `calc()` 实现；修正 ANCHORS 增加 `scale-row`/`set-row` 锚点修复 `exam-gpa-calculator`/`exam-timer` 无锚点 WARN）→ 22/22 计算类覆盖率。④ 第 24 道门禁 `verify_edu_calc.js` **13/13** 通过（Z-Score/pct/评级、目标分剩余权重、考试成绩/GPA/评级、测验百分比、排名、HEX→RGB、十六进制→十进制、面积体积换算、XML 文本统计、描述性统计、assessor 评级、字数→页数）。⑤ 指南 4→**49**（`gen_industry_guides.py` 数据驱动；`calc-2`/`calc-3`/`calc-4` 因跨行业重名改用 `edu-` 前缀消歧，避免覆盖他行业正确映射；新增 48 篇；`guides/index.html` +49、`json/guides.json` +48）；全 49 页指南链接零串味（精确扫描确认：49 个 edu 工具页指南链接全部正确指向本 edu 工具）。二十四道质量门禁全过。
+
 > ✅ **`realestate` (54) 已收口**（2026-09-13 开工并完成）。**范围**：`tools/realestate/` 全部 54 个工具页（与 §9.2 计数一致）。
 > **八项基线审计（2026-09-13）**：deep-dive **已达 §4.5**（54/54 全含 3 场景 / 2 FAQ / 1 示例）；UI 零缺项；**cat 误标 2**（`analysis-42` 竞品监测标 engineer 应为 finance、`layout-score` 户型评分标 health 应为 validator）；**英文 p 占位 48**；**desc-en 占位 45**；**formula 计算类 41、缺框 0**（41/41 本就达标，C 批次无需补框）；计算验证 0；**指南 3/54**（其中 2 篇系跨行业重名串味：`calc-1` 实为 hydraulic 的「增值税计算」、`calc-2` 实为 hydraulic 的「睡眠质量评分」，均非本行业内容）；英文态（body intro 占位 50、body title 代号 24、en_override 代号 22、industry ed 不达标 1：analysis-42、`realestate-body.json` 孤儿键 2：tool-013-33 / tool-014-72）。
 > **批次计划（全部完成）**：A 英文态数据源根治 → B 英文占位正文注入 → C formula 无需补框（41/41 达标）+ 修 2 处 cat 误标 → D 计算验证（第 20 道门禁）→ E 指南 3→54 → 收口归档。
@@ -270,11 +275,10 @@
 
 > 跳过规则：上述分类**不列入 §9.2 待办**；其余分类按 §9.2 热度顺序从零推进。
 
-### 9.2 分类优化清单（248 分类，按热度降序，完成一个删一个）
+### 9.2 分类优化清单（247 分类，按热度降序，完成一个删一个）
 
 > 清单由脚本按 `tools/` 目录工具数生成；每行 = 分类名 + 工具数。当前进行中的分类在 §8 同步登记。
 
-- [ ] edu (44)
 - [ ] marketing (44)
 - [ ] meteorology (42)
 - [ ] optical (41)
@@ -530,6 +534,7 @@
 - [ ] **【P1】§9.2 分类计数普遍偏差**：health 记 46 实测 41、energy 记 46 实测 43（历史下架未同步）。建议写脚本按 `tools/<ind>/*.html` 实测数全量校验并重写 §9.2。
 - [x] **【P2·已于 2026-09-14 修复】`audit_industry.py` formula 判定假阴性**：原判 `'class="formula-box"' not in s`，而站点内大量页面用复合类名 `class="card formula-box"`（healthcare 30/35 页），被误报「缺框」。已改为 `re.search(r'class="[^"]*\bformula-box\b[^"]*"', s)`。
 - [ ] **【P2】deep-dive 套话正则误报**：`audit_industry.py` 的 `FP` 词表含「统一口径」，会把真实文案（如 `blood-sugar-converter` 场景"双向换算统一口径"）误判为套话。本批以改文案规避；建议将词表改为「整句/高频模板匹配」而非裸子串，并复核已按此规则"治理"过的条目是否被误改。
+- [ ] **【P1】deep-dive 旧格式（summary/example 单键）渲染缺陷（edu 收口发现，全站级）**：`content_deepdive.json` 的 edu 段 44 条用旧键 `summary`（单字符串）+ `example`（单字符串），而 `_build.py` 的 `_build_deep_dive_html` 只读 `title` / `examples`（数组 {title,body}）/ `scenarios` / `faqs`，旧键永不渲染 → 这 44 页「📚 深度解析」块的标题与示例段全空（审计显示 examples=0）。**已修复 edu**：脚本化转写 `summary`→`title`、`example`→`examples=[{title:"示例",body:ex}]` 并清 132 条 FAQ 套话免责声明（含 "。。" 双句号 bug），deep-dive 达 49/49、`content_deepdive.json` 纯增量且非 edu 段 0 改动。本批仅 edu 命中；建议后续逐分类审计时，对 `content_deepdive.json` 全量扫描旧键 `summary`/`example`，凡出现即按此口径转写（防复发）。
 - [ ] **【P2】A 级率 100% 失真**：`classify_quality()` 仅凭页面存在 `formula-box` 即判 A，占位公式页同样判 A（health 补框后 A 级率亦升至 100%）。未改，避免影响全站分级。
 
 - [ ] **`realestate/summary-second-hand` 名实不符**：名为「二手房税费汇总」（intro 亦写契税/个税/增值税），但 `calc()` 实为通用统计（n / 总和 / 均值 / 中位数 / 极差 / 方差 / 标准差）。本批已将其排除出指南生成，避免固化错误语义；待整改（改实现为税费汇总，或改名与文案为统计分析）
