@@ -161,6 +161,11 @@
 
 ## 八、分类推进记录
 
+> ✅ **`marketing` (46) 已收口**（2026-09-14 开工并完成）。**范围**：`tools/marketing/` 全部 46 个工具页（**§9.2 计数 44 有误，实测 46**）。
+> **八项基线审计（2026-09-14）**：deep-dive **43/46**（3 页空无键：`assessor-51` / `assessor-65` / `marketing-roi`）；UI 零缺项；**cat 误标 1**（`marketing-ctr-calculator` 标 `health` 应为 `calculator`；另 `marketing-keyword-density` / `xiaohongshu-counter` 的 `cat=text` 经核查为全局合法值 89 处，非缺陷，保留）；**英文 p 占位 46**、desc-en 占位 46、h2 占位 39；**formula 计算类 32、缺框 6（覆盖率 26/32）**；计算验证 0；**指南 2/46**；英文态（enmap 孤儿键 3：`roi-calculator` / `simulator-8` / `calc-confidence`）。
+> **批次计划（全部完成）**：A 英文态数据源根治 → B 英文占位正文注入 → C formula 补框 6 页 → D 计算验证（第 25 道门禁）→ E 指南 2→46 → F 修复指南误归属 → 收口归档。
+> **收口结果（2026-09-14）**：① 英文态八维全清零（46 条真实英文名 + 英文描述四端同步：`marketing-body.json` / `marketing.json`(en-US) / `_en_override.json` / `industry-marketing.json`(en+ed)；清 3 个 enmap 孤儿键 `roi-calculator` / `simulator-8` / `calc-confidence`；cat 修正 1 处 `marketing-ctr-calculator` health→calculator）。② deep-dive 43/46→**46/46**（补 3 页空键真实场景/示例/FAQ：`assessor-51` 品牌资产评估体系、`assessor-65` 活动效果评估模型、`marketing-roi` 营销 ROI 多口径测算；`content_deepdive.json` 纯增量 +3 条 84 行，非 marketing 段 0 改动）。③ formula 覆盖率 26/32→**32/32**（`scripts/add_marketing_formula.py` 6 页补真实公式框：ad-roi / calc-price-elasticity / cpc-calculator / estimate-sample-size-confidence / marketing-roi / price-elasticity，并修 ANCHORS 增加 tip-box/tabs/scale-row/set-row/tool-result/input-row/subject-row 锚点）。④ 第 25 道门禁 `verify_marketing_calc.js` **13/13**（CTR/CVR/CPC、流失率/留存/生命周期、ROAS/毛利率、CAC/营销CAC/比值、LTV `detail` 模式 `mrr×(1/(churn/100))×margin` 与 LTV:CAC、价格弹性富有弹性判定等）。⑤ 指南 2→**46**（`gen_industry_guides.py --apply` 数据驱动；`calc-1` / `marketing-ltv-calculator` 因跨行业重名改用 `marketing-` 前缀消歧；guides/index 与 json/guides.json 同步新增）。⑥ **修复指南误归属 1 处（P0 同类）**：`marketing-roi.html` 原幂等注入指向 finance 的 `roi-calculator-guide.html`（误把他行业指南串入），改为指向本行业 `marketing-roi-guide.html`；经核查 `finance/investment-roi.html` → `roi-calculator-guide.html` 为该指南正文 back-link 所属（即 finance 本行业指南），未改动 finance 以免回归；全 46 页指南链接零串味（精确扫描确认）。二十五道质量门禁全过。**部署核验**：提交 `9f737b8ee`，线上 4 文件 MD5 逐字节一致（tools/marketing/marketing-roi.html / guides/marketing-roi-guide.html / guides/index.html / json/guides.json）。
+
 > ✅ **`edu` (49) 已收口**（2026-09-14 开工并完成）。**范围**：`tools/edu/` 全部 49 个工具页（**§9.2 计数 44 有误，实测 49**，5 个缺失键在收口时补入）。
 > **八项基线审计（2026-09-14）**：deep-dive **44/49 用旧格式**（`content_deepdive.json` 的 edu 段用 `summary` 单字符串 + `example` 单字符串，而 `_build.py` 的 `_build_deep_dive_html` 只读 `title` / `examples`（数组）/ `scenarios` / `faqs`，旧键不渲染 → 44 页 title 与 examples 块全空、审计显示 examples=0）；UI 零缺项；cat 0 回退（edu 已用功能值 calculator/convert/reference/math/engineer/validator/dev/game/generate，无行业名回退）；**英文 p 占位 49**、desc-en 占位 49、title-en 0；**formula 计算类 22、缺框 0**（22/22 已有框，但公式文本多为占位/套话待真实化）；计算验证 0；**指南 4/49**（其中 `calc-2` / `calc-3` / `calc-4` 为跨行业重名，原 `guides/calc-2-guide.html` 等属他行业，需以 `edu-` 前缀消歧）；英文态（body intro 占位 49、body title 代号 34、en_override 代号 0、industry ed 不达标 0、`edu-body.json` 孤儿键 3：`pinyin-chart` / `idiom-dictionary` / `trivia-quiz`）。
 > **批次计划（全部完成）**：A 英文态数据源根治 → B 英文占位正文注入 → C formula 补真实公式文本 → D 计算验证（第 24 道门禁）→ E 指南 4→49 → 收口归档。
@@ -279,7 +284,6 @@
 
 > 清单由脚本按 `tools/` 目录工具数生成；每行 = 分类名 + 工具数。当前进行中的分类在 §8 同步登记。
 
-- [ ] marketing (44)
 - [ ] meteorology (42)
 - [ ] optical (41)
 - [ ] surveying (40)
