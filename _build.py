@@ -2045,6 +2045,15 @@ def ensure_lastmod_map(all_urls, today):
             if u not in lm:
                 lm[u] = today
                 changed = True
+        # 裁剪孤儿键：仅保留本轮 all_urls 中的 URL，防止下架/改名后历史键无限累积
+        # （all_urls 已含根页/tools 分类首页/guides/工具页，与实际 sitemap 的 zh-CN 键域一致）
+        if all_urls:
+            keep = set(all_urls)
+            stale = [u for u in lm if u not in keep]
+            if stale:
+                for u in stale:
+                    del lm[u]
+                changed = True
     if changed:
         save_lastmod_map(lm)
     return lm
