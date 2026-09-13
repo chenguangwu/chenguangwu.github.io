@@ -161,6 +161,11 @@
 
 ## 八、分类推进记录
 
+> 🔧 **`legal` (54) 进行中**（2026-09-13 开工）。**范围**：`tools/legal/` 全部 54 个工具页（与 §9.2 计数一致）。
+> **八项基线审计（2026-09-13）**：deep-dive **已达 §4.5**（54/54，3 场景 / 2 FAQ / 1 示例，162/108/108，宽套话命中 0，抽查内容真实专业：加班费 21.75 计薪、离婚财产分割、工伤八级 11 个月、仲裁费分段、逾期 LPR 倍数)；UI 零缺项；cat 无异常（finance 24 / convert 4 / health 1 / engineer 3 / calculator 10 / reference 9 / generate 3)；**英文 p 占位 49**；**desc-en 占位 43+（泛化 "free online tool" 类）**；**formula 计算类 34、缺框 6**（覆盖率 28/34，豁免 20 交互 demo：calendar / calendar-qr / contract-templates / will-template-generator / falvwenshuguanjiancizidongtiqu 等)；计算验证 0；**指南 2/54**（arbitration-fee / calc-8)；英文态（body intro 占位 56=49 真实工具+7 孤儿键、body title 代号 6：generator-17 / generator-18(孤儿) / estimate-12 / estimate-40 / calculator-calc-6 / simulator-37(孤儿)、en_override 代号 4、legal.json 缺 en-US 0、industry ed 不达标 4：arbitration-fee / calc-interest / calculator-calc-6 / legal-reference、legal-body.json 孤儿键 7：generator-18 / estimate-accident / lookup-classify-1 / lookup-19 / lookup-social / lookup-register / simulator-37)。
+> **批次计划**：A 英文态八维根治（三端数据源真实英文 + 清 7 孤儿键）→ B 英文占位正文注入（49 页，build 预渲染）→ C formula 补框 6（calc-17 / calc-8 / calc-interest / legal-aid-eligibility / traffic-accident-compensation / work-injury-compensation）→ D 计算验证（第 19 道门禁 verify_legal_calc.js）→ E 指南 2→54 → 收口归档。
+> **进度**：A 进行中（写 fix_legal_body_i18n.py）。
+
 > ✅ **`statistics` (51) 已收口**（2026-09-13 开工并完成）。**范围**：`tools/statistics/` 全部 51 个工具页（DEV-PLAN 原记 55，实测 51，按真实数归档）。
 > **八项基线审计（2026-09-13）**：deep-dive **已达 §4.5**（51/51，3 场景 / 2 FAQ / 1 示例，153/102/102，无套话；抽查内容真实：二项 CDF/PMF 公式数值、卡方、偏度峰度等）；UI 零缺项；cat 0 异常（math 26 / statistics 25）；**英文 p 占位 47**；**formula 计算类 38、缺框 12**（覆盖率 26/38，另 13 个交互 demo 豁免）；计算验证 0；**指南 0/51**；英文态（body intro 占位 57、body title 代号 12、en_override 代号 6、statistics.json 缺 en-US 0、industry ed 不达标 0、statistics-body.json 孤儿键 7：odds-to-probability / statistics-15 / statistics-2 / statistics-3 / statistics-6 / statistics-8 / statistics-9）。
 > **批次计划（全部完成）**：A 英文态数据源根治 → B 英文占位正文注入（47 页）→ C formula 补框 12 + 补 12 页「有框缺 eq/desc」→ D 计算验证（第 18 道门禁）→ E 指南 0→51 → 收口归档。
@@ -249,7 +254,7 @@
 
 > 清单由脚本按 `tools/` 目录工具数生成；每行 = 分类名 + 工具数。当前进行中的分类在 §8 同步登记。
 
-- [ ] legal (54)
+- [ ] legal (54)（进行中）
 - [ ] realestate (54)
 - [ ] energy (46)
 - [ ] health (46)

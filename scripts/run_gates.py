@@ -63,6 +63,10 @@ GATES = (
     # 最小二乘回归 / 几何·调和平均 / 极差 / MAD / 样本方差·标准差 / 总体方差）。
     # 注：statistics-4 置信区间、statistics-5 样本量的逆正态 z 反解实现有误，未纳入（见 DEV-PLAN §9.3）。
     ("statistics calc correctness", ("node", "scripts/verify_statistics_calc.js")),
+    # legal 分类的正确性验证（加班费 / 违法解除2N / 经济补偿N / N+1 / 逾期付款利息 / 抚养费 /
+    # 离婚财产分割 / 诉讼费 / 知识产权保护期 / 年终奖个税 / 民间借贷利息 / 法律援助资格 / 工伤赔偿）。
+    # 注：traffic-accident-compensation 伤残赔偿系数倒置缺陷未纳入（见 DEV-PLAN §9.3）。
+    ("legal calc correctness", ("node", "scripts/verify_legal_calc.js")),
 )
 
 
