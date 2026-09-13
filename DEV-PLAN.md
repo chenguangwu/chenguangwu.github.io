@@ -235,7 +235,7 @@
 - ✅ biz (69)：八项目标全覆盖（deep-dive 69/69 达 §4.5（清跨行业孤儿 `text-diff` 后净 69）、英文态八维全清零、formula 客观口径补框 27/27、计算验证 8/8（第 14 道门禁 verify_biz_calc.js）、指南 3→69；部署待 run 核验），git 实测
 - ✅ life (72)：八项目标全覆盖（deep-dive 72/72 达 §4.5、英文态八维全清零、formula 客观口径补框 19/19、计算验证 11/11（第 15 道门禁 verify_life_calc.js）、指南 8→72；部署 run 34737616679 success，线上 8 文件 MD5 逐字节一致），git 实测
 - ✅ agriculture (63)：八项目标全覆盖（deep-dive 63/63 达 §4.5、英文态八维全清零、formula 客观口径补框 55/55、计算验证 12/12（第 16 道门禁 verify_agriculture_calc.js）、指南 2→63；部署提交 f549f7d62，线上 9 文件 MD5 逐字节一致），git 实测
-- ✅ hydraulic (56)：八项目标全覆盖（deep-dive 56/56 达 §4.5、英文态八维全清零、formula 客观口径补框 50/50、计算验证 17/17（第 17 道门禁 verify_hydraulic_calc.js）、指南 5→56；部署待核验），git 实测
+- ✅ hydraulic (56)：八项目标全覆盖（deep-dive 56/56 达 §4.5、英文态八维全清零、formula 客观口径补框 50/50、计算验证 17/17（第 17 道门禁 verify_hydraulic_calc.js）、指南 5→56；部署提交 b9e1eba1d，run 34740229347 success，线上 9 文件 MD5 逐字节一致），git 实测
 
 > 跳过规则：上述分类**不列入 §9.2 待办**；其余分类按 §9.2 热度顺序从零推进。
 
