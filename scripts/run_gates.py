@@ -52,6 +52,10 @@ GATES = (
     # 土壤有机质 / 水肥 EC 注肥比例 / 干物质换算 / 光照积分 DLI / 收获损失率 / 配比十字交叉 /
     # 肥料当季利用率差减法 / 连作障碍指数）。
     ("agriculture calc correctness", ("node", "scripts/verify_agriculture_calc.js")),
+    # hydraulic 分类的正确性验证（伯努利求流速 / 连续性变径 / 达西-魏斯巴赫 / Hazen-Williams /
+    # 曼宁明渠 / 局部水头损失 / 水泵功率 / 矩形堰 / 由流量求流速 / 明渠均匀流 / 能量分解 /
+    # 水力发电 / 泵站效率 / 蓄能器容量 / 水锤防护 / 液压伺服 / 水泵扬程）。
+    ("hydraulic calc correctness", ("node", "scripts/verify_hydraulic_calc.js")),
 )
 
 

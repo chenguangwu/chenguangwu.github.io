@@ -161,6 +161,11 @@
 
 ## 八、分类推进记录
 
+> ✅ **`hydraulic` (56) 已收口**（2026-09-13 开工并完成）。**范围**：`tools/hydraulic/` 全部 56 个工具页（DEV-PLAN 原记 55，实测 56，按真实数归档）。
+> **八项基线审计（2026-09-13）**：deep-dive 50/56 达标（抽查确认内容真实非模板：防洪设计洪水 / 库容曲线积分等；未达标 6 页全空无键：assessor-22 / calc-flow-1 / calc-pressure / calc-speed / cycle-19 / tester-blast）；UI 零缺项；cat 0 异常；英文 p 占位 43；formula 计算类 50、缺框 11（覆盖率 39/50，另 6 个交互 demo 豁免）；计算验证 0；指南 5/56；英文态（body intro 占位 50、body title 代号 12、en_override 代号 11、industry ed 不达标 3：calc-5 / calc-flow-1 / calc-speed、hydraulic-body.json 孤儿键 6：estimate-18 / classify-8 / simulator-33 / daba-wendingxing-kanghua-kangqingfu / tool-002-39 / tool-014-23）。
+> **批次计划（全部完成）**：A 英文态数据源根治 → B 英文占位正文注入（43 页）→ C formula 补框 11 → D deep-dive 补 6 页 → E 计算验证（第 17 道门禁）→ F 指南 5→56 → 收口归档。
+> **收口结果（2026-09-13）**：① 英文态八维全清零（56 条真实英文名 + 英文描述三端同步；消除 `Flow 1` / `Calc Power 2` 等 12 个 body 代号与 11 个 en 代号；补 6 页三端全缺中文名/简介；修 calc-5 ed 模板套话 + calc-flow-1/calc-speed 缺 ed；清 body 11 + ov 6 + lj 5 孤儿键，含跨行业残留 buoyancy-force / hydrostatic-pressure / kinematic-viscosity / orifice-discharge（已迁 fluid）/ reynolds-number（已迁 aerospace））② 43 页英文占位正文改真实英文 + data-zh 中文保留（沿用已验证流程：临时改 `_prerender_tool_body` 收紧为仅命中占位套话才替换 → build → 只保留 hydraulic 落盘 → 回退 `_build.py` 与其它行业改动），另修 13 页 h2 代号 ③ formula 客观口径补框 **50/50**（缺框 11 页逐条对照 `function calc()` / 分页式 calcXxx 实现撰写；另补 7 页「有框缺 eq/desc」：analysis-frequency / calc-4 / dam-stability / flow-rate / flow-velocity / spillway-calc / water-level）④ deep-dive 补 6 空页达 **56/56** ⑤ 新增第 17 道门禁 `verify_hydraulic_calc.js` **17/17** 通过（伯努利求流速 / 连续性变径 / 达西-魏斯巴赫 / Hazen-Williams / 曼宁明渠 / 局部水头 / 水泵功率 / 矩形堰 / v=Q/A / 明渠均匀流 / 能量分解 / 水力发电 / 泵站效率 / 蓄能器容量 / 水锤防护 / 液压伺服 / 水泵扬程）⑥ 指南 5→**56**（gen_hydraulic_guides 数据驱动；新增 `--force` 选项覆盖原 5 篇薄指南，字数 700→1000+ 统一质量）。十七道质量门禁全过。
+
 > ✅ **`ai` (64) 已收口**（2026-09-13 开工并完成）。**范围**：`tools/ai/` 全部 64 个工具页。
 > **八项基线审计（2026-09-13）**：deep-dive **已达 §4.5**（64/64，3 场景 / 2 FAQ / 1 示例，192/64/128，无套话）；UI 零缺项；cat 0 错标；**英文 p 占位 63**；**formula 口径完全反了**（8 个文本/图像 demo 反而有框，56 个真计算器全无框）；计算验证 0；**指南 0**；英文态（intro 占位 64、真代号 3 `Ai 8/9/12`、ed 不达标 1）。中文态无缺口。
 > **批次计划（全部完成）**：A 英文态数据源根治 → B 英文占位正文注入 → C formula 补框（口径纠正后 56 页）→ D 计算验证（第 13 道门禁）→ E 指南 0→64 → 收口归档。
@@ -230,14 +235,14 @@
 - ✅ biz (69)：八项目标全覆盖（deep-dive 69/69 达 §4.5（清跨行业孤儿 `text-diff` 后净 69）、英文态八维全清零、formula 客观口径补框 27/27、计算验证 8/8（第 14 道门禁 verify_biz_calc.js）、指南 3→69；部署待 run 核验），git 实测
 - ✅ life (72)：八项目标全覆盖（deep-dive 72/72 达 §4.5、英文态八维全清零、formula 客观口径补框 19/19、计算验证 11/11（第 15 道门禁 verify_life_calc.js）、指南 8→72；部署 run 34737616679 success，线上 8 文件 MD5 逐字节一致），git 实测
 - ✅ agriculture (63)：八项目标全覆盖（deep-dive 63/63 达 §4.5、英文态八维全清零、formula 客观口径补框 55/55、计算验证 12/12（第 16 道门禁 verify_agriculture_calc.js）、指南 2→63；部署提交 f549f7d62，线上 9 文件 MD5 逐字节一致），git 实测
+- ✅ hydraulic (56)：八项目标全覆盖（deep-dive 56/56 达 §4.5、英文态八维全清零、formula 客观口径补框 50/50、计算验证 17/17（第 17 道门禁 verify_hydraulic_calc.js）、指南 5→56；部署待核验），git 实测
 
 > 跳过规则：上述分类**不列入 §9.2 待办**；其余分类按 §9.2 热度顺序从零推进。
 
-### 9.2 分类优化清单（254 分类，按热度降序，完成一个删一个）
+### 9.2 分类优化清单（253 分类，按热度降序，完成一个删一个）
 
 > 清单由脚本按 `tools/` 目录工具数生成；每行 = 分类名 + 工具数。当前进行中的分类在 §8 同步登记。
 
-- [ ] hydraulic (55)
 - [ ] statistics (55)
 - [ ] legal (54)
 - [ ] realestate (54)
@@ -509,6 +514,7 @@
 - [ ] `biz` 收口遗留：① `content_deepdive.json` 存在跨行业孤儿键 `biz/text-diff`（该 slug 非 biz 页，全站应归属其它行业），已在 biz 收口时清理，需确认 `text-diff` 真实归属行业后补回正确 deep-dive ② `_build.py` 非 CJK 占位页英文未注入缺陷**第四次遇到**（sports 75 + fun 55 + ai 63 + biz 43），仍按「临时改 → build → 只保留本行业 → 回退」处理，全站缺陷须老板批准单独开一轮统一修复 ③ `name-generator` / `team-roster-generator` 等生成器公式框为「核心算法说明」而非数值公式（按 §4.1.2 合理豁免，不计入 formula 缺口）
 - [ ] `life` 收口遗留：① `_build.py` 非 CJK 占位页英文未注入缺陷**第五次遇到**（sports 75 + fun 55 + ai 63 + biz 43 + life 62），本轮补丁已收紧为「仅命中英文占位套话才替换、保留空 JS 输出元素（如 age-calculator 的 `<p id=nextBirthday>`）」，仍按「临时改 → build → 只保留本行业 → 回退」，全站缺陷须老板批准单独开一轮统一修复 ② `bra-size-converter` 罩杯映射疑偏移：`cupIdx = round(diff/2.5) − 1` 使上下围差 15 cm 得 F 杯（常规图表应为 C 杯，约差 2 档），属工具自身算法疑误；本轮计算门禁按页面实际输出断言（75F），**未改实现**，待复核 ③ `life` 16 页三端全缺中文名/简介（analysis-23/74/80、analysis-cost-9/10、assessor-target、cycle-4、cycle-pruning-lawn、daily-calorie-needs、drinking-water-plan、generator-price、parking-fee、recommender-8、reminder-cycle、report-profit、stats-13），本轮按页面 `<h1>` 与功能推断补齐，建议后续人工复核命名 ④ 生成器/本地记录类（generator-price / recommender-8 / reminder-cycle / cycle-4 / cycle-pruning-lawn）无计算公式，按 §4.1.2 合理豁免
 - [ ] `agriculture` 收口遗留：① `_build.py` 非 CJK 占位页英文未注入缺陷**第六次遇到**（sports 75 + fun 55 + ai 63 + biz 43 + life 62 + agriculture 52），仍按「临时改 → build → 只保留本行业 → 回退」，全站缺陷须老板批准单独开一轮统一修复 ② 审计脚本 `endswith('index.html')` 口径缺陷（会把 `-index.html` 结尾的真实工具页误排为分类首页），本轮已修为 `basename(f) != 'index.html'`；全站另有 15 个同类页（clinical-nursing/barthel-index、dentistry/gingival-index、dermatology/scorad-index、endocrinology/mage-index、investment/profitability-index、livestock/heat-stress-index、meteorology/heat-index、obstetrics/pearl-index、optical/lens-refractive-index、process/cp-index·cpk-index·pp-index·ppk-index、pulmonology/oxygenation-index），这些行业收口时须用修正后口径重新计基 ③ `_build.py` 第 1710 行 desc 前导图标剥离正则漏 `\u2300-\u23FF` 区（⏰/⌚/⏳ 等），全站 74 页 h2 英文带未剥离图标并注入 `tools.json`/`industry-*.json` 的 desc；本轮仅 `life/drinking-water-plan`（h2 新注入 ⏰）浮现为 diff，为保 life 已上线态已回退该 life 副产物（`json/industry-life.json` + tools.json 单条），**全站统一修需改 `_build.py`，波及 74 页 desc，留待专项**；注：CI 构建会重算该 desc，故线上该条仍带 ⏰（属既有构建行为，非本轮新增） ④ `crop-yield` 在 DOM stub 下初始化报错（方法选择器取值为 undefined），门禁未纳入，功能待复核
+- [ ] `hydraulic` 收口遗留：① `_build.py` 非 CJK 占位页英文未注入缺陷**第七次遇到**（sports 75 + fun 55 + ai 63 + biz 43 + life 62 + agriculture 52 + hydraulic 43），仍按「临时改 → build → 只保留本行业 → 回退」，全站缺陷须老板批准单独开一轮统一修复 ② `hydraulic/calc-1`（管道水力，Darcy-Weisbach + Colebrook）调用 `ToolBox.formatNumber`，而 `verify_it_calc.js` 的 DOM stub 未实现该 API（用则抛错），故门禁未纳入该页；如需纳入须先在 stub 补 `formatNumber` ③ 7 页「有框缺 eq/desc」本轮已补齐（analysis-frequency / calc-4 / dam-stability / flow-rate / flow-velocity / spillway-calc / water-level），系既有产物不完整，非本轮引入 ④ `tester-blast` 中文名含「爆破」二字（实为压力容器耐压/爆破试验，属工业检测非敏感类，工具本体为薄壁圆筒强度校核），若无必要改名须同步 `zh-CN.title` + 页面 h1 + `content_deepdive` title 三处 ⑤ `json/industry-life.json` 再次浮现 `drinking-water-plan` 图标前缀副产物（与 ③ 同一 `_build.py` 第 1710 行下溢缺陷），已回退以保 life 已上线态
 - [ ] `psychiatry.json` 存在并行进程的未提交改动（合规去敏类改名，mtime 2026-09-13 00:22），非本轮 ai 批次产物，未提交也未回退，需老板确认归属后再处理
 - [ ] `fun` 收口遗留：① 21 个 game/generate 类工具无 formula-box（游戏与生成器无计算公式，按 §4.1.2 属合理豁免，`audit_fun.py`【5】已按 cat 区分判定）② `convert-speed-stride` 单位换算 select 选项值为 1/0/1000，选 0 会除零且语义不清，实现薄弱待重构 ③ fun 行业 h2 图标被语义重分配为 🎮（含计算类工具如烧烤分量计算器），图标与工具语义不符，待确认是否按 cat 细分图标规则
 - [ ] `_build.py` `_prerender_tool_body` 非 CJK 占位页英文未注入缺陷（全站级，第二次遇到）：sports 75 页 + fun 55 页已分别落盘修正（h2/首个 p 由英文占位串改真实英文 + 保留 data-zh），但修复改动因波及数百非本行业页已两次回退 `_build.py`；建议单独开一轮由老板确认后统一修复（否则每个同形态分类都要重复一次「临时改 → build → 只保留本行业 → 回退」流程）

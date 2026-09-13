@@ -21,7 +21,7 @@ window.INDUSTRY_INFO = {
   'sports'               : { name: '体育竞技', icon: '⚽', hot: 696232 },
   'statistics'           : { name: '统计学', icon: '📊', hot: 584849 },
   'automotive'           : { name: '汽车交通', icon: '🚗', hot: 533967 },
-  'hydraulic'            : { name: '水利工程', icon: '💧', hot: 525916 },
+  'hydraulic'            : { name: '水利工程', icon: '💧', hot: 525919 },
   'fun'                  : { name: '娱乐游戏', icon: '🎮', hot: 495751 },
   'optical'              : { name: '视光科学', icon: '👓', hot: 415312 },
   'fire-rescue'          : { name: '消防救援', icon: '🚒', hot: 408056 },
