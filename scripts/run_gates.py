@@ -42,6 +42,9 @@ GATES = (
     # ai 分类的正确性验证（混淆矩阵四指标 / 欧氏曼哈顿余弦 / 交叉熵 / Sigmoid / Softmax /
     # Cohen's Kappa / AUC 秩次 / 学习率衰减 / Transformer 参数量）。
     ("ai calc correctness", ("node", "scripts/verify_ai_calc.js")),
+    # biz 分类的正确性验证（服务质量加权评分 / 会议人·小时成本 / 岗位权重胜任力 /
+    # 单价单位归一化 / 风险矩阵分级 / 演示计时均分 / 定长折行 / 字符画视觉宽度）。
+    ("biz calc correctness", ("node", "scripts/verify_biz_calc.js")),
 )
 
 
