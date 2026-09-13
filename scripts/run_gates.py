@@ -72,6 +72,7 @@ GATES = (
     # 单位地价·楼面地价与溢价率、REITs 股息率与资本化率、市场比较法估价、建筑面积换算）。
     # 注：calc-93/pv/depreciation-2 为跨行业通用 A/B 模板、summary-second-hand 名实不符，均未纳入。
     ("realestate calc correctness", ("node", "scripts/verify_realestate_calc.js")),
+    ("energy calc correctness", ("node", "scripts/verify_energy_calc.js")),
 )
 
 
