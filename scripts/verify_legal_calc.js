@@ -5,9 +5,9 @@
  * 复用 scripts/verify_it_calc.js 的 DOM stub 与 runCase 框架。
  * 期望值一律由页面公式独立复算得出，不取页面输出。
  *
- * 注意：traffic-accident-compensation 的伤残赔偿系数存在倒置缺陷
- *      （disabilityRate = parseInt(injuryLevel)/10，导致一级=10%、十级=100%，与法定相反），
- *      暂未纳入本门禁，待专项修复后再补断言（见 DEV-PLAN §9.3）。
+ * traffic-accident-compensation 的伤残赔偿系数缺陷已修复：原 disabilityRate = parseInt(injuryLevel)/10
+ *      导致一级=10%、十级=100% 倒置（法定应为一级100%、十级10%）；现公式改为 (11 - level)/10，
+ *      并已纳入下方 traffic-accident-compensation 用例做防回归断言。
  *
  * 用法：
  *   node scripts/verify_legal_calc.js
@@ -108,6 +108,19 @@ const CASES = [
     inputs: { disabilityLevel: "1", monthlySalary: "10000", avgSalary: "8000", terminateRelation: "0" },
     expect: ["270,000", "9,000"],
     ref: "一级一次性伤残补助金=27×10000=270000；1-4级津贴=10000×90%=9000/月",
+  },
+  // ── 交通事故残疾赔偿金（伤残系数：一级100%/十级10%，修复倒置缺陷）──
+  {
+    slug: "legal/traffic-accident-compensation",
+    inputs: { liability: "1", injuryLevel: "1", age: "30", disposableIncome: "50000" },
+    expect: ["1,000,000", "100%"],
+    ref: "一级系数=1.0：残疾赔偿金=50000×20年×1.0=1,000,000（修复前误算为100,000/10%）",
+  },
+  {
+    slug: "legal/traffic-accident-compensation",
+    inputs: { liability: "1", injuryLevel: "10", age: "30", disposableIncome: "50000" },
+    expect: ["100,000", "10%"],
+    ref: "十级系数=0.1：残疾赔偿金=50000×20年×0.1=100,000（修复前误算为1,000,000/100%）",
   },
 ];
 
