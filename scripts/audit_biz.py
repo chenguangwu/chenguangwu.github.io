@@ -42,7 +42,7 @@ enov = load(os.path.join(I18N, '_en_override.json'))
 ind = load(os.path.join(ROOT, 'json', f'industry-{IND}.json'))
 
 tools = sorted(os.path.basename(f)[:-5] for f in glob.glob(os.path.join(TOOLS, '*.html'))
-               if not f.endswith('index.html'))
+               if os.path.basename(f) != 'index.html')
 N = len(tools)
 print(f"=== {IND} 真实工具数: {N} ===\n")
 

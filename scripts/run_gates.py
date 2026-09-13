@@ -48,6 +48,10 @@ GATES = (
     # life 分类的正确性验证（停车计费封顶 / 百分比 / 温度换算 / Mifflin 热量 / 饮水计划 /
     # 罩杯换算 / 日期差含端日 / 生日悖论 / 闰年规则 / 单位因子换算 / 选址加权模型）。
     ("life calc correctness", ("node", "scripts/verify_life_calc.js")),
+    # agriculture 分类的正确性验证（作物需水 ETc / 肥料表观利用率 / 农机油耗 / 存栏密度 /
+    # 土壤有机质 / 水肥 EC 注肥比例 / 干物质换算 / 光照积分 DLI / 收获损失率 / 配比十字交叉 /
+    # 肥料当季利用率差减法 / 连作障碍指数）。
+    ("agriculture calc correctness", ("node", "scripts/verify_agriculture_calc.js")),
 )
 
 
