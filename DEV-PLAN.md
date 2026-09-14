@@ -382,6 +382,11 @@
 > **八项基线审计（2026-09-14）**：deep-dive **28/28 全达标**（scenarios/examples/faqs 齐备，无孤儿键）；UI 零缺项；cat **28/28 全为 geometry**（零跨行业误标无需修正）；**英文全为占位模板**（"is available directly in your browser" 套话 28 页）；孤儿键 0；**formula 28/28 已覆盖**（C 项跳过）；计算验证 0；**指南 4/28**。
 > **批次计划（全部完成）**：A deep-dive（已达标，跳过补写）→ B 英文态根治（28 页四端同步）→ C formula（已覆盖，跳过）→ D 计算验证（第 52 道门禁）→ E 指南 4→28 → 收口归档。
 > **收口结果（2026-09-14）**：① 英文态根治（`scripts/enmap/geometry.json` 28 条真实英文名 + 英文简介；body / `geometry.json` / `_en_override` / `industry-geometry.json` 四端同步，页面静态 title-en/desc-en/h2/p 占位清除）。② deep-dive 28/28 复核通过（无需清孤儿）。③ cat 复核为 28/28 全 geometry，无需修正。④ 第 52 道门禁 `verify_geometry_calc.js` **28/28**（两向量夹角/三维距离/点积/点到直线距离/抛物线顶点/弧长/弦长/圆面积/圆周长/扇形面积/正多边形内角/正多边形面积/梯形面积/海伦公式/勾股定理/矩形对角线/圆台体积/圆锥体积/立方体属性/圆柱体积/椭球体积/棱锥体积/长方体体积/球表面积/球体积/环体体积/椭圆面积；输入全避开默认值，期望值按页面公式 JS toFixed 精确复算）。⑤ 指南 4→**28**（`gen_industry_guides.py --apply`；24 新增 + 4 已存在，零跨行业重名，反链精确指向 `tools/geometry/`）。**假通过自检 0 RISK**（`selfcheck_false_pass.js` 默认态 0 命中；首轮自检曾捕获 `distance-3d`/`parabola-vertex`/`trapezoid-area` 三处默认态巧合命中，已全部重选输入修正）。五十二道质量门禁全过。**部署核验**：提交 `003738441`，线上 4 文件 MD5 逐字节一致（tools/geometry/pythagorean.html / guides/pythagorean-guide.html / json/industry-geometry.json / json/tools.json）。
+> ✅ `investment` (28) 已收口**（2026-09-14 开工并完成）。**范围**：`tools/investment/` 全部 24 个工具页（§9.2 记 28，磁盘实测 24；4 个 `cagr`/`capm-return`/`portfolio-return`/`sharpe-ratio` 实为 finance 工具页，已各自归位）。
+> **八项基线审计（2026-09-14）**：deep-dive **24 页全部偏薄**（scenarios=2 / examples=1 / **faqs=1**，而全站主流 faqs 为 2~3、已收口的 dynamics/economics/EM 为 3、fluid/geometry 为 2 → A 项判定为必须补写）；UI 零缺项；cat **24/24 全为 investment**（零误标）；**英文全为占位模板**（套话 24 页）；孤儿键 4；formula **24/24 已覆盖**（C 项跳过）；计算验证 0；**指南 0/24**。
+> **批次计划（全部完成）**：A deep-dive 补写 24 页 → B 英文态根治 + 清 4 孤儿 → D 计算验证（第 53 道门禁）→ E 指南 0→24 → 收口归档。
+> **收口结果（2026-09-14）**：① **deep-dive 24 页补写达标**：scenarios 2→3、examples 1→2、faqs 1→2，对齐 geometry 基准；所有示例数值均用 node 按页面 `calcTool` 原样复算。**补写后发现并修正 9 处「示例与页面算法不符」**（详见下方「深解示例校正」）。② 英文态根治（`scripts/enmap/investment.json` 24 条真实英文名 + 英文简介；body / `investment.json` / `_en_override` / `industry-investment.json` 四端同步，页面静态 title-en/desc-en/h2/p 占位清除；h2=20 因 4 页已是真实英文）。③ **清 4 孤儿深解键**（cagr/capm-return/portfolio-return/sharpe-ratio），其中 `investment/cagr` 因 `finance/cagr` 内容更强（3/1/3 vs 2/1/1）而删除；其余 3 个键**重定位到 `finance/`**（原本 finance 侧无深解，直接删会丢内容）。④ cat 复核 24/24 全 investment，无需修正。⑤ 第 53 道门禁 `verify_investment_calc.js` **24/24**（年金终值/现值、复利终值/现值、债券定价（freq=2 半年付息）、YTM 近似、利差 bps、NPV、IRR（二分法）、静态/折现回收期、盈利指数、几何平均收益、持有期收益、实际收益率、ROI、股利支付率、股息率、EPS（扣优先股）、PE、留存收益率、可持续增长、组合 β、索提诺比率；输入全避开默认值，期望值按页面公式/插值算法精确复算）。**假通过自检 0 RISK**（`selfcheck_false_pass.js` 默认态 0 命中；首轮自选的 `dividend-yield` 3.6/45 曾与默认 3/60 同为 5.00，已改值重算）。⑥ 指南 0→**24**（`gen_industry_guides.py --apply`；24 新增，零跨行业重名，反链精确指向 `tools/investment/`）。五十三道质量门禁全过。**部署核验**：提交 `548c7d6e5`，线上 4 文件 MD5 逐字节一致（tools/investment/npv-calc.html / guides/npv-calc-guide.html / json/industry-investment.json / json/tools.json）。
+
 
 
 
@@ -413,11 +418,10 @@
 
 > 跳过规则：上述分类**不列入 §9.2 待办**；其余分类按 §9.2 热度顺序从零推进。
 
-### 9.2 分类优化清单（218 分类，按热度降序，完成一个删一个）
+### 9.2 分类优化清单（217 分类，按热度降序，完成一个删一个）
 
 > 清单由脚本按 `tools/` 目录工具数生成；每行 = 分类名 + 工具数。当前进行中的分类在 §8 同步登记。
 
-- [ ] investment (28)
 - [ ] kinematics (28)
 - [ ] materials (28)
 - [ ] metrology (28)
