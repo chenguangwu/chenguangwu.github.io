@@ -26,7 +26,7 @@ window.INDUSTRY_INFO = {
   'optical'              : { name: '视光科学', icon: '👓', hot: 415312 },
   'energy'               : { name: '能源电力', icon: '⚡', hot: 408946 },
   'fire-rescue'          : { name: '消防救援', icon: '🚒', hot: 408056 },
-  'meteorology'          : { name: '气象天气', icon: '🌤️', hot: 398129 },
+  'meteorology'          : { name: '气象天气', icon: '🌤️', hot: 404629 },
   'realestate'           : { name: '房地产', icon: '🏘️', hot: 396644 },
   'ai'                   : { name: '人工智能', icon: '🤖', hot: 386708 },
   'fishery'              : { name: '渔业水产', icon: '🎣', hot: 382533 },
