@@ -95,6 +95,7 @@ GATES = (
     ("ophthalmology calc correctness", ("node", "scripts/verify_ophthalmology_calc.js")),
     ("encode calc correctness", ("node", "scripts/verify_encode_calc.js")),
     ("metalwork calc correctness", ("node", "scripts/verify_metalwork_calc.js")),
+    ("photo calc correctness", ("node", "scripts/verify_photo_calc.js")),
 )
 
 
