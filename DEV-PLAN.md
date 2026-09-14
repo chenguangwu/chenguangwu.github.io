@@ -374,6 +374,11 @@
 > **八项基线审计（2026-09-14）**：deep-dive **26/26（清 2 孤儿键后条数/套话均合格）**；UI 零缺项；**cat 26 页中 1 处跨行业误标**（`ohms-law` 为 `engineer`，已修正 `electromagnetism`）；**英文全为占位模板**（套话 26 页）；**孤儿键 2**；formula **25/26**（`ohms-law` 缺框，该页 8 个 number input 命中「≥2 即计算类」客观口径，此前漏补）；计算验证 0；**指南 0/26**。
 > **批次计划（全部完成）**：A deep-dive（清孤儿后达标，跳过补写）→ B 英文态根治 + cat 修正（清 2 孤儿）→ C formula（补 `ohms-law` 框 25→26）→ D 计算验证（第 50 道门禁）→ E 指南 0→26 → 收口归档。
 > **收口结果（2026-09-14）**：① deep-dive 26/26（`content_deepdive.json` 清 2 孤儿键 `electromagnetism/coulomb-force`、`electromagnetism/electric-field-point`；对应真页 `tools/science/` 已持有各自 deep-dive，无内容损失）。② 英文态根治（`scripts/enmap/electromagnetism.json` 26 条真实英文名 + 英文简介四端同步）；**cat 修正 1**（`ohms-law` engineer→electromagnetism，页面 meta + `json/industry-electromagnetism.json` + `json/tools.json` 三处同写，构建后复核 cat 分布 26/26 全为 electromagnetism）。③ formula 25→**26**。④ 第 50 道门禁 `verify_electromagnetism_calc.js` **26/26**（直导线磁感应强度/平行板电容/容抗/电容并串联/线圈转矩/电流密度/漂移速度/点电荷电势/电功率/电容储能/电感储能/法拉第感应/磁场载流导线受力/自由空间阻抗/螺线管电感/LC 谐振/磁通量/欧姆定律/电阻定律/电阻并串联/RL 时间常数/螺线管磁场/电感并串联；输入全避开默认值，期望值按页面公式 JS toFixed/toExponential 精确复算，0 RISK）。⑤ 指南 0→**26**（`gen_industry_guides.py --apply`；26 新增，零跨行业重名）。五十道质量门禁全过。**部署核验**：提交 `1ca809cab`，线上 4 文件 MD5 逐字节一致（tools/electromagnetism/ohms-law.html / guides/ohms-law-guide.html / json/industry-electromagnetism.json / json/tools.json）。
+> ✅ **`fluid` (28) 已收口**（2026-09-14 开工并完成）。**范围**：`tools/fluid/` 全部 23 个工具页（§9.2 记 28，磁盘实测 23；5 个 `drag-force`/`dynamic-pressure`/`mach-number`/`reynolds-number` 实为 aerospace 工具页、`terminal-velocity` 实为 dynamics 工具页，均已各自持有本行业 deep-dive）。
+> **八项基线审计（2026-09-14）**：deep-dive **23/23（清 5 孤儿后条数/套话均合格）**；UI 零缺项；**cat 全为 `fluid`（∈ CAT_DEFS 53 键之一，无需修正）**；**英文全为占位模板**（套话 23 页）；**孤儿键 5**；formula **23/23 已覆盖**（基线达标，跳过 C）；计算验证 0；**指南 23/23 已存在**（反链精确指向 `tools/fluid/`，无跨行业重名，跳过 E）。
+> **批次计划（全部完成）**：A deep-dive（清孤儿后达标，跳过补写）→ B 英文态根治（清 5 孤儿）→ C formula（已覆盖，跳过）→ D 计算验证（第 51 道门禁）→ E 指南（已存在，跳过）→ 收口归档。
+> **收口结果（2026-09-14）**：① deep-dive 23/23（`content_deepdive.json` 清 5 孤儿键 `fluid/drag-force`、`fluid/dynamic-pressure`、`fluid/mach-number`、`fluid/reynolds-number`、`fluid/terminal-velocity`；逐一核验 `aerospace/*` 与 `dynamics/terminal-velocity` 已持有完整深解（scenarios/examples/faqs 齐全），无内容损失）。② 英文态根治（`scripts/enmap/fluid.json` 23 条真实英文名 + 英文简介四端同步；title-en 23 / desc-en 23 / h2 15 / p 23；零 cat 修正）。③ formula 跳过（基线 23/23 已覆盖）。④ 第 51 道门禁 `verify_fluid_calc.js` **23/23**（伯努利压力/阿基米德浮力/毛细压差/毛细上升/空化数/谢才流速/连续性方程/弗劳德数/水力直径/静水压/运动黏度/拉普拉斯压差/曼宁流速/局部水头损失/孔口出流/皮托管流速/泊肃叶流量/达西压降/驻点压力/斯托克斯沉降/文丘里流量/体积流量/韦伯数；输入全避开默认值，期望值按页面公式 JS toFixed/toExponential 精确复算，0 RISK）。⑤ 指南跳过（23/23 已存在且映射正确）。五十一道质量门禁全过。**部署核验**：提交 `699e75d93`，线上 4 文件 MD5 逐字节一致（tools/fluid/bernoulli-pressure.html / tools/fluid/weber-number.html / json/industry-fluid.json / json/tools.json）。
+
 
 
 ## 九、未完成任务清单
@@ -403,11 +408,10 @@
 
 > 跳过规则：上述分类**不列入 §9.2 待办**；其余分类按 §9.2 热度顺序从零推进。
 
-### 9.2 分类优化清单（220 分类，按热度降序，完成一个删一个）
+### 9.2 分类优化清单（219 分类，按热度降序，完成一个删一个）
 
 > 清单由脚本按 `tools/` 目录工具数生成；每行 = 分类名 + 工具数。当前进行中的分类在 §8 同步登记。
 
-- [ ] fluid (28)
 - [ ] geometry (28)
 - [ ] investment (28)
 - [ ] kinematics (28)
