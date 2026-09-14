@@ -124,9 +124,9 @@ const CASES = [
     ref: "72/8=9.00 年；精确=ln2/ln(1.08)=9.01 年" },
 
   { slug: "economics/spending-multiplier",
-    inputs: { mpc: "0.75" },
-    expect: ["4.00", "-3.00"],
-    ref: "k=1/(1−0.75)=4.00；k_t=−0.75/0.25=−3.00" },
+    inputs: { mpc: "0.5" },
+    expect: ["2.00", "-1.00"],
+    ref: "k=1/(1−0.5)=2.00；k_t=−0.5/0.5=−1.00（原用 0.75 得 4.00/−3.00，其中 \"4.00\" 是默认输出 \"-4.00\" 的子串，会假通过）" },
 
   { slug: "economics/tax-multiplier",
     inputs: { mpc: "0.6" },

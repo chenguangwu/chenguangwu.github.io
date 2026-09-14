@@ -2,6 +2,8 @@
 /**
  * electromagnetism 分类计算正确性验证（覆盖 tools/electromagnetism/ 全部 26 个数值工具）
  * 期望值由独立复算得出（node 按页面公式 toFixed / toExponential 精确对齐），输入全避开页面默认值。
+ * 假通过自检: node scripts/selfcheck_false_pass.js scripts/verify_electromagnetism_calc.js
+ *   —— 除 free-space-impedance（常数页无有效输入字段，默认态命中为其固有属性）外，其余用例默认态 0 命中。
  * 用法: node scripts/verify_electromagnetism_calc.js [slug ...]
  */
 "use strict";
@@ -24,9 +26,9 @@ const CASES = [
     ref: "X_C=1/(2π·f·C)=1/(2π·50·2e-6)=1591.55 Ω；虚部=−X_C" },
 
   { slug: "electromagnetism/capacitors-parallel",
-    inputs: { C1: "10", C2: "22" },
-    expect: ["32.0000", "6.8750"],
-    ref: "C=10+22=32 µF；串联等效=1/(1/10+1/22)=6.8750 µF" },
+    inputs: { C1: "15", C2: "33" },
+    expect: ["48.0000", "10.3125"],
+    ref: "C=C₁+C₂=15+33=48 µF；串联等效=1/(1/15+1/33)=10.3125 µF" },
 
   { slug: "electromagnetism/capacitors-series",
     inputs: { C1: "4", C2: "4" },
@@ -34,29 +36,29 @@ const CASES = [
     ref: "C=1/(1/4+1/4)=2 µF；并联等效=4+4=8 µF" },
 
   { slug: "electromagnetism/coil-torque",
-    inputs: { N: "200", I: "0.5", A: "0.01", B: "0.1", th: "90" },
-    expect: ["0.1000"],
-    ref: "τ=N·I·A·B·sinθ=200·0.5·0.01·0.1·1=0.1000 N·m" },
+    inputs: { N: "150", I: "0.8", A: "0.02", B: "0.25", th: "30" },
+    expect: ["0.3000"],
+    ref: "τ=N·I·A·B·sinθ=150·0.8·0.02·0.25·sin30°=0.3000 N·m" },
 
   { slug: "electromagnetism/current-density",
-    inputs: { I: "5", A: "1e-6" },
-    expect: ["5.000e+6"],
-    ref: "J=I/A=5/1e-6=5e6 A/m²" },
+    inputs: { I: "8", A: "2e-6" },
+    expect: ["4.000e+6"],
+    ref: "J=I/A=8/2e-6=4e6 A/m²" },
 
   { slug: "electromagnetism/drift-velocity",
-    inputs: { I: "1", A: "1e-6", n: "8.5e28" },
-    expect: ["7.343e-5"],
-    ref: "v_d=I/(n·A·e)=1/(8.5e28·1e-6·1.602e-19)=7.343e-5 m/s" },
+    inputs: { I: "2", n: "5e28", A: "3e-6" },
+    expect: ["8.322e-5"],
+    ref: "v_d=I/(n·A·e)=2/(5e28·3e-6·1.602e-19)=8.322e-5 m/s" },
 
   { slug: "electromagnetism/electric-potential-point",
-    inputs: { q: "2e-6", r: "2" },
-    expect: ["8987.552"],
-    ref: "V=k·q/r=8.98755e9·2e-6/2=8987.552 V" },
+    inputs: { q: "2e-6", r: "4" },
+    expect: ["4493.776"],
+    ref: "V=k·q/r=8.98755e9·2e-6/4=4493.776 V" },
 
   { slug: "electromagnetism/electric-power",
-    inputs: { V: "12", I: "2" },
-    expect: ["24.000", "0.0240"],
-    ref: "P=V·I=12·2=24 W；P/1000=0.0240 kW" },
+    inputs: { V: "24", I: "3.5" },
+    expect: ["84.000", "0.0840"],
+    ref: "P=V·I=24·3.5=84.000 W；84/1000=0.0840 kW" },
 
   { slug: "electromagnetism/energy-capacitor",
     inputs: { C: "2e-6", V: "10" },
@@ -64,9 +66,9 @@ const CASES = [
     ref: "E=½CV²=0.5·2e-6·100=1e-4 J=100 µJ" },
 
   { slug: "electromagnetism/energy-inductor",
-    inputs: { L: "0.1", I: "2" },
-    expect: ["0.2000"],
-    ref: "E=½LI²=0.5·0.1·4=0.2000 J" },
+    inputs: { L: "0.25", I: "3" },
+    expect: ["1.1250"],
+    ref: "E=½LI²=0.5·0.25·9=1.1250 J" },
 
   { slug: "electromagnetism/faraday-induction",
     inputs: { N: "100", dPhi: "0.002", dt: "0.1" },
@@ -74,29 +76,29 @@ const CASES = [
     ref: "ε=N·|ΔΦ|/Δt=100·0.002/0.1=2 V；每匝=2/100=0.02 V" },
 
   { slug: "electromagnetism/force-wire-field",
-    inputs: { B: "0.5", I: "10", L: "0.2", th: "90" },
-    expect: ["1.0000"],
-    ref: "F=B·I·L·sinθ=0.5·10·0.2·1=1.0000 N" },
+    inputs: { B: "0.8", I: "5", L: "0.3", th: "30" },
+    expect: ["0.6000"],
+    ref: "F=B·I·L·sinθ=0.8·5·0.3·sin30°=0.6000 N" },
 
   { slug: "electromagnetism/free-space-impedance",
-    inputs: {},
+    inputs: { x: "0" },
     expect: ["376.73"],
-    ref: "Z₀=√(μ₀/ε₀)=√(4π·1e-7/8.854e-12)=376.73 Ω" },
+    ref: "Z₀=√(μ₀/ε₀)=376.73 Ω（常数页，页面无有效输入字段，默认态命中属固有；已用 selfcheck_false_pass.js 标注为例外）" },
 
   { slug: "electromagnetism/inductance-solenoid",
-    inputs: { N: "100", A: "0.01", l: "0.2" },
-    expect: ["0.6283"],
-    ref: "L=μ₀N²A/l=4π·1e-7·100²·0.01/0.2=6.283e-4 H=0.6283 mH" },
+    inputs: { N: "250", A: "0.02", l: "0.5" },
+    expect: ["3.1416"],
+    ref: "L=μ₀N²A/l=4πe-7·250²·0.02/0.5=3.1416e-3 H=3.1416 mH" },
 
   { slug: "electromagnetism/lc-resonance",
-    inputs: { L: "1", C: "1" },
-    expect: ["5032.92", "5.0329"],
-    ref: "f=1/(2π√(LC))，L=1mH,C=1µF → f=5032.92 Hz=5.0329 kHz" },
+    inputs: { L: "4", C: "9" },
+    expect: ["838.82", "0.8388"],
+    ref: "L=4 mH, C=9 µF → f=1/(2π√(LC))=838.82 Hz=0.8388 kHz" },
 
   { slug: "electromagnetism/magnetic-flux",
-    inputs: { B: "0.001", A: "0.01" },
-    expect: ["1.000e-5", "10.00"],
-    ref: "Φ=B·A=0.001·0.01=1e-5 Wb；Φ·1e6=10 µWb" },
+    inputs: { B: "0.004", A: "0.025" },
+    expect: ["1.000e-4", "100.00"],
+    ref: "Φ=B·A=0.004·0.025=1.000e-4 Wb；×1e6=100.00 µWb" },
 
   { slug: "electromagnetism/ohms-law",
     inputs: { I: "2", R: "50", V: "5" },
@@ -104,39 +106,39 @@ const CASES = [
     ref: "V 模式：V=I·R=2·50=100 V；P=V·I=100·2=200 W" },
 
   { slug: "electromagnetism/resistivity-law",
-    inputs: { rho: "1.68e-8", L: "1", A: "1e-6" },
-    expect: ["0.01680"],
-    ref: "R=ρL/A=1.68e-8·1/1e-6=0.01680 Ω" },
+    inputs: { rho: "2.5e-8", L: "3", A: "2e-6" },
+    expect: ["0.03750"],
+    ref: "R=ρL/A=2.5e-8·3/2e-6=0.03750 Ω" },
 
   { slug: "electromagnetism/resistors-parallel",
-    inputs: { R1: "10", R2: "10" },
-    expect: ["5.000", "0.2000"],
-    ref: "R=1/(1/10+1/10)=5 Ω；电导=1/5=0.2000 S" },
+    inputs: { R1: "15", R2: "30" },
+    expect: ["10.000", "0.1000"],
+    ref: "R=1/(1/15+1/30)=10.000 Ω；总倒导=1/10=0.1000 1/Ω" },
 
   { slug: "electromagnetism/resistors-series",
-    inputs: { R1: "10", R2: "20", R3: "30" },
-    expect: ["60.000", "0.01667"],
-    ref: "R=10+20+30=60 Ω；电导=1/60=0.01667 S" },
+    inputs: { R1: "15", R2: "25", R3: "35" },
+    expect: ["75.000", "0.01333"],
+    ref: "R=15+25+35=75.000 Ω；总倒导=1/75=0.01333 1/Ω" },
 
   { slug: "electromagnetism/rl-time-constant",
-    inputs: { L: "0.1", R: "10" },
-    expect: ["0.0100"],
-    ref: "τ=L/R=0.1/10=0.0100 s" },
+    inputs: { L: "0.5", R: "25" },
+    expect: ["0.0200"],
+    ref: "τ=L/R=0.5/25=0.0200 s" },
 
   { slug: "electromagnetism/solenoid-field",
-    inputs: { n: "1000", I: "1" },
-    expect: ["1.257e-3", "1.257"],
-    ref: "B=μ₀·n·I=4π·1e-7·1000·1=1.257e-3 T=1.257 mT" },
+    inputs: { n: "2000", I: "3" },
+    expect: ["7.540e-3", "7.540"],
+    ref: "B=μ₀·n·I=4πe-7·2000·3=7.540e-3 T=7.540 mT" },
 
   { slug: "electromagnetism/inductors-parallel",
-    inputs: { L1: "2", L2: "2" },
-    expect: ["1.0000", "1.0000"],
-    ref: "L=1/(1/2+1/2)=1 mH；总倒感=1/1=1 1/mH" },
+    inputs: { L1: "3", L2: "6" },
+    expect: ["2.0000", "0.5000"],
+    ref: "L=1/(1/3+1/6)=2.0000 mH；总倒感=1/2=0.5000 1/mH" },
 
   { slug: "electromagnetism/inductors-series",
-    inputs: { L1: "1", L2: "2" },
-    expect: ["3.0000", "0.6667"],
-    ref: "L=1+2=3 mH；并联等效=1/(1/1+1/2)=0.6667 mH" },
+    inputs: { L1: "3", L2: "5" },
+    expect: ["8.0000", "1.8750"],
+    ref: "L=3+5=8.0000 mH；并联等效=1/(1/3+1/5)=1.8750 mH" },
 ];
 
 
