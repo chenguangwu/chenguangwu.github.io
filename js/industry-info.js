@@ -64,7 +64,7 @@ window.INDUSTRY_INFO = {
   'obstetrics'           : { name: '产科医学', icon: '🤱', hot: 228295 },
   'astronomy'            : { name: '天文观测', icon: '🔭', hot: 226501 },
   'investment'           : { name: '投资理财', icon: '💹', hot: 225556 },
-  'tax'                  : { name: '税务', icon: '💸', hot: 221069 },
+  'tax'                  : { name: '税务', icon: '💸', hot: 221066 },
   'insurance'            : { name: '保险计算', icon: '🛡️', hot: 220522 },
   'accounting'           : { name: '会计审计', icon: '🧾', hot: 217164 },
   'pulmonology'          : { name: '呼吸内科', icon: '🫁', hot: 211920 },
