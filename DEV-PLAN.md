@@ -161,6 +161,11 @@
 
 ## 八、分类推进记录
 
+> ✅ **`meteorology` (42) 已收口**（2026-09-14 开工并完成）。**范围**：`tools/meteorology/` 全部 42 个工具页。
+> **八项基线审计（2026-09-14）**：deep-dive **42/42**（无缺页）；UI 零缺项；**cat 误标 2**（`risk-14` 标 `finance`、`lvyouqixiangzhishu` 标 `health`，均应为 `calculator`）；**英文 p 占位 31**、desc-en 占位 30、body intro 占位 32、body title 代号 9、en_override 代号 9、**orphan 键 6**；**formula 计算类 28、缺框 11（覆盖率 17/28）**；计算验证 0；**指南 0/42**。
+> **批次计划（全部完成）**：A 英文态数据源根治 + cat 修正 + 孤儿键清除 → B 英文占位正文注入 → C formula 补框 11 页 → D 计算验证（第 26 道门禁）→ E 指南 0→42 → 收口归档。
+> **收口结果（2026-09-14）**：① 英文态八维全清零（42 条真实英文名 + 英文描述四端同步：`meteorology-body.json` / `meteorology.json`(en-US) / `_en_override.json` / `industry-meteorology.json`(en+ed)；清 6 个 enmap 孤儿键 `wind-beaufort` / `rengong-yingxiang-zengyu-fangbao-zuoye` / `tool-004-68` / `tool-006-56` / `tool-007-57` / `tool-011-24`；cat 修正 2 处 `risk-14`/`lvyouqixiangzhishu` finance/health→calculator）。② deep-dive 42/42（基线已达标，无新增）。③ formula 覆盖率 17/28→**28/28**（`scripts/add_meteorology_formula.py` 11 页补真实公式框：assessor-29 / capeduiliuyouxiaoweineng / dafengyingxiangpinggu / detector-protection / haiyangfengbaochaoyujing / jiaotongqixianganquantishi / lvyouqixiangzhishu / nongyeqixiangjianyi / risk-14 / strength-3 / temp）。④ 第 26 道门禁 `verify_meteorology_calc.js` **9/9**（Magnus 露点、风寒指数、Tetens 饱和水汽压、绝对湿度、云底高度、气压高度、ISA 温度、相对湿度、蒲福风级；输入均避开页面默认值，独立复算断言）。⑤ 指南 0→**42**（`gen_industry_guides.py --apply` 数据驱动；无跨行业重名冲突，全部裸名 `*-guide.html`；guides/index 与 json/guides.json 同步新增）。二十六道质量门禁全过。**部署核验**：提交 `3e5f8a665`，线上 4 文件 MD5 逐字节一致（tools/meteorology/dew-point.html / guides/dew-point-guide.html / guides/index.html / json/guides.json）。
+
 > ✅ **`marketing` (46) 已收口**（2026-09-14 开工并完成）。**范围**：`tools/marketing/` 全部 46 个工具页（**§9.2 计数 44 有误，实测 46**）。
 > **八项基线审计（2026-09-14）**：deep-dive **43/46**（3 页空无键：`assessor-51` / `assessor-65` / `marketing-roi`）；UI 零缺项；**cat 误标 1**（`marketing-ctr-calculator` 标 `health` 应为 `calculator`；另 `marketing-keyword-density` / `xiaohongshu-counter` 的 `cat=text` 经核查为全局合法值 89 处，非缺陷，保留）；**英文 p 占位 46**、desc-en 占位 46、h2 占位 39；**formula 计算类 32、缺框 6（覆盖率 26/32）**；计算验证 0；**指南 2/46**；英文态（enmap 孤儿键 3：`roi-calculator` / `simulator-8` / `calc-confidence`）。
 > **批次计划（全部完成）**：A 英文态数据源根治 → B 英文占位正文注入 → C formula 补框 6 页 → D 计算验证（第 25 道门禁）→ E 指南 2→46 → F 修复指南误归属 → 收口归档。
@@ -280,11 +285,10 @@
 
 > 跳过规则：上述分类**不列入 §9.2 待办**；其余分类按 §9.2 热度顺序从零推进。
 
-### 9.2 分类优化清单（247 分类，按热度降序，完成一个删一个）
+### 9.2 分类优化清单（244 分类，按热度降序，完成一个删一个）
 
 > 清单由脚本按 `tools/` 目录工具数生成；每行 = 分类名 + 工具数。当前进行中的分类在 §8 同步登记。
 
-- [ ] meteorology (42)
 - [ ] optical (41)
 - [ ] surveying (40)
 - [ ] fishery (38)
