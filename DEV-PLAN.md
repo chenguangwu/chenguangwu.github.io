@@ -378,6 +378,11 @@
 > **八项基线审计（2026-09-14）**：deep-dive **23/23（清 5 孤儿后条数/套话均合格）**；UI 零缺项；**cat 全为 `fluid`（∈ CAT_DEFS 53 键之一，无需修正）**；**英文全为占位模板**（套话 23 页）；**孤儿键 5**；formula **23/23 已覆盖**（基线达标，跳过 C）；计算验证 0；**指南 23/23 已存在**（反链精确指向 `tools/fluid/`，无跨行业重名，跳过 E）。
 > **批次计划（全部完成）**：A deep-dive（清孤儿后达标，跳过补写）→ B 英文态根治（清 5 孤儿）→ C formula（已覆盖，跳过）→ D 计算验证（第 51 道门禁）→ E 指南（已存在，跳过）→ 收口归档。
 > **收口结果（2026-09-14）**：① deep-dive 23/23（`content_deepdive.json` 清 5 孤儿键 `fluid/drag-force`、`fluid/dynamic-pressure`、`fluid/mach-number`、`fluid/reynolds-number`、`fluid/terminal-velocity`；逐一核验 `aerospace/*` 与 `dynamics/terminal-velocity` 已持有完整深解（scenarios/examples/faqs 齐全），无内容损失）。② 英文态根治（`scripts/enmap/fluid.json` 23 条真实英文名 + 英文简介四端同步；title-en 23 / desc-en 23 / h2 15 / p 23；零 cat 修正）。③ formula 跳过（基线 23/23 已覆盖）。④ 第 51 道门禁 `verify_fluid_calc.js` **23/23**（伯努利压力/阿基米德浮力/毛细压差/毛细上升/空化数/谢才流速/连续性方程/弗劳德数/水力直径/静水压/运动黏度/拉普拉斯压差/曼宁流速/局部水头损失/孔口出流/皮托管流速/泊肃叶流量/达西压降/驻点压力/斯托克斯沉降/文丘里流量/体积流量/韦伯数；输入全避开默认值，期望值按页面公式 JS toFixed/toExponential 精确复算，0 RISK）。⑤ 指南跳过（23/23 已存在且映射正确）。五十一道质量门禁全过。**部署核验**：提交 `699e75d93`，线上 4 文件 MD5 逐字节一致（tools/fluid/bernoulli-pressure.html / tools/fluid/weber-number.html / json/industry-fluid.json / json/tools.json）。
+> ✅ `geometry` (28) 已收口**（2026-09-14 开工并完成）。**范围**：`tools/geometry/` 全部 28 个工具页。
+> **八项基线审计（2026-09-14）**：deep-dive **28/28 全达标**（scenarios/examples/faqs 齐备，无孤儿键）；UI 零缺项；cat **28/28 全为 geometry**（零跨行业误标无需修正）；**英文全为占位模板**（"is available directly in your browser" 套话 28 页）；孤儿键 0；**formula 28/28 已覆盖**（C 项跳过）；计算验证 0；**指南 4/28**。
+> **批次计划（全部完成）**：A deep-dive（已达标，跳过补写）→ B 英文态根治（28 页四端同步）→ C formula（已覆盖，跳过）→ D 计算验证（第 52 道门禁）→ E 指南 4→28 → 收口归档。
+> **收口结果（2026-09-14）**：① 英文态根治（`scripts/enmap/geometry.json` 28 条真实英文名 + 英文简介；body / `geometry.json` / `_en_override` / `industry-geometry.json` 四端同步，页面静态 title-en/desc-en/h2/p 占位清除）。② deep-dive 28/28 复核通过（无需清孤儿）。③ cat 复核为 28/28 全 geometry，无需修正。④ 第 52 道门禁 `verify_geometry_calc.js` **28/28**（两向量夹角/三维距离/点积/点到直线距离/抛物线顶点/弧长/弦长/圆面积/圆周长/扇形面积/正多边形内角/正多边形面积/梯形面积/海伦公式/勾股定理/矩形对角线/圆台体积/圆锥体积/立方体属性/圆柱体积/椭球体积/棱锥体积/长方体体积/球表面积/球体积/环体体积/椭圆面积；输入全避开默认值，期望值按页面公式 JS toFixed 精确复算）。⑤ 指南 4→**28**（`gen_industry_guides.py --apply`；24 新增 + 4 已存在，零跨行业重名，反链精确指向 `tools/geometry/`）。**假通过自检 0 RISK**（`selfcheck_false_pass.js` 默认态 0 命中；首轮自检曾捕获 `distance-3d`/`parabola-vertex`/`trapezoid-area` 三处默认态巧合命中，已全部重选输入修正）。五十二道质量门禁全过。**部署核验**：提交 `003738441`，线上 4 文件 MD5 逐字节一致（tools/geometry/pythagorean.html / guides/pythagorean-guide.html / json/industry-geometry.json / json/tools.json）。
+
 
 
 
@@ -408,11 +413,10 @@
 
 > 跳过规则：上述分类**不列入 §9.2 待办**；其余分类按 §9.2 热度顺序从零推进。
 
-### 9.2 分类优化清单（219 分类，按热度降序，完成一个删一个）
+### 9.2 分类优化清单（218 分类，按热度降序，完成一个删一个）
 
 > 清单由脚本按 `tools/` 目录工具数生成；每行 = 分类名 + 工具数。当前进行中的分类在 §8 同步登记。
 
-- [ ] geometry (28)
 - [ ] investment (28)
 - [ ] kinematics (28)
 - [ ] materials (28)
