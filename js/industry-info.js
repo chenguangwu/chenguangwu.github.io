@@ -30,7 +30,7 @@ window.INDUSTRY_INFO = {
   'realestate'           : { name: '房地产', icon: '🏘️', hot: 396644 },
   'fishery'              : { name: '渔业水产', icon: '🎣', hot: 394327 },
   'ai'                   : { name: '人工智能', icon: '🤖', hot: 386708 },
-  'math'                 : { name: '数学计算', icon: '🧮', hot: 354532 },
+  'math'                 : { name: '数学计算', icon: '🧮', hot: 354026 },
   'cosmetic-derm'        : { name: '美容皮肤', icon: '✨', hot: 343186 },
   'metalwork'            : { name: '金属加工', icon: '🔨', hot: 342459 },
   'encode'               : { name: '编码转换', icon: '🔐', hot: 337286 },

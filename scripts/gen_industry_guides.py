@@ -70,7 +70,7 @@ def owner_inds_of_file(path):
         return set()
     with open(path, encoding="utf-8", errors="ignore") as f:
         s = f.read()
-    return set(re.findall(r"https://chenguangwu\.github\.io/tools/([A-Za-z0-9_-]+)/", s))
+    return set(re.findall(r"(?:https://chenguangwu\.github\.io)?/tools/([A-Za-z0-9_-]+)/", s))
 
 
 _guides_arr = None
