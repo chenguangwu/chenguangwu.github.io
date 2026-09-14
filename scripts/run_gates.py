@@ -90,6 +90,7 @@ GATES = (
     ("fitness calc correctness", ("node", "scripts/verify_fitness_calc.js")),
     ("eco calc correctness", ("node", "scripts/verify_eco_calc.js")),
     ("cosmetic-derm calc correctness", ("node", "scripts/verify_cosmetic_derm_calc.js")),
+    ("insurance calc correctness", ("node", "scripts/verify_insurance_calc.js")),
 )
 
 
