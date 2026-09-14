@@ -100,6 +100,7 @@ GATES = (
     ("acoustics calc correctness", ("node", "scripts/verify_acoustics_calc.js")),
     ("chemistry calc correctness", ("node", "scripts/verify_chemistry_calc.js")),
     ("dynamics calc correctness", ("node", "scripts/verify_dynamics_calc.js")),
+    ("economics calc correctness", ("node", "scripts/verify_economics_calc.js")),
 )
 
 
