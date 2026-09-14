@@ -2742,6 +2742,7 @@ def fix_tool_pages_seo(tools, target_tools=None, report=True, existing_html_path
     GUIDE_MAP = {}
     GUIDE_MAP_IND = {}
     GUIDE_INDS = {}          # basename -> set(已确认归属行业)，用于识别跨行业重名
+    GUIDE_OWNERS = {}        # 指南相对路径 -> set(归属行业)，用于自愈历史错链
     _guide_json_path = os.path.join(ROOT, 'json', 'guides.json')
     if os.path.isfile(_guide_json_path):
         try:
@@ -2759,12 +2760,14 @@ def fix_tool_pages_seo(tools, target_tools=None, report=True, existing_html_path
                         try:
                             _gs = open(_gp, encoding='utf-8', errors='ignore').read()
                             for _m in re.finditer(
-                                r'https://chenguangwu\.github\.io/tools/([A-Za-z0-9_-]+)/([A-Za-z0-9_.-]+\.html)',
+                                r'(?:https://chenguangwu\.github\.io)?/tools/([A-Za-z0-9_-]+)/([A-Za-z0-9_.-]+\.html)',
                                     _gs):
                                 _gind, _gbase = _m.group(1), _m.group(2)
                                 if _gbase == _gt:
-                                    GUIDE_MAP_IND[_gind + '/' + _gt] = (_g.get('guide', ''), _title)
+                                    GUIDE_MAP_IND.setdefault(_gind + '/' + _gt, (_g.get('guide', ''), _title))
                                     GUIDE_INDS.setdefault(_gt, set()).add(_gind)
+                                    _grel = (_g.get('guide', '') or '').replace('../../', '')
+                                    GUIDE_OWNERS.setdefault(_grel, set()).add(_gind)
                                     break
                         except Exception:
                             pass
@@ -2966,19 +2969,24 @@ def fix_tool_pages_seo(tools, target_tools=None, report=True, existing_html_path
             content, _ni_hits = normalize_tool_icon_in_page(content, _old_tool_icon, _new_tool_icon)
 
         # 2.5 Add "使用指南" link (idempotent via data-guide-link)
+        _tb = os.path.basename(t['path'])
+        # 优先用「行业/basename」精确命中；若该 basename 已确认归属别的行业
+        # （如 calc-1.html 属于 accounting），则不得回退到 basename 全局匹配，
+        # 否则会把「增值税计算使用指南」注入消防 / 医疗等无关页面。
+        _gitem = GUIDE_MAP_IND.get(industry + '/' + _tb)
+        if not _gitem and _tb not in GUIDE_INDS:
+            _gitem = GUIDE_MAP.get(_tb)
+
+        def _guide_block(url, title):
+            return ('<div class="tool-guide-link" data-guide-link="1">\n'
+                    '  <a href="%s">📖 查看「%s」</a>\n'
+                    '</div>') % (url, esc_html_py(title))
+
         if 'data-guide-link' not in content:
-            _tb = os.path.basename(t['path'])
-            # 优先用「行业/basename」精确命中；若该 basename 已确认归属别的行业
-            # （如 calc-1.html 属于 accounting），则不得回退到 basename 全局匹配，
-            # 否则会把「增值税计算使用指南」注入消防 / 医疗等无关页面。
-            _gitem = GUIDE_MAP_IND.get(industry + '/' + _tb)
-            if not _gitem and _tb not in GUIDE_INDS:
-                _gitem = GUIDE_MAP.get(_tb)
             if _gitem:
                 _g_url, _g_title = _gitem
                 if _g_url:
-                    _g_title_esc = esc_html_py(_g_title)
-                    gl_html = '\n<div class="tool-guide-link" data-guide-link="1">\n  <a href="%s">📖 查看「%s」</a>\n</div>\n' % (_g_url, _g_title_esc)
+                    gl_html = '\n' + _guide_block(_g_url, _g_title) + '\n'
                     if '<div class="container' in content:
                         # 前缀匹配以兼容 V2 模板的 '<div class="container xxx">'（如 cb-wrap）
                         _cidx = content.find('<div class="container')
@@ -2986,6 +2994,19 @@ def fix_tool_pages_seo(tools, target_tools=None, report=True, existing_html_path
                         content = content[:_cend] + gl_html + content[_cend:]
                     elif '<div class="card">' in content:
                         content = content.replace('<div class="card">', gl_html + '<div class="card">', 1)
+        elif _gitem and _gitem[0]:
+            # 自愈：历史构建在「跨行业重名」页面上按 basename 兜底注入过错链
+            # （如 fitness/calc-2 → hydraulic 的 calc-2-guide.html）。注入本身幂等，
+            # 不主动改写会永久残留。仅当「现有链接归属别行业」且「精确映射指向本行业
+            # 的另一个指南文件」时才替换，避免误改人工指定的指南链接。
+            _blk = re.search(r'<div class="tool-guide-link"[^>]*>[\s\S]*?</div>', content)
+            if _blk:
+                _hm = re.search(r'href="([^"]+)"', _blk.group(0))
+                _cur_rel = re.sub(r'^(?:\.\./)+|^/', '', _hm.group(1)) if _hm else ''
+                _want_rel = (_gitem[0] or '').replace('../../', '')
+                _owners = GUIDE_OWNERS.get(_cur_rel, set())
+                if _cur_rel and _cur_rel != _want_rel and _owners and industry not in _owners:
+                    content = content.replace(_blk.group(0), _guide_block(_gitem[0], _gitem[1]), 1)
 
         # 3. Add BreadcrumbList structured data (idempotent)
         if 'BreadcrumbList' not in content:

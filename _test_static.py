@@ -31,6 +31,14 @@ stats = {
     'warnings_list': [],
 }
 
+# add_*_formula.py（锚点遍历全文）会把 formula-box 插进 JS 模板串/单引号串，
+# 单引号串被裸换行撕裂 → 页面脚本 SyntaxError（计算器全废）。
+# 该缺陷已在 fitness/math 修复；以下为历史遗留、待单独修复批次处理的页面（修复后须从此名单移除）。
+FORMULA_IN_SCRIPT_ALLOW = {
+    'tools/optical/calc-47.html',
+    'tools/optical/detector-31.html',
+}
+
 class ToolHTMLParser(HTMLParser):
     def __init__(self):
         super().__init__()
@@ -192,6 +200,22 @@ def check_tool(filepath, rel_path):
     if style_match and len(style_match.group(1)) > 10000:
         warnings.append(f'内联样式过大 ({len(style_match.group(1))} bytes)，建议抽取到 common.css')
     
+    # 10. 注入型 formula-box 不得落在 <script>/<style> 内
+    #     （add_*_formula.py 锚点越界会命中 JS 模板串里的 input-row/tip-box，破坏页面脚本）
+    if '<div class="card formula-box">' in content:
+        spans = []
+        for pat in (r'<script\b[\s\S]*?</script>', r'<style\b[\s\S]*?</style>'):
+            spans += [(m.start(), m.end()) for m in re.finditer(pat, content, re.I)]
+        hit = any(
+            any(a <= m.start() < b for a, b in spans)
+            for m in re.finditer(r'<div class="card formula-box">', content)
+        )
+        if hit:
+            if rel_path.replace(os.sep, '/') in FORMULA_IN_SCRIPT_ALLOW:
+                warnings.append('注入型 formula-box 落在 <script> 内（已知遗留，待修复）')
+            else:
+                errors.append('注入型 formula-box 落在 <script>/<style> 内，会破坏页面 JS')
+
     # 统计结果
     if errors:
         stats['failed'] += 1

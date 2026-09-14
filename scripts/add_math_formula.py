@@ -32,11 +32,21 @@ def build_box(eq, desc):
     ) % (eq, desc)
 
 
+def script_or_style_spans(s):
+    """<script>/<style> 区间：锚点搜索必须排除，否则会命中 JS 模板串里的 input-row/tip-box。"""
+    spans = []
+    for pat in (r'<script\b[\s\S]*?</script>', r'<style\b[\s\S]*?</style>'):
+        spans += [(m.start(), m.end()) for m in re.finditer(pat, s, re.I)]
+    return spans
+
+
 def find_anchor(s):
+    spans = script_or_style_spans(s)
     for a in ANCHORS:
-        m = re.search(
-            r'<(?:\w+)\b[^>]*\bclass="[^"]*\b%s\b[^"]*"[^>]*>' % re.escape(a), s)
-        if m:
+        for m in re.finditer(
+            r'<(?:\w+)\b[^>]*\bclass="[^"]*\b%s\b[^"]*"[^>]*>' % re.escape(a), s):
+            if any(x <= m.start() < y for x, y in spans):
+                continue
             return m.start()
     return -1
 
