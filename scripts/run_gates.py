@@ -101,6 +101,7 @@ GATES = (
     ("chemistry calc correctness", ("node", "scripts/verify_chemistry_calc.js")),
     ("dynamics calc correctness", ("node", "scripts/verify_dynamics_calc.js")),
     ("economics calc correctness", ("node", "scripts/verify_economics_calc.js")),
+    ("electromagnetism calc correctness", ("node", "scripts/verify_electromagnetism_calc.js")),
 )
 
 

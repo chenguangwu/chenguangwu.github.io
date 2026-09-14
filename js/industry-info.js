@@ -116,7 +116,7 @@ window.INDUSTRY_INFO = {
   'language'             : { name: '语言翻译', icon: '🌍', hot: 140815 },
   'mechanical'           : { name: '机械工程', icon: '⚙️', hot: 136621 },
   'logistics'            : { name: '物流运输', icon: '🚚', hot: 136590 },
-  'electromagnetism'     : { name: '电磁学', icon: '⚡', hot: 132110 },
+  'electromagnetism'     : { name: '电磁学', icon: '⚡', hot: 132104 },
   'structural'           : { name: '结构工程', icon: '🏗️', hot: 130938 },
   'ent'                  : { name: '耳鼻喉科', icon: '👂', hot: 127280 },
   'gas'                  : { name: '燃气工程', icon: '🔥', hot: 126466 },
