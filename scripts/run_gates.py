@@ -98,6 +98,7 @@ GATES = (
     ("photo calc correctness", ("node", "scripts/verify_photo_calc.js")),
     ("tax calc correctness", ("node", "scripts/verify_tax_calc.js")),
     ("acoustics calc correctness", ("node", "scripts/verify_acoustics_calc.js")),
+    ("chemistry calc correctness", ("node", "scripts/verify_chemistry_calc.js")),
 )
 
 
