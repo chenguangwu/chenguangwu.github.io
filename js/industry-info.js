@@ -46,7 +46,7 @@ window.INDUSTRY_INFO = {
   'economics'            : { name: '经济学', icon: '📊', hot: 284919 },
   'banking'              : { name: '银行学', icon: '🏦', hot: 281948 },
   'photo'                : { name: '摄影参数', icon: '📷', hot: 277201 },
-  'ophthalmology'        : { name: '眼科医学', icon: '👁️', hot: 270849 },
+  'ophthalmology'        : { name: '眼科医学', icon: '👁️', hot: 274843 },
   'textile'              : { name: '纺织服装', icon: '🧵', hot: 270064 },
   'eco'                  : { name: '生态环保', icon: '🌱', hot: 268815 },
   'clinical-nursing'     : { name: '临床护理', icon: '💉', hot: 258620 },

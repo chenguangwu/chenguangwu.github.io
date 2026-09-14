@@ -92,6 +92,7 @@ GATES = (
     ("cosmetic-derm calc correctness", ("node", "scripts/verify_cosmetic_derm_calc.js")),
     ("insurance calc correctness", ("node", "scripts/verify_insurance_calc.js")),
     ("obstetrics calc correctness", ("node", "scripts/verify_obstetrics_calc.js")),
+    ("ophthalmology calc correctness", ("node", "scripts/verify_ophthalmology_calc.js")),
 )
 
 
