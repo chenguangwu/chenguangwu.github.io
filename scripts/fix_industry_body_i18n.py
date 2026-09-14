@@ -178,17 +178,23 @@ for slug, v in EN_MAP.items():
     s2 = re.sub(r'(<h2\b[^>]*data-zh="[^"]*">)([\s\S]*?)(</h2>)', _h2, s, count=1)
     n_h2 += (s2 != s); s = s2
 
-    # 占位 <p> 有两种形态：muted 样式段 / class="calc-desc" 段；命中其一即替换（幂等）
-    for pat in (r'(<p\s+style="font-size:13px;color:var\(--text-muted\)[^"]*"[^>]*>)([\s\S]*?)(</p>)',
-                r'(<p\s+class="calc-desc"[^>]*>)([\s\S]*?)(</p>)'):
-        s2 = re.sub(pat, lambda m: m.group(1) + esc_html(intro) + m.group(3), s, count=1)
-        if s2 != s:
-            n_p += 1
-            s = s2
-            break
+    # 占位 <p> 三种形态：muted 样式段 / calc-desc 段 / formula-desc 段；
+    # 命中「X is available directly in your browser」套话即替换为英文 intro（幂等，按页计数一次）
+    ph = re.compile(r'is available directly in your browser', re.I)
+    def _rep_p(m):
+        if not ph.search(m.group(2)):
+            return m.group(0)
+        return '%s%s%s' % (m.group(1), esc_html(intro), m.group(3))
+    s_p = s
+    for cls in (r'<p\s+style="font-size:13px;color:var\(--text-muted\)[^"]*"[^>]*>',
+                r'<p\s+class="calc-desc"[^>]*>',
+                r'<p\s+class="formula-desc"[^>]*>'):
+        s_p = re.sub(r'(%s)([\s\S]*?)(</p>)' % cls, _rep_p, s_p)
+    if s_p != s:
+        n_p += 1
+        s = s_p
     else:
-        # 兜底：首个 <p> 若为「X is available directly in your browser」套话，直接替换内文
-        ph = re.compile(r'is available directly in your browser', re.I)
+        # 兜底：首个 <p> 若为套话（非上述三种 class），直接替换内文
         def _first_p(m):
             open_tag, inner, close = m.group(1), m.group(2), m.group(3)
             if not ph.search(inner):

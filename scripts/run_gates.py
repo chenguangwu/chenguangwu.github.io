@@ -78,6 +78,7 @@ GATES = (
     ("edu calc correctness", ("node", "scripts/verify_edu_calc.js")),
     ("marketing calc correctness", ("node", "scripts/verify_marketing_calc.js")),
     ("meteorology calc correctness", ("node", "scripts/verify_meteorology_calc.js")),
+    ("optical calc correctness", ("node", "scripts/verify_optical_calc.js")),
 )
 
 
