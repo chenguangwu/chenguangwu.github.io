@@ -370,6 +370,11 @@
 > **八项基线审计（2026-09-14）**：deep-dive **27/27（已达标，条数/套话均合格，"示例"标题触发假阳性）**；UI 零缺项；**cat 全为 `economics`（∈ CAT_DEFS，无需修正）**；**英文全为占位模板**（"X is available directly in your browser" 套话 27 页、desc-en 占位 27）；**孤儿键 1**（`cagr` 无 economics 磁盘页，实为 finance 工具——其 deep-dive 由 economics 误标，已归位 finance/cagr）；formula **27/27 已覆盖**（基线已达标）；计算验证 0；**指南 0/27**。
 > **批次计划（全部完成）**：A deep-dive（已达标，跳过）→ B 英文态根治（清 1 孤儿并归位）→ C formula（已达标，跳过）→ D 计算验证（第 49 道门禁）→ E 指南 0→27 → 收口归档。
 > **收口结果（2026-09-14）**：① deep-dive 27/27（基线已达标未改）。② 英文态根治（`scripts/enmap/economics.json` 27 条真实英文名 + 英文简介四端同步；**清 1 孤儿 `cagr`**（body/`economics.json`/`_en_override` 三端），并将其 deep-dive 键由 `economics/cagr` **归位** `finance/cagr`（finance/cagr.html 实页此前缺 deep-dive，无内容损失）；零 cat 修正）。③ formula 27/27（基线已覆盖跳过）。④ 第 49 道门禁 `verify_economics_calc.js` **27/27**（APC/贸易差额/Cobb-Douglas/复利终值/交叉弹性/需求价格弹性/Fisher/年金终值/支出法 GDP/GDP 增速/收入弹性/通胀率/劳动力/劳动参与率/MPL/MPC/由乘数求 MPC/名义→实际/Okun/现值/年金现值/实际 GDP/72 法则/政府支出乘数/税收乘数/失业率/货币流通速度；输入全避开默认值，期望值按页面公式 JS toFixed 精确复算，0 RISK）。⑤ 指南 0→**27**（`gen_industry_guides.py --apply`；27 新增，零跨行业重名）。四十九道质量门禁全过。**部署核验**：提交 `7bf23b5d3`，线上 4 文件 MD5 逐字节一致（tools/economics/gdp-expenditure.html / guides/gdp-expenditure-guide.html / json/industry-economics.json / i18n/tools/economics.json）。
+> ✅ **`electromagnetism` (28) 已收口**（2026-09-14 开工并完成）。**范围**：`tools/electromagnetism/` 全部 26 个工具页（§9.2 记 28，磁盘实测 26；2 个 `coulomb-force`/`electric-field-point` 实为 science 工具页，已各自持有 science deep-dive）。
+> **八项基线审计（2026-09-14）**：deep-dive **26/26（清 2 孤儿键后条数/套话均合格）**；UI 零缺项；**cat 26 页中 1 处跨行业误标**（`ohms-law` 为 `engineer`，已修正 `electromagnetism`）；**英文全为占位模板**（套话 26 页）；**孤儿键 2**；formula **25/26**（`ohms-law` 缺框，该页 8 个 number input 命中「≥2 即计算类」客观口径，此前漏补）；计算验证 0；**指南 0/26**。
+> **批次计划（全部完成）**：A deep-dive（清孤儿后达标，跳过补写）→ B 英文态根治 + cat 修正（清 2 孤儿）→ C formula（补 `ohms-law` 框 25→26）→ D 计算验证（第 50 道门禁）→ E 指南 0→26 → 收口归档。
+> **收口结果（2026-09-14）**：① deep-dive 26/26（`content_deepdive.json` 清 2 孤儿键 `electromagnetism/coulomb-force`、`electromagnetism/electric-field-point`；对应真页 `tools/science/` 已持有各自 deep-dive，无内容损失）。② 英文态根治（`scripts/enmap/electromagnetism.json` 26 条真实英文名 + 英文简介四端同步）；**cat 修正 1**（`ohms-law` engineer→electromagnetism，页面 meta + `json/industry-electromagnetism.json` + `json/tools.json` 三处同写，构建后复核 cat 分布 26/26 全为 electromagnetism）。③ formula 25→**26**。④ 第 50 道门禁 `verify_electromagnetism_calc.js` **26/26**（直导线磁感应强度/平行板电容/容抗/电容并串联/线圈转矩/电流密度/漂移速度/点电荷电势/电功率/电容储能/电感储能/法拉第感应/磁场载流导线受力/自由空间阻抗/螺线管电感/LC 谐振/磁通量/欧姆定律/电阻定律/电阻并串联/RL 时间常数/螺线管磁场/电感并串联；输入全避开默认值，期望值按页面公式 JS toFixed/toExponential 精确复算，0 RISK）。⑤ 指南 0→**26**（`gen_industry_guides.py --apply`；26 新增，零跨行业重名）。五十道质量门禁全过。**部署核验**：提交 `1ca809cab`，线上 4 文件 MD5 逐字节一致（tools/electromagnetism/ohms-law.html / guides/ohms-law-guide.html / json/industry-electromagnetism.json / json/tools.json）。
+
 
 ## 九、未完成任务清单
 
@@ -398,11 +403,10 @@
 
 > 跳过规则：上述分类**不列入 §9.2 待办**；其余分类按 §9.2 热度顺序从零推进。
 
-### 9.2 分类优化清单（221 分类，按热度降序，完成一个删一个）
+### 9.2 分类优化清单（220 分类，按热度降序，完成一个删一个）
 
 > 清单由脚本按 `tools/` 目录工具数生成；每行 = 分类名 + 工具数。当前进行中的分类在 §8 同步登记。
 
-- [ ] electromagnetism (28)
 - [ ] fluid (28)
 - [ ] geometry (28)
 - [ ] investment (28)
