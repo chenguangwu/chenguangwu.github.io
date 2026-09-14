@@ -161,6 +161,11 @@
 
 ## 八、分类推进记录
 
+> ✅ **`fishery` (38) 已收口**（2026-09-14 开工并完成）。**范围**：`tools/fishery/` 全部 38 个工具页。
+> **八项基线审计（2026-09-14）**：deep-dive **38/38**（无缺页）；UI 零缺项；**cat 跨行业错标 5**（`profit-calculator`/`fish-disease-risk` 标 `finance`、`fish-weight`/`ratio-hormone`/`spawning-hormone` 标 `health`）；**英文 p 占位 35**、desc-en 占位 32、body intro 占位 37、body title 代号 4、en_override 代号 4、industry ed 不达标 2、**orphan 键 3**（`estimate-emission-wastewater`/`simulator-temp`/`tool-006-11`）；**formula 计算类 36、缺框 1**（`water-oxygen`，覆盖率 35/36）；计算验证 0；**指南 35/38**（缺 `calc-39`/`estimate-23`/`plankton-biomass`）。
+> **批次计划（全部完成）**：A deep-dive（38/38 已达标，无需）→ B 英文态数据源根治 + cat 修正 + 孤儿键清除 → C formula 补框 1 页 → D 计算验证（第 29 道门禁）→ E 指南 35→38 → 收口归档。
+> **收口结果（2026-09-14）**：① deep-dive 38/38（基线已达标）。② 英文态八维全清零（38 条真实英文名 + 英文描述四端同步；**cat 修正 5**：`profit-calculator` finance→calculator、`fish-disease-risk` finance→validator、`fish-weight`/`ratio-hormone`/`spawning-hormone` health→calculator；清 3 孤儿键；industry ed 不达标 2→0）。③ formula 35/36→**36/36**（`scripts/add_fishery_formula.py` 补 `water-oxygen` 二维插值饱和溶氧公式框）。④ 第 29 道门禁 `verify_fishery_calc.js` **8/8**（百分比、盐度混合、换水率稳定浓度、养殖利润、鱼苗运输成活率、废水 COD、鱼体重幂律、溶氧饱和与黎明预测；输入全避开页面默认值，node 独立复算断言）。⑤ 指南 35→**38**（`gen_industry_guides.py --apply` 数据驱动；3 新增，无跨行业重名；38 指南全部存在、反链归属正确、零误归属）。二十九道质量门禁全过。**部署核验**：提交 `43ff9885d`，线上 4 文件 MD5 逐字节一致（tools/fishery/profit-calculator.html / guides/plankton-biomass-guide.html / guides/index.html / json/guides.json）。
+
 > ✅ **`surveying` (44) 已收口**（2026-09-14 开工并完成）。**范围**：`tools/surveying/` 全部 44 个工具页。
 > **八项基线审计（2026-09-14）**：deep-dive **40/44**（缺 4 键：`analysis-17`/`assessor-16`/`convert-46`/`convert-angle-slope-1`）；UI 零缺项；cat 全部为功能值或本行业名（无跨行业错标，不动）；**英文 p 占位 32**、desc-en 占位 30、body intro 占位 42、body title 代号 6、en_override 代号 4、**orphan 键 6**（`convert-50`/`convert-34`/`convert-32`/`classify-13`/`map-scale`/`tool-012-54`）；**formula 计算类 39、缺框 0**（覆盖率 39/39 已达标）；计算验证 0；**指南 1/44**（`assessor-16`；`calc-1` 被审计误计为 hydraulic 的 `calc-1-guide.html`）。
 > **批次计划（全部完成）**：A deep-dive 缺 4 键补写 → B 英文态数据源根治 + 孤儿键清除 → C formula（39/39 已达标，无需）→ D 计算验证（第 28 道门禁）→ E 指南 1→44 → 收口归档。
@@ -295,11 +300,10 @@
 
 > 跳过规则：上述分类**不列入 §9.2 待办**；其余分类按 §9.2 热度顺序从零推进。
 
-### 9.2 分类优化清单（242 分类，按热度降序，完成一个删一个）
+### 9.2 分类优化清单（241 分类，按热度降序，完成一个删一个）
 
 > 清单由脚本按 `tools/` 目录工具数生成；每行 = 分类名 + 工具数。当前进行中的分类在 §8 同步登记。
 
-- [ ] fishery (38)
 - [ ] securities (38)
 - [ ] aerospace (37)
 - [ ] geology (37)
