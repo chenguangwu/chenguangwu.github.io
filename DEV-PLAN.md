@@ -203,6 +203,10 @@
 > **八项基线审计（2026-09-14）**：deep-dive **33/34**（缺 `assessor-67`）；UI 零缺项；**cat 跨行业错标 1**（`sebumeter` 误标 `health`）；英文 p/desc-en 占位 34（无代号 title）、**孤儿键 1**（`tool-005-38`）；**formula 计算类 23、缺框 13**（覆盖率 10/23）；计算验证 0；**指南 0/34**。
 > **收口结果（2026-09-14）**：① deep-dive 33/34→**34/34**（补 `assessor-67` 真实深度解析）。② 英文态八维全清零（`scripts/enmap/cosmetic-derm.json` 34 条真实英文名 + 英文描述四端同步；**cat 修正 1**：`sebumeter` health→cosmetic-derm，页面 meta 与 json 同步；清 1 孤儿键）。③ formula 10/23→**23/23**（`scripts/add_cosmetic_derm_formula.py` 补 13 页：皮脂分泌率与等级、化学换肤浓度·深度·停工期、成分浓度换算、微针渗透量（长度/间距/次数）、射频紧致能量密度·升温、SPF/PA 换算、注射点位与剂量、线雕提升锚点受力、光衰变功率密度、温时积分等；锚点排除 script/style）。④ 第 38 道门禁 `verify_cosmetic_derm_calc.js` **25/25**（化学换肤、微针渗透量、射频紧致、SPF/PA、线雕、VISIA 色斑、老化评分等；输入全避开页面默认值，node 独立复算断言，并加跑「默认态假通过自检」确认零期望值命中默认输出）。⑤ 指南 0→**34**（`gen_industry_guides.py --apply` 数据驱动；34 新增，无跨行业重名；34 指南全部存在、反链归属正确、零误归属）。三十八道质量门禁全过、构建 4825 工具全 A 级。**部署核验**：提交 `dc879e409`，线上 4 文件 MD5 逐字节一致（tools/cosmetic-derm/microneedle.html / guides/microneedle-guide.html / guides/index.html / json/guides.json）。
 
+> ✅ **`insurance` (33) 已收口**（2026-09-14 开工并完成）。**范围**：`tools/insurance/` 全部 33 个工具页（§9.2 记 33，磁盘实测 33）。
+> **八项基线审计（2026-09-14）**：deep-dive **33/33**（faqs=1 不达标，需补第 2 条）；UI 零缺项；**cat 跨行业错标 6**（`annuity-nsp`/`calc-1`/`claim-reserve`/`claim-frequency`/`endowment-premium`/`expense-ratio` 误标 `finance`）；**英文 p 占位 32**、desc-en 占位 30、body title 代号 3、**orphan 键 4**（`expense-ratio-ins`/`loss-ratio-ins`/`siwanglv-shengmingbiao-yubaofeigoucheng`/`tool-001-12`）；**formula 计算类 33、缺框 0**（覆盖率 33/33 已达标，跳过 C）；计算验证 0；**指南 0/33**。
+> **收口结果（2026-09-14）**：① deep-dive 33/33（faqs 1→**2**，补 33 条真实精算/保险 Q&A 第 2 FAQ，`scripts/add_insurance_deepdive_faq.py`）。② 英文态八维全清零（`scripts/enmap/insurance.json` 33 条真实英文名 + 英文描述四端同步；**cat 修正 6**：finance→insurance（6 行业 json + 6 tools.json + 页面 meta 同步）；清 4 孤儿键）。③ formula 33/33 已达标，跳过 C。④ 第 39 道门禁 `verify_insurance_calc.js` **29/29**（年金现值/确定年金/净趸缴/满期保费/综合比率/赔付率/承保利润/准备率/IBNR/生命表概率等；排除 `calc-pv-1`/`estimate-20` 标题依赖模板、`mortality-table` 内置生命表、`level-premium-life` resetForm 覆盖注入；输入全避开页面默认值，含「默认态假通过自检」确认 0 RISK）。⑤ 指南 0→**33**（`gen_industry_guides.py --apply` 数据驱动；33 新增，`calc-1` 跨行业重名改 `insurance-calc-1` 前缀消歧；33 指南全部存在、反链归属正确、零误归属）。三十九道质量门禁全过、构建 4825 工具全 A 级。**部署核验**：提交 `1e40ad2c5`，线上 4 文件 MD5 逐字节一致（tools/insurance/annuity-certain-pv.html / guides/annuity-certain-pv-guide.html / guides/index.html / json/guides.json）。
+
 > ✅ **`securities` (35) 已收口**（2026-09-14 开工并完成）。**范围**：`tools/securities/` 全部 35 个工具页。
 > **八项基线审计（2026-09-14）**：deep-dive **35/35**（无缺页）；UI 零缺项；**cat 跨行业错标 4**（`position-sizing`/`calc-30`/`calc-1` 标 `finance`、`technical-indicator` 标 `health`）；**英文 p 占位 25**、desc-en 占位 28、body intro 占位 34、body title 代号 1、industry ed 不达标 1、**orphan 键 2**（`tool-001-13`/`yidongpingjunxian-ma-jincha-sichatishi`）、**越界键 3**（`sharpe-ratio`/`portfolio-return`/`capm-return`）；**formula 计算类 31、缺框 7**（`beta-calc`/`bond-convexity`/`bond-duration`/`calc-1`/`calc-29`/`position-sizing`/`technical-indicator`，覆盖率 24/31）；计算验证 0；**指南 1/35**（`option-breakeven-call`；`calc-1` 被审计误计为 hydraulic 的 `calc-1-guide.html`）。
 > **批次计划（全部完成）**：A deep-dive（35/35 已达标，无需）→ B 英文态数据源根治 + cat 修正 + 孤儿/越界键清除 → C formula 补框 7 页 → D 计算验证（第 30 道门禁）→ E 指南 1→35 → 收口归档。
@@ -347,11 +351,10 @@
 
 > 跳过规则：上述分类**不列入 §9.2 待办**；其余分类按 §9.2 热度顺序从零推进。
 
-### 9.2 分类优化清单（232 分类，按热度降序，完成一个删一个）
+### 9.2 分类优化清单（231 分类，按热度降序，完成一个删一个）
 
 > 清单由脚本按 `tools/` 目录工具数生成；每行 = 分类名 + 工具数。当前进行中的分类在 §8 同步登记。
 
-- [ ] insurance (33)
 - [ ] obstetrics (32)
 - [ ] ophthalmology (32)
 - [ ] encode (29)
