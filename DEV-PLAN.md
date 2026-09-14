@@ -161,6 +161,11 @@
 
 ## 八、分类推进记录
 
+> ✅ **`optical` (41) 已收口**（2026-09-14 开工并完成）。**范围**：`tools/optical/` 全部 41 个工具页。
+> **八项基线审计（2026-09-14）**：deep-dive **41/41**（无缺页）；UI 零缺项；**cat 误标 1**（`report-cost-profit-1` 标 `finance` 应为 `calculator`）；**英文 p 占位 39**、desc-en 占位 38、body intro 占位 39、body title 代号 3（`recommender-1`/`detector-31`/`tool-011-13`）、en_override 代号 2、body **orphan 键 2**（`pianguangjing-zhouwei-jiaozheng`/`tool-011-13`）；**formula 计算类 32、缺框 10（覆盖率 22/32）**；计算验证 0；**指南 0/41**。
+> **批次计划（全部完成）**：A 英文态数据源根治 + cat 修正 + 孤儿键清除 → B 英文占位正文注入 → C formula 补框 10 页 → D 计算验证（第 27 道门禁）→ E 指南 0→41 → 收口归档。
+> **收口结果（2026-09-14）**：① 英文态八维全清零（41 条真实英文名 + 英文描述四端同步：`optical-body.json` / `optical.json`(en-US) / `_en_override.json` / `industry-optical.json`(en+ed)；清 2 个 enmap 孤儿键 `pianguangjing-zhouwei-jiaozheng` / `tool-011-13`；cat 修正 1 处 `report-cost-profit-1` finance→calculator）。② deep-dive 41/41（基线已达标，无新增）。③ formula 覆盖率 22/32→**32/32**（`scripts/add_optical_formula.py` 10 页补真实公式框：aca-ratio / accommodation-amplitude / anti-fatigue-design / calc-47 / detector-31 / lens-refractive-index / peripheral-defocus / prism-decentration / progressive-corridor / pupil-height）。④ 第 27 道门禁 `verify_optical_calc.js` **6/6**（Hofstetter 调节幅度、抗疲劳下加光、瞳高占比、周边离焦 RPD、棱镜移心普伦蒂斯法则、AC/A 梯度法；输入均避开页面默认值，独立复算断言）。⑤ 指南 0→**41**（`gen_industry_guides.py --apply` 数据驱动；无跨行业重名冲突，全部裸名；guides/index 与 json/guides.json 同步新增）。⑥ **顺带根治通用修复脚本缺陷**：`fix_industry_body_i18n.py` 原只处理 `muted`/`calc-desc` 占位 `<p>`，漏掉 `formula-desc` 类（如 `blue-light-filter` 的 `formula-desc` 占位 p 残留），已扩展覆盖三种形态，惠及后续全部分类。二十七道质量门禁全过。**部署核验**：提交 `3acb51230`，线上 4 文件 MD5 逐字节一致（tools/optical/blue-light-filter.html / guides/blue-light-filter-guide.html / guides/index.html / json/guides.json）。
+
 > ✅ **`meteorology` (42) 已收口**（2026-09-14 开工并完成）。**范围**：`tools/meteorology/` 全部 42 个工具页。
 > **八项基线审计（2026-09-14）**：deep-dive **42/42**（无缺页）；UI 零缺项；**cat 误标 2**（`risk-14` 标 `finance`、`lvyouqixiangzhishu` 标 `health`，均应为 `calculator`）；**英文 p 占位 31**、desc-en 占位 30、body intro 占位 32、body title 代号 9、en_override 代号 9、**orphan 键 6**；**formula 计算类 28、缺框 11（覆盖率 17/28）**；计算验证 0；**指南 0/42**。
 > **批次计划（全部完成）**：A 英文态数据源根治 + cat 修正 + 孤儿键清除 → B 英文占位正文注入 → C formula 补框 11 页 → D 计算验证（第 26 道门禁）→ E 指南 0→42 → 收口归档。
@@ -285,11 +290,10 @@
 
 > 跳过规则：上述分类**不列入 §9.2 待办**；其余分类按 §9.2 热度顺序从零推进。
 
-### 9.2 分类优化清单（244 分类，按热度降序，完成一个删一个）
+### 9.2 分类优化清单（243 分类，按热度降序，完成一个删一个）
 
 > 清单由脚本按 `tools/` 目录工具数生成；每行 = 分类名 + 工具数。当前进行中的分类在 §8 同步登记。
 
-- [ ] optical (41)
 - [ ] surveying (40)
 - [ ] fishery (38)
 - [ ] securities (38)
