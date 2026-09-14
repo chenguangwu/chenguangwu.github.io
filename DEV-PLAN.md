@@ -161,6 +161,11 @@
 
 ## 八、分类推进记录
 
+> ✅ **`math` (36) 已收口**（2026-09-14 开工并完成）。**范围**：`tools/math/` 全部 36 个工具页。
+> **八项基线审计（2026-09-14）**：deep-dive **36/36**（无缺页）；UI 零缺项；**cat 跨行业错标 1**（`calc-3` 勾股定理误标 finance）；英文 p 占位 30、desc-en 占位 25、body intro 占位 30（**无代号 title**）；**formula 计算类 29、缺框 1**（`equation-solver`，覆盖率 28/29）；计算验证 0；**指南 1/36**（`calc-1..4-guide.html` 经核实实属 hydraulic，审计按同 basename 误计，math 真实指南仅 `formula-calculator`）。
+> **批次计划（全部完成）**：A deep-dive（36/36 已达标，无需）→ B 英文态数据源根治 + cat 修正（无孤儿/越界键）→ C formula 补框 1 页 → D 计算验证（第 34 道门禁）→ E 指南 1→36（`calc-1..4` 消歧）→ 收口归档。
+> **收口结果（2026-09-14）**：① deep-dive 36/36（基线已达标）。② 英文态八维全清零（36 条真实英文名 + 英文描述四端同步；**cat 修正 1**：勾股定理 → math）。③ formula 28/29→**29/29**（`scripts/add_math_formula.py` 补 `equation-solver`：一次方程 x=−b/a、二次方程 x=(−b±√Δ)/2a、三次方程牛顿迭代 + 二分法）。④ 第 34 道门禁 `verify_math_calc.js` **31/31**（百分比变化、二次求根、任意底对数、GCD/LCM、两点距离、直线斜率、斐波那契、阶乘、组合、排列、平方/立方根、幂运算、取模、正弦/余弦定理、向量点积、二阶行列式、等比/等差级数和、等比通项、海伦公式、指数求解、判别式、圆排列、可重复组合、素数判定、算术平均、多项式系数、百分比计算、勾股定理、圆面积周长；输入全避开默认值且期望值经复核 ≠ 默认输出，node 独立复算断言）。⑤ 指南 1→**36**（`calc-1..4` 与 hydraulic 重名改用 `math-` 前缀；`formula-calculator` 旧格式指南经语义识别后 `--force` 统一重生成）。**顺带加固** `gen_industry_guides.py` `owner_inds_of_file`：归属检测兼容根相对 `/tools/<ind>/` 链接（旧格式指南不再被误判为他行业）。三十四道质量门禁全过。**部署核验**：提交 `2ef91a8b2`，线上 4 文件 MD5 逐字节一致（tools/math/percent-change.html / guides/math-calc-1-guide.html / guides/index.html / json/guides.json）。
+>
 > ✅ **`machinery` (37) 已收口**（2026-09-14 开工并完成）。**范围**：`tools/machinery/` 全部 37 个工具页。
 > **八项基线审计（2026-09-14）**：deep-dive **37/37**（无缺页）；UI 零缺项；**cat 全为功能值**（calculator 8 / engineer 26 / reference 2 / math 1，**无跨行业错标，不动**）；英文 p 占位 29、desc-en 占位 23、body intro 占位 34、**疑似代号 title 13**（`pressure-4`/`strength-15`/`tolerance-1`/`energy-2`/`frequency-17`/`area-dosage-1`/`drive-2`/`lifespan-bearing-1`/`strength-6`/`strength-7`/`calc-gear-1`/`calc-gear-3` 等）、**孤儿键 7**（`convert-hardness-strength`/`classify-128`/`compare-torque-bolt`/`compare-12`/`elasticity-1`/`tool-014-298`/`tool-018-56`）、industry ed 不达标 1（`calc-gear-3`）；**formula 计算类 33、缺框 0**（覆盖率 33/33，基线已达标）；计算验证 0；**指南 0/37**。
 > **批次计划（全部完成）**：A deep-dive（37/37 已达标，无需）→ B 英文态数据源根治 + 孤儿键清除（cat 无需修正；ed 随 name+intro 重建达标）→ C formula（33/33 已达标，无需）→ D 计算验证（第 33 道门禁）→ E 指南 0→37 → 收口归档。
@@ -320,11 +325,10 @@
 
 > 跳过规则：上述分类**不列入 §9.2 待办**；其余分类按 §9.2 热度顺序从零推进。
 
-### 9.2 分类优化清单（237 分类，按热度降序，完成一个删一个）
+### 9.2 分类优化清单（236 分类，按热度降序，完成一个删一个）
 
 > 清单由脚本按 `tools/` 目录工具数生成；每行 = 分类名 + 工具数。当前进行中的分类在 §8 同步登记。
 
-- [ ] math (36)
 - [ ] accounting (35)
 - [ ] fitness (35)
 - [ ] eco (34)
