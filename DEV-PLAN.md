@@ -366,6 +366,11 @@
 > **批次计划（全部完成）**：A deep-dive（已达标，跳过）→ B 英文态根治（清 5 孤儿）→ C formula（已达标，跳过）→ D 计算验证（第 48 道门禁）→ E 指南 1→23 → 收口归档。
 > **收口结果（2026-09-14）**：① deep-dive 23/23（基线已达标未改）。② 英文态根治（`scripts/enmap/dynamics.json` 23 条真实英文名 + 英文简介四端同步；**清 5 孤儿键**（body/`dynamics.json`/`_en_override`/`content_deepdive` 四端，对应工具实属 aerospace/science，其 deep-dive 已由本行业键覆盖，无内容损失）；零 cat 修正）。③ formula 23/23（基线已覆盖跳过）。④ 第 48 道门禁 `verify_dynamics_calc.js` **23/23**（角动量守恒/角动量/Banked Curve/恢复系数/一维弹性碰撞/胡克力/冲量/斜面加速度/非弹性碰撞/动摩擦/质点转动惯量/动量守恒/动量/单摆周期/力功率/旋转功率/转动动能/弹簧势能/最大静摩擦/终端速度/力矩/重力/动能定理；输入全避开默认值，期望值按页面公式 JS toFixed 精确复算，0 RISK）。⑤ 指南 1→**23**（`gen_industry_guides.py --apply`；22 新增，反链归属正确、零误归属）。四十八道质量门禁全过。**部署核验**：提交 `3430d71e1`，线上 4 文件 MD5 逐字节一致（tools/dynamics/momentum.html / guides/momentum-guide.html / json/industry-dynamics.json / i18n/tools/dynamics.json）。
 
+> ✅ **`economics` (28) 已收口**（2026-09-14 开工并完成）。**范围**：`tools/economics/` 全部 27 个工具页（§9.2 记 28，磁盘实测 27）。
+> **八项基线审计（2026-09-14）**：deep-dive **27/27（已达标，条数/套话均合格，"示例"标题触发假阳性）**；UI 零缺项；**cat 全为 `economics`（∈ CAT_DEFS，无需修正）**；**英文全为占位模板**（"X is available directly in your browser" 套话 27 页、desc-en 占位 27）；**孤儿键 1**（`cagr` 无 economics 磁盘页，实为 finance 工具——其 deep-dive 由 economics 误标，已归位 finance/cagr）；formula **27/27 已覆盖**（基线已达标）；计算验证 0；**指南 0/27**。
+> **批次计划（全部完成）**：A deep-dive（已达标，跳过）→ B 英文态根治（清 1 孤儿并归位）→ C formula（已达标，跳过）→ D 计算验证（第 49 道门禁）→ E 指南 0→27 → 收口归档。
+> **收口结果（2026-09-14）**：① deep-dive 27/27（基线已达标未改）。② 英文态根治（`scripts/enmap/economics.json` 27 条真实英文名 + 英文简介四端同步；**清 1 孤儿 `cagr`**（body/`economics.json`/`_en_override` 三端），并将其 deep-dive 键由 `economics/cagr` **归位** `finance/cagr`（finance/cagr.html 实页此前缺 deep-dive，无内容损失）；零 cat 修正）。③ formula 27/27（基线已覆盖跳过）。④ 第 49 道门禁 `verify_economics_calc.js` **27/27**（APC/贸易差额/Cobb-Douglas/复利终值/交叉弹性/需求价格弹性/Fisher/年金终值/支出法 GDP/GDP 增速/收入弹性/通胀率/劳动力/劳动参与率/MPL/MPC/由乘数求 MPC/名义→实际/Okun/现值/年金现值/实际 GDP/72 法则/政府支出乘数/税收乘数/失业率/货币流通速度；输入全避开默认值，期望值按页面公式 JS toFixed 精确复算，0 RISK）。⑤ 指南 0→**27**（`gen_industry_guides.py --apply`；27 新增，零跨行业重名）。四十九道质量门禁全过。**部署核验**：提交 `7bf23b5d3`，线上 4 文件 MD5 逐字节一致（tools/economics/gdp-expenditure.html / guides/gdp-expenditure-guide.html / json/industry-economics.json / i18n/tools/economics.json）。
+
 ## 九、未完成任务清单
 
 > **推进方式**：恢复「按分类逐行优化」。分类按**热度（分类下工具页数量，覆盖用户面代理）降序**排列于 §9.2，从最热的 `it`(345) 起逐分类推进。**历史已完整优化的分类见 §9.1 白名单，不列入本清单**。§9.3 为跨分类 / 独立的孤立未完成任务，可穿插推进但不替代逐分类收口。硬约束唯一权威见 §4.3。
@@ -393,11 +398,10 @@
 
 > 跳过规则：上述分类**不列入 §9.2 待办**；其余分类按 §9.2 热度顺序从零推进。
 
-### 9.2 分类优化清单（222 分类，按热度降序，完成一个删一个）
+### 9.2 分类优化清单（221 分类，按热度降序，完成一个删一个）
 
 > 清单由脚本按 `tools/` 目录工具数生成；每行 = 分类名 + 工具数。当前进行中的分类在 §8 同步登记。
 
-- [ ] economics (28)
 - [ ] electromagnetism (28)
 - [ ] fluid (28)
 - [ ] geometry (28)
