@@ -161,6 +161,11 @@
 
 ## 八、分类推进记录
 
+> ✅ **`securities` (35) 已收口**（2026-09-14 开工并完成）。**范围**：`tools/securities/` 全部 35 个工具页。
+> **八项基线审计（2026-09-14）**：deep-dive **35/35**（无缺页）；UI 零缺项；**cat 跨行业错标 4**（`position-sizing`/`calc-30`/`calc-1` 标 `finance`、`technical-indicator` 标 `health`）；**英文 p 占位 25**、desc-en 占位 28、body intro 占位 34、body title 代号 1、industry ed 不达标 1、**orphan 键 2**（`tool-001-13`/`yidongpingjunxian-ma-jincha-sichatishi`）、**越界键 3**（`sharpe-ratio`/`portfolio-return`/`capm-return`）；**formula 计算类 31、缺框 7**（`beta-calc`/`bond-convexity`/`bond-duration`/`calc-1`/`calc-29`/`position-sizing`/`technical-indicator`，覆盖率 24/31）；计算验证 0；**指南 1/35**（`option-breakeven-call`；`calc-1` 被审计误计为 hydraulic 的 `calc-1-guide.html`）。
+> **批次计划（全部完成）**：A deep-dive（35/35 已达标，无需）→ B 英文态数据源根治 + cat 修正 + 孤儿/越界键清除 → C formula 补框 7 页 → D 计算验证（第 30 道门禁）→ E 指南 1→35 → 收口归档。
+> **收口结果（2026-09-14）**：① deep-dive 35/35（基线已达标）。② 英文态八维全清零（35 条真实英文名 + 英文描述四端同步；**cat 修正 4**：`position-sizing`/`calc-30`/`calc-1` finance→calculator、`technical-indicator` health→calculator；清 2 孤儿键 + 3 越界键；industry ed 不达标 1→0）。③ formula 24/31→**31/31**（`scripts/add_securities_formula.py` 补 7 页：Beta 协方差、债券凸性/久期折现求和、股票盈亏费率、布林带标准差、仓位/凯利公式、MA-MACD-RSI-KDJ）。④ 第 30 道门禁 `verify_securities_calc.js` **13/13**（市值、企业价值、市净率、账面市值比、盈利收益率、股利支付率、当期收益率、PEG、看涨/看跌期权盈亏平衡、市场风险溢价、保证金比例、持有期收益率；输入全避开页面默认值，node 独立复算断言）。⑤ 指南 1→**35**（`gen_industry_guides.py --apply` 数据驱动；34 新增，`calc-1` 跨行业重名改 `securities-` 前缀消歧；35 指南全部存在、反链归属正确、零误归属）。三十道质量门禁全过。**部署核验**：提交 `588a0774a`，线上 4 文件 MD5 逐字节一致（tools/securities/earnings-yield.html / guides/securities-calc-1-guide.html / guides/index.html / json/guides.json）。
+
 > ✅ **`fishery` (38) 已收口**（2026-09-14 开工并完成）。**范围**：`tools/fishery/` 全部 38 个工具页。
 > **八项基线审计（2026-09-14）**：deep-dive **38/38**（无缺页）；UI 零缺项；**cat 跨行业错标 5**（`profit-calculator`/`fish-disease-risk` 标 `finance`、`fish-weight`/`ratio-hormone`/`spawning-hormone` 标 `health`）；**英文 p 占位 35**、desc-en 占位 32、body intro 占位 37、body title 代号 4、en_override 代号 4、industry ed 不达标 2、**orphan 键 3**（`estimate-emission-wastewater`/`simulator-temp`/`tool-006-11`）；**formula 计算类 36、缺框 1**（`water-oxygen`，覆盖率 35/36）；计算验证 0；**指南 35/38**（缺 `calc-39`/`estimate-23`/`plankton-biomass`）。
 > **批次计划（全部完成）**：A deep-dive（38/38 已达标，无需）→ B 英文态数据源根治 + cat 修正 + 孤儿键清除 → C formula 补框 1 页 → D 计算验证（第 29 道门禁）→ E 指南 35→38 → 收口归档。
@@ -300,11 +305,10 @@
 
 > 跳过规则：上述分类**不列入 §9.2 待办**；其余分类按 §9.2 热度顺序从零推进。
 
-### 9.2 分类优化清单（241 分类，按热度降序，完成一个删一个）
+### 9.2 分类优化清单（240 分类，按热度降序，完成一个删一个）
 
 > 清单由脚本按 `tools/` 目录工具数生成；每行 = 分类名 + 工具数。当前进行中的分类在 §8 同步登记。
 
-- [ ] securities (38)
 - [ ] aerospace (37)
 - [ ] geology (37)
 - [ ] machinery (37)
