@@ -161,6 +161,11 @@
 
 ## 八、分类推进记录
 
+> ✅ **`accounting` (35) 已收口**（2026-09-14 开工并完成）。**范围**：`tools/accounting/` 全部 35 个工具页。
+> **八项基线审计（2026-09-14）**：deep-dive **35/35**（无缺页）；UI 零缺项；**cat 跨行业错标 4**（`calc-1` 增值税计算 / `calc-2` 企业所得税预缴（均 finance）、`analysis-cost-5` 成本核算方法 / `report-2` 账务编制）；英文 p 占位 33、desc-en 占位 29、title-en 0；**body intro 占位 35、body title 真·代号 4**（`report-2`/`assessor-risk-11`/`lookup-20`/`tool-012-72`）、en_override 代号 2、industry ed 不达标 2（`break-even-units`/`calc-1`）、**孤儿键 2**（`lookup-20`/`tool-012-72`）；**formula 计算类 32、缺框 0**（覆盖率 32/32，基线已达标）；计算验证 0；**指南 4/35**（`break-even-units`/`split-bill` 真属 accounting；`calc-1`/`calc-2-guide.html` 经核实实属 hydraulic，审计按同 basename 误计）。
+> **批次计划（全部完成）**：A deep-dive（35/35 已达标，无需）→ B 英文态数据源根治 + cat 修正 + 孤儿键清除 → C formula（32/32 已达标，无需）→ D 计算验证（第 35 道门禁）→ E 指南 4→35（`calc-1`/`calc-2` 消歧）→ 收口归档。
+> **收口结果（2026-09-14）**：① deep-dive 35/35（基线已达标）。② 英文态八维全清零（35 条真实英文名 + 英文描述四端同步：`accounting-body.json` / `accounting.json`(en-US) / `_en_override.json` / `industry-accounting.json`(en+ed)；**cat 修正 4**：`calc-1`/`calc-2` finance→calculator、`analysis-cost-5`/`report-2` finance→math；清 2 孤儿键；中文名修正 1（`split-bill` 英文名「Split Bill Calculator」→「分账计算器」，zh-CN 键缺失一并补建）；industry ed 不达标 2→0）。③ formula 32/32（基线已达标，无新增）。④ 第 35 道门禁 `verify_accounting_calc.js` **35/35**（流动/速动比率、资产负债率、毛利率、毛利、净利率、ROE、ROA、杜邦 ROE、EBIT、EBITDA、利息保障倍数、存货周转率/天数、DSO、DPO、现金转换周期、营运资金、资产周转率、边际贡献、盈亏平衡、DSCR、自由/经营现金流、直线/双倍余额递减/年数总和折旧、无形资产摊销、增值税含税反算、所得税预缴、分账、Altman Z-Score、财务数据描述统计×3；输入全避开页面默认值，node 独立复算断言，并**加跑「默认态假通过自检」确认零期望值命中默认输出**）。⑤ 指南 4→**35**（`gen_industry_guides.py --apply` 数据驱动；33 新增，`calc-1`/`calc-2` 跨行业重名改用 `accounting-` 前缀消歧；35 指南全部存在、反链归属正确、零误归属）。⑥ **修复指南链接错配 1 处（P0 同类）**：`tools/accounting/calc-1.html` 的指南块 href 原指向 hydraulic 的 `guides/calc-1-guide.html`（锚文本却写「增值税计算使用指南」），改为 `guides/accounting-calc-1-guide.html`。⑦ **加固 `scripts/clean_mismatched_guide_links.py`**：旧版按「指南 basename→归属行业集合」判断，同 basename 重复指南互相污染集合导致**漏报**（本实例即漏报）；改为「行业/basename」精确键 + 候选唯一性判定，命中则**重写 href（而非整块删除）**，并在归属检测中兼容旧格式指南的根相对 `/tools/<行业>/` 链接。加固后全站扫描 4825 页：**错配 0**，仅 1 处候选不唯一（`marketing/marketing-ltv-calculator.html` 存在新旧两份 LTV 指南）提示人工确认。三十五道质量门禁全过。**部署核验**：提交 `fe38ac76d`，线上 4 文件 MD5 逐字节一致（tools/accounting/calc-1.html / guides/accounting-calc-1-guide.html / guides/index.html / json/guides.json）。
+
 > ✅ **`math` (36) 已收口**（2026-09-14 开工并完成）。**范围**：`tools/math/` 全部 36 个工具页。
 > **八项基线审计（2026-09-14）**：deep-dive **36/36**（无缺页）；UI 零缺项；**cat 跨行业错标 1**（`calc-3` 勾股定理误标 finance）；英文 p 占位 30、desc-en 占位 25、body intro 占位 30（**无代号 title**）；**formula 计算类 29、缺框 1**（`equation-solver`，覆盖率 28/29）；计算验证 0；**指南 1/36**（`calc-1..4-guide.html` 经核实实属 hydraulic，审计按同 basename 误计，math 真实指南仅 `formula-calculator`）。
 > **批次计划（全部完成）**：A deep-dive（36/36 已达标，无需）→ B 英文态数据源根治 + cat 修正（无孤儿/越界键）→ C formula 补框 1 页 → D 计算验证（第 34 道门禁）→ E 指南 1→36（`calc-1..4` 消歧）→ 收口归档。
@@ -325,11 +330,10 @@
 
 > 跳过规则：上述分类**不列入 §9.2 待办**；其余分类按 §9.2 热度顺序从零推进。
 
-### 9.2 分类优化清单（236 分类，按热度降序，完成一个删一个）
+### 9.2 分类优化清单（235 分类，按热度降序，完成一个删一个）
 
 > 清单由脚本按 `tools/` 目录工具数生成；每行 = 分类名 + 工具数。当前进行中的分类在 §8 同步登记。
 
-- [ ] accounting (35)
 - [ ] fitness (35)
 - [ ] eco (34)
 - [ ] cosmetic-derm (33)
