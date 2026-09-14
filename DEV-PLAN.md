@@ -351,6 +351,11 @@
 > - **最终结果**：deep-dive 达标 103/103（套话 0）、UI 零缺项、cat 0 错标、formula 覆盖 103/103、**英文态七维全清零**（页面残留 0 / script 内误注入 0 / h2 代号 0 / body.intro 0 / body.title 0 / `design.json` en-US 0 / ov.en 0 / ov.ed 0 / industry-design ed 0）、计算验证 12、指南 22（7→22）、指南链接注入 15/15；**八项目标全达标**。9 道门禁全过（design 12/12、finance 20/20、general 19/19、it 28/28），Actions `2a57f8ab4` / `5273b8cda` / `7c4fbb699`（run `34674667024`）全 success。
 > - **遗留（非 design 缺口，记入 §9.3）**：① `design-body.json` 3 个孤儿键（generator-5 / color-scheme-generator / simulator-2）全站无页面；② `color-shade-generator` 亮色梯度实现缺陷（`mix()` 退化为纯灰度）；③ `contrast-checker` 与 `color-contrast-check` / `checker` 主题重复，分类去重待老板确认；④ 5 个跨分类重名 slug 的指南缺口。
 
+> ✅ **`acoustics` (28) 已收口**（2026-09-14 开工并完成）。**范围**：`tools/acoustics/` 全部 28 个工具页（§9.2 记 28，磁盘实测 28）。
+> **八项基线审计（2026-09-14）**：deep-dive **全缺（28/28 待补）**；UI 零缺项；cat 全部为功能值（无跨行业错标，不动）；**英文 p 占位 28**、desc-en 占位 28、body intro 占位 28、body title 代号 0、en_override 代号 0、industry ed 不达标 28、**orphan 键 0**；**formula 计算类缺框（覆盖率 0）**；计算验证 0；**指南 0/28**。
+> **批次计划（全部完成）**：A deep-dive 补写 → B 英文态数据源根治 → C formula 补框 → D 计算验证（第 46 道门禁）→ E 指南 0→28 → 收口归档。
+> **收口结果（2026-09-14）**：① deep-dive 0/28→**28/28**（补 28 条真实声学深度解析：声速温湿度修正、波长频率换算、声压/声强/声功率级、分贝功率/电压比、倍频程声压级叠加、吸声系数 Sabine、混响时间、临界距离、质量定律隔声、闭管/开管驻波、多普勒频移、拍频、弦基频、弹簧固有频率、空气声速温度修正等）。② 英文态八维全清零（`scripts/enmap/acoustics.json` 28 条真实英文名 + 英文描述四端同步；清 0 孤儿键）。③ formula 覆盖 **28/28**（声学计算类工具全量补框，锚点 input-row → card，排除 script/style）。④ 第 46 道门禁 `verify_acoustics_calc.js` **28/28**（声速、波长、频率、声压级、声强级、声功率级、分贝功率/电压比、倍频程叠加、吸声系数、混响时间、临界距离、质量定律隔声、闭管/开管驻波、多普勒、拍频、弦基频、弹簧固有频率、空气声速温度修正等；输入全避开页面默认值，含「默认态假通过自检」+「期望值⊂输入值」双自检确认 0 RISK）。⑤ 指南 0→**28**（`gen_industry_guides.py --apply` 数据驱动；28 指南全部存在、反链归属正确、零误归属）。四十六道质量门禁全过、构建 4825 工具全 A 级。**部署核验**：提交 `7624b9434`，线上 4 文件 MD5 逐字节一致（tools/acoustics/sound-pressure-level.html / guides/sound-pressure-level-guide.html / json/industry-acoustics.json / i18n/tools/acoustics.json）。
+
 ## 九、未完成任务清单
 
 > **推进方式**：恢复「按分类逐行优化」。分类按**热度（分类下工具页数量，覆盖用户面代理）降序**排列于 §9.2，从最热的 `it`(345) 起逐分类推进。**历史已完整优化的分类见 §9.1 白名单，不列入本清单**。§9.3 为跨分类 / 独立的孤立未完成任务，可穿插推进但不替代逐分类收口。硬约束唯一权威见 §4.3。
@@ -378,11 +383,10 @@
 
 > 跳过规则：上述分类**不列入 §9.2 待办**；其余分类按 §9.2 热度顺序从零推进。
 
-### 9.2 分类优化清单（225 分类，按热度降序，完成一个删一个）
+### 9.2 分类优化清单（224 分类，按热度降序，完成一个删一个）
 
 > 清单由脚本按 `tools/` 目录工具数生成；每行 = 分类名 + 工具数。当前进行中的分类在 §8 同步登记。
 
-- [ ] acoustics (28)
 - [ ] chemistry (28)
 - [ ] dynamics (28)
 - [ ] economics (28)
