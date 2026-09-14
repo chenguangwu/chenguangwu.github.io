@@ -107,6 +107,7 @@ GATES = (
     ("investment calc correctness", ("node", "scripts/verify_investment_calc.js")),
     ("kinematics calc correctness", ("node", "scripts/verify_kinematics_calc.js")),
     ("materials calc correctness", ("node", "scripts/verify_materials_calc.js")),
+    ("metrology calc correctness", ("node", "scripts/verify_metrology_calc.js")),
 )
 
 
