@@ -386,6 +386,11 @@
 > **八项基线审计（2026-09-14）**：deep-dive **24 页全部偏薄**（scenarios=2 / examples=1 / **faqs=1**，而全站主流 faqs 为 2~3、已收口的 dynamics/economics/EM 为 3、fluid/geometry 为 2 → A 项判定为必须补写）；UI 零缺项；cat **24/24 全为 investment**（零误标）；**英文全为占位模板**（套话 24 页）；孤儿键 4；formula **24/24 已覆盖**（C 项跳过）；计算验证 0；**指南 0/24**。
 > **批次计划（全部完成）**：A deep-dive 补写 24 页 → B 英文态根治 + 清 4 孤儿 → D 计算验证（第 53 道门禁）→ E 指南 0→24 → 收口归档。
 > **收口结果（2026-09-14）**：① **deep-dive 24 页补写达标**：scenarios 2→3、examples 1→2、faqs 1→2，对齐 geometry 基准；所有示例数值均用 node 按页面 `calcTool` 原样复算。**补写后发现并修正 9 处「示例与页面算法不符」**（详见下方「深解示例校正」）。② 英文态根治（`scripts/enmap/investment.json` 24 条真实英文名 + 英文简介；body / `investment.json` / `_en_override` / `industry-investment.json` 四端同步，页面静态 title-en/desc-en/h2/p 占位清除；h2=20 因 4 页已是真实英文）。③ **清 4 孤儿深解键**（cagr/capm-return/portfolio-return/sharpe-ratio），其中 `investment/cagr` 因 `finance/cagr` 内容更强（3/1/3 vs 2/1/1）而删除；其余 3 个键**重定位到 `finance/`**（原本 finance 侧无深解，直接删会丢内容）。④ cat 复核 24/24 全 investment，无需修正。⑤ 第 53 道门禁 `verify_investment_calc.js` **24/24**（年金终值/现值、复利终值/现值、债券定价（freq=2 半年付息）、YTM 近似、利差 bps、NPV、IRR（二分法）、静态/折现回收期、盈利指数、几何平均收益、持有期收益、实际收益率、ROI、股利支付率、股息率、EPS（扣优先股）、PE、留存收益率、可持续增长、组合 β、索提诺比率；输入全避开默认值，期望值按页面公式/插值算法精确复算）。**假通过自检 0 RISK**（`selfcheck_false_pass.js` 默认态 0 命中；首轮自选的 `dividend-yield` 3.6/45 曾与默认 3/60 同为 5.00，已改值重算）。⑥ 指南 0→**24**（`gen_industry_guides.py --apply`；24 新增，零跨行业重名，反链精确指向 `tools/investment/`）。五十三道质量门禁全过。**部署核验**：提交 `548c7d6e5`，线上 4 文件 MD5 逐字节一致（tools/investment/npv-calc.html / guides/npv-calc-guide.html / json/industry-investment.json / json/tools.json）。
+> ✅ `kinematics` (28) 已收口**（2026-09-14 开工并完成）。**范围**：`tools/kinematics/` 全部 25 个工具页（§9.2 记 28，磁盘实测 25；3 个 `centripetal-accel`/`centripetal-force`/`projectile-range` 实为 aerospace / science 工具页，已各自持有对应 deep-dive）。
+> **八项基线审计（2026-09-14）**：deep-dive **25 页全部偏薄**（scenarios=2 / examples=1 / **faqs=1**，低于全站主流 2~3 与已收口基准 → A 项判定必须补写）；UI 零缺项；cat **25/25 全为 kinematics**（零误标）；**英文 24 页为占位模板**（1 页已是真实英文）；孤儿键 3；formula **25/25 已覆盖**（C 项跳过）；计算验证 0；**指南 0/25**。
+> **批次计划（全部完成）**：A deep-dive 补写 25 页 → B 英文态根治 + 清 3 孤儿 → D 计算验证（第 54 道门禁）→ E 指南 0→25 → 收口归档。**因 investment 批次的教训，本批先跑 `extract_calc.py` 抓真实 `calcTool` 并用 node 复算后才写示例，未出现「示例与页面算法不符」**。
+> **收口结果（2026-09-14）**：① **deep-dive 25 页补写达标**：scenarios 2→3、examples 1→2、faqs 1→2（对齐 geometry 基准 3/2/2），示例数值全部按 node 复刻 `calcTool` 得出。② 英文态根治（`scripts/enmap/kinematics.json` 25 条真实英文名 + 英文简介；body / `kinematics.json` / `_en_override` / `industry-kinematics.json` 四端同步，占位清除）。③ **清 3 孤儿深解键**，三者真页（`aerospace/centripetal-accel`、`science/centripetal-force`、`science/projectile-range`）**均已持有各自 deep-dive**，删除无内容损失。④ cat 复核 25/25 全 kinematics，无需修正。⑤ 第 54 道门禁 `verify_kinematics_calc.js` **25/25**（平均速度/加速度、末速度、匀加速位移、速度-位移式（无时间）、v²=v₀²+2ax、匀速位移、一维相对速度、相对论速度叠加、自由落体时间/距离、抛体分量/最大高度/飞行时间、制动时间/距离、角加速度/角位移/末角速度/角速度换算、切向速度/加速度、rpm→rad/s、ω→频率/周期；输入全避开默认值，期望值按页面 toFixed/toExponential 精确复算）。**假通过自检 0 RISK**（`selfcheck_false_pass.js` 默认态 0 命中；首轮自选的 `angular-velocity` 18/3 曾与默认 10/2 同为 6.000… 实测为 ω=6.000 vs 默认 5.000，另发现需规避 rpm 同值，已改为 v=18,r=3 → 6.000/57.296 确认与默认 5.000/47.746 不重合）。⑥ 指南 0→**25**（`gen_industry_guides.py --apply`；25 新增，零跨行业重名，反链精确指向 `tools/kinematics/`）。五十四道质量门禁全过。**部署核验**：提交 `ed3995c21`，线上 4 文件 MD5 逐字节一致（tools/kinematics/stopping-distance.html / guides/stopping-distance-guide.html / json/industry-kinematics.json / json/tools.json）。
+
 
 
 
@@ -418,11 +423,10 @@
 
 > 跳过规则：上述分类**不列入 §9.2 待办**；其余分类按 §9.2 热度顺序从零推进。
 
-### 9.2 分类优化清单（217 分类，按热度降序，完成一个删一个）
+### 9.2 分类优化清单（216 分类，按热度降序，完成一个删一个）
 
 > 清单由脚本按 `tools/` 目录工具数生成；每行 = 分类名 + 工具数。当前进行中的分类在 §8 同步登记。
 
-- [ ] kinematics (28)
 - [ ] materials (28)
 - [ ] metrology (28)
 - [ ] nuclear (28)
