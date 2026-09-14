@@ -161,6 +161,11 @@
 
 ## 八、分类推进记录
 
+> ✅ **`geology` (37) 已收口**（2026-09-14 开工并完成）。**范围**：`tools/geology/` 全部 37 个工具页。
+> **八项基线审计（2026-09-14）**：deep-dive **37/37**（无缺页）；UI 零缺项；**cat 跨行业错标 3**（`calc-1`→health、`analysis-cost-2`/`hazard`→finance）；英文 p 占位 21、desc-en 占位 22、body intro 占位 22、**疑似代号 title 9**（`analysis-32`/`analysis-33`/`analysis-cost-2`/`estimate-reserve-1`/`generator-37`/`sample-1`/`spacing-4`/`stats-analysis-2`/`stats-density-1`/`tester-16`）、**孤儿键 3**（`soil-classify`/`tool-008-55`/`tool-019-54`）；**formula 计算类 25、缺框 7**（`calc-1`/`calc-25`/`calc-87`/`dizhiwurandiaochapinggu`/`dizhiyijipinggu`/`weight-sample`/`wutanyichangjieyi`，覆盖率 18/25）；计算验证 0；**指南 7/37**。
+> **批次计划（全部完成）**：A deep-dive（37/37 已达标，无需）→ B 英文态数据源根治 + cat 修正 + 孤儿键清除 → C formula 补框 7 页 → D 计算验证（第 32 道门禁）→ E 指南 7→37 → 收口归档。
+> **收口结果（2026-09-14）**：① deep-dive 37/37（基线已达标）。② 英文态八维全清零（37 条真实英文名 + 英文描述四端同步；**cat 修正 3**：RQD 指标计算、勘探成本分析→calculator，地质灾害风险评估→validator；清 3 孤儿键）。③ formula 18/25→**25/25**（`scripts/add_geology_formula.py` 补 7 页：RQD 岩芯段占比、震中距 P/S 波到时差、化探衬度与异常下限、Gy 采样代表性（相对方差∝d³/m）、物探异常 Peters 半宽法埋深、地质遗迹加权综合评分、地累积指数 Igeo）。④ 第 32 道门禁 `verify_geology_calc.js` **20/20**（Terzaghi 地基承载力、品位储量、断面法储量、采样设计网度、震中距、化探衬度、污染指数/Igeo、三维建模真厚度、承压/潜水完整井渗透系数、地灾危险指数、标准化异常值、重力异常、三点定面产状、遗迹评分、通用判读评分、Gy 最小样重、方差统计；输入全避开页面默认值，node 独立复算断言）。⑤ 指南 7→**37**（`gen_industry_guides.py --apply` 数据驱动；31 新增，`calc-1` 跨行业重名改用 `geology-calc-1-guide.html`；37 指南全部存在、反链归属正确、零误归属）。**顺带加固** `verify_it_calc.js` stub：补 `selectedOptions`（页面读 `el.selectedOptions[0].text` 的取标签场景不再抛错）。三十二道质量门禁全过。**部署核验**：提交 `a57e9f188`，线上 4 文件 MD5 逐字节一致（tools/geology/dip-strike.html / guides/geology-calc-1-guide.html / guides/index.html / json/guides.json）。
+>
 > ✅ **`aerospace` (37) 已收口**（2026-09-14 开工并完成）。**范围**：`tools/aerospace/` 全部 37 个工具页。
 > **八项基线审计（2026-09-14）**：deep-dive **37/37**（无缺页）；UI 零缺项；**cat 无跨行业错标**（convert 1 / calculator 5 / validator 1 / math 1 / engineer 1 / aerospace 28，全部功能值或本行业名，不动）；**英文 p 占位 28**、desc-en 占位 35、body intro 占位 37、body title 代号 1、**orphan 键 2**（`calc-convert-time`/`tool-002-49`）；**formula 计算类 34、缺框 5**（`flight-time`/`fuel-consumption`/`lift-coefficient`/`runway-length`/`weight-balance`，覆盖率 29/34）；计算验证 0；**指南 4/37**。
 > **批次计划（全部完成）**：A deep-dive（37/37 已达标，无需）→ B 英文态数据源根治 + 孤儿键清除 → C formula 补框 5 页 → D 计算验证（第 31 道门禁）→ E 指南 4→37 → 收口归档。
@@ -310,11 +315,10 @@
 
 > 跳过规则：上述分类**不列入 §9.2 待办**；其余分类按 §9.2 热度顺序从零推进。
 
-### 9.2 分类优化清单（239 分类，按热度降序，完成一个删一个）
+### 9.2 分类优化清单（238 分类，按热度降序，完成一个删一个）
 
 > 清单由脚本按 `tools/` 目录工具数生成；每行 = 分类名 + 工具数。当前进行中的分类在 §8 同步登记。
 
-- [ ] geology (37)
 - [ ] machinery (37)
 - [ ] math (36)
 - [ ] accounting (35)
