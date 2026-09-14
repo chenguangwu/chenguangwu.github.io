@@ -39,6 +39,12 @@ FORMULA_IN_SCRIPT_ALLOW = {
     'tools/optical/detector-31.html',
 }
 
+# 工具页「使用指南」链接必须指向「反链本页」的指南（防历史 basename 匹配造成的跨行业错配）。
+# 例外：指南为跨页共用话题件（正文只反链同话题的另一页），人工确认可接受。
+GUIDE_BACKLINK_ALLOW = {
+    ('tools/life/daily-calorie-needs.html', 'guides/calorie-calculator-guide.html'),
+}
+
 class ToolHTMLParser(HTMLParser):
     def __init__(self):
         super().__init__()
@@ -215,6 +221,23 @@ def check_tool(filepath, rel_path):
                 warnings.append('注入型 formula-box 落在 <script> 内（已知遗留，待修复）')
             else:
                 errors.append('注入型 formula-box 落在 <script>/<style> 内，会破坏页面 JS')
+
+    # 11. 工具页「使用指南」链接必须指向反链本页的指南（防跨行业重名错配）
+    _gl = re.search(r'<div class="tool-guide-link"[^>]*>[\s\S]*?<a\s+href="([^"]+)"', content)
+    if _gl:
+        _href = re.sub(r'^(?:\.\./)+|^/', '', _gl.group(1))
+        _gp = os.path.join(ROOT, _href)
+        _rel_posix = rel_path.replace(os.sep, '/')
+        if not os.path.isfile(_gp):
+            errors.append(f'使用指南链接目标不存在: {_href}')
+        elif (_rel_posix, _href) not in GUIDE_BACKLINK_ALLOW:
+            _ind = os.path.basename(os.path.dirname(_rel_posix))
+            _slug = os.path.basename(_rel_posix)
+            _gbody = open(_gp, encoding='utf-8', errors='ignore').read()
+            _pat = (r'(?:\.\./)*(?:https://chenguangwu\.github\.io)?/tools/%s/%s(?=["#?])'
+                    % (re.escape(_ind), re.escape(_slug)))
+            if not re.search(_pat, _gbody):
+                errors.append(f'使用指南链接未反链本页（疑跨行业错配）: {_href}')
 
     # 统计结果
     if errors:

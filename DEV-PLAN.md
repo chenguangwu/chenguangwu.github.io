@@ -161,6 +161,15 @@
 
 ## 八、分类推进记录
 
+> ✅ **`fitness` (37) 已收口**（2026-09-14 开工并完成）。**范围**：`tools/fitness/` 全部 37 个工具页（§9.2 记 35，磁盘实为 37）。
+> **八项基线审计（2026-09-14）**：deep-dive **35/37**（缺 `analysis-retention`/`assessor-64`）；UI 零缺项；**cat 跨行业错标 18**（全部误标 `health`）；英文 p 占位 30、desc-en 占位 30、body intro 占位 30（无代号 title）、**孤儿键 4**；**formula 计算类 29、缺框 19**（覆盖率 10/29）；计算验证 0；**指南 31/37**（严格归属计数；`calc-2..5` 与 hydraulic 重名）。
+> **批次计划（全部完成）**：A deep-dive 补 2 键 → B 英文态数据源根治 + cat 修正 + 孤儿键清除 → C formula 补框 19 页 → D 计算验证（第 36 道门禁）→ E 指南 31→37（`calc-2..5` 消歧）→ 收口归档。
+> **收口结果（2026-09-14）**：① deep-dive 35/37→**37/37**（补 `analysis-retention`/`assessor-64` 两条真实深度解析；1 空格缩进格式文本插入）。② 英文态八维全清零（37 条真实英文名 + 英文描述四端同步；**cat 修正 18** 由行业名 `health` 改为功能值，全行业口径 calculator 24 / generate 2 / convert 4 / validator 5 / engineer 1 / reference 1；清 4 孤儿键；`vo2max-12min` 原英文名 `Cooper 12-Minute Run…` 被审计「英文词+序号」启发式误判 → 改名消除误报）。③ formula 10/29→**29/29**（`scripts/add_fitness_formula.py` 补 19 页：关节力矩与肌力需求、四维度加权课程质量、BMR/TDEE、US Navy 围度、Jackson-Pollock 三点、Mifflin/Harris-Benedict、MET 热量、7700 kcal 缺口、渐进超负荷、左右对称度、BIA 阻抗、Cooper 12 分钟跑、容量/1RM 等）。④ 第 36 道门禁 `verify_fitness_calc.js` **18/18**（关节力矩/肌力、BMR/TDEE、女性 BMR、Navy 围度体脂、JP 三点体脂、代谢双公式均值、MET 热量、能量缺口、渐进超负荷末周重/增益、对称度、BIA 体脂、Cooper VO₂max、容量与 1RM、课程质量加权、Navy 男式体脂、1RM 四公式、蛋白质区间；输入全避开页面默认值，node 独立复算断言，并加跑「默认态假通过自检」确认零期望值命中默认输出）。⑤ 指南 31→**37**（`gen_industry_guides.py --apply` 数据驱动；6 新增，`calc-2..5` 跨行业重名改用 `fitness-` 前缀消歧；37 指南全部存在、零误归属）。⑥ **本轮修复 + 防复发（三项缺陷，均为系统性）**：
+>
+> - **P0 · 公式框误插 `<script>`**：`add_fitness_formula.py` 锚点遍历全文，命中 JS 单引号串内的 `tip-box`，把公式框插进 JS 源码 → `assessor-64`/`rater-time` 脚本 SyntaxError（计算器全废，且审计只查「框是否存在」故漏检）。新增 `scripts/fix_formula_box_placement.py`（div 配平摘除 + 按 markup 惯例重插），并**回归修复 math 批次遗留的 `math/equation-solver` 同类缺陷**（模板串内渲染错位）。两个 `add_*_formula.py` 的锚点搜索改为排除 `<script>/<style>`。
+> - **P0 · 指南链接错配 4 处**：`fitness/calc-2..5` 的指南块 href 指向 hydraulic 的 `calc-{2..5}-guide.html`（锚文本却是本页主题）。根因：`_build.py` 注入幂等（已存在 `data-guide-link` 即跳过），早期按 basename 兜底注入的错链**永久残留**。**根因修复** `_build.py`：新增 `GUIDE_OWNERS`（指南→归属行业）并对已注入错链**自愈**（仅当现有链接属别行业、且本行业有精确映射时改写），同时让归属探测兼容根相对/相对链接（原仅认绝对 URL）。
+> - **新增静态门禁**：`_test_static.py` 第 10 项「注入型 formula-box 不得落在 `<script>/<style>` 内」（单元自检已验证 error 分支生效），含 2 页 `optical` 历史遗留白名单（`calc-47`/`detector-31` 脚本已坏，待单独修复批次处理，见待办）。
+
 > ✅ **`accounting` (35) 已收口**（2026-09-14 开工并完成）。**范围**：`tools/accounting/` 全部 35 个工具页。
 > **八项基线审计（2026-09-14）**：deep-dive **35/35**（无缺页）；UI 零缺项；**cat 跨行业错标 4**（`calc-1` 增值税计算 / `calc-2` 企业所得税预缴（均 finance）、`analysis-cost-5` 成本核算方法 / `report-2` 账务编制）；英文 p 占位 33、desc-en 占位 29、title-en 0；**body intro 占位 35、body title 真·代号 4**（`report-2`/`assessor-risk-11`/`lookup-20`/`tool-012-72`）、en_override 代号 2、industry ed 不达标 2（`break-even-units`/`calc-1`）、**孤儿键 2**（`lookup-20`/`tool-012-72`）；**formula 计算类 32、缺框 0**（覆盖率 32/32，基线已达标）；计算验证 0；**指南 4/35**（`break-even-units`/`split-bill` 真属 accounting；`calc-1`/`calc-2-guide.html` 经核实实属 hydraulic，审计按同 basename 误计）。
 > **批次计划（全部完成）**：A deep-dive（35/35 已达标，无需）→ B 英文态数据源根治 + cat 修正 + 孤儿键清除 → C formula（32/32 已达标，无需）→ D 计算验证（第 35 道门禁）→ E 指南 4→35（`calc-1`/`calc-2` 消歧）→ 收口归档。
@@ -330,11 +339,10 @@
 
 > 跳过规则：上述分类**不列入 §9.2 待办**；其余分类按 §9.2 热度顺序从零推进。
 
-### 9.2 分类优化清单（235 分类，按热度降序，完成一个删一个）
+### 9.2 分类优化清单（234 分类，按热度降序，完成一个删一个）
 
 > 清单由脚本按 `tools/` 目录工具数生成；每行 = 分类名 + 工具数。当前进行中的分类在 §8 同步登记。
 
-- [ ] fitness (35)
 - [ ] eco (34)
 - [ ] cosmetic-derm (33)
 - [ ] insurance (33)
