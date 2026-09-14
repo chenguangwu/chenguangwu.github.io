@@ -97,6 +97,7 @@ GATES = (
     ("metalwork calc correctness", ("node", "scripts/verify_metalwork_calc.js")),
     ("photo calc correctness", ("node", "scripts/verify_photo_calc.js")),
     ("tax calc correctness", ("node", "scripts/verify_tax_calc.js")),
+    ("acoustics calc correctness", ("node", "scripts/verify_acoustics_calc.js")),
 )
 
 
