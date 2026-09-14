@@ -226,6 +226,10 @@
 > **八项基线审计（2026-09-14）**：deep-dive **29/32**（缺 `calc-exposure-aperture`/`capacity-fps`/`convert-focal`）；UI 零缺项；**cat 全部为合法功能值**（`image` 28 / `calculator` 2 / `convert` 1 / `reference` 1，无跨行业错标，无需修正）；**英文简介 30 页为通用占位**（"Free online tool on ToolBox…"）、`photo-2..11` 等 **9 个代号 title**；孤儿键 0；**formula 计算类 2、缺框 2**（`calc-exposure-aperture`/`print-size`）；计算验证 0；**指南 0/32**。
 > **收口结果（2026-09-14）**：① deep-dive 29/32→**32/32**（补 3 条真实深度解析：曝光三角形计算、视频帧率与时长/存储容量、镜头焦距与视场角换算；84 增 0 删，1 空格缩进幂等）。② 英文态八维全清零（`scripts/enmap/photo.json` 32 条真实英文名 + 英文简介四端同步；cat 无修正；孤儿键 0）。③ formula 0/2→**2/2**（`scripts/add_photo_formula.py` 补 2 页：光圈/快门/ISO 曝光三角与 EV 值、打印尺寸与像素/DPI 换算；锚点优先 input-row 回退 card，锚点排除 script/style）。④ 第 44 道门禁 `verify_photo_calc.js` **18/18**（包围曝光步进、存储卡容量、景深、DPI 与打印尺寸、动态范围、等效焦距、EV 值、视场角、闪光 GN、超焦距、微倒度 Mired、ND 滤镜、安全快门、像素尺寸、RAW 体积、打印尺寸、曝光三角；输入全避开页面默认值，含「默认态假通过自检」+「期望值⊂输入值」双自检确认 0 RISK）。⑤ 指南 0→**32**（`gen_industry_guides.py --apply` 数据驱动；32 新增，无跨行业重名；32 指南全部存在、反链归属正确、零误归属）。四十四道质量门禁全过、构建 4825 工具全 A 级。**部署核验**：提交 `7683b8ea9`，线上 4 文件 MD5 逐字节一致（tools/photo/depth-of-field.html / guides/depth-of-field-guide.html / json/industry-photo.json / i18n/tools/photo.json）。
 
+> ✅ **`tax` (29) 已收口**（2026-09-14 开工并完成）。**范围**：`tools/tax/` 全部 29 个工具页（§9.2 记 29，磁盘实测 29）。
+> **八项基线审计（2026-09-14）**：deep-dive **29/29**（基线已达标，无需 A）；UI 零缺项；**cat 全部为 `tax`（∈ CAT_DEFS，合法，无需修正）**；**英文 p 占位 26、desc-en 占位 26**（简介为通用占位"…is available directly in your browser…"、desc-en 为"… - free online tool"）；孤儿键 0；**formula 计算类 29、缺框 0**（覆盖率 29/29，跳过 C）；计算验证 0；**指南 1/29**（仅 `gst-calculator`）；industry ed 不达标 1（`capital-gains-tax`）。
+> **收口结果（2026-09-14）**：① deep-dive 29/29（基线已达标，跳过 A）。② 英文态八维全清零（`scripts/enmap/tax.json` 29 条真实英文名 + 英文简介四端同步；cat 无修正；孤儿键 0；industry ed 不达标 1→0）。③ formula 29/29 已达标，跳过 C。④ 第 45 道门禁 `verify_tax_calc.js` **29/29**（从价税/平均税率/盈亏平衡应税额/资本利得税（优惠与一般）/企业所得税/进口关税/实际税率/消费税/境外税收抵免/赠与税/GST 含税转税前/利息所得税/边际税率/工薪税/累进所得税/房产税/代扣代缴/价外税/社保费/从量税/印花税/税收抵免/折后计税/宏观税负/不含税算增值税/含税转不含税/销项税/预提所得税；29 页纯数值计算全覆盖；输入全避开页面默认值，含「默认态假通过自检」+「期望值⊂输入值」双自检确认 0 RISK）。⑤ 指南 1→**29**（`gen_industry_guides.py --apply` 数据驱动；28 新增，无跨行业重名；29 指南全部存在、反链归属正确、零误归属）。四十五道质量门禁全过、构建 4825 工具全 A 级。**部署核验**：提交 `bd447476c`，线上 4 文件 MD5 逐字节一致（tools/tax/progressive-income-tax.html / guides/progressive-income-tax-guide.html / json/industry-tax.json / i18n/tools/tax.json）。
+
 > ✅ **`metalwork` (42) 已收口**（2026-09-14 开工并完成）。**范围**：`tools/metalwork/` 全部 42 个工具页（§9.2 记 29，磁盘实测 42）。
 > **八项基线审计（2026-09-14）**：deep-dive **29/42**（缺 13：`analysis-35`/`analysis-36`/`analysis-39`/`analysis-cost-price-5`/`analysis-simulator`/`assessor-34`/`cable-tray-sizing`/`detector-23`/`detector-24`/`detector-hardness`/`detector-mold`/`recorder-9`/`tester-19`）；UI 零缺项；**cat 跨行业错标 2**（`analysis-cost-price-5`/`zulinfeilvjisuan` 误标 `finance`；其余 40 页为功能值 calculator 10/engineer 15/math 4/validator 8/reference 3，按 SOP「已存在功能值不动」保留）；英文 p 占位 36、desc-en 占位 35、title-en 0、**body intro 占位 33、body title 真·代号 6**、en_override 代号 5、industry ed 不达标 15；**孤儿键 12**（越界 0）；**formula 计算类 32、缺框 5**（覆盖率 27/32）；计算验证 0；**指南 1/42**。
 > **收口结果（2026-09-14）**：① deep-dive 29/42→**42/42**（补 13 条真实深度解析：试模问题对策流程、铸造缺陷分类、金相组织/晶粒度、价格行情成本分析、模流填充冷却模拟、盐雾等级评估、电缆桥架尺寸、在线/脱机/激光检测反馈、X光/超声/渗透探伤、涂层结合力/厚度/硬度、模具三坐标报告、热处理控温记录、电缆安装检测；364 增 0 删，1 空格缩进幂等）。② 英文态八维全清零（`scripts/enmap/metalwork.json` 42 条真实英文名 + 英文简介四端同步；**cat 修正 2**：finance→calculator，行业 json + tools.json + 页面 meta 同步；清 12 孤儿键；**中文名修正 2**：`diandonggongju-xifen`/`yuanlingongju-xifen` 标题畸形「【…**」修正为「电动工具（细分对比）」「园林工具（细分对比）」）。③ formula 27/32→**32/32**（`scripts/add_metalwork_formula.py` 补 5 页：盐雾 Rp 评级与扣分、电缆桥架面积法选型、涂层结合力/厚度评分、热处理保温时间 t=k·δ+20、电缆安装绝缘电阻温度修正 R₂₀ 与耐压试验电压；锚点优先 input-row 回退 card，锚点排除 script/style）。④ 第 43 道门禁 `verify_metalwork_calc.js` **14/14**（缺陷数据统计、盐雾 Rp、桥架填充率、铣削转速、齿轮分度圆/齿根圆/基圆、冲裁力、金属延伸率/收缩率、钣金折弯展开、电缆耐压/温度修正、螺纹中径/小径、焊接电流电压匹配、焊接热输入、电池可用电量、品牌价值；排除流程/选择器/查表/自适应等非数值页；输入全避开页面默认值，含「默认态假通过自检」+「期望值⊂输入值」双自检确认 0 RISK）。⑤ 指南 1→**42**（`gen_industry_guides.py --apply` 数据驱动；41 新增，无跨行业重名；42 指南全部存在、反链归属正确、零误归属）。四十三道质量门禁全过、构建 4825 工具全 A 级。**部署核验**：提交 `984a0ffd7`，线上 4 文件 MD5 逐字节一致（tools/metalwork/cable-tray-sizing.html / guides/cable-tray-sizing-guide.html / json/industry-metalwork.json / i18n/tools/metalwork.json）。
@@ -374,11 +378,10 @@
 
 > 跳过规则：上述分类**不列入 §9.2 待办**；其余分类按 §9.2 热度顺序从零推进。
 
-### 9.2 分类优化清单（226 分类，按热度降序，完成一个删一个）
+### 9.2 分类优化清单（225 分类，按热度降序，完成一个删一个）
 
 > 清单由脚本按 `tools/` 目录工具数生成；每行 = 分类名 + 工具数。当前进行中的分类在 §8 同步登记。
 
-- [ ] tax (29)
 - [ ] acoustics (28)
 - [ ] chemistry (28)
 - [ ] dynamics (28)
