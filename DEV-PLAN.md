@@ -211,6 +211,10 @@
 > **八项基线审计（2026-09-14）**：deep-dive **32/32**（基线已达标）；UI 零缺项；**cat 跨行业错标 13**（10 标 `health`、3 标 `finance`）；**英文 p 占位 26**、desc-en 占位 30、body title 代号 7、body en 代号 5；**formula 计算类 16、缺框 16**（覆盖率 0/16，全部待补）；计算验证 0；**指南 0/32**；**orphan 键 2**（`simulator-12`/`diagnosis-6`）。
 > **收口结果（2026-09-14）**：① deep-dive 32/32（基线已达标）。② 英文态八维全清零（`scripts/enmap/obstetrics.json` 32 条真实英文名 + 英文描述四端同步；**cat 修正 32**：13 处跨行业错标 health/finance→obstetrics，行业 json + tools.json + 页面 meta 同步；清 2 孤儿键）。③ formula 0/16→**16/16**（`scripts/add_obstetrics_formula.py` 补 16 页：AFI 四象限求和分级、异位妊娠 hCG 48h 倍增率/倍增时间、Hadlock 四参数胎儿估重、产后出血失血量/休克指数、子痫前期 sFlt-1/PlGF 比值、卵巢储备 AMH/FSH/AFC 评分、内膜厚度周期分期、12h 胎动计数、CTG 胎心基线/变异/减速判定、FHR 基线、羊水指数等；锚点优先 input-row 再 card，锚点排除 script/style）。④ 第 40 道门禁 `verify_obstetrics_calc.js` **13/13**（AFI 求和、异位 hCG 倍增率/DT、Hadlock 估重、产后出血失血量/休克指数、子痫前期比值、卵巢储备评分、内膜分期、12h 胎动、CTG 判定、FHR 基线、唐筛风险；排除 `gestational`/`gestational-age`（依赖 `new Date()`）非确定性页；输入全避开页面默认值，含「默认态假通过自检」确认 0 RISK）。⑤ 指南 0→**32**（`gen_industry_guides.py --apply` 数据驱动；32 新增，无跨行业重名；32 指南全部存在、反链归属正确、零误归属）。四十道质量门禁全过、构建 4825 工具全 A 级。**部署核验**：提交 `651ee374b`，线上 4 文件 MD5 逐字节一致（tools/obstetrics/afi-normal.html / guides/calc-risk-guide.html / json/industry-obstetrics.json / i18n/tools/obstetrics.json）。
 
+> ✅ **`ophthalmology` (32) 已收口**（2026-09-14 开工并完成）。**范围**：`tools/ophthalmology/` 全部 32 个工具页（§9.2 记 32，磁盘实测 32）。
+> **八项基线审计（2026-09-14）**：deep-dive **28/32**（缺 `amsler-grid-test`/`astigmatism-chart`/`eye-chart-toolkit`/`vision-screening-21`）；UI 零缺项；**cat 跨行业错标 2**（`iop-correction`/`visual-acuity-converter` 误标 `health`，其余 30 页已是功能值 reference/calculator/convert/validator/engineer/math）；**英文名 30 页为代码名派生**（analysis-12/calc-1/calc-length-1/convert-42/detector-6/rater-7/rater-8 等）、简介全为通用占位（"Free online tool on ToolBox…"）；**orphan 键 2**（`rengongjingti-iol-dushu-srk-t`/`tool-007-14`）；**formula 计算类 4、缺框 4**（`calc-length-1`/`corneal-endothelium`/`iol-power`/`refraction-error`）；计算验证 0；**指南 0/32**。
+> **收口结果（2026-09-14）**：① deep-dive 28/32→**32/32**（补 4 条真实深度解析：Amsler 黄斑自测、散光放射线表轴位筛查、多类型视力表工具箱与屏幕校准、21 题自适应视力自测）。② 英文态八维全清零（`scripts/enmap/ophthalmology.json` 32 条真实英文名 + 英文简介四端同步；**cat 修正 2**：health→calculator（`iop-correction`）、health→convert（`visual-acuity-converter`），行业 json + tools.json + 页面 meta 同步；清 2 孤儿键）。③ formula 0/4→**4/4**（`scripts/add_ophthalmology_formula.py` 补 4 页：SRK II/SRK-T vergence + ELP 计算、三公式 IOL（SRK II/SRK-T/Hoffer Q 近似）、角膜内皮密度 CD/CV/六角形比例、屈光处方等效球镜与功率向量 M/J0/J45 + 柱镜转置；锚点优先 input-row 回退 card，锚点排除 script/style）。④ 第 41 道门禁 `verify_ophthalmology_calc.js` **13/13**（视力数据统计、A 超声速校正眼轴、CCT 眼压校正（Doughty）、C/D 比分级、Snellen→logMAR、角膜曲率与散光轴、儿童立体视阈值分级、四公式眼压校正均值、OCT RNFL 年龄校正、翼状胬肉遮盖比、BUT 分级、视力换算 Snellen、视野 MD 分期；排除图形/画布类（amsler/astigmatism-chart/eye-chart-toolkit/ishihara）、问卷点选类（osdi/rater/self-assess/visual-fatigue-vas/fluorescein/meibomian/pupil-reflex）、自适应问答类（vision-screening-21）；输入全避开页面默认值，含「默认态假通过自检」确认 0 RISK）。⑤ 指南 4→**32**（`gen_industry_guides.py --apply` 数据驱动；28 新增，`calc-1` 跨行业重名改 `ophthalmology-calc-1` 前缀消歧；32 指南全部存在、反链归属正确、零误归属）。四十一道质量门禁全过、构建 4825 工具全 A 级。**部署核验**：提交 `6f4e46e7f`，线上 4 文件 MD5 逐字节一致（tools/ophthalmology/iol-power.html / guides/iol-power-guide.html / json/industry-ophthalmology.json / i18n/tools/ophthalmology.json）。
+
 > ✅ **`securities` (35) 已收口**（2026-09-14 开工并完成）。**范围**：`tools/securities/` 全部 35 个工具页。
 > **八项基线审计（2026-09-14）**：deep-dive **35/35**（无缺页）；UI 零缺项；**cat 跨行业错标 4**（`position-sizing`/`calc-30`/`calc-1` 标 `finance`、`technical-indicator` 标 `health`）；**英文 p 占位 25**、desc-en 占位 28、body intro 占位 34、body title 代号 1、industry ed 不达标 1、**orphan 键 2**（`tool-001-13`/`yidongpingjunxian-ma-jincha-sichatishi`）、**越界键 3**（`sharpe-ratio`/`portfolio-return`/`capm-return`）；**formula 计算类 31、缺框 7**（`beta-calc`/`bond-convexity`/`bond-duration`/`calc-1`/`calc-29`/`position-sizing`/`technical-indicator`，覆盖率 24/31）；计算验证 0；**指南 1/35**（`option-breakeven-call`；`calc-1` 被审计误计为 hydraulic 的 `calc-1-guide.html`）。
 > **批次计划（全部完成）**：A deep-dive（35/35 已达标，无需）→ B 英文态数据源根治 + cat 修正 + 孤儿/越界键清除 → C formula 补框 7 页 → D 计算验证（第 30 道门禁）→ E 指南 1→35 → 收口归档。
@@ -355,11 +359,10 @@
 
 > 跳过规则：上述分类**不列入 §9.2 待办**；其余分类按 §9.2 热度顺序从零推进。
 
-### 9.2 分类优化清单（230 分类，按热度降序，完成一个删一个）
+### 9.2 分类优化清单（229 分类，按热度降序，完成一个删一个）
 
 > 清单由脚本按 `tools/` 目录工具数生成；每行 = 分类名 + 工具数。当前进行中的分类在 §8 同步登记。
 
-- [ ] ophthalmology (32)
 - [ ] encode (29)
 - [ ] metalwork (29)
 - [ ] photo (29)
