@@ -33,11 +33,9 @@ stats = {
 
 # add_*_formula.py（锚点遍历全文）会把 formula-box 插进 JS 模板串/单引号串，
 # 单引号串被裸换行撕裂 → 页面脚本 SyntaxError（计算器全废）。
-# 该缺陷已在 fitness/math 修复；以下为历史遗留、待单独修复批次处理的页面（修复后须从此名单移除）。
-FORMULA_IN_SCRIPT_ALLOW = {
-    'tools/optical/calc-47.html',
-    'tools/optical/detector-31.html',
-}
+# 该缺陷已在 fitness/math/optical 全部修复；白名单已清空。
+# 若将来再出现，直接 error（不再登记白名单），用 scripts/fix_formula_box_placement.py 修复。
+FORMULA_IN_SCRIPT_ALLOW = set()
 
 # 工具页「使用指南」链接必须指向「反链本页」的指南（防历史 basename 匹配造成的跨行业错配）。
 # 例外：指南为跨页共用话题件（正文只反链同话题的另一页），人工确认可接受。
