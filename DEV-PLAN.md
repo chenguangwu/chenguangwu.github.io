@@ -161,6 +161,11 @@
 
 ## 八、分类推进记录
 
+> ✅ **`surveying` (44) 已收口**（2026-09-14 开工并完成）。**范围**：`tools/surveying/` 全部 44 个工具页。
+> **八项基线审计（2026-09-14）**：deep-dive **40/44**（缺 4 键：`analysis-17`/`assessor-16`/`convert-46`/`convert-angle-slope-1`）；UI 零缺项；cat 全部为功能值或本行业名（无跨行业错标，不动）；**英文 p 占位 32**、desc-en 占位 30、body intro 占位 42、body title 代号 6、en_override 代号 4、**orphan 键 6**（`convert-50`/`convert-34`/`convert-32`/`classify-13`/`map-scale`/`tool-012-54`）；**formula 计算类 39、缺框 0**（覆盖率 39/39 已达标）；计算验证 0；**指南 1/44**（`assessor-16`；`calc-1` 被审计误计为 hydraulic 的 `calc-1-guide.html`）。
+> **批次计划（全部完成）**：A deep-dive 缺 4 键补写 → B 英文态数据源根治 + 孤儿键清除 → C formula（39/39 已达标，无需）→ D 计算验证（第 28 道门禁）→ E 指南 1→44 → 收口归档。
+> **收口结果（2026-09-14）**：① deep-dive 40/44→**44/44**（补 4 条真实深度解析 `analysis-17`/`assessor-16`/`convert-46`/`convert-angle-slope-1`：缓冲区半径、GPS PDOP 精度、经纬度↔度分秒、坡度百分比↔角度；1 空格缩进格式文本插入，末尾无尾随换行）。② 英文态八维全清零（44 条真实英文名 + 英文描述四端同步；清 6 孤儿键；industry ed 不达标 1→0）。③ formula 39/39（基线已达标）。④ 第 28 道门禁 `verify_surveying_calc.js` **16/16**（坡度百分比/角度、斜距→水平距、圆曲线外距/切线长/弦长/中点垂距、平面与空间距离、坐标反算方位角、锥体体积、坐标旋转、鞋带面积、正弦定理、平均断面法、棱台体积、角度→坡度；输入全避开页面默认值，node 独立复算断言）。⑤ 指南 1→**44**（`gen_industry_guides.py --apply` 数据驱动；43 新增，`calc-1` 跨行业重名改 `surveying-` 前缀消歧；guides/index 与 json/guides.json 同步；44 指南全部存在、反链归属正确、零误归属）。二十八道质量门禁全过。**部署核验**：提交 `1527ea2d5`，线上 4 文件 MD5 逐字节一致（tools/surveying/scale-converter.html / guides/scale-converter-guide.html / guides/index.html / json/guides.json）。
+
 > ✅ **`optical` (41) 已收口**（2026-09-14 开工并完成）。**范围**：`tools/optical/` 全部 41 个工具页。
 > **八项基线审计（2026-09-14）**：deep-dive **41/41**（无缺页）；UI 零缺项；**cat 误标 1**（`report-cost-profit-1` 标 `finance` 应为 `calculator`）；**英文 p 占位 39**、desc-en 占位 38、body intro 占位 39、body title 代号 3（`recommender-1`/`detector-31`/`tool-011-13`）、en_override 代号 2、body **orphan 键 2**（`pianguangjing-zhouwei-jiaozheng`/`tool-011-13`）；**formula 计算类 32、缺框 10（覆盖率 22/32）**；计算验证 0；**指南 0/41**。
 > **批次计划（全部完成）**：A 英文态数据源根治 + cat 修正 + 孤儿键清除 → B 英文占位正文注入 → C formula 补框 10 页 → D 计算验证（第 27 道门禁）→ E 指南 0→41 → 收口归档。
@@ -290,11 +295,10 @@
 
 > 跳过规则：上述分类**不列入 §9.2 待办**；其余分类按 §9.2 热度顺序从零推进。
 
-### 9.2 分类优化清单（243 分类，按热度降序，完成一个删一个）
+### 9.2 分类优化清单（242 分类，按热度降序，完成一个删一个）
 
 > 清单由脚本按 `tools/` 目录工具数生成；每行 = 分类名 + 工具数。当前进行中的分类在 §8 同步登记。
 
-- [ ] surveying (40)
 - [ ] fishery (38)
 - [ ] securities (38)
 - [ ] aerospace (37)
