@@ -161,6 +161,11 @@
 
 ## 八、分类推进记录
 
+> ✅ **`machinery` (37) 已收口**（2026-09-14 开工并完成）。**范围**：`tools/machinery/` 全部 37 个工具页。
+> **八项基线审计（2026-09-14）**：deep-dive **37/37**（无缺页）；UI 零缺项；**cat 全为功能值**（calculator 8 / engineer 26 / reference 2 / math 1，**无跨行业错标，不动**）；英文 p 占位 29、desc-en 占位 23、body intro 占位 34、**疑似代号 title 13**（`pressure-4`/`strength-15`/`tolerance-1`/`energy-2`/`frequency-17`/`area-dosage-1`/`drive-2`/`lifespan-bearing-1`/`strength-6`/`strength-7`/`calc-gear-1`/`calc-gear-3` 等）、**孤儿键 7**（`convert-hardness-strength`/`classify-128`/`compare-torque-bolt`/`compare-12`/`elasticity-1`/`tool-014-298`/`tool-018-56`）、industry ed 不达标 1（`calc-gear-3`）；**formula 计算类 33、缺框 0**（覆盖率 33/33，基线已达标）；计算验证 0；**指南 0/37**。
+> **批次计划（全部完成）**：A deep-dive（37/37 已达标，无需）→ B 英文态数据源根治 + 孤儿键清除（cat 无需修正；ed 随 name+intro 重建达标）→ C formula（33/33 已达标，无需）→ D 计算验证（第 33 道门禁）→ E 指南 0→37 → 收口归档。
+> **收口结果（2026-09-14）**：① deep-dive 37/37（基线已达标）。② 英文态八维全清零（37 条真实英文名 + 英文描述四端同步；清 7 孤儿键；ed 全部达标）。③ formula 33/33（基线已达标，无需补框）。④ 第 33 道门禁 `verify_machinery_calc.js` **21/21**（齿轮分度圆/配合间隙极限偏差/离合器扭矩/铆接剪切/平键挤压/切削参数/涂装用量/制动能耗/螺纹升角/轴承 L₁₀（球 + 滚子）/折弯展开长/渐开线花键分度圆/矩形板质量重心/通用判读评分/直齿轮/隔振固有频率/带传动比/轴承 L₁₀/滑动轴承 pV/润滑 PV；输入全避开页面默认值，node 独立复算断言；自查中修正 2 处「期望值恰等于默认值」的假通过风险）。⑤ 指南 0→**37**（`gen_industry_guides.py --apply` 数据驱动；37 新增，无跨行业重名；37 指南全部存在、反链归属正确、零误归属）。三十三道质量门禁全过。**部署核验**：提交 `2052a93f8`，线上 4 文件 MD5 逐字节一致（tools/machinery/calc-gear-1.html / guides/gear-guide.html / guides/index.html / json/guides.json）。
+>
 > ✅ **`geology` (37) 已收口**（2026-09-14 开工并完成）。**范围**：`tools/geology/` 全部 37 个工具页。
 > **八项基线审计（2026-09-14）**：deep-dive **37/37**（无缺页）；UI 零缺项；**cat 跨行业错标 3**（`calc-1`→health、`analysis-cost-2`/`hazard`→finance）；英文 p 占位 21、desc-en 占位 22、body intro 占位 22、**疑似代号 title 9**（`analysis-32`/`analysis-33`/`analysis-cost-2`/`estimate-reserve-1`/`generator-37`/`sample-1`/`spacing-4`/`stats-analysis-2`/`stats-density-1`/`tester-16`）、**孤儿键 3**（`soil-classify`/`tool-008-55`/`tool-019-54`）；**formula 计算类 25、缺框 7**（`calc-1`/`calc-25`/`calc-87`/`dizhiwurandiaochapinggu`/`dizhiyijipinggu`/`weight-sample`/`wutanyichangjieyi`，覆盖率 18/25）；计算验证 0；**指南 7/37**。
 > **批次计划（全部完成）**：A deep-dive（37/37 已达标，无需）→ B 英文态数据源根治 + cat 修正 + 孤儿键清除 → C formula 补框 7 页 → D 计算验证（第 32 道门禁）→ E 指南 7→37 → 收口归档。
@@ -315,11 +320,10 @@
 
 > 跳过规则：上述分类**不列入 §9.2 待办**；其余分类按 §9.2 热度顺序从零推进。
 
-### 9.2 分类优化清单（238 分类，按热度降序，完成一个删一个）
+### 9.2 分类优化清单（237 分类，按热度降序，完成一个删一个）
 
 > 清单由脚本按 `tools/` 目录工具数生成；每行 = 分类名 + 工具数。当前进行中的分类在 §8 同步登记。
 
-- [ ] machinery (37)
 - [ ] math (36)
 - [ ] accounting (35)
 - [ ] fitness (35)
