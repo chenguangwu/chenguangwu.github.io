@@ -218,6 +218,11 @@ function makeEl(val) {
   const el = {
     value: val === undefined ? "" : val,
     textContent: "",
+    // 与真实 <select> 对齐：页面常读 el.selectedOptions[0].text 取选项标签，
+    // 缺此属性会在 calc() 抛 "Cannot read properties of undefined" 使整页无法验证。
+    selectedOptions: [
+      { text: String(val === undefined ? "" : val), value: String(val === undefined ? "" : val), selected: true },
+    ],
     checked: false,
     style: {},
     dataset: {},
