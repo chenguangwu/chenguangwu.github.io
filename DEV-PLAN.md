@@ -222,6 +222,10 @@
 > **顺带修正（2026-09-14 · cat 有效性）**：发现 `cat` 的客观有效性判据是 **∈ `_build.py` `CAT_DEFS` 的 52 个键**（否则分类标签回退原始英文 slug、图标/底色走行业兜底）。`obstetrics` 不在其中（上一批 obstetrics 收口把 32 页 cat 设为 `obstetrics` 造成非法值）→ 已在 `CAT_DEFS` 补注册 `'obstetrics': ('🤱','#fce4ec','产科医学')`（与 acoustics/chemistry/insurance/securities 等 20+ 专业域同构）。全站非法 cat 由 36 降至 4（`baking`/`biz`/`daily`/`automotive` 各 1 个，属历史遗留，未擅自改动已上线内容，登记 §9.3）。
 
 
+> ✅ **`metalwork` (42) 已收口**（2026-09-14 开工并完成）。**范围**：`tools/metalwork/` 全部 42 个工具页（§9.2 记 29，磁盘实测 42）。
+> **八项基线审计（2026-09-14）**：deep-dive **29/42**（缺 13：`analysis-35`/`analysis-36`/`analysis-39`/`analysis-cost-price-5`/`analysis-simulator`/`assessor-34`/`cable-tray-sizing`/`detector-23`/`detector-24`/`detector-hardness`/`detector-mold`/`recorder-9`/`tester-19`）；UI 零缺项；**cat 跨行业错标 2**（`analysis-cost-price-5`/`zulinfeilvjisuan` 误标 `finance`；其余 40 页为功能值 calculator 10/engineer 15/math 4/validator 8/reference 3，按 SOP「已存在功能值不动」保留）；英文 p 占位 36、desc-en 占位 35、title-en 0、**body intro 占位 33、body title 真·代号 6**、en_override 代号 5、industry ed 不达标 15；**孤儿键 12**（越界 0）；**formula 计算类 32、缺框 5**（覆盖率 27/32）；计算验证 0；**指南 1/42**。
+> **收口结果（2026-09-14）**：① deep-dive 29/42→**42/42**（补 13 条真实深度解析：试模问题对策流程、铸造缺陷分类、金相组织/晶粒度、价格行情成本分析、模流填充冷却模拟、盐雾等级评估、电缆桥架尺寸、在线/脱机/激光检测反馈、X光/超声/渗透探伤、涂层结合力/厚度/硬度、模具三坐标报告、热处理控温记录、电缆安装检测；364 增 0 删，1 空格缩进幂等）。② 英文态八维全清零（`scripts/enmap/metalwork.json` 42 条真实英文名 + 英文简介四端同步；**cat 修正 2**：finance→calculator，行业 json + tools.json + 页面 meta 同步；清 12 孤儿键；**中文名修正 2**：`diandonggongju-xifen`/`yuanlingongju-xifen` 标题畸形「【…**」修正为「电动工具（细分对比）」「园林工具（细分对比）」）。③ formula 27/32→**32/32**（`scripts/add_metalwork_formula.py` 补 5 页：盐雾 Rp 评级与扣分、电缆桥架面积法选型、涂层结合力/厚度评分、热处理保温时间 t=k·δ+20、电缆安装绝缘电阻温度修正 R₂₀ 与耐压试验电压；锚点优先 input-row 回退 card，锚点排除 script/style）。④ 第 43 道门禁 `verify_metalwork_calc.js` **14/14**（缺陷数据统计、盐雾 Rp、桥架填充率、铣削转速、齿轮分度圆/齿根圆/基圆、冲裁力、金属延伸率/收缩率、钣金折弯展开、电缆耐压/温度修正、螺纹中径/小径、焊接电流电压匹配、焊接热输入、电池可用电量、品牌价值；排除流程/选择器/查表/自适应等非数值页；输入全避开页面默认值，含「默认态假通过自检」+「期望值⊂输入值」双自检确认 0 RISK）。⑤ 指南 1→**42**（`gen_industry_guides.py --apply` 数据驱动；41 新增，无跨行业重名；42 指南全部存在、反链归属正确、零误归属）。四十三道质量门禁全过、构建 4825 工具全 A 级。**部署核验**：提交 `984a0ffd7`，线上 4 文件 MD5 逐字节一致（tools/metalwork/cable-tray-sizing.html / guides/cable-tray-sizing-guide.html / json/industry-metalwork.json / i18n/tools/metalwork.json）。
+
 > ✅ **`securities` (35) 已收口**（2026-09-14 开工并完成）。**范围**：`tools/securities/` 全部 35 个工具页。
 > **八项基线审计（2026-09-14）**：deep-dive **35/35**（无缺页）；UI 零缺项；**cat 跨行业错标 4**（`position-sizing`/`calc-30`/`calc-1` 标 `finance`、`technical-indicator` 标 `health`）；**英文 p 占位 25**、desc-en 占位 28、body intro 占位 34、body title 代号 1、industry ed 不达标 1、**orphan 键 2**（`tool-001-13`/`yidongpingjunxian-ma-jincha-sichatishi`）、**越界键 3**（`sharpe-ratio`/`portfolio-return`/`capm-return`）；**formula 计算类 31、缺框 7**（`beta-calc`/`bond-convexity`/`bond-duration`/`calc-1`/`calc-29`/`position-sizing`/`technical-indicator`，覆盖率 24/31）；计算验证 0；**指南 1/35**（`option-breakeven-call`；`calc-1` 被审计误计为 hydraulic 的 `calc-1-guide.html`）。
 > **批次计划（全部完成）**：A deep-dive（35/35 已达标，无需）→ B 英文态数据源根治 + cat 修正 + 孤儿/越界键清除 → C formula 补框 7 页 → D 计算验证（第 30 道门禁）→ E 指南 1→35 → 收口归档。
@@ -366,11 +370,10 @@
 
 > 跳过规则：上述分类**不列入 §9.2 待办**；其余分类按 §9.2 热度顺序从零推进。
 
-### 9.2 分类优化清单（228 分类，按热度降序，完成一个删一个）
+### 9.2 分类优化清单（227 分类，按热度降序，完成一个删一个）
 
 > 清单由脚本按 `tools/` 目录工具数生成；每行 = 分类名 + 工具数。当前进行中的分类在 §8 同步登记。
 
-- [ ] metalwork (29)
 - [ ] photo (29)
 - [ ] tax (29)
 - [ ] acoustics (28)
