@@ -215,6 +215,13 @@
 > **八项基线审计（2026-09-14）**：deep-dive **28/32**（缺 `amsler-grid-test`/`astigmatism-chart`/`eye-chart-toolkit`/`vision-screening-21`）；UI 零缺项；**cat 跨行业错标 2**（`iop-correction`/`visual-acuity-converter` 误标 `health`，其余 30 页已是功能值 reference/calculator/convert/validator/engineer/math）；**英文名 30 页为代码名派生**（analysis-12/calc-1/calc-length-1/convert-42/detector-6/rater-7/rater-8 等）、简介全为通用占位（"Free online tool on ToolBox…"）；**orphan 键 2**（`rengongjingti-iol-dushu-srk-t`/`tool-007-14`）；**formula 计算类 4、缺框 4**（`calc-length-1`/`corneal-endothelium`/`iol-power`/`refraction-error`）；计算验证 0；**指南 0/32**。
 > **收口结果（2026-09-14）**：① deep-dive 28/32→**32/32**（补 4 条真实深度解析：Amsler 黄斑自测、散光放射线表轴位筛查、多类型视力表工具箱与屏幕校准、21 题自适应视力自测）。② 英文态八维全清零（`scripts/enmap/ophthalmology.json` 32 条真实英文名 + 英文简介四端同步；**cat 修正 2**：health→calculator（`iop-correction`）、health→convert（`visual-acuity-converter`），行业 json + tools.json + 页面 meta 同步；清 2 孤儿键）。③ formula 0/4→**4/4**（`scripts/add_ophthalmology_formula.py` 补 4 页：SRK II/SRK-T vergence + ELP 计算、三公式 IOL（SRK II/SRK-T/Hoffer Q 近似）、角膜内皮密度 CD/CV/六角形比例、屈光处方等效球镜与功率向量 M/J0/J45 + 柱镜转置；锚点优先 input-row 回退 card，锚点排除 script/style）。④ 第 41 道门禁 `verify_ophthalmology_calc.js` **13/13**（视力数据统计、A 超声速校正眼轴、CCT 眼压校正（Doughty）、C/D 比分级、Snellen→logMAR、角膜曲率与散光轴、儿童立体视阈值分级、四公式眼压校正均值、OCT RNFL 年龄校正、翼状胬肉遮盖比、BUT 分级、视力换算 Snellen、视野 MD 分期；排除图形/画布类（amsler/astigmatism-chart/eye-chart-toolkit/ishihara）、问卷点选类（osdi/rater/self-assess/visual-fatigue-vas/fluorescein/meibomian/pupil-reflex）、自适应问答类（vision-screening-21）；输入全避开页面默认值，含「默认态假通过自检」确认 0 RISK）。⑤ 指南 4→**32**（`gen_industry_guides.py --apply` 数据驱动；28 新增，`calc-1` 跨行业重名改 `ophthalmology-calc-1` 前缀消歧；32 指南全部存在、反链归属正确、零误归属）。四十一道质量门禁全过、构建 4825 工具全 A 级。**部署核验**：提交 `6f4e46e7f`，线上 4 文件 MD5 逐字节一致（tools/ophthalmology/iol-power.html / guides/iol-power-guide.html / json/industry-ophthalmology.json / i18n/tools/ophthalmology.json）。
 
+> ✅ **`encode` (30) 已收口**（2026-09-14 开工并完成）。**范围**：`tools/encode/` 全部 30 个工具页（§9.2 记 29，磁盘实测 30）。
+> **八项基线审计（2026-09-14）**：deep-dive **27/30**（缺 `base64-size`/`image-to-base64`/`jwt-size`）；UI 零缺项；**cat 全部为 `encode`（合法，无需修正）**；英文简介 **26 页为通用占位**（"Free online tool on ToolBox…"）、代码名 slug 8 个（`encode-2..7`/`calc-1`/`calc-2`）；**orphan 键 4**（`base32-length`/`base64`/`jwt`/`utf8-bytes`）；formula 计算类 4、**缺框 0**（无需补，跳过 C）；计算验证 0；**指南 3/30**。
+> **收口结果（2026-09-14）**：① deep-dive 27/30→**30/30**（补 3 条真实深度解析：Base64 输出体积与换行开销、本地图片转 Base64 内联、JWT 令牌长度估算与开销）。② 英文态八维全清零（`scripts/enmap/encode.json` 30 条真实英文名 + 英文简介四端同步；cat 无修正；清 4 孤儿键）。③ formula 已达标，跳过 C。④ 第 42 道门禁 `verify_encode_calc.js` **26/26**（ASCII 占比、Base32/Base58/Base64 长度与体积、校验和漏检率、压缩率、CRC 检错、汉明距离/校验位、哈希输出长度、摩斯时长、二维码版本、进制位数、哈希碰撞阈值、凯撒移位、编码冗余度、HTML 实体长度、哈夫曼平均码长、JWT 长度、进制容量、香农信息熵、URL 编码长度与膨胀、UTF-8 字节数；输入全避开页面默认值，含「默认态假通过自检」+「期望值⊂输入值」双自检确认 0 RISK）。⑤ 指南 3→**30**（`gen_industry_guides.py --apply` 数据驱动；29 新增，无跨行业重名；30 指南全部存在、反链归属正确、零误归属）。四十二道质量门禁全过、构建 4825 工具全 A 级。**部署核验**：提交 `198059310`，线上 4 文件 MD5 逐字节一致（tools/encode/base64-size.html / guides/shannon-entropy-guide.html / json/industry-encode.json / i18n/tools/encode.json）。
+
+> **顺带修正（2026-09-14 · cat 有效性）**：发现 `cat` 的客观有效性判据是 **∈ `_build.py` `CAT_DEFS` 的 52 个键**（否则分类标签回退原始英文 slug、图标/底色走行业兜底）。`obstetrics` 不在其中（上一批 obstetrics 收口把 32 页 cat 设为 `obstetrics` 造成非法值）→ 已在 `CAT_DEFS` 补注册 `'obstetrics': ('🤱','#fce4ec','产科医学')`（与 acoustics/chemistry/insurance/securities 等 20+ 专业域同构）。全站非法 cat 由 36 降至 4（`baking`/`biz`/`daily`/`automotive` 各 1 个，属历史遗留，未擅自改动已上线内容，登记 §9.3）。
+
+
 > ✅ **`securities` (35) 已收口**（2026-09-14 开工并完成）。**范围**：`tools/securities/` 全部 35 个工具页。
 > **八项基线审计（2026-09-14）**：deep-dive **35/35**（无缺页）；UI 零缺项；**cat 跨行业错标 4**（`position-sizing`/`calc-30`/`calc-1` 标 `finance`、`technical-indicator` 标 `health`）；**英文 p 占位 25**、desc-en 占位 28、body intro 占位 34、body title 代号 1、industry ed 不达标 1、**orphan 键 2**（`tool-001-13`/`yidongpingjunxian-ma-jincha-sichatishi`）、**越界键 3**（`sharpe-ratio`/`portfolio-return`/`capm-return`）；**formula 计算类 31、缺框 7**（`beta-calc`/`bond-convexity`/`bond-duration`/`calc-1`/`calc-29`/`position-sizing`/`technical-indicator`，覆盖率 24/31）；计算验证 0；**指南 1/35**（`option-breakeven-call`；`calc-1` 被审计误计为 hydraulic 的 `calc-1-guide.html`）。
 > **批次计划（全部完成）**：A deep-dive（35/35 已达标，无需）→ B 英文态数据源根治 + cat 修正 + 孤儿/越界键清除 → C formula 补框 7 页 → D 计算验证（第 30 道门禁）→ E 指南 1→35 → 收口归档。
@@ -359,11 +366,10 @@
 
 > 跳过规则：上述分类**不列入 §9.2 待办**；其余分类按 §9.2 热度顺序从零推进。
 
-### 9.2 分类优化清单（229 分类，按热度降序，完成一个删一个）
+### 9.2 分类优化清单（228 分类，按热度降序，完成一个删一个）
 
 > 清单由脚本按 `tools/` 目录工具数生成；每行 = 分类名 + 工具数。当前进行中的分类在 §8 同步登记。
 
-- [ ] encode (29)
 - [ ] metalwork (29)
 - [ ] photo (29)
 - [ ] tax (29)
@@ -597,6 +603,7 @@
 
 - [ ] **【P0·全站】指南错误注入专项排查**：`_build.py` 注入「使用指南」链接的逻辑是**幂等**的（页面已有 `data-guide-link` 就不再替换），导致跨行业重名 slug（如 `calc-1.html` 存在于 42 个行业目录）在历史批次被**错误注入他行业指南**后，即使后来补了本行业专属指南也不会更新。health 批次已发现并手工修 3 页（`health/calc-1/2/3` → 原指向 hydraulic 的管道水力/水泵扬程/沿程水头损失）。**需全站扫描**：对每个工具页，取其 `data-guide-link` 指向的指南，反查指南正文绝对 URL 的行业归属，列出「归属 ≠ 本行业」的全部页面，批量移除错误块后重建。
 - [x] **【P0·已于 2026-09-14 修复】cat 修正从未真正生效（全站系统性缺陷）**：`fix_industry_body_i18n.py` 原只写 `json/industry-<ind>.json` 的 `cat`，但**权威源是页面 `<meta name="toolbox" content="cat=...">`**——`_build.py` 的 `get_tool_info()` 读 `tb_meta.get('cat')`，并据此重建 `tools.json` 与 `industry-*.json`，故每次构建都把 cat 覆盖回行业名。已收口的 energy / health / realestate 三分类的「cat 修正」实际全部未落地（构建后仍为 energy 25 / health 23 / finance 35）。**修复**：脚本改为同时写 ① 页面 meta 的 `cat=` ② `tools.json` 条目 ③ `industry-<ind>.json`；并已对 healthcare(34) / energy(29) / health(25) 回溯补齐，重建后实测生效。**教训**：改数据源前先定位构建脚本的真实读取点（`grep "'cat'" _build.py`），不要以「脚本报告成功」为准，须在下一次构建后复核。
+- [ ] **【P2】全站非法 cat 4 处（历史遗留）**：`baking`/`biz`/`daily`/`automotive` 各 1 个工具页的 `cat` 不在 `_build.py` `CAT_DEFS` 内（对应 `recipe-scaler`/`unit-price-compare`/`parking-fee`/`fuel-cost-calculator`），分类标签会回退为原始英文 slug。因属历史遗留、内容已上线，未擅改；建议补注册 `CAT_DEFS`（baking/biz/automotive 可复用 INDUSTRY_DEFS 中文名；`daily` 无对应行业，宜改写为合法功能值）。
 - [ ] **【P1】realestate 缺 `scripts/enmap/realestate.json`**：realestate 收口早于三脚本通用化，cat 修正当年由专用脚本完成、同样踩上述 P0（未写 meta），至今 `tools.json` 仍为 `finance` 35 + `health` 1（其中 `health` 1 系明确的跨行业误标）。需补写 54 条 enmap（name/intro/cat/zh）后重跑 `fix_industry_body_i18n.py --ind realestate --apply`。
 - [ ] **【P1】§9.2 分类计数普遍偏差**：health 记 46 实测 41、energy 记 46 实测 43（历史下架未同步）。建议写脚本按 `tools/<ind>/*.html` 实测数全量校验并重写 §9.2。
 - [x] **【P2·已于 2026-09-14 修复】`audit_industry.py` formula 判定假阴性**：原判 `'class="formula-box"' not in s`，而站点内大量页面用复合类名 `class="card formula-box"`（healthcare 30/35 页），被误报「缺框」。已改为 `re.search(r'class="[^"]*\bformula-box\b[^"]*"', s)`。
