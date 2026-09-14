@@ -997,6 +997,7 @@ CAT_DEFS = {
     'materials':       ('🧱', '#f3e5f5', '材料科学'),
     'metrology':       ('📏', '#ede7f6', '计量学'),
     'nuclear':         ('☢️', '#fce4ec', '核物理'),
+    'obstetrics':      ('🤱', '#fce4ec', '产科医学'),
     'optics':          ('🔬', '#e8f5e9', '光学'),
     'process':         ('⚙️', '#e0f7fa', '过程控制'),
     'quantum':         ('⚛️', '#ede7f6', '量子物理'),

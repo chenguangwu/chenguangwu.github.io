@@ -93,6 +93,7 @@ GATES = (
     ("insurance calc correctness", ("node", "scripts/verify_insurance_calc.js")),
     ("obstetrics calc correctness", ("node", "scripts/verify_obstetrics_calc.js")),
     ("ophthalmology calc correctness", ("node", "scripts/verify_ophthalmology_calc.js")),
+    ("encode calc correctness", ("node", "scripts/verify_encode_calc.js")),
 )
 
 

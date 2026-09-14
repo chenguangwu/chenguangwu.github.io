@@ -34,7 +34,7 @@ window.INDUSTRY_INFO = {
   'math'                 : { name: '数学计算', icon: '🧮', hot: 354026 },
   'cosmetic-derm'        : { name: '美容皮肤', icon: '✨', hot: 346686 },
   'metalwork'            : { name: '金属加工', icon: '🔨', hot: 342459 },
-  'encode'               : { name: '编码转换', icon: '🔐', hot: 337286 },
+  'encode'               : { name: '编码转换', icon: '🔐', hot: 337285 },
   'machinery'            : { name: '机械制造', icon: '⚙️', hot: 320632 },
   'nuclear'              : { name: '核物理', icon: '☢️', hot: 314025 },
   'food-testing'         : { name: '食品检测', icon: '🧫', hot: 312451 },
