@@ -126,6 +126,9 @@ GATES = (
     ("construction calc correctness", ("node", "scripts/verify_construction_calc.js")),
     ("pulmonology calc correctness", ("node", "scripts/verify_pulmonology_calc.js")),
     ("astronomy calc correctness", ("node", "scripts/verify_astronomy_calc.js")),
+    ("clinical-nursing calc correctness", ("node", "scripts/verify_clinical-nursing_calc.js")),
+    ("dentistry calc correctness", ("node", "scripts/verify_dentistry_calc.js")),
+    ("cardiology calc correctness", ("node", "scripts/verify_cardiology_calc.js")),
 )
 
 
