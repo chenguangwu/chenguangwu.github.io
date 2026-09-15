@@ -2,11 +2,14 @@
 "use strict";
 const { runCase } = require("./verify_it_calc.js");
 const CASES = [
-  { slug: "martial/breathing-rhythm", inputs: {"breathRate":"12"}, expect: ["准备下一动作"], _selfcheck: true, _min_inputs: 1 },
-  { slug: "martial/kick-height", inputs: {"height":"170","legLen":"0","kickHeight":"150"}, expect: ["拉伤"] },
-  { slug: "martial/routine-timer", inputs: {"standardTime":"80","tolerance":"2"}, expect: ["实际以赛事规程为准"] },
-  { slug: "martial/stance-center", inputs: {"stepWidth":"80","height":"170","frontRatio":"50","squatDepth":"30","duration":"5"}, expect: ["相同时长的耐力要求越"] },
-  { slug: "martial/strike-resistance", inputs: {"freq":"3"}, expect: ["建议在专业指导下进行"], _selfcheck: true, _min_inputs: 1 }
+  // 注：collectStrings 在剥离 <strong> 标签时会插入空格，故期望值含「： 」后的空格
+  { slug: "martial/breathing-rhythm", inputs: {"breathRate":"30"}, expect: ["呼吸周期： 2.00 秒"] },
+  { slug: "martial/kick-height", inputs: {"kickHeight":"200"}, expect: ["高度比（身高）： 117.6%"] },
+  // routine-timer 的 standardTime 会被 loadStandard() 按套路类型重算为区间中值，
+  // 故改用 routineType 驱动：taijiquan 中值 (300+420)/2 = 360。
+  { slug: "martial/routine-timer", inputs: {"routineType":"taijiquan"}, expect: ["标准： 360 秒"] },
+  { slug: "martial/stance-center", inputs: {"frontRatio":"80"}, expect: ["前脚 80%"] },
+  { slug: "martial/strike-resistance", inputs: {"trainYears":"3","freq":"7"}, expect: ["硬度指数： 119"] }
 ];
 async function main() {
   const only = process.argv.slice(2);

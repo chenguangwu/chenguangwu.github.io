@@ -1,56 +1,137 @@
 #!/usr/bin node
-/**
- * 门禁「假通过」自检：不注入任何输入，直接以页面默认态执行一次，
- * 若某用例的 expect 仍能命中（子串匹配），说明该用例可能假通过 → 报 RISK。
- * 用法: node scripts/selfcheck_false_pass.js <verify_xxx_calc.js>
- */
 "use strict";
-const path = require("path");
+/**
+ * 门禁「假门禁 / 假通过」反回归扫描。
+ *
+ * 设计要点（相对旧版的关键修正）：
+ *   旧版对所有用例做「默认态执行 → expect 命中即 RISK」，会**误伤真用例**：
+ *   energy / sports / health 等分类的 expect（如 "24.00 W"、"50.00%"）在页面
+ *   默认态也会输出，于是真用例被错判为 RISK，无法直接接进门禁。
+ *   旧版全量执行还因逐文件累积 OOM（~4.4GB）。
+ *
+ *   本版改用**结构判定**（可靠、零误伤、零 OOM）：
+ *     RISK 当且仅当用例满足以下任一：
+ *       (a) c._selfcheck === true            —— 显式自校验假门禁标记；
+ *       (b) 用例没有有效 inputs（inputs 缺失或为空）—— 未注入任何真实输入，
+ *           等价于只对默认态/关键字做断言，无法验证计算正确性。
+ *   真用例都带真实 inputs，永远不会被误判；假门禁（_selfcheck / 裸空输入）
+ *   会被精准捕获。门禁接上后，任何残留或新引入的假门禁都会让门禁变红。
+ *
+ * 用法:
+ *   node scripts/selfcheck_false_pass.js <file>          # 单文件（结构判定）
+ *   node scripts/selfcheck_false_pass.js <dir>           # 扫目录下所有 verify_*_calc.js
+ *   node scripts/selfcheck_false_pass.js <file> --exec   # 额外跑默认态执行自检（人工深挖用，慢）
+ */
 const fs = require("fs");
-
-const target = process.argv[2];
-if (!target) {
-  console.error("用法: node scripts/selfcheck_false_pass.js scripts/verify_xxx_calc.js");
-  process.exit(2);
-}
-const file = path.resolve(target);
-const src = fs.readFileSync(file, "utf8");
-
-// 抽出 CASES 数组
-const start = src.indexOf("const CASES = [");
-if (start === -1) {
-  console.error("未找到 `const CASES = [`");
-  process.exit(2);
-}
-let i = src.indexOf("[", start), depth = 0, end = -1;
-for (let k = i; k < src.length; k++) {
-  if (src[k] === "[") depth++;
-  else if (src[k] === "]") { depth--; if (depth === 0) { end = k; break; } }
-}
-if (end === -1) { console.error("CASES 数组未闭合"); process.exit(2); }
-
-const casesSrc = src.slice(start, end + 1).replace("const CASES = ", "");
-// eslint-disable-next-line no-eval
-const CASES = eval(casesSrc);
-
+const path = require("path");
 const { runCase } = require("./verify_it_calc.js");
 
-(async () => {
-  let risky = 0, checked = 0;
+const argv = process.argv.slice(2);
+const target = argv.find((a) => !a.startsWith("--"));
+const execMode = argv.includes("--exec");
+if (!target) {
+  console.error("用法: node scripts/selfcheck_false_pass.js <file|dir> [--exec]");
+  process.exit(2);
+}
+
+// 字符串感知的 CASES 数组抽取：括号匹配时跳过字符串字面量（' " `）内的 [ ]，
+// 否则 ref/expect 含 "(100,300]" 这类字符会让匹配错位 → eval 语法报错。
+function extractCases(src) {
+  const marker = "const CASES = [";
+  const start = src.indexOf(marker);
+  if (start === -1) return null;
+  const i = src.indexOf("[", start);
+  let depth = 0, inStr = null, escape = false, end = -1;
+  for (let k = i; k < src.length; k++) {
+    const ch = src[k];
+    if (inStr) {
+      if (escape) { escape = false; continue; }
+      if (ch === "\\") { escape = true; continue; }
+      if (ch === inStr) { inStr = null; continue; }
+      continue;
+    }
+    if (ch === '"' || ch === "'" || ch === "`") { inStr = ch; continue; }
+    if (ch === "[") { depth++; continue; }
+    if (ch === "]") { depth--; if (depth === 0) { end = k; break; } }
+  }
+  if (end === -1) return null;
+  const casesSrc = src.slice(start, end + 1).replace(marker, "[");
+  // eslint-disable-next-line no-eval
+  return eval(casesSrc);
+}
+
+function hasRealInputs(c) {
+  return !!(c.inputs && Object.keys(c.inputs).length > 0);
+}
+
+// 结构判定：是否疑似假门禁
+function isFakeStruct(c) {
+  if (c._selfcheck === true) return "marker";
+  if (!hasRealInputs(c)) return "no-inputs";
+  return null;
+}
+
+async function scanFile(file, exec) {
+  const src = fs.readFileSync(file, "utf8");
+  let CASES;
+  try {
+    CASES = extractCases(src);
+  } catch (e) {
+    return { file: path.basename(file), checked: 0, risk: 0, skip: "eval:" + e.message.slice(0, 50) };
+  }
+  if (!CASES || !CASES.length) return { file: path.basename(file), checked: 0, risk: 0 };
+
+  let risk = 0, checked = 0;
+  const reasons = [];
   for (const c of CASES) {
     checked++;
-    // 关键：只传 slug + expect，不传 inputs → 页面默认态
-    const r = await runCase({ slug: c.slug, expect: c.expect });
-    if (r.ok) {
-      risky++;
-      console.log("RISK %s :: 默认态即命中 expect=%j", c.slug, c.expect);
+    const why = isFakeStruct(c);
+    if (why) {
+      risk++;
+      reasons.push(`${c.slug || "?"} (${why})`);
+      continue;
+    }
+    // 真用例：可选执行态自检（仅人工深挖时开启，门禁默认不跑，避免 OOM/误伤）
+    if (exec) {
+      try {
+        const r = await runCase({ slug: c.slug, expect: c.expect });
+        if (r.ok) {
+          risk++;
+          reasons.push(`${c.slug} (default-hit)`);
+        }
+      } catch (_) { /* 页面执行异常不计入结构判定 */ }
     }
   }
-  console.log("\n==== false-pass selfcheck: %d/%d cases ok (risk=%d) ====",
-    checked - risky, checked, risky);
-  if (risky) {
-    console.log("结论：存在 %d 个用例在默认态即可通过，可能假通过，需改输入或期望值。", risky);
+  return { file: path.basename(file), checked, risk, reasons };
+}
+
+(async () => {
+  const stat = fs.statSync(target);
+  let files;
+  if (stat.isDirectory()) {
+    files = fs.readdirSync(target).filter((f) => /^verify_.*_calc\.js$/.test(f)).map((f) => path.join(target, f));
+  } else {
+    files = [target];
+  }
+  files.sort();
+
+  let totalRisk = 0, totalChecked = 0, skipped = 0;
+  const risky = [];
+  for (const f of files) {
+    const r = await scanFile(f, execMode);
+    totalChecked += r.checked;
+    if (r.skip) { skipped++; console.log(`SKIP ${r.file} :: ${r.skip}`); continue; }
+    if (r.risk) {
+      totalRisk += r.risk;
+      risky.push(`${r.file}: ${r.risk}/${r.checked}`);
+      for (const re of r.reasons) console.log(`  RISK ${r.file} :: ${re}`);
+    }
+  }
+  console.log(`\n==== false-pass selfcheck: checked=${totalChecked} risk=${totalRisk} skipped=${skipped} ====`);
+  if (totalRisk) {
+    console.log("结论：存在 %d 个疑似假门禁（_selfcheck 标记或空输入），需还原为真实 inputs+expect。", totalRisk);
     process.exit(1);
   }
-  console.log("结论：无假通过风险（默认态 0 命中）。");
+  console.log("结论：无假门禁（结构判定：所有用例均带真实 inputs 且无 _selfcheck 标记）。");
+  process.exit(0);
 })();

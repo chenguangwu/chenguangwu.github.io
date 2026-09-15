@@ -265,6 +265,10 @@ GATES = (
     ("woodwork calc correctness", ("node", "scripts/verify_woodwork_calc.js")),
     ("woodworking calc correctness", ("node", "scripts/verify_woodworking_calc.js")),
     ("yi calc correctness", ("node", "scripts/verify_yi_calc.js")),
+    # 反回归（P0-2 / DEV-PLAN §9.3）：禁止任何 verify 脚本残留 _selfcheck 假门禁标记
+    # 或「空输入」假用例。真用例都带真实 inputs，本门禁零误伤；一旦存在假门禁即判红，
+    # 强制还原为真实 inputs+expect。置于最后，不阻塞其余门禁先跑完。
+    ("anti-regression: no fake gates", ("node", "scripts/selfcheck_false_pass.js", "scripts")),
 )
 
 
