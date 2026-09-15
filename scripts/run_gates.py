@@ -110,6 +110,7 @@ GATES = (
     ("metrology calc correctness", ("node", "scripts/verify_metrology_calc.js")),
     ("nuclear calc correctness", ("node", "scripts/verify_nuclear_calc.js")),
     ("optics calc correctness", ("node", "scripts/verify_optics_calc.js")),
+    ("quantum calc correctness", ("node", "scripts/verify_quantum_calc.js")),
 )
 
 
