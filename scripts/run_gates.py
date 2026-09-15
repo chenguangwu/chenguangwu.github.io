@@ -85,6 +85,7 @@ GATES = (
     ("aerospace calc correctness", ("node", "scripts/verify_aerospace_calc.js")),
     ("geology calc correctness", ("node", "scripts/verify_geology_calc.js")),
     ("machinery calc correctness", ("node", "scripts/verify_machinery_calc.js")),
+    ("thermodynamics calc correctness", ("node", "scripts/verify_thermodynamics_calc.js")),
     ("math calc correctness", ("node", "scripts/verify_math_calc.js")),
     ("accounting calc correctness", ("node", "scripts/verify_accounting_calc.js")),
     ("fitness calc correctness", ("node", "scripts/verify_fitness_calc.js")),
@@ -115,6 +116,7 @@ GATES = (
     ("signal calc correctness", ("node", "scripts/verify_signal_calc.js")),
     ("structural calc correctness", ("node", "scripts/verify_structural_calc.js")),
     ("machinery calc correctness", ("node", "scripts/verify_machinery_calc.js")),
+    ("thermodynamics calc correctness", ("node", "scripts/verify_thermodynamics_calc.js")),
     ("reproductive-medicine calc correctness", ("node", "scripts/verify_reproductive-medicine_calc.js")),
 )
 
