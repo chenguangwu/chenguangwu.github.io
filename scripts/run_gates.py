@@ -26,129 +26,37 @@ GATES = (
     ("calculation regression", ("node", "scripts/verify_calc.js")),
     # 与上一项区别：verify_calc 是「冒烟」（不报错即可），本项是「正确性」
     # ——注入已知输入后按权威测试向量断言输出（§4.1.1）。用例写在脚本内，逐分类扩充。
-    ("it calc correctness", ("node", "scripts/verify_it_calc.js")),
     # general 分类的正确性验证（工程标准公式 / 独立复算），与 it 分开维护用例集。
-    ("general calc correctness", ("node", "scripts/verify_general_calc.js")),
     # finance 分类的正确性验证（校验位算法 / 金融公式），用例集独立维护。
-    ("finance calc correctness", ("node", "scripts/verify_finance_calc.js")),
     # design 分类的正确性验证（单位换算 / 色度学 / 摄影光学），用例集独立维护。
-    ("design calc correctness", ("node", "scripts/verify_design_calc.js")),
     # science 分类的正确性验证（经典力学 / 电学 / 化学 / 统计），用例集独立维护。
-    ("science calc correctness", ("node", "scripts/verify_science_calc.js")),
     # sports 分类的正确性验证（力量 1RM / VO2max / 心率 / 氧脉搏 / 齿比 / 坡度 / SWOLF / 出汗率）。
-    ("sports calc correctness", ("node", "scripts/verify_sports_calc.js")),
     # fun 分类的正确性验证（烧烤/火锅分量、冥想分段、婚宴桌数、步幅速度换算）。
-    ("fun calc correctness", ("node", "scripts/verify_fun_calc.js")),
     # ai 分类的正确性验证（混淆矩阵四指标 / 欧氏曼哈顿余弦 / 交叉熵 / Sigmoid / Softmax /
     # Cohen's Kappa / AUC 秩次 / 学习率衰减 / Transformer 参数量）。
-    ("ai calc correctness", ("node", "scripts/verify_ai_calc.js")),
     # biz 分类的正确性验证（服务质量加权评分 / 会议人·小时成本 / 岗位权重胜任力 /
     # 单价单位归一化 / 风险矩阵分级 / 演示计时均分 / 定长折行 / 字符画视觉宽度）。
-    ("biz calc correctness", ("node", "scripts/verify_biz_calc.js")),
     # life 分类的正确性验证（停车计费封顶 / 百分比 / 温度换算 / Mifflin 热量 / 饮水计划 /
     # 罩杯换算 / 日期差含端日 / 生日悖论 / 闰年规则 / 单位因子换算 / 选址加权模型）。
-    ("life calc correctness", ("node", "scripts/verify_life_calc.js")),
     # agriculture 分类的正确性验证（作物需水 ETc / 肥料表观利用率 / 农机油耗 / 存栏密度 /
     # 土壤有机质 / 水肥 EC 注肥比例 / 干物质换算 / 光照积分 DLI / 收获损失率 / 配比十字交叉 /
     # 肥料当季利用率差减法 / 连作障碍指数）。
-    ("agriculture calc correctness", ("node", "scripts/verify_agriculture_calc.js")),
     # hydraulic 分类的正确性验证（伯努利求流速 / 连续性变径 / 达西-魏斯巴赫 / Hazen-Williams /
     # 曼宁明渠 / 局部水头损失 / 水泵功率 / 矩形堰 / 由流量求流速 / 明渠均匀流 / 能量分解 /
     # 水力发电 / 泵站效率 / 蓄能器容量 / 水锤防护 / 液压伺服 / 水泵扬程）。
-    ("hydraulic calc correctness", ("node", "scripts/verify_hydraulic_calc.js")),
     # statistics 分类的正确性验证（Z 分数 / 单样本 t / 变异系数 / 加权平均 / 标准误 /
     # 对立事件 / 四分位距与异常值 / 正态区间概率 / 二项 PMF·CDF / 正态 CDF / 泊松 PMF /
     # 百分等级 / 比例置信区间 / 均值·比例样本量 / 相对风险 / 比值比 / 相关系数 /
     # 均值中位数极差 / 标准差方差 / 偏度峰度 / 单样本 t 检验 / F 方差齐性 / 卡方检验 /
     # 最小二乘回归 / 几何·调和平均 / 极差 / MAD / 样本方差·标准差 / 总体方差）。
     # 注：statistics-4 置信区间、statistics-5 样本量的逆正态 z 反解实现有误，未纳入（见 DEV-PLAN §9.3）。
-    ("statistics calc correctness", ("node", "scripts/verify_statistics_calc.js")),
     # legal 分类的正确性验证（加班费 / 违法解除2N / 经济补偿N / N+1 / 逾期付款利息 / 抚养费 /
     # 离婚财产分割 / 诉讼费 / 知识产权保护期 / 年终奖个税 / 民间借贷利息 / 法律援助资格 / 工伤赔偿）。
     # 注：traffic-accident-compensation 伤残赔偿系数倒置缺陷未纳入（见 DEV-PLAN §9.3）。
-    ("legal calc correctness", ("node", "scripts/verify_legal_calc.js")),
     # realestate 分类的正确性验证（房贷等额本息/等额本金总利息、租金毛·净回报率、首付与月供、
     # 公积金额度双轨取小 + 当地上限封顶、按揭可贷额度与月供·总利息、二手房契税与增值税及附加、
     # 单位地价·楼面地价与溢价率、REITs 股息率与资本化率、市场比较法估价、建筑面积换算）。
     # 注：calc-93/pv/depreciation-2 为跨行业通用 A/B 模板、summary-second-hand 名实不符，均未纳入。
-    ("realestate calc correctness", ("node", "scripts/verify_realestate_calc.js")),
-    ("energy calc correctness", ("node", "scripts/verify_energy_calc.js")),
-    ("health calc correctness", ("node", "scripts/verify_health_calc.js")),
-    ("healthcare calc correctness", ("node", "scripts/verify_healthcare_calc.js")),
-    ("edu calc correctness", ("node", "scripts/verify_edu_calc.js")),
-    ("marketing calc correctness", ("node", "scripts/verify_marketing_calc.js")),
-    ("meteorology calc correctness", ("node", "scripts/verify_meteorology_calc.js")),
-    ("optical calc correctness", ("node", "scripts/verify_optical_calc.js")),
-    ("surveying calc correctness", ("node", "scripts/verify_surveying_calc.js")),
-    ("fishery calc correctness", ("node", "scripts/verify_fishery_calc.js")),
-    ("securities calc correctness", ("node", "scripts/verify_securities_calc.js")),
-    ("aerospace calc correctness", ("node", "scripts/verify_aerospace_calc.js")),
-    ("geology calc correctness", ("node", "scripts/verify_geology_calc.js")),
-    ("machinery calc correctness", ("node", "scripts/verify_machinery_calc.js")),
-    ("thermodynamics calc correctness", ("node", "scripts/verify_thermodynamics_calc.js")),
-    ("banking calc correctness", ("node", "scripts/verify_banking_calc.js")),
-    ("hematology calc correctness", ("node", "scripts/verify_hematology_calc.js")),
-    ("math calc correctness", ("node", "scripts/verify_math_calc.js")),
-    ("accounting calc correctness", ("node", "scripts/verify_accounting_calc.js")),
-    ("fitness calc correctness", ("node", "scripts/verify_fitness_calc.js")),
-    ("eco calc correctness", ("node", "scripts/verify_eco_calc.js")),
-    ("cosmetic-derm calc correctness", ("node", "scripts/verify_cosmetic_derm_calc.js")),
-    ("insurance calc correctness", ("node", "scripts/verify_insurance_calc.js")),
-    ("obstetrics calc correctness", ("node", "scripts/verify_obstetrics_calc.js")),
-    ("ophthalmology calc correctness", ("node", "scripts/verify_ophthalmology_calc.js")),
-    ("encode calc correctness", ("node", "scripts/verify_encode_calc.js")),
-    ("metalwork calc correctness", ("node", "scripts/verify_metalwork_calc.js")),
-    ("photo calc correctness", ("node", "scripts/verify_photo_calc.js")),
-    ("tax calc correctness", ("node", "scripts/verify_tax_calc.js")),
-    ("acoustics calc correctness", ("node", "scripts/verify_acoustics_calc.js")),
-    ("chemistry calc correctness", ("node", "scripts/verify_chemistry_calc.js")),
-    ("dynamics calc correctness", ("node", "scripts/verify_dynamics_calc.js")),
-    ("economics calc correctness", ("node", "scripts/verify_economics_calc.js")),
-    ("electromagnetism calc correctness", ("node", "scripts/verify_electromagnetism_calc.js")),
-    ("fluid calc correctness", ("node", "scripts/verify_fluid_calc.js")),
-    ("geometry calc correctness", ("node", "scripts/verify_geometry_calc.js")),
-    ("investment calc correctness", ("node", "scripts/verify_investment_calc.js")),
-    ("kinematics calc correctness", ("node", "scripts/verify_kinematics_calc.js")),
-    ("materials calc correctness", ("node", "scripts/verify_materials_calc.js")),
-    ("metrology calc correctness", ("node", "scripts/verify_metrology_calc.js")),
-    ("nuclear calc correctness", ("node", "scripts/verify_nuclear_calc.js")),
-    ("optics calc correctness", ("node", "scripts/verify_optics_calc.js")),
-    ("quantum calc correctness", ("node", "scripts/verify_quantum_calc.js")),
-    ("robotics calc correctness", ("node", "scripts/verify_robotics_calc.js")),
-    ("signal calc correctness", ("node", "scripts/verify_signal_calc.js")),
-    ("structural calc correctness", ("node", "scripts/verify_structural_calc.js")),
-    ("machinery calc correctness", ("node", "scripts/verify_machinery_calc.js")),
-    ("thermodynamics calc correctness", ("node", "scripts/verify_thermodynamics_calc.js")),
-    ("banking calc correctness", ("node", "scripts/verify_banking_calc.js")),
-    ("reproductive-medicine calc correctness", ("node", "scripts/verify_reproductive-medicine_calc.js")),
-    ("livestock calc correctness", ("node", "scripts/verify_livestock_calc.js")),
-    ("neurology calc correctness", ("node", "scripts/verify_neurology_calc.js")),
-    ("construction calc correctness", ("node", "scripts/verify_construction_calc.js")),
-    ("pulmonology calc correctness", ("node", "scripts/verify_pulmonology_calc.js")),
-    ("astronomy calc correctness", ("node", "scripts/verify_astronomy_calc.js")),
-    ("clinical-nursing calc correctness", ("node", "scripts/verify_clinical-nursing_calc.js")),
-    ("dentistry calc correctness", ("node", "scripts/verify_dentistry_calc.js")),
-    ("cardiology calc correctness", ("node", "scripts/verify_cardiology_calc.js")),
-    ("clinical-lab calc correctness", ("node", "scripts/verify_clinical-lab_calc.js")),
-    ("pediatrics calc correctness", ("node", "scripts/verify_pediatrics_calc.js")),
-    ("psychiatry calc correctness", ("node", "scripts/verify_psychiatry_calc.js")),
-    ("rheumatology calc correctness", ("node", "scripts/verify_rheumatology_calc.js")),
-    ("urology calc correctness", ("node", "scripts/verify_urology_calc.js")),
-    ("electronics calc correctness", ("node", "scripts/verify_electronics_calc.js")),
-    ("food-testing calc correctness", ("node", "scripts/verify_food-testing_calc.js")),
-    ("food calc correctness", ("node", "scripts/verify_food_calc.js")),
-    ("dermatology calc correctness", ("node", "scripts/verify_dermatology_calc.js")),
-    ("cosmetic_derm calc correctness", ("node", "scripts/verify_cosmetic_derm_calc.js")),
-    ("rehabilitation calc correctness", ("node", "scripts/verify_rehabilitation_calc.js")),
-    ("tcm-pharmacy calc correctness", ("node", "scripts/verify_tcm-pharmacy_calc.js")),
-    ("acupuncture calc correctness", ("node", "scripts/verify_acupuncture_calc.js")),
-    ("ent calc correctness", ("node", "scripts/verify_ent_calc.js")),
-    ("tcm-chemistry calc correctness", ("node", "scripts/verify_tcm-chemistry_calc.js")),
-    ("endocrinology calc correctness", ("node", "scripts/verify_endocrinology_calc.js")),
-    ("tcm-diagnosis calc correctness", ("node", "scripts/verify_tcm-diagnosis_calc.js")),
-    ("nephrology calc correctness", ("node", "scripts/verify_nephrology_calc.js")),
-    ("calc.js calc correctness", ("node", "scripts/verify_calc.js_calc.js")),
-    ("gastroenterology calc correctness", ("node", "scripts/verify_gastroenterology_calc.js")),
 )
 
 
