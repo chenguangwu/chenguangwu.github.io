@@ -76,7 +76,7 @@ window.INDUSTRY_INFO = {
   'electrical'           : { name: '电气工程', icon: '🔌', hot: 202828 },
   'optics'               : { name: '光学', icon: '🔭', hot: 201859 },
   'forestry'             : { name: '林业资源', icon: '🌲', hot: 200052 },
-  'metallurgy'           : { name: '冶金材料', icon: '🔩', hot: 197294 },
+  'metallurgy'           : { name: '冶金材料', icon: '🔩', hot: 197291 },
   'data'                 : { name: '数据分析', icon: '📊', hot: 196316 },
   'engineering'          : { name: '工程计算', icon: '⚙️', hot: 193158 },
   'electronics'          : { name: '电子电路', icon: '⚡', hot: 191994 },
