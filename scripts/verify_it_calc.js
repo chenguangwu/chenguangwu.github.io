@@ -340,6 +340,13 @@ async function runCaseInner(c) {
   const script = inlineScripts(html);
   if (!script.trim()) return { ok: false, why: "无内联脚本" };
 
+  // 还原页面标题 / h1 / label 文本：很多工具用 document.querySelector('h1').textContent
+  // （或 title）做「计算模式分支」选择，stub 若不提供真实文本会落入兜底零值分支，导致验证失真。
+  const stripTags = (s) => s.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+  const h1Text = stripTags((html.match(/<h1[^>]*>([\s\S]*?)<\/h1>/i) || [,""])[1]);
+  const titleText = stripTags((html.match(/<title[^>]*>([\s\S]*?)<\/title>/i) || [,""])[1]);
+  const labelTexts = [...html.matchAll(/<label[^>]*>([\s\S]*?)<\/label>/gi)].map((m) => stripTags(m[1]));
+
   const inline = inlineHandlers(html);
   const elements = {};
   const getEl = (id) => {
@@ -370,6 +377,8 @@ async function runCaseInner(c) {
   const readyCbs = [];
   const document = {
     getElementById: getEl,
+    getElementsByName: () => [],
+    getElementsByClassName: () => [],
     querySelector(sel) {
       // 与真实 DOM 对齐：查询「已选中项」时，未选中应返回 null。
       // stub 原先恒返回空元素（truthy），会让 `el ? el.value : fallback` 拿到空串 ""
@@ -379,11 +388,16 @@ async function runCaseInner(c) {
         if (c.checks && c.checks.length) return { value: c.checks[0], checked: true };
         return null;
       }
+      // 提供真实 h1 / title 文本，供「按标题分支」的计算逻辑正确选模式
+      if (/^h1$/i.test(sel)) { const e = makeEl(""); e.textContent = h1Text; e.value = h1Text; return e; }
+      if (/^title$/i.test(sel)) { const e = makeEl(""); e.textContent = titleText; e.value = titleText; return e; }
       return makeEl("");
     },
     querySelectorAll(sel) {
       // 支持 ':checked' 类选择器：用例可用 checks 声明哪些复选框处于选中态
       if (/checked/.test(sel) && c.checks) return c.checks.map((v) => ({ value: v, checked: true }));
+      // 提供真实 label 文本，部分工具据此命名输出字段
+      if (/label/i.test(sel)) return labelTexts.map((t) => { const e = makeEl(""); e.textContent = t; e.value = t; return e; });
       return [];
     },
     createElement: () => makeEl(""),
@@ -447,14 +461,25 @@ async function runCaseInner(c) {
     ...names.filter((n) => !PRIO.includes(n)),
   ];
 
+  // 定时器桩：页面常用 requestAnimationFrame(loop) / setTimeout(loop, n) 做动画或渲染循环。
+  // 原先传 (f)=>f() 会「立即同步」调用，循环变无限同步递归 → 几秒内吃光内存 OOM（image/gif-split
+  // 等重型页因此拖垮整批还原）。这里改成「有限次立即执行」：预算耗尽即变 no-op，既允许合法的
+  // 一次性延迟/几帧渲染，又掐断无限循环。
+  let _timerBudget = 100;
+  const safeTimer = (f) => {
+    if (typeof f !== "function") return 0;
+    if (_timerBudget-- <= 0) return 0;
+    try { f(); } catch (e) { /* 定时器回调异常不影响主流程 */ }
+    return 0;
+  };
   const expose = ordered.map((n) => `try{__f[${JSON.stringify(n)}]=typeof ${n}==='function'?${n}:null;}catch(e){}`).join("\n");
   let fns;
   try {
     const compiled = new Function(
-      "document", "window", "console", "navigator", "localStorage", "ToolBox", "alert", "setTimeout", "requestAnimationFrame",
+      "document", "window", "console", "navigator", "localStorage", "ToolBox", "alert", "setTimeout", "requestAnimationFrame", "setInterval", "requestIdleCallback",
       `var __f={};\n${script}\n${expose}\nreturn __f;`
     );
-    fns = compiled(document, win, { log() {}, warn() {}, error() {} }, navigator, localStorage, ToolBox, () => {}, (f) => f(), (f) => f());
+    fns = compiled(document, win, { log() {}, warn() {}, error() {} }, navigator, localStorage, ToolBox, () => {}, safeTimer, safeTimer, safeTimer, safeTimer);
   } catch (e) {
     return { ok: false, why: "初始化失败: " + e.message.slice(0, 80) };
   }
@@ -490,7 +515,12 @@ async function runCaseInner(c) {
     }
   }
   // 3) 兜底：直接调用候选函数
+  // 跳过「状态破坏性 / 辅助」类函数：resetAll / clearHistory / restoreHistory / saveHistory /
+  // renderHistory / swapValues 等会改写输入或覆盖 res 输出，导致扰动态结果被默认值吞掉
+  // （strength-1、carbon-5 等页因此假同态）。只跑真正的计算函数。
+  const DESTRUCTIVE = /^(reset|clear|restore|save|swap)\b|history|reset|clear/i;
   for (const n of ordered) {
+    if (DESTRUCTIVE.test(n)) continue;
     const f = fns[n];
     if (!f) continue;
     try {
@@ -512,7 +542,35 @@ async function runCaseInner(c) {
     errs: errs.slice(0, 3),
     tried: ordered.slice(0, 6),
     sample: blob.slice(0, 300),
+    fullBlob: blob,
   };
+}
+
+// ---------------------------------------------------------------- 用例抽取（字符串感知）
+// 供反回归门禁 / 还原工具复用：括号匹配时跳过字符串字面量（' " `）内的 [ ]，
+// 否则 ref/expect 含 "(100,300]" 这类字符会让匹配错位 → eval 语法报错。
+function extractCases(src) {
+  const marker = "const CASES = [";
+  const start = src.indexOf(marker);
+  if (start === -1) return null;
+  const i = src.indexOf("[", start);
+  let depth = 0, inStr = null, escape = false, end = -1;
+  for (let k = i; k < src.length; k++) {
+    const ch = src[k];
+    if (inStr) {
+      if (escape) { escape = false; continue; }
+      if (ch === "\\") { escape = true; continue; }
+      if (ch === inStr) { inStr = null; continue; }
+      continue;
+    }
+    if (ch === '"' || ch === "'" || ch === "`") { inStr = ch; continue; }
+    if (ch === "[") { depth++; continue; }
+    if (ch === "]") { depth--; if (depth === 0) { end = k; break; } }
+  }
+  if (end === -1) return null;
+  const casesSrc = src.slice(start, end + 1).replace(marker, "[");
+  // eslint-disable-next-line no-eval
+  return eval(casesSrc);
 }
 
 // ---------------------------------------------------------------- main
@@ -537,7 +595,7 @@ async function main() {
   return fails.length;
 }
 
-module.exports = { runCase, CASES, inlineScripts, makeEl, collectStrings };
+module.exports = { runCase, CASES, inlineScripts, makeEl, collectStrings, extractCases };
 
 // 注意：runCase 会清理用例往 globalThis（当作 window）挂的属性，process 可能被页面脚本覆盖，
 // 故此处用 process.exitCode 而非 process.exit()。

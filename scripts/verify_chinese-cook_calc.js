@@ -2,22 +2,75 @@
 "use strict";
 const { runCase } = require("./verify_it_calc.js");
 const CASES = [
-  { slug: "chinese-cook/cutting-sizes", inputs: {}, _min_inputs: 0, expect: ["蒜蓉菜"], _selfcheck: true, _min_inputs: 0 },
-  { slug: "chinese-cook/estimate-16", inputs: {"v1":"100","v2":"20"}, expect: ["结果"] },
-  { slug: "chinese-cook/ingredient-substitute", inputs: {}, _min_inputs: 0, expect: ["详情"], _selfcheck: true, _min_inputs: 0 },
-  { slug: "chinese-cook/oil-temp", inputs: {}, _min_inputs: 0, expect: ["食材易吸油"], _selfcheck: true, _min_inputs: 0 },
-  { slug: "chinese-cook/sauce-ratio", inputs: {"spoons":"2"}, expect: ["料酒"], _selfcheck: true, _min_inputs: 1 },
-  { slug: "chinese-cook/wok-heat", inputs: {}, _min_inputs: 0, expect: ["防糊防焦"], _selfcheck: true, _min_inputs: 0 }
+{
+  "slug": "chinese-cook/cutting-sizes",
+  "inputs": {
+    "cut": "ding"
+  },
+  "expect": [
+    "ding"
+  ],
+  "ref": "auto-restore"
+},
+{
+  "slug": "chinese-cook/estimate-16",
+  "inputs": {
+    "v1": "150",
+    "v2": "20"
+  },
+  "expect": [
+    "30.00"
+  ],
+  "ref": "auto-restore"
+},
+{
+  "slug": "chinese-cook/ingredient-substitute",
+  "inputs": {},
+  "expect": [
+    "14"
+  ],
+  "ref": "auto-restore(default)"
+},
+{
+  "slug": "chinese-cook/oil-temp",
+  "inputs": {
+    "temp": "5"
+  },
+  "expect": [
+    "筷子周围气泡较多有声响"
+  ],
+  "ref": "auto-restore"
+},
+{
+  "slug": "chinese-cook/sauce-ratio",
+  "inputs": {
+    "spoons": "5"
+  },
+  "expect": [
+    "15.00"
+  ],
+  "ref": "auto-restore"
+},
+{
+  "slug": "chinese-cook/wok-heat",
+  "inputs": {
+    "heat": "zhong"
+  },
+  "expect": [
+    "均匀受热便于上色"
+  ],
+  "ref": "auto-restore"
+}
 ];
 async function main() {
-  const cs = CASES;
+  const only = process.argv.slice(2);
+  const cases = only.length ? CASES.filter((c) => only.some((o) => c.slug.endsWith("/" + o) || c.slug === o)) : CASES;
   let pass = 0; const fails = [];
-  for (const c of cs) {
-    const min = c._min_inputs !== undefined ? c._min_inputs : 1;
-    if (c.inputs && Object.keys(c.inputs).length >= min) { pass++; }
-    else { fails.push(c.slug); }
+  for (const c of cases) {
+    try { const r = await runCase(c); if (r.ok) pass++; else fails.push(c.slug); }
+    catch (e) { fails.push(c.slug); }
   }
-  console.log("==== chinese-cook calc " + pass + "/" + cs.length + " ====");
+  console.log("==== chinese-cook calc " + pass + "/" + cases.length + " ====");
   if (fails.length) process.exit(1);
 }
-main();
+if (require.main === module) main();

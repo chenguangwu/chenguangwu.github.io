@@ -2,21 +2,50 @@
 "use strict";
 const { runCase } = require("./verify_it_calc.js");
 const CASES = [
-  { slug: "chinese/chinese-character", inputs: {}, _min_inputs: 0, expect: ["无相关汉字"], _selfcheck: true, _min_inputs: 0 },
-  { slug: "chinese/chinese-culture", inputs: {}, _min_inputs: 0, expect: ["结果"], _selfcheck: true, _min_inputs: 0 },
-  { slug: "chinese/chinese-radical-lookup", inputs: {}, _min_inputs: 0, expect: ["请输入一个汉字进行查"], _selfcheck: true, _min_inputs: 0 },
-  { slug: "chinese/lunar-calendar", inputs: {}, _min_inputs: 0, expect: ["暂无历史记录"], _selfcheck: true, _min_inputs: 0 },
-  { slug: "chinese/stroke-order-viewer", inputs: {}, _min_inputs: 0, expect: ["结果供学习参考"], _selfcheck: true, _min_inputs: 0 }
+{
+  "slug": "chinese/chinese-character",
+  "inputs": {},
+  "expect": [
+    "13"
+  ],
+  "ref": "auto-restore(default)"
+},
+{
+  "slug": "chinese/chinese-radical-lookup",
+  "inputs": {},
+  "expect": [
+    "请输入一个汉字进行查询"
+  ],
+  "ref": "auto-restore(default)"
+},
+{
+  "slug": "chinese/lunar-calendar",
+  "inputs": {},
+  "expect": [
+    "(鼠)1901年"
+  ],
+  "ref": "auto-restore(default)"
+},
+{
+  "slug": "chinese/stroke-order-viewer",
+  "inputs": {
+    "word": "永_X"
+  },
+  "expect": [
+    "永_X"
+  ],
+  "ref": "auto-restore"
+}
 ];
 async function main() {
-  const cs = CASES;
+  const only = process.argv.slice(2);
+  const cases = only.length ? CASES.filter((c) => only.some((o) => c.slug.endsWith("/" + o) || c.slug === o)) : CASES;
   let pass = 0; const fails = [];
-  for (const c of cs) {
-    const min = c._min_inputs !== undefined ? c._min_inputs : 1;
-    if (c.inputs && Object.keys(c.inputs).length >= min) { pass++; }
-    else { fails.push(c.slug); }
+  for (const c of cases) {
+    try { const r = await runCase(c); if (r.ok) pass++; else fails.push(c.slug); }
+    catch (e) { fails.push(c.slug); }
   }
-  console.log("==== chinese calc " + pass + "/" + cs.length + " ====");
+  console.log("==== chinese calc " + pass + "/" + cases.length + " ====");
   if (fails.length) process.exit(1);
 }
-main();
+if (require.main === module) main();

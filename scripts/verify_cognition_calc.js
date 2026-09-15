@@ -2,24 +2,97 @@
 "use strict";
 const { runCase } = require("./verify_it_calc.js");
 const CASES = [
-  { slug: "cognition/cognitive-assessment", inputs: {}, _min_inputs: 0, expect: ["结果"], _selfcheck: true, _min_inputs: 0 },
-  { slug: "cognition/corsi-block-test", inputs: {}, _min_inputs: 0, expect: ["结果"], _selfcheck: true, _min_inputs: 0 },
-  { slug: "cognition/digit-span-test", inputs: {}, _min_inputs: 0, expect: ["结果"], _selfcheck: true, _min_inputs: 0 },
-  { slug: "cognition/human-benchmark", inputs: {}, _min_inputs: 0, expect: ["项测评后将自动保存记"], _selfcheck: true, _min_inputs: 0 },
-  { slug: "cognition/nback-training", inputs: {}, _min_inputs: 0, expect: ["当前"], _selfcheck: true, _min_inputs: 0 },
-  { slug: "cognition/schulte-table", inputs: {}, _min_inputs: 0, expect: ["暂无记录"], _selfcheck: true, _min_inputs: 0 },
-  { slug: "cognition/stroop-test", inputs: {}, _min_inputs: 0, expect: ["结果"], _selfcheck: true, _min_inputs: 0 },
-  { slug: "cognition/time-perception", inputs: {}, _min_inputs: 0, expect: ["秒再松手"], _selfcheck: true, _min_inputs: 0 }
+{
+  "slug": "cognition/cognitive-assessment",
+  "inputs": {
+    "scaLen": "quick"
+  },
+  "expect": [
+    "quick"
+  ],
+  "ref": "auto-restore"
+},
+{
+  "slug": "cognition/corsi-block-test",
+  "inputs": {
+    "cbMode": "bwd"
+  },
+  "expect": [
+    "bwd"
+  ],
+  "ref": "auto-restore"
+},
+{
+  "slug": "cognition/digit-span-test",
+  "inputs": {
+    "dsSpeed": "1000"
+  },
+  "expect": [
+    "1000"
+  ],
+  "ref": "auto-restore"
+},
+{
+  "slug": "cognition/human-benchmark",
+  "inputs": {
+    "tArea": ""
+  },
+  "expect": [
+    "9×9"
+  ],
+  "ref": "auto-restore(default)"
+},
+{
+  "slug": "cognition/nback-training",
+  "inputs": {
+    "nbDur": "1350",
+    "nbIsi": "500"
+  },
+  "expect": [
+    "1350"
+  ],
+  "ref": "auto-restore"
+},
+{
+  "slug": "cognition/schulte-table",
+  "inputs": {
+    "scMode": "letter"
+  },
+  "expect": [
+    "letter"
+  ],
+  "ref": "auto-restore"
+},
+{
+  "slug": "cognition/stroop-test",
+  "inputs": {
+    "stTimeout": "3750"
+  },
+  "expect": [
+    "3750"
+  ],
+  "ref": "auto-restore"
+},
+{
+  "slug": "cognition/time-perception",
+  "inputs": {
+    "bSel": "90"
+  },
+  "expect": [
+    "90"
+  ],
+  "ref": "auto-restore"
+}
 ];
 async function main() {
-  const cs = CASES;
+  const only = process.argv.slice(2);
+  const cases = only.length ? CASES.filter((c) => only.some((o) => c.slug.endsWith("/" + o) || c.slug === o)) : CASES;
   let pass = 0; const fails = [];
-  for (const c of cs) {
-    const min = c._min_inputs !== undefined ? c._min_inputs : 1;
-    if (c.inputs && Object.keys(c.inputs).length >= min) { pass++; }
-    else { fails.push(c.slug); }
+  for (const c of cases) {
+    try { const r = await runCase(c); if (r.ok) pass++; else fails.push(c.slug); }
+    catch (e) { fails.push(c.slug); }
   }
-  console.log("==== cognition calc " + pass + "/" + cs.length + " ====");
+  console.log("==== cognition calc " + pass + "/" + cases.length + " ====");
   if (fails.length) process.exit(1);
 }
-main();
+if (require.main === module) main();

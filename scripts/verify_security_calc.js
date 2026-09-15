@@ -2,26 +2,115 @@
 "use strict";
 const { runCase } = require("./verify_it_calc.js");
 const CASES = [
-  { slug: "security/anti-fraud-cards", inputs: {}, expect: ["OK"], _min_inputs: 0 },
-  { slug: "security/data-erase-simulator", inputs: {"blockSize": "16"}, expect: ["OK"] },
-  { slug: "security/detector-45", inputs: {"resistTime": "15", "steelThick": "1.2", "lockTime": "5", "envScore": "8"}, expect: ["OK"] },
-  { slug: "security/earthquake-escape", inputs: {}, expect: ["OK"], _min_inputs: 0 },
-  { slug: "security/emergency-contacts", inputs: {}, expect: ["OK"], _min_inputs: 0 },
-  { slug: "security/first-aid-kit", inputs: {}, expect: ["OK"], _min_inputs: 0 },
-  { slug: "security/flood-level", inputs: {}, expect: ["OK"], _min_inputs: 0 },
-  { slug: "security/smoke-alarm-test", inputs: {}, expect: ["OK"], _min_inputs: 0 },
-  { slug: "security/typhoon-scale", inputs: {"windInput": "30"}, expect: ["OK"] },
-  { slug: "security/virtual-safe", inputs: {}, expect: ["OK"], _min_inputs: 0 },
+{
+  "slug": "security/anti-fraud-cards",
+  "inputs": {
+    "catFilter": "telecom"
+  },
+  "expect": [
+    "telecom"
+  ],
+  "ref": "auto-restore"
+},
+{
+  "slug": "security/data-erase-simulator",
+  "inputs": {
+    "blockSize": "24"
+  },
+  "expect": [
+    "24"
+  ],
+  "ref": "auto-restore"
+},
+{
+  "slug": "security/detector-45",
+  "inputs": {
+    "resistTime": "23",
+    "steelThick": "1.2",
+    "lockTime": "5",
+    "envScore": "8"
+  },
+  "expect": [
+    "23分钟"
+  ],
+  "ref": "auto-restore"
+},
+{
+  "slug": "security/earthquake-escape",
+  "inputs": {
+    "floorSelect": "mid"
+  },
+  "expect": [
+    "mid"
+  ],
+  "ref": "auto-restore"
+},
+{
+  "slug": "security/emergency-contacts",
+  "inputs": {},
+  "expect": [
+    "400-161-9995"
+  ],
+  "ref": "auto-restore(default)"
+},
+{
+  "slug": "security/first-aid-kit",
+  "inputs": {},
+  "expect": [
+    "20片"
+  ],
+  "ref": "auto-restore(default)"
+},
+{
+  "slug": "security/flood-level",
+  "inputs": {
+    "depthSlider": "7"
+  },
+  "expect": [
+    "7cm"
+  ],
+  "ref": "auto-restore"
+},
+{
+  "slug": "security/smoke-alarm-test",
+  "inputs": {
+    "alarmLocation": "卧室"
+  },
+  "expect": [
+    "卧室"
+  ],
+  "ref": "auto-restore"
+},
+{
+  "slug": "security/typhoon-scale",
+  "inputs": {
+    "windInput": "45"
+  },
+  "expect": [
+    "162.0"
+  ],
+  "ref": "auto-restore"
+},
+{
+  "slug": "security/virtual-safe",
+  "inputs": {
+    "itemContent": ""
+  },
+  "expect": [
+    "请设置一个主密码来创建新的保险箱"
+  ],
+  "ref": "auto-restore(default)"
+}
 ];
 async function main() {
-  const cs = CASES;
+  const only = process.argv.slice(2);
+  const cases = only.length ? CASES.filter((c) => only.some((o) => c.slug.endsWith("/" + o) || c.slug === o)) : CASES;
   let pass = 0; const fails = [];
-  for (const c of cs) {
-    const min = c._min_inputs !== undefined ? c._min_inputs : 1;
-    if (c.inputs && Object.keys(c.inputs).length >= min) { pass++; }
-    else { fails.push(c.slug); }
+  for (const c of cases) {
+    try { const r = await runCase(c); if (r.ok) pass++; else fails.push(c.slug); }
+    catch (e) { fails.push(c.slug); }
   }
-  console.log("==== security calc " + pass + "/" + cs.length + " ====");
+  console.log("==== security calc " + pass + "/" + cases.length + " ====");
   if (fails.length) process.exit(1);
 }
-main();
+if (require.main === module) main();

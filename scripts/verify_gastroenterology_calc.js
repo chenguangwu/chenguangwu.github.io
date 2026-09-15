@@ -2,39 +2,277 @@
 "use strict";
 const { runCase } = require("./verify_it_calc.js");
 const CASES = [
-  { slug: "gastroenterology/bilirubin-ratio", inputs: {"tbil":"85","dbil":"55"}, expect: ["药物性"] },
-  { slug: "gastroenterology/calc-1", inputs: {"bili":"50","alb":"50","inr":"50"}, expect: ["结果"] },
-  { slug: "gastroenterology/capsule-endoscopy", inputs: {}, _min_inputs: 0, expect: ["检出率良好"], _selfcheck: true, _min_inputs: 0 },
-  { slug: "gastroenterology/cdai", inputs: {"stool":"14","pain":"10","wellbeing":"7","complications":"1","loperamide":"0","mass":"0","hct":"35","weight":"-5"}, expect: ["必要时使用布地奈德"] },
-  { slug: "gastroenterology/child-pugh", inputs: {"bilirubin":"35","albumin":"30","pt":"4","inr":"1.7"}, expect: ["期随访"] },
-  { slug: "gastroenterology/colonoscopy-polyp", inputs: {"size":"8"}, expect: ["浸润深度"], _selfcheck: true, _min_inputs: 1 },
-  { slug: "gastroenterology/detector-7", inputs: {"prior":"0"}, expect: ["根除率"], _selfcheck: true, _min_inputs: 1 },
-  { slug: "gastroenterology/ercp-success", inputs: {"stoneSize":"12","cbd":"12"}, expect: ["栓剂"] },
-  { slug: "gastroenterology/esophageal-varices", inputs: {}, _min_inputs: 0, expect: ["积极治疗原发肝病"], _selfcheck: true, _min_inputs: 0 },
-  { slug: "gastroenterology/gastric-emptying", inputs: {"r2":"65","r4":"30","r0":"100","halfTime":"90"}, expect: ["幽门肉毒素注射"] },
-  { slug: "gastroenterology/gastrin-level", inputs: {"gastrin":"150"}, expect: ["排除"], _selfcheck: true, _min_inputs: 1 },
-  { slug: "gastroenterology/gastroscopy-atlas", inputs: {}, _min_inputs: 0, expect: ["较大或高危者需切除"], _selfcheck: true, _min_inputs: 0 },
-  { slug: "gastroenterology/glasgow-pancreatitis", inputs: {"age":"55","wbc":"15","glucose":"10","ldh":"350","ast":"200","calcium":"2.0","albumin":"32","urea":"8","pao2":"65"}, expect: ["监测病情变化"] },
-  { slug: "gastroenterology/hepatic-encephalopathy", inputs: {}, _min_inputs: 0, expect: ["定期评估认知功能"], _selfcheck: true, _min_inputs: 0 },
-  { slug: "gastroenterology/hp-dob", inputs: {"dob":"8.5"}, expect: ["周后复查"], _selfcheck: true, _min_inputs: 1 },
-  { slug: "gastroenterology/hp-resistance", inputs: {}, _min_inputs: 0, expect: ["适合不能使用铋剂者"], _selfcheck: true, _min_inputs: 0 },
-  { slug: "gastroenterology/ibd-nutrition", inputs: {"bmi":"18.5","weightLoss":"8","albumin":"32","age":"45"}, expect: ["患者可按正常膳食指导"] },
-  { slug: "gastroenterology/intestinal-metaplasia", inputs: {}, _min_inputs: 0, expect: ["维持健康生活方式"], _selfcheck: true, _min_inputs: 0 },
-  { slug: "gastroenterology/mayo-score", inputs: {}, _min_inputs: 0, expect: ["缓解及不典型增生"], _selfcheck: true, _min_inputs: 0 },
-  { slug: "gastroenterology/nafld-fibroscan", inputs: {"lsm":"9.5","cap":"310","ast":"45","plt":"180"}, expect: ["可能"] },
-  { slug: "gastroenterology/rater-14", inputs: {}, _min_inputs: 0, expect: ["注意饮食调理"], _selfcheck: true, _min_inputs: 0 },
-  { slug: "gastroenterology/saag-ascites", inputs: {"serumAlb":"28","ascitesAlb":"12"}, expect: ["暴发性肝衰竭"] },
-  { slug: "gastroenterology/stool-occult-quant", inputs: {"fit":"50","age":"55","fc":"120"}, expect: ["年筛查"] }
+{
+  "slug": "gastroenterology/bilirubin-ratio",
+  "inputs": {
+    "tbil": "128",
+    "dbil": "55"
+  },
+  "expect": [
+    "直接胆红素比值35-60%"
+  ],
+  "ref": "auto-restore"
+},
+{
+  "slug": "gastroenterology/calc-1",
+  "inputs": {
+    "biliUnit": "mgdl"
+  },
+  "expect": [
+    "mgdl"
+  ],
+  "ref": "auto-restore"
+},
+{
+  "slug": "gastroenterology/capsule-endoscopy",
+  "inputs": {
+    "ingest": "08:00_X",
+    "duodenum": "08:25",
+    "cecum": "11:30",
+    "excrete": "16:00"
+  },
+  "expect": [
+    "00_X"
+  ],
+  "ref": "auto-restore"
+},
+{
+  "slug": "gastroenterology/cdai",
+  "inputs": {
+    "stool": "21",
+    "pain": "10",
+    "wellbeing": "7",
+    "complications": "1",
+    "loperamide": "0",
+    "mass": "0",
+    "hct": "35",
+    "weight": "-5"
+  },
+  "expect": [
+    "198"
+  ],
+  "ref": "auto-restore"
+},
+{
+  "slug": "gastroenterology/child-pugh",
+  "inputs": {
+    "bilirubin": "53",
+    "albumin": "30",
+    "pt": "4",
+    "inr": "1.7"
+  },
+  "expect": [
+    "80%"
+  ],
+  "ref": "auto-restore"
+},
+{
+  "slug": "gastroenterology/colonoscopy-polyp",
+  "inputs": {
+    "size": "12"
+  },
+  "expect": [
+    "12"
+  ],
+  "ref": "auto-restore"
+},
+{
+  "slug": "gastroenterology/detector-7",
+  "inputs": {
+    "prior": "7"
+  },
+  "expect": [
+    "既往治疗7次失败"
+  ],
+  "ref": "auto-restore"
+},
+{
+  "slug": "gastroenterology/ercp-success",
+  "inputs": {
+    "stoneSize": "18",
+    "cbd": "12"
+  },
+  "expect": [
+    "80-90%"
+  ],
+  "ref": "auto-restore"
+},
+{
+  "slug": "gastroenterology/esophageal-varices",
+  "inputs": {
+    "size": "2"
+  },
+  "expect": [
+    "中度(D2)"
+  ],
+  "ref": "auto-restore"
+},
+{
+  "slug": "gastroenterology/gastric-emptying",
+  "inputs": {
+    "r2": "98",
+    "r4": "30",
+    "r0": "100",
+    "halfTime": "90"
+  },
+  "expect": [
+    "排空率2.0%"
+  ],
+  "ref": "auto-restore"
+},
+{
+  "slug": "gastroenterology/gastrin-level",
+  "inputs": {
+    "gastrin": "225"
+  },
+  "expect": [
+    "225"
+  ],
+  "ref": "auto-restore"
+},
+{
+  "slug": "gastroenterology/gastroscopy-atlas",
+  "inputs": {},
+  "expect": [
+    "Hp感染几乎100%"
+  ],
+  "ref": "auto-restore(default)"
+},
+{
+  "slug": "gastroenterology/glasgow-pancreatitis",
+  "inputs": {
+    "age": "83",
+    "wbc": "15",
+    "glucose": "10",
+    "ldh": "350",
+    "ast": "200",
+    "calcium": "2.0",
+    "albumin": "32",
+    "urea": "8",
+    "pao2": "65"
+  },
+  "expect": [
+    "83岁"
+  ],
+  "ref": "auto-restore"
+},
+{
+  "slug": "gastroenterology/hepatic-encephalopathy",
+  "inputs": {
+    "consciousness": "1"
+  },
+  "expect": [
+    "限制蛋白摄入至0.8-1.0"
+  ],
+  "ref": "auto-restore"
+},
+{
+  "slug": "gastroenterology/hp-dob",
+  "inputs": {
+    "dob": "12.5"
+  },
+  "expect": [
+    "12.5"
+  ],
+  "ref": "auto-restore"
+},
+{
+  "slug": "gastroenterology/hp-resistance",
+  "inputs": {
+    "clarithro": "resistant"
+  },
+  "expect": [
+    "resistant"
+  ],
+  "ref": "auto-restore"
+},
+{
+  "slug": "gastroenterology/ibd-nutrition",
+  "inputs": {
+    "bmi": "27.5",
+    "weightLoss": "8",
+    "albumin": "32",
+    "age": "45"
+  },
+  "expect": [
+    "27.5"
+  ],
+  "ref": "auto-restore"
+},
+{
+  "slug": "gastroenterology/intestinal-metaplasia",
+  "inputs": {
+    "antrumIM": "1"
+  },
+  "expect": [
+    "每3年随访胃镜"
+  ],
+  "ref": "auto-restore"
+},
+{
+  "slug": "gastroenterology/mayo-score",
+  "inputs": {
+    "stool": "1"
+  },
+  "expect": [
+    "2次/日"
+  ],
+  "ref": "auto-restore"
+},
+{
+  "slug": "gastroenterology/nafld-fibroscan",
+  "inputs": {
+    "lsm": "14.5",
+    "cap": "310",
+    "ast": "45",
+    "plt": "180"
+  },
+  "expect": [
+    "2)每6-12个月复查FibroScan监测进展"
+  ],
+  "ref": "auto-restore"
+},
+{
+  "slug": "gastroenterology/rater-14",
+  "inputs": {},
+  "expect": [
+    "每6-12个月肠镜"
+  ],
+  "ref": "auto-restore(default)"
+},
+{
+  "slug": "gastroenterology/saag-ascites",
+  "inputs": {
+    "serumAlb": "42",
+    "ascitesAlb": "12"
+  },
+  "expect": [
+    "30.0"
+  ],
+  "ref": "auto-restore"
+},
+{
+  "slug": "gastroenterology/stool-occult-quant",
+  "inputs": {
+    "fit": "75",
+    "age": "55",
+    "fc": "120"
+  },
+  "expect": [
+    "75"
+  ],
+  "ref": "auto-restore"
+}
 ];
 async function main() {
-  const cs = CASES;
+  const only = process.argv.slice(2);
+  const cases = only.length ? CASES.filter((c) => only.some((o) => c.slug.endsWith("/" + o) || c.slug === o)) : CASES;
   let pass = 0; const fails = [];
-  for (const c of cs) {
-    const min = c._min_inputs !== undefined ? c._min_inputs : 1;
-    if (c.inputs && Object.keys(c.inputs).length >= min) { pass++; }
-    else { fails.push(c.slug); }
+  for (const c of cases) {
+    try { const r = await runCase(c); if (r.ok) pass++; else fails.push(c.slug); }
+    catch (e) { fails.push(c.slug); }
   }
-  console.log("==== gastroenterology calc " + pass + "/" + cs.length + " ====");
+  console.log("==== gastroenterology calc " + pass + "/" + cases.length + " ====");
   if (fails.length) process.exit(1);
 }
-main();
+if (require.main === module) main();

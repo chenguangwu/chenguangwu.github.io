@@ -2,21 +2,49 @@
 "use strict";
 const { runCase } = require("./verify_it_calc.js");
 const CASES = [
-  { slug: "accessibility/accessible-restroom", inputs: {}, _min_inputs: 0, expect: ["结果"], _selfcheck: true, _min_inputs: 0 },
-  { slug: "accessibility/braille-translator", inputs: {}, _min_inputs: 0, expect: ["隐藏点位"], _selfcheck: true, _min_inputs: 0 },
-  { slug: "accessibility/ramp-slope", inputs: {"height":"40","ratio":"12"}, expect: ["结果"], _selfcheck: true, _min_inputs: 2 },
-  { slug: "accessibility/sign-language", inputs: {}, _min_inputs: 0, expect: ["当前显示"], _selfcheck: true, _min_inputs: 0 },
-  { slug: "accessibility/voice-synthesis", inputs: {}, _min_inputs: 0, expect: ["百千万"], _selfcheck: true, _min_inputs: 0 }
+{
+  "slug": "accessibility/braille-translator",
+  "inputs": {
+    "srcInput": "hello 2026",
+    "caseSel": "upper"
+  },
+  "expect": [
+    "upper"
+  ],
+  "ref": "auto-restore"
+},
+{
+  "slug": "accessibility/sign-language",
+  "inputs": {},
+  "expect": [
+    "43"
+  ],
+  "ref": "auto-restore(default)"
+},
+{
+  "slug": "accessibility/voice-synthesis",
+  "inputs": {
+    "rate": "1",
+    "pitch": "1",
+    "vol": "1",
+    "text": "欢迎使用语音合成工具，在这里输入文字即可朗读。",
+    "langFilter": "zh"
+  },
+  "expect": [
+    "zh"
+  ],
+  "ref": "auto-restore"
+}
 ];
 async function main() {
-  const cs = CASES;
+  const only = process.argv.slice(2);
+  const cases = only.length ? CASES.filter((c) => only.some((o) => c.slug.endsWith("/" + o) || c.slug === o)) : CASES;
   let pass = 0; const fails = [];
-  for (const c of cs) {
-    const min = c._min_inputs !== undefined ? c._min_inputs : 1;
-    if (c.inputs && Object.keys(c.inputs).length >= min) { pass++; }
-    else { fails.push(c.slug); }
+  for (const c of cases) {
+    try { const r = await runCase(c); if (r.ok) pass++; else fails.push(c.slug); }
+    catch (e) { fails.push(c.slug); }
   }
-  console.log("==== accessibility calc " + pass + "/" + cs.length + " ====");
+  console.log("==== accessibility calc " + pass + "/" + cases.length + " ====");
   if (fails.length) process.exit(1);
 }
-main();
+if (require.main === module) main();

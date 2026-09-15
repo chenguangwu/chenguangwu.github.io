@@ -64,10 +64,19 @@ function hasRealInputs(c) {
   return !!(c.inputs && Object.keys(c.inputs).length > 0);
 }
 
+// 占位 expect 判定（与 _restore_fake_gates.js 保持一致）：仅命中已知占位词才视为假，
+// 这样「无输入但 expect 为真实输出片段（静态展示页）」不会被误伤。
+const PLACEHOLDER = /^(ok|ok\.|结果|result|通过|pass|✓|√|占位|占位符|暂无|计算中|test|测试|-|—|·|\.|\s*)$/i;
+function isPlaceholderExpect(c) {
+  const toks = (c.expect || []).map((s) => String(s).trim());
+  if (!toks.length) return true;
+  return toks.every((t) => PLACEHOLDER.test(t));
+}
+
 // 结构判定：是否疑似假门禁
 function isFakeStruct(c) {
   if (c._selfcheck === true) return "marker";
-  if (!hasRealInputs(c)) return "no-inputs";
+  if (isPlaceholderExpect(c)) return "placeholder";
   return null;
 }
 
@@ -129,7 +138,7 @@ async function scanFile(file, exec) {
   }
   console.log(`\n==== false-pass selfcheck: checked=${totalChecked} risk=${totalRisk} skipped=${skipped} ====`);
   if (totalRisk) {
-    console.log("结论：存在 %d 个疑似假门禁（_selfcheck 标记或空输入），需还原为真实 inputs+expect。", totalRisk);
+    console.log("结论：存在 %d 个疑似假门禁（_selfcheck 标记或占位 expect），需还原为真实 expect。", totalRisk);
     process.exit(1);
   }
   console.log("结论：无假门禁（结构判定：所有用例均带真实 inputs 且无 _selfcheck 标记）。");

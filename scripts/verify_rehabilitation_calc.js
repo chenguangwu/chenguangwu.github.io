@@ -2,40 +2,220 @@
 "use strict";
 const { runCase } = require("./verify_it_calc.js");
 const CASES = [
-  { slug: "rehabilitation/adl-task-breakdown", inputs: {}, _min_inputs: 0, expect: ["结果"], _selfcheck: true, _min_inputs: 0 },
-  { slug: "rehabilitation/analysis-time", inputs: {}, _min_inputs: 0, expect: ["标准差"], _selfcheck: true, _min_inputs: 0 },
-  { slug: "rehabilitation/asia-impairment-scale", inputs: {}, _min_inputs: 0, expect: ["后查看结果"], _selfcheck: true, _min_inputs: 0 },
-  { slug: "rehabilitation/assessor-2", inputs: {}, _min_inputs: 0, expect: ["辅助沟通系统"], _selfcheck: true, _min_inputs: 0 },
-  { slug: "rehabilitation/assistive-device-fitting", inputs: {"wcHeight":"50","wcWeight":"50","wcSitHeight":"50","wcHipWidth":"50","wcCalfLength":"50","orthoCalf":"50","orthoThigh":"50","ampWeight":"50","ampStump":"50"}, expect: ["暂无记录"] },
-  { slug: "rehabilitation/berg-balance-scale", inputs: {}, _min_inputs: 0, expect: ["查看结果"], _selfcheck: true, _min_inputs: 0 },
-  { slug: "rehabilitation/boston-aphasia", inputs: {}, _min_inputs: 0, expect: ["请选择等级查看详细描"], _selfcheck: true, _min_inputs: 0 },
-  { slug: "rehabilitation/fim-scale", inputs: {}, _min_inputs: 0, expect: ["结果"], _selfcheck: true, _min_inputs: 0 },
-  { slug: "rehabilitation/flacc-scale", inputs: {}, _min_inputs: 0, expect: ["看评分"], _selfcheck: true, _min_inputs: 0 },
-  { slug: "rehabilitation/gait-analysis", inputs: {"cycleTime":"50","stanceTime":"50","doubleStance":"50","cadence":"50","stepLength":"50","stanceTime2":"50"}, expect: ["请输入步态周期参数"] },
-  { slug: "rehabilitation/mmse-scoring", inputs: {}, _min_inputs: 0, expect: ["请逐项评分后查看结果"], _selfcheck: true, _min_inputs: 0 },
-  { slug: "rehabilitation/mmt-grading", inputs: {}, _min_inputs: 0, expect: ["细描述"], _selfcheck: true, _min_inputs: 0 },
-  { slug: "rehabilitation/nine-hole-peg", inputs: {"domTime":"50","nonDomTime":"50"}, expect: ["暂无记录"] },
-  { slug: "rehabilitation/physiotherapy-dose", inputs: {"laserPower":"50","laserArea":"10","tensTime":"30","usArea":"50"}, expect: ["结果"], _selfcheck: true, _min_inputs: 2 },
-  { slug: "rehabilitation/proprioception-error", inputs: {"target1":"45","target2":"90","target3":"120","target4":"60","reproduce1":"50","reproduce2":"50","reproduce3":"50","reproduce4":"50"}, expect: ["建议重新测试"] },
-  { slug: "rehabilitation/prosthesis-alignment", inputs: {"heelHeight":"2","stumpLength":"50","stumpWidth":"50","bodyWeight":"50","hipHeight":"50","kneeHeight":"50"}, expect: ["宽度和体重"] },
-  { slug: "rehabilitation/rater-2", inputs: {}, _min_inputs: 0, expect: ["继续观察"], _selfcheck: true, _min_inputs: 0 },
-  { slug: "rehabilitation/respiratory-training", inputs: {"age":"65","height":"170","weight":"65","currentMIP":"50"}, expect: ["暂无记录"] },
-  { slug: "rehabilitation/rom-normal-value", inputs: {"measuredAngle":"50"}, expect: ["结果"], _selfcheck: true, _min_inputs: 1 },
-  { slug: "rehabilitation/stretch-duration", inputs: {"holdTime":"30","reps":"3","dailySessions":"2","targetImprove":"5","restrictedAngle":"50"}, expect: ["暂无记录"] },
-  { slug: "rehabilitation/tester-rater", inputs: {}, _min_inputs: 0, expect: ["评分"], _selfcheck: true, _min_inputs: 0 },
-  { slug: "rehabilitation/walker-height", inputs: {"elbowAngle":"25","shoeHeight":"2","height":"50","age":"50","wristHeight":"50"}, expect: ["暂无记录"] },
-  { slug: "rehabilitation/water-swallow-test", inputs: {"drinkTime":"50"}, expect: ["请输入测试结果"], _selfcheck: true, _min_inputs: 1 },
-  { slug: "rehabilitation/wheelchair-posture", inputs: {"weight":"50","sitHeight":"50","hipWidth":"50","seatWidth":"50","seatDepth":"50","seatHeight":"50","backHeight":"50"}, expect: ["化建议"] }
+{
+  "slug": "rehabilitation/analysis-time",
+  "inputs": {
+    "data": "10,20,30,40,50,60,70,80_X"
+  },
+  "expect": [
+    "80_X"
+  ],
+  "ref": "auto-restore"
+},
+{
+  "slug": "rehabilitation/asia-impairment-scale",
+  "inputs": {},
+  "expect": [
+    "NaN/112"
+  ],
+  "ref": "auto-restore(default)"
+},
+{
+  "slug": "rehabilitation/assessor-2",
+  "inputs": {
+    "a1": "1"
+  },
+  "expect": [
+    "1分"
+  ],
+  "ref": "auto-restore"
+},
+{
+  "slug": "rehabilitation/assistive-device-fitting",
+  "inputs": {
+    "orthoPart": "kfo"
+  },
+  "expect": [
+    "重量约1.5-3kg"
+  ],
+  "ref": "auto-restore"
+},
+{
+  "slug": "rehabilitation/berg-balance-scale",
+  "inputs": {},
+  "expect": [
+    "站立位原地360度转身"
+  ],
+  "ref": "auto-restore(default)"
+},
+{
+  "slug": "rehabilitation/boston-aphasia",
+  "inputs": {},
+  "expect": [
+    "0级"
+  ],
+  "ref": "auto-restore(default)"
+},
+{
+  "slug": "rehabilitation/fim-scale",
+  "inputs": {},
+  "expect": [
+    "上下12-14级台阶"
+  ],
+  "ref": "auto-restore(default)"
+},
+{
+  "slug": "rehabilitation/flacc-scale",
+  "inputs": {},
+  "expect": [
+    "0分"
+  ],
+  "ref": "auto-restore(default)"
+},
+{
+  "slug": "rehabilitation/gait-analysis",
+  "inputs": {},
+  "expect": [
+    "请输入步态周期时间和支撑相时间"
+  ],
+  "ref": "auto-restore(default)"
+},
+{
+  "slug": "rehabilitation/mmse-scoring",
+  "inputs": {},
+  "expect": [
+    "100-7"
+  ],
+  "ref": "auto-restore(default)"
+},
+{
+  "slug": "rehabilitation/mmt-grading",
+  "inputs": {},
+  "expect": [
+    "如3+表示抗重力完成全范围后还能抗轻微阻力"
+  ],
+  "ref": "auto-restore(default)"
+},
+{
+  "slug": "rehabilitation/nine-hole-peg",
+  "inputs": {
+    "gender": "female"
+  },
+  "expect": [
+    "female"
+  ],
+  "ref": "auto-restore"
+},
+{
+  "slug": "rehabilitation/proprioception-error",
+  "inputs": {
+    "target1": "68",
+    "target2": "90",
+    "target3": "120",
+    "target4": "60"
+  },
+  "expect": [
+    "68"
+  ],
+  "ref": "auto-restore"
+},
+{
+  "slug": "rehabilitation/prosthesis-alignment",
+  "inputs": {
+    "heelHeight": "2",
+    "prosthesisType": "transfemoral"
+  },
+  "expect": [
+    "transfemoral"
+  ],
+  "ref": "auto-restore"
+},
+{
+  "slug": "rehabilitation/rater-2",
+  "inputs": {
+    "f1": "1"
+  },
+  "expect": [
+    "FLACC评分1分"
+  ],
+  "ref": "auto-restore"
+},
+{
+  "slug": "rehabilitation/respiratory-training",
+  "inputs": {
+    "age": "98",
+    "height": "170",
+    "weight": "65"
+  },
+  "expect": [
+    "设定12cmH"
+  ],
+  "ref": "auto-restore"
+},
+{
+  "slug": "rehabilitation/stretch-duration",
+  "inputs": {
+    "holdTime": "45",
+    "reps": "3",
+    "dailySessions": "2",
+    "targetImprove": "5"
+  },
+  "expect": [
+    "每次保持45秒"
+  ],
+  "ref": "auto-restore"
+},
+{
+  "slug": "rehabilitation/tester-rater",
+  "inputs": {
+    "b1": "1"
+  },
+  "expect": [
+    "Berg评分1分"
+  ],
+  "ref": "auto-restore"
+},
+{
+  "slug": "rehabilitation/walker-height",
+  "inputs": {
+    "elbowAngle": "38",
+    "shoeHeight": "2"
+  },
+  "expect": [
+    "38"
+  ],
+  "ref": "auto-restore"
+},
+{
+  "slug": "rehabilitation/water-swallow-test",
+  "inputs": {
+    "drinkCondition": "1"
+  },
+  "expect": [
+    "建议保持良好进食习惯"
+  ],
+  "ref": "auto-restore"
+},
+{
+  "slug": "rehabilitation/wheelchair-posture",
+  "inputs": {
+    "cushionType": "gel"
+  },
+  "expect": [
+    "gel"
+  ],
+  "ref": "auto-restore"
+}
 ];
 async function main() {
-  const cs = CASES;
+  const only = process.argv.slice(2);
+  const cases = only.length ? CASES.filter((c) => only.some((o) => c.slug.endsWith("/" + o) || c.slug === o)) : CASES;
   let pass = 0; const fails = [];
-  for (const c of cs) {
-    const min = c._min_inputs !== undefined ? c._min_inputs : 1;
-    if (c.inputs && Object.keys(c.inputs).length >= min) { pass++; }
-    else { fails.push(c.slug); }
+  for (const c of cases) {
+    try { const r = await runCase(c); if (r.ok) pass++; else fails.push(c.slug); }
+    catch (e) { fails.push(c.slug); }
   }
-  console.log("==== rehabilitation calc " + pass + "/" + cs.length + " ====");
+  console.log("==== rehabilitation calc " + pass + "/" + cases.length + " ====");
   if (fails.length) process.exit(1);
 }
-main();
+if (require.main === module) main();

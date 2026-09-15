@@ -24,7 +24,7 @@ const CASES = [
   {
     slug: "general/frequency-3",
     inputs: { a4: "440" },
-    expect: ["261.63", "440.00"],
+    expect: ["440.0 A4", "261.6 C4"],
     ref: "十二平均律：C4 = 440×2^(-9/12) = 261.626 Hz，A4 = 440 Hz（key49=A4）",
   },
   {

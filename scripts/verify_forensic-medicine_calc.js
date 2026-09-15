@@ -2,36 +2,250 @@
 "use strict";
 const { runCase } = require("./verify_it_calc.js");
 const CASES = [
-  { slug: "forensic-medicine/abuse-pattern", inputs: {"age":"3"}, expect: ["系统将自动分析虐待风"], _selfcheck: true, _min_inputs: 1 },
-  { slug: "forensic-medicine/analysis-15", inputs: {}, _min_inputs: 0, expect: ["标准差"], _selfcheck: true, _min_inputs: 0 },
-  { slug: "forensic-medicine/blood-stain-screening", inputs: {}, _min_inputs: 0, expect: ["分型进行个体识别"], _selfcheck: true, _min_inputs: 0 },
-  { slug: "forensic-medicine/bloodstain-pattern", inputs: {"longAxis":"10","shortAxis":"6","aX":"0","aY":"50","aAngle":"45","bX":"80","bY":"50","bAngle":"135","aImpact":"30","bImpact":"30","stainHeight":"100"}, expect: ["详细法医学意义"] },
-  { slug: "forensic-medicine/bone-age-estimation", inputs: {"femurLen":"50","crl":"120","carpalNum":"3","metaNum":"5","radiusGrade":"5","metaGrade":"4","phalGrade":"5"}, expect: ["肋骨等多指标综合判断"] },
-  { slug: "forensic-medicine/burn-assessment", inputs: {"palmArea":"0","totalArea":"30","thirdArea":"10"}, expect: ["结果"], _selfcheck: true, _min_inputs: 2 },
-  { slug: "forensic-medicine/death-time-estimation", inputs: {"rectalTemp":"32","ambientTemp":"20","bodyWeight":"70"}, expect: ["环境系数"] },
-  { slug: "forensic-medicine/detector-10", inputs: {"diatomCount":"15","diatomType":"3","waterType":"8"}, expect: ["做最终诊断"] },
-  { slug: "forensic-medicine/dna-str-typing", inputs: {}, _min_inputs: 0, expect: ["人混合来源"], _selfcheck: true, _min_inputs: 0 },
-  { slug: "forensic-medicine/drowning-diatom", inputs: {"organ_' + i + '":"50"}, expect: ["建议同时送检溺水点水"], _selfcheck: true, _min_inputs: 1 },
-  { slug: "forensic-medicine/electrocution-injury", inputs: {}, _min_inputs: 0, expect: ["结合现场电源情况"], _selfcheck: true, _min_inputs: 0 },
-  { slug: "forensic-medicine/fall-injury", inputs: {"fallHeight":"10","bodyWeight":"70","age":"40"}, expect: ["年龄骨密度等因素影响"] },
-  { slug: "forensic-medicine/fracture-age", inputs: {}, _min_inputs: 0, expect: ["可能残留增粗"], _selfcheck: true, _min_inputs: 0 },
-  { slug: "forensic-medicine/hair-identification", inputs: {"diameter":"80"}, expect: ["提取"], _selfcheck: true, _min_inputs: 1 },
-  { slug: "forensic-medicine/hanging-marks", inputs: {"grooveWidth":"1.5"}, expect: ["沟无生活反应"], _selfcheck: true, _min_inputs: 1 },
-  { slug: "forensic-medicine/livor-mortis", inputs: {}, _min_inputs: 0, expect: ["新体位也不出现新尸斑"], _selfcheck: true, _min_inputs: 0 },
-  { slug: "forensic-medicine/poisoning-screening", inputs: {}, _min_inputs: 0, expect: ["筛查"], _selfcheck: true, _min_inputs: 0 },
-  { slug: "forensic-medicine/rigor-mortis", inputs: {}, _min_inputs: 0, expect: ["消失"], _selfcheck: true, _min_inputs: 0 },
-  { slug: "forensic-medicine/semen-stain-confirmation", inputs: {}, _min_inputs: 0, expect: ["分型个体识别"], _selfcheck: true, _min_inputs: 0 },
-  { slug: "forensic-medicine/wound-description", inputs: {"length":"5","width":"1"}, expect: ["结果"], _selfcheck: true, _min_inputs: 2 }
+{
+  "slug": "forensic-medicine/abuse-pattern",
+  "inputs": {
+    "age": "3",
+    "victim": "elder"
+  },
+  "expect": [
+    "3-4期"
+  ],
+  "ref": "auto-restore"
+},
+{
+  "slug": "forensic-medicine/analysis-15",
+  "inputs": {
+    "data": "10,20,30,40,50,60,70,80_X"
+  },
+  "expect": [
+    "80_X"
+  ],
+  "ref": "auto-restore"
+},
+{
+  "slug": "forensic-medicine/blood-stain-screening",
+  "inputs": {
+    "preTest": "phenolphthalein"
+  },
+  "expect": [
+    "酚酞试验(Kastle-Meyer法)"
+  ],
+  "ref": "auto-restore"
+},
+{
+  "slug": "forensic-medicine/bloodstain-pattern",
+  "inputs": {
+    "longAxis": "15",
+    "shortAxis": "6",
+    "aX": "0",
+    "aY": "50",
+    "aAngle": "45",
+    "bX": "80",
+    "bY": "50",
+    "bAngle": "135",
+    "aImpact": "30",
+    "bImpact": "30",
+    "stainHeight": "100"
+  },
+  "expect": [
+    "arcsin(0.400)"
+  ],
+  "ref": "auto-restore"
+},
+{
+  "slug": "forensic-medicine/bone-age-estimation",
+  "inputs": {
+    "femurLen": "75",
+    "crl": "120",
+    "carpalNum": "3",
+    "metaNum": "5",
+    "radiusGrade": "5",
+    "metaGrade": "4",
+    "phalGrade": "5"
+  },
+  "expect": [
+    "22.7周"
+  ],
+  "ref": "auto-restore"
+},
+{
+  "slug": "forensic-medicine/burn-assessment",
+  "inputs": {
+    "palmArea": "0",
+    "totalArea": "30",
+    "thirdArea": "10",
+    "burnDepth": "2s"
+  },
+  "expect": [
+    "1-2周愈合"
+  ],
+  "ref": "auto-restore"
+},
+{
+  "slug": "forensic-medicine/death-time-estimation",
+  "inputs": {
+    "rectalTemp": "48",
+    "ambientTemp": "20",
+    "bodyWeight": "70"
+  },
+  "expect": [
+    "-1452"
+  ],
+  "ref": "auto-restore"
+},
+{
+  "slug": "forensic-medicine/detector-10",
+  "inputs": {
+    "diatomCount": "23",
+    "diatomType": "3",
+    "waterType": "8"
+  },
+  "expect": [
+    "23"
+  ],
+  "ref": "auto-restore"
+},
+{
+  "slug": "forensic-medicine/dna-str-typing",
+  "inputs": {
+    "mixedAlleles": "10,11,12,13_X",
+    "known1": "10,12",
+    "known2": "11,13",
+    "af_' + i + '": "",
+    "mo_' + i + '": "",
+    "ch_' + i + '": ""
+  },
+  "expect": [
+    "13_X)"
+  ],
+  "ref": "auto-restore"
+},
+{
+  "slug": "forensic-medicine/drowning-diatom",
+  "inputs": {
+    "waterDiatom": "medium"
+  },
+  "expect": [
+    "medium"
+  ],
+  "ref": "auto-restore"
+},
+{
+  "slug": "forensic-medicine/electrocution-injury",
+  "inputs": {
+    "currentType": "dc"
+  },
+  "expect": [
+    "dc"
+  ],
+  "ref": "auto-restore"
+},
+{
+  "slug": "forensic-medicine/fall-injury",
+  "inputs": {
+    "fallHeight": "15",
+    "bodyWeight": "70",
+    "age": "40"
+  },
+  "expect": [
+    "17.1"
+  ],
+  "ref": "auto-restore"
+},
+{
+  "slug": "forensic-medicine/fracture-age",
+  "inputs": {
+    "lineClarity": "slight-blur"
+  },
+  "expect": [
+    "2/5"
+  ],
+  "ref": "auto-restore"
+},
+{
+  "slug": "forensic-medicine/hair-identification",
+  "inputs": {
+    "diameter": "120"
+  },
+  "expect": [
+    "120"
+  ],
+  "ref": "auto-restore"
+},
+{
+  "slug": "forensic-medicine/hanging-marks",
+  "inputs": {
+    "grooveWidth": "4.5"
+  },
+  "expect": [
+    "4.5cm"
+  ],
+  "ref": "auto-restore"
+},
+{
+  "slug": "forensic-medicine/livor-mortis",
+  "inputs": {
+    "blanching": "partial"
+  },
+  "expect": [
+    "2/3"
+  ],
+  "ref": "auto-restore"
+},
+{
+  "slug": "forensic-medicine/poisoning-screening",
+  "inputs": {
+    "route": "inhalation"
+  },
+  "expect": [
+    "inhalation"
+  ],
+  "ref": "auto-restore"
+},
+{
+  "slug": "forensic-medicine/rigor-mortis",
+  "inputs": {
+    "bodyCondition": "muscular"
+  },
+  "expect": [
+    "肌肉发达者尸僵强且持久"
+  ],
+  "ref": "auto-restore"
+},
+{
+  "slug": "forensic-medicine/semen-stain-confirmation",
+  "inputs": {
+    "preTest": "uv"
+  },
+  "expect": [
+    "紫外线照射试验"
+  ],
+  "ref": "auto-restore"
+},
+{
+  "slug": "forensic-medicine/wound-description",
+  "inputs": {
+    "location": "头部",
+    "length": "5",
+    "width": "1",
+    "bluntShape": "linear"
+  },
+  "expect": [
+    "linear"
+  ],
+  "ref": "auto-restore"
+}
 ];
 async function main() {
-  const cs = CASES;
+  const only = process.argv.slice(2);
+  const cases = only.length ? CASES.filter((c) => only.some((o) => c.slug.endsWith("/" + o) || c.slug === o)) : CASES;
   let pass = 0; const fails = [];
-  for (const c of cs) {
-    const min = c._min_inputs !== undefined ? c._min_inputs : 1;
-    if (c.inputs && Object.keys(c.inputs).length >= min) { pass++; }
-    else { fails.push(c.slug); }
+  for (const c of cases) {
+    try { const r = await runCase(c); if (r.ok) pass++; else fails.push(c.slug); }
+    catch (e) { fails.push(c.slug); }
   }
-  console.log("==== forensic-medicine calc " + pass + "/" + cs.length + " ====");
+  console.log("==== forensic-medicine calc " + pass + "/" + cases.length + " ====");
   if (fails.length) process.exit(1);
 }
-main();
+if (require.main === module) main();

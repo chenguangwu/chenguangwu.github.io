@@ -2,27 +2,116 @@
 "use strict";
 const { runCase } = require("./verify_it_calc.js");
 const CASES = [
-  { slug: "elderly/aid-height", inputs: {"height":"165","shoe":"2"}, expect: ["肘杖"] },
-  { slug: "elderly/assessor-35", inputs: {"age":"75"}, expect: ["提供健康指导和社交活"], _selfcheck: true, _min_inputs: 1 },
-  { slug: "elderly/assessor-36", inputs: {}, _min_inputs: 0, expect: ["保持社区联系即可"], _selfcheck: true, _min_inputs: 0 },
-  { slug: "elderly/assessor-37", inputs: {}, _min_inputs: 0, expect: ["保持标准"], _selfcheck: true, _min_inputs: 0 },
-  { slug: "elderly/assessor-risk-1", inputs: {}, _min_inputs: 0, expect: ["建议保持现有安全措施"], _selfcheck: true, _min_inputs: 0 },
-  { slug: "elderly/bp-trend", inputs: {"logSys":"50","logDia":"50","logHr":"50","logGlu":"50"}, expect: ["空腹"] },
-  { slug: "elderly/eldercare-level", inputs: {}, _min_inputs: 0, expect: ["完全依赖"], _selfcheck: true, _min_inputs: 0 },
-  { slug: "elderly/fall-risk", inputs: {}, _min_inputs: 0, expect: ["站立不稳"], _selfcheck: true, _min_inputs: 0 },
-  { slug: "elderly/medication-schedule", inputs: {}, _min_inputs: 0, expect: ["新药"], _selfcheck: true, _min_inputs: 0 },
-  { slug: "elderly/reminder-time", inputs: {"medHours":"8"}, expect: ["请先添加"], _selfcheck: true, _min_inputs: 1 },
-  { slug: "elderly/wheelchair-width", inputs: {}, _min_inputs: 0, expect: ["结果"], _selfcheck: true, _min_inputs: 0 }
+{
+  "slug": "elderly/aid-height",
+  "inputs": {
+    "height": "248",
+    "shoe": "2"
+  },
+  "expect": [
+    "250.0"
+  ],
+  "ref": "auto-restore"
+},
+{
+  "slug": "elderly/assessor-35",
+  "inputs": {
+    "age": "113"
+  },
+  "expect": [
+    "113"
+  ],
+  "ref": "auto-restore"
+},
+{
+  "slug": "elderly/assessor-36",
+  "inputs": {
+    "s1": "1"
+  },
+  "expect": [
+    "关注"
+  ],
+  "ref": "auto-restore"
+},
+{
+  "slug": "elderly/assessor-37",
+  "inputs": {
+    "q1": "4"
+  },
+  "expect": [
+    "均值4.80"
+  ],
+  "ref": "auto-restore"
+},
+{
+  "slug": "elderly/assessor-risk-1",
+  "inputs": {
+    "e1": "2"
+  },
+  "expect": [
+    "加装夜灯和感应灯"
+  ],
+  "ref": "auto-restore"
+},
+{
+  "slug": "elderly/bp-trend",
+  "inputs": {
+    "logPeriod": "上午"
+  },
+  "expect": [
+    "上午"
+  ],
+  "ref": "auto-restore"
+},
+{
+  "slug": "elderly/eldercare-level",
+  "inputs": {},
+  "expect": [
+    "1."
+  ],
+  "ref": "auto-restore(default)"
+},
+{
+  "slug": "elderly/fall-risk",
+  "inputs": {},
+  "expect": [
+    "行走时是否需要借助辅助器具或他人搀扶"
+  ],
+  "ref": "auto-restore(default)"
+},
+{
+  "slug": "elderly/medication-schedule",
+  "inputs": {
+    "days": "6",
+    "notes": "每次"
+  },
+  "expect": [
+    "2026-09-18"
+  ],
+  "ref": "auto-restore"
+},
+{
+  "slug": "elderly/reminder-time",
+  "inputs": {
+    "time1": "08:00",
+    "time2": "20:00",
+    "medHours": "12"
+  },
+  "expect": [
+    "12"
+  ],
+  "ref": "auto-restore"
+}
 ];
 async function main() {
-  const cs = CASES;
+  const only = process.argv.slice(2);
+  const cases = only.length ? CASES.filter((c) => only.some((o) => c.slug.endsWith("/" + o) || c.slug === o)) : CASES;
   let pass = 0; const fails = [];
-  for (const c of cs) {
-    const min = c._min_inputs !== undefined ? c._min_inputs : 1;
-    if (c.inputs && Object.keys(c.inputs).length >= min) { pass++; }
-    else { fails.push(c.slug); }
+  for (const c of cases) {
+    try { const r = await runCase(c); if (r.ok) pass++; else fails.push(c.slug); }
+    catch (e) { fails.push(c.slug); }
   }
-  console.log("==== elderly calc " + pass + "/" + cs.length + " ====");
+  console.log("==== elderly calc " + pass + "/" + cases.length + " ====");
   if (fails.length) process.exit(1);
 }
-main();
+if (require.main === module) main();

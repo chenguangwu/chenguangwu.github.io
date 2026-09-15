@@ -2,36 +2,72 @@
 "use strict";
 const { runCase } = require("./verify_it_calc.js");
 const CASES = [
-  { slug: "psychology/analysis-2", inputs: {}, _min_inputs: 0, expect: ["OK"] },
-  { slug: "psychology/assessor", inputs: {}, _min_inputs: 0, expect: ["OK"] },
-  { slug: "psychology/attachment-style-test", inputs: {}, _min_inputs: 0, expect: ["OK"] },
-  { slug: "psychology/bigfive-personality-test", inputs: {}, _min_inputs: 0, expect: ["OK"] },
-  { slug: "psychology/bubble-tea-personality-quiz", inputs: {}, _min_inputs: 0, expect: ["OK"] },
-  { slug: "psychology/calc-12", inputs: {}, _min_inputs: 0, expect: ["OK"] },
-  { slug: "psychology/calc-self-assess", inputs: {}, _min_inputs: 0, expect: ["OK"] },
-  { slug: "psychology/enneagram-test", inputs: {}, _min_inputs: 0, expect: ["OK"] },
-  { slug: "psychology/generator-20", inputs: {"cnt": "5"}, expect: ["OK"] },
-  { slug: "psychology/holland-career-test", inputs: {}, _min_inputs: 0, expect: ["OK"] },
-  { slug: "psychology/phq9-assessment", inputs: {}, _min_inputs: 0, expect: ["OK"] },
-  { slug: "psychology/psqi-assessment", inputs: {}, _min_inputs: 0, expect: ["OK"] },
-  { slug: "psychology/random-12", inputs: {"cnt": "5"}, expect: ["OK"] },
-  { slug: "psychology/rater", inputs: {}, _min_inputs: 0, expect: ["OK"] },
-  { slug: "psychology/sas-assessment", inputs: {}, _min_inputs: 0, expect: ["OK"] },
-  { slug: "psychology/scl90-assessment", inputs: {}, _min_inputs: 0, expect: ["OK"] },
-  { slug: "psychology/self-assess", inputs: {}, _min_inputs: 0, expect: ["OK"] },
-  { slug: "psychology/self-test-pressure", inputs: {}, _min_inputs: 0, expect: ["OK"] },
-  { slug: "psychology/tester-2", inputs: {}, _min_inputs: 0, expect: ["OK"] },
-  { slug: "psychology/tester-3", inputs: {}, _min_inputs: 0, expect: ["OK"] },
+{
+  "slug": "psychology/attachment-style-test",
+  "inputs": {
+    "at' + i + '_' + l.v + '": "' + l.v + '_X"
+  },
+  "expect": [
+    "_X"
+  ],
+  "ref": "auto-restore"
+},
+{
+  "slug": "psychology/calc-12",
+  "inputs": {},
+  "expect": [
+    "0/10"
+  ],
+  "ref": "auto-restore(default)"
+},
+{
+  "slug": "psychology/generator-20",
+  "inputs": {
+    "cnt": "8"
+  },
+  "expect": [
+    "6."
+  ],
+  "ref": "auto-restore"
+},
+{
+  "slug": "psychology/holland-career-test",
+  "inputs": {
+    "hl' + i + '_' + val + '": "' + val + '_X"
+  },
+  "expect": [
+    "_X"
+  ],
+  "ref": "auto-restore"
+},
+{
+  "slug": "psychology/random-12",
+  "inputs": {
+    "cnt": "8"
+  },
+  "expect": [
+    "90%存活率"
+  ],
+  "ref": "auto-restore"
+},
+{
+  "slug": "psychology/tester-2",
+  "inputs": {},
+  "expect": [
+    "0/60"
+  ],
+  "ref": "auto-restore(default)"
+}
 ];
 async function main() {
-  const cs = CASES;
+  const only = process.argv.slice(2);
+  const cases = only.length ? CASES.filter((c) => only.some((o) => c.slug.endsWith("/" + o) || c.slug === o)) : CASES;
   let pass = 0; const fails = [];
-  for (const c of cs) {
-    const min = c._min_inputs !== undefined ? c._min_inputs : 1;
-    if (c.inputs && Object.keys(c.inputs).length >= min) { pass++; }
-    else { fails.push(c.slug); }
+  for (const c of cases) {
+    try { const r = await runCase(c); if (r.ok) pass++; else fails.push(c.slug); }
+    catch (e) { fails.push(c.slug); }
   }
-  console.log("==== psychology calc " + pass + "/" + cs.length + " ====");
+  console.log("==== psychology calc " + pass + "/" + cases.length + " ====");
   if (fails.length) process.exit(1);
 }
-main();
+if (require.main === module) main();

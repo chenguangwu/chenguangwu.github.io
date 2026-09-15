@@ -2,21 +2,73 @@
 "use strict";
 const { runCase } = require("./verify_it_calc.js");
 const CASES = [
-  { slug: "pet-training/clicker-timing", inputs: {"duration": "800"}, expect: ["OK"] },
-  { slug: "pet-training/command-repetition", inputs: {"reps": "5", "hoursAgo": "24", "age": "6"}, expect: ["OK"] },
-  { slug: "pet-training/elimination-predict", inputs: {"age": "3", "afterDrink": "15"}, expect: ["OK"] },
-  { slug: "pet-training/leash-length", inputs: {"leashLen": "1.5", "weight": "15"}, expect: ["OK"] },
-  { slug: "pet-training/treat-calories", inputs: {"weight": "10", "treatCal": "15", "treatCount": "5"}, expect: ["OK"] },
+{
+  "slug": "pet-training/clicker-timing",
+  "inputs": {
+    "duration": "1200"
+  },
+  "expect": [
+    "1200"
+  ],
+  "ref": "auto-restore"
+},
+{
+  "slug": "pet-training/command-repetition",
+  "inputs": {
+    "reps": "8",
+    "hoursAgo": "24",
+    "age": "6"
+  },
+  "expect": [
+    "5%"
+  ],
+  "ref": "auto-restore"
+},
+{
+  "slug": "pet-training/elimination-predict",
+  "inputs": {
+    "age": "3",
+    "afterDrink": "15",
+    "petType": "cat"
+  },
+  "expect": [
+    "cat"
+  ],
+  "ref": "auto-restore"
+},
+{
+  "slug": "pet-training/leash-length",
+  "inputs": {
+    "leashLen": "4.5",
+    "weight": "15"
+  },
+  "expect": [
+    "当前绳长(4.5m)超过城市街道建议上限(1.8m)"
+  ],
+  "ref": "auto-restore"
+},
+{
+  "slug": "pet-training/treat-calories",
+  "inputs": {
+    "weight": "15",
+    "treatCal": "15",
+    "treatCount": "5"
+  },
+  "expect": [
+    "747"
+  ],
+  "ref": "auto-restore"
+}
 ];
 async function main() {
-  const cs = CASES;
+  const only = process.argv.slice(2);
+  const cases = only.length ? CASES.filter((c) => only.some((o) => c.slug.endsWith("/" + o) || c.slug === o)) : CASES;
   let pass = 0; const fails = [];
-  for (const c of cs) {
-    const min = c._min_inputs !== undefined ? c._min_inputs : 1;
-    if (c.inputs && Object.keys(c.inputs).length >= min) { pass++; }
-    else { fails.push(c.slug); }
+  for (const c of cases) {
+    try { const r = await runCase(c); if (r.ok) pass++; else fails.push(c.slug); }
+    catch (e) { fails.push(c.slug); }
   }
-  console.log("==== pet-training calc " + pass + "/" + cs.length + " ====");
+  console.log("==== pet-training calc " + pass + "/" + cases.length + " ====");
   if (fails.length) process.exit(1);
 }
-main();
+if (require.main === module) main();

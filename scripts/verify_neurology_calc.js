@@ -2,43 +2,255 @@
 "use strict";
 const { runCase } = require("./verify_it_calc.js");
 const CASES = [
-  { slug: "neurology/abcd2", inputs: {}, _min_inputs: 0, expect: ["控制危险因素"], _selfcheck: true, _min_inputs: 0 },
-  { slug: "neurology/adas-cog", inputs: {}, _min_inputs: 0, expect: ["损害"], _selfcheck: true, _min_inputs: 0 },
-  { slug: "neurology/alsfrs-r", inputs: {}, _min_inputs: 0, expect: ["定期监测"], _selfcheck: true, _min_inputs: 0 },
-  { slug: "neurology/assessor-11", inputs: {"q1":"0","q2":"0","q3":"0","q4":"0","q5":"0","q6":"0","q7":"0"}, expect: ["如发作频繁仍建议就医"] },
-  { slug: "neurology/calc-1", inputs: {}, _min_inputs: 0, expect: ["严重偏侧忽视"], _selfcheck: true, _min_inputs: 0 },
-  { slug: "neurology/dhi", inputs: {}, _min_inputs: 0, expect: ["结果"], _selfcheck: true, _min_inputs: 0 },
-  { slug: "neurology/dn4", inputs: {}, _min_inputs: 0, expect: ["结果"], _selfcheck: true, _min_inputs: 0 },
-  { slug: "neurology/edss", inputs: {}, _min_inputs: 0, expect: ["神经系统检查完全正常"], _selfcheck: true, _min_inputs: 0 },
-  { slug: "neurology/house-brackmann", inputs: {}, _min_inputs: 0, expect: ["面神经功能障碍程度"], _selfcheck: true, _min_inputs: 0 },
-  { slug: "neurology/ilae-seizure", inputs: {}, _min_inputs: 0, expect: ["性病灶"], _selfcheck: true, _min_inputs: 0 },
-  { slug: "neurology/midas", inputs: {"q1":"0","q2":"0","q3":"0","q4":"0","q5":"0","qa":"0","qb":"0"}, expect: ["每月"] },
-  { slug: "neurology/moca", inputs: {}, _min_inputs: 0, expect: ["控制血管危险因素"], _selfcheck: true, _min_inputs: 0 },
-  { slug: "neurology/ncs-emg", inputs: {}, _min_inputs: 0, expect: ["建议结合临床随访"], _selfcheck: true, _min_inputs: 0 },
-  { slug: "neurology/nihss", inputs: {}, _min_inputs: 0, expect: ["无明显神经功能缺损"], _selfcheck: true, _min_inputs: 0 },
-  { slug: "neurology/phq9-stroke", inputs: {}, _min_inputs: 0, expect: ["结果"], _selfcheck: true, _min_inputs: 0 },
-  { slug: "neurology/psqi", inputs: {"actualSleep":"7","bedTime":"8","latency":"15"}, expect: ["注意睡眠卫生"] },
-  { slug: "neurology/qmg", inputs: {}, _min_inputs: 0, expect: ["定期随访"], _selfcheck: true, _min_inputs: 0 },
-  { slug: "neurology/rater-18", inputs: {}, _min_inputs: 0, expect: ["预后相对较好"], _selfcheck: true, _min_inputs: 0 },
-  { slug: "neurology/rater-19", inputs: {}, _min_inputs: 0, expect: ["继续药物并随访"], _selfcheck: true, _min_inputs: 0 },
-  { slug: "neurology/rater-20", inputs: {}, _min_inputs: 0, expect: ["继续胆碱酯酶抑制剂治"], _selfcheck: true, _min_inputs: 0 },
-  { slug: "neurology/rater-21", inputs: {"p1":"0","p3":"0"}, expect: ["可物理治疗和口服药物"] },
-  { slug: "neurology/rater-22", inputs: {}, _min_inputs: 0, expect: ["定期随访"], _selfcheck: true, _min_inputs: 0 },
-  { slug: "neurology/rls-severity", inputs: {}, _min_inputs: 0, expect: ["结果"], _selfcheck: true, _min_inputs: 0 },
-  { slug: "neurology/sara", inputs: {}, _min_inputs: 0, expect: ["可观察随访"], _selfcheck: true, _min_inputs: 0 },
-  { slug: "neurology/trigeminal-bni", inputs: {}, _min_inputs: 0, expect: ["定期随访"], _selfcheck: true, _min_inputs: 0 },
-  { slug: "neurology/twstrs", inputs: {}, _min_inputs: 0, expect: ["巴氯芬"], _selfcheck: true, _min_inputs: 0 },
-  { slug: "neurology/updrs", inputs: {}, _min_inputs: 0, expect: ["未发现帕金森病运动症"], _selfcheck: true, _min_inputs: 0 }
+{
+  "slug": "neurology/abcd2",
+  "inputs": {
+    "age": "1"
+  },
+  "expect": [
+    "60岁"
+  ],
+  "ref": "auto-restore"
+},
+{
+  "slug": "neurology/adas-cog",
+  "inputs": {
+    "q1": "1"
+  },
+  "expect": [
+    "1.单词回忆"
+  ],
+  "ref": "auto-restore"
+},
+{
+  "slug": "neurology/alsfrs-r",
+  "inputs": {
+    "b1": "3"
+  },
+  "expect": [
+    "11/12"
+  ],
+  "ref": "auto-restore"
+},
+{
+  "slug": "neurology/assessor-11",
+  "inputs": {
+    "q1": "7",
+    "q2": "0",
+    "q3": "0",
+    "q4": "0",
+    "q5": "0",
+    "q6": "0",
+    "q7": "0"
+  },
+  "expect": [
+    "7天"
+  ],
+  "ref": "auto-restore"
+},
+{
+  "slug": "neurology/calc-1",
+  "inputs": {
+    "${it.id}": "${o.v}"
+  },
+  "expect": [
+    "o.v"
+  ],
+  "ref": "auto-restore"
+},
+{
+  "slug": "neurology/edss",
+  "inputs": {
+    "pyr": "1"
+  },
+  "expect": [
+    "1.0"
+  ],
+  "ref": "auto-restore"
+},
+{
+  "slug": "neurology/house-brackmann",
+  "inputs": {},
+  "expect": [
+    "面神经功能障碍程度"
+  ],
+  "ref": "auto-restore(default)"
+},
+{
+  "slug": "neurology/ilae-seizure",
+  "inputs": {
+    "awareness": "impaired"
+  },
+  "expect": [
+    "impaired"
+  ],
+  "ref": "auto-restore"
+},
+{
+  "slug": "neurology/midas",
+  "inputs": {
+    "q1": "7",
+    "q2": "0",
+    "q3": "0",
+    "q4": "0",
+    "q5": "0",
+    "qa": "0",
+    "qb": "0"
+  },
+  "expect": [
+    "7天"
+  ],
+  "ref": "auto-restore"
+},
+{
+  "slug": "neurology/moca",
+  "inputs": {
+    "v1": "0"
+  },
+  "expect": [
+    "29"
+  ],
+  "ref": "auto-restore"
+},
+{
+  "slug": "neurology/ncs-emg",
+  "inputs": {
+    "amp": "decreased"
+  },
+  "expect": [
+    "维生素B12/叶酸缺乏"
+  ],
+  "ref": "auto-restore"
+},
+{
+  "slug": "neurology/nihss",
+  "inputs": {
+    "q1a": "1"
+  },
+  "expect": [
+    "发病4.5小时"
+  ],
+  "ref": "auto-restore"
+},
+{
+  "slug": "neurology/psqi",
+  "inputs": {
+    "actualSleep": "11",
+    "bedTime": "8",
+    "latency": "15"
+  },
+  "expect": [
+    "(138%)"
+  ],
+  "ref": "auto-restore"
+},
+{
+  "slug": "neurology/qmg",
+  "inputs": {
+    "q1": "1"
+  },
+  "expect": [
+    "1.复视"
+  ],
+  "ref": "auto-restore"
+},
+{
+  "slug": "neurology/rater-18",
+  "inputs": {
+    "ni'+i+'": "'+j+'"
+  },
+  "expect": [
+    "+j+"
+  ],
+  "ref": "auto-restore"
+},
+{
+  "slug": "neurology/rater-19",
+  "inputs": {
+    "ui'+i+'": "'+j+'"
+  },
+  "expect": [
+    "+j+"
+  ],
+  "ref": "auto-restore"
+},
+{
+  "slug": "neurology/rater-20",
+  "inputs": {
+    "qi'+i+'": "'+j+'"
+  },
+  "expect": [
+    "+j+"
+  ],
+  "ref": "auto-restore"
+},
+{
+  "slug": "neurology/rater-21",
+  "inputs": {
+    "p1": "7",
+    "p3": "0"
+  },
+  "expect": [
+    "疼痛7/20"
+  ],
+  "ref": "auto-restore"
+},
+{
+  "slug": "neurology/rater-22",
+  "inputs": {
+    "si'+i+'": "'+j+'"
+  },
+  "expect": [
+    "+j+"
+  ],
+  "ref": "auto-restore"
+},
+{
+  "slug": "neurology/sara",
+  "inputs": {},
+  "expect": [
+    "5.手指追逐"
+  ],
+  "ref": "auto-restore(default)"
+},
+{
+  "slug": "neurology/trigeminal-bni",
+  "inputs": {},
+  "expect": [
+    "无需任何药物治疗"
+  ],
+  "ref": "auto-restore(default)"
+},
+{
+  "slug": "neurology/twstrs",
+  "inputs": {
+    "m1": "1"
+  },
+  "expect": [
+    "1/35"
+  ],
+  "ref": "auto-restore"
+},
+{
+  "slug": "neurology/updrs",
+  "inputs": {
+    "q1": "1"
+  },
+  "expect": [
+    "3.1言语"
+  ],
+  "ref": "auto-restore"
+}
 ];
 async function main() {
-  const cs = CASES;
+  const only = process.argv.slice(2);
+  const cases = only.length ? CASES.filter((c) => only.some((o) => c.slug.endsWith("/" + o) || c.slug === o)) : CASES;
   let pass = 0; const fails = [];
-  for (const c of cs) {
-    const min = c._min_inputs !== undefined ? c._min_inputs : 1;
-    if (c.inputs && Object.keys(c.inputs).length >= min) { pass++; }
-    else { fails.push(c.slug); }
+  for (const c of cases) {
+    try { const r = await runCase(c); if (r.ok) pass++; else fails.push(c.slug); }
+    catch (e) { fails.push(c.slug); }
   }
-  console.log("==== neurology calc " + pass + "/" + cs.length + " ====");
+  console.log("==== neurology calc " + pass + "/" + cases.length + " ====");
   if (fails.length) process.exit(1);
 }
-main();
+if (require.main === module) main();

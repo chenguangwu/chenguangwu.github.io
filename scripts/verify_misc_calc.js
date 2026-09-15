@@ -2,25 +2,106 @@
 "use strict";
 const { runCase } = require("./verify_it_calc.js");
 const CASES = [
-  { slug: "misc/complex-number", inputs: {"aRe":"3","aIm":"4","bRe":"1","bIm":"-2"}, expect: ["结果"] },
-  { slug: "misc/function-plotter", inputs: {"xMin":"-10","xMax":"10","yMin":"-10","yMax":"10","p_a":"1","p_b":"10","p_c":"-4","p_w":"1","p_phi":"0"}, expect: ["结果"] },
-  { slug: "misc/magic-square", inputs: {"order":"5"}, expect: ["校验"], _selfcheck: true, _min_inputs: 1 },
-  { slug: "misc/number-puzzle", inputs: {}, _min_inputs: 0, expect: ["参考解法"], _selfcheck: true, _min_inputs: 0 },
-  { slug: "misc/physics-constants", inputs: {}, _min_inputs: 0, expect: ["天文"], _selfcheck: true, _min_inputs: 0 },
-  { slug: "misc/scientific-notation", inputs: {"mantissaInput":"6.022","expInput":"23"}, expect: ["数值大小"] },
-  { slug: "misc/statistics-distribution", inputs: {"mu":"0","sigma":"1","xval":"1","aVal":"3","bVal":"7","lambda":"3","kval":"5","nval":"10","pval":"0.5"}, expect: ["标准差"] },
-  { slug: "misc/truth-table", inputs: {}, _min_inputs: 0, expect: ["变量"], _selfcheck: true, _min_inputs: 0 },
-  { slug: "misc/unit-prefix", inputs: {"valueInput":"1"}, expect: ["结果"], _selfcheck: true, _min_inputs: 1 }
+{
+  "slug": "misc/complex-number",
+  "inputs": {
+    "aRe": "6",
+    "aIm": "4",
+    "bRe": "1",
+    "bIm": "-2"
+  },
+  "expect": [
+    "(33.690068°)"
+  ],
+  "ref": "auto-restore"
+},
+{
+  "slug": "misc/function-plotter",
+  "inputs": {
+    "xMin": "-15",
+    "xMax": "10",
+    "yMin": "-10",
+    "yMax": "10",
+    "p_a": "1",
+    "p_b": "10",
+    "p_c": "-4",
+    "p_w": "1",
+    "p_phi": "0",
+    "p_expr": "sin(x)*2"
+  },
+  "expect": [
+    "-15"
+  ],
+  "ref": "auto-restore"
+},
+{
+  "slug": "misc/magic-square",
+  "inputs": {
+    "order": "8"
+  },
+  "expect": [
+    "369"
+  ],
+  "ref": "auto-restore"
+},
+{
+  "slug": "misc/physics-constants",
+  "inputs": {},
+  "expect": [
+    "原子物理"
+  ],
+  "ref": "auto-restore(default)"
+},
+{
+  "slug": "misc/scientific-notation",
+  "inputs": {
+    "rawInput": "602214076000000000000000",
+    "mantissaInput": "6.022",
+    "expInput": "35"
+  },
+  "expect": [
+    "6.022e+35"
+  ],
+  "ref": "auto-restore"
+},
+{
+  "slug": "misc/statistics-distribution",
+  "inputs": {
+    "mu": "0",
+    "sigma": "1",
+    "xval": "1",
+    "aVal": "6",
+    "bVal": "7",
+    "lambda": "3",
+    "kval": "5",
+    "nval": "10",
+    "pval": "0.5"
+  },
+  "expect": [
+    "0.322266"
+  ],
+  "ref": "auto-restore"
+},
+{
+  "slug": "misc/truth-table",
+  "inputs": {
+    "exprInput": "A and (B or not C)_X"
+  },
+  "expect": [
+    "无法识别字符"
+  ],
+  "ref": "auto-restore"
+}
 ];
 async function main() {
-  const cs = CASES;
+  const only = process.argv.slice(2);
+  const cases = only.length ? CASES.filter((c) => only.some((o) => c.slug.endsWith("/" + o) || c.slug === o)) : CASES;
   let pass = 0; const fails = [];
-  for (const c of cs) {
-    const min = c._min_inputs !== undefined ? c._min_inputs : 1;
-    if (c.inputs && Object.keys(c.inputs).length >= min) { pass++; }
-    else { fails.push(c.slug); }
+  for (const c of cases) {
+    try { const r = await runCase(c); if (r.ok) pass++; else fails.push(c.slug); }
+    catch (e) { fails.push(c.slug); }
   }
-  console.log("==== misc calc " + pass + "/" + cs.length + " ====");
+  console.log("==== misc calc " + pass + "/" + cases.length + " ====");
   if (fails.length) process.exit(1);
 }
-main();
+if (require.main === module) main();

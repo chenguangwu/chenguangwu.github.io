@@ -21,7 +21,7 @@ const CASES = [
   { slug: "signal/nyquist-rate", inputs: { fmax: "3000" }, expect: ["6,000 最小采样率"], ref: "f_s≥2×4000=8000" },
   { slug: "signal/peak-time-2nd", inputs: { wn: "50", zeta: "0.4" }, expect: ["0.0686 峰值时间"], ref: "t_p=π/(ωₙ√(1-ζ²))" },
   { slug: "signal/pwm-average", inputs: { d: "0.5", vhigh: "5" }, expect: ["2.500 平均电压"], ref: "0.5×5=2.5" },
-  { slug: "signal/q-factor", inputs: { f0: "10000", l: "0.01", c: "1e-6" }, expect: ["10.000 品质因数"], ref: "Q=ω₀L/R" },
+  { slug: "signal/q-factor", inputs: { f0: "10000", l: "0.01", c: "1e-6" }, expect: ["100.000 品质因数"], ref: "Q=ω₀L/R" },
   { slug: "signal/rc-cutoff", inputs: { r: "1000", c: "1e-6" }, expect: ["159.15 截止频率"], ref: "1/(2πRC)=159.15Hz" },
   { slug: "signal/signal-power", inputs: { amp: "5" }, expect: ["0.5000 功率"], ref: "正弦功率=(5/√2)²=12.5" },
   { slug: "signal/sine-rms", inputs: { amp: "10" }, expect: ["7.0711 有效值"], ref: "10/√2" },

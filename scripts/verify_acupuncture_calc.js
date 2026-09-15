@@ -2,39 +2,235 @@
 "use strict";
 const { runCase } = require("./verify_it_calc.js");
 const CASES = [
-  { slug: "acupuncture/acupoint-combination", inputs: {}, _min_inputs: 0, expect: ["结果"], _selfcheck: true, _min_inputs: 0 },
-  { slug: "acupuncture/acupoint-injection", inputs: {"points":"2"}, expect: ["次为一疗程"], _selfcheck: true, _min_inputs: 1 },
-  { slug: "acupuncture/acupoint-location", inputs: {"realCm":"50","targetCun":"50"}, expect: ["对应"] },
-  { slug: "acupuncture/analysis-10", inputs: {}, _min_inputs: 0, expect: ["标准差"], _selfcheck: true, _min_inputs: 0 },
-  { slug: "acupuncture/bloodletting-therapy", inputs: {"points":"3"}, expect: ["血色由暗转红即可停止"], _selfcheck: true, _min_inputs: 1 },
-  { slug: "acupuncture/cupping-mark-analysis", inputs: {}, _min_inputs: 0, expect: ["更准确"], _selfcheck: true, _min_inputs: 0 },
-  { slug: "acupuncture/cupping-pressure", inputs: {"time":"10"}, expect: ["肌肉丰厚处可用"], _selfcheck: true, _min_inputs: 1 },
-  { slug: "acupuncture/deqi-sensation", inputs: {}, _min_inputs: 0, expect: ["候气至再行补泻"], _selfcheck: true, _min_inputs: 0 },
-  { slug: "acupuncture/ear-acupressure", inputs: {}, _min_inputs: 0, expect: ["不宜过多"], _selfcheck: true, _min_inputs: 0 },
-  { slug: "acupuncture/electroacupuncture", inputs: {"duration":"20"}, expect: ["再取下导线起针"], _selfcheck: true, _min_inputs: 1 },
-  { slug: "acupuncture/flash-cupping", inputs: {"time":"10"}, expect: ["罐印为正常反应"], _selfcheck: true, _min_inputs: 1 },
-  { slug: "acupuncture/guasha-direction", inputs: {}, _min_inputs: 0, expect: ["每周不超过"], _selfcheck: true, _min_inputs: 0 },
-  { slug: "acupuncture/intradermal-needle", inputs: {}, _min_inputs: 0, expect: ["取针后消毒按压针孔"], _selfcheck: true, _min_inputs: 0 },
-  { slug: "acupuncture/meridian-pathway", inputs: {}, _min_inputs: 0, expect: ["拇指"], _selfcheck: true, _min_inputs: 0 },
-  { slug: "acupuncture/moxibustion-count", inputs: {}, _min_inputs: 0, expect: ["防止化脓"], _selfcheck: true, _min_inputs: 0 },
-  { slug: "acupuncture/needle-retention", inputs: {}, _min_inputs: 0, expect: ["保持针感"], _selfcheck: true, _min_inputs: 0 },
-  { slug: "acupuncture/needling-depth", inputs: {}, _min_inputs: 0, expect: ["标准"], _selfcheck: true, _min_inputs: 0 },
-  { slug: "acupuncture/pediatric-tuina", inputs: {"month":"50"}, expect: ["慢性调理宜缓"], _selfcheck: true, _min_inputs: 1 },
-  { slug: "acupuncture/recommender-acupoint", inputs: {"cnt":"5"}, expect: ["通络止痛"], _selfcheck: true, _min_inputs: 1 },
-  { slug: "acupuncture/recommender-time", inputs: {"cnt":"5"}, expect: ["手法宜轻"], _selfcheck: true, _min_inputs: 1 },
-  { slug: "acupuncture/tuina-frequency", inputs: {"duration":"5"}, expect: ["单次约"], _selfcheck: true, _min_inputs: 1 },
-  { slug: "acupuncture/tuina-medium", inputs: {}, _min_inputs: 0, expect: ["蛋清过敏禁用"], _selfcheck: true, _min_inputs: 0 },
-  { slug: "acupuncture/warm-needle-moxibustion", inputs: {"ambTemp":"25"}, expect: ["或改用艾条温和灸"], _selfcheck: true, _min_inputs: 1 }
+{
+  "slug": "acupuncture/acupoint-injection",
+  "inputs": {
+    "points": "5"
+  },
+  "expect": [
+    "5.00ml"
+  ],
+  "ref": "auto-restore"
+},
+{
+  "slug": "acupuncture/acupoint-location",
+  "inputs": {},
+  "expect": [
+    "(12寸)"
+  ],
+  "ref": "auto-restore(default)"
+},
+{
+  "slug": "acupuncture/analysis-10",
+  "inputs": {
+    "data": "10,20,30,40,50,60,70,80_X"
+  },
+  "expect": [
+    "80_X"
+  ],
+  "ref": "auto-restore"
+},
+{
+  "slug": "acupuncture/bloodletting-therapy",
+  "inputs": {
+    "points": "6"
+  },
+  "expect": [
+    "1.32ml"
+  ],
+  "ref": "auto-restore"
+},
+{
+  "slug": "acupuncture/cupping-mark-analysis",
+  "inputs": {},
+  "expect": [
+    "5-7"
+  ],
+  "ref": "auto-restore(default)"
+},
+{
+  "slug": "acupuncture/cupping-pressure",
+  "inputs": {
+    "time": "10",
+    "part": "shoulder"
+  },
+  "expect": [
+    "255"
+  ],
+  "ref": "auto-restore"
+},
+{
+  "slug": "acupuncture/deqi-sensation",
+  "inputs": {
+    "patientScore": "5",
+    "doctorScore": "5",
+    "propagation": "1"
+  },
+  "expect": [
+    "2.5"
+  ],
+  "ref": "auto-restore"
+},
+{
+  "slug": "acupuncture/ear-acupressure",
+  "inputs": {},
+  "expect": [
+    "将王不留行籽(或磁珠)贴于0.5×0.5cm胶布中央"
+  ],
+  "ref": "auto-restore(default)"
+},
+{
+  "slug": "acupuncture/electroacupuncture",
+  "inputs": {
+    "duration": "20",
+    "purpose": "spasm"
+  },
+  "expect": [
+    "spasm"
+  ],
+  "ref": "auto-restore"
+},
+{
+  "slug": "acupuncture/flash-cupping",
+  "inputs": {
+    "time": "10",
+    "part": "shoulder"
+  },
+  "expect": [
+    "10分钟)"
+  ],
+  "ref": "auto-restore"
+},
+{
+  "slug": "acupuncture/guasha-direction",
+  "inputs": {
+    "purpose": "pain"
+  },
+  "expect": [
+    "舒筋止痛可重点在阿是穴及痛点周围加重"
+  ],
+  "ref": "auto-restore"
+},
+{
+  "slug": "acupuncture/intradermal-needle",
+  "inputs": {
+    "part": "face"
+  },
+  "expect": [
+    "0.35"
+  ],
+  "ref": "auto-restore"
+},
+{
+  "slug": "acupuncture/meridian-pathway",
+  "inputs": {
+    "sensType": "partial"
+  },
+  "expect": [
+    "部分感传(短程)"
+  ],
+  "ref": "auto-restore"
+},
+{
+  "slug": "acupuncture/moxibustion-count",
+  "inputs": {
+    "moxaType": "aiJiong"
+  },
+  "expect": [
+    "1.40"
+  ],
+  "ref": "auto-restore"
+},
+{
+  "slug": "acupuncture/needle-retention",
+  "inputs": {
+    "age": "adult"
+  },
+  "expect": [
+    "1.10"
+  ],
+  "ref": "auto-restore"
+},
+{
+  "slug": "acupuncture/needling-depth",
+  "inputs": {
+    "bodyType": "medium"
+  },
+  "expect": [
+    "0.25寸"
+  ],
+  "ref": "auto-restore"
+},
+{
+  "slug": "acupuncture/pediatric-tuina",
+  "inputs": {
+    "constitution": "weak"
+  },
+  "expect": [
+    "144"
+  ],
+  "ref": "auto-restore"
+},
+{
+  "slug": "acupuncture/recommender-acupoint",
+  "inputs": {
+    "cnt": "8"
+  },
+  "expect": [
+    "6."
+  ],
+  "ref": "auto-restore"
+},
+{
+  "slug": "acupuncture/recommender-time",
+  "inputs": {
+    "cnt": "8"
+  },
+  "expect": [
+    "20-30分钟"
+  ],
+  "ref": "auto-restore(default-hit)"
+},
+{
+  "slug": "acupuncture/tuina-frequency",
+  "inputs": {
+    "duration": "8"
+  },
+  "expect": [
+    "1024"
+  ],
+  "ref": "auto-restore"
+},
+{
+  "slug": "acupuncture/tuina-medium",
+  "inputs": {
+    "technique": "ca"
+  },
+  "expect": [
+    "适配擦/推法"
+  ],
+  "ref": "auto-restore"
+},
+{
+  "slug": "acupuncture/warm-needle-moxibustion",
+  "inputs": {
+    "ambTemp": "38"
+  },
+  "expect": [
+    "38"
+  ],
+  "ref": "auto-restore"
+}
 ];
 async function main() {
-  const cs = CASES;
+  const only = process.argv.slice(2);
+  const cases = only.length ? CASES.filter((c) => only.some((o) => c.slug.endsWith("/" + o) || c.slug === o)) : CASES;
   let pass = 0; const fails = [];
-  for (const c of cs) {
-    const min = c._min_inputs !== undefined ? c._min_inputs : 1;
-    if (c.inputs && Object.keys(c.inputs).length >= min) { pass++; }
-    else { fails.push(c.slug); }
+  for (const c of cases) {
+    try { const r = await runCase(c); if (r.ok) pass++; else fails.push(c.slug); }
+    catch (e) { fails.push(c.slug); }
   }
-  console.log("==== acupuncture calc " + pass + "/" + cs.length + " ====");
+  console.log("==== acupuncture calc " + pass + "/" + cases.length + " ====");
   if (fails.length) process.exit(1);
 }
-main();
+if (require.main === module) main();

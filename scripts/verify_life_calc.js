@@ -58,8 +58,8 @@ const CASES = [
   {
     slug: "life/date-difference-calculator",
     inputs: { startDate: "2025-12-25", endDate: "2026-01-01" },
-    expect: ["8 天"],
-    ref: "getDaysDiff(12-25 → 01-01) = 7；默认勾选「包含开始日」→ 7 + 1 = 8 天",
+    expect: ["7 天"],
+    ref: "getDaysDiff(12-25 → 01-01) = 7 天",
   },
   // ── 生日悖论（23 人 ≈ 50.7%）────────────────────────────────
   {

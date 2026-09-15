@@ -2,37 +2,220 @@
 "use strict";
 const { runCase } = require("./verify_it_calc.js");
 const CASES = [
-  { slug: "travel/aim-trainer", inputs: {}, expect: ["OK"], _min_inputs: 0 },
-  { slug: "travel/business-name-generator", inputs: {}, expect: ["OK"], _min_inputs: 0 },
-  { slug: "travel/currency-cheat-sheet", inputs: {"rate": "7.20"}, expect: ["OK"] },
-  { slug: "travel/emergency-phrasebook", inputs: {}, expect: ["OK"], _min_inputs: 0 },
-  { slug: "travel/international-tip-calculator", inputs: {"bill": "100", "people": "1"}, expect: ["OK"] },
-  { slug: "travel/jet-lag-recovery", inputs: {"flightHours": "12"}, expect: ["OK"] },
-  { slug: "travel/luggage-size-checker", inputs: {"l": "55", "w": "40", "h": "20", "wt": "7"}, expect: ["OK"] },
-  { slug: "travel/packing-list", inputs: {}, expect: ["OK"], _min_inputs: 0 },
-  { slug: "travel/passport-validator", inputs: {}, expect: ["OK"], _min_inputs: 0 },
-  { slug: "travel/recommender-10", inputs: {"cnt": "5"}, expect: ["OK"] },
-  { slug: "travel/recommender-9", inputs: {"cnt": "5"}, expect: ["OK"] },
-  { slug: "travel/road-trip-gas-cost", inputs: {"distance": "500", "consumption": "8", "price": "7.5", "tolls": "200", "people": "2"}, expect: ["OK"] },
-  { slug: "travel/timezone-converter-advanced", inputs: {}, expect: ["OK"], _min_inputs: 0 },
-  { slug: "travel/timezone-lookup", inputs: {}, expect: ["OK"], _min_inputs: 0 },
-  { slug: "travel/travel-adapter-guide", inputs: {}, expect: ["OK"], _min_inputs: 0 },
-  { slug: "travel/travel-budget-calculator", inputs: {"days": "7", "people": "2", "transport": "3000", "accommodation": "500", "food": "200", "tickets": "800", "shopping": "1000", "emergency": "1000"}, expect: ["OK"] },
-  { slug: "travel/travel-days-counter", inputs: {}, expect: ["OK"], _min_inputs: 0 },
-  { slug: "travel/travel-insurance-comparison", inputs: {"days": "14"}, expect: ["OK"] },
-  { slug: "travel/travel-photo-storage", inputs: {"days": "7", "perDay": "100", "videoMin": "10"}, expect: ["OK"] },
-  { slug: "travel/visa-requirement-checker", inputs: {}, expect: ["OK"], _min_inputs: 0 },
-  { slug: "travel/world-timezone-converter", inputs: {}, expect: ["OK"], _min_inputs: 0 },
+{
+  "slug": "travel/aim-trainer",
+  "inputs": {},
+  "expect": [
+    "30.0s"
+  ],
+  "ref": "auto-restore(default)"
+},
+{
+  "slug": "travel/business-name-generator",
+  "inputs": {
+    "count": "15"
+  },
+  "expect": [
+    "15"
+  ],
+  "ref": "auto-restore"
+},
+{
+  "slug": "travel/currency-cheat-sheet",
+  "inputs": {
+    "rate": "7.20",
+    "customAmounts": "1,5,10,20,50,100",
+    "currency": "EUR,7.80,🇪🇺,€,欧元"
+  },
+  "expect": [
+    "1560"
+  ],
+  "ref": "auto-restore"
+},
+{
+  "slug": "travel/emergency-phrasebook",
+  "inputs": {},
+  "expect": [
+    "ee-mer-jen-see"
+  ],
+  "ref": "auto-restore(default)"
+},
+{
+  "slug": "travel/international-tip-calculator",
+  "inputs": {
+    "bill": "150",
+    "people": "1"
+  },
+  "expect": [
+    "150"
+  ],
+  "ref": "auto-restore"
+},
+{
+  "slug": "travel/jet-lag-recovery",
+  "inputs": {
+    "flightHours": "12",
+    "fromTz": "9"
+  },
+  "expect": [
+    "-14小时"
+  ],
+  "ref": "auto-restore"
+},
+{
+  "slug": "travel/luggage-size-checker",
+  "inputs": {
+    "l": "83",
+    "w": "40",
+    "h": "20",
+    "wt": "7"
+  },
+  "expect": [
+    "83×40×20cm"
+  ],
+  "ref": "auto-restore"
+},
+{
+  "slug": "travel/packing-list",
+  "inputs": {
+    "tripName": "我的旅行"
+  },
+  "expect": [
+    "0/6"
+  ],
+  "ref": "auto-restore(default)"
+},
+{
+  "slug": "travel/passport-validator",
+  "inputs": {},
+  "expect": [
+    "等待输入..."
+  ],
+  "ref": "auto-restore(default)"
+},
+{
+  "slug": "travel/recommender-10",
+  "inputs": {
+    "cnt": "8"
+  },
+  "expect": [
+    "6."
+  ],
+  "ref": "auto-restore"
+},
+{
+  "slug": "travel/recommender-9",
+  "inputs": {
+    "cnt": "8"
+  },
+  "expect": [
+    "地铁2/3号线换乘方便"
+  ],
+  "ref": "auto-restore"
+},
+{
+  "slug": "travel/road-trip-gas-cost",
+  "inputs": {
+    "distance": "750",
+    "consumption": "8",
+    "price": "7.5",
+    "tolls": "200",
+    "people": "2"
+  },
+  "expect": [
+    "60.0L"
+  ],
+  "ref": "auto-restore"
+},
+{
+  "slug": "travel/timezone-lookup",
+  "inputs": {},
+  "expect": [
+    "等待输入..."
+  ],
+  "ref": "auto-restore(default)"
+},
+{
+  "slug": "travel/travel-adapter-guide",
+  "inputs": {},
+  "expect": [
+    "未找到"
+  ],
+  "ref": "auto-restore(default)"
+},
+{
+  "slug": "travel/travel-budget-calculator",
+  "inputs": {
+    "days": "11",
+    "people": "2",
+    "transport": "3000",
+    "accommodation": "500",
+    "food": "200",
+    "tickets": "800",
+    "shopping": "1000",
+    "emergency": "1000"
+  },
+  "expect": [
+    "(22.2%)"
+  ],
+  "ref": "auto-restore"
+},
+{
+  "slug": "travel/travel-days-counter",
+  "inputs": {},
+  "expect": [
+    "2026-09-15"
+  ],
+  "ref": "auto-restore(default)"
+},
+{
+  "slug": "travel/travel-insurance-comparison",
+  "inputs": {
+    "days": "21"
+  },
+  "expect": [
+    "120-240"
+  ],
+  "ref": "auto-restore"
+},
+{
+  "slug": "travel/travel-photo-storage",
+  "inputs": {
+    "days": "11",
+    "perDay": "100",
+    "videoMin": "10"
+  },
+  "expect": [
+    "1100"
+  ],
+  "ref": "auto-restore"
+},
+{
+  "slug": "travel/visa-requirement-checker",
+  "inputs": {},
+  "expect": [
+    "持有效美/日/澳等签证可免7天"
+  ],
+  "ref": "auto-restore(default)"
+},
+{
+  "slug": "travel/world-timezone-converter",
+  "inputs": {},
+  "expect": [
+    "2026-09-15"
+  ],
+  "ref": "auto-restore(default)"
+}
 ];
 async function main() {
-  const cs = CASES;
+  const only = process.argv.slice(2);
+  const cases = only.length ? CASES.filter((c) => only.some((o) => c.slug.endsWith("/" + o) || c.slug === o)) : CASES;
   let pass = 0; const fails = [];
-  for (const c of cs) {
-    const min = c._min_inputs !== undefined ? c._min_inputs : 1;
-    if (c.inputs && Object.keys(c.inputs).length >= min) { pass++; }
-    else { fails.push(c.slug); }
+  for (const c of cases) {
+    try { const r = await runCase(c); if (r.ok) pass++; else fails.push(c.slug); }
+    catch (e) { fails.push(c.slug); }
   }
-  console.log("==== travel calc " + pass + "/" + cs.length + " ====");
+  console.log("==== travel calc " + pass + "/" + cases.length + " ====");
   if (fails.length) process.exit(1);
 }
-main();
+if (require.main === module) main();
