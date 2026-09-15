@@ -148,6 +148,7 @@ GATES = (
     ("tcm-diagnosis calc correctness", ("node", "scripts/verify_tcm-diagnosis_calc.js")),
     ("nephrology calc correctness", ("node", "scripts/verify_nephrology_calc.js")),
     ("gastroenterology calc correctness", ("node", "scripts/verify_gastroenterology_calc.js")),
+    (" calc correctness", ("node", "scripts/verify__calc.js")),
 )
 
 
