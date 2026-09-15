@@ -2,11 +2,11 @@
 "use strict";
 const { runCase } = require("./verify_it_calc.js");
 const CASES = [
-  { slug: "chinese/chinese-character", inputs: {}, expect: ["无相关汉字"], _selfcheck: true, _min_inputs: 0 },
-  { slug: "chinese/chinese-culture", inputs: {}, expect: ["结果"], _selfcheck: true, _min_inputs: 0 },
-  { slug: "chinese/chinese-radical-lookup", inputs: {}, expect: ["请输入一个汉字进行查"], _selfcheck: true, _min_inputs: 0 },
-  { slug: "chinese/lunar-calendar", inputs: {}, expect: ["暂无历史记录"], _selfcheck: true, _min_inputs: 0 },
-  { slug: "chinese/stroke-order-viewer", inputs: {}, expect: ["结果供学习参考"], _selfcheck: true, _min_inputs: 0 }
+  { slug: "chinese/chinese-character", inputs: {}, _min_inputs: 0, expect: ["无相关汉字"], _selfcheck: true, _min_inputs: 0 },
+  { slug: "chinese/chinese-culture", inputs: {}, _min_inputs: 0, expect: ["结果"], _selfcheck: true, _min_inputs: 0 },
+  { slug: "chinese/chinese-radical-lookup", inputs: {}, _min_inputs: 0, expect: ["请输入一个汉字进行查"], _selfcheck: true, _min_inputs: 0 },
+  { slug: "chinese/lunar-calendar", inputs: {}, _min_inputs: 0, expect: ["暂无历史记录"], _selfcheck: true, _min_inputs: 0 },
+  { slug: "chinese/stroke-order-viewer", inputs: {}, _min_inputs: 0, expect: ["结果供学习参考"], _selfcheck: true, _min_inputs: 0 }
 ];
 async function main() {
   const only = process.argv.slice(2);

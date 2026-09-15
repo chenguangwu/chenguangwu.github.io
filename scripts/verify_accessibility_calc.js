@@ -2,11 +2,11 @@
 "use strict";
 const { runCase } = require("./verify_it_calc.js");
 const CASES = [
-  { slug: "accessibility/accessible-restroom", inputs: {}, expect: ["结果"], _selfcheck: true, _min_inputs: 0 },
-  { slug: "accessibility/braille-translator", inputs: {}, expect: ["隐藏点位"], _selfcheck: true, _min_inputs: 0 },
+  { slug: "accessibility/accessible-restroom", inputs: {}, _min_inputs: 0, expect: ["结果"], _selfcheck: true, _min_inputs: 0 },
+  { slug: "accessibility/braille-translator", inputs: {}, _min_inputs: 0, expect: ["隐藏点位"], _selfcheck: true, _min_inputs: 0 },
   { slug: "accessibility/ramp-slope", inputs: {"height":"40","ratio":"12"}, expect: ["结果"], _selfcheck: true, _min_inputs: 2 },
-  { slug: "accessibility/sign-language", inputs: {}, expect: ["当前显示"], _selfcheck: true, _min_inputs: 0 },
-  { slug: "accessibility/voice-synthesis", inputs: {}, expect: ["百千万"], _selfcheck: true, _min_inputs: 0 }
+  { slug: "accessibility/sign-language", inputs: {}, _min_inputs: 0, expect: ["当前显示"], _selfcheck: true, _min_inputs: 0 },
+  { slug: "accessibility/voice-synthesis", inputs: {}, _min_inputs: 0, expect: ["百千万"], _selfcheck: true, _min_inputs: 0 }
 ];
 async function main() {
   const only = process.argv.slice(2);

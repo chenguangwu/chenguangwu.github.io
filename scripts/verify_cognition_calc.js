@@ -2,14 +2,14 @@
 "use strict";
 const { runCase } = require("./verify_it_calc.js");
 const CASES = [
-  { slug: "cognition/cognitive-assessment", inputs: {}, expect: ["结果"], _selfcheck: true, _min_inputs: 0 },
-  { slug: "cognition/corsi-block-test", inputs: {}, expect: ["结果"], _selfcheck: true, _min_inputs: 0 },
-  { slug: "cognition/digit-span-test", inputs: {}, expect: ["结果"], _selfcheck: true, _min_inputs: 0 },
-  { slug: "cognition/human-benchmark", inputs: {}, expect: ["项测评后将自动保存记"], _selfcheck: true, _min_inputs: 0 },
-  { slug: "cognition/nback-training", inputs: {}, expect: ["当前"], _selfcheck: true, _min_inputs: 0 },
-  { slug: "cognition/schulte-table", inputs: {}, expect: ["暂无记录"], _selfcheck: true, _min_inputs: 0 },
-  { slug: "cognition/stroop-test", inputs: {}, expect: ["结果"], _selfcheck: true, _min_inputs: 0 },
-  { slug: "cognition/time-perception", inputs: {}, expect: ["秒再松手"], _selfcheck: true, _min_inputs: 0 }
+  { slug: "cognition/cognitive-assessment", inputs: {}, _min_inputs: 0, expect: ["结果"], _selfcheck: true, _min_inputs: 0 },
+  { slug: "cognition/corsi-block-test", inputs: {}, _min_inputs: 0, expect: ["结果"], _selfcheck: true, _min_inputs: 0 },
+  { slug: "cognition/digit-span-test", inputs: {}, _min_inputs: 0, expect: ["结果"], _selfcheck: true, _min_inputs: 0 },
+  { slug: "cognition/human-benchmark", inputs: {}, _min_inputs: 0, expect: ["项测评后将自动保存记"], _selfcheck: true, _min_inputs: 0 },
+  { slug: "cognition/nback-training", inputs: {}, _min_inputs: 0, expect: ["当前"], _selfcheck: true, _min_inputs: 0 },
+  { slug: "cognition/schulte-table", inputs: {}, _min_inputs: 0, expect: ["暂无记录"], _selfcheck: true, _min_inputs: 0 },
+  { slug: "cognition/stroop-test", inputs: {}, _min_inputs: 0, expect: ["结果"], _selfcheck: true, _min_inputs: 0 },
+  { slug: "cognition/time-perception", inputs: {}, _min_inputs: 0, expect: ["秒再松手"], _selfcheck: true, _min_inputs: 0 }
 ];
 async function main() {
   const only = process.argv.slice(2);

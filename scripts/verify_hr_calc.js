@@ -2,8 +2,8 @@
 "use strict";
 const { runCase } = require("./verify_it_calc.js");
 const CASES = [
-  { slug: "hr/analysis-29", inputs: {}, expect: ["标准差"], _selfcheck: true, _min_inputs: 0 },
-  { slug: "hr/analysis-conversion-recruit", inputs: {}, expect: ["标准差"], _selfcheck: true, _min_inputs: 0 },
+  { slug: "hr/analysis-29", inputs: {}, _min_inputs: 0, expect: ["标准差"], _selfcheck: true, _min_inputs: 0 },
+  { slug: "hr/analysis-conversion-recruit", inputs: {}, _min_inputs: 0, expect: ["标准差"], _selfcheck: true, _min_inputs: 0 },
   { slug: "hr/annual-leave-calc", inputs: {"tenure":"1","months":"12"}, expect: ["折算"] },
   { slug: "hr/annual-leave-prorate", inputs: {"years":"5"}, expect: ["条例第三条"], _selfcheck: true, _min_inputs: 1 },
   { slug: "hr/assessor-training-hr", inputs: {"trainees":"30","hours":"16","preScore":"5.5","postScore":"7.8","satisfaction":"8.5","passRate":"88"}, expect: ["培训效果良好"] },
@@ -18,10 +18,10 @@ const CASES = [
   { slug: "hr/overtime-pay-calc", inputs: {"hourly":"25","weekday":"0","weekend":"0","holiday":"0"}, expect: ["总加班费"] },
   { slug: "hr/performance-ranking", inputs: {"v0":"100","v1":"50"}, expect: ["暂无计算记录"] },
   { slug: "hr/performance-score", inputs: {"excellentPct":"20","failPct":"10"}, expect: ["合格"] },
-  { slug: "hr/recruitment-funnel", inputs: {}, expect: ["优化雇主品牌"], _selfcheck: true, _min_inputs: 0 },
+  { slug: "hr/recruitment-funnel", inputs: {}, _min_inputs: 0, expect: ["优化雇主品牌"], _selfcheck: true, _min_inputs: 0 },
   { slug: "hr/social-insurance", inputs: {"salary":"10000","base":"10000"}, expect: ["合计"] },
-  { slug: "hr/stats-funnel-recruit", inputs: {}, expect: ["标准差"], _selfcheck: true, _min_inputs: 0 },
-  { slug: "hr/stats-report-attendance", inputs: {}, expect: ["标准差"], _selfcheck: true, _min_inputs: 0 },
+  { slug: "hr/stats-funnel-recruit", inputs: {}, _min_inputs: 0, expect: ["标准差"], _selfcheck: true, _min_inputs: 0 },
+  { slug: "hr/stats-report-attendance", inputs: {}, _min_inputs: 0, expect: ["标准差"], _selfcheck: true, _min_inputs: 0 },
   { slug: "hr/tracking-hours", inputs: {"required":"40"}, expect: ["严重不足"], _selfcheck: true, _min_inputs: 1 }
 ];
 async function main() {

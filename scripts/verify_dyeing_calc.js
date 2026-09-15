@@ -14,7 +14,7 @@ const CASES = [
   { slug: "dyeing/shumayinhuacanshu", inputs: {"dpi":"720","area":"10","cover":"60"}, expect: ["暂无计算记录"] },
   { slug: "dyeing/temp-time-humidity-1", inputs: {"temp":"102","hum":"97","time":"8"}, expect: ["暂无计算记录"] },
   { slug: "dyeing/tester-9", inputs: {"A":"200000","B":"500","C":""}, expect: ["白念"] },
-  { slug: "dyeing/time-35", inputs: {}, expect: ["暂无查询记录"], _selfcheck: true, _min_inputs: 0 }
+  { slug: "dyeing/time-35", inputs: {}, _min_inputs: 0, expect: ["暂无查询记录"], _selfcheck: true, _min_inputs: 0 }
 ];
 async function main() {
   const only = process.argv.slice(2);

@@ -5,7 +5,7 @@ const CASES = [
   { slug: "astronomy/apparent-magnitude-distance", inputs: {"m":"1","M":"1"}, expect: ["光年"] },
   { slug: "astronomy/atmospheric-refraction", inputs: {"h":"30"}, expect: ["大气折射"], _selfcheck: true, _min_inputs: 1 },
   { slug: "astronomy/convert-15", inputs: {"val":"1","rate":"1"}, expect: ["系数"] },
-  { slug: "astronomy/convert-17", inputs: {}, expect: ["同日"], _selfcheck: true, _min_inputs: 0 },
+  { slug: "astronomy/convert-17", inputs: {}, _min_inputs: 0, expect: ["同日"], _selfcheck: true, _min_inputs: 0 },
   { slug: "astronomy/convert-18", inputs: {"val":"1","rate":"1"}, expect: ["系数"] },
   { slug: "astronomy/crater-estimator", inputs: {"diameter":"100","density":"3000","velocity":"20","angle":"45"}, expect: ["空爆无坑"] },
   { slug: "astronomy/earth-curvature", inputs: {"obsHeight":"1.7","targetDist":"10","targetHeight":"5"}, expect: ["结果"], _selfcheck: true, _min_inputs: 2 },

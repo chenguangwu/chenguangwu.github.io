@@ -6,7 +6,7 @@ const CASES = [
   { slug: "chess/elo-rating", inputs: {"myRating":"1500","oppRating":"1600","games":"1"}, expect: ["胜负各半"] },
   { slug: "chess/go-territory", inputs: {"komi":"6.5","blackTerritory":"50","blackCaptures":"3","whiteTerritory":"48","whiteCaptures":"5"}, expect: ["领先"] },
   { slug: "chess/gomoku-forbidden", inputs: {"stoneCount":"3","liveCount":"2"}, expect: ["结合实际棋盘分析"] },
-  { slug: "chess/xiangqi-endgame", inputs: {}, expect: ["卒过河后威力大增"], _selfcheck: true, _min_inputs: 0 }
+  { slug: "chess/xiangqi-endgame", inputs: {}, _min_inputs: 0, expect: ["卒过河后威力大增"], _selfcheck: true, _min_inputs: 0 }
 ];
 async function main() {
   const only = process.argv.slice(2);

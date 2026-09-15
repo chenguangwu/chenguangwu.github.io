@@ -7,7 +7,7 @@ const CASES = [
   { slug: "decor/detector-18", inputs: {"hcho":"0.08","tvoc":"0.50","benzene":"0.05","ammonia":"0.15","radon":"200"}, expect: ["室内空气质量合格"] },
   { slug: "decor/paint-color-mix", inputs: {"paintKg":"5"}, expect: ["避免一次性过量"], _selfcheck: true, _min_inputs: 1 },
   { slug: "decor/room-illumination", inputs: {"area":"20","lux":"100","wattPer":"12","util":"0.6","maint":"0.8"}, expect: ["结果"], _selfcheck: true, _min_inputs: 2 },
-  { slug: "decor/scheduler", inputs: {}, expect: ["请添加或载入模板"], _selfcheck: true, _min_inputs: 0 },
+  { slug: "decor/scheduler", inputs: {}, _min_inputs: 0, expect: ["请添加或载入模板"], _selfcheck: true, _min_inputs: 0 },
   { slug: "decor/skirting-length", inputs: {"roomLen":"5","roomWid":"4","doors":"1","doorWid":"0.9","windows":"0","winWid":"1.5","wasteSk":"5","wasteCo":"8","skLen":"2.4","coLen":"2.4"}, expect: ["每根"] },
   { slug: "decor/wallpaper-quantity", inputs: {"perimeter":"12","height":"2.8","deduct":"6","rollWidth":"0.53","rollLen":"10","pattern":"0.32","waste":"5"}, expect: ["素色无花壁纸损耗率可"] }
 ];

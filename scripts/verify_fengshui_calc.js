@@ -2,10 +2,10 @@
 "use strict";
 const { runCase } = require("./verify_it_calc.js");
 const CASES = [
-  { slug: "fengshui/birthday-analysis", inputs: {}, expect: ["人生贵在努力"], _selfcheck: true, _min_inputs: 0 },
+  { slug: "fengshui/birthday-analysis", inputs: {}, _min_inputs: 0, expect: ["人生贵在努力"], _selfcheck: true, _min_inputs: 0 },
   { slug: "fengshui/fengshui-calculator", inputs: {"angleInput":"0"}, expect: ["暂无历史记录"], _selfcheck: true, _min_inputs: 1 },
-  { slug: "fengshui/fengshui-guide", inputs: {}, expect: ["大要素"], _selfcheck: true, _min_inputs: 0 },
-  { slug: "fengshui/good-day-selector", inputs: {}, expect: ["出行"], _selfcheck: true, _min_inputs: 0 },
+  { slug: "fengshui/fengshui-guide", inputs: {}, _min_inputs: 0, expect: ["大要素"], _selfcheck: true, _min_inputs: 0 },
+  { slug: "fengshui/good-day-selector", inputs: {}, _min_inputs: 0, expect: ["出行"], _selfcheck: true, _min_inputs: 0 },
   { slug: "fengshui/zodiac-lookup", inputs: {"birthYear":"1990"}, expect: ["忌配鼠"], _selfcheck: true, _min_inputs: 1 }
 ];
 async function main() {

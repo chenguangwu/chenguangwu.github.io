@@ -3,8 +3,8 @@
 const { runCase } = require("./verify_it_calc.js");
 const CASES = [
   { slug: "advertising/ad-size", inputs: {"width":"1920","height":"1080"}, expect: ["对角线"] },
-  { slug: "advertising/analysis-27", inputs: {}, expect: ["标准差"], _selfcheck: true, _min_inputs: 0 },
-  { slug: "advertising/analysis-55", inputs: {}, expect: ["标准差"], _selfcheck: true, _min_inputs: 0 },
+  { slug: "advertising/analysis-27", inputs: {}, _min_inputs: 0, expect: ["标准差"], _selfcheck: true, _min_inputs: 0 },
+  { slug: "advertising/analysis-55", inputs: {}, _min_inputs: 0, expect: ["标准差"], _selfcheck: true, _min_inputs: 0 },
   { slug: "advertising/assessor-52", inputs: {"budget":"50000","venueCost":"15000","promoCost":"20000","otherCost":"8000","reach":"50000","attendRate":"5","convRate":"20","arpu":"300"}, expect: ["建议按计划执行"] },
   { slug: "advertising/assessor-53", inputs: {"cost0":"5000","cost1":"3000","cost2":"2000","cost3":"500","totalConv":"120","convValue":"500"}, expect: ["贡献"] },
   { slug: "advertising/assessor-54", inputs: {"traffic":"80000","boards":"5","days":"30","noticeRate":"35","targetPop":"500000","totalCost":"120000"}, expect: ["成本效率合理"] },

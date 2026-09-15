@@ -3,7 +3,7 @@
 const { runCase } = require("./verify_it_calc.js");
 const CASES = [
   { slug: "film/aspect-ratio", inputs: {"width":"1920","height":"1080","srcWidth":"1920","srcHeight":"1080"}, expect: ["下方裁剪"] },
-  { slug: "film/color-grading", inputs: {}, expect: ["去雾还原"], _selfcheck: true, _min_inputs: 0 },
+  { slug: "film/color-grading", inputs: {}, _min_inputs: 0, expect: ["去雾还原"], _selfcheck: true, _min_inputs: 0 },
   { slug: "film/convert-time-1", inputs: {"h":"0","m":"0","s":"10","f":"0","fps":"25"}, expect: ["结果"] },
   { slug: "film/editing-timecode", inputs: {"totalFrames":"120834"}, expect: ["时长"], _selfcheck: true, _min_inputs: 1 },
   { slug: "film/render-time", inputs: {"totalFrames":"4320","frameTime":"8","nodes":"4","fps":"24","hoursPerDay":"24","retryRate":"5"}, expect: ["小时"] },

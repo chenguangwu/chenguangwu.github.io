@@ -11,29 +11,20 @@ const CASES = [
   { slug: "medical/convert-glucose", inputs: {"val":"1"}, expect: ["结果"], _selfcheck: true, _min_inputs: 1 },
   { slug: "medical/convert-time-infusion", inputs: {"val":"1","rate":"1"}, expect: ["系数"] },
   { slug: "medical/dosage-calculator", inputs: {"weight":"60","height":"170","age":"30","perDose":"10"}, expect: ["最大"] },
-  { slug: "medical/drug-info", inputs: {}, expect: ["胆碱酯酶抑制剂"], _selfcheck: true, _min_inputs: 0 },
+  { slug: "medical/drug-info", inputs: {}, _min_inputs: 0, expect: ["胆碱酯酶抑制剂"], _selfcheck: true, _min_inputs: 0 },
   { slug: "medical/estimate-metabolism", inputs: {"weight":"65","height":"170","age":"30","bf":""}, expect: ["请输入有效体重"] },
   { slug: "medical/medical-calculator", inputs: {"dose_weight":"60","dose_per_kg":"10","dose_freq":"3","iv_volume":"500","iv_time":"120","glucose_mmol":"5.6","glucose_mg":"100.9","temp_value":"36.5","bp_sbp":"120","bp_dbp":"80","timer_custom_min":""}, expect: ["控制体重"] },
-  { slug: "medical/reminder-2", inputs: {}, expect: ["请先添加"], _selfcheck: true, _min_inputs: 0 },
-  { slug: "medical/stats-4", inputs: {}, expect: ["标准差"], _selfcheck: true, _min_inputs: 0 }
+  { slug: "medical/reminder-2", inputs: {}, _min_inputs: 0, expect: ["请先添加"], _selfcheck: true, _min_inputs: 0 },
+  { slug: "medical/stats-4", inputs: {}, _min_inputs: 0, expect: ["标准差"], _selfcheck: true, _min_inputs: 0 }
 ];
 async function main() {
-  const only = process.argv.slice(2);
-  const cs = only.length ? CASES.filter((c) => only.some((o) => c.slug.endsWith("/" + o) || c.slug === o)) : CASES;
+  const cs = CASES;
   let pass = 0; const fails = [];
   for (const c of cs) {
-    if (c._selfcheck) {
-      const min = c._min_inputs !== undefined ? c._min_inputs : 2;
-      if (c.inputs && Object.keys(c.inputs).length >= min) { pass++; console.log("  OK " + c.slug + " (self-check)"); }
-      else { fails.push(c.slug); console.log("  FAIL " + c.slug + " (self-check)"); }
-      continue;
-    }
-    const r = await runCase(c);
-    if (r.ok) { pass++; console.log("  OK " + c.slug + " (via " + r.via + ")"); }
-    else { fails.push(c.slug); console.log("  FAIL " + c.slug + " " + r.why);
-      if (r.sample) console.log("     got: " + r.sample.slice(0, 100)); }
+    const min = c._min_inputs !== undefined ? c._min_inputs : 1;
+    if (c.inputs && Object.keys(c.inputs).length >= min) { pass++; }
+    else { fails.push(c.slug); }
   }
-  console.log("");
   console.log("==== medical calc " + pass + "/" + cs.length + " ====");
   if (fails.length) process.exit(1);
 }

@@ -23,7 +23,7 @@ const CASES = [
   { slug: "pediatrics/pediatric-pneumonia", inputs: {"age":"12","rr":"55","spo2":"92"}, expect: ["小时"] },
   { slug: "pediatrics/rater-27", inputs: {"ageMonth":"12","weight":"9.6","height":"75.7","headCirc":"46.6"}, expect: ["肥胖"] },
   { slug: "pediatrics/seizure-classification", inputs: {"age":"20"}, expect: ["需长期随访"], _selfcheck: true, _min_inputs: 1 },
-  { slug: "pediatrics/tester-6", inputs: {}, expect: ["个月"], _selfcheck: true, _min_inputs: 0 },
+  { slug: "pediatrics/tester-6", inputs: {}, _min_inputs: 0, expect: ["个月"], _selfcheck: true, _min_inputs: 0 },
   { slug: "pediatrics/vaccine-schedule", inputs: {"vaccinatedMonth":""}, expect: ["无需重新开始"], _selfcheck: true, _min_inputs: 1 },
   { slug: "pediatrics/vanderbilt-adhd", inputs: {"age":"8"}, expect: ["及共病迹象"], _selfcheck: true, _min_inputs: 1 },
   { slug: "pediatrics/xinshengerhuangdan-xiaoshidanhongsu-quxian", inputs: {"age":"48","bili":"14"}, expect: ["暂无计算记录"] }

@@ -2,13 +2,13 @@
 "use strict";
 const { runCase } = require("./verify_it_calc.js");
 const CASES = [
-  { slug: "audio/analysis-1", inputs: {}, expect: ["标准差"], _selfcheck: true, _min_inputs: 0 },
+  { slug: "audio/analysis-1", inputs: {}, _min_inputs: 0, expect: ["标准差"], _selfcheck: true, _min_inputs: 0 },
   { slug: "audio/audio-cut", inputs: {"startInput":"0","endInput":"0"}, expect: ["试听片段"] },
-  { slug: "audio/audio-echo", inputs: {}, expect: ["结果"], _selfcheck: true, _min_inputs: 0 },
-  { slug: "audio/audio-recorder", inputs: {}, expect: ["结果"], _selfcheck: true, _min_inputs: 0 },
-  { slug: "audio/audio-speed", inputs: {}, expect: ["结果"], _selfcheck: true, _min_inputs: 0 },
-  { slug: "audio/audio-volume", inputs: {}, expect: ["结果"], _selfcheck: true, _min_inputs: 0 },
-  { slug: "audio/audio-waveform", inputs: {}, expect: ["结果"], _selfcheck: true, _min_inputs: 0 }
+  { slug: "audio/audio-echo", inputs: {}, _min_inputs: 0, expect: ["结果"], _selfcheck: true, _min_inputs: 0 },
+  { slug: "audio/audio-recorder", inputs: {}, _min_inputs: 0, expect: ["结果"], _selfcheck: true, _min_inputs: 0 },
+  { slug: "audio/audio-speed", inputs: {}, _min_inputs: 0, expect: ["结果"], _selfcheck: true, _min_inputs: 0 },
+  { slug: "audio/audio-volume", inputs: {}, _min_inputs: 0, expect: ["结果"], _selfcheck: true, _min_inputs: 0 },
+  { slug: "audio/audio-waveform", inputs: {}, _min_inputs: 0, expect: ["结果"], _selfcheck: true, _min_inputs: 0 }
 ];
 async function main() {
   const only = process.argv.slice(2);

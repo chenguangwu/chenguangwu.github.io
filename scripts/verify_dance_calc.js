@@ -2,7 +2,7 @@
 "use strict";
 const { runCase } = require("./verify_it_calc.js");
 const CASES = [
-  { slug: "dance/assessor-csat-1", inputs: {}, expect: ["程体验"], _selfcheck: true, _min_inputs: 0 },
+  { slug: "dance/assessor-csat-1", inputs: {}, _min_inputs: 0, expect: ["程体验"], _selfcheck: true, _min_inputs: 0 },
   { slug: "dance/bpm-rhythm", inputs: {"bpm":"120","beatsPerBar":"4","beatsPerMove":"1","duration":"60"}, expect: ["停止节拍器"] },
   { slug: "dance/choreography-timeline", inputs: {"bpm":"120","segCount":"6","barsPerSeg":"4","startTime":"0"}, expect: ["尾声"] },
   { slug: "dance/flexibility-test", inputs: {"reach":"15","age":"25"}, expect: ["舞蹈专业要求可能更高"] },

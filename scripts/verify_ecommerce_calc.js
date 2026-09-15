@@ -2,11 +2,11 @@
 "use strict";
 const { runCase } = require("./verify_it_calc.js");
 const CASES = [
-  { slug: "ecommerce/analysis-25", inputs: {}, expect: ["标准差"], _selfcheck: true, _min_inputs: 0 },
-  { slug: "ecommerce/analysis-70", inputs: {}, expect: ["标准差"], _selfcheck: true, _min_inputs: 0 },
-  { slug: "ecommerce/analysis-71", inputs: {}, expect: ["标准差"], _selfcheck: true, _min_inputs: 0 },
-  { slug: "ecommerce/analysis-conversion-funnel", inputs: {}, expect: ["标准差"], _selfcheck: true, _min_inputs: 0 },
-  { slug: "ecommerce/analysis-cost-8", inputs: {}, expect: ["标准差"], _selfcheck: true, _min_inputs: 0 },
+  { slug: "ecommerce/analysis-25", inputs: {}, _min_inputs: 0, expect: ["标准差"], _selfcheck: true, _min_inputs: 0 },
+  { slug: "ecommerce/analysis-70", inputs: {}, _min_inputs: 0, expect: ["标准差"], _selfcheck: true, _min_inputs: 0 },
+  { slug: "ecommerce/analysis-71", inputs: {}, _min_inputs: 0, expect: ["标准差"], _selfcheck: true, _min_inputs: 0 },
+  { slug: "ecommerce/analysis-conversion-funnel", inputs: {}, _min_inputs: 0, expect: ["标准差"], _selfcheck: true, _min_inputs: 0 },
+  { slug: "ecommerce/analysis-cost-8", inputs: {}, _min_inputs: 0, expect: ["标准差"], _selfcheck: true, _min_inputs: 0 },
   { slug: "ecommerce/calc-79", inputs: {"v0":"100","v1":"50"}, expect: ["暂无计算记录"] },
   { slug: "ecommerce/calc-commission-2", inputs: {"v0":"100","v1":"50"}, expect: ["暂无计算记录"] },
   { slug: "ecommerce/conversion-4", inputs: {"v0":"100","v1":"50"}, expect: ["暂无计算记录"] },
@@ -19,10 +19,10 @@ const CASES = [
   { slug: "ecommerce/kaidian-yunyingyuguizeduibijisuanqi", inputs: {"v0":"100","v1":"50"}, expect: ["暂无计算记录"] },
   { slug: "ecommerce/kedan-jiandanjia-liandailv", inputs: {"v0":"100","v1":"50"}, expect: ["暂无计算记录"] },
   { slug: "ecommerce/pingjia-chaping-tuihuo-lv", inputs: {"v0":"100","v1":"50"}, expect: ["暂无计算记录"] },
-  { slug: "ecommerce/report", inputs: {}, expect: ["标准差"], _selfcheck: true, _min_inputs: 0 },
+  { slug: "ecommerce/report", inputs: {}, _min_inputs: 0, expect: ["标准差"], _selfcheck: true, _min_inputs: 0 },
   { slug: "ecommerce/response-2", inputs: {"v0":"100","v1":"50"}, expect: ["暂无计算记录"] },
-  { slug: "ecommerce/stats-flow-conversion", inputs: {}, expect: ["标准差"], _selfcheck: true, _min_inputs: 0 },
-  { slug: "ecommerce/stats-profit", inputs: {}, expect: ["标准差"], _selfcheck: true, _min_inputs: 0 },
+  { slug: "ecommerce/stats-flow-conversion", inputs: {}, _min_inputs: 0, expect: ["标准差"], _selfcheck: true, _min_inputs: 0 },
+  { slug: "ecommerce/stats-profit", inputs: {}, _min_inputs: 0, expect: ["标准差"], _selfcheck: true, _min_inputs: 0 },
   { slug: "ecommerce/wuliu-fahuo-cangchu-gongyinglian-zhenghe", inputs: {"v0":"100","v1":"50"}, expect: ["暂无计算记录"] },
   { slug: "ecommerce/wuliu-lanshou-qianshou-shixiao", inputs: {"v0":"100","v1":"50"}, expect: ["暂无计算记录"] }
 ];

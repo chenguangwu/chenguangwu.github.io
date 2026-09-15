@@ -22,7 +22,7 @@ const CASES = [
   { slug: "endocrinology/sex-hormone-cycle", inputs: {"lh":"5.2","fsh":"6.8","e2":"45","t":"35","prl":"15","p":"0.8"}, expect: ["可能"] },
   { slug: "endocrinology/short-stature-prediction", inputs: {"age":"10","currentHt":"125","weight":"25","fatherHt":"170","motherHt":"158","boneAge":"9","prevHt":"118","ghPeak":"5","igf1":"80","birthLen":"50","birthWt":"3.2"}, expect: ["建议随访观察"] },
   { slug: "endocrinology/thyroid-cancer-risk", inputs: {"tumorSize":"2.5","tg":"2.5"}, expect: ["随访间隔延长至"] },
-  { slug: "endocrinology/ti-rads", inputs: {}, expect: ["评分进度"], _selfcheck: true, _min_inputs: 0 },
+  { slug: "endocrinology/ti-rads", inputs: {}, _min_inputs: 0, expect: ["评分进度"], _selfcheck: true, _min_inputs: 0 },
   { slug: "endocrinology/whipple-triad", inputs: {"bg":"2.2"}, expect: ["监测排除隐匿性低血糖"], _selfcheck: true, _min_inputs: 1 }
 ];
 async function main() {

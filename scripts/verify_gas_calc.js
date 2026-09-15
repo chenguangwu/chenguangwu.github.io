@@ -12,7 +12,7 @@ const CASES = [
   { slug: "gas/load-2", inputs: {"area":"100","index":"50","indoor":"20","outdoor":"-5","height":"3"}, expect: ["暂无计算记录"] },
   { slug: "gas/pressure-6", inputs: {"pin":"300","pout":"3","flow":"100","density":"0.7"}, expect: ["暂无计算记录"] },
   { slug: "gas/pressure-7", inputs: {"diameter":"100","flow":"100","length":"200","rough":"0.02","klocal":"5","density":"0.7"}, expect: ["暂无计算记录"] },
-  { slug: "gas/yongqibujunyunxishujisuan", inputs: {}, expect: ["暂无计算记录"], _selfcheck: true, _min_inputs: 0 }
+  { slug: "gas/yongqibujunyunxishujisuan", inputs: {}, _min_inputs: 0, expect: ["暂无计算记录"], _selfcheck: true, _min_inputs: 0 }
 ];
 async function main() {
   const only = process.argv.slice(2);

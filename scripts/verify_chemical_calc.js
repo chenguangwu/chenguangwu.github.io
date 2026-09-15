@@ -2,9 +2,9 @@
 "use strict";
 const { runCase } = require("./verify_it_calc.js");
 const CASES = [
-  { slug: "chemical/analysis-cost-7", inputs: {}, expect: ["标准差"], _selfcheck: true, _min_inputs: 0 },
+  { slug: "chemical/analysis-cost-7", inputs: {}, _min_inputs: 0, expect: ["标准差"], _selfcheck: true, _min_inputs: 0 },
   { slug: "chemical/calc-pipeline-pressure-drop", inputs: {"v0":"100","v1":"50"}, expect: ["暂无计算记录"] },
-  { slug: "chemical/checker-15", inputs: {}, expect: ["未落实"], _selfcheck: true, _min_inputs: 0 },
+  { slug: "chemical/checker-15", inputs: {}, _min_inputs: 0, expect: ["未落实"], _selfcheck: true, _min_inputs: 0 },
   { slug: "chemical/convert-capacity-tank", inputs: {"val":"1","rate":"1"}, expect: ["系数"] },
   { slug: "chemical/convert-density-crude", inputs: {"val":"1","rate":"1"}, expect: ["系数"] },
   { slug: "chemical/detector-39", inputs: {"conc":"0.1000","vol":"25.00","mass":"0.2000","molar":"204.22","ratio":"1","threshold":"99.0","g_mass":"0.5000","g_dry":"0.4850","g_factor":"1.000","g_threshold":"98.0"}, expect: ["纯度"] },

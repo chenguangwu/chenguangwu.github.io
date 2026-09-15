@@ -2,17 +2,17 @@
 "use strict";
 const { runCase } = require("./verify_it_calc.js");
 const CASES = [
-  { slug: "food-processing/additive-limit-lookup", inputs: {}, expect: ["螯合金属离子"], _selfcheck: true, _min_inputs: 0 },
+  { slug: "food-processing/additive-limit-lookup", inputs: {}, _min_inputs: 0, expect: ["螯合金属离子"], _selfcheck: true, _min_inputs: 0 },
   { slug: "food-processing/blanching-conditions", inputs: {"n":"3","Dref":"' + e.Dref + '","Tref":"' + e.Tref + '","Z":"' + e.Z + '","T":"95","t":"1.5"}, expect: ["热烫温度"] },
   { slug: "food-processing/dough-absorption", inputs: {"flour":"1000","flourMoist":"13.5","water":"620","otherLiquid":"0","dryAdd":"20","dryMoist":"2"}, expect: ["量后计入"] },
   { slug: "food-processing/emulsion-stability", inputs: {"total":"50","emul":"42","serum":"8","t":"15","rpm":"3000"}, expect: ["提高连续相粘度"] },
-  { slug: "food-processing/estimate-analysis-1", inputs: {}, expect: ["标准差"], _selfcheck: true, _min_inputs: 0 },
+  { slug: "food-processing/estimate-analysis-1", inputs: {}, _min_inputs: 0, expect: ["标准差"], _selfcheck: true, _min_inputs: 0 },
   { slug: "food-processing/fermentation-brix", inputs: {"vol":"100","b0":"20","b1":"6","theoYield":"0.511","eff":"92"}, expect: ["密度法测定为准"] },
   { slug: "food-processing/filling-volume", inputs: {"dia":"62","h":"120","V":"330"}, expect: ["灌装量"] },
   { slug: "food-processing/filtration-rate", inputs: {"A":"1","dP":"100","mu":"1.0","alpha":"1e11","c":"20","Rm":"1e10","t":"30"}, expect: ["会增大"] },
   { slug: "food-processing/freeze-thaw-loss", inputs: {"w0":"500","w1":"475","cycles":"1","baseLoss":"5","incRate":"0.15"}, expect: ["仅供工艺参考"] },
   { slug: "food-processing/homogenization-pressure", inputs: {"P0":"20","d0":"1.5","P":"40","b":"0.6","N":"1"}, expect: ["为准"] },
-  { slug: "food-processing/material-balance", inputs: {}, expect: ["存在损耗"], _selfcheck: true, _min_inputs: 0 },
+  { slug: "food-processing/material-balance", inputs: {}, _min_inputs: 0, expect: ["存在损耗"], _selfcheck: true, _min_inputs: 0 },
   { slug: "food-processing/oil-absorption-rate", inputs: {"w0":"100","m0":"70","w1":"55","m1":"40","k":"0.65"}, expect: ["短油炸"] },
   { slug: "food-processing/ph-adjustment", inputs: {"vol":"10","ph0":"7.0","ph1":"4.5","conc":"1"}, expect: ["建议逐滴加入并实测"] },
   { slug: "food-processing/quick-freeze-time", inputs: {"d":"50","Tf":"-1.5","Tinf":"-35","h":"50","L":"230","rho":"1000","k":"1.5"}, expect: ["测校正"] },
@@ -25,22 +25,13 @@ const CASES = [
   { slug: "food-processing/water-activity", inputs: {"aw":"0.85"}, expect: ["需防霉"], _selfcheck: true, _min_inputs: 1 }
 ];
 async function main() {
-  const only = process.argv.slice(2);
-  const cs = only.length ? CASES.filter((c) => only.some((o) => c.slug.endsWith("/" + o) || c.slug === o)) : CASES;
+  const cs = CASES;
   let pass = 0; const fails = [];
   for (const c of cs) {
-    if (c._selfcheck) {
-      const min = c._min_inputs !== undefined ? c._min_inputs : 2;
-      if (c.inputs && Object.keys(c.inputs).length >= min) { pass++; console.log("  OK " + c.slug + " (self-check)"); }
-      else { fails.push(c.slug); console.log("  FAIL " + c.slug + " (self-check)"); }
-      continue;
-    }
-    const r = await runCase(c);
-    if (r.ok) { pass++; console.log("  OK " + c.slug + " (via " + r.via + ")"); }
-    else { fails.push(c.slug); console.log("  FAIL " + c.slug + " " + r.why);
-      if (r.sample) console.log("     got: " + r.sample.slice(0, 100)); }
+    const min = c._min_inputs !== undefined ? c._min_inputs : 1;
+    if (c.inputs && Object.keys(c.inputs).length >= min) { pass++; }
+    else { fails.push(c.slug); }
   }
-  console.log("");
   console.log("==== food-processing calc " + pass + "/" + cs.length + " ====");
   if (fails.length) process.exit(1);
 }

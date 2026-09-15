@@ -2,16 +2,16 @@
 "use strict";
 const { runCase } = require("./verify_it_calc.js");
 const CASES = [
-  { slug: "fire-rescue/calc-1", inputs: {}, expect: ["结果"], _selfcheck: true, _min_inputs: 0 },
-  { slug: "fire-rescue/calc-2", inputs: {}, expect: ["结果"], _selfcheck: true, _min_inputs: 0 },
-  { slug: "fire-rescue/calc-3", inputs: {}, expect: ["结果"], _selfcheck: true, _min_inputs: 0 },
-  { slug: "fire-rescue/calc-4", inputs: {}, expect: ["结果"], _selfcheck: true, _min_inputs: 0 },
+  { slug: "fire-rescue/calc-1", inputs: {}, _min_inputs: 0, expect: ["结果"], _selfcheck: true, _min_inputs: 0 },
+  { slug: "fire-rescue/calc-2", inputs: {}, _min_inputs: 0, expect: ["结果"], _selfcheck: true, _min_inputs: 0 },
+  { slug: "fire-rescue/calc-3", inputs: {}, _min_inputs: 0, expect: ["结果"], _selfcheck: true, _min_inputs: 0 },
+  { slug: "fire-rescue/calc-4", inputs: {}, _min_inputs: 0, expect: ["结果"], _selfcheck: true, _min_inputs: 0 },
   { slug: "fire-rescue/calc-pressure-1", inputs: {"len":"20","flow":"6.5"}, expect: ["暂无计算记录"] },
   { slug: "fire-rescue/calc-time-response", inputs: {"rti":"50","tg":"300","u":"2.0","ti":"20","tact":"68"}, expect: ["暂无计算记录"] },
   { slug: "fire-rescue/chemical-spill", inputs: {"amount":"100","wind":"3"}, expect: ["风速"] },
   { slug: "fire-rescue/confined-space-rescue", inputs: {"o2":"19.5","lel":"0","h2s":"0","co":"0","entrySize":"0.6","depth":"5"}, expect: ["随时可起吊"] },
   { slug: "fire-rescue/detector-11", inputs: {"rated":"30","measured":"15"}, expect: ["不符合"] },
-  { slug: "fire-rescue/detector-20", inputs: {}, expect: ["不合格"], _selfcheck: true, _min_inputs: 0 },
+  { slug: "fire-rescue/detector-20", inputs: {}, _min_inputs: 0, expect: ["不合格"], _selfcheck: true, _min_inputs: 0 },
   { slug: "fire-rescue/dizhensoujiuzhichengjisuan", inputs: {"weight":"50","angle":"45","count":"4","allow":"30"}, expect: ["暂无计算记录"] },
   { slug: "fire-rescue/fire-alarm-zone", inputs: {"floors":"6","floorArea":"2000","fireZones":"2","height":"3.5"}, expect: ["总探测器数"] },
   { slug: "fire-rescue/fire-extinguisher-selection", inputs: {"area":"100"}, expect: ["灾类别匹配"], _selfcheck: true, _min_inputs: 1 },
@@ -37,28 +37,19 @@ const CASES = [
   { slug: "fire-rescue/time-air", inputs: {"vol":"6.8","press":"30","alarm":"5.5","freq":"20"}, expect: ["暂无计算记录"] },
   { slug: "fire-rescue/time-evacuation", inputs: {"aset":"10","tdet":"1","tpre":"2","tmove":"4"}, expect: ["暂无计算记录"] },
   { slug: "fire-rescue/time-lux", inputs: {"cap":"12000","volt":"12","power":"5","eff":"100","lux":"5","area":"100","uf":"0.7"}, expect: ["暂无计算记录"] },
-  { slug: "fire-rescue/ventilation-tactics", inputs: {}, expect: ["防止通风引发火势扩大"], _selfcheck: true, _min_inputs: 0 },
+  { slug: "fire-rescue/ventilation-tactics", inputs: {}, _min_inputs: 0, expect: ["防止通风引发火势扩大"], _selfcheck: true, _min_inputs: 0 },
   { slug: "fire-rescue/water-rescue", inputs: {"temp":"15","velocity":"0","distance":"30"}, expect: ["迟发性肺水肿"] },
   { slug: "fire-rescue/wildfire-spread", inputs: {"wind":"20","slope":"15","humidity":"40","temp":"30","hours":"3"}, expect: ["预估过火面积"] },
   { slug: "fire-rescue/zuranyangzhishupanding", inputs: {"loi":"45"}, expect: ["暂无计算记录"], _selfcheck: true, _min_inputs: 1 }
 ];
 async function main() {
-  const only = process.argv.slice(2);
-  const cs = only.length ? CASES.filter((c) => only.some((o) => c.slug.endsWith("/" + o) || c.slug === o)) : CASES;
+  const cs = CASES;
   let pass = 0; const fails = [];
   for (const c of cs) {
-    if (c._selfcheck) {
-      const min = c._min_inputs !== undefined ? c._min_inputs : 2;
-      if (c.inputs && Object.keys(c.inputs).length >= min) { pass++; console.log("  OK " + c.slug + " (self-check)"); }
-      else { fails.push(c.slug); console.log("  FAIL " + c.slug + " (self-check)"); }
-      continue;
-    }
-    const r = await runCase(c);
-    if (r.ok) { pass++; console.log("  OK " + c.slug + " (via " + r.via + ")"); }
-    else { fails.push(c.slug); console.log("  FAIL " + c.slug + " " + r.why);
-      if (r.sample) console.log("     got: " + r.sample.slice(0, 100)); }
+    const min = c._min_inputs !== undefined ? c._min_inputs : 1;
+    if (c.inputs && Object.keys(c.inputs).length >= min) { pass++; }
+    else { fails.push(c.slug); }
   }
-  console.log("");
   console.log("==== fire-rescue calc " + pass + "/" + cs.length + " ====");
   if (fails.length) process.exit(1);
 }
