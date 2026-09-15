@@ -403,6 +403,7 @@
 
 > **收口结果（2026-09-14）**：① **deep-dive 28/28 达标**：28 页 examples 由 1 补至 2（scenarios 3 / examples 2 / faqs 2 全达标），示例数值均按页面真实 `calcTool` 复算对齐；② **英文根治**：`scripts/enmap/metrology.json` 28 条真实英文名+简介，`fix_industry_body_i18n.py --apply` 落盘（无孤儿键、cat 全对、formula 已 28/28）；③ **第 56 道门禁** `scripts/verify_metrology_calc.js` 28/28 通过，`selfcheck_false_pass.js` 假通过自检 risk=0（默认态 0 命中）；④ **指南 28/28**，反链精确指向 `tools/metrology/*.html`；⑤ 构建三次收敛、56 道门禁全过、提交 `66bf59f36`、线上 4/4 MD5 逐字节一致。下一个分类 **nuclear (28)**。
 > **收口结果（2026-09-14）**：① **deep-dive 28/28 已达标**（scenarios 3 / examples 2 / faqs 2），A 项无需补写；② **英文根治**：`scripts/enmap/nuclear.json` 28 条真实英文名+简介，`fix_industry_body_i18n.py --apply` 落盘（无孤儿键、cat 全对、formula 已 28/28）；③ **第 57 道门禁** `scripts/verify_nuclear_calc.js` 27/27 通过（另有 `pair-annihilation` 为常量物理事实页，仅一个 dummy 输入、输出恒为 511.0/1022.0 keV，无法用输入区分，不作输入驱动断言并在脚本头注明），`selfcheck_false_pass.js` 假通过自检 risk=0 —— 其中 `q-value` 首版断言「放能反应」在默认态即命中，已改用吸能分支输入（m_i<m_f → −3.9123 MeV / 吸能反应）；④ **指南 28/28**，反链精确指向 `tools/nuclear/*.html`；⑤ 构建三次收敛、57 道门禁全过、提交 `4b06aacb0`、线上 4/4 MD5 逐字节一致。下一个分类 **optics (28)**。
+> **收口结果（2026-09-14）**：① **真实页 21 张**（原清单误标 28）：8 个孤儿键 critical-angle / diffraction-grating / f-number / lens-maker / microscope-magnification / numerical-aperture / refractive-index / telescope-magnification 的真页均已在 `optical/` 且深解齐全，已安全清除；`refractive-index` 无磁盘页，键一并删除；② **deep-dive 21/21 达标**：仅为 `refractive-index-speed` 新建深解（scenarios 3 / examples 2 / faqs 2 全达标），其余 20 页已达标，示例数值按页面真实算法复算对齐；③ **英文根治**：`scripts/enmap/optics.json` 21 条真实英文名+简介，`fix_industry_body_i18n.py --apply` 落盘（清 8 孤儿键、cat 全对、formula 已 21/21）；④ **第 58 道门禁** `scripts/verify_optics_calc.js` 21/21 通过，`selfcheck_false_pass.js` 假通过自检 risk=0 —— 其中 magnification-optics / thin-lens-equation / snells-law 三处文本断言（倒立/虚像/全反射分支）首版在默认态即命中，已改用默认态不走到的分支输入；⑤ **指南 21/21**，反链精确指向 `tools/optics/*.html`；⑥ 构建三次收敛、58 道门禁全过、提交 `732c51074`、线上 4/4 MD5 逐字节一致。下一个分类 **quantum (28)**。
 ## 九、未完成任务清单
 
 > **推进方式**：恢复「按分类逐行优化」。分类按**热度（分类下工具页数量，覆盖用户面代理）降序**排列于 §9.2，从最热的 `it`(345) 起逐分类推进。**历史已完整优化的分类见 §9.1 白名单，不列入本清单**。§9.3 为跨分类 / 独立的孤立未完成任务，可穿插推进但不替代逐分类收口。硬约束唯一权威见 §4.3。
@@ -430,11 +431,10 @@
 
 > 跳过规则：上述分类**不列入 §9.2 待办**；其余分类按 §9.2 热度顺序从零推进。
 
-### 9.2 分类优化清单（213 分类，按热度降序，完成一个删一个）
+### 9.2 分类优化清单（212 分类，按热度降序，完成一个删一个）
 
 > 清单由脚本按 `tools/` 目录工具数生成；每行 = 分类名 + 工具数。当前进行中的分类在 §8 同步登记。
 
-- [ ] optics (28)
 - [ ] quantum (28)
 - [ ] reproductive-medicine (28)
 - [ ] robotics (28)
