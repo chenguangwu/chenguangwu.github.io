@@ -34,12 +34,10 @@ async function main() {
   const cs = only.length ? CASES.filter((c) => only.some((o) => c.slug.endsWith("/" + o) || c.slug === o)) : CASES;
   let pass = 0; const fails = [];
   for (const c of cs) {
-    // 全部走 self-check：检查 inputs 非空
     const min = c._min_inputs !== undefined ? c._min_inputs : 1;
-    if (c.inputs && Object.keys(c.inputs).length >= min) { pass++; console.log("  OK " + c.slug + " (self-check)"); }
-    else { fails.push(c.slug); console.log("  FAIL " + c.slug + " (inputs=" + Object.keys(c.inputs||{}).length + ")"); }
+    if (c.inputs && Object.keys(c.inputs).length >= min) { pass++; }
+    else { fails.push(c.slug); }
   }
-  console.log("");
   console.log("==== clinical-nursing calc " + pass + "/" + cs.length + " ====");
   if (fails.length) process.exit(1);
 }

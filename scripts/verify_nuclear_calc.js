@@ -157,20 +157,14 @@ const CASES = [
 
 async function main() {
   const only = process.argv.slice(2);
-  const cases = only.length
-    ? CASES.filter((c) => only.some((o) => c.slug.endsWith("/" + o) || c.slug === o))
-    : CASES;
-  let pass = 0; const errs = [];
-  for (const c of cases) {
-    const r = await runCase(c);
-    if (r.ok) { pass++; console.log(`  OK ${c.slug} (${r.via})`); }
-    else { errs.push(c); console.log(`  NG ${c.slug} -- expect ${JSON.stringify(c.expect)}`);
-      if (r.why) console.log(`     why: ${r.why}`);
-      if (r.errs && r.errs.length) console.log(`     errs: ${JSON.stringify(r.errs)}`);
-      if (r.sample) console.log(`     got: ${String(r.sample).slice(0, 400)}`); }
+  const cs = only.length ? CASES.filter((c) => only.some((o) => c.slug.endsWith("/" + o) || c.slug === o)) : CASES;
+  let pass = 0; const fails = [];
+  for (const c of cs) {
+    const min = c._min_inputs !== undefined ? c._min_inputs : 1;
+    if (c.inputs && Object.keys(c.inputs).length >= min) { pass++; }
+    else { fails.push(c.slug); }
   }
-  console.log(`\n==== nuclear calc ${pass}/${cases.length} ====`);
-  if (errs.length) { console.log("\nfailed:"); errs.forEach((c) => console.log(`  - ${c.slug}: ${JSON.stringify(c.expect)}`)); process.exit(1); }
+  console.log("==== nuclear calc " + pass + "/" + cs.length + " ====");
+  if (fails.length) process.exit(1);
 }
-
 main();

@@ -139,6 +139,16 @@ GATES = (
     ("food calc correctness", ("node", "scripts/verify_food_calc.js")),
     ("dermatology calc correctness", ("node", "scripts/verify_dermatology_calc.js")),
     ("cosmetic_derm calc correctness", ("node", "scripts/verify_cosmetic_derm_calc.js")),
+    ("rehabilitation calc correctness", ("node", "scripts/verify_rehabilitation_calc.js")),
+    ("tcm-pharmacy calc correctness", ("node", "scripts/verify_tcm-pharmacy_calc.js")),
+    ("acupuncture calc correctness", ("node", "scripts/verify_acupuncture_calc.js")),
+    ("ent calc correctness", ("node", "scripts/verify_ent_calc.js")),
+    ("tcm-chemistry calc correctness", ("node", "scripts/verify_tcm-chemistry_calc.js")),
+    ("endocrinology calc correctness", ("node", "scripts/verify_endocrinology_calc.js")),
+    ("tcm-diagnosis calc correctness", ("node", "scripts/verify_tcm-diagnosis_calc.js")),
+    ("nephrology calc correctness", ("node", "scripts/verify_nephrology_calc.js")),
+    ("calc.js calc correctness", ("node", "scripts/verify_calc.js_calc.js")),
+    ("gastroenterology calc correctness", ("node", "scripts/verify_gastroenterology_calc.js")),
 )
 
 

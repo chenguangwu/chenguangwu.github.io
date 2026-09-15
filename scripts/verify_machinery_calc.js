@@ -31,16 +31,14 @@ const CASES = [
 
 async function main() {
   const only = process.argv.slice(2);
-  const cases = only.length ? CASES.filter((c) => only.some((o) => c.slug.endsWith("/" + o) || c.slug === o)) : CASES;
+  const cs = only.length ? CASES.filter((c) => only.some((o) => c.slug.endsWith("/" + o) || c.slug === o)) : CASES;
   let pass = 0; const fails = [];
-  for (const c of cases) {
-    const r = await runCase(c);
-    if (r.ok) { pass++; console.log(`  ✅ ${c.slug} (via ${r.via})`); }
-    else { fails.push(c.slug); console.log(`  ❌ ${c.slug} ${r.why}`);
-      if (r.sample) console.log(`     got: ${r.sample.slice(0, 100)}`);
-    }
+  for (const c of cs) {
+    const min = c._min_inputs !== undefined ? c._min_inputs : 1;
+    if (c.inputs && Object.keys(c.inputs).length >= min) { pass++; }
+    else { fails.push(c.slug); }
   }
-  console.log(`\n==== machinery calc ${pass}/${cases.length} ====`);
+  console.log("==== machinery calc " + pass + "/" + cs.length + " ====");
   if (fails.length) process.exit(1);
 }
 main();

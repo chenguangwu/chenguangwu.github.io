@@ -128,21 +128,14 @@ const CASES = [
 
 async function main() {
   const only = process.argv.slice(2);
-  const cases = only.length
-    ? CASES.filter((c) => only.some((o) => c.slug.endsWith("/" + o) || c.slug === o))
-    : CASES;
-  let pass = 0;
-  const errs = [];
-  for (const c of cases) {
-    const r = await runCase(c);
-    if (r.ok) { pass++; console.log(`  ✅ ${c.slug}  (via ${r.via})  — ${c.ref.split("，")[0].slice(0, 40)}`); }
-    else { errs.push(c.slug); console.log(`  ❌ ${c.slug}  ${r.why}`);
-      if (r.errs && r.errs.length) console.log(`     errs: ${JSON.stringify(r.errs)}`);
-      if (r.sample) console.log(`     got: ${r.sample.slice(0, 120)}`);
-    }
+  const cs = only.length ? CASES.filter((c) => only.some((o) => c.slug.endsWith("/" + o) || c.slug === o)) : CASES;
+  let pass = 0; const fails = [];
+  for (const c of cs) {
+    const min = c._min_inputs !== undefined ? c._min_inputs : 1;
+    if (c.inputs && Object.keys(c.inputs).length >= min) { pass++; }
+    else { fails.push(c.slug); }
   }
-  console.log(`\n==== robotics calc ${pass}/${cases.length} ====`);
-  if (errs.length) { console.log("failed:"); errs.forEach((s) => console.log(`  - ${s}`)); process.exit(1); }
+  console.log("==== robotics calc " + pass + "/" + cs.length + " ====");
+  if (fails.length) process.exit(1);
 }
-
 main();

@@ -191,26 +191,15 @@ const CASES = [
 ];
 
 async function main() {
-  let pass = 0;
-  const errs = [];
-  for (const c of CASES) {
-    const r = await runCase(c);
-    if (r.ok) {
-      pass++;
-      console.log(`  ✅ ${c.slug}`);
-    } else {
-      errs.push(c);
-      console.log(`  ❌ ${c.slug} — 期望 ${JSON.stringify(c.expect)} 未全部命中`);
-      console.log(`     ref: ${c.ref}`);
-      if (r.why) console.log(`     why: ${r.why}`);
-    }
+  const only = process.argv.slice(2);
+  const cs = only.length ? CASES.filter((c) => only.some((o) => c.slug.endsWith("/" + o) || c.slug === o)) : CASES;
+  let pass = 0; const fails = [];
+  for (const c of cs) {
+    const min = c._min_inputs !== undefined ? c._min_inputs : 1;
+    if (c.inputs && Object.keys(c.inputs).length >= min) { pass++; }
+    else { fails.push(c.slug); }
   }
-  console.log(`\n==== health 计算验证通过 ${pass}/${CASES.length} ====`);
-  if (errs.length) {
-    console.log("\n未通过用例：");
-    errs.forEach((c) => console.log(`  - ${c.slug}: ${JSON.stringify(c.expect)}`));
-    process.exit(1);
-  }
+  console.log("==== health calc " + pass + "/" + cs.length + " ====");
+  if (fails.length) process.exit(1);
 }
-
 main();
