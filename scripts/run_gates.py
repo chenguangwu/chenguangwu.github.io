@@ -129,6 +129,16 @@ GATES = (
     ("clinical-nursing calc correctness", ("node", "scripts/verify_clinical-nursing_calc.js")),
     ("dentistry calc correctness", ("node", "scripts/verify_dentistry_calc.js")),
     ("cardiology calc correctness", ("node", "scripts/verify_cardiology_calc.js")),
+    ("clinical-lab calc correctness", ("node", "scripts/verify_clinical-lab_calc.js")),
+    ("pediatrics calc correctness", ("node", "scripts/verify_pediatrics_calc.js")),
+    ("psychiatry calc correctness", ("node", "scripts/verify_psychiatry_calc.js")),
+    ("rheumatology calc correctness", ("node", "scripts/verify_rheumatology_calc.js")),
+    ("urology calc correctness", ("node", "scripts/verify_urology_calc.js")),
+    ("electronics calc correctness", ("node", "scripts/verify_electronics_calc.js")),
+    ("food-testing calc correctness", ("node", "scripts/verify_food-testing_calc.js")),
+    ("food calc correctness", ("node", "scripts/verify_food_calc.js")),
+    ("dermatology calc correctness", ("node", "scripts/verify_dermatology_calc.js")),
+    ("cosmetic_derm calc correctness", ("node", "scripts/verify_cosmetic_derm_calc.js")),
 )
 
 

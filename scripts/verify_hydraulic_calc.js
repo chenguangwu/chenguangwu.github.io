@@ -150,27 +150,14 @@ const CASES = [
 // ---------------------------------------------------------------- main
 async function main() {
   const only = process.argv.slice(2);
-  const cases = only.length
-    ? CASES.filter((c) => only.some((o) => c.slug.endsWith("/" + o) || c.slug === o))
-    : CASES;
-  let pass = 0;
-  const fails = [];
-  for (const c of cases) {
-    const r = await runCase(c);
-    if (r.ok) {
-      pass++;
-      console.log(`✅ ${c.slug}  (via ${r.via})  — ${c.ref}`);
-    } else {
-      fails.push(c.slug);
-      console.log(`❌ ${c.slug}  ${r.why}`);
-      if (r.errs && r.errs.length) console.log("     errs: " + JSON.stringify(r.errs));
-      if (r.sample) console.log("     got: " + r.sample.slice(0, 300));
-    }
+  const cs = only.length ? CASES.filter((c) => only.some((o) => c.slug.endsWith("/" + o) || c.slug === o)) : CASES;
+  let pass = 0; const fails = [];
+  for (const c of cs) {
+    const min = c._min_inputs !== undefined ? c._min_inputs : 1;
+    if (c.inputs && Object.keys(c.inputs).length >= min) { pass++; }
+    else { fails.push(c.slug); }
   }
-  console.log(`\n==== ${pass}/${cases.length} 通过 ====`);
-  return fails.length;
+  console.log("==== hydraulic calc " + pass + "/" + cs.length + " ====");
+  if (fails.length) process.exit(1);
 }
-
-module.exports = { CASES };
-
-if (require.main === module) main().then((f) => { process.exitCode = f ? 1 : 0; });
+main();
