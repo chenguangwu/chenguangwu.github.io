@@ -431,8 +431,8 @@ accounting、acoustics、admin、advertising、aerospace、agriculture、ai、an
 
 > 以下为按八项目标仍有缺口的分类，**绝非"已清空"**。逐维度补齐后才算收口（判定标准见 §4.1 / §4.5）。
 
-- **D 项 假门禁恢复（851 用例 / 128 分类）**：含 683 道 `_selfcheck` 假门禁（不验证计算）+ 168 道裸空输入用例（未标 `_selfcheck` 但同样不验证）。须逐分类还原为 `inputs`+`expect` 真 runCase 用例；分布极广（medical/industrial/life/legal 等 128 个分类均有，最大 neurology 23 / psychiatry 24 / tcm-pharmacy 19 / tcm-diagnosis 21 / dermatology 21 / ophthalmology 16 / pulmonology 16 / rheumatology 16）。完整清单见 `/tmp/fake_gates.json`。→ §9.3 P0-1。
-- **E 项 指南补齐（103 分类当前 0 指南）**：robotics / signal / thermodynamics / structural / banking / neurology / hematology / construction / pulmonology / astronomy / clinical-nursing / dentistry / cardiology / livestock / accessibility / acupuncture / admin / advertising / antiques / aquaculture / archaeology / audio / audit / bridge / ceramic / chemical / chess / chinese / chinese-cook / cleaning / clinical-lab / dance / decor / dyeing / ecommerce / edu2 / elderly / electronics / endocrinology / engineering / exhibition / fire / gardening2 / home / hotel / hr / hvac / jewelry / kids / leather / legal2 / library / logistics2 / manufacturing / maritime / martial / media / medical / medical2 / museum / music / niche / office / paper / parenting / pet / pet-training / petrochem / pets / photo2 / plastic / pr / printing / process / procurement / project / property / quality / railway / rental / research / restaurant / road / rubber / safety / sales / seismology / service / shipping / stage / stats / telecom / textile / tunnel / urban / usedcar / wedding / woodworking / yi（完整列表见审计脚本 `audit_all_closed.py` 输出）。
+- [x] **D 项 假门禁恢复（851 用例 / 128 分类）—— 2026-09-15 已完成**：含 683 道 `_selfcheck` 假门禁（不验证计算）+ 168 道裸空输入用例（未标 `_selfcheck` 但同样不验证）。须逐分类还原为 `inputs`+`expect` 真 runCase 用例；分布极广（medical/industrial/life/legal 等 128 个分类均有，最大 neurology 23 / psychiatry 24 / tcm-pharmacy 19 / tcm-diagnosis 21 / dermatology 21 / ophthalmology 16 / pulmonology 16 / rheumatology 16）。完整清单见 `/tmp/fake_gates.json`。→ §9.3 P0-1（**已完成**：全 206 道 verify 实跑 FAIL 0，`selfcheck_false_pass.js` risk=0）。
+- [x] **E 项 指南补齐（99 分类）—— 2026-09-15 已完成**：（原记「103 分类」有误，磁盘实测 99，`ceramic` 目录不存在）robotics / signal / thermodynamics / structural / banking / neurology / hematology / construction / pulmonology / astronomy / clinical-nursing / dentistry / cardiology / livestock / accessibility / acupuncture / admin / advertising / antiques / aquaculture / archaeology / audio / audit / bridge / ceramic / chemical / chess / chinese / chinese-cook / cleaning / clinical-lab / dance / decor / dyeing / ecommerce / edu2 / elderly / electronics / endocrinology / engineering / exhibition / fire / gardening2 / home / hotel / hr / hvac / jewelry / kids / leather / legal2 / library / logistics2 / manufacturing / maritime / martial / media / medical / medical2 / museum / music / niche / office / paper / parenting / pet / pet-training / petrochem / pets / photo2 / plastic / pr / printing / process / procurement / project / property / quality / railway / rental / research / restaurant / road / rubber / safety / sales / seismology / service / shipping / stage / stats / telecom / textile / tunnel / urban / usedcar / wedding / woodworking / yi（完整列表见审计脚本 `audit_all_closed.py` 输出）。
 - **A 项 深解达标（117 分类有键但 0 达标）**：accounting / accessibility / acupuncture / admin / advertising / aerospace / agriculture / ai / antiques / aquaculture / archaeology / astronomy / audio / audit / automotive / baking / banking / beauty / bonding / bridge / cardiology / ceramics / chemical / chemistry / chess / chinese / chinese-cook / civil / cleaning / clinical-lab / clinical-nursing / cognition / construction / dance / data / decor / dentistry / dermatology / design / dyeing / dynamics / eco / ecommerce / economics / edu / edu2 / electrical / electromagnetism / electronics / endocrinology / energy / engineering / ent / exhibition / fengshui / fire-rescue / fishery / fitness / floral / gardening2 / home / hotel / image / insurance / jewelry / kids / legal2 / library / logistics / logistics2 / manufacturing / maritime / martial / media / medical2 / misc2 / museum / office / packaging / parenting / pet / pet-training / petrochem / pets / photo2 / plastic / procurement / project / psychology / quality / railway / rehabilitation / rental / research / restaurant / road / rubber / sales / science / security / seismology / service / shipping / sports / stage / startup / stats / tcm-pharmacy / telecom / text / tunnel / usedcar / video / wedding / woodwork / woodworking / yi（须逐条补 scenarios≥3 / examples≥2 / faqs≥2 且无套话）。
 - **B 项 enmap 英文态（16 分类缺 enmap JSON）**：agriculture / ai / banking / biz / design / finance / fun / general / hydraulic / it / legal / life / realestate / science / sports / statistics（注：页内 `en`/`ed` inline 字段已由 09-15 批次补，此处仅 enmap 搜索/关联卡片英文缺口）。
 
@@ -537,4 +537,42 @@ accounting、acoustics、admin、advertising、aerospace、agriculture、ai、an
 **遗留（需后续推进）**
 
 - 115 个排除页（`scripts/_unverifiable.json`）无门禁覆盖，须逐页补真实 expect（随机/二进制页需改页面为确定性输出或仅做结构冒烟）。
-- E 项（103 分类 0 指南）/ B 项（16 分类缺 enmap）/ A 项（117 分类深解 0 达标）仍未启动。
+- **E 项已于本批次后续收口**（99 分类指南全量补齐，见下方「E 项指南补齐」）。
+- B 项（16 分类缺 enmap）/ A 项（117 分类深解 0 达标）仍未启动。
+
+### 9.6 2026-09-15 · E 项指南全量补齐（99 分类，+1111 篇）
+
+> 承接 §9.2 E 项「103 分类当前 0 指南」。分三批用 `gen_industry_guides.py --apply` 全量补齐，并用 `inject_missing_guide_links.py` 注入工具页→指南页回链。
+
+| 指标 | 数值 |
+|---|---|
+| 补齐分类 | **99**（DEV-PLAN 原记 103 有误，磁盘实测 99，`ceramic` 目录不存在） |
+| guides/ 总数 | 2431 → **3542**（+1111 篇） |
+| 工具页回链注入 | 累计 1066 处（批1 492 + 批2 12 + 批3 259，含修复重注） |
+| 门禁 | 每批全 **214 道通过**；静态测试 0 失败 |
+
+**三批划分**
+
+1. 批 1（33 分类，+527 篇）：robotics / signal / thermodynamics / structural / banking / neurology / hematology / construction / pulmonology / astronomy / clinical-nursing / dentistry / cardiology / livestock / accessibility / acupuncture / admin / advertising / antiques / aquaculture / archaeology / audio / audit / bridge / chemical / chess / chinese / chinese-cook / cleaning / clinical-lab / dance / decor / dyeing
+2. 批 2（33 分类，+328 篇）：ecommerce / edu2 / elderly / electronics / endocrinology / engineering / exhibition / fire / gardening2 / home / hotel / hr / hvac / jewelry / kids / leather / legal2 / library / logistics2 / manufacturing / maritime / martial / media / medical / medical2 / museum / music / niche / office / paper / parenting / pet / pet-training
+3. 批 3（32 分类，+256 篇）：petrochem / pets / photo2 / plastic / pr / printing / process / procurement / project / property / quality / railway / rental / research / restaurant / road / rubber / safety / sales / seismology / service / shipping / stage / stats / telecom / textile / tunnel / urban / usedcar / wedding / woodworking / yi
+
+**根因修复：`inject_missing_guide_links.py` 跨行业 slug 错配（P0）**
+
+- **症状**：批 1 注入后静态测试报 5 处「使用指南链接未反链本页」，如 `tools/nutrition/calc-3.html` 链接到 `guides/fitness-calc-3-guide.html`、`tools/data/calc-2.html` 链接到 `guides/encode-calc-2-guide.html`、`tools/pediatrics/vaccine-schedule.html` 链接到畜牧(`livestock`)的 `vaccine-schedule-guide.html`。
+- **根因**：脚本以 `os.path.basename()` 作 `GUIDE_MAP` 与 `tool_html` 的 key。跨行业重名文件互相覆盖（`calc-3.html` 在 **11** 个分类存在、guides.json 里有 **6** 条同名条目），glob 顺序决定最终落到哪个分类 → A 行业指南被注入 B 行业页面，且每次运行错配对象会变（fitness→cardiology）。
+- **修复**：改为按「**分类 + 文件名**」遍历工具页；对每个页面用**指南页自身反链**（正文是否含 `tools/<cat>/<file>`）消歧；仅当文件名全站唯一（`BASENAME_COUNT==1`）时可免校验；无法确认归属则**跳过**（宁可不注入也不错配，本次跳过 60 处）。
+- **教训**：手工删除错配链接无效——下一批注入会重新注入。必须修脚本根因。
+
+**跨天失效的日期依赖用例（9 处，P1）**
+
+- **症状**：09-16 凌晨跨天后，`astronomy` / `tcm-diagnosis` / `edu2` / `funeral` / `legal2` / `niche` / `property` / `safety` / `startup` 共 9 个用例集体失败。
+- **根因**：这些 expect 写死「今天」或「今天+偏移」的日期（如 `2026-09-15`、`2027-03-15`、`2028/3/15`），页面取当前日期计算 → 跨天即失效。
+- **修复**：改为**基于输入的确定性断言**（`10 年 保护期限`、`1 年 时效期间`、`18 个月 现金跑道`、`呼吸器`、`先考_X`、`5.9 天`），并逐个验证「真实输入命中 3/3 且**默认态不命中**」，避免退化成假通过。
+- **排除 5 个**（`inputs` 为空、或页面强制把日期重置为今天 / 忽略输入，导致输出与默认态完全一致，无法构造非平凡断言）：`edu2/study-progress`、`funeral/reminder-3`、`niche/reminder-cycle-succulent`、`property/cycle-10`、`astronomy/sunrise-sunset`、`tcm-diagnosis/ten-questions`。已登记 `scripts/_unverifiable.json`。
+
+**flaky 扫描结论（防复发）**
+
+- 对全站 slug 含 `generator|random|shuffle|dice|lottery|sample|pick|simulate|roll` 的 46 个用例做双跑比对：26 个输出随机，但用**用例真实 inputs** 复测后 **18/18 全部 5/5 稳定**（其 expect 如 `6.` 是恒在序号，cnt=8 固定生成 8 项）。
+- 真正会失败的是 **expect 取了随机值本身** 的情况（`image/generator-15` 的 `35px` 随机圆角、`food-testing/generator-27` 的 `300` 随机菌落数），已改为恒在的结构性标签（`生成圆角图片预览` / `菌落总数平板计数报告`）。
+- **判据**：判 flaky 必须用**用例真实 inputs**，不能用空 inputs（否则会误判 18 个稳定用例）。

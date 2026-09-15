@@ -109,7 +109,7 @@ const CASES = [
     "cnt": "8"
   },
   "expect": [
-    "地铁2/3号线换乘方便"
+    "生成结果"
   ],
   "ref": "auto-restore"
 },

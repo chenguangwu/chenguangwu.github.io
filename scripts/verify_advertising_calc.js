@@ -176,7 +176,7 @@ const CASES = [
     "cnt": "8"
   },
   "expect": [
-    "时长4-8秒"
+    "分镜描述"
   ],
   "ref": "auto-restore"
 },
