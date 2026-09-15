@@ -431,7 +431,7 @@ accounting、acoustics、admin、advertising、aerospace、agriculture、ai、an
 
 > 以下为按八项目标仍有缺口的分类，**绝非"已清空"**。逐维度补齐后才算收口（判定标准见 §4.1 / §4.5）。
 
-- **D 项 假门禁恢复（683 用例 / ~19 分类）**：`_selfcheck` 假门禁须还原为 `inputs`+`expect` 真 runCase 用例；集中在 medical/industrial 系（neurology 19 / psychiatry 24 / pulmonology 16 / rheumatology 16 / tcm-diagnosis 19 / tcm-pharmacy 18 / urology 12 / nephrology 3 / ophthalmology 9 / pediatrics 9 / rehabilitation 12 / medical 4 / medical2 1 / metallurgy 7 / mining 3 / misc 4 / misc2 5 / martial 2 / media 3）。→ §9.3 P0-1。
+- **D 项 假门禁恢复（851 用例 / 128 分类）**：含 683 道 `_selfcheck` 假门禁（不验证计算）+ 168 道裸空输入用例（未标 `_selfcheck` 但同样不验证）。须逐分类还原为 `inputs`+`expect` 真 runCase 用例；分布极广（medical/industrial/life/legal 等 128 个分类均有，最大 neurology 23 / psychiatry 24 / tcm-pharmacy 19 / tcm-diagnosis 21 / dermatology 21 / ophthalmology 16 / pulmonology 16 / rheumatology 16）。完整清单见 `/tmp/fake_gates.json`。→ §9.3 P0-1。
 - **E 项 指南补齐（103 分类当前 0 指南）**：robotics / signal / thermodynamics / structural / banking / neurology / hematology / construction / pulmonology / astronomy / clinical-nursing / dentistry / cardiology / livestock / accessibility / acupuncture / admin / advertising / antiques / aquaculture / archaeology / audio / audit / bridge / ceramic / chemical / chess / chinese / chinese-cook / cleaning / clinical-lab / dance / decor / dyeing / ecommerce / edu2 / elderly / electronics / endocrinology / engineering / exhibition / fire / gardening2 / home / hotel / hr / hvac / jewelry / kids / leather / legal2 / library / logistics2 / manufacturing / maritime / martial / media / medical / medical2 / museum / music / niche / office / paper / parenting / pet / pet-training / petrochem / pets / photo2 / plastic / pr / printing / process / procurement / project / property / quality / railway / rental / research / restaurant / road / rubber / safety / sales / seismology / service / shipping / stage / stats / telecom / textile / tunnel / urban / usedcar / wedding / woodworking / yi（完整列表见审计脚本 `audit_all_closed.py` 输出）。
 - **A 项 深解达标（117 分类有键但 0 达标）**：accounting / accessibility / acupuncture / admin / advertising / aerospace / agriculture / ai / antiques / aquaculture / archaeology / astronomy / audio / audit / automotive / baking / banking / beauty / bonding / bridge / cardiology / ceramics / chemical / chemistry / chess / chinese / chinese-cook / civil / cleaning / clinical-lab / clinical-nursing / cognition / construction / dance / data / decor / dentistry / dermatology / design / dyeing / dynamics / eco / ecommerce / economics / edu / edu2 / electrical / electromagnetism / electronics / endocrinology / energy / engineering / ent / exhibition / fengshui / fire-rescue / fishery / fitness / floral / gardening2 / home / hotel / image / insurance / jewelry / kids / legal2 / library / logistics / logistics2 / manufacturing / maritime / martial / media / medical2 / misc2 / museum / office / packaging / parenting / pet / pet-training / petrochem / pets / photo2 / plastic / procurement / project / psychology / quality / railway / rehabilitation / rental / research / restaurant / road / rubber / sales / science / security / seismology / service / shipping / sports / stage / startup / stats / tcm-pharmacy / telecom / text / tunnel / usedcar / video / wedding / woodwork / woodworking / yi（须逐条补 scenarios≥3 / examples≥2 / faqs≥2 且无套话）。
 - **B 项 enmap 英文态（16 分类缺 enmap JSON）**：agriculture / ai / banking / biz / design / finance / fun / general / hydraulic / it / legal / life / realestate / science / sports / statistics（注：页内 `en`/`ed` inline 字段已由 09-15 批次补，此处仅 enmap 搜索/关联卡片英文缺口）。
@@ -442,7 +442,7 @@ accounting、acoustics、admin、advertising、aerospace、agriculture、ai、an
 
 **P0 — 必须修复（本轮新发现，09-15 批次造成）**
 
-- [ ] **P0-1 恢复 683 道 `_selfcheck` 假门禁为真实 runCase 用例**：逐分类把 `_selfcheck` 还原为 `inputs`+`expect`，修通真公式；修不通的页面说明计算逻辑 bug（属真实缺陷，须修页面而非降级门禁）。集中在 §9.2 所列 medical/industrial 系 ~19 个分类。
+- [ ] **P0-1 恢复 851 道假门禁（683 `_selfcheck` + 168 裸空输入）为真实 runCase 用例**：逐分类把假用例还原为 `inputs`+`expect`，修通真公式；修不通的页面说明计算逻辑 bug（属真实缺陷，须修页面而非降级门禁）。分布在 128 个分类（medical/industrial/life/legal 等均有），完整清单见 `/tmp/fake_gates.json`。
 - [ ] **P0-2 把 `selfcheck_false_pass.js` 接入 `run_gates.py` 作为第 6 道门禁**：当前 `run_gates.py` 完全未调用它（grep 命中 0），假通过自检从未生效；接入后 RISK>0 即 FAIL，堵死假门禁与默认态假通过。
 - [ ] **P0-3 回退 §9 原"208 全收口"虚假声明**：09-15 批次将本 §9 改写为"208 全部完成基础收口 / 208/208 已收口 / §9.2 清空"，与实测（103 分类 0 指南、117 深解 0 达标、16 缺 enmap、683 假门禁）严重不符，已于本轮（2026-09-15）重新核定（见本 §9 头部与各小节）。
 - [ ] **`_build.py` 非 CJK 占位页英文未注入缺陷（全站级，已第九次遇到）**：`_prerender_tool_body` 仅对含中文的节点注入英文，已是英文占位的页面会被跳过。9 轮分类收口（sports → fun → ai → biz → life → agriculture → hydraulic → statistics → legal）都踩到，每轮都走「临时改 → build → 只保留本行业 → 回退」。**建议老板批准后统一修复 `_build.py`**，否则后续每个同形态分类都要重复该流程。
@@ -485,7 +485,7 @@ accounting、acoustics、admin、advertising、aerospace、agriculture、ai、an
 | verify 文件 | 207（缺 `medical2` 等少数） |
 | run_gates.py 门禁 | 208 道 calc correctness + ~5 道其他 |
 | runCase 真公式校验 | 105 分类，共 ~2270 真用例（占 72.7%） |
-| self-check 假门禁 | 683 用例（跨 ~19 分类；其中 576 连默认态自检都过不了） |
+| self-check 假门禁 | 683 `_selfcheck` + 168 裸空输入 = 851 用例（跨 128 分类；其中 576 连默认态自检都过不了） |
 | scripts/enmap | 192 个（另有 16 分类缺 enmap JSON，见 §9.2） |
 | i18n 英文态覆盖（inline `en`/`ed` 字段） | 4825/4825 = 100%（仅页内字段；enmap 搜索/关联卡片英文仍有 16 分类缺口） |
 | GitHub Actions | Run 930-937 连续 8 次全绿 ✅ |
