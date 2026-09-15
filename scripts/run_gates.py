@@ -87,6 +87,7 @@ GATES = (
     ("machinery calc correctness", ("node", "scripts/verify_machinery_calc.js")),
     ("thermodynamics calc correctness", ("node", "scripts/verify_thermodynamics_calc.js")),
     ("banking calc correctness", ("node", "scripts/verify_banking_calc.js")),
+    ("hematology calc correctness", ("node", "scripts/verify_hematology_calc.js")),
     ("math calc correctness", ("node", "scripts/verify_math_calc.js")),
     ("accounting calc correctness", ("node", "scripts/verify_accounting_calc.js")),
     ("fitness calc correctness", ("node", "scripts/verify_fitness_calc.js")),
