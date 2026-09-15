@@ -437,7 +437,6 @@
 
 > 清单由脚本按 `tools/` 目录工具数生成；每行 = 分类名 + 工具数。当前进行中的分类在 §8 同步登记。
 
-- [ ] robotics (28)
 - [ ] signal (28)
 - [ ] structural (28)
 - [ ] thermodynamics (28)

@@ -112,6 +112,7 @@ GATES = (
     ("optics calc correctness", ("node", "scripts/verify_optics_calc.js")),
     ("quantum calc correctness", ("node", "scripts/verify_quantum_calc.js")),
     ("robotics calc correctness", ("node", "scripts/verify_robotics_calc.js")),
+    ("signal calc correctness", ("node", "scripts/verify_signal_calc.js")),
     ("reproductive-medicine calc correctness", ("node", "scripts/verify_reproductive-medicine_calc.js")),
 )
 
