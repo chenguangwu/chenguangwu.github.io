@@ -122,6 +122,10 @@ GATES = (
     ("banking calc correctness", ("node", "scripts/verify_banking_calc.js")),
     ("reproductive-medicine calc correctness", ("node", "scripts/verify_reproductive-medicine_calc.js")),
     ("livestock calc correctness", ("node", "scripts/verify_livestock_calc.js")),
+    ("neurology calc correctness", ("node", "scripts/verify_neurology_calc.js")),
+    ("construction calc correctness", ("node", "scripts/verify_construction_calc.js")),
+    ("pulmonology calc correctness", ("node", "scripts/verify_pulmonology_calc.js")),
+    ("astronomy calc correctness", ("node", "scripts/verify_astronomy_calc.js")),
 )
 
 
