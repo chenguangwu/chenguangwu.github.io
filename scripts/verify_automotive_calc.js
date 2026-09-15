@@ -59,8 +59,7 @@ const CASES = [
   { slug: "automotive/xuanguatanhuangzunitexing", inputs: {"k":"28","c":"2000","m":"400","mu":"45","kt":"220","load":"380","stroke":"200"}, expect: ["幅值的"] }
 ];
 async function main() {
-  const only = process.argv.slice(2);
-  const cs = only.length ? CASES.filter((c) => only.some((o) => c.slug.endsWith("/" + o) || c.slug === o)) : CASES;
+  const cs = CASES;
   let pass = 0; const fails = [];
   for (const c of cs) {
     const min = c._min_inputs !== undefined ? c._min_inputs : 1;

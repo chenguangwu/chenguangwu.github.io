@@ -31,8 +31,7 @@ const CASES = [
   { slug: "livestock/yufeirizengzhong-liaoroubiquxian", inputs: {"w0":"300","w1":"480","days":"120","feed":"1100","price":"3.2"}, expect: ["暂无计算记录"] }
 ];
 async function main() {
-  const only = process.argv.slice(2);
-  const cs = only.length ? CASES.filter((c) => only.some((o) => c.slug.endsWith("/" + o) || c.slug === o)) : CASES;
+  const cs = CASES;
   let pass = 0; const fails = [];
   for (const c of cs) {
     const min = c._min_inputs !== undefined ? c._min_inputs : 1;

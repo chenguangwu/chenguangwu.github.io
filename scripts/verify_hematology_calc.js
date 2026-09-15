@@ -31,8 +31,7 @@ const CASES = [
   { slug: "hematology/transfusion-dose", inputs: {"pWeight":"70","pCurrentHgb":"60","pTargetHgb":"90","plWeight":"70","plCurrent":"10","plTarget":"40","fWeight":"70","fDose":"12","cWeight":"70","cCurrent":"0.8","cTarget":"1.5"}, expect: ["大剂量"] }
 ];
 async function main() {
-  const only = process.argv.slice(2);
-  const cs = only.length ? CASES.filter((c) => only.some((o) => c.slug.endsWith("/" + o) || c.slug === o)) : CASES;
+  const cs = CASES;
   let pass = 0; const fails = [];
   for (const c of cs) {
     const min = c._min_inputs !== undefined ? c._min_inputs : 1;

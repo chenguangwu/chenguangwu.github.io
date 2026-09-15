@@ -31,8 +31,7 @@ const CASES = [
   { slug: "food-testing/total-migration", inputs: {"m1":"50000.0","m2":"50015.0","m0":"48000.0","area":"3","limit":"10"}, expect: ["总迁移限量要求"] }
 ];
 async function main() {
-  const only = process.argv.slice(2);
-  const cs = only.length ? CASES.filter((c) => only.some((o) => c.slug.endsWith("/" + o) || c.slug === o)) : CASES;
+  const cs = CASES;
   let pass = 0; const fails = [];
   for (const c of cs) {
     const min = c._min_inputs !== undefined ? c._min_inputs : 1;

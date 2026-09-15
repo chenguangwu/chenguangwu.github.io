@@ -12,8 +12,7 @@ const CASES = [
   { slug: "decor/wallpaper-quantity", inputs: {"perimeter":"12","height":"2.8","deduct":"6","rollWidth":"0.53","rollLen":"10","pattern":"0.32","waste":"5"}, expect: ["素色无花壁纸损耗率可"] }
 ];
 async function main() {
-  const only = process.argv.slice(2);
-  const cs = only.length ? CASES.filter((c) => only.some((o) => c.slug.endsWith("/" + o) || c.slug === o)) : CASES;
+  const cs = CASES;
   let pass = 0; const fails = [];
   for (const c of cs) {
     const min = c._min_inputs !== undefined ? c._min_inputs : 1;

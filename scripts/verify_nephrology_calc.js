@@ -27,8 +27,7 @@ const CASES = [
   { slug: "nephrology/vascular-calcification", inputs: {"l1a":"1","l1p":"0","l2a":"2","l2p":"1","l3a":"2","l3p":"1","l4a":"1","l4p":"0"}, expect: ["血脂等传统危险因素"] }
 ];
 async function main() {
-  const only = process.argv.slice(2);
-  const cs = only.length ? CASES.filter((c) => only.some((o) => c.slug.endsWith("/" + o) || c.slug === o)) : CASES;
+  const cs = CASES;
   let pass = 0; const fails = [];
   for (const c of cs) {
     const min = c._min_inputs !== undefined ? c._min_inputs : 1;

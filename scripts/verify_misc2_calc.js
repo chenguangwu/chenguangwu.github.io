@@ -13,14 +13,19 @@ const CASES = [
   { slug: "misc2/tax-refund", inputs: {"amount":"50000","rate":"0.048"}, expect: ["日元可退税"] }
 ];
 async function main() {
-  const cs = CASES;
+  const only = process.argv.slice(2);
+  const cases = only.length ? CASES.filter((c) => only.some((o) => c.slug.endsWith("/" + o) || c.slug === o)) : CASES;
   let pass = 0; const fails = [];
-  for (const c of cs) {
-    const min = c._min_inputs !== undefined ? c._min_inputs : 1;
-    if (c.inputs && Object.keys(c.inputs).length >= min) { pass++; }
-    else { fails.push(c.slug); }
+  for (const c of cases) {
+    try {
+      const r = await runCase(c);
+      if (r.ok) { pass++; }
+      else { fails.push(c.slug); }
+    } catch (e) {
+      fails.push(c.slug);
+    }
   }
-  console.log("==== misc2 calc " + pass + "/" + cs.length + " ====");
+  console.log("==== misc2 calc " + pass + "/" + cases.length + " ====");
   if (fails.length) process.exit(1);
 }
-main();
+if (require.main === module) main();

@@ -9,14 +9,19 @@ const CASES = [
   { slug: "martial/strike-resistance", inputs: {"freq":"3"}, expect: ["建议在专业指导下进行"], _selfcheck: true, _min_inputs: 1 }
 ];
 async function main() {
-  const cs = CASES;
+  const only = process.argv.slice(2);
+  const cases = only.length ? CASES.filter((c) => only.some((o) => c.slug.endsWith("/" + o) || c.slug === o)) : CASES;
   let pass = 0; const fails = [];
-  for (const c of cs) {
-    const min = c._min_inputs !== undefined ? c._min_inputs : 1;
-    if (c.inputs && Object.keys(c.inputs).length >= min) { pass++; }
-    else { fails.push(c.slug); }
+  for (const c of cases) {
+    try {
+      const r = await runCase(c);
+      if (r.ok) { pass++; }
+      else { fails.push(c.slug); }
+    } catch (e) {
+      fails.push(c.slug);
+    }
   }
-  console.log("==== martial calc " + pass + "/" + cs.length + " ====");
+  console.log("==== martial calc " + pass + "/" + cases.length + " ====");
   if (fails.length) process.exit(1);
 }
-main();
+if (require.main === module) main();

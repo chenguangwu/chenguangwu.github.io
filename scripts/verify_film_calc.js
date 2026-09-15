@@ -10,8 +10,7 @@ const CASES = [
   { slug: "film/vfx-shot", inputs: {"shotCount":"120","shotDuration":"5","hoursPerShot":"40","teamSize":"8","dailyRate":"1500"}, expect: ["个月内"] }
 ];
 async function main() {
-  const only = process.argv.slice(2);
-  const cs = only.length ? CASES.filter((c) => only.some((o) => c.slug.endsWith("/" + o) || c.slug === o)) : CASES;
+  const cs = CASES;
   let pass = 0; const fails = [];
   for (const c of cs) {
     const min = c._min_inputs !== undefined ? c._min_inputs : 1;

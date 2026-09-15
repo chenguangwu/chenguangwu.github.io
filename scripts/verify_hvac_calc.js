@@ -14,8 +14,7 @@ const CASES = [
   { slug: "hvac/supply-air", inputs: {"coolLoad":"2500","deltaT":"8","roomVol":"120"}, expect: ["送风口数量"] }
 ];
 async function main() {
-  const only = process.argv.slice(2);
-  const cs = only.length ? CASES.filter((c) => only.some((o) => c.slug.endsWith("/" + o) || c.slug === o)) : CASES;
+  const cs = CASES;
   let pass = 0; const fails = [];
   for (const c of cs) {
     const min = c._min_inputs !== undefined ? c._min_inputs : 1;

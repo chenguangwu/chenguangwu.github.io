@@ -9,8 +9,7 @@ const CASES = [
   { slug: "forex/spread-cost", inputs: {"lots":"1","ask":"1.0852","bid":"1.0850","quoteUsdRate":"1","commission":"7","swap":"-3.5","days":"0"}, expect: ["结果"], _selfcheck: true, _min_inputs: 2 }
 ];
 async function main() {
-  const only = process.argv.slice(2);
-  const cs = only.length ? CASES.filter((c) => only.some((o) => c.slug.endsWith("/" + o) || c.slug === o)) : CASES;
+  const cs = CASES;
   let pass = 0; const fails = [];
   for (const c of cs) {
     const min = c._min_inputs !== undefined ? c._min_inputs : 1;

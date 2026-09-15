@@ -9,8 +9,7 @@ const CASES = [
   { slug: "audit/ratio-analysis", inputs: {"curAssets":"500000","inventory":"150000","curLiab":"300000","totalAssets":"1000000","totalLiab":"450000","equity":"550000","revenue":"800000","cogs":"480000","netProfit":"120000"}, expect: ["净利率"] }
 ];
 async function main() {
-  const only = process.argv.slice(2);
-  const cs = only.length ? CASES.filter((c) => only.some((o) => c.slug.endsWith("/" + o) || c.slug === o)) : CASES;
+  const cs = CASES;
   let pass = 0; const fails = [];
   for (const c of cs) {
     const min = c._min_inputs !== undefined ? c._min_inputs : 1;

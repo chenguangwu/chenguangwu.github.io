@@ -31,8 +31,7 @@ const CASES = [
   { slug: "neurology/updrs", inputs: {}, _min_inputs: 0, expect: ["未发现帕金森病运动症"], _selfcheck: true, _min_inputs: 0 }
 ];
 async function main() {
-  const only = process.argv.slice(2);
-  const cs = only.length ? CASES.filter((c) => only.some((o) => c.slug.endsWith("/" + o) || c.slug === o)) : CASES;
+  const cs = CASES;
   let pass = 0; const fails = [];
   for (const c of cs) {
     const min = c._min_inputs !== undefined ? c._min_inputs : 1;

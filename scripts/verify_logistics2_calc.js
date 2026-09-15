@@ -9,14 +9,19 @@ const CASES = [
   { slug: "logistics2/storage-allocation", inputs: {"totalRows":"10"}, expect: ["可显著降低拣货行走距"], _selfcheck: true, _min_inputs: 1 }
 ];
 async function main() {
-  const cs = CASES;
+  const only = process.argv.slice(2);
+  const cases = only.length ? CASES.filter((c) => only.some((o) => c.slug.endsWith("/" + o) || c.slug === o)) : CASES;
   let pass = 0; const fails = [];
-  for (const c of cs) {
-    const min = c._min_inputs !== undefined ? c._min_inputs : 1;
-    if (c.inputs && Object.keys(c.inputs).length >= min) { pass++; }
-    else { fails.push(c.slug); }
+  for (const c of cases) {
+    try {
+      const r = await runCase(c);
+      if (r.ok) { pass++; }
+      else { fails.push(c.slug); }
+    } catch (e) {
+      fails.push(c.slug);
+    }
   }
-  console.log("==== logistics2 calc " + pass + "/" + cs.length + " ====");
+  console.log("==== logistics2 calc " + pass + "/" + cases.length + " ====");
   if (fails.length) process.exit(1);
 }
-main();
+if (require.main === module) main();

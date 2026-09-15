@@ -28,8 +28,7 @@ const CASES = [
   { slug: "rehabilitation/wheelchair-posture", inputs: {"weight":"50","sitHeight":"50","hipWidth":"50","seatWidth":"50","seatDepth":"50","seatHeight":"50","backHeight":"50"}, expect: ["化建议"] }
 ];
 async function main() {
-  const only = process.argv.slice(2);
-  const cs = only.length ? CASES.filter((c) => only.some((o) => c.slug.endsWith("/" + o) || c.slug === o)) : CASES;
+  const cs = CASES;
   let pass = 0; const fails = [];
   for (const c of cs) {
     const min = c._min_inputs !== undefined ? c._min_inputs : 1;

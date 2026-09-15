@@ -9,14 +9,19 @@ const CASES = [
   { slug: "maritime/tide-window", inputs: {"highTideHeight":"4.5","lowTideHeight":"0.8","nextLowTideHeight":"1.0","chartDepth":"3.0","draft":"5.0","ukc":"0.5","transitTime":"60"}, expect: ["分钟"] }
 ];
 async function main() {
-  const cs = CASES;
+  const only = process.argv.slice(2);
+  const cases = only.length ? CASES.filter((c) => only.some((o) => c.slug.endsWith("/" + o) || c.slug === o)) : CASES;
   let pass = 0; const fails = [];
-  for (const c of cs) {
-    const min = c._min_inputs !== undefined ? c._min_inputs : 1;
-    if (c.inputs && Object.keys(c.inputs).length >= min) { pass++; }
-    else { fails.push(c.slug); }
+  for (const c of cases) {
+    try {
+      const r = await runCase(c);
+      if (r.ok) { pass++; }
+      else { fails.push(c.slug); }
+    } catch (e) {
+      fails.push(c.slug);
+    }
   }
-  console.log("==== maritime calc " + pass + "/" + cs.length + " ====");
+  console.log("==== maritime calc " + pass + "/" + cases.length + " ====");
   if (fails.length) process.exit(1);
 }
-main();
+if (require.main === module) main();
