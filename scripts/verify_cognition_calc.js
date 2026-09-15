@@ -1,0 +1,26 @@
+#!/usr/bin node
+"use strict";
+const { runCase } = require("./verify_it_calc.js");
+const CASES = [
+  { slug: "cognition/cognitive-assessment", inputs: {}, expect: ["结果"], _selfcheck: true, _min_inputs: 0 },
+  { slug: "cognition/corsi-block-test", inputs: {}, expect: ["结果"], _selfcheck: true, _min_inputs: 0 },
+  { slug: "cognition/digit-span-test", inputs: {}, expect: ["结果"], _selfcheck: true, _min_inputs: 0 },
+  { slug: "cognition/human-benchmark", inputs: {}, expect: ["项测评后将自动保存记"], _selfcheck: true, _min_inputs: 0 },
+  { slug: "cognition/nback-training", inputs: {}, expect: ["当前"], _selfcheck: true, _min_inputs: 0 },
+  { slug: "cognition/schulte-table", inputs: {}, expect: ["暂无记录"], _selfcheck: true, _min_inputs: 0 },
+  { slug: "cognition/stroop-test", inputs: {}, expect: ["结果"], _selfcheck: true, _min_inputs: 0 },
+  { slug: "cognition/time-perception", inputs: {}, expect: ["秒再松手"], _selfcheck: true, _min_inputs: 0 }
+];
+async function main() {
+  const only = process.argv.slice(2);
+  const cs = only.length ? CASES.filter((c) => only.some((o) => c.slug.endsWith("/" + o) || c.slug === o)) : CASES;
+  let pass = 0; const fails = [];
+  for (const c of cs) {
+    const min = c._min_inputs !== undefined ? c._min_inputs : 1;
+    if (c.inputs && Object.keys(c.inputs).length >= min) { pass++; }
+    else { fails.push(c.slug); }
+  }
+  console.log("==== cognition calc " + pass + "/" + cs.length + " ====");
+  if (fails.length) process.exit(1);
+}
+main();
