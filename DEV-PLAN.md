@@ -434,7 +434,7 @@ accounting、acoustics、admin、advertising、aerospace、agriculture、ai、an
 - [x] **D 项 假门禁恢复（851 用例 / 128 分类）—— 2026-09-15 已完成**：含 683 道 `_selfcheck` 假门禁（不验证计算）+ 168 道裸空输入用例（未标 `_selfcheck` 但同样不验证）。须逐分类还原为 `inputs`+`expect` 真 runCase 用例；分布极广（medical/industrial/life/legal 等 128 个分类均有，最大 neurology 23 / psychiatry 24 / tcm-pharmacy 19 / tcm-diagnosis 21 / dermatology 21 / ophthalmology 16 / pulmonology 16 / rheumatology 16）。完整清单见 `/tmp/fake_gates.json`。→ §9.3 P0-1（**已完成**：全 206 道 verify 实跑 FAIL 0，`selfcheck_false_pass.js` risk=0）。
 - [x] **E 项 指南补齐（99 分类）—— 2026-09-15 已完成**：（原记「103 分类」有误，磁盘实测 99，`ceramic` 目录不存在）robotics / signal / thermodynamics / structural / banking / neurology / hematology / construction / pulmonology / astronomy / clinical-nursing / dentistry / cardiology / livestock / accessibility / acupuncture / admin / advertising / antiques / aquaculture / archaeology / audio / audit / bridge / ceramic / chemical / chess / chinese / chinese-cook / cleaning / clinical-lab / dance / decor / dyeing / ecommerce / edu2 / elderly / electronics / endocrinology / engineering / exhibition / fire / gardening2 / home / hotel / hr / hvac / jewelry / kids / leather / legal2 / library / logistics2 / manufacturing / maritime / martial / media / medical / medical2 / museum / music / niche / office / paper / parenting / pet / pet-training / petrochem / pets / photo2 / plastic / pr / printing / process / procurement / project / property / quality / railway / rental / research / restaurant / road / rubber / safety / sales / seismology / service / shipping / stage / stats / telecom / textile / tunnel / urban / usedcar / wedding / woodworking / yi（完整列表见审计脚本 `audit_all_closed.py` 输出）。
 - **A 项 深解达标（117 分类有键但 0 达标）**：accounting / accessibility / acupuncture / admin / advertising / aerospace / agriculture / ai / antiques / aquaculture / archaeology / astronomy / audio / audit / automotive / baking / banking / beauty / bonding / bridge / cardiology / ceramics / chemical / chemistry / chess / chinese / chinese-cook / civil / cleaning / clinical-lab / clinical-nursing / cognition / construction / dance / data / decor / dentistry / dermatology / design / dyeing / dynamics / eco / ecommerce / economics / edu / edu2 / electrical / electromagnetism / electronics / endocrinology / energy / engineering / ent / exhibition / fengshui / fire-rescue / fishery / fitness / floral / gardening2 / home / hotel / image / insurance / jewelry / kids / legal2 / library / logistics / logistics2 / manufacturing / maritime / martial / media / medical2 / misc2 / museum / office / packaging / parenting / pet / pet-training / petrochem / pets / photo2 / plastic / procurement / project / psychology / quality / railway / rehabilitation / rental / research / restaurant / road / rubber / sales / science / security / seismology / service / shipping / sports / stage / startup / stats / tcm-pharmacy / telecom / text / tunnel / usedcar / video / wedding / woodwork / woodworking / yi（须逐条补 scenarios≥3 / examples≥2 / faqs≥2 且无套话）。
-- **B 项 enmap 英文态（16 分类缺 enmap JSON）**：agriculture / ai / banking / biz / design / finance / fun / general / hydraulic / it / legal / life / realestate / science / sports / statistics（注：页内 `en`/`ed` inline 字段已由 09-15 批次补，此处仅 enmap 搜索/关联卡片英文缺口）。
+- [x] **B 项 enmap 英文态（16 分类缺 enmap JSON）—— 2026-09-16 已完成**：agriculture / ai / banking / biz / design / finance / fun / general / hydraulic / it / legal / life / realestate / science / sports / statistics。**关键发现：这 16 分类英文并非从零缺失，而是"有英文、无 enmap 数据源"**——`industry-<cat>.json` 的 `en`/`ed` 本已 100% 覆盖，仅 `i18n en-US` 缺 51 条、85 页缺 body 键。故 enmap 采用**无损反推**生成（不编造英文）：`name`/`intro` 依次取自 `i18n/tools/<cat>-body.json` 的 en 字段 → `_en_override` 的 en/ed → `industry-<cat>.json`，并用已收口分类 eco 做闭环校验（body→enmap 38/38 完全等价）；label 取自 `i18n/industry-en.json`。成果：16 份 enmap 新增，1496 页全覆盖（中文名 0 / 中文简介 0 / 空简介 0），i18n en-US 1360→**1496（100%）**，补齐 85 条 body 键，h2 对齐规范英文名 196 处（修复线上 `title-en` 与 h2 不一致，如 `agriculture/calc-36` 的 `(ET / Evapotranspiration)` vs `(ET)`），占位 `<p>` 替换 12 处。**零破坏性**：cat 修正 0（enmap 不含 cat 字段，不改页面 meta cat）、孤儿键清理 0。**遗留**：140 个真孤儿键（general 110 / it 18 / finance 5 / science 4 / design 3）仅报告未删，需老板确认后再清理。全 214 道门禁通过，提交 `bd9a1b1da`。详见 §9.7。
 
 ### 9.3 孤立未完成任务（按优先级）
 
@@ -576,3 +576,43 @@ accounting、acoustics、admin、advertising、aerospace、agriculture、ai、an
 - 对全站 slug 含 `generator|random|shuffle|dice|lottery|sample|pick|simulate|roll` 的 46 个用例做双跑比对：26 个输出随机，但用**用例真实 inputs** 复测后 **18/18 全部 5/5 稳定**（其 expect 如 `6.` 是恒在序号，cnt=8 固定生成 8 项）。
 - 真正会失败的是 **expect 取了随机值本身** 的情况（`image/generator-15` 的 `35px` 随机圆角、`food-testing/generator-27` 的 `300` 随机菌落数），已改为恒在的结构性标签（`生成圆角图片预览` / `菌落总数平板计数报告`）。
 - **判据**：判 flaky 必须用**用例真实 inputs**，不能用空 inputs（否则会误判 18 个稳定用例）。
+
+### 9.7 2026-09-16 · B 项 enmap 英文态全量补齐（16 分类，1496 页）
+
+**核心认知（避免后续重复造轮子）**
+
+- B 项标题是「16 分类缺 enmap JSON」，但**英文内容本身早已补齐**（09-15 批次）：`json/industry-<cat>.json` 的 `en`/`ed` **1411/1411 全覆盖**。真正的缺口只有两处——① 缺 `scripts/enmap/<cat>.json` 这份**数据源文件**（导致该 16 分类无法再跑 `fix_industry_body_i18n.py` 复现/修复）；② `i18n/tools/<cat>.json` 的 `en-US` 缺 51 条、85 页缺 body 键。
+- **结论：enmap 不必（也不应）从零编写英文，用既有数据源无损反推即可**，且反推结果与已收口分类完全等价（eco 闭环校验 38/38）。
+
+**反推优先级（不可编造英文）**
+
+```
+name : body[slug].en.title  -> _en_override['<cat>/<slug>'].en -> industry-<cat>.en
+intro: body[slug].en.intro  -> _en_override['<cat>/<slug>'].ed -> industry-<cat>.ed
+label: i18n/industry-en.json[cat]
+```
+`ed` 清洗：若含 `Free online tool on ToolBox` 则剥后缀，并剥 `Name. ` 前缀（enov 的 ed 各分类格式不一）。
+
+**两个易踩的坑（已验证）**
+
+1. `json/industry-<cat>.json` 的 `ed` 是**构建产物且被截断到 60 字符**（`_build.py` 第 1934 行 `TDS.en_desc(t, max_len=60)`），**不能**当作完整 intro；完整 intro 在 `i18n/tools/<cat>-body.json` 的 `en.intro`（或 `_en_override` 的 `ed`）。
+2. `desc-en` / `title-en` 也是**构建产物**（`_build.py` 3104/3161 行，desc-en 还截 160 字符），页面里改它会被下次构建覆盖，**是瞬态改动、不算风险**；而 `h2`（带 `data-zh`）是**静态的、构建不重建**，改它会真实影响英文用户所见。
+
+**成果与验证**
+
+| 项 | 结果 |
+|---|---|
+| enmap 新增 | 16 份（B 项清零） |
+| 覆盖 | 1496/1496 页，未覆盖 0、多余 0 |
+| 质量 | 中文名 0、中文简介 0、空简介 0（无需 slug 兜底） |
+| i18n en-US | 1360 → **1496（100%）**，补齐 85 条 body 键 |
+| h2 对齐 | 196 处（修 `title-en` 与 h2 不一致） |
+| 破坏性 | cat 修正 0、孤儿键清理 0 |
+
+- 校验脚本：`extractCases` 式逐页比对；抽检 `agriculture/calc-36` —— h2 由 `(ET / Evapotranspiration)` 对齐为 `(ET)`、`data-zh` 保留、icon `🌾` 保留、desc-en 由构建重建为标准格式。
+- `life` 15 页 h2「未含规范名」经查为 `&amp;` HTML 转义（`esc_html` 正确行为）＋ 1 页无 `data-zh` 的 h2（页面结构差异），非回归。
+- 全 **214 道门禁通过**，提交 `bd9a1b1da`。
+
+**遗留（需老板确认）**
+
+- 140 个**真孤儿键**（`general 110` / `it 18` / `finance 5` / `science 4` / `design 3`，即全站无对应页面的死键）。按「禁止擅自批量删除」规矩**仅报告未删**；确认后可将其写入 enmap 的 `_meta.orphans` 复用既有脚本清理。
