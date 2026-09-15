@@ -121,6 +121,7 @@ GATES = (
     ("thermodynamics calc correctness", ("node", "scripts/verify_thermodynamics_calc.js")),
     ("banking calc correctness", ("node", "scripts/verify_banking_calc.js")),
     ("reproductive-medicine calc correctness", ("node", "scripts/verify_reproductive-medicine_calc.js")),
+    ("livestock calc correctness", ("node", "scripts/verify_livestock_calc.js")),
 )
 
 
