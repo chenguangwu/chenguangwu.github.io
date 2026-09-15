@@ -8,9 +8,9 @@ const CASES = [
     "cnt": "8"
   },
   "expect": [
-    "35px"
+    "生成圆角图片预览"
   ],
-  "ref": "auto-restore"
+  "ref": "auto-restore-structural"
 },
 {
   "slug": "image/id-photo-crop",
