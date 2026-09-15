@@ -168,7 +168,6 @@ GATES = (
     ("cognition calc correctness", ("node", "scripts/verify_cognition_calc.js")),
     ("data calc correctness", ("node", "scripts/verify_data_calc.js")),
     ("decor calc correctness", ("node", "scripts/verify_decor_calc.js")),
-    (" calc correctness", ("node", "scripts/verify__calc.js")),
     ("chinese-cook calc correctness", ("node", "scripts/verify_chinese-cook_calc.js")),
     ("dance calc correctness", ("node", "scripts/verify_dance_calc.js")),
 )
