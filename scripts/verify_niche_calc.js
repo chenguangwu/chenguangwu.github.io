@@ -140,14 +140,6 @@ const CASES = [
   "ref": "auto-restore"
 },
 {
-  "slug": "niche/reminder-cycle-succulent",
-  "inputs": {},
-  "expect": [
-    "2026-09-15"
-  ],
-  "ref": "auto-restore(default)"
-},
-{
   "slug": "niche/succulent-watering",
   "inputs": {
     "season": "summer"

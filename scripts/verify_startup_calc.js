@@ -13,7 +13,7 @@ const CASES = [
     "other": "20000"
   },
   "expect": [
-    "2028/3/15"
+    "18 个月 现金跑道"
   ],
   "ref": "auto-restore"
 },

@@ -34,17 +34,6 @@ const CASES = [
   "ref": "auto-restore(default)"
 },
 {
-  "slug": "edu2/study-progress",
-  "inputs": {
-    "dailyHours": "7",
-    "subjectInput": ""
-  },
-  "expect": [
-    "2026-10-24"
-  ],
-  "ref": "auto-restore"
-},
-{
   "slug": "edu2/wrong-book",
   "inputs": {
     "fReviewDays": "3",

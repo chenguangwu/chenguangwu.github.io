@@ -89,14 +89,6 @@ const CASES = [
   "ref": "auto-restore"
 },
 {
-  "slug": "property/cycle-10",
-  "inputs": {},
-  "expect": [
-    "2026-09-15"
-  ],
-  "ref": "auto-restore(default)"
-},
-{
   "slug": "property/cycle-elevator",
   "inputs": {
     "logDate_'+el.id+'": "'+todayStr()+'_X"

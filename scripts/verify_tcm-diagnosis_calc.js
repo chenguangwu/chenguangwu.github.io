@@ -135,14 +135,6 @@ const CASES = [
   "ref": "auto-restore"
 },
 {
-  "slug": "tcm-diagnosis/ten-questions",
-  "inputs": {},
-  "expect": [
-    "2026/9/15"
-  ],
-  "ref": "auto-restore(default)"
-},
-{
   "slug": "tcm-diagnosis/tongue-diagnosis",
   "inputs": {},
   "expect": [

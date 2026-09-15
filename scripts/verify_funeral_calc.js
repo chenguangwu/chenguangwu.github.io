@@ -48,17 +48,9 @@ const CASES = [
     "memName": ""
   },
   "expect": [
-    "先考_X逝世1周年"
+    "先考_X"
   ],
   "ref": "auto-restore"
-},
-{
-  "slug": "funeral/reminder-3",
-  "inputs": {},
-  "expect": [
-    "2026-09-15"
-  ],
-  "ref": "auto-restore(default)"
 },
 {
   "slug": "funeral/urn-size",

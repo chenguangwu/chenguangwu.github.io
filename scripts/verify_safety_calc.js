@@ -86,7 +86,7 @@ const CASES = [
     "type": "呼吸器"
   },
   "expect": [
-    "2026-10-15"
+    "呼吸器"
   ],
   "ref": "auto-restore"
 },

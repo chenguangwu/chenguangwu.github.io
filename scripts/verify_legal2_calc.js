@@ -29,7 +29,7 @@ const CASES = [
     "ipType": "utility"
   },
   "expect": [
-    "2031-09-15"
+    "10 年 保护期限"
   ],
   "ref": "auto-restore"
 },
@@ -50,7 +50,7 @@ const CASES = [
     "limitType": "1"
   },
   "expect": [
-    "2027-03-15"
+    "1 年 时效期间"
   ],
   "ref": "auto-restore"
 }

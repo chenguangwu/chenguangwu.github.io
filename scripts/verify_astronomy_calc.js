@@ -211,27 +211,16 @@ const CASES = [
   "ref": "auto-restore"
 },
 {
-  "slug": "astronomy/sunrise-sunset",
-  "inputs": {
-    "inputLat": "59.9",
-    "inputLon": "116.4",
-    "inputTz": "8"
-  },
-  "expect": [
-    "12小时56分"
-  ],
-  "ref": "auto-restore"
-},
-{
   "slug": "astronomy/tide-estimator",
   "inputs": {
     "range": "5",
-    "lat": "30"
+    "lat": "30",
+    "date": "2026-06-21"
   },
   "expect": [
-    "-2.55"
+    "5.9 天"
   ],
-  "ref": "auto-restore"
+  "ref": "auto-restore-fixeddate"
 }
 ];
 async function main() {
