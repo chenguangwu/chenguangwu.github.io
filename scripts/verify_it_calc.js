@@ -38,6 +38,23 @@ FrozenDate.parse = REAL_DATE.parse.bind(REAL_DATE);
 FrozenDate.UTC = REAL_DATE.UTC.bind(REAL_DATE);
 FrozenDate.prototype = REAL_DATE.prototype;
 
+// 根治（续）：把 Math.random 也替换成「确定性种子 PRNG」，并在每个用例前重置种子。
+// 原因：Math.random 类页面（随机推荐 / 随机生成器 / 随机抽题等）在本地与 CI 的随机序列不同，
+// 且 Node 版本（ICU / V8）差异会让「断言随机输出值」的用例偶发落空（已发生 niche 等门禁）。
+// 固定种子 + 每用例重置 → 任何页面在任意进程、任意环境下都得到完全一致的随机序列，门禁可重现。
+let _rngState = 0;
+function _rngReset() { _rngState = 0x9e3779b9 >>> 0; }
+(function installSeededRandom() {
+  _rngReset();
+  const next = () => {
+    _rngState = (_rngState + 0x6d2b79f5) | 0;
+    let t = Math.imul(_rngState ^ (_rngState >>> 15), 1 | _rngState);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+  Math.random = next;
+})();
+
 
 // ---------------------------------------------------------------- 用例
 const CASES = [
@@ -343,6 +360,7 @@ async function runCase(c) {
 }
 
 async function runCaseInner(c) {
+  _rngReset(); // 每个用例前重置随机种子，确保随机页输出与顺序/环境无关
   const file = path.join(TOOLS_DIR, c.slug + ".html");
   if (!fs.existsSync(file)) return { ok: false, why: "文件不存在" };
   const html = fs.readFileSync(file, "utf8");
