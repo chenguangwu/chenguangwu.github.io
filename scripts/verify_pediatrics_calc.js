@@ -256,9 +256,9 @@ const CASES = [
     "vaccinatedMonth": ""
   },
   "expect": [
-    "2025-09-15"
+    "乙肝疫苗(第1剂)"
   ],
-  "ref": "auto-restore(default)"
+  "ref": "auto-restore(default)；页面接种时间表用 new Date() 相对今天推算各剂次日期，原期望绝对日期 2025-09-15 随真实日期漂移（过期 1 天），改断言与今天无关的静态疫苗名称「乙肝疫苗(第1剂)」"
 },
 {
   "slug": "pediatrics/vanderbilt-adhd",

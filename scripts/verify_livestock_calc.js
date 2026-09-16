@@ -135,9 +135,9 @@ const CASES = [
     "feedPrice": "3.5"
   },
   "expect": [
-    "2026年10月22日"
+    "预计饲养天数 38"
   ],
-  "ref": "auto-restore"
+  "ref": "auto-restore；页面「预计出栏日期」用 new Date() 相对今天推算，绝对日期随真实日期漂移（写用例时的「今天」已过期 1 天），故改断言由输入确定、与今天无关的「预计饲养天数 38」（(120-90)/0.8=37.5→ceil 38），规避日期型门禁偶挂"
 },
 {
   "slug": "livestock/feed-conversion-ratio",
@@ -311,9 +311,9 @@ const CASES = [
     "drugSelect": "oxytetracycline"
   },
   "expect": [
-    "2026年10月13日"
+    "休药期 28 天"
   ],
-  "ref": "auto-restore"
+  "ref": "auto-restore；页面「休药期结束日期」用 new Date() 相对今天推算，绝对日期随真实日期漂移（写用例时的「今天」已过期 1 天），故改断言由药品表确定、与今天无关的「休药期 28 天」（土霉素 oxytetracycline 对应休药期），规避日期型门禁偶挂"
 },
 {
   "slug": "livestock/yufeirizengzhong-liaoroubiquxian",

@@ -125,9 +125,9 @@ const CASES = [
   "slug": "fire/response-drill",
   "inputs": {},
   "expect": [
-    "拨打119报警"
+    "火灾"
   ],
-  "ref": "auto-restore(default)"
+  "ref": "auto-restore(default)；页面 newScenario() 随机选 6 个场景之一并写入 scenarioName，6 个场景名均含「火灾」，故该子串确定出现，规避 Math.random 选景偶发失败（原期望「拨打119报警」仅 5/6 场景含，约 1/6 概率误挂门禁）"
 }
 ];
 async function main() {

@@ -164,8 +164,9 @@ const CASES = [
   "slug": "travel/travel-days-counter",
   "inputs": {},
   "expect": [
-    "2026-09-15"
+    "8 天 (7晚)"
   ],
+  "ref": "auto-restore(default)；页面默认 start=今天、end=今天+7，原期望绝对日期 2026-09-15 随真实日期漂移（过期 1 天），改断言与今天无关的行程时长「8 天 (7晚)」（恒为 7 晚行程）",
   "ref": "auto-restore(default)"
 },
 {
@@ -202,8 +203,9 @@ const CASES = [
   "slug": "travel/world-timezone-converter",
   "inputs": {},
   "expect": [
-    "2026-09-15"
+    "北京/上海"
   ],
+  "ref": "auto-restore(default)；页面按 new Date() 显示各时区当前日期，原期望绝对日期 2026-09-15 随真实日期漂移（过期 1 天），改断言与今天无关的静态城市标签「北京/上海」",
   "ref": "auto-restore(default)"
 }
 ];

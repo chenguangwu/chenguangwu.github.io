@@ -39,9 +39,9 @@ const CASES = [
   "slug": "cleaning/appliance-cycle",
   "inputs": {},
   "expect": [
-    "2026-09-15"
+    "已到清洁周期"
   ],
-  "ref": "auto-restore(default)"
+  "ref": "auto-restore(default)；页面「上次清洁」默认未记录、用 new Date() 取今天判断到期，原期望绝对日期 2026-09-15 随真实日期漂移（过期 1 天），改断言与今天无关的静态状态标题「已到清洁周期」"
 },
 {
   "slug": "cleaning/checker-10",
