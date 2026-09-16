@@ -21,6 +21,7 @@ const CAT_INFO = {
   finance:   { name: '金融投资', icon: '💰' },
   health:    { name: '健康医疗', icon: '💪' },
   engineer:  { name: '工程计算', icon: '⚙️' },
+  daily:     { name: '日常工具', icon: '🗓️' },
 };
 
 let HOT_TOOLS = [];

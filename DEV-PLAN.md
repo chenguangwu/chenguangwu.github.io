@@ -484,15 +484,15 @@ accounting、acoustics、admin、advertising、aerospace、agriculture、ai、an
 
 **P2 — 低优先级**
 
-- [ ] **全站非法 cat 4 处**（baking/biz/daily/automotive 各 1 个）：不在 `CAT_DEFS` 内，标签回退为原始英文 slug。补注册即可。
+- [x] **全站非法 cat 排查与 `daily` 补注册 —— 2026-09-16 已修复**：原记「4 处（baking/biz/daily/automotive）标签回退裸 slug」经核查不准确——`baking/biz/automotive` 均在 `INDUSTRY_DEFS`，搜索卡走 `INDUSTRY_INFO`、构建走 `INDUSTRY_DEFS` 回退，中文标签正常（`🧁烘焙甜点`/`💼商业办公`/`🚗汽车交通`）；**唯一真正两处字典都缺（且不在 `INDUSTRY_DEFS`）的是 `daily`**（`tools/life/parking-fee.html`，cat=daily、industry=life），其分类筛选页标题（`js/app.js` `CAT_INFO['daily']` 缺失）会显示裸 "daily"。已补注册：`_build.py` `CAT_DEFS` 加 `daily:('🗓️','#e1f5fe','日常工具')` + `js/app.js` `CAT_INFO` 加同名条目（两处均为分类名权威源）。`reproductive-medicine`（28 工具）虽不在 `CAT_DEFS` 但在 `INDUSTRY_DEFS`，渲染正常，未动。全 214 道门禁通过。
 - [x] **`design/color-shade-generator` 亮色梯度实现缺陷 —— 2026-09-16 已修复**：`mix(c,t)` 实为 `Math.round(t)`，tint 侧退化为纯灰度（`#d5d5d5` 档）、与基色无关。改为三参 `mix(c,t,r)=round(c+(t−c)·r)`（对齐页面公式 `tint=C·(1−t)+255·t`），tint 侧 `mix(rgb,255,f)`、shade 侧 `mix(rgb,0,f2)` 均按混合比例插值；基色 #6366F1/steps=5 现得最浅 tint `#e5e6fd`、最深 shade `#111128`。门禁补 1 道判别性回归用例（`expect:["#e5e6fd"]`，仅正确 tint 命中；灰度/NaN 态均不含此串）—— 踩到并行改同文件导致 142 行被覆盖的坑，已逐行复核落盘。
-- [ ] **`hydraulic/calc-1`（Darcy-Weisbach + Colebrook）未纳入门禁**：verify_it_calc.js DOM stub 缺 `ToolBox.formatNumber` API。补 stub 即可纳入。
-- [ ] **`fun/convert-speed-stride` 单位换算 select 值 1/0/1000**：选 0 除零且语义不清。
+- [ ] **`hydraulic/calc-1`（Darcy-Weisbach + Colebrook）未纳入门禁**：核查 `verify_it_calc.js` 已有 `ToolBox.formatNumber` stub（行 457），原记"缺 stub"不准确；该页仅缺真实 `inputs`+`expect` 用例，补一道 runCase 即可纳入（低优先级覆盖率，非功能 bug）。
+- [x] **`fun/convert-speed-stride` 单位换算 select 值 —— 2026-09-16 核查非 bug**：原记"选 0 除零"不准确，当前代码 `from`/`to` 的 option 值为 `1 / 0.001 / 1000`，**无字面 0**，不会出现除零；公式为 `v*rate*f/t`，属通用乘算器。语义偏"步幅↔速度"标签不严谨（维度不同），但非计算错误，未改（避免伪功能改动）。
 - [ ] **`fun` 行业 h2 图标被语义重分配为 🎮**：含计算类工具（烧烤分量计算器），图标与语义不符。
 - [ ] **`_build.py` 第 1710 行 desc 图标剥离正则漏 `\\u2300-\\u23FF` 区**：全站 74 页 h2 英文带未剥离图标（⏰/⌚/⏳ 等）并注入 `tools.json`/`industry-*.json` 的 desc。CI 会重算，属既有构建行为。
 - [ ] **审计脚本 `endswith('index.html')` 口径缺陷**：已修；全站另有 15 个 `-index.html` 结尾的真实工具页（clinical-nursing/barthel-index 等），已重计。
 - [ ] **`psychiatry.json` 并行进程未提交改动**（mtime 2026-09-13）：需老板确认归属。
-- [ ] **`funeral` 和 `dance` verify 跑超时**：需单独排查（60s 内没返回）。
+- [x] **`funeral` 和 `dance` verify 跑超时 —— 2026-09-16 核查非问题**：原记"60s 内没返回"不准确，当前 `verify_funeral_calc.js`（5/5）、`verify_dance_calc.js`（7/7）均 **0.1s 完成**，无超时。疑似早期批次已修复或记录有误，未再处理。
 
 ### 9.4 2026-09-15 本轮全站收口记录
 
