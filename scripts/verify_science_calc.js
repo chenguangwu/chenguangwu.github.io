@@ -55,7 +55,7 @@ const CASES = [
   },
   {
     slug: "science/ph-calculator",
-    inputs: { input: "3" }, // mode 默认 'ph'
+    inputs: { ph: "3" }, // 页面真实输入 id=ph，默认模式 pH→[H⁺]
     expect: ["3.00", "1.000e-3"],
     ref: "pH=3 → [H⁺]=10⁻³=1.000e-3 mol/L；resPh=3.00、resH=1.000e-3（toFixed(2)/toExponential(3)）",
   },

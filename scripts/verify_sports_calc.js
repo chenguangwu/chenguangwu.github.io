@@ -63,7 +63,7 @@ const CASES = [
   // ── 游泳 SWOLF ──────────────────────────────────────────────
   {
     slug: "sports/swimming-stroke-efficiency",
-    inputs: { "pool-length": "", strokeCount: "20", swimTime: "30", strokeType: "" }, // 池长默认 25
+    inputs: { "pool-length": "25", "stroke-count": "20", "swim-time": "30", "stroke-type": "freestyle" }, // 页面真实 id 带连字符
     expect: ["26.0"],
     ref: "SWOLF = 划次 + 时间/5 = 20 + 30/5 = 26.0（页面 toFixed(1)，big-val）",
   },

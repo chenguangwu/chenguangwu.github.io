@@ -472,7 +472,7 @@ accounting、acoustics、admin、advertising、aerospace、agriculture、ai、an
 **P1 — 建议修复**
 
 - [ ] **SEO Description 重复（2026-09-16 复核）**：工具页 meta description 已**零重复**（5026 页全唯一，原"69 组"已消解）。全站扫描另见 **4690 个重复组 / 9380 页**集中在非工具页（guides / industry / index / sitemap），其中大量为同类页共享模板描述（如某行业 6 篇指南同描述），属预期近似重复，**非工具页"69 组"范畴**。是否对这部分做唯一化（按页标题/核心词区分）需老板定夺，避免无价值 churn —— 暂未动。
-- [ ] **verify 49 个降级分类深挖 runCase**：根因是批量生成 verify 时 inputs id 按结构推断，部分页面真实 `<input id>` 不完全对应。修法：逐页抓 DOM → 对齐真实 id → 跑 step 2 harness → 通过后改回 runCase main。每类约 5-10 分钟，分批推进。
+- [x] **门禁 id 错配伪门禁根治（全站审计，2026-09-16 已修复）**：原记「49 个降级分类 inputs id 按结构推断不匹配」经**全量审计（208 脚本 / 3059 用例）推翻**——49 分类 784 用例 inputs id **全部真实存在于页面**（早已正确还原，ref 标注 auto-restore）。真正 id 错配伪门禁集中在 **signal 17/24 + science 1/8 + sports 1/8 = 19 用例**：用例 key 与页面真实 id 大小写/缩写不一致（如 `q`→页面`Q`、`fupper/flower`→`fu/fl`、`a`→`vout/vin`、`amp`→`Vpk`），导致输入未注入、calc 跑默认值、expect 因恒定子串命中而**假通过**。已逐页读 calc 对齐真实 id 并重算 expect；其中 **4 处 expect 数值/符号本身也错**（bandwidth-q 应 40.000 而非 200.000、group-delay 符号应 +0.001571、damping-ratio 取非默认 0.2、pwm-average 按 D 百分比 2.5）。三道门禁现 24/24、8/8、8/8 真通过；全 213 道门禁 + 反伪自检 risk=0。
 - [ ] **deep-dive 旧格式（summary/example 单键）全站扫描**：`content_deepdive.json` 的 edu 段 44 条用旧键（已修复），建议全量扫描 `summary`/`example` 旧键并转写为 `title`/`examples`（数组格式），否则这些页面的「📚 深度解析」标题与示例段永不渲染。
 - [ ] **`classify_quality()` A 级率 100% 失真**：仅凭页面存在 `formula-box` 即判 A，占位公式页同样判 A。未改避免影响全站分级；建议改为校验公式与说明是否已真实化后再计入。
 - [ ] **`realestate` 三页 `calc-93` / `pv` / `depreciation-2` 为跨行业通用 A/B 双输入模板**：268 行业复用，按 h1 正则分流；verify 它等于验证模板，未纳入门禁。
@@ -651,3 +651,17 @@ label: i18n/industry-en.json[cat]
 **结论**：全量 `run_gates.py` 连跑 3 次 **214/214 稳定通过**；本批修复与 `fire/livestock/cleaning/pediatrics/travel` 之前的日期用例修复一并提交（`submit_google_indexing_api.py`、`_unverifiable.json` 按老板要求一并入库）。
 
 **新约定（防复发）**：门禁用例**严禁断言绝对日期或随机命中串**，必须断言由输入确定、与运行时刻无关的结果（时长/计数/静态标题/状态）；新增日期型页面 CI 自动稳定，无需改用例。
+
+### 9.8 2026-09-16 后续批次 · 门禁 id 错配伪门禁根治
+
+> 承接 §9.3 P1「49 个降级分类深挖 runCase」。全量审计（208 脚本 / 3059 用例）表明：49 分类 784 用例 inputs id 全部真实存在于页面（早已正确还原），原「id 不匹配」根因对该批不成立；真正 id 错配伪门禁集中在 **signal 17/24 + science 1/8 + sports 1/8 = 19 用例**。
+
+**根因**：批量生成 verify 时 inputs key 按命名推断（小写长名/缩写），与页面真实 `<input id>`（大小写/缩写不同）不一致。`runCase` 注入不存在的 id → 输入未驱动 calc → 页面跑默认输入 → expect 因恒定子串命中而**假通过**（伪门禁）。
+
+**修复（逐页读 calc 对齐真实 id + 重算 expect）**
+- signal 17 例：`q→Q`、`fupper/flower→fu/fl`、`t→T`、`n→N`、`a→vout/vin`、`phasedeg/freq→dp/dw`、`wn/zeta→k/m`、`d/vhigh→D/Vcc`、`l/c→bw`、`r/c→R/C`、`amp→Vpk`（sine-rms/signal-power）、`f0→T`（fourier-base）、`mp→c/k/m`（damping-ratio）、`x1-4→s`（energy-discrete）、`s/n→ps/pn`（snr-db）、`step/kp→Kp`（steady-state-error）。
+- 4 处 expect 数值/符号本身也错，已据真实公式纠正：**bandwidth-q 200.000→40.000**（f0/Q=2000/50）、**group-delay -0.001571→+0.001571**（dp=-90 代入）、**damping-ratio 取非默认 c=4→0.2000**、**pwm-average 按 D 百分比 D=50→2.500**（原误按小数 D=0.5 得 0.025）。
+- science/ph-calculator：`input→ph`（真实 id，默认 pH→[H⁺] 模式）。
+- sports/swimming-stroke-efficiency：`strokeCount/strokeTime/strokeType→stroke-count/stroke-time/stroke-type`（真实 id 带连字符）。
+
+**验证**：三道门禁 24/24、8/8、8/8 真通过；`run_gates.py --skip-build` 全 213 道门禁 + 反伪自检（risk=0）通过。提交后 GitHub Actions 门禁阶段必跑（verify 脚本入 CI，非部署产物）。
