@@ -402,6 +402,18 @@
     var h2 = card.querySelector('h2');
     var introP = card.querySelector('p');
 
+    // 兜底：多卡片布局页的主工具卡内可能完全没有 <p>（其唯一的 <p data-zh> 落在次级卡片里），
+    // 此时 introP 为 null，中文态会漏掉该段落 → 用户看到静态英文。
+    // 该段落是「小节说明」而非主介绍，英文态**不可**套用 body.intro，故独立成 FB_INTRO，
+    // 只在非英文态写回 data-zh 原文。
+    var fbP = null;
+    if (!introP) {
+      var _cand = document.querySelectorAll('p[data-zh]');
+      for (var _i = 0; _i < _cand.length; _i++) {
+        if (!_cand[_i].hasAttribute('data-i18n')) { fbP = _cand[_i]; break; }
+      }
+    }
+
     // 已由 data-i18n 管理的（6 个手工工具页）交给 I18n.apply，跳过避免冲突
     var skipH2 = !!(h2 && (h2.querySelector('[data-i18n]') || isFormula(h2.textContent)));
     var skipIntro = !!(introP && introP.hasAttribute('data-i18n'));
@@ -423,6 +435,12 @@
     if (!isEnglish()) {
       if (!skipH2 && h2 && ORIG[slug] && ORIG[slug].title != null) h2.textContent = ORIG[slug].title;
       if (!skipIntro && introP && ORIG[slug] && ORIG[slug].intro != null) introP.textContent = ORIG[slug].intro;
+      // 兜底段落：同样在被切成英文前缓存 data-zh，并写回中文原文
+      if (fbP) {
+        ORIG[slug] = ORIG[slug] || {};
+        if (ORIG[slug].fbIntro === undefined) ORIG[slug].fbIntro = fbP.getAttribute('data-zh');
+        if (ORIG[slug].fbIntro != null) fbP.textContent = ORIG[slug].fbIntro;
+      }
       return;
     }
 
