@@ -17,8 +17,8 @@
  *
  * 期望值一律由独立实现或 python 复算得出，不凭记忆。
  * 注意：依赖 canvas / WebAudio / 用户点击（bpm-tapper）或依赖「今天」的工具刻意不纳入，
- * 否则门禁会随环境失败。另：color-shade-generator 的亮色梯度由其 mix() 退化为纯灰度
- * （与基色无关），属工具自身实现缺陷，不可为其背书，故不纳入本用例集（另记 §9.3）。
+ * 否则门禁会随环境失败。color-shade-generator 的亮色梯度已修复 mix(c,t,r) 三参插值
+ * （原 mix(c,t) 退化为 Math.round(t) → 纯灰度、与基色无关），现纳入回归用例（见下方 CASES）。
  */
 const { runCase } = require("./verify_it_calc.js");
 
@@ -89,6 +89,14 @@ const CASES = [
     expect: ["#ffedde", "255,237,222"],
     ref: "Tanner Helland 近似式（k = K/100 = 55 ≤ 66 分支）：R = 255；"
       + "G = 99.47·ln55 − 161.12 = 237.49 → 237；B = 138.5·ln(55−10) − 305 = 222.22 → 222 → #FFEDDE",
+  },
+  {
+    slug: "design/color-shade-generator",
+    inputs: { hex: "#6366F1", steps: "5" },
+    expect: ["#e5e6fd"],
+    ref: "mix(c,t,r)=round(c+(t−c)·r)。基色 rgb(99,102,241)、steps=5："
+      + "最浅 tint i=5 f=5/6 → round(99+(255−99)·0.833)=229 等 → #e5e6fd（靛蓝 tint，非灰度）。"
+      + "修复前 mix 仅 2 参 → Math.round(t)：tint 退化为纯灰度 (#d5d5d5 档) 或 3 参缺 r 致 NaN，均不含此串。",
   },
 
   // ── 摄影光学类 ─────────────────────────────────────────────────

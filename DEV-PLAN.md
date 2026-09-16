@@ -484,7 +484,7 @@ accounting、acoustics、admin、advertising、aerospace、agriculture、ai、an
 **P2 — 低优先级**
 
 - [ ] **全站非法 cat 4 处**（baking/biz/daily/automotive 各 1 个）：不在 `CAT_DEFS` 内，标签回退为原始英文 slug。补注册即可。
-- [ ] **`design/color-shade-generator` 亮色梯度实现缺陷**：`mix()` 退化为 `Math.round(t)`，浅色档位与基色无关（近似纯灰度）。需重写混色逻辑。
+- [x] **`design/color-shade-generator` 亮色梯度实现缺陷 —— 2026-09-16 已修复**：`mix(c,t)` 实为 `Math.round(t)`，tint 侧退化为纯灰度（`#d5d5d5` 档）、与基色无关。改为三参 `mix(c,t,r)=round(c+(t−c)·r)`（对齐页面公式 `tint=C·(1−t)+255·t`），tint 侧 `mix(rgb,255,f)`、shade 侧 `mix(rgb,0,f2)` 均按混合比例插值；基色 #6366F1/steps=5 现得最浅 tint `#e5e6fd`、最深 shade `#111128`。门禁补 1 道判别性回归用例（`expect:["#e5e6fd"]`，仅正确 tint 命中；灰度/NaN 态均不含此串）—— 踩到并行改同文件导致 142 行被覆盖的坑，已逐行复核落盘。
 - [ ] **`hydraulic/calc-1`（Darcy-Weisbach + Colebrook）未纳入门禁**：verify_it_calc.js DOM stub 缺 `ToolBox.formatNumber` API。补 stub 即可纳入。
 - [ ] **`fun/convert-speed-stride` 单位换算 select 值 1/0/1000**：选 0 除零且语义不清。
 - [ ] **`fun` 行业 h2 图标被语义重分配为 🎮**：含计算类工具（烧烤分量计算器），图标与语义不符。
