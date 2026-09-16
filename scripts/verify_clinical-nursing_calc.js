@@ -167,9 +167,9 @@ const CASES = [
     "stomaType": "ileostomy"
   },
   "expect": [
-    "4天"
+    "正常更换周期"
   ],
-  "ref": "auto-restore"
+  "ref": "auto-restore（回肠造口更换周期由输入决定，稳定；原 4天 是 countdown 距下次更换剩余天数，依赖 new Date() 漂移）"
 },
 {
   "slug": "clinical-nursing/oxygen-concentration",

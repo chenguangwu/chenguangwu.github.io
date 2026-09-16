@@ -636,3 +636,17 @@ label: i18n/industry-en.json[cat]
 **遗留（需老板确认）**
 
 - 140 个**真孤儿键**（`general 110` / `it 18` / `finance 5` / `science 4` / `design 3`，即全站无对应页面的死键）。按「禁止擅自批量删除」规矩**仅报告未删**；确认后可将其写入 enmap 的 `_meta.orphans` 复用既有脚本清理。
+
+## 门禁根治（2026-09-16，已闭环）
+
+**问题**：部署门禁曾在 `fire/livestock/cleaning/pediatrics/travel` 五道偶发/漂移失败；进一步全量扫描发现系统性隐患——「断言由 `new Date()` 相对今天推算的绝对日期」随真实日期推进过期（日期漂移），以及「断言随机生成器具体内容」随 `Math.random` 偶发失败。
+
+**根治方案（改一处，207 道门禁全生效）**：207/208 个门禁脚本均 `require("./verify_it_calc.js")` 复用同一 `runCase` harness。在 `verify_it_calc.js` 的 `new Function` 编译期注入 `FrozenDate` 参数（与 `setTimeout` 等同机制），把 `new Date()` / `Date.now()` 冻结到固定基准日 `2024-06-15T00:00:00Z`，使所有日期型页面在 CI 永远算同一天、完全确定。
+
+**配套清理（断言改为与今天/随机无关）**：
+- 日期漂移：elderly/medication-schedule `2026-09-18`→`日程预览`、clinical-nursing/ostomy-bag-timing `4天`→`正常更换周期`（均为由输入决定的静态值）。
+- 随机生成器偶发（同进程多轮 / 全局 2 次对比 + 关键词 case 级 20 轮扫描揪出）：nutrition 4（recommender-4/2/3、generator-glucose-load）→`生成结果`、rental/recommender-5→`网络（宽带/安装）推荐`、psychology/random-12→`认知偏差卡片`、food/recipe-generator→`做法`、library/generator-label→`生成结果（可直接用于打印标签）`。
+
+**结论**：全量 `run_gates.py` 连跑 3 次 **214/214 稳定通过**；本批修复与 `fire/livestock/cleaning/pediatrics/travel` 之前的日期用例修复一并提交（`submit_google_indexing_api.py`、`_unverifiable.json` 按老板要求一并入库）。
+
+**新约定（防复发）**：门禁用例**严禁断言绝对日期或随机命中串**，必须断言由输入确定、与运行时刻无关的结果（时长/计数/静态标题/状态）；新增日期型页面 CI 自动稳定，无需改用例。

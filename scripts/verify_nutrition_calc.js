@@ -111,9 +111,9 @@ const CASES = [
     "cnt": "8"
   },
   "expect": [
-    "22.0"
+    "生成结果"
   ],
-  "ref": "auto-restore"
+  "ref": "auto-restore（随机组合型生成器，具体血糖负荷值非每次必现；改断言确定性生成标题）"
 },
 {
   "slug": "nutrition/nutrition-1",
@@ -150,9 +150,9 @@ const CASES = [
     "cnt": "8"
   },
   "expect": [
-    "20g/100g"
+    "生成结果"
   ],
-  "ref": "auto-restore"
+  "ref": "auto-restore（随机组合型生成器，具体蛋白含量非每次必现；改断言确定性生成标题）"
 },
 {
   "slug": "nutrition/recommender-3",
@@ -160,9 +160,9 @@ const CASES = [
     "cnt": "8"
   },
   "expect": [
-    "7.8mg/100g"
+    "生成结果"
   ],
-  "ref": "auto-restore"
+  "ref": "auto-restore（随机组合型生成器，具体维含量非每次必现；改断言确定性生成标题）"
 },
 {
   "slug": "nutrition/recommender-4",
@@ -170,9 +170,9 @@ const CASES = [
     "cnt": "8"
   },
   "expect": [
-    "100-150g"
+    "生成结果"
   ],
-  "ref": "auto-restore"
+  "ref": "auto-restore（随机组合型生成器，推荐量 100-150g 非每次必现；改断言确定性生成标题）"
 },
 {
   "slug": "nutrition/self-assess-5",

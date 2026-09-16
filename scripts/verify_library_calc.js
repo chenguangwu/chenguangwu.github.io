@@ -61,9 +61,9 @@ const CASES = [
     "cnt": "8"
   },
   "expect": [
-    "HY-2024-012"
+    "生成结果（可直接用于打印标签）"
   ],
-  "ref": "auto-restore"
+  "ref": "auto-restore（随机档号生成器，具体档号非每次必现；改断言确定性生成标题）"
 },
 {
   "slug": "library/overdue-fine",

@@ -21,6 +21,24 @@ const path = require("path");
 const ROOT = path.join(__dirname, "..");
 const TOOLS_DIR = path.join(ROOT, "tools");
 
+// ---------------------------------------------------------------- 固定基准日（根治日期漂移）
+// 门禁用例不得依赖真实「今天」：真实日期每推进一天，相对今天推算的绝对日期期望就会过期一天，
+// 导致 CI 偶发/漂移失败（已发生 fire/livestock/cleaning/pediatrics/travel 五道门禁）。
+// 这里把 new Date() / Date.now() 冻结到一个固定基准日，使所有日期型页面在 CI 永远算同一天、完全确定。
+// 约定：用例断言应「与今天无关」（时长/计数/静态名称/状态标题）或「基于基准日的相对结果」。
+const REAL_DATE = Date;
+const FIXED_NOW = Date.parse("2024-06-15T00:00:00Z");
+function FrozenDate(...args) {
+  // 无参构造 → 固定基准日；带参构造（new Date(t) / new Date(y,m,d)）按真实 Date 透传
+  if (args.length === 0) return new REAL_DATE(FIXED_NOW);
+  return new REAL_DATE(...args);
+}
+FrozenDate.now = () => FIXED_NOW;
+FrozenDate.parse = REAL_DATE.parse.bind(REAL_DATE);
+FrozenDate.UTC = REAL_DATE.UTC.bind(REAL_DATE);
+FrozenDate.prototype = REAL_DATE.prototype;
+
+
 // ---------------------------------------------------------------- 用例
 const CASES = [
   {
@@ -476,10 +494,10 @@ async function runCaseInner(c) {
   let fns;
   try {
     const compiled = new Function(
-      "document", "window", "console", "navigator", "localStorage", "ToolBox", "alert", "setTimeout", "requestAnimationFrame", "setInterval", "requestIdleCallback",
+      "document", "window", "console", "navigator", "localStorage", "ToolBox", "alert", "setTimeout", "requestAnimationFrame", "setInterval", "requestIdleCallback", "Date",
       `var __f={};\n${script}\n${expose}\nreturn __f;`
     );
-    fns = compiled(document, win, { log() {}, warn() {}, error() {} }, navigator, localStorage, ToolBox, () => {}, safeTimer, safeTimer, safeTimer, safeTimer);
+    fns = compiled(document, win, { log() {}, warn() {}, error() {} }, navigator, localStorage, ToolBox, () => {}, safeTimer, safeTimer, safeTimer, safeTimer, FrozenDate);
   } catch (e) {
     return { ok: false, why: "初始化失败: " + e.message.slice(0, 80) };
   }

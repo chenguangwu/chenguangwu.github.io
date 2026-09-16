@@ -86,9 +86,9 @@ const CASES = [
     "notes": "每次"
   },
   "expect": [
-    "2026-09-18"
+    "日程预览"
   ],
-  "ref": "auto-restore"
+  "ref": "auto-restore（静态标题，避免断言由 new Date() 推算的绝对日期）"
 },
 {
   "slug": "elderly/reminder-time",

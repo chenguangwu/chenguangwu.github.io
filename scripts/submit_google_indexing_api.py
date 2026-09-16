@@ -60,7 +60,7 @@ TRAFFIC_FILE = ROOT / 'analytics_traffic_merged.csv'
 DEFAULT_STATE_FILE = ROOT / '.codex' / 'tasks' / 'google-indexing-api-state.json'
 DEFAULT_LOG_FILE = ROOT / '.codex' / 'tasks' / 'google-indexing-api.log'
 # 日志最多保留多少行；超过后只保留最新的 N 行（含头部新内容）
-DEFAULT_MAX_LOG_LINES = 20000
+DEFAULT_MAX_LOG_LINES = 1000
 DEFAULT_CREDENTIAL = os.path.expanduser(
     '~/.workbuddy/gsc_indexing_service_account.json')
 

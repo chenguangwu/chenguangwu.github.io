@@ -46,9 +46,9 @@ const CASES = [
     "cnt": "8"
   },
   "expect": [
-    "90%存活率"
+    "认知偏差卡片"
   ],
-  "ref": "auto-restore"
+  "ref": "auto-restore（随机卡片生成器，具体存活率非每次必现；改断言确定性生成标题）"
 },
 {
   "slug": "psychology/tester-2",

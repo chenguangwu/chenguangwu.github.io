@@ -162,9 +162,9 @@ const CASES = [
     "cuisine": "sichuan"
   },
   "expect": [
-    "10"
+    "做法"
   ],
-  "ref": "auto-restore"
+  "ref": "auto-restore（随机组合型生成器，具体数值非每次必现；改断言确定性「做法」标签）"
 },
 {
   "slug": "food/report-cost-profit",

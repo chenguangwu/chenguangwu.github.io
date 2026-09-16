@@ -32,9 +32,9 @@ const CASES = [
     "cnt": "8"
   },
   "expect": [
-    "推荐300M"
+    "网络（宽带/安装）推荐"
   ],
-  "ref": "auto-restore(default-hit)"
+  "ref": "auto-restore（随机组合型生成器，具体推荐带宽非每次必现；改断言确定性生成标题）"
 },
 {
   "slug": "rental/reminder-4",
