@@ -1643,6 +1643,61 @@ def build_shared_script_index():
     return _SHARED_SCRIPTS
 
 
+# 判定「真实公式说明面板」所需的最小可见正文字数（剥标签 / 图标 / 空白后）
+FORMULA_BOX_MIN_TEXT = 20
+
+_DIV_TOKEN = re.compile(r'<div\b|</div>', re.I)
+# 图标区 + 空白 + 零宽字符：都不算「实质正文」
+_ICON_WS = re.compile(r'[\s\u2300-\u23FF\u2600-\u27BF\U0001F000-\U0001FAFF\ufeff\u200b]')
+
+
+def formula_box_text_len(content):
+    """统计页面内所有 formula-box 块剥离标签 / 图标 / 空白后的可见正文总字数。
+
+    背景（2026-09-16 实测）：原先 classify_quality 用 `'formula-box' in content` 作为
+    A 级「有公式说明面板」的判据，但全站有 2817 页仅靠这一条就判 A，其中相当比例的
+    formula-box 是**空壳**——只有 `<div class="formula-title">📐 工作原理与说明</div>`
+    标题、正文为空（如 tools/accounting/analysis-46.html，own_len=0、inputs=1 仍判 A）。
+    这里改为读取块内真实正文长度，空壳 / 占位 formula-box 自然被判为「无真实公式说明」，
+    不能再把毫无自研逻辑的页面抬进 A 级。
+    """
+    total = 0
+    idx = 0
+    while True:
+        i = content.find('formula-box', idx)
+        if i == -1:
+            break
+        # 定位承载该 class 的开标签（'<div ... formula-box ... >'）
+        open_i = content.rfind('<', 0, i)
+        if open_i == -1:
+            break
+        gt = content.find('>', open_i)
+        if gt == -1:
+            break
+        # 从 open_i 起按 div 嵌套计数找到配平的 </div>
+        depth = 0
+        pos = open_i
+        end = -1
+        while pos < len(content):
+            m = _DIV_TOKEN.search(content, pos)
+            if not m:
+                break
+            if m.group(0)[1] == '/':
+                depth -= 1
+                if depth == 0:
+                    end = m.end()
+                    break
+            else:
+                depth += 1
+            pos = m.end()
+        if end == -1:
+            break
+        inner = content[gt + 1:end]
+        total += len(_ICON_WS.sub('', re.sub(r'<[^>]+>', '', inner)))
+        idx = end
+    return total
+
+
 def classify_quality(content):
     """工具质量分级。
 
@@ -1667,12 +1722,19 @@ def classify_quality(content):
                 own_len += len(_f.read())
         except OSError:
             pass
-    rich = ('formula-box' in content) or ('<canvas' in content) or ('data-viz' in content)
+    # rich 必须是**真实信号**：
+    #   · canvas / data-viz 本身就是真实的可视化产出，保留；
+    #   · formula-box 必须含实质正文（>= FORMULA_BOX_MIN_TEXT 字），只写了个空标题的
+    #     空壳面板不算——2026-09-16 实测大量占位页靠空壳 formula-box 拿到 A 级。
+    rich = (('<canvas' in content) or ('data-viz' in content)
+            or formula_box_text_len(content) >= FORMULA_BOX_MIN_TEXT)
     uses_template_engine = 'function getV0()' in content
     has_calc = 'function calc' in content
     has_intro = bool(re.search(r'<p style="font-size:13px;color:var\(--text-muted\);margin-bottom:\d+px;">', content))
 
-    if rich or own_len >= 6000 or (own_len >= 3000 and inputs >= 3):
+    # rich 只是「专业形态」信号，仍须搭配自研代码量，避免单薄的占位页混进 A。
+    # （原实现为 `rich or ...`，即只要有 formula-box 类名即判 A，失真正源于此。）
+    if (rich and own_len >= 800) or own_len >= 6000 or (own_len >= 3000 and inputs >= 3):
         return 'A'
     if own_len >= 800 or inputs >= 3 or (uses_template_engine and inputs >= 2):
         return 'B'
