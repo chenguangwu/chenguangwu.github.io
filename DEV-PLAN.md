@@ -470,7 +470,7 @@ accounting、acoustics、admin、advertising、aerospace、agriculture、ai、an
 
 **P1 — 建议修复**
 
-- [ ] **SEO Description 69 组重复未清零**：全站级，脚本可批量（工具标题 + 核心功能词自动生成不重复 Description），半小时内可解。
+- [ ] **SEO Description 重复（2026-09-16 复核）**：工具页 meta description 已**零重复**（5026 页全唯一，原"69 组"已消解）。全站扫描另见 **4690 个重复组 / 9380 页**集中在非工具页（guides / industry / index / sitemap），其中大量为同类页共享模板描述（如某行业 6 篇指南同描述），属预期近似重复，**非工具页"69 组"范畴**。是否对这部分做唯一化（按页标题/核心词区分）需老板定夺，避免无价值 churn —— 暂未动。
 - [ ] **verify 49 个降级分类深挖 runCase**：根因是批量生成 verify 时 inputs id 按结构推断，部分页面真实 `<input id>` 不完全对应。修法：逐页抓 DOM → 对齐真实 id → 跑 step 2 harness → 通过后改回 runCase main。每类约 5-10 分钟，分批推进。
 - [ ] **deep-dive 旧格式（summary/example 单键）全站扫描**：`content_deepdive.json` 的 edu 段 44 条用旧键（已修复），建议全量扫描 `summary`/`example` 旧键并转写为 `title`/`examples`（数组格式），否则这些页面的「📚 深度解析」标题与示例段永不渲染。
 - [ ] **`classify_quality()` A 级率 100% 失真**：仅凭页面存在 `formula-box` 即判 A，占位公式页同样判 A。未改避免影响全站分级；建议改为校验公式与说明是否已真实化后再计入。
@@ -478,7 +478,7 @@ accounting、acoustics、admin、advertising、aerospace、agriculture、ai、an
 - [ ] **`energy` 分类内重复工具组待治理**：热泵×3、光伏×4、电能×3、比能量×2 等。本轮仅按各自页面公式分别命名，**未做合并下架**（不在八项目标内）。动分类前须与老板确认（影响 URL 与 SEO）。
 - [ ] **`finance` 分类混入 10+ 非金融工具**（currency-converter / driver-license-validator / mirror-text / word-scramble / word-search / word-wrap / dns-record-info / password / password-generator-advanced / vcard-qr / wifi-password-show 等）：属分类错放，动分类前须老板确认。
 - [ ] **`science/calc-1` 错公式已修**：原写 pH 公式（张冠李戴），实为自由落体工具，已改为 `s=½gt²`。
-- [ ] **`statistics-4/5`（置信区间 / 样本量）逆正态 z 反解公式实现有误**：cl=95 反解出 z≈0.0008，功能无效；指南按标准公式撰写，仅页面 JS 实现待专项修复。
+- [x] **`statistics-4/5`（置信区间 / 样本量）逆正态 z 反解公式 —— 2026-09-16 已修复**：原实现用错误常数 `a=0.147` 的近似，cl=95 反解出 z≈0.0008 → CI 退化为样本均值、样本量恒为 1。现改用 Acklam probit `normalInv`（cl=95→z≈1.96、cl=99→z≈2.576），两页 JS 已改 + 门禁补 2 道回归断言（verify_statistics_calc 37→39/39）。
 - [ ] **`legal/traffic-accident-compensation` 伤残赔偿系数倒置已修**：公式改为 `(11 - injuryLevel)/10`（一级=1.0、十级=0.1），verify_legal_calc.js 已补 2 防回归用例，提交 `f07e5ff0d`。
 
 **P2 — 低优先级**
