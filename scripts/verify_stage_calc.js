@@ -45,9 +45,9 @@ const CASES = [
     "safetyMargin": "20"
   },
   "expect": [
-    "30.4"
+    "总电流： 30.4 A"
   ],
-  "ref": "auto-restore"
+  "ref": "总电流 = 26.10kW/(√3×220×3.9)… 页面输出 30.4 A（原单断言“30.4”命中深度解析示例里的“总功率 30.40 kW” → 逃生项）"
 },
 {
   "slug": "stage/stage-color-filter",

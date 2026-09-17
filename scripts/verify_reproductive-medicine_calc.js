@@ -37,9 +37,9 @@ const CASES = [
     ref: "ejVol>=1.5 + urConc=0 → 无逆行射精（默认态 urConc=5 导致确诊逆行，完全区分）" },
 
   { slug: "reproductive-medicine/endometrial-receptivity",
-    inputs: { thickness: "12", cycleday: "21", pattern: "C" },
-    expect: ["容受性差"],
-    ref: "thickness=12, pattern=C → C型均匀强回声，容受性差" },
+    inputs: { thickness: "12", cycleday: "21", pattern: "A" },
+    expect: ["周期日 21 天仍为A型"],
+    ref: "thickness=12, pattern=A → 良好容受；断言含 cycleday 的结论句（默认 cycleday=14 → 文本不同）→ 原“容受性差”由 pattern=C（select 无默认值，注入失败仍留 C）恒定命中 → 逃生项" },
 
   { slug: "reproductive-medicine/epididymal-aspiration",
     inputs: { vol: "0.01", conc: "80", motility: "40", oocytes: "12", method: "mesa" },
@@ -113,8 +113,8 @@ const CASES = [
 
   { slug: "reproductive-medicine/testicular-volume",
     inputs: { lL: "40", lW: "20", lH: "25", rL: "38", rW: "22", rH: "23", leftP: "15", rightP: "12" },
-    expect: ["27 总体积 mL", "两侧体积差异"],
-    ref: "椭球 L=40×20×25×0.71/1000=14.2mL, R=38×22×23×0.71/1000=14.05mL; Prader L=15 R=12, 差异=3mL" },
+    expect: ["14.2 左侧 mL", "27.9"],
+    ref: "椭球 L=40×20×25×0.71/1000=14.2mL, R=38×22×23×0.71/1000=13.7mL，总=27.9mL；原断言“27 总体积 mL”取自 Prader（leftP/rightP 为 select 无默认值，注入失败仍留 15/12）→ 逃生项" },
 
   { slug: "reproductive-medicine/total-sperm-count",
     inputs: { conc: "5", vol: "2.0" },

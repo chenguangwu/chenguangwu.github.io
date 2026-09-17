@@ -86,9 +86,9 @@ const CASES = [
     "notes": "每次"
   },
   "expect": [
-    "日程预览"
+    "2024-06-20"
   ],
-  "ref": "auto-restore（静态标题，避免断言由 new Date() 推算的绝对日期）"
+  "ref": "days=6 → 预览含 2024-06-15…06-20 共 6 天；断言末日（默认 days=3 时无此日期）→ 原“日程预览”为静态标题，属逃生项"
 },
 {
   "slug": "elderly/reminder-time",

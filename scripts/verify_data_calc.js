@@ -71,9 +71,9 @@ const CASES = [
     "cnt": "8"
   },
   "expect": [
-    "直方图分组"
+    "共 8 组"
   ],
-  "ref": "auto-restore — 随机直方图生成器，改测结构标签"
+  "ref": "auto-restore — 随机直方图生成器，改测结构标签（原断言为静态标题，注入失败仍命中 → 逃生项；改为断言条数/第8条）"
 },
 {
   "slug": "data/pivot-table",

@@ -15,14 +15,14 @@ const CASES = [
 {
   "slug": "pet-training/command-repetition",
   "inputs": {
-    "reps": "8",
+    "reps": "12",
     "hoursAgo": "24",
     "age": "6"
   },
   "expect": [
-    "5%"
+    "9%"
   ],
-  "ref": "auto-restore"
+  "ref": "s=0.35(easy)×1.0(age6)=0.35；retention=exp(−0.35×24/√12)=exp(−2.4249)=0.0885→9%（原断言“5%”会被默认输出的“15%/5%”子串命中 → 逃生项）"
 },
 {
   "slug": "pet-training/elimination-predict",

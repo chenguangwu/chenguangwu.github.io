@@ -58,12 +58,12 @@ const CASES = [
 {
   "slug": "library/generator-label",
   "inputs": {
-    "cnt": "8"
+    "cnt": "20"
   },
   "expect": [
-    "生成结果（可直接用于打印标签）"
+    "项目管理 2022年度 保管期限：10年 档号：XM-2022-033"
   ],
-  "ref": "auto-restore（随机档号生成器，具体档号非每次必现；改断言确定性生成标题）"
+  "ref": "auto-restore（随机档号生成器，具体档号非每次必现；改断言确定性生成标题）（原断言为静态标题，注入失败仍命中 → 逃生项；改为断言条数/第8条）"
 },
 {
   "slug": "library/overdue-fine",

@@ -5,13 +5,13 @@ const CASES = [
 {
   "slug": "dance/bpm-rhythm",
   "inputs": {
-    "bpm": "120",
+    "bpm": "150",
     "beatsPerBar": "4",
     "beatsPerMove": "4",
     "duration": "60"
   },
   "expect": [
-    "500.0 节拍间隔"
+    "400.0 节拍间隔"
   ],
   "ref": "auto-restore"
 },

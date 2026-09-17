@@ -187,9 +187,9 @@ const CASES = [
     "cnt": "8"
   },
   "expect": [
-    "20-30分钟"
+    "8. "
   ],
-  "ref": "auto-restore(default-hit)"
+  "ref": "auto-restore(default-hit)（原断言为静态标题，注入失败仍命中 → 逃生项；改为断言条数/第8条）"
 },
 {
   "slug": "acupuncture/tuina-frequency",

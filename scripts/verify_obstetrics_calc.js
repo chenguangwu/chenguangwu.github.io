@@ -59,9 +59,9 @@ const CASES = [
     ref: "基线105→可疑(100–110)；变异10→正常；加速present；无减速；宫缩4→正常；abnCount=0,susCount=1→可疑CTG（默认140/10→正常、示例95/3/late→异常，均不命中，避开）" },
 
   { slug: "obstetrics/heart-rate",
-    inputs: { baseline: "95", variability: "2", accel: "0", decel: "late" },
+    inputs: { baseline: "95", variability: "10", accel: "2", decel: "none" },
     expect: ["病理性 CTG（Pathological）"],
-    ref: "基线95<100→病理性；变异2<3→病理性；晚期减速→病理性→病理性CTG（默认140/10/2/none→正常，避开）" },
+    ref: "基线95<100→病理性（其余正常：变异10、加速2、无减速）；原用例 decel=late 是 select 无默认值，注入失败仍留 late → 结果恒为病理性 → 逃生项" },
 
   { slug: "obstetrics/yangshuizhishu-afi-zhengchangfanwei",
     inputs: { q1: "2", q2: "3", q3: "3", q4: "3" },

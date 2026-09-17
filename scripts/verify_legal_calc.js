@@ -61,9 +61,9 @@ const CASES = [
   // ── 离婚财产分割（净值×比例）──────────────────────────────────────
   {
     slug: "legal/divorce-property",
-    inputs: { houseValue: "2000000", houseLoan: "800000", savings: "500000", carValue: "200000", otherAssets: "100000", jointDebt: "300000", splitRatio: "0.5" },
-    expect: ["1,700,000", "850,000"],
-    ref: "房产净值=120万；总资产=200万；净=170万；我方50%=85万",
+    inputs: { houseValue: "3000000", houseLoan: "800000", savings: "500000", carValue: "200000", otherAssets: "100000", jointDebt: "300000", splitRatio: "0.5" },
+    expect: ["2,700,000", "1,350,000"],
+    ref: "房产净值=220万；总资产=300万；净=270万；我方50%=135万（原用例 houseValue 取默认值，注入失败结果恰好相同 → 逃生项）",
   },
   // ── 诉讼费（财产案件阶梯费率）──────────────────────────────────────
   {
@@ -90,9 +90,9 @@ const CASES = [
   // ── 民间借贷利息（LPR×4 上限，到期还本付息）───────────────────────
   {
     slug: "legal/calc-interest",
-    inputs: { principal: "100000", rate: "10", months: "12", method: "lump", lpr: "3.45" },
-    expect: ["¥100,000", "¥112,000", "¥12,000"],
-    ref: "约定10%（≤3.45×4=13.8%受保护）；利息=100000×10%×1=10000；本息=110000",
+    inputs: { principal: "150000", rate: "10", months: "12", method: "lump", lpr: "3.45" },
+    expect: ["¥165,000", "¥15,000"],
+    ref: "约定10%（≤3.45×4=13.8%受保护）；利息=150000×10%×1=15000；本息=165000（原 expect 写成默认 rate=12 的 112000/12000，与 ref 自相矛盾）",
   },
   // ── 法律援助资格（低保户免核查）────────────────────────────────────
   {
@@ -112,15 +112,15 @@ const CASES = [
   // ── 交通事故残疾赔偿金（伤残系数：一级100%/十级10%，修复倒置缺陷）──
   {
     slug: "legal/traffic-accident-compensation",
-    inputs: { liability: "1", injuryLevel: "1", age: "30", disposableIncome: "50000" },
-    expect: ["1,000,000", "100%"],
-    ref: "一级系数=1.0：残疾赔偿金=50000×20年×1.0=1,000,000（修复前误算为100,000/10%）",
+    inputs: { liability: "1", injuryLevel: "1", age: "30", disposableIncome: "60000" },
+    expect: ["1,200,000"],
+    ref: "一级系数=1.0：残疾赔偿金=60000×20年×1.0=1,200,000（" + "100%" + "只依赖伤残等级不依赖收入，属逃生项，已剔除）",
   },
   {
     slug: "legal/traffic-accident-compensation",
-    inputs: { liability: "1", injuryLevel: "10", age: "30", disposableIncome: "50000" },
-    expect: ["100,000", "10%"],
-    ref: "十级系数=0.1：残疾赔偿金=50000×20年×0.1=100,000（修复前误算为1,000,000/100%）",
+    inputs: { liability: "1", injuryLevel: "10", age: "30", disposableIncome: "60000" },
+    expect: ["120,000"],
+    ref: "十级系数=0.1：残疾赔偿金=60000×20年×0.1=120,000（" + "10%" + "不依赖收入，属逃生项，已剔除）",
   },
 ];
 

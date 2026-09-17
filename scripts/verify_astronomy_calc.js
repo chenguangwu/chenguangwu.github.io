@@ -218,9 +218,9 @@ const CASES = [
     "date": "2026-06-21"
   },
   "expect": [
-    "5.9 天"
+    "6.70 m"
   ],
-  "ref": "auto-restore-fixeddate"
+  "ref": "预测潮差 = range×倍率 = 5×1.34 = 6.70（原断言“5.9 天”是月龄，与 range 无关 → 逃生项）"
 }
 ];
 async function main() {

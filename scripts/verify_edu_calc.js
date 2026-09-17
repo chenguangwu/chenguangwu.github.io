@@ -88,8 +88,8 @@ const CASES = [
   {
     slug: "edu/word-count-pages",
     inputs: { words: "400", imgs: "0", format: "essay", paper: "a4", fontSize: "1" },
-    expect: ["2"],
-    ref: "effectivePer=400(essay)×1(a4)×0.8(font1)=320；effectiveW=400×(1+0)=400；pages=400/320=1.25 → ceil=2 页",
+    expect: ["2 页（约）"],
+    ref: "effectivePer=400(essay)×1(a4)×0.8(font1)=320；effectiveW=400×(1+0)=400；pages=400/320=1.25 → ceil=2 页（单字符“2”会被默认 5000 字结果里的其他数字命中 → 逃生项）",
   },
 ];
 

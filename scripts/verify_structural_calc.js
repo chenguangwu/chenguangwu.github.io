@@ -15,7 +15,7 @@ const CASES = [
   { slug: "structural/hoop-stress", inputs: { p: "3e6", r: "0.6", t: "0.02" }, expect: ["90.00 环向应力"], ref: "σ_h=pr/t=3e6×0.6/0.02=90MPa" },
   { slug: "structural/longitudinal-stress", inputs: { p: "3e6", r: "0.6", t: "0.02" }, expect: ["45.00 纵向应力"], ref: "σ_l=pr/(2t)=45MPa" },
   { slug: "structural/moment-of-inertia-rect", inputs: { b: "0.15", h: "0.25" }, expect: ["1.953e-4 惯性矩"], ref: "I=bh³/12" },
-  { slug: "structural/radius-of-gyration", inputs: { I: "2e-6", A: "2e-3" }, expect: ["0.03162 回转半径"], ref: "r=√(I/A)" },
+  { slug: "structural/radius-of-gyration", inputs: { I: "4e-6", A: "2e-3" }, expect: ["0.04472 回转半径"], ref: "r=√(4e-6/2e-3)=√(2e-3)=0.04472（原 2e-6/2e-3 与默认 1e-6/1e-3 比值相同 → 巧合命中）" },
   { slug: "structural/section-modulus-rect", inputs: { b: "0.15", h: "0.25" }, expect: ["1.562e-3 截面模量"], ref: "W=bh²/6" },
   { slug: "structural/slenderness-ratio", inputs: { L: "3", r: "0.05" }, expect: ["60.00 长细比"], ref: "λ=L/r=3/0.05=60" },
   { slug: "structural/ss-point-deflection", inputs: { P: "2000", L: "4", E: "210e9", I: "2e-6" }, expect: ["6349.206 挠度"], ref: "δ=PL³/(48EI)" },

@@ -109,9 +109,9 @@ const CASES = [
     "cnt": "8"
   },
   "expect": [
-    "生成结果"
+    "8. "
   ],
-  "ref": "auto-restore"
+  "ref": "auto-restore（原断言为静态标题，注入失败仍命中 → 逃生项；改为断言条数/第8条）"
 },
 {
   "slug": "travel/road-trip-gas-cost",

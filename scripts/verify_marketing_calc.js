@@ -33,9 +33,9 @@ const CASES = [
   },
   {
     slug: "marketing/marketing-roas-calculator",
-    inputs: { adSpend: "10000", adRevenue: "40000" },
-    expect: ["75.0%", "30,000.00"],
-    ref: "roas=40000/10000=4.00；profit=30000；profitMargin=30000/40000×100=75.00",
+    inputs: { adSpend: "8000", adRevenue: "50000" },
+    expect: ["6.25x", "广告毛利润 ¥42,000.00"],
+    ref: "roas=50000/8000=6.25；profit=42000；profitMargin=42000/50000×100=84.0（原 10000/40000 与默认 5000/20000 比值相同 → 逃生项）",
   },
   {
     slug: "marketing/marketing-cac-calculator",

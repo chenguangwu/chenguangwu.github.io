@@ -23,8 +23,8 @@ const CASES = [
   {
     slug: "life/percentage-calculator",
     inputs: { isWhatX: "30", isWhatY: "150" },
-    expect: ["20%"],
-    ref: "30 ÷ 150 × 100 = 20 → 显示 20%",
+    expect: ["30 是 150 的 20%"],
+    ref: "30 ÷ 150 × 100 = 20 → 显示 20%（单断言“20%”会被页面默认 ofWhatPct=20 的区块命中 → 逃生项）",
   },
   // ── 温度换算（°F = °C×9/5+32）────────────────────────────────
   {

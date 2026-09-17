@@ -8,9 +8,9 @@ const CASES = [
     "cnt": "8"
   },
   "expect": [
-    "生成圆角图片预览"
+    "共 8 张"
   ],
-  "ref": "auto-restore-structural"
+  "ref": "auto-restore-structural（原断言为静态标题，注入失败仍命中 → 逃生项；改为断言条数/第8条）"
 },
 {
   "slug": "image/id-photo-crop",

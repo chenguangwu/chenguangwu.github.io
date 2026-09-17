@@ -324,3 +324,34 @@ accounting、acoustics、admin、advertising、aerospace、agriculture、ai、an
     `marketing/calc-price-elasticity` -1.73→**-1.727**（中点法 18.18%/−10.53%）。
     五例均已独立复算确认**页面公式正确、是 expect 写错**，非改页面。
   - 基线棘轮下调 `escape` 78→**48**。剩余 48 例多为 nutrition 5 / machinery 5 / legal 4 / signal 3，    其中约 45 例属「expect 全为逃生项」，须改 inputs + 按公式独立复算，留专项。
+
+**第三批（2026-09-18，48 → 0 · 逃生项清零）**：剩余 48 例全部分类处理，逐例读页面公式/模板 → 改非默认输入 → 按公式独立复算 → `discriminate_check.js` 验证变红。
+
+| 类型 | 数量 | 处理口径 | 代表 |
+|---|---|---|---|
+| 随机生成器（只有 `cnt` 一个输入、原 expect 是静态标题） | 13 | 断言**条数或末条**：`"8. "`（带序号模板）/ `"共 8 组"` / `"共 8 张"` / `"#8"` / `"8 00:"` | nutrition×5、acupuncture、advertising、beauty、data、food-testing、image、library、music、niche、psychology、rental、seismology、travel |
+| 输入与默认**数值巧合**（比值/乘积相同） | 6 | 换一组不成比例的输入 | `signal/carrier-freq`(1200/800 中点=默认 1010/990)、`snr-db`(100/1 比值=默认 10/0.1)、`structural/radius-of-gyration`(2e-6/2e-3 比值=默认)、`chemistry/boiling-point-elevation`(0.512×0.5×**2** = 默认 0.512×1×1)、`marketing-roas`(10000/40000 比值=默认)、`chemistry/empirical-formula`(2,4,2 与默认 3.33,6.65,3.33 **同为 1:2:1**) |
+| 输入**只喂给了不被读取的通道** | 4 | 改到真正参与计算的输入 | `machinery/estimate-gravity`（`density` 是 number input，页面实际读 `material` select）、`machinery/temp-hardness`（`maxHrc` 仅 `grade=custom` 时生效）、`machinery/calc-64`（最大间隙 `(ES−ei)/1000` 与 `basic` 无关 → 改断言孔最大极限 `D+ES/1000`）、`machinery/strength-15`（节距只依赖 `n1`，与 `P` 无关） |
+| expect 是**输入回显/静态串** | 3 | 删回显项，改断言计算结果 | `ai/sigmoid`（`"正类"`/`"2.0000"`）、`biz/checker-8`（`"88"` 是 csat 回显）、`legal/*`（`"100%"`/`"10%"` 只依赖伤残等级） |
+| select 无默认值 → 注入失败时**仍留在用例值** | 4 | 改到有默认值的输入上 | `obstetrics/heart-rate`(decel)、`reproductive-medicine/endometrial-receptivity`(pattern)、`testicular-volume`(leftP/rightP Prader 通道) |
+| 页面**源码字面量**导致假命中 | 2 | 断言改为「计算值 + 单位/上下文」的完整串 | 见 §10.8 |
+
+顺带修正的页面/用例真错：`legal/calc-interest` 原 expect 写的是默认 `rate=12` 的结果（`¥112,000`/`¥12,000`），与它自己的 ref（10% → 110000）**自相矛盾**，已按 150000×10%×1 复算改为 `¥165,000`/`¥15,000`。
+
+### 10.8 两个新增易踩坑（2026-09-18 · 第三批实测）
+
+1. **页面 JS 源码里的字面量也会被计进 blob。**
+   `collectStrings` 收集的是元素 `value`/`innerHTML`，其中含**脚本片段**。所以「页面源码里出现过的字符串」不能拿来当 expect：
+   - `stage/power-load`：expect `"30.4"` 恒命中——深度解析示例里有「总功率 **30.40** kW」（`30.4` 是 `30.40` 的子串），与计算毫无关系。改成完整串 `"总电流： 30.4 A"` 才真判别。
+   - `library/generator-label`：数据池 `code:'CW-2023-018'` 是源码字面量，单独断言档号恒命中；须断言**组合后的输出串**（含年度/保管期限/档号）。
+   - 判据：改完 expect 先 `grep -c "该串" tools/<slug>.html`，命中就换更长的上下文串。
+
+2. **判定发生在 `blob1`（注入后立即收集），不是最终的 `fullBlob`。**
+   随机生成器页面在**编译期**就跑过一次 `gen()`（用默认 `cnt`），注入后又跑一次——两次共用同一条确定性 PRNG 序列。
+   因此「断言第 N 条」时，注入失败态的 blob1 里会有**序列后段**的条目：
+   `library` 断言第 8 条（`cnt=8`）时，注入 `cnt=5` 的 blob1 恰好包含序列第 6–10 条，其中就有第 8 条 → 仍 PASS。
+   解法：把 `cnt` 拉大到 **20** 并断言**末条**（序列第 20 项，绝不在前 10 项内）。
+   - 推论：用 `runCase(..., expect:["@@NOMATCH@@"]).fullBlob` 观察到的输出**不等于**判定用的 blob1；定位逃生项时不要只信 `fullBlob`。
+
+3. **同文件并行 Edit 会互相覆盖。** 本批对 `verify_signal_calc.js` 一次并发发 3 条 Edit，结果只落了 1 条（另 2 条静默丢失），`discriminate` 复检才暴露。
+   **同一个文件的多处修改必须串行 Edit，或改用单条脚本一次性改写。**
