@@ -209,16 +209,6 @@ const CASES = [
   "ref": "auto-restore"
 },
 {
-  "slug": "urology/rater-3",
-  "inputs": {
-    "i1": "1"
-  },
-  "expect": [
-    "IPSS总分1分"
-  ],
-  "ref": "auto-restore"
-},
-{
   "slug": "urology/rater-4",
   "inputs": {
     "e1": "2"

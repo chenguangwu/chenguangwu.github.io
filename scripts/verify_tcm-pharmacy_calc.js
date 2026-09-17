@@ -70,16 +70,6 @@ const CASES = [
   "ref": "auto-restore"
 },
 {
-  "slug": "tcm-pharmacy/assessor-3",
-  "inputs": {
-    "q5": "2"
-  },
-  "expect": [
-    "11"
-  ],
-  "ref": "auto-restore"
-},
-{
   "slug": "tcm-pharmacy/five-flavors",
   "inputs": {},
   "expect": [

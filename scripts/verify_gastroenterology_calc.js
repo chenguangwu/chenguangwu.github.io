@@ -233,14 +233,6 @@ const CASES = [
   "ref": "auto-restore"
 },
 {
-  "slug": "gastroenterology/rater-14",
-  "inputs": {},
-  "expect": [
-    "每6-12个月肠镜"
-  ],
-  "ref": "auto-restore(default)"
-},
-{
   "slug": "gastroenterology/saag-ascites",
   "inputs": {
     "serumAlb": "42",

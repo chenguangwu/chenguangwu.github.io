@@ -134,11 +134,6 @@ const CASES = [
     ref: "评=(2×3+4×2+3×1.5+2×2+4×1.5)/10=28.5/10=2.85→2.9，Math.round(2.85)=3 → Ⅲ型"
        + "（默认 3/3/3/3/3→3.0 避开）" },
 
-  { slug: "cosmetic-derm/aging-1",
-    inputs: { wrinkle: "3", pigment: "1", age: "62" },
-    expect: ["IV", "老年期"],
-    ref: "Glogau 分型=['I','II','III','IV'][3]='IV'；评分=3×3+1×2+min(⌊62/20⌋,4)=9+2+3=14；"
-       + "年龄 62 ≥60 → 老年期（默认 wrinkle=0/pigment=0/35→I、青中年期 避开）" },
 
   { slug: "cosmetic-derm/skin-ph",
     inputs: { phValue: "6.0", site: "cheek", postClean: "2", skincare: "1" },

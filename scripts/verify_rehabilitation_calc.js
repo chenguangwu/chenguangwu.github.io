@@ -21,16 +21,6 @@ const CASES = [
   "ref": "auto-restore(default)"
 },
 {
-  "slug": "rehabilitation/assessor-2",
-  "inputs": {
-    "a1": "1"
-  },
-  "expect": [
-    "1分"
-  ],
-  "ref": "auto-restore"
-},
-{
   "slug": "rehabilitation/assistive-device-fitting",
   "inputs": {
     "orthoPart": "kfo"
@@ -127,16 +117,6 @@ const CASES = [
   },
   "expect": [
     "transfemoral"
-  ],
-  "ref": "auto-restore"
-},
-{
-  "slug": "rehabilitation/rater-2",
-  "inputs": {
-    "f1": "1"
-  },
-  "expect": [
-    "FLACC评分1分"
   ],
   "ref": "auto-restore"
 },

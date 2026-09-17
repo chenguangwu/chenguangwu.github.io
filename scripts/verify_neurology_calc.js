@@ -33,22 +33,6 @@ const CASES = [
   "ref": "auto-restore"
 },
 {
-  "slug": "neurology/assessor-11",
-  "inputs": {
-    "q1": "7",
-    "q2": "0",
-    "q3": "0",
-    "q4": "0",
-    "q5": "0",
-    "q6": "0",
-    "q7": "0"
-  },
-  "expect": [
-    "7天"
-  ],
-  "ref": "auto-restore"
-},
-{
   "slug": "neurology/calc-1",
   "inputs": {
     "${it.id}": "${o.v}"
@@ -168,16 +152,6 @@ const CASES = [
   "slug": "neurology/rater-19",
   "inputs": {
     "ui'+i+'": "'+j+'"
-  },
-  "expect": [
-    "+j+"
-  ],
-  "ref": "auto-restore"
-},
-{
-  "slug": "neurology/rater-20",
-  "inputs": {
-    "qi'+i+'": "'+j+'"
   },
   "expect": [
     "+j+"

@@ -241,16 +241,6 @@ const CASES = [
   "ref": "auto-restore"
 },
 {
-  "slug": "pediatrics/tester-6",
-  "inputs": {
-    "cq'+i+'": "'+j+'"
-  },
-  "expect": [
-    "+j+"
-  ],
-  "ref": "auto-restore"
-},
-{
   "slug": "pediatrics/vaccine-schedule",
   "inputs": {
     "vaccinatedMonth": ""

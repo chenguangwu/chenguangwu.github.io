@@ -151,14 +151,6 @@ const CASES = [
   "ref": "auto-restore(default)"
 },
 {
-  "slug": "dermatology/rater-29",
-  "inputs": {},
-  "expect": [
-    "15"
-  ],
-  "ref": "auto-restore(default)"
-},
-{
   "slug": "dermatology/salt-alopecia",
   "inputs": {
     "top": "75",

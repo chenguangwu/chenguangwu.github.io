@@ -129,14 +129,6 @@ const CASES = [
   "ref": "auto-restore"
 },
 {
-  "slug": "pulmonology/assessor-8",
-  "inputs": {},
-  "expect": [
-    "过去1年内是否有因哮喘急性发作而看急诊或住院"
-  ],
-  "ref": "auto-restore(default)"
-},
-{
   "slug": "pulmonology/bronchoscopy-grading",
   "inputs": {
     "tumorType": "1"

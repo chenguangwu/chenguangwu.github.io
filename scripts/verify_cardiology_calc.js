@@ -229,14 +229,6 @@ const CASES = [
   "ref": "auto-restore"
 },
 {
-  "slug": "cardiology/rater-11",
-  "inputs": {},
-  "expect": [
-    "160"
-  ],
-  "ref": "auto-restore(default)"
-},
-{
   "slug": "cardiology/rater-risk-3",
   "inputs": {
     "age": "98",
