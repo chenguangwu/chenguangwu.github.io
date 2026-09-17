@@ -51,7 +51,7 @@ const CASES = [
   {
     slug: "fun/step-stride",
     inputs: { cadence: "170", stride: "0.75", weight: "65" },
-    expect: ["2.13", "7.65", "1333"],
+    expect: ["2.13", "7.65"],
     ref: "ms = 170×0.75/60 = 2.125 → 2.13 m/s；kmh = 2.125×3.6 = 7.65 km/h；"
        + "每公里步数 = round(1000/0.75) = 1333 步",
   },

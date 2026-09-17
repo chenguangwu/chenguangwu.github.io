@@ -15,7 +15,7 @@ const CASES = [
 
   { slug: "chemistry/arrhenius",
     inputs: { A: "2e13", Ea: "52000", T: "310" },
-    expect: ["3.458e+4", "-20.18"],
+    expect: ["3.458e+4"],
     ref: "k=2e13*exp(-52000/(8.314*310))=3.458e4；指数项=-20.18" },
 
   { slug: "chemistry/boiling-point-elevation",
@@ -60,7 +60,7 @@ const CASES = [
 
   { slug: "chemistry/limiting-reagent",
     inputs: { mA: "10", MA: "40", a: "1", mB: "15", MB: "60", b: "2", MP: "18", c: "1" },
-    expect: ["B (反应物B)", "0.2500", "0.2500", "0.1250", "2.250"],
+    expect: ["0.2500", "0.2500", "0.1250", "2.250"],
     ref: "nA=0.25,nB=0.25,ξA=0.25,ξB=0.125→限量B；产量=0.125*1*18=2.250" },
 
   { slug: "chemistry/mass-fraction",
@@ -95,7 +95,7 @@ const CASES = [
 
   { slug: "chemistry/nernst-equation",
     inputs: { E0: "1.1", n: "2", Q: "10", T: "298" },
-    expect: ["1.0704", "0.02956"],
+    expect: ["1.0704"],
     ref: "E=1.1-(8.314*298/(2*96485))*ln10=1.0704；(RT/nF)ln10=0.02956" },
 
   { slug: "chemistry/normality",
@@ -140,7 +140,7 @@ const CASES = [
 
   { slug: "chemistry/solution-dilution",
     inputs: { C1: "2", V1: "100", C2: "0.5" },
-    expect: ["400.00", "300.00"],
+    expect: ["300.00"],
     ref: "V2=2*100/0.5=400.00；加水=300.00" },
 
 ];

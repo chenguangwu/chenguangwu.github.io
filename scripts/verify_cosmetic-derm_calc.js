@@ -75,7 +75,7 @@ const CASES = [
   { slug: "cosmetic-derm/spf-pa-calculator",
     inputs: { photo: "4", med: "10", uvi: "8", outdoorTime: "240", spf: "30", pa: "4",
               activity: "1", reapply: "60" },
-    expect: ["3.1", "2.1", "SPF 50+", "PA++++"],
+    expect: ["SPF 50+"],
     ref: "UVI 8 → 有效 MED=10×5/8=6.25；理论=6.25×30=187.5 min；实际=187.5×1=187.5 min=3.1 h；"
        + "所需 SPF=⌈240/6.25/1⌉=39 → 推荐 SPF 50+；PPD(PA++++) =20 → UVA 保护=6.25×20=125 min=2.1 h；"
        + "UVI 8 >5 → 推荐 PA++++（默认 10/5/120/30/2/1→5.0/SPF 15+/PA+++ 避开）" },
@@ -112,7 +112,7 @@ const CASES = [
 
   { slug: "cosmetic-derm/telangiectasia-area",
     inputs: { areaPct: "20", density: "10", diameter: "0.4", vesselType: "venous", zone: "3", symptom: "1" },
-    expect: ["81", "极重度毛细血管扩张"],
+    expect: ["81"],
     ref: "评分=20×2.5+10×2+0.4×15+1×5=50+20+6+5=81 → ≥60 属极重度"
        + "（默认 15/8/0.3/面颊/偶发→67.0 也为极重度，故同时校验分数 81 区分）" },
 

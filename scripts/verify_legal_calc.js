@@ -55,7 +55,7 @@ const CASES = [
   {
     slug: "legal/child-support",
     inputs: { monthlyIncome: "20000", childCount: "1", childAge: "5", livingCost: "0", paymentRatio: "0.2" },
-    expect: ["624000", "4000", "20%"],
+    expect: ["624,000", "4,000"],
     ref: "比例20%→月抚养费=20000×0.2=4000；至18岁=13年×12=156月×4000=624000",
   },
   // ── 离婚财产分割（净值×比例）──────────────────────────────────────

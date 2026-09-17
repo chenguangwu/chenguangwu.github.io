@@ -312,4 +312,15 @@ accounting、acoustics、admin、advertising、aerospace、agriculture、ai、an
 **已固化为门禁**：`scripts/discriminate_check.js` 已接入 `run_gates.py`（anti-regression 项），配 `scripts/discriminate_baseline.json`（`escape=78` / `checked=1872`）——
 **只准降不准增**，且**下降时也必须同步下调基线**（强制棘轮，防止悄悄回涨）。已做三向反向验证：78=78→exit 0 / 基线 77（新增）→exit 1 / 基线 79（下降未更新）→exit 1。
 
-**存量**：全站 1872 例已检，1794 例判别力有效，**78 例含逃生项**（healthcare 10 / marketing 7 / chemistry 6 / nutrition 5 / machinery 5 / legal 5 / 其余散落），待后续批次随改造一并清零。
+**存量与分批清理**：全站 1872 例已检，1794 例判别力有效，初始 **78 例含逃生项**。
+
+**第二批（2026-09-17，78 → 48）**：先用「逐项二分」精确定位逃生项——对每个用例把 `inputs` 换回页面默认值，再对 `expect` **逐项单独**跑 `runCase`，仍 `ok` 的即逃生项（注意：不能用单一 `fullBlob` 判定，框架 `ok` 可能来自第 2 步的 `blob1` 而 `fullBlob` 是最后一步的 blob，元素集合不同，会全判为"无逃生"）。
+  - 分类结果：**45 例 expect 全为逃生项**（须改 inputs 让输出真正变化，等同弱用例改造工作量，留专项）+ **33 例部分逃生**（删项即可）。
+  - 本批处理 33 例，删掉逃生项后**暴露 5 例原 expect 本身写错**（此前全靠逃生项蒙混过关），已按独立复算修正：
+    `ai/softmax` 12.71→**12.70**（e^0.5/Σ=1.6487/12.977=12.703%）；
+    `hydraulic/calc-26` 5.158→**5.159**（Q=A·V=6.375×0.80918=5.15853，第4位为5须进位）；
+    `legal/child-support` `624000`/`4000`→**`624,000`/`4,000`**（漏千分位逗号，页面输出带逗号）；
+    `marketing-roas-calculator` `75.00`/`30000`→**`75.0%`/`30,000.00`**；
+    `marketing/calc-price-elasticity` -1.73→**-1.727**（中点法 18.18%/−10.53%）。
+    五例均已独立复算确认**页面公式正确、是 expect 写错**，非改页面。
+  - 基线棘轮下调 `escape` 78→**48**。剩余 48 例多为 nutrition 5 / machinery 5 / legal 4 / signal 3，    其中约 45 例属「expect 全为逃生项」，须改 inputs + 按公式独立复算，留专项。

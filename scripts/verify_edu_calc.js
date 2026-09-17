@@ -22,7 +22,7 @@ const CASES = [
   {
     slug: "edu/calc-4",
     inputs: { currentScore: "80", currentWeight: "60", targetScore: "90", remainingParts: "2" },
-    expect: ["25.00", "40.0%", "10.00"],
+    expect: ["25.00", "10.00"],
     ref: "剩余权重=100−60=40.0%；还需加权分=90−80=10.00；剩余考核均分=10/40×100=25.00；每项=25.00；25≤60 → 目标可行",
   },
   {
@@ -34,7 +34,7 @@ const CASES = [
   {
     slug: "edu/quiz-score-percentage",
     inputs: { total: "50", correct: "40", points: "2" },
-    expect: ["80", "A 很好"],
+    expect: ["80"],
     ref: "pct=40/50×100=80%；score=40×2=80；grade A 很好 👍",
   },
   {

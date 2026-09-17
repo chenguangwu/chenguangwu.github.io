@@ -71,7 +71,7 @@ const CASES = [
   {
     slug: "agriculture/dli-calculator",
     inputs: { ppfd: "200", hours: "8", lightPPFD: "0", lightHours: "0", cropType: "low" },
-    expect: ["5.8", "0.0"],
+    expect: ["5.8"],
     ref: "自然光 DLI = 200 × 8 × 3600 ÷ 1e6 = 5.76 → 5.8；补光 0.0；总 DLI = 5.8",
   },
   // ── 收获损失率（总损失 = 理论 − 实际）──────────────────────────
