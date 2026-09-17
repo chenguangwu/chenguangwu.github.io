@@ -2061,6 +2061,7 @@ global.ToolBox = {
   markInvalid: markInvalid,
   clearInvalid: clearInvalid,
   validateNumberInput: validateNumberInput,
+  enhanceTimeInput: null,
   Analytics: global.ToolBox && global.ToolBox.Analytics,
   injectPrivacyBadge: injectPrivacyBadge,
   openPrivacyModal: openPrivacyModal,
@@ -3242,12 +3243,14 @@ var NUM_HINT_RE = /数字|数值|金额|单价|数量|长度|宽度|高度|重�
 function enhanceNumberInputs(){
   try {
     document.querySelectorAll('input[type="text"]').forEach(function(inp){
+      if (inp.hasAttribute('data-tb-time-input')) return;
       if (!inp.getAttribute('inputmode') && NUM_HINT_RE.test(inp.placeholder || '')) {
         inp.setAttribute('inputmode', 'decimal');
         inp.setAttribute('pattern', '[0-9.\\-]*');
       }
     });
     document.querySelectorAll('input[inputmode="decimal"], input[inputmode="numeric"]').forEach(function(inp){
+      if (inp.hasAttribute('data-tb-time-input')) return;
       if (inp.__numGuard) return;
       inp.__numGuard = true;
       inp.addEventListener('input', function(){
@@ -3270,6 +3273,152 @@ function enhanceNumberInputs(){
   } catch(e){}
 }
 document.addEventListener('DOMContentLoaded', enhanceNumberInputs);
+
+// 统一时间输入：避免各浏览器原生 time picker 的视觉差异，同时保留原输入值和事件契约。
+(function(){
+  function padTimePart(value){ return String(value).padStart(2, '0'); }
+
+  function hasSeconds(input){
+    return /^\d{1,2}:\d{2}:\d{2}/.test(String(input.value || '')) || input.getAttribute('step') === '1';
+  }
+
+  function readTime(input, withSeconds){
+    var match = String(input.value || '').trim().match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?$/);
+    if (!match) return { h: 0, m: 0, s: 0 };
+    return {
+      h: Math.min(23, Math.max(0, parseInt(match[1], 10) || 0)),
+      m: Math.min(59, Math.max(0, parseInt(match[2], 10) || 0)),
+      s: withSeconds ? Math.min(59, Math.max(0, parseInt(match[3], 10) || 0)) : 0
+    };
+  }
+
+  function optionMarkup(max, selected, step){
+    var html = '';
+    for (var i = 0; i <= max; i += step) {
+      var value = padTimePart(i);
+      html += '<option value="' + value + '"' + (i === selected ? ' selected' : '') + '>' + value + '</option>';
+    }
+    return html;
+  }
+
+  function enhanceTimeInput(input){
+    if (!input || input.nodeType !== 1 || input.getAttribute('data-tb-time-enhanced')) return;
+    if (input.tagName.toLowerCase() !== 'input') return;
+    if (input.type !== 'time' && !input.hasAttribute('data-tb-time-input')) return;
+
+    var originalWidth = '';
+    try { originalWidth = getComputedStyle(input).width; } catch (e) {}
+    var withSeconds = hasSeconds(input);
+    var declaredValue = input.getAttribute('value');
+    input.setAttribute('data-tb-time-input', '1');
+    input.setAttribute('data-tb-time-enhanced', '1');
+    input.setAttribute('type', 'text');
+    input.setAttribute('inputmode', 'numeric');
+    input.setAttribute('maxlength', withSeconds ? '8' : '5');
+    input.setAttribute('pattern', withSeconds ? '[0-9]{2}:[0-9]{2}:[0-9]{2}' : '[0-9]{2}:[0-9]{2}');
+    if (!input.getAttribute('placeholder')) input.setAttribute('placeholder', withSeconds ? 'HH:MM:SS' : 'HH:MM');
+    if (declaredValue !== null) input.value = declaredValue;
+    if (originalWidth && originalWidth !== 'auto' && originalWidth !== '0px') input.style.width = originalWidth;
+
+    var wrapper = document.createElement('span');
+    wrapper.className = 'tb-time-control';
+    input.parentNode.insertBefore(wrapper, input);
+    wrapper.appendChild(input);
+
+    var trigger = document.createElement('button');
+    trigger.type = 'button';
+    trigger.className = 'tb-time-trigger';
+    trigger.setAttribute('aria-label', '选择时间');
+    trigger.setAttribute('aria-haspopup', 'dialog');
+    trigger.textContent = '◷';
+    wrapper.appendChild(trigger);
+
+    var picker = document.createElement('div');
+    picker.className = 'tb-time-picker';
+    picker.setAttribute('role', 'dialog');
+    picker.setAttribute('aria-label', '选择时间');
+    var initial = readTime(input, withSeconds);
+    var minuteStep = parseInt(input.getAttribute('data-minute-step') || '', 10);
+    if (!minuteStep || minuteStep < 1 || minuteStep > 59 || 60 % minuteStep !== 0) minuteStep = 1;
+    picker.innerHTML = '<div class="tb-time-fields">' +
+      '<select aria-label="小时">' + optionMarkup(23, initial.h, 1) + '</select>' +
+      '<span class="tb-time-separator">:</span>' +
+      '<select aria-label="分钟">' + optionMarkup(59, Math.floor(initial.m / minuteStep) * minuteStep, minuteStep) + '</select>' +
+      (withSeconds ? '<span class="tb-time-separator">:</span><select aria-label="秒">' + optionMarkup(59, initial.s, 1) + '</select>' : '') +
+      '</div><button type="button" class="tb-time-apply">确定</button>';
+    wrapper.appendChild(picker);
+
+    var selects = picker.querySelectorAll('select');
+    function syncFromInput(){
+      var current = readTime(input, withSeconds);
+      selects[0].value = padTimePart(current.h);
+      selects[1].value = padTimePart(Math.floor(current.m / minuteStep) * minuteStep);
+      if (withSeconds) selects[2].value = padTimePart(current.s);
+    }
+    function close(){ wrapper.classList.remove('open'); trigger.setAttribute('aria-expanded', 'false'); }
+    trigger.setAttribute('aria-expanded', 'false');
+    trigger.addEventListener('click', function(ev){
+      ev.preventDefault();
+      ev.stopPropagation();
+      if (wrapper.classList.contains('open')) { close(); return; }
+      syncFromInput();
+      wrapper.classList.add('open');
+      trigger.setAttribute('aria-expanded', 'true');
+      selects[0].focus();
+    });
+    picker.querySelector('.tb-time-apply').addEventListener('click', function(ev){
+      ev.preventDefault();
+      ev.stopPropagation();
+      var value = selects[0].value + ':' + selects[1].value + (withSeconds ? ':' + selects[2].value : '');
+      input.value = value;
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+      input.dispatchEvent(new Event('change', { bubbles: true }));
+      close();
+      input.focus();
+    });
+    input.addEventListener('keydown', function(ev){
+      if (ev.key === 'Enter') { ev.preventDefault(); trigger.click(); }
+      if (ev.key === 'Escape') close();
+    });
+  }
+
+  function enhanceTimeInputs(root){
+    var scope = root && root.querySelectorAll ? root : document;
+    if (scope.matches && scope.matches('input[type="time"],input[data-tb-time-input]')) enhanceTimeInput(scope);
+    scope.querySelectorAll('input[type="time"],input[data-tb-time-input]').forEach(enhanceTimeInput);
+  }
+
+  document.addEventListener('click', function(ev){
+    document.querySelectorAll('.tb-time-control.open').forEach(function(control){
+      if (!control.contains(ev.target)) {
+        control.classList.remove('open');
+        var button = control.querySelector('.tb-time-trigger');
+        if (button) button.setAttribute('aria-expanded', 'false');
+      }
+    });
+  });
+  document.addEventListener('keydown', function(ev){
+    if (ev.key !== 'Escape') return;
+    document.querySelectorAll('.tb-time-control.open').forEach(function(control){
+      control.classList.remove('open');
+      var button = control.querySelector('.tb-time-trigger');
+      if (button) button.setAttribute('aria-expanded', 'false');
+    });
+  });
+  document.addEventListener('DOMContentLoaded', function(){
+    enhanceTimeInputs(document);
+    if (window.MutationObserver && document.body) {
+      new MutationObserver(function(records){
+        records.forEach(function(record){
+          record.addedNodes.forEach(function(node){
+            if (node.nodeType === 1) enhanceTimeInputs(node);
+          });
+        });
+      }).observe(document.body, { childList: true, subtree: true });
+    }
+  });
+  if (global.ToolBox) global.ToolBox.enhanceTimeInput = enhanceTimeInput;
+})();
 
 // B5-11 Ref-card 与卡片化交互元素增强（仅对存在点击行为或明确卡片语义生效）
 // 目的：卡片真实可点时，补齐可访问语义与键盘触发，减少 dead click。
