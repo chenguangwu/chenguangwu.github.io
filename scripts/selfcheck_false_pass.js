@@ -80,6 +80,52 @@ function isFakeStruct(c) {
   return null;
 }
 
+// ── 弱用例（无判别力）判定 —— 补旧版两个盲区 ──────────────────
+// 盲区1：文件头注释第 15–16 行声明「用例没有有效 inputs」判 RISK，
+//        但 isFakeStruct() 从未调用 hasRealInputs()，该判定实际从未生效。
+// 盲区2：「用例注入值 == 页面默认值」——框架在编译期已跑过一次默认态 calc()，
+//        注入失败时默认结果恰好命中期望 → 假通过（项目记忆中的头号假通过机制）。
+// 存量弱用例登记在 scripts/falsepass_baseline.json：只允许下降，新增即让门禁红。
+const BASELINE_PATH = path.join(__dirname, "falsepass_baseline.json");
+const _htmlCache = new Map();
+const _escRe = (s) => String(s).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+const _norm = (v) => String(v == null ? "" : v).trim();
+
+function _pageDefaults(html, ids) {
+  const out = {};
+  for (const id of ids) {
+    let m = html.match(new RegExp('<input\\b[^>]*\\bid=["\']' + _escRe(id) + '["\'][^>]*>', "i"));
+    if (m) {
+      const vm = m[0].match(/\bvalue=["']([^"']*)["']/);
+      out[id] = vm ? vm[1] : "";
+      continue;
+    }
+    let ms = html.match(new RegExp('<select\\b[^>]*\\bid=["\']' + _escRe(id) + '["\'][^>]*>([\\s\\S]*?)</select>', "i"));
+    if (ms) {
+      const sel = ms[1].match(/<option[^>]*\\bselected\\b[^>]*value=["\']([^"\']*)["\']/i)
+               || ms[1].match(/<option[^>]*value=["\']([^"\']*)["\']/i);
+      out[id] = sel ? sel[1] : "";
+      continue;
+    }
+    let mt = html.match(new RegExp('<textarea\\b[^>]*\\bid=["\']' + _escRe(id) + '["\'][^>]*>([\\s\\S]*?)</textarea>', "i"));
+    if (mt) { out[id] = mt[1].trim(); continue; }
+    out[id] = null;
+  }
+  return out;
+}
+
+function weakKind(c) {
+  const keys = Object.keys(c.inputs || {});
+  if (!keys.length) return "no_inputs";
+  const p = path.join(__dirname, "..", "tools", String(c.slug || "") + ".html");
+  if (!fs.existsSync(p)) return null;
+  if (!_htmlCache.has(p)) _htmlCache.set(p, fs.readFileSync(p, "utf8"));
+  const defs = _pageDefaults(_htmlCache.get(p), keys);
+  if (keys.some((k) => defs[k] === null)) return null; // id 不在页面：交由结构判定，不重复计数
+  if (keys.every((k) => _norm(c.inputs[k]) === _norm(defs[k]))) return "all_default";
+  return null;
+}
+
 async function scanFile(file, exec) {
   const src = fs.readFileSync(file, "utf8");
   let CASES;
@@ -92,6 +138,7 @@ async function scanFile(file, exec) {
 
   let risk = 0, checked = 0;
   const reasons = [];
+  const weak = { no_inputs: 0, all_default: 0 };
   for (const c of CASES) {
     checked++;
     const why = isFakeStruct(c);
@@ -100,6 +147,9 @@ async function scanFile(file, exec) {
       reasons.push(`${c.slug || "?"} (${why})`);
       continue;
     }
+    // 弱用例（无判别力）统计：不影响硬失败判定，仅入基线防回归
+    const wk = weakKind(c);
+    if (wk) weak[wk]++;
     // 真用例：可选执行态自检（仅人工深挖时开启，门禁默认不跑，避免 OOM/误伤）
     if (exec) {
       try {
@@ -111,7 +161,7 @@ async function scanFile(file, exec) {
       } catch (_) { /* 页面执行异常不计入结构判定 */ }
     }
   }
-  return { file: path.basename(file), checked, risk, reasons };
+  return { file: path.basename(file), checked, risk, reasons, weak };
 }
 
 (async () => {
@@ -125,20 +175,40 @@ async function scanFile(file, exec) {
   files.sort();
 
   let totalRisk = 0, totalChecked = 0, skipped = 0;
+  const weak = { no_inputs: 0, all_default: 0 };
   const risky = [];
   for (const f of files) {
     const r = await scanFile(f, execMode);
     totalChecked += r.checked;
     if (r.skip) { skipped++; console.log(`SKIP ${r.file} :: ${r.skip}`); continue; }
+    for (const k of Object.keys(weak)) weak[k] += (r.weak ? r.weak[k] : 0);
     if (r.risk) {
       totalRisk += r.risk;
       risky.push(`${r.file}: ${r.risk}/${r.checked}`);
       for (const re of r.reasons) console.log(`  RISK ${r.file} :: ${re}`);
     }
   }
+
+  // 弱用例基线防回归（仅目录模式比对；单文件调试模式不比对）
+  let base = null;
+  const regressed = [];
+  if (stat.isDirectory() && fs.existsSync(BASELINE_PATH)) {
+    base = JSON.parse(fs.readFileSync(BASELINE_PATH, "utf8"));
+    for (const k of Object.keys(weak)) {
+      if (base[k] != null && weak[k] > base[k]) regressed.push(`${k} ${weak[k]} > 基线 ${base[k]}`);
+    }
+  }
+
   console.log(`\n==== false-pass selfcheck: checked=${totalChecked} risk=${totalRisk} skipped=${skipped} ====`);
+  console.log("弱用例(无判别力): no_inputs=" + weak.no_inputs + " all_default=" + weak.all_default +
+              (base ? (" | 基线: no_inputs=" + base.no_inputs + " all_default=" + base.all_default) : ""));
   if (totalRisk) {
     console.log("结论：存在 %d 个疑似假门禁（_selfcheck 标记或占位 expect），需还原为真实 expect。", totalRisk);
+    process.exit(1);
+  }
+  if (regressed.length) {
+    console.log("结论：弱用例数量突破基线（新增用例缺少判别力）—— " + regressed.join("; "));
+    console.log("      修法：新用例必须提供真实 inputs，且注入值必须避开页面默认值。");
     process.exit(1);
   }
   console.log("结论：无假门禁（结构判定：所有用例均带真实 inputs 且无 _selfcheck 标记）。");
