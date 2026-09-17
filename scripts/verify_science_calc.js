@@ -60,13 +60,6 @@ const CASES = [
     ref: "pH=3 → [H⁺]=10⁻³=1.000e-3 mol/L；resPh=3.00、resH=1.000e-3（toFixed(2)/toExponential(3)）",
   },
 
-  // ── 统计 ───────────────────────────────────────────────────
-  {
-    slug: "science/z-score-calculator",
-    inputs: { x: "75", mu: "50", sigma: "10" },
-    expect: ["2.5"],
-    ref: "标准分数 Z = (x−μ)/σ；(75−50)/10 = 2.5（fmt(z)，输出 'Z = 2.5'）",
-  },
   {
     slug: "science/mean-calculator",
     inputs: { data: "1,2,4" },

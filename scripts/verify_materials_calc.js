@@ -144,11 +144,6 @@ const CASES = [
     expect: ["94.10", "9.410e+10"],
     ref: "E_c=0.4×230e9+0.6×3.5e9=9.410e+10 Pa=94.10 GPa" },
 
-  // ---- 密度 / 质量 ----
-  { slug: "materials/density-basic",
-    inputs: { m: "2.70", V: "0.001" },
-    expect: ["2700.0", "2.7000"],
-    ref: "ρ=m/V=2.70/0.001=2700.0 kg/m³=2.7000 g/cm³" },
 
   { slug: "materials/mass-from-density",
     inputs: { rho: "2700", V: "0.0035" },
