@@ -269,6 +269,10 @@ GATES = (
     # 或「空输入」假用例。真用例都带真实 inputs，本门禁零误伤；一旦存在假门禁即判红，
     # 强制还原为真实 inputs+expect。置于最后，不阻塞其余门禁先跑完。
     ("anti-regression: no fake gates", ("node", "scripts/selfcheck_false_pass.js", "scripts")),
+    # 判别力门禁（DEV-PLAN §10.7）：模拟「输入注入失败」——把用例 inputs 换回页面默认值，
+    # 用例必须 FAIL。仍 PASS 的即含「不依赖被测点的逃生项」（任一命中即通过机制的第二次
+    # 隐蔽假通过）。存量入基线 scripts/discriminate_baseline.json，只准降不准增。
+    ("anti-regression: case discrimination", ("node", "scripts/discriminate_check.js")),
 )
 
 
