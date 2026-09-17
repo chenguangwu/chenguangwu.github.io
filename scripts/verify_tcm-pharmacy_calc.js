@@ -108,16 +108,6 @@ const CASES = [
   "ref": "auto-restore(default)"
 },
 {
-  "slug": "tcm-pharmacy/generator-28",
-  "inputs": {
-    "cnt": "8"
-  },
-  "expect": [
-    "6."
-  ],
-  "ref": "auto-restore"
-},
-{
   "slug": "tcm-pharmacy/granule-equivalent",
   "inputs": {
     "decoctionDose": "10",

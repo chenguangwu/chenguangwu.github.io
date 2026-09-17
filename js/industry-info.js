@@ -1,7 +1,7 @@
 /* 全站行业字典（中文名 + emoji 图标）—— 由 scripts/gen_industry_info.py 生成，勿手改 */
 /* 数据来源：_build.py INDUSTRY_DEFS 短名（权威，268/268）+ 语义 emoji 映射；仅显示用短名，描述走页面 meta */
 window.INDUSTRY_INFO = {
-  'it'                   : { name: 'IT 开发', icon: '💻', hot: 30143075 },
+  'it'                   : { name: 'IT 开发', icon: '💻', hot: 30131994 },
   'life'                 : { name: '日常生活', icon: '🏠', hot: 11673740 },
   'finance'              : { name: '金融财务', icon: '💰', hot: 10088570 },
   'design'               : { name: '设计创意', icon: '🎨', hot: 8192257 },
@@ -18,7 +18,7 @@ window.INDUSTRY_INFO = {
   'edu'                  : { name: '教育学习', icon: '📖', hot: 1462306 },
   'hotel'                : { name: '酒店管理', icon: '🏨', hot: 1038487 },
   'agriculture'          : { name: '农业种植', icon: '🌾', hot: 720302 },
-  'sports'               : { name: '体育竞技', icon: '⚽', hot: 612632 },
+  'sports'               : { name: '体育竞技', icon: '⚽', hot: 591835 },
   'statistics'           : { name: '统计学', icon: '📊', hot: 537049 },
   'automotive'           : { name: '汽车交通', icon: '🚗', hot: 498967 },
   'hydraulic'            : { name: '水利工程', icon: '💧', hot: 497519 },
@@ -56,13 +56,13 @@ window.INDUSTRY_INFO = {
   'surveying'            : { name: '测绘工程', icon: '📐', hot: 211305 },
   'food'                 : { name: '美食烹饪', icon: '🍳', hot: 207845 },
   'civil'                : { name: '土木工程', icon: '🏗️', hot: 202980 },
-  'tcm-pharmacy'         : { name: '中药学', icon: '🌿', hot: 202080 },
   'economics'            : { name: '经济学', icon: '📊', hot: 201019 },
   'obstetrics'           : { name: '产科医学', icon: '🤱', hot: 200795 },
   'electrical'           : { name: '电气工程', icon: '🔌', hot: 195328 },
   'forestry'             : { name: '林业资源', icon: '🌲', hot: 195052 },
   'hematology'           : { name: '血液科', icon: '🩸', hot: 190143 },
   'clinical-lab'         : { name: '临床检验', icon: '🔬', hot: 189211 },
+  'tcm-pharmacy'         : { name: '中药学', icon: '🌿', hot: 189044 },
   'fluid'                : { name: '流体力学', icon: '💧', hot: 185771 },
   'electronics'          : { name: '电子电路', icon: '⚡', hot: 180294 },
   'astronomy'            : { name: '天文观测', icon: '🔭', hot: 179501 },
