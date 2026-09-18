@@ -1,154 +1,188 @@
 #!/usr/bin node
 "use strict";
+// 第十七批（pulmonology）弱用例去默认化：
+// 全部用例采用「非默认输入 + 独立复算 expect」，expect 必须依赖被测点的计算结果，
+// 不得取页面源码字面量或输入值回显（注入失败时用例必须 FAIL）。
 const { runCase } = require("./verify_it_calc.js");
 const CASES = [
 {
+  // 默认 wt=55/age=45 → 风险因素「年龄≥35」→ 中危；注入 wt=40/age=30 → 无风险因素 → 低危
   "slug": "pulmonology/anti-tb-dosing",
   "inputs": {
-    "wt": "55",
-    "age": "45"
+    "wt": "40",
+    "age": "30"
   },
   "expect": [
-    "顺序"
-  ]
+    "风险因素：无"
+  ],
+  "ref": "auto-restore"
 },
 {
+  // 默认 pao2=80/fio2=40 → P/F=200 重度 ARDS；注入 90/21 → P/F=429 → 氧合功能正常
   "slug": "pulmonology/calc-48",
   "inputs": {
-    "pao2": "80",
-    "fio2": "40",
-    "map": "",
-    "paco2": ""
+    "pao2": "90",
+    "fio2": "21"
   },
   "expect": [
-    "200 P/F"
-  ]
+    "氧合功能正常，无需特殊氧疗支持。"
+  ],
+  "ref": "auto-restore"
 },
 {
+  // 默认 2.1/3.5 → 比值 60.0% 阻塞；注入 3.0/3.5 → 85.7% ≥0.70 → 无阻塞
   "slug": "pulmonology/feigongneng-fev1-fvc-fenji",
   "inputs": {
-    "fev1": "2.1",
+    "fev1": "3.0",
     "fvc": "3.5",
     "fev1pred": "3.0",
-    "fvcpred": "",
-    "age": "60"
+    "fvcpred": "2.0",
+    "age": "40"
   },
   "expect": [
-    "60.0% FEV1/FVC"
-  ]
+    "FEV1/FVC = 0.857 ≥ 0.70，无阻塞性通气障碍。"
+  ],
+  "ref": "auto-restore"
 },
 {
+  // 默认 42/65/320/200 → 渗出液；注入 20/65/100/200 → 三项均不达标 → 漏出液
   "slug": "pulmonology/light-criteria",
   "inputs": {
-    "pfProt": "42",
+    "pfProt": "20",
     "sProt": "65",
-    "pfLdh": "320",
+    "pfLdh": "100",
     "sLdh": "200",
     "sLdhUl": "250"
   },
   "expect": [
-    "及肺栓塞等病因"
-  ]
+    "结论：漏出液"
+  ],
+  "ref": "auto-restore"
 },
 {
+  // 默认 copd/8/60 → 480 mL；注入 cardiac/10/70 → 700 mL
   "slug": "pulmonology/niv-settings",
   "inputs": {
-    "vt": "8",
-    "ibw": "60",
-    "ph": "7.28"
+    "indication": "cardiac",
+    "vt": "10",
+    "ibw": "70",
+    "ph": "7.30"
   },
   "expect": [
-    "一般"
-  ]
+    "目标潮气量 = 10 mL/kg × 70 kg = 700 mL"
+  ],
+  "ref": "auto-restore"
 },
 {
+  // 默认 65/40 → P/F=163；注入 90/30 → P/F=300（PEEP 复选框 harness 不可注入，故以 P/F 明细判读）
   "slug": "pulmonology/oxygenation-index",
   "inputs": {
-    "pao2": "65",
-    "fio2": "40",
-    "spo2": "92"
+    "pao2": "90",
+    "fio2": "30",
+    "spo2": "95"
   },
   "expect": [
-    "不可直接定级"
-  ]
+    "P/F = 90 / 0.30 = 300"
+  ],
+  "ref": "auto-restore"
 },
 {
+  // 默认 a/b/c=2/3/2 → 23% 中大量；注入 1/1/1 → 10% 少量且无症状
   "slug": "pulmonology/pneumothorax",
   "inputs": {
-    "a": "2",
-    "b": "3",
-    "c": "2"
+    "a": "1",
+    "b": "1",
+    "c": "1"
   },
   "expect": [
-    "外科干预"
-  ]
+    "压缩＜20%且无症状，可观察吸氧"
+  ],
+  "ref": "auto-restore"
 },
 {
+  // 默认 2.10/3.50 → 60.0% 阻塞 GOLD 2；注入 3.0/3.5/95/95 → 85.7% 正常
   "slug": "pulmonology/pulmonary-function",
   "inputs": {
-    "fev1": "2.10",
-    "fvc": "3.50",
-    "fev1pp": "68",
-    "fvcpp": "88"
+    "fev1": "3.0",
+    "fvc": "3.5",
+    "fev1pp": "95",
+    "fvcpp": "95",
+    "cutoff": "0.70"
   },
   "expect": [
-    "评估吸入糖皮质激素指"
-  ]
+    "通气功能正常，未见阻塞性或限制性通气障碍。"
+  ],
+  "ref": "auto-restore"
 },
 {
+  // 默认 mip=45 → 高于下限 43（正常）；注入 mip=30 → 吸气肌无力
   "slug": "pulmonology/pulmonary-rehab",
   "inputs": {
-    "mip": "45",
-    "mep": "80",
+    "mip": "30",
+    "mep": "30",
     "age": "65"
   },
   "expect": [
-    "耐量与生活质量"
-  ]
+    "吸气肌无力"
+  ],
+  "ref": "auto-restore"
 },
 {
+  // 默认 pao2=55/paco2=62 → II型呼衰；注入 80/40 → 未达呼衰标准
   "slug": "pulmonology/respiratory-failure",
   "inputs": {
-    "pao2": "55",
-    "paco2": "62",
+    "pao2": "80",
+    "paco2": "40",
     "fio2": "21",
     "age": "65"
   },
   "expect": [
-    "麻醉"
-  ]
+    "无低氧性呼衰"
+  ],
+  "ref": "auto-restore"
 },
 {
+  // 默认文本 10..80 → 均值 45.00；注入 5,9,13,21,14 → 均值 12.40（复算 62/5）
   "slug": "pulmonology/analysis-14",
   "inputs": {
-    "data": "10,20,30,40,50,60,70,80_X"
+    "data": "5,9,13,21,14"
   },
   "expect": [
-    "80_X"
+    "12.40"
   ],
   "ref": "auto-restore"
 },
 {
+  // 默认 tumorType=0 → 0级原位/表浅；注入 3 → 3级浸润型
   "slug": "pulmonology/bronchoscopy-grading",
   "inputs": {
-    "tumorType": "1"
+    "tumorType": "3"
   },
   "expect": [
-    "1级"
+    "提示浸润性癌，评估分期，可能需放化疗/手术"
   ],
   "ref": "auto-restore"
 },
 {
+  // 8 题（q0-q7）每题 0-5；注入全 5 → 总分 40 → 极重度影响
   "slug": "pulmonology/copd-cat",
   "inputs": {
-    "q'+i+'": "'+s+'"
+    "q0": "5",
+    "q1": "5",
+    "q2": "5",
+    "q3": "5",
+    "q4": "5",
+    "q5": "5",
+    "q6": "5",
+    "q7": "5"
   },
   "expect": [
-    "+s+"
+    "影响极重，多学科综合管理"
   ],
   "ref": "auto-restore"
 },
 {
+  // 结构性 no_inputs：评分项全为 checkbox，harness 桩 checked 恒 false，无法注入
   "slug": "pulmonology/curb65",
   "inputs": {},
   "expect": [
@@ -157,74 +191,107 @@ const CASES = [
   "ref": "auto-restore(default)"
 },
 {
+  // ACT 五项 a1-a5 各 1-5；注入全 4 → 总分 20 → 良好控制
   "slug": "pulmonology/gina-asthma",
   "inputs": {
-    "a1": "2"
+    "a1": "4",
+    "a2": "4",
+    "a3": "4",
+    "a4": "4",
+    "a5": "4"
   },
   "expect": [
-    "6/25"
+    "20/25 ACT总分 良好控制"
   ],
   "ref": "auto-restore"
 },
 {
+  // 默认 T1a → ⅠA1期；注入 T2a/N0/M0 → ⅠB期
   "slug": "pulmonology/lung-cancer-tnm",
   "inputs": {
-    "t": "T1b"
+    "t": "T2a",
+    "n": "N0",
+    "m": "M0"
   },
   "expect": [
-    "T1b"
+    "分期 = ⅠB期"
   ],
   "ref": "auto-restore"
 },
 {
+  // 默认 size=9 → 4A（3个月复查）；注入 size=5 → 2 类（年度复查）
   "slug": "pulmonology/lung-rads",
   "inputs": {
-    "size": "14"
+    "type": "solid",
+    "size": "5"
   },
   "expect": [
-    "14.0"
+    "Lung-RADS 2 年度低剂量CT复查。"
   ],
   "ref": "auto-restore"
 },
 {
+  // Wells 7 项（q0-q6，动态 id）注入全「是」→ 3+3+1.5+1.5+1.5+1+1 = 12.5 → 高风险
   "slug": "pulmonology/rater-13",
-  "inputs": {},
+  "inputs": {
+    "q0": "1",
+    "q1": "1",
+    "q2": "1",
+    "q3": "1",
+    "q4": "1",
+    "q5": "1",
+    "q6": "1"
+  },
   "expect": [
-    "近4周内手术史或近3天以上制动/卧床"
+    "PE概率约 49.9%"
   ],
-  "ref": "auto-restore(default)"
+  "ref": "auto-restore"
 },
 {
+  // FTND 6 题（q0-q5，动态 id）注入 3/1/1/3/1/1 → 总分 10 → 极高依赖
   "slug": "pulmonology/self-assess-3",
   "inputs": {
-    "q'+i+'": "'+opt.v+'"
+    "q0": "3",
+    "q1": "1",
+    "q2": "1",
+    "q3": "3",
+    "q4": "1",
+    "q5": "1"
   },
   "expect": [
-    "+opt.v+"
+    "尼古丁依赖程度极高，生理依赖严重，自行戒烟极困难，需专业医疗干预。"
   ],
   "ref": "auto-restore"
 },
 {
+  // q1-q6 注入全 0 → 总分 0 → 轻度依赖（默认组合为 7 分重度依赖）
   "slug": "pulmonology/smoking-cessation",
   "inputs": {
-    "q1": "2"
+    "q1": "0",
+    "q2": "0",
+    "q3": "0",
+    "q4": "0",
+    "q5": "0",
+    "q6": "0"
   },
   "expect": [
-    "尼古丁替代贴片(联合口香糖)或伐尼克兰(0.5mg渐增至1mg"
+    "依赖程度轻。以行为干预为主(识别触发情境、延迟技巧)"
   ],
   "ref": "auto-restore"
 },
 {
+  // 默认 char=浆液性 → 无警示；注入 bloody → 血性痰警示
   "slug": "pulmonology/sputum-analysis",
   "inputs": {
-    "vol": "45"
+    "char": "bloody"
   },
   "expect": [
-    "45mL/24h"
+    "血性痰需排查肺结核、肺癌、支扩"
   ],
   "ref": "auto-restore"
 },
 {
+  // 结构性 no_inputs：评分项全为 checkbox，harness 桩 checked 恒 false，无法注入
   "slug": "pulmonology/stop-bang",
   "inputs": {},
   "expect": [
@@ -233,26 +300,31 @@ const CASES = [
   "ref": "auto-restore(default)"
 },
 {
+  // 默认（harness 首选项）smear=neg → 传染性低；注入 3+/pos/rif_s → 有传染性需隔离
   "slug": "pulmonology/tb-resistance",
   "inputs": {
-    "smear": "1+"
+    "smear": "3+",
+    "culture": "pos",
+    "xpert": "rif_s"
   },
   "expect": [
-    "1+"
+    "有传染性，需呼吸道隔离"
   ],
   "ref": "auto-restore"
 },
 {
+  // 默认 rul_ap → 右上叶尖段（叩击同侧肩胛上方）；注入 rml → 右中叶（叩击右侧乳头下方）
   "slug": "pulmonology/vibration-percussion",
   "inputs": {
-    "lobe": "rul_post"
+    "lobe": "rml"
   },
   "expect": [
-    "叩击同侧肩胛骨上方"
+    "叩击右侧乳头下方区域"
   ],
   "ref": "auto-restore"
 },
 {
+  // 结构性 no_inputs：评分项全为 checkbox，harness 桩 checked 恒 false，无法注入
   "slug": "pulmonology/wells-pe",
   "inputs": {},
   "expect": [
