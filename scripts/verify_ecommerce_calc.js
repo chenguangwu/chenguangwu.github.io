@@ -2,237 +2,160 @@
 "use strict";
 const { runCase } = require("./verify_it_calc.js");
 const CASES = [
-{
-  "slug": "ecommerce/calc-79",
-  "inputs": {
-    "v0": "100",
-    "v1": "50"
+  // —— 13 个双变量计算器（v0/v1，原 all_default 弱用例，已去默认化）——
+  // 页面 calc() 公式：a=v0, b=v1；比值=a/b(4位)、pct=a/b*100(2位%)、avg=(a+b)/2、sum、diff=a-b、较大者。
+  // 注入 v0=217 / v1=83（均非默认 100/50）：a.toFixed(2)=217.00，diff=a-b=134.00；二者均不出现于默认输出（默认 100.00/50.00/50.00）。
+  {
+    "slug": "ecommerce/calc-79",
+    "inputs": { "v0": "217", "v1": "83" },
+    "expect": ["217.00", "134.00"],
+    "ref": "v0=217,v1=83 → a=217.00, b=83.00, diff=a-b=134.00（独立复算，与默认态 100.00/50.00/50.00 不重合）"
   },
-  "expect": [
-    "暂无计算记录"
-  ]
-},
-{
-  "slug": "ecommerce/calc-commission-2",
-  "inputs": {
-    "v0": "100",
-    "v1": "50"
+  {
+    "slug": "ecommerce/calc-commission-2",
+    "inputs": { "v0": "217", "v1": "83" },
+    "expect": ["217.00", "134.00"],
+    "ref": "v0=217,v1=83 → a=217.00, diff=a-b=134.00（独立复算，佣金=平台费/服务费比值计算同模板）"
   },
-  "expect": [
-    "暂无计算记录"
-  ]
-},
-{
-  "slug": "ecommerce/conversion-4",
-  "inputs": {
-    "v0": "100",
-    "v1": "50"
+  {
+    "slug": "ecommerce/conversion-4",
+    "inputs": { "v0": "217", "v1": "83" },
+    "expect": ["217.00", "134.00"],
+    "ref": "v0=217,v1=83 → a=217.00, diff=a-b=134.00（独立复算，直播观看/成交转化同模板）"
   },
-  "expect": [
-    "暂无计算记录"
-  ]
-},
-{
-  "slug": "ecommerce/discount",
-  "inputs": {
-    "v0": "100",
-    "v1": "50"
+  {
+    "slug": "ecommerce/discount",
+    "inputs": { "v0": "217", "v1": "83" },
+    "expect": ["217.00", "134.00"],
+    "ref": "v0=217,v1=83 → a=217.00, diff=a-b=134.00（独立复算，促销折扣/满减/优惠券设计同模板）"
   },
-  "expect": [
-    "暂无计算记录"
-  ]
-},
-{
-  "slug": "ecommerce/erp-dingdan-caigou-duijie",
-  "inputs": {
-    "v0": "100",
-    "v1": "50"
+  {
+    "slug": "ecommerce/erp-dingdan-caigou-duijie",
+    "inputs": { "v0": "217", "v1": "83" },
+    "expect": ["217.00", "134.00"],
+    "ref": "v0=217,v1=83 → a=217.00, diff=a-b=134.00（独立复算，ERP 订单/采购对接同模板）"
   },
-  "expect": [
-    "暂无计算记录"
-  ]
-},
-{
-  "slug": "ecommerce/estimate-ranking",
-  "inputs": {
-    "v0": "100",
-    "v1": "50"
+  {
+    "slug": "ecommerce/estimate-ranking",
+    "inputs": { "v0": "217", "v1": "83" },
+    "expect": ["217.00", "134.00"],
+    "ref": "v0=217,v1=83 → a=217.00, diff=a-b=134.00（独立复算，搜索/权重排名估算同模板）"
   },
-  "expect": [
-    "暂无计算记录"
-  ]
-},
-{
-  "slug": "ecommerce/groupon-filler",
-  "inputs": {
-    "target": "300",
-    "cut": "50",
-    "cur": "288"
+  {
+    "slug": "ecommerce/inventory-1",
+    "inputs": { "v0": "217", "v1": "83" },
+    "expect": ["217.00", "134.00"],
+    "ref": "v0=217,v1=83 → a=217.00, diff=a-b=134.00（独立复算，库存预警/补货同模板）"
   },
-  "expect": [
-    "内买零食"
-  ]
-},
-{
-  "slug": "ecommerce/inventory-1",
-  "inputs": {
-    "v0": "100",
-    "v1": "50"
+  {
+    "slug": "ecommerce/kaidian-yunyingyuguizeduibijisuanqi",
+    "inputs": { "v0": "217", "v1": "83" },
+    "expect": ["217.00", "134.00"],
+    "ref": "v0=217,v1=83 → a=217.00, diff=a-b=134.00（独立复算，开店/运营/规则对比同模板）"
   },
-  "expect": [
-    "暂无计算记录"
-  ]
-},
-{
-  "slug": "ecommerce/kaidian-yunyingyuguizeduibijisuanqi",
-  "inputs": {
-    "v0": "100",
-    "v1": "50"
+  {
+    "slug": "ecommerce/kedan-jiandanjia-liandailv",
+    "inputs": { "v0": "217", "v1": "83" },
+    "expect": ["217.00", "134.00"],
+    "ref": "v0=217,v1=83 → a=217.00, diff=a-b=134.00（独立复算，客单件单价/连带率同模板）"
   },
-  "expect": [
-    "暂无计算记录"
-  ]
-},
-{
-  "slug": "ecommerce/kedan-jiandanjia-liandailv",
-  "inputs": {
-    "v0": "100",
-    "v1": "50"
+  {
+    "slug": "ecommerce/pingjia-chaping-tuihuo-lv",
+    "inputs": { "v0": "217", "v1": "83" },
+    "expect": ["217.00", "134.00"],
+    "ref": "v0=217,v1=83 → a=217.00, diff=a-b=134.00（独立复算，评价差评/退货率同模板）"
   },
-  "expect": [
-    "暂无计算记录"
-  ]
-},
-{
-  "slug": "ecommerce/pingjia-chaping-tuihuo-lv",
-  "inputs": {
-    "v0": "100",
-    "v1": "50"
+  {
+    "slug": "ecommerce/response-2",
+    "inputs": { "v0": "217", "v1": "83" },
+    "expect": ["217.00", "134.00"],
+    "ref": "v0=217,v1=83 → a=217.00, diff=a-b=134.00（独立复算，客服咨询/投诉响应同模板）"
   },
-  "expect": [
-    "暂无计算记录"
-  ]
-},
-{
-  "slug": "ecommerce/response-2",
-  "inputs": {
-    "v0": "100",
-    "v1": "50"
+  {
+    "slug": "ecommerce/wuliu-fahuo-cangchu-gongyinglian-zhenghe",
+    "inputs": { "v0": "217", "v1": "83" },
+    "expect": ["217.00", "134.00"],
+    "ref": "v0=217,v1=83 → a=217.00, diff=a-b=134.00（独立复算，物流发货/仓储/供应链整合同模板）"
   },
-  "expect": [
-    "暂无计算记录"
-  ]
-},
-{
-  "slug": "ecommerce/wuliu-fahuo-cangchu-gongyinglian-zhenghe",
-  "inputs": {
-    "v0": "100",
-    "v1": "50"
+  {
+    "slug": "ecommerce/wuliu-lanshou-qianshou-shixiao",
+    "inputs": { "v0": "217", "v1": "83" },
+    "expect": ["217.00", "134.00"],
+    "ref": "v0=217,v1=83 → a=217.00, diff=a-b=134.00（独立复算，物流揽收/签收/时效同模板）"
   },
-  "expect": [
-    "暂无计算记录"
-  ]
-},
-{
-  "slug": "ecommerce/wuliu-lanshou-qianshou-shixiao",
-  "inputs": {
-    "v0": "100",
-    "v1": "50"
+
+  // —— 8 个统计分析页（data 原含 _X 回显，已升级为真实数据 + 真实统计）——
+  // 页面 calc()：解析 data 数字串 → n/sum/mean/median/min/max/range/var/std（总体方差 /n）。
+  // 注入 data=7,14,21,28,35,42,49,56：sum=252.00、mean=31.50、var=257.25（均不出现于默认 10..80 的统计输出）。
+  {
+    "slug": "ecommerce/analysis-25",
+    "inputs": { "data": "7,14,21,28,35,42,49,56" },
+    "expect": ["31.50", "252.00", "257.25"],
+    "ref": "data=7,14,21,28,35,42,49,56 → sum=252.00, mean=31.50, var=Σ(x-31.5)²/8=257.25（独立复算）"
   },
-  "expect": [
-    "暂无计算记录"
-  ]
-},
-{
-  "slug": "ecommerce/analysis-25",
-  "inputs": {
-    "data": "10,20,30,40,50,60,70,80_X"
+  {
+    "slug": "ecommerce/analysis-70",
+    "inputs": { "data": "7,14,21,28,35,42,49,56" },
+    "expect": ["31.50", "252.00", "257.25"],
+    "ref": "data=7,14,21,28,35,42,49,56 → sum=252.00, mean=31.50, var=257.25（独立复算）"
   },
-  "expect": [
-    "80_X"
-  ],
-  "ref": "auto-restore"
-},
-{
-  "slug": "ecommerce/analysis-70",
-  "inputs": {
-    "data": "10,20,30,40,50,60,70,80_X"
+  {
+    "slug": "ecommerce/analysis-71",
+    "inputs": { "data": "7,14,21,28,35,42,49,56" },
+    "expect": ["31.50", "252.00", "257.25"],
+    "ref": "data=7,14,21,28,35,42,49,56 → sum=252.00, mean=31.50, var=257.25（独立复算）"
   },
-  "expect": [
-    "80_X"
-  ],
-  "ref": "auto-restore"
-},
-{
-  "slug": "ecommerce/analysis-71",
-  "inputs": {
-    "data": "10,20,30,40,50,60,70,80_X"
+  {
+    "slug": "ecommerce/analysis-conversion-funnel",
+    "inputs": { "data": "7,14,21,28,35,42,49,56" },
+    "expect": ["31.50", "252.00", "257.25"],
+    "ref": "data=7,14,21,28,35,42,49,56 → sum=252.00, mean=31.50, var=257.25（独立复算，转化漏斗分析同模板）"
   },
-  "expect": [
-    "80_X"
-  ],
-  "ref": "auto-restore"
-},
-{
-  "slug": "ecommerce/analysis-conversion-funnel",
-  "inputs": {
-    "data": "10,20,30,40,50,60,70,80_X"
+  {
+    "slug": "ecommerce/analysis-cost-8",
+    "inputs": { "data": "7,14,21,28,35,42,49,56" },
+    "expect": ["31.50", "252.00", "257.25"],
+    "ref": "data=7,14,21,28,35,42,49,56 → sum=252.00, mean=31.50, var=257.25（独立复算，成本分析同模板）"
   },
-  "expect": [
-    "80_X"
-  ],
-  "ref": "auto-restore"
-},
-{
-  "slug": "ecommerce/analysis-cost-8",
-  "inputs": {
-    "data": "10,20,30,40,50,60,70,80_X"
+  {
+    "slug": "ecommerce/report",
+    "inputs": { "data": "7,14,21,28,35,42,49,56" },
+    "expect": ["31.50", "252.00", "257.25"],
+    "ref": "data=7,14,21,28,35,42,49,56 → sum=252.00, mean=31.50, var=257.25（独立复算，BI 报表同模板）"
   },
-  "expect": [
-    "80_X"
-  ],
-  "ref": "auto-restore"
-},
-{
-  "slug": "ecommerce/cycle-15",
-  "inputs": {
-    "churnDays": "135"
+  {
+    "slug": "ecommerce/stats-flow-conversion",
+    "inputs": { "data": "7,14,21,28,35,42,49,56" },
+    "expect": ["31.50", "252.00", "257.25"],
+    "ref": "data=7,14,21,28,35,42,49,56 → sum=252.00, mean=31.50, var=257.25（独立复算，流量 UV/PV/转化统计同模板）"
   },
-  "expect": [
-    "135"
-  ],
-  "ref": "auto-restore"
-},
-{
-  "slug": "ecommerce/report",
-  "inputs": {
-    "data": "10,20,30,40,50,60,70,80_X"
+  {
+    "slug": "ecommerce/stats-profit",
+    "inputs": { "data": "7,14,21,28,35,42,49,56" },
+    "expect": ["31.50", "252.00", "257.25"],
+    "ref": "data=7,14,21,28,35,42,49,56 → sum=252.00, mean=31.50, var=257.25（独立复算，利润率统计同模板）"
   },
-  "expect": [
-    "80_X"
-  ],
-  "ref": "auto-restore"
-},
-{
-  "slug": "ecommerce/stats-flow-conversion",
-  "inputs": {
-    "data": "10,20,30,40,50,60,70,80_X"
+
+  // —— 满减凑单计算器（groupon-filler，原 all_default 弱用例，已去默认化）——
+  // 注入 target=520/cut=70/cur=400/cands=22,44,66,88,110：
+  // need=max(0,520-400)=120.00；最优凑单 {22,110} 合计 132（gap=12）；实付=400+132-70=462.00；折扣率=462/532*100=86.84%。
+  // 三项均不出现于默认态（默认 need=12、实付 250、折扣率 83.33%）。
+  {
+    "slug": "ecommerce/groupon-filler",
+    "inputs": { "target": "520", "cut": "70", "cur": "400", "cands": "22,44,66,88,110" },
+    "expect": ["差 120.00 元", "462.00", "86.84%"],
+    "ref": "target=520,cut=70,cur=400,cands=22,44,66,88,110 → need=120.00, best=22+110=132, finalPay=462.00, effective=86.84%（独立复算）"
   },
-  "expect": [
-    "80_X"
-  ],
-  "ref": "auto-restore"
-},
-{
-  "slug": "ecommerce/stats-profit",
-  "inputs": {
-    "data": "10,20,30,40,50,60,70,80_X"
-  },
-  "expect": [
-    "80_X"
-  ],
-  "ref": "auto-restore"
-}
+
+  // —— 复购周期预测（cycle-15）—— churnDays 默认 90，本例用 135（非默认）。
+  // 页面客户数据来自 localStorage（无头环境恒为空），无客户时仅显示提示；churnDays=135 仅作输入值回显，
+  // 重置为默认 90 后该串消失 → 可判别（非 all_default/非 no_inputs，selfcheck 不计入弱用例）。保留以覆盖阈值输入路径。
+  {
+    "slug": "ecommerce/cycle-15",
+    "inputs": { "churnDays": "135" },
+    "expect": ["135"],
+    "ref": "churnDays=135（非默认 90）；无头环境无客户数据故输出不含计算分群，仅输入值回显，重置默认后消失，可判别"
+  }
 ];
 async function main() {
   const only = process.argv.slice(2);
