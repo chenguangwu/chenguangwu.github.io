@@ -124,13 +124,7 @@ const CASES = [
   "expect": ["共 1 条结果"],
   "ref": "搜索「诱惑红」→ 命中 1 条（默认空关键词渲染全表 36 条）"
 },
-{
-  // 非默认输入：data = 2,4,6,8,10（默认 10..80）
-  "slug": "food-processing/estimate-analysis-1",
-  "inputs": { "data": "2,4,6,8,10" },
-  "expect": ["2.83"],
-  "ref": "数据集 {2,4,6,8,10}：均值 6.00、方差 8.00、标准差 2.83（默认 10..80 → 标准差 22.91）"
-},
+  // 注：food-processing/estimate-analysis-1 已于 2026-09-19 改为 TOOLBOX-REDIRECT 存根（重定向到同义真工具），不再是工具页，用例移除。
 {
   // 页面输入为动态渲染的行内 input（无 id，无法按 id 注入）→ 保持 no_inputs；
   // 断言默认态真实值（勿依赖兜底副作用：delIn/delOut 被无参调用会删行把 88.89% 变成 87.50%）

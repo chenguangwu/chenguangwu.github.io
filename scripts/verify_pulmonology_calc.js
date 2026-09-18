@@ -141,17 +141,7 @@ const CASES = [
   ],
   "ref": "auto-restore"
 },
-{
-  // 默认文本 10..80 → 均值 45.00；注入 5,9,13,21,14 → 均值 12.40（复算 62/5）
-  "slug": "pulmonology/analysis-14",
-  "inputs": {
-    "data": "5,9,13,21,14"
-  },
-  "expect": [
-    "12.40"
-  ],
-  "ref": "auto-restore"
-},
+  // 注：pulmonology/analysis-14 已于 2026-09-19 改为 TOOLBOX-REDIRECT 存根（重定向到同义真工具），不再是工具页，用例移除。
 {
   // 默认 tumorType=0 → 0级原位/表浅；注入 3 → 3级浸润型
   "slug": "pulmonology/bronchoscopy-grading",

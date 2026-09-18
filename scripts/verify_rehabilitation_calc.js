@@ -2,16 +2,7 @@
 "use strict";
 const { runCase } = require("./verify_it_calc.js");
 const CASES = [
-{
-  "slug": "rehabilitation/analysis-time",
-  "inputs": {
-    "data": "10,20,30,40,50,60,70,80_X"
-  },
-  "expect": [
-    "80_X"
-  ],
-  "ref": "auto-restore"
-},
+  // 注：rehabilitation/analysis-time 已于 2026-09-19 改为 TOOLBOX-REDIRECT 存根（重定向到同义真工具），不再是工具页，用例移除。
 {
   "slug": "rehabilitation/asia-impairment-scale",
   "inputs": {},

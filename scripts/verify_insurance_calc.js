@@ -137,10 +137,7 @@ const CASES = [
     expect: ["5.50"],
     ref: "纯费率 = 期望损失/暴露单位 = 5500/1000 = 5.50（默认空→0 避开）" },
 
-  { slug: "insurance/stats-5",
-    inputs: { data: "11,23,29,41" },
-    expect: ["26.00", "104.00", "10.82"],
-    ref: "均值=26.00；总和=104.00；标准差=10.82（避开页面示例默认值 10,20,30,40）" },
+  // 注：insurance/stats-5 已于 2026-09-19 改为 TOOLBOX-REDIRECT 存根（重定向到同义真工具），不再是工具页，用例移除。
 
   { slug: "insurance/surrender-value",
     inputs: { res: "1999", rate: "0.4" },

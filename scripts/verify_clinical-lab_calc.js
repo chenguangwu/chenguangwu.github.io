@@ -204,39 +204,9 @@ const CASES = [
   ],
   "ref": "DT=50×ln2/ln2=50天<90；v1=10>上限5 → 触发「已超参考上限且倍增迅速…专科就诊」分支"
 },
-{
-  "slug": "clinical-lab/analysis-8",
-  "inputs": {
-    "data": "3,7,11,19,23"
-  },
-  "expect": [
-    "55.04",
-    "12.60"
-  ],
-  "ref": "n=5, 和=63, 均值=12.60, 总体方差=((9.6²+5.6²+1.6²+6.4²+10.4²)/5)=55.04（Python Decimal 高精度复算）"
-},
-{
-  "slug": "clinical-lab/analysis-9",
-  "inputs": {
-    "data": "3,7,11,19,23"
-  },
-  "expect": [
-    "55.04",
-    "12.60"
-  ],
-  "ref": "n=5, 和=63, 均值=12.60, 总体方差=55.04（Python Decimal 高精度复算）"
-},
-{
-  "slug": "clinical-lab/analysis-density-2",
-  "inputs": {
-    "data": "3,7,11,19,23"
-  },
-  "expect": [
-    "55.04",
-    "12.60"
-  ],
-  "ref": "n=5, 和=63, 均值=12.60, 总体方差=55.04（Python Decimal 高精度复算）"
-},
+  // 注：clinical-lab/analysis-8 已于 2026-09-19 改为 TOOLBOX-REDIRECT 存根（重定向到同义真工具），不再是工具页，用例移除。
+  // 注：clinical-lab/analysis-9 已于 2026-09-19 改为 TOOLBOX-REDIRECT 存根（重定向到同义真工具），不再是工具页，用例移除。
+  // 注：clinical-lab/analysis-density-2 已于 2026-09-19 改为 TOOLBOX-REDIRECT 存根（重定向到同义真工具），不再是工具页，用例移除。
 {
   "slug": "clinical-lab/autoantibody-interpretation",
   "inputs": {

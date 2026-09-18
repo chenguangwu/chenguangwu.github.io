@@ -165,16 +165,7 @@ const CASES = [
   ],
   "ref": "均值 6、总体方差 8 → 标准差 √8=2.83（原用例 expect 命中 textarea.value 回显，未验证任何计算；默认数据集标准差 23.02）"
 },
-{
-  "slug": "hr/analysis-conversion-recruit",
-  "inputs": {
-    "data": "2,4,6,8,10"
-  },
-  "expect": [
-    "2.83"
-  ],
-  "ref": "同分析模板：标准差 √8=2.83（原用例 expect 命中 textarea.value 回显）"
-},
+  // 注：hr/analysis-conversion-recruit 已于 2026-09-19 改为 TOOLBOX-REDIRECT 存根（重定向到同义真工具），不再是工具页，用例移除。
 {
   "slug": "hr/annual-leave-prorate",
   "inputs": {
@@ -218,16 +209,7 @@ const CASES = [
   ],
   "ref": "同分析模板：标准差 √8=2.83（原用例 expect 命中 textarea.value 回显）"
 },
-{
-  "slug": "hr/stats-report-attendance",
-  "inputs": {
-    "data": "2,4,6,8,10"
-  },
-  "expect": [
-    "2.83"
-  ],
-  "ref": "同分析模板：标准差 √8=2.83（原用例 expect 命中 textarea.value 回显）"
-},
+  // 注：hr/stats-report-attendance 已于 2026-09-19 改为 TOOLBOX-REDIRECT 存根（重定向到同义真工具），不再是工具页，用例移除。
 {
   "slug": "hr/tracking-hours",
   "inputs": {

@@ -245,13 +245,16 @@
 
 > 弱用例改造的价值不止于「让门禁有判别力」——**把用例输入改成非默认值后，长期被默认值掩盖的页面缺陷会立刻暴露**。以下均为「改造即体检」查出，**本批为脚本批，未擅自改线上页面**。
 
-> 缺陷 A（`energy/air-purifier-area`）、C（`food-processing/sterilization-f-value` 动态 input 未绑 `oninput`）、E（`metallurgy/hardness-conversion` 插值轴方向错误）已修复完成，不再列入。以下 B / D / F / G / H 均待定夺。
+> 缺陷 A（`energy/air-purifier-area`）、C（`food-processing/sterilization-f-value` 动态 input 未绑 `oninput`）、E（`metallurgy/hardness-conversion` 插值轴方向错误）已修复完成。以下 B / D / G / I 中，**I 第一批 24 页已处置**，其余待定夺。
 
 - **缺陷 B** `scripts/verify_it_calc.js`：第 3 步「兜底调用所有函数」的 `DESTRUCTIVE` 正则只拦 `reset|clear|restore|save|swap|history`，**未拦 `set*` 与 `del*` 类设值/删除函数**。`setCadr()` 被无参调用把输入置 `undefined`→0；`delIn/delOut/delRow/delEmp/addEmp` 同理会删行/加行，使输出落到「破坏态」。**潜伏隐患，未改框架**（改它影响 200+ 脚本的兜底判定）。**待定夺**：是否补充 `set*`/`del*` 模式（需先评估对全量 214 门禁的影响，属专项）。
 - **缺陷 D** `hr/tracking-hours` + 四例「通用双输入」页：① `deadline`/`dept` 两个输入**完全未参与计算**（装饰性伪输入）；② `bandwidth-1`/`calc-81`/`eap-xinli-zixun-weiji-ziyuan`/`hris-zizhuyuaiduibijisuanqi` 共用「按 h1 正则选计算模式」模板，但标题**均未命中任一模式正则** → 全部落兜底分支，只输出「总和/差值/比值/较大者」，与标题宣称的业务功能无关。`hr/performance-ranking` 命中评分分支但输出仅「总分/平均分」，与「归一化与排名」名不符。涉及内容重做，待定夺。
-- **缺陷 F** `clinical-lab/analysis-8`、`analysis-9`、`analysis-density-2`：三页标题分别为血气代偿判断 / 电泳区带分析 / 精液分析参考，但**共用同一段通用描述统计实现**（单 textarea → 九项描述统计），与标题毫无关系。`calc()` 逐字相同，仅 title/h1 不同。**待定夺**：按标题重做（复用同目录 `blood-gas-analysis`/`electrophoresis-analysis`/`semen-analysis`），或下架并清理 `json/tools.json` + i18n 双键。
 - **缺陷 G** `psychiatry/` 18 个量表页（`aq-autism`/`asrs-adhd`/`bis11-impulse`/`cage-substance`/`cdrisc-resilience`/`cssrs-suicide`/`eat26-eating`/`gad7-anxiety`/`isi-insomnia`/`les-stress`/`lsas-social`/`mdq-bipolar`/`panss-schizophrenia`/`pcl5-ptsd`/`pdss-panic`/`phq15-somatization`/`phq9-depression`/`ybocs-ocd`）：选项即 `<span onclick="pick(i,j)">` + 答案存**内存数组**，整页无任何 `<input>`/`<select>`/`<textarea>` → **门禁无法注入任何输入**（结构性 `no_inputs`）。影响：① 18 个工具的计算逻辑全站无自动化覆盖；② 对键盘/无障碍不友好；③ 无 form 语义，答案不进 DOM。**待定夺**：把选项渲染为 `<input type="radio" name="q{i}" value="{j}" onchange="calc()">`（或 `<select id="q{i}">`），`calc()` 改读 DOM —— **一处小改同时解锁「可验证 + 可键盘操作 + 可自动填表」三项收益**。
-- **缺陷 H** `advertising/analysis-27`、`analysis-55`：与缺陷 F **同一份模板**（标题为竞品份额/定位分析、竞品广告投放创意分析，实现却是通用描述统计）。**建议把「通用统计模板页」做一次全站普查**（判据：整页只有 `<textarea id="data">` 一个输入 + `calc()` 输出九项描述统计），一次性列出所有名不符实的占位页，避免每批零散发现。
+
+- **缺陷 I（规模最大）「通用统计模板」占位页 —— 全站普查共 159 页**（原 F/H 为其中的零散发现，已合并）。判据：整页只有一个 `<textarea id="data">` + `calc()` 输出九项描述统计（样本数/总和/平均值/中位数/最小/最大/极差/方差/标准差）。**实测 159 页的 `calc()` 去空白后逐字相同**（同一份模板），散布在 **69 个行业分类**，标题宣称血气代偿判断 / 电泳区带分析 / 精液分析 / 竞品份额 / 焊接缺陷 / 冶金热力学 / 潮汐调和 / 方剂君臣佐使… 却全部只做描述统计 —— 名不符实。另有 3 页（`science/statistics-calculator`、`geology/dizhishujutongji`、`stats/data-distribution`）标题即统计，属正常，**不计入**。
+  - **第一批已处置（24 页，2026-09-19）**：目录内**已存在同义真工具**的占位页，改用项目已有的 `TOOLBOX-REDIRECT` 存根机制重定向到真工具（保留旧 URL 不 404、`noindex` + `canonical` 指向真工具 → 消除重复内容、把权重传给真工具；构建/门禁/SEO 审计全链路自动跳过存根）。24 页映射已逐条校验「源为占位页 + 目标为真工具」。
+  - **剩余 135 页待定夺**，分两类：① **目录内无同义真工具（约 123 页）** → 需按标题**重做**为真实工具（保留 URL = 保留 SEO 资产）；② **占位页互指组（约 12 页，如 `advertising/analysis-27`↔`55`、`welding/analysis-37`↔`38`、`life/analysis-cost-9`↔`10`）** → 无法重定向，只能重做或下架。
+  - **推荐**：**重做优先于下架**（下架会让已收录 URL 变 404、损失索引资产；重做则把占位页变成真工具，直接提升 A 级率）。按分类分批，每批走完整门禁。
 
 ---
 
