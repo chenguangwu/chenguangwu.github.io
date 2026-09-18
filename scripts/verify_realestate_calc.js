@@ -32,69 +32,69 @@ const CASES = [
   // 同样能锁定 M 的正确性，且是等额本息/等额本金对比的实质结论。
   {
     slug: "realestate/calc-1",
-    inputs: { amount: "1000000", rate: "4.2", years: "30" },
-    expect: ["760,461.83"],
-    ref: "等额本息：M=1,000,000×0.0035×(1.0035^360)/((1.0035^360)−1)=4,890.17；总利息=M×360−1,000,000=760,461.83",
+    inputs: { amount: "800000", rate: "5.0", years: "20" },
+    expect: ["467,115.02"],
+    ref: "de-default(80万/5.0%/20年)：等额本息 M=800,000×(0.05/12)×(1+0.05/12)^240/((1+0.05/12)^240−1)=5,279.65；总利息=M×240−800,000=467,115.02",
   },
   {
     slug: "realestate/calc-1",
-    inputs: { amount: "1000000", rate: "4.2", years: "30" },
-    expect: ["631,750.00"],
-    ref: "等额本金：总利息=P×i×(n+1)/2=1,000,000×0.0035×361/2=631,750.00（低于等额本息，符合省利息的结论）",
+    inputs: { amount: "800000", rate: "5.0", years: "20" },
+    expect: ["401,666.67"],
+    ref: "de-default：等额本金总利息=P×i×(n+1)/2=800,000×(0.05/12)×241/2=401,666.67（低于等额本息，符合省利息的结论）",
   },
 
   // ── 租金回报率：毛回报 = 年租金/房价；净回报 =（年租金−年成本）/房价 ──
   {
     slug: "realestate/calc-2",
-    inputs: { price: "2000000", rent: "5000", cost: "8000", growth: "0" },
-    expect: ["60,000.00"],
-    ref: "年租金 = 月租 5,000 × 12 = 60,000.00",
+    inputs: { price: "1800000", rent: "6500", cost: "9000", growth: "0" },
+    expect: ["78,000.00"],
+    ref: "de-default(180万/6500/9000)：年租金 = 月租 6,500 × 12 = 78,000.00",
   },
   {
     slug: "realestate/calc-2",
-    inputs: { price: "2000000", rent: "5000", cost: "8000", growth: "0" },
-    expect: ["3.00%"],
-    ref: "毛租金回报率 = 60,000 / 2,000,000 = 3.00%",
+    inputs: { price: "1800000", rent: "6500", cost: "9000", growth: "0" },
+    expect: ["4.33%"],
+    ref: "de-default：毛租金回报率 = 78,000 / 1,800,000 = 4.33%",
   },
   {
     slug: "realestate/calc-2",
-    inputs: { price: "2000000", rent: "5000", cost: "8000", growth: "0" },
-    expect: ["2.60%"],
-    ref: "净租金回报率 =(60,000 − 8,000)/ 2,000,000 = 52,000/2,000,000 = 2.60%",
+    inputs: { price: "1800000", rent: "6500", cost: "9000", growth: "0" },
+    expect: ["3.83%"],
+    ref: "de-default：净租金回报率 =(78,000 − 9,000)/ 1,800,000 = 69,000/1,800,000 = 3.83%",
   },
 
   // ── 首付与月供：首付=总价×比例；贷款=总价−首付 ────────────────────────
   {
     slug: "realestate/down-payment",
-    inputs: { totalPrice: "3000000", downPct: "30", years: "30", rate: "4.2" },
-    expect: ["900,000"],
-    ref: "首付 = 3,000,000 × 30% = 900,000",
+    inputs: { totalPrice: "2500000", downPct: "35", years: "25", rate: "4.8" },
+    expect: ["875,000"],
+    ref: "de-default(250万/35%/25年/4.8%)：首付 = 2,500,000 × 35% = 875,000",
   },
   {
     slug: "realestate/down-payment",
-    inputs: { totalPrice: "3000000", downPct: "30", years: "30", rate: "4.2" },
-    expect: ["2,100,000"],
-    ref: "贷款 = 3,000,000 − 900,000 = 2,100,000",
+    inputs: { totalPrice: "2500000", downPct: "35", years: "25", rate: "4.8" },
+    expect: ["1,625,000"],
+    ref: "de-default：贷款 = 2,500,000 − 875,000 = 1,625,000",
   },
   {
     slug: "realestate/down-payment",
-    inputs: { totalPrice: "3000000", downPct: "30", years: "30", rate: "4.2" },
-    expect: ["10,269.36"],
-    ref: "等额本息月供 = 2,100,000×0.0035×(1.0035^360)/((1.0035^360)−1) = 10,269.36",
+    inputs: { totalPrice: "2500000", downPct: "35", years: "25", rate: "4.8" },
+    expect: ["9,311.2"],
+    ref: "de-default：等额本息月供 = 1,625,000×0.004×(1.004^300)/((1.004^300)−1) = 9,311.2（fmt 最多 2 位小数、去尾零）",
   },
 
   // ── 公积金额度：余额倍数 vs 月缴存测算，取小后再受当地上限封顶 ────────
   {
     slug: "realestate/fund-loan",
-    inputs: { balance: "80000", multiplier: "20", monthlyFund: "2400", fundYears: "5", payMultiple: "60", cap: "600000" },
-    expect: ["1,600,000"],
-    ref: "按余额倍数 = 80,000 × 20 = 1,600,000",
+    inputs: { balance: "60000", multiplier: "25", monthlyFund: "2000", fundYears: "8", payMultiple: "60", cap: "500000" },
+    expect: ["¥1,500,000"],
+    ref: "de-default(6万/25倍/2000/8年)：按余额倍数 = 60,000 × 25 = 1,500,000",
   },
   {
     slug: "realestate/fund-loan",
-    inputs: { balance: "80000", multiplier: "20", monthlyFund: "2400", fundYears: "5", payMultiple: "60", cap: "600000" },
-    expect: ["144,000"],
-    ref: "按月缴存 = 2,400 × (5×12) × (60/60) = 144,000；两者取小 144,000，未超上限 600,000",
+    inputs: { balance: "60000", multiplier: "25", monthlyFund: "2000", fundYears: "8", payMultiple: "60", cap: "500000" },
+    expect: ["¥192,000"],
+    ref: "de-default：按月缴存 = 2,000 × (8×12) × (60/60) = 192,000；两者取小 192,000，未超上限 500,000 → 建议可贷 192,000",
   },
   {
     slug: "realestate/fund-loan",
@@ -142,29 +142,29 @@ const CASES = [
   // ── 地价测算：单位地价=总价/土地面积；楼面地价=总价/(面积×容积率) ─────
   {
     slug: "realestate/calc-70",
-    inputs: { landArea: "10000", totalPrice: "5000", plotRatio: "2.5", density: "30", benchmark: "4000" },
-    expect: ["2,000"],
-    ref: "楼面地价 = 5,000万×10,000 / (10,000×2.5) = 50,000,000 / 25,000 = 2,000 元/㎡",
+    inputs: { landArea: "8000", totalPrice: "6000", plotRatio: "3.0", density: "25", benchmark: "5000" },
+    expect: ["2,500"],
+    ref: "de-default(8000/6000万/3.0/25%/5000)：楼面地价 = 6,000万×10,000 / (8,000×3.0) = 60,000,000 / 24,000 = 2,500 元/㎡",
   },
   {
     slug: "realestate/calc-70",
-    inputs: { landArea: "10000", totalPrice: "5000", plotRatio: "2.5", density: "30", benchmark: "4000" },
-    expect: ["25.00"],
-    ref: "单位地价 5,000 相对基准 4,000 溢价率 =(5,000−4,000)/4,000×100 = 25.00%",
+    inputs: { landArea: "8000", totalPrice: "6000", plotRatio: "3.0", density: "25", benchmark: "5000" },
+    expect: ["50.00%"],
+    ref: "de-default：单位地价 = 6,000万×10,000/8,000 = 7,500；溢价率 =(7,500−5,000)/5,000×100 = 50.00%",
   },
 
   // ── REITs 收益：股息率=DPU/市价；资本化率=DPU/NAV ────────────────────
   {
     slug: "realestate/calc-return",
-    inputs: { nav: "10", price: "9.5", dpu: "0.5", shares: "10000", leverage: "40", futurePrice: "" },
-    expect: ["5.26%"],
-    ref: "股息率 = 每份分红 0.5 / 市价 9.5 = 5.2632% → 5.26%",
+    inputs: { nav: "12", price: "9.8", dpu: "0.55", shares: "8000", leverage: "50", futurePrice: "" },
+    expect: ["5.61%"],
+    ref: "de-default(NAV12/9.8/DPU0.55/8000/50%)：股息率 = 每份分红 0.55 / 市价 9.8 = 5.6122% → 5.61%",
   },
   {
     slug: "realestate/calc-return",
-    inputs: { nav: "10", price: "9.5", dpu: "0.5", shares: "10000", leverage: "40", futurePrice: "" },
-    expect: ["5.00%"],
-    ref: "隐含资本化率 = DPU 0.5 / NAV 10 = 5.00%（与按市价算的股息率区分开）",
+    inputs: { nav: "12", price: "9.8", dpu: "0.55", shares: "8000", leverage: "50", futurePrice: "" },
+    expect: ["4.58%"],
+    ref: "de-default：隐含资本化率 = DPU 0.55 / NAV 12 = 4.5833% → 4.58%（与按市价算的股息率区分开）",
   },
 
   // ── 二手房市场比较法估价：单价=基准价×各修正系数×房龄折损 ─────────────
