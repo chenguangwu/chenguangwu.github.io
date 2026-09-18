@@ -95,10 +95,17 @@ input{font:inherit}
 
 /* Actions */
 .actions{display:flex;flex-wrap:wrap;justify-content:center;gap:10px;margin-top:8px}
-.redirect-notice{display:flex;align-items:center;justify-content:center;gap:8px;max-width:480px;margin:0 auto 16px;padding:10px 18px;background:rgba(255,107,53,0.08);border:1px solid rgba(255,107,53,0.2);border-radius:12px;font-size:13px;color:var(--primary);font-weight:500}
-.redirect-notice .spinner{display:inline-block;width:14px;height:14px;border:2px solid rgba(255,107,53,0.25);border-top-color:var(--primary);border-radius:50%;animation:spin .8s linear infinite;flex-shrink:0}
-@keyframes spin{to{transform:rotate(360deg)}}
-body.dark .redirect-notice{background:rgba(255,107,53,0.1);border-color:rgba(255,107,53,0.28);color:#ff9a6c}
+/* Live search dropdown */
+.search-results{position:absolute;left:0;right:0;top:calc(100% + 8px);background:#fff;border:1px solid #f3f4f6;border-radius:14px;box-shadow:0 12px 32px -8px rgba(0,0,0,0.15);overflow:hidden;z-index:20;text-align:left}
+.search-results[hidden]{display:none}
+.sr-item{display:flex;align-items:center;gap:10px;padding:10px 14px;text-decoration:none;color:var(--dark);transition:background .15s}
+.sr-item:hover{background:rgba(255,107,53,0.06)}
+.sr-ic{width:34px;height:34px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0}
+.sr-info{min-width:0}
+.sr-name{font-size:13px;font-weight:600;color:var(--dark);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sr-desc{font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px}
+body.dark .search-results{background:#1a1a2e;border-color:#2d2d44}
+body.dark .sr-item,body.dark .sr-name{color:var(--text)}
 .btn{display:inline-flex;align-items:center;gap:6px;padding:12px 26px;border-radius:12px;font-size:14px;font-weight:600;transition:all .2s}
 .btn-primary{background:linear-gradient(135deg,var(--primary),var(--secondary));color:#fff;box-shadow:0 6px 18px rgba(255,107,53,0.25)}
 .btn-primary:hover{transform:translateY(-2px);box-shadow:0 10px 26px rgba(255,107,53,0.35)}
@@ -169,6 +176,7 @@ body.dark .footer{background:#0a0a15}
       <button type="submit" class="go-btn" data-i18n="err.search_btn" data-i18n-fb="搜索">搜索</button>
     </form>
     <p class="search-hint" data-i18n="err.hint" data-i18n-fb="5000+ 免费在线工具 · 纯前端处理，数据不上传">5000+ 免费在线工具 · 纯前端处理，数据不上传</p>
+    <div class="search-results" id="searchResults" hidden></div>
   </div>
 
   <!-- Auto Suggestions -->
@@ -199,11 +207,6 @@ body.dark .footer{background:#0a0a15}
   </section>
 
   <!-- Actions -->
-  <!-- Auto redirect notice -->
-  <div class="redirect-notice" id="redirectNotice" role="status">
-    <span class="spinner"></span><span id="redirectText">3 秒后自动返回首页...</span>
-  </div>
-
   <div class="actions">
     <a href="/" class="btn btn-primary">
       <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
@@ -226,20 +229,9 @@ function _en(){ try{ return !!(window.I18n && window.I18n.get && window.I18n.get
 function _t(k, fb){ try{ if(window.I18n && window.I18n.t) return window.I18n.t(k, fb); }catch(e){} return fb; }
 function _nm(o){ return (_en() && o && o.en) ? o.en : (o && o.n) || ''; }
 
-var HOT_TOOLS = [
-  { n:'JSON 格式化', en:'JSON Formatter', u:'/tools/it/json-formatter.html', ic:'📋', b:'#e8f5e9' },
-  { n:'二维码生成', en:'QR Code Generator', u:'/tools/it/qrcode.html', ic:'📱', b:'#e3f2fd' },
-  { n:'Base64 编解码', en:'Base64 Encoder / Decoder', u:'/tools/it/base64.html', ic:'🔐', b:'#f3e5f5' },
-  { n:'密码生成器', en:'Password Generator', u:'/tools/it/password-generator.html', ic:'🔐', b:'#fff3e0' },
-  { n:'时间戳转换', en:'Timestamp Converter', u:'/tools/life/timestamp.html', ic:'⏰', b:'#fce4ec' },
-  { n:'颜色选择器', en:'Color Picker', u:'/tools/design/color-picker.html', ic:'🎨', b:'#f3e5f5' },
-  { n:'正则表达式测试', en:'Regex Tester', u:'/tools/it/regex.html', ic:'🔍', b:'#e8f5e9' },
-  { n:'UUID 生成', en:'UUID Generator', u:'/tools/it/uuid-v4-generator.html', ic:'🆔', b:'#fff8e1' },
-  { n:'单位换算', en:'Unit Converter', u:'/tools/life/unit-converter.html', ic:'🔄', b:'#e0f7fa' },
-  { n:'BMI 计算器', en:'BMI Calculator', u:'/tools/health/bmi-calculator.html', ic:'⚖️', b:'#ffebee' },
-  { n:'Markdown 转 HTML', en:'Markdown to HTML', u:'/tools/it/markdown-to-html.html', ic:'📝', b:'#e8eaf6' },
-  { n:'哈希计算', en:'Hash Calculator', u:'/tools/it/hash.html', ic:'🔒', b:'#f3e5f5' },
-];
+// 热门工具与首页同源：由构建期编辑精选清单 json/hot-tools.json 生成，
+// 避免硬编码 12 条导致与首页不一致（数据随首页自动同步）。
+var HOT_TOOLS = [];
 
 var CATS = [
   { n:'IT开发', en:'IT & Dev', u:'/tools/it/index.html', ic:'💻' },
@@ -295,10 +287,19 @@ var KEYWORD_MAP = {
   'mouse':'/tools/it/mouse-cursor.html',
 };
 
+// 全量工具索引（与首页同源，异步加载），供「你可能在找」与实时搜索
+var ALL_TOOLS = [];
+
+// 工具索引项归一（与 search.html / 首页一致）
+function _toolToShort(t) {
+  return { n: t.name, d: t.desc, en: t.en, ed: t.ed, i: t.industry, c: t.cat, u: t.url, ic: t.icon, b: t.bg, q: t.quality, s: (t.file || '').replace(/\.html$/, ''), al: t.al || [], py: t.py || '', pyi: t.pyi || '' };
+}
+
 function renderHot(){
   var g = document.getElementById('hotGrid');
+  if(!g) return;
   g.innerHTML = HOT_TOOLS.map(function(t){
-    return '<a class="tool-item" href="'+t.u+'"><span class="ti">'+t.ic+'</span>'+_nm(t)+'</a>';
+    return '<a class="tool-item" href="'+absUrl(t.u)+'"><span class="ti">'+(t.ic||t.icon||'🔧')+'</span>'+_nm(t)+'</a>';
   }).join('');
 }
 
@@ -329,7 +330,7 @@ function findSuggestions(){
   var path = window.location.pathname;
   var filename = path.substring(path.lastIndexOf('/') + 1);
 
-  // 1. 精确映射
+  // 1. 精确映射：仅提示，不再自动跳转
   var target = PATH_MAP[filename];
   if(!target){
     var cleanPath = path.replace(/^\/tools\//, '');
@@ -337,7 +338,6 @@ function findSuggestions(){
   }
   if(target){
     renderSuggest([{ n:_t('err.moved','原工具已迁移'), d:_t('err.moved_hint','点击前往正确页面'), u:target, ic:'🧭', b:'rgba(255,107,53,0.1)' }]);
-    startRedirect(target, _t('err.redirecting','正在前往正确页面...'));
     return;
   }
 
@@ -350,60 +350,34 @@ function findSuggestions(){
     }
   });
 
-  // 3. 异步加载搜索索引做全文匹配
-  function _toolToShort(t) {
-    return { n: t.name, d: t.desc, en: t.en, ed: t.ed, i: t.industry, c: t.cat, u: t.url, ic: t.icon, b: t.bg, q: t.quality, s: (t.file || '').replace(/\.html$/, ''), al: t.al || [], py: t.py || '', pyi: t.pyi || '' };
-  }
-  fetch('/json/tools.json')
-    .then(function(r){ return r.json(); })
-    .then(function(raw){
-      var idx = (raw || []).map(_toolToShort);
-      var results = [];
-      kws.forEach(function(k){
-        if(k.length < 2) return;
-        idx.forEach(function(t){
-          var text = ' ' + (t.n||'') + ' ' + (t.d||'') + ' ' + (t.i||'');
-          if(text.toLowerCase().indexOf(k) !== -1){
-            results.push({ n:t.n, d:(t.d||'').slice(0,24), u:'/'+t.u, ic:t.ic||'🔧', b:t.b||'#f5f5f5' });
-          }
-        });
-      });
-      // 去重 + 限制
-      var seen = {}, uniq = [];
-      results.forEach(function(t){
-        if(!seen[t.u]){ seen[t.u] = 1; uniq.push(t); }
-      });
-      var all = matched.concat(uniq);
-      if(all.length){
-        renderSuggest(all.slice(0, 8));
-      } else if(matched.length){
-        renderSuggest(matched.slice(0, 4));
+  // 3. 基于已加载的全量索引做全文匹配（ALL_TOOLS 由 loadAllTools 填充）
+  var results = [];
+  kws.forEach(function(k){
+    if(k.length < 2) return;
+    ALL_TOOLS.forEach(function(t){
+      var text = ' ' + (t.n||'') + ' ' + (t.d||'') + ' ' + (t.i||'');
+      if(text.toLowerCase().indexOf(k) !== -1){
+        results.push({ n:t.n, d:(t.d||'').slice(0,24), u:'/'+t.u, ic:t.ic||'🔧', b:t.b||'#f5f5f5' });
       }
-    })
-    .catch(function(){});
-
-  // 无精确映射时:3 秒后自动返回首页
-  startRedirect('/', _t('err.redirect_home','3 秒后自动返回首页...'));
-}
-
-// 3 秒倒计时自动跳转
-function startRedirect(url, text){
-  var txt = document.getElementById('redirectText');
-  var seconds = 3;
-  function render(n){
-    if (_en()) { txt.textContent = (url === '/' ? 'Redirecting to home in ' : 'Redirecting in ') + n + 's...'; }
-    else { txt.textContent = (text || '') + n + ' 秒后自动' + (url === '/' ? '返回首页' : '跳转') + '...'; }
+    });
+  });
+  // 去重 + 限制
+  var seen = {}, uniq = [];
+  results.forEach(function(t){
+    if(!seen[t.u]){ seen[t.u] = 1; uniq.push(t); }
+  });
+  var all = matched.concat(uniq);
+  if(all.length){
+    renderSuggest(all.slice(0, 8));
+  } else if(matched.length){
+    renderSuggest(matched.slice(0, 4));
   }
-  render(seconds);
-  var timer = setInterval(function(){
-    seconds--;
-    if(seconds > 0) render(seconds);
-  }, 1000);
-  setTimeout(function(){
-    clearInterval(timer);
-    window.location.href = url;
-  }, 3000);
 }
+
+// （已移除自动跳转：用户可手动点击「立即返回首页」/「查看站点地图」）
+
+// 绝对路径归一：hot-tools.json / tools.json 中的 u 是相对路径，统一补前导 /
+function absUrl(u){ if(!u) return '#'; u = String(u); if(u.charAt(0) === '/') return u; return '/' + u.replace(/^\.?\//, ''); }
 
 // 主题切换
 function toggleTheme(){
@@ -423,10 +397,63 @@ function initTheme(){
 initTheme();
 // i18n.js 为 defer 加载，执行晚于本内联脚本；因此把依赖 i18n 的渲染推迟到
 // DOMContentLoaded 之后（此时 I18n 已就绪），避免英文态工具名/分类名回退中文。
+// 热门工具：与首页同源 json/hot-tools.json（构建期编辑精选，自动随首页同步）
+function loadHotTools(){
+  fetch('/json/hot-tools.json')
+    .then(function(r){ return r.ok ? r.json() : []; })
+    .then(function(d){ HOT_TOOLS = Array.isArray(d) ? d : []; renderHot(); })
+    .catch(function(){ renderHot(); });
+}
+
+// 全量索引：供「你可能在找」与实时搜索
+function loadAllTools(){
+  fetch('/json/tools.json')
+    .then(function(r){ return r.json(); })
+    .then(function(raw){
+      ALL_TOOLS = (raw || []).map(_toolToShort);
+      findSuggestions();
+      initLiveSearch();
+    })
+    .catch(function(){});
+}
+
+// 实时搜索：输入即出下拉结果；回车/点击「搜索」交给 search.html 做全量检索
+function initLiveSearch(){
+  var input = document.getElementById('searchInput');
+  var panel = document.getElementById('searchResults');
+  if(!input || !panel) return;
+  function close(){ panel.hidden = true; panel.innerHTML = ''; }
+  function render(q){
+    q = (q || '').trim();
+    if(q.length < 1){ close(); return; }
+    var ql = q.toLowerCase();
+    var hits = [];
+    for(var i = 0; i < ALL_TOOLS.length && hits.length < 8; i++){
+      var t = ALL_TOOLS[i];
+      var hay = ' ' + (t.n || '') + ' ' + (t.d || '') + ' ' + (t.i || '') + ' ' + (t.al || []).join(' ');
+      if(hay.toLowerCase().indexOf(ql) !== -1){ hits.push(t); }
+    }
+    if(!hits.length){ close(); return; }
+    panel.innerHTML = hits.map(function(t){
+      var u = absUrl(t.u);
+      var ic = t.ic || '🔧';
+      var b = t.b || '#f5f5f5';
+      var nm = (_en() && t.en) ? t.en : (t.n || '');
+      var ds = (_en() && t.ed) ? t.ed : (t.d || '');
+      return '<a class="sr-item" href="' + u + '"><span class="sr-ic" style="background:' + b + '">' + ic + '</span><span class="sr-info"><span class="sr-name">' + nm + '</span><span class="sr-desc">' + String(ds).slice(0, 30) + '</span></span></a>';
+    }).join('');
+    panel.hidden = false;
+  }
+  input.addEventListener('input', function(){ render(this.value); });
+  input.addEventListener('focus', function(){ if(this.value.trim()) render(this.value); });
+  input.addEventListener('blur', function(){ setTimeout(close, 150); });
+  panel.addEventListener('click', function(e){ if(e.target.closest('a')) close(); });
+}
+
 function bootI18nViews(){
-  renderHot();
   renderCats();
-  findSuggestions();
+  loadHotTools();
+  loadAllTools();
 }
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', bootI18nViews);
@@ -434,7 +461,7 @@ if (document.readyState === 'loading') {
   bootI18nViews();
 }
 // 语言切换后需重渲染（工具名/分类名为 JS 渲染，无 data-i18n 属性）
-window.addEventListener('toolbox:langchange', function(){ renderHot(); renderCats(); });
+window.addEventListener('toolbox:langchange', function(){ renderHot(); renderCats(); if(ALL_TOOLS.length){ findSuggestions(); initLiveSearch(); } });
 })();
 </script>
 </body>
