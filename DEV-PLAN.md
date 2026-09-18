@@ -268,7 +268,7 @@ accounting、acoustics、admin、advertising、aerospace、agriculture、ai、an
   - **第一批 statistics（2026-09-17，39 例全部清零）**：39 例全为 `all_default`。做法——用 Python 按标准公式**独立复算**新 expect（换成非默认输入）；p 值类（单样本 t / F 检验）用**数值积分独立实现**，并先用两个已知 p 值做精度校验（t: 0.327287 vs 已知 0.3273；F: 0.359728 vs 已知 0.3597），校验通过才投入复算；落盘后实跑 `verify_statistics_calc` **39/39 通过**（页面实现与独立复算互证）。statistics 弱用例 **39 → 0**，全站 **783 → 744**，基线棘轮下调 `all_default` 553→**514**。
   - **第二批 energy（2026-09-17，29 例全部清零）**：29 例全为 `all_default`，均为标准物理/工程公式（P=UI、卡诺效率、导热 Q̇=kAΔT/d、LCOE、P=½ρAv³、阶梯电价、碳足迹因子表等）。做法同第一批：Python 独立复算 + 换非默认输入；**新增一条强断言**——因 verify 框架是「expect 任一命中即通过」，故逐例断言「新 expect ∩ 默认输出 = ∅」，从机制上杜绝残留假通过。落盘后实跑 `verify_energy_calc` **30/30 通过**。energy 弱用例 **29 → 0**，全站 **744 → 715**，基线棘轮下调 `all_default` 514→**485**。
   - **本批改造顺带查出 2 个真实缺陷（未擅自改页面，待定夺）**：① `energy/air-purifier-area` 的 `recArea = cadr × 0.1` **硬编码**，用户可调的 `factorInput`（0.05–0.15）**完全未参与计算**，仅用于展示——用户输入 0.08 仍按 0.10 出结果；② verify 框架兜底调用的 `DESTRUCTIVE` 正则未拦 `set*` 类函数，`setCadr()` 被无参调用把输入置为 `undefined`→0。二者已记入 §10.6。
-  - **剩余 715 例**（`no_inputs=230` / `all_default=485`）待后续批次，按"公式可可靠独立复算"的分类依次推进（当前次高：health 23 / psychiatry 22 / civil 21 / pediatrics 17）。
+  - **剩余 639 例**（`no_inputs=230` / `all_default=409`）待后续批次，按"公式可可靠独立复算"的分类依次推进（ad 次高：general 15 / urology 14 / realestate 14 / food-processing 14 / pediatrics 17 / hr 13 / metallurgy 13 / clinical-lab 12；ni 次高：psychiatry 22 / dermatology 14 / tcm-diagnosis 14）。
 
 ### 10.6 弱用例改造顺带查出的真实缺陷（2026-09-17 · 改造即体检）
 
@@ -359,6 +359,8 @@ accounting、acoustics、admin、advertising、aerospace、agriculture、ai、an
 ### 10.9 弱用例改造口径与新增坑（2026-09-18 · 第四批）
 
 **第四批成果**：health 23 + civil 21 + electrical 16 = **60 例** all_default 弱用例清零（基线 485 → 425）。
+
+**第五批成果（2026-09-18）**：hydraulic **16 例** all_default 弱用例清零（含 calc-26 / calc-1 两例本已含一个非默认键、18 例全部 `via=input event` 通过），基线 425 → **409**；判别力 0 逃生项。修正一处逃生项：`calc-protection` 的 expect 含恒定文案「间接水锤」（默认/非默认同值，回退默认仍命中）→ 改为随输入变化的 ΔH(`61.16`)/ΔP(`600.0`)。`ratio-24` 液压伺服公式页内自洽（F/A/D/Q 互验一致），expect 取页面输出、ref 标注逐项独立复算 F=m·a、D=√(4A/π) 一致。
 每例流程固定四步：**读页面公式 → 选一组与默认不同的输入 → Python 独立复算 → `runCase` 验证 `via=input event`**。
 
 | 环节 | 口径 |
