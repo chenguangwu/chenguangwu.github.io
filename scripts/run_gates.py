@@ -61,11 +61,11 @@ GATES = (
     # 百分等级 / 比例置信区间 / 均值·比例样本量 / 相对风险 / 比值比 / 相关系数 /
     # 均值中位数极差 / 标准差方差 / 偏度峰度 / 单样本 t 检验 / F 方差齐性 / 卡方检验 /
     # 最小二乘回归 / 几何·调和平均 / 极差 / MAD / 样本方差·标准差 / 总体方差）。
-    # 注：statistics-4 置信区间、statistics-5 样本量的逆正态 z 反解实现有误，未纳入（见 DEV-PLAN §9.3）。
+    # 注：statistics-4 置信区间、statistics-5 样本量的逆正态 z 反解实现有误，未纳入（见 DEV-PLAN §7.1）。
     ("statistics calc correctness", ("node", "scripts/verify_statistics_calc.js")),
     # legal 分类的正确性验证（加班费 / 违法解除2N / 经济补偿N / N+1 / 逾期付款利息 / 抚养费 /
     # 离婚财产分割 / 诉讼费 / 知识产权保护期 / 年终奖个税 / 民间借贷利息 / 法律援助资格 / 工伤赔偿）。
-    # 注：traffic-accident-compensation 伤残赔偿系数倒置缺陷未纳入（见 DEV-PLAN §9.3）。
+    # 注：traffic-accident-compensation 伤残赔偿系数倒置缺陷未纳入（见 DEV-PLAN §7.1）。
     ("legal calc correctness", ("node", "scripts/verify_legal_calc.js")),
     # realestate 分类的正确性验证（房贷等额本息/等额本金总利息、租金毛·净回报率、首付与月供、
     # 公积金额度双轨取小 + 当地上限封顶、按揭可贷额度与月供·总利息、二手房契税与增值税及附加、
@@ -265,11 +265,11 @@ GATES = (
     ("woodwork calc correctness", ("node", "scripts/verify_woodwork_calc.js")),
     ("woodworking calc correctness", ("node", "scripts/verify_woodworking_calc.js")),
     ("yi calc correctness", ("node", "scripts/verify_yi_calc.js")),
-    # 反回归（P0-2 / DEV-PLAN §9.3）：禁止任何 verify 脚本残留 _selfcheck 假门禁标记
+    # 反回归（P0-2 / DEV-PLAN §7.1）：禁止任何 verify 脚本残留 _selfcheck 假门禁标记
     # 或「空输入」假用例。真用例都带真实 inputs，本门禁零误伤；一旦存在假门禁即判红，
     # 强制还原为真实 inputs+expect。置于最后，不阻塞其余门禁先跑完。
     ("anti-regression: no fake gates", ("node", "scripts/selfcheck_false_pass.js", "scripts")),
-    # 判别力门禁（DEV-PLAN §10.7）：模拟「输入注入失败」——把用例 inputs 换回页面默认值，
+    # 判别力门禁（DEV-PLAN §8.2）：模拟「输入注入失败」——把用例 inputs 换回页面默认值，
     # 用例必须 FAIL。仍 PASS 的即含「不依赖被测点的逃生项」（任一命中即通过机制的第二次
     # 隐蔽假通过）。存量入基线 scripts/discriminate_baseline.json，只准降不准增。
     ("anti-regression: case discrimination", ("node", "scripts/discriminate_check.js")),
