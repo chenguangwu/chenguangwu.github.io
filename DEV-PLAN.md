@@ -167,7 +167,24 @@
 > 完成一个分类从本节删一个。判定标准见 §4.1 / §4.5。
 
 - **A 项 深解达标：已全站收口**（结构达标 5124/5124 = 100%，已从此清单移除）。
-- **其余维度（UI 现代化 / 使用指南 / 英文闭环 / 专业外链 / 逻辑验证 / SEO 描述唯一化）**：待按 §4.1 逐分类推进。开工前先按热度（分类下工具页数量）降序列出待办分类并登记到本节。
+
+**待收口分类（按热度 = 分类下工具数降序，从顶部取，完成一个删一个）**：
+
+| # | 分类 | 工具数 | # | 分类 | 工具数 |
+|---|---|---|---|---|---|
+| 1 | it | 338 | 11 | agriculture | 63 |
+| 2 | general | 183 | 12 | hydraulic | 56 |
+| 3 | design | 111 | 13 | automotive | 55 |
+| 4 | finance | 104 | 14 | legal | 54 |
+| 5 | science | 98 | 15 | realestate | 54 |
+| 6 | sports | 78 | 16 | statistics | 51 |
+| 7 | life | 73 | 17 | edu | 49 |
+| 8 | biz | 69 | 18 | marketing | 46 |
+| 9 | fun | 65 | 19 | surveying | 44 |
+| 10 | ai | 64 | 20 | meteorology | 42 |
+
+> 全站 209 个分类 / 4794 个工具；上表为 Top 20，其余按同口径递减。
+> **取批规则**：每次取表首未收口分类，按 §4.2「每批至少 10 个工具」分批；收口标准 = §4.1 八项目标在该分类全部工具上达成。
 
 > **A 项权威口径（务必遵守）**：
 > - 达标标准以 §4.1.4 为准：**scenarios ≥2 / examples ≥1 / faqs ≥2 / 无套话**。
@@ -228,31 +245,41 @@
 
 > 弱用例改造的价值不止于「让门禁有判别力」——**把用例输入改成非默认值后，长期被默认值掩盖的页面缺陷会立刻暴露**。以下均为「改造即体检」查出，**本批为脚本批，未擅自改线上页面**。
 
-> 缺陷 A（`energy/air-purifier-area` 硬编码系数）已修复完成，不再列入。以下 B–H 均待定夺。
+> 缺陷 A（`energy/air-purifier-area`）、C（`food-processing/sterilization-f-value` 动态 input 未绑 `oninput`）、E（`metallurgy/hardness-conversion` 插值轴方向错误）已修复完成，不再列入。以下 B / D / F / G / H 均待定夺。
 
 - **缺陷 B** `scripts/verify_it_calc.js`：第 3 步「兜底调用所有函数」的 `DESTRUCTIVE` 正则只拦 `reset|clear|restore|save|swap|history`，**未拦 `set*` 与 `del*` 类设值/删除函数**。`setCadr()` 被无参调用把输入置 `undefined`→0；`delIn/delOut/delRow/delEmp/addEmp` 同理会删行/加行，使输出落到「破坏态」。**潜伏隐患，未改框架**（改它影响 200+ 脚本的兜底判定）。**待定夺**：是否补充 `set*`/`del*` 模式（需先评估对全量 214 门禁的影响，属专项）。
-- **缺陷 C** `food-processing/sterilization-f-value`：`renderParams()` 动态生成的 `<input>` **均未绑定 `oninput`** → 用户改杀菌温度/时间后结果不更新（同页 `renderModes()` 的模式按钮有 `onclick`，掩盖了问题）。**待定夺**：是否给 3 个模式分支的动态 input 补 `oninput="calc()"`（同类页 `blanching-conditions`/`filling-volume` 有正确实现可作参照）。
 - **缺陷 D** `hr/tracking-hours` + 四例「通用双输入」页：① `deadline`/`dept` 两个输入**完全未参与计算**（装饰性伪输入）；② `bandwidth-1`/`calc-81`/`eap-xinli-zixun-weiji-ziyuan`/`hris-zizhuyuaiduibijisuanqi` 共用「按 h1 正则选计算模式」模板，但标题**均未命中任一模式正则** → 全部落兜底分支，只输出「总和/差值/比值/较大者」，与标题宣称的业务功能无关。`hr/performance-ranking` 命中评分分支但输出仅「总分/平均分」，与「归一化与排名」名不符。涉及内容重做，待定夺。
-- **缺陷 E** `metallurgy/hardness-conversion`：`interp(x, xs, ys)` 假设 `xs` **递增**，但 `buildAxis()` 传入的 `xs` 取自 DATA 首列（HRC，递减）→ 任意范围内输入恒返回首行，结果与输入无关（输入 45 与 60 输出完全相同）。**待定夺**：`buildAxis()` 返回前把 `xs` 及伴随列按升序重排（或在 `interp()` 内先判方向）。
 - **缺陷 F** `clinical-lab/analysis-8`、`analysis-9`、`analysis-density-2`：三页标题分别为血气代偿判断 / 电泳区带分析 / 精液分析参考，但**共用同一段通用描述统计实现**（单 textarea → 九项描述统计），与标题毫无关系。`calc()` 逐字相同，仅 title/h1 不同。**待定夺**：按标题重做（复用同目录 `blood-gas-analysis`/`electrophoresis-analysis`/`semen-analysis`），或下架并清理 `json/tools.json` + i18n 双键。
 - **缺陷 G** `psychiatry/` 18 个量表页（`aq-autism`/`asrs-adhd`/`bis11-impulse`/`cage-substance`/`cdrisc-resilience`/`cssrs-suicide`/`eat26-eating`/`gad7-anxiety`/`isi-insomnia`/`les-stress`/`lsas-social`/`mdq-bipolar`/`panss-schizophrenia`/`pcl5-ptsd`/`pdss-panic`/`phq15-somatization`/`phq9-depression`/`ybocs-ocd`）：选项即 `<span onclick="pick(i,j)">` + 答案存**内存数组**，整页无任何 `<input>`/`<select>`/`<textarea>` → **门禁无法注入任何输入**（结构性 `no_inputs`）。影响：① 18 个工具的计算逻辑全站无自动化覆盖；② 对键盘/无障碍不友好；③ 无 form 语义，答案不进 DOM。**待定夺**：把选项渲染为 `<input type="radio" name="q{i}" value="{j}" onchange="calc()">`（或 `<select id="q{i}">`），`calc()` 改读 DOM —— **一处小改同时解锁「可验证 + 可键盘操作 + 可自动填表」三项收益**。
 - **缺陷 H** `advertising/analysis-27`、`analysis-55`：与缺陷 F **同一份模板**（标题为竞品份额/定位分析、竞品广告投放创意分析，实现却是通用描述统计）。**建议把「通用统计模板页」做一次全站普查**（判据：整页只有 `<textarea id="data">` 一个输入 + `calc()` 输出九项描述统计），一次性列出所有名不符实的占位页，避免每批零散发现。
 
 ---
 
-## 十、当前主线：弱用例去默认化（分批推进）
+## 十、优先级与当前主线（老板 2026-09-19 重排）
 
-**剩余 454 例**（`no_inputs=212` / `all_default=242`）待后续批次，按「公式可可靠独立复算 + 页面存在可注入控件」两条同时满足的分类依次推进。
+> **主线 = 优化工具页面本身（`tools/**`）。** `scripts/` 下多数验证脚本是历史遗留，**除门禁必需外不单独投入**；只在优化某分类、确实碰到该分类用例时**顺手改**，不单独立批次、不为改脚本而改脚本。
 
-**选批前必做可注入性预筛**（教训：psychiatry 22 例里 18 例是纯点击答题页，无可注入控件，白跑一半）。
+### 10.1 优先级总纲
 
-截至第十九批的可注入性实测（弱用例数 / 页面含静态表单控件数）：
+| 级别 | 内容 | 判据 / 口径 |
+|---|---|---|
+| **P0** | **页面级真实缺陷修复** —— §九 待定夺清单（B / D / F / G / H） | 结果算错、输入无效、名不符实等**用户可感知硬伤**，直接改 `tools/**` |
+| **P1** | **按热度逐分类做 §4.1 八项目标收口** —— 分类从 §7.2 取 | 对应 §一「工具不合格」总体目标，是项目本体价值所在 |
+| **P2** | 工具质量分级提升（C→A，A 级率 72.7% → 75%） | 与 P1 同批推进，不单独列批 |
+| **P3** | `scripts/` 用例与基线维护（弱用例去默认化等） | **仅随 P0 / P1 顺带处理**；门禁必需项（`run_gates.py` 链路）除外 |
+
+### 10.2 现状（2026-09-19 实测，纠偏依据）
+
+- `tools/**` 最后一次实质改动停在 **2026-09-17 19:53**（psychology 一批），此后两天提交**全在 `scripts/`** —— 已停止该做法。
+- 弱用例去默认化已收口 19 批：`all_default` 553→242、`no_inputs` 230→212、全站 `escape=0`。**剩余 454 例转 P3**，不再按批次单独推进。
+
+### 10.3 弱用例去默认化（仅在 P0/P1 顺带时执行）
+
+**存量 454 例**（`no_inputs=212` / `all_default=242`）。可注入性预筛清单（弱例数 / 页面含静态表单控件数）：
 
 dermatology 14/11、engineering 14/11、signal 11/11、design 10/10、rheumatology 14/9、endocrinology 10/9、mining 10/9、gas 9/9、mechanical 9/9、travel 9/7、gardening 8/7、finance 7/7、sports 7/7、fire 7/6、chemical 9/5、cleaning 7/5
 
-**下批建议取 `dermatology 14`**（ecommerce 17 / pulmonology 14 / advertising 12 / dyeing 12 已收口）。
-
-### 每批收口流程（六步，缺一不可）
+### 每批收口流程（顺带改造时六步，缺一不可）
 
 1. 改写 `scripts/verify_<cat>_calc.js`（非默认输入 + Python 独立复算 expect）
 2. 单跑 100% 通过 → `node scripts/discriminate_check.js verify_<cat>_calc.js` **0 逃生项**

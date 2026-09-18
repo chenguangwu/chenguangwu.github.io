@@ -228,12 +228,14 @@ const CASES = [
 {
   "slug": "metallurgy/hardness-conversion",
   "inputs": {
-    "inVal": "100"
+    "inType": "hv",
+    "inVal": "300"
   },
   "expect": [
-    "- 布氏 HBW"
+    "29.8 洛氏 HRC",
+    "≈ 900 MPa"
   ],
-  "ref": "de-default: inVal 超首轴值(68) → hb 插值返回空 → 卡片显示「- 布氏 HBW」（默认 45 → 68.0/760/940/2820）。注：本页 interp 的 xs 递减而实现假设递增，任意范围内输入恒取首行 68/760/940，结果与输入无关（已登记 DEV-PLAN §10.6）；refTable 静态表（有 id，进 blob）恒含 2820，故不可锚 σb"
+  "ref": "de-default: 非默认 inType=hv（默认 hrc）+ inVal=300（默认 45）。Python 独立复算（DATA 按输入列升序重排后插值）：HV 300 落在 284(HRC28)~302(HRC30) 之间，t=16/18=0.8889 → HRC=28+0.8889×2=29.78→29.8、HBW=280+0.8889×15=293→293、HV=300、σb=300×3.0=900 MPa。默认态输出 45.0/429/446/1338，两条 expect 均不命中。**缺陷 E 已修**：buildAxis 现按输入列升序重排；此前 DATA 四列全递减而 interp 假定 xs 递增，任意输入恒取首行（HRC45 与 60 输出完全相同）。refTable 静态表（有 id，进 blob）恒含 300/2820，故不可单独锚数字，须带「洛氏 HRC」「MPa」上下文"
 }
 ];
 async function main() {
