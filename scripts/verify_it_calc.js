@@ -423,7 +423,12 @@ async function runCaseInner(c) {
       // 从而误入非默认分支（如 down-payment 的还款方式掉进等额本金）。
       // 用例可用 checks 声明选中项，此处返回首个选中值。
       if (/:checked/.test(sel)) {
-        if (c.checks && c.checks.length) return { value: c.checks[0], checked: true };
+        // 补桩（parentElement）：大量「量表/选项评估」类页面（如中医 Naranjo 关联性评价）
+        // 读到选中项后会立即读取 `checked.parentElement.textContent` 取选项标签，
+        // 缺该属性会在首个已答项抛 "Cannot read properties of undefined"，使整例无法验证。
+        // 这里补一个最小桩（textContent 为空串），仅补齐属性、不改变既有语义。
+        if (c.checks && c.checks.length)
+          return { value: c.checks[0], checked: true, parentElement: { textContent: "" } };
         return null;
       }
       // 提供真实 h1 / title 文本，供「按标题分支」的计算逻辑正确选模式
@@ -433,7 +438,8 @@ async function runCaseInner(c) {
     },
     querySelectorAll(sel) {
       // 支持 ':checked' 类选择器：用例可用 checks 声明哪些复选框处于选中态
-      if (/checked/.test(sel) && c.checks) return c.checks.map((v) => ({ value: v, checked: true }));
+      if (/checked/.test(sel) && c.checks)
+        return c.checks.map((v) => ({ value: v, checked: true, parentElement: { textContent: "" } }));
       // 提供真实 label 文本，部分工具据此命名输出字段
       if (/label/i.test(sel)) return labelTexts.map((t) => { const e = makeEl(""); e.textContent = t; e.value = t; return e; });
       return [];
