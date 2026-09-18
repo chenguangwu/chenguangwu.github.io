@@ -355,3 +355,36 @@ accounting、acoustics、admin、advertising、aerospace、agriculture、ai、an
 
 3. **同文件并行 Edit 会互相覆盖。** 本批对 `verify_signal_calc.js` 一次并发发 3 条 Edit，结果只落了 1 条（另 2 条静默丢失），`discriminate` 复检才暴露。
    **同一个文件的多处修改必须串行 Edit，或改用单条脚本一次性改写。**
+
+### 10.9 弱用例改造口径与新增坑（2026-09-18 · 第四批）
+
+**第四批成果**：health 23 + civil 21 + electrical 16 = **60 例** all_default 弱用例清零（基线 485 → 425）。
+每例流程固定四步：**读页面公式 → 选一组与默认不同的输入 → Python 独立复算 → `runCase` 验证 `via=input event`**。
+
+| 环节 | 口径 |
+|---|---|
+| 选输入 | 至少一项数值 ≠ 页面默认；**避免与默认成比例**（opamp 1k/10k 与 1.5k/33k 的比值巧合会让判别失效） |
+| 复算 | 一律用 Python 高精度算（`math`），不手算尾位；`toFixed` 边界（1867.89 → "1867.9"）以 Python `format(x,'.1f')` 为准 |
+| 验证 | `runCase` 必须 `ok=true` **且 `via=input event`**；`via` 为空说明该串只在兜底阶段出现，等于没验证 |
+| 收尾 | `discriminate_check.js <脚本>` 必须 0 逃生项 |
+
+**新增坑（三条，均已实测）**：
+
+1. **`fullBlob` 不可信，判定只看 `blob1`。**
+   框架在兜底阶段会**无参调用所有导出函数**，`setGender()` / `calc()` 之类会把模块级变量污染成 `undefined`：
+   - `health/calorie-needs`：默认 `gender='male'`，被无参 `setGender()` 改成 `undefined` → 走 female 分支，输出 1810（真实应为 2009），还连带刷出 `undefined BMR` / `NaN kcal`。
+   - `health/child-height-predictor`：男童 179.0 被算成女童 166.0，同一机理。
+   - 推论：**用 `expect:["@@NOMATCH@@"]` 取输出来"看结果"是错的**，那是 fullBlob。正确做法是拿复算值去 `runCase` 探测，看 `via` 是否为 `input event`。
+
+2. **expect 会撞上页面可见的静态参考表（§10.8 源码字面量的"表亲"）。**
+   - `electrical/wire-gauge-selector`：断言 `"10 mm²"` 恒命中 —— 页面「常见家用电器电流参考表」里有 `6–10 mm²`。
+   - `electrical/transformer-sizing`：断言 `"500 kVA"` 恒命中 —— 页面把所有 ≥0.85·S_t 的标准容量都列为候选标签，500 总在列表里。
+   - 解法同 §10.8：**断言要带上下文**，`"10 mm² 推荐截面"` / `"推荐容量：500 kVA"`。
+
+3. **select 的"默认值"是第一个 `<option>`，顺序未必符合直觉。**
+   `electrical/calc-1` 的敷设方式第一个 option 是 `conduit`（系数 0.8）而不是 `free`（1.0），芯数第一个是 `2` 而不是 `3`。复算载流量前必须 `grep` option 顺序，否则 Iz 差 20%。
+
+**本批修出的真缺陷**：`tools/electrical/voltage-drop.html` 电压降公式多除 1000 ——
+`ΔU = √3·I·r·cosφ·L/1000`，而 `r = ρ/S` 已是 Ω/m（`ρ=0.0184 Ω·mm²/m`），再除 1000 使压降小 1000 倍（25 kW/120 m/16 mm² 得 0.0157 V，物理值应为 15.73 V）。
+连带**反算截面** `S_min` 同样多除 1000（默认参数反算出 0.005 mm²，正确应为 5.3 mm²）。
+已修 6 处（含分步计算与推导文案），并做反向验证：改回 `/1000` 后用例立刻变红。

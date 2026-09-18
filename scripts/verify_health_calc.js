@@ -12,69 +12,69 @@ const CASES = [
   // ---------- 血醇与血压 ----------
   {
     slug: "health/alcohol-units",
-    inputs: { qty: "2", weight: "65", hours: "0" },
-    expect: ["0.059"],
-    ref: "酒精 = 5(%ABV)×330(mL)×0.789×2÷100 = 26.04 g；BAC = 26.04÷(65×0.68×10)×1.0 − 0 = 0.0589 → 0.059",
+    inputs: { qty: "3", weight: "70", hours: "2" },
+    expect: ["0.052"],
+    ref: "酒精 = 5%×330mL×0.789×3÷100 = 39.06 g；BAC = 39.06÷(70×0.68×10) − 0.015×2 = 0.0821 − 0.030 = 0.052（避开默认 2 杯/65 kg/0 h）",
   },
   {
     slug: "health/blood-pressure-classifier",
-    inputs: { sys: "120", dia: "80", age: "40" },
-    expect: ["40"],
-    ref: "脉压 = 收缩压 − 舒张压 = 120 − 80 = 40；MAP = 80 + 40/3 ≈ 93（120/80 属正常血压）",
+    inputs: { sys: "138", dia: "88", age: "55" },
+    expect: ["105 平均动脉压"],
+    ref: "脉压 = 138 − 88 = 50；MAP = round(88 + 50÷3) = 105；138/88 属正常高值（避开默认 120/80/40）",
   },
 
   // ---------- 单位换算 ----------
   {
     slug: "health/blood-sugar-converter",
-    inputs: { mmol: "5.5" },
-    expect: ["99"],
-    ref: "mg/dL = 5.5 mmol/L × 18.0182 = 99.1（空腹 70–99 mg/dL 为正常范围上限）",
+    inputs: { mmol: "7.2" },
+    expect: ["130 mg/dL"],
+    ref: "mg/dL = 7.2 mmol/L × 18.0182 = 129.7 → 130（避开默认 5.5）",
   },
 
   // ---------- 体成分 ----------
   {
     slug: "health/body-fat-calculator",
-    inputs: { height: "170", weight: "65", waist: "80", neck: "38" },
-    expect: ["13.7"],
-    ref: "美国海军法（男）：BFP = 495÷(1.0324 − 0.19077·lg(80−38) + 0.15456·lg170) − 450 = 495÷1.0675 − 450 = 13.7%",
+    inputs: { height: "175", weight: "78", waist: "88", neck: "40" },
+    expect: ["17.7"],
+    ref: "海军法（男）：BFP = 495÷(1.0324 − 0.19077·lg(88−40) + 0.15456·lg175) − 450 = 495÷1.05835 − 450 = 17.7%（避开默认 170/65/80/38）",
   },
   {
     slug: "health/body-surface-area",
-    inputs: { height: "170", weight: "65" },
-    expect: ["1.75"],
-    ref: "Mosteller：BSA = √(170×65÷3600) = √3.0694 = 1.7520 → 1.75 m²",
+    inputs: { height: "180", weight: "75" },
+    expect: ["1.94"],
+    ref: "Mosteller = √(180×75÷3600) = √3.75 = 1.9365 → 1.94 m²（避开默认 170/65）",
   },
   {
     slug: "health/waist-hip-ratio",
-    inputs: { waist: "85", hip: "95" },
-    expect: ["0.89"],
-    ref: "WHR = 腰围 ÷ 臀围 = 85 ÷ 95 = 0.895 → 0.89（男性 <0.90 为正常）",
+    inputs: { waist: "92", hip: "100" },
+    expect: ["0.92"],
+    ref: "WHR = 92 ÷ 100 = 0.92 → 高风险（避开默认 85/95）",
   },
   {
     slug: "health/ibw-calculator",
-    inputs: { height: "170", actualWeight: "70" },
-    expect: ["65.9"],
-    ref: "Devine（男）：IBW = 50 + 2.3×(170÷2.54 − 60) = 50 + 2.3×6.93 = 65.9 kg；ABW = 65.9 + 0.4×(70−65.9) = 67.6",
+    inputs: { height: "180", actualWeight: "85" },
+    expect: ["75.0"],
+    ref: "Devine（男）：50 + 2.3×((180÷2.54) − 60) = 50 + 2.3×10.866 = 74.99 → 75.0 kg（避开默认 170/70）",
   },
   {
     slug: "health/child-bmi-calculator",
-    inputs: { age: "10", height: "140", weight: "35" },
-    expect: ["17.9"],
-    ref: "BMI = 体重 ÷ 身高² = 35 ÷ 1.40² = 17.857 → 17.9 kg/m²（10 岁 P35，属健康体重）",
+    inputs: { age: "8", height: "130", weight: "30" },
+    expect: ["17.8"],
+    ref: "BMI = 30 ÷ 1.30² = 17.75 → 17.8 kg/m²（避开默认 10 岁/140/35）",
   },
   {
     slug: "health/child-height-predictor",
-    inputs: { father: "175", mother: "162" },
-    expect: ["175.0"],
-    ref: "男孩靶身高 = (父身高 + 母身高 + 13) ÷ 2 = (175 + 162 + 13) ÷ 2 = 175.0 cm（范围 170–180）",
+    inputs: { father: "180", mother: "165" },
+    expect: ["179.0"],
+    ref: "男童靶身高 = (180 + 165 + 13) ÷ 2 = 179.0 cm，范围 174.0 − 184.0（避开默认 175/162）",
   },
 
   // ---------- 营养与代谢 ----------
   {
     slug: "health/calorie-needs",
-    inputs: { age: "30", height: "170", weight: "65" },
-    expect: ["1568", "2430"],
-    ref: "Mifflin-St Jeor（男）：BMR = 10×65 + 6.25×170 − 5×30 + 5 = 1567.5 → 1568；TDEE = 1567.5×1.55 = 2429.6 → 2430",
+    inputs: { age: "45", height: "175", weight: "80" },
+    expect: ["2009"],
+    ref: "Mifflin（男）= 10×80 + 6.25×175 − 5×45 + 5 = 1673.75 → 1674；TDEE = 1674×1.2 = 2008.8 → 2009 kcal（避开默认 30/170/65）",
   },
   {
     slug: "health/protein-needs",
@@ -84,21 +84,21 @@ const CASES = [
   },
   {
     slug: "health/calc-1",
-    inputs: { weight: "65", exercise: "30", baseFactor: "30" },
-    expect: ["2200", "8.8"],
-    ref: "基础 = 65 × 30 = 1950 ml；运动补充 = ⌊30÷30⌋×250 = 250 ml；总量 = 2200 ml；杯数 = 2200÷250 = 8.8 杯",
+    inputs: { weight: "75", exercise: "45", baseFactor: "30" },
+    expect: ["2500 ml"],
+    ref: "基础 = 75 kg × 30 ml/kg = 2250 ml；运动 45 min 档位补 250 ml；合计 2500 ml（避开默认 65 kg/30 min）",
   },
   {
     slug: "health/water-intake-calculator",
-    inputs: { weight: "65", age: "30", gender: "male", activity: "1.0", weather: "1.0", special: "1.0" },
-    expect: ["2300"],
-    ref: "成年男性基础 = 65 kg × 35 ml/kg = 2275 ml；× 活动 1.0 × 天气 1.0 × 特殊 1.0 = 2275 → 取整到 50 ml 显示 2300 ml",
+    inputs: { weight: "72", age: "35" },
+    expect: ["2500 ml"],
+    ref: "基础 = 72 kg × 35 ml/kg = 2520 ml → 取整到 50 的倍数 = 2500 ml；杯数 = 2500÷250 = 10（避开默认 65/30）",
   },
   {
     slug: "health/caffeine-limit",
-    inputs: { weight: "65" },
-    expect: ["390", "4.1"],
-    ref: "安全上限 = 65 × 6 = 390 mg；咖啡杯数 = 390 ÷ 95 = 4.1 杯；中等 = 65×3 = 195 mg",
+    inputs: { weight: "80" },
+    expect: ["480 mg"],
+    ref: "健康成人上限 = 6 mg/kg × 80 kg = 480 mg；≈ 480÷95 = 5.1 杯美式（避开默认 65 kg）",
   },
 
   // ---------- 评分与评估 ----------
@@ -110,23 +110,23 @@ const CASES = [
   },
   {
     slug: "health/calc-3",
-    inputs: { phone: "3", computer: "6", tv: "1", tablet: "0.5" },
-    expect: ["10.5"],
-    ref: "总屏幕时长 = 3 + 6 + 1 + 0.5 = 10.5 小时/天（成人娱乐建议 ≤2h，明显超标）",
+    inputs: { phone: "4", computer: "7", tv: "2", tablet: "1.5" },
+    expect: ["14.5h"],
+    ref: "总时长 = 4 + 7 + 2 + 1.5 = 14.5 h（避开默认 3/6/1/0.5）",
   },
 
   // ---------- 临床检验 ----------
   {
     slug: "health/cholesterol-ratio",
-    inputs: { total: "200", hdl: "50", ldl: "130", tg: "150" },
-    expect: ["4.00", "2.60", "3.00", "150"],
-    ref: "TC/HDL = 200÷50 = 4.00；LDL/HDL = 130÷50 = 2.60；TG/HDL = 150÷50 = 3.00；非 HDL = 200−50 = 150",
+    inputs: { total: "220", hdl: "45", ldl: "140", tg: "180" },
+    expect: ["4.89", "3.11 LDL/HDL", "175 非HDL-C"],
+    ref: "TC/HDL = 220÷45 = 4.89；LDL/HDL = 140÷45 = 3.11；TG/HDL = 180÷45 = 4.00；非HDL-C = 220−45 = 175（避开默认 200/50/130/150）",
   },
   {
     slug: "health/gfr-calculator",
-    inputs: { age: "50", cr: "1.0", weight: "65", height: "170" },
-    expect: ["92"],
-    ref: "CKD-EPI（男，Scr 1.0）：142 × min(1/0.9,1)^(−0.302) × max(1/0.9,1)^(−1.2) × 0.9938^50 = 142×1×0.8783×0.7305 = 91.7 → 显示 92",
+    inputs: { age: "62", cr: "1.4", weight: "70", height: "175" },
+    expect: ["57"],
+    ref: "CKD-EPI 2021（男）：142 × min(1.4/0.9,1)^(−0.302) × max(1.4/0.9,1)^(−1.2) × 0.9938^62 = 142×0.5885×0.6800 = 56.8 → 57（避开默认 50 岁/1.0）",
   },
   {
     slug: "health/gfr-calculator",
@@ -142,51 +142,51 @@ const CASES = [
   },
   {
     slug: "health/insulin-dose",
-    inputs: { currentBg: "8.5", targetBg: "5.5", icr: "10", isf: "2.5", carbs: "60" },
-    expect: ["7"],
-    ref: "碳水剂量 = 60÷10 = 6 U；校正剂量 = (8.5−5.5)÷2.5 = 1.2 U；合计 = 7.2 → 7 U",
+    inputs: { currentBg: "11", targetBg: "6", icr: "12", isf: "3", carbs: "75" },
+    expect: ["6.3U", "1.7U", "8.0"],
+    ref: "碳水剂量 = 75÷12 = 6.25 → 6.3 U；校正剂量 = (11−6)÷3 = 1.67 → 1.7 U；合计 8.0 U（避开默认 8.5/5.5/10/2.5/60）",
   },
 
   // ---------- 孕产 ----------
   {
     slug: "health/pregnancy-weight-gain",
-    inputs: { h: "165", w: "55", week: "20" },
-    expect: ["20.2"],
-    ref: "孕前 BMI = 55 ÷ 1.65² = 20.2 → 正常组，总增重建议 11.5–16 kg（IOM 2009）",
+    inputs: { h: "170", w: "62", week: "28" },
+    expect: ["7.3 ~ 9.5"],
+    ref: "孕前 BMI = 62÷1.70² = 21.5（正常）；28 周累计增重 ≈ 7.3 ~ 9.5 kg（避开默认 165/55/20）",
   },
   {
     slug: "health/safe-period-calculator",
-    inputs: { lmp: "2026-08-01", cycle: "28", period: "5" },
-    expect: ["2026-08-15"],
-    ref: "排卵日 = 末次月经 + 周期 − 14 天 = 2026-08-01 + 14 天 = 2026-08-15；易孕期 08-10 ~ 08-19",
+    inputs: { lmp: "2026-03-10", cycle: "30", period: "6" },
+    expect: ["2026-03-26"],
+    ref: "排卵日 = 末次月经 2026-03-10 + (30 − 14) = 2026-03-26（避开默认 2026-08-01/28/5）",
   },
 
   // ---------- 运动 ----------
   {
     slug: "health/one-rep-max",
-    inputs: { weight: "80", reps: "5" },
-    expect: ["93.3"],
-    ref: "Epley：1RM = 80 × (1 + 5/30) = 93.3 kg；Brzycki = 80×36/32 = 90.0；O'Conner = 80×1.125 = 90.0",
+    inputs: { weight: "100", reps: "8" },
+    expect: ["126.7"],
+    ref: "Epley：1RM = 100 × (1 + 8÷30) = 126.67 → 126.7 kg（避开默认 80 kg/5 次）",
   },
   {
     slug: "health/vo2-max-calculator",
-    inputs: { cooperAge: "30", cooperDist: "2800" },
-    expect: ["51.3"],
-    ref: "Cooper 12 分钟跑：VO₂max = (2800 − 504.9) ÷ 44.73 = 51.3 mL/kg/min",
+    inputs: { cooperAge: "42", cooperDist: "2400" },
+    expect: ["42.4"],
+    ref: "Cooper 12 min：VO₂max = (2400 − 504.9) ÷ 44.73 = 42.37 → 42.4 ml/kg/min（避开默认 30 岁/2800 m）",
   },
   {
     slug: "health/dumbbell-weight-calculator",
-    inputs: { targetWeight: "60", barWeight: "20" },
-    expect: ["20"],
-    ref: "每侧配重 = (60 − 20) ÷ 2 = 20 kg，由 1 片 20 kg 组成（每侧 20 kg × 2 侧 = 40 kg + 杆 20 kg = 60 kg）",
+    inputs: { targetWeight: "80", barWeight: "20" },
+    expect: ["30 每侧配重"],
+    ref: "每侧配重 = (80 − 20) ÷ 2 = 30 kg；实际总重 80 kg（避开默认 60/20）",
   },
 
   // ---------- 费用 ----------
   {
     slug: "health/smoking-cost-calculator",
-    inputs: { perDay: "20", years: "10", price: "25", perPack: "20" },
-    expect: ["91,250"],
-    ref: "日花费 = 20÷20×25 = ¥25.0；年 = 25×365 = ¥9125；10 年 = ¥91,250（共 73,000 支）",
+    inputs: { perDay: "15", years: "8", price: "30" },
+    expect: ["65,700"],
+    ref: "每日 = 15÷20×30 = 22.5 元；总计 = 22.5 × 365 × 8 = 65,700 元（避开默认 20 支/10 年/25 元）",
   },
 ];
 
