@@ -28,7 +28,7 @@ const REAL_PROCESS = process;             // 同上：运行期写 REAL_PROCESS.
 const ROOT = path.resolve(__dirname, "..");
 const { runCase } = require(path.join(ROOT, "scripts", "verify_it_calc.js"));
 
-/** 从页面 HTML 提取所有 input 的 id → value 默认值（截断 deep-dive，避免抓到示例） */
+/** 从页面 HTML 提取 input/select 的 id → 默认值（截断 deep-dive，避免抓到示例） */
 function pageDefaults(slug) {
   const fp = path.join(ROOT, "tools", slug + ".html");
   if (!fs.existsSync(fp)) return null;
@@ -36,6 +36,7 @@ function pageDefaults(slug) {
   const cut = raw.indexOf("<!-- TOOLBOX-DEEP-DIVE -->");
   const body = cut > 0 ? raw.slice(0, cut) : raw;
   const out = {};
+  // 1) <input> 的 value 默认
   const re = /<input\b[^>]*>/g;
   let m;
   while ((m = re.exec(body))) {
@@ -43,6 +44,19 @@ function pageDefaults(slug) {
     const id = (tag.match(/id=["']([^"']+)["']/) || [])[1];
     const val = (tag.match(/value=["']([^"']*)["']/) || [])[1];
     if (id && val !== undefined) out[id] = val;
+  }
+  // 2) <select> 的默认选中项（selected option 优先，否则取首个 option）
+  //    关键修复：旧版只抓 input，导致 select 类输入（如 hirschberg 的 fixing/reflex）
+  //    永远无法「换回默认」→ 判别力校验误报逃生项。真实测试其实有效（默认「正位」/
+  //    非默认「明显眼位偏斜」经 probe 实测确认），是校验器盲区而非盲区用例。
+  const selRe = /<select\b[^>]*\bid=["']([^"']+)["'][^>]*>([\s\S]*?)<\/select>/g;
+  let s;
+  while ((s = selRe.exec(body))) {
+    const id = s[1];
+    const inner = s[2];
+    const sel = inner.match(/<option[^>]*\bselected\b[^>]*value=["']([^"']*)["']/i)
+             || inner.match(/<option[^>]*value=["']([^"']*)["']/i);
+    out[id] = sel ? sel[1] : "";
   }
   return out;
 }

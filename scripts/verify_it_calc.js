@@ -187,9 +187,11 @@ const CASES = [
   },
   {
     slug: "it/number-base-converter",
-    inputs: { inputValue: "255", inputBase: "10" },
-    expect: ["FF", "ff"],
-    ref: "format(255,'X') = FF",
+    inputs: { inputValue: "1000", inputBase: "10" },
+    expect: ["3E8"],
+    ref: "inputValue=1000 按十进制解读 → 十六进制 3E8（formatNumber(1000,16).toUpperCase()）。"
+       + "改用 1000 而非 255：页面含 0–255 静态参考表，255 的各进制表示恒在表中（原 expect「FF」撞表，逃生项）；"
+       + "1000 超出静态表范围，其转换结果仅在输入框真正注入时出现，回退默认(空)无 3E8 → 失配。",
   },
   {
     slug: "it/calc-2",

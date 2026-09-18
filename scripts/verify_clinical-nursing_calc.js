@@ -167,9 +167,9 @@ const CASES = [
     "stomaType": "ileostomy"
   },
   "expect": [
-    "正常更换周期"
+    "ileostomy"
   ],
-  "ref": "auto-restore（回肠造口更换周期由输入决定，稳定；原 4天 是 countdown 距下次更换剩余天数，依赖 new Date() 漂移）"
+  "ref": "回肠造口(stomaType=ileostomy) 更换周期 5天；默认 colostomy 为 7天。「正常更换周期」两型都含（原逃生项），改锚定随输入变化的类型值 ileostomy（回退默认 colostomy 不出现）。"
 },
 {
   "slug": "clinical-nursing/oxygen-concentration",

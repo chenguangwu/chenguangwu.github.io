@@ -131,8 +131,9 @@ const CASES = [
   {
     slug: "health/gfr-calculator",
     inputs: { age: "50", cr: "1.0", weight: "65", height: "170", formula: "mdrd" },
-    expect: ["84"],
-    ref: "MDRD（男）：186 × 1.0^(−1.154) × 50^(−0.203) = 186 × 0.4522 = 84.1 → 显示 84 mL/min/1.73m²",
+    expect: ["肾功能轻度下降"],
+    ref: "MDRD（男）：186 × 1.0^(−1.154) × 50^(−0.203) = 186 × 0.4522 = 84.1 → 显示 84 mL/min/1.73m²，分期 G2 肾功能轻度下降。"
+       + "原 expect「84」在 MDRD 列恒为 84（默认 CKD-EPI 也显示 84 MDRD，原逃生项），改锚定分期串「肾功能轻度下降」（CKD-EPI 默认输出为 G1 肾功能正常/良好 → 失配）。",
   },
   {
     slug: "health/gfr-calculator",

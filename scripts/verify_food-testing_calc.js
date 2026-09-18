@@ -166,9 +166,9 @@ const CASES = [
     "sortMode": "asc"
   },
   "expect": [
-    "96.5%"
+    "asc"
   ],
-  "ref": "auto-restore(default-hit)"
+  "ref": "配料排序 sortMode=asc（默认 desc）；排序结果内容相同、仅排序模式串随输入变化。「96.5%」为恒定合计占比（原逃生项），改锚定 asc。"
 },
 {
   "slug": "food-testing/nitrite-colorimetric",

@@ -111,9 +111,9 @@ const CASES = [
     "eventType": "press"
   },
   "expect": [
-    "25"
+    "85"
   ],
-  "ref": "auto-restore"
+  "ref": "auto-restore → 收紧：eventType=press 时 7 环节总时长 85 分（默认 product 为 135 分）。原 expect「25」取环节单行时长，回退默认仍可命中（逃生项），改锚定总时长「85」（product 为 135 → 失配）。"
 },
 {
   "slug": "pr/risk-assessment",
