@@ -50,8 +50,8 @@
 <script src="../../js/tool-i18n.js" defer></script>
 <!-- TOOLBOX-I18N-SCRIPT -->
 
-<meta name="title-en" content="Analysis Conversion Funnel">
-<meta name="desc-en" content="Analysis Conversion Funnel - online utility on ToolBox.">
+<meta name="title-en" content="Conversion Funnel and Drop-off Analysis">
+<meta name="desc-en" content="Conversion Funnel and Drop-off Analysis - step conversion, drop-off counts, overall conversion and the weakest stage of the funnel.">
 <!-- TOOLBOX-HREFLANG -->
 <link rel="alternate" hreflang="zh-CN" href="https://chenguangwu.github.io/tools/ecommerce/analysis-conversion-funnel.html">
 <link rel="alternate" hreflang="zh-TW" href="https://chenguangwu.github.io/zh-tw/tools/ecommerce/analysis-conversion-funnel.html">
@@ -92,16 +92,22 @@
 </div>
 <div class="container">
   <div class="card tool-card-accent" style="--tool-accent:#FF6B35;">
-    <h2 data-zh="🎯 转化（漏斗/流失）分析">Analysis Conversion Funnel</h2>
+    <h2 data-zh="🎯 转化（漏斗/流失）分析">Conversion Funnel and Drop-off Analysis</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="漏斗/流失">Analysis Conversion Funnel</p>
 <div class="formula-box">
   <div class="formula-title">📐 工作原理与说明</div>
-  
+  <div class="formula-eq">相邻转化率 = 本层人数 ÷ 上层人数 × 100%</div>
+  <div class="formula-eq">整体转化率 = Π 各层相邻转化率 = 末层 ÷ 首层 × 100%</div>
+  <p class="formula-desc" data-zh="按「阶段名,人数」自上而下录入漏斗各层，顺序即用户路径。相邻转化率衡量每一步的推进效率，各层相乘得到整体转化率，因此单点的小幅下滑会被逐级放大。流失人数与流失率直接指出每一步损失了多少用户，而流失人数最大的环节不一定是最该优化的——要看转化率最低的那一段。人数必须逐层不增（后一层不应大于前一层），否则会提示核对口径。数据仅在浏览器本地处理，不会上传。">Enter the funnel top-down as <code>stage,count</code>. Step conversion measures how each stage moves users forward; multiplying all steps gives the overall conversion, so a small drop early on is amplified downstream. Absolute drop counts show where you lose most users, but the weakest link is the stage with the lowest step conversion. Counts must be non-increasing down the funnel, otherwise the tool asks you to check the definitions. All data stays in your browser.</p>
 </div>
 
-<label>输入数据（逗号或换行分隔）</label>
-<textarea id="data" rows="4" oninput="calc()" placeholder="例如: 10,20,30,40,50">10,20,30,40,50,60,70,80</textarea>
-<div class="toolbar"><button type="button" class="btn primary" onclick="calc()">统计分析</button><button type="button" class="btn" onclick="copyRes()">复制</button></div>
+<label>漏斗层级（每行：阶段名,人数，顺序自上而下）</label>
+<textarea id="steps" rows="6" oninput="calc()" placeholder="例如: 曝光,10000">曝光,12000
+点击,900
+加购,270
+下单,108
+支付,90</textarea>
+<div class="toolbar"><button type="button" class="btn primary" onclick="calc()">分析漏斗</button><button type="button" class="btn" onclick="copyResult()">复制结果</button></div>
 <div class="result-box" id="res"></div>
   </div>
 
@@ -150,7 +156,49 @@
 <!-- /注意事项区块 -->
 </div>
 <script>
-function calc(){const raw=document.getElementById("data").value.split(/[,\n\s]+/).map(s=>parseFloat(s.trim())).filter(v=>!isNaN(v));if(!raw.length){document.getElementById("res").innerHTML='<p>请输入数据</p>';return;}const n=raw.length,sum=raw.reduce((a,b)=>a+b,0),mean=sum/n;const sorted=[...raw].sort((a,b)=>a-b);const med=n%2?sorted[Math.floor(n/2)]:(sorted[n/2-1]+sorted[n/2])/2;const varr=raw.reduce((a,b)=>a+(b-mean)**2,0)/n;const std=Math.sqrt(varr);document.getElementById("res").innerHTML=`<p>数据量：<strong>${n}</strong></p><p>总和：<strong>${sum.toFixed(2)}</strong></p><p>平均值：<strong style="color:var(--primary);">${mean.toFixed(2)}</strong></p><p>中位数：<strong>${med.toFixed(2)}</strong></p><p>最小值：<strong>${sorted[0]}</strong></p><p>最大值：<strong>${sorted[n-1]}</strong></p><p>极差：<strong>${(sorted[n-1]-sorted[0]).toFixed(2)}</strong></p><p>方差：<strong>${varr.toFixed(2)}</strong></p><p>标准差：<strong>${std.toFixed(2)}</strong></p>`;}calc();function copyRes(){ToolBox.copyText(document.getElementById("res").innerText);}
+function fmt(n,d){d=d==null?2:d;return Number(n).toLocaleString('zh-CN',{minimumFractionDigits:d,maximumFractionDigits:d});}
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function calc(){
+  const box=document.getElementById("res");
+  const lines=document.getElementById("steps").value.split(/\n+/).map(s=>s.trim()).filter(Boolean);
+  const rows=[];let bad=0;
+  lines.forEach(function(ln){
+    const p=ln.split(/[,，、;；\t]+|\s+/).filter(Boolean);
+    if(p.length<2){bad++;return;}
+    const c=parseFloat(p[1]);
+    if(!isFinite(c)||c<0){bad++;return;}
+    rows.push({name:p[0],c:c});
+  });
+  if(rows.length<2){box.innerHTML='<p>请至少录入两层漏斗数据。</p>';return;}
+  let inc=rows.findIndex((r,i)=>i>0&&r.c>rows[i-1].c);
+  const base=rows[0].c,last=rows[rows.length-1].c;
+  const list=rows.map(function(r,i){
+    if(i===0)return '<p>① <strong>'+esc(r.name)+'</strong>　'+fmt(r.c,0)+'　基准层（100.00%）</p>';
+    const prev=rows[i-1].c;
+    const step=prev>0?r.c/prev*100:0;
+    const over=base>0?r.c/base*100:0;
+    const lost=prev-r.c, lostRate=prev>0?(prev-r.c)/prev*100:0;
+    return '<p>'+'①②③④⑤⑥⑦⑧⑨⑩'[i]+' <strong>'+esc(r.name)+'</strong>　'+fmt(r.c,0)+'　相邻转化 <strong>'+fmt(step,2)+'%</strong>　累计 '+fmt(over,2)+'%　流失 '+fmt(lost,0)+'（'+fmt(lostRate,2)+'%）</p>';
+  }).join('');
+  const steps=[];
+  for(let i=1;i<rows.length;i++){const prev=rows[i-1].c;steps.push({from:rows[i-1].name,to:rows[i].name,rate:prev>0?rows[i].c/prev*100:0,lost:prev-rows[i].c});}
+  let worst=steps[0];
+  steps.forEach(function(s){if(s.rate<worst.rate)worst=s;});
+  let biggest=steps[0];
+  steps.forEach(function(s){if(s.lost>biggest.lost)biggest=s;});
+  const overall=base>0?last/base*100:0;
+  let extra='';
+  if(bad)extra+='<p class="muted">'+bad+' 行无法识别已跳过，请按「阶段名,人数」填写。</p>';
+  if(inc>0)extra+='<p class="muted">「'+esc(rows[inc].name)+'」的人数大于上一层，请核对统计口径后重新录入。</p>';
+  box.innerHTML='<p>漏斗层数：<strong>'+rows.length+'</strong>　首层 '+esc(rows[0].name)+'：<strong>'+fmt(base,0)+'</strong></p>'
+   +list
+   +'<p>整体转化率：<strong style="color:var(--primary);">'+fmt(overall,4)+'%</strong>（'+esc(rows[rows.length-1].name)+' ÷ '+esc(rows[0].name)+'）</p>'
+   +'<p>最薄弱环节：<strong>'+esc(worst.from)+' → '+esc(worst.to)+'</strong>，转化率仅 '+fmt(worst.rate,2)+'%</p>'
+   +'<p>流失人数最多：<strong>'+esc(biggest.from)+' → '+esc(biggest.to)+'</strong>，损失 '+fmt(biggest.lost,0)+'</p>'
+   +extra;
+}
+function copyResult(){ToolBox.copyText(document.getElementById("res").innerText);}
+calc();
 </script>
 
 <!-- SEO 介绍区块 -->

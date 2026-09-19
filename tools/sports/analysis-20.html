@@ -50,8 +50,8 @@
 <script src="../../js/tool-i18n.js" defer></script>
 <!-- TOOLBOX-I18N-SCRIPT -->
 
-<meta name="title-en" content="Analysis 20">
-<meta name="desc-en" content="Analysis 20 - online utility on ToolBox.">
+<meta name="title-en" content="Shooting Score and Stability Analysis">
+<meta name="desc-en" content="Shooting Score and Stability Analysis - total rings, mean, sample standard deviation, coefficient of variation and a repeatability rating.">
 <!-- TOOLBOX-HREFLANG -->
 <link rel="alternate" hreflang="zh-CN" href="https://chenguangwu.github.io/tools/sports/analysis-20.html">
 <link rel="alternate" hreflang="zh-TW" href="https://chenguangwu.github.io/zh-tw/tools/sports/analysis-20.html">
@@ -95,12 +95,15 @@
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="环数/稳定性">Enter each shot’s ring score to compute the mean, within-group spread and stability metrics, then generate a score trend for shooting-training review.</p>
 <div class="formula-box">
   <div class="formula-title">📐 工作原理与说明</div>
-  
+  <div class="formula-eq">样本标准差 SD = √[ Σ(xᵢ − x̄)² ÷ (n − 1) ]</div>
+  <div class="formula-eq">变异系数 CV = SD ÷ 平均环值 × 100%</div>
+  <p class="formula-desc" data-zh="录入每一发的环值，工具给出总环、平均环、最好最差与极差，并用样本标准差 SD 反映散布、变异系数 CV 做跨口径比较。平均环代表准度（打得住打不住十环），SD 与极差代表稳定度（能不能重复打出），两者要结合看：环数高但 SD 大，说明靠偶然，应先固化动作与技术而不是追单发高环。10 环制与 10.9 环制会影响达标线，因此可先选定制式。数据仅在浏览器本地处理，不会上传。">Enter every shot value. Total, mean, best, worst and range describe accuracy, while the sample standard deviation SD and coefficient of variation CV describe how repeatable the group is. Read them together: a high average with a large SD means the result came from luck, so work on a repeatable position rather than chasing single high shots. Pick the scoring system first since it changes the reference values. Everything is computed locally.</p>
 </div>
 
-<label>输入数据（逗号或换行分隔）</label>
-<textarea id="data" rows="4" oninput="calc()" placeholder="例如: 10,20,30,40,50">10,20,30,40,50,60,70,80</textarea>
-<div class="toolbar"><button type="button" class="btn primary" onclick="calc()">统计分析</button><button type="button" class="btn" onclick="copyRes()">复制</button></div>
+<label>每发环值（逗号或空格分隔，支持小数环）</label>
+<textarea id="shots" rows="4" oninput="calc()" placeholder="例如: 10,9,10,9,8">10,9,10,9,8,10,9,10,9,10</textarea>
+<div class="input-row"><label>计分制式</label><select id="sys" onchange="calc()"><option value="10">10 环制（整数）</option><option value="10.9">10.9 环制（小数）</option></select></div>
+<div class="toolbar"><button type="button" class="btn primary" onclick="calc()">分析成绩</button><button type="button" class="btn" onclick="copyResult()">复制结果</button></div>
 <div class="result-box" id="res"></div>
   </div>
 
@@ -121,7 +124,7 @@
 </style>
 <section class="deep-dive" data-deep-dive="1">
 <div class="card">
-<h2>📚 深度解析：射击（环数/稳定性）分析</h2>
+<h2>📚 深度解析：射击环数与稳定性分析</h2>
 <h3>💡 常见使用场景</h3>
 <ul class="dd-list">
 <li>评估射击精度与一致性。</li>
@@ -132,6 +135,7 @@
 <dl class="dd-faq">
 <dt>环数还是分组？</dt><dd>分组（密集度）比总环更能反映稳定性。</dd>
 <dt>环数高但散布大说明什么？</dt><dd>说明偶然性好、一致性差，应练姿势固化而非追单发高环，比赛看总环与稳定。</dd>
+<dt>10 环制和 10.9 环制该怎么看？</dt><dd>两种制式的绝对环值不能直接比较。10.9 制把每环再细分为十个小数位，同样的一组成绩在 10.9 制下总环更高。跨制式比较稳定性时看变异系数 CV 更合适，它把标准差除以平均环消除了量纲差异。</dd>
 </dl>
 </div>
 </section>
@@ -147,7 +151,36 @@
 <!-- /注意事项区块 -->
 </div>
 <script>
-function calc(){const raw=document.getElementById("data").value.split(/[,\n\s]+/).map(s=>parseFloat(s.trim())).filter(v=>!isNaN(v));if(!raw.length){document.getElementById("res").innerHTML='<p>请输入数据</p>';return;}const n=raw.length,sum=raw.reduce((a,b)=>a+b,0),mean=sum/n;const sorted=[...raw].sort((a,b)=>a-b);const med=n%2?sorted[Math.floor(n/2)]:(sorted[n/2-1]+sorted[n/2])/2;const varr=raw.reduce((a,b)=>a+(b-mean)**2,0)/n;const std=Math.sqrt(varr);document.getElementById("res").innerHTML=`<p>数据量：<strong>${n}</strong></p><p>总和：<strong>${sum.toFixed(2)}</strong></p><p>平均值：<strong style="color:var(--primary);">${mean.toFixed(2)}</strong></p><p>中位数：<strong>${med.toFixed(2)}</strong></p><p>最小值：<strong>${sorted[0]}</strong></p><p>最大值：<strong>${sorted[n-1]}</strong></p><p>极差：<strong>${(sorted[n-1]-sorted[0]).toFixed(2)}</strong></p><p>方差：<strong>${varr.toFixed(2)}</strong></p><p>标准差：<strong>${std.toFixed(2)}</strong></p>`;}calc();function copyRes(){ToolBox.copyText(document.getElementById("res").innerText);}
+function fmt(n,d){d=d==null?2:d;return Number(n).toLocaleString('zh-CN',{minimumFractionDigits:d,maximumFractionDigits:d});}
+function calc(){
+  const box=document.getElementById("res");
+  const max=parseFloat(document.getElementById("sys").value)||10;
+  const raw=(document.getElementById("shots").value||'').split(/[,，、;；\s\n]+/).map(s=>parseFloat(s.trim())).filter(v=>!isNaN(v));
+  if(raw.length<2){box.innerHTML='<p>请至少录入 2 发环值。</p>';return;}
+  let bad=raw.filter(v=>v<0||v>max);
+  const n=raw.length,sum=raw.reduce((a,b)=>a+b,0),mean=sum/n;
+  const sorted=[...raw].sort((a,b)=>a-b);
+  const med=n%2?sorted[Math.floor(n/2)]:(sorted[n/2-1]+sorted[n/2])/2;
+  const vs=raw.reduce((a,b)=>a+(b-mean)*(b-mean),0)/(n-1);
+  const sd=Math.sqrt(vs);
+  const cv=mean?sd/mean*100:0;
+  const range=sorted[n-1]-sorted[0];
+  const hi=raw.filter(v=>v>=max-0.5).length;
+  const over=raw.filter(v=>v>=mean).length;
+  let grade='';
+  if(sd<0.5)grade='优秀（动作一致性高）';else if(sd<1.0)grade='良好';else if(sd<1.5)grade='一般（需强化据枪与击发一致性）';else grade='较差（散布大，建议先稳定姿势与呼吸）';
+  let extra='';
+  if(bad.length)extra='<p class="muted">'+bad.length+' 发环值超出 0~'+max+' 范围，仍按原值计入，请核对录入。</p>';
+  box.innerHTML='<p>发数：<strong>'+n+'</strong>　总环：<strong style="color:var(--primary);">'+fmt(sum,1)+'</strong>　平均环：<strong>'+fmt(mean,2)+'</strong></p>'
+   +'<p>最好：<strong>'+fmt(sorted[n-1],1)+'</strong>　最差：<strong>'+fmt(sorted[0],1)+'</strong>　极差：<strong>'+fmt(range,1)+'</strong>　中位数：<strong>'+fmt(med,1)+'</strong></p>'
+   +'<p>样本标准差 SD：<strong style="color:var(--primary);">'+fmt(sd,3)+'</strong>　变异系数 CV：<strong>'+fmt(cv,2)+'%</strong></p>'
+   +'<p>稳定度评级：<strong>'+grade+'</strong></p>'
+   +'<p>接近满环（≥'+fmt(max-0.5,1)+'）发数：<strong>'+hi+'</strong>（'+fmt(hi/n*100,1)+'%）　不低于平均环的发数：<strong>'+over+'</strong>（'+fmt(over/n*100,1)+'%）</p>'
+   +extra
+   +'<p class="muted">SD 越小说明弹着越集中；CV 便于在不同计分制式之间比较稳定性。</p>';
+}
+function copyResult(){ToolBox.copyText(document.getElementById("res").innerText);}
+calc();
 </script>
 
 <!-- SEO 介绍区块 -->

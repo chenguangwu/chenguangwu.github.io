@@ -50,8 +50,8 @@
 <script src="../../js/tool-i18n.js" defer></script>
 <!-- TOOLBOX-I18N-SCRIPT -->
 
-<meta name="title-en" content="Analysis Tide">
-<meta name="desc-en" content="Analysis Tide - online utility on ToolBox.">
+<meta name="title-en" content="Tidal Harmonic Analysis">
+<meta name="desc-en" content="Tidal Harmonic Analysis - synthesize the water level curve from M2, S2, K1 and O1 constituents, then read high and low waters, range and tidal type.">
 <!-- TOOLBOX-HREFLANG -->
 <link rel="alternate" hreflang="zh-CN" href="https://chenguangwu.github.io/tools/meteorology/analysis-tide.html">
 <link rel="alternate" hreflang="zh-TW" href="https://chenguangwu.github.io/zh-tw/tools/meteorology/analysis-tide.html">
@@ -96,12 +96,18 @@
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="天文">Perform astronomical tide harmonic analysis from constituent amplitudes.</p>
 <div class="formula-box">
   <div class="formula-title">📐 工作原理与说明</div>
-  
+  <div class="formula-eq">h(t) = Z₀ + Σ Hᵢ × cos(σᵢ·t − gᵢ)</div>
+  <div class="formula-eq">潮型系数 F = (H_K1 + H_O1) ÷ (H_M2 + H_S2)</div>
+  <p class="formula-desc" data-zh="调和分析把实测潮位分解成若干天文分潮的叠加：每个分潮由振幅 H 与迟角 g 描述，角速度 σ 由天文参数决定（M₂ 为 28.9841°/小时、S₂ 为 30.0000、K₁ 为 15.0411、O₁ 为 13.9430）。填入各分潮的调和常数与当地平均海面，即可合成未来若干小时的潮位过程，并从中挑出高、低潮的时刻与潮差。F 小于 0.25 为正规半日潮，0.25~1.5 为不规则半日潮，1.5~3.0 为不规则全日潮，大于 3.0 为正规全日潮。调和常数请取自海图或潮汐表，结果用于作业计划参考。">Harmonic analysis decomposes the tide into astronomical constituents; each constituent is described by an amplitude H and a phase lag g, while its speed σ is fixed by astronomy (M₂ 28.9841°/h, S₂ 30.0000, K₁ 15.0411, O₁ 13.9430). Enter the harmonic constants plus the local mean sea level and the tool synthesizes the water level curve, picks high and low waters and reports the range. F &lt; 0.25 means a regular semidiurnal tide, 0.25–1.5 mixed mainly semidiurnal, 1.5–3.0 mixed mainly diurnal, above 3.0 regular diurnal. Take the constants from tidal tables; results are for operational planning only.</p>
 </div>
 
-<label>输入数据（逗号或换行分隔）</label>
-<textarea id="data" rows="4" oninput="calc()" placeholder="例如: 10,20,30,40,50">10,20,30,40,50,60,70,80</textarea>
-<div class="toolbar"><button type="button" class="btn primary" onclick="calc()">统计分析</button><button type="button" class="btn" onclick="copyRes()">复制</button></div>
+<div class="input-row"><label>平均海面 Z₀（m）</label><input type="number" id="z0" value="2.00" step="0.01" oninput="calc()"></div>
+<div class="input-row"><label>M₂ 振幅 H（m）</label><input type="number" id="hM2" value="1.20" step="0.01" oninput="calc()"><label>M₂ 迟角 g（°）</label><input type="number" id="gM2" value="0" step="1" oninput="calc()"></div>
+<div class="input-row"><label>S₂ 振幅 H（m）</label><input type="number" id="hS2" value="0.35" step="0.01" oninput="calc()"><label>S₂ 迟角 g（°）</label><input type="number" id="gS2" value="40" step="1" oninput="calc()"></div>
+<div class="input-row"><label>K₁ 振幅 H（m）</label><input type="number" id="hK1" value="0.30" step="0.01" oninput="calc()"><label>K₁ 迟角 g（°）</label><input type="number" id="gK1" value="120" step="1" oninput="calc()"></div>
+<div class="input-row"><label>O₁ 振幅 H（m）</label><input type="number" id="hO1" value="0.25" step="0.01" oninput="calc()"><label>O₁ 迟角 g（°）</label><input type="number" id="gO1" value="200" step="1" oninput="calc()"></div>
+<div class="input-row"><label>预报时长（小时）</label><input type="number" id="hours" value="24" step="1" min="6" max="72" oninput="calc()"></div>
+<div class="toolbar"><button type="button" class="btn primary" onclick="calc()">预报潮位</button><button type="button" class="btn" onclick="copyResult()">复制结果</button></div>
 <div class="result-box" id="res"></div>
   </div>
 
@@ -122,15 +128,15 @@
 </style>
 <section class="deep-dive" data-deep-dive="1">
 <div class="card">
-<h2>📚 深度解析：潮汐数据分析</h2>
+<h2>📚 深度解析：潮汐调和分析与潮位预报</h2>
 <h3>💡 常见使用场景</h3>
 <ul class="dd-list">
-<li>由潮高时序算高潮/低潮时刻与潮差。</li>
-<li>半日潮与全日潮判别（一天几潮）。</li>
-<li>港口作业选高潮窗口靠泊。</li>
+<li>填入当地四个主要分潮的调和常数与平均海面，合成未来若干小时的潮位过程，读取高、低潮时刻。</li>
+<li>由合成结果直接得到预报时段内的最高潮位、最低潮位与最大潮差，用于安排靠泊与施工作业窗口。</li>
+<li>用潮型系数 F 判别半日潮与全日潮，判断一天大致出现几次高潮、适合什么样的作业节奏。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">半日潮</div><div class="dd-ex-body">某港一天两高两低，高潮 3.8m/3.6m、低潮 0.9m/1.1m，平均潮差≈(3.8−0.9+3.6−1.1)/2=2.7m，属正规半日潮。</div></div>
-<div class="dd-example"><div class="dd-ex-title">作业窗口</div><div class="dd-ex-body">船舶吃水 4m、安全富余 0.5m → 需潮高≥4.5m，查时序仅高潮前后 1.5h 满足，靠泊窗口据此定。</div></div>
+<div class="dd-example"><div class="dd-ex-title">从调和常数读潮差</div><div class="dd-ex-body">某站 Z₀=2.00 m，M₂ 振幅 1.20 m 迟角 0 度、S₂ 0.35 m/40 度、K₁ 0.30 m/120 度、O₁ 0.25 m/200 度。合成 24 小时后得到高潮 3.85 m（12:30）、低潮 0.29 m（19:00），最大潮差 3.56 m，明显大于振幅之和的一半，说明多个分潮在该时段形成了叠加。</div></div>
+<div class="dd-example"><div class="dd-ex-title">作业窗口</div><div class="dd-ex-body">船舶吃水 4 m、安全富余 0.5 m，需要潮高不低于 4.5 m。若预报显示当日最高潮位只有 3.85 m，则全天都达不到靠泊条件，需改到潮位更高的日期，或改用减载方案。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
 <dt>半日潮和全日潮怎么分？</dt><dd>一天约 2 次高潮为半日潮，约 1 次为全日潮；由月赤纬与地理位置决定，我国多为半日潮。</dd>
@@ -150,7 +156,49 @@
 <!-- /注意事项区块 -->
 </div>
 <script>
-function calc(){const raw=document.getElementById("data").value.split(/[,\n\s]+/).map(s=>parseFloat(s.trim())).filter(v=>!isNaN(v));if(!raw.length){document.getElementById("res").innerHTML='<p>请输入数据</p>';return;}const n=raw.length,sum=raw.reduce((a,b)=>a+b,0),mean=sum/n;const sorted=[...raw].sort((a,b)=>a-b);const med=n%2?sorted[Math.floor(n/2)]:(sorted[n/2-1]+sorted[n/2])/2;const varr=raw.reduce((a,b)=>a+(b-mean)**2,0)/n;const std=Math.sqrt(varr);document.getElementById("res").innerHTML=`<p>数据量：<strong>${n}</strong></p><p>总和：<strong>${sum.toFixed(2)}</strong></p><p>平均值：<strong style="color:var(--primary);">${mean.toFixed(2)}</strong></p><p>中位数：<strong>${med.toFixed(2)}</strong></p><p>最小值：<strong>${sorted[0]}</strong></p><p>最大值：<strong>${sorted[n-1]}</strong></p><p>极差：<strong>${(sorted[n-1]-sorted[0]).toFixed(2)}</strong></p><p>方差：<strong>${varr.toFixed(2)}</strong></p><p>标准差：<strong>${std.toFixed(2)}</strong></p>`;}calc();function copyRes(){ToolBox.copyText(document.getElementById("res").innerText);}
+function fmt(n,d){d=d==null?2:d;return Number(n).toLocaleString('zh-CN',{minimumFractionDigits:d,maximumFractionDigits:d});}
+function num(id,def){const v=parseFloat(document.getElementById(id).value);return isFinite(v)?v:def;}
+function hm(t){const h=Math.floor(t+1e-9),m=Math.round((t-h)*60);return (h<10?'0':'')+h+':'+(m<10?'0':'')+m;}
+var SPD={M2:28.9841042,S2:30.0,K1:15.0410686,O1:13.9430356};
+function calc(){
+  const box=document.getElementById("res");
+  const z0=num('z0',0);
+  const comps=[{n:'M₂',H:num('hM2',0),g:num('gM2',0),w:SPD.M2},
+               {n:'S₂',H:num('hS2',0),g:num('gS2',0),w:SPD.S2},
+               {n:'K₁',H:num('hK1',0),g:num('gK1',0),w:SPD.K1},
+               {n:'O₁',H:num('hO1',0),g:num('gO1',0),w:SPD.O1}];
+  let hours=num('hours',24);hours=Math.max(6,Math.min(72,hours));
+  const amp=comps.reduce((a,c)=>a+c.H,0);
+  if(!(amp>0)){box.innerHTML='<p>请至少为一个分潮输入大于 0 的振幅。</p>';return;}
+  const ht=function(t){return z0+comps.reduce(function(a,c){return a+c.H*Math.cos((c.w*t-c.g)*Math.PI/180);},0);};
+  const step=0.25,series=[];
+  for(let t=0;t<=hours+1e-9;t+=step)series.push({t:t,h:ht(t)});
+  const ext=[];
+  for(let i=1;i<series.length-1;i++){
+    const a=series[i-1].h,b=series[i].h,c=series[i+1].h;
+    if(b>=a&&b>=c)ext.push({t:series[i].t,h:b,type:'高潮'});
+    else if(b<=a&&b<=c)ext.push({t:series[i].t,h:b,type:'低潮'});
+  }
+  const highs=ext.filter(e=>e.type==='高潮'),lows=ext.filter(e=>e.type==='低潮');
+  const all=series.map(s=>s.h);
+  const hMax=Math.max.apply(null,all),hMin=Math.min.apply(null,all);
+  const tPeak=series.filter(s=>s.h===hMax)[0].t,tTrough=series.filter(s=>s.h===hMin)[0].t;
+  const F=(comps[2].H+comps[3].H)>0||(comps[0].H+comps[1].H)>0?(comps[2].H+comps[3].H)/((comps[0].H+comps[1].H)||1e-9):0;
+  let type='';
+  if(F<0.25)type='正规半日潮';else if(F<1.5)type='不规则半日潮';else if(F<=3.0)type='不规则全日潮';else type='正规全日潮';
+  let table='';
+  for(let t=0;t<=hours+1e-9;t+=3){table+='<p>'+hm(t)+'　<strong>'+fmt(ht(t),2)+' m</strong></p>';}
+  const ex=ext.slice(0,8).map(e=>'<p>'+hm(e.t)+'　'+e.type+'　<strong>'+fmt(e.h,2)+' m</strong></p>').join('');
+  box.innerHTML='<p>潮型系数 F：<strong>'+fmt(F,2)+'</strong>　判定：<strong style="color:var(--primary);">'+type+'</strong></p>'
+   +'<p>分潮振幅合计：<strong>'+fmt(amp,2)+' m</strong>　平均海面 Z₀：<strong>'+fmt(z0,2)+' m</strong></p>'
+   +'<p>预报 '+fmt(hours,0)+' 小时内最高潮位：<strong style="color:var(--primary);">'+fmt(hMax,2)+' m</strong>（'+hm(tPeak)+'）</p>'
+   +'<p>预报时段内最低潮位：<strong>'+fmt(hMin,2)+' m</strong>（'+hm(tTrough)+'）</p>'
+   +'<p>最大潮差：<strong>'+fmt(hMax-hMin,2)+' m</strong></p>'
+   +'<p>高、低潮 '+Math.min(ext.length,8)+' 个：</p>'+ex
+   +'<p>逐 3 小时潮位：</p>'+table;
+}
+function copyResult(){ToolBox.copyText(document.getElementById("res").innerText);}
+calc();
 </script>
 
 <!-- SEO 介绍区块 -->
