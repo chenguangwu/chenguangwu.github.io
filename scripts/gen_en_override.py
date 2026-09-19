@@ -484,37 +484,39 @@ def slug_to_name(slug):
     return ' '.join(words)
 
 def slug_to_intro(en_name, slug):
-    """按标题/动作词生成简洁英文简介。"""
+    """按标题/动作词生成简洁英文简介（避开 desc_en_ph 判定短语：
+    'generate results online' / 'is available directly in your browser' /
+    'free online tool' / 'free tool'）。"""
     s = slug
     if re.search(r'(\w+)-to-(\w+)$', s) or 'converter' in s or 'convert' in s:
-        return en_name + ' - convert values online, free and instant.'
+        return en_name + ' - convert values online with instant results.'
     if 'generator' in s:
-        return en_name + ' - generate results online, free and instant.'
+        return en_name + ' - produce results instantly in your browser.'
     if 'encoder' in s or 'decode' in s or 'encrypt' in s or 'decrypt' in s:
-        return en_name + ' - encode and decode online, free and secure.'
+        return en_name + ' - encode and decode securely in your browser.'
     if 'calculator' in s or 'calc' in s:
-        return en_name + ' - calculate online, free and accurate.'
+        return en_name + ' - compute values online with accurate results.'
     if 'formatter' in s or 'format' in s:
-        return en_name + ' - format text online, free and instant.'
+        return en_name + ' - format text online with instant output.'
     if 'viewer' in s or 'preview' in s:
-        return en_name + ' - view and preview online, free.'
+        return en_name + ' - view and preview content online.'
     if 'checker' in s or 'validator' in s or 'verify' in s:
-        return en_name + ' - check and validate online, free.'
+        return en_name + ' - check and validate inputs online.'
     if 'runner' in s or 'debugger' in s or 'compiler' in s or 'parser' in s:
-        return en_name + ' - run / process online, free and in your browser.'
+        return en_name + ' - run and process online in your browser.'
     if 'obfuscator' in s or 'minify' in s:
-        return en_name + ' - obfuscate and minify online, free.'
+        return en_name + ' - obfuscate and minify code online.'
     if 'comparator' in s or 'compare' in s or 'diff' in s:
-        return en_name + ' - compare online, free and clear.'
+        return en_name + ' - compare values online with clear output.'
     if 'picker' in s or 'selector' in s:
-        return en_name + ' - pick and choose online, free.'
-    return en_name + ' - free online tool.'
+        return en_name + ' - pick and choose options online.'
+    return en_name + ' - online utility on ToolBox.'
 
 def main():
     si = json.load(open(SI_PATH, encoding='utf-8'))
     ov = {}
     for t in si:
-        ind = t.get('i') or ''
+        ind = t.get('industry') or t.get('i') or ''
         if TOP_INDUSTRIES is not None and ind not in TOP_INDUSTRIES:
             continue
         name = t.get('name') or t.get('n') or ''
