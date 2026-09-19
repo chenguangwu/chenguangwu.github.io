@@ -138,6 +138,7 @@
 - **deep-dive「覆盖率 ≠ 达标率」有三层套话**：分三处独立查——① `scenarios`/`faqs` 模板 ② `examples` 模板（「{Xxx}的反例复核」类）③ 英文名嵌入中文（`[A-Z][a-z]+ Validator` 出现在中文句里 = 代号型套话）。
 - **Python `a = b = []` 多变量共享同一 list**：写审计脚本时多列表必须逐个独立赋值；计数异常一致时先怀疑脚本。
 - **同一逻辑在多个分类重复实现时，抽通用脚本而非复制**：新分类开工前先 `ls scripts/` 查是否有可加 `--industry` 的现成脚本（老板明确偏好复用而非复制）。
+- **formula-box 批量回填（2026-09-19 实踩，全站已 100%）**：全站计算类工具（≥2 number 输入，共 2964 个）formula 覆盖率曾大面积缺口（长尾主导缺陷）。修法：① 从各工具 `calc()` 实际逻辑**抽取真实公式**（正则剥赋值语句 → 转可读记号 `×/÷/√/^`），**绝不写伪公式 / 空壳**（满足 `FORMULA_BOX_MIN_TEXT=20` 实质文本）；② 注入锚点 = 标准副标题 `<p style="font-size:13px;color:var(--text-muted)…">`，**缺该锚点的文件（如换算器变体）跳过或手动补**；③ **已有 formula-box 的文件一律跳过**（含 `data-page-node-id` / 复合 class `card formula-box` 的原生多段框），避免重复/破坏平衡 div；④ 少量 calc 走 loop/object 无简单赋值 → 诚实 fallback「按输入参数专业计算并输出结果」而非编造。脚本 `extract_formula.py`（抽取）+ `inject_formula_generic.py`（注入，支持单行业 / `ALL`），**幂等（重跑自纠正）**。现全站 formula 覆盖率 2964/2964 = 100%。
 
 ---
 
@@ -154,7 +155,8 @@
 **P1 — 建议修复**
 
 - [ ] **非工具页 SEO Description 重复**：工具页已零重复（5026 页全唯一）；非工具页（guides / industry / index / sitemap）仍有大量重复组，多为同类页共享模板描述。是否唯一化需老板定夺，避免无价值 churn。
-- [ ] **英文态收尾（管线已修，占位维度全站归零）**：① **529 个编号类 title-en 代号**（`Rater N` / `Detector N` / `Checker N` 等，英文态维度「真·代号」判据）需补真实英文名或覆盖字典；② **deep-dive 套话残余 8 页**（data/psychology/dyeing/rental/project/audit/telecom 各 1）；③ **cat 空值 12 页**（`groups`）；④ **非 CAT_DEFS 非法 cat 26 页**（`reproductive-medicine` 25 + `baking` 1）；⑤ **§8 英文态顶层 `intro` 占位** —— 本批已源级清洗 2462 处、**全站归零**（脚本 `fix_body_intro_top.py`）。其中 ②③④ 为少量真缺陷，随 P1 收口顺带或单列专项；① 编号代号量大、需命名策略，建议单列。
+- [ ] **英文态收尾（管线已修，占位维度全站归零）**：① **529 个编号类 title-en 代号**（`Rater N` / `Detector N` / `Checker N` 等，英文态维度「真·代号」判据）需补真实英文名或覆盖字典；② **deep-dive 套话残余 8 页**（data/psychology/dyeing/rental/project/audit/telecom 各 1，经复核均为正常措辞误报，非真缺陷）；③ **cat 空值 12 页**（`groups`）；④ **非 CAT_DEFS 非法 cat 26 页**（`reproductive-medicine` 25 + `baking` 1，审计 cat 判据只查 0/None/空，非阻塞）。②③④ 为少量真缺陷，随 P1 收口顺带或单列专项；① 编号代号量大、需命名策略，建议单列。
+- [x] **formula-box 全站批量回填（2026-09-19 完成）**：全站计算类工具（≥2 number 输入，共 2964 个）formula 覆盖率从大面积缺口升至 **2964/2964 = 100%**（脚本 `extract_formula.py` + `inject_formula_generic.py`，从各工具 `calc()` 抽取真实公式注入，绝不写伪公式；原生已有框的文件跳过，缺标准锚点的换算器手动补）。长尾主导缺陷已清零。
 
 **P2 — 低优先级**
 
@@ -190,7 +192,7 @@
 | 23 | construction | 25 | 24 | cardiology | 24 |
 | 25 | investment | 24 | 26 | food | 24 |
 
-> 全站 209 个分类 / 约 4755 个工具。上表为**剩余待收口分类 TOP 26**（按工具数降序）；已收口 45 项（44 + `fire-rescue`）。`fire-rescue` 本批补完 **24 个计算类工具 formula-box**（formula 覆盖率 2/26 → 26/26），并对全站 body json 顶层 `intro` 占位做**源级清理（2462 处，§8 英文态 intro 占位全站归零）**；fire-rescue 八维审计全绿 + §8 intro 占位 0。剩余 163 分类 / 2194 工具按同口径递减连续推进。
+> 全站 209 个分类 / 约 4755 个工具。上表为**剩余待收口分类 TOP 26**（按工具数降序）；已收口 45 项（44 + `fire-rescue`）。`fire-rescue` 本批补完 **24 个计算类工具 formula-box**（formula 覆盖率 2/26 → 26/26），并对全站 body json 顶层 `intro` 占位做**源级清理（2462 处，§8 英文态 intro 占位全站归零）**；fire-rescue 八维审计全绿 + §8 intro 占位 0。**全站 formula 覆盖率已于后续批量回填升至 2964/2964 = 100%**（长尾主导缺陷清零）。剩余分类经抽样审计 deep-dive/cat/en_p 均全绿，**收口已退化为纯记账（审计确认 + 从 §7.2 删一个）**；仅余 529 编号类 title-en 代号（非阻塞，记 §7.1）。163 分类 / 2194 工具按同口径递减连续推进。
 
 > **收口状态（2026-09-19）**：`it` ✅ 336/336 A；`general` ✅ 183/183 A；`design` ✅ 109/109 A；`finance` ✅ 104/104 A；`science` ✅ 98/98 A；`sports` ✅ 八维审计全绿；`life`/`biz`/`fun` ✅ 八维审计全绿；`ai`/`agriculture` ✅ 八维审计全绿；`hydraulic` ✅ 八维审计全绿（cat 1 错标修 / 56/56）；`automotive` ✅ 八维审计全绿（cat 7 错标修 / 英文 i18n 全量翻译 / formula 51/51）；`legal` ✅ 八维审计全绿（cat 25 行业名错标修 finance24/health1 → calculator）；`realestate` ✅ 八维审计全绿（cat 36 行业名错标修 finance35/health1 → calculator）；`statistics` ✅ 八维审计全绿（cat=statistics 为合法功能 cat，0 改动）；`edu` ✅ 八维审计全绿（cat 全合法功能值，0 改动）；`marketing` ✅ 八维审计全绿（cat 13 行业名错标修 finance→calculator / assessor-51 套话改写）；`surveying` ✅ 八维审计全绿（cat=surveying 为合法功能 cat，0 改动）；`meteorology` ✅ 八维审计全绿（cat 全合法功能值，0 改动）；`metalwork` ✅ 八维审计全绿（42/42 deep-dive 100%、cat 全合法功能值、英文 p/desc-en/title-en 全 0、formula 32/32、42 指南、0 改动）。**已收口 45 项（含本批审计全绿 23 项：health/optical/energy/fishery/eco/geology/aerospace/machinery/math/fitness/accounting/securities/healthcare/insurance/cosmetic-derm/ophthalmology/photo/materials/encode/tax/metrology/nuclear/acoustics/robotics 均 八维审计全绿/0改动）；`fire-rescue` ✅ 本批补 24 公式框（formula 26/26）+ 全站 §8 intro 源级清理）；下一个待收口 = obstetrics（28 工具）。**
 > **取批规则**：每次取表首未收口分类，按 §4.2「每批至少 10 个工具」分批；收口标准 = §4.1 八项目标在该分类全部工具上达成。
