@@ -86,6 +86,20 @@ const CASES = [
     ref: "标准 CRC-32/ISO-HDLC（多项式 0x04C11DB7）对 '123456789' 应为 CBF43926",
   },
 
+  // —— 数值计算类（纯公式，无日期/随机依赖，输出完全确定）——
+  {
+    slug: "it/bitwise-calculator",
+    inputs: { a: "12", b: "10", op: "AND" },
+    expect: ["0x8", "0b1000"],
+    ref: "12 & 10 = 8（二进制 1100 & 1010 = 1000）；页面输出 0x8 / 0b1000（parseNum 支持纯十进制 parseInt(s,10)）",
+  },
+  {
+    slug: "it/clamp-calculator",
+    inputs: { min: "10", pref: "20", max: "40", vwMin: "400", vwMax: "1000" },
+    expect: ["clamp(10px, 3vw + 8px, 40px)"],
+    ref: "页面算法：slope=(20-10)/(400/100)=2.5, slope2=(40-10)/(1000/100)=3.0, vw=max=3, rem=20-3*4=8 → clamp(10px, 3vw + 8px, 40px)（fmt=Math.round(n*100)/100，全整数无浮点歧义）",
+  },
+
   // —— 编码类（期望值由 python base64 / 自实现 base58 独立计算，非凭记忆）——
   {
     slug: "it/base32-encode",
