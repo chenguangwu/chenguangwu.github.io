@@ -50,8 +50,8 @@
 <script src="../../js/tool-i18n.js" defer></script>
 <!-- TOOLBOX-I18N-SCRIPT -->
 
-<meta name="title-en" content="KPI">
-<meta name="desc-en" content="KPI - online utility on ToolBox.">
+<meta name="title-en" content="Logistics On-Time &amp; Intact KPI">
+<meta name="desc-en" content="Logistics On-Time &amp; Intact KPI - on-time rate, intact rate and composite KPI.">
 <!-- TOOLBOX-HREFLANG -->
 <link rel="alternate" hreflang="zh-CN" href="https://chenguangwu.github.io/tools/logistics/stats-on-time.html">
 <link rel="alternate" hreflang="zh-TW" href="https://chenguangwu.github.io/zh-tw/tools/logistics/stats-on-time.html">
@@ -91,13 +91,14 @@
     <h2 data-zh="📊 KPI（准时/完好）统计">KPI</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="准时/完好">KPI - online utility on ToolBox.</p>
 <div class="formula-box">
-  <div class="formula-title">📐 工作原理与说明</div>
-  
+  <div class="formula-title">📐 计算原理</div>
+  <p class="formula-desc">输入物流总单量、准时送达单量与完好送达单量，自动计算准时率、完好率与综合 KPI，用于承运商考核。计算在浏览器本地完成。</p>
 </div>
 
-<label>输入数据（逗号或换行分隔）</label>
-<textarea id="data" rows="4" oninput="calc()" placeholder="例如: 10,20,30,40,50">10,20,30,40,50,60,70,80</textarea>
-<div class="toolbar"><button type="button" class="btn primary" onclick="calc()">统计分析</button><button type="button" class="btn" onclick="copyRes()">复制</button></div>
+<div class="input-row"><label>总单量</label><input type="number" id="total" value="1000" min="0" step="1" oninput="calc()"></div>
+<div class="input-row"><label>准时送达单量</label><input type="number" id="ontime" value="920" min="0" step="1" oninput="calc()"></div>
+<div class="input-row"><label>完好送达单量</label><input type="number" id="intact" value="970" min="0" step="1" oninput="calc()"></div>
+<div class="toolbar"><button type="button" class="btn primary" onclick="calc()">计算</button><button type="button" class="btn" onclick="copyResult()">复制</button></div>
 <div class="result-box" id="res"></div>
   </div>
 
@@ -145,7 +146,21 @@
 <!-- /注意事项区块 -->
 </div>
 <script>
-function calc(){const raw=document.getElementById("data").value.split(/[,\n\s]+/).map(s=>parseFloat(s.trim())).filter(v=>!isNaN(v));if(!raw.length){document.getElementById("res").innerHTML='<p>请输入数据</p>';return;}const n=raw.length,sum=raw.reduce((a,b)=>a+b,0),mean=sum/n;const sorted=[...raw].sort((a,b)=>a-b);const med=n%2?sorted[Math.floor(n/2)]:(sorted[n/2-1]+sorted[n/2])/2;const varr=raw.reduce((a,b)=>a+(b-mean)**2,0)/n;const std=Math.sqrt(varr);document.getElementById("res").innerHTML=`<p>数据量：<strong>${n}</strong></p><p>总和：<strong>${sum.toFixed(2)}</strong></p><p>平均值：<strong style="color:var(--primary);">${mean.toFixed(2)}</strong></p><p>中位数：<strong>${med.toFixed(2)}</strong></p><p>最小值：<strong>${sorted[0]}</strong></p><p>最大值：<strong>${sorted[n-1]}</strong></p><p>极差：<strong>${(sorted[n-1]-sorted[0]).toFixed(2)}</strong></p><p>方差：<strong>${varr.toFixed(2)}</strong></p><p>标准差：<strong>${std.toFixed(2)}</strong></p>`;}calc();function copyRes(){ToolBox.copyText(document.getElementById("res").innerText);}
+function fmt(n){return n.toLocaleString('zh-CN');}
+function calc(){
+  const total=parseFloat(document.getElementById("total").value);
+  const ontime=parseFloat(document.getElementById("ontime").value);
+  const intact=parseFloat(document.getElementById("intact").value);
+  if(!(total>0)){document.getElementById("res").innerHTML='<p>总单量需大于 0</p>';return;}
+  const onRate=ontime/total*100,inRate=intact/total*100,kpi=(onRate+inRate)/2;
+  document.getElementById("res").innerHTML=
+    `<p>准时率：<strong style="color:var(--primary);">${onRate.toFixed(2)}%</strong></p>`+
+    `<p>完好率：<strong style="color:var(--primary);">${inRate.toFixed(2)}%</strong></p>`+
+    `<p>综合 KPI（均值）：<strong>${kpi.toFixed(2)}%</strong></p>`+
+    `<p style="margin-top:8px;color:var(--text-muted);">准时 ${fmt(ontime)} · 完好 ${fmt(intact)} / 共 ${fmt(total)} 单</p>`;
+}
+calc();
+function copyResult(){ToolBox.copyText(document.getElementById("res").innerText);}
 </script>
 
 <!-- SEO 介绍区块 -->

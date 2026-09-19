@@ -50,8 +50,8 @@
 <script src="../../js/tool-i18n.js" defer></script>
 <!-- TOOLBOX-I18N-SCRIPT -->
 
-<meta name="title-en" content="Stats on Time Qualified">
-<meta name="desc-en" content="Stats on Time Qualified - online utility on ToolBox.">
+<meta name="title-en" content="On-Time &amp; Qualified Delivery Rate">
+<meta name="desc-en" content="On-Time &amp; Qualified Delivery Rate - supplier on-time rate, qualification rate and joint rate.">
 <!-- TOOLBOX-HREFLANG -->
 <link rel="alternate" hreflang="zh-CN" href="https://chenguangwu.github.io/tools/procurement/stats-on-time-qualified.html">
 <link rel="alternate" hreflang="zh-TW" href="https://chenguangwu.github.io/zh-tw/tools/procurement/stats-on-time-qualified.html">
@@ -92,16 +92,17 @@
 </div>
 <div class="container">
   <div class="card tool-card-accent" style="--tool-accent:#FF6B35;">
-    <h2 data-zh="📊 到货准时率与合格率统计">Stats on Time Qualified</h2>
+    <h2 data-zh="📊 到货准时率与合格率统计">On-Time and Qualified Delivery Rate</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="到货准时率与合格率统计在线工具">Stats on Time Qualified</p>
 <div class="formula-box">
-  <div class="formula-title">📐 工作原理与说明</div>
-  
+  <div class="formula-title">📐 计算原理</div>
+  <p class="formula-desc">输入采购总批次、准时到货批次与质量合格批次，自动计算准时率、合格率与准时且合格率（按独立假设估算），用于供应商绩效评估。计算在浏览器本地完成。</p>
 </div>
 
-<label>输入数据（逗号或换行分隔）</label>
-<textarea id="data" rows="4" oninput="calc()" placeholder="例如: 10,20,30,40,50">10,20,30,40,50,60,70,80</textarea>
-<div class="toolbar"><button type="button" class="btn primary" onclick="calc()">统计分析</button><button type="button" class="btn" onclick="copyRes()">复制</button></div>
+<div class="input-row"><label>总批次</label><input type="number" id="total" value="200" min="0" step="1" oninput="calc()"></div>
+<div class="input-row"><label>准时到货批次</label><input type="number" id="ontime" value="176" min="0" step="1" oninput="calc()"></div>
+<div class="input-row"><label>质量合格批次</label><input type="number" id="qualified" value="190" min="0" step="1" oninput="calc()"></div>
+<div class="toolbar"><button type="button" class="btn primary" onclick="calc()">计算</button><button type="button" class="btn" onclick="copyResult()">复制</button></div>
 <div class="result-box" id="res"></div>
   </div>
 
@@ -149,7 +150,21 @@
 <!-- /注意事项区块 -->
 </div>
 <script>
-function calc(){const raw=document.getElementById("data").value.split(/[,\n\s]+/).map(s=>parseFloat(s.trim())).filter(v=>!isNaN(v));if(!raw.length){document.getElementById("res").innerHTML='<p>请输入数据</p>';return;}const n=raw.length,sum=raw.reduce((a,b)=>a+b,0),mean=sum/n;const sorted=[...raw].sort((a,b)=>a-b);const med=n%2?sorted[Math.floor(n/2)]:(sorted[n/2-1]+sorted[n/2])/2;const varr=raw.reduce((a,b)=>a+(b-mean)**2,0)/n;const std=Math.sqrt(varr);document.getElementById("res").innerHTML=`<p>数据量：<strong>${n}</strong></p><p>总和：<strong>${sum.toFixed(2)}</strong></p><p>平均值：<strong style="color:var(--primary);">${mean.toFixed(2)}</strong></p><p>中位数：<strong>${med.toFixed(2)}</strong></p><p>最小值：<strong>${sorted[0]}</strong></p><p>最大值：<strong>${sorted[n-1]}</strong></p><p>极差：<strong>${(sorted[n-1]-sorted[0]).toFixed(2)}</strong></p><p>方差：<strong>${varr.toFixed(2)}</strong></p><p>标准差：<strong>${std.toFixed(2)}</strong></p>`;}calc();function copyRes(){ToolBox.copyText(document.getElementById("res").innerText);}
+function fmt(n){return n.toLocaleString('zh-CN');}
+function calc(){
+  const total=parseFloat(document.getElementById("total").value);
+  const ontime=parseFloat(document.getElementById("ontime").value);
+  const qualified=parseFloat(document.getElementById("qualified").value);
+  if(!(total>0)){document.getElementById("res").innerHTML='<p>总批次需大于 0</p>';return;}
+  const onRate=ontime/total*100,qRate=qualified/total*100,both=ontime*qualified/total/total*100;
+  document.getElementById("res").innerHTML=
+    `<p>准时到货率：<strong style="color:var(--primary);">${onRate.toFixed(2)}%</strong></p>`+
+    `<p>质量合格率：<strong style="color:var(--primary);">${qRate.toFixed(2)}%</strong></p>`+
+    `<p>准时且合格（独立估算）：<strong>${both.toFixed(2)}%</strong></p>`+
+    `<p style="margin-top:8px;color:var(--text-muted);">准时 ${fmt(ontime)} · 合格 ${fmt(qualified)} / 共 ${fmt(total)} 批</p>`;
+}
+calc();
+function copyResult(){ToolBox.copyText(document.getElementById("res").innerText);}
 </script>
 
 <!-- SEO 介绍区块 -->

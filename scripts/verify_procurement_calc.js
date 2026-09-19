@@ -67,12 +67,16 @@ const CASES = [
 {
   "slug": "procurement/stats-on-time-qualified",
   "inputs": {
-    "data": "10,20,30,40,50,60,70,80_X"
+    "total": "300",
+    "ontime": "255",
+    "qualified": "270"
   },
   "expect": [
-    "80_X"
+    "85.00",
+    "90.00",
+    "76.50"
   ],
-  "ref": "auto-restore"
+  "ref": "到货准时合格：总300/准时255/合格270 → 准时率85.00%、合格率90.00%、准时且合格(255×270/300²)76.50%（独立复算，非默认输入）"
 },
 {
   "slug": "procurement/supplier-score",

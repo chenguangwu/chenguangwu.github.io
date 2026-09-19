@@ -172,12 +172,16 @@ const CASES = [
 {
   "slug": "logistics/stats-on-time",
   "inputs": {
-    "data": "10,20,30,40,50,60,70,80_X"
+    "total": "500",
+    "ontime": "450",
+    "intact": "480"
   },
   "expect": [
-    "80_X"
+    "90.00",
+    "96.00",
+    "93.00"
   ],
-  "ref": "auto-restore"
+  "ref": "KPI：总500/准时450/完好480 → 准时率90.00%、完好率96.00%、综合KPI93.00%（独立复算，非默认输入）"
 }
 ];
 async function main() {

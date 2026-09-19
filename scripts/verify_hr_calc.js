@@ -202,12 +202,16 @@ const CASES = [
 {
   "slug": "hr/stats-funnel-recruit",
   "inputs": {
-    "data": "2,4,6,8,10"
+    "resume": "1000",
+    "interview": "300",
+    "offer": "90",
+    "hire": "60"
   },
   "expect": [
-    "2.83"
+    "30.00",
+    "6.00"
   ],
-  "ref": "同分析模板：标准差 √8=2.83（原用例 expect 命中 textarea.value 回显）"
+  "ref": "招聘漏斗：简历1000→面试300→offer90→入职60；面试转化300/1000=30.00%、整体60/1000=6.00%（独立复算，非默认输入）"
 },
   // 注：hr/stats-report-attendance 已于 2026-09-19 改为 TOOLBOX-REDIRECT 存根（重定向到同义真工具），不再是工具页，用例移除。
 {
