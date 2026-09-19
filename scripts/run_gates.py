@@ -128,6 +128,10 @@ GATES = (
     ("clinical-lab calc correctness", ("node", "scripts/verify_clinical-lab_calc.js")),
     ("pediatrics calc correctness", ("node", "scripts/verify_pediatrics_calc.js")),
     ("psychiatry calc correctness", ("node", "scripts/verify_psychiatry_calc.js")),
+    # 心理/临床量表页增强（psych-kit.js）行为验证：进度条、高危热线、未答确认、分级徽章、
+    # 娱乐标识、纯前端自检。覆盖 18 个 span 答题页（PHQ-9/GAD-7/CAGE 等）的真实计分与增强行为，
+    # 弥补 harness 无法注入 span 选项的缺口（DEV-PLAN §九 缺陷 G 闭环）。
+    ("psych-kit behavior (jsdom)", ("node", "scripts/verify_psych_kit.cjs")),
     ("rheumatology calc correctness", ("node", "scripts/verify_rheumatology_calc.js")),
     ("urology calc correctness", ("node", "scripts/verify_urology_calc.js")),
     ("electronics calc correctness", ("node", "scripts/verify_electronics_calc.js")),
