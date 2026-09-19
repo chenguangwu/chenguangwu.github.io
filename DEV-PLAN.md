@@ -172,22 +172,19 @@
 
 | # | 分类 | 工具数 | # | 分类 | 工具数 |
 |---|---|---|---|---|---|
-| 1 | it | 338 | 11 | agriculture | 63 |
-| 2 | general | 183 | 12 | hydraulic | 56 |
-| 3 | design | 111 | 13 | automotive | 55 |
-| 4 | finance | 104 | 14 | legal | 54 |
-| 5 | science | 98 | 15 | realestate | 54 |
-| 6 | sports | 78 | 16 | statistics | 51 |
-| 7 | life | 73 | 17 | edu | 49 |
-| 8 | biz | 69 | 18 | marketing | 46 |
-| 9 | fun | 65 | 19 | surveying | 44 |
-| 10 | ai | 64 | 20 | meteorology | 42 |
+| 1 | design | 111 | 10 | hydraulic | 56 |
+| 2 | finance | 104 | 11 | automotive | 55 |
+| 3 | science | 98 | 12 | legal | 54 |
+| 4 | sports | 78 | 13 | realestate | 54 |
+| 5 | life | 73 | 14 | statistics | 51 |
+| 6 | biz | 69 | 15 | edu | 49 |
+| 7 | fun | 65 | 16 | marketing | 46 |
+| 8 | ai | 64 | 17 | surveying | 44 |
+| 9 | agriculture | 63 | 18 | meteorology | 42 |
 
-> 全站 209 个分类 / 4794 个工具；上表为 Top 20，其余按同口径递减。
+> 全站 209 个分类 / 4794 个工具。上表为**剩余待收口分类**（按工具数降序）；已收口的 `it`（336）、`general`（183）两项已按「完成一个删一个」移除，其余分类按同口径递减。
 
-> **it 收口进度（2026-09-19 起）✅ 已完成**：① 修 cat 误标 4 个（calc-3/calc-4→convert、calc-subnet/exponential-distribution→calculator，三处同写）；② `convert-11`（IP 转换）填空壳 formula-box → 升 A；③ `analysis-manager-1`/`analysis-66` 为 9 项描述统计垃圾占位页，重定向至 `science/statistics-calculator.html`（真·A 级、覆盖全 9 项统计）并按 Defect I 范式删 json 条目 + 清理关联死链；④ `barcode-codabar`（Codabar 条形码）发现尾部双重渲染转义损坏 + 核心 `generate()` 函数缺失 + `buildCodabar` 被注入垃圾，已重建生成逻辑（canvas 真实绘图，独立复算正确）→ 升 A。**结论：it 行业 336 工具全部 A 级，收口完成。**
-> **general 收口进度（2026-09-19 起）**：现状 **179A / 4B**。已按 §九 缺陷 I「重做优先于下架」处置 5 个通用统计占位页 —— `analysis-21`(NDVI) / `calc-stats-1`(正态·泊松·二项) / `analysis-43`(单方·平米·延米指标) / `analysis-44`(投资偏差) / `stats-energy`(能耗统计) 全部**照标题目标功能重做为真工具**（非重定向）：NDVI 计算+分级、三分布 PDF/CDF、工程量单价指标、偏差率+CPI 纠偏、分项占比+最小二乘预测；同步修 `analysis-43` cat `health→calculator`（三处同写）、重写 5 页 deep-dive / 英文 meta / i18n 四处、并同步 `verify_general_calc.js` 中 calc-stats-1 的失效断言。**剩余 4 个 B 级**（`convert-22` / `convert-21` / `convert-content` / `liangshuzhihe-chengjizuida-zuixiao-shuxueti`）待补 own_len≥800 或内容。
-
+> **收口状态（2026-09-19）**：`it` ✅ 336/336 A；`general` ✅ 183/183 A（含 §九 缺陷 I「重做」路线 9 页 + `convert-21`/`convert-22`/`convert-content`/`liangshuzhihe-chengjizuida-zuixiao-shuxueti` 4 页 B→A）。**下一个待收口分类 = `design`（111 工具）。**
 > **取批规则**：每次取表首未收口分类，按 §4.2「每批至少 10 个工具」分批；收口标准 = §4.1 八项目标在该分类全部工具上达成。
 
 > **A 项权威口径（务必遵守）**：
@@ -242,6 +239,7 @@
 - **非确定性输入一律种子化**：禁用 `Math.random` / `Date.now` 当输入（harness 已注入 `FrozenDate` 冻结基准日 + `mulberry32` 确定性 PRNG；但新增用例仍不得断言绝对日期或随机命中串）。
 - **清理「已完成」标记须同时 grep 全部变体**：`✅` 归档块 + `- [x]` 勾选 + `~~` 删除线，只认一种必漏。
 - **同一文件的多处修改必须串行 Edit**：并行发多条 Edit 会出现写回竞态（工具仍报 "Successfully edited"，实际被旧快照覆盖）。改完必须 `grep` 复核关键行。
+- **`json/related-tools-curated.json` 的每条引用必须做存在性校验**：构建对策划表中指向不存在工具的条目**只打 `WARN` 并静默丢弃该卡片**（页面少一张卡、不报错、门禁也不拦）。改名 / 迁移 / 重定向页面后必须重跑校验：`python3 -c "import json,os;d=json.load(open('json/related-tools-curated.json',encoding='utf-8'));print([(k,t) for k,v in d.items() if k!='_comment' for t in v if not os.path.exists('tools/'+t)])"`（当前 20 条策划全绿）。该文件格式为 `indent=1` **无尾换行**，改它禁止整体重排。
 
 ---
 
@@ -256,8 +254,7 @@
 - **缺陷 G（已闭环，2026-09-19）** `psychiatry/` 18 个量表页（aq-autism/asrs-adhd/bis11-impulse/cage-substance/cdrisc-resilience/cssrs-suicide/eat26-eating/gad7-anxiety/isi-insomnia/les-stress/lsas-social/mdq-bipolar/panss-schizophrenia/pcl5-ptsd/pdss-panic/phq15-somatization/phq9-depression/ybocs-ocd）：选项为 `<span onclick="pick(i,j)">` + 内存数组，**harness 无法注入输入**（结构性 `no_inputs`）。**判定**：页面已由 `js/psych-kit.js` 统一增强（进度条 / 高危热线横幅 / 未答确认 / 分级色徽章 / 本地暂存 / 复制存图 / 娱乐标识），UX 完整、**非用户可感知硬伤**；真实计分与增强行为已被 `scripts/verify_psych_kit.cjs`（jsdom 真实点击）覆盖，本地 32 项全过；该测试已接入 `run_gates.py` 门禁（新增 `psych-kit behavior (jsdom)` 项，根 `package.json` 加 `jsdom@^30` devDependency）。**原「改 radio 读 DOM」方案废弃**（会破坏 psych-kit 的 `readAnswers` 与现有 jsdom 测试，且收益已被 jsdom 行为测试覆盖）。`verify_psychiatry_calc.js` 中 18 页的 `no_inputs` 占位断言保留为结构性标记，无害。
 
 - **缺陷 I（规模最大）「通用统计模板」占位页 —— 全站普查共 159 页**（原 F/H 为其中的零散发现，已合并）。判据：整页只有一个 `<textarea id="data">` + `calc()` 输出九项描述统计（样本数/总和/平均值/中位数/最小/最大/极差/方差/标准差）。**实测 159 页的 `calc()` 去空白后逐字相同**（同一份模板），散布在 **69 个行业分类**，标题宣称血气代偿判断 / 电泳区带分析 / 精液分析 / 竞品份额 / 焊接缺陷 / 冶金热力学 / 潮汐调和 / 方剂君臣佐使… 却全部只做描述统计 —— 名不符实。另有 3 页（`science/statistics-calculator`、`geology/dizhishujutongji`、`stats/data-distribution`）标题即统计，属正常，**不计入**。
-  - **第一批已处置（24 页，2026-09-19）**：目录内**已存在同义真工具**的占位页，改用项目已有的 `TOOLBOX-REDIRECT` 存根机制重定向到真工具（保留旧 URL 不 404、`noindex` + `canonical` 指向真工具 → 消除重复内容、把权重传给真工具；构建/门禁/SEO 审计全链路自动跳过存根）。24 页映射已逐条校验「源为占位页 + 目标为真工具」。
-  - **第二批已处置（5 页，2026-09-19，general 行业）**：`analysis-21`/`calc-stats-1`/`analysis-43`/`analysis-44`/`stats-energy` 目录内无同义真工具，按**「重做」路线**照标题目标功能重写为真工具（NDVI 计算 / 三分布 PDF·CDF / 工程量单价指标 / 投资偏差·CPI / 能耗占比·趋势预测），保留原 URL 与文件名。结论：**「重做」路线可行且优于下架**（占位页直接变 A 级真工具）。
+  - **处置口径（已固化，两条路线）**：① 目录内**已存在同义真工具** → 用 `TOOLBOX-REDIRECT` 存根重定向（保留旧 URL 不 404，`noindex` + `canonical` 指向真工具，构建/门禁/SEO 审计全链路自动跳过存根）；② 目录内**无**同义真工具 → 按**「重做」路线**照标题目标功能重写为真工具（保留原 URL 与文件名）。**重做优先于下架**（下架会让已收录 URL 变 404、损失索引资产）。已按此处置 **29 页**（24 重定向 + 5 重做）。
   - **剩余 130 页待处置**，分两类：① **目录内无同义真工具（约 118 页）** → 按标题**重做**为真实工具（保留 URL = 保留 SEO 资产）；② **占位页互指组（约 12 页，如 `advertising/analysis-27`↔`55`、`welding/analysis-37`↔`38`、`life/analysis-cost-9`↔`10`）** → 无法重定向，只能重做或下架。
   - **推荐**：**重做优先于下架**（下架会让已收录 URL 变 404、损失索引资产；重做则把占位页变成真工具，直接提升 A 级率）。按分类分批，每批走完整门禁。
 
