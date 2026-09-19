@@ -50,8 +50,8 @@
 <script src="../../js/tool-i18n.js" defer></script>
 <!-- TOOLBOX-I18N-SCRIPT -->
 
-<meta name="title-en" content="Cost">
-<meta name="desc-en" content="Cost - online utility on ToolBox.">
+<meta name="title-en" content="Cost-Volume-Profit / Break-even Calculator">
+<meta name="desc-en" content="Compute unit contribution margin, contribution margin ratio, break-even volume and break-even sales from fixed cost, variable cost and price.">
 <!-- TOOLBOX-HREFLANG -->
 <link rel="alternate" hreflang="zh-CN" href="https://chenguangwu.github.io/tools/ecommerce/analysis-cost-8.html">
 <link rel="alternate" hreflang="zh-TW" href="https://chenguangwu.github.io/zh-tw/tools/ecommerce/analysis-cost-8.html">
@@ -95,13 +95,20 @@
     <h2 data-zh="💰 成本（控制/优化/效益）分析">Cost</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="控制/优化/效益">Cost - online utility on ToolBox.</p>
 <div class="formula-box">
-  <div class="formula-title">📐 工作原理与说明</div>
-  
+  <div class="formula-title">📐 计算公式</div>
+  <div class="formula-eq">保本销量 = 固定成本 ÷ (单价 − 单位变动成本)；单位边际贡献 = 单价 − 单位变动成本</div>
+  <p class="formula-desc">本量利（CVP）测算：输入固定成本、单位变动成本与单价，计算单位边际贡献、保本销量与保本销售额，辅助定价与成本控制。</p>
 </div>
 
-<label>输入数据（逗号或换行分隔）</label>
-<textarea id="data" rows="4" oninput="calc()" placeholder="例如: 10,20,30,40,50">10,20,30,40,50,60,70,80</textarea>
-<div class="toolbar"><button type="button" class="btn primary" onclick="calc()">统计分析</button><button type="button" class="btn" onclick="copyRes()">复制</button></div>
+<div class="input-row">
+  <div><label>固定成本（元）</label><input type="number" id="fc" value="100000" oninput="calc()" step="any" min="0"></div>
+  <div><label>单位变动成本（元）</label><input type="number" id="vc" value="30" oninput="calc()" step="any" min="0"></div>
+</div>
+<div class="input-row">
+  <div><label>单价（元）</label><input type="number" id="price" value="50" oninput="calc()" step="any" min="0"></div>
+  <div></div>
+</div>
+<div class="toolbar"><button type="button" class="btn primary" onclick="calc()">测算保本</button><button type="button" class="btn" onclick="copyResult()">复制结果</button><button type="button" class="btn" onclick="resetForm()">重置</button></div>
 <div class="result-box" id="res"></div>
   </div>
 
@@ -150,7 +157,30 @@
 <!-- /注意事项区块 -->
 </div>
 <script>
-function calc(){const raw=document.getElementById("data").value.split(/[,\n\s]+/).map(s=>parseFloat(s.trim())).filter(v=>!isNaN(v));if(!raw.length){document.getElementById("res").innerHTML='<p>请输入数据</p>';return;}const n=raw.length,sum=raw.reduce((a,b)=>a+b,0),mean=sum/n;const sorted=[...raw].sort((a,b)=>a-b);const med=n%2?sorted[Math.floor(n/2)]:(sorted[n/2-1]+sorted[n/2])/2;const varr=raw.reduce((a,b)=>a+(b-mean)**2,0)/n;const std=Math.sqrt(varr);document.getElementById("res").innerHTML=`<p>数据量：<strong>${n}</strong></p><p>总和：<strong>${sum.toFixed(2)}</strong></p><p>平均值：<strong style="color:var(--primary);">${mean.toFixed(2)}</strong></p><p>中位数：<strong>${med.toFixed(2)}</strong></p><p>最小值：<strong>${sorted[0]}</strong></p><p>最大值：<strong>${sorted[n-1]}</strong></p><p>极差：<strong>${(sorted[n-1]-sorted[0]).toFixed(2)}</strong></p><p>方差：<strong>${varr.toFixed(2)}</strong></p><p>标准差：<strong>${std.toFixed(2)}</strong></p>`;}calc();function copyRes(){ToolBox.copyText(document.getElementById("res").innerText);}
+function fmt(n,d){d=d==null?2:d;return ToolBox.formatNumber(n,d);}
+function calc(){
+  var fc=parseFloat(document.getElementById('fc').value);
+  var vc=parseFloat(document.getElementById('vc').value);
+  var price=parseFloat(document.getElementById('price').value);
+  if(isNaN(fc)||isNaN(vc)||isNaN(price)||fc<0){document.getElementById('res').innerHTML='<p>请输入有效的固定成本、变动成本与单价</p>';return;}
+  var cm=price-vc;
+  var html='<p>单位边际贡献：<strong style="color:var(--primary);">'+fmt(cm,2)+' 元</strong></p>';
+  if(cm<=0){
+    html+='<p style="color:var(--danger);">单价 ≤ 单位变动成本，任何销量均亏损，无保本点。</p>';
+  }else{
+    var cmr=cm/price*100;
+    var beQ=fc/cm;
+    var beS=beQ*price;
+    html+='<p>边际贡献率：<strong>'+fmt(cmr,2)+'%</strong></p>'+
+      '<p>保本销量：<strong style="color:var(--success);">'+fmt(beQ,0)+' 件</strong></p>'+
+      '<p>保本销售额：<strong>'+fmt(beS,2)+' 元</strong></p>';
+  }
+  html+='<p style="font-size:12px;color:var(--text-muted);margin-top:8px;">注：未计税费与多产品组合；结果仅供参考，以实际财务核算为准。</p>';
+  document.getElementById('res').innerHTML=html;
+}
+function resetForm(){document.getElementById('fc').value=100000;document.getElementById('vc').value=30;document.getElementById('price').value=50;calc();}
+function copyResult(){ToolBox.copyText(document.getElementById('res').innerText);}
+calc();
 </script>
 
 <!-- SEO 介绍区块 -->

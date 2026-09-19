@@ -50,8 +50,8 @@
 <script src="../../js/tool-i18n.js" defer></script>
 <!-- TOOLBOX-I18N-SCRIPT -->
 
-<meta name="title-en" content="Analysis 24">
-<meta name="desc-en" content="Analysis 24 - online utility on ToolBox.">
+<meta name="title-en" content="Property Value Projection (Appreciation/Depreciation)">
+<meta name="desc-en" content="Project future property value and cumulative gain/loss from current price, annual rate and holding years.">
 <!-- TOOLBOX-HREFLANG -->
 <link rel="alternate" hreflang="zh-CN" href="https://chenguangwu.github.io/tools/realestate/analysis-24.html">
 <link rel="alternate" hreflang="zh-TW" href="https://chenguangwu.github.io/zh-tw/tools/realestate/analysis-24.html">
@@ -95,13 +95,20 @@
     <h2 data-zh="📉 预期（增值/贬值）分析">📉 Property Value Trend Analyzer</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="增值/贬值">Estimate expected appreciation or depreciation of a property from location, price and surrounding factors, generating a comparison checklist to support decisions.</p>
 <div class="formula-box">
-  <div class="formula-title">📐 工作原理与说明</div>
-  
+  <div class="formula-title">📐 计算公式</div>
+  <div class="formula-eq">未来价值 = 当前总价 × (1 + 年涨跌幅%)^持有年数</div>
+  <p class="formula-desc">输入房产当前总价、预期年化涨跌幅（负值表示贬值）与持有年数，测算未来价值与累计增减额，辅助持有/出售决策。</p>
 </div>
 
-<label>输入数据（逗号或换行分隔）</label>
-<textarea id="data" rows="4" oninput="calc()" placeholder="例如: 10,20,30,40,50">10,20,30,40,50,60,70,80</textarea>
-<div class="toolbar"><button type="button" class="btn primary" onclick="calc()">统计分析</button><button type="button" class="btn" onclick="copyRes()">复制</button></div>
+<div class="input-row">
+  <div><label>当前总价（万元）</label><input type="number" id="price" value="500" oninput="calc()" step="any" min="0"></div>
+  <div><label>预期年涨跌幅（%，可负）</label><input type="number" id="rate" value="3" oninput="calc()" step="any"></div>
+</div>
+<div class="input-row">
+  <div><label>持有年数</label><input type="number" id="years" value="5" oninput="calc()" step="any" min="0"></div>
+  <div></div>
+</div>
+<div class="toolbar"><button type="button" class="btn primary" onclick="calc()">测算价值</button><button type="button" class="btn" onclick="copyResult()">复制结果</button><button type="button" class="btn" onclick="resetForm()">重置</button></div>
 <div class="result-box" id="res"></div>
   </div>
 
@@ -150,7 +157,26 @@
 <!-- /注意事项区块 -->
 </div>
 <script>
-function calc(){const raw=document.getElementById("data").value.split(/[,\n\s]+/).map(s=>parseFloat(s.trim())).filter(v=>!isNaN(v));if(!raw.length){document.getElementById("res").innerHTML='<p>请输入数据</p>';return;}const n=raw.length,sum=raw.reduce((a,b)=>a+b,0),mean=sum/n;const sorted=[...raw].sort((a,b)=>a-b);const med=n%2?sorted[Math.floor(n/2)]:(sorted[n/2-1]+sorted[n/2])/2;const varr=raw.reduce((a,b)=>a+(b-mean)**2,0)/n;const std=Math.sqrt(varr);document.getElementById("res").innerHTML=`<p>数据量：<strong>${n}</strong></p><p>总和：<strong>${sum.toFixed(2)}</strong></p><p>平均值：<strong style="color:var(--primary);">${mean.toFixed(2)}</strong></p><p>中位数：<strong>${med.toFixed(2)}</strong></p><p>最小值：<strong>${sorted[0]}</strong></p><p>最大值：<strong>${sorted[n-1]}</strong></p><p>极差：<strong>${(sorted[n-1]-sorted[0]).toFixed(2)}</strong></p><p>方差：<strong>${varr.toFixed(2)}</strong></p><p>标准差：<strong>${std.toFixed(2)}</strong></p>`;}calc();function copyRes(){ToolBox.copyText(document.getElementById("res").innerText);}
+function fmt(n,d){d=d==null?2:d;return ToolBox.formatNumber(n,d);}
+function calc(){
+  var p=parseFloat(document.getElementById('price').value);
+  var r=parseFloat(document.getElementById('rate').value);
+  var y=parseFloat(document.getElementById('years').value);
+  if(isNaN(p)||p<=0){document.getElementById('res').innerHTML='<p>请输入有效的当前总价</p>';return;}
+  r=isNaN(r)?0:r;y=isNaN(y)?0:y;
+  var factor=Math.pow(1+r/100,y);
+  var future=p*factor;
+  var diff=future-p;
+  var total=(factor-1)*100;
+  var up=diff>=0;
+  document.getElementById('res').innerHTML=
+    '<p>未来价值（'+fmt(y,0)+' 年后）：<strong style="color:'+(up?'var(--success)':'var(--danger)')+';">'+fmt(future,2)+' 万元</strong></p>'+
+    '<p>累计'+(up?'增值':'贬值')+'：<strong style="color:'+(up?'var(--success)':'var(--danger)')+';">'+fmt(diff,2)+' 万元</strong>（'+fmt(total,2)+'%）</p>'+
+    '<p style="font-size:12px;color:var(--text-muted);margin-top:8px;">注：按固定年化率复利测算，未计税费、持有成本与市场波动；实际房产价值受地段、政策等多因素影响。</p>';
+}
+function resetForm(){document.getElementById('price').value=500;document.getElementById('rate').value=3;document.getElementById('years').value=5;calc();}
+function copyResult(){ToolBox.copyText(document.getElementById('res').innerText);}
+calc();
 </script>
 
 <!-- SEO 介绍区块 -->
