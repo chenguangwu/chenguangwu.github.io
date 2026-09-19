@@ -208,12 +208,16 @@ const CASES = [
 {
   "slug": "metallurgy/stats-10",
   "inputs": {
-    "data": "50,60,70,80,90,100"
+    "charge": "150",
+    "billet": "138",
+    "product": "130.5"
   },
   "expect": [
-    "291.67"
+    "92.00",
+    "94.57",
+    "19.50"
   ],
-  "ref": "de-default: 均值75、方差1750/6=291.67（原 expect \"80_X\" 为 textarea.value 回显）"
+  "ref": "金属收得与成材：收得率=138/150=92.00%，成材率=130.5/138=94.57%，金属总损耗=150−130.5=19.50 t（独立复算，非页面默认值）"
 },
 {
   "slug": "metallurgy/calc-time-solid",

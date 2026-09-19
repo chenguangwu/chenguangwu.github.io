@@ -50,8 +50,8 @@
 <script src="../../js/tool-i18n.js" defer></script>
 <!-- TOOLBOX-I18N-SCRIPT -->
 
-<meta name="title-en" content="Stats Manager">
-<meta name="desc-en" content="Stats Manager - online utility on ToolBox.">
+<meta name="title-en" content="Parking Space Management and Revenue Statistics">
+<meta name="desc-en" content="Parking Space Management and Revenue Statistics - monthly pass occupancy, turnover rate, occupancy rate and projected monthly income.">
 <!-- TOOLBOX-HREFLANG -->
 <link rel="alternate" hreflang="zh-CN" href="https://chenguangwu.github.io/tools/property/stats-manager.html">
 <link rel="alternate" hreflang="zh-TW" href="https://chenguangwu.github.io/zh-tw/tools/property/stats-manager.html">
@@ -92,16 +92,22 @@
 </div>
 <div class="container">
   <div class="card tool-card-accent" style="--tool-accent:#FF6B35;">
-    <h2 data-zh="📊 停车（位管理/收费）统计">Stats Manager</h2>
+    <h2 data-zh="📊 停车（位管理/收费）统计">Parking Space Management and Revenue Statistics</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="位管理/收费">Stats Manager</p>
 <div class="formula-box">
-  <div class="formula-title">📐 工作原理与说明</div>
-  
+  <div class="formula-title">📐 计算公式</div>
+  <div class="formula-eq">临停位周转率 = 当日临停车次 ÷ 临停车位</div>
+  <div class="formula-eq">预计月收入 = 临停车次 × 时长 × 单价 × 30 + 包月车位 × 月租</div>
+  <p class="formula-desc" data-zh="按车场总车位、包月占用与临停数据，算出临停周转率、日均在场车辆数、车位占用率与月度收入构成，用于物业月报与收支公示。平均在场车数按「临停车次 × 平均停放时长 ÷ 24」估算。数据仅在浏览器本地处理，不会上传。">按车场总车位、包月占用与临停数据，算出临停周转率、日均在拥车辆数、车位占用率与月度收入构成，用于物业月报与收支公示。平均在场车数按「临停车次 × 平均停放时长 ÷ 24」估算。所有数据仅在浏览器本地处理，不上传。</p>
 </div>
 
-<label>输入数据（逗号或换行分隔）</label>
-<textarea id="data" rows="4" oninput="calc()" placeholder="例如: 10,20,30,40,50">10,20,30,40,50,60,70,80</textarea>
-<div class="toolbar"><button type="button" class="btn primary" onclick="calc()">统计分析</button><button type="button" class="btn" onclick="copyRes()">复制</button></div>
+<div class="input-row"><label for="tot">总车位数（个）</label><input id="tot" type="number" value="260" step="1" min="1" oninput="calc()"></div>
+<div class="input-row"><label for="rent_cnt">包月车位数（个）</label><input id="rent_cnt" type="number" value="180" step="1" min="0" oninput="calc()"></div>
+<div class="input-row"><label for="visits">当日临停车次（次）</label><input id="visits" type="number" value="320" step="1" min="0" oninput="calc()"></div>
+<div class="input-row"><label for="dur">平均停放时长（h）</label><input id="dur" type="number" value="2.5" step="0.1" min="0" oninput="calc()"></div>
+<div class="input-row"><label for="price">临停单价（元/h）</label><input id="price" type="number" value="5" step="0.5" min="0" oninput="calc()"></div>
+<div class="input-row"><label for="rent_fee">包月单价（元/月）</label><input id="rent_fee" type="number" value="350" step="10" min="0" oninput="calc()"></div>
+<div class="toolbar"><button type="button" class="btn primary" onclick="calc()">统计</button><button type="button" class="btn" onclick="copyResult()">复制</button></div>
 <div class="result-box" id="res"></div>
   </div>
 
@@ -150,7 +156,37 @@
 <!-- /注意事项区块 -->
 </div>
 <script>
-function calc(){const raw=document.getElementById("data").value.split(/[,\n\s]+/).map(s=>parseFloat(s.trim())).filter(v=>!isNaN(v));if(!raw.length){document.getElementById("res").innerHTML='<p>请输入数据</p>';return;}const n=raw.length,sum=raw.reduce((a,b)=>a+b,0),mean=sum/n;const sorted=[...raw].sort((a,b)=>a-b);const med=n%2?sorted[Math.floor(n/2)]:(sorted[n/2-1]+sorted[n/2])/2;const varr=raw.reduce((a,b)=>a+(b-mean)**2,0)/n;const std=Math.sqrt(varr);document.getElementById("res").innerHTML=`<p>数据量：<strong>${n}</strong></p><p>总和：<strong>${sum.toFixed(2)}</strong></p><p>平均值：<strong style="color:var(--primary);">${mean.toFixed(2)}</strong></p><p>中位数：<strong>${med.toFixed(2)}</strong></p><p>最小值：<strong>${sorted[0]}</strong></p><p>最大值：<strong>${sorted[n-1]}</strong></p><p>极差：<strong>${(sorted[n-1]-sorted[0]).toFixed(2)}</strong></p><p>方差：<strong>${varr.toFixed(2)}</strong></p><p>标准差：<strong>${std.toFixed(2)}</strong></p>`;}calc();function copyRes(){ToolBox.copyText(document.getElementById("res").innerText);}
+function fmt(n,d){d=d==null?2:d;return Number(n).toLocaleString('zh-CN',{minimumFractionDigits:d,maximumFractionDigits:d});}
+function calc(){
+  const res=document.getElementById("res");
+  const tot=parseFloat(document.getElementById("tot").value);
+  const rc=parseFloat(document.getElementById("rent_cnt").value)||0;
+  const vs=parseFloat(document.getElementById("visits").value)||0;
+  const du=parseFloat(document.getElementById("dur").value)||0;
+  const pr=parseFloat(document.getElementById("price").value)||0;
+  const fee=parseFloat(document.getElementById("rent_fee").value)||0;
+  if(!(tot>0)){res.innerHTML='<p>请填写总车位数（需大于 0）</p>';return;}
+  if(rc>tot){res.innerHTML='<p>包月车位数（'+fmt(rc,0)+'）超过总车位数（'+fmt(tot,0)+'），请核对录入</p>';return;}
+  const tmpSpace=tot-rc;
+  const turn=tmpSpace>0?vs/tmpSpace:0;
+  const onsite=vs*du/24;
+  const occ=(rc+onsite)/tot*100;
+  const dayIncome=vs*du*pr;
+  const monTmp=dayIncome*30;
+  const monRent=rc*fee;
+  const monTotal=monTmp+monRent;
+  const perSpace=monTotal/tot;
+  let html='<p>总车位：<strong>'+fmt(tot,0)+'</strong> 个　其中包月 <strong>'+fmt(rc,0)+'</strong>、临停可用 <strong>'+fmt(tmpSpace,0)+'</strong> 个</p>';
+  html+='<p><span style="color:var(--primary);">临停位周转率：<strong>'+fmt(turn)+'</strong> 次/位·日</span></p>';
+  html+='<p>日均临停：<strong>'+fmt(vs,0)+'</strong> 车次　平均在场：<strong>'+fmt(onsite)+'</strong> 辆</p>';
+  html+='<p>车位占用率：<strong>'+fmt(occ)+'%</strong></p><hr>';
+  html+='<p>临停日均收入：<strong>'+fmt(dayIncome)+'</strong> 元（'+fmt(pr)+' 元/时）</p>';
+  html+='<p>预计月临停收入：<strong>'+fmt(monTmp)+'</strong> 元　月租金收入：<strong>'+fmt(monRent)+'</strong> 元</p>';
+  html+='<p><span style="color:var(--primary);">预计月总收入：<strong>'+fmt(monTotal)+'</strong> 元</span></p>';
+  html+='<p>单个车位月均产出：<strong>'+fmt(perSpace)+'</strong> 元</p>';
+  res.innerHTML=html;
+}
+calc();function copyResult(){ToolBox.copyText(document.getElementById("res").innerText);}
 </script>
 
 <!-- SEO 介绍区块 -->

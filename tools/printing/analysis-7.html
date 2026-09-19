@@ -50,8 +50,8 @@
 <script src="../../js/tool-i18n.js" defer></script>
 <!-- TOOLBOX-I18N-SCRIPT -->
 
-<meta name="title-en" content="Analysis 7">
-<meta name="desc-en" content="Analysis 7 - online utility on ToolBox.">
+<meta name="title-en" content="Light Box Luminance Uniformity Analysis">
+<meta name="desc-en" content="Light Box Luminance Uniformity Analysis - mean luminance, uniformity U1 and dispersion across measured points in cd/m2.">
 <!-- TOOLBOX-HREFLANG -->
 <link rel="alternate" hreflang="zh-CN" href="https://chenguangwu.github.io/tools/printing/analysis-7.html">
 <link rel="alternate" hreflang="zh-TW" href="https://chenguangwu.github.io/zh-tw/tools/printing/analysis-7.html">
@@ -92,16 +92,18 @@
 </div>
 <div class="container">
   <div class="card tool-card-accent" style="--tool-accent:#FF6B35;">
-    <h2 data-zh="📊 灯箱亮度（cd/m²）均匀度分析">Analysis 7</h2>
+    <h2 data-zh="📊 灯箱亮度（cd/m²）均匀度分析">Light Box Luminance Uniformity Analysis</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;">cd/m²</p>
 <div class="formula-box">
-  <div class="formula-title">📐 工作原理与说明</div>
-  
+  <div class="formula-title">📐 计算公式</div>
+  <div class="formula-eq">平均亮度 L̄ = Σ Li ÷ n</div>
+  <div class="formula-eq">照度均匀度 U₁ = 最小亮度 ÷ 平均亮度</div>
+  <p class="formula-desc" data-zh="把灯箱或看样台各测点的亮度读数（cd/m²）录入，算平均亮度、离散程度与照度均匀度 U₁（最小值÷平均值），判断整面发光有无暗斑或明暗梯度。通常均匀度不低于 0.7 可视为较好。数据仅在浏览器本地处理，不会上传。">把灯箱或看样台各测点的亮度读数（cd/m²）录入，算平均亮度、离散程度与照度均匀度 U₁（最小值 ÷ 平均值），判断整面发光有无暗斑或明暗梯度。通常均匀度不低于 0.7 可视为较好。所有数据仅在浏览器本地处理，不上传。</p>
 </div>
 
-<label>输入数据（逗号或换行分隔）</label>
-<textarea id="data" rows="4" oninput="calc()" placeholder="例如: 10,20,30,40,50">10,20,30,40,50,60,70,80</textarea>
-<div class="toolbar"><button type="button" class="btn primary" onclick="calc()">统计分析</button><button type="button" class="btn" onclick="copyRes()">复制</button></div>
+<label>亮度测点读数（cd/m²，逗号或换行分隔）</label>
+<textarea id="lux" rows="5" oninput="calc()" placeholder="320,348,365,355">320,348,365,355,372,338,351,360</textarea>
+<div class="toolbar"><button type="button" class="btn primary" onclick="calc()">分析均匀度</button><button type="button" class="btn" onclick="copyResult()">复制</button></div>
 <div class="result-box" id="res"></div>
   </div>
 
@@ -149,7 +151,33 @@
 <!-- /注意事项区块 -->
 </div>
 <script>
-function calc(){const raw=document.getElementById("data").value.split(/[,\n\s]+/).map(s=>parseFloat(s.trim())).filter(v=>!isNaN(v));if(!raw.length){document.getElementById("res").innerHTML='<p>请输入数据</p>';return;}const n=raw.length,sum=raw.reduce((a,b)=>a+b,0),mean=sum/n;const sorted=[...raw].sort((a,b)=>a-b);const med=n%2?sorted[Math.floor(n/2)]:(sorted[n/2-1]+sorted[n/2])/2;const varr=raw.reduce((a,b)=>a+(b-mean)**2,0)/n;const std=Math.sqrt(varr);document.getElementById("res").innerHTML=`<p>数据量：<strong>${n}</strong></p><p>总和：<strong>${sum.toFixed(2)}</strong></p><p>平均值：<strong style="color:var(--primary);">${mean.toFixed(2)}</strong></p><p>中位数：<strong>${med.toFixed(2)}</strong></p><p>最小值：<strong>${sorted[0]}</strong></p><p>最大值：<strong>${sorted[n-1]}</strong></p><p>极差：<strong>${(sorted[n-1]-sorted[0]).toFixed(2)}</strong></p><p>方差：<strong>${varr.toFixed(2)}</strong></p><p>标准差：<strong>${std.toFixed(2)}</strong></p>`;}calc();function copyRes(){ToolBox.copyText(document.getElementById("res").innerText);}
+function fmt(n,d){d=d==null?2:d;return Number(n).toLocaleString('zh-CN',{minimumFractionDigits:d,maximumFractionDigits:d});}
+function calc(){
+  const res=document.getElementById("res");
+  const raw=document.getElementById("lux").value.split(/[,\n\s]+/).map(s=>parseFloat(s.trim())).filter(v=>!isNaN(v)&&v>=0);
+  if(!raw.length){res.innerHTML='<p>请录入各测点亮度读数（cd/m²）</p>';return;}
+  const n=raw.length,sum=raw.reduce((a,b)=>a+b,0),mean=sum/n;
+  const sorted=[...raw].sort((a,b)=>a-b);
+  const mn=sorted[0],mx=sorted[n-1];
+  const med=n%2?sorted[Math.floor(n/2)]:(sorted[n/2-1]+sorted[n/2])/2;
+  const u1=mean>0?mn/mean:0;
+  const u2=mx>0?mn/mx:0;
+  let sd=0,cv=0;
+  if(n>=2){const varr=raw.reduce((a,b)=>a+(b-mean)**2,0)/(n-1);sd=Math.sqrt(varr);cv=mean>0?sd/mean*100:0;}
+  let level,color;
+  if(u1>=0.8){level='均匀性优';color='#16a34a';}
+  else if(u1>=0.7){level='均匀性良好';color='#2563eb';}
+  else if(u1>=0.5){level='存在明暗差异';color='#d97706';}
+  else{level='暗斑明显，需整改';color='#dc2626';}
+  let html='<p>测点数：<strong>'+n+'</strong> 个　范围 <strong>'+fmt(mn,0)+' ~ '+fmt(mx,0)+'</strong> cd/m²</p>';
+  html+='<p><span style="color:var(--primary);">平均亮度：<strong>'+fmt(mean,1)+'</strong> cd/m²</span>　中位 '+fmt(med,1)+' cd/m²</p>';
+  html+='<p><span style="color:var(--primary);">照度均匀度 U₁：<strong>'+fmt(u1,3)+'</strong></span>（最小值 ÷ 平均值）</p>';
+  html+='<p>最小/最大比 U₂：<strong>'+fmt(u2,3)+'</strong></p>';
+  if(n>=2){html+='<p>标准差：<strong>'+fmt(sd,1)+'</strong> cd/m²　相对偏差：<strong>'+fmt(cv)+'%</strong></p>';}
+  html+='<hr><p>判读：<strong style="color:'+color+';">'+level+'</strong>（U₁ ≥ 0.8 优，0.7~0.8 良好，0.5~0.7 存在差异，&lt;0.5 需整改）</p>';
+  res.innerHTML=html;
+}
+calc();function copyResult(){ToolBox.copyText(document.getElementById("res").innerText);}
 </script>
 
 <!-- SEO 介绍区块 -->
