@@ -22,7 +22,7 @@ window.INDUSTRY_INFO = {
   'statistics'           : { name: '统计学', icon: '📊', hot: 537049 },
   'automotive'           : { name: '汽车交通', icon: '🚗', hot: 498967 },
   'hydraulic'            : { name: '水利工程', icon: '💧', hot: 497519 },
-  'fun'                  : { name: '娱乐游戏', icon: '🎮', hot: 434759 },
+  'fun'                  : { name: '娱乐游戏', icon: '🎮', hot: 438259 },
   'fire-rescue'          : { name: '消防救援', icon: '🚒', hot: 400556 },
   'fishery'              : { name: '渔业水产', icon: '🎣', hot: 394327 },
   'ai'                   : { name: '人工智能', icon: '🤖', hot: 367408 },
