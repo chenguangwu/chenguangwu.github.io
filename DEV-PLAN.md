@@ -185,7 +185,7 @@
 
 > 全站 209 个分类 / 4794 个工具；上表为 Top 20，其余按同口径递减。
 
-> **it 收口进度（2026-09-19 起）**：已修 cat 误标 4 个（calc-3/calc-4 由 design→convert、calc-subnet/exponential-distribution 由 health→calculator，三处同写 meta+tools.json+industry-it.json）。现状审计：334A/1B/3C、deep-dive 349 键全达标、en 字段零缺失；**主要缺口 = §4.1.1 功能验证 verify 覆盖 30/338**（已补 bitwise-calculator + clamp-calculator 两个确定性数值计算 case，非默认输入触发真实 calc、输出完全确定、非逃生项）。后续按「有实质计算逻辑且 harness 可注入的工具优先」补真实 case（chmod 9 独立 checkbox 直读 .checked / triangle 无 oninput 绑定 暂难注入，需改页面后才可补；纯格式化/生成器类靠抽样人工验证功能可用性）。
+> **it 收口进度（2026-09-19 起）**：已修 cat 误标 4 个（calc-3/calc-4 由 design→convert、calc-subnet/exponential-distribution 由 health→calculator，三处同写 meta+tools.json+industry-it.json）。现状审计：334A/1B/3C、deep-dive 349 键全达标、en 字段零缺失。**剩余 4 个非 A 工具（barcode-codabar / convert-11 / analysis-manager-1 / analysis-66）按 §4.1 八项目标逐工具优化升级到 A 级，才是 it 收口的本体工作；verify 用例不单列任务，仅随工具优化顺带。**
 > **取批规则**：每次取表首未收口分类，按 §4.2「每批至少 10 个工具」分批；收口标准 = §4.1 八项目标在该分类全部工具上达成。
 
 > **A 项权威口径（务必遵守）**：
@@ -268,7 +268,7 @@
 
 | 级别 | 内容 | 判据 / 口径 |
 |---|---|---|
-| **P0** | **页面级真实缺陷修复** —— §九 待定夺清单（B / D / F / G / H） | 结果算错、输入无效、名不符实等**用户可感知硬伤**，直接改 `tools/**` |
+| **P0** | **页面级真实缺陷修复** —— §九 清单（已基本闭环） | A/C/E 已修复、G 已闭环、B 回退归档、D 归并、I 第一批 24 页处置 + 剩余 135 页归 P1/P2 重做；后续仅随 P1 收口顺带处理碰到的页面缺陷 |
 | **P1** | **按热度逐分类做 §4.1 八项目标收口** —— 分类从 §7.2 取 | 对应 §一「工具不合格」总体目标，是项目本体价值所在 |
 | **P2** | 工具质量分级提升（C→A，A 级率 72.7% → 75%） | 与 P1 同批推进，不单独列批 |
 | **P3** | `scripts/` 用例与基线维护（弱用例去默认化等） | **仅随 P0 / P1 顺带处理**；门禁必需项（`run_gates.py` 链路）除外 |
