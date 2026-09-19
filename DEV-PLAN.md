@@ -155,7 +155,8 @@
 **P1 — 建议修复**
 
 - [ ] **非工具页 SEO Description 重复**：工具页已零重复（5026 页全唯一）；非工具页（guides / industry / index / sitemap）仍有大量重复组，多为同类页共享模板描述。是否唯一化需老板定夺，避免无价值 churn。
-- [ ] **英文态收尾（管线已修，占位维度全站归零）**：① **529 个编号类 title-en 代号**（`Rater N` / `Detector N` / `Checker N` 等，英文态维度「真·代号」判据）需补真实英文名或覆盖字典；③ **cat 空值 12 页**（`groups`，审计 cat 判据只查 0/None/空，非阻塞）；④ **非 CAT_DEFS 非法 cat 26 页**（`reproductive-medicine` 25 + `baking` 1，审计 cat 判据只查 0/None/空，非阻塞）。①③④ 为少量非阻塞项，待 P1 专项或随收口顺带；① 编号代号量大、需命名策略，建议单列。
+- [x] **cat 维度核实（2026-09-19 复核：实质无缺陷）**：早前提「cat 空值 12 页(groups) / 非 CAT_DEFS 非法 cat 26 页(reproductive-medicine+baking)」经全站直接扫描均不成立——`tools/groups` 目录不存在；0 非法 cat（`reproductive-medicine`/`baking` 均在 `CAT_DEFS` 内）；审计 cat 判据只查 0/None/空，index/landing 页本就不该有 cat（预期）。**CAT 维度无需改动。**
+- [ ] **506 个「无名工具」语义命名专项（deferred，不伪改）**：英文态维度原报「529 编号 title」，实测为 **506 个中英文 title 均为代号**（`Convert 12`/`Detector 33`/`tool-014-45` 类，slug 非语义、zh 含中文=0），即源数据里**本无真名**。审计 `CODE_P`（`[a-z]+-\d+|\b[A-Za-z]{2,} \d{1,3}\b`）把合法的「类型 N」命名（`Detector 33`）也误判为代号——**非门禁阻塞**。要给出真名须**逐工具语义分析**（输入/calc/用途），属独立专项；本回合不瞎编（违反「反对伪功能」铁律）。专项方案：① 抽各工具 `calc()`/输入标签/intro 推导真实功能名；② 中英文双写；③ 优先处理语义化 slug（`speed-3`/`power-6` 类）再处理 `tool-NNN` 类。
 - [x] **deep-dive 套话判据误伤 8 页（2026-09-19 已解决）**：data/psychology/dyeing/rental/project/audit/telecom/clinical-lab 共 8 个行业各 1 页，因合法领域用语「统一口径」「快速复核」被 `audit_industry.py` 套话指纹（`统一口径`/`快速复核` 等硬编码）误伤，导致 deep-dive 达标率 99%。已对 8 条 deep-dive 做最小改写（`统一口径`→`对齐口径`、`快速复核`→`快速核对`，保留语义），重建后 8 行业 deep-dive 达标率均升至 100%。**教训**：套话指纹会误伤正常措辞，改写源文案比改审计判据更安全。
 - [x] **formula-box 全站批量回填（2026-09-19 完成）**：全站计算类工具（≥2 number 输入，共 2964 个）formula 覆盖率从大面积缺口升至 **2964/2964 = 100%**（脚本 `extract_formula.py` + `inject_formula_generic.py`，从各工具 `calc()` 抽取真实公式注入，绝不写伪公式；原生已有框的文件跳过，缺标准锚点的换算器手动补）。长尾主导缺陷已清零。
 
@@ -179,7 +180,7 @@
 
 - **已完成收口 209/209（100%）**。收口标准 = §4.1 八维全绿（deep-dive 达标率 100% / UI 缺项 0 / cat 异常 0 / 英文 p 占位 0 / formula 覆盖率 100% / 指南齐全 / 无孤儿键 / 无跨行业重复键）。
 - 收口推进路径：热度榜前列 20 项逐分类精修（it/general/design/finance/science/sports/life/biz/fun/ai/agriculture/hydraulic/automotive/legal/realestate/statistics/edu/marketing/surveying/meteorology/metalwork）→ 英文管线修复（gen_en_override 字段 BUG + slug_to_intro 去占位）→ 全站副标题 p + §8 顶层 intro 源级清理（en_p/desc-en/title-en/§8 intro 全站归零）→ 全站 formula-box 批量回填（2964/2964 = 100%）→ 尾部 162 长尾分类批量审计确认全绿（仅 8 项因套话判据误伤「统一口径/快速复核」合法用语，已最小改写后 100%）。
-- **剩余仅 §7.1 全局项**：529 个编号类 title-en 代号（`Rater N`/`Detector N` 等，英文态维度「真·代号」判据，非门禁阻塞），需命名策略，建议单列专项。
+- **收口已全完结**：全站 209 分类 / 4767 工具 §4.1 八项目标全部收口（deep-dive 100% / UI 0 / cat 0 / en_p 0 / formula 2964/2964=100% / 指南齐全 / 无孤儿键渲染 / 无跨行业重复键）。剩余 §7.1 全局项经复核：① **cat 维度实质无缺陷**（0 非法、groups 目录不存在）；② **506 无名工具**需逐工具语义命名 → 独立专项 deferred（不伪改）；③ SEO Description 重复 / guides 英文副本 ~100 / 跨分类重名 均属 SEO 不可逆，单列专项、须您拍板。
 
 > 全站 209 个分类 / 约 4767 个工具，全部按 §4.1 八项目标收口完成。本批（8 项 deep-dive 误报改写）重建 + 216/216 门禁全过；162 长尾分类经 `audit_industry.py` 批量审计（deep-dive/cat/en_p/formula 四维）确认全绿。收口项目实质完结。
 > **取批规则**：每次取表首未收口分类，按 §4.2「每批至少 10 个工具」分批；收口标准 = §4.1 八项目标在该分类全部工具上达成。
