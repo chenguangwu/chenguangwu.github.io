@@ -219,7 +219,7 @@ canvas{background:#fff;border:6px solid #fff;border-radius:8px;box-shadow:var(--
 
 </div>
 <script>
-// Codabar: 7 elements per char (4 bars + 3 spaces), 2 or 3 wide. Format: B S B S B S B
+// Codabar 编码：每字符 7 个单元（4 条 + 3 空），其中 2 或 3 个为宽单元
 const CODABAR={
 '0':'NNNNNWW','1':'NNNNWWN','2':'NNNWWNN','3':'WWNNNNN','4':'NNWWWNN',
 '5':'WWNNWNN','6':'NWNNNWW','7':'NWWNNNW','8':'NWWNWNN','9':'NWNNWWN',
@@ -230,96 +230,80 @@ function buildCodabar(text){
   text=text.toUpperCase();
   let bits='';
   for(let i=0;i<text.length;i++){
-    const p=CODABAR[text[i]];if(!p)continue;
-    let isBar=true;
-    for(let j=0;j<p data-zh="&lt;/div&gt;&lt;div class=&quot;bar-text&quot;&gt;&#x27;+escapeHtml(text.toUpperCase())+&#x27;&lt;/div&gt;&#x27;;
-  out.querySelector(&#x27;.bar-wrap&#x27;).appendChild(canvas);
+    const p=CODABAR[text[i]];
+    if(!p){continue;}
+    bits+=p;      // 7 个单元：条 空 条 空 条 空 条
+    bits+='n';    // 字符间窄空分隔
+  }
+  return bits;
 }
-function escapeHtml(s){return String(s).replace(/[&amp;&lt;&gt;&quot;&#x27;]/g,c=&gt;({&#x27;&amp;&#x27;:&#x27;&amp;amp;&#x27;,&#x27;&lt;&#x27;:&#x27;&amp;lt;&#x27;,&#x27;&gt;&#x27;:&#x27;&amp;gt;&#x27;,&#x27;&quot;&#x27;:&#x27;&amp;quot;&#x27;,&quot;&#x27;&quot;:&#x27;&amp;#39;&#x27;}[c]));}
+function generate(){
+  const raw=(document.getElementById('data').value||'').trim().toUpperCase();
+  if(!raw){document.getElementById('output').innerHTML='<p style="color:var(--danger)" data-zh="请输入 Codabar 内容">Generate Codabar barcodes with start/stop codes and an optional check digit.</p>';return;}
+  const bits=buildCodabar(raw);
+  if(!bits){document.getElementById('output').innerHTML='<p style="color:var(--danger)">仅支持 0-9 - $ : / . + 与起止符 A/B/C/D</p>';return;}
+  const narrow=2,wide=6,h=100;
+  let total=0;
+  for(let i=0;i<bits.length;i++){total+=(bits[i]==='W'?wide:narrow);}
+  const canvas=document.createElement('canvas');
+  canvas.width=total;canvas.height=h;canvas.style.maxWidth='100%';canvas.style.height='auto';
+  const ctx=canvas.getContext('2d');
+  ctx.fillStyle='#fff';ctx.fillRect(0,0,total,h);
+  ctx.fillStyle='#000';
+  let x=0;
+  for(let i=0;i<bits.length;i++){
+    const w=(bits[i]==='W'?wide:narrow);
+    if(i%2===0){ctx.fillRect(x,0,w,h);}   // 偶数位为条，奇数位为空
+    x+=w;
+  }
+  const out=document.getElementById('output');
+  out.innerHTML='';
+  out.appendChild(canvas);
+  const label=document.createElement('div');
+  label.className='bar-text';
+  label.textContent=raw;
+  out.appendChild(label);
+}
 function copyResult(){
-  const text = document.getElementById(&#x27;output&#x27;).textContent || document.getElementById(&#x27;output&#x27;).innerText;
-  navigator.clipboard.writeText(text).then(() =&gt; alert(&#x27;已复制&#x27;));
+  const label=document.querySelector('#output .bar-text');
+  const text=label?label.textContent:'';
+  if(!text){return;}
+  if(navigator.clipboard&&navigator.clipboard.writeText){
+    navigator.clipboard.writeText(text).then(function(){alert('已复制');});
+  }else{alert('复制失败：'+text);}
 }
-function toggleToolTheme(){
-  const cur = document.documentElement.getAttribute(&#x27;data-theme&#x27;);
-  if(cur === &#x27;dark&#x27;){
-    document.documentElement.removeAttribute(&#x27;data-theme&#x27;);
-    document.querySelector(&#x27;.theme-btn&#x27;).textContent = &#x27;🌙&#x27;;
-    localStorage.setItem(&#x27;toolbox_theme&#x27;,&#x27;light&#x27;);
-  } else {
-    document.documentElement.setAttribute(&#x27;data-theme&#x27;,&#x27;dark&#x27;);
-    document.querySelector(&#x27;.theme-btn&#x27;).textContent = &#x27;☀️&#x27;;
-    localStorage.setItem(&#x27;toolbox_theme&#x27;,&#x27;dark&#x27;);
-  }
-}
-(function(){
-  if(localStorage.getItem(&#x27;toolbox_theme&#x27;) === &#x27;dark&#x27;){
-    document.documentElement.setAttribute(&#x27;data-theme&#x27;,&#x27;dark&#x27;);
-    document.addEventListener(&#x27;DOMContentLoaded&#x27;, () =&gt; {
-      const b = document.querySelector(&#x27;.theme-btn&#x27;);
-      if(b) b.textContent = &#x27;☀️&#x27;;
-    });
-  }
-})();
-&lt;/script&gt;&lt;script&gt;
-// tool-intro折叠交互
-document.addEventListener(&#x27;DOMContentLoaded&#x27;,function(){
-  var headers=document.querySelectorAll(&#x27;.tool-intro-header&#x27;);
+// tool-intro 折叠交互
+document.addEventListener('DOMContentLoaded',function(){
+  var headers=document.querySelectorAll('.tool-intro-header');
   headers.forEach(function(h){
-    h.addEventListener(&#x27;click&#x27;,function(){
-      this.parentElement.classList.toggle(&#x27;open&#x27;);
-    });
+    h.addEventListener('click',function(){this.parentElement.classList.toggle('open');});
   });
 });
-&lt;/script&gt;
-&lt;!-- SEO 介绍区块 --&gt;
-
-&lt;/div&gt;
-
-&lt;/div&gt;
-
-&lt;!-- 相关工具 --&gt;
-&lt;div class=&quot;related-tools&quot; data-related-tools=&quot;1&quot;&gt;
-  &lt;h3 class=&quot;related-tools-title&quot;&gt;🔗 相关工具&lt;/h3&gt;
-  &lt;div class=&quot;related-tools-grid&quot;&gt;
-    &lt;a href=&quot;properties-parser.html&quot; class=&quot;related-tool-card&quot;&gt;
-      &lt;span class=&quot;rt-icon&quot;&gt;🔧&lt;/span&gt;
-      &lt;span class=&quot;rt-info&quot;&gt;&lt;span class=&quot;rt-name&quot;&gt;.properties 解析器 - 免费开发工具，properties 解析器 | ToolBox免费在线工具箱&lt;/span&gt;&lt;span class=&quot;rt-desc&quot;&gt;.properties 解析器&lt;/span&gt;&lt;/span&gt;
-    &lt;/a&gt;
-    &lt;a href=&quot;ast-viewer.html&quot; class=&quot;related-tool-card&quot;&gt;
-      &lt;span class=&quot;rt-icon&quot;&gt;🌳&lt;/span&gt;
-      &lt;span class=&quot;rt-info&quot;&gt;&lt;span class=&quot;rt-name&quot;&gt;AST抽象语法树查看器 - 在线解析JavaScript代码生成AST树形结构，支持节点 | ToolBox免费在线工具箱&lt;/span&gt;&lt;span class=&quot;rt-desc&quot;&gt;AST 抽象语法树查看器&lt;/span&gt;&lt;/span&gt;
-    &lt;/a&gt;
-    &lt;a href=&quot;css-minifier.html&quot; class=&quot;related-tool-card&quot;&gt;
-      &lt;span class=&quot;rt-icon&quot;&gt;🎨&lt;/span&gt;
-      &lt;span class=&quot;rt-info&quot;&gt;&lt;span class=&quot;rt-name&quot;&gt;CSS 压缩/美化工具 - 免费开发工具，CSS 压缩/格式化/美化 | ToolBox免费在线工具箱&lt;/span&gt;&lt;span class=&quot;rt-desc&quot;&gt;CSS 压缩/格式化/美化&lt;/span&gt;&lt;/span&gt;
-    &lt;/a&gt;
-    &lt;a href=&quot;css-formatter.html&quot; class=&quot;related-tool-card&quot;&gt;
-      &lt;span class=&quot;rt-icon&quot;&gt;🔧&lt;/span&gt;
-      &lt;span class=&quot;rt-info&quot;&gt;&lt;span class=&quot;rt-name&quot;&gt;CSS 格式化 - 免费开发工具，在线CSS 格式化 | ToolBox免费在线工具箱&lt;/span&gt;&lt;span class=&quot;rt-desc&quot;&gt;CSS 格式化&lt;/span&gt;&lt;/span&gt;
-    &lt;/a&gt;
-    &lt;a href=&quot;cron.html&quot; class=&quot;related-tool-card&quot;&gt;
-      &lt;span class=&quot;rt-icon&quot;&gt;⏰&lt;/span&gt;
-      &lt;span class=&quot;rt-info&quot;&gt;&lt;span class=&quot;rt-name&quot;&gt;Cron 表达式生成器 - 免费开发工具，在线Cron 表达式生成器 | ToolBox免费在线工具箱&lt;/span&gt;&lt;span class=&quot;rt-desc&quot;&gt;⏰ Cron 表达式生成器&lt;/span&gt;&lt;/span&gt;
-    &lt;/a&gt;
-    &lt;a href=&quot;graphql-formatter.html&quot; class=&quot;related-tool-card&quot;&gt;
-      &lt;span class=&quot;rt-icon&quot;&gt;🔧&lt;/span&gt;
-      &lt;span class=&quot;rt-info&quot;&gt;&lt;span class=&quot;rt-name&quot;&gt;GraphQL 格式化 - 免费开发工具，在线GraphQL 格式化 | ToolBox免费在线工具箱&lt;/span&gt;&lt;span class=&quot;rt-desc&quot;&gt;◈ GraphQL 格式化&lt;/span&gt;&lt;/span&gt;
-    &lt;/a&gt;
-  &lt;/div&gt;
-&lt;/div&gt;
-&lt;div class=&quot;tool-intro open&quot; id=&quot;toolIntro&quot;&gt;
-  &lt;div class=&quot;tool-intro-header&quot;&gt;
-    &lt;span class=&quot;intro-icon-wrap&quot;&gt;&lt;span class=&quot;intro-icon&quot;&gt;📖&lt;/span&gt;关于「Codabar 条形码」&lt;/span&gt;
-    &lt;span class=&quot;arrow&quot;&gt;▼&lt;/span&gt;
-  &lt;/div&gt;
-  &lt;div class=&quot;tool-intro-body&quot;&gt;
-    &lt;h4&gt;&lt;span class=&quot;h4-icon&quot;&gt;📝&lt;/span&gt;工具简介&lt;/h4&gt;
-    &lt;p&gt;Codabar 条形码。专为开发者打造的在线工具，纯前端运行，代码不离开浏览器。">Generate Codabar barcodes with start/stop codes and an optional check digit.</p>
-    
-      </div>
+generate();
+</script>
 </div>
-<!-- /SEO 介绍区块 -->
-
+<div class="tool-intro open" id="toolIntro">
+  <div class="tool-intro-header">
+    <span class="intro-icon-wrap"><span class="intro-icon">📖</span>关于「Codabar 条形码」</span>
+    <span class="arrow">▼</span>
+  </div>
+  <div class="tool-intro-body">
+    <h4><span class="h4-icon">📝</span>工具简介</h4>
+    <p>Codabar（又称 NW-7）是一种离散、自校验的一维条形码，常用于血库、图书馆、快递与门禁等编号固定的场景。本工具纯前端生成，输入字符与起止符即可实时绘制条形码并支持复制。</p>
+    <h4><span class="h4-icon">✨</span>功能特点</h4>
+    <ul class="intro-features">
+      <li>纯前端运行，数据不上传服务器</li>
+      <li>实时绘制条形码图像，所见即所得</li>
+      <li>支持自定义字符与 A/B/C/D 起止符</li>
+      <li>一键复制条形码内容</li>
+    </ul>
+    <h4><span class="h4-icon">🎯</span>使用场景</h4>
+    <ul class="intro-scenes">
+      <li>血袋编号、图书馆馆藏号打印</li>
+      <li>快递运单与会员卡标签</li>
+      <li>老系统 Codabar 编号核对与重印</li>
+    </ul>
+  </div>
+</div>
 </body>
 </html>
