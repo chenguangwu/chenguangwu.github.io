@@ -53,8 +53,8 @@
 <script src="../../js/i18n.js" defer></script>
 <script src="../../js/tool-i18n.js" defer></script>
 <!-- TOOLBOX-I18N-SCRIPT -->
-<meta name="title-en" content="Stats 4">
-<meta name="desc-en" content="Stats 4 - online utility on ToolBox.">
+<meta name="title-en" content="Surgery Duration Statistics by Procedure">
+<meta name="desc-en" content="Surgery Duration Statistics by Procedure - case count, mean, median and P95 planning upper bound of operative time.">
 <!-- TOOLBOX-HREFLANG -->
 <link rel="alternate" hreflang="zh-CN" href="https://chenguangwu.github.io/tools/medical/stats-4.html">
 <link rel="alternate" hreflang="zh-TW" href="https://chenguangwu.github.io/zh-tw/tools/medical/stats-4.html">
@@ -95,16 +95,23 @@
 </div>
 <div class="container">
   <div class="card tool-card-accent" style="--tool-accent:#FF6B35;">
-    <h2 data-zh="🩺 手术预计时长（按术式统计）">Stats 4</h2>
+    <h2 data-zh="🩺 手术预计时长（按术式统计）">Surgery Duration Statistics by Procedure</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="按术式统计">Stats 4 - online utility on ToolBox.</p>
 <div class="formula-box">
-  <div class="formula-title">📐 工作原理与说明</div>
-  
+  <div class="formula-title">📐 计算公式</div>
+  <div class="formula-eq">平均时长 x̄ = Σ时长 ÷ 例数</div>
+  <div class="formula-eq">时长上限 P95 ≈ x̄ + 1.645 × 标准差</div>
+  <p class="formula-desc" data-zh="按术式逐例录入手术时长，算出例数、平均时长、中位数、最短与最长；在例数不少于 2 例时给出标准差与排台参考的时长上限。样本量偏小时仅供参考。数据仅在浏览器本地处理，不会上传。">按术式逐例录入手术时长，算出例数、平均时长、中位数、最短与最长，并在例数不少于 2 例时给出标准差与用于排台的时长上限。样本量偏小时结果仅供参考。所有数据仅在浏览器本地处理，不上传。</p>
 </div>
 
-<label>输入数据（逗号或换行分隔）</label>
-<textarea id="data" rows="4" oninput="calc()" placeholder="例如: 10,20,30,40,50">10,20,30,40,50,60,70,80</textarea>
-<div class="toolbar"><button type="button" class="btn primary" onclick="calc()">统计分析</button><button type="button" class="btn" onclick="copyRes()">复制</button></div>
+<label>手术时长记录（每行一例：术式,时长分钟）</label>
+<textarea id="cases" rows="7" oninput="calc()" placeholder="腹腔镜胆囊切除,75">腹腔镜胆囊切除,75
+腹腔镜胆囊切除,92
+腹腔镜胆囊切除,68
+腹腔镜胆囊切除,110
+腹腔镜胆囊切除,85
+腹腔镜胆囊切除,79</textarea>
+<div class="toolbar"><button type="button" class="btn primary" onclick="calc()">统计时长</button><button type="button" class="btn" onclick="copyResult()">复制</button></div>
 <div class="result-box" id="res"></div>
   </div>
 
@@ -153,7 +160,43 @@
 <!-- /注意事项区块 -->
 </div>
 <script>
-function calc(){const raw=document.getElementById("data").value.split(/[,\n\s]+/).map(s=>parseFloat(s.trim())).filter(v=>!isNaN(v));if(!raw.length){document.getElementById("res").innerHTML='<p>请输入数据</p>';return;}const n=raw.length,sum=raw.reduce((a,b)=>a+b,0),mean=sum/n;const sorted=[...raw].sort((a,b)=>a-b);const med=n%2?sorted[Math.floor(n/2)]:(sorted[n/2-1]+sorted[n/2])/2;const varr=raw.reduce((a,b)=>a+(b-mean)**2,0)/n;const std=Math.sqrt(varr);document.getElementById("res").innerHTML=`<p>数据量：<strong>${n}</strong></p><p>总和：<strong>${sum.toFixed(2)}</strong></p><p>平均值：<strong style="color:var(--primary);">${mean.toFixed(2)}</strong></p><p>中位数：<strong>${med.toFixed(2)}</strong></p><p>最小值：<strong>${sorted[0]}</strong></p><p>最大值：<strong>${sorted[n-1]}</strong></p><p>极差：<strong>${(sorted[n-1]-sorted[0]).toFixed(2)}</strong></p><p>方差：<strong>${varr.toFixed(2)}</strong></p><p>标准差：<strong>${std.toFixed(2)}</strong></p>`;}calc();function copyRes(){ToolBox.copyText(document.getElementById("res").innerText);}
+function fmt(n,d){d=d==null?2:d;return Number(n).toLocaleString('zh-CN',{minimumFractionDigits:d,maximumFractionDigits:d});}
+function calc(){
+  const res=document.getElementById("res");
+  const lines=document.getElementById("cases").value.split("\n").map(s=>s.trim()).filter(Boolean);
+  const cases=[];
+  for(const line of lines){
+    const p=line.split(/[,，\t]+/);
+    if(p.length<2) continue;
+    const mins=parseFloat(p[p.length-1]);
+    if(isNaN(mins)||mins<=0) continue;
+    const name=p.slice(0,p.length-1).join(",").replace(/</g,'&lt;')||"未命名";
+    cases.push({name:name,mins:mins});
+  }
+  if(!cases.length){res.innerHTML='<p>请按「术式,时长分钟」每行一例录入手术记录</p>';return;}
+  const v=cases.map(c=>c.mins);
+  const n=v.length,sum=v.reduce((a,b)=>a+b,0),mean=sum/n;
+  const sorted=[...v].sort((a,b)=>a-b);
+  const med=n%2?sorted[Math.floor(n/2)]:(sorted[n/2-1]+sorted[n/2])/2;
+  const mn=sorted[0],mx=sorted[n-1];
+  const names=[...new Set(cases.map(c=>c.name))];
+  function hhmm(x){const h=Math.floor(x/60),m=Math.round(x-h*60);return h+' 小时 '+m+' 分';}
+  let html='<p>纳入统计：<strong>'+n+'</strong> 例'+(names.length===1?'（'+names[0]+'）':'（'+names.length+' 种术式）')+'</p>';
+  html+='<p>总时长：<strong>'+fmt(sum,0)+'</strong> 分钟（'+hhmm(sum)+'）</p>';
+  html+='<p><span style="color:var(--primary);">平均时长：<strong>'+fmt(mean,1)+'</strong> 分钟</span></p>';
+  html+='<p>中位数：<strong>'+fmt(med,1)+'</strong> 分钟　最短：<strong>'+fmt(mn,0)+'</strong>　最长：<strong>'+fmt(mx,0)+'</strong> 分钟</p>';
+  if(n>=2){
+    const varr=v.reduce((a,b)=>a+(b-mean)**2,0)/(n-1);
+    const sd=Math.sqrt(varr);
+    const p95=mean+1.645*sd;
+    html+='<hr><p>标准差：<strong>'+fmt(sd)+'</strong> 分钟　极差：<strong>'+fmt(mx-mn,0)+'</strong> 分钟</p>';
+    html+='<p>排台参考上限 P95 ≈ <strong>'+fmt(p95,1)+'</strong> 分钟</p>';
+  }else{
+    html+='<hr><p>样本量不足 2 例，暂不给出离散程度与排台上��</p>';
+  }
+  res.innerHTML=html;
+}
+calc();function copyResult(){ToolBox.copyText(document.getElementById("res").innerText);}
 </script>
 
 <!-- SEO 介绍区块 -->

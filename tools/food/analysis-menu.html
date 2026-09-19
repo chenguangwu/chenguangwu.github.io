@@ -50,8 +50,8 @@
 <script src="../../js/tool-i18n.js" defer></script>
 <!-- TOOLBOX-I18N-SCRIPT -->
 
-<meta name="title-en" content="Analysis Menu">
-<meta name="desc-en" content="Analysis Menu - online utility on ToolBox.">
+<meta name="title-en" content="Menu Gross Margin Analyzer">
+<meta name="desc-en" content="Menu Gross Margin Analyzer - per-dish margin and revenue-weighted overall gross margin from cost, price and units sold.">
 <!-- TOOLBOX-HREFLANG -->
 <link rel="alternate" hreflang="zh-CN" href="https://chenguangwu.github.io/tools/food/analysis-menu.html">
 <link rel="alternate" hreflang="zh-TW" href="https://chenguangwu.github.io/zh-tw/tools/food/analysis-menu.html">
@@ -92,16 +92,22 @@
 </div>
 
   <div class="card tool-card-accent" style="--tool-accent:#FF6B35;">
-    <h2 data-zh="🏦 菜单毛利率自动分析">Analysis Menu</h2>
+    <h2 data-zh="🏦 菜单毛利率自动分析">Menu Gross Margin Analyzer</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="菜单毛利率自动分析在线工具">Analysis Menu</p>
 <div class="formula-box">
-  <div class="formula-title">📐 工作原理与说明</div>
-  
+  <div class="formula-title">📐 计算公式</div>
+  <div class="formula-eq">单品毛利率 = (售价 − 成本) ÷ 售价 × 100%</div>
+  <div class="formula-eq">综合毛利率 = Σ(售价×销量 − 成本×销量) ÷ Σ(售价×销量) × 100%</div>
+  <p class="formula-desc" data-zh="按菜品逐行录入成本、售价与销量，先算单品毛利额与毛利率，再按销售额加权求全店综合毛利率，并标出毛利最高与最低的菜品。数据仅在浏览器本地处理，不会上传。">计算每道菜的单品毛利额与毛利率，并按销售额加权得到全店综合毛利率，同时标出毛利最高与最低的菜品。所有数据仅在浏览器本地处理，不上传。</p>
 </div>
 
-<label>输入数据（逗号或换行分隔）</label>
-<textarea id="data" rows="4" oninput="calc()" placeholder="例如: 10,20,30,40,50">10,20,30,40,50,60,70,80</textarea>
-<div class="toolbar"><button type="button" class="btn primary" onclick="calc()">统计分析</button><button type="button" class="btn" onclick="copyRes()">复制</button></div>
+<label>菜品清单（每行一道：菜名,成本价,售价,销量）</label>
+<textarea id="menu" rows="7" oninput="calc()" placeholder="宫保鸡丁,12,32,180">宫保鸡丁,12,32,180
+清炒时蔬,5,18,150
+酸菜鱼,26,68,95
+番茄牛腩,22,58,80
+米饭,1.5,3,420</textarea>
+<div class="toolbar"><button type="button" class="btn primary" onclick="calc()">分析毛利率</button><button type="button" class="btn" onclick="copyResult()">复制</button></div>
 <div class="result-box" id="res"></div>
   </div>
 
@@ -150,7 +156,47 @@
 <!-- /注意事项区块 -->
 </div>
 <script>
-function calc(){const raw=document.getElementById("data").value.split(/[,\n\s]+/).map(s=>parseFloat(s.trim())).filter(v=>!isNaN(v));if(!raw.length){document.getElementById("res").innerHTML='<p>请输入数据</p>';return;}const n=raw.length,sum=raw.reduce((a,b)=>a+b,0),mean=sum/n;const sorted=[...raw].sort((a,b)=>a-b);const med=n%2?sorted[Math.floor(n/2)]:(sorted[n/2-1]+sorted[n/2])/2;const varr=raw.reduce((a,b)=>a+(b-mean)**2,0)/n;const std=Math.sqrt(varr);document.getElementById("res").innerHTML=`<p>数据量：<strong>${n}</strong></p><p>总和：<strong>${sum.toFixed(2)}</strong></p><p>平均值：<strong style="color:var(--primary);">${mean.toFixed(2)}</strong></p><p>中位数：<strong>${med.toFixed(2)}</strong></p><p>最小值：<strong>${sorted[0]}</strong></p><p>最大值：<strong>${sorted[n-1]}</strong></p><p>极差：<strong>${(sorted[n-1]-sorted[0]).toFixed(2)}</strong></p><p>方差：<strong>${varr.toFixed(2)}</strong></p><p>标准差：<strong>${std.toFixed(2)}</strong></p>`;}calc();function copyRes(){ToolBox.copyText(document.getElementById("res").innerText);}
+function fmt(n,d){d=d==null?2:d;return Number(n).toLocaleString('zh-CN',{minimumFractionDigits:d,maximumFractionDigits:d});}
+function calc(){
+  const res=document.getElementById("res");
+  const rows=document.getElementById("menu").value.split("\n").map(s=>s.trim()).filter(Boolean);
+  const items=[];
+  for(const line of rows){
+    const p=line.split(/[,，\t]+/);
+    if(p.length<3) continue;
+    const name=p[0].trim()||"未命名";
+    const cost=parseFloat(p[1]),price=parseFloat(p[2]);
+    const qty=p.length>3?parseFloat(p[3]):1;
+    if(isNaN(cost)||isNaN(price)||isNaN(qty)||qty<=0) continue;
+    items.push({name:names(name),cost:cost,price:price,qty:qty});
+  }
+  function names(s){return s.replace(/</g,'&lt;');}
+  if(!items.length){res.innerHTML='<p>请按「菜名,成本价,售价,销量」每行一道录入菜单</p>';return;}
+  let rev=0,tcost=0,tqty=0;
+  const list=items.map(it=>{
+    const r=it.price*it.qty,c=it.cost*it.qty,gp=r-c;
+    const gm=r>0?gp/r*100:0;
+    rev+=r;tcost+=c;tqty+=it.qty;
+    return {name:it.name,sale:r,gp:gp,gm:gm,qty:it.qty};
+  });
+  const tgp=rev-tcost, tgm=rev>0?tgp/rev*100:0;
+  const sorted=[...list].sort((a,b)=>b.gm-a.gm);
+  const best=sorted[0],worst=sorted[sorted.length-1];
+  const per=rev>0&&tqty>0?rev/tqty:0;
+  let html='<p>菜品数：<strong>'+list.length+'</strong>　总份数：<strong>'+fmt(tqty,0)+'</strong></p>';
+  html+='<p>总营收：<strong>'+fmt(rev)+'</strong> 元　总成本：<strong>'+fmt(tcost)+'</strong> 元</p>';
+  html+='<p>总毛利：<strong>'+fmt(tgp)+'</strong> 元　<span style="color:var(--primary);">综合毛利率：<strong>'+fmt(tgm)+'%</strong></span></p>';
+  html+='<p>客单均价：<strong>'+fmt(per)+'</strong> 元/份</p><hr>';
+  html+='<table style="width:100%;border-collapse:collapse;font-size:14px;"><tr><th style="text-align:left;">菜品</th><th style="text-align:right;">销量</th><th style="text-align:right;">毛利额</th><th style="text-align:right;">毛利率</th></tr>';
+  for(const it of list){
+    html+='<tr><td>'+it.name+'</td><td style="text-align:right;">'+fmt(it.qty,0)+'</td><td style="text-align:right;">'+fmt(it.gp)+'</td><td style="text-align:right;">'+fmt(it.gm)+'%</td></tr>';
+  }
+  html+='</table><hr>';
+  html+='<p>毛利率最高：<strong>'+best.name+'</strong>（'+fmt(best.gm)+'%）</p>';
+  html+='<p>毛利率最低：<strong>'+worst.name+'</strong>（'+fmt(worst.gm)+'%）</p>';
+  res.innerHTML=html;
+}
+calc();function copyResult(){ToolBox.copyText(document.getElementById("res").innerText);}
 </script>
 
 <!-- SEO 介绍区块 -->

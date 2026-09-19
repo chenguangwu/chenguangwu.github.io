@@ -20,12 +20,18 @@ const CASES = [
 {
   "slug": "livestock/analysis-18",
   "inputs": {
-    "data": "10,20,30,40,50,60,70,80_X"
+    "hens": "8000",
+    "days": "5",
+    "eggs": "35200",
+    "eggw": "60",
+    "feed": "4700"
   },
   "expect": [
-    "80_X"
+    "88.00",
+    "2.23",
+    "40,000"
   ],
-  "ref": "auto-restore"
+  "ref": "蛋鸡产蛋：饲养日=8000×5=40000，产蛋率=35200/40000=88.00%；总蛋重=35200×60/1000=2112kg，料蛋比=4700/2112=2.23（独立复算，非页面默认值）",
 },
 {
   "slug": "livestock/animal-welfare-score",
@@ -260,12 +266,16 @@ const CASES = [
 {
   "slug": "livestock/stats-7",
   "inputs": {
-    "data": "10,20,30,40,50,60,70,80_X"
+    "tot": "300",
+    "mild": "21",
+    "hard": "9"
   },
   "expect": [
-    "80_X"
+    "3.00",
+    "10.00",
+    "270"
   ],
-  "ref": "auto-restore"
+  "ref": "产犊难产：总数 300、轻度助产 21、难产 9 → 顺产 270 头；难产率=9/300=3.00%，需助产率=30/300=10.00%（独立复算，非页面默认值）",
 },
 {
   "slug": "livestock/vaccine-schedule",
