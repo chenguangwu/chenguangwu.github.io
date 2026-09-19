@@ -50,8 +50,8 @@
 <script src="../../js/tool-i18n.js" defer></script>
 <!-- TOOLBOX-I18N-SCRIPT -->
 
-<meta name="title-en" content="Analysis Spacing">
-<meta name="desc-en" content="Analysis Spacing - online utility on ToolBox.">
+<meta name="title-en" content="Climbing Bolt Spacing and Force Analysis">
+<meta name="desc-en" content="Climbing Bolt Spacing and Force Analysis - per-anchor load from sling angle, safety factor and suggested bolt count.">
 <!-- TOOLBOX-HREFLANG -->
 <link rel="alternate" hreflang="zh-CN" href="https://chenguangwu.github.io/tools/sports/analysis-spacing.html">
 <link rel="alternate" hreflang="zh-TW" href="https://chenguangwu.github.io/zh-tw/tools/sports/analysis-spacing.html">
@@ -92,12 +92,15 @@
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="攀岩挂片间距与受力分析在线工具">Bolt spacing, fall factor and force analysis for climbing protection.</p>
 <div class="formula-box">
   <div class="formula-title">📐 工作原理与说明</div>
-  
+  <p class="formula-desc" data-zh="按保护站几何与坠落载荷估算单锚分担载荷：两条扁带夹角为 θ 时，单锚受力 = 坠落冲击力 ÷ (2 × cos(θ ÷ 2))，夹角越大单锚分担越大。工具同时按所选间距与路线长度估算布点数量，并对间距与夹角是否落在常用安全区间给出提示。结果为简化静力模型估算，不能替代攀岩装备认证与现场专业评估。"></p>
 </div>
 
-<label>输入数据（逗号或换行分隔）</label>
-<textarea id="data" rows="4" oninput="calc()" placeholder="例如: 10,20,30,40,50">10,20,30,40,50,60,70,80</textarea>
-<div class="toolbar"><button type="button" class="btn primary" onclick="calc()">统计分析</button><button type="button" class="btn" onclick="copyRes()">复制</button></div>
+<div class="input-row"><label>挂片间距（m）</label><input type="number" id="spacing" value="2.0" step="0.1" min="0.1" oninput="calc()"></div>
+<div class="input-row"><label>两绳夹角（°）</label><input type="number" id="angle" value="60" step="1" min="0" max="170" oninput="calc()"></div>
+<div class="input-row"><label>坠落冲击力（kN）</label><input type="number" id="force" value="12" step="0.5" min="0.1" oninput="calc()"></div>
+<div class="input-row"><label>单挂片额定强度（kN）</label><input type="number" id="rating" value="25" step="1" min="1" oninput="calc()"></div>
+<div class="input-row"><label>路线长度（m）</label><input type="number" id="routeLen" value="30" step="1" min="1" oninput="calc()"></div>
+<div class="toolbar"><button type="button" class="btn primary" onclick="calc()">保护站受力分析</button><button type="button" class="btn" onclick="copyResult()">复制结果</button></div>
 <div class="result-box" id="res"></div>
   </div>
 
@@ -128,8 +131,8 @@
 <div class="dd-example"><div class="dd-ex-title">双挂片保护站受力示例</div><div class="dd-ex-body">总受力 10 kN、两挂片夹角 60°，角度因子 0.58，则每片分担约 5.8 kN；若单挂片额定 12 kN 则安全。若夹角扩大到 90°，因子升至约 0.71，单锚 7.1 kN，仍安全但余量减小。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
-<dt>夹角越大越安全吗？</dt><dd>不一定。夹角越大（越接近平行）单锚分担越小，但夹角过小（&lt;30°）会使单锚接近总力且产生外拔力，建议控制在 60°–90° 之间。</dd>
-<dt>间距和受力有什么关系？</dt><dd>间距决定夹角：固定受力方向时，两挂片间距越小夹角越小、单锚分担越大；需结合锚点强度与地形合理布点。</dd>
+<dt>夹角越大越安全吗？</dt><dd>正好相反。两条扁带夹角 θ 越大，单锚分担越大：θ=0 时两锚各担 0.5F，60° 时约 0.58F，90° 时约 0.71F，120° 时达到 1.0F，超过 120° 会急剧放大到远超总载荷。因此建议把夹角控制在 60° 以内，任何时候都不要超过 120°。</dd>
+<dt>间距和受力有什么关系？</dt><dd>在坠落方向固定的情况下，两个挂片的间距越大，绳索汇合处的夹角也越大，单锚分担随之上升。所以加大间距能减少布点数量，却会让每颗挂片承担更多载荷；实际布点要结合挂片额定强度、岩壁质量与坠落系数综合确定。</dd>
 </dl>
 </div>
 </section>
@@ -145,7 +148,38 @@
 <!-- /注意事项区块 -->
 </div>
 <script>
-function calc(){const raw=document.getElementById("data").value.split(/[,\n\s]+/).map(s=>parseFloat(s.trim())).filter(v=>!isNaN(v));if(!raw.length){document.getElementById("res").innerHTML='<p>请输入数据</p>';return;}const n=raw.length,sum=raw.reduce((a,b)=>a+b,0),mean=sum/n;const sorted=[...raw].sort((a,b)=>a-b);const med=n%2?sorted[Math.floor(n/2)]:(sorted[n/2-1]+sorted[n/2])/2;const varr=raw.reduce((a,b)=>a+(b-mean)**2,0)/n;const std=Math.sqrt(varr);document.getElementById("res").innerHTML=`<p>数据量：<strong>${n}</strong></p><p>总和：<strong>${sum.toFixed(2)}</strong></p><p>平均值：<strong style="color:var(--primary);">${mean.toFixed(2)}</strong></p><p>中位数：<strong>${med.toFixed(2)}</strong></p><p>最小值：<strong>${sorted[0]}</strong></p><p>最大值：<strong>${sorted[n-1]}</strong></p><p>极差：<strong>${(sorted[n-1]-sorted[0]).toFixed(2)}</strong></p><p>方差：<strong>${varr.toFixed(2)}</strong></p><p>标准差：<strong>${std.toFixed(2)}</strong></p>`;}calc();function copyRes(){ToolBox.copyText(document.getElementById("res").innerText);}
+function fmt(n,d){d=d==null?2:d;return n.toLocaleString('zh-CN',{minimumFractionDigits:d,maximumFractionDigits:d});}
+function val(id){const e=document.getElementById(id);return e?parseFloat(e.value):NaN;}
+function calc(){
+  const sp=val('spacing'),ang=val('angle'),F=val('force'),R=val('rating'),L=val('routeLen');
+  const bad=[sp,ang,F,R,L].some(v=>!isFinite(v));
+  if(bad||sp<=0||F<=0||R<=0||L<=0){document.getElementById('res').innerHTML='<p>请完整填写布点与载荷参数，且均需大于 0</p>';return;}
+  if(ang<0||ang>=180){document.getElementById('res').innerHTML='<p>夹角需在 0° 到 180° 之间</p>';return;}
+  const rad=ang*Math.PI/360;
+  const cosv=Math.cos(rad);
+  if(cosv<=0.0001){document.getElementById('res').innerHTML='<p>夹角接近 180°，此静力模型不适用</p>';return;}
+  const factor=1/(2*cosv);
+  const perAnchor=F*factor;
+  const sf=R/perAnchor;
+  const bolts=Math.ceil(L/sp);
+  let spNote, angNote;
+  if(sp<0.8) spNote='间距偏密，布点成本上升且不必过于靠近';
+  else if(sp<=3) spNote='间距处于运动攀常用区间';
+  else spNote='间距偏稀，坠落距离与摆荡风险上升';
+  if(ang<=30) angNote='夹角很小，两锚接近平均分担';
+  else if(ang<=60) angNote='夹角不超过 60°，处于常用安全区间';
+  else if(ang<=90) angNote='夹角偏大，单锚受力明显上升';
+  else angNote='夹角过大，单锚受力急剧放大';
+  const riskNote=sf<2?'未满足常规安全裕度，请勿采用该布点方案':(sf<3?'安全裕度偏低，建议复核坠落系数与装备状态':'安全裕度充足');
+  document.getElementById('res').innerHTML=
+    '<p>单挂片分担载荷：<strong style="color:var(--primary);">'+fmt(perAnchor)+' kN</strong>（角度因子 '+fmt(factor,3)+'）</p>'+
+    '<p>安全系数：<strong style="color:var(--primary);">'+fmt(sf)+'</strong>（额定 '+fmt(R,0)+' kN ÷ 单锚载荷）</p>'+
+    '<p>安全评价：<strong>'+riskNote+'</strong></p>'+
+    '<p>建议布点数量：<strong>'+bolts+' 个</strong>（路线 '+fmt(L,0)+' m ÷ 间距 '+fmt(sp,1)+' m）</p>'+
+    '<p>间距评价：<strong>'+spNote+'</strong></p>'+
+    '<p>夹角评价：<strong>'+angNote+'</strong></p>';
+}
+calc();function copyResult(){ToolBox.copyText(document.getElementById('res').innerText);}
 </script>
 
 <!-- SEO 介绍区块 -->

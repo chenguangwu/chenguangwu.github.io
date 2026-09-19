@@ -50,8 +50,8 @@
 <script src="../../js/tool-i18n.js" defer></script>
 <!-- TOOLBOX-I18N-SCRIPT -->
 
-<meta name="title-en" content="Stats 8">
-<meta name="desc-en" content="Stats 8 - online utility on ToolBox.">
+<meta name="title-en" content="Soccer Match Statistics">
+<meta name="desc-en" content="Soccer Match Statistics - possession rate, pass completion rate for both sides and their difference.">
 <!-- TOOLBOX-HREFLANG -->
 <link rel="alternate" hreflang="zh-CN" href="https://chenguangwu.github.io/tools/sports/stats-8.html">
 <link rel="alternate" hreflang="zh-TW" href="https://chenguangwu.github.io/zh-tw/tools/sports/stats-8.html">
@@ -92,12 +92,16 @@
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="控球率/传球成功">A soccer match statistics tool: enter possession, pass-success rate and shots to summarize team technique-tactics metrics for post-match analysis.</p>
 <div class="formula-box">
   <div class="formula-title">📐 工作原理与说明</div>
-  
+  <p class="formula-desc" data-zh="按一场比赛的实际统计录入双方控球时间与传球数据，计算控球率、传球成功率、每分钟传球数等指标并用差值对比当场表现。控球率 = 本方控球时间 ÷ 比赛时长 × 100%，传球成功率 = 成功传球 ÷ 传球总次数 × 100%。数据仅在浏览器本地处理。"></p>
 </div>
 
-<label>输入数据（逗号或换行分隔）</label>
-<textarea id="data" rows="4" oninput="calc()" placeholder="例如: 10,20,30,40,50">10,20,30,40,50,60,70,80</textarea>
-<div class="toolbar"><button type="button" class="btn primary" onclick="calc()">统计分析</button><button type="button" class="btn" onclick="copyRes()">复制</button></div>
+<div class="input-row"><label>比赛时长（分钟）</label><input type="number" id="matchMin" value="90" step="1" min="1" oninput="calc()"></div>
+<div class="input-row"><label>本方控球时间（分钟）</label><input type="number" id="possMin" value="52" step="0.5" min="0" oninput="calc()"></div>
+<div class="input-row"><label>本方传球总次数</label><input type="number" id="passTotal" value="480" step="1" min="0" oninput="calc()"></div>
+<div class="input-row"><label>本方传球成功次数</label><input type="number" id="passOk" value="408" step="1" min="0" oninput="calc()"></div>
+<div class="input-row"><label>对手传球总次数</label><input type="number" id="oppTotal" value="320" step="1" min="0" oninput="calc()"></div>
+<div class="input-row"><label>对手传球成功次数</label><input type="number" id="oppOk" value="240" step="1" min="0" oninput="calc()"></div>
+<div class="toolbar"><button type="button" class="btn primary" onclick="calc()">比赛统计</button><button type="button" class="btn" onclick="copyResult()">复制结果</button></div>
 <div class="result-box" id="res"></div>
   </div>
 
@@ -124,11 +128,12 @@
 <li>控球率与传球成功率。</li>
 <li>赛后用控球率与传球成功率定位中场失控环节，调整阵型与节奏。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">计算</div><div class="dd-ex-body">控球 54 min/90 → 60%；传球 500 成功 420 → 成功率 84%。</div></div>
+<div class="dd-example"><div class="dd-ex-title">一场比赛的两项核心比率</div><div class="dd-ex-body">一场 90 分钟的比赛，本方控球 54 分钟，则控球率 = 54 ÷ 90 = 60%；传球 500 次、成功 420 次，传球成功率 = 420 ÷ 500 = 84%。两项指标要放在一起看：控球率 60% 而传球成功率仅 84%，通常说明中场传导质量不足，球权虽多却没有形成有效推进。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
-<dt>控球率高必胜？</dt><dd>不一定，关键在转化效率。</dd>
-<dt>控球率高就赢？</dt><dd>未必，关键在有效进攻转化；高控球低射门多为无效传导。</dd>
+<dt>控球率高就一定能赢吗？</dt><dd>不一定。控球率只说明谁更多拿球，胜负取决于能否把球权转化为射门与进球。控球率明显高于对手却迟迟打不开局面，往往是传球成功率或前场三十米区域传球质量不足，属于典型的无效控球。</dd>
+<dt>传球成功率多少算合格？</dt><dd>顶级联赛球队整体传球成功率通常在 80%~90%，中场核心球员更高。判读时要区分区域：本方后场横向传导的成功率天然偏高，把它与前场向前传球混在一起统计会掩盖推进质量，实战分析建议分区统计。</dd>
+<dt>控球时间怎么得到？</dt><dd>职业比赛一般由赛事数据商统计。自行统计时可用分段计时法：把比赛切成若干时段，分别记录本方持球时段后求和，误差通常在几分钟内，用于教学与业余比赛复盘已经足够。</dd>
 </dl>
 </div>
 </section>
@@ -144,7 +149,30 @@
 <!-- /注意事项区块 -->
 </div>
 <script>
-function calc(){const raw=document.getElementById("data").value.split(/[,\n\s]+/).map(s=>parseFloat(s.trim())).filter(v=>!isNaN(v));if(!raw.length){document.getElementById("res").innerHTML='<p>请输入数据</p>';return;}const n=raw.length,sum=raw.reduce((a,b)=>a+b,0),mean=sum/n;const sorted=[...raw].sort((a,b)=>a-b);const med=n%2?sorted[Math.floor(n/2)]:(sorted[n/2-1]+sorted[n/2])/2;const varr=raw.reduce((a,b)=>a+(b-mean)**2,0)/n;const std=Math.sqrt(varr);document.getElementById("res").innerHTML=`<p>数据量：<strong>${n}</strong></p><p>总和：<strong>${sum.toFixed(2)}</strong></p><p>平均值：<strong style="color:var(--primary);">${mean.toFixed(2)}</strong></p><p>中位数：<strong>${med.toFixed(2)}</strong></p><p>最小值：<strong>${sorted[0]}</strong></p><p>最大值：<strong>${sorted[n-1]}</strong></p><p>极差：<strong>${(sorted[n-1]-sorted[0]).toFixed(2)}</strong></p><p>方差：<strong>${varr.toFixed(2)}</strong></p><p>标准差：<strong>${std.toFixed(2)}</strong></p>`;}calc();function copyRes(){ToolBox.copyText(document.getElementById("res").innerText);}
+function fmt(n,d){d=d==null?2:d;return n.toLocaleString('zh-CN',{minimumFractionDigits:d,maximumFractionDigits:d});}
+function val(id){const e=document.getElementById(id);return e?parseFloat(e.value):NaN;}
+function calc(){
+  const mm=val('matchMin'),pm=val('possMin'),pt=val('passTotal'),po=val('passOk'),ot=val('oppTotal'),oo=val('oppOk');
+  const bad=[mm,pm,pt,po,ot,oo].some(v=>!isFinite(v));
+  if(bad||mm<=0){document.getElementById('res').innerHTML='<p>请完整填写比赛数据，时长需大于 0</p>';return;}
+  if(pm>mm){document.getElementById('res').innerHTML='<p>控球时间不能超过比赛时长</p>';return;}
+  if(po>pt||oo>ot){document.getElementById('res').innerHTML='<p>传球成功次数不能多于传球总次数</p>';return;}
+  const myPoss=pm/mm*100, oppPoss=100-myPoss;
+  const myRate=pt>0?po/pt*100:0, oppRate=ot>0?oo/ot*100:0;
+  const diff=myRate-oppRate;
+  const perMin=pt/mm;
+  const allTotal=pt+ot, allOk=po+oo, allRate=allTotal>0?allOk/allTotal*100:0;
+  const leadWho=diff>0?'本方占优':(diff<0?'对手占优':'双方持平');
+  document.getElementById('res').innerHTML=
+    '<p>本方控球率：<strong style="color:var(--primary);">'+fmt(myPoss)+'%</strong>（控球 '+fmt(pm,1)+' 分钟）</p>'+
+    '<p>对手控球率：<strong>'+fmt(oppPoss)+'%</strong>（控球 '+fmt(mm-pm,1)+' 分钟）</p>'+
+    '<p>本方传球成功率：<strong style="color:var(--primary);">'+fmt(myRate)+'%</strong>（'+fmt(po,0)+' / '+fmt(pt,0)+'）</p>'+
+    '<p>对手传球成功率：<strong>'+fmt(oppRate)+'%</strong>（'+fmt(oo,0)+' / '+fmt(ot,0)+'）</p>'+
+    '<p>传球成功率差值：<strong>'+(diff>=0?'+':'')+fmt(diff)+'</strong> 个百分点（'+leadWho+'）</p>'+
+    '<p>本方每分钟传球：<strong>'+fmt(perMin)+'</strong> 次</p>'+
+    '<p>全场合计成功率：<strong>'+fmt(allRate)+'%</strong>（'+fmt(allOk,0)+' / '+fmt(allTotal,0)+'）</p>';
+}
+calc();function copyResult(){ToolBox.copyText(document.getElementById('res').innerText);}
 </script>
 
 <!-- SEO 介绍区块 -->

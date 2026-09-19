@@ -178,12 +178,17 @@ const CASES = [
 {
   "slug": "metallurgy/analysis-grade",
   "inputs": {
-    "data": "5,15,25,35,45"
+    "qOre": "2400",
+    "gradeOre": "1.20",
+    "gradeConc": "26",
+    "gradeTail": "0.12"
   },
   "expect": [
-    "14.14"
+    "4.17",
+    "90.42",
+    "21.67"
   ],
-  "ref": "de-default: 均值25、方差200 → σ=14.14（原 expect \"80_X\" 为 textarea.value 回显）"
+  "ref": "二产品平衡：Q=2400t、α=1.20%、β=26%、θ=0.12% → γ=(1.20−0.12)/(26−0.12)=4.17%、ε=γ·β/α=90.42%、富集比=26/1.20=21.67（独立复算，非页面默认 1000/0.85/22/0.09）"
 },
 {
   "slug": "metallurgy/analysis-heatmap",
