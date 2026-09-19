@@ -168,12 +168,19 @@ const CASES = [
 {
   "slug": "metallurgy/analysis-34",
   "inputs": {
-    "data": "2,4,6,8,10"
+    "data": "0.62,0.64,0.61,0.65,0.63,0.60",
+    "cert": "0.63",
+    "blank": "0.63",
+    "spadd": "0.30",
+    "spfound": "0.92",
+    "rsdlim": "3",
+    "relim": "2"
   },
   "expect": [
-    "2.83"
+    "96.67",
+    "-0.79"
   ],
-  "ref": "de-default: 标准差 σ=√8=2.83（原 expect \"80_X\" 为 textarea.value 回显，calc 全坏亦通过；默认 10..80 组 σ=22.91）"
+  "ref": "化验质量统计：mean=0.6250%；RE=(0.625−0.63)÷0.63=−0.79%（依赖 cert），加标回收率=(0.92−0.63)÷0.30=96.67%（依赖 blank/spadd/spfound）。两项均依赖数值输入框，回退默认时分别为 +25.00% 与 95.00%，必不命中。注：RSD 只依赖 textarea，而该输入在回退模拟中不参与替换，按其设 expect 会被判逃生项，故不采用"
 },
 {
   "slug": "metallurgy/analysis-grade",

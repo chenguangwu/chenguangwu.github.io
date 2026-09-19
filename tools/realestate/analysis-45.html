@@ -50,8 +50,8 @@
 <script src="../../js/tool-i18n.js" defer></script>
 <!-- TOOLBOX-I18N-SCRIPT -->
 
-<meta name="title-en" content="Analysis 45">
-<meta name="desc-en" content="Analysis 45 - online utility on ToolBox.">
+<meta name="title-en" content="Retail Footfall and Sales Density Analysis">
+<meta name="desc-en" content="Retail Footfall and Sales Density Analysis - buying visitors, daily sales, sales per square metre and rent-to-sales ratio.">
 <!-- TOOLBOX-HREFLANG -->
 <link rel="alternate" hreflang="zh-CN" href="https://chenguangwu.github.io/tools/realestate/analysis-45.html">
 <link rel="alternate" hreflang="zh-TW" href="https://chenguangwu.github.io/zh-tw/tools/realestate/analysis-45.html">
@@ -95,13 +95,36 @@
     <h2 data-zh="📐 商业（体量/业态/客流）分析">📐 Commercial Space &amp; Footfall Analysis</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="体量/业态/客流">Analyze a commercial project's scale mix, business-format combination and footfall capacity from input parameters.</p>
 <div class="formula-box">
-  <div class="formula-title">📐 工作原理与说明</div>
-  
+  <div class="formula-title">📐 计算公式</div>
+  <div class="formula-eq">日均销售额 = 日均客流 × 提袋率 × 客单价；坪效 = 日均销售额 ÷ 可租赁面积；租售比 = 年租金 ÷ 年销售额</div>
+  <p class="formula-desc" data-zh="按「客流—转化—客单—坪效—租售比」的顺序把商业项目的经营表现拆成可核查的几级指标：先由客流与提袋率得到有效购买人次，乘以客单价得到销售额，再与可租赁面积算出坪效、与租金收入算出租售比。所有折算在本地浏览器完成，输入数据不会上传。"></p>
 </div>
 
-<label>输入数据（逗号或换行分隔）</label>
-<textarea id="data" rows="4" oninput="calc()" placeholder="例如: 10,20,30,40,50">10,20,30,40,50,60,70,80</textarea>
-<div class="toolbar"><button type="button" class="btn primary" onclick="calc()">统计分析</button><button type="button" class="btn" onclick="copyRes()">复制</button></div>
+<div class="input-row">
+  <label>可租赁面积 GLA（㎡）</label>
+  <input type="number" id="gla" value="45000" step="1000" min="0" oninput="calc()">
+</div>
+<div class="input-row">
+  <label>日均客流（人次/天）</label>
+  <input type="number" id="flow" value="32000" step="500" min="0" oninput="calc()">
+</div>
+<div class="input-row">
+  <label>提袋率（产生购买的比例，%）</label>
+  <input type="number" id="bag" value="18" step="1" min="0" max="100" oninput="calc()">
+</div>
+<div class="input-row">
+  <label>客单价（元）</label>
+  <input type="number" id="ticket" value="120" step="5" min="0" oninput="calc()">
+</div>
+<div class="input-row">
+  <label>平均月租金（元/㎡·月）</label>
+  <input type="number" id="rentm" value="60" step="5" min="0" oninput="calc()">
+</div>
+<div class="input-row">
+  <label>出租率（%）</label>
+  <input type="number" id="occ" value="92" step="1" min="0" max="100" oninput="calc()">
+</div>
+<div class="toolbar"><button type="button" class="btn primary" onclick="calc()">测算</button><button type="button" class="btn" onclick="copyResult()">复制结果</button></div>
 <div class="result-box" id="res"></div>
   </div>
 
@@ -150,7 +173,39 @@
 <!-- /注意事项区块 -->
 </div>
 <script>
-function calc(){const raw=document.getElementById("data").value.split(/[,\n\s]+/).map(s=>parseFloat(s.trim())).filter(v=>!isNaN(v));if(!raw.length){document.getElementById("res").innerHTML='<p>请输入数据</p>';return;}const n=raw.length,sum=raw.reduce((a,b)=>a+b,0),mean=sum/n;const sorted=[...raw].sort((a,b)=>a-b);const med=n%2?sorted[Math.floor(n/2)]:(sorted[n/2-1]+sorted[n/2])/2;const varr=raw.reduce((a,b)=>a+(b-mean)**2,0)/n;const std=Math.sqrt(varr);document.getElementById("res").innerHTML=`<p>数据量：<strong>${n}</strong></p><p>总和：<strong>${sum.toFixed(2)}</strong></p><p>平均值：<strong style="color:var(--primary);">${mean.toFixed(2)}</strong></p><p>中位数：<strong>${med.toFixed(2)}</strong></p><p>最小值：<strong>${sorted[0]}</strong></p><p>最大值：<strong>${sorted[n-1]}</strong></p><p>极差：<strong>${(sorted[n-1]-sorted[0]).toFixed(2)}</strong></p><p>方差：<strong>${varr.toFixed(2)}</strong></p><p>标准差：<strong>${std.toFixed(2)}</strong></p>`;}calc();function copyRes(){ToolBox.copyText(document.getElementById("res").innerText);}
+function fmt(n,d){d=d==null?2:d;return n.toLocaleString('zh-CN',{minimumFractionDigits:d,maximumFractionDigits:d});}
+function calc(){
+  var gla=parseFloat(document.getElementById("gla").value);
+  var flow=parseFloat(document.getElementById("flow").value);
+  var bag=parseFloat(document.getElementById("bag").value);
+  var ticket=parseFloat(document.getElementById("ticket").value);
+  var rentm=parseFloat(document.getElementById("rentm").value);
+  var occ=parseFloat(document.getElementById("occ").value);
+  if(!(gla>0)||!(flow>=0)||!isFinite(bag)||!isFinite(ticket)||!isFinite(rentm)||!isFinite(occ)){document.getElementById("res").innerHTML='<p>请填写完整的可租赁面积、客流、提袋率、客单价与租金参数</p>';return;}
+  var buyers=flow*bag/100;
+  var daySales=buyers*ticket;
+  var yearSales=daySales*365;
+  var puxiao=daySales/gla;
+  var yearRent=gla*rentm*12*occ/100;
+  var ratio=yearSales>0?yearRent/yearSales*100:null;
+  var ratioTxt=ratio!==null?fmt(ratio,2)+'%':'—';
+  var verdict;
+  if(ratio===null){verdict='年销售额为 0，无法计算租售比';}
+  else if(ratio<10){verdict='租售比偏低，商户经营压力小，可考虑适度提租';}
+  else if(ratio<=15){verdict='租售比处于 10%~15% 的健康区间';}
+  else if(ratio<=20){verdict='租售比偏高，商户承压，需关注掉铺风险';}
+  else{verdict='租售比超过 20%，商户难以负担，应下调租金或调整业态';}
+  var html='<p>日均有效购买人次：<strong>'+fmt(buyers,0)+' 人</strong></p>'+
+    '<p>日均销售额：<strong style="color:var(--primary);">'+fmt(daySales/10000,2)+' 万元</strong></p>'+
+    '<p>年销售额：<strong>'+fmt(yearSales/10000,2)+' 万元</strong></p>'+
+    '<p>坪效：<strong>'+fmt(puxiao,2)+' 元/㎡·天</strong></p>'+
+    '<p>年租金收入：<strong>'+fmt(yearRent/10000,2)+' 万元</strong></p>'+
+    '<p>租售比：<strong style="color:var(--primary);">'+ratioTxt+'</strong></p>'+
+    '<p>单位客流贡献：<strong>'+(flow>0?fmt(daySales/flow,2)+' 元/人次':'—')+'</strong></p>'+
+    '<p>判读：<strong>'+verdict+'</strong></p>';
+  document.getElementById("res").innerHTML=html;
+}
+calc();function copyResult(){ToolBox.copyText(document.getElementById("res").innerText);}
 </script>
 
 <!-- SEO 介绍区块 -->

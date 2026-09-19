@@ -50,8 +50,8 @@
 <script src="../../js/tool-i18n.js" defer></script>
 <!-- TOOLBOX-I18N-SCRIPT -->
 
-<meta name="title-en" content="Cost">
-<meta name="desc-en" content="Cost - online utility on ToolBox.">
+<meta name="title-en" content="Cost Accounting and CVP Model">
+<meta name="desc-en" content="Cost Accounting and CVP Model - full absorption unit cost, contribution margin, break-even volume and target-margin pricing.">
 <!-- TOOLBOX-HREFLANG -->
 <link rel="alternate" hreflang="zh-CN" href="https://chenguangwu.github.io/tools/accounting/analysis-cost-5.html">
 <link rel="alternate" hreflang="zh-TW" href="https://chenguangwu.github.io/zh-tw/tools/accounting/analysis-cost-5.html">
@@ -95,13 +95,48 @@
     <h2 data-zh="💰 成本（核算/分析/控制）方法">💰 Cost Accounting and Analysis Method</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="核算/分析/控制">Classify and analyze product costs, separate fixed from variable cost thresholds and produce descriptive cost statistics.</p>
 <div class="formula-box">
-  <div class="formula-title">📐 工作原理与说明</div>
-  
+  <div class="formula-title">📐 计算公式</div>
+  <div class="formula-eq">单位完全成本 = 单位变动成本 + 固定制造费用 ÷ 产量；保本量 = 固定成本总额 ÷ 单位边际贡献</div>
+  <p class="formula-desc" data-zh="按「吸收成本法」归集：直接材料、直接人工与变动制造费用随产量变动，固定制造费用按当期产量分摊。与其配套的边际贡献分析把成本重新划分为变动与固定两部分，单位边际贡献等于单价减单位变动成本，用它除以全部固定成本即得盈亏平衡产量。两种口径并列输出，便于对比「账面完全成本」与「决策相关成本」的差异。所有计算在本地浏览器完成。"></p>
 </div>
 
-<label>输入数据（逗号或换行分隔）</label>
-<textarea id="data" rows="4" oninput="calc()" placeholder="例如: 10,20,30,40,50">10,20,30,40,50,60,70,80</textarea>
-<div class="toolbar"><button type="button" class="btn primary" onclick="calc()">统计分析</button><button type="button" class="btn" onclick="copyRes()">复制</button></div>
+<div class="input-row">
+  <label>当期产量（件）</label>
+  <input type="number" id="qty" value="12000" step="500" min="1" oninput="calc()">
+</div>
+<div class="input-row">
+  <label>单位直接材料（元/件）</label>
+  <input type="number" id="mat" value="40" step="1" min="0" oninput="calc()">
+</div>
+<div class="input-row">
+  <label>单位直接人工（元/件）</label>
+  <input type="number" id="lab" value="20" step="1" min="0" oninput="calc()">
+</div>
+<div class="input-row">
+  <label>单位变动制造费用（元/件）</label>
+  <input type="number" id="vmoh" value="10" step="1" min="0" oninput="calc()">
+</div>
+<div class="input-row">
+  <label>固定制造费用总额（元）</label>
+  <input type="number" id="fmoh" value="180000" step="10000" min="0" oninput="calc()">
+</div>
+<div class="input-row">
+  <label>单位变动销售费用（元/件）</label>
+  <input type="number" id="vsale" value="5" step="1" min="0" oninput="calc()">
+</div>
+<div class="input-row">
+  <label>固定销售管理费用总额（元）</label>
+  <input type="number" id="fsale" value="120000" step="10000" min="0" oninput="calc()">
+</div>
+<div class="input-row">
+  <label>单位售价（元/件）</label>
+  <input type="number" id="price" value="121" step="1" min="0" oninput="calc()">
+</div>
+<div class="input-row">
+  <label>目标毛利率（%）</label>
+  <input type="number" id="gm" value="30" step="1" min="0" max="99" oninput="calc()">
+</div>
+<div class="toolbar"><button type="button" class="btn primary" onclick="calc()">核算</button><button type="button" class="btn" onclick="copyResult()">复制结果</button></div>
 <div class="result-box" id="res"></div>
   </div>
 
@@ -149,7 +184,51 @@
 <!-- /注意事项区块 -->
 </div>
 <script>
-function calc(){const raw=document.getElementById("data").value.split(/[,\n\s]+/).map(s=>parseFloat(s.trim())).filter(v=>!isNaN(v));if(!raw.length){document.getElementById("res").innerHTML='<p>请输入数据</p>';return;}const n=raw.length,sum=raw.reduce((a,b)=>a+b,0),mean=sum/n;const sorted=[...raw].sort((a,b)=>a-b);const med=n%2?sorted[Math.floor(n/2)]:(sorted[n/2-1]+sorted[n/2])/2;const varr=raw.reduce((a,b)=>a+(b-mean)**2,0)/n;const std=Math.sqrt(varr);document.getElementById("res").innerHTML=`<p>数据量：<strong>${n}</strong></p><p>总和：<strong>${sum.toFixed(2)}</strong></p><p>平均值：<strong style="color:var(--primary);">${mean.toFixed(2)}</strong></p><p>中位数：<strong>${med.toFixed(2)}</strong></p><p>最小值：<strong>${sorted[0]}</strong></p><p>最大值：<strong>${sorted[n-1]}</strong></p><p>极差：<strong>${(sorted[n-1]-sorted[0]).toFixed(2)}</strong></p><p>方差：<strong>${varr.toFixed(2)}</strong></p><p>标准差：<strong>${std.toFixed(2)}</strong></p>`;}calc();function copyRes(){ToolBox.copyText(document.getElementById("res").innerText);}
+function fmt(n,d){d=d==null?2:d;return n.toLocaleString('zh-CN',{minimumFractionDigits:d,maximumFractionDigits:d});}
+function calc(){
+  var qty=parseFloat(document.getElementById("qty").value);
+  var mat=parseFloat(document.getElementById("mat").value)||0;
+  var lab=parseFloat(document.getElementById("lab").value)||0;
+  var vmoh=parseFloat(document.getElementById("vmoh").value)||0;
+  var fmoh=parseFloat(document.getElementById("fmoh").value)||0;
+  var vsale=parseFloat(document.getElementById("vsale").value)||0;
+  var fsale=parseFloat(document.getElementById("fsale").value)||0;
+  var price=parseFloat(document.getElementById("price").value);
+  var gm=parseFloat(document.getElementById("gm").value);
+  if(!(qty>0)||!isFinite(price)){document.getElementById("res").innerHTML='<p>请填写有效的当期产量与单位售价</p>';return;}
+  if(!isFinite(gm)||gm<0||gm>=100){gm=0;}
+  var mfgVar=mat+lab+vmoh;
+  var vcAll=mfgVar+vsale;
+  var unitFixed=fmoh/qty;
+  var uc=mfgVar+unitFixed;
+  var cm=price-vcAll;
+  var cmRate=price>0?cm/price*100:null;
+  var fixedAll=fmoh+fsale;
+  var beQty=cm>0?fixedAll/cm:null;
+  var beAmt=beQty!==null?beQty*price:null;
+  var mos=(beQty!==null&&qty>0)?(qty-beQty)/qty*100:null;
+  var cmTotal=cm*qty;
+  var profit=cmTotal-fixedAll;
+  var unitProfit=price-uc;
+  var targetPrice=uc/(1-gm/100);
+  var verdict=cm>0?'单位边际贡献为正，超出保本量的部分即为利润':'单位边际贡献不为正，卖得越多亏损越大，应优先提价或压缩单位变动成本';
+  var html='<p>单位变动制造成本：<strong>'+fmt(mfgVar,2)+' 元</strong></p>'+
+    '<p>单位固定制造费用分摊：<strong>'+fmt(unitFixed,2)+' 元</strong></p>'+
+    '<p>单位完全成本（吸收成本法）：<strong style="color:var(--primary);">'+fmt(uc,2)+' 元</strong></p>'+
+    '<p>全部单位变动成本（含变动销售费用）：<strong>'+fmt(vcAll,2)+' 元</strong></p>'+
+    '<p>边际贡献总额：<strong>'+fmt(cmTotal,2)+' 元</strong></p>'+
+    '<p>单位边际贡献：<strong>'+fmt(cm,2)+' 元</strong></p>'+
+    '<p>边际贡献率：<strong>'+(cmRate!==null?fmt(cmRate,2)+'%':'—')+'</strong></p>'+
+    '<p>盈亏平衡产量：<strong>'+(beQty!==null?fmt(beQty,0)+' 件':'—')+'</strong></p>'+
+    '<p>盈亏平衡销售额：<strong>'+(beAmt!==null?fmt(beAmt,2)+' 元':'—')+'</strong></p>'+
+    '<p>安全边际率：<strong>'+(mos!==null?fmt(mos,2)+'%':'—')+'</strong></p>'+
+    '<p>当期营业利润：<strong style="color:var(--primary);">'+fmt(profit,2)+' 元</strong></p>'+
+    '<p>单位毛利（售价 − 单位完全成本）：<strong>'+fmt(unitProfit,2)+' 元</strong></p>'+
+    '<p>按目标毛利率 '+fmt(gm,0)+'% 的建议售价：<strong>'+fmt(targetPrice,2)+' 元</strong></p>'+
+    '<p>判读：<strong>'+verdict+'</strong></p>';
+  document.getElementById("res").innerHTML=html;
+}
+calc();function copyResult(){ToolBox.copyText(document.getElementById("res").innerText);}
 </script>
 
 <!-- SEO 介绍区块 -->

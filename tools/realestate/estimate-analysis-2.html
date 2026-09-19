@@ -50,8 +50,8 @@
 <script src="../../js/tool-i18n.js" defer></script>
 <!-- TOOLBOX-I18N-SCRIPT -->
 
-<meta name="title-en" content="Investment">
-<meta name="desc-en" content="Investment - online utility on ToolBox.">
+<meta name="title-en" content="Investment Appraisal and NPV/IRR Model">
+<meta name="desc-en" content="Investment Appraisal and NPV/IRR Model - net present value, internal rate of return, profitability index, static and discounted payback periods.">
 <!-- TOOLBOX-HREFLANG -->
 <link rel="alternate" hreflang="zh-CN" href="https://chenguangwu.github.io/tools/realestate/estimate-analysis-2.html">
 <link rel="alternate" hreflang="zh-TW" href="https://chenguangwu.github.io/zh-tw/tools/realestate/estimate-analysis-2.html">
@@ -95,13 +95,32 @@
     <h2 data-zh="📊 投资（分析/测算/决策）模型">📊 Investment Analysis &amp; Decision Model</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="分析/测算/决策">Model project feasibility by cash flow and return metrics for development and investment decisions.</p>
 <div class="formula-box">
-  <div class="formula-title">📐 工作原理与说明</div>
-  
+  <div class="formula-title">📐 计算公式</div>
+  <div class="formula-eq">NPV = −I₀ + Σ CF ÷ (1+r)^t + RV ÷ (1+r)^n，内部收益率 IRR 令 NPV = 0</div>
+  <p class="formula-desc" data-zh="把一次性初始投资、逐年净现金流与项目期末残值统一折现到当前时点。净现值大于 0 且内部收益率高于折现率时项目创造价值，两者出现背离（如 NPV 为正而 IRR 偏低）时以 NPV 为准。静态回收期按未折现现金流计算，动态回收期取累计折现值首次覆盖投资额的时点，并在年内线性插值。计算在浏览器本地完成，数据不会上传。"></p>
 </div>
 
-<label>输入数据（逗号或换行分隔）</label>
-<textarea id="data" rows="4" oninput="calc()" placeholder="例如: 10,20,30,40,50">10,20,30,40,50,60,70,80</textarea>
-<div class="toolbar"><button type="button" class="btn primary" onclick="calc()">统计分析</button><button type="button" class="btn" onclick="copyRes()">复制</button></div>
+<div class="input-row">
+  <label>初始投资额 I₀（万元）</label>
+  <input type="number" id="inv" value="1000" step="10" min="0" oninput="calc()">
+</div>
+<div class="input-row">
+  <label>年净现金流 CF（万元/年）</label>
+  <input type="number" id="cf" value="150" step="10" oninput="calc()">
+</div>
+<div class="input-row">
+  <label>期末残值 RV（万元）</label>
+  <input type="number" id="rv" value="120" step="10" min="0" oninput="calc()">
+</div>
+<div class="input-row">
+  <label>折现率 r（%）</label>
+  <input type="number" id="disc" value="8" step="0.5" min="0" oninput="calc()">
+</div>
+<div class="input-row">
+  <label>项目期 n（年）</label>
+  <input type="number" id="yrs" value="10" step="1" min="1" oninput="calc()">
+</div>
+<div class="toolbar"><button type="button" class="btn primary" onclick="calc()">测算</button><button type="button" class="btn" onclick="copyResult()">复制结果</button></div>
 <div class="result-box" id="res"></div>
   </div>
 
@@ -129,8 +148,8 @@
 <li>多方案比选时归一化指标排序。</li>
 <li>敏感性分析找关键变量。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">NPV 与 IRR</div><div class="dd-ex-body">初始投入 1000 万、年净现金流 150 万、折现率 8%、10 年 → NPV≈150×6.71−1000≈6.5 万&gt;0 可行；IRR 约 8.3% 略高于折现率。</div></div>
-<div class="dd-example"><div class="dd-ex-title">回收期</div><div class="dd-ex-body">静态回收期=1000/150≈6.7 年；考虑折现的动态回收期更长，约 8 年，决策时需同时满足回收期与 IRR 要求。</div></div>
+<div class="dd-example"><div class="dd-ex-title">NPV 与 IRR</div><div class="dd-ex-body">初始投入 1000 万、年净现金流 150 万、无期末残值、折现率 8%、项目期 10 年：年金现值系数 6.7101，现值合计 = 150 × 6.7101 = 1006.51 万，NPV = 6.51 万 &gt; 0，财务上可行；反解内部收益率约 8.14%，只比折现率高 0.14 个百分点，说明该项目的安全边际很薄。</div></div>
+<div class="dd-example"><div class="dd-ex-title">回收期</div><div class="dd-ex-body">同一组数据：静态回收期 = 1000 ÷ 150 ≈ 6.67 年，看上去不错；但按 8% 折现后，累计折现值要到第 9.91 年才覆盖投资额，动态回收期几乎吃满项目期。这正是静态与动态口径可能给出完全不同感受的原因，IRR 只略高于折现率时尤其明显。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
 <dt>NPV 为负还能做吗？</dt><dd>NPV&lt;0 说明折现后不创造价值，原则上不做；若战略协同或融资杠杆能改善则可另议。</dd>
@@ -150,7 +169,48 @@
 <!-- /注意事项区块 -->
 </div>
 <script>
-function calc(){const raw=document.getElementById("data").value.split(/[,\n\s]+/).map(s=>parseFloat(s.trim())).filter(v=>!isNaN(v));if(!raw.length){document.getElementById("res").innerHTML='<p>请输入数据</p>';return;}const n=raw.length,sum=raw.reduce((a,b)=>a+b,0),mean=sum/n;const sorted=[...raw].sort((a,b)=>a-b);const med=n%2?sorted[Math.floor(n/2)]:(sorted[n/2-1]+sorted[n/2])/2;const varr=raw.reduce((a,b)=>a+(b-mean)**2,0)/n;const std=Math.sqrt(varr);document.getElementById("res").innerHTML=`<p>数据量：<strong>${n}</strong></p><p>总和：<strong>${sum.toFixed(2)}</strong></p><p>平均值：<strong style="color:var(--primary);">${mean.toFixed(2)}</strong></p><p>中位数：<strong>${med.toFixed(2)}</strong></p><p>最小值：<strong>${sorted[0]}</strong></p><p>最大值：<strong>${sorted[n-1]}</strong></p><p>极差：<strong>${(sorted[n-1]-sorted[0]).toFixed(2)}</strong></p><p>方差：<strong>${varr.toFixed(2)}</strong></p><p>标准差：<strong>${std.toFixed(2)}</strong></p>`;}calc();function copyRes(){ToolBox.copyText(document.getElementById("res").innerText);}
+function fmt(n,d){d=d==null?2:d;return n.toLocaleString('zh-CN',{minimumFractionDigits:d,maximumFractionDigits:d});}
+function calc(){
+  var inv=parseFloat(document.getElementById("inv").value);
+  var cf=parseFloat(document.getElementById("cf").value);
+  var rv=parseFloat(document.getElementById("rv").value);
+  var disc=parseFloat(document.getElementById("disc").value);
+  var yrs=parseInt(document.getElementById("yrs").value,10);
+  if(!isFinite(rv)){rv=0;}
+  if(!(inv>0)||!isFinite(cf)||!(yrs>0)){document.getElementById("res").innerHTML='<p>请填写有效的初始投资额、年净现金流与项目期</p>';return;}
+  if(!isFinite(disc)||disc<0){disc=0;}
+  var r=disc/100;
+  function npvAt(x){var s=0,i;for(i=1;i<=yrs;i++){s+=cf/Math.pow(1+x,i);}return s+rv/Math.pow(1+x,yrs)-inv;}
+  var pv=0,i;
+  for(i=1;i<=yrs;i++){pv+=cf/Math.pow(1+r,i);}
+  var pvRv=rv/Math.pow(1+r,yrs);
+  var npv=pv+pvRv-inv;
+  var pi=(pv+pvRv)/inv;
+  var ir=null,irrTxt='—';
+  var lo=-0.9,hi=5;
+  if(npvAt(lo)*npvAt(hi)<0){
+    for(var k=0;k<200;k++){var mid=(lo+hi)/2;if(npvAt(lo)*npvAt(mid)<=0){hi=mid;}else{lo=mid;}}
+    ir=(lo+hi)/2;irrTxt=fmt(ir*100,2)+'%';
+  }
+  var statPay=cf>0?inv/cf:null;
+  var dynPay=null,cum=0,prev=0,t;
+  if(cf>0){
+    for(t=1;t<=yrs;t++){prev=cum;cum+=cf/Math.pow(1+r,t);if(cum>=inv){dynPay=(t-1)+(inv-prev)/(cum-prev);break;}}
+  }
+  var undisc=cf*yrs+rv;
+  var verdict=npv>0?'净现值为正，按该折现率该项目创造价值':'净现值为负，按该折现率该项目不创造价值';
+  if(ir!==null){verdict+=ir>r?'，且 IRR 高于折现率，财务上可行':'，但 IRR 低于折现率，财务上不可行';}
+  var html='<p>净现值 NPV：<strong style="color:var(--primary);">'+fmt(npv,2)+' 万元</strong></p>'+
+    '<p>内部收益率 IRR：<strong>'+irrTxt+'</strong></p>'+
+    '<p>现值指数 PI：<strong>'+fmt(pi,3)+'</strong></p>'+
+    '<p>静态回收期：<strong>'+(statPay!==null?fmt(statPay,2)+' 年':'—')+'</strong></p>'+
+    '<p>动态回收期：<strong>'+(dynPay!==null?fmt(dynPay,2)+' 年':'超过项目期 '+yrs+' 年')+'</strong></p>'+
+    '<p>折现后现金流入合计：<strong>'+fmt(pv+pvRv,2)+' 万元</strong></p>'+
+    '<p>未折现现金流合计：<strong>'+fmt(undisc,2)+' 万元</strong></p>'+
+    '<p>结论：<strong>'+verdict+'</strong></p>';
+  document.getElementById("res").innerHTML=html;
+}
+calc();function copyResult(){ToolBox.copyText(document.getElementById("res").innerText);}
 </script>
 
 <!-- SEO 介绍区块 -->
