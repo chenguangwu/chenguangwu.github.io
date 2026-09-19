@@ -175,14 +175,23 @@
 
 | # | 分类 | 工具数 | # | 分类 | 工具数 |
 |---|---|---|---|---|---|
-| 1 | (按同口径递减) | — | 2 | (按同口径递减) | — |
-| 2 | (按同口径递减) | — | 3 | (按同口径递减) | — |
-| 3 | (按同口径递减) | — | 4 | (按同口径递减) | — |
-| 4 | (按同口径递减) | — | 5 | (按同口径递减) | — |
+| 1 | fire-rescue⚠️公式缺框24 | 39 | 2 | obstetrics | 28 |
+| 3 | geometry | 28 | 4 | chemistry | 27 |
+| 5 | livestock | 27 | 6 | thermodynamics | 27 |
+| 7 | food-testing | 27 | 8 | economics | 27 |
+| 9 | signal | 27 | 10 | hematology | 27 |
+| 11 | quantum | 27 | 12 | electromagnetism | 26 |
+| 13 | structural | 26 | 14 | clinical-nursing | 26 |
+| 15 | dentistry | 26 | 16 | reproductive-medicine | 26 |
+| 17 | neurology | 25 | 18 | textile | 25 |
+| 19 | pulmonology | 25 | 20 | rheumatology | 25 |
+| 21 | banking | 25 | 22 | kinematics | 25 |
+| 23 | clinical-lab | 25 | 24 | construction | 25 |
+| 25 | cardiology | 24 | 26 | investment | 24 |
 
-> 全站 209 个分类 / 4767 个工具。上表为**剩余待收口分类**（按工具数降序）；已收口的 `it`（336）、`general`（183）、`design`（109）、`finance`（104）、`science`（98）、`sports`（78）、`life`（73）、`biz`（69）、`fun`（65）、`ai`（64）、`agriculture`（63）、`hydraulic`（56）、`automotive`（55）、`legal`（54）、`realestate`（54）、`statistics`（51）、`edu`（48）、`marketing`（45）、`surveying`（44）、`meteorology`（42）二十项已按「完成一个删一个」移除，其余分类按同口径递减。
+> 全站 209 个分类 / 约 4780 个工具。上表为**剩余待收口分类 TOP 26**（按工具数降序）；已收口 44 项（`it`/`general`/`design`/`finance`/`science`/`sports`/`life`/`biz`/`fun`/`ai`/`agriculture`/`hydraulic`/`automotive`/`legal`/`realestate`/`statistics`/`edu`/`marketing`/`surveying`/`meteorology`/`metalwork` + 本批审计全绿 23 项：`health`/`optical`/`energy`/`fishery`/`eco`/`geology`/`aerospace`/`machinery`/`math`/`fitness`/`accounting`/`securities`/`healthcare`/`insurance`/`cosmetic-derm`/`ophthalmology`/`photo`/`materials`/`encode`/`tax`/`metrology`/`nuclear`/`acoustics`/`robotics`）。其中金属加工/`metalwork` 与 23 项均「八维审计全绿 / 0 改动」收口；`fire-rescue` 审计发现 **formula 覆盖率仅 2/26（24 个计算类工具缺公式框）**，为当前唯一剩真实缺陷，已置顶优先补框，补完即收口。剩余 164 分类 / 2233 工具按同口径递减连续推进。
 
-> **收口状态（2026-09-19）**：`it` ✅ 336/336 A；`general` ✅ 183/183 A；`design` ✅ 109/109 A；`finance` ✅ 104/104 A；`science` ✅ 98/98 A；`sports` ✅ 八维审计全绿；`life`/`biz`/`fun` ✅ 八维审计全绿；`ai`/`agriculture` ✅ 八维审计全绿；`hydraulic` ✅ 八维审计全绿（cat 1 错标修 / 56/56）；`automotive` ✅ 八维审计全绿（cat 7 错标修 / 英文 i18n 全量翻译 / formula 51/51）；`legal` ✅ 八维审计全绿（cat 25 行业名错标修 finance24/health1 → calculator）；`realestate` ✅ 八维审计全绿（cat 36 行业名错标修 finance35/health1 → calculator）；`statistics` ✅ 八维审计全绿（cat=statistics 为合法功能 cat，0 改动）；`edu` ✅ 八维审计全绿（cat 全合法功能值，0 改动）；`marketing` ✅ 八维审计全绿（cat 13 行业名错标修 finance→calculator / assessor-51 套话改写）；`surveying` ✅ 八维审计全绿（cat=surveying 为合法功能 cat，0 改动）；`meteorology` ✅ 八维审计全绿（cat 全合法功能值，0 改动）。**热度榜前列 20 项已全收口；其余分类按同口径递减连续推进。**
+> **收口状态（2026-09-19）**：`it` ✅ 336/336 A；`general` ✅ 183/183 A；`design` ✅ 109/109 A；`finance` ✅ 104/104 A；`science` ✅ 98/98 A；`sports` ✅ 八维审计全绿；`life`/`biz`/`fun` ✅ 八维审计全绿；`ai`/`agriculture` ✅ 八维审计全绿；`hydraulic` ✅ 八维审计全绿（cat 1 错标修 / 56/56）；`automotive` ✅ 八维审计全绿（cat 7 错标修 / 英文 i18n 全量翻译 / formula 51/51）；`legal` ✅ 八维审计全绿（cat 25 行业名错标修 finance24/health1 → calculator）；`realestate` ✅ 八维审计全绿（cat 36 行业名错标修 finance35/health1 → calculator）；`statistics` ✅ 八维审计全绿（cat=statistics 为合法功能 cat，0 改动）；`edu` ✅ 八维审计全绿（cat 全合法功能值，0 改动）；`marketing` ✅ 八维审计全绿（cat 13 行业名错标修 finance→calculator / assessor-51 套话改写）；`surveying` ✅ 八维审计全绿（cat=surveying 为合法功能 cat，0 改动）；`meteorology` ✅ 八维审计全绿（cat 全合法功能值，0 改动）；`metalwork` ✅ 八维审计全绿（42/42 deep-dive 100%、cat 全合法功能值、英文 p/desc-en/title-en 全 0、formula 32/32、42 指南、0 改动）。**已收口 44 项（含本批审计全绿 23 项：health/optical/energy/fishery/eco/geology/aerospace/machinery/math/fitness/accounting/securities/healthcare/insurance/cosmetic-derm/ophthalmology/photo/materials/encode/tax/metrology/nuclear/acoustics/robotics 均 八维审计全绿/0改动）；下一个待收口 = fire-rescue（39 工具，formula 覆盖率 2/26 → 缺框 24 待补，补完即收口）。**
 > **取批规则**：每次取表首未收口分类，按 §4.2「每批至少 10 个工具」分批；收口标准 = §4.1 八项目标在该分类全部工具上达成。
 
 > **A 项权威口径（务必遵守）**：
