@@ -172,18 +172,18 @@
 
 | # | 分类 | 工具数 | # | 分类 | 工具数 |
 |---|---|---|---|---|---|
-| 1 | science | 98 | 9 | automotive | 55 |
-| 2 | sports | 78 | 10 | legal | 54 |
-| 3 | life | 73 | 11 | realestate | 54 |
-| 4 | biz | 69 | 12 | statistics | 51 |
-| 5 | fun | 65 | 13 | edu | 49 |
-| 6 | ai | 64 | 14 | marketing | 46 |
-| 7 | agriculture | 63 | 15 | surveying | 44 |
-| 8 | hydraulic | 56 | 16 | meteorology | 42 |
+| 1 | sports | 78 | 9 | legal | 54 |
+| 2 | life | 73 | 10 | realestate | 54 |
+| 3 | biz | 69 | 11 | statistics | 51 |
+| 4 | fun | 65 | 12 | edu | 49 |
+| 5 | ai | 64 | 13 | marketing | 46 |
+| 6 | agriculture | 63 | 14 | surveying | 44 |
+| 7 | hydraulic | 56 | 15 | meteorology | 42 |
+| 8 | automotive | 55 | 16 | (按同口径递减) | — |
 
-> 全站 209 个分类 / 4767 个工具。上表为**剩余待收口分类**（按工具数降序）；已收口的 `it`（336）、`general`（183）、`design`（109）、`finance`（104）四项已按「完成一个删一个」移除，其余分类按同口径递减。
+> 全站 209 个分类 / 4767 个工具。上表为**剩余待收口分类**（按工具数降序）；已收口的 `it`（336）、`general`（183）、`design`（109）、`finance`（104）、`science`（98）五项已按「完成一个删一个」移除，其余分类按同口径递减。
 
-> **收口状态（2026-09-19）**：`it` ✅ 336/336 A；`general` ✅ 183/183 A；`design` ✅ 109/109 A；`finance` ✅ 104/104 A（八维审计全绿：deep-dive 100% / UI 0 / cat 无异常 / formula 52/52 / 英文占位 0 / 孤儿键 0）。**下一个待收口分类 = `science`（98 工具）。**
+> **收口状态（2026-09-19）**：`it` ✅ 336/336 A；`general` ✅ 183/183 A；`design` ✅ 109/109 A；`finance` ✅ 104/104 A；`science` ✅ 98/98 A（八维审计全绿：deep-dive 100% / UI 0 / cat 无异常 / formula 58/58 / 英文占位 0 / 孤儿键 0）。**下一个待收口分类 = `sports`（78 工具）。**
 > **取批规则**：每次取表首未收口分类，按 §4.2「每批至少 10 个工具」分批；收口标准 = §4.1 八项目标在该分类全部工具上达成。
 
 > **A 项权威口径（务必遵守）**：
