@@ -53,8 +53,8 @@
 <!-- TOOLBOX-I18N-SCRIPT -->
 
 
-<meta name="title-en" content="Stats Density">
-<meta name="desc-en" content="Stats Density - online utility on ToolBox.">
+<meta name="title-en" content="Artifact Density Calculator">
+<meta name="desc-en" content="Compute excavated artifact density (pieces per m²) from counts and exposed area across trenches or sampling units.">
 <!-- TOOLBOX-HREFLANG -->
 <link rel="alternate" hreflang="zh-CN" href="https://chenguangwu.github.io/tools/archaeology/stats-density.html">
 <link rel="alternate" hreflang="zh-TW" href="https://chenguangwu.github.io/zh-tw/tools/archaeology/stats-density.html">
@@ -101,13 +101,16 @@
     <h2 data-zh="📊 遗物密度（件/平方米）统计">Stats Density</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="件/平方米">Stats Density</p>
 <div class="formula-box">
-  <div class="formula-title">📐 工作原理与说明</div>
-  <p class="formula-desc">按探方或采样单元统计单位面积（m²）内出土遗物件数，计算遗物密度（件/m²）以对比各层位与文化堆积的丰富程度，辅助发掘记录。计算在浏览器本地完成。</p>
+  <div class="formula-title">📐 计算公式</div>
+  <div class="formula-eq">遗物密度 = 出土件数 ÷ 揭露面积（件/m²）；总密度 = Σ件数 ÷ Σ面积</div>
+  <p class="formula-desc">每行输入一个探方/采样单元：出土件数, 揭露面积(㎡)。工具汇总计算总密度与各单元密度，用于对比层位堆积丰富程度。</p>
 </div>
 
-<label>输入数据（逗号或换行分隔）</label>
-<textarea id="data" rows="4" oninput="calc()" placeholder="例如: 10,20,30,40,50">10,20,30,40,50,60,70,80</textarea>
-<div class="toolbar"><button type="button" class="btn primary" onclick="calc()">统计分析</button><button type="button" class="btn" onclick="copyRes()">复制</button></div>
+<label>各探方数据（每行：件数, 面积㎡）</label>
+<textarea id="data" rows="5" oninput="calc()" placeholder="例如: 150,25&#10;40,25&#10;80,30">150,25
+40,25
+80,30</textarea>
+<div class="toolbar"><button type="button" class="btn primary" onclick="calc()">计算密度</button><button type="button" class="btn" onclick="copyResult()">复制结果</button></div>
 <div class="result-box" id="res"></div>
   </div>
 
@@ -155,7 +158,30 @@
 <!-- /注意事项区块 -->
 </div>
 <script>
-function calc(){const raw=document.getElementById("data").value.split(/[,\n\s]+/).map(s=>parseFloat(s.trim())).filter(v=>!isNaN(v));if(!raw.length){document.getElementById("res").innerHTML='<p>请输入数据</p>';return;}const n=raw.length,sum=raw.reduce((a,b)=>a+b,0),mean=sum/n;const sorted=[...raw].sort((a,b)=>a-b);const med=n%2?sorted[Math.floor(n/2)]:(sorted[n/2-1]+sorted[n/2])/2;const varr=raw.reduce((a,b)=>a+(b-mean)**2,0)/n;const std=Math.sqrt(varr);document.getElementById("res").innerHTML=`<p>数据量：<strong>${n}</strong></p><p>总和：<strong>${sum.toFixed(2)}</strong></p><p>平均值：<strong style="color:var(--primary);">${mean.toFixed(2)}</strong></p><p>中位数：<strong>${med.toFixed(2)}</strong></p><p>最小值：<strong>${sorted[0]}</strong></p><p>最大值：<strong>${sorted[n-1]}</strong></p><p>极差：<strong>${(sorted[n-1]-sorted[0]).toFixed(2)}</strong></p><p>方差：<strong>${varr.toFixed(2)}</strong></p><p>标准差：<strong>${std.toFixed(2)}</strong></p>`;}calc();function copyRes(){ToolBox.copyText(document.getElementById("res").innerText);}
+function fmt(n,d){d=d==null?2:d;return ToolBox.formatNumber(n,d);}
+function calc(){
+  var txt=document.getElementById('data').value.trim();
+  if(!txt){document.getElementById('res').innerHTML='<p>请输入探方数据</p>';return;}
+  var lines=txt.split(/[\n;；]+/).map(function(s){return s.trim();}).filter(Boolean);
+  var rows=[],totC=0,totA=0,bad=false;
+  lines.forEach(function(ln){
+    var p=ln.split(/[,，\s]+/).map(function(x){return parseFloat(x);});
+    if(p.length<2||isNaN(p[0])||isNaN(p[1])||p[1]<=0){bad=true;return;}
+    var c=p[0],a=p[1];
+    rows.push({c:c,a:a,d:c/a});totC+=c;totA+=a;
+  });
+  if(!rows.length){document.getElementById('res').innerHTML='<p style="color:var(--danger);">未识别到有效行（每行需：件数, 面积㎡）</p>';return;}
+  var totalD=totA>0?totC/totA:0;
+  var html='';
+  rows.forEach(function(r){
+    html+='<p>'+fmt(r.a,0)+' ㎡ 出土 '+fmt(r.c,0)+' 件 → 密度 <strong style="color:var(--primary);">'+fmt(r.d,2)+' 件/㎡</strong></p>';
+  });
+  html+='<p style="margin-top:6px;">合计：'+fmt(totC,0)+' 件 / '+fmt(totA,0)+' ㎡ → 总密度 <strong style="color:var(--danger);">'+fmt(totalD,2)+' 件/㎡</strong></p>';
+  if(bad)html+='<p style="font-size:12px;color:var(--text-muted);">注：已跳过无法识别的行（需「件数, 面积」且面积&gt;0）。</p>';
+  document.getElementById('res').innerHTML=html;
+}
+function copyResult(){ToolBox.copyText(document.getElementById('res').innerText);}
+calc();
 </script>
 
 <!-- SEO 介绍区块 -->

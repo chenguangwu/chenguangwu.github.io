@@ -50,8 +50,8 @@
 <script src="../../js/tool-i18n.js" defer></script>
 <!-- TOOLBOX-I18N-SCRIPT -->
 
-<meta name="title-en" content="Stats Profit">
-<meta name="desc-en" content="Stats Profit - online utility on ToolBox.">
+<meta name="title-en" content="Profit Margin Calculator">
+<meta name="desc-en" content="Compute gross/net profit and profit margins from revenue, cost, expenses and taxes; optional per-unit profit by quantity.">
 <!-- TOOLBOX-HREFLANG -->
 <link rel="alternate" hreflang="zh-CN" href="https://chenguangwu.github.io/tools/ecommerce/stats-profit.html">
 <link rel="alternate" hreflang="zh-TW" href="https://chenguangwu.github.io/zh-tw/tools/ecommerce/stats-profit.html">
@@ -95,13 +95,24 @@
     <h2 data-zh="💰 利润率（单品/店铺）统计">Stats Profit</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="单品/店铺">Stats Profit</p>
 <div class="formula-box">
-  <div class="formula-title">📐 工作原理与说明</div>
-  
+  <div class="formula-title">📐 计算公式</div>
+  <div class="formula-eq">毛利 = 营收 − 成本；净利 = 营收 − 成本 − 费用 − 税费；毛利率 = 毛利/营收；净利率 = 净利/营收</div>
+  <p class="formula-desc">输入单品或店铺的销售额、采购成本、运营费用与税费，快速测算毛利、净利与对应利润率，可选销量计算单品利润。</p>
 </div>
 
-<label>输入数据（逗号或换行分隔）</label>
-<textarea id="data" rows="4" oninput="calc()" placeholder="例如: 10,20,30,40,50">10,20,30,40,50,60,70,80</textarea>
-<div class="toolbar"><button type="button" class="btn primary" onclick="calc()">统计分析</button><button type="button" class="btn" onclick="copyRes()">复制</button></div>
+<div class="input-row">
+  <div><label>销售额 / 营收（元）</label><input type="number" id="rev" value="100000" oninput="calc()" step="any" min="0"></div>
+  <div><label>销售成本（元）</label><input type="number" id="cost" value="50000" oninput="calc()" step="any" min="0"></div>
+</div>
+<div class="input-row">
+  <div><label>运营费用（元）</label><input type="number" id="exp" value="20000" oninput="calc()" step="any" min="0"></div>
+  <div><label>税费（元）</label><input type="number" id="tax" value="3000" oninput="calc()" step="any" min="0"></div>
+</div>
+<div class="input-row">
+  <div><label>销量（件，可选）</label><input type="number" id="qty" value="0" oninput="calc()" step="any" min="0"></div>
+  <div></div>
+</div>
+<div class="toolbar"><button type="button" class="btn primary" onclick="calc()">计算利润</button><button type="button" class="btn" onclick="copyResult()">复制结果</button><button type="button" class="btn" onclick="resetForm()">重置</button></div>
 <div class="result-box" id="res"></div>
   </div>
 
@@ -150,7 +161,30 @@
 <!-- /注意事项区块 -->
 </div>
 <script>
-function calc(){const raw=document.getElementById("data").value.split(/[,\n\s]+/).map(s=>parseFloat(s.trim())).filter(v=>!isNaN(v));if(!raw.length){document.getElementById("res").innerHTML='<p>请输入数据</p>';return;}const n=raw.length,sum=raw.reduce((a,b)=>a+b,0),mean=sum/n;const sorted=[...raw].sort((a,b)=>a-b);const med=n%2?sorted[Math.floor(n/2)]:(sorted[n/2-1]+sorted[n/2])/2;const varr=raw.reduce((a,b)=>a+(b-mean)**2,0)/n;const std=Math.sqrt(varr);document.getElementById("res").innerHTML=`<p>数据量：<strong>${n}</strong></p><p>总和：<strong>${sum.toFixed(2)}</strong></p><p>平均值：<strong style="color:var(--primary);">${mean.toFixed(2)}</strong></p><p>中位数：<strong>${med.toFixed(2)}</strong></p><p>最小值：<strong>${sorted[0]}</strong></p><p>最大值：<strong>${sorted[n-1]}</strong></p><p>极差：<strong>${(sorted[n-1]-sorted[0]).toFixed(2)}</strong></p><p>方差：<strong>${varr.toFixed(2)}</strong></p><p>标准差：<strong>${std.toFixed(2)}</strong></p>`;}calc();function copyRes(){ToolBox.copyText(document.getElementById("res").innerText);}
+function fmt(n,d){d=d==null?2:d;return ToolBox.formatNumber(n,d);}
+function calc(){
+  var rev=parseFloat(document.getElementById('rev').value);
+  var cost=parseFloat(document.getElementById('cost').value);
+  var exp=parseFloat(document.getElementById('exp').value);
+  var tax=parseFloat(document.getElementById('tax').value);
+  var qty=parseFloat(document.getElementById('qty').value);
+  if(isNaN(rev)||rev<0){document.getElementById('res').innerHTML='<p>请输入有效的销售额</p>';return;}
+  cost=isNaN(cost)?0:cost;exp=isNaN(exp)?0:exp;tax=isNaN(tax)?0:tax;qty=isNaN(qty)?0:qty;
+  var gross=rev-cost;
+  var net=rev-cost-exp-tax;
+  var gm=rev>0?(gross/rev*100):0;
+  var nm=rev>0?(net/rev*100):0;
+  var perNet=qty>0?(net/qty):null;
+  var perGross=qty>0?(gross/qty):null;
+  var html='<p>毛利：<strong style="color:var(--primary);">'+fmt(gross)+' 元</strong>（毛利率 '+fmt(gm,2)+'%）</p>'+
+    '<p>净利：<strong style="color:var(--success);">'+fmt(net)+' 元</strong>（净利率 '+fmt(nm,2)+'%）</p>';
+  if(perNet!==null)html+='<p>单品净利：<strong>'+fmt(perNet,2)+' 元/件</strong>（单品毛利 '+fmt(perGross,2)+' 元/件）</p>';
+  html+='<p style="font-size:12px;color:var(--text-muted);margin-top:8px;">注：毛利扣直接成本，净利再扣费用与税费；结果仅供参考，以平台对账与税务申报为准。</p>';
+  document.getElementById('res').innerHTML=html;
+}
+function resetForm(){document.getElementById('rev').value=100000;document.getElementById('cost').value=50000;document.getElementById('exp').value=20000;document.getElementById('tax').value=3000;document.getElementById('qty').value=0;calc();}
+function copyResult(){ToolBox.copyText(document.getElementById('res').innerText);}
+calc();
 </script>
 
 <!-- SEO 介绍区块 -->

@@ -50,8 +50,8 @@
 <script src="../../js/tool-i18n.js" defer></script>
 <!-- TOOLBOX-I18N-SCRIPT -->
 
-<meta name="title-en" content="Summary Second Hand">
-<meta name="desc-en" content="Summary Second Hand - online utility on ToolBox.">
+<meta name="title-en" content="Resale Home Tax Calculator (Deed/PIT/VAT)">
+<meta name="desc-en" content="Estimate deed tax, personal income tax and VAT for a resale home from contract price, area and holding years.">
 <!-- TOOLBOX-HREFLANG -->
 <link rel="alternate" hreflang="zh-CN" href="https://chenguangwu.github.io/tools/realestate/summary-second-hand.html">
 <link rel="alternate" hreflang="zh-TW" href="https://chenguangwu.github.io/zh-tw/tools/realestate/summary-second-hand.html">
@@ -95,13 +95,24 @@
     <h2 data-zh="🧾 契税/个税/增值税（二手房）汇总">🧾 Resale Home Tax Summary (Deed/PIT/VAT)</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="二手房">Sum resale transaction taxes (deed tax, personal income tax, VAT) by general rules from contract price and holding years.</p>
 <div class="formula-box">
-  <div class="formula-title">📐 工作原理与说明</div>
-  
+  <div class="formula-title">📐 计算公式</div>
+  <div class="formula-eq">契税 = 成交价 × 税率；增值税及附加 = 不满2年按 5.6%；个税 = 满五唯一免征，否则 1%</div>
+  <p class="formula-desc">全国通用基准：住宅契税首套≤90㎡ 1%、&gt;90㎡ 1.5%，二套 1%/2%，三套及以上 3%；增值税满2年免征；个税满五唯一免征。</p>
 </div>
 
-<label>输入数据（逗号或换行分隔）</label>
-<textarea id="data" rows="4" oninput="calc()" placeholder="例如: 10,20,30,40,50">10,20,30,40,50,60,70,80</textarea>
-<div class="toolbar"><button type="button" class="btn primary" onclick="calc()">统计分析</button><button type="button" class="btn" onclick="copyRes()">复制</button></div>
+<div class="input-row">
+  <div><label>成交价（万元）</label><input type="number" id="price" value="300" oninput="calc()" step="any" min="0"></div>
+  <div><label>建筑面积（㎡）</label><input type="number" id="area" value="89" oninput="calc()" step="any" min="0"></div>
+</div>
+<div class="input-row">
+  <div><label>购房套数</label><select id="houseNo" onchange="calc()"><option value="1">首套</option><option value="2">二套</option><option value="3">三套及以上</option></select></div>
+  <div><label>房屋性质</label><select id="type" onchange="calc()"><option value="res">住宅</option><option value="nonres">非住宅</option></select></div>
+</div>
+<div class="input-row">
+  <div><label>持有年限</label><select id="years" onchange="calc()"><option value="lt2">不满2年</option><option value="ge2">满2年不满5年</option><option value="ge5">满5年</option></select></div>
+  <div><label>家庭唯一住房</label><select id="unique" onchange="calc()"><option value="1">是（满五唯一可免个税）</option><option value="0">否</option></select></div>
+</div>
+<div class="toolbar"><button type="button" class="btn primary" onclick="calc()">测算税费</button><button type="button" class="btn" onclick="copyResult()">复制结果</button><button type="button" class="btn" onclick="resetForm()">重置</button></div>
 <div class="result-box" id="res"></div>
   </div>
 
@@ -150,7 +161,32 @@
 <!-- /注意事项区块 -->
 </div>
 <script>
-function calc(){const raw=document.getElementById("data").value.split(/[,\n\s]+/).map(s=>parseFloat(s.trim())).filter(v=>!isNaN(v));if(!raw.length){document.getElementById("res").innerHTML='<p>请输入数据</p>';return;}const n=raw.length,sum=raw.reduce((a,b)=>a+b,0),mean=sum/n;const sorted=[...raw].sort((a,b)=>a-b);const med=n%2?sorted[Math.floor(n/2)]:(sorted[n/2-1]+sorted[n/2])/2;const varr=raw.reduce((a,b)=>a+(b-mean)**2,0)/n;const std=Math.sqrt(varr);document.getElementById("res").innerHTML=`<p>数据量：<strong>${n}</strong></p><p>总和：<strong>${sum.toFixed(2)}</strong></p><p>平均值：<strong style="color:var(--primary);">${mean.toFixed(2)}</strong></p><p>中位数：<strong>${med.toFixed(2)}</strong></p><p>最小值：<strong>${sorted[0]}</strong></p><p>最大值：<strong>${sorted[n-1]}</strong></p><p>极差：<strong>${(sorted[n-1]-sorted[0]).toFixed(2)}</strong></p><p>方差：<strong>${varr.toFixed(2)}</strong></p><p>标准差：<strong>${std.toFixed(2)}</strong></p>`;}calc();function copyRes(){ToolBox.copyText(document.getElementById("res").innerText);}
+function fmt(n,d){d=d==null?2:d;return ToolBox.formatNumber(n,d);}
+function calc(){
+  var p=parseFloat(document.getElementById('price').value)*10000;
+  var area=parseFloat(document.getElementById('area').value);
+  var no=parseInt(document.getElementById('houseNo').value,10);
+  var typ=document.getElementById('type').value;
+  var yr=document.getElementById('years').value;
+  var uni=document.getElementById('unique').value==='1';
+  if(isNaN(p)||p<=0||isNaN(area)||area<=0){document.getElementById('res').innerHTML='<p>请输入有效的成交价与建筑面积</p>';return;}
+  var deed;
+  if(typ==='nonres'){deed=p*0.03;}
+  else{var big=area>90;if(no===1)deed=p*(big?0.015:0.01);else if(no===2)deed=p*(big?0.02:0.01);else deed=p*0.03;}
+  var vat=(typ==='res'&&yr!=='lt2')?0:p*0.056;
+  var pit=(typ==='res')?((yr==='ge5'&&uni)?0:p*0.01):p*0.01;
+  var total=deed+vat+pit;
+  document.getElementById('res').innerHTML=
+    '<p>契税：<strong style="color:var(--primary);">'+fmt(deed)+' 元</strong></p>'+
+    '<p>增值税及附加：<strong>'+fmt(vat)+' 元</strong></p>'+
+    '<p>个人所得税：<strong>'+fmt(pit)+' 元</strong></p>'+
+    '<p>合计税费：<strong style="color:var(--danger);">'+fmt(total)+' 元</strong></p>'+
+    '<p style="font-size:13px;color:var(--text-muted);">税费约占成交价 '+(total/p*100).toFixed(2)+'%（成交价 '+fmt(p,0)+' 元）</p>'+
+    '<p style="font-size:12px;color:var(--text-muted);margin-top:8px;">注：按全国通用基准简化测算；实际契税优惠、增值税"满2年"、个税"满五唯一"及非住宅差额征收以当地政策为准。</p>';
+}
+function resetForm(){document.getElementById('price').value=300;document.getElementById('area').value=89;document.getElementById('houseNo').value='1';document.getElementById('type').value='res';document.getElementById('years').value='lt2';document.getElementById('unique').value='1';calc();}
+function copyResult(){ToolBox.copyText(document.getElementById('res').innerText);}
+calc();
 </script>
 
 <!-- SEO 介绍区块 -->
