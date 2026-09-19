@@ -64,11 +64,21 @@ def load(p):
         return json.load(f)
 
 
-deep = load(os.path.join(I18N, 'content_deepdive.json'))
-body = load(os.path.join(I18N, f'{IND}-body.json'))
-sjson = load(os.path.join(I18N, f'{IND}.json'))
-enov = load(os.path.join(I18N, '_en_override.json'))
-ind = load(os.path.join(ROOT, 'json', f'industry-{IND}.json'))
+def load_opt(p):
+    """可选加载：行业可能只有分类页、没有 <ind>.json / <ind>-body.json
+    （如 network 只有 index.html 与 network-body.json），缺文件不得让审计崩。"""
+    try:
+        with open(p, encoding='utf-8') as f:
+            return json.load(f)
+    except Exception:
+        return {}
+
+
+deep = load_opt(os.path.join(I18N, 'content_deepdive.json'))
+body = load_opt(os.path.join(I18N, f'{IND}-body.json'))
+sjson = load_opt(os.path.join(I18N, f'{IND}.json'))
+enov = load_opt(os.path.join(I18N, '_en_override.json'))
+ind = load_opt(os.path.join(ROOT, 'json', f'industry-{IND}.json'))
 
 def _is_redirect_stub(path):
     """TOOLBOX-REDIRECT 存根 = 迁移占位，不含工具内容。
@@ -83,10 +93,58 @@ def _is_redirect_stub(path):
         return False
 
 
-tools = sorted(os.path.basename(f)[:-5] for f in glob.glob(os.path.join(TOOLS, '*.html'))
-               if os.path.basename(f) != 'index.html' and not _is_redirect_stub(f))
+def _meta_industry(path):
+    """页面自报行业（`<meta name="toolbox" content="...industry=X...">`，即 tools.json 的 industry）。
+
+    与 _slug_of / 深度解析键同口径：**行业归属看 meta，不看目录名**。
+    目录里混入的「物理在 A 目录、声明为 B 行业」页不得计入 A 的收口分母。
+    """
+    try:
+        with open(path, encoding='utf-8') as f:
+            s = f.read(3000)
+        m = re.search(r'name="toolbox" content="([^"]*)"', s)
+        if not m:
+            return None
+        mm = re.search(r'industry=([a-z0-9-]+)', m.group(1))
+        return mm.group(1) if mm else None
+    except Exception:
+        return None
+
+
+# 工具清单唯一权威源 = json/tools.json 的 industry 字段（页面 meta industry 是它的同源副本）。
+# **不按目录名枚举**：tools/finance/ 下混有 8 个声明为他行业的「错位页」，按目录枚举
+# 会把它们从本行业漏掉、又错计进 finance 的分母（实测 4767 页里恰好 8 页会错位）。
+_ALL_TJ = load(os.path.join(ROOT, 'json', 'tools.json'))
+_ALL_TJ = _ALL_TJ['tools'] if isinstance(_ALL_TJ, dict) and 'tools' in _ALL_TJ else _ALL_TJ
+_sel = []
+for _t in _ALL_TJ:
+    if _t.get('industry') != IND:
+        continue
+    _p = os.path.join(ROOT, 'tools', _t['path'])
+    if not os.path.exists(_p):
+        continue
+    if os.path.basename(_p) == 'index.html' or _is_redirect_stub(_p):
+        continue
+    _sel.append((os.path.splitext(os.path.basename(_p))[0], _p))
+tools = sorted(_s for _s, _p in _sel)
+PATHS = {_s: _p for _s, _p in _sel}
 N = len(tools)
-print(f"=== {IND} 真实工具数: {N} ===\n")
+print(f"=== {IND} 真实工具数: {N} ===")
+# 目录内错位页（物理在本目录、声明为他行业）：不计入本分类分母，但必须上报
+_alien = [(os.path.basename(f)[:-5], _meta_industry(f))
+          for f in glob.glob(os.path.join(TOOLS, '*.html'))
+          if os.path.basename(f) != 'index.html' and not _is_redirect_stub(f)
+          and _meta_industry(f) not in (None, IND)]
+if _alien:
+    print(f"  （本目录另有 {len(_alien)} 个错位页，按声明 industry 归入对方分类，不计入本分类分母）")
+    for _s, _i in _alien:
+        print(f"      {_s} -> industry={_i}")
+
+if N == 0:
+    print(f"  {IND} 无工具页（仅分类页），无内容维度可审 → 跳过。")
+    raise SystemExit(0)
+
+print()
 
 # ---- 1. deep-dive 达标率 ----
 print("【1】deep-dive 达标率 (§4.5: 场景≥2 且 示例≥1 且 FAQ≥2 且 无套话)")
@@ -103,7 +161,7 @@ for slug in tools:
         dd_bad.append((slug, len(sc), len(ex), len(fa), '套话' if has_fp else ''))
 ok = N - len(dd_bad)
 print(f"  总 scenarios={dd_s} examples={dd_ex} faqs={dd_f}")
-print(f"  §4.5 达标率 = {ok}/{N} ({100*ok/N:.1f}%)  未达标页={len(dd_bad)}")
+print(f"  §4.5 达标率 = {ok}/{N} ({100*ok/max(N,1):.1f}%)  未达标页={len(dd_bad)}")
 dist = Counter()
 for slug in tools:
     e = deep.get(f'{IND}/{slug}', {})
@@ -116,7 +174,7 @@ if dd_bad[:15]:
 print("\n【2】UI 缺项 (common.js/i18n.js/viewport/lang)")
 ui_bad = []
 for slug in tools:
-    s = open(os.path.join(TOOLS, slug + '.html'), encoding='utf-8').read()
+    s = open(PATHS[slug], encoding='utf-8').read()
     miss = []
     if 'common.js' not in s: miss.append('common.js')
     if 'i18n.js' not in s: miss.append('i18n.js')
@@ -144,7 +202,7 @@ ph_bad = []
 desc_en_bad = []
 title_en_bad = []
 for slug in tools:
-    s = open(os.path.join(TOOLS, slug + '.html'), encoding='utf-8').read()
+    s = open(PATHS[slug], encoding='utf-8').read()
     # 候选：首个 <p>（-body.json 预渲染的英文正文）+ 卡片副标题 <p ... data-zh>（英译副标题）
     _cands = []
     m = re.search(r'<p\b[^>]*>([\s\S]*?)</p>', s, re.I)
@@ -174,7 +232,7 @@ print("\n【5】formula 缺口 (计算类=数值输入≥2；纯文本/图像 de
 fb_missing, fb_exempt = [], []
 calc_total = 0
 for slug in tools:
-    s = open(os.path.join(TOOLS, slug + '.html'), encoding='utf-8').read()
+    s = open(PATHS[slug], encoding='utf-8').read()
     n_num = len(re.findall(r'<input\b[^>]*type="number"[^>]*>', s))
     if n_num >= 2:
         calc_total += 1
