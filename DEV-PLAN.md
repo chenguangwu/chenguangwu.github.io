@@ -128,6 +128,8 @@
 - **英文态数据源三处（最易漏）**：`i18n/tools/<ind>-body.json`（title/h1/intro）、`i18n/tools/<ind>.json` 的 `en-US`（同时是 industry JSON 的 `ed` 最高优先级源）、`_en_override.json`（en/ed）。
 - **build 预渲染陷阱（最高频事故）**：`_prerender_tool_body` 用 `count=1` 命中文档**首个 `<p>`**，任何插在首个 `<p>` 前的中文 `<p>` 都会被 intro 覆盖。修法：改成 `<div>` 或补 `data-zh`。该函数**幂等**，故改数据源后必须先把页面「还原」再 build。
 - **`desc-en` meta 权威源是 build**：无需手改 meta，改 EN_MAP / 数据源即可。
+- **英文管线关键 BUG（2026-09-19 已修，勿复现）**：`gen_en_override.py` 原读 `t.get('i')`，但 `tools.json` 实际字段是 `industry` → 产出 override key 全无前缀、`_build.py` 按 `行业/base` 查永远 miss，**全站 EN_OVERRIDE 从未命中**，旧 desc-en/title-en 占位一直残留（全站 3500+ 英文红灯根因）。修法：改读 `t.get('industry') or t.get('i')`，重建后 desc-en 全站归零。`slug_to_intro` 默认模板 "free online tool"/"generate results online" 恰是审计判定短语，**新增默认文案须避开** `is a free online (tool|...)` / `is available directly in your browser` / `check and validate online` / `Generate results online for free` / `VERB online` 五类指纹。
+- **英文副标题 p 已英文不重渲染（2026-09-19 实踩）**：`_prerender_tool_body` 对**已是英文**的副标题 `<p>` 不重渲染，故只清 `body.json` 的 `en.intro` 后 p 仍显示旧占位 —— 清副标题必须**直接改写 HTML p 内文**（或扩展重渲染逻辑），不能只改数据源。已沉淀可规模化脚本 `fix_en_intro_all.py`（风格无关，剥五类占位指纹 + 回退短串）。
 - **指南页模板化识别**：审计判据——核心功能 ≠ 适用场景、使用步骤 ≠ 示例标题且 ≥5 条、实用技巧 ≥4 条。跨分类重名用 `--prefix`。
 - **跨分类重名 slug 的指南必须走 `--prefix`**：`guides.json` 按 basename 去重，重名会互覆。`_build.py` 靠指南页正文的**绝对 URL** 反查行业，相对路径不会建立精确映射。
 - **计算验证 DOM stub 框架六条踩坑**：① 页面多用 DOMContentLoaded，stub 须收集并执行；② 大量工具用内联 `oninput=`，须解析 HTML 属性；③ 内联 handler 在全局作用域执行，window 须指向 globalThis 且把 `new Function` 顶层函数导出到全局；④ 顶层函数枚举须含 `async function` 且 await 结果；⑤ 结果可能写 textContent 或 appendChild，采集须覆盖 value/innerHTML/textContent；⑥ 用例间须清理挂到 globalThis 的页面函数。**依赖「今天」的日期类用例不可纳入**。
@@ -151,6 +153,7 @@
 **P1 — 建议修复**
 
 - [ ] **非工具页 SEO Description 重复**：工具页已零重复（5026 页全唯一）；非工具页（guides / industry / index / sitemap）仍有大量重复组，多为同类页共享模板描述。是否唯一化需老板定夺，避免无价值 churn。
+- [ ] **英文态收尾（管线已修，占位维度全站归零）**：① **529 个编号类 title-en 代号**（`Rater N` / `Detector N` / `Checker N` 等，英文态维度「真·代号」判据）需补真实英文名或覆盖字典；② **deep-dive 套话残余 8 页**（data/psychology/dyeing/rental/project/audit/telecom 各 1）；③ **cat 空值 12 页**（`groups`）；④ **非 CAT_DEFS 非法 cat 26 页**（`reproductive-medicine` 25 + `baking` 1）。其中 ②③④ 为少量真缺陷，随 P1 收口顺带或单列专项；① 编号代号量大、需命名策略，建议单列。
 
 **P2 — 低优先级**
 
