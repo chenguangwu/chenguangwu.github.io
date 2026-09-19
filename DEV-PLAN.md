@@ -185,7 +185,7 @@
 
 > 全站 209 个分类 / 4794 个工具；上表为 Top 20，其余按同口径递减。
 
-> **it 收口进度（2026-09-19 起）**：已修 cat 误标 4 个（calc-3/calc-4 由 design→convert、calc-subnet/exponential-distribution 由 health→calculator，三处同写 meta+tools.json+industry-it.json）。现状审计：334A/1B/3C、deep-dive 349 键全达标、en 字段零缺失。**剩余 4 个非 A 工具（barcode-codabar / convert-11 / analysis-manager-1 / analysis-66）按 §4.1 八项目标逐工具优化升级到 A 级，才是 it 收口的本体工作；verify 用例不单列任务，仅随工具优化顺带。**
+> **it 收口进度（2026-09-19 起）**：已修 cat 误标 4 个（calc-3/calc-4 由 design→convert、calc-subnet/exponential-distribution 由 health→calculator，三处同写 meta+tools.json+industry-it.json）。现状审计：334A/1B/3C、deep-dive 349 键全达标、en 字段零缺失。**非 A 工具处置**：`convert-11`（IP 转换）填空壳 formula-box → 升 A；`analysis-manager-1`/`analysis-66` 为 9 项描述统计的垃圾占位页，已重定向至 `science/statistics-calculator.html`（真·A 级、覆盖全部 9 项统计）并按 Defect I 范式删 tools.json/industry-it.json 条目 + 清理 convert-11/calc-subnet 的关联死链。**剩余 1 个非 A：`barcode-codabar`（Codabar 条形码）已内容完善但被共享脚本去重判为 C，且尾部存在双重渲染转义损坏，下一项处理。**
 > **取批规则**：每次取表首未收口分类，按 §4.2「每批至少 10 个工具」分批；收口标准 = §4.1 八项目标在该分类全部工具上达成。
 
 > **A 项权威口径（务必遵守）**：
