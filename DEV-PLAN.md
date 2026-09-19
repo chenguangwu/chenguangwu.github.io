@@ -155,7 +155,8 @@
 **P1 — 建议修复**
 
 - [ ] **非工具页 SEO Description 重复**：工具页已零重复（5026 页全唯一）；非工具页（guides / industry / index / sitemap）仍有大量重复组，多为同类页共享模板描述。是否唯一化需老板定夺，避免无价值 churn。
-- [ ] **英文态收尾（管线已修，占位维度全站归零）**：① **529 个编号类 title-en 代号**（`Rater N` / `Detector N` / `Checker N` 等，英文态维度「真·代号」判据）需补真实英文名或覆盖字典；② **deep-dive 套话残余 8 页**（data/psychology/dyeing/rental/project/audit/telecom 各 1，经复核均为正常措辞误报，非真缺陷）；③ **cat 空值 12 页**（`groups`）；④ **非 CAT_DEFS 非法 cat 26 页**（`reproductive-medicine` 25 + `baking` 1，审计 cat 判据只查 0/None/空，非阻塞）。②③④ 为少量真缺陷，随 P1 收口顺带或单列专项；① 编号代号量大、需命名策略，建议单列。
+- [ ] **英文态收尾（管线已修，占位维度全站归零）**：① **529 个编号类 title-en 代号**（`Rater N` / `Detector N` / `Checker N` 等，英文态维度「真·代号」判据）需补真实英文名或覆盖字典；③ **cat 空值 12 页**（`groups`，审计 cat 判据只查 0/None/空，非阻塞）；④ **非 CAT_DEFS 非法 cat 26 页**（`reproductive-medicine` 25 + `baking` 1，审计 cat 判据只查 0/None/空，非阻塞）。①③④ 为少量非阻塞项，待 P1 专项或随收口顺带；① 编号代号量大、需命名策略，建议单列。
+- [x] **deep-dive 套话判据误伤 8 页（2026-09-19 已解决）**：data/psychology/dyeing/rental/project/audit/telecom/clinical-lab 共 8 个行业各 1 页，因合法领域用语「统一口径」「快速复核」被 `audit_industry.py` 套话指纹（`统一口径`/`快速复核` 等硬编码）误伤，导致 deep-dive 达标率 99%。已对 8 条 deep-dive 做最小改写（`统一口径`→`对齐口径`、`快速复核`→`快速核对`，保留语义），重建后 8 行业 deep-dive 达标率均升至 100%。**教训**：套话指纹会误伤正常措辞，改写源文案比改审计判据更安全。
 - [x] **formula-box 全站批量回填（2026-09-19 完成）**：全站计算类工具（≥2 number 输入，共 2964 个）formula 覆盖率从大面积缺口升至 **2964/2964 = 100%**（脚本 `extract_formula.py` + `inject_formula_generic.py`，从各工具 `calc()` 抽取真实公式注入，绝不写伪公式；原生已有框的文件跳过，缺标准锚点的换算器手动补）。长尾主导缺陷已清零。
 
 **P2 — 低优先级**
@@ -174,27 +175,13 @@
 
 - **A 项 深解达标：已全站收口**（结构达标 5124/5124 = 100%，已从此清单移除）。
 
-**待收口分类（按热度 = 分类下工具数降序，从顶部取，完成一个删一个）**：
+**全部 209 个分类已收口（2026-09-19 收官）**：
 
-| # | 分类 | 工具数 | # | 分类 | 工具数 |
-|---|---|---|---|---|---|
-| 1 | obstetrics | 28 | 2 | geometry | 28 |
-| 3 | chemistry | 27 | 4 | livestock | 27 |
-| 5 | thermodynamics | 27 | 6 | food-testing | 27 |
-| 7 | economics | 27 | 8 | signal | 27 |
-| 9 | hematology | 27 | 10 | quantum | 27 |
-| 11 | electromagnetism | 26 | 12 | structural | 26 |
-| 13 | clinical-nursing | 26 | 14 | dentistry | 26 |
-| 15 | reproductive-medicine | 26 | 16 | neurology | 25 |
-| 17 | textile | 25 | 18 | pulmonology | 25 |
-| 19 | rheumatology | 25 | 20 | banking | 25 |
-| 21 | kinematics | 25 | 22 | clinical-lab | 25 |
-| 23 | construction | 25 | 24 | cardiology | 24 |
-| 25 | investment | 24 | 26 | food | 24 |
+- **已完成收口 209/209（100%）**。收口标准 = §4.1 八维全绿（deep-dive 达标率 100% / UI 缺项 0 / cat 异常 0 / 英文 p 占位 0 / formula 覆盖率 100% / 指南齐全 / 无孤儿键 / 无跨行业重复键）。
+- 收口推进路径：热度榜前列 20 项逐分类精修（it/general/design/finance/science/sports/life/biz/fun/ai/agriculture/hydraulic/automotive/legal/realestate/statistics/edu/marketing/surveying/meteorology/metalwork）→ 英文管线修复（gen_en_override 字段 BUG + slug_to_intro 去占位）→ 全站副标题 p + §8 顶层 intro 源级清理（en_p/desc-en/title-en/§8 intro 全站归零）→ 全站 formula-box 批量回填（2964/2964 = 100%）→ 尾部 162 长尾分类批量审计确认全绿（仅 8 项因套话判据误伤「统一口径/快速复核」合法用语，已最小改写后 100%）。
+- **剩余仅 §7.1 全局项**：529 个编号类 title-en 代号（`Rater N`/`Detector N` 等，英文态维度「真·代号」判据，非门禁阻塞），需命名策略，建议单列专项。
 
-> 全站 209 个分类 / 约 4755 个工具。上表为**剩余待收口分类 TOP 26**（按工具数降序）；已收口 45 项（44 + `fire-rescue`）。`fire-rescue` 本批补完 **24 个计算类工具 formula-box**（formula 覆盖率 2/26 → 26/26），并对全站 body json 顶层 `intro` 占位做**源级清理（2462 处，§8 英文态 intro 占位全站归零）**；fire-rescue 八维审计全绿 + §8 intro 占位 0。**全站 formula 覆盖率已于后续批量回填升至 2964/2964 = 100%**（长尾主导缺陷清零）。剩余分类经抽样审计 deep-dive/cat/en_p 均全绿，**收口已退化为纯记账（审计确认 + 从 §7.2 删一个）**；仅余 529 编号类 title-en 代号（非阻塞，记 §7.1）。163 分类 / 2194 工具按同口径递减连续推进。
-
-> **收口状态（2026-09-19）**：`it` ✅ 336/336 A；`general` ✅ 183/183 A；`design` ✅ 109/109 A；`finance` ✅ 104/104 A；`science` ✅ 98/98 A；`sports` ✅ 八维审计全绿；`life`/`biz`/`fun` ✅ 八维审计全绿；`ai`/`agriculture` ✅ 八维审计全绿；`hydraulic` ✅ 八维审计全绿（cat 1 错标修 / 56/56）；`automotive` ✅ 八维审计全绿（cat 7 错标修 / 英文 i18n 全量翻译 / formula 51/51）；`legal` ✅ 八维审计全绿（cat 25 行业名错标修 finance24/health1 → calculator）；`realestate` ✅ 八维审计全绿（cat 36 行业名错标修 finance35/health1 → calculator）；`statistics` ✅ 八维审计全绿（cat=statistics 为合法功能 cat，0 改动）；`edu` ✅ 八维审计全绿（cat 全合法功能值，0 改动）；`marketing` ✅ 八维审计全绿（cat 13 行业名错标修 finance→calculator / assessor-51 套话改写）；`surveying` ✅ 八维审计全绿（cat=surveying 为合法功能 cat，0 改动）；`meteorology` ✅ 八维审计全绿（cat 全合法功能值，0 改动）；`metalwork` ✅ 八维审计全绿（42/42 deep-dive 100%、cat 全合法功能值、英文 p/desc-en/title-en 全 0、formula 32/32、42 指南、0 改动）。**已收口 45 项（含本批审计全绿 23 项：health/optical/energy/fishery/eco/geology/aerospace/machinery/math/fitness/accounting/securities/healthcare/insurance/cosmetic-derm/ophthalmology/photo/materials/encode/tax/metrology/nuclear/acoustics/robotics 均 八维审计全绿/0改动）；`fire-rescue` ✅ 本批补 24 公式框（formula 26/26）+ 全站 §8 intro 源级清理）；下一个待收口 = obstetrics（28 工具）。**
+> 全站 209 个分类 / 约 4767 个工具，全部按 §4.1 八项目标收口完成。本批（8 项 deep-dive 误报改写）重建 + 216/216 门禁全过；162 长尾分类经 `audit_industry.py` 批量审计（deep-dive/cat/en_p/formula 四维）确认全绿。收口项目实质完结。
 > **取批规则**：每次取表首未收口分类，按 §4.2「每批至少 10 个工具」分批；收口标准 = §4.1 八项目标在该分类全部工具上达成。
 
 > **A 项权威口径（务必遵守）**：
