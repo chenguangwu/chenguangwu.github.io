@@ -53,8 +53,8 @@
 <!-- TOOLBOX-I18N-SCRIPT -->
 
 
-<meta name="title-en" content="Stats Weight Luggage">
-<meta name="desc-en" content="Stats Weight Luggage - online utility on ToolBox.">
+<meta name="title-en" content="Checked Baggage Weight Statistics">
+<meta name="desc-en" content="Checked Baggage Weight Statistics - sum total weight, per-bag average and estimate overweight fees against your free allowance.">
 <!-- TOOLBOX-HREFLANG -->
 <link rel="alternate" hreflang="zh-CN" href="https://chenguangwu.github.io/tools/aerospace/stats-weight-luggage.html">
 <link rel="alternate" hreflang="zh-TW" href="https://chenguangwu.github.io/zh-tw/tools/aerospace/stats-weight-luggage.html">
@@ -102,12 +102,16 @@
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="装载/重量">Compute statistics of luggage loading and weight distribution.</p>
 <div class="formula-box">
   <div class="formula-title">📐 工作原理与说明</div>
-  <p class="formula-desc">行李（装载/重量）统计按出行或托运规则对每件行李的重量与尺寸逐一录入，自动求和总重、计算平均重量与单件占比，并对照航司免费额度与尺寸上限判定是否超重、超件或超尺寸；所有数据仅在浏览器本地处理，不上传。</p>
+  <p class="formula-desc">按每件录入行李重量，自动求和总重与平均单件重量，并对照免费托运额度与免费件数判定是否超重、超件，按超限费率估算超重费用；数据仅在浏览器本地处理，不上传。</p>
+  <div class="formula-eq">总重 = Σ 单件重量　·　超重量 = Σ max(0, 单件重量 − 免费额度/件)　·　超重费 = 超重量 × 超限费率</div>
 </div>
 
-<label>输入数据（逗号或换行分隔）</label>
-<textarea id="data" rows="4" oninput="calc()" placeholder="例如: 10,20,30,40,50">10,20,30,40,50,60,70,80</textarea>
-<div class="toolbar"><button type="button" class="btn primary" onclick="calc()">统计分析</button><button type="button" class="btn" onclick="copyRes()">复制</button></div>
+<label>行李单件重量（kg，逗号或换行分隔，一件一个数值）</label>
+<textarea id="weights" rows="4" oninput="calc()" placeholder="例如: 18,22,27,19">18,22,27,19</textarea>
+<div class="input-row"><label>免费托运额度（kg/件）</label><input type="number" id="freeKg" value="23" min="0" step="0.5" oninput="calc()"></div>
+<div class="input-row"><label>免费件数（件）</label><input type="number" id="freeCnt" value="1" min="0" step="1" oninput="calc()"></div>
+<div class="input-row"><label>超限费率（元/kg）</label><input type="number" id="rate" value="40" min="0" step="1" oninput="calc()"></div>
+<div class="toolbar"><button type="button" class="btn primary" onclick="calc()">统计行李重量</button><button type="button" class="btn" onclick="copyResult()">复制</button></div>
 <div class="result-box" id="res"></div>
   </div>
 
@@ -155,7 +159,29 @@
 <!-- /注意事项区块 -->
 </div>
 <script>
-function calc(){const raw=document.getElementById("data").value.split(/[,\n\s]+/).map(s=>parseFloat(s.trim())).filter(v=>!isNaN(v));if(!raw.length){document.getElementById("res").innerHTML='<p>请输入数据</p>';return;}const n=raw.length,sum=raw.reduce((a,b)=>a+b,0),mean=sum/n;const sorted=[...raw].sort((a,b)=>a-b);const med=n%2?sorted[Math.floor(n/2)]:(sorted[n/2-1]+sorted[n/2])/2;const varr=raw.reduce((a,b)=>a+(b-mean)**2,0)/n;const std=Math.sqrt(varr);document.getElementById("res").innerHTML=`<p>数据量：<strong>${n}</strong></p><p>总和：<strong>${sum.toFixed(2)}</strong></p><p>平均值：<strong style="color:var(--primary);">${mean.toFixed(2)}</strong></p><p>中位数：<strong>${med.toFixed(2)}</strong></p><p>最小值：<strong>${sorted[0]}</strong></p><p>最大值：<strong>${sorted[n-1]}</strong></p><p>极差：<strong>${(sorted[n-1]-sorted[0]).toFixed(2)}</strong></p><p>方差：<strong>${varr.toFixed(2)}</strong></p><p>标准差：<strong>${std.toFixed(2)}</strong></p>`;}calc();function copyRes(){ToolBox.copyText(document.getElementById("res").innerText);}
+function fmt(n,d){d=d==null?2:d;return n.toLocaleString('zh-CN',{minimumFractionDigits:d,maximumFractionDigits:d});}
+function calc(){
+  const raw=document.getElementById("weights").value.split(/[,\n\s]+/).map(s=>parseFloat(s.trim())).filter(v=>!isNaN(v)&&v>0);
+  const freeKg=parseFloat(document.getElementById("freeKg").value)||0;
+  const freeCnt=parseFloat(document.getElementById("freeCnt").value)||0;
+  const rate=parseFloat(document.getElementById("rate").value)||0;
+  if(!raw.length){document.getElementById("res").innerHTML='<p>请输入行李重量</p>';return;}
+  const n=raw.length,total=raw.reduce((a,b)=>a+b,0),avg=total/n;
+  let over=0,overCnt=0;
+  raw.forEach(w=>{const d=w-freeKg;if(d>0){over+=d;overCnt++;}});
+  const cntOver=Math.max(0,n-freeCnt);
+  const fee=over*rate;
+  document.getElementById("res").innerHTML=
+    `<p>行李件数：<strong>${n}</strong> 件</p>`+
+    `<p>总重量：<strong style="color:var(--primary);">${fmt(total)}</strong> kg</p>`+
+    `<p>平均单件：<strong>${fmt(avg)}</strong> kg</p>`+
+    `<p>超重件数（单件 > ${fmt(freeKg,1)} kg）：<strong>${overCnt}</strong> 件</p>`+
+    `<p>超重合计：<strong>${fmt(over)}</strong> kg</p>`+
+    `<p>超件数（免费 ${freeCnt} 件之外）：<strong>${cntOver}</strong> 件</p>`+
+    `<p>预估超重费（${fmt(rate,0)} 元/kg）：<strong style="color:var(--primary);">${fmt(fee)}</strong> 元</p>`;
+}
+calc();
+function copyResult(){ToolBox.copyText(document.getElementById("res").innerText);}
 </script>
 
 <!-- SEO 介绍区块 -->

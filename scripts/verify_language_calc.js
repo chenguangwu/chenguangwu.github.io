@@ -105,12 +105,13 @@ const CASES = [
 {
   "slug": "language/stats-2",
   "inputs": {
-    "data": "10,20,30,40,50,60,70,80_X"
+    "text": "Hello hi 你好，世界！AB CD."
   },
   "expect": [
-    "80_X"
+    "21",
+    "18"
   ],
-  "ref": "auto-restore"
+  "ref": "字符统计：'Hello hi 你好，世界！AB CD.' → 总字符(含空格)21、不含空格18（独立复算：Hello5+空格1+hi2+空格1+你好，3+世界！3+AB2+空格1+CD2+.1=21；空白3处→18），非默认输入（默认文本回退得16/15）"
 },
 {
   "slug": "language/text-polisher",

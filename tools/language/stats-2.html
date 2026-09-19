@@ -53,8 +53,8 @@
 <!-- TOOLBOX-I18N-SCRIPT -->
 
 
-<meta name="title-en" content="Stats 2">
-<meta name="desc-en" content="Stats 2 - online utility on ToolBox.">
+<meta name="title-en" content="Character Count Statistics">
+<meta name="desc-en" content="Character Count Statistics - count Chinese characters, English words, digits, punctuation and whitespace.">
 <!-- TOOLBOX-HREFLANG -->
 <link rel="alternate" hreflang="zh-CN" href="https://chenguangwu.github.io/tools/language/stats-2.html">
 <link rel="alternate" hreflang="zh-TW" href="https://chenguangwu.github.io/zh-tw/tools/language/stats-2.html">
@@ -94,16 +94,17 @@
 </nav>
 <div class="container">
   <div class="card tool-card-accent" style="--tool-accent:#FF6B35;">
-    <h2 data-zh="📊 字符数统计（含汉字/英文/标点）">Stats 2</h2>
+    <h2 data-zh="📊 字符数统计（含汉字/英文/标点）">Character Count Statistics</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="含汉字/英文/标点">Stats 2 - online utility on ToolBox.</p>
     <div class="formula-box">
       <div class="formula-title">📐 计算公式</div>
-      <div class="formula-eq">字符统计 = 汉字+英文+标点计数</div>
-      <p class="formula-desc">含汉字/英文/标点</p>
+      <div class="formula-eq">汉字数 + 英文单词数 + 数字字符数 + 标点数 + 空白符 = 总字符数</div>
+      <p class="formula-desc">分别统计文本中的汉字、英文单词、数字、标点与空白符数量，用于字数核算、排版估算与字符编码核对；文本仅在浏览器本地处理，不上传。</p>
     </div>
-<label>输入数据（逗号或换行分隔）</label>
-<textarea id="data" rows="4" oninput="calc()" placeholder="例如: 10,20,30,40,50">10,20,30,40,50,60,70,80</textarea>
-<div class="toolbar"><button type="button" class="btn primary" onclick="calc()">统计分析</button><button type="button" class="btn" onclick="copyRes()">复制</button></div>
+
+<label>待统计文本</label>
+<textarea id="text" rows="6" oninput="calc()" placeholder="在此粘贴或输入要统计的文本">你好，Hello 世界！2026</textarea>
+<div class="toolbar"><button type="button" class="btn primary" onclick="calc()">统计字符</button><button type="button" class="btn" onclick="copyResult()">复制</button></div>
 <div class="result-box" id="res"></div>
   </div>
 
@@ -152,7 +153,30 @@
 <!-- /注意事项区块 -->
 </div>
 <script>
-function calc(){const raw=document.getElementById("data").value.split(/[,\n\s]+/).map(s=>parseFloat(s.trim())).filter(v=>!isNaN(v));if(!raw.length){document.getElementById("res").innerHTML='<p>请输入数据</p>';return;}const n=raw.length,sum=raw.reduce((a,b)=>a+b,0),mean=sum/n;const sorted=[...raw].sort((a,b)=>a-b);const med=n%2?sorted[Math.floor(n/2)]:(sorted[n/2-1]+sorted[n/2])/2;const varr=raw.reduce((a,b)=>a+(b-mean)**2,0)/n;const std=Math.sqrt(varr);document.getElementById("res").innerHTML=`<p>数据量：<strong>${n}</strong></p><p>总和：<strong>${sum.toFixed(2)}</strong></p><p>平均值：<strong style="color:var(--primary);">${mean.toFixed(2)}</strong></p><p>中位数：<strong>${med.toFixed(2)}</strong></p><p>最小值：<strong>${sorted[0]}</strong></p><p>最大值：<strong>${sorted[n-1]}</strong></p><p>极差：<strong>${(sorted[n-1]-sorted[0]).toFixed(2)}</strong></p><p>方差：<strong>${varr.toFixed(2)}</strong></p><p>标准差：<strong>${std.toFixed(2)}</strong></p>`;}calc();function copyRes(){ToolBox.copyText(document.getElementById("res").innerText);}
+function fmt(n){return Number(n).toLocaleString('zh-CN');}
+function calc(){
+  const t=document.getElementById("text").value;
+  const total=t.length;
+  const noSpace=t.replace(/\s/g,'').length;
+  const han=(t.match(/[\u4e00-\u9fa5]/g)||[]).length;
+  const en=(t.match(/[A-Za-z]+/g)||[]).length;
+  const digit=(t.match(/[0-9]/g)||[]).length;
+  const punctCn=(t.match(/[\u3001\u3002\u3008-\u3011\u3014-\u301F\uFF01-\uFF0F\uFF1A-\uFF20\uFF3B-\uFF40\uFF5B-\uFF65]/g)||[]).length;
+  const punctEn=(t.match(/[.,!?;:'"()\[\]{}\-_/\\@#$%^&*+=<>~`|]/g)||[]).length;
+  const space=total-noSpace;
+  const lines=t?t.split(/\r?\n/).length:0;
+  document.getElementById("res").innerHTML=
+    `<p>总字符数（含空格）：<strong style="color:var(--primary);">${fmt(total)}</strong></p>`+
+    `<p>不含空格字符数：<strong>${fmt(noSpace)}</strong></p>`+
+    `<p>汉字数：<strong>${fmt(han)}</strong></p>`+
+    `<p>英文单词数：<strong>${fmt(en)}</strong></p>`+
+    `<p>数字字符数：<strong>${fmt(digit)}</strong></p>`+
+    `<p>标点数：<strong>${fmt(punctCn+punctEn)}</strong>（中文 ${fmt(punctCn)} / 西文 ${fmt(punctEn)}）</p>`+
+    `<p>空白符：<strong>${fmt(space)}</strong></p>`+
+    `<p>行数：<strong>${fmt(lines)}</strong></p>`;
+}
+calc();
+function copyResult(){ToolBox.copyText(document.getElementById("res").innerText);}
 </script>
 
 <!-- SEO 介绍区块 -->

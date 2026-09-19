@@ -50,8 +50,8 @@
 <script src="../../js/tool-i18n.js" defer></script>
 <!-- TOOLBOX-I18N-SCRIPT -->
 
-<meta name="title-en" content="Stats Density 1">
-<meta name="desc-en" content="Stats Density 1 - online utility on ToolBox.">
+<meta name="title-en" content="Joint Density Statistics">
+<meta name="desc-en" content="Joint Density Statistics - scanline joint density and mean spacing from traverse length and joint counts.">
 <!-- TOOLBOX-HREFLANG -->
 <link rel="alternate" hreflang="zh-CN" href="https://chenguangwu.github.io/tools/geology/stats-density-1.html">
 <link rel="alternate" hreflang="zh-TW" href="https://chenguangwu.github.io/zh-tw/tools/geology/stats-density-1.html">
@@ -96,12 +96,17 @@
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="密度/走向/充填">Compute joint density, orientation and infill statistics from discontinuity data.</p>
 <div class="formula-box">
   <div class="formula-title">📐 工作原理与说明</div>
-  
+  <p class="formula-desc">按测线条带（scanline）统计节理：每行录入一条测线的长度与该测线上的节理条数，计算各测线线密度（条/m）与平均间距（m/条），并汇总得到总体密度，作为岩体完整性评价的辅助测算；数据仅在浏览器本地处理，不上传。</p>
+  <div class="formula-eq">线密度 λ = 节理条数 / 测线长度（条/m）　·　平均间距 x̄ = 1 / λ = 测线长度 / 节理条数（m/条）</div>
 </div>
 
-<label>输入数据（逗号或换行分隔）</label>
-<textarea id="data" rows="4" oninput="calc()" placeholder="例如: 10,20,30,40,50">10,20,30,40,50,60,70,80</textarea>
-<div class="toolbar"><button type="button" class="btn primary" onclick="calc()">统计分析</button><button type="button" class="btn" onclick="copyRes()">复制</button></div>
+<label>测线数据（每行一条：测线长度(m),节理条数）</label>
+<textarea id="lines" rows="4" oninput="calc()" placeholder="10,25
+8,19
+12,31">10,25
+8,19
+12,31</textarea>
+<div class="toolbar"><button type="button" class="btn primary" onclick="calc()">计算节理密度</button><button type="button" class="btn" onclick="copyResult()">复制</button></div>
 <div class="result-box" id="res"></div>
   </div>
 
@@ -150,7 +155,30 @@
 <!-- /注意事项区块 -->
 </div>
 <script>
-function calc(){const raw=document.getElementById("data").value.split(/[,\n\s]+/).map(s=>parseFloat(s.trim())).filter(v=>!isNaN(v));if(!raw.length){document.getElementById("res").innerHTML='<p>请输入数据</p>';return;}const n=raw.length,sum=raw.reduce((a,b)=>a+b,0),mean=sum/n;const sorted=[...raw].sort((a,b)=>a-b);const med=n%2?sorted[Math.floor(n/2)]:(sorted[n/2-1]+sorted[n/2])/2;const varr=raw.reduce((a,b)=>a+(b-mean)**2,0)/n;const std=Math.sqrt(varr);document.getElementById("res").innerHTML=`<p>数据量：<strong>${n}</strong></p><p>总和：<strong>${sum.toFixed(2)}</strong></p><p>平均值：<strong style="color:var(--primary);">${mean.toFixed(2)}</strong></p><p>中位数：<strong>${med.toFixed(2)}</strong></p><p>最小值：<strong>${sorted[0]}</strong></p><p>最大值：<strong>${sorted[n-1]}</strong></p><p>极差：<strong>${(sorted[n-1]-sorted[0]).toFixed(2)}</strong></p><p>方差：<strong>${varr.toFixed(2)}</strong></p><p>标准差：<strong>${std.toFixed(2)}</strong></p>`;}calc();function copyRes(){ToolBox.copyText(document.getElementById("res").innerText);}
+function fmt(n,d){d=d==null?2:d;return n.toLocaleString('zh-CN',{minimumFractionDigits:d,maximumFractionDigits:d});}
+function calc(){
+  const rows=document.getElementById("lines").value.split(/\n+/).map(s=>s.trim()).filter(Boolean);
+  const items=[];
+  rows.forEach(s=>{
+    const p=s.split(/[,，\s]+/).map(v=>parseFloat(v.trim())).filter(v=>!isNaN(v));
+    if(p.length>=2){const len=p[0],cnt=p[1];if(len>0&&cnt>=0)items.push({len,cnt});}
+  });
+  if(!items.length){document.getElementById("res").innerHTML='<p>请按「测线长度(m),节理条数」每行一条录入</p>';return;}
+  let html='',sumLen=0,sumCnt=0;
+  items.forEach((it,i)=>{
+    const lam=it.cnt/it.len,gap=it.cnt>0?(it.len/it.cnt):0;
+    sumLen+=it.len;sumCnt+=it.cnt;
+    html+=`<p>测线 ${i+1}：长 ${fmt(it.len,1)} m / ${it.cnt} 条 → 线密度 <strong>${fmt(lam,2)}</strong> 条/m，平均间距 <strong>${fmt(gap,2)}</strong> m/条</p>`;
+  });
+  const lamAll=sumLen>0?(sumCnt/sumLen):0;
+  const gapAll=sumCnt>0?(sumLen/sumCnt):0;
+  document.getElementById("res").innerHTML=html+
+    `<p style="margin-top:8px;">合计：测线总长 <strong>${fmt(sumLen,1)}</strong> m，节理总数 <strong>${sumCnt}</strong> 条</p>`+
+    `<p>总体线密度：<strong style="color:var(--primary);">${fmt(lamAll,2)}</strong> 条/m</p>`+
+    `<p>总体平均间距：<strong style="color:var(--primary);">${fmt(gapAll,2)}</strong> m/条</p>`;
+}
+calc();
+function copyResult(){ToolBox.copyText(document.getElementById("res").innerText);}
 </script>
 
 <!-- SEO 介绍区块 -->

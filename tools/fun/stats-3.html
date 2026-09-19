@@ -50,8 +50,8 @@
 <script src="../../js/tool-i18n.js" defer></script>
 <!-- TOOLBOX-I18N-SCRIPT -->
 
-<meta name="title-en" content="Stats 3">
-<meta name="desc-en" content="Stats 3 - online utility on ToolBox.">
+<meta name="title-en" content="Palm Size vs Height Correlation">
+<meta name="desc-en" content="Palm Size vs Height Correlation - Pearson r, R-squared and linear regression between palm length and height.">
 <!-- TOOLBOX-HREFLANG -->
 <link rel="alternate" hreflang="zh-CN" href="https://chenguangwu.github.io/tools/fun/stats-3.html">
 <link rel="alternate" hreflang="zh-TW" href="https://chenguangwu.github.io/zh-tw/tools/fun/stats-3.html">
@@ -96,12 +96,15 @@
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="统计">Enter palm length and height samples to compute the correlation coefficient and judge how strong the relationship is. A light-hearted statistics demo.</p>
 <div class="formula-box">
   <div class="formula-title">📐 工作原理与说明</div>
-  
+  <p class="formula-desc">分别录入手掌长度与身高两组一一对应的数据，计算皮尔逊相关系数 r、决定系数 R² 与一元线性回归方程，用于判断掌长与身高的线性相关强度；数据仅在浏览器本地处理，不上传。</p>
+  <div class="formula-eq">r = Σ(xᵢ−x̄)(yᵢ−ȳ) / √(Σ(xᵢ−x̄)² · Σ(yᵢ−ȳ)²)　·　回归：身高 = a + b × 掌长，b = Σ(xᵢ−x̄)(yᵢ−ȳ) / Σ(xᵢ−x̄)²</div>
 </div>
 
-<label>输入数据（逗号或换行分隔）</label>
-<textarea id="data" rows="4" oninput="calc()" placeholder="例如: 10,20,30,40,50">10,20,30,40,50,60,70,80</textarea>
-<div class="toolbar"><button type="button" class="btn primary" onclick="calc()">统计分析</button><button type="button" class="btn" onclick="copyRes()">复制</button></div>
+<label>手掌长度（cm，与身高一一对应，逗号或换行分隔）</label>
+<textarea id="px" rows="3" oninput="calc()" placeholder="例如: 17,18,19,20,21">17,18,19,20,21</textarea>
+<label>身高（cm，与掌长一一对应，逗号或换行分隔）</label>
+<textarea id="py" rows="3" oninput="calc()" placeholder="例如: 160,165,170,175,180">160,165,170,175,180</textarea>
+<div class="toolbar"><button type="button" class="btn primary" onclick="calc()">计算相关性</button><button type="button" class="btn" onclick="copyResult()">复制</button></div>
 <div class="result-box" id="res"></div>
   </div>
 
@@ -150,7 +153,31 @@
 <!-- /注意事项区块 -->
 </div>
 <script>
-function calc(){const raw=document.getElementById("data").value.split(/[,\n\s]+/).map(s=>parseFloat(s.trim())).filter(v=>!isNaN(v));if(!raw.length){document.getElementById("res").innerHTML='<p>请输入数据</p>';return;}const n=raw.length,sum=raw.reduce((a,b)=>a+b,0),mean=sum/n;const sorted=[...raw].sort((a,b)=>a-b);const med=n%2?sorted[Math.floor(n/2)]:(sorted[n/2-1]+sorted[n/2])/2;const varr=raw.reduce((a,b)=>a+(b-mean)**2,0)/n;const std=Math.sqrt(varr);document.getElementById("res").innerHTML=`<p>数据量：<strong>${n}</strong></p><p>总和：<strong>${sum.toFixed(2)}</strong></p><p>平均值：<strong style="color:var(--primary);">${mean.toFixed(2)}</strong></p><p>中位数：<strong>${med.toFixed(2)}</strong></p><p>最小值：<strong>${sorted[0]}</strong></p><p>最大值：<strong>${sorted[n-1]}</strong></p><p>极差：<strong>${(sorted[n-1]-sorted[0]).toFixed(2)}</strong></p><p>方差：<strong>${varr.toFixed(2)}</strong></p><p>标准差：<strong>${std.toFixed(2)}</strong></p>`;}calc();function copyRes(){ToolBox.copyText(document.getElementById("res").innerText);}
+function fmt(n,d){d=d==null?2:d;return n.toLocaleString('zh-CN',{minimumFractionDigits:d,maximumFractionDigits:d});}
+function calc(){
+  const xs=document.getElementById("px").value.split(/[,\n\s]+/).map(s=>parseFloat(s.trim())).filter(v=>!isNaN(v));
+  const ys=document.getElementById("py").value.split(/[,\n\s]+/).map(s=>parseFloat(s.trim())).filter(v=>!isNaN(v));
+  const n=Math.min(xs.length,ys.length);
+  if(n<2){document.getElementById("res").innerHTML='<p>请至少输入 2 组一一对应的掌长与身高</p>';return;}
+  const X=xs.slice(0,n),Y=ys.slice(0,n);
+  const mx=X.reduce((a,b)=>a+b,0)/n,my=Y.reduce((a,b)=>a+b,0)/n;
+  let sxy=0,sxx=0,syy=0;
+  for(let i=0;i<n;i++){const dx=X[i]-mx,dy=Y[i]-my;sxy+=dx*dy;sxx+=dx*dx;syy+=dy*dy;}
+  if(sxx===0||syy===0){document.getElementById("res").innerHTML='<p>数据无变异，无法计算相关系数</p>';return;}
+  const r=sxy/Math.sqrt(sxx*syy),r2=r*r;
+  const b=sxy/sxx,a=my-b*mx;
+  const ar=Math.abs(r);
+  const lv=ar>=0.7?'强线性相关':(ar>=0.4?'中等线性相关':(ar>=0.2?'弱线性相关':'几乎无线性相关'));
+  document.getElementById("res").innerHTML=
+    `<p>有效样本数：<strong>${n}</strong> 组</p>`+
+    `<p>掌长均值：<strong>${fmt(mx)}</strong> cm　·　身高均值：<strong>${fmt(my)}</strong> cm</p>`+
+    `<p>皮尔逊相关系数 r：<strong style="color:var(--primary);">${r.toFixed(4)}</strong></p>`+
+    `<p>决定系数 R²：<strong>${r2.toFixed(4)}</strong>（可解释变异 ${fmt(r2*100,1)}%）</p>`+
+    `<p>回归方程：身高 = <strong>${a.toFixed(2)} + ${b.toFixed(2)} × 掌长</strong></p>`+
+    `<p>相关强度判定：<strong>${lv}</strong></p>`;
+}
+calc();
+function copyResult(){ToolBox.copyText(document.getElementById("res").innerText);}
 </script>
 
 <!-- SEO 介绍区块 -->

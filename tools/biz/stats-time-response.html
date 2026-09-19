@@ -50,8 +50,8 @@
 <script src="../../js/tool-i18n.js" defer></script>
 <!-- TOOLBOX-I18N-SCRIPT -->
 
-<meta name="title-en" content="Stats Time Response">
-<meta name="desc-en" content="Stats Time Response - online utility on ToolBox.">
+<meta name="title-en" content="Support Response Time Statistics">
+<meta name="desc-en" content="Support Response Time Statistics - mean and median response time plus SLA compliance rate.">
 <!-- TOOLBOX-HREFLANG -->
 <link rel="alternate" hreflang="zh-CN" href="https://chenguangwu.github.io/tools/biz/stats-time-response.html">
 <link rel="alternate" hreflang="zh-TW" href="https://chenguangwu.github.io/zh-tw/tools/biz/stats-time-response.html">
@@ -96,12 +96,14 @@
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="客服平均响应时间/解决率统计在线工具">Enter response or handling durations to get average response time, resolution rate and distribution, supporting support-team efficiency reviews, staffing and process tuning.</p>
 <div class="formula-box">
   <div class="formula-title">📐 工作原理与说明</div>
-  
+  <p class="formula-desc">把客服首响（或平均响应）时长逐条录入，计算平均响应时间、中位数与达标率，并给出最长/最短响应，用于服务 SLA 达成情况复盘；数据仅在浏览器本地处理，不上传。</p>
+  <div class="formula-eq">平均响应 = Σ 单次时长 / 次数　·　达标率 = (≤ 阈值次数 / 总次数) × 100%</div>
 </div>
 
-<label>输入数据（逗号或换行分隔）</label>
-<textarea id="data" rows="4" oninput="calc()" placeholder="例如: 10,20,30,40,50">10,20,30,40,50,60,70,80</textarea>
-<div class="toolbar"><button type="button" class="btn primary" onclick="calc()">统计分析</button><button type="button" class="btn" onclick="copyRes()">复制</button></div>
+<label>单次响应时长（秒，逗号或换行分隔）</label>
+<textarea id="times" rows="4" oninput="calc()" placeholder="例如: 20,45,75,30,120">20,45,75,30,120</textarea>
+<div class="input-row"><label>达标阈值（秒）</label><input type="number" id="thr" value="60" min="0" step="1" oninput="calc()"></div>
+<div class="toolbar"><button type="button" class="btn primary" onclick="calc()">统计响应</button><button type="button" class="btn" onclick="copyResult()">复制</button></div>
 <div class="result-box" id="res"></div>
   </div>
 
@@ -151,7 +153,24 @@
 <!-- /注意事项区块 -->
 </div>
 <script>
-function calc(){const raw=document.getElementById("data").value.split(/[,\n\s]+/).map(s=>parseFloat(s.trim())).filter(v=>!isNaN(v));if(!raw.length){document.getElementById("res").innerHTML='<p>请输入数据</p>';return;}const n=raw.length,sum=raw.reduce((a,b)=>a+b,0),mean=sum/n;const sorted=[...raw].sort((a,b)=>a-b);const med=n%2?sorted[Math.floor(n/2)]:(sorted[n/2-1]+sorted[n/2])/2;const varr=raw.reduce((a,b)=>a+(b-mean)**2,0)/n;const std=Math.sqrt(varr);document.getElementById("res").innerHTML=`<p>数据量：<strong>${n}</strong></p><p>总和：<strong>${sum.toFixed(2)}</strong></p><p>平均值：<strong style="color:var(--primary);">${mean.toFixed(2)}</strong></p><p>中位数：<strong>${med.toFixed(2)}</strong></p><p>最小值：<strong>${sorted[0]}</strong></p><p>最大值：<strong>${sorted[n-1]}</strong></p><p>极差：<strong>${(sorted[n-1]-sorted[0]).toFixed(2)}</strong></p><p>方差：<strong>${varr.toFixed(2)}</strong></p><p>标准差：<strong>${std.toFixed(2)}</strong></p>`;}calc();function copyRes(){ToolBox.copyText(document.getElementById("res").innerText);}
+function fmt(n,d){d=d==null?2:d;return n.toLocaleString('zh-CN',{minimumFractionDigits:d,maximumFractionDigits:d});}
+function calc(){
+  const raw=document.getElementById("times").value.split(/[,\n\s]+/).map(s=>parseFloat(s.trim())).filter(v=>!isNaN(v)&&v>=0);
+  const thr=parseFloat(document.getElementById("thr").value)||0;
+  if(!raw.length){document.getElementById("res").innerHTML='<p>请输入响应时长</p>';return;}
+  const n=raw.length,total=raw.reduce((a,b)=>a+b,0),mean=total/n;
+  const sorted=[...raw].sort((a,b)=>a-b);
+  const med=n%2?sorted[Math.floor(n/2)]:(sorted[n/2-1]+sorted[n/2])/2;
+  const meet=raw.filter(v=>v<=thr).length,meetRate=meet/n*100;
+  document.getElementById("res").innerHTML=
+    `<p>响应条数：<strong>${n}</strong> 条</p>`+
+    `<p>平均响应时长：<strong style="color:var(--primary);">${fmt(mean)}</strong> 秒</p>`+
+    `<p>中位响应时长：<strong>${fmt(med)}</strong> 秒</p>`+
+    `<p>最短 / 最长：<strong>${fmt(sorted[0])}</strong> 秒 / <strong>${fmt(sorted[n-1])}</strong> 秒</p>`+
+    `<p>达标（≤ ${fmt(thr,0)} 秒）：<strong>${meet}</strong> 条，达标率 <strong style="color:var(--primary);">${meetRate.toFixed(1)}%</strong></p>`;
+}
+calc();
+function copyResult(){ToolBox.copyText(document.getElementById("res").innerText);}
 </script>
 
 <!-- SEO 介绍区块 -->
