@@ -26,9 +26,18 @@ TOOLS = os.path.join(ROOT, 'tools', IND)
 I18N = os.path.join(ROOT, 'i18n', 'tools')
 GUIDES = os.path.join(ROOT, 'guides')
 
-# 英文占位串：<工具名> is available directly in your browser ...
+# 英文占位串：模板化英文正文/副标题。已收录 5 种历史形态：
+#   <名> is available directly in your browser ...   （-body.json 默认 intro）
+#   <名> is a free online tool.                      （旧卡片副标题默认值）
+#   Checker 5 - check and validate online, free.     （slu 残留代号 + 兜底句）
+#   Generate results online for free and instantly.  （slug-en 默认 ed）
 PLACEHOLDER_P = re.compile(
-    r'^[A-Za-z0-9][\w \-\'’\.]* is available directly in your browser', re.I)
+    r'^[A-Za-z0-9][^<>]{0,90}?(?:'
+    r'\bis\s+(?:a\s+)?(?:free\s+)?online\s+(?:tool|calculator|generator|converter|checker|simulator)\b'
+    r'|\bis available directly in your browser\b'
+    r'|\bcheck and validate online\b'
+    r'|\bGenerate results online for free\b'
+    r')', re.I | re.S)
 # 真·代号：slug 残留形态（小写字母-数字），或 "英文词 序号" 占位
 CODE_P = re.compile(r'[a-z]+-\d+|\b[A-Za-z]{2,} \d{1,3}\b')
 # 套话判定（§4.5）
@@ -61,8 +70,21 @@ sjson = load(os.path.join(I18N, f'{IND}.json'))
 enov = load(os.path.join(I18N, '_en_override.json'))
 ind = load(os.path.join(ROOT, 'json', f'industry-{IND}.json'))
 
+def _is_redirect_stub(path):
+    """TOOLBOX-REDIRECT 存根 = 迁移占位，不含工具内容。
+
+    构建（_build.py:1609/1759）与门禁已全链路跳过存根，本审计必须同口径，
+    否则重定向页会被当成「deep-dive 缺失 / UI 缺项 / cat 为空」的假缺口。
+    """
+    try:
+        with open(path, encoding='utf-8') as f:
+            return 'TOOLBOX-REDIRECT' in f.read(400)
+    except Exception:
+        return False
+
+
 tools = sorted(os.path.basename(f)[:-5] for f in glob.glob(os.path.join(TOOLS, '*.html'))
-               if os.path.basename(f) != 'index.html')
+               if os.path.basename(f) != 'index.html' and not _is_redirect_stub(f))
 N = len(tools)
 print(f"=== {IND} 真实工具数: {N} ===\n")
 
@@ -123,8 +145,15 @@ desc_en_bad = []
 title_en_bad = []
 for slug in tools:
     s = open(os.path.join(TOOLS, slug + '.html'), encoding='utf-8').read()
+    # 候选：首个 <p>（-body.json 预渲染的英文正文）+ 卡片副标题 <p ... data-zh>（英译副标题）
+    _cands = []
     m = re.search(r'<p\b[^>]*>([\s\S]*?)</p>', s, re.I)
-    if m and PLACEHOLDER_P.match(m.group(1).strip()):
+    if m:
+        _cands.append(m.group(1).strip())
+    sm = re.search(r'<p\b[^>]*data-zh="[^"]*"[^>]*>([\s\S]*?)</p>', s, re.I)
+    if sm:
+        _cands.append(sm.group(1).strip())
+    if any(c and PLACEHOLDER_P.match(c) for c in _cands):
         ph_bad.append(slug)
     dm = re.search(r'<meta name="desc-en" content="([^"]*)"', s)
     if dm and desc_en_ph(dm.group(1)):
