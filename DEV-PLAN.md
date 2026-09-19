@@ -184,6 +184,8 @@
 | 10 | ai | 64 | 20 | meteorology | 42 |
 
 > 全站 209 个分类 / 4794 个工具；上表为 Top 20，其余按同口径递减。
+
+> **it 收口进度（2026-09-19 起）**：已修 cat 误标 4 个（calc-3/calc-4 由 design→convert、calc-subnet/exponential-distribution 由 health→calculator，三处同写 meta+tools.json+industry-it.json）。现状审计：334A/1B/3C、deep-dive 349 键全达标、en 字段零缺失；**主要缺口 = §4.1.1 功能验证 verify 覆盖仅 28/338**，后续按「有实质计算逻辑的工具优先」补真实 case（纯格式化/生成器类靠抽样人工验证功能可用性）。
 > **取批规则**：每次取表首未收口分类，按 §4.2「每批至少 10 个工具」分批；收口标准 = §4.1 八项目标在该分类全部工具上达成。
 
 > **A 项权威口径（务必遵守）**：
