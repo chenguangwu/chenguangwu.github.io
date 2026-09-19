@@ -172,14 +172,14 @@
 
 | # | 分类 | 工具数 | # | 分类 | 工具数 |
 |---|---|---|---|---|---|
-| 1 | surveying | 44 | 3 | meteorology | 42 |
-| 2 | (按同口径递减) | — | 4 | (按同口径递减) | — |
-| 3 | (按同口径递减) | — | 5 | (按同口径递减) | — |
-| 4 | (按同口径递减) | — | 6 | (按同口径递减) | — |
+| 1 | meteorology | 42 | 2 | (按同口径递减) | — |
+| 2 | (按同口径递减) | — | 3 | (按同口径递减) | — |
+| 3 | (按同口径递减) | — | 4 | (按同口径递减) | — |
+| 4 | (按同口径递减) | — | 5 | (按同口径递减) | — |
 
-> 全站 209 个分类 / 4767 个工具。上表为**剩余待收口分类**（按工具数降序）；已收口的 `it`（336）、`general`（183）、`design`（109）、`finance`（104）、`science`（98）、`sports`（78）、`life`（73）、`biz`（69）、`fun`（65）、`ai`（64）、`agriculture`（63）、`hydraulic`（56）、`automotive`（55）、`legal`（54）、`realestate`（54）、`statistics`（51）、`edu`（48）、`marketing`（45）十八项已按「完成一个删一个」移除，其余分类按同口径递减。
+> 全站 209 个分类 / 4767 个工具。上表为**剩余待收口分类**（按工具数降序）；已收口的 `it`（336）、`general`（183）、`design`（109）、`finance`（104）、`science`（98）、`sports`（78）、`life`（73）、`biz`（69）、`fun`（65）、`ai`（64）、`agriculture`（63）、`hydraulic`（56）、`automotive`（55）、`legal`（54）、`realestate`（54）、`statistics`（51）、`edu`（48）、`marketing`（45）、`surveying`（44）十九项已按「完成一个删一个」移除，其余分类按同口径递减。
 
-> **收口状态（2026-09-19）**：`it` ✅ 336/336 A；`general` ✅ 183/183 A；`design` ✅ 109/109 A；`finance` ✅ 104/104 A；`science` ✅ 98/98 A；`sports` ✅ 八维审计全绿；`life`/`biz`/`fun` ✅ 八维审计全绿；`ai`/`agriculture` ✅ 八维审计全绿；`hydraulic` ✅ 八维审计全绿（cat 1 错标修 / 56/56）；`automotive` ✅ 八维审计全绿（cat 7 错标修 / 英文 i18n 全量翻译 / formula 51/51）；`legal` ✅ 八维审计全绿（cat 25 行业名错标修 finance24/health1 → calculator）；`realestate` ✅ 八维审计全绿（cat 36 行业名错标修 finance35/health1 → calculator）；`statistics` ✅ 八维审计全绿（cat=statistics 为合法功能 cat，0 改动）；`edu` ✅ 八维审计全绿（cat 全合法功能值，0 改动）；`marketing` ✅ 八维审计全绿（cat 13 行业名错标修 finance→calculator / assessor-51 套话改写）。**下一个待收口分类 = `surveying`（44 工具）。**
+> **收口状态（2026-09-19）**：`it` ✅ 336/336 A；`general` ✅ 183/183 A；`design` ✅ 109/109 A；`finance` ✅ 104/104 A；`science` ✅ 98/98 A；`sports` ✅ 八维审计全绿；`life`/`biz`/`fun` ✅ 八维审计全绿；`ai`/`agriculture` ✅ 八维审计全绿；`hydraulic` ✅ 八维审计全绿（cat 1 错标修 / 56/56）；`automotive` ✅ 八维审计全绿（cat 7 错标修 / 英文 i18n 全量翻译 / formula 51/51）；`legal` ✅ 八维审计全绿（cat 25 行业名错标修 finance24/health1 → calculator）；`realestate` ✅ 八维审计全绿（cat 36 行业名错标修 finance35/health1 → calculator）；`statistics` ✅ 八维审计全绿（cat=statistics 为合法功能 cat，0 改动）；`edu` ✅ 八维审计全绿（cat 全合法功能值，0 改动）；`marketing` ✅ 八维审计全绿（cat 13 行业名错标修 finance→calculator / assessor-51 套话改写）；`surveying` ✅ 八维审计全绿（cat=surveying 为合法功能 cat，0 改动）。**下一个待收口分类 = `meteorology`（42 工具）。**
 > **取批规则**：每次取表首未收口分类，按 §4.2「每批至少 10 个工具」分批；收口标准 = §4.1 八项目标在该分类全部工具上达成。
 
 > **A 项权威口径（务必遵守）**：
