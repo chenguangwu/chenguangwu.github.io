@@ -9,7 +9,7 @@ window.INDUSTRY_INFO = {
   'office'               : { name: '办公文档', icon: '📄', hot: 5005146 },
   'health'               : { name: '健康医疗', icon: '❤️', hot: 3540019 },
   'healthcare'           : { name: '医疗保健', icon: '🩺', hot: 3278428 },
-  'legal'                : { name: '法律合规', icon: '⚖️', hot: 2672454 },
+  'legal'                : { name: '法律合规', icon: '⚖️', hot: 2693858 },
   'marketing'            : { name: '营销推广', icon: '📢', hot: 2578325 },
   'travel'               : { name: '旅行出行', icon: '✈️', hot: 2193074 },
   'science'              : { name: '科学研究', icon: '🔬', hot: 2169084 },
