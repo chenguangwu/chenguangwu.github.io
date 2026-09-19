@@ -53,8 +53,8 @@
 <!-- TOOLBOX-I18N-SCRIPT -->
 
 
-<meta name="title-en" content="Dataset Statistical Analysis">
-<meta name="desc-en" content="Dataset Statistical Analysis. Investment variance analysis: computes deviation, trend and corrective benchmarks from the entered series to support rebalancing d">
+<meta name="title-en" content="Investment Variance Analyzer">
+<meta name="desc-en" content="Investment variance analysis. Compare planned vs actual investment to get the deviation, deviation rate, cost performance index and corrective guidance.">
 <!-- TOOLBOX-HREFLANG -->
 <link rel="alternate" hreflang="zh-CN" href="https://chenguangwu.github.io/tools/general/analysis-44.html">
 <link rel="alternate" hreflang="zh-TW" href="https://chenguangwu.github.io/zh-tw/tools/general/analysis-44.html">
@@ -97,17 +97,24 @@
 </nav>
 <div class="container">
   <div class="card tool-card-accent" style="--tool-accent:#FF6B35;">
-     <h2 data-zh="📊 投资（偏差/分析/纠偏）方法">📊 Dataset Statistical Analysis</h2>
-    <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="偏差/分析/纠偏">Investment variance analysis: computes deviation, trend and corrective benchmarks from the entered series to support rebalancing decisions.</p>
+     <h2 data-zh="💹 投资（偏差/分析/纠偏）方法">💹 Investment Variance Analyzer</h2>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="对比计划投资与实际投资，计算偏差额、偏差率与成本绩效指数，并按通用财务规则给出纠偏建议。">Compare planned vs actual investment: deviation, deviation rate, cost performance index and corrective guidance.</p>
 <div class="formula-box">
-  <div class="formula-title">📐 工作原理与说明</div>
-  <div class="formula-desc">本工具用于投资（偏差/分析/纠偏）方法的实时计算，依据对应公式与标准运算规则处理，结果按精度实时输出；纯前端运行，数据不上传。</div>
+  <div class="formula-title">📐 偏差口径与纠偏规则</div>
+  <div class="formula-desc"><strong>偏差额</strong> = 实际投资 − 计划投资：正值表示超支，负值表示节约。<br><strong>偏差率</strong> =（实际 − 计划）÷ 计划 × 100%，反映相对偏离程度，便于不同规模项目横向比较。<br><strong>成本绩效指数 CPI</strong> = 计划 ÷ 实际：CPI ≥ 1 表示成本受控或有结余，CPI &lt; 1 表示超支，每 1 元计划投资的产出效率为 CPI。<br><strong>纠偏规则</strong>（通用工程财务口径）：|偏差率| ≤ 5% 视为在正常波动范围内；5%～10% 建议复核明细并收紧后续预算；&gt; 10% 应触发专项纠偏，重新评估范围与现金流，必要时调整投资计划。纯前端计算，数据不上传。</div>
 </div>
 
-<label>输入数据（逗号或换行分隔）</label>
-<textarea id="data" rows="4" oninput="calc()" placeholder="例如: 10,20,30,40,50">10,20,30,40,50,60,70,80</textarea>
-<div class="toolbar"><button type="button" class="btn primary" onclick="calc()">统计分析</button><button type="button" class="btn" onclick="copyRes()">复制</button></div>
+<label>计划投资（元）</label>
+<input type="number" id="plan" step="0.01" value="1000000" oninput="calc()">
+<label>实际投资（元）</label>
+<input type="number" id="actual" step="0.01" value="1080000" oninput="calc()">
+<label>多项目批量（每行「项目,计划,实际」）</label>
+<textarea id="items" rows="4" oninput="calcBatch()" placeholder="例如: 主体工程,500000,530000">主体工程,500000,530000
+设备采购,300000,282000
+安装调试,200000,215000</textarea>
+<div class="toolbar"><button type="button" class="btn primary" onclick="calc()">分析偏差</button><button type="button" class="btn" onclick="copyRes()">复制结果</button></div>
 <div class="result-box" id="res"></div>
+<div class="result-box" id="batchRes"></div>
   </div>
 
 <!-- TOOLBOX-DEEP-DIVE -->
@@ -127,19 +134,20 @@
 </style>
 <section class="deep-dive" data-deep-dive="1">
 <div class="card">
-<h2>📚 深度解析：数据集统计分析（均值/标准差/方差）</h2>
+<h2>📚 深度解析：偏差额、偏差率与成本绩效指数</h2>
 <h3>💡 常见使用场景</h3>
 <ul class="dd-list">
-<li>质量检验：对一批测量值做描述统计，判断离散程度与过程稳定性</li>
-<li>实验/问卷数据汇总：快速得到样本量、均值、方差与标准差</li>
-<li>教学演示：理解总体与样本方差的差异（n 与 n-1 自由度）</li>
+<li>工程项目投资的过程管控与超支预警</li>
+<li>多分项预算执行情况的横向对比</li>
+<li>投资计划调整前的偏差归因与纠偏决策</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">方法</div><div class="dd-ex-body">输入一组以逗号分隔的数值，自动统计样本量 n、均值、总体方差（÷n）、样本方差（÷(n-1)）、总体标准差与样本标准差。标准差反映数据离散程度，越大越分散。</div></div>
-<div class="dd-example"><div class="dd-ex-title">算例</div><div class="dd-ex-body">输入 10,20,30,40,50,60,70,80（默认示例）：n=8，均值=45，样本方差=600.0，样本标准差≈24.49，总体标准差≈22.91。说明数据围绕 45 上下波动约 ±24。</div></div>
+<div class="dd-example"><div class="dd-ex-title">算例</div><div class="dd-ex-body">计划投资 1000000 元、实际 1080000 元：偏差额 +80000 元，偏差率 +8.00%，CPI=1000000/1080000≈0.9259，判定“轻度超支”，建议复核明细并收紧后续预算。</div></div>
+<div class="dd-example"><div class="dd-ex-title">多项目批量</div><div class="dd-ex-body">可一次录入多行「项目,计划,实际」，自动得到每行的偏差额、偏差率与判定，快速定位超支分项。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
-<dt>样本标准差为什么除以 n-1 而不是 n？</dt><dd>除以 n-1 是样本方差的无偏估计（贝塞尔校正），用样本估计总体时更准；仅当数据是完整总体时才除以 n。本工具同时给出两种口径便于对照。</dd>
-<dt>标准差单位和数据一样吗？</dt><dd>是的，标准差与原始数据同单位，方差是单位的平方；比较不同量纲数据的离散程度应先用标准差或变异系数（标准差/均值）。</dd>
+<dt>偏差率正值和负值分别代表什么？</dt><dd>正值为超支（实际高于计划），负值为节约（实际低于计划）。</dd>
+<dt>CPI 成本绩效指数怎么解读？</dt><dd>CPI=计划÷实际。CPI≥1 表示成本受控或有结余；CPI&lt;1 表示超支，数值越小超支越严重。</dd>
+<dt>偏差多大需要纠偏？</dt><dd>通用口径：|偏差率|≤5% 属正常波动；5%～10% 建议复核并收紧预算；超过 10% 应触发专项纠偏。</dd>
 </dl>
 </div>
 </section>
@@ -155,7 +163,12 @@
 <!-- /注意事项区块 -->
 </div>
 <script>
-function calc(){const raw=document.getElementById("data").value.split(/[,\n\s]+/).map(s=>parseFloat(s.trim())).filter(v=>!isNaN(v));if(!raw.length){document.getElementById("res").innerHTML='<p>请输入数据</p>';return;}const n=raw.length,sum=raw.reduce((a,b)=>a+b,0),mean=sum/n;const sorted=[...raw].sort((a,b)=>a-b);const med=n%2?sorted[Math.floor(n/2)]:(sorted[n/2-1]+sorted[n/2])/2;const varr=raw.reduce((a,b)=>a+(b-mean)**2,0)/n;const std=Math.sqrt(varr);document.getElementById("res").innerHTML=`<p>数据量：<strong>${n}</strong></p><p>总和：<strong>${sum.toFixed(2)}</strong></p><p>平均值：<strong style="color:var(--primary);">${mean.toFixed(2)}</strong></p><p>中位数：<strong>${med.toFixed(2)}</strong></p><p>最小值：<strong>${sorted[0]}</strong></p><p>最大值：<strong>${sorted[n-1]}</strong></p><p>极差：<strong>${(sorted[n-1]-sorted[0]).toFixed(2)}</strong></p><p>方差：<strong>${varr.toFixed(2)}</strong></p><p>标准差：<strong>${std.toFixed(2)}</strong></p>`;}calc();function copyRes(){ToolBox.copyText(document.getElementById("res").innerText);}
+function analyze(plan,actual){var dv=actual-plan;var rate=plan?((dv/plan)*100):NaN;var cpi=actual?(plan/actual):NaN;var lvl,tip;if(!isFinite(rate)){lvl="—";tip="计划投资需大于 0";}else if(rate>10){lvl="严重超支";tip="触发专项纠偏：重新评估范围与现金流，必要时调整投资计划";}else if(rate>5){lvl="轻度超支";tip="复核明细并收紧后续预算";}else if(rate<-5){lvl="明显节约";tip="核实是否有未完成项，避免成本转移至后期";}else{lvl="正常波动";tip="偏差在 ±5% 内，按计划推进";}return {dv:dv,rate:rate,cpi:cpi,lvl:lvl,tip:tip};}
+function fmt(v,d){return (v===null||!isFinite(v))?"—":v.toFixed(d==null?2:d);}
+function calc(){var plan=parseFloat(document.getElementById("plan").value),actual=parseFloat(document.getElementById("actual").value);var el=document.getElementById("res");if(!isFinite(plan)||!isFinite(actual)||plan<=0){el.innerHTML='<p>请输入有效的计划（&gt;0）与实际投资</p>';return;}var r=analyze(plan,actual);var color=r.rate>5?"var(--danger)":(r.rate<-5?"#16a34a":"var(--text)");el.innerHTML='<p>偏差额：<strong style="color:'+color+';">'+fmt(r.dv)+' 元</strong></p><p>偏差率：<strong style="color:'+color+';">'+fmt(r.rate)+'%</strong></p><p>成本绩效指数 CPI：<strong>'+fmt(r.cpi,4)+'</strong></p><p>判定：<strong>'+r.lvl+'</strong>　建议：'+r.tip+'</p>';}
+function calcBatch(){var lines=document.getElementById("items").value.split(/\n+/).map(function(s){return s.trim();}).filter(Boolean);var rows="";lines.forEach(function(ln){var p=ln.split(/[,\t]+/);var name=(p[0]||"").trim();var pl=parseFloat(p[1]),ac=parseFloat(p[2]);if(!name||!isFinite(pl)||!isFinite(ac))return;var r=analyze(pl,ac);var color=r.rate>5?"var(--danger)":(r.rate<-5?"#16a34a":"var(--text)");rows+='<tr><td>'+name+'</td><td>'+fmt(pl)+'</td><td>'+fmt(ac)+'</td><td style="color:'+color+';">'+fmt(r.dv)+'</td><td style="color:'+color+';">'+fmt(r.rate)+'%</td><td>'+r.lvl+'</td></tr>';});var el=document.getElementById("batchRes");el.innerHTML=rows?('<table class="ref-table"><thead><tr><th>项目</th><th>计划</th><th>实际</th><th>偏差额</th><th>偏差率</th><th>判定</th></tr></thead><tbody>'+rows+'</tbody></table>'):'<p>请输入每行「项目,计划,实际」</p>';}
+function copyRes(){ToolBox.copyText((document.getElementById("res").innerText+"\n"+document.getElementById("batchRes").innerText).trim());}
+calc();calcBatch();
 </script>
 
 <!-- SEO 介绍区块 -->

@@ -54,7 +54,7 @@
 
 
 <meta name="title-en" content="Energy Consumption Dashboard">
-<meta name="desc-en" content="Energy Consumption Dashboard. Energy-consumption dashboard: computes statistics (mean, peak, trend) and a short forecast from the entered consumption series">
+<meta name="desc-en" content="Energy-consumption dashboard. Break consumption down by category into shares, then forecast the next period with a least-squares linear trend.">
 <!-- TOOLBOX-HREFLANG -->
 <link rel="alternate" hreflang="zh-CN" href="https://chenguangwu.github.io/tools/general/stats-energy.html">
 <link rel="alternate" hreflang="zh-TW" href="https://chenguangwu.github.io/zh-tw/tools/general/stats-energy.html">
@@ -99,16 +99,26 @@
 <div class="container">
   <div class="card tool-card-accent" style="--tool-accent:#FF6B35;">
      <h2 data-zh="⚡ 能耗（统计/预测）仪表">⚡ Energy Consumption Dashboard</h2>
-    <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="统计/预测">Energy-consumption dashboard: computes statistics (mean, peak, trend) and a short forecast from the entered consumption series.</p>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="录入分项能耗做占比统计，并按历史序列用最小二乘线性趋势预测下一期用量。">Break down consumption by category, then forecast the next period with a least-squares trend.</p>
 <div class="formula-box">
-  <div class="formula-title">📐 工作原理与说明</div>
-  <div class="formula-desc">本工具用于能耗（统计/预测）仪表，换算因子依据国际单位制(SI)及相关标准定义，结果保留输入精度；纯前端本地处理，数据不上传。</div>
+  <div class="formula-title">📐 统计口径与预测方法</div>
+  <div class="formula-desc">分项统计：对每个用能分项求和，计算各分项占总能耗的比例（占比 = 分项 ÷ 总量 × 100%），并按用量降序排列，便于识别主要耗能环节。<br>趋势预测：对历史总量序列按时间 t=1,2,…,n 做最小二乘线性拟合 y=a+b·t，其中 b=(nΣty−ΣtΣy)/(nΣt²−(Σt)²)、a=(Σy−bΣt)/n，下一期预测值 = a+b·(n+1)。斜率 b 表示每期平均变化量，用于判断能耗上升或下降趋势。</div>
 </div>
 
-<label>输入数据（逗号或换行分隔）</label>
-<textarea id="data" rows="4" oninput="calc()" placeholder="例如: 10,20,30,40,50">10,20,30,40,50,60,70,80</textarea>
-<div class="toolbar"><button type="button" class="btn primary" onclick="calc()">统计分析</button><button type="button" class="btn" onclick="copyRes()">复制</button></div>
+<label>分项能耗（每行「名称,数值」，单位自定，如 kWh）</label>
+<textarea id="items" rows="5" oninput="calc()" placeholder="例如: 照明,120">照明,120
+空调,340
+插座,90
+动力,450</textarea>
+<label>历史总量序列（每行一期，用于趋势预测）</label>
+<textarea id="series" rows="4" oninput="calc()" placeholder="例如: 820">820
+880
+930
+1010
+1080</textarea>
+<div class="toolbar"><button type="button" class="btn primary" onclick="calc()">统计分析</button><button type="button" class="btn" onclick="copyRes()">复制结果</button></div>
 <div class="result-box" id="res"></div>
+<div class="result-box" id="forecast"></div>
   </div>
 
 <!-- TOOLBOX-DEEP-DIVE -->
@@ -128,19 +138,20 @@
 </style>
 <section class="deep-dive" data-deep-dive="1">
 <div class="card">
-<h2>📚 深度解析：能耗（统计/预测）仪表（描述统计与波动分析）</h2>
+<h2>📚 深度解析：分项占比统计与最小二乘趋势预测</h2>
 <h3>💡 常见使用场景</h3>
 <ul class="dd-list">
-<li>能耗台账分析：录入逐月或逐日用量，算均值与波动幅度</li>
-<li>异常识别：用标准差与极差判断是否存在异常高耗时段</li>
-<li>节能基线建立：以均值作为能耗基准，用于节能量核算</li>
+<li>企业/家庭用电的分项构成分析与节能挖潜</li>
+<li>按历史用电量预估下期电费与用电计划</li>
+<li>设备能耗异常排查中的占比对比</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">方法</div><div class="dd-ex-body">算法：把输入按逗号/空格/换行切分并解析为数值序列（默认示例为 10,20,30,40,50,60,70,80 共 8 项）；样本量 n；总和 = Σx；均值 = 总和/n；中位数按排序后取中间值（n 为偶数时取中间两项平均）；方差 = Σ(x−均值)²/n（总体方差，除以 n 而非 n−1）；标准差 = √方差；最小值、最大值取排序首尾；极差 = 最大值 − 最小值。数据全部在浏览器本地处理，不上传服务器。</div></div>
-<div class="dd-example"><div class="dd-ex-title">算例</div><div class="dd-ex-body">例：录入 10,20,30,40,50,60,70,80 → n=8、总和 360、均值 45.00、中位数 45.00、最小值 10、最大值 80、极差 70.00、方差 525.00、标准差 22.91。若某月突增到 200，即 10,20,30,40,50,60,70,200 → 总和 480、均值 60.00、极差 190.00、标准差 59.61，标准差由 22.91 扩大到 59.61（变异系数近 1），可判为异常高耗需核查。若录入 8 个月均为 45 → 均值 45.00、标准差 0.00、极差 0，说明用能极其平稳。</div></div>
+<div class="dd-example"><div class="dd-ex-title">分项统计</div><div class="dd-ex-body">照明 120、空调 340、插座 90、动力 450（合计 1000）：占比依次为 12.0%、34.0%、9.0%、45.0%，动力为最大耗能项。</div></div>
+<div class="dd-example"><div class="dd-ex-title">趋势预测</div><div class="dd-ex-body">历史总量 820、880、930、1010、1080，最小二乘拟合斜率约 +65/期，下期预测约 1139。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
-<dt>方差用的是总体还是样本口径？</dt><dd>本工具除以 n，即总体方差口径。若要与 Excel 的 VAR.S 或统计教材的样本方差对照，需自行除以 n−1（上例中为 525×8/7 = 600.00，标准差 24.49）。样本量较小时两者差异明显，报告口径时需注意。</dd>
-<dt>均值能直接当作节能基线吗？</dt><dd>可以作为初步基线，但能耗通常与产量、开机天数或室外温度相关。更严谨的做法是按产量或度日数做归一化（如 kWh/件、kWh/万平方米·度日），再用归一化后的均值作基线，否则产量波动会掩盖真实节能效果。</dd>
+<dt>占比是怎么计算的？</dt><dd>占比 = 分项用量 ÷ 所有分项合计 × 100%，并按用量降序排列，便于快速定位主要耗能环节。</dd>
+<dt>趋势预测用的是什么方法？</dt><dd>对历史序列按时间做最小二乘线性拟合 y=a+b·t，下一期预测值取 a+b·(n+1)，适合短期、近似线性的用量预估。</dd>
+<dt>预测结果可以直接用于预算吗？</dt><dd>建议作为参考基线。季节波动、设备增减、电价调整等都会影响实际值，正式预算应结合这些因素修正。</dd>
 </dl>
 </div>
 </section>
@@ -156,7 +167,13 @@
 <!-- /注意事项区块 -->
 </div>
 <script>
-function calc(){const raw=document.getElementById("data").value.split(/[,\n\s]+/).map(s=>parseFloat(s.trim())).filter(v=>!isNaN(v));if(!raw.length){document.getElementById("res").innerHTML='<p>请输入数据</p>';return;}const n=raw.length,sum=raw.reduce((a,b)=>a+b,0),mean=sum/n;const sorted=[...raw].sort((a,b)=>a-b);const med=n%2?sorted[Math.floor(n/2)]:(sorted[n/2-1]+sorted[n/2])/2;const varr=raw.reduce((a,b)=>a+(b-mean)**2,0)/n;const std=Math.sqrt(varr);document.getElementById("res").innerHTML=`<p>数据量：<strong>${n}</strong></p><p>总和：<strong>${sum.toFixed(2)}</strong></p><p>平均值：<strong style="color:var(--primary);">${mean.toFixed(2)}</strong></p><p>中位数：<strong>${med.toFixed(2)}</strong></p><p>最小值：<strong>${sorted[0]}</strong></p><p>最大值：<strong>${sorted[n-1]}</strong></p><p>极差：<strong>${(sorted[n-1]-sorted[0]).toFixed(2)}</strong></p><p>方差：<strong>${varr.toFixed(2)}</strong></p><p>标准差：<strong>${std.toFixed(2)}</strong></p>`;}calc();function copyRes(){ToolBox.copyText(document.getElementById("res").innerText);}
+function parseItems(){return document.getElementById("items").value.split(/\n+/).map(function(l){var p=l.split(/[,\t;]+/);return {name:(p[0]||"").trim(),val:parseFloat(p[1])};}).filter(function(o){return o.name&&isFinite(o.val);});}
+function parseSeries(){return document.getElementById("series").value.split(/\n+/).map(function(x){return parseFloat(x);}).filter(function(x){return isFinite(x);});}
+function calcItems(){var items=parseItems();var el=document.getElementById("res");if(!items.length){el.innerHTML='<p>请输入每行「名称,数值」</p>';return;}var tot=items.reduce(function(a,b){return a+b.val;},0);var srt=items.slice().sort(function(a,b){return b.val-a.val;});var max=srt[0].val||1;var rows="",bars="";srt.forEach(function(o){var pct=tot?((o.val/tot)*100):0;var w=tot?(o.val/max*100):0;rows+='<tr><td>'+o.name+'</td><td>'+o.val.toFixed(2)+'</td><td>'+pct.toFixed(1)+'%</td></tr>';bars+='<div style="display:flex;align-items:center;gap:8px;margin:4px 0;"><span style="width:6em;font-size:12px;">'+o.name+'</span><span style="flex:1;background:var(--bg-hover,#f0f0f0);border-radius:4px;overflow:hidden;"><span style="display:block;height:14px;width:'+w.toFixed(1)+'%;background:var(--primary);"></span></span><span style="font-size:12px;min-width:3.5em;text-align:right;">'+pct.toFixed(1)+'%</span></div>';});el.innerHTML='<p>能耗总计：<strong style="color:var(--primary);font-size:1.15em;">'+tot.toFixed(2)+'</strong>；分项数：<strong>'+items.length+'</strong></p><table class="ref-table"><thead><tr><th>分项</th><th>用量</th><th>占比</th></tr></thead><tbody>'+rows+'</tbody></table><p style="margin-top:10px;">消耗占比图：</p>'+bars;}
+function calcForecast(){var s=parseSeries();var el=document.getElementById("forecast");if(s.length<2){el.innerHTML='<p>请输入至少两期历史总量以做趋势预测</p>';return;}var n=s.length,sx=0,sy=0,sxx=0,sxy=0,i;for(i=0;i<n;i++){var t=i+1;sx+=t;sy+=s[i];sxx+=t*t;sxy+=t*s[i];}var den=n*sxx-sx*sx;var b=den?(n*sxy-sx*sy)/den:0;var a=(sy-b*sx)/n;var next=a+b*(n+1);var avg=sy/n;var trend=b>0.01?"上升":(b<-0.01?"下降":"基本持平");el.innerHTML='<p>历史均值：<strong>'+avg.toFixed(2)+'</strong>，趋势：<strong>'+trend+'</strong>（斜率 '+b.toFixed(2)+' / 期）</p><p>下期预测用量：<strong style="color:var(--primary);font-size:1.15em;">'+next.toFixed(2)+'</strong></p>';}
+function calc(){calcItems();calcForecast();}
+function copyRes(){ToolBox.copyText(("能耗统计\n"+document.getElementById("res").innerText+"\n"+document.getElementById("forecast").innerText).trim());}
+calc();
 </script>
 
 <!-- SEO 介绍区块 -->
