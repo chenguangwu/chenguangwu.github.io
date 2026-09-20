@@ -33,7 +33,7 @@ const CASES = [
   { slug: "geology/kengtan-chuanmai-yanmai-quyang-fangshi", inputs: { v0: "60", v1: "80" }, expect: ["70.0"], ref: "通用判读页：综合评分=(60+80)/2=70.0 → 中度（默认 100/50=75 避开）" },
   { slug: "geology/sample-1", inputs: { v0: "90", v1: "95" }, expect: ["92.5"], ref: "通用判读页：综合评分=(90+95)/2=92.5 → 重度（默认 100/50=75 避开）" },
   { slug: "geology/weight-sample", inputs: { d: "3", m: "8", w: "2", tol: "15", mat: "0.25" }, expect: ["14.70"], ref: "Gy 采样：dCm=0.3、mG=8000、富集因子(1/w−1)=49；最小样重 m_min=C·d³·(1/w−1)/tol_rel²=0.25×0.027×49/0.15²=0.33075/0.0225=14.70 g（默认 d=2/m=5/w=1.5/tol=10/C=0.5 避开）" },
-  { slug: "geology/analysis-cost-2", inputs: { data: "10 20 30 40 50" }, expect: ["14.14"], ref: "样本 10,20,30,40,50：均值=30.00，方差=Σ(x−μ)²/n=1000/5=200，标准差=√200=14.14" },
+  { slug: "geology/analysis-cost-2", inputs: { holes: "8", meter: "2400", waste: "240", shifts: "60", rate: "2800", move: "72000", other: "108000" }, expect: ["161.11", "36.00", "43,500.00"], ref: "勘探成本效率：有效进尺=2400−240=2160 m，总费用=60×2800+72000+108000=348000 元 → 单位成本=348000÷2160=161.11 元/m，纯钻效率=2160÷60=36.00 m/台班，单孔成本=348000÷8=43,500.00 元（独立复算；默认组为 158.79/36.67/43,666.67，注入失败即不命中）" },
 ];
 
 async function main() {
