@@ -155,9 +155,9 @@ const CASES = [
   },
   {
     slug: "it/text-to-ascii",
-    inputs: { txt: "A" },
-    expect: ["65"],
-    ref: "ord('A') = 65（ASCII 码表）",
+    inputs: { txt: "z" },
+    expect: ["122"],
+    ref: "ord('z') = 122（ASCII 码表；默认正文 Hello, ToolBox! 不含码点 122，注入失败即不命中）",
   },
   {
     slug: "it/text-to-unicode",

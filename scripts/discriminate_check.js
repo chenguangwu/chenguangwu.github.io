@@ -50,6 +50,16 @@ function pageDefaults(slug) {
   //    永远无法「换回默认」→ 判别力校验误报逃生项。真实测试其实有效（默认「正位」/
   //    非默认「明显眼位偏斜」经 probe 实测确认），是校验器盲区而非盲区用例。
   const selRe = /<select\b[^>]*\bid=["']([^"']+)["'][^>]*>([\s\S]*?)<\/select>/g;
+  // 3) <textarea> 默认值（如各分析/统计页的 id="data" 多值输入）
+  //    关键修复（2026-09-20）：旧版 pageDefaults 不解析 textarea，导致「注入失败」模拟
+  //    永远无法把 textarea 类输入换回默认 → 这类用例被误报为「逃生项」（实为校验器盲区），
+  //    同时真正依赖 textarea 默认值的弱用例也从未被本门禁覆盖（基线注释已记录此缺口）。
+  //    补齐后与 runCase 的 defaults 提取口径一致：textarea 也能被回退、被真实校验。
+  const taRe = /<textarea[^>]*id=["']([^"']+)["'][^>]*>([\s\S]*?)<\/textarea>/g;
+  let ta;
+  while ((ta = taRe.exec(body))) {
+    out[ta[1]] = ta[2].replace(/&#10;/g, "\n").replace(/&quot;/g, '"').replace(/&amp;/g, "&");
+  }
   let s;
   while ((s = selRe.exec(body))) {
     const id = s[1];
