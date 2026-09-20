@@ -61,12 +61,13 @@ const CASES = [
 {
   "slug": "seismology/stats-attenuation",
   "inputs": {
-    "data": "10,20,30,40,50,60,70,80_X"
+    "mags": "3.0,3.5,4.0,4.5,5.0,3.2,4.1,4.8"
   },
   "expect": [
-    "80_X"
+    "0.41",
+    "2.13"
   ],
-  "ref": "auto-restore"
+  "ref": "非默认输入+独立复算：G-R b=lg e/(均值4.0125−Mmin3.0+0.05)=0.41、a=lg8+0.41×3.0=2.13（默认序列2.5…4.2 输出 b=0.38/a=1.86，注入失败即不命中）"
 }
 ];
 async function main() {

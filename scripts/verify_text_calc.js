@@ -5,12 +5,14 @@ const CASES = [
 {
   "slug": "text/analysis-density",
   "inputs": {
-    "data": "10,20,30,40,50,60,70,80_X"
+    "data": "苹果苹果香蕉苹果 水果 apple apple",
+    "kw": "苹果,apple"
   },
   "expect": [
-    "80_X"
+    "25.00%",
+    "16.67%"
   ],
-  "ref": "auto-restore"
+  "ref": "非默认输入+独立复算：中文按字10/英文按词2→合计词数12；苹果出现3次密度25.00%、apple出现2次密度16.67%（默认文案不含这些串，注入失败即不命中）"
 },
 {
   "slug": "text/calc-1",
