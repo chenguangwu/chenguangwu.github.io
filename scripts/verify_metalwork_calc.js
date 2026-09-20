@@ -17,10 +17,16 @@
 const { runCase } = require("./verify_it_calc.js");
 
 const CASES = [
-  { slug: "metalwork/analysis-36",
-    inputs: { data: "3,6,9,12" },
-    expect: ["7.50", "3.35"],
-    ref: "n=4,sum=30,mean=30/4=7.50,var=((3-7.5)²+(6-7.5)²+(9-7.5)²+(12-7.5)²)/4=45/4=11.25,std=√11.25=3.35（默认 10..80→mean45.00/std22.91，避开）" },
+{
+  "slug": "metalwork/analysis-36",
+  "inputs": { "qty": "500", "data": "气孔,45,2\n缩松,28,3\n夹渣,15,2\n砂眼,8,1" },
+  "expect": [
+    "缺陷总数： 96",
+    "加权缺陷指数： 212",
+    "缺陷率： 19.20%"
+  ],
+  "ref": "总数=45+28+15+8=96；加权=45×2+28×3+15×2+8×1=90+84+30+8=212；缺陷率=96/500=19.20%（默认 200 件 30/70/15.00%，避开）"
+},
 
   { slug: "metalwork/assessor-34",
     inputs: { testType: "nss", duration: "300", coating: "zn", stdDuration: "240",

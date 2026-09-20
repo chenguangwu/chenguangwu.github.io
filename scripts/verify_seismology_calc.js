@@ -4,13 +4,13 @@ const { runCase } = require("./verify_it_calc.js");
 const CASES = [
 {
   "slug": "seismology/analysis-stress",
-  "inputs": {
-    "data": "10,20,30,40,50,60,70,80_X"
-  },
+  "inputs": { "data": "节面A,30,60,-90\n节面B,45,80,10" },
   "expect": [
-    "80_X"
+    "节面数： 2",
+    "P 300.0°/75.0°",
+    "T 120.0°/15.0°"
   ],
-  "ref": "auto-restore"
+  "ref": "按 Aki&Richards 节面解除算：节面A(30/60/−90) 正断型，P 轴 300.0°/75.0°、B 轴 30.0°/0.0°、T 轴 120.0°/15.0°；节面B(45/80/10) 走滑型（默认 1 个节面 45/60/0，P 4.1°/20.7°，避开）"
 },
 {
   "slug": "seismology/assessor-30",
