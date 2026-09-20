@@ -92,15 +92,17 @@
 </div>
 
   <div class="card tool-card-accent" style="--tool-accent:#FF6B35;">
-    <h2 data-zh="🥗 膳食纤维摄入统计（内置食材库）">Stats Ingredient</h2>
-    <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="内置食材库">Stats Ingredient</p>
+    <h2 data-zh="🥗 膳食纤维摄入统计（内置食材库）">Dietary Fiber Intake Tracker</h2>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="按食材与用量累加膳食纤维，对照每日推荐量">Enter each food with its amount (g); the built-in library accumulates dietary fiber and compares against the daily recommended intake.</p>
 <div class="formula-box">
   <div class="formula-title">📐 工作原理与说明</div>
-  
+  <p style="font-size:13px;line-height:1.8;color:var(--text-muted);">单项纤维 = 用量(g) ÷ 100 × 每100g纤维含量；总纤维 = Σ 各项纤维。成人每日膳食纤维推荐摄入 25–30 g，结果按此对照占比。内置常见食材每100g纤维含量（如燕麦 10、苹果 2.4、西兰花 2.6、黑豆 8.7）。</p>
 </div>
 
-<label>输入数据（逗号或换行分隔）</label>
-<textarea id="data" rows="4" oninput="calc()" placeholder="例如: 10,20,30,40,50">10,20,30,40,50,60,70,80</textarea>
+<label>每行输入「食材名,用量(g)」，如：燕麦,50</label>
+<textarea id="data" rows="4" oninput="calc()" placeholder="如：燕麦,50 苹果,150 西兰花,100">燕麦,50
+苹果,150
+西兰花,100</textarea>
 <div class="toolbar"><button type="button" class="btn primary" onclick="calc()">统计分析</button><button type="button" class="btn" onclick="copyRes()">复制</button></div>
 <div class="result-box" id="res"></div>
   </div>
@@ -150,7 +152,32 @@
 <!-- /注意事项区块 -->
 </div>
 <script>
-function calc(){const raw=document.getElementById("data").value.split(/[,\n\s]+/).map(s=>parseFloat(s.trim())).filter(v=>!isNaN(v));if(!raw.length){document.getElementById("res").innerHTML='<p>请输入数据</p>';return;}const n=raw.length,sum=raw.reduce((a,b)=>a+b,0),mean=sum/n;const sorted=[...raw].sort((a,b)=>a-b);const med=n%2?sorted[Math.floor(n/2)]:(sorted[n/2-1]+sorted[n/2])/2;const varr=raw.reduce((a,b)=>a+(b-mean)**2,0)/n;const std=Math.sqrt(varr);document.getElementById("res").innerHTML=`<p>数据量：<strong>${n}</strong></p><p>总和：<strong>${sum.toFixed(2)}</strong></p><p>平均值：<strong style="color:var(--primary);">${mean.toFixed(2)}</strong></p><p>中位数：<strong>${med.toFixed(2)}</strong></p><p>最小值：<strong>${sorted[0]}</strong></p><p>最大值：<strong>${sorted[n-1]}</strong></p><p>极差：<strong>${(sorted[n-1]-sorted[0]).toFixed(2)}</strong></p><p>方差：<strong>${varr.toFixed(2)}</strong></p><p>标准差：<strong>${std.toFixed(2)}</strong></p>`;}calc();function copyRes(){ToolBox.copyText(document.getElementById("res").innerText);}
+function esc(s){return String(s).replace(/[&<>]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;'}[c];});}
+var FIBER_LIB={"燕麦":10.0,"燕麦片":10.0,"苹果":2.4,"香蕉":2.6,"西兰花":2.6,"胡萝卜":2.8,"红薯":3.0,"糙米":1.8,"黑豆":8.7,"菠菜":2.2,"全麦面包":6.0,"杏仁":12.5,"梨":3.1,"玉米":2.4,"土豆":2.2,"绿豆":7.6,"牛油果":6.7,"奇亚籽":34.4};
+var FIBER_RDA=25;
+function calc(){
+  var lines=document.getElementById("data").value.split(/\n+/).map(function(s){return s.trim();}).filter(Boolean);
+  var rows=[],total=0,unknown=[];
+  for(var i=0;i<lines.length;i++){
+    var p=lines[i].split(/[,，\t]/);
+    var name=(p[0]||"").trim(), g=parseFloat((p[1]||"").trim());
+    if(!name||isNaN(g))continue;
+    var per=FIBER_LIB[name];
+    if(per==null){unknown.push(name);continue;}
+    var fib=g/100*per; total+=fib; rows.push({name:name,g:g,fib:fib});
+  }
+  if(!rows.length){document.getElementById("res").innerHTML='<p>请输入「食材名,用量(g)」每行一条，如：燕麦,50</p>';return;}
+  var pct=total/FIBER_RDA*100;
+  var html='<table><thead><tr><th>食材</th><th>用量(g)</th><th>纤维(g)</th></tr></thead><tbody>';
+  rows.forEach(function(r){html+='<tr><td>'+esc(r.name)+'</td><td>'+r.g+'</td><td><strong>'+r.fib.toFixed(2)+'</strong></td></tr>';});
+  html+='</tbody></table>';
+  html+='<p>总膳食纤维：<strong>'+total.toFixed(2)+' g</strong></p>';
+  html+='<p>占成人推荐量(25 g/天)：<strong>'+pct.toFixed(2)+'%</strong></p>';
+  if(unknown.length)html+='<p style="font-size:12px;color:var(--text-muted);">未收录食材（已跳过）：'+esc(unknown.join('、'))+'</p>';
+  document.getElementById("res").innerHTML=html;
+}
+calc();
+function copyRes(){ToolBox.copyText(document.getElementById("res").innerText);}
 </script>
 
 <!-- SEO 介绍区块 -->
