@@ -89,16 +89,18 @@
 <div class="container">
   <div class="card tool-card-accent" style="--tool-accent:#FF6B35;">
     <h2 data-zh="🎯 战术（攻防）视频分析">🎯 Tactical Attack/Defense Video Analysis</h2>
-    <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="攻防">Structurally tag attack and defense clips from match video, tally attack-defense transitions and key rounds, and support coaching tactical review with clean statistics.</p>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="攻防片段标注">Attack/defense clip tallies, success rates and transition counts.</p>
 <div class="formula-box">
   <div class="formula-title">📐 工作原理与说明</div>
-  
+  <p>进攻成功率 = 进攻成功次数 ÷ 进攻次数 ×100%；防守成功率 = 防守成功次数 ÷ 防守次数 ×100%。</p>
+  <p>攻防转换次数统计相邻回合类型发生切换的频率，反映比赛攻守节奏的快慢。</p>
+  <p>评估口径：进攻成功率 ≥50% 且防守成功率 ≥60% 视为攻防表现良好。</p>
 </div>
-
-<label>输入数据（逗号或换行分隔）</label>
-<textarea id="data" rows="4" oninput="calc()" placeholder="例如: 10,20,30,40,50">10,20,30,40,50,60,70,80</textarea>
-<div class="toolbar"><button type="button" class="btn primary" onclick="calc()">统计分析</button><button type="button" class="btn" onclick="copyRes()">复制</button></div>
-<div class="result-box" id="res"></div>
+<label>标注数据（每行「回合,进攻/防守,成功/失败」）</label>
+<textarea id="data" rows="7" oninput="calc()" placeholder="1,进攻,成功">1,进攻,成功
+2,进攻,失败
+3,防守,成功</textarea>
+<div class="toolbar"><button type="button" class="btn primary" onclick="calc()">战术统计</button><button type="button" class="btn" onclick="copyRes()">复制</button></div><div class="result-box" id="res"></div>
   </div>
 
 <!-- TOOLBOX-DEEP-DIVE -->
@@ -118,17 +120,19 @@
 </style>
 <section class="deep-dive" data-deep-dive="1">
 <div class="card">
-<h2>📚 深度解析：战术（攻防）视频分析</h2>
+<h2>📚 深度解析：比赛攻防片段统计与战术复盘</h2>
 <h3>💡 常见使用场景</h3>
 <ul class="dd-list">
-<li>复盘比赛攻防转换与空间利用。</li>
-<li>赛后逐回合标注攻防转换，统计进攻成功率与防守失位频次定位战术漏洞。</li>
+<li>赛后战术复盘</li>
+<li>攻防效率统计</li>
+<li>训练重点定位</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">指标</div><div class="dd-ex-body">统计攻防转换次数、压迫成功率和预期失球 xGA，定位防守空当。</div></div>
+<div class="dd-example"><div class="dd-ex-title">公式</div><div class="dd-ex-body">进攻成功率 = 进攻成功次数 ÷ 进攻次数 ×100%；防守成功率同理；转换次数统计相邻回合类型切换的次数。</div></div>
+<div class="dd-example"><div class="dd-ex-title">算例</div><div class="dd-ex-body">8 个回合（进攻 4 成功 3、防守 4 成功 3）→ 进攻成功率 75.00%、防守成功率 75.00%、攻防转换 5 次、综合成功率 75.00%，评估为攻防表现良好。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
-<dt>样本量多少稳？</dt><dd>单场噪声大，按多场滚动均值才可靠。</dd>
-<dt>标签维度怎么选才有用？</dt><dd>围绕本队战术关键事件（如快攻、联防破绽）定义标签，避免泛化到无信息量的描述。</dd>
+<dt>转换次数高说明什么？</dt><dd>说明攻守节奏快、球权更迭频繁，对体能与阵型保持要求更高，可据此安排轮换与专项训练。</dd>
+<dt>成功率口径如何统一？</dt><dd>需在赛前明确「成功」的定义（如进攻形成射门、防守夺回球权），同一场比赛全队保持同一口径才可比。</dd>
 </dl>
 </div>
 </section>
@@ -144,7 +148,44 @@
 <!-- /注意事项区块 -->
 </div>
 <script>
-function calc(){const raw=document.getElementById("data").value.split(/[,\n\s]+/).map(s=>parseFloat(s.trim())).filter(v=>!isNaN(v));if(!raw.length){document.getElementById("res").innerHTML='<p>请输入数据</p>';return;}const n=raw.length,sum=raw.reduce((a,b)=>a+b,0),mean=sum/n;const sorted=[...raw].sort((a,b)=>a-b);const med=n%2?sorted[Math.floor(n/2)]:(sorted[n/2-1]+sorted[n/2])/2;const varr=raw.reduce((a,b)=>a+(b-mean)**2,0)/n;const std=Math.sqrt(varr);document.getElementById("res").innerHTML=`<p>数据量：<strong>${n}</strong></p><p>总和：<strong>${sum.toFixed(2)}</strong></p><p>平均值：<strong style="color:var(--primary);">${mean.toFixed(2)}</strong></p><p>中位数：<strong>${med.toFixed(2)}</strong></p><p>最小值：<strong>${sorted[0]}</strong></p><p>最大值：<strong>${sorted[n-1]}</strong></p><p>极差：<strong>${(sorted[n-1]-sorted[0]).toFixed(2)}</strong></p><p>方差：<strong>${varr.toFixed(2)}</strong></p><p>标准差：<strong>${std.toFixed(2)}</strong></p>`;}calc();function copyRes(){ToolBox.copyText(document.getElementById("res").innerText);}
+function calc(){
+var lines=document.getElementById("data").value.split("\n").map(function(s){return s.trim();}).filter(function(s){return s.length>0;});
+var arr=[];
+lines.forEach(function(ln){
+var p=ln.split(/[,，\t ]+/);
+if(p.length<3)return;
+var ty=p[1],rs=p[2];
+var isAtk=ty.indexOf("攻")>=0;
+var ok=rs.indexOf("成功")>=0||rs.indexOf("成")>=0;
+if(ty.indexOf("防")>=0)isAtk=false;
+if(rs.indexOf("失败")>=0||rs.indexOf("失")>=0)ok=false;
+arr.push({no:p[0],atk:isAtk,ok:ok});
+});
+if(!arr.length){document.getElementById("res").innerHTML='<p>请输入至少一行「回合,进攻/防守,成功/失败」</p>';return;}
+var atk=0,atkW=0,dfn=0,dfnW=0,sw=0;
+arr.forEach(function(o,i){
+if(o.atk){atk++;if(o.ok)atkW++;}else{dfn++;if(o.ok)dfnW++;}
+if(i>0&&arr[i-1].atk!==o.atk)sw++;
+});
+var tot=arr.length,win=atkW+dfnW;
+var ar=atk>0?atkW/atk*100:0;
+var dr=dfn>0?dfnW/dfn*100:0;
+var jd=(ar>=50&&dr>=60)?'攻防表现良好':(ar>=50?'进攻达标、防守待加强':'进攻效率待提升');
+var rows='';
+arr.forEach(function(o){
+rows+='<tr><td>'+o.no+'</td><td>'+(o.atk?'进攻':'防守')+'</td><td>'+(o.ok?'成功':'失败')+'</td></tr>';
+});
+document.getElementById("res").innerHTML=
+'<p>标注回合数：<strong>'+tot+'</strong>　攻防转换：<strong>'+sw+' 次</strong></p>'+
+'<p>进攻：<strong>'+atk+'</strong> 次，成功 <strong>'+atkW+'</strong>，成功率 <strong style="color:var(--primary);">'+ar.toFixed(2)+'%</strong></p>'+
+'<p>防守：<strong>'+dfn+'</strong> 次，成功 <strong>'+dfnW+'</strong>，成功率 <strong>'+dr.toFixed(2)+'%</strong></p>'+
+'<p>综合成功：<strong>'+win+'/'+tot+'（'+(tot>0?win/tot*100:0).toFixed(2)+'%）</strong></p>'+
+'<p>战术评估：<strong>'+jd+'</strong></p>'+
+'<p style="font-size:13px;color:var(--text-muted);">转换次数统计相邻回合攻防类型的切换频率，反映比赛节奏；评估口径为进攻成功率 ≥50% 且防守成功率 ≥60%。</p>'+
+'<table><thead><tr><th>回合</th><th>类型</th><th>结果</th></tr></thead><tbody>'+rows+'</tbody></table>';
+}
+calc();
+function copyRes(){ToolBox.copyText(document.getElementById("res").innerText);}
 </script>
 
 <!-- SEO 介绍区块 -->
