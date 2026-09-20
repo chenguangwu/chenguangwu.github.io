@@ -50,8 +50,8 @@
 <script src="../../js/tool-i18n.js" defer></script>
 <!-- TOOLBOX-I18N-SCRIPT -->
 
-<meta name="title-en" content="Analysis Frequency">
-<meta name="desc-en" content="Analysis Frequency - online utility on ToolBox.">
+<meta name="title-en" content="Design Flood Frequency (Gumbel)">
+<meta name="desc-en" content="Design flood frequency analysis with Gumbel method: estimate design peak flow for a given return period.">
 <!-- TOOLBOX-HREFLANG -->
 <link rel="alternate" hreflang="zh-CN" href="https://chenguangwu.github.io/tools/hydraulic/analysis-frequency.html">
 <link rel="alternate" hreflang="zh-TW" href="https://chenguangwu.github.io/zh-tw/tools/hydraulic/analysis-frequency.html">
@@ -96,14 +96,16 @@
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="设计洪水">Fit a flood series to a frequency curve and read off design peak flow and volume for return periods such as 20, 50 and 100 years, for flood-control planning and spillway design.</p>
 <div class="formula-box">
   <div class="formula-title">📐 工作原理与说明</div>
-      <div class="formula-eq">矩法估计：均值 Q̄ = ΣQi ÷ n；变差系数 Cv = σ ÷ Q̄（σ 为均方差）；偏态系数 Cs ≈ (2~3)·Cv；设计洪峰 Qp = Q̄·(1 + Cv·Φp)，Φp 为皮尔逊Ⅲ型模比系数（由设计频率 P 与 Cs 查表）</div>
-      <div class="formula-desc">洪水频率分析采用皮尔逊Ⅲ型曲线：先由年最大洪峰系列用矩法估计均值、变差系数 Cv 与偏态系数 Cs，再按设计频率 P（如 1% 即百年一遇、2% 即五十年一遇）查模比系数 Φp，代入 Qp = Q̄(1 + Cv·Φp) 得设计洪峰。Cv 反映系列离散程度，Cs/Cv 决定曲线偏度；样本少于 30 年时宜用地区综合法或水文比拟插补，避免尾部频率失真。</div>
+      <div class="formula-eq">耿贝尔（Gumbel）极值Ⅰ型：设计值 x_T = x̄ + K·σ；离均系数 K = −(√6/π)·[0.5772 + ln(−ln(1 − 1/T))]，x̄ 为系列均值、σ 为标准差、T 为重现期（年）。</div>
+      <div class="formula-desc">防洪频率分析采用 Gumbel 适线法：将年最大洪峰系列排序后，按极值Ⅰ型分布估计设计洪峰。给定重现期 T（如 100 年一遇），由离均系数 K 求得 x_T = x̄ + K·σ。样本偏短（&lt;30 年）时结果仅供参考，宜结合地区综合或水文比拟插补。</div>
   
 </div>
 
-<label>输入数据（逗号或换行分隔）</label>
-<textarea id="data" rows="4" oninput="calc()" placeholder="例如: 10,20,30,40,50">10,20,30,40,50,60,70,80</textarea>
-<div class="toolbar"><button type="button" class="btn primary" onclick="calc()">统计分析</button><button type="button" class="btn" onclick="copyRes()">复制</button></div>
+<label>年最大洪峰系列 Q（m³/s，逗号或换行分隔）</label>
+<textarea id="data" rows="3" oninput="calc()" placeholder="例如: 1200,1500,1800,2100,1400">1200,1500,1800,2100,1400,1600,1900,1700,1300,2000,2200,1100,1700,1500,1850</textarea>
+<label>设计重现期 T（年）</label>
+<input id="T" type="number" value="100" oninput="calc()">
+<div class="toolbar"><button type="button" class="btn primary" onclick="calc()">计算设计洪峰</button><button type="button" class="btn" onclick="copyResult()">复制</button></div>
 <div class="result-box" id="res"></div>
   </div>
 
@@ -124,19 +126,17 @@
 </style>
 <section class="deep-dive" data-deep-dive="1">
 <div class="card">
-<h2>📚 深度解析：由系列洪水与频率曲线定设计洪水</h2>
+<h2>📚 深度解析：防洪设计洪水频率分析（Gumbel）</h2>
 <h3>💡 常见使用场景</h3>
 <ul class="dd-list">
-<li>防洪规划按重现期（20/50/100 年）反推设计洪峰与洪量。</li>
-<li>水库调洪演算取设计洪水过程线作入库边界。</li>
-<li>对比不同频率下的拦蓄库容需求支撑坝高决策。</li>
+<li>防洪规划：给定重现期（如 100 年一遇），由年最大洪峰系列估算设计洪峰，用于溢洪道、堤防与下游防护标准。</li>
+<li>水库调洪：取设计洪水过程线作入库边界，对比不同重现期下的拦蓄库容需求支撑坝高决策。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">百年一遇洪峰</div><div class="dd-ex-body">年最大值系列拟合 P-Ⅲ 曲线，频率 P=1% 查得设计洪峰 Q_p ≈ 4200 m³/s，用于溢洪道与下游防护标准。</div></div>
-<div class="dd-example"><div class="dd-ex-title">频率换算</div><div class="dd-ex-body">同一系列 P=2%（50 年一遇）洪峰约 3500 m³/s，较百年一遇低约 17%，安全余度随之下降。</div></div>
+<div class="dd-example"><div class="dd-ex-title">算例（15 年系列，T=100 年）</div><div class="dd-ex-body">系列均值 Q̄≈1656.67 m³/s，标准差 σ≈326.71；Gumbel 离均系数 K(T=100)=−(√6/π)[0.5772+ln(−ln0.99)]≈3.1367；设计洪峰 Qp=Q̄+Kσ≈2681.45 m³/s。工具同时给出 10/20/50/100/200 年常用重现期设计洪峰表。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
-<dt>重现期怎么理解？</dt><dd>百年一遇指任意年份发生概率 1%，非百年仅一次；长序列里可能多年连发也可能长期不现。</dd>
-<dt>样本短怎么办？</dt><dd>系列少于 30 年宜用地区综合或水文比拟插补，避免小样本高估尾部频率。</dd>
+<dt>重现期怎么理解？</dt><dd>百年一遇指任意年份发生概率 1%，并非百年仅一次；长序列里可能多年连发也可能长期不现。</dd>
+<dt>样本偏短怎么办？</dt><dd>系列少于 30 年时 Gumbel 尾部估计不确定性大，宜结合地区综合法或水文比拟插补，结果仅作参考。</dd>
 </dl>
 </div>
 </section>
@@ -152,7 +152,29 @@
 <!-- /注意事项区块 -->
 </div>
 <script>
-function calc(){const raw=document.getElementById("data").value.split(/[,\n\s]+/).map(s=>parseFloat(s.trim())).filter(v=>!isNaN(v));if(!raw.length){document.getElementById("res").innerHTML='<p>请输入数据</p>';return;}const n=raw.length,sum=raw.reduce((a,b)=>a+b,0),mean=sum/n;const sorted=[...raw].sort((a,b)=>a-b);const med=n%2?sorted[Math.floor(n/2)]:(sorted[n/2-1]+sorted[n/2])/2;const varr=raw.reduce((a,b)=>a+(b-mean)**2,0)/n;const std=Math.sqrt(varr);document.getElementById("res").innerHTML=`<p>数据量：<strong>${n}</strong></p><p>总和：<strong>${sum.toFixed(2)}</strong></p><p>平均值：<strong style="color:var(--primary);">${mean.toFixed(2)}</strong></p><p>中位数：<strong>${med.toFixed(2)}</strong></p><p>最小值：<strong>${sorted[0]}</strong></p><p>最大值：<strong>${sorted[n-1]}</strong></p><p>极差：<strong>${(sorted[n-1]-sorted[0]).toFixed(2)}</strong></p><p>方差：<strong>${varr.toFixed(2)}</strong></p><p>标准差：<strong>${std.toFixed(2)}</strong></p>`;}calc();function copyRes(){ToolBox.copyText(document.getElementById("res").innerText);}
+function calc(){
+  const raw=document.getElementById("data").value.split(/[,\n\s]+/).map(s=>parseFloat(s.trim())).filter(v=>!isNaN(v));
+  const T=parseFloat(document.getElementById("T").value)||100;
+  if(raw.length<2){document.getElementById("res").innerHTML='<p>请至少输入两组年最大值</p>';return;}
+  const n=raw.length,mean=raw.reduce((a,b)=>a+b,0)/n;
+  const sigma=Math.sqrt(raw.reduce((a,b)=>a+(b-mean)**2,0)/(n-1));
+  const K=-(Math.sqrt(6)/Math.PI)*(0.5772+Math.log(-Math.log(1-1/T)));
+  const xp=mean+K*sigma;
+  let html='<p>样本数：<strong>'+n+'</strong></p>';
+  html+='<p>均值 Q̄：<strong>'+mean.toFixed(2)+'</strong> m³/s</p>';
+  html+='<p>标准差 σ：<strong>'+sigma.toFixed(2)+'</strong></p>';
+  html+='<p>离均系数 K（T='+T+' 年）：<strong>'+K.toFixed(4)+'</strong></p>';
+  html+='<p>设计洪峰 Q<sub>p</sub>：<strong style="color:var(--primary);">'+xp.toFixed(2)+'</strong> m³/s</p>';
+  html+='<p>常用重现期设计洪峰：</p><table><thead><tr><th>T(年)</th><th>Qp(m³/s)</th></tr></thead><tbody>';
+  [10,20,50,100,200].forEach(t=>{
+    const k=-(Math.sqrt(6)/Math.PI)*(0.5772+Math.log(-Math.log(1-1/t)));
+    html+='<tr><td>'+t+'</td><td>'+(mean+k*sigma).toFixed(2)+'</td></tr>';
+  });
+  html+='</tbody></table>';
+  document.getElementById("res").innerHTML=html;
+}
+calc();
+function copyResult(){ToolBox.copyText(document.getElementById("res").innerText);}
 </script>
 
 <!-- SEO 介绍区块 -->

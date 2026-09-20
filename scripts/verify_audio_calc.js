@@ -5,12 +5,14 @@ const CASES = [
 {
   "slug": "audio/analysis-1",
   "inputs": {
-    "data": "10,20,30,40,50,60,70,80_X"
+    "fs": "8000",
+    "N": "1024",
+    "bin": "10"
   },
   "expect": [
-    "80_X"
+    "78.125"
   ],
-  "ref": "auto-restore"
+  "ref": "Δf=8000/1024=7.8125 Hz，目标 bin10 对应频率=10×7.8125=78.125 Hz（独立计算）"
 },
 {
   "slug": "audio/audio-cut",

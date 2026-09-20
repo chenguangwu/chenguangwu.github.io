@@ -20,12 +20,13 @@ const CASES = [
 {
   "slug": "safety/analysis-3",
   "inputs": {
-    "data": "10,20,30,40,50,60,70,80_X"
+    "data": "203.0.113.7 ssh_fail\n203.0.113.7 ssh_fail\n203.0.113.7 ssh_fail\n203.0.113.7 ssh_fail\n192.168.1.5 login_fail",
+    "thr": "3"
   },
   "expect": [
-    "80_X"
+    "203.0.113.7 / ssh_fail：4 次"
   ],
-  "ref": "auto-restore"
+  "ref": "同一 IP+事件 ≥3 次判定：203.0.113.7/ssh_fail 计 4 次 → 进可疑列表（独立计数）"
 },
 {
   "slug": "safety/assessor-drill",

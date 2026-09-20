@@ -50,8 +50,8 @@
 <script src="../../js/tool-i18n.js" defer></script>
 <!-- TOOLBOX-I18N-SCRIPT -->
 
-<meta name="title-en" content="Analysis 3">
-<meta name="desc-en" content="Analysis 3 - online utility on ToolBox.">
+<meta name="title-en" content="Security Log Analyzer">
+<meta name="desc-en" content="Security log analyzer: aggregate events by type and IP, flag suspicious high-frequency sources locally.">
 <!-- TOOLBOX-HREFLANG -->
 <link rel="alternate" hreflang="zh-CN" href="https://chenguangwu.github.io/tools/safety/analysis-3.html">
 <link rel="alternate" hreflang="zh-TW" href="https://chenguangwu.github.io/zh-tw/tools/safety/analysis-3.html">
@@ -96,12 +96,19 @@
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="本地导入日志">Analysis 3</p>
 <div class="formula-box">
   <div class="formula-title">📐 工作原理与说明</div>
-  
+  <div class="formula-desc">安全日志分析：逐行解析「IP 事件类型」日志，按事件类型与 IP 聚合计数，并判定同一 IP 同一事件频次超过阈值的疑似攻击/异常源，全部本地解析不上传。</div>
 </div>
 
-<label>输入数据（逗号或换行分隔）</label>
-<textarea id="data" rows="4" oninput="calc()" placeholder="例如: 10,20,30,40,50">10,20,30,40,50,60,70,80</textarea>
-<div class="toolbar"><button type="button" class="btn primary" onclick="calc()">统计分析</button><button type="button" class="btn" onclick="copyRes()">复制</button></div>
+<label>日志行（每行一个事件，格式：IP 事件类型，空格分隔）</label>
+<textarea id="data" rows="6" oninput="calc()" placeholder="例如:&#10;192.168.1.10 login_fail&#10;203.0.113.7 ssh_fail">192.168.1.10 login_fail
+192.168.1.10 login_fail
+192.168.1.20 port_scan
+10.0.0.9 auth_deny
+203.0.113.7 ssh_fail
+192.168.1.30 port_scan</textarea>
+<label>高频判定阈值（同一 IP＋事件 ≥ 该次数视为可疑）</label>
+<input id="thr" type="number" value="3" oninput="calc()">
+<div class="toolbar"><button type="button" class="btn primary" onclick="calc()">分析日志</button><button type="button" class="btn" onclick="copyResult()">复制</button></div>
 <div class="result-box" id="res"></div>
   </div>
 
@@ -125,16 +132,14 @@
 <h2>📚 深度解析：安全日志分析器（本地导入日志）</h2>
 <h3>💡 常见使用场景</h3>
 <ul class="dd-list">
-<li>导入服务器/应用/防火墙日志，按时间、IP、事件类型统计异常，识别高频攻击源。</li>
-<li>筛选失败登录、扫描、越权尝试等可疑行为，定位需封禁或加固的地址。</li>
-<li>全部在本地解析不上传，适合脱敏后的内部审计。</li>
+<li>服务器/防火墙日志排查：逐行粘贴「IP 事件类型」，按事件类型与来源 IP 聚合计数，快速识别高频攻击源。</li>
+<li>暴力破解初筛：设定阈值（如同一 IP 5 分钟内失败登录 ≥10 次），自动标记可疑源供封禁或加固核查。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">分析维度</div><div class="dd-ex-body">按时间轴统计事件频次找突发峰值；按 source IP 聚合计数找高频来源；按事件类型（登录失败/端口扫描/权限拒绝）分类找主要风险；可叠加条件如“同一 IP 5 分钟内失败登录≥10 次”判定暴力破解。</div></div>
-<div class="dd-example"><div class="dd-ex-title">算例</div><div class="dd-ex-body">解析 1 万行日志，发现 IP 203.0.113.7 在 10 分钟内产生 240 次登录失败（集中于 22 端口），判定为 SSH 暴破；另一 IP 10.0.0.9 触发 56 次权限拒绝，疑为越权探测，建议封禁或加白名单核查。</div></div>
+<div class="dd-example"><div class="dd-ex-title">算例（5 行日志，阈值=3）</div><div class="dd-ex-body">日志含 203.0.113.7 ssh_fail ×4 与 192.168.1.5 login_fail ×1；按类型聚合 ssh_fail=4、login_fail=1；按 IP+事件计数后，203.0.113.7/ssh_fail 达 4 次 ≥ 阈值 3，判定为可疑高频源。全部本地解析，不上传任何数据。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
-<dt>日志分析能发现所有攻击吗？</dt><dd>只能发现日志中留下痕迹的异常；低速、低频或加密隧道内的攻击易漏报，需配合 IDS/IPS 与行为基线。</dd>
-<dt>解析大日志会卡吗？</dt><dd>本地按行流式解析并聚合计数，内存占用低；建议先按时间窗或类型过滤再统计，超大数据可分段导入。</dd>
+<dt>日志分析能发现所有攻击吗？</dt><dd>只能发现日志中留下痕迹的异常；低频、低速或加密隧道内的攻击易漏报，需配合 IDS/IPS 与行为基线。本工具定位为本地快速聚合初筛，非实时入侵检测。</dd>
+<dt>大日志会卡吗？</dt><dd>按行流式解析并聚合计数，内存占用低；建议先按时间窗或类型过滤再统计，超大数据可分批导入。</dd>
 </dl>
 </div>
 </section>
@@ -150,7 +155,32 @@
 <!-- /注意事项区块 -->
 </div>
 <script>
-function calc(){const raw=document.getElementById("data").value.split(/[,\n\s]+/).map(s=>parseFloat(s.trim())).filter(v=>!isNaN(v));if(!raw.length){document.getElementById("res").innerHTML='<p>请输入数据</p>';return;}const n=raw.length,sum=raw.reduce((a,b)=>a+b,0),mean=sum/n;const sorted=[...raw].sort((a,b)=>a-b);const med=n%2?sorted[Math.floor(n/2)]:(sorted[n/2-1]+sorted[n/2])/2;const varr=raw.reduce((a,b)=>a+(b-mean)**2,0)/n;const std=Math.sqrt(varr);document.getElementById("res").innerHTML=`<p>数据量：<strong>${n}</strong></p><p>总和：<strong>${sum.toFixed(2)}</strong></p><p>平均值：<strong style="color:var(--primary);">${mean.toFixed(2)}</strong></p><p>中位数：<strong>${med.toFixed(2)}</strong></p><p>最小值：<strong>${sorted[0]}</strong></p><p>最大值：<strong>${sorted[n-1]}</strong></p><p>极差：<strong>${(sorted[n-1]-sorted[0]).toFixed(2)}</strong></p><p>方差：<strong>${varr.toFixed(2)}</strong></p><p>标准差：<strong>${std.toFixed(2)}</strong></p>`;}calc();function copyRes(){ToolBox.copyText(document.getElementById("res").innerText);}
+function calc(){
+  const lines=document.getElementById("data").value.split(/\n+/).map(s=>s.trim()).filter(Boolean);
+  const thr=parseFloat(document.getElementById("thr").value)||3;
+  if(!lines.length){document.getElementById("res").innerHTML='<p>请粘贴日志行</p>';return;}
+  const byType={},byIp={};
+  for(const ln of lines){
+    const parts=ln.split(/\s+/);
+    const ip=parts[0]||'',ev=parts.slice(1).join(' ')||'未知';
+    byType[ev]=(byType[ev]||0)+1;
+    const key=ip+'|'+ev;
+    byIp[key]=(byIp[key]||0)+1;
+  }
+  const total=lines.length;
+  let html='<p>总事件数：<strong>'+total+'</strong></p>';
+  html+='<p>按事件类型：</p><table><thead><tr><th>事件类型</th><th>次数</th></tr></thead><tbody>';
+  Object.keys(byType).sort((a,b)=>byType[b]-byType[a]).forEach(k=>{html+='<tr><td>'+k+'</td><td>'+byType[k]+'</td></tr>';});
+  html+='</tbody></table>';
+  html+='<p>可疑高频源（同一 IP+事件 ≥ '+thr+' 次）：</p><ul>';
+  let flagged=false;
+  Object.keys(byIp).filter(k=>byIp[k]>=thr).sort((a,b)=>byIp[b]-byIp[a]).forEach(k=>{flagged=true;html+='<li>'+k.replace('|',' / ')+'：'+byIp[k]+' 次</li>';});
+  if(!flagged)html+='<li>无</li>';
+  html+='</ul>';
+  document.getElementById("res").innerHTML=html;
+}
+calc();
+function copyResult(){ToolBox.copyText(document.getElementById("res").innerText);}
 </script>
 
 <!-- SEO 介绍区块 -->

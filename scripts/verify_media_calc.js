@@ -53,12 +53,12 @@ const CASES = [
 {
   "slug": "media/analysis-funnel",
   "inputs": {
-    "data": "10,20,30,40,50,60,70,80_X"
+    "data": "2000,1000,400,120"
   },
   "expect": [
-    "80_X"
+    "6.00%"
   ],
-  "ref": "auto-restore"
+  "ref": "整体转化率 = 末环节/首环节 = 120/2000 = 6.00%（独立手算）"
 },
 {
   "slug": "media/tester-13",
