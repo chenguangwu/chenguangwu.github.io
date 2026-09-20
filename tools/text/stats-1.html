@@ -51,7 +51,7 @@
 <!-- TOOLBOX-I18N-SCRIPT -->
 
 <meta name="title-en" content="Word Counter">
-<meta name="desc-en" content="Word Counter - online utility on ToolBox.">
+<meta name="desc-en" content="Count characters, words and lines of mixed Chinese/English text.">
 <!-- TOOLBOX-HREFLANG -->
 <link rel="alternate" hreflang="zh-CN" href="https://chenguangwu.github.io/tools/text/stats-1.html">
 <link rel="alternate" hreflang="zh-TW" href="https://chenguangwu.github.io/zh-tw/tools/text/stats-1.html">
@@ -91,13 +91,13 @@
     <h2 data-zh="📖 字数统计（含字符数、单词数）">Word Counter</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="含字符数、单词数">Word Counter</p>
 <div class="formula-box">
-  <div class="formula-title">📐 工作原理与说明</div>
-  
+  <div class="formula-title">📐 统计口径说明</div>
+  <p class="formula-desc">中文字符按 Unicode 汉字范围逐字计数；英文单词按连续字母串计数；数字按连续数字串计数；字符总数分别给出含空白与不含空白两种口径；行数按换行切分，非空行排除纯空白行。</p>
 </div>
 
-<label>输入数据（逗号或换行分隔）</label>
-<textarea id="data" rows="4" oninput="calc()" placeholder="例如: 10,20,30,40,50">10,20,30,40,50,60,70,80</textarea>
-<div class="toolbar"><button type="button" class="btn primary" onclick="calc()">统计分析</button><button type="button" class="btn" onclick="copyRes()">复制</button></div>
+<label>输入待统计文本</label>
+<textarea id="text" rows="6" oninput="calc()" placeholder="粘贴或输入文本，支持中英文混排与换行…">这是一段示例文本，用于演示字数统计。Hello ToolBox 2026！</textarea>
+<div class="toolbar"><button type="button" class="btn primary" onclick="calc()">开始统计</button><button type="button" class="btn" onclick="copyResult()">复制</button></div>
 <div class="result-box" id="res"></div>
   </div>
 
@@ -118,18 +118,18 @@
 </style>
 <section class="deep-dive" data-deep-dive="1">
 <div class="card">
-<h2>📚 深度解析：描述性统计（均值 / 中位数 / 标准差）</h2>
+<h2>📚 深度解析：字数统计（字符／单词／行数）</h2>
 <h3>💡 常见使用场景</h3>
 <ul class="dd-list">
-<li>录入一组调查或实验样本（逗号/换行分隔的数字），快速得到样本量、总和与平均值，把握整体水平。</li>
-<li>用中位数、极差观察数据分布形态，发现是否集中在某区间或存在离群值。</li>
-<li>计算方差与标准差，量化波动幅度，对比不同组别数据的稳定性与一致性。</li>
+<li>写作、论文或社媒文案发布前，统计总字符数与中英文单词数，确认是否满足字数限制（如摘要字数、平台上限）。</li>
+<li>对比字符数（含空白）与（不含空白），排查多余空格与不可见字符，保证排版与计费准确。</li>
+<li>按行数与非空行数快速估算代码、清单或名单的条目规模。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">示例：8 个样本的测量值</div><div class="dd-ex-body">输入 10,20,30,40,50,60,70,80：样本量 n=8，总和=360，平均值=45.00，中位数=45.00，最小值=10，最大值=80，极差=70，方差=525.00，标准差≈22.91。</div></div>
+<div class="dd-example"><div class="dd-ex-title">示例：中英混排段落</div><div class="dd-ex-body">文本「这是一段示例，Hello World 2026！」：总字符（含空白）22、不含空白 19、中文字符 8、英文单词 2（Hello／World）、数字组 1（2026）、行数 1、非空行 1。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
-<dt>这里算的是总体方差还是样本方差？</dt><dd>本工具用总体方差（除以 n），适合把全部数据当作一个整体来描述的场景；若做统计推断需要样本方差（除以 n-1），可在此基础上手动换算。</dd>
-<dt>数据里混入了文字会怎样？</dt><dd>非数字内容会被自动过滤（parseFloat 失败即丢弃），只统计有效数字，因此粘贴“10,20,abc,30”时 abc 被忽略、按 10/20/30 计算。</dd>
+<dt>英文单词如何计数？</dt><dd>按连续字母串识别（如 Hello、World 各算 1 个），连字符与缩写内的字母并入同一词；中文按 Unicode 汉字逐字计数，标点与空白不计入中文字数。</dd>
+<dt>数字算字符吗？</dt><dd>数字计入「总字符数」与「数字组数」，但不计入中文字符数或英文单词数；连续数字（如 2026）作为一个数字组，而非 4 个英文单词。</dd>
 </dl>
 </div>
 </section>
@@ -145,7 +145,10 @@
 <!-- /注意事项区块 -->
 </div>
 <script>
-function calc(){const raw=document.getElementById("data").value.split(/[,\n\s]+/).map(s=>parseFloat(s.trim())).filter(v=>!isNaN(v));if(!raw.length){document.getElementById("res").innerHTML='<p>请输入数据</p>';return;}const n=raw.length,sum=raw.reduce((a,b)=>a+b,0),mean=sum/n;const sorted=[...raw].sort((a,b)=>a-b);const med=n%2?sorted[Math.floor(n/2)]:(sorted[n/2-1]+sorted[n/2])/2;const varr=raw.reduce((a,b)=>a+(b-mean)**2,0)/n;const std=Math.sqrt(varr);document.getElementById("res").innerHTML=`<p>数据量：<strong>${n}</strong></p><p>总和：<strong>${sum.toFixed(2)}</strong></p><p>平均值：<strong style="color:var(--primary);">${mean.toFixed(2)}</strong></p><p>中位数：<strong>${med.toFixed(2)}</strong></p><p>最小值：<strong>${sorted[0]}</strong></p><p>最大值：<strong>${sorted[n-1]}</strong></p><p>极差：<strong>${(sorted[n-1]-sorted[0]).toFixed(2)}</strong></p><p>方差：<strong>${varr.toFixed(2)}</strong></p><p>标准差：<strong>${std.toFixed(2)}</strong></p>`;}calc();function copyRes(){ToolBox.copyText(document.getElementById("res").innerText);}
+function fmt(n,d){d=d==null?0:d;return n.toLocaleString('zh-CN',{minimumFractionDigits:d,maximumFractionDigits:d});}
+function calc(){var t=document.getElementById('text').value;var total=t.length;var noSpace=t.replace(/\s/g,'').length;var cn=(t.match(/[\u4e00-\u9fff]/g)||[]).length;var enWords=(t.match(/[A-Za-z]+(?:'[A-Za-z]+)?/g)||[]).length;var numGroups=(t.match(/\d+(?:\.\d+)?/g)||[]).length;var lines=t===''?[]:t.split(/\r?\n/);var lineCount=lines.length;var nonEmpty=lines.filter(function(l){return l.trim()!=='';}).length;var html='<p>总字符数（含空白）：<strong>'+fmt(total)+'</strong></p><p>总字符数（不含空白）：<strong>'+fmt(noSpace)+'</strong></p><p>中文字符数：<strong style="color:var(--primary);">'+fmt(cn)+'</strong></p><p>英文单词数：<strong>'+fmt(enWords)+'</strong></p><p>数字组数：<strong>'+fmt(numGroups)+'</strong></p><p>行数：<strong>'+fmt(lineCount)+'</strong></p><p>非空行数：<strong>'+fmt(nonEmpty)+'</strong></p>';document.getElementById('res').innerHTML=html;}
+calc();
+function copyResult(){ToolBox.copyText(document.getElementById('res').innerText);}
 </script>
 
 <!-- SEO 介绍区块 -->

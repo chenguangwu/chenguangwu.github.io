@@ -83,12 +83,13 @@ const CASES = [
 {
   "slug": "text/stats-1",
   "inputs": {
-    "data": "10,20,30,40,50,60,70,80_X"
+    "text": "统计中文 English 测试 ABC 数字 99 与符号！"
   },
   "expect": [
-    "80_X"
+    "24",
+    "11"
   ],
-  "ref": "auto-restore"
+  "ref": "字数统计：'统计中文 English 测试 ABC 数字 99 与符号！' → 含空白30、不含空白24、中文11、英文单词2(English/ABC)、数字组1(99)、行数1、非空行1（非默认输入，注入失败即不命中）"
 },
 {
   "slug": "text/text-to-1337",
