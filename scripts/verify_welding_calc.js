@@ -5,12 +5,14 @@ const CASES = [
 {
   "slug": "welding/analysis-37",
   "inputs": {
-    "data": "10,20,30,40,50,60,70,80_X"
+    "data": "气孔,45\n夹渣,20\n未焊透,15\n裂纹,8\n咬边,6\n其他,6"
   },
   "expect": [
-    "80_X"
+    "缺陷总数： 100",
+    "A 类（主要缺陷）： 3 项",
+    "累计占比 80.00%"
   ],
-  "ref": "auto-restore"
+  "ref": "总数100；累计占比45.00/65.00/80.00 ≤80% 共3项为A类"
 },
 {
   "slug": "welding/analysis-38",

@@ -91,6 +91,20 @@ const CASES = [
               industry: "custom", marketShare: "50" },
     expect: ["20000"],
     ref: "品牌利润=1000×20%=200；份额系数=min(50/10,5)=5；品牌价值=200×10×2×5=20000 万元；industry=custom 避免 onIndustryChange 用预设乘数覆盖（默认 5000/15/5/1.2/10→4500，避开）" },
+{
+  "slug": "metalwork/analysis-39",
+  "inputs": {
+    "data": "V1,10\nV2,12\nV3,9",
+    "mag": "100",
+    "len": "20"
+  },
+  "expect": [
+    "平均晶粒度级别 G： 8.07",
+    "级别极差： 0.83",
+    "平均截距： 19.63 μm"
+  ],
+  "ref": "Lr=20/100=0.2mm；nL=50/60/45，G=8.00/8.53/7.70，均值8.07、极差0.83；截距20.00/16.67/22.22，均值19.63μm"
+}
 ];
 
 async function main() {
