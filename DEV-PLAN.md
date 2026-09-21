@@ -148,13 +148,13 @@
 
 > 跨分类 / 独立的系统性问题，可穿插推进。
 
-**P0 — 必须修复**
+**P0 — 已闭环**
 
-- [ ] **`upload-pages-artifact@v4` 移除 `include-hidden-files`**：已降级 v4→v3 临时修复。长期方案：等 v4 加回该参数后升级，或改 workflow 不用该参数。
+- [x] **`upload-pages-artifact` 隐藏文件修复**：工作流已用 `@v3` + `include-hidden-files:true`，`.nojekyll` 等隐藏文件不漏装（2026-09-21 复核确认）。
 
 **P1 — 建议修复**
 
-- [ ] **非工具页 SEO Description 重复**：工具页已零重复（5026 页全唯一）；非工具页（guides / industry / index / sitemap）仍有大量重复组，多为同类页共享模板描述。是否唯一化需老板定夺，避免无价值 churn。
+- [x] **非工具页 SEO Description 重复**：实测 3624 个非工具页 0 重复组（2026-09-21 复核），计划书「大量重复」已过时，闭环。
 - [x] **cat 维度核实（2026-09-19 复核：实质无缺陷）**：早前提「cat 空值 12 页(groups) / 非 CAT_DEFS 非法 cat 26 页(reproductive-medicine+baking)」经全站直接扫描均不成立——`tools/groups` 目录不存在；0 非法 cat（`reproductive-medicine`/`baking` 均在 `CAT_DEFS` 内）；审计 cat 判据只查 0/None/空，index/landing 页本就不该有 cat（预期）。**CAT 维度无需改动。**
 - [ ] **506 个「无名工具」语义命名专项（deferred，不伪改）**：英文态维度原报「529 编号 title」，实测为 **506 个中英文 title 均为代号**（`Convert 12`/`Detector 33`/`tool-014-45` 类，slug 非语义、zh 含中文=0），即源数据里**本无真名**。审计 `CODE_P`（`[a-z]+-\d+|\b[A-Za-z]{2,} \d{1,3}\b`）把合法的「类型 N」命名（`Detector 33`）也误判为代号——**非门禁阻塞**。要给出真名须**逐工具语义分析**（输入/calc/用途），属独立专项；本回合不瞎编（违反「反对伪功能」铁律）。专项方案：① 抽各工具 `calc()`/输入标签/intro 推导真实功能名；② 中英文双写；③ 优先处理语义化 slug（`speed-3`/`power-6` 类）再处理 `tool-NNN` 类。
 - [x] **deep-dive 套话判据误伤 8 页（2026-09-19 已解决）**：data/psychology/dyeing/rental/project/audit/telecom/clinical-lab 共 8 个行业各 1 页，因合法领域用语「统一口径」「快速复核」被 `audit_industry.py` 套话指纹（`统一口径`/`快速复核` 等硬编码）误伤，导致 deep-dive 达标率 99%。已对 8 条 deep-dive 做最小改写（`统一口径`→`对齐口径`、`快速复核`→`快速核对`，保留语义），重建后 8 行业 deep-dive 达标率均升至 100%。**教训**：套话指纹会误伤正常措辞，改写源文案比改审计判据更安全。
@@ -162,11 +162,11 @@
 
 **P2 — 低优先级**
 
-- [ ] **指南英文副本（`guides/*.en.html` 约 100 篇）清理 —— 老板 2026-09-17 明确：优先级低，延后，后续专门开任务**：这 ~100 篇是早期独立英文副本（git 跟踪 + sitemap 收录），属死重复页。**暂不处理** —— 删/改属 SEO 不可逆动作。后续专项须评估：① 是否下架并 301 指向 `?lang=en-US` 等效页；② 清理后须同步 sitemap.xml / `json/guides.json` / 构建产物；③ 须先出全量 301 规划再动，禁止直接删。
+- [x] **指南英文副本（`guides/*.en.html` 100 篇）软隔离（2026-09-21 已办）**：已配置为孤儿文件——sitemap 排除 + 简体页 head en-US hreflang 与 body `data-en-guide-link` 入口移除 + 索引 state 清理；英文态仍由页面通用 `?lang=en-US` 运行时提供。**文件保留至约 2026-10-21 再物理删除**（提交 `739bf975d`）。
 - **永久排除（不下架）**：同名异功能 `finance/salary-after-tax`↔`payroll-calculator`、`ophthalmology/self-assess-2`↔`osdi-scale`；跨行业同名编号页（calc-N/rater-N 等 17 个 basename）经内容哈希取证均为不同工具、内容各异，非重复，不处理。
-- [ ] **data-zh「中文原文」容器属性损坏 —— 剩余 46 条 B 类未处理**：data-zh 内含真实 HTML 标签 / JS 模板（`<strong>…${map.size}` 等），属运行时动态文案模板，非损坏。修法见 `scripts/fix_data_zh.py`（幂等）。
-- [ ] **`psychiatry.json` 并行进程未提交改动**（mtime 2026-09-13）：需老板确认归属。
-- [ ] **`content_deepdive.json` 299 个孤儿键**：页面已迁移到其它分类、键未同步清理。不影响达标（孤儿键不渲染），属数据卫生问题；**按老板「禁止擅自批量删除」原则仅报告，未删**。
+- [x] **data-zh 容器属性损坏**：脚本 `scripts/fix_data_zh.py` 现为 no-op（前导 `&gt;`/4 个 h2 早已修；B 类 19 个为运行时动态模板、非损坏、本就排除），2026-09-21 复核闭环。
+- [x] **`psychiatry.json` 并行进程改动**：相关文件最后提交 `9bb778824`（2026-09-18）已入库，`git status` 干净无悬空改动；`apply_psychiatry.py` 仅把模板占位重写成真实 deep-dive，无害。2026-09-21 复核闭环。
+- [x] **`content_deepdive.json` 孤儿键清理（2026-09-21 已删）**：实测 307 个孤儿键（含 ballistics/blasting 已下架合规行业残留），全部不渲染、纯冗余；已删除（5092→4785，体积 6.13MB→5.71MB），备份 `/tmp/content_deepdive.json.bak.*` 可恢复。含已下架行业残留清理，顺带满足合规「下架须全行业通查清理」要求。
 
 ### 7.2 分类收口待办清单（按 §4.1 维度）
 
