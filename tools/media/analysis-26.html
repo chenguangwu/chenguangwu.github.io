@@ -93,15 +93,19 @@
 <div class="container">
   <div class="card tool-card-accent" style="--tool-accent:#FF6B35;">
     <h2 data-zh="📊 舆情（情感/词频）分析">Analysis 26</h2>
-    <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="情感/词频">Analysis 26</p>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="情感/词频">Sentiment &amp; Word Frequency Analysis</p>
 <div class="formula-box">
   <div class="formula-title">📐 工作原理与说明</div>
+  <p>内置正/负向词典对每条文本做词频命中统计并判定情感（正面/负面/中性），汇总样本的情感倾向指数 =(正面−负面)/(正面+负面)×100；同时对中文逐字去停用词统计高频字，辅助把握舆论焦点。</p>
+</div>
   
 </div>
 
-<label>输入数据（逗号或换行分隔）</label>
-<textarea id="data" rows="4" oninput="calc()" placeholder="例如: 10,20,30,40,50">10,20,30,40,50,60,70,80</textarea>
-<div class="toolbar"><button type="button" class="btn primary" onclick="calc()">统计分析</button><button type="button" class="btn" onclick="copyRes()">复制</button></div>
+<label>输入舆情文本（每行一条评论 / 帖子）</label>
+<textarea id="data" rows="6" oninput="calc()" placeholder="这家店服务很好，物流也快，很满意&#10;收到货有划痕，体验失望想退货&#10;性价比不错，推荐购买">这家店服务很好，物流也快，很满意
+收到货有划痕，体验失望想退货
+性价比不错，推荐购买</textarea>
+<div class="toolbar"><button type="button" class="btn primary" onclick="calc()">舆情分析</button><button type="button" class="btn" onclick="copyRes()">复制</button></div>
 <div class="result-box" id="res"></div>
   </div>
 
@@ -149,7 +153,30 @@
 <!-- /注意事项区块 -->
 </div>
 <script>
-function calc(){const raw=document.getElementById("data").value.split(/[,\n\s]+/).map(s=>parseFloat(s.trim())).filter(v=>!isNaN(v));if(!raw.length){document.getElementById("res").innerHTML='<p>请输入数据</p>';return;}const n=raw.length,sum=raw.reduce((a,b)=>a+b,0),mean=sum/n;const sorted=[...raw].sort((a,b)=>a-b);const med=n%2?sorted[Math.floor(n/2)]:(sorted[n/2-1]+sorted[n/2])/2;const varr=raw.reduce((a,b)=>a+(b-mean)**2,0)/n;const std=Math.sqrt(varr);document.getElementById("res").innerHTML=`<p>数据量：<strong>${n}</strong></p><p>总和：<strong>${sum.toFixed(2)}</strong></p><p>平均值：<strong style="color:var(--primary);">${mean.toFixed(2)}</strong></p><p>中位数：<strong>${med.toFixed(2)}</strong></p><p>最小值：<strong>${sorted[0]}</strong></p><p>最大值：<strong>${sorted[n-1]}</strong></p><p>极差：<strong>${(sorted[n-1]-sorted[0]).toFixed(2)}</strong></p><p>方差：<strong>${varr.toFixed(2)}</strong></p><p>标准差：<strong>${std.toFixed(2)}</strong></p>`;}calc();function copyRes(){ToolBox.copyText(document.getElementById("res").innerText);}
+function calc(){
+  var raw=document.getElementById('data').value.split(String.fromCharCode(10)).map(function(s){return s.replace(String.fromCharCode(13),'');}).map(function(s){return s.trim();}).filter(Boolean);
+  var posLex=['好评','满意','推荐','喜欢','惊喜','到位','清晰','流畅','舒服','性价比高','正品','实惠','便宜','划算','赞','棒','优秀','稳定','快速','值得'];
+  var negLex=['差评','失望','退货','投诉','问题','垃圾','难用','虚假','劣质','敷衍','缩水','坑人','骗','假货','刺眼','后悔','糟糕','卡顿'];
+  var stopChars='的了是我你他她和它们在也都不很这那有个数们吗吧啊哦呢嘛与及、，。！？；：、（）()[]【】';var counts={};var posN=0,negN=0,neuN=0;var h='';
+  raw.forEach(function(t,i){
+    var pc=0,nc=0;
+    posLex.forEach(function(w){var idx=t.indexOf(w);while(idx>=0){pc++;idx=t.indexOf(w,idx+w.length);}});
+    negLex.forEach(function(w){var idx=t.indexOf(w);while(idx>=0){nc++;idx=t.indexOf(w,idx+w.length);}});
+    if(pc>nc)posN++;else if(nc>pc)negN++;else neuN++;
+    var sent=pc>nc?'正面':(nc>pc?'负面':'中性');
+    h+='<tr><td>'+(i+1)+'</td><td>'+ToolBox.escHtml(t.length>20?t.slice(0,20)+'…':t)+'</td><td>'+(pc>0?'<span style="color:#2e7d32">+'+pc+'</span>':'0')+'</td><td>'+(nc>0?'<span style="color:#c62828">'+nc+'</span>':'0')+'</td><td>'+sent+'</td></tr>';
+    for(var k=0;k<t.length;k++){var ch=t.charAt(k);if(stopChars.indexOf(ch)>=0)continue;if(/[\u4e00-\u9fa5]/.test(ch))counts[ch]=(counts[ch]||0)+1;}
+  });
+  var res=document.getElementById('res');
+  if(!raw.length){res.innerHTML='<p>请输入至少一条评论或舆情文本</p>';return;}
+  var total=raw.length;var idx=(posN-negN)/(posN+negN||1)*100;
+  var topWords=Object.keys(counts).map(function(k){return [k,counts[k]];}).sort(function(a,b){return b[1]-a[1];}).slice(0,10);
+  var wHtml=topWords.map(function(w){return '<li>「'+w[0]+'」 '+w[1]+' 次</li>';}).join('');
+  var ratio='正面 '+posN+' / 负面 '+negN+' / 中性 '+neuN;
+  var lean=idx>10?'整体偏正面':(idx<-10?'整体偏负面':'整体中性');
+  res.innerHTML='<p>样本：<strong>'+total+'</strong> 条　情感倾向：<strong style="color:var(--primary)">'+lean+'</strong>（指数 '+idx.toFixed(0)+'）　'+ratio+'</p><div style="overflow-x:auto"><table><thead><tr><th>#</th><th>文本</th><th>正面词</th><th>负面词</th><th>判定</th></tr></thead><tbody>'+h+'</tbody></table></div><p>高频字（Top 10）：</p><ul style="margin:4px 0 0 18px;font-size:13px;line-height:1.8;color:var(--text-muted)">'+wHtml+'</ul>';
+}
+function copyRes(){ToolBox.copyText(document.getElementById('res').innerText);}
 </script>
 
 <!-- SEO 介绍区块 -->

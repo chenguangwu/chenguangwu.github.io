@@ -17,12 +17,13 @@ const CASES = [
 {
   "slug": "logistics/analysis-76",
   "inputs": {
-    "data": "10,20,30,40,50,60,70,80_X"
+    "data": "L1,4,20,1.2,150\nL2,2,15,0.9,200\nL3,3,25,2.0,100"
   },
   "expect": [
-    "80_X"
+    "综合排名第一： L2",
+    "¥20"
   ],
-  "ref": "auto-restore"
+  "ref": "重做为物流对比：加权得分 L2(0.485)>L1(0.18)>L3(0.10)，综合排名第一 L2（默认第一为安捷，L2/¥20 区分）。非默认输入 + 独立复算。"
 },
 {
   "slug": "logistics/analysis-cycle-1",

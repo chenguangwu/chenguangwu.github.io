@@ -89,15 +89,17 @@
 <div class="container">
   <div class="card tool-card-accent" style="--tool-accent:#FF6B35;">
     <h2 data-zh="📊 冶金（热力学/平衡/相图）分析">Analysis Heatmap</h2>
-    <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="热力学/平衡/相图">Analysis Heatmap</p>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="热力学/平衡/相图">Metallurgical Phase Diagram (Lever Rule)</p>
 <div class="formula-box">
   <div class="formula-title">📐 工作原理与说明</div>
+  <p>二元合金在两相区平衡时，按杠杆定律求两相质量分数：fα=(Cβ−C0)/(Cβ−Cα)、fβ=(C0−Cα)/(Cβ−Cα)，其中 C0 为合金总成分、Cα/Cβ 为两相平衡成分（单位相同，如 wt% B）。须满足 Cα ≤ C0 ≤ Cβ，否则提示超出两相区。</p>
+</div>
   
 </div>
 
-<label>输入数据（逗号或换行分隔）</label>
-<textarea id="data" rows="4" oninput="calc()" placeholder="例如: 10,20,30,40,50">10,20,30,40,50,60,70,80</textarea>
-<div class="toolbar"><button type="button" class="btn primary" onclick="calc()">统计分析</button><button type="button" class="btn" onclick="copyRes()">复制</button></div>
+<label>输入合金成分（一行：C0,Cα,Cβ，单位 wt% B）</label>
+<textarea id="data" rows="3" oninput="calc()" placeholder="0.40,0.10,0.90">0.40,0.10,0.90</textarea>
+<div class="toolbar"><button type="button" class="btn primary" onclick="calc()">相分数计算</button><button type="button" class="btn" onclick="copyRes()">复制</button></div>
 <div class="result-box" id="res"></div>
   </div>
 
@@ -146,7 +148,22 @@
 <!-- /注意事项区块 -->
 </div>
 <script>
-function calc(){const raw=document.getElementById("data").value.split(/[,\n\s]+/).map(s=>parseFloat(s.trim())).filter(v=>!isNaN(v));if(!raw.length){document.getElementById("res").innerHTML='<p>请输入数据</p>';return;}const n=raw.length,sum=raw.reduce((a,b)=>a+b,0),mean=sum/n;const sorted=[...raw].sort((a,b)=>a-b);const med=n%2?sorted[Math.floor(n/2)]:(sorted[n/2-1]+sorted[n/2])/2;const varr=raw.reduce((a,b)=>a+(b-mean)**2,0)/n;const std=Math.sqrt(varr);document.getElementById("res").innerHTML=`<p>数据量：<strong>${n}</strong></p><p>总和：<strong>${sum.toFixed(2)}</strong></p><p>平均值：<strong style="color:var(--primary);">${mean.toFixed(2)}</strong></p><p>中位数：<strong>${med.toFixed(2)}</strong></p><p>最小值：<strong>${sorted[0]}</strong></p><p>最大值：<strong>${sorted[n-1]}</strong></p><p>极差：<strong>${(sorted[n-1]-sorted[0]).toFixed(2)}</strong></p><p>方差：<strong>${varr.toFixed(2)}</strong></p><p>标准差：<strong>${std.toFixed(2)}</strong></p>`;}calc();function copyRes(){ToolBox.copyText(document.getElementById("res").innerText);}
+function calc(){
+  var res=document.getElementById('res');
+  var line=document.getElementById('data').value.trim();
+  var p=line.split(/[,，\t]/).map(function(x){return x.trim();}).filter(Boolean).map(function(x){return parseFloat(x);});
+  if(p.length<3||p.some(isNaN)){res.innerHTML='<p>请输入三个数值：C0,Cα,Cβ（合金总成分,α相平衡成分,β相平衡成分，单位 wt% B）</p>';return;}
+  var c0=p[0],ca=p[1],cb=p[2];
+  if(ca>cb){var t=ca;ca=cb;cb=t;}
+  var denom=(cb-ca);
+  if(denom<=0){res.innerHTML='<p>两相平衡成分需满足 Cα &lt; Cβ，请检查输入。</p>';return;}
+  if(c0<ca-1e-9||c0>cb+1e-9){res.innerHTML='<p>合金总成分 C0='+c0.toFixed(2)+' 不在两相区 ['+ca.toFixed(2)+', '+cb.toFixed(2)+'] 内，无法用杠杆定律求两相分数。</p>';return;}
+  var fa=(cb-c0)/denom;
+  var fb=(c0-ca)/denom;
+  var check=fa+fb;
+  res.innerHTML='<p>两相区：<strong>['+ca.toFixed(2)+', '+cb.toFixed(2)+'] wt% B</strong>　合金总成分 C0：<strong>'+c0.toFixed(2)+'</strong></p><div style="overflow-x:auto"><table><thead><tr><th>相</th><th>平衡成分</th><th>相分数</th></tr></thead><tbody><tr><td>α 相</td><td>'+ca.toFixed(2)+'</td><td><strong>'+(fa*100).toFixed(2)+'%</strong></td></tr><tr><td>β 相</td><td>'+cb.toFixed(2)+'</td><td><strong>'+(fb*100).toFixed(2)+'%</strong></td></tr></tbody></table></div><p>校验：fα + fβ = '+(check*100).toFixed(2)+'%（应≈100%）。杠杆定律 fα=(Cβ−C0)/(Cβ−Cα)、fβ=(C0−Cα)/(Cβ−Cα)。</p>';
+}
+function copyRes(){ToolBox.copyText(document.getElementById('res').innerText);}
 </script>
 
 <!-- SEO 介绍区块 -->
