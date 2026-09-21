@@ -57,9 +57,9 @@ const CASES = [
   },
   {
     slug: "edu/xml-html-css-geshihua-yiyou-kebuchong",
-    inputs: { v0: "10", v1: "20", v2: "5" },
-    expect: ["40.00", "35.00"],
-    ref: "r=10×20/5=40.00；s2=10+20+5=35.00",
+    inputs: { src: '<div class="a"><p>hi</p></div>', lang: "html", indent: "4" },
+    expect: ["原 30 → 新 36", "缩进宽度：4 空格"],
+    ref: "HTML 缩进 4 空格：30 字符 → 36 字符（+2 换行 +4 缩进空格），3 行，最大嵌套深度 2 层",
   },
   // 注：edu/stats 已于 2026-09-19 改为 TOOLBOX-REDIRECT 存根（重定向到同义真工具），不再是工具页，用例移除。
   {

@@ -15,12 +15,17 @@ const CASES = [
 {
   "slug": "floral/price",
   "inputs": {
-    "v0": "100",
-    "v1": "50",
-    "v2": "10"
+    "budget": "8800",
+    "basketLo": "200",
+    "basketHi": "400",
+    "wreathLo": "100",
+    "wreathHi": "260",
+    "share": "50"
   },
   "expect": [
-    "合计"
+    "花篮 18 个 / 花圈 18 个",
+    "数量区间：26 ~ 58 件",
+    "合计 8640.00 元"
   ]
 },
 {
