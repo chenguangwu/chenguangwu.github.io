@@ -180,8 +180,9 @@
 > **手法**：计算器补「真实公式说明面板」（含实际公式 + 一句说明，非代码膨胀）；非计算器改补真实原理/参考表。按行业热度逐批，每批走完整门禁 + 部署。
 > **进度**：
 > - BATCH1 = automotive 14 个计算器公式说明面板（已闭环：commit 277213cd8 + 部署 success，A 3353→70.3%）。
-> - BATCH2 = psychiatry 23 个量表真实评分公式面板（本次闭环：build 后 A 3376→70.8%，216/216 门禁全过）。
-> - 当前 A 70.8%（3376/4767），距 75%（3575）还差 **199** 个；继续 bucket1 高热度行业（life 29 / urology 19 / ophthalmology 18 / neurology 17 / reproductive-medicine 17 / pulmonology 16 … 跨 139 行业共 620 个，远超缺口）。
+> - BATCH2 = psychiatry 23 个量表真实评分公式面板（已闭环：commit bfe6ec91e + 部署 run #35601200469 in_progress，A 3376→70.8%，216/216 门禁全过）。
+> - BATCH3 = urology 19 个（全计算器）真实公式/分型面板（本次闭环：build 后 A 3395→71.2%，216/216 门禁全过）。
+> - 当前 A 71.2%（3395/4767），距 75%（3575）还差 **180** 个；继续 bucket1 高热度行业（life 29 / ophthalmology 18 / neurology 17 / reproductive-medicine 17 / pulmonology 16 / nutrition 14 / ent 13 / dermatology 13 … 跨 139 行业共 583 个，远超缺口）。
 
 - **A 项 深解达标：已全站收口**（结构达标 5124/5124 = 100%，已从此清单移除）。
 
