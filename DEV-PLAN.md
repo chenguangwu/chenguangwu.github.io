@@ -195,9 +195,9 @@
 > - BATCH14 = tcm-diagnosis 10 + niche 8 + travel 8 + text 7 + music 5 共 38 个（中医辨证、园艺陶艺、旅行规划、文本处理、音乐乐理）真实辨证规则与换算公式面板（已闭环：commit 0a9865f10，A 3749→78.6%，216/216 门禁全过）。
 > - BATCH15 = misc2 7 + safety 6 + meteorology 5 + food 5 + rental 4 + gardening2 4 + rehabilitation 4 + security 4 共 39 个（邮费/屏幕/鞋码、密码哈希、气象分级、烹饪配比、租务、园艺、康复量表、安防标准）真实公式与分级面板（已闭环：commit 0dc7a7a04，A 3788→79.5%，216/216 门禁全过）。
 > - BATCH16 = acupuncture 4 + geology 4 + food-processing 4 + decor 4 + media 4 + home 3 + transport 3 + textile 3 + biz 3 + nuclear 3 共 35 个（针灸、地质、食品工程、装修算量、内容运营、家居、交通、纺织、商务、核物理）真实公式与评估面板（已闭环：commit 3248b91fc，A 3823→80.2%，216/216 门禁全过）。
-> - BATCH17 = electronics 3 + wedding 3 + encode 3 + language 3 + floral 3 + fire-rescue 3 + project 3 + fire 3 + pet 3 + exhibition 3 + cleaning 3 + logistics 3 + quantum 3 共 39 个（电子电路、婚庆、编解码、语言处理、花艺、消防、项目管理、宠物、会展、保洁、物流、量子物理）真实公式与评估面板（本次闭环：build 后 A 3862→**81.0%**，216/216 门禁全过）。
-> - **✅ 目标已达成并超额**：A 级率 70.0%→**81.0%**（3339→3862），共 17 批 523 个工具升级（automotive 14 / psychiatry 23 / urology 19 / ophthalmology 18 / neurology 17 / reproductive-medicine 17 / pulmonology 16 / ent+dermatology 26 / marketing·engineering·obstetrics·nephrology·mechanical 42 / optical·sports·gastroenterology·fitness·cosmetic-derm 44 / clinical-nursing·legal·elderly·food-testing·hematology·realestate·hotel·pr·hr·rheumatology 56 / life·nutrition 43 / data·edu·fun 37 / tcm-diagnosis·niche·travel·text·music 38 / misc2·safety·meteorology·food·rental·gardening2·rehabilitation·security 39 / acupuncture·geology·food-processing·decor·media·home·transport·textile·biz·nuclear 35 / electronics·wedding·encode·language·floral·fire-rescue·project·fire·pet·exhibition·cleaning·logistics·quantum 39）。bucket1 尚余 **97** 个可继续零风险升 A（超额储备），按同一手法滚动推进。
-> - 存量：bucket1（own_len≥800 非 rich）尚余 424 个可继续零风险升 A（属超额储备）；如需继续提至更高目标可按同一手法滚动。
+> - BATCH17 = electronics 3 + wedding 3 + encode 3 + language 3 + floral 3 + fire-rescue 3 + project 3 + fire 3 + pet 3 + exhibition 3 + cleaning 3 + logistics 3 + quantum 3 共 39 个（电子电路、婚庆、编解码、语言处理、花艺、消防、项目管理、宠物、会展、保洁、物流、量子物理）真实公式与评估面板（已闭环：commit 54d227a7a，A 3862→81.0%，216/216 门禁全过）。
+> - BATCH18 = 长尾 48 个跨 48 行业（会计/行政/广告/航空/医美/心内/陶瓷/棋类/中厨/土建/舞蹈/牙科/染整/动力学/环保/经济/教务/电气/内分泌/能源/法医/林业/殡葬/园艺/燃气/健康/图像/珠宝/儿童/皮革/图书/畜牧/制造/武术/材料）真实公式与评估面板（本次闭环：build 后 A 3910→**82.0%**，216/216 门禁全过）。
+> - **✅ 目标已达成并超额**：A 级率 70.0%→**82.0%**（3339→3910），共 18 批 571 个工具升级。bucket1 尚余 **49** 个可继续零风险升 A（超额储备），按同一手法滚动推进。
 
 - **A 项 深解达标：已全站收口**（结构达标 5124/5124 = 100%，已从此清单移除）。
 
