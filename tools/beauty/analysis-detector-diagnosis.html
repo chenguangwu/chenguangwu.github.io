@@ -92,16 +92,23 @@
 </nav>
 <div class="container">
   <div class="card tool-card-accent" style="--tool-accent:#FF6B35;">
-    <h2 data-zh="🧴 皮肤（检测/分析/诊断）技术">Skin</h2>
-    <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="检测/分析/诊断">Skin - online utility on ToolBox.</p>
+    <h2 data-zh="🧴 皮肤（检测/分析/诊断）技术">Skin Detection &amp; Analysis</h2>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="检测/分析/诊断">Detection / Analysis / Diagnosis</p>
 <div class="formula-box">
   <div class="formula-title">📐 工作原理与说明</div>
   <p class="formula-desc">工具按水分、油分、色素、毛孔、敏感等维度给出相对参考值，依据经验区间（如水分 40–60、油分 30–55）判定肤质象限。数值受环境温湿度与近期护肤影响，仅供日常参考，异常或持续不适请到皮肤科评估。</p>
 </div>
 
-<label>输入数据（逗号或换行分隔）</label>
-<textarea id="data" rows="4" oninput="calc()" placeholder="例如: 10,20,30,40,50">10,20,30,40,50,60,70,80</textarea>
-<div class="toolbar"><button type="button" class="btn primary" onclick="calc()">统计分析</button><button type="button" class="btn" onclick="copyRes()">复制</button></div>
+<style>.detector-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin:10px 0;}.detector-cell{display:flex;flex-direction:column;gap:4px;}.detector-cell label{font-size:12px;color:var(--text-muted);}.detector-cell input,.detector-cell textarea{width:100%;padding:6px 8px;border:1px solid var(--border,#eee);border-radius:8px;font-size:14px;}.detector-cell textarea{min-height:64px;resize:vertical;}</style>
+<label>皮肤检测指标（各 0–100，参考：水分 40–60 / 油分 30–55）</label>
+<div class="detector-grid">
+<div class="detector-cell"><label>水分</label><input type="number" id="moisture" value="50" min="0" max="100" oninput="calc()"></div>
+<div class="detector-cell"><label>油分</label><input type="number" id="oil" value="42" min="0" max="100" oninput="calc()"></div>
+<div class="detector-cell"><label>色素</label><input type="number" id="pigment" value="45" min="0" max="100" oninput="calc()"></div>
+<div class="detector-cell"><label>毛孔</label><input type="number" id="pores" value="40" min="0" max="100" oninput="calc()"></div>
+<div class="detector-cell"><label>敏感</label><input type="number" id="sensitivity" value="30" min="0" max="100" oninput="calc()"></div>
+</div>
+<div class="toolbar"><button type="button" class="btn primary" onclick="calc()">分析肤质</button><button type="button" class="btn" onclick="copyRes()">复制</button></div>
 <div class="result-box" id="res"></div>
   </div>
 
@@ -149,7 +156,7 @@
 <!-- /注意事项区块 -->
 </div>
 <script>
-function calc(){const raw=document.getElementById("data").value.split(/[,\n\s]+/).map(s=>parseFloat(s.trim())).filter(v=>!isNaN(v));if(!raw.length){document.getElementById("res").innerHTML='<p>请输入数据</p>';return;}const n=raw.length,sum=raw.reduce((a,b)=>a+b,0),mean=sum/n;const sorted=[...raw].sort((a,b)=>a-b);const med=n%2?sorted[Math.floor(n/2)]:(sorted[n/2-1]+sorted[n/2])/2;const varr=raw.reduce((a,b)=>a+(b-mean)**2,0)/n;const std=Math.sqrt(varr);document.getElementById("res").innerHTML=`<p>数据量：<strong>${n}</strong></p><p>总和：<strong>${sum.toFixed(2)}</strong></p><p>平均值：<strong style="color:var(--primary);">${mean.toFixed(2)}</strong></p><p>中位数：<strong>${med.toFixed(2)}</strong></p><p>最小值：<strong>${sorted[0]}</strong></p><p>最大值：<strong>${sorted[n-1]}</strong></p><p>极差：<strong>${(sorted[n-1]-sorted[0]).toFixed(2)}</strong></p><p>方差：<strong>${varr.toFixed(2)}</strong></p><p>标准差：<strong>${std.toFixed(2)}</strong></p>`;}calc();function copyRes(){ToolBox.copyText(document.getElementById("res").innerText);}
+function calc(){const T=window.ToolBox;const g=function(id){return parseFloat(document.getElementById(id).value);};const moisture=g('moisture'),oil=g('oil'),pigment=g('pigment'),pores=g('pores'),sensitivity=g('sensitivity');if([moisture,oil,pigment,pores,sensitivity].some(function(v){return isNaN(v);})){document.getElementById('res').innerHTML='<p>请输入完整检测指标（0–100）</p>';return;}const lv=function(v,lo,hi){return v<lo?'偏低':(v>hi?'偏高':'正常');};const dry=moisture<40,oily=oil>55;let type;if(dry&&oily)type='外油内干';else if(dry)type='干性';else if(oily)type='油性';else type='中性/混合';if(sensitivity>50)type=type+'（敏感倾向）';let html='<p>综合肤质：<strong>'+type+'</strong></p>';html+='<p>水分：<strong>'+moisture+'</strong> '+lv(moisture,40,60)+'</p>';html+='<p>油分：<strong>'+oil+'</strong> '+lv(oil,30,55)+'</p>';html+='<p>色素：<strong>'+pigment+'</strong> '+lv(pigment,40,60)+'</p>';html+='<p>毛孔：<strong>'+pores+'</strong> '+lv(pores,40,60)+'</p>';html+='<p>敏感：<strong>'+sensitivity+'</strong> '+lv(sensitivity,30,50)+'</p>';document.getElementById('res').innerHTML=html;}calc();function copyRes(){ToolBox.copyText(document.getElementById('res').innerText);}
 </script>
 
 <!-- SEO 介绍区块 -->

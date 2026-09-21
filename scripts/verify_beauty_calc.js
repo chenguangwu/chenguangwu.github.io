@@ -44,12 +44,20 @@ const CASES = [
 {
   "slug": "beauty/analysis-detector-diagnosis",
   "inputs": {
-    "data": "10,20,30,40,50,60,70,80_X"
+    "moisture": "38",
+    "oil": "62",
+    "pigment": "70",
+    "pores": "55",
+    "sensitivity": "65"
   },
   "expect": [
-    "80_X"
+    "外油内干（敏感倾向）",
+    "水分： 38 偏低",
+    "油分： 62 偏高",
+    "色素： 70 偏高",
+    "敏感： 65 偏高"
   ],
-  "ref": "auto-restore"
+  "ref": "非默认：水分38(<40偏低)、油分62(>55偏高)、色素70(>60偏高)、毛孔55(≤60正常)、敏感65(>50敏感倾向)；综合外油内干+敏感。默认value(50/42/45/40/30)输出中性/混合各项正常，注入失败即不命中"
 },
 {
   "slug": "beauty/assessor-risk-12",

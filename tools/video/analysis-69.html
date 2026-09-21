@@ -88,16 +88,23 @@
 </nav>
 <div class="container">
   <div class="card tool-card-accent" style="--tool-accent:#FF6B35;">
-    <h2 data-zh="⚖️ 竞品（分析/对标/差异化）研究">Competitor</h2>
-    <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="分析/对标/差异化">Competitor</p>
+    <h2 data-zh="⚖️ 竞品（分析/对标/差异化）研究">Competitor Analysis &amp; Benchmarking</h2>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="分析/对标/差异化">Benchmark / Differentiation Research</p>
 <div class="formula-box">
   <div class="formula-title">📐 工作原理与说明</div>
-  
+  <p class="formula-desc">输入自身与若干竞品的播放量，工具计算竞品均值与中位数作为对标水位，得出自身相对差距率（(自身−均值)÷均值×100%），并按 1.5 倍、0.7 倍均值划分头部/腰部/长尾账号。点赞率、完播率用于辅助判断内容质量，对标结论仅供选题与差异化策略参考。</p>
 </div>
 
-<label>输入数据（逗号或换行分隔）</label>
-<textarea id="data" rows="4" oninput="calc()" placeholder="例如: 10,20,30,40,50">10,20,30,40,50,60,70,80</textarea>
-<div class="toolbar"><button type="button" class="btn primary" onclick="calc()">统计分析</button><button type="button" class="btn" onclick="copyRes()">复制</button></div>
+<style>.detector-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin:10px 0;}.detector-cell{display:flex;flex-direction:column;gap:4px;}.detector-cell label{font-size:12px;color:var(--text-muted);}.detector-cell input,.detector-cell textarea{width:100%;padding:6px 8px;border:1px solid var(--border,#eee);border-radius:8px;font-size:14px;}.detector-cell textarea{min-height:64px;resize:vertical;}</style>
+<label>自身指标</label>
+<div class="detector-grid">
+<div class="detector-cell"><label>自身播放量</label><input type="number" id="selfViews" value="8000" min="0" oninput="calc()"></div>
+<div class="detector-cell"><label>自身点赞率%</label><input type="number" id="selfLike" value="5" min="0" max="100" oninput="calc()"></div>
+<div class="detector-cell"><label>自身完播率%</label><input type="number" id="selfFinish" value="40" min="0" max="100" oninput="calc()"></div>
+</div>
+<label>竞品播放量（逗号或换行分隔，可多个）</label>
+<textarea id="rivalViews" rows="3" oninput="calc()" placeholder="例如: 5000,7000,6000">5000,7000,6000,9000,4500</textarea>
+<div class="toolbar"><button type="button" class="btn primary" onclick="calc()">对标分析</button><button type="button" class="btn" onclick="copyRes()">复制</button></div>
 <div class="result-box" id="res"></div>
   </div>
 
@@ -145,7 +152,7 @@
 <!-- /注意事项区块 -->
 </div>
 <script>
-function calc(){const raw=document.getElementById("data").value.split(/[,\n\s]+/).map(s=>parseFloat(s.trim())).filter(v=>!isNaN(v));if(!raw.length){document.getElementById("res").innerHTML='<p>请输入数据</p>';return;}const n=raw.length,sum=raw.reduce((a,b)=>a+b,0),mean=sum/n;const sorted=[...raw].sort((a,b)=>a-b);const med=n%2?sorted[Math.floor(n/2)]:(sorted[n/2-1]+sorted[n/2])/2;const varr=raw.reduce((a,b)=>a+(b-mean)**2,0)/n;const std=Math.sqrt(varr);document.getElementById("res").innerHTML=`<p>数据量：<strong>${n}</strong></p><p>总和：<strong>${sum.toFixed(2)}</strong></p><p>平均值：<strong style="color:var(--primary);">${mean.toFixed(2)}</strong></p><p>中位数：<strong>${med.toFixed(2)}</strong></p><p>最小值：<strong>${sorted[0]}</strong></p><p>最大值：<strong>${sorted[n-1]}</strong></p><p>极差：<strong>${(sorted[n-1]-sorted[0]).toFixed(2)}</strong></p><p>方差：<strong>${varr.toFixed(2)}</strong></p><p>标准差：<strong>${std.toFixed(2)}</strong></p>`;}calc();function copyRes(){ToolBox.copyText(document.getElementById("res").innerText);}
+function calc(){const T=window.ToolBox;const selfV=parseFloat(document.getElementById('selfViews').value);const selfL=parseFloat(document.getElementById('selfLike').value);const selfF=parseFloat(document.getElementById('selfFinish').value);const raw=document.getElementById('rivalViews').value.split(/[,\n\s]+/).map(function(s){return parseFloat(s.trim());}).filter(function(v){return !isNaN(v);});if(isNaN(selfV)||!raw.length){document.getElementById('res').innerHTML='<p>请输入自身播放量与至少一个竞品播放量</p>';return;}const n=raw.length,sum=raw.reduce(function(a,b){return a+b;},0),mean=sum/n;const sorted=[].concat(raw).sort(function(a,b){return a-b;});const med=n%2?sorted[Math.floor(n/2)]:(sorted[n/2-1]+sorted[n/2])/2;const gap=(selfV-mean)/mean*100;let pos=selfV>mean*1.5?'头部账号':(selfV>mean*0.7?'腰部账号':'长尾账号');let html='<p>竞品样本数：<strong>'+n+'</strong></p>';html+='<p>竞品平均播放：<strong>'+mean.toFixed(0)+'</strong></p>';html+='<p>竞品中位播放：<strong>'+med.toFixed(0)+'</strong></p>';html+='<p>自身播放：<strong>'+selfV.toFixed(0)+'</strong></p>';html+='<p>相对均值差距：<strong>'+gap.toFixed(1)+'%</strong></p>';html+='<p>市场定位：<strong>'+pos+'</strong></p>';document.getElementById('res').innerHTML=html;}calc();function copyRes(){ToolBox.copyText(document.getElementById('res').innerText);}
 </script>
 
 <!-- SEO 介绍区块 -->
