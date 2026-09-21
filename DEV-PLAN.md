@@ -180,8 +180,8 @@
 > **手法**：计算器补「真实公式说明面板」（含实际公式 + 一句说明，非代码膨胀）；非计算器改补真实原理/参考表。按行业热度逐批，每批走完整门禁 + 部署。
 > **进度**：
 > - **归档（BATCH1–BATCH27，共 950 个工具升级，全部已 commit+push+部署核验）**：BATCH1–10 = bucket1 阶段（automotive/psychiatry/urology/ophthalmology/neurology/reproductive-medicine/pulmonology/ent+dermatology/marketing·engineering·obstetrics·nephrology·mechanical/optical·sports·gastroenterology·fitness·cosmetic-derm），A 3339→3575 **75.0% 达标**；BATCH11–19 = bucket1 剩余（clinical-nursing·legal·elderly·food-testing·hematology·realestate·hotel·pr·hr·rheumatology / life·nutrition / data·edu·fun / tcm-diagnosis·niche·travel·text·music / misc2·safety·meteorology·food·rental·gardening2·rehabilitation·security / acupuncture·geology·food-processing·decor·media·home·transport·textile·biz·nuclear / electronics·wedding·encode·language·floral·fire-rescue·project·fire·pet·exhibition·cleaning·logistics·quantum / 长尾 48 / 长尾 49），A 3575→3959 **83.1%**，bucket1 候选池清零；BATCH20–27 = bucket3 前置段（own_len 700-799 真实计算器共 240 个，补真实派生量跨 800 阈值），A 3959→4289 **90.0%**，700-799 波段清零。逐批明细见 `.workbuddy/memory/2026-09-21.md`。
-> - **✅ 目标已达成并超额**：A 级率 70.0%→**92.5%**（3339→4409），共 31 批 1070 个工具升级。
-> - 剩余候选：own_len 600-699 尚余 **158** 个（同手法可续）；own_len < 200 的 386 个（多为静态速查/展示页，天生 C 级，不宜硬凑）。
+> - **✅ 目标已达成并超额**：A 级率 70.0%→**93.1%**（3339→4439），共 32 批 1100 个工具升级。
+> - 剩余候选：own_len 600-699 尚余 **128** 个（同手法可续）；own_len < 200 的 386 个（多为静态速查/展示页，天生 C 级，不宜硬凑）。
 > - **本批新踩坑**：600-699 波段的页面 own_len 常为 **786–799**，差几到十几字节；只补 2 项派生量可能仍不足 800 → 对未达标的页面**追加第 3 项派生量**（复验脚本按 `classify_quality()` 逐个判定，未 A 的自动补第 3 项再复验）。
 > - **BATCH20 踩坑（必读）**：① 批量插入 JS 片段后**必须做 `node --check` 语法检查**——`(expr-1)*100)` 这类多一个右括号的笔误会让整页脚本失效（结果区空）；② 还要核对**变量名与页面实际声明一致**（ppk-index 实际用 `m` 而非 `mu`，写成 `mu` 直接 ReferenceError）；③ 新增派生量的**默认值输出可能恰好撞上 verify 用例的 expect**（herons 周长默认 12.000 = expect）→ 立即变成逃生项，须改用不撞值的派生量（如外接圆半径 R=abc/4A）。三项均由门禁（calc correctness / discriminate）兜住，故**每批必须跑完整 216 门禁**。
 
