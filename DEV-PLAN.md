@@ -184,8 +184,9 @@
 > - BATCH3 = urology 19 个（全计算器）真实公式/分型面板（已闭环：commit 2df89ddd4 + 部署 run #35602115955 in_progress，A 3395→71.2%，216/216 门禁全过）。
 > - BATCH4 = ophthalmology 18 个（17 计算器 + 1 换算）真实公式/分型面板（已闭环：commit 405bad1f0，A 3413→71.6%，216/216 门禁全过）。
 > - BATCH5 = neurology 17 个量表（含 4 个 rater 重复页）真实评分公式面板（已闭环：commit dc84727e7，A 3430→72.0%，216/216 门禁全过）。
-> - BATCH6 = reproductive-medicine 17 个（精液/激素/胚胎/活检）真实公式与分级面板（本次闭环：build 后 A 3447→72.3%，216/216 门禁全过）。
-> - 当前 A 72.3%（3447/4767），距 75%（3575）还差 **128** 个；继续 bucket1 高热度行业（life 29 / pulmonology 16 / nutrition 14 / data 14 / ent 13 / dermatology 13 / marketing 12 / fun 12 / edu 11 / tcm-diagnosis 10 / optical 10 … 跨 139 行业共 513 个，远超缺口）。
+> - BATCH6 = reproductive-medicine 17 个（精液/激素/胚胎/活检）真实公式与分级面板（已闭环：commit d1d4dc0bc，A 3447→72.3%，216/216 门禁全过）。
+> - BATCH7 = pulmonology 16 个（肺炎/COPD/哮喘/结核/PE 等）真实评分与公式面板（本次闭环：build 后 A 3463→72.6%，216/216 门禁全过）。
+> - 当前 A 72.6%（3463/4767），距 75%（3575）还差 **112** 个；继续 bucket1 高热度行业（life 29 / nutrition 14 / data 14 / ent 13 / dermatology 13 / marketing 12 / fun 12 / edu 11 / tcm-diagnosis 10 / optical 10 / sports 9 / gastroenterology 9 … 跨 139 行业共 497 个，远超缺口）。
 
 - **A 项 深解达标：已全站收口**（结构达标 5124/5124 = 100%，已从此清单移除）。
 
