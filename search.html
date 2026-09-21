@@ -32,6 +32,7 @@
 .empty-state{text-align:center;padding:48px 20px;color:var(--text-muted);font-size:14px;}
 .empty-state .icon{font-size:40px;margin-bottom:12px;opacity:.6;display:block;}
 mark{background:rgba(255,107,53,0.2);color:inherit;border-radius:2px;padding:0 2px;}
+.results-truncated{font-size:13px;color:var(--text-muted);background:var(--bg-hover);border:1px solid var(--border);border-radius:8px;padding:10px 14px;margin-bottom:14px;line-height:1.5;}
 </style>
     <meta property="og:title" content="搜索工具 - ToolBox">
     <meta property="og:description" content="在 ToolBox 全站搜索 5000+ 免费在线工具，纯前端处理数据不上传，无需注册，保护隐私。">
@@ -90,6 +91,9 @@ mark{background:rgba(255,107,53,0.2);color:inherit;border-radius:2px;padding:0 2
 
   let allTools = [];
   let timer = null;
+  // 搜索结果页单页展示上限：超广命中（如单字符 "a" 经拼音匹配全库）可达数千条，
+  // 全量渲染 DOM 过重且无意义；只展示相关性最高的前 RESULT_MAX 个，并提示真实总数。
+  const RESULT_MAX = 200;
 
   var INDUSTRY_NAMES = {
     it:'IT开发', design:'设计创意', biz:'商业办公', life:'日常生活', finance:'金融财务',
@@ -255,8 +259,12 @@ mark{background:rgba(255,107,53,0.2);color:inherit;border-radius:2px;padding:0 2
       }).sort(function(a, b) { return a.d - b.d; }).slice(0, 8).map(function(x) { return x.t; });
       push(corrected);
     }
+    // 结果上限：超广命中（如单字符 "a" 经拼音匹配全库）可达数千条，
+    // 全量渲染 DOM 过重且无意义；只展示相关性最高的前 RESULT_MAX 个，并提示真实总数。
+    var total = results.length;
+    if (total > RESULT_MAX) results = results.slice(0, RESULT_MAX);
     updateUrl(ql);
-    renderResults(results, ql);
+    renderResults(results, ql, total);
   }
 
   function levenshtein(a, b) {
@@ -318,7 +326,7 @@ mark{background:rgba(255,107,53,0.2);color:inherit;border-radius:2px;padding:0 2
     return ToolBox.escHtml(text).replace(re, '<mark>$1</mark>');
   }
 
-  function renderResults(tools, q) {
+  function renderResults(tools, q, total) {
     var container = document.getElementById('resultsContainer');
     if (!container) return;
     if (tools.length === 0) {
@@ -333,7 +341,13 @@ mark{background:rgba(255,107,53,0.2);color:inherit;border-radius:2px;padding:0 2
         '<button onclick="document.getElementById(\'searchInput\').value=\'\';doSearch(\'\')" style="margin-top:6px;padding:6px 16px;border:1px solid var(--color-border);border-radius:8px;background:var(--color-card);color:var(--text-primary);cursor:pointer">清空搜索</button></div>';
       return;
     }
-    var html = '<div class="tools-header"><h2 class="tools-title">' + _t('search.results', '搜索结果') + ' <span class="tools-count">' + tools.length + _t('cat.suffix_tools', '个工具') + '</span></h2></div>';
+    var shown = tools.length;
+    var realTotal = (typeof total === 'number' && total > shown) ? total : shown;
+    var html = '<div class="tools-header"><h2 class="tools-title">' + _t('search.results', '搜索结果') + ' <span class="tools-count">' + realTotal + _t('cat.suffix_tools', '个工具') + '</span></h2></div>';
+    if (typeof total === 'number' && total > shown) {
+      html += '<div class="results-truncated">' + _t('search.results_truncated', '共找到 {n} 个相关工具，已为你展示相关性最高的前 {m} 个')
+        .replace(/\{n\}/g, total).replace(/\{m\}/g, shown) + '</div>';
+    }
     html += '<div class="results-grid">';
     html += tools.map(function(t) {
       var url = t.u || t.url || '#';

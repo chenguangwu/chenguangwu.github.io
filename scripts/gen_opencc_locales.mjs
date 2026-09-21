@@ -180,7 +180,8 @@ async function buildFullPack(locale, converter) {
     'tool.copy_ok': '已复制结果',
     'search.results': '🔍 搜索结果',
     'search.no_match': '没有找到匹配的工具',
-    'search.no_match_hint': '试试其他关键词，或看看这些相关工具：'
+    'search.no_match_hint': '试试其他关键词，或看看这些相关工具：',
+    'search.results_truncated': '共找到 {n} 个相关工具，已为你展示相关性最高的前 {m} 个'
   };
   for (const [k, v] of Object.entries(base)) if (!(k in keys)) keys[k] = v;
 

@@ -221,6 +221,7 @@ var LANG_REGISTRY = [
       'view.empty_fav': 'No favorite tools',
       'view.empty': 'No data',
       'search.results': '🔍 Search Results',
+      'search.results_truncated': 'Found {n} tools, showing the {m} most relevant',
       'search.no_match': 'No matching tools found',
       'search.no_match_hint': 'Try other keywords, or check these related tools:',
       'search.placeholder_hint': 'Type keywords to start searching',
