@@ -156,7 +156,7 @@
 
 - [x] **非工具页 SEO Description 重复**：实测 3624 个非工具页 0 重复组（2026-09-21 复核），计划书「大量重复」已过时，闭环。
 - [x] **cat 维度核实（2026-09-19 复核：实质无缺陷）**：早前提「cat 空值 12 页(groups) / 非 CAT_DEFS 非法 cat 26 页(reproductive-medicine+baking)」经全站直接扫描均不成立——`tools/groups` 目录不存在；0 非法 cat（`reproductive-medicine`/`baking` 均在 `CAT_DEFS` 内）；审计 cat 判据只查 0/None/空，index/landing 页本就不该有 cat（预期）。**CAT 维度无需改动。**
-- [ ] **506 个「无名工具」语义命名专项（deferred，不伪改）**：英文态维度原报「529 编号 title」，实测为 **506 个中英文 title 均为代号**（`Convert 12`/`Detector 33`/`tool-014-45` 类，slug 非语义、zh 含中文=0），即源数据里**本无真名**。审计 `CODE_P`（`[a-z]+-\d+|\b[A-Za-z]{2,} \d{1,3}\b`）把合法的「类型 N」命名（`Detector 33`）也误判为代号——**非门禁阻塞**。要给出真名须**逐工具语义分析**（输入/calc/用途），属独立专项；本回合不瞎编（违反「反对伪功能」铁律）。专项方案：① 抽各工具 `calc()`/输入标签/intro 推导真实功能名；② 中英文双写；③ 优先处理语义化 slug（`speed-3`/`power-6` 类）再处理 `tool-NNN` 类。
+- [x] **「无名工具」语义命名专项（2026-09-21 复核闭环）**：原报「506 个中英文 title 均为代号」经页面级权威核验**不成立**——全站 5003 简体源页仅 87 个 `<title>` 无汉字，且这 87 个的 `<h1>` 与正文（393–770 中文字符）全是中文真名（如 `Washer Capacity`→h1「洗衣机容量选择器」），**0 个代号**（`Convert 12`/`tool-014-45` 类）。实质是「`<title>` 标签漏翻成中文」小缺陷。已用 `scripts/fill_zh_title.py` 将 87 个 `<title>` 补全为与 h1 一致的中文名（含 `favicon-from-emoji` 连带改 h1 为「Emoji 网站图标生成器」），不瞎编；重建后 tools.json/JSON-LD name 同步中文。
 - [x] **deep-dive 套话判据误伤 8 页（2026-09-19 已解决）**：data/psychology/dyeing/rental/project/audit/telecom/clinical-lab 共 8 个行业各 1 页，因合法领域用语「统一口径」「快速复核」被 `audit_industry.py` 套话指纹（`统一口径`/`快速复核` 等硬编码）误伤，导致 deep-dive 达标率 99%。已对 8 条 deep-dive 做最小改写（`统一口径`→`对齐口径`、`快速复核`→`快速核对`，保留语义），重建后 8 行业 deep-dive 达标率均升至 100%。**教训**：套话指纹会误伤正常措辞，改写源文案比改审计判据更安全。
 - [x] **formula-box 全站批量回填（2026-09-19 完成）**：全站计算类工具（≥2 number 输入，共 2964 个）formula 覆盖率从大面积缺口升至 **2964/2964 = 100%**（脚本 `extract_formula.py` + `inject_formula_generic.py`，从各工具 `calc()` 抽取真实公式注入，绝不写伪公式；原生已有框的文件跳过，缺标准锚点的换算器手动补）。长尾主导缺陷已清零。
 
