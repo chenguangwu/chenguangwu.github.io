@@ -163,9 +163,7 @@
 **P2 — 低优先级**
 
 - [ ] **指南英文副本（`guides/*.en.html` 约 100 篇）清理 —— 老板 2026-09-17 明确：优先级低，延后，后续专门开任务**：这 ~100 篇是早期独立英文副本（git 跟踪 + sitemap 收录），属死重复页。**暂不处理** —— 删/改属 SEO 不可逆动作。后续专项须评估：① 是否下架并 301 指向 `?lang=en-US` 等效页；② 清理后须同步 sitemap.xml / `json/guides.json` / 构建产物；③ 须先出全量 301 规划再动，禁止直接删。
-- [ ] **跨分类真重复工具去重**：已下架三批共 27 个（全站 strict 同名仅余 11 对候选，逐对取证后均**非简单重复不下架**）；其余 ~84 对为全局复用编号页（calc-N/rater-N 跨行业同名）与描述性短名对，牵连系统性命名，需单列专项。**建议暂停 D 项或后续开专项。**
-  - **已排除（不下架，仅记录）**：同名异功能 `finance/salary-after-tax`(累计预扣)vs`payroll-calculator`(含年终奖比例)、`ophthalmology/self-assess-2`vs`osdi-scale`(OSDI 两算法)。
-- [ ] **`fun` 行业图标 🎮 语义一致性**：实测当前态可接受——23 个得 🎮 的工具绝大多数是真游戏，命中游戏规则。`INDUSTRY_DEFS['fun']=('🎮','娱乐游戏')` 是行业默认兜底图标，与 `CAT_DEFS['fun']=('🎉',…)` 不一致；若要消除非游戏 fun 工具的 🎮 兜底需改 `INDUSTRY_DEFS`，但属**可见设计变更，须老板拍板**。
+- **永久排除（不下架）**：同名异功能 `finance/salary-after-tax`↔`payroll-calculator`、`ophthalmology/self-assess-2`↔`osdi-scale`；跨行业同名编号页（calc-N/rater-N 等 17 个 basename）经内容哈希取证均为不同工具、内容各异，非重复，不处理。
 - [ ] **data-zh「中文原文」容器属性损坏 —— 剩余 46 条 B 类未处理**：data-zh 内含真实 HTML 标签 / JS 模板（`<strong>…${map.size}` 等），属运行时动态文案模板，非损坏。修法见 `scripts/fix_data_zh.py`（幂等）。
 - [ ] **`psychiatry.json` 并行进程未提交改动**（mtime 2026-09-13）：需老板确认归属。
 - [ ] **`content_deepdive.json` 299 个孤儿键**：页面已迁移到其它分类、键未同步清理。不影响达标（孤儿键不渲染），属数据卫生问题；**按老板「禁止擅自批量删除」原则仅报告，未删**。

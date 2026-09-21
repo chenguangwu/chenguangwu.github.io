@@ -2148,12 +2148,11 @@ def generate_sitemap(tools, category_inds=None):
     guides_dir = os.path.join(ROOT, 'guides')
     if os.path.isdir(guides_dir):
         for fn in sorted(os.listdir(guides_dir)):
+            if fn.endswith('.en.html'):
+                continue  # 孤儿化：英文副本 .en.html 不进 sitemap（2026-09-21 老板指令，保留文件一个月后删）
             if fn.endswith('.html') and fn != 'index.html':
                 abs_url = 'https://chenguangwu.github.io/guides/%s' % fn
-                if fn.endswith('.en.html'):
-                    lines.append(_url_block(abs_url, today, 'monthly', '0.7'))
-                else:
-                    lines.extend(_localized_url_blocks(abs_url, today, 'monthly', '0.8'))
+                lines.extend(_localized_url_blocks(abs_url, today, 'monthly', '0.8'))
     # chains.html 工具链页（B3-05）
     if os.path.isfile(os.path.join(ROOT, 'chains.html')):
         lines.extend(_localized_url_blocks('https://chenguangwu.github.io/chains.html', today, 'weekly', '0.8'))
@@ -2226,6 +2225,8 @@ def generate_core_sitemap(today):
     guides_dir = os.path.join(ROOT, 'guides')
     if os.path.isdir(guides_dir):
         for fn in sorted(os.listdir(guides_dir)):
+            if fn.endswith('.en.html'):
+                continue  # 孤儿化：英文副本 .en.html 不进 sitemap（2026-09-21 老板指令，保留文件一个月后删）
             if fn.endswith('.html') and fn != 'index.html':
                 lines.extend(_localized_url_blocks('https://chenguangwu.github.io/guides/%s' % fn,
                                                    today, 'monthly', '0.8'))
@@ -2498,22 +2499,21 @@ def _build_consistency_check(tools, category_inds):
 
     guides_dir = os.path.join(ROOT, 'guides')
     guides_count = 0
-    guide_en_count = 0
     if os.path.isdir(guides_dir):
         guides_count = len([fn for fn in os.listdir(guides_dir)
                             if fn.endswith('.html') and fn != 'index.html' and not fn.endswith('.en.html')])
-        guide_en_count = len([fn for fn in os.listdir(guides_dir) if fn.endswith('.en.html')])
     has_chains = 1 if os.path.isfile(os.path.join(ROOT, 'chains.html')) else 0
     has_about = 1 if os.path.isfile(os.path.join(ROOT, 'about.html')) else 0
+    # 孤儿化(2026-09-21 老板指令): .en.html 英文副本不再进 sitemap，仅保留文件一个月后删
     expected_sitemap_urls = (
         (expected_tools + 3 + len(category_inds) + guides_count + has_chains + has_about)
-        * len(I18N_STATIC_LOCALES) + guide_en_count
+        * len(I18N_STATIC_LOCALES)
     )
     actual_sitemap_urls = _count_xml_urls(SITEMAP_FILE)
     if expected_sitemap_urls != actual_sitemap_urls:
         print('Build consistency failed: sitemap url count mismatch')
         print('  expected=%d actual=%d' % (expected_sitemap_urls, actual_sitemap_urls))
-        print('  formula: static Chinese variants + standalone English guide pages')
+        print('  formula: static Chinese variants (standalone English guides orphaned, 2026-09-21)')
         return False
 
     return True
