@@ -3103,7 +3103,6 @@ function injectUnifiedChrome(){
     var header = buildUnifiedHeader();
     if (!header) return;
     document.body.insertBefore(header, document.body.firstChild);
-
     var footer = buildUnifiedFooter();
     document.body.appendChild(footer);
     mountFooterLaWidget();
@@ -3191,8 +3190,32 @@ function injectUnifiedChrome(){
       window.I18n.apply(header);
       window.I18n.apply(footer);
     }
+
+    // 顶栏搜索框挂载实时下拉（组件可能还在加载中，其内部定时器会兜底补齐）
+    try {
+      loadToolSearch();
+      if (window.ToolBoxSearch && typeof window.ToolBoxSearch.mountAll === 'function') {
+        window.ToolBoxSearch.mountAll();
+      }
+    } catch (e) {}
   } catch(e){}
 }
+
+// ===== 全站实时下拉搜索：唯一实现 js/tool-search.js =====
+// 覆盖所有注入统一顶栏的页面（首页/工具页/指南页/分类页/关于/站点地图/404）。
+// 动态加载而非逐页写 <script src>，避免改动 5600+ 个 HTML 文件；
+// 繁体页面无需特殊处理（组件内部经 I18n.assetUrl 定位到 /zh-tw/json/tools.json）。
+function loadToolSearch(){
+  try {
+    if (document.getElementById('tbToolSearchJs')) return;
+    var s = document.createElement('script');
+    s.id = 'tbToolSearchJs';
+    s.src = '/js/tool-search.js';
+    s.async = false;
+    document.head.appendChild(s);
+  } catch (e) {}
+}
+
 document.addEventListener('DOMContentLoaded', function(){
   setTimeout(injectUnifiedChrome, 0);
   // 主题切换后同步图标

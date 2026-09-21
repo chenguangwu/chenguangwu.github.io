@@ -272,7 +272,11 @@ var LANG_REGISTRY = [
       'err.redirect_go': 'Redirecting in {n} seconds...',
       'err.related': ' related tools',
       'err.view': 'Click to view',
+      'err.view_all_tools': 'Browse all 5000+ tools →',
       'err.footer': 'ToolBox - 5000+ free online tool wiki · Runs client-side, no upload',
+      // 全站实时下拉搜索（js/tool-search.js）
+      'search.searching': 'Loading tool index…',
+      'search.view_all': 'View all search results',
       // 分类落地页（tools/<ind>/index.html）页头
       'cat.tools_suffix': ' Tools',
       'cat.total_prefix': 'Total',

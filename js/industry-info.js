@@ -32,7 +32,7 @@ window.INDUSTRY_INFO = {
   'fitness'              : { name: '健身运动', icon: '🏋️', hot: 339401 },
   'encode'               : { name: '编码转换', icon: '🔐', hot: 329785 },
   'cosmetic-derm'        : { name: '美容皮肤', icon: '✨', hot: 321658 },
-  'metalwork'            : { name: '金属加工', icon: '🔨', hot: 318370 },
+  'metalwork'            : { name: '金属加工', icon: '🔨', hot: 318375 },
   'machinery'            : { name: '机械制造', icon: '⚙️', hot: 308132 },
   'energy'               : { name: '能源电力', icon: '⚡', hot: 302795 },
   'construction'         : { name: '建筑地产', icon: '🏗️', hot: 292499 },
