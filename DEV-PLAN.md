@@ -191,8 +191,9 @@
 > - BATCH10 = optical 10 + sports 9 + gastroenterology 9 + fitness 8 + cosmetic-derm 8（视光/运动/消化/健身/医美）共 44 个真实公式与评分面板（已闭环：commit f14478f43 + 部署 run #35609416677 success，A 3575→**75.0% 达标**，216/216 门禁全过）。
 > - BATCH11 = clinical-nursing 7 + legal 7 + elderly 6 + food-testing 6 + hematology 6 + realestate 5 + hotel 5 + pr 5 + hr 5 + rheumatology 4 共 56 个（护理/法律法规/养老/食品检验/血液/房产评估/酒店/公关/人力/风湿）真实公式与评分面板（已闭环：commit 2d9098573，A 3631→76.2%，216/216 门禁全过）。
 > - BATCH12 = life 29 + nutrition 14 共 43 个（换算器/日期时间/合同报价/生肖星座/膳食评估/GI 负荷/营养素推荐）真实换算系数与公式面板（已闭环：commit 95b254f18，A 3674→77.1%，216/216 门禁全过）。
-> - BATCH13 = data 14 + edu 11 + fun 12 共 37 个（CSV/JSON 处理、随机生成、教育训练、娱乐工具）真实算法与统计公式面板（本次闭环：build 后 A 3711→**77.8%**，216/216 门禁全过）。
-> - **✅ 目标已达成并超额**：A 级率 70.0%→**77.8%**（3339→3711），共 13 批 372 个工具升级（automotive 14 / psychiatry 23 / urology 19 / ophthalmology 18 / neurology 17 / reproductive-medicine 17 / pulmonology 16 / ent+dermatology 26 / marketing·engineering·obstetrics·nephrology·mechanical 42 / optical·sports·gastroenterology·fitness·cosmetic-derm 44 / clinical-nursing·legal·elderly·food-testing·hematology·realestate·hotel·pr·hr·rheumatology 56 / life·nutrition 43 / data·edu·fun 37）。bucket1 尚余 **248** 个可继续零风险升 A（超额储备），按同一手法滚动推进。
+> - BATCH13 = data 14 + edu 11 + fun 12 共 37 个（CSV/JSON 处理、随机生成、教育训练、娱乐工具）真实算法与统计公式面板（已闭环：commit 2cdb400f6，A 3711→77.8%，216/216 门禁全过）。
+> - BATCH14 = tcm-diagnosis 10 + niche 8 + travel 8 + text 7 + music 5 共 38 个（中医辨证、园艺陶艺、旅行规划、文本处理、音乐乐理）真实辨证规则与换算公式面板（本次闭环：build 后 A 3749→**78.6%**，216/216 门禁全过）。
+> - **✅ 目标已达成并超额**：A 级率 70.0%→**78.6%**（3339→3749），共 14 批 410 个工具升级（automotive 14 / psychiatry 23 / urology 19 / ophthalmology 18 / neurology 17 / reproductive-medicine 17 / pulmonology 16 / ent+dermatology 26 / marketing·engineering·obstetrics·nephrology·mechanical 42 / optical·sports·gastroenterology·fitness·cosmetic-derm 44 / clinical-nursing·legal·elderly·food-testing·hematology·realestate·hotel·pr·hr·rheumatology 56 / life·nutrition 43 / data·edu·fun 37 / tcm-diagnosis·niche·travel·text·music 38）。bucket1 尚余 **210** 个可继续零风险升 A（超额储备），按同一手法滚动推进。
 > - 存量：bucket1（own_len≥800 非 rich）尚余 424 个可继续零风险升 A（属超额储备）；如需继续提至更高目标可按同一手法滚动。
 
 - **A 项 深解达标：已全站收口**（结构达标 5124/5124 = 100%，已从此清单移除）。
