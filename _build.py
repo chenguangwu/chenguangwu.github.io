@@ -990,7 +990,7 @@ CAT_DEFS = {
     'electromagnetism':('⚡', '#fff3e0', '电磁学'),
     'energy':          ('🔋', '#e0f7fa', '能源'),
     'fluid':           ('💧', '#e1f5fe', '流体力学'),
-    'fun':             ('🎉', '#fff8e1', '趣味工具'),
+    'fun':             ('🎮', '#fff8e1', '娱乐游戏'),
     'geometry':        ('📐', '#e8eaf6', '几何'),
     'insurance':       ('🛡️', '#fce4ec', '保险'),
     'investment':      ('📊', '#e3f2fd', '投资'),
