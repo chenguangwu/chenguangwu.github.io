@@ -92,17 +92,22 @@
 </div>
 <div class="container">
   <div class="card tool-card-accent" style="--tool-accent:#FF6B35;">
-    <h2 data-zh="📣 竞品（广告/投放/创意）分析">Competitor</h2>
-    <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="广告/投放/创意">Competitor</p>
+    <h2 data-zh="📣 竞品（广告/投放/创意）分析">Competitor Ad / Placement / Creative Analysis</h2>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="广告/投放/创意">Ad / Placement / Creative</p>
 <div class="formula-box">
-  <div class="formula-title">📐 工作原理与说明</div>
-  
+<div class="formula-title">📐 工作原理与说明</div>
+<p style="font-size:13px;line-height:1.8;color:var(--text);">逐行录入各竞品的曝光量、点击量、转化量与创意数，工具计算 CTR（点击/曝光）、转化率（转化/点击）、曝光与转化占比及创意密度，按转化率排名并给出曝光集中度 CR3 与差异化机会提示，辅助广告投放复盘与创意优化。</p>
 </div>
 
-<label>输入数据（逗号或换行分隔）</label>
-<textarea id="data" rows="4" oninput="calc()" placeholder="例如: 10,20,30,40,50">10,20,30,40,50,60,70,80</textarea>
-<div class="toolbar"><button type="button" class="btn primary" onclick="calc()">统计分析</button><button type="button" class="btn" onclick="copyRes()">复制</button></div>
+
+<label>逐行输入竞品投放数据（格式：竞品名,曝光量,点击量,转化量,创意数）</label>
+<textarea id="data" rows="5" oninput="calc()" placeholder="自家,120000,3600,180,12&#10;竞品A,200000,5000,150,20&#10;竞品B,90000,2700,90,8&#10;竞品C,60000,1500,60,5">自家,120000,3600,180,12
+竞品A,200000,5000,150,20
+竞品B,90000,2700,90,8
+竞品C,60000,1500,60,5</textarea>
+<div class="toolbar"><button type="button" class="btn primary" onclick="calc()">开始分析</button><button type="button" class="btn" onclick="copyRes()">复制</button></div>
 <div class="result-box" id="res"></div>
+
   </div>
 
 <!-- TOOLBOX-DEEP-DIVE -->
@@ -148,9 +153,49 @@
 </div>
 <!-- /注意事项区块 -->
 </div>
+
 <script>
-function calc(){const raw=document.getElementById("data").value.split(/[,\n\s]+/).map(s=>parseFloat(s.trim())).filter(v=>!isNaN(v));if(!raw.length){document.getElementById("res").innerHTML='<p>请输入数据</p>';return;}const n=raw.length,sum=raw.reduce((a,b)=>a+b,0),mean=sum/n;const sorted=[...raw].sort((a,b)=>a-b);const med=n%2?sorted[Math.floor(n/2)]:(sorted[n/2-1]+sorted[n/2])/2;const varr=raw.reduce((a,b)=>a+(b-mean)**2,0)/n;const std=Math.sqrt(varr);document.getElementById("res").innerHTML=`<p>数据量：<strong>${n}</strong></p><p>总和：<strong>${sum.toFixed(2)}</strong></p><p>平均值：<strong style="color:var(--primary);">${mean.toFixed(2)}</strong></p><p>中位数：<strong>${med.toFixed(2)}</strong></p><p>最小值：<strong>${sorted[0]}</strong></p><p>最大值：<strong>${sorted[n-1]}</strong></p><p>极差：<strong>${(sorted[n-1]-sorted[0]).toFixed(2)}</strong></p><p>方差：<strong>${varr.toFixed(2)}</strong></p><p>标准差：<strong>${std.toFixed(2)}</strong></p>`;}calc();function copyRes(){ToolBox.copyText(document.getElementById("res").innerText);}
+function v(id){var x=parseFloat(document.getElementById(id).value);return isNaN(x)?NaN:x;}
+function fmtN(n){return (Math.round(n*100)/100).toLocaleString('zh-CN');}
+function parseRows(){
+  var raw=document.getElementById('data').value.split(String.fromCharCode(10)).map(function(s){return s.replace(String.fromCharCode(13),'');}).map(function(s){return s.trim();}).filter(Boolean);
+  var items=[];
+  raw.forEach(function(line){
+    var p=line.split(/[,，	]/).map(function(x){return x.trim();});
+    var name=p[0]||('竞品'+(items.length+1));
+    var vals=p.slice(1).map(function(x){return parseFloat(x.replace(/[^0-9.\-]/g,''));});
+    if(vals.length>=4 && vals.slice(0,4).every(function(n){return !isNaN(n);})){
+      items.push({name:name,exp:vals[0],clk:vals[1],cv:vals[2],cr:vals[3]});
+    }
+  });
+  return items;
+}
+function calc(){
+  var items=parseRows();
+  var res=document.getElementById('res');
+  if(items.length<1){res.innerHTML='<p>请输入至少一行有效数据（曝光,点击,转化,创意数）</p>';return;}
+  var totExp=items.reduce(function(a,b){return a+b.exp;},0);
+  var totCv=items.reduce(function(a,b){return a+b.cv;},0);
+  items.forEach(function(it){
+    it.ctr=it.exp>0?it.clk/it.exp*100:0;
+    it.cvr=it.clk>0?it.cv/it.clk*100:0;
+    it.expPct=totExp>0?it.exp/totExp*100:0;
+    it.cvPct=totCv>0?it.cv/totCv*100:0;
+    it.crDen=it.exp>0?it.cr/(it.exp/10000):0;
+  });
+  var sorted=items.slice().sort(function(a,b){return b.cvr-a.cvr;});
+  var rows='';
+  sorted.forEach(function(it,i){rows+='<tr><td>'+(i+1)+'</td><td>'+ToolBox.escHtml(it.name)+'</td><td>'+fmtN(it.exp)+'</td><td>'+it.ctr.toFixed(2)+'%</td><td>'+it.cvr.toFixed(2)+'%</td><td>'+it.expPct.toFixed(1)+'%</td><td>'+it.cvPct.toFixed(1)+'%</td><td>'+it.cr+'</td></tr>';});
+  var best=sorted[0],worst=sorted[sorted.length-1];
+  res.innerHTML=
+    '<div style="overflow-x:auto"><table><thead><tr><th>排名</th><th>竞品</th><th>曝光</th><th>CTR</th><th>转化率</th><th>曝光占比</th><th>转化占比</th><th>创意数</th></tr></thead><tbody>'+rows+'</tbody></table></div>'+
+    '<p>曝光集中度 CR3：<strong style="color:var(--primary)">'+sorted.slice(0,3).reduce(function(a,b){return a+b.expPct;},0).toFixed(1)+'%</strong></p>'+
+    '<p>转化率最高：<strong>'+ToolBox.escHtml(best.name)+'</strong>（'+best.cvr.toFixed(2)+'%）；最低：<strong>'+ToolBox.escHtml(worst.name)+'</strong>（'+worst.cvr.toFixed(2)+'%）</p>'+
+    '<p>差异化机会：<strong>'+ToolBox.escHtml(worst.name)+'</strong> 转化效率偏弱，建议优先优化落地页与创意；<strong>'+ToolBox.escHtml(best.name)+'</strong> 表现领先，可拆解其创意与定向策略作为标杆。</p>';
+}
+function copyRes(){ToolBox.copyText(document.getElementById('res').innerText);}calc();
 </script>
+
 
 <!-- SEO 介绍区块 -->
 

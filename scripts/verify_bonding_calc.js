@@ -51,13 +51,9 @@ const CASES = [
 },
 {
   "slug": "bonding/analysis-resolution",
-  "inputs": {
-    "data": "10,20,30,40,50,60,70,80_X"
-  },
-  "expect": [
-    "80_X"
-  ],
-  "ref": "auto-restore"
+  "inputs": { "sym": "界面失效", "sub": "塑料", "temp": "130", "cure": "8", "surf": "仅清洗" },
+  "expect": ["诊断现象： 界面失效", "风险等级： 高"],
+  "ref": "重做为「粘接失效分析与排查」：sym/sub/temp/cure/surf 注入。独立复算：界面失效→2 条原因；sub=塑料/温度130>120/固化8<10/表面仅清洗 共 4 条预警→风险等级=高。默认 sym=开胶脱落、surf=未处理、temp=25、cure=30、sub=金属→风险=中，与本例「风险等级：高」零交集；诊断现象：界面失效 亦非默认首项（开胶脱落）。"
 }
 ];
 async function main() {

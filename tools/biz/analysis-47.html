@@ -95,14 +95,28 @@
     <h2 data-zh="📊 战略（分析/定位/实施）框架">📊 Strategic Analysis Framework</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="分析/定位/实施">Enter key business figures and get a structured strategy output along the analysis–positioning–execution framework, with action points for consulting workshops, planning sessions and management reviews.</p>
 <div class="formula-box">
-  <div class="formula-title">📐 工作原理与说明</div>
-  
+<div class="formula-title">📐 工作原理与说明</div>
+<p style="font-size:13px;line-height:1.8;color:var(--text);">按 1–10 分对「行业吸引力」（市场增速、市场规模、利润率，越高越好）与「业务竞争力」（份额、品牌、技术、渠道）打分，其中竞争强度反向计分。两维各归一到 0–100%，落入 GE 九宫格对应单元并给出投资 / 选择 / 收割 / 退出等行动建议，输出实施要点清单。</p>
 </div>
 
-<label>输入数据（逗号或换行分隔）</label>
-<textarea id="data" rows="4" oninput="calc()" placeholder="例如: 10,20,30,40,50">10,20,30,40,50,60,70,80</textarea>
-<div class="toolbar"><button type="button" class="btn primary" onclick="calc()">统计分析</button><button type="button" class="btn" onclick="copyRes()">复制</button></div>
+
+<label>行业吸引力维度（各 1–10 分，竞争强度数值越大表示越激烈）</label>
+<div class="input-row">
+  <div><label>市场增速</label><input type="number" id="mGrowth" value="7" min="0" max="10" step="1" oninput="calc()"></div>
+  <div><label>市场规模</label><input type="number" id="mSize" value="8" min="0" max="10" step="1" oninput="calc()"></div>
+  <div><label>行业利润率</label><input type="number" id="mProfit" value="6" min="0" max="10" step="1" oninput="calc()"></div>
+  <div><label>竞争强度(大=激烈)</label><input type="number" id="mComp" value="5" min="0" max="10" step="1" oninput="calc()"></div>
+</div>
+<label>业务竞争力维度（各 1–10 分）</label>
+<div class="input-row">
+  <div><label>市场份额</label><input type="number" id="cShare" value="6" min="0" max="10" step="1" oninput="calc()"></div>
+  <div><label>品牌力</label><input type="number" id="cBrand" value="7" min="0" max="10" step="1" oninput="calc()"></div>
+  <div><label>技术力</label><input type="number" id="cTech" value="6" min="0" max="10" step="1" oninput="calc()"></div>
+  <div><label>渠道力</label><input type="number" id="cChan" value="5" min="0" max="10" step="1" oninput="calc()"></div>
+</div>
+<div class="toolbar"><button type="button" class="btn primary" onclick="calc()">生成战略研判</button><button type="button" class="btn" onclick="copyRes()">复制</button></div>
 <div class="result-box" id="res"></div>
+
   </div>
 
 <!-- TOOLBOX-DEEP-DIVE -->
@@ -150,9 +164,39 @@
 </div>
 <!-- /注意事项区块 -->
 </div>
+
 <script>
-function calc(){const raw=document.getElementById("data").value.split(/[,\n\s]+/).map(s=>parseFloat(s.trim())).filter(v=>!isNaN(v));if(!raw.length){document.getElementById("res").innerHTML='<p>请输入数据</p>';return;}const n=raw.length,sum=raw.reduce((a,b)=>a+b,0),mean=sum/n;const sorted=[...raw].sort((a,b)=>a-b);const med=n%2?sorted[Math.floor(n/2)]:(sorted[n/2-1]+sorted[n/2])/2;const varr=raw.reduce((a,b)=>a+(b-mean)**2,0)/n;const std=Math.sqrt(varr);document.getElementById("res").innerHTML=`<p>数据量：<strong>${n}</strong></p><p>总和：<strong>${sum.toFixed(2)}</strong></p><p>平均值：<strong style="color:var(--primary);">${mean.toFixed(2)}</strong></p><p>中位数：<strong>${med.toFixed(2)}</strong></p><p>最小值：<strong>${sorted[0]}</strong></p><p>最大值：<strong>${sorted[n-1]}</strong></p><p>极差：<strong>${(sorted[n-1]-sorted[0]).toFixed(2)}</strong></p><p>方差：<strong>${varr.toFixed(2)}</strong></p><p>标准差：<strong>${std.toFixed(2)}</strong></p>`;}calc();function copyRes(){ToolBox.copyText(document.getElementById("res").innerText);}
+function v(id){var x=parseFloat(document.getElementById(id).value);return isNaN(x)?NaN:x;}
+function fmtN(n){return (Math.round(n*100)/100).toLocaleString('zh-CN');}
+function calc(){
+  var g=[v('mGrowth'),v('mSize'),v('mProfit'),v('mComp')];
+  var c=[v('cShare'),v('cBrand'),v('cTech'),v('cChan')];
+  if(g.concat(c).some(function(x){return isNaN(x);})){document.getElementById('res').innerHTML='<p>请填写全部维度分值（0–10）</p>';return;}
+  var attr=(g[0]+g[1]+g[2]+(11-g[3])); // 竞争强度反向；满分 40
+  var comp=c.reduce(function(a,b){return a+b;},0); // 满分 40
+  var attrPct=attr/40*100, compPct=comp/40*100;
+  var aLevel=attrPct>=75?'高':(attrPct>=50?'中':'低');
+  var cLevel=compPct>=75?'强':(compPct>=50?'中':'弱');
+  var action={'高-强':'重点投入（增长与份额双优，追加资源、扩大优势）','高-中':'选择性投入（市场吸引力高、竞争力尚可，优先补齐短板）','高-弱':'审慎进入（机会好但自身弱，宜合作 / 并购或聚焦利基）','中-强':'巩固维持（竞争力强、市场平稳，守住份额、提升效率）','中-中':'观察等待（双向平平，控制投入、择机调整）','中-弱':'逐步收缩（缺乏优势，收缩或转型）','低-强':'收割（市场弱但自身强，榨取现金流、不新增投入）','低-中':'收割 / 退出（低吸引 + 中竞争力，逐步退出）','低-弱':'退出（双低，果断退出或重组）'}[aLevel+'-'+cLevel];
+  var matrix=[
+    ['低-强','中-强','高-强'],
+    ['低-中','中-中','高-中'],
+    ['低-弱','中-弱','高-弱']
+  ];
+  var html='<div style="overflow-x:auto"><table><thead><tr><th>吸引力＼竞争力</th><th>强</th><th>中</th><th>弱</th></tr></thead><tbody>';
+  for(var r=0;r<3;r++){html+='<tr><th>'+(r===0?'低':(r===1?'中':'高'))+'</th>';for(var cc=0;cc<3;cc++){var cell=matrix[r][cc];var hot=(cell===aLevel+'-'+cLevel);html+='<td style="'+(hot?'background:var(--primary);color:#fff;font-weight:700;':'')+'">'+cell.split('-')[1]+(hot?' ★':'')+'</td>';}html+='</tr>';}
+  html+='</tbody></table></div>';
+  res=document.getElementById('res');
+  res.innerHTML=
+    '<p>行业吸引力：<strong>'+attrPct.toFixed(0)+'</strong>（'+aLevel+'）　业务竞争力：<strong>'+compPct.toFixed(0)+'</strong>（'+cLevel+'）</p>'+
+    html+
+    '<p>战略定位：<strong>'+aLevel+'-'+cLevel+'</strong> 单元</p>'+
+    '<p>行动建议：<strong style="color:var(--primary)">'+action+'</strong></p>'+
+    '<p>实施要点：① 明确当前单元与资源匹配；② 对高吸引力单元优先排期；③ 弱竞争力单元先补能力短板再放量；④ 每个季度重打分复盘。</p>';
+}
+function copyRes(){ToolBox.copyText(document.getElementById('res').innerText);}calc();
 </script>
+
 
 <!-- SEO 介绍区块 -->
 

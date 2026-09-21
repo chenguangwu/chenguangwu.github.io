@@ -95,14 +95,26 @@
     <h2 data-zh="📊 财务（管理/分析/决策）咨询">📊 Financial Management &amp; Decision Analysis</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="管理/分析/决策">Enter financial or operating figures (comma or newline separated) to get mean, extremes and dispersion indicators plus decision hints, supporting budgeting reviews and management decisions.</p>
 <div class="formula-box">
-  <div class="formula-title">📐 工作原理与说明</div>
-  
+<div class="formula-title">📐 工作原理与说明</div>
+<p style="font-size:13px;line-height:1.8;color:var(--text);">输入营业收入、营业成本、期间费用、净利润、流动资产、流动负债、总资产与总负债，计算毛利率、净利率、流动比率、速动比率（未单列存货时按流动资产的 0.8 估算）、资产负债率与总资产报酬率 ROA，并给出综合健康评级，辅助预算复盘与经营决策。</p>
 </div>
 
-<label>输入数据（逗号或换行分隔）</label>
-<textarea id="data" rows="4" oninput="calc()" placeholder="例如: 10,20,30,40,50">10,20,30,40,50,60,70,80</textarea>
-<div class="toolbar"><button type="button" class="btn primary" onclick="calc()">统计分析</button><button type="button" class="btn" onclick="copyRes()">复制</button></div>
+
+<div class="input-row">
+  <div><label>营业收入</label><input type="number" id="rev" value="1000" step="any" min="0" oninput="calc()"></div>
+  <div><label>营业成本</label><input type="number" id="cost" value="600" step="any" min="0" oninput="calc()"></div>
+  <div><label>期间费用</label><input type="number" id="exp" value="200" step="any" min="0" oninput="calc()"></div>
+  <div><label>净利润</label><input type="number" id="np" value="120" step="any" oninput="calc()"></div>
+</div>
+<div class="input-row">
+  <div><label>流动资产</label><input type="number" id="ca" value="500" step="any" min="0" oninput="calc()"></div>
+  <div><label>流动负债</label><input type="number" id="cl" value="200" step="any" min="0" oninput="calc()"></div>
+  <div><label>总资产</label><input type="number" id="ta" value="1500" step="any" min="0" oninput="calc()"></div>
+  <div><label>总负债</label><input type="number" id="tl" value="600" step="any" min="0" oninput="calc()"></div>
+</div>
+<div class="toolbar"><button type="button" class="btn primary" onclick="calc()">分析</button><button type="button" class="btn" onclick="copyRes()">复制</button></div>
 <div class="result-box" id="res"></div>
+
   </div>
 
 <!-- TOOLBOX-DEEP-DIVE -->
@@ -150,9 +162,38 @@
 </div>
 <!-- /注意事项区块 -->
 </div>
+
 <script>
-function calc(){const raw=document.getElementById("data").value.split(/[,\n\s]+/).map(s=>parseFloat(s.trim())).filter(v=>!isNaN(v));if(!raw.length){document.getElementById("res").innerHTML='<p>请输入数据</p>';return;}const n=raw.length,sum=raw.reduce((a,b)=>a+b,0),mean=sum/n;const sorted=[...raw].sort((a,b)=>a-b);const med=n%2?sorted[Math.floor(n/2)]:(sorted[n/2-1]+sorted[n/2])/2;const varr=raw.reduce((a,b)=>a+(b-mean)**2,0)/n;const std=Math.sqrt(varr);document.getElementById("res").innerHTML=`<p>数据量：<strong>${n}</strong></p><p>总和：<strong>${sum.toFixed(2)}</strong></p><p>平均值：<strong style="color:var(--primary);">${mean.toFixed(2)}</strong></p><p>中位数：<strong>${med.toFixed(2)}</strong></p><p>最小值：<strong>${sorted[0]}</strong></p><p>最大值：<strong>${sorted[n-1]}</strong></p><p>极差：<strong>${(sorted[n-1]-sorted[0]).toFixed(2)}</strong></p><p>方差：<strong>${varr.toFixed(2)}</strong></p><p>标准差：<strong>${std.toFixed(2)}</strong></p>`;}calc();function copyRes(){ToolBox.copyText(document.getElementById("res").innerText);}
+function v(id){var x=parseFloat(document.getElementById(id).value);return isNaN(x)?NaN:x;}
+function fmtN(n){return (Math.round(n*100)/100).toLocaleString('zh-CN');}
+function calc(){
+  var rev=v('rev'),cost=v('cost'),exp=v('exp'),np=v('np'),ca=v('ca'),cl=v('cl'),ta=v('ta'),tl=v('tl');
+  if([rev,cost,exp,np,ca,cl,ta,tl].some(function(x){return isNaN(x);})){document.getElementById('res').innerHTML='<p>请填写全部财务数据</p>';return;}
+  var gross=rev>0?(rev-cost)/rev*100:0;
+  var net=rev>0?np/rev*100:0;
+  var cur=cl>0?ca/cl:0;
+  var quick=cl>0?ca*0.8/cl:0;
+  var dar=ta>0?tl/ta*100:0;
+  var roa=ta>0?np/ta*100:0;
+  var rating=(cur>=2 && dar<60 && net>0)?'稳健（偿债与盈利良好）':((cur>=1.2 && dar<70)?'尚可（基本健康，关注杠杆）':'偏弱（流动性或盈利存在压力）');
+  var rows=[
+    ['毛利率',gross.toFixed(2)+'%'],
+    ['净利率',net.toFixed(2)+'%'],
+    ['流动比率',cur.toFixed(2)],
+    ['速动比率(估算)',quick.toFixed(2)],
+    ['资产负债率',dar.toFixed(2)+'%'],
+    ['总资产报酬率 ROA',roa.toFixed(2)+'%']
+  ];
+  var tr='';rows.forEach(function(r){tr+='<tr><td>'+r[0]+'</td><td><strong>'+r[1]+'</strong></td></tr>';});
+  res=document.getElementById('res');
+  res.innerHTML=
+    '<div style="overflow-x:auto"><table><thead><tr><th>指标</th><th>数值</th></tr></thead><tbody>'+tr+'</tbody></table></div>'+
+    '<p>综合健康评级：<strong style="color:var(--primary)">'+rating+'</strong></p>'+
+    '<p>经营提示：毛利率反映产品盈利空间，流动比率 &gt;2、资产负债率 &lt;60% 通常为较稳健结构；净利为负或杠杆过高需重点改善。</p>';
+}
+function copyRes(){ToolBox.copyText(document.getElementById('res').innerText);}calc();
 </script>
+
 
 <!-- SEO 介绍区块 -->
 
