@@ -2,7 +2,7 @@
 /* 数据来源：_build.py INDUSTRY_DEFS 短名（权威，268/268）+ 语义 emoji 映射；仅显示用短名，描述走页面 meta */
 window.INDUSTRY_INFO = {
   'it'                   : { name: 'IT 开发', icon: '💻', hot: 30369535 },
-  'life'                 : { name: '日常生活', icon: '🏠', hot: 11708932 },
+  'life'                 : { name: '日常生活', icon: '🏠', hot: 11773932 },
   'finance'              : { name: '金融财务', icon: '💰', hot: 10118316 },
   'design'               : { name: '设计创意', icon: '🎨', hot: 8185923 },
   'image'                : { name: '图像处理', icon: '🖼️', hot: 5079761 },
@@ -74,6 +74,7 @@ window.INDUSTRY_INFO = {
   'astronomy'            : { name: '天文观测', icon: '🔭', hot: 179501 },
   'urology'              : { name: '泌尿外科', icon: '🩺', hot: 176673 },
   'music'                : { name: '音乐艺术', icon: '🎵', hot: 174904 },
+  'nutrition'            : { name: '营养膳食', icon: '🥗', hot: 174580 },
   'gastroenterology'     : { name: '消化内科', icon: '🩻', hot: 173861 },
   'transport'            : { name: '交通运输', icon: '🚚', hot: 171816 },
   'investment'           : { name: '投资理财', icon: '💹', hot: 167756 },
@@ -98,7 +99,6 @@ window.INDUSTRY_INFO = {
   'beauty'               : { name: '美容护肤', icon: '💄', hot: 142400 },
   'insurance'            : { name: '保险计算', icon: '🛡️', hot: 142086 },
   'pediatrics'           : { name: '儿科医学', icon: '🧒', hot: 140979 },
-  'nutrition'            : { name: '营养膳食', icon: '🥗', hot: 139580 },
   'niche'                : { name: '垂直工具', icon: '🎯', hot: 138712 },
   'mechanical'           : { name: '机械工程', icon: '⚙️', hot: 136621 },
   'property'             : { name: '物业管理', icon: '🏢', hot: 129798 },
