@@ -21,7 +21,6 @@ const CASES = [
   { slug: "machinery/lifespan-bearing", inputs: {v_C:"45000", v_P:"2500", v_n:"1500"}, expect: ["5832.00 L10寿命"], ref: "滚动轴承寿命" },
   { slug: "machinery/pressure-4", inputs: {v_z:"48", v_m:"2", v_a:"30"}, expect: ["96.000 分度圆直径"], ref: "花键" },
   { slug: "machinery/runhuaxitongsheji", inputs: {v_d:"160", v_l:"80", v_n:"1500"}, expect: ["0.78 比压"], ref: "润滑系统" },
-  { slug: "machinery/speed-cutting-feed", inputs: {v0:"200", v1:"50", v2:"10"}, expect: ["260.00"], ref: "切削用量" },
   { slug: "machinery/strength-15", inputs: {v_P:"11", v_n1:"1200", v_z1:"19"}, expect: ["19.05", "1520"], ref: "链传动强度：n1=1200 → p=19.05，F=1000P/v" },
   { slug: "machinery/strength-6", inputs: {v_d:"80", v_b:"12", v_h:"8"}, expect: ["49.34 挤压应力"], ref: "铆钉连接" },
   { slug: "machinery/tanhuangsheji", inputs: {v_d:"6", v_dd:"20", v_n:"8"}, expect: ["200.728 弹簧刚度"], ref: "弹簧设计" },

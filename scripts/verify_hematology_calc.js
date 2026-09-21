@@ -258,18 +258,6 @@ const CASES = [
   "ref": "auto-restore"
 },
 {
-  "slug": "hematology/quetie-juyou-rongxue-shiyanshijianbie",
-  "inputs": {
-    "v0": "150",
-    "v1": "50",
-    "v2": "10"
-  },
-  "expect": [
-    "750.00"
-  ],
-  "ref": "auto-restore"
-},
-{
   "slug": "hematology/rater-5",
   "inputs": {
     "hb": "158",

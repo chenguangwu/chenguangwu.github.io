@@ -157,18 +157,6 @@ const CASES = [
   "ref": "S_js = P·K_d/cosφ = 250×0.9/0.8 = 281.25 kVA；S_t = S_js×k_Res/β = 281.25×1.15/0.8 = 404.3 kVA → 标准序列取 500 kVA（避开默认 160/0.85/0.8/0.75/1.1）"
 },
 {
-  "slug": "electrical/voltage-capacity-battery",
-  "inputs": {
-    "v0": "120",
-    "v1": "60",
-    "v2": "15"
-  },
-  "expect": [
-    "480.00"
-  ],
-  "ref": "计算结果 = v0×v1/v2 = 120×60/15 = 480.00；合计 = 120+60+15 = 195.00（避开默认 100/50/10）"
-},
-{
   "slug": "electrical/voltage-divider",
   "inputs": {
     "vin": "12",

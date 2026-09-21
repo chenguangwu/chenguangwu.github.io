@@ -68,17 +68,6 @@ const CASES = [
   ]
 },
 {
-  "slug": "baking/mold",
-  "inputs": {
-    "v0": "100",
-    "v1": "50",
-    "v2": "10"
-  },
-  "expect": [
-    "合计"
-  ]
-},
-{
   "slug": "baking/oven-temp",
   "inputs": {
     "tempC": "180",

@@ -76,10 +76,6 @@ const CASES = [
     expect: ["22.05", "20.32"],
     ref: "d2=d−0.64952P=24−1.94856=22.05；d1=d−1.22687P=24−3.68061=20.32（默认 d10/P1.5→9.03/8.16，避开）" },
 
-  { slug: "metalwork/voltage-current",
-    inputs: { v0: "300", v1: "20", v2: "8" },
-    expect: ["750.00"],
-    ref: "r=v0×v1/v2=300×20/8=750.00（默认 100/50/10→500.00，避开）" },
 
   { slug: "metalwork/welding-heat",
     inputs: { current: "200", voltage: "25", speed: "30", eff: "0.8" },

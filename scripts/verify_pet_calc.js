@@ -56,18 +56,6 @@ const CASES = [
   "ref": "auto-restore"
 },
 {
-  "slug": "pet/kouling-shoushichongfucishuyujiyiquxian",
-  "inputs": {
-    "v0": "150",
-    "v1": "50",
-    "v2": "10"
-  },
-  "expect": [
-    "750.00"
-  ],
-  "ref": "auto-restore"
-},
-{
   "slug": "pet/pet-age-converter",
   "inputs": {
     "petAge": "6"

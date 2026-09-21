@@ -38,12 +38,6 @@ const CASES = [
     ref: "pct=40/50×100=80%；score=40×2=80；grade A 很好 👍",
   },
   {
-    slug: "edu/ranking",
-    inputs: { v0: "80", v1: "5", v2: "10" },
-    expect: ["40.00", "95.00"],
-    ref: "r=80×5/10=40.00；s2=80+5+10=95.00",
-  },
-  {
     slug: "edu/convert-2",
     inputs: { val: "#FF0000", from: "hex", to: "rgb" },
     expect: ["rgb(255, 0, 0)"],
@@ -60,12 +54,6 @@ const CASES = [
     inputs: { val: "1", rate: "1", from: "1", to: "1000" },
     expect: ["0.001000"],
     ref: "r=1×1×1/1000=0.001000（toFixed(6)）",
-  },
-  {
-    slug: "edu/wenbenquzhong-paixu-fanzhuan",
-    inputs: { v0: "10", v1: "20", v2: "5" },
-    expect: ["40.00", "35.00"],
-    ref: "r=10×20/5=40.00；s2=10+20+5=35.00",
   },
   {
     slug: "edu/xml-html-css-geshihua-yiyou-kebuchong",

@@ -180,8 +180,9 @@
 > **手法**：计算器补「真实公式说明面板」（含实际公式 + 一句说明，非代码膨胀）；非计算器改补真实原理/参考表。按行业热度逐批，每批走完整门禁 + 部署。
 > **进度**：
 > - **归档（BATCH1–BATCH27，共 950 个工具升级，全部已 commit+push+部署核验）**：BATCH1–10 = bucket1 阶段（automotive/psychiatry/urology/ophthalmology/neurology/reproductive-medicine/pulmonology/ent+dermatology/marketing·engineering·obstetrics·nephrology·mechanical/optical·sports·gastroenterology·fitness·cosmetic-derm），A 3339→3575 **75.0% 达标**；BATCH11–19 = bucket1 剩余（clinical-nursing·legal·elderly·food-testing·hematology·realestate·hotel·pr·hr·rheumatology / life·nutrition / data·edu·fun / tcm-diagnosis·niche·travel·text·music / misc2·safety·meteorology·food·rental·gardening2·rehabilitation·security / acupuncture·geology·food-processing·decor·media·home·transport·textile·biz·nuclear / electronics·wedding·encode·language·floral·fire-rescue·project·fire·pet·exhibition·cleaning·logistics·quantum / 长尾 48 / 长尾 49），A 3575→3959 **83.1%**，bucket1 候选池清零；BATCH20–27 = bucket3 前置段（own_len 700-799 真实计算器共 240 个，补真实派生量跨 800 阈值），A 3959→4289 **90.0%**，700-799 波段清零。逐批明细见 `.workbuddy/memory/2026-09-21.md`。
-> - **✅ 目标已达成并超额**：A 级率 70.0%→**96.5%**（3339→4601），共 38 批 1262 个工具升级。
-> - 剩余候选：own_len 300-699 波段**已清零**；**14 页「通用三输入模板」占位页**属新缺陷 J（独立专项，须按标题重做，不属本专项）；own_len < 200 的约 31 个（静态速查/展示页，天生 C 级）。
+> - **✅ 目标已达成并超额**：A 级率 70.0%→**96.8%**（3339→4601），共 39 批 1274 个工具升级。
+> - **BATCH39（缺陷 J PART1，2026-09-21）**：14 页「通用三输入模板」占位页中，**12 页全站已有同义真工具** → 转 `TOOLBOX-REDIRECT` 存根（保 URL、`noindex`、canonical 指向真工具），工具总数 4767→**4755**，A 率 96.5%→96.8%。存根清理由脚本一次做完 6 个面：源 HTML 改写 + `json/tools.json` + i18n 双键（`<ind>.json`/`<ind>-body.json`）+ `_en_override`/`_en_desc`/`slug-en` + `content_deepdive` + `scripts/enmap/<ind>.json` + verify 用例。**剩 2 页无同义真工具**（`edu/xml-html-css-geshihua-yiyou-kebuchong`、`floral/price`）→ 走重做路线（PART2 待办）。
+> - 剩余候选：own_len 300-699 波段**已清零**；缺陷 J 剩 **2 页待重做**（PART2）；own_len < 200 的约 31 个（静态速查/展示页，天生 C 级）。
 > - **明确排除（度量盲区，勿强改）**：`ai/ocr`、`ai/image-classification` 两页为**真实**调用 transformers.js 本地模型（`js/ai-core.js` 的 `getPipeline`，Xenova/trocr-base-printed 与 vit-base-patch16-224），逻辑写在 `<script type="module">` 中。而 `own_len` 的正则只匹配**裸 `<script>`**（无属性）→ module 脚本整块不计入，故这两页永远够不到 800。属**度量口径盲区、非页面缺陷**，强行补裸脚本 = 代码膨胀凑数，**不做**（若日后需修正，应改 `_build.py` 的 own_len 正则纳入 `type="module"`，属框架改动、须单独评估）。
 > - ⚠️ **推送状态（2026-09-21 老板指示）**：自 BATCH35 起**只本地 commit、暂停 push 远程**，直至老板明确解除。恢复推送时从 `git log origin/master..master` 取待推批次一次性推送。
 > - **本波长踩坑（BATCH31/33/34 各 1 次）**：派生量**回显输入值**或**派生量默认输出恰好等于用例 expect** → 立即成逃生项（基线 0→1）。实例：`accounting/gross-profit` 加 `[(cogs)]`（默认 600 = expect `600.00`）、`statistics/standard-error` 加 `[(Math.sqrt(n))]`（默认 n=36 → `6.0000` = expect `6.0000`）、`surveying/earthwork-pyramid-volume` 加 `[(A*h)]`/`[(V*3)]`（默认 100×3 → `300.00` = expect `300.00`）。修法：换比值/百分比/倒数/差等**量纲不同**的派生量。
@@ -253,6 +254,24 @@
 - **同一文件的多处修改必须串行 Edit**：并行发多条 Edit 会出现写回竞态（工具仍报 "Successfully edited"，实际被旧快照覆盖）。改完必须 `grep` 复核关键行。
 - **`json/related-tools-curated.json` 的每条引用必须做存在性校验**：构建对策划表中指向不存在工具的条目**只打 `WARN` 并静默丢弃该卡片**（页面少一张卡、不报错、门禁也不拦）。改名 / 迁移 / 重定向页面后必须重跑校验：`python3 -c "import json,os;d=json.load(open('json/related-tools-curated.json',encoding='utf-8'));print([(k,t) for k,v in d.items() if k!='_comment' for t in v if not os.path.exists('tools/'+t)])"`（当前 20 条策划全绿）。该文件格式为 `indent=1` **无尾换行**，改它禁止整体重排。
 
+### 8.5 自引用 URL 与「构建兜不住的字段」
+
+- **改名 / 迁移必须同批改 `canonical` + `og:url` 为自指新路径**（缺陷 K 根因：179 页改名时漏改这两项，canonical 指向永不存在的 `tool-NNN-N.html`，是 Google 明示的可能去索引信号）。**构建兜不住**：`_build.py` 只在 `'rel="canonical"' not in content` 时**新增**，已有错值不会纠正。核查命令（与 `<rel path>` 比对，应为 0）：
+  ```bash
+  python3 - <<'PY'
+  import glob,os,re
+  bad=0
+  for p in glob.glob('tools/**/*.html',recursive=True):
+      c=open(p,encoding='utf-8').read(); rel=os.path.relpath(p,'.')
+      m=re.search(r'<link rel="canonical" href="(https://chenguangwu\.github\.io/tools/[^"]+)"',c)
+      if m and m.group(1)!='https://chenguangwu.github.io/'+rel and not os.path.exists(m.group(1).replace('https://chenguangwu.github.io/','')):
+          bad+=1
+  print('BROKEN canonical:',bad)
+  PY
+  ```
+- **同类「构建兜不住」字段清单（改名/重做时必须同批改）**：`<title>`、`<h1>`、`<meta name="description">`、`og:url`、`canonical`、`title-en`/`desc-en`、`h2[data-zh]`。其余（`formula-box`、deep-dive、关联卡、图标）由构建从权威源重建，改源即可传导。
+- **zh-tw 变体的 canonical/og:url 由 `scripts/gen_opencc_locales.mjs` 按路径重写**（不继承源页错值）→ 修源后重跑构建即自动传导，勿手改 `zh-tw/`。
+
 ---
 
 ## 九、发现但未修的真实缺陷（待老板定夺）
@@ -296,8 +315,18 @@
 
 - **缺陷 J（新发现 2026-09-21）「通用三输入模板」占位页 —— 全站共 14 页**（与缺陷 I 的 textarea 型不同，**另一套模板**）。判据：三个 number 输入 `p0`/`p1`/`p2` + `calc()` 恒为 `p0*p1/(p2||1)`（同一份模板逐字相同），页名却宣称完全不同的业务（车削切削速度、蓄电池串并联容量、缺铁/巨幼/溶血实验室鉴别、视频帧率与存储、焊接电流电压匹配、文本去重排序反转、考试成绩排名、宫高腹围估胎儿体重 Hadlock、XML/HTML/CSS 格式化、花篮价格分布、增肌三大营养素配比、1RM 估算、模具容积匹配、口令重复次数与记忆曲线）—— 名不符实，且**输出与标题宣称的业务毫无关系**。
   - **14 页清单**：`machinery/speed-cutting-feed`、`electrical/voltage-capacity-battery`、`hematology/quetie-juyou-rongxue-shiyanshijianbie`、`photo/capacity-fps`、`metalwork/voltage-current`、`edu/wenbenquzhong-paixu-fanzhuan`、`edu/ranking`、`obstetrics/gonggao-fuweiyutaiertizhong-hadlock`、`edu/xml-html-css-geshihua-yiyou-kebuchong`、`floral/price`、`fitness/carbon-ratio`、`fitness/estimate-1`、`baking/mold`、`pet/kouling-shoushichongfucishuyujiyiquxian`。
-  - **判定**：属**用户可感知硬伤**（点进去算出来的数与标题无关），非「标题对齐瑕疵」。**处置口径**：按 SOP（`toolbox-stat-template-redo` 同思路）逐页**按标题重做为真实工具**，保留 URL/文件名（零 SEO 风险）；每页同步改 formula-box、h2、deep-dive，并把 verify 用例改为非默认输入 + 独立复算 expect。**独立专项，不并入 §7.3 C→A 波段**（那批是补派生量，不改业务逻辑）。
-  - **附注**：这 14 页所在行业多数**无同义真工具**，故只能重做；避免与缺陷 I 已闭环的 159 页混淆（I 的判据是单 textarea 描述统计，已 100% 闭环）。
+  - **判定**：属**用户可感知硬伤**（点进去算出来的数与标题无关），非「标题对齐瑕疵」。
+  - **处置口径（2026-09-21 实测修正）**：沿用缺陷 I 的两条路线 —— ① **全站已有同义真工具** → `TOOLBOX-REDIRECT` 存根（保 URL 不 404，`noindex` + `canonical` 指向真工具；构建 `get_tool_info` 自动跳过存根，不进 tools.json/行业页/sitemap）；② **无同义真工具** → 按标题**重做**为真实工具（保留 URL/文件名）。**原写「多数无同义」是未经验证的假设** —— 逐页全站查重实测 **12/14 有同义真工具**，故 12 页走存根、2 页走重做。
+  - **PART1 已闭环（2026-09-21，12 页转存根）**：`machinery/speed-cutting-feed`→`mechanical/cutting-speed`、`electrical/voltage-capacity-battery`→`electrical/battery-bank`、`hematology/quetie-juyou-rongxue-shiyanshijianbie`→`hematology/anemia-differential`、`photo/capacity-fps`→`photo2/video-storage`、`metalwork/voltage-current`→`welding/speed-voltage-current`、`edu/wenbenquzhong-paixu-fanzhuan`→`it/text-dedupe-sort`、`edu/ranking`→`edu2/exam-analysis`、`obstetrics/gonggao-fuweiyutaiertizhong-hadlock`→`obstetrics/fetal-weight-hadlock`、`fitness/carbon-ratio`→`fitness/macro-ratio`、`fitness/estimate-1`→`fitness/calc-4`、`baking/mold`→`baking/mold-volume`、`pet/kouling-shoushichongfucishuyujiyiquxian`→`pet-training/command-repetition`。12 个目标**全部经核验存在且为真实 A 级工具**（own_len 2160–8032、无占位）。清理面 6 项见 §7.3 BATCH39。门禁 216/216 全过、逃生项 0。
+  - **PART2 待办（2 页无同义，须重做）**：① `edu/xml-html-css-geshihua-yiyou-kebuchong` —— 标题「XML/HTML/CSS 格式化与压缩」；实测 `it/` 下有 `xml-formatter`/`css-formatter`/`html-minifier`（**仅压缩**）但**确无 HTML 美化器** → 真实缺口，重做可行（并顺带修其 canonical 指向不存在文件、标题里的生成残留「（已有，可补充）」）。② `floral/price` —— 标题「花篮花束价格分布」，全站无同义 → 按标题重做（花艺报价成本构成/价格分布）。两页须同步改 formula-box、h2、deep-dive 与 verify 用例（非默认输入 + 独立复算 expect）。
+  - **附注**：避免与缺陷 I 已闭环的 159 页混淆（I 的判据是单 textarea 描述统计，已 100% 闭环）。
+
+- **缺陷 K（新发现 2026-09-21，已修复）canonical / og:url 指向不存在的文件 —— 全站共 179 页**。
+  - **判据**：页内 `<link rel="canonical">` 与 `<meta property="og:url">` 的取值形如 `https://chenguangwu.github.io/tools/<ind>/tool-NNN-N.html`，而**全站不存在任何 `tool-NNN-N.html` 文件**（`glob tools/**/tool-*.html` = 0）。即告诉搜索引擎「本页的规范页在 404」。
+  - **受影响页均为真实 A 级工具**（own_len 5000–21000），属某次**改名批次的遗漏**：页面文件与 `<title>`/`h1` 都已改成中文语义 slug，但 head 里两项自引用 URL 未同步。hreflang 与 JSON-LD breadcrumb 均正确（只有 canonical + og:url 两项错），每页**恰好 2 处**。
+  - **风险**：canonical 指向失效 URL 是 Google 官方明示的**可能致页面被去索引**的信号，直接影响 179 个已收录 URL 的索引资产。
+  - **修复（2026-09-21 已完成）**：按页把两项改回 `https://chenguangwu.github.io/<该页相对路径>`（自指）。脚本 `/tmp/fix_canonical_broken.py`（DRY-RUN 先行）。修复后全站 canonical 指向不存在文件数 **179 → 0**；`zh-tw/` 变体 4964 页核验 canonical 均指向存在文件（`scripts/gen_opencc_locales.mjs` 按路径重写 zh-tw 的 canonical/og:url，故修源后重建自动传导）。
+  - **防复发铁律（已写入 §8.5）**：**任何改名/迁移必须同批把 canonical + og:url 改成自指新路径**；`_build.py` 仅在缺失时**新增** canonical（`if 'rel="canonical"' not in content`），**不会**纠正已存在的错误值 → 改名遗漏无法被构建兜住，只能在改名脚本里同步。核查命令：扫描全站 canonical 是否等于 `https://chenguangwu.github.io/<rel path>`。
 
 ---
 
