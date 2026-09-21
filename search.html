@@ -67,6 +67,9 @@ mark{background:rgba(255,107,53,0.2);color:inherit;border-radius:2px;padding:0 2
   </div>
 </div>
 
+<!-- 全站统一搜索组件（与下拉共用同一打分器；同步加载保证 ToolBoxSearch 先于下方脚本就绪）。
+     用绝对路径 /js/... 以兼容 /zh-tw/search.html（该目录无 js/），且与 common.js 注入的 id 一致 → 不重复注入。 -->
+<script id="tbToolSearchJs" src="/js/tool-search.js"></script>
 <script>
 (function(){
   'use strict';
@@ -108,22 +111,34 @@ mark{background:rgba(255,107,53,0.2);color:inherit;border-radius:2px;padding:0 2
     return { n: t.name, d: (t.d || t.desc), en: t.en, ed: t.ed, i: t.industry, c: t.cat, u: t.url, ic: t.icon, b: t.bg, q: t.quality, s: (t.file || '').replace(/\.html$/, ''), al: t.al || [], py: t.py || '', pyi: t.pyi || '' };
   }
   function init() {
-    // 繁体静态页（/zh-tw/search.html）必须读取繁体索引，避免结果名/描述回退简体
+    function afterIndex() {
+      var totalEl = document.getElementById('totalCount');
+      if (totalEl) totalEl.textContent = allTools.length;
+      var params = new URLSearchParams(location.search);
+      var q = params.get('q') || '';
+      if (q) {
+        var input = document.getElementById('searchInput');
+        if (input) input.value = q;
+        doSearch(q);
+      }
+    }
+    // 优先复用全站统一下拉组件的索引：同一份数据 + 同一打分器，结果页与下拉口径一致。
+    // 组件顶部已同步加载（<script id="tbToolSearchJs">），故此处必然可用。
+    if (window.ToolBoxSearch && typeof window.ToolBoxSearch.ready === 'function') {
+      window.ToolBoxSearch.ready(function (index) {
+        allTools = index || [];
+        afterIndex();
+      });
+      return;
+    }
+    // 兜底：组件不可用时自行加载（繁体静态页读繁体索引，避免结果名/描述回退简体）
     var dataUrl = '/json/tools.json';
     try { if (window.I18n && window.I18n.assetUrl) dataUrl = window.I18n.assetUrl(dataUrl); } catch (e) {}
     fetch(dataUrl)
       .then(function(r){ return r.json(); })
       .then(function(data){
         allTools = (data || []).map(_toolToShort);
-        var totalEl = document.getElementById('totalCount');
-        if (totalEl) totalEl.textContent = allTools.length;
-        var params = new URLSearchParams(location.search);
-        var q = params.get('q') || '';
-        if (q) {
-          var input = document.getElementById('searchInput');
-          if (input) input.value = q;
-          doSearch(q);
-        }
+        afterIndex();
       })
       .catch(function(e){
         console.error('Failed to load search index', e);
@@ -178,29 +193,45 @@ mark{background:rgba(255,107,53,0.2);color:inherit;border-radius:2px;padding:0 2
   }
 
   function doSearch(q) {
-    q = (q || '').trim().toLowerCase();
-    var qNoSpace = q.replace(/\s+/g, '');
+    var raw = (q || '').trim();
+    var ql = raw.toLowerCase();
+    var qNoSpace = ql.replace(/\s+/g, '');
     var container = document.getElementById('resultsContainer');
     if (!container) return;
-    if (!q) {
+    if (!raw) {
       container.innerHTML = '<div class="empty-state"><span class="icon">🔍</span>' + _t('search.placeholder_hint', '输入关键词开始搜索') + '</div>';
       updateUrl('');
       return;
     }
-    var qn = q.replace(/\s+/g, '');
-    // 无效查询（连续重复字符/单一种类字符）直接返回空结果，不返回噪声
-    if (/(.)\1\1/.test(qn) || new Set(qn.split('')).size < 2) {
-      renderResults([], q);
-      updateUrl(q);
-      return;
+    var seen = {};
+    var results = [];
+    function push(list) {
+      for (var i = 0; i < list.length; i++) {
+        var t = list[i];
+        if (!t) continue;
+        var key = t.u || t.n;
+        if (!key || seen[key]) continue;
+        seen[key] = 1;
+        results.push(t);
+      }
     }
-    var termSets = segmentQuery(q);
-    var results = allTools.filter(function(t) {
+    // ① 与顶栏下拉共用同一打分器（ToolBoxSearch.search，见 js/tool-search.js）。
+    //    这修复了「下拉能搜到、结果页却没有」：旧代码把单字符/单一字符集查询
+    //    （如 "a"，new Set("a").size < 2）直接判为无效并返回空，与下拉口径不一致。
+    if (window.ToolBoxSearch && typeof window.ToolBoxSearch.search === 'function') {
+      push(window.ToolBoxSearch.search(raw, 0) || []);
+    }
+    // ② 兼容增强（下拉覆盖不到的两类，作为补充结果、不重复已有）：多词/中英混排的
+    //    AND 匹配（如 "格式化json" → 格式化 + json）与拉丁长词拼音纠错（如 "jisqanqi"）。
+    var termSets = segmentQuery(raw);
+    var extra = allTools.filter(function(t) {
+      if (seen[t.u || t.n]) return false;
       return termSets.some(function(set) {
         if (set.length === 1) return shMatch(t, set[0]);
         return set.every(function(term) { return shMatch(t, term); });
       });
-    }).sort(function(a, b) { return score(b, q, qNoSpace) - score(a, q, qNoSpace); });
+    }).sort(function(a, b) { return score(b, ql, qNoSpace) - score(a, ql, qNoSpace); });
+    push(extra);
     // Typo correction (P3-3): when direct hits are scarce and the query is
     // latin-only, match pinyin fields with sliding-window edit distance (<=2).
     // py/pyi include the description, so window search (not whole-string)
@@ -220,12 +251,12 @@ mark{background:rgba(255,107,53,0.2);color:inherit;border-radius:2px;padding:0 2
         }
         return best >= 0 ? { t: t, d: best } : null;
       }).filter(function(x) {
-        return x && results.indexOf(x.t) === -1;
+        return x && !seen[x.t.u || x.t.n];
       }).sort(function(a, b) { return a.d - b.d; }).slice(0, 8).map(function(x) { return x.t; });
-      results = results.concat(corrected);
+      push(corrected);
     }
-    updateUrl(q);
-    renderResults(results, q);
+    updateUrl(ql);
+    renderResults(results, ql);
   }
 
   function levenshtein(a, b) {

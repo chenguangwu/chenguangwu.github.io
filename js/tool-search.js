@@ -113,7 +113,9 @@
       if (sc > 0) hits.push({ it: INDEX[i], sc: sc });
     }
     hits.sort(function (a, b) { return b.sc - a.sc || b.it.h - a.it.h; });
-    return hits.slice(0, limit || 8).map(function (x) { return x.it; });
+    var all = hits.map(function (x) { return x.it; });
+    if (limit === 0) return all;          // 0 = 全量（搜索结果页需要完整列表）
+    return all.slice(0, limit || 8);
   }
 
   // ---------- 实例渲染 ----------
@@ -303,7 +305,11 @@
     mount: mount,
     mountAll: mountAll,
     preload: function () { loadIndex(); },
+    ready: function (cb) { loadIndex(cb); },        // 索引就绪回调（搜索结果页启动用）
     getIndex: function () { return INDEX; },
+    // 搜索：下拉与搜索结果页共用同一打分器，保证「下拉能搜到、结果页却没有」不再发生。
+    // limit 省略=8（下拉默认）；limit=0=全量（搜索结果页）。
+    search: function (q, limit) { return query(q, limit); },
     format: { nameOf: nameOf, descOf: descOf }
   };
 })();
