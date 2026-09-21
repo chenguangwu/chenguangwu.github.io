@@ -93,15 +93,15 @@
 <div class="container">
   <div class="card tool-card-accent" style="--tool-accent:#FF6B35;">
     <h2 data-zh="📖 标杆（对比/学习/超越）分析">Analysis 40</h2>
-    <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="对比/学习/超越">Analysis 40</p>
-<div class="formula-box">
-  <div class="formula-title">📐 工作原理与说明</div>
-  
-</div>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="对比/学习/超越">Benchmarking &amp; Gap Analysis</p>
+<div class="formula-box"><div class="formula-title">📐 工作原理与说明</div><p>标杆分析用于量化自身与行业/内部标杆的差距，明确改进优先级：</p><p>相对差距 rel =（标杆值 − 自身值）÷ 标杆值；方向为 low（越低越好，如费用率、空置率）时取反，使「自身优于标杆」为负、「落后」为正。</p><p>综合差距评分 = 各项 |rel| 的均值 ×100%；按 |rel| 降序取 Top3 作为优先改进项。</p></div>
 
-<label>输入数据（逗号或换行分隔）</label>
-<textarea id="data" rows="4" oninput="calc()" placeholder="例如: 10,20,30,40,50">10,20,30,40,50,60,70,80</textarea>
-<div class="toolbar"><button type="button" class="btn primary" onclick="calc()">统计分析</button><button type="button" class="btn" onclick="copyRes()">复制</button></div>
+<label>标杆对比数据（每行：指标名,自身值,标杆值,方向；方向填 high 或 low）</label>
+<textarea id="data" rows="6" oninput="calc()" placeholder="例如: 毛利率,20,28,high&#10;费用率,15,10,low">毛利率,20,28,high
+费用率,15,10,low
+人效,60,80,high
+客户留存,70,75,high</textarea>
+<div class="toolbar"><button type="button" class="btn primary" onclick="calc()">开始计算</button><button type="button" class="btn" onclick="copyRes()">复制结果</button></div>
 <div class="result-box" id="res"></div>
   </div>
 
@@ -150,7 +150,40 @@
 <!-- /注意事项区块 -->
 </div>
 <script>
-function calc(){const raw=document.getElementById("data").value.split(/[,\n\s]+/).map(s=>parseFloat(s.trim())).filter(v=>!isNaN(v));if(!raw.length){document.getElementById("res").innerHTML='<p>请输入数据</p>';return;}const n=raw.length,sum=raw.reduce((a,b)=>a+b,0),mean=sum/n;const sorted=[...raw].sort((a,b)=>a-b);const med=n%2?sorted[Math.floor(n/2)]:(sorted[n/2-1]+sorted[n/2])/2;const varr=raw.reduce((a,b)=>a+(b-mean)**2,0)/n;const std=Math.sqrt(varr);document.getElementById("res").innerHTML=`<p>数据量：<strong>${n}</strong></p><p>总和：<strong>${sum.toFixed(2)}</strong></p><p>平均值：<strong style="color:var(--primary);">${mean.toFixed(2)}</strong></p><p>中位数：<strong>${med.toFixed(2)}</strong></p><p>最小值：<strong>${sorted[0]}</strong></p><p>最大值：<strong>${sorted[n-1]}</strong></p><p>极差：<strong>${(sorted[n-1]-sorted[0]).toFixed(2)}</strong></p><p>方差：<strong>${varr.toFixed(2)}</strong></p><p>标准差：<strong>${std.toFixed(2)}</strong></p>`;}calc();function copyRes(){ToolBox.copyText(document.getElementById("res").innerText);}
+function v(id){var e=document.getElementById(id);return e?e.value.trim():'';}
+function fmtN(n){if(!isFinite(n))return '-';var a=Math.abs(n);var d=(a>0&&a<1)?4:(a>=100?0:2);return n.toFixed(d).replace(/\B(?=(\d{3})+(?!\d))/g,',');}
+function esc(s){return String(s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+function parseRows(t){return t.split(String.fromCharCode(10)).map(function(x){return x.replace(String.fromCharCode(13),'').trim();}).filter(function(x){return x.length;});}
+function calc(){
+  var rows=parseRows(v('data'));
+  var res=document.getElementById('res');
+  if(!rows.length){res.innerHTML='请输入至少一行指标数据。';return;}
+  var items=[],gaps=[];
+  for(var i=0;i<rows.length;i++){
+    var p=rows[i].split(',');
+    if(p.length<3)continue;
+    var name=p[0].trim();
+    var selfv=parseFloat(p[1]);var bench=parseFloat(p[2]);
+    var dir=(p[3]||'high').trim().toLowerCase();
+    if(!isFinite(selfv)||!isFinite(bench)||bench===0)continue;
+    var rel=(bench-selfv)/bench;
+    if(dir==='low')rel=-rel;
+    items.push({name:name,selfv:selfv,bench:bench,dir:dir,rel:rel});
+    gaps.push(Math.abs(rel));
+  }
+  if(!items.length){res.innerHTML='数据格式有误，请按「指标,自身值,标杆值,方向」填写。';return;}
+  var score=gaps.reduce(function(a,b){return a+b;},0)/gaps.length*100;
+  items.sort(function(a,b){return Math.abs(b.rel)-Math.abs(a.rel);});
+  var h='<h3>标杆对比结果</h3><table class="tb-table"><tr><th>指标</th><th>自身</th><th>标杆</th><th>差距%</th><th>方向</th></tr>';
+  for(var j=0;j<items.length;j++){
+    var it=items[j];
+    h+='<tr><td>'+esc(it.name)+'</td><td>'+fmtN(it.selfv)+'</td><td>'+fmtN(it.bench)+'</td><td>'+(it.rel*100).toFixed(1)+'</td><td>'+(it.dir==='low'?'越低越好':'越高越好')+'</td></tr>';
+  }
+  h+='</table>';
+  h+='<p>综合差距评分：'+score.toFixed(1)+'%（数值越大改进空间越大）</p>';
+  h+='<p>优先改进（Top3）：'+items.slice(0,3).map(function(x){return x.name+'（'+(Math.abs(x.rel)*100).toFixed(1)+'%）';}).join('；')+'</p>';
+  res.innerHTML=h;
+}
 </script>
 
 <!-- SEO 介绍区块 -->

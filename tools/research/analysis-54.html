@@ -93,15 +93,16 @@
 <div class="container">
   <div class="card tool-card-accent" style="--tool-accent:#FF6B35;">
     <h2 data-zh="📊 定性（研究/方法/分析）路径">Analysis 54</h2>
-    <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="研究/方法/分析">Analysis 54</p>
-<div class="formula-box">
-  <div class="formula-title">📐 工作原理与说明</div>
-  
-</div>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="研究/方法/分析">Qualitative Coding &amp; Theming</p>
+<div class="formula-box"><div class="formula-title">📐 工作原理与说明</div><p>定性研究路径工具辅助对访谈/观察资料做系统化编码与主题提炼：</p><p>每行首个字段为资料文本，其后逗号分隔的为主题标签；统计各主题出现频次，覆盖率 = 已编码条目 ÷ 总条目，稳定性以出现≥3次判定。</p><p>饱和度提示：当连续若干条（默认5）均未出现新主题时，提示可停止抽样。本工具仅做频次与覆盖统计，主题提炼仍需研究者结合语境判断。</p></div>
 
-<label>输入数据（逗号或换行分隔）</label>
-<textarea id="data" rows="4" oninput="calc()" placeholder="例如: 10,20,30,40,50">10,20,30,40,50,60,70,80</textarea>
-<div class="toolbar"><button type="button" class="btn primary" onclick="calc()">统计分析</button><button type="button" class="btn" onclick="copyRes()">复制</button></div>
+<label>资料条目（每行：资料文本,主题1,主题2,…；逗号分隔，首个为文本，其余为主题）</label>
+<textarea id="data" rows="8" oninput="calc()" placeholder="例如: 访谈1,价格敏感,服务不足">访谈1,价格敏感,服务不足
+访谈2,价格敏感,交通不便
+观察3,服务不足,环境好
+访谈4,价格敏感,环境好
+观察5,交通不便,服务不足</textarea>
+<div class="toolbar"><button type="button" class="btn primary" onclick="calc()">开始计算</button><button type="button" class="btn" onclick="copyRes()">复制结果</button></div>
 <div class="result-box" id="res"></div>
   </div>
 
@@ -149,7 +150,48 @@
 <!-- /注意事项区块 -->
 </div>
 <script>
-function calc(){const raw=document.getElementById("data").value.split(/[,\n\s]+/).map(s=>parseFloat(s.trim())).filter(v=>!isNaN(v));if(!raw.length){document.getElementById("res").innerHTML='<p>请输入数据</p>';return;}const n=raw.length,sum=raw.reduce((a,b)=>a+b,0),mean=sum/n;const sorted=[...raw].sort((a,b)=>a-b);const med=n%2?sorted[Math.floor(n/2)]:(sorted[n/2-1]+sorted[n/2])/2;const varr=raw.reduce((a,b)=>a+(b-mean)**2,0)/n;const std=Math.sqrt(varr);document.getElementById("res").innerHTML=`<p>数据量：<strong>${n}</strong></p><p>总和：<strong>${sum.toFixed(2)}</strong></p><p>平均值：<strong style="color:var(--primary);">${mean.toFixed(2)}</strong></p><p>中位数：<strong>${med.toFixed(2)}</strong></p><p>最小值：<strong>${sorted[0]}</strong></p><p>最大值：<strong>${sorted[n-1]}</strong></p><p>极差：<strong>${(sorted[n-1]-sorted[0]).toFixed(2)}</strong></p><p>方差：<strong>${varr.toFixed(2)}</strong></p><p>标准差：<strong>${std.toFixed(2)}</strong></p>`;}calc();function copyRes(){ToolBox.copyText(document.getElementById("res").innerText);}
+function v(id){var e=document.getElementById(id);return e?e.value.trim():'';}
+function fmtN(n){if(!isFinite(n))return '-';var a=Math.abs(n);var d=(a>0&&a<1)?4:(a>=100?0:2);return n.toFixed(d).replace(/\B(?=(\d{3})+(?!\d))/g,',');}
+function esc(s){return String(s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+function parseRows(t){return t.split(String.fromCharCode(10)).map(function(x){return x.replace(String.fromCharCode(13),'').trim();}).filter(function(x){return x.length;});}
+function calc(){
+  var rows=parseRows(v('data'));
+  var res=document.getElementById('res');
+  if(!rows.length){res.innerHTML='请输入资料条目。';return;}
+  var n=0,coded=0,totalCodes=0,stableThemes=0;
+  var freq={};var seen={};var lastNew=0;var win=5;var sat=false;
+  for(var i=0;i<rows.length;i++){
+    var p=rows[i].split(',');
+    var text=p[0].trim();
+    if(!text)continue;
+    n++;
+    var themes=p.slice(1).map(function(x){return x.trim();}).filter(function(x){return x.length;});
+    if(themes.length){coded++;totalCodes+=themes.length;}
+    var newInRow=false;
+    for(var k=0;k<themes.length;k++){
+      var t=themes[k];
+      freq[t]=(freq[t]||0)+1;
+      if(!seen[t]){seen[t]=1;newInRow=true;}
+    }
+    if(newInRow)lastNew=0;else lastNew++;
+  }
+  if(n>=win&&lastNew>=win)sat=true;
+  var entries=Object.keys(freq).map(function(t){return {t:t,c:freq[t]};});
+  entries.sort(function(a,b){return b.c-a.c;});
+  for(var m=0;m<entries.length;m++){if(entries[m].c>=3)stableThemes++;}
+  var cov=(coded/n*100);
+  var density=(totalCodes/n);
+  var h='<h3>编码与主题分析</h3>';
+  h+='<p>资料条目：'+n+' 条，已编码：'+coded+' 条（覆盖率 '+cov.toFixed(1)+'%）</p>';
+  h+='<p>总编码数：'+totalCodes+'，平均每条目主题数：'+density.toFixed(2)+'</p>';
+  h+='<p>稳定主题（出现≥3次）：'+stableThemes+' 个</p>';
+  if(sat)h+='<p>近 '+win+' 条未出现新主题，主题趋于饱和，可考虑停止抽样。</p>';
+  h+='<h3>主题频次 Top10</h3><table class="tb-table"><tr><th>主题</th><th>频次</th></tr>';
+  var top=entries.slice(0,10);
+  for(var q=0;q<top.length;q++)h+='<tr><td>'+esc(top[q].t)+'</td><td>'+top[q].c+'</td></tr>';
+  h+='</table>';
+  res.innerHTML=h;
+}
 </script>
 
 <!-- SEO 介绍区块 -->

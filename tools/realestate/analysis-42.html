@@ -94,14 +94,15 @@
   <div class="card tool-card-accent" style="--tool-accent:#FF6B35;">
     <h2 data-zh="📊 竞品（监测/分析/应对）机制">📊 Competitor Monitoring &amp; Analysis</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="监测/分析/应对">Track competing projects' price, product and absorption performance and output response suggestions for marketing and positioning.</p>
-<div class="formula-box">
-  <div class="formula-title">📐 工作原理与说明</div>
-  
-</div>
+<div class="formula-box"><div class="formula-title">📐 工作原理与说明</div><p>跟踪竞品楼盘的价格、去化与产品力，量化自身相对市场的定位并给出应对方向：</p><p>先求竞品均价、去化、产品力的均值，再算自身相对市场的偏离度 =（自身 − 竞品均值）÷ 竞品均值。按价格/去化高低组合给出差异化应对建议。</p><p>本工具为对标研判辅助，竞品数据需按真实市调更新，结论随输入变化。</p></div>
 
-<label>输入数据（逗号或换行分隔）</label>
-<textarea id="data" rows="4" oninput="calc()" placeholder="例如: 10,20,30,40,50">10,20,30,40,50,60,70,80</textarea>
-<div class="toolbar"><button type="button" class="btn primary" onclick="calc()">统计分析</button><button type="button" class="btn" onclick="copyRes()">复制</button></div>
+<label>自身均价（元/㎡）</label><input type="number" id="selfprice" value="17500" step="any">
+<label>自身月均去化（套）</label><input type="number" id="selfabsorb" value="55" step="any">
+<label>竞品数据（每行：名称,均价,月均去化,产品力1-10）</label>
+<textarea id="data" rows="6" oninput="calc()" placeholder="例如: 竞品A,20000,45,7">竞品A,20000,45,7
+竞品B,17000,60,6
+竞品C,22000,30,8</textarea>
+<div class="toolbar"><button type="button" class="btn primary" onclick="calc()">开始计算</button><button type="button" class="btn" onclick="copyRes()">复制结果</button></div>
 <div class="result-box" id="res"></div>
   </div>
 
@@ -150,7 +151,42 @@
 <!-- /注意事项区块 -->
 </div>
 <script>
-function calc(){const raw=document.getElementById("data").value.split(/[,\n\s]+/).map(s=>parseFloat(s.trim())).filter(v=>!isNaN(v));if(!raw.length){document.getElementById("res").innerHTML='<p>请输入数据</p>';return;}const n=raw.length,sum=raw.reduce((a,b)=>a+b,0),mean=sum/n;const sorted=[...raw].sort((a,b)=>a-b);const med=n%2?sorted[Math.floor(n/2)]:(sorted[n/2-1]+sorted[n/2])/2;const varr=raw.reduce((a,b)=>a+(b-mean)**2,0)/n;const std=Math.sqrt(varr);document.getElementById("res").innerHTML=`<p>数据量：<strong>${n}</strong></p><p>总和：<strong>${sum.toFixed(2)}</strong></p><p>平均值：<strong style="color:var(--primary);">${mean.toFixed(2)}</strong></p><p>中位数：<strong>${med.toFixed(2)}</strong></p><p>最小值：<strong>${sorted[0]}</strong></p><p>最大值：<strong>${sorted[n-1]}</strong></p><p>极差：<strong>${(sorted[n-1]-sorted[0]).toFixed(2)}</strong></p><p>方差：<strong>${varr.toFixed(2)}</strong></p><p>标准差：<strong>${std.toFixed(2)}</strong></p>`;}calc();function copyRes(){ToolBox.copyText(document.getElementById("res").innerText);}
+function v(id){var e=document.getElementById(id);return e?e.value.trim():'';}
+function fmtN(n){if(!isFinite(n))return '-';var a=Math.abs(n);var d=(a>0&&a<1)?4:(a>=100?0:2);return n.toFixed(d).replace(/\B(?=(\d{3})+(?!\d))/g,',');}
+function esc(s){return String(s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+function parseRows(t){return t.split(String.fromCharCode(10)).map(function(x){return x.replace(String.fromCharCode(13),'').trim();}).filter(function(x){return x.length;});}
+function calc(){
+  var sp=parseFloat(v('selfprice')),sa=parseFloat(v('selfabsorb'));
+  var rows=parseRows(v('data'));
+  var res=document.getElementById('res');
+  if(!isFinite(sp)||!isFinite(sa)){res.innerHTML='请填写自身均价与去化。';return;}
+  var comp=[];
+  for(var i=0;i<rows.length;i++){
+    var p=rows[i].split(',');
+    if(p.length<4)continue;
+    var name=p[0].trim();var price=parseFloat(p[1]);var abs=parseFloat(p[2]);var pw=parseFloat(p[3]);
+    if(!isFinite(price)||!isFinite(abs)||!isFinite(pw))continue;
+    comp.push({name:name,price:price,abs:abs,pw:pw});
+  }
+  if(!comp.length){res.innerHTML='请至少填写一个竞品（名称,均价,月均去化,产品力1-10）。';return;}
+  var sumP=0,sumA=0,sumW=0;
+  for(var j=0;j<comp.length;j++){sumP+=comp[j].price;sumA+=comp[j].abs;sumW+=comp[j].pw;}
+  var avgP=sumP/comp.length,avgA=sumA/comp.length,avgW=sumW/comp.length;
+  var pricePos=(sp-avgP)/avgP*100;
+  var absPos=(sa-avgA)/avgA*100;
+  var h='<h3>竞品对比</h3><table class="tb-table"><tr><th>竞品</th><th>均价</th><th>月均去化</th><th>产品力</th></tr>';
+  for(var k=0;k<comp.length;k++)h+='<tr><td>'+esc(comp[k].name)+'</td><td>'+fmtN(comp[k].price)+'</td><td>'+fmtN(comp[k].abs)+'</td><td>'+comp[k].pw.toFixed(1)+'</td></tr>';
+  h+='</table>';
+  h+='<p>竞品均价均值：'+fmtN(avgP)+'，自身均价：'+fmtN(sp)+'（'+(pricePos>=0?'高于':'低于')+'市场 '+Math.abs(pricePos).toFixed(1)+'%）</p>';
+  h+='<p>竞品去化均值：'+fmtN(avgA)+'，自身去化：'+fmtN(sa)+'（'+(absPos>=0?'高于':'低于')+'市场 '+Math.abs(absPos).toFixed(1)+'%）</p>';
+  var advice;
+  if(pricePos<0&&absPos<0)advice='价格与去化均低于竞品，建议提升产品力与营销曝光，必要时调整定价策略';
+  else if(pricePos>0&&absPos<0)advice='价格高于竞品但去化偏弱，建议强化价值塑造、优化渠道转化';
+  else if(pricePos<0&&absPos>0)advice='去化优于竞品且价格偏低，可适度提价或加快推货抢占份额';
+  else advice='价格与去化均领先，建议巩固优势、维护品牌溢价';
+  h+='<p>应对建议：'+advice+'</p>';
+  res.innerHTML=h;
+}
 </script>
 
 <!-- SEO 介绍区块 -->
