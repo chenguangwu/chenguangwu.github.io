@@ -310,6 +310,9 @@
     // 搜索：下拉与搜索结果页共用同一打分器，保证「下拉能搜到、结果页却没有」不再发生。
     // limit 省略=8（下拉默认）；limit=0=全量（搜索结果页）。
     search: function (q, limit) { return query(q, limit); },
+    // 共享逐词打分器：首页网格搜索（toolboxSearch）与顶栏下拉统一口径时复用，
+    // 传入 (query, item)，返回 >0 表示命中及权重（与下拉完全一致）。
+    score: function (q, item) { return scoreOf(item, String(q || '').trim().toLowerCase()); },
     format: { nameOf: nameOf, descOf: descOf }
   };
 })();

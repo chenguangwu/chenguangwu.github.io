@@ -682,13 +682,19 @@ function _toolToShort(t) {
     n: t.name, d: (t.d || t.desc), en: t.en, ed: t.ed, i: t.industry, c: t.cat,
     u: t.url, ic: t.icon, b: t.bg, q: t.quality,
     s: (t.file || '').replace(/\.html$/, ''),
+    h: t.hot || 0,
     al: t.al || [], py: t.py || '', pyi: t.pyi || ''
   };
 }
 async function ensureSearchIndexLoaded() {
   if (allSearchIndex) return allSearchIndex;
   try {
-    const res = await fetch('/json/tools.json');
+    // 走 I18n.assetUrl：/zh-tw/ 静态页自动读取繁体索引，修复首页网格搜索/命令面板
+    // 在繁体页仍抓简体索引、工具名回退简体的 bug（与顶栏下拉同源）。
+    const dataUrl = (window.I18n && typeof I18n.assetUrl === 'function')
+      ? I18n.assetUrl('/json/tools.json')
+      : '/json/tools.json';
+    const res = await fetch(dataUrl);
     allSearchIndex = (await res.json()).map(_toolToShort);
     searchIndexLoaded = true;
     return allSearchIndex;
@@ -955,17 +961,24 @@ function segmentQuery(raw) {
 function toolboxSearch(query, limit) {
   let q = (query || '').toLowerCase().trim();
   if (!q || !allSearchIndex) return [];
+  // 统一口径：逐词打分复用顶栏下拉的共享打分器（js/tool-search.js 的 scoreOf），
+  // 名称/英文/别名/拼音/描述加权，与实时下拉完全一致；保留网格特有的多词 AND、
+  // 拼音滑动窗口纠错、长查询 Fuse 召回作为补充。
+  const TS = window.ToolBoxSearch;
+  const scoreFn = (TS && typeof TS.score === 'function')
+    ? (t, term) => TS.score(term, t)
+    : toolboxScore;
   // pinyin spaces are not part of the continuous py/pyi fields; strip them
   // before matching so "ji suan qi" behaves like "jisuanqi".
   const qNoSpace = q.replace(/\s+/g, '');
   const termSets = segmentQuery(q);
-  const singleWhole = (t) => toolboxScore(t, q) >= 0 || (qNoSpace !== q && toolboxScore(t, qNoSpace) >= 0);
-  const matchesSet = (t, set) => set.every(term => toolboxScore(t, term) >= 0);
-  const scoreSet = (t, set) => set.reduce((s, term) => s + Math.max(toolboxScore(t, term), 0), 0);
+  const singleWhole = (t) => scoreFn(t, q) >= 0 || (qNoSpace !== q && scoreFn(t, qNoSpace) >= 0);
+  const matchesSet = (t, set) => set.every(term => scoreFn(t, term) >= 0);
+  const scoreSet = (t, set) => set.reduce((s, term) => s + Math.max(scoreFn(t, term), 0), 0);
   const pass = (t) => termSets.some(set => set.length === 1 ? singleWhole(t) : matchesSet(t, set));
   const scoreOf = (t) => Math.max(...termSets.map(set =>
     set.length === 1
-      ? Math.max(toolboxScore(t, set[0]), qNoSpace !== set[0] ? toolboxScore(t, qNoSpace) : -1)
+      ? Math.max(scoreFn(t, set[0]), qNoSpace !== set[0] ? scoreFn(t, qNoSpace) : -1)
       : scoreSet(t, set)));
   const direct = allSearchIndex
     .filter(pass)
