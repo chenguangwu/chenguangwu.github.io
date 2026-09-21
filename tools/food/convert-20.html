@@ -99,6 +99,24 @@
 
   <div class="card tool-card-accent" style="--tool-accent:#FF6B35;">
     <h2 data-zh="🔄 辣椒辣度换算（斯科维尔单位）">Convert 20</h2>
+<div class="formula-box">
+  
+  
+<div class="formula-eq">菜品辣度（SHU）= 辣椒斯科维尔指数 × 辣椒用量 ÷ 菜品总重；辣椒素浓度（ppm）= SHU ÷ 15；辣椒素总量（mg）= ppm × 用量 ÷ 1000；最大用量 = 目标辣度上限 × 菜品总重 ÷ SHU；稀释倍数 = 当前菜品辣度 ÷ 目标辣度上限。辣度分级按菜品辣度判定：微辣、轻辣、中辣、高辣、特辣、极辣、暴辣。</div></div>
+
+<div class="input-row">
+<div><label>换算方式</label><select id="mode" onchange="calc()"><option value="dish">按辣椒品种与用量</option><option value="shu">直接输入 SHU</option></select></div>
+<div><label>辣椒品种</label><select id="variety" onchange="calc()"><option value="0">甜椒</option><option value="1">香蕉辣椒</option><option value="2">墨西哥椒 Jalapeño</option><option value="3">塞拉诺</option><option value="4">卡宴</option><option value="5">泰椒</option><option value="6">哈瓦那</option><option value="7">鬼椒 Bhut Jolokia</option><option value="8">卡罗莱纳死神</option></select></div>
+<div><label>辣椒用量（g）</label><input type="number" id="amount" value="20" step="any" oninput="calc()"></div>
+</div>
+<div class="input-row">
+<div><label>菜品总重（g）</label><input type="number" id="totalW" value="500" step="any" oninput="calc()"></div>
+<div><label>直接输入 SHU</label><input type="number" id="shuIn" value="50000" step="any" oninput="calc()"></div>
+<div><label>目标辣度上限（SHU）</label><input type="number" id="target" value="5000" step="any" oninput="calc()"></div>
+</div>
+<div class="toolbar"><button type="button" class="btn primary" onclick="calc()">计算</button><button type="button" class="btn" onclick="copyRes()">复制</button></div>
+<div class="result-box" id="res"></div>
+
 <div class="card" style="margin:16px 0;"><h3 style="margin-bottom:10px;">常见辣椒斯科维尔辣度（SHU）</h3><p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="斯科维尔指数（Scoville Heat Units） approximate 公开参考值">Convert 20 - convert values in-browser instantly with local processing.</p><table style="width:100%;border-collapse:collapse;font-size:13px;"><tr style="border-bottom:1px solid var(--color-border);"><th style="text-align:left;padding:6px;">辣椒</th><th style="text-align:right;padding:6px;">SHU</th></tr><tr style="border-bottom:1px solid var(--color-border);"><td style="padding:6px;">甜椒</td><td style="text-align:right;padding:6px;">0</td></tr><tr style="border-bottom:1px solid var(--color-border);"><td style="padding:6px;">香蕉辣椒</td><td style="text-align:right;padding:6px;">100–900</td></tr><tr style="border-bottom:1px solid var(--color-border);"><td style="padding:6px;">墨西哥椒 Jalapeño</td><td style="text-align:right;padding:6px;">2,500–8,000</td></tr><tr style="border-bottom:1px solid var(--color-border);"><td style="padding:6px;">塞拉诺</td><td style="text-align:right;padding:6px;">10,000–23,000</td></tr><tr style="border-bottom:1px solid var(--color-border);"><td style="padding:6px;">卡宴</td><td style="text-align:right;padding:6px;">30,000–50,000</td></tr><tr style="border-bottom:1px solid var(--color-border);"><td style="padding:6px;">泰椒</td><td style="text-align:right;padding:6px;">50,000–100,000</td></tr><tr style="border-bottom:1px solid var(--color-border);"><td style="padding:6px;">哈瓦那</td><td style="text-align:right;padding:6px;">100,000–350,000</td></tr><tr style="border-bottom:1px solid var(--color-border);"><td style="padding:6px;">鬼椒 Bhut Jolokia</td><td style="text-align:right;padding:6px;">855,000–1,041,427</td></tr><tr><td style="padding:6px;">卡罗莱纳死神</td><td style="text-align:right;padding:6px;">1,500,000–2,200,000</td></tr></table></div>
 <div class="tool-notes" style="--tool-accent:#FF6B35;">
   <div class="tool-notes-title">⚠️ 使用说明与注意事项</div>
@@ -111,7 +129,84 @@
 <!-- /注意事项区块 -->
 </div>
 <script>
-/* 对照表型工具：静态真实数据展示 */
+var VARIETIES=[
+ ['甜椒',0,0],
+ ['香蕉辣椒',100,900],
+ ['墨西哥椒 Jalapeño',2500,8000],
+ ['塞拉诺',10000,23000],
+ ['卡宴',30000,50000],
+ ['泰椒',50000,100000],
+ ['哈瓦那',100000,350000],
+ ['鬼椒 Bhut Jolokia',855000,1041427],
+ ['卡罗莱纳死神',1500000,2200000]
+];
+
+function fmtN(n,d){
+  if(typeof n!=='number'||!isFinite(n))return '--';
+  return n.toFixed(d===undefined?2:d);
+}
+
+function heatGrade(shu){
+  if(!(shu>0))return '不辣';
+  if(shu<100)return '微辣';
+  if(shu<1000)return '轻辣';
+  if(shu<15000)return '中辣';
+  if(shu<50000)return '高辣';
+  if(shu<100000)return '特辣';
+  if(shu<350000)return '极辣';
+  return '暴辣';
+}
+
+function calc(){
+  var res=document.getElementById('res');
+  var mode=document.getElementById('mode').value;
+  var vi=parseInt(document.getElementById('variety').value,10);
+  var amount=parseFloat(document.getElementById('amount').value);
+  var totalW=parseFloat(document.getElementById('totalW').value);
+  var shuIn=parseFloat(document.getElementById('shuIn').value);
+  var target=parseFloat(document.getElementById('target').value);
+  if(!isFinite(amount)||amount<0||!isFinite(totalW)||totalW<=0){
+    res.innerHTML='<p style="color:var(--text-muted);">请输入有效的辣椒用量与菜品总重（总重需大于 0）。</p>';
+    return;
+  }
+  var v=VARIETIES[vi];
+  var base,name,lo,hi;
+  if(mode==='shu'){
+    if(!isFinite(shuIn)||shuIn<0){
+      res.innerHTML='<p style="color:var(--text-muted);">请输入有效的斯科维尔指数（非负数值）。</p>';
+      return;
+    }
+    base=shuIn; lo=shuIn; hi=shuIn; name='自定义输入';
+  }else{
+    if(!v){ res.innerHTML='<p style="color:var(--text-muted);">请选择辣椒品种。</p>'; return; }
+    base=(v[1]+v[2])/2; lo=v[1]; hi=v[2]; name=v[0];
+  }
+  var dish=base*amount/totalW;
+  var ppm=base/15;
+  var mg=ppm*amount/1000;
+  var maxG=(base>0&&isFinite(target)&&target>0)?(target*totalW/base):0;
+  var dil=(isFinite(target)&&target>0)?(dish/target):0;
+  function item(val,lab){
+    return '<div style="padding:10px;border:1px solid var(--border);border-radius:8px;text-align:center;">'
+      +'<div style="font-size:18px;font-weight:600;color:var(--primary);">'+val+'</div>'
+      +'<div style="font-size:12px;color:var(--text-muted);margin-top:4px;">'+lab+'</div></div>';
+  }
+  var html='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(118px,1fr));gap:10px;margin-bottom:12px;">';
+  html+=item(Math.round(base),'原料辣度（SHU）');
+  html+=item(Math.round(dish),'菜品辣度（SHU）');
+  html+=item(fmtN(ppm,1),'辣椒素浓度（ppm）');
+  html+=item(fmtN(mg,2),'辣椒素总量（mg）');
+  html+='</div>';
+  html+='<p style="font-size:14px;line-height:1.9;">辣度等级：'+heatGrade(dish)+'（按菜品辣度判定）</p>';
+  html+='<p style="font-size:14px;line-height:1.9;">品种：'+name+'，公开参考区间 '+lo+' 至 '+hi+' SHU（中值 '+Math.round(base)+'）</p>';
+  if(isFinite(target)&&target>0){
+    html+='<p style="font-size:14px;line-height:1.9;">不超过目标 '+Math.round(target)+' SHU：最大用量 '+fmtN(maxG,1)+' g，当前浓度需稀释 '+fmtN(dil,2)+' 倍</p>';
+  }
+  html+='<p style="font-size:12px;line-height:1.8;color:var(--text-muted);">换算口径：1 ppm 辣椒素约等于 15 SHU；菜品辣度按「原料 SHU 乘以用量除以总重」线性稀释估算。SHU 为公开参考范围，因品种、产地与成熟度差异较大，结果仅供参考。</p>';
+  res.innerHTML=html;
+}
+calc();
+function copyRes(){ToolBox.copyText(document.getElementById("res").innerText);}
 <!-- TOOLBOX-REALIZED -->
 </script>
 

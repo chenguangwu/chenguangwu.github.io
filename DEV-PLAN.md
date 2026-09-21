@@ -180,13 +180,10 @@
 > **手法**：计算器补「真实公式说明面板」（含实际公式 + 一句说明，非代码膨胀）；非计算器改补真实原理/参考表。按行业热度逐批，每批走完整门禁 + 部署。
 > **进度**：
 > - **归档（BATCH1–BATCH27，共 950 个工具升级，全部已 commit+push+部署核验）**：BATCH1–10 = bucket1 阶段（automotive/psychiatry/urology/ophthalmology/neurology/reproductive-medicine/pulmonology/ent+dermatology/marketing·engineering·obstetrics·nephrology·mechanical/optical·sports·gastroenterology·fitness·cosmetic-derm），A 3339→3575 **75.0% 达标**；BATCH11–19 = bucket1 剩余（clinical-nursing·legal·elderly·food-testing·hematology·realestate·hotel·pr·hr·rheumatology / life·nutrition / data·edu·fun / tcm-diagnosis·niche·travel·text·music / misc2·safety·meteorology·food·rental·gardening2·rehabilitation·security / acupuncture·geology·food-processing·decor·media·home·transport·textile·biz·nuclear / electronics·wedding·encode·language·floral·fire-rescue·project·fire·pet·exhibition·cleaning·logistics·quantum / 长尾 48 / 长尾 49），A 3575→3959 **83.1%**，bucket1 候选池清零；BATCH20–27 = bucket3 前置段（own_len 700-799 真实计算器共 240 个，补真实派生量跨 800 阈值），A 3959→4289 **90.0%**，700-799 波段清零。逐批明细见 `.workbuddy/memory/2026-09-21.md`。
-> - **✅ 目标已达成并超额**：A 级率 70.0%→**96.8%**（3339→4601），共 39 批 1274 个工具升级。
-> - **BATCH40（缺陷 J PART2，2026-09-21，✅ 缺陷 J 全部闭环）**：剩余 **2 页无同义真工具 → 按标题重做为真实工具**（保留 URL/文件名）：
->   - `edu/xml-html-css-geshihua-yiyou-kebuchong` → **XML/HTML/CSS 代码格式化与缩进美化**（真实缺口：`it/` 下只有 `xml-formatter`/`css-formatter`/`html-minifier`，全站确无 HTML 美化器）。textarea 源码 + 语言 select + 缩进档位；按开闭标签/花括号配对算层级重排，统计字符数、行数、最大嵌套深度、标签数，纯前端不上传。清标题生成残留「（已有，可补充）」共 11 处。
->   - `floral/price` → **花篮/花圈预算与数量分布计算器**。输入预算 + 花篮/花圈单价上下限 + 花篮占比，输出各自均价、加权组合均价、可采购总件数与篮/圈件数分配、金额构成，并按上下限单价复算给出**数量区间**。
->   - 两页同步：真实 `formula-eq` 公式面板、deep-dive 全量重写（原 floral 段仍锚在旧假公式 `r=花篮×花圈÷价格档` 上）、verify 用例改为非默认输入 + 独立复算 expect。冒烟测试 13 场景全过（0 抛错/0 NaN）。
-> - **✅ 目标已达成并超额**：A 级率 70.0%→**96.8%**（3339→4603），共 40 批 1276 个工具升级；C 级仅剩 8 个。
-> - 剩余候选：**own_len 300-699 波段已清零**；缺陷 J **14/14 全部闭环**；own_len < 200 的约 8 个（静态速查/展示页，天生 C 级，不宜硬凑）+ 2 个 AI 页属度量盲区（见下）。**本专项实质收口**。
+> - **✅ 目标已达成并超额**：A 级率 70.0%→**96.9%**（3339→**4604**，4752 工具），共 41 批升级；**C 级仅剩 4 个**。**本专项实质收口**。
+> - **BATCH39/40（缺陷 J，2026-09-21，✅ 14/14 全部闭环）**：14 页「通用三输入模板」占位页（`p0*p1/(p2||1)` 假公式）——**12 页全站已有同义真工具 → 转 `TOOLBOX-REDIRECT` 存根**（保 URL、零 404，工具总数 4767→4755；清理 6 面：源 HTML + `json/tools.json` + i18n 双键 + `_en_override`/`_en_desc`/`slug-en` + `content_deepdive` + `scripts/enmap` + verify 用例）；**2 页无同义 → 按标题重做为真实工具**：`edu/xml-html-css-geshihua-yiyou-kebuchong` → XML/HTML/CSS 代码格式化与缩进美化（全站确无 HTML 美化器，真实缺口）；`floral/price` → 花篮/花圈预算与数量分布计算器。两页同步重写 `formula-eq`、deep-dive、verify 用例（非默认输入 + 独立复算 expect），冒烟测试 13 场景全过。
+> - **BATCH41（缺陷 L，2026-09-21，✅ 4/4 全部闭环）**：4 页「对照表型 convert」**名不符实**页（标题/描述宣称「输入…双向换算」但 `inputs=0`，实为静态对照表）——**3 页全站已有同义真工具 → 转存根**：`cardiology/convert-rehab`→`cardiology/cardiac-rehab-mets`、`library/convert-ref-cite`→`library/citation-format`、`sports/convert-13`→`sports/climbing-grade-converter`；**1 页无同义 → 重做为真实双向换算器**：`food/convert-20` → 斯科维尔辣度 SHU 与 ppm 双向换算 + 辣度分级（SHU ≈ ppm × 15），补真实输入 + `formula-eq` + dataGrid 明细，冒烟测试全过。
+> - 剩余候选：**own_len 300-699 波段已清零**；缺陷 J 14/14、缺陷 L 4/4 **全部闭环**；仅剩 4 个 C 级（2 个 AI 页属度量盲区 + 2 个静态展示页，天生 C 级，不宜硬凑）。
 > - **明确排除（度量盲区，勿强改）**：`ai/ocr`、`ai/image-classification` 两页为**真实**调用 transformers.js 本地模型（`js/ai-core.js` 的 `getPipeline`，Xenova/trocr-base-printed 与 vit-base-patch16-224），逻辑写在 `<script type="module">` 中。而 `own_len` 的正则只匹配**裸 `<script>`**（无属性）→ module 脚本整块不计入，故这两页永远够不到 800。属**度量口径盲区、非页面缺陷**，强行补裸脚本 = 代码膨胀凑数，**不做**（若日后需修正，应改 `_build.py` 的 own_len 正则纳入 `type="module"`，属框架改动、须单独评估）。
 > - ⚠️ **推送状态（2026-09-21 老板指示）**：自 BATCH35 起**只本地 commit、暂停 push 远程**，直至老板明确解除。恢复推送时从 `git log origin/master..master` 取待推批次一次性推送。
 > - **本波长踩坑（BATCH31/33/34 各 1 次）**：派生量**回显输入值**或**派生量默认输出恰好等于用例 expect** → 立即成逃生项（基线 0→1）。实例：`accounting/gross-profit` 加 `[(cogs)]`（默认 600 = expect `600.00`）、`statistics/standard-error` 加 `[(Math.sqrt(n))]`（默认 n=36 → `6.0000` = expect `6.0000`）、`surveying/earthwork-pyramid-volume` 加 `[(A*h)]`/`[(V*3)]`（默认 100×3 → `300.00` = expect `300.00`）。修法：换比值/百分比/倒数/差等**量纲不同**的派生量。
@@ -331,6 +328,12 @@
   - **风险**：canonical 指向失效 URL 是 Google 官方明示的**可能致页面被去索引**的信号，直接影响 179 个已收录 URL 的索引资产。
   - **修复（2026-09-21 已完成）**：按页把两项改回 `https://chenguangwu.github.io/<该页相对路径>`（自指）。脚本 `/tmp/fix_canonical_broken.py`（DRY-RUN 先行）。修复后全站 canonical 指向不存在文件数 **179 → 0**；`zh-tw/` 变体 4964 页核验 canonical 均指向存在文件（`scripts/gen_opencc_locales.mjs` 按路径重写 zh-tw 的 canonical/og:url，故修源后重建自动传导）。
   - **防复发铁律（已写入 §8.5）**：**任何改名/迁移必须同批把 canonical + og:url 改成自指新路径**；`_build.py` 仅在缺失时**新增** canonical（`if 'rel="canonical"' not in content`），**不会**纠正已存在的错误值 → 改名遗漏无法被构建兜住，只能在改名脚本里同步。核查命令：扫描全站 canonical 是否等于 `https://chenguangwu.github.io/<rel path>`。
+
+- **缺陷 L（2026-09-21 发现并闭环）「对照表型 convert」名不符实页**：标题与 meta description 均宣称「输入…双向换算 / 自动转换」，但页面 `inputs=0`，实为**静态对照表**（脚本里带 `/* 对照表型工具：静态真实数据展示 */` 注释）。
+  - **判据**：`<(?:input|select|textarea)` 计数 = 0，且文件名含 `convert` 或标题/描述含「换算/转换」。用户按标题进来期待能输入换算，却只能看表 —— 与缺陷 I/J 同为**用户可感知的名不符实**。
+  - **4 页清单与处置**：`cardiology/convert-rehab`→存根至 `cardiology/cardiac-rehab-mets`；`library/convert-ref-cite`→存根至 `library/citation-format`；`sports/convert-13`→存根至 `sports/climbing-grade-converter`；`food/convert-20`（斯科维尔辣度）**无同义 → 重做**为 SHU↔ppm 真实双向换算器 + 辣度分级（SHU ≈ ppm × 15）。**处置口径与缺陷 J 完全一致**（先查重、能存根则存根、不能才重做）。
+  - **防复发铁律**：新建/改造工具页时，凡标题或描述出现「输入、换算、转换、计算」等动词，**必须保证 `inputs >= 1`**；纯静态对照表的标题不得写「换算/转换」，应写「对照表/速查表」。核查：`grep -L '<input\|<select\|<textarea' tools/**/convert-*.html`（命中即疑似）。
+  - **附注**：`h2` 标签为英文（如 "Convert Rehab"）是**全站惯例**（`js/tool-i18n.js` 运行时按 `data-zh` 写回中文），**非缺陷，勿改**。
 
 ---
 
