@@ -49,6 +49,9 @@ var LANG_REGISTRY = [
       // 否则 key 不匹配会回退到中文兜底「使用指南」
       'nav.guides': 'User Guide',
       'nav.cat': 'Categories',
+      // nav-menu.js 移动端抽屉用（JS 调用 T()，无 data-i18n 属性，缺失会回退中文兜底）
+      'nav.menu': 'Menu',
+      'nav.no_tools': 'No tools',
       'hero.eyebrow': '5000+ tools · Runs in your browser',
       'hero.title': 'Free Online Tools',
       'hero.sub': '5000+ free tools, all running locally in your browser. No sign-up, your data stays private.',

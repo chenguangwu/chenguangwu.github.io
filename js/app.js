@@ -731,17 +731,7 @@ async function performSearch(query, isMobile) {
   await ensureSearchIndexLoaded();
   renderSearchResults();
   if (isMobile) renderMobileSearchResults();
-  if (!isMobile) scrollToToolsHeader();
-}
-
-function scrollToToolsHeader() {
-  const header = document.querySelector('.tools-header');
-  if (!header) return;
-  const navHeight = window.innerWidth < 768 ? 56 : 72;
-  const rect = header.getBoundingClientRect();
-  const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
-  const targetY = scrollTop + rect.top - navHeight - 12;
-  window.scrollTo({ top: targetY, behavior: 'smooth' });
+  // 桌面端搜索不再自动滚动定位到下方「探索工具」区域（顶栏实时下拉已展示结果）
 }
 
 function clearSearch() {

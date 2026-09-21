@@ -174,7 +174,13 @@ async function buildFullPack(locale, converter) {
     'footer.desc': '5000+ 跨行业纯前端工具，数据不离开你的浏览器。',
     'footer.privacy': '纯前端 · 数据不离开浏览器',
     'search.placeholder': '搜索工具、分类或功能...',
-    'state.load_fail': '加载失败，请刷新后重试'
+    'state.load_fail': '加载失败，请刷新后重试',
+    // 下列键在全仓有多个兜底文案（措辞细微不同/大小写 emoji 差异），语义一致，
+    // 由自动扫描判为冲突；这里给出权威简体值（tool.copy_ok 取 common.js I18N_MSG 的规范值）。
+    'tool.copy_ok': '已复制结果',
+    'search.results': '🔍 搜索结果',
+    'search.no_match': '没有找到匹配的工具',
+    'search.no_match_hint': '试试其他关键词，或看看这些相关工具：'
   };
   for (const [k, v] of Object.entries(base)) if (!(k in keys)) keys[k] = v;
 
@@ -193,6 +199,18 @@ async function buildFullPack(locale, converter) {
 
   const reFbBefore = /data-i18n="([^"]+)"[^>]*data-i18n-fb="([^"]*)"/g;
   const reFbAfter = /data-i18n-fb="([^"]*)"[^>]*data-i18n="([^"]+)"/g;
+  // JS-only keys: 运行时由 T('key','简体兜底') / _t(...) / i18nText(...) 调用的文案，没有
+  // data-i18n 属性可扫（如 tool-search.js 的下拉文案、app.js 的空态文案）。不在这里补齐，
+  // 静态 /zh-tw/ 页就会回退成简体兜底。JS 文件排在 HTML 之后扫描，且用 in 判重，
+  // 因此只能填空缺、不会覆盖 HTML 属性给出的值。
+  //
+  // ⚠️ 冲突守卫：包值会**覆盖**调用点自己的兜底文案，所以只有当该键在全仓所有调用点
+  // 用的是同一个兜底文案时才可写入。像 toast.saved / toast.copy_success 这类泛化键，
+  // 各工具页传入的是页面专属前缀（"推荐中心距 "、"已添加："…），塞单一包值会让繁体页
+  // 显示错文案 —— 这类键一律跳过（保持回退到各页自己的简体兜底，语义不变）。
+  // 兜底文案恰好等于键名（如 tool.copy_ok）者同样跳过，此时由 common.js 的 I18N_MSG 兜底。
+  const reCall = /(?:\bT|_t|i18nText)\s*\(\s*['"]([A-Za-z][\w]*(?:\.[\w]+)+)['"]\s*,\s*['"]([^'"]*)['"]/g;
+  const jsCand = new Map();   // key -> 兜底文案；null 表示出现多种兜底文案（冲突，弃用）
   for (const file of files) {
     let txt;
     try { txt = await fs.readFile(file, 'utf8'); } catch { continue; }
@@ -201,6 +219,21 @@ async function buildFullPack(locale, converter) {
     while ((m = reFbBefore.exec(txt))) { if (!(m[1] in keys)) keys[m[1]] = m[2]; }
     reFbAfter.lastIndex = 0;
     while ((m = reFbAfter.exec(txt))) { if (!(m[2] in keys)) keys[m[2]] = m[1]; }
+    reCall.lastIndex = 0;
+    while ((m = reCall.exec(txt))) {
+      const k = m[1], v = m[2];
+      if (k in keys) continue;                                  // HTML 属性/base 已定值，优先
+      if (!jsCand.has(k)) jsCand.set(k, v);
+      else if (jsCand.get(k) !== v) jsCand.set(k, null);        // 多种兜底 → 冲突
+    }
+  }
+  const conflicted = [];
+  for (const [k, v] of jsCand) {
+    if (v == null || v === k) { conflicted.push(k); continue; }
+    if (!(k in keys)) keys[k] = v;
+  }
+  if (conflicted.length) {
+    console.log(`[opencc] 跳过 ${conflicted.length} 个多义/自指 JS 键（保持各页自身兜底）：${conflicted.join(', ')}`);
   }
 
   const out = {};
