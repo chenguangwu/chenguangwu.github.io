@@ -47,6 +47,8 @@ BATCH_DELAY = 3.0       # 每批之间的间隔秒数（流式，避免 Throttle
 TIMEOUT = 15            # 单个请求超时秒数
 MAX_RETRIES = 5         # 失败重试次数（含 ThrottleHost 限流长退避）
 DRY_RUN_QUOTA = 10000   # 干运行不请求 Bing，仅用于模拟当日上限
+# 不提交的路径前缀（2026-09-21 起：台湾繁体变体站点不再主动提交收录）
+EXCLUDE_PATH_PREFIXES = ('/zh-tw/',)
 # ================================================
 
 NS = '{http://www.sitemaps.org/schemas/sitemap/0.9}'
@@ -63,15 +65,21 @@ def extract_urls(sitemap_path):
 
     urls = []
     seen = set()
+    excluded = 0
     for url_elem in root.findall(f'{NS}url'):
         loc = url_elem.find(f'{NS}loc')
-        if loc is not None and loc.text:
-            url = loc.text.strip()
-            if url.startswith(SITE_URL) and url not in seen:
-                urls.append(url)
-                seen.add(url)
+        if loc is None or not loc.text:
+            continue
+        url = loc.text.strip()
+        if any(p in url for p in EXCLUDE_PATH_PREFIXES):
+            excluded += 1
+            continue
+        if url.startswith(SITE_URL) and url not in seen:
+            urls.append(url)
+            seen.add(url)
 
-    return urls
+    meta = {'excluded': excluded}
+    return urls, meta
 
 
 def resolve_order(order, now=None):
@@ -183,7 +191,7 @@ def main():
         parser.error('请设置 BING_API_KEY 环境变量')
 
     print('正在读取 sitemap.xml ...')
-    all_urls = extract_urls(SITEMAP_FILE)
+    all_urls, meta = extract_urls(SITEMAP_FILE)
     direction = resolve_order(args.order)
     ordered_urls = order_urls(all_urls, direction)
 
@@ -209,7 +217,7 @@ def main():
     total = len(urls)
     total_batches = (total + BATCH_SIZE - 1) // BATCH_SIZE
 
-    print(f'sitemap URL 总数: {len(all_urls)}')
+    print(f'sitemap URL 总数(已排除台湾繁体): {len(all_urls)}，排除 zh-tw: {meta["excluded"]}')
     print(f'提交顺序: {direction} ({"\u4ece上往下" if direction == "forward" else "\u4ece下往上"})')
     print(f'{quota_label}: 当日 {daily_quota}，当月 {monthly_quota}')
     if args.limit > 0:
