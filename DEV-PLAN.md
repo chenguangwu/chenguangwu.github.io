@@ -284,6 +284,14 @@
 - **门禁 `inline js syntax`（`scripts/check_inline_js_syntax.js`）**：改 `_build.py` 注入逻辑、或批量改 `tools/**` 后必跑；它逐块 `new Function` 只做语法解析，能拦住这一类"静态结构/链接/资源/calc 冒烟/用例断言全过、但脚本已死"的 P0。
 - **教训**：既有门禁**不校验 inline JS 语法**——本次 4 页计算器线上失效仍 215/215 全绿；凡"构建会改写页面文本"的机制，都要问一句「它会不会改动 `<script>` 里的字符串？」
 
+### 8.7 公式系数 / 量纲必须逐项核对（公式-脚本一致性精查的产出）
+
+- **精查引擎**（`/tmp/audit_finance_all.js`，支持 `node 脚本 _ <industry>`）：用**预设 HTML 默认 value 的隔离器**直调真实 `calc()`，收集所有写入容器，筛 `NaN` / 异常负号 / 荒谬量级。**harness 不预填默认 value 是主要误报源**（同一批还有 `selectedOptions[0]`、`getContext` 缺桩 → 误报 ERR），判读前先确认桩完整。
+- **三条高频真缺陷形态**：① 系数写错（`60f/p` 应为 `120f/p`）；② **量纲多乘/少乘 10**（紧度 `d×(P/10)×100` 应为 `d×P`；BATCH44 `kN/cm²→MPa` 漏乘 10）；③ p 值 / 概率类输出越界（`p=1.046>1`）。
+- **凡输出「物理上不可能」的值（概率 >1、转差率为负、紧度/覆盖率为负、量级差 10 倍）必查公式本身**，勿以"口径偏差"放过。
+- **deep-dive 文案（`faqs`/`examples`/`tips`）是构建产物**：页面 HTML 里改会被 `_build.py` 用 `i18n/tools/content_deepdive.json` 覆盖，必须改 **JSON 源**（`json.dumps(indent=1)+'\n'`）。若 FAQ 出现「本工具算错了…该项仅作参考」式**免责说明**，说明是已知未修缺陷，应改公式而不是留免责文案。
+- **修完页面必回头查 verify 用例**：① 用例 `expect` 可能锚在旧错误输出上（需同步改）；② 该页可能**根本没有用例**（缺陷漏网的直接原因，补一条）；③ 新用例的 `expect` 若在**页面默认输出**里也命中，会被门禁第 217 项判为**逃生项**（缺陷 P 首版实测被拦）——非默认输入必须使「默认态」不命中。
+
 ---
 
 ## 九、发现但未修的真实缺陷（待老板定夺）
@@ -361,7 +369,9 @@
   - **线上实证**：`science/effect-size-calculator.html` 线上 `curl -o` 落盘 24502 字节、HTTP 200、含 `Cohen's d and related effect` → **broken script 已部署**，线上计算器是坏的（既有 215 道门禁全过却漏检——静态结构/链接/资源/calc 冒烟/用例断言**都不校验 inline JS 语法**）。
   - **处置**：① **根因修** `_prerender_tool_body()` —— 先按 `<script>…</script>` 切段，新增 `_sub_first_html()` **只在非 script 片段**做 h2/p 预渲染，再原序拼回；② 修 21 页（4 页语法 + 20 页文案还原，其中 3 页重叠；英文文案按 `data-zh` 中文原意重写，动态模板保留 `${…}`/拼接结构）；③ **新增门禁** `scripts/check_inline_js_syntax.js`（全站 inline JS 语法，只解析不执行；跳过 `type=module` / `ld+json` 等非 JS / 含字面 `<script` / `TOOLBOX-API-STUB`）并接入 `run_gates.py` → 门禁 **215 → 217**。
   - **连带正向**：根因修后 3 页（`it/vector-dot-product`、`it/vector-magnitude`、`travel/timezone-lookup`）的**正文简介 `<p>` 首次拿到英文预渲染**——此前 `count=1` 被 script 内 `<p>` 吃掉，这三页是全站仅有的"漏渲染"，现与其余 ~5000 页行为一致。
-  - **遗留观察（本批未动，避免误改 zh 渲染）**：`_prerender_tool_body()` 写入的新 `data-zh` 值为 `esc_html_py(orig)`，若 `orig` 已含 HTML 实体（如 `SD&gt;0`）会被**双重转义**为 `SD&amp;gt;0`，zh 用户看到实体字面量；另 `finance/currency-lookup` 的 `data-zh` 同类双重转义。
+  - **遗留观察（已于同日闭环）**：`_prerender_tool_body()` 写入的 `data-zh` 值原为 `esc_html_py(orig)`，若 `orig` 已含 HTML 实体（如 `SD&gt;0`）会被**双重转义**为 `SD&amp;gt;0`，zh 用户看到实体字面量。**修**：注入前先 `html.unescape(orig)` 再转义（根因，防复发）+ 存量 **13 页** data-zh 修正（it 8 / finance 3 / science 1 / tcm-chemistry 1；含 `finance/cpf-validator`、`iccid-validator`、`currency-lookup` 源里手写的 `<strong>` 标签字面与 `tcm-chemistry/pharmacokinetics` 的裸 `<br>` 脏数据）→ 全站 `data-zh="…&amp;<实体名>;"` 残留 **0**。
+- **缺陷 O（2026-09-22 发现并闭环）`it/hypothesis-test` 双侧 p 值公式错误**：`p = 2*(1-Math.abs(cdf-0.5))`（z=2 得 **1.0455**，p 值 >1），`p<alpha` 判定随之失效 → **结论文案反转**（正确 p=0.0455<0.05 应「拒绝 H₀」，实际输出「不拒绝 H₀」）。修：`p = 2*Math.min(cdf,1-cdf)`。**该页此前无 verify 用例**（缺陷能漏网到线上的直接原因）→ 补用例（非默认 z=1.5 → p=0.134 不拒绝；Python `math.erf` 独立复算）。门禁 217/217、判别力 0 逃生。
+- **缺陷 P（2026-09-22 发现并闭环）`general` 两页公式量纲/系数错误**：① `general/power-voltage` 同步转速用 `60*freq/poles`（4 极 50Hz 得 750rpm，应 1500）→ 转差率 `(750−1450)/750 = −93.3%` **为负**；改 `120*freq/poles`（默认 → 1500rpm / 3.3%）。**注**：该页 deep-dive FAQ 竟写着「本工具按 60f/p 计算…该项仅作参考」的免责式说明 —— 即**已知未修**，一并改写为正确公式说明。② `general/fabric-3` 紧度 `d×(wd/10)×100` **多乘 10 倍**（默认经向 717.8%）→ 总紧度 `717.8+388.4−717.8×388.4/100 = −1681.7%`；量纲正解 `E(%) = d(mm)×密度(根/10cm)`（默认 71.8/38.8/82.7%，评级 A）。两页 deep-dive 文案同步改 `i18n/tools/content_deepdive.json`（改 HTML 会被构建覆盖），各补一条 verify 用例（首版 `expect` 因默认输入同得 1500rpm 被判**逃生项**，由门禁第 217 项拦下 → 改 n=950 取 6 极/1000rpm 区分）。门禁 217/217、判别力 0 逃生。
 
 ---
 
