@@ -51,6 +51,11 @@ function extractCases(src) {
       continue;
     }
     if (ch === '"' || ch === "'" || ch === "`") { inStr = ch; continue; }
+    // 注释必须先于引号判定：行注释 `// ── Cohen's d → U₃ ──` 里的撇号会被误当字符串起始，
+    // 一路吞到下一个撇号 → 括号层级错位、end 永远找不到 → 整个用例文件「静默消失」
+    // （checked=0，弱用例审计对该文件完全失效，且门禁仍全绿）。字符串内的 // 不受影响。
+    if (ch === "/" && src[k + 1] === "/") { const nl = src.indexOf("\n", k); k = nl === -1 ? src.length : nl; continue; }
+    if (ch === "/" && src[k + 1] === "*") { const ce = src.indexOf("*/", k + 2); k = ce === -1 ? src.length : ce + 1; continue; }
     if (ch === "[") { depth++; continue; }
     if (ch === "]") { depth--; if (depth === 0) { end = k; break; } }
   }

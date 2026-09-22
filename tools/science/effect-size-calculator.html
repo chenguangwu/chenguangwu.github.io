@@ -144,8 +144,8 @@
     <div id="mode0">
           <div class="formula-box">
       <div class="formula-title">📐 计算公式 / 原理</div>
-      <div class="formula-eq">Cohen's d = (M₁ − M₂) / SD<sub>pooled</sub></div>
-      <div class="formula-desc">效应量衡量两组均值差异的实际大小：SD_pooled = √[((n₁−1)s₁² + (n₂−1)s₂²)/(n₁+n₂−2)]。d≈0.2 小、0.5 中、0.8 大；与样本量无关，可跨研究比较。</div>
+      <div class="formula-eq">Cohen's d = (M − μ₀) / SD</div>
+      <div class="formula-desc">单样本 / 配对设计：M 为样本均值，μ₀ 为比较值（总体均值或配对差均值），SD 为样本标准差。d≈0.2 小、0.5 中、0.8 大；与样本量无关，可跨研究比较。附带输出的 Cohen's U₃ = Φ(d) 为对应的总体百分位（d 为负时小于 50%）。</div>
     </div>
 <div class="input-row">
         <div><label>样本均值 M</label><input type="number" id="m1" value="105" step="any"></div>
@@ -205,12 +205,15 @@
 <ul class="dd-list">
 <li>量化组间差异强度（Cohen's d 等）。</li>
 <li>元分析中把不同量纲的研究结果统一成可比效应量。</li>
+<li>把 d 换算成更直观的口径：单样本输出 Cohen's U₃（总体百分位），双样本输出点二列相关 r²。</li>
 </ul>
 <div class="dd-example"><div class="dd-ex-title">计算</div><div class="dd-ex-body">两组均值差 5、合并标准差 10 → d=0.5（中等效应）。</div></div>
+<div class="dd-example"><div class="dd-ex-title">换算</div><div class="dd-ex-body">双样本 d=0.6338、n₁=n₂=30 → r² = d²/(d²+4) = 0.091（约 9.1% 的组间方差可由分组变量解释）；单样本 d=0.3333 → U₃ = Φ(0.3333) = 63.06%。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
 <dt>d 多大算大？</dt><dd>Cohen 约定 0.2 小、0.5 中、0.8 大。</dd>
 <dt>与 p 值有何区别？</dt><dd>p 值受样本量影响大，效应量反映的是实际差异大小。</dd>
+<dt>r² 和 U₃ 分别是什么？</dt><dd>r² 是 d 换算出的点二列相关系数平方：双样本等样本量时 r²=d²/(d²+4)，样本量不等时 r²=d²/(d²+(n₁+n₂)²/(n₁n₂))；U₃=Φ(d) 是单样本口径下的总体百分位，d 为负时小于 50%。两者都以正态、方差齐性为前提。</dd>
 </dl>
 </div>
 </section>
@@ -247,6 +250,21 @@ function interp(d){
   if(a<1.3) return '大效应';
   return '极大效应';
 }
+// 误差函数 erf（Abramowitz & Stegun 7.1.26，|ε|<1.5e-7），用于标准正态累积 Φ。
+function erf(x){
+  const s=x<0?-1:1; x=Math.abs(x);
+  const t=1/(1+0.3275911*x);
+  const y=1-((((1.061405429*t-1.453152027)*t+1.421413741)*t-0.284496736)*t+0.254829592)*t*Math.exp(-x*x);
+  return s*y;
+}
+function normCdf(x){ return 0.5*(1+erf(x/Math.SQRT2)); }
+// Cohen's U₃ = Φ(d)：观测均值所对应的总体百分位（约 U₃ 比例的个体值低于该均值）。
+function cohenU3(d){ return normCdf(d)*100; }
+// 点二列相关 r = d/√(d²+N²/(n₁n₂))，N=n₁+n₂；n₁=n₂ 时退化为经典式 r = d/√(d²+4)。
+function r2FromD(d,n1,n2){
+  const N=n1+n2; const den=d*d+N*N/(n1*n2);
+  return den>0? d*d/den : 0;
+}
 function calculate(){
   const out=document.getElementById('output');
   let d, label, interpText;
@@ -264,13 +282,13 @@ function calculate(){
       <div class="stat-card"><div class="v">${fmt(mu0)}</div><div class="l">μ₀</div></div>
       <div class="stat-card"><div class="v">${fmt(sd)}</div><div class="l">SD</div></div>
       <div class="stat-card"><div class="v">${fmt(d)}</div><div class="l">d</div></div>
-      <div class="stat-card"><div class="v">${fmt(d*d)}</div><div class="l">r² (决定系数)</div></div>
+      <div class="stat-card"><div class="v">${cohenU3(d).toFixed(2)}%</div><div class="l">U₃（总体百分位）</div></div>
       <div class="stat-card"><div class="v" style="color:var(--success);">${interpText}</div><div class="l">效应量等级</div></div>
     </div>`;
     html+=`<h3 style="margin-top:14px;">分步计算</h3>`;
     html+=`<div class="step-line"><strong>步骤 1：</strong>均值差 = M − μ₀ = ${fmt(M)} − ${fmt(mu0)} = ${fmt(M-mu0)}</div>`;
     html+=`<div class="step-line"><strong>步骤 2：</strong>d = 均值差 / SD = ${fmt(M-mu0)} / ${fmt(sd)} = ${fmt(d)}</div>`;
-    html+=`<div class="step-line"><strong>解读：</strong>${interpText}（r² = ${fmt(d*d)}，表示 ${fmt(d*d*100)}% 方差可由该效应解释）</div>`;
+    html+=`<div class="step-line"><strong>解读：</strong>${interpText}（Cohen's U₃ = ${cohenU3(d).toFixed(2)}%，即约 ${cohenU3(d).toFixed(2)}% 的总体个体值低于该样本均值 M；d 为负时该比例小于 50%）</div>`;
     out.innerHTML=html;
   } else {
     const m1=parseFloat(document.getElementById('m1b').value);
@@ -285,20 +303,22 @@ function calculate(){
     const sdPooled=Math.sqrt(((n1-1)*sd1*sd1+(n2-1)*sd2*sd2)/(n1+n2-2));
     d=(m1-m2)/sdPooled;
     interpText=interp(d);
+    const r2=r2FromD(d,n1,n2);
     let html=`<div class="big-result">Cohen's d = ${fmt(d)}</div>`;
     html+=`<div class="stat-grid">
       <div class="stat-card"><div class="v">${fmt(m1)}</div><div class="l">M₁</div></div>
       <div class="stat-card"><div class="v">${fmt(m2)}</div><div class="l">M₂</div></div>
       <div class="stat-card"><div class="v">${fmt(sdPooled)}</div><div class="l">SD_pooled</div></div>
       <div class="stat-card"><div class="v">${fmt(d)}</div><div class="l">d</div></div>
-      <div class="stat-card"><div class="v">${fmt(d*d)}</div><div class="l">r²</div></div>
+      <div class="stat-card"><div class="v">${fmt(r2)}</div><div class="l">r² (决定系数)</div></div>
       <div class="stat-card"><div class="v" style="color:var(--success);">${interpText}</div><div class="l">效应量等级</div></div>
     </div>`;
     html+=`<h3 style="margin-top:14px;">分步计算</h3>`;
     html+=`<div class="step-line"><strong>步骤 1：</strong>池化标准差 SD_pooled = √[((n₁−1)SD₁²+(n₂−1)SD₂²)/(n₁+n₂−2)] = √[(${n1-1})×${fmt(sd1*sd1)}+(${n2-1})×${fmt(sd2*sd2)})/${n1+n2-2}] = ${fmt(sdPooled)}</div>`;
     html+=`<div class="step-line"><strong>步骤 2：</strong>均值差 = M₁ − M₂ = ${fmt(m1)} − ${fmt(m2)} = ${fmt(m1-m2)}</div>`;
     html+=`<div class="step-line"><strong>步骤 3：</strong>d = 均值差 / SD_pooled = ${fmt(m1-m2)} / ${fmt(sdPooled)} = ${fmt(d)}</div>`;
-    html+=`<div class="step-line"><strong>解读：</strong>${interpText}（r² = ${fmt(d*d)}，约 ${fmt(d*d*100)}% 方差可解释）</div>`;
+    html+=`<div class="step-line"><strong>步骤 4：</strong>点二列相关 r = d/√(d²+(n₁+n₂)²/(n₁n₂)) = ${fmt(Math.sqrt(r2))}，r² = ${fmt(r2)}（n₁=n₂ 时即经典式 d²/(d²+4)）</div>`;
+    html+=`<div class="step-line"><strong>解读：</strong>${interpText}（r² = ${fmt(r2)}，约 ${(r2*100).toFixed(2)}% 的组间方差可由分组变量解释）</div>`;
     out.innerHTML=html;
   }
 }

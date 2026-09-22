@@ -157,6 +157,7 @@
 - **隔离器（`/tmp/audit_finance_all.js`）桩缺口两项，未修**：① `document.querySelector('input[name=x]:checked')` 恒返回 null → 单选/复选门控页输出 `undefined`/`NaN`（`optical/progressive-corridor` 等）；② `innerHTML=` 动态生成的控件（`fim-scale`/`womac`/`gingival-index`/`load-curve` 等，静态 HTML `grep id=` 为 0）取不到值。修法：`:checked` 查询返回桩元素且 `checked` 可注入；`innerHTML` 赋值时解析 `id=` 并注册桩。**未改前，凡默认输出出现 `undefined`/`NaN` 一律先按桩盲区排除，再回源码复核。**
 - **deep-dive 主题错配全站复核**：脚本化候选口径 = 取 dd `title` 中文 bigram 与页面**自身正文**（切掉 `TOOLBOX-DEEP-DIVE` 之后）求交集，为空且 dd 标题中文占比 ≥50% 即候选（全站命中 2 例，均已修；纯英文 dd 标题需人工抽查）。已修 3 例见 §8.7。
 - **`metalwork/tester-19` ≤1kV 耐压分支无法构造判别用例**：该分支输出恒为常数 `3.5 kV`（与 `ratedV` 取值无关），任何 `expect` 都会在**默认态**命中 → 必被判逃生项，故**刻意不补用例**；该修复（`0.0 kV → 3.5 kV`）只能靠隔离器人工跑 + 代码评审保真，回归时注意。
+- **「多页签（mode）」页面的非默认页签分支无法被 harness 覆盖**：切页签必须带参调用 `setMode(1)`，而 harness 只无参调用候选函数（`ordered` 里 `calculate` 因 PRIORITY 排首位先跑、`setMode` 后跑且不再触发计算）→ 双样本/第二种模式分支永不执行，`expect` 只对默认页签有效。**复核口径**：复制页面到 `tools/<ind>/_tmp-xxx.html`，把 `let currentMode=0;` 改成 `1` → 隔离器单跑 `_ <ind>/_tmp-xxx.html` → **立即删除副本**（勿留待提交）。本批已用此法验证 `science/effect-size-calculator` 双样本分支（r²=0.091）。
 - [x] **非工具页 SEO Description 重复**：实测 3624 个非工具页 0 重复组（2026-09-21 复核），计划书「大量重复」已过时，闭环。
 - [x] **cat 维度核实（2026-09-19 复核：实质无缺陷）**：早前提「cat 空值 12 页(groups) / 非 CAT_DEFS 非法 cat 26 页(reproductive-medicine+baking)」经全站直接扫描均不成立——`tools/groups` 目录不存在；0 非法 cat（`reproductive-medicine`/`baking` 均在 `CAT_DEFS` 内）；审计 cat 判据只查 0/None/空，index/landing 页本就不该有 cat（预期）。**CAT 维度无需改动。**
 - [x] **「无名工具」语义命名专项（2026-09-21 复核闭环）**：原报「506 个中英文 title 均为代号」经页面级权威核验**不成立**——全站 5003 简体源页仅 87 个 `<title>` 无汉字，且这 87 个的 `<h1>` 与正文（393–770 中文字符）全是中文真名（如 `Washer Capacity`→h1「洗衣机容量选择器」），**0 个代号**（`Convert 12`/`tool-014-45` 类）。实质是「`<title>` 标签漏翻成中文」小缺陷。已用 `scripts/fill_zh_title.py` 将 87 个 `<title>` 补全为与 h1 一致的中文名（含 `favicon-from-emoji` 连带改 h1 为「Emoji 网站图标生成器」），不瞎编；重建后 tools.json/JSON-LD name 同步中文。
@@ -304,6 +305,11 @@
 - **坑**：引擎剥离标签的正则若用 `<[^>]+>`，会把**字面文本 `< 0.001`** 当成标签吃掉（`tester-15` 的 P 值列因此看似空白）→ 必须用 `<[a-zA-Z/!][^>]*>`。
 - **本能力已产出**：缺陷 T（p=1.05>1）、缺陷 U（χ² CDF 近似崩坏）；同时排除 3 个假信号（`Infinity` 属 `setInterval`/动态 `innerHTML` 表单的桩盲区、`photo-5` 超焦距远界 `Infinity` 属正确输出）。
 
+### 8.9 有界量的口径自检 + 门禁用例文件「静默失效」自检（2026-09-22 新增，缺陷 AM/AN）
+
+- **口径铁律（缺陷 AM）**：凡输出**有天然取值域**的量（决定系数 / 解释方差比例 / 概率 / p 值 / 覆盖率），交付前必查是否越界 —— **越界即公式错**。实例：`science/effect-size-calculator` 把 Cohen's d 的 r² 直接写成 `d²`（默认 d=0.3333 → 显示 11.11%；d=1.5 → 225%，早已 >1 却无人发现）。正确口径：点二列相关 `r² = d²/(d²+N²/(n₁n₂))`（n₁=n₂ 时退化为经典式 `d²/(d²+4)`）。**d 与 r 不同量纲，禁止互相替代**；单样本无 n 时改用同族的 **Cohen's U₃ = Φ(d)**（erf 用 A&S 7.1.26 闭合式，精度 ~1e-7 足够展示）。
+- **门禁用例文件「静默失效」自检（缺陷 AN）**：`selfcheck_false_pass.js::extractCases` 是「字符串感知」括号匹配器但**不识别注释** —— 用例数组内/前的行注释里出现撇号（如 `// ── Cohen's d → U₃ ──`）会被当作字符串起始 → 一路吞到下一个撇号 → 括号层级错位、数组结束括号永不匹配 → `extractCases` 返回 undefined → **该文件全部用例静默消失**（`checked=0`、不打印 SKIP、门禁照旧全绿），弱用例审计对该文件彻底失效。已修（非字符串态先跳过 `//…` 与 `/*…*/`）。**判据：任何 verify 文件的 `checked` 必须等于其用例条数，不等即命中此坑**（本批修复后 `verify_ai_calc.js` 的 9 例恢复计数，其 5 例存量全默认弱用例随即去默认化）。注意两套抽取口径需分别核对：`discriminate_check.js` 用惰性正则 `\n\]`，不受该缺陷影响。
+
 ---
 
 ## 九、发现但未修的真实缺陷（待老板定夺）
@@ -412,7 +418,7 @@
 
 ### 10.3 弱用例去默认化（仅在 P0/P1 顺带时执行）
 
-**存量 454 例**（`no_inputs=212` / `all_default=242`）。可注入性预筛清单（弱例数 / 页面含静态表单控件数）：
+**存量 449 例**（`no_inputs=212` / `all_default=237`）。可注入性预筛清单（弱例数 / 页面含静态表单控件数）：
 
 dermatology 14/11、engineering 14/11、signal 11/11、design 10/10、rheumatology 14/9、endocrinology 10/9、mining 10/9、gas 9/9、mechanical 9/9、travel 9/7、gardening 8/7、finance 7/7、sports 7/7、fire 7/6、chemical 9/5、cleaning 7/5
 
@@ -422,8 +428,8 @@ dermatology 14/11、engineering 14/11、signal 11/11、design 10/10、rheumatolo
 2. 单跑 100% 通过 → `node scripts/discriminate_check.js verify_<cat>_calc.js` **0 逃生项**
 3. 被「跳过」的用例（textarea / 动态 id / 无 value input）必须**自建同口径探针**补验「注入 PASS + 回退默认 FAIL」
 4. 更新 `scripts/falsepass_baseline.json` 与 `scripts/discriminate_baseline.json`（**只准降不准增**，按 selfcheck/discriminate 实测值同步）
-5. `python3 scripts/run_gates.py --skip-build` 全过 → commit + push master
-6. **Actions run 结论 + 线上落盘 MD5 比对**双证据齐备才算完成；随后归档 `.workbuddy/memory/YYYY-MM-DD.md`，清理 `/tmp` 临时脚本
+5. `python3 scripts/run_gates.py`（全量 217 项）全过 → `git commit`。**老板 2026-09-22 指令：暂时只做本地提交、不 push**；解除后统一补推
+6. 归档 `.workbuddy/memory/YYYY-MM-DD.md`，清理 `/tmp` 临时脚本。**部署核验按 2026-09-21 新规：只判「本地 build/门禁通过 + GitHub 部署成功」两条，不再做线上 MD5 落盘比对**；纯文档类改动（`*.md`/memory 日志）不必等部署
 
 ### harness 已知限制（选批与定 expect 前必读）
 
