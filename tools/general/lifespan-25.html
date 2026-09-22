@@ -117,7 +117,7 @@
       </div>
     </div>
     <div class="input-row">
-      <div><label>疲劳延性系数 C</label><input type="number" id="vC" value="0.8" step="0.01" style="font-size:16px;" oninput="calc()" enterkeyhint="done" aria-label="疲劳延性系数"></div>
+      <div><label>标定常数 C</label><input type="number" id="vC" value="100000" step="any" style="font-size:16px;" oninput="calc()" enterkeyhint="done" aria-label="标定常数"></div>
       <div><label>疲劳延性指数 β</label><input type="number" id="vBeta" value="-0.6" step="0.01" style="font-size:16px;" oninput="calc()" enterkeyhint="done" aria-label="疲劳延性指数"></div>
     </div>
     <div class="toolbar">
@@ -133,6 +133,7 @@
         <li>热疲劳主要由温度梯度引起的热应变循环导致</li>
         <li>冷却速率越快，表面与芯部温差越大，热应力越高</li>
         <li>Coffin-Manson 公式适用于低周疲劳（Nf < 10⁵）</li>
+        <li>标定常数 C 必须由材料热疲劳试验回归（默认 1e5 仅为量级参考），若误填疲劳延性系数 0.2~1 的量级，寿命会差几个数量级</li>
         <li>本工具纯前端运行，数据不会上传到服务器</li>
       </ul>
     </div>
@@ -202,7 +203,7 @@ function calc(){
 function copyRes(){if(!lastResult){ToolBox.showToast(i18nText(),'warning');return;}ToolBox.copyText(lastResult);}
 function resetAll(){
   document.getElementById('vCool').value=10;document.getElementById('vDT').value=300;
-  document.getElementById('vMat').value='steel';document.getElementById('vC').value=0.8;
+  document.getElementById('vMat').value='steel';document.getElementById('vC').value=100000;
   document.getElementById('vBeta').value=-0.6;
   ['vCool','vDT','vC','vBeta'].forEach(function(id){setInvalid(document.getElementById(id),false);});
   calc();ToolBox.showToast(i18nText(),'info');
@@ -246,11 +247,11 @@ calc();
 <li>材料比选：对比碳钢、合金钢、铝合金、铸铁的热应变与热应力</li>
 <li>冷却方案优化：降速或减小温差后的寿命改善量化</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">方法</div><div class="dd-ex-body">算法：冷却速率系数 kCr = 1+0.3×log10(冷却速率+1)；等效温度幅值 ΔTeq = ΔT×kCr；热应变幅值 = 线膨胀系数×ΔTeq；热疲劳寿命 Nf = C×ΔTeq^β（β&lt;0）；热应力 ≈ 线膨胀系数×ΔT×弹性模量（MPa）；安全裕度 = Nf/1e5；Nf&lt;1000 极短、&lt;1e4 较短、&lt;1e5 适中、否则良好。材料库：碳钢 α=12×10⁻⁶/℃、E=206GPa；合金钢 13/210；铝合金 23/70；铸铁 10/120。</div></div>
-<div class="dd-example"><div class="dd-ex-title">算例</div><div class="dd-ex-body">例：碳钢、冷却速率 10℃/s、ΔT=300℃、β=−0.6 → kCr 1.3124、ΔTeq 393.73℃、热应变幅值 4.725×10⁻³、热应力 741.6MPa。取标定系数 C=100000 时 Nf=2772.58 循环、安全裕度 0.0277，评估「热疲劳寿命较短，注意监控裂纹」。注意 C 必须由材料试验标定：若直接用默认 C=0.8，Nf 仅 0.02 循环，明显不合理。</div></div>
+<div class="dd-example"><div class="dd-ex-title">方法</div><div class="dd-ex-body">算法：冷却速率系数 kCr = 1+0.3×log10(冷却速率+1)；等效温度幅值 ΔTeq = ΔT×kCr；热应变幅值 = 线膨胀系数×ΔTeq；热疲劳寿命 Nf = C×ΔTeq^β（β&lt;0，C 为由试验回归的标定常数）；热应力 ≈ 线膨胀系数×ΔT×弹性模量（MPa）；安全裕度 = Nf/1e5；Nf&lt;1000 极短、&lt;1e4 较短、&lt;1e5 适中、否则良好。材料库：碳钢 α=12×10⁻⁶/℃、E=206GPa；合金钢 13/210；铝合金 23/70；铸铁 10/120。</div></div>
+<div class="dd-example"><div class="dd-ex-title">算例</div><div class="dd-ex-body">例：碳钢、冷却速率 10℃/s、ΔT=300℃、β=−0.6 → kCr 1.3124、ΔTeq 393.73℃、热应变幅值 4.725×10⁻³、热应力 741.6MPa。取标定常数 C=100000 时 Nf=2772.58 循环、安全裕度 0.0277，评估「热疲劳寿命较短，注意监控裂纹」。注意 C 是必须由材料热疲劳试验回归的量级常数（本工具默认 1e5 仅为量级参考）：若误把疲劳延性系数的量级（约 0.2~1）当作 C 代入，Nf 只有 0.02 循环，明显不合理。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
-<dt>C 与 β 怎么取？</dt><dd>β 通常在 −0.5~−0.7，金属材料常取 −0.6；C 是与材料、温度区间相关的标定常数，必须由热疲劳试验数据回归得到，不能沿用默认值，否则寿命绝对值会差几个数量级。</dd>
+<dt>C 与 β 怎么取？</dt><dd>β 通常在 −0.5~−0.7，金属材料常取 −0.6；C 是与材料、温度区间相关的标定常数，必须由热疲劳试验数据回归得到（本工具默认 1e5 只作量级参考），否则寿命绝对值会差几个数量级。</dd>
 <dt>为什么用温度幅值而不是塑性应变幅值？</dt><dd>标准 Coffin-Manson 以塑性应变幅值为自变量；本工具用等效温度幅值作简化替代，便于快速比较不同冷却方案，但绝对值必须在标定 C 之后才可靠。</dd>
 </dl>
 </div>
