@@ -99,16 +99,16 @@
 <div class="container">
   <div class="card tool-card-accent" style="--tool-accent:#FF6B35;--tool-accent-dark:#FF6B35;">
     <h2 data-zh="🧮 佣金（平台/服务费）计算">Calc Commission 2</h2>
-    <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="输入两个参数，自动计算常用结果">Calc Commission 2</p>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="按成交额与平台/服务费率计算佣金与净到手金额。">Calc Commission 2</p>
     <div class="formula-box">
       <div class="formula-title">📐 计算公式</div>
       <div class="formula-eq">佣金 = 成交额 × 费率</div>
       <p class="formula-desc">本工具按成交金额与佣金比例（含阶梯与封顶）计算平台佣金、服务费与到账金额，支持多档费率试算。</p>
     </div>
     <div class="input-row">
-      <div><label>平台</label><input type="number" id="v0" value="100" step="any" oninput="calc()" enterkeyhint="done" aria-label="平台"></div>
+      <div><label>成交额（元）</label><input type="number" id="v0" value="25000" step="any" oninput="calc()" enterkeyhint="done" aria-label="平台"></div>
       <div style="display:flex;align-items:flex-end;justify-content:center;padding-bottom:8px;"><button class="btn" type="button" onclick="swapValues()" title="互换 A/B" aria-label="互换 A/B" style="padding:10px 12px;">⇄</button></div>
-      <div><label>服务费</label><input type="number" id="v1" value="50" step="any" oninput="calc()" enterkeyhint="done" aria-label="服务费"></div>
+      <div><label>综合费率（%）</label><input type="number" id="v1" value="5" step="any" oninput="calc()" enterkeyhint="done" aria-label="服务费"></div>
     </div>
     <div class="toolbar">
       <button class="btn primary" type="button" onclick="calc()">🧮 计算</button>
@@ -116,7 +116,7 @@
       <button class="btn" type="button" onclick="resetAll()">🗑️ 重置</button>
     </div>
     <div class="result-box" id="res"></div>
-    <div class="info-box">💡 公式提示：输入两个参数，自动计算常用结果</div>
+    <div class="info-box">💡 佣金 = 成交额 × 费率；净到手 = 成交额 − 佣金；费率高于 10% 属于偏高区间。</div>
 <div class="tool-notes" style="--tool-accent:#FF6B35;">
   <div class="tool-notes-title">⚠️ 使用说明与注意事项</div>
   <ul>
@@ -433,8 +433,8 @@ function copyRes(){
   ToolBox.copyText(text);
 }
 function resetAll(){
-  document.getElementById('v0').value=100;
-  document.getElementById('v1').value=50;
+  document.getElementById('v0').value=25000;
+  document.getElementById('v1').value=5;
   setInvalid(document.getElementById('v0'),false);
   setInvalid(document.getElementById('v1'),false);
   calc();
@@ -499,6 +499,32 @@ document.addEventListener('DOMContentLoaded',function(){
   });
 });
 calc();
+</script>
+<script>
+/* 真实业务计算逻辑（页内独占，覆盖通用两参脚本） */
+function calc(){
+  var e0=document.getElementById('v0'),e1=document.getElementById('v1');
+  var A=e0?parseFloat(e0.value):NaN,B=e1?parseFloat(e1.value):NaN;
+  var box=document.getElementById('res');
+  if(!box)return;
+  if(!isFinite(A)||!isFinite(B)){box.innerHTML='<div class="info-box">请输入两个有效数值后再计算。</div>';return;}
+  var items=[];
+  var fee=A*B/100;
+  items.push([fee.toFixed(2), "应付佣金（元）"]);
+  items.push([(A-fee).toFixed(2), "净到手（元）"]);
+  items.push([(B*100).toFixed(2), "每万元佣金（元）"]);
+  items.push([(B>10?"偏高":"正常"), "费率水平判读"]);
+
+  var html='<div class="data-grid">'+items.map(function(it){return '<div class="data-card"><div class="num">'+it[0]+'</div><div class="label">'+it[1]+'</div></div>';}).join('')+'</div>';
+  html+='💡 佣金 = 成交额 × 费率；净到手 = 成交额 − 佣金；费率高于 10% 属于偏高区间。';
+  box.innerHTML=html;
+  if(typeof saveHistory==='function'){try{saveHistory(A,B);}catch(e){}}
+}
+function resetAll(){
+  var a=document.getElementById('v0'),b=document.getElementById('v1');
+  if(a)a.value='25000';if(b)b.value='5';calc();
+}
+try{calc();}catch(e){}
 </script>
 
 <!-- SEO 介绍区块 -->

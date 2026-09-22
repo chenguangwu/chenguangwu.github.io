@@ -99,16 +99,16 @@
 
   <div class="card tool-card-accent" style="--tool-accent:#FF6B35;--tool-accent-dark:#FF6B35;">
     <h2 data-zh="💰 资本（机会成本）计算">💰 Capital Opportunity Cost Calculator</h2>
-    <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="输入两个参数，自动计算常用结果">Measure the implicit cost (foregone next-best return) of committing capital to a real estate project.</p>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="按占用资金与替代投资收益率测算资金的机会成本。">Measure the implicit cost (foregone next-best return) of committing capital to a real estate project.</p>
     <div class="formula-box">
       <div class="formula-title">📐 计算公式</div>
       <div class="formula-eq">资本机会成本 = 替代投资收益</div>
       <p class="formula-desc">输入两个参数，自动计算常用结果</p>
     </div>
     <div class="input-row">
-      <div><label>单价 (元)</label><input type="number" id="v0" value="100" step="any" oninput="calc()" enterkeyhint="done" aria-label="单价 (元)"></div>
+      <div><label>占用资金（元）</label><input type="number" id="v0" value="800000" step="any" oninput="calc()" enterkeyhint="done" aria-label="单价 (元)"></div>
       <div style="display:flex;align-items:flex-end;justify-content:center;padding-bottom:8px;"><button class="btn" type="button" onclick="swapValues()" title="互换 A/B" aria-label="互换 A/B" style="padding:10px 12px;">⇄</button></div>
-      <div><label>数量</label><input type="number" id="v1" value="50" step="any" oninput="calc()" enterkeyhint="done" aria-label="数量"></div>
+      <div><label>替代投资年化收益率（%）</label><input type="number" id="v1" value="4.2" step="any" oninput="calc()" enterkeyhint="done" aria-label="数量"></div>
     </div>
     <div class="toolbar">
       <button class="btn primary" type="button" onclick="calc()">🧮 计算</button>
@@ -116,7 +116,7 @@
       <button class="btn" type="button" onclick="resetAll()">🗑️ 重置</button>
     </div>
     <div class="result-box" id="res"></div>
-    <div class="info-box">💡 公式提示：总额 = A × B，差额 = A - B</div>
+    <div class="info-box">💡 年机会成本 = 占用资金 × 收益率；月机会成本 = 年额 ÷ 12；五年机会成本 = 年额 × 5。</div>
 <div class="tool-notes" style="--tool-accent:#FF6B35;">
   <div class="tool-notes-title">⚠️ 使用说明与注意事项</div>
   <ul>
@@ -433,8 +433,8 @@ function copyRes(){
   ToolBox.copyText(text);
 }
 function resetAll(){
-  document.getElementById('v0').value=100;
-  document.getElementById('v1').value=50;
+  document.getElementById('v0').value=800000;
+  document.getElementById('v1').value=4.2;
   setInvalid(document.getElementById('v0'),false);
   setInvalid(document.getElementById('v1'),false);
   calc();
@@ -499,6 +499,32 @@ document.addEventListener('DOMContentLoaded',function(){
   });
 });
 calc();
+</script>
+<script>
+/* 真实业务计算逻辑（页内独占，覆盖通用两参脚本） */
+function calc(){
+  var e0=document.getElementById('v0'),e1=document.getElementById('v1');
+  var A=e0?parseFloat(e0.value):NaN,B=e1?parseFloat(e1.value):NaN;
+  var box=document.getElementById('res');
+  if(!box)return;
+  if(!isFinite(A)||!isFinite(B)){box.innerHTML='<div class="info-box">请输入两个有效数值后再计算。</div>';return;}
+  var items=[];
+  var yc=A*B/100;
+  items.push([yc.toFixed(2), "年机会成本（元）"]);
+  items.push([(yc/12).toFixed(2), "月机会成本（元）"]);
+  items.push([(yc*5).toFixed(2), "5 年累计机会成本（元）"]);
+  items.push([((yc/A*100).toFixed(2)+"%"), "机会成本率"]);
+
+  var html='<div class="data-grid">'+items.map(function(it){return '<div class="data-card"><div class="num">'+it[0]+'</div><div class="label">'+it[1]+'</div></div>';}).join('')+'</div>';
+  html+='💡 年机会成本 = 占用资金 × 收益率；月机会成本 = 年额 ÷ 12；五年机会成本 = 年额 × 5。';
+  box.innerHTML=html;
+  if(typeof saveHistory==='function'){try{saveHistory(A,B);}catch(e){}}
+}
+function resetAll(){
+  var a=document.getElementById('v0'),b=document.getElementById('v1');
+  if(a)a.value='800000';if(b)b.value='4.2';calc();
+}
+try{calc();}catch(e){}
 </script>
 
 <!-- SEO 介绍区块 -->

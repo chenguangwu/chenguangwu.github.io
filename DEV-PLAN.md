@@ -183,7 +183,8 @@
 > - **✅ 目标已达成并超额**：A 级率 70.0%→**96.9%**（3339→**4604**，4752 工具），共 41 批升级；**C 级仅剩 4 个**。**本专项实质收口**。
 > - **BATCH39/40（缺陷 J，2026-09-21，✅ 14/14 全部闭环）**：14 页「通用三输入模板」占位页（`p0*p1/(p2||1)` 假公式）——**12 页全站已有同义真工具 → 转 `TOOLBOX-REDIRECT` 存根**（保 URL、零 404，工具总数 4767→4755；清理 6 面：源 HTML + `json/tools.json` + i18n 双键 + `_en_override`/`_en_desc`/`slug-en` + `content_deepdive` + `scripts/enmap` + verify 用例）；**2 页无同义 → 按标题重做为真实工具**：`edu/xml-html-css-geshihua-yiyou-kebuchong` → XML/HTML/CSS 代码格式化与缩进美化（全站确无 HTML 美化器，真实缺口）；`floral/price` → 花篮/花圈预算与数量分布计算器。两页同步重写 `formula-eq`、deep-dive、verify 用例（非默认输入 + 独立复算 expect），冒烟测试 13 场景全过。
 > - **BATCH41（缺陷 L，2026-09-21，✅ 4/4 全部闭环）**：4 页「对照表型 convert」**名不符实**页（标题/描述宣称「输入…双向换算」但 `inputs=0`，实为静态对照表）——**3 页全站已有同义真工具 → 转存根**：`cardiology/convert-rehab`→`cardiology/cardiac-rehab-mets`、`library/convert-ref-cite`→`library/citation-format`、`sports/convert-13`→`sports/climbing-grade-converter`；**1 页无同义 → 重做为真实双向换算器**：`food/convert-20` → 斯科维尔辣度 SHU 与 ppm 双向换算 + 辣度分级（SHU ≈ ppm × 15），补真实输入 + `formula-eq` + dataGrid 明细，冒烟测试全过。
-> - 剩余候选：**own_len 300-699 波段已清零**；缺陷 J 14/14、缺陷 L 4/4 **全部闭环**；仅剩 4 个 C 级（2 个 AI 页属度量盲区 + 2 个静态展示页，天生 C 级，不宜硬凑）。
+> - **BATCH42（缺陷 M 批次 1，2026-09-22，✅ 27/27 页升 A）**：27 页「通用两参共享脚本」名不符实页（`formula-eq` 写的是真实业务公式，实际脚本是全站共享的两参脚本，按 h1 关键词分支算 `A×B`/`A−B`/`(A+B)/2`，与业务无关；两个 script 块都被构建判为共享 → `own_len=0` → 判 B/C）。**ecommerce 13 + realestate 14**。手法：保留共享基础设施（历史/复制/重置），在页面内**追加页内独占**的真实业务 `calc()` 脚本块（覆盖全局 `calc`/`resetAll`）+ 同步改 input 标签与默认值、body 副标题/info-box 文案、`formula-eq` 真实公式。A 率 96.9%→**97.5%**（4604→4631）。**本批踩坑（已入 §十 harness 表）**：① 页内判读行若为**二值判读词**，会被兜底阶段的 `swapValues()`（`DESTRUCTIVE` 正则的 `swap\b` 对它无效）交换输入后跨档命中 → 7 例逃生项，修法 = **expect 禁用二值判读词**，只锚依赖被测输入的数值项；② `blob.includes()` 是**子串**匹配（`collectStrings` 返回拼接串），「达标」被默认输出「未达标」包含。
+> - 剩余候选：**缺陷 M 剩余约 91 页待分批判定/处理**（判据：页内无独占脚本、`own_len=0`、`formula-eq` 宣称真实业务公式）；own_len 300-699 波段已清零；缺陷 J 14/14、缺陷 L 4/4 **全部闭环**；缺陷 M 批次 1 已闭环；仅剩 4 个 C 级（2 个 AI 页属度量盲区 + 2 个静态展示页，天生 C 级，不宜硬凑）。
 > - **明确排除（度量盲区，勿强改）**：`ai/ocr`、`ai/image-classification` 两页为**真实**调用 transformers.js 本地模型（`js/ai-core.js` 的 `getPipeline`，Xenova/trocr-base-printed 与 vit-base-patch16-224），逻辑写在 `<script type="module">` 中。而 `own_len` 的正则只匹配**裸 `<script>`**（无属性）→ module 脚本整块不计入，故这两页永远够不到 800。属**度量口径盲区、非页面缺陷**，强行补裸脚本 = 代码膨胀凑数，**不做**（若日后需修正，应改 `_build.py` 的 own_len 正则纳入 `type="module"`，属框架改动、须单独评估）。
 > - ⚠️ **推送状态（2026-09-21 老板指示）**：自 BATCH35 起**只本地 commit、暂停 push 远程**，直至老板明确解除。恢复推送时从 `git log origin/master..master` 取待推批次一次性推送。
 > - **本波长踩坑（BATCH31/33/34 各 1 次）**：派生量**回显输入值**或**派生量默认输出恰好等于用例 expect** → 立即成逃生项（基线 0→1）。实例：`accounting/gross-profit` 加 `[(cogs)]`（默认 600 = expect `600.00`）、`statistics/standard-error` 加 `[(Math.sqrt(n))]`（默认 n=36 → `6.0000` = expect `6.0000`）、`surveying/earthwork-pyramid-volume` 加 `[(A*h)]`/`[(V*3)]`（默认 100×3 → `300.00` = expect `300.00`）。修法：换比值/百分比/倒数/差等**量纲不同**的派生量。
@@ -335,6 +336,15 @@
   - **防复发铁律**：新建/改造工具页时，凡标题或描述出现「输入、换算、转换、计算」等动词，**必须保证 `inputs >= 1`**；纯静态对照表的标题不得写「换算/转换」，应写「对照表/速查表」。核查：`grep -L '<input\|<select\|<textarea' tools/**/convert-*.html`（命中即疑似）。
   - **附注**：`h2` 标签为英文（如 "Convert Rehab"）是**全站惯例**（`js/tool-i18n.js` 运行时按 `data-zh` 写回中文），**非缺陷，勿改**。
 
+- **缺陷 M（2026-09-22 发现）「通用两参共享脚本」名不符实页**：与缺陷 I（单 textarea 描述统计）/ J（三输入 `p0*p1/(p2||1)`）**又不同一套模板**。判据：页面 `formula-eq` 面板写的是**真实业务公式**，但页面内联脚本是**全站共享的两参脚本**（按 `h1` 关键词分支算 `A×B` / `A−B` / `(A+B)/2` / 分级评分等**通用算术**）；因两个 `<script>` 块都被 `_build.py::build_shared_script_index()` 判为共享 → `own_len=0` → 一律判 B/C（另有内联独占脚本的 6 页判 A）。**用户可感知硬伤**（点进去算出来的数与标题业务无关）。
+  - **处置口径（沿用 I/J）**：① 目录内/全站已有同义真工具 → `TOOLBOX-REDIRECT` 存根；② 无同义 → 按标题重做。**但本类页面多数「公式区块已是真实业务公式」，重做成本低** → 首选手法是**追加页内独占 `calc()` 覆盖脚本**（保 URL、保文件名、零 SEO 风险、一次升 A）。
+  - **批次 1 已闭环（2026-09-22，27 页 = ecommerce 13 + realestate 14，A 96.9%→97.5%）**：每页四步 —— ① body 的 `<h1>`/副标题/info-box 文案改业务向；② input 标签与默认值改业务值（hint 有 6 变体 / sub 有 2 变体，用正则批量替换）；③ `resetAll` 默认值与 HTML 一致；④ 追加真实 `calc()` 覆盖脚本（`data-grid` 明细 + `formula-eq` 真实公式）。工具脚本 `/tmp/rework_defect_m_b1.py`（含 27 页 SPEC 表）。
+  - **批次 1 verify 改造（13 例，ecommerce）**：原 expect 锚在旧通用输出（`217.00`/`134.00`）→ 全部改为**非默认输入 + 各页真实公式独立复算**；并修掉 7 例逃生项（见下方铁律）。realestate 14 页**不在任何 verify 脚本覆盖内**，无需改。
+  - **本批新铁律（务必遵守，已同步 `discriminate_baseline.json`）**：
+    1. **expect 禁用「二值判读词」** —— `verify_it_calc.js` 的兜底阶段会调用 `swapValues()`（`DESTRUCTIVE` 正则写作 `swap\b`，对 `swapValues` **不成立**：`p`→`V` 非词边界），它把两个输入**互换后重算**；任何二值判读词（偏高/正常、力度偏大/适中、A 优于 B…）在交换态必然命中其中一档 → 用例在注入完全失败时仍 PASS。**判读词可留在页面展示，但不得作为 expect**。
+    2. **定 expect 前做「默认态 + 交换态」双侧子串检查** —— `collectStrings()` 返回**拼接后的单个字符串**，`blob.includes(want)` 是**子串**匹配：`达标` 被默认输出 `未达标` 包含即成为逃生项。
+  - **剩余约 91 页**待按「清晰度/计算可确定性」分批推进（每批 10–30 页，走完整门禁）。
+
 ---
 
 ## 十、优先级与当前主线（老板 2026-09-19 重排）
@@ -386,3 +396,5 @@ dermatology 14/11、engineering 14/11、signal 11/11、design 10/10、rheumatolo
 | **兜底函数的「随机态」会命中等级词** | 凡页面存在 `randomXxx()`/`shuffle` 类兜底函数，等级词一律不用，改断言只由注入值派生的量 |
 | **含 `<` 的输出会被标签剥离吞掉** | 如 `< 0.001`，不可作 expect；改锚 Z 统计量 / 置信区间 / 结论文案 |
 | **检索/过滤型图鉴页的结果是全量列表的「子集」** | 任何「单卡片内文本」在默认全量态同样存在，作 expect 必为逃生项 |
+| **兜底阶段会调用 `swapValues()`（`DESTRUCTIVE` 的 `swap\b` 对它无效）** | 该函数把两个输入**互换后重算** → **二值判读词**（偏高/正常、力度偏大/适中、A 优于 B…）在交换态必命中其中一档 → 判定词一律**不得作 expect**，只锚依赖被测输入的数值项（2026-09-22 BATCH42 实测 7 例中招） |
+| **`blob.includes(want)` 是子串匹配**（`collectStrings` 返回拼接后的单字符串） | expect 会被默认输出包含：`达标` ⊂ `未达标`、`5.00%` ⊂ `25.00%`。定 expect 前须做「默认态 + 交换态」**双侧子串**检查，必要时给 expect 加标签前缀（如 `准时但不良率 5.00%`） |

@@ -99,16 +99,16 @@
 
   <div class="card tool-card-accent" style="--tool-accent:#FF6B35;--tool-accent-dark:#FF6B35;">
     <h2 data-zh="🏦 折现（现金流法）现值">🏦 Discounted Cash Flow (NPV) Calculator</h2>
-    <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="输入两个参数，自动计算常用结果">Discount future cash flows to present value by a discount rate (NPV basis) for real estate investment.</p>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="按未来现金流与折现率计算 1 年、5 年、10 年现值。">Discount future cash flows to present value by a discount rate (NPV basis) for real estate investment.</p>
     <div class="formula-box">
       <div class="formula-title">📐 计算公式</div>
       <div class="formula-eq">PV = Σ CF_t/(1+r)^t</div>
       <p class="formula-desc">输入两个参数，自动计算常用结果</p>
     </div>
     <div class="input-row">
-      <div><label>本金 (元)</label><input type="number" id="v0" value="100" step="any" oninput="calc()" enterkeyhint="done" aria-label="本金 (元)"></div>
+      <div><label>未来现金流（元）</label><input type="number" id="v0" value="500000" step="any" oninput="calc()" enterkeyhint="done" aria-label="本金 (元)"></div>
       <div style="display:flex;align-items:flex-end;justify-content:center;padding-bottom:8px;"><button class="btn" type="button" onclick="swapValues()" title="互换 A/B" aria-label="互换 A/B" style="padding:10px 12px;">⇄</button></div>
-      <div><label>利率 (%)</label><input type="number" id="v1" value="50" step="any" oninput="calc()" enterkeyhint="done" aria-label="利率 (%)"></div>
+      <div><label>年折现率（%）</label><input type="number" id="v1" value="6" step="any" oninput="calc()" enterkeyhint="done" aria-label="利率 (%)"></div>
     </div>
     <div class="toolbar">
       <button class="btn primary" type="button" onclick="calc()">🧮 计算</button>
@@ -116,7 +116,7 @@
       <button class="btn" type="button" onclick="resetAll()">🗑️ 重置</button>
     </div>
     <div class="result-box" id="res"></div>
-    <div class="info-box">💡 公式提示：利息 = 本金 × 利率%，本息合计 = 本金 + 利息</div>
+    <div class="info-box">💡 PV = CF ÷ (1 + r)^t；折现率越高现值越低；本页分别给出 t = 1、5、10 年的现值。</div>
 <div class="tool-notes" style="--tool-accent:#FF6B35;">
   <div class="tool-notes-title">⚠️ 使用说明与注意事项</div>
   <ul>
@@ -433,8 +433,8 @@ function copyRes(){
   ToolBox.copyText(text);
 }
 function resetAll(){
-  document.getElementById('v0').value=100;
-  document.getElementById('v1').value=50;
+  document.getElementById('v0').value=500000;
+  document.getElementById('v1').value=6;
   setInvalid(document.getElementById('v0'),false);
   setInvalid(document.getElementById('v1'),false);
   calc();
@@ -499,6 +499,32 @@ document.addEventListener('DOMContentLoaded',function(){
   });
 });
 calc();
+</script>
+<script>
+/* 真实业务计算逻辑（页内独占，覆盖通用两参脚本） */
+function calc(){
+  var e0=document.getElementById('v0'),e1=document.getElementById('v1');
+  var A=e0?parseFloat(e0.value):NaN,B=e1?parseFloat(e1.value):NaN;
+  var box=document.getElementById('res');
+  if(!box)return;
+  if(!isFinite(A)||!isFinite(B)){box.innerHTML='<div class="info-box">请输入两个有效数值后再计算。</div>';return;}
+  var items=[];
+  var r=B/100;
+  items.push([(A/Math.pow(1+r,1)).toFixed(2), "1 年现值（元）"]);
+  items.push([(A/Math.pow(1+r,5)).toFixed(2), "5 年现值（元）"]);
+  items.push([(A/Math.pow(1+r,10)).toFixed(2), "10 年现值（元）"]);
+  items.push([((A-A/Math.pow(1+r,10)).toFixed(2)), "10 年折现损失（元）"]);
+
+  var html='<div class="data-grid">'+items.map(function(it){return '<div class="data-card"><div class="num">'+it[0]+'</div><div class="label">'+it[1]+'</div></div>';}).join('')+'</div>';
+  html+='💡 PV = CF ÷ (1 + r)^t；折现率越高现值越低；本页分别给出 t = 1、5、10 年的现值。';
+  box.innerHTML=html;
+  if(typeof saveHistory==='function'){try{saveHistory(A,B);}catch(e){}}
+}
+function resetAll(){
+  var a=document.getElementById('v0'),b=document.getElementById('v1');
+  if(a)a.value='500000';if(b)b.value='6';calc();
+}
+try{calc();}catch(e){}
 </script>
 
 <!-- SEO 介绍区块 -->

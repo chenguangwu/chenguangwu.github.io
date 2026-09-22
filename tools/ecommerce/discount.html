@@ -99,16 +99,16 @@
 <div class="container">
   <div class="card tool-card-accent" style="--tool-accent:#FF6B35;--tool-accent-dark:#FF6B35;">
     <h2 data-zh="📐 促销（折扣/满减/优惠券）设计">Discount</h2>
-    <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="输入两个参数，自动计算常用结果">Discount - online utility on ToolBox.</p>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="按标价与折扣率计算实付金额、优惠额与折数。">Discount - online utility on ToolBox.</p>
     <div class="formula-box">
       <div class="formula-title">📐 计算公式</div>
       <div class="formula-eq">实付 = 标价 × (1−折扣率)</div>
       <p class="formula-desc">本工具按折扣率、满减门槛与优惠券叠加规则计算到手价与优惠力度，支持多方案对比。</p>
     </div>
     <div class="input-row">
-      <div><label>折扣</label><input type="number" id="v0" value="100" step="any" oninput="calc()" enterkeyhint="done" aria-label="折扣"></div>
+      <div><label>标价（元）</label><input type="number" id="v0" value="880" step="any" oninput="calc()" enterkeyhint="done" aria-label="折扣"></div>
       <div style="display:flex;align-items:flex-end;justify-content:center;padding-bottom:8px;"><button class="btn" type="button" onclick="swapValues()" title="互换 A/B" aria-label="互换 A/B" style="padding:10px 12px;">⇄</button></div>
-      <div><label>满减</label><input type="number" id="v1" value="50" step="any" oninput="calc()" enterkeyhint="done" aria-label="满减"></div>
+      <div><label>折扣率（%）</label><input type="number" id="v1" value="15" step="any" oninput="calc()" enterkeyhint="done" aria-label="满减"></div>
     </div>
     <div class="toolbar">
       <button class="btn primary" type="button" onclick="calc()">🧮 计算</button>
@@ -116,7 +116,7 @@
       <button class="btn" type="button" onclick="resetAll()">🗑️ 重置</button>
     </div>
     <div class="result-box" id="res"></div>
-    <div class="info-box">💡 公式提示：输入两个参数，自动计算常用结果</div>
+    <div class="info-box">💡 实付 = 标价 ×（1 − 折扣率）；折数 =（1 − 折扣率）× 10；折扣率高于 50% 需复核毛利。</div>
 <div class="tool-notes" style="--tool-accent:#FF6B35;">
   <div class="tool-notes-title">⚠️ 使用说明与注意事项</div>
   <ul>
@@ -433,8 +433,8 @@ function copyRes(){
   ToolBox.copyText(text);
 }
 function resetAll(){
-  document.getElementById('v0').value=100;
-  document.getElementById('v1').value=50;
+  document.getElementById('v0').value=880;
+  document.getElementById('v1').value=15;
   setInvalid(document.getElementById('v0'),false);
   setInvalid(document.getElementById('v1'),false);
   calc();
@@ -499,6 +499,32 @@ document.addEventListener('DOMContentLoaded',function(){
   });
 });
 calc();
+</script>
+<script>
+/* 真实业务计算逻辑（页内独占，覆盖通用两参脚本） */
+function calc(){
+  var e0=document.getElementById('v0'),e1=document.getElementById('v1');
+  var A=e0?parseFloat(e0.value):NaN,B=e1?parseFloat(e1.value):NaN;
+  var box=document.getElementById('res');
+  if(!box)return;
+  if(!isFinite(A)||!isFinite(B)){box.innerHTML='<div class="info-box">请输入两个有效数值后再计算。</div>';return;}
+  var items=[];
+  var pay=A*(1-B/100);
+  items.push([pay.toFixed(2), "实付金额（元）"]);
+  items.push([(A-pay).toFixed(2), "优惠金额（元）"]);
+  items.push([((1-B/100)*10).toFixed(1)+" 折", "等效折数"]);
+  items.push([(B>50?"力度偏大":"力度适中"), "折扣力度判读"]);
+
+  var html='<div class="data-grid">'+items.map(function(it){return '<div class="data-card"><div class="num">'+it[0]+'</div><div class="label">'+it[1]+'</div></div>';}).join('')+'</div>';
+  html+='💡 实付 = 标价 ×（1 − 折扣率）；折数 =（1 − 折扣率）× 10；折扣率高于 50% 需复核毛利。';
+  box.innerHTML=html;
+  if(typeof saveHistory==='function'){try{saveHistory(A,B);}catch(e){}}
+}
+function resetAll(){
+  var a=document.getElementById('v0'),b=document.getElementById('v1');
+  if(a)a.value='880';if(b)b.value='15';calc();
+}
+try{calc();}catch(e){}
 </script>
 
 <!-- SEO 介绍区块 -->
