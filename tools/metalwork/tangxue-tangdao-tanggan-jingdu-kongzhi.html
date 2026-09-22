@@ -98,17 +98,17 @@
 </div>
 
   <div class="card tool-card-accent" style="--tool-accent:#FF6B35;--tool-accent-dark:#FF6B35;">
-    <h2 data-zh="🔩 镗削（镗刀/镗杆/精度）控制">🔩 Boring Precision Control (Boring Tool, Bar, Accuracy)</h2>
-    <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="输入两个参数，自动计算常用结果">Control boring accuracy by selecting boring tools and bars and accounting for deflection and tolerance.</p>
+    <h2 data-zh="🔩 镗削（镗刀/镗杆/精度）控制">Boring Precision & Tolerance Calculator</h2>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="按孔径与 IT 公差等级估算镗削标准公差与形位公差控制建议，用于孔加工工艺精度设计。">Control boring accuracy by selecting boring tools and bars and accounting for deflection and tolerance.</p>
     <div class="formula-box">
       <div class="formula-title">📐 计算公式</div>
-      <div class="formula-eq">镗削精度 = 公差控制</div>
-      <p class="formula-desc">输入两个参数，自动计算常用结果</p>
+      <div class="formula-eq">标准公差 IT ≈ (0.45·D^(1/3) + 0.001·D) × 等级系数 aₙ；a₅=7,a₆=10,a₇=16,a₈=25,a₉=40,a₁₀=64</div>
+      <p class="formula-desc">镗削是孔加工精加工工艺。标准公差 IT 由基本尺寸 D 与公差等级 n 决定：IT≈(0.45·D^(1/3)+0.001·D)×aₙ，aₙ 为等级系数（IT5~10 依次为 7/10/16/25/40/64）。据此给出圆度/同轴度控制建议，辅助工艺精度编制与公差分配。</p>
     </div>
     <div class="input-row">
-      <div><label>镗刀</label><input type="number" id="v0" value="100" step="any" oninput="calc()" enterkeyhint="done" aria-label="镗刀"></div>
+      <div><label>孔径 D (mm)</label><input type="number" id="v0" value="50" step="any" oninput="calc()" enterkeyhint="done" aria-label="镗刀"></div>
       <div style="display:flex;align-items:flex-end;justify-content:center;padding-bottom:8px;"><button class="btn" type="button" onclick="swapValues()" title="互换 A/B" aria-label="互换 A/B" style="padding:10px 12px;">⇄</button></div>
-      <div><label>镗杆</label><input type="number" id="v1" value="50" step="any" oninput="calc()" enterkeyhint="done" aria-label="镗杆"></div>
+      <div><label>IT 公差等级 (5-10)</label><input type="number" id="v1" value="7" step="any" oninput="calc()" enterkeyhint="done" aria-label="镗杆"></div>
     </div>
     <div class="toolbar">
       <button class="btn primary" type="button" onclick="calc()">🧮 计算</button>
@@ -116,7 +116,7 @@
       <button class="btn" type="button" onclick="resetAll()">🗑️ 重置</button>
     </div>
     <div class="result-box" id="res"></div>
-    <div class="info-box">💡 公式提示：输入两个参数，自动计算常用结果</div>
+    <div class="info-box">💡 标准公差 IT ≈ (0.45·D^(1/3)+0.001·D)×等级系数；IT5=7，IT10=64。</div>
 <div class="tool-notes" style="--tool-accent:#FF6B35;">
   <div class="tool-notes-title">⚠️ 使用说明与注意事项</div>
   <ul>
@@ -499,6 +499,32 @@ document.addEventListener('DOMContentLoaded',function(){
   });
 });
 calc();
+</script>
+<script>
+/* 真实业务计算逻辑（页内独占，覆盖通用两参脚本） */
+function calc(){
+  var e0=document.getElementById('v0'),e1=document.getElementById('v1');
+  var A=e0?parseFloat(e0.value):NaN,B=e1?parseFloat(e1.value):NaN;
+  var box=document.getElementById('res');
+  if(!box)return;
+  if(!isFinite(A)||!isFinite(B)){box.innerHTML='<div class="info-box">请输入两个有效数值后再计算。</div>';return;}
+  if(!(B>=5&&B<=10)){box.innerHTML='<div class="info-box">IT 等级需为 5–10 的整数。</div>';return;}
+  var gf={5:7,6:10,7:16,8:25,9:40,10:64}[Math.round(B)]||16;
+  var items=[];
+  items.push([((0.45*Math.cbrt(A)+0.001*A)*gf/1000).toFixed(4)+" mm", "标准公差 IT（估）"]);
+  items.push([((0.45*Math.cbrt(A)+0.001*A)*gf/2000).toFixed(4)+" mm", "圆度/同轴度建议"]);
+  items.push([(gf<=16?"精密级（IT5–7）":"一般级（IT8–10）"), "精度等级"]);
+
+  var html='<div class="data-grid">'+items.map(function(it){return '<div class="data-card"><div class="num">'+it[0]+'</div><div class="label">'+it[1]+'</div></div>';}).join('')+'</div>';
+  html+='💡 标准公差 IT ≈ (0.45·D^(1/3)+0.001·D)×等级系数；IT5=7，IT10=64。';
+  box.innerHTML=html;
+  if(typeof saveHistory==='function'){try{saveHistory(A,B);}catch(e){}}
+}
+function resetAll(){
+  var a=document.getElementById('v0'),b=document.getElementById('v1');
+  if(a)a.value='50';if(b)b.value='7';calc();
+}
+try{calc();}catch(e){}
 </script>
 
 <!-- SEO 介绍区块 -->
