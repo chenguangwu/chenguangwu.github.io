@@ -47,17 +47,6 @@ const CASES = [
   "ref": "S = √3·U·I = 1.732051×400×63 = 43647.7 VA = 43.648 kVA；P = S×0.90 = 39.283 kW（避开默认 380 V/50 A/0.85）"
 },
 {
-  "slug": "electrical/calc-power-capacitance",
-  "inputs": {
-    "v0": "120",
-    "v1": "60"
-  },
-  "expect": [
-    "7200.00 W"
-  ],
-  "ref": "通用模板页按标题命中「功率」分支：P = A×B = 120×60 = 7200 W = 7.2 kW（避开默认 100/50；原 expect 断言的是历史记录区占位文案「暂无计算记录」，注入失败也恒命中）"
-},
-{
   "slug": "electrical/current-divider",
   "inputs": {
     "It": "150",

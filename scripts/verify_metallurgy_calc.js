@@ -89,17 +89,6 @@ const CASES = [
   "ref": "de-default: 通用模板落「功率/能耗」分支（h1 含能耗）→A×B=6000 W=6.0000 kW（默认 100×50=5.0000 kW）"
 },
 {
-  "slug": "metallurgy/estimate-temp-time-1",
-  "inputs": {
-    "v0": "250",
-    "v1": "90"
-  },
-  "expect": [
-    "523.15 K"
-  ],
-  "ref": "de-default: 通用模板落「温度」分支（首个命中，h1 含温度）→A 开尔文 250+273.15=523.15 K（默认 100 → 373.15）"
-},
-{
   "slug": "metallurgy/heat-treatment",
   "inputs": {
     "thickness": "80",

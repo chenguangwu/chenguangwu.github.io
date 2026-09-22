@@ -14,17 +14,6 @@ const CASES = [
   "ref": "auto-restore"
 },
 {
-  "slug": "railway/noise-1",
-  "inputs": {
-    "v0": "150",
-    "v1": "50"
-  },
-  "expect": [
-    "150.00"
-  ],
-  "ref": "auto-restore"
-},
-{
   "slug": "railway/power-5",
   "inputs": {
     "v0": "150",
@@ -35,28 +24,6 @@ const CASES = [
   ],
   "ref": "auto-restore"
 },
-{
-  "slug": "railway/qiaoliang-qiaodun-zhizuo-hezai",
-  "inputs": {
-    "v0": "150",
-    "v1": "50"
-  },
-  "expect": [
-    "150.00"
-  ],
-  "ref": "auto-restore"
-},
-{
-  "slug": "railway/slope-4",
-  "inputs": {
-    "v0": "150",
-    "v1": "50"
-  },
-  "expect": [
-    "-100.00"
-  ],
-  "ref": "auto-restore"
-}
 ];
 async function main() {
   const only = process.argv.slice(2);

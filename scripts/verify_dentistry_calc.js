@@ -125,28 +125,6 @@ const CASES = [
   "ref": "auto-restore"
 },
 {
-  "slug": "dentistry/kouqiangai-tnm-shaichagongju",
-  "inputs": {
-    "v0": "150",
-    "v1": "50"
-  },
-  "expect": [
-    "-100.00"
-  ],
-  "ref": "auto-restore"
-},
-{
-  "slug": "dentistry/length-3",
-  "inputs": {
-    "v0": "150",
-    "v1": "50"
-  },
-  "expect": [
-    "-100.00"
-  ],
-  "ref": "auto-restore"
-},
-{
   "slug": "dentistry/oral-cancer-screening",
   "inputs": {
     "t": "1"

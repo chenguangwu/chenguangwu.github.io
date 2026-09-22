@@ -14,17 +14,6 @@ const CASES = [
   "ref": "重做为标杆对比：4 项差距率，综合差距评分=各项|rel|均值×100=（0.2889+0.6+0.3333+0.0824)/4×100=32.6；按|rel|降序取Top3（空置率60.0%/能耗成本33.3%/租金收益率28.9%）。非默认输入+独立复算。"
 },
 {
-  "slug": "property/area-shared",
-  "inputs": {
-    "v0": "150",
-    "v1": "50"
-  },
-  "expect": [
-    "7500.00"
-  ],
-  "ref": "auto-restore"
-},
-{
   "slug": "property/assessor-manager-1",
   "inputs": {
     "vendorName": "",

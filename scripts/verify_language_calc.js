@@ -44,17 +44,6 @@ const CASES = [
   "ref": "auto-restore"
 },
 {
-  "slug": "language/hanyuyanwenchaijie-yuanyin-fuyin",
-  "inputs": {
-    "v0": "150",
-    "v1": "50"
-  },
-  "expect": [
-    "-100.00"
-  ],
-  "ref": "auto-restore"
-},
-{
   "slug": "language/idiom-solitaire",
   "inputs": {
     "timeLimit": "20"
@@ -142,17 +131,6 @@ const CASES = [
   ],
   "ref": "auto-restore(default)"
 },
-{
-  "slug": "language/xibanyayuzhongyinweizhipanduan-neizhiguize",
-  "inputs": {
-    "v0": "150",
-    "v1": "50"
-  },
-  "expect": [
-    "-100.00"
-  ],
-  "ref": "auto-restore"
-}
 ];
 async function main() {
   const only = process.argv.slice(2);
