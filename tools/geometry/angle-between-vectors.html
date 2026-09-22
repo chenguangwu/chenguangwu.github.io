@@ -151,7 +151,12 @@ function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+=
 function calcTool(){
             const ax=num('ax'),ay=num('ay'),bx=num('bx'),by=num('by');
             const dot=ax*bx+ay*by, na=Math.hypot(ax,ay), nb=Math.hypot(bx,by);
-            const th=Math.acos(dot/(na*nb))*180/Math.PI;
+            if (na === 0 || nb === 0) {
+                ToolBox.setResult('result', '<p style="color:var(--danger);">零向量没有方向，夹角无定义（请输入至少一个非零向量坐标）。</p>');
+                return;
+            }
+            // 浮点误差可能让 dot/(na·nb) 略超出 [−1,1]，直接 acos 会得 NaN
+            const th=Math.acos(Math.max(-1,Math.min(1,dot/(na*nb))))*180/Math.PI;
             ToolBox.setResult('result', dataGrid([
                 [th.toFixed(3),'夹角 θ (°)'],
                 [dot.toFixed(3),'点积 a·b']

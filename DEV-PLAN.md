@@ -313,6 +313,13 @@
 - **口径铁律（缺陷 AM）**：凡输出**有天然取值域**的量（决定系数 / 解释方差比例 / 概率 / p 值 / 覆盖率），交付前必查是否越界 —— **越界即公式错**。实例：`science/effect-size-calculator` 把 Cohen's d 的 r² 直接写成 `d²`（默认 d=0.3333 → 显示 11.11%；d=1.5 → 225%，早已 >1 却无人发现）。正确口径：点二列相关 `r² = d²/(d²+N²/(n₁n₂))`（n₁=n₂ 时退化为经典式 `d²/(d²+4)`）。**d 与 r 不同量纲，禁止互相替代**；单样本无 n 时改用同族的 **Cohen's U₃ = Φ(d)**（erf 用 A&S 7.1.26 闭合式，精度 ~1e-7 足够展示）。
 - **门禁用例文件「静默失效」自检（缺陷 AN）**：`selfcheck_false_pass.js::extractCases` 是「字符串感知」括号匹配器但**不识别注释** —— 用例数组内/前的行注释里出现撇号（如 `// ── Cohen's d → U₃ ──`）会被当作字符串起始 → 一路吞到下一个撇号 → 括号层级错位、数组结束括号永不匹配 → `extractCases` 返回 undefined → **该文件全部用例静默消失**（`checked=0`、不打印 SKIP、门禁照旧全绿），弱用例审计对该文件彻底失效。已修（非字符串态先跳过 `//…` 与 `/*…*/`）。**判据：任何 verify 文件的 `checked` 必须等于其用例条数，不等即命中此坑**（本批修复后 `verify_ai_calc.js` 的 9 例恢复计数，其 5 例存量全默认弱用例随即去默认化）。注意两套抽取口径需分别核对：`discriminate_check.js` 用惰性正则 `\n\]`，不受该缺陷影响。
 
+### 8.10 角度标签与公式的「对边一致性」+ 同类换算页交叉核对（2026-09-23 新增）
+
+- **角度卡片铁律**：凡输出带标签的角（∠A / ∠B / 角 A / 角 B），**公式里的「对边」必须与标签一致**：∠A 的对边是 a，故 `tan A = a/b`、`cos A = (b²+c²−a²)/(2bc)`。已连续命中两次同类错误 —— `math/law-of-cosines`（用 (a²+c²−b²)/(2ac) 即角 B 的公式却标「角 A」）、`geometry/pythagorean`（`atan2(b,a)` 是 ∠B 却标「∠A」，3-4-5 显示 ∠A=53.13°）。**复核口径：取退化特例手算**（如 a=b 时两锐角必为 45°、a≪b 时 ∠A 必接近 0°），不符即错。
+- **「夹角」类名要落到定义**：`geometry/rectangle-diagonal` 的「对角线夹角」原本算 `atan(h/w)` —— 那是对角线与**边**的夹角；两对角线夹角 = `acos((w²−h²)/(w²+h²)) = 2·arctan(min/max)`（3×4 矩形为 73.74° 而非 53.13°）。凡标签含「夹角/之间」的，先用向量点积推导一遍再写代码。
+- **同类换算页必须交叉核对**：`geometry/sphere-volume` 把 1 m³=1000 L 写成 `V/1000`（113.097 m³ 显示 0.113097 L，差 10⁶ 倍），而同站的 `geometry/ellipsoid-volume` 写的是 `×1000`（正确）。**同站内存在多个同类换算页时，逐页比对符号与量级，一页错一页对是极强的缺陷信号。**
+- **组合计数类「×2 / 之和」别手滑**：`geometry/trapezoid-area` 的「中位线×2」写成 `(a+b)×2`（实为 ×4），应为上下底之和 `a+b`；`geometry/rectangular-prism-volume` 的棱长总和用 `2(l+w+h)`，长方体 12 条棱应为 `4(l+w+h)`。
+
 ---
 
 ## 九、发现但未修的真实缺陷（待老板定夺）
@@ -458,7 +465,7 @@ dermatology 14/11、engineering 14/11、signal 11/11、design 10/10、rheumatolo
 
 ### 方向1 公式-脚本一致性精查（进行中 · 2026-09-22 启动 · 老板选定）
 - **目标**：逐页独立复算高热度计算类页 `calc()` 输出的数学/物理正确性（与标准公式/权威向量比），找"用户拿到错钱数/错物理量"的真缺陷（§4.5 红线第一条最高频事故）。
-- **候选**：386 页（有 `formula-eq` + 真实 `calc()` + 数字输入，可被注入复算），覆盖 10 高热度行业；`finance` 40+ 页全未覆盖（Y，优先）。`science`（99 页）已在 BATCH47–49 走过一遍默认态复算（隔离器升级后 78 页可读）；`math`（36 页）已在 BATCH50 全量复算并闭环 14 页缺陷；`geometry`(28)/`photo`(30)/`ai`(56)/`sports`(56)/`agriculture`(52)/`finance`(52) 待开。
+- **候选**：386 页（有 `formula-eq` + 真实 `calc()` + 数字输入，可被注入复算），覆盖 10 高热度行业；`finance` 40+ 页全未覆盖（Y，优先）。`science`（99 页）已在 BATCH47–49 走过一遍默认态复算（隔离器升级后 78 页可读）；`math`（36 页）已在 BATCH50 全量复算并闭环 14 页缺陷；`geometry`（28 页）已在 BATCH51 全量复算并闭环 15 页缺陷；`photo`(30)/`ai`(56)/`sports`(56)/`agriculture`(52)/`finance`(52) 待开。
 - **SOP**：正向校验 `runCase({slug, inputs, expect:独立复算值})`（ok=true=健康；ok=false=候选）；图表/动态 UI 页用「抽 calc/纯函数 + 自建桩 DOM」绕行。`runCase(expect:['\u0000'])` 取 `fullBlob` 看真实输出。
 - **harness 修复（本批）**：`verify_it_calc.js` 的 `makeEl` 补 `clientWidth/clientHeight/offsetWidth/offsetHeight/parentElement` 桩、`CTX2D.canvas` 补 `clientWidth/clientHeight` → 图表页（compound-interest/irr 等读 `clientWidth`/`ctx.canvas.clientWidth`/`el.parentElement.clientWidth`）可被 `runCase` 覆盖；重跑 `run_gates.py --skip-build` 仍 **215/215**（CASES 未增删，安全）。
 - **首批 finance 精查（53 页中首批 10 页）**：✅ 健康 7 页（simple-interest / npv-calculator / break-even-calculator / depreciation-calculator / vat-calculator / compound-interest / irr-calculator 算法）；⚠️ profit-margin-calculator 营业利润/EBITDA 未含财务费用（净利正确，低优先口径偏差，待下批复核是否按通用准则修正）；其余 43 页待继续。

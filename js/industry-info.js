@@ -111,7 +111,7 @@ window.INDUSTRY_INFO = {
   'metrology'            : { name: '计量学', icon: '📏', hot: 144605 },
   'pediatrics'           : { name: '儿科医学', icon: '🧒', hot: 143479 },
   'property'             : { name: '物业管理', icon: '🏢', hot: 142262 },
-  'geometry'             : { name: '几何', icon: '📐', hot: 140955 },
+  'geometry'             : { name: '几何', icon: '📐', hot: 136755 },
   'mechanical'           : { name: '机械工程', icon: '⚙️', hot: 136621 },
   'logistics'            : { name: '物流运输', icon: '🚚', hot: 136594 },
   'safety'               : { name: '安全生产', icon: '🦺', hot: 134636 },

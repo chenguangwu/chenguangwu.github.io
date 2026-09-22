@@ -61,19 +61,19 @@ const CASES = [
 
   { slug: "geometry/circle-circumference",
     inputs: { r: "4" },
-    expect: ["25.1327", "8.0000"],
-    ref: "C=2π·4=25.1327 m；直径=C/π=8.0000 m" },
+    expect: ["25.1327", "8.0000", "32.0000"],
+    ref: "C=2π·4=25.1327 m；直径=C/π=8.0000 m；圆内接正方形对角线=2r ⇒ 面积=2r²=32.0000 m²（原式误用 πr²/4=12.566）" },
 
   { slug: "geometry/sector-area",
     inputs: { r: "4", deg: "60" },
-    expect: ["8.3776", "8.3776"],
-    ref: "θ=π/3；A=r²θ/2=16·(π/3)/2=8.3776 m²；整圆比项同值" },
+    expect: ["8.3776", "16.667"],
+    ref: "θ=π/3；A=r²θ/2=16·(π/3)/2=8.3776 m²；占整圆 60/360=16.667%（已删除与扇形面积同值的重复卡片）" },
 
   // ---- 多边形 ----
   { slug: "geometry/polygon-interior-angle",
     inputs: { n: "5" },
-    expect: ["108.00", "540"],
-    ref: "θ=(5−2)·180/5=108.00°；内角和=(5−2)·180=540°" },
+    expect: ["108.00", "540", "72.0000"],
+    ref: "θ=(5−2)·180/5=108.00°；内角和=(5−2)·180=540°；中心角=360/5=72.0000°（原式第五张卡标「内角和与边数之比」却算 (n−2)/n=0.6，无几何意义，已换成中心角）" },
 
   { slug: "geometry/regular-polygon-area",
     inputs: { n: "5", s: "2" },
@@ -82,8 +82,8 @@ const CASES = [
 
   { slug: "geometry/trapezoid-area",
     inputs: { a: "2", b: "7", h: "3" },
-    expect: ["13.5000", "18.0000"],
-    ref: "A=(2+7)·3/2=13.5000 m²；中位线×2=(2+7)·2=18.0000 m（须避开默认结果的 16.0000）" },
+    expect: ["13.5000", "9.0000"],
+    ref: "A=(2+7)·3/2=13.5000 m²；中位线=(2+7)/2=4.5 ⇒ 中位线×2=上下底之和=9.0000 m（原式算 (a+b)·2=18，把「×2」错做成「×4」）" },
 
   { slug: "geometry/triangle-heron",
     inputs: { a: "5", b: "6", c: "7" },
@@ -92,13 +92,13 @@ const CASES = [
 
   { slug: "geometry/pythagorean",
     inputs: { a: "5", b: "12" },
-    expect: ["13.0000", "67.38"],
-    ref: "c=√(25+144)=13.0000 m；∠A=atan2(12,5)=67.38°" },
+    expect: ["13.0000", "22.62"],
+    ref: "c=√(25+144)=13.0000 m；∠A 的对边是 a=5 ⇒ tanA=a/b ⇒ ∠A=atan2(5,12)=22.62°（原式用 atan2(b,a)=67.38°，那是 ∠B，A、B 标反）" },
 
   { slug: "geometry/rectangle-diagonal",
-    inputs: { w: "6", h: "8" },
-    expect: ["10.0000", "48.0000"],
-    ref: "d=√(36+64)=10.0000 m；面积=6·8=48.0000 m²" },
+    inputs: { w: "5", h: "12" },
+    expect: ["13.0000", "60.0000", "45.240"],
+    ref: "d=√(25+144)=13.0000 m；面积=5·12=60.0000 m²；两条对角线方向 (w,h) 与 (w,−h) ⇒ cosθ=(w²−h²)/(w²+h²)=−119/169 ⇒ θ=2·arctan(5/12)=45.240°（原式 atan(h/w)=67.38° 只是对角线与长边的夹角，不是两对角线夹角）" },
 
   // ---- 立体图形 ----
   { slug: "geometry/cone-frustum-volume",
@@ -133,8 +133,8 @@ const CASES = [
 
   { slug: "geometry/rectangular-prism-volume",
     inputs: { l: "5", w: "4", h: "3" },
-    expect: ["60.000", "94.000"],
-    ref: "V=5·4·3=60.000 m³；A=2·(20+12+15)=94.000 m²" },
+    expect: ["60.000", "94.000", "48.000"],
+    ref: "V=5·4·3=60.000 m³；A=2·(20+12+15)=94.000 m²；长方体有 12 条棱 ⇒ 棱长总和=4(l+w+h)=48.000 m（原式用 2(l+w+h)=24，少算一半）" },
 
   { slug: "geometry/sphere-surface-area",
     inputs: { r: "2" },
@@ -143,8 +143,8 @@ const CASES = [
 
   { slug: "geometry/sphere-volume",
     inputs: { r: "6" },
-    expect: ["904.779"],
-    ref: "V=4/3·π·216=904.779 m³" },
+    expect: ["904.779", "904778.684"],
+    ref: "V=4/3·π·216=904.779 m³；1 m³=1000 L ⇒ 904778.684 L（原式除以 1000 写成 0.904779 L，差 10⁶ 倍）" },
 
   { slug: "geometry/torus-volume",
     inputs: { R: "4", r: "2" },
@@ -155,6 +155,32 @@ const CASES = [
     inputs: { a: "4", b: "2" },
     expect: ["25.133"],
     ref: "A=π·4·2=25.133 m²" },
+
+  // ---- BATCH51 新增：定义域/退化输入的提示分支 ----
+  { slug: "geometry/triangle-heron",
+    inputs: { a: "1", b: "2", c: "10" },
+    expect: ["不能构成三角形"],
+    ref: "1+2<10 不满足三角不等式 ⇒ s(s−a)(s−b)(s−c)<0 开方得 NaN；正确应提示（默认 3,4,5 合法，避开）" },
+  { slug: "geometry/parabola-vertex",
+    inputs: { a: "0", b: "2", c: "3" },
+    expect: ["二次项系数 a 不能为 0"],
+    ref: "a=0 时 −b/(2a) 为 ±Infinity，且原函数是一次函数本无顶点（默认 2,−6,1 避开）" },
+  { slug: "geometry/dot-product-2d",
+    inputs: { ax: "1", ay: "2", bx: "0", by: "0" },
+    expect: ["零向量"],
+    ref: "投影长度 = a·b/|b|，b 为零向量时 |b|=0 ⇒ 除零得 Infinity（默认 (1,2)·(1,0) 之类避开）" },
+  { slug: "geometry/angle-between-vectors",
+    inputs: { ax: "0", ay: "0", bx: "1", by: "2" },
+    expect: ["零向量"],
+    ref: "零向量无方向，dot/(na·nb)=0/0 ⇒ NaN（默认 (1,1) 与 (0,1) 避开）" },
+  { slug: "geometry/regular-polygon-area",
+    inputs: { n: "2", s: "3" },
+    expect: ["至少为 3"],
+    ref: "n<3 时 tan(π/n) 退化（n=2 → tan90° 发散）⇒ 面积无意义（默认 n=6 避开）" },
+  { slug: "geometry/point-line-distance",
+    inputs: { A: "0", B: "0", C: "1", x0: "2", y0: "3" },
+    expect: ["不构成一条直线"],
+    ref: "A=B=0 时 √(A²+B²)=0 ⇒ 除零得 Infinity（默认 3,4,−2 避开）" },
 ];
 
 
