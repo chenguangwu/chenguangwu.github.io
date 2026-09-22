@@ -48,6 +48,26 @@ const CASES = [
     expect: ["1.50"],
     ref: "默认 gradient 法：AC/A=(加镜后隐斜−裸眼隐斜)/|镜片度|=(8−2)/4=1.50 Δ/D",
   },
+  {
+    slug: "optical/detector-31",
+    inputs: { element: "lens", pv: "0.25", rms: "0.05", decent: "3", trans: "98",
+              surface: "40-20", coating: "ar", grade: "standard" },
+    expect: ["满足标准级要求"],
+    ref: "各项分 75/85/85/80/100 → 综合 85；grade=standard 达标线 75 → 通过，评价按所选等级写「满足标准级要求」（默认 grade=precision 达标线 90 → 判「未达精密级」，与本值不重合）",
+  },
+  {
+    slug: "optical/detector-31",
+    inputs: { element: "lens", pv: "1.5", rms: "0.15", decent: "12", trans: "93",
+              surface: "80-50", coating: "ar", grade: "precision" },
+    expect: ["当前指标为「不合格」"],
+    ref: "各项分 45/30/30/20/40 → 综合 33 <60 → 实际档位「不合格」；grade=precision 达标线 90 未达，评价须同时给出实际档位（默认综合 85 实际档位为「标准级合格」，与本值不重合）",
+  },
+  {
+    slug: "optical/calc-47",
+    inputs: { idxN: "1.6", idxR: "80", idxH: "12", idxK: "-1" },
+    expect: ["205.66 μm 当前锥面纵向球差"],
+    ref: "LSA球面=(n−1)h²/(2nR)=(0.6×144)/(2×1.6×80)=0.3375mm=337.5μm；K=−1 → LSA=337.5×(1+K/n²)=337.5×(1−1/2.56)=205.66μm（默认 1.5/100/25/0 → 1041.67μm，避开）",
+  },
 ];
 
 async function main() {

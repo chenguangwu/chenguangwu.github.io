@@ -154,6 +154,9 @@
 
 **P1 — 建议修复**
 
+- **隔离器（`/tmp/audit_finance_all.js`）桩缺口两项，未修**：① `document.querySelector('input[name=x]:checked')` 恒返回 null → 单选/复选门控页输出 `undefined`/`NaN`（`optical/progressive-corridor` 等）；② `innerHTML=` 动态生成的控件（`fim-scale`/`womac`/`gingival-index`/`load-curve` 等，静态 HTML `grep id=` 为 0）取不到值。修法：`:checked` 查询返回桩元素且 `checked` 可注入；`innerHTML` 赋值时解析 `id=` 并注册桩。**未改前，凡默认输出出现 `undefined`/`NaN` 一律先按桩盲区排除，再回源码复核。**
+- **deep-dive 主题错配全站复核**：脚本化候选口径 = 取 dd `title` 中文 bigram 与页面**自身正文**（切掉 `TOOLBOX-DEEP-DIVE` 之后）求交集，为空且 dd 标题中文占比 ≥50% 即候选（全站命中 2 例，均已修；纯英文 dd 标题需人工抽查）。已修 3 例见 §8.7。
+- **`metalwork/tester-19` ≤1kV 耐压分支无法构造判别用例**：该分支输出恒为常数 `3.5 kV`（与 `ratedV` 取值无关），任何 `expect` 都会在**默认态**命中 → 必被判逃生项，故**刻意不补用例**；该修复（`0.0 kV → 3.5 kV`）只能靠隔离器人工跑 + 代码评审保真，回归时注意。
 - [x] **非工具页 SEO Description 重复**：实测 3624 个非工具页 0 重复组（2026-09-21 复核），计划书「大量重复」已过时，闭环。
 - [x] **cat 维度核实（2026-09-19 复核：实质无缺陷）**：早前提「cat 空值 12 页(groups) / 非 CAT_DEFS 非法 cat 26 页(reproductive-medicine+baking)」经全站直接扫描均不成立——`tools/groups` 目录不存在；0 非法 cat（`reproductive-medicine`/`baking` 均在 `CAT_DEFS` 内）；审计 cat 判据只查 0/None/空，index/landing 页本就不该有 cat（预期）。**CAT 维度无需改动。**
 - [x] **「无名工具」语义命名专项（2026-09-21 复核闭环）**：原报「506 个中英文 title 均为代号」经页面级权威核验**不成立**——全站 5003 简体源页仅 87 个 `<title>` 无汉字，且这 87 个的 `<h1>` 与正文（393–770 中文字符）全是中文真名（如 `Washer Capacity`→h1「洗衣机容量选择器」），**0 个代号**（`Convert 12`/`tool-014-45` 类）。实质是「`<title>` 标签漏翻成中文」小缺陷。已用 `scripts/fill_zh_title.py` 将 87 个 `<title>` 补全为与 h1 一致的中文名（含 `favicon-from-emoji` 连带改 h1 为「Emoji 网站图标生成器」），不瞎编；重建后 tools.json/JSON-LD name 同步中文。
@@ -291,6 +294,8 @@
 - **凡输出「物理上不可能」的值（概率 >1、转差率为负、紧度/覆盖率为负、量级差 10 倍）必查公式本身**，勿以"口径偏差"放过。
 - **deep-dive 文案（`faqs`/`examples`/`tips`）是构建产物**：页面 HTML 里改会被 `_build.py` 用 `i18n/tools/content_deepdive.json` 覆盖，必须改 **JSON 源**（`json.dumps(indent=1)+'\n'`）。若 FAQ 出现「本工具算错了…该项仅作参考」式**免责说明**，说明是已知未修缺陷，应改公式而不是留免责文案。
 - **修完页面必回头查 verify 用例**：① 用例 `expect` 可能锚在旧错误输出上（需同步改）；② 该页可能**根本没有用例**（缺陷漏网的直接原因，补一条）；③ 新用例的 `expect` 若在**页面默认输出**里也命中，会被门禁第 217 项判为**逃生项**（缺陷 P 首版实测被拦）——非默认输入必须使「默认态」不命中。
+- **隔离器引擎的 `tagAttrs` 必须支持「裸属性」**（2026-09-22 踩坑，影响面极大）：旧正则 `/([a-zA-Z-]+)="([^"]*)"/g` **只认带值属性**，`<option … selected>` / `<input … checked>` 这类**无值布尔属性被整条丢弃** → `preset` 恒落回 `opts[0]`，于是**全站所有含 `<select>` 的页默认值都被读成首项**（本轮实测 340 页输出失真：`metalwork/sheet-bend` 的 K 因子读成 0.33、`metalwork/tester-19` 截面读成 2.5mm²、`general/fengjixuanxingjisuan` 机型判断被带偏）。修法：改 `([a-zA-Z-]+)(?:="([^"]*)")?`，缺值补 `''`。**凡「引擎默认值与源码 `selected`/`checked` 不符」先查这一条，再谈页面缺陷**。
+- **deep-dive 主题错配（页面讲 A、词条写 B）是中批量改写的连带产物**：批量重做页面时词条会「跟着旧标题走」。判据：`content_deepdive.json` 条目的 `title`/`scenarios` 与页面**当前** `<h2 data-zh>` 不是同一工具（本轮查出 `optical/detector-31` 页面是「光学元件质量合规检测」而词条写「光电探测器选型」、`meteorology/capeduiliuyouxiaoweineng` 页面是 CAPE 而词条写「测风与风能资源评估」、`optical/calc-47` 页面是非球面球差而词条写「光学参数换算」）。修法：按页面**真实 `calc()` 算法**重写 `title/scenarios/examples/faqs`（改 HTML 会被构建覆盖）。
 ### 8.8 全站默认输出扫描（2026-09-22 新增能力，缺陷 T/U 的发现途径）
 
 - **前提**：隔离器引擎的 `ToolBox` 桩原为「返回空函数的 Proxy」→ `ToolBox.setResult(id,html)` **根本没写进 DOM**，`written` 恒空 ⇒ **绝大多数页（3500+）的默认输出完全不可见**，此前只能靠人工读源码。补 `setResult/setText` 桩后，**3560/3661 页输出首次可读**。

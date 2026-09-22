@@ -65,6 +65,12 @@ const CASES = [
     expect: ["8 级", "大风"],
     ref: "v=20 m/s 落入 ub[8]=20.7 区间 → 8 级（大风）；默认 v=10 得 5 级（和风），此处避开",
   },
+  {
+    slug: "meteorology/capeduiliuyouxiaoweineng",
+    inputs: { tp: "32", te: "24", plfc: "850", pel: "250" },
+    expect: ["2848.0 J/kg"],
+    ref: "Δz=R_d·Tm/g·ln(p1/p2)=287.04×((305.15+297.15)/2)/9.80665×ln(850/250)=10787m；CAPE=g·(ΔT/Te)·Δz=9.80665×(8/297.15)×10787=2848.0 J/kg（旧版把气压差 Pa 当厚度直接代入 → 同组输入 463705 J/kg；默认 25/20/700/300 亦有 195831，均不重合）",
+  },
 ];
 
 async function main() {

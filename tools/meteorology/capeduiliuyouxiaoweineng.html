@@ -103,7 +103,7 @@
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="输入气块温度、环境温度及自由对流高度(LFC)和平衡高度(EL)气压，计算对流有效位能 CAPE 和理论最大上升速度。">Compute Convective Available Potential Energy from parcel and environment soundings.</p>
     <div class="card formula-box">
   <div class="formula-title">📐 计算方式</div>
-  <p>对流有效位能 CAPE=R·ΔT/Te·ΔP，其中 ΔT=气块温度−环境温度(K)、ΔP=(pLFC−pEL)×100（LFC=自由对流高度、EL=平衡高度），R 为干空气气体常数；CAPE>0 表示对流可用位能，越大越易发展强对流，常配 CIN（对流抑制）判断是否需要强抬升触发。常用阈值：<500 弱、500–1500 中等、1500–2500 强、>2500 极端。</p>
+  <p>对流有效位能 CAPE = g × (ΔT / Te) × Δz，其中 ΔT = 气块温度−环境温度 (K)、Te 为环境温度 (K)、Δz 为 LFC 到 EL 的浮力层厚度 (m，按压高公式 Δz = R_d·Tm/g·ln(p_LFC/p_EL) 估算，Tm 取气块与环境平均温度)，g = 9.80665 m/s²、R_d = 287.04 J/(kg·K)；CAPE&gt;0 表示存在对流可用位能，越大越易发展强对流，常配 CIN（对流抑制）判断是否需要强抬升触发。常用阈值：0–1000 J/kg 弱（孤立雷暴）、1000–2500 J/kg 中等（雷暴较可能）、2500–4000 J/kg 强（强雷暴/冰雹）、≥4000 J/kg 极端（爆发性对流）。</p>
 </div>
 <div class="input-row">
       <div><label>气块温度 Tp (°C)</label><input type="number" id="tp" value="25" step="any" oninput="calc()" enterkeyhint="done"></div>
@@ -119,12 +119,13 @@
       <button class="btn" type="button" onclick="resetAll()">🗑️ 重置</button>
     </div>
     <div class="result-box" id="res"></div>
-    <div class="info-box">💡 公式：CAPE = R_d × (Tp - Te) / Te × (P_LFC - P_EL) × 100，其中 R_d=287 J/(kg·K)，温度取开尔文；最大上升速度 w_max = √(2×CAPE)。</div>
+    <div class="info-box">💡 公式：CAPE = g × (Tp − Te) / Te × Δz，其中 Δz = R_d·Tm/g·ln(p_LFC/p_EL) 为浮力层厚度 (m)、Tm 为气块与环境平均温度，R_d = 287.04 J/(kg·K)、g = 9.80665 m/s²，温度取开尔文；最大上升速度 w_max = √(2×CAPE)。</div>
     <div class="tool-notes" style="--tool-accent:#0EA5E9;">
       <div class="tool-notes-title">⚠️ 注意事项</div>
       <ul>
         <li>本工具采用简化常数浮力法估算 CAPE，假设气块与环境温差在整个 LFC-EL 层内恒定</li>
         <li>实际 CAPE 需完整探空资料逐层积分计算，本结果为近似估计</li>
+        <li>浮力层厚度 Δz 按压高公式以气块/环境平均温度估算，高温层结下比实际层厚偏大，故结果偏保守（偏高）</li>
         <li>CAPE > 0 表示条件性不稳定，数值越大对流潜势越强</li>
         <li>气块温度须高于环境温度（Tp > Te）且 LFC 气压大于 EL 气压才有正 CAPE</li>
         <li>纯前端本地计算，数据不会上传到服务器</li>
@@ -148,24 +149,31 @@ function capeLevel(c){
   if(c<4000)return {level:'强不稳定',color:'#EF4444',desc:'强不稳定能量，可能出现强雷暴、冰雹或强降水',cls:'grade-fail'};
   return {level:'极端不稳定',color:'#7E0023',desc:'极端不稳定能量，爆发性对流天气风险极高',cls:'grade-fail'};
 }
+// 压高公式估算 LFC→EL 浮力层厚度（m）
+function layerThickness(tpK,teK,p1,p2){
+  if(!(p1>0))return 0;
+  if(!(p2>0))return 0;
+  if(!(p1>p2))return 0;
+  var tMean=(tpK+teK)/2;
+  return R_D*tMean/9.80665*Math.log(p1/p2);
+}
+// CAPE = g·(ΔT/Te)·Δz（J/kg）
+function capeOf(tp,te,plfc,pel){
+  var tpK=tp+273.15,teK=te+273.15;
+  var dT=tpK-teK;
+  var z=layerThickness(tpK,teK,plfc,pel);
+  return {dT:dT,z:z,cape:(dT>0&&z>0)?9.80665*dT/teK*z:0};
+}
 function calc(){
   var tp=getNum('tp'),te=getNum('te'),plfc=getNum('plfc'),pel=getNum('pel');
   var tpK=tp+273.15,teK=te+273.15;
-  var dT=tpK-teK;
-  var dP=(plfc-pel)*100;
-  var cape=0;
-  if(dT>0&&dP>0){
-    cape=R_D*dT/teK*dP;
-  }
+  var _c=capeOf(tp,te,plfc,pel);
+  var dT=_c.dT;
+  var cape=_c.cape;
   var lv=capeLevel(cape);
   var wmax=cape>0?Math.sqrt(2*cape):0;
   var cinDesc=dT<0?'气块温度低于环境温度，存在对流抑制能量(CIN)，需强抬升触发':'低层无明显对流抑制';
-  var layerDepth='';
-  if(plfc>0&&pel>0&&plfc>pel){
-    var zLfc=(1013.25-plfc)*8.3;
-    var zEl=(1013.25-pel)*8.3;
-    layerDepth=((zEl-zLfc)/1000).toFixed(1);
-  }
+  var layerDepth=_c.z>0?(_c.z/1000).toFixed(1):'';
   var html='<div style="text-align:center;margin-bottom:14px;">'+
     '<div style="font-size:13px;color:var(--text-muted);">对流有效位能 CAPE</div>'+
     '<div style="font-size:42px;font-weight:800;color:'+lv.color+';line-height:1.1;">'+cape.toFixed(1)+' <span style="font-size:18px;">J/kg</span></div>'+
@@ -209,9 +217,7 @@ function saveHistory(){
   try{
     var list=JSON.parse(localStorage.getItem(historyKey())||'[]');
     var tp=getNum('tp'),te=getNum('te'),plfc=getNum('plfc'),pel=getNum('pel');
-    var dT=(tp+273.15)-(te+273.15);
-    var dP=(plfc-pel)*100;
-    var cape=(dT>0&&dP>0)?R_D*dT/(te+273.15)*dP:0;
+    var cape=capeOf(tp,te,plfc,pel).cape;
     var lv=capeLevel(cape);
     var data={summary:'CAPE '+cape.toFixed(0)+' J/kg '+lv.level,
       detail:'Tp='+tp+'°C Te='+te+'°C LFC='+plfc+' EL='+pel,
@@ -269,19 +275,19 @@ calc();
 </style>
 <section class="deep-dive" data-deep-dive="1">
 <div class="card">
-<h2>📚 深度解析：测风与风能资源评估</h2>
+<h2>📚 深度解析：CAPE 对流有效位能</h2>
 <h3>💡 常见使用场景</h3>
 <ul class="dd-list">
-<li>由测风塔风速序列估风功率密度。</li>
-<li>判断场址是否达开发风速门槛（如 5–6 m/s 年均）。</li>
-<li>用威布尔分布估年发电量。</li>
+<li>强对流潜势：由气块/环境温度与自由对流高度 LFC、平衡高度 EL 气压估 CAPE，判断雷暴发展可能。</li>
+<li>上升气流强度：w_max = √(2×CAPE)，估算理论最大上升速度。</li>
+<li>潜势分级：按 0–1000 弱、1000–2500 中等、2500–4000 强、≥4000 J/kg 极端对照对流强度。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">风功率密度</div><div class="dd-ex-body">空气密度 1.225、年均风速 7 m/s → 风功率密度=0.5×1.225×7³≈210 W/m²，属 2–3 类风场，具备开发价值。</div></div>
-<div class="dd-example"><div class="dd-ex-title">可用小时</div><div class="dd-ex-body">轮毂高 80m、风速≥3 m/s 占比 85% → 年可利用约 7446h，配合功率曲线估发电量。</div></div>
+<div class="dd-example"><div class="dd-ex-title">方法与量级</div><div class="dd-ex-body">算法：CAPE = g×(ΔT/Te)×Δz（J/kg，g=9.80665 m/s²，温度取开尔文），Δz 为 LFC→EL 的浮力层厚度，按压高公式 Δz = R_d·Tm/g·ln(p_LFC/p_EL) 估算（R_d=287.04 J/(kg·K)，Tm 取气块与环境平均温度）；理论最大上升速度 w_max = √(2×CAPE)。分级：≤0 稳定、0–1000 弱不稳定（孤立雷暴）、1000–2500 中等（雷暴较可能）、2500–4000 强（强雷暴/冰雹）、≥4000 极端（爆发性对流）。注意层厚用的是气压差对应的几何厚度，不是气压差本身。</div></div>
+<div class="dd-example"><div class="dd-ex-title">算例</div><div class="dd-ex-body">例：气块 25℃、环境 20℃、LFC 700hPa、EL 300hPa → ΔT=5K、Δz≈7.3km，CAPE = 9.80665×(5/293.15)×7330 ≈ 1226 J/kg（中等不稳定），w_max ≈ 49.5 m/s（理论上限，实际受夹卷与降水拖曳折减约 30%~50%）。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
-<dt>风速翻倍发电量几倍？</dt><dd>风功率∝风速立方，风速翻倍功率约 8 倍，所以选址对风速极敏感。</dd>
-<dt>风功率密度分几类？</dt><dd>我国分 1–4 类（≥400/300/250/200 W/m² 递减），越高越优质。</dd>
+<dt>CAPE 大就一定会有冰雹吗？</dt><dd>不一定。CAPE 只代表浮力潜势，还需触发条件（低层辐合、锋面或热力抬升）、合适的 0℃/−20℃ 层高度与 0–6km 风切变配合；CAPE 很高但 CIN 大或无触发时，常整天不发展对流。</dd>
+<dt>为什么理论最大上升速度偏高？</dt><dd>w_max = √(2×CAPE) 假设浮力全部转为垂直动能、且无夹卷与降水拖曳，是理想上限；实测上升气流速度一般为该值的 50%~70%。</dd>
 </dl>
 </div>
 </section>

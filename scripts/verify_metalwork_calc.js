@@ -154,7 +154,27 @@ const CASES = [
     "2.92"
   ],
   "ref": "v0=930,v1=6 → 层深系数 k=0.42+(930-900)×0.0016=0.468、总层深 δ=0.468×√6=1.146 mm、有效硬化层深 0.75δ=0.860 mm、达 0.8 mm 所需时间 (0.8/0.468)²=2.92 h（默认 900/4 → 0.840/0.630/3.63；交换后温度 6 ℃ 触发 850–950 ℃ 区间提示、无输出，均不重合）"
-}
+},
+
+  { slug: "metalwork/detector-hardness",
+    inputs: { "coatingType": "paint", "reqLevel": "2", "adhesionMethod": "crosscut",
+              "crosscutGrade": "0", "thickMethod": "eddy", "thickness": "48",
+              "stdThickness": "40", "thickTolerance": "4", "hardnessMethod": "vickers", "vickersVal": "900" },
+    expect: ["涂层质量优秀"],
+    ref: "结合力 0 级=100、厚度 48/40=1.2 倍=100、维氏 900HV（有机涂层要求 100HV）=100 → 综合 100 且三项全通过（默认铅笔 6B 不通过 → 等级标「涂层质量良好（未达标）」，与本值不重合）" },
+
+  { slug: "metalwork/detector-hardness",
+    inputs: { "coatingType": "paint", "reqLevel": "2", "adhesionMethod": "crosscut",
+              "crosscutGrade": "2", "thickMethod": "eddy", "thickness": "48",
+              "stdThickness": "40", "thickTolerance": "4", "hardnessMethod": "pencil", "pencilGrade": "6B" },
+    expect: ["涂层质量合格（未达标）"],
+    ref: "结合力 2 级=65（要求≤1 级 → 不通过）、厚度 100、铅笔 6B=10 不通过 → 综合 65×0.4+100×0.3+10×0.3=59，评分档位为「涂层质量合格」，逐项不通过时等级文案须带「（未达标）」（默认档位为「良好」，与本值不重合）" },
+
+  { slug: "metalwork/thread",
+    inputs: { threadType: "metric", diameter: "12", pitch: "1.75", material: "carbon",
+              threadDir: "internal", batch: "single" },
+    expect: ["小径 D1"],
+    ref: "内螺纹小径 D1=d−1.08253P=12−1.8944=10.106mm（默认外螺纹 → 该卡片标签为「牙底直径 d3」，与本值不重合）" }
 ];
 
 async function main() {
