@@ -143,7 +143,7 @@
 <li>T&gt;1 平滑分布(置信度降低)，T&lt;1 锐化(更自信)，是模型校准常用手段。</li>
 <li>与生成温度同源：同一机制既可用于校准也可调生成多样性。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">校准演示</div><div class="dd-ex-body">logits=[3,1,0]，T=1 概率≈[0.79,0.11,0.10]；T=2 → [0.59,0.23,0.18] 更不确定；模型原自信 79% 经校准可能更接近真实准确率。</div></div>
+<div class="dd-example"><div class="dd-ex-title">校准演示</div><div class="dd-ex-body">logits=[3,1,0]，T=1 → 概率≈[0.8438,0.1142,0.0420]；T=2 → [0.6285,0.2312,0.1402]，最高概率由 84.38% 降到 62.85%，更接近真实准确率即达到校准目的；T=0.5 → [0.9796,0.0179,0.0024] 过度自信。注意缩放只改数值大小，argmax 仍是第 1 类。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
 <dt>温度缩放能提升准确率吗？</dt><dd>不直接提升分类准确率(argmax 不变)，只让输出置信度更'诚实'地反映正确率，对需要可靠概率的应用(如风险决策)很有价值。</dd>
@@ -183,14 +183,18 @@
 </div>
 <script>
 function calc(){
+  const __fin=(v)=>Number.isFinite(v);
   const logit = +document.getElementById('logit').value || 0;
   const T = +document.getElementById('T').value || 0;
   const logit2 = +document.getElementById('logit2').value || 0;
   let html = '';
   const __v0 = (logit/T);
-  html += `<p>缩放后：<strong style="font-size:18px;color:var(--primary);">${__v0.toFixed(3)}</strong> </p>`;
+  html += `<p>缩放后：<strong style="font-size:18px;color:var(--primary);">${__fin(__v0)?__v0.toFixed(3):'—'}</strong> </p>`;
   const __v1 = (logit2/T);
-  html += `<p>对比缩放：<strong style="font-size:18px;color:var(--primary);">${__v1.toFixed(3)}</strong> </p>`;
+  html += `<p>对比缩放：<strong style="font-size:18px;color:var(--primary);">${__fin(__v1)?__v1.toFixed(3):'—'}</strong> </p>`;
+  const __bad = [__v0,__v1].some(v=>typeof v==='number'&&!Number.isFinite(v));
+  if (!(T>0)) html += '<p style="color:var(--danger);">⚠ 温度 T 必须大于 0（T=0 时 logit÷T 无定义）。</p>';
+  else if (__bad) html += '<p style="color:var(--danger);">⚠ 部分结果无定义（分母为 0 或输入为空），请检查输入。</p>';
   document.getElementById('result').innerHTML = html;
 }
 function copyResult() {

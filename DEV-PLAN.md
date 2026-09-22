@@ -321,6 +321,14 @@
 - **同一物理量跨页必须口径一致（BATCH52 补充）**：已连续命中两次 —— ① 超焦距 `photo/photo` 用 `f²/(N·c)`（29.76 m）而同站 `photo/depth-of-field`、`photo/hyperfocal` 用 `f²/(N·c)+f`（29.81 m）；② `photo/ev` 的 EV₁₀₀ 场景分档（≥12→多云）与 `photo/calc-exposure-aperture`（≥12→阴天/明亮阴影）对同一 EV 给出不同结论。**精查时把「同站实现同一物理量的所有页」列成一组横向比对，公式常数项与分档阈值都要对。**
 - **组合计数类「×2 / 之和」别手滑**：`geometry/trapezoid-area` 的「中位线×2」写成 `(a+b)×2`（实为 ×4），应为上下底之和 `a+b`；`geometry/rectangular-prism-volume` 的棱长总和用 `2(l+w+h)`，长方体 12 条棱应为 `4(l+w+h)`。
 
+### 8.11 边界探针（零值 / 空值）+「分支标签自证」+ 个位数 expect（2026-09-23 新增）
+
+- **默认态全对 ≠ 边界没问题（必跑零值/空值探针）**：`ai` 分类 56 页默认输出逐页独立复算、只有 1 处语义错，但把「全部输入置 0」与「全部置空」各跑一遍，**31 页（55%）立刻吐 `NaN`/`Infinity`**（`ai/ai`、`cosine-similarity`、`min-max`、`rmse`、`roc-auc`、`rag`… 全是 0/0 或 x/0）。**精查 SOP 必须包含变体跑：DEF / ZERO / EMPTY（必要时加 NEG），输出只要出现 `NaN|Infinity|undefined` 即立项。** 探针脚本见 `/tmp/_probe_zero.js`（由 `scripts/_audit_iso_calc.js` 派生，把 `runIso(slug)` 改成 `runIso(slug, MODE)` 并在 preset 构建后覆盖输入），可直接复用到任意分类：`node /tmp/_probe_zero.js _ <industry>`。
+- **守卫的落地方式（可脚本化，勿逐页手写）**：在 `calc()` 开头注入 `const __fin=(v)=>Number.isFinite(v);`，把每个 `${__vN.toFixed(d)}` 改成 `${__fin(__vN)?__vN.toFixed(d):'—'}`，并在赋值前追加 `const __bad=[...].some(v=>typeof v==='number'&&!Number.isFinite(v)); if(__bad) html += '<p style="color:var(--danger);">⚠ 部分结果无定义（分母为 0 或输入为空），请检查输入。</p>';`。默认态无 NaN ⇒ 输出零回归，可安全批量；语义清晰的页再叠一条具体判据（T>0 / max>min / 零向量）。
+- **「对比分支」标签必须自证**：`ai/softmax-2` 的「低温 P1」分支实际代入的是**当前 T**，高温分支才用 `T×2` ⇒ T=1 时两行完全同值（62.85% / 62.85%），用户必然误判「温度参数无效」。**凡页面并列多档对比（低温/高温、乐观/悲观、快速/慢速），每档必须真的用不同参数，并在标签里写明**（改为 T/2、T×2 后默认态 62.85 / 84.38 / 48.10 才有意义）。
+- **个位数 expect 极易被默认输出吃掉**：`ai/ai-10` 的「感受野 9」被默认输出的 `0.9998` 命中 ⇒ discriminate 判定为逃生项。**expect 出现一位数时，换输入让它变成两位以上**（该例改 d=3 → 感受野 13、输出尺寸 59），或直接剔除该项。
+- **深度解析的算例也会编数值**：`ai/softmax-2` 称 `T=0.5 → [0.76,0.17,0.07]`（实为 `[0.8438,0.1142,0.0420]`）、`ai/temperature-scaling` 称 `T=1 → [0.79,0.11,0.10]`（实为 `[0.8438,0.1142,0.0420]`），两组数内部甚至不自洽（相邻类比推不出同一 T）。**深度解析里的概率/数值算例一律用脚本重算后再写**。
+
 ---
 
 ## 九、发现但未修的真实缺陷（待老板定夺）
@@ -466,8 +474,9 @@ dermatology 14/11、engineering 14/11、signal 11/11、design 10/10、rheumatolo
 
 ### 方向1 公式-脚本一致性精查（进行中 · 2026-09-22 启动 · 老板选定）
 - **目标**：逐页独立复算高热度计算类页 `calc()` 输出的数学/物理正确性（与标准公式/权威向量比），找"用户拿到错钱数/错物理量"的真缺陷（§4.5 红线第一条最高频事故）。
-- **候选**：386 页（有 `formula-eq` + 真实 `calc()` + 数字输入，可被注入复算），覆盖 10 高热度行业；`finance` 40+ 页全未覆盖（Y，优先）。`science`（99 页）已在 BATCH47–49 走过一遍默认态复算（隔离器升级后 78 页可读）；`math`（36 页）已在 BATCH50 全量复算并闭环 14 页缺陷；`geometry`（28 页）已在 BATCH51 全量复算并闭环 15 页缺陷；`photo`（31 页）已在 BATCH52 全量复算并闭环 5 页缺陷；`ai`(56)/`sports`(56)/`agriculture`(52)/`finance`(52) 待开。
+- **候选**：386 页（有 `formula-eq` + 真实 `calc()` + 数字输入，可被注入复算），覆盖 10 高热度行业；`finance` 40+ 页全未覆盖（Y，优先）。`science`（99 页）已在 BATCH47–49 走过一遍默认态复算（隔离器升级后 78 页可读）；`math`（36 页）已在 BATCH50 全量复算并闭环 14 页缺陷；`geometry`（28 页）已在 BATCH51 全量复算并闭环 15 页缺陷；`photo`（31 页）已在 BATCH52 全量复算并闭环 5 页缺陷；`ai`（56 页）已在 BATCH53 全量复算并闭环（1 处默认态语义缺陷 + 31 页边界守卫 + 2 处深度解析算例订正）；`sports`(56)/`agriculture`(52)/`finance`(52) 待开。
 - **SOP**：正向校验 `runCase({slug, inputs, expect:独立复算值})`（ok=true=健康；ok=false=候选）；图表/动态 UI 页用「抽 calc/纯函数 + 自建桩 DOM」绕行。`runCase(expect:['\u0000'])` 取 `fullBlob` 看真实输出。
 - **harness 修复（本批）**：`verify_it_calc.js` 的 `makeEl` 补 `clientWidth/clientHeight/offsetWidth/offsetHeight/parentElement` 桩、`CTX2D.canvas` 补 `clientWidth/clientHeight` → 图表页（compound-interest/irr 等读 `clientWidth`/`ctx.canvas.clientWidth`/`el.parentElement.clientWidth`）可被 `runCase` 覆盖；重跑 `run_gates.py --skip-build` 仍 **215/215**（CASES 未增删，安全）。
 - **首批 finance 精查（53 页中首批 10 页）**：✅ 健康 7 页（simple-interest / npv-calculator / break-even-calculator / depreciation-calculator / vat-calculator / compound-interest / irr-calculator 算法）；⚠️ profit-margin-calculator 营业利润/EBITDA 未含财务费用（净利正确，低优先口径偏差，待下批复核是否按通用准则修正）；其余 43 页待继续。
 - **纪律**：确凿真缺陷前不改页面；找到即立项「缺陷 N」闭环（修 calc + 修/注册 verify 用例 + run_gates + 提交推送）。
+- **BATCH53（ai 分类，2026-09-23，仅本地提交）**：56 页全部可读（无空页）。默认态逐页独立复算后仅 1 处确凿缺陷 —— `ai/softmax-2`「低温 P1」实际用当前 T（T=1 时与「T=1 P1」同为 62.85%），已改 T/2 与 T×2 并把温度写进标签。随后按 §8.11 跑 ZERO/EMPTY 探针，31 页输出 NaN 已全部加非有限值守卫（4 页另给具体判据）。新增 35 例非默认用例（44/44 通过、判别力 44/44 变红 0 逃生），门禁 217/217，基线 total_cases 3109→3144、checked 2582→2617，all_default 237 / no_inputs 212 / escape 0 均不变。

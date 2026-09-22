@@ -144,11 +144,12 @@
 <li>T→∞ 趋近均匀分布，T→0 趋近 one-hot(argmax)。</li>
 <li>温度常用于调节生成多样性与模型校准，不改变 argmax 类别。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">温度影响分布</div><div class="dd-ex-body">logits=[2,1,0.5]，T=1 → 概率≈[0.56,0.21,0.23]；T=2 → [0.46,0.30,0.24] 更平滑；T=0.5 → [0.76,0.17,0.07] 更尖锐。argmax 始终为第 1 类。</div></div>
+<div class="dd-example"><div class="dd-ex-title">温度影响分布</div><div class="dd-ex-body">logits=[2,1,0.5]：T=1 → 概率≈[0.6285,0.2312,0.1402]；T×2=2 → [0.4810,0.2918,0.2272] 更平滑；T/2=0.5 → [0.8438,0.1142,0.0420] 更尖锐。三个温度下的 argmax 始终为第 1 类，说明温度只改变置信度分布、不改变预测类别。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
 <dt>温度能校准模型吗？</dt><dd>温度缩放是最简单的后校准方法，调 T 使输出置信度匹配实际准确率；但它只缩放分布、不能修正错误预测的方向。</dd>
 <dt>生成时温度设多高？</dt><dd>创意写作用较高 T(0.7~1.0)增多样性，事实问答用低 T(0~0.3)增确定性；过高会胡言乱语，过低则重复僵化。</dd>
+<dt>页面上为什么要同时给出 T=1、T/2、T×2 三行？</dt><dd>单看一个温度看不出趋势。三行分别代表基准、低温(更尖锐、更自信)与高温(更平缓、更不确定)，可直接读出「T 减半最大概率从 62.85% 升到 84.38%、T 翻倍降到 48.10%」这种量级变化，便于判断该往哪个方向调。温度必须大于 0，T=0 时 logits÷T 无定义。</dd>
 </dl>
 </div>
 </section>
@@ -184,19 +185,24 @@
 </div>
 <script>
 function calc(){
+  const __fin=(v)=>Number.isFinite(v);
   const z1 = +document.getElementById('z1').value || 0;
   const z2 = +document.getElementById('z2').value || 0;
   const z3 = +document.getElementById('z3').value || 0;
   const t = +document.getElementById('t').value || 0;
+  const tl = t/2, th = t*2; // 低温 = T/2（分布更尖锐），高温 = T×2（分布更平缓）
   let html = '';
   const __v0 = (Math.exp(z1)/(Math.exp(z1)+Math.exp(z2)+Math.exp(z3))*100);
-  html += `<p>T=1 P1：<strong style="font-size:18px;color:var(--primary);">${__v0.toFixed(2)}</strong> %</p>`;
-  const __v1 = (Math.exp(z1/t)/(Math.exp(z1/t)+Math.exp(z2/t)+Math.exp(z3/t))*100);
-  html += `<p>低温 P1：<strong style="font-size:18px;color:var(--primary);">${__v1.toFixed(2)}</strong> %</p>`;
+  html += `<p>T=1 P1：<strong style="font-size:18px;color:var(--primary);">${__fin(__v0)?__v0.toFixed(2):'—'}</strong> %</p>`;
+  const __v1 = (Math.exp(z1/tl)/(Math.exp(z1/tl)+Math.exp(z2/tl)+Math.exp(z3/tl))*100);
+  html += `<p>低温 P1（T/2）：<strong style="font-size:18px;color:var(--primary);">${__fin(__v1)?__v1.toFixed(2):'—'}</strong> %</p>`;
   const __v2 = (Math.exp(z1/(t*2))/(Math.exp(z1/(t*2))+Math.exp(z2/(t*2))+Math.exp(z3/(t*2)))*100);
-  html += `<p>高温 P1：<strong style="font-size:18px;color:var(--primary);">${__v2.toFixed(2)}</strong> %</p>`;
+  html += `<p>高温 P1（T×2）：<strong style="font-size:18px;color:var(--primary);">${__fin(__v2)?__v2.toFixed(2):'—'}</strong> %</p>`;
   const __v3 = (-Math.exp(z1/t)/(Math.exp(z1/t)+Math.exp(z2/t)+Math.exp(z3/t))*Math.log(Math.exp(z1/t)/(Math.exp(z1/t)+Math.exp(z2/t)+Math.exp(z3/t)))-Math.exp(z2/t)/(Math.exp(z1/t)+Math.exp(z2/t)+Math.exp(z3/t))*Math.log(Math.exp(z2/t)/(Math.exp(z1/t)+Math.exp(z2/t)+Math.exp(z3/t)))-Math.exp(z3/t)/(Math.exp(z1/t)+Math.exp(z2/t)+Math.exp(z3/t))*Math.log(Math.exp(z3/t)/(Math.exp(z1/t)+Math.exp(z2/t)+Math.exp(z3/t))));
-  html += `<p>分布熵：<strong style="font-size:18px;color:var(--primary);">${__v3.toFixed(4)}</strong> </p>`;
+  html += `<p>分布熵：<strong style="font-size:18px;color:var(--primary);">${__fin(__v3)?__v3.toFixed(4):'—'}</strong> </p>`;
+  const __bad = [__v0,__v1,__v2,__v3].some(v=>typeof v==='number'&&!Number.isFinite(v));
+  if (!(t>0)) html += '<p style="color:var(--danger);">⚠ 温度 T 必须大于 0（T=0 时 logits÷T 无定义）。</p>';
+  else if (__bad) html += '<p style="color:var(--danger);">⚠ 部分结果无定义（分母为 0 或输入为空），请检查输入。</p>';
   document.getElementById('result').innerHTML = html;
 }
 function copyResult() {
