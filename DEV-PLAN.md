@@ -318,6 +318,7 @@
 - **角度卡片铁律**：凡输出带标签的角（∠A / ∠B / 角 A / 角 B），**公式里的「对边」必须与标签一致**：∠A 的对边是 a，故 `tan A = a/b`、`cos A = (b²+c²−a²)/(2bc)`。已连续命中两次同类错误 —— `math/law-of-cosines`（用 (a²+c²−b²)/(2ac) 即角 B 的公式却标「角 A」）、`geometry/pythagorean`（`atan2(b,a)` 是 ∠B 却标「∠A」，3-4-5 显示 ∠A=53.13°）。**复核口径：取退化特例手算**（如 a=b 时两锐角必为 45°、a≪b 时 ∠A 必接近 0°），不符即错。
 - **「夹角」类名要落到定义**：`geometry/rectangle-diagonal` 的「对角线夹角」原本算 `atan(h/w)` —— 那是对角线与**边**的夹角；两对角线夹角 = `acos((w²−h²)/(w²+h²)) = 2·arctan(min/max)`（3×4 矩形为 73.74° 而非 53.13°）。凡标签含「夹角/之间」的，先用向量点积推导一遍再写代码。
 - **同类换算页必须交叉核对**：`geometry/sphere-volume` 把 1 m³=1000 L 写成 `V/1000`（113.097 m³ 显示 0.113097 L，差 10⁶ 倍），而同站的 `geometry/ellipsoid-volume` 写的是 `×1000`（正确）。**同站内存在多个同类换算页时，逐页比对符号与量级，一页错一页对是极强的缺陷信号。**
+- **同一物理量跨页必须口径一致（BATCH52 补充）**：已连续命中两次 —— ① 超焦距 `photo/photo` 用 `f²/(N·c)`（29.76 m）而同站 `photo/depth-of-field`、`photo/hyperfocal` 用 `f²/(N·c)+f`（29.81 m）；② `photo/ev` 的 EV₁₀₀ 场景分档（≥12→多云）与 `photo/calc-exposure-aperture`（≥12→阴天/明亮阴影）对同一 EV 给出不同结论。**精查时把「同站实现同一物理量的所有页」列成一组横向比对，公式常数项与分档阈值都要对。**
 - **组合计数类「×2 / 之和」别手滑**：`geometry/trapezoid-area` 的「中位线×2」写成 `(a+b)×2`（实为 ×4），应为上下底之和 `a+b`；`geometry/rectangular-prism-volume` 的棱长总和用 `2(l+w+h)`，长方体 12 条棱应为 `4(l+w+h)`。
 
 ---
@@ -465,7 +466,7 @@ dermatology 14/11、engineering 14/11、signal 11/11、design 10/10、rheumatolo
 
 ### 方向1 公式-脚本一致性精查（进行中 · 2026-09-22 启动 · 老板选定）
 - **目标**：逐页独立复算高热度计算类页 `calc()` 输出的数学/物理正确性（与标准公式/权威向量比），找"用户拿到错钱数/错物理量"的真缺陷（§4.5 红线第一条最高频事故）。
-- **候选**：386 页（有 `formula-eq` + 真实 `calc()` + 数字输入，可被注入复算），覆盖 10 高热度行业；`finance` 40+ 页全未覆盖（Y，优先）。`science`（99 页）已在 BATCH47–49 走过一遍默认态复算（隔离器升级后 78 页可读）；`math`（36 页）已在 BATCH50 全量复算并闭环 14 页缺陷；`geometry`（28 页）已在 BATCH51 全量复算并闭环 15 页缺陷；`photo`(30)/`ai`(56)/`sports`(56)/`agriculture`(52)/`finance`(52) 待开。
+- **候选**：386 页（有 `formula-eq` + 真实 `calc()` + 数字输入，可被注入复算），覆盖 10 高热度行业；`finance` 40+ 页全未覆盖（Y，优先）。`science`（99 页）已在 BATCH47–49 走过一遍默认态复算（隔离器升级后 78 页可读）；`math`（36 页）已在 BATCH50 全量复算并闭环 14 页缺陷；`geometry`（28 页）已在 BATCH51 全量复算并闭环 15 页缺陷；`photo`（31 页）已在 BATCH52 全量复算并闭环 5 页缺陷；`ai`(56)/`sports`(56)/`agriculture`(52)/`finance`(52) 待开。
 - **SOP**：正向校验 `runCase({slug, inputs, expect:独立复算值})`（ok=true=健康；ok=false=候选）；图表/动态 UI 页用「抽 calc/纯函数 + 自建桩 DOM」绕行。`runCase(expect:['\u0000'])` 取 `fullBlob` 看真实输出。
 - **harness 修复（本批）**：`verify_it_calc.js` 的 `makeEl` 补 `clientWidth/clientHeight/offsetWidth/offsetHeight/parentElement` 桩、`CTX2D.canvas` 补 `clientWidth/clientHeight` → 图表页（compound-interest/irr 等读 `clientWidth`/`ctx.canvas.clientWidth`/`el.parentElement.clientWidth`）可被 `runCase` 覆盖；重跑 `run_gates.py --skip-build` 仍 **215/215**（CASES 未增删，安全）。
 - **首批 finance 精查（53 页中首批 10 页）**：✅ 健康 7 页（simple-interest / npv-calculator / break-even-calculator / depreciation-calculator / vat-calculator / compound-interest / irr-calculator 算法）；⚠️ profit-margin-calculator 营业利润/EBITDA 未含财务费用（净利正确，低优先口径偏差，待下批复核是否按通用准则修正）；其余 43 页待继续。

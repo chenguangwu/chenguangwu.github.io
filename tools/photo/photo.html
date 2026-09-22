@@ -142,12 +142,12 @@
 <li>控制前后清晰范围。</li>
 <li>人像与风光取舍。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">总景深</div><div class="dd-ex-body">50mm、f/4、对焦 3m：近景深 ≈ 2.85m、远景深 ≈ 3.17m，总景深 ≈ 0.32m，浅景深适合虚化；收 f/11 总景深扩至约 1.1m。</div></div>
-<div class="dd-example"><div class="dd-ex-title">距离影响</div><div class="dd-ex-body">同 f/4 对焦 1m：总景深仅约 0.04m，极浅；对焦远则景深迅速增大。</div></div>
+<div class="dd-example"><div class="dd-ex-title">总景深</div><div class="dd-ex-body">50mm、f/4、对焦 3m：H=f²/(N·c)+f≈20.88m，近界限 2.63m、远界限 3.49m ⇒ 前景深 0.37m、后景深 0.49m、总景深 0.87m（浅景深适合虚化）；收 f/11 后总景深扩至约 2.75m。</div></div>
+<div class="dd-example"><div class="dd-ex-title">距离影响</div><div class="dd-ex-body">同 50mm f/4 对焦 1m：近界限 0.96m、远界限 1.05m ⇒ 总景深仅约 0.09m，极浅；对焦越近景深越窄。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
-<dt>总景深怎么得？</dt><dd>远处界减近界；对焦越近、光圈越大总景深越小，是虚化控制核心。</dd>
-<dt>为什么风光要小光圈？</dt><dd>小光圈总景深大，从前到后均清；但过小引衍射，f/8–f/11 兼顾。</dd>
+<dt>总景深怎么得？</dt><dd>远界限减近界限，等于前景深（对焦点到最近清晰点）加后景深（对焦点到最远清晰点）；对焦越近、光圈越大总景深越小，是虚化控制核心。</dd>
+<dt>为什么风光要小光圈？</dt><dd>小光圈总景深大，从前到后均清；但过小引衍射，f/8–f/11 兼顾。对焦在超焦距时后景深延伸至无穷远。</dd>
 </dl>
 </div>
 </section>
@@ -188,14 +188,25 @@ function calc(){
   const coc = +document.getElementById('coc').value || 0;
   const distance = +document.getElementById('distance').value || 0;
   let html = '';
-  const __v0 = (focal*focal/(aperture*coc)/1000);
-  html += `<p>超焦距：<strong style="font-size:18px;color:var(--primary);">${__v0.toFixed(2)}</strong> m</p>`;
-  const __v1 = ((distance*1000*(distance*1000-focal))/(distance*1000+focal*focal/(aperture*coc))/1000);
+  if(!(focal>0 && aperture>0 && coc>0)){
+    document.getElementById('result').innerHTML = '<p style="color:var(--danger);">焦距、光圈与弥散圆都必须大于 0。</p>';
+    return;
+  }
+  const smm = distance*1000;
+  if(!(smm > focal)){
+    document.getElementById('result').innerHTML = '<p style="color:var(--danger);">对焦距离必须大于焦距，否则无法成像（当前 ' + distance + ' m ≤ 焦距 ' + (focal/1000) + ' m）。</p>';
+    return;
+  }
+  // 超焦距 H = f²/(N·c) + f（mm）；对焦在 H 时清晰范围从 H/2 到无穷远
+  const Hmm = focal*focal/(aperture*coc) + focal;
+  // 近界限 Dn = s(H−f)/(H+s−2f) ⇒ 前景深 = s − Dn = s(s−f)/(H+s−2f)
+  const __v1 = smm*(smm-focal)/(Hmm+smm-2*focal)/1000;
+  // 远界限 Df = s(H−f)/(H−s) ⇒ 后景深 = Df − s = s(s−f)/(H−s)；s≥H 时远界限为无穷远
+  const __v2 = (Hmm > smm) ? smm*(smm-focal)/(Hmm-smm)/1000 : Infinity;
+  html += `<p>超焦距：<strong style="font-size:18px;color:var(--primary);">${(Hmm/1000).toFixed(2)}</strong> m</p>`;
   html += `<p>近景深：<strong style="font-size:18px;color:var(--primary);">${__v1.toFixed(2)}</strong> m</p>`;
-  const __v2 = ((distance*1000*(distance*1000-focal))/(distance*1000-focal*focal/(aperture*coc))/1000);
-  html += `<p>远景深：<strong style="font-size:18px;color:var(--primary);">${__v2.toFixed(2)}</strong> m</p>`;
-  const __v3 = (((distance*1000*(distance*1000-focal))/(distance*1000-focal*focal/(aperture*coc))-(distance*1000*(distance*1000-focal))/(distance*1000+focal*focal/(aperture*coc)))/1000);
-  html += `<p>总景深：<strong style="font-size:18px;color:var(--primary);">${__v3.toFixed(2)}</strong> m</p>`;
+  html += `<p>远景深：<strong style="font-size:18px;color:var(--primary);">${isFinite(__v2)?__v2.toFixed(2):'∞（无穷远）'}</strong> m</p>`;
+  html += `<p>总景深：<strong style="font-size:18px;color:var(--primary);">${isFinite(__v2)?(__v1+__v2).toFixed(2):'∞（无穷远）'}</strong> m</p>`;
   document.getElementById('result').innerHTML = html;
 }
 function copyResult() {

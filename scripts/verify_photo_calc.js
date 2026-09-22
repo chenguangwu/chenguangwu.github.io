@@ -104,6 +104,28 @@ const CASES = [
     inputs: { aperture: "11", shutter: "1/250", iso: "200" },
     expect: ["13.88"],
     ref: "EV100=log2(11²/(1/250))−log2(200/100)=log2(30250)−1=14.88−1=13.88（默认 f8/1÷125/ISO100→12.97，避开）" },
+
+  // ---- BATCH52 新增：景深符号 / 无穷远 / 分档口径 ----
+  { slug: "photo/photo",
+    inputs: { focal: "35", aperture: "8", coc: "0.03", distance: "3" },
+    expect: ["4.16", "5.26"],
+    ref: "H=35²/(8×0.03)+35=5139.17mm=5.14m；Dn=s(H−f)/(H+s−2f)=1897.8mm ⇒ 前景深=1.10m；Df=s(H−f)/(H−s)=7157.6mm ⇒ 后景深=4.16m；总景深=5.26m。原实现远界分母写成 s−f²/(Nc)=−(H−s−f) ⇒ 后景深=−4.16、总景深=−5.26（负数），且超焦距漏掉 +f（29.76 vs 同站 depth-of-field 的 29.81）" },
+  { slug: "photo/depth-of-field",
+    inputs: { f: "35", n: "8", s: "10", c: "0.03" },
+    expect: ["∞"],
+    ref: "H=5.14m < 对焦距离 10m ⇒ 远界限为无穷远，后景深应为 ∞；原实现仍按 H·s/(H−s+f) 算得负值（−9.5m）。前景深=6.61m 不受影响" },
+  { slug: "photo/dynamic-range",
+    inputs: { maxL: "32768", minL: "1", sensorStops: "14" },
+    expect: ["现场 15.00 档 vs 传感器 14 档"],
+    ref: "DR=log2(32768)=15.00 档 > 传感器 14 档 ⇒ 溢出为「是」；原实现输出 `0` 并附一个无意义的字面量「0/1」，用户看不懂是/否" },
+  { slug: "photo/photo-7",
+    inputs: { sensor_w: "36", object_w: "18", image_w: "36" },
+    expect: ["18"],
+    ref: "放大倍率=36/18=2.00× ⇒ 可拍最大物体=传感器宽÷倍率=36/2=18mm；原实现直接回显传感器宽度 36mm，与放大倍率无关（默认 object_w=10 时巧合等于 10mm）" },
+  { slug: "photo/ev",
+    inputs: { aperture: "8", shutter: "0.008", iso: "100" },
+    expect: ["阴天/明亮阴影"],
+    ref: "EV100=log2(8²/0.008)=log2(8000)=12.97 ⇒ 按同站 calc-exposure-aperture 的分档应判「阴天/明亮阴影」；原实现用 ≥12→多云 的另一套分档，同一 EV 在两页结论不一致" },
 ];
 
 async function main() {
