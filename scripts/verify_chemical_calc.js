@@ -5,11 +5,18 @@ const CASES = [
 {
   "slug": "chemical/calc-pipeline-pressure-drop",
   "inputs": {
-    "v0": "100",
-    "v1": "50"
+    "v0": "300",
+    "v1": "150",
+    "v2": "2.0",
+    "v3": "850",
+    "v4": "0.0005",
+    "v5": "0.1"
   },
   "expect": [
-    "暂无计算记录"
+    "3.29 kPa",
+    "1020000",
+    "0.0039",
+    "0.394 m"
   ]
 },
 {
@@ -53,11 +60,14 @@ const CASES = [
 {
   "slug": "chemical/miaomu-guige-zhiliang-yanshou-biaozhun",
   "inputs": {
-    "v0": "100",
-    "v1": "50"
+    "v0": "200",
+    "v1": "180",
+    "v2": "165"
   },
   "expect": [
-    "暂无计算记录"
+    "90.0%",
+    "82.5%",
+    "86.3"
   ]
 },
 {

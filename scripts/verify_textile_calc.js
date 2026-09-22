@@ -192,11 +192,14 @@ const CASES = [
 {
   "slug": "textile/fuliao-lalian-niukou-guige",
   "inputs": {
-    "v0": "150",
-    "v1": "50"
+    "v0": "100",
+    "v1": "12",
+    "v2": "5"
   },
   "expect": [
-    "7500.00"
+    "110.0 cm",
+    "10 颗",
+    "26 mm"
   ],
   "ref": "auto-restore"
 },
