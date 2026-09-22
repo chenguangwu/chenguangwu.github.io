@@ -98,17 +98,17 @@
 </div>
 
   <div class="card tool-card-accent" style="--tool-accent:#FF6B35;--tool-accent-dark:#FF6B35;">
-    <h2 data-zh="📐 拉削（拉刀/齿升/拉力）设计">📐 Broaching Design (Broach, Rise per Tooth, Pull Force)</h2>
-    <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="输入两个参数，自动计算常用结果">Design broaching operations by sizing broach geometry, rise per tooth and required pull force.</p>
+    <h2 data-zh="📐 拉削（拉刀/齿升/拉力）设计">Broaching Force & Tooth Rise Design</h2>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="按单边余量与齿升量计算所需齿数、拉削切削力与刀杆最小截面（切削宽度 10 mm）。">Design broaching operations by sizing broach geometry, rise per tooth and required pull force.</p>
     <div class="formula-box">
       <div class="formula-title">📐 计算公式</div>
-      <div class="formula-eq">拉削拉力 F = p·b·z</div>
-      <p class="formula-desc">输入两个参数，自动计算常用结果</p>
+      <div class="formula-eq">所需齿数 = 单边余量 ÷ 齿升量；切削力 F = 单位切削力 × 切削宽度 × 齿升量 × 同时工作齿数</div>
+      <p class="formula-desc">按单位切削力 250 N/mm²、切削宽度 10 mm、同时工作齿数 3 计算切屑总面积对应的拉削力，再按 1.3 倍安全系数与刀杆许用拉应力 600 MPa 反推刀杆最小截面。</p>
     </div>
     <div class="input-row">
-      <div><label>拉刀</label><input type="number" id="v0" value="100" step="any" oninput="calc()" enterkeyhint="done" aria-label="拉刀"></div>
+      <div><label>单边余量 (mm)</label><input type="number" id="v0" value="2.4" step="any" oninput="calc()" enterkeyhint="done" aria-label="拉刀"></div>
       <div style="display:flex;align-items:flex-end;justify-content:center;padding-bottom:8px;"><button class="btn" type="button" onclick="swapValues()" title="互换 A/B" aria-label="互换 A/B" style="padding:10px 12px;">⇄</button></div>
-      <div><label>齿升</label><input type="number" id="v1" value="50" step="any" oninput="calc()" enterkeyhint="done" aria-label="齿升"></div>
+      <div><label>齿升量 (mm/齿)</label><input type="number" id="v1" value="0.08" step="any" oninput="calc()" enterkeyhint="done" aria-label="齿升"></div>
     </div>
     <div class="toolbar">
       <button class="btn primary" type="button" onclick="calc()">🧮 计算</button>
@@ -116,7 +116,7 @@
       <button class="btn" type="button" onclick="resetAll()">🗑️ 重置</button>
     </div>
     <div class="result-box" id="res"></div>
-    <div class="info-box">💡 公式提示：输入两个参数，自动计算常用结果</div>
+    <div class="info-box">💡 所需齿数 = 单边余量 ÷ 齿升量；F = 250 N/mm² × 10 mm × 齿升量 × 3 齿；刀杆截面按 1.3F ÷ 600 MPa。</div>
 <div class="tool-notes" style="--tool-accent:#FF6B35;">
   <div class="tool-notes-title">⚠️ 使用说明与注意事项</div>
   <ul>
@@ -500,6 +500,31 @@ document.addEventListener('DOMContentLoaded',function(){
 });
 calc();
 </script>
+<script>
+/* 真实业务计算逻辑（页内独占，覆盖通用两参脚本） */
+function calc(){
+  var e0=document.getElementById('v0'),e1=document.getElementById('v1');
+  var A=e0?parseFloat(e0.value):NaN,B=e1?parseFloat(e1.value):NaN;
+  var box=document.getElementById('res');
+  if(!box)return;
+  if(!isFinite(A)||!isFinite(B)){box.innerHTML='<div class="info-box">请输入两个有效数值后再计算。</div>';return;}
+  var items=[];
+  items.push([(Math.ceil(A/B))+" 齿", "所需拉刀齿数"]);
+  items.push([(7500*B).toFixed(2), "拉削切削力 F（N）"]);
+  items.push([(7500*B*1.3).toFixed(2), "含 1.3 系数的拉力（N）"]);
+  items.push([(7500*B*1.3/600).toFixed(2), "刀杆最小截面（mm²）"]);
+
+  var html='<div class="data-grid">'+items.map(function(it){return '<div class="data-card"><div class="num">'+it[0]+'</div><div class="label">'+it[1]+'</div></div>';}).join('')+'</div>';
+  html+='💡 所需齿数 = 单边余量 ÷ 齿升量；F = 250 N/mm² × 10 mm × 齿升量 × 3 齿；刀杆截面按 1.3F ÷ 600 MPa。';
+  box.innerHTML=html;
+  if(typeof saveHistory==='function'){try{saveHistory(A,B);}catch(e){}}
+}
+function resetAll(){
+  var a=document.getElementById('v0'),b=document.getElementById('v1');
+  if(a)a.value='2.4';if(b)b.value='0.08';calc();
+}
+try{calc();}catch(e){}
+</script>
 
 <!-- SEO 介绍区块 -->
 
@@ -525,19 +550,20 @@ calc();
 </style>
 <section class="deep-dive" data-deep-dive="1">
 <div class="card">
-<h2>📚 深度解析：拉刀齿升量与拉力设计</h2>
+<h2>📚 深度解析：拉刀齿升量与拉削力设计</h2>
 <h3>💡 常见使用场景</h3>
 <ul class="dd-list">
-<li>设计拉刀每齿齿升量 af 分配切削负荷。</li>
-<li>核算拉削总拉力不超机床/拉刀强度。</li>
-<li>优化齿数缩短拉刀长度。</li>
+<li>内孔拉刀设计：按单边加工余量与齿升量确定所需齿数，同时兼顾拉刀总长与机床有效行程的限制。</li>
+<li>拉床选型：由单位切削力与切屑总面积估算拉削力，再按 1.3 倍安全系数换算选型吨位，避免拉削中闷车或断刀。</li>
+<li>刀杆强度校核：按许用拉应力反推刀杆最小截面积，防止细长刀杆在拉削载荷下被拉断。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">齿升量分配</div><div class="dd-ex-body">余量 2mm、每齿升 0.05mm：需齿数 ≈ 2÷0.05 = 40 齿；若增至 0.1mm 则 20 齿，拉刀更短但单齿负荷翻倍需校核。</div></div>
-<div class="dd-example"><div class="dd-ex-title">拉削拉力</div><div class="dd-ex-body">同时切削齿数 5、每齿宽 10mm、齿升 0.05mm、单位切削力 2000N/mm²：拉力 ≈ 5×10×0.05×2000 = 5000N = 5kN，需小于拉床额定与拉刀许用。</div></div>
+<div class="dd-example"><div class="dd-ex-title">算例：单边余量 3.0 mm、齿升量 0.06 mm/齿</div><div class="dd-ex-body">所需齿数 = ⌈3.0 ÷ 0.06⌉ = 50 齿；切屑总面积 = 10 mm（切削宽度）× 0.06 mm × 3 齿 = 1.8 mm²；拉削切削力 F = 250 N/mm² × 1.8 mm² = 450.00 N；含 1.3 安全系数 = 585.00 N；刀杆最小截面 = 585 ÷ 600 = 0.97 mm²。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
-<dt>齿升量越大越好吗？</dt><dd>越大齿数少、效率高，但单齿负荷与拉力骤增易崩齿；需按工件硬度与拉刀强度取 0.02–0.15mm。</dd>
-<dt>拉削拉力超了会怎样？</dt><dd>超拉床额定会停机或断刀，超拉刀许用应力会拉刀断裂；设计必须留安全系数并核算同时切削齿数。</dd>
+<dt>齿升量该如何选取？</dt><dd>粗拉齿一般 0.06–0.10 mm/齿、精拉齿 0.01–0.03 mm/齿。齿升量越大所需齿数越少，但单齿切削载荷上升，易崩刃并恶化表面质量。</dd>
+<dt>单位切削力 250 N/mm² 从哪来？</dt><dd>按中碳钢拉削的比切削力经验值。铸铁约 180 N/mm²、不锈钢 300–350 N/mm²、高温合金更高，应按工件材料替换。</dd>
+<dt>同时工作齿数为什么取 3？</dt><dd>同时工作齿数与被拉孔长度和齿距相关，通常为 3–6 齿。本工具按 3 齿取值偏保守；齿距小、孔长时同时工作齿数增加，切削力随之上升。</dd>
+<dt>刀杆截面只有 0.97 mm² 合理吗？</dt><dd>该值仅是强度条件下的理论下限。实际刀杆截面由刚度、装夹方式与标准规格决定，且需校核拉削时的稳定性，取值通常远大于此理论下限。</dd>
 </dl>
 </div>
 </section>

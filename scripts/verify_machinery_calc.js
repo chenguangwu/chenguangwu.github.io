@@ -26,6 +26,7 @@ const CASES = [
   { slug: "machinery/tanhuangsheji", inputs: {v_d:"6", v_dd:"20", v_n:"8"}, expect: ["200.728 弹簧刚度"], ref: "弹簧设计" },
   { slug: "machinery/temp-hardness", inputs: {steelGrade:"custom", maxHrc:"45", temperK:"3", critDia:"15"}, expect: ["33.0 预期硬度"], ref: "热处理：自定义钢种 45-3×(500-150)/100=34.5，×0.9569 截面折减" },
   { slug: "machinery/thread-drive", inputs: {v_d2:"73", v_lead:"7", v_f:"20"}, expect: ["140.286 驱动力矩"], ref: "螺旋传动" },
+{ slug: "machinery/zhujian-bamoxiedu-sheji", inputs: {v0:"120", v1:"200"}, expect: ["204.19","2.09%"], ref: "v0=120,v1=200 → 高度落 50–200 档取 1.0°、尺寸差 120×tan1°=2.09 mm、上端外径 200+2×2.09=204.19 mm、放大率 2×2.09/200=2.09%（默认 60/200 → 1.0/1.05/202.09/1.05%；交换 200/60 → 1.0/3.49/66.98/11.64%。斜度档位 1.0 三态相同故不作断言，「2.09」被子串于默认态 202.09 亦剔除）" },
 ];
 
 async function main() {

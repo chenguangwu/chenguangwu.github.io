@@ -98,17 +98,17 @@
 </div>
 
   <div class="card tool-card-accent" style="--tool-accent:#FF6B35;--tool-accent-dark:#FF6B35;">
-    <h2 data-zh="💧 倒虹吸（水头损失）埋深">💧 Inverted Siphon Head Loss &amp; Burial Depth</h2>
-    <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="输入两个参数，自动计算常用结果">Estimate the head loss and required burial depth of an inverted siphon from pipe diameter, flow and terrain, for farmland water conservancy and water-supply crossings.</p>
+    <h2 data-zh="💧 倒虹吸（水头损失）埋深">Inverted Siphon Head Loss & Burial Depth</h2>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="按沿程与局部阻力公式计算倒虹吸总水头损失，并给出满足过流的最小埋深。">Estimate the head loss and required burial depth of an inverted siphon from pipe diameter, flow and terrain, for farmland water conservancy and water-supply crossings.</p>
     <div class="formula-box">
       <div class="formula-title">📐 计算公式</div>
-      <div class="formula-eq">倒虹吸水头损失 = 沿程+局部</div>
-      <p class="formula-desc">输入两个参数，自动计算常用结果</p>
+      <div class="formula-eq">沿程损失 h_f = λ × L ÷ D × v²/(2g)；局部损失 h_j = Σζ × v²/(2g)；总损失 = h_f ＋ h_j</div>
+      <p class="formula-desc">沿程损失按 λ = 0.025、内径 D = 1.0 m 计算，局部损失按进出口与弯头合计 Σζ = 1.5 计算；总水头损失再加 0.3 m 安全裕度即为倒虹吸最小埋深。</p>
     </div>
     <div class="input-row">
-      <div><label>数值 A</label><input type="number" id="v0" value="100" step="any" oninput="calc()" enterkeyhint="done" aria-label="数值 A"></div>
+      <div><label>管内流速 (m/s)</label><input type="number" id="v0" value="1.5" step="any" oninput="calc()" enterkeyhint="done" aria-label="数值 A"></div>
       <div style="display:flex;align-items:flex-end;justify-content:center;padding-bottom:8px;"><button class="btn" type="button" onclick="swapValues()" title="互换 A/B" aria-label="互换 A/B" style="padding:10px 12px;">⇄</button></div>
-      <div><label>数值 B</label><input type="number" id="v1" value="50" step="any" oninput="calc()" enterkeyhint="done" aria-label="数值 B"></div>
+      <div><label>管长 (m)</label><input type="number" id="v1" value="40" step="any" oninput="calc()" enterkeyhint="done" aria-label="数值 B"></div>
     </div>
     <div class="toolbar">
       <button class="btn primary" type="button" onclick="calc()">🧮 计算</button>
@@ -116,7 +116,7 @@
       <button class="btn" type="button" onclick="resetAll()">🗑️ 重置</button>
     </div>
     <div class="result-box" id="res"></div>
-    <div class="info-box">💡 公式提示：输入两个参数，自动计算常用结果</div>
+    <div class="info-box">💡 h_f = λ·L/D·v²/(2g)（λ=0.025、D=1.0 m）；h_j = Σζ·v²/(2g)（Σζ=1.5）；埋深 = 总损失 ＋ 0.3 m。</div>
 <div class="tool-notes" style="--tool-accent:#FF6B35;">
   <div class="tool-notes-title">⚠️ 使用说明与注意事项</div>
   <ul>
@@ -500,6 +500,31 @@ document.addEventListener('DOMContentLoaded',function(){
 });
 calc();
 </script>
+<script>
+/* 真实业务计算逻辑（页内独占，覆盖通用两参脚本） */
+function calc(){
+  var e0=document.getElementById('v0'),e1=document.getElementById('v1');
+  var A=e0?parseFloat(e0.value):NaN,B=e1?parseFloat(e1.value):NaN;
+  var box=document.getElementById('res');
+  if(!box)return;
+  if(!isFinite(A)||!isFinite(B)){box.innerHTML='<div class="info-box">请输入两个有效数值后再计算。</div>';return;}
+  var items=[];
+  items.push([(0.025*B*A*A/19.62).toFixed(4), "沿程水头损失（m）"]);
+  items.push([(1.5*A*A/19.62).toFixed(4), "局部水头损失（m）"]);
+  items.push([(0.025*B*A*A/19.62+1.5*A*A/19.62).toFixed(4), "总水头损失（m）"]);
+  items.push([(0.025*B*A*A/19.62+1.5*A*A/19.62+0.3).toFixed(2), "建议最小埋深（m）"]);
+
+  var html='<div class="data-grid">'+items.map(function(it){return '<div class="data-card"><div class="num">'+it[0]+'</div><div class="label">'+it[1]+'</div></div>';}).join('')+'</div>';
+  html+='💡 h_f = λ·L/D·v²/(2g)（λ=0.025、D=1.0 m）；h_j = Σζ·v²/(2g)（Σζ=1.5）；埋深 = 总损失 ＋ 0.3 m。';
+  box.innerHTML=html;
+  if(typeof saveHistory==='function'){try{saveHistory(A,B);}catch(e){}}
+}
+function resetAll(){
+  var a=document.getElementById('v0'),b=document.getElementById('v1');
+  if(a)a.value='1.5';if(b)b.value='40';calc();
+}
+try{calc();}catch(e){}
+</script>
 
 <!-- SEO 介绍区块 -->
 
@@ -528,16 +553,17 @@ calc();
 <h2>📚 深度解析：倒虹吸水头损失与埋深</h2>
 <h3>💡 常见使用场景</h3>
 <ul class="dd-list">
-<li>跨沟渠倒虹吸按沿程加局部损失定进出口水头差。</li>
-<li>埋深校核防冻与防洪冲刷。</li>
-<li>进出口消能防淤与排气设计。</li>
+<li>跨沟渠倒虹吸设计：由管内流速与管长分别计算沿程与局部水头损失，据此确定进出口水位差与管道最小埋深。</li>
+<li>管径方案比较：同一流量下比较不同管径的流速与水头损失，小管径虽造价低但水头损失剧增，需在造价与能耗间权衡。</li>
+<li>检修裕度校核：总损失再加 0.3 m 安全裕度作为最小埋深，避免泥沙淤积或局部堵塞后失去过流能力。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">损失估算</div><div class="dd-ex-body">管长 100 m、D=0.5、v=1.5、f=0.02 → 沿程 0.02×100/0.5×1.5²/19.62≈0.46 m，加弯头局部共约 0.7 m 落差。</div></div>
-<div class="dd-example"><div class="dd-ex-title">埋深</div><div class="dd-ex-body">出口高程固定时，按损失反推进口需抬高 0.7 m 以上并留冲刷余量定埋深。</div></div>
+<div class="dd-example"><div class="dd-ex-title">算例：管内流速 2.0 m/s、管长 50 m（D = 1.0 m、λ = 0.025、Σζ = 1.5）</div><div class="dd-ex-body">沿程水头损失 h_f = 0.025 × 50 ÷ 1.0 × 2.0² ÷ 19.62 = 0.2548 m；局部水头损失 h_j = 1.5 × 2.0² ÷ 19.62 = 0.3058 m；总水头损失 = 0.5607 m；建议最小埋深 = 0.5607 + 0.3 = 0.86 m。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
-<dt>为什么用倒虹吸？</dt><dd>渠道需下穿河沟道路时以压力管穿越，靠上下游水位差过流。</dd>
-<dt>排气重要吗？</dt><dd>高点易积气形成气阻降过流，须设排气阀。</dd>
+<dt>局部阻力系数 Σζ = 1.5 包含哪些部件？</dt><dd>通常包含进口（约 0.5）、出口（约 1.0）与弯管、闸阀等，取 1.5 为常规三弯管布置的经验合计值；弯头数量多或设有拦污栅时应加大。</dd>
+<dt>沿程阻力系数 λ 为什么取 0.025？</dt><dd>这是钢管、铸铁管在湍流粗糙区的常见值。PE 管与内衬光滑的管道更低（0.015–0.020），应按实际管材替换。</dd>
+<dt>埋深只由水头损失决定吗？</dt><dd>不是。还需满足冻深、覆土荷载与冲沟冲刷深度要求，水头损失给出的是保证过流所需的最小值，最终埋深取各条件中的最大值。</dd>
+<dt>倒虹吸为什么容易淤积？</dt><dd>管内流速低于不淤流速时泥沙沉积于管底，故倒虹吸管内流速一般要求不低于 1.5 m/s；流速不足时应缩小管径或加大水头。</dd>
 </dl>
 </div>
 </section>

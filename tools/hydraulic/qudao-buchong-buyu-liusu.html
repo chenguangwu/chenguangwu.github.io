@@ -98,17 +98,17 @@
 </div>
 
   <div class="card tool-card-accent" style="--tool-accent:#FF6B35;--tool-accent-dark:#FF6B35;">
-    <h2 data-zh="🔢 渠道（不冲/不淤）流速">🔢 Canal Non-Scouring / Non-Silting Velocity</h2>
-    <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="输入两个参数，自动计算常用结果">Estimate the reasonable non-scouring and non-silting velocity range for a canal from section geometry and roughness, for open-channel design and scour/silt checks.</p>
+    <h2 data-zh="🔢 渠道（不冲/不淤）流速">Canal Velocity (Non-scour / Non-silting)</h2>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="按谢才公式计算渠道断面平均流速，并与不冲流速、不淤流速参考值对比（n 取 0.025）。">Estimate the reasonable non-scouring and non-silting velocity range for a canal from section geometry and roughness, for open-channel design and scour/silt checks.</p>
     <div class="formula-box">
       <div class="formula-title">📐 计算公式</div>
-      <div class="formula-eq">渠道不冲流速 = f(土质)</div>
-      <p class="formula-desc">输入两个参数，自动计算常用结果</p>
+      <div class="formula-eq">谢才公式 v = (1/n) × R^(2/3) × S^(1/2)；粗糙系数 n 取 0.025（混凝土衬砌）</div>
+      <p class="formula-desc">谢才—曼宁公式是明渠流速的标准算式；由水力半径与渠底比降求平均流速后，与不淤流速 0.30 m/s、不冲流速 1.50 m/s 两个参考值相比，判断渠道是否处于不冲不淤区间。</p>
     </div>
     <div class="input-row">
-      <div><label>不冲</label><input type="number" id="v0" value="100" step="any" oninput="calc()" enterkeyhint="done" aria-label="不冲"></div>
+      <div><label>水力半径 R (m)</label><input type="number" id="v0" value="0.6" step="any" oninput="calc()" enterkeyhint="done" aria-label="不冲"></div>
       <div style="display:flex;align-items:flex-end;justify-content:center;padding-bottom:8px;"><button class="btn" type="button" onclick="swapValues()" title="互换 A/B" aria-label="互换 A/B" style="padding:10px 12px;">⇄</button></div>
-      <div><label>不淤</label><input type="number" id="v1" value="50" step="any" oninput="calc()" enterkeyhint="done" aria-label="不淤"></div>
+      <div><label>渠底比降 S</label><input type="number" id="v1" value="0.0003" step="any" oninput="calc()" enterkeyhint="done" aria-label="不淤"></div>
     </div>
     <div class="toolbar">
       <button class="btn primary" type="button" onclick="calc()">🧮 计算</button>
@@ -116,7 +116,7 @@
       <button class="btn" type="button" onclick="resetAll()">🗑️ 重置</button>
     </div>
     <div class="result-box" id="res"></div>
-    <div class="info-box">💡 公式提示：流速 = A ÷ B，总流量 = A + B</div>
+    <div class="info-box">💡 v = (1/n) × R^(2/3) × S^(1/2)，n 取 0.025；常用不淤流速 0.30 m/s、不冲流速 1.50 m/s 作为对照。</div>
 <div class="tool-notes" style="--tool-accent:#FF6B35;">
   <div class="tool-notes-title">⚠️ 使用说明与注意事项</div>
   <ul>
@@ -500,6 +500,31 @@ document.addEventListener('DOMContentLoaded',function(){
 });
 calc();
 </script>
+<script>
+/* 真实业务计算逻辑（页内独占，覆盖通用两参脚本） */
+function calc(){
+  var e0=document.getElementById('v0'),e1=document.getElementById('v1');
+  var A=e0?parseFloat(e0.value):NaN,B=e1?parseFloat(e1.value):NaN;
+  var box=document.getElementById('res');
+  if(!box)return;
+  if(!isFinite(A)||!isFinite(B)){box.innerHTML='<div class="info-box">请输入两个有效数值后再计算。</div>';return;}
+  var items=[];
+  items.push([((1/0.025)*Math.pow(A,2/3)*Math.pow(B,0.5)).toFixed(4), "断面平均流速（m/s）"]);
+  items.push([((1/0.025)*Math.pow(A,2/3)).toFixed(2), "水力半径系数 (1/n)·R^(2/3)"]);
+  items.push([((1/0.025)*Math.pow(A,2/3)*Math.pow(B,0.5)/0.3).toFixed(2), "相对不淤流速（0.30 m/s）倍数"]);
+  items.push([((1/0.025)*Math.pow(A,2/3)*Math.pow(B,0.5)/1.5).toFixed(3), "相对不冲流速（1.50 m/s）倍数"]);
+
+  var html='<div class="data-grid">'+items.map(function(it){return '<div class="data-card"><div class="num">'+it[0]+'</div><div class="label">'+it[1]+'</div></div>';}).join('')+'</div>';
+  html+='💡 v = (1/n) × R^(2/3) × S^(1/2)，n 取 0.025；常用不淤流速 0.30 m/s、不冲流速 1.50 m/s 作为对照。';
+  box.innerHTML=html;
+  if(typeof saveHistory==='function'){try{saveHistory(A,B);}catch(e){}}
+}
+function resetAll(){
+  var a=document.getElementById('v0'),b=document.getElementById('v1');
+  if(a)a.value='0.6';if(b)b.value='0.0003';calc();
+}
+try{calc();}catch(e){}
+</script>
 
 <!-- SEO 介绍区块 -->
 
@@ -525,19 +550,19 @@ calc();
 </style>
 <section class="deep-dive" data-deep-dive="1">
 <div class="card">
-<h2>📚 深度解析：渠道不冲不淤流速</h2>
+<h2>📚 深度解析：渠道不冲不淤流速校核</h2>
 <h3>💡 常见使用场景</h3>
 <ul class="dd-list">
-<li>按土质定不冲上限与不淤下限。</li>
-<li>衬砌与比降配合维持输沙平衡。</li>
-<li>清淤周期与断面调整。</li>
+<li>灌区渠道断面校核：由水力半径与渠底比降用谢才—曼宁公式求平均流速，与不淤下限 0.30 m/s、不冲上限 1.50 m/s 比较，判断断面是否处于不冲不淤区间。</li>
+<li>衬砌形式比选：混凝土衬砌与浆砌石、土渠在同一断面下的粗糙系数不同，流速差异显著，用于衬砌方案的技术经济比较。</li>
+<li>淤积与冲刷排查：实测流速长期低于不淤流速时渠道易淤积，高于不冲流速时会冲刷渠床，据此调整渠底比降或断面尺寸。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">不冲不淤带</div><div class="dd-ex-body">黏土地不冲 v≤0.6 m/s、不淤 v≥0.3 m/s，设计流速取 0.4~0.5 m/s 居中。</div></div>
-<div class="dd-example"><div class="dd-ex-title">比降调整</div><div class="dd-ex-body">天然比降使 v 超不冲，则放缓或衬砌降糙率，使 v 落安全带。</div></div>
+<div class="dd-example"><div class="dd-ex-title">算例：水力半径 0.8 m、渠底比降 0.0005（n = 0.025）</div><div class="dd-ex-body">断面平均流速 v = (1 ÷ 0.025) × 0.8^(2/3) × 0.0005^0.5 = 0.7708 m/s；水力半径系数 (1/n)·R^(2/3) = 40 × 0.8618 = 34.47；相对不淤流速 0.30 m/s 的倍数 = 0.7708 ÷ 0.30 = 2.57，相对不冲流速 1.50 m/s 的倍数 = 0.514，处于不冲不淤区间内。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
-<dt>不冲不淤矛盾？</dt><dd>流速太高冲、太低淤，靠比降与断面把 v 压在两者之间的窄带。</dd>
-<dt>含沙量影响？</dt><dd>高含沙需更高不淤流速，多沙渠道常加大比降或定期冲沙。</dd>
+<dt>粗糙系数 n 该取多少？</dt><dd>混凝土衬砌 0.014–0.017、浆砌石 0.020–0.025、土渠 0.025–0.035。本工具按偏保守的 0.025（混凝土衬砌）计算，实际 n 差异会直接改变流速结果，应按渠道实际衬砌类型替换。</dd>
+<dt>不冲流速为什么取 1.50 m/s？</dt><dd>这是常见黏性土的参考值。砂性土明显更低（0.4–0.8 m/s），砾石与岩石渠道更高；应按土壤类型与设计规范中的允许流速表取值。</dd>
+<dt>水力半径怎么求得？</dt><dd>R = 过水断面面积 ÷ 湿周。梯形断面需按底宽、边坡系数与水深计算，本工具直接输入 R，需先由断面几何尺寸算出。</dd>
 </dl>
 </div>
 </section>

@@ -98,17 +98,17 @@
 </div>
 <div class="container">
   <div class="card tool-card-accent" style="--tool-accent:#FF6B35;--tool-accent-dark:#FF6B35;">
-    <h2 data-zh="⚡ 机车（牵引力/功率）匹配">Power 5</h2>
-    <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="输入两个参数，自动计算常用结果">Power 5 - online utility on ToolBox.</p>
+    <h2 data-zh="⚡ 机车（牵引力/功率）匹配">Locomotive Tractive Power Matching</h2>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="按牵引力与运行速度换算机车牵引功率、单位牵引力功率需求与柴油机标定功率。">Power 5</p>
     <div class="formula-box">
       <div class="formula-title">📐 计算公式</div>
-      <div class="formula-eq">功率 = A × B (W)，1 kW = 1000 W</div>
-      <p class="formula-desc">输入两个参数，自动计算常用结果</p>
+      <div class="formula-eq">牵引功率 = 牵引力(kN) × 速度(km/h) ÷ 3.6（kW）；柴油机标定功率 = 牵引功率 ÷ 0.85（传动效率）</div>
+      <p class="formula-desc">1 kN × 1 km/h = 277.8 W，故牵引功率(kW) = 牵引力 × 速度 ÷ 3.6；再按 0.85 的传动效率反推柴油机标定功率，用于机车选型与牵引定数校核。</p>
     </div>
     <div class="input-row">
-      <div><label>牵引力</label><input type="number" id="v0" value="100" step="any" oninput="calc()" enterkeyhint="done" aria-label="牵引力"></div>
+      <div><label>牵引力 (kN)</label><input type="number" id="v0" value="200" step="any" oninput="calc()" enterkeyhint="done" aria-label="牵引力"></div>
       <div style="display:flex;align-items:flex-end;justify-content:center;padding-bottom:8px;"><button class="btn" type="button" onclick="swapValues()" title="互换 A/B" aria-label="互换 A/B" style="padding:10px 12px;">⇄</button></div>
-      <div><label>功率</label><input type="number" id="v1" value="50" step="any" oninput="calc()" enterkeyhint="done" aria-label="功率"></div>
+      <div><label>运行速度 (km/h)</label><input type="number" id="v1" value="60" step="any" oninput="calc()" enterkeyhint="done" aria-label="功率"></div>
     </div>
     <div class="toolbar">
       <button class="btn primary" type="button" onclick="calc()">🧮 计算</button>
@@ -116,7 +116,7 @@
       <button class="btn" type="button" onclick="resetAll()">🗑️ 重置</button>
     </div>
     <div class="result-box" id="res"></div>
-    <div class="info-box">💡 公式提示：功率 = A × B (W)，1 kW = 1000 W</div>
+    <div class="info-box">💡 牵引功率（kW）= 牵引力(kN) × 速度(km/h) ÷ 3.6；柴油机标定功率 = 牵引功率 ÷ 0.85（传动效率）。</div>
 <div class="tool-notes" style="--tool-accent:#FF6B35;">
   <div class="tool-notes-title">⚠️ 使用说明与注意事项</div>
   <ul>
@@ -500,6 +500,32 @@ document.addEventListener('DOMContentLoaded',function(){
 });
 calc();
 </script>
+<script>
+/* 真实业务计算逻辑（页内独占，覆盖通用两参脚本） */
+function calc(){
+  var e0=document.getElementById('v0'),e1=document.getElementById('v1');
+  var A=e0?parseFloat(e0.value):NaN,B=e1?parseFloat(e1.value):NaN;
+  var box=document.getElementById('res');
+  if(!box)return;
+  if(!isFinite(A)||!isFinite(B)){box.innerHTML='<div class="info-box">请输入两个有效数值后再计算。</div>';return;}
+  var items=[];
+  items.push([(A*B/3.6).toFixed(2), "牵引功率（kW）"]);
+  items.push([(B/3.6).toFixed(2), "每 kN 牵引力所需功率（kW/kN）"]);
+  items.push([(A/B).toFixed(3), "单位速度牵引力（kN/(km/h)）"]);
+  items.push([(A*3.6/B).toFixed(4), "每 km/h 的牵引力当量（kN）"]);
+  items.push([(A*B/3.6/0.85).toFixed(2), "柴油机标定功率（kW）"]);
+
+  var html='<div class="data-grid">'+items.map(function(it){return '<div class="data-card"><div class="num">'+it[0]+'</div><div class="label">'+it[1]+'</div></div>';}).join('')+'</div>';
+  html+='💡 牵引功率（kW）= 牵引力(kN) × 速度(km/h) ÷ 3.6；柴油机标定功率 = 牵引功率 ÷ 0.85（传动效率）。';
+  box.innerHTML=html;
+  if(typeof saveHistory==='function'){try{saveHistory(A,B);}catch(e){}}
+}
+function resetAll(){
+  var a=document.getElementById('v0'),b=document.getElementById('v1');
+  if(a)a.value='200';if(b)b.value='60';calc();
+}
+try{calc();}catch(e){}
+</script>
 
 <!-- SEO 介绍区块 -->
 
@@ -525,18 +551,19 @@ calc();
 </style>
 <section class="deep-dive" data-deep-dive="1">
 <div class="card">
-<h2>📚 深度解析：机车（牵引力/功率）匹配</h2>
+<h2>📚 深度解析：机车牵引力与功率匹配</h2>
 <h3>💡 常见使用场景</h3>
 <ul class="dd-list">
-<li>机车选型：按牵引质量与限制坡度求所需挽力，结合运行速度换算牵引功率，校核机型功率裕度。</li>
-<li>列车编组：固定机车功率下，反算不同速度等级可牵引的质量，优化编组避免欠速。</li>
-<li>线路牵引计算：结合起动牵引力与持续速度，校核起动加速能力与持续运行工况功率。</li>
+<li>机车选型与牵引定数校核：把区段的牵引力需求与运行速度代入，换算所需轮周牵引功率，与机型标称功率比较，判断能否满足牵引定数与区间运行时分。</li>
+<li>柴油机标定功率反推：按 0.85 的传动链效率从轮周牵引功率反推柴油机标定功率，避免只看轮周功率而选小机型导致长期满负荷运行。</li>
+<li>牵引能耗与燃油校核：功率需求确定后可按单位油耗估算区间燃油量与运行成本，用于机务运用方案比较。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">以双机牵引 5000 t 货物列车、限速 108 km/h 校核</div><div class="dd-ex-body">取机车轮周牵引力 F=300000 N（单机能效点附近），运行速度 v=30 m/s（108 km/h），所需牵引功率 P=F×v=300000×30=9,000,000 W=9000 kW。若采用双机（2×4800 kW=9600 kW 可用），裕度约 6.7%，满足持续运行；若速度提到 35 m/s（126 km/h）则需求 10,500 kW 超出可用功率，需降速或增机。</div></div>
+<div class="dd-example"><div class="dd-ex-title">算例：牵引力 300 kN、运行速度 80 km/h</div><div class="dd-ex-body">牵引功率 = 300 × 80 ÷ 3.6 = 6666.67 kW；每 kN 牵引力需 80 ÷ 3.6 = 22.22 kW/kN；单位速度牵引力 = 300 ÷ 80 = 3.750 kN/(km/h)；每 km/h 当量 = 300 × 3.6 ÷ 80 = 13.5000 kN；按 0.85 传动效率反推柴油机标定功率 = 6666.67 ÷ 0.85 = 7843.14 kW。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
-<dt>牵引功率为什么是力乘速度？</dt><dd>轮周功率 P=F×v，其中 F 为轮周牵引力(N)、v 为运行速度(m/s)，单位为瓦(W)；除以 1000 得 kW。物理含义是单位时间轮周做的功，是机车选型与线路牵引计算的核心校核量。</dd>
-<dt>限制坡度对功率需求影响多大？</dt><dd>限制坡度决定所需挽力（F≈(质量×g×坡度%+阻力)/机车数），坡度越大挽力越大；在给定速度下功率随挽力线性上升。例如同样 5000 t，12‰ 坡比 6‰ 坡所需挽力约翻倍，对应速度下的功率也约翻倍，选型时需按最不利坡段校核。</dd>
+<dt>为什么除以 3.6？</dt><dd>1 kN × 1 km/h = 1000 N × 0.2778 m/s = 277.8 W，故 P(kW) = F(kN) × v(km/h) ÷ 3.6。系数与单位制绑定，换成 tf 或 m/s 需重新换算。</dd>
+<dt>0.85 的传动效率指什么？</dt><dd>指从柴油机到轮周（主发电机、牵引电机、齿轮箱等）的综合传动效率，电传动内燃机车通常为 0.82–0.88；液力传动车型效率略低，应按机型实际曲线取值。</dd>
+<dt>牵引力与速度应取哪组值？</dt><dd>牵引定数计算取持续工况（持续速度与持续牵引力），起动工况牵引力更大但不能长时间维持；用起动值计算功率会显著高估需求。</dd>
 </dl>
 </div>
 </section>

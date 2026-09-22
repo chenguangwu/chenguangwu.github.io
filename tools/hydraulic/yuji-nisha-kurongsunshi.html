@@ -98,17 +98,17 @@
 </div>
 
   <div class="card tool-card-accent" style="--tool-accent:#FF6B35;--tool-accent-dark:#FF6B35;">
-    <h2 data-zh="🧊 淤积（泥沙）库容损失">🧊 Reservoir Sedimentation Loss Estimator</h2>
-    <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="输入两个参数，自动计算常用结果">Estimate reservoir storage loss from sediment inflow, capacity and desilting parameters, for reservoir operation and service-life assessment.</p>
+    <h2 data-zh="🧊 淤积（泥沙）库容损失">Reservoir Capacity Loss from Siltation</h2>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="按年入库沙量与干容重换算年淤积体积、50 年累计淤积量与库容损失率（总库容按 1000 万 m³）。">Estimate reservoir storage loss from sediment inflow, capacity and desilting parameters, for reservoir operation and service-life assessment.</p>
     <div class="formula-box">
       <div class="formula-title">📐 计算公式</div>
-      <div class="formula-eq">淤积损失 = 入库沙量×沉降率</div>
-      <p class="formula-desc">输入两个参数，自动计算常用结果</p>
+      <div class="formula-eq">年淤积体积 = 年入库沙量 ÷ 干容重；库容损失率 = 累计淤积体积 ÷ 总库容 × 100%</div>
+      <p class="formula-desc">泥沙淤积直接侵占有效库容；按 50 年设计年限累计后可量化库容损失率，用于判断是否需要设置排沙设施或调整运行方式。总库容按 1000 万 m³ 计。</p>
     </div>
     <div class="input-row">
-      <div><label>数值 A</label><input type="number" id="v0" value="100" step="any" oninput="calc()" enterkeyhint="done" aria-label="数值 A"></div>
+      <div><label>年入库沙量 (万 t)</label><input type="number" id="v0" value="15" step="any" oninput="calc()" enterkeyhint="done" aria-label="数值 A"></div>
       <div style="display:flex;align-items:flex-end;justify-content:center;padding-bottom:8px;"><button class="btn" type="button" onclick="swapValues()" title="互换 A/B" aria-label="互换 A/B" style="padding:10px 12px;">⇄</button></div>
-      <div><label>数值 B</label><input type="number" id="v1" value="50" step="any" oninput="calc()" enterkeyhint="done" aria-label="数值 B"></div>
+      <div><label>淤积物干容重 (t/m³)</label><input type="number" id="v1" value="1.3" step="any" oninput="calc()" enterkeyhint="done" aria-label="数值 B"></div>
     </div>
     <div class="toolbar">
       <button class="btn primary" type="button" onclick="calc()">🧮 计算</button>
@@ -116,7 +116,7 @@
       <button class="btn" type="button" onclick="resetAll()">🗑️ 重置</button>
     </div>
     <div class="result-box" id="res"></div>
-    <div class="info-box">💡 公式提示：输入两个参数，自动计算常用结果</div>
+    <div class="info-box">💡 年淤积体积（万 m³）= 年入库沙量 ÷ 干容重；库容损失率 = 50 年累计 ÷ 总库容（按 1000 万 m³）× 100%。</div>
 <div class="tool-notes" style="--tool-accent:#FF6B35;">
   <div class="tool-notes-title">⚠️ 使用说明与注意事项</div>
   <ul>
@@ -500,6 +500,31 @@ document.addEventListener('DOMContentLoaded',function(){
 });
 calc();
 </script>
+<script>
+/* 真实业务计算逻辑（页内独占，覆盖通用两参脚本） */
+function calc(){
+  var e0=document.getElementById('v0'),e1=document.getElementById('v1');
+  var A=e0?parseFloat(e0.value):NaN,B=e1?parseFloat(e1.value):NaN;
+  var box=document.getElementById('res');
+  if(!box)return;
+  if(!isFinite(A)||!isFinite(B)){box.innerHTML='<div class="info-box">请输入两个有效数值后再计算。</div>';return;}
+  var items=[];
+  items.push([(A/B).toFixed(2), "年淤积体积（万 m³）"]);
+  items.push([(A/B*50).toFixed(2), "50 年累计淤积（万 m³）"]);
+  items.push([(A/B*50/1000*100).toFixed(2)+"%", "库容损失率（50 年）"]);
+  items.push([(A/B*50/1000*100/50).toFixed(2)+"%", "年均库容损失率"]);
+
+  var html='<div class="data-grid">'+items.map(function(it){return '<div class="data-card"><div class="num">'+it[0]+'</div><div class="label">'+it[1]+'</div></div>';}).join('')+'</div>';
+  html+='💡 年淤积体积（万 m³）= 年入库沙量 ÷ 干容重；库容损失率 = 50 年累计 ÷ 总库容（按 1000 万 m³）× 100%。';
+  box.innerHTML=html;
+  if(typeof saveHistory==='function'){try{saveHistory(A,B);}catch(e){}}
+}
+function resetAll(){
+  var a=document.getElementById('v0'),b=document.getElementById('v1');
+  if(a)a.value='15';if(b)b.value='1.3';calc();
+}
+try{calc();}catch(e){}
+</script>
 
 <!-- SEO 介绍区块 -->
 
@@ -525,19 +550,19 @@ calc();
 </style>
 <section class="deep-dive" data-deep-dive="1">
 <div class="card">
-<h2>📚 深度解析：淤积泥沙库容损失</h2>
+<h2>📚 深度解析：水库泥沙淤积库容损失</h2>
 <h3>💡 常见使用场景</h3>
 <ul class="dd-list">
-<li>按入库沙量与沉降率估年淤积。</li>
-<li>有效库容衰减与寿命预测。</li>
-<li>排沙减淤设施效果评估。</li>
+<li>水库寿命评估：按年入库沙量与淤积物干容重换算年淤积体积，50 年累计后计算库容损失率，判断是否需要设置排沙设施。</li>
+<li>死库容设计：由多年平均输沙量估算淤积占用的死库容，据此确定死水位与排沙底孔高程，避免有效库容被侵占。</li>
+<li>水土保持效益量化：上游治理后入库沙量下降，用库容损失率的变化量化减沙效果，为后续投入提供依据。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">年淤积</div><div class="dd-ex-body">入库沙 100 万 t/年、沉降率 50%、淤积容重 1.3 → 年淤库容≈100×0.5/1.3≈38.5 万 m³，除以总库容得寿命。</div></div>
-<div class="dd-example"><div class="dd-ex-title">排沙</div><div class="dd-ex-body">排沙洞降低沉降率到 30%，年淤降到 23 万 m³，显著延寿。</div></div>
+<div class="dd-example"><div class="dd-ex-title">算例：年入库沙量 20 万 t、淤积物干容重 1.35 t/m³（总库容 1000 万 m³）</div><div class="dd-ex-body">年淤积体积 = 20 ÷ 1.35 = 14.81 万 m³；50 年累计淤积 = 14.81 × 50 = 740.74 万 m³；库容损失率 = 740.74 ÷ 1000 × 100% = 74.07%；年均库容损失率 = 1.48%。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
-<dt>沉降率怎么定？</dt><dd>由库区流态与异重流特性定，缓流库尾易沉、泄洪排沙则带出。</dd>
-<dt>怎么减淤？</dt><dd>河口拦沙、异重流排沙、汛限水位拉低冲刷，多措延长有效库容。</dd>
+<dt>淤积物干容重为什么不是 1.0？</dt><dd>泥沙沉落后经压实与固结，干容重通常为 1.1–1.5 t/m³，砂性泥沙偏大、黏性泥沙偏小；无实测资料时可按 1.2–1.4 估算。</dd>
+<dt>库容损失率超过多少需要设排沙设施？</dt><dd>一般损失率超过 20%–30% 就应评估排沙底孔、异重流排沙或汛期降低水位冲沙；本算例 74.07% 说明按现行来沙量水库将在设计年限内严重淤损。</dd>
+<dt>50 年累计为什么按线性外推？</dt><dd>本工具用多年平均输沙量线性累加，未计入上游减沙趋势与拦沙坝拦蓄作用，属偏保守估算；有实测淤积断面资料时应以实测库容曲线为准。</dd>
 </dl>
 </div>
 </section>

@@ -98,17 +98,17 @@
 </div>
 <div class="container">
   <div class="card tool-card-accent" style="--tool-accent:#FF6B35;--tool-accent-dark:#FF6B35;">
-    <h2 data-zh="⚡ 调车（作业/效率）优化">Rail Shunting (Operation / Efficiency) Optimizer</h2>
-    <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="输入两个参数，自动计算常用结果">Optimize rail yard shunting operations and efficiency.</p>
+    <h2 data-zh="⚡ 调车（作业/效率）优化">Shunting Operation Efficiency</h2>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="按作业时间与完成钩数计算单钩平均耗时、小时钩数、日产钩数与相对基准的效率偏差。">Optimize rail yard shunting operations and efficiency.</p>
     <div class="formula-box">
       <div class="formula-title">📐 计算公式</div>
-      <div class="formula-eq">效率 = 输出 ÷ 输入 × 100%，损耗 = 输入 - 输出</div>
-      <p class="formula-desc">输入两个参数，自动计算常用结果</p>
+      <div class="formula-eq">单钩耗时 = 作业时间 ÷ 钩数（min/钩）；每小时钩数 = 钩数 ÷ 时间 × 60；日产钩数 = 每小时钩数 × 20 h</div>
+      <p class="formula-desc">调车效率的核心指标是单钩平均耗时（行业常用基准 8 min/钩）；本工具同时给出小时钩数、按每班 20 小时计算的日产钩数与相对基准的效率偏差。</p>
     </div>
     <div class="input-row">
-      <div><label>作业</label><input type="number" id="v0" value="100" step="any" oninput="calc()" enterkeyhint="done" aria-label="作业"></div>
+      <div><label>调车作业时间 (min)</label><input type="number" id="v0" value="300" step="any" oninput="calc()" enterkeyhint="done" aria-label="作业"></div>
       <div style="display:flex;align-items:flex-end;justify-content:center;padding-bottom:8px;"><button class="btn" type="button" onclick="swapValues()" title="互换 A/B" aria-label="互换 A/B" style="padding:10px 12px;">⇄</button></div>
-      <div><label>效率</label><input type="number" id="v1" value="50" step="any" oninput="calc()" enterkeyhint="done" aria-label="效率"></div>
+      <div><label>完成钩数 (钩)</label><input type="number" id="v1" value="30" step="any" oninput="calc()" enterkeyhint="done" aria-label="效率"></div>
     </div>
     <div class="toolbar">
       <button class="btn primary" type="button" onclick="calc()">🧮 计算</button>
@@ -116,7 +116,7 @@
       <button class="btn" type="button" onclick="resetAll()">🗑️ 重置</button>
     </div>
     <div class="result-box" id="res"></div>
-    <div class="info-box">💡 公式提示：效率 = 输出 ÷ 输入 × 100%，损耗 = 输入 - 输出</div>
+    <div class="info-box">💡 单钩耗时（min/钩）= 作业时间 ÷ 钩数；每小时钩数 = 钩数 ÷ 时间 × 60；常用基准 8 min/钩。</div>
 <div class="tool-notes" style="--tool-accent:#FF6B35;">
   <div class="tool-notes-title">⚠️ 使用说明与注意事项</div>
   <ul>
@@ -500,6 +500,31 @@ document.addEventListener('DOMContentLoaded',function(){
 });
 calc();
 </script>
+<script>
+/* 真实业务计算逻辑（页内独占，覆盖通用两参脚本） */
+function calc(){
+  var e0=document.getElementById('v0'),e1=document.getElementById('v1');
+  var A=e0?parseFloat(e0.value):NaN,B=e1?parseFloat(e1.value):NaN;
+  var box=document.getElementById('res');
+  if(!box)return;
+  if(!isFinite(A)||!isFinite(B)){box.innerHTML='<div class="info-box">请输入两个有效数值后再计算。</div>';return;}
+  var items=[];
+  items.push([(A/B).toFixed(2), "单钩平均耗时（min/钩）"]);
+  items.push([(B/A*60).toFixed(2), "每小时钩数（钩/h）"]);
+  items.push([(B/A*60*20).toFixed(2), "日产钩数（20 h 作业）"]);
+  items.push([((8-A/B)/8*100).toFixed(2)+"%", "相对 8 min/钩 基准的效率偏差"]);
+
+  var html='<div class="data-grid">'+items.map(function(it){return '<div class="data-card"><div class="num">'+it[0]+'</div><div class="label">'+it[1]+'</div></div>';}).join('')+'</div>';
+  html+='💡 单钩耗时（min/钩）= 作业时间 ÷ 钩数；每小时钩数 = 钩数 ÷ 时间 × 60；常用基准 8 min/钩。';
+  box.innerHTML=html;
+  if(typeof saveHistory==='function'){try{saveHistory(A,B);}catch(e){}}
+}
+function resetAll(){
+  var a=document.getElementById('v0'),b=document.getElementById('v1');
+  if(a)a.value='300';if(b)b.value='30';calc();
+}
+try{calc();}catch(e){}
+</script>
 
 <!-- SEO 介绍区块 -->
 
@@ -525,18 +550,19 @@ calc();
 </style>
 <section class="deep-dive" data-deep-dive="1">
 <div class="card">
-<h2>📚 深度解析：调车（作业/效率）优化</h2>
+<h2>📚 深度解析：调车作业效率优化</h2>
 <h3>💡 常见使用场景</h3>
 <ul class="dd-list">
-<li>编组站作业：统计每班计划调车作业量与有效完成量，量化作业效率与待解待编积压。</li>
-<li>取送车优化：对比取送批次与单机走行，核算有效作业占比，减少空行程损耗。</li>
-<li>解体溜放组织：按解体钩数、禁溜与分组，评估设备（驼峰）利用率与瓶颈环节。</li>
+<li>编组站/区段站作业统计：按每班调车作业时间与实际完成钩数求单钩平均耗时，与 8 min/钩 的行业参考基准对照，判断班次效率水平。</li>
+<li>日通过能力估算：由每小时钩数按每班 20 h 折算日产钩数，用于排班计划与作业能力评估。</li>
+<li>作业方式改进验证：改用溜放或推送作业后重测单钩耗时，用相对基准的效率偏差量化改善幅度，为技术改造提供依据。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">以某编组站乙班计划调车作业 120 钩、有效完成 108 钩</div><div class="dd-ex-body">作业效率=有效完成÷计划作业×100%=108÷120×100=90.0%；损耗=计划−有效=120−108=12 钩（含重复分解、等待转线、计划调整）。若损耗升至 24~30 钩（效率 80%~85%），应排查取送走行、机车衔接与计划质量等瓶颈。</div></div>
+<div class="dd-example"><div class="dd-ex-title">算例：作业时间 240 min、完成 36 钩</div><div class="dd-ex-body">单钩平均耗时 = 240 ÷ 36 = 6.67 min/钩；每小时钩数 = 36 ÷ 240 × 60 = 9.00 钩/h；日产钩数 = 9.00 × 20 = 180.00 钩；相对 8 min/钩 基准的效率偏差 =（8 − 6.67）÷ 8 × 100% = 16.67%（优于基准）。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
-<dt>这里的“效率”怎么界定？</dt><dd>本工具取“有效完成量÷计划作业量×100%”作为作业效率，损耗=计划−有效。它反映计划兑现率与过程浪费，是车站作业组织的常用过程指标，并非机车或设备技术效率。</dd>
-<dt>效率偏低通常卡在哪？</dt><dd>常见瓶颈：取送车与解编设备（驼峰/牵出线）能力不匹配、单机空行程多、计划编制质量差导致重复作业、峰尾与编尾衔接不畅。提升方向是压缩无效走行、均衡峰尾编尾负荷、提高计划一次合格率。</dd>
+<dt>「钩」是什么计量单位？</dt><dd>调车作业的基本计量单位，指一次牵出—推进—挂车（或甩车）的完整作业循环；摘挂列车与编组作业的钩数统计口径可能不同，比较时应统一。</dd>
+<dt>8 min/钩 的基准怎么用？</dt><dd>这是平面牵出线作业的常见参考值。机械化驼峰、专用线直取、送取车组差异较大，宜用本站历史均值或查定值替代后再比较。</dd>
+<dt>作业时间应包含哪些内容？</dt><dd>应只含与调车直接相关的作业时间（牵出、推进、挂车、转线），不含等待机车、交接班与调车计划编制时间，否则单钩耗时会被明显高估。</dd>
 </dl>
 </div>
 </section>
