@@ -240,7 +240,7 @@ const CASES = [
 // ---------------------------------------------------------------- DOM stub
 // canvas 2D 上下文桩（所有方法为空实现，measureText 返回零宽度以适配排版计算）
 const CTX2D = new Proxy(
-  { measureText: () => ({ width: 0 }), createLinearGradient: () => ({ addColorStop() {} }), canvas: { width: 0, height: 0 } },
+  { measureText: () => ({ width: 0 }), createLinearGradient: () => ({ addColorStop() {} }), canvas: { width: 0, height: 0, clientWidth: 300, clientHeight: 300 } },
   {
     get(t, k) {
       if (k in t) return t[k];
@@ -288,6 +288,12 @@ function makeEl(val) {
     click() {},
     remove() {},
     getBoundingClientRect() { return { width: 0, height: 0, top: 0, left: 0 }; },
+    clientWidth: 300,
+    clientHeight: 300,
+    offsetWidth: 300,
+    offsetHeight: 300,
+    parentElement: { textContent: "", clientWidth: 300, clientHeight: 300, offsetWidth: 300, offsetHeight: 300, getBoundingClientRect: () => ({ width: 300, height: 300, top: 0, left: 0 }) },
+    parentNode: null,
     // canvas 2D 上下文桩：含图表的页面（如 healthcare/tdee-calculator 的热量环形图）
     // 在 calc() 里直接 ctx.arc/fillText，缺了会抛 "getContext is not a function" 使整页无法验证。
     getContext() { return CTX2D; },

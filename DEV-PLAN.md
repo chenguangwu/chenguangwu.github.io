@@ -402,3 +402,11 @@ dermatology 14/11、engineering 14/11、signal 11/11、design 10/10、rheumatolo
 | **检索/过滤型图鉴页的结果是全量列表的「子集」** | 任何「单卡片内文本」在默认全量态同样存在，作 expect 必为逃生项 |
 | **兜底阶段会调用 `swapValues()`（`DESTRUCTIVE` 的 `swap\b` 对它无效）** | 该函数把两个输入**互换后重算** → **二值判读词**（偏高/正常、力度偏大/适中、A 优于 B…）在交换态必命中其中一档 → 判定词一律**不得作 expect**，只锚依赖被测输入的数值项（2026-09-22 BATCH42 实测 7 例中招） |
 | **`blob.includes(want)` 是子串匹配**（`collectStrings` 返回拼接后的单字符串） | expect 会被默认输出包含：`达标` ⊂ `未达标`、`5.00%` ⊂ `25.00%`。定 expect 前须做「默认态 + 交换态」**双侧子串**检查，必要时给 expect 加标签前缀（如 `准时但不良率 5.00%`） |
+
+### 方向1 公式-脚本一致性精查（进行中 · 2026-09-22 启动 · 老板选定）
+- **目标**：逐页独立复算高热度计算类页 `calc()` 输出的数学/物理正确性（与标准公式/权威向量比），找"用户拿到错钱数/错物理量"的真缺陷（§4.5 红线第一条最高频事故）。
+- **候选**：386 页（有 `formula-eq` + 真实 `calc()` + 数字输入，可被注入复算），覆盖 10 高热度行业；`finance` 40+ 页全未覆盖（Y，优先）。
+- **SOP**：正向校验 `runCase({slug, inputs, expect:独立复算值})`（ok=true=健康；ok=false=候选）；图表/动态 UI 页用「抽 calc/纯函数 + 自建桩 DOM」绕行。`runCase(expect:['\u0000'])` 取 `fullBlob` 看真实输出。
+- **harness 修复（本批）**：`verify_it_calc.js` 的 `makeEl` 补 `clientWidth/clientHeight/offsetWidth/offsetHeight/parentElement` 桩、`CTX2D.canvas` 补 `clientWidth/clientHeight` → 图表页（compound-interest/irr 等读 `clientWidth`/`ctx.canvas.clientWidth`/`el.parentElement.clientWidth`）可被 `runCase` 覆盖；重跑 `run_gates.py --skip-build` 仍 **215/215**（CASES 未增删，安全）。
+- **首批 finance 精查（53 页中首批 10 页）**：✅ 健康 7 页（simple-interest / npv-calculator / break-even-calculator / depreciation-calculator / vat-calculator / compound-interest / irr-calculator 算法）；⚠️ profit-margin-calculator 营业利润/EBITDA 未含财务费用（净利正确，低优先口径偏差，待下批复核是否按通用准则修正）；其余 43 页待继续。
+- **纪律**：确凿真缺陷前不改页面；找到即立项「缺陷 N」闭环（修 calc + 修/注册 verify 用例 + run_gates + 提交推送）。
