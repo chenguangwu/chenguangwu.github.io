@@ -42,7 +42,91 @@ const CASES = [
   { slug: "math/multinomial-coefficient", inputs: { n: "8", k1: "4", k2: "2", k3: "2" }, expect: ["420"], ref: "多项式系数=8!/(4!2!2!)=40320/96=420（默认 6,3,2,1→60 避开）" },
   { slug: "math/calc-1", inputs: { ofA: "160", ofP: "25" }, expect: ["40.0000"], ref: "求百分量模式：160 的 25%=40.0000（默认 200 的 15%=30.0000 避开）" },
   { slug: "math/calc-3", inputs: { a: "6", b: "8", c: "" }, expect: ["10.00"], ref: "勾股定理求斜边：c=√(6²+8²)=10.00（默认 3,4→5.00 避开）" },
-  { slug: "math/calc-4", inputs: { radius: "7" }, expect: ["153.9380"], ref: "圆面积=πr²=π×49=153.9380（周长=43.9823；默认 r=5 避开）" },
+  { slug: "math/calc-4", inputs: { radius: "7" }, expect: ["153.9380"],     ref: "圆面积=πr²=π×49=153.9380（周长=43.9823；默认 r=5 避开）" },
+  {
+    slug: "math/law-of-cosines",
+    inputs: { a: "7", b: "8", C: "45" },
+    expect: ["58.36"],
+    ref: "角 A 的对边是 a：cos A=(b²+c²−a²)/(2bc)。c=√(49+64−2×7×8×cos45°)=√50.804=5.814，cos A=(64+50.804−49)/(2×8×5.814)=65.804/93.024=0.70740 ⇒ A=58.36°。原实现误用 (a²+c²−b²)/(2ac)（那是角 B 的公式）却标成「角 A」，默认 3,4,90° 时显示 53.13°（实为角 B，角 A 应为 36.87°）",
+  },
+  {
+    slug: "math/geometric-series-sum",
+    inputs: { a: "3", r: "1", n: "5" },
+    expect: ["15.0000"],
+    ref: "公比 r=1 时闭合式 (1−rⁿ)/(1−r) 为 0/0 ⇒ 原实现输出 NaN。正确按常数数列 S=a·n=3×5=15.0000（末项 3.0000、无穷级数不收敛）",
+  },
+  {
+    slug: "math/slope-line",
+    inputs: { x1: "0", y1: "0", x2: "1", y2: "1" },
+    expect: ["45.00"],
+    ref: "k=1 ⇒ 倾角=arctan(1)=45.00°。原实现未对倾角 toFixed，默认态直接输出 63.43494882292201 这种 16 位浮点",
+  },
+  {
+    slug: "math/herons-area",
+    inputs: { a: "1", b: "2", c: "10" },
+    expect: ["不能构成三角形"],
+    ref: "1+2<10 不满足三角不等式 ⇒ s(s−a)(s−b)(s−c)<0，开方得 NaN。正确应提示无法构成三角形（默认 3,4,5 合法，避开）",
+  },
+  {
+    slug: "math/modulo-calc",
+    inputs: { a: "17", b: "0" },
+    expect: ["除数 b 不能为 0"],
+    ref: "a mod 0 无定义 ⇒ 原实现输出 NaN/Infinity（17%0=NaN、floor(17/0)=Infinity）。正确应提示（默认 17 mod 5 避开）",
+  },
+  {
+    slug: "math/percent-change",
+    inputs: { old: "0", new: "100" },
+    expect: ["原始值不能为 0"],
+    ref: "变化率分母为原值 ⇒ old=0 时原实现输出 Infinity 与 NaN。正确应提示（默认 80→100 避开）",
+  },
+  {
+    slug: "math/exponent-solve",
+    inputs: { a: "1", b: "8" },
+    expect: ["底数 a 不能为 1"],
+    ref: "x=ln b/ln a，a=1 时 ln a=0 ⇒ 原实现输出 Infinity。1 的任意次幂恒为 1，b=8 无解（默认 2,8→x=3 避开）",
+  },
+  {
+    slug: "math/log-base",
+    inputs: { x: "-5", b: "10" },
+    expect: ["真数 x 必须大于 0"],
+    ref: "log 定义域 x>0 ⇒ 原实现 ln(−5)=NaN 从而整列输出 NaN。正确应提示（默认 1000,10 避开）",
+  },
+  {
+    slug: "math/factorial-calc",
+    inputs: { n: "171" },
+    expect: ["超出双精度浮点上限"],
+    ref: "171!≈1.24×10³⁰⁹ 超出 Number.MAX_VALUE ⇒ 原实现两列都显示 Infinity、ln(n!) 也 Infinity。正确应提示上限（默认 n=10 避开）",
+  },
+  {
+    slug: "math/circular-permutation",
+    inputs: { n: "8" },
+    expect: ["5040"],
+    ref: "n=8：圆排列 (n−1)!=7!=5040；项链 5040/2=2520（n≥3 才对半折，原实现 n=1、2 时 (n−1)!/2=0.5 靠 toFixed(0) 四舍五入凑巧得 1，已按定义修正）；同时删除无组合意义的「全排列与圆排列之差」卡片（默认 n=5 避开）",
+  },
+  {
+    slug: "math/quadratic-solver",
+    inputs: { a: "0", b: "2", c: "-8" },
+    expect: ["4.0000"],
+    ref: "a=0 退化为一次方程 2x−8=0 ⇒ x=−c/b=4.0000；原实现照套求根公式，2a=0 ⇒ 输出 Infinity/−Infinity（默认 1,−3,2 避开）",
+  },
+  {
+    slug: "math/quadratic-discriminant",
+    inputs: { a: "0", b: "5", c: "2" },
+    expect: ["不是二次方程"],
+    ref: "a=0 时不是二次方程，既无 Δ 对应的根型也无顶点；原实现仍标「两个不等实根」并给出 −b/2 的假顶点（默认 1,−3,2 避开）",
+  },
+  {
+    slug: "math/root-calc",
+    inputs: { x: "-4" },
+    expect: ["2.000000i"],
+    ref: "负数偶次根为虚数：√(−4)=2.000000i、⁴√(−4)=1.414214i；ln(−4) 无定义显示「—」。原实现全列 NaN，且 x=0 时用 max(x,1e-12) 兜底给出 ln=−27.63 这种假值（默认 x=2 避开）",
+  },
+  {
+    slug: "math/multinomial-coefficient",
+    inputs: { n: "6", k1: "3", k2: "3", k3: "3" },
+    expect: ["各组之和需等于总数"],
+    ref: "多项式系数要求 Σk=n；3+3+3=9≠6 时 n!/(k1!k2!k3!) 无组合意义，原实现照算得 3.33 再取整显示 3（默认 6,3,2,1 避开）",
+  },
 ];
 
 async function main() {

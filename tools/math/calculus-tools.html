@@ -198,11 +198,12 @@
 <li>导数看瞬时变化率，积分看累积量，极限看趋近行为，泰勒用于局部多项式逼近。</li>
 </ul>
 <div class="dd-example"><div class="dd-ex-title">算例：f(x)=x² 的导数为 6（x=3）</div><div class="dd-ex-body">中心差分 f'(3) = [f(3+1e-5)−f(3−1e-5)]/(2×1e-5) = 6.000000；解析解 2x 在 x=3 亦为 6，吻合。</div></div>
-<div class="dd-example"><div class="dd-ex-title">算例：∫₀¹ x²dx 与 lim x→0 x²</div><div class="dd-ex-body">梯形法（n=1000）∫₀¹ x²dx = 0.333333（解析值 1/3）；lim x→0 x² = 0.000000（在 x=±1e-6 与 0 处采样取平均）；f(x)=x² 在 x=0 的 5 阶泰勒展开即 x²。</div></div>
+<div class="dd-example"><div class="dd-ex-title">算例：∫₀¹ x²dx 与 lim x→0 x²</div><div class="dd-ex-body">梯形法（n=1000）∫₀¹ x²dx = 0.333333（解析值 1/3）；lim x→0 x² = 0.000000（在 x=±1e-6 处对称采样，不再把 x=0 代入平均 —— 否则 sin(x)/x 这类在 0 处无定义的函数会被误判为「极限不存在」，而真实极限为 1）；f(x)=x² 在 x=0 的 5 阶泰勒展开即 x²。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
 <dt>数值求导的误差来源？</dt><dd>主要来自步长 h：h 过大截断误差大，h 过小舍入误差放大。中心差分比前向差分精度高一个量级，常用 h≈1e-5 平衡两类误差。</dd>
 <dt>梯形法积分精度如何？</dt><dd>梯形法误差约 O(1/n²)，n 越大越准。对平滑函数足够；对有尖点/奇点的函数需分段或换更优方法（辛普森）。本工具固定 n=1000。</dd>
+<dt>为什么极限不直接代入 x=0？</dt><dd>极限描述的是趋近行为而不是该点的取值。f 在 0 处可以无定义却仍有极限（如 sin(x)/x → 1），所以本工具只在 x=±1e-6 两侧对称采样，两侧结果接近才认为极限存在；1/x 这类两侧发散到 ±∞ 的判为不存在。</dd>
 </dl>
 </div>
 </section>
@@ -349,10 +350,18 @@ function calc() {
       <div class="result-block"><div class="result-label">∫[${a}, ${b}] f(x)dx</div><div class="result-value">${s.toFixed(6)}</div></div>
       <div class="result-block"><div class="result-label">方法</div><div class="result-value" style="font-size:12px;">梯形法则, n=1000</div></div>`;
   } else if (op === 'limit') {
-    const l = derivative ? (safeEval(f, 1e-6) + safeEval(f, -1e-6) + safeEval(f, 0)) / 3 : NaN;
+    // 单点代入 f(0) 后取平均会在 f 于 0 处无定义时恒得 NaN（如 sin(x)/x 真实极限为 1 却报「不存在」），
+    // 且左右采样差异巨大时为发散/跳跃，应判不存在。
+    const eps = 1e-6;
+    const fp = safeEval(f, eps), fm = safeEval(f, -eps);
+    let l = NaN;
+    if (isFinite(fp) && isFinite(fm)) {
+      const mid = (fp + fm) / 2;
+      if (Math.abs(fp - fm) <= 1e-3 * Math.max(1, Math.abs(mid))) l = mid;
+    }
     html = `<h3>📐 极限</h3>
       <div class="result-block"><div class="result-label">lim x→0 f(x)</div><div class="result-value">${isFinite(l) ? l.toFixed(6) : '不存在'}</div></div>
-      <div class="result-block"><div class="result-label">说明</div><div class="result-value" style="font-size:12px;">对 x=±ε 采样取平均</div></div>`;
+      <div class="result-block"><div class="result-label">说明</div><div class="result-value" style="font-size:12px;">左右各取 x=±${eps} 对称采样：f(+ε)=${isFinite(fp)?fp.toFixed(6):'无定义'}、f(−ε)=${isFinite(fm)?fm.toFixed(6):'无定义'}；两者接近才认为极限存在（不再代入 x=0）</div></div>`;
   } else if (op === 'taylor') {
     const t = taylor(f, 0, 5);
     html = `<h3>📐 泰勒展开 (x=0)</h3>

@@ -305,6 +305,8 @@
 - **坑**：引擎剥离标签的正则若用 `<[^>]+>`，会把**字面文本 `< 0.001`** 当成标签吃掉（`tester-15` 的 P 值列因此看似空白）→ 必须用 `<[a-zA-Z/!][^>]*>`。
 - **本能力已产出**：缺陷 T（p=1.05>1）、缺陷 U（χ² CDF 近似崩坏）；同时排除 3 个假信号（`Infinity` 属 `setInterval`/动态 `innerHTML` 表单的桩盲区、`photo-5` 超焦距远界 `Infinity` 属正确输出）。
 - **隔离器三处盲区（2026-09-23 修复；此前会把「未审计」伪装成「无输出」）**：① `<textarea>` 默认文本未注入 → 统计类页（mean/median/variance/percentile/correlation/anova/statistics…）恒显示「请输入数据」，被误读成「页面无默认输出」（science 一栏 44/78 页因此从未被审计）；② 只调用**首个** calc 类函数 → 多模块页首函数是需参辅助函数时抛错，整页 OUT 空（`statistics-calculator` 的 `calcHistogram`）；③ 脚本块筛选要求函数名含 `calc/calculate/compute` → `convert/solve/run` 类入口整页 `NO_CALC`（`torque-converter`、`quadratic-equation`、`si-unit-converter`）。已分别补：textarea 注入、逐个触发器 try/一旦写出结果即止、无匹配时取「函数最多」的脚本块。**结论：升级前的「空 OUT / 请输入数据」不能作为「页面无默认输出」的证据。** 升级后 science 可读页 44→78（余 21 页为结构性无默认输出：π/素数/周期表/QR/NATO 等展示型页）。
+- **隔离器第四处盲区（2026-09-23 修复）：`innerHTML` 动态渲染的控件不注册**。真实浏览器给容器赋值 `innerHTML` 会用模板里的 `value`/`selected` **重建**元素，桩不注册就恒读到空串 ⇒ `math/geometry-calculator` 默认输出「5×3 面积 0.00」（真机 15.00）、`math/equation-solver` 整页无输出，会被误判成「默认态全零 / 无默认输出」类缺陷。修法：在 `el` 的 `innerHTML` setter 里 parse 出 `input`/`textarea`/`select` 的 id 与 `value`/`selected` 写回 `store`（**每次赋值都覆盖**，等同重建语义）。升级后 math 可读页 34→36。孤立验证技巧：把页面 `<script>` 主体抽出来配最小桩（`el` 带 `value` 字段 + `innerHTML` setter 触发注册）即可逐形状/逐页签跑，不必依赖完整引擎。
+- **判据类修复不要追求「十进制精确」**：几何量常为无理数（腰长 √(1²+4²)=4.1231…），无论取几位小数其投影平方和都会略小于理论值 ⇒ 严格不等式判据必然误报。**存在性/一致性判据一律留 1% 量级容差**（`math/geometry-calculator` 梯形即因此返工一次）。
 
 ### 8.9 有界量的口径自检 + 门禁用例文件「静默失效」自检（2026-09-22 新增，缺陷 AM/AN）
 
@@ -456,7 +458,7 @@ dermatology 14/11、engineering 14/11、signal 11/11、design 10/10、rheumatolo
 
 ### 方向1 公式-脚本一致性精查（进行中 · 2026-09-22 启动 · 老板选定）
 - **目标**：逐页独立复算高热度计算类页 `calc()` 输出的数学/物理正确性（与标准公式/权威向量比），找"用户拿到错钱数/错物理量"的真缺陷（§4.5 红线第一条最高频事故）。
-- **候选**：386 页（有 `formula-eq` + 真实 `calc()` + 数字输入，可被注入复算），覆盖 10 高热度行业；`finance` 40+ 页全未覆盖（Y，优先）。`science`（99 页）已在 BATCH47–49 走过一遍默认态复算（隔离器升级后 78 页可读）；`math`(34)/`geometry`(28)/`photo`(30)/`ai`(56)/`sports`(56)/`agriculture`(52) 待开。
+- **候选**：386 页（有 `formula-eq` + 真实 `calc()` + 数字输入，可被注入复算），覆盖 10 高热度行业；`finance` 40+ 页全未覆盖（Y，优先）。`science`（99 页）已在 BATCH47–49 走过一遍默认态复算（隔离器升级后 78 页可读）；`math`（36 页）已在 BATCH50 全量复算并闭环 14 页缺陷；`geometry`(28)/`photo`(30)/`ai`(56)/`sports`(56)/`agriculture`(52)/`finance`(52) 待开。
 - **SOP**：正向校验 `runCase({slug, inputs, expect:独立复算值})`（ok=true=健康；ok=false=候选）；图表/动态 UI 页用「抽 calc/纯函数 + 自建桩 DOM」绕行。`runCase(expect:['\u0000'])` 取 `fullBlob` 看真实输出。
 - **harness 修复（本批）**：`verify_it_calc.js` 的 `makeEl` 补 `clientWidth/clientHeight/offsetWidth/offsetHeight/parentElement` 桩、`CTX2D.canvas` 补 `clientWidth/clientHeight` → 图表页（compound-interest/irr 等读 `clientWidth`/`ctx.canvas.clientWidth`/`el.parentElement.clientWidth`）可被 `runCase` 覆盖；重跑 `run_gates.py --skip-build` 仍 **215/215**（CASES 未增删，安全）。
 - **首批 finance 精查（53 页中首批 10 页）**：✅ 健康 7 页（simple-interest / npv-calculator / break-even-calculator / depreciation-calculator / vat-calculator / compound-interest / irr-calculator 算法）；⚠️ profit-margin-calculator 营业利润/EBITDA 未含财务费用（净利正确，低优先口径偏差，待下批复核是否按通用准则修正）；其余 43 页待继续。

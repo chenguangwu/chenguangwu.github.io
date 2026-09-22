@@ -214,11 +214,11 @@ const TPL = {
   square: `<div class="input-row"><label>边长 (m)</label><input type="number" id="a" value="4" step="0.1"></div>`,
   circle: `<div class="input-row"><label>半径 r (m)</label><input type="number" id="r" value="3" step="0.1"></div>`,
   triangle: `<div class="input-row"><label>底 a (m)</label><input type="number" id="a" value="6" step="0.1"></div><div class="input-row"><label>高 h (m)</label><input type="number" id="h" value="4" step="0.1"></div><div class="input-row"><label>边 b (m)</label><input type="number" id="b" value="5" step="0.1"></div><div class="input-row"><label>边 c (m)</label><input type="number" id="c" value="5" step="0.1"></div>`,
-  trapezoid: `<div class="input-row"><label>上底 a (m)</label><input type="number" id="a" value="3" step="0.1"></div><div class="input-row"><label>下底 b (m)</label><input type="number" id="b" value="5" step="0.1"></div><div class="input-row"><label>高 h (m)</label><input type="number" id="h" value="4" step="0.1"></div><div class="input-row"><label>左腰 c (m)</label><input type="number" id="c" value="3" step="0.1"></div><div class="input-row"><label>右腰 d (m)</label><input type="number" id="d" value="3" step="0.1"></div>`,
+  trapezoid: `<div class="input-row"><label>上底 a (m)</label><input type="number" id="a" value="3" step="0.1"></div><div class="input-row"><label>下底 b (m)</label><input type="number" id="b" value="5" step="0.1"></div><div class="input-row"><label>高 h (m)</label><input type="number" id="h" value="4" step="0.1"></div><div class="input-row"><label>左腰 c (m)</label><input type="number" id="c" value="4.123" step="0.1"></div><div class="input-row"><label>右腰 d (m)</label><input type="number" id="d" value="4.123" step="0.1"></div>`,
   sphere: `<div class="input-row"><label>半径 r (m)</label><input type="number" id="r" value="2" step="0.1"></div>`,
   cube: `<div class="input-row"><label>边长 a (m)</label><input type="number" id="a" value="2" step="0.1"></div>`,
   cylinder: `<div class="input-row"><label>半径 r (m)</label><input type="number" id="r" value="2" step="0.1"></div><div class="input-row"><label>高 h (m)</label><input type="number" id="h" value="5" step="0.1"></div>`,
-  cone: `<div class="input-row"><label>底半径 r (m)</label><input type="number" id="r" value="3" step="0.1"></div><div class="input-row"><label>高 h (m)</label><input type="number" id="h" value="6" step="0.1"></div><div class="input-row"><label>母线 l (m)</label><input type="number" id="l" value="6.7" step="0.1"></div>`,
+  cone: `<div class="input-row"><label>底半径 r (m)</label><input type="number" id="r" value="3" step="0.1"></div><div class="input-row"><label>高 h (m)</label><input type="number" id="h" value="6" step="0.1"></div><div class="input-row"><label>母线 l (m)</label><input type="number" id="l" value="6.71" step="0.1"></div>`,
 };
 
 function renderInputs() { document.getElementById('inputArea').innerHTML = TPL[selectedShape]; }
@@ -252,7 +252,10 @@ function calc() {
     // 海伦公式
     const s = (a + b + c) / 2;
     const A2 = Math.sqrt(s * (s-a) * (s-b) * (s-c));
-    html = `<div class="result-block"><div class="result-label">面积 (底×高÷2)</div><div class="result-value">${A.toFixed(2)} m²</div></div>
+    // 底×高 与 三边（海伦）必须描述同一个三角形；不一致时两种面积会互相矛盾
+    const consist = a>0 && h>0 && b>0 && c>0 && b+c>a && a+b>c && a+c>b && Math.abs(A-A2) <= 1e-6*Math.max(1,A);
+    const tWarn = consist ? '' : `<div class="result-block"><div class="result-label" style="color:var(--danger);">⚠ 底×高 与 三边不一致</div><div class="result-value" style="font-size:13px;">高 ${h} 与三边 ${a}、${b}、${c} 描述的不是同一个三角形，请核对输入</div></div>`;
+    html = `${tWarn}<div class="result-block"><div class="result-label">面积 (底×高÷2)</div><div class="result-value">${A.toFixed(2)} m²</div></div>
     <div class="result-block"><div class="result-label">面积 (海伦公式)</div><div class="result-value" style="font-size:14px;">${A2.toFixed(2)} m²</div></div>
     <div class="result-block"><div class="result-label">周长</div><div class="result-value" style="font-size:14px;">${C.toFixed(2)} m</div></div>
     <div class="result-block"><div class="result-label">类型</div><div class="result-value" style="font-size:14px;">${a*a+b*b===c*c||a*a+c*c===b*b||b*b+c*c===a*a?'直角':'一般'}</div></div>`;
@@ -262,7 +265,15 @@ function calc() {
     const c = +document.getElementById('c').value, d = +document.getElementById('d').value;
     const A = (a + b) * h / 2;
     const C = a + b + c + d;
-    html = `<div class="result-block"><div class="result-label">面积 S = (a+b)·h/2</div><div class="result-value">${A.toFixed(2)} m²</div></div>
+    // 存在性：腰长不得短于高；两腰的水平投影需能拼出 |b−a|
+    const pc = c*c - h*h, pd = d*d - h*h;
+    // 腰长常为无理数（如 √(1²+4²)=4.1231…），十进制输入必有舍入 ⇒ 判据留 1% 容差
+    const tol = 0.01 * Math.max(1, Math.abs(b - a));
+    const projSum = Math.sqrt(Math.max(pc,0)) + Math.sqrt(Math.max(pd,0));
+    const ok = h > 0 && pc >= -1e-9 && pd >= -1e-9 && Math.abs(b - a) <= projSum + tol &&
+      Math.abs(b - a) >= Math.abs(Math.sqrt(Math.max(pc,0)) - Math.sqrt(Math.max(pd,0))) - tol;
+    const warn = ok ? '' : `<div class="result-block"><div class="result-label" style="color:var(--danger);">⚠ 数据不构成梯形</div><div class="result-value" style="font-size:13px;">腰长须不小于高（h=${h}），且两腰水平投影需拼出两底之差 ${Math.abs(b-a).toFixed(2)} m</div></div>`;
+    html = `${warn}<div class="result-block"><div class="result-label">面积 S = (a+b)·h/2</div><div class="result-value">${A.toFixed(2)} m²</div></div>
     <div class="result-block"><div class="result-label">周长</div><div class="result-value" style="font-size:14px;">${C.toFixed(2)} m</div></div>
     <div class="result-block"><div class="result-label">中位线</div><div class="result-value" style="font-size:14px;">${((a+b)/2).toFixed(2)} m</div></div>`;
     svg = `<svg viewBox="0 0 200 100" width="200"><polygon points="50,30 150,30 180,80 20,80" fill="#3b82f6" fill-opacity="0.3" stroke="#3b82f6" stroke-width="2"/></svg>`;
@@ -290,7 +301,11 @@ function calc() {
   } else if (selectedShape === 'cone') {
     const r = +document.getElementById('r').value, h = +document.getElementById('h').value, l = +document.getElementById('l').value;
     const V = 1/3 * Math.PI * r * r * h, S = Math.PI * r * (r + l);
-    html = `<div class="result-block"><div class="result-label">体积 V = 1/3·π·r²·h</div><div class="result-value">${V.toFixed(2)} m³</div></div>
+    // 母线 l 与 r、h 必须满足 l² = r² + h²，否则表面积/侧面积与体积描述的不是同一个圆锥
+    const lTrue = Math.sqrt(r*r + h*h);
+    const cWarn = Math.abs(l - lTrue) <= 0.005*Math.max(1,lTrue) ? '' :
+      `<div class="result-block"><div class="result-label" style="color:var(--danger);">⚠ 母线与 r、h 不一致</div><div class="result-value" style="font-size:13px;">由 r=${r}、h=${h} 得母线应为 ${lTrue.toFixed(2)} m，当前输入 ${l} m</div></div>`;
+    html = `${cWarn}<div class="result-block"><div class="result-label">体积 V = 1/3·π·r²·h</div><div class="result-value">${V.toFixed(2)} m³</div></div>
     <div class="result-block"><div class="result-label">表面积</div><div class="result-value" style="font-size:14px;">${S.toFixed(2)} m²</div></div>
     <div class="result-block"><div class="result-label">侧面积</div><div class="result-value" style="font-size:14px;">${(Math.PI*r*l).toFixed(2)} m²</div></div>
     <div class="result-block"><div class="result-label">底面积</div><div class="result-value" style="font-size:14px;">${(Math.PI*r*r).toFixed(2)} m²</div></div>`;
