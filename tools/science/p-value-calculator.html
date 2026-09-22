@@ -306,11 +306,33 @@ function logGamma(x){
   for(let i=1;i<g+2;i++) a+=c[i]/(x+i);
   return 0.5*Math.log(2*Math.PI)+(x+0.5)*Math.log(t)-t+Math.log(a);
 }
+// 正则化不完全 Gamma P(a,x)：x<a+1 用级数展开，否则用连分数求 Q=1−P（精度 ~1e-15）
+function gammp(a,x){
+  if(x<=0) return 0;
+  if(x>=a+1){
+    const FPMIN=1e-300, EPS=1e-15;
+    let b=x+1-a, c=1/FPMIN, d=1/b, h=d;
+    for(let i=1;i<500;i++){
+      const an=-i*(i-a);
+      b+=2; d=an*d+b; if(Math.abs(d)<FPMIN) d=FPMIN;
+      c=b+an/c; if(Math.abs(c)<FPMIN) c=FPMIN;
+      d=1/d; const del=d*c; h*=del;
+      if(Math.abs(del-1)<EPS) break;
+    }
+    return 1-Math.exp(-x+a*Math.log(x)-logGamma(a))*h;
+  }
+  let ap=a, sum=1/a, del=sum;
+  for(let n=1;n<500;n++){
+    ap+=1; del*=x/ap; sum+=del;
+    if(Math.abs(del)<Math.abs(sum)*1e-15) break;
+  }
+  return sum*Math.exp(-x+a*Math.log(x)-logGamma(a));
+}
 function chiSquareCDF(x,df){
   if(x<=0) return 0;
-  const h=2/(9*df);
-  const z=Math.pow(x/df, 1/3)-(1-h)/Math.sqrt(h);
-  return normalCDF(z);
+  // 精确：χ²(df) 的 CDF = P(df/2, x/2)。原实现用 Wilson–Hilferty 正态近似，
+  // 既缺括号（(x/df)^(1/3)−(1−h)/√h），又在小 df 严重失真。
+  return gammp(df/2, x/2);
 }
 function calculate(){
   const out=document.getElementById('output');
