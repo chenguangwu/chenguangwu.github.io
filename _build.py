@@ -404,7 +404,10 @@ def _prerender_tool_body(content, entry):
             icon = mm.group(1) if mm else ''
             new_text = icon + en_title
             if 'data-zh=' not in attrs:
-                attrs = attrs.rstrip('>') + ' data-zh="%s">' % esc_html_py(orig)
+                # orig 取自原始 HTML 内层，可能已含实体（如 &gt;）。运行时用
+                # textContent 还原，故须先解码一次再转义，否则浏览器读到的是
+                # &gt; 字面量（双重转义）。
+                attrs = attrs.rstrip('>') + ' data-zh="%s">' % esc_html_py(html.unescape(orig))
             return '%s%s%s%s' % (open_tag, attrs, esc_html_py(new_text), close)
         _sub_first_html(_parts, re.compile(r'(<h2\b)([^>]*>)([\s\S]*?)(</h2>)'), _h2)
 
@@ -416,7 +419,8 @@ def _prerender_tool_body(content, entry):
             orig = inner
             new_text = en_intro
             if 'data-zh=' not in attrs:
-                attrs = attrs.rstrip('>') + ' data-zh="%s">' % esc_html_py(orig)
+                # 同 _h2：先解码已有实体再转义，避免双重转义（运行时 textContent 还原）。
+                attrs = attrs.rstrip('>') + ' data-zh="%s">' % esc_html_py(html.unescape(orig))
             return '%s%s%s%s' % (open_tag, attrs, esc_html_py(new_text), close)
         _sub_first_html(_parts, re.compile(r'(<p\b)([^>]*>)([\s\S]*?)(</p>)'), _p)
 
