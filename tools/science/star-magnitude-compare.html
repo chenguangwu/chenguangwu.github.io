@@ -271,12 +271,13 @@ function calcRatio(){
   const ratio = Math.pow(2.512, deltaM);
   const ratioInverse = Math.pow(2.512, -deltaM);
 
-  // 判断哪个更亮
+  // 判断哪个更亮：星等越小越亮，F₁/F₂ = 2.512^(m₂−m₁)
+  // Δm > 0 ⇒ F₁/F₂ = ratio > 1 ⇒ 星等1 更亮（原实现两分支方向写反）
   let comparison;
-  if(deltaM < 0){
-    comparison = `星等1 (${m1}) 的天体更亮，亮度是星等2的 ${ratioInverse.toFixed(2)} 倍`;
-  } else if(deltaM > 0){
-    comparison = `星等2 (${m2}) 的天体更亮，亮度是星等1的 ${ratio.toFixed(2)} 倍`;
+  if(deltaM > 0){
+    comparison = `星等1 (${m1}) 的天体更亮，亮度是星等2的 ${ratio.toFixed(2)} 倍`;
+  } else if(deltaM < 0){
+    comparison = `星等2 (${m2}) 的天体更亮，亮度是星等1的 ${ratioInverse.toFixed(2)} 倍`;
   } else {
     comparison = '两者星等相同，亮度相等';
   }
@@ -289,8 +290,11 @@ function calcRatio(){
 
   // 可视化条形图
   const maxRatio = Math.max(ratio, ratioInverse);
-  const barWidth1 = deltaM > 0 ? (100 / ratio).toFixed(1) : '100';
-  const barWidth2 = deltaM < 0 ? (100 / ratioInverse).toFixed(1) : '100';
+  // 条形长度代表相对亮度：较亮者固定 100%，较暗者按 1/亮度比 缩短
+  const barWidth1 = deltaM >= 0 ? '100' : (100 / ratioInverse).toFixed(1);
+  const barWidth2 = deltaM <= 0 ? '100' : (100 / ratio).toFixed(1);
+
+  const fmtRatio = (x) => (x >= 100 || x < 0.01) ? x.toExponential(2) : (x >= 1 ? x.toFixed(2) : x.toFixed(3));
 
   ToolBox.setResult('result', `
     <div class="data-grid">
@@ -299,16 +303,12 @@ function calcRatio(){
         <div class="label">星等差 (Δm = m2 - m1)</div>
       </div>
       <div class="data-card">
-        <div class="num">${ratio < 1 ? ratioInverse.toFixed(2) : ratio.toFixed(2)}x</div>
-        <div class="label">亮度比</div>
+        <div class="num">${fmtRatio(ratio)}x</div>
+        <div class="label">亮度比（星等1 ÷ 星等2）</div>
       </div>
       <div class="data-card">
-        <div class="num">${(Math.log10(ratio) * 2.5).toFixed(2)}</div>
-        <div class="label">对数亮度差</div>
-      </div>
-      <div class="data-card">
-        <div class="num">${maxRatio > 100 ? maxRatio.toExponential(2) : maxRatio.toFixed(2)}x</div>
-        <div class="label">最大亮度倍数</div>
+        <div class="num">${(100 / maxRatio).toFixed(1)}%</div>
+        <div class="label">较暗者相对亮度</div>
       </div>
     </div>
     <div style="margin-top:16px;">

@@ -180,16 +180,17 @@
       </ul>
     </div>
     <div class="ref-card">
-      <h4>撞击坑直径公式（简化）</h4>
-      <p>D = 0.07 x (E / &rho;_target)&#8531;</p>
+      <h4>撞击坑直径公式（Collins–Melosh–Marcus 标度律）</h4>
+      <p>D<sub>tc</sub> = 1.161 · (&rho;<sub>i</sub>/&rho;<sub>t</sub>)<sup>1/3</sup> · L<sup>0.78</sup> · v<sup>0.44</sup> · g<sup>−0.22</sup> · sin<sup>1/3</sup>&theta;</p>
       <p>其中：</p>
       <ul>
-        <li>D = 最终撞击坑直径</li>
-        <li>E = 撞击动能</li>
-        <li>&rho;_target = 目标地表密度</li>
-        <li>角度修正：D_final = D x sin(&theta;) （&theta;为入射角）</li>
+        <li>D<sub>tc</sub> = 瞬态坑直径（m）</li>
+        <li>L = 陨石直径（m）、v = 撞击速度（m/s）</li>
+        <li>&rho;<sub>i</sub> / &rho;<sub>t</sub> = 陨石 / 目标地表密度（kg/m³）</li>
+        <li>角度修正：sin<sup>1/3</sup>&theta;（&theta; 为入射角）</li>
+        <li>瞬态坑 &gt; 2.5 km 时按 D<sub>fr</sub> = 1.17·D<sub>tc</sub><sup>1.13</sup>/D<sub>c</sub><sup>0.13</sup> 折减为塌陷后的最终坑</li>
       </ul>
-      <p style="color:var(--text-muted);font-size:12px;margin-top:4px;">此为简化模型，实际撞击坑形成涉及复杂的流体力学和相变过程</p>
+      <p style="color:var(--text-muted);font-size:12px;margin-top:4px;">基准校验：直径 50 m、速度 13 km/s 的铁陨石（&rho;=7800）→ 坑径约 1.2 km，与巴林杰陨石坑实测一致。此为简化模型，实际成坑涉及复杂的流体力学与相变过程</p>
     </div>
     <div class="ref-card">
       <h4>著名撞击事件参考</h4>
@@ -234,13 +235,13 @@
 <h2>📚 深度解析：陨石撞击坑直径估算</h2>
 <h3>💡 常见使用场景</h3>
 <ul class="dd-list">
-<li>按撞击能量估坑径（经验式）。</li>
+<li>按撞击体直径/速度/密度与靶岩密度估算瞬态坑与最终坑直径（CMM 标度律）。</li>
 <li>科普或行星地质研究中估算撞击坑的量级。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">估算</div><div class="dd-ex-body">直径 1 km、密度 3000 kg/m³、速度 20 km/s 的陨石，动能约 10¹⁹ J，坑径经验估算约数百米至 1 km 级。</div></div>
+<div class="dd-example"><div class="dd-ex-title">估算</div><div class="dd-ex-body">直径 1 km、密度 3000 kg/m³、速度 20 km/s 的陨石（靶岩 2700 kg/m³、45° 入射）：动能约 3.1×10²⁰ J，瞬态坑直径约 11 km，塌陷后最终坑约 16 km。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
-<dt>公式可靠吗？</dt><dd>为经验缩放关系，受角度/靶岩影响。</dd>
+<dt>公式可靠吗？</dt><dd>为经验缩放关系，受入射角与靶岩性质影响。基准校验：50 m/13 km/s 铁陨石 → 约 1.2 km 坑，与巴林杰陨石坑实测一致。</dd>
 <dt>靶岩性质有影响吗？</dt><dd>有。松散沉积层形成的坑径更大，坚硬基岩则相对较小。</dd>
 </dl>
 </div>
@@ -310,15 +311,22 @@ function calc(){
   // 广岛原子弹倍数
   const hiroshimaRatio = tntTons / HIROSHIMA;
 
-  // 撞击坑直径（简化公式）
-  // D = 0.07 * (E / ρ_target)^(1/4)
+  // 撞击坑直径：Collins–Melosh–Marcus 标度律（重力区，瞬态坑）
+  // D_tc = 1.161 · (ρi/ρt)^(1/3) · L^0.78 · v^0.44 · g^(-0.22) · sin^(1/3)θ
+  // （原实现 D = 0.07·(E/ρt)^(1/4) 以巴林杰陨石坑基准校验偏小约 10 倍：
+  //   50 m / 13 km/s / ρ=7800 的陨石实际留下 1.2 km 坑，原式只得 0.12 km）
   const angleRad = angle * Math.PI / 180;
   const angleFactor = Math.pow(Math.sin(angleRad), 1/3); // 角度修正因子
-  let craterDiameter = 0.07 * Math.pow(energy / targetDensity, 0.25) * angleFactor;
+  const G = 9.80665; // 重力加速度 m/s²
+  let craterDiameter = 1.161 * Math.pow(density / targetDensity, 1/3)
+                     * Math.pow(diameter, 0.78) * Math.pow(velMs, 0.44)
+                     * Math.pow(G, -0.22) * angleFactor;
 
-  // 目标类型修正
-  const targetMultiplier = { sedimentary: 1.0, crystalline: 0.85, water: 1.3, ice: 1.2 };
-  craterDiameter *= targetMultiplier[targetType] || 1.0;
+  // 复杂坑（塌陷）修正：瞬态坑 > 2.5 km 后由塌陷扩大为最终坑
+  const DC_SIMPLE = 2500; // 简单坑 → 复杂坑过渡直径 (m)
+  if(craterDiameter > DC_SIMPLE){
+    craterDiameter = 1.17 * Math.pow(craterDiameter, 1.13) / Math.pow(DC_SIMPLE, 0.13);
+  }
 
   // 撞击坑深度（约为直径的1/8到1/5）
   const craterDepth = craterDiameter / 6;
@@ -327,13 +335,17 @@ function calc(){
   // 火球半径
   const fireballRadius = Math.pow(energy / (4 * Math.PI * 1.2 * 1e5), 1/3); // m
   // 严重破坏区（20psi超压）
-  const severeRadius = 0.28 * Math.pow(tntTons, 0.33); // km，经验公式
+  // 注意：以下三式以「千吨 TNT」为当量单位（1 Mt → 20 psi 半径 ≈2.7 km）；
+  // 原实现误代入吨，导致破坏半径高估约 10 倍（1 Mt 算出 440 km 玻璃破碎区）
+  const severeRadius = 0.28 * Math.pow(tntKilotons, 0.33); // km，经验公式
   // 中度破坏区（1-3psi，玻璃破碎）
-  const moderateRadius = 2.2 * Math.pow(tntTons, 0.33); // km
+  const moderateRadius = 2.2 * Math.pow(tntKilotons, 0.33); // km
   // 轻微影响区
-  const lightRadius = 5 * Math.pow(tntTons, 0.33); // km
-  // 热辐射烧伤区（三度烧伤）
-  const burnRadius = Math.pow(energy / (4 * Math.PI * 300000), 0.33); // m
+  const lightRadius = 5 * Math.pow(tntKilotons, 0.33); // km
+  // 热辐射烧伤区（三度烧伤）：热辐射通量随 1/r² 衰减 → r = √(ηE/(4πΦ))
+  // η = 35%（空爆热辐射能量占比）、Φ = 1.3e7 J/m²（三度烧伤阈值）→ 1 Mt 约 3.0 km，与公开数据一致
+  // （原实现用 E^(1/3) 的能量密度模型，9.4 Mt 只得 2.0 km，比自身火球半径还小，不合物理）
+  const burnRadius = Math.sqrt(0.35 * energy / (4 * Math.PI * 1.3e7)); // m
 
   // 地震震级估算（经验公式）
   const magnitude = 0.67 * Math.log10(energy) - 5.87;

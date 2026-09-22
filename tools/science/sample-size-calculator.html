@@ -156,7 +156,7 @@
           <option value="0.999">99.9%</option>
         </select>
       </div>
-      <div><label>误差范围 E（精度）</label><input type="number" id="e" value="5" step="any" min="0.0001"></div>
+      <div><label>误差范围 E（±%，如 5 表示 ±5%）</label><input type="number" id="e" value="5" step="any" min="0.0001"></div>
       <div><label>预期比例 p（0~1，未知填 0.5）</label><input type="number" id="p" value="0.5" step="0.01" min="0" max="1"></div>
     </div>
     <div class="toolbar">
@@ -171,7 +171,7 @@
       <strong>关键参数：</strong><br>
       • z*：置信水平对应的 z 临界值（95% → 1.96）<br>
       • p：预期比例（取 0.5 时样本量最大、最保守）<br>
-      • E：可接受误差范围<br>
+      • E：可接受误差范围（按百分比填写，如 5 表示 ±5%；内部按 0.05 参与计算）<br>
       • N：总体大小（有限总体时启用修正）
     </div>
   </div>
@@ -249,7 +249,8 @@ function calculate(){
   if(p<0||p>1){out.innerHTML='<p style="color:var(--danger)">p 必须在 0~1 之间</p>';return;}
   const alpha=1-conf;
   const z=normalInv(1-alpha/2);
-  const n0=(z*z)*p*(1-p)/(E*E);
+  const Ep=E/100;                 // E 按百分比输入（5 = ±5%）→ 换算成比例 0.05 再代入公式
+  const n0=(z*z)*p*(1-p)/(Ep*Ep);
   let nFin=n0, finiteApplied=false;
   if(NStr){
     const N=parseInt(NStr);
@@ -267,12 +268,12 @@ function calculate(){
     <div class="stat-card"><div class="v">${nInf}</div><div class="l">无限总体（向上取整）</div></div>
     ${finiteApplied?`<div class="stat-card"><div class="v">${nFinal}</div><div class="l">有限总体修正后</div></div>`:''}
     <div class="stat-card"><div class="v">${(conf*100)}%</div><div class="l">置信水平</div></div>
-    <div class="stat-card"><div class="v">${fmt(E)}</div><div class="l">误差范围 E</div></div>
+    <div class="stat-card"><div class="v">${fmt(E)}%</div><div class="l">误差范围 E（±）</div></div>
     <div class="stat-card"><div class="v">${fmt(p)}</div><div class="l">预期比例 p</div></div>
   </div>`;
   html+=`<h3 style="margin-top:14px;">分步计算</h3>`;
   html+=`<div class="step-line"><strong>步骤 1：</strong>α = 1 − ${conf} = ${fmt(alpha)}；z* = ${fmt(z)}</div>`;
-  html+=`<div class="step-line"><strong>步骤 2：</strong>n₀ = z*² × p × (1−p) / E² = ${fmt(z*z)} × ${fmt(p)} × ${fmt(1-p)} / ${fmt(E*E)} = ${fmt(n0)}</div>`;
+  html+=`<div class="step-line"><strong>步骤 2：</strong>n₀ = z*² × p × (1−p) / E² = ${fmt(z*z)} × ${fmt(p)} × ${fmt(1-p)} / ${(Ep*Ep).toFixed(4)} = ${fmt(n0)}（E = ${fmt(E)}% = ${fmt(Ep)}）</div>`;
   if(finiteApplied){
     const N=parseInt(NStr);
     html+=`<div class="step-line"><strong>步骤 3：</strong>有限总体修正：n = n₀ / (1 + (n₀−1)/N) = ${fmt(n0)} / (1 + ${fmt(n0-1)}/${N}) = ${fmt(nFin)}</div>`;
@@ -280,7 +281,7 @@ function calculate(){
   } else {
     html+=`<div class="step-line"><strong>步骤 3：</strong>向上取整：n = ${nInf}</div>`;
   }
-  html+=`<div class="step-line"><strong>解读：</strong>需至少调查 <strong>${nFinal}</strong> 个样本，才能在 ${(conf*100)}% 置信水平下保证误差不超过 ${fmt(E)}。</div>`;
+  html+=`<div class="step-line"><strong>解读：</strong>需至少调查 <strong>${nFinal}</strong> 个样本，才能在 ${(conf*100)}% 置信水平下保证误差不超过 ±${fmt(E)}%。</div>`;
   if(p===0.5) html+=`<div class="step-line"><strong>提示：</strong>p=0.5 是最保守取值（p(1−p) 最大），适用于未知比例的情形。</div>`;
   out.innerHTML=html;
 }
@@ -389,6 +390,6 @@ document.addEventListener('DOMContentLoaded',function(){
     </div>
 </div>
 <!-- /SEO 介绍区块 -->
-<section class="opt-guide"><h2>如何使用样本量计算器</h2><ol><li>在对应的输入框或选项中填写、选择所需参数。</li><li>点击「计算」或「生成」按钮运行。</li><li>在结果区查看输出，可复制结果或导出使用。</li></ol><h2>参数说明</h2><ul class="param-list"><li>总体大小 N（可选，有限总体时填）</li><li>置信水平</li><li>误差范围 E（精度）</li><li>预期比例 p（0~1，未知填 0.5）</li></ul><h2>适用场景</h2><p>实验设计、样本量与科研数据的快速估算。</p></section><section class="opt-faq"><h2>常见问题</h2><dl class="faq-list"><dt>样本量计算器是做什么的？</dt><dd>输入总体大小、置信水平、误差范围和预期比例，计算问卷调查或 A/B 实验所需的最小样本量，自动做有限总体修正，并给出从 z 临界值到向上取整的完整分步推导。</dd><dt>如何使用样本量计算器？</dt><dd>在对应的输入框或选项中填写、选择所需参数，点击「计算」或「生成」按钮即可运行，结果会在结果区实时显示，支持复制与导出。</dd><dt>计算结果准确吗？</dt><dd>本工具在你的本地浏览器中实时计算，不依赖服务器；只要输入的参数正确，结果即按对应的规则得出。涉及经验估算的部分仅供参考，不作为正式依据。</dd><dt>样本量计算器适合哪些场景？</dt><dd>实验设计、样本量与科研数据的快速估算。</dd><dt>使用本工具需要联网或上传数据吗？</dt><dd>不需要。所有计算均在你的设备本地完成，数据不会上传到任何服务器，可放心使用。</dd></dl></section>
+<section class="opt-guide"><h2>如何使用样本量计算器</h2><ol><li>在对应的输入框或选项中填写、选择所需参数。</li><li>点击「计算」或「生成」按钮运行。</li><li>在结果区查看输出，可复制结果或导出使用。</li></ol><h2>参数说明</h2><ul class="param-list"><li>总体大小 N（可选，有限总体时填）</li><li>置信水平</li><li>误差范围 E（±%，如 5 表示 ±5%）</li><li>预期比例 p（0~1，未知填 0.5）</li></ul><h2>适用场景</h2><p>实验设计、样本量与科研数据的快速估算。</p></section><section class="opt-faq"><h2>常见问题</h2><dl class="faq-list"><dt>样本量计算器是做什么的？</dt><dd>输入总体大小、置信水平、误差范围和预期比例，计算问卷调查或 A/B 实验所需的最小样本量，自动做有限总体修正，并给出从 z 临界值到向上取整的完整分步推导。</dd><dt>如何使用样本量计算器？</dt><dd>在对应的输入框或选项中填写、选择所需参数，点击「计算」或「生成」按钮即可运行，结果会在结果区实时显示，支持复制与导出。</dd><dt>计算结果准确吗？</dt><dd>本工具在你的本地浏览器中实时计算，不依赖服务器；只要输入的参数正确，结果即按对应的规则得出。涉及经验估算的部分仅供参考，不作为正式依据。</dd><dt>样本量计算器适合哪些场景？</dt><dd>实验设计、样本量与科研数据的快速估算。</dd><dt>使用本工具需要联网或上传数据吗？</dt><dd>不需要。所有计算均在你的设备本地完成，数据不会上传到任何服务器，可放心使用。</dd></dl></section>
 </body>
 </html>
