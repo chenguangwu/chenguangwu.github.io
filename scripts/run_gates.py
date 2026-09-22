@@ -23,6 +23,10 @@ GATES = (
     ("static tests", ("python3", "_test_static.py")),
     ("dead-link audit", ("python3", "_audit_links.py", "--check")),
     ("asset audit", ("python3", "_audit_assets.py", "--check")),
+    # 防复发（缺陷 N）：构建期英文预渲染曾把页面 intro 注入 <script> 内 JS 字符串的
+    # <p> 提示位（未转义撇号/换行）→ 脚本整块 SyntaxError、计算器静默失效。既有门禁
+    # （静态结构/链接/资源/calc 冒烟/用例断言）都不校验 inline JS 语法，故单列一道。
+    ("inline js syntax", ("node", "scripts/check_inline_js_syntax.js")),
     ("calculation regression", ("node", "scripts/verify_calc.js")),
     # 与上一项区别：verify_calc 是「冒烟」（不报错即可），本项是「正确性」
     # ——注入已知输入后按权威测试向量断言输出（§4.1.1）。用例写在脚本内，逐分类扩充。

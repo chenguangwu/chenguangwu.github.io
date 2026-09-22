@@ -277,6 +277,13 @@
 - **同类「构建兜不住」字段清单（改名/重做时必须同批改）**：`<title>`、`<h1>`、`<meta name="description">`、`og:url`、`canonical`、`title-en`/`desc-en`、`h2[data-zh]`。其余（`formula-box`、deep-dive、关联卡、图标）由构建从权威源重建，改源即可传导。
 - **zh-tw 变体的 canonical/og:url 由 `scripts/gen_opencc_locales.mjs` 按路径重写**（不继承源页错值）→ 修源后重跑构建即自动传导，勿手改 `zh-tw/`。
 
+### 8.6 构建期文本注入必须避开 `<script>` 区域
+
+- **任何「按标签正则改全文」的构建期注入都必须先把 `<script>…</script>` 切出去**（缺陷 N 根因：`_prerender_tool_body()` 对全文首个 `<p>…</p>` 注入英文 intro，命中 `el.innerHTML='<p …>提示</p>'` 这类 JS 字符串 → 撇号/换行未转义 → **脚本整块 SyntaxError、计算器静默失效，且线上可复现**）。
+- **写进 JS 字符串的文案必须转义**：单引号串里的 `'` 要写 `\'`；**禁止插入裸换行**（单引号串不可跨行）。
+- **门禁 `inline js syntax`（`scripts/check_inline_js_syntax.js`）**：改 `_build.py` 注入逻辑、或批量改 `tools/**` 后必跑；它逐块 `new Function` 只做语法解析，能拦住这一类"静态结构/链接/资源/calc 冒烟/用例断言全过、但脚本已死"的 P0。
+- **教训**：既有门禁**不校验 inline JS 语法**——本次 4 页计算器线上失效仍 215/215 全绿；凡"构建会改写页面文本"的机制，都要问一句「它会不会改动 `<script>` 里的字符串？」
+
 ---
 
 ## 九、发现但未修的真实缺陷（待老板定夺）
@@ -348,6 +355,13 @@
     2. **定 expect 前做「默认态 + 交换态」双侧子串检查** —— `collectStrings()` 返回**拼接后的单个字符串**，`blob.includes(want)` 是**子串**匹配：`达标` 被默认输出 `未达标` 包含即成为逃生项。
   - **批次 2 · 存根批已闭环（2026-09-22，23/23 页）**：先做全站查重（`tools.json` name 归一化相似度 ≥0.72 + 关键词命中），85 页候选中 23 页**全站已有同义真工具**（目标全为 A 级）→ 转 `TOOLBOX-REDIRECT` 存根（细节见 §7.3 BATCH43），工具总数 4752→4729。**判定纪律**：① 目标必须 **quality=A 且语义同一功能**（如「出口污染物排放」→「水污染物排放」可存根）；② 两个互为镜像的占位页（如 `property/response-1`↔`response-4`）**不能互相存根**；③ 跨行业同名但业务不同者（如 `paper/strength-9` 撕裂强度 vs `leather/strength-8` 抗张撕裂强度）**不存根，走重做**。
   - **剩余 0 页**（BATCH51 已完成最后 2 页：science 1 线性方程组求解器 2元/3元 多 input 克莱姆法则 + language 1 日语五十音图点击发音练习 真·工具）；BATCH52 补充批 5 页（textile/aerospace/chemical 跨行业残页）也已升 A 闭环 —— 缺陷 M **全部 37 页**重做升 A 闭环。
+
+- **缺陷 N（2026-09-22 发现并闭环）「英文预渲染误注入 `<script>` 内 JS 字符串」**：`_build.py::_prerender_tool_body()` 用 `re.sub(r'(<p\b)([^>]*>)([\s\S]*?)(</p>)', count=1)` 对**全文首个** `<p>…</p>` 预渲染英文 intro；当首个 `<p>` 落在 `<script>` 内 JS 字符串（如 `el.innerHTML='<p …>提示</p>'`）时：① 英文 intro 覆盖该提示位（英文用户看到的是整段**页面描述**而非「请先输入」）；② 若 intro 含撇号（`Cohen's`）或注入引入换行 → 字符串未闭合 → **整块脚本 SyntaxError、计算器静默失效**。
+  - **全站普查（12672 个 inline script，逐块 `new Function` 解析）**：**4 页真实语法错误** —— `science/anova-calculator`、`science/effect-size-calculator`（`Cohen's` 撇号）、`science/fraction-calculator`、`science/xianxingfangchengzuqiujie-2yuan-3yuan`（后者系 BATCH51 **作者笔误**多一个 `)`，与管线无关）；**20 页提示位英文被页面描述覆盖**（含上述前 3 页）。
+  - **线上实证**：`science/effect-size-calculator.html` 线上 `curl -o` 落盘 24502 字节、HTTP 200、含 `Cohen's d and related effect` → **broken script 已部署**，线上计算器是坏的（既有 215 道门禁全过却漏检——静态结构/链接/资源/calc 冒烟/用例断言**都不校验 inline JS 语法**）。
+  - **处置**：① **根因修** `_prerender_tool_body()` —— 先按 `<script>…</script>` 切段，新增 `_sub_first_html()` **只在非 script 片段**做 h2/p 预渲染，再原序拼回；② 修 21 页（4 页语法 + 20 页文案还原，其中 3 页重叠；英文文案按 `data-zh` 中文原意重写，动态模板保留 `${…}`/拼接结构）；③ **新增门禁** `scripts/check_inline_js_syntax.js`（全站 inline JS 语法，只解析不执行；跳过 `type=module` / `ld+json` 等非 JS / 含字面 `<script` / `TOOLBOX-API-STUB`）并接入 `run_gates.py` → 门禁 **215 → 217**。
+  - **连带正向**：根因修后 3 页（`it/vector-dot-product`、`it/vector-magnitude`、`travel/timezone-lookup`）的**正文简介 `<p>` 首次拿到英文预渲染**——此前 `count=1` 被 script 内 `<p>` 吃掉，这三页是全站仅有的"漏渲染"，现与其余 ~5000 页行为一致。
+  - **遗留观察（本批未动，避免误改 zh 渲染）**：`_prerender_tool_body()` 写入的新 `data-zh` 值为 `esc_html_py(orig)`，若 `orig` 已含 HTML 实体（如 `SD&gt;0`）会被**双重转义**为 `SD&amp;gt;0`，zh 用户看到实体字面量；另 `finance/currency-lookup` 的 `data-zh` 同类双重转义。
 
 ---
 

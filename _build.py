@@ -376,6 +376,23 @@ def _prerender_tool_body(content, entry):
         return content
 
     _cjk = re.compile(r'[\u4e00-\u9fff]')
+    _script_re = re.compile(r'<script\b[\s\S]*?</script>', re.I)
+
+    def _sub_first_html(parts, pattern, fn):
+        """只在「非 <script> 片段」里替换首个匹配。
+
+        历史事故（缺陷 N）：原实现直接对整篇 content 跑 re.sub(count=1)。当首个
+        <p>…</p> 落在 JS 字符串内（如 el.innerHTML='<p …>提示</p>'）时，会把页面
+        英文 intro 注入该提示位，且未转义引号/换行 → 脚本整块 SyntaxError、计算器
+        静默失效。故预渲染前先按 <script> 切段，只改 HTML 片段。
+        """
+        for _i, _seg in enumerate(parts):
+            if pattern.search(_seg):
+                parts[_i] = pattern.sub(fn, _seg, count=1)
+                return
+
+    _parts = _script_re.split(content)
+    _scripts = _script_re.findall(content)
 
     if en_title:
         def _h2(m):
@@ -389,7 +406,7 @@ def _prerender_tool_body(content, entry):
             if 'data-zh=' not in attrs:
                 attrs = attrs.rstrip('>') + ' data-zh="%s">' % esc_html_py(orig)
             return '%s%s%s%s' % (open_tag, attrs, esc_html_py(new_text), close)
-        content = re.sub(r'(<h2\b)([^>]*>)([\s\S]*?)(</h2>)', _h2, content, count=1)
+        _sub_first_html(_parts, re.compile(r'(<h2\b)([^>]*>)([\s\S]*?)(</h2>)'), _h2)
 
     if en_intro:
         def _p(m):
@@ -401,9 +418,14 @@ def _prerender_tool_body(content, entry):
             if 'data-zh=' not in attrs:
                 attrs = attrs.rstrip('>') + ' data-zh="%s">' % esc_html_py(orig)
             return '%s%s%s%s' % (open_tag, attrs, esc_html_py(new_text), close)
-        content = re.sub(r'(<p\b)([^>]*>)([\s\S]*?)(</p>)', _p, content, count=1)
+        _sub_first_html(_parts, re.compile(r'(<p\b)([^>]*>)([\s\S]*?)(</p>)'), _p)
 
-    return content
+    out = []
+    for _i, _seg in enumerate(_parts):
+        out.append(_seg)
+        if _i < len(_scripts):
+            out.append(_scripts[_i])
+    return ''.join(out)
 
 def _slug_of(t):
     # 覆盖字典 key 采用「行业/basename」精确匹配，避免 calc-N 这类跨行业复用 basename 的错配。
