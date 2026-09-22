@@ -98,17 +98,17 @@
 </div>
 <div class="container">
   <div class="card tool-card-accent" style="--tool-accent:#FF6B35;--tool-accent-dark:#FF6B35;">
-    <h2 data-zh="🏢 维修（响应/完成/回访）时效">Maintenance</h2>
-    <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="输入两个参数，自动计算常用结果">Maintenance</p>
+    <h2 data-zh="🏢 维修（响应/完成/回访）时效">Maintenance Completion Time Calculator</h2>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="按报修与完成时刻计算维修完成总时长，对照 SLA 判定是否按时完工，用于工单闭环考核。">Maintenance</p>
     <div class="formula-box">
       <div class="formula-title">📐 计算公式</div>
-      <div class="formula-eq">维修完成时效 = 报修到完成时长</div>
-      <p class="formula-desc">输入两个参数，自动计算常用结果</p>
+      <div class="formula-eq">完成时长 = 完成时刻 − 报修时刻（分钟）；SLA 例：≤8 小时（480 分）按时</div>
+      <p class="formula-desc">维修完成时效=报修到修复完成的间隔。将时刻折算为分钟，完成时长=完成−报修，对照 SLA（如 8 小时）判定按时/超时，用于工单考核与服务水平管理。</p>
     </div>
     <div class="input-row">
-      <div><label>响应</label><input type="number" id="v0" value="100" step="any" oninput="calc()" enterkeyhint="done" aria-label="响应"></div>
+      <div><label>报修时刻 (分钟, 0-1439)</label><input type="number" id="v0" value="570" step="any" oninput="calc()" enterkeyhint="done" aria-label="响应"></div>
       <div style="display:flex;align-items:flex-end;justify-content:center;padding-bottom:8px;"><button class="btn" type="button" onclick="swapValues()" title="互换 A/B" aria-label="互换 A/B" style="padding:10px 12px;">⇄</button></div>
-      <div><label>完成</label><input type="number" id="v1" value="50" step="any" oninput="calc()" enterkeyhint="done" aria-label="完成"></div>
+      <div><label>完成时刻 (分钟)</label><input type="number" id="v1" value="1110" step="any" oninput="calc()" enterkeyhint="done" aria-label="完成"></div>
     </div>
     <div class="toolbar">
       <button class="btn primary" type="button" onclick="calc()">🧮 计算</button>
@@ -116,7 +116,7 @@
       <button class="btn" type="button" onclick="resetAll()">🗑️ 重置</button>
     </div>
     <div class="result-box" id="res"></div>
-    <div class="info-box">💡 公式提示：输入两个参数，自动计算常用结果</div>
+    <div class="info-box">💡 完成时长 = 完成时刻 − 报修时刻（分钟）；≤480 分钟（8h）按时。</div>
 <div class="tool-notes" style="--tool-accent:#FF6B35;">
   <div class="tool-notes-title">⚠️ 使用说明与注意事项</div>
   <ul>
@@ -499,6 +499,31 @@ document.addEventListener('DOMContentLoaded',function(){
   });
 });
 calc();
+</script>
+<script>
+/* 真实业务计算逻辑（页内独占，覆盖通用两参脚本） */
+function calc(){
+  var e0=document.getElementById('v0'),e1=document.getElementById('v1');
+  var A=e0?parseFloat(e0.value):NaN,B=e1?parseFloat(e1.value):NaN;
+  var box=document.getElementById('res');
+  if(!box)return;
+  if(!isFinite(A)||!isFinite(B)){box.innerHTML='<div class="info-box">请输入两个有效数值后再计算。</div>';return;}
+  if(!(B>=A)){box.innerHTML='<div class="info-box">完成时刻应不早于报修时刻。</div>';return;}
+  var items=[];
+  items.push([(B-A).toFixed(0)+" 分钟", "完成时长"]);
+  items.push([((B-A)/60).toFixed(2)+" h", "折算小时"]);
+  items.push([((B-A)<=480?"按时":"超时"), "SLA 判定"]);
+
+  var html='<div class="data-grid">'+items.map(function(it){return '<div class="data-card"><div class="num">'+it[0]+'</div><div class="label">'+it[1]+'</div></div>';}).join('')+'</div>';
+  html+='💡 完成时长 = 完成时刻 − 报修时刻（分钟）；≤480 分钟（8h）按时。';
+  box.innerHTML=html;
+  if(typeof saveHistory==='function'){try{saveHistory(A,B);}catch(e){}}
+}
+function resetAll(){
+  var a=document.getElementById('v0'),b=document.getElementById('v1');
+  if(a)a.value='570';if(b)b.value='1110';calc();
+}
+try{calc();}catch(e){}
 </script>
 
 <!-- SEO 介绍区块 -->

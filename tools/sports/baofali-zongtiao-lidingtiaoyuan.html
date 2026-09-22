@@ -97,17 +97,17 @@
 </nav>
 <div class="container">
   <div class="card tool-card-accent" style="--tool-accent:#E11D48;--tool-accent-dark:#E11D48;">
-    <h2 data-zh="⚽ 爆发力（纵跳/立定跳远）">⚽ Explosive Power Calculator (Vertical Jump / Long Jump)</h2>
-    <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="输入两个参数，自动计算常用结果">Enter jump height or distance and body weight to estimate power output and an explosive-power index for athlete physical assessment.</p>
+    <h2 data-zh="⚽ 爆发力（纵跳/立定跳远）">Vertical Jump Height Calculator (v0^2/2g)</h2>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="按起跳初速度与重力加速度计算纵跳高度与滞空时间，用于爆发力评估。">Enter jump height or distance and body weight to estimate power output and an explosive-power index for athlete physical assessment.</p>
     <div class="formula-box">
       <div class="formula-title">📐 计算公式</div>
-      <div class="formula-eq">纵跳高度 h = v₀²/(2g)</div>
-      <p class="formula-desc">输入两个参数，自动计算常用结果</p>
+      <div class="formula-eq">纵跳高度 h = v0² / (2g)；滞空时间 = 2v0 / g；g 取 9.8 m/s²</div>
+      <p class="formula-desc">纵跳高度由起跳离地速度决定：h=v0²/(2g)，滞空时间=2v0/g。已知起跳初速度 v0 与重力加速度 g（9.8），即得最大重心升高与腾空时间，是下肢爆发力的间接指标。</p>
     </div>
     <div class="input-row">
-      <div><label>纵跳</label><input type="number" id="v0" value="100" step="any" oninput="calc()" enterkeyhint="done" aria-label="纵跳"></div>
+      <div><label>起跳初速度 v0 (m/s)</label><input type="number" id="v0" value="3" step="any" oninput="calc()" enterkeyhint="done" aria-label="纵跳"></div>
       <div style="display:flex;align-items:flex-end;justify-content:center;padding-bottom:8px;"><button class="btn" type="button" onclick="swapValues()" title="互换 A/B" aria-label="互换 A/B" style="padding:10px 12px;">⇄</button></div>
-      <div><label>立定跳远</label><input type="number" id="v1" value="50" step="any" oninput="calc()" enterkeyhint="done" aria-label="立定跳远"></div>
+      <div><label>重力加速度 g (m/s²)</label><input type="number" id="v1" value="9.8" step="any" oninput="calc()" enterkeyhint="done" aria-label="立定跳远"></div>
     </div>
     <div class="toolbar">
       <button class="btn primary" type="button" onclick="calc()">🧮 计算</button>
@@ -115,7 +115,7 @@
       <button class="btn" type="button" onclick="resetAll()">🗑️ 重置</button>
     </div>
     <div class="result-box" id="res"></div>
-    <div class="info-box">💡 公式提示：输入两个参数，自动计算常用结果</div>
+    <div class="info-box">💡 纵跳高度 h = v0² / (2g)；滞空时间 = 2v0 / g；g 默认 9.8。</div>
 <div class="tool-notes" style="--tool-accent:#E11D48;">
   <div class="tool-notes-title">⚠️ 使用说明与注意事项</div>
   <ul>
@@ -498,6 +498,31 @@ document.addEventListener('DOMContentLoaded',function(){
   });
 });
 calc();
+</script>
+<script>
+/* 真实业务计算逻辑（页内独占，覆盖通用两参脚本） */
+function calc(){
+  var e0=document.getElementById('v0'),e1=document.getElementById('v1');
+  var A=e0?parseFloat(e0.value):NaN,B=e1?parseFloat(e1.value):NaN;
+  var box=document.getElementById('res');
+  if(!box)return;
+  if(!isFinite(A)||!isFinite(B)){box.innerHTML='<div class="info-box">请输入两个有效数值后再计算。</div>';return;}
+  if(!(B>0)){box.innerHTML='<div class="info-box">重力加速度需大于 0。</div>';return;}
+  var items=[];
+  items.push([(A*A/(2*B)).toFixed(3)+" m", "纵跳高度"]);
+  items.push([A.toFixed(2), "起跳初速度（m/s）"]);
+  items.push([(2*A/B).toFixed(3)+" s", "滞空时间"]);
+
+  var html='<div class="data-grid">'+items.map(function(it){return '<div class="data-card"><div class="num">'+it[0]+'</div><div class="label">'+it[1]+'</div></div>';}).join('')+'</div>';
+  html+='💡 纵跳高度 h = v0² / (2g)；滞空时间 = 2v0 / g；g 默认 9.8。';
+  box.innerHTML=html;
+  if(typeof saveHistory==='function'){try{saveHistory(A,B);}catch(e){}}
+}
+function resetAll(){
+  var a=document.getElementById('v0'),b=document.getElementById('v1');
+  if(a)a.value='3';if(b)b.value='9.8';calc();
+}
+try{calc();}catch(e){}
 </script>
 
 <!-- SEO 介绍区块 -->

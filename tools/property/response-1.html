@@ -98,17 +98,17 @@
 </div>
 <div class="container">
   <div class="card tool-card-accent" style="--tool-accent:#FF6B35;--tool-accent-dark:#FF6B35;">
-    <h2 data-zh="🏢 维修（报修/响应）时效">Maintenance</h2>
-    <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="输入两个参数，自动计算常用结果">Maintenance</p>
+    <h2 data-zh="🏢 维修（报修/响应）时效">Maintenance Response Time Calculator</h2>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="按报修与响应时刻计算维修响应时长，并对照 SLA 阈值判定达标等级，用于物业报修服务考核。">Maintenance</p>
     <div class="formula-box">
       <div class="formula-title">📐 计算公式</div>
-      <div class="formula-eq">维修响应时效 = 报修到响应时长</div>
-      <p class="formula-desc">输入两个参数，自动计算常用结果</p>
+      <div class="formula-eq">响应时长 = 响应时刻 − 报修时刻（分钟）；SLA 例：≤30 分钟优秀、≤60 分钟良好</div>
+      <p class="formula-desc">物业维修响应时效以报修到响应的间隔衡量：将报修/响应时刻折算为当日分钟数，响应时长=响应−报修。对照 SLA 阈值（如 30/60 分钟）判定达标等级，用于服务考核与改进。</p>
     </div>
     <div class="input-row">
-      <div><label>报修</label><input type="number" id="v0" value="100" step="any" oninput="calc()" enterkeyhint="done" aria-label="报修"></div>
+      <div><label>报修时刻 (分钟, 0-1439)</label><input type="number" id="v0" value="570" step="any" oninput="calc()" enterkeyhint="done" aria-label="报修"></div>
       <div style="display:flex;align-items:flex-end;justify-content:center;padding-bottom:8px;"><button class="btn" type="button" onclick="swapValues()" title="互换 A/B" aria-label="互换 A/B" style="padding:10px 12px;">⇄</button></div>
-      <div><label>响应</label><input type="number" id="v1" value="50" step="any" oninput="calc()" enterkeyhint="done" aria-label="响应"></div>
+      <div><label>响应时刻 (分钟)</label><input type="number" id="v1" value="595" step="any" oninput="calc()" enterkeyhint="done" aria-label="响应"></div>
     </div>
     <div class="toolbar">
       <button class="btn primary" type="button" onclick="calc()">🧮 计算</button>
@@ -116,7 +116,7 @@
       <button class="btn" type="button" onclick="resetAll()">🗑️ 重置</button>
     </div>
     <div class="result-box" id="res"></div>
-    <div class="info-box">💡 公式提示：输入两个参数，自动计算常用结果</div>
+    <div class="info-box">💡 响应时长 = 响应时刻 − 报修时刻（分钟）；≤30 分钟优秀，≤60 分钟良好。</div>
 <div class="tool-notes" style="--tool-accent:#FF6B35;">
   <div class="tool-notes-title">⚠️ 使用说明与注意事项</div>
   <ul>
@@ -499,6 +499,31 @@ document.addEventListener('DOMContentLoaded',function(){
   });
 });
 calc();
+</script>
+<script>
+/* 真实业务计算逻辑（页内独占，覆盖通用两参脚本） */
+function calc(){
+  var e0=document.getElementById('v0'),e1=document.getElementById('v1');
+  var A=e0?parseFloat(e0.value):NaN,B=e1?parseFloat(e1.value):NaN;
+  var box=document.getElementById('res');
+  if(!box)return;
+  if(!isFinite(A)||!isFinite(B)){box.innerHTML='<div class="info-box">请输入两个有效数值后再计算。</div>';return;}
+  if(!(B>=A)){box.innerHTML='<div class="info-box">响应时刻应不早于报修时刻。</div>';return;}
+  var items=[];
+  items.push([(B-A).toFixed(0)+" 分钟", "响应时长"]);
+  items.push([((B-A)/60).toFixed(2)+" h", "折算小时"]);
+  items.push([((B-A)<=30?"优秀":((B-A)<=60?"良好":"超时")), "SLA 等级"]);
+
+  var html='<div class="data-grid">'+items.map(function(it){return '<div class="data-card"><div class="num">'+it[0]+'</div><div class="label">'+it[1]+'</div></div>';}).join('')+'</div>';
+  html+='💡 响应时长 = 响应时刻 − 报修时刻（分钟）；≤30 分钟优秀，≤60 分钟良好。';
+  box.innerHTML=html;
+  if(typeof saveHistory==='function'){try{saveHistory(A,B);}catch(e){}}
+}
+function resetAll(){
+  var a=document.getElementById('v0'),b=document.getElementById('v1');
+  if(a)a.value='570';if(b)b.value='595';calc();
+}
+try{calc();}catch(e){}
 </script>
 
 <!-- SEO 介绍区块 -->

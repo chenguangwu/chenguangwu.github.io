@@ -98,17 +98,17 @@
 </div>
 
   <div class="card tool-card-accent" style="--tool-accent:#FF6B35;--tool-accent-dark:#FF6B35;">
-    <h2 data-zh="📏 勘探（网度/间距/工程）布置">📏 Exploration Spacing Layout</h2>
-    <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="输入两个参数，自动计算常用结果">Plan exploration grid spacing and engineering density for a deposit.</p>
+    <h2 data-zh="📏 勘探（网度/间距/工程）布置">Exploration Grid Spacing Calculator</h2>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="按勘探面积与工程间距估算方格网工程数量与网度密度，用于勘探工程布置设计。">Plan exploration grid spacing and engineering density for a deposit.</p>
     <div class="formula-box">
       <div class="formula-title">📐 计算公式</div>
-      <div class="formula-eq">勘探网度 = 工程间距布置</div>
-      <p class="formula-desc">输入两个参数，自动计算常用结果</p>
+      <div class="formula-eq">工程数 ≈ 面积 ÷ 间距²；网度单元面积 = 间距²；工程密度 = 1 / 间距²</div>
+      <p class="formula-desc">方格网勘探中，工程间距 d 决定网度单元 d²。工程数≈勘探面积÷d²，网度密度=1/d²（工程/单位面积）。间距越大密度越低、控制越稀，须与资源量可靠类型匹配。</p>
     </div>
     <div class="input-row">
-      <div><label>网度</label><input type="number" id="v0" value="100" step="any" oninput="calc()" enterkeyhint="done" aria-label="网度"></div>
+      <div><label>勘探面积 (m²)</label><input type="number" id="v0" value="1000000" step="any" oninput="calc()" enterkeyhint="done" aria-label="网度"></div>
       <div style="display:flex;align-items:flex-end;justify-content:center;padding-bottom:8px;"><button class="btn" type="button" onclick="swapValues()" title="互换 A/B" aria-label="互换 A/B" style="padding:10px 12px;">⇄</button></div>
-      <div><label>间距</label><input type="number" id="v1" value="50" step="any" oninput="calc()" enterkeyhint="done" aria-label="间距"></div>
+      <div><label>工程间距 (m)</label><input type="number" id="v1" value="100" step="any" oninput="calc()" enterkeyhint="done" aria-label="间距"></div>
     </div>
     <div class="toolbar">
       <button class="btn primary" type="button" onclick="calc()">🧮 计算</button>
@@ -116,7 +116,7 @@
       <button class="btn" type="button" onclick="resetAll()">🗑️ 重置</button>
     </div>
     <div class="result-box" id="res"></div>
-    <div class="info-box">💡 公式提示：展示总和、差值、比值和百分比</div>
+    <div class="info-box">💡 工程数 ≈ 面积 ÷ 间距²；网度单元面积 = 间距²。</div>
 <div class="tool-notes" style="--tool-accent:#FF6B35;">
   <div class="tool-notes-title">⚠️ 使用说明与注意事项</div>
   <ul>
@@ -499,6 +499,31 @@ document.addEventListener('DOMContentLoaded',function(){
   });
 });
 calc();
+</script>
+<script>
+/* 真实业务计算逻辑（页内独占，覆盖通用两参脚本） */
+function calc(){
+  var e0=document.getElementById('v0'),e1=document.getElementById('v1');
+  var A=e0?parseFloat(e0.value):NaN,B=e1?parseFloat(e1.value):NaN;
+  var box=document.getElementById('res');
+  if(!box)return;
+  if(!isFinite(A)||!isFinite(B)){box.innerHTML='<div class="info-box">请输入两个有效数值后再计算。</div>';return;}
+  if(!(B>0)){box.innerHTML='<div class="info-box">工程间距需大于 0。</div>';return;}
+  var items=[];
+  items.push([(A/(B*B)).toFixed(0), "工程数（估）"]);
+  items.push([(B*B).toFixed(0)+" m²", "网度单元面积"]);
+  items.push([(10000/(B*B)).toFixed(2)+" 工程/万m²", "工程密度"]);
+
+  var html='<div class="data-grid">'+items.map(function(it){return '<div class="data-card"><div class="num">'+it[0]+'</div><div class="label">'+it[1]+'</div></div>';}).join('')+'</div>';
+  html+='💡 工程数 ≈ 面积 ÷ 间距²；网度单元面积 = 间距²。';
+  box.innerHTML=html;
+  if(typeof saveHistory==='function'){try{saveHistory(A,B);}catch(e){}}
+}
+function resetAll(){
+  var a=document.getElementById('v0'),b=document.getElementById('v1');
+  if(a)a.value='1000000';if(b)b.value='100';calc();
+}
+try{calc();}catch(e){}
 </script>
 
 <!-- SEO 介绍区块 -->
