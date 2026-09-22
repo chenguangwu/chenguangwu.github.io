@@ -195,14 +195,16 @@
 <h2>📚 深度解析：T 分数计算器</h2>
 <h3>💡 常见使用场景</h3>
 <ul class="dd-list">
-<li>单样本/两样本 t 统计量。</li>
-<li>小样本均值检验与置信区间的计算。</li>
+<li>把原始分数按 Z=(X−M)/SD、T=50+10Z 换算为标准分 T（均值 50、标准差 10）。</li>
+<li>心理测验与教育测评中，把不同量表的原始分统一到 T 量表后比较个体位置。</li>
+<li>已知 Z 值时直接反推 T 分数（Z 模式）。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">计算</div><div class="dd-ex-body">x̄=105、μ=100、s=15、n=36 → t=(105-100)/(15/6)=2.0，df=35。</div></div>
+<div class="dd-example"><div class="dd-ex-title">换算</div><div class="dd-ex-body">X=85、M=70、SD=10 → Z=(85−70)/10=1.5、T=50+10×1.5=65；Φ(1.5)=93.32%，即高于均值的水平处于前 6.7%。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
-<dt>t 与 z 区别？</dt><dd>σ 未知用小样本 t，大样本近似 z。</dd>
-<dt>配对样本怎么做？</dt><dd>先求每对数据之差，再对差值序列做单样本 t 检验。</dd>
+<dt>T 分数与 Z 分数关系？</dt><dd>T = 50 + 10Z：Z 以 0 为均值、1 为标准差，T 把它平移放大到均值 50、标准差 10。</dd>
+<dt>为什么心理量表常用 T 分数？</dt><dd>避免负号与小数，便于报告与跨量表比较：50 分为均值，60、70 分别对应 +1Z、+2Z。</dd>
+<dt>T 分数与 t 检验的 t 值是一回事吗？</dt><dd>不是。T 分数是线性标准分（T=50+10Z）；t 值是 t 检验统计量 t=(x̄−μ)/(s/√n)，含义与公式都不同。</dd>
 </dl>
 </div>
 </section>
@@ -231,6 +233,14 @@ function fmt(x){
   if(Math.abs(x)>1e15||Math.abs(x)<1e-6) return x.toExponential(8);
   return (Math.round(x*1e10)/1e10).toLocaleString();
 }
+// 标准正态分布函数（A&S 7.1.26 误差函数近似，|ε| < 1.5e-7）
+function erf(x){
+  const s=x<0?-1:1; x=Math.abs(x);
+  const t=1/(1+0.3275911*x);
+  const y=1-((((1.061405429*t-1.453152027)*t+1.421413741)*t-0.284496736)*t+0.254829592)*t*Math.exp(-x*x);
+  return s*y;
+}
+function normCdf(x){ return 0.5*(1+erf(x/Math.SQRT2)); }
 function calculate(){
   const out=document.getElementById('output');
   let z,t;
@@ -253,13 +263,16 @@ function calculate(){
     html+=`<div class="step-line"><strong>步骤 1：</strong>偏差 = X − M = ${fmt(x)} − ${fmt(M)} = ${fmt(x-M)}</div>`;
     html+=`<div class="step-line"><strong>步骤 2：</strong>Z = (X − M) / SD = ${fmt(x-M)} / ${fmt(sd)} = ${fmt(z)}</div>`;
     html+=`<div class="step-line"><strong>步骤 3：</strong>T = 50 + 10 × Z = 50 + 10 × ${fmt(z)} = ${fmt(t)}</div>`;
-    let lvl='';
-    if(t>=70) lvl='远高于均值（前 2.3%）';
-    else if(t>=60) lvl='高于均值（前 15.9%）';
-    else if(t>=40) lvl='接近均值（中间 68%）';
-    else if(t>=30) lvl='低于均值（后 15.9%）';
-    else lvl='远低于均值（后 2.3%）';
+    // 按实际 Z 值算百分位（原实现按 T 分桶写死「前 15.9%」，T=65 时实际为前 6.7%）
+    const pct = normCdf(z) * 100;
+    let lvl;
+    if(z >= 2) lvl = `远高于均值（前 ${(100-pct).toFixed(1)}%）`;
+    else if(z > 0) lvl = `高于均值（前 ${(100-pct).toFixed(1)}%）`;
+    else if(z <= -2) lvl = `远低于均值（后 ${pct.toFixed(1)}%）`;
+    else if(z < 0) lvl = `低于均值（后 ${pct.toFixed(1)}%）`;
+    else lvl = '位于均值（百分位 50.0%）';
     html+=`<div class="step-line"><strong>解读：</strong>${lvl}</div>`;
+    html+=`<div class="step-line"><strong>百分位：</strong>低于该分数的比例 = Φ(Z) = Φ(${fmt(z)}) = ${pct.toFixed(2)}%</div>`;
     out.innerHTML=html;
   } else {
     z=parseFloat(document.getElementById('zIn').value);

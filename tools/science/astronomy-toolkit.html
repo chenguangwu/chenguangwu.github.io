@@ -514,12 +514,15 @@
 <ul class="dd-list">
 <li>由视星等与距离算绝对星等、历法等。</li>
 <li>观测前估算目标天体是否落在肉眼或望远镜的可见范围内。</li>
+<li>按 Collins–Melosh–Marcus 标度律估算陨石撞击坑直径、动能与广岛当量（科普量级）。</li>
 </ul>
 <div class="dd-example"><div class="dd-ex-title">绝对星等</div><div class="dd-ex-body">公式 M=m-5(log₁₀d-1)；太阳视星等 m=-26.74、d=1AU → M≈4.83。</div></div>
+<div class="dd-example"><div class="dd-ex-title">撞击坑</div><div class="dd-ex-body">铁陨石 L=50 m、ρᵢ=7800 kg/m³、v=13 km/s、45° 入射、靶岩 ρₜ=2700 kg/m³ → 瞬态坑 ≈1.22 km（巴林杰坑实测 1.19 km），动能 ≈4.3×10¹⁶ J（约 684 倍广岛）。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
 <dt>星等越小越亮？</dt><dd>是，每差 5 等亮度差 100 倍。</dd>
 <dt>距离模数是什么？</dt><dd>m−M=5·lg d−5，用于由视星等与距离推绝对星等（d 以 pc 计）。</dd>
+<dt>撞击坑直径怎么估？</dt><dd>按 CMM 标度律 D=1.161·(ρᵢ/ρₜ)^(1/3)·L^0.78·v^0.44·g^−0.22·sin^(1/3)θ 算瞬态坑；超过 2.5 km 时再按 D_fr=1.17·D_tc^1.13/D_c^0.13 折算塌陷后的最终坑。</dd>
 </dl>
 </div>
 </section>
@@ -745,21 +748,19 @@ function calcCrater() {
   // Impact angle correction (sin of angle, normalized to vertical = 90)
   var sinAngle = Math.sin(angle * Math.PI / 180);
 
-  // Simplified Pi-scaling law for final crater diameter
-  // D = 1.161 * (rho_i/rho_t)^(1/3) * d^0.78 * v^0.44 * g^-0.22 * sin^0.33
-  // Using gravity g = 9.81 m/s^2
-  var g = 9.81;
-  var D_simple = 1.161 * Math.pow(mDensity / gDensity, 1/3) *
-                 Math.pow(diam, 0.78) * Math.pow(speedMS, 0.44) *
-                 Math.pow(g, -0.22) * Math.pow(sinAngle, 0.33);
+  // Collins–Melosh–Marcus 撞击坑标度律（瞬态坑直径）
+  // D_tc = 1.161 · (ρi/ρt)^(1/3) · L^0.78 · v^0.44 · g^-0.22 · sin^(1/3)θ
+  var g = 9.80665;
+  var D_tc = 1.161 * Math.pow(mDensity / gDensity, 1/3) *
+             Math.pow(diam, 0.78) * Math.pow(speedMS, 0.44) *
+             Math.pow(g, -0.22) * Math.pow(Math.abs(sinAngle), 1/3);
 
-  // Alternative simplified formula from the task spec:
-  // D = 0.07 * (E / rho_t)^(1/4)
-  var E_over_rho = energy / gDensity;
-  var D_alt = 0.07 * Math.pow(E_over_rho, 0.25);
-
-  // Use average of both for a balanced estimate
-  var D_final = (D_simple + D_alt) / 2;
+  // 瞬态坑 > 2.5 km 时坑壁塌陷形成最终坑（简单坑→复杂坑过渡）
+  var DC_SIMPLE = 2500;
+  var D_final = D_tc;
+  if (D_final > DC_SIMPLE) {
+    D_final = 1.17 * Math.pow(D_final, 1.13) / Math.pow(DC_SIMPLE, 0.13);
+  }
 
   // Energy equivalents
   var tntEquiv = energy / 4.184e9; // tonnes of TNT
@@ -790,9 +791,9 @@ function calcCrater() {
 
   var html =
     '<p><strong>估算撞击坑直径</strong>：' + craterStr + '（' + craterNote + '）</p>' +
-    '<p><strong>撞击动能</strong>：' + ToolBox.formatNumber(energy, 0) + ' J（约 ' + tntStr + '）</p>' +
+    '<p><strong>撞击动能</strong>：' + ToolBox.formatNumber(energy, 0) + ' J（约 ' + tntStr + '，相当于 ' + ToolBox.formatNumber(hiroshima, 1) + ' 倍广岛原子弹）</p>' +
     '<p><strong>陨石质量</strong>：' + ToolBox.formatNumber(mass, 1) + ' kg</p>' +
-    '<p style="font-size:12px;color:var(--text-muted);margin-top:8px;">注：采用两种简化公式取平均值，仅供科普参考。实际撞击坑大小受地层结构、大气减速、碎裂等因素影响。</p>';
+    '<p style="font-size:12px;color:var(--text-muted);margin-top:8px;">注：按 Collins–Melosh–Marcus 标度律估算瞬态坑直径，超过 2.5 km 时按塌陷后最终坑换算；实际撞击坑大小受地层结构、大气减速、碎裂等因素影响，结果仅供科普参考。</p>';
 
   document.getElementById('craterResult').innerHTML = html;
 }

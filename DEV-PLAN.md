@@ -304,6 +304,7 @@
 - **配对要点**：输出顺序是「**值在前、标签在后**」，取值要**往前找最近数字**；`NUM` 需加前视边界 `(?<![\d.\-<>=])`，否则 `50-70%` 会被读成 `-90`。标签错位是主要噪声源，**只信语义明确的标签**（`p 值`/`概率`/`覆盖率`），`占比`/`%` 单独出现不可信。
 - **坑**：引擎剥离标签的正则若用 `<[^>]+>`，会把**字面文本 `< 0.001`** 当成标签吃掉（`tester-15` 的 P 值列因此看似空白）→ 必须用 `<[a-zA-Z/!][^>]*>`。
 - **本能力已产出**：缺陷 T（p=1.05>1）、缺陷 U（χ² CDF 近似崩坏）；同时排除 3 个假信号（`Infinity` 属 `setInterval`/动态 `innerHTML` 表单的桩盲区、`photo-5` 超焦距远界 `Infinity` 属正确输出）。
+- **隔离器三处盲区（2026-09-23 修复；此前会把「未审计」伪装成「无输出」）**：① `<textarea>` 默认文本未注入 → 统计类页（mean/median/variance/percentile/correlation/anova/statistics…）恒显示「请输入数据」，被误读成「页面无默认输出」（science 一栏 44/78 页因此从未被审计）；② 只调用**首个** calc 类函数 → 多模块页首函数是需参辅助函数时抛错，整页 OUT 空（`statistics-calculator` 的 `calcHistogram`）；③ 脚本块筛选要求函数名含 `calc/calculate/compute` → `convert/solve/run` 类入口整页 `NO_CALC`（`torque-converter`、`quadratic-equation`、`si-unit-converter`）。已分别补：textarea 注入、逐个触发器 try/一旦写出结果即止、无匹配时取「函数最多」的脚本块。**结论：升级前的「空 OUT / 请输入数据」不能作为「页面无默认输出」的证据。** 升级后 science 可读页 44→78（余 21 页为结构性无默认输出：π/素数/周期表/QR/NATO 等展示型页）。
 
 ### 8.9 有界量的口径自检 + 门禁用例文件「静默失效」自检（2026-09-22 新增，缺陷 AM/AN）
 
@@ -449,12 +450,13 @@ dermatology 14/11、engineering 14/11、signal 11/11、design 10/10、rheumatolo
 | **检索/过滤型图鉴页的结果是全量列表的「子集」** | 任何「单卡片内文本」在默认全量态同样存在，作 expect 必为逃生项 |
 | **兜底阶段会调用 `swapValues()`（`DESTRUCTIVE` 的 `swap\b` 对它无效）** | 该函数把两个输入**互换后重算** → **二值判读词**（偏高/正常、力度偏大/适中、A 优于 B…）在交换态必命中其中一档 → 判定词一律**不得作 expect**，只锚依赖被测输入的数值项（2026-09-22 BATCH42 实测 7 例中招） |
 | **`blob.includes(want)` 是子串匹配**（`collectStrings` 返回拼接后的单字符串） | expect 会被默认输出包含：`达标` ⊂ `未达标`、`5.00%` ⊂ `25.00%`。定 expect 前须做「默认态 + 交换态」**双侧子串**检查，必要时给 expect 加标签前缀（如 `准时但不良率 5.00%`） |
+| **expect 与「默认态输出」字符串一致 → 逃生项**（即便注入的是另一组输入） | 只看 `x/x 全过` 会漏判：`science/anova-calculator` 断言「&lt; 0.0001」曾中招 —— 默认数据 F=25.554 的 p=4.7e-5 同样落在 `<1e-4` 分支，注入失败也命中。**新增用例后必须跑 `discriminate_check`（或先手算默认态输出）**，并换一组能跨分支/跨档的数据 |
 | **`select` 的 `selected` 属性在 harness 里不生效**（桩取**首个 option**） | 页面「默认选中项」类改动无法用默认态用例验证 —— 必须**显式注入该 select 的值**；判断真实浏览器行为只认 HTML 标准（`select.value` 取 `selected` 的那项）。2026-09-22 实测：页面 `conf` 标 `selected` 的 0.95 → harness 仍按 0.90 计算 |
 | **页面自带的 `fmt()` 常走 `toLocaleString()`（默认截 3 位小数）** | `0.0025` 会显示成 `0.003`，使「分步计算」文案无法自校验、也易被误判为算术错。凡步骤/卡片要展示小数量（概率、E²、比容等），改用带参 `toFixed(n)`；定 expect 时避开被截断的位置 |
 
 ### 方向1 公式-脚本一致性精查（进行中 · 2026-09-22 启动 · 老板选定）
 - **目标**：逐页独立复算高热度计算类页 `calc()` 输出的数学/物理正确性（与标准公式/权威向量比），找"用户拿到错钱数/错物理量"的真缺陷（§4.5 红线第一条最高频事故）。
-- **候选**：386 页（有 `formula-eq` + 真实 `calc()` + 数字输入，可被注入复算），覆盖 10 高热度行业；`finance` 40+ 页全未覆盖（Y，优先）。
+- **候选**：386 页（有 `formula-eq` + 真实 `calc()` + 数字输入，可被注入复算），覆盖 10 高热度行业；`finance` 40+ 页全未覆盖（Y，优先）。`science`（99 页）已在 BATCH47–49 走过一遍默认态复算（隔离器升级后 78 页可读）；`math`(34)/`geometry`(28)/`photo`(30)/`ai`(56)/`sports`(56)/`agriculture`(52) 待开。
 - **SOP**：正向校验 `runCase({slug, inputs, expect:独立复算值})`（ok=true=健康；ok=false=候选）；图表/动态 UI 页用「抽 calc/纯函数 + 自建桩 DOM」绕行。`runCase(expect:['\u0000'])` 取 `fullBlob` 看真实输出。
 - **harness 修复（本批）**：`verify_it_calc.js` 的 `makeEl` 补 `clientWidth/clientHeight/offsetWidth/offsetHeight/parentElement` 桩、`CTX2D.canvas` 补 `clientWidth/clientHeight` → 图表页（compound-interest/irr 等读 `clientWidth`/`ctx.canvas.clientWidth`/`el.parentElement.clientWidth`）可被 `runCase` 覆盖；重跑 `run_gates.py --skip-build` 仍 **215/215**（CASES 未增删，安全）。
 - **首批 finance 精查（53 页中首批 10 页）**：✅ 健康 7 页（simple-interest / npv-calculator / break-even-calculator / depreciation-calculator / vat-calculator / compound-interest / irr-calculator 算法）；⚠️ profit-margin-calculator 营业利润/EBITDA 未含财务费用（净利正确，低优先口径偏差，待下批复核是否按通用准则修正）；其余 43 页待继续。

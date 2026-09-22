@@ -130,8 +130,8 @@
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="计算月缴存额、贷款额度与月供（参考）">Compute monthly employee and employer housing-fund contributions and estimate the loan amount and monthly payment from salary base and rates.</p>
     <div class="formula-box">
       <div class="formula-title">📐 计算公式</div>
-      <div class="formula-eq">月缴存额 = 缴存基数 × (单位比例 + 个人比例)　贷款额度 = f(账户余额, 基数)</div>
-      <div class="formula-desc">住房公积金测算：缴存基数通常有当地上下限，比例多在 5%–12%；贷款额度按当地"余额倍数 / 基数 / 房价比例"三项取最低，月供按等额本息计算。</div>
+      <div class="formula-eq">月缴存额 = 缴存基数 × (单位比例 + 个人比例)　贷款额度 = min(账户余额 × 倍数, 当地最高额度)</div>
+      <div class="formula-desc">住房公积金测算：缴存基数通常有当地上下限，比例多在 5%–12%；贷款额度按「账户余额 × 倍数」估算并以当地最高额度封顶，月供按等额本息计算。</div>
     </div>
 
     <div class="input-row">
@@ -165,6 +165,17 @@
         <label>贷款年限</label>
         <input type="number" id="loanYears" value="30" oninput="calc()">
       </div>
+      <div>
+        <label>余额倍数（倍，常见 15–20）</label>
+        <input type="number" id="multi" value="20" oninput="calc()" step="any">
+      </div>
+    </div>
+
+    <div class="input-row">
+      <div>
+        <label>当地最高贷款额度（万元，0 = 不设上限）</label>
+        <input type="number" id="cityCap" value="50" oninput="calc()" step="any">
+      </div>
     </div>
 
     <div class="toolbar">
@@ -182,7 +193,7 @@
       <p><strong>单位月缴存</strong> = 工资基数 × 单位比例</p>
       <p><strong>月缴存总额</strong> = 个人 + 单位</p>
       <p><strong>累计余额</strong>（简化估算）= 月缴存总额 × 月数</p>
-      <p><strong>贷款额度上限</strong>（参考）：余额 × 倍数（各地不同，常见 15-20 倍）</p>
+      <p><strong>贷款额度</strong> = min(账户余额 × 倍数, 当地最高额度)；倍数各地不同，常见 15-20 倍</p>
       <p><strong>等额本息月供</strong> = P × r / (1 - (1+r)^-n)</p>
       <p>注：实际缴存基数与贷款额度以当地公积金中心规定为准</p>
       <p>2024 年首套公积金贷款利率 5 年以下 2.35%，5 年以上 2.85%（2025 年调整后参考值）</p>
@@ -209,14 +220,16 @@
 <h2>📚 深度解析：公积金计算器</h2>
 <h3>💡 常见使用场景</h3>
 <ul class="dd-list">
-<li>估算公积金月缴存。</li>
-<li>估算每月公积金缴存额与年度累积额度。</li>
+<li>估算公积金月缴存额与账户余额累积。</li>
+<li>按「账户余额 × 倍数」估算贷款额度，并以当地最高额度封顶。</li>
+<li>按月缴存额与贷款年限测算等额本息月供、总利息。</li>
 </ul>
 <div class="dd-example"><div class="dd-ex-title">计算</div><div class="dd-ex-body">缴存基数 5000、比例 12%：个人 600 + 单位 600 = 1200 元/月。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
 <dt>基数有上下限？</dt><dd>按当地社平工资设封顶保底。</dd>
 <dt>缴存比例范围是多少？</dt><dd>一般为 5%–12%，具体上下限由各地住房公积金管理中心规定。</dd>
+<dt>贷款额度怎么算？</dt><dd>本工具按「账户余额 × 倍数」（常见 15–20 倍）估算，再以当地最高额度封顶；实际还受房价比例、缴存基数上限等约束，以当地公积金中心规定为准。</dd>
 </dl>
 </div>
 </section>
@@ -245,6 +258,10 @@ function calc(){
   const months = parseInt(document.getElementById('months').value, 10) || 0;
   const loanRate = parseFloat(document.getElementById('loanRate').value) || 0;
   const loanYears = parseInt(document.getElementById('loanYears').value, 10) || 0;
+  const multiRaw = parseFloat(document.getElementById('multi').value);
+  const multi = isNaN(multiRaw) || multiRaw <= 0 ? 20 : multiRaw;
+  const capWanRaw = parseFloat(document.getElementById('cityCap').value);
+  const capYuan = isNaN(capWanRaw) || capWanRaw <= 0 ? Infinity : capWanRaw * 10000;
   if(sal <= 0 || sp < 0 || ep < 0){
     document.getElementById('resultBox').innerHTML = '<p style="color:var(--danger);">请输入合理数值</p>';
     return;
@@ -253,10 +270,11 @@ function calc(){
   const empMonthly = sal * ep / 100;
   const totalMonthly = selfMonthly + empMonthly;
   const balance = totalMonthly * months;
-  // 贷款额度估算（参考值）
-  const loanLimit = balance * 20;
-  // 月供（按 50万 额度估算，实际以当地规定）
-  const loanAmount = Math.min(500000, loanLimit); // 上限 50万
+  // 贷款额度估算：账户余额 × 倍数，并以当地最高额度封顶
+  const loanByBalance = balance * multi;
+  const loanLimit = Math.min(loanByBalance, capYuan);
+  const cappedByCity = loanLimit < loanByBalance;
+  const loanAmount = loanLimit;
   const monthlyRate = loanRate / 100 / 12;
   const loanMonths = loanYears * 12;
   let monthlyPayment = 0;
@@ -265,6 +283,7 @@ function calc(){
   }
   const totalRepay = monthlyPayment * loanMonths;
   const totalInterest = totalRepay - loanAmount;
+  const wanAmount = (loanAmount / 10000).toFixed(2).replace(/\.?0+$/, '');
   document.getElementById('resultBox').innerHTML = `
     <p>工资基数：<strong>${fmt(sal)}</strong> 元/月</p>
     <p>个人缴存（${sp}%）：<strong>${fmt(selfMonthly)}</strong> 元/月</p>
@@ -272,10 +291,11 @@ function calc(){
     <p>月缴存总额：<strong style="color:var(--primary);">${fmt(totalMonthly)}</strong> 元</p>
     <hr style="border:none;border-top:1px solid var(--border);margin:8px 0;">
     <p>累计缴存 ${months} 月，账户余额（估算）：<strong>${fmt(balance)}</strong> 元</p>
-    <p>贷款额度上限（参考）：<strong>${fmt(loanLimit)}</strong> 元</p>
-    <p style="font-size:12px;color:var(--text-muted);">注：实际限额以当地规定为准，多数城市 30-100 万</p>
+    <p>余额倍数法额度：<strong>${fmt(loanByBalance)}</strong> 元（余额 × ${multi}）</p>
+    <p>贷款额度（参考）：<strong>${fmt(loanAmount)}</strong> 元${cappedByCity ? `　（受当地最高额度 ${capWanRaw} 万元封顶）` : ''}</p>
+    <p style="font-size:12px;color:var(--text-muted);">注：实际限额以当地规定为准，多数城市 30-100 万；本工具仅按「余额 × 倍数」并以当地上限封顶估算</p>
     <hr style="border:none;border-top:1px solid var(--border);margin:8px 0;">
-    <p>按 50 万元 ${loanYears} 年、利率 ${loanRate}% 测算：</p>
+    <p>按 ${wanAmount} 万元 ${loanYears} 年、利率 ${loanRate}% 测算（等额本息）：</p>
     <p>月供：<strong style="color:var(--primary);font-size:18px;">${fmt(monthlyPayment)}</strong> 元</p>
     <p>总还款：<strong>${fmt(totalRepay)}</strong> 元</p>
     <p>总利息：<strong style="color:var(--danger);">${fmt(totalInterest)}</strong> 元</p>
@@ -283,7 +303,7 @@ function calc(){
 }
 
 function clearAll(){
-  ['salary','selfPct','empPct','months','loanRate','loanYears'].forEach(id => document.getElementById(id).value = '');
+  ['salary','selfPct','empPct','months','loanRate','loanYears','multi','cityCap'].forEach(id => document.getElementById(id).value = '');
   document.getElementById('resultBox').innerHTML = '请输入数据';
 }
 calc();

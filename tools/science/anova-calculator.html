@@ -218,12 +218,17 @@ function normalCDF(z){
   let p=d*t*(0.3193815+t*(-0.3565638+t*(1.781478+t*(-1.821256+t*1.330274))));
   return z>0?1-p:p;
 }
-// F 分布 CDF（用不完全 Beta 函数近似）
-function fCDF(f,df1,df2){
-  if(f<=0) return 0;
-  // 使用不完全 Beta 函数 I_x(a,b)，x = df1*f/(df1*f+df2)
-  const x=df1*f/(df1*f+df2);
-  return betaI(x, df1/2, df2/2);
+// F 分布上尾概率 P(F > f) = I_{df2/(df2+df1·f)}(df2/2, df1/2)
+// 直接算上尾（不写 1−CDF），避免 F 较大时 I_x→1 造成的灾难性抵消（p 被截成 0）
+function fUpperP(f,df1,df2){
+  if(!(f>0)) return 1;
+  return betaI(df2/(df2+df1*f), df2/2, df1/2);
+}
+// p 值专用格式：极小 p 不显示为 0
+function fmtP(p){
+  if(!isFinite(p)) return '—';
+  if(p < 0.0001) return '&lt; 0.0001';
+  return p.toFixed(4);
 }
 // 不完全 Beta 函数（连分数）
 function betaI(x,a,b){
@@ -287,11 +292,11 @@ function calculate(){
   const dfB=k-1, dfW=N-k, dfT=N-1;
   const msb=ssb/dfB, msw=ssw/dfW;
   const F=msb/msw;
-  const p=1-fCDF(F, dfB, dfW);
-  let html=`<div class="big-result">F = ${fmt(F)}，p = ${fmt(p)}</div>`;
+  const p=fUpperP(F, dfB, dfW);
+  let html=`<div class="big-result">F = ${fmt(F)}，p = ${fmtP(p)}</div>`;
   html+=`<div class="stat-grid">
     <div class="stat-card"><div class="v">${fmt(F)}</div><div class="l">F 统计量</div></div>
-    <div class="stat-card"><div class="v">${fmt(p)}</div><div class="l">p 值</div></div>
+    <div class="stat-card"><div class="v">${fmtP(p)}</div><div class="l">p 值</div></div>
     <div class="stat-card"><div class="v">${k}</div><div class="l">组数 k</div></div>
     <div class="stat-card"><div class="v">${N}</div><div class="l">总样本数 N</div></div>
     <div class="stat-card"><div class="v">${dfB}</div><div class="l">组间自由度</div></div>
@@ -307,7 +312,7 @@ function calculate(){
   // ANOVA 表
   html+=`<h3 style="margin-top:14px;">ANOVA 表</h3>`;
   html+=`<table><tr><th>来源</th><th>SS</th><th>df</th><th>MS</th><th>F</th><th>p</th></tr>`;
-  html+=`<tr><td>组间</td><td>${fmt(ssb)}</td><td>${dfB}</td><td>${fmt(msb)}</td><td>${fmt(F)}</td><td>${fmt(p)}</td></tr>`;
+  html+=`<tr><td>组间</td><td>${fmt(ssb)}</td><td>${dfB}</td><td>${fmt(msb)}</td><td>${fmt(F)}</td><td>${fmtP(p)}</td></tr>`;
   html+=`<tr><td>组内</td><td>${fmt(ssw)}</td><td>${dfW}</td><td>${fmt(msw)}</td><td>—</td><td>—</td></tr>`;
   html+=`<tr><td><strong>合计</strong></td><td><strong>${fmt(ssb+ssw)}</strong></td><td><strong>${dfT}</strong></td><td>—</td><td>—</td><td>—</td></tr></table>`;
   html+=`<div class="step-line" style="margin-top:10px;"><strong>解读：</strong>${p<0.05?'<span style="color:var(--danger)">p &lt; 0.05，拒绝 H₀，组间均值存在显著差异</span>':'<span style="color:var(--success)">p ≥ 0.05，不拒绝 H₀，组间均值无显著差异</span>'}</div>`;

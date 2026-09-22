@@ -192,14 +192,16 @@
 <h2>📚 深度解析：极昼极夜日期判断</h2>
 <h3>💡 常见使用场景</h3>
 <ul class="dd-list">
-<li>按纬度与日期判断是否极昼/极夜。</li>
+<li>按纬度与日期判断是否极昼／极夜。</li>
+<li>估算一年中极昼、极夜、白夜（午夜太阳高度 &gt; −6°，民用曙暮光）的持续天数与起止日期。</li>
 <li>旅行或摄影规划极昼、极夜出现的时段。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">判断</div><div class="dd-ex-body">北极圈（≥66.5°N）约 3/21–9/23 极昼、9/23–次年 3/21 极夜（近似）。</div></div>
+<div class="dd-example"><div class="dd-ex-title">判断</div><div class="dd-ex-body">北极圈（66.5°N）夏至前后约 1 天极昼、冬至前后约 1 天极夜，纬度越高持续越久；北纬 70° 极昼 5/21–7/23（64 天）、极夜 11/19–次年 1/21（64 天）。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
 <dt>南极相反？</dt><dd>是，南北半球季节相反。</dd>
 <dt>极昼能持续多久？</dt><dd>极点附近约半年，纬度越高持续越长，极圈附近仅一天。</dd>
+<dt>白夜怎么定义？</dt><dd>午夜太阳高度 &gt; −6°（民用曙暮光），整夜不黑、无需照明；极昼期间同样计入白夜，因此白夜天数多于极昼天数。</dd>
 </dl>
 </div>
 </section>
@@ -252,6 +254,35 @@ function formatDate(d){
   return `${d.getMonth()+1}月${d.getDate()}日`;
 }
 
+// 午夜（时角 180°）太阳高度：sin(alt) = −cos(φ+δ)
+function midnightAltitude(latDeg, declDeg){
+  return Math.asin(-Math.cos((latDeg + declDeg) * DEG2RAD)) * RAD2DEG;
+}
+
+// 求全年逐日布尔标记中的「最长连续区间」，可跨年（如北纬 70° 的极夜）
+// 返回 {startDay, endDay, count, crossYear}，day 为 1..365
+function contiguousRange(flags){
+  const n = flags.length;
+  const onCount = flags.filter(Boolean).length;
+  if(onCount === 0) return null;
+  if(onCount === n) return { startDay: 1, endDay: n, count: n, crossYear: false };
+  let gap = -1;
+  for(let i = 0; i < n; i++){ if(!flags[i]){ gap = i; break; } }
+  let best = null, runStart = -1, runLen = 0;
+  for(let k = 1; k <= n; k++){
+    const i = (gap + k) % n;
+    if(flags[i]){
+      if(runLen === 0) runStart = i;
+      runLen++;
+      if(!best || runLen > best.count) best = { startDay: runStart + 1, endDay: i + 1, count: runLen, crossYear: false };
+    } else {
+      runLen = 0;
+    }
+  }
+  if(best && best.startDay > best.endDay) best.crossYear = true;
+  return best;
+}
+
 function calc(){
   const absLat = Math.abs(parseFloat(document.getElementById('inputLat').value) || 0);
   const hemisphere = document.getElementById('hemisphere').value;
@@ -264,31 +295,26 @@ function calc(){
 
   // 逐日计算全年日照时长
   const year = 2026;
+  const effectiveLat = hemisphere === 'N' ? absLat : -absLat;
   const dailyData = [];
-  let polarDayStart = -1, polarDayEnd = -1;
-  let polarNightStart = -1, polarNightEnd = -1;
-  let polarDayDays = 0, polarNightDays = 0;
-  let midnightSunDays = 0; // 午夜太阳（日照>23小时）
+  const polarDayFlags = [], polarNightFlags = [];
+  let polarDayDays = 0, polarNightDays = 0, whiteNightDays = 0;
 
   for(let N = 1; N <= 365; N++){
-    // 根据半球调整：北半球直接用，南半球纬度取负
-    const effectiveLat = hemisphere === 'N' ? absLat : -absLat;
     const dec = solarDeclination(N);
     const dl = dayLength(effectiveLat, dec);
     dailyData.push({ day: N, decl: dec, dayLength: dl });
 
-    if(dl >= 24){
-      polarDayDays++;
-      if(polarDayStart < 0) polarDayStart = N;
-      polarDayEnd = N;
-    }
-    if(dl <= 0){
-      polarNightDays++;
-      if(polarNightStart < 0) polarNightStart = N;
-      polarNightEnd = N;
-    }
-    if(dl >= 23) midnightSunDays++;
+    polarDayFlags.push(dl >= 24);
+    polarNightFlags.push(dl <= 0);
+    if(dl >= 24) polarDayDays++;
+    if(dl <= 0) polarNightDays++;
+    // 白夜：午夜太阳高度 > −6°（民用曙暮光，整夜不黑）；极昼期间同样计入
+    if(midnightAltitude(effectiveLat, dec) > -6) whiteNightDays++;
   }
+
+  const polarDayRange = contiguousRange(polarDayFlags);
+  const polarNightRange = contiguousRange(polarNightFlags);
 
   // 最长日和最短日
   let maxDL = 0, minDL = 24;
@@ -305,22 +331,15 @@ function calc(){
   const todayDecl = solarDeclination(todayDayOfYear);
   const todayDL = dayLength(hemisphere === 'N' ? absLat : -absLat, todayDecl);
 
-  // 极昼日期描述
-  let polarDayDesc, polarNightDesc;
-  if(polarDayDays > 0){
-    polarDayDesc = `${formatDate(dayToDate(polarDayStart, year))} — ${formatDate(dayToDate(polarDayEnd, year))}`;
-  } else {
-    polarDayDesc = '该纬度无极昼现象';
+  // 极昼 / 极夜 时段描述（区间可能跨年，如北纬 70° 的极夜）
+  function rangeDesc(range){
+    if(!range) return null;
+    const s = formatDate(dayToDate(range.startDay, year));
+    const e = formatDate(dayToDate(range.endDay, year));
+    return `${s} — ${e}` + (range.crossYear ? '（跨年）' : '');
   }
-  if(polarNightDays > 0){
-    polarNightDesc = `${formatDate(dayToDate(polarNightStart, year))} — ${formatDate(dayToDate(polarNightEnd, year))}`;
-  } else {
-    polarNightDesc = '该纬度无极夜现象';
-  }
-
-  // 民用曙暮光天数（日照>17小时的日期数）
-  let twilightDays = 0;
-  dailyData.forEach(d => { if(d.dayLength > 17 && d.dayLength < 24) twilightDays++; });
+  const polarDayDesc = rangeDesc(polarDayRange) || '该纬度无极昼现象';
+  const polarNightDesc = rangeDesc(polarNightRange) || '该纬度无极夜现象';
 
   ToolBox.setResult('result', `
     <div class="data-grid">
@@ -333,14 +352,11 @@ function calc(){
         <div class="label">极夜天数</div>
       </div>
       <div class="data-card">
-        <div class="num">${midnightSunDays}</div>
-        <div class="label">午夜太阳天数</div>
-      </div>
-      <div class="data-card">
-        <div class="num">${twilightDays}</div>
+        <div class="num">${whiteNightDays}</div>
         <div class="label">白夜天数</div>
       </div>
     </div>
+    <p style="font-size:12px;color:var(--text-muted);margin-top:8px;">白夜＝午夜太阳高度 &gt; −6°（民用曙暮光，整夜不黑）；极昼期间同时计入白夜天数。</p>
     <div style="margin-top:16px;">
       <h3>☀️ 极昼时段</h3>
       <p><strong>${polarDayDesc}</strong></p>
