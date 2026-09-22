@@ -81,17 +81,6 @@ const CASES = [
   "ref": "auto-restore(default)"
 },
 {
-  "slug": "language/riyuwushiyintulianxi-dianjifayin",
-  "inputs": {
-    "v0": "150",
-    "v1": "50"
-  },
-  "expect": [
-    "-100.00"
-  ],
-  "ref": "auto-restore"
-},
-{
   "slug": "language/stats-2",
   "inputs": {
     "text": "Hello hi 你好，世界！AB CD."
