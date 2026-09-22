@@ -98,17 +98,17 @@
 </div>
 
   <div class="card tool-card-accent" style="--tool-accent:#FF6B35;--tool-accent-dark:#FF6B35;">
-    <h2 data-zh="🪨 坑探（穿脉/沿脉/取样）方式">🪨 Trench and Crosscut Layout Planner</h2>
-    <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="输入两个参数，自动计算常用结果">Plan crosscut, drift and sampling layout for exploration trenches.</p>
+    <h2 data-zh="🪨 坑探（穿脉/沿脉/取样）方式">Adit (Crosscut / Along-ore) Excavation Volume</h2>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="按坑道长度与断面面积估算地下坑探开挖量、出渣量与支护工程量。">Plan crosscut, drift and sampling layout for exploration trenches.</p>
     <div class="formula-box">
       <div class="formula-title">📐 计算公式</div>
-      <div class="formula-eq">坑探设计 = 工程布置</div>
-      <p class="formula-desc">输入两个参数，自动计算常用结果</p>
+      <div class="formula-eq">开挖量 = 长度 × 断面；出渣 ≈ 开挖 × 1.3（松方）；支护 ≈ 长 × 2√断面</div>
+      <p class="formula-desc">坑探（穿脉/沿脉）工程量为坑道长×断面：开挖量(m³)=长度×断面，出渣量≈开挖×1.3（松方系数），支护面积≈长度×2√断面（近似周长×长）。据此编制坑探施工组织与成本。</p>
     </div>
     <div class="input-row">
-      <div><label>穿脉</label><input type="number" id="v0" value="100" step="any" oninput="calc()" enterkeyhint="done" aria-label="穿脉"></div>
+      <div><label>坑道长度 (m)</label><input type="number" id="v0" value="50" step="any" oninput="calc()" enterkeyhint="done" aria-label="穿脉"></div>
       <div style="display:flex;align-items:flex-end;justify-content:center;padding-bottom:8px;"><button class="btn" type="button" onclick="swapValues()" title="互换 A/B" aria-label="互换 A/B" style="padding:10px 12px;">⇄</button></div>
-      <div><label>沿脉</label><input type="number" id="v1" value="50" step="any" oninput="calc()" enterkeyhint="done" aria-label="沿脉"></div>
+      <div><label>断面面积 (m²)</label><input type="number" id="v1" value="4" step="any" oninput="calc()" enterkeyhint="done" aria-label="沿脉"></div>
     </div>
     <div class="toolbar">
       <button class="btn primary" type="button" onclick="calc()">🧮 计算</button>
@@ -116,7 +116,7 @@
       <button class="btn" type="button" onclick="resetAll()">🗑️ 重置</button>
     </div>
     <div class="result-box" id="res"></div>
-    <div class="info-box">💡 公式提示：输入两个参数，自动计算常用结果</div>
+    <div class="info-box">💡 开挖量 = 长度 × 断面(m³)；出渣 ≈ 开挖 × 1.3；支护 ≈ 长 × 2√断面。</div>
 <div class="tool-notes" style="--tool-accent:#FF6B35;">
   <div class="tool-notes-title">⚠️ 使用说明与注意事项</div>
   <ul>
@@ -499,6 +499,31 @@ document.addEventListener('DOMContentLoaded',function(){
   });
 });
 calc();
+</script>
+<script>
+/* 真实业务计算逻辑（页内独占，覆盖通用两参脚本） */
+function calc(){
+  var e0=document.getElementById('v0'),e1=document.getElementById('v1');
+  var A=e0?parseFloat(e0.value):NaN,B=e1?parseFloat(e1.value):NaN;
+  var box=document.getElementById('res');
+  if(!box)return;
+  if(!isFinite(A)||!isFinite(B)){box.innerHTML='<div class="info-box">请输入两个有效数值后再计算。</div>';return;}
+  if(!(A>0&&B>0)){box.innerHTML='<div class="info-box">长度与断面均需大于 0。</div>';return;}
+  var items=[];
+  items.push([(A*B).toFixed(1)+" m³", "开挖工程量"]);
+  items.push([(A*B*1.3).toFixed(1)+" m³", "出渣量(松方)"]);
+  items.push([(A*2*Math.sqrt(B)).toFixed(1)+" m²", "支护工程量"]);
+
+  var html='<div class="data-grid">'+items.map(function(it){return '<div class="data-card"><div class="num">'+it[0]+'</div><div class="label">'+it[1]+'</div></div>';}).join('')+'</div>';
+  html+='💡 开挖量 = 长度 × 断面(m³)；出渣 ≈ 开挖 × 1.3；支护 ≈ 长 × 2√断面。';
+  box.innerHTML=html;
+  if(typeof saveHistory==='function'){try{saveHistory(A,B);}catch(e){}}
+}
+function resetAll(){
+  var a=document.getElementById('v0'),b=document.getElementById('v1');
+  if(a)a.value='50';if(b)b.value='4';calc();
+}
+try{calc();}catch(e){}
 </script>
 
 <!-- SEO 介绍区块 -->

@@ -98,17 +98,17 @@
 </div>
 
   <div class="card tool-card-accent" style="--tool-accent:#FF6B35;--tool-accent-dark:#FF6B35;">
-    <h2 data-zh="📡 槽探（探槽/刻槽/采样）设计">📡 Trench and Channel Sampling Designer</h2>
-    <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="输入两个参数，自动计算常用结果">Design trench, channel and sampling layout for surface exploration.</p>
+    <h2 data-zh="📡 槽探（探槽/刻槽/采样）设计">Trenching (Exploration) Volume Calculator</h2>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="按探槽长度与截面面积估算槽探开挖工程量、采样段数与成本，用于勘探工程预算。">Design trench, channel and sampling layout for surface exploration.</p>
     <div class="formula-box">
       <div class="formula-title">📐 计算公式</div>
-      <div class="formula-eq">槽探设计 = 规格×采样</div>
-      <p class="formula-desc">输入两个参数，自动计算常用结果</p>
+      <div class="formula-eq">开挖量(m³) = 长度 × 截面；采样段数 ≈ 长度 ÷ 2；成本 ≈ 开挖量 × 150 元/m³</div>
+      <p class="formula-desc">槽探工程量为探槽长×截面：开挖量(m³)=长度×截面，按每2m布设一件样品（采样段数≈长度÷2），成本≈开挖量×150元/m³。据此编制槽探施工方案与预算，控制剥土与刻槽工作量。</p>
     </div>
     <div class="input-row">
-      <div><label>探槽</label><input type="number" id="v0" value="100" step="any" oninput="calc()" enterkeyhint="done" aria-label="探槽"></div>
+      <div><label>探槽长度 (m)</label><input type="number" id="v0" value="20" step="any" oninput="calc()" enterkeyhint="done" aria-label="探槽"></div>
       <div style="display:flex;align-items:flex-end;justify-content:center;padding-bottom:8px;"><button class="btn" type="button" onclick="swapValues()" title="互换 A/B" aria-label="互换 A/B" style="padding:10px 12px;">⇄</button></div>
-      <div><label>刻槽</label><input type="number" id="v1" value="50" step="any" oninput="calc()" enterkeyhint="done" aria-label="刻槽"></div>
+      <div><label>探槽截面 (m²)</label><input type="number" id="v1" value="3" step="any" oninput="calc()" enterkeyhint="done" aria-label="刻槽"></div>
     </div>
     <div class="toolbar">
       <button class="btn primary" type="button" onclick="calc()">🧮 计算</button>
@@ -116,7 +116,7 @@
       <button class="btn" type="button" onclick="resetAll()">🗑️ 重置</button>
     </div>
     <div class="result-box" id="res"></div>
-    <div class="info-box">💡 公式提示：输入两个参数，自动计算常用结果</div>
+    <div class="info-box">💡 开挖量 = 长度 × 截面(m³)；成本 ≈ 开挖量 × 150 元/m³。</div>
 <div class="tool-notes" style="--tool-accent:#FF6B35;">
   <div class="tool-notes-title">⚠️ 使用说明与注意事项</div>
   <ul>
@@ -499,6 +499,31 @@ document.addEventListener('DOMContentLoaded',function(){
   });
 });
 calc();
+</script>
+<script>
+/* 真实业务计算逻辑（页内独占，覆盖通用两参脚本） */
+function calc(){
+  var e0=document.getElementById('v0'),e1=document.getElementById('v1');
+  var A=e0?parseFloat(e0.value):NaN,B=e1?parseFloat(e1.value):NaN;
+  var box=document.getElementById('res');
+  if(!box)return;
+  if(!isFinite(A)||!isFinite(B)){box.innerHTML='<div class="info-box">请输入两个有效数值后再计算。</div>';return;}
+  if(!(A>0&&B>0)){box.innerHTML='<div class="info-box">长度与截面均需大于 0。</div>';return;}
+  var items=[];
+  items.push([(A*B).toFixed(1)+" m³", "开挖工程量"]);
+  items.push([(A/2).toFixed(0), "采样段数(约)"]);
+  items.push([(A*B*150).toFixed(0)+" 元", "成本估算"]);
+
+  var html='<div class="data-grid">'+items.map(function(it){return '<div class="data-card"><div class="num">'+it[0]+'</div><div class="label">'+it[1]+'</div></div>';}).join('')+'</div>';
+  html+='💡 开挖量 = 长度 × 截面(m³)；成本 ≈ 开挖量 × 150 元/m³。';
+  box.innerHTML=html;
+  if(typeof saveHistory==='function'){try{saveHistory(A,B);}catch(e){}}
+}
+function resetAll(){
+  var a=document.getElementById('v0'),b=document.getElementById('v1');
+  if(a)a.value='20';if(b)b.value='3';calc();
+}
+try{calc();}catch(e){}
 </script>
 
 <!-- SEO 介绍区块 -->

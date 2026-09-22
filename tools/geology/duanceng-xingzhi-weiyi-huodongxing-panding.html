@@ -98,17 +98,17 @@
 </div>
 
   <div class="card tool-card-accent" style="--tool-accent:#FF6B35;--tool-accent-dark:#FF6B35;">
-    <h2 data-zh="🪨 断层（性质/位移/活动性）判定">🪨 Fault Type and Activity Assessment</h2>
-    <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="输入两个参数，自动计算常用结果">Classify fault type, displacement and activity from geological observations.</p>
+    <h2 data-zh="🪨 断层（性质/位移/活动性）判定">Fault Activity Assessment (Displacement / Rate)</h2>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="按断层位移量与活动年限估算年均位移速率，判定活动性等级与工程风险。">Classify fault type, displacement and activity from geological observations.</p>
     <div class="formula-box">
       <div class="formula-title">📐 计算公式</div>
-      <div class="formula-eq">断层判定 = f(产状, 位移)</div>
-      <p class="formula-desc">输入两个参数，自动计算常用结果</p>
+      <div class="formula-eq">年均位移 = 位移量 ÷ 活动年限；≥0.01 mm/年 活动断层、≥0.001 疑似、否则稳定</div>
+      <p class="formula-desc">断层活动性以位移量与时间换算速率：年均位移=位移量(mm)÷活动年限(年)。≥0.01 mm/年判为活动断层、≥0.001为疑似活动、否则稳定。活动断层工程风险高，选址与设防须提高等级。</p>
     </div>
     <div class="input-row">
-      <div><label>性质</label><input type="number" id="v0" value="100" step="any" oninput="calc()" enterkeyhint="done" aria-label="性质"></div>
+      <div><label>位移量 (mm)</label><input type="number" id="v0" value="50" step="any" oninput="calc()" enterkeyhint="done" aria-label="性质"></div>
       <div style="display:flex;align-items:flex-end;justify-content:center;padding-bottom:8px;"><button class="btn" type="button" onclick="swapValues()" title="互换 A/B" aria-label="互换 A/B" style="padding:10px 12px;">⇄</button></div>
-      <div><label>位移</label><input type="number" id="v1" value="50" step="any" oninput="calc()" enterkeyhint="done" aria-label="位移"></div>
+      <div><label>活动年限 (年)</label><input type="number" id="v1" value="10000" step="any" oninput="calc()" enterkeyhint="done" aria-label="位移"></div>
     </div>
     <div class="toolbar">
       <button class="btn primary" type="button" onclick="calc()">🧮 计算</button>
@@ -116,7 +116,7 @@
       <button class="btn" type="button" onclick="resetAll()">🗑️ 重置</button>
     </div>
     <div class="result-box" id="res"></div>
-    <div class="info-box">💡 公式提示：综合两个指标进行分级评估，评分越高程度越重</div>
+    <div class="info-box">💡 年均位移 = 位移量 ÷ 活动年限；≥0.01 活动、≥0.001 疑似、否则稳定。</div>
 <div class="tool-notes" style="--tool-accent:#FF6B35;">
   <div class="tool-notes-title">⚠️ 使用说明与注意事项</div>
   <ul>
@@ -499,6 +499,31 @@ document.addEventListener('DOMContentLoaded',function(){
   });
 });
 calc();
+</script>
+<script>
+/* 真实业务计算逻辑（页内独占，覆盖通用两参脚本） */
+function calc(){
+  var e0=document.getElementById('v0'),e1=document.getElementById('v1');
+  var A=e0?parseFloat(e0.value):NaN,B=e1?parseFloat(e1.value):NaN;
+  var box=document.getElementById('res');
+  if(!box)return;
+  if(!isFinite(A)||!isFinite(B)){box.innerHTML='<div class="info-box">请输入两个有效数值后再计算。</div>';return;}
+  if(!(B>0)){box.innerHTML='<div class="info-box">活动年限需大于 0。</div>';return;}
+  var items=[];
+  items.push([(A/B).toFixed(4)+" mm/年", "年均位移"]);
+  items.push([(A/B>=0.01?"活动断层":(A/B>=0.001?"疑似活动":"稳定断层")), "活动性等级"]);
+  items.push([(A/B>=0.01?"工程风险高":(A/B>=0.001?"工程风险中":"工程风险低")), "工程风险等级"]);
+
+  var html='<div class="data-grid">'+items.map(function(it){return '<div class="data-card"><div class="num">'+it[0]+'</div><div class="label">'+it[1]+'</div></div>';}).join('')+'</div>';
+  html+='💡 年均位移 = 位移量 ÷ 活动年限；≥0.01 活动、≥0.001 疑似、否则稳定。';
+  box.innerHTML=html;
+  if(typeof saveHistory==='function'){try{saveHistory(A,B);}catch(e){}}
+}
+function resetAll(){
+  var a=document.getElementById('v0'),b=document.getElementById('v1');
+  if(a)a.value='50';if(b)b.value='10000';calc();
+}
+try{calc();}catch(e){}
 </script>
 
 <!-- SEO 介绍区块 -->

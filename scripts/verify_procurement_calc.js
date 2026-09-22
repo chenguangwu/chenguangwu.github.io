@@ -108,13 +108,15 @@ const CASES = [
 {
   "slug": "procurement/wuliu-yunshufangshi-yunfei-bidui",
   "inputs": {
-    "v0": "150",
-    "v1": "50"
+    "v0": "800",
+    "v1": "300"
   },
   "expect": [
-    "-100.00"
+    "120.00 元",
+    "60.00 元",
+    "0.4000 元/(t·km)"
   ],
-  "ref": "auto-restore"
+  "ref": "公路=800×300×0.0005=120.00元；铁路×0.00025=60.00；单位=800×0.0005=0.4000元/(t·km)（默认500/200→50.00/25.00/0.2500，注入失败即不命中）"
 },
 {
   "slug": "procurement/zhaobiao-gongkai-yaoqing-jingzheng-fangshi",

@@ -97,17 +97,17 @@
 </nav>
 <div class="container">
   <div class="card tool-card-accent" style="--tool-accent:#E11D48;--tool-accent-dark:#E11D48;">
-    <h2 data-zh="⚽ 肌纤维（快/慢）类型推测">⚽ Muscle Fiber Type (Fast/Slow) Estimator</h2>
-    <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="输入两个参数，自动计算常用结果">A muscle-fiber fast/slow type estimator: combine sport characteristics and test data to infer fast- or slow-twitch dominance and guide training direction.</p>
+    <h2 data-zh="⚽ 肌纤维（快/慢）类型推测">Muscle Fiber Type Estimator (Fast / Slow)</h2>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="按爆发力（立定跳远）与有氧耐力（耐力跑用时）两项表现，估算快肌/慢肌纤维主导倾向，为训练侧重提供依据。">A muscle-fiber fast/slow type estimator: combine sport characteristics and test data to infer fast- or slow-twitch dominance and guide training direction.</p>
     <div class="formula-box">
       <div class="formula-title">📐 计算公式</div>
-      <div class="formula-eq">肌纤维类型 = 基于表现推测</div>
-      <p class="formula-desc">输入两个参数，自动计算常用结果</p>
+      <div class="formula-eq">力耐比 = 立定跳远 ÷ 耐力跑用时；比值越高越偏快肌（爆发型）</div>
+      <p class="formula-desc">肌纤维类型决定运动能力特征：立定跳远反映下肢爆发力（快肌主导），耐力跑用时反映有氧能力（慢肌主导）。力耐比=跳远÷用时，比值越高越偏快肌爆发型，越低越偏慢肌耐力型，据此安排力量或耐力训练比重。</p>
     </div>
     <div class="input-row">
-      <div><label>快</label><input type="number" id="v0" value="100" step="any" oninput="calc()" enterkeyhint="done" aria-label="快"></div>
+      <div><label>立定跳远 (cm)</label><input type="number" id="v0" value="240" step="any" oninput="calc()" enterkeyhint="done" aria-label="快"></div>
       <div style="display:flex;align-items:flex-end;justify-content:center;padding-bottom:8px;"><button class="btn" type="button" onclick="swapValues()" title="互换 A/B" aria-label="互换 A/B" style="padding:10px 12px;">⇄</button></div>
-      <div><label>慢</label><input type="number" id="v1" value="50" step="any" oninput="calc()" enterkeyhint="done" aria-label="慢"></div>
+      <div><label>耐力跑用时 (min)</label><input type="number" id="v1" value="5" step="any" oninput="calc()" enterkeyhint="done" aria-label="慢"></div>
     </div>
     <div class="toolbar">
       <button class="btn primary" type="button" onclick="calc()">🧮 计算</button>
@@ -115,7 +115,7 @@
       <button class="btn" type="button" onclick="resetAll()">🗑️ 重置</button>
     </div>
     <div class="result-box" id="res"></div>
-    <div class="info-box">💡 公式提示：输入两个参数，自动计算常用结果</div>
+    <div class="info-box">💡 力耐比 = 立定跳远(cm) ÷ 耐力跑用时(min)；比值越高越偏快肌（爆发型）。</div>
 <div class="tool-notes" style="--tool-accent:#E11D48;">
   <div class="tool-notes-title">⚠️ 使用说明与注意事项</div>
   <ul>
@@ -498,6 +498,31 @@ document.addEventListener('DOMContentLoaded',function(){
   });
 });
 calc();
+</script>
+<script>
+/* 真实业务计算逻辑（页内独占，覆盖通用两参脚本） */
+function calc(){
+  var e0=document.getElementById('v0'),e1=document.getElementById('v1');
+  var A=e0?parseFloat(e0.value):NaN,B=e1?parseFloat(e1.value):NaN;
+  var box=document.getElementById('res');
+  if(!box)return;
+  if(!isFinite(A)||!isFinite(B)){box.innerHTML='<div class="info-box">请输入两个有效数值后再计算。</div>';return;}
+  if(!(B>0)){box.innerHTML='<div class="info-box">耐力跑用时需大于 0。</div>';return;}
+  var items=[];
+  items.push([(A/B).toFixed(2), "力耐比"]);
+  items.push([(A/B>=48?"快肌主导(爆发型)":(A/B>=30?"均衡型":"慢肌主导(耐力型)")), "肌纤维倾向"]);
+  items.push([(A/B>=48?"力量/爆发训练":"有氧耐力训练"), "训练侧重"]);
+
+  var html='<div class="data-grid">'+items.map(function(it){return '<div class="data-card"><div class="num">'+it[0]+'</div><div class="label">'+it[1]+'</div></div>';}).join('')+'</div>';
+  html+='💡 力耐比 = 立定跳远(cm) ÷ 耐力跑用时(min)；比值越高越偏快肌（爆发型）。';
+  box.innerHTML=html;
+  if(typeof saveHistory==='function'){try{saveHistory(A,B);}catch(e){}}
+}
+function resetAll(){
+  var a=document.getElementById('v0'),b=document.getElementById('v1');
+  if(a)a.value='240';if(b)b.value='5';calc();
+}
+try{calc();}catch(e){}
 </script>
 
 <!-- SEO 介绍区块 -->
