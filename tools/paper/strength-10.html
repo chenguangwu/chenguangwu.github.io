@@ -98,17 +98,17 @@
 </div>
 <div class="container">
   <div class="card tool-card-accent" style="--tool-accent:#FF6B35;--tool-accent-dark:#FF6B35;">
-    <h2 data-zh="📄 层间（剥离）粘合强度">Strength 10</h2>
-    <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="输入两个参数，自动计算常用结果">Strength 10</p>
+    <h2 data-zh="📄 层间（剥离）粘合强度">Interlayer Peel Bond Strength</h2>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="输入剥离力与试样宽度，计算层间（剥离）粘合强度并评估与常用要求的差距。">Strength 10</p>
     <div class="formula-box">
       <div class="formula-title">📐 计算公式</div>
-      <div class="formula-eq">应力 = 荷载 ÷ 面积，安全系数 = B ÷ A</div>
-      <p class="formula-desc">输入两个参数，自动计算常用结果</p>
+      <div class="formula-eq">剥离强度 = 剥离力 ÷（试样宽度 ÷ 1000）＝ 剥离力 × 1000 ÷ 试样宽度（N/m）；1 kN/m = 1000 N/m</div>
+      <p class="formula-desc">按 GB/T 剥离试验口径换算：先由剥离力与试样宽度求出单位宽度剥离强度，再换算 kN/m、N/cm 及相对 1.0 kN/m 常用要求的富余度。</p>
     </div>
     <div class="input-row">
-      <div><label>荷载 (kN)</label><input type="number" id="v0" value="100" step="any" oninput="calc()" enterkeyhint="done" aria-label="荷载 (kN)"></div>
+      <div><label>剥离力 (N)</label><input type="number" id="v0" value="100" step="any" oninput="calc()" enterkeyhint="done" aria-label="荷载 (kN)"></div>
       <div style="display:flex;align-items:flex-end;justify-content:center;padding-bottom:8px;"><button class="btn" type="button" onclick="swapValues()" title="互换 A/B" aria-label="互换 A/B" style="padding:10px 12px;">⇄</button></div>
-      <div><label>面积 (m²)</label><input type="number" id="v1" value="50" step="any" oninput="calc()" enterkeyhint="done" aria-label="面积 (m²)"></div>
+      <div><label>试样宽度 (mm)</label><input type="number" id="v1" value="50" step="any" oninput="calc()" enterkeyhint="done" aria-label="面积 (m²)"></div>
     </div>
     <div class="toolbar">
       <button class="btn primary" type="button" onclick="calc()">🧮 计算</button>
@@ -116,7 +116,7 @@
       <button class="btn" type="button" onclick="resetAll()">🗑️ 重置</button>
     </div>
     <div class="result-box" id="res"></div>
-    <div class="info-box">💡 公式提示：应力 = 荷载 ÷ 面积，安全系数 = B ÷ A</div>
+    <div class="info-box">💡 剥离强度 = 剥离力 × 1000 ÷ 试样宽度；1 kN/m = 1000 N/m；包装纸板常用要求 ≥ 1.0 kN/m。</div>
 <div class="tool-notes" style="--tool-accent:#FF6B35;">
   <div class="tool-notes-title">⚠️ 使用说明与注意事项</div>
   <ul>
@@ -500,6 +500,31 @@ document.addEventListener('DOMContentLoaded',function(){
 });
 calc();
 </script>
+<script>
+/* 真实业务计算逻辑（页内独占，覆盖通用两参脚本） */
+function calc(){
+  var e0=document.getElementById('v0'),e1=document.getElementById('v1');
+  var A=e0?parseFloat(e0.value):NaN,B=e1?parseFloat(e1.value):NaN;
+  var box=document.getElementById('res');
+  if(!box)return;
+  if(!isFinite(A)||!isFinite(B)){box.innerHTML='<div class="info-box">请输入两个有效数值后再计算。</div>';return;}
+  var items=[];
+  items.push([(A*1000/B).toFixed(1), "剥离强度（N/m）"]);
+  items.push([(A/B).toFixed(4), "剥离强度（kN/m）"]);
+  items.push([(A*10/B).toFixed(2), "每厘米受力（N/cm）"]);
+  items.push([((A/B-1)*100).toFixed(2)+"%", "相对 1.0 kN/m 要求富余度"]);
+
+  var html='<div class="data-grid">'+items.map(function(it){return '<div class="data-card"><div class="num">'+it[0]+'</div><div class="label">'+it[1]+'</div></div>';}).join('')+'</div>';
+  html+='💡 剥离强度 = 剥离力 × 1000 ÷ 试样宽度；1 kN/m = 1000 N/m；包装纸板常用要求 ≥ 1.0 kN/m。';
+  box.innerHTML=html;
+  if(typeof saveHistory==='function'){try{saveHistory(A,B);}catch(e){}}
+}
+function resetAll(){
+  var a=document.getElementById('v0'),b=document.getElementById('v1');
+  if(a)a.value='100';if(b)b.value='50';calc();
+}
+try{calc();}catch(e){}
+</script>
 
 <!-- SEO 介绍区块 -->
 
@@ -528,16 +553,15 @@ calc();
 <h2>📚 深度解析：层间（剥离）粘合强度</h2>
 <h3>💡 常见使用场景</h3>
 <ul class="dd-list">
-<li>复合与涂布加工中，由荷载与剥离面积核算剥离强度，评估层间结合。</li>
-<li>来料与成品检验时，核对粘合是否达到客户规定的阈值。</li>
-<li>工艺调整（涂布量、温度）前后对比剥离强度评估改善。</li>
+<li>复合纸、涂布纸与多层纸板质控：把剥离试验测得的剥离力与试样宽度代入，换算成单位宽度剥离强度（N/m、kN/m），判断层间结合是否达到内控指标。</li>
+<li>来料与成品对照：不同卷材的剥离试验试样宽度往往不同，统一换算成单位宽度强度后才能横向比较，剔除宽度差异造成的假差异。</li>
+<li>工艺调整验证：调整胶量、压合压力或干燥曲线后重测剥离力，用相对 1.0 kN/m 要求的富余度量化改善幅度。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">算例：剥离强度（荷载 100kN，面积 50m²）</div><div class="dd-ex-body">剥离强度=荷载/面积=100/50=2.0000 kN/m²；差值=100−50=50；平均=75.00（用于双样本对比时）。公式：剥离强度=荷载÷面积。</div></div>
-<div class="dd-example"><div class="dd-ex-title">算例：阈值核对</div><div class="dd-ex-body">若合同要求层间粘合≥1.5 kN/m²，实测 2.00 kN/m² 即达标。剥离强度低常因涂布不均或固化不足，需查工艺窗口。</div></div>
+<div class="dd-example"><div class="dd-ex-title">算例：剥离力 180 N、试样宽度 75 mm</div><div class="dd-ex-body">剥离强度 = 180 × 1000 ÷ 75 = 2400.0 N/m = 2.4000 kN/m；每厘米受力 = 180 × 10 ÷ 75 = 24.00 N/cm；相对 1.0 kN/m 常用要求的富余度 =（2.4000 − 1.0）÷ 1.0 × 100% = 140.00%。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
-<dt>剥离强度单位 kN/m² 与 kN/m 有何不同？</dt><dd>用『荷载÷面积』得压强式强度(kN/m²，即 kPa)，用『荷载÷剥离宽度』得线强度(kN/m)。两者量纲不同不可混用，须按标准规定的试验与表述方式。</dd>
-<dt>剥离强度低怎么改善？</dt><dd>优先查涂布/粘合均匀性、固化温度与时间、基材表面处理；复合类还需看胶层厚度与兼容性。先定位是界面失效还是内聚失效，再对症调整工艺。</dd>
+<dt>为什么要把剥离力换算成单位宽度强度？</dt><dd>剥离力只反映整条试样的受力，试样宽度不同则同一剥离力对应的层间结合程度完全不同；换算成 N/m（每米宽度受力）后才能跨试样、跨批次比较。</dd>
+<dt>1.0 kN/m 这个基准从哪来？</dt><dd>它只是包装纸板复合层间的常用内控参考值；液体包装、食品卡纸等不同产品的要求差异较大，实际判定应以客户标准或企业内控文件为准。</dd>
 </dl>
 </div>
 </section>

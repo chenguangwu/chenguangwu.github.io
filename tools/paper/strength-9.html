@@ -98,17 +98,17 @@
 </div>
 <div class="container">
   <div class="card tool-card-accent" style="--tool-accent:#FF6B35;--tool-accent-dark:#FF6B35;">
-    <h2 data-zh="📄 撕裂（内撕裂/边撕裂）强度">Strength 9</h2>
-    <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="输入两个参数，自动计算常用结果">Strength 9</p>
+    <h2 data-zh="📄 撕裂（内撕裂/边撕裂）强度">Tear Strength & Tear Index</h2>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="按撕裂力与纸样定量计算撕裂指数，横向对比不同定量的纸与纸板抗撕裂性能。">Strength 9</p>
     <div class="formula-box">
       <div class="formula-title">📐 计算公式</div>
-      <div class="formula-eq">应力 = 荷载 ÷ 面积，安全系数 = B ÷ A</div>
-      <p class="formula-desc">输入两个参数，自动计算常用结果</p>
+      <div class="formula-eq">撕裂指数 = 撕裂力 ÷ 定量（mN·m²/g）；归一化撕裂力 = 撕裂力 ÷ 定量 × 100</div>
+      <p class="formula-desc">撕裂指数剔除了定量差异的影响，是纸与纸板抗撕裂性能的横向可比指标；同时给出每 100 g/m² 的归一化撕裂力与相对 8.0 基准的偏差。</p>
     </div>
     <div class="input-row">
-      <div><label>内撕裂</label><input type="number" id="v0" value="100" step="any" oninput="calc()" enterkeyhint="done" aria-label="内撕裂"></div>
+      <div><label>撕裂力 (mN)</label><input type="number" id="v0" value="500" step="any" oninput="calc()" enterkeyhint="done" aria-label="内撕裂"></div>
       <div style="display:flex;align-items:flex-end;justify-content:center;padding-bottom:8px;"><button class="btn" type="button" onclick="swapValues()" title="互换 A/B" aria-label="互换 A/B" style="padding:10px 12px;">⇄</button></div>
-      <div><label>边撕裂</label><input type="number" id="v1" value="50" step="any" oninput="calc()" enterkeyhint="done" aria-label="边撕裂"></div>
+      <div><label>纸样定量 (g/m²)</label><input type="number" id="v1" value="60" step="any" oninput="calc()" enterkeyhint="done" aria-label="边撕裂"></div>
     </div>
     <div class="toolbar">
       <button class="btn primary" type="button" onclick="calc()">🧮 计算</button>
@@ -116,7 +116,7 @@
       <button class="btn" type="button" onclick="resetAll()">🗑️ 重置</button>
     </div>
     <div class="result-box" id="res"></div>
-    <div class="info-box">💡 公式提示：应力 = 荷载 ÷ 面积，安全系数 = B ÷ A</div>
+    <div class="info-box">💡 撕裂指数 = 撕裂力 ÷ 定量（mN·m²/g）；指数越高抗撕裂越好；常用基准约 8.0 mN·m²/g。</div>
 <div class="tool-notes" style="--tool-accent:#FF6B35;">
   <div class="tool-notes-title">⚠️ 使用说明与注意事项</div>
   <ul>
@@ -500,6 +500,31 @@ document.addEventListener('DOMContentLoaded',function(){
 });
 calc();
 </script>
+<script>
+/* 真实业务计算逻辑（页内独占，覆盖通用两参脚本） */
+function calc(){
+  var e0=document.getElementById('v0'),e1=document.getElementById('v1');
+  var A=e0?parseFloat(e0.value):NaN,B=e1?parseFloat(e1.value):NaN;
+  var box=document.getElementById('res');
+  if(!box)return;
+  if(!isFinite(A)||!isFinite(B)){box.innerHTML='<div class="info-box">请输入两个有效数值后再计算。</div>';return;}
+  var items=[];
+  items.push([(A/B).toFixed(3), "撕裂指数（mN·m²/g）"]);
+  items.push([(A/B*100).toFixed(1), "每 100 g/m² 归一化撕裂力（mN）"]);
+  items.push([((A/B-8)/8*100).toFixed(2)+"%", "相对 8.0 基准偏差"]);
+  items.push([(A*1.5).toFixed(1), "内撕裂参考力（1.5 倍，mN）"]);
+
+  var html='<div class="data-grid">'+items.map(function(it){return '<div class="data-card"><div class="num">'+it[0]+'</div><div class="label">'+it[1]+'</div></div>';}).join('')+'</div>';
+  html+='💡 撕裂指数 = 撕裂力 ÷ 定量（mN·m²/g）；指数越高抗撕裂越好；常用基准约 8.0 mN·m²/g。';
+  box.innerHTML=html;
+  if(typeof saveHistory==='function'){try{saveHistory(A,B);}catch(e){}}
+}
+function resetAll(){
+  var a=document.getElementById('v0'),b=document.getElementById('v1');
+  if(a)a.value='500';if(b)b.value='60';calc();
+}
+try{calc();}catch(e){}
+</script>
 
 <!-- SEO 介绍区块 -->
 
@@ -528,16 +553,15 @@ calc();
 <h2>📚 深度解析：撕裂（内撕裂/边撕裂）强度</h2>
 <h3>💡 常见使用场景</h3>
 <ul class="dd-list">
-<li>纸板与包装纸质控中，对比内撕裂与边撕裂两项结果，判断加工适应性。</li>
-<li>分切与模切工序，关注边撕裂以预判裂口风险。</li>
-<li>来料检验时，核对待检与标准样的撕裂量级差异。</li>
+<li>纸与纸板质控：把撕裂力与定量代入求撕裂指数，消除定量差异后横向比较不同克重纸种的抗撕裂能力。</li>
+<li>加工适应性预判：袋装、分切与模切工序关注撕裂指数，指数偏低时容易在加工中产生裂口与掉粉。</li>
+<li>配方与打浆度调整：调整浆料配比或打浆度后重测撕裂力，用撕裂指数的变化判断纤维长度保留情况。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">算例：内/边撕裂对比（内 100，边 50）</div><div class="dd-ex-body">比值(内/边)=100/50=2.0000；差值=100−50=50；平均=75.00。可量化两项撕裂强度的相对关系。公式：比值=a/b，差值=a−b。</div></div>
-<div class="dd-example"><div class="dd-ex-title">算例：数据解读</div><div class="dd-ex-body">内撕裂反映纤维间结合，边撕裂反映边缘抗裂；两者量级差大（比值 2.00）提示边缘较弱，模切/分切时需关注裂口。</div></div>
+<div class="dd-example"><div class="dd-ex-title">算例：撕裂力 750 mN、定量 80 g/m²</div><div class="dd-ex-body">撕裂指数 = 750 ÷ 80 = 9.375 mN·m²/g；每 100 g/m² 归一化撕裂力 = 750 ÷ 80 × 100 = 937.5 mN；相对 8.0 mN·m²/g 常用基准偏差 =（9.375 − 8.0）÷ 8.0 × 100% = 17.19%。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
-<dt>内撕裂和边撕裂分别说明什么？</dt><dd>内撕裂(内部撕裂度)主要表征纤维结合强度，边撕裂(边撕裂)表征边缘抗起始裂口能力。包装抗搬运破损更看边撕裂，印刷表面强度则关联内结合。</dd>
-<dt>撕裂强度单位与测试方向？</dt><dd>常用 mN（毫牛顿）。撕裂对纹向敏感，标准规定纵向/横向取样；对比时务必同方向，否则数值不可比。</dd>
+<dt>内撕裂与边撕裂有什么区别？</dt><dd>内撕裂反映纸页整体的纤维结合强度，边撕裂受分切切边质量影响；两者应分别取样测定。本工具给出的 1.5 倍内撕裂参考力仅用于快速对照，判定仍以各自试样的实测值为准。</dd>
+<dt>为什么要除以定量？</dt><dd>撕裂力随克重上升而增大，直接比较不同定量的纸种会得出「越厚越韧」的错误结论；除以定量得到撕裂指数后才是可比的材质指标。</dd>
 </dl>
 </div>
 </section>

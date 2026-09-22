@@ -94,17 +94,17 @@
 </nav>
 <div class="container">
   <div class="card tool-card-accent" style="--tool-accent:#FF6B35;--tool-accent-dark:#FF6B35;">
-    <h2 data-zh="⚡ 能耗（吨钢/吨铝/节能减排）">Energy 1</h2>
-    <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="输入两个参数，自动计算常用结果">Energy 1 - online utility on ToolBox.</p>
+    <h2 data-zh="⚡ 能耗（吨钢/吨铝/节能减排）">Energy Saving & CO2 Reduction</h2>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="把节电与节气量折算为标准煤，并估算对应的二氧化碳减排量与折合能量。">Energy 1</p>
     <div class="formula-box">
       <div class="formula-title">📐 计算公式</div>
-      <div class="formula-eq">功率 = A × B (W)，1 kW = 1000 W</div>
-      <p class="formula-desc">输入两个参数，自动计算常用结果</p>
+      <div class="formula-eq">折标煤 =（节电量 × 0.1229 ＋ 节气量 × 1.33）÷ 1000（tce）；减排 CO₂ ≈ 折标煤 × 2.66（t）；折能 = 折标煤 × 29.307（GJ）</div>
+      <p class="formula-desc">按当量值折标系数（1 kWh = 0.1229 kgce、1 m³ 天然气 = 1.33 kgce）汇总节能量，并换算成 tce、tCO₂ 与 GJ 三种口径，用于能效考核与碳排核算。</p>
     </div>
     <div class="input-row">
-      <div><label>吨钢</label><input type="number" id="v0" value="100" step="any" oninput="calc()" enterkeyhint="done" aria-label="吨钢"></div>
+      <div><label>节电量 (kWh)</label><input type="number" id="v0" value="50000" step="any" oninput="calc()" enterkeyhint="done" aria-label="吨钢"></div>
       <div style="display:flex;align-items:flex-end;justify-content:center;padding-bottom:8px;"><button class="btn" type="button" onclick="swapValues()" title="互换 A/B" aria-label="互换 A/B" style="padding:10px 12px;">⇄</button></div>
-      <div><label>吨铝</label><input type="number" id="v1" value="50" step="any" oninput="calc()" enterkeyhint="done" aria-label="吨铝"></div>
+      <div><label>节气量 (m³)</label><input type="number" id="v1" value="2000" step="any" oninput="calc()" enterkeyhint="done" aria-label="吨铝"></div>
     </div>
     <div class="toolbar">
       <button class="btn primary" type="button" onclick="calc()">🧮 计算</button>
@@ -112,7 +112,7 @@
       <button class="btn" type="button" onclick="resetAll()">🗑️ 重置</button>
     </div>
     <div class="result-box" id="res"></div>
-    <div class="info-box">💡 公式提示：功率 = A × B (W)，1 kW = 1000 W</div>
+    <div class="info-box">💡 折标煤 =（节电 × 0.1229 ＋ 节气 × 1.33）÷ 1000 tce；1 tce ≈ 2.66 tCO₂ ≈ 29.307 GJ。</div>
 <div class="tool-notes" style="--tool-accent:#FF6B35;">
   <div class="tool-notes-title">⚠️ 使用说明与注意事项</div>
   <ul>
@@ -496,6 +496,31 @@ document.addEventListener('DOMContentLoaded',function(){
 });
 calc();
 </script>
+<script>
+/* 真实业务计算逻辑（页内独占，覆盖通用两参脚本） */
+function calc(){
+  var e0=document.getElementById('v0'),e1=document.getElementById('v1');
+  var A=e0?parseFloat(e0.value):NaN,B=e1?parseFloat(e1.value):NaN;
+  var box=document.getElementById('res');
+  if(!box)return;
+  if(!isFinite(A)||!isFinite(B)){box.innerHTML='<div class="info-box">请输入两个有效数值后再计算。</div>';return;}
+  var items=[];
+  items.push([((A*0.1229+B*1.33)/1000).toFixed(3), "折合标准煤（tce）"]);
+  items.push([((A*0.1229+B*1.33)/1000*2.66).toFixed(2), "减排 CO₂（t）"]);
+  items.push([((A*0.1229+B*1.33)/1000*29.307).toFixed(1), "折合能量（GJ）"]);
+  items.push([((A*0.1229+B*1.33)).toFixed(1), "折合标准煤（kgce）"]);
+
+  var html='<div class="data-grid">'+items.map(function(it){return '<div class="data-card"><div class="num">'+it[0]+'</div><div class="label">'+it[1]+'</div></div>';}).join('')+'</div>';
+  html+='💡 折标煤 =（节电 × 0.1229 ＋ 节气 × 1.33）÷ 1000 tce；1 tce ≈ 2.66 tCO₂ ≈ 29.307 GJ。';
+  box.innerHTML=html;
+  if(typeof saveHistory==='function'){try{saveHistory(A,B);}catch(e){}}
+}
+function resetAll(){
+  var a=document.getElementById('v0'),b=document.getElementById('v1');
+  if(a)a.value='50000';if(b)b.value='2000';calc();
+}
+try{calc();}catch(e){}
+</script>
 
 <!-- SEO 介绍区块 -->
 
@@ -524,16 +549,15 @@ calc();
 <h2>📚 深度解析：能耗（吨钢/吨铝/节能减排）</h2>
 <h3>💡 常见使用场景</h3>
 <ul class="dd-list">
-<li>统计单位产品综合能耗（kgce/t 或 kWh/t），横向对比行业基准与自身历史。</li>
-<li>按工序拆分能耗占比，定位高耗能环节作为节能重点。</li>
-<li>核算节能量 = (基准单耗 − 实际单耗) × 产量，量化减排成效。</li>
+<li>能效考核与报表：把节电、节气量按当量值折算为标准煤，汇总成 tce 口径上报，满足能源审计与能效对标要求。</li>
+<li>碳排核算：由折标煤换算 CO₂ 减排量，用于双碳目标进度跟踪与碳资产核证准备。</li>
+<li>技改效果验证：改造前后分别统计节能量并换算减排量，量化单台设备或单条产线的节能收益。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">能耗与节能</div><div class="dd-ex-body">综合能耗 = 总能耗 ÷ 产量（单位 kgce/t 或 kWh/t）。节能量 = (基准单耗 − 实际单耗) × 产量。工序占比 = 该工序能耗 ÷ 总能耗 × 100%。</div></div>
-<div class="dd-example"><div class="dd-ex-title">算例</div><div class="dd-ex-body">某厂年产钢 100 万 t，综合能耗 580 kgce/t，行业基准 600 kgce/t：年节能量 = (600−580)×1,000,000 = 20,000,000 kgce = 2 万 tce。若工序占比烧结 25%、炼铁 55%、炼钢 12%、轧钢 8%，则炼铁是高耗能重点。</div></div>
+<div class="dd-example"><div class="dd-ex-title">算例：节电 100000 kWh、节气 5000 m³</div><div class="dd-ex-body">折标煤 =（100000 × 0.1229 + 5000 × 1.33）÷ 1000 = 18.940 tce；减排 CO₂ = 18.94 × 2.66 = 50.38 t；折合能量 = 18.94 × 29.307 = 555.1 GJ；折合 18940.0 kgce。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
-<dt>kgce 是什么？</dt><dd>千克标准煤，是把不同能源按发热量折算成标准煤的统一单位，便于跨能源品种加总与比较能耗强度。</dd>
-<dt>为什么看吨产品能耗而非总能耗？</dt><dd>总产量变化时总能耗不可比，单位产品能耗消除了规模影响，能真实反映工艺能效与改进效果。</dd>
+<dt>折标系数 0.1229 与 1.33 是怎么定的？</dt><dd>按我国综合能耗计算通则的当量值口径：1 kWh 电折 0.1229 kgce，1 m³ 天然气折 1.33 kgce。若按等价值折算（考虑发电效率），电力系数约 0.3 kgce/kWh，口径不同结果差别很大。</dd>
+<dt>减排 CO₂ 为什么用 2.66 t/tce？</dt><dd>标准煤的碳排放因子约 2.66 tCO₂/tce（不同资料为 2.66–2.77）。它对应以燃煤为主的能源结构；若节能量来自绿电，应改用相应电网排放因子。</dd>
 </dl>
 </div>
 </section>

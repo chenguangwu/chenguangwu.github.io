@@ -98,17 +98,17 @@
 </div>
 <div class="container">
   <div class="card tool-card-accent" style="--tool-accent:#FF6B35;--tool-accent-dark:#FF6B35;">
-    <h2 data-zh="📋 耐破（顶破）指数">Naipo Dingpo Zhishu</h2>
-    <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="输入两个参数，自动计算常用结果">Naipo Dingpo Zhishu</p>
+    <h2 data-zh="📋 耐破（顶破）指数">Bursting Strength & Burst Index</h2>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="按耐破度与定量计算耐破（顶破）指数，用于纸与纸板强度的横向比较。">Naipo Dingpo Zhishu</p>
     <div class="formula-box">
       <div class="formula-title">📐 计算公式</div>
-      <div class="formula-eq">总分 = A + B，平均分 = (A + B) ÷ 2</div>
-      <p class="formula-desc">输入两个参数，自动计算常用结果</p>
+      <div class="formula-eq">耐破指数 = 耐破度 ÷ 定量（kPa·m²/g）；1 kPa ≈ 0.0102 kgf/cm²</div>
+      <p class="formula-desc">耐破指数由耐破度除以定量得到，可跨定量比较纸与纸板的顶破强度；同时换算 kgf/cm² 并给出相对 3.0 kPa·m²/g 基准的偏差。</p>
     </div>
     <div class="input-row">
-      <div><label>评分 A</label><input type="number" id="v0" value="100" step="any" oninput="calc()" enterkeyhint="done" aria-label="评分 A"></div>
+      <div><label>耐破度 (kPa)</label><input type="number" id="v0" value="250" step="any" oninput="calc()" enterkeyhint="done" aria-label="评分 A"></div>
       <div style="display:flex;align-items:flex-end;justify-content:center;padding-bottom:8px;"><button class="btn" type="button" onclick="swapValues()" title="互换 A/B" aria-label="互换 A/B" style="padding:10px 12px;">⇄</button></div>
-      <div><label>评分 B</label><input type="number" id="v1" value="50" step="any" oninput="calc()" enterkeyhint="done" aria-label="评分 B"></div>
+      <div><label>纸样定量 (g/m²)</label><input type="number" id="v1" value="60" step="any" oninput="calc()" enterkeyhint="done" aria-label="评分 B"></div>
     </div>
     <div class="toolbar">
       <button class="btn primary" type="button" onclick="calc()">🧮 计算</button>
@@ -116,7 +116,7 @@
       <button class="btn" type="button" onclick="resetAll()">🗑️ 重置</button>
     </div>
     <div class="result-box" id="res"></div>
-    <div class="info-box">💡 公式提示：总分 = A + B，平均分 = (A + B) ÷ 2</div>
+    <div class="info-box">💡 耐破指数 = 耐破度 ÷ 定量（kPa·m²/g）；1 kPa ≈ 0.0102 kgf/cm²；常用基准约 3.0 kPa·m²/g。</div>
 <div class="tool-notes" style="--tool-accent:#FF6B35;">
   <div class="tool-notes-title">⚠️ 使用说明与注意事项</div>
   <ul>
@@ -500,6 +500,31 @@ document.addEventListener('DOMContentLoaded',function(){
 });
 calc();
 </script>
+<script>
+/* 真实业务计算逻辑（页内独占，覆盖通用两参脚本） */
+function calc(){
+  var e0=document.getElementById('v0'),e1=document.getElementById('v1');
+  var A=e0?parseFloat(e0.value):NaN,B=e1?parseFloat(e1.value):NaN;
+  var box=document.getElementById('res');
+  if(!box)return;
+  if(!isFinite(A)||!isFinite(B)){box.innerHTML='<div class="info-box">请输入两个有效数值后再计算。</div>';return;}
+  var items=[];
+  items.push([(A/B).toFixed(3), "耐破指数（kPa·m²/g）"]);
+  items.push([(A*0.0102).toFixed(2), "耐破度（kgf/cm²）"]);
+  items.push([((A/B-3)/3*100).toFixed(2)+"%", "相对 3.0 基准偏差"]);
+  items.push([(B*A/1000).toFixed(3), "每 m² 纸样重量（kg/m²）"]);
+
+  var html='<div class="data-grid">'+items.map(function(it){return '<div class="data-card"><div class="num">'+it[0]+'</div><div class="label">'+it[1]+'</div></div>';}).join('')+'</div>';
+  html+='💡 耐破指数 = 耐破度 ÷ 定量（kPa·m²/g）；1 kPa ≈ 0.0102 kgf/cm²；常用基准约 3.0 kPa·m²/g。';
+  box.innerHTML=html;
+  if(typeof saveHistory==='function'){try{saveHistory(A,B);}catch(e){}}
+}
+function resetAll(){
+  var a=document.getElementById('v0'),b=document.getElementById('v1');
+  if(a)a.value='250';if(b)b.value='60';calc();
+}
+try{calc();}catch(e){}
+</script>
 
 <!-- SEO 介绍区块 -->
 
@@ -528,16 +553,15 @@ calc();
 <h2>📚 深度解析：耐破（顶破）指数</h2>
 <h3>💡 常见使用场景</h3>
 <ul class="dd-list">
-<li>包装与纸板质控中，对比两项耐破评分/测试值，判断一致性与稳定性。</li>
-<li>供应商来料检验时，核对待检与标准样的两组结果差异。</li>
-<li>工艺改进前后，用前后两组指数评估提升幅度。</li>
+<li>箱板纸与瓦楞纸质控：由耐破度除以定量得到耐破指数，跨克重比较顶破强度，判断原料强度是否达标。</li>
+<li>供应商来料对比：把不同供应商的耐破度换算为同一指数口径，剔除定量差异后再结合价格比较。</li>
+<li>轻量化方案评估：降低定量同时保持耐破指数，用于评估减克重后的强度风险。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">算例：两组耐破值对比（A=100，B=50）</div><div class="dd-ex-body">比值(A/B)=100/50=2.0000；差值=100−50=50；平均值=75.00。可据此判断两组量级的相对差异。公式：比值=a/b，差值=a−b，平均=(a+b)/2。</div></div>
-<div class="dd-example"><div class="dd-ex-title">算例：数据核对</div><div class="dd-ex-body">若两组为同批重复测试，差值 50、比值 2.00 提示离散偏大，需查设备与取样；若为本/标样对比，则量化偏离幅度以便追溯。</div></div>
+<div class="dd-example"><div class="dd-ex-title">算例：耐破度 350 kPa、定量 80 g/m²</div><div class="dd-ex-body">耐破指数 = 350 ÷ 80 = 4.375 kPa·m²/g；换算 350 × 0.0102 = 3.57 kgf/cm²；相对 3.0 kPa·m²/g 常用基准偏差 =（4.375 − 3.0）÷ 3.0 × 100% = 45.83%。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
-<dt>耐破指数和耐破度是一回事吗？</dt><dd>不是。耐破度是绝对压力(kPa)，耐破指数=耐破度÷定量(kPa·m²/g)，用于不同定量纸的可比评价。本工具按输入两组数值做对比核算，具体物理量以实际测试定义为准。</dd>
-<dt>两组数值差很多是否正常？</dt><dd>重复测试差值过大说明设备或取样不稳；本/标样对比则需看是否在允差内。建议结合标准差与允差表判断，而非只看点值。</dd>
+<dt>耐破度与耐破指数该看哪个？</dt><dd>耐破度是实测绝对值（kPa），受克重影响很大；耐破指数是耐破度除以定量，用于跨克重、跨批次比较材质本身的强度，采购与质控以指数为主。</dd>
+<dt>1 kPa 等于多少 kgf/cm²？</dt><dd>1 kPa ≈ 0.0102 kgf/cm²（即 1 kgf/cm² ≈ 98.07 kPa）。国内纸厂习惯用 kgf/cm²，出口订单常用 kPa，本工具同时给出两种口径。</dd>
 </dl>
 </div>
 </section>

@@ -98,17 +98,17 @@
 </div>
 <div class="container">
   <div class="card tool-card-accent" style="--tool-accent:#FF6B35;--tool-accent-dark:#FF6B35;">
-    <h2 data-zh="📄 填料（碳酸钙/滑石粉）添加">Carbon 5</h2>
-    <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="输入两个参数，自动计算常用结果">Carbon 5 - online utility on ToolBox.</p>
+    <h2 data-zh="📄 填料（碳酸钙/滑石粉）添加">Filler Addition & Ash Estimate</h2>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="按绝干浆量与加填率计算填料加入量、留着量与成纸灰分估算（留着率按 70% 取值）。">Carbon 5</p>
     <div class="formula-box">
       <div class="formula-title">📐 计算公式</div>
-      <div class="formula-eq">排放量 = A × B (kg)，1 t = 1000 kg</div>
-      <p class="formula-desc">输入两个参数，自动计算常用结果</p>
+      <div class="formula-eq">填料加入量 = 绝干浆量 × 加填率；留着填料量 = 加入量 × 70%；成纸灰分 = 留着量 ÷（浆量 ＋ 留着量）× 100%</div>
+      <p class="formula-desc">碳酸钙/滑石粉等填料的留着率通常按 70% 估算；据此由加填率推算实际进入成纸的填料、成纸灰分与填料纤维比，用于成本与质量平衡。</p>
     </div>
     <div class="input-row">
-      <div><label>碳酸钙</label><input type="number" id="v0" value="100" step="any" oninput="calc()" enterkeyhint="done" aria-label="碳酸钙"></div>
+      <div><label>绝干浆量 (kg)</label><input type="number" id="v0" value="800" step="any" oninput="calc()" enterkeyhint="done" aria-label="碳酸钙"></div>
       <div style="display:flex;align-items:flex-end;justify-content:center;padding-bottom:8px;"><button class="btn" type="button" onclick="swapValues()" title="互换 A/B" aria-label="互换 A/B" style="padding:10px 12px;">⇄</button></div>
-      <div><label>滑石粉</label><input type="number" id="v1" value="50" step="any" oninput="calc()" enterkeyhint="done" aria-label="滑石粉"></div>
+      <div><label>加填率 (%)</label><input type="number" id="v1" value="15" step="any" oninput="calc()" enterkeyhint="done" aria-label="滑石粉"></div>
     </div>
     <div class="toolbar">
       <button class="btn primary" type="button" onclick="calc()">🧮 计算</button>
@@ -116,7 +116,7 @@
       <button class="btn" type="button" onclick="resetAll()">🗑️ 重置</button>
     </div>
     <div class="result-box" id="res"></div>
-    <div class="info-box">💡 公式提示：排放量 = A × B (kg)，1 t = 1000 kg</div>
+    <div class="info-box">💡 填料加入量 = 绝干浆量 × 加填率；留着率按 70% 估算；灰分 = 留着量 ÷（浆量 ＋ 留着量）× 100%。</div>
 <div class="tool-notes" style="--tool-accent:#FF6B35;">
   <div class="tool-notes-title">⚠️ 使用说明与注意事项</div>
   <ul>
@@ -500,6 +500,32 @@ document.addEventListener('DOMContentLoaded',function(){
 });
 calc();
 </script>
+<script>
+/* 真实业务计算逻辑（页内独占，覆盖通用两参脚本） */
+function calc(){
+  var e0=document.getElementById('v0'),e1=document.getElementById('v1');
+  var A=e0?parseFloat(e0.value):NaN,B=e1?parseFloat(e1.value):NaN;
+  var box=document.getElementById('res');
+  if(!box)return;
+  if(!isFinite(A)||!isFinite(B)){box.innerHTML='<div class="info-box">请输入两个有效数值后再计算。</div>';return;}
+  var items=[];
+  items.push([(A*B/100).toFixed(2), "填料加入量（kg）"]);
+  items.push([(A*B/100*0.7).toFixed(2), "留着填料量（kg）"]);
+  items.push([((0.7*B)/(100+0.7*B)*100).toFixed(2)+"%", "成纸灰分估算"]);
+  items.push([(0.7*B/100).toFixed(4), "填料 ÷ 纤维 质量比"]);
+  items.push([((A*B/100)/(A+A*B/100)*100).toFixed(2)+"%", "填料加入量占绝干总量比"]);
+
+  var html='<div class="data-grid">'+items.map(function(it){return '<div class="data-card"><div class="num">'+it[0]+'</div><div class="label">'+it[1]+'</div></div>';}).join('')+'</div>';
+  html+='💡 填料加入量 = 绝干浆量 × 加填率；留着率按 70% 估算；灰分 = 留着量 ÷（浆量 ＋ 留着量）× 100%。';
+  box.innerHTML=html;
+  if(typeof saveHistory==='function'){try{saveHistory(A,B);}catch(e){}}
+}
+function resetAll(){
+  var a=document.getElementById('v0'),b=document.getElementById('v1');
+  if(a)a.value='800';if(b)b.value='15';calc();
+}
+try{calc();}catch(e){}
+</script>
 
 <!-- SEO 介绍区块 -->
 
@@ -528,16 +554,15 @@ calc();
 <h2>📚 深度解析：填料（碳酸钙/滑石粉）添加</h2>
 <h3>💡 常见使用场景</h3>
 <ul class="dd-list">
-<li>文化用纸（双胶、铜版）加填碳酸钙/滑石粉改善不透明度与平滑度，需控制两种填料配比。</li>
-<li>成本优化时，在指标达标前提下调整高价与低价填料比例。</li>
-<li>质量管控中，记录每批填料实际添加量，追溯波动对纸页性能的影响。</li>
+<li>加填方案设计：按绝干浆量与目标加填率计算填料加入量，并按 70% 留着率估算进入成纸的填料与成纸灰分，避免灰分超上限导致强度下降。</li>
+<li>成本与质量平衡：碳酸钙与滑石粉单价不同，用同一加填率下的灰分与填料纤维比对照，判断能否用低价填料替代部分高价填料。</li>
+<li>生产异常排查：成纸灰分实测值明显低于估算值时，通常说明留着率下降（助留剂失效或真空抽吸过强），可据此定位工序问题。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">算例：两种填料配比（碳酸钙 100 份、滑石粉 50 份）</div><div class="dd-ex-body">总添加=100+50=150 份；配比(碳酸钙:滑石粉)=100:50=2.00:1；差值=50 份；平均=75 份。公式：配比=a/b，总添加=a+b。</div></div>
-<div class="dd-example"><div class="dd-ex-title">算例：占比核算</div><div class="dd-ex-body">碳酸钙占比=100÷150≈66.7%，滑石粉占比=50÷150≈33.3%；若需固定总添加量，可按此比例换算各填料实际投料。公式：占比=a/(a+b)×100%。</div></div>
+<div class="dd-example"><div class="dd-ex-title">算例：绝干浆量 1000 kg、加填率 20%</div><div class="dd-ex-body">填料加入量 = 1000 × 20% = 200.00 kg；按 70% 留着率，留着填料量 = 140.00 kg；成纸灰分估算 = 140 ÷ (1000 + 140) × 100% = 12.28%；填料/纤维质量比 = 0.1400；加入量占绝干总量比 = 200 ÷ 1200 × 100% = 16.67%。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
-<dt>碳酸钙和滑石粉能互相替代吗？</dt><dd>二者功能不同：碳酸钙提升不透明度、降低成本，滑石粉改善平滑度与印刷适性。配比需兼顾指标，不能简单互换；高加填量会牺牲强度，需配合增强剂。</dd>
-<dt>加填量是不是越高越好？</dt><dd>否。加填提高不透明度与平滑度，但会降低纸页强度、挺度与施胶度，并增加掉粉风险。应在不透明度达标前提下取下限以保强度。</dd>
+<dt>为什么留着率按 70% 估算？</dt><dd>未加助留剂的常规纸机段填料留着率约 50%–75%，70% 是中间偏保守的经验值；加装助留剂后可达 85% 以上，实际应以本机台灰分实测数据反推。</dd>
+<dt>灰分越高越好吗？</dt><dd>不是。加填能改善不透明度与平滑度并降低成本，但灰分过高会削弱纤维间结合，导致抗张与耐折强度下降；文化用纸灰分通常控制在 10%–25% 区间。</dd>
 </dl>
 </div>
 </section>

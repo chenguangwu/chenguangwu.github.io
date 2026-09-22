@@ -94,17 +94,17 @@
 </nav>
 <div class="container">
   <div class="card tool-card-accent" style="--tool-accent:#FF6B35;--tool-accent-dark:#FF6B35;">
-    <h2 data-zh="⚙️ 封箱（胶带/热熔胶）强度">Strength 12</h2>
-    <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="输入两个参数，自动计算常用结果">Strength 12</p>
+    <h2 data-zh="⚙️ 封箱（胶带/热熔胶）强度">Carton Sealing Tape Strength</h2>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="按剥离力与胶带宽度换算封箱胶带单位宽度剥离强度（含 25 mm 标准宽度）。">Strength 12</p>
     <div class="formula-box">
       <div class="formula-title">📐 计算公式</div>
-      <div class="formula-eq">应力 = 荷载 ÷ 面积，安全系数 = B ÷ A</div>
-      <p class="formula-desc">输入两个参数，自动计算常用结果</p>
+      <div class="formula-eq">剥离强度 = 剥离力 × 25 ÷ 胶带宽度（N/25mm）；剥离强度 = 剥离力 × 1000 ÷ 胶带宽度（N/m）</div>
+      <p class="formula-desc">封箱胶带的剥离强度按 25 mm 标准宽度归一化，便于跨宽度比较；同时给出 N/m、N/cm 与相对 10 N/25mm 常用基准的偏差。</p>
     </div>
     <div class="input-row">
-      <div><label>胶带</label><input type="number" id="v0" value="100" step="any" oninput="calc()" enterkeyhint="done" aria-label="胶带"></div>
+      <div><label>剥离力 (N)</label><input type="number" id="v0" value="24" step="any" oninput="calc()" enterkeyhint="done" aria-label="胶带"></div>
       <div style="display:flex;align-items:flex-end;justify-content:center;padding-bottom:8px;"><button class="btn" type="button" onclick="swapValues()" title="互换 A/B" aria-label="互换 A/B" style="padding:10px 12px;">⇄</button></div>
-      <div><label>热熔胶</label><input type="number" id="v1" value="50" step="any" oninput="calc()" enterkeyhint="done" aria-label="热熔胶"></div>
+      <div><label>胶带宽度 (mm)</label><input type="number" id="v1" value="45" step="any" oninput="calc()" enterkeyhint="done" aria-label="热熔胶"></div>
     </div>
     <div class="toolbar">
       <button class="btn primary" type="button" onclick="calc()">🧮 计算</button>
@@ -112,7 +112,7 @@
       <button class="btn" type="button" onclick="resetAll()">🗑️ 重置</button>
     </div>
     <div class="result-box" id="res"></div>
-    <div class="info-box">💡 公式提示：应力 = 荷载 ÷ 面积，安全系数 = B ÷ A</div>
+    <div class="info-box">💡 剥离强度 = 剥离力 × 25 ÷ 胶带宽度（N/25mm）；常用基准约 10 N/25mm，低于基准需复核封箱可靠性。</div>
 <div class="tool-notes" style="--tool-accent:#FF6B35;">
   <div class="tool-notes-title">⚠️ 使用说明与注意事项</div>
   <ul>
@@ -496,6 +496,31 @@ document.addEventListener('DOMContentLoaded',function(){
 });
 calc();
 </script>
+<script>
+/* 真实业务计算逻辑（页内独占，覆盖通用两参脚本） */
+function calc(){
+  var e0=document.getElementById('v0'),e1=document.getElementById('v1');
+  var A=e0?parseFloat(e0.value):NaN,B=e1?parseFloat(e1.value):NaN;
+  var box=document.getElementById('res');
+  if(!box)return;
+  if(!isFinite(A)||!isFinite(B)){box.innerHTML='<div class="info-box">请输入两个有效数值后再计算。</div>';return;}
+  var items=[];
+  items.push([(A*25/B).toFixed(3), "剥离强度（N/25mm）"]);
+  items.push([(A*1000/B).toFixed(1), "剥离强度（N/m）"]);
+  items.push([(A*10/B).toFixed(2), "每厘米剥离力（N/cm）"]);
+  items.push([((A*25/B-10)/10*100).toFixed(2)+"%", "相对 10 N/25mm 基准偏差"]);
+
+  var html='<div class="data-grid">'+items.map(function(it){return '<div class="data-card"><div class="num">'+it[0]+'</div><div class="label">'+it[1]+'</div></div>';}).join('')+'</div>';
+  html+='💡 剥离强度 = 剥离力 × 25 ÷ 胶带宽度（N/25mm）；常用基准约 10 N/25mm，低于基准需复核封箱可靠性。';
+  box.innerHTML=html;
+  if(typeof saveHistory==='function'){try{saveHistory(A,B);}catch(e){}}
+}
+function resetAll(){
+  var a=document.getElementById('v0'),b=document.getElementById('v1');
+  if(a)a.value='24';if(b)b.value='45';calc();
+}
+try{calc();}catch(e){}
+</script>
 
 <!-- SEO 介绍区块 -->
 
@@ -524,15 +549,15 @@ calc();
 <h2>📚 深度解析：封箱（胶带/热熔胶）强度</h2>
 <h3>💡 常见使用场景</h3>
 <ul class="dd-list">
-<li>封箱方式选型：对比胶带封箱与热熔胶封箱的接合强度，按两者 seal strength 比值判断哪种更抗搬运撕裂。</li>
-<li>自动线适配：热熔胶适合高速封箱线（瞬时粘接），胶带适合可拆封复封场景，用强度比辅助评估能否替代。</li>
-<li>来料检验：到货胶带/热熔胶实测 seal strength 与本批标准对比，看偏差是否在可接受范围。</li>
+<li>来料检验：把不同宽度胶带的实测剥离力统一换算为 25 mm 标准宽度强度，剔除宽度差异后比较胶带品质。</li>
+<li>封箱方式选型：把胶带剥离强度与热熔胶接合强度换算到同一单位宽度口径，判断哪种封箱方式更抗搬运撕裂。</li>
+<li>低温环境复核：低温下胶粘剂剥离强度明显下降，用实测值复核是否仍高于 10 N/25mm 常用基准。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">算例（胶带封箱剥离强度 38 N/25mm、热熔胶 25 N/25mm）</div><div class="dd-ex-body">强度比 = 胶带 ÷ 热熔胶 = 38 ÷ 25 = 1.52（胶带约为热熔胶的 1.52 倍）；相对系数 = 热熔胶 ÷ 胶带 = 25 ÷ 38 ≈ 0.66。工具按「应力 = A ÷ B、安全系数 = B ÷ A」双栏输出，便于并列比较两种封箱方式的接合强度。</div></div>
+<div class="dd-example"><div class="dd-ex-title">算例：剥离力 30 N、胶带宽度 48 mm</div><div class="dd-ex-body">剥离强度 = 30 × 25 ÷ 48 = 15.625 N/25mm；N/m 口径 = 30 × 1000 ÷ 48 = 625.0 N/m；每厘米剥离力 = 30 × 10 ÷ 48 = 6.25 N/cm；相对 10 N/25mm 基准偏差 =（15.625 − 10）÷ 10 × 100% = 56.25%。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
-<dt>胶带和热熔胶各自适合什么场景？</dt><dd>胶带（BOPP 等）成本低、可徒手拆封复封、适合电商退货件；热熔胶封箱快、密封性好、防潮，适合高速产线与批量出货。选哪个取决于产线速度与是否需反复开箱。</dd>
-<dt>封箱强度怎么量化才算达标？</dt><dd>通常按 GB/T 或企业标准测 seal strength（N/25mm 或 N/cm），结合整箱跌落试验综合判定；单纯数值高不代表运输中不脱胶，还需考虑持粘、耐温与箱面洁净度。</dd>
+<dt>为什么要统一换算成 25 mm 宽度？</dt><dd>剥离强度与宽度成正比，直接用整条胶带的剥离力无法比较 45 mm 与 60 mm 胶带的品质；换算到 25 mm 标准宽度后才能横向对比。</dd>
+<dt>剥离强度越高越好吗？</dt><dd>对封箱可靠性而言越高越稳，但过高会导致拆箱困难与残胶问题；常用封箱胶带在 8–20 N/25mm 之间，应按箱重与运输条件选择。</dd>
 </dl>
 </div>
 </section>

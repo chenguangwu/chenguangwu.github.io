@@ -94,17 +94,17 @@
 </nav>
 <div class="container">
   <div class="card tool-card-accent" style="--tool-accent:#FF6B35;--tool-accent-dark:#FF6B35;">
-    <h2 data-zh="⚙️ 收缩膜（收缩率/热封）参数">Shousuomo Shousuolv Refeng Canshu</h2>
-    <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="输入两个参数，自动计算常用结果">Shousuomo Shousuolv Refeng Canshu</p>
+    <h2 data-zh="⚙️ 收缩膜（收缩率/热封）参数">Shrink Film Shrinkage & Sealing</h2>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="按热收缩前后尺寸计算收缩膜热收缩率、收缩后占比与建议下料膜宽。">Shousuomo Shousuolv Refeng Canshu</p>
     <div class="formula-box">
       <div class="formula-title">📐 计算公式</div>
-      <div class="formula-eq">变化率 = (A - B) ÷ B × 100%</div>
-      <p class="formula-desc">输入两个参数，自动计算常用结果</p>
+      <div class="formula-eq">热收缩率 =（原始尺寸 − 收缩后尺寸）÷ 原始尺寸 × 100%；建议膜宽 = 原始尺寸 × 1.06</div>
+      <p class="formula-desc">收缩率反映膜的收缩能力，直接影响包覆紧度与热封位置；建议膜宽按 6% 收缩余量给出，用于下料与热封参数设定。</p>
     </div>
     <div class="input-row">
-      <div><label>收缩率</label><input type="number" id="v0" value="100" step="any" oninput="calc()" enterkeyhint="done" aria-label="收缩率"></div>
+      <div><label>原始尺寸 (mm)</label><input type="number" id="v0" value="300" step="any" oninput="calc()" enterkeyhint="done" aria-label="收缩率"></div>
       <div style="display:flex;align-items:flex-end;justify-content:center;padding-bottom:8px;"><button class="btn" type="button" onclick="swapValues()" title="互换 A/B" aria-label="互换 A/B" style="padding:10px 12px;">⇄</button></div>
-      <div><label>热封</label><input type="number" id="v1" value="50" step="any" oninput="calc()" enterkeyhint="done" aria-label="热封"></div>
+      <div><label>热收缩后尺寸 (mm)</label><input type="number" id="v1" value="150" step="any" oninput="calc()" enterkeyhint="done" aria-label="热封"></div>
     </div>
     <div class="toolbar">
       <button class="btn primary" type="button" onclick="calc()">🧮 计算</button>
@@ -112,7 +112,7 @@
       <button class="btn" type="button" onclick="resetAll()">🗑️ 重置</button>
     </div>
     <div class="result-box" id="res"></div>
-    <div class="info-box">💡 公式提示：变化率 = (A - B) ÷ B × 100%</div>
+    <div class="info-box">💡 热收缩率 =（原始 − 收缩后）÷ 原始 × 100%；下料膜宽按原始尺寸 × 1.06 预留收缩余量。</div>
 <div class="tool-notes" style="--tool-accent:#FF6B35;">
   <div class="tool-notes-title">⚠️ 使用说明与注意事项</div>
   <ul>
@@ -496,6 +496,31 @@ document.addEventListener('DOMContentLoaded',function(){
 });
 calc();
 </script>
+<script>
+/* 真实业务计算逻辑（页内独占，覆盖通用两参脚本） */
+function calc(){
+  var e0=document.getElementById('v0'),e1=document.getElementById('v1');
+  var A=e0?parseFloat(e0.value):NaN,B=e1?parseFloat(e1.value):NaN;
+  var box=document.getElementById('res');
+  if(!box)return;
+  if(!isFinite(A)||!isFinite(B)){box.innerHTML='<div class="info-box">请输入两个有效数值后再计算。</div>';return;}
+  var items=[];
+  items.push([((A-B)/A*100).toFixed(2)+"%", "热收缩率"]);
+  items.push([(B/A*100).toFixed(2)+"%", "收缩后尺寸占比"]);
+  items.push([(A*1.06).toFixed(2), "建议下料膜宽（mm）"]);
+  items.push([(B*1.06).toFixed(2), "包覆后所需膜宽（mm）"]);
+
+  var html='<div class="data-grid">'+items.map(function(it){return '<div class="data-card"><div class="num">'+it[0]+'</div><div class="label">'+it[1]+'</div></div>';}).join('')+'</div>';
+  html+='💡 热收缩率 =（原始 − 收缩后）÷ 原始 × 100%；下料膜宽按原始尺寸 × 1.06 预留收缩余量。';
+  box.innerHTML=html;
+  if(typeof saveHistory==='function'){try{saveHistory(A,B);}catch(e){}}
+}
+function resetAll(){
+  var a=document.getElementById('v0'),b=document.getElementById('v1');
+  if(a)a.value='300';if(b)b.value='150';calc();
+}
+try{calc();}catch(e){}
+</script>
 
 <!-- SEO 介绍区块 -->
 
@@ -524,15 +549,15 @@ calc();
 <h2>📚 深度解析：收缩膜（收缩率/热封）参数</h2>
 <h3>💡 常见使用场景</h3>
 <ul class="dd-list">
-<li>收缩率达标判定：实测收缩率与标称收缩率比偏差，看是否在工艺容差（如 ±8%）内，挑出收缩不足或过缩的膜。</li>
-<li>膜种选型：PE/POF/PVC 收缩率区间不同（PE 50–70%、POF≈60%、PVC 40–50%），按产品耐热与外观选，用偏差率复核实测值。</li>
-<li>热封参数校验：热封温度/时间到位时收缩率才稳定，偏差异常往往提示封口或加热不均，用变化率辅助排障。</li>
+<li>膜种选型：实测热收缩率并与 PE/POF/PVC 的标称区间对照，判断该膜是否适合产品形状与外观要求。</li>
+<li>下料膜宽计算：按 6% 工艺余量计算下料膜宽，避免收缩后包覆不到位出现松垮或拉破。</li>
+<li>热收缩工艺调整：调整炉温或走膜速度后重测收缩率，用收缩后尺寸占比判断包覆紧度是否稳定。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">算例（某 POF 收缩膜标称收缩率 60%）</div><div class="dd-ex-body">实测 63% → 变化率 = (实测 − 标称) ÷ 标称 × 100% = (63 − 60) ÷ 60 × 100% = +5.00%（在 ±8% 容差内合格）；若实测 57% → 变化率 = (57 − 60) ÷ 60 × 100% = −5.00%（收缩不足，可能加热温度偏低）。工具按「变化率 = (实测 − 标称) ÷ 标称 × 100%」输出，正数表示过缩、负数表示欠缩。</div></div>
+<div class="dd-example"><div class="dd-ex-title">算例：原始尺寸 400 mm、热收缩后 240 mm</div><div class="dd-ex-body">热收缩率 =（400 − 240）÷ 400 × 100% = 40.00%；收缩后尺寸占比 = 240 ÷ 400 × 100% = 60.00%；建议下料膜宽 = 400 × 1.06 = 424.00 mm。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
-<dt>不同收缩膜的收缩率和耐温差在哪？</dt><dd>PE 收缩膜收缩率 50–70%、耐温高、偏厚，适合重货；POF 收缩率约 60%、薄而亮、环保无味，适合食品/礼品；PVC 收缩率 40–50%、温度低但含氯不环保，逐步淘汰。选型看产品耐热与外观要求。</dd>
-<dt>收缩率偏差大说明什么？</dt><dd>偏差过大往往是加热温度/风速/时间不匹配，或膜本身质量问题；轻微偏差（±5% 内）通常不影响包覆效果，超容差会导致皱缩、破膜或包不紧，需调炉温或换膜。</dd>
+<dt>热收缩率与收缩后占比是什么关系？</dt><dd>两者互补：收缩率 + 收缩后占比 = 100%。收缩率越高说明膜的收缩张力越大，包覆越紧，但过缩风险（变形、拉破）也随之升高。</dd>
+<dt>为什么下料要预留 6% 余量？</dt><dd>6% 是常见工艺余量，用于吸收收缩不均与封口压边损耗；产品形状复杂或膜收缩率偏差较大时，应加大到 8%–10%。</dd>
 </dl>
 </div>
 </section>

@@ -94,17 +94,17 @@
 </nav>
 <div class="container">
   <div class="card tool-card-accent" style="--tool-accent:#FF6B35;--tool-accent-dark:#FF6B35;">
-    <h2 data-zh="🌡️ 锻压（温度/变形/力能）计算">Calc Temp 1</h2>
-    <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="输入两个参数，自动计算常用结果">Calc Temp 1</p>
+    <h2 data-zh="🌡️ 锻压（温度/变形/力能）计算">Forging Force & Press Tonnage</h2>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="按锻造力与锻件投影面积计算单位面积压力，并换算所需压机吨位（含安全系数）。">Calc Temp 1 - calculate online, free and accurate.</p>
     <div class="formula-box">
       <div class="formula-title">📐 计算公式</div>
-      <div class="formula-eq">F = °C × 9/5 + 32，K = °C + 273.15</div>
-      <p class="formula-desc">输入两个参数，自动计算常用结果</p>
+      <div class="formula-eq">单位压力 = 锻造力(kN) ÷ 投影面积(cm²) × 10（MPa，1 kN/cm² = 10 MPa）；设备吨位 = 锻造力 ÷ 9.807（t）；含 1.25 系数 = 吨位 × 1.25</div>
+      <p class="formula-desc">单位投影面积压力用于校核模具比压：1 kN/cm² 等于 10 MPa。设备吨位按 1 t ≈ 9.807 kN 换算，并给出 1.25 倍安全系数下的选型吨位，避免超压闷车。</p>
     </div>
     <div class="input-row">
-      <div><label>温度</label><input type="number" id="v0" value="100" step="any" oninput="calc()" enterkeyhint="done" aria-label="温度"></div>
+      <div><label>锻造力 (kN)</label><input type="number" id="v0" value="2000" step="any" oninput="calc()" enterkeyhint="done" aria-label="温度"></div>
       <div style="display:flex;align-items:flex-end;justify-content:center;padding-bottom:8px;"><button class="btn" type="button" onclick="swapValues()" title="互换 A/B" aria-label="互换 A/B" style="padding:10px 12px;">⇄</button></div>
-      <div><label>变形</label><input type="number" id="v1" value="50" step="any" oninput="calc()" enterkeyhint="done" aria-label="变形"></div>
+      <div><label>锻件投影面积 (cm²)</label><input type="number" id="v1" value="200" step="any" oninput="calc()" enterkeyhint="done" aria-label="变形"></div>
     </div>
     <div class="toolbar">
       <button class="btn primary" type="button" onclick="calc()">🧮 计算</button>
@@ -112,7 +112,7 @@
       <button class="btn" type="button" onclick="resetAll()">🗑️ 重置</button>
     </div>
     <div class="result-box" id="res"></div>
-    <div class="info-box">💡 公式提示：温度转换：°F = °C × 9/5 + 32，K = °C + 273.15</div>
+    <div class="info-box">💡 单位压力（MPa）= 锻造力(kN) × 1000 ÷ 投影面积(cm²)；吨位 = 锻造力 ÷ 9.807 kN/t，选型再乘 1.25。</div>
 <div class="tool-notes" style="--tool-accent:#FF6B35;">
   <div class="tool-notes-title">⚠️ 使用说明与注意事项</div>
   <ul>
@@ -496,6 +496,31 @@ document.addEventListener('DOMContentLoaded',function(){
 });
 calc();
 </script>
+<script>
+/* 真实业务计算逻辑（页内独占，覆盖通用两参脚本） */
+function calc(){
+  var e0=document.getElementById('v0'),e1=document.getElementById('v1');
+  var A=e0?parseFloat(e0.value):NaN,B=e1?parseFloat(e1.value):NaN;
+  var box=document.getElementById('res');
+  if(!box)return;
+  if(!isFinite(A)||!isFinite(B)){box.innerHTML='<div class="info-box">请输入两个有效数值后再计算。</div>';return;}
+  var items=[];
+  items.push([(A*10/B).toFixed(2), "单位投影面积压力（MPa）"]);
+  items.push([(A/9.807).toFixed(2), "设备吨位（t）"]);
+  items.push([(A/9.807*1.25).toFixed(2), "含 1.25 系数选型吨位（t）"]);
+  items.push([(A/B).toFixed(3), "每 cm² 受力（kN/cm²）"]);
+
+  var html='<div class="data-grid">'+items.map(function(it){return '<div class="data-card"><div class="num">'+it[0]+'</div><div class="label">'+it[1]+'</div></div>';}).join('')+'</div>';
+  html+='💡 单位压力（MPa）= 锻造力(kN) × 1000 ÷ 投影面积(cm²)；吨位 = 锻造力 ÷ 9.807 kN/t，选型再乘 1.25。';
+  box.innerHTML=html;
+  if(typeof saveHistory==='function'){try{saveHistory(A,B);}catch(e){}}
+}
+function resetAll(){
+  var a=document.getElementById('v0'),b=document.getElementById('v1');
+  if(a)a.value='2000';if(b)b.value='200';calc();
+}
+try{calc();}catch(e){}
+</script>
 
 <!-- SEO 介绍区块 -->
 
@@ -524,16 +549,15 @@ calc();
 <h2>📚 深度解析：锻压（温度/变形/力能）计算</h2>
 <h3>💡 常见使用场景</h3>
 <ul class="dd-list">
-<li>把始锻/终锻温度在 ℃/℉/K 间换算，确认加热与停锻窗口是否落在材料锻造区。</li>
-<li>用变形程度与锻压力能估算设备吨位，避免欠压或过载。</li>
-<li>对比不同始锻温度下的可锻性与开裂风险，优化加热制度。</li>
+<li>压机选型：按锻件投影面积与所需锻造力换算单位面积压力与设备吨位，并按 1.25 倍安全系数选定压机型号，避免超载闷车。</li>
+<li>模具比压校核：把实际锻造力换算成单位投影面积压力（MPa），与模具材料许用比压对照，判断是否需要加大模座或改为分步成形。</li>
+<li>工艺卡编制：把锻造力、投影面积与吨位需求写入工艺卡，供下料与设备排产使用。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">温度换算与变形</div><div class="dd-ex-body">温度换算：℉ = ℃×9/5+32，K = ℃+273.15。镦粗变形程度 ε = ln(h0/h1)（h0、h1 为变形前后高度）。锻压力近似 P ≈ k × σ × A（k 为约束系数、σ 为材料流动应力、A 为接触面积），可据此估所需设备吨位。</div></div>
-<div class="dd-example"><div class="dd-ex-title">算例</div><div class="dd-ex-body">碳钢始锻 1200℃、终锻 800℃：℉分别为 2192、1472，K 为 1473、1073。镦粗 h0=100 mm 压至 h1=60 mm：ε=ln(100/60)=ln(1.667)≈0.511（约 51% 变形）。若 σ≈150 MPa、A=0.01 m²、k≈2.5，则 P≈2.5×150e6×0.01=3.75 MN≈375 t 锻压力。</div></div>
+<div class="dd-example"><div class="dd-ex-title">算例：锻造力 3000 kN、锻件投影面积 250 cm²</div><div class="dd-ex-body">单位投影面积压力 = 3000 ÷ 250 × 10 = 120.00 MPa（1 kN/cm² = 10 MPa）；设备吨位 = 3000 ÷ 9.807 = 305.90 t；含 1.25 安全系数选型吨位 = 382.38 t；每 cm² 受力 = 12.000 kN/cm²。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
-<dt>终锻温度为什么不能太低？</dt><dd>低于终锻温度材料变形抗力骤增、塑性下降，易开裂且设备载荷大；停锻应在材料仍具足够塑性的温度以上。</dd>
-<dt>变形程度大一定不好吗？</dt><dd>适当变形改善致密度与性能，但过大易折叠/开裂；ε 用于判断单次压下是否超限，需配合温体与模具设计。</dd>
+<dt>为什么 MPa 要乘 10？</dt><dd>1 kN/cm² = 1000 N ÷ 0.0001 m² = 10 MPa。若只做 kN/cm² 除法而不乘 10，得到的结果会比真实比压小 10 倍，选型严重偏小。</dd>
+<dt>设备吨位为什么还要乘 1.25？</dt><dd>实际锻造中存在摩擦、变形抗力波动与冲击载荷，留 25% 余量可避免闷车与模具损伤；冷锻或高强材料建议加大到 1.3–1.5。</dd>
 </dl>
 </div>
 </section>

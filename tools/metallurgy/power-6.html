@@ -97,17 +97,17 @@
 </nav>
 <div class="container">
   <div class="card tool-card-accent" style="--tool-accent:#FF6B35;--tool-accent-dark:#FF6B35;">
-    <h2 data-zh="⚡ 电炉（电弧/功率/电极）冶炼">Power 6</h2>
-    <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="输入两个参数，自动计算常用结果">Power 6 - online utility on ToolBox.</p>
+    <h2 data-zh="⚡ 电炉（电弧/功率/电极）冶炼">Electric Furnace Power Consumption</h2>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="按单炉耗电量与出钢量计算电弧炉单位电耗、吨钢电费与单炉电费。">Power 6</p>
     <div class="formula-box">
       <div class="formula-title">📐 计算公式</div>
-      <div class="formula-eq">功率 = A × B (W)，1 kW = 1000 W</div>
-      <p class="formula-desc">输入两个参数，自动计算常用结果</p>
+      <div class="formula-eq">单位电耗 = 单炉耗电量 ÷ 出钢量（kWh/t）；吨钢电费 = 单位电耗 × 电价（按 0.6 元/kWh）</div>
+      <p class="formula-desc">单位电耗是电弧炉冶炼的核心能耗指标（行业先进水平约 350 kWh/t）；本工具同时给出按 0.6 元/kWh 计算的吨钢电费与单炉电费。</p>
     </div>
     <div class="input-row">
-      <div><label>电弧</label><input type="number" id="v0" value="100" step="any" oninput="calc()" enterkeyhint="done" aria-label="电弧"></div>
+      <div><label>单炉耗电量 (kWh)</label><input type="number" id="v0" value="15000" step="any" oninput="calc()" enterkeyhint="done" aria-label="电弧"></div>
       <div style="display:flex;align-items:flex-end;justify-content:center;padding-bottom:8px;"><button class="btn" type="button" onclick="swapValues()" title="互换 A/B" aria-label="互换 A/B" style="padding:10px 12px;">⇄</button></div>
-      <div><label>功率</label><input type="number" id="v1" value="50" step="any" oninput="calc()" enterkeyhint="done" aria-label="功率"></div>
+      <div><label>出钢量 (t)</label><input type="number" id="v1" value="50" step="any" oninput="calc()" enterkeyhint="done" aria-label="功率"></div>
     </div>
     <div class="toolbar">
       <button class="btn primary" type="button" onclick="calc()">🧮 计算</button>
@@ -115,7 +115,7 @@
       <button class="btn" type="button" onclick="resetAll()">🗑️ 重置</button>
     </div>
     <div class="result-box" id="res"></div>
-    <div class="info-box">💡 公式提示：功率 = A × B (W)，1 kW = 1000 W</div>
+    <div class="info-box">💡 单位电耗 = 耗电量 ÷ 出钢量（kWh/t）；行业先进水平约 350 kWh/t；电价按 0.6 元/kWh 估算。</div>
 <div class="tool-notes" style="--tool-accent:#FF6B35;">
   <div class="tool-notes-title">⚠️ 使用说明与注意事项</div>
   <ul>
@@ -499,6 +499,31 @@ document.addEventListener('DOMContentLoaded',function(){
 });
 calc();
 </script>
+<script>
+/* 真实业务计算逻辑（页内独占，覆盖通用两参脚本） */
+function calc(){
+  var e0=document.getElementById('v0'),e1=document.getElementById('v1');
+  var A=e0?parseFloat(e0.value):NaN,B=e1?parseFloat(e1.value):NaN;
+  var box=document.getElementById('res');
+  if(!box)return;
+  if(!isFinite(A)||!isFinite(B)){box.innerHTML='<div class="info-box">请输入两个有效数值后再计算。</div>';return;}
+  var items=[];
+  items.push([(A/B).toFixed(2), "单位电耗（kWh/t）"]);
+  items.push([(A/B*0.6).toFixed(2), "吨钢电费（元/t）"]);
+  items.push([(A*0.6).toFixed(2), "单炉电费（元）"]);
+  items.push([(B/A*1000).toFixed(4), "每 kWh 出钢量（kg/kWh）"]);
+
+  var html='<div class="data-grid">'+items.map(function(it){return '<div class="data-card"><div class="num">'+it[0]+'</div><div class="label">'+it[1]+'</div></div>';}).join('')+'</div>';
+  html+='💡 单位电耗 = 耗电量 ÷ 出钢量（kWh/t）；行业先进水平约 350 kWh/t；电价按 0.6 元/kWh 估算。';
+  box.innerHTML=html;
+  if(typeof saveHistory==='function'){try{saveHistory(A,B);}catch(e){}}
+}
+function resetAll(){
+  var a=document.getElementById('v0'),b=document.getElementById('v1');
+  if(a)a.value='15000';if(b)b.value='50';calc();
+}
+try{calc();}catch(e){}
+</script>
 
 <!-- SEO 介绍区块 -->
 
@@ -527,16 +552,15 @@ calc();
 <h2>📚 深度解析：电炉（电弧/功率/电极）冶炼</h2>
 <h3>💡 常见使用场景</h3>
 <ul class="dd-list">
-<li>按电弧炉电压、电流与功率因数估算输入有功功率，判断供电与变压器容量是否匹配。</li>
-<li>统计吨钢电耗与电极消耗，监控冶炼成本与工艺效率。</li>
-<li>结合功率与电效率估算出钢所需时间，指导排程。</li>
+<li>吨钢电耗考核：把单炉耗电量除以出钢量得到 kWh/t，与行业先进水平（约 350 kWh/t）对照，判断电炉运行水平。</li>
+<li>冶炼成本核算：按电价把电耗折算成吨钢电费与单炉电费，用于报价与成本管控。</li>
+<li>供电制度校核：结合单炉耗电量与冶炼时间估算平均有功功率，判断变压器容量与供电制度是否匹配。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">功率与消耗</div><div class="dd-ex-body">三相输入有功功率 P(kW) = √3 × U(V) × I(A) × cosφ ÷ 1000。吨钢电耗 = 总电耗(kWh) ÷ 出钢量(t)。电极消耗 = 电极质量减少(kg) ÷ 钢液量(t)。冶炼时间 t ≈ 总电耗 ÷ (P × 电效率)。</div></div>
-<div class="dd-example"><div class="dd-ex-title">算例</div><div class="dd-ex-body">电弧炉 U=700 V、I=40000 A、cosφ=0.85：P=1.732×700×40000×0.85÷1000≈41220 kW。若炉电效率 0.9、单炉电耗 40000 kWh，则 t≈40000/(41220×0.9)≈1.08 h；出钢 90 t 时吨钢电耗≈444 kWh/t，电极耗若 0.9 kg/t 则单炉耗电极 81 kg。</div></div>
+<div class="dd-example"><div class="dd-ex-title">算例：单炉耗电量 20000 kWh、出钢量 50 t</div><div class="dd-ex-body">单位电耗 = 20000 ÷ 50 = 400.00 kWh/t；按 0.6 元/kWh 计，吨钢电费 = 400.00 × 0.6 = 240.00 元/t、单炉电费 = 20000 × 0.6 = 12000.00 元；每 kWh 出钢量 = 50 ÷ 20000 × 1000 = 2.5000 kg/kWh。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
-<dt>功率因数低有何影响？</dt><dd>cosφ 低则相同电流下有功功率小、无功大，变压器与线路损耗增加；电弧炉通常通过补偿提高 cosφ 以改善能效。</dd>
-<dt>吨钢电耗受什么影响？</dt><dd>受钢种、渣况、余热回收与操作影响；废钢预热、余热锅炉可显著降低单耗，行业先进值约 300–400 kWh/t。</dd>
+<dt>电弧炉吨钢电耗多少算正常？</dt><dd>常规电弧炉冶炼碳钢约 380–450 kWh/t；采用废钢预热或超高功率电炉可降至 320–360 kWh/t。全废钢短流程与长流程电耗口径不同，比较时须注明工艺条件。</dd>
+<dt>为什么要同时看吨钢电费？</dt><dd>电价差异会显著影响成本结论：电耗相同的两家企业，因电价不同吨钢成本可差几十元，报价与降本决策必须落到金额口径。</dd>
 </dl>
 </div>
 </section>

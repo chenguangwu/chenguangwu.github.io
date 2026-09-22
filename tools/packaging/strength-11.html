@@ -94,17 +94,17 @@
 </nav>
 <div class="container">
   <div class="card tool-card-accent" style="--tool-accent:#FF6B35;--tool-accent-dark:#FF6B35;">
-    <h2 data-zh="📐 瓦楞（楞型/强度）设计">Strength 11</h2>
-    <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="输入两个参数，自动计算常用结果">Strength 11</p>
+    <h2 data-zh="📐 瓦楞（楞型/强度）设计">Corrugated Board Strength (McKee)</h2>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="按 McKee 近似式，以 1000 mm 箱周长估算瓦楞纸箱抗压强度与单位厚度承载能力。">Strength 11</p>
     <div class="formula-box">
       <div class="formula-title">📐 计算公式</div>
-      <div class="formula-eq">应力 = 荷载 ÷ 面积，安全系数 = B ÷ A</div>
-      <p class="formula-desc">输入两个参数，自动计算常用结果</p>
+      <div class="formula-eq">BCT ≈ 5.87 × ECT × √(厚度 × 箱周长)；本工具取箱周长 = 1000 mm</div>
+      <p class="formula-desc">McKee 公式把边压强度 ECT 与纸板厚度换算成整箱抗压强度；箱周长按 1000 mm 取值，结果用于楞型选型与堆码层数校核。</p>
     </div>
     <div class="input-row">
-      <div><label>楞型</label><input type="number" id="v0" value="100" step="any" oninput="calc()" enterkeyhint="done" aria-label="楞型"></div>
+      <div><label>边压强度 ECT (kN/m)</label><input type="number" id="v0" value="6" step="any" oninput="calc()" enterkeyhint="done" aria-label="楞型"></div>
       <div style="display:flex;align-items:flex-end;justify-content:center;padding-bottom:8px;"><button class="btn" type="button" onclick="swapValues()" title="互换 A/B" aria-label="互换 A/B" style="padding:10px 12px;">⇄</button></div>
-      <div><label>强度</label><input type="number" id="v1" value="50" step="any" oninput="calc()" enterkeyhint="done" aria-label="强度"></div>
+      <div><label>纸板厚度 (mm)</label><input type="number" id="v1" value="2.5" step="any" oninput="calc()" enterkeyhint="done" aria-label="强度"></div>
     </div>
     <div class="toolbar">
       <button class="btn primary" type="button" onclick="calc()">🧮 计算</button>
@@ -112,7 +112,7 @@
       <button class="btn" type="button" onclick="resetAll()">🗑️ 重置</button>
     </div>
     <div class="result-box" id="res"></div>
-    <div class="info-box">💡 公式提示：应力 = 荷载 ÷ 面积，安全系数 = B ÷ A</div>
+    <div class="info-box">💡 BCT ≈ 5.87 × ECT × √(厚度 × 箱周长)，箱周长取 1000 mm；ECT/厚度 比越大刚性越好。</div>
 <div class="tool-notes" style="--tool-accent:#FF6B35;">
   <div class="tool-notes-title">⚠️ 使用说明与注意事项</div>
   <ul>
@@ -496,6 +496,31 @@ document.addEventListener('DOMContentLoaded',function(){
 });
 calc();
 </script>
+<script>
+/* 真实业务计算逻辑（页内独占，覆盖通用两参脚本） */
+function calc(){
+  var e0=document.getElementById('v0'),e1=document.getElementById('v1');
+  var A=e0?parseFloat(e0.value):NaN,B=e1?parseFloat(e1.value):NaN;
+  var box=document.getElementById('res');
+  if(!box)return;
+  if(!isFinite(A)||!isFinite(B)){box.innerHTML='<div class="info-box">请输入两个有效数值后再计算。</div>';return;}
+  var items=[];
+  items.push([(5.87*A*Math.sqrt(B*1000)).toFixed(0), "抗压强度估算 BCT（N）"]);
+  items.push([(5.87*A*Math.sqrt(B*1000)/1000).toFixed(3), "抗压强度（kN）"]);
+  items.push([(A/B).toFixed(3), "ECT ÷ 厚度（kN/m·mm）"]);
+  items.push([(5.87*Math.sqrt(B*1000)).toFixed(1), "单位 ECT 承载力系数（N/(kN/m)）"]);
+
+  var html='<div class="data-grid">'+items.map(function(it){return '<div class="data-card"><div class="num">'+it[0]+'</div><div class="label">'+it[1]+'</div></div>';}).join('')+'</div>';
+  html+='💡 BCT ≈ 5.87 × ECT × √(厚度 × 箱周长)，箱周长取 1000 mm；ECT/厚度 比越大刚性越好。';
+  box.innerHTML=html;
+  if(typeof saveHistory==='function'){try{saveHistory(A,B);}catch(e){}}
+}
+function resetAll(){
+  var a=document.getElementById('v0'),b=document.getElementById('v1');
+  if(a)a.value='6';if(b)b.value='2.5';calc();
+}
+try{calc();}catch(e){}
+</script>
 
 <!-- SEO 介绍区块 -->
 
@@ -524,15 +549,15 @@ calc();
 <h2>📚 深度解析：瓦楞（楞型/强度）设计</h2>
 <h3>💡 常见使用场景</h3>
 <ul class="dd-list">
-<li>楞型选型：A/B/C/E/F 不同楞型的 ECT（边压强度）不同，按需求堆码强度选够用的楞型，避免过强浪费或过弱压溃。</li>
-<li>强度校核：把选定楞型的 ECT 与产品堆码所需强度比一比，看余量是否足够（含安全系数）。</li>
-<li>印刷与缓冲权衡：E/F 楞印刷精细但抗压弱，A 楞抗压高但印刷差，用强度比辅助在外观与强度间取舍。</li>
+<li>楞型选型：把候选楞型的边压强度 ECT 与纸板厚度代入 McKee 近似式，估算整箱抗压强度 BCT，选够用不过强的楞型以避免成本浪费。</li>
+<li>堆码校核：由 BCT 与安全系数反推允许堆码层数，避免仓库下层纸箱压溃。</li>
+<li>减薄降克重评估：降低纸板厚度或更换低克重面纸后重新估算 BCT，量化强度损失幅度。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">算例（选 C 楞 ECT≈6.0 kN/m，承载堆码需求强度 5.0 kN/m）</div><div class="dd-ex-body">强度比 = 楞型 ECT ÷ 需求强度 = 6.0 ÷ 5.0 = 1.20（C 楞约为需求的 1.20 倍）；相对系数 = 需求强度 ÷ 楞型 ECT = 5.0 ÷ 6.0 ≈ 0.83。工具按「应力 = 楞型 ECT ÷ 需求强度、安全系数 = 需求强度 ÷ 楞型 ECT」输出，快速判断所选楞型是否满足堆码。</div></div>
+<div class="dd-example"><div class="dd-ex-title">算例：边压强度 7 kN/m、纸板厚度 3 mm</div><div class="dd-ex-body">BCT ≈ 5.87 × 7 × √(3 × 1000) ≈ 2251 N ≈ 2.251 kN（箱周长取 1000 mm）；ECT/厚度 = 7 ÷ 3 = 2.333 kN/m·mm；单位 ECT 承载力系数 = 5.87 × √3000 ≈ 321.5 N/(kN/m)。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
-<dt>常见楞型的 ECT 大概多少？</dt><dd>经验上 E 楞约 4–5 kN/m（细楞、印刷好但抗压弱），B 楞约 5–6，C 楞约 6，A 楞约 7（粗楞、抗压高）；双瓦楞 BC/AC 组合更高（见抗压堆码工具）。具体以实测 ECT 为准，本工具只做比值判断。</dd>
-<dt>楞型选择除了强度还要看什么？</dt><dd>还要看印刷清晰度（细楞更平滑）、缓冲性（粗楞更缓冲）、堆叠稳定性与材料成本；如展示箱偏重 E/F 楞印刷效果，物流周转箱偏重 B/C/A 楞抗压。</dd>
+<dt>McKee 公式里的箱周长怎么取的？</dt><dd>完整形式为 BCT ≈ 5.87 × ECT × √(厚度 × 箱周长)。本工具固定取箱周长 1000 mm（约 250 mm 见方的标准箱）；实际箱型不同时，应按实际周长等比例修正。</dd>
+<dt>估算值与实测抗压值差多少？</dt><dd>McKee 是经验近似式，常见偏差约 ±10%–20%，还受开孔、印刷、湿度与堆码时间影响；最终应以整箱抗压试验机实测为准。</dd>
 </dl>
 </div>
 </section>
