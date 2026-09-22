@@ -110,13 +110,13 @@ const CASES = [
 {
   "slug": "property/energy",
   "inputs": {
-    "v0": "150",
-    "v1": "50"
+    "v0": "800",
+    "v1": "4"
   },
   "expect": [
-    "7500.00"
+    "3200.00"
   ],
-  "ref": "auto-restore"
+  "ref": "采购运费=重量×运费率=800×4=3200.00（默认 500/3 得 1500.00，注入失败即不命中）"
 },
 {
   "slug": "property/fee-allocation",

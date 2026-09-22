@@ -53,8 +53,8 @@
 <!-- TOOLBOX-I18N-SCRIPT -->
 
 
-<meta name="title-en" content="Bandwidth 1">
-<meta name="desc-en" content="Bandwidth 1 - online utility on ToolBox.">
+<meta name="title-en" content="Salary Bandwidth &amp; Percentile Design">
+<meta name="desc-en" content="Estimate salary band lower/upper bounds and bandwidth ratio from midpoint and spread for job-grade pay design.">
 <!-- TOOLBOX-HREFLANG -->
 <link rel="alternate" hreflang="zh-CN" href="https://chenguangwu.github.io/tools/hr/bandwidth-1.html">
 <link rel="alternate" hreflang="zh-TW" href="https://chenguangwu.github.io/zh-tw/tools/hr/bandwidth-1.html">
@@ -98,17 +98,17 @@
 </div>
 <div class="container">
   <div class="card tool-card-accent" style="--tool-accent:#FF6B35;--tool-accent-dark:#FF6B35;">
-    <h2 data-zh="🌐 薪酬（带宽/分位/公平性）设计">Bandwidth 1</h2>
-    <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="输入两个参数，自动计算常用结果">Bandwidth 1</p>
+    <h2 data-zh="🌐 薪酬（带宽/分位/公平性）设计">Salary Bandwidth & Percentile Design</h2>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="按薪酬中位值与带宽幅度计算薪酬带宽的上下限、带宽绝对值与带宽比，用于职级薪酬体系设计。">Bandwidth 1</p>
     <div class="formula-box">
       <div class="formula-title">📐 计算公式</div>
-      <div class="formula-eq">薪酬带宽 = 中位×(1±分位%)</div>
-      <p class="formula-desc">输入两个参数，自动计算常用结果</p>
+      <div class="formula-eq">下限 = 中位 × (1 − 幅度%)；上限 = 中位 × (1 + 幅度%)；带宽 = 上限 − 下限</div>
+      <p class="formula-desc">薪酬带宽以中位值为中心、按幅度%向两侧展开：下限=中位×(1−幅度%)，上限=中位×(1+幅度%)，带宽为上下限之差，带宽比=上限÷下限。典型幅度 20%–50%，用于界定同一职级的可浮动薪酬区间。</p>
     </div>
     <div class="input-row">
-      <div><label>带宽</label><input type="number" id="v0" value="100" step="any" oninput="calc()" enterkeyhint="done" aria-label="带宽"></div>
+      <div><label>薪酬中位值 (元)</label><input type="number" id="v0" value="8000" step="any" oninput="calc()" enterkeyhint="done" aria-label="带宽"></div>
       <div style="display:flex;align-items:flex-end;justify-content:center;padding-bottom:8px;"><button class="btn" type="button" onclick="swapValues()" title="互换 A/B" aria-label="互换 A/B" style="padding:10px 12px;">⇄</button></div>
-      <div><label>分位</label><input type="number" id="v1" value="50" step="any" oninput="calc()" enterkeyhint="done" aria-label="分位"></div>
+      <div><label>带宽幅度 (±%)</label><input type="number" id="v1" value="30" step="any" oninput="calc()" enterkeyhint="done" aria-label="分位"></div>
     </div>
     <div class="toolbar">
       <button class="btn primary" type="button" onclick="calc()">🧮 计算</button>
@@ -116,7 +116,7 @@
       <button class="btn" type="button" onclick="resetAll()">🗑️ 重置</button>
     </div>
     <div class="result-box" id="res"></div>
-    <div class="info-box">💡 公式提示：输入两个参数，自动计算常用结果</div>
+    <div class="info-box">💡 下限 = 中位 × (1 − 幅度%)；上限 = 中位 × (1 + 幅度%)；带宽 = 上限 − 下限。</div>
 <div class="tool-notes" style="--tool-accent:#FF6B35;">
   <div class="tool-notes-title">⚠️ 使用说明与注意事项</div>
   <ul>
@@ -499,6 +499,31 @@ document.addEventListener('DOMContentLoaded',function(){
   });
 });
 calc();
+</script>
+<script>
+/* 真实业务计算逻辑（页内独占，覆盖通用两参脚本） */
+function calc(){
+  var e0=document.getElementById('v0'),e1=document.getElementById('v1');
+  var A=e0?parseFloat(e0.value):NaN,B=e1?parseFloat(e1.value):NaN;
+  var box=document.getElementById('res');
+  if(!box)return;
+  if(!isFinite(A)||!isFinite(B)){box.innerHTML='<div class="info-box">请输入两个有效数值后再计算。</div>';return;}
+  var items=[];
+  items.push([(A*(1-B/100)).toFixed(2), "薪酬下限（元）"]);
+  items.push([(A*(1+B/100)).toFixed(2), "薪酬上限（元）"]);
+  items.push([(A*(1+B/100)-A*(1-B/100)).toFixed(2), "带宽绝对值（元）"]);
+  items.push([((A*(1+B/100))/(A*(1-B/100))).toFixed(3), "带宽比（上限/下限）"]);
+
+  var html='<div class="data-grid">'+items.map(function(it){return '<div class="data-card"><div class="num">'+it[0]+'</div><div class="label">'+it[1]+'</div></div>';}).join('')+'</div>';
+  html+='💡 下限 = 中位 × (1 − 幅度%)；上限 = 中位 × (1 + 幅度%)；带宽 = 上限 − 下限。';
+  box.innerHTML=html;
+  if(typeof saveHistory==='function'){try{saveHistory(A,B);}catch(e){}}
+}
+function resetAll(){
+  var a=document.getElementById('v0'),b=document.getElementById('v1');
+  if(a)a.value='8000';if(b)b.value='30';calc();
+}
+try{calc();}catch(e){}
 </script>
 
 <!-- SEO 介绍区块 -->

@@ -98,17 +98,17 @@
 </div>
 
   <div class="card tool-card-accent" style="--tool-accent:#FF6B35;--tool-accent-dark:#FF6B35;">
-    <h2 data-zh="⚙️ 销（定位/连接）尺寸">⚙️ Pin (Locating / Connecting) Sizing</h2>
-    <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="输入两个参数，自动计算常用结果">Look up locating and connecting pin dimensions.</p>
+    <h2 data-zh="⚙️ 销（定位/连接）尺寸">Locating / Connecting Pin Dimensions</h2>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="按传递力与许用剪应力计算定位/连接销钉直径与截面积，用于机械连接与工装定位设计。">Look up locating and connecting pin dimensions and shear capacity for the joint.</p>
     <div class="formula-box">
       <div class="formula-title">📐 计算公式</div>
-      <div class="formula-eq">销连接 d = √(4F/(π·τ))</div>
-      <p class="formula-desc">输入两个参数，自动计算常用结果</p>
+      <div class="formula-eq">销钉直径 d = √(4F ÷ (π·τ))；F 为传递力，τ 为许用剪应力</div>
+      <p class="formula-desc">定位销与连接销主要靠剪切承载，按 τ = 4F/(πd²) 反推直径：d = √(4F/(πτ))。F 取 kN（×1000 转 N）、τ 取 MPa（=N/mm²），结果即为销钉直径（mm），可直接对照标准销规格。</p>
     </div>
     <div class="input-row">
-      <div><label>定位</label><input type="number" id="v0" value="100" step="any" oninput="calc()" enterkeyhint="done" aria-label="定位"></div>
+      <div><label>传递力 F (kN)</label><input type="number" id="v0" value="20" step="any" oninput="calc()" enterkeyhint="done" aria-label="定位"></div>
       <div style="display:flex;align-items:flex-end;justify-content:center;padding-bottom:8px;"><button class="btn" type="button" onclick="swapValues()" title="互换 A/B" aria-label="互换 A/B" style="padding:10px 12px;">⇄</button></div>
-      <div><label>连接</label><input type="number" id="v1" value="50" step="any" oninput="calc()" enterkeyhint="done" aria-label="连接"></div>
+      <div><label>许用剪应力 τ (MPa)</label><input type="number" id="v1" value="120" step="any" oninput="calc()" enterkeyhint="done" aria-label="连接"></div>
     </div>
     <div class="toolbar">
       <button class="btn primary" type="button" onclick="calc()">🧮 计算</button>
@@ -116,7 +116,7 @@
       <button class="btn" type="button" onclick="resetAll()">🗑️ 重置</button>
     </div>
     <div class="result-box" id="res"></div>
-    <div class="info-box">💡 公式提示：面积 = A × B，比例 = A ÷ B</div>
+    <div class="info-box">💡 销钉直径 d = √(4F ÷ (π·τ))；F(kN)×1000 转 N、τ(MPa)=N/mm²，结果单位 mm。</div>
 <div class="tool-notes" style="--tool-accent:#FF6B35;">
   <div class="tool-notes-title">⚠️ 使用说明与注意事项</div>
   <ul>
@@ -499,6 +499,32 @@ document.addEventListener('DOMContentLoaded',function(){
   });
 });
 calc();
+</script>
+<script>
+/* 真实业务计算逻辑（页内独占，覆盖通用两参脚本） */
+function calc(){
+  var e0=document.getElementById('v0'),e1=document.getElementById('v1');
+  var A=e0?parseFloat(e0.value):NaN,B=e1?parseFloat(e1.value):NaN;
+  var box=document.getElementById('res');
+  if(!box)return;
+  if(!isFinite(A)||!isFinite(B)){box.innerHTML='<div class="info-box">请输入两个有效数值后再计算。</div>';return;}
+  if(!(B>0)){box.innerHTML='<div class="info-box">许用剪应力需大于 0。</div>';return;}
+  var d=Math.sqrt(4*A*1000/(Math.PI*B));
+  var items=[];
+  items.push([d.toFixed(3), "销钉直径 d（mm）"]);
+  items.push([(Math.PI*d*d/4).toFixed(2), "销杆截面积（mm²）"]);
+  items.push([(2*d).toFixed(3), "双销并联直径（mm）"]);
+
+  var html='<div class="data-grid">'+items.map(function(it){return '<div class="data-card"><div class="num">'+it[0]+'</div><div class="label">'+it[1]+'</div></div>';}).join('')+'</div>';
+  html+='💡 销钉直径 d = √(4F ÷ (π·τ))；F(kN)×1000 转 N、τ(MPa)=N/mm²，结果单位 mm。';
+  box.innerHTML=html;
+  if(typeof saveHistory==='function'){try{saveHistory(A,B);}catch(e){}}
+}
+function resetAll(){
+  var a=document.getElementById('v0'),b=document.getElementById('v1');
+  if(a)a.value='20';if(b)b.value='120';calc();
+}
+try{calc();}catch(e){}
 </script>
 
 <!-- SEO 介绍区块 -->

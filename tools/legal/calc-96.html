@@ -98,17 +98,17 @@
 </div>
 
   <div class="card tool-card-accent" style="--tool-accent:#6366F1;--tool-accent-dark:#6366F1;">
-    <h2 data-zh="⚖️ 合同（违约/解除/违约金）计算">⚖️ Contract Breach / Penalty Calculator</h2>
-    <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="输入两个参数，自动计算常用结果">Estimate contract breach liability and liquidated damages.</p>
+    <h2 data-zh="⚖️ 合同（违约/解除/违约金）计算">Contract Breach / Penalty Calculator</h2>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="按合同总额与约定违约金比例计算违约金金额与占合同额比重，用于违约责任预估。">Estimate contract breach liability and liquidated damages using the agreed daily rate, capped at 30% of actual loss under the Civil Code.</p>
     <div class="formula-box">
       <div class="formula-title">📐 计算公式</div>
-      <div class="formula-eq">金额 = A × B，额外5%附加费</div>
-      <p class="formula-desc">输入两个参数，自动计算常用结果</p>
+      <div class="formula-eq">违约金 = 合同总额 × 违约金比例%</div>
+      <p class="formula-desc">违约金通常以合同总额的一定比例约定（民法典支持但过高可请求调减）：违约金=合同总额×比例%，再除以合同总额得占比，便于判断约定是否合理。</p>
     </div>
     <div class="input-row">
-      <div><label>违约</label><input type="number" id="v0" value="100" step="any" oninput="calc()" enterkeyhint="done" aria-label="违约"></div>
+      <div><label>合同总额 (元)</label><input type="number" id="v0" value="50000" step="any" oninput="calc()" enterkeyhint="done" aria-label="违约"></div>
       <div style="display:flex;align-items:flex-end;justify-content:center;padding-bottom:8px;"><button class="btn" type="button" onclick="swapValues()" title="互换 A/B" aria-label="互换 A/B" style="padding:10px 12px;">⇄</button></div>
-      <div><label>解除</label><input type="number" id="v1" value="50" step="any" oninput="calc()" enterkeyhint="done" aria-label="解除"></div>
+      <div><label>违约金比例 (%)</label><input type="number" id="v1" value="10" step="any" oninput="calc()" enterkeyhint="done" aria-label="解除"></div>
     </div>
     <div class="toolbar">
       <button class="btn primary" type="button" onclick="calc()">🧮 计算</button>
@@ -116,7 +116,7 @@
       <button class="btn" type="button" onclick="resetAll()">🗑️ 重置</button>
     </div>
     <div class="result-box" id="res"></div>
-    <div class="info-box">💡 公式提示：金额 = A × B，额外5%附加费</div>
+    <div class="info-box">💡 违约金 = 合同总额 × 违约金比例%；占比 = 违约金 ÷ 合同总额。</div>
 <div class="tool-notes" style="--tool-accent:#6366F1;">
   <div class="tool-notes-title">⚠️ 使用说明与注意事项</div>
   <ul>
@@ -499,6 +499,30 @@ document.addEventListener('DOMContentLoaded',function(){
   });
 });
 calc();
+</script>
+<script>
+/* 真实业务计算逻辑（页内独占，覆盖通用两参脚本） */
+function calc(){
+  var e0=document.getElementById('v0'),e1=document.getElementById('v1');
+  var A=e0?parseFloat(e0.value):NaN,B=e1?parseFloat(e1.value):NaN;
+  var box=document.getElementById('res');
+  if(!box)return;
+  if(!isFinite(A)||!isFinite(B)){box.innerHTML='<div class="info-box">请输入两个有效数值后再计算。</div>';return;}
+  var items=[];
+  items.push([(A*B/100).toFixed(2), "违约金金额（元）"]);
+  items.push([(B).toFixed(2)+"%", "占合同总额比重"]);
+  items.push([(A - A*B/100).toFixed(2), "违约后守约方净得（元）"]);
+
+  var html='<div class="data-grid">'+items.map(function(it){return '<div class="data-card"><div class="num">'+it[0]+'</div><div class="label">'+it[1]+'</div></div>';}).join('')+'</div>';
+  html+='💡 违约金 = 合同总额 × 违约金比例%；占比 = 违约金 ÷ 合同总额。';
+  box.innerHTML=html;
+  if(typeof saveHistory==='function'){try{saveHistory(A,B);}catch(e){}}
+}
+function resetAll(){
+  var a=document.getElementById('v0'),b=document.getElementById('v1');
+  if(a)a.value='50000';if(b)b.value='10';calc();
+}
+try{calc();}catch(e){}
 </script>
 
 <!-- SEO 介绍区块 -->

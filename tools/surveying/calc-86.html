@@ -98,17 +98,17 @@
 </div>
 
   <div class="card tool-card-accent" style="--tool-accent:#FF6B35;--tool-accent-dark:#FF6B35;">
-    <h2 data-zh="🧮 道路（中线/横断面/放样）计算">🧮 Road Centerline and Cross-section Calculator</h2>
-    <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="输入两个参数，自动计算常用结果">Compute road centerline, cross-sections and setting-out.</p>
+    <h2 data-zh="🧮 道路（中线/横断面/放样）计算">Highway Horizontal Curve Elements</h2>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="按圆曲线半径与转角计算切线长、外距、曲线长、弦长与中点垂距，用于道路中线与测设放样。">Compute road centerline, cross-section and staking data for route design.</p>
     <div class="formula-box">
       <div class="formula-title">📐 计算公式</div>
-      <div class="formula-eq">道路中线/横断面：按桩号与要素计算</div>
-      <p class="formula-desc">输入两个参数，自动计算常用结果</p>
+      <div class="formula-eq">切线长 T = R·tan(α/2)；外距 E = R(sec(α/2)−1)；曲线长 L = R·α·π/180；弦长 C = 2R·sin(α/2)</div>
+      <p class="formula-desc">圆曲线是道路中线的基本线形单元：切线长、外距、曲线长、弦长、中点垂距由半径 R 与转角 α 唯一确定，是中线测设放样（主点 ZH/HY/QZ/YH/HZ）的必备要素。</p>
     </div>
     <div class="input-row">
-      <div><label>中线</label><input type="number" id="v0" value="100" step="any" oninput="calc()" enterkeyhint="done" aria-label="中线"></div>
+      <div><label>圆曲线半径 R (m)</label><input type="number" id="v0" value="200" step="any" oninput="calc()" enterkeyhint="done" aria-label="中线"></div>
       <div style="display:flex;align-items:flex-end;justify-content:center;padding-bottom:8px;"><button class="btn" type="button" onclick="swapValues()" title="互换 A/B" aria-label="互换 A/B" style="padding:10px 12px;">⇄</button></div>
-      <div><label>横断面</label><input type="number" id="v1" value="50" step="any" oninput="calc()" enterkeyhint="done" aria-label="横断面"></div>
+      <div><label>转角 α (°)</label><input type="number" id="v1" value="45" step="any" oninput="calc()" enterkeyhint="done" aria-label="横断面"></div>
     </div>
     <div class="toolbar">
       <button class="btn primary" type="button" onclick="calc()">🧮 计算</button>
@@ -116,7 +116,7 @@
       <button class="btn" type="button" onclick="resetAll()">🗑️ 重置</button>
     </div>
     <div class="result-box" id="res"></div>
-    <div class="info-box">💡 公式提示：输入两个参数，自动计算常用结果</div>
+    <div class="info-box">💡 T = R·tan(α/2)；E = R(sec(α/2)−1)；L = R·α·π/180；C = 2R·sin(α/2)。</div>
 <div class="tool-notes" style="--tool-accent:#FF6B35;">
   <div class="tool-notes-title">⚠️ 使用说明与注意事项</div>
   <ul>
@@ -500,6 +500,32 @@ document.addEventListener('DOMContentLoaded',function(){
 });
 calc();
 </script>
+<script>
+/* 真实业务计算逻辑（页内独占，覆盖通用两参脚本） */
+function calc(){
+  var e0=document.getElementById('v0'),e1=document.getElementById('v1');
+  var A=e0?parseFloat(e0.value):NaN,B=e1?parseFloat(e1.value):NaN;
+  var box=document.getElementById('res');
+  if(!box)return;
+  if(!isFinite(A)||!isFinite(B)){box.innerHTML='<div class="info-box">请输入两个有效数值后再计算。</div>';return;}
+  var items=[];
+  items.push([(A*Math.tan(B*Math.PI/180/2)).toFixed(3), "切线长 T（m）"]);
+  items.push([(A*(1/Math.cos(B*Math.PI/180/2)-1)).toFixed(3), "外距 E（m）"]);
+  items.push([(A*B*Math.PI/180).toFixed(3), "曲线长 L（m）"]);
+  items.push([(2*A*Math.sin(B*Math.PI/180/2)).toFixed(3), "弦长 C（m）"]);
+  items.push([(A*(1-Math.cos(B*Math.PI/180/2))).toFixed(3), "中点垂距 M（m）"]);
+
+  var html='<div class="data-grid">'+items.map(function(it){return '<div class="data-card"><div class="num">'+it[0]+'</div><div class="label">'+it[1]+'</div></div>';}).join('')+'</div>';
+  html+='💡 T = R·tan(α/2)；E = R(sec(α/2)−1)；L = R·α·π/180；C = 2R·sin(α/2)。';
+  box.innerHTML=html;
+  if(typeof saveHistory==='function'){try{saveHistory(A,B);}catch(e){}}
+}
+function resetAll(){
+  var a=document.getElementById('v0'),b=document.getElementById('v1');
+  if(a)a.value='200';if(b)b.value='45';calc();
+}
+try{calc();}catch(e){}
+</script>
 
 <!-- SEO 介绍区块 -->
 
@@ -525,19 +551,19 @@ calc();
 </style>
 <section class="deep-dive" data-deep-dive="1">
 <div class="card">
-<h2>📚 深度解析：面积坡度（通用）</h2>
+<h2>📚 深度解析：道路（中线/横断面/放样）计算</h2>
 <h3>💡 常见使用场景</h3>
 <ul class="dd-list">
-<li>长宽算面积、坡度、角度。</li>
-<li>通用地块/坡面估算。</li>
-<li>与 area-24/25 同核。</li>
+<li>由半径与转角求圆曲线主点要素。</li>
+<li>道路中线测设放样（ZH/HY/QZ/YH/HZ）。</li>
+<li>复核曲线长与超高过渡段。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">示例</div><div class="dd-ex-body">a=15m、b=60m → 面积 900 m²；坡度=15/60×100%=25%，角度=atan(0.25)=14.0°。</div></div>
-<div class="dd-example"><div class="dd-ex-title">亩换算</div><div class="dd-ex-body">900 m²≈1.35 亩，快速上报用。</div></div>
+<div class="dd-example"><div class="dd-ex-title">切线长与外距</div><div class="dd-ex-body">R=300 m、α=60° → T=300×tan30°=173.205 m；E=300×(sec30°−1)=46.410 m。</div></div>
+<div class="dd-example"><div class="dd-ex-title">曲线长</div><div class="dd-ex-body">L=R·α·π/180=300×60×π/180=314.159 m；弦长 C=2R·sin(α/2)=300.000 m。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
-<dt>为什么有多个面积工具？</dt><dd>面向不同输入习惯（坐标/长宽/坡比），核心算法一致，按手头数据选。</dd>
-<dt>坡度角≠坡度%？</dt><dd>对。25% 坡=14.0°角，坡比是正切非角度。</dd>
+<dt>圆曲线五要素是什么？</dt><dd>切线长 T、外距 E、曲线长 L、弦长 C、中点垂距 M，由半径 R 与转角 α 唯一确定。</dd>
+<dt>转角 α 怎么取？</dt><dd>由前后导线方位角之差得到；单位为度，公式用弧度需 ×π/180。</dd>
 </dl>
 </div>
 </section>
