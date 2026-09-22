@@ -4,7 +4,7 @@ const { runCase } = require("./verify_it_calc.js");
 
 const CASES = [
   { slug: "signal/bandwidth-q", inputs: { f0: "2000", Q: "50" }, expect: ["40.000 带宽"], ref: "Δf=f0/Q=2000/50=40" },
-  { slug: "signal/bit-rate-nyquist", inputs: { B: "4000", M: "32" }, expect: ["40000 最大码率"], ref: "R_max=2B·log₂(M)=2×4000×log₂(32)=40000" },
+  { slug: "signal/bit-rate-nyquist", inputs: { B: "4000", M: "32" }, expect: ["40000 最大码率", "10.00 每赫兹码率", "5.0000 每符号比特数"], ref: "R_max=2B·log₂(M)=2×4000×log₂(32)=40000 bps；每赫兹码率=R/B=2log₂M=10 bps/Hz（原实现误用 R/2=20000）；每符号比特数=log₂32=5" },
   { slug: "signal/carrier-freq", inputs: { fu: "1300", fl: "800" }, expect: ["1050.000 载波频率"], ref: "f_c=(fu+fl)/2=(1300+800)/2=1050（原 1200/800 中点与默认 1010/990 相同 → 逃生项）" },
   { slug: "signal/cascade-gain-db", inputs: { g1: "12", g2: "18", g3: "6" }, expect: ["36.000 总增益"], ref: "12+18+6=36dB" },
   { slug: "signal/damping-ratio", inputs: { c: "4", k: "100", m: "1" }, expect: ["0.2000 阻尼比"], ref: "ζ=c/(2√(km))=4/(2√100)=0.2" },
