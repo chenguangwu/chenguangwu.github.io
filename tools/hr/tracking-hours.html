@@ -139,6 +139,7 @@
     <div class="tip-box tip-info">
       完成率 = 已完成学时 ÷ 要求学时 × 100%；缺口 = 要求学时 − 已完成学时。可据此安排补训计划。
     </div>
+    <div class="tip-box tip-plan" id="catchupTip" style="margin-top:10px;"></div>
   </div>
 
 <!-- TOOLBOX-DEEP-DIVE -->
@@ -213,9 +214,15 @@ function delEmp(i){ if(emps.length<=1)return; emps.splice(i,1); renderEmps(); ca
 
 function calc(){
   var req = +document.getElementById('required').value || 0;
-  var dept = document.getElementById('dept').value;
+  var dept = (document.getElementById('dept').value||'').trim();
+  var deadlineRaw = (document.getElementById('deadline').value||'').trim();
   if(req<=0) return;
-  var rows = [], totalHours=0, doneCount=0, gapList=[];
+  var daysLeft = null;
+  if(deadlineRaw){
+    var dParse = new Date(deadlineRaw.length===10 ? deadlineRaw+'T23:59:59' : deadlineRaw);
+    if(!isNaN(dParse.getTime())) daysLeft = Math.ceil((dParse.getTime()-Date.now())/86400000);
+  }
+  var rows = [], totalHours=0, doneCount=0, gapList=[], totalGap=0;
   var sorted = emps.slice().sort(function(a,b){return b.hours-a.hours;});
   sorted.forEach(function(e){
     var rate = e.hours/req*100;
@@ -225,7 +232,7 @@ function calc(){
     else if(rate>=75){ status='接近达标'; statusClass='grade-good'; barColor='#3B82F6'; gapList.push(e.name); }
     else if(rate>=50){ status='待补训'; statusClass='grade-pass'; barColor='#F59E0B'; gapList.push(e.name); }
     else { status='严重不足'; statusClass='grade-fail'; barColor='#EF4444'; gapList.push(e.name); }
-    totalHours += e.hours;
+    totalHours += e.hours; totalGap += gap;
     var bar = '<div class="progress"><div class="progress-fill" style="width:'+Math.min(rate,100)+'%;background:'+barColor+';"></div></div>';
     rows.push([
       e.name||'未命名',
@@ -240,19 +247,36 @@ function calc(){
   var avgRate = avgHours/req*100;
   document.getElementById('summary').innerHTML =
     sCard('员工数', emps.length)+
+    sCard('统计范围', dept||'全部')+
     sCard('累计学时', totalHours.toFixed(1)+' h')+
     sCard('人均学时', avgHours.toFixed(1)+' h')+
     sCard('平均完成率', avgRate.toFixed(0)+'%')+
     sCard('已达标人数', doneCount+' / '+emps.length)+
-    sCard('待补训人数', (emps.length-doneCount));
+    sCard('待补训人数', (emps.length-doneCount))+
+    sCard('距截止', daysLeft===null?'未设置':(daysLeft>0?daysLeft+' 天':(-daysLeft)+' 天前'));
 
   document.getElementById('resultTable').innerHTML = ToolBox.createTable(
     ['姓名','已完成','缺口','完成率','状态'], rows);
 
-  // 补训建议
-  if(gapList.length>0){
-    var tip = document.querySelector('.tip-box');
-    // 不覆盖原 tip，新增提示
+  // 补训追赶计划（使用 deadline + dept，使两输入真正参与结果）
+  var tip = document.getElementById('catchupTip');
+  if(tip){
+    var scope = dept? (dept+'，') : '';
+    var plan;
+    if(gapList.length>0){
+      if(daysLeft!==null && daysLeft>0){
+        var weeks = Math.max(daysLeft/7, 1);
+        var perWeek = Math.ceil(totalGap/weeks);
+        plan = scope+'距截止 '+daysLeft+' 天（约 '+weeks.toFixed(1)+' 周），'+gapList.length+' 人共缺 '+totalGap+' 学时，建议每周补训 ≥ '+perWeek+' 学时。';
+      } else if(daysLeft!==null && daysLeft<=0){
+        plan = scope+'截止日已到（'+(-daysLeft)+' 天前），'+gapList.length+' 人共缺 '+totalGap+' 学时，请尽快安排补训。';
+      } else {
+        plan = scope+gapList.length+' 人共缺 '+totalGap+' 学时，请尽快安排补训。';
+      }
+    } else {
+      plan = scope+'全员达标 🎉';
+    }
+    tip.innerHTML = plan;
   }
 }
 
