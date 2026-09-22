@@ -98,17 +98,17 @@
 </div>
 <div class="container">
   <div class="card tool-card-accent" style="--tool-accent:#FF6B35;--tool-accent-dark:#FF6B35;">
-    <h2 data-zh="🛒 招标（公开/邀请/竞争）方式">Tender Method (Open / Invited / Competitive)</h2>
-    <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="输入两个参数，自动计算常用结果">Select a tender method: open, invited or competitive negotiation.</p>
+    <h2 data-zh="🛒 招标（公开/邀请/竞争）方式">Bidding Method Recommender</h2>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="按项目金额与公开性要求，推荐适用招标采购方式。">Select a tender method: open, invited or competitive negotiation.</p>
     <div class="formula-box">
       <div class="formula-title">📐 计算公式</div>
-      <div class="formula-eq">招标方式 = 公开/邀请/竞争</div>
-      <p class="formula-desc">输入两个参数，自动计算常用结果</p>
+      <div class="formula-eq">金额≥400 且 公开→公开招标；金额≥400 且 限定→邀请招标；金额<400→竞争性谈判</div>
+      <p class="formula-desc">招标方式按金额与公开性匹配：金额大且须公开采用公开招标；金额大但限定范围用邀请招标；金额较小或紧急用竞争性谈判，兼顾合规与效率。</p>
     </div>
     <div class="input-row">
-      <div><label>公开</label><input type="number" id="v0" value="100" step="any" oninput="calc()" enterkeyhint="done" aria-label="公开"></div>
+      <div><label>项目金额 (万元)</label><input type="number" id="v0" value="500" step="any" oninput="calc()" enterkeyhint="done" aria-label="公开"></div>
       <div style="display:flex;align-items:flex-end;justify-content:center;padding-bottom:8px;"><button class="btn" type="button" onclick="swapValues()" title="互换 A/B" aria-label="互换 A/B" style="padding:10px 12px;">⇄</button></div>
-      <div><label>邀请</label><input type="number" id="v1" value="50" step="any" oninput="calc()" enterkeyhint="done" aria-label="邀请"></div>
+      <div><label>公开性 (1=公开/0=限定)</label><input type="number" id="v1" value="1" step="any" oninput="calc()" enterkeyhint="done" aria-label="邀请"></div>
     </div>
     <div class="toolbar">
       <button class="btn primary" type="button" onclick="calc()">🧮 计算</button>
@@ -116,7 +116,7 @@
       <button class="btn" type="button" onclick="resetAll()">🗑️ 重置</button>
     </div>
     <div class="result-box" id="res"></div>
-    <div class="info-box">💡 公式提示：输入两个参数，自动计算常用结果</div>
+    <div class="info-box">💡 金额≥400 且公开→公开招标；限定→邀请招标；<400→竞争性谈判。</div>
 <div class="tool-notes" style="--tool-accent:#FF6B35;">
   <div class="tool-notes-title">⚠️ 使用说明与注意事项</div>
   <ul>
@@ -499,6 +499,30 @@ document.addEventListener('DOMContentLoaded',function(){
   });
 });
 calc();
+</script>
+<script>
+/* 真实业务计算逻辑（页内独占，覆盖通用两参脚本） */
+function calc(){
+  var e0=document.getElementById('v0'),e1=document.getElementById('v1');
+  var A=e0?parseFloat(e0.value):NaN,B=e1?parseFloat(e1.value):NaN;
+  var box=document.getElementById('res');
+  if(!box)return;
+  if(!isFinite(A)||!isFinite(B)){box.innerHTML='<div class="info-box">请输入两个有效数值后再计算。</div>';return;}
+  var items=[];
+  items.push([(A>=400&&B>=1?"公开招标":(A>=400&&B<1?"邀请招标":"竞争性谈判")), "推荐方式"]);
+  items.push([(A>=400?"法定公开程序":"内部审批即可"), "合规要求"]);
+  items.push([((A*0.01).toFixed(1)+" 万元代理预估"), "代理费预估"]);
+
+  var html='<div class="data-grid">'+items.map(function(it){return '<div class="data-card"><div class="num">'+it[0]+'</div><div class="label">'+it[1]+'</div></div>';}).join('')+'</div>';
+  html+='💡 金额≥400 且公开→公开招标；限定→邀请招标；<400→竞争性谈判。';
+  box.innerHTML=html;
+  if(typeof saveHistory==='function'){try{saveHistory(A,B);}catch(e){}}
+}
+function resetAll(){
+  var a=document.getElementById('v0'),b=document.getElementById('v1');
+  if(a)a.value='500';if(b)b.value='1';calc();
+}
+try{calc();}catch(e){}
 </script>
 
 <!-- SEO 介绍区块 -->

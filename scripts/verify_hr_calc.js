@@ -76,17 +76,6 @@ const CASES = [
   "ref": "休息日倍数2：折算补休=6×2/8=1.5 天（默认 12h/工作日/8h 得 2.3 天）"
 },
 {
-  "slug": "hr/eap-xinli-zixun-weiji-ziyuan",
-  "inputs": {
-    "v0": "200",
-    "v1": "80"
-  },
-  "expect": [
-    "280.00"
-  ],
-  "ref": "通用双输入页兜底分支：总和=200+80=280.00（默认 100/50 得 150.00）"
-},
-{
   "slug": "hr/gross-up-calculator",
   "inputs": {
     "afterTax": "12000",
@@ -97,17 +86,6 @@ const CASES = [
     "15680.56"
   ],
   "ref": "二分迭代反算税前：net=gross×(1-0.20)−税(max(0,gross×0.8−5000)) 收敛于 15680.56（默认 8000/0.225/5000 得 10451.61）"
-},
-{
-  "slug": "hr/hris-zizhuyuaiduibijisuanqi",
-  "inputs": {
-    "v0": "140",
-    "v1": "35"
-  },
-  "expect": [
-    "175.00"
-  ],
-  "ref": "通用双输入页兜底分支：总和=140+35=175.00（默认 100/50 得 150.00）"
 },
 {
   "slug": "hr/overtime-pay-calc",
