@@ -172,13 +172,19 @@ const CASES = [
   "ref": "auto-restore"
 },
 {
-  // 结构性 no_inputs：评分项全为 checkbox，harness 桩 checked 恒 false，无法注入
+  // 勾选 C(意识模糊)+U(尿素氮>7) → CURB-65 = 2 分 → 中危、30天死亡风险约 9.2%、建议住院。
+  // 默认态 0 分 → 低危（约1.5%）/门诊治疗，故本 expect 具判别力。
+  // checkIds 注入复选框选中态（页面用 getElementById(id).checked 读取，见 harness 2026-09-24 升级）。
   "slug": "pulmonology/curb65",
-  "inputs": {},
-  "expect": [
-    "CURB-65总分"
+  "checkIds": [
+    "c",
+    "u"
   ],
-  "ref": "auto-restore(default)"
+  "expect": [
+    "中(约9.2%)",
+    "住院治疗"
+  ],
+  "ref": "CURB-65 五项各 1 分：C(意识模糊)+U(尿素氮>7)=2 → 中危（30天死亡风险约 9.2%）→ 住院治疗"
 },
 {
   // ACT 五项 a1-a5 各 1-5；注入全 4 → 总分 20 → 良好控制
@@ -281,13 +287,20 @@ const CASES = [
   "ref": "auto-restore"
 },
 {
-  // 结构性 no_inputs：评分项全为 checkbox，harness 桩 checked 恒 false，无法注入
+  // 勾选 S/T/O/P/BMI 共 5 项 → 5/8 → 高危（强烈建议 PSG）。
+  // 原用例 inputs 为空、expect 取默认态输出 "0/8"（注入失败亦命中）⇒ 零判别力，已去默认化。
   "slug": "pulmonology/stop-bang",
-  "inputs": {},
-  "expect": [
-    "0/8"
+  "checkIds": [
+    "s",
+    "t",
+    "o",
+    "p",
+    "bmi"
   ],
-  "ref": "auto-restore(default)"
+  "expect": [
+    "5/8"
+  ],
+  "ref": "STOP-BANG 八项各 1 分：S(打鼾)+T(疲倦)+O(呼吸暂停)+P(高血压)+BMI>35 = 5 → 5/8 → 高危"
 },
 {
   // 默认（harness 首选项）smear=neg → 传染性低；注入 3+/pos/rif_s → 有传染性需隔离
@@ -314,13 +327,18 @@ const CASES = [
   "ref": "auto-restore"
 },
 {
-  // 结构性 no_inputs：评分项全为 checkbox，harness 桩 checked 恒 false，无法注入
+  // 勾选 DVT(3)+其他诊断(3)+心率>100(1.5) → 7.5 分 > 6 → 高危（概率约 37.5%，直接 CTPA）。
+  // 原用例 inputs 为空、expect 取默认态 "1.3%)"（0 分低危）⇒ 零判别力，已去默认化。
   "slug": "pulmonology/wells-pe",
-  "inputs": {},
-  "expect": [
-    "1.3%)"
+  "checkIds": [
+    "dvt",
+    "alt",
+    "hr"
   ],
-  "ref": "auto-restore(default)"
+  "expect": [
+    "37.5%"
+  ],
+  "ref": "Wells PE 加权：DVT 3 + 其他诊断可能 3 + 心率>100 1.5 = 7.5 > 6 → 高危（～37.5%）"
 }
 ];
 async function main() {

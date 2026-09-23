@@ -412,6 +412,11 @@ async function runCaseInner(c) {
           ? sel[id][0]
           : "";
       elements[id] = makeEl(v);
+      // 复选框注入：makeEl 的 checked 恒为 false，页面若用 getElementById(id).checked
+      // 读取勾选态（量表/评分/选项类页面的主流写法），注入 .value 完全无效 ⇒ 该类页
+      // 长期被判「结构性 no_inputs」而只能取常量串 expect（零判别力）。
+      // 用例用 checkIds: ["b1","b2"] 声明哪些 id 处于选中态即可。不传该字段行为完全不变。
+      if (c.checkIds && c.checkIds.indexOf(id) !== -1) elements[id].checked = true;
       // 把内联 on* 属性注册成事件处理器，使 fire() 能触发页面真实逻辑
       const ih = inline[id];
       if (ih) {
@@ -429,7 +434,14 @@ async function runCaseInner(c) {
   const readyCbs = [];
   const document = {
     getElementById: getEl,
-    getElementsByName: () => [],
+    getElementsByName: (name) => {
+      // 单选组注入：页面标准写法是 document.getElementsByName(name) 遍历找 checked
+      // （如 cardiology/has-bled 的 5 组风险因素）。原先恒返回 [] ⇒ 整组恒 0、页面
+      // 输出与真机默认态不符。用例用 radios: { htn: "1" } 声明某组被选中的 value 即可。
+      if (c.radios && Object.prototype.hasOwnProperty.call(c.radios, name))
+        return [{ value: String(c.radios[name]), checked: true, name }];
+      return [];
+    },
     getElementsByClassName: () => [],
     querySelector(sel) {
       // 与真实 DOM 对齐：查询「已选中项」时，未选中应返回 null。

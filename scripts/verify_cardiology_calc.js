@@ -153,12 +153,22 @@ const CASES = [
   "ref": "auto-restore"
 },
 {
+  // radios 注入单选组（htn=1 高血压、stroke=1 卒中史），checkIds 注入复选（drugs 合并抗血小板/NSAIDs、
+  // alcohol 酗酒）→ 1+1+1+1 = 4 分 → 高危、出血风险 8.70%。
+  // 原用例 inputs 为空、expect 取默认态 "1.13%"（0 分低危）⇒ 零判别力，已去默认化。
   "slug": "cardiology/has-bled",
-  "inputs": {},
-  "expect": [
-    "1.13%"
+  "radios": {
+    "htn": "1",
+    "stroke": "1"
+  },
+  "checkIds": [
+    "drugs",
+    "alcohol"
   ],
-  "ref": "auto-restore(default)"
+  "expect": [
+    "8.70%"
+  ],
+  "ref": "HAS-BLED 九项各 1 分：高血压 1 + 卒中史 1 + 合并抗血小板/NSAIDs 1 + 酗酒 1 = 4 分 → 高危（出血风险 8.70%）"
 },
 {
   "slug": "cardiology/holter-grading",

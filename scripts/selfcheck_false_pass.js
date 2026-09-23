@@ -121,7 +121,15 @@ function _pageDefaults(html, ids) {
 
 function weakKind(c) {
   const keys = Object.keys(c.inputs || {});
-  if (!keys.length) return "no_inputs";
+  // checkIds / radios 是**真实输入注入**（复选框选中态 / 单选组取值），与 inputs 等价 ——
+  // 页面用 getElementById(id).checked、getElementsByName(name) 读取（harness 2026-09-24 起支持）。
+  // 不认这两者，纯 checkbox 量表页（curb65 / stop-bang / has-bled / rater-33 等）的新用例
+  // 会被误判为 no_inputs 弱用例，与「已注入输入」的事实相悖。有任一注入即非弱用例。
+  const hasInjection =
+    (Array.isArray(c.checkIds) && c.checkIds.length > 0) ||
+    (c.radios && Object.keys(c.radios).length > 0);
+  if (!keys.length) return hasInjection ? null : "no_inputs";
+  if (hasInjection) return null;
   const p = path.join(__dirname, "..", "tools", String(c.slug || "") + ".html");
   if (!fs.existsSync(p)) return null;
   if (!_htmlCache.has(p)) _htmlCache.set(p, fs.readFileSync(p, "utf8"));

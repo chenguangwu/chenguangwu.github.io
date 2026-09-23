@@ -94,11 +94,27 @@ function listFiles() {
     try { CASES = eval(m[1]); } catch (e) { console.log("SKIP(解析失败)", f, e.message); continue; }
 
     for (const c of CASES) {
-      if (!c.inputs || Object.keys(c.inputs).length === 0) { skipped++; continue; }  // 无输入用例不适用
+      // checkIds（复选框选中态）/ radios（单选组取值）是 2026-09-24 起 harness 支持的注入字段，
+      // 与 inputs 等价地构成「被测输入」。模拟注入失败 = 一并清空这两者。
+      const hasInj =
+        (Array.isArray(c.checkIds) && c.checkIds.length > 0) ||
+        (c.radios && Object.keys(c.radios).length > 0);
+      const clearInject = { checkIds: [], radios: {} };
+      if (!c.inputs || Object.keys(c.inputs).length === 0) {
+        if (!hasInj) { skipped++; continue; }   // 真正无任何注入的用例不适用
+        // 清空复选框/单选注入 → 页面回到「全未勾选」态，expect 必须失配，否则即逃生项。
+        total++;
+        let r0;
+        try { r0 = await runCase(Object.assign({}, c, clearInject)); }
+        catch (e) { fail++; continue; }
+        if (r0.ok) { stillPass++; bad.push(`${c.slug} (via=${r0.via})`); }
+        else fail++;
+        continue;
+      }
       const defs = pageDefaults(c.slug);
       if (!defs) { skipped++; continue; }
       const injected = {};
-      let usable = false;
+      let usable = hasInj;   // 有复选框/单选注入时，即便 inputs 全为默认值也可模拟失败
       for (const k of Object.keys(c.inputs)) {
         if (defs[k] !== undefined && String(defs[k]) !== String(c.inputs[k])) {
           injected[k] = String(defs[k]);   // 换回默认值 = 模拟注入失败
@@ -110,7 +126,7 @@ function listFiles() {
       if (!usable) { skipped++; continue; }  // 注入值本就等于默认值，无法模拟
       total++;
       let r;
-      try { r = await runCase(Object.assign({}, c, { inputs: injected })); }
+      try { r = await runCase(Object.assign({}, c, { inputs: injected }, clearInject)); }
       catch (e) { fail++; continue; }
       if (r.ok) { stillPass++; bad.push(`${c.slug} (via=${r.via})`); }
       else fail++;

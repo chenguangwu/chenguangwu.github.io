@@ -146,8 +146,10 @@
 
 **P1 — 待办**
 
-- **隔离器桩缺口两项，未修**：① `document.querySelector('input[name=x]:checked')` 恒返回 null → 单选/复选门控页输出 `undefined`/`NaN`（`optical/progressive-corridor` 等）；② `innerHTML=` 动态生成的控件（`fim-scale`/`womac`/`gingival-index`/`load-curve` 等，静态 HTML `grep id=` 为 0）取不到值。
-  - **2026-09-23 实测补记（勿再盲改 harness）**：对 ② 在正式门禁 `scripts/verify_it_calc.js` 实施「`innerHTML` setter 解析 `id=` 注册桩元素」改造，全量门禁立即暴露 `psychology/calc-12` 崩溃（该页用 `innerHTML` 渲染滑块，`getElementById` 读到空桩后读 `.length`/`.trim` 即崩）。**根因**：harness 缺「真实 DOM 行为」模拟，单点 `id` 注册会误伤**所有用 innerHTML 渲染 UI 的页**。已 `git checkout HEAD -- scripts/verify_it_calc.js` 还原，216/216 恢复全绿。**结论**：② 不能靠 `id` 注册解决，须立项「innerHTML 真实 DOM 模拟」专项（大工程，需评估工期）；在此之前**维持原纪律"盲区先排除，再回源码复核"**。缺口 ① 同理风险更高，未实施。
+- **harness 输入桩覆盖现状（2026-09-24 更新）**：
+  - ✅ **复选框 / 单选组已可注入**（本日闭环）：harness 新增 `checkIds: ["c","u"]`（`getElementById(id).checked` 型，纯复选框量表页）与 `radios: { htn: "1" }`（`getElementsByName` 型）两个注入字段；`optical/progressive-corridor` 那类 `querySelector('input[name=x]:checked')` 用既有 `c.checks` 即可。**三者合起来使「纯 checkbox 量表页不可注入」的旧结论失效** —— 全站 26 例此类弱用例不再属结构性 `no_inputs`（已改 5 例示范：`curb65` / `stop-bang` / `wells-pe` / `has-bled` / `rater-33`，剩余按 P3 顺带推进）。配套：`selfcheck_false_pass.js` 与 `discriminate_check.js` 均已识别这两个字段（判别器做法 = 清空注入模拟失败，用例必须变红）。
+  - ⚠️ **`innerHTML=` 动态生成的控件仍未覆盖**（`fim-scale`/`womac`/`gingival-index`/`load-curve` 等，静态 HTML `grep id=` 为 0）→ 取不到值，按旧纪律「盲区先排除、再回源码复核」。**2026-09-23 实测教训**：对它在正式门禁实施「`innerHTML` setter 解析 `id=` 注册桩元素」会使全量门禁暴露 `psychology/calc-12` 崩溃（该页用 `innerHTML` 渲染滑块，`getElementById` 读到空桩后读 `.length`/`.trim` 即崩）——harness 缺「真实 DOM 行为」模拟，单点 `id` 注册会误伤**所有用 innerHTML 渲染 UI 的页**。已还原。须走「innerHTML 真实 DOM 模拟」专项。
+  - ⚠️ **HTML 默认选中态未生效**（新增待办）：`makeEl.checked` 恒 false ⇒ 真机默认带 `checked` 的 radio/checkbox 在 harness 下失真，甚至让 `querySelector('input[name=design]:checked').value` 返回 null 后抛 TypeError（`optical/progressive-corridor` 的 `design` 组真机默认 `standard`）。改法 = 让 `querySelector(':checked')` / `getElementsByName` 在**无注入时回落 HTML 默认选中态**；**风险**：会改变这类页在 harness 下的默认输出、波及存量 expect，须单独成批 + 全量门禁实测。
 - **`metalwork/tester-19` ≤1kV 耐压分支无法构造判别用例**：该分支输出恒为常数 `3.5 kV`（与 `ratedV` 取值无关），任何 `expect` 都会在**默认态**命中 → 必被判逃生项，故**刻意不补用例**；该修复（`0.0 kV → 3.5 kV`）只能靠隔离器人工跑 + 代码评审保真，回归时注意。
 - **「多页签（mode）」页面的非默认页签分支无法被 harness 覆盖**：切页签必须带参调用 `setMode(1)`，而 harness 只无参调用候选函数 → 双样本/第二种模式分支永不执行，`expect` 只对默认页签有效。**复核口径**：复制页面到 `tools/<ind>/_tmp-xxx.html`，把 `let currentMode=0;` 改成 `1` → 隔离器单跑 → **立即删除副本**（勿留待提交）。
 - **永久排除（不下架）**：同名异功能 `finance/salary-after-tax`↔`payroll-calculator`、`ophthalmology/self-assess-2`↔`osdi-scale`；跨行业同名编号页（calc-N/rater-N 等 17 个 basename）经内容哈希取证均为不同工具、内容各异，非重复，不处理。
@@ -335,7 +337,8 @@ dermatology 14/11、engineering 14/11、signal 11/11、design 10/10、rheumatolo
 
 | 限制 | 后果 / 处置 |
 |---|---|
-| **纯 checkbox 评分页不可注入**：`makeEl` 桩 `checked` 恒 false，注入只写 `.value` | `c.checks` **只作用于 `querySelector(':checked')`/`querySelectorAll('…checked')`** —— 只有用选择器读选中态的页面才可注入。其余判结构性 `no_inputs`。**被 checkbox 门控的页面可改判「门控前的派生量」** |
+| **复选框 / 单选组注入字段（2026-09-24 起）** | `checkIds: ["c","u"]` → `getElementById(id).checked`（纯复选框量表页）；`radios: { htn: "1" }` → `getElementsByName(name)`；`c.checks` → `querySelector(':checked')`/`querySelectorAll('…checked')`。三者均已获 `selfcheck`（算有效注入）与 `discriminate`（清空注入即模拟失败）识别 ⇒ 纯 checkbox 量表页**不再判结构性 `no_inputs`**。**被 checkbox 门控的页面仍可改判「门控前的派生量」** |
+| **checkbox / radio 的 HTML 默认选中态不生效** | `makeEl.checked` 恒 false ⇒ 真机默认带 `checked` 的组在 harness 下失真甚至抛错（`optical/progressive-corridor` 的 `design` 真机默认 `standard`，harness 下 `querySelector(...).value` 读到 null 抛 TypeError）。**选批前先确认页面 radio/checkbox 是否带默认 `checked`**；改造计划见 §7.1「HTML 默认选中态未生效」 |
 | **动态 id（`q0..qN`）会同时骗过两道静态校验** | `discriminate_check` 判「跳过」、`selfcheck` 判 `null` 不计入 → **基线会「虚降」**。须自建探针补验「注入 PASS + 回退默认 FAIL」，并另用浏览器真实默认值再跑一遍 |
 | **textarea / 无 value 的 input 在判别器里必落「跳过」** | `discriminate_check.pageDefaults()` 不解析 textarea、无 value input 返回 undefined → 整例跳过。须自建同口径探针补验 |
 | **判定发生在 `blob1`（注入后立即收集），不是 `fullBlob`** | 用 `expect:["@@NOMATCH@@"]` 取输出「看结果」是错的。定位逃生项只看 `blob1` |

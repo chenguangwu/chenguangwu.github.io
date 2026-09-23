@@ -137,12 +137,26 @@ const CASES = [
   "ref": "auto-restore"
 },
 {
+  // 勾选 m1–m10 共 10 项 → 10/14 = 71.4% ≥ 70% → 依从性高（原用例 inputs 为空、
+  // expect 取默认态分母串 "14" ⇒ 零判别力；默认 0 分输出 0% / 依从性低，故本 expect 有判别力）。
   "slug": "nutrition/rater-33",
-  "inputs": {},
-  "expect": [
-    "14"
+  "checkIds": [
+    "m1",
+    "m2",
+    "m3",
+    "m4",
+    "m5",
+    "m6",
+    "m7",
+    "m8",
+    "m9",
+    "m10"
   ],
-  "ref": "auto-restore(default)"
+  "expect": [
+    "71%)",
+    "依从性高"
+  ],
+  "ref": "地中海饮食评分 14 项：达标 10 项 → 10/14 = 71.4% ≥ 70% → 依从性高"
 },
 {
   "slug": "nutrition/recommender-2",
