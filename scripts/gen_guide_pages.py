@@ -137,7 +137,14 @@ def derive(v):
         ('本工具适合谁用？', title + '适用于相关专业人员与爱好者，结果仅供参考。')]
     _raw_intro = clean_plain(ex[0].get('body', '')) if ex else ''
     intro = v.get('intro') or ((_raw_intro[:110] + ('…' if len(_raw_intro) > 110 else '')) or title)
-    desc = v.get('desc') or (title + '使用指南：' + (sc[0][:40] if sc else '提供专业在线计算与结果解读。'))
+    desc = v.get('desc') or (title + '使用指南：' + (sc[0] if sc else '提供专业在线计算与结果解读。'))
+    # 防复发：desc<70 字符（Ahrefs too-short 阈值）则用特性/场景素材补写到 70-110
+    if len(desc) < 70:
+        _extra = '。'.join([x for x in (features[:2] if features else []) if len(re.sub(r'[^\u4e00-\u9fff]', '', x)) >= 6])
+        if _extra:
+            desc = (desc.rstrip('。') + '。' + _extra)[:110]
+            if not desc.endswith('。'):
+                desc += '。'
     return title, desc, intro, features, scenarios, steps, tips, faqs_pairs
 
 

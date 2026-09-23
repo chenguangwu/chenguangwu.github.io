@@ -3382,7 +3382,29 @@ def fix_tool_pages_seo(tools, target_tools=None, report=True, existing_html_path
         app_cat = app_cat_map.get(t['cat'], 'UtilitiesApplication')
         # 中文优先：JSON-LD description 与 meta 描述同源取中文（extract_zh_desc），
         # 避免中文模式页面结构化数据里塞英文 t['desc']（与 meta/og 描述保持一致）
-        app_desc = esc_html_py((extract_zh_desc(content, t, industry, entry) or t['name'])[:150])
+        # SEO 描述统一治理（2026-09-23 续）：提取真实中文描述后，若字符数 < 70
+        # （Ahrefs desc too-short 阈值为 70 字符）则补真实价值句到 70-120 字符；
+        # 与下方 meta description 同源同口径，保证 JSON-LD 与 head 元数据完全一致。
+        _seo_desc_raw = extract_zh_desc(content, t, industry, entry) or t.get('name') or ''
+        if len(_seo_desc_raw) < 70:
+            _d_base = os.path.splitext(os.path.basename(t['path']))[0]
+            _d_name = _zh_title_of(industry, _d_base) or t.get('name') or ''
+            _d_core = _seo_desc_raw.strip().rstrip('。')
+            _d_bad = (bool(re.search(
+                r'工作与生活中的相关计算与查询|相关计算与查询|帮助计算.{0,10}(指标|需求)|'
+                r'相关日常任务|相关计算与查询需求', _d_core))
+                or _d_core.count('=') >= 1 or _d_core == _d_name)
+            if len(re.findall(r'[\u4e00-\u9fff]', _d_core)) >= 6 and not _d_bad:
+                _seo_desc_raw = ('%s是一款免费的在线%s工具，%s。'
+                                 '纯前端运行、数据不上传、无需注册，打开浏览器即可使用。'
+                                 % (_d_name, ind_name, _d_core))
+            else:
+                _seo_desc_raw = ('%s是一款免费的在线%s工具，输入参数即可实时得出结果；'
+                                 '纯前端运行、数据不上传、无需注册，打开浏览器即可使用。'
+                                 % (_d_name, ind_name))
+            if len(_seo_desc_raw) < 70:
+                _seo_desc_raw = _seo_desc_raw.rstrip('。') + '。适合工程估算、日常换算与快速复核，结果可一键复制。'
+        app_desc = esc_html_py(_seo_desc_raw[:150])
         # JSON-LD 字符串安全（2026-09-23）：desc 含反斜杠字面量（转义类工具 \n \b…）或
         # 控制字符时，未转义会导致 WebApplication JSON 非法、整块被 Google 丢弃。
         # 顺序：先 doubling 反斜杠，再去控制字符。
@@ -3490,32 +3512,9 @@ def fix_tool_pages_seo(tools, target_tools=None, report=True, existing_html_path
         # 4.1a 中文优先 meta description（2026-08-29 反转：目标用户以中文为主）。
         # 初始 description 渲染为中文（优先 per-industry 字典 zh-CN.intro/desc，其次页面中文正文），
         # 英文描述存 <meta name="desc-en"> 供前端 en-US 切换（见 js/i18n.js syncDesc）。
-        _zh_desc_raw = extract_zh_desc(content, t, industry, entry)
-        # 过短描述治理（2026-09-23，老板批准）：< 20 汉字时补真实价值句，达 SEO 合格长度；
-        # ≥20 汉字的描述（多数已合格）保持原样不动。
-        if len(re.findall(r'[\u4e00-\u9fff]', _zh_desc_raw)) < 20:
-            _d_base = os.path.splitext(os.path.basename(t['path']))[0]
-            _d_name = _zh_title_of(industry, _d_base) or t.get('name') or ''
-            _d_core = _zh_desc_raw.strip().rstrip('。')
-            # 套话/公式型核心句不嵌入（否则描述生硬）：命中套话模板或含等号（公式）
-            # 或与工具名相同，一律改用通用价值句。
-            _d_bad = bool(re.search(
-                r'工作与生活中的相关计算与查询|相关计算与查询|帮助计算.{0,10}(指标|需求)|'
-                r'相关日常任务|相关计算与查询需求', _d_core)) or _d_core.count('=') >= 1
-            if len(re.findall(r'[\u4e00-\u9fff]', _d_core)) >= 6 and not _d_bad and _d_core != _d_name:
-                _zh_desc_raw = ('%s是一款免费的在线%s工具，%s。'
-                                '纯前端运行、数据不上传、无需注册，打开浏览器即可使用。'
-                                % (_d_name, ind_name, _d_core))
-            else:
-                _zh_desc_raw = ('%s是一款免费的在线%s工具，输入参数即可实时得出结果；'
-                                '纯前端运行、数据不上传、无需注册，打开浏览器即可使用。'
-                                % (_d_name, ind_name))
-        elif len(re.findall(r'[\u4e00-\u9fff]', _zh_desc_raw)) < 40:
-            # 20-39 汉字（2026-09-23 二轮阈值上调，Ahrefs 口径 <70 字符均偏短）：
-            # 真实核心句保留，追加轻量价值尾句；已含同类标志词则不动（幂等）。
-            _core = _zh_desc_raw.strip().rstrip('。')
-            if '纯前端' not in _core and '数据不上传' not in _core:
-                _zh_desc_raw = (_core + '。免费在线使用，纯前端运行、数据不上传、无需注册。')
+        # 与 JSON-LD 同源：复用 _seo_desc_raw（已在上方统一补写到 70+ 字符），
+        # 不再独立阈值补写，保证 head 元数据与结构化数据描述完全一致（§4.1.7）。
+        _zh_desc_raw = _seo_desc_raw
         seo_desc = esc_once(_zh_desc_raw[:120])
         anchor = I18N_HREFLANG_MARKER if I18N_HREFLANG_MARKER in content else '</head>'
         seo_tags = ''
@@ -3523,15 +3522,17 @@ def fix_tool_pages_seo(tools, target_tools=None, report=True, existing_html_path
             seo_tags += '\n<meta name="description" content="%s">' % seo_desc
         else:
             # 已存在 description：强制覆写为中文（中文优先，确保爬虫首抓即中文）
-            content = re.sub(r'<meta name="description" content="[^"]*">',
-                             lambda m: '<meta name="description" content="%s">' % seo_desc, content, count=1)
+            # 容忍 content 之后的其他属性（如运行时注入的 data-page-node-id），用 [^>]* 收尾；
+            # 内层 replace 用函数式 repl，避免 seo_desc 含反斜杠（转义类工具）被当作正则转义
+            content = re.sub(r'<meta name="description" content="[^"]*"[^>]*>',
+                             lambda m: re.sub(r'content="[^"]*"', lambda mm: 'content="%s"' % seo_desc, m.group(0), count=1), content, count=1)
         if 'og:title' not in content:
             seo_tags += '\n<meta property="og:title" content="%s">' % esc_html_py(og_title)
         if 'og:description' not in content:
             seo_tags += '\n<meta property="og:description" content="%s">' % seo_desc
         else:
-            content = re.sub(r'<meta property="og:description" content="[^"]*">',
-                             lambda m: '<meta property="og:description" content="%s">' % seo_desc, content, count=1)
+            content = re.sub(r'<meta property="og:description" content="[^"]*"[^>]*>',
+                             lambda m: re.sub(r'content="[^"]*"', lambda mm: 'content="%s"' % seo_desc, m.group(0), count=1), content, count=1)
         # 英文描述存 desc-en（供 JS en-US 切换）：注入到 I18N_HREFLANG_MARKER 之前，
         # 否则 inject_hreflang 会截断 marker→</head> 间内容导致丢失（已踩坑修复）。
         if _en_desc:
@@ -3545,8 +3546,8 @@ def fix_tool_pages_seo(tools, target_tools=None, report=True, existing_html_path
         if 'twitter:description' not in content:
             seo_tags += '\n<meta name="twitter:description" content="%s">' % seo_desc
         else:
-            content = re.sub(r'<meta name="twitter:description" content="[^"]*">',
-                             lambda m: '<meta name="twitter:description" content="%s">' % seo_desc, content, count=1)
+            content = re.sub(r'<meta name="twitter:description" content="[^"]*"[^>]*>',
+                             lambda m: re.sub(r'content="[^"]*"', lambda mm: 'content="%s"' % seo_desc, m.group(0), count=1), content, count=1)
         if 'rel="canonical"' not in content:
             seo_tags += '\n<link rel="canonical" href="https://chenguangwu.github.io/%s">' % t['url']
         if 'og:type' not in content:
