@@ -3,6 +3,9 @@
 const { runCase } = require("./verify_it_calc.js");
 const CASES = [
 {
+  // 原 expect「观察滴度变化」是输出文案片段（词串型，不依赖被测点）；改为依赖勾选的分级断言。
+  // 小关节 + 对称性关节炎 → 关节受累 +3；叠加 inputs 血清学（ccp=120 ≥40 → +2）、病程 +1、
+  // CRP/ESR 异常 +1 → 7 分 ≥ 6 → 符合RA分类标准。不勾选时仅 4 分 → 疑诊RA（故具判别力）。
   "slug": "rheumatology/anti-ccp",
   "inputs": {
     "ccp": "120",
@@ -10,20 +13,39 @@ const CASES = [
     "crp": "12",
     "esr": "28"
   },
+  "checkIds": [
+    "smalljoint",
+    "symmetric"
+  ],
   "expect": [
-    "观察滴度变化"
-  ]
+    "(≥6分, 符合RA)",
+    "小关节对称受累(+3)"
+  ],
+  "ref": "2010 ACR/EULAR 简化：小关节对称受累 +3（血清学 +2、病程 +1、CRP/ESR +1）= 7 ≥ 6 → 诊断「符合RA」（输出尾部带「(≥6分, 符合RA)」）；默认不勾选 = 4 → 疑诊RA。注：不可用「符合RA分类标准」作 expect —— 该串在页面静态参考表里已出现 2 次（逃生项）"
 },
 {
+  // 原 expect「发数周」是输出文案片段（词串型）；改为依赖勾选的分级断言。
+  // 勾选 5 项系统受累：尿检异常 +2、神经精神症状 +2、发热 +1、疲劳 +1、皮疹 +1 = +7，
+  // 叠加 c3=0.5 / c4=0.08 的补体降低项 → activityScore ≥ 7 → 高活动度。
+  // 不勾选时 = 低活动度（故具判别力）。
   "slug": "rheumatology/complement-level",
   "inputs": {
     "c3": "0.5",
     "c4": "0.08",
     "ch50": "15"
   },
+  "checkIds": [
+    "renal",
+    "cns",
+    "fever",
+    "fatigue",
+    "rash"
+  ],
   "expect": [
-    "发数周"
-  ]
+    "高活动度",
+    "尿检异常 (+2)"
+  ],
+  "ref": "activityScore：尿检异常 +2、神经精神症状 +2、发热 +1、疲劳 +1、皮疹 +1 = +7，叠加补体降低（c3=0.5/c4=0.08）→ ≥7 → 高活动度"
 },
 {
   "slug": "rheumatology/das28",
@@ -51,6 +73,9 @@ const CASES = [
   ]
 },
 {
+  // 原 expect「病理诊断」是输出文案片段（词串型）；改为依赖勾选的分级断言。
+  // 器官受累：胰腺 +4、胆管 +3、肾脏 +3 = +10；叠加 igg4=5.8（落在 5.0–10 g/L 档 → +6）= 16，
+  // 落在 10–19 区间 → 疑诊IgG4-RD。不勾选器官时 = 6 分 → 更低档（故具判别力）。
   "slug": "rheumatology/igg4-level",
   "inputs": {
     "igg4": "5.8",
@@ -59,9 +84,16 @@ const CASES = [
     "eos": "0.6",
     "c3": "1.3"
   },
+  "checkIds": [
+    "pancreas",
+    "biliary",
+    "kidney"
+  ],
   "expect": [
-    "病理诊断"
-  ]
+    "疑诊IgG4-RD",
+    "胰腺受累 → +4"
+  ],
+  "ref": "score：胰腺 +4、胆管 +3、肾脏 +3 = 10，加 igg4=5.8（5.0–10 档 +6）= 16（10–19）→ 疑诊IgG4-RD；≥20 才是高度提示"
 },
 {
   "slug": "rheumatology/il6-inflammation",
@@ -78,6 +110,9 @@ const CASES = [
   ]
 },
 {
+  // 原 expect「但需评估血栓风险因素」是输出文案片段（词串型）；改为依赖勾选的分级断言。
+  // 抗体谱阳性（aCL/β2GPI）+ 临床标准（血栓/妊娠并发症）同时满足 → 符合APS分类标准。
+  // 不勾选时仅为「抗磷脂抗体阳性(aPL携带者)」（故具判别力）。
   "slug": "rheumatology/lupus-anticoagulant",
   "inputs": {
     "dsc": "45",
@@ -87,11 +122,25 @@ const CASES = [
     "scc": "35",
     "snm": "33"
   },
+  "checkIds": [
+    "acl",
+    "ab2gpi",
+    "vte",
+    "arte",
+    "pregloss",
+    "preeclampsia",
+    "thrombocytopenia"
+  ],
   "expect": [
-    "但需评估血栓风险因素"
-  ]
+    "符合APS分类标准"
+  ],
+  "ref": "抗体谱阳性（aCL + β2GPI）+ 临床标准（血栓事件/妊娠并发症）同时满足 → 符合APS分类标准；默认不勾选 = aPL携带者"
 },
 {
+  // 原 expect「抑制剂」是输出文案片段（词串型）；改为依赖勾选的分级断言。
+  // rpild（快速进展型 ILD）是「极高风险」的独立触发条件（rpild || riskScore ≥ 8）。
+  // 不勾选时 riskScore = 6（MDA5阳性+3、铁蛋白800+2、LDH+1）→ 高风险（故具判别力；
+  // 注意「极高风险」含子串「高风险」，expect 必须取更长的「极高风险」）。
   "slug": "rheumatology/mda5-antibody",
   "inputs": {
     "ferritin": "800",
@@ -99,19 +148,37 @@ const CASES = [
     "crp": "15",
     "ldh": "300"
   },
+  "checkIds": [
+    "rpild"
+  ],
   "expect": [
-    "抑制剂"
-  ]
+    "极高风险"
+  ],
+  "ref": "rpild（快速进展型ILD）→ 直接命中「极高风险」分支（rpild || riskScore ≥ 8）；默认不勾选 = 6 分 → 高风险"
 },
 {
+  // 原 expect「评估治疗反应」是输出文案片段（词串型）；改为依赖勾选的分级断言。
+  // 诊断分：前胸壁 +3、骨肥厚 +2、掌跖脓疱病 +2、重度痤疮/HS +2、骶髂关节炎 +1、脊柱 +1、
+  // 脓疱型银屑病 +1 = 12（未勾 culture）→ 高度提示SAPHO。不勾选时 = 低档（故具判别力）。
   "slug": "rheumatology/sapho-syndrome",
   "inputs": {
     "duration": "3",
     "vas": "5"
   },
+  "checkIds": [
+    "chestwall",
+    "acquired",
+    "palmoplantar",
+    "severeAcne",
+    "sacro",
+    "spine",
+    "pustular"
+  ],
   "expect": [
-    "评估治疗反应"
-  ]
+    "高度提示SAPHO",
+    "前胸壁受累(+3, 特征性表现)"
+  ],
+  "ref": "dxScore：前胸壁 +3、骨肥厚 +2、掌跖脓疱病 +2、重度痤疮/HS +2、骶髂关节炎 +1、脊柱 +1、脓疱型银屑病 +1 = 12 → 高度提示SAPHO"
 },
 {
   "slug": "rheumatology/anca-classification",
