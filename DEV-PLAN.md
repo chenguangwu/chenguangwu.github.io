@@ -315,20 +315,20 @@
 
 ### 10.2 现状（实测基线）
 
-- `all_default 173 / no_inputs 195 / escape 0`；`checked=3161`；门禁 `run_gates.py` **217 项全过**、逃生项 0（判别器已检 **2765** 例 / 跳过 396）。
+- `all_default 170 / no_inputs 192 / escape 0`；`checked=3161`；门禁 `run_gates.py` **217 项全过**、逃生项 0（判别器已检 **2769** 例 / 跳过 392）。
 - A 级率 **99.2%**（A 4693 / B 32 / C 4，共 4729）；deep-dive 术语内链 **1591 页 / 2268 条 / 唯一目标 630**（零死链、零自链、单页 ≤6 条）。**注：内链不影响质量分级**（`own_len` 只统计 `<script>` 内容）。
-- 存量弱用例 **368 例**（`no_inputs=195` / `all_default=173`），**转 P3 顺带**，不单独成批。
+- 存量弱用例 **362 例**（`no_inputs=192` / `all_default=170`），**转 P3 顺带**，不单独成批。
   - **注意：弱用例整体处于判别器盲区** —— `discriminate_check` 对「注入值本就等于默认值」的用例判 `usable=false` ⇒ **直接跳过**（§10.5）。故 `escape=0` 只说明「强用例无逃生项」，弱用例的逃生项从未被检查；每批改造弱用例后必须重跑判别器确认其由「跳过」转为「已检且变红」。
 
 ### 10.3 弱用例去默认化（仅在 P0/P1 顺带时执行）
 
-**存量 368 例**（`no_inputs=195` / `all_default=173`，selfcheck 口径；含 textarea/动态 id 的「skip」类全站 381）。
+**存量 362 例**（`no_inputs=192` / `all_default=170`，selfcheck 口径；含 textarea/动态 id 的「skip」类全站 392）。
 
 **选批预筛清单（2026-09-24 实测 · 弱例数 / 其中可注入数）** —— 按「可注入数」降序挑批次，**不可注入的不要选**（页面静态 HTML 里 `grep 'id='` 为 0，控件由 innerHTML 动态生成，属 §7.1 保留项）：
 
-cleaning 7/7、finance 7/7、sports 7/7、chemical 6/6、mining 9/8、dermatology 12/9、travel 9/7、endocrinology 7/6、fire 7/6、rheumatology 7/5、language 6/5、aquaculture 5/5、bridge 5/5、glass 5/5、life 5/5、manufacturing 5/5、maritime 5/5、medical2 5/5。
+finance 7/7、sports 7/7、chemical 6/6、mining 9/8、dermatology 12/9、travel 9/7、endocrinology 7/6、fire 7/6、rheumatology 7/5、language 6/5、aquaculture 5/5、bridge 5/5、glass 5/5、life 5/5、manufacturing 5/5、maritime 5/5、medical2 5/5。
 
-**不可注入（结构性，勿选）**：`psychiatry` 24 例里 **18 例**页面只有 `id="quiz"` + innerHTML 渲染（`gad7`/`phq9`/`pcl5`/`mdq`/`asrs`/`cage`/`isi`/`ybocs`/`bis11`/`cdrisc`/`lsas`/`panss`/`pdss`/`phq15`/`eat26`/`cssrs`/`aq`/`les`），`tcm-diagnosis` 14 例同类；`engineering`、`signal`、`design`、`gas`、`mechanical` 已于 2026-09-24 清零（判别力分别由「已检 0 / 跳过 14」→「已检 14」、「已检 13 / 跳过 11」→「已检 24」、「已检 5 / 跳过 9」→「已检 14」、「已检 2 / 跳过 9」→「已检 11」、「已检 5 / 跳过 8」→「已检 12」，均为全数变红）。
+**不可注入（结构性，勿选）**：`psychiatry` 24 例里 **18 例**页面只有 `id="quiz"` + innerHTML 渲染（`gad7`/`phq9`/`pcl5`/`mdq`/`asrs`/`cage`/`isi`/`ybocs`/`bis11`/`cdrisc`/`lsas`/`panss`/`pdss`/`phq15`/`eat26`/`cssrs`/`aq`/`les`），`tcm-diagnosis` 14 例同类；`engineering`、`signal`、`design`、`gas`、`mechanical` 已于 2026-09-24 清零（判别力分别由「已检 0 / 跳过 14」→「已检 14」、「已检 13 / 跳过 11」→「已检 24」、「已检 5 / 跳过 9」→「已检 14」、「已检 2 / 跳过 9」→「已检 11」、「已检 5 / 跳过 8」→「已检 12」，均为全数变红）；`cleaning` 同日改掉 6 例（判别力「已检 5 / 全数变红」），**残留 1 例** `appliance-cycle` 属结构性不可注入（见 §10.5 三类形态）。
 
 ### 10.4 每批收口流程（顺带改造时六步，缺一不可）
 
@@ -359,6 +359,7 @@ cleaning 7/7、finance 7/7、sports 7/7、chemical 6/6、mining 9/8、dermatolog
 | **等级词/分类词须「跨档」** | 定等级类 expect 前必须先算一遍默认态的同档位，不跨档就换锚点数值 |
 | **卡片标签名 / 页脚提示词是最易误用的 expect（2026-09-24）** | `data-card` 的 `label`（「跨中弯曲应力」「输出转矩」「角速度」「转动动能」「校验功率」「阻力」…）与页脚 `tip` 的静态文案（「推荐带速 5~25 m/s」「普通滚子链」）都**与输入无关、默认态必然出现**。mechanical 分类 8 例旧 expect **全部**栽在这两类上。**必须前缀具体数值**，形如 `18.75 最大弯矩 M (kN·m)` 才有判别力 |
 | **「双 dump 对比法」定 expect（2026-09-24 起强制）** | 改完先 dump **新注入态**、再 dump **默认态**，逐串比对，**只有真正随输入变化的串才能进 expect**。一批「换值也不变」的输出串靠单看注入态发现不了：gas 批次一次性剔出 7 处 —— `DN20 推荐管径`、`DN25 调压器`、`电流密度 20 mA/m²`、`过保护`、`压降很小`、`流量系数 C=0.6`、`β 比（d/D）=0.50`（后者是 design 批 `focal-length-equivalent` 全画幅→全画幅的同源形态）。另发现 `gas/current-2` 的 `resistivity` 是**无效键**（换值不影响电流密度），与 design 批 `checker` 的 `bgColor` 同源 ⇒ 定 expect 前须实测「换值是否引起输出变化」 |
+| **三类结构性不可注入形态（2026-09-24 归纳）** | ① **需点按钮写 localStorage 的页**（`cleaning/appliance-cycle`「记录今日」、`cleaning/cycle-20`「添加地毯」）：harness 无 `clicks` 字段，且 `setLastClean` 之类被 `DESTRUCTIVE` 的 `^set[A-Z]` 排除 ⇒ 注入对输出零影响（实测 appliance-cycle 换 checkDate 2024-06-15↔2020-01-01 输出完全一致），只能维持 `no_inputs`；② **id 由 JS 模板拼接的页**（`checker-10` 的 `a{区}_{项}`、`checker-9` 的 `m{模块}_{项}`）：注入有效，但 HTML 源码无字面 id ⇒ `discriminate_check` 取不到默认值、判「跳过」，须用同口径双态 dump 人工确认；③ **输入值回显型断言**（`cycle-20` 的 expect 锚 select 的 value）：计算结果根本不变，属已知弱断言，须在 `ref` 里写明、不得计入判别力 |
 | **select 在两道校验里取值口径不同** | `selfcheck._pageDefaults` 读全文（取 JS 设定的真实默认），`discriminate_check.pageDefaults` 取**首个 option**。凡页面对 select 值做三元兜底，非预期值会与另一选项同分支 → 这类词不可作 expect |
 | **兜底函数的「随机态」会命中等级词** | 凡页面存在 `randomXxx()`/`shuffle` 类兜底函数，等级词一律不用，改断言只由注入值派生的量 |
 | **含 `<` 的输出会被标签剥离吞掉** | 如 `< 0.001`，不可作 expect；改锚 Z 统计量 / 置信区间 / 结论文案 |
