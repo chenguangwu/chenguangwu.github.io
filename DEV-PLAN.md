@@ -130,6 +130,7 @@
 - **静态审计两处已知误报（勿报）**：无 `id="result"`、无 `data-theme` 均为**非缺陷**。
 - **deep-dive「覆盖率 ≠ 达标率」有三层套话**：分三处独立查——① `scenarios`/`faqs` 模板 ② `examples` 模板 ③ 英文名嵌入中文（`[A-Z][a-z]+ Validator` 出现在中文句里 = 代号型套话）。
 - **Python `a = b = []` 多变量共享同一 list**：写审计脚本时多列表必须逐个独立赋值；计数异常一致时先怀疑脚本。
+- **仓库体积（`.git`）维护**：大构建批次会把数千页快照写进 pack，**多轮大提交后 pack 会严重碎片化**。2026-09-23 实测：`.git` 达 **860M**（29 个 pack / 716M + 103M 松散对象），逼近 GitHub Pages **1GB 软上限** → 跑 `git repack -a -d`（合并全 pack，**不 prune 任何不可达对象**）+ `git prune-packed` 后降至 **662M**（1 pack / 508M），27 秒完成、**零工作区影响、可随时重跑**。**冒烟阈值：`du -sh .git` > 800M 即应 repack**。另注：仓库还有约 103M **不可达对象**（4 commit + 9537 blob + 225 tree），经查全是 `git stash` 残留（`On master:` / `WIP on master:` / `index on master:` 类提交），内容抽查确认已落 HEAD；清理须 `git prune`（**不可恢复 → 须老板拍板**，Agent 只报数据不做）。
 - **同一逻辑在多个分类重复实现时，抽通用脚本而非复制**：新分类开工前先 `ls scripts/` 查是否有可加 `--industry` 的现成脚本（老板明确偏好复用而非复制）。
 - **formula-box 覆盖率全站已 100%**：注入脚本 `extract_formula.py` + `inject_formula_generic.py`（幂等）；锚点 = 标准副标题 `<p>`，**已有 formula-box 的文件一律跳过**；无简单赋值的 calc 诚实 fallback，**绝不写伪公式**。
 
@@ -284,6 +285,7 @@
 - **过滤"过宽"与"未接线"同样有害**：静态字符串含独立 NaN 词或等于 `'Infinity'` 的 RHS 全站命中 **0 处**，而模板串 / 字符串拼接 / 动态容器变量的守卫**真机上确能拦截 NaN 经插值泄漏到页面**。若跳过模板字面量 / 字符串 / method 链，反而**削弱真机防护**；v8 只跳过"纯静态字符串字面量 RHS"。
 - **守卫只应注入「数值输出页」**：对纯文本/工具页（如 `it/html-escape`、`it/code-runner`）注入含 `NaN` 文本检测的守卫会**误伤正常输出**（转义后的 JS 代码里出现 `NaN` 就被判为无效值）。**注入前先判页面是否有数值输出/`type=number` 输入。**
 - **harness 盲区页无法静态识别，只能试错**：正确流程是 **注入 → 跑该行业 verify → 失败页写入 `--skip` 清单 → 带 `--skip` 重跑 → 直到全绿**（v8 已实现）。
+- **dry-run 命中 ≠ 存在缺陷：必须先过「jsdom 真机模拟 + 源码兜底核验」两道**（2026-09-23 实证，若不查会白改一批线上页）：全站 dry-run 报 **36 页** `WILL_INJECT`，逐页核验后**全部为静态误报**（真机无 NaN 路径）—— ① jsdom 加载页面后清空**全部**输入控件（number/text/textarea → `''`、select → `selectedIndex=-1`）再触发事件，36 页仅 3 页命中，而这 3 页 select **无空值选项且有默认选中项** ⇒ 真机用户无法构造该状态；② 源码兜底核验（如 `hvac/fresh-air-load` 的 `num()` 把 `isNaN` 转 `null`、`fmt()` 把 null/NaN 渲染为 `'--'`）。**判定结论固化在 `scripts/output_guard_exclude.txt`（v8 默认加载，dry-run 已归零）**。另：注入验证必须用「注入 → 跑 verify → 回退 → 再跑 verify」对比锁定归因 —— 本批 3 页（`dentistry/gingival-index`、`hvac/fresh-air-load`、`tcm-chemistry/response-factor`）一一对应为 **harness 桩盲区**（headless 无真实 DOM），**不是页面缺陷**。
 
 ---
 

@@ -186,6 +186,15 @@ def transform(html):
 # ---------- file selection ----------
 DRY = '--dry' in sys.argv
 SKIP = set()
+# 默认加载持久化排除清单：存放「dry-run 静态命中、但真机不存在 NaN 路径」的页面
+# （判据见清单头部：jsdom 真机模拟 + 源码兜底核验）。不加载它会让 dry-run 长期
+# 报同一批悬空页，诱导后人盲目注入。清单行尾 # 注释会被剥离。
+_EXCL = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'output_guard_exclude.txt')
+if os.path.isfile(_EXCL):
+    for _l in open(_EXCL, encoding='utf-8'):
+        _l = _l.split('#')[0].strip()
+        if _l:
+            SKIP.add(os.path.basename(_l))
 if '--skip' in sys.argv:
     _k = sys.argv.index('--skip')
     for _l in open(sys.argv[_k + 1], encoding='utf-8').read().split('\n'):

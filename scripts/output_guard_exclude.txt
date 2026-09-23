@@ -1,0 +1,67 @@
+# 输出守卫注入排除清单（scripts/_inject_output_guard_v8.py 默认加载）
+#
+# 背景：v8 的 transform() 是**静态分析**——只要发现 innerHTML 数值输出点就要求注入。
+# 但它无法识别「源码已有兜底」与「空值运行时不可达」，因此 dry-run 会长期报一批
+# **真机不存在 NaN 路径**的页面，形成悬空待办。本清单把它们固化排除，使 dry-run 归零。
+#
+# 判定依据（2026-09-23 逐页实证，非推断）：
+#   · jsdom 真机模拟：加载页面 → 清空**全部**输入控件（number/text/textarea 置 ''
+#     、select 置 selectedIndex=-1）→ 触发 input/change → 扫描所有 [id] 容器文本
+#     是否出现独立 NaN / Infinity 词。36 页中仅 3 页命中，且 3 页均为 select 页
+#     **无空值选项、有默认选中项** ⇒ 真机用户无法构造该状态，属探针过度构造的假阳性。
+#   · 源码兜底核验：如 hvac/fresh-air-load 的 `num()` 把 isNaN 转 null、`fmt()` 把
+#     null/NaN 渲染为 '--'，真机输出永远不含字面 NaN。
+#
+# 排除原因分类（行尾标注）：
+#   [A] harness 桩盲区：注入后所属行业 verify 立即失败（headless 无真实 DOM，动态
+#       <select> 取不到值 → 插值 NaN → 守卫对**真机正确的输出**误触发）。
+#       —— 已实证：注入→verify 失败→回退→verify 恢复全过，一一对应。
+#   [B] 文本回显页：输出含用户原文，守卫的 /NaN/ 文本检测会把**用户输入的 "NaN"
+#       字样**误判为计算错误并替换掉正常结果。it/html-escape 已实证（注入点
+#       `const __h0=text` 直接就是用户输入）。
+#   [C] 真机兜底页：源码已做 isNaN/null 兜底，或空值运行时不可达。
+#
+# 维护：新增分类页请重跑 `/tmp/jsdom_empty_probe.cjs`（真机模拟）后再决定是否列入。
+#       本清单只影响 dry-run 报告，不影响真机行为。
+
+# ---- [A] harness 桩盲区（3 页，已实证 verify 失败） ----
+dentistry/gingival-index.html            # [A] 动态 select 评分页；注入后 dentistry verify 23/23 → 22/23
+hvac/fresh-air-load.html                 # [A] 6 个 number 输入；注入后 hvac verify 9/9 → 8/9；源码已有 num()/fmt() 兜底
+tcm-chemistry/response-factor.html       # [A] 动态 select 页；注入后 tcm-chemistry verify 21/21 → 20/21
+
+# ---- [B] 文本回显页（输出含用户原文，守卫会误伤） ----
+it/html-escape.html                      # [B] 已实证：注入点 RHS = `text`（用户输入原文）
+it/rich-text-editor.html                 # [B] 输出 = 用户富文本内容
+it/code-runner.html                      # [B] 输出 = 用户代码运行日志（可含 NaN 字样）
+it/typescript-compiler.html              # [B] 输出 = 编译诊断信息（含用户代码片段）
+it/html-tags.html                        # [B] 输出回显用户输入片段
+it/jwt-parser.html                       # [B] 输出 = Token 解析结果 / 错误消息（含用户片段）
+it/camera-recorder.html                  # [B] 输出 = 录制/错误提示文本
+biz/barcode-generator.html               # [B] 输出 = 条码文本内容（用户输入）
+office/pdf-rotate.html                   # [B] 输出 = 文件名等用户文本
+language/riyuwushiyintulianxi-dianjifayin.html  # [B] 输出 = 练习词条与用户输入
+ai/ocr.html                              # [B] 输出 = 识别出的文字（来自用户图片，可能含 NaN 字样）
+ai/image-classification.html             # [B] 输出 = 模型标签文本
+ai/sentiment-analysis.html               # [B] 输出 = 模型情感文本
+ai/speech-to-text.html                   # [B] 输出 = 转写文本
+ai/text-summarization.html               # [B] 输出 = 摘要文本
+
+# ---- [C] 真机兜底页（探针最强构造下仍无 NaN） ----
+automotive/scheduler-cycle-maintenance.html
+clinical-nursing/cycle-7.html
+cosmetic-derm/laser-parameters.html
+design/color-palette.html
+design/color-picker.html
+film/color-grading.html
+food/wine-alcohol-converter.html
+machinery/calc-gear-3.html
+machinery/gear.html
+ophthalmology/amsler-grid-test.html
+ophthalmology/astigmatism-chart.html
+paper/paper-grade.html
+procurement/supplier-score.html
+rehabilitation/asia-impairment-scale.html  # [C] select 无空值选项（第 5 项默认选中），探针假阳性
+rheumatology/womac.html                    # [C] select 无空值选项，探针假阳性
+tcm-diagnosis/meridian-differentiation.html
+tcm-diagnosis/pulse-diagnosis.html
+tcm-diagnosis/syndrome-element.html
