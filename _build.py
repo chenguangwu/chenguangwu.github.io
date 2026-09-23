@@ -2545,6 +2545,77 @@ def _build_consistency_check(tools, category_inds):
     return True
 
 
+# ---------------------------------------------------------------------------
+# 头条搜索自动推送（ttzz）：官方「页面链接自动提交」片段，用于提示蜘蛛抓取、
+# 提升收录速度。全站 <head> 构建期注入（靠 TOOLBOX-TTZZ 标记幂等）；调用点放在
+# generate_opencc_static_locales() 之前，使 zh-tw/ 从简体页复制时一并继承。
+# ---------------------------------------------------------------------------
+TTZZ_MARKER = '<!-- TOOLBOX-TTZZ -->'
+TTZZ_BLOCK = (
+    '<!-- TOOLBOX-TTZZ -->\n'
+    '<script>\n'
+    '(function(){try{\n'
+    'var el = document.createElement("script");\n'
+    'el.src = "https://lf1-cdn-tos.bytegoofy.com/goofy/ttzz/push.js'
+    '?85d6452aa9be4d693b16cd48535a8c7ae57542f6788a41682e745be8eb99b35a8a24d2f724c31ebe20c1e4e6fba6d91caf576100b02a2870c72f38fc574066fef065d152c73bf1cbb2ebad3b5b5265d8";\n'
+    'el.id = "ttzz";\n'
+    'var s = document.getElementsByTagName("script")[0];\n'
+    's.parentNode.insertBefore(el, s);\n'
+    # try/catch 包裹 + 结尾分号（官方片段原为裸 `})(window)`）：
+    # ① try/catch：真实浏览器中这段语句永不抛错，行为与官方片段完全一致；但「只有
+    #    document 桩、没有真实 DOM 的解析执行环境」（verify harness、DOM 快照工具）
+    #    会因缺 getElementsByTagName 等方法抛错，进而中断整页内联脚本
+    #    （实测 it 分类 0/29，且补桩会改变其他页面在 harness 中的行为、引发新失败）。
+    # ② 分号：多块内联 <script> 被拼成一个字符串解析时，缺分号会与下一块开头的 `(`
+    #    连读成 `})(window)(...)`，报 "(intermediate value)(...)" 运行时错误。
+    '}catch(e){}\n'
+    '})(window);\n'
+    '</script>\n'
+)
+
+# 不注入的页面：谷歌 / 字节站点验证文件（须保持最小标记，且无 <head> 结构）、
+# ui/ 设计稿（非站点公开页面）。
+TTZZ_SKIP_DIRS = {'.git', '.github', 'node_modules', '.idea', 'ui'}
+TTZZ_SKIP_FILE_RE = re.compile(r'^(?:google[0-9a-f]+|ByteDanceVerify)\.html$')
+
+# 已注入块（含历史版本片段）：命中则把旧片段原位升级为当前 TTZZ_BLOCK。
+TTZZ_BLOCK_RE = re.compile(
+    re.escape(TTZZ_MARKER) + r'\s*<script\b[^>]*>[\s\S]*?</script\s*>', re.I)
+
+
+def inject_ttzz_snippet():
+    """向全站 HTML 的 <head> 注入头条自动推送脚本（幂等；片段升级自动生效）。"""
+    scanned = injected = kept = upgraded = 0
+    for current, dirs, files in os.walk(ROOT):
+        dirs[:] = [d for d in dirs if d not in TTZZ_SKIP_DIRS]
+        for fn in files:
+            if not fn.endswith('.html') or TTZZ_SKIP_FILE_RE.match(fn):
+                continue
+            path = os.path.join(current, fn)
+            try:
+                with open(path, 'r', encoding='utf-8') as f:
+                    content = f.read()
+            except (OSError, UnicodeDecodeError):
+                continue
+            scanned += 1
+            m = TTZZ_BLOCK_RE.search(content)
+            if m:
+                if m.group(0).strip() == TTZZ_BLOCK.strip():
+                    kept += 1
+                    continue
+                updated = content[:m.start()] + TTZZ_BLOCK + content[m.end():]
+                upgraded += 1
+            else:
+                updated = _inject_into_document_head(content, TTZZ_BLOCK)
+                if updated == content:
+                    continue
+                injected += 1
+            with open(path, 'w', encoding='utf-8') as f:
+                f.write(updated)
+    print('\nToutiao auto-push (ttzz): %d injected, %d upgraded, %d already present, %d html scanned'
+          % (injected, upgraded, kept, scanned))
+
+
 def generate_opencc_static_locales():
     """Generate zh-tw/ only after every source HTML/JSON artifact is final."""
     script = os.path.join(ROOT, 'scripts', 'gen_opencc_locales.mjs')
@@ -3988,6 +4059,10 @@ def main():
     # 热门清单依赖刚生成的 tools.json；描述归一化后再同步至繁体静态站。
     generate_hot_tools()
     fix_hot_tools_desc()
+
+    # 头条搜索自动推送（ttzz）：全站 head 注入（幂等）；须在繁体静态站生成之前，
+    # 这样 zh-tw/ 复制简体页时会一并继承该片段。
+    inject_ttzz_snippet()
 
     # 只在源页面、JSON 与 sitemap 都已完成后生成繁体静态站，避免复制中间产物。
     generate_opencc_static_locales()
