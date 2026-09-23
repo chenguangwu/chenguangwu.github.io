@@ -2795,6 +2795,48 @@ def generate_opencc_static_locales():
         raise SystemExit('OpenCC locale build failed: %s' % exc)
 
 
+def fix_zh_tw_short_desc():
+    """繁简转换会让个别页 description 字符数跌破 Ahrefs 的 70 阈值
+    （如「字符串→字串」少 1 字），中文页达标而繁体页仍报 too short。
+    对 zh-tw/ 下 desc<70 的页追加繁体价值尾句，并同步 og/twitter/JSON-LD。
+    幂等：已含尾句标志或已达标则跳过。
+    """
+    zt = os.path.join(ROOT, 'zh-tw')
+    if not os.path.isdir(zt):
+        return
+    tail_flag = '適合日常快速計算與核對'
+    tail = '。適合日常快速計算與核對，結果可一鍵複製，免費線上使用。'
+    tag_re = re.compile(r'(<meta\s+name="description"\s+content=")([^"]*)(")')
+    fixed = 0
+    for dp, dn, fn in os.walk(zt):
+        for f in fn:
+            if not f.endswith('.html'):
+                continue
+            path = os.path.join(dp, f)
+            with open(path, encoding='utf-8') as fh:
+                html = fh.read()
+            if 'TOOLBOX-REDIRECT' in html:
+                continue
+            m = tag_re.search(html)
+            if not m:
+                continue
+            cur = m.group(2)
+            if len(cur) >= 70 or tail_flag in cur:
+                continue
+            newv = cur.rstrip('。') + tail
+            html = html.replace(m.group(0), m.group(1) + newv + m.group(3), 1)
+            for attr in ('property="og:description"', 'name="twitter:description"'):
+                html = re.sub(
+                    r'(<meta\s+%s\s+content=")([^"]*)(")' % attr,
+                    lambda mm, v=newv: mm.group(1) + v + mm.group(3), html, count=1)
+            html = re.sub(r'("description":")([^"]*)(")',
+                          lambda mm, v=newv: mm.group(1) + v + mm.group(3), html, count=1)
+            with open(path, 'w', encoding='utf-8') as fh:
+                fh.write(html)
+            fixed += 1
+    print('zh-tw desc 补足: %d 页' % fixed)
+
+
 def _update_readme_metrics(qc, tool_count, ind_count):
     if not os.path.exists(README_PATH):
         return
@@ -3514,6 +3556,11 @@ def fix_tool_pages_seo(tools, target_tools=None, report=True, existing_html_path
         # 英文描述存 <meta name="desc-en"> 供前端 en-US 切换（见 js/i18n.js syncDesc）。
         # 与 JSON-LD 同源：复用 _seo_desc_raw（已在上方统一补写到 70+ 字符），
         # 不再独立阈值补写，保证 head 元数据与结构化数据描述完全一致（§4.1.7）。
+        # 【六轮修复 2026-09-23】清理老模板残留的「单引号」description 标签：
+        # 部分页面源文件 head 是老单引号风格，自带一条偏短 description，位置在下方
+        # 注入/覆写的规范双引号标签之前；搜索引擎取首个 → Ahrefs 仍报 too short
+        # （全站已核实 15 页 tools + 其 zh-tw 派生页）。删除单引号形式，统一由下方逻辑注入规范标签。
+        content = re.sub(r"<meta\s+name='description'[^>]*>\s*", '', content)
         _zh_desc_raw = _seo_desc_raw
         seo_desc = esc_once(_zh_desc_raw[:120])
         anchor = I18N_HREFLANG_MARKER if I18N_HREFLANG_MARKER in content else '</head>'
@@ -4284,6 +4331,10 @@ def main():
 
     # 只在源页面、JSON 与 sitemap 都已完成后生成繁体静态站，避免复制中间产物。
     generate_opencc_static_locales()
+
+    # 繁体站 desc 兜底：繁简字数差会让个别页跌破 Ahrefs 70 字符阈值（实测「字符串→字串」），
+    # 对 zh-tw/ 中 desc<70 的页补足并同步 og/twitter/JSON-LD（幂等）。
+    fix_zh_tw_short_desc()
 
     # Final gate: verify all public pages reference the shared Clarity module.
     # This is the build-time guard to avoid future direct inline regressions.
