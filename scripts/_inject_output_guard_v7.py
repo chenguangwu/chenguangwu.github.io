@@ -90,6 +90,42 @@ def prev_ok(html, pos):
     if pos <= 0: return True
     return html[pos - 1] not in '._(abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789$'
 
+# ---------- conservative safety filter (hardening: only guard pure-value RHS) ----------
+# A guard wraps `rhs` and checks `if(GUARD){...WARN...} else { lhs.innerHTML = rhs }`.
+# If `rhs` is a *string* (template literal / concatenation / array map), the guard
+# misfires: legitimate text containing the literal "NaN"/"Infinity" (or a string built
+# from a NaN number, e.g. `${gi.toFixed(2)}` when gi=NaN) triggers the WARN and clobbers
+# correct output. Hardening: only inject when `rhs` is a *pure variable / pure numeric
+# arithmetic expression*. Everything that builds DOM/strings dynamically is skipped —
+# those pages need real-DOM simulation (a separate large effort), not a value guard.
+def expr_is_safe_to_guard(expr):
+    e = expr.strip()
+    if not e:
+        return False
+    # scan with string/bracket awareness; bail on ${...} interpolation OUTSIDE strings
+    i = 0; n = len(e)
+    while i < n:
+        c = e[i]
+        if c in "'\"`":
+            i = skip_string(e, i, n); continue
+        if c == '$' and i + 1 < n and e[i + 1] == '{':
+            return False  # template interpolation -> skip
+        i += 1
+    # pure string/string-template literal RHS -> skip (guarding strings misfires)
+    if e[0] in "'\"`":
+        return False
+    # method calls (string formatting / array ops / DOM building) -> skip
+    if re.search(r'\.(?:toFixed|toPrecision|toString|toLocaleString|toExponential|'
+                 r'map|forEach|filter|reduce|join|replace|split|sort|slice|concat|'
+                 r'push|pop|shift|unshift|reverse|substring|substr|trim|'
+                 r'toUpperCase|toLowerCase|repeat|padStart|padEnd)\s*\(', e):
+        return False
+    # custom render/build/format helpers (produce strings/DOM) -> skip to be safe
+    if re.search(r'\b(?:render|build|create|make|gen|format|display|show|draw|'
+                 r'print|output|toHtml|toHTML|html|append|setHtml)\w*\s*\(', e):
+        return False
+    return True
+
 # ---------- transform ----------
 def transform(html):
     out = []; i = 0; n = len(html); changed = 0; uid = 0
@@ -153,7 +189,9 @@ def transform(html):
     return new, changed
 
 # ---------- file selection ----------
-INDS = sys.argv[1].split(',') if len(sys.argv) > 1 and sys.argv[1] not in ('--test',) else None
+DRY = '--dry' in sys.argv
+_args = [a for a in sys.argv[1:] if a != '--dry']
+INDS = _args[0].split(',') if _args and _args[0] not in ('--test',) else None
 if len(sys.argv) > 1 and sys.argv[1] == '--test':
     f = sys.argv[2]
     html = open(f, encoding='utf-8').read()
@@ -177,6 +215,9 @@ for f in files:
     if INDS and not INDS[0].endswith('.txt') and f.split('/')[-2] not in INDS: continue
     html = open(f, encoding='utf-8').read()
     tot += 1
+    # already guarded (committed) -> never re-touch committed pages (avoids clobbering)
+    if 'ToolBox.setResult(' in html:
+        continue
     new, ch = transform(html)
     if ch == 0 or new == html:
         continue
@@ -189,7 +230,13 @@ for f in files:
         continue
     to_write[f] = (html, new)
 
-# ---- write all, then verify with node vm.Script, restore any bad ----
+# ---- write all (unless --dry), then verify with node vm.Script, restore any bad ----
+if DRY:
+    for f in to_write:
+        print('WILL_INJECT', f.split('/tools/')[-1])
+    print('SCANNED', tot, 'WILL_INJECT', len(to_write), 'SAFETY_PY', safety)
+    sys.exit(0)
+
 for f, (html, new) in to_write.items():
     open(f, 'w', encoding='utf-8').write(new)
     injected += 1
