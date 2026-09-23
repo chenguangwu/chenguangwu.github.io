@@ -104,6 +104,44 @@ const CASES = [
     ref: "当前密度 = 1000 × 1.2⁵ = 2488.32；指数 = 2488.32 ÷ 5000 × 100 = 49.8；"
        + "30 ≤ 49.8 ≤ 60 → 预警",
   },
+
+  // ── 收获损失评估（BATCH55：理论产量 0 时损失率 NaN，无守卫）──
+  {
+    slug: "agriculture/assessor-1",
+    inputs: { theoryYield: "0", actualYield: "415", fieldLoss: "15", threshLoss: "10" },
+    expect: ["理论产量必须大于 0"],
+    ref: "理论产量 0 → 损失率 = (0-415)/0×100 = NaN；修复前输出 NaN%，应给守卫提示",
+  },
+  {
+    slug: "agriculture/assessor-1",
+    inputs: { theoryYield: "500", actualYield: "450", fieldLoss: "20", threshLoss: "10" },
+    expect: ["10.00", "4.00", "2.00"],
+    ref: "损失率=(500-450)/500×100=10.00%；田间落粒=20/500×100=4.00%；脱粒=10/500×100=2.00%；"+
+         "机械标准限值 3.0%，10%>3×1.5=4.5% → 不合格（修复前 10%>3% 即标红但不写阈值比较）",
+  },
+
+  // ── 养殖面积密度估算（BATCH55：面积 0 时密度除零 NaN）──
+  {
+    slug: "agriculture/estimate-area-density",
+    inputs: { area: "0", unit: "m2", density: "5", weight: "2", survival: "90" },
+    expect: ["请填写有效的参数"],
+    ref: "面积 0 → 折算密度 = 存栏/0 = NaN；修复前输出 NaN，已收紧 valid 要求面积>0",
+  },
+
+  // ── 草地面积产量估算（BATCH55：面积 0 时单产除零 NaN）──
+  {
+    slug: "agriculture/estimate-area-yield",
+    inputs: { area: "0", unit: "kg_mu", yieldInput: "30000", dmRate: "30", baleWeight: "25" },
+    expect: ["请填写有效的参数"],
+    ref: "面积 0 → 每亩干草 = 干草/0 = NaN；修复前输出 NaN，已收紧 valid 要求面积>0",
+  },
+  {
+    slug: "agriculture/estimate-area-yield",
+    inputs: { yieldInput: "60000", area: "1500", dmRate: "25", baleWeight: "30", unit: "kg_mu" },
+    expect: ["134999.33", "33749.83", "2.25", "1125"],
+    ref: "鲜草=60000×1500/666.67=134999.33 kg；干草=134999.33×25%=33749.83 kg；"+
+         "折合亩=1500/666.67=2.25 亩；草捆=33749.83/30=1125 个（与默认态 fresh=44999.78 明显不同，有判别力）",
+  },
 ];
 
 // ---------------------------------------------------------------- main
