@@ -34,7 +34,14 @@ function pageDefaults(slug) {
   if (!fs.existsSync(fp)) return null;
   const raw = fs.readFileSync(fp, "utf8");
   const cut = raw.indexOf("<!-- TOOLBOX-DEEP-DIVE -->");
-  const body = cut > 0 ? raw.slice(0, cut) : raw;
+  let body = cut > 0 ? raw.slice(0, cut) : raw;
+  // 回退（2026-09-24）：全站 72 个页面的表单控件位于 deep-dive 标记**之后**
+  // （如 engineering/heat-transfer 的 input 在第 235 行、deep-dive 在第 178 行），
+  // 截断后取不到任何控件 ⇒ 所有键都「无法换回默认」⇒ 整例静默判「跳过」而漏检，
+  // 而这些用例其实是有真实注入的有效用例。此处：截断后无控件、全文有控件时改用全文。
+  // 安全性：本函数只提取 input/select/textarea 的 id→value，deep-dive 区块内不含表单控件。
+  const CTRL = /<(?:input|select|textarea)\b/i;
+  if (cut > 0 && !CTRL.test(body) && CTRL.test(raw)) body = raw;
   const out = {};
   // 1) <input> 的 value 默认
   const re = /<input\b[^>]*>/g;
@@ -49,7 +56,11 @@ function pageDefaults(slug) {
     if (!id || /^(checkbox|radio|button|submit|reset|file|image)$/.test(typ)) continue;
     // 无 value 属性 ⇒ 真机默认空串（与 runCase 的 defaults/sel 口径一致）。
     // 旧版直接丢弃这类键 ⇒ 判别器无法把它们换回默认 ⇒ 整例被判「跳过」而漏检。
-    out[id] = val !== undefined ? val : "";
+    // 「首次出现优先」（2026-09-24）：部分页面存在**重复 id**（多页签结构，如
+    // engineering/heat-transfer 有两个 id="k"，value 分别 50 与 0.04）。浏览器
+    // getElementById 返回**第一个**，旧版循环覆盖会取到最后一个 ⇒ 与真机默认不符，
+    // 导致「注入值恰等于末个同名控件的默认值」时 usable=false，整例又被静默跳过。
+    if (out[id] === undefined) out[id] = val !== undefined ? val : "";
   }
   // 2) <select> 的默认选中项（selected option 优先，否则取首个 option）
   //    关键修复：旧版只抓 input，导致 select 类输入（如 hirschberg 的 fixing/reflex）
@@ -64,7 +75,9 @@ function pageDefaults(slug) {
   const taRe = /<textarea[^>]*id=["']([^"']+)["'][^>]*>([\s\S]*?)<\/textarea>/g;
   let ta;
   while ((ta = taRe.exec(body))) {
-    out[ta[1]] = ta[2].replace(/&#10;/g, "\n").replace(/&quot;/g, '"').replace(/&amp;/g, "&");
+    if (out[ta[1]] === undefined) {
+      out[ta[1]] = ta[2].replace(/&#10;/g, "\n").replace(/&quot;/g, '"').replace(/&amp;/g, "&");
+    }
   }
   let s;
   while ((s = selRe.exec(body))) {
@@ -72,7 +85,7 @@ function pageDefaults(slug) {
     const inner = s[2];
     const sel = inner.match(/<option[^>]*\bselected\b[^>]*value=["']([^"']*)["']/i)
              || inner.match(/<option[^>]*value=["']([^"']*)["']/i);
-    out[id] = sel ? sel[1] : "";
+    if (out[id] === undefined) out[id] = sel ? sel[1] : "";
   }
   return out;
 }

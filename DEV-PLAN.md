@@ -315,15 +315,20 @@
 
 ### 10.2 现状（实测基线）
 
-- `all_default 221 / no_inputs 195 / escape 0`；`checked=3161`；门禁 `run_gates.py` **217 项全过**、逃生项 0（判别器已检 2698 例）。
+- `all_default 210 / no_inputs 195 / escape 0`；`checked=3161`；门禁 `run_gates.py` **217 项全过**、逃生项 0（判别器已检 **2728** 例 / 跳过 433）。
 - A 级率 **99.2%**（A 4693 / B 32 / C 4，共 4729）；deep-dive 术语内链 **1591 页 / 2268 条 / 唯一目标 630**（零死链、零自链、单页 ≤6 条）。**注：内链不影响质量分级**（`own_len` 只统计 `<script>` 内容）。
-- 存量弱用例 **416 例**（`no_inputs=195` / `all_default=221`），**转 P3 顺带**，不单独成批。
+- 存量弱用例 **405 例**（`no_inputs=195` / `all_default=210`），**转 P3 顺带**，不单独成批。
+  - **注意：弱用例整体处于判别器盲区** —— `discriminate_check` 对「注入值本就等于默认值」的用例判 `usable=false` ⇒ **直接跳过**（§10.5）。故 `escape=0` 只说明「强用例无逃生项」，弱用例的逃生项从未被检查；每批改造弱用例后必须重跑判别器确认其由「跳过」转为「已检且变红」。
 
 ### 10.3 弱用例去默认化（仅在 P0/P1 顺带时执行）
 
-**存量 416 例**。可注入性预筛清单（弱例数 / 页面含静态表单控件数）：
+**存量 405 例**（`no_inputs=195` / `all_default=210`，selfcheck 口径；含 textarea/动态 id 的「skip」类全站 418）。
 
-dermatology 14/11、engineering 14/11、signal 11/11、design 10/10、rheumatology 14/9、endocrinology 10/9、mining 10/9、gas 9/9、mechanical 9/9、travel 9/7、gardening 8/7、finance 7/7、sports 7/7、fire 7/6、chemical 9/5、cleaning 7/5
+**选批预筛清单（2026-09-24 实测 · 弱例数 / 其中可注入数）** —— 按「可注入数」降序挑批次，**不可注入的不要选**（页面静态 HTML 里 `grep 'id='` 为 0，控件由 innerHTML 动态生成，属 §7.1 保留项）：
+
+signal 11/11、design 9/9、gas 9/9、mechanical 8/8、cleaning 7/7、finance 7/7、sports 7/7、chemical 6/6、mining 9/8、dermatology 12/9、travel 9/7、endocrinology 7/6、fire 7/6、rheumatology 7/5、language 6/5、aquaculture 5/5、bridge 5/5、glass 5/5、life 5/5、manufacturing 5/5、maritime 5/5、medical2 5/5。
+
+**不可注入（结构性，勿选）**：`psychiatry` 24 例里 **18 例**页面只有 `id="quiz"` + innerHTML 渲染（`gad7`/`phq9`/`pcl5`/`mdq`/`asrs`/`cage`/`isi`/`ybocs`/`bis11`/`cdrisc`/`lsas`/`panss`/`pdss`/`phq15`/`eat26`/`cssrs`/`aq`/`les`），`tcm-diagnosis` 14 例同类；`engineering` 已于 2026-09-24 清零（判别力由「已检 0 / 跳过 14」→「已检 14 / 全数变红」）。
 
 ### 10.4 每批收口流程（顺带改造时六步，缺一不可）
 
@@ -341,6 +346,9 @@ dermatology 14/11、engineering 14/11、signal 11/11、design 10/10、rheumatolo
 | **复选框 / 单选组注入字段（2026-09-24 起）** | `checkIds: ["c","u"]` → `getElementById(id).checked`（纯复选框量表页）；`radios: { htn: "1" }` → `getElementsByName(name)`；`c.checks` → `querySelector(':checked')`/`querySelectorAll('…checked')`。三者均已获 `selfcheck`（算有效注入）与 `discriminate`（清空注入即模拟失败）识别 ⇒ 纯 checkbox 量表页**不再判结构性 `no_inputs`**。**被 checkbox 门控的页面仍可改判「门控前的派生量」** |
 | **HTML 默认选中态已生效（2026-09-24）** | `querySelector(':checked')` / `querySelectorAll('…checked')` / `getElementsByName` 在用例未声明 `c.checks`/`c.radios` 时**回落页面 `checked` 属性** ⇒ 默认输出与真机一致（曾使 `optical/progressive-corridor` 抛 TypeError）。**选批注意**：① 新用例优先**显式声明** `checkIds`/`radios`，勿依赖默认态；② 旧 expect 若曾建立于「默认未选中」的失真输出上会失配（本次全量扫描仅 `cardiology/aortic-dissection` 一例，已重写） |
 | **动态 id（`q0..qN`）会同时骗过两道静态校验** | `discriminate_check` 判「跳过」、`selfcheck` 判 `null` 不计入 → **基线会「虚降」**。须自建探针补验「注入 PASS + 回退默认 FAIL」，并另用浏览器真实默认值再跑一遍 |
+| **表单控件位于 deep-dive 之后 / 页面存在重复 id（2026-09-24 已修）** | `discriminate_check.pageDefaults` 按 `<!-- TOOLBOX-DEEP-DIVE -->` 截断，而全站 **72 页**的表单控件在该标记**之后**（如 `engineering/heat-transfer` 的 input 在第 235 行、标记在第 178 行）⇒ 取不到任何默认值 ⇒ 所有键都无法回退 ⇒ 整例静默判「跳过」，而这些用例其实带真实注入。多页签页还普遍存在**重复 id**（同 id、不同 value），旧版循环覆盖取到**最后一个**，而浏览器 `getElementById` 取**第一个** ⇒ 默认值失真、`usable` 误判 false 又跳过。已修正为「截断后无控件则回退全文」+「首次出现优先」（input/select/textarea 三处同步），据此暴露 5 个被掩盖的真逃生项 |
+| **只改「与当前页签无关」的输入键不算去默认化** | 多页签页里 `v1`（属「稀释」页签）、`r`（属「电位器」页签）之类改了也白改 —— 默认页签的输出纹丝不动，用例仍是 `all_default`、仍被跳过。**必须改真正影响当前页签结果的键**（如 mixture-ratio 改 `ca/ma/cb/mb`、voltage-divider 改 `vin/r1/r2`） |
+| **材料 / 形状类页靠 `getElementsByName('material')` 单选组 + innerHTML 模板生成控件** | 不注入 `radios:{material:N}` 时 `calc()` 直接抛错（reading `dens` / `E`）⇒ 看不到任何结果，极易误判为「页面真缺陷」，**实为桩盲区**（`engineering/material-calculator`、`engineering/stress-calculator`）。注入 radios 后计算正常，且 radios 使 `usable=true`，判别器即可正常校验 |
 | **无 value 的 input 已被判别器覆盖（2026-09-24 起）；textarea / 动态 id 仍需自建探针** | 旧版 `discriminate_check.pageDefaults()` 对无 `value` 属性的 input 直接丢弃 ⇒ 该键无法回退 ⇒ 整例判「跳过」而漏检；现按真机口径登记为**空串**（与 `runCase` 的 `defaults/sel` 一致），据此暴露并修掉 5 个存量逃生项（另 1 个 `legal/court-fee` 为 checkbox 假阳性，已按 type 跳过）。`<textarea>` 与动态 id（`q0..qN`）仍不解析，须自建同口径探针补验 |
 | **零参 `setXxx()` 兜底会「改写状态后重算」，产出的串与注入无关**（原缺陷 B 的实操面） | `pets/kennel-space` 的 `selectSize()` 无参被调用时 `currentSize=undefined` → `\|\| sizes[0]` 落回**小型犬**，于是「小型犬值」16.0/36.0 恰好与兜底输出重合 = 逃生项（本例首版即踩坑）。**定 expect 前必须想清：零参调用该页所有 `set*`/`select*`/`setType` 后最终态会算出哪一组值，expect 必须避开它** —— 首选页面**默认选择项**（本题中型犬 24.0/61.5）派生的值。`DESTRUCTIVE` 正则已补 `^set[A-Z]`，但**仍覆盖不了** `selectSize` 这类「名含 set 却不以 `set[A-Z]` 开头」的设值函数 |
 | **`inputs` 为空 / 缺失的用例，判别器一律「跳过」** | 即使 `checkIds`/`radios` 也全空也一样跳过 ⇒ **`no_inputs` 弱用例的逃生项判别器兜不住**，只能靠 `selfcheck` 的数量棘轮 + 人工核查。`music/sheet-music` 即此类：页面无任何 input/select/checkbox（调号条是 `innerHTML` 生成的 `span+onclick`，属 §7.1 保留项），**结构性不可注入**，只能断言初始化渲染串并继续留在 `no_inputs` 基线内 |

@@ -55,9 +55,12 @@ const CASES = [
   },
   {
     slug: "science/ph-calculator",
-    inputs: { ph: "3" }, // 页面真实输入 id=ph，默认模式 pH→[H⁺]
-    expect: ["3.00", "1.000e-3"],
-    ref: "pH=3 → [H⁺]=10⁻³=1.000e-3 mol/L；resPh=3.00、resH=1.000e-3（toFixed(2)/toExponential(3)）",
+    // ⚠ 默认页签是「H⁺→pH」，读的是 id="H"（默认 0.001）；id="ph" 属于另两个页签，
+    // 旧用例注入 ph:"3" 对默认页签**无效**，expect「3.00 / 1.000e-3」实由默认 H=0.001
+    // 算出 = 逃生项（判别器修好 deep-dive 后置控件盲区后暴露）。改为注入 H。
+    inputs: { H: "0.0005" },
+    expect: ["[OH⁻] 2.000e-11 mol/L", "pOH 10.70"],
+    ref: "H=5e-4 → pH=-log10(5e-4)=3.30；[OH⁻]=1e-14/5e-4=2.000e-11；pOH=14-3.301=10.70。默认 H=0.001 得 pH 3.00 / [OH⁻] 1.000e-11 / pOH 11.00（跨档）",
   },
 
   {
