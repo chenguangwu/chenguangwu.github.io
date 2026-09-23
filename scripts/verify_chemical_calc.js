@@ -22,40 +22,46 @@ const CASES = [
 {
   "slug": "chemical/convert-capacity-tank",
   "inputs": {
-    "val": "1",
-    "rate": "1"
+    "val": "2.5",
+    "rate": "1.6"
   },
   "expect": [
-    "系数"
-  ]
+    "4.000000",
+    "系数: 1.6"
+  ],
+  "ref": "去默认化（原 expect「系数」是静态标签，默认态必命中＝逃生项）：r = 2.5 × 1.6 × 1 / 1 = 4.000000（toFixed(6)）；系数行回显 1.6。默认 val=1/rate=1 得 1.000000 与「系数: 1」，注入失败即不命中"
 },
 {
   "slug": "chemical/convert-density-crude",
   "inputs": {
-    "val": "1",
-    "rate": "1"
+    "val": "3.2",
+    "rate": "0.75"
   },
   "expect": [
-    "系数"
-  ]
+    "2.400000",
+    "系数: 0.75"
+  ],
+  "ref": "去默认化：r = 3.2 × 0.75 × 1 / 1 = 2.400000（toFixed(6)）；系数行回显 0.75。默认 1/1 得 1.000000 与「系数: 1」，注入失败即不命中"
 },
 {
   "slug": "chemical/detector-39",
   "inputs": {
-    "conc": "0.1000",
-    "vol": "25.00",
-    "mass": "0.2000",
-    "molar": "204.22",
-    "ratio": "1",
-    "threshold": "99.0",
-    "g_mass": "0.5000",
-    "g_dry": "0.4850",
-    "g_factor": "1.000",
-    "g_threshold": "98.0"
+    "conc": "0.2",
+    "vol": "20.00",
+    "mass": "0.2500",
+    "molar": "180.00",
+    "ratio": "2",
+    "threshold": "95.0",
+    "g_mass": "0.6000",
+    "g_dry": "0.5700",
+    "g_factor": "1.050",
+    "g_threshold": "97.0"
   },
   "expect": [
-    "纯度"
-  ]
+    "99.75",
+    "≥97%"
+  ],
+  "ref": "去默认化（原 expect「纯度」是静态标签词）：harness 末次调用为 calcG（重量法页签），纯度 = m2×F/m1×100 = 0.57×1.05/0.6×100 = 99.75% ≥ 97 ⇒ 合格、判定行显示「≥97%」。默认 0.485×1/0.5 得 97.00%、阈值 98%，两串均不命中。注：本页滴定法页签的 conc/vol/mass/molar 不影响最终 res（被 calcG 覆盖），故须改 g_* 四键"
 },
 {
   "slug": "chemical/miaomu-guige-zhiliang-yanshou-biaozhun",
@@ -93,8 +99,8 @@ const CASES = [
 {
   "slug": "chemical/reaction-yield",
   "inputs": {
-    "theo": "10",
-    "actual": "7.5",
+    "theo": "25",
+    "actual": "21.25",
     "na": "0.5",
     "nb": "0.3",
     "ratio": "1",
@@ -108,15 +114,17 @@ const CASES = [
     "big": "75"
   },
   "expect": [
-    "损失量"
-  ]
+    "85.00%",
+    "3.75 g"
+  ],
+  "ref": "去默认化（原 expect「损失量」是卡片标签，与输入无关）：默认页签 cur=yield，产率 = 21.25/25×100 = 85.00%（70≤x<90 ⇒ 🟢 优秀），损失量 = 25−21.25 = 3.75 g。默认 7.5/10 得 75.00% 与 2.50 g，注入失败即不命中"
 },
 {
   "slug": "chemical/solution-concentration",
   "inputs": {
-    "mass": "58.5",
-    "molar": "58.5",
-    "vol": "1",
+    "mass": "90",
+    "molar": "45",
+    "vol": "0.5",
     "solute": "10",
     "total": "100",
     "mg": "5",
@@ -126,8 +134,10 @@ const CASES = [
     "c2": "0.5"
   },
   "expect": [
-    "质量浓度"
-  ]
+    "4.0000 mol/L",
+    "180.00 g/L"
+  ],
+  "ref": "去默认化（原 expect「质量浓度」是卡片标签）：默认页签=摩尔浓度，n = 90/45 = 2.0000 mol，C = 2.0000/0.5 = 4.0000 mol/L，质量浓度 = 90/0.5 = 180.00 g/L。默认 58.5/58.5/1 得 1.0000 mol/L 与 58.50 g/L，注入失败即不命中（注意：若只改 mass 与 vol 成比例，C 与质量浓度会与默认重合，必须打破比例）"
 },
 {
   "slug": "chemical/analysis-cost-7",
@@ -145,11 +155,30 @@ const CASES = [
 },
 {
   "slug": "chemical/checker-15",
-  "inputs": {},
+  "inputs": {
+    "m0_0": "2",
+    "m0_1": "2",
+    "m0_2": "2",
+    "m0_3": "1",
+    "m0_4": "0",
+    "m1_0": "2",
+    "m1_1": "2",
+    "m1_2": "2",
+    "m1_3": "1",
+    "m1_4": "1",
+    "m1_5": "0",
+    "m2_0": "2",
+    "m2_1": "2",
+    "m2_2": "2",
+    "m2_3": "2",
+    "m2_4": "1"
+  },
   "expect": [
-    "0/10"
+    "75%",
+    "7/10",
+    "8/12"
   ],
-  "ref": "auto-restore(default)"
+  "ref": "去默认化（原 expect「0/10」＝全零默认态即命中）：16 个 select 由 innerHTML 模板按 m{mi}_{ii} 生成，id 为确定值可注入。一、标准管理 2+2+2+1+0=7/10（70%），二、过程检查 2+2+2+1+1+0=8/12（67%），三、整改闭环 2+2+2+2+1=9/10（90%）；总分 24/32 ⇒ 合规度 round(75%)=75%（良好）。默认全 0 ⇒ 0% / 0-10 / 0-12，三串均不命中。注：id 不在静态 HTML 字面量里，discriminate_check 取不到默认值会「跳过」，已用同口径探针补验「注入 PASS + 回退全 0 FAIL」"
 },
 {
   "slug": "chemical/molar-mass",

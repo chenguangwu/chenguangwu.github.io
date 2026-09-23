@@ -315,20 +315,20 @@
 
 ### 10.2 现状（实测基线）
 
-- `all_default 156 / no_inputs 192 / escape 0`；`checked=3161`；门禁 `run_gates.py` **217 项全过**、逃生项 0（判别器已检 **2783** 例 / 跳过 378）。
+- `all_default 143 / no_inputs 191 / escape 0`；`checked=3161`；门禁 `run_gates.py` **217 项全过**、逃生项 0（判别器已检 **2797** 例 / 跳过 364）。
 - A 级率 **99.2%**（A 4693 / B 32 / C 4，共 4729）；deep-dive 术语内链 **1591 页 / 2268 条 / 唯一目标 630**（零死链、零自链、单页 ≤6 条）。**注：内链不影响质量分级**（`own_len` 只统计 `<script>` 内容）。
-- 存量弱用例 **348 例**（`no_inputs=192` / `all_default=156`），**转 P3 顺带**，不单独成批。
+- 存量弱用例 **334 例**（`no_inputs=191` / `all_default=143`），**转 P3 顺带**，不单独成批。
   - **注意：弱用例整体处于判别器盲区** —— `discriminate_check` 对「注入值本就等于默认值」的用例判 `usable=false` ⇒ **直接跳过**（§10.5）。故 `escape=0` 只说明「强用例无逃生项」，弱用例的逃生项从未被检查；每批改造弱用例后必须重跑判别器确认其由「跳过」转为「已检且变红」。
 
 ### 10.3 弱用例去默认化（仅在 P0/P1 顺带时执行）
 
-**存量 348 例**（`no_inputs=192` / `all_default=156`，selfcheck 口径；含 textarea/动态 id 的「skip」类全站 378）。
+**存量 334 例**（`no_inputs=191` / `all_default=143`，selfcheck 口径；含 textarea/动态 id 的「skip」类全站 364）。
 
 **选批预筛清单（2026-09-24 实测 · 弱例数 / 其中可注入数）** —— 按「可注入数」降序挑批次，**不可注入的不要选**（页面静态 HTML 里 `grep 'id='` 为 0，控件由 innerHTML 动态生成，属 §7.1 保留项）：
 
-chemical 6/6、mining 9/8、dermatology 12/9、travel 9/7、endocrinology 7/6、fire 7/6、rheumatology 7/5、language 6/5、aquaculture 5/5、bridge 5/5、glass 5/5、life 5/5、manufacturing 5/5、maritime 5/5、medical2 5/5。
+dermatology 12/9、travel 9/7、endocrinology 7/6、fire 7/6、rheumatology 7/5、language 6/5、aquaculture 5/5、bridge 5/5、glass 5/5、life 5/5、manufacturing 5/5、maritime 5/5、medical2 5/5。
 
-**不可注入（结构性，勿选）**：`psychiatry` 24 例里 **18 例**页面只有 `id="quiz"` + innerHTML 渲染（`gad7`/`phq9`/`pcl5`/`mdq`/`asrs`/`cage`/`isi`/`ybocs`/`bis11`/`cdrisc`/`lsas`/`panss`/`pdss`/`phq15`/`eat26`/`cssrs`/`aq`/`les`），`tcm-diagnosis` 14 例同类；`engineering`、`signal`、`design`、`gas`、`mechanical` 已于 2026-09-24 清零（判别力分别由「已检 0 / 跳过 14」→「已检 14」、「已检 13 / 跳过 11」→「已检 24」、「已检 5 / 跳过 9」→「已检 14」、「已检 2 / 跳过 9」→「已检 11」、「已检 5 / 跳过 8」→「已检 12」，均为全数变红）；`cleaning` 同日改掉 6 例（判别力「已检 5 / 全数变红」），**残留 1 例** `appliance-cycle` 属结构性不可注入（见 §10.5 三类形态）；`finance` 同日 7 例清零（判别力「已检 21 / 全数变红」）；`sports` 同日 7 例清零（判别力「已检 29 / 全数变红」）。
+**不可注入（结构性，勿选）**：`psychiatry` 24 例里 **18 例**页面只有 `id="quiz"` + innerHTML 渲染（`gad7`/`phq9`/`pcl5`/`mdq`/`asrs`/`cage`/`isi`/`ybocs`/`bis11`/`cdrisc`/`lsas`/`panss`/`pdss`/`phq15`/`eat26`/`cssrs`/`aq`/`les`），`tcm-diagnosis` 14 例同类；`chemical` 6 例、`mining` 9 例已于 2026-09-24 清零（chemical 判别力「已检 10 / 全数变红」，`checker-15` 因 id 由 JS 模板拼接被判跳过、已自建探针补验；mining 判别力「已检 11 / 全数变红」，`estimate-reserve` 属结构性不可注入 —— 块段由 `addBlock()` 按钮 + class 选择器动态生成，静态 HTML 无带 id 控件）；`engineering`、`signal`、`design`、`gas`、`mechanical` 已于 2026-09-24 清零（判别力分别由「已检 0 / 跳过 14」→「已检 14」、「已检 13 / 跳过 11」→「已检 24」、「已检 5 / 跳过 9」→「已检 14」、「已检 2 / 跳过 9」→「已检 11」、「已检 5 / 跳过 8」→「已检 12」，均为全数变红）；`cleaning` 同日改掉 6 例（判别力「已检 5 / 全数变红」），**残留 1 例** `appliance-cycle` 属结构性不可注入（见 §10.5 三类形态）；`finance` 同日 7 例清零（判别力「已检 21 / 全数变红」）；`sports` 同日 7 例清零（判别力「已检 29 / 全数变红」）。
 
 ### 10.4 每批收口流程（顺带改造时六步，缺一不可）
 
@@ -371,6 +371,9 @@ chemical 6/6、mining 9/8、dermatology 12/9、travel 9/7、endocrinology 7/6、
 | **expect 与「默认态输出」字符串一致 → 逃生项**（即便注入的是另一组输入） | 只看 `x/x 全过` 会漏判。**新增用例后必须跑 `discriminate_check`（或先手算默认态输出）**，并换一组能跨分支/跨档的数据 |
 | **`select` 的 `selected` 属性在 harness 里不生效**（桩取**首个 option**） | 页面「默认选中项」类改动无法用默认态用例验证 —— 必须**显式注入该 select 的值**；判断真实浏览器行为只认 HTML 标准 |
 | **页面自带的 `fmt()` 常走 `toLocaleString()`（默认截 3 位小数）** | `0.0025` 会显示成 `0.003`，使「分步计算」文案无法自校验、也易被误判为算术错。凡步骤/卡片要展示小数量，改用带参 `toFixed(n)`；定 expect 时避开被截断的位置 |
+| **控件写在 deep-dive 标记**之后**时，`pageDefaults` 仍取不到 ⇒ 该键在判别器里「无法回退」（2026-09-24）** | 2026-09-24 的「截断后无控件则回退全文」只修了**整页**无控件的情形；`mining/excavation-volume` 这类**前面有静态控件（swell/price）、形状参数（L/W/D）却由 `renderParams` 模板写在标记之后（第 244 行起）** 的页，截断段里已有控件 ⇒ 不触发回退 ⇒ `defs` 只有 swell/price。模拟注入失败时 L/W/D 保持注入值不变 ⇒ **断言「原状方量 1080.0 m³」是逃生项**（已实测并被判别器抓出）。**定 expect 前先 `grep -n 'id="L"' tools/<slug>.html` 看行号是否 > deep-dive 行号**；是则 expect 只能锚**同时依赖可回退键**的量（松方量 ×swell、总造价 ×price） |
+| **比例型页面改输入必须「打破比例」（2026-09-24）** | `chemical/solution-concentration` 默认 58.5/58.5/1 得 C=1.0000 mol/L、质量浓度 58.50 g/L；首版改成 117/58.5/2（mass 与 vol 同倍放大）后 **C 与质量浓度与默认完全重合**，只有「物质的量 2.0000」变了 ⇒ 仍近乎无判别力。改 90/45/0.5 才得到 4.0000 mol/L 与 180.00 g/L。**凡输出是比值/密度/单价这类「齐次」量，换值前先确认新输入不是默认输入的等比缩放** |
+| **多页签页的 harness 末次调用决定 res 内容（2026-09-24）** | `chemical/detector-39` 默认页签是「酸碱滴定」，但 harness 依次调用 `calc → calcT → calcG`，**最终 res 是 `calcG`（重量法）的输出** ⇒ 改滴定页签的 conc/vol/mass/molar 对 blob 毫无影响，用例仍是 all_default。多页签页定 expect 前必须**先 dump 默认态看实际落到哪个页签**，再改对应页签的键 |
 
 ### 10.6 方向1：公式-脚本一致性精查（**全量闭环** · 老板选定）
 
