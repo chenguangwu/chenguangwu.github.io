@@ -141,6 +141,12 @@ const CASES = [
     ref: "含税价倒推：不含税 = 1000/1.13 = 884.96，税额 = 115.04",
   },
   {
+    slug: "finance/tax-calculator",
+    inputs: { salary: "50000", insurance: "8000", special: "3000", threshold: "6000" },
+    expect: ["25,001 - 35,000 元 25% ✓ 适用"],
+    ref: "非默认输入使应纳税所得额=50000-8000-6000-3000=33000 → 落入第3级(25001-35000)并高亮「✓ 适用」。该级下限修复后为 25001（修复前误把各级下限都写成 3,001）。期望串同时绑定级距与高亮标记：注入失败(回退默认→第2级激活)或旧代码(3,001)均不匹配，既判别力有效又测到修复",
+  },
+  {
     slug: "finance/number-to-words",
     inputs: { inputVal: "1234567.89" },
     expect: ["five hundred sixty-seven", "point eight nine"],
