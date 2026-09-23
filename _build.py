@@ -2487,7 +2487,7 @@ def generate_html_sitemap(tools):
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="robots" content="index,follow">
 <title>站点地图 - ToolBox 免费在线工具集合</title>
-<meta name="description" content="ToolBox 在线工具站点地图，快速浏览所有工具分类和页面。">
+<meta name="description" content="ToolBox 在线工具站点地图：按 268 个行业分类浏览全部 5000+ 免费在线工具，支持搜索与繁体中文，快速定位需要的计算器与转换器。">
 <link rel="canonical" href="https://chenguangwu.github.io/sitemap.html">
 <link rel="icon" type="image/svg+xml" href="/favicon.svg">
 <link rel="stylesheet" href="/css/site-chrome.css">
@@ -3383,6 +3383,10 @@ def fix_tool_pages_seo(tools, target_tools=None, report=True, existing_html_path
         # 中文优先：JSON-LD description 与 meta 描述同源取中文（extract_zh_desc），
         # 避免中文模式页面结构化数据里塞英文 t['desc']（与 meta/og 描述保持一致）
         app_desc = esc_html_py((extract_zh_desc(content, t, industry, entry) or t['name'])[:150])
+        # JSON-LD 字符串安全（2026-09-23）：desc 含反斜杠字面量（转义类工具 \n \b…）或
+        # 控制字符时，未转义会导致 WebApplication JSON 非法、整块被 Google 丢弃。
+        # 顺序：先 doubling 反斜杠，再去控制字符。
+        app_desc = app_desc.replace('\\', '\\\\').replace('\n', ' ').replace('\r', ' ').replace('\t', ' ')
         app_json_block = '\n<!-- TOOLBOX-WEBAPP-LD -->\n<script type="application/ld+json">\n{"@context":"https://schema.org","@type":"WebApplication","name":"%s","url":"https://chenguangwu.github.io/%s","applicationCategory":"%s","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":%s,"description":"%s","image":"https://chenguangwu.github.io/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}\n</script>' % (tool_name_esc, t['url'], app_cat, json.dumps(I18N_LOCALES, ensure_ascii=False), app_desc)
 
         def _replace_webapp_ld(src):
@@ -3506,6 +3510,12 @@ def fix_tool_pages_seo(tools, target_tools=None, report=True, existing_html_path
                 _zh_desc_raw = ('%s是一款免费的在线%s工具，输入参数即可实时得出结果；'
                                 '纯前端运行、数据不上传、无需注册，打开浏览器即可使用。'
                                 % (_d_name, ind_name))
+        elif len(re.findall(r'[\u4e00-\u9fff]', _zh_desc_raw)) < 40:
+            # 20-39 汉字（2026-09-23 二轮阈值上调，Ahrefs 口径 <70 字符均偏短）：
+            # 真实核心句保留，追加轻量价值尾句；已含同类标志词则不动（幂等）。
+            _core = _zh_desc_raw.strip().rstrip('。')
+            if '纯前端' not in _core and '数据不上传' not in _core:
+                _zh_desc_raw = (_core + '。免费在线使用，纯前端运行、数据不上传、无需注册。')
         seo_desc = esc_once(_zh_desc_raw[:120])
         anchor = I18N_HREFLANG_MARKER if I18N_HREFLANG_MARKER in content else '</head>'
         seo_tags = ''
