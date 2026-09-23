@@ -522,6 +522,78 @@ def _replace_h1_text(html, text):
     return pattern.sub(lambda m: '%s%s%s' % (m.group(1), esc_html_py(text), m.group(3)), html, count=1)
 
 
+_H1_OPEN_RE = re.compile(r'<h1\b[^>]*>')
+_H1_BLOCK_RE = re.compile(r'(<h1\b[^>]*>)([\s\S]*?)(</h1>)')
+# h1「公式型」判据：含真正的运算符即视为无语义标题（/ 与 · 在人名/并列词中合法，不列）
+_H1_FORMULA_RE = re.compile(r'[=√Σ^×÷∝≈≤≥∑]')
+
+
+def _h1_text(raw):
+    return re.sub(r'\s+', ' ', re.sub(r'<[^>]+>', '', raw or '')).strip()
+
+
+def _h1_name_ok(x):
+    return bool(re.search(r'[\u4e00-\u9fff]', x or '')) and not _H1_FORMULA_RE.search(x or '')
+
+
+def normalize_tool_h1(html_str, zh_name='', dd_title=''):
+    """规范化工具页 h1（幂等，2026-09-23 §4.1.7 SEO 与专业性）。
+
+    ① 修 <h1 ...>…</h2> 错配闭标签（历史手工页复制粘贴错误，浏览器容错但爬虫解析异常）；
+    ② h1 无中文（纯公式 / 英文缩写）→ 替换为中文工具名，保留原属性（sr-only 不变、视觉零影响）；
+    ③ 一页多 h1 → 第 2+ 个非 sr-only 的 h1 降级为 h2；
+    ④ h1 带 SEO 修饰（「工具名 - 描述」）→ 去掉修饰，只留工具名。
+
+    中文名来源（按序）：面包屑 bc-current → zh_name（i18n 权威中文名）→ dd_title（deep-dive 标题）；
+    均不可用则保持原样（不瞎编）。返回 (新 html, 改动数)。
+    """
+    n = 0
+    # ① 错配闭标签
+    i = 0
+    while True:
+        m = _H1_OPEN_RE.search(html_str, i)
+        if not m:
+            break
+        oe = m.end()
+        n1 = html_str.find('</h1>', oe)
+        n2 = html_str.find('</h2>', oe)
+        if n2 != -1 and (n1 == -1 or n2 < n1):
+            html_str = html_str[:n2] + '</h1>' + html_str[n2 + len('</h2>'):]
+            n += 1
+            i = n2 + len('</h1>')
+        else:
+            i = oe
+    # 解析可用中文名（先剥标签再反转义，避免实体被误当标签）
+    cand = ''
+    bcs = re.findall(r'<span class="bc-current">([\s\S]*?)</span>', html_str)
+    for raw in ([bcs[-1]] if bcs else []) + [zh_name, dd_title]:
+        t = html.unescape(_h1_text(raw))
+        if _h1_name_ok(t):
+            cand = t
+            break
+    # ②③④ 处理 h1 块
+    reps = []
+    for idx, b in enumerate(_H1_BLOCK_RE.finditer(html_str)):
+        attr, inner, close = b.group(1), b.group(2), b.group(3)
+        _raw = _h1_text(inner)
+        if not re.search(r'[\u4e00-\u9fff]', _raw):
+            if cand:
+                reps.append((b.start(), b.end(), attr + esc_html_py(cand) + close))
+                n += 1
+        elif idx > 0 and 'sr-only' not in attr:
+            reps.append((b.start(), b.end(), attr.replace('<h1', '<h2', 1) + inner + '</h2>'))
+            n += 1
+        else:
+            # ④ 去 SEO 修饰：「工具名 - 描述」→「工具名」（前段须含中文，避免误切合法横线名）
+            _m = re.match(r'^([\s\S]{2,40}?)\s+-\s+\S', _raw)
+            if idx == 0 and _m and re.search(r'[\u4e00-\u9fff]', _m.group(1)):
+                reps.append((b.start(), b.end(), attr + esc_html_py(_m.group(1).strip()) + close))
+                n += 1
+    for s, e, new in reversed(reps):
+        html_str = html_str[:s] + new + html_str[e:]
+    return html_str, n
+
+
 def _prerender_tool_body(content, entry):
     """构建期把英文 title/intro 预渲染进工具页 h2 + 首个 p，并加 data-zh 保存中文原文。
 
@@ -3176,6 +3248,7 @@ def fix_tool_pages_seo(tools, target_tools=None, report=True, existing_html_path
     curated_missing = []
 
     fixed_h1 = 0
+    fixed_h1_sem = 0
     fixed_bc = 0
     fixed_rt = 0
     fixed_rt_removed = 0
@@ -3318,6 +3391,12 @@ def fix_tool_pages_seo(tools, target_tools=None, report=True, existing_html_path
             h1_tag = '\n<h1 class="sr-only">%s</h1>\n' % tool_name_esc
             content = content.replace('<body>', '<body>' + h1_tag, 1)
             fixed_h1 += 1
+
+        # 1.5 h1 语义规范化（§4.1.7）：错配闭标签 / 无语义 h1 换中文名 / 多余可见 h1 降级
+        _dd_entry = DEEP_DIVE.get(industry + '/' + slug) or {}
+        content, _h1_sem = normalize_tool_h1(
+            content, _zh_title_of(industry, slug), _dd_entry.get('title', ''))
+        fixed_h1_sem += _h1_sem
 
         # 2. Add breadcrumb nav (idempotent via data-breadcrumb)
         if 'data-breadcrumb' not in content:
@@ -3817,6 +3896,7 @@ def fix_tool_pages_seo(tools, target_tools=None, report=True, existing_html_path
 
     result = {
         'fixed_h1': fixed_h1,
+        'fixed_h1_sem': fixed_h1_sem,
         'fixed_bc': fixed_bc,
         'fixed_rt': fixed_rt,
         'fixed_rt_removed': fixed_rt_removed,
@@ -3832,8 +3912,8 @@ def fix_tool_pages_seo(tools, target_tools=None, report=True, existing_html_path
 
 
 def _report_tool_seo_result(result):
-    print('  h1 added: %d, breadcrumbs: %d, related tools: %d (recomputed), removed stale blocks: %d, nav injected: %d' %
-          (result['fixed_h1'], result['fixed_bc'], result['fixed_rt'],
+    print('  h1 added: %d, h1 normalized: %d, breadcrumbs: %d, related tools: %d (recomputed), removed stale blocks: %d, nav injected: %d' %
+          (result['fixed_h1'], result.get('fixed_h1_sem', 0), result['fixed_bc'], result['fixed_rt'],
            result['fixed_rt_removed'], result['fixed_nav']))
     if result.get('dropped_crit'):
         print('  critical-css removed (redundant with common.css): %d pages' %
@@ -3873,6 +3953,7 @@ def fix_tool_pages_seo_parallel(tools):
 
     combined = {
         'fixed_h1': sum(item['fixed_h1'] for item in results),
+        'fixed_h1_sem': sum(item['fixed_h1_sem'] for item in results),
         'fixed_bc': sum(item['fixed_bc'] for item in results),
         'fixed_rt': sum(item['fixed_rt'] for item in results),
         'fixed_rt_removed': sum(item['fixed_rt_removed'] for item in results),
