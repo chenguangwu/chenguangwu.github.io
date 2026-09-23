@@ -33,14 +33,164 @@ import category_auto_content as CAUTO
 
 
 def _strip_seo_extra(s):
-    """剥离构建期追加的 SEO 标题修饰（幂等）：`工具名 - XX在线工具` -> `工具名`。
+    """剥离构建期追加的 SEO 标题修饰与品牌残留（幂等）：`工具名 - XX在线工具` -> `工具名`。
     用于 t['name'] 解析：第二次构建时页面 <title> 已含修饰，若不剥离会把修饰
-    当工具名导致嵌套（实测污染 tools.json 763 条 / 分类卡片）。"""
+    当工具名导致嵌套（实测污染 tools.json 763 条 / 分类卡片）。
+    另外丢弃 `在线工具 / 免费在线工具 / 工具 / 在线` 这类纯噪声分段
+    （历史数据里存在 `工具名 - 在线工具` 形式的命名）。"""
+    s = (s or '').replace('（免费）', '').replace('免费在线工具', '').strip()
     prev = None
     while s and s != prev:
         prev = s
-        s = re.sub(r'\s*-\s*[^-]{2,16}在线工具\s*$', '', s).strip()
+        s = re.sub(r'\s*[-—–]\s*[^-—–]{2,16}在线工具\s*$', '', s).strip()
+        s = s.replace(' - ToolBox', '').replace(' | ToolBox', '').strip()
+    if re.search(r'\s+[-—–]\s+', s):
+        parts = [p.strip() for p in re.split(r'\s+[-—–]\s+', s)]
+        kept = [p for p in parts if p and p not in ('在线工具', '免费在线工具', '工具', '在线')]
+        if kept:
+            s = ' - '.join(kept)
     return s
+
+
+# ---------------------------------------------------------------------------
+# SEO 标题增强（2026-09-23 第二轮）
+# 目标：工具页 <title>/og:title/twitter:title = 「工具名 + 干净功能修饰」，只在
+# head 元数据生效；页面内可见工具名（h1 / 分类卡片 / 列表）保持纯名不变。
+# 取修饰来源 = i18n 该工具的 zh-CN.intro / desc，优先「动宾短语」，其次完整分句；
+# 全不达标时用模板「免费在线<行业>工具」兜底，保证标题信息量。
+# 硬约束：绝不产出残句（以虚词/符号开头、悬空结尾）、绝不与工具名重复、
+# 绝不在词中间硬截断（裁剪只在分隔符处）。
+# ---------------------------------------------------------------------------
+SEO_LEAD_BAD = (
+    '由', '输入', '根据', '按照', '按', '将', '把', '以', '从', '用', '使用', '基于', '通过',
+    '对', '在', '选择', '填写', '设置', '本工具', '工具', '支持', '适用于', '适合', '用于',
+    '可', '能', '与', '及', '和', '的', '并', '且', '也', '其', '该', '此', '这', '那', '被',
+    '给', '使', '让', '需', '应', '如', '若', '是', '有', '为', '则', '即', '器', '率', '值',
+    '度', '量', '表', '者', '性', '中', '内', '前', '后', '上', '下', '时', '来', '去', '到',
+)
+SEO_TAIL_BAD = (
+    '的', '与', '和', '及', '在', '为', '是', '并', '且', '等', '以', '从', '按', '将', '把',
+    '对', '由', '于', '而', '则', '或', '其', '之', '了', '着', '过', '如',
+)
+SEO_WEAK_MOD = (
+    '计算器', '转换器', '生成器', '估算器', '演示器', '观察器', '模拟器', '校验器', '查询器',
+    '解析器', '计算', '转换', '生成', '查询', '校验', '器', '工具', '在线工具',
+)
+SEO_BOILER = (
+    '纯前端', '无需联网', '不上传', '离线', '免费', '浏览器', '本地处理', '本地运行', '一键',
+    '在线工具', '工具', '打开即', '实时', '可视化对比', '数据不', '适合', '适用于', '用于',
+)
+SEO_VERBS = ('计算', '求出', '求得', '求', '估算', '换算', '转换为', '转换', '生成', '校验', '核验',
+             '查询', '检索', '评估', '分析', '对比', '编码', '解码', '规范化', '解析', '判断', '判定',
+             '确定', '得出', '绘制', '模拟', '压缩', '移除', '提取', '过滤', '排序', '去重',
+             '格式化', '可视化', '统计')
+SEO_VERB_RE = '(?:' + '|'.join(SEO_VERBS) + ')'
+SEO_SEP_CHARS = ' -—–:：、,，。；;·'
+# 残片标题：历史自动派生残留（`公式`、`mod b`、`与 ∛x`、`≥ ħ / 2`、`/ L / E / M`）
+SEO_FRAG_TITLE_RE = re.compile(
+    r'^(?:与|及|和|≥|≤|＞|＜|>|<|/|、|（|\()|^公式$|^[0-9A-Za-z /·×*+^\-]{2,12}$')
+
+
+def _seo_is_fragment_title(s):
+    return bool(s) and bool(SEO_FRAG_TITLE_RE.match(s.strip()))
+
+
+def _seo_cn(s):
+    return re.findall(r'[\u4e00-\u9fff]', s)
+
+
+def _seo_clean_text(s):
+    """去首尾分隔符；仅当括号不配平时丢弃尾部悬空的 “（…” 片段（保留成对的括号）。"""
+    s = re.sub(r'\s+', ' ', s or '').strip().strip(SEO_SEP_CHARS).strip()
+    for _ in range(3):
+        if s.count('（') + s.count('(') > s.count('）') + s.count(')'):
+            i = max(s.rfind('（'), s.rfind('('))
+            if i <= 0:
+                break
+            s = s[:i].strip(SEO_SEP_CHARS).strip()
+        else:
+            break
+    return s
+
+
+def _seo_skel(s):
+    return re.sub(r'[^0-9a-zA-Z\u4e00-\u9fff]', '', s or '').lower()
+
+
+def _seo_ind_label(ind_label):
+    """行业标签规整：去前缀英文（`IT 开发` -> `开发`）、去尾部「工具/在线」。"""
+    lab = re.sub(r'^[A-Za-z0-9&/]{1,6}\s+(?=\S)', '', ind_label or '') or (ind_label or '')
+    return re.sub(r'(?:工具|在线)+$', '', lab).strip()
+
+
+def _seo_mod_ok(cand, name, min_cn):
+    if not cand or not (4 <= len(cand) <= 24):
+        return False
+    if not (min_cn <= len(_seo_cn(cand)) <= 14):
+        return False
+    if any(b in cand for b in SEO_BOILER):
+        return False
+    head = cand[0]
+    if not (re.match(r'[\u4e00-\u9fff]', head) or re.match(r'[0-9A-Za-z]', head)):
+        return False
+    if cand.startswith(SEO_LEAD_BAD) or cand.endswith(SEO_WEAK_MOD):
+        return False
+    if cand.endswith(SEO_TAIL_BAD):
+        return False
+    cn, nn = set(_seo_cn(cand)), set(_seo_cn(name))
+    sn, sc = _seo_skel(name), _seo_skel(cand)
+    if sn and (sn in sc or sc in sn):
+        return False
+    if cn and len(cn - nn) < 3:            # 关键词未新增 → 与工具名重复
+        return False
+    return True
+
+
+def _seo_modifier(name, intro, desc, ind_label):
+    """从 i18n 文案里挑一个干净的功能修饰；挑不到返回模板串。"""
+    for src in (intro, desc):
+        if not src:
+            continue
+        for m in re.finditer(SEO_VERB_RE + r'([^，。；：、！？,;]{2,26})', src):
+            obj = re.split(r'[（(=＝\[]', m.group(1))[0]
+            obj = re.split(r'(?:并|且|以及|同时|即可|以便|从而|供|与|及|和)', obj)[0]
+            obj = re.sub(r'^(了|出|得|到|为)', '', _seo_clean_text(obj))
+            obj = _seo_clean_text(obj)
+            if _seo_mod_ok(obj, name, 4):
+                return obj
+    for src in (intro, desc):
+        if not src:
+            continue
+        for clause in re.split(r'[，。；：、！？,;|/—–\-（）()\[\]]', src):
+            clause = _seo_clean_text(clause)
+            if name and _seo_skel(name) and _seo_skel(name) in _seo_skel(clause):
+                clause = _seo_clean_text(clause.replace(name, ''))
+            clause = re.sub(r'^(了|出|得|到|为)', '', _seo_clean_text(clause))
+            if _seo_mod_ok(clause, name, 5):
+                return clause
+    return '免费在线%s工具' % _seo_ind_label(ind_label)
+
+
+def seo_tool_title(base, intro, desc, ind_label):
+    """SEO 标题 = 工具名 [+ 干净功能修饰]；工具名已足够长时不追加。"""
+    b = _strip_seo_extra(_seo_clean_text(base))
+    if not ((len(_seo_cn(b)) < 8) or (len(b) < 20)):
+        return b
+    if re.search(r'\s[-—–]\s', b):
+        return b                    # 工具名本身已是「名 - 描述」复合形式 → 不再叠加
+    mod = _seo_modifier(b, intro, desc, ind_label)
+    if not mod.startswith('免费在线') and len('%s - %s' % (b, mod)) < 20:
+        mod = '免费在线%s工具' % _seo_ind_label(ind_label)   # 修饰过短 → 模板保信息量
+    t = '%s - %s' % (b, mod)
+    if len(t) > 60:                                          # 只在分隔符处裁剪
+        cut = t[:60]
+        for sep in (' ', '，', '、', '（', '：'):
+            i = cut.rfind(sep)
+            if i >= 30:
+                cut = cut[:i]
+                break
+        t = re.sub(r'[' + re.escape(SEO_SEP_CHARS) + r']+$', '', cut).strip()
+    return t
 
 
 def _clean_en_desc(s):
@@ -3280,9 +3430,9 @@ def fix_tool_pages_seo(tools, target_tools=None, report=True, existing_html_path
         _seo_override = EN_OVERRIDE.get(_seo_slug, {})
         _en_t = _seo_override.get('en')
         _en_desc = _clean_en_desc(_seo_override.get('ed') or '')
-        _m_t = re.search(r'<title>([^<]*)</title>', content) if _en_t else None
+        _m_t = re.search(r'<title>([^<]*)</title>', content)
         _obsolete_meta_names = []
-        if _m_t:
+        if _en_t:
             _obsolete_meta_names.extend(('title-zh', 'title-en'))
         if _en_desc:
             _obsolete_meta_names.append('desc-en')
@@ -3291,42 +3441,42 @@ def fix_tool_pages_seo(tools, target_tools=None, report=True, existing_html_path
                 r'[ \t]*<meta name="(?:%s)" content="[^"]*">[ \t]*\n?'
                 % '|'.join(_obsolete_meta_names), '', content)
 
-        if _en_t:
-            if _m_t:
-                _base = os.path.splitext(os.path.basename(t['path']))[0]
-                _zh_title = _zh_title_of(industry, _base) or t.get('name') or tool_name_esc
-                # 标题只显示工具名，不再追加「 - ToolBox」品牌后缀（老板要求）；
-                # 同时幂等剥离可能残留的「（免费）」「免费在线工具」「 - ToolBox / | ToolBox」。
-                _zh_t = _zh_title.replace('（免费）', '').replace('免费在线工具', '').replace(' - ToolBox', '').replace(' | ToolBox', '').strip()
-                # SEO 标题增强（2026-09-23，老板批准）：纯工具名过短时追加功能修饰。
-                # 仅影响 <title>/og:title/twitter:title 等 head 元数据；页面内可见的工具名
-                # （h1 / 分类卡片 / 列表）保持不变（老板要求：分类内仍只显示纯工具名，否则太长不好看）。
-                if len(re.findall(r'[\u4e00-\u9fff]', _zh_t)) < 12:
-                    _seo_src = (_ind_cache.get(industry, {}) or {}).get(_base, {}) or {}
-                    _seo_intro = (_seo_src.get('zh-CN', {}) or {}).get('intro') or ''
-                    _seg = ''
-                    if _seo_intro:
-                        _seg = re.split(r'[—\-–，。；：、|/（(]', _seo_intro.strip(), 1)[0].strip()
-                        _seg = re.sub(r'\s+', ' ', _seg)
-                        if _zh_t in _seg:
-                            _seg = _seg.replace(_zh_t, '').strip(' -：:（()）')
-                    if (len(re.findall(r'[\u4e00-\u9fff]', _seg)) < 3
-                            or _seg.replace(' ', '') == _zh_t.replace(' ', '')):
-                        _seg = '%s在线工具' % ind_name
-                    _zh_t = ('%s - %s' % (_zh_t, _seg))[:60]
-                _en_full = _en_t.replace('（免费）', '').replace('免费在线工具', '').replace(' - ToolBox', '').replace(' | ToolBox', '').strip() if _en_t else _zh_t
-                # 初始 title 渲染中文（中文优先）
-                content = content.replace(_m_t.group(0), '<title>%s</title>' % esc_once(_zh_t), 1)
+        # 标题块不再以 _en_t 为门控：非英文覆盖页同样需要中文 SEO 标题与社交标题
+        # （原门控会让未进 _en_override.json 的工具页整块跳过，标题永久停留在旧值）。
+        if _m_t:
+            _base = os.path.splitext(os.path.basename(t['path']))[0]
+            _zh_title = _zh_title_of(industry, _base) or t.get('name') or tool_name_esc
+            # 残片标题（`公式` / `mod b` / `与 ∛x` / `≥ ħ / 2` 等历史自动派生残留）
+            # → 回退到页面 h1 的纯工具名。
+            if (_seo_is_fragment_title(_zh_title) and t.get('name')
+                    and len(t['name']) > len(_zh_title) + 1):
+                _zh_title = t['name']
+            # SEO 标题增强（2026-09-23，老板批准）：纯工具名过短时追加干净功能修饰。
+            # 仅影响 <title>/og:title/twitter:title 等 head 元数据；页面内可见的工具名
+            # （h1 / 分类卡片 / 列表）保持不变（老板要求：分类内仍只显示纯工具名，否则太长不好看）。
+            _seo_zh = ((_ind_cache.get(industry, {}) or {}).get(_base, {}) or {}).get('zh-CN', {}) or {}
+            _zh_t = seo_tool_title(_zh_title, _seo_zh.get('intro') or '',
+                                   _seo_zh.get('desc') or '', ind_name)
+            content = content.replace(_m_t.group(0), '<title>%s</title>' % esc_once(_zh_t), 1)
+            if _en_t:
+                _en_full = _strip_seo_extra(_en_t)
                 # 旧 title-zh/title-en/desc-en 已在一次 head 扫描中统一清理。
                 _en_meta = '<meta name="title-en" content="%s">' % esc_once(_en_full)
                 if I18N_HREFLANG_MARKER in content:
                     content = content.replace(I18N_HREFLANG_MARKER, _en_meta + '\n' + I18N_HREFLANG_MARKER, 1)
                 else:
                     content = content.replace('</head>', _en_meta + '\n</head>', 1)
-                # og:title / twitter:title 跟随中文（纯工具名）
-                _og_t = esc_once(_zh_t)
-                content = re.sub(r'<meta property="og:title" content="[^"]*">', lambda m: '<meta property="og:title" content="%s">' % _og_t, content, count=1)
-                content = re.sub(r'<meta name="twitter:title" content="[^"]*">', lambda m: '<meta name="twitter:title" content="%s">' % _og_t, content, count=1)
+            # og:title / twitter:title 跟随中文。正则容忍标签带额外属性
+            # （页面标注工具注入过 data-page-node-id="…"）并原样保留它们；
+            # 同时修复历史源头损坏的 `content="content="…` 畸形标签（全站 1 例）。
+            _og_t = esc_once(_zh_t)
+            if 'content="content="' in content:
+                content = content.replace('content="content="', 'content="')
+            for _tag_attr in ('property="og:title"', 'name="twitter:title"'):
+                content = re.sub(
+                    r'<meta %s([^>]*?)content="[^"]*"([^>]*)>' % _tag_attr,
+                    lambda m, a=_tag_attr: '<meta %s%scontent="%s"%s>' % (a, m.group(1), _og_t, m.group(2)),
+                    content, count=1)
 
         # 4.1 Add meta description / og:title / og:description / twitter:* / canonical (idempotent, 补齐老模板工具页缺失的社交与 SEO 标签)
         # 锚点优先用 I18N_HREFLANG_MARKER，避免被 inject_hreflang 的 marker→</head> 截取逻辑丢弃注入的标签
