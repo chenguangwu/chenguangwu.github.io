@@ -234,8 +234,8 @@ function threeDigitsToWord(n){
   return res;
 }
 
-function numberToWords(n){
-  if(n === 0) return 'zero';
+function numberToWords(n, rawDec){
+  if(n === 0 && !rawDec) return 'zero';
   let neg = false;
   if(n < 0){
     neg = true;
@@ -261,11 +261,16 @@ function numberToWords(n){
       words += (words ? ' ' : '') + segWord + (scale ? ' ' + scale : '');
     });
   }
-  if(decPart > 0){
+  // 小数位一律按「输入原文」逐位读：decPart = n - intPart 是浮点减法，
+  // 987654.32 - 987654 === 0.31999999994784594 ⇒ toString() 会读出
+  // "point three one nine nine nine…" 这类错误结果（P0 缺陷，已修）。
+  const decStr = rawDec != null ? rawDec : (decPart > 0 ? decPart.toString().replace(/^0\./, '') : '');
+  if(decStr){
     words += ' point';
-    const decStr = decPart.toString().replace(/^0\./, '');
     for(const ch of decStr){
-      words += ' ' + ones[parseInt(ch, 10)];
+      // 小数位必须逐位读出，0 读 "zero"；ones[0] 是 ''（整数读法里 0 不发音），
+      // 直接用它会导致 0.07 读成 "point seven"（P0 缺陷，已修）。
+      words += ' ' + (ch === '0' ? 'zero' : ones[parseInt(ch, 10)]);
     }
   }
   return (neg ? 'minus ' : '') + words;
@@ -286,7 +291,8 @@ function convert(){
     const __h2='<p style="color:var(--danger);">超出范围（最大 ±999,999,999,999）</p>';if((typeof __h2==='number'&&!isFinite(__h2))||__h2==='Infinity'||__h2==='-Infinity'||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){document.getElementById('resultBox').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('resultBox').innerHTML=__h2;
     return;
   }
-  const word = numberToWords(n);
+  const dotAt = v.indexOf('.');
+  const word = numberToWords(n, dotAt >= 0 ? v.slice(dotAt + 1) : null);
   const __h3=`
     <p>数字：<strong>${v}</strong></p>
     <p>英文单词：<strong>${word}</strong></p>
