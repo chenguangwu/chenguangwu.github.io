@@ -91,6 +91,11 @@ footer{{text-align:center;color:var(--muted);font-size:13px;padding:24px;border-
 '''
 
 
+# 修正模板：CSS 与 JSON-LD 误写成双花括号（本意单花括号），统一为单花括号。
+# 仅作用于 <style> 与 <script type="application/ld+json"> 块；{title}/{desc} 等单花括号占位符不受影响。
+TPL = TPL.replace('{{', '{').replace('}}', '}')
+
+
 def li(items):
     return ''.join('<li>%s</li>' % html.escape(str(x)) for x in items)
 
