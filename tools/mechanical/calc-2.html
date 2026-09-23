@@ -157,7 +157,7 @@ s.parentNode.insertBefore(el, s);
         <li>传动比 i = z₂ / z₁</li>
         <li>链速 v = z₁ × p × n₁ / 60000（m/s）</li>
         <li>链节数 Lp = 2a₀/p + (z₁+z₂)/2 + [(z₂−z₁)/(2π)]² × p/a₀，结果取偶数</li>
-        <li>包角 α₁ ≈ 180° − 57.3°×(z₂−z₁)×p/a₀</li>
+        <li>包角 α₁ ≈ 180° − 57.3°×(d₂−d₁)/a₀（d = p/sin(π/z) 为链轮分度圆直径）</li>
       </ul>
     </div>
   </div>
@@ -183,9 +183,12 @@ function calcChain() {
   const LpFloat = 2 * a0 / p + (z1 + z2) / 2 + Math.pow((z2 - z1) / (2 * Math.PI), 2) * p / a0;
   const Lp = Math.round(LpFloat);
   const LpEven = Lp % 2 === 0 ? Lp : Lp + 1;
-  const alphaDeg = 180 - 57.3 * (z2 - z1) * p / a0;
   const pitchCircleD1 = p / Math.sin(Math.PI / z1);
   const pitchCircleD2 = p / Math.sin(Math.PI / z2);
+  // 包角按「分度圆直径差」计算：α₁ ≈ 180° − 57.3°×(d₂−d₁)/a₀。
+  // 曾用 (z₂−z₁)×p（周长差），比直径差大约 π 倍 ⇒ 包角被系统性低估（默认参数下 110.9° vs 真值 158.0°），
+  // 会误触发「包角 <120° 需加大中心距」的错误建议。
+  const alphaDeg = 180 - 57.3 * (pitchCircleD2 - pitchCircleD1) / a0;
   const force = v > 0 && power > 0 ? power * 1000 / v : 0;
 
   const html = `
@@ -244,8 +247,8 @@ calcChain();
 <li>校核链速（普通滚子链宜 ≤15 m/s）与小链轮包角（宜 ≥120°），判断是否需调整参数。</li>
 <li>由传递功率与链速反算紧边拉力，为链条规格与润滑方式选择提供依据。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">公式</div><div class="dd-ex-body">传动比 i = z2/z1；链速 v = z1·p·n1/60000（m/s，p 为节距 mm）；n2 = n1/i；链节数 Lp = 2a0/p + (z1+z2)/2 + [(z2−z1)/(2π)]²·p/a0，结果取偶；小轮包角 α1 ≈ 180° − 57.3·(z2−z1)·p/a0；链轮分度圆 d = p/sin(π/z)；紧边拉力 F = P×1000/v（N）。推荐链速 ≤15 m/s。</div></div>
-<div class="dd-example"><div class="dd-ex-title">算例</div><div class="dd-ex-body">小链轮 z1=19、大链轮 z2=57、节距 p=15.875 mm、中心距 a0=500 mm、n1=970 r/min、功率 7.5 kW：i = 3.00；v = 19×15.875×970/60000 ≈ 4.88 m/s；n2 ≈ 323.3 r/min；理论链节数 ≈ 102.15，取偶后 Lp = 102 节；α1 ≈ 110.9°（低于 120°，建议加大中心距或减小传动比）；小轮分度圆 ≈ 96.45 mm、大轮 ≈ 288.18 mm；紧边拉力 ≈ 1538.1 N。</div></div>
+<div class="dd-example"><div class="dd-ex-title">公式</div><div class="dd-ex-body">传动比 i = z2/z1；链速 v = z1·p·n1/60000（m/s，p 为节距 mm）；n2 = n1/i；链节数 Lp = 2a0/p + (z1+z2)/2 + [(z2−z1)/(2π)]²·p/a0，结果取偶；小轮包角 α1 ≈ 180° − 57.3·(d2−d1)/a0（d = p/sin(π/z) 为链轮分度圆直径）；链轮分度圆 d = p/sin(π/z)；紧边拉力 F = P×1000/v（N）。推荐链速 ≤15 m/s。</div></div>
+<div class="dd-example"><div class="dd-ex-title">算例</div><div class="dd-ex-body">小链轮 z1=19、大链轮 z2=57、节距 p=15.875 mm、中心距 a0=500 mm、n1=970 r/min、功率 7.5 kW：i = 3.00；v = 19×15.875×970/60000 ≈ 4.88 m/s；n2 ≈ 323.3 r/min；理论链节数 ≈ 102.15，取偶后 Lp = 102 节；α1 ≈ 158.0°（大于 120°，包角充足）；小轮分度圆 ≈ 96.45 mm、大轮 ≈ 288.18 mm；紧边拉力 ≈ 1538.1 N。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
 <dt>链节数为什么要取偶？</dt><dd>链条由内、外链节交替组成，必须用偶数节链条配一个连接链节才能闭合；奇数节需额外的过渡链节，其强度明显低于普通链节，设计中应尽量避免。</dd>
