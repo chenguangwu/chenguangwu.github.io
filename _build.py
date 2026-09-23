@@ -32,6 +32,17 @@ import tool_desc_source as TDS
 import category_auto_content as CAUTO
 
 
+def _strip_seo_extra(s):
+    """剥离构建期追加的 SEO 标题修饰（幂等）：`工具名 - XX在线工具` -> `工具名`。
+    用于 t['name'] 解析：第二次构建时页面 <title> 已含修饰，若不剥离会把修饰
+    当工具名导致嵌套（实测污染 tools.json 763 条 / 分类卡片）。"""
+    prev = None
+    while s and s != prev:
+        prev = s
+        s = re.sub(r'\s*-\s*[^-]{2,16}在线工具\s*$', '', s).strip()
+    return s
+
+
 def _clean_en_desc(s):
     """Strip the identical boilerplate suffix from English meta descriptions.
 
@@ -1787,11 +1798,16 @@ def get_tool_info(filepath):
 
     tb_meta = parse_toolbox_meta(content)
 
-    # Title
+    # Title：优先页面内 <h1>（纯工具名，稳定、不被 SEO 标题修饰污染——<title> 会被
+    # 构建期加功能修饰，若从 <title> 取 name 会导致修饰嵌套），其次 toolbox meta 的
+    # name=，最后 <title>（兜底并幂等剥离 SEO 修饰）。
+    h1_m = re.search(r'<h1[^>]*>([\s\S]*?)</h1>', content)
+    h1_title = re.sub(r'<[^>]+>', '', h1_m.group(1)).strip() if h1_m else ''
+    h1_title = re.sub(r'^[\U0001F000-\U0001FAFF\u2600-\u27BF\u2B00-\u2BFF\u2190-\u21FF]+\s*', '', h1_title).strip()
     title_m = re.search(r'<title>(.+?)\s*-\s*ToolBox\s*</title>', content)
     if not title_m:
         title_m = re.search(r'<title>([^<]+)</title>', content)
-    title = tb_meta.get('name') or (title_m.group(1).strip() if title_m else name_base)
+    title = _strip_seo_extra(tb_meta.get('name') or h1_title or (title_m.group(1).strip() if title_m else name_base))
 
     # Description from h2 or meta
     desc_m = re.search(r'<h2[^>]*>(.+?)</h2>', content, re.S)
@@ -3048,6 +3064,10 @@ def fix_tool_pages_seo(tools, target_tools=None, report=True, existing_html_path
                 continue
             if _BAD_DESC_PAT.search(txt):
                 continue
+            # 跳过公式串（等号多但中文少，如「年折旧 = (n−k+1)/SYD × (C−S)」），
+            # 公式不适合当 meta description（用户不可读）。
+            if txt.count('=') >= 1 and len(re.findall(r'[\u4e00-\u9fff]', txt)) < 10:
+                continue
             if re.search(r'[\u4e00-\u9fff]', txt) and len(txt) >= 8:
                 return txt
         h2 = re.search(r'<h2[^>]*>([\s\S]*?)</h2>', body)
@@ -3057,7 +3077,9 @@ def fix_tool_pages_seo(tools, target_tools=None, report=True, existing_html_path
             if re.search(r'[\u4e00-\u9fff]', txt) and not _BAD_DESC_PAT.search(txt):
                 return txt
         zh_title = _zh_title_of(industry, base) or t.get('name') or ''
-        return '%s - 免费在线工具，纯前端运行，数据不上传。' % zh_title
+        _ind_n = INDUSTRY_DEFS.get(industry, ('', industry))[1]
+        return ('%s是一款免费的在线%s工具，输入参数即可实时得出结果；'
+                '纯前端运行、数据不上传、无需注册，打开浏览器即可使用。' % (zh_title, _ind_n))
 
     for t in target_tools if target_tools is not None else tools:
         filepath = os.path.join(TOOLS_DIR, t['path'])
@@ -3276,6 +3298,22 @@ def fix_tool_pages_seo(tools, target_tools=None, report=True, existing_html_path
                 # 标题只显示工具名，不再追加「 - ToolBox」品牌后缀（老板要求）；
                 # 同时幂等剥离可能残留的「（免费）」「免费在线工具」「 - ToolBox / | ToolBox」。
                 _zh_t = _zh_title.replace('（免费）', '').replace('免费在线工具', '').replace(' - ToolBox', '').replace(' | ToolBox', '').strip()
+                # SEO 标题增强（2026-09-23，老板批准）：纯工具名过短时追加功能修饰。
+                # 仅影响 <title>/og:title/twitter:title 等 head 元数据；页面内可见的工具名
+                # （h1 / 分类卡片 / 列表）保持不变（老板要求：分类内仍只显示纯工具名，否则太长不好看）。
+                if len(re.findall(r'[\u4e00-\u9fff]', _zh_t)) < 12:
+                    _seo_src = (_ind_cache.get(industry, {}) or {}).get(_base, {}) or {}
+                    _seo_intro = (_seo_src.get('zh-CN', {}) or {}).get('intro') or ''
+                    _seg = ''
+                    if _seo_intro:
+                        _seg = re.split(r'[—\-–，。；：、|/（(]', _seo_intro.strip(), 1)[0].strip()
+                        _seg = re.sub(r'\s+', ' ', _seg)
+                        if _zh_t in _seg:
+                            _seg = _seg.replace(_zh_t, '').strip(' -：:（()）')
+                    if (len(re.findall(r'[\u4e00-\u9fff]', _seg)) < 3
+                            or _seg.replace(' ', '') == _zh_t.replace(' ', '')):
+                        _seg = '%s在线工具' % ind_name
+                    _zh_t = ('%s - %s' % (_zh_t, _seg))[:60]
                 _en_full = _en_t.replace('（免费）', '').replace('免费在线工具', '').replace(' - ToolBox', '').replace(' | ToolBox', '').strip() if _en_t else _zh_t
                 # 初始 title 渲染中文（中文优先）
                 content = content.replace(_m_t.group(0), '<title>%s</title>' % esc_once(_zh_t), 1)
@@ -3299,6 +3337,25 @@ def fix_tool_pages_seo(tools, target_tools=None, report=True, existing_html_path
         # 初始 description 渲染为中文（优先 per-industry 字典 zh-CN.intro/desc，其次页面中文正文），
         # 英文描述存 <meta name="desc-en"> 供前端 en-US 切换（见 js/i18n.js syncDesc）。
         _zh_desc_raw = extract_zh_desc(content, t, industry, entry)
+        # 过短描述治理（2026-09-23，老板批准）：< 20 汉字时补真实价值句，达 SEO 合格长度；
+        # ≥20 汉字的描述（多数已合格）保持原样不动。
+        if len(re.findall(r'[\u4e00-\u9fff]', _zh_desc_raw)) < 20:
+            _d_base = os.path.splitext(os.path.basename(t['path']))[0]
+            _d_name = _zh_title_of(industry, _d_base) or t.get('name') or ''
+            _d_core = _zh_desc_raw.strip().rstrip('。')
+            # 套话/公式型核心句不嵌入（否则描述生硬）：命中套话模板或含等号（公式）
+            # 或与工具名相同，一律改用通用价值句。
+            _d_bad = bool(re.search(
+                r'工作与生活中的相关计算与查询|相关计算与查询|帮助计算.{0,10}(指标|需求)|'
+                r'相关日常任务|相关计算与查询需求', _d_core)) or _d_core.count('=') >= 1
+            if len(re.findall(r'[\u4e00-\u9fff]', _d_core)) >= 6 and not _d_bad and _d_core != _d_name:
+                _zh_desc_raw = ('%s是一款免费的在线%s工具，%s。'
+                                '纯前端运行、数据不上传、无需注册，打开浏览器即可使用。'
+                                % (_d_name, ind_name, _d_core))
+            else:
+                _zh_desc_raw = ('%s是一款免费的在线%s工具，输入参数即可实时得出结果；'
+                                '纯前端运行、数据不上传、无需注册，打开浏览器即可使用。'
+                                % (_d_name, ind_name))
         seo_desc = esc_once(_zh_desc_raw[:120])
         anchor = I18N_HREFLANG_MARKER if I18N_HREFLANG_MARKER in content else '</head>'
         seo_tags = ''
