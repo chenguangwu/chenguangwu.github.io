@@ -154,11 +154,11 @@ def check_tool(filepath, rel_path):
         if 'icon' not in meta:
             warnings.append('meta toolbox 缺少 icon 字段')
     
-    # 3. 标题格式检查
+    # 3. 标题检查
+    #    只校验 <title> 是否存在；不再校验是否以 " - ToolBox" 结尾
+    #    （title 已统一为纯工具名，不再追加品牌后缀，故该格式约束作废）
     if not parser.title:
         errors.append('缺少 <title>')
-    elif not parser.title.strip().endswith('- ToolBox'):
-        warnings.append(f'title 格式不规范: "{parser.title.strip()}" (应以 " - ToolBox" 结尾)')
     
     # 4. 公共资源路径检查
     # 计算路径深度: tools/<industry>/file.html -> 深度 2，需要 ../../
