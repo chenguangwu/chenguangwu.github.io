@@ -315,20 +315,20 @@
 
 ### 10.2 现状（实测基线）
 
-- `all_default 210 / no_inputs 195 / escape 0`；`checked=3161`；门禁 `run_gates.py` **217 项全过**、逃生项 0（判别器已检 **2728** 例 / 跳过 433）。
+- `all_default 199 / no_inputs 195 / escape 0`；`checked=3161`；门禁 `run_gates.py` **217 项全过**、逃生项 0（判别器已检 **2739** 例 / 跳过 422）。
 - A 级率 **99.2%**（A 4693 / B 32 / C 4，共 4729）；deep-dive 术语内链 **1591 页 / 2268 条 / 唯一目标 630**（零死链、零自链、单页 ≤6 条）。**注：内链不影响质量分级**（`own_len` 只统计 `<script>` 内容）。
-- 存量弱用例 **405 例**（`no_inputs=195` / `all_default=210`），**转 P3 顺带**，不单独成批。
+- 存量弱用例 **394 例**（`no_inputs=195` / `all_default=199`），**转 P3 顺带**，不单独成批。
   - **注意：弱用例整体处于判别器盲区** —— `discriminate_check` 对「注入值本就等于默认值」的用例判 `usable=false` ⇒ **直接跳过**（§10.5）。故 `escape=0` 只说明「强用例无逃生项」，弱用例的逃生项从未被检查；每批改造弱用例后必须重跑判别器确认其由「跳过」转为「已检且变红」。
 
 ### 10.3 弱用例去默认化（仅在 P0/P1 顺带时执行）
 
-**存量 405 例**（`no_inputs=195` / `all_default=210`，selfcheck 口径；含 textarea/动态 id 的「skip」类全站 418）。
+**存量 394 例**（`no_inputs=195` / `all_default=199`，selfcheck 口径；含 textarea/动态 id 的「skip」类全站 407）。
 
 **选批预筛清单（2026-09-24 实测 · 弱例数 / 其中可注入数）** —— 按「可注入数」降序挑批次，**不可注入的不要选**（页面静态 HTML 里 `grep 'id='` 为 0，控件由 innerHTML 动态生成，属 §7.1 保留项）：
 
-signal 11/11、design 9/9、gas 9/9、mechanical 8/8、cleaning 7/7、finance 7/7、sports 7/7、chemical 6/6、mining 9/8、dermatology 12/9、travel 9/7、endocrinology 7/6、fire 7/6、rheumatology 7/5、language 6/5、aquaculture 5/5、bridge 5/5、glass 5/5、life 5/5、manufacturing 5/5、maritime 5/5、medical2 5/5。
+design 9/9、gas 9/9、mechanical 8/8、cleaning 7/7、finance 7/7、sports 7/7、chemical 6/6、mining 9/8、dermatology 12/9、travel 9/7、endocrinology 7/6、fire 7/6、rheumatology 7/5、language 6/5、aquaculture 5/5、bridge 5/5、glass 5/5、life 5/5、manufacturing 5/5、maritime 5/5、medical2 5/5。
 
-**不可注入（结构性，勿选）**：`psychiatry` 24 例里 **18 例**页面只有 `id="quiz"` + innerHTML 渲染（`gad7`/`phq9`/`pcl5`/`mdq`/`asrs`/`cage`/`isi`/`ybocs`/`bis11`/`cdrisc`/`lsas`/`panss`/`pdss`/`phq15`/`eat26`/`cssrs`/`aq`/`les`），`tcm-diagnosis` 14 例同类；`engineering` 已于 2026-09-24 清零（判别力由「已检 0 / 跳过 14」→「已检 14 / 全数变红」）。
+**不可注入（结构性，勿选）**：`psychiatry` 24 例里 **18 例**页面只有 `id="quiz"` + innerHTML 渲染（`gad7`/`phq9`/`pcl5`/`mdq`/`asrs`/`cage`/`isi`/`ybocs`/`bis11`/`cdrisc`/`lsas`/`panss`/`pdss`/`phq15`/`eat26`/`cssrs`/`aq`/`les`），`tcm-diagnosis` 14 例同类；`engineering`、`signal` 已于 2026-09-24 清零（判别力分别由「已检 0 / 跳过 14」→「已检 14 / 全数变红」、「已检 13 / 跳过 11」→「已检 24 / 全数变红」）。
 
 ### 10.4 每批收口流程（顺带改造时六步，缺一不可）
 
