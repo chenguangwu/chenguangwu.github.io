@@ -3047,7 +3047,160 @@ def _inject_into_document_head(content, block):
     return content[:bounds[2]] + block + content[bounds[2]:]
 
 
-def _build_deep_dive_html(d):
+# ============================================================
+# 站内术语内链（§4.1.7「SEO 与专业性」）
+#
+# 把「深度解析」正文里出现的专业名词链到站内对应的工具页 / 指南页。
+# 方案 = 站内内链（零死链、可校验），替代原计划的「权威站外链」。
+#
+# 术语来源：① 工具中文名；② 工具名剥通用后缀后的核心词（如「样本量计算器」→「样本量」）；
+#           ③ 指南标题（去「使用指南」后缀）。
+# 目标过滤：目标文件必须存在 + 不得是 TOOLBOX-REDIRECT 存根页 —— 结构性保证零死链。
+# 约束：长词优先（短词不污染长词内部）、每个术语每页只链一次、每页上限
+#       TERM_LINK_MAX_PER_PAGE 条、不链自身页面、ASCII 术语要求词边界
+#       （防 `CSS` 命中 `CSS3`、`JSON` 命中 `JSONP`）。
+# ============================================================
+TERM_LINK_MAX_PER_PAGE = 6
+TERM_LINK_MIN_LEN = 3
+_TERM_LINK_SUFFIXES = (
+    '计算器', '生成器', '转换器', '换算器', '查询工具', '查询', '检测工具', '检测',
+    '计算工具', '换算工具', '生成工具', '工具', '器', '计算', '换算', '生成',
+    '格式化', '转换', '分析', '评估', '对比', '诊断', '检查',
+)
+_TERM_LINK_CJK = re.compile(r'[\u4e00-\u9fff]')
+_TERM_LINK_ALNUM = re.compile(r'[A-Za-z0-9]')
+_TERM_LINK_CACHE = None
+
+
+def _term_link_core_terms(name):
+    """工具名 → 候选术语（原名 + 剥通用后缀后的核心词）。
+
+    ⚠️ 原名同样受 TERM_LINK_MIN_LEN 约束：2 字词（如「公式」「温度」「阻力」）是泛词，
+    做内链会大面积误链（实测「公式」曾命中 844 次）。
+    """
+    out = [name] if len(name) >= TERM_LINK_MIN_LEN else []
+    for suf in _TERM_LINK_SUFFIXES:
+        if name.endswith(suf) and len(name) - len(suf) >= TERM_LINK_MIN_LEN:
+            short = name[:-len(suf)].strip('（()） ')
+            if len(short) >= TERM_LINK_MIN_LEN:
+                out.append(short)
+    return out
+
+
+def _term_link_is_live(rel):
+    """rel 形如 'tools/it/foo.html' → 该页能否作为内链目标（存在 且 非重定向存根）。
+
+    存根标记写在页面第 2 行，只读前 400 字节即可判定（与 audit_industry.py 同口径）。
+    """
+    p = os.path.join(ROOT, rel)
+    if not os.path.isfile(p):
+        return False
+    try:
+        with open(p, encoding='utf-8', errors='ignore') as fh:
+            return 'TOOLBOX-REDIRECT' not in fh.read(400)
+    except OSError:
+        return False
+
+
+def _term_link_data():
+    """构建并缓存「术语 → 站内 URL」索引：(cand, first_map)。
+
+    first_map[首字母] = [(术语, url), ...]，按术语长度降序 —— 供 linkify 逐字符扫描时
+    只试「以当前字符开头」的少数候选（实测平均 4.3 个/首字母），避免每段文本遍历上万术语。
+    """
+    global _TERM_LINK_CACHE
+    if _TERM_LINK_CACHE is not None:
+        return _TERM_LINK_CACHE
+    jdir = os.path.join(ROOT, 'json')
+    cand = {}
+    try:
+        _tools = json.load(open(os.path.join(jdir, 'tools.json'), encoding='utf-8'))
+    except Exception:
+        _tools = []
+    for t in _tools:
+        name = (t.get('name') or '').strip()
+        rel = (t.get('url') or ('tools/' + (t.get('path') or '').lstrip('/'))).lstrip('/')
+        if not name or not rel or not _term_link_is_live(rel):
+            continue
+        url = '/' + rel
+        for term in _term_link_core_terms(name):
+            # 工具页优先于指南页（用户可直接试用），setdefault 保序
+            cand.setdefault(term, url)
+    try:
+        _guides = json.load(open(os.path.join(jdir, 'guides.json'), encoding='utf-8'))
+    except Exception:
+        _guides = []
+    for g in _guides:
+        title = re.sub(r'使用指南$', '', (g.get('title') or '').strip()).strip()
+        rel = re.sub(r'^(\.\./)+', '', (g.get('guide') or '').strip()).lstrip('/')
+        if not title or not rel or not _term_link_is_live(rel):
+            continue
+        url = '/' + rel
+        for term in _term_link_core_terms(title):
+            cand.setdefault(term, url)
+    first_map = {}
+    for tm in sorted(cand, key=lambda s: (-len(s), s)):
+        first_map.setdefault(tm[0], []).append((tm, cand[tm]))
+    _TERM_LINK_CACHE = (cand, first_map)
+    return _TERM_LINK_CACHE
+
+
+def _term_link_state(own_slug=''):
+    """一次 deep-dive 渲染的共享内链状态：跨「场景 / 示例 / FAQ」字段统一去重与配额。"""
+    return {
+        'own': ('/tools/%s.html' % own_slug) if (own_slug and '/' in own_slug) else '',
+        'left': TERM_LINK_MAX_PER_PAGE,
+        'urls': set(),
+    }
+
+
+def linkify_terms(text, own_slug='', state=None):
+    """把 text 中的站内专业术语包成 <a class="term-link">，返回已转义的 HTML。
+
+    算法：逐字符从左到右扫描，在每个位置试「以该字符开头」的候选（长度降序）
+    ⇒ 天然「最长匹配优先」、天然不重叠；命中后跳过整个术语长度。
+    own_slug 形如 'it/foo'（行业/文件名）；state 见 _term_link_state（同一页多次调用须共享）。
+    """
+    if not text:
+        return ''
+    st = state if state is not None else _term_link_state(own_slug)
+    cand, first_map = _term_link_data()
+    if not cand:
+        return esc_html_py(text)
+    raw = str(text)
+    n = len(raw)
+    spans = []
+    i = 0
+    while i < n and st['left'] > 0:
+        for tm, url in first_map.get(raw[i], ()):
+            # 不链自身页面；同一目标页每页只链一次（防「哈希计算器」+「哈希计算」双链同页）
+            if url == st['own'] or url in st['urls'] or not raw.startswith(tm, i):
+                continue
+            end = i + len(tm)
+            # ASCII 术语要求词边界（防 `CSS` 命中 `CSS3`、`JSON` 命中 `JSONP`）
+            if not _TERM_LINK_CJK.search(tm) and (
+                    (i > 0 and _TERM_LINK_ALNUM.match(raw[i - 1]))
+                    or (end < n and _TERM_LINK_ALNUM.match(raw[end]))):
+                continue
+            spans.append((i, end, url))
+            st['urls'].add(url)
+            st['left'] -= 1
+            i = end
+            break
+        else:
+            i += 1
+    if not spans:
+        return esc_html_py(raw)
+    out, prev = [], 0
+    for a, b, url in spans:
+        out.append(esc_html_py(raw[prev:a]))
+        out.append('<a class="term-link" href="%s">%s</a>' % (url, esc_html_py(raw[a:b])))
+        prev = b
+    out.append(esc_html_py(raw[prev:]))
+    return ''.join(out)
+
+
+def _build_deep_dive_html(d, own_slug=''):
     """构建「内容深度」区块 HTML：独有使用场景 / 实际示例 / FAQ，打掉模板化页过滤。"""
     if not isinstance(d, dict):
         return ''
@@ -3067,27 +3220,34 @@ def _build_deep_dive_html(d):
         '.deep-dive .dd-faq{margin:8px 0 4px;}\n'
         '.deep-dive .dd-faq dt{font-weight:600;margin-top:10px;color:var(--text,#333);}\n'
         '.deep-dive .dd-faq dd{margin:4px 0 0;font-size:13px;line-height:1.85;color:var(--text-muted,#666);}\n'
+        '.deep-dive a.term-link{color:var(--tool-accent,#FF6B35);text-decoration:none;border-bottom:1px dashed currentColor;}\n'
+        '.deep-dive a.term-link:hover{border-bottom-style:solid;}\n'
     )
     parts.append('</style>')
     parts.append('<section class="deep-dive" data-deep-dive="1">')
     parts.append('<div class="card">')
     parts.append('<h2>📚 深度解析：%s</h2>' % title)
+    # §4.1.7：正文专业名词 → 站内工具页 / 指南页内链。
+    # _lk 为整页共享状态：跨「场景 / 示例 / FAQ」统一计数去重 ⇒ 单页总上限 TERM_LINK_MAX_PER_PAGE。
+    _lk = _term_link_state(own_slug)
     _sc = d.get('scenarios') or []
     if _sc:
         parts.append('<h3>💡 常见使用场景</h3>')
         parts.append('<ul class="dd-list">')
         for s in _sc:
-            parts.append('<li>%s</li>' % esc_html_py(s))
+            parts.append('<li>%s</li>' % linkify_terms(s, state=_lk))
         parts.append('</ul>')
     for e in (d.get('examples') or []):
         parts.append('<div class="dd-example"><div class="dd-ex-title">%s</div><div class="dd-ex-body">%s</div></div>'
-                    % (esc_html_py(e.get('title', '')), esc_html_py(e.get('body', ''))))
+                    % (linkify_terms(e.get('title', ''), state=_lk),
+                       linkify_terms(e.get('body', ''), state=_lk)))
     _fq = d.get('faqs') or []
     if _fq:
         parts.append('<h3>❓ 常见问题（FAQ）</h3>')
         parts.append('<dl class="dd-faq">')
         for f in _fq:
-            parts.append('<dt>%s</dt><dd>%s</dd>' % (esc_html_py(f.get('q', '')), esc_html_py(f.get('a', ''))))
+            parts.append('<dt>%s</dt><dd>%s</dd>' % (linkify_terms(f.get('q', ''), state=_lk),
+                                                   linkify_terms(f.get('a', ''), state=_lk)))
         parts.append('</dl>')
     parts.append('</div>')
     parts.append('</section>')
@@ -3809,7 +3969,7 @@ def fix_tool_pages_seo(tools, target_tools=None, report=True, existing_html_path
         #    幂等：先清除已有深度块（兼容旧构建无 marker 残留 / 重复注入），再注入，重跑构建不叠加。
         #    锚点三级回退：手工页「注意事项区块」→ 生成页「相关工具」(step5 注入) → 纯 JS 计算页兜底「</body>」(全页存在)。
         if _seo_slug in DEEP_DIVE:
-            _dd_html = _build_deep_dive_html(DEEP_DIVE[_seo_slug])
+            _dd_html = _build_deep_dive_html(DEEP_DIVE[_seo_slug], _seo_slug)
             # 绝大多数构建中配置与已提交 HTML 完全一致。先做快速精确
             # 命中，避免对约 5000 个完整页面反复执行三次删除正则再原样插回。
             if _dd_html and _dd_html not in content:
