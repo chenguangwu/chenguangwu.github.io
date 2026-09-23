@@ -156,6 +156,10 @@ s.parentNode.insertBefore(el, s);
         <label>允许偏差（秒）</label>
         <input type="number" id="tolerance" value="2" min="0" max="30" step="0.5" oninput="compare()">
       </div>
+      <div>
+        <label>完成耗时（秒，可手动录入）</label>
+        <input type="number" id="manualTime" value="" min="0" step="0.1" placeholder="或点「开始」计时" oninput="compare()">
+      </div>
     </div>
 
     <div class="toolbar" style="margin-top:12px;">
@@ -197,7 +201,7 @@ s.parentNode.insertBefore(el, s);
 <h3>💡 常见使用场景</h3>
 <ul class="dd-list">
 <li>武术/套路比赛演练：不同拳种规定完成时间（长拳70-90s、南拳65-85s、太极拳300-420s、太极剑180-240s、刀枪剑棍70-90s），器械演练完即停表，工具比对标准时长并估算扣分。</li>
-<li>日常训练自测：用计时器记录单遍套路耗时，对比自身历史与标准范围，判断节奏是否偏快或偏慢，辅助修正演练速度。</li>
+<li>日常训练自测：用页面计时器记录单遍套路耗时，或直接在「完成耗时」框手动录入已知成绩，对比标准范围判断节奏偏快/偏慢，辅助修正演练速度。</li>
 <li>裁判/教练复核：现场输入实测耗时与该项目标准，立即得偏差与是否在允许范围，支持赛前节奏校准。</li>
 </ul>
 <div class="dd-example"><div class="dd-ex-title">算例：长拳标准比对</div><div class="dd-ex-body">长拳标准时长范围 70-90s，标准取值=(70+90)/2=80s，容差2s。
@@ -208,6 +212,7 @@ s.parentNode.insertBefore(el, s);
 <dl class="dd-faq">
 <dt>标准时长是怎么定的？</dt><dd>各拳种竞赛规则规定演练时间区间（如长拳 70-90s、太极拳 300-420s），标准取值取区间中值；偏差在容差内判优秀，在区间内判良好，超出区间按每超 1s 扣 0.5 分估算。</dd>
 <dt>为什么太极拳不扣下限？</dt><dd>太极拳讲究缓慢匀称，规则对「过快」通常不做下限扣分（下限偏快反而影响韵味），只对超时（超上限）扣分；其余快节奏拳种上下限均约束。</dd>
+<dt>必须用页面计时器吗？</dt><dd>不必。可用「▶ 开始 / ⏹ 停止」计时，也可直接在「完成耗时（秒）」框手动录入已知成绩（如教练旧记录、其他设备读数）；两者取先有的有效耗时参与比对。未录入有效耗时时不显示速度比率与扣分，避免出现无意义的比值。</dd>
 </dl>
 </div>
 </section>
@@ -262,6 +267,7 @@ function stopTimer(){
   $('startBtn').disabled=false;
   $('stopBtn').disabled=true;
   recordedTime=elapsed;
+  $('manualTime').value=recordedTime.toFixed(1);
   compare();
 }
 function resetTimer(){
@@ -269,6 +275,7 @@ function resetTimer(){
   timerRunning=false;
   elapsed=0;
   recordedTime=0;
+  $('manualTime').value='';
   $('startBtn').disabled=false;
   $('stopBtn').disabled=true;
   updateDisplay();
@@ -282,11 +289,18 @@ function updateDisplay(){
   $('timerDisplay').textContent=String(m).padStart(2,'0')+':'+String(s).padStart(2,'0')+'.'+ms;
 }
 function useRecorded(){
-  if(recordedTime<=0){ToolBox.showToast(i18nText(),'warning');return;}
+  if(recordedTime<=0){ToolBox.showToast('尚无计时结果，请先点击「▶ 开始」计时','warning');return;}
+  $('manualTime').value=recordedTime.toFixed(1);
   compare();
 }
 function compare(){
-  var myTime=recordedTime>0?recordedTime:elapsed;
+  var mt=parseFloat($('manualTime').value);
+  var myTime=(!isNaN(mt)&&mt>0)?mt:(recordedTime>0?recordedTime:elapsed);
+  if(!(myTime>0)){
+    $('dataGrid').innerHTML='<p style="color:var(--text-muted);">尚未录入完成耗时 —— 可点「▶ 开始」计时后「⏹ 停止」，或直接在「完成耗时」框中输入秒数。</p>';
+    $('result').innerHTML='<p style="color:var(--text-muted);">录入有效耗时后，这里显示偏差、速度比率与扣分评估。</p>';
+    return;
+  }
   var std=parseFloat($('standardTime').value)||80;
   var tol=parseFloat($('tolerance').value)||2;
   var diff=myTime-std;
