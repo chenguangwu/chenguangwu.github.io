@@ -2,7 +2,7 @@
 
 > **本文件只放「待处理任务」与「干活必须遵守的规则」。已完成项、批次成果、历史操作流水一律不写入** —— 归档走 `.workbuddy/memory/YYYY-MM-DD.md`；历史全量快照另存 `.workbuddy/memory/archive-devplan-full-2026-09-23.md`。
 > **收尾口径（老板 2026-09-21 明确）**：闭环 = 本地 build / 门禁通过 + GitHub 部署成功（Actions run success）。**不做线上产物 MD5 落盘比对、不 sleep、不轮询 API**；纯文档类改动（`*.md`、memory）不等部署。
-> **状态（2026-09-23）**：全站 209 分类 §4.1 八项目标已收口；A 级率 96.9%；SEO（title / desc / h1 / JSON-LD）维度已治理。**当前主线 = 96 个小行业（687 页）默认态公式精查**（§十 方向1）。
+> **状态（2026-09-23）**：全站 209 分类 §4.1 八项目标已收口；A 级率 96.9%；SEO（title / desc / h1 / JSON-LD）维度已治理；96 个小行业（687 页）默认态 + 边界态精查**已闭环**（见 §10.6 方向1）。**当前无进行中批次，待办见 §九。**
 
 ---
 
@@ -150,7 +150,6 @@
   - **2026-09-23 实测补记（勿再盲改 harness）**：对 ② 在正式门禁 `scripts/verify_it_calc.js` 实施「`innerHTML` setter 解析 `id=` 注册桩元素」改造，全量门禁立即暴露 `psychology/calc-12` 崩溃（该页用 `innerHTML` 渲染滑块，`getElementById` 读到空桩后读 `.length`/`.trim` 即崩）。**根因**：harness 缺「真实 DOM 行为」模拟，单点 `id` 注册会误伤**所有用 innerHTML 渲染 UI 的页**。已 `git checkout HEAD -- scripts/verify_it_calc.js` 还原，216/216 恢复全绿。**结论**：② 不能靠 `id` 注册解决，须立项「innerHTML 真实 DOM 模拟」专项（大工程，需评估工期）；在此之前**维持原纪律"盲区先排除，再回源码复核"**。缺口 ① 同理风险更高，未实施。
 - **`metalwork/tester-19` ≤1kV 耐压分支无法构造判别用例**：该分支输出恒为常数 `3.5 kV`（与 `ratedV` 取值无关），任何 `expect` 都会在**默认态**命中 → 必被判逃生项，故**刻意不补用例**；该修复（`0.0 kV → 3.5 kV`）只能靠隔离器人工跑 + 代码评审保真，回归时注意。
 - **「多页签（mode）」页面的非默认页签分支无法被 harness 覆盖**：切页签必须带参调用 `setMode(1)`，而 harness 只无参调用候选函数 → 双样本/第二种模式分支永不执行，`expect` 只对默认页签有效。**复核口径**：复制页面到 `tools/<ind>/_tmp-xxx.html`，把 `let currentMode=0;` 改成 `1` → 隔离器单跑 → **立即删除副本**（勿留待提交）。
-- **96 个小行业（<15 页，687 页）未做默认态公式精查**（当前主线，见 §十 方向1）。
 - **永久排除（不下架）**：同名异功能 `finance/salary-after-tax`↔`payroll-calculator`、`ophthalmology/self-assess-2`↔`osdi-scale`；跨行业同名编号页（calc-N/rater-N 等 17 个 basename）经内容哈希取证均为不同工具、内容各异，非重复，不处理。
 
 **P2 — 低优先级**
@@ -257,6 +256,7 @@
 - **隔离器 `tagAttrs` 必须支持「裸属性」**：只认带值属性的正则会把 `<option … selected>` / `<input … checked>` 整条丢弃 → `preset` 恒落回 `opts[0]`，**全站含 `<select>` 的页默认值都被读成首项**。修法：`([a-zA-Z-]+)(?:="([^"]*)")?`，缺值补 `''`。**凡「引擎默认值与源码 `selected`/`checked` 不符」先查这一条。**
 - **deep-dive 主题错配（页面讲 A、词条写 B）是中批量改写的连带产物**：判据 = 词条 `title`/`scenarios` 与页面**当前** `<h2 data-zh>` 不是同一工具。修法：按页面**真实 `calc()` 算法**重写。
 - **隔离器桩必须补齐（否则把「未审计」伪装成「桩盲区/无输出」）**：`<textarea>` 默认文本、逐个触发器（一旦写出结果即止）、无 `calc` 命名时取「函数最多」的脚本块、`innerHTML` setter 里 parse `input`/`textarea`/`select` 注册回 `store`、以及 `MutationObserver`/`getElementsByName`/`style.setProperty`/`cloneNode`/`insertAdjacentHTML`/`toBlob`/`ctx.{setTransform,rotate,strokeRect,roundRect}` 等。**升级前的「空 OUT / 请输入数据」不能作为「页面无默认输出」的证据。**
+- **隔离器报的 `err` 必须先过 jsdom 三态复核才能判定为缺陷**（2026-09-23 新增）：隔离器是桩环境，`mermaid`/`PDFLib`/`pdfjsLib`/`AudioContext`/canvas `ctx.*`/动态 select 等缺桩会让**真机正常的页**报错。口径 = jsdom 加载真实 DOM → DEF / ZERO（输入全 0）/ EMPTY（输入全空）三态 → 读结果容器文本查 `NaN|Infinity`；**三态干净即判「桩盲区」并排除，不得据此改页**（本批 31 条 `err` 经复核 0 条真缺陷）。
 - **判据类修复不要追求「十进制精确」**：几何量常为无理数，严格不等式判据必然误报。**存在性/一致性判据一律留 1% 量级容差。**
 
 ### 8.8 有界量的口径自检 + 门禁用例文件「静默失效」自检
@@ -293,8 +293,7 @@
 > **已闭环的缺陷 A / C / D / E / G / I / J / K / L / M / N / O / P / Q / R / S / T / U 均已修复并归档** —— 根因与防复发铁律已提炼进 §八，逐批明细见 `.workbuddy/memory/2026-09-2*.md` 与全量快照归档。本节只留**仍未处理**的项。
 
 - **缺陷 B**（`scripts/verify_it_calc.js` 兜底阶段的 `DESTRUCTIVE` 正则只拦 `reset|clear|restore|save|swap|history`，未拦 `set*`/`del*` 类设值/删除函数）：**评估结论 = 不修**。`runCase` 被全站 200+ 脚本复用，补充 `set*`/`del*` 会同时改写全站门禁兜底行为，回归风险远大于收益（`set`/`del` 无参调用通常 crash 或无效，不产出错误结果）。**归档为已知项**。
-- **`martial/routine-timer` 默认态输出 `速度比率：Infinity%`**：`loadStandard()` 在页面加载时即调 `compare()`，而 `myTime=0` → `speedPct = std/0*100 = Infinity`，并据 0 秒算出「预计扣分 35.0 分」。**属待修 P0**（页面加载即显示物理不可能值与虚构扣分）。
-- **小行业精查进行中**：96 个小行业（687 页）默认态精查已启动，确凿缺陷按「修 calc + 补/改用例 + 门禁」闭环（见 §十 方向1）。
+- **未处理（待定夺，非缺陷）**：`ai/ocr`、`ai/image-classification` 等 5 个 `<script type="module">` 页的 `own_len` 度量盲区（§7.3 已给结论：不改）。
 
 ---
 
@@ -306,14 +305,14 @@
 
 | 级别 | 内容 | 状态 |
 |---|---|---|
-| **P0** | 页面级真实缺陷修复（§九 清单） | A/C/D/E/G/I/J/K/L/M/N/O–U 已闭环；**小行业精查进行中**，后续随精查顺带处理碰到的页面缺陷 |
+| **P0** | 页面级真实缺陷修复（§九 清单） | A–U 已闭环（含 96 小行业 687 页默认态 + 边界态精查）；**当前无进行中批次**，§九 仅余评估为「不修」的缺陷 B 与 `ai/*` 度量盲区（亦不改） |
 | **P1** | 按热度逐分类 §4.1 八项目标收口 | **全站 209 分类已收口**（§7.2 为空） |
 | **P2** | ✅ 工具质量分级提升（C→A） | **已达成：A 级率 70.0% → 96.9%**（§7.3） |
 | **P3** | `scripts/` 用例与基线维护（弱用例去默认化等） | **仅随 P0/P1 顺带处理**；门禁必需项（`run_gates.py` 链路）除外 |
 
 ### 10.2 现状（实测基线）
 
-- `all_default 237 / no_inputs 212 / escape 0`；门禁 `run_gates.py` **217 项全过**、逃生项 0。
+- `all_default 237 / no_inputs 212 / escape 0`；`checked=3161`；门禁 `run_gates.py` **217 项全过**、逃生项 0。
 - 存量弱用例 **449 例**（`no_inputs=212` / `all_default=237`），**转 P3 顺带**，不单独成批。
 
 ### 10.3 弱用例去默认化（仅在 P0/P1 顺带时执行）
@@ -322,7 +321,7 @@
 
 dermatology 14/11、engineering 14/11、signal 11/11、design 10/10、rheumatology 14/9、endocrinology 10/9、mining 10/9、gas 9/9、mechanical 9/9、travel 9/7、gardening 8/7、finance 7/7、sports 7/7、fire 7/6、chemical 9/5、cleaning 7/5
 
-### 每批收口流程（顺带改造时六步，缺一不可）
+### 10.4 每批收口流程（顺带改造时六步，缺一不可）
 
 1. 改写 `scripts/verify_<cat>_calc.js`（非默认输入 + Python 独立复算 expect）
 2. 单跑 100% 通过 → `node scripts/discriminate_check.js verify_<cat>_calc.js` **0 逃生项**
@@ -331,7 +330,7 @@ dermatology 14/11、engineering 14/11、signal 11/11、design 10/10、rheumatolo
 5. `python3 scripts/run_gates.py`（全量 217 项）全过 → `git commit` + push、**单次**确认部署
 6. 归档 `.workbuddy/memory/YYYY-MM-DD.md`，清理 `/tmp` 临时脚本
 
-### harness 已知限制（选批与定 expect 前必读）
+### 10.5 harness 已知限制（选批与定 expect 前必读）
 
 | 限制 | 后果 / 处置 |
 |---|---|
@@ -353,10 +352,13 @@ dermatology 14/11、engineering 14/11、signal 11/11、design 10/10、rheumatolo
 | **`select` 的 `selected` 属性在 harness 里不生效**（桩取**首个 option**） | 页面「默认选中项」类改动无法用默认态用例验证 —— 必须**显式注入该 select 的值**；判断真实浏览器行为只认 HTML 标准 |
 | **页面自带的 `fmt()` 常走 `toLocaleString()`（默认截 3 位小数）** | `0.0025` 会显示成 `0.003`，使「分步计算」文案无法自校验、也易被误判为算术错。凡步骤/卡片要展示小数量，改用带参 `toFixed(n)`；定 expect 时避开被截断的位置 |
 
-### 方向1 公式-脚本一致性精查（进行中 · 老板选定）
+### 10.6 方向1：公式-脚本一致性精查（**全量闭环** · 老板选定）
 
 - **目标**：逐页独立复算计算类页 `calc()` 输出的数学/物理正确性（与标准公式/权威向量比），找"用户拿到错钱数/错物理量"的真缺陷（§4.5 红线第一条最高频事故）。
-- **已完成覆盖**：10 高热度行业（science / math / geometry / photo / ai / sports / agriculture / finance + 首批 finance 残页）+ 金融周边集群（banking/investment/tax/realestate/accounting/insurance/economics/statistics/forex/futures ~334 页）**全量闭环**；中低热度 113 个行业（页≥15）默认态**全健康**；边界 NaN 守卫已铺开（含 4 个待办分类 86 页 + 7 个物理工程行业 194 页）。
-- **未覆盖（本批）**：**96 个小行业（<15 页，687 页）**从未精查。工具：`scripts/_audit_iso_small.js`（隔离器增强版：动态 `<select>` 注册、按文档序拼接内联 JS 块、补齐 MutationObserver/getElementsByName/style.setProperty/cloneNode/insertAdjacentHTML/toBlob/ctx.* 等桩）。
-- **SOP**：① 隔离器扫 DEF 态 → 筛 `NaN`/`Infinity`/越界值/`err`；② 每条 `err` 先判「桩盲区」还是「真缺陷」（回源码 + 必要时用 jsdom 跑）；③ 变体跑 ZERO / EMPTY 找边界 NaN；④ 确凿缺陷才改页，改完补/改用例。
+- **覆盖（已全量闭环）**：10 高热度行业（science / math / geometry / photo / ai / sports / agriculture / finance）+ 金融周边集群（banking/investment/tax/realestate/accounting/insurance/economics/statistics/forex/futures ~334 页）+ 中低热度 113 个行业（页≥15）+ **96 个小行业（<15 页，687 页）**默认态与 ZERO/EMPTY 边界态。边界 NaN 守卫已铺开（4 个待办分类 86 页 + 7 个物理工程行业 194 页）。
+- **工具（均在本地，`_*.js` 按 `.gitignore` 不入库）**：
+  - `scripts/_audit_iso_small.js` —— 批量隔离器。`node 脚本 <industry,ind2,...>`；`DUMP=1` 另写 `/tmp/iso_small.json`。**不要用「函数名必须含 calc」的窄口径过滤入口**（会漏掉 `compare()`/`update()` 类页，687 页里因此漏审 168 页）；桩需覆盖 `MutationObserver`/`getElementsByName`/`style.setProperty`/`cloneNode`/`insertAdjacentHTML`/`toBlob`/`ctx.*`/`window.X=` 透传 globalThis/`innerHTML` 里 `<select>`+`<option>` 注册。
+  - `/tmp/jsdom_probe.cjs` —— **jsdom 真实 DOM 复核探针**（里程碑：不再靠"猜桩盲区"）。对候选页跑 DEF/ZERO/EMPTY 三态，读 `result|grid|card|state|total|detail` 类容器文本，判 `NaN|Infinity`。**判据：隔离器报的 `err` 一律先过 jsdom 复核；jsdom 三态无 NaN/Infinity ⇒ 桩盲区，立排除，不改页。**
+- **SOP**：① 隔离器扫 DEF 态 → 筛 `NaN`/`Infinity`/越界值/`err`；② 每条 `err` 过 jsdom 三态复核，区分「桩盲区」与「真缺陷」；③ 确凿缺陷才改页，改完补/改用例。
 - **纪律**：确凿真缺陷前不改页面；找到即立项闭环（修 calc + 修/注册 verify 用例 + run_gates + 提交推送）。
+
