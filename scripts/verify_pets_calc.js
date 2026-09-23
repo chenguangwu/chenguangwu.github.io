@@ -9,9 +9,10 @@ const CASES = [
     "calDensity": "3.5"
   },
   "expect": [
-    "107g"
+    "534 RER静息能量(kcal)",
+    "244 g/天"
   ],
-  "ref": "auto-restore"
+  "ref": "auto-restore（去默认化：15kg → RER=70×15^0.75=533.5→534 kcal；×1.6÷3.5=243.9→244 g/天。默认 10kg 得 394 kcal / 180 g/天）"
 },
 {
   "slug": "pets/grooming-guide",
@@ -28,9 +29,10 @@ const CASES = [
     "days": "7"
   },
   "expect": [
-    "13.5"
+    "24.0 ㎡ 犬舍总面积",
+    "61.5 ㎡ 总所需面积（4只中型犬 · 7天）"
   ],
-  "ref": "auto-restore"
+  "ref": "auto-restore（去默认化：默认中型犬 4只/7天 → 犬舍 6×4=24.0 ㎡，活动区 15×(1+3×0.5)=37.5，总 61.5 ㎡。**不可用小型犬值 16.0/36.0**：零参兜底 selectSize() 会把尺寸重置为小型犬，同样产出该串 → 逃生项）"
 },
 {
   "slug": "pets/pet-age-convert",
@@ -38,9 +40,10 @@ const CASES = [
     "petAge": "6"
   },
   "expect": [
-    "40"
+    "相当于人类年龄（🐕 中型犬 6 岁）",
+    "44 岁"
   ],
-  "ref": "auto-restore"
+  "ref": "auto-restore（去默认化：默认犬型=中型犬（currentSize='medium'）；6 岁 → 人类 44 岁。默认 3 岁为另一组值）"
 },
 {
   "slug": "pets/vaccine-reminder",

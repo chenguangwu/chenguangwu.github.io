@@ -3,17 +3,21 @@
 const { runCase } = require("./verify_it_calc.js");
 const CASES = [
 {
+  // 原 expect「风格」取自常量保养建议「💋 体型匀称适合各类穿搭风格」（默认女性必出）→ 逃生项。
+  // 改超重档输入，断言由 BMI 派生的分级与对应建议；回退默认（165/55 → BMI 20.2 正常档）故必失配。
   "slug": "beauty/bmi-beauty",
   "inputs": {
-    "height": "165",
-    "weight": "55",
-    "age": "25",
-    "waist": "50",
-    "hip": "50"
+    "height": "170",
+    "weight": "85",
+    "age": "35",
+    "waist": "95",
+    "hip": "105"
   },
   "expect": [
-    "风格"
-  ]
+    "BMI 指数 · 肥胖",
+    "💪 推荐有氧运动+力量训练"
+  ],
+  "ref": "BMI = 85 / 1.70² = 29.41 → classify() ≥28 → 「肥胖」（结果大字 29.4）；超重/肥胖档才追加「💪 推荐有氧运动+力量训练」。回退默认 165/55 → BMI 20.20 → 「正常」档，两条建议均不出现。"
 },
 {
   "slug": "beauty/aging-calculator",

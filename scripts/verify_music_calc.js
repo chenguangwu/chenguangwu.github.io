@@ -178,9 +178,10 @@ const CASES = [
   "slug": "music/sheet-music",
   "inputs": {},
   "expect": [
-    "undefined"
+    "C G D A E B F# F Bb Eb Ab Db",
+    "1 C 2 D 3 E 4 F 5 G 6 A 7 B 1 C↑"
   ],
-  "ref": "auto-restore(default)"
+  "ref": "无可注入控件（调号选择器为 innerHTML 生成的 span+onclick，本页无任何 input/select/checkbox ⇒ 结构性不可注入；原断言「undefined」来自零参 setKey() 兜底调用，属逃生项，改为断言初始化渲染的调号条与唱名条）"
 },
 {
   "slug": "music/web-tuner",

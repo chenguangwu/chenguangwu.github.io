@@ -43,7 +43,13 @@ function pageDefaults(slug) {
     const tag = m[0];
     const id = (tag.match(/id=["']([^"']+)["']/) || [])[1];
     const val = (tag.match(/value=["']([^"']*)["']/) || [])[1];
-    if (id && val !== undefined) out[id] = val;
+    // 复选框/单选/按钮的 `value` 不是页面读取的「输入值」（页面读 .checked），
+    // 把它们「回退空串」既无意义、又会把行为等同默认的用例误报成逃生项 ⇒ 跳过。
+    const typ = ((tag.match(/type=["']([^"']*)["']/) || [])[1] || "text").toLowerCase();
+    if (!id || /^(checkbox|radio|button|submit|reset|file|image)$/.test(typ)) continue;
+    // 无 value 属性 ⇒ 真机默认空串（与 runCase 的 defaults/sel 口径一致）。
+    // 旧版直接丢弃这类键 ⇒ 判别器无法把它们换回默认 ⇒ 整例被判「跳过」而漏检。
+    out[id] = val !== undefined ? val : "";
   }
   // 2) <select> 的默认选中项（selected option 优先，否则取首个 option）
   //    关键修复：旧版只抓 input，导致 select 类输入（如 hirschberg 的 fixing/reflex）
@@ -99,7 +105,7 @@ function listFiles() {
       const hasInj =
         (Array.isArray(c.checkIds) && c.checkIds.length > 0) ||
         (c.radios && Object.keys(c.radios).length > 0);
-      const clearInject = { checkIds: [], radios: {} };
+      const clearInject = { checkIds: [], radios: {}, checks: [] };
       if (!c.inputs || Object.keys(c.inputs).length === 0) {
         if (!hasInj) { skipped++; continue; }   // 真正无任何注入的用例不适用
         // 清空复选框/单选注入 → 页面回到「全未勾选」态，expect 必须失配，否则即逃生项。

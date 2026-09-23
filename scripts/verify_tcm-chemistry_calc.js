@@ -260,11 +260,13 @@ const CASES = [
 },
 {
   "slug": "tcm-chemistry/solubility-guide",
-  "inputs": {},
+  "inputs": {
+    "searchBox": "zzz"
+  },
   "expect": [
     "未找到匹配成分"
   ],
-  "ref": "auto-restore(default)"
+  "ref": "auto-restore（去默认化：注入无匹配关键词 zzz → 过滤结果为空；回退空词则列出全部成分，不产此串）"
 },
 {
   "slug": "tcm-chemistry/stability-test",

@@ -38,19 +38,23 @@ const CASES = [
 },
 {
   "slug": "gardening/garden-tools",
-  "inputs": {},
+  "inputs": {
+    "searchInput": "zzz"
+  },
   "expect": [
-    "未找到匹配的工具"
+    "未找到匹配的工具，请调整筛选条件"
   ],
-  "ref": "auto-restore(default)"
+  "ref": "auto-restore（去默认化：注入无匹配关键词 zzz → 过滤结果为空；回退空词则列出全部工具，不产此串）"
 },
 {
   "slug": "gardening/pest-identifier",
-  "inputs": {},
+  "inputs": {
+    "searchInput": "zzz"
+  },
   "expect": [
-    "未找到匹配的病虫害"
+    "未找到匹配的病虫害，请调整筛选条件"
   ],
-  "ref": "auto-restore(default)"
+  "ref": "auto-restore（去默认化：注入无匹配关键词 zzz → 过滤结果为空；回退空词则列出全部病虫害，不产此串）"
 },
 {
   "slug": "gardening/plant-calendar",
@@ -62,11 +66,13 @@ const CASES = [
 },
 {
   "slug": "gardening/plant-care",
-  "inputs": {},
+  "inputs": {
+    "searchInput": "zzz"
+  },
   "expect": [
-    "未找到匹配的植物"
+    "未找到匹配的植物，请调整筛选条件"
   ],
-  "ref": "auto-restore(default)"
+  "ref": "auto-restore（去默认化：注入无匹配关键词 zzz → 过滤结果为空；回退空词则列出全部植物，不产此串）"
 },
 {
   "slug": "gardening/pot-capacity",

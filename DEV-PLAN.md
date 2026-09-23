@@ -150,6 +150,7 @@
   - ✅ **复选框 / 单选组已可注入**（本日闭环）：harness 新增 `checkIds: ["c","u"]`（`getElementById(id).checked` 型，纯复选框量表页）与 `radios: { htn: "1" }`（`getElementsByName` 型）两个注入字段；`optical/progressive-corridor` 那类 `querySelector('input[name=x]:checked')` 用既有 `c.checks` 即可。**三者合起来使「纯 checkbox 量表页不可注入」的旧结论失效** —— 全站 26 例此类弱用例不再属结构性 `no_inputs`（已改 5 例示范：`curb65` / `stop-bang` / `wells-pe` / `has-bled` / `rater-33`，剩余按 P3 顺带推进）。配套：`selfcheck_false_pass.js` 与 `discriminate_check.js` 均已识别这两个字段（判别器做法 = 清空注入模拟失败，用例必须变红）。
   - ⚠️ **`innerHTML=` 动态生成的控件仍未覆盖**（`fim-scale`/`womac`/`gingival-index`/`load-curve` 等，静态 HTML `grep id=` 为 0）→ 取不到值，按旧纪律「盲区先排除、再回源码复核」。**2026-09-23 实测教训**：对它在正式门禁实施「`innerHTML` setter 解析 `id=` 注册桩元素」会使全量门禁暴露 `psychology/calc-12` 崩溃（该页用 `innerHTML` 渲染滑块，`getElementById` 读到空桩后读 `.length`/`.trim` 即崩）——harness 缺「真实 DOM 行为」模拟，单点 `id` 注册会误伤**所有用 innerHTML 渲染 UI 的页**。已还原。须走「innerHTML 真实 DOM 模拟」专项。
   - ✅ **HTML 默认选中态已生效**（本日闭环）：`querySelector(':checked')` / `querySelectorAll('…checked')` / `getElementsByName(name)` 在**用例未声明 `c.checks`/`c.radios` 时回落到页面的 `checked` 属性**（预解析 name→全部带 checked 的 value；无 name 控件按 `#id` 归组）。收益：`optical/progressive-corridor`（`querySelector('input[name=design]:checked').value`）由抛 TypeError 恢复为可验证（真机默认 `standard`）。**副作用已逐一核实**：全量 3091 条可执行用例扫描**仅 `cardiology/aortic-dissection` 一例失配** —— 其原 expect「非复杂型Stanford B型」本就建立在旧失真上（该页 `extent` 组真机默认 `ascDesc` = A 型，旧桩 `getRadio` 抛 0 才落入 B 型），已重写为显式 `radios{extent:"descOnly"}` + `checkIds:["malPerf"]` → 紧急 TEVAR。**纪律**：新用例优先**显式声明**输入，不要依赖默认选中态。
+  - ✅ **兜底调用排除集已补 `^set[A-Z]`**（本日闭环，原缺陷 B）：`DESTRUCTIVE` 正则原只拦 `reset|clear|restore|save|swap|history`，零参 `setXxx()` 会**先改写页面状态再重算**，使一批用例的 expect 实由兜底产出、与注入无关（真逃生项）。补齐后 7 个脚本 11 例失配，全部重写（明细见 §九 缺陷 B）。**残留**：`selectSize`/`setPet` 这类「名含 set 但不以 `set[A-Z]` 开头」的设值函数仍不被拦 —— 定 expect 时必须自行核算「零参调用全部设值函数后的最终态值」并避开（见 §10.5）。
 - **`metalwork/tester-19` ≤1kV 耐压分支无法构造判别用例**：该分支输出恒为常数 `3.5 kV`（与 `ratedV` 取值无关），任何 `expect` 都会在**默认态**命中 → 必被判逃生项，故**刻意不补用例**；该修复（`0.0 kV → 3.5 kV`）只能靠隔离器人工跑 + 代码评审保真，回归时注意。
 - **「多页签（mode）」页面的非默认页签分支无法被 harness 覆盖**：切页签必须带参调用 `setMode(1)`，而 harness 只无参调用候选函数 → 双样本/第二种模式分支永不执行，`expect` 只对默认页签有效。**复核口径**：复制页面到 `tools/<ind>/_tmp-xxx.html`，把 `let currentMode=0;` 改成 `1` → 隔离器单跑 → **立即删除副本**（勿留待提交）。
 - **永久排除（不下架）**：同名异功能 `finance/salary-after-tax`↔`payroll-calculator`、`ophthalmology/self-assess-2`↔`osdi-scale`；跨行业同名编号页（calc-N/rater-N 等 17 个 basename）经内容哈希取证均为不同工具、内容各异，非重复，不处理。
@@ -292,9 +293,9 @@
 
 ## 九、发现但未修的真实缺陷（待老板定夺）
 
-> **已闭环的缺陷 A / C / D / E / G / I / J / K / L / M / N / O / P / Q / R / S / T / U 均已修复并归档** —— 根因与防复发铁律已提炼进 §八，逐批明细见 `.workbuddy/memory/2026-09-2*.md` 与全量快照归档。本节只留**仍未处理**的项。
+> **已闭环的缺陷 A / B / C / D / E / G / I / J / K / L / M / N / O / P / Q / R / S / T / U 均已修复并归档** —— 根因与防复发铁律已提炼进 §八，逐批明细见 `.workbuddy/memory/2026-09-2*.md` 与全量快照归档。本节只留**仍未处理**的项。
 
-- **缺陷 B**（`scripts/verify_it_calc.js` 兜底阶段的 `DESTRUCTIVE` 正则只拦 `reset|clear|restore|save|swap|history`，未拦 `set*`/`del*` 类设值/删除函数）：**评估结论 = 不修**。`runCase` 被全站 200+ 脚本复用，补充 `set*`/`del*` 会同时改写全站门禁兜底行为，回归风险远大于收益（`set`/`del` 无参调用通常 crash 或无效，不产出错误结果）。**归档为已知项**。
+- **缺陷 B 已闭环（2026-09-24）**：`scripts/verify_it_calc.js` 兜底阶段的 `DESTRUCTIVE` 正则已补 `^set[A-Z]`（原只拦 `reset|clear|restore|save|swap|history`）。原「评估结论 = 不修」被实证推翻：零参 `setXxx()`（如 `sheet-music` 的 `setKey()`、`pets/kennel-space` 的 `selectSize()`、过滤页的 `setType()`）会**先改写页面状态再重算**，而 `set[A-Z]` 前缀**不在**原正则覆盖内 ⇒ 相当一批用例的 expect 实际由该兜底调用产出、与注入值无关（真逃生项，且因「模拟注入失败后该串消失」而骗过 `discriminate_check`）。补充后全站 7 个脚本 11 例失配，逐例定性并全部按 §10.4 流程重写：4 例「过滤页假用例」（gardening×3 + tcm-chemistry，靠零参 `setType()` 改写筛选条件产出「未找到…」）、4 例「expect 已漂移」（pets×3 + hotel，断言的是旧版页面输出）、2 例真假用例（music/sheet-music、misc/statistics-distribution）、1 例真回归（ophthalmology/visual-acuity-converter，expect「0.0)」只是 type 输入提示文案）。修补后逃生项仍 0。`del*` 类未扩展（本次全站无由此产出的逃生项，按「只加有实证的项」原则不预扩）。**新增铁律**：见 §八「零参 `setXxx()` 兜底会产出 expect」与 §10.5 对应行。
 - **未处理（待定夺，非缺陷）**：`ai/ocr`、`ai/image-classification` 等 5 个 `<script type="module">` 页的 `own_len` 度量盲区（§7.3 已给结论：不改）。
 
 ---
@@ -307,20 +308,20 @@
 
 | 级别 | 内容 | 状态 |
 |---|---|---|
-| **P0** | 页面级真实缺陷修复（§九 清单） | A–U 已闭环（含 96 小行业 687 页默认态 + 边界态精查）；**当前无进行中批次**，§九 仅余评估为「不修」的缺陷 B 与 `ai/*` 度量盲区（亦不改） |
+| **P0** | 页面级真实缺陷修复（§九 清单） | A–U 已闭环（含 96 小行业 687 页默认态 + 边界态精查）；**当前无进行中批次**，§九 仅余 `ai/*` 度量盲区（评估为不改） |
 | **P1** | 按热度逐分类 §4.1 八项目标收口 | **全站 209 分类已收口**（§7.2 为空） |
 | **P2** | ✅ 工具质量分级提升（C→A） | **已达成：A 级率 70.0% → 96.9%**（§7.3） |
 | **P3** | `scripts/` 用例与基线维护（弱用例去默认化等） | **仅随 P0/P1 顺带处理**；门禁必需项（`run_gates.py` 链路）除外 |
 
 ### 10.2 现状（实测基线）
 
-- `all_default 237 / no_inputs 212 / escape 0`；`checked=3161`；门禁 `run_gates.py` **217 项全过**、逃生项 0。
+- `all_default 221 / no_inputs 195 / escape 0`；`checked=3161`；门禁 `run_gates.py` **217 项全过**、逃生项 0（判别器已检 2698 例）。
 - A 级率 **99.2%**（A 4693 / B 32 / C 4，共 4729）；deep-dive 术语内链 **1591 页 / 2268 条 / 唯一目标 630**（零死链、零自链、单页 ≤6 条）。**注：内链不影响质量分级**（`own_len` 只统计 `<script>` 内容）。
-- 存量弱用例 **449 例**（`no_inputs=212` / `all_default=237`），**转 P3 顺带**，不单独成批。
+- 存量弱用例 **416 例**（`no_inputs=195` / `all_default=221`），**转 P3 顺带**，不单独成批。
 
 ### 10.3 弱用例去默认化（仅在 P0/P1 顺带时执行）
 
-**存量 449 例**。可注入性预筛清单（弱例数 / 页面含静态表单控件数）：
+**存量 416 例**。可注入性预筛清单（弱例数 / 页面含静态表单控件数）：
 
 dermatology 14/11、engineering 14/11、signal 11/11、design 10/10、rheumatology 14/9、endocrinology 10/9、mining 10/9、gas 9/9、mechanical 9/9、travel 9/7、gardening 8/7、finance 7/7、sports 7/7、fire 7/6、chemical 9/5、cleaning 7/5
 
@@ -328,7 +329,7 @@ dermatology 14/11、engineering 14/11、signal 11/11、design 10/10、rheumatolo
 
 1. 改写 `scripts/verify_<cat>_calc.js`（非默认输入 + Python 独立复算 expect）
 2. 单跑 100% 通过 → `node scripts/discriminate_check.js verify_<cat>_calc.js` **0 逃生项**
-3. 被「跳过」的用例（textarea / 动态 id / 无 value input）必须**自建同口径探针**补验「注入 PASS + 回退默认 FAIL」
+3. 被「跳过」的用例（textarea / 动态 id `q0..qN`）必须**自建同口径探针**补验「注入 PASS + 回退默认 FAIL」
 4. 更新 `scripts/falsepass_baseline.json` 与 `scripts/discriminate_baseline.json`（**只准降不准增**，按 selfcheck/discriminate 实测值同步）
 5. `python3 scripts/run_gates.py`（全量 217 项）全过 → `git commit` + push、**单次**确认部署
 6. 归档 `.workbuddy/memory/YYYY-MM-DD.md`，清理 `/tmp` 临时脚本
@@ -340,7 +341,9 @@ dermatology 14/11、engineering 14/11、signal 11/11、design 10/10、rheumatolo
 | **复选框 / 单选组注入字段（2026-09-24 起）** | `checkIds: ["c","u"]` → `getElementById(id).checked`（纯复选框量表页）；`radios: { htn: "1" }` → `getElementsByName(name)`；`c.checks` → `querySelector(':checked')`/`querySelectorAll('…checked')`。三者均已获 `selfcheck`（算有效注入）与 `discriminate`（清空注入即模拟失败）识别 ⇒ 纯 checkbox 量表页**不再判结构性 `no_inputs`**。**被 checkbox 门控的页面仍可改判「门控前的派生量」** |
 | **HTML 默认选中态已生效（2026-09-24）** | `querySelector(':checked')` / `querySelectorAll('…checked')` / `getElementsByName` 在用例未声明 `c.checks`/`c.radios` 时**回落页面 `checked` 属性** ⇒ 默认输出与真机一致（曾使 `optical/progressive-corridor` 抛 TypeError）。**选批注意**：① 新用例优先**显式声明** `checkIds`/`radios`，勿依赖默认态；② 旧 expect 若曾建立于「默认未选中」的失真输出上会失配（本次全量扫描仅 `cardiology/aortic-dissection` 一例，已重写） |
 | **动态 id（`q0..qN`）会同时骗过两道静态校验** | `discriminate_check` 判「跳过」、`selfcheck` 判 `null` 不计入 → **基线会「虚降」**。须自建探针补验「注入 PASS + 回退默认 FAIL」，并另用浏览器真实默认值再跑一遍 |
-| **textarea / 无 value 的 input 在判别器里必落「跳过」** | `discriminate_check.pageDefaults()` 不解析 textarea、无 value input 返回 undefined → 整例跳过。须自建同口径探针补验 |
+| **无 value 的 input 已被判别器覆盖（2026-09-24 起）；textarea / 动态 id 仍需自建探针** | 旧版 `discriminate_check.pageDefaults()` 对无 `value` 属性的 input 直接丢弃 ⇒ 该键无法回退 ⇒ 整例判「跳过」而漏检；现按真机口径登记为**空串**（与 `runCase` 的 `defaults/sel` 一致），据此暴露并修掉 5 个存量逃生项（另 1 个 `legal/court-fee` 为 checkbox 假阳性，已按 type 跳过）。`<textarea>` 与动态 id（`q0..qN`）仍不解析，须自建同口径探针补验 |
+| **零参 `setXxx()` 兜底会「改写状态后重算」，产出的串与注入无关**（原缺陷 B 的实操面） | `pets/kennel-space` 的 `selectSize()` 无参被调用时 `currentSize=undefined` → `\|\| sizes[0]` 落回**小型犬**，于是「小型犬值」16.0/36.0 恰好与兜底输出重合 = 逃生项（本例首版即踩坑）。**定 expect 前必须想清：零参调用该页所有 `set*`/`select*`/`setType` 后最终态会算出哪一组值，expect 必须避开它** —— 首选页面**默认选择项**（本题中型犬 24.0/61.5）派生的值。`DESTRUCTIVE` 正则已补 `^set[A-Z]`，但**仍覆盖不了** `selectSize` 这类「名含 set 却不以 `set[A-Z]` 开头」的设值函数 |
+| **`inputs` 为空 / 缺失的用例，判别器一律「跳过」** | 即使 `checkIds`/`radios` 也全空也一样跳过 ⇒ **`no_inputs` 弱用例的逃生项判别器兜不住**，只能靠 `selfcheck` 的数量棘轮 + 人工核查。`music/sheet-music` 即此类：页面无任何 input/select/checkbox（调号条是 `innerHTML` 生成的 `span+onclick`，属 §7.1 保留项），**结构性不可注入**，只能断言初始化渲染串并继续留在 `no_inputs` 基线内 |
 | **判定发生在 `blob1`（注入后立即收集），不是 `fullBlob`** | 用 `expect:["@@NOMATCH@@"]` 取输出「看结果」是错的。定位逃生项只看 `blob1` |
 | **页面源码字面量 + 静态参考表 + 恒定文案都进 blob** | 凡页面含「参考表/换算表」容器且带 id、深度解析示例、图例文案，其数值/词汇均不可作 expect。定 expect 前先 `grep -c "该串" tools/<slug>.html` |
 | **「暂无…记录」等占位串是常量型逃生项（命中率最高）** | 凡页面含 `saveHistory/renderHistory/historyBox`（写 localStorage，harness 无实现 → 恒显占位），该串一律不得作 expect |

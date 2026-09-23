@@ -41,14 +41,16 @@ const CASES = [
 {
   "slug": "hotel/tip-calculator",
   "inputs": {
-    "bill": "120",
-    "tipPct": "15",
-    "people": "2",
-    "tax": "0"
+    "bill": "240",
+    "tipPct": "18",
+    "people": "3",
+    "tax": "6"
   },
   "expect": [
-    "未计算小费"
-  ]
+    "小费慷慨",
+    "人均： 99.2"
+  ],
+  "ref": "auto-restore（去默认化：bill 240/18%/3人/税6% → tip=43.2、total=297.6、人均=99.2；默认 15%/2人 得「小费适中」+69.0）"
 },
 {
   "slug": "hotel/assessor-62",

@@ -39,17 +39,30 @@ const CASES = [
   ]
 },
 {
+  // 原为 all_default 弱用例：5 个数字全等于页面默认，expect「备用」是常量文案（逃生项）。
   "slug": "floral/wedding-flowers",
   "inputs": {
-    "tables": "15",
-    "guests": "150",
-    "price": "5",
-    "bridesmaidCount": "4",
-    "boutonCount": "8"
+    "tables": "30",
+    "guests": "200",
+    "price": "8",
+    "bridesmaidCount": "6",
+    "boutonCount": "12"
   },
+  "checkIds": [
+    "itemBridal",
+    "itemBridesmaid",
+    "itemBouton",
+    "itemCorsage",
+    "itemCenter",
+    "itemArch",
+    "itemAisle",
+    "itemWelcome"
+  ],
   "expect": [
-    "备用"
-  ]
+    "桌花×30桌",
+    "通道花瓣×20米"
+  ],
+  "ref": "桌花数量 = CENTER_FLOWERS[centerStyle] × tables(=30)；通道花瓣米数 = max(5, ceil(guests/10)) = max(5,20) = 20。回退默认（tables=15 / guests=150）→ 「桌花×15桌」「通道花瓣×15米」，两串均不命中。"
 },
 {
   "slug": "floral/bloom-stage",

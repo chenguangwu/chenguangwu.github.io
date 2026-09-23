@@ -290,12 +290,14 @@ const CASES = [
 {
   "slug": "ophthalmology/visual-acuity-converter",
   "inputs": {
-    "value": "1"
+    "type": "decimal",
+    "value": "0.5"
   },
   "expect": [
-    "0.0)"
+    "20/40 Snellen 20ft",
+    "视力分级： 中度下降"
   ],
-  "ref": "auto-restore(default)"
+  "ref": "auto-restore（去默认化：小数视力 0.5 → logMAR=0.301、Snellen 20/0.5=20/40、分级「中度下降」。原断言「0.0)」只是 type=logmar 的输入提示文案，非计算结果）"
 },
 {
   "slug": "ophthalmology/visual-fatigue-vas",

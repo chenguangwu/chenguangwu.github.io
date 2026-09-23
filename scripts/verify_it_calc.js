@@ -80,10 +80,13 @@ const CASES = [
     ref: "SHA-256('hello') = 2cf24dba…9824（NIST 标准向量）",
   },
   {
+    // 原为 all_default 弱用例：textarea 默认内容就是 "123456789"；且 expect 同时列大写/小写 → 无论 upper 如何都命中，零判别力。
+    // 改注入 "abc"（独立核对 python zlib.crc32(b"abc") = 0x352441c2）+ 显式声明 upper 选中 → 只断言大写形态。
     slug: "it/crc-calculator",
-    inputs: { input: "123456789" },
-    expect: ["CBF43926", "cbf43926"],
-    ref: "标准 CRC-32/ISO-HDLC（多项式 0x04C11DB7）对 '123456789' 应为 CBF43926",
+    inputs: { input: "abc" },
+    checkIds: ["upper"],
+    expect: ["CRC-32 0x352441C2"],
+    ref: "python zlib.crc32(b'abc') = 0x352441c2（CRC-32/ISO-HDLC）→ 页面大写渲染 0x352441C2。回退默认（input=123456789 且 upper 未选中）→ 0xcbf43926（小写），不命中。",
   },
 
   // —— 编码类（期望值由 python base64 / 自实现 base58 独立计算，非凭记忆）——
@@ -633,7 +636,7 @@ async function runCaseInner(c) {
   // 跳过「状态破坏性 / 辅助」类函数：resetAll / clearHistory / restoreHistory / saveHistory /
   // renderHistory / swapValues 等会改写输入或覆盖 res 输出，导致扰动态结果被默认值吞掉
   // （strength-1、carbon-5 等页因此假同态）。只跑真正的计算函数。
-  const DESTRUCTIVE = /^(reset|clear|restore|save|swap)\b|history|reset|clear/i;
+  const DESTRUCTIVE = /^(reset|clear|restore|save|swap)\b|history|reset|clear|^set[A-Z]/i;
   for (const n of ordered) {
     if (DESTRUCTIVE.test(n)) continue;
     const f = fns[n];

@@ -3,14 +3,20 @@
 const { runCase } = require("./verify_it_calc.js");
 const CASES = [
 {
+  // 原为 all_default 弱用例：csvInput 为空串 = 页面默认；expect「field_0」是空表头回退命名的产物。
+  // 注入两行 CSV + 显式勾选 hasHeader（页面 HTML 默认 checked，harness 的 getElementById(id).checked 需注入才为 true）
+  // → 首行作表头、仅剩 1 行数据 → 「共解析 1 行」。
   "slug": "data/calc-1",
   "inputs": {
-    "csvInput": ""
+    "csvInput": "name,age\nAlice,30"
   },
-  "expect": [
-    "field_0"
+  "checkIds": [
+    "hasHeader"
   ],
-  "ref": "auto-restore(default)"
+  "expect": [
+    "共解析 1 行"
+  ],
+  "ref": "parseCsv 后 hasHeader=true → dataRows = rows.slice(1) = 1 行，输出尾部为「共解析 1 行，2 列」。回退默认（hasHeader=false、csvInput 空）→ 2 行数据或「请输入 CSV 数据」，不命中。"
 },
 {
   "slug": "data/calc-2",

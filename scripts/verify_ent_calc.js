@@ -3,12 +3,17 @@
 const { runCase } = require("./verify_it_calc.js");
 const CASES = [
 {
+  // 原为 no_inputs 弱用例：expect「26-50%」来自 grade=2 的默认档，与勾选无关。
   "slug": "ent/adenoid-grading",
-  "inputs": {},
-  "expect": [
-    "26-50%"
+  "checkIds": [
+    "s1",
+    "s6"
   ],
-  "ref": "auto-restore(default)"
+  "expect": [
+    "存在手术指征（腺样体面容）",
+    "伴随症状： 张口呼吸、腺样体面容"
+  ],
+  "ref": "grade 默认 2（II度）；勾选 s1(张口呼吸)+s6(腺样体面容) → 症状列表拼接，且 s6 直接触发手术指征（surgReason=[腺样体面容]）。回退默认（未勾选、grade=2 且 s5 未勾选）→ 输出「目前暂无明确手术指征」，两串均不命中。"
 },
 {
   "slug": "ent/ahi-severity",
@@ -211,12 +216,16 @@ const CASES = [
   "ref": "auto-restore"
 },
 {
+  // 原为 no_inputs 弱用例：expect「26-50%」来自 grade=2 的默认档，与勾选无关。
   "slug": "ent/tonsil-grading",
-  "inputs": {},
-  "expect": [
-    "26-50%"
+  "checkIds": [
+    "s1",
+    "s4"
   ],
-  "ref": "auto-restore(default)"
+  "expect": [
+    "存在手术指征（反复发作≥3次/年、扁桃体周围脓肿史）"
+  ],
+  "ref": "grade 默认 2（II度）；勾选 s1(反复扁桃体炎)+s4(周围脓肿史) → surgReason 依序拼接为「反复发作≥3次/年、扁桃体周围脓肿史」。回退默认（未勾选、grade=2）→ 「目前暂无明确手术指征」，该串不命中。"
 },
 {
   "slug": "ent/tympanic-perforation",

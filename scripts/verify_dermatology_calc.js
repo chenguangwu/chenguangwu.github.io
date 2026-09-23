@@ -3,12 +3,17 @@
 const { runCase } = require("./verify_it_calc.js");
 const CASES = [
 {
+  // 原为 no_inputs 弱用例：expect「5-氟尿嘧啶(5-FU)乳膏」只在默认 1 级（轻度）分支出现，与输入无关。
   "slug": "dermatology/actinic-keratosis",
-  "inputs": {},
-  "expect": [
-    "5-氟尿嘧啶(5-FU)乳膏"
+  "checkIds": [
+    "r1",
+    "r2"
   ],
-  "ref": "auto-restore(default)"
+  "expect": [
+    "存在高危特征（快速增大、出血/溃疡）",
+    "高危特征： 快速增大、出血/溃疡（已加4分）"
+  ],
+  "ref": "勾选 r1(快速增大)+r2(出血/溃疡) → isHighRisk=true → grade「高危病变」、恶变风险 >10%/年，并输出「存在高危特征（快速增大、出血/溃疡）」与「已加4分」。回退默认（四项均未勾选）→ 走 1/2/3 级分支，两串均不命中。"
 },
 {
   "slug": "dermatology/assessor-14",
@@ -91,12 +96,21 @@ const CASES = [
   "ref": "auto-restore(default)"
 },
 {
+  // 原为 no_inputs 弱用例：expect「局部冷敷15-20分钟」只在默认总分 ≤5（轻度）分支出现。
   "slug": "dermatology/insect-bite-reaction",
-  "inputs": {},
-  "expect": [
-    "局部冷敷15-20分钟"
+  "inputs": {
+    "insectType": "bee"
+  },
+  "checkIds": [
+    "sys1",
+    "sys2",
+    "sys3"
   ],
-  "ref": "auto-restore(default)"
+  "expect": [
+    "发热、淋巴结肿大、全身皮疹",
+    "蜂蜇伤特别注意"
+  ],
+  "ref": "勾选 sys1/2/3 → sysSymptoms 依次为 发热、淋巴结肿大、全身皮疹，sysScore=6 并输出「发热、淋巴结肿大、全身皮疹（已加6分）」；insectType=bee → 输出蜂蜇伤专属提示。回退默认（三项均未勾选、insectType=蚊虫）→ 两串均不命中。"
 },
 {
   "slug": "dermatology/leprosy-grading",

@@ -67,9 +67,9 @@ const CASES = [
 {
   "slug": "misc/statistics-distribution",
   "inputs": {
-    "mu": "0",
-    "sigma": "1",
-    "xval": "1",
+    "mu": "2",
+    "sigma": "1.5",
+    "xval": "3",
     "aVal": "6",
     "bVal": "7",
     "lambda": "3",
@@ -78,9 +78,9 @@ const CASES = [
     "pval": "0.5"
   },
   "expect": [
-    "0.322266"
+    "P(X ≤ 3) = 0.747508"
   ],
-  "ref": "auto-restore"
+  "ref": "auto-restore（去默认化：μ=2,σ=1.5,x=3 → z=0.6667、Φ=0.747508；Python math.erf 复算 0.7475075。默认 μ=0,σ=1,x=1 得 0.841345）"
 },
 {
   "slug": "misc/truth-table",

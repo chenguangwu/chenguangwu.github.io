@@ -59,12 +59,20 @@ const CASES = [
   "ref": "auto-restore"
 },
 {
+  // 原为 no_inputs 弱用例（空输入只能断言提示语，零判别力）。
   "slug": "cardiology/calc-1",
-  "inputs": {},
-  "expect": [
-    "请输入有效的收缩压和舒张压"
+  "inputs": {
+    "sbp": "150",
+    "dbp": "95"
+  },
+  "checkIds": [
+    "diabetes"
   ],
-  "ref": "auto-restore(default)"
+  "expect": [
+    "1级高血压（轻度）",
+    "高危 / 很高危"
+  ],
+  "ref": "classifyBP(150,95) → 1级高血压（轻度）（收缩压140-159 或 舒张压90-99）；riskLayer 见 diabetes=true → 「高危 / 很高危」（糖尿病/靶器官损害/确诊CVD 任一即高危）。回退默认（空输入）→ 仅提示「请输入有效的收缩压和舒张压」；不勾选 → 低危。两串均不命中。"
 },
 {
   "slug": "cardiology/calc-3",

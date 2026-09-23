@@ -37,12 +37,20 @@ const CASES = [
   "ref": "auto-restore"
 },
 {
+  // 原为 no_inputs 弱用例：expect「未满足临床和实验室标准」是「什么都不勾」的默认结论，零判别力。
   "slug": "hematology/aps-diagnosis",
-  "inputs": {},
-  "expect": [
-    "未满足临床和实验室标准"
+  "checkIds": [
+    "vt_venous",
+    "lab_la",
+    "lab_acl_igg",
+    "lab_repeat",
+    "lab_within5y"
   ],
-  "ref": "auto-restore(default)"
+  "expect": [
+    "aCL IgG中高滴度",
+    "满足至少1项临床标准 + 1项实验室标准"
+  ],
+  "ref": "勾选 1 项临床标准(vt_venous=静脉血栓) + 2 项实验室标准(lab_la / lab_acl_igg) → 实验室条目列表含「aCL IgG中高滴度」，结论文案为「满足至少1项临床标准 + 1项实验室标准，且实验室检测符合时间要求…」。注意不可用「符合APS分类标准」——它是「不符合APS分类标准」的子串（子串误命中）。"
 },
 {
   "slug": "hematology/calc-1",
@@ -188,15 +196,23 @@ const CASES = [
   "ref": "auto-restore"
 },
 {
+  // 原为 all_default 弱用例：mtRatio/massSize 均为 0 = 页面默认，expect「请勾选受累部位」是空态提示。
   "slug": "hematology/lymphoma-staging",
   "inputs": {
     "mtRatio": "0",
     "massSize": "0"
   },
-  "expect": [
-    "请勾选受累部位"
+  "checkIds": [
+    "ln1",
+    "ln5",
+    "b1",
+    "extra1",
+    "ln8"
   ],
-  "ref": "auto-restore(default)"
+  "expect": [
+    "IIIB (ES)"
+  ],
+  "ref": "横膈上 ln1 + 横膈下 ln5 → stage=III；b1 → B 症状（sym=B）；extra1 → 结外 E、ln8 → 脾 S → 完整分期「IIIB (ES)」。注意不可用「横膈两侧淋巴结区域受累」——深链示例 block 已含该字面量（outside-script 命中，逃生项）。回退默认（未勾选）→ 「请勾选受累部位」。"
 },
 {
   "slug": "hematology/m-protein",

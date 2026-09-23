@@ -233,35 +233,43 @@ const CASES = [
   "ref": "auto-restore(default)"
 },
 {
+  // 原为 all_default 弱用例：11 个数字全等于页面默认，expect「P0.13-P3」是等级词。
   "slug": "endocrinology/short-stature-prediction",
   "inputs": {
-    "age": "10",
-    "currentHt": "125",
+    "age": "8",
+    "currentHt": "110",
     "weight": "25",
-    "fatherHt": "170",
-    "motherHt": "158",
-    "boneAge": "9",
-    "prevHt": "118",
-    "ghPeak": "5",
-    "igf1": "80",
-    "birthLen": "50",
-    "birthWt": "3.2"
+    "fatherHt": "176",
+    "motherHt": "162",
+    "gender": "male",
+    "boneAge": "7",
+    "prevHt": "103"
   },
-  "expect": [
-    "P0.13-P3"
+  "checkIds": [
+    "delayBone",
+    "pituitaryMri"
   ],
-  "ref": "auto-restore(default)"
+  "expect": [
+    "范围：170.5 - 180.5 cm"
+  ],
+  "ref": "男性遗传靶身高 MPH = (父176 + 母162 + 13) / 2 = 175.5，输出「175.5 cm 范围：170.5 - 180.5 cm（±5cm遗传波动）」。注意不可断言「175.5 cm」——回退默认（父170/母158）时页面的参考表里也含该串（逃生项）。"
 },
 {
+  // 原为 all_default 弱用例：仅 tumorSize/tg 取页面默认，expect 是低危随访文案。
   "slug": "endocrinology/thyroid-cancer-risk",
   "inputs": {
-    "tumorSize": "2.5",
-    "tg": "2.5"
+    "tumorSize": "5.5",
+    "tg": "9.9"
   },
-  "expect": [
-    "TSH抑制放宽至1-2mIU/L(低危)或0.5-1.9(中危)"
+  "checkIds": [
+    "distant",
+    "rair"
   ],
-  "ref": "auto-restore(default)"
+  "expect": [
+    "RAIR(碘难治)：",
+    "9.9 Tg(ng/mL)"
+  ],
+  "ref": "勾选 distant（远处转移）→ 初始风险分层「高危」；勾选 rair → 追加 RAIR(碘难治) 提示卡；tg=9.9 → 卡片显示「9.9 Tg(ng/mL)」（toFixed(1) 渲染，非原始输入回显）。注意「初始风险： 高危」不可用 —— 回退时兜底函数 loadHigh() 也会产出它（逃生项）。"
 },
 {
   "slug": "endocrinology/ti-rads",
@@ -272,14 +280,20 @@ const CASES = [
   "ref": "auto-restore(default)"
 },
 {
+  // 原为 all_default 弱用例：bg=2.2 即页面默认，expect「3.2」是兜底预设 loadReactive() 写入的值（典型逃生项）。
   "slug": "endocrinology/whipple-triad",
   "inputs": {
-    "bg": "2.2"
+    "bg": "2.0",
+    "fasting": "1"
   },
-  "expect": [
-    "3.2"
+  "checkIds": [
+    "symptom"
   ],
-  "ref": "auto-restore(default)"
+  "expect": [
+    "有低血糖症状+低血糖值，但补糖后症状未缓解",
+    "满足 2/3 项"
+  ],
+  "ref": "fasting=1（空腹）→ 阈值 2.8；bg=2.0 < 2.8 且仅勾选 symptom → metCount=2（症状✓、血糖✓、补糖缓解✗）→ 走「!hasRelief」分支文案。注意不可断言「Whipple三联征完整」——兜底预设 loadInsulinoma()（bg1.8+两项全勾）也产出它（逃生项）。"
 }
 ];
 async function main() {
