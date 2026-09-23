@@ -23,57 +23,57 @@ const CASES = [
   // ── 最大摄氧量 ──────────────────────────────────────────────
   {
     slug: "sports/estimate-tester",
-    inputs: { method: "0", distance: "2400" }, // method 0 = Cooper 12 分钟跑
-    expect: ["42.4"],
-    ref: "Cooper：VO2max = (2400−504.9)/44.73 = 42.36 → 42.4 ml/kg/min（页面 round·10/10）",
+    inputs: { method: "0", distance: "3000" }, // method 0 = Cooper 12 分钟跑
+    expect: ["55.8", "优秀 体能等级"],
+    ref: "去默认化：Cooper VO2max = (3000−504.9)/44.73 = 55.75 → 55.8 ml/kg/min，等级跨到「优秀」。默认 2400 → 42.4（一般）。注意「优秀」二字在页面静态参考标准表里已出现，单独用会被默认态命中，必须与「体能等级」绑成连续串",
   },
 
   // ── 心率储备（Karvonen）────────────────────────────────────
   {
     slug: "sports/calc-heart-rate-1",
-    inputs: { age: "30", restHr: "60", formula: "fox" }, // fox: 220−age
-    expect: ["190"],
-    ref: "最大心率 = 220−30 = 190 bpm（页面 Math.round(mx)，summary 显示）",
+    inputs: { age: "45", restHr: "60", formula: "fox" }, // fox: 220−age
+    expect: ["175 最大心率", "115 储备心率", "118–175"],
+    ref: "去默认化：最大心率 = 220−45 = 175 bpm；储备心率 HRR = 175−60 = 115；Karvonen 区间 = 60+115×[0.5,1] = 118–175 bpm。默认 age 30 → 190 / 130 / 125–190。注意页面另有 maxHr 输入框（默认 190）在 fox 公式下不参与计算，其回显值不可作 expect",
   },
 
   // ── 氧脉搏 ──────────────────────────────────────────────────
   {
     slug: "sports/yangmaiboxiaolv",
-    inputs: { vo2: "3200", hr: "180" }, // phase 默认 '' → a-vO2diff 0.05
-    expect: ["17.78"],
-    ref: "氧脉搏 O₂pulse = VO₂/HR = 3200/180 = 17.78 ml/beat（页面 toFixed(2)）",
+    inputs: { vo2: "2800", hr: "160" }, // phase 默认 '' → a-vO2diff 0.05
+    expect: ["17.50", "0.269", "2.80"],
+    ref: "去默认化：氧脉搏 O₂pulse = 2800/160 = 17.50 ml/beat；相对氧脉搏 = 17.5/65 = 0.269 ml/beat/kg；VO₂ = 2.80 L/min。默认 3200/180 → 17.78 / 0.274 / 3.20",
   },
 
   // ── 骑行齿比 ────────────────────────────────────────────────
   {
     slug: "sports/calculator-calc-9",
-    inputs: { chainring: "50", cog: "11", circ: "2.105", cadence: "90", targetSpeed: "30" },
-    expect: ["4.55"],
-    ref: "齿比 = 50/11 = 4.545 → 4.55（页面 toFixed(2)，summary 齿比卡片）",
+    inputs: { chainring: "52", cog: "13", circ: "2.105", cadence: "90", targetSpeed: "30" },
+    expect: ["4.00 齿比", "8.42", "45.5", "105.5"],
+    ref: "去默认化：齿比 = 52/13 = 4.00；每圈距离 = 2.105×4 = 8.42 m；90rpm 速度 = 8.42×90×60/1000 = 45.5 km/h；齿轮英寸 = 8.42/0.0254/π ≈ 105.5。默认 50/11 → 4.55 / 9.57 / 51.7 / 119.9",
   },
 
   // ── 坡度百分比 ──────────────────────────────────────────────
   {
     slug: "sports/calc-angle-slope",
-    inputs: { v1: "100", v2: "20" }, // m 默认 'part'（求部分值）
-    expect: ["20.00"],
-    ref: "20% of 100 = 100×20/100 = 20.00（页面 toFixed(2)）",
+    inputs: { v1: "250", v2: "18" }, // m 默认 'part'（求部分值）
+    expect: ["18% of 250 = 45.00"],
+    ref: "去默认化：250×18/100 = 45.00。默认 100/20 → 20% of 100 = 20.00。整串包含公式展示原文，避免只锚结果数字",
   },
 
   // ── 游泳 SWOLF ──────────────────────────────────────────────
   {
     slug: "sports/swimming-stroke-efficiency",
-    inputs: { "pool-length": "25", "stroke-count": "20", "swim-time": "30", "stroke-type": "freestyle" }, // 页面真实 id 带连字符
-    expect: ["50.0"], // BATCH54：原式 20+30/5=26.0 错误，标准 SWOLF=20+30=50.0
-    ref: "SWOLF = 划次 + 时间/5 = 20 + 30/5 = 26.0（页面 toFixed(1)，big-val）",
+    inputs: { "pool-length": "25", "stroke-count": "16", "swim-time": "42", "stroke-type": "freestyle" }, // 页面真实 id 带连字符
+    expect: ["58.0", "1.56", "22.9", "35.71"],
+    ref: "去默认化：**标准 SWOLF = 划次 + 时间 = 16 + 42 = 58.0**（BATCH54 已修掉原式「划次 + 时间/5」的量纲错）；DPS = 25/16 = 1.56 m；SR = 16/42×60 = 22.9 次/分；速度 = 25/42×60 = 35.71 m/min。默认 20/30 → 50.0 / 1.25 / 40.0 / 50.00",
   },
 
   // ── 出汗率 ──────────────────────────────────────────────────
   {
     slug: "sports/estimate-35",
-    inputs: { pre: "70", post: "69.2", dur: "60", intake: "500", urine: "0" },
-    expect: ["1.30"],
-    ref: "出汗量 = (70−69.2)+500/1000 = 1.3 kg；出汗率 = 1.3/(60/60) = 1.30 L/h（页面 toFixed(2)）",
+    inputs: { pre: "75", post: "73.5", dur: "90", intake: "750", urine: "200" },
+    expect: ["2050", "1.37", "2.00%", "23 ml/min"],
+    ref: "去默认化：体重差 −1.50 kg，实际出汗量 = 1500 + 750(补液) − 200(排尿) = 2050 ml；出汗率 = 2.05 kg / 1.5 h = 1.37 L/h（23 ml/min）；净脱水率 = 1.5/75 = 2.00%。默认 70/69.2/60/500/0 → 1300 ml、1.30 L/h（22 ml/min）、1.14%",
   },
   {
     "slug": "sports/stats-11",
