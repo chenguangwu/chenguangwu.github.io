@@ -247,18 +247,22 @@ function calc(){
   var respTotal=satisfied+neutral+dissatisfied;
   var npsTotal=promoters+passives+detractors;
   var attendanceRate=attend/total*100;
-  var csat=satisfied/respTotal*100;
-  var promoterPct=promoters/npsTotal*100;
-  var detractorPct=detractors/npsTotal*100;
-  var nps=promoterPct-detractorPct;
+  // 问卷/推荐者样本为 0 时 0/0 会输出 NaN，需先判空（原代码直接除，清空输入框即得 NaN%）
+  var hasCsat=respTotal>0, hasNps=npsTotal>0;
+  var csat=hasCsat?satisfied/respTotal*100:0;
+  var promoterPct=hasNps?promoters/npsTotal*100:0;
+  var detractorPct=hasNps?detractors/npsTotal*100:0;
+  var nps=hasNps?promoterPct-detractorPct:0;
   var effectScore=(org+venue+promo+safety)/4;
   var csatGrade,csatColor;
-  if(csat>=85){csatGrade='优秀';csatColor='var(--success)';}
+  if(!hasCsat){csatGrade='无有效问卷';csatColor='var(--text-muted)';}
+  else if(csat>=85){csatGrade='优秀';csatColor='var(--success)';}
   else if(csat>=70){csatGrade='良好';csatColor='var(--success)';}
   else if(csat>=50){csatGrade='一般';csatColor='var(--warning)';}
   else{csatGrade='较差';csatColor='var(--danger)';}
   var npsGrade,npsColor;
-  if(nps>=50){npsGrade='卓越';npsColor='var(--success)';}
+  if(!hasNps){npsGrade='无有效样本';npsColor='var(--text-muted)';}
+  else if(nps>=50){npsGrade='卓越';npsColor='var(--success)';}
   else if(nps>=20){npsGrade='良好';npsColor='var(--success)';}
   else if(nps>=0){npsGrade='一般';npsColor='var(--warning)';}
   else{npsGrade='需改进';npsColor='var(--danger)';}
@@ -266,8 +270,8 @@ function calc(){
   h+='<table style="width:100%;border-collapse:collapse;margin:12px 0;font-size:13px;">';
   h+='<tr style="background:var(--result-bg);"><th style="border:1px solid var(--border);padding:8px;text-align:left;">评估指标</th><th style="border:1px solid var(--border);padding:8px;">结果</th><th style="border:1px solid var(--border);padding:8px;">评级</th></tr>';
   h+='<tr><td style="border:1px solid var(--border);padding:8px;">到场率</td><td style="border:1px solid var(--border);padding:8px;text-align:center;font-weight:600;">'+attendanceRate.toFixed(1)+'%</td><td style="border:1px solid var(--border);padding:8px;text-align:center;color:'+(attendanceRate>=80?'var(--success)':'var(--warning)')+';">'+(attendanceRate>=80?'达标':'偏低')+'</td></tr>';
-  h+='<tr><td style="border:1px solid var(--border);padding:8px;">CSAT满意度</td><td style="border:1px solid var(--border);padding:8px;text-align:center;font-weight:600;color:'+csatColor+';font-size:16px;">'+csat.toFixed(1)+'%</td><td style="border:1px solid var(--border);padding:8px;text-align:center;color:'+csatColor+';font-weight:600;">'+csatGrade+'</td></tr>';
-  h+='<tr><td style="border:1px solid var(--border);padding:8px;">NPS净推荐值</td><td style="border:1px solid var(--border);padding:8px;text-align:center;font-weight:600;color:'+npsColor+';font-size:16px;">'+nps.toFixed(0)+'</td><td style="border:1px solid var(--border);padding:8px;text-align:center;color:'+npsColor+';font-weight:600;">'+npsGrade+'</td></tr>';
+  h+='<tr><td style="border:1px solid var(--border);padding:8px;">CSAT满意度</td><td style="border:1px solid var(--border);padding:8px;text-align:center;font-weight:600;color:'+csatColor+';font-size:16px;">'+(hasCsat?csat.toFixed(1)+'%':'—')+'</td><td style="border:1px solid var(--border);padding:8px;text-align:center;color:'+csatColor+';font-weight:600;">'+csatGrade+'</td></tr>';
+  h+='<tr><td style="border:1px solid var(--border);padding:8px;">NPS净推荐值</td><td style="border:1px solid var(--border);padding:8px;text-align:center;font-weight:600;color:'+npsColor+';font-size:16px;">'+(hasNps?nps.toFixed(0):'—')+'</td><td style="border:1px solid var(--border);padding:8px;text-align:center;color:'+npsColor+';font-weight:600;">'+npsGrade+'</td></tr>';
   h+='</table>';
   h+='<p style="font-size:13px;font-weight:600;margin:16px 0 8px;">赛事效果四维评估</p>';
   h+='<table style="width:100%;border-collapse:collapse;margin:8px 0;font-size:13px;">';

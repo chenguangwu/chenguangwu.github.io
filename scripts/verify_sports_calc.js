@@ -64,7 +64,7 @@ const CASES = [
   {
     slug: "sports/swimming-stroke-efficiency",
     inputs: { "pool-length": "25", "stroke-count": "20", "swim-time": "30", "stroke-type": "freestyle" }, // 页面真实 id 带连字符
-    expect: ["26.0"],
+    expect: ["50.0"], // BATCH54：原式 20+30/5=26.0 错误，标准 SWOLF=20+30=50.0
     ref: "SWOLF = 划次 + 时间/5 = 20 + 30/5 = 26.0（页面 toFixed(1)，big-val）",
   },
 
@@ -209,7 +209,80 @@ const CASES = [
     "inputs": { "v0": "60", "v1": "15" },
     "expect": ["900 kg", "45 s", "90 kg"],
     "ref": "总负荷=60×15=900kg；单组=15×3=45s；周增=900×0.1=90kg（默认70/12→840/36/84，注入失败即不命中）"
-  }
+  },
+  // ── 最大累积氧亏 MAOD（BATCH54：时长输入单位为「秒」，原代码直接当代分钟用 → 虚高 60 倍）──
+  {
+    slug: "sports/tester-8",
+    inputs: { vo2max: "60", weight: "80", duration: "180", avgVo2: "40", restVo2: "3.5" },
+    expect: ["60.0", "4.8"], // 「良好」是页内静态参考表的固有文案，不能作 expect（逃生项）
+    ref: "时长 180 秒 = 3 分钟；需氧=60×80×3÷1000=14.40 L；摄氧=40×80×3÷1000=9.60 L；"
+       + "氧亏=4.80 L；MAOD=4.80÷80×1000=60.0 ml/kg（≥55 判良好）。"
+       + "修复前因未换算分钟，同样输入会算出 864 L 与 3600 ml/kg",
+  },
+
+  // ── SWOLF 效率指数（BATCH54：原式写成 划次+秒/5 → 20+6=26 误判精英）──
+  {
+    slug: "sports/swimming-stroke-efficiency",
+    inputs: { "pool-length": "50", "stroke-count": "36", "swim-time": "40", "stroke-type": "freestyle" },
+    expect: ["76.0"],
+    ref: "SWOLF 标准定义 = 划次 + 用时(秒) = 36+40 = 76.0（50 m 池另减 12 参与评级）；"
+       + "修复前的 /5 会算出 36+8=44.0，并把本例误判为精英",
+  },
+
+  // ── 举重 Sinclair 体重级别（BATCH54：边界原用 < ，73.00 kg 被抬到 81kg 级）──
+  {
+    slug: "sports/juzhongzongchengji-sinclair-xishu",
+    inputs: { gender: "m", bw: "88", snatch: "100", cj: "130" },
+    expect: ["1.168", "268.7", "96kg"],
+    ref: "Sinclair 系数=10^(0.7519·(log10(88/175.508))²)=10^(0.7519×0.089940)=1.1684→1.168；"
+       + "总成绩 230×1.1684=268.73→268.7 kg；体重 88 kg 属 ≤96 的 96kg 级",
+  },
+
+  // ── 马拉松分段（BATCH54：距离列原为恒空三元，半马之后整列空白）──
+  {
+    slug: "sports/calculator-calc-time",
+    // distance 必须显式注入：harness 的 select 桩取首个 option(5 公里)，忽略 selected 的 42.195
+    inputs: { distance: "42.195", th: "3", tm: "30", ts: "0" },
+    expect: ["4:59", "半程马拉松 21.098", "3:30:00"],
+    ref: "总用时 12600 s ÷ 42.195 km = 298.61 s/km = 4:59/km；半程 21.0975×298.61=6300 s=1:45:00；"
+       + "分段表 21.0975 km 处应显示「半程马拉松 21.098 km」而非空白的「 km」",
+  },
+
+  // ── 1RM 推算（Epley / Brzycki）──────────────────────────────
+  {
+    slug: "sports/convert-47",
+    inputs: { w: "120", r: "3" },
+    expect: ["132.0", "90.9", "291.0", "118.8"],
+    ref: "Epley=120×(1+3/30)=132.00 kg；强度=120/132=90.9%；折合 132×2.2046=291.0 lb；90% 1RM=118.8 kg",
+  },
+
+  // ── 加速过程动力学 ──────────────────────────────────────────
+  {
+    slug: "sports/speed-5",
+    inputs: { v0: "5", v1: "15", t: "2", m: "80" },
+    expect: ["5.00", "400.0", "20.00", "8000.0"],
+    ref: "a=(15−5)/2=5.00 m/s²；F=80×5=400.0 N；s=(5+15)/2×2=20.00 m；"
+       + "ΔKE=0.5×80×(225−25)=8000.0 J；平均功率=8000/2=4000.0 W",
+  },
+
+  // ── 赛事满意度（问卷样本为 0 时不得输出 NaN）─────────────────
+  {
+    slug: "sports/assessor-csat",
+    inputs: { total: "0", attend: "0", satisfied: "0", neutral: "0", dissatisfied: "0",
+              promoters: "0", passives: "0", detractors: "0" },
+    expect: ["无有效问卷", "无有效样本"],
+    ref: "CSAT=满意/(满意+一般+不满意) 与 NPS 分母均为 0 ⇒ 修复前输出 NaN% / NaN；应给出无有效样本提示",
+  },
+
+  // ── Cooper 12 分钟跑（每分钟摄氧量原为 vo2max/3.5 且单位标 ml）──
+  {
+    slug: "sports/estimate-tester",
+    inputs: { method: "0", distance: "3000", weight: "70" },
+    expect: ["55.8", "3.90"],
+    ref: "Cooper：VO2max=(3000−504.9)/44.73=55.782→55.8 ml/kg/min；"
+       + "绝对每分钟摄氧量=55.782×70÷1000=3.90 L/min（修复前显示 16 ml，那是 VO2max÷3.5 的 MET 倍数）",
+  },
+
 ];
 
 // ---------------------------------------------------------------- main
