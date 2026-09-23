@@ -28,12 +28,24 @@ const CASES = [
   "ref": "auto-restore(default)"
 },
 {
+  // 原用例 inputs 为空、expect 取「非复杂型Stanford B型」—— 那是建立在**旧 harness 失真**上的：
+  // extent 组真机默认选中 ascDesc（HTML checked），旧桩 getElementsByName 恒 [] ⇒ getRadio 返回 0
+  // ⇒ 被当成「非升主动脉受累」而落入 B 型。2026-09-24 起 harness 回落 HTML 默认选中态，
+  // 真机默认（extent=ascDesc）实为 **A 型**（急诊外科手术），故原 expect 已不成立。
+  // 现改为显式声明输入（不再受默认态影响）：extent=descOnly → B 型；malPerf=1 → 复杂型 →
+  // 紧急 TEVAR（默认态 A 型输出「急诊外科手术」，故本 expect 具判别力）。
   "slug": "cardiology/aortic-dissection",
-  "inputs": {},
-  "expect": [
-    "非复杂型Stanford"
+  "radios": {
+    "extent": "descOnly"
+  },
+  "checkIds": [
+    "malPerf"
   ],
-  "ref": "auto-restore(default)"
+  "expect": [
+    "紧急TEVAR(腔内修复)",
+    "复杂型Stanford B型夹层"
+  ],
+  "ref": "extent=descOnly（仅降主动脉）→ Stanford B 型 / DeBakey IIIa；malPerf=脏器灌注不良 → complicated → 紧急 TEVAR 腔内修复"
 },
 {
   "slug": "cardiology/aspirin-prevention",

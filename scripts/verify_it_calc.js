@@ -389,6 +389,26 @@ async function runCaseInner(c) {
   for (const m of html.matchAll(/<select[^>]*id="([^"]+)"[\s\S]*?<\/select>/g))
     sel[m[1]] = [...m[0].matchAll(/<option[^>]*value="([^"]*)"/g)].map((x) => x[1]);
 
+  // 预解析 radio / checkbox 的 HTML 默认选中态（2026-09-24）：
+  // 真机中带 `checked` 属性的控件即处于选中态。makeEl.checked 恒 false ⇒ 页面读选中项时
+  // 得到 null / 恒空：`querySelector('input[name=design]:checked').value` 会抛 TypeError
+  // （optical/progressive-corridor 因此整页无法验证），`getElementsByName(name)` 循环恒不命中
+  // ⇒ 单选组读数恒 0，默认输出与真机不符。用例未声明 c.checks / c.radios 时回落到此处。
+  const checkedByName = {};    // name -> [全部带 checked 的 value]（radio 组天然 1 个；checkbox 组可多个）
+  const radioGroups = {};      // name -> [全部 value]（保持文档序）
+  for (const m of html.matchAll(/<input\b[^>]*>/gi)) {
+    const tag = m[0];
+    if (!/type\s*=\s*["']?(?:radio|checkbox)/i.test(tag)) continue;
+    const nm = (tag.match(/\bname\s*=\s*["']([^"']*)["']/i) || [, ""])[1];
+    const id = (tag.match(/\bid\s*=\s*["']([^"']*)["']/i) || [, ""])[1];
+    const vl0 = (tag.match(/\bvalue\s*=\s*["']([^"']*)["']/i) || [, ""])[1];
+    // 无 name 的控件按 id 归组（真机里 checkbox 常无 name，页面用 id 读取）
+    const key = nm || (id ? "#" + id : "");
+    if (!key) continue;
+    (radioGroups[key] = radioGroups[key] || []).push(vl0);
+    if (/\bchecked\b/i.test(tag)) (checkedByName[key] = checkedByName[key] || []).push(vl0);
+  }
+
   const script = inlineScripts(html);
   if (!script.trim()) return { ok: false, why: "无内联脚本" };
 
@@ -440,6 +460,11 @@ async function runCaseInner(c) {
       // 输出与真机默认态不符。用例用 radios: { htn: "1" } 声明某组被选中的 value 即可。
       if (c.radios && Object.prototype.hasOwnProperty.call(c.radios, name))
         return [{ value: String(c.radios[name]), checked: true, name }];
+      // 回落 HTML 默认选中态：返回该组全部选项，仅真机默认选中项 checked=true。
+      // 该组在 HTML 里无默认选中 ⇒ 全部 false，页面循环自然落到其默认返回值（与真机一致）。
+      const opts = radioGroups[name];
+      if (opts && opts.length)
+        return opts.map((v) => ({ value: v, checked: (checkedByName[name] || []).indexOf(v) !== -1, name }));
       return [];
     },
     getElementsByClassName: () => [],
@@ -455,6 +480,18 @@ async function runCaseInner(c) {
         // 这里补一个最小桩（textContent 为空串），仅补齐属性、不改变既有语义。
         if (c.checks && c.checks.length)
           return { value: c.checks[0], checked: true, parentElement: { textContent: "" } };
+        // 回落 HTML 默认选中态：选择器点名 name=xxx 时查该组；未点名则取首个有默认选中项的组。
+        // 该组确实无默认选中（真机同样为空）⇒ 仍返回 null，保持与真机一致。
+        const nmM = sel.match(/\[\s*name\s*=\s*["']?([^"'\]]+)/);
+        if (nmM) {
+          const vs = checkedByName[nmM[1]];
+          if (vs && vs.length)
+            return { value: vs[0], checked: true, parentElement: { textContent: "" } };
+        } else {
+          const ks = Object.keys(checkedByName);
+          if (ks.length && checkedByName[ks[0]].length)
+            return { value: checkedByName[ks[0]][0], checked: true, parentElement: { textContent: "" } };
+        }
         return null;
       }
       // 提供真实 h1 / title 文本，供「按标题分支」的计算逻辑正确选模式
@@ -464,8 +501,16 @@ async function runCaseInner(c) {
     },
     querySelectorAll(sel) {
       // 支持 ':checked' 类选择器：用例可用 checks 声明哪些复选框处于选中态
-      if (/checked/.test(sel) && c.checks)
-        return c.checks.map((v) => ({ value: v, checked: true, parentElement: { textContent: "" } }));
+      if (/checked/.test(sel)) {
+        if (c.checks)
+          return c.checks.map((v) => ({ value: v, checked: true, parentElement: { textContent: "" } }));
+        // 回落 HTML 默认选中态：未声明 checks 时按页面 `checked` 属性返回选中项（与真机一致）
+        const nmM = sel.match(/\[\s*name\s*=\s*["']?([^"'\]]+)/);
+        const ks = nmM ? (checkedByName[nmM[1]] ? [nmM[1]] : []) : Object.keys(checkedByName);
+        const out = [];
+        for (const k of ks) for (const v of checkedByName[k]) out.push({ value: v, checked: true, parentElement: { textContent: "" } });
+        return out;
+      }
       // 提供真实 label 文本，部分工具据此命名输出字段
       if (/label/i.test(sel)) return labelTexts.map((t) => { const e = makeEl(""); e.textContent = t; e.value = t; return e; });
       return [];
