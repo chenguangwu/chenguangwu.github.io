@@ -329,6 +329,12 @@
 - **个位数 expect 极易被默认输出吃掉**：`ai/ai-10` 的「感受野 9」被默认输出的 `0.9998` 命中 ⇒ discriminate 判定为逃生项。**expect 出现一位数时，换输入让它变成两位以上**（该例改 d=3 → 感受野 13、输出尺寸 59），或直接剔除该项。
 - **深度解析的算例也会编数值**：`ai/softmax-2` 称 `T=0.5 → [0.76,0.17,0.07]`（实为 `[0.8438,0.1142,0.0420]`）、`ai/temperature-scaling` 称 `T=1 → [0.79,0.11,0.10]`（实为 `[0.8438,0.1142,0.0420]`），两组数内部甚至不自洽（相邻类比推不出同一 T）。**深度解析里的概率/数值算例一律用脚本重算后再写**。
 
+### 8.12 「过滤器 / 硬化函数」必须验证真的被调用（定义 ≠ 生效，2026-09-23 新增）
+
+- **`_inject_output_guard_v7.py` 的 `expr_is_safe_to_guard` 只被定义、从未在 `transform()` 里调用** —— 即"保守过滤"从未生效，而 DEV-PLAN 却据此写了"全站闭环已通过硬化注入工具实现"。**教训：凡"加了过滤 / 白名单 / 守卫"的改动，必须用一条反面样本证明它真的拦住了**（喂一个应被拦下的输入，确认输出不变）；否则"定义即生效"只是错觉。
+- **过滤"过宽"与"未接线"同样有害**：全站实测 `str-risky`（静态字符串含独立 NaN 词或等于 `'Infinity'`）命中 **0 处**，而模板串 / 字符串拼接 / 动态容器变量（`html` 一个就 3217 处）的守卫**真机上确能拦截 NaN 经插值泄漏到页面**（正是守卫目的）。若把 v7 的过滤原样接线（跳过模板字面量 / 字符串 / method 链），反而**削弱真机防护**。v8 因此只跳过"纯静态字符串字面量 RHS"（守卫对其永不触发，注入纯噪声）。
+- **harness 盲区页无法静态识别，只能试错**：正确流程是 **注入 → 跑该行业 verify → 失败页写入 `--skip` 清单 → 带 `--skip` 重跑 → 直到全绿**（v8 已实现）。
+
 ---
 
 ## 九、发现但未修的真实缺陷（待老板定夺）
@@ -483,3 +489,6 @@ dermatology 14/11、engineering 14/11、signal 11/11、design 10/10、rheumatolo
 - **首批 finance 精查（已并入 BATCH56 全量）**：✅ 健康（simple-interest / npv-calculator / break-even-calculator / depreciation-calculator / vat-calculator / compound-interest / irr-calculator 算法等）；⚠️ profit-margin-calculator 营业利润/EBITDA 未含财务费用（净利正确，低优先口径偏差，经 BATCH56 复核确认为通用口径选择、非算错，不修）。BATCH56 已对全 113 页默认态独立复算 + 边界探针，仅 tax-calculator 级距下限硬编码为确凿缺陷。
 - **纪律**：确凿真缺陷前不改页面；找到即立项「缺陷 N」闭环（修 calc + 修/注册 verify 用例 + run_gates + 提交推送）。
 - **BATCH53（ai 分类，2026-09-23，仅本地提交）**：56 页全部可读（无空页）。默认态逐页独立复算后仅 1 处确凿缺陷 —— `ai/softmax-2`「低温 P1」实际用当前 T（T=1 时与「T=1 P1」同为 62.85%），已改 T/2 与 T×2 并把温度写进标签。随后按 §8.11 跑 ZERO/EMPTY 探针，31 页输出 NaN 已全部加非有限值守卫（4 页另给具体判据）。新增 35 例非默认用例（44/44 通过、判别力 44/44 变红 0 逃生），门禁 217/217，基线 total_cases 3109→3144、checked 2582→2617，all_default 237 / no_inputs 212 / escape 0 均不变。
+- **BATCH61（边界 NaN 守卫收尾 · v8 专项，2026-09-23，已提交并推送 `c58dbf8837`）**：按本草节 TODO 收口 4 个待办分类（dentistry/food/rehabilitation/tcm-chemistry）**86 页**补齐"输出非有限值"守卫；**跳过 4 页** harness 不可驱动页 —— `dentistry/gingival-index`、`food/wine-alcohol-converter`、`rehabilitation/asia-impairment-scale`、`tcm-chemistry/response-factor`（动态构建 select / 模板渲染，守卫在 headless 下对真机正确输出误触发，其 verify 用例锚定的是旧 NaN 输出）→ **留待「innerHTML 真实 DOM 模拟」专项**，不硬改。
+- **本轮纠正一处既有表述**：v7 的 `expr_is_safe_to_guard` 定义了却未接线，故本草节先前"全站闭环已通过硬化注入工具实现（模板字面量感知扫描）"**不成立** —— 线上 3591 页守卫里 **2484 页**的 RHS 实为字符串/模板串/拼接。**但经全站实测这些"字符串守卫"在真机上并非无效**（详见 §8.12），故**不做全站回退**（避免 2484 页无谓 diff）。v8 只把过滤收窄为"跳过纯静态字符串字面量 RHS"，并新增 `--skip` 清单实现**页级试错回退**。
+- 验证：4 行业 verify 全绿（23/22/18/21）、`run_gates.py` **217/217**、逃生项 0、构建幂等（连续两次 build 产物 MD5 一致）。
