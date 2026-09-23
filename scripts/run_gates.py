@@ -65,11 +65,13 @@ GATES = (
     # 百分等级 / 比例置信区间 / 均值·比例样本量 / 相对风险 / 比值比 / 相关系数 /
     # 均值中位数极差 / 标准差方差 / 偏度峰度 / 单样本 t 检验 / F 方差齐性 / 卡方检验 /
     # 最小二乘回归 / 几何·调和平均 / 极差 / MAD / 样本方差·标准差 / 总体方差）。
-    # 注：statistics-4 置信区间、statistics-5 样本量的逆正态 z 反解实现有误，未纳入（见 DEV-PLAN §7.1）。
+    # 注：statistics-4 置信区间、statistics-5 样本量的逆正态 z 反解已于 2026-09-16 专项修复，
+    #     两页用例均已纳入本脚本（原「未纳入」注释已过时）。
     ("statistics calc correctness", ("node", "scripts/verify_statistics_calc.js")),
     # legal 分类的正确性验证（加班费 / 违法解除2N / 经济补偿N / N+1 / 逾期付款利息 / 抚养费 /
     # 离婚财产分割 / 诉讼费 / 知识产权保护期 / 年终奖个税 / 民间借贷利息 / 法律援助资格 / 工伤赔偿）。
-    # 注：traffic-accident-compensation 伤残赔偿系数倒置缺陷未纳入（见 DEV-PLAN §7.1）。
+    # 注：traffic-accident-compensation 的伤残赔偿系数倒置缺陷已修复（一级 100% / 十级 10%），
+    #     两条例行断言（一级 1,200,000 / 十级 120,000）已纳入本脚本（原「未纳入」注释已过时）。
     ("legal calc correctness", ("node", "scripts/verify_legal_calc.js")),
     # realestate 分类的正确性验证（房贷等额本息/等额本金总利息、租金毛·净回报率、首付与月供、
     # 公积金额度双轨取小 + 当地上限封顶、按揭可贷额度与月供·总利息、二手房契税与增值税及附加、
