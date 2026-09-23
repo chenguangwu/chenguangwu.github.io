@@ -329,6 +329,18 @@ const CASES = [
     "77.7000"
   ],
   "ref": "auto-restore"
+},
+{
+  "slug": "thermodynamics/boyles-law",
+  "inputs": {
+    "P1": "0",
+    "V1": "0",
+    "P2": "0"
+  },
+  "expect": [
+    "无效值"
+  ],
+  "ref": "边界守卫：输入 0 → V2=0*0/0=NaN → dataGrid 含 NaN → 守卫渲染告警『⚠ 计算结果含无效值』；注入失败回退默认(P1=150,V1=2,P2=50)→V2=6 有限不命中，可判别"
 }
 ];
 async function main() {
