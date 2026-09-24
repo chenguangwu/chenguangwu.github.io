@@ -46,12 +46,17 @@ const CASES = [
 {
   "slug": "music/chord-notes",
   "inputs": {
-    "chordInput": "C"
+    "chordInput": "F#m7"
   },
-  "expect": [
-    "261.63"
+  "clicks": [
+    "analyzeChord()"
   ],
-  "ref": "auto-restore(default)"
+  "expect": [
+    "F#m7 · 小七和弦",
+    "C# 554.37 Hz 纯五",
+    "小七 (10半音)"
+  ],
+  "ref": "F# 小七和弦 intervals [0,3,7,10]：midi 60+6+0/3/7/10 = 66/69/73/76，midiToFreq 440×2^((n-69)/12) → 369.99/440.00/554.37/659.26 Hz，音级 根音/小三/纯五/小七。原 expect 的 261.63 是默认输入 C 的根音频率（逐字回显默认态、零判别力）。"
 },
 {
   "slug": "music/chord-progression",
@@ -167,12 +172,17 @@ const CASES = [
 {
   "slug": "music/rhythm-trainer",
   "inputs": {
-    "bpmInput": "90"
+    "bpmInput": "140",
+    "measureCount": "8"
   },
-  "expect": [
-    "NaN"
+  "clicks": [
+    "adjustBPM(75);startTraining()"
   ],
-  "ref": "auto-restore(default)"
+  "expect": [
+    "200",
+    "1 2 3 4 5 6 7 8"
+  ],
+  "ref": "adjustBPM 上界夹取：140+75=215 → Math.max(60,Math.min(200,215)) = 200，写回 bpmInput。startTraining 读 measureCount=8 → renderGrid 渲染 8 个小节标签 1..8。原 expect 的 NaN 是兜底阶段无参调用 adjustBPM() 把 bpmInput 写成 NaN 的副产物（零判别力）；默认态为 90+75=165 且 measureCount 回落首个 option=2（网格仅 1 2），两锚点均失配。注：startTraining 在 renderGrid() 之后才因缺 AudioContext 抛错，网格已渲染，断言不受影响。"
 },
 {
   "slug": "music/sheet-music",
