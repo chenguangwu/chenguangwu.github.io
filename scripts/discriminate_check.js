@@ -121,8 +121,12 @@ function listFiles() {
         (c.radios && Object.keys(c.radios).length > 0) ||
         (Array.isArray(c.clicks) && c.clicks.length > 0);
       const clearInject = { checkIds: [], radios: {}, checks: [], clicks: [] };
+      // checks（声明「已选中项」的 value）同样构成真实注入，但它可能只作 inputs 的修饰项，
+      // 故仅在「无 inputs」分支并入适用性判定（与 selfcheck_false_pass.weakKind 口径一致）：
+      // 否则纯 checks 驱动的量表页会被计入 skipped 而漏检。
+      const hasChecks = Array.isArray(c.checks) && c.checks.length > 0;
       if (!c.inputs || Object.keys(c.inputs).length === 0) {
-        if (!hasInj) { skipped++; continue; }   // 真正无任何注入的用例不适用
+        if (!hasInj && !hasChecks) { skipped++; continue; }   // 真正无任何注入的用例不适用
         // 清空复选框/单选注入 → 页面回到「全未勾选」态，expect 必须失配，否则即逃生项。
         total++;
         let r0;

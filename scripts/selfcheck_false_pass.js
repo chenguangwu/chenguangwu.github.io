@@ -130,7 +130,13 @@ function weakKind(c) {
     (Array.isArray(c.checkIds) && c.checkIds.length > 0) ||
     (c.radios && Object.keys(c.radios).length > 0) ||
     (Array.isArray(c.clicks) && c.clicks.length > 0);
-  if (!keys.length) return hasInjection ? null : "no_inputs";
+  // checks（声明「已选中项」的 value ⇒ querySelector(':checked') 桩）同样是真实注入：
+  // berg-balance-scale / flacc-scale / mmse-scoring / mmt-grading 这类**控件运行期渲染**的
+  // 量表页只有一个静态容器，没有任何可注入的 input id，但页面逻辑读的正是「哪一项被选中」。
+  // 不过 checks 也可能与 inputs 并存（此时它是修饰项），故仅在「无 inputs」分支计入 no_inputs 判定，
+  // 不参与 all_default 判定（保持既有口径逐字节不变）。
+  const hasChecked = Array.isArray(c.checks) && c.checks.length > 0;
+  if (!keys.length) return (hasInjection || hasChecked) ? null : "no_inputs";
   if (hasInjection) return null;
   const p = path.join(__dirname, "..", "tools", String(c.slug || "") + ".html");
   if (!fs.existsSync(p)) return null;
