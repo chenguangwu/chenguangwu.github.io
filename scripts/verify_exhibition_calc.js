@@ -5,33 +5,52 @@ const CASES = [
 {
   "slug": "exhibition/assessor-60",
   "inputs": {
-    "boothCost": "5",
-    "buildCost": "3",
-    "travelCost": "2",
-    "days": "3",
-    "visitors": "500",
-    "leads": "120",
-    "intents": "45",
-    "deals": "8",
-    "revenue": "25"
+    "boothCost": "8",
+    "buildCost": "4",
+    "travelCost": "3",
+    "days": "5",
+    "visitors": "800",
+    "leads": "200",
+    "intents": "90",
+    "deals": "36",
+    "revenue": "60"
   },
+  "clicks": [
+    "calc()"
+  ],
   "expect": [
-    "月内推进签约转化"
-  ]
+    "4.00 ROI 投入产出比",
+    "单线索成本 ¥750",
+    "意向客户 90 45.0%"
+  ],
+  "ref": "总投入 tc=8+4+3=15 万、签约额 60 万 ⇒ ROI=60/15=4.00（≥3 ⇒ 效果优异）；线索转化 200/800=25.0%、意向转化 90/200=45.0%、签约转化 36/200=18.0%；单线索成本 15×10000/200=¥750（独立复算）。默认组 5/3/2 + 500/120/45/8/25 ⇒ 2.50 / 24.0% / 37.5% / 6.7% / ¥833，与本例三个锚点零交集。原 expect「月内推进签约转化」是 info-box 常驻句尾（注入失败同样命中）⇒ 已替换。days 未被 calc() 读取（零影响键）⇒ 仅作记录。"
 },
 {
   "slug": "exhibition/assessor-evacuation",
   "inputs": {
-    "area": "5000",
-    "capacity": "2000",
-    "exits": "4",
-    "width": "3",
-    "distance": "35",
-    "load": "5"
+    "area": "4000",
+    "capacity": "1500",
+    "exits": "6",
+    "width": "3.5",
+    "distance": "30",
+    "load": "6"
   },
+  "checkIds": [
+    "fireAlarm",
+    "sprinkler",
+    "smokeExhaust",
+    "emergencyLight",
+    "broadcast"
+  ],
+  "clicks": [
+    "calc()"
+  ],
   "expect": [
-    "应急广播缺失"
-  ]
+    "所有安全指标均满足规范要求",
+    "77.9 估算疏散时间(分)",
+    "0.38 人员密度(人/m²)"
+  ],
+  "ref": "密度 1500/4000=0.375（≤0.5 合格）；总疏散宽度 6×3.5=21.0 m ≥ 需要 1500×0.65/100=9.75 m；距离 30≤40、荷载 6≥4 均合格；checkIds 勾满 5 项消防设施 ⇒ issues 空、score=0 ⇒ 渲染「所有安全指标均满足规范要求」；疏散时间 1500/(21×55)×60=77.92→77.9 分（独立复算）。默认组 5000/2000/4/3.0/35/5 且 checkbox 在桩内全未勾 ⇒ score=13 ⇒ 不合格 + 五项「缺失」（原 expect「应急广播缺失」即出自这里，属常量型逃生项）⇒ 与本例三个锚点零交集。"
 },
 {
   "slug": "exhibition/analysis-61",

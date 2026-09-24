@@ -5,15 +5,22 @@ const CASES = [
 {
   "slug": "ceramics/clay-shrinkage",
   "inputs": {
-    "wet": "120",
-    "dry": "112",
-    "fired": "100",
-    "targetFired": "100",
-    "totalShrink": "14"
+    "wet": "150",
+    "dry": "135",
+    "fired": "120",
+    "targetFired": "200",
+    "totalShrink": "18"
   },
+  "clicks": [
+    "calc();calcReverse()"
+  ],
   "expect": [
-    "公式"
-  ]
+    "20.00%",
+    "10.00%",
+    "11.11%",
+    "243.90"
+  ],
+  "ref": "S干=(150−135)/150=10.00%、S烧=(135−120)/135=11.11%、S总=(150−120)/150=20.00%（独立复算）；反向 L₀=L₂/(1−S总)=200/(1−0.18)=243.90 mm。默认 120/112/100 ⇒ 6.67% / 10.71% / 16.67%、L₀=116.28 ⇒ 四个锚点全不命中。原 expect「公式」是 calcReverse 的 step-line 标签常量（默认态同样渲染）⇒ 已替换。"
 },
 {
   "slug": "ceramics/glaze-ratio",

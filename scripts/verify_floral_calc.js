@@ -5,12 +5,18 @@ const CASES = [
 {
   "slug": "floral/golden-ratio",
   "inputs": {
-    "containerH": "15",
-    "containerW": "12"
+    "containerH": "24",
+    "containerW": "18"
   },
+  "clicks": [
+    "currentStyle='cascade';calc()"
+  ],
   "expect": [
-    "花器"
-  ]
+    "瀑布型 · 理想花艺高度 = 花器×1.25",
+    "花器 24cm",
+    "30 理想 (cm)"
+  ],
+  "ref": "clicks 把顶层 var currentStyle 切到 cascade（STYLE_CONFIG.cascade：min 1.0 / ideal 1.25 / max 1.5）⇒ 花器 24 ⇒ 理想 30、最矮 24、最高 36（独立复算）。默认 triangle（ideal 1.5）+ 花器 15 ⇒ 22.5 cm、「三角形 · 理想花艺高度 = 花器×1.5」，三个锚点全不命中。原 expect「花器」是 renderViz 的 SVG 文本常量（默认态同样渲染）⇒ 已替换。"
 },
 {
   "slug": "floral/price",
@@ -31,12 +37,20 @@ const CASES = [
 {
   "slug": "floral/spiral-bouquet",
   "inputs": {
-    "stemLength": "45",
-    "mainRatio": "60"
+    "bouquetSize": "large",
+    "bouquetStyle": "cascade",
+    "stemLength": "60",
+    "mainRatio": "75"
   },
+  "clicks": [
+    "calc()"
+  ],
   "expect": [
-    "复制清单"
-  ]
+    "共需 35 枝花材",
+    "大型花束共35枝，瀑布型风格",
+    "主花 75%"
+  ],
+  "ref": "large：SIZE_CONFIG.total=35；mainRatio 75 ⇒ 主花 round(35×0.75)=26、余 9 ⇒ 配花 round(9×0.6)=5、叶材 4（独立复算）；cascade：fillerRatio 0.5 ⇒ 中层 60×0.5=30、outerRatio 0.6 ⇒ 外圈 36、叶材 60×0.75=45。默认 medium(18)/round(60%)/45 ⇒「共需 18 枝花材」「中等花束共18枝，圆球型风格」「主花 60%」，三个锚点全不命中（harness 下 select 回落首个 option small/round，同样不命中）。原 expect「复制清单」是结果区按钮文本常量（每次渲染都带）⇒ 已替换。"
 },
 {
   // 原为 all_default 弱用例：5 个数字全等于页面默认，expect「备用」是常量文案（逃生项）。
