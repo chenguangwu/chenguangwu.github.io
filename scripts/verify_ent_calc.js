@@ -45,11 +45,16 @@ const CASES = [
 },
 {
   "slug": "ent/calc-1",
-  "inputs": {},
+  "inputs": {
+    "rhinorrhea": "3",
+    "sneeze": "3",
+    "itch": "2",
+    "congestion": "3"
+  },
   "expect": [
-    "0-12"
+    "TNSS 总分： 11 分（0-12 分） 症状程度： 极重度"
   ],
-  "ref": "auto-restore(default)"
+  "ref": "TNSS 四症状各 0-3 分（rhinorrhea/sneeze/itch/congestion select）；注入 3/3/2/3 ⇒ 总分 11 > 9 ⇒ classify() 返回「极重度」并输出「建议耳鼻喉科就诊，评估药物治疗方案。」。默认 0/0/0/0 ⇒ 总分 0「轻度」。原 expect「0-12」是结果区固定文案「（0-12 分）」，与输入无关（常量型逃生项）。"
 },
 {
   "slug": "ent/caloric-test",
@@ -66,19 +71,23 @@ const CASES = [
 },
 {
   "slug": "ent/eustachian-tube",
-  "inputs": {},
-  "expect": [
-    "(89%)"
+  "clicks": [
+    "selections.valsalva_tm=0;selections.valsalva_subj=0;selections.tympanogram=0;selections.reflex_ipsi=1;selections.toynbee=0;symptomSelected={'耳闷胀感':1};symptomNone=false;calc()"
   ],
-  "ref": "auto-restore(default)"
+  "expect": [
+    "需手术干预，明确病因（肿瘤、腺样体肥大等）"
+  ],
+  "ref": "5 项客观检查（valsalva_tm/valsalva_subj/tympanogram/reflex_ipsi/toynbee）默认合计 16/18 ⇒「0级·正常」；clicks 置 0/0/0/1/0 并把症状「耳闷胀感」计 1 分（symptomNone=false）⇒ 综合评分 0-1=-1→0 ⇒「IV级·极重度障碍」+「需手术干预」。默认态为「0级·正常」。原 expect「(89%)」是默认态进度条 16/18=88.9% 的文案（常量型逃生项）。"
 },
 {
   "slug": "ent/facial-nerve-hb",
-  "inputs": {},
-  "expect": [
-    "面神经功能障碍程度"
+  "clicks": [
+    "grade=5;calc()"
   ],
-  "ref": "auto-restore(default)"
+  "expect": [
+    "重度面神经功能障碍。需行面神经电图评估，若变性>90%需考虑面神经减压术。需眼部保护。预后较差。"
+  ],
+  "ref": "页面顶层 var grade 默认 1 ⇒ House-Brackmann I级·正常；clicks 置 grade=5 后 calc() ⇒ V级·重度功能障碍及其治疗建议「需行面神经电图评估，若变性>90%需考虑面神经减压术」。默认态只有 I级 文案。原 expect「面神经功能障碍程度」是结果区固定小标题（常量型逃生项）。"
 },
 {
   "slug": "ent/fistula-test",
@@ -93,19 +102,24 @@ const CASES = [
 },
 {
   "slug": "ent/gag-reflex",
-  "inputs": {},
-  "expect": [
-    "2级"
+  "clicks": [
+    "grade=4;calc()"
   ],
-  "ref": "auto-restore(default)"
+  "expect": [
+    "咽反射极度敏感，严重影响口腔检查和治疗操作。可能与心理因素、焦虑或神经官能症有关。"
+  ],
+  "ref": "var grade 默认 2 ⇒「2级·反射正常」；clicks 置 grade=4 ⇒ 4级·极度敏感及临床建议「进行口腔操作前可考虑表面麻醉或行为干预」。原 expect「2级」恰是默认档名（常量型逃生项）。"
 },
 {
   "slug": "ent/grbas-scale",
-  "inputs": {},
-  "expect": [
-    "总评(0-3)"
+  "clicks": [
+    "scores.G=3;scores.R=3;scores.B=2;scores.A=1;scores.S=0;calc()"
   ],
-  "ref": "auto-restore(default)"
+  "expect": [
+    "嗓音重度异常，G评分多为3分，严重影响交流，需综合治疗",
+    "粗糙声明显（声带振动不规则，可见于声带息肉、肿瘤等）"
+  ],
+  "ref": "var scores={G,R,B,A,S} 默认全 0 ⇒ 总分 0/15「正常」；clicks 置 3/3/2/1/0 ⇒ 总分 9 ⇒「重度异常」+ 特征分析两条（R>=2 粗糙声明显、B>=2 气息声明显）。原 expect「总评(0-3)」是 stat-card 的 lbl（常量型逃生项）。"
 },
 {
   "slug": "ent/hearing-loss-classification",
@@ -141,19 +155,24 @@ const CASES = [
 },
 {
   "slug": "ent/lund-kennedy-score",
-  "inputs": {},
-  "expect": [
-    "左侧(0-10)"
+  "clicks": [
+    "scores.L={polyp:2,edema:2,discharge:2,scar:2,crust:2};scores.R={polyp:2,edema:2,discharge:2,scar:2,crust:2};calc()"
   ],
-  "ref": "auto-restore(default)"
+  "expect": [
+    "黏膜炎症严重，建议行鼻内镜手术"
+  ],
+  "ref": "var scores={L:{polyp,edema,discharge,scar,crust}, R:{…}} 默认全 0 ⇒ 总分 0/20「轻度」；clicks 置双侧各 2 ⇒ 总分 20 > 13 ⇒「重度」+「黏膜炎症严重，建议行鼻内镜手术」。原 expect「左侧(0-10)」是 stat-card 的 lbl（常量型逃生项）。"
 },
 {
   "slug": "ent/lund-mackay-score",
-  "inputs": {},
-  "expect": [
-    "24"
+  "clicks": [
+    "scores.right={maxillary:2,anterior_ethmoid:2,posterior_ethmoid:2,sphenoid:2,frontal:2,omc:2};scores.left={maxillary:2,anterior_ethmoid:2,posterior_ethmoid:2,sphenoid:1,frontal:1,omc:2};calc()"
   ],
-  "ref": "auto-restore(default)"
+  "expect": [
+    "全组鼻窦严重受累",
+    "强烈建议尽早手术，术后定期随访"
+  ],
+  "ref": "var scores={right:{6 组鼻窦}, left:{…}} 默认全 0 ⇒ 0/24「轻度」；clicks 置右 12（maxillary 2 等全 2）、左 10 ⇒ 总分 22 > 20 ⇒「极重度」+「全组鼻窦严重受累」+「强烈建议尽早手术」。原 expect「24」是分母「/ 24 分」（常量型逃生项）。"
 },
 {
   "slug": "ent/nasal-resistance",
@@ -255,11 +274,14 @@ const CASES = [
 },
 {
   "slug": "ent/vocal-cord-assessment",
-  "inputs": {},
-  "expect": [
-    "声带运动功能正常"
+  "clicks": [
+    "sel.mobility='固定';sel.position='中间位';sel.side='双侧';sel.closure='无法闭合';calc()"
   ],
-  "ref": "auto-restore(default)"
+  "expect": [
+    "声带完全麻痹（III度）",
+    "双侧声带麻痹可致喉梗阻及呼吸困难，需评估气道安全性，必要时行气管切开"
+  ],
+  "ref": "var sel={mobility:正常,side:左侧,position:正中位,closure:完全闭合,arytenoid:活动正常} 默认 ⇒「声带运动正常」；clicks 置 mobility=固定/position=中间位/side=双侧/closure=无法闭合 ⇒「声带完全麻痹（III度）」+「双侧声带麻痹可致喉梗阻…行气管切开」+「声门闭合不全…声带内移术」。原 expect「声带运动功能正常」是默认档 advice 片段（常量型逃生项）。"
 }
 ];
 async function main() {
