@@ -656,7 +656,7 @@ async function runCaseInner(c) {
   try {
     const compiled = new Function(
       "document", "window", "console", "navigator", "localStorage", "ToolBox", "alert", "setTimeout", "requestAnimationFrame", "setInterval", "requestIdleCallback", "Date",
-      `var __f={};\n${script}\n${expose}\nreturn __f;`
+      `var __f={};\n${script}\n${expose}\n__f["__pageEval"]=function(c){return eval(String(c));};\nreturn __f;`
     );
     fns = compiled(document, win, { log() {}, warn() {}, error() {} }, navigator, localStorage, ToolBox, () => {}, safeTimer, safeTimer, safeTimer, safeTimer, FrozenDate);
   } catch (e) {
@@ -697,8 +697,12 @@ async function runCaseInner(c) {
   // 用例声明 clicks: ["pick(0,3)", …]，按序在页面作用域内执行，等价于用户逐项作答；
   // 需动态 DOM 登记配合（pick() 内部会 querySelectorAll('.q-item') 回改选中样式）。
   if (Array.isArray(c.clicks) && c.clicks.length) {
+    // 在「页面作用域」内执行：页面顶层 var（如 selLoc / ausData / checkedSym）是 var 声明，
+    // 不会导出到 globalThis（只有 function 会），故用编译期保留的 __pageEval 走直接 eval
+    // ⇒ 点击代码能读写页面私有状态（等价用户点选）。无 __pageEval 时回退全局 new Function。
+    const pageEval = typeof fns.__pageEval === "function" ? fns.__pageEval : (code) => new Function(String(code))();
     for (const code of c.clicks) {
-      try { new Function(String(code))(); }
+      try { pageEval(code); }
       catch (e) { errs.push("click:" + String(code).slice(0, 24) + ": " + e.message.slice(0, 40)); }
     }
     await Promise.allSettled(pending);
