@@ -51,9 +51,10 @@ const CASES = [
   },
   {
     slug: "marketing/marketing-markup-margin",
-    inputs: { costMarkup: "100", markupRate: "50" },
-    expect: ["150.00", "33.33"],
-    ref: "price=100×1.5=150.00；profit=50；marginRate=50/150×100=33.33（markup 模式默认）",
+    inputs: { costMarkup: "180", markupRate: "35" },
+    expect: ["¥243.00", "¥63.00", "25.93%"],
+    ref: "price=180×1.35=243.00；profit=63.00；marginRate=63/243×100=25.93%。"
+       + "原 100/50 即页面默认态，150.00/33.33 回退默认仍命中 ⇒ 逃生项，已换非默认输入。",
   },
   {
     slug: "marketing/marketing-discount-rate",
@@ -69,9 +70,11 @@ const CASES = [
   },
   {
     slug: "marketing/calc-1",
-    inputs: { spend: "10000", revenue: "30000", conversions: "100", costRate: "40" },
-    expect: ["80.00", "3.00", "100.00"],
-    ref: "cogs=30000×0.4=12000；profit=30000-10000-12000=8000；roi=8000/10000=80.00%；roas=30000/10000=3.00；cpa=10000/100=100.00",
+    inputs: { spend: "25000", revenue: "90000", conversions: "250", costRate: "25" },
+    expect: ["170.00%", "3.60", "42,500.00", "47.22%"],
+    ref: "cogs=90000×0.25=22500；profit=90000−25000−22500=42500；roi=42500/25000=170.00%；"
+       + "roas=90000/25000=3.60；利润率=42500/90000=47.22%；cpa=25000/250=100.00"
+       + "（与默认态 CPA 同值 ⇒ 不入断言，否则回退默认仍命中）。",
   },
   {
     slug: "marketing/marketing-ltv-cac-ratio",

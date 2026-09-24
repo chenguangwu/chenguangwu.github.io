@@ -15,9 +15,10 @@ const { runCase } = require("./verify_it_calc.js");
 const CASES = [
   {
     slug: "edu/calc-2",
-    inputs: { score: "85", mean: "75", sd: "10", direction: "higher" },
-    expect: ["1.0000", "84.13", "优秀"],
-    ref: "Z=(85−75)/10=1.0000；normalCDF(1.0)×100≈84.13%；direction=higher → 有效Z=1.0000；z≥1.0 评「优秀」",
+    inputs: { score: "92", mean: "80", sd: "6", direction: "higher" },
+    expect: ["2.0000", "97.72%"],
+    ref: "Z=(92−80)/6=2.0000；normalCDF(2.0)×100≈97.72%；direction=higher → 有效Z=2.0000。"
+       + "原 85/75/10 为默认态（Z=1.0000/84.13）；等级词「优秀」两态同现 ⇒ 不入断言。",
   },
   {
     slug: "edu/calc-4",

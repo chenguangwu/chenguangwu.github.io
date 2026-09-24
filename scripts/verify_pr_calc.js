@@ -121,13 +121,19 @@ const CASES = [
 {
   "slug": "pr/risk-assessment",
   "inputs": {
-    "riskProb": "3",
-    "riskImpact": "3"
+    "riskName": "供应链中断",
+    "riskProb": "4",
+    "riskImpact": "5"
   },
+  "clicks": ["addRisk()"],
   "expect": [
-    "(12)"
+    "平均风险值： 20.0",
+    "（极高风险）",
+    "1 高/极高"
   ],
-  "ref": "auto-restore(default)"
+  "ref": "风险值=概率×影响=4×5=20 ⇒ 极高风险；仅 1 项 ⇒ 平均=20.0。"
+     + "原 expect「(12)」出自 loadSample 样本项（P:3 I:4），默认态列表为空、走兜底 addRisk() 也会命中 ⇒ 逃生项。"
+     + "注：兜底阶段无参 addRisk() 会再追加一项，故断言须落在 click 阶段产物（已实测默认态 FAIL）。"
 }
 ];
 async function main() {

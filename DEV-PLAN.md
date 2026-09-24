@@ -322,18 +322,18 @@
 
 ### 10.2 现状（实测基线）
 
-- `all_default 25 / no_inputs 98 / escape 0`；`checked=3161`；门禁 `run_gates.py` **217 项全过**、逃生项 0（判别器已检 **3003** 例 / 跳过 158）。
+- `all_default 17 / no_inputs 98 / escape 0`；`checked=3161`；门禁 `run_gates.py` **217 项全过**、逃生项 0（判别器已检 **3011** 例 / 跳过 150）。
 - A 级率 **99.2%**（A 4693 / B 32 / C 4，共 4729）；deep-dive 术语内链 **1591 页 / 2268 条 / 唯一目标 630**（零死链、零自链、单页 ≤6 条）。**注：内链不影响质量分级**（`own_len` 只统计 `<script>` 内容）。
-- 存量弱用例 **123 例**（口径、选批规则与不可注入清单见 §10.3）。
+- 存量弱用例 **115 例**（口径、选批规则与不可注入清单见 §10.3）。
   - **注意：弱用例整体处于判别器盲区** —— `discriminate_check` 对「注入值本就等于默认值」的用例判 `usable=false` ⇒ **直接跳过**（§10.5）。故 `escape=0` 只说明「强用例无逃生项」，弱用例的逃生项从未被检查；每批改造弱用例后必须重跑判别器确认其由「跳过」转为「已检且变红」。
 
 ### 10.3 弱用例去默认化（仅在 P0/P1 顺带时执行）
 
-**存量 123 例**（`no_inputs=98` / `all_default=25`，selfcheck 口径；含 textarea / 动态 id / 结构性不可注入的「skip」类全站 158）。**转 P3 顺带，不单独成批**；逐批成果与逐例打法归档在 `.workbuddy/memory/2026-09-2*.md` 与 skill `toolbox-weakcase-hardening`，**本文件不再记录批次流水**。
+**存量 115 例**（`no_inputs=98` / `all_default=17`，selfcheck 口径；含 textarea / 动态 id / 结构性不可注入的「skip」类全站 150）。**转 P3 顺带，不单独成批**；逐批成果与逐例打法归档在 `.workbuddy/memory/2026-09-2*.md` 与 skill `toolbox-weakcase-hardening`，**本文件不再记录批次流水**。
 
 **选批口径**：① 按「可注入数」降序挑批次；② **结构性不可注入的不要选**（页面静态 HTML `grep -cE '<input|<select|<textarea'` 为 0、驱动语句是 class 选择器、或行由 `createElement+appendChild` 生成）—— 保留 `no_inputs` 并在用例 `ref` 写明理由（判据见 §10.5 B 组）；③ 每批 8–11 例，走 §10.4 六步。
 
-**已知结构性不可注入清单（勿重复评估）**：`tcm-diagnosis/etiology-tree`、`music/sheet-music`、`cleaning/appliance-cycle`、`cleaning/cycle-20`、`mining/estimate-reserve`、`admin/detector-time`、`chess/xiangqi-endgame`、`dermatology/{contact-dermatitis-patch,miliaria-classification,wood-lamp}`、`travel/{aim-trainer,emergency-phrasebook,packing-list}`、`endocrinology/ti-rads`、`fire/response-drill`、`rheumatology/{bvas,sledai}`、`language/vocabulary-builder`、`medical2/drug-expiry`。其中 **localStorage 为唯一数据源的页**（`drug-expiry` / `packing-list` / `appliance-cycle`）可复用「`clicks` 内覆写 `localStorage.getItem`」覆写法复评（已验证该路可行）。
+**已知结构性不可注入清单（勿重复评估）**：`tcm-diagnosis/etiology-tree`、`music/sheet-music`、`cleaning/appliance-cycle`、`cleaning/cycle-20`、`mining/estimate-reserve`、`admin/detector-time`、`chess/xiangqi-endgame`、`dermatology/{contact-dermatitis-patch,miliaria-classification,wood-lamp}`、`travel/{aim-trainer,emergency-phrasebook,packing-list}`、`endocrinology/ti-rads`、`fire/response-drill`、`rheumatology/{bvas,sledai}`、`language/vocabulary-builder`、`medical2/drug-expiry`、`nutrition/estimate-2`（用属性选择器 `#foodGrid .data-card[data-selected="1"]` 取选中态，而动态 DOM 登记表只支持 id/class/tag 过滤 ⇒ 恒为空集）。其中 **localStorage 为唯一数据源的页**（`drug-expiry` / `packing-list` / `appliance-cycle`）可复用「`clicks` 内覆写 `localStorage.getItem`」覆写法复评（已验证该路可行）。
 
 ### 10.4 每批收口流程（顺带改造时六步，缺一不可）
 

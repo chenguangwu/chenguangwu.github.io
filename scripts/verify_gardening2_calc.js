@@ -5,13 +5,16 @@ const CASES = [
 {
   "slug": "gardening2/fertilizer-ppm",
   "inputs": {
-    "targetPpm": "200",
-    "waterAmount": "1",
-    "nutrientPct": "20"
+    "targetPpm": "150",
+    "waterAmount": "5",
+    "nutrientPct": "12"
   },
+  "clicks": ["calc()"],
   "expect": [
-    "约滴数"
-  ]
+    "6.25 g"
+  ],
+  "ref": "养分需求=150 mg/L × 5 L=750 mg；肥料量=750/0.12=6250 mg=6.25 g。"
+     + "原 expect「约滴数」是结果区静态标签（回退默认仍命中 ⇒ 逃生项），且 200/1/20 为默认态。"
 },
 {
   "slug": "gardening2/lawn-height",
