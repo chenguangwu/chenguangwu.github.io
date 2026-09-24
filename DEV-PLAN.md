@@ -374,7 +374,7 @@
 | B6 纯浏览页：无 `#result`、交互仅 `classList.toggle`（不进 blob）/ 写剪贴板 | 不存在任何随输入变化的输出 ⇒ 结构性不可注入 |
 | B7 需点按钮写 localStorage、写操作对渲染零影响的页 | 同 B6（`setLastClean` 类还被 `DESTRUCTIVE` 的 `^set[A-Z]` 排除）。**例外**：若数据**读取**走 `localStorage.getItem`，可在 `clicks` 内覆写它注入数据（等价于「用户本就有数据」），已验证可行 |
 | B8 `confirm`/`prompt` 做闸门 | harness 无 `confirm` 桩 ⇒ 未填满时 `calcScore()` 抛错被兜底 catch、结果区恒空。须在 `clicks` 里预置状态绕开闸门（如把全部题目填 5） |
-| B9 `.length` 判空但入参是对象 | `render()` 写 `if(!list.length)`、而 `list` 是对象 ⇒ 恒真 ⇒ **整页功能恒定不工作**（`travel/travel-adapter-guide` 的搜索恒显示「未找到」）⇒ 属 **P0 真缺陷**，改 `if(!list||!Object.keys(list).length)`。**遇「整页功能恒定不工作」的弱用例先怀疑判空/类型错，别急着归类为「不可注入」** |
+| B9 `.length` 判空但入参是对象 | `render()` 写 `if(!list.length)`、而 `list` 是对象 ⇒ 恒真 ⇒ **整页功能恒定不工作**（`travel/travel-adapter-guide` 的搜索恒显示「未找到」）⇒ 属 **P0 真缺陷**，改 `if(!list\|\|!Object.keys(list).length)`。**遇「整页功能恒定不工作」的弱用例先怀疑判空/类型错，别急着归类为「不可注入」** |
 
 **C. 定 expect 的硬规则**
 
@@ -400,7 +400,7 @@
 
 | 工具 | 用途 |
 |---|---|
-| **dump 探针** | `clicks:["calc();document.getElementById('__p').value=document.getElementById('result').innerHTML"]`（多容器 `+'|'+` 拼接）—— 兜底阶段只重写 `result`/`dataGrid`、**不碰 `__p`**，故 FAIL 时仍能在 blob 里读到真实注入输出。比逐个试 expect 快一个数量级 |
+| **dump 探针** | `clicks:["calc();document.getElementById('__p').value=document.getElementById('result').innerHTML"]`（多容器 `+'\|'+` 拼接）—— 兜底阶段只重写 `result`/`dataGrid`、**不碰 `__p`**，故 FAIL 时仍能在 blob 里读到真实注入输出。比逐个试 expect 快一个数量级 |
 | **标记串探针** | 判断「写入路径是否通」：`clicks:["document.getElementById('stats').value='MARK_V'"]` + `expect:["MARK_V"]`，命中即通（`value`/`innerHTML`/`ToolBox.setResult` 三路已验证）。用于把「clicks 未生效」与「expect 锚点错」区分开 |
 | **「双态」核验** | 每例必须**注入态 PASS + 默认态（剥 inputs/checks/clicks）FAIL** 双跑；判别器取不到默认值的页尤其只能靠它 |
 | **逐项二分** | 定位逃生项用「逐项单独 `runCase`」，**禁用 `fullBlob.includes()` 判定**（blob 元素集合不同，会全判「无逃生」） |
