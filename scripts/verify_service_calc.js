@@ -52,11 +52,13 @@ const CASES = [
 },
 {
   "slug": "service/ticket-priority",
-  "inputs": {},
+  "clicks": ["tickets=[{name:'支付页面报错',urgency:5,importance:4},{name:'发票开具咨询',urgency:2,importance:3},{name:'账号无法登录',urgency:4,importance:5}];render()"],
   "expect": [
-    "5/5"
+    "1. 支付页面报错",
+    "紧急度：5/5 · 重要度：4/5 · 最高优先 20",
+    "发票开具咨询"
   ],
-  "ref": "auto-restore(default)"
+  "ref": "顶层数组 tickets 注入 3 条：score = urgency × importance ⇒ 支付页面报错 5×4 = 20（并列最高、排序取其先）、账号无法登录 4×5 = 20、发票开具咨询 2×3 = 6。默认态为源码内置 6 条工单（系统宕机 5/5、25 分），三串均不命中。"
 }
 ];
 async function main() {

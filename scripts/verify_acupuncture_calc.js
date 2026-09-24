@@ -14,11 +14,14 @@ const CASES = [
 },
 {
   "slug": "acupuncture/acupoint-location",
-  "inputs": {},
+  "inputs": { "realCm": "27", "targetCun": "6" },
+  "clicks": ["selectRegion('chest');calc()"],
   "expect": [
-    "(12寸)"
+    "3.00 每寸厘米",
+    "18.00 cm",
+    "天突(胸骨上窝)→歧骨(胸剑联合)"
   ],
-  "ref": "auto-restore(default)"
+  "ref": "selectRegion('chest') 自动选中首段「天突(胸骨上窝)→歧骨(胸剑联合)」（标准折量 9 寸）；实测 27 cm ⇒ 每寸 27/9 = 3.00 cm；目标 6 寸 ⇒ 定位 6×3.00 = 18.00 cm。默认态 currentPart 未选、realCm 为空 ⇒ result 只出提示文案，三串均不命中。"
 },
   // 注：acupuncture/analysis-10 已于 2026-09-19 改为 TOOLBOX-REDIRECT 存根（重定向到同义真工具），不再是工具页，用例移除。
 {

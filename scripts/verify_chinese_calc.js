@@ -4,11 +4,15 @@ const { runCase } = require("./verify_it_calc.js");
 const CASES = [
 {
   "slug": "chinese/chinese-character",
-  "inputs": {},
+  "inputs": { "charInput": "字" },
+  "clicks": ["lookup()"],
   "expect": [
-    "13"
+    "拼音 zì",
+    "部首 宀",
+    "总笔画 6",
+    "五笔 PBB"
   ],
-  "ref": "auto-restore(default)"
+  "ref": "charInput 注入「字」（不传时页面 fallback 取「汉」）：charDB 字面量 pinyin = zì、radical = 宀、strokes = 6、wubi = PBB。默认态输出 hàn / 氵 / 13 / ICY，四串均不命中。"
 },
 {
   "slug": "chinese/chinese-radical-lookup",

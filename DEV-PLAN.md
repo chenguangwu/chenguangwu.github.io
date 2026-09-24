@@ -305,7 +305,7 @@
 - **未处理（待定夺，疑似页面口径问题）**：`legal/calc-8`（年终奖计税）把「社保 / 专项附加」输入按**年度值**扣除、未 ×12 —— 若语义是「月缴」，则应税所得会被高估、税额偏低。未改页面，等老板确认语义后再定。
 - **未处理（待定夺，非缺陷）**：`ai/ocr`、`ai/image-classification` 等 5 个 `<script type="module">` 页的 `own_len` 度量盲区（§7.3 已给结论：不改）。
 - **未处理（待定夺，字段错位真缺陷）**：`chinese/chinese-radical-lookup`（汉字部首查询）—— `DATA[c]` 的 6 元组实际语义是 `[部首, 部首名, 总笔画, 字形描述, 拼音, 本字]`，而 `query()` 的渲染模板取 `d[3]` 当「读音」、`d[4]` 当「字形」⇒ 输出「读音： 水流」「字形： hé （河）」（`河`/`你`/`爱` 等条目均可复现）。修法二选一：① 改模板把 d[3]/d[4] 对调（改 1 处）；② 改 DATA 元组顺序（改动面大）。**未改页面**，等老板定夺。
-- **站点级 `showToast(i18nText())` 会显示字面量 `undefined`（2026-09-25 发现，待老板定夺）**：`i18nText` 的真实实现（`js/common.js` 第 1462 行）与 `_build.py` 注入的桩，在 key 与 fallback 均为空时都 `return key` ⇒ `undefined`（经 `resolveUiText(undefined,undefined)` 仍是 `undefined`）⇒ `showToast` 里 `t.textContent = undefined` 被 WebIDL 转成字符串 `undefined`。全站 `showToast(i18nText()` **3208 处 / 1073 个页面**（另有 `copyText(…, i18nText())` 200 处）—— 用户触发「空输入 / 复制失败 / 无记录」等分支时会看到一条写着 `undefined` 的提示气泡（BATCH105 在 `music/chord-notes` 空输入分支实测到该路径）。**影响面大且属文案层、非本批弱用例范围，未执行修改**。建议修法（待拍板）：**站点级** —— 在 `showToast`/`copyText` 入口加「msg 为空/undefined 时回落默认中文文案」的兜底（改 `js/common.js` 1 处、页面零改动、构建产物仅公共 JS 变化）；逐页补 `i18nText('toast.xxx','中文兜底')` 需改 1073 个文件，不建议。
+- **站点级 `showToast(i18nText())` 会显示字面量 `undefined`（待老板定夺）**：`i18nText` 的真实实现（`js/common.js` 第 1462 行）与 `_build.py` 注入的桩，在 key 与 fallback 均为空时都 `return key` ⇒ `undefined`（经 `resolveUiText(undefined,undefined)` 仍是 `undefined`）⇒ `showToast` 里 `t.textContent = undefined` 被 WebIDL 转成字符串 `undefined`。全站 `showToast(i18nText()` **3208 处 / 1073 个页面**（另有 `copyText(…, i18nText())` 200 处）—— 用户触发「空输入 / 复制失败 / 无记录」等分支时会看到一条写着 `undefined` 的提示气泡（BATCH105 在 `music/chord-notes` 空输入分支实测到该路径）。**影响面大且属文案层、非本批弱用例范围，未执行修改**。建议修法（待拍板）：**站点级** —— 在 `showToast`/`copyText` 入口加「msg 为空/undefined 时回落默认中文文案」的兜底（改 `js/common.js` 1 处、页面零改动、构建产物仅公共 JS 变化）；逐页补 `i18nText('toast.xxx','中文兜底')` 需改 1073 个文件，不建议。
 
 ---
 
@@ -324,14 +324,14 @@
 
 ### 10.2 现状（实测基线）
 
-- `all_default 6 / no_inputs 90 / escape 0`；`checked=3161`；门禁 `run_gates.py` **217 项全过**、逃生项 0（判别器已检 **3030** 例 / 跳过 131）。
+- `all_default 6 / no_inputs 82 / escape 0`；`checked=3161`；门禁 `run_gates.py` **217 项全过**、逃生项 0（判别器已检 **3038** 例 / 跳过 123）。
 - A 级率 **99.2%**（A 4693 / B 32 / C 4，共 4729）；deep-dive 术语内链 **1591 页 / 2268 条 / 唯一目标 630**（零死链、零自链、单页 ≤6 条）。**注：内链不影响质量分级**（`own_len` 只统计 `<script>` 内容）。
-- 存量弱用例 **96 例**（口径、选批规则与不可注入清单见 §10.3）。
+- 存量弱用例 **88 例**（口径、选批规则与不可注入清单见 §10.3）。
   - **注意：弱用例整体处于判别器盲区** —— `discriminate_check` 对「注入值本就等于默认值」的用例判 `usable=false` ⇒ **直接跳过**（§10.5）。故 `escape=0` 只说明「强用例无逃生项」，弱用例的逃生项从未被检查；每批改造弱用例后必须重跑判别器确认其由「跳过」转为「已检且变红」。
 
 ### 10.3 弱用例去默认化（仅在 P0/P1 顺带时执行）
 
-**存量 96 例**（`no_inputs=90` / `all_default=6`，selfcheck 口径；含 textarea / 动态 id / 结构性不可注入的「skip」类全站 131）。**`all_default` 剩余 6 例已全部判定为结构性不可改造**，逐例理由已写进各用例 `ref`（含实测结论），勿重复评估。**转 P3 顺带，不单独成批**；逐批成果与逐例打法归档在 `.workbuddy/memory/2026-09-2*.md` 与 skill `toolbox-weakcase-hardening`，**本文件不再记录批次流水**。
+**存量 88 例**（`no_inputs=82` / `all_default=6`，selfcheck 口径；含 textarea / 动态 id / 结构性不可注入的「skip」类全站 123）。**`all_default` 剩余 6 例已全部判定为结构性不可改造**，逐例理由已写进各用例 `ref`（含实测结论），勿重复评估。**转 P3 顺带，不单独成批**；逐批成果与逐例打法归档在 `.workbuddy/memory/2026-09-2*.md` 与 skill `toolbox-weakcase-hardening`，**本文件不再记录批次流水**。
 
 **选批口径**：① 按「可注入数」降序挑批次；② **结构性不可注入的不要选**（页面静态 HTML `grep -cE '<input|<select|<textarea'` 为 0、驱动语句是 class 选择器、或行由 `createElement+appendChild` 生成）—— 保留 `no_inputs` 并在用例 `ref` 写明理由（判据见 §10.5 B 组）；③ 每批 8–11 例，走 §10.4 六步。
 
@@ -380,9 +380,9 @@
 
 **C. 定 expect 的硬规则**
 
-1. **锚点必须只依赖被测点，且形态安全**：禁混入表头 / 范围说明 / info-box 常驻文案 / 按钮文本 / `step-line` 标签 / 页脚免责 / 静态 SVG 文本 / 下拉 option value。`blob.includes` 是**子串**匹配 ⇒ `达标` ⊂ `未达标`，否定式结论词（满足/达标/符合/有效）必须锚**完整结论串**；数值须与标签绑成连续串（`18.75 最大弯矩 M (kN·m)`），否则裸数值会被明细大表 / 兜底模板命中；含 `<` 的输出会被标签剥离吞掉。
-2. **双态核验 + 默认态逐串比对**：dump 注入态与默认态逐串比对，**只有「注入态有、默认态无」的串能进 expect**（防同值巧合）。`inputs` 值逐字等于页面默认值 ⇒ 判别器判 `usable=false` 直接 `skipped++` ⇒ **凡 `all_default` 例一律视为零判别力、须重写**；零影响键不要写进 `inputs`（会造成「看似非默认」的假象）。
-3. **兜底污染三则**：① 兜底会无参调用页面所有候选函数（预设 / 联动 / 作答 / 格式化 / 增删 / 建议型），**改状态后重算**、把结果区重写成另一套值 ⇒ expect 必须避开任何无参函数能产出的串；② `clicks` 型 expect 必须在阶段 ② 命中，否则 **`FAIL` 的 `fullBlob` 是「兜底后」视图**（与默认态逐字相同）⇒ 不能用它判断 clicks 是否生效；③ **expect 里出现 `undefined` / `NaN` 字面量几乎必是兜底产物、不是页面缺陷**（无参 `selectDate()` 拼出 `undefined-NaN-undefined`、`toggle()` 往集合塞 `undefined` 项）⇒ 先辨段、再改锚 clicks / input 阶段产物。
+1. **锚点必须只依赖被测点，且形态安全**：禁混入表头 / 范围说明 / info-box 常驻文案 / 按钮文本 / `step-line` 标签 / 页脚免责 / 静态 SVG 文本 / 下拉 option value 等**页面常量**。`blob.includes` 是**子串**匹配 ⇒ `达标` ⊂ `未达标`，否定式结论词须锚**完整结论串**；数值须与标签绑成连续串（`18.75 最大弯矩 M (kN·m)`），否则裸数值会被明细大表 / 兜底模板命中；含 `<` 的输出会被标签剥离吞掉。
+2. **双态核验 + 默认态逐串比对**：dump 注入态与默认态逐串比对，**只有「注入态有、默认态无」的串能进 expect**（防同值巧合；兜底会无参调用 `genPassword` / `loadDefault` 等生成函数产出另一套完整结果 ⇒ 锚点可能与其**同串或成子串**，如默认「23 总物料数」含子串「3 总物料数」）。`inputs` 值逐字等于页面默认值 ⇒ 判别器判 `usable=false` 直接 `skipped++` ⇒ **凡 `all_default` 例一律视为零判别力、须重写**；零影响键不要写进 `inputs`（会造成「看似非默认」的假象）。
+3. **兜底污染三则**：① 兜底会无参调用页面所有候选函数（预设 / 联动 / 作答 / 格式化 / 增删 / 建议型），**改状态后重算**、把结果区重写成另一套值 ⇒ expect 必须避开任何无参函数能产出的串；② `clicks` 型 expect 必须在阶段 ② 命中，否则 **`FAIL` 的 `fullBlob` 是「兜底后」视图**（与默认态逐字相同）⇒ 不能用它判断 clicks 是否生效；③ **expect 里出现 `undefined` / `NaN` 字面量几乎必是兜底产物、不是页面缺陷**（无参 `selectDate()` → `undefined-NaN-undefined`）⇒ 先辨段再改锚 clicks / input 阶段产物。
 4. **锚点优先级 + checkbox 反向利用**：① 非兜底分支独有的文案（`if/else` 的**非 else** 路）；② 只由注入值 派生、兜底无法复现的数值；③ 跨档 / 跨分支的等级词（先按默认参数手算是否落同档、是否触发同一提示）。桩内 checkbox 恒未勾 ⇒ 默认态必然渲染「xx缺失」并给低分 ⇒ **勾满 `checkIds` 抢「全部达标」分支做正向强锚**。
 5. **数值合法性与齐次量**：有界量（决定系数 / 概率 / p 值 / 覆盖率 / 率）越界即公式错，交付前必查 `[0,1]`；「基础分 − 扣分」式先算最小值是否越界；**凡输出物理不可能值必查公式本身**。比值 / 密度 / 单价 / 覆盖率换值前 先确认不是默认输入的等比缩放，改完必须实测「换值是否引起输出变化」。
 6. **日期与随机**：日期相关量一律不锚（随运行日漂移）；禁 `Math.random` / `Date.now` 当输入。`clicks` 内改**进程级全局对象**（`Math` / `Date` / `Array.prototype`）**必须用完即恢复**（`var __r=Math.random;Math.random=fn;gen();Math.random=__r`），否则污染同进程后续用例的默认态 —— 只有双态 核验能抓到。钉死随机值后锚「多列连续复合串」把巧合概率压到 10⁻⁶。
@@ -393,7 +393,7 @@
 
 | 工具 | 用途 |
 |---|---|
-| **dump 探针** | `clicks:["calc();document.getElementById('__p').value=document.getElementById('result').innerHTML"]`（多容器 `+'\|'+` 拼接）—— 兜底阶段只重写 `result`/`dataGrid`、**不碰 `__p`**，故 FAIL 时仍能在 blob 里读到真实注入输出。比逐个试 expect 快一个数量级 |
+| **常驻 runner（scan / dump / multi）** | `~/.workbuddy/skills/toolbox-weakcase-hardening/assets/weakcase_runner.js`（cwd 须为仓库根），**每批直接调用、不要重建**。原理：`clicks` 末尾把结果容器回写到独立元素 `__p`，兜底阶段不碰 `__p` ⇒ FAIL 时仍能在 `r.fullBlob` 读到真实注入输出；容器 id 不在内置清单时用用例 `dumpIds` 覆盖。|
 | **标记串探针** | 判断「写入路径是否通」：`clicks:["document.getElementById('stats').value='MARK_V'"]` + `expect:["MARK_V"]`，命中即通（`value`/`innerHTML`/`ToolBox.setResult` 三路已验证）。用于把「clicks 未生效」与「expect 锚点错」区分开 |
 | **「双态」核验** | 每例必须**注入态 PASS + 默认态（剥 inputs/checks/clicks）FAIL** 双跑；判别器取不到默认值的页尤其只能靠它 |
 | **逐项二分** | 定位逃生项用「逐项单独 `runCase`」，**禁用 `fullBlob.includes()` 判定**（blob 元素集合不同，会全判「无逃生」） |
@@ -404,7 +404,6 @@
 
 - 全站 **16 个** `verify_*_calc.js` 共 **62 条「同 slug 多份」重复条目**（`realestate` 12、`math` 14、`science` 5、`ai` 4、`agriculture` 3…，其中 61 条两份内容不同）：门禁会把同一页跑两遍、计数虚高、批量替换器按 slug 定位会**同时改掉两份**。**暂不清理**（删条目会同时改动 `total_cases`/`checked`/`skipped` 三个基线数，属独立批次）。
 - `selfcheck_false_pass.js` 全站 `--exec` 会崩（某页脚本污染全局 `process`，抛 `process.exit is not a function`）：**取基线请用结构模式** `node scripts/selfcheck_false_pass.js scripts`（与门禁同口径），只看 no_inputs / all_default 计数行；`--exec` 仅供单文件调试。
-- `checker-15` / `checker-10` / `checker-9` 类「id 由 JS 模板拼接」的页：注入有效，但源码无字面 id ⇒ 判别器取不到默认值、判「跳过」，须用同口径双态 dump 人工确认。
 
 ### 10.6 方向1：公式-脚本一致性精查（**全量闭环** · 老板选定）
 

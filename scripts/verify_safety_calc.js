@@ -43,11 +43,14 @@ const CASES = [
 },
 {
   "slug": "safety/detector-strength",
-  "inputs": {},
+  "inputs": { "pw": "Zx9#kQ2!vLp7" },
+  "clicks": ["analyze()"],
   "expect": [
-    "105.1"
+    "88 / 100",
+    "78.8",
+    "12 密码长度"
   ],
-  "ref": "auto-restore(default)"
+  "ref": "非默认密码 Zx9#kQ2!vLp7（默认 pw 为空，兜底阶段 genPassword() 会生成 16 位 → 98/100、105.1 熵、16 长度）。字符集 = 26+26+10+33 = 95，熵 = 12×log2(95) = 78.84 → 78.8；长度 12、评分 88。默认态无此三串；「4/4 字符种类」在两态都出现（16 位生成密码同样含四类）⇒ 不可锚。"
 },
 {
   "slug": "safety/generator-21",

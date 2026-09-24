@@ -39,11 +39,14 @@ const CASES = [
 },
 {
   "slug": "wedding/material-checklist",
-  "inputs": {},
+  "clicks": ["CATEGORIES=[{name:'婚宴用品',items:[{name:'喜糖礼盒',qty:30,price:18,status:'done'},{name:'定制喜帖',qty:200,price:3,status:'pending'}]},{name:'现场布置',items:[{name:'主舞台背景',qty:1,price:2800,status:'ordered'}]}];calc()"],
   "expect": [
-    "200"
+    "¥3,940 总预算",
+    "33% 完成",
+    "婚宴用品 ¥1,140",
+    "现场布置 ¥2,800"
   ],
-  "ref": "auto-restore(default)"
+  "ref": "顶层数组 CATEGORIES 注入：婚宴用品 30×18 + 200×3 = ¥1,140、现场布置 1×2800 = ¥2,800 ⇒ 总预算 ¥3,940、共 3 项物料、已到货 1 项 ⇒ 进度 1/3 = 33%。默认态 loadDefault 为 ¥50,200 / 23 项 / 30%；「3 总物料数」会被默认态「23 总物料数」作为子串命中 ⇒ 改锚两个分类合计。"
 },
 {
   "slug": "wedding/seating-chart",

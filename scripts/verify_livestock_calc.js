@@ -225,11 +225,13 @@ const CASES = [
 },
 {
   "slug": "livestock/milk-yield-scc",
-  "inputs": {},
+  "clicks": ["records=[{day:1,yield:28.5,scc:12},{day:2,yield:30.2,scc:15},{day:3,yield:31.8,scc:18},{day:4,yield:33.1,scc:22}];analyze()"],
   "expect": [
-    "26.93"
+    "30.9 平均产奶量",
+    "上升趋势（斜率 1.54 kg/天）",
+    "33.1 最高产奶量"
   ],
-  "ref": "auto-restore(default)"
+  "ref": "顶层数组 records 注入 4 条（页面要求 ≥2 条才分析）：均值 (28.5+30.2+31.8+33.1)/4 = 30.9；线性回归 Sxy = 7.7、Sxx = 5 ⇒ 斜率 1.54 kg/天；最大产奶量 33.1。默认态为源码内置记录（26.93），三串均不命中。"
 },
 {
   "slug": "livestock/mycotoxin-limit",

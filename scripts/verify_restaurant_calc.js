@@ -31,11 +31,13 @@ const CASES = [
 },
 {
   "slug": "restaurant/menu-margin",
-  "inputs": {},
+  "clicks": ["dishes=[{name:'宫保鸡丁',cost:18,price:48},{name:'麻婆豆腐',cost:8,price:26},{name:'清蒸鲈鱼',cost:45,price:98}];calc()"],
   "expect": [
-    "166.00"
+    "¥172.00 总售价",
+    "58.7% 综合毛利率",
+    "69.2%"
   ],
-  "ref": "auto-restore(default)"
+  "ref": "顶层数组 dishes 注入：总售价 48+26+98 = ¥172.00、总成本 18+8+45 = ¥71.00、总毛利 ¥101.00、综合毛利率 101/172×100 = 58.7%；麻婆豆腐 (26−8)/26×100 = 69.2%。默认态为源码内置菜单（166.00），三串均不命中。"
 },
 {
   "slug": "restaurant/menu-pricing",
