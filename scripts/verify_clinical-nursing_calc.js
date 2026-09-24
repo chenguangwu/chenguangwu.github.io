@@ -36,19 +36,24 @@ const CASES = [
 },
 {
   "slug": "clinical-nursing/barthel-index",
-  "inputs": {},
-  "expect": [
-    "需1人帮助或指导"
+  "clicks": [
+    "scores.eating=0;scores.bathing=0;scores.grooming=0;scores.dressing=0;scores.bowels=5;scores.bladder=5;scores.toilet=5;scores.transfer=10;scores.walking=10;scores.stairs=5;renderItems();calc()"
   ],
-  "ref": "auto-restore(default)"
+  "expect": [
+    "40",
+    "大部分ADL需他人帮助，建议加强护理，预防并发症"
+  ],
+  "ref": "静态量表页(无input)：clicks 页面作用域直写 scores 十项=40 分，落「≥25 重度依赖」分支专属 desc（默认 100 分走「完全自理」、零参兜底 scores[undefined]=undefined→total=NaN 走 else 亦为另一分支，两者均不含该串）。"
 },
 {
   "slug": "clinical-nursing/braden-score",
-  "inputs": {},
-  "expect": [
-    "每天至少2次室外行走"
+  "clicks": [
+    "selectScore('sensory',2);selectScore('moisture',2);selectScore('activity',2);selectScore('mobility',2);selectScore('nutrition',2);selectScore('friction',3)"
   ],
-  "ref": "auto-restore(default)"
+  "expect": [
+    "每2小时翻身一次"
+  ],
+  "ref": "静态按钮量表页：逐维 selectScore 到 total=2*5+3=13 落「中度风险(13-14)」分支，其 desc 独有串「每2小时翻身一次」。默认 total=23 走「无风险」；零参兜底 scores[undefined]=undefined→total=NaN 走 else「极度风险」(每1小时翻身)，两态均不含该串（故非逃生项）。"
 },
 {
   "slug": "clinical-nursing/calc-rater-risk",
@@ -104,19 +109,28 @@ const CASES = [
 },
 {
   "slug": "clinical-nursing/cycle-7",
-  "inputs": {},
-  "expect": [
-    "当前无进行中的约束"
+  "inputs": {
+    "ptInput": "12床 李四",
+    "startInput": "2026-09-24T08:30"
+  },
+  "clicks": [
+    "selectedType='腕部约束';startRestraint()"
   ],
-  "ref": "auto-restore(default) — 周期性工具依赖当前日期，改测结构标签"
+  "expect": [
+    "12床 李四",
+    "已约束时长（2小时松解提醒）"
+  ],
+  "ref": "约束计时页：inputs 写入患者名与开始时间(非默认空值)，clicks 选约束类型后 startRestraint() 渲染进行中卡片。默认无进行中约束。"
 },
 {
   "slug": "clinical-nursing/fall-emergency-flow",
-  "inputs": {},
-  "expect": [
-    "90-140/60-90mmHg"
+  "clicks": [
+    "toggleStep(0);toggleStep(1);toggleStep(2);toggleStep(3);toggleStep(4)"
   ],
-  "ref": "auto-restore(default)"
+  "expect": [
+    "5/8"
+  ],
+  "ref": "静态步骤勾选页：连续 toggleStep 前 5 步，进度文本由 completedSteps.length 派生为 5/8。默认 0/8；零参兜底 completedSteps 不变。"
 },
 {
   "slug": "clinical-nursing/gastric-tube-depth",
@@ -155,11 +169,13 @@ const CASES = [
 },
 {
   "slug": "clinical-nursing/morse-score",
-  "inputs": {},
-  "expect": [
-    "25分"
+  "clicks": [
+    "selectScore('history',25);selectScore('gait',10)"
   ],
-  "ref": "auto-restore(default)"
+  "expect": [
+    "保持病区环境安全"
+  ],
+  "ref": "静态按钮量表页：selectScore 到 total=25+10=35 落「低度跌倒风险(25-50)」分支，其 desc 独有串「保持病区环境安全」。默认全 0 走「无跌倒风险」；零参兜底 total=NaN 落 else「高度跌倒风险」，两态均不含该串。"
 },
 {
   "slug": "clinical-nursing/ostomy-bag-timing",
@@ -183,11 +199,13 @@ const CASES = [
 },
 {
   "slug": "clinical-nursing/pain-nrs",
-  "inputs": {},
-  "expect": [
-    "10"
+  "clicks": [
+    "selectPain(2)"
   ],
-  "ref": "auto-restore(default)"
+  "expect": [
+    "可考虑非药物干预"
+  ],
+  "ref": "NRS 面部表情点击页：selectPain(2) 落 getLevel 返回「轻度疼痛」分支，其 desc 独有串「可考虑非药物干预」。默认 selectPain(0) 走「无痛」；零参兜底 getLevel(undefined) 因 undefined<=各 max 均 false 返回 labels[last]「重度疼痛」，两态均不含该串。"
 },
 {
   "slug": "clinical-nursing/pressure-injury-description",
@@ -237,21 +255,26 @@ const CASES = [
 {
   "slug": "clinical-nursing/suction-pressure",
   "inputs": {
-    "currentPressure": "150",
-    "currentKpa": "20"
+    "currentPressure": "90"
   },
-  "expect": [
-    "150-200mmHg"
+  "clicks": [
+    "currentAge='newborn';checkPressure()"
   ],
-  "ref": "auto-restore(default)"
+  "expect": [
+    "当前压力 90 mmHg 超过安全范围（60-80mmHg），有黏膜损伤风险！"
+  ],
+  "ref": "吸痰负压校验页：inputs 写 90mmHg(非默认)，clicks 切 currentAge='newborn' 后 checkPressure() 走新生儿安全区间(60-80mmHg)越界分支。默认 adult 区间不同。"
 },
 {
   "slug": "clinical-nursing/surgical-position-risk",
-  "inputs": {},
-  "expect": [
-    "每2h适当调整头位"
+  "clicks": [
+    "selectPosition('lithotomy',{classList:{add:function(){}}})"
   ],
-  "ref": "auto-restore(default)"
+  "expect": [
+    "截石位压力点评估",
+    "腘窝血管神经丰富，避免腿架直接压迫"
+  ],
+  "ref": "静态体位卡片页：selectPosition('lithotomy', btn) 需第二参 btn(classList) 否则抛错，故传哑对象；输出该体位专属标题与压力点。默认初始化走 supine(平卧位)。"
 },
 {
   "slug": "clinical-nursing/tracheostomy-dressing",
