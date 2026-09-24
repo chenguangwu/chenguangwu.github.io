@@ -42,10 +42,15 @@ const CASES = [
 {
   "slug": "property/checker-11",
   "inputs": {},
+  "clicks": ["var __m={plan:5,do:1,check:4,act:2};Object.keys(__m).forEach(function(s){for(var i=0;i<4;i++){document.getElementById(s+i).value=String(__m[s]);}});calc()"],
   "expect": [
-    "0.00/5"
+    "3.00 综合成熟度",
+    "发展中 成熟度等级",
+    "60% 体系完整度",
+    "8 薄弱项",
+    "D-检查执行 1.00 未建立 4项"
   ],
-  "ref": "auto-restore(default)"
+  "ref": "16 个评分 <select id=\"<stage><i>\"> 由 buildList() 拼 innerHTML 生成（静态无 id ⇒ clicks 赋值后调 calc()）：P=5/D=1/C=4/A=2 ⇒ 阶段均值 5.00/1.00/4.00/2.00，overall=(5+1+4+2)/4=3.00 ⇒ 发展中、完整度 3/5=60%、薄弱项 D 阶段 4 项 + A 阶段 4 项 = 8（默认值在桩下为空 ⇒ 0.00/薄弱/0%/16）。非默认输入+独立复算。"
 },
 {
   "slug": "property/checker-7",

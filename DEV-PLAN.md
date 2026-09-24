@@ -324,16 +324,15 @@
 
 ### 10.2 现状（实测基线）
 
-- `all_default 6 / no_inputs 82 / escape 0`；`checked=3161`；门禁 `run_gates.py` **217 项全过**、逃生项 0（判别器已检 **3038** 例 / 跳过 123）。
-- A 级率 **99.2%**（A 4693 / B 32 / C 4，共 4729）；deep-dive 术语内链 **1591 页 / 2268 条 / 唯一目标 630**（零死链、零自链、单页 ≤6 条）。**注：内链不影响质量分级**（`own_len` 只统计 `<script>` 内容）。
-- 存量弱用例 **88 例**（口径、选批规则与不可注入清单见 §10.3）。
-  - **注意：弱用例整体处于判别器盲区** —— `discriminate_check` 对「注入值本就等于默认值」的用例判 `usable=false` ⇒ **直接跳过**（§10.5）。故 `escape=0` 只说明「强用例无逃生项」，弱用例的逃生项从未被检查；每批改造弱用例后必须重跑判别器确认其由「跳过」转为「已检且变红」。
+- `all_default 6 / no_inputs 74 / escape 0`；`checked=3161`；门禁 `run_gates.py` **217 项全过**、逃生项 0（判别器已检 **3046** 例 / 跳过 115）。
+- A 级率 **99.2%**（A 4693 / B 32 / C 4，共 4729）；deep-dive 术语内链 **1591 页 / 2268 条 / 唯一目标 630**（零死链、零自链、单页 ≤6 条）。- 存量弱用例 **80 例**（口径、选批规则与不可注入清单见 §10.3）。
+  - **注意：弱用例整体处于判别器盲区** —— 「注入值等于默认值」的用例被判 `usable=false` 直接跳过（§10.5）⇒ `escape=0` 只说明强用例无逃生项；每批改造后须重跑判别器确认其由「跳过」转为「已检且变红」。
 
 ### 10.3 弱用例去默认化（仅在 P0/P1 顺带时执行）
 
-**存量 88 例**（`no_inputs=82` / `all_default=6`，selfcheck 口径；含 textarea / 动态 id / 结构性不可注入的「skip」类全站 123）。**`all_default` 剩余 6 例已全部判定为结构性不可改造**，逐例理由已写进各用例 `ref`（含实测结论），勿重复评估。**转 P3 顺带，不单独成批**；逐批成果与逐例打法归档在 `.workbuddy/memory/2026-09-2*.md` 与 skill `toolbox-weakcase-hardening`，**本文件不再记录批次流水**。
+**存量 80 例**（`no_inputs=74` / `all_default=6`，selfcheck 口径；含 textarea / 动态 id / 结构性不可注入的「skip」类全站 115）。**`all_default` 剩余 6 例已全部判定为结构性不可改造**，逐例理由已写进各用例 `ref`（含实测结论），勿重复评估。**转 P3 顺带，不单独成批**；逐批成果与逐例打法归档在 `.workbuddy/memory/2026-09-2*.md` 与 skill `toolbox-weakcase-hardening`，**本文件不再记录批次流水**。
 
-**选批口径**：① 按「可注入数」降序挑批次；② **结构性不可注入的不要选**（页面静态 HTML `grep -cE '<input|<select|<textarea'` 为 0、驱动语句是 class 选择器、或行由 `createElement+appendChild` 生成）—— 保留 `no_inputs` 并在用例 `ref` 写明理由（判据见 §10.5 B 组）；③ 每批 8–11 例，走 §10.4 六步。
+**选批口径**：① 按「可注入数」降序挑批次；② **结构性不可注入的不要选**（判据见 §10.5 B 组）—— 保留 `no_inputs` 并在 `ref` 写明理由；③ 每批 8–11 例，走 §10.4 六步。
 
 **已知结构性不可注入清单（勿重复评估）**：`tcm-diagnosis/etiology-tree`、`music/sheet-music`、`cleaning/appliance-cycle`、`cleaning/cycle-20`、`mining/estimate-reserve`、`admin/detector-time`、`chess/xiangqi-endgame`、`dermatology/{contact-dermatitis-patch,miliaria-classification,wood-lamp}`、`travel/{aim-trainer,emergency-phrasebook,packing-list}`、`endocrinology/ti-rads`、`fire/response-drill`、`rheumatology/{bvas,sledai}`、`language/vocabulary-builder`、`medical2/drug-expiry`、`nutrition/estimate-2`（属性选择器取选中态，登记表不支持）、`electromagnetism/free-space-impedance`（输入标注「无需输入」的**常量输出页**，输出恒 376.73 Ω）、`audio/audio-cut`（依赖音频文件解码）、`cognition/human-benchmark`（8 个子测验全靠点击 / 倒计时 / 随机序列驱动、成绩进 localStorage）、`office/mindmap`（SVG / Canvas 布局，harness 无布局与字体度量）、`security/virtual-safe`（需 WebCrypto，harness 无 `crypto.subtle`）。其中 **localStorage 为唯一数据源的页**（`drug-expiry` / `packing-list` / `appliance-cycle`）可复用「`clicks` 内覆写 `localStorage.getItem`」覆写法复评（已验证该路可行）。
 
@@ -362,13 +361,13 @@
 | `clicks: ["pick(0,3)", …]` | **页面作用域 direct eval**，在 inputs 注入之后、兜底之前按序执行，命中即 `via="click"`；配套**用例级动态 DOM 登记**（`innerHTML` setter 按容器 id 分桶解析 `{tag,id,class}`，同容器以最后一次渲染为准，供 `querySelectorAll` 回填）—— 以 `DYN.on` 开关隔离，仅当用例声明 `clicks`/`dynDom` 时启用，其余用例行为逐字节不变 |
 | `dynDom` | 单独开启动态 DOM 登记（不注入值时用） |
 
-> `clicks` 内的状态驱动优先级：**页面顶层 `var` 直接赋值 > 模拟点按钮 > 注入 DOM 选中态**（真正被 `calc()` 读取的往往是顶层 `var`，如 `grade`/`scores`/`sel`/`reviewData`）。**带 DOM 形参的 click 函数不算不可注入**：`selectFluor(btn,i)` / `selectStage(grade,el)` 的 `btn`/`el` 只做 `classList` 增删 ⇒ 传哑对象 `{classList:{add:function(){},remove:function(){}}}`、或直接省略（页面内 `if(el)` 判空）；内层 `querySelectorAll('.xxx').forEach` 对空数组安全。
+> `clicks` 内的状态驱动优先级：**页面顶层 `var`/`let` 绑定直接赋值 > 模拟点按钮 > 注入 DOM 选中态**（真正被 `calc()` 读取的往往是顶层状态，`grade`/`scores`/`sel`/`reviewData`/`materials`；`let` 声明的顶层数组同样可直接改元素）。**带 DOM 形参的 click 函数不算不可注入**：`selectFluor(btn,i)` / `selectStage(grade,el)` 的 `btn`/`el` 只做 `classList` 增删 ⇒ 传哑对象 `{classList:{add:function(){},remove:function(){}}}`、或直接省略（页面内 `if(el)` 判空）；内层 `querySelectorAll('.xxx').forEach` 对空数组安全。
 
 **B. 「能不能注入」判据（静态 HTML `grep -cE '<input|<select|<textarea'` 为 0 时逐条排查）**
 
 | 判据 | 结论 |
 |---|---|
-| B1 控件由运行期 `innerHTML` 生成（id 形如 `d{di}i{ii}`、`spot{i}`、`c{i}`） | 静态源码无此 id ⇒ 写 `inputs` 会被判别器判 `usable=false` ⇒ **整例静默 `skip`**；改用 `clicks` 内 `document.getElementById(id).value=…;calc()`。**副产品**：这些键不进弱用例清单，正好靠 `clicks` 计入可检 |
+| B1 控件由运行期 `innerHTML` 生成（id 形如 `d{di}i{ii}`、`spot{i}`、`c{i}`），或**静态 `<select>` 存在但 option 由 JS 填充** | 前者写 `inputs` 会被判 `usable=false` 静默 `skip`；后者判别器取默认空串、回退 `+''=0` 落首项。两者都用 `clicks` 赋值后**显式**调 `calc()`/`compare()`（这类 select 常无 `onchange`）。**副产品**：这些键不进弱用例清单，正好靠 `clicks` 计入可检 |
 | B2 驱动语句是 class 选择器（`querySelectorAll('.'+cls)` / `'.s8'`） | 桩的 `querySelectorAll` **仅对选择器串含 `checked`** 的调用返回 `c.checks`，纯 class 选择器恒返回 `[]` ⇒ 复选框注入不了，保留 `no_inputs` |
 | B3 行由 `createElement + #rows.appendChild` 建立，靠 `querySelectorAll('#容器 .行类名')` 取值 | 桩的 `dynRecord` 只登记 `innerHTML` 字符串里解析出的标签、**不含容器 div 自身** ⇒ 选择器恒空 ⇒ 结构性不可注入（容器 `innerHTML` 里仍能看到全部表单标签，**极易误判为「行已建好」**） |
 | B4 控件位于默认 `display:none` 的 hidden / tab 面板 | **注入阶段与 `calc()` 阶段不是同一份 DOM 实例** ⇒ `inputs` 与 `clicks` 内赋值**都改不动** `calc()` 读到的值（`hvac/duct-calculator` 的 `diaD`）；只能锚由已验证可注入字段派生的量 |
@@ -386,7 +385,7 @@
 4. **锚点优先级 + checkbox 反向利用**：① 非兜底分支独有的文案（`if/else` 的**非 else** 路）；② 只由注入值 派生、兜底无法复现的数值；③ 跨档 / 跨分支的等级词（先按默认参数手算是否落同档、是否触发同一提示）。桩内 checkbox 恒未勾 ⇒ 默认态必然渲染「xx缺失」并给低分 ⇒ **勾满 `checkIds` 抢「全部达标」分支做正向强锚**。
 5. **数值合法性与齐次量**：有界量（决定系数 / 概率 / p 值 / 覆盖率 / 率）越界即公式错，交付前必查 `[0,1]`；「基础分 − 扣分」式先算最小值是否越界；**凡输出物理不可能值必查公式本身**。比值 / 密度 / 单价 / 覆盖率换值前 先确认不是默认输入的等比缩放，改完必须实测「换值是否引起输出变化」。
 6. **日期与随机**：日期相关量一律不锚（随运行日漂移）；禁 `Math.random` / `Date.now` 当输入。`clicks` 内改**进程级全局对象**（`Math` / `Date` / `Array.prototype`）**必须用完即恢复**（`var __r=Math.random;Math.random=fn;gen();Math.random=__r`），否则污染同进程后续用例的默认态 —— 只有双态 核验能抓到。钉死随机值后锚「多列连续复合串」把巧合概率压到 10⁻⁶。
-7. **默认态已全量渲染的页面，锚点要换区**：① 同引擎多段渲染（注入段 + 兜底 `loadSample()` 段）会共用常量串 ⇒ 只锚注入段独有串；sample / 示例文本即逃生项，注入数据须与样本用词错开。② 「kw 空输出全量」型过滤页（`search(kw)`），任何具体编号 / 名称在默认态都命中 ⇒ 反向注入**不存在的关键词**、锚「未找到匹配项」类 空结果提示。③ 「卡片列表区 + 详情区」双区页，卡片区默认已渲染全部条目的名称与 desc ⇒ 只锚详情区独有文案。
+7. **默认态已全量渲染的页面，锚点要换区**：① 同引擎多段渲染（注入段 + 兜底 `loadSample()` 段）会共用常量串 ⇒ 只锚注入段独有串；sample / 示例文本即逃生项，注入数据须与样本用词错开。② 「kw 空输出全量」型过滤页（`search(kw)`），任何具体编号 / 名称在默认态都命中 ⇒ 反向注入**不存在的关键词**、锚「未找到匹配项」类 空结果提示。③ 「卡片列表区 + 详情区」双区页，卡片区默认已渲染全部条目的名称与 desc ⇒ 只锚详情区独有文案。④ **筛选型图鉴页（默认渲染全表）**任何单行文本默认态都有 ⇒ 只锚**仅过滤态成立的跨行相邻串**（过滤后 A 紧邻 B、全表中 A 后是 C），或锚空结果提示。
 8. **注入与格式口径**：`select` 的 `selected` 属性在桩里不生效 ⇒ 默认选中项必须**显式注入**（`selfcheck` 取 JS 设定的真实默认、`discriminate_check` 取首个 option，两者口径不同）。`inputs` 键若是生成器模板串残留（`${f}` / `pri${i}`）会同时骗过两把锁（不进棘轮 + 记「正确变红」）⇒ 巡检 `verify_*_calc.js` 里形如 `${` 的键。`fmt()` 走 `toLocaleString()` 默认截 3 位小数 ⇒ 定 expect 时避开被截断的位置。
 
 **D. 工具与方法**
@@ -403,7 +402,7 @@
 **E. 待办 / 历史残留**
 
 - 全站 **16 个** `verify_*_calc.js` 共 **62 条「同 slug 多份」重复条目**（`realestate` 12、`math` 14、`science` 5、`ai` 4、`agriculture` 3…，其中 61 条两份内容不同）：门禁会把同一页跑两遍、计数虚高、批量替换器按 slug 定位会**同时改掉两份**。**暂不清理**（删条目会同时改动 `total_cases`/`checked`/`skipped` 三个基线数，属独立批次）。
-- `selfcheck_false_pass.js` 全站 `--exec` 会崩（某页脚本污染全局 `process`，抛 `process.exit is not a function`）：**取基线请用结构模式** `node scripts/selfcheck_false_pass.js scripts`（与门禁同口径），只看 no_inputs / all_default 计数行；`--exec` 仅供单文件调试。
+- `selfcheck_false_pass.js` 全站 `--exec` 会崩（某页脚本污染全局 `process`）：**取基线请用结构模式** `node scripts/selfcheck_false_pass.js scripts`（与门禁同口径）。
 
 ### 10.6 方向1：公式-脚本一致性精查（**全量闭环** · 老板选定）
 

@@ -5,10 +5,13 @@ const CASES = [
 {
   "slug": "museum/era-comparator",
   "inputs": {},
+  "clicks": ["document.getElementById('era1').value='3';document.getElementById('era2').value='9';compare()"],
   "expect": [
-    "(2070BC"
+    "时间跨度相差: 839 年",
+    "秦朝 15 年 vs 唐朝 289 年 (差 274 年)",
+    "比值 4.0 倍"
   ],
-  "ref": "auto-restore(default)"
+  "ref": "两个朝代 <select> 的 option 由 JS 按 ERAS 下标填充（静态无 option ⇒ clicks 赋值后调 compare()）：era1=3 秦朝(s=-221,dur=15,人口约2000万)、era2=9 唐朝(s=618,dur=289,人口约8000万) ⇒ 起始年差 |−221−618|=839、时长差 |15−289|=274、人口比 8000/2000=4.0（默认 清朝 vs 现代中国 = 305/192/3.5）。非默认输入+独立复算。"
 },
 {
   "slug": "museum/exhibit-spacing",

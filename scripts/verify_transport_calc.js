@@ -5,10 +5,13 @@ const CASES = [
 {
   "slug": "transport/calc-4",
   "inputs": {},
+  "clicks": ["toggle(0,true);toggle(13,true);calc()"],
   "expect": [
-    "记12分"
+    "¥300 累计罚款",
+    "10 累计记分",
+    "2 距12分剩余"
   ],
-  "ref": "auto-restore(default)"
+  "ref": "违法项 checkbox 由 renderList() 拼 innerHTML 生成（静态无 id ⇒ clicks 调 toggle(idx,true) 后 calc()）：勾 0 不按规定会车（¥100/扣1）与 13 高速公路违法占用快车道（¥200/扣9）⇒ 累计 ¥300、记分 10、距 12 分剩 2（默认未勾 ⇒ 仅提示「请勾选违法行为后再计算。」）。非默认输入+独立复算。"
 },
 {
   "slug": "transport/calc-53",

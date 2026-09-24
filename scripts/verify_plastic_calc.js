@@ -66,11 +66,11 @@ const CASES = [
 },
 {
   "slug": "plastic/material-select",
-  "inputs": {},
+  "inputs": { "filterSelect": "耐高温" },
   "expect": [
-    "100-120"
+    "手机壳、镜片、头盔 透明,高强度,耐高温 PA66"
   ],
-  "ref": "auto-restore(default)"
+  "ref": "按特性筛选的图鉴页：默认「全部材料」渲染全表 ⇒ 任何单行文本都是逃生项，只能锚「仅过滤态成立的跨行相邻串」。注入 耐高温 后 PC 行紧邻 PA66 行，而默认全表中 PC 后紧邻 POM ⇒ 该跨行串仅过滤态成立（判别器换回「全部材料」即全表 ⇒ 该串消失）。非默认输入+独立复算。"
 }
 ];
 async function main() {

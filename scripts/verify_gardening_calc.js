@@ -5,18 +5,22 @@ const CASES = [
 {
   "slug": "gardening/balcony-sunlight",
   "inputs": {},
+  "clicks": ["document.getElementById('dir').value='north';document.getElementById('floor').value='high';document.getElementById('season').value='winter';calcTool()"],
   "expect": [
-    "6.0"
+    "1.0 小时 每日直射光照（北向·冬）",
+    "虎皮兰、一叶兰、蕨类、竹芋、白掌 推荐植物"
   ],
-  "ref": "auto-restore(default)"
+  "ref": "三个 <select> 的 option 由 JS 填充（静态 HTML 无 option ⇒ 只能 clicks 赋值）：注入 北向+高楼层+冬季 ⇒ sunTab.north.winter=0.5、floorAdj.high=+0.5 ⇒ hours=1.0（默认 南向·中楼层·春 = 6+0=6.0）；光照类型降为耐阴、推荐植物换为耐阴清单。非默认输入+独立复算。"
 },
 {
   "slug": "gardening/compost-calculator",
   "inputs": {},
+  "clicks": ["materials[0].idx=12;materials[0].weight=4;materials[1].idx=4;materials[1].weight=2;calc()"],
   "expect": [
-    "0.0333"
+    "12.4:1 混合 C:N 比",
+    "鸡粪 10:1 4.00 4.00 0.4000 57.1%"
   ],
-  "ref": "auto-restore(default)"
+  "ref": "原料行的 <select>/<input> 由 renderMaterialList() 拼 innerHTML 生成（无静态 id ⇒ clicks 直接改顶层 materials 再 calc()）：鸡粪(10:1)4kg 氮代理 4/10=0.4000、咖啡渣(20:1)2kg=0.1000、蔬菜废料(15:1)1kg=0.0667 ⇒ 总重 7.00、总氮 0.5667 ⇒ C:N=7/0.5667=12.35→12.4:1，鸡粪占比 4/7=57.1%（默认 落叶2/草坪1/蔬菜1 = 26.7:1）。非默认输入+独立复算。"
 },
 {
   "slug": "gardening/garden-calendar",

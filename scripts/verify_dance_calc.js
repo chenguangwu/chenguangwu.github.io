@@ -78,10 +78,13 @@ const CASES = [
 {
   "slug": "dance/assessor-csat-1",
   "inputs": {},
+  "clicks": ["document.getElementById('d_teach').value='5';document.getElementById('d_curr').value='4';document.getElementById('d_prog').value='5';document.getElementById('d_venue').value='4';document.getElementById('d_serv').value='5';calc()"],
   "expect": [
-    "0.00"
+    "4.65 / 5.0 分",
+    "教学质量 5分 1.25",
+    "评估优秀 ，各维度表现均衡"
   ],
-  "ref": "auto-restore(default)"
+  "ref": "五维 <select id=\"d_<key>\"> 由 renderItems() 拼 innerHTML 生成（静态无 id ⇒ clicks 按 d_teach/d_curr/d_prog/d_venue/d_serv 赋值后调 calc()）：加权 5×0.25+4×0.20+5×0.25+4×0.15+5×0.15 = 1.25+0.80+1.25+0.60+0.75 = 4.65 ⇒ 优秀（默认值在桩下为空 ⇒ 0.00/不合格）。非默认输入+独立复算。"
 }
 ];
 async function main() {
