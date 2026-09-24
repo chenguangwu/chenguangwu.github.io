@@ -362,7 +362,7 @@
 | `clicks: ["pick(0,3)", …]` | **页面作用域 direct eval**，在 inputs 注入之后、兜底之前按序执行，命中即 `via="click"`；配套**用例级动态 DOM 登记**（`innerHTML` setter 按容器 id 分桶解析 `{tag,id,class}`，同容器以最后一次渲染为准，供 `querySelectorAll` 回填）—— 以 `DYN.on` 开关隔离，仅当用例声明 `clicks`/`dynDom` 时启用，其余用例行为逐字节不变 |
 | `dynDom` | 单独开启动态 DOM 登记（不注入值时用） |
 
-> `clicks` 内的状态驱动优先级：**页面顶层 `var` 直接赋值 > 模拟点按钮 > 注入 DOM 选中态**（按钮驱动页第一步常做 `btn.classList.add('active')`，传 `null`/伪元素会抛错；而真正被 `calc()` 读取的往往只是顶层 `var`，如 `grade`/`scores`/`sel`/`reviewData`）。驱动函数第二参需带 `classList` 时传哑对象 `{classList:{add:function(){}}}` 即可。
+> `clicks` 内的状态驱动优先级：**页面顶层 `var` 直接赋值 > 模拟点按钮 > 注入 DOM 选中态**（真正被 `calc()` 读取的往往是顶层 `var`，如 `grade`/`scores`/`sel`/`reviewData`）。**带 DOM 形参的 click 函数不算不可注入**：`selectFluor(btn,i)` / `selectStage(grade,el)` 的 `btn`/`el` 只做 `classList` 增删 ⇒ 传哑对象 `{classList:{add:function(){},remove:function(){}}}`、或直接省略（页面内 `if(el)` 判空）；内层 `querySelectorAll('.xxx').forEach` 对空数组安全。
 
 **B. 「能不能注入」判据（静态 HTML `grep -cE '<input|<select|<textarea'` 为 0 时逐条排查）**
 
@@ -380,27 +380,14 @@
 
 **C. 定 expect 的硬规则**
 
-1. **每一项都必须依赖被测点**，禁混入只依赖其它输入或与被测点无关的中间量：表头 / 范围说明（`1000-9999`）、info-box 常驻文案、`data-card` 标签、按钮文本、`step-line` 标签、页脚免责文案、静态 SVG 文本、下拉 option value。
-2. **改完必跑「双 dump 对比」**：dump 新注入态 + dump 默认态，逐串比对，**只有「注入态有、默认态无」的串才能进 expect**；并把**候选锚点集合**与默认态**全量 blob** 逐串比对（防「同值巧合」—— `fun/bbq-portion` 的 `2100 g` 恰为默认态肉类总量）。**只有真正随输入变化的串才有判别力。**
-3. **必算零参兜底态**：兜底会无参调用页面所有候选函数（`loadXxx()` 预设、`onMediumChange` 型联动、`selectScore` 型作答、`minifyJson` 型格式化、`removeRisk`/`addRisk` 型增删、`suggestSize()` 型建议），**改写状态后重算**、并可能把结果区重写成另一套值（或破坏容器内容）。**expect 必须避开「任何无参函数调用」能产出的串**；判据 = 用「仅含 expect 的 JSON」跑**清空注入态，必须全 FAIL**。
-4. **`clicks` 型用例的 expect 必须在阶段 ② 内命中**：否则进入阶段 ③、结果区被兜底覆盖 ⇒ **FAIL 时的 `fullBlob` 呈现的是「兜底后」视图**，与默认态逐字相同。**不能用 FAIL 的 blob 判断 clicks 是否生效**。
-5. **锚点优先级**：① 非兜底分支独有的文案（`if/else` 的**非 else** 路 —— else 是最高严重度兜底路，破坏态会复现它）；② 只由注入值直接派生、兜底无法复现的数值；③ **跨档/跨分支**的等级词或胜出判定（先按默认参数手算是否落同档、是否触发同一提示 —— 「范围/越界/警告」类提示语尤其要先算默认态是否也触发）。
-6. **子串与超短串**：`blob.includes` 是子串匹配 ⇒ `达标` ⊂ `未达标`、`5.00%` ⊂ `25.00%`、`5000.0 g` ⊂ `15000.0 g`；**否定式包含肯定式的结论词**（满足/不满足、达标/未达标、符合/不符合、有效/无效）必须锚**完整结论串**，或改锚派生数值/计数。个位数 expect 极易被默认输出吃掉；含 `<` 的输出会被标签剥离吞掉（不可作 expect）。
-7. **数值必须与标签绑成连续串**（`450,000 盈亏平衡收入`、`18.75 最大弯矩 M (kN·m)`、`5.6 cm 建议厚度`），否则裸数值会被明细大表 / 兜底生成的模板场景命中。等级词也须与指标标签绑定（`优秀 体能等级`，而非裸 `优秀`）。
-8. **齐次量必须打破比例**：输出是比值 / 密度 / 单价 / 覆盖率时，换值前先确认新输入**不是默认输入的等比缩放**（`chemical/solution-concentration` 曾因 mass 与 vol 同倍放大而得同值）；**改完必须实测「换值是否引起输出变化」**，零影响键不要写进 `inputs`（会造成「看似非默认」的假象）。
-9. **有界量口径**：决定系数 / 解释方差比 / 概率 / p 值 / 覆盖率 / 率**越界即公式错**，交付前必查 `[0,1]`（或 `[0,100%]`）；「基础分 − 扣分」式页面先算**最小值**是否越界（`ent/eustachian-tube` 曾渲染 −9 分 / −50%）；**凡输出物理不可能值必查公式本身**。
-10. **日期相关量一律不锚**（dueCount /「剩 N 天」随运行日漂移）；**非确定性输入一律禁用**（禁 `Math.random`/`Date.now` 当输入；harness 已注入 `FrozenDate` + 确定性 PRNG，但新增用例仍不得断言绝对日期或随机命中串）。需要钉死随机值时见 C11。
-11. **`clicks` 内改进程级全局对象必须用完即恢复**：`Math`/`Date`/`Array.prototype` 属 **Node 进程级**全局，不恢复会**污染同进程后续用例的默认态**（`data/random-7` 曾因此默认态误 PASS，只有双态核验能抓到）。写法 `var __r=Math.random;Math.random=fn;gen();Math.random=__r`。只改页面自身顶层 `var`/`localStorage` 则无此问题（`runCase` 每次重建页面作用域）。
-12. **同引擎「多段渲染」会共用常量串**：结果区在一次 `runCase` 内被渲染多次（注入段 + 兜底 `loadSample()` 段）时，两段派生占比可能撞同一串（`edu2/exam-analysis` 的 `40.0%`）⇒ 弃用，只锚**只属注入段**的串。**sample / 示例文本即逃生项**（`A101`、静态词表全表行、图鉴卡内文本），注入数据须与样本用词错开；「列表默认全渲染、`#result` 仅交互后填充」的页面，唯一安全源 = 只由交互写入 `#result` 的字段。
-13. **checkbox 反向利用**：桩内 checkbox 恒未勾 ⇒ 默认态必然渲染「xx缺失」并给低分 ⇒ **勾满 `checkIds` 抢「全部达标」分支做正向强锚**（默认态不可能出现）。反向：`checkIds` 指向的设值函数若被 `DESTRUCTIVE` 排除、点击对渲染零影响，则该例维持弱用例。
-14. **`select` 取值口径**：`selfcheck._pageDefaults` 读全文（取 JS 设定的真实默认），`discriminate_check.pageDefaults` 取**首个 option**；且 `selected` 属性在桩里不生效 ⇒ 页面「默认选中项」必须**显式注入**。凡页面对 select 值做三元兜底，非预期值会与另一选项落同分支 ⇒ 这类词不可作 expect。
-15. **`inputs` 值逐字等于页面默认值 = 零判别力**：判别器判 `usable=false` ⇒ **直接 `skipped++`**，用例虽在 `all_default` 基线上却从未被校验。**凡 `all_default` 例一律视为零判别力、须重写。**
-16. **`inputs` 键是生成器模板串残留（`${f}`、`pri${i}`）会同时骗过两把锁**：`weakKind` 见 `inputs` 非空但 `_pageDefaults` 取不到该键 ⇒ `return null` ⇒ 不计入棘轮；`discriminate_check` 因 expect 永不命中而记「正确变红」⇒ **静默失效**。**巡检**：搜 `scripts/verify_*_calc.js` 里形如 `${` 或 `+变量+` 的键。
-17. **`fmt()` 走 `toLocaleString()` 会默认截 3 位小数**（`0.0025` → `0.003`）⇒ 分步文案无法自校验、易被误判为算术错；要展示小数量改带参 `toFixed(n)`，定 expect 时避开被截断的位置。
-18. **expect 里出现 `undefined` / `NaN` 字面量 ⇒ 几乎必是兜底污染，不是页面缺陷**：兜底无参调用会把 `selectDate()` 拼成 `undefined-NaN-undefined`、`toggle()` 往集合塞进 `undefined` 项、`renderCalendar()` 出 `NaN 年 NaN 月`。这类串默认态必命中 ⇒ 一律改锚 clicks / input 阶段的真实产物；**发现这类 expect 时不要顺手「按页面输出修 expect」，先确认它来自哪一段**。
-19. **「空关键词输出全量」型过滤页只能反向锚排他串**：`search(kw)` 在 kw 为空时渲染 `DATA` 全量 ⇒ 任何具体编号/名称在默认态都命中（原 expect `A01` 即全量首行）⇒ 改注入**不存在的关键词**、锚「未找到匹配项」类空结果提示。
-20. **「卡片列表区 + 详情区」双区页，锚点必须取详情区独有串**：卡片区在默认态已渲染全部条目（`floral/bloom-stage` 的卡片含全部六个等级名与 desc）⇒ 锚等级名/desc 零判别力；只有详情区文案（如「部分开始出现花粉」）才是随点击变化的安全源。
-21. **click 函数带 DOM 元素形参不算结构性不可注入**：`selectFluor(btn,i)` / `selectStage(grade,el)` 里的 `btn`/`el` 只用于 `classList` 增删 ⇒ 传哑对象 `{classList:{add:function(){},remove:function(){}}}` 或直接省略即可注入；内层的 `querySelectorAll('.xxx').forEach` 对空数组安全。
+1. **锚点必须只依赖被测点，且形态安全**：禁混入表头 / 范围说明 / info-box 常驻文案 / 按钮文本 / `step-line` 标签 / 页脚免责 / 静态 SVG 文本 / 下拉 option value。`blob.includes` 是**子串**匹配 ⇒ `达标` ⊂ `未达标`，否定式结论词（满足/达标/符合/有效）必须锚**完整结论串**；数值须与标签绑成连续串（`18.75 最大弯矩 M (kN·m)`），否则裸数值会被明细大表 / 兜底模板命中；含 `<` 的输出会被标签剥离吞掉。
+2. **双态核验 + 默认态逐串比对**：dump 注入态与默认态逐串比对，**只有「注入态有、默认态无」的串能进 expect**（防同值巧合）。`inputs` 值逐字等于页面默认值 ⇒ 判别器判 `usable=false` 直接 `skipped++` ⇒ **凡 `all_default` 例一律视为零判别力、须重写**；零影响键不要写进 `inputs`（会造成「看似非默认」的假象）。
+3. **兜底污染三则**：① 兜底会无参调用页面所有候选函数（预设 / 联动 / 作答 / 格式化 / 增删 / 建议型），**改状态后重算**、把结果区重写成另一套值 ⇒ expect 必须避开任何无参函数能产出的串；② `clicks` 型 expect 必须在阶段 ② 命中，否则 **`FAIL` 的 `fullBlob` 是「兜底后」视图**（与默认态逐字相同）⇒ 不能用它判断 clicks 是否生效；③ **expect 里出现 `undefined` / `NaN` 字面量几乎必是兜底产物、不是页面缺陷**（无参 `selectDate()` 拼出 `undefined-NaN-undefined`、`toggle()` 往集合塞 `undefined` 项）⇒ 先辨段、再改锚 clicks / input 阶段产物。
+4. **锚点优先级 + checkbox 反向利用**：① 非兜底分支独有的文案（`if/else` 的**非 else** 路）；② 只由注入值 派生、兜底无法复现的数值；③ 跨档 / 跨分支的等级词（先按默认参数手算是否落同档、是否触发同一提示）。桩内 checkbox 恒未勾 ⇒ 默认态必然渲染「xx缺失」并给低分 ⇒ **勾满 `checkIds` 抢「全部达标」分支做正向强锚**。
+5. **数值合法性与齐次量**：有界量（决定系数 / 概率 / p 值 / 覆盖率 / 率）越界即公式错，交付前必查 `[0,1]`；「基础分 − 扣分」式先算最小值是否越界；**凡输出物理不可能值必查公式本身**。比值 / 密度 / 单价 / 覆盖率换值前 先确认不是默认输入的等比缩放，改完必须实测「换值是否引起输出变化」。
+6. **日期与随机**：日期相关量一律不锚（随运行日漂移）；禁 `Math.random` / `Date.now` 当输入。`clicks` 内改**进程级全局对象**（`Math` / `Date` / `Array.prototype`）**必须用完即恢复**（`var __r=Math.random;Math.random=fn;gen();Math.random=__r`），否则污染同进程后续用例的默认态 —— 只有双态 核验能抓到。钉死随机值后锚「多列连续复合串」把巧合概率压到 10⁻⁶。
+7. **默认态已全量渲染的页面，锚点要换区**：① 同引擎多段渲染（注入段 + 兜底 `loadSample()` 段）会共用常量串 ⇒ 只锚注入段独有串；sample / 示例文本即逃生项，注入数据须与样本用词错开。② 「kw 空输出全量」型过滤页（`search(kw)`），任何具体编号 / 名称在默认态都命中 ⇒ 反向注入**不存在的关键词**、锚「未找到匹配项」类 空结果提示。③ 「卡片列表区 + 详情区」双区页，卡片区默认已渲染全部条目的名称与 desc ⇒ 只锚详情区独有文案。
+8. **注入与格式口径**：`select` 的 `selected` 属性在桩里不生效 ⇒ 默认选中项必须**显式注入**（`selfcheck` 取 JS 设定的真实默认、`discriminate_check` 取首个 option，两者口径不同）。`inputs` 键若是生成器模板串残留（`${f}` / `pri${i}`）会同时骗过两把锁（不进棘轮 + 记「正确变红」）⇒ 巡检 `verify_*_calc.js` 里形如 `${` 的键。`fmt()` 走 `toLocaleString()` 默认截 3 位小数 ⇒ 定 expect 时避开被截断的位置。
 
 **D. 工具与方法**
 
