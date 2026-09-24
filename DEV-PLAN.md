@@ -315,20 +315,20 @@
 
 ### 10.2 现状（实测基线）
 
-- `all_default 130 / no_inputs 177 / escape 0`；`checked=3161`；门禁 `run_gates.py` **217 项全过**、逃生项 0（判别器已检 **2824** 例 / 跳过 337）。
+- `all_default 128 / no_inputs 174 / escape 0`；`checked=3161`；门禁 `run_gates.py` **217 项全过**、逃生项 0（判别器已检 **2828** 例 / 跳过 333）。
 - A 级率 **99.2%**（A 4693 / B 32 / C 4，共 4729）；deep-dive 术语内链 **1591 页 / 2268 条 / 唯一目标 630**（零死链、零自链、单页 ≤6 条）。**注：内链不影响质量分级**（`own_len` 只统计 `<script>` 内容）。
-- 存量弱用例 **307 例**（`no_inputs=177` / `all_default=130`），**转 P3 顺带**，不单独成批。
+- 存量弱用例 **302 例**（`no_inputs=174` / `all_default=128`），**转 P3 顺带**，不单独成批。
   - **注意：弱用例整体处于判别器盲区** —— `discriminate_check` 对「注入值本就等于默认值」的用例判 `usable=false` ⇒ **直接跳过**（§10.5）。故 `escape=0` 只说明「强用例无逃生项」，弱用例的逃生项从未被检查；每批改造弱用例后必须重跑判别器确认其由「跳过」转为「已检且变红」。
 
 ### 10.3 弱用例去默认化（仅在 P0/P1 顺带时执行）
 
-**存量 307 例**（`no_inputs=177` / `all_default=130`，selfcheck 口径；含 textarea/动态 id/结构性不可注入的「skip」类全站 337）。
+**存量 302 例**（`no_inputs=174` / `all_default=128`，selfcheck 口径；含 textarea/动态 id/结构性不可注入的「skip」类全站 333）。
 
 **选批预筛清单（2026-09-24 实测 · 弱例数 / 其中可注入数）** —— 按「可注入数」降序挑批次，**不可注入的不要选**（页面静态 HTML 里 `grep 'id='` 为 0，控件由 innerHTML 动态生成，属 §7.1 保留项）：
 
-rheumatology 7/5、language 6/5、aquaculture 5/5、bridge 5/5、glass 5/5、life 5/5、manufacturing 5/5、maritime 5/5、medical2 5/5。
+language 6/5、aquaculture 5/5、bridge 5/5、glass 5/5、life 5/5、manufacturing 5/5、maritime 5/5、medical2 5/5。
 
-**不可注入（结构性，勿选）**：`psychiatry` 24 例里 **18 例**页面只有 `id="quiz"` + innerHTML 渲染（`gad7`/`phq9`/`pcl5`/`mdq`/`asrs`/`cage`/`isi`/`ybocs`/`bis11`/`cdrisc`/`lsas`/`panss`/`pdss`/`phq15`/`eat26`/`cssrs`/`aq`/`les`），`tcm-diagnosis` 14 例同类；`chemical` 6 例、`mining` 9 例已于 2026-09-24 清零（chemical 判别力「已检 10 / 全数变红」，`checker-15` 因 id 由 JS 模板拼接被判跳过、已自建探针补验；mining 判别力「已检 11 / 全数变红」，`estimate-reserve` 属结构性不可注入 —— 块段由 `addBlock()` 按钮 + class 选择器动态生成，静态 HTML 无带 id 控件）；`engineering`、`signal`、`design`、`gas`、`mechanical` 已于 2026-09-24 清零（判别力分别由「已检 0 / 跳过 14」→「已检 14」、「已检 13 / 跳过 11」→「已检 24」、「已检 5 / 跳过 9」→「已检 14」、「已检 2 / 跳过 9」→「已检 11」、「已检 5 / 跳过 8」→「已检 12」，均为全数变红）；`cleaning` 同日改掉 6 例（判别力「已检 5 / 全数变红」），**残留 1 例** `appliance-cycle` 属结构性不可注入（见 §10.5 三类形态）；`finance` 同日 7 例清零（判别力「已检 21 / 全数变红」）；`sports` 同日 7 例清零（判别力「已检 29 / 全数变红」）；`dermatology` 同日 12 例改掉 9 例（判别力「已检 20 / 全数变红」），**残留 3 例** `contact-dermatitis-patch`/`miliaria-classification`/`wood-lamp` 属结构性不可注入（三页 `input/select/textarea` 计数为 0，交互全靠 JS 模板生成的按钮 onclick，见 §10.5）；`travel` 同日 9 例改掉 6 例（判别力「已检 17 / 全数变红」）并**顺带修掉 1 个 P0 页面缺陷**（`travel-adapter-guide` 的 `render()` 对对象用 `.length` 判空 ⇒ 整页搜索恒显示「未找到」，见 §10.5），**残留 3 例** `aim-trainer`/`emergency-phrasebook`/`packing-list` 属结构性不可注入；`endocrinology` 同日 21 例里改掉 7 例（判别力「已检 19 / 全数变红」），**残留 1 例** `ti-rads`（0 表单控件）；`fire` 同日 11 例里改掉 6 例（判别力「已检 10 / 全数变红」），**残留 1 例** `response-drill`（场景随机、按钮驱动）。
+**不可注入（结构性，勿选）**：`psychiatry` 24 例里 **18 例**页面只有 `id="quiz"` + innerHTML 渲染（`gad7`/`phq9`/`pcl5`/`mdq`/`asrs`/`cage`/`isi`/`ybocs`/`bis11`/`cdrisc`/`lsas`/`panss`/`pdss`/`phq15`/`eat26`/`cssrs`/`aq`/`les`），`tcm-diagnosis` 14 例同类；`chemical` 6 例、`mining` 9 例已于 2026-09-24 清零（chemical 判别力「已检 10 / 全数变红」，`checker-15` 因 id 由 JS 模板拼接被判跳过、已自建探针补验；mining 判别力「已检 11 / 全数变红」，`estimate-reserve` 属结构性不可注入 —— 块段由 `addBlock()` 按钮 + class 选择器动态生成，静态 HTML 无带 id 控件）；`engineering`、`signal`、`design`、`gas`、`mechanical` 已于 2026-09-24 清零（判别力分别由「已检 0 / 跳过 14」→「已检 14」、「已检 13 / 跳过 11」→「已检 24」、「已检 5 / 跳过 9」→「已检 14」、「已检 2 / 跳过 9」→「已检 11」、「已检 5 / 跳过 8」→「已检 12」，均为全数变红）；`cleaning` 同日改掉 6 例（判别力「已检 5 / 全数变红」），**残留 1 例** `appliance-cycle` 属结构性不可注入（见 §10.5 三类形态）；`finance` 同日 7 例清零（判别力「已检 21 / 全数变红」）；`sports` 同日 7 例清零（判别力「已检 29 / 全数变红」）；`dermatology` 同日 12 例改掉 9 例（判别力「已检 20 / 全数变红」），**残留 3 例** `contact-dermatitis-patch`/`miliaria-classification`/`wood-lamp` 属结构性不可注入（三页 `input/select/textarea` 计数为 0，交互全靠 JS 模板生成的按钮 onclick，见 §10.5）；`travel` 同日 9 例改掉 6 例（判别力「已检 17 / 全数变红」）并**顺带修掉 1 个 P0 页面缺陷**（`travel-adapter-guide` 的 `render()` 对对象用 `.length` 判空 ⇒ 整页搜索恒显示「未找到」，见 §10.5），**残留 3 例** `aim-trainer`/`emergency-phrasebook`/`packing-list` 属结构性不可注入；`endocrinology` 同日 21 例里改掉 7 例（判别力「已检 19 / 全数变红」），**残留 1 例** `ti-rads`（0 表单控件）；`fire` 同日 11 例里改掉 6 例（判别力「已检 10 / 全数变红」），**残留 1 例** `response-drill`（场景随机、按钮驱动）；`rheumatology` 同日 25 例里改掉 5 例（判别力「已检 20 / 全数变红」），**残留 2 例** `bvas`/`sledai` 属结构性不可注入（按 class 选择器 `.g1/.g2`、`.s8/.s4/.s2/.s1` 读取无 id 复选框，harness 的 `querySelectorAll` 仅对含 `checked` 的选择器返回注入项，纯 class 选择器恒返回空数组）。
 
 ### 10.4 每批收口流程（顺带改造时六步，缺一不可）
 
@@ -357,6 +357,8 @@ rheumatology 7/5、language 6/5、aquaculture 5/5、bridge 5/5、glass 5/5、lif
 | **「暂无…记录」等占位串是常量型逃生项（命中率最高）** | 凡页面含 `saveHistory/renderHistory/historyBox`（写 localStorage，harness 无实现 → 恒显占位），该串一律不得作 expect |
 | **长数字的后缀会吞掉短 expect** | 光「加长」不够，还要防默认态存在以它为后缀的更长数字（`5000.0 g` 被 `15000.0 g` 包含）。修法：合并为跨格连续串 |
 | **等级词/分类词须「跨档」** | 定等级类 expect 前必须先算一遍默认态的同档位，不跨档就换锚点数值 |
+| **控件带 id ≠ 可注入：class 选择器读取的勾选态 harness 注入不了（2026-09-24）** | 页面若用 `document.querySelectorAll('.'+g.cls)` / `document.querySelectorAll('.s8')` 遍历复选框（`rheumatology/bvas` 43 个、`rheumatology/sledai` 24 个），桩的 `querySelectorAll` 仅对**选择器串含 `checked`** 的调用返回 `c.checks`，纯 class 选择器恒返回 `[]` ⇒ 复选框虽在静态 HTML 里也注入不了。**判据**：`grep -cE '<input[^>]*id='` 为 0 且驱动句是 class 选择器 ⇒ 结构性不可注入，保留 `no_inputs`（改页面补 id 属改动线上已验证内容，不做） |
+| **无参 `loadXxx()` 预设函数会覆盖注入值 ⇒ 占位 expect 的 dump 可能是「兜底后」状态（2026-09-24）** | 页面含无参预设函数（`loadNormal`/`loadMS`/`loadDM`/`loadGDM`/`loadPCOS` 等）时，`runCase` 的兜底阶段会调用它们**重写输入并重算** ⇒ 用 `expect:["@@NOMATCH@@"]` 取到的 `fullBlob` 可能只是预设覆盖后的输出，**与注入值无关**；endocrinology 批曾据此误判整批「结构性不可注入」。**正确判据**：看 `runCase` 返回的 `via === "input event"`（注入态即时命中）为真，并让 expect 避开各 `loadXxx` 的预设值 |
 | **卡片标签名 / 页脚提示词是最易误用的 expect（2026-09-24）** | `data-card` 的 `label`（「跨中弯曲应力」「输出转矩」「角速度」「转动动能」「校验功率」「阻力」…）与页脚 `tip` 的静态文案（「推荐带速 5~25 m/s」「普通滚子链」）都**与输入无关、默认态必然出现**。mechanical 分类 8 例旧 expect **全部**栽在这两类上。**必须前缀具体数值**，形如 `18.75 最大弯矩 M (kN·m)` 才有判别力 |
 | **「双 dump 对比法」定 expect（2026-09-24 起强制）** | 改完先 dump **新注入态**、再 dump **默认态**，逐串比对，**只有真正随输入变化的串才能进 expect**。一批「换值也不变」的输出串靠单看注入态发现不了：gas 批次一次性剔出 7 处 —— `DN20 推荐管径`、`DN25 调压器`、`电流密度 20 mA/m²`、`过保护`、`压降很小`、`流量系数 C=0.6`、`β 比（d/D）=0.50`（后者是 design 批 `focal-length-equivalent` 全画幅→全画幅的同源形态）。另发现 `gas/current-2` 的 `resistivity` 是**无效键**（换值不影响电流密度），与 design 批 `checker` 的 `bgColor` 同源 ⇒ 定 expect 前须实测「换值是否引起输出变化」 |
 | **等级词落在静态「参考标准表」表头里（2026-09-24）** | `sports/estimate-tester` 页面含 `VO2max参考标准` 表，表头行就是「优秀 良好 一般 较差」⇒ 等级词「优秀」在**默认态也必然出现**，单独作 expect 必成逃生项 | 等级词必须与指标标签绑成连续串（`优秀 体能等级`，默认态是「一般 体能等级」才不撞）。**凡页面含等级/评级参考表的，等级词一律先 `grep -c` 静态出现次数** |
