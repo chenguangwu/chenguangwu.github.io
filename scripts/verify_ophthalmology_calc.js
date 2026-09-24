@@ -13,7 +13,7 @@ const CASES = [
   ],
   "ref": "auto-restore"
 },
-  // 注：ophthalmology/analysis-12 已于 2026-09-19 改为 TOOLBOX-REDIRECT 存根（重定向到同义真工具），不再是工具页，用例移除。
+// 注：ophthalmology/analysis-12 已于 2026-09-19 改为 TOOLBOX-REDIRECT 存根（重定向到同义真工具），不再是工具页，用例移除。
 {
   "slug": "ophthalmology/axial-length",
   "inputs": {
@@ -33,11 +33,15 @@ const CASES = [
 },
 {
   "slug": "ophthalmology/calc-1",
-  "inputs": {},
+  "inputs": {
+    "iop": "25",
+    "cct": "560"
+  },
   "expect": [
-    "请输入有效的眼压和角膜厚度"
+    "校正眼压： 23.9 mmHg",
+    "评估： 偏高"
   ],
-  "ref": "auto-restore(default)"
+  "ref": "页面 corrected = IOP − ((CCT−544)/10)×0.7（以 544μm 为标准角膜厚度）；注入 iop=25、cct=560 ⇒ 25−1.12=23.88 → 显示 23.9 mmHg，落入 classify() 的「偏高」(21–25]。默认空输入 ⇒「请输入有效的眼压和角膜厚度」，两串均不命中。★本批同时修页面真缺陷：原式为 `iop + ((cct−544)/10)*0.7`，厚角膜反而把校正值上抬，与本页文案「厚角膜实测被高估」以及姊妹页 iop-correction 的 Ehlers(520−cct)/Doughty(542−cct)/Feltgen(550−cct) 三种标准式符号相反 ⇒ 已改为减号，并同步生成器 apply_ophthalmology.py、content_deepdive.json、指南页。"
 },
 {
   "slug": "ophthalmology/calc-length-1",
@@ -132,11 +136,14 @@ const CASES = [
 },
 {
   "slug": "ophthalmology/fluorescein-staining",
-  "inputs": {},
-  "expect": [
-    "结膜染色(0-18)"
+  "checks": [
+    "2"
   ],
-  "ref": "auto-restore(default)"
+  "expect": [
+    "10 角膜染色评分 (0-15)",
+    "重度染色"
+  ],
+  "ref": "角膜 5 区、结膜 6 区各 0–3 分，radio 由 buildZones() 运行期拼 innerHTML 生成（静态 HTML 无任何控件）。checks 声明所有 `:checked` 返回 value=2 ⇒ 角膜 10/15、结膜 12/18、总 22/33；分级只取角膜：10>6 ⇒「重度染色」。默认态各区未选 ⇒ 0 分、「无染色」。原 expect「结膜染色(0-18)」是 data-card 标签文案，与输入无关（常量型逃生项）。"
 },
 {
   "slug": "ophthalmology/iol-power",
@@ -163,11 +170,14 @@ const CASES = [
 },
 {
   "slug": "ophthalmology/meibomian-grading",
-  "inputs": {},
-  "expect": [
-    "(0-15)"
+  "checks": [
+    "3"
   ],
-  "ref": "auto-restore(default)"
+  "expect": [
+    "15 MGD总评分 (0-15)",
+    "极重度MGD"
+  ],
+  "ref": "5 项各 0–3 分（lossUpper/lossLower/dilation/secretion/lidMorph），静态 HTML 每项首个选项带 `checked`（value=0）。checks 声明所有 `:checked` 返回 value=3 ⇒ 总分 15/15 > 11 ⇒「极重度MGD」。默认全 0 ⇒ 0/15「无/轻度MGD」。原 expect「(0-15)」是结果区固定分母文案（常量型逃生项）。"
 },
 {
   "slug": "ophthalmology/oct-rnfl",
@@ -186,11 +196,14 @@ const CASES = [
 },
 {
   "slug": "ophthalmology/osdi-scale",
-  "inputs": {},
-  "expect": [
-    "一半时间(2)"
+  "checks": [
+    "2"
   ],
-  "ref": "auto-restore(default)"
+  "expect": [
+    "分级： 重度干眼",
+    "已答 12/12 题"
+  ],
+  "ref": "12 题 radio 由 buildQ() 运行期拼 innerHTML 生成（静态 HTML 无控件）。checks 声明所有 `:checked` 返回 value=2 ⇒ 每题 2 分；OSDI = (12×2)×100/(12×4) = 50 ⇒ ≥33 ⇒「重度干眼」，同时输出「已答 12/12 题」。默认未答 ⇒ 0 分「正常」+「已答 0/12 题」。原 expect「一半时间(2)」是 OPTS 选项标签文案（常量型逃生项）。"
 },
 {
   "slug": "ophthalmology/pterygium-measurement",
@@ -207,11 +220,16 @@ const CASES = [
 },
 {
   "slug": "ophthalmology/rater-7",
-  "inputs": {},
+  "inputs": {
+    "v1": "3",
+    "v2": "3",
+    "v3": "2"
+  },
   "expect": [
-    "0-3分"
+    "van Bijsterveld总分： 8 / 9",
+    "眼表染色重度（7-9分）"
   ],
-  "ref": "auto-restore(default)"
+  "ref": "3 个 select（v1 鼻侧结膜 / v2 角膜 / v3 颞侧结膜，各 0–3，静态默认 value=0）⇒ 默认 0/9「轻度」。注入 3/3/2 ⇒ 总分 8 > 6 ⇒「重度」并输出「眼表染色重度（7-9分）…立即眼科就诊」建议。原 expect「0-3分」是轻度分级文案片段，与输入无关（常量型逃生项）。"
 },
 {
   "slug": "ophthalmology/rater-8",
@@ -302,12 +320,19 @@ const CASES = [
 {
   "slug": "ophthalmology/visual-fatigue-vas",
   "inputs": {
-    "vasSlider": "5"
+    "vasSlider": "8"
   },
-  "expect": [
-    "从不(0)"
+  "checks": [
+    "3"
   ],
-  "ref": "auto-restore(default)"
+  "clicks": [
+    "calc()"
+  ],
+  "expect": [
+    "76 综合评分 (0-110)",
+    "视疲劳程度： 重度"
+  ],
+  "ref": "VAS 滑块 0–10（页面权重 ×5）+ 12 项症状问卷（各 0–5，radio 由 buildQ() 运行期拼 innerHTML 生成）⇒ total = vas×5 + symTotal，满分 110；分级 ≤15 无/轻微、≤30 轻度、≤50 中度、>50 重度。滑块默认 5、问卷默认全未答 ⇒ 默认输出「请至少作答部分症状问卷」。注入 vasSlider=8 且 checks 全选 3 ⇒ 40 + 36 = 76 > 50 ⇒「重度」+「建议眼科就诊…」。calc() 只由按钮 onclick 触发（range 的 oninput 只调 updateVAS），故须 clicks 驱动。★原用例 inputs{vasSlider:5} 与页面默认值**完全相同**（零判别力，判别器判「跳过」），且 expect「从不(0)」是问卷选项标签文案（与输出无关的常量型逃生项）⇒ 本批一并去默认化。"
 },
 {
   "slug": "ophthalmology/visual-field-analysis",
