@@ -40,7 +40,8 @@ const CASES = [
   "expect": [
     "9×9"
   ],
-  "ref": "auto-restore(default)"
+  "ref": "结构性不可改造（保留 all_default，勿重复评估）：8 个子测验全部由点击 / 倒计时 / 随机序列驱动，"
+     + "成绩存 localStorage 历史；无表单输入路径可注入，注入 tArea 不触发任何渲染（2026-09-25 实测）。"
 },
 {
   "slug": "cognition/nback-training",

@@ -34,14 +34,17 @@ const CASES = [
 },
 {
   "slug": "neurology/calc-1",
-  "inputs": {
-    "${it.id}": "${o.v}"
-  },
+  "clicks": ["var __v={loc:3,locq:2,locc:2,gaze:2,visual:3,facial:3,armL:4,armR:0,legL:0,legR:0,ataxia:0,sensory:1,language:2,dysarthria:1,neglect:0};Object.keys(__v).forEach(function(k){document.getElementById(k).value=String(__v[k]);});calc()"],
   "expect": [
-    "o.v"
+    "总分： 23 分",
+    "重度卒中"
   ],
-  "ref": "auto-restore"
-},
+  "ref": "15 个 select 由 renderItems() 运行期渲染（HTML 源码无字面 id）⇒ 只能在 clicks 内按 id 赋值再 calc()。"
+     + "注入和 = 3+2+2+2+3+3+4+0+0+0+0+1+2+1+0 = 23 ⇒ classify 阈值 (>20) ⇒ 重度卒中。"
+     + "默认态全部取首项 0 ⇒ 总分 0 / 无卒中症状。原用例 inputs 键是生成器模板串残留（${it.id}/${o.v}），"
+     + "expect「o.v」亦为模板残留 ⇒ 两把锁同时失灵的坏用例（BATCH101 形态），已整体重写。",
+  },
+
 {
   "slug": "neurology/edss",
   "inputs": {

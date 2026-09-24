@@ -22,14 +22,20 @@ const CASES = [
   "slug": "medical2/drug-expiry",
   "inputs": {
     "warningDays": "180",
-    "urgentDays": "30",
-    "fQty": "1"
+    "urgentDays": "30"
   },
+  "clicks": ["var __d=function(n){var t=new Date();t.setDate(t.getDate()+n);return t.toISOString().slice(0,10);};localStorage.getItem=function(){return JSON.stringify([{name:'阿莫西林胶囊',spec:'0.25g×24粒',batch:'B-EXP',expiry:__d(-20),qty:12,location:'常温柜A2'},{name:'布洛芬片',spec:'0.1g×20片',batch:'B-URG',expiry:__d(12),qty:8,location:'阴凉柜B1'},{name:'维生素C片',spec:'100mg×60片',batch:'B-WAR',expiry:__d(120),qty:30,location:'常温柜C3'},{name:'葡萄糖注射液',spec:'500ml',batch:'B-OK',expiry:__d(600),qty:5,location:'库房D1'}]);};loadData();render()"],
   "expect": [
-    "添加药品"
+    "4 药品总数",
+    "1 已过期",
+    "葡萄糖注射液"
   ],
-  "ref": "结构性不可注入（保留 all_default）：页面唯一数据源是 localStorage 的 data[]，而 harness 的 localStorage 桩 getItem() 恒返回 null ⇒ data 恒为空，统计恒 0/0/0/0/0、列表恒「暂无药品记录」。注入 warningDays/urgentDays 只改分类阈值，空数据下零判别力；唯一写数据的 saveForm() 命中兜底 DESTRUCTIVE 正则的 ^save 前缀被跳过。故无任何可注入路径产生随输入变化的输出。"
-},
+  "ref": "localStorage 覆写法（BATCH101 打法）：clicks 内覆写 localStorage.getItem 返回四条药品，"
+     + "再调 loadData() 灌进顶层 data[]、render() 渲染 —— 等价于「用户本就有库存数据」。"
+     + "效期用相对今天 ±N 天构造（−20/12/120/600）⇒ 分级恒为 已过期 1 / 临期紧急 1 / 近效期 1 / 正常 1，"
+     + "不受运行日期漂移影响。**必须显式 loadData()**，否则 data 仍为空、命中会落到兜底的 saveForm()。"
+     + "原 expect「添加药品」是空列表页按钮文案（默认态常量）。",
+  },
 {
   "slug": "medical2/iv-drip-speed",
   "inputs": {

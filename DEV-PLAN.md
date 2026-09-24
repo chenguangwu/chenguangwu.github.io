@@ -323,18 +323,18 @@
 
 ### 10.2 现状（实测基线）
 
-- `all_default 9 / no_inputs 98 / escape 0`；`checked=3161`；门禁 `run_gates.py` **217 项全过**、逃生项 0（判别器已检 **3019** 例 / 跳过 142）。
+- `all_default 6 / no_inputs 98 / escape 0`；`checked=3161`；门禁 `run_gates.py` **217 项全过**、逃生项 0（判别器已检 **3022** 例 / 跳过 139）。
 - A 级率 **99.2%**（A 4693 / B 32 / C 4，共 4729）；deep-dive 术语内链 **1591 页 / 2268 条 / 唯一目标 630**（零死链、零自链、单页 ≤6 条）。**注：内链不影响质量分级**（`own_len` 只统计 `<script>` 内容）。
-- 存量弱用例 **107 例**（口径、选批规则与不可注入清单见 §10.3）。
+- 存量弱用例 **104 例**（口径、选批规则与不可注入清单见 §10.3）。
   - **注意：弱用例整体处于判别器盲区** —— `discriminate_check` 对「注入值本就等于默认值」的用例判 `usable=false` ⇒ **直接跳过**（§10.5）。故 `escape=0` 只说明「强用例无逃生项」，弱用例的逃生项从未被检查；每批改造弱用例后必须重跑判别器确认其由「跳过」转为「已检且变红」。
 
 ### 10.3 弱用例去默认化（仅在 P0/P1 顺带时执行）
 
-**存量 107 例**（`no_inputs=98` / `all_default=9`，selfcheck 口径；含 textarea / 动态 id / 结构性不可注入的「skip」类全站 142）。**转 P3 顺带，不单独成批**；逐批成果与逐例打法归档在 `.workbuddy/memory/2026-09-2*.md` 与 skill `toolbox-weakcase-hardening`，**本文件不再记录批次流水**。
+**存量 104 例**（`no_inputs=98` / `all_default=6`，selfcheck 口径；含 textarea / 动态 id / 结构性不可注入的「skip」类全站 139）。**`all_default` 剩余 6 例已全部判定为结构性不可改造**，逐例理由已写进各用例 `ref`（含实测结论），勿重复评估。**转 P3 顺带，不单独成批**；逐批成果与逐例打法归档在 `.workbuddy/memory/2026-09-2*.md` 与 skill `toolbox-weakcase-hardening`，**本文件不再记录批次流水**。
 
 **选批口径**：① 按「可注入数」降序挑批次；② **结构性不可注入的不要选**（页面静态 HTML `grep -cE '<input|<select|<textarea'` 为 0、驱动语句是 class 选择器、或行由 `createElement+appendChild` 生成）—— 保留 `no_inputs` 并在用例 `ref` 写明理由（判据见 §10.5 B 组）；③ 每批 8–11 例，走 §10.4 六步。
 
-**已知结构性不可注入清单（勿重复评估）**：`tcm-diagnosis/etiology-tree`、`music/sheet-music`、`cleaning/appliance-cycle`、`cleaning/cycle-20`、`mining/estimate-reserve`、`admin/detector-time`、`chess/xiangqi-endgame`、`dermatology/{contact-dermatitis-patch,miliaria-classification,wood-lamp}`、`travel/{aim-trainer,emergency-phrasebook,packing-list}`、`endocrinology/ti-rads`、`fire/response-drill`、`rheumatology/{bvas,sledai}`、`language/vocabulary-builder`、`medical2/drug-expiry`、`nutrition/estimate-2`（属性选择器取选中态，登记表不支持）、`electromagnetism/free-space-impedance`（输入标注「无需输入」的**常量输出页**，输出恒 376.73 Ω）、`audio/audio-cut`（结果区依赖音频文件解码，无文件时输出不变）。其中 **localStorage 为唯一数据源的页**（`drug-expiry` / `packing-list` / `appliance-cycle`）可复用「`clicks` 内覆写 `localStorage.getItem`」覆写法复评（已验证该路可行）。
+**已知结构性不可注入清单（勿重复评估）**：`tcm-diagnosis/etiology-tree`、`music/sheet-music`、`cleaning/appliance-cycle`、`cleaning/cycle-20`、`mining/estimate-reserve`、`admin/detector-time`、`chess/xiangqi-endgame`、`dermatology/{contact-dermatitis-patch,miliaria-classification,wood-lamp}`、`travel/{aim-trainer,emergency-phrasebook,packing-list}`、`endocrinology/ti-rads`、`fire/response-drill`、`rheumatology/{bvas,sledai}`、`language/vocabulary-builder`、`medical2/drug-expiry`、`nutrition/estimate-2`（属性选择器取选中态，登记表不支持）、`electromagnetism/free-space-impedance`（输入标注「无需输入」的**常量输出页**，输出恒 376.73 Ω）、`audio/audio-cut`（依赖音频文件解码）、`cognition/human-benchmark`（8 个子测验全靠点击 / 倒计时 / 随机序列驱动、成绩进 localStorage）、`office/mindmap`（SVG / Canvas 布局，harness 无布局与字体度量）、`security/virtual-safe`（需 WebCrypto，harness 无 `crypto.subtle`）。其中 **localStorage 为唯一数据源的页**（`drug-expiry` / `packing-list` / `appliance-cycle`）可复用「`clicks` 内覆写 `localStorage.getItem`」覆写法复评（已验证该路可行）。
 
 ### 10.4 每批收口流程（顺带改造时六步，缺一不可）
 

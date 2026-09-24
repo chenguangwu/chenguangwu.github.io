@@ -95,7 +95,9 @@ const CASES = [
   "expect": [
     "1000mg"
   ],
-  "ref": "auto-restore(default)"
+  "ref": "结构性不可改造（保留 all_default，勿重复评估）：选中态用属性选择器 "
+     + "[#foodGrid .data-card[data-selected=\"1\"]]，而动态 DOM 登记表只支持 id / class / tag 过滤 ⇒ 恒空；"
+     + "只剩 extraSodium 一路，其输出为输入的直接派生（判别力不足）。（2026-09-25 实测）"
 },
 {
   "slug": "nutrition/food-calorie-lookup",

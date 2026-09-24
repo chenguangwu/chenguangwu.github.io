@@ -99,7 +99,8 @@ const CASES = [
   "expect": [
     "请设置一个主密码来创建新的保险箱"
   ],
-  "ref": "auto-restore(default)"
+  "ref": "结构性不可改造（保留 all_default，勿重复评估）：需 WebCrypto（crypto.subtle）派生密钥 + 主密码解锁，"
+     + "harness 无 WebCrypto ⇒ 保险箱列表恒空，注入 itemTitle / itemContent 不改变输出（2026-09-25 实测）。"
 }
 ];
 async function main() {

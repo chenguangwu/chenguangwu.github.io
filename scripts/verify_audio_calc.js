@@ -23,7 +23,8 @@ const CASES = [
   "expect": [
     "00.000"
   ],
-  "ref": "auto-restore(default)"
+  "ref": "结构性不可改造（保留 all_default，勿重复评估）：结果区（selDurTxt / resultBox）由音频文件解码后的 "
+     + "duration 驱动，harness 无文件输入 ⇒ 注入 startInput / endInput 后输出逐字不变（2026-09-25 实测）。"
 },
 {
   "slug": "audio/audio-waveform",
