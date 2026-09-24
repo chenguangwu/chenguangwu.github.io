@@ -8,141 +8,120 @@
 const { runCase } = require("./verify_it_calc.js");
 
 const CASES = [
-  { slug: "chemistry/acid-base-titration",
+{ slug: "chemistry/acid-base-titration",
     inputs: { Ca: "0.5", Va: "100", na: "1", Cb: "0.2", nb: "1" },
     expect: ["250.00", "0.5000"],
     ref: "Vb=0.5*100*1/(0.2*1)=250.00；回算=0.2*250*1/(100*1)=0.5000" },
-
-  { slug: "chemistry/arrhenius",
+{ slug: "chemistry/arrhenius",
     inputs: { A: "2e13", Ea: "52000", T: "310" },
     expect: ["3.458e+4"],
     ref: "k=2e13*exp(-52000/(8.314*310))=3.458e4；指数项=-20.18" },
-
-  { slug: "chemistry/boiling-point-elevation",
+{ slug: "chemistry/boiling-point-elevation",
     inputs: { Kb: "0.512", m: "0.5", i: "3" },
     expect: ["0.7680", "100.7680"],
     ref: "ΔTb=0.512*0.5*3=0.7680；沸点=100.7680（原 i=2 与默认 i=1,m=1 乘积相同 → 巧合命中）" },
-
-  { slug: "chemistry/buffer-ph",
+{ slug: "chemistry/buffer-ph",
     inputs: { pKa: "4.76", Abase: "0.1", HA: "0.2" },
     expect: ["4.459", "0.500"],
     ref: "pH=4.76+log10(0.1/0.2)=4.459；比值=0.500" },
-
-  { slug: "chemistry/dilution-c1v1",
+{ slug: "chemistry/dilution-c1v1",
     inputs: { c1: "0.5", v1: "100", c2: "0.1", v2: "0" },
     expect: ["500.00", "50.000"],
     ref: "V2=0.5*100/0.1=500.00；C·V=50.000" },
-
-  { slug: "chemistry/empirical-formula",
+{ slug: "chemistry/empirical-formula",
     inputs: { p1: "12", a1: "12", p2: "2", a2: "1", p3: "48", a3: "16" },
     expect: ["3.00"],
     ref: "moles=1,2,3→min1→比值1.00,2.00,3.00（原 24/12,4/1,32/16=2,4,2 与默认 40/12.01,6.7/1.008,53.3/16=3.33,6.65,3.33 同为 1:2:1 → 巧合）" },
-
-  { slug: "chemistry/gas-density",
+{ slug: "chemistry/gas-density",
     inputs: { P: "200", M: "44", T: "300" },
     expect: ["3.5282", "0.003528"],
     ref: "ρ=200*44/(8.314*300)=3.5282 g/L；kg/m3=0.003528" },
-
-  { slug: "chemistry/gibbs-free-energy",
+{ slug: "chemistry/gibbs-free-energy",
     inputs: { dH: "50", dS: "0.1", T: "300" },
     expect: ["20.000", "非自发 (ΔG>0)"],
     ref: "ΔG=50-300*0.1=20.000>0→非自发" },
-
-  { slug: "chemistry/ideal-gas-volume",
+{ slug: "chemistry/ideal-gas-volume",
     inputs: { n: "2", P: "150", T: "350" },
     expect: ["38.799", "350.00"],
     ref: "V=2*8.314*350/150=38.799 L；回算T=350.00" },
-
-  { slug: "chemistry/kp-kc",
+{ slug: "chemistry/kp-kc",
     inputs: { Kc: "0.5", T: "400", dn: "2" },
     expect: ["5.530e+6", "3325.6"],
     ref: "Kp=0.5*(8.314*400)^2=5.530e6；RT=3325.6" },
-
-  { slug: "chemistry/limiting-reagent",
+{ slug: "chemistry/limiting-reagent",
     inputs: { mA: "10", MA: "40", a: "1", mB: "15", MB: "60", b: "2", MP: "18", c: "1" },
     expect: ["0.2500", "0.2500", "0.1250", "2.250"],
     ref: "nA=0.25,nB=0.25,ξA=0.25,ξB=0.125→限量B；产量=0.125*1*18=2.250" },
-
-  { slug: "chemistry/mass-fraction",
-    inputs: { ms: "20", mt: "100" },
-    expect: ["20.00", "80.00"],
-    ref: "w=20/100*100=20.00%；溶剂=80.00" },
-
-  { slug: "chemistry/mass-percent",
+  {
+    slug: "chemistry/mass-fraction",
+    inputs: { ms: "35", mt: "140" },
+    expect: ["25.00 质量分数 w (%)", "105.00 溶剂质量 (g)", "0.25000 质量分数（小数）"],
+    ref: "非默认输入（默认 ms=20 / mt=100）：质量分数 = 35÷140×100 = 25.00%；溶剂质量 = 140−35 = 105.00 g；小数形式 = 0.25 ⇒ toFixed(5) = 0.25000；溶剂占比 = 105÷140×100 = 75.000%。默认态为 20.00 / 80.00 / 0.20000 / 80.000（三串均不含）。"
+  },
+{ slug: "chemistry/mass-percent",
     inputs: { ms: "25", msol: "200" },
     expect: ["0.1250", "12.50", "175.00"],
     ref: "w=25/200=0.1250；%=12.50；溶剂=175.00" },
-
-  { slug: "chemistry/mass-to-moles",
-    inputs: { m: "18", M: "18" },
-    expect: ["1.0000", "1.0000"],
-    ref: "n=18/18=1.0000；倒数=1.0000" },
-
-  { slug: "chemistry/molality",
+  {
+    slug: "chemistry/mass-to-moles",
+    inputs: { m: "36", M: "18.015" },
+    expect: ["1.9983 物质的量 n (mol)", "0.5004 摩尔质量倒数 (mol/g)", "1.2034e+24 分子数 (个)"],
+    ref: "非默认输入（默认 m=18 / M=18.015）：n = 36 ÷ 18.015 = 1.998335 ⇒ toFixed(4) = 1.9983；倒数 = 18.015 ÷ 36 = 0.500417 ⇒ 0.5004；复算摩尔质量 = 36 ÷ 1.998335 = 18.0150 g/mol；分子数 = 1.998335 × 6.02214076e23 = 1.2034e+24。默认态为 0.9992 / 1.0008 / 18.0150 / 6.0171e+23（三串均不含；注意原用例 inputs{m:18,M:18} 与默认 M=18.015 只差末位、且 18÷18 恰得整数 1.0000 属数值巧合，已弃用）。"
+  },
+{ slug: "chemistry/molality",
     inputs: { n: "0.5", ms: "0.2" },
     expect: ["2.5000", "2500.00"],
     ref: "b=0.5/0.2=2.5000 mol/kg；mmol=2500.00" },
-
-  { slug: "chemistry/molarity",
+{ slug: "chemistry/molarity",
     inputs: { n: "0.25", V: "0.5" },
     expect: ["0.5000", "500.00"],
     ref: "c=0.25/0.5=0.5000 mol/L；mmol=500.00" },
-
-  { slug: "chemistry/mole-fraction",
+{ slug: "chemistry/mole-fraction",
     inputs: { n1: "2", n2: "3", n3: "5" },
     expect: ["20.00", "30.00", "50.00", "10.0000"],
     ref: "x1=20.00%,x2=30.00%,x3=50.00%；总=10.0000" },
-
-  { slug: "chemistry/nernst-equation",
+{ slug: "chemistry/nernst-equation",
     inputs: { E0: "1.1", n: "2", Q: "10", T: "298" },
     expect: ["1.0704"],
     ref: "E=1.1-(8.314*298/(2*96485))*ln10=1.0704；(RT/nF)ln10=0.02956" },
-
-  { slug: "chemistry/normality",
+{ slug: "chemistry/normality",
     inputs: { n: "0.5", z: "2", V: "0.25" },
     expect: ["4.0000", "4.0000"],
     ref: "N=0.5*2/0.25=4.0000" },
-
-  { slug: "chemistry/partial-pressure",
+{ slug: "chemistry/partial-pressure",
     inputs: { x: "0.3", Pt: "100" },
     expect: ["30.00", "70.00"],
     ref: "Pi=0.3*100=30.00；其余=70.00" },
-
-  { slug: "chemistry/ph-from-ka",
+{ slug: "chemistry/ph-from-ka",
     inputs: { C: "0.01", Ka: "1e-5" },
     expect: ["3.162e-4", "3.500"],
     ref: "h=sqrt(1e-5*0.01)=3.162e-4；pH=3.500" },
-
-  { slug: "chemistry/ph-to-h",
+{ slug: "chemistry/ph-to-h",
     inputs: { pH: "3" },
     expect: ["1.000e-3", "3.000"],
     ref: "[H+]=10^-3=1.000e-3；回算pH=3.000" },
-
-  { slug: "chemistry/poh-to-ph",
-    inputs: { OH: "1e-3" },
-    expect: ["3.000", "11.000", "1.000e-11"],
-    ref: "pOH=3.000；pH=11.000；[H+]=1.000e-11" },
-
-  { slug: "chemistry/reaction-quotient",
+  {
+    slug: "chemistry/poh-to-ph",
+    inputs: { OH: "2.5e-5" },
+    expect: ["4.602 pOH", "9.398 pH", "4.000e-10 [H⁺] (mol/L)"],
+    ref: "非默认输入（默认 OH=1e-3）：pOH = −log10(2.5e-5) = 4.60206 ⇒ 4.602；pH = 14 − 4.60206 = 9.39794 ⇒ 9.398；[H⁺] = 10^(−9.39794) = 4.000e-10（溶液为碱性）；[OH⁻] 复算 = 10^(−14+9.39794) = 2.500e-5。默认态为 3.000 / 11.000 / 1.000e-11（三串均不含）。"
+  },
+{ slug: "chemistry/reaction-quotient",
     inputs: { rP: "2", rN: "1", pP: "4", pN: "2", K: "5" },
     expect: ["8.0000", "逆向进行 (Q>K)"],
     ref: "Q=4^2/2^1=8.0000>K=5→逆向进行" },
-
-  { slug: "chemistry/resistivity-from-r",
+{ slug: "chemistry/resistivity-from-r",
     inputs: { R: "10", A: "2", L: "5" },
     expect: ["4.000e-6", "2.500e+5"],
     ref: "ρ=10*(2e-6)/5=4.000e-7 Ω·m；κ=2.500e5 S/m" },
-
-  { slug: "chemistry/solubility-product",
+{ slug: "chemistry/solubility-product",
     inputs: { cA: "0.01", mA: "2", cB: "0.02", mB: "1" },
     expect: ["2.000e-6", "1.414e-3"],
     ref: "Ksp=0.01^2*0.02=2.000e-6；s=sqrt=1.414e-3" },
-
-  { slug: "chemistry/solution-dilution",
+{ slug: "chemistry/solution-dilution",
     inputs: { C1: "2", V1: "100", C2: "0.5" },
     expect: ["300.00"],
-    ref: "V2=2*100/0.5=400.00；加水=300.00" },
-
+    ref: "V2=2*100/0.5=400.00；加水=300.00" }
 ];
 
 async function main() {
