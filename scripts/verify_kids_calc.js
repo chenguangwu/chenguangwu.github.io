@@ -5,14 +5,18 @@ const CASES = [
 {
   "slug": "kids/focus-timer",
   "inputs": {
-    "focusMin": "15",
-    "restMin": "5",
-    "goalCount": "4"
+    "focusMin": "25",
+    "restMin": "8",
+    "goalCount": "6"
   },
+  "clicks": ["renderStats()"],
   "expect": [
-    "今日完成度"
-  ]
-},
+    "6 今日目标"
+  ],
+  "ref": "目标数直接由 goalCount 渲染 ⇒ 注入 6 得「6 今日目标」（默认 4）。"
+     + "原 expect「今日完成度」是统计卡标题（静态文本，回退默认仍命中 ⇒ 逃生项）。"
+     + "注：今日番茄 / 累计番茄取自 localStorage（harness 恒空 ⇒ 恒 0），不可断言。",
+  },
 {
   "slug": "kids/memory-palace",
   "inputs": {

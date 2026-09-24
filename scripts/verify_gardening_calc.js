@@ -87,13 +87,17 @@ const CASES = [
 {
   "slug": "gardening/recommender",
   "inputs": {
-    "cnt": "5"
+    "cnt": "12"
   },
+  "clicks": ["var __r=Math.random;Math.random=function(){return 0.1;};gen();Math.random=__r"],
   "expect": [
-    "建议每10-14天1次"
+    "12. 吊兰 | 春季·晴天·疏松透气 → 建议每3-5天1次，保持土壤微润，避免积水"
   ],
-  "ref": "auto-restore(default)"
-},
+  "ref": "纯随机页：clicks 内钉死 Math.random=0.1 并**用完即恢复**（进程级全局，不恢复会污染后续用例默认态）。"
+     + "PLANTS/SEASONS/WEATHERS/SOILS 长度分别为 12/4/4/4 ⇒ floor(0.1×len) 依次取索引 1/0/0/0"
+     + "=吊兰/春季/晴天/疏松透气；freq 判 weather=晴天 ⇒ 每3-5天1次；tips 判 plant=吊兰 ⇒ 保持土壤微润，避免积水。"
+     + "cnt=12 ⇒ 末条编号为 12.，默认态（5 条）不可能出现。原 expect「建议每10-14天1次」是随机档位文案（默认态亦命中）。",
+  },
 {
   "slug": "gardening/soil-ph",
   "inputs": {

@@ -54,13 +54,18 @@ const CASES = [
 {
   "slug": "livestock/calc-58",
   "inputs": {
-    "ped": "S,\nA,\nD,\nB,S,A\nC,S,D\nX,B,C"
+    "ped": "P,\nQ,\nR,P,Q\nS,P,Q\nT,R,S"
   },
+  "clicks": ["calc()"],
   "expect": [
-    "0.00000"
+    "0.25000",
+    "25.000%",
+    "5 个体总数"
   ],
-  "ref": "auto-restore(default)"
-},
+  "ref": "通径法：T 的父母 R、S 为全同胞，共同祖先 P、Q（均为始祖、F=0）。"
+     + "F_T=Σ(1/2)^(n1+n2+1)×(1+F_A)：R-P-S 路径 (1/2)^3=0.125，R-Q-S 路径 0.125 ⇒ F_T=0.25 ⇒ 25.000%。"
+     + "个体总数=5。原系谱（X,B,C）所有个体 F=0.00000，原 expect「0.00000」即默认态常量 ⇒ 零判别力。",
+  },
 {
   "slug": "livestock/calving-interval",
   "inputs": {

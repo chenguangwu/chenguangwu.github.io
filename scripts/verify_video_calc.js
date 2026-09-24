@@ -70,16 +70,18 @@ const CASES = [
   "slug": "video/video-trimmer",
   "inputs": {
     "start-h": "0",
-    "start-m": "0",
-    "start-s": "0",
+    "start-m": "1",
+    "start-s": "30",
     "end-h": "0",
-    "end-m": "0",
+    "end-m": "3",
     "end-s": "0"
   },
   "expect": [
-    "添加一个开始吧"
+    "00:01:30 → 00:03:00",
+    "总时长: 00:01:30"
   ],
-  "ref": "auto-restore(default)"
+  "ref": "start=0×3600+1×60+30=90s ⇒ 00:01:30；end=3×60=180s ⇒ 00:03:00；片段时长=180−90=90s ⇒ 00:01:30。"
+     + "原 expect「添加一个开始吧」是空列表提示（默认全 0 ⇒ 起止相同、无法成段，回退默认仍命中 ⇒ 逃生项）。"
 }
 ];
 async function main() {

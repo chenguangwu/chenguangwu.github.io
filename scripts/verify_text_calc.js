@@ -17,14 +17,18 @@ const CASES = [
 {
   "slug": "text/calc-1",
   "inputs": {
-    "textA": "",
-    "textB": ""
+    "textA": "const a = 1;\nfunction foo() { return a + 2; }",
+    "textB": "const a = 2;\nfunction foo() { return a + 3; }"
   },
+  "clicks": ["calc()"],
   "expect": [
-    "console.log("
+    "共 4 处差异",
+    "const a = 1;",
+    "return a + 3;"
   ],
-  "ref": "auto-restore(default)"
-},
+  "ref": "逐行比对：A 两行与 B 两行均不同 ⇒ 差异行 2+2=4 处。"
+     + "原 expect「console.log(」出自 textarea 里的默认示例文本（回退默认仍命中 ⇒ 逃生项），且 textA/textB 注入为空串。",
+  },
 {
   "slug": "text/convert-6",
   "inputs": {

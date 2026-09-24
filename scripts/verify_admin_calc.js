@@ -5,14 +5,24 @@ const CASES = [
 {
   "slug": "admin/register-depreciation",
   "inputs": {
-    "aCost": "10000",
-    "aSalvage": "500",
-    "aLife": "5"
+    "aName": "注塑机",
+    "aCat": "机械设备",
+    "aCost": "48000",
+    "aSalvage": "3000",
+    "aLife": "6",
+    "aMethod": "ddb",
+    "aDate": "2024-03-15"
   },
+  "clicks": ["addAsset()", "renderList()", "renderSummary()"],
   "expect": [
-    "电子设备"
-  ]
-},
+    "¥32,000.00",
+    "¥16,000.00",
+    "双倍余额递减法"
+  ],
+  "ref": "双倍余额递减法年折旧率=2/6 ⇒ 首年折旧=48000×(2/6)=16000.00；账面净值=48000−16000=32000.00。"
+     + "原 expect「电子设备」是资产类别下拉的默认项（静态文本，回退默认仍命中 ⇒ 逃生项），"
+     + "且 10000/500/5 全为默认态。注：兜底阶段无参 addAsset() 会再追加一项，故断言须落在 click 阶段产物。",
+  },
 {
   "slug": "admin/supplies-forecast",
   "inputs": {
