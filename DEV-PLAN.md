@@ -315,20 +315,20 @@
 
 ### 10.2 现状（实测基线）
 
-- `all_default 121 / no_inputs 171 / escape 0`；`checked=3161`；门禁 `run_gates.py` **217 项全过**、逃生项 0（判别器已检 **2838** 例 / 跳过 323）。
+- `all_default 116 / no_inputs 171 / escape 0`；`checked=3161`；门禁 `run_gates.py` **217 项全过**、逃生项 0（判别器已检 **2843** 例 / 跳过 318）。
 - A 级率 **99.2%**（A 4693 / B 32 / C 4，共 4729）；deep-dive 术语内链 **1591 页 / 2268 条 / 唯一目标 630**（零死链、零自链、单页 ≤6 条）。**注：内链不影响质量分级**（`own_len` 只统计 `<script>` 内容）。
-- 存量弱用例 **292 例**（`no_inputs=171` / `all_default=121`），**转 P3 顺带**，不单独成批。
+- 存量弱用例 **287 例**（`no_inputs=171` / `all_default=116`），**转 P3 顺带**，不单独成批。
   - **注意：弱用例整体处于判别器盲区** —— `discriminate_check` 对「注入值本就等于默认值」的用例判 `usable=false` ⇒ **直接跳过**（§10.5）。故 `escape=0` 只说明「强用例无逃生项」，弱用例的逃生项从未被检查；每批改造弱用例后必须重跑判别器确认其由「跳过」转为「已检且变红」。
 
 ### 10.3 弱用例去默认化（仅在 P0/P1 顺带时执行）
 
-**存量 292 例**（`no_inputs=171` / `all_default=121`，selfcheck 口径；含 textarea/动态 id/结构性不可注入的「skip」类全站 323）。
+**存量 287 例**（`no_inputs=171` / `all_default=116`，selfcheck 口径；含 textarea/动态 id/结构性不可注入的「skip」类全站 318）。
 
 **选批预筛清单（2026-09-24 实测 · 弱例数 / 其中可注入数）** —— 按「可注入数」降序挑批次，**不可注入的不要选**（页面静态 HTML 里 `grep 'id='` 为 0，控件由 innerHTML 动态生成，属 §7.1 保留项）：
 
-bridge 5/5、glass 5/5、life 5/5、manufacturing 5/5、maritime 5/5、medical2 5/5。
+glass 5/5、life 5/5、manufacturing 5/5、maritime 5/5、medical2 5/5。
 
-**不可注入（结构性，勿选）**：`psychiatry` 24 例里 **18 例**页面只有 `id="quiz"` + innerHTML 渲染（`gad7`/`phq9`/`pcl5`/`mdq`/`asrs`/`cage`/`isi`/`ybocs`/`bis11`/`cdrisc`/`lsas`/`panss`/`pdss`/`phq15`/`eat26`/`cssrs`/`aq`/`les`），`tcm-diagnosis` 14 例同类；`chemical` 6 例、`mining` 9 例已于 2026-09-24 清零（chemical 判别力「已检 10 / 全数变红」，`checker-15` 因 id 由 JS 模板拼接被判跳过、已自建探针补验；mining 判别力「已检 11 / 全数变红」，`estimate-reserve` 属结构性不可注入 —— 块段由 `addBlock()` 按钮 + class 选择器动态生成，静态 HTML 无带 id 控件）；`engineering`、`signal`、`design`、`gas`、`mechanical` 已于 2026-09-24 清零（判别力分别由「已检 0 / 跳过 14」→「已检 14」、「已检 13 / 跳过 11」→「已检 24」、「已检 5 / 跳过 9」→「已检 14」、「已检 2 / 跳过 9」→「已检 11」、「已检 5 / 跳过 8」→「已检 12」，均为全数变红）；`cleaning` 同日改掉 6 例（判别力「已检 5 / 全数变红」），**残留 1 例** `appliance-cycle` 属结构性不可注入（见 §10.5 三类形态）；`finance` 同日 7 例清零（判别力「已检 21 / 全数变红」）；`sports` 同日 7 例清零（判别力「已检 29 / 全数变红」）；`dermatology` 同日 12 例改掉 9 例（判别力「已检 20 / 全数变红」），**残留 3 例** `contact-dermatitis-patch`/`miliaria-classification`/`wood-lamp` 属结构性不可注入（三页 `input/select/textarea` 计数为 0，交互全靠 JS 模板生成的按钮 onclick，见 §10.5）；`travel` 同日 9 例改掉 6 例（判别力「已检 17 / 全数变红」）并**顺带修掉 1 个 P0 页面缺陷**（`travel-adapter-guide` 的 `render()` 对对象用 `.length` 判空 ⇒ 整页搜索恒显示「未找到」，见 §10.5），**残留 3 例** `aim-trainer`/`emergency-phrasebook`/`packing-list` 属结构性不可注入；`endocrinology` 同日 21 例里改掉 7 例（判别力「已检 19 / 全数变红」），**残留 1 例** `ti-rads`（0 表单控件）；`fire` 同日 11 例里改掉 6 例（判别力「已检 10 / 全数变红」），**残留 1 例** `response-drill`（场景随机、按钮驱动）；`rheumatology` 同日 25 例里改掉 5 例（判别力「已检 20 / 全数变红」），**残留 2 例** `bvas`/`sledai` 属结构性不可注入（按 class 选择器 `.g1/.g2`、`.s8/.s4/.s2/.s1` 读取无 id 复选框，harness 的 `querySelectorAll` 仅对含 `checked` 的选择器返回注入项，纯 class 选择器恒返回空数组）；`language` 同日 12 例里改掉 5 例（判别力「已检 11 / 全数变红」），**残留 1 例** `vocabulary-builder` 属结构性不可注入（0 表单控件，词表由 JS 模板生成）；`aquaculture` 同日 5 例全部改掉（判别力「已检 5 / 全数变红」，无残留）—— 5 例原 expect 均为「暂无计算记录」常量型逃生项。
+**不可注入（结构性，勿选）**：`psychiatry` 24 例里 **18 例**页面只有 `id="quiz"` + innerHTML 渲染（`gad7`/`phq9`/`pcl5`/`mdq`/`asrs`/`cage`/`isi`/`ybocs`/`bis11`/`cdrisc`/`lsas`/`panss`/`pdss`/`phq15`/`eat26`/`cssrs`/`aq`/`les`），`tcm-diagnosis` 14 例同类；`chemical` 6 例、`mining` 9 例已于 2026-09-24 清零（chemical 判别力「已检 10 / 全数变红」，`checker-15` 因 id 由 JS 模板拼接被判跳过、已自建探针补验；mining 判别力「已检 11 / 全数变红」，`estimate-reserve` 属结构性不可注入 —— 块段由 `addBlock()` 按钮 + class 选择器动态生成，静态 HTML 无带 id 控件）；`engineering`、`signal`、`design`、`gas`、`mechanical` 已于 2026-09-24 清零（判别力分别由「已检 0 / 跳过 14」→「已检 14」、「已检 13 / 跳过 11」→「已检 24」、「已检 5 / 跳过 9」→「已检 14」、「已检 2 / 跳过 9」→「已检 11」、「已检 5 / 跳过 8」→「已检 12」，均为全数变红）；`cleaning` 同日改掉 6 例（判别力「已检 5 / 全数变红」），**残留 1 例** `appliance-cycle` 属结构性不可注入（见 §10.5 三类形态）；`finance` 同日 7 例清零（判别力「已检 21 / 全数变红」）；`sports` 同日 7 例清零（判别力「已检 29 / 全数变红」）；`dermatology` 同日 12 例改掉 9 例（判别力「已检 20 / 全数变红」），**残留 3 例** `contact-dermatitis-patch`/`miliaria-classification`/`wood-lamp` 属结构性不可注入（三页 `input/select/textarea` 计数为 0，交互全靠 JS 模板生成的按钮 onclick，见 §10.5）；`travel` 同日 9 例改掉 6 例（判别力「已检 17 / 全数变红」）并**顺带修掉 1 个 P0 页面缺陷**（`travel-adapter-guide` 的 `render()` 对对象用 `.length` 判空 ⇒ 整页搜索恒显示「未找到」，见 §10.5），**残留 3 例** `aim-trainer`/`emergency-phrasebook`/`packing-list` 属结构性不可注入；`endocrinology` 同日 21 例里改掉 7 例（判别力「已检 19 / 全数变红」），**残留 1 例** `ti-rads`（0 表单控件）；`fire` 同日 11 例里改掉 6 例（判别力「已检 10 / 全数变红」），**残留 1 例** `response-drill`（场景随机、按钮驱动）；`rheumatology` 同日 25 例里改掉 5 例（判别力「已检 20 / 全数变红」），**残留 2 例** `bvas`/`sledai` 属结构性不可注入（按 class 选择器 `.g1/.g2`、`.s8/.s4/.s2/.s1` 读取无 id 复选框，harness 的 `querySelectorAll` 仅对含 `checked` 的选择器返回注入项，纯 class 选择器恒返回空数组）；`language` 同日 12 例里改掉 5 例（判别力「已检 11 / 全数变红」），**残留 1 例** `vocabulary-builder` 属结构性不可注入（0 表单控件，词表由 JS 模板生成）；`aquaculture` 同日 5 例全部改掉（判别力「已检 5 / 全数变红」，无残留）—— 5 例原 expect 均为「暂无计算记录」常量型逃生项；`bridge` 同日 5 例全部改掉（判别力「已检 5 / 全数变红」，无残留）—— 原 expect 为标签/单位/判定片段，其中「满足要求」属二值判读词。
 
 ### 10.4 每批收口流程（顺带改造时六步，缺一不可）
 
