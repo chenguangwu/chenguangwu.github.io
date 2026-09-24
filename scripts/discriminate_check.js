@@ -113,12 +113,14 @@ function listFiles() {
     try { CASES = eval(m[1]); } catch (e) { console.log("SKIP(解析失败)", f, e.message); continue; }
 
     for (const c of CASES) {
-      // checkIds（复选框选中态）/ radios（单选组取值）是 2026-09-24 起 harness 支持的注入字段，
-      // 与 inputs 等价地构成「被测输入」。模拟注入失败 = 一并清空这两者。
+      // checkIds（复选框选中态）/ radios（单选组取值）/ clicks（click 驱动页的模拟点击序列）
+      // 是 2026-09-24 起 harness 支持的注入字段，与 inputs 等价地构成「被测输入」。
+      // 模拟注入失败 = 一并清空这三者。
       const hasInj =
         (Array.isArray(c.checkIds) && c.checkIds.length > 0) ||
-        (c.radios && Object.keys(c.radios).length > 0);
-      const clearInject = { checkIds: [], radios: {}, checks: [] };
+        (c.radios && Object.keys(c.radios).length > 0) ||
+        (Array.isArray(c.clicks) && c.clicks.length > 0);
+      const clearInject = { checkIds: [], radios: {}, checks: [], clicks: [] };
       if (!c.inputs || Object.keys(c.inputs).length === 0) {
         if (!hasInj) { skipped++; continue; }   // 真正无任何注入的用例不适用
         // 清空复选框/单选注入 → 页面回到「全未勾选」态，expect 必须失配，否则即逃生项。

@@ -121,13 +121,15 @@ function _pageDefaults(html, ids) {
 
 function weakKind(c) {
   const keys = Object.keys(c.inputs || {});
-  // checkIds / radios 是**真实输入注入**（复选框选中态 / 单选组取值），与 inputs 等价 ——
-  // 页面用 getElementById(id).checked、getElementsByName(name) 读取（harness 2026-09-24 起支持）。
-  // 不认这两者，纯 checkbox 量表页（curb65 / stop-bang / has-bled / rater-33 等）的新用例
-  // 会被误判为 no_inputs 弱用例，与「已注入输入」的事实相悖。有任一注入即非弱用例。
+  // checkIds / radios / clicks 是**真实输入注入**，与 inputs 等价 ——
+  // checkIds：复选框选中态（getElementById(id).checked）；radios：单选组取值（getElementsByName）；
+  // clicks：click 驱动型页面（选项为 span/div + onclick，无任何表单控件）的「模拟用户点击」序列。
+  // 不认这三者，纯 checkbox 量表页（curb65 / stop-bang / has-bled / rater-33 等）与量表点选页
+  // （psychiatry/gad7-anxiety 等）的新用例会被误判为 no_inputs 弱用例，与「已注入输入」的事实相悖。
   const hasInjection =
     (Array.isArray(c.checkIds) && c.checkIds.length > 0) ||
-    (c.radios && Object.keys(c.radios).length > 0);
+    (c.radios && Object.keys(c.radios).length > 0) ||
+    (Array.isArray(c.clicks) && c.clicks.length > 0);
   if (!keys.length) return hasInjection ? null : "no_inputs";
   if (hasInjection) return null;
   const p = path.join(__dirname, "..", "tools", String(c.slug || "") + ".html");

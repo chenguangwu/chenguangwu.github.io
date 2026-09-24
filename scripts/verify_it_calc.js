@@ -261,6 +261,56 @@ const CTX2D = new Proxy(
   }
 );
 
+// ---------------------------------------------------------------- 动态 DOM 登记（click 驱动型页面）
+// 背景：psychiatry / tcm-diagnosis 里的量表页**没有任何表单控件** —— 题目与选项是 render() 拼好
+// HTML 写进 #quiz 的 <span class="q-opt" onclick="pick(i,j)">，答题状态存在页面内存数组里。
+// 旧桩 querySelectorAll 恒返回 [] ⇒ pick() 在 `its[i].querySelectorAll(...)` 处抛错、calc() 不被调用，
+// 用例无从注入 ⇒ 只能取默认态串做 expect（零判别力，长期挂在 no_inputs 基线里）。
+// 这里按「用例是否声明 clicks / dynDom」**选择性启用**（默认关闭 ⇒ 对既有用例零影响）：
+// innerHTML 被赋值时解析出 {tag,id,class} 登记进 dynRegistry，querySelectorAll 从登记表取匹配项。
+// 这类页对选中项只做 classList.toggle（纯装饰），故只需保证「元素个数与真机一致 + 方法不抛错」，
+// 按「同容器以最后一次渲染为准」返回即可，无需真实 DOM 树；**也不会把 id 注册进 elements**
+// （2026-09-23 那次「innerHTML setter 解析 id 注册桩元素」正是在全站无差别生效，才误伤
+//  psychology/calc-12 这类用 innerHTML 渲染滑块的页 ⇒ 已还原；本次以用例开关隔离风险）。
+const DYN = { on: false, order: [], map: new Map(), serial: 0 };
+function dynReset() { DYN.on = false; DYN.order = []; DYN.map.clear(); DYN.serial = 0; }
+function dynRecord(el, html) {
+  if (el.__dynNode) return;                     // 登记表自身生成的桩，避免自我递归
+  const key = el.id ? "#" + el.id : (el.__dynKey || (el.__dynKey = "anon#" + DYN.serial++));
+  const nodes = [];
+  for (const m of String(html).matchAll(/<([a-zA-Z][\w:-]*)((?:"[^"]*"|'[^']*'|[^>"'])*)>/g)) {
+    const attrs = m[2] || "";
+    const id = (attrs.match(/\bid\s*=\s*["']([^"']*)["']/i) || [, ""])[1];
+    const cr = (attrs.match(/\bclass\s*=\s*["']([^"']*)["']/i) || [, ""])[1];
+    const node = { tag: m[1].toLowerCase(), id, cls: cr.split(/\s+/).filter(Boolean), el: makeEl("") };
+    node.el.__dynNode = true;
+    if (id) node.el.id = id;
+    nodes.push(node);
+  }
+  if (!DYN.map.has(key)) DYN.order.push(key);
+  DYN.map.set(key, nodes);   // 同容器以最后一次渲染为准 ⇒ 重复渲染不会让计数翻倍
+  return nodes;
+}
+function dynQuery(sel) {
+  if (!DYN.on) return [];
+  const last = String(sel).replace(/[>+~]/g, " ").trim().split(/\s+/).pop();
+  if (!last) return [];
+  const mId = last.match(/#([\w-]+)/);
+  const mCls = [...last.matchAll(/\.([\w-]+)/g)].map((x) => x[1]);
+  const mTag = last.match(/^([a-zA-Z][\w-]*)/);
+  if (!mId && !mCls.length && !mTag) return [];
+  const out = [];
+  for (const k of DYN.order) {
+    for (const n of DYN.map.get(k) || []) {
+      if (mId && n.id !== mId[1]) continue;
+      if (mTag && n.tag !== mTag[1].toLowerCase()) continue;
+      if (mCls.length && !mCls.every((c) => n.cls.indexOf(c) !== -1)) continue;
+      out.push(n.el);
+    }
+  }
+  return out;
+}
+
 function makeEl(val) {
   const handlers = {};
   const el = {
@@ -292,8 +342,11 @@ function makeEl(val) {
     setAttribute() {},
     getAttribute() { return null; },
     removeAttribute() {},
-    querySelector() { return makeEl(""); },
-    querySelectorAll() { return []; },
+    // 动态 DOM 登记生效时（用例声明 clicks/dynDom），元素的 querySelectorAll 也走登记表 ——
+    // 页面写成 `it.querySelectorAll('.q-opt')` 时才能拿到数组（超集即可，仅用于 classList.toggle），
+    // 否则 `[].forEach.call(undefined, …)` 抛错、紧随其后的 calc() 被整段跳过。
+    querySelector(sel) { const r = dynQuery(sel); return r.length ? r[0] : makeEl(""); },
+    querySelectorAll(sel) { return dynQuery(sel); },
     closest() { return null; },
     focus() {},
     click() {},
@@ -311,7 +364,7 @@ function makeEl(val) {
   };
   let _h = "";
   Object.defineProperty(el, "innerHTML", {
-    set(v) { _h = String(v == null ? "" : v); },
+    set(v) { _h = String(v == null ? "" : v); if (DYN.on) dynRecord(el, _h); },
     get() { return _h; },
   });
   return el;
@@ -380,6 +433,10 @@ async function runCase(c) {
 
 async function runCaseInner(c) {
   _rngReset(); // 每个用例前重置随机种子，确保随机页输出与顺序/环境无关
+  // 动态 DOM 登记默认关闭：只有声明 clicks（模拟点击）或 dynDom 的用例才启用 ⇒
+  // 既有用例的行为逐字节不变（§7.1 的历史教训：全站无差别生效会误伤其它页）。
+  dynReset();
+  DYN.on = !!(c.dynDom || (Array.isArray(c.clicks) && c.clicks.length > 0));
   const file = path.join(TOOLS_DIR, c.slug + ".html");
   if (!fs.existsSync(file)) return { ok: false, why: "文件不存在" };
   const html = fs.readFileSync(file, "utf8");
@@ -435,6 +492,7 @@ async function runCaseInner(c) {
           ? sel[id][0]
           : "";
       elements[id] = makeEl(v);
+      elements[id].id = id;   // 动态 DOM 登记按容器 id 分桶（同容器重渲染时覆盖，避免计数翻倍）
       // 复选框注入：makeEl 的 checked 恒为 false，页面若用 getElementById(id).checked
       // 读取勾选态（量表/评分/选项类页面的主流写法），注入 .value 完全无效 ⇒ 该类页
       // 长期被判「结构性 no_inputs」而只能取常量串 expect（零判别力）。
@@ -516,6 +574,9 @@ async function runCaseInner(c) {
       }
       // 提供真实 label 文本，部分工具据此命名输出字段
       if (/label/i.test(sel)) return labelTexts.map((t) => { const e = makeEl(""); e.textContent = t; e.value = t; return e; });
+      // 动态 DOM 登记（仅在用例声明 clicks/dynDom 时非空；否则 dynQuery 恒返回 []，行为与旧版一致）
+      const dyn = dynQuery(sel);
+      if (dyn.length) return dyn;
       return [];
     },
     createElement: () => makeEl(""),
@@ -630,6 +691,20 @@ async function runCaseInner(c) {
     const blob1 = collectStrings(elements);
     for (const want of c.expect) {
       if (blob1.includes(want)) return { ok: true, via: "input event" };
+    }
+  }
+  // 2.5) 模拟用户点击：click 驱动型页面（选项是 span/div + onclick，页面里根本没有表单控件）。
+  // 用例声明 clicks: ["pick(0,3)", …]，按序在页面作用域内执行，等价于用户逐项作答；
+  // 需动态 DOM 登记配合（pick() 内部会 querySelectorAll('.q-item') 回改选中样式）。
+  if (Array.isArray(c.clicks) && c.clicks.length) {
+    for (const code of c.clicks) {
+      try { new Function(String(code))(); }
+      catch (e) { errs.push("click:" + String(code).slice(0, 24) + ": " + e.message.slice(0, 40)); }
+    }
+    await Promise.allSettled(pending);
+    const blobC = collectStrings(elements);
+    for (const want of c.expect) {
+      if (blobC.includes(want)) return { ok: true, via: "click" };
     }
   }
   // 3) 兜底：直接调用候选函数
