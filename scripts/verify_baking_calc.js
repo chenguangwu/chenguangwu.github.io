@@ -72,16 +72,16 @@ const CASES = [
 },
 {
   "slug": "baking/mold-volume",
-  "inputs": {
-    "'+side+'D": "'+(side==='from'?'15':'20')+'",
-    "'+side+'H": "7",
-    "'+side+'S": "'+(side==='from'?'15':'20')+'",
-    "'+side+'L": "'+(side==='from'?'15':'20')+'",
-    "'+side+'W": "10"
-  },
+  "clicks": [
+    "document.getElementById('fromD').value='15';document.getElementById('fromH').value='4';document.getElementById('toD').value='20';document.getElementById('toH').value='10';calc()"
+  ],
   "expect": [
-    "高度"
-  ]
+    "× 4.44",
+    "707 原模具容积 (ml)",
+    "3142 目标模具容积 (ml)",
+    "2042 建议填充量 (ml)"
+  ],
+  "ref": "**坏用例重写**（原 inputs 键是生成器模板串残留 `\"'+side+'D\"`、expect 只有静态标签词「高度」，页面无此 id ⇒ 判别器与 selfcheck 双双漏判）。该页静态无任何 input，控件由 `renderInputs(side)` 运行期拼 innerHTML 生成、`calcVolume(side)` 再按 id 读取 ⇒ 只能用 clicks 在同一次求值内赋值。两模具均为默认 round 形状：from D=15、H=4 ⇒ 容积 = π×(15/2)²×4 = 706.86 ml ⇒ fmtNum 取整「707」；to D=20、H=10 ⇒ π×10²×10 = 3141.59 ml ⇒「3142」；缩放比 = 3141.59 ÷ 706.86 = 4.4445 ⇒ 显示「× 4.44」；建议填充量 = 3141.59 × 0.65 = 2042.03 ⇒「2042」（ratio > 1.1 落「目标模具更大」分支）。未注入时 harness 读不到运行期生成的 D ⇒ 体积 0 ⇒ 渲染「请输入有效的模具尺寸」，四串均不含。"
 },
 {
   // 原 expect「请输入有效温度」由零参兜底调用 convertTemp() 触发（两个温度框皆空）→ 与注入无关的逃生项。
