@@ -315,20 +315,20 @@
 
 ### 10.2 现状（实测基线）
 
-- `all_default 142 / no_inputs 177 / escape 0`；`checked=3161`；门禁 `run_gates.py` **217 项全过**、逃生项 0（判别器已检 **2812** 例 / 跳过 349）。
+- `all_default 136 / no_inputs 177 / escape 0`；`checked=3161`；门禁 `run_gates.py` **217 项全过**、逃生项 0（判别器已检 **2818** 例 / 跳过 343）。
 - A 级率 **99.2%**（A 4693 / B 32 / C 4，共 4729）；deep-dive 术语内链 **1591 页 / 2268 条 / 唯一目标 630**（零死链、零自链、单页 ≤6 条）。**注：内链不影响质量分级**（`own_len` 只统计 `<script>` 内容）。
-- 存量弱用例 **319 例**（`no_inputs=177` / `all_default=142`），**转 P3 顺带**，不单独成批。
+- 存量弱用例 **313 例**（`no_inputs=177` / `all_default=136`），**转 P3 顺带**，不单独成批。
   - **注意：弱用例整体处于判别器盲区** —— `discriminate_check` 对「注入值本就等于默认值」的用例判 `usable=false` ⇒ **直接跳过**（§10.5）。故 `escape=0` 只说明「强用例无逃生项」，弱用例的逃生项从未被检查；每批改造弱用例后必须重跑判别器确认其由「跳过」转为「已检且变红」。
 
 ### 10.3 弱用例去默认化（仅在 P0/P1 顺带时执行）
 
-**存量 319 例**（`no_inputs=177` / `all_default=142`，selfcheck 口径；含 textarea/动态 id/结构性不可注入的「skip」类全站 349）。
+**存量 313 例**（`no_inputs=177` / `all_default=136`，selfcheck 口径；含 textarea/动态 id/结构性不可注入的「skip」类全站 343）。
 
 **选批预筛清单（2026-09-24 实测 · 弱例数 / 其中可注入数）** —— 按「可注入数」降序挑批次，**不可注入的不要选**（页面静态 HTML 里 `grep 'id='` 为 0，控件由 innerHTML 动态生成，属 §7.1 保留项）：
 
-endocrinology 7/6、fire 7/6、rheumatology 7/5、language 6/5、aquaculture 5/5、bridge 5/5、glass 5/5、life 5/5、manufacturing 5/5、maritime 5/5、medical2 5/5。
+fire 7/6、rheumatology 7/5、language 6/5、aquaculture 5/5、bridge 5/5、glass 5/5、life 5/5、manufacturing 5/5、maritime 5/5、medical2 5/5。
 
-**不可注入（结构性，勿选）**：`psychiatry` 24 例里 **18 例**页面只有 `id="quiz"` + innerHTML 渲染（`gad7`/`phq9`/`pcl5`/`mdq`/`asrs`/`cage`/`isi`/`ybocs`/`bis11`/`cdrisc`/`lsas`/`panss`/`pdss`/`phq15`/`eat26`/`cssrs`/`aq`/`les`），`tcm-diagnosis` 14 例同类；`chemical` 6 例、`mining` 9 例已于 2026-09-24 清零（chemical 判别力「已检 10 / 全数变红」，`checker-15` 因 id 由 JS 模板拼接被判跳过、已自建探针补验；mining 判别力「已检 11 / 全数变红」，`estimate-reserve` 属结构性不可注入 —— 块段由 `addBlock()` 按钮 + class 选择器动态生成，静态 HTML 无带 id 控件）；`engineering`、`signal`、`design`、`gas`、`mechanical` 已于 2026-09-24 清零（判别力分别由「已检 0 / 跳过 14」→「已检 14」、「已检 13 / 跳过 11」→「已检 24」、「已检 5 / 跳过 9」→「已检 14」、「已检 2 / 跳过 9」→「已检 11」、「已检 5 / 跳过 8」→「已检 12」，均为全数变红）；`cleaning` 同日改掉 6 例（判别力「已检 5 / 全数变红」），**残留 1 例** `appliance-cycle` 属结构性不可注入（见 §10.5 三类形态）；`finance` 同日 7 例清零（判别力「已检 21 / 全数变红」）；`sports` 同日 7 例清零（判别力「已检 29 / 全数变红」）；`dermatology` 同日 12 例改掉 9 例（判别力「已检 20 / 全数变红」），**残留 3 例** `contact-dermatitis-patch`/`miliaria-classification`/`wood-lamp` 属结构性不可注入（三页 `input/select/textarea` 计数为 0，交互全靠 JS 模板生成的按钮 onclick，见 §10.5）；`travel` 同日 9 例改掉 6 例（判别力「已检 17 / 全数变红」）并**顺带修掉 1 个 P0 页面缺陷**（`travel-adapter-guide` 的 `render()` 对对象用 `.length` 判空 ⇒ 整页搜索恒显示「未找到」，见 §10.5），**残留 3 例** `aim-trainer`/`emergency-phrasebook`/`packing-list` 属结构性不可注入。
+**不可注入（结构性，勿选）**：`psychiatry` 24 例里 **18 例**页面只有 `id="quiz"` + innerHTML 渲染（`gad7`/`phq9`/`pcl5`/`mdq`/`asrs`/`cage`/`isi`/`ybocs`/`bis11`/`cdrisc`/`lsas`/`panss`/`pdss`/`phq15`/`eat26`/`cssrs`/`aq`/`les`），`tcm-diagnosis` 14 例同类；`chemical` 6 例、`mining` 9 例已于 2026-09-24 清零（chemical 判别力「已检 10 / 全数变红」，`checker-15` 因 id 由 JS 模板拼接被判跳过、已自建探针补验；mining 判别力「已检 11 / 全数变红」，`estimate-reserve` 属结构性不可注入 —— 块段由 `addBlock()` 按钮 + class 选择器动态生成，静态 HTML 无带 id 控件）；`engineering`、`signal`、`design`、`gas`、`mechanical` 已于 2026-09-24 清零（判别力分别由「已检 0 / 跳过 14」→「已检 14」、「已检 13 / 跳过 11」→「已检 24」、「已检 5 / 跳过 9」→「已检 14」、「已检 2 / 跳过 9」→「已检 11」、「已检 5 / 跳过 8」→「已检 12」，均为全数变红）；`cleaning` 同日改掉 6 例（判别力「已检 5 / 全数变红」），**残留 1 例** `appliance-cycle` 属结构性不可注入（见 §10.5 三类形态）；`finance` 同日 7 例清零（判别力「已检 21 / 全数变红」）；`sports` 同日 7 例清零（判别力「已检 29 / 全数变红」）；`dermatology` 同日 12 例改掉 9 例（判别力「已检 20 / 全数变红」），**残留 3 例** `contact-dermatitis-patch`/`miliaria-classification`/`wood-lamp` 属结构性不可注入（三页 `input/select/textarea` 计数为 0，交互全靠 JS 模板生成的按钮 onclick，见 §10.5）；`travel` 同日 9 例改掉 6 例（判别力「已检 17 / 全数变红」）并**顺带修掉 1 个 P0 页面缺陷**（`travel-adapter-guide` 的 `render()` 对对象用 `.length` 判空 ⇒ 整页搜索恒显示「未找到」，见 §10.5），**残留 3 例** `aim-trainer`/`emergency-phrasebook`/`packing-list` 属结构性不可注入；`endocrinology` 同日 21 例里改掉 7 例（判别力「已检 19 / 全数变红」），**残留 1 例** `ti-rads`（0 表单控件）。
 
 ### 10.4 每批收口流程（顺带改造时六步，缺一不可）
 
@@ -379,6 +379,7 @@ endocrinology 7/6、fire 7/6、rheumatology 7/5、language 6/5、aquaculture 5/5
 | **`render()` 用 `.length` 判空但入参是对象 ⇒ 整页功能恒空（P0 真缺陷，2026-09-24 travel 批）** | `travel/travel-adapter-guide` 的 `render(list)` 写 `if(!list.length)`，而 `plugs` 是**对象**、`filter()` 也传对象 ⇒ `undefined` 恒真 ⇒ 修前无论搜索什么都只显示「未找到」，默认态亦然（原 expect 正是这个「未找到」＝ 缺陷与逃生项双重命中）。改 `if(!list||!Object.keys(list).length)` 后搜索生效。**启示**：`Object.entries(list)` 遍历 + `list.length` 判空混用是高频真缺陷；遇「整页功能恒定不工作」的弱用例，先怀疑判空/类型错，别急着归类为「不可注入」 |
 | **有 id 的控件注入后输出逐字不变 ⇒ 仍属结构性不可注入（2026-09-24 travel 批）** | `travel/packing-list` 有 `input#tripName`/`input#tripDate`（判别器不会判「跳过」），但渲染主体 `renderList()` 只读 `currentData.categories`，`tripName` 仅在 `saveList()` 写 localStorage 时使用，而 `saveList` 不在 harness 兜底调用序列内 ⇒ 注入 tripName=测试行程A 后 blob 与默认态逐字一致。**判据**：控件的处理函数是否在 harness 实际调用链上；不在 ⇒ 输出无关，保留 `no_inputs` 并在 `ref` 写明（与 estimate-reserve / contact-dermatitis-patch 同类） |
 | **selfcheck 全站 `--exec` 会崩（历史现象，勿误判为本批引入，2026-09-24）** | 结尾抛 `TypeError: process.exit is not a function`（某页脚本污染全局 process），且顺带打印数百条 `default-hit`。**取基线请用结构模式** `node scripts/selfcheck_false_pass.js scripts`（与门禁第 216 项同口径，risk=0），只看 no_inputs/all_default 计数行；`--exec` 仅供单文件调试。已用 `git show HEAD:<file>` 对照复现，确认与当批改动无关 |
+| **无参 `loadXxx()` 兜底预设会把「可注入页」伪装成「不可注入」（2026-09-24 endocrinology 批）** | `runCase` 顺序是：① 注入 inputs + 触发 input/change/keyup → **立即**检查 expect（命中即 `via="input event"`）；② 未命中才兜底**遍历无参调用各函数**（跳过 DESTRUCTIVE）。而 `endocrinology/*` 这类页普遍带 `loadNormal()/loadMS()/loadDM()/loadPCOS()` 预设函数，会把输入**全部改回预设值**并重算 ⇒ **用占位 expect 做 blob dump 看到的是兜底后状态**（与注入无关），极易误判为「注入无效 ⇒ 结构性不可注入」 | 判据必须看 **`r.via === "input event"`**（本批 7 例全部如此）；标准流程：读页面 `calc()` 渲染模板构造 expect（如 `arr.toFixed(1)` + 标签）→ 测注入态（期望 ok 且 via=input event）→ 测默认态（期望 not ok）→ 最后避开 `loadXxx` 预设值（`metabolic-syndrome` 的「满足 5 / 5 项标准」、`ogtt-interpretation` 的「1h： 11.5」「2h： 9.2」都是预设产出，作 expect 即逃生项） |
 
 ### 10.6 方向1：公式-脚本一致性精查（**全量闭环** · 老板选定）
 

@@ -3,17 +3,19 @@
 const { runCase } = require("./verify_it_calc.js");
 const CASES = [
 {
+  // 原为 all_default 弱用例：4 个输入全等于页面 value，expect「12.0」是兜底预设 loadNormal() 写入的醛固酮值。
   "slug": "endocrinology/aldosterone-renin",
   "inputs": {
-    "aldo": "22",
-    "renin": "0.6",
-    "k": "3.2",
-    "bp": "155"
+    "aldo": "7.5",
+    "renin": "2.4",
+    "k": "3.0",
+    "bp": "140"
   },
   "expect": [
-    "12.0"
+    "3.1 ng/dL : ",
+    "7.5 醛固酮(ng/dL)"
   ],
-  "ref": "auto-restore(default)"
+  "ref": "ARR = aldo / renin = 7.5 / 2.4 = 3.125 → 大字渲染 arr.toFixed(1) = 「3.1」+ arrType（ng/dL : ng/mL/h 或 ng/dL : mU/L，故只锚前缀「3.1 ng/dL : 」）；醛固酮卡 = aldo.toFixed(1) = 「7.5」+ 标签。默认态（value 22/0.6 → ARR 36.7）与兜底预设态（loadNormal 12/1.8 → ARR 6.7、卡片 12.0）都不含这两串。"
 },
 {
   "slug": "endocrinology/calcium-pth-axis",
@@ -31,33 +33,31 @@ const CASES = [
   "ref": "auto-restore"
 },
 {
+  // 原 expect「4.2」是输入回显值 umn，且默认页签为血浆 ⇒ 主输出不含，属无判别力断言。
   "slug": "endocrinology/catecholamine-test",
   "inputs": {
-    "bp": "175",
-    "mn": "0.8",
-    "nmn": "2.1",
-    "umn": "4.2",
-    "unmn": "3.5",
-    "une": "820",
-    "ue": "95",
-    "uda": "1200"
+    "mn": "1.9",
+    "nmn": "3.3"
   },
   "expect": [
-    "4.2"
+    "血浆MN 1.90 nmol/L",
+    "血浆NMN 3.30 nmol/L"
   ],
-  "ref": "auto-restore(default-hit)"
+  "ref": "注入血浆游离 MN/NMN（默认页签 plasma）→ 结果卡按 toFixed(2) 渲染「1.90 / 3.30 nmol/L」；默认值 0.25 / 0.55（HTML value）与兜底预设态均不含这两串。注意尿液键（umn/unmn/une/ue/uda）属未激活页签，注入不影响主输出。"
 },
 {
+  // 原 expect「午夜抑制阈值(140nmol/L)」是 SVG 图例的静态文字，恒定出现 → 逃生项。
   "slug": "endocrinology/cortisol-rhythm",
   "inputs": {
-    "m8": "420",
-    "m16": "280",
-    "m0": "220"
+    "m8": "333",
+    "m16": "111",
+    "m0": "17"
   },
   "expect": [
-    "午夜抑制阈值(140nmol/L)"
+    "晨起：333 nmol/L",
+    "午夜：17 nmol/L"
   ],
-  "ref": "auto-restore(default)"
+  "ref": "注入 333/111/17 → 8:00 卡片「晨起：333 nmol/L」（333 落在 171-536 正常区）与 0:00 卡片「午夜：17 nmol/L 抑制良好」（17 < 阈值 140）。默认 value 420/280/220 与兜底预设 loadAdrenal（120/60/30）都不含这两串。"
 },
 {
   "slug": "endocrinology/cycle-hormone",
@@ -113,17 +113,19 @@ const CASES = [
   "ref": "auto-restore"
 },
 {
+  // 原为 all_default 弱用例：ga/a1c/alb/age 全等于页面 value，expect「HbA1c(2-3月)」是静态标签。
   "slug": "endocrinology/glycated-albumin",
   "inputs": {
-    "ga": "22",
-    "a1c": "8.5",
-    "alb": "42",
-    "age": "55"
+    "ga": "33.3",
+    "a1c": "7.7",
+    "alb": "44",
+    "age": "60"
   },
   "expect": [
-    "HbA1c(2-3月)"
+    "20.5 估算近期血糖(mmol/L)",
+    "33.3% 糖化白蛋白(GA)"
   ],
-  "ref": "auto-restore(default)"
+  "ref": "估算近期血糖 = ga×0.583 + 1.1 = 33.3×0.583 + 1.1 = 20.5139 → toFixed(1) = 「20.5」；GA 大字 = ga.toFixed(1) = 「33.3%」。默认态（value 22 → 13.9）与兜底预设 loadPoor（28.5 → 17.7）都不含这两串。"
 },
 {
   "slug": "endocrinology/graves-trab",
@@ -164,32 +166,36 @@ const CASES = [
   "ref": "auto-restore"
 },
 {
+  // 原 expect「140/90mmHg」出自每条标准的静态阈值说明文字 → 逃生项。
   "slug": "endocrinology/metabolic-syndrome",
   "inputs": {
-    "waist": "92",
-    "sbp": "145",
-    "dbp": "92",
-    "fpg": "6.8",
-    "tg": "2.8",
-    "hdl": "0.9"
+    "waist": "99",
+    "sbp": "150",
+    "dbp": "95",
+    "fpg": "7.2",
+    "tg": "3.2",
+    "hdl": "0.8"
   },
   "expect": [
-    "140/90mmHg"
+    "腰围 99cm",
+    "血压 150/95"
   ],
-  "ref": "auto-restore(default)"
+  "ref": "注入 6 项代谢指标（gender 默认 male）→ 判定卡渲染实测值「腰围 99cm」「血压 150/95」（metCount 也会成 5/5，但「满足 5 / 5 项标准」在兜底预设 loadMS 下同样出现 ⇒ 不可用）。默认 value（82cm / 120-78）与兜底预设（96cm / 148-95）都不含这两串。"
 },
 {
+  // 原 expect「14.5」= 兜底预设 loadDM 的 h1 值，注入失败仍命中 → 逃生项。
   "slug": "endocrinology/ogtt-interpretation",
   "inputs": {
-    "fpg": "6.8",
-    "h1": "11.5",
-    "h2": "9.2",
-    "h3": "6.5"
+    "fpg": "6.4",
+    "h1": "12.3",
+    "h2": "10.4",
+    "h3": "7.7"
   },
   "expect": [
-    "14.5"
+    "1h： 12.3 mmol/L",
+    "2h： 10.4 mmol/L"
   ],
-  "ref": "auto-restore(default)"
+  "ref": "四个时点注入 6.4 / 12.3 / 10.4 / 7.7 → 各时点卡按「1h： 12.3 mmol/L」格式渲染。默认 value（5.3/10.5/8.8/7.0）、兜底预设 loadDM（8.1/14.5/13.2/9.8）与 loadGDM（11.5/9.2）都不含这两串（注意规避 GDM 预设的 11.5 / 9.2）。"
 },
 {
   "slug": "endocrinology/pcos-diagnosis",
@@ -218,19 +224,20 @@ const CASES = [
   "ref": "auto-restore"
 },
 {
+  // 原 expect「2.4-12.6」是 LH 参考范围静态文字，恒定出现 → 逃生项。
   "slug": "endocrinology/sex-hormone-cycle",
   "inputs": {
-    "lh": "5.2",
-    "fsh": "6.8",
-    "e2": "45",
-    "t": "35",
-    "prl": "15",
-    "p": "0.8"
+    "lh": "9.9",
+    "fsh": "3.3",
+    "e2": "77",
+    "t": "88",
+    "prl": "22",
+    "p": "1.1"
   },
   "expect": [
-    "2.4-12.6"
+    "LH/FSH 比值： 3.00"
   ],
-  "ref": "auto-restore(default)"
+  "ref": "LH/FSH = 9.9 / 3.3 = 3.00（toFixed(2)）→ 页面末行「LH/FSH 比值： 3.00 （≥2，提示PCOS可能）」。默认 value 与兜底预设 loadPCOS（5.2/... 比值≠3.00）都不含该串。"
 },
 {
   // 原为 all_default 弱用例：11 个数字全等于页面默认，expect「P0.13-P3」是等级词。
@@ -277,7 +284,7 @@ const CASES = [
   "expect": [
     "TR2"
   ],
-  "ref": "auto-restore(default)"
+  "ref": "结构性不可注入（2026-09-24 endocrinology 批）：页面静态 HTML 中 input/select/textarea 计数为 0（实测 grep 为 0），TI-RADS 评分由按钮 onclick（setFeature/score）累加内部 state 后 render，按钮无 id、不在 harness 的 elements 表内、无 clicks 注入 ⇒ 只能渲染默认态（总分 2 分 / TR2）。保留在 no_inputs 基线。"
 },
 {
   // 原为 all_default 弱用例：bg=2.2 即页面默认，expect「3.2」是兜底预设 loadReactive() 写入的值（典型逃生项）。
