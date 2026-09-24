@@ -82,11 +82,15 @@ const CASES = [
 },
 {
   "slug": "telecom/quick-calc-time-bandwidth",
-  "inputs": {},
+  "inputs": {
+    "kw": "zzzz"
+  },
+  "clicks": ["search()"],
   "expect": [
-    "A01"
+    "未找到匹配项"
   ],
-  "ref": "auto-restore(default)"
+  "ref": "与 quality/table-sampling 同模板：kw 为空时输出 DATA 全量，具体编号在默认态必命中 ⇒ 反向锚"
+     + "「未找到匹配项」。原 expect「A01」是默认全量表首行编号，零判别力。",
 },
 {
   "slug": "telecom/subnet-planner",

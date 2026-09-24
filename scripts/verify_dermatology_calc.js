@@ -310,10 +310,16 @@ const CASES = [
   // 静态 HTML 无带 id 的表单控件 ⇒ 只能渲染默认空结果（renderGrid 不写 result）。
   "slug": "dermatology/wood-lamp",
   "inputs": {},
+  "clicks": ["selectFluor({classList:{add:function(){},remove:function(){}}},1)"],
   "expect": [
-    "颜色加深/对比增强"
+    "「亮绿色」荧光对应的疾病",
+    "头癣（小孢子菌属）",
+    "铜绿假单胞菌感染"
   ],
-  "ref": "结构性不可注入：荧光色卡片渲染与疾病说明均由 JS（renderGrid/selectFluor 按钮）驱动，静态 HTML 无 input/select/textarea。expect 锚定页面内置的「颜色加深/对比增强」分类名，属保留型常量串。"
+  "ref": "原判「结构性不可注入」有误：selectFluor(btn,i) 的 btn 只用于 classList 增删，传哑对象"
+     + " {classList:{add,remove}} 即可（querySelectorAll('.fluor-btn') 返回空数组，forEach 安全）。"
+     + "i=1 ⇒ data[1] 亮绿色 ⇒ 头癣（小孢子菌属）/ 铜绿假单胞菌感染。"
+     + "原 expect「颜色加深/对比增强」是 renderGrid() 的分类名常量，默认态即命中 ⇒ 零判别力。",
 },
 {
   // 原为 no_inputs 弱用例：expect「72小时内抗病毒治疗」是默认总分 ≤3（低风险）分支的建议文案，与输入无关。

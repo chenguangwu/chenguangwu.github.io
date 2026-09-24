@@ -29,11 +29,21 @@ const CASES = [
 },
 {
   "slug": "museum/historical-calendar",
-  "inputs": {},
+  "inputs": {
+    "date-input": "2008-08-08"
+  },
+  "clicks": ["update()"],
   "expect": [
-    "undefined-NaN-undefined"
+    "2008 年 8 月 8 日",
+    "星期五",
+    "戊子年",
+    "属鼠"
   ],
-  "ref": "auto-restore(default)"
+  "ref": "注入 2008-08-08 ⇒ 公历 2008 年 8 月 8 日、星期五（datetime 独立复算一致）、干支 戊子年"
+     + "（(2008−4)%10=4→戊、(2008−4)%12=0→子）、生肖 属鼠。"
+     + "不锚「距今 N 天」—— harness 用固定时钟 FrozenDate，该值随基准日漂移（实测 5790）。"
+     + "原 expect「undefined-NaN-undefined」是兜底阶段无参 selectDate() 的产物（y/m/d 全 undefined ⇒ 拼出该串），"
+     + "它既非页面缺陷也零判别力（默认态即命中）。",
 },
 {
   "slug": "museum/lighting-lux",

@@ -304,6 +304,7 @@
 
 - **未处理（待定夺，疑似页面口径问题）**：`legal/calc-8`（年终奖计税）把「社保 / 专项附加」输入按**年度值**扣除、未 ×12 —— 若语义是「月缴」，则应税所得会被高估、税额偏低。未改页面，等老板确认语义后再定。
 - **未处理（待定夺，非缺陷）**：`ai/ocr`、`ai/image-classification` 等 5 个 `<script type="module">` 页的 `own_len` 度量盲区（§7.3 已给结论：不改）。
+- **未处理（待定夺，字段错位真缺陷）**：`chinese/chinese-radical-lookup`（汉字部首查询）—— `DATA[c]` 的 6 元组实际语义是 `[部首, 部首名, 总笔画, 字形描述, 拼音, 本字]`，而 `query()` 的渲染模板取 `d[3]` 当「读音」、`d[4]` 当「字形」⇒ 输出「读音： 水流」「字形： hé （河）」（`河`/`你`/`爱` 等条目均可复现）。修法二选一：① 改模板把 d[3]/d[4] 对调（改 1 处）；② 改 DATA 元组顺序（改动面大）。**未改页面**，等老板定夺。
 - **站点级 `showToast(i18nText())` 会显示字面量 `undefined`（2026-09-25 发现，待老板定夺）**：`i18nText` 的真实实现（`js/common.js` 第 1462 行）与 `_build.py` 注入的桩，在 key 与 fallback 均为空时都 `return key` ⇒ `undefined`（经 `resolveUiText(undefined,undefined)` 仍是 `undefined`）⇒ `showToast` 里 `t.textContent = undefined` 被 WebIDL 转成字符串 `undefined`。全站 `showToast(i18nText()` **3208 处 / 1073 个页面**（另有 `copyText(…, i18nText())` 200 处）—— 用户触发「空输入 / 复制失败 / 无记录」等分支时会看到一条写着 `undefined` 的提示气泡（BATCH105 在 `music/chord-notes` 空输入分支实测到该路径）。**影响面大且属文案层、非本批弱用例范围，未执行修改**。建议修法（待拍板）：**站点级** —— 在 `showToast`/`copyText` 入口加「msg 为空/undefined 时回落默认中文文案」的兜底（改 `js/common.js` 1 处、页面零改动、构建产物仅公共 JS 变化）；逐页补 `i18nText('toast.xxx','中文兜底')` 需改 1073 个文件，不建议。
 
 ---
@@ -323,14 +324,14 @@
 
 ### 10.2 现状（实测基线）
 
-- `all_default 6 / no_inputs 98 / escape 0`；`checked=3161`；门禁 `run_gates.py` **217 项全过**、逃生项 0（判别器已检 **3022** 例 / 跳过 139）。
+- `all_default 6 / no_inputs 90 / escape 0`；`checked=3161`；门禁 `run_gates.py` **217 项全过**、逃生项 0（判别器已检 **3030** 例 / 跳过 131）。
 - A 级率 **99.2%**（A 4693 / B 32 / C 4，共 4729）；deep-dive 术语内链 **1591 页 / 2268 条 / 唯一目标 630**（零死链、零自链、单页 ≤6 条）。**注：内链不影响质量分级**（`own_len` 只统计 `<script>` 内容）。
-- 存量弱用例 **104 例**（口径、选批规则与不可注入清单见 §10.3）。
+- 存量弱用例 **96 例**（口径、选批规则与不可注入清单见 §10.3）。
   - **注意：弱用例整体处于判别器盲区** —— `discriminate_check` 对「注入值本就等于默认值」的用例判 `usable=false` ⇒ **直接跳过**（§10.5）。故 `escape=0` 只说明「强用例无逃生项」，弱用例的逃生项从未被检查；每批改造弱用例后必须重跑判别器确认其由「跳过」转为「已检且变红」。
 
 ### 10.3 弱用例去默认化（仅在 P0/P1 顺带时执行）
 
-**存量 104 例**（`no_inputs=98` / `all_default=6`，selfcheck 口径；含 textarea / 动态 id / 结构性不可注入的「skip」类全站 139）。**`all_default` 剩余 6 例已全部判定为结构性不可改造**，逐例理由已写进各用例 `ref`（含实测结论），勿重复评估。**转 P3 顺带，不单独成批**；逐批成果与逐例打法归档在 `.workbuddy/memory/2026-09-2*.md` 与 skill `toolbox-weakcase-hardening`，**本文件不再记录批次流水**。
+**存量 96 例**（`no_inputs=90` / `all_default=6`，selfcheck 口径；含 textarea / 动态 id / 结构性不可注入的「skip」类全站 131）。**`all_default` 剩余 6 例已全部判定为结构性不可改造**，逐例理由已写进各用例 `ref`（含实测结论），勿重复评估。**转 P3 顺带，不单独成批**；逐批成果与逐例打法归档在 `.workbuddy/memory/2026-09-2*.md` 与 skill `toolbox-weakcase-hardening`，**本文件不再记录批次流水**。
 
 **选批口径**：① 按「可注入数」降序挑批次；② **结构性不可注入的不要选**（页面静态 HTML `grep -cE '<input|<select|<textarea'` 为 0、驱动语句是 class 选择器、或行由 `createElement+appendChild` 生成）—— 保留 `no_inputs` 并在用例 `ref` 写明理由（判据见 §10.5 B 组）；③ 每批 8–11 例，走 §10.4 六步。
 
@@ -396,6 +397,10 @@
 15. **`inputs` 值逐字等于页面默认值 = 零判别力**：判别器判 `usable=false` ⇒ **直接 `skipped++`**，用例虽在 `all_default` 基线上却从未被校验。**凡 `all_default` 例一律视为零判别力、须重写。**
 16. **`inputs` 键是生成器模板串残留（`${f}`、`pri${i}`）会同时骗过两把锁**：`weakKind` 见 `inputs` 非空但 `_pageDefaults` 取不到该键 ⇒ `return null` ⇒ 不计入棘轮；`discriminate_check` 因 expect 永不命中而记「正确变红」⇒ **静默失效**。**巡检**：搜 `scripts/verify_*_calc.js` 里形如 `${` 或 `+变量+` 的键。
 17. **`fmt()` 走 `toLocaleString()` 会默认截 3 位小数**（`0.0025` → `0.003`）⇒ 分步文案无法自校验、易被误判为算术错；要展示小数量改带参 `toFixed(n)`，定 expect 时避开被截断的位置。
+18. **expect 里出现 `undefined` / `NaN` 字面量 ⇒ 几乎必是兜底污染，不是页面缺陷**：兜底无参调用会把 `selectDate()` 拼成 `undefined-NaN-undefined`、`toggle()` 往集合塞进 `undefined` 项、`renderCalendar()` 出 `NaN 年 NaN 月`。这类串默认态必命中 ⇒ 一律改锚 clicks / input 阶段的真实产物；**发现这类 expect 时不要顺手「按页面输出修 expect」，先确认它来自哪一段**。
+19. **「空关键词输出全量」型过滤页只能反向锚排他串**：`search(kw)` 在 kw 为空时渲染 `DATA` 全量 ⇒ 任何具体编号/名称在默认态都命中（原 expect `A01` 即全量首行）⇒ 改注入**不存在的关键词**、锚「未找到匹配项」类空结果提示。
+20. **「卡片列表区 + 详情区」双区页，锚点必须取详情区独有串**：卡片区在默认态已渲染全部条目（`floral/bloom-stage` 的卡片含全部六个等级名与 desc）⇒ 锚等级名/desc 零判别力；只有详情区文案（如「部分开始出现花粉」）才是随点击变化的安全源。
+21. **click 函数带 DOM 元素形参不算结构性不可注入**：`selectFluor(btn,i)` / `selectStage(grade,el)` 里的 `btn`/`el` 只用于 `classList` 增删 ⇒ 传哑对象 `{classList:{add:function(){},remove:function(){}}}` 或直接省略即可注入；内层的 `querySelectorAll('.xxx').forEach` 对空数组安全。
 
 **D. 工具与方法**
 

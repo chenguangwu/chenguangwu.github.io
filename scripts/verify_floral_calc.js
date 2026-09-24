@@ -81,10 +81,16 @@ const CASES = [
 {
   "slug": "floral/bloom-stage",
   "inputs": {},
+  "clicks": ["selectStage(5)"],
   "expect": [
-    "花瓣展开约1/2至2/3"
+    "部分开始出现花粉",
+    "当天使用的花艺作品",
+    "此阶段观赏性已达峰值"
   ],
-  "ref": "auto-restore(default)"
+  "ref": "selectStage(grade,el) 的 el 仅用于加 active 样式，省略即可；grade=5 ⇒ STAGES[5] 盛花期。"
+     + "锚点只取 resultDetail 独有串：默认态 bloomCards 已渲染全部六张卡片，含「等级 5：盛花期」与"
+     + "「完全盛开，花瓣外翻」⇒ 这两个串在默认态即命中、零判别力，必须改锚详情页专属文案。"
+     + "原 expect「花瓣展开约1/2至2/3」正是卡片里 grade 3 的 desc。",
 },
 {
   "slug": "floral/preservative",

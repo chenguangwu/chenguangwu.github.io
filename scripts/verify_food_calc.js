@@ -140,11 +140,19 @@ const CASES = [
 },
 {
   "slug": "food/food-pairing",
-  "inputs": {},
+  "inputs": {
+    "searchInput": "番"
+  },
+  "clicks": ["toggle('番茄');toggle('鸡蛋');analyze()"],
   "expect": [
-    "undefined"
+    "番茄 + 鸡蛋 = 经典组合",
+    "番茄富含番茄红素",
+    "鸡蛋是百搭食材"
   ],
-  "ref": "auto-restore(default)"
+  "ref": "click 驱动页：selected 是页面顶层 Set，只有 toggle(name) 能写入；注入 番茄+鸡蛋 后 analyze() 出搭配分析。"
+     + "默认态 selected 为空 ⇒ analyze() 走 showToast 分支、results 恒空 ⇒ 三项均不命中。"
+     + "不锚 selected 区的「番茄 ✕ 鸡蛋 ✕」—— 兜底阶段无参 toggle() 会往 Set 里塞入 undefined，"
+     + "该串变成「番茄 ✕ 鸡蛋 ✕ undefined ✕」不稳定。原 expect「undefined」正来源于此。",
 },
 {
   "slug": "food/nutrition-calculator",

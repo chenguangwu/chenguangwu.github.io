@@ -87,11 +87,16 @@ const CASES = [
 },
 {
   "slug": "quality/table-sampling",
-  "inputs": {},
+  "inputs": {
+    "kw": "zzzz"
+  },
+  "clicks": ["search()"],
   "expect": [
-    "A01"
+    "未找到匹配项"
   ],
-  "ref": "auto-restore(default)"
+  "ref": "search() 在 kw 为空时输出 DATA 全量 ⇒ 任何具体编号（A01 等）在默认态都命中 ⇒ 只能反向锚"
+     + "「未找到匹配项」。注入不存在的关键词 zzzz ⇒ results 为空 ⇒ 输出该提示；默认态 DATA 非空、永不出现。"
+     + "原 expect「A01」即默认全量表的首行编号，典型逃生项。",
 }
 ];
 async function main() {

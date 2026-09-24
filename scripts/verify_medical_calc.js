@@ -154,11 +154,22 @@ const CASES = [
 },
 {
   "slug": "medical/reminder-2",
-  "inputs": {},
+  "inputs": {
+    "medName": "阿莫西林胶囊",
+    "medBatch": "B20260118",
+    "medExpiry": "2027-03-15",
+    "medSpec": "0.25g×24粒",
+    "medLocation": "客厅药箱"
+  },
+  "clicks": ["addMed()"],
   "expect": [
-    "暂无药品记录"
+    "阿莫西林胶囊 0.25g×24粒",
+    "1 药品总数",
+    "批号：B20260118"
   ],
-  "ref": "auto-restore(default)"
+  "ref": "addMed() 要求 medName 与 medExpiry 均非空（否则 showToast 后直接 return），两项都要注入；"
+     + "入表后 renderAll() 刷新 medList 与 statGrid。不锚「剩 N 天」与安全/注意/紧急计数 —— 均随运行日漂移。"
+     + "默认态 meds 为空 ⇒ 列表恒「暂无药品记录」、总数恒 0。",
 },
 {
   "slug": "medical/stats-4",
