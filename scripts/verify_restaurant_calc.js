@@ -99,10 +99,13 @@ const CASES = [
 {
   "slug": "restaurant/taste-preference",
   "inputs": {},
-  "expect": [
-    "点击上方按钮开始记录顾客口味偏好"
+  "clicks": [
+    "localStorage.getItem=function(k){return k==='taste_preference_records'?JSON.stringify([{taste:'sweet',time:'2026-01-01'},{taste:'sweet',time:'2026-01-02'},{taste:'sour',time:'2026-01-03'}]):null;};renderGrid();renderStats();"
   ],
-  "ref": "auto-restore(default)"
+  "expect": [
+    "🍬 甜 2 票"
+  ],
+  "ref": "localStorage 覆写注入（同 BATCH116 cleaning/appliance-cycle 打法）：本页记录唯一数据源是 TASTE_KEY='taste_preference_records'，renderGrid/renderStats 每次都经 loadRecords() 重读 ⇒ 覆写 localStorage.getItem 后再强制重渲染即等价「用户已投 甜×2、酸×1」，独立复算得 甜 2 票 / 酸 1 票 / 总 3 票。不走 recordTaste() 是因为 tastes 常量在另一个 <script> 块，pageEval 作用域取不到 ⇒ 调用必抛 undefined.name。旧锚「暂无记录…」是空态提示 ⇒ 判别力 0。清 clicks 后 localStorage 无记录 ⇒ 退回空态提示 ⇒ 零逃生项。"
 }
 ];
 async function main() {

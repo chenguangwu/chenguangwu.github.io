@@ -62,10 +62,13 @@ const CASES = [
 {
   "slug": "security/first-aid-kit",
   "inputs": {},
-  "expect": [
-    "20片"
+  "clicks": [
+    "selectScene('outdoor');generateList();"
   ],
-  "ref": "auto-restore(default)"
+  "expect": [
+    "蛇药片"
+  ],
+  "ref": "clicks 注入：本页逻辑包在 IIFE 里，但把入口显式挂到了 window（selectScene / generateList / toggleItem / checkAll / uncheckAll）⇒ pageEval 与 harness 的 globalThis 导出都能调到。注意 selectScene() 只重渲场景卡，物品清单必须再显式 generateList() 才会渲染（少这一步则注入无输出，是本页最易踩的点）。注入后 selectedScene='outdoor'，清单渲染户外专属条目（蛇药片、防中暑药（藿香正气水）、净水片、急救指南卡片等），默认 selectedScene='home' 不产出这些名 ⇒ 零逃生项。旧锚「20片」是家庭包首项数量字面量 ⇒ 判别力 0。"
 },
 {
   "slug": "security/flood-level",

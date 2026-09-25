@@ -65,10 +65,13 @@ const CASES = [
 {
   "slug": "gardening/plant-calendar",
   "inputs": {},
-  "expect": [
-    "11-12月"
+  "clicks": [
+    "toggleCat('leaf');"
   ],
-  "ref": "auto-restore(default)"
+  "expect": [
+    "（筛选 8 种）"
+  ],
+  "ref": "clicks 注入：toggleCat('leaf') 把叶菜加入 currentCats，renderView → renderMonthView 仅在过滤集非空时拼出派生串「（筛选 N 种）」，N = 该分类蔬菜数；离线独立复算 VEGGIES 中 cat='leaf' 共 8 种（leaf 8 / melon 6 / fruit 5 / root 5 / allium 3 / bean 3 / other 1，合计 31）⇒ 锚取值 8。旧锚「11-12月」是番茄收获期的静态字段字面量 ⇒ 判别力 0。注意该页 currentMonth 取 new Date()（会渲染「📍 九月 (本月)」这类随日期漂移的串），但「（筛选 8 种）」与日期无关 ⇒ 跨天稳定。清 clicks 后过滤集为空、该串不渲染 ⇒ 零逃生项。"
 },
 {
   "slug": "gardening/plant-care",
