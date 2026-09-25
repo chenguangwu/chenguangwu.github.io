@@ -188,12 +188,13 @@ const CASES = [
 },
 {
   "slug": "music/sheet-music",
-  "inputs": {},
-  "expect": [
-    "C G D A E B F# F Bb Eb Ab Db",
-    "1 C 2 D 3 E 4 F 5 G 6 A 7 B 1 C↑"
+  "clicks": [
+    "setKey('G');"
   ],
-  "ref": "无可注入控件（调号选择器为 innerHTML 生成的 span+onclick，本页无任何 input/select/checkbox ⇒ 结构性不可注入；原断言「undefined」来自零参 setKey() 兜底调用，属逃生项，改为断言初始化渲染的调号条与唱名条）"
+  "expect": [
+    "1 G 2 A 3 B 4 C↑ 5 D↑ 6 E↑ 7 F#↑ 1 G↑"
+  ],
+  "ref": "弱用例去默认化（BATCH118）：**推翻旧 ref「结构性不可注入」** —— setKey(k) 可经 clicks 直调，无需模拟 innerHTML 生成的 span 点击。原锚默认 C 大调调号条/唱名条；改 setKey('G') 后锚 G 大调音阶「1 G 2 A 3 B 4 C↑ 5 D↑ 6 E↑ 7 F#↑ 1 G↑」（↑ 八度标记随 offset 递变，与默认 C「1 C…1 C↑」逐串区分）。**注意**：单锚「G」不可用 —— 调号条恒列出全部 15 个调名（默认态必命中）；必须锚完整唱名复合串。清 clicks 兜底遍历不产出 ⇒ 零逃生项。"
 },
 {
   "slug": "music/web-tuner",

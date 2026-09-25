@@ -36,11 +36,13 @@ const CASES = [
 },
 {
   "slug": "acupuncture/cupping-mark-analysis",
-  "inputs": {},
-  "expect": [
-    "5-7"
+  "clicks": [
+    "selectMark('red');analyze();"
   ],
-  "ref": "auto-restore(default)"
+  "expect": [
+    "鲜红 辨证分析"
+  ],
+  "ref": "弱用例去默认化（BATCH118）：原锚默认态「5-7」（消退天数常量，判别力0）。clicks 经 selectMark('red')+analyze() 切到鲜红罐印，expect 锚「鲜红 辨证分析」标题 —— 页面默认 currentMark 为 purple（默认态渲染「紫红 辨证分析」），故红色分析只在非默认态出现；清 clicks 兜底遍历不产出该串 ⇒ 零逃生项（锚「紫红」会撞默认态，不可用）。"
 },
 {
   "slug": "acupuncture/cupping-pressure",

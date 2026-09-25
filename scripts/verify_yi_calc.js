@@ -15,11 +15,13 @@ const CASES = [
 },
 {
   "slug": "yi/bagua-viewer",
-  "inputs": {},
-  "expect": [
-    "乾卦"
+  "clicks": [
+    "showGua('坤');"
   ],
-  "ref": "auto-restore(default)"
+  "expect": [
+    "厚德载物，柔顺贞静，含弘光大。"
+  ],
+  "ref": "弱用例去默认化（BATCH118）：原锚「乾卦」（八卦名字串，默认列表本身含全部卦名 + 自然·五行 ⇒ 判别力0）。clicks 经 showGua('坤') 渲染坤卦详情，expect 锚坤卦专属「卦德」串「厚德载物，柔顺贞静，含弘光大。」；默认态只有八卦列表、无「卦象/卦德/象征」详情文本 ⇒ 零逃生项。"
 },
 {
   "slug": "yi/yi-yao",
