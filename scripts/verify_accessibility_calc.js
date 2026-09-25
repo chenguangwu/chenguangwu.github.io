@@ -15,11 +15,13 @@ const CASES = [
 },
 {
   "slug": "accessibility/sign-language",
-  "inputs": {},
+  "inputs": {
+    "searchInput": "zzzqx"
+  },
   "expect": [
-    "43"
+    "未找到匹配词汇"
   ],
-  "ref": "auto-restore(default)"
+  "ref": "关键词过滤型：inputs 写 searchInput=zzzqx ⇒ oninput=render() 过滤 43 条词汇得空集 ⇒ 「未找到匹配词汇」。默认态渲染全量 43 条、blob 无该串（已双态核验），故为排他锚点。"
 },
 {
   "slug": "accessibility/voice-synthesis",

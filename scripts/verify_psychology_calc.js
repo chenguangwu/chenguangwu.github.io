@@ -14,11 +14,22 @@ const CASES = [
 },
 {
   "slug": "psychology/calc-12",
-  "inputs": {},
+  "inputs": {
+    "s-life": "0",
+    "s-health": "10",
+    "s-relation": "10",
+    "s-work": "10",
+    "s-finance": "10",
+    "s-growth": "10",
+    "s-leisure": "10",
+    "s-safety": "10",
+    "s-self": "10",
+    "s-mood": "10"
+  },
   "expect": [
-    "0/10"
+    "最短板：生活满意度（0 分）"
   ],
-  "ref": "auto-restore(default)"
+  "ref": "inputs 写 10 个滑杆（id=s-<维度键>）：life=0、其余=10 ⇒ getScores 求和 90 ⇒ level(90)='很高'；min=0 落在 life、max=10 落在 health。默认 DEFAULTS=[7,6,7,6,5,6,5,7,6,6] 合计 61 ⇒ 最短板是经济状况（5 分）。注入态唯一产出「最短板：生活满意度（0 分）」，双态可区分。"
 },
 {
   "slug": "psychology/generator-20",

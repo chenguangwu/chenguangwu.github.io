@@ -25,11 +25,13 @@ const CASES = [
 },
 {
   "slug": "chinese-cook/ingredient-substitute",
-  "inputs": {},
+  "inputs": {
+    "search": "zzzqx"
+  },
   "expect": [
-    "14"
+    "的替代方案，请尝试其他关键词或查看下方速查表"
   ],
-  "ref": "auto-restore(default)"
+  "ref": "关键词过滤型：inputs 写 search=zzzqx ⇒ oninput=doSearch() ⇒ matched.length===0 ⇒ result 区渲染「未找到\"zzzqx\"的替代方案，请尝试其他关键词或查看下方速查表。」。锚点避开内层引号（防 extractCases 转义歧义）。默认态 kw 空 ⇒ showAll() 全量 14 条、blob 无该串（已双态核验）。"
 },
 {
   "slug": "chinese-cook/oil-temp",

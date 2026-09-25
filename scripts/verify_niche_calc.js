@@ -8,7 +8,7 @@ const CASES = [
   "expect": [
     "0.3-0.5"
   ],
-  "ref": "auto-restore(default)"
+  "ref": "auto-restore(default)｜结构性不可注入：唯一排他串是空集提示「未找到匹配的水草」，但兜底链中 selectLevel() 无参执行会置 currentLevel=undefined ⇒ renderPlants() 恒得空集并渲染同一提示 ⇒ 默认/失败态同串，锚点无法区分（discriminate 实测判为逃生项）。"
 },
 {
   "slug": "niche/audio-sample-rate",
@@ -123,11 +123,13 @@ const CASES = [
 },
 {
   "slug": "niche/pruning-calendar",
-  "inputs": {},
+  "inputs": {
+    "searchInput": "zzzqx"
+  },
   "expect": [
-    "8月底至9月修剪"
+    "未找到匹配的植物"
   ],
-  "ref": "auto-restore(default)"
+  "ref": "关键词过滤型：inputs 写 searchInput=zzzqx ⇒ oninput=filterPlants() ⇒ renderPlants() 得空集 ⇒ 「未找到匹配的植物」。默认态渲染当季 16 种植物全量、blob 无该串（已双态核验），故为排他锚点。"
 },
 {
   "slug": "niche/recommender-temp-pottery",

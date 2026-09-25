@@ -49,11 +49,13 @@ const CASES = [
 },
 {
   "slug": "library/clc-classifier",
-  "inputs": {},
+  "inputs": {
+    "search": "zzzqx"
+  },
   "expect": [
-    "TP/W285"
+    "搜索结果：0 条"
   ],
-  "ref": "auto-restore(default)"
+  "ref": "inputs 写 search=zzzqx ⇒ oninput=onSearch() ⇒ renderSubs('zzzqx') 命中 0 条 ⇒ 结果区渲染「搜索结果：0 条」。默认态走 else 分支渲染当前主类二级类目、blob 无「搜索结果」串（已双态核验）；兜底 onSearch() 读到空值仍走 else，不产该串。"
 },
 {
   "slug": "library/generator-label",

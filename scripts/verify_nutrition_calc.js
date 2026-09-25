@@ -104,11 +104,13 @@ const CASES = [
 },
 {
   "slug": "nutrition/food-calorie-lookup",
-  "inputs": {},
+  "inputs": {
+    "kw": "zzzqx"
+  },
   "expect": [
-    "1176"
+    "未匹配到食物"
   ],
-  "ref": "auto-restore(default)"
+  "ref": "关键词过滤型：inputs 写 kw=zzzqx ⇒ oninput=filterFood() ⇒ render([]) 输出「未匹配到食物，请尝试关键词或更换表述。」。默认态 kw 空 ⇒ render(FOODS) 全量、blob 无该串（已双态核验），故为排他锚点。"
 },
 {
   "slug": "nutrition/generator-glucose-load",

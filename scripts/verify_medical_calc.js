@@ -113,11 +113,13 @@ const CASES = [
 },
 {
   "slug": "medical/drug-info",
-  "inputs": {},
+  "inputs": {
+    "search": "zzzqx"
+  },
   "expect": [
-    "100-200mg/次"
+    "未找到匹配药物"
   ],
-  "ref": "auto-restore(default)"
+  "ref": "关键词过滤型：inputs 写 search=zzzqx ⇒ oninput=render() 过滤 34 种药物得空集 ⇒ 结果区渲染「未找到匹配药物」。默认态（search 空）渲染全部 34 种、blob 内无该串（已双态核验），故为排他锚点。"
 },
 {
   "slug": "medical/estimate-metabolism",

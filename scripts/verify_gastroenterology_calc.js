@@ -132,11 +132,13 @@ const CASES = [
 },
 {
   "slug": "gastroenterology/gastroscopy-atlas",
-  "inputs": {},
+  "inputs": {
+    "search": "zzzqx"
+  },
   "expect": [
-    "Hp感染几乎100%"
+    "未找到匹配的条目"
   ],
-  "ref": "auto-restore(default)"
+  "ref": "关键词过滤型：inputs 写 search=zzzqx ⇒ oninput=filterAtlas() ⇒ renderAtlas() 得空集 ⇒ 「未找到匹配的条目」。默认态（search 空）渲染全量条目、blob 无该串（已双态核验），故为排他锚点。"
 },
 {
   "slug": "gastroenterology/glasgow-pancreatitis",

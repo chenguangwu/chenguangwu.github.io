@@ -324,17 +324,17 @@
 
 ### 10.2 现状（实测基线）
 
-- `all_default 6 / no_inputs 59 / escape 0`；门禁 `run_gates.py` **217 项全过**、逃生项 0（判别器已检 **3061** 例 / 跳过 100）。
-- A 级率 **99.2%**（A 4693 / B 32 / C 4，共 4729）；deep-dive 术语内链 **1591 页 / 2268 条 / 唯一目标 630**（零死链、零自链、单页 ≤6 条）。- 存量弱用例 **65 例**（口径、选批规则与不可注入清单见 §10.3）。
+- `all_default 6 / no_inputs 51 / escape 0`；门禁 `run_gates.py` **217 项全过**、逃生项 0（判别器已检 **3068** 例 / 跳过 93）。
+- A 级率 **99.2%**（A 4693 / B 32 / C 4，共 4729）；deep-dive 术语内链 **1591 页 / 2268 条 / 唯一目标 630**（零死链、零自链、单页 ≤6 条）。- 存量弱用例 **57 例**（口径、选批规则与不可注入清单见 §10.3）。
   - **注意：弱用例整体处于判别器盲区** —— 「注入值等于默认值」的用例被判 `usable=false` 直接跳过（§10.5）⇒ `escape=0` 只说明强用例无逃生项；每批改造后须重跑判别器确认其由「跳过」转为「已检且变红」。
 
 ### 10.3 弱用例去默认化（仅在 P0/P1 顺带时执行）
 
-**存量 65 例**（`no_inputs=59` / `all_default=6`，selfcheck 口径；含 textarea / 动态 id / 结构性不可注入的「skip」类全站 107）。**`all_default` 剩余 6 例已全部判定为结构性不可改造**，逐例理由已写进各用例 `ref`（含实测结论），勿重复评估。**转 P3 顺带，不单独成批**；逐批成果与逐例打法归档在 `.workbuddy/memory/2026-09-2*.md` 与 skill `toolbox-weakcase-hardening`，**本文件不再记录批次流水**。
+**存量 57 例**（`no_inputs=51` / `all_default=6`，selfcheck 口径；含 textarea / 动态 id / 结构性不可注入的「skip」类全站 93）。**`all_default` 剩余 6 例已全部判定为结构性不可改造**，逐例理由已写进各用例 `ref`（含实测结论），勿重复评估。**转 P3 顺带，不单独成批**；逐批成果与逐例打法归档在 `.workbuddy/memory/2026-09-2*.md` 与 skill `toolbox-weakcase-hardening`，**本文件不再记录批次流水**。
 
 **选批口径**：① 按「可注入数」降序挑批次；② **结构性不可注入的不要选**（判据见 §10.5 B 组）—— 保留 `no_inputs` 并在 `ref` 写明理由；③ 每批 8–11 例，走 §10.4 六步。
 
-**已知结构性不可注入清单（勿重复评估）**：`tcm-diagnosis/etiology-tree`、`music/sheet-music`、`cleaning/appliance-cycle`、`cleaning/cycle-20`、`mining/estimate-reserve`、`admin/detector-time`、`chess/xiangqi-endgame`、`dermatology/{contact-dermatitis-patch,miliaria-classification,wood-lamp}`、`travel/{aim-trainer,emergency-phrasebook,packing-list}`、`endocrinology/ti-rads`、`fire/response-drill`、`rheumatology/{bvas,sledai}`、`language/vocabulary-builder`、`medical2/drug-expiry`、`nutrition/estimate-2`（属性选择器取选中态，登记表不支持）、`electromagnetism/free-space-impedance`（输入标注「无需输入」的**常量输出页**，输出恒 376.73 Ω）、`audio/audio-cut`（依赖音频文件解码）、`cognition/human-benchmark`（8 个子测验全靠点击 / 倒计时 / 随机序列驱动、成绩进 localStorage）、`office/mindmap`（SVG / Canvas 布局，harness 无布局与字体度量）、`security/virtual-safe`（需 WebCrypto，harness 无 `crypto.subtle`）。其中 **localStorage 为唯一数据源的页**（`drug-expiry` / `packing-list` / `appliance-cycle`）可复用「`clicks` 内覆写 `localStorage.getItem`」覆写法复评（已验证该路可行）。
+**已知结构性不可注入清单（勿重复评估）**：`tcm-diagnosis/etiology-tree`、`music/sheet-music`、`cleaning/appliance-cycle`、`cleaning/cycle-20`、`mining/estimate-reserve`、`admin/detector-time`、`chess/xiangqi-endgame`、`dermatology/{contact-dermatitis-patch,miliaria-classification,wood-lamp}`、`travel/{aim-trainer,emergency-phrasebook}`、`fire/response-drill`、`rheumatology/{bvas,sledai}`、`language/vocabulary-builder`、`medical2/drug-expiry`、`nutrition/estimate-2`（属性选择器取选中态，登记表不支持）、`electromagnetism/free-space-impedance`（输入标注「无需输入」的**常量输出页**，输出恒 376.73 Ω）、`audio/audio-cut`（依赖音频文件解码）、`cognition/human-benchmark`（8 个子测验全靠点击 / 倒计时 / 随机序列驱动、成绩进 localStorage）、`office/mindmap`（SVG / Canvas 布局，harness 无布局与字体度量）、`security/virtual-safe`（需 WebCrypto，harness 无 `crypto.subtle`）、`niche/aquarium-light`（空态串被兜底链复现，不可锚）、`misc/physics-constants`（空态在静态元素内、仅 `display` 切换 ⇒ 不被采集）。其中 **localStorage 为唯一数据源的页**（`drug-expiry` / `packing-list` / `appliance-cycle`）可复用「`clicks` 内覆写 `localStorage.getItem`」覆写法复评（已验证该路可行）。
 
 ### 10.4 每批收口流程（顺带改造时六步，缺一不可）
 
@@ -388,6 +388,7 @@
 7. **默认态已全量渲染的页面，锚点要换区**：① 同引擎多段渲染（注入段 + 兜底 `loadSample()` 段）会共用常量串 ⇒ 只锚注入段独有串；sample / 示例文本即逃生项，注入数据须与样本用词错开。② 「kw 空输出全量」型过滤页（`search(kw)`），任何具体编号 / 名称在默认态都命中 ⇒ 反向注入**不存在的关键词**、锚「未找到匹配项」类 空结果提示。③ 「卡片列表区 + 详情区」双区页，卡片区默认已渲染全部条目的名称与 desc ⇒ 只锚详情区独有文案。④ **筛选型图鉴页（默认渲染全表）**任何单行文本默认态都有 ⇒ 只锚**仅过滤态成立的跨行相邻串**（过滤后 A 紧邻 B、全表中 A 后是 C），或锚空结果提示。
 8. **注入与格式口径**：`select` 的 `selected` 属性在桩里不生效 ⇒ 默认选中项必须**显式注入**（`selfcheck` 取 JS 设定的真实默认、`discriminate_check` 取首个 option，两者口径不同）。`inputs` 键若是生成器模板串残留（`${f}` / `pri${i}`）会同时骗过两把锁（不进棘轮 + 记「正确变红」）⇒ 巡检 `verify_*_calc.js` 里形如 `${` 的键。`fmt()` 走 `toLocaleString()` 默认截 3 位小数 ⇒ 定 expect 时避开被截断的位置。
 9. **clicks 锚「不读输入的全量函数」必误判逃生项**：判别器对 clicks 的「注入失败」模拟是**清空 clicks 后跑**（含兜底遍历）。若 expect 锚 `checkAll()` 类「不读输入、恒产全量」输出（如 `36/36`），兜底重调仍同值 ⇒ 判「仍 PASS」= 逃生项（BATCH112 `travel/packing-list` 首版中招）。✅ 修法：clicks 锚**具体输入态**（`toggleItem(0,0/0,1/0,2)` 勾 N 项 → `N/总数`），默认态 0 项不命中。
+10. **空结果提示不可锚两形态**：① 提示同时被兜底链复现（`selectXxx()` 无参置页面全局态 `undefined` ⇒ 过滤集恒空、渲同一提示）⇒ 注入态与失败态同串，判逃生项。② 提示在**独立静态元素**内、仅 `style.display` 切换 ⇒ 不写入结果容器、`collectStrings` 采不到 ⇒ blob 永不含该串。✅ 定锚前用探针双态 dump 比对，只取「注入态有 / 默认态无且兜底不复现」的串。
 
 **D. 工具与方法**
 
