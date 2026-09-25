@@ -35,10 +35,13 @@ const CASES = [
 {
   "slug": "travel/emergency-phrasebook",
   "inputs": {},
-  "expect": [
-    "ee-mer-jen-see"
+  "clicks": [
+    "setLang('ja');"
   ],
-  "ref": "结构性不可注入（2026-09-24 travel 批）：input/select/textarea 计数为 0；短语表与语言按钮均由 JS 模板渲染，切语言靠 setLang('<lang>') 按钮 onclick（无 id、不在 elements 表、无 clicks），且 setLang 属 DESTRUCTIVE 前缀已被 harness 兜底排除 ⇒ 只能渲染默认英文表。保留在 no_inputs 基线。"
+  "expect": [
+    "kon-ni-chi-wa"
+  ],
+  "ref": "clicks 直调 setLang('ja') 切到日文短语表（推翻旧 ref 误判）：默认渲染英文表（blob 无日文串），注入后渲染「こんにちは kon-ni-chi-wa」等日文短语；「kon-ni-chi-wa」为日文态独有锚点（已双态核验默认态无此串）。原 ref 错判 setLang 为 DESTRUCTIVE 前缀被兜底排除，实测 clicks 通道可正常触发。"
 },
 {
   "slug": "travel/international-tip-calculator",

@@ -187,11 +187,21 @@ const CASES = [
 },
 {
   "slug": "neurology/sara",
-  "inputs": {},
+  "inputs": {
+    "q1": "2",
+    "q2": "2",
+    "q3": "1",
+    "q4": "0",
+    "q5": "0",
+    "q6": "0",
+    "q7": "0",
+    "q8": "0"
+  },
   "expect": [
-    "5.手指追逐"
+    "轻度",
+    "总分 = 5 / 40"
   ],
-  "ref": "auto-restore(default)"
+  "ref": "8 个 select 评分累加：inputs 写 q1..q8（2+2+1=5）→ calc() 得 SARA 总分 5、严重程度「轻度」（默认全 0 ⇒ 总分 0 ⇒「无/极轻」）。锚「轻度」+「总分 = 5 / 40」均为注入态独有（默认态为「无/极轻」「总分 = 0 / 40」，已双态核验）。"
 },
 {
   "slug": "neurology/trigeminal-bni",

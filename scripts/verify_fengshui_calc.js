@@ -35,11 +35,16 @@ const CASES = [
 },
 {
   "slug": "fengshui/good-day-selector",
-  "inputs": {},
-  "expect": [
-    "婚嫁"
+  "inputs": {
+    "startDate": "2026-10-01"
+  },
+  "clicks": [
+    "selectActivity('wedding');findGoodDays();"
   ],
-  "ref": "auto-restore(default)"
+  "expect": [
+    "未来30天（建除十二神）"
+  ],
+  "ref": "date 输入 + 顶层 currentActivity 状态：inputs 写 startDate=2026-10-01、clicks 调 selectActivity('wedding') 置 currentActivity 后 findGoodDays() 渲染 30 天吉凶结果区；默认态（无 startDate）findGoodDays 早返回 toast、结果区为空，故「未来30天（建除十二神）」为排他锚点（已双态核验默认态无此串）。"
 },
 {
   "slug": "fengshui/zodiac-lookup",
