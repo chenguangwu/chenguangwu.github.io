@@ -81,11 +81,14 @@ const CASES = [
 },
 {
   "slug": "nutrition/estimate-1",
-  "inputs": {},
-  "expect": [
-    "25-30g"
+  "clicks": [
+    "getSelected = function(){return [0,3,6];};calculate();"
   ],
-  "ref": "auto-restore(default)"
+  "expect": [
+    "已选择 3 种食物 · 建议每日 25-30g",
+    "11.2g"
+  ],
+  "ref": "去默认化（原 expect「25-30g」＝建议区间静态标签，注入失败仍命中 → 逃生项）：本页选择态存于 DOM dataset.selected，而 getSelected() 用 querySelectorAll('#foodGrid .data-card[data-selected=\"1\"]') 读取——harness 将 querySelectorAll 重写为 dynQuery（不支持后代+属性组合选择器），真实点击勾选态读不出。故 clicks 在页面作用域覆盖 getSelected 返回 [0,3,6]（燕麦片4/苹果4.4/胡萝卜2.8）后 calculate()，等效「用户选 3 项」，result 渲染「11.2g 摄入不足」+「已选择 3 种食物 · 建议每日 25-30g」；默认未选显示「选择食物后点击估算。」，不含 11.2g/已选择 3 种，注入失败即不命中。"
 },
 {
   "slug": "nutrition/estimate-2",

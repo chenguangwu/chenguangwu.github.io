@@ -24,11 +24,13 @@ const CASES = [
 },
 {
   "slug": "gardening/garden-calendar",
-  "inputs": {},
-  "expect": [
-    "10月"
+  "clicks": [
+    "setMonth(12)"
   ],
-  "ref": "auto-restore(default)"
+  "expect": [
+    "12月 园艺工作 · 北方 共 3 项工作"
+  ],
+  "ref": "去默认化（原 expect「10月」＝默认当月态，注入失败仍命中 → 逃生项）：clicks 调 setMonth(12)（无 this 依赖），render() 输出 12 月北方园艺「12月 园艺工作 · 北方 共 3 项工作 修剪 冬季修剪...」；默认九月显示「9月 ...」不含「12月 ... 北方」，注入失败即不命中。（注：setZone('south') 触发 buildMonthText 在南方分区有未定义项报错，故只切月份、走默认北方分区。）"
 },
 {
   "slug": "gardening/garden-layout",

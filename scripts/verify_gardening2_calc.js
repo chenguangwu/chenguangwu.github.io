@@ -18,11 +18,13 @@ const CASES = [
 },
 {
   "slug": "gardening2/lawn-height",
-  "inputs": {},
-  "expect": [
-    "推荐2.5cm"
+  "clicks": [
+    "currentSeason='winter';renderGrass();renderHeight();"
   ],
-  "ref": "auto-restore(default)"
+  "expect": [
+    "2 cm 狗牙根（百慕大） · 冬季"
+  ],
+  "ref": "去默认化（原 expect「推荐2.5cm」＝默认春季态，注入失败仍命中 → 逃生项）：harness 将元素 click() 桩成空操作，故改直接置顶层全局 currentSeason='winter' 后调 renderGrass()/renderHeight()，heightDisplay 渲染冬季草种留茬「2 cm 狗牙根（百慕大） · 冬季 · 暖季型（休眠期）」；默认春季显示「2.5 cm ... · 春季」，注入失败即不命中。（getTip 在暖季型冬季分支报错但被 clicks 的 try/catch 吞掉，不影响 heightDisplay 已写入。）"
 },
 {
   "slug": "gardening2/pest-control",

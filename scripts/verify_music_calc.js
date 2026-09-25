@@ -112,11 +112,13 @@ const CASES = [
 },
 {
   "slug": "music/guitar-fretboard",
-  "inputs": {},
-  "expect": [
-    "10"
+  "clicks": [
+    "setTuning('drop-d');setScale('A','minor');"
   ],
-  "ref": "auto-restore(default)"
+  "expect": [
+    "A 小调： C# D E F# G# A B"
+  ],
+  "ref": "去默认化（原 expect「10」＝默认标准调弦 C 大调态下的静态串，注入失败仍命中 → 逃生项）：setTuning/setScale 为 window 全局函数，clicks 置 Drop D 调弦 + A 小调后 scaleNotesDisplay 渲染「A 小调： C# D E F# G# A B」；默认 C 大调显示「C 大调： C D E F G A B」，注入失败即不命中。"
 },
 {
   "slug": "music/music-analysis",

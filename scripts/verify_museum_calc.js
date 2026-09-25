@@ -79,11 +79,13 @@ const CASES = [
 },
 {
   "slug": "museum/timeline-viewer",
-  "inputs": {},
-  "expect": [
-    "2070"
+  "clicks": [
+    "currentTheme='世界历史';renderTimeline();"
   ],
-  "ref": "auto-restore(default)"
+  "expect": [
+    "前 3100 年 上下埃及统一"
+  ],
+  "ref": "去默认化（原 expect「2070」＝默认「中国历史」主题下夏朝建立 -2070 的渲染串，注入失败仍命中 → 逃生项）：clicks 置顶层全局 currentTheme='世界历史' 后调 renderTimeline()，timeline 渲染世界史首条「前 3100 年 上下埃及统一 政治 古埃及第一王朝建立」；默认中国历史显示「夏朝建立 ... -2070」，注入失败即不命中。"
 }
 ];
 async function main() {

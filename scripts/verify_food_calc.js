@@ -132,11 +132,13 @@ const CASES = [
 },
 {
   "slug": "food/food-calorie-counter",
-  "inputs": {},
-  "expect": [
-    "116"
+  "clicks": [
+    "addFood('主食类',0);addFood('蛋白质类',1);"
   ],
-  "ref": "auto-restore(default)"
+  "expect": [
+    "281 总热量 (千卡)"
+  ],
+  "ref": "去默认化（原 expect「116」＝主食类米饭卡片恒显的卡路里标签，注入失败仍命中 → 逃生项）：clicks 调 addFood 加米饭(116)+鸡胸肉(165)，totals 渲染「281 总热量 (千卡) 14g 蛋白质 (估) 9g 脂肪 (估) 35g 碳水 (估)」；默认 totals 为「0 总热量 (千卡)」不含 281，注入失败即不命中。（addFood 内 localStorage.setItem 在 harness 下可用，渲染先于写入，totals 已正确生成。）"
 },
 {
   "slug": "food/food-pairing",

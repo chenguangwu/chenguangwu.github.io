@@ -77,11 +77,13 @@ const CASES = [
 },
 {
   "slug": "travel/packing-list",
-  "inputs": {},
-  "expect": [
-    "0/6"
+  "clicks": [
+    "toggleItem(0,0);toggleItem(0,1);toggleItem(0,2);renderList();"
   ],
-  "ref": "结构性不可注入（2026-09-24 travel 批）：页面带 id 的控件只有 input#tripName（默认「我的旅行」）与 input#tripDate，实测注入 tripName=测试行程A 后输出与默认态逐字一致（渲染主体 renderList() 只读 currentData.categories，tripName 仅在 saveList() 写 localStorage 时使用，而 saveList 不在 harness 兜底调用序列内）⇒ 输入不影响任何渲染结果；清单勾选靠 div.checkbox 的 toggleItem(i,j) onclick、换模板靠 loadTemplate('x') onclick，均无 id 不可注入。保留在 no_inputs 基线。"
+  "expect": [
+    "3 / 36 项已打包"
+  ],
+  "ref": "去默认化（推翻 2026-09-24 travel 批「结构性不可注入」误判，且修正首版 checkAll 写法被判别器误判逃生项）：勾选靠无 id 的 div.checkbox 的 toggleItem(catIdx,itemIdx) onclick，clicks 直接调 toggleItem(0,0/0,1/0,2) 勾第 0 分类前 3 项后 renderList()，progressText 渲染「3 / 36 项已打包（8%）」；默认 0 项显示「0 / 36 项已打包（0%）」，注入失败即不命中。注：首版用 checkAll() 锚「36/36」，但 checkAll 不读任何输入、兜底阶段被重调恒出 36/36 致误判逃生，故改锚具体勾选数 3/36（兜底 checkAll 出 36/36 不命中）。"
 },
 {
   "slug": "travel/passport-validator",

@@ -47,11 +47,17 @@ const CASES = [
 },
 {
   "slug": "security/emergency-contacts",
-  "inputs": {},
-  "expect": [
-    "400-161-9995"
+  "inputs": {
+    "customName": "测试王医生",
+    "customPhone": "13800000000"
+  },
+  "clicks": [
+    "addCustom()"
   ],
-  "ref": "auto-restore(default)"
+  "expect": [
+    "测试王医生"
+  ],
+  "ref": "去默认化（原 expect「400-161-9995」＝核心应急联系人卡片恒显号码，注入失败仍命中 → 逃生项）：inputs 填自定义联系人姓名/电话后 clicks 调 addCustom()（window 全局，读输入框并写 localStorage+渲染 customList），customList 新增「测试王医生 / 13800000000」；默认 customList 为「暂无自定义联系人」，不含「测试王医生」，注入失败即不命中。"
 },
 {
   "slug": "security/first-aid-kit",
