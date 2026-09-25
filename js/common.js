@@ -2451,6 +2451,82 @@ function toolboxTaobaoAdUrl(){
 // 避免各页面各自硬编码断点判断导致手机端误走 PC 链（会被淘宝强制登录→转化归零）。
 if (global.ToolBox) global.ToolBox.toolboxTaobaoAdUrl = toolboxTaobaoAdUrl;
 
+// 领券中心推广链接：该活动位 PC 与手机端是同一条链接，无需区分 PC/WAP。
+// 素材：/assets/images/ads/coupon-center-{pc,m}.webp
+var TOOLBOX_COUPON_AD_URL = 'https://s.click.taobao.com/1zCDD9j';
+function toolboxCouponAdUrl(){ return TOOLBOX_COUPON_AD_URL; }
+if (global.ToolBox) global.ToolBox.toolboxCouponAdUrl = toolboxCouponAdUrl;
+
+// 领券中心图片 banner（响应式：手机取 640w 窄图，桌面取 1200w 宽图）
+function toolboxCouponBannerHtml(pos){
+  return '<div class="coupon-banner" data-ad-pos="' + pos + '">'
+    + '<a class="coupon-ad-link" href="' + TOOLBOX_COUPON_AD_URL + '" target="_blank" rel="noopener sponsored">'
+    + '<img class="coupon-ad-img" src="/assets/images/ads/coupon-center-pc.webp"'
+    + ' srcset="/assets/images/ads/coupon-center-m.webp 640w, /assets/images/ads/coupon-center-pc.webp 1200w"'
+    + ' sizes="(max-width:767px) 92vw, 928px" width="1200" height="198"'
+    + ' alt="淘宝天猫领券中心，抢大额官方补贴，先领券再下单更划算" loading="lazy" decoding="async">'
+    + '</a></div>';
+}
+
+// 两则广告的卡片 HTML：帧1 淘宝精选（橙），帧2 领券中心（正红）
+function toolboxAdSlidesHtml(){
+  var cartIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>';
+  var ticketIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z"/><path d="M13 5v2"/><path d="M13 17v2"/><path d="M13 11v2"/></svg>';
+  return '<div class="ad-slide is-active">'
+      + '<a class="tool-ad-card" href="' + toolboxTaobaoAdUrl() + '" target="_blank" rel="noopener sponsored">'
+      + '<div class="tool-ad-content"><div class="tool-ad-icon">' + cartIcon + '</div>'
+      + '<div class="tool-ad-text"><span class="tool-ad-title" data-i18n="ad.taobao_title" data-i18n-fb="淘宝精选">淘宝精选</span>'
+      + '<span class="tool-ad-desc" data-i18n="ad.taobao_desc" data-i18n-fb="精选好物，限时优惠">精选好物，限时优惠</span></div>'
+      + '<span class="tool-ad-cta" data-i18n="ad.taobao_cta" data-i18n-fb="去看看 →">去看看 →</span></div></a></div>'
+    + '<div class="ad-slide">'
+      + '<a class="tool-ad-card tool-ad-card--coupon" href="' + TOOLBOX_COUPON_AD_URL + '" target="_blank" rel="noopener sponsored">'
+      + '<div class="tool-ad-content"><div class="tool-ad-icon tool-ad-icon--coupon">' + ticketIcon + '</div>'
+      + '<div class="tool-ad-text"><span class="tool-ad-title" data-i18n="ad.coupon_title" data-i18n-fb="领券中心">领券中心</span>'
+      + '<span class="tool-ad-desc" data-i18n="ad.coupon_desc" data-i18n-fb="抢大额官方补贴，先领券再下单">抢大额官方补贴，先领券再下单</span></div>'
+      + '<span class="tool-ad-cta tool-ad-cta--coupon" data-i18n="ad.coupon_cta" data-i18n-fb="去领券 →">去领券 →</span></div></a></div>';
+}
+function toolboxAdCarouselHtml(){
+  return '<div class="ad-carousel-track">' + toolboxAdSlidesHtml() + '</div>'
+    + '<div class="ad-carousel-dots">'
+    + '<button type="button" class="ad-dot is-active" aria-current="true" aria-label="广告 1"></button>'
+    + '<button type="button" class="ad-dot" aria-current="false" aria-label="广告 2"></button>'
+    + '</div>';
+}
+
+// 广告轮播：5 秒自动切换；悬停 / 页面隐藏时暂停；尊重 prefers-reduced-motion（不开自动播放）
+function toolboxInitAdCarousel(root){
+  var slides = root.querySelectorAll('.ad-slide');
+  var dots = root.querySelectorAll('.ad-dot');
+  if (slides.length < 2) return;
+  var idx = 0, timer = null;
+  var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  function go(n){
+    idx = (n + slides.length) % slides.length;
+    for (var k = 0; k < slides.length; k++){
+      slides[k].classList.toggle('is-active', k === idx);
+      if (dots[k]) {
+        dots[k].classList.toggle('is-active', k === idx);
+        dots[k].setAttribute('aria-current', k === idx ? 'true' : 'false');
+      }
+    }
+  }
+  function start(){ if (!timer && !reduce) timer = setInterval(function(){ go(idx + 1); }, 5000); }
+  function stop(){ if (timer) { clearInterval(timer); timer = null; } }
+  root.addEventListener('mouseenter', stop);
+  root.addEventListener('mouseleave', start);
+  for (var k = 0; k < dots.length; k++) {
+    (function(i){ dots[i].addEventListener('click', function(){ go(i); stop(); start(); }); })(k);
+  }
+  document.addEventListener('visibilitychange', function(){ document.hidden ? stop() : start(); });
+  go(0);
+  start();
+}
+if (global.ToolBox) {
+  global.ToolBox.toolboxInitAdCarousel = toolboxInitAdCarousel;
+  global.ToolBox.toolboxCouponBannerHtml = toolboxCouponBannerHtml;
+  global.ToolBox.toolboxAdCarouselHtml = toolboxAdCarouselHtml;
+}
+
 // Auto-insert Taobao ad banner into tool pages
 (function(){
   document.addEventListener('DOMContentLoaded', function(){
@@ -2459,7 +2535,6 @@ if (global.ToolBox) global.ToolBox.toolboxTaobaoAdUrl = toolboxTaobaoAdUrl;
       if(document.querySelector('.tool-ad-banner')) return;
       var container = document.querySelector('.container');
       if(!container) return;
-      var adUrl = toolboxTaobaoAdUrl();
       var label = document.createElement('div');
       label.className = 'tool-ad-label';
       label.setAttribute('data-i18n', 'ad.label_promo');
@@ -2472,29 +2547,40 @@ if (global.ToolBox) global.ToolBox.toolboxTaobaoAdUrl = toolboxTaobaoAdUrl;
       if (window.I18n && typeof window.I18n.t === 'function') {
         label.textContent = window.I18n.t('ad.label_promo', '— 推广 —');
       }
+      // 顶部为两则广告轮播：首屏黄金位若两行堆叠会挤压正文，且同类广告并排显得堆砌；
+      // 轮播保持单一视觉焦点、曝光轮换，且不增加占位高度。
       var adDiv = document.createElement('div');
-      adDiv.className = 'tool-ad-banner';
+      adDiv.className = 'tool-ad-banner ad-carousel';
       adDiv.setAttribute('data-ad-pos', 'tool-top');
-      adDiv.innerHTML = '<a class="tool-ad-card" href="' + adUrl + '" target="_blank" rel="noopener sponsored">'
-        + '<div class="tool-ad-content">'
-        + '<div class="tool-ad-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg></div>'
-        + '<div class="tool-ad-text"><span class="tool-ad-title" data-i18n="ad.taobao_title" data-i18n-fb="淘宝精选">淘宝精选</span><span class="tool-ad-desc" data-i18n="ad.taobao_desc" data-i18n-fb="精选好物，限时优惠">精选好物，限时优惠</span></div>'
-        + '<span class="tool-ad-cta" data-i18n="ad.taobao_cta" data-i18n-fb="去看看 →">去看看 →</span>'
-        + '</div></a>';
+      adDiv.innerHTML = toolboxAdCarouselHtml();
       container.parentNode.insertBefore(adDiv, container);
       if (window.I18n && typeof window.I18n.apply === 'function') window.I18n.apply(adDiv);
-      var adCard = adDiv.querySelector('.tool-ad-card');
-      if(adCard) {
-        adCard.addEventListener('click', function(){
+      toolboxInitAdCarousel(adDiv);
+      // 点击埋点：沿用 ad_tb，额外带上第几帧（ad_slot）
+      Array.prototype.forEach.call(adDiv.querySelectorAll('.tool-ad-card'), function(card){
+        card.addEventListener('click', function(){
           try {
+            var n = Array.prototype.indexOf.call(adDiv.querySelectorAll('.ad-slide'), card.parentNode) + 1;
             if (window.ToolBox && ToolBox.Analytics) ToolBox.Analytics.track('ad_tb', {
-              ad_pos: adCard.closest('.tool-ad-banner') && adCard.closest('.tool-ad-banner').getAttribute('data-ad-pos') || 'tool',
-              ad_page: 'tool'
+              ad_pos: 'tool-top', ad_page: 'tool', ad_slot: n
             });
           } catch (e) {}
         });
-      }
+      });
     }, 0);
+  });
+})();
+
+// 首页顶部轮播：静态 HTML 中淘宝帧只写占位 href，PC/WAP 双链仍由本文件统一修正
+// （手机打开 PC 落地页会被淘宝强制登录），修正后再启动轮播。
+(function(){
+  document.addEventListener('DOMContentLoaded', function(){
+    var root = document.getElementById('homeAdCarousel');
+    if (!root) return;
+    Array.prototype.forEach.call(root.querySelectorAll('[data-ad-link="taobao"]'), function(a){
+      a.setAttribute('href', toolboxTaobaoAdUrl());
+    });
+    toolboxInitAdCarousel(root);
   });
 })();
 
@@ -2819,6 +2905,14 @@ function injectAdBanner(){
     }
     ad.appendChild(label);
     ad.appendChild(box);
+    // 底部为「两则同时展示」：卡片（淘宝精选）+ 领券中心图片 banner。
+    // 出口位：用户已读完内容，一次给出两种形态的入口可提升点击机会，且不影响首屏。
+    // AdSense 模式下不叠加，避免两套广告体系混投。
+    if (!window.TOOLBOX_ADS_CLIENT) {
+      var cbox = document.createElement('div');
+      cbox.innerHTML = toolboxCouponBannerHtml('tool-bottom');
+      ad.appendChild(cbox.firstChild);
+    }
     container.appendChild(ad);
     if (window.I18n && typeof window.I18n.apply === 'function') window.I18n.apply(ad);
   } catch(e){}
@@ -2955,7 +3049,10 @@ function buildUnifiedFooter(){
           '<p class="footer-desc" data-i18n="footer.desc" data-i18n-fb="5000+ 跨行业纯前端在线工具，数据不出浏览器，保护你的隐私安全。">5000+ 跨行业纯前端在线工具，数据不出浏览器，保护你的隐私安全。</p>' +
           '<div class="footer-friend">' +
             '<div class="footer-friend-label" data-i18n="ad.label" data-i18n-fb="— 推广 —">— 推广 —</div>' +
+            '<div class="footer-friend-links">' +
             '<a class="footer-friend-link" href="' + toolboxTaobaoAdUrl() + '" target="_blank" rel="noopener sponsored" data-i18n="footer.friend_link" data-i18n-fb="友情链接：淘宝精选好物">友情链接：淘宝精选好物</a>' +
+            '<a class="footer-friend-link footer-friend-link--coupon" href="' + TOOLBOX_COUPON_AD_URL + '" target="_blank" rel="noopener sponsored" data-i18n="footer.friend_link2" data-i18n-fb="领券中心：抢大额官方补贴">领券中心：抢大额官方补贴</a>' +
+            '</div>' +
             '<div class="footer-friend-tip" data-i18n="footer.friend_tip" data-i18n-fb="（通过此链接下单可支持我们）">（通过此链接下单可支持我们）</div>' +
           '</div>' +
         '</div>' +
