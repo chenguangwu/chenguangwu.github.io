@@ -74,10 +74,13 @@ const CASES = [
 {
   "slug": "rental/cycle-11",
   "inputs": {},
-  "expect": [
-    "第1档"
+  "clicks": [
+    "switchMeter('water');"
   ],
-  "ref": "auto-restore(default)"
+  "expect": [
+    "单价（元/吨）"
+  ],
+  "ref": "clicks 注入：switchMeter('water') 改写 currentMeter（初始 'electric'），费率区由「阶梯电价／单一电价 + 第1~3档单价」切为单一费率「单价（元/吨）」，抄表单位同步由度切吨。旧锚「第1档」属电费默认阶梯配置字面量 ⇒ 判别力 0。注：水/电/气三表的 unit 各不相同，切换后须锚当前表的专属单位串。清 clicks 后重跑停在电费阶梯态 ⇒ 零逃生项。"
 },
 {
   "slug": "rental/rent-2",

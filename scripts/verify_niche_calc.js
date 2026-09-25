@@ -5,10 +5,13 @@ const CASES = [
 {
   "slug": "niche/aquarium-light",
   "inputs": {},
-  "expect": [
-    "0.3-0.5"
+  "clicks": [
+    "selectLevel('medium');"
   ],
-  "ref": "auto-restore(default)｜结构性不可注入：唯一排他串是空集提示「未找到匹配的水草」，但兜底链中 selectLevel() 无参执行会置 currentLevel=undefined ⇒ renderPlants() 恒得空集并渲染同一提示 ⇒ 默认/失败态同串，锚点无法区分（discriminate 实测判为逃生项）。"
+  "expect": [
+    "适中光照，最常见水草 · 共 5 种水草"
+  ],
+  "ref": "clicks 注入：selectLevel('medium') 改写 currentLevel（页面初始为 'all'），renderLevelInfo 产出中光档专属正文（等级名 · 光照区间 · 档位描述 · 该档水草数），plantList 同步收敛为 5 种中光水草。旧锚「0.3-0.5」取自静态 levelGrid 卡片（默认态即渲染含该串的三档卡片）⇒ 判别力 0、原 ref 已定性为逃生项。注意本页零参 showAll() 会在兜底遍历中把 currentLevel 复位为 'all'，故只能锚 clicks 阶段的输出；清 clicks 后重跑停在「显示全部 16 种水草」⇒ 零逃生项。"
 },
 {
   "slug": "niche/audio-sample-rate",

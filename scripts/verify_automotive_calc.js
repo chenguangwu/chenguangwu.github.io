@@ -328,10 +328,13 @@ const CASES = [
 {
   "slug": "automotive/fuel-anomaly",
   "inputs": {},
-  "expect": [
-    "2026-07-01"
+  "clicks": [
+    "addRecord();addRecord();"
   ],
-  "ref": "auto-restore(default)"
+  "expect": [
+    "49,000 1500km 40L 2.7 ¥312"
+  ],
+  "ref": "clicks 注入：addRecord() 在末条记录（47,500 km）基础上追加 1500 km、40 L、7.8 元/L 的新记录并重算平均油耗/异常条数/明细表。只点一次时该串也会被兜底遍历里的零参 addRecord() 复现（via=addRecord），故连点两次使之在 clicks 阶段即存在（实测第二次点击后 49,000 走 via=click）。旧锚「2026-07-01」是静态种子记录日期 ⇒ 判别力 0；新锚不含日期字段（addRecord 的日期取 new Date()，会随真实日期漂移），跨天仍稳定。清 clicks 后重跑不产出该行 ⇒ 零逃生项。"
 },
 {
   "slug": "automotive/fuel-cost-calculator",
