@@ -16,11 +16,13 @@ const CASES = [
 },
 {
   "slug": "pets/grooming-guide",
-  "inputs": {},
-  "expect": [
-    "该品种暂无造型数据"
+  "clicks": [
+    "setPet('dog');selectBreed('bichon');"
   ],
-  "ref": "auto-restore(default)"
+  "expect": [
+    "圆球装"
+  ],
+  "ref": "弱用例去默认化（BATCH117）：原锚默认「该品种暂无造型数据」（判别力0）。clicks 经 setPet('dog')+selectBreed('bichon') 切到比熊造型，expect 锚比熊专属「圆球装」（默认态无此串；泰迪装会撞默认 poodle 故避开）；清 clicks 兜底遍历不产出 ⇒ 零逃生项。"
 },
 {
   "slug": "pets/kennel-space",

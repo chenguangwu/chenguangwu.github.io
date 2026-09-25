@@ -205,11 +205,13 @@ const CASES = [
 },
 {
   "slug": "neurology/trigeminal-bni",
-  "inputs": {},
-  "expect": [
-    "无需任何药物治疗"
+  "clicks": [
+    "grade=3;calc();"
   ],
-  "ref": "auto-restore(default)"
+  "expect": [
+    "BNI III级"
+  ],
+  "ref": "弱用例去默认化（BATCH117）：原锚默认 I 级「无需任何药物治疗」（判别力0）。clicks 改 grade=3 后 calc() 切到 III 级，expect 锚 III 级专属名「BNI III级」；默认态（I 级）与清 clicks 兜底遍历均不产出该串 ⇒ 零逃生项。"
 },
 {
   "slug": "neurology/twstrs",

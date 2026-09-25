@@ -5,7 +5,7 @@ const CASES = [
 // ─────────────────────────────────────────────────────────────
 // 第十五批弱用例去默认化（tcm-pharmacy 22 例）
 //   ① 8 例 all_default：原 inputs 逐字等于页面默认值 → 全部换非默认输入 + 独立复算期望
-//   ② 9 例 no_inputs：8 例转真输入；five-flavors 页面无可注入控件，保留 no_inputs（见该例 ref）
+//   ② 9 例 no_inputs：8 例转真输入；five-flavors 经 clicks 通道 renderFlavor('苦') 改造（见该例 ref）
 //   ③ 5 例「真但无效」：expect 为注入值原样回显 / JS 模板残骸键 → 改真键 + 真结果
 //   所有数值期望均由 Python（IEEE754 double，toFixed 用 Decimal 精确二进制 + HALF_UP 模拟）独立复算
 // ─────────────────────────────────────────────────────────────
@@ -320,13 +320,15 @@ const CASES = [
   "ref": "独立复算：Naranjo 十题均取 value=2 的选项（第2/4/5题「否」=+2，其余题「是」=+1 之外仅有 0/-1/-2 档；统一取题面 value=2 的选项）→ score=2*10=20 ≥9 → 等级「肯定」+ 结论「该不良反应与药物存在明确的因果关系，建议立即停药并上报」。默认无 checks → 10 题全部未作答 → score=0 → 「可疑」，与本例结论不同；drugName/adrDesc 默认空串故两处回显段也不出现。注：答题读取路径为 querySelector(『input[name=q_i]:checked』)，harness 的 :checked 桩本批补了 parentElement（页面会读 checked.parentElement.textContent 取选项标签），否则该例无法验证。另：assess() 末尾会调 #resultCard.scrollIntoView()（harness 未桩此方法）而抛错，但 #result 的 innerHTML 已在抛错前写入，故断言在下一个候选（copyReport）处命中——结果内容确由 assess() 依 checks 计算得出，不受影响"
 },
 {
-  // 五味（酸苦甘辛咸淡涩）：纯点击答题/标签页，整页无 <input>/<select>/<textarea>，门禁无法注入
+  // 五味（酸苦甘辛咸淡涩）：纯点击标签页，clicks 通道经 __pageEval 调 renderFlavor('苦') 切到苦味（绕过无表单控件限制）
   "slug": "tcm-pharmacy/five-flavors",
-  "inputs": {},
-  "expect": [
-    "酸走筋——多食酸则筋脉拘急"
+  "clicks": [
+    "renderFlavor('苦');"
   ],
-  "ref": "结构性弱用例（同 DEV-PLAN §10.6 缺陷 G 类）：页面为 7 个 tab 按钮 onclick=selectFlavor(...)，静态 HTML 中不存在任何表单控件（也无 id 可供 harness 建元素触发），门禁只能跑顶层 renderFlavor('酸')。故断言锁定默认「酸」味的确定性内容（五味所走），判别力天然为 0，保留 no_inputs 登记在基线中"
+  "expect": [
+    "苦走骨——多食苦则呕吐"
+  ],
+  "ref": "弱用例去默认化（BATCH117）：原锚默认酸味「酸走筋——多食酸则筋脉拘急」（判别力0）。改为 clicks 触发 renderFlavor('苦') 切苦味，expect 锚苦味专属「五味所走」串；默认态（酸）与清 clicks 兜底遍历均不产出该串 ⇒ 零逃生项。"
 }
 ];
 async function main() {
