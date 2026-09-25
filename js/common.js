@@ -2457,33 +2457,35 @@ var TOOLBOX_COUPON_AD_URL = 'https://s.click.taobao.com/1zCDD9j';
 function toolboxCouponAdUrl(){ return TOOLBOX_COUPON_AD_URL; }
 if (global.ToolBox) global.ToolBox.toolboxCouponAdUrl = toolboxCouponAdUrl;
 
-// 领券中心图片 banner（响应式：手机取 640w 窄图，桌面取 1200w 宽图）
+// 领券中心图片 banner（响应式：手机取 702w 窄图，桌面取 1920w 宽图）
+// 素材由 scripts 之外的绘图脚本按站点色系生成，尺寸按「中央安全区」设计：
+// CSS 以固定高度 + object-fit:cover 呈现，容器越窄两侧裁切越多，内容因此集中在中央。
 function toolboxCouponBannerHtml(pos){
   return '<div class="coupon-banner" data-ad-pos="' + pos + '">'
     + '<a class="coupon-ad-link" href="' + TOOLBOX_COUPON_AD_URL + '" target="_blank" rel="noopener sponsored">'
     + '<img class="coupon-ad-img" src="/assets/images/ads/coupon-center-pc.webp"'
-    + ' srcset="/assets/images/ads/coupon-center-m.webp 640w, /assets/images/ads/coupon-center-pc.webp 1200w"'
-    + ' sizes="(max-width:767px) 92vw, 928px" width="1200" height="198"'
+    + ' srcset="/assets/images/ads/coupon-center-m.webp 702w, /assets/images/ads/coupon-center-pc.webp 1920w"'
+    + ' sizes="(max-width:767px) 92vw, 928px" width="1920" height="160"'
     + ' alt="淘宝天猫领券中心，抢大额官方补贴，先领券再下单更划算" loading="lazy" decoding="async">'
     + '</a></div>';
 }
 
-// 两则广告的卡片 HTML：帧1 淘宝精选（橙），帧2 领券中心（正红）
+// 两则广告的卡片 HTML：帧1 领券中心（站点主色系），帧2 淘宝精选
 function toolboxAdSlidesHtml(){
   var cartIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>';
   var ticketIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z"/><path d="M13 5v2"/><path d="M13 17v2"/><path d="M13 11v2"/></svg>';
   return '<div class="ad-slide is-active">'
-      + '<a class="tool-ad-card" href="' + toolboxTaobaoAdUrl() + '" target="_blank" rel="noopener sponsored">'
-      + '<div class="tool-ad-content"><div class="tool-ad-icon">' + cartIcon + '</div>'
-      + '<div class="tool-ad-text"><span class="tool-ad-title" data-i18n="ad.taobao_title" data-i18n-fb="淘宝精选">淘宝精选</span>'
-      + '<span class="tool-ad-desc" data-i18n="ad.taobao_desc" data-i18n-fb="精选好物，限时优惠">精选好物，限时优惠</span></div>'
-      + '<span class="tool-ad-cta" data-i18n="ad.taobao_cta" data-i18n-fb="去看看 →">去看看 →</span></div></a></div>'
-    + '<div class="ad-slide">'
       + '<a class="tool-ad-card tool-ad-card--coupon" href="' + TOOLBOX_COUPON_AD_URL + '" target="_blank" rel="noopener sponsored">'
       + '<div class="tool-ad-content"><div class="tool-ad-icon tool-ad-icon--coupon">' + ticketIcon + '</div>'
       + '<div class="tool-ad-text"><span class="tool-ad-title" data-i18n="ad.coupon_title" data-i18n-fb="领券中心">领券中心</span>'
       + '<span class="tool-ad-desc" data-i18n="ad.coupon_desc" data-i18n-fb="抢大额官方补贴，先领券再下单">抢大额官方补贴，先领券再下单</span></div>'
-      + '<span class="tool-ad-cta tool-ad-cta--coupon" data-i18n="ad.coupon_cta" data-i18n-fb="去领券 →">去领券 →</span></div></a></div>';
+      + '<span class="tool-ad-cta tool-ad-cta--coupon" data-i18n="ad.coupon_cta" data-i18n-fb="去领券 →">去领券 →</span></div></a></div>'
+    + '<div class="ad-slide">'
+      + '<a class="tool-ad-card" href="' + toolboxTaobaoAdUrl() + '" target="_blank" rel="noopener sponsored">'
+      + '<div class="tool-ad-content"><div class="tool-ad-icon">' + cartIcon + '</div>'
+      + '<div class="tool-ad-text"><span class="tool-ad-title" data-i18n="ad.taobao_title" data-i18n-fb="淘宝精选">淘宝精选</span>'
+      + '<span class="tool-ad-desc" data-i18n="ad.taobao_desc" data-i18n-fb="精选好物，限时优惠">精选好物，限时优惠</span></div>'
+      + '<span class="tool-ad-cta" data-i18n="ad.taobao_cta" data-i18n-fb="去看看 →">去看看 →</span></div></a></div>';
 }
 function toolboxAdCarouselHtml(){
   return '<div class="ad-carousel-track">' + toolboxAdSlidesHtml() + '</div>'
@@ -2904,8 +2906,7 @@ function injectAdBanner(){
         + '</div></a>';
     }
     ad.appendChild(label);
-    ad.appendChild(box);
-    // 底部为「两则同时展示」：卡片（淘宝精选）+ 领券中心图片 banner。
+    // 底部为「两则同时展示」：领券中心图片 banner 在前，卡片（淘宝精选）在后。
     // 出口位：用户已读完内容，一次给出两种形态的入口可提升点击机会，且不影响首屏。
     // AdSense 模式下不叠加，避免两套广告体系混投。
     if (!window.TOOLBOX_ADS_CLIENT) {
@@ -2913,6 +2914,7 @@ function injectAdBanner(){
       cbox.innerHTML = toolboxCouponBannerHtml('tool-bottom');
       ad.appendChild(cbox.firstChild);
     }
+    ad.appendChild(box);
     container.appendChild(ad);
     if (window.I18n && typeof window.I18n.apply === 'function') window.I18n.apply(ad);
   } catch(e){}
@@ -3050,8 +3052,8 @@ function buildUnifiedFooter(){
           '<div class="footer-friend">' +
             '<div class="footer-friend-label" data-i18n="ad.label" data-i18n-fb="— 推广 —">— 推广 —</div>' +
             '<div class="footer-friend-links">' +
-            '<a class="footer-friend-link" href="' + toolboxTaobaoAdUrl() + '" target="_blank" rel="noopener sponsored" data-i18n="footer.friend_link" data-i18n-fb="友情链接：淘宝精选好物">友情链接：淘宝精选好物</a>' +
             '<a class="footer-friend-link footer-friend-link--coupon" href="' + TOOLBOX_COUPON_AD_URL + '" target="_blank" rel="noopener sponsored" data-i18n="footer.friend_link2" data-i18n-fb="领券中心：抢大额官方补贴">领券中心：抢大额官方补贴</a>' +
+            '<a class="footer-friend-link" href="' + toolboxTaobaoAdUrl() + '" target="_blank" rel="noopener sponsored" data-i18n="footer.friend_link" data-i18n-fb="友情链接：淘宝精选好物">友情链接：淘宝精选好物</a>' +
             '</div>' +
             '<div class="footer-friend-tip" data-i18n="footer.friend_tip" data-i18n-fb="（通过此链接下单可支持我们）">（通过此链接下单可支持我们）</div>' +
           '</div>' +
