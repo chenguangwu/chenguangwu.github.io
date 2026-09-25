@@ -66,10 +66,13 @@ const CASES = [
 {
   "slug": "elderly/eldercare-level",
   "inputs": {},
-  "expect": [
-    "1."
+  "checks": [
+    "2"
   ],
-  "ref": "auto-restore(default)"
+  "expect": [
+    "需高频照护，建议专业护理人员介入并评估康复计划。"
+  ],
+  "ref": "checks 注入：本页 7 个 radio 组（name=a0..a6，每题 0/1/2，HTML 默认选中第一项即 0 分）经 `document.querySelector('input[name=aN]:checked').value` 读数；harness 的 querySelector(':checked') 桩只认 `checks`（querySelectorAll 那条才认 radios），且把首个值返回给所有组 ⇒ 声明 checks:[\"2\"] 等价「7 题全选最重档」，独立复算 score=7×2=14 ≥10 ⇒ 三级（重度）+ 该照护建议。旧锚「1.」是题号列表字面量 ⇒ 判别力 0。清 checks 后落到默认 0 分项、score=0 ⇒ 一级（轻度）不产出该句 ⇒ 零逃生项。"
 },
 {
   "slug": "elderly/fall-risk",

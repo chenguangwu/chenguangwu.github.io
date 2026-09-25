@@ -158,11 +158,17 @@ const CASES = [
 },
 {
   "slug": "food/nutrition-calculator",
-  "inputs": {},
-  "expect": [
-    "三文鱼全麦面包南瓜可乐啤酒土豆奶酪杏仁核桃橄榄油橙子燕麦片牛奶牛肉(瘦)猪里脊玉米番茄白米饭白糖白菜白酒白面包红薯红酒胡萝卜花生花生油苹果茄子草莓菠菜葡萄蘑菇虾仁蜂蜜西兰花西瓜豆浆豆腐酸奶金枪鱼青椒面条(熟)馒头香蕉鸡胸肉鸡腿肉鸡蛋黄油黄瓜"
+  "inputs": {
+    "grams": "200",
+    "foodSel": "白米饭"
+  },
+  "clicks": [
+    "addFood();"
   ],
-  "ref": "auto-restore(default)"
+  "expect": [
+    "碳水 56.0g"
+  ],
+  "ref": "inputs 注入静态控件（grams / foodSel）+ clicks 触发 addFood()：白米饭每 100g 为 kcal 130 / 蛋白 2.6 / 脂肪 0.3 / 碳水 28，200g 即 factor=2 ⇒ 独立复算 kcal 260、蛋白 5.2g、脂肪 0.6g、碳水 56.0g。旧锚是 select 里全部食物名的静态拼接（默认态即渲染）⇒ 判别力 0；新锚取「碳水 56.0g」——碳水值由 grams 驱动且默认态列表为空（`summary` 隐藏、dishList 空串）不产出该串 ⇒ 零逃生项。注意 addFood 会清空 grams，写值必须在触发前完成（inputs 阶段天然先于 clicks）。"
 },
 {
   "slug": "food/oil-absorption-estimator",
