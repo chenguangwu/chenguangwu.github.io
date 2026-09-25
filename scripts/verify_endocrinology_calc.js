@@ -280,11 +280,19 @@ const CASES = [
 },
 {
   "slug": "endocrinology/ti-rads",
-  "inputs": {},
-  "expect": [
-    "TR2"
+  "clicks": [
+    "selectOpt({dataset:{cat:'composition',pts:'2'},classList:{add:function(){},remove:function(){}}});",
+    "selectOpt({dataset:{cat:'echogenicity',pts:'3'},classList:{add:function(){},remove:function(){}}});",
+    "selectOpt({dataset:{cat:'shape',pts:'3'},classList:{add:function(){},remove:function(){}}});",
+    "selectOpt({dataset:{cat:'margin',pts:'3'},classList:{add:function(){},remove:function(){}}});",
+    "selectOpt({dataset:{cat:'echogenic',pts:'3'},classList:{add:function(){},remove:function(){}}});"
   ],
-  "ref": "结构性不可注入（2026-09-24 endocrinology 批）：页面静态 HTML 中 input/select/textarea 计数为 0（实测 grep 为 0），TI-RADS 评分由按钮 onclick（setFeature/score）累加内部 state 后 render，按钮无 id、不在 harness 的 elements 表内、无 clicks 注入 ⇒ 只能渲染默认态（总分 2 分 / TR2）。保留在 no_inputs 基线。"
+  "expect": [
+    "TR5",
+    "总分 14 分",
+    "高度可疑（恶性风险>20%）"
+  ],
+  "ref": "clicks 直接调 selectOpt 累加 selections[cat]=pts 后 calc()；默认态 selections 总 2→TR2，注入 5 类（2+3+3+3+3=14）→TR5。独立复算：TI-RADS 5 类阈值 total>=7，14 命中 TR5（恶性风险>20%）。"
 },
 {
   // 原为 all_default 弱用例：bg=2.2 即页面默认，expect「3.2」是兜底预设 loadReactive() 写入的值（典型逃生项）。

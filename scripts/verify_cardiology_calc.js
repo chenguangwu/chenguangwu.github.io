@@ -21,11 +21,14 @@ const CASES = [
 },
 {
   "slug": "cardiology/antiarrhythmic-class",
-  "inputs": {},
-  "expect": [
-    "显著减慢0相上升速度和传导"
+  "clicks": [
+    "showClass('4', {classList:{add:function(){},remove:function(){}}})"
   ],
-  "ref": "auto-restore(default)"
+  "expect": [
+    "IV类",
+    "钙通道阻滞剂"
+  ],
+  "ref": "clicks 直接调 showClass('4', 哑 classList)→IV类 非二氢吡啶类钙通道阻滞剂（维拉帕米/地尔硫䓬）。默认态为 I类（钠通道阻滞剂），故「IV类」可区分。"
 },
 {
   // 原用例 inputs 为空、expect 取「非复杂型Stanford B型」—— 那是建立在**旧 harness 失真**上的：

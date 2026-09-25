@@ -54,11 +54,13 @@ const CASES = [
 },
 {
   "slug": "hematology/calc-1",
-  "inputs": {},
+  "inputs": {
+    "mcv": "110", "rdw": "18"
+  },
   "expect": [
-    "请输入"
+    "大细胞不均一性贫血"
   ],
-  "ref": "auto-restore(default)"
+  "ref": "非默认输入：mcv=110(>100 大细胞性)、rdw=18(>15 不均一)→分类「大细胞不均一性贫血」。默认 inputs 为空→「请输入 MCV 与 RDW。」不命中，故可区分。"
 },
 {
   "slug": "hematology/cd34-count",

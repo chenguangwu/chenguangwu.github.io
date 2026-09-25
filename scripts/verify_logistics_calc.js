@@ -68,11 +68,14 @@ const CASES = [
 },
 {
   "slug": "logistics/checker-4",
-  "inputs": {},
-  "expect": [
-    "签收后48小时内完成检验"
+  "clicks": [
+    "MODULES.forEach(function(m,mi){m.items.forEach(function(it,ii){var el=document.getElementById('m'+mi+'_'+ii);if(el)el.value='2';});});calc();"
   ],
-  "ref": "auto-restore(default)"
+  "expect": [
+    "逆向物流流程成熟度： 100%",
+    "评级： 流程完善"
+  ],
+  "ref": "clicks 遍历 MODULES 各 item 设 value='2'（满分）→ 各模块达标率 100%、总 100%、评级流程完善；默认全 0→0% 需重建，故「100%」可区分。注入后显式 calc()。"
 },
 {
   "slug": "logistics/checker-6",

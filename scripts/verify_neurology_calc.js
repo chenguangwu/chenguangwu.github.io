@@ -57,11 +57,14 @@ const CASES = [
 },
 {
   "slug": "neurology/house-brackmann",
-  "inputs": {},
-  "expect": [
-    "面神经功能障碍程度"
+  "clicks": [
+    "selectGrade({classList:{add:function(){},remove:function(){}}}, 6)"
   ],
-  "ref": "auto-restore(default)"
+  "expect": [
+    "VI级",
+    "面神经完全麻痹"
+  ],
+  "ref": "clicks 直接调 selectGrade(dummy,6) 置顶层 grade=6 后 calc()；默认态 grade=1→I级 正常，注入→VI级 完全麻痹（面神经功能完全消失）。"
 },
 {
   "slug": "neurology/ilae-seizure",

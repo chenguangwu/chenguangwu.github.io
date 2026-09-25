@@ -54,11 +54,14 @@ const CASES = [
 },
 {
   "slug": "property/checker-7",
-  "inputs": {},
-  "expect": [
-    "公共照明完好率达95%以上"
+  "clicks": [
+    "Object.keys(dims).forEach(function(k){dims[k].items.forEach(function(it,i){var el=document.getElementById(k+i);if(el)el.value='1';});});calc();"
   ],
-  "ref": "auto-restore(default)"
+  "expect": [
+    "25.0%",
+    "综合品质得分 25.0%"
+  ],
+  "ref": "clicks 遍历 dims 各模块 item 设 value='1'（v=1≤2→issue），得分率 pct=Σ(w)/(4Σw)*100=25.0%、等级不合格；默认全 0→0.0% 不合格，故「25.0%」可区分。注入后显式 calc()。"
 },
 {
   "slug": "property/checker-recorder-drill",

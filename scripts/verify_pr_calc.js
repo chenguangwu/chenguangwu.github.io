@@ -91,11 +91,15 @@ const CASES = [
 },
 {
   "slug": "pr/assessor-risk",
-  "inputs": {},
+  "inputs": {
+    "s1": "5", "i1": "4", "s2": "1", "i2": "1", "s3": "1", "i3": "1", "s4": "1", "i4": "1", "s5": "1", "i5": "1"
+  },
+  "clicks": ["calc();"],
   "expect": [
-    "按常规预案执行"
+    "极高风险",
+    "高风险项数： 1 / 5"
   ],
-  "ref": "auto-restore(default)"
+  "ref": "非默认输入：s1=5,i1=4→r=20≥16 极高风险、highCount=1；其余四组=1 低风险。页面 onchange 触发 calc 但 harness 不自动跑，clicks 显式调一次。默认全 1→低风险、「高风险项数： 0 / 5」，故「高风险项数： 1 / 5」可区分。"
 },
 {
   "slug": "pr/media-invite",
