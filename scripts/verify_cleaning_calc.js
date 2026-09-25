@@ -46,11 +46,13 @@ const CASES = [
 },
 {
   "slug": "cleaning/appliance-cycle",
-  "inputs": {},
-  "expect": [
-    "已到清洁周期"
+  "clicks": [
+    "localStorage.getItem=function(k){return k===STORAGE_KEY?JSON.stringify({fridge:'2099-01-01',washer:'2099-01-01'}):null;};loadStorage();render();"
   ],
-  "ref": "auto-restore(default)；**结构性不可注入**：「距上次清洁」列必须先点「记录今日」写入 localStorage 才有值，而 setLastClean 被 harness 的 DESTRUCTIVE ^set[A-Z] 排除、harness 又无 clicks 字段 ⇒ 注入 checkDate 对输出无任何影响（实测默认 2024-06-15 与注入 2020-01-01 输出一致）。维持 no_inputs，expect 断言默认态真实产出（14 项家电全部已到清洁周期）"
+  "expect": [
+    "✅ 2 项 状态正常，无需清洁"
+  ],
+  "ref": "覆写 localStorage 使 fridge/washer 记录为未来日期（2099-01-01）→ loadStorage() 重读 records、render() 渲染：「✅ 2 项 状态正常，无需清洁」（默认 14 项全部已到周期、无此串）。回退默认（records 空）→ 仍 14 项已到周期，不命中。"
 },
 {
   "slug": "cleaning/checker-10",

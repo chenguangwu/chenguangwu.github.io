@@ -67,14 +67,14 @@ const CASES = [
 },
 {
   // 结构性不可注入（保留在 no_inputs 基线）：14 个过敏原卡片由 renderGrid() 拼 HTML 生成，
-  // 反应强度靠卡片内 <button onclick="setReact(...)"> 点击写入 selections；静态 HTML 无 input/select/textarea，
-  // harness 无 clicks 且按钮不在 elements 表内 ⇒ 只能渲染默认提示串。
   "slug": "dermatology/contact-dermatitis-patch",
-  "inputs": {},
-  "expect": [
-    "请点击选择阳性的过敏原及反应强度"
+  "clicks": [
+    "setReact({stopPropagation:function(){}},0,'++');setReact({stopPropagation:function(){}},1,'+');setReact({stopPropagation:function(){}},2,'+++');genAdvice();"
   ],
-  "ref": "结构性不可注入：过敏原网格 + 反应强度按钮均由 JS 模板生成（renderGrid/setReact），静态 HTML 无带 id 的表单控件；selections 仅能由点击写入。expect 锚定默认提示「请点击选择阳性的过敏原及反应强度」。"
+  "expect": [
+    "阳性过敏原避免指南（共3项）"
+  ],
+  "ref": "选 3 个过敏原（0:++、1:+、2:+++）→ genAdvice 产出「阳性过敏原避免指南（共3项）」及强阳性计数。回退默认（selections 空）→ genAdvice 早返回提示「请点击选择阳性的过敏原及反应强度」，该串不命中。"
 },
 {
   "slug": "dermatology/dermatoscopy-abcd",
@@ -151,14 +151,14 @@ const CASES = [
   "ref": "auto-restore"
 },
 {
-  // 结构性不可注入（保留在 no_inputs 基线）：四种痱型由 selectType(el, idx) 点击按钮切换 currentType，
-  // 静态 HTML 无表单控件 ⇒ harness 无法注入，只能渲染默认 currentType=0（晶痱）的内容。
   "slug": "dermatology/miliaria-classification",
-  "inputs": {},
-  "expect": [
-    "脱离高温环境后1-2天内水疱干涸脱屑自愈"
+  "clicks": [
+    "selectType({classList:{add(){},remove(){},toggle(){},contains(){return false;}}},1);calc();"
   ],
-  "ref": "结构性不可注入：痱型卡片由 selectType(按钮) 切换内部变量 currentType，静态 HTML 无带 id 的 input/select/textarea。expect 锚定默认型别（晶痱）的病程文案「脱离高温环境后1-2天内水疱干涸脱屑自愈」。"
+  "expect": [
+    "红痱 Miliaria Rubra"
+  ],
+  "ref": "选第 1 型（红痱）→ selectType 切 currentType=1、calc 输出红痱分型（🔴 红痱 Miliaria Rubra…）。默认 currentType=0（晶痱），回退默认态不命中「红痱」。"
 },
 {
   "slug": "dermatology/onychomycosis-grading",

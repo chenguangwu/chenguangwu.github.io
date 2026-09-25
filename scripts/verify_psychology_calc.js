@@ -63,11 +63,13 @@ const CASES = [
 },
 {
   "slug": "psychology/tester-2",
-  "inputs": {},
-  "expect": [
-    "0/60"
+  "clicks": [
+    "for(var i=0;i<MT_QS.length;i++){MT_ANS[i]=(i%2);}MT_CUR=MT_QS.length-1;calc();"
   ],
-  "ref": "auto-restore(default)"
+  "expect": [
+    "ESTJ"
+  ],
+  "ref": "60 题全作答（MT_ANS[i]=i%2）→ calc 出完整 MBTI 结果（ESTJ，E 52%/I 48% 等）。回退默认（MT_ANS 全 null）→ calc 提示「还有 60 题未作答」，不命中 ESTJ。"
 }
 ];
 async function main() {

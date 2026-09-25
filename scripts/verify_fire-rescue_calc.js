@@ -66,11 +66,13 @@ const CASES = [
 },
 {
   "slug": "fire-rescue/detector-20",
-  "inputs": {},
-  "expect": [
-    "50140"
+  "clicks": [
+    "for(var mi=0;mi<6;mi++){for(var ii=0;ii<8;ii++){var el=document.getElementById('m'+mi+'_'+ii);if(el){el.value='2';}}}calc();"
   ],
-  "ref": "auto-restore(default)"
+  "expect": [
+    "总体合规度： 100% 评级： 合格"
+  ],
+  "ref": "动态渲染的 m{mi}_{ii} 评分 select 全部置 2 分（合格）→ calc 得「总体合规度： 100% 评级： 合格」（默认全 0 → 0% 不合格）。回退默认态不命中 100%。"
 },
 {
   "slug": "fire-rescue/dizhensoujiuzhichengjisuan",
