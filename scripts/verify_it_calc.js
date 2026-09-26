@@ -1563,6 +1563,34 @@ const CASES = [
     expect: ["1234567890128"],
     ref: "独立复算：同上口径，123456789012 ⇒ 4+0+6+6+3+24+1+9+3+9+9+9=83 ⇒ 校验位 8。用与默认样例不同的号码，确保双态可辨。",
   },
+  {
+    slug: "it/bitwise-calculator",
+    inputs: { a: "12", b: "10", op: "AND" },
+    clicks: ["calc()"],
+    expect: ["结果： 8"],
+    ref: "独立复算：12 = 0b1100、10 = 0b1010 ⇒ 按位与 = 0b1000 = 8。注意运算符 select 的 option value 是大写 `AND`（传 `&` 会被页面忽略，产出恒 0）。",
+  },
+  {
+    slug: "it/caesar-cipher",
+    inputs: { input: "ABC", shift: "3" },
+    clicks: ["process()"],
+    expect: ["DEF"],
+    ref: "独立复算：凯撒位移 +3 ⇒ A→D、B→E、C→F ⇒ `DEF`。默认样例文本不是本串。",
+  },
+  {
+    slug: "it/binary-to-text",
+    inputs: { input: "01000001" },
+    clicks: ["convert()"],
+    expect: ["A"],
+    ref: "独立复算：8 位二进制 01000001 = 十进制 65 = ASCII 字符 `A`。产物是解码后的文本、不是输入回显；默认样例是另一段码。",
+  },
+  {
+    slug: "it/bayes-theorem",
+    inputs: { prior: "0.01", likelihood: "0.9", falsePositive: "0.1" },
+    clicks: ["calculate()"],
+    expect: ["0.009 + 0.099 = 0.108"],
+    ref: "独立复算：P(E) = P(E|H₁)·P(H₁) + P(E|¬H₁)·P(¬H₁) = 0.9×0.01 + 0.1×0.99 = 0.009 + 0.099 = 0.108；后验 = 0.009/0.108 ≈ 0.083。锚在「中间展开式」上，逐项可手算。默认样例不是这组参数。",
+  },
 ];
 
 // ---------------------------------------------------------------- DOM stub
