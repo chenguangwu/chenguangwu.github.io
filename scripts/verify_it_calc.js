@@ -643,6 +643,20 @@ const CASES = [
     expect: ["chmod 757"],
     ref: "独立复算：用户 rwx=7、组 r-x=5、其他 rwx=7 ⇒ `757` 且符号位 `rwxr-xrwx`。checkbox 在桩内恒未勾（`inputs` 写 `checked` 不生效）⇒ 必须走这段 clicks；默认态（全勾 7）显示的是随机预设的另一组值，不命中。",
   },
+  {
+    slug: "it/regex-escape",
+    inputs: { input: "a.b*c" },
+    clicks: ["esc()"],
+    expect: ["a\\.b\\*c"],
+    ref: "独立复算：默认「通用 (JS)」风味下 `.` `*` 被转义、`/` 不转（勾「转义 /」另算）⇒ `a\\.b\\*c`。默认态输入为空直接 return，不命中。",
+  },
+  {
+    slug: "it/markdown-lint",
+    inputs: { src: "### 标题" },
+    clicks: ["calcTool()"],
+    expect: ["未发现明显风格问题"],
+    ref: "独立复算：`### 标题` 属合法 ATX 标题、无其他风格项 ⇒ 问题 0 并落该结论串。默认示例含多个待整改项，结论不同，不命中。",
+  },
 ];
 
 // ---------------------------------------------------------------- DOM stub
