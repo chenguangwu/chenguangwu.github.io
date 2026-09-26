@@ -517,6 +517,34 @@ const CASES = [
     ref: "代码注释生成：把输入拼成 `// <输入>` 的单行注释。默认态是预置的多行函数注释块 ⇒ 强判别。"
        + "属确定性拼接，无随机成分。",
   },
+
+  // ── BATCH155：figure/banner 类 / 字形变体类 / 通用提取类的锚必须落在「注入后形态」──
+  {
+    slug: "biz/text-to-banner",
+    inputs: {
+      input: "hi",
+      mode: "solid",
+      color: "#f43f5e",
+    },
+    expect: ["╔══════╗ ║######║ ║##hi##║ ║######║ ╚══════╝"],
+    ref: "边框宽度随文本长度变化：hi=2字⇒顶部 6 格、HELLO=5 字⇒9 格，注入 hi 后形态与默认 HELLO 完全不同，双态强判别（默认态输出含 ##HELLO## 必不命中）；color/mode 一并注入只为绕开默认配色分支，不参与判定。",
+  },
+  {
+    slug: "biz/zalgo-text",
+    inputs: {
+      input: "ab",
+    },
+    expect: ["á̦b̈̊"],
+    ref: "默认态对 Hello World 逐字符叠加组合变音符号；注入 ab 后仅 a、b 带符号，输出形态与默认态完全不同。⚠ expect 必须是 NFD 分解序列（0x61 0x0301 0x0306 0x62 0x0308 0x030A），写成 NFC 预组合单码位会静默不命中。",
+  },
+  {
+    slug: "biz/text-extract",
+    inputs: {
+      input: "联系 a@b.com 或 c.d@e.org",
+    },
+    expect: ["a@b.com c.d@e.org"],
+    ref: "默认态用内置样例的两个邮箱，注入含 a@b.com / c.d@e.org 的文本后 result 为两者空格连排。⚠ 禁止锚『无匹配项』：注入文本不含邮箱时工具恒定输出该串，提取逻辑彻底失效用例仍会 PASS（逃生项），必须锚真实提取结果。",
+  },
 ];
 
 // ---------------------------------------------------------------- main
