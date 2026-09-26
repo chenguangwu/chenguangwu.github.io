@@ -1487,6 +1487,13 @@ const CASES = [
     expect: ["0.1 km 10000 cm 100000 mm"],
     ref: "独立复算：100 m = 0.1 km = 10000 cm = 100000 mm = 0.062137 mi = 109.36133 yd = 328.08399 ft（量纲换算，逐项可手算）。默认示例换算的不是 `m`。",
   },
+  {
+    slug: "it/text-qr",
+    inputs: { text: "TOOLBOX-QR-2026" },
+    clicks: ["generate()"],
+    expect: ["TOOLBOX-QR-2026"],
+    ref: "二维码矩阵在桩内画不出来（`renderQR … leng`），但内容串先已写进结果区 ⇒ 直接锚内容串（与 `it/qrcode` 同族）。",
+  },
 ];
 
 // ---------------------------------------------------------------- DOM stub
