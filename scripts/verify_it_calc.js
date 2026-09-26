@@ -1619,6 +1619,34 @@ const CASES = [
     expect: ["CRC-8 0x5f"],
     ref: "独立复算：同上口径，`abc` 的 CRC-8 = 0x5f。同一页面换输入各写一条，两条 expect 互不相同。",
   },
+  {
+    slug: "it/decimal-encode",
+    inputs: { input: "AB" },
+    clicks: ["enc()"],
+    expect: ["65 66"],
+    ref: "独立复算：`A`=65、`B`=66，默认分隔符为空格 ⇒ `65 66`。产物是纯数字，不含输入字母 ⇒ 非回显。默认样例是另一段文本。",
+  },
+  {
+    slug: "it/hex-encode",
+    inputs: { input: "Hi" },
+    clicks: ["enc()"],
+    expect: ["4869"],
+    ref: "独立复算：`H`=0x48、`i`=0x69 ⇒ `4869`。十六进制产物不含输入文本 ⇒ 非回显；默认样例不是本串。",
+  },
+  {
+    slug: "it/hex-to-text",
+    inputs: { input: "4869" },
+    clicks: ["convert()"],
+    expect: ["Hi"],
+    ref: "独立复算：`48`=72=`H`、`69`=105=`i` ⇒ `Hi`。与上一条互逆，一并收下可覆盖双向路径。默认样例不是本串。",
+  },
+  {
+    slug: "it/exponential-distribution",
+    inputs: { lambda: "2", x: "1" },
+    clicks: ["calculate()"],
+    expect: ["1 − 0.135 = 0.865"],
+    ref: "独立复算：指数分布 CDF F(x)=1−e^{−λx}，λ=2、x=1 ⇒ e^{−2}=0.135，F=1−0.135=0.865（PDF=2×0.135=0.271）。默认样例恰是 λ=0.5,x=2 ⇒ 默认态同样命中的那一组，故换参数。锚在中间展开式。",
+  },
 ];
 
 // ---------------------------------------------------------------- DOM stub
