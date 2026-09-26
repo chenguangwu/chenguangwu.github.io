@@ -1057,6 +1057,43 @@ const CASES = [
     expect: ["共 0 个国家/地区"],
     ref: "反向锚：灌入不存在的国家名 ⇒ 计数归零；默认列表含上百个国家，默认态必不命中。与 http-* 五页同族。",
   },
+  {
+    slug: "it/calc-1",
+    inputs: { sizeInput: "512", unitSelect: "KB" },
+    expect: ["512,000 B"],
+    ref: "512 KB = 512,000 B（十进制口径）；`unitSelect` 显式注入 KB 后才落该行。默认 1024 B ⇒ 1024 B，不命中。",
+  },
+  {
+    slug: "it/calc-3",
+    inputs: { hexInput: "#1E90FF" },
+    expect: ["rgb(30, 144, 255)"],
+    ref: "#1E90FF → rgb(30,144,255) → hsl(210,100%,56%)；默认色值不同形。裸 input event 即渲染。",
+  },
+  {
+    slug: "it/calc-4",
+    inputs: { pxInput: "48" },
+    expect: ["font-size: 48px;"],
+    ref: "48px 换算推出 em/rem/pt/% 四行（3 / 3 / 36pt / 300%）；锚取注入值对应的 px 行写法。默认 16px 不命中。",
+  },
+  {
+    slug: "it/calc-5",
+    inputs: { textInput: "hello world foo" },
+    expect: ["15 字符 / 15 字节"],
+    ref: "11 字符文本 + 3 空格 + 2 词 ⇒ 总长 15；统计区随输入重算（默认示例文本不同）。",
+  },
+  {
+    slug: "it/calc-7",
+    inputs: { jsonInput: '{"a":{"b":[1,2,3]}}', pathInput: "a.b" },
+    expect: ["路径： $.a.b"],
+    ref: "JSONPath 求值：`$.a.b` 命中数组 ⇒ 输出 `[ 1, 2, 3 ]`。**不可写 clicks 里的 `loadSample()`** —— 那会渲染默认样例（$.toolbox.name），默认态同命中 ⇒ 逃生项。",
+  },
+  {
+    slug: "it/convert-11",
+    inputs: { val: "255", from: "dec", to: "bin" },
+    clicks: ["calc()"],
+    expect: ["00000000.00000000.00000000.11111111"],
+    ref: "十进制 255 → 点分二进制补齐 8 位×4 ⇒ 11111111；默认入参是 IP 地址 192.168.1.1（dot→bin），不命中。",
+  },
 ];
 
 // ---------------------------------------------------------------- DOM stub
