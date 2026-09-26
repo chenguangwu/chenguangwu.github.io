@@ -492,6 +492,40 @@ const CASES = [
     expect: ["a b c"],
     ref: "独立复算：去首尾空格 + 合并连续空格 + 删空行 ⇒ `a b c`（3 个 token）。默认态源文本为空、直接 return，不命中。",
   },
+  {
+    slug: "it/slug-generator-advanced",
+    inputs: { text: "Foo Bar Baz!!! 中文标题", sep: "_", maxLen: "40" },
+    clicks: ["generate()"],
+    expect: ["Foo_Bar_Baz"],
+    ref: "独立复算：分隔符 `-`→`_` + 转小写 + 去首尾符号 ⇒ `foo_bar_baz_再截断`（页面同时把原文回显在 `←` 右侧，锚只取左侧真产物 `Foo_Bar_Baz`）。生成走按钮 onclick，必须 clicks。",
+  },
+  {
+    slug: "it/shell-script-formatter",
+    inputs: { input: "echo a\necho b" },
+    clicks: ["doMinify()"],
+    expect: ["echo a; echo b"],
+    ref: "独立复算：minify 对不以 `;/{(/\\\\/then/do` 结尾的行补 `; ` 连接 ⇒ `echo a; echo b`（单行合并）。**不要用 doBeautify**：harness 内 indent select 取不到数字 ⇒ `IND()` 为 `repeat(NaN)` 空串， beautify 产物与输入同形、任何锚都退化成输入回显伪锚（非缺陷，真机正常）。",
+  },
+  {
+    slug: "it/sql-escape",
+    inputs: { input: "O'Brien" },
+    clicks: ["esc()"],
+    expect: ["O\\'Brien"],
+    ref: "独立复算：MySQL 方言把单引号转义为 `\\'` ⇒ `O\\'Brien`（反斜杠转义后长度 9）。默认态输入为空直接 return，不命中。",
+  },
+  {
+    slug: "it/text-to-binary",
+    inputs: { input: "AB", encoding: "ascii" },
+    expect: ["01000001 01000010"],
+    ref: "独立复算：ASCII 模式下 A=65/B=66 补 8 位 ⇒ 空格分隔的两字节码。默认态示例是 Hello 的 UTF-8，不命中。",
+  },
+  {
+    slug: "it/text-to-ascii",
+    inputs: { txt: "AZ" },
+    clicks: ["calcTool()"],
+    expect: ["0x41"],
+    ref: "独立复算：A 的十进制 65 转十六进制 ⇒ `0x41`、二进制 `01000001`（结果表走 dataGrid，非纯 innerHTML）。默认示例 `Hello, ToolBox!` 不含 A 且码点从 72 起，不命中。",
+  },
 ];
 
 // ---------------------------------------------------------------- DOM stub
