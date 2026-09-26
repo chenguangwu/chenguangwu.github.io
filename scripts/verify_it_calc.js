@@ -1286,6 +1286,19 @@ const CASES = [
     expect: ["共 0 项"],
     ref: "反向锚：REST API 速查搜索无命中 ⇒ 计数归零；默认列表非空。",
   },
+  {
+    slug: "it/postgresql-cheatsheet",
+    inputs: { searchInput: "zzz" },
+    expect: ["共 0 项"],
+    ref: "反向锚：PostgreSQL 速查搜索无命中 ⇒ 计数归零；默认列表非空。",
+  },
+  {
+    slug: "it/unicode-lookup",
+    inputs: { search: "★" },
+    clicks: ["showDetail()"],
+    expect: ["U+2605"],
+    ref: "独立复算：U+2605 就是 `★`（BLACK STAR），查表页把字符与其码点并列渲染。`showDetail()` 在桩内会因「无选中项」抛 `Invalid code point NaN`，但网格（`grid`）已由搜索框的 input 事件更新 ⇒ 不依赖该异常路径。默认列表里没有该条目。",
+  },
 ];
 
 // ---------------------------------------------------------------- DOM stub
