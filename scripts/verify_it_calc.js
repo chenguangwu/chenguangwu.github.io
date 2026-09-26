@@ -1661,6 +1661,27 @@ const CASES = [
     expect: ["被隐式闭合"],
     ref: "独立复算：`<p>` 未闭合，遇到 `</div>` 时触发隐式闭合 ⇒ 报告第 1 行 `<p>` 被隐式闭合。产物是「检测结论 + 定位行」而非输入回显；默认样例不同。",
   },
+  {
+    slug: "it/json-minify",
+    inputs: { input: '{ "a" : 1 }' },
+    clicks: ["process()"],
+    expect: ['{"a":1}'],
+    ref: "独立复算：去掉 JSON 中多余空格 ⇒ `{\"a\":1}`（字节数 11 → 7，压缩率 36.4% 也可手算）。默认样例不是本串。",
+  },
+  {
+    slug: "it/list-converter",
+    inputs: { input: "a\nb", mode: "comma" },
+    clicks: ["convert()"],
+    expect: ["a, b"],
+    ref: "独立复算：两行列表按逗号模式合并 ⇒ `a, b`。入参含换行（探针文件必须用 Python 的 `json.dumps` 生成，JSON 串内不允许字面换行）。",
+  },
+  {
+    slug: "it/keyword-extractor",
+    inputs: { inputText: "apple apple banana" },
+    clicks: ["extractKeywords()"],
+    expect: ["apple 2 banana 1"],
+    ref: "独立复算：词频统计 ⇒ apple 出现 2 次、banana 1 次，产物排序为 `apple 2 banana 1`。统计类天然非回显；默认样例文本不同。",
+  },
 ];
 
 // ---------------------------------------------------------------- DOM stub
