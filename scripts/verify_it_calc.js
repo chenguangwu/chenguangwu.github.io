@@ -1822,6 +1822,41 @@ const CASES = [
     expect: ["a 1"],
     ref: "JSON → plist：字段名与标量值按序排列。默认样例键名不同。",
   },
+  {
+    slug: "it/ascii-art",
+    inputs: { input: "AB" },
+    clicks: ["generate()"],
+    expect: ["8888 88888 88 88 88 88 888888 88888 88 88 88 88 88 88 88888"],
+    ref: "字形点阵：每个字母按 5×5 粗体点阵展开成 `8` 序列（A 为 8888，B 为 88888…），字母被替换成点阵故非回显。默认样例文本不同。",
+  },
+  {
+    slug: "it/box-shadow-generator",
+    inputs: { x: "10", y: "20", blur: "5", spread: "2" },
+    clicks: ["copyCss()"],
+    expect: ["偏移 10px 20px · 模糊 5px · 扩散 2px"],
+    ref: "产物摘要按「偏移/模糊/扩散」回显注入值；默认样例参数为 0。锚只覆盖偏移量部分，避免把 alpha 注入失效的缺陷值锁死进基线。",
+  },
+  {
+    slug: "it/json-diff",
+    inputs: { left: '{"a":1}', right: '{"a":2}' },
+    clicks: ["doDiff()"],
+    expect: ["修改 a 1 → 2"],
+    ref: "路径级差异：键 a 由 1 改为 2 ⇒ 计数与路径列表各记一条「修改」。默认样例两版 JSON 不同。",
+  },
+  {
+    slug: "it/jwt-parser",
+    inputs: { jwtInput: "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJhIjoxfQ.sig" },
+    clicks: ["parseJwt()"],
+    expect: ['"alg": "RS256"'],
+    ref: "独立构造：header=`{\"alg\":\"RS256\",\"typ\":\"JWT\"}`、payload=`{\"a\":1}` 做 base64url（去填充）后拼 `.sig`，解析区应还原出 RS256。默认样例是 HS256 ⇒ 必须换成 RS256 才破双态。",
+  },
+  {
+    slug: "it/php-escape",
+    inputs: { input: 'a"b', mode: "double" },
+    clicks: ["esc()"],
+    expect: ['a\\"b'],
+    ref: "PHP 双引号字符串转义：把 `\"` 写成 `\\\"`。默认样例不含本串；single 模式（只加单引号、不转义）属输入回显，不收。",
+  },
 ];
 
 // ---------------------------------------------------------------- DOM stub
