@@ -935,6 +935,37 @@ const CASES = [
     expect: ["No matching status code."],
     ref: "反向锚：不存在的状态码 ⇒ 列表区落英文空态提示（默认示例列表非空，必不命中）。",
   },
+  {
+    slug: "it/xxtea",
+    inputs: { input: "ABC", key: "KY" },
+    clicks: ["encrypt()"],
+    expect: ["MaTt9vgiYH8="],
+    ref: "XXTEA 加密后按 Base64 输出（固定密钥下结果确定）；默认示例明文/密钥不同，不命中。",
+  },
+  {
+    slug: "it/mac-lookup",
+    inputs: { macInput: "00:1A:2B:3C:4D:5E" },
+    expect: ["点分： 001A.2B3C.4D5E"],
+    ref: "MAC 的三种规范书写（冒号/连字符/点分）＋ OUI 与 NIC 拆分随输入变化；默认示例地址不同。",
+  },
+  {
+    slug: "it/phone-parser",
+    inputs: { phone: "+8613800138000", cc: "86" },
+    expect: ["国内格式（按位分组）：8 6138 0013 8000"],
+    ref: "E.164 与国内按位分组格式随号码变化；默认号码分组不同，不命中。",
+  },
+  {
+    slug: "it/country-code-lookup",
+    inputs: { input: "CN" },
+    expect: ["ISO 3： CHN"],
+    ref: "ISO 3166-1 alpha-2 → alpha-3/区号/首都/货币映射（CN→CHN→+86→北京→CNY）。默认示例代码不同。",
+  },
+  {
+    slug: "it/language-code-lookup",
+    inputs: { input: "zh" },
+    expect: ["ISO 639-3： zho"],
+    ref: "ISO 639-1 → 639-3/语言名/语系/书写系统映射（zh→zho→Chinese→汉藏语系→Hans/Hant）。默认示例语言不同。",
+  },
 ];
 
 // ---------------------------------------------------------------- DOM stub
