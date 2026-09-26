@@ -300,7 +300,7 @@
 - **过滤"过宽"与"未接线"同样有害**：静态字符串含独立 NaN 词或等于 `'Infinity'` 的 RHS 全站命中 **0 处**，而模板串 / 字符串拼接 / 动态容器变量的守卫**真机上确能拦截 NaN 经插值泄漏到页面**。若跳过模板字面量 / 字符串 / method 链，反而**削弱真机防护**；v8 只跳过"纯静态字符串字面量 RHS"。
 - **守卫只应注入「数值输出页」**：对纯文本/工具页（如 `it/html-escape`、`it/code-runner`）注入含 `NaN` 文本检测的守卫会**误伤正常输出**（转义后的 JS 代码里出现 `NaN` 就被判为无效值）。**注入前先判页面是否有数值输出/`type=number` 输入。**
 - **harness 盲区页无法静态识别，只能试错**：正确流程是 **注入 → 跑该行业 verify → 失败页写入 `--skip` 清单 → 带 `--skip` 重跑 → 直到全绿**（v8 已实现）。
-- **dry-run 命中 ≠ 存在缺陷**：须过「jsdom 真机模拟 + 源码兜底核验」两道（2026-09-23 实证，直接信会白改一批线上页）：全站 dry-run 报 36 页 `WILL_INJECT`，逐页核验**全部静态误报** —— ① jsdom 加载后清空全部输入控件（`''` / `selectedIndex=-1`）再触发事件，仅 3 页命中，且这 3 页 select **无空值选项** ⇒ 真机构造不出；② 源码兜底（`hvac/fresh-air-load` 的 `num()` 把 isNaN 转 null、`fmt()` 渲染 `'--'`）。**判定结论固化在 `scripts/output_guard_exclude.txt`（v8 默认加载，dry-run 已归零）**。另：注入验证归因须用「注入 → verify → 回退 → verify」对比锁定。
+- **dry-run 命中 ≠ 存在缺陷**：须过「jsdom 真机模拟 + 源码兜底核验」两道（2026-09-23 实证）：dry-run 报 36 页全部静态误报 —— ① jsdom 加载后清空全部输入控件再触发事件，仅 3 页命中且 select 无空值选项 ⇒ 真机构造不出；② 源码兜底（`hvac/fresh-air-load` 的 `num()` 把 isNaN 转 null、`fmt()` 渲染 `'--'`）。**判定结论固化在 `scripts/output_guard_exclude.txt`（v8 默认加载，dry-run 已归零）**。另：注入验证归因须用「注入 → verify → 回退 → verify」对比锁定。
 
 ---
 
@@ -403,7 +403,7 @@
 16. **「输入 textarea + 结果区」提取器类（正则抽邮箱 / URL / 日期一类）：输入回显与提取结果并存**
 ⇒ 直接锚被提取内容（`a1@toolbox.com`）测的是**回显**，清空注入后仍从 textarea 命中 ⇒ 伪锚 ✅ 锚落在**结果区独有的形态**：`text-extract-emails` 每封邮箱后跟「复制」按钮 ⇒ 锚「邮箱 + 空格 + 复制」；`text-extract-urls` 锚两段 URL 连排，原文用「与」隔开使之不连续。另 `text-split` 的「序号+段内容」锚（`3 cherry`）默认态示例里本就有 ⇒ 改用段数标签「（共 3 段）」。 （补）这类页常由 n 个 checkbox 决定抽不抽，**缺 `checkIds` 时 `extract()` 在首个 `getElementById(x).checked` 处抛错中断** ⇒ 结果区恒为初始值，画面与「无匹配」**完全一致**，极易误判成「页无功能」⇒ **注入后结果区逐字不变就先怀疑它**，须声明全部默认勾选项（`biz/text-extract-numbers`/`dates` 同形）
 
-17. **控件 id 不存在 = P0 死页（加载即 TypeError、整页无输出）**：harness `getEl()` 对未知 id 现造桩、永不返回 null ⇒ 死页只表现为「无输出 / 只有常量锚」。判据 = jsdom（`runScripts:'dangerously'`）调入口函数抛 `Cannot read properties of null`。处置：以 `<label for=…>` 指向的 id 改 **HTML**，再扫同模板族。另：`createElement()` 桩不回写 `textContent`→`innerHTML` ⇒ 走 `escH()` 的产出在桩内恒空。 18. **「美化/格式化」类页在 harness 内产物与输入同形（锚全成回显伪锚）**：`getIndent()` 读 select，`parseInt(v)=NaN` ⇒ `' '.repeat(NaN)` 空串 ⇒ 缩进恒 0（`it/shell-script-formatter`）。处置：改走同页「压缩/转义」路径找非回显锚（`minifyShell` 以 `; ` 连接 ⇒ `echo a; echo b`）。（反查 `repeat(parseInt` 命中即同族）。
+17. **控件 id 不存在 = P0 死页（加载即 TypeError、整页无输出）**：harness `getEl()` 对未知 id 现造桩、永不返回 null ⇒ 死页只表现为「无输出 / 只有常量锚」。判据 = jsdom 调入口函数抛 `Cannot read properties of null`；处置：以 `<label for=…>` 的 id 改 **HTML** 并扫同模板族。另：`createElement()` 桩不回写 `textContent`→`innerHTML` ⇒ 走 `escH()` 的产出在桩内恒空。 18. **「美化/格式化」类页在 harness 内产物与输入同形（锚全成回显伪锚）**：`getIndent()` 读 select，`parseInt(v)=NaN` ⇒ `' '.repeat(NaN)` 空串 ⇒ 缩进恒 0（`it/shell-script-formatter`）。处置：改走同页「压缩/转义」路径找非回显锚（`minifyShell` 以 `; ` 连接 ⇒ `echo a; echo b`）。（反查 `repeat(parseInt` 即同族）。另：**结果容器不在 DUMP_IDS 时用用例级 `dumpIds`**（`it/html-entities` 的 `encoderOutput`）；dump 只出常量/回显时先怀疑此因。
 
 **D. 工具与方法**
 
