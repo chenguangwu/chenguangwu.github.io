@@ -464,6 +464,34 @@ const CASES = [
     expect: ["甲一句。"],
     ref: "独立复算：按句号/问号/叹号分句 3 句，权重取首个选中句 ⇒ 摘要以 `甲一句。` 开头。默认示例是 14 句长文，不命中。",
   },
+  {
+    slug: "it/text-replace",
+    // 页面把 `doReplace` 挂在 `window` 上（非顶层 function 声明）⇒ 必须 clicks 显式驱动。
+    inputs: { sourceText: "ab cd ab", findInput: "ab", replaceInput: "XY" },
+    clicks: ["doReplace()"],
+    expect: ["XY cd ab"],
+    ref: "独立复算：非全局替换 ⇒ `ab cd ab` 只换第一处 `ab` ⇒ `XY cd ab`（第二处保留）。默认态源文本为空、直接 return，不命中。",
+  },
+  {
+    slug: "it/text-similarity",
+    inputs: { textA: "alpha beta", textB: "alpha gamma" },
+    expect: ["0.6364", "编辑距离: 4"],
+    ref: "独立复算：莱文斯坦距离 4、`len(A)=11` ⇒ 归一化 1−4/11=0.6364，与页面「63.64%（距离: 4）」自洽。默认态是更长示例文本，不命中。",
+  },
+  {
+    slug: "it/text-dedupe-sort",
+    // 页面函数都包在闭包里（`applyOp` 非顶层声明）⇒ 只能从 clicks 进，不能直接 input 事件驱动。
+    inputs: { input: "fig\napple\nfig\npear" },
+    clicks: ["applyOp('dedupe')"],
+    expect: ["fig apple pear"],
+    ref: "独立复算：按整行去重保留首次出现顺序 ⇒ fig / apple / pear 三行（原 4 行、删 1 行）。默认示例是 banana/file10 那套，不命中。",
+  },
+  {
+    slug: "it/text-cleaner",
+    inputs: { "input-text": "  a  b \n\n\n  c \n" },
+    expect: ["a b c"],
+    ref: "独立复算：去首尾空格 + 合并连续空格 + 删空行 ⇒ `a b c`（3 个 token）。默认态源文本为空、直接 return，不命中。",
+  },
 ];
 
 // ---------------------------------------------------------------- DOM stub
