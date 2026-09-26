@@ -1443,6 +1443,20 @@ const CASES = [
     expect: ["共 0 项"],
     ref: "反向锚：MongoDB 速查搜索无命中 ⇒ 计数归零；默认列表非空。",
   },
+  {
+    slug: "it/punycode",
+    inputs: { input: "bcher" },
+    clicks: ["enc()"],
+    expect: ["bcher-"],
+    ref: "独立复算：纯 ASCII 输入的标准 punycode 编码 = 基本码点原样输出 + `-` 分隔位 + 空扩展段 ⇒ `bcher-`（RFC 3492 §6.1 的同形规则）。非 ASCII 输入（`bücher`）在桩内会因 `str is not iterable` 抛错、回落同形态，故只用纯 ASCII 入参。",
+  },
+  {
+    slug: "it/html-entity-encoder",
+    inputs: { encodeInput: "<a>&" },
+    clicks: ["encode()"],
+    expect: ["&lt;a&gt;&amp;"],
+    ref: "独立复算：`<`→`&lt;`、`>`→`&gt;`、`&`→`&amp;` ⇒ `&lt;a&gt;&amp;`。默认态的实体对照表里有 `&amp; &lt;` 等零散片段，但没有这条连续串。",
+  },
 ];
 
 // ---------------------------------------------------------------- DOM stub
