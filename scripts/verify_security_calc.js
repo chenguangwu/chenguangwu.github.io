@@ -102,14 +102,14 @@ const CASES = [
 },
 {
   "slug": "security/virtual-safe",
-  "inputs": {
-    "itemContent": ""
-  },
-  "expect": [
-    "请设置一个主密码来创建新的保险箱"
+  "inputs": {},
+  "clicks": [
+    "document.getElementById('masterPwd').value='Abc12345!';unlockVault();"
   ],
-  "ref": "结构性不可改造（保留 all_default，勿重复评估）：需 WebCrypto（crypto.subtle）派生密钥 + 主密码解锁，"
-     + "harness 无 WebCrypto ⇒ 保险箱列表恒空，注入 itemTitle / itemContent 不改变输出（2026-09-25 实测）。"
+  "expect": [
+    "保险箱为空，添加你的第一条加密内容吧"
+  ],
+  "ref": "（2026-09-25 曾判「需 WebCrypto 派生密钥 ⇒ 结构性不可改造」，本批次推翻）unlockVault 是 window 导出的全局函数，未创建保险箱时走「首次创建」分支（setItem 是 harness 空桩，不影响分支选择），随后 showVault()→renderList() 渲染列表区 ⇒ 命中「保险箱为空，添加你的第一条加密内容吧」。默认态停在锁屏文案「请设置一个主密码来创建新的保险箱。」，两态区分。**注意**：强度计 updateStrength() 未导出到 window，不可直接调用。旧锚「请设置一个主密码来创建新的保险箱」正是默认态文案、判别力 0，已弃；itemContent 空 inputs 也一并移除（属无影响键，见 §10.5）。"
 }
 ];
 async function main() {

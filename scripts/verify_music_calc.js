@@ -86,7 +86,7 @@ const CASES = [
   "expect": [
     "全部12种"
   ],
-  "ref": "auto-restore(default)"
+  "ref": "auto-restore(default)；**2026-09-26 复核判死（勿重复评估）**：① 当前 expect「全部12种」是难度按钮（困难）的常驻文本，默认态必命中 ⇒ 判别力 0；② `window.setMode('chord')` 实测抛错（EarTrainer.setMode 里 `document.querySelectorAll('.mode-tab')[1].classList.add('active')`，harness DOM 中 `.mode-tab` 不足 2 个）⇒ 抛错点之后的 renderRefTable() 根本没执行；③ 可达的 `window.setDifficulty('hard')` 只写 state + renderDifficulty()（纯 class 切换）+ generateQuestion()，**不产生任何新文本**。 ⇒ 无可用注入通道。"
 },
 {
   "slug": "music/freq-note-converter",
