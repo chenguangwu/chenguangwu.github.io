@@ -1412,6 +1412,19 @@ const CASES = [
     expect: ["共 0 项"],
     ref: "反向锚：Rust 速查搜索无命中 ⇒ 计数归零；默认列表非空。",
   },
+  {
+    slug: "it/css-minifier",
+    inputs: { input: "/*c*/a{color : red}" },
+    clicks: ["minify()"],
+    expect: ["a{color:red}"],
+    ref: "独立复算：去掉注释 `/*c*/` 与冒号后空格 ⇒ `a{color:red}`。默认示例带缩进/换行，默认态不含该串。",
+  },
+  {
+    slug: "it/msisdn-lookup",
+    inputs: { input: "112" },
+    expect: ["E.164 格式： +112"],
+    ref: "独立复算：`112` 的国家代码为 `1`（美国/加拿大），国内号码 `12`，E.164 归一化为 `+112`。默认样例是另一个号码。",
+  },
 ];
 
 // ---------------------------------------------------------------- DOM stub
