@@ -966,6 +966,41 @@ const CASES = [
     expect: ["ISO 639-3： zho"],
     ref: "ISO 639-1 → 639-3/语言名/语系/书写系统映射（zh→zho→Chinese→汉藏语系→Hans/Hant）。默认示例语言不同。",
   },
+  {
+    slug: "it/sms-qr",
+    inputs: { phone: "13800138000", msg: "hi" },
+    clicks: ["generate()"],
+    expect: ["sms:13800138000?body=hi"],
+    ref: "SMS 二维码内容格式 `sms:号码?body=短信`；默认号码/短信不同。",
+  },
+  {
+    slug: "it/email-qr",
+    inputs: { to: "a@b.com", subject: "S", body: "B" },
+    clicks: ["generate()"],
+    expect: ["mailto:a%40b.com?subject=S&amp;body=B"],
+    ref: "mailto URI + 百分号编码收件箱（@→%40）＋ subject/body 查询参数；默认示例不同。注意产物区为 HTML 上下文，锚须写 `&amp;`。",
+  },
+  {
+    slug: "it/location-qr",
+    inputs: { lat: "31.2", lng: "121.4", label: "P" },
+    clicks: ["generate()"],
+    expect: ["geo:31.2,121.4?q=P"],
+    ref: "Geo URI（纬度,经度 + 标签查询参数）；默认坐标/标签不同。",
+  },
+  {
+    slug: "it/sitemap-generator",
+    inputs: { urls: "https://a.test\nhttps://b.test" },
+    clicks: ["calcTool()"],
+    expect: ["sitemap.xml 2 URL 数"],
+    ref: "URL 条数统计随注入条数变化（默认示例条数不同 ⇒ 已排除同值巧合）。",
+  },
+  {
+    slug: "it/phone-screen-sizes",
+    inputs: { diag: "5", resw: "1080", resh: "1920" },
+    clicks: ["calcTool()"],
+    expect: ["2203 px 对角线像素"],
+    ref: "√(1080²+1920²)=2202.9 ⇒ 2203 px；默认机型分辨率/尺寸组合不命中。",
+  },
 ];
 
 // ---------------------------------------------------------------- DOM stub
