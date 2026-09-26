@@ -1181,6 +1181,39 @@ const CASES = [
     expect: ["--- a: 1"],
     ref: "独立复算：`---` 文档分隔 + 一级键 `a: 1`。**不能用 `loadSample()`** —— 那会渲染默认样例，默认态同命中 ⇒ 逃生项。",
   },
+  {
+    slug: "it/a1z26-cipher",
+    inputs: { input: "XYZ", sep: "-" },
+    clicks: ["enc()"],
+    expect: ["24-25-26"],
+    ref: "独立复算：A=1/Z=26 ⇒ `24-25-26`。**注入必须避开默认文本 `HELLO WORLD`** —— 它的编码结果以 `23-15-18-12-4` 结尾，与本例锚成子串关系，默认态会命中 ⇒ 逃生项。",
+  },
+  {
+    slug: "it/baudot-code",
+    inputs: { input: "AB1" },
+    clicks: ["enc()"],
+    expect: ["00011 11001 11011 10111"],
+    ref: "独立复算：查码表 A=00011、B=11001、数字 1=10111 ⇒ 五个位组以空格连接。表体（32 行码表）恒在默认态出现，锚只取产物行。",
+  },
+  {
+    slug: "it/ascii-table",
+    inputs: { search: "zzz" },
+    expect: ["No matching entries."],
+    ref: "反向锚：ASCII 速查搜索无命中 ⇒ 空态提示；默认列表非空。",
+  },
+  {
+    slug: "it/ascii-tree-generator",
+    inputs: { paths: "src/\na.js\nb.js\nlib/util.js" },
+    clicks: ["build()"],
+    expect: ["已生成 5 行目录树（4 个路径）"],
+    ref: "独立复算：4 条路径按**换行**切分（非逗号）⇒ 5 行树、4 个路径。textarea 无 oninput ⇒ 必须 clicks `build()`。",
+  },
+  {
+    slug: "it/area-code-lookup",
+    inputs: { input: "212" },
+    expect: ["New York (Manhattan)"],
+    ref: "独立复算：NANP 区号库查 212 ⇒ New York (Manhattan)。库只覆盖北美编号计划，`021` 等中国区号查无 ⇒ 默认态不命中。",
+  },
 ];
 
 // ---------------------------------------------------------------- DOM stub
