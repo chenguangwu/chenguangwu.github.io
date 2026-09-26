@@ -444,6 +444,26 @@ const CASES = [
     expect: ["请输入 TOML 文本"],
     ref: "空输入时页面写入 `请输入 TOML 文本`；默认 TOML 非空不命中。该页此前为 P0 死页（sort id 不匹配），修复后本例才有判别力。",
   },
+  {
+    slug: "it/sql-formatter",
+    // textarea 无 oninput ⇒ 注入不触发重算，必须在 clicks 里显式调 formatSql()。
+    inputs: { input: "select a,b from t where a=1" },
+    clicks: ["formatSql()"],
+    expect: ["SELECT a, b FROM t WHERE a=1"],
+    ref: "独立复算：关键字大写 + `a,b` 逗号后补空格 ⇒ `SELECT a, b FROM t WHERE a=1`（值 `a=1` 不加空格，与输入一致）。默认示例是长联表 SQL，不命中。",
+  },
+  {
+    slug: "it/slugify",
+    inputs: { input: "Hello World ToolBox" },
+    expect: ["Hello-World-ToolBox"],
+    ref: "独立复算：空格转连字符 ⇒ `Hello-World-ToolBox`（默认 `mode=空白转-`）。默认输入是中文标题（走拼音分支），不命中。",
+  },
+  {
+    slug: "it/summary-generator",
+    inputs: { inputText: "甲一句。乙二句？丙三句。" },
+    expect: ["甲一句。"],
+    ref: "独立复算：按句号/问号/叹号分句 3 句，权重取首个选中句 ⇒ 摘要以 `甲一句。` 开头。默认示例是 14 句长文，不命中。",
+  },
 ];
 
 // ---------------------------------------------------------------- DOM stub
