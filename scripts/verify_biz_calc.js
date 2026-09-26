@@ -349,6 +349,74 @@ const CASES = [
     expect: ["Zeta_Quest_"],
     ref: "同一输入仅改 separator ⇒ 输出 'Zeta_Quest_'（正反双向锚）。collapseSep/trimSep 未勾 ⇒ 尾部分隔符保留，与上一例的尾 '-' 同形态 ⇒ 证明改的是 sep 而非笔误。",
   },
+
+  {
+    slug: "biz/text-reverse",
+    inputs: { "input": "abcDEF" },
+    expect: ["FEDcba"],
+    ref: "字符串反转：逐字符倒序且保留原大小写（abcDEF ⇒ FEDcba）。默认态是该页预置文案（'hello world…' 的倒序中文串），与本例无关 ⇒ 强判别。",
+  },
+  {
+    slug: "biz/text-remove-duplicates-lines",
+    inputs: { "input": "a\nb\na\nc\nb" },
+    expect: ["a b c", "dupCount 2", "40%"],
+    ref: "去重工具的三条派生量同时锁：结果行 `a b c`、去重数 dupCount=2（5 行去重掉 2 行）、节省率 40%（2/5）。"
+       + "默认态为预置的 7 行样例（apple banana cherry date，savedPct 43%）⇒ 强判别。",
+  },
+  {
+    slug: "biz/text-repeat",
+    inputs: { "input": "ab", "times": "4", "separator": "-" },
+    expect: ["ab-ab-ab-ab"],
+    ref: "重复工具：结果 = 输入 × 次数，分隔符插在相邻两份之间（末份后不带分隔符）。times=4 ⇒ 4 份 3 个 '-'。"
+       + "默认态为无分隔符的 5 份 'HelloHelloHelloHelloHello' ⇒ 强判别。",
+  },
+  {
+    slug: "biz/text-compare",
+    inputs: { "left": "a\nb\nc", "right": "b\nc\nd" },
+    expect: ["leftOnly 1", "sameCount 2", "50%"],
+    ref: "文本比对：按行求 仅左 / 仅右 / 共有。{a,b,c} vs {b,c,d} ⇒ 仅左 a（1 条）、共有 2 条、相似度 = 共有/并集 = 2/4 = 50%。"
+       + "默认态为两栏预置长文本（similarity 38%）⇒ 强判别。",
+  },
+  {
+    slug: "biz/char-frequency",
+    inputs: { "input": "aabbc", "topN": "3" },
+    expect: ["a 2 (40.00%) b 2 (40.00%) c 1 (20.00%)"],
+    ref: "字符频次统计：占比 = 该字符出现数 / 总字符数（5）。topN=3 控制展示条数，三条按频次降序。"
+       + "默认态是该页预置的长句统计，不命中。",
+  },
+  {
+    slug: "biz/text-sort-advanced",
+    inputs: { "input": "banana\napple\nCherry\nbanana" },
+    expect: ["apple banana banana Cherry"],
+    ref: "高级排序：按当前排序模式重排行。默认态排序的是该页预置的中文/数字混排样例（'1 10 2 20 apple… 上海 北京'），"
+       + "本例锚注入文本排序后的 4 行 ⇒ 强判别。注意排序键受 trimEach/caseInsensitive 等选项影响，本例只注入文本本体。",
+  },
+  {
+    slug: "biz/text-to-slug",
+    inputs: { "input": "Hello World Foo Bar" },
+    expect: ["Hello-World-Foo-Bar"],
+    ref: "slug 生成：空格转分隔符、各单词首字母保留原样（未勾选 lowercase 时不强转小写）、默认分隔符为 '-'。"
+       + "默认态为该页预置中文/英文样例 ⇒ 强判别。",
+  },
+  {
+    slug: "biz/text-trim",
+    inputs: { "input": "  hello  " },
+    expect: ["hello"],
+    ref: "去空白：剔除首尾空格。默认态是该页预置的整句（'Hello World 这是 测试 文本…'）⇒ 强判别。",
+  },
+  {
+    slug: "biz/text-pad",
+    inputs: { "input": "7", "padChar": "0", "padLength": "5", "align": "left" },
+    expect: ["00007"],
+    ref: "补位工具：左补到 padLength=5 位、补位符 '0' ⇒ 7 ⇒ 00007。默认态是对预置数值序列补到 10 位"
+       + "（'0000000001 0000000012 …'），与本例位宽不同 ⇒ 强判别。",
+  },
+  {
+    slug: "biz/markdown-quote",
+    inputs: { "input": "line1\nline2" },
+    expect: ["> line1 > line2"],
+    ref: "Markdown 引用：逐行前置 '> '。默认态为预置中文三段 ⇒ 强判别。注入值含换行，直接写进 inputs 即可生效。",
+  },
 ];
 
 // ---------------------------------------------------------------- main
