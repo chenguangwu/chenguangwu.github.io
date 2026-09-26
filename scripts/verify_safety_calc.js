@@ -117,10 +117,13 @@ const CASES = [
 {
   "slug": "safety/safety-quiz",
   "inputs": {},
-  "expect": [
-    "15"
+  "clicks": [
+    "shuffle=function(a){return a;};startQuiz();for(var i=0;i<qOrder.length;i++){choose(qOrder[i].a);nextQ();}"
   ],
-  "ref": "auto-restore(default)"
+  "expect": [
+    "安全知识掌握优秀！"
+  ],
+  "ref": "startQuiz() 用 shuffle(QUESTIONS).slice(0,15) 随机抽题 ⇒ 顶层 shuffle 直接覆写成恒等（页面函数、非进程级全局），qOrder 即 QUESTIONS 前 15 题；再逐题 choose(qOrder[i].a) 全答对、nextQ() 推进（renderQ() 会重置 answered 门控）。 finishQuiz() 落 pct=100 分支 ⇒ 「安全知识掌握优秀！」。默认态 / 兜底阶段无参调 finishQuiz 时 score=0、wrongList 空 ⇒ 落「正确率较低…」+「无错题，全部答对！」两条（后者是 else 兜底分支，同 BATCH97，刻意不锚）。旧锚「15」是题数常量，默认态必命中，判别力 0，已弃。"
 },
   // 注：safety/stats-report-frequency 已于 2026-09-19 改为 TOOLBOX-REDIRECT 存根（重定向到同义真工具），不再是工具页，用例移除。
 ];

@@ -247,10 +247,14 @@ const CASES = [
 {
   "slug": "rheumatology/bvas",
   "inputs": {},
-  "expect": [
-    "定期监测ANCA滴度和脏器功能"
+  "clicks": [
+    "var __q=document.querySelectorAll;document.querySelectorAll=function(s){if(s==='.g1')return [{checked:true},{checked:true},{checked:true},{checked:true}];if(s==='.g2')return [{checked:true},{checked:true},{checked:true},{checked:true},{checked:true}];if(s==='.g3')return [{checked:true},{checked:true},{checked:true},{checked:true},{checked:true}];if(s==='.g4')return [{checked:true},{checked:true},{checked:true},{checked:true},{checked:true},{checked:true}];if(s==='.g5')return [{checked:true},{checked:true},{checked:true},{checked:true},{checked:true}];if(s==='.g6')return [{checked:true},{checked:true},{checked:true},{checked:true}];if(s==='.g7')return [{checked:true},{checked:true},{checked:true}];if(s==='.g8')return [{checked:true},{checked:true},{checked:true},{checked:true},{checked:true},{checked:true},{checked:true}];if(s==='.g9')return [{checked:true},{checked:true},{checked:true},{checked:true}];return __q.call(document,s);};calc();document.querySelectorAll=__q;"
   ],
-  "ref": "auto-restore(default)"
+  "expect": [
+    "总分 = 63",
+    "高活动度"
+  ],
+  "ref": "（2026-09-24 曾记为「静态 class 批量复选框不在 DYN 表 ⇒ 不可注入」，本批次推翻）calc() 只读 document.querySelectorAll('.'+g.cls) 的 el.checked，与 DOM 树无关 ⇒ 覆写 querySelectorAll 返回「全 checked 的哑元素」即等价「用户勾选全部项」，用完即恢复原函数。独立复算：每组各按 weights 累加后被 g.max 幂等封顶（3/6/6/6/6/6/9/12/9）⇒ 总分 63、受累系统 9、level>15 ⇒ 高活动度。锚「总分 = 63 + 高活动度」；旧锚「定期监测ANCA滴度和脏器功能」是 total===0 分支的常驻文案，默认态必命中、判别力 0，已弃。注意「受累系统数」是页面常驻 stat-card 标签，也不能当锚。"
 },
 {
   "slug": "rheumatology/essdai",
@@ -349,10 +353,14 @@ const CASES = [
 {
   "slug": "rheumatology/sledai",
   "inputs": {},
-  "expect": [
-    "SLEDAI-2K"
+  "clicks": [
+    "var __q=document.querySelectorAll;document.querySelectorAll=function(s){if(s==='.s8')return [{checked:true},{checked:true},{checked:true},{checked:true},{checked:true},{checked:true},{checked:true},{checked:true}];if(s==='.s4')return [{checked:true},{checked:true},{checked:true},{checked:true},{checked:true},{checked:true}];if(s==='.s2')return [{checked:true},{checked:true},{checked:true},{checked:true},{checked:true},{checked:true},{checked:true}];if(s==='.s1')return [{checked:true},{checked:true},{checked:true}];return __q.call(document,s);};calc();document.querySelectorAll=__q;"
   ],
-  "ref": "auto-restore(default)"
+  "expect": [
+    "总分 = 105",
+    "极重度活动"
+  ],
+  "ref": "与 bvas 同源通道（覆写 querySelectorAll 返回全 checked 哑元素）。独立复算：s8 8×8=64、s4 6×4=24、s2 7×2=14、s1 3×1=3 ⇒ 总分 105 > 19 ⇒ 极重度活动；details 非空 ⇒ 渲染「总分 = 105」明细行。默认态全 0 ⇒ 「无活动」+「病情稳定…」，两串均失配。旧锚「SLEDAI-2K」是静态卡片标题，默认态必命中，判别力 0，已弃。"
 },
 {
   "slug": "rheumatology/ssa-ssb",
