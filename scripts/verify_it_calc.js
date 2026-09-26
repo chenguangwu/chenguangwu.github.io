@@ -1369,6 +1369,31 @@ const CASES = [
     expect: ["计算结果: 2023-01-01 00:00:00"],
     ref: "独立复算：2020-01-01 + 3 年 = 2023-01-01。只锚本地日期串，**不锚时间戳**（页面时间戳随运行时区变化，非确定性）。默认态的样例日期是 2024-06-15。",
   },
+  {
+    slug: "it/sql-cheatsheet",
+    inputs: { searchInput: "zzz" },
+    expect: ["共 0 项"],
+    ref: "反向锚：SQL 速查搜索无命中 ⇒ 计数归零；默认列表非空。",
+  },
+  {
+    slug: "it/php-cheatsheet",
+    inputs: { searchInput: "zzz" },
+    expect: ["共 0 项"],
+    ref: "反向锚：PHP 速查搜索无命中 ⇒ 计数归零；默认列表非空。",
+  },
+  {
+    slug: "it/nginx-cheatsheet",
+    inputs: { searchInput: "zzz" },
+    expect: ["共 0 项"],
+    ref: "反向锚：Nginx 速查搜索无命中 ⇒ 计数归零；默认列表非空。",
+  },
+  {
+    slug: "it/url-encode",
+    inputs: { input: "a b&c" },
+    clicks: ["encodeUrl()"],
+    expect: ["a%20b%26c"],
+    ref: "独立复算：`encodeURIComponent('a b&c')` ⇒ 空格→`%20`、`&`→`%26` ⇒ `a%20b%26c`。默认样例是 URL，默认态不含该串。",
+  },
 ];
 
 // ---------------------------------------------------------------- DOM stub
