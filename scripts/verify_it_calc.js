@@ -712,6 +712,39 @@ const CASES = [
     expect: ["191b"],
     ref: "0x19 0x1b 两字节异或密文（A^X=19、B^Y=1b）十六进制小写拼接。默认输入/密钥组合产物不同。",
   },
+  {
+    slug: "it/curl-parser",
+    inputs: { cmd: "curl https://a.test/x?a=1" },
+    expect: ["URL： https://a.test/x?a=1"],
+    ref: "URL 由命令行解析得出（方法 GET、无 Header、无 Body），非原文回显；默认示例指向另一域名，不命中。",
+  },
+  {
+    slug: "it/ini-parser",
+    inputs: { input: "[s]\na=1\n[t]\nb=2" },
+    clicks: ["iniToJson()"],
+    expect: ['{ "s": { "a": "1" }, "t": { "b": "2" } }'],
+    ref: "两个 section 各自成对象、键值保持字符串形态；默认示例 section 名不同，不命中。",
+  },
+  {
+    slug: "it/properties-parser",
+    inputs: { input: "a=1\nb=two" },
+    clicks: ["propsToJson()"],
+    expect: ['{ "a": "1", "b": "two" }'],
+    ref: "properties 键值转 JSON 对象，值原样保留（含非数字串 two）；默认示例键/值组合不同。",
+  },
+  {
+    slug: "it/json-schema-validator",
+    inputs: { data: '{"a":1}', schema: '{"type":"object","required":["b"]}' },
+    clicks: ["validateJSON()"],
+    expect: ["未通过： 缺少必填字段: root.b"],
+    ref: "schema 要求必填 b 而数据缺 b ⇒ 必报缺失字段并点名路径；默认示例通过校验，结论相反。",
+  },
+  {
+    slug: "it/email-normalizer",
+    inputs: { input: "A.B+tag@Google.com" },
+    expect: ["a.b+tag@google.com"],
+    ref: "小写化后输出（保留标签部分、未去点）；默认示例地址不同形，不命中。",
+  },
 ];
 
 // ---------------------------------------------------------------- DOM stub
