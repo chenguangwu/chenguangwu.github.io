@@ -619,6 +619,30 @@ const CASES = [
     expect: ["±0.049"],
     ref: "独立复算：SE = √[0.5×0.5/400] = 0.025，E = 1.96 × 0.025 = ±0.049（相对 4.90%）⇒ 95% CI [0.451, 0.549]。**注入值避开默认 n=100** —— 默认态 SE=0.05、E=±0.098，与注入态不同 ⇒ 双态成立；但同页 `z* = 1.96` / `α = 0.05` 是 α=0.05 双侧常量（判据⑤），不能单独当锚。",
   },
+  {
+    slug: "it/password-strength",
+    inputs: { pwd: "Abcdef1!" },
+    expect: ["良好"],
+    ref: "独立复算：8 位、含大小写+数字+特殊符号、非键盘序列、非弱密码 ⇒ 评分 4/5 档「良好」（页面另给熵 52 bit 与破解耗时）。默认示例是更长的弱串，落另一档，不命中。",
+  },
+  {
+    slug: "it/whitespace",
+    inputs: { source: "  a   b \n\n c \n" },
+    clicks: [
+      "document.getElementById('top_trim').checked=true;document.getElementById('top_blank').checked=true;document.getElementById('top_collapse').checked=true;document.getElementById('top_trail').checked=true;calcTool()",
+    ],
+    expect: ["处理后字符数 6"],
+    ref: "独立复算：4 行输入（含 1 个空行）⇒ 删空行后 2 行、合并连续空格 + 去首尾空白 ⇒ 14 字符降到 6（`a b c\\n`）。**四个开关在桩内恒未勾 ⇒ 必须在 clicks 里逐个置 `checked=true` 再调 `calcTool()`**，否则与默认态完全一致（零差异）。",
+  },
+  {
+    slug: "it/chmod-calculator",
+    inputs: {},
+    clicks: [
+      "document.getElementById('r0').checked=true;document.getElementById('w0').checked=true;document.getElementById('x0').checked=true;document.getElementById('r1').checked=true;document.getElementById('x1').checked=true;document.getElementById('r2').checked=true;document.getElementById('w2').checked=true;document.getElementById('x2').checked=true;calc()",
+    ],
+    expect: ["chmod 757"],
+    ref: "独立复算：用户 rwx=7、组 r-x=5、其他 rwx=7 ⇒ `757` 且符号位 `rwxr-xrwx`。checkbox 在桩内恒未勾（`inputs` 写 `checked` 不生效）⇒ 必须走这段 clicks；默认态（全勾 7）显示的是随机预设的另一组值，不命中。",
+  },
 ];
 
 // ---------------------------------------------------------------- DOM stub
