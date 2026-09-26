@@ -213,6 +213,39 @@ const CASES = [
     ref: "length-desc：长度降序 ⇒ apple(5) > pear(4) > fig(3)。与 length-asc 的锚互为反向，"
        + "可防「排序根本没生效」的假通过。",
   },
+
+  // ── 邮箱提取（锚必须落在「结果区连排」而非输入回显）───────────────
+  {
+    slug: "biz/text-extract-emails",
+    inputs: { input: "联系 a1@toolbox.com 或 b2@mail.org 咨询" },
+    clicks: ["extractEmails();"],
+    expect: ["a1@toolbox.com 复制 b2@mail.org 复制"],
+    ref: "正则 /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}/g 命中 2 处 ⇒ 结果区每封邮箱渲染成"
+       + " '<span class=email>…</span><button>复制</button>'，剥标签后连排为『a1@toolbox.com 复制 b2@mail.org 复制』。"
+       + "⚠ 该串刻意带后缀『 复制』：邮箱原文就在 textarea 里（回显必命中），只有加上结果区独有的按钮文案才测到提取；"
+       + "直接锚 'a1@toolbox.com' 属伪锚。默认态 input 为空 ⇒ 早返回、result 为空 ⇒ 不命中。",
+  },
+
+  // ── URL 提取（分隔词打断 ⇒ 结果连排非输入子串）──────────────────
+  {
+    slug: "biz/text-extract-urls",
+    inputs: { input: "见 http://alpha.com 与 https://beta.org 结束" },
+    expect: ["http://alpha.com https://beta.org"],
+    ref: "两条 URL 均未带协议头 ⇒ 补成 http://alpha.com / http…（beta 已是 https）；默认分隔符 join 空格"
+       + " ⇒ 结果 textContent 为『http://alpha.com https://beta.org』。原文里两段之间是『与』，"
+       + "该串在输入中不连续 ⇒ 非回显。默认态 textarea 为示例文本 ⇒ 不命中。",
+  },
+
+  // ── 文本分割（段数标签只随注入出现）────────────────────────────
+  {
+    slug: "biz/text-split",
+    inputs: { input: "apple,banana,cherry" },
+    clicks: ["split();"],
+    expect: ["（共 3 段）"],
+    ref: "mode 默认 delimiter、分隔符 ',' ⇒ 'apple,banana,cherry'.split(',') = 3 段；trimEach/skipEmpty 默认勾选但不影响。"
+       + "countLabel 写入『（共 3 段）』。默认态 textarea 为 5 段示例文本，countLabel 为空串 ⇒ 不命中。"
+       + "⚠ 另一候选锚 '3 cherry'（序号+段内容）在默认态示例里同样存在 ⇒ 逃生项，已弃用。",
+  },
 ];
 
 // ---------------------------------------------------------------- main
