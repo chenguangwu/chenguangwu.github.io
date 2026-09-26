@@ -75,6 +75,47 @@ const CASES = [
     expect: ["2 页（约）"],
     ref: "effectivePer=400(essay)×1(a4)×0.8(font1)=320；effectiveW=400×(1+0)=400；pages=400/320=1.25 → ceil=2 页（单字符“2”会被默认 5000 字结果里的其他数字命中 → 逃生项）",
   },
+  // ── §7.4 覆盖缺口补测（2026-09-26）：同一模式切换，绕过 setMode 双参入口
+  //    注：edu/exam-study-planner 的「任务统计」分支不可注入 —— harness 的 localStorage
+  //    桩只写不读，getTasks() 恒返回 [] ⇒ renderStats 的分子/分母恒 0，只能记结构性缺口。
+  {
+    slug: "edu/timezone-converter",
+    inputs: { srcTz: "12", dstTz: "1", inpHour: "8", inpMin: "30", inpSec: "45", inpDate: "2026-03-15" },
+    expect: ["23:30:45", "2026年03月15日 星期日", "时差：15 小时"],
+    ref: "srcTz=12 是芝加哥(std −360)、dstTz=1 是东京(+540)，非名序对应：差 =540−(−360)=900 分 =15 小时；"
+       + "8:30:45+15h=23:30:45（同日 ⇒ dayDiff=0，2026-03-15 为星期日）。默认态为北京→纽约(时差 13 小时) ⇒ 三锚均不命中；"
+       + "「东京（日本）UTC+9」看似好锚，但默认态 select 的 option text 里已有同串 ⇒ 逃生项，不用。",
+  },
+  {
+    slug: "edu/pinyin-converter",
+    inputs: { inputText: "我爱中国" },
+    expect: ["wǒ ài zhōng guó", "总字符：4"],
+    ref: "pinyinData 实测 我=wǒ / 爱=ài / 中=zhōng / 国=guó；withSpace 默认勾选 ⇒ 逐字带声调拼接。"
+       + "字符 4 / 汉字 4 / 已转换 4。默认输入「你好世界，学习拼音很重要！」不命中。",
+  },
+  {
+    slug: "edu/pinyin-converter",
+    inputs: { inputText: "我爱中国" },
+    clicks: ["currentMode='notone';convert();"],
+    expect: ["woaizhongguo"],
+    ref: "setMode(mode, btn) 是双参入口，直调时 btn===undefined 会在 btn.classList 抛错 ⇒ 绕过入口直接写模块级 currentMode 再 convert()。"
+       + "currentMode='notone' ⇒ removeTone 去声调；harness 下 withSpace 复选框恒 false ⇒ 输出无空格。默认态为带声调全串，不命中。",
+  },
+  {
+    slug: "edu/pinyin-converter",
+    inputs: { inputText: "我爱中国" },
+    clicks: ["document.getElementById('firstUpper').checked=true;convert();"],
+    expect: ["WǒÀiZhōngGuó"],
+    ref: "harness 下 checkbox 初值恒 false，直接置 true 即可（不必走 setMode）；convert 内 firstUpper 分支对每个拼音串首字符转大写：wǒ→Wǒ / ài→Ài / zhōng→Zhōng / guó→Guó。默认态为不加小写的带声调全串，不命中。",
+  },
+  {
+    slug: "edu/exam-study-planner",
+    inputs: { "focus-mins": "50", "break-mins": "10", "target-rounds": "7" },
+    expect: ["50:00", "共 7 轮"],
+    ref: "focus-mins 的 change 监听器走 resetPomo()：remaining=focus×60=3000 ⇒ 显示 50:00，target=target-rounds=7 ⇒ 共 7 轮。"
+       + "默认态为 25:00 / 共 4 轮。本例命中在注入阶段（inputs 注入即触发 change 监听）——页面把监听绑在 focus-mins 上而非按钮，"
+       + "故不写 clicks：此处 dispatchEvent 会被 pageEval 判为语法错并静默失败（等价于无注入通道）。",
+  },
 ];
 
 async function main() {

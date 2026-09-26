@@ -184,10 +184,10 @@
 **核实结论（勿再重估）**：
 
 - 全站含 `<input type="checkbox">` 的页面 **353** 个，其中**有用例的 162 个已全部带注入通道**，**无注入通道的弱用例 = 0** ⇒ 存量弱用例线与 checkbox 无关，`no_inputs` / `all_default` 的 14 例已全部定性。
-- **但另有 191 个含 checkbox 的页面在全站任何 verify 文件中都没有用例**（`design/*` 11 页、`edu/*` 3 页、`biz/*` 文本类为主），均为有真实计算逻辑的工具页。
+- **但另有 191 个含 checkbox 的页面在全站任何 verify 文件中都没有用例**（`design/*` 11 页、`edu/*` 40 页、`biz/*` 文本类为主）。
 - 判定口径注意：用例块的键名**常不带引号**（`slug: "x"` / `inputs: {}` / `checkIds: [...]`），扫描脚本必须写成 `"?slug"?\s*:\s*"([^"]+)"`，否则会大量误报「无用例 / 无注入通道」（本次两次误报均源于此）。
 
-**处置**：属新线（补用例 ≠ 改弱用例），单独立批。须守 §8.1：expect 独立复算、不取页面自身输出。**已交付 2 例**（BATCH131：`design/progress-bar-generator` 锚 `width: 37%` / `height: 12px` / `border-radius: 4px`；`design/css-border-radius` 锚八值语法 `border-radius: 5px 12px 8px 3px / 2px 6px 9px 4px;`）。`design/image-resizer` 因 `generate()` 首行 `if(!origImg) return` 且依赖 canvas 解码 ⇒ 暂不补。
+**处置**：属新线（补用例 ≠ 改弱用例），单独立批；须守 §8.1（expect 独立复算）。**已交付 7 例**：`design/progress-bar-generator`、`design/css-border-radius` 见 BATCH131；`edu/timezone-converter`、`edu/pinyin-converter` ×3 见本节（锚 `23:30:45` / `wǒ ài zhōng guó` / `woaizhongguo` / `WǒÀiZhōngGuó`）。剩余 **188** 页待补（`design/*` 11、`edu/*` 37、`biz/*` 文本类为主）。`design/image-resizer`（`generate()` 首行 `if(!origImg) return` + 依赖 canvas 解码）、`edu/exam-study-planner`（localStorage 桩只写不读 ⇒ 统计分子/分母不可达）**结构性不可注入，不硬写用例**。
 
 ## 八、反模式与防复发（铁律）
 
@@ -330,7 +330,7 @@
 
 ### 10.2 现状（实测基线）
 
-- `all_default 4 / no_inputs 10 / escape 0`；门禁 `run_gates.py` **216 项全过**、逃生项 0（判别器已检 **3111** 例 / 跳过 50）。
+- `all_default 4 / no_inputs 10 / escape 0`；门禁 `run_gates.py` **216 项全过**、逃生项 0（判别器已检 **3118** 例 / 跳过 50）。
 - A 级率 **99.2%**（A 4693 / B 32 / C 4，共 4729）；deep-dive 术语内链 **1591 页 / 2268 条 / 唯一目标 630**（零死链、零自链、单页 ≤6 条）。- 存量弱用例 **15 例**（口径、选批规则与逐例判死理由见 §10.3）。
   - **注意：弱用例整体处于判别器盲区** —— 「注入值等于默认值」的用例被判 `usable=false` 直接跳过（§10.5）⇒ `escape=0` 只说明强用例无逃生项；每批改造后须重跑判别器确认其由「跳过」转为「已检且变红」。
 
@@ -395,6 +395,8 @@
 8. **注入与格式口径**：`select` 的 `selected` 属性在桩里不生效 ⇒ 默认选中项必须**显式注入**（`selfcheck` 取 JS 设定的真实默认、`discriminate_check` 取首个 option，两者口径不同）。`inputs` 键若是生成器模板串残留（`${f}` / `pri${i}`）会同时骗过两把锁（不进棘轮 + 记「正确变红」）⇒ 巡检 `verify_*_calc.js` 里形如 `${` 的键。`fmt()` 走 `toLocaleString()` 默认截 3 位小数 ⇒ 定 expect 时避开被截断的位置。
 9. **clicks 锚「不读输入的全量函数」必误判逃生项**：判别器对 clicks 的「注入失败」模拟是**清空 clicks 后跑**（含兜底遍历）。若 expect 锚 `checkAll()` 类「不读输入、恒产全量」输出（如 `36/36`），兜底重调仍同值 ⇒ 判「仍 PASS」= 逃生项。✅ 修法：clicks 锚**具体输入态**（`toggleItem(0,0/0,1/0,2)` 勾 N 项 → `N/总数`），默认态 0 项不命中。
 10. **空结果提示不可锚两形态**：① 提示同时被兜底链复现（`selectXxx()` 无参置页面全局态 `undefined` ⇒ 过滤集恒空、渲同一提示）⇒ 注入态与失败态同串，判逃生项。② 提示在**独立静态元素**内、仅 `style.display` 切换 ⇒ 不写入结果容器、`collectStrings` 采不到 ⇒ blob 永不含该串。✅ 定锚前用探针双态 dump 比对，只取「注入态有 / 默认态无且兜底不复现」的串。
+11. **「名 + 参数」型 option 文本是逃生项**：`<select>` 的 `option.textContent` 会进 `collectStrings` ⇒ `东京（日本）UTC+9` 这类串在**默认态 select 里本就存在**，看似好锚实则逃生 ✅ 只锚**随注入值变化的派生量**（换算后的时刻串、时差串）。同理 `addTask()` 一类「写 localStorage → 再读回」链路在 harness 下**只写不读**（`getItem` 缺失 ⇒ `getTasks()` 恒 `[]`）⇒ 依赖该读回值的统计恒 0，**结构性不可注入**，记缺口不硬写用例（`edu/exam-study-planner`）。
+12. **调试陷阱（会把「没生效」误判成 bug）**：① `verify_it_calc.js` **必须留在 `scripts/` 下**跑 —— `TOOLS_DIR` 取自 `__dirname`，拷到仓库外（`/tmp/x.js`）会整页返「文件不存在」且 `errs=[]`（看似「clicks 静默失败」）；要插日志就在 `scripts/` 下临时副本改完删。② 确认 clicks 是否真执行，用「探针而非猜测」：`clicks:["throw new Error('RAN')"]`，`errs` 出现 `RAN` 即已执行（比 DOM 探针可靠，某些 id 未必在采集集内）。③ 带连字符的 id 在用例对象里**必须加引号**（`{ "focus-mins": "50" }`），裸写 `focus-mins:` 直接 SyntaxError。
 
 **D. 工具与方法**
 
