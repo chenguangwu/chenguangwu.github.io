@@ -1312,6 +1312,38 @@ const CASES = [
     expect: ["Sitemap: https://a.io/sitemap.xml"],
     ref: "独立复算：填 Sitemap 后 `render()` 把该行并进预览（`addRule()` 先把默认规则行补进来，故预览里同时含默认 UA/Disallow 行）。锚取注入的 sitemap 行，默认态不含。",
   },
+  {
+    slug: "it/go-cheatsheet",
+    inputs: { searchInput: "zzz" },
+    expect: ["共 0 项"],
+    ref: "反向锚：Go 速查搜索无命中 ⇒ 计数归零；默认列表非空。",
+  },
+  {
+    slug: "it/linux-cheatsheet",
+    inputs: { searchInput: "zzz" },
+    expect: ["共 0 项"],
+    ref: "反向锚：Linux 速查搜索无命中 ⇒ 计数归零；默认列表非空。",
+  },
+  {
+    slug: "it/sqlite-cheatsheet",
+    inputs: { searchInput: "zzz" },
+    expect: ["共 0 项"],
+    ref: "反向锚：SQLite 速查搜索无命中 ⇒ 计数归零；默认列表非空。",
+  },
+  {
+    slug: "it/text-to-hex",
+    inputs: { input: "Hi!" },
+    clicks: ["convert()"],
+    expect: ["48 69 21"],
+    ref: "独立复算：ASCII 表手算 H=0x48、i=0x69、!=0x21，默认分隔符为空格 ⇒ `48 69 21`。默认样例是 `Hello` ⇒ 默认态不含该串。",
+  },
+  {
+    slug: "it/roman-numeral-converter",
+    inputs: { number: "2024" },
+    clicks: ["calcTool()"],
+    expect: ["MMXXIV"],
+    ref: "独立复算：2024 = 1000(M) + 1000(M) + 10(X) + 10(X) + 5(V) + 1(I) ⇒ MMXXIV。默认示例是另一个数字，默认态不含。",
+  },
 ];
 
 // ---------------------------------------------------------------- DOM stub
