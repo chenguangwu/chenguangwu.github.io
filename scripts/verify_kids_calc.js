@@ -40,11 +40,11 @@ const CASES = [
 },
 {
   "slug": "kids/multiplication-practice",
-  "inputs": {},
+  "clicks": ["stats.right=17;stats.total=20;stats.bestStreak=6;renderStats();"],
   "expect": [
-    "50%"
+    "85% 正确率"
   ],
-  "ref": "auto-restore(default)"
+  "ref": "独立复算：正确率 = round(stats.right / stats.total * 100) = round(17/20*100) = 85，renderStats() 把「85%」与卡片标签「正确率」一起写进 #statGrid；默认 stats 全 0 ⇒ 显示「0% 正确率」。stats 是页面顶层 var，可在页面作用域直接改字段后重渲染。"
 },
 {
   "slug": "kids/stroke-order",

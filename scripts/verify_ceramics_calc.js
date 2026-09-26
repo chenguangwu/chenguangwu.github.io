@@ -43,11 +43,11 @@ const CASES = [
 },
 {
   "slug": "ceramics/kiln-firing",
-  "inputs": {},
+  "clicks": ["switchTab('porcelain');"],
   "expect": [
-    "150°C/h"
+    "峰值温度 1300°C，总烧成时间 约 12~15 小时。"
   ],
-  "ref": "auto-restore(default)"
+  "ref": "独立复算：SCHED.porcelain = {peak:1300, totalDesc:'约 12~15 小时'}；switchTab() 把 cur 换成 'porcelain' 后 render() 从 SCHED[cur] 取峰值与总时长，渲染「峰值温度 1300°C，总烧成时间 约 12~15 小时。」；默认 cur='bisque'（980°C / 约 8~10 小时）⇒ 串不同。switchTab(t,btn) 的 btn 有 if(btn) 判空，可省略。"
 },
 {
   "slug": "ceramics/wheel-speed",

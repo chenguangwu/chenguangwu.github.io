@@ -69,11 +69,11 @@ const CASES = [
 },
 {
   "slug": "acupuncture/ear-acupressure",
-  "inputs": {},
+  "clicks": ["selectArea('三角窝');"],
   "expect": [
-    "将王不留行籽(或磁珠)贴于0.5×0.5cm胶布中央"
+    "共找到 3 个耳穴"
   ],
-  "ref": "auto-restore(default)"
+  "ref": "独立复算：EAR_POINTS 中 area 含「三角窝」的共 3 条（神门等），selectArea 写 currentArea 后 renderList 按 area 子串过滤，命中分支渲染「共找到 <strong>3</strong> 个耳穴」；默认 currentArea='all' 渲染总数 42 ⇒ 串不同。注意空态串「未找到匹配耳穴」不可用：零参兜底 selectArea() 会把 searchPart 置 undefined、同样落空态，属逃生项。"
 },
 {
   "slug": "acupuncture/electroacupuncture",
