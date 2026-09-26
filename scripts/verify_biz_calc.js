@@ -303,6 +303,52 @@ const CASES = [
     ref: "默认只勾 skipEmpty（trimEach/reverseChars/keepFirst/keepLast 未勾）⇒ lines 全量参与，reverse() 内 toReverse.reverse() ⇒ 'alpha\\nbeta\\ngamma' → 'gamma\\nbeta\\nalpha'。"
        + "result 连排 'gamma beta alpha' 原文顺序相反 ⇒ 非回显。默认态 result 是示例文本的行序反转 ⇒ 不命中。",
   },
+  {
+    slug: 'biz/char-frequency',
+    inputs: { input: "Aa a" },
+    expect: ["a 2 (66.67%)", "A 1 (33.33%)"],
+    ref: "默认 ignoreCase 未置 value='1' ⇒ 大小写区分。'Aa a' 统计 A=1/a=2/' '=1（空格在 currentFilter='all' 下被跳过计数但计入 total=4）。"
+       + "maxCount=2/total=4 ⇒ a：2/4=66.67%，A：1/4=33.33%。默认态是长中文示例的 23 字符统计串 ⇒ 不命中。",
+  },
+  {
+    slug: 'biz/char-frequency',
+    inputs: { input: "Aa a" },
+    clicks: ["document.getElementById('ignoreCase').value='1';analyze();"],
+    expect: ["a 3 (100.00%)"],
+    ref: "ignoreCase 读的是 `.value === '1'`（非 `.checked`）⇒ 必须写 value 才生效。归并后 map.size=1、total=3 ⇒ 唯一字符 a 占 100.00%。"
+       + "与上一例同输入同 total 但占比不同（66.67% / 100.00%）⇒ 判别 ignoreCase 分支真的生效。默认态无 'a 3' 串 ⇒ 不命中。",
+  },
+  {
+    slug: 'biz/fullwidth-halfwidth',
+    inputs: { input: "ＡＢＣ　１２３" },
+    checkIds: ["ascii", "space"],
+    expect: ["ABC 123"],
+    ref: "默认 currentMode='half'、ascii/space 勾（kana 未勾不影响）。全角字母数字 code-0xFEE0 ⇒ ABC，全角空格 U+3000 ⇒ 半角空格。"
+       + "结果 'ABC 123' 与输入 'ＡＢＣ　１２３' 逐字不同 ⇒ 非回显。⚠ 未声明 checkIds 时桩内 checkbox 恒未勾 ⇒ ascii=false ⇒ 输出与输入同串（回显伪锚），已实证。",
+  },
+  {
+    slug: 'biz/fullwidth-halfwidth',
+    inputs: { input: "abc" },
+    checkIds: ["ascii", "space"],
+    clicks: ["currentMode='full';convert();"],
+    expect: ["ａｂｃ"],
+    ref: "绕过 convertTo(mode) 双参入口直写 currentMode（convertTo 的 btn 形参在桩里恒 undefined ⇒ render 不执行）；half→full 后 code+0xFEE0 ⇒ 全角。"
+       + "输入为半角 'abc'、输出为全角 'ａｂｃ' ⇒ 方向真实翻转，非回显。默认态 currentMode='half' ⇒ 输出等于输入 ⇒ 不命中。",
+  },
+  {
+    slug: 'biz/text-to-slug',
+    inputs: { input: "Zeta Quest!" },
+    expect: ["Zeta-Quest-"],
+    ref: "桩内 checkbox 恒未勾 ⇒ lowercase/trimSep/collapseSep 全 false。'Zeta Quest!' 的非 [A-Za-z0-9\\u4e00-\\u9fff] 段（空格 + '!'）一并替换为分隔符 '-' ⇒ 'Zeta-Quest-'。"
+       + "⚠ 同形态的 'Hello-World-' 在默认态 result 里作为子串存在 ⇒ 本例刻意换输入 'Zeta Quest!' 避开该回显/巧合串。",
+  },
+  {
+    slug: 'biz/text-to-slug',
+    inputs: { input: "Zeta Quest!" },
+    clicks: ["document.getElementById('separator').value='_';convert();"],
+    expect: ["Zeta_Quest_"],
+    ref: "同一输入仅改 separator ⇒ 输出 'Zeta_Quest_'（正反双向锚）。collapseSep/trimSep 未勾 ⇒ 尾部分隔符保留，与上一例的尾 '-' 同形态 ⇒ 证明改的是 sep 而非笔误。",
+  },
 ];
 
 // ---------------------------------------------------------------- main
