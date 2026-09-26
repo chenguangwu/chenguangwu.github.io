@@ -1724,6 +1724,55 @@ const CASES = [
     expect: ["1.96 × 0.071 = ±0.139"],
     ref: "独立复算：SE = √[p̂(1−p̂)/n] = √(0.25/50) = √0.005 ≈ 0.071；E = z*×SE = 1.96×0.071 ≈ ±0.139（再乘有限总体修正 √(50/99) 得 ±0.098）。锚在中间展开式，默认样例参数不同。",
   },
+  {
+    slug: "it/octal-encode",
+    inputs: { input: "Hi" },
+    clicks: ["enc()"],
+    expect: ["110 151"],
+    ref: "独立复算：H=0o110=72、i=0o151=105，空格分隔。默认样例参数不同。",
+  },
+  {
+    slug: "it/phone-parser",
+    inputs: { cc: "1", phone: "4155550123" },
+    clicks: ["calcTool()"],
+    expect: ["+14155550123"],
+    ref: "独立复算：去掉分隔符后拼接国家码 + 号码 = +14155550123（E.164）。默认样例号码不同。",
+  },
+  {
+    slug: "it/phone-screen-sizes",
+    inputs: { diag: "5", resw: "1080", resh: "1920" },
+    clicks: ["calcTool()"],
+    expect: ["441 PPI"],
+    ref: "独立复算：对角线像素 √(1080²+1920²) = 2202.9，PPI = 2202.9/5 ≈ 440.6 ⇒ 441。默认样例参数不同。",
+  },
+  {
+    slug: "it/poisson-distribution",
+    inputs: { lambda: "3", k: "1" },
+    clicks: ["calculate()"],
+    expect: ["3 × 0.05 / 1 = 0.149"],
+    ref: "独立复算：P(X=1) = λ¹e^(−λ)/1! = 3×0.049787/1 = 0.1494。锚在中间展开式；默认 λ=3,k=2 与注入同产物，故必须把 k 换成 1 才破题。",
+  },
+  {
+    slug: "it/prime-checker",
+    inputs: { n: "91" },
+    clicks: ["calcTool()"],
+    expect: ["91 是合数"],
+    ref: "独立复算：91 = 7×13，是合数；产物另含最小质因数 7 与分解式。默认样例即 97（素数），换 91 才破题。",
+  },
+  {
+    slug: "it/quoted-printable",
+    inputs: { input: "a=b" },
+    clicks: ["enc()"],
+    expect: ["a=3db"],
+    ref: "Quoted-Printable 编码：可打印 ASCII 原样保留，= 转义为 =3D（小写十六进制，因 upper 复选框默认未勾选）。默认样例不含本串。",
+  },
+  {
+    slug: "it/quoted-printable",
+    inputs: { input: "a=3db" },
+    clicks: ["dec()"],
+    expect: ["a=b"],
+    ref: "Quoted-Printable 解码：把 =3d 还原为 = ⇒ a=b。与本页编码用例成对，双向均依赖被测点。",
+  },
 ];
 
 // ---------------------------------------------------------------- DOM stub
