@@ -27,10 +27,14 @@
   }
 
   function resolvePage() {
-    var m = location.pathname.match(/tools\/([^\/]+)\//);
+    // 语言子站（构建产物，目前只有 /zh-tw/）先剥掉前缀，再走主站同一套口径；
+    // 否则繁体首页与繁体指南页都会落进 other，与主站口径割裂。
+    // 剥完 /zh-tw → /、/zh-tw/index.html → /index.html、/zh-tw/tools/it/x.html → /tools/it/x.html
+    var path = location.pathname.replace(/^\/zh-tw(\/|$)/, '/');
+    var m = path.match(/tools\/([^\/]+)\//);
     if (m && m[1]) return m[1];
-    if (location.pathname.indexOf('/guides/') === 0) return 'guide';
-    if (location.pathname === '/' || location.pathname === '/index.html') return 'home';
+    if (path.indexOf('/guides/') === 0) return 'guide';
+    if (path === '/' || path === '/index.html') return 'home';
     return 'other';
   }
 
