@@ -1473,6 +1473,20 @@ const CASES = [
     expect: ["10.0.0.0 网络地址"],
     ref: "独立复算：10.0.0.7/28 ⇒ 网络 10.0.0.0、广播 10.0.0.15、/28、可用主机 14。注意该页是「值在前、标签在后」的排布（`10.0.0.0 网络地址`），写反了会注入态 FAIL。",
   },
+  {
+    slug: "it/qrcode",
+    inputs: { contentTemplate: "TOOLBOX-HELLO-2026" },
+    clicks: ["applyTemplate()"],
+    expect: ["TOOLBOX-HELLO-2026"],
+    ref: "二维码矩阵在桩内画不出来（`qrcode is not defined`），但**内容串本身先已写进结果区** ⇒ 直接锚内容串。用长串避免「超短串命中面过大」。",
+  },
+  {
+    slug: "it/unit-converter-advanced",
+    inputs: { cat: "length", from: "m", val: "100" },
+    clicks: ["calcTool()"],
+    expect: ["0.1 km 10000 cm 100000 mm"],
+    ref: "独立复算：100 m = 0.1 km = 10000 cm = 100000 mm = 0.062137 mi = 109.36133 yd = 328.08399 ft（量纲换算，逐项可手算）。默认示例换算的不是 `m`。",
+  },
 ];
 
 // ---------------------------------------------------------------- DOM stub
