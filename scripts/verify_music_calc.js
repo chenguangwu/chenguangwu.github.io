@@ -155,11 +155,11 @@ const CASES = [
 },
 {
   "slug": "music/piano-keyboard",
-  "inputs": {},
+  "clicks": ["changeOctave(2);"],
   "expect": [
-    "3UC4AD4SE4DF4FG4GA4HB4JC"
+    "C5AD5SE5DF5FG5GA5HB5JC#5WD#5EF#5TG#5YA#5U"
   ],
-  "ref": "auto-restore(default)"
+  "ref": "独立复算：默认 currentOctave=3，changeOctave(+2) 抬到 5（钳制区间 1–7 内），renderPiano() 按 2 个八度重绘，白/黑键标签由 NOTE_NAMES[n]+octave 拼出 ⇒ C5…B5、C6…B6 连续整串，同帧 #octaveDisplay 由 3 变 5。锚取整条标签行 —— 旧锚「3UC4AD4S…」本身就是默认态产物、判别力为 0。"
 },
 {
   "slug": "music/random-training-rhythm",

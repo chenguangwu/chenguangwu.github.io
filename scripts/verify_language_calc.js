@@ -136,11 +136,11 @@ const CASES = [
 },
 {
   "slug": "language/vocabulary-builder",
-  "inputs": {},
+  "clicks": ["localStorage.getItem=function(k){if(k==='vocab_fav')return JSON.stringify(['aberrant']);return null;};state.cat='fav';pickWord();"],
   "expect": [
-    "50"
+    "aberrant"
   ],
-  "ref": "结构性不可注入（保留 no_inputs）：该页 input/select/textarea 计数为 0，词汇表与控件全由 JS 模板 + innerHTML 生成，且含无参预设函数 ⇒ harness 无任何按 id 的注入通道。expect「50」取默认渲染出的词汇条数（默认态派生量），非静态标签串。"
+  "ref": "独立复算：注入的收藏表 ['aberrant'] 命中 WORDS.gre[0]，pickWord() 走 state.cat==='fav' 分支 ⇒ pool 只含该词，#word 渲染单词名、#phonetic 渲染 /æˈberənt/。注入路径复刻 .cat-btn[data-c=fav] 的真实 onclick（state.cat=b.dataset.c; pickWord()），仅把 dataset.c 换成注入的收藏表。选 gre 词条是因为默认 state.cat='cet4'：cet4 池内任一随机词都产不出该串，规避 pickWord() 的 Math.random() 导致的默认态偶发命中。"
 }
 ];
 async function main() {

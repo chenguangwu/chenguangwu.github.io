@@ -44,11 +44,11 @@ const CASES = [
 },
 {
   "slug": "service/script-template",
-  "inputs": {},
+  "clicks": ["showScript(SCRIPTS[5]);"],
   "expect": [
-    "实在不好意思让您久等了"
+    "场景：致歉安抚"
   ],
-  "ref": "auto-restore(default)"
+  "ref": "独立复算：SCRIPTS[5] = {cat:'apology', catLabel:'致歉安抚', text:'实在不好意思让您久等了，感谢您的耐心，我们马上为您跟进处理。'}；showScript() 把「场景：致歉安抚」与该话术全文写进 #scriptDisplay（默认占位为「点击「随机抽取」按钮获取话术」+「支持按场景筛选…」）。锚取「场景：」+ 分类标签的复合串 —— 单锚话术正文会撞 #scriptList 里同条目的卡片预览，属默认态必命中串（即逃生项）。"
 },
 {
   "slug": "service/ticket-priority",
