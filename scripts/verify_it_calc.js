@@ -1457,6 +1457,22 @@ const CASES = [
     expect: ["&lt;a&gt;&amp;"],
     ref: "独立复算：`<`→`&lt;`、`>`→`&gt;`、`&`→`&amp;` ⇒ `&lt;a&gt;&amp;`。默认态的实体对照表里有 `&amp; &lt;` 等零散片段，但没有这条连续串。",
   },
+  {
+    slug: "it/matrix-multiplier",
+    inputs: { ar: "2", ac: "2", br: "2", bc: "2" },
+    clicks: [
+      "document.getElementById('a0').value=1;document.getElementById('a1').value=2;document.getElementById('a2').value=3;document.getElementById('a3').value=4;document.getElementById('b0').value=5;document.getElementById('b1').value=6;document.getElementById('b2').value=7;document.getElementById('b3').value=1;build();calculate()",
+    ],
+    expect: ["结果 C = A × B （2×2）： 19 8 43 22"],
+    ref: "独立复算：A=[[1,2],[3,4]]，B=[[5,6],[7,1]] ⇒ C[1][1]=1×5+2×7=19、C[1][2]=1×6+2×1=8、C[2][1]=3×5+4×7=43、C[2][2]=3×6+4×1=22。单元格 `a0..a3`／`b0..b3` 是运行期渲染（HTML 无字面 id）⇒ 必须 clicks 内按 id 赋值再 `build();calculate()`。",
+  },
+  {
+    slug: "it/calc-subnet",
+    inputs: { ip: "10.0.0.7", cidr: "28" },
+    clicks: ["calc()"],
+    expect: ["10.0.0.0 网络地址"],
+    ref: "独立复算：10.0.0.7/28 ⇒ 网络 10.0.0.0、广播 10.0.0.15、/28、可用主机 14。注意该页是「值在前、标签在后」的排布（`10.0.0.0 网络地址`），写反了会注入态 FAIL。",
+  },
 ];
 
 // ---------------------------------------------------------------- DOM stub
