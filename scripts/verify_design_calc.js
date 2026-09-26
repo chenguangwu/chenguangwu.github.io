@@ -658,6 +658,26 @@ const CASES = [
       + "⚠ 本页只有一个文本结果通道（`#browserFavicon`），因此只拆两例（字母 / 数字），刻意不重复同一形态。",
   },
 
+  // ── BATCH157：CSS 生成类（走 clicks 改层参数）＋ 色板搜索类（空态反用）────
+  {
+    slug: "design/shadow-generator-advanced",
+    clicks: ["layers[0].x=20;layers[0].blur=40;layers[0].alpha=0.5;generate();"],
+    expect: ["20px 4px 40px -4px rgba(0,0,0,0.5)"],
+    ref: "顶层 var `layers` 每项有 x/y/blur/spread/color/alpha，层内输入框无 id ⇒ 只能走 clicks 直接改字段再 generate()。注入后首层为 x=20/blur=40/alpha=0.5（默认 0/20/0.25），锚首层完整串而非单个数字，避免只改一个字段的弱断言。",
+  },
+  {
+    slug: "design/material-color",
+    inputs: { searchInput: "zzzz" },
+    expect: ["未找到匹配颜色"],
+    ref: "顺序保持型筛选 ⇒ 注入命中词（如 `red`）只会渲染默认态的子集、任何锚都成默认态子串（逃生项），故改走反用：注入无匹配词 `zzzz` ⇒ 落空态。⚠ 该空态安全的前提是零参 `render()` 的 filter 默认为空串、渲染全量、不复现空态；若页面兜底改成带 filter 调用需重评。",
+  },
+  {
+    slug: "design/tailwind-colors",
+    inputs: { searchInput: "zzzz" },
+    expect: ["未找到匹配颜色"],
+    ref: "与 material-color 同模板同渲染函数，空态成因与安全性一致；两例同锚但落在不同页，可互相兜住模板改动。",
+  },
+
 ];
 
 // ---------------------------------------------------------------- main
