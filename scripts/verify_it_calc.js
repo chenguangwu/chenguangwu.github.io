@@ -1682,6 +1682,48 @@ const CASES = [
     expect: ["apple 2 banana 1"],
     ref: "独立复算：词频统计 ⇒ apple 出现 2 次、banana 1 次，产物排序为 `apple 2 banana 1`。统计类天然非回显；默认样例文本不同。",
   },
+  {
+    slug: "it/math-evaluator",
+    inputs: { expr: "(1+2)*3" },
+    clicks: ["calc()"],
+    expect: ["结果： 9"],
+    ref: "独立复算：先算括号 1+2=3，再乘 3 ⇒ 9。表达式求值类是最典型的可手算用例源（运算符优先级固定）。默认样例表达式不同。",
+  },
+  {
+    slug: "it/nato-alphabet",
+    inputs: { input: "AB" },
+    clicks: ["convert()"],
+    expect: ["Alpha Bravo"],
+    ref: "独立复算：NATO 音标字母表 A=Alpha、B=Bravo ⇒ `Alpha Bravo`。产物不含输入的大写字母（是别名词）⇒ 非回显。",
+  },
+  {
+    slug: "it/numeronym-generator",
+    inputs: { input: "Global Positioning System" },
+    clicks: ["generate()"],
+    expect: ["G4l"],
+    ref: "独立复算：numeronym 取首字母 + 中间字母数 + 末字母 ⇒ `G`+4个字母+`l` = G4l（Positioning⇒P9g、System⇒S4m）。产物含数字与缩略形态，非裸回显。默认样例不同。",
+  },
+  {
+    slug: "it/morse",
+    inputs: { input: "SOS" },
+    clicks: ["convert()"],
+    expect: ["... --- ..."],
+    ref: "独立复算：S=`...`、O=`---` ⇒ `... --- ...`（点划间空格、字母间斜杠）。产物改写输入字符 ⇒ 非回显；默认样例不同。",
+  },
+  {
+    slug: "it/normal-distribution",
+    inputs: { mu: "0", sigma: "1", x0: "1" },
+    clicks: ["calculate()"],
+    expect: ["Z = (x−μ)/σ = (1−0)/1 = 1"],
+    ref: "独立复算：标准正态 Z=(x−μ)/σ = (1−0)/1 = 1 ⇒ Φ(1)=0.841。锚在中间展开式；注意该页的 tab 控件 id 是 `mode0`（传 `mode` 无效）。默认样例参数不同。",
+  },
+  {
+    slug: "it/margin-of-error",
+    inputs: { N: "100", n: "50", p: "0.5", conf: "0.95" },
+    clicks: ["calculate()"],
+    expect: ["1.96 × 0.071 = ±0.139"],
+    ref: "独立复算：SE = √[p̂(1−p̂)/n] = √(0.25/50) = √0.005 ≈ 0.071；E = z*×SE = 1.96×0.071 ≈ ±0.139（再乘有限总体修正 √(50/99) 得 ±0.098）。锚在中间展开式，默认样例参数不同。",
+  },
 ];
 
 // ---------------------------------------------------------------- DOM stub
