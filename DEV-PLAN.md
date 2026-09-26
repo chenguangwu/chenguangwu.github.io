@@ -175,7 +175,7 @@
 ### 7.3 C→A 质量提升专项（目标：A 级率 →75%）
 
 > **判定口径**（`_build.py:1701-1744`）：A = `rich 且 own_len≥800` / `own_len≥6000` / `own_len≥3000 且 inputs≥3`。`rich` = canvas/data-viz 或 formula-box 正文 ≥`FORMULA_BOX_MIN_TEXT`(20) 字。
-> **状态：目标已达成并超额** —— A 级率 70.0%→**99.2%**（4693/4729，build 口径；更早记录的「96.9%」为陈旧基线，未随 BATCH43–62 同步）；bucket1（`own_len≥800 且非 rich`，补真实 formula-box）、bucket3 前置段（own_len 700-799 + 真实派生量）、缺陷 J/L/M 全部闭环。
+> **状态：目标已达成并超额** —— A 级率 70.0%→**99.2%**（4693/4729，build 口径）；bucket1（`own_len≥800 且非 rich`，补真实 formula-box）、bucket3 前置段（own_len 700-799 + 真实派生量）、缺陷 J/L/M 全部闭环。
 > **明确排除（度量盲区，勿强改）**：`ai/ocr`、`ai/image-classification`（及同类 `ai/*`）逻辑写在 `<script type="module">` 中，而 `own_len` 正则只匹配**裸 `<script>`** → 永远够不到 800。属**度量口径盲区、非页面缺陷**，强行补裸脚本 = 代码膨胀凑数，**不做**。若日后需修正，应改 `_build.py` 的 `own_len` 正则纳入 `type="module"`（框架改动、须单独评估；全站仅 5 页命中）。
 > **手法**：计算器补「真实公式说明面板」（含实际公式 + 一句说明，非代码膨胀）；非计算器补真实原理/参考表。
 > **复用纪律**：动手前先做全站查重（`tools.json` name 归一化相似度 + 关键词），能存根就存根（成本远低于重做）；存根须留 `TOOLBOX-REDIRECT`（保 URL 零 404，canonical 指向真工具）。
@@ -324,17 +324,17 @@
 
 ### 10.2 现状（实测基线）
 
-- `all_default 4 / no_inputs 12 / escape 0`；门禁 `run_gates.py` **216 项全过**、逃生项 0（判别器已检 **3109** 例 / 跳过 52）。
-- A 级率 **99.2%**（A 4693 / B 32 / C 4，共 4729）；deep-dive 术语内链 **1591 页 / 2268 条 / 唯一目标 630**（零死链、零自链、单页 ≤6 条）。- 存量弱用例 **16 例**（口径、选批规则与不可注入清单见 §10.3）。
+- `all_default 4 / no_inputs 11 / escape 0`；门禁 `run_gates.py` **216 项全过**、逃生项 0（判别器已检 **3110** 例 / 跳过 51）。
+- A 级率 **99.2%**（A 4693 / B 32 / C 4，共 4729）；deep-dive 术语内链 **1591 页 / 2268 条 / 唯一目标 630**（零死链、零自链、单页 ≤6 条）。- 存量弱用例 **15 例**（口径、选批规则与逐例判死理由见 §10.3）。
   - **注意：弱用例整体处于判别器盲区** —— 「注入值等于默认值」的用例被判 `usable=false` 直接跳过（§10.5）⇒ `escape=0` 只说明强用例无逃生项；每批改造后须重跑判别器确认其由「跳过」转为「已检且变红」。
 
 ### 10.3 弱用例去默认化（仅在 P0/P1 顺带时执行）
 
-**存量 16 例**（`no_inputs=12` / `all_default=4`，selfcheck 口径；含 textarea / 动态 id / 结构性不可注入的「skip」类全站 52）。**`all_default` 剩余 4 例已全部判定为结构性不可改造**，逐例理由已写进各用例 `ref`（含实测结论），勿重复评估。**转 P3 顺带，不单独成批**；逐批成果与逐例打法归档在 `.workbuddy/memory/2026-09-2*.md` 与 skill `toolbox-weakcase-hardening`，**本文件不再记录批次流水**。
+**存量 15 例**（`no_inputs=11` / `all_default=4`，selfcheck 口径；含 textarea / 动态 id / 结构性不可注入的「skip」类全站 51）。**`all_default` 剩余 4 例已全部判定为结构性不可改造**，逐例理由已写进各用例 `ref`（含实测结论），勿重复评估。`no_inputs` 剩余 11 例中 10 例判死（判据 §10.5 B 组）；`office/excel-formula-reference` 是对「顺序保持型筛选判死」的翻案（锚过滤后跨条目相邻串，§10.5 C.7④）。**转 P3 顺带，不单独成批**；逐批成果与逐例打法归档在 `.workbuddy/memory/2026-09-2*.md` 与 skill `toolbox-weakcase-hardening`，**本文件不再记录批次流水**。
 
 **选批口径**：① 按「可注入数」降序挑批次；② **结构性不可注入的不要选**（判据见 §10.5 B 组）—— 保留 `no_inputs` 并在 `ref` 写明理由；③ 每批 8–11 例，走 §10.4 六步。
 
-**已知结构性不可注入清单（勿重复评估）**：`tcm-diagnosis/etiology-tree`、`music/sheet-music`、`cleaning/appliance-cycle`、`cleaning/cycle-20`、`mining/estimate-reserve`、`admin/detector-time`、`chess/xiangqi-endgame`、`dermatology/{contact-dermatitis-patch,miliaria-classification,wood-lamp}`、`travel/{aim-trainer,emergency-phrasebook}`、`fire/response-drill`、`rheumatology/{bvas,sledai}`、`language/vocabulary-builder`、`medical2/drug-expiry`、`nutrition/estimate-2`（属性选择器取选中态，登记表不支持）、`electromagnetism/free-space-impedance`（输入标注「无需输入」的**常量输出页**，输出恒 376.73 Ω）、`audio/audio-cut`（依赖音频文件解码）、`cognition/human-benchmark`（8 个子测验全靠点击 / 倒计时 / 随机序列驱动、成绩进 localStorage）、`office/mindmap`（SVG / Canvas 布局，harness 无布局与字体度量）、`security/virtual-safe`（需 WebCrypto，harness 无 `crypto.subtle`）、`niche/aquarium-light`（空态串被兜底链复现，不可锚）、`misc/physics-constants`（空态在静态元素内、仅 `display` 切换 ⇒ 不被采集）。其中 **localStorage 为唯一数据源的页**（`drug-expiry` / `packing-list` / `appliance-cycle`）可复用「`clicks` 内覆写 `localStorage.getItem`」覆写法复评（已验证该路可行）。
+**结构判死的唯一依据是各用例 `ref`，本文件不再维护第二份清单** —— 旧清单积累了 19 条已被 `clicks`/`inputs` 翻案的条目却仍标「勿重复评估」（`music/sheet-music`、`dermatology/{wood-lamp,miliaria-classification,contact-dermatitis-patch}`、`travel/{aim-trainer,emergency-phrasebook}`、`dermatology/*` 等），会误导后续批次跳过可行候选；当前存量逐例理由见 §10.3。
 
 ### 10.4 每批收口流程（顺带改造时六步，缺一不可）
 
@@ -385,16 +385,16 @@
 4. **锚点优先级 + checkbox 反向利用**：① 非兜底分支独有的文案（`if/else` 的**非 else** 路）；② 只由注入值 派生、兜底无法复现的数值；③ 跨档 / 跨分支的等级词（先按默认参数手算是否落同档、是否触发同一提示）。桩内 checkbox 恒未勾 ⇒ 默认态必然渲染「xx缺失」并给低分 ⇒ **勾满 `checkIds` 抢「全部达标」分支做正向强锚**。
 5. **数值合法性与齐次量**：有界量（决定系数 / 概率 / p 值 / 覆盖率 / 率）越界即公式错，交付前必查 `[0,1]`；「基础分 − 扣分」式先算最小值是否越界；**凡输出物理不可能值必查公式本身**。比值 / 密度 / 单价 / 覆盖率换值前 先确认不是默认输入的等比缩放，改完必须实测「换值是否引起输出变化」。
 6. **日期与随机**：日期相关量一律不锚（随运行日漂移）；禁 `Math.random` / `Date.now` 当输入。`clicks` 内改**进程级全局对象**（`Math` / `Date` / `Array.prototype`）**必须用完即恢复**（`var __r=Math.random;Math.random=fn;gen();Math.random=__r`），否则污染同进程后续用例的默认态 —— 只有双态 核验能抓到。钉死随机值后锚「多列连续复合串」把巧合概率压到 10⁻⁶。
-7. **默认态已全量渲染的页面，锚点要换区**：① 同引擎多段渲染（注入段 + 兜底 `loadSample()` 段）会共用常量串 ⇒ 只锚注入段独有串；sample / 示例文本即逃生项，注入数据须与样本用词错开。② 「kw 空输出全量」型过滤页（`search(kw)`），任何具体编号 / 名称在默认态都命中 ⇒ 反向注入**不存在的关键词**、锚「未找到匹配项」类 空结果提示。③ 「卡片列表区 + 详情区」双区页，卡片区默认已渲染全部条目的名称与 desc ⇒ 只锚详情区独有文案。④ **筛选型图鉴页（默认渲染全表）**任何单行文本默认态都有 ⇒ 只锚**仅过滤态成立的跨行相邻串**（过滤后 A 紧邻 B、全表中 A 后是 C），或锚空结果提示。
+7. **默认态已全量渲染的页面，锚点要换区**：① 同引擎多段渲染（注入段 + 兜底 `loadSample()` 段）会共用常量串 ⇒ 只锚注入段独有串；sample / 示例文本即逃生项，注入数据须与样本用词错开。② 「kw 空输出全量」型过滤页（`search(kw)`），任何具体编号 / 名称在默认态都命中 ⇒ 反向注入**不存在的关键词**、锚「未找到匹配项」类 空结果提示。③ 「卡片列表区 + 详情区」双区页，卡片区默认已渲染全部条目的名称与 desc ⇒ 只锚详情区独有文案。④ **筛选型图鉴页（默认渲染全表）**任何单行文本默认态都有 ⇒ 只锚**仅过滤态成立的跨行相邻串**（`office/excel-formula-reference`：注入「数字」⇒ 命中 SUM/AVERAGE/TEXT，AVERAGE 与 TEXT 过滤态紧邻、全表却隔 6 项）。**锚不得取「整条目渲染串」** —— 它在默认全量渲染里本就连续存在，与默认态同串、判逃生项。
 8. **注入与格式口径**：`select` 的 `selected` 属性在桩里不生效 ⇒ 默认选中项必须**显式注入**（`selfcheck` 取 JS 设定的真实默认、`discriminate_check` 取首个 option，两者口径不同）。`inputs` 键若是生成器模板串残留（`${f}` / `pri${i}`）会同时骗过两把锁（不进棘轮 + 记「正确变红」）⇒ 巡检 `verify_*_calc.js` 里形如 `${` 的键。`fmt()` 走 `toLocaleString()` 默认截 3 位小数 ⇒ 定 expect 时避开被截断的位置。
-9. **clicks 锚「不读输入的全量函数」必误判逃生项**：判别器对 clicks 的「注入失败」模拟是**清空 clicks 后跑**（含兜底遍历）。若 expect 锚 `checkAll()` 类「不读输入、恒产全量」输出（如 `36/36`），兜底重调仍同值 ⇒ 判「仍 PASS」= 逃生项（BATCH112 `travel/packing-list` 首版中招）。✅ 修法：clicks 锚**具体输入态**（`toggleItem(0,0/0,1/0,2)` 勾 N 项 → `N/总数`），默认态 0 项不命中。
+9. **clicks 锚「不读输入的全量函数」必误判逃生项**：判别器对 clicks 的「注入失败」模拟是**清空 clicks 后跑**（含兜底遍历）。若 expect 锚 `checkAll()` 类「不读输入、恒产全量」输出（如 `36/36`），兜底重调仍同值 ⇒ 判「仍 PASS」= 逃生项。✅ 修法：clicks 锚**具体输入态**（`toggleItem(0,0/0,1/0,2)` 勾 N 项 → `N/总数`），默认态 0 项不命中。
 10. **空结果提示不可锚两形态**：① 提示同时被兜底链复现（`selectXxx()` 无参置页面全局态 `undefined` ⇒ 过滤集恒空、渲同一提示）⇒ 注入态与失败态同串，判逃生项。② 提示在**独立静态元素**内、仅 `style.display` 切换 ⇒ 不写入结果容器、`collectStrings` 采不到 ⇒ blob 永不含该串。✅ 定锚前用探针双态 dump 比对，只取「注入态有 / 默认态无且兜底不复现」的串。
 
 **D. 工具与方法**
 
 | 工具 | 用途 |
 |---|---|
-| **常驻 runner（scan / dump / multi）** | `~/.workbuddy/skills/toolbox-weakcase-hardening/assets/weakcase_runner.js`（cwd 须为仓库根），**每批直接调用、不要重建**。原理：`clicks` 末尾把结果容器回写到独立元素 `__p`，兜底阶段不碰 `__p` ⇒ FAIL 时仍能在 `r.fullBlob` 读到真实注入输出；容器 id 不在内置清单时用用例 `dumpIds` 覆盖。|
+| **常驻 runner（scan / dump / multi）** | `~/.workbuddy/skills/toolbox-weakcase-hardening/assets/weakcase_runner.js`（cwd 为仓库根），**每批直接调用、不要重建**。`clicks` 末尾把结果回写 `__p`（兜底不碰）⇒ FAIL 时也能读到真实注入输出；容器 id 不在内置清单时用用例 `dumpIds` 覆盖。|
 | **标记串探针** | 判断「写入路径是否通」：`clicks:["document.getElementById('stats').value='MARK_V'"]` + `expect:["MARK_V"]`，命中即通（`value`/`innerHTML`/`ToolBox.setResult` 三路已验证）。用于把「clicks 未生效」与「expect 锚点错」区分开 |
 | **「双态」核验** | 每例必须**注入态 PASS + 默认态（剥 inputs/checks/clicks）FAIL** 双跑；判别器取不到默认值的页尤其只能靠它 |
 | **逐项二分** | 定位逃生项用「逐项单独 `runCase`」，**禁用 `fullBlob.includes()` 判定**（blob 元素集合不同，会全判「无逃生」） |

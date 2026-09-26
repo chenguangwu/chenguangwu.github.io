@@ -5,10 +5,14 @@ const CASES = [
 {
   "slug": "office/excel-formula-reference",
   "inputs": {},
-  "expect": [
-    "COUNTIFS(条件区域1"
+  "clicks": [
+    "document.getElementById('keyword').value='数字';render();"
   ],
-  "ref": "auto-restore(default)"
+  "expect": [
+    "求平均值。 TEXT 分类：文本",
+    "分类：统计 =AVERAGE(数字1,数字2,...) 求平均值。 TEXT"
+  ],
+  "ref": "（推翻 auto-restore）关键词过滤型页：render() 读 #keyword 后对 DATA 做顺序保持型过滤，命中项依次 appendChild 进 #list，collectStrings 采集其 innerHTML（标签→空格）⇒ 过滤态的「相邻条目」串可被断言。注入关键词「数字」⇒ 只有 SUM / AVERAGE / TEXT 命中（三处 syntax 含「数字」），于是 AVERAGE 与 TEXT 在全表中间隔 IF、VLOOKUP、INDEX、MATCH、SUMIFS、COUNTIFS 六项，在过滤态却紧邻 ⇒ 锚跨边界串「求平均值。 TEXT 分类：文本」（默认全量渲染下 AVERAGE 之后是 IF，故默认态必失配）。另一条锚「分类：统计 =AVERAGE(...) 求平均值。 TEXT」同属该边界。已实测排除的逃生项候选：`=TEXT(数字,\"0.00\")` 与 `TEXT 分类：文本 =TEXT(数字,\"0.00\") 数字转文本与格式控制。` —— 二者整段是 TEXT 条目自身的渲染结果，默认全量渲染里同样 contiguous ⇒ 判别力 0（BATCH110①「锚不得成为默认态某串的子串」）。"
 },
 {
   "slug": "office/mindmap",
