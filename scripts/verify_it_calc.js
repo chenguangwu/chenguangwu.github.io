@@ -326,6 +326,43 @@ const CASES = [
              "HMAC-SHA256 88aab3ede8d3adf94d26ab90d3bafd4a2083070c3bcce9c014ee04a443847c0b"],
     ref: "Python hmac.new(b'secret', b'hello', sha1).hexdigest() = 5112055c05f944f85755efc5cd8970e194e9f45b；sha256 = 88aab3ede8d3adf94d26ab90d3bafd4a2083070c3bcce9c014ee04a443847c0b（四档 SHA1/256/384/512 页侧与 Python 逐一核对一致）。注：harness 下 subtle.importKey 抛错，但结果区仍落正确值，断言的是「正确值」而非错误分支。",
   },
+  {
+    slug: "it/json-minify",
+    inputs: { input: '{"a": 1, "b": [2, 3]}' },
+    expect: ['{"a":1,"b":[2,3]}', "原始 21 字节 → 输出 17 字节 · Compression ratio 19.0%"],
+    ref: "独立复算：原文 len('{\"a\": 1, \"b\": [2, 3]}')=21、压缩后 len('{\"a\":1,\"b\":[2,3]}')=17 ⇒ 比值 (21−17)/21=19.05% ⇒ 页面渲染 19.0%。默认示例的字节数与比值均不同 ⇒ 不命中。",
+  },
+  {
+    slug: "it/json-path",
+    inputs: { input: '{"a":{"b":[1,2,3]}}', path: "$.a.b" },
+    expect: ["[ 1 , 2 , 3 ]"],
+    ref: "JSONPath 表达式 $.a.b 命中数组 [1,2,3] ⇒ 输出按页侧格式展开为 `[ 1 , 2 , 3 ]`。默认 path 与默认 JSON 不同，不命中；expr 不以 $ 开头时页面直接报错（`jsonPath: JSONPath 表达式必须以 $ 开头`），不影响本例。",
+  },
+  {
+    slug: "it/keyword-density",
+    inputs: { inputText: "aa bb aa cc bb aa dd" },
+    expect: ["排名 关键词 出现次数 占比 密度条 1 aa 3 42.86%"],
+    ref: "注入 7 token（aa×3、bb×2、cc×1、dd×1）⇒ 排行表首行「aa 3 42.86%」（3/7=42.86%）；默认正文的排行表完全不同 ⇒ 不命中。锚取「表头 + 首行」的连续串，避免只锚 42.86% 这类可能被默认态作为子串命中的短数值。",
+  },
+  {
+    slug: "it/locale-lookup",
+    inputs: { input: "zh-CN" },
+    expect: ["语言（ISO 639-1）： zh 国家（ISO 3166-1）： CN 完整名称： 简体中文（中国大陆）"],
+    ref: "locale 标签解析：zh-CN ⇒ 语言 zh / 国家 CN / 完整名「简体中文（中国大陆）」/ 书写系统 Hans / 排序拼音。默认输入不同 ⇒ 不命中（双态核验：注入 PASS / 默认 FAIL）。",
+  },
+  {
+    slug: "it/ipv6-converter",
+    // 注意：默认地址（2001:db8::1）与注入值同串，属逃生项；改用非默认地址即可。
+    inputs: { addr: "fe80::abcd" },
+    expect: ["压缩形式：fe80::abcd"],
+    ref: "IPv6 展开 + 压缩：fe80::abcd ⇒ 全展 `fe80:0000:…:abcd`、压缩回 `fe80::abcd`。**踩坑记录**：注入 `2001:db8::1`（也是页面默认地址）时默认态同样命中（逃生项，via=calcTool）；换成 fe80::abcd 后双态通过。",
+  },
+  {
+    slug: "it/ipv4-range-expander",
+    inputs: { cidr: "192.168.1.0/30" },
+    expect: ["192.168.1.0 网络地址 192.168.1.3 广播地址 2 可用主机数 30 前缀长度"],
+    ref: "/30 网段：网络地址 192.168.1.0、广播 192.168.1.3、可用主机 2（4−2）。默认示例前缀不同 ⇒ 不命中。",
+  },
 ];
 
 // ---------------------------------------------------------------- DOM stub
