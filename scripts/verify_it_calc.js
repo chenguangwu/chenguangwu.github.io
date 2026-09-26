@@ -1299,6 +1299,19 @@ const CASES = [
     expect: ["U+2605"],
     ref: "独立复算：U+2605 就是 `★`（BLACK STAR），查表页把字符与其码点并列渲染。`showDetail()` 在桩内会因「无选中项」抛 `Invalid code point NaN`，但网格（`grid`）已由搜索框的 input 事件更新 ⇒ 不依赖该异常路径。默认列表里没有该条目。",
   },
+  {
+    slug: "it/vim-cheatsheet",
+    inputs: { searchInput: "zzz" },
+    expect: ["共 0 项"],
+    ref: "反向锚：Vim 速查搜索无命中 ⇒ 计数归零；默认列表非空。",
+  },
+  {
+    slug: "it/robots-txt-generator",
+    inputs: { sitemap: "https://a.io/sitemap.xml" },
+    clicks: ["addRule()", "render()"],
+    expect: ["Sitemap: https://a.io/sitemap.xml"],
+    ref: "独立复算：填 Sitemap 后 `render()` 把该行并进预览（`addRule()` 先把默认规则行补进来，故预览里同时含默认 UA/Disallow 行）。锚取注入的 sitemap 行，默认态不含。",
+  },
 ];
 
 // ---------------------------------------------------------------- DOM stub
