@@ -205,6 +205,41 @@ const CASES = [
     ref: "三个 select 都按 selectedIndex 注入（`apertures[0]=1.4`、`shutters[11]=1/2`、`isos[0]=100`）⇒ 等效组合区首选卡为 `f/1.4` / `1/2` / `ISO 100` 连排。"
        + "⚠ 该页 #equiv 内容含大量 `f/1.4 …` 卡，但只有这条 `f/1.4 1/2 ISO 100` 三字段连排同时成立；默认态 shutters 默认档与 apertures 默认档不同 ⇒ 不命中。",
   },
+  {
+    slug: "design/css-grid-generator",
+    inputs: { cols: "5", gap: "24", coltype: "fr", containerW: "900" },
+    expect: ["repeat(5, 1fr) grid-template-columns 900 px 容器宽度"],
+    ref: "独立复算：coltype='fr' ⇒ colTpl=`repeat(5, 1fr)`（由 cols=5 决定列数）；容器宽 cw=900 ⇒ 第四张卡写 `900 px 容器宽度`；间距卡 gap=24。默认态 cols=3 / gap=16 / containerW=960（`value` 实测）⇒ 全串不命中。"
+       + "⚠ 锚点必须连到容器宽度：`grid-template-columns` 一栏若在默认态也出现（默认同 fr），单锚它零判别力；带 `900 px` 才同时锁住 cols 与 cw。",
+  },
+  {
+    slug: "design/css-grid-generator",
+    inputs: { cols: "4", gap: "16", coltype: "fixed", containerW: "1000" },
+    expect: ["repeat(4, 120px) grid-template-columns 1000 px 容器宽度"],
+    ref: "同式换分支：coltype='fixed' ⇒ colTpl=`repeat(${cols}, 120px)`（cols=4 ⇒ `repeat(4, 120px)`），与上一例的 `repeat(5, 1fr)` 构成 fr/fixed 双向锚，证明列模板真的随 coltype 切换；cw=1000 ⇒ `1000 px 容器宽度`。默认态 coltype 首项即 fr ⇒ 不命中。"
+       + "⚠ 固定列宽 120px 是代码常量（非注入值），但 `4` 与 `1000` 均随注入变化，故整串依赖被测点。",
+  },
+  {
+    slug: "design/breakpoint-queries",
+    inputs: { cls: "hero", devs: "lg", mode: "max" },
+    expect: ["hero { /* styles */ }"],
+    ref: "独立复算：devs='lg' ⇒ 断点表取 bp.lg 三段（640 / 768 / 1024）；mode='max' ⇒ 每段的 `@media (max-width: …)`；注入类名 'hero' 落进选择器 ⇒ 出现 `hero { /* styles */ }`（`{ /* styles */ }` 是模板常量，`hero` 才是变量）。默认态 #cls 的 value 即 `.example` ⇒ blob 写 `.example {…}` ⇒ 不命中。"
+       + "⚠ 只锚类名太弱（页面底部参考表若复述选择器会撞默认态）；本页默认 cls=`.example` 且与注入值无任何公共子串 ⇒ 安全。",
+  },
+  {
+    slug: "design/breakpoint-queries",
+    inputs: { cls: "panel", devs: "custom", mode: "min" },
+    expect: ["panel { /* styles */ }", "@media (min-width: 480px)"],
+    ref: "同页换档位：devs='custom' ⇒ 断点表切到五段（480 / 576 / 768 / 992 / 1200），故 `@media (min-width: 480px)` 只在该档位出现（默认 basic 档的最小值是 640px）⇒ 第二项把 devs 纳入被测点；第一项 `panel { /* styles */ }` 锁 cls。mode='min' ⇒ max-width 改 min-width。默认态两串皆不命中。"
+       + "⚠ 第一项单独不足以证明 devs 生效（custom 与 basic 都渲染同类选择器），必须配第二项。",
+  },
+  {
+    slug: "design/badge-generator",
+    inputs: { text: "TOOLBOX", fontSize: "20", radius: "14", textColor: "#ffffff", bgColor: "#2563eb" },
+    expect: ["TOOLBOX"],
+    ref: "独立复算：#text 注入 `TOOLBOX` ⇒ 预览区与 CSS 代码均使用注入文本 ⇒ 锚 `TOOLBOX`。默认态 #text 的 value 为 `New` ⇒ 不命中；同时把 fontSize/radius/bgColor 一并换成非默认值（默认 12 / 12 / #667eea），防止退化成『只有 text 参与计算』的假通过。"
+       + "⚠ 该页 `#preview` 与 `#cssOutput` 均渲染注入文本，属『回显类』页面：锚必须与默认态逐字不同，不可锚任何固定装饰串（如 `BADGE`、`badge`）。",
+  },
 ];
 
 // ---------------------------------------------------------------- main
