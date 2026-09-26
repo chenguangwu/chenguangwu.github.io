@@ -1515,6 +1515,26 @@ const CASES = [
     expect: ["逆矩阵 A⁻¹： 0.6 -0.7 -0.2 0.4"],
     ref: "独立复算：A=[[4,7],[2,6]]，det=4×6−7×2=10 ⇒ A⁻¹=(1/10)·[[6,−7],[−2,4]]=[[0.6,−0.7],[−0.2,0.4]]，且 A×A⁻¹=I。同 matrix-determinant 的 clicks 模板。",
   },
+  {
+    slug: "it/a1z26-cipher",
+    inputs: { input: "AB" },
+    clicks: ["enc()"],
+    expect: ["1-2"],
+    ref: "独立复算：A=1、B=2，默认分隔符为 `-` ⇒ `1-2`。产物是纯数字、不含输入字母 ⇒ 天然非回显。默认样例是单词（多位字母），默认态不含本串。",
+  },
+  {
+    slug: "it/affine-cipher",
+    inputs: { input: "ABCD", a: "3", b: "5" },
+    clicks: ["enc()"],
+    expect: ["FILO"],
+    ref: "独立复算：仿射加密 E(x)=(a·x+b) mod 26，a=3、b=5 ⇒ A(0)→5=F、B(1)→8=I、C(2)→11=L、D(3)→14=O ⇒ `FILO`。dump 期 `gcd` 报栈溢出（页面在算逆元）但不影响产物。默认参数是另一组 a/b。",
+  },
+  {
+    slug: "it/bacon-cipher",
+    inputs: { input: "AB", mode: "enc" },
+    expect: ["0000000001"],
+    ref: "独立复算：Bacon 密码 A=`aaaaa`(00000)、B=`aaaab`(00001) ⇒ `0000000001`。**必须显式把 mode 设为 enc**（默认 mode 是解码方向，不带则产物不同）。产物是纯 0/1、不含输入字母 ⇒ 非回显。",
+  },
 ];
 
 // ---------------------------------------------------------------- DOM stub
