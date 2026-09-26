@@ -2491,9 +2491,10 @@ function toolboxAdGridHtml(posCoupon, posTaobao){
 if (global.ToolBox) global.ToolBox.toolboxAdGridHtml = toolboxAdGridHtml;
 
 // 轮播两帧：帧1 领券中心（站点主色系），帧2 淘宝精选
+// data-ad-slot = 第几帧（1 起），供 js/ad_metrics.js 在点击埋点里区分「领券中心 / 淘宝精选」
 function toolboxAdSlidesHtml(){
-  return '<div class="ad-slide is-active">' + toolboxCouponAdCardInner() + '</div>'
-    + '<div class="ad-slide">' + toolboxTaobaoAdCardInner() + '</div>';
+  return '<div class="ad-slide is-active" data-ad-slot="1">' + toolboxCouponAdCardInner() + '</div>'
+    + '<div class="ad-slide" data-ad-slot="2">' + toolboxTaobaoAdCardInner() + '</div>';
 }
 function toolboxAdCarouselHtml(){
   return '<div class="ad-carousel-track">' + toolboxAdSlidesHtml() + '</div>'
@@ -2565,17 +2566,8 @@ if (global.ToolBox) {
       container.parentNode.insertBefore(adDiv, container);
       if (window.I18n && typeof window.I18n.apply === 'function') window.I18n.apply(adDiv);
       toolboxInitAdCarousel(adDiv);
-      // 点击埋点：沿用 ad_tb，额外带上第几帧（ad_slot）
-      Array.prototype.forEach.call(adDiv.querySelectorAll('.tool-ad-card'), function(card){
-        card.addEventListener('click', function(){
-          try {
-            var n = Array.prototype.indexOf.call(adDiv.querySelectorAll('.ad-slide'), card.parentNode) + 1;
-            if (window.ToolBox && ToolBox.Analytics) ToolBox.Analytics.track('ad_tb', {
-              ad_pos: 'tool-top', ad_page: 'tool', ad_slot: n
-            });
-          } catch (e) {}
-        });
-      });
+      // 点击埋点：由 js/ad_metrics.js 统一委托上报（读 data-ad-pos / data-ad-slot）。
+      // 此处**不要**再绑定 —— 委托在 capture 阶段已上报，重复绑定会让一次点击记两次。
     }, 0);
   });
 })();
@@ -2601,6 +2593,19 @@ if (global.ToolBox) {
   var script = document.createElement('script');
   script.src = '/js/analytics.js';
   script.async = true;
+  document.head.appendChild(script);
+})(document);
+
+// 广告点击埋点（全站唯一入口，一次覆盖六个广告位）。
+// 与 analytics.js 同批注入：所有页面都引 js/common.js（首页 / 工具页 / about / 指南页），
+// 故无需逐页加 <script>。⚠️ 2026-09-04 重写首页 head 时曾把本文件的加载点连带删掉，
+// 造成全站广告点击静默不上报（ad_tb 无数据、无报错），此注入行勿再删。
+(function (document) {
+  if (document.querySelector('script[src="/js/ad_metrics.js"], script[src$="/js/ad_metrics.js"]')) return;
+  var script = document.createElement('script');
+  script.src = '/js/ad_metrics.js';
+  // 不设 async：动态脚本 async=false 时按插入顺序执行，保证排在 analytics.js 之后
+  script.async = false;
   document.head.appendChild(script);
 })(document);
 
@@ -3047,8 +3052,8 @@ function buildUnifiedFooter(){
           '<div class="footer-friend">' +
             '<div class="footer-friend-label" data-i18n="ad.label" data-i18n-fb="— 推广 —">— 推广 —</div>' +
             '<div class="footer-friend-links">' +
-            '<a class="footer-friend-link footer-friend-link--coupon" href="' + TOOLBOX_COUPON_AD_URL + '" target="_blank" rel="noopener sponsored" data-i18n="footer.friend_link2" data-i18n-fb="领券中心：抢大额官方补贴">领券中心：抢大额官方补贴</a>' +
-            '<a class="footer-friend-link" href="' + toolboxTaobaoAdUrl() + '" target="_blank" rel="noopener sponsored" data-i18n="footer.friend_link" data-i18n-fb="友情链接：淘宝精选好物">友情链接：淘宝精选好物</a>' +
+            '<a class="footer-friend-link footer-friend-link--coupon" data-ad-pos="footer-coupon" href="' + TOOLBOX_COUPON_AD_URL + '" target="_blank" rel="noopener sponsored" data-i18n="footer.friend_link2" data-i18n-fb="领券中心：抢大额官方补贴">领券中心：抢大额官方补贴</a>' +
+            '<a class="footer-friend-link" data-ad-pos="footer-taobao" href="' + toolboxTaobaoAdUrl() + '" target="_blank" rel="noopener sponsored" data-i18n="footer.friend_link" data-i18n-fb="友情链接：淘宝精选好物">友情链接：淘宝精选好物</a>' +
             '</div>' +
             '<div class="footer-friend-tip" data-i18n="footer.friend_tip" data-i18n-fb="（通过此链接下单可支持我们）">（通过此链接下单可支持我们）</div>' +
           '</div>' +
