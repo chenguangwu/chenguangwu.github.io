@@ -2580,16 +2580,18 @@ if (global.ToolBox) {
   });
 })();
 
-// 首页顶部轮播：静态 HTML 中淘宝帧只写占位 href，PC/WAP 双链仍由本文件统一修正
-// （手机打开 PC 落地页会被淘宝强制登录），修正后再启动轮播。
+// 首页两处广告位：静态 HTML 中淘宝帧只写占位 href，PC/WAP 双链仍由本文件统一修正
+// （手机打开 PC 落地页会被淘宝强制登录）：
+//   ① 热门工具下方 = 两则轮播（#homeAdCarousel），修正后启动轮播；
+//   ② 页面最下方   = 两则并排（静态卡片，不在 carousel 容器内）。
+// 故修正目标必须全页扫描，只在轮播容器内查会漏掉并排区。
 (function(){
   document.addEventListener('DOMContentLoaded', function(){
-    var root = document.getElementById('homeAdCarousel');
-    if (!root) return;
-    Array.prototype.forEach.call(root.querySelectorAll('[data-ad-link="taobao"]'), function(a){
+    Array.prototype.forEach.call(document.querySelectorAll('[data-ad-link="taobao"]'), function(a){
       a.setAttribute('href', toolboxTaobaoAdUrl());
     });
-    toolboxInitAdCarousel(root);
+    var root = document.getElementById('homeAdCarousel');
+    if (root) toolboxInitAdCarousel(root);
   });
 })();
 
