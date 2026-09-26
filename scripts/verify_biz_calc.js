@@ -417,6 +417,71 @@ const CASES = [
     expect: ["> line1 > line2"],
     ref: "Markdown 引用：逐行前置 '> '。默认态为预置中文三段 ⇒ 强判别。注入值含换行，直接写进 inputs 即可生效。",
   },
+
+  {
+    slug: "biz/text-reverse-lines",
+    inputs: { "input": "a\nb\nc" },
+    expect: ["c b a"],
+    ref: "行序反转（与 text-reverse 的字符反转不同）。默认态是该页预置五行的倒序（'第五行 第四行…'）⇒ 强判别。",
+  },
+  {
+    slug: "biz/text-indent",
+    inputs: { "input": "a\nb" },
+    expect: ["a b"],
+    ref: "缩进工具：按当前缩进档给每行加前缀，dump 显示的是去掉前缀后的行序列。默认态为预置的 JS 代码块 ⇒ 强判别。",
+  },
+  {
+    slug: "biz/text-merge",
+    inputs: { "input": "a\nb", "separator": "+" },
+    expect: ["a+b"],
+    ref: "合并工具：按分隔符把多行拼成一行。默认分隔符为空 ⇒ 默认态无 '+'；本例锚 '+' 出现，同时锁住分隔符参数生效。",
+  },
+  {
+    slug: "biz/text-line-numbers",
+    inputs: { "input": "a\nb\nc" },
+    expect: ["1.a 2.b 3.c"],
+    ref: "行号工具：每行前置递增序号。默认态为预置中文四行（'1.第一行 2.第二行…'），与注入值的字母行不同 ⇒ 强判别。",
+  },
+  {
+    slug: "biz/text-prefix-suffix",
+    inputs: { "input": "mid", "prefix": "[", "suffix": "]" },
+    expect: ["[mid]"],
+    ref: "加前缀/后缀：左右包裹。默认态为该页预置样例（无本例的括号包裹）⇒ 强判别。",
+  },
+  {
+    slug: "biz/text-filter-lines",
+    inputs: { "input": "apple\nbanana\napple pie\ncherry", "keyword": "apple" },
+    expect: ["apple apple pie"],
+    ref: "按关键词过滤行：命中 apple 的两行（apple、apple pie）保留在原顺序上。默认态命中的是预置样例里的 "
+       + "apple/application/apricot ⇒ 强判别。注意关键词注入与文本注入同属一次 inputs，缺一不可。",
+  },
+  {
+    slug: "biz/superscript-text",
+    inputs: { "input": "x2+y3" },
+    expect: ["x²+y³"],
+    ref: "上下标转换：数字转 Unicode 上标字符。默认态是预置的化学式/公式串（'x² + y² = r² H²O…'），"
+       + "本例锚注入串的紧凑形态 'x²+y³'（默认态为空格分隔形态）⇒ 强判别。同页另有一行下标输出，属常量模板，不进 expect。",
+  },
+  {
+    slug: "biz/small-caps",
+    inputs: { "input": "hello world" },
+    expect: ["ʜᴇʟʟᴏ ᴡᴏʀʟᴅ"],
+    ref: "小型大写转换：逐字母映射到 Unicode small-caps 字符并保留词间空格。默认态为预置整句（'Hᴇʟʟᴏ Wᴏʀʟᴅ!…'）⇒ 强判别。",
+  },
+  {
+    slug: "biz/upside-down-text",
+    inputs: { "input": "ABC" },
+    expect: ["ƆB∀"],
+    ref: "倒置文本：逐字符映射到其 180° 旋转码位并整体倒序（A→∀、B→Ɔ、C→Ɔ… 末位在前）。"
+       + "默认输入恰为 'Hello'（⇒ ollǝH），本例用字母表规避撞默认；锚必须取 dump 的真实旋转结果，凭直觉写 "
+       + "'dlroW' / 'plɹoM' 之类会与真实码位不符。",
+  },
+  {
+    slug: "biz/text-extract-english",
+    inputs: { "input": "abc中文def 测试 ghi" },
+    expect: ["abc def ghi"],
+    ref: "提取英文单词：只保留 ASCII 字母序列、其余（中文/空格）作分隔符。默认态是预置长句（'Hello This is text…'）⇒ 强判别。",
+  },
 ];
 
 // ---------------------------------------------------------------- main
