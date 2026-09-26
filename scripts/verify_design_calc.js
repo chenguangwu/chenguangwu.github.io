@@ -642,6 +642,21 @@ const CASES = [
     expect: ["6. square 粒子方案"],
     ref: "粒子特效生成器。形状枚举按序取（circle/square/...），第 6 条落到 square；粒子数量/速度/色值随机，不进 expect。默认态 5 条 ⇒ 不命中。",
   },
+  {
+    slug: "design/favicon-generator",
+    inputs: { textInput: "AB", fgColor: "#f43f5e", bgColor: "#0f172a", fontSize: "22", fontWeight: "700" },
+    expect: ["AB"],
+    ref: "浏览器地址栏 favicon 预览 `#browserFavicon` 直接渲染 `textInput` 的首字母组合：默认文本是 `F`（默认文字 'Favicon'），注入 `AB` 后变 `AB` ⇒ 默认态必然不命中。\n"
+      + "⚠ 这是「输入 → 结果区文本渲染」型锚，不是纯输入框回显：被测点是**渲染管线**而非回显本身，页面默认值与注入值明确错开。\n"
+      + "⚠ `errs` 里的 `canvas.toBlob is not a function` / `draw: ... 'getC...` 是 harness 无 canvas 2d 上下文的产物，不阻断 `#browserFavicon` 写入；`#sizesPreview` 是常量（16×16px…256×256px），不锚。",
+  },
+  {
+    slug: "design/favicon-generator",
+    inputs: { textInput: "72" },
+    expect: ["72"],
+    ref: "覆盖「注入值为纯数字」的分支（首例测字母）。默认态文本 `F` 不命中，注入 `72` 后 `#browserFavicon` 渲染为 `72`。\n"
+      + "⚠ 本页只有一个文本结果通道（`#browserFavicon`），因此只拆两例（字母 / 数字），刻意不重复同一形态。",
+  },
 
 ];
 
