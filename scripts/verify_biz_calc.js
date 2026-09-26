@@ -128,6 +128,91 @@ const CASES = [
        + "『| 甲 | 乙 | |---|---| | 24 | 36 | …』，『甲 乙 24』在原文中不连续 ⇒ 非输入回显。"
        + "默认态 textarea 为空、preview 显示占位文案 ⇒ 不命中。",
   },
+
+  // ── 大小写/命名风格转换（getWords 分词 + 连字符拼接）─────────────
+  {
+    slug: "biz/text-case",
+    inputs: { input: "Abc Def" },
+    clicks: ["convert('kebab');"],
+    expect: ["abc-def"],
+    ref: "getWords('Abc Def')：先把 ([a-z])([A-Z]) 插空格 ⇒ ['Abc','Def']，再按 [\\s_-]+ 切分 ⇒ 两词；"
+       + "kebab=join('-').toLowerCase() ⇒ 'abc-def'。默认态 case-btn 的示例示例串为 'hello-world' /"
+       + " 'HELLO WORLD' 等（.example 文本会进 blob）⇒ 不含 'abc-def'。",
+  },
+  {
+    slug: "biz/text-case",
+    inputs: { input: "Abc Def" },
+    clicks: ["convert('camel');"],
+    expect: ["abcDef"],
+    ref: "camel：首词 toLowerCase、后续词首字母大写 ⇒ 'abc' + 'Def' = 'abcDef'（默认示例 'helloWorld' 不命中）。",
+  },
+  {
+    slug: "biz/text-case",
+    inputs: { input: "Abc Def" },
+    clicks: ["convert('alternate');"],
+    expect: ["AbC dEf"],
+    ref: "alternate：逐字符翻转大小写、非字母原样输出。up 初值 false：A→true 得 'A'、b→'b'、c→'C'、"
+       + "空格原样、D→'d'、e→'E'、f→'f' ⇒ 'AbC dEf'。默认示例 'hElLo WoRlD' 不命中。",
+  },
+  {
+    slug: "biz/text-case",
+    inputs: { input: "Abc Def" },
+    clicks: ["convert('constant');"],
+    expect: ["ABC_DEF"],
+    ref: "constant=getWords().join('_').toUpperCase() ⇒ 'ABC_DEF'。默认示例 'HELLO_WORLD' 不命中。",
+  },
+
+  // ── 文本行去重（多模式 + 统计派生量）────────────────────────────
+  {
+    slug: "biz/text-dedup",
+    inputs: { input: "bbb\naaa\nbbb\nccc" },
+    clicks: ["currentMode='dup-only';convert();"],
+    expect: ["bbb"],
+    ref: "dup-only：countMap(bbb=2,aaa=1,ccc=1) ⇒ 出现>1 的行 [bbb,bbb]，再按首次出现去重 ⇒ ['bbb']。"
+       + "默认态示例为 apple/banana 一类水果行 ⇒ 不含 'bbb'。",
+  },
+  {
+    slug: "biz/text-dedup",
+    inputs: { input: "bbb\naaa\nbbb\nccc" },
+    clicks: ["currentMode='unique-only';convert();"],
+    expect: ["aaa ccc"],
+    ref: "unique-only：只保留计数==1 的行 ⇒ ['aaa','ccc'] ⇒ join('\\n')，采集时空白归一 ⇒ 'aaa ccc'。"
+       + "首版误锚单字符 'c'（默认态示例行里本就含 c ⇒ 逃生项）。",
+  },
+  {
+    slug: "biz/text-dedup",
+    inputs: { input: "bbb\naaa\nbbb\nccc" },
+    clicks: ["currentMode='dedup-case';convert();"],
+    expect: ["bbb aaa ccc"],
+    ref: "dedup-case：以 toLowerCase 为键去重但**输出原行** ⇒ 三行顺序保留 ⇒ 'bbb aaa ccc'（空白归一后）。"
+       + "默认态为 apple/banana 的字典序 ⇒ 不命中。",
+  },
+
+  // ── 文本行排序（Intl.Collator / 长度 / 数值首数）─────────────────
+  {
+    slug: "biz/text-sort",
+    inputs: { input: "pear\napple\nfig" },
+    clicks: ["opt='length-asc';sort();"],
+    expect: ["fig pear apple"],
+    ref: "length-asc：按 a.length-b.length ⇒ fig(3) < pear(4) < apple(5) ⇒ 'fig pear apple'（空白归一后）。"
+       + "默认态 opt='asc' 按 Collator 排得 apple/fig/pear ⇒ 不命中。",
+  },
+  {
+    slug: "biz/text-sort",
+    inputs: { input: "item 10\nitem 9\nitem 2" },
+    clicks: ["opt='num-asc';sort();"],
+    expect: ["item 2 item 9 item 10"],
+    ref: "num-asc：正则 -?\\d+(\\.\\d+)? 取**首个**数parseFloat ⇒ 10/9/2，升序 ⇒ 2,9,10。"
+       + "默认态为字典序 ⇒ 不命中。",
+  },
+  {
+    slug: "biz/text-sort",
+    inputs: { input: "pear\napple\nfig" },
+    clicks: ["opt='length-desc';sort();"],
+    expect: ["apple pear fig"],
+    ref: "length-desc：长度降序 ⇒ apple(5) > pear(4) > fig(3)。与 length-asc 的锚互为反向，"
+       + "可防「排序根本没生效」的假通过。",
+  },
 ];
 
 // ---------------------------------------------------------------- main

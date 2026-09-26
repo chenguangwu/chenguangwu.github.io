@@ -187,7 +187,7 @@
 - **但另有 191 个含 checkbox 的页面在全站任何 verify 文件中都没有用例**（`design/*` 11 页、`edu/*` 40 页、`biz/*` 文本类为主）。
 - 判定口径注意：用例块的键名**常不带引号**（`slug: "x"` / `inputs: {}` / `checkIds: [...]`），扫描脚本必须写成 `"?slug"?\s*:\s*"([^"]+)"`，否则会大量误报「无用例 / 无注入通道」（本次两次误报均源于此）。
 
-**处置**：属新线（补用例 ≠ 改弱用例），单独立批；须守 §8.1（expect 独立复算）。**已交付 15 例**（`design/*` 2 + `edu/*` 5 + `biz/*` 3，逐例锚点见各用例 `ref`）。剩余 **182** 页待补（`design/*` 11、`edu/*` 37、`biz/*` 文本类为主）。`design/image-resizer`（`generate()` 首行 `if(!origImg) return` + 依赖 canvas 解码）、`edu/exam-study-planner`（localStorage 桩只写不读 ⇒ 统计分子/分母不可达）**结构性不可注入，不硬写用例**。
+**处置**：属新线（补用例 ≠ 改弱用例），单独立批；须守 §8.1（expect 独立复算）。**已交付 25 例**（`design/*` 2 + `edu/*` 5 + `biz/*` 18，逐例锚点见各用例 `ref`）。剩余 **172** 页待补（`design/*` 11、`edu/*` 37、`biz/*` 59）。`design/image-resizer`（`generate()` 首行 `if(!origImg) return` + 依赖 canvas 解码）、`edu/exam-study-planner`（localStorage 桩只写不读 ⇒ 统计分子/分母不可达）**结构性不可注入，不硬写用例**。
 
 ## 八、反模式与防复发（铁律）
 
@@ -330,7 +330,7 @@
 
 ### 10.2 现状（实测基线）
 
-- `all_default 4 / no_inputs 10 / escape 0`；门禁 `run_gates.py` **216 项全过**、逃生项 0（判别器已检 **3121** 例 / 跳过 50）。
+- `all_default 4 / no_inputs 10 / escape 0`；门禁 `run_gates.py` **216 项全过**、逃生项 0（判别器已检 **3131** 例 / 跳过 50）。
 - A 级率 **99.2%**（A 4693 / B 32 / C 4）；术语内链 **1591 页 / 2268 条**（零死链、零自链）。
 - 弱用例口径与选批规则见 §10.3。
   - **注意：弱用例整体处于判别器盲区** —— 「注入值等于默认值」的用例被判 `usable=false` 直接跳过（§10.5）⇒ `escape=0` 只说明强用例无逃生项；每批改造后须重跑判别器确认其由「跳过」转为「已检且变红」。
@@ -400,6 +400,7 @@
 12. **调试陷阱（会把「没生效」误判成 bug）**：① `verify_it_calc.js` **必须留在 `scripts/` 下**跑 —— `TOOLS_DIR` 取自 `__dirname`，拷到仓库外（`/tmp/x.js`）会整页返「文件不存在」且 `errs=[]`（看似「clicks 静默失败」）；要插日志就在 `scripts/` 下临时副本改完删。② 确认 clicks 是否真执行：用 `clicks:["throw new Error('RAN')"]`，`errs` 出现 `RAN` 即已执行（比 DOM 探针可靠）。③ 带连字符的 id 在用例对象里**必须加引号**（`{ "focus-mins": "50" }`），裸写 `focus-mins:` 直接 SyntaxError。
 13. **「textarea + 预览区」双元页（Markdown / 富文本类）**：blob 同时含**注入原文回显**（textarea 的 `value`）与**渲染产物** ⇒「渲染产物文本 ⊂ 注入原文」的锚（`<strong>bold</strong>` 剥标签后的 `bold`、`# H1` 剥标签后的 `H1`）**测不到任何渲染**，属伪锚。✅ 只锚**渲染独有的连排串**：剥标签后**标签被换成空格**，同元素内相邻 cell 连成 `甲 乙 24 36 81 90`，而原文 `| 甲 | 乙 | |---|---| | 24 | 36 |` 里 `甲 乙 24` 并不连续 ⇒ 天然非回显。
 14. **`collectStrings` 的 blob 是剥标签后的串 ⇒ expect 绝不能写 `<strong>…</strong>` / `<h2>…</h2>` 这类带标签形式**（写了必 FAIL，容易被误读成「渲染没生效」，实为锚错）。
+15. **多行 textarea 的产出串，换行在 blob 里被归一成空格 ⇒ 锚要写 `bbb aaa ccc`，不能写 `bbb\naaa`**（首版按 `\n` 写必 FAIL，极易误读成「去重没生效」）。✅ 排序/去重类工具一律锚**整段连排**（`fig pear apple`）；**单字符或极短锚（`c`）在默认态示例行里本就存在 ⇒ 逃生项**，必须先 dump 默认态再定锚。同理，凡「同一输入换个方向再跑一遍」能给出反向串的（`length-asc`→`length-desc`），两个方向都写进同一用例的 `expect`，可防「排序根本没生效」的假通过。
 
 **D. 工具与方法**
 
@@ -414,7 +415,7 @@
 
 **E. 待办 / 历史残留**
 
-- 全站 **16 个** `verify_*_calc.js` 共 **62 条「同 slug 多份」重复条目**（`realestate` 12、`math` 14、`science` 5、`ai` 4、`agriculture` 3…，其中 61 条两份内容不同）：门禁会把同一页跑两遍、计数虚高、批量替换器按 slug 定位会**同时改掉两份**。**暂不清理**（删条目会同时改动 `total_cases`/`checked`/`skipped` 三个基线数，属独立批次）。
+- 全站 **16 个** `verify_*_calc.js` 共 **62 条「同 slug 多份」重复条目**（`realestate` 12、`math` 14、`science` 5、`ai` 4、`agriculture` 3…，其中 61 条内容不同）：门禁把同页跑两遍、计数虚高，按 slug 的批量替换器会**同时改掉两份**。**暂不清理**（删条目须同步改 `total_cases`/`checked`/`skipped` 三个基线数，属独立批次）。
 - `selfcheck_false_pass.js` 全站 `--exec` 会崩（某页脚本污染全局 `process`）：**取基线请用结构模式** `node scripts/selfcheck_false_pass.js scripts`（与门禁同口径）。
 
 ### 10.6 方向1：公式-脚本一致性精查（**全量闭环** · 老板选定）
