@@ -28,10 +28,14 @@ const CASES = [
 {
   "slug": "fengshui/fengshui-guide",
   "inputs": {},
-  "expect": [
-    "是研究环境与人类居住关系的学问"
+  "clicks": [
+    "setTab('办公');"
   ],
-  "ref": "auto-restore(default)"
+  "expect": [
+    "办公桌方位",
+    "座位禁忌"
+  ],
+  "ref": "（2026-09-24 曾记为 setTab 报错 ⇒ 不可注入，本批次推翻）KB 有 5 个 tab（基础/住宅/财位/煞气/办公），默认 currentTab='基础' 只渲染该 tab ⇒ 其它 tab 的条目名是排他串，不必受「顺序保持型筛选」限制。setTab(k) 只改顶层 currentTab 后 renderTabs()+render()，均只用 getElementById，harness 下不抛错（旧判「报错」应为误记）。注意 tabBar 按钮文本里**常驻全部 5 个标题**，故「办公风水」类纯标题串默认态也命中、不可当锚；改用只属于该 tab 的条目名。旧锚「是研究环境与人类居住关系的学问」是「基础」tab 的常驻正文，默认态必命中，判别力 0，已弃。"
 },
 {
   "slug": "fengshui/good-day-selector",

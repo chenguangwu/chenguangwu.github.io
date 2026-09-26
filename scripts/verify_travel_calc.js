@@ -5,10 +5,13 @@ const CASES = [
 {
   "slug": "travel/aim-trainer",
   "inputs": {},
-  "expect": [
-    "30.0s"
+  "clicks": [
+    "startTime=Date.now()-15000;tick();"
   ],
-  "ref": "结构性不可注入（2026-09-24 travel 批）：页面静态 HTML 中 input/select/textarea 计数为 0（实测 grep -cE '<input|<select|<textarea' = 0），靶场由 start()/reset() 按钮驱动、按钮无 id 且不在 harness 的 elements 表内，也无 clicks 注入 ⇒ 只能渲染默认串。保留在 no_inputs 基线。"
+  "expect": [
+    "15.0s"
+  ],
+  "ref": "（2026-09-24 曾判「静态无 input/select/textarea ⇒ 结构性不可注入」，本批次推翻）无静态控件属实，但 tick() 只算 `DURATION-(Date.now()-startTime)/1000` 再写 #time ⇒ 倒推 startTime 即可控制读数，无需 start()（start() 会 setInterval，桩下进程不退出）。硬编码 startTime 前移 15 秒 ⇒ left=15.0 ⇒ #time = 「15.0s」；默认态 #time = 「30s」（reset() 写 DURATION+'s'，无 toFixed）⇒ 两态必然区分。旧锚「30.0s」恰是默认读数，判别力 0，已弃。"
 },
 {
   "slug": "travel/business-name-generator",
