@@ -1,35 +1,79 @@
-# 备份文件
+# ============================================================
+# .gitignore — chenguangwu.github.io（ToolBox）
+#
+# 维护要点：
+#   1) 发布目录（tools/、js/、css/、json/、i18n/、assets/、vendor/）里的规则必须**窄**：
+#      被吞掉的文件不会进 git、不会出现在 review 里，出了问题无迹可循。
+#      这些目录只忽略「确认属产物」的文件，别用宽通配。
+#   2) 可再生的分析/审计产物用**精确文件名**列出，不要图省事写宽通配：
+#      根目录确实存在需要入库的 `_` 前缀数据文件
+#      （`_bing_index_check_state.json`、`_fix_formula_titles_log.txt`）。
+#   3) 改动本文件后必须核验两个集合都没出现意外变化：
+#        git ls-files -o -i --exclude-standard --directory | sort   # 被忽略的
+#        git ls-files -o    --exclude-standard --directory | sort   # 会被 add 的
+# ============================================================
+
+# ---------- 备份 / 交换文件 / 补丁残留 ----------
 *.bak
 *.swp
+*.swo
 *~
+*.orig
+*.rej
 
-# 系统文件
+# ---------- 系统文件 ----------
 .DS_Store
 Thumbs.db
 desktop.ini
 
-# 编辑器/IDE
+# ---------- 编辑器 / IDE ----------
 .vscode/
 .idea/
 *.sublime-project
 *.sublime-workspace
 
-# 依赖与构建
-node_modules/
-npm-debug.log*
-yarn-error.log*
+# ---------- 凭据（绝不入库）；.env.example 这类模板仍需入库，故不用 .env* ----------
+.env
+.env.local
+.env.*.local
 
-# 临时与缓存
+# ---------- 依赖 ----------
+node_modules/
+
+# ---------- 临时与缓存 ----------
 *.log
+*.tmp
 .cache/
 tmp/
 __pycache__/
+*.py[cod]
+# npm / yarn 的失败日志带序号（如 npm-debug.log.1），*.log 匹配不到，需单独列出
+npm-debug.log*
+yarn-error.log*
 
-# 开发脚本（避免 _test_*.js 等泄漏到发布产物）
-_*.js
-_*.sh
+# ---------- 本地开发脚本（仅根目录与 scripts/）----------
+# 只忽略这两处的 `_` 前缀脚本。
+#
+# 事实纠正（2026-09-26 线上实测）：「`_` 前缀能防发布泄漏」是错误归因。
+#    真正过滤发布的是 **GitHub Pages 平台规则**——路径任一段以 `_` 或 `.` 开头即不发布，
+#    与 .gitignore 毫无关系（部署走 upload-pages-artifact + path: .，完全不读本文件）。
+#    实测：/scripts/run_gates.py → 200，/scripts/_probe_ad_metrics.js → 404；/.workbuddy/、/.git/ → 404。
+#    ⇒ 本组规则只承担「版本控制语义」职责，别把它当发布防护依赖。
+#
+#  不要退回写成全局 `_*.js`：会让发布目录（js/、tools/、assets/、vendor/）里的
+#    `_` 前缀文件在 git 层也被吞掉，形成「既不上线、又不在版本控制、git status 也不提示」的双重静默。
+#  不要加 `_*.py`：`_build.py`、`_test_static.py`、`_audit_*.py` 等
+#    48 个构建/门禁脚本全靠「.py 不在忽略范围」才得以入库。
+#
+#  待办（已知暴露面，待决策）：发布排除只认 `_`/`.` 前缀，故 `scripts/` 下**非** `_` 前缀的文件
+#    （run_gates.py、apply_it.py、verify_*.js、gen_*.py …）与根目录 package.json 确实已发布上线（实测 200）。
+#    如需收敛，应在 workflow 的 artifact 上传前把 scripts/ 等移出工作区（同现有 node_modules 的 mv 做法）。
+/_*.js
+/_*.sh
+/scripts/_*.js
+/scripts/_*.sh
 
-# 可再生的分析/审计/发布产物（不入库，避免污染仓库与发布产物）
+# ---------- 可再生的分析 / 审计 / 发布产物（根目录，精确清单）----------
 _audit_links_broken.json
 _audit_links_report.json
 _audit_links_report.txt
@@ -41,29 +85,30 @@ _regression_tools.json
 _perf_baseline.json
 _third_party_inventory.json
 _gsc_inspect_progress.json
-_gsc_unindexed.csv
 _index_coverage_state.json
 _bing_url_submission_failed.json
-index_coverage.csv
 index_coverage.json
-index_coverage_queue.csv
 release_snapshot.json
 release_dashboard.html
 clarity_top_pages_*.txt
 
-# 本地 AI 助手工作记忆（不入库）
+# ---------- 分析 / 流量导出 CSV（仅根目录 + scripts/health-reports）----------
+# 收窄理由：全局 `*.csv` 会吞掉将来放在 json/、tools/ 等目录、需要随站点发布的 CSV。
+# 注：scripts/health-reports/ 下 8 个 csv 在本规则生效前已被跟踪，gitignore 对已跟踪文件无效，
+#     需 `git rm --cached <file>` 才解除（可再生的健康报告，是否清理由老板定）。
+/*.csv
+/scripts/health-reports/*.csv
+
+# ---------- 本地 AI 助手工作记忆（不入库）----------
 .workbuddy/
 .codex/
 
+# ---------- 与站点无关的第三方 / 历史重复产物 ----------
 # Sublime Package Control 下载缓存（不是站点数据）
 /channel*.json
-
 # 历史重复构建产物；权威文件为 json/tools.json
 /tools.json
 
+# ---------- 构建产物 ----------
 # GitHub Actions 构建期生成的台湾繁体静态站点
 /zh-tw/
-
-# 分析 / 流量导出 / 健康检查 CSV 产物（全部为可再生工作产物，不入库）
-# 含根目录分析 CSV 与 scripts/health-reports/*.csv；已跟踪的 csv 需 git rm --cached 才解除跟踪
-*.csv
