@@ -535,6 +535,65 @@ const CASES = [
     expect: ["background-position: 0 0, 24px 24px;"],
     ref: "offset 档位独有的第二条渐变与背景位移（spacing/2），锚点在该页只有 offset 分支才会出现 ⇒ 强判别。默认态为 square 分支，不命中。",
   },
+  {
+    slug: "design/css-grid-generator",
+    inputs: { cols: "4", coltype: "repeat", containerW: "1200", gap: "24" },
+    expect: ["grid-template-columns: repeat(4, 1fr); gap: 24px; max-width: 1200px;"],
+    ref: "结果区 `#result` 同时给出统计行与完整 CSS，锚点落在 CSS 代码段的三项注入值上（列数 / 间距 / 容器宽度）。默认态是 3 列 / 16px / 960px ⇒ 判别明确。\\n"
+      + "⚠ 该页 `fmtMoney` / `dataGrid` 在 harness 内会抛错（`rows is not iterable`），但 `#result` 已先写入，不影响断言。",
+  },
+  {
+    slug: "design/progress-bar-generator",
+    inputs: { percent: "72", color1: "#f43f5e", color2: "#facc15", height: "28", radius: "14" },
+    expect: [".progress-bar { width: 72%; height: 100%; background: #f43f5e; border-radius: 14px; }"],
+    ref: "进度条 CSS 由百分比 / 主色 / 圆角共同决定，锚点覆盖三项注入值。默认态为 60% / #667eea / 10px ⇒ 判别明确。\\n"
+      + "⚠ 渐变与条纹开关（`gradient` / `striped` / `animated`）虽在页面内，但注入后本条 CSS 未变化；本例只锚确定生效的量，不写开关相关断言。",
+  },
+  {
+    slug: "design/typography-scale",
+    inputs: { baseSize: "18", ratio: "1.618" },
+    expect: ["--h1-size: 199.6px; --h2-size: 123.4px;"],
+    ref: "字号阶梯是 baseSize × ratio^n 的连续推导，锚点取 h1/h2 两档（18×1.618≈29.1 → h1≈47.1 之外的中间档），能同时兜住 baseSize 与 ratio 两个输入。默认态 baseSize=16/ratio=1.25 得到的是 22.1px / 20.7px ⇒ 判别明确。",
+  },
+  {
+    slug: "design/spacing-scale",
+    inputs: { baseSize: "12", ratio: "1.5", levels: "7" },
+    expect: ["--space-3: 40.5px; --space-4: 60.8px;"],
+    ref: "间距阶梯同为 baseSize × ratio^n，levels 决定条数。本例注入 7 档 ⇒ 末档 space-6=136.7px，注入值与默认态（10 档、4px 起）完全错开 ⇒ 判别明确。",
+  },
+  {
+    slug: "design/spacing-scale",
+    inputs: { baseSize: "12", ratio: "1.5", levels: "4" },
+    expect: ["--space-0: 12px; --space-1: 18px; --space-2: 27px; --space-3: 40.5px;"],
+    ref: "同一页的第二条路径：levels 降到 4 ⇒ 只输出 space-0 ~ space-3 四档，锚点整串覆盖四档推导值。默认态 10 档且首档为 4px ⇒ 强判别，专门覆盖 levels 输入。",
+  },
+  {
+    slug: "design/glassmorphism-generator",
+    inputs: { bgColor: "#0f172a", blur: "18", saturate: "160", radius: "24", borderOp: "0.4", shadow: "30" },
+    expect: [".glass { background: rgba(15, 23, 42, 0.2); backdrop-filter: blur(18px) saturate(160%);"],
+    ref: "毛玻璃样式串由背景色 / 模糊 / 饱和度 / 圆角共同决定，锚点整段覆盖四项。默认态为 #ffffff / blur(10px) / saturate(100%) / 16px ⇒ 判别明确。\\n"
+      + "⚠ `opacity` 项注入被页面忽略（回落到常量 0.2），本例不注入该项；锚点以 dump 实测值为准，改注入前先重跑 dump。",
+  },
+  {
+    slug: "design/shadow-generator",
+    inputs: { offsetX: "6", offsetY: "10", blur: "24", spread: "-4", color: "#f43f5e" },
+    expect: ["box-shadow: 6px 10px 24px -4px #f43f5e;"],
+    ref: "输出区 `#code` 首行是四值 + 颜色的 box-shadow 简写，五项注入值全部落在这一个串里。默认态为 `0px 10px 20px -5px #667eea;` ⇒ 判别明确。\\n"
+      + "⚠ `inset` 勾选后首行串不变（inset 走另一渲染路径），本例不写 inset 断言，避免写成假用例。",
+  },
+  {
+    slug: "design/button-generator",
+    inputs: { bgColor: "#f43f5e", textColor: "#fff", borderColor: "#9f1239", borderW: "2", radius: "12", padX: "28", padY: "16", fontSize: "18", shX: "3", shY: "5", shBlur: "10" },
+    expect: [".btn-custom { padding: 16px 28px; background: #f43f5e; color: #fff; border: 2px solid #9f1239; border-radius: 12px; font-size: 18px;"],
+    ref: "按钮 CSS 的 padding/背景/文字色/边框/圆角/字号六项全部吃注入值，锚点整段覆盖；默认态是 10px 20px / #667eea / 14px ⇒ 判别明确。\\n"
+      + "⚠ 页面另有 `#btnText`（按钮文案）与阴影三件套，本例不注入文案（文案只进预览区、不进 `#cssOutput`），阴影三项已注入但落在 `:hover` 段，故只锚基础段。",
+  },
+  {
+    slug: "design/toast-generator",
+    inputs: { radius: "16" },
+    expect: [".toast { padding: 14px 20px; border-radius: 16px;"],
+    ref: "提示条圆角直接进 `#cssOutput` 首行，锚点与默认值（8px）错开 ⇒ 判别明确。背景色与文案在 success 档位下被档位样式固定（注入不生效），本例只锚确实受控的圆角。",
+  },
 
 ];
 
