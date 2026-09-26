@@ -657,6 +657,61 @@ const CASES = [
     expect: ["未发现明显风格问题"],
     ref: "独立复算：`### 标题` 属合法 ATX 标题、无其他风格项 ⇒ 问题 0 并落该结论串。默认示例含多个待整改项，结论不同，不命中。",
   },
+  {
+    slug: "it/c-string-escape",
+    inputs: { input: "a\"b\\c\nd" },
+    clicks: ["esc()"],
+    expect: ["a\\\"b\\\\c\\nd"],
+    ref: "转义产物非输入回显：引号→\\\"、反斜杠→\\\\、换行→\\n 逐一对应。默认示例不含该转义串。",
+  },
+  {
+    slug: "it/java-escape",
+    inputs: { input: "a\"b\\c", unicode: "1" },
+    clicks: ["esc()"],
+    expect: ["a\\\"b\\\\c"],
+    ref: "Java 串内转义产物；unicode 档仅作形态区分，锚取与档位无关的基础转义部分。默认态不命中。",
+  },
+  {
+    slug: "it/python-escape",
+    inputs: { input: "a\"b\\c", qtype: "s" },
+    clicks: ["esc()"],
+    expect: ["\"a\\\"b\\\\c\""],
+    ref: "qtype=s 走普通字符串 ⇒ 结果带双引号包裹，锚取含引号的完整产物，避开与 raw 串分支的同形。",
+  },
+  {
+    slug: "it/rust-escape",
+    inputs: { input: "a\"b\\c" },
+    clicks: ["esc()"],
+    expect: ["\"a\\\"b\\\\c\""],
+    ref: "Rust 串内转义产物，默认输入（非引号/反斜杠）不产生同串。",
+  },
+  {
+    slug: "it/css-escape",
+    inputs: { input: "foo(bar)" },
+    clicks: ["esc()"],
+    expect: ["foo\\(bar\\)"],
+    ref: "CSS.escape 风格逐字符加反斜杠，产物非原文回显。harness 内 escapeChar 报 undefined.code 属桩盲区（真机 DOM 事件源缺失），不影响产物串。",
+  },
+  {
+    slug: "it/js-escape",
+    inputs: { input: "a\"b\\c" },
+    clicks: ["esc()"],
+    expect: ["\"a\\\"b\\\\c\""],
+    ref: "JS 串内转义产物（与 Rust/Python 同形态但页内实现独立），默认态不含。",
+  },
+  {
+    slug: "it/polybius-cipher",
+    inputs: { input: "AB" },
+    expect: ["11 12"],
+    ref: "A→11、B→12 的方格坐标拼接，随输入变化；默认示例对应其它坐标，不命中。",
+  },
+  {
+    slug: "it/xor-cipher",
+    inputs: { input: "AB", key: "XY" },
+    clicks: ["calcTool()"],
+    expect: ["191b"],
+    ref: "0x19 0x1b 两字节异或密文（A^X=19、B^Y=1b）十六进制小写拼接。默认输入/密钥组合产物不同。",
+  },
 ];
 
 // ---------------------------------------------------------------- DOM stub
