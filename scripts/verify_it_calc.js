@@ -901,6 +901,40 @@ const CASES = [
     expect: ["5901234123457"],
     ref: "EAN-12 补一位校验位（590123412345→7）⇒ 完整 13 位码；默认示例码不同。",
   },
+  {
+    slug: "it/hash-multi",
+    inputs: {},
+    clicks: ["document.getElementById('al_md5').checked=true;document.getElementById('input').value='abc';calc()"],
+    expect: ["MD5 900150983cd24fb0d6963f7d28e17f72"],
+    ref: "MD5(`abc`) = 900150983cd24fb0d6963f7d28e17f72（RFC 1321 标准值）。算法是 checkbox 驱动的 ⇒ 桩内恒未勾，必须 clicks 内显式置位再 `calc()`。",
+  },
+  {
+    slug: "it/wifi-qr",
+    inputs: { ssid: "Net", pass: "pw" },
+    clicks: ["generate()"],
+    expect: ["WIFI:T:WPA;S:Net;P:pw;H:false;;"],
+    ref: "Wi-Fi QR 的 TYPE/S/P/H 字段拼接（WPA、隐藏网络 false、末尾双分号）；默认示例 SSID/密码不同。",
+  },
+  {
+    slug: "it/caa-record-generator",
+    inputs: {},
+    clicks: ["document.getElementById('ca_lets').checked=true;document.getElementById('domain').value='a.test';gen()"],
+    expect: ['a.test CAA 0 issue "letsencrypt.org"'],
+    ref: "勾选 letsencrypt 授权者 + 注入域名 ⇒ 输出标准 CAA 记录行（flags 0、issue 指令）。算法 checkbox 需 clicks 置位。",
+  },
+  {
+    slug: "it/api-sign-generator",
+    inputs: { secret: "s", params: "a=1", algo: "md5" },
+    clicks: ["runSign()"],
+    expect: ["签名结果： 14c37dbbd13c5d12d5ef41a29a5c6fb1"],
+    ref: "按 `参数串 + &secret=` 拼接待签串后做 HMAC-MD5 ⇒ 固定 32 位十六进制签名；默认参数组合产出不同密文。",
+  },
+  {
+    slug: "it/http-status",
+    inputs: { search: "zzz" },
+    expect: ["No matching status code."],
+    ref: "反向锚：不存在的状态码 ⇒ 列表区落英文空态提示（默认示例列表非空，必不命中）。",
+  },
 ];
 
 // ---------------------------------------------------------------- DOM stub
