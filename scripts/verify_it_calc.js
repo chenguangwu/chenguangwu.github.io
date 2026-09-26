@@ -1394,6 +1394,24 @@ const CASES = [
     expect: ["a%20b%26c"],
     ref: "独立复算：`encodeURIComponent('a b&c')` ⇒ 空格→`%20`、`&`→`%26` ⇒ `a%20b%26c`。默认样例是 URL，默认态不含该串。",
   },
+  {
+    slug: "it/csharp-cheatsheet",
+    inputs: { searchInput: "zzz" },
+    expect: ["共 0 项"],
+    ref: "反向锚：C# 速查搜索无命中 ⇒ 计数归零；默认列表非空。",
+  },
+  {
+    slug: "it/ruby-cheatsheet",
+    inputs: { searchInput: "zzz" },
+    expect: ["共 0 项"],
+    ref: "反向锚：Ruby 速查搜索无命中 ⇒ 计数归零；默认列表非空。",
+  },
+  {
+    slug: "it/rust-cheatsheet",
+    inputs: { searchInput: "zzz" },
+    expect: ["共 0 项"],
+    ref: "反向锚：Rust 速查搜索无命中 ⇒ 计数归零；默认列表非空。",
+  },
 ];
 
 // ---------------------------------------------------------------- DOM stub
