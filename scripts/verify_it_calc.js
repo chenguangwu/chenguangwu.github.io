@@ -1254,6 +1254,26 @@ const CASES = [
     expect: ["总换行 3"],
     ref: "独立复算：2 个 CRLF + 1 个 LF ⇒ 统计行 `CRLF 2 / LF 1 / CR 0 / 总换行 3`。**注入值必须避开默认的两行 CRLF**（`第一行\\r\\n第二行\\r\\n第三行` 也总换行 2，注入同值即逃生项，本例已踩并改 3）；锚也不能写 `LF 1`（会被 `CRLF 1` 误伤）。",
   },
+  {
+    slug: "it/js-formatter",
+    inputs: { input: "const a=1" },
+    clicks: ["doBeautify()"],
+    expect: ["const a =1"],
+    ref: "独立复算：美化 `const a=1` ⇒ `const a =1`（只在 `=` 两侧补空格）。页面 d 在 harness 内不执行/beautify 依赖 tokenize ⇒ 走 clicks。",
+  },
+  {
+    slug: "it/mysql-cheatsheet",
+    inputs: { searchInput: "zzz" },
+    expect: ["共 0 项"],
+    ref: "反向锚：MySQL 速查搜索无命中 ⇒ 计数归零；默认列表非空。",
+  },
+  {
+    slug: "it/url-parser",
+    inputs: { urlInput: "https://a.io/p?x=1&y=2" },
+    clicks: ["buildUrl()"],
+    expect: ["域名 复制 a.io"],
+    ref: "独立复算：解析结果逐行给出「协议/源/域名/端口/主机/路径/查询字符串/哈希/查询参数」，锚取域名行（`a.io`）。默认示例 URL 不同，不命中。",
+  },
 ];
 
 // ---------------------------------------------------------------- DOM stub
