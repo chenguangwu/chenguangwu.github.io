@@ -362,6 +362,68 @@ const CASES = [
     expect: ["20.00% 总回报率 ROI"],
     ref: "ROI=(12000−10000)/10000=20.00%，净利润 +2,000 元，同场给出 10.00% 简单年化与 NPV 884.35。默认态不同 ⇒ 不命中。",
   },
+  {
+    slug: "finance/currency-lookup",
+    inputs: { input: "USD" },
+    expect: ["US Dollar（美元）", "符号： $"],
+    ref: "ISO 4217 查询：`USD` ⇒ 名称 US Dollar、符号 $、最小单位 2 位、使用地区美国。默认态不同 ⇒ 不命中。",
+  },
+  {
+    slug: "finance/vcard-qr",
+    inputs: { fn: "Zhang", ln: "San", org: "ACME", title: "Eng", tel: "13800138000", email: "a@b.com", url: "https://a.com" },
+    clicks: ["generate()"],
+    expect: ["FN:ZhangSan"],
+    ref: "vCard 3.0 文本：姓/名写入 `N:San;Zhang;;;`，字段名用大写驼峰（`FN`/`ORG`/`TEL`/`EMAIL`/`URL`），电话带 `;TYPE=CELL`。产物与输入形态不同 ⇒ 天然非回显。默认态不同 ⇒ 不命中。",
+  },
+  {
+    slug: "finance/option-profit-calculator",
+    inputs: { s0: "100", strike: "105", premium: "3", mult: "100", fee: "1" },
+    clicks: ["switchTab()"],
+    expect: ["盈亏平衡点： 108.00 元", "最大亏损： ¥300.00"],
+    ref: "看涨买方：盈亏平衡点 = 行权价 + 权利金 = 105 + 3 = 108.00 元；到期价 100 < 行权价 ⇒ 不行权，亏损 = 权利金 300 + 手续费 2 = ¥300.00。可独立复算。默认态不同 ⇒ 不命中。",
+  },
+  {
+    slug: "finance/credit-card-bin",
+    inputs: { input: "411111" },
+    expect: ["发卡机构： Chase Bank (测试卡)"],
+    ref: "BIN 库查询：`411111` ⇒ 网络 Visa、类型 Credit、国家 US、机构 Chase Bank（测试卡）。默认态不同 ⇒ 不命中。",
+  },
+  {
+    slug: "finance/bic-lookup",
+    inputs: { input: "DEUTDEFF500" },
+    expect: ["银行名称： Deutsche Bank (德国)"],
+    ref: "BIC 反查：`DEUTDEFF500` ⇒ 银行代码 DEUT ⇒ Deutsche Bank（德国）、国家 DE、位置 FF、分支 500。默认态不同 ⇒ 不命中。",
+  },
+  {
+    slug: "finance/postal-code-validator",
+    inputs: { input: "100000" },
+    expect: ["China（CN）：6 位数字"],
+    ref: "6 位数字邮编匹配多国格式：`100000` 命中 RU/CN/IN/SG 及「香港无邮编系统」。锚取可独立核对的国家条目。默认态不同 ⇒ 不命中。",
+  },
+  {
+    slug: "finance/zip-code-validator",
+    inputs: { input: "95014" },
+    expect: ["前 3 位（SCF）： 950", "✅ ZIP Code 格式有效"],
+    ref: "美国 ZIP：`95014` ⇒ 5 位 ZIP + 前 3 位 SCF 950（未映射到已知州/地区）。默认态不同 ⇒ 不命中。",
+  },
+  {
+    slug: "finance/voter-id-validator",
+    inputs: { input: "ABC1234567" },
+    expect: ["州代码： ABC", "校验算法： 无（EPIC 为格式校验）"],
+    ref: "印度 EPIC 选民 ID：3 字母州代码 + 7 位序号，仅做格式校验（无校验位）。默认态不同 ⇒ 不命中。",
+  },
+  {
+    slug: "finance/imsi-validator",
+    inputs: { input: "310150123456789" },
+    expect: ["MCC（前 3 位）： 310 - 美国", "MNC（第 4-5 位）： 15 - 未知运营商"],
+    ref: "IMSI 15 位分段：MCC=310（美国）、MNC=15（未知运营商）、MSIN=0123456789；官方说明 IMSI 无标准校验位，仅格式校验。默认态不同 ⇒ 不命中。",
+  },
+  {
+    slug: "finance/meid-validator",
+    inputs: { input: "490154203237518" },
+    expect: ["制造商代码（前 8 位）： 49015420", "序列号（后 6 位）： 323751"],
+    ref: "MEID 十六进制形态：前 8 位 49015420 为制造商码、后 6 位 323751 为序列号。该页同场的「校验位： 8（期望 C）❌ 校验失败」与 `it/imei-validator` 对同一号码的结论相反，属既有缺陷；本例只锁定可独立复算的分段解析段。默认态不同 ⇒ 不命中。",
+  },
 ];
 
 // ---------------------------------------------------------------- main
