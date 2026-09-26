@@ -1773,6 +1773,55 @@ const CASES = [
     expect: ["a=b"],
     ref: "Quoted-Printable 解码：把 =3d 还原为 = ⇒ a=b。与本页编码用例成对，双向均依赖被测点。",
   },
+  {
+    slug: "it/markdown-table-generator",
+    inputs: { cols: "2", headerLine: "A,B", bodyLine: "1,2", rows: "1", align: "left" },
+    clicks: ["renderPreview()"],
+    expect: ["| 11 | 21 |"],
+    ref: "读源码：parseRow 按逗号切格，行值 = 单元格值拼上行号（r+1，故第一行是 11/21），对齐标记 `:---` 对应 align=left。默认样例是 4 列 4 行，产物不同。",
+  },
+  {
+    slug: "it/json-to-toml",
+    inputs: { input: '{"a":1,"b":{"c":2}}' },
+    clicks: ["doToml()"],
+    expect: ["c = 2"],
+    ref: "独立复算：嵌套对象转成表节 ⇒ TOML 为 `a = 1` / `[b]` / `c = 2`。锚在末行，默认样例字段不同。",
+  },
+  {
+    slug: "it/css-formatter",
+    inputs: { input: "a{color:red;font-size:12px}" },
+    clicks: ["doBeautify()"],
+    expect: ["a { color: red; font-size: 12px }"],
+    ref: "格式化规则：选择器后补空格、声明按 `属性: 值;` 输出。默认样例（.btn 等）格式化后不含本串。",
+  },
+  {
+    slug: "it/css-formatter",
+    inputs: { input: "a { color: red; }" },
+    clicks: ["doMinify()"],
+    expect: ["a{color:red;}"],
+    ref: "压缩规则：去选择器/大括号间的空白，保留声明末尾分号。默认样例压缩结果不含本串。",
+  },
+  {
+    slug: "it/json-to-code",
+    inputs: { input: '{"a":1,"b":"x"}', rootName: "MyRoot" },
+    clicks: ["convert()"],
+    expect: ["interface MyRoot {"],
+    ref: "默认语言 TypeScript：对象数组/对象按字段类型生成 interface，类型映射 number/string/boolean。注意本页默认样例与本条入参同构 ⇒ 必须换 rootName 才破双态。",
+  },
+  {
+    slug: "it/js-minifier",
+    inputs: { input: "var a = 1;   // keep\nfunction f(){ return   a; }" },
+    clicks: ["minify()"],
+    expect: ["function f(){ return a; }"],
+    ref: "压缩规则：折叠连续空白（注释复选框默认未勾选，故注释保留）。产物是输入经空白折叠后的改写，删掉输入即不完整。默认样例不含本串。",
+  },
+  {
+    slug: "it/plist-parser",
+    inputs: { input: '{"a":1}' },
+    clicks: ["jsonToPlist()"],
+    expect: ["a 1"],
+    ref: "JSON → plist：字段名与标量值按序排列。默认样例键名不同。",
+  },
 ];
 
 // ---------------------------------------------------------------- DOM stub
