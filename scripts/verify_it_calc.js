@@ -284,6 +284,33 @@ const CASES = [
     expect: ["P(X = 3) = 0.117", "C(10, 3) = 120"],
     ref: "X~B(10,0.5)：P(X=3)=C(10,3)·0.5³·0.5⁷=120×0.125×0.0078125=0.1172（Python comb(10,3)=120、binom.pmf(3,10,0.5)=0.1172）；分步区同步给出 C(10,3)=120。默认 n/p/k 与注入值不同，两串均不出现。",
   },
+  {
+    slug: "it/clamp-calculator",
+    // 页面斜率取两路较大值：slope1=(pref−min)/(vwMin/100)、slope2=(max−min)/(vwMax/100)，rem=pref−vw·vwMin/100。
+    // 注入 min=10 / max=100 / vwMin=50（pref 用默认 24）⇒ slope1=(24−10)/0.5=28、slope2=90/14.4=6.25 ⇒ vw=28、rem=24−28×0.5=10。
+    inputs: { min: "10", max: "100", vwMin: "50" },
+    expect: ["生成表达式： clamp(10px, 28vw + 10px, 100px)"],
+    ref: "独立复算：slope1=(24−10)/(50/100)=28、slope2=(100−10)/(1440/100)=6.25 ⇒ 取大者 28vw；截距 rem=24−28×50/100=10 ⇒ clamp(10px, 28vw + 10px, 100px)。默认 min/max/vwMin 为 16/48/375，表达式不同 ⇒ 不命中。",
+  },
+  {
+    slug: "it/confidence-interval",
+    inputs: { mean: "100", std: "15", n: "30", conf: "0.95" },
+    expect: ["[ 94.632 , 105.368 ]", "临界值 z = 1.960"],
+    ref: "独立复算：SE=s/√n=15/√30=2.7386；95% 双侧 z=1.960 ⇒ ME=1.960×2.7386=5.3677 ⇒ CI=[94.632, 105.368]。默认输入不同（区间两端数不同）⇒ 两串均不出现。",
+  },
+  {
+    slug: "it/code-line-counter",
+    // textarea 注入带换行的代码：input event 阶段直接喂多行串（runner 的 inputs 支持多行值）。
+    inputs: { codeInput: "def f():\n    return 1\n", langSel: "python" },
+    expect: ["3 总行数 2 代码行 0 注释行 1 空行 66.7% 代码占比"],
+    ref: "注入 3 行文本（末行为空）：总行数 3 = 2 代码行 + 1 空行，代码占比 2/3=66.7%。默认示例代码行数与占比不同 ⇒ 不命中。detectLang 在注入非空时可用，故结果区实际刷新。",
+  },
+  {
+    slug: "it/charset-detector",
+    inputs: { txt: "hello" },
+    expect: ["未检测到明显乱码特征。 修复输出： hello"],
+    ref: "普通 ASCII 文本无乱码特征 ⇒ 判为「未检测到明显乱码特征」并把原文原样回吐为修复结果。默认态正文（中文占位）走另一分支，不命中（双态核验：注入 PASS / 默认 FAIL）。",
+  },
 ];
 
 // ---------------------------------------------------------------- DOM stub
