@@ -1927,6 +1927,41 @@ const CASES = [
     expect: ["3Qk="],
     ref: "独立复算（Python 实现 RC4 KSA/PRGA）：密文字节 dd 09 ⇒ base64 `3Qk=`，与页面输出逐字节一致。默认样例明文/密钥不同。",
   },
+  {
+    slug: "it/text-diff",
+    inputs: { text1: "abc", text2: "abd" },
+    clicks: ["doDiff()"],
+    expect: ["- abc 1 + abd"],
+    ref: "单字符替换：`c→d` ⇒ 新增 1 行 `- abc`、删除 1 行 `+ abd`，统计 +1/−1。默认样例文本不同。",
+  },
+  {
+    slug: "it/git-commands",
+    inputs: { searchInput: "push" },
+    clicks: ["calcTool()"],
+    expect: ["共 4 个命令"],
+    ref: "搜索过滤后按剩余条数更新统计；`push` 命中 4 条。默认（空搜索）条数不同。",
+  },
+  {
+    slug: "it/json-schema-generator",
+    inputs: { input: '{"a":1}' },
+    clicks: ["generateSchema()"],
+    expect: ['"a": { "type": "integer" }'],
+    ref: "JSON Schema 推导：键名 `a`、值 1（整数）⇒ 属性片段 `\"a\": { \"type\": \"integer\" }`。默认样例字段不同。",
+  },
+  {
+    slug: "it/regex-cheatsheet",
+    inputs: { searchInput: "git" },
+    clicks: ["calcTool()"],
+    expect: ["共 1 项"],
+    ref: "速查表按关键字过滤后统计命中条数；`git` 命中 1 项。默认态（无关键字）条数不同。",
+  },
+  {
+    slug: "it/tmux-cheatsheet",
+    inputs: { searchInput: "split" },
+    clicks: ["calcTool()"],
+    expect: ["共 0 项"],
+    ref: "同 it/regex-cheatsheet 口径但数据集是 tmux 命令；`split` 在本表无条目 ⇒ 0 项（刻意选一个零命中关键字，避免与默认态撞条数）。",
+  },
 ];
 
 // ---------------------------------------------------------------- DOM stub
