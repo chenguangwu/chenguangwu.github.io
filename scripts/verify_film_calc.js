@@ -22,7 +22,7 @@ const CASES = [
   "expect": [
     "2000-50000K"
   ],
-  "ref": "auto-restore(default)"
+  "ref": "结构性不可注入（2026-09-26 复核，原 ref 为 auto-restore(default) 未评估项）：页面有 `#searchInput` / `#filterSelect` 与顶层 `filterData()`，但 filterData 的唯一副作用是 `tr.style.display = '' | 'none'` —— harness 的 collectStrings 只采 DOM 的 `value`/`innerHTML`/`textContent`，**不采 style**，且 textContent 对隐藏行同样返回文本 ⇒ 任何过滤态与默认态采集结果完全相同。改用 `tr.remove()` 能让行消失，但那是 harness 侧删 DOM、不测页面筛选逻辑（折扣注入）⇒ 维持 no_inputs，断言初始化渲染串。"
 },
 {
   "slug": "film/convert-time-1",

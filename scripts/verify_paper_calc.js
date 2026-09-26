@@ -153,7 +153,7 @@ const CASES = [
   "expect": [
     "12.0"
   ],
-  "ref": "auto-restore(default)"
+  "ref": "结构性不可注入（2026-09-26 复核，原 ref 为 auto-restore(default) 未评估项）：同 film/color-grading 口径 —— 有 `#searchInput` 与顶层 `filterTable()`，但函数体内唯一副作用是 `tr.style.display = '' | 'none'`，collectStrings 不采 style、隐藏行的 textContent 仍被采集 ⇒ 过滤态与默认态输出恒等。"
 }
 ];
 async function main() {

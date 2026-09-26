@@ -32,15 +32,18 @@ const CASES = [
   "expect": [
     "10-14天"
   ],
-  "ref": "auto-restore(default)"
+  "ref": "结构性不可注入（2026-09-26 复核，原 ref 为 auto-restore(default) 未评估项）：页面仅一个 `PESTS` 常量数组（12 条）与顶层 `render()`，render 内 forEach 恒全量拼 HTML 覆写 `#pestGrid`，**既无筛选函数、也无任何 input/select/按钮**；除 render() 外无第二个函数 ⇒ 无随交互变化的输出。唯一「活路」是整体替换顶层 `PESTS` 后重渲，但那属于伪造页面数据源、不测页面逻辑，仍非真注入 ⇒ 维持 no_inputs，断言初始化渲染串。"
 },
 {
   "slug": "gardening2/pruning-time",
   "inputs": {},
-  "expect": [
-    "冬季休眠期重剪至3-5芽"
+  "clicks": [
+    "currentFilter='before';render();"
   ],
-  "ref": "auto-restore(default)"
+  "expect": [
+    "去除内膛枝。 🤍 茉莉花"
+  ],
+  "ref": "顺序保持型筛选 ⇒ 锚过滤后跨条目相邻串（同 office/excel-formula-reference 口径）。currentFilter 是模块级 var、render() 是顶层函数，可直接赋值重渲；注意不可调 setFilter(filter,btn)（btn 为 undefined 时 btn.classList 抛错）。全表 18 条中 timing==='before' 仅桂花(第8条)与茉莉花(第12条)，默认全量渲染中间隔茶花/杜鹃/海棠 3 条 ⇒ 边界串「去除内膛枝。 🤍 茉莉花」仅过滤态成立；单条目内容（如「花前修剪（秋季前）」）默认态必有，不可锚。"
 },
 {
   "slug": "gardening2/watering-frequency",
