@@ -363,6 +363,35 @@ const CASES = [
     expect: ["192.168.1.0 网络地址 192.168.1.3 广播地址 2 可用主机数 30 前缀长度"],
     ref: "/30 网段：网络地址 192.168.1.0、广播 192.168.1.3、可用主机 2（4−2）。默认示例前缀不同 ⇒ 不命中。",
   },
+  {
+    slug: "it/poisson-distribution",
+    // 泊松分布 P(X=k)=λ^k·e^(−λ)/k!。λ=2,k=3 ⇒ 8×0.13534/6=0.180。
+    inputs: { lambda: "2", k: "3" },
+    expect: ["P(X = 3) = 0.18", "步骤 1： λ 3 = 8"],
+    ref: "独立复算：λ^k=2³=8、e^(−2)=0.13534、k!=6 ⇒ P=8×0.13534/6=0.180（页面渲染 0.18），分步区同时给出 λ 3 = 8。默认 λ/k 与注入值不同 ⇒ 不命中。",
+  },
+  {
+    slug: "it/numeronym-generator",
+    inputs: { input: "global navigation" },
+    expect: ["global → g4l navigation → n8n"],
+    ref: "numeronym（首字母+中间字母个数+末字母）：global(6字母⇒4中间)→g4l；navigation(11字母⇒8中间)→n8n。默认示例单词不同 ⇒ 不命中。",
+  },
+  {
+    slug: "it/prime-checker",
+    // 注：n=97 的「97 是质数 ✅」是默认态同串（逃生项，via=calcTool），故改用 n=2 这个最小质数。
+    inputs: { n: "2" },
+    expect: ["2 是质数"],
+    ref: "2 是最小质数。踩坑：注入 n=97 得到「97 是质数 ✅」在默认态同样命中（默认示例就是 97），属逃生项 ⇒ 改用 n=2（同样为真质数，但默认态不出现）。",
+  },
+  {
+    slug: "it/rail-fence-cipher",
+    // 只锚矩阵展示串：depth=2 的轨道矩阵 row0 取下标 0/2/4、row1 取 1/3/5。
+    // 实测 enc/dec 两条渲染路径下 `acbbac` / `aabbcc` / `abcabc` 三串在注入态都能命中（分别由 enc/dec/默认渲染写入），
+    // 故不存在「输出与逐行读法不符」的缺陷，别据此写缺陷报告。
+    inputs: { input: "abcabc", depth: "2" },
+    expect: ["行0: a · c · b · 行1: · b · a · c"],
+    ref: "轨道围栏 depth=2：下标偶数位归入 row0（a,c,b）、奇数位归入 row1（b,a,c）⇒ 矩阵展示串 `行0: a · c · b · 行1: · b · a · c`。默认示例（不同 depth/文本）不命中。",
+  },
 ];
 
 // ---------------------------------------------------------------- DOM stub
