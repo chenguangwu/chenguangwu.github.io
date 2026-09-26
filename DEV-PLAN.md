@@ -3,7 +3,7 @@
 > **本文件只放「待处理任务」与「干活必须遵守的规则」。已完成项、批次成果、历史操作流水一律不写入** —— 归档走 `.workbuddy/memory/YYYY-MM-DD.md`；历史全量快照另存 `.workbuddy/memory/archive-devplan-full-2026-09-23.md`。
 > **⚠️ 体积红线（硬约束）**：`wc -c DEV-PLAN.md` **> 60 KB 即说明有批次流水混入，先清理再干活**。每批收尾**只允许**更新 ① §10.2 的计数行 ② §10.3 的存量数与不可注入清单 ③ §九/§7.1 的**待办增删**；**禁止把「本批处理了哪些例、逐例打法、验证过程」写进本文件**（这些一律进 memory 与 skill）。清理时先把全文快照存入 `.workbuddy/memory/archive-devplan-full-YYYY-MM-DD.md` 再删。
 > **收尾口径（老板 2026-09-21 明确）**：闭环 = 本地 build / 门禁通过 + GitHub 部署成功（Actions run success）。**不做线上产物 MD5 落盘比对、不 sleep、不轮询 API**；纯文档类改动（`*.md`、memory）不等部署。
-> **状态（2026-09-23）**：全站 209 分类 §4.1 八项目标已收口；A 级率 **99.2%**（4693/4729，build 口径）；SEO（title / desc / h1 / JSON-LD）维度已治理；§4.1.7 专业名词**站内内链**已落地（1591 页 / 2268 条，见 §六）；96 个小行业（687 页）默认态 + 边界态精查**已闭环**（见 §10.6 方向1）。**当前无进行中批次，待办见 §九。**
+> **状态（2026-09-23）**：全站 209 分类 §4.1 已收口；A 级率 **99.2%**；SEO 与术语内链（1591 页 / 2268 条）已治理；小行业精查已闭环（见 §10.6）。**当前无进行中批次，待办见 §九。**
 
 ---
 
@@ -187,7 +187,7 @@
 - **但另有 191 个含 checkbox 的页面在全站任何 verify 文件中都没有用例**（`design/*` 11 页、`edu/*` 40 页、`biz/*` 文本类为主）。
 - 判定口径注意：用例块的键名**常不带引号**（`slug: "x"` / `inputs: {}` / `checkIds: [...]`），扫描脚本必须写成 `"?slug"?\s*:\s*"([^"]+)"`，否则会大量误报「无用例 / 无注入通道」（本次两次误报均源于此）。
 
-**处置**：属新线（补用例 ≠ 改弱用例），单独立批；须守 §8.1（expect 独立复算）。**已交付 7 例**：`design/progress-bar-generator`、`design/css-border-radius` 见 BATCH131；`edu/timezone-converter`、`edu/pinyin-converter` ×3 见本节（锚 `23:30:45` / `wǒ ài zhōng guó` / `woaizhongguo` / `WǒÀiZhōngGuó`）。剩余 **188** 页待补（`design/*` 11、`edu/*` 37、`biz/*` 文本类为主）。`design/image-resizer`（`generate()` 首行 `if(!origImg) return` + 依赖 canvas 解码）、`edu/exam-study-planner`（localStorage 桩只写不读 ⇒ 统计分子/分母不可达）**结构性不可注入，不硬写用例**。
+**处置**：属新线（补用例 ≠ 改弱用例），单独立批；须守 §8.1（expect 独立复算）。**已交付 15 例**（`design/*` 2 + `edu/*` 5 + `biz/*` 3，逐例锚点见各用例 `ref`）。剩余 **182** 页待补（`design/*` 11、`edu/*` 37、`biz/*` 文本类为主）。`design/image-resizer`（`generate()` 首行 `if(!origImg) return` + 依赖 canvas 解码）、`edu/exam-study-planner`（localStorage 桩只写不读 ⇒ 统计分子/分母不可达）**结构性不可注入，不硬写用例**。
 
 ## 八、反模式与防复发（铁律）
 
@@ -271,7 +271,7 @@
 - **隔离器 `tagAttrs` 必须支持「裸属性」**：只认带值属性的正则会把 `<option … selected>` / `<input … checked>` 整条丢弃 → `preset` 恒落回 `opts[0]`，**全站含 `<select>` 的页默认值都被读成首项**。修法：`([a-zA-Z-]+)(?:="([^"]*)")?`，缺值补 `''`。**凡「引擎默认值与源码 `selected`/`checked` 不符」先查这一条。**
 - **deep-dive 主题错配（页面讲 A、词条写 B）是中批量改写的连带产物**：判据 = 词条 `title`/`scenarios` 与页面**当前** `<h2 data-zh>` 不是同一工具。修法：按页面**真实 `calc()` 算法**重写。
 - **隔离器桩必须补齐（否则把「未审计」伪装成「桩盲区/无输出」）**：`<textarea>` 默认文本、逐个触发器（一旦写出结果即止）、无 `calc` 命名时取「函数最多」的脚本块、`innerHTML` setter 里 parse `input`/`textarea`/`select` 注册回 `store`、以及 `MutationObserver`/`getElementsByName`/`style.setProperty`/`cloneNode`/`insertAdjacentHTML`/`toBlob`/`ctx.{setTransform,rotate,strokeRect,roundRect}` 等。**升级前的「空 OUT / 请输入数据」不能作为「页面无默认输出」的证据。**
-- **隔离器报的 `err` 必须先过 jsdom 三态复核才能判定为缺陷**（2026-09-23 新增）：隔离器是桩环境，`mermaid`/`PDFLib`/`pdfjsLib`/`AudioContext`/canvas `ctx.*`/动态 select 等缺桩会让**真机正常的页**报错。口径 = jsdom 加载真实 DOM → DEF / ZERO（输入全 0）/ EMPTY（输入全空）三态 → 读结果容器文本查 `NaN|Infinity`；**三态干净即判「桩盲区」并排除，不得据此改页**（本批 31 条 `err` 经复核 0 条真缺陷）。
+- **隔离器报的 `err` 必须先过 jsdom 三态复核才能判定为缺陷**：隔离器是桩环境，`mermaid`/`PDFLib`/`pdfjsLib`/`AudioContext`/canvas `ctx.*`/动态 select 等缺桩会让**真机正常的页**报错。口径 = jsdom 加载真实 DOM → DEF / ZERO（输入全 0）/ EMPTY（输入全空）三态 → 读结果容器文本查 `NaN|Infinity`；**三态干净即判「桩盲区」并排除，不得据此改页**。
 - **判据类修复不要追求「十进制精确」**：几何量常为无理数，严格不等式判据必然误报。**存在性/一致性判据一律留 1% 量级容差。**
 
 ### 8.8 有界量的口径自检 + 门禁用例文件「静默失效」自检
@@ -330,17 +330,18 @@
 
 ### 10.2 现状（实测基线）
 
-- `all_default 4 / no_inputs 10 / escape 0`；门禁 `run_gates.py` **216 项全过**、逃生项 0（判别器已检 **3118** 例 / 跳过 50）。
-- A 级率 **99.2%**（A 4693 / B 32 / C 4，共 4729）；deep-dive 术语内链 **1591 页 / 2268 条 / 唯一目标 630**（零死链、零自链、单页 ≤6 条）。- 存量弱用例 **15 例**（口径、选批规则与逐例判死理由见 §10.3）。
+- `all_default 4 / no_inputs 10 / escape 0`；门禁 `run_gates.py` **216 项全过**、逃生项 0（判别器已检 **3121** 例 / 跳过 50）。
+- A 级率 **99.2%**（A 4693 / B 32 / C 4）；术语内链 **1591 页 / 2268 条**（零死链、零自链）。
+- 弱用例口径与选批规则见 §10.3。
   - **注意：弱用例整体处于判别器盲区** —— 「注入值等于默认值」的用例被判 `usable=false` 直接跳过（§10.5）⇒ `escape=0` 只说明强用例无逃生项；每批改造后须重跑判别器确认其由「跳过」转为「已检且变红」。
 
 ### 10.3 弱用例去默认化（仅在 P0/P1 顺带时执行）
 
-**存量 14 例**（`no_inputs=10` / `all_default=4`，selfcheck 口径；含 textarea / 动态 id / 结构性不可注入的「skip」类全站 50）。**15 例已全部有明确判死或注入结论并写进各用例 `ref`**（唯一源，勿再看本文件清单）：`all_default` 4 例全判死；`no_inputs` 剩余 10 例判死（判据 §10.5 B 组）。两处「顺序保持型筛选」翻案（`office/excel-formula-reference`、`gardening2/pruning-time`）均锚**过滤后跨条目相邻串**（§10.5 C.7④）。**转 P3 顺带，不单独成批**；逐批成果与逐例打法归档在 `.workbuddy/memory/2026-09-2*.md` 与 skill `toolbox-weakcase-hardening`，**本文件不再记录批次流水**。
+**存量 14 例**（`no_inputs=10` / `all_default=4`）。**已全部有判死或注入结论并写进各用例 `ref`**（唯一源）：4 例 `all_default` 全判死；10 例 `no_inputs` 判死（判据 §10.5 B 组）。两处「顺序保持型筛选」翻案（`office/excel-formula-reference`、`gardening2/pruning-time`）均锚**过滤后跨条目相邻串**（§10.5 C.7④）。**转 P3 顺带，不单独成批**；逐批成果与逐例打法归档在 `.workbuddy/memory/2026-09-2*.md` 与 skill `toolbox-weakcase-hardening`，**本文件不再记录批次流水**。
 
-**选批口径**：① 按「可注入数」降序挑批次；② **结构性不可注入的不要选**（判据见 §10.5 B 组）—— 保留 `no_inputs` 并在 `ref` 写明理由；③ 每批 8–11 例，走 §10.4 六步。
+**选批口径**：① 按「可注入数」降序挑批次；② **结构性不可注入的不要选**（判据 §10.5 B 组）—— 保留 `no_inputs` 并在 `ref` 写明理由；③ 每批 8–11 例，走 §10.4 六步。
 
-**结构判死的唯一依据是各用例 `ref`，本文件不再维护第二份清单** —— 旧清单积累了 19 条已被 `clicks`/`inputs` 翻案的条目却仍标「勿重复评估」（`music/sheet-music`、`dermatology/{wood-lamp,miliaria-classification,contact-dermatitis-patch}`、`travel/{aim-trainer,emergency-phrasebook}`、`dermatology/*` 等），会误导后续批次跳过可行候选；当前存量逐例理由见 §10.3。
+**结构判死的唯一依据是各用例 `ref`**；旧清单里 19 条已被 `clicks`/`inputs` 翻案却仍标「勿重复评估」的条目（`music/sheet-music`、`dermatology/*`、`travel/aim-trainer` 等）已删除，免得后续批次跳过可行候选。
 
 ### 10.4 每批收口流程（顺带改造时六步，缺一不可）
 
@@ -391,12 +392,14 @@
 4. **锚点优先级 + checkbox 反向利用**：① 非兜底分支独有的文案（`if/else` 的**非 else** 路）；② 只由注入值 派生、兜底无法复现的数值；③ 跨档 / 跨分支的等级词（先按默认参数手算是否落同档、是否触发同一提示）。桩内 checkbox 恒未勾 ⇒ 默认态必然渲染「xx缺失」并给低分 ⇒ **勾满 `checkIds` 抢「全部达标」分支做正向强锚**。
 5. **数值合法性与齐次量**：有界量（决定系数 / 概率 / p 值 / 覆盖率 / 率）越界即公式错，交付前必查 `[0,1]`；「基础分 − 扣分」式先算最小值是否越界；**凡输出物理不可能值必查公式本身**。比值 / 密度 / 单价 / 覆盖率换值前 先确认不是默认输入的等比缩放，改完必须实测「换值是否引起输出变化」。
 6. **日期与随机**：日期相关量一律不锚（随运行日漂移）；禁 `Math.random` / `Date.now` 当输入。`clicks` 内改**进程级全局对象**（`Math` / `Date` / `Array.prototype`）**必须用完即恢复**（`var __r=Math.random;Math.random=fn;gen();Math.random=__r`），否则污染同进程后续用例的默认态 —— 只有双态 核验能抓到。钉死随机值后锚「多列连续复合串」把巧合概率压到 10⁻⁶。
-7. **默认态已全量渲染的页面，锚点要换区**：① 同引擎多段渲染（注入段 + 兜底 `loadSample()` 段）会共用常量串 ⇒ 只锚注入段独有串；sample / 示例文本即逃生项，注入数据须与样本用词错开。② 「kw 空输出全量」型过滤页（`search(kw)`），任何具体编号 / 名称在默认态都命中 ⇒ 反向注入**不存在的关键词**、锚「未找到匹配项」类 空结果提示。③ 「卡片列表区 + 详情区」双区页，卡片区默认已渲染全部条目的名称与 desc ⇒ 只锚详情区独有文案。④ **筛选型图鉴页（默认渲染全表）**任何单行文本默认态都有 ⇒ 只锚**仅过滤态成立的跨行相邻串**（`office/excel-formula-reference`：注入「数字」⇒ 命中 SUM/AVERAGE/TEXT，AVERAGE 与 TEXT 过滤态紧邻、全表却隔 6 项）。**锚不得取「整条目渲染串」** —— 它在默认全量渲染里本就连续存在，与默认态同串、判逃生项。同型第二例 `gardening2/pruning-time`（`currentFilter='before';render();`）：**入口筛选函数常有「状态变量 + 按钮」双参签名，直调 `setFilter(f,btn)` 会 btn 为 undefined 抛错 ⇒ 绕过它、只改状态变量再重渲**。
+7. **默认态已全量渲染的页面，锚点要换区**：① 同引擎多段渲染（注入段 + 兜底 `loadSample()` 段）会共用常量串 ⇒ 只锚注入段独有串；sample / 示例文本即逃生项，注入数据须与样本用词错开。② 「kw 空输出全量」型过滤页（`search(kw)`），任何具体编号 / 名称在默认态都命中 ⇒ 反向注入**不存在的关键词**、锚「未找到匹配项」类 空结果提示。③ 「卡片列表区 + 详情区」双区页，卡片区默认已渲染全部条目的名称与 desc ⇒ 只锚详情区独有文案。④ **筛选型图鉴页（默认渲染全表）**任何单行文本默认态都有 ⇒ 只锚**仅过滤态成立的跨行相邻串**（`office/excel-formula-reference`：注入「数字」⇒ 命中 SUM/AVERAGE/TEXT，AVERAGE 与 TEXT 过滤态紧邻、全表却隔 6 项）。**锚不得取「整条目渲染串」** —— 它在默认全量渲染里本就连续存在，与默认态同串、判逃生项。**入口筛选函数常有「状态变量 + 按钮」双参签名，直调 `setFilter(f,btn)` 会 btn 为 undefined 抛错 ⇒ 绕过它、只改状态变量再重渲**（`gardening2/pruning-time`：`currentFilter='before';render();`）。
 8. **注入与格式口径**：`select` 的 `selected` 属性在桩里不生效 ⇒ 默认选中项必须**显式注入**（`selfcheck` 取 JS 设定的真实默认、`discriminate_check` 取首个 option，两者口径不同）。`inputs` 键若是生成器模板串残留（`${f}` / `pri${i}`）会同时骗过两把锁（不进棘轮 + 记「正确变红」）⇒ 巡检 `verify_*_calc.js` 里形如 `${` 的键。`fmt()` 走 `toLocaleString()` 默认截 3 位小数 ⇒ 定 expect 时避开被截断的位置。
 9. **clicks 锚「不读输入的全量函数」必误判逃生项**：判别器对 clicks 的「注入失败」模拟是**清空 clicks 后跑**（含兜底遍历）。若 expect 锚 `checkAll()` 类「不读输入、恒产全量」输出（如 `36/36`），兜底重调仍同值 ⇒ 判「仍 PASS」= 逃生项。✅ 修法：clicks 锚**具体输入态**（`toggleItem(0,0/0,1/0,2)` 勾 N 项 → `N/总数`），默认态 0 项不命中。
 10. **空结果提示不可锚两形态**：① 提示同时被兜底链复现（`selectXxx()` 无参置页面全局态 `undefined` ⇒ 过滤集恒空、渲同一提示）⇒ 注入态与失败态同串，判逃生项。② 提示在**独立静态元素**内、仅 `style.display` 切换 ⇒ 不写入结果容器、`collectStrings` 采不到 ⇒ blob 永不含该串。✅ 定锚前用探针双态 dump 比对，只取「注入态有 / 默认态无且兜底不复现」的串。
 11. **「名 + 参数」型 option 文本是逃生项**：`<select>` 的 `option.textContent` 会进 `collectStrings` ⇒ `东京（日本）UTC+9` 这类串在**默认态 select 里本就存在**，看似好锚实则逃生 ✅ 只锚**随注入值变化的派生量**（换算后的时刻串、时差串）。同理 `addTask()` 一类「写 localStorage → 再读回」链路在 harness 下**只写不读**（`getItem` 缺失 ⇒ `getTasks()` 恒 `[]`）⇒ 依赖该读回值的统计恒 0，**结构性不可注入**，记缺口不硬写用例（`edu/exam-study-planner`）。
-12. **调试陷阱（会把「没生效」误判成 bug）**：① `verify_it_calc.js` **必须留在 `scripts/` 下**跑 —— `TOOLS_DIR` 取自 `__dirname`，拷到仓库外（`/tmp/x.js`）会整页返「文件不存在」且 `errs=[]`（看似「clicks 静默失败」）；要插日志就在 `scripts/` 下临时副本改完删。② 确认 clicks 是否真执行，用「探针而非猜测」：`clicks:["throw new Error('RAN')"]`，`errs` 出现 `RAN` 即已执行（比 DOM 探针可靠，某些 id 未必在采集集内）。③ 带连字符的 id 在用例对象里**必须加引号**（`{ "focus-mins": "50" }`），裸写 `focus-mins:` 直接 SyntaxError。
+12. **调试陷阱（会把「没生效」误判成 bug）**：① `verify_it_calc.js` **必须留在 `scripts/` 下**跑 —— `TOOLS_DIR` 取自 `__dirname`，拷到仓库外（`/tmp/x.js`）会整页返「文件不存在」且 `errs=[]`（看似「clicks 静默失败」）；要插日志就在 `scripts/` 下临时副本改完删。② 确认 clicks 是否真执行：用 `clicks:["throw new Error('RAN')"]`，`errs` 出现 `RAN` 即已执行（比 DOM 探针可靠）。③ 带连字符的 id 在用例对象里**必须加引号**（`{ "focus-mins": "50" }`），裸写 `focus-mins:` 直接 SyntaxError。
+13. **「textarea + 预览区」双元页（Markdown / 富文本类）**：blob 同时含**注入原文回显**（textarea 的 `value`）与**渲染产物** ⇒「渲染产物文本 ⊂ 注入原文」的锚（`<strong>bold</strong>` 剥标签后的 `bold`、`# H1` 剥标签后的 `H1`）**测不到任何渲染**，属伪锚。✅ 只锚**渲染独有的连排串**：剥标签后**标签被换成空格**，同元素内相邻 cell 连成 `甲 乙 24 36 81 90`，而原文 `| 甲 | 乙 | |---|---| | 24 | 36 |` 里 `甲 乙 24` 并不连续 ⇒ 天然非回显。
+14. **`collectStrings` 的 blob 是剥标签后的串 ⇒ expect 绝不能写 `<strong>…</strong>` / `<h2>…</h2>` 这类带标签形式**（写了必 FAIL，容易被误读成「渲染没生效」，实为锚错）。
 
 **D. 工具与方法**
 
@@ -417,10 +420,10 @@
 ### 10.6 方向1：公式-脚本一致性精查（**全量闭环** · 老板选定）
 
 - **目标**：逐页独立复算计算类页 `calc()` 输出的数学/物理正确性（与标准公式/权威向量比），找"用户拿到错钱数/错物理量"的真缺陷（§4.5 红线第一条最高频事故）。
-- **覆盖（已全量闭环）**：10 高热度行业（science / math / geometry / photo / ai / sports / agriculture / finance）+ 金融周边集群（banking/investment/tax/realestate/accounting/insurance/economics/statistics/forex/futures ~334 页）+ 中低热度 113 个行业（页≥15）+ **96 个小行业（<15 页，687 页）**默认态与 ZERO/EMPTY 边界态。边界 NaN 守卫已铺开（4 个待办分类 86 页 + 7 个物理工程行业 194 页）。
+- **覆盖（已全量闭环）**：10 高热度行业 + 金融周边集群 ~334 页 + 中低热度 113 个行业（页≥15）+ 96 个小行业（687 页）的默认态与 ZERO/EMPTY 边界态；边界 NaN 守卫已铺开。
 - **工具（均在本地，`_*.js` 按 `.gitignore` 不入库）**：
-  - `scripts/_audit_iso_small.js` —— 批量隔离器。`node 脚本 <industry,ind2,...>`；`DUMP=1` 另写 `/tmp/iso_small.json`。**不要用「函数名必须含 calc」的窄口径过滤入口**（会漏掉 `compare()`/`update()` 类页，687 页里因此漏审 168 页）；桩需覆盖 `MutationObserver`/`getElementsByName`/`style.setProperty`/`cloneNode`/`insertAdjacentHTML`/`toBlob`/`ctx.*`/`window.X=` 透传 globalThis/`innerHTML` 里 `<select>`+`<option>` 注册。
-  - `/tmp/jsdom_probe.cjs` —— **jsdom 真实 DOM 复核探针**（里程碑：不再靠"猜桩盲区"）。对候选页跑 DEF/ZERO/EMPTY 三态，读 `result|grid|card|state|total|detail` 类容器文本，判 `NaN|Infinity`。**判据：隔离器报的 `err` 一律先过 jsdom 复核；jsdom 三态无 NaN/Infinity ⇒ 桩盲区，立排除，不改页。**
+  - `scripts/_audit_iso_small.js` —— 批量隔离器。`node 脚本 <industry,...>`；`DUMP=1` 另写 `/tmp/iso_small.json`。**不要用「函数名必须含 calc」的窄口径过滤入口**（会漏掉 `compare()`/`update()` 类页，687 页里因此漏审 168 页）；桩需覆盖 `MutationObserver`/`getElementsByName`/`style.setProperty`/`cloneNode`/`toBlob`/`window.X=` 透传 globalThis/`<select>`+`<option>` 注册。
+  - `/tmp/jsdom_probe.cjs` —— jsdom 真实 DOM 复核探针，对候选页跑 DEF/ZERO/EMPTY 三态。**判据：隔离器报的 `err` 一律先过 jsdom 复核，无 NaN/Infinity ⇒ 桩盲区，立排除、不改页。**
 - **SOP**：① 隔离器扫 DEF 态 → 筛 `NaN`/`Infinity`/越界值/`err`；② 每条 `err` 过 jsdom 三态复核，区分「桩盲区」与「真缺陷」；③ 确凿缺陷才改页，改完补/改用例。
 - **纪律**：确凿真缺陷前不改页面；找到即立项闭环（修 calc + 修/注册 verify 用例 + run_gates + 提交推送）。
 
