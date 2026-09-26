@@ -187,7 +187,7 @@
 - **但另有 191 个含 checkbox 的页面在全站任何 verify 文件中都没有用例**（`design/*` 11 页、`edu/*` 40 页、`biz/*` 文本类为主）。
 - 判定口径注意：用例块的键名**常不带引号**（`slug: "x"` / `inputs: {}` / `checkIds: [...]`），扫描脚本必须写成 `"?slug"?\s*:\s*"([^"]+)"`，否则会大量误报「无用例 / 无注入通道」（本次两次误报均源于此）。
 
-**处置**：属新线（补用例 ≠ 改弱用例），单独立批；须守 §8.1（expect 独立复算）。**已交付 28 例**（`design/*` 2 + `edu/*` 5 + `biz/*` 21，逐例锚点见各用例 `ref`）。剩余 **169** 页待补（`design/*` 11、`edu/*` 37、`biz/*` 59）。`design/image-resizer`（`generate()` 首行 `if(!origImg) return` + 依赖 canvas 解码）、`edu/exam-study-planner`（localStorage 桩只写不读 ⇒ 统计分子/分母不可达）**结构性不可注入，不硬写用例**。
+**处置**：属新线（补用例 ≠ 改弱用例），单独立批；须守 §8.1（expect 独立复算）。**已交付 32 例**（`design/*` 2 + `edu/*` 5 + `biz/*` 25，逐例锚点见各用例 `ref`）。剩余 **166** 页待补（`design/*` 11、`edu/*` 37、`biz/*` 56）。`design/image-resizer`（`generate()` 首行 `if(!origImg) return` + 依赖 canvas 解码）、`edu/exam-study-planner`（localStorage 桩只写不读 ⇒ 统计分子/分母不可达）**结构性不可注入，不硬写用例**。
 
 ## 八、反模式与防复发（铁律）
 
@@ -330,7 +330,7 @@
 
 ### 10.2 现状（实测基线）
 
-- `all_default 4 / no_inputs 10 / escape 0`；门禁 `run_gates.py` **216 项全过**、逃生项 0（判别器已检 **3134** 例 / 跳过 50）。
+- `all_default 4 / no_inputs 10 / escape 0`；门禁 `run_gates.py` **216 项全过**、逃生项 0（判别器已检 **3138** 例 / 跳过 50）。
 - A 级率 **99.2%**（A 4693 / B 32 / C 4）；术语内链 **1591 页 / 2268 条**（零死链、零自链）。
 - 弱用例口径与选批规则见 §10.3。
   - **注意：弱用例整体处于判别器盲区** —— 「注入值等于默认值」的用例被判 `usable=false` 直接跳过（§10.5）⇒ `escape=0` 只说明强用例无逃生项；每批改造后须重跑判别器确认其由「跳过」转为「已检且变红」。
@@ -378,7 +378,7 @@
 | B2 驱动语句是 class 选择器（`querySelectorAll('.'+cls)` / `'.s8'`） | 桩的 `querySelectorAll` **仅对选择器串含 `checked`** 的调用返回 `c.checks`，纯 class 选择器恒返回 `[]` ⇒ 复选框注入不了，保留 `no_inputs` |
 | B3 行由 `createElement + #rows.appendChild` 建立，靠 `querySelectorAll('#容器 .行类名')` 取值 | 桩的 `dynRecord` 只登记 `innerHTML` 字符串里解析出的标签、**不含容器 div 自身** ⇒ 选择器恒空 ⇒ 结构性不可注入（容器 `innerHTML` 里仍能看到全部表单标签，**极易误判为「行已建好」**） |
 | B4 控件位于默认 `display:none` 的 hidden / tab 面板 | **注入阶段与 `calc()` 阶段不是同一份 DOM 实例** ⇒ `inputs` 与 `clicks` 内赋值**都改不动** `calc()` 读到的值（`hvac/duct-calculator` 的 `diaD`）；只能锚由已验证可注入字段派生的量 |
-| B5 有 id 的控件注入后输出**逐字不变** | 该控件的处理函数不在 harness 实际调用链上（如仅 `saveList()` 写 localStorage 时用到）⇒ 输出无关，保留 `no_inputs` 并写明 `ref` |
+| B5 有 id 的控件注入后输出**逐字不变** | 该控件的处理函数不在 harness 实际调用链上（仅 `saveList()` 写 localStorage 时用到）⇒ 输出无关，保留 `no_inputs` 并写明 `ref` |
 | B6 纯浏览页：无 `#result`、交互仅 `classList.toggle`（不进 blob）/ 写剪贴板 | 不存在任何随输入变化的输出 ⇒ 结构性不可注入 |
 | B7 需点按钮写 localStorage、写操作对渲染零影响的页 | 同 B6（`setLastClean` 类还被 `DESTRUCTIVE` 的 `^set[A-Z]` 排除）。**例外**：若数据**读取**走 `localStorage.getItem`，可在 `clicks` 内覆写它注入数据（等价于「用户本就有数据」），已验证可行 |
 | B8 `confirm`/`prompt` 做闸门 | harness 无 `confirm` 桩 ⇒ 未填满时 `calcScore()` 抛错被兜底 catch、结果区恒空。须在 `clicks` 里预置状态绕开闸门（如把全部题目填 5） |
@@ -388,27 +388,27 @@
 
 1. **锚点只依赖被测点且形态安全**：禁混入表头 / info-box 常驻文案 / 按钮文本 / 页脚免责 / 静态 SVG 文本 / 下拉 option value 等**页面常量**。`blob.includes` 是**子串**匹配 ⇒ `达标` ⊂ `未达标`，否定式结论词须锚**完整结论串**；数值须与标签绑成连续串（`18.75 最大弯矩 M (kN·m)`），否则裸数值会被明细大表 / 兜底模板命中；含 `<` 的输出会被标签剥离吞掉。
 2. **双态核验 + 默认态逐串比对**：dump 注入态与默认态逐串比对，**只有「注入态有、默认态无」的串能进 expect**（防同值巧合；兜底会无参调用 `genPassword` / `loadDefault` 等生成函数产出另一套完整结果 ⇒ 锚点可能与其**同串或成子串**，如默认「23 总物料数」含子串「3 总物料数」）。`inputs` 值逐字等于页面默认值 ⇒ 判别器判 `usable=false` 直接 `skipped++` ⇒ **凡 `all_default` 例一律视为零判别力、须重写**；零影响键不要写进 `inputs`（会造成「看似非默认」的假象）。
-3. **兜底污染三则**：① 兜底无参调用所有候选函数（预设 / 联动 / 增删 / 建议型）会**改状态后重算**、把结果区重写成另一套值 ⇒ expect 避开任何无参函数能产出的串；② `clicks` 型 expect 必须在阶段 ② 命中，否则 **`FAIL` 的 `fullBlob` 是「兜底后」视图**（与默认态逐字相同）⇒ 不能据此判断 clicks 是否生效；③ **expect 里出现 `undefined` / `NaN` 字面量几乎必是兜底产物**（无参 `selectDate()` → `undefined-NaN-undefined`）⇒ 先辨段再改锚 clicks / input 阶段产物。
-4. **锚点优先级 + checkbox 反向利用**：① 非兜底分支独有的文案（`if/else` 的**非 else** 路）；② 只由注入值 派生、兜底无法复现的数值；③ 跨档 / 跨分支的等级词（先按默认参数手算是否落同档、是否触发同一提示）。桩内 checkbox 恒未勾 ⇒ 默认态必然渲染「xx缺失」并给低分 ⇒ **勾满 `checkIds` 抢「全部达标」分支做正向强锚**。
-5. **数值合法性与齐次量**：有界量（决定系数 / 概率 / p 值 / 覆盖率 / 率）越界即公式错，交付前必查 `[0,1]`；「基础分 − 扣分」式先算最小值是否越界；**凡输出物理不可能值必查公式本身**。比值 / 密度 / 单价 / 覆盖率换值前 先确认不是默认输入的等比缩放，改完必须实测「换值是否引起输出变化」。
-6. **日期与随机**：日期相关量一律不锚（随运行日漂移）；禁 `Math.random` / `Date.now` 当输入。`clicks` 内改**进程级全局对象**（`Math` / `Date` / `Array.prototype`）**必须用完即恢复**（`var __r=Math.random;Math.random=fn;gen();Math.random=__r`），否则污染同进程后续用例的默认态 —— 只有双态 核验能抓到。钉死随机值后锚「多列连续复合串」把巧合概率压到 10⁻⁶。
-7. **默认态已全量渲染的页面，锚点要换区**：① 同引擎多段渲染（注入段 + 兜底 `loadSample()` 段）共用常量串 ⇒ 只锚注入段独有串；示例文本即逃生项，注入数据须与样本用词错开。② 「kw 空输出全量」型过滤页 ⇒ 反向注入**不存在的关键词**、锚「未找到匹配项」类空结果提示。③ 「卡片列表区 + 详情区」双区页，卡片区默认已渲染全部条目 ⇒ 只锚详情区独有文案。④ **筛选型图鉴页（默认渲染全表）**单行文本默认态都有 ⇒ 只锚**仅过滤态成立的跨行相邻串**（`office/excel-formula-reference`：注入「数字」⇒ 命中 SUM/AVERAGE/TEXT，AVERAGE 与 TEXT 过滤态紧邻、全表却隔 6 项）。**锚不得取「整条目渲染串」** —— 它在默认全量渲染里本就连续存在。**入口筛选函数常有「状态变量 + 按钮」双参签名，直调 `setFilter(f,btn)` 会 btn 为 undefined 抛错 ⇒ 绕过它、只改状态变量再重渲**（`gardening2/pruning-time`：`currentFilter='before';render();`）。
-8. **注入与格式口径**：`select` 的 `selected` 属性在桩里不生效 ⇒ 默认选中项必须**显式注入**（`selfcheck` 取 JS 设定的真实默认、`discriminate_check` 取首个 option，两者口径不同）。`inputs` 键若是生成器模板串残留（`${f}` / `pri${i}`）会同时骗过两把锁（不进棘轮 + 记「正确变红」）⇒ 巡检 `verify_*_calc.js` 里形如 `${` 的键。`fmt()` 走 `toLocaleString()` 默认截 3 位小数 ⇒ 定 expect 时避开被截断的位置。
+3. **兜底污染三则**：① 兜底无参调用所有候选函数会**改状态后重算**、把结果区重写成另一套值 ⇒ expect 避开任何无参函数能产出的串；② `clicks` 型 expect 必须在阶段 ② 命中，否则 **`FAIL` 的 `fullBlob` 是「兜底后」视图**（与默认态逐字相同）⇒ 不能据此判断 clicks 是否生效；③ **expect 里出现 `undefined` / `NaN` 字面量几乎必是兜底产物**（无参 `selectDate()` → `undefined-NaN-undefined`）⇒ 先辨段再改锚。
+4. **锚点优先级 + checkbox 反向利用**：① 非兜底分支独有的文案（`if/else` 的**非 else** 路）；② 只由注入值派生、兜底无法复现的数值；③ 跨档 / 跨分支的等级词（先按默认参数手算是否落同档、是否触发同一提示）。桩内 checkbox 恒未勾 ⇒ 默认态必然渲染「xx缺失」并给低分 ⇒ **勾满 `checkIds` 抢「全部达标」分支做正向强锚**。
+5. **数值合法性与齐次量**：有界量（决定系数 / 概率 / p 值 / 覆盖率 / 率）越界即公式错，交付前必查 `[0,1]`；「基础分 − 扣分」式先算最小值是否越界；**凡输出物理不可能值必查公式本身**。比值 / 密度 / 单价 / 覆盖率换值前先确认不是默认输入的等比缩放，改完必须实测「换值是否引起输出变化」。
+6. **日期与随机**：日期相关量一律不锚（随运行日漂移）；禁 `Math.random` / `Date.now` 当输入。`clicks` 内改**进程级全局对象**（`Math` / `Date` / `Array.prototype`）**必须用完即恢复**（`var __r=Math.random;Math.random=fn;gen();Math.random=__r`），否则污染同进程后续用例的默认态 —— 只有双态核验能抓到。钉死随机值后锚「多列连续复合串」把巧合概率压到 10⁻⁶。
+7. **默认态已全量渲染的页面，锚点要换区**：① 同引擎多段渲染（注入段 + 兜底 `loadSample()` 段）共用常量串 ⇒ 只锚注入段独有串；示例文本即逃生项，注入数据须与样本用词错开。② 「kw 空输出全量」型过滤页 ⇒ 反向注入**不存在的关键词**、锚「未找到匹配项」类空结果提示。③ 「卡片区 + 详情区」双区页 ⇒ 只锚详情区独有文案。④ **筛选型图鉴页（默认渲染全表）**单行文本默认态都有 ⇒ 只锚**仅过滤态成立的跨行相邻串**（`office/excel-formula-reference`：注入「数字」⇒ 命中 SUM/AVERAGE/TEXT，AVERAGE 与 TEXT 过滤态紧邻、全表却隔 6 项）。**锚不得取「整条目渲染串」**（默认全量里本就连续）。**入口筛选函数常有「状态变量 + 按钮」双参签名，直调 `setFilter(f,btn)` 会 btn 为 undefined 抛错 ⇒ 绕过它、只改状态变量再重渲**（`gardening2/pruning-time`：`currentFilter='before';render();`）。
+8. **注入与格式口径**：`select` 的 `selected` 属性在桩里不生效 ⇒ 默认选中项必须**显式注入**（`selfcheck` 取 JS 设定的真实默认、`discriminate_check` 取首个 option，两者口径不同）。`inputs` 键若是生成器模板串残留（`${f}` / `pri${i}`）会同时骗过两把锁（不进棘轮 + 记「正确变红」）⇒ 巡检 `verify_*_calc.js` 里形如 `${` 的键。`fmt()` 走 `toLocaleString()` 默认截 3 位小数 ⇒ 定 expect 避开被截断处。
 9. **clicks 锚「不读输入的全量函数」必误判逃生项**：判别器模拟注入失败是**清空 clicks 后跑**（含兜底遍历）。若 expect 锚 `checkAll()` 类「不读输入、恒产全量」输出（如 `36/36`），兜底重调仍同值 ⇒ 判「仍 PASS」= 逃生项 ✅ 改用**具体输入态**（`toggleItem(0,0/0,1/0,2)` 勾 N 项 → `N/总数`），默认态 0 项不命中。
 10. **空结果提示不可锚两形态**：① 提示同时被兜底链复现（`selectXxx()` 无参置页面全局态 `undefined` ⇒ 过滤集恒空、渲同一提示）⇒ 注入态与失败态同串，判逃生项。② 提示在**独立静态元素**内、仅 `style.display` 切换 ⇒ 不写入结果容器、`collectStrings` 采不到 ⇒ blob 永不含该串。✅ 定锚前用探针双态 dump 比对，只取「注入态有 / 默认态无且兜底不复现」的串。
 11. **「名 + 参数」型 option 文本是逃生项**：`<select>` 的 `option.textContent` 会进 `collectStrings` ⇒ `东京（日本）UTC+9` 这类串在**默认态 select 里本就存在** ✅ 只锚**随注入值变化的派生量**。同理「写 localStorage → 再读回」链路在 harness 下**只写不读**（`getItem` 缺失 ⇒ `getTasks()` 恒 `[]`）**结构性不可注入**（`edu/exam-study-planner`）。
-12. **调试陷阱（会把「没生效」误判成 bug）**：① `verify_it_calc.js` **必须留在 `scripts/` 下**跑 —— `TOOLS_DIR` 取自 `__dirname`，拷到仓库外（`/tmp/x.js`）会整页返「文件不存在」且 `errs=[]`（看似「clicks 静默失败」）；要插日志就在 `scripts/` 下临时副本改完删。② 确认 clicks 是否真执行：用 `clicks:["throw new Error('RAN')"]`，`errs` 出现 `RAN` 即已执行（比 DOM 探针可靠）。③ 带连字符的 id 在用例对象里**必须加引号**（`{ "focus-mins": "50" }`），裸写 `focus-mins:` 直接 SyntaxError。
-13. **「textarea + 预览区」双元页（Markdown / 富文本类）**：blob 同时含**注入原文回显**（textarea 的 `value`）与**渲染产物** ⇒「渲染产物文本 ⊂ 注入原文」的锚（`<strong>bold</strong>` 剥标签后的 `bold`、`# H1` 剥标签后的 `H1`）**测不到任何渲染**，属伪锚。✅ 只锚**渲染独有的连排串**：剥标签后**标签被换成空格**，同元素内相邻 cell 连成 `甲 乙 24 36 81 90`，而原文 `| 甲 | 乙 | |---|---| | 24 | 36 |` 里 `甲 乙 24` 并不连续 ⇒ 天然非回显。
-14. **`collectStrings` 的 blob 是剥标签后的串 ⇒ expect 绝不能写 `<strong>…</strong>` / `<h2>…</h2>` 这类带标签形式**（写了必 FAIL，容易被误读成「渲染没生效」，实为锚错）。
-15. **多行 textarea 的产出串，换行在 blob 里被归一成空格 ⇒ 锚要写 `bbb aaa ccc`，不能写 `bbb\naaa`**（首版按 `\n` 写必 FAIL，极易误读成「去重没生效」）。✅ 排序/去重类工具一律锚**整段连排**（`fig pear apple`）；**单字符或极短锚（`c`）在默认态示例行里本就存在 ⇒ 逃生项**，必须先 dump 默认态再定锚。凡「换个方向再跑一遍」能给出反向串的（`length-asc`→`length-desc`），两个方向都写进同一用例的 `expect`，可防「排序根本没生效」的假通过。
-16. **「输入 textarea + 结果区」提取器类（正则抽邮箱 / URL 一类）：输入回显与提取结果并存** ⇒ 直接锚被提取的内容（`a1@toolbox.com`）测的是**回显**，清空注入后仍从 textarea 命中 ⇒ 伪锚 ✅ 锚落在**结果区独有的形态**：`text-extract-emails` 每封邮箱后跟「复制」按钮 ⇒ 锚「邮箱 + 空格 + 复制」；`text-extract-urls` 锚两段 URL 连排，原文用「与」隔开使其不连续。另 `text-split` 的「序号+段内容」锚（`3 cherry`）默认态示例里本就有 ⇒ 改用段数标签「（共 3 段）」。
+12. **调试陷阱（会把「没生效」误判成 bug）**：① `verify_it_calc.js` **必须留在 `scripts/` 下**跑 —— `TOOLS_DIR` 取自 `__dirname`，拷到仓库外会整页返「文件不存在」且 `errs=[]`（看似「clicks 静默失败」）；要插日志就在 `scripts/` 下临时副本改完删。② 确认 clicks 是否真执行：用 `clicks:["throw new Error('RAN')"]`，`errs` 出现 `RAN` 即已执行（比 DOM 探针可靠）。③ 带连字符的 id 在用例对象里**必须加引号**（`{ "focus-mins": "50" }`），裸写 `focus-mins:` 直接 SyntaxError。
+13. **「textarea + 预览区」双元页（Markdown / 富文本类）**：blob 同时含**注入原文回显**（textarea 的 `value`）与**渲染产物** ⇒「渲染产物文本 ⊂ 注入原文」的锚（`<strong>bold</strong>` 剥标签后的 `bold`、`# H1` 剥标签后的 `H1`）**测不到任何渲染**，属伪锚。✅ 只锚**渲染独有的连排串**：剥标签后**标签被换成空格**，同元素内相邻 cell 连成 `甲 乙 24 36 81 90`，而原文 `| 甲 | 乙 |` 里 `甲 乙 24` 并不连续 ⇒ 天然非回显。**expect 也不能写 `<strong>…</strong>` / `<h2>…</h2>` 这类带标签形式**（写了必 FAIL，易误读成「渲染没生效」，实为锚错）。
+15. **多行 textarea 的产出串，换行在 blob 里被归一成空格 ⇒ 锚要写 `bbb aaa ccc`，不能写 `bbb\naaa`**（首版按 `\n` 写必 FAIL，极易误读成「去重没生效」）。✅ 排序/去重类工具一律锚**整段连排**（`fig pear apple`）；**单字符或极短锚（`c`）在默认态示例行里本就存在 ⇒ 逃生项**，定锚前先 dump 默认态。凡「换个方向再跑一遍」能给出反向串的（`length-asc`→`length-desc`），两个方向都写进同一用例的 `expect`，可防「排序根本没生效」的假通过。
+16. **「输入 textarea + 结果区」提取器类（正则抽邮箱 / URL / 日期一类）：输入回显与提取结果并存**
+⇒ 直接锚被提取的内容（`a1@toolbox.com`）测的是**回显**，清空注入后仍从 textarea 命中 ⇒ 伪锚 ✅ 锚落在**结果区独有的形态**：`text-extract-emails` 每封邮箱后跟「复制」按钮 ⇒ 锚「邮箱 + 空格 + 复制」；`text-extract-urls` 锚两段 URL 连排，原文用「与」隔开使其不连续。另 `text-split` 的「序号+段内容」锚（`3 cherry`）默认态示例里本就有 ⇒ 改用段数标签「（共 3 段）」。 （补）这类页常由 n 个 checkbox 决定抽不抽，**缺 `checkIds` 时 `extract()` 在首个 `getElementById(x).checked` 处抛错中断** ⇒ 结果区恒为初始值，画面与「无匹配」**完全一致**，极易误判成「页无功能」⇒ **注入后结果区逐字不变就先怀疑它**，须声明全部默认勾选项（`biz/text-extract-numbers`/`dates` 同形）
 
 **D. 工具与方法**
 
 | 工具 | 用途 |
 |---|---|
 | **常驻 runner（scan / dump / multi）** | `~/.workbuddy/skills/toolbox-weakcase-hardening/assets/weakcase_runner.js`（cwd 为仓库根），**每批直接调用、不要重建**。`clicks` 末尾回写结果到 `__p`（兜底不碰）⇒ FAIL 时仍读到真实注入输出；容器 id 不在内置清单时用 `dumpIds` 覆盖。|
-| **标记串探针** | 判断写入路径是否通：`clicks:["document.getElementById('stats').value='MARK_V'"]` + `expect:["MARK_V"]`，命中即通。用于区分「clicks 未生效」与「锚点错」 |
+| **标记串探针** | 判断写入路径是否通：`clicks:["getElementById('stats').value='MARK_V'"]` + `expect:["MARK_V"]`（命中即通），区分「clicks 未生效」与「锚点错」 |
 | **「双态」核验** | 每例必须**注入态 PASS + 默认态（剥 inputs/checks/clicks）FAIL** 双跑；判别器取不到默认值的页尤其只能靠它 |
 | **逐项二分** | 定位逃生项用「逐项单独 `runCase`」，**禁用 `fullBlob.includes()` 判定**（blob 元素集合不同，会全判「无逃生」） |
 | **批量改用例** | 能用精确 `Edit` 就别用正则替换器（全数组重建会吃掉被改块的块前注释、normalize 块间空行）。`verify_*_calc.js` 有**带引号键**（`"slug":`）与**无引号键**（`slug:`）两种风格，换文件前先 `grep -c '"slug":'` 探格式 |
@@ -416,7 +416,7 @@
 
 **E. 待办 / 历史残留**
 
-- 全站 **16 个** `verify_*_calc.js` 共 **62 条「同 slug 多份」重复条目**（`realestate` 12、`math` 14、`science` 5、`ai` 4、`agriculture` 3…，其中 61 条内容不同）：门禁把同页跑两遍、计数虚高，按 slug 的批量替换器会**同时改掉两份**。**暂不清理**（删条目须同步改 `total_cases`/`checked`/`skipped` 三个基线数，属独立批次）。
+- 全站 `verify_*_calc.js` 共 **62 条「同 slug 多份」重复条目**（`realestate` 12、`math` 14…，其中 61 条内容不同）：门禁把同页跑两遍、计数虚高，按 slug 的批量替换器会**同时改掉两份**。**暂不清理**（删条目须同步改三个基线数，属独立批次）。
 - `selfcheck_false_pass.js` 全站 `--exec` 会崩（某页脚本污染全局 `process`）：**取基线请用结构模式** `node scripts/selfcheck_false_pass.js scripts`（与门禁同口径）。
 
 ### 10.6 方向1：公式-脚本一致性精查（**全量闭环** · 老板选定）

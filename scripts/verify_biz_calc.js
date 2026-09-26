@@ -246,6 +246,40 @@ const CASES = [
        + "countLabel 写入『（共 3 段）』。默认态 textarea 为 5 段示例文本，countLabel 为空串 ⇒ 不命中。"
        + "⚠ 另一候选锚 '3 cherry'（序号+段内容）在默认态示例里同样存在 ⇒ 逃生项，已弃用。",
   },
+  {
+    slug: 'biz/text-extract-numbers',
+    inputs: { input: "单价 12.50 元，数量 30 件" },
+    checkIds: ["int", "decimal", "negative", "scientific", "sum"],
+    expect: ["12.50 30", "21.25"],
+    ref: "默认勾 int/decimal/negative/scientific/sum：decimal 先取 12.50，int+negative 的 12 与之重叠被去重叠逻辑剔除、30 保留 ⇒ finalMatches=['12.50','30']；sum=42.5、avg=(42.5/2).toFixed(2)='21.25'。"
+       + "result 连排 '12.50 30' 在原文里不连续（被『，』隔开）⇒ 非回显。默认态剥掉 checkIds ⇒ patterns 为空 ⇒ result 空、avg 为 '-' ⇒ 不命中。"
+       + "⚠ 本页 extract() 内 8 处 getElementById(...).checked，桩里缺元素即抛错中断（count 恒为静态 0、结果区永不刷新）—— 只写 inputs 会误判为『页面无功能』，必须显式 checkIds 声明全部默认勾选项。",
+  },
+  {
+    slug: 'biz/text-extract-dates',
+    inputs: { input: "签署于 2026-03-09，复核 2027/4/2 完成" },
+    checkIds: ["iso", "slash", "dot", "zh", "us", "eu", "time", "dedup"],
+    expect: ["2026-03-09 2027/4/2"],
+    ref: "默认 6 种格式 + time/dedup 全勾（normalize 未勾 ⇒ 原样输出不归一）：iso 命中 2026-03-09、slash 命中 2027/4/2，dot/zh/us/eu 无匹配。"
+       + "result 连排 '2026-03-09 2027/4/2' 原文被『，』隔开 ⇒ 非回显。默认态剥掉 checkIds ⇒ 所有格式跳过 ⇒ result 为『请输入文本...』、count=0 ⇒ 不命中。"
+       + "⚠ 同 text-extract-numbers：缺 checkIds 时 extract() 在首个 getElementById(fmt).checked 处抛错，表现与『无匹配』完全一致，极易误判。",
+  },
+  {
+    slug: 'biz/text-reverse',
+    inputs: { input: "Alpha 7" },
+    expect: ["7 ahplA"],
+    ref: "currentMode 默认 'full'：Array.from('Alpha 7').reverse().join('') = '7 ahplA'（keepNewline 默认勾、reverseCase 默认未勾）。"
+       + "默认态 result 是示例文本 'Hello World' 的反转（集具工 xoBlooT dlroW olleH）⇒ 不命中。",
+  },
+  {
+    slug: 'biz/text-reverse',
+    inputs: { input: "Beta gamma 9" },
+    clicks: ["currentMode='words';convert();"],
+    expect: ["9 gamma Beta"],
+    ref: "setMode(btn) 是『状态变量 + 按钮』双参入口（btn 只做 classList 切换），直调会因 btn 为 undefined 抛错 ⇒ 绕过它直写 currentMode 再调 convert()："
+       + "'Beta gamma 9'.split(/(\\s+)/) = ['Beta',' ','gamma',' ','9']，reverse 后 join 得 '9 gamma Beta'。"
+       + "默认态 currentMode='full' ⇒ 输出为整串反转 '9 agnammaB' ⇒ 不命中。",
+  },
 ];
 
 // ---------------------------------------------------------------- main
