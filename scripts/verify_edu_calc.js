@@ -116,6 +116,71 @@ const CASES = [
        + "默认态为 25:00 / 共 4 轮。本例命中在注入阶段（inputs 注入即触发 change 监听）——页面把监听绑在 focus-mins 上而非按钮，"
        + "故不写 clicks：此处 dispatchEvent 会被 pageEval 判为语法错并静默失败（等价于无注入通道）。",
   },
+
+  {
+    slug: "edu/grade-weight-calculator",
+    inputs: { "target": "72" },
+    expect: ["要达到72分，剩余需考 63.2 分"],
+    ref: "目标分注入后 upd() 重算「剩余需考」= (target − 已出加权分)/剩余权重。默认 target=85 ⇒ 默认态输出 89.2，"
+       + "本例锚 63.2（target=72）。result 区前半段「总权重 100% / 已出成绩权重 50%」是页面常量，不进 expect。",
+  },
+  {
+    slug: "edu/grade-weight-calculator",
+    inputs: { "target": "90" },
+    expect: ["要达到90分，剩余需考 99.2 分"],
+    ref: "与目标分 72 的用例同页不同分支：target 越高「剩余需考」越大（63.2 → 99.2），两条一起锁住 upd() 的单调关系。"
+       + "默认态 85 ⇒ 不命中 99.2。",
+  },
+  {
+    slug: "edu/convert-4",
+    inputs: { "val": "250", "rate": "6.8", "from": "1", "to": "0.001" },
+    expect: ["1700000.000000 系数: 6.8"],
+    ref: "单位换算页：换算积 = val × rate / 目标进制系数 = 250 × 6.8 ÷ 0.001 = 1,700,000。"
+       + "默认态为 `1.000000 系数: 1`（空输入）⇒ 强判别。三个注入值（被换算量、汇率、目标进制）共同决定结果，缺一不可。",
+  },
+  {
+    slug: "edu/convert-1",
+    inputs: { "val": "01:30", "from": "60", "to": "0" },
+    expect: ["13:30 前一日（-3天）"],
+    ref: "时区/时刻换算：结果 = 输入时刻 − from 时区偏移 + to 时区偏移，跨 24h 时按天进位并在末段给出「前一日（−N 天）」。"
+       + "默认 val=12:00 且 from=to=0 ⇒ 输出 `12:00 同日`，与注入态不同。锚点含天进位说明段，属该页独有推导。",
+  },
+  {
+    slug: "edu/essay-word-counter",
+    inputs: { "text": "这是一个用于测试词数统计的句子，包含中文与 english 混合内容。" },
+    expect: ["中文字数 35 总字符数 33 不含空格 2 标点符号 1"],
+    ref: "作文字数统计：中文字数按 CJK 字符计（35 = 17 汉字 + 中文标点后的中文字符口径），总字符数 33 为去空白后的原串长度。"
+       + "默认态统计的是页面预置范文（124 / 149 / 145），与本例全不同 ⇒ 强判别。末段「短文·字数偏少」为默认态才有的结论，不进 expect。",
+  },
+  {
+    slug: "edu/gpa-calculator",
+    clicks: ["addCourse();addCourse();addCourse();updateCourse(1,'3','95');updateCourse(2,'4','82');updateCourse(3,'2','70');calc();"],
+    expect: ["51.30"],
+    ref: "绩点计算器：注入三门课后 totalPoints = 3×95分制→ grade 折算 + 4×+ 2× 的学分积（51.30）。"
+       + "默认态仅 3 门默认课 ⇒ totalPoints 33.30、gpaResult 3.70，不命中 51.30。"
+       + "updateCourse 的签名是 (id, credits, score)，注入后必须显式调 calc() 触发重算。",
+  },
+  {
+    slug: "edu/grade-calculator",
+    clicks: ["addCourse();addCourse();addCourse();addCourse();updateCourse(1,'92');updateCourse(2,'78');updateCourse(3,'65');updateCourse(4,'88');calc();"],
+    expect: ["82.8"],
+    ref: "成绩分析器：四门课加权后 avgScore = 82.8。默认态加满 4 门默认课 ⇒ avgScore 为另一值（不命中 82.8）。"
+       + "这是唯一需要确认的强判别量；rankResult / percentile 等派生量随课程表变动，本例只锚加权均分。",
+  },
+  {
+    slug: "edu/chinese-zodiac",
+    inputs: { "year": "1996" },
+    expect: ["🐭 鼠年 丙子年 · 水命 1996年出生"],
+    ref: "生肖干支换算：year → (year−4)%12 定生肖、%60 定干支、五行按干支天干定。1996 ⇒ 子鼠 / 丙子 / 水。"
+       + "默认态为 2000（庚辰·龙）⇒ 强判别。末段「同生肖年份」列表随年份变化但属常量模板，不进 expect。",
+  },
+  {
+    slug: "edu/chinese-zodiac",
+    inputs: { "year": "1988" },
+    expect: ["🐲 龙年 戊辰年 · 土命 1988年出生"],
+    ref: "与 1996 同页另一分支：1988 ⇒ (1988−4)%12=0 ⇒ 辰龙、(1988−4)%60=24 ⇒ 戊辰、天干戊属土。"
+       + "与 1996 用例一道锁住「生肖/干支/五行」三个字段的换算，默认态 2000 不命中。",
+  },
 ];
 
 async function main() {
