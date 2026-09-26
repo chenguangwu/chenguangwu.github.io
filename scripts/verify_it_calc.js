@@ -1494,6 +1494,27 @@ const CASES = [
     expect: ["TOOLBOX-QR-2026"],
     ref: "二维码矩阵在桩内画不出来（`renderQR … leng`），但内容串先已写进结果区 ⇒ 直接锚内容串（与 `it/qrcode` 同族）。",
   },
+  {
+    slug: "it/barcode-upc",
+    inputs: { data: "12345678905" },
+    clicks: ["generate()"],
+    expect: ["123456789050"],
+    ref: "独立复算：UPC-A 校验位 p = (10 − (3×(d1+d3+d5+d7+d9+d11) + (d2+d4+d6+d8+d10)) mod 10) mod 10；12345678905 ⇒ 3×(1+3+5+7+9+0)=75、2+4+6+8+5=25、和 100 ⇒ p=0。默认样例是 03600029145（补出 …2），默认态不含本串。",
+  },
+  {
+    slug: "it/matrix-determinant",
+    inputs: { size: "2" },
+    clicks: ["document.getElementById('a0').value=3;document.getElementById('a1').value=2;document.getElementById('a2').value=5;document.getElementById('a3').value=7;calculate()"],
+    expect: ["= 21 − 10 = 11"],
+    ref: "独立复算：|A| = a·d − b·c = 3×7 − 2×5 = 21 − 10 = 11。矩阵格子 a0..a3 是运行期渲染（HTML 无字面 id）⇒ clicks 里按 id 赋值再 calculate()。默认 2×2 矩阵不是本组，默认态不含该串。",
+  },
+  {
+    slug: "it/matrix-inverter",
+    inputs: { size: "2" },
+    clicks: ["document.getElementById('a0').value=4;document.getElementById('a1').value=7;document.getElementById('a2').value=2;document.getElementById('a3').value=6;calculate()"],
+    expect: ["逆矩阵 A⁻¹： 0.6 -0.7 -0.2 0.4"],
+    ref: "独立复算：A=[[4,7],[2,6]]，det=4×6−7×2=10 ⇒ A⁻¹=(1/10)·[[6,−7],[−2,4]]=[[0.6,−0.7],[−0.2,0.4]]，且 A×A⁻¹=I。同 matrix-determinant 的 clicks 模板。",
+  },
 ];
 
 // ---------------------------------------------------------------- DOM stub
