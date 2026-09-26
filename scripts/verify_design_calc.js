@@ -326,6 +326,59 @@ const CASES = [
     ref: "独立复算：`#preview` 把 `#message` 写进 `.toast` 节点（`✓ ${message} ×`）⇒ message=TOOLBOX-OK 时预览区出现该串。默认态 message 为页面默认值 ⇒ 不命中。"
         + "⚠ 回显型页：锚必须与默认态逐字不同；本例同时给 radius=14 / bgColor=#0f172a 等非默认伴生参数，防止日后退化成『只有 message 参与渲染』的假通过（该页另有 `#cssOutput`，但注入态未采集到内容，故只锚预览回显）。",
   },
+
+  // ── §7.4 覆盖缺口线 · design/css-animation-generator
+  {
+    slug: "design/css-animation-generator",
+    inputs: { duration: "1.6", delay: "0.4", easing: "linear", iteration: "3", direction: "alternate", fillMode: "forwards" },
+    expect: [".animated { animation : fade-in 1.6s linear 0.4s 3 alternate forwards ; }"],
+    ref: "整句七个字段（duration / delay / easing / iteration / direction / fillMode）合进同一条 `animation : …` 声明；默认态是 `fade-in 1s linear 0s 1 normal none`，逐项都不同。\n"
+      + "⚠ 参数 id 是 `iteration` 与 `fillMode`（不是 iterations / fill）。写错会在 `getParams()` 抛 TypeError，`updatePreview` 中断 ⇒ `#codeBlock` 渲染为空、注入态 blob 一片空白，本例已用正确 id。",
+  },
+
+  // ── §7.4 覆盖缺口线 · design/music-scale-reference
+  {
+    slug: "design/music-scale-reference",
+    inputs: { root: "D", scaleType: "minor" },
+    expect: ["D - E - F - G - A - A# - C"],
+    ref: "自然小调按半音阶逐级推导（D → E F G A A# C，第 6 音升八度内的 A#）。同页 `#notesDisplay` 还输出 `调号` 与 `关系小调`，但结果串里只有音符序列随 root/scale 变化，故取其作为锚。",
+  },
+  {
+    slug: "design/music-scale-reference",
+    inputs: { root: "G#", scaleType: "major" },
+    expect: ["G# - A# - C - C# - D# - F - G"],
+    ref: "同页另一分支：大调音阶（G# → A# C C# D# F G）。与上一例（D 小调）构成反向双向锚，证明 root 与 scaleType 真的参与换算，而不是只回显选择项。",
+  },
+
+  // ── §7.4 覆盖缺口线 · design/loading-dots
+  {
+    slug: "design/loading-dots",
+    inputs: { count: "5", speed: "1.2", color: "#f43f5e", size: "12", animType: "bounce" },
+    expect: [
+      ".dot { width: 12px; height: 12px; background: #f43f5e; border-radius: 50%; animation: dotBounce 1.2s ease-in-out infinite; }",
+      ".dot:nth-child(3) { animation-delay: 0.24s; }",
+    ],
+    ref: "第一条锚整句：size / color / speed 三个字段全进同一条 `.dot` 声明（默认态为 `#3b82f6` + 1s）。\n"
+      + "第二条把 `count` 纳入被测点：count=5 ⇒ 第 3 个点延迟 0.24s（默认 4 个点时为 0.20s）。只锚第一条时，改点数不会触发失败。",
+  },
+  {
+    slug: "design/loading-dots",
+    inputs: { count: "6", speed: "1.5", color: "#0ea5e9", size: "14", animType: "pulse" },
+    expect: [
+      ".dot { width: 14px; height: 14px; background: #0ea5e9; border-radius: 50%; animation: dotPulse 1.5s ease-in-out infinite; }",
+      ".dot:nth-child(5) { animation-delay: 0.75s; }",
+    ],
+    ref: "切换 `animType` 到 pulse：关键帧名随类型变（`dotPulse`），与上一例的 `dotBounce` 构成分支双向锚；第二条锁 count=6 时第 5 点延迟 0.75s。",
+  },
+
+  // ── §7.4 覆盖缺口线 · design/detector-28
+  {
+    slug: "design/detector-28",
+    inputs: { matType: "paint", formaldehyde: "0.12", voc: "120", benzeneContent: "90" },
+    expect: ["材料类型： 内墙涂料 甲醛释放量：0.12 mg/m³ VOC含量：120 g/L"],
+    ref: "结果区 `#res` 是单行拼串：材料类型 + 三项浓度 + 限值 + 环保等级 + 结论。本例连排前四段，把 matType（select 的 option value 是 `paint`）+ 三个数值同时纳入被测点。\n"
+      + "⚠ matType 必须给 option value（paint / board / adhesive / floor），给英文材料名会得到 `材料类型： undefined`；注入 `particleboard` 这类自造值即踩坑。",
+  },
 ];
 
 // ---------------------------------------------------------------- main
