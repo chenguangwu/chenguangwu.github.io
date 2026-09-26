@@ -779,6 +779,25 @@ const CASES = [
     expect: ["3 --z--> 4"],
     ref: "默认 pattern 为 `^a[0-9]+b$`（含 a 转移、无 z 转移）⇒ 锚取注入态独有的 z 转移边；`1 --a--> 2` 在默认态同命中，不可用。",
   },
+  {
+    slug: "it/markdown-to-html",
+    inputs: { md: "## Hello World" },
+    expect: ["Hello World"],
+    ref: "二级标题渲染出的文本节点（注入串去掉 `##` 前缀后作为标题文本落进结果区）；默认示例标题词表不含该串。",
+  },
+  {
+    slug: "it/emoji-picker",
+    inputs: { q: "cat" },
+    expect: ["共 1 个 emoji（点击复制） 🐱"],
+    ref: "关键词 cat 命中的唯一 emoji 及其计数与复制提示组成连续串；默认关键词命中集合不同，不命中。",
+  },
+  {
+    slug: "it/html-minifier",
+    inputs: { input: "<p>a</p>\n<p>b</p>" },
+    clicks: ["minify()"],
+    expect: ["a b"],
+    ref: "标签被剥除、两个块内文本以空格相连（`a b`），非原文回显；默认示例压缩结果不同。",
+  },
 ];
 
 // ---------------------------------------------------------------- DOM stub
