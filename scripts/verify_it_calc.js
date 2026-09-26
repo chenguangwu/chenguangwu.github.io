@@ -246,6 +246,44 @@ const CASES = [
     expect: ["Z = 1.5，p = 0.134", "p=0.134 ≥ α=0.05，不拒绝 H₀"],
     ref: "se=10/√25=2，z=(103−100)/2=1.5，双侧 p=2(1−Φ(1.5))=0.13361（Python math.erf 独立复算）→ 不拒绝 H₀",
   },
+
+  // —— §7.4 覆盖缺口线（BATCH161）——
+  {
+    slug: "it/atbash-cipher",
+    inputs: { input: "abc" },
+    expect: ["zyx"],
+    ref: "阿塔巴什密码：字母表镜像 26−k+1 ⇒ a→z、b→y、c→x，'abc' 加密仍得 'zyx'。默认态 input 为空、encodeAtbash 走 alert 早退，结果区无 'zyx'（双态核验：注入 PASS / 默认 FAIL）。",
+  },
+  {
+    slug: "it/bacon-cipher",
+    inputs: { input: "ab", mode: "01" },
+    expect: ["0000000001"],
+    ref: "培根密码 mode=01：每字母 5 位，A=00000、B=00001 ⇒ 'ab' → '0000000001'。默认态 input 为空 ⇒ 早退，不命中。",
+  },
+  {
+    slug: "it/bitwise-calculator",
+    inputs: { a: "12", b: "10", op: "AND" },
+    expect: ["结果： 8 = 0x8 = 0b1000"],
+    ref: "12 & 10 = 8（二进制 1100 ∧ 1010 = 1000）；页面按 十进制/十六进制/二进制 三进制并排输出，锚完整连续串。默认 a=b=0 且 op=AND ⇒ 结果区为 0，不命中。",
+  },
+  {
+    slug: "it/binary-to-text",
+    inputs: { input: "01000001" },
+    expect: ["A"],
+    ref: "8 位二进制按字节解码：01000001 = 0x41 = 'A'。默认态解码区为空 ⇒ 不命中（双态核验已确认判别力；此处仅断言单字符是够用的，因为默认态 blob 完全不含该输出）。",
+  },
+  {
+    slug: "it/adfgvx-cipher",
+    inputs: { input: "abc" },
+    expect: ["A A F D D G"],
+    ref: "ADFGVX 多表替换：'abc' 经加密方格替换后再按 ADFGVX 列调位置排列，得 'A A F D D G'。默认态输入为空 ⇒ 不命中。",
+  },
+  {
+    slug: "it/binomial-distribution",
+    inputs: { n: "10", p: "0.5", k: "3" },
+    expect: ["P(X = 3) = 0.117", "C(10, 3) = 120"],
+    ref: "X~B(10,0.5)：P(X=3)=C(10,3)·0.5³·0.5⁷=120×0.125×0.0078125=0.1172（Python comb(10,3)=120、binom.pmf(3,10,0.5)=0.1172）；分步区同步给出 C(10,3)=120。默认 n/p/k 与注入值不同，两串均不出现。",
+  },
 ];
 
 // ---------------------------------------------------------------- DOM stub
