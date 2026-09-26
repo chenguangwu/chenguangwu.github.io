@@ -594,6 +594,54 @@ const CASES = [
     expect: [".toast { padding: 14px 20px; border-radius: 16px;"],
     ref: "提示条圆角直接进 `#cssOutput` 首行，锚点与默认值（8px）错开 ⇒ 判别明确。背景色与文案在 success 档位下被档位样式固定（注入不生效），本例只锚确实受控的圆角。",
   },
+  {
+    slug: "design/color-palette-generator",
+    inputs: { baseColor: "#0ea5e9" },
+    expect: ["--color-1: #064460; --color-2: #0A76A9; --color-3: #0EA9F1;"],
+    ref: " monochromatic 派生算法的确定性输出：注入基色后前三条色阶是推导值，与默认基色（#1E3A8A 系）推导出的 `--color-1: #0C1A5A` 完全不同 ⇒ 强判别。\n"
+      + "⚠ 页面另有 `generateMonochromatic/Complementary/Analogous` 三个函数在 harness 内报 `Cannot read properties of null (reading 'r')`（读不到基础色的 rgb 分量），属 Harness 桩盲区；但 `#cssOutput` 已由主路径写入且不含 NaN，不影响本例。\n"
+      + "⚠ 不锚 `--color-4/5`：它们依赖同样受污染的派生链，锚前三档已足够锁定被测点。",
+  },
+  {
+    slug: "design/generator-6",
+    inputs: { cnt: "6" },
+    expect: [".shadow-6 { box-shadow:"],
+    ref: "随机阴影生成器。`#res` 每条的 `box-shadow` 数值是随机的，本例只锚第 6 条的**结构前缀** `.shadow-6 { box-shadow:`，该串只在 cnt≥6 时出现 ⇒ 条数型判别。\n"
+      + "默认态 cnt=5 ⇒ 只有 `.shadow-1`~`.shadow-5`，必然不命中。\n"
+      + "⚠ 严禁把随机数值写进 expect，否则每次跑都不同（flaky）。",
+  },
+  {
+    slug: "design/generator-7",
+    inputs: { cnt: "7" },
+    expect: [".border-7 { border:"],
+    ref: "随机边框生成器，锚第 7 条的结构前缀 `.border-7 { border:`。边框样式枚举（solid/dashed/dotted/...）与颜色是随机的，只取结构前缀规避 flaky。默认态 5 条 ⇒ 不命中。",
+  },
+  {
+    slug: "design/generator-8",
+    inputs: { cnt: "6" },
+    expect: ["配置参数 #6"],
+    ref: "二维码定制方案生成器。每条方案内部含随机示例链接与随机色值，只锚第 6 条的序号标签 `配置参数 #6`（默认态 5 条 ⇒ 不命中）。\n"
+      + "⚠ `errs` 里的 `randItem: ... 'length'` 是 harness 内随机数组取值的桩盲区，不阻断 `#res` 写入。",
+  },
+  {
+    slug: "design/generator-9",
+    inputs: { cnt: "6" },
+    expect: ["6. EAN-13 条形码"],
+    ref: "EAN-13 生成器。12 位随机码 + 确定校验位 ⇒ 数值部分不可锚，只锚第 6 条的序号与标题 `6. EAN-13 条形码`（默认态 5 条 ⇒ 不命中）。校验位算法本身的正确性由页面其它验证路径覆盖，本例只锁「条数随 cnt 增长」。\n"
+      + "本页是本批唯一 `errs` 为空的 generator 页（gen 不依赖 `randItem`）。",
+  },
+  {
+    slug: "design/generator-11",
+    inputs: { cnt: "6" },
+    expect: ["6. 波浪纹理"],
+    ref: "纹理生成器。纹理类型序列固定（圆点/条纹/网格/棋盘/斜线/波浪），注入 cnt=6 时第 6 条为波浪纹理；随机色值不进 expect。默认态 5 条 ⇒ 不命中。",
+  },
+  {
+    slug: "design/generator-12",
+    inputs: { cnt: "6" },
+    expect: ["6. square 粒子方案"],
+    ref: "粒子特效生成器。形状枚举按序取（circle/square/...），第 6 条落到 square；粒子数量/速度/色值随机，不进 expect。默认态 5 条 ⇒ 不命中。",
+  },
 
 ];
 
