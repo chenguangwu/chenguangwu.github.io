@@ -1234,6 +1234,26 @@ const CASES = [
     expect: ["Bluetooth 4.0 vs 5.0 版本对比"],
     ref: "独立复算：注入两侧版本 4.0 / 5.0 ⇒ 标题必为「Bluetooth 4.0 vs 5.0 版本对比」。默认态两侧同版（5.0/5.2 等）不命中。",
   },
+  {
+    slug: "it/emoji-cheatsheet",
+    inputs: { search: "zzz" },
+    expect: ["共 0 个 emoji"],
+    ref: "反向锚：表情速查搜索无命中 ⇒ 空态计数归零，页面同时给出「未找到匹配的 emoji」。默认列表非空。",
+  },
+  {
+    slug: "it/env-generator",
+    inputs: { keyInput: "FOO", importText: "BAR=baz" },
+    clicks: ["addVariable()"],
+    expect: ["FOO 字符串"],
+    ref: "独立复算：手动新增键 `FOO` ⇒ 变量表出现一行 `# Key ↕ Value ↕ Type ↕ 操作 / 1 FOO 字符串`。表格走 clicks 驱动，默认态无此行。",
+  },
+  {
+    slug: "it/line-ending-converter",
+    inputs: { leInput: "x\r\n\r\ny\n" },
+    clicks: ["calcTool()"],
+    expect: ["总换行 3"],
+    ref: "独立复算：2 个 CRLF + 1 个 LF ⇒ 统计行 `CRLF 2 / LF 1 / CR 0 / 总换行 3`。**注入值必须避开默认的两行 CRLF**（`第一行\\r\\n第二行\\r\\n第三行` 也总换行 2，注入同值即逃生项，本例已踩并改 3）；锚也不能写 `LF 1`（会被 `CRLF 1` 误伤）。",
+  },
 ];
 
 // ---------------------------------------------------------------- DOM stub
