@@ -526,6 +526,31 @@ const CASES = [
     expect: ["0x41"],
     ref: "独立复算：A 的十进制 65 转十六进制 ⇒ `0x41`、二进制 `01000001`（结果表走 dataGrid，非纯 innerHTML）。默认示例 `Hello, ToolBox!` 不含 A 且码点从 72 起，不命中。",
   },
+  {
+    slug: "it/case-converter",
+    inputs: { inputText: "foo bar BAZ" },
+    expect: ["fooBarBaz"],
+    ref: "独立复算：驼峰命名按「词边界合并」（3 词）⇒ `fooBarBaz`；同批产物 `FOO BAR BAZ` / `FOO_BAR_BAZ` 与输入仅大小写不同、易误判回显，故选形态差异最大的驼峰串。默认示例 `Hello World Test Case` 走另一分支，不命中。",
+  },
+  {
+    slug: "it/url-encoder-advanced",
+    inputs: { input: "a b&c=d/e?f" },
+    clicks: ["enc()"],
+    expect: ["a%20b%26c%3Dd%2Fe%3Ff"],
+    ref: "独立复算：默认 `encodeURIComponent` 对空格 `& = / ?` 全部百分号编码 ⇒ 空 `%20`、`&`→`%26`、`=`→`%3D`、`/`→`%2F`、`?`→`%3F`。textarea 与 select 均无 oninput/onchange ⇒ 必须 clicks `enc()`。",
+  },
+  {
+    slug: "it/list-converter",
+    inputs: { input: "alpha\nbeta\ngamma", mode: "quote" },
+    expect: ['"alpha", "beta", "gamma"'],
+    ref: "独立复算：3 行按带引号格式用 `, ` 连接 ⇒ 双引号包裹的逗号串（产物在 textarea#output，非 result）。默认示例是水果词表，不命中。",
+  },
+  {
+    slug: "it/list-converter",
+    inputs: { input: "alpha\nbeta\ngamma", mode: "sql" },
+    expect: ["('alpha', 'beta', 'gamma')"],
+    ref: "独立复算：SQL IN 子句形态 ⇒ 单引号包裹、以 `, ` 连接、整体套圆括号。与 quote 模式同页同输入，靠 select 档位区分（判据⑧）。",
+  },
 ];
 
 // ---------------------------------------------------------------- DOM stub
