@@ -1094,6 +1094,43 @@ const CASES = [
     expect: ["00000000.00000000.00000000.11111111"],
     ref: "十进制 255 → 点分二进制补齐 8 位×4 ⇒ 11111111；默认入参是 IP 地址 192.168.1.1（dot→bin），不命中。",
   },
+  {
+    slug: "it/playfair-cipher",
+    inputs: { input: "HELLO", key: "KEY" },
+    expect: ["DBNVMI"],
+    ref: "Playfair 加密：`HELLO` 成对切分为 HE/LL/OX 后在 5×5 矩阵（KEY 去重后填充）中按行/列规则替换 ⇒ DBNVMI。默认示例明文/密钥不同，产物不命中。",
+  },
+  {
+    slug: "it/vigenere-visualizer",
+    inputs: { input: "ABC", key: "KEY" },
+    expect: ["KFA"],
+    ref: "维吉尼亚加密：A+K、B+E、C+Y ⇒ KFA（逐字符位移）。默认明文/密钥组合产物不同。",
+  },
+  {
+    slug: "it/html-escape",
+    inputs: { batchInput: "<b>x</b>" },
+    clicks: ["convert()"],
+    expect: ["&lt;b&gt;x&lt;/b&gt;"],
+    ref: "批量区把 `<b>x</b>` 实体化为 `&lt;b&gt;x&lt;/b&gt;`（结果区读的是 batchResult，主 result 在桩内仍为默认示例文本，勿锚它）。",
+  },
+  {
+    slug: "it/css-properties",
+    inputs: { searchInput: "zzz" },
+    expect: ["共 0 个属性"],
+    ref: "反向锚：CSS 属性速查灌入不存在的关键词 ⇒ 计数归零（默认态列表上百条，必不命中）。与 http-* / country-flag 同族。",
+  },
+  {
+    slug: "it/cpp-cheatsheet",
+    inputs: { searchInput: "zzz" },
+    expect: ["共 0 项"],
+    ref: "反向锚：C++ 速查过滤无结果计数归零；默认列表非空。",
+  },
+  {
+    slug: "it/docker-cheatsheet",
+    inputs: { searchInput: "zzz" },
+    expect: ["共 0 项"],
+    ref: "反向锚：Docker 速查过滤无结果计数归零；默认列表非空。",
+  },
 ];
 
 // ---------------------------------------------------------------- DOM stub
