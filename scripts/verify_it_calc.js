@@ -1344,6 +1344,31 @@ const CASES = [
     expect: ["MMXXIV"],
     ref: "独立复算：2024 = 1000(M) + 1000(M) + 10(X) + 10(X) + 5(V) + 1(I) ⇒ MMXXIV。默认示例是另一个数字，默认态不含。",
   },
+  {
+    slug: "it/java-cheatsheet",
+    inputs: { searchInput: "zzz" },
+    expect: ["共 0 项"],
+    ref: "反向锚：Java 速查搜索无命中 ⇒ 计数归零；默认列表非空。",
+  },
+  {
+    slug: "it/typescript-cheatsheet",
+    inputs: { searchInput: "zzz" },
+    expect: ["共 0 项"],
+    ref: "反向锚：TypeScript 速查搜索无命中 ⇒ 计数归零；默认列表非空。",
+  },
+  {
+    slug: "it/python-cheatsheet",
+    inputs: { searchInput: "zzz" },
+    expect: ["共 0 项"],
+    ref: "反向锚：Python 速查搜索无命中 ⇒ 计数归零；默认列表非空。",
+  },
+  {
+    slug: "it/timestamp-converter",
+    inputs: { calcStartDate: "2020-01-01", calcAmount: "3", calcUnit: "year", calcOp: "add" },
+    clicks: ["calculateDate()"],
+    expect: ["计算结果: 2023-01-01 00:00:00"],
+    ref: "独立复算：2020-01-01 + 3 年 = 2023-01-01。只锚本地日期串，**不锚时间戳**（页面时间戳随运行时区变化，非确定性）。默认态的样例日期是 2024-06-15。",
+  },
 ];
 
 // ---------------------------------------------------------------- DOM stub
