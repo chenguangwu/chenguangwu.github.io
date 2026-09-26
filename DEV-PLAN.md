@@ -147,20 +147,15 @@
 
 **P1 — 待办**
 
-**P1 — 待办**
-
 - **harness 输入桩能力现状（2026-09-24 定型，勿再重估）**：可注入手段共 **6 种** —— `inputs`（表单控件）、`checkIds`（`getElementById(id).checked`）、`radios`（`getElementsByName`）、`checks`（`querySelector('…:checked')`，**仅在「无 inputs」分支计入弱用例判定**）、`clicks`（页面作用域 direct eval，命中即 `via="click"`，配套动态 DOM 登记）、`dynDom`。**「纯 checkbox 量表页不可注入」的旧结论已失效**。逐批成果与逐例打法归档在 `.workbuddy/memory/2026-09-2*.md` 与 skill `toolbox-weakcase-hardening`，**本文件不再记录批次流水**。
 - **仍未闭环的残留（转 P3 顺带，不单独成批）**：
-  - 纯 checkbox 量表页约 26 例中已示范改造 5 例（`curb65` / `stop-bang` / `wells-pe` / `has-bled` / `rater-33`），其余按 P3 顺带推进；
-  - 判别器取不到默认值的页（控件运行期 `innerHTML` 生成，如 `rehabilitation/fim-scale`、`dentistry/gingival-index`）—— 用例可改，但只能靠「注入态 PASS / 默认态 FAIL」双跑手工核验，无法计入判别器；
-  - `rehabilitation/womac` / `load-curve` 等 `no_inputs` 残留。
+  - ✅ **纯 checkbox 量表页已闭环（2026-09-26 核实）**：含 `checkbox` 页 353 个，有用例的 162 个**均带注入通道**、弱用例 0；另 191 个无任何用例 ⇒ 覆盖缺口，见 §7.4。
+  - ✅ **fim-scale / gingival-index 已闭环**：两例均有真实 `inputs` + 独立复算 `ref`（fim 全填 7 ⇒ 运动分 13×7=91/91、独立率 100%；gingival t16 四位点 3 / BOP 1 ⇒ GI 12/24=0.50、BOP 1/6=16.67%→17%），默认态均失配。
+  - ✅ **`womac` / `load-curve` 系失效引用，已删**：`tools/rehabilitation/` 下**不存在**这两个文件；`rehabilitation` 现有 18 例用例全部带注入通道。
 - **`metalwork/tester-19` ≤1kV 耐压分支无法构造判别用例**：该分支输出恒为常数 `3.5 kV`（与 `ratedV` 取值无关），任何 `expect` 都会在**默认态**命中 → 必被判逃生项，故**刻意不补用例**；该修复（`0.0 kV → 3.5 kV`）只能靠隔离器人工跑 + 代码评审保真，回归时注意。
 - **「多页签（mode）」页面的非默认页签分支无法被 harness 覆盖**：切页签必须带参调用 `setMode(1)`，而 harness 只无参调用候选函数 → 双样本 / 第二种模式分支永不执行，`expect` 只对默认页签有效。**复核口径**：复制页面到 `tools/<ind>/_tmp-xxx.html`，把 `let currentMode=0;` 改成 `1` → 隔离器单跑 → **立即删除副本**（勿留待提交）。
 - **永久排除（不下架）**：同名异功能 `finance/salary-after-tax` ↔ `payroll-calculator`、`ophthalmology/self-assess-2` ↔ `osdi-scale`；跨行业同名编号页（`calc-N`/`rater-N` 等 17 个 basename）经内容哈希取证均为不同工具、内容各异，非重复，不处理。
 
-- **`metalwork/tester-19` ≤1kV 耐压分支无法构造判别用例**：该分支输出恒为常数 `3.5 kV`（与 `ratedV` 取值无关），任何 `expect` 都会在**默认态**命中 → 必被判逃生项，故**刻意不补用例**；该修复（`0.0 kV → 3.5 kV`）只能靠隔离器人工跑 + 代码评审保真，回归时注意。
-- **「多页签（mode）」页面的非默认页签分支无法被 harness 覆盖**：切页签必须带参调用 `setMode(1)`，而 harness 只无参调用候选函数 → 双样本/第二种模式分支永不执行，`expect` 只对默认页签有效。**复核口径**：复制页面到 `tools/<ind>/_tmp-xxx.html`，把 `let currentMode=0;` 改成 `1` → 隔离器单跑 → **立即删除副本**（勿留待提交）。
-- **永久排除（不下架）**：同名异功能 `finance/salary-after-tax`↔`payroll-calculator`、`ophthalmology/self-assess-2`↔`osdi-scale`；跨行业同名编号页（calc-N/rater-N 等 17 个 basename）经内容哈希取证均为不同工具、内容各异，非重复，不处理。
 
 **P2 — 低优先级**
 
@@ -182,6 +177,17 @@
 > 逐批明细见 `.workbuddy/memory/2026-09-2*.md` 与全量快照归档。
 
 ---
+
+### 7.4 verify 用例覆盖缺口（2026-09-26 全站核实，新线）
+
+
+**核实结论（勿再重估）**：
+
+- 全站含 `<input type="checkbox">` 的页面 **353** 个，其中**有用例的 162 个已全部带注入通道**，**无注入通道的弱用例 = 0** ⇒ 存量弱用例线与 checkbox 无关，`no_inputs` / `all_default` 的 14 例已全部定性。
+- **但另有 191 个含 checkbox 的页面在全站任何 verify 文件中都没有用例**（`design/*` 11 页、`edu/*` 3 页、`biz/*` 文本类为主），均为有真实计算逻辑的工具页。
+- 判定口径注意：用例块的键名**常不带引号**（`slug: "x"` / `inputs: {}` / `checkIds: [...]`），扫描脚本必须写成 `"?slug"?\s*:\s*"([^"]+)"`，否则会大量误报「无用例 / 无注入通道」（本次两次误报均源于此）。
+
+**处置**：属新线（补用例 ≠ 改弱用例），单独立批。须守 §8.1：expect 独立复算、不取页面自身输出。**已交付 2 例**（BATCH131：`design/progress-bar-generator` 锚 `width: 37%` / `height: 12px` / `border-radius: 4px`；`design/css-border-radius` 锚八值语法 `border-radius: 5px 12px 8px 3px / 2px 6px 9px 4px;`）。`design/image-resizer` 因 `generate()` 首行 `if(!origImg) return` 且依赖 canvas 解码 ⇒ 暂不补。
 
 ## 八、反模式与防复发（铁律）
 

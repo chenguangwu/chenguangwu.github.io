@@ -128,6 +128,36 @@ const CASES = [
     expect: ["21.00:1"],
     ref: "WCAG 相对亮度：黑 L=0、白 L=1 → 对比度 = (1+0.05)/(0+0.05) = 21.00:1（W3C 对比度公式）",
   },
+  {
+    slug: "design/progress-bar-generator",
+    // 该页原无任何 verify 用例（2026-09-26 §7.4 覆盖缺口扫描发现）。
+    // generate() 读 percent / height / radius 并对高度做 ≥4 下限、百分比做 0..100 钳制，
+    // 结果写入 #cssOutput.value 与 #preview.innerHTML；collectStrings 采 value ⇒ 可断言。
+    inputs: {},
+    clicks: [
+      "document.getElementById('percent').value='37';document.getElementById('height').value='12';document.getElementById('radius').value='4';generate();"
+    ],
+    expect: [
+      "width: 37%",
+      "height: 12px",
+      "border-radius: 4px"
+    ],
+    ref: "独立复算：generate() 取 percent=37（不做钳制）、height=12（≥4 成立）、radius=4 ⇒ 模板内 `height:${h}px` 与 `width:${pct}%`、两处 `border-radius:${radius}px`；gradient 默认勾选 ⇒ bg = linear-gradient(90deg, #667eea, #764ba2)。默认态 percent=60/height=20/radius=10 ⇒ 输出 height: 20px / width: 60% / border-radius: 10px，三个锚点均失配。",
+  },
+  {
+    slug: "design/css-border-radius",
+    // 该页原无任何 verify 用例（2026-09-26 §7.4 覆盖缺口扫描发现）。
+    // updateRadius() 把八角的水平/垂直半径按 `tl tr br bl / tl2 tr2 br2 bl2` 顺序拼成
+    // CSS 八值语法写进 #cssOutput.value；currentMode 初始为 'simple' ⇒ 单位 px。
+    inputs: {},
+    clicks: [
+      "document.getElementById('tl1').value='5';document.getElementById('tr1').value='12';document.getElementById('br1').value='8';document.getElementById('bl1').value='3';document.getElementById('tl2').value='2';document.getElementById('tr2').value='6';document.getElementById('br2').value='9';document.getElementById('bl2').value='4';updateRadius();"
+    ],
+    expect: [
+      "border-radius: 5px 12px 8px 3px / 2px 6px 9px 4px;"
+    ],
+    ref: "独立复算：页面拼接式 `border-radius: ${tl1} ${tr1} ${br1} ${bl1} / ${tl2} ${tr2} ${br2} ${bl2}`（单位取 currentMode==='simple' ⇒ px）⇒ 5px 12px 8px 3px / 2px 6px 9px 4px。默认态八角均为 20 ⇒ `20px 20px 20px 20px / 20px 20px 20px 20px`，锚点失配。**注入勿用数组 forEach 配对映射** —— 键序 tl1/tr1/br1/bl1/tl2/tr2/br2/bl2 与两组数值的顺序不同，写成同长数组按 n 下标取值会自我覆盖（本批首版即因此 tl1 被 12 覆盖而 FAIL）。",
+  },
 ];
 
 // ---------------------------------------------------------------- main
