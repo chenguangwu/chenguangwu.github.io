@@ -238,6 +238,20 @@ const CASES = [
        + "默认档为 china（显示「中国 4.0 制: 90+=4.0 …」），注入 5point 后换算表整段改写 ⇒ 强判别。"
        + "setScale 的合法参数必须取自页面 `data-s` 值；写 `'usa'` 之类不存在的档会静默无渲染（两态双红）。",
   },
+
+  // ── BATCH158：证书检索计数串 / 单词表过滤空态 ──────────────────────────
+  {
+    slug: "edu/certificate-check",
+    inputs: { "search-input": "软考" },
+    expect: ["共 2 个证书"],
+    ref: "检索命中分支的计数串（`result-stats` 渲染 `共 N 个证书`）：`软考` 命中软考中级 + 软考高级 2 条（全库 30 条，默认态为 `共 30 个证书`）。计数串不受「顺序保持型筛选」子串陷阱影响，比锚证书名更硬。",
+  },
+  {
+    slug: "edu/word-memory",
+    inputs: { filterLevel: "3" },
+    expect: ["没有找到匹配的单词"],
+    ref: "按掌握度过滤：单词表初始 level 全为 0，选「掌握」(3) 后列表落空态。⚠ 零参 `filterWords()` 走 select 默认项 `all` ⇒ 渲染全量、不复现空态，故该空态安全（与 material-color 同型，取用前先验兜底链）；`statTotal`/`levelDistribution` 因 getBookData 报错两态同值，不可锚。",
+  },
 ];
 
 async function main() {
