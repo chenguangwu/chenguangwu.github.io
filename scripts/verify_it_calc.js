@@ -1214,6 +1214,26 @@ const CASES = [
     expect: ["New York (Manhattan)"],
     ref: "独立复算：NANP 区号库查 212 ⇒ New York (Manhattan)。库只覆盖北美编号计划，`021` 等中国区号查无 ⇒ 默认态不命中。",
   },
+  {
+    slug: "it/csv-validator",
+    inputs: { src: "name,age\nTom,3", sep: "," },
+    clicks: ["calcTool()"],
+    expect: ["2 标准列数"],
+    ref: "独立复算：两行 CSV（`name,age` / `Tom,3`）⇒ 标准列数 2、问题数 0。默认示例是 6 行中文表，不命中本锚。",
+  },
+  {
+    slug: "it/csv-to-json",
+    inputs: { csvInput: "name,age\nTom,3" },
+    expect: ['[{"column1":"name","column2":"age"}'],
+    ref: "走「无表头」分支（桩内 checkbox 恒未勾，与真实用户未勾表头一致）⇒ 表头占位列名 column1/column2，产物是整条 JSON 数组。用整条数组做锚避免撞默认样例。",
+  },
+  {
+    slug: "it/bluetooth-version",
+    inputs: { v: "4.0", v2: "5.0" },
+    clicks: ["calcTool()"],
+    expect: ["Bluetooth 4.0 vs 5.0 版本对比"],
+    ref: "独立复算：注入两侧版本 4.0 / 5.0 ⇒ 标题必为「Bluetooth 4.0 vs 5.0 版本对比」。默认态两侧同版（5.0/5.2 等）不命中。",
+  },
 ];
 
 // ---------------------------------------------------------------- DOM stub
