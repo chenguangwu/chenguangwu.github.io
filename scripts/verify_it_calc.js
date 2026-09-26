@@ -1962,6 +1962,41 @@ const CASES = [
     expect: ["共 0 项"],
     ref: "同 it/regex-cheatsheet 口径但数据集是 tmux 命令；`split` 在本表无条目 ⇒ 0 项（刻意选一个零命中关键字，避免与默认态撞条数）。",
   },
+  {
+    slug: "it/yaml-formatter",
+    inputs: { input: "a:\n  b: 1" },
+    clicks: ["formatYaml()"],
+    expect: ["a: b: 1"],
+    ref: "嵌套映射 `a: / b: 1` 在「结构化 → 纯文本」视图里被压成单行的 `a: b: 1`（层级由输出的缩进/父键串联表达），不是回显原文。默认态是页面自带样例，输出不同 ⇒ 不命中。",
+  },
+  {
+    slug: "it/go-escape",
+    inputs: { input: "a b" },
+    clicks: ["esc()"],
+    expect: ["\\a b"],
+    ref: "Go 转义按当前模式改写空格为 `\\a`（即源码里的 \\a 字面量，dump 产物为 `\"\\a b\"`）。默认输入与默认模式产物不同 ⇒ 不命中。",
+  },
+  {
+    slug: "it/crontab-generator",
+    inputs: { f_min: "0", f_hour: "12", f_dom: "*", f_mon: "*", f_dow: "*" },
+    clicks: ["build()"],
+    expect: ["表达式： 0 12 * * *"],
+    ref: "注入分=0、时=12、日/月/周通配 ⇒ 表达式 `0 12 * * *`。页面同场的「中文说明」区存在字段描述错位（多处输出「每月」等），属既有缺陷，本例只锁定确定正确的表达式段，不把缺陷值固化成正确口径。默认态表达式不同 ⇒ 不命中。",
+  },
+  {
+    slug: "it/pomodoro",
+    inputs: { focusMin: "25" },
+    clicks: ["toggleTimer()"],
+    expect: ["24:59"],
+    ref: "计时器按 `分:秒` 刷新，注入专注时长 25 分钟后起表 ⇒ 首个读数 24:59（tick 已跑过一次）。默认专注时长不是 25 ⇒ 默认态读数不含该串。",
+  },
+  {
+    slug: "it/markdown-editor",
+    inputs: { mdInput: "# hi" },
+    clicks: ["exportMd()"],
+    expect: ["hi"],
+    ref: "预览区把 Markdown 标题 `# hi` 渲染成 `<h1>hi</h1>`（textContent 只留 `hi`），是解析产物而非原样回显；默认态渲染的是页面自带样例，预览文本不同 ⇒ 不命中。",
+  },
 ];
 
 // ---------------------------------------------------------------- DOM stub
