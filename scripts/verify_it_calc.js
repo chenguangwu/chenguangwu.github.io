@@ -859,6 +859,48 @@ const CASES = [
     expect: ["无匹配"],
     ref: "`abc` 不匹配邮箱正则 ⇒ 匹配数 0 且结果区落「无匹配」；默认示例文本可命中，结论相反。",
   },
+  {
+    slug: "it/vector-magnitude",
+    inputs: {},
+    clicks: ["document.getElementById('v0').value=6;document.getElementById('v1').value=8;document.getElementById('v2').value=0;calculate()"],
+    expect: ["|v| = 10"],
+    ref: "√(6²+8²)=10；输入框由 `build()` 运行期渲染（HTML 无字面 id）⇒ 必须 clicks 内按 id 赋值。默认值为 (3,4) ⇒ 5，不命中。",
+  },
+  {
+    slug: "it/vector-dot-product",
+    inputs: {},
+    clicks: ["document.getElementById('a0').value=1;document.getElementById('a1').value=2;document.getElementById('a2').value=3;document.getElementById('b0').value=4;document.getElementById('b1').value=5;document.getElementById('b2').value=6;calculate()"],
+    expect: ["A · B = 14"],
+    ref: "dim 默认 2D：A=(1,2)、B=(4,5) ⇒ 1×4+2×5=14。默认 A=(1,0)、B=(0,1) ⇒ 0，不命中。",
+  },
+  {
+    slug: "it/vector-cross-product",
+    inputs: { a0: "1", a1: "0", a2: "0", b0: "0", b1: "0", b2: "1" },
+    clicks: ["calculate()"],
+    expect: ["A × B = (0, -1, 0)"],
+    ref: "i×k = −j ⇒ (0,−1,0)。默认示例 (1,0,0)×(0,1,0)=(0,0,1) 结论不同，不可用其做锚。",
+  },
+  {
+    slug: "it/bayes-theorem",
+    inputs: { prior: "0.01", likelihood: "0.9", falsePositive: "0.05" },
+    clicks: ["calculate()"],
+    expect: ["P(H₁ | E) = 0.154 (15.38%)"],
+    ref: "后验 = 0.9×0.01 / (0.9×0.01 + 0.05×0.99) = 0.009/0.059 ≈ 0.1538；默认示例先验不同，不命中。",
+  },
+  {
+    slug: "it/exponential-distribution",
+    inputs: { lambda: "2", x: "1" },
+    clicks: ["calculate()"],
+    expect: ["P(X ≤ 1) = 0.865"],
+    ref: "指数分布 CDF F(1)=1−e⁻²=0.8647 ⇒ 0.865；默认参数不同，不命中。",
+  },
+  {
+    slug: "it/barcode-ean",
+    inputs: { data: "590123412345" },
+    clicks: ["generate()"],
+    expect: ["5901234123457"],
+    ref: "EAN-12 补一位校验位（590123412345→7）⇒ 完整 13 位码；默认示例码不同。",
+  },
 ];
 
 // ---------------------------------------------------------------- DOM stub
