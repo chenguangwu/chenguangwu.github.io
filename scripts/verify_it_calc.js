@@ -572,6 +572,19 @@ const CASES = [
     expect: ["&#60;&#98;&#62;"],
     ref: "独立复算：全字符编码把 `<` `b` `>` 转成 `&#60;&#98;&#62;`（`encodeText()` 只转 `&`/`<`/`>` 命名实体，产物是 `&lt;b&gt;Tom &amp; Jerry&lt;/b&gt;`，两者形态不同故可区分）。结果容器 `encoderOutput` 不在 harness 默认回写清单，须在用例里带 `dumpIds`。",
   },
+  {
+    slug: "it/crontab-generator",
+    inputs: { f_min: "30", f_hour: "2" },
+    expect: ["30 2 * * *"],
+    ref: "独立复算：分钟/小时注入 30 / 2、日月月星期保持 `*` ⇒ 五段表达式 `30 2 * * *`。默认态是 `0 9 * * *`，不命中。",
+  },
+  {
+    slug: "it/morse-decode-advanced",
+    inputs: { input: ".. --- .." },
+    clicks: ["dec()"],
+    expect: ["IOI"],
+    ref: "独立复算：`..` `---` `..` 三段解码 ⇒ `IOI`。**入口是 `dec()` 不是 `decode()`**（后者不存在，errs 会直接报 not defined）。默认示例是 `... --- ...` ⇒ SOS，不命中；常量参考表里有单字母电码但不含连续三字母串。",
+  },
 ];
 
 // ---------------------------------------------------------------- DOM stub
