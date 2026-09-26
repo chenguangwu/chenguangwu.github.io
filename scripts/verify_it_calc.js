@@ -311,6 +311,21 @@ const CASES = [
     expect: ["未检测到明显乱码特征。 修复输出： hello"],
     ref: "普通 ASCII 文本无乱码特征 ⇒ 判为「未检测到明显乱码特征」并把原文原样回吐为修复结果。默认态正文（中文占位）走另一分支，不命中（双态核验：注入 PASS / 默认 FAIL）。",
   },
+  {
+    slug: "it/hypergeometric-distribution",
+    // 超几何分布：P(X=k)=C(K,k)·C(N−K,n−k)/C(N,n)。N=20,K=5,n=3,k=2 ⇒ 10×15/1140=0.13158。
+    inputs: { N: "20", K: "5", n: "3", k: "2" },
+    expect: ["P(X = 2) = 0.132", "C(20, 3) = 1,140"],
+    ref: "Python comb(5,2)=10、comb(15,1)=15、comb(20,3)=1140 ⇒ P=10×15/1140=0.1316（页面渲染 0.132、分步区给出 C(20,3)=1,140）。默认 N/K/n/k 与注入值不同，两串均不出现。",
+  },
+  {
+    slug: "it/hmac-generator",
+    // 页面 crypto.subtle.importKey 在 harness 下抛 2，但结果区仍渲染出正确 HMAC 串 ⇒ 走的是页面自实现分支。
+    inputs: { key: "secret", msg: "hello" },
+    expect: ["HMAC-SHA1 5112055c05f944f85755efc5cd8970e194e9f45b",
+             "HMAC-SHA256 88aab3ede8d3adf94d26ab90d3bafd4a2083070c3bcce9c014ee04a443847c0b"],
+    ref: "Python hmac.new(b'secret', b'hello', sha1).hexdigest() = 5112055c05f944f85755efc5cd8970e194e9f45b；sha256 = 88aab3ede8d3adf94d26ab90d3bafd4a2083070c3bcce9c014ee04a443847c0b（四档 SHA1/256/384/512 页侧与 Python 逐一核对一致）。注：harness 下 subtle.importKey 抛错，但结果区仍落正确值，断言的是「正确值」而非错误分支。",
+  },
 ];
 
 // ---------------------------------------------------------------- DOM stub
