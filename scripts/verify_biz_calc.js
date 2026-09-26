@@ -280,6 +280,29 @@ const CASES = [
        + "'Beta gamma 9'.split(/(\\s+)/) = ['Beta',' ','gamma',' ','9']，reverse 后 join 得 '9 gamma Beta'。"
        + "默认态 currentMode='full' ⇒ 输出为整串反转 '9 agnammaB' ⇒ 不命中。",
   },
+  {
+    slug: 'biz/text-extract-ips',
+    inputs: { input: "客户端 10.0.0.5 与 8.8.8.8 连接" },
+    checkIds: ["ipv4", "ipv6", "validate", "dedup"],
+    expect: ["10.0.0.5 8.8.8.8"],
+    ref: "默认勾 ipv4/ipv6/validate/dedup（private/public 未勾 ⇒ 不过滤）⇒ text.match(IPV4_RE) 得 10.0.0.5、8.8.8.8，ipv6 无匹配。"
+       + "result 连排 '10.0.0.5 8.8.8.8' 原文被『与』隔开 ⇒ 非回显。默认态剥掉 checkIds ⇒ 8 处 getElementById(...).checked 读全为 false ⇒ matches 空、result 空 ⇒ 不命中。",
+  },
+  {
+    slug: 'biz/text-extract-ips',
+    inputs: { input: "出口 8.8.8.8 与 1.1.1.1 中继，内网 10.0.0.5 旁路" },
+    checkIds: ["ipv4", "validate", "dedup", "public"],
+    expect: ["8.8.8.8 1.1.1.1"],
+    ref: "只勾 public ⇒ isPrivate 过滤掉 10.0.0.5，保留 8.8.8.8、1.1.1.1 两个非私有地址；连排 '8.8.8.8 1.1.1.1' 原文被『与』隔开 ⇒ 非回显。"
+       + "⚠ 单值锚（只留一个 IP 时）会与输入回显同串 ⇒ 伪锚，必须用『两 IP 连排』同时证明过滤与提取。默认态剥掉 checkIds ⇒ result 空。",
+  },
+  {
+    slug: 'biz/text-reverse-lines',
+    inputs: { input: "alpha\nbeta\ngamma" },
+    expect: ["gamma beta alpha"],
+    ref: "默认只勾 skipEmpty（trimEach/reverseChars/keepFirst/keepLast 未勾）⇒ lines 全量参与，reverse() 内 toReverse.reverse() ⇒ 'alpha\\nbeta\\ngamma' → 'gamma\\nbeta\\nalpha'。"
+       + "result 连排 'gamma beta alpha' 原文顺序相反 ⇒ 非回显。默认态 result 是示例文本的行序反转 ⇒ 不命中。",
+  },
 ];
 
 // ---------------------------------------------------------------- main
