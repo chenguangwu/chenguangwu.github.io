@@ -1857,6 +1857,41 @@ const CASES = [
     expect: ['a\\"b'],
     ref: "PHP 双引号字符串转义：把 `\"` 写成 `\\\"`。默认样例不含本串；single 模式（只加单引号、不转义）属输入回显，不收。",
   },
+  {
+    slug: "it/jwt-debugger",
+    inputs: { "token-input": "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJhIjoxfQ.sig" },
+    clicks: ["decodeJwt()"],
+    expect: ['{ "alg": "RS256", "typ": "JWT" }'],
+    ref: "与 it/jwt-parser 同法构造测试向量：header/payload 的 base64url（去填充）+ `.sig`。锚在 header-json；默认样例是 HS256。",
+  },
+  {
+    slug: "it/og-meta-tag-generator",
+    inputs: { f_title: "T", f_desc: "D", f_url: "https://e.com/", f_site: "S", f_type: "website" },
+    clicks: ["build()"],
+    expect: ["已生成 9 条 meta 标签"],
+    ref: "产物条数 = 非空字段数决定的 og/twitter/meta 组合数；本组入参产出 9 条。默认样例字段组合不同。",
+  },
+  {
+    slug: "it/qr-decoder",
+    inputs: { input: "HELLO" },
+    clicks: ["generate()"],
+    expect: ["识别到 1 种类型"],
+    ref: "纯文本输入被识别为 1 种类型并给出内容；产物是页侧识别结论，不整段回显输入。默认样例不是本串。",
+  },
+  {
+    slug: "it/svg-placeholder-generator",
+    inputs: { w: "300", h: "150", txt: "HI" },
+    clicks: ["render()"],
+    expect: ["SVG 尺寸 300 × 150"],
+    ref: "产物摘要含尺寸与估算字节数，两者都随注入参数变化。默认样例尺寸不同。",
+  },
+  {
+    slug: "it/user-agent-parser",
+    inputs: { uaInput: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36" },
+    clicks: ["parse()"],
+    expect: ["Google Chrome 120.0.0.0"],
+    ref: "独立复算：UA 中 `Chrome/120.0.0.0` ⇒ 浏览器 Google Chrome 120.0.0.0；`Windows NT 10.0` ⇒ Windows 10/11；引擎 Blink。默认示例 UA 不同。",
+  },
 ];
 
 // ---------------------------------------------------------------- DOM stub
