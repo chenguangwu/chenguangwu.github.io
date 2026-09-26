@@ -181,6 +181,63 @@ const CASES = [
     ref: "与 1996 同页另一分支：1988 ⇒ (1988−4)%12=0 ⇒ 辰龙、(1988−4)%60=24 ⇒ 戊辰、天干戊属土。"
        + "与 1996 用例一道锁住「生肖/干支/五行」三个字段的换算，默认态 2000 不命中。",
   },
+
+  {
+    slug: "edu/edu-unit-converter",
+    inputs: { "fromVal": "12" },
+    expect: ["12 米 = 0.012 千米"],
+    ref: "单位换算：结果 = 输入值 × 源单位进率 ÷ 目标单位进率。默认 fromVal=1 ⇒ 输出 `1 米 = 0.001 千米`；"
+       + "本例锚 12 米 ⇒ 0.012 千米。只注入 fromVal、不动 cats/fromUnit/toUnit——该页其余字段注入会触发 "
+       + "`fromUnit.change: Cannot read properties of undefined` 并把输出回落成米制，属 harness 下 select 联动失效，非页面缺陷。",
+  },
+  {
+    slug: "edu/edu-unit-converter",
+    inputs: { "fromVal": "250" },
+    expect: ["250 米 = 0.25 千米"],
+    ref: "与 12 米同页另一档：12→0.012、250→0.25，锁住换算比例本身而非仅仅「有输出」。默认态 1 米不命中。",
+  },
+  {
+    slug: "edu/chinese-stroke-counter",
+    inputs: { "input": "你好" },
+    expect: ["你 7画 好 6画"],
+    ref: "汉字笔画查询：逐字查笔画数并渲染「X N画」列表。默认态为「永 5 画」的预置示例 ⇒ 强判别。"
+       + "同页 `result` 区（统计总字数/总笔画/平均笔画）走另一条渲染链，下面另立一例覆盖它。",
+  },
+  {
+    slug: "edu/chinese-stroke-counter",
+    inputs: { "input": "你好" },
+    expect: ["📊 统计结果 2 总字数 13 总笔画 2 已收录 6.5 平均笔画"],
+    ref: "与上例同页同输入、锚另一条渲染链：`result` 区统计「总字数 / 总笔画 / 平均笔画」。"
+       + "2 字共 13 画（你 7 + 好 6）⇒ 平均 6.5。默认态仅单字示例，不命中。",
+  },
+  {
+    slug: "edu/generator-26",
+    inputs: { "cnt": "6" },
+    expect: ["6. 位置编码：玄关-B2-鞋柜"],
+    ref: "记忆编码生成器（位置编码 / 虚拟格子 / 联想口诀）。本例锚第 6 条的「序号 + 房间+坐标+锚点」连排；"
+       + "默认 cnt=5 ⇒ 第 6 条本就不存在 ⇒ 默认态必 FAIL。口诀尾部的序号句是确定性的，不写进 expect 以规避随机措辞。",
+  },
+  {
+    slug: "edu/generator-26",
+    inputs: { "cnt": "8" },
+    expect: ["8. 位置编码"],
+    ref: "与上一条同页扩到 8 条：锚第 8 条序号前缀，验证 cnt 真的驱动循环次数（而非加一条后截断）。默认态 5 条不命中。",
+  },
+  {
+    slug: "edu/generator-4",
+    inputs: { "cnt": "6" },
+    expect: ["6. 然而，人工智能的发展也带来了隐私保护和就业结构变化的挑战"],
+    ref: "关键词生成器的条数型锚：第 6 条标题在本页语料中唯一对应「隐私保护和就业结构变化」，默认 5 条 ⇒ 不命中。"
+       + "每条末尾的 `[权重 1.00]` 是分词权重（随语料变化），只锚标题部分规避 flaky。",
+  },
+  {
+    slug: "edu/exam-gpa-calculator",
+    clicks: ["setScale('5point');renderAll();"],
+    expect: ["5.0 制: 优秀 5.0, 良好 4.0, 中等 3.0, 及格 2.0, 不及格 0"],
+    ref: "成绩换算标准切换（`data-s` 档位：china / 4standard / 4improved / 5point / 100）。"
+       + "默认档为 china（显示「中国 4.0 制: 90+=4.0 …」），注入 5point 后换算表整段改写 ⇒ 强判别。"
+       + "setScale 的合法参数必须取自页面 `data-s` 值；写 `'usa'` 之类不存在的档会静默无渲染（两态双红）。",
+  },
 ];
 
 async function main() {
