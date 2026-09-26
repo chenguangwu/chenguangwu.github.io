@@ -378,7 +378,69 @@ const CASES = [
     expect: ["材料类型： 内墙涂料 甲醛释放量：0.12 mg/m³ VOC含量：120 g/L"],
     ref: "结果区 `#res` 是单行拼串：材料类型 + 三项浓度 + 限值 + 环保等级 + 结论。本例连排前四段，把 matType（select 的 option value 是 `paint`）+ 三个数值同时纳入被测点。\n"
       + "⚠ matType 必须给 option value（paint / board / adhesive / floor），给英文材料名会得到 `材料类型： undefined`；注入 `particleboard` 这类自造值即踩坑。",
+  },  {
+    slug: "design/css-box-shadow-generator",
+    inputs: { offsetX: "12", offsetY: "-6", blur: "30", spread: "8", opacity: "75", color: "#ff6b35" },
+    expect: ["box-shadow: 12px -6px 30px 8px rgba(255, 107, 53, 0.75);"],
+    ref: "结果区 `#cssOutput` 是单行拼串。本例把 offsetX / offsetY / blur / spread 四个量纲与 color+opacity 合成的 rgba 一次锁死：模板常量 `box-shadow: / px / rgba(` + 注入值连排，任何一个字段被改坏都会让整串失配。\n"
+      + "⚠ 不要注入 `colorText`：该页 syncColor 会因找不到同级的 `color.input` 抛错，虽然结果仍算对，但会污染 errs；本例也刻意不给 `inset`（checkbox 未注入 ⇒ 输出无 `inset`）。\n"
+      + "⚠ opacity 走 0~100 的整数滑杆，页面内部再除以 100，给 `75` 才得到 `0.75`；给 `0.75` 会输出 `rgba(...,0.0075)`。",
   },
+  {
+    slug: "design/stripe-pattern",
+    inputs: { angle: "135", width: "32", color1: "#12b886", color2: "#ff6b6b", stripeType: "multi" },
+    expect: ["background: repeating-linear-gradient(135deg, #12b886, #12b886 32px, #ff6b6b 32px, #ff6b6b 64px, #12b886 64px, #12b886 96px);"],
+    ref: "结果区 `#cssOutput` 随 stripeType 变五种形态，只有 `multi` 会把 color1/color2 交替排三整段。锚点必须取「模板常量 `repeating-linear-gradient(` 角度 + 两个注入色 + 注入宽度 ×2/×3」的整串连排。\n"
+      + "⚠ stripeType 必须给 option value（`solid` / `dashed` / `double` / `gradient` / `multi`），给中文档位名会退化成默认分支；给 `gradient` 时输出是 `linear-gradient` 而非 `repeating-linear-gradient`（同页另一个分支），本例取 `multi` 避免与相邻批次撞串。",
+  },
+  {
+    slug: "design/gradient-from-color",
+    inputs: { baseColor: "#12b886", steps: "7", direction: "135" },
+    expect: ["background: linear-gradient(135deg, #d1faee 0%, #9af5da 17%, #64f0c6 33%, #2eebb2 50%, #14c993 67%, #0e936b 83%, #095d44 100%);"],
+    ref: "结果区 `#cssOutput` 是「baseColor → 按 steps 均分的 HSL 阶梯」。锚点必须包含全部 7 个色标：若只锚首尾两色，steps 被改坏（比如页面退化成 5 段）仍会 PASS。百分比分母固定 100/(steps-1)，故 steps=7 ⇒ 0/17/33/50/67/83/100。\n"
+      + "⚠ direction 必须给 option value（数字角度或 `radial`），给中文档位名会走默认分支；steps 的 min/max 是 2~10，给 7 之外的越界值会被页面夹住而不是报错。",
+  },
+  {
+    slug: "design/photo-storage-calculator",
+    inputs: { count: "250", megapixel: "45", format: "tiff", bit: "16", cardSize: "128", video: "30_4k" },
+    expect: ["171.66 MB 单张大小", "此卡可存储约 763 张照片"],
+    ref: "结果区 `#result` 开头是「单张大小 / 照片总计 / 视频大小 / 总大小 / 存储卡 / 可存储张数」六段。锚点取第 1 段与最后一段：前者锁死 megapixel×format×bit 的换算链，后者锁死 `cardSize × 0.9` 之类的可用容量折损。\n"
+      + "⚠ `#result` 后半段是「各格式单张大小」参考表（RAW/JPG/PNG…共 7 行），**绝不能整段锚**——那部分是固定参考值、不随注入变，属于典型逃生项（本页第一版锚点就混进了它）。\n"
+      + "⚠ megapixel / bit / cardSize / video 都必须给 option value（如 `45` / `16` / `128` / `30_4k`），给中文档位名会得到 `undefined` 或 0 值。",
+  },
+  {
+    slug: "design/css-text-shadow",
+    inputs: { offsetX: "6", offsetY: "-3", blur: "10", color: "#0ea5e9", opacity: "80", textColor: "#f472b6", fontSize: "48", customText: "ToolBox 144" },
+    expect: ["text-shadow: 6px -3px 10px rgba(14, 165, 233, 0.8);"],
+    ref: "本页有两组颜色：`color`（阴影色）与 `textColor`（文字色），结果区 `#cssOutput` 只反映阴影色，文字色只进预览。锚点把 offsetX/offsetY/blur 与「注入色 + opacity/100」连排，可同时防「两组颜色张冠李戴」与「量纲错位」。\n"
+      + "⚠ 同样不要注入 `colorText` / `textColorText`：这两个文本框的 handler 会去读 `xxx.input`（本页写成了 `colorText.input`），抛错且有时会吃掉后续字段的事件。\n"
+      + "⚠ 本页 cssOutput 只有阴影那一层，`customText` 只影响预览区，不进 `#cssOutput`（曾想过拿它做锚，属回显型伪锚）。",
+  },
+  {
+    slug: "design/generator-34",
+    inputs: { slides: "24", minutes: "8", points: "6", fontSize: "28", speed: "220", ratio: "1024x768" },
+    expect: ["20.0 s 每页平均时长", "1760 字 全文可讲字数"],
+    ref: "结果区 `#res` 常态很长（节奏分配表 + 字号表 + 动画建议 + 模板要素），但**只有前两段首行是纯推导值**。取「每页平均时长」（minutes×60/slides）与「全文可讲字数」（每分钟可讲字数 × 总时长）两条，都是只有本组输入才成立的量。\n"
+      + "⚠ `#res` 里的「模板要素参考」「动画时长上限」是静态参考块，改任何输入都不变，混入即逃生项。\n"
+      + "⚠ speed / ratio 都给 option value（`220` / `1024x768`），ratio 的 value 带 `x` 小写字母，不能写成 `1024×768`。",
+  },
+  {
+    slug: "design/generator-33",
+    inputs: { total: "200", chapters: "8", minCh: "1500", perDay: "2500", mode: "four" },
+    expect: ["250000 字 每章平均字数", "800 天（约 114.3 周） 完成周期"],
+    ref: "结果区 `#res` 是「每章均字 / 完成周期 / 结构分配表 / 逐章配额表 / 设定卡模板 / 篇幅惯例」六块。锚点前两条：前者 = 总字数/章数，后者 = 总字数/日均，二者都直接由注入值推导，且格式固定保留两位/一位小数。\n"
+      + "⚠ 中段「【人物设定卡】【章节卡】」与末尾「篇幅惯例参考」两块是常量文本，注入任何值都不变，属静态占位常量锚，必须排除。\n"
+      + "⚠ mode 必须给 option value（`three` / `four` / `even`），给中文会得到默认三幕结构（本例 `four` 的分幕占比 20/30/30/20）。",
+  },
+  {
+    slug: "design/generator-38",
+    inputs: { target: "个人财务记账系统的「月度汇总」模块", constraint: "不超过 10 字；需体现自动归类", cnt: "5", task: "优化", format: "表格" },
+    expect: ["5 期望输出条数", "【任务】对「个人财务记账系统的「月度汇总」模块」执行优化。"],
+    ref: "结果区 `#res` 首行是「完整度（满分 100）/ 已填要素 / 期望输出条数」。**首行第一条「100 提示词完整度（满分 100）」是默认值下的常量，不可用**——默认态也会命中，第一版锚点就踩了这个逃生项；改用「期望输出条数」，它随 cnt 走（默认 cnt=3 ⇒ `3 期望输出条数`）。\n"
+      + "第二条锚「【任务】…执行优化。」整句：把 target 与 task 同时纳入被测点，任何一侧字段名写错都会变成 `undefined`。\n"
+      + "⚠ format 给 option 显示文本（`表格`），不是 value（`表格` 与 value 同名，别手写成 `table`）。",
+  },
+
 ];
 
 // ---------------------------------------------------------------- main
