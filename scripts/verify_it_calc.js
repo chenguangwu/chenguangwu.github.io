@@ -551,6 +551,27 @@ const CASES = [
     expect: ["('alpha', 'beta', 'gamma')"],
     ref: "独立复算：SQL IN 子句形态 ⇒ 单引号包裹、以 `, ` 连接、整体套圆括号。与 quote 模式同页同输入，靠 select 档位区分（判据⑧）。",
   },
+  {
+    slug: "it/char-encoder",
+    inputs: { input: "Hi~" },
+    expect: ["SGl+"],
+    ref: "独立复算：`Hi~` 的 Base64 ⇒ `SGl+`（同批 ASCII 码 72,105,126 / Unicode U+0048… / 二进制 01001000…，任一都行）。默认态 input 为空 ⇒ 各编码块只渲染标题不渲染值，不命中。",
+  },
+  {
+    slug: "it/quoted-printable",
+    inputs: { input: "a=b&c" },
+    clicks: ["enc()"],
+    expect: ["a=3d"],
+    ref: "独立复算：QP 编码把 `=` 转义为 `=3d` ⇒ `a=3db&c`（`&` 保留）。默认态输入为空直接 return，不命中。",
+  },
+  {
+    slug: "it/html-entities",
+    inputs: { encoderInput: "<b>Tom & Jerry</b>" },
+    clicks: ["encodeAll()"],
+    dumpIds: ["encoderOutput"],
+    expect: ["&#60;&#98;&#62;"],
+    ref: "独立复算：全字符编码把 `<` `b` `>` 转成 `&#60;&#98;&#62;`（`encodeText()` 只转 `&`/`<`/`>` 命名实体，产物是 `&lt;b&gt;Tom &amp; Jerry&lt;/b&gt;`，两者形态不同故可区分）。结果容器 `encoderOutput` 不在 harness 默认回写清单，须在用例里带 `dumpIds`。",
+  },
 ];
 
 // ---------------------------------------------------------------- DOM stub
