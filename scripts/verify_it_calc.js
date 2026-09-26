@@ -1031,6 +1031,32 @@ const CASES = [
     expect: ["共 0 项"],
     ref: "反向锚：响应头速查过滤空结果计数归零；默认列表非空。",
   },
+  {
+    slug: "it/affine-cipher",
+    inputs: { input: "ABCD", a: "3", b: "1" },
+    clicks: ["dec()"],
+    expect: ["RAJS"],
+    ref: "解密分支 `dec()` 走逆变换 a⁻¹(c−b)=9(c−1) mod 26：A→R、B→A、C→J、D⇒S（独立复算得 RAJS）。默认 a=5/b=8（产物 OJEZ），注入值必须避开默认。",
+  },
+  {
+    slug: "it/basic-auth-generator",
+    inputs: { f_user: "alice", f_pass: "pw123" },
+    expect: ["Authorization: Basic YWxpY2U6cHcxMjM="],
+    ref: "Basic 认证头 = `Basic ` + Base64(`alice:pw123`) = YWxpY2U6cHcxMjM=；裸 input event 即渲染，无需 clicks。默认示例用户名/口令不同。",
+  },
+  {
+    slug: "it/date-duration",
+    inputs: { d1: "2024-01-01", d2: "2024-03-15", inc: "1" },
+    clicks: ["calcTool()"],
+    expect: ["相差 74 天"],
+    ref: "2024 闰年 1 月 31 + 2 月 29 + 15 − 1 = 74 天（页面按「不含结束当天」口径）。默认起止日不命中。",
+  },
+  {
+    slug: "it/country-flag",
+    inputs: { search: "zzz" },
+    expect: ["共 0 个国家/地区"],
+    ref: "反向锚：灌入不存在的国家名 ⇒ 计数归零；默认列表含上百个国家，默认态必不命中。与 http-* 五页同族。",
+  },
 ];
 
 // ---------------------------------------------------------------- DOM stub

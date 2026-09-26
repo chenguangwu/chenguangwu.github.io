@@ -187,7 +187,7 @@
 - **但另有 191 个含 checkbox 的页面在全站任何 verify 文件中都没有用例**（`design/*` 11 页、`edu/*` 40 页、`biz/*` 文本类为主）。
 - 判定口径注意：用例块的键名**常不带引号**（`slug: "x"` / `inputs: {}` / `checkIds: [...]`），扫描脚本必须写成 `"?slug"?\s*:\s*"([^"]+)"`，否则会大量误报「无用例 / 无注入通道」（本次两次误报均源于此）。
 
-**处置**：属新线（补用例 ≠ 改弱用例），单独立批；须守 §8.1（expect 独立复算）。**已交付 291 例**（`design/*` 87 + `edu/*` 34 + `biz/*` 54 + `it/*` 100，逐例锚点见各用例 `ref`）。剩余 **998** 页待补（`it/*` 304、`general/*` 156、`finance/*` 92、`science/*` 78、`fun/*` 60 …）【按 `tools/**` 真实文件数重校】`design/image-resizer`（`generate()` 首行 `if(!origImg) return` + 依赖 canvas 解码）、`edu/exam-study-planner`（localStorage 桩只写不读 ⇒ 统计分子/分母不可达）**结构性不可注入，不硬写用例**。
+**处置**：属新线（补用例 ≠ 改弱用例），单独立批；须守 §8.1（expect 独立复算）。**已交付 295 例**（`design/*` 87 + `edu/*` 34 + `biz/*` 54 + `it/*` 104，逐例锚点见各用例 `ref`）。剩余 **994** 页待补（`it/*` 304、`general/*` 156、`finance/*` 92、`science/*` 78、`fun/*` 60 …）【按 `tools/**` 真实文件数重校】`design/image-resizer`（`generate()` 首行 `if(!origImg) return` + 依赖 canvas 解码）、`edu/exam-study-planner`（localStorage 桩只写不读 ⇒ 统计分子/分母不可达）**结构性不可注入，不硬写用例**。
 
 ## 八、反模式与防复发（铁律）
 
@@ -306,11 +306,12 @@
 
 ## 九、发现但未修的真实缺陷（待老板定夺）
 
-> **缺陷 A–U 已闭环归档**（根因/防复发进 §八，明细见 memory 2026-09-2*.md 与全量快照）。本节只留**未处理**项。
+> **缺陷 A–U 已闭环**（根因进 §八，明细见 memory 2026-09-2*.md）。本节只留**未处理**项。
 
 - **未处理（疑似口径）**：`legal/calc-8`（年终奖计税）把「社保/专项附加」按**年度值**扣除、未 ×12；若语义是「月缴」则应税所得高估、税额偏低。等老板确认语义。
 - **未处理（非缺陷）**：`ai/ocr`、`ai/image-classification` 等 5 个 `<script type="module">` 页的 `own_len` 度量盲区（§7.3 结论：不改）。
 - **未处理（字段错位真缺陷）**：`chinese/chinese-radical-lookup` 的 `DATA[c]` 实为 `[部首,部首名,总笔画,字形描述,拼音,本字]`，而 `query()` 错取 `d[3]` 当读音、`d[4]` 当字形 ⇒ 输出「读音：水流」「字形：hé（河）」。修法：① 改模板对调 d[3]/d[4]（1 处）；② 改 DATA 顺序（面大）。未改页面，等定夺。
+- **未处理（P0 真缺陷 · 浏览器卡死）**：`it/docker-run-converter` 的 `parse()`：非选项且 image 已赋值时无分支自增 `i` ⇒ 镜像名后有尾参（`docker run -it … alpine sh`）即**无限循环、标签页冻死**（默认语料无尾参故难现）。修法：`while` 末尾补 `i++`。同类可疑 `it/barcode-upc`。未改页面，等定夺。
 - **站点级 `showToast(i18nText())` 显示 `undefined`（待定夺）**：`i18nText` 在 key 与 fallback 均空时 `return key` ⇒ `undefined`，`showToast` 写入 `textContent` 被 WebIDL 转字符串 `undefined`。全站 **3208 处 / 1073 页**（`copyText` 另 200 处）；空输入/复制失败分支弹 `undefined` 气泡（BATCH105 实测）。影响面大、属文案层，**未改**。建议（待拍板）：`showToast`/`copyText` 入口加「空/undefined 回落默认中文」兜底（改 `js/common.js` 1 处、页面零改动）；逐页补 `i18nText` 需改 1073 文件，不建议。
 
 ---
@@ -323,14 +324,14 @@
 
 | 级别 | 内容 | 状态 |
 |---|---|---|
-| **P0** | 页面级真实缺陷修复（§九 清单） | A–U 已闭环（含 96 小行业 687 页默认态 + 边界态精查）；**当前无进行中批次**，§九 仅余 `ai/*` 度量盲区（评估为不改） |
+| **P0** | 页面级真实缺陷修复（§九 清单） | A–U 已闭环；**当前无进行中批次**，§九 仅余 `ai/*` 度量盲区（评估为不改） |
 | **P1** | 按热度逐分类 §4.1 八项目标收口 | **全站 209 分类已收口**（§7.2 为空） |
 | **P2** | ✅ 工具质量分级提升（C→A） | **已达成：A 级率 70.0% → 99.2%**（§7.3） |
 | **P3** | `scripts/` 用例与基线维护（弱用例去默认化等） | **仅随 P0/P1 顺带处理**；门禁必需项（`run_gates.py` 链路）除外 |
 
 ### 10.2 现状（实测基线）
 
-- `all_default 4 / no_inputs 10 / escape 0`；门禁 `run_gates.py` **216 项全过**、逃生项 0（判别器已检 **3383** 例 / 跳过 50）。
+- `all_default 4 / no_inputs 10 / escape 0`；门禁 `run_gates.py` **216 项全过**、逃生项 0（判别器已检 **3387** 例 / 跳过 50）。
 - A 级率 **99.2%**（A 4693 / B 32 / C 4）；术语内链 **1591 页 / 2268 条**（零死链、零自链）。
 - 弱用例口径与选批规则见 §10.3。
   - **注意：弱用例整体处于判别器盲区** —— 「注入值等于默认值」的用例被判 `usable=false` 直接跳过（§10.5）⇒ `escape=0` 只说明强用例无逃生项；每批改造后须重跑判别器确认其由「跳过」转为「已检且变红」。
@@ -386,8 +387,8 @@
 
 **C. 定 expect 的硬规则**
 
-1. **锚点只依赖被测点且形态安全**：禁混入表头 / info-box 常驻文案 / 按钮文本 / 页脚免责 / 静态 SVG 文本 / 下拉 option value 等**页面常量**。`blob.includes` 是**子串**匹配 ⇒ `达标` ⊂ `未达标`，否定式结论词须锚**完整结论串**；数值须与标签绑成连续串（`18.75 最大弯矩 M (kN·m)`），否则裸数值会被明细大表 / 兜底模板命中；含 `<` 的输出会被标签剥离吞掉。
-2. **双态核验 + 默认态逐串比对**：dump 注入态与默认态逐串比对，**只有「注入态有、默认态无」的串能进 expect**（防同值巧合；兜底会无参调用 `genPassword` / `loadDefault` 产出另一套结果 ⇒ 锚可能与其**同串或成子串**，如「23 总物料数」含「3 总物料数」）。`inputs` 逐字等于页面默认值 ⇒ 判别器判 `usable=false` 直接 `skipped++` ⇒ **凡 `all_default` 例一律视为零判别力、须重写**；零影响键不要写进 `inputs`（会造成「看似非默认」的假象）。
+1. **锚点只依赖被测点且形态安全**：禁混入表头 / 常驻文案 / 按钮文本 / 页脚免责 / 静态 SVG 文本 / option value 等**页面常量**。`blob.includes` 是**子串**匹配 ⇒ `达标` ⊂ `未达标`，否定式结论词须锚**完整结论串**；数值须与标签绑成连续串（`18.75 最大弯矩 M (kN·m)`），否则裸数值被明细大表命中；含 `<` 的输出会被标签剥离吞掉。
+2. **双态核验 + 默认态逐串比对**：dump 注入态与默认态逐串比对，**只有「注入态有、默认态无」的串能进 expect**（防同值巧合；兜底无参调用 `genPassword`/`loadDefault` 又产一套结果 ⇒ 锚可能同串或成子串，如「23 总物料数」含「3 总物料数」）。`inputs` 逐字等于页面默认值 ⇒ 判别器判 `usable=false` 直接 `skipped++` ⇒ **凡 `all_default` 例一律视为零判别力、须重写**；零影响键别写进 `inputs`（假象）。
 3. **兜底污染三则**：① 兜底无参调用候选函数会**改状态后重算**、把结果区重写成另一套值 ⇒ expect 避开任何无参函数能产出的串；② `clicks` 型 expect 必须在阶段 ② 命中，否则 **`FAIL` 的 `fullBlob` 是「兜底后」视图**（与默认态逐字相同）⇒ 不能据此判断 clicks 是否生效；③ **expect 出现 `undefined` / `NaN` 字面量几乎必是兜底产物**（无参 `selectDate()` → `undefined-NaN-undefined`）⇒ 先辨段再改锚。
 4. **锚点优先级 + checkbox 反向利用**：① 非兜底分支独有的文案（`if/else` 的**非 else** 路）；② 只由注入值派生、兜底无法复现的数值；③ 跨档 / 跨分支的等级词（改前先手算是否落同档）。桩内 checkbox 恒未勾 ⇒ 默认态渲染「xx缺失」并给低分 ⇒ **勾满 `checkIds` 抢「全部达标」分支做正向强锚**。
 5. **数值合法性与齐次量**：有界量（决定系数 / 概率 / p 值 / 覆盖率 / 率）越界即公式错，交付前必查 `[0,1]`；「基础分 − 扣分」式先算最小值是否越界；**凡输出物理不可能值必查公式本身**。比值 / 密度 / 单价 / 覆盖率换值前先确认不是等比缩放，改完须实测输出是否跟着变。
@@ -398,12 +399,12 @@
 10. **空结果提示不可锚两形态**：① 提示同时被兜底链复现（`selectXxx()` 无参置全局态 `undefined` ⇒ 过滤集恒空、渲同一提示）⇒ 注入态与失败态同串，判逃生项。② 提示在**独立静态元素**内、仅 `style.display` 切换 ⇒ 不写入结果容器 ⇒ blob 永不含该串。✅ 定锚前用探针双态 dump 比对，只取「注入态有 / 默认态无且兜底不复现」的串。
 11. **「名 + 参数」型 option 文本是逃生项**：`<select>` 的 `option.textContent` 会进 `collectStrings` ⇒ `东京（日本）UTC+9` 这类串在**默认态 select 里本就存在** ✅ 只锚**随注入值变化的派生量**。「写 localStorage 再读回」链路在 harness 下**只写不读**（`getItem` 缺失 ⇒ `getTasks()` 恒 `[]`）**不可注入**（`edu/exam-study-planner`）。
 12. **调试陷阱（会把「没生效」误判成 bug）**：① `verify_it_calc.js` **必须留在 `scripts/` 下**跑 —— `TOOLS_DIR` 取自 `__dirname`，拷到仓库外会整页返「文件不存在」且 `errs=[]`（看似「clicks 静默失败」）；要插日志就在 `scripts/` 下临时副本改完删。② 确认 clicks 是否真执行：用 `clicks:["throw new Error('RAN')"]`，`errs` 出现 `RAN` 即已执行（比 DOM 探针可靠）。③ 带连字符的 id 在用例对象里**必须加引号**（`{ "focus-mins": "50" }`），裸写 `focus-mins:` 直接 SyntaxError。
-13. **「textarea + 预览区」双元页（Markdown / 富文本类）**：blob 同时含**注入原文回显**（textarea 的 `value`）与**渲染产物** ⇒「渲染产物文本 ⊂ 注入原文」的锚（`<strong>bold</strong>` 剥标签后的 `bold`、`# H1` 剥标签后的 `H1`）**测不到渲染**，属伪锚。✅ 只锚**渲染独有的连排串**：剥标签后**标签被换成空格**，同元素内相邻 cell 连成 `甲 乙 24 36 81 90`，而原文 `| 甲 | 乙 |` 里 `甲 乙 24` 并不连续 ⇒ 天然非回显。**expect 也不能写 `<strong>…</strong>` / `<h2>…</h2>` 这类带标签形式**（写了必 FAIL，易误读成「渲染没生效」，实为锚错）。
-15. **多行 textarea 的产出串，换行在 blob 里被归一成空格 ⇒ 锚要写 `bbb aaa ccc`，不能写 `bbb\naaa`**（首版按 `\n` 写必 FAIL，极易误读成「去重没生效」）。✅ 排序/去重类工具一律锚**整段连排**（`fig pear apple`）；**单字符或极短锚（`c`）在默认态示例行里本就存在 ⇒ 逃生项**，定锚前先 dump 默认态。凡「换个方向再跑一遍」能给出反向串的（`length-asc`→`length-desc`），两个方向都写进同一用例的 `expect`，可防「排序根本没生效」的假通过。
+13. **「textarea + 预览区」双元页（Markdown / 富文本类）**：blob 同时含**注入原文回显**（textarea 的 `value`）与**渲染产物** ⇒「渲染产物文本 ⊂ 注入原文」的锚（`<strong>bold</strong>` 剥标签后的 `bold`、`# H1` 剥标签后的 `H1`）**测不到渲染**，属伪锚。✅ 只锚**渲染独有的连排串**：剥标签后**标签被换成空格**，同元素内相邻 cell 连成 `甲 乙 24 36 81 90`，而原文 `| 甲 | 乙 |` 里 `甲 乙 24` 并不连续 ⇒ 天然非回显。**expect 也不能写 `<strong>` / `<h2>` 带标签形式**（写了必 FAIL，实为锚错）。
+15. **多行 textarea 的产出串，换行在 blob 里被归一成空格 ⇒ 锚要写 `bbb aaa ccc`，不能写 `bbb\naaa`**（首版按 `\n` 写必 FAIL，易误读成「去重没生效」）。✅ 排序/去重类工具一律锚**整段连排**（`fig pear apple`）；**极短锚（`c`）默认态示例里本就有 ⇒ 逃生项**。凡「换个方向再跑一遍」能给出反向串的，两个方向都写进同一用例的 `expect`，可防「排序没生效」的假通过。
 16. **「输入 textarea + 结果区」提取器类（正则抽邮箱 / URL / 日期一类）：输入回显与提取结果并存**
-⇒ 直接锚被提取内容（`a1@toolbox.com`）测的是**回显**，清空注入后仍从 textarea 命中 ⇒ 伪锚 ✅ 锚落在**结果区独有的形态**：`text-extract-emails` 每封邮箱后跟「复制」按钮 ⇒ 锚「邮箱 + 空格 + 复制」；`text-extract-urls` 锚两段 URL 连排，原文用「与」隔开使之不连续。另 `text-split` 的「序号+段内容」锚（`3 cherry`）默认态示例里本就有 ⇒ 改用段数标签「（共 3 段）」。 （补）这类页常由 n 个 checkbox 决定抽不抽，**缺 `checkIds` 时 `extract()` 在首个 `getElementById(x).checked` 处抛错中断** ⇒ 结果区恒为初始值，画面与「无匹配」**完全一致**，极易误判成「页无功能」⇒ **注入后结果区逐字不变就先怀疑它**，须声明全部默认勾选项（`biz/text-extract-numbers`/`dates` 同形）
+⇒ 直接锚被提取内容（`a1@toolbox.com`）测的是**回显**，清空注入仍命中 ⇒ 伪锚 ✅ 锚落在**结果区独有形态**：`text-extract-emails` 每封邮箱后跟「复制」按钮 ⇒ 锚「邮箱 + 空格 + 复制」；`text-extract-urls` 锚两段 URL 连排，原文用「与」隔开使之不连续。另 `text-split` 的「序号+段内容」锚（`3 cherry`）默认态已有 ⇒ 改用段数标签「（共 3 段）」。 （补）这类页常由 n 个 checkbox 决定抽不抽，**缺 `checkIds` 时 `extract()` 在首个 `getElementById(x).checked` 处抛错中断** ⇒ 结果区恒为初始值，画面与「无匹配」**完全一致**，极易误判成「页无功能」⇒ **注入后结果区不变先怀疑它**，须声明全部默认勾选项（`biz/text-extract-numbers`/`dates` 同形）
 
-17. **控件 id 不存在 = P0 死页（加载即 TypeError、整页无输出）**：harness `getEl()` 对未知 id 现造桩、永不返回 null ⇒ 死页只表现为「无输出 / 只有常量锚」。判据 = jsdom 调入口函数抛 `Cannot read properties of null`；处置：以 `<label for=…>` 的 id 改 **HTML** 并扫同模板族。另：`createElement()` 桩不回写 `textContent`→`innerHTML` ⇒ 走 `escH()` 的产出在桩内恒空。 18. **「美化/格式化」类页在 harness 内产物与输入同形（锚全成回显伪锚）**：`getIndent()` 读 select，`parseInt(v)=NaN` ⇒ `' '.repeat(NaN)` 空串 ⇒ 缩进恒 0（`it/shell-script-formatter`）。处置：改走同页「压缩/转义」路径找非回显锚（`minifyShell` 以 `; ` 连接 ⇒ `echo a; echo b`）。（反查 `repeat(parseInt` 即同族）。另：**结果容器不在 DUMP_IDS 时用用例级 `dumpIds`**（`it/html-entities` 的 `encoderOutput`）；dump 只出常量/回显时先怀疑此因。
+17. **控件 id 不存在 = P0 死页（加载即 TypeError、整页无输出）**：harness `getEl()` 对未知 id 现造桩、永不返回 null ⇒ 死页只表现为「无输出 / 只有常量锚」。判据 = 调入口函数抛 `Cannot read properties of null`；处置：改 **HTML** 的 id 并扫同族。另：`createElement()` 桩不回写 `textContent`→`innerHTML` ⇒ `escH()` 产出在桩内恒空。 18. **「美化/格式化」类页在 harness 内产物与输入同形（锚全成回显伪锚）**：`getIndent()` 读 select，`parseInt(v)=NaN` ⇒ `' '.repeat(NaN)` 空串 ⇒ 缩进恒 0（`it/shell-script-formatter`）。处置：改走同页「压缩/转义」路径找非回显锚（`minifyShell` 以 `; ` 连接 ⇒ `echo a; echo b`）。（反查 `repeat(parseInt` 即同族）。另：**结果容器不在 DUMP_IDS 时用用例级 `dumpIds`**（`it/html-entities` 的 `encoderOutput`）；dump 只出常量/回显时先怀疑此因。
 
 **D. 工具与方法**
 
