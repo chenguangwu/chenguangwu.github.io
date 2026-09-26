@@ -745,6 +745,40 @@ const CASES = [
     expect: ["a.b+tag@google.com"],
     ref: "小写化后输出（保留标签部分、未去点）；默认示例地址不同形，不命中。",
   },
+  {
+    slug: "it/protobuf-parser",
+    inputs: { input: "message M { optional string a = 1; }" },
+    clicks: ["parseProto()"],
+    expect: ['"name": "M"'],
+    ref: "message 名与字段（type/name/number/标记位）由语法树解析得出；默认示例 message 名不同，不命中。",
+  },
+  {
+    slug: "it/math-evaluator",
+    inputs: { expr: "2*(3+4)" },
+    clicks: ["calc()"],
+    expect: ["结果： 14"],
+    ref: "先乘括号后乘除：2×7=14，验证运算符优先级与括号处理正确；默认表达式结果不同。",
+  },
+  {
+    slug: "it/keyword-extractor",
+    inputs: { inputText: "苹果 香蕉 苹果 橙子 香蕉 苹果" },
+    clicks: ["extractKeywords()"],
+    expect: ["1 苹果 3 100.0%"],
+    ref: "词频统计 + 相对频率（3/3=100.0%、2/3=66.7%），默认语料词表与频次均不同。",
+  },
+  {
+    slug: "it/csv-to-html-table",
+    inputs: { csvInput: "a,b\n1,2", sepSel: "," },
+    expect: ["预览（2 行）"],
+    ref: "行数统计随注入行数变化（默认示例行数不同 ⇒ 双态已排除同值巧合）。",
+  },
+  {
+    slug: "it/regex-visualizer",
+    inputs: { pattern: "^a(z+)" },
+    clicks: ["render()"],
+    expect: ["3 --z--> 4"],
+    ref: "默认 pattern 为 `^a[0-9]+b$`（含 a 转移、无 z 转移）⇒ 锚取注入态独有的 z 转移边；`1 --a--> 2` 在默认态同命中，不可用。",
+  },
 ];
 
 // ---------------------------------------------------------------- DOM stub
