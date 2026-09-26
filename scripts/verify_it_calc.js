@@ -1892,6 +1892,41 @@ const CASES = [
     expect: ["Google Chrome 120.0.0.0"],
     ref: "独立复算：UA 中 `Chrome/120.0.0.0` ⇒ 浏览器 Google Chrome 120.0.0.0；`Windows NT 10.0` ⇒ Windows 10/11；引擎 Blink。默认示例 UA 不同。",
   },
+  {
+    slug: "it/regex-escape",
+    inputs: { input: "a.b*c" },
+    clicks: ["esc()"],
+    expect: ["a\\.b\\*c"],
+    ref: "正则元字符转义：`.`→`\\.`、`*`→`\\*`，其余原样。默认样例不含本串。",
+  },
+  {
+    slug: "it/regex-visualizer",
+    inputs: { pattern: "a+" },
+    clicks: ["render()"],
+    expect: ["总状态：4"],
+    ref: "状态机展开：`a+` ⇒ 总状态 4（含 start + accept），转移 S0--a-->S1、S1--+-->S2、S2--ε-->S3。默认样例模式不同。",
+  },
+  {
+    slug: "it/toml-formatter",
+    inputs: { input: "a=1" },
+    clicks: ["formatToml()"],
+    expect: ["a = 1"],
+    ref: "TOML 规范化：`name=value` ⇒ `name = value`。默认样例是多节 TOML，首行不是本串。",
+  },
+  {
+    slug: "it/xxencode",
+    inputs: { input: "Hi" },
+    clicks: ["enc()"],
+    expect: ["0G4Y+"],
+    ref: "独立复算（无头模式）：2 字节 ⇒ 长度字节 `0`（值 2）+ 三段 6-bit 字符（18→`G`、6→`4`、36→`Y`）+ `+` 结束符 ⇒ `0G4Y+`。默认样例内容不同。",
+  },
+  {
+    slug: "it/rc4",
+    inputs: { input: "Hi", key: "KEY" },
+    clicks: ["encrypt()"],
+    expect: ["3Qk="],
+    ref: "独立复算（Python 实现 RC4 KSA/PRGA）：密文字节 dd 09 ⇒ base64 `3Qk=`，与页面输出逐字节一致。默认样例明文/密钥不同。",
+  },
 ];
 
 // ---------------------------------------------------------------- DOM stub
