@@ -240,6 +240,34 @@ const CASES = [
     ref: "独立复算：#text 注入 `TOOLBOX` ⇒ 预览区与 CSS 代码均使用注入文本 ⇒ 锚 `TOOLBOX`。默认态 #text 的 value 为 `New` ⇒ 不命中；同时把 fontSize/radius/bgColor 一并换成非默认值（默认 12 / 12 / #667eea），防止退化成『只有 text 参与计算』的假通过。"
        + "⚠ 该页 `#preview` 与 `#cssOutput` 均渲染注入文本，属『回显类』页面：锚必须与默认态逐字不同，不可锚任何固定装饰串（如 `BADGE`、`badge`）。",
   },
+  {
+    slug: "design/card-generator",
+    inputs: { radius: "16", pad: "24", borderW: "2", shX: "4", shY: "8", shBlur: "12", borderColor: "#334155", bgColor: "#f8fafc" },
+    expect: [".card { background: #f8fafc; border-radius: 16px;"],
+    ref: "独立复算：CSS 由模板拼成 `.card { background: ${bgColor}; border-radius: ${radius}px; padding: ${pad}px; border: ${borderW}px solid ${borderColor}; …` ⇒ 注入 bgColor=#f8fafc / radius=16 / pad=24 / borderW=2 / borderColor=#334155 得该连排。默认态各值均为页面 `value` 默认值 ⇒ 不命中。shX/shY/shBlur 一并换非默认（默认 0/4/12），防止退化成『只有颜色参与计算』的假通过。"
+       + "⚠ 只锚 `border-radius: 16px` 不够：`.card {` 与 `{` 是模板常量，默认态也在 ⇒ 必须带上 `background: #f8fafc;` 才锁住注入值。",
+  },
+  {
+    slug: "design/blueprint-grid",
+    inputs: { minorSize: "24", majorSize: "120", minorColor: "#e2e8f0", majorColor: "#94a3b8", bgColor: "#ffffff" },
+    expect: ["background-size: 24px 24px, 24px 24px, 120px 120px, 120px 120px;"],
+    ref: "独立复算：`background-size` 四项按 `${minor}px ${minor}px` ×2 + `${major}px ${major}px` ×2 拼成 ⇒ minorSize=24 / majorSize=120 得该串。默认态分别为 20 / 100 ⇒ 不命中。"
+       + "⚠ 首版注入 `20 / 100` 时默认态也 PASS（**默认值撞注入 ⇒ 逃生项**），改为 24 / 120 后才真正依赖被测点；同族 `checkerboard-generator` 的 `background-position: 0 0, Npx Npx;`（N = size）同理。",
+  },
+  {
+    slug: "design/button-generator",
+    inputs: { btnText: "CLICK ME", fontSize: "18", padX: "32", padY: "14", borderW: "3", bgColor: "#16a34a", borderColor: "#166534" },
+    expect: [".btn-custom { padding: 14px 32px; background: #16a34a;"],
+    ref: "独立复算：模板为 `.btn-custom { padding: ${padY}px ${padX}px; background: ${bgColor}; color: ${textColor}; border: ${borderW}px solid ${borderColor}; …` ⇒ 注入 padY=14 / padX=32 / bgColor=#16a34a / borderW=3 / borderColor=#166534 得该连排（注意 CSS 里 padding 是「先纵后横」，与注入键 padY/padX 同序）。默认态全部取页面默认值 ⇒ 不命中。"
+       + "⚠ `#preview` 里还会再渲染一次 `CLICK ME`（回显），若改锚纯文本会撞默认态 ⇒ 只锚随参数变化的 CSS 片段。",
+  },
+  {
+    slug: "design/checkerboard-generator",
+    inputs: { size: "32", color1: "#22c55e", color2: "#0f172a" },
+    expect: ["background-position: 0 0, 32px 32px;"],
+    ref: "独立复算：`background-size: ${size*2}px ${size*2}px`（32 ⇒ 64px）且 `background-position: 0 0, ${size}px ${size}px;` ⇒ 注入 size=32 得 `background-position: 0 0, 32px 32px;`，与默认态（size 默认值 ⇒ 另一组尺寸）不同。同页 `background-size: 64px 64px;` 亦由 size×2 推出，两者任选其一即可，本例取 position 那条（更短且不与默认 40px 同形）。"
+       + "⚠ 颜色只进 `linear-gradient` 段，锚颜色会撞默认态渐变描述 ⇒ 只用尺寸类字段。",
+  },
 ];
 
 // ---------------------------------------------------------------- main
