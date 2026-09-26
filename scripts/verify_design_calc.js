@@ -482,6 +482,59 @@ const CASES = [
       + "⚠ 本页 `#pcMatrix` / `#pcOverlay` 依赖 canvas，harness 内会抛错；只要不把断言锚在 canvas 区即可。\\n"
       + "⚠ 页面脚本里的函数名是 `pcApply` 之类，没有 `apply()`——给 clicks 写 `apply()` 只会报 `apply is not defined`，本例用纯 inputs 触发，不需要 clicks。",
   },
+  {
+    slug: "design/svg-minifier",
+    checkIds: ["optComment", "optWhitespace"],
+    clicks: ["var e=document.getElementById('svgInput');e.value='<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"100\" height=\"100\"><!-- hello --><rect   width=\"100\"   height=\"100\" /></svg>';generate();"],
+    expect: ["原始: 122 字节 → 压缩后: 104 字节 (节省 14.8% )"],
+    ref: "结果走 `#stat` 文本行「原始 N 字节 → 压缩后 M 字节 (节省 R%)」，注入带注释与多余空白的 SVG 后四项「移除注释/移除空白」生效 ⇒ 字节数真实下降。\\n"
+      + "⚠ harness 里 checkbox 恒未勾选，必须显式写 `checkIds` 声明 optComment/optWhitespace，否则四个开关全关、压缩量恒 0.0%（等于默认态）。\\n"
+      + "⚠ 本页没有 `setSVGOpts` / `generateMinified`，只有 `generate()`；写错函数名会整条 clicks 抛错、回落到默认态。",
+  },
+  {
+    slug: "design/pixel-art-generator",
+    inputs: { gs: "12" },
+    expect: ["12×12 网格尺寸"],
+    ref: "状态行 `#gridInfo` 是纯文本（网格尺寸 / 当前颜色），只依赖 gs 滑杆；画布与字符画预览属 canvas 产物，不进断言。默认态是另一档网格尺寸 ⇒ 双态判别明确。",
+  },
+  {
+    slug: "design/color-palette",
+    inputs: { hexInput: "#e11d48" },
+    expect: ["主色 #E21D48 rgb(226, 29, 72) hsl(347, 77%, 50%)"],
+    ref: "结果区 `#palette` 在注入 hex 后先给出主色的 hex/rgb/hsl 三连，随后才是「配色1」等派生色 ⇒ 锚点落在推导值上，不受派生段常量干扰。默认态主色为 #61D172 ⇒ 判别明确。",
+  },
+  {
+    slug: "design/neomorphism-generator",
+    inputs: { distance: "18", blur: "30", intensity: "35", radius: "44", bgColor: "#1f2937" },
+    expect: [".neomorphism { background-color: #1f2937; border-radius: 44px; box-shadow: 18px 18px 30px rgba(10, 20, 34, 0.35), -18px -18px 30px rgba(52, 62, 76, 0.35); }"],
+    ref: "输出整行由 bgColor/radius/distance/blur/intensity 共同决定，必须整行锚；只锚 `.neomorphism` 会让默认态（#e0e5ec / 20px）也命中 ⇒ 报「默认态=PASS ✗逃生」。注入瞬间 `adjustColor` 会抛错（依赖未注入的取色字段），但 `#cssOutput` 已先写入。",
+  },
+  {
+    slug: "design/border-radius-generator",
+    clicks: ["setUniform('28');generate();"],
+    expect: ["border-radius: 28px;"],
+    ref: "纯 CSS 拼串生成器：注入角度后 `#cssOutput` 输出对应的 border-radius 单行。默认态为 `border-radius: 16px;`（uniform=16）⇒ 判别明确。\\n"
+      + "⚠ `copyResult` 在 harness 内报 `Cannot read properties of undefined (reading 'then')`（无 navigator.clipboard），属环境产物，不影响 `#cssOutput` 已写入。",
+  },
+  {
+    slug: "design/border-radius-generator",
+    clicks: ["document.getElementById('tl').value='40';document.getElementById('tr').value='8';generate();"],
+    expect: ["border-radius: 40px 8px 16px 16px;"],
+    ref: "同一页的第二条路径：分别改 tl/tr 两个角 ⇒ 输出四值简写，br/bl 沿用默认 16。与 uniform 分支互补，覆盖「分别调角」函数。默认态同样不命中该串。",
+  },
+  {
+    slug: "design/dot-pattern",
+    inputs: { bgColor: "#0f172a", dotColor: "#22d3ee", dotSize: "14", spacing: "48", arrangement: "square" },
+    expect: ["background-image: radial-gradient(#22d3ee 7px, transparent 8px); background-size: 48px 48px;"],
+    ref: "按 dotSize/2 与 spacing 拼出渐变与背景尺寸，三处都吃注入值。默认态是另一组 dotColor/spacing ⇒ 判别明确。\\n"
+      + "⚠ arrangement 只接受 square/offset/gradient，传 `hex` 之类的非法档位会静默只输出 `background-color` 一条 ⇒ 注入等于默认。",
+  },
+  {
+    slug: "design/dot-pattern",
+    inputs: { bgColor: "#0f172a", dotColor: "#22d3ee", dotSize: "14", spacing: "48", arrangement: "offset" },
+    expect: ["background-position: 0 0, 24px 24px;"],
+    ref: "offset 档位独有的第二条渐变与背景位移（spacing/2），锚点在该页只有 offset 分支才会出现 ⇒ 强判别。默认态为 square 分支，不命中。",
+  },
 
 ];
 
