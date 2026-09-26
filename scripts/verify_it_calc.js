@@ -1274,6 +1274,18 @@ const CASES = [
     expect: ["域名 复制 a.io"],
     ref: "独立复算：解析结果逐行给出「协议/源/域名/端口/主机/路径/查询字符串/哈希/查询参数」，锚取域名行（`a.io`）。默认示例 URL 不同，不命中。",
   },
+  {
+    slug: "it/redis-cheatsheet",
+    inputs: { searchInput: "zzz" },
+    expect: ["共 0 项"],
+    ref: "反向锚：Redis 速查搜索无命中 ⇒ 计数归零；默认列表非空。与 `mysql-cheatsheet` 同族。",
+  },
+  {
+    slug: "it/rest-api-cheatsheet",
+    inputs: { searchInput: "zzz" },
+    expect: ["共 0 项"],
+    ref: "反向锚：REST API 速查搜索无命中 ⇒ 计数归零；默认列表非空。",
+  },
 ];
 
 // ---------------------------------------------------------------- DOM stub
