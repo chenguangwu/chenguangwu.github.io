@@ -440,6 +440,48 @@ const CASES = [
       + "第二条锚「【任务】…执行优化。」整句：把 target 与 task 同时纳入被测点，任何一侧字段名写错都会变成 `undefined`。\n"
       + "⚠ format 给 option 显示文本（`表格`），不是 value（`表格` 与 value 同名，别手写成 `table`）。",
   },
+  {
+    slug: "design/checker-5",
+    inputs: { poem: "\u767d\u65e5\u4f9d\u5c71\u5c3d\n\u9ec4\u6cb3\u5165\u6d77\u6d41\n\u6b32\u7a77\u5343\u91cc\u76ee\n\u66f4\u4e0a\u4e00\u5c42\u697c" },
+    clicks: ["document.getElementById('poem').value='\u767d\u65e5\u4f9d\u5c71\u5c3d\\n\u9ec4\u6cb3\u5165\u6d77\u6d41\\n\u6b32\u7a77\u5343\u91cc\u76ee\\n\u66f4\u4e0a\u4e00\u5c42\u697c';check()"],
+    expect: ["\u7b2c2\u53e5 \u9ec4 \u5e73 \u6cb3 \u4ec4 \u5165 \u4ec4 \u6d77 \u4ec4 \u6d41 \u4ec4", "\u7b2c4\u53e5 \u66f4 \u4ec4 \u4e0a \u4ec4 \u4e00 \u4ec4 \u5c42 \u4ec4 \u697c \u4ec4"],
+    ref: "结果区 `#res` 是「逐句 + 逐字平仄徽标」。本页只有按钮 `check()` 会渲染结果，页面加载时用 textarea 的预填示例诗跑了一次。锚点取第 2 句与第 4 句整串：逐字以空格相连，任一句的字数或平仄字库命中被改坏都会失配。\\n"
+      + "⚠ **textarea 不受 inputs 注入**：runCase 的注入只处理 `input` / `select`，写 `inputs.poem` 后页面读到的仍是默认示例诗（`床前明月光…`），用例会静默拿默认值去比对。必须在 `clicks` 里直接写 `document.getElementById('poem').value='…';check()`。\\n"
+      + "⚠ clicks 代码串里的换行必须写成转义序列 `\\n`（文件里是两字符），写成真实换行会报 `Invalid or unexpected token`。\\n"
+      + "⚠ 不用「第1句」做锚：默认 textarea 预填 20 字示例诗，默认态也会出现「第1句」。",
+  },
+  {
+    slug: "design/color-picker",
+    inputs: { hexInput: "#e11d48" },
+    expect: ["4.70:1", "\u63a8\u8350\u5b57\u4f53\u8272 #1ee2b7", "#B61DE1"],
+    ref: "结果区 `#analysis` / `#contrastScore` / `#contrastResult` / `#harmonyList` 是同一组 hex 的四类派生量：名称、亮度、白/黑底对比度、推荐文字色、五色和谐色阶。锚点三处分别锁「对比度四舍五入到两位」「推荐文字色由注入色推导」「和谐色阶首色 = 注入色的互补/等分旋转」。\\n"
+      + "⚠ 本页把 hex 与 HSL/RGB 双向同步，注入 hexInput 后 r/g/b/h/s/l 六个数字输入框会一起变；若同时注入 rInput 等，handler 会因 canvas 坐标缺失抛错（harness 桩盲区，errs 可忽略）。\\n"
+      + "⚠ `#previewName` / `#historyList` 含上一次的颜色，属回显型伪锚，不使用。",
+  },
+  {
+    slug: "design/analysis-64",
+    inputs: { p1a: "5", p1b: "6", p2a: "9", p2b: "4", p3a: "6", p3b: "8", p4a: "8", p4b: "7", p5a: "4.5", p5b: "6" },
+    expect: ["66.3 \u6211\u65b9\u52a0\u6743\u603b\u5206\uff08\u6362\u7b97\u767e\u5206\u5236\uff09", "\u529f\u80fd\u5b8c\u6574\u5ea6 25% 9.0 4.0 +50.0 +12.5", "+4.8 \u603b\u5206\u5dee\uff080.7%\uff09".replace("0.7%","7.7%")],
+    ref: "结果区 `#res` 三段：加权总分 / 维度明细表 / 结论。锚点取首段两条 + 明细表里权重最大的一行：`+50.0` 的差距只可能由注入的 p2a=9 / p2b=4 产生，防止「明细表被整块替换成静态参考表」这一形态的逃生项。\\n"
+      + "⚠ 注入值必须偏离页面默认值（默认 p1a=7/p1b=8/…）。第一版把默认值当注入值，导致注入态与默认态输出完全一致 ⇒ 判别器直接报「默认态=PASS ✗逃生」。\\n"
+      + "⚠ 尾段「维度评分口径参考」是常量说明块，任何输入都不变，混入即逃生项。",
+  },
+  {
+    slug: "design/particle-effect-generator",
+    inputs: { count: "220", psize: "7", speed: "3.5", gravity: "0.8", lifetime: "6", linkDist: "40" },
+    expect: ["\u7c92\u5b50: 220"],
+    ref: "`canvasInfo` 是纯文本状态行（粒子数 / FPS），`#countVal` / `#sizeVal` 同步显示滑杆值。FPS 在 harness 内恒 0（无真实 rAF），属环境产物，不写进断言。\\n"
+      + "⚠ 该页同时有 `particleCanvas`（canvas），但结果文本走 `canvasInfo`，因此不依赖 `toDataURL`，是本批少数可注入的 canvas 类页。\\n"
+      + "⚠ 只锚「粒子: 220」这一条：只改 count 也是真被测点，改 psize/speed 只影响 canvas 绘制，不进文本。",
+  },
+  {
+    slug: "design/palette-cvd-checker",
+    inputs: { pcInput: "#22a7a7,#e74c3c,#f1c40f" },
+    expect: ["\u76f8\u90bb\u6700\u5c0f\u660e\u5ea6\u5dee L* = 7.8", "#DD4335"],
+    ref: "结果区 `#pcScore` 给出「相邻最小明度差 L*」与评级，`#pcSugg` 给出最严重一对的可访问修正色。注入三色时最小明度差落在前两色上，修正建议同时依赖 pcInput 的两个 hex。默认态（单色 `#22a7a7`）得到的是另一套数值与建议色 ⇒ 双态判别明确。\\n"
+      + "⚠ 本页 `#pcMatrix` / `#pcOverlay` 依赖 canvas，harness 内会抛错；只要不把断言锚在 canvas 区即可。\\n"
+      + "⚠ 页面脚本里的函数名是 `pcApply` 之类，没有 `apply()`——给 clicks 写 `apply()` 只会报 `apply is not defined`，本例用纯 inputs 触发，不需要 clicks。",
+  },
 
 ];
 
