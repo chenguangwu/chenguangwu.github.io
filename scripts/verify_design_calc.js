@@ -266,7 +266,65 @@ const CASES = [
     inputs: { size: "32", color1: "#22c55e", color2: "#0f172a" },
     expect: ["background-position: 0 0, 32px 32px;"],
     ref: "独立复算：`background-size: ${size*2}px ${size*2}px`（32 ⇒ 64px）且 `background-position: 0 0, ${size}px ${size}px;` ⇒ 注入 size=32 得 `background-position: 0 0, 32px 32px;`，与默认态（size 默认值 ⇒ 另一组尺寸）不同。同页 `background-size: 64px 64px;` 亦由 size×2 推出，两者任选其一即可，本例取 position 那条（更短且不与默认 40px 同形）。"
-       + "⚠ 颜色只进 `linear-gradient` 段，锚颜色会撞默认态渐变描述 ⇒ 只用尺寸类字段。",
+        + "⚠ 颜色只进 `linear-gradient` 段，锚颜色会撞默认态渐变描述 ⇒ 只用尺寸类字段。",
+  },
+
+  // ── §7.4 覆盖缺口线 · design/*（第四交付 BATCH142）
+  {
+    slug: "design/glassmorphism-generator",
+    inputs: { bgColorText: "#1e293b", blur: "14", borderOp: "0.28" },
+    expect: [".glass { background: rgba(30, 41, 59, 0.2); backdrop-filter: blur(14px) saturate(100%);"],
+    ref: "独立复算：`#cssOutput` 拼 `.glass { background: rgba(<r>, <g>, <b>, <bgAlpha>); backdrop-filter: blur(${blur}px) saturate(${saturate}%); …`（bgColorText=#1e293b ⇒ rgb(30,41,59)、bgAlpha 取默认 0.20）⇒ 注入 blur=14 得该连排。默认态 blur 为页面默认值 ⇒ 不命中。"
+        + "⚠ 颜色必须走 `#bgColorText`（纯文本色值框），写 `#bgColor` 一类的色板 id 不进计算；`borderOp` 注入后输出仍是 0.2（该字段未接入最终串），故只锚 blur 与背景色。",
+  },
+  {
+    slug: "design/isometric-grid",
+    inputs: { size: "24", lineWidth: "2", lineColor: "#22c55e", bgColor: "#0f172a" },
+    expect: ["background-size: 24px 13.8576"],
+    ref: "独立复算：该页按 `size × cos(30°) ≈ size × 0.866` 换算背景尺寸 ⇒ size=24 得 `background-size: 24px 13.857600000000001px`；同时 `#output` 拼 `linear-gradient(30deg, ${lineColor} ${lineWidth}px, transparent ${lineWidth}px)` 四条，注入 lineColor=#22c55e / lineWidth=2 ⇒ 该色值串出现。默认态 size 为页面默认值 ⇒ 不命中。"
+        + "⚠ 锚只取 `background-size` 的浮点前缀：完整串含 `13.857600000000001px` 这类浮点尾数，精确写全容易因浮点格式微调而假红，取前 11 字符即可锁定被测计算。",
+  },
+  {
+    slug: "design/pattern-generator",
+    inputs: { size: "20", color1: "#22c55e", color2: "#0f172a" },
+    expect: ["background-position: 0 0, 10px 10px;"],
+    ref: "独立复算：checker 型输出 `background-size: ${size}px ${size}px; background-position: 0 0, ${size/2}px ${size/2}px;` ⇒ size=20 得 `0 0, 10px 10px;`，与 size 默认值的半程值不同。默认态不含该注入尺寸 ⇒ 不命中。"
+        + "⚠ `#patternType` 为 select，注入 `dots` 后输出仍是 checker 串（该 select 在 harness 内只切换预览 class、不改写 cssOutput）⇒ 本例只锚随 size 变化的数值连排，不把 patternType 计入被测点。",
+  },
+  {
+    slug: "design/grid-pattern",
+    inputs: { cellSize: "28", lineWidth: "3", lineColor: "#a855f7", bgColor: "#fef3c7" },
+    expect: ["linear-gradient(90deg, #a855f7 3px, transparent 3px); background-size: 28px 28px;"],
+    ref: "独立复算：`#cssOutput` 拼 `linear-gradient(90deg, ${lineColor} ${lineWidth}px, transparent ${lineWidth}px); background-size: ${cellSize}px ${cellSize}px;` ⇒ 注入得该连排（两条语句紧邻，同写一次即可锁定 cellSize + lineColor + lineWidth 三个字段）。默认态取页面默认值 ⇒ 不命中。"
+        + "⚠ gridType 默认首项即 square，与注入同值 ⇒ 该 select 不构成差异，故只锚数值与颜色。",
+  },
+  {
+    slug: "design/text-shadow-generator",
+    inputs: { x: "6", y: "8", blur: "14", textColor: "#f8fafc", shadowColor: "#0f172a" },
+    expect: [".text-shadow { color: #f8fafc; text-shadow: 6px 8px 14px #0f172a; }"],
+    ref: "独立复算：模板 `.text-shadow { color: ${textColor}; text-shadow: ${x}px ${y}px ${blur}px ${shadowColor}; }` ⇒ 六个字段全部由注入驱动，一次注入即整句成立。默认态 x/y/blur 与颜色均为页面默认值 ⇒ 不命中。"
+        + "⚠ 这是「整句五字段全注入」型：个别字段漏注入时句子仍部分成立，故把两条声明连排同写，避免只锚 `text-shadow:` 一条而退化成弱锚。",
+  },
+  {
+    slug: "design/skeleton-loader",
+    inputs: { radius: "10", duration: "2.2", baseColor: "#fef3c7", highlightColor: "#fde68a" },
+    expect: [".skeleton { background: linear-gradient(90deg, #fef3c7 25%, #fde68a 37%, #fef3c7 63%); background-size: 400% 100%; animation: skelLoading 2.2s ease infinite; border-radius: 10px; }"],
+    ref: "独立复算：`#cssOutput` 单条 `.skeleton { … }` 把 baseColor（25%/63% 停）、highlightColor（37% 停）、duration（`skelLoading ${duration}s`）、radius 四项拼进同一条声明 ⇒ 注入后整句成立，任意一项漏注入都会缺对应片段。默认态为页面默认值 ⇒ 不命中。"
+        + "⚠ 该页把全部字段合并成一条 CSS，锚必须整句连排；只锚 `background:` 或只锚 `border-radius:` 都可能撞默认态子串。",
+  },
+  {
+    slug: "design/shadow-generator",
+    inputs: { offsetX: "10", offsetY: "16", blur: "24", color: "#f43f5e" },
+    expect: ["box-shadow: 10px 16px 24px -5px #f43f5e;"],
+    ref: "独立复算：`#code` 拼 `box-shadow: ${offsetX}px ${offsetY}px ${blur}px -5px ${color};`（含固定 spread=-5px）⇒ 注入 offsetX=10 / offsetY=16 / blur=24 / color=#f43f5e 得该串。默认态色值为 #000000 ⇒ 不命中。"
+        + "⚠ 颜色必须注入到 `#color`（色值框本身）；注入 `#colorText`（文本框）会触发 `syncColor: reading 'value' of undefined` 且不更新结果 ⇒ 用例必须走 `#color`。",
+  },
+  {
+    slug: "design/toast-generator",
+    inputs: { message: "TOOLBOX-OK", radius: "14", bgColor: "#0f172a" },
+    expect: ["TOOLBOX-OK"],
+    ref: "独立复算：`#preview` 把 `#message` 写进 `.toast` 节点（`✓ ${message} ×`）⇒ message=TOOLBOX-OK 时预览区出现该串。默认态 message 为页面默认值 ⇒ 不命中。"
+        + "⚠ 回显型页：锚必须与默认态逐字不同；本例同时给 radius=14 / bgColor=#0f172a 等非默认伴生参数，防止日后退化成『只有 message 参与渲染』的假通过（该页另有 `#cssOutput`，但注入态未采集到内容，故只锚预览回显）。",
   },
 ];
 
