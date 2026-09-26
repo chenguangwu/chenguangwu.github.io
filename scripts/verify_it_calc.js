@@ -1535,6 +1535,20 @@ const CASES = [
     expect: ["0000000001"],
     ref: "独立复算：Bacon 密码 A=`aaaaa`(00000)、B=`aaaab`(00001) ⇒ `0000000001`。**必须显式把 mode 设为 enc**（默认 mode 是解码方向，不带则产物不同）。产物是纯 0/1、不含输入字母 ⇒ 非回显。",
   },
+  {
+    slug: "it/atbash-cipher",
+    inputs: { input: "ABC" },
+    clicks: ["transform()"],
+    expect: ["ZYX"],
+    ref: "独立复算：Atbash 把字母表倒序映射（A↔Z、B↔Y、C↔X）⇒ `ZYX`。产物不含输入字母 ⇒ 非回显；默认样例是单词，默认态不含本串。",
+  },
+  {
+    slug: "it/ascii-tree-generator",
+    inputs: { paths: "a/b.txt\na/c/d.txt" },
+    clicks: ["build()"],
+    expect: ["a/ ├── b.txt └── c/ └── d.txt"],
+    ref: "独立复算：两条路径共享顶层 `a/` ⇒ `b.txt` 是 `a` 的末项用 `└──`、其父层缩进两格；`a/c/d.txt` 的 `c/` 同样末级 ⇒ 末条为 `└── d.txt`。产物是「结构符号 + 文件名」，非裸输入回显。",
+  },
 ];
 
 // ---------------------------------------------------------------- DOM stub
