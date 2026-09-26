@@ -833,6 +833,32 @@ const CASES = [
     expect: ["begin 644 file.txt #04)# ` end"],
     ref: "uuencode 头（begin 644 文件名）＋ 编码体 ＋ 结束行 end，随输入体变化；默认语料长度不同。",
   },
+  {
+    slug: "it/css-minify",
+    inputs: { src: "a{color:red}" },
+    expect: ["压缩后 0% 节省"],
+    ref: "输入本已是最简形态 ⇒ 压缩字节数与原始相同、节省 0%，验证压缩率统计不虚报；默认示例压缩前后不同，不命中。",
+  },
+  {
+    slug: "it/js-minify",
+    inputs: { src: "var a=1;" },
+    expect: ["压缩后 0% 节省"],
+    ref: "无空白可去的最短输入 ⇒ 节省 0%，校验「压缩后字节 ≤ 原始字节」的统计口径；默认示例不命中。",
+  },
+  {
+    slug: "it/js-obfuscator",
+    inputs: { inputCode: "var a=1;" },
+    clicks: ["obfuscate()"],
+    expect: ["+0%"],
+    ref: "混淆前后字节数相同 ⇒ 增幅 0%；默认示例代码更长，不命中。",
+  },
+  {
+    slug: "it/regex-common",
+    inputs: { txt: "abc", cat: "email", limit: "10" },
+    clicks: ["calcTool()"],
+    expect: ["无匹配"],
+    ref: "`abc` 不匹配邮箱正则 ⇒ 匹配数 0 且结果区落「无匹配」；默认示例文本可命中，结论相反。",
+  },
 ];
 
 // ---------------------------------------------------------------- DOM stub
