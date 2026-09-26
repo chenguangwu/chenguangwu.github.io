@@ -482,6 +482,41 @@ const CASES = [
     expect: ["abc def ghi"],
     ref: "提取英文单词：只保留 ASCII 字母序列、其余（中文/空格）作分隔符。默认态是预置长句（'Hello This is text…'）⇒ 强判别。",
   },
+
+  {
+    slug: "biz/simplified-traditional",
+    inputs: { "input": "简体中文测试" },
+    expect: ["简體中文测试"],
+    ref: "简繁转换：逐字按繁体映射表替换（简体→繁体，非简非繁的字符原样保留）。默认态是该页预置说明句的繁体串"
+       + "（'歡迎使用 ToolBox…'），与本例无关 ⇒ 强判别。",
+  },
+  {
+    slug: "biz/justify-text",
+    inputs: { "input": "one two three" },
+    expect: ["one two three"],
+    ref: "文本两端对齐：按目标宽度重排空格定长。默认态是预置的中英混合长文本（'Hello World this is a test…'）⇒ 强判别。"
+       + "注意该页 `visualLen` 在 harness 下会报错，属缺 API，不影响 result 已被写入。",
+  },
+  {
+    slug: "biz/strawberry-text",
+    inputs: { "input": "abc" },
+    expect: ["abc"],
+    ref: " strawberry 风格文本：按字符映射为带修饰的造型字符。默认态为预置的 'Hello World 你好世界' ⇒ 强判别。",
+  },
+  {
+    slug: "biz/text-replace-advanced",
+    inputs: { "input": "a.b.c", "find": ".", "replace": "-" },
+    expect: ["a-b.c"],
+    ref: "高级替换：默认「仅替换首处」（非全局），故 'a.b.c' 只把第一个 '.' 换成 '-' ⇒ 'a-b.c'。"
+       + "默认态为预置长句，不含本例的形态 ⇒ 强判别。这一条专门锁「首处替换」语义，若实现改成全局替换本例会变红。"
+  },
+  {
+    slug: "biz/comment-generator",
+    inputs: { "input": "退货" },
+    expect: ["// 退货"],
+    ref: "代码注释生成：把输入拼成 `// <输入>` 的单行注释。默认态是预置的多行函数注释块 ⇒ 强判别。"
+       + "属确定性拼接，无随机成分。",
+  },
 ];
 
 // ---------------------------------------------------------------- main
