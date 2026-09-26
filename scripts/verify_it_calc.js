@@ -798,6 +798,41 @@ const CASES = [
     expect: ["a b"],
     ref: "标签被剥除、两个块内文本以空格相连（`a b`），非原文回显；默认示例压缩结果不同。",
   },
+  {
+    slug: "it/python-formatter",
+    inputs: { input: "x=1\nif x>0:\n  print(x)" },
+    clicks: ["doMinify()"],
+    expect: ["x=1; if x>0: print(x)"],
+    ref: "压缩路径把语句以 `; ` 连接、缩进丢弃；默认示例结构不同，不命中。",
+  },
+  {
+    slug: "it/graphql-formatter",
+    inputs: { input: "{a{b}}" },
+    clicks: ["doMinify()"],
+    expect: ["{ a{ b}}"],
+    ref: "压缩形态（保留花括号间单空格、去掉换行）；默认示例的 query 文本不同，不命中。",
+  },
+  {
+    slug: "it/html-nesting-checker",
+    inputs: { html: "<div><p>a</div>" },
+    clicks: ["check()"],
+    expect: ["发现 1 个问题"],
+    ref: "`<p>` 未被显式闭合即被 `</div>` 关闭 ⇒ 报 1 个问题并定位行号；默认示例无嵌套错误，不命中。",
+  },
+  {
+    slug: "it/nato-alphabet",
+    inputs: { input: "AB" },
+    clicks: ["convert()"],
+    expect: ["Alpha Bravo"],
+    ref: "字母逐个翻译为 NATO  Phonetic 单词（A→Alpha、B→Bravo），非原文回显；默认示例字母不同。",
+  },
+  {
+    slug: "it/uuencode",
+    inputs: { input: "ABC" },
+    clicks: ["enc()"],
+    expect: ["begin 644 file.txt #04)# ` end"],
+    ref: "uuencode 头（begin 644 文件名）＋ 编码体 ＋ 结束行 end，随输入体变化；默认语料长度不同。",
+  },
 ];
 
 // ---------------------------------------------------------------- DOM stub
