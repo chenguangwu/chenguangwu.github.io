@@ -177,10 +177,14 @@ const CASES = [
 {
   "slug": "mining/estimate-reserve",
   "inputs": {},
-  "expect": [
-    "请先添加至少一个块段"
+  "clicks": [
+    "localStorage.getItem=function(){return JSON.stringify([{time:'2026-09-26 10:00:00',blocks:[{name:'A',area:1500,thick:5,density:2.7,grade:0.8},{name:'B',area:2500,thick:6,density:2.7,grade:0.9}],totalOre:73500,totalMetal:110.25}]);};renderHistory();"
   ],
-  "ref": "结构性不可注入（2026-09-24 定性）：块段行由 addBlock() 按钮 + class 选择器（.b-area/.b-thick/.b-density/.b-grade）动态生成，静态 HTML 里除 id=blockBody/blockTable/historyBox/res 外**无任何带 id 的控件**，harness 无 clicks 且 addBlock 无参调用不产生默认块段 ⇒ 只能断言空态提示。保留在 no_inputs 基线内，勿重复选批"
+  "expect": [
+    "2 个块段 · 矿石量 7.35 万t",
+    "金属量 110.25 t"
+  ],
+  "ref": "（2026-09-24 曾判「结构性不可注入」，本批次推翻）块段行确实只能靠 addBlock() 动态生成，但 renderHistory() 走的是 localStorage 读取分支，与块段无关 ⇒ 覆写 localStorage.getItem 返回一条自造历史即可命中「2 个块段 · 矿石量 7.35 万t / 金属量 110.25 t」（totalOre 73500 → /10000 → 7.35 toFixed(2)，默认空态为「暂无计算记录」）。原锚「请先添加至少一个块段」是空态提示，默认态必命中、判别力 0，已弃。"
 },
 {
   "slug": "mining/safety-check",

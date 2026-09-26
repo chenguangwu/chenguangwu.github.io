@@ -143,10 +143,13 @@ const CASES = [
 {
   "slug": "fire/response-drill",
   "inputs": {},
-  "expect": [
-    "火灾"
+  "clicks": [
+    "currentScenario=scenarios[0];currentOrder=[];currentStep=3;score=45;updateStats();"
   ],
-  "ref": "auto-restore(default)；页面 newScenario() 随机选 6 个场景之一并写入 scenarioName，6 个场景名均含「火灾」，故该子串确定出现，规避 Math.random 选景偶发失败（原期望「拨打119报警」仅 5/6 场景含，约 1/6 概率误挂门禁）"
+  "expect": [
+    "3/8"
+  ],
+  "ref": "updateStats() 把 currentStep + '/' + currentScenario.steps.length 写进 #progress；默认态（currentStep=0、currentScenario=null）不渲染该串。currentScenario 必须先显式赋 scenarios[0]，否则 updateStats() 里 null.steps 抛错。6 个场景步数不等，故只锚分母确定的 scenarios[0]（办公楼火灾，8 步）→「3/8」，规避 Math.random 选景偶发失败（旧锚「火灾」是 6 个场景名的公共子串，属默认态必命中的弱判别，已弃；旧锚「拨打119报警」仅 5/6 场景含）。"
 }
 ];
 async function main() {

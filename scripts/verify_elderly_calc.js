@@ -77,10 +77,13 @@ const CASES = [
 {
   "slug": "elderly/fall-risk",
   "inputs": {},
-  "expect": [
-    "行走时是否需要借助辅助器具或他人搀扶"
+  "clicks": [
+    "getScore=function(){return 3;};renderAdvice();"
   ],
-  "ref": "auto-restore(default)"
+  "expect": [
+    "卫生间、厨房铺设防滑地垫，保持地面干燥"
+  ],
+  "ref": "（2026-09-24 曾记为「getScore 走 input[name=..]:checked 属性选择器 ⇒ 结构性不可注入」，本批次推翻）getScore 是顶层函数声明，在页面作用域里可整体替换；覆写后直接调 renderAdvice() 即可让全部 12 条条件项入列，命中 e1 分支专属串。默认态 getScore 返回 null ⇒ items 为空，只 push「继续保持良好的居家与生活习惯」，不含该串。旧锚「行走时是否需要借助辅助器具或他人搀扶」是静态题干、默认态必命中，判别力 0，已弃。"
 },
 {
   "slug": "elderly/medication-schedule",
