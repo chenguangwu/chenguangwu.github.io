@@ -1001,6 +1001,36 @@ const CASES = [
     expect: ["2203 px 对角线像素"],
     ref: "√(1080²+1920²)=2202.9 ⇒ 2203 px；默认机型分辨率/尺寸组合不命中。",
   },
+  {
+    slug: "it/http-methods",
+    inputs: { searchInput: "zzz" },
+    expect: ["共 0 项"],
+    ref: "反向锚：搜索不存在的方法 ⇒ 过滤结果计数归零。默认列表非空 ⇒ 默认态必不命中。",
+  },
+  {
+    slug: "it/http-headers",
+    inputs: { searchInput: "zzz" },
+    expect: ["共 0 项"],
+    ref: "反向锚：搜索不存在的头名 ⇒ 计数为 0；默认列表非空。",
+  },
+  {
+    slug: "it/http-cache",
+    inputs: { searchInput: "zzz" },
+    expect: ["共 0 项"],
+    ref: "反向锚：缓存头速查过滤空结果计数归零；默认列表非空。",
+  },
+  {
+    slug: "it/http-cookies",
+    inputs: { searchInput: "zzz" },
+    expect: ["共 0 项"],
+    ref: "反向锚：Cookie 速查过滤空结果计数归零；默认列表非空。",
+  },
+  {
+    slug: "it/http-response-headers",
+    inputs: { searchInput: "zzz" },
+    expect: ["共 0 项"],
+    ref: "反向锚：响应头速查过滤空结果计数归零；默认列表非空。",
+  },
 ];
 
 // ---------------------------------------------------------------- DOM stub
