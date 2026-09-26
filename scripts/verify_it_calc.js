@@ -1131,6 +1131,56 @@ const CASES = [
     expect: ["共 0 项"],
     ref: "反向锚：Docker 速查过滤无结果计数归零；默认列表非空。",
   },
+  {
+    slug: "it/hill-cipher",
+    inputs: { input: "HELLO", key: "3,1,1,2" },
+    clicks: ["enc()"],
+    expect: ["ZPSHNI"],
+    ref: "独立复算：密钥矩阵 [[3,1],[1,2]]（det=5，与 26 互素）作用于补齐后的 HELLOX ⇒ 逐对 (7,4)(11,11)(14,23) → ZP / SH / NI。明文与密钥均无 oninput ⇒ 必须 clicks `enc()`。",
+  },
+  {
+    slug: "it/matrix-transpose",
+    inputs: { rows: "1", cols: "2", a0: "7", a1: "3" },
+    clicks: ["calculate()"],
+    expect: ["转置矩阵 Aᵀ （2×1）： 7 3"],
+    ref: "独立复算：1×2 矩阵 [7 3] 转置为 2×1 [[7],[3]]。同样必须注入运行期格子 `a0/a1`（rows/cols 只决定格子数量）。",
+  },
+  {
+    slug: "it/invite-code-generator",
+    inputs: { count: "3", len: "8" },
+    clicks: [
+      "document.getElementById('upper').checked=true;document.getElementById('num').checked=true;document.getElementById('prefix').checked=true;document.getElementById('prefixVal').value='ZZ';generate()",
+    ],
+    expect: ["ZZ-"],
+    ref: "随机码只锚前缀拼接：勾选大写+数字+前缀后每条形如 `ZZ-L1ERDGP5`。四个开关在桩内恒未勾（`inputs` 写 checked 不生效）⇒ 必须在 clicks 里逐个置 true，否则 chars 为空直接 alert 返回、与默认态零差异。默认态（无 clicks）不产生任何输出。",
+  },
+  {
+    slug: "it/ipv6-ula",
+    inputs: { cnt: "5" },
+    clicks: ["calcTool()"],
+    expect: ["生成的 IPv6 ULA（5 个）"],
+    ref: "随机地址只锚计数：注入 cnt=5 ⇒ 条数字符串必为（5 个），默认 cnt=3 不命中。",
+  },
+  {
+    slug: "it/mime-type",
+    inputs: { search: "zzz" },
+    expect: ["共 0 条"],
+    ref: "反向锚：MIME 表搜索无命中计数归零；默认列表非空。",
+  },
+  {
+    slug: "it/json-to-csv",
+    inputs: { input: '[{"name":"Tom","age":3},{"name":"Ann","age":5}]' },
+    clicks: ["toCSV()"],
+    expect: ["已转换 2 行 × 2 列"],
+    ref: "独立复算：两条 JSON 对象 ⇒ 表头 name,age + 2 行 ⇒ 2 行 × 2 列。转换走按钮 ⇒ 必须 clicks。",
+  },
+  {
+    slug: "it/json-to-yaml",
+    inputs: { input: '{"a":1}' },
+    clicks: ["doYaml()"],
+    expect: ["--- a: 1"],
+    ref: "独立复算：`---` 文档分隔 + 一级键 `a: 1`。**不能用 `loadSample()`** —— 那会渲染默认样例，默认态同命中 ⇒ 逃生项。",
+  },
 ];
 
 // ---------------------------------------------------------------- DOM stub
