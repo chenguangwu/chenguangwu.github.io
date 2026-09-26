@@ -111,7 +111,7 @@
 ## 六、踩坑 / 约束备忘（环境级 / 工程级）
 
 - **deep-dive 由 `_build.py` 按 `i18n/tools/content_deepdive.json` 重建**：直接改源 html 会被覆盖。改 deep-dive / 场景 / 示例 / FAQ → 改 JSON 数据源。
-- **术语内链唯一源 = `_build.py::linkify_terms()`**（§4.1.7「SEO 与专业性」）：把 deep-dive 正文（场景 / 示例 / FAQ）里的专业名词链到站内工具页 / 指南页。术语 = 工具中文名 + 剥通用后缀的核心词（`_TERM_LINK_SUFFIXES`）+ 指南标题去「使用指南」；**目标必须存在且非 `TOOLBOX-REDIRECT` 存根**（结构性零死链）。细则：逐字符最长匹配（`first_map` 首字母索引，实测 1.3s 全量）、`TERM_LINK_MIN_LEN=3`（2 字泛词会大面积误链——「公式」曾命中 844 次）、每目标页每页只链一次、单页总上限 `TERM_LINK_MAX_PER_PAGE=6`（跨字段共享状态）、不链自身、ASCII 术语要求词边界（防 `CSS` 命中 `CSS3`）。**禁在页面手改内链**（会被构建覆盖）。现状：1591 页 / 2268 条 / 唯一目标 630。
+- **术语内链唯一源 = `_build.py::linkify_terms()`**（§4.1.7「SEO 与专业性」）：把 deep-dive 正文（场景 / 示例 / FAQ）里的专业名词链到站内工具页 / 指南页。术语 = 工具中文名 + 剥通用后缀的核心词（`_TERM_LINK_SUFFIXES`）+ 指南标题去「使用指南」；**目标必须存在且非 `TOOLBOX-REDIRECT` 存根**（结构性零死链）。细则：逐字符最长匹配（`first_map` 首字母索引，实测 1.3s 全量）、`TERM_LINK_MIN_LEN=3`（2 字泛词会大面积误链——「公式」曾命中 844 次）、每目标页每页只链一次、单页总上限 `TERM_LINK_MAX_PER_PAGE=6`（跨字段共享状态）、不链自身、ASCII 术语要求词边界（防 `CSS` 命中 `CSS3`）。**禁在页面手改内链**（会被构建覆盖）。
 - **FAQPage 结构化数据不被重建**：手动加的 JSON-LD 会保留，但注入坏 JSON 不会自动修复，须自测解析合法。
 - **繁体 `zh-tw/` 是构建产物**：勿手动改（被 `.gitignore` 忽略）；其子树不含 `js/`，引用站内 JS 必须绝对路径 `/js/x.js`。
 - **i18n 八件套**：标题/简介走 `_en_override.json` + `slug-en.json`；行业 i18n 走 `i18n/tools/<ind>.json`；凡引 `common.js` 的静态页须引 `i18n.js`。
@@ -147,7 +147,7 @@
 
 **P1 — 待办**
 
-- **harness 输入桩能力现状（2026-09-24 定型，勿再重估）**：可注入手段共 **6 种** —— `inputs`（表单控件）、`checkIds`（`getElementById(id).checked`）、`radios`（`getElementsByName`）、`checks`（`querySelector('…:checked')`，**仅在「无 inputs」分支计入弱用例判定**）、`clicks`（页面作用域 direct eval，命中即 `via="click"`，配套动态 DOM 登记）、`dynDom`。**「纯 checkbox 量表页不可注入」的旧结论已失效**。逐批成果与逐例打法归档在 `.workbuddy/memory/2026-09-2*.md` 与 skill `toolbox-weakcase-hardening`，**本文件不再记录批次流水**。
+- **harness 输入桩能力现状（2026-09-24 定型，勿再重估）**：可注入手段共 **6 种** —— `inputs`（表单控件）、`checkIds`（`getElementById(id).checked`）、`radios`（`getElementsByName`）、`checks`（`querySelector('…:checked')`，**仅在「无 inputs」分支计入弱用例判定**）、`clicks`（页面作用域 direct eval，命中即 `via="click"`，配套动态 DOM 登记）、`dynDom`。**「纯 checkbox 量表页不可注入」的旧结论已失效**。逐例打法归档在 `.workbuddy/memory/2026-09-2*.md` 与 skill `toolbox-weakcase-hardening`，**本文件不记批次流水**。
 - **仍未闭环的残留（转 P3 顺带，不单独成批）**：
   - ✅ **纯 checkbox 量表页已闭环（2026-09-26 核实）**：含 `checkbox` 页 353 个，有用例的 162 个**均带注入通道**、弱用例 0；另 191 个无任何用例 ⇒ 覆盖缺口，见 §7.4。
   - ✅ **fim-scale / gingival-index 已闭环**：两例均有真实 `inputs` + 独立复算 `ref`（fim 全填 7 ⇒ 运动分 13×7=91/91、独立率 100%；gingival t16 四位点 3 / BOP 1 ⇒ GI 12/24=0.50、BOP 1/6=16.67%→17%），默认态均失配。
@@ -187,7 +187,7 @@
 - **但另有 191 个含 checkbox 的页面在全站任何 verify 文件中都没有用例**（`design/*` 11 页、`edu/*` 40 页、`biz/*` 文本类为主）。
 - 判定口径注意：用例块的键名**常不带引号**（`slug: "x"` / `inputs: {}` / `checkIds: [...]`），扫描脚本必须写成 `"?slug"?\s*:\s*"([^"]+)"`，否则会大量误报「无用例 / 无注入通道」（本次两次误报均源于此）。
 
-**处置**：属新线（补用例 ≠ 改弱用例），单独立批；须守 §8.1（expect 独立复算）。**已交付 197 例**（`design/*` 87 + `edu/*` 34 + `biz/*` 54 + `it/*` 6，逐例锚点见各用例 `ref`）。剩余 **1092** 页待补（`it/*` 304、`general/*` 156、`finance/*` 92、`science/*` 78、`fun/*` 60 …）【按 `tools/**` 真实文件数重校】`design/image-resizer`（`generate()` 首行 `if(!origImg) return` + 依赖 canvas 解码）、`edu/exam-study-planner`（localStorage 桩只写不读 ⇒ 统计分子/分母不可达）**结构性不可注入，不硬写用例**。
+**处置**：属新线（补用例 ≠ 改弱用例），单独立批；须守 §8.1（expect 独立复算）。**已交付 204 例**（`design/*` 87 + `edu/*` 34 + `biz/*` 54 + `it/*` 13，逐例锚点见各用例 `ref`）。剩余 **1085** 页待补（`it/*` 304、`general/*` 156、`finance/*` 92、`science/*` 78、`fun/*` 60 …）【按 `tools/**` 真实文件数重校】`design/image-resizer`（`generate()` 首行 `if(!origImg) return` + 依赖 canvas 解码）、`edu/exam-study-planner`（localStorage 桩只写不读 ⇒ 统计分子/分母不可达）**结构性不可注入，不硬写用例**。
 
 ## 八、反模式与防复发（铁律）
 
@@ -300,7 +300,7 @@
 - **过滤"过宽"与"未接线"同样有害**：静态字符串含独立 NaN 词或等于 `'Infinity'` 的 RHS 全站命中 **0 处**，而模板串 / 字符串拼接 / 动态容器变量的守卫**真机上确能拦截 NaN 经插值泄漏到页面**。若跳过模板字面量 / 字符串 / method 链，反而**削弱真机防护**；v8 只跳过"纯静态字符串字面量 RHS"。
 - **守卫只应注入「数值输出页」**：对纯文本/工具页（如 `it/html-escape`、`it/code-runner`）注入含 `NaN` 文本检测的守卫会**误伤正常输出**（转义后的 JS 代码里出现 `NaN` 就被判为无效值）。**注入前先判页面是否有数值输出/`type=number` 输入。**
 - **harness 盲区页无法静态识别，只能试错**：正确流程是 **注入 → 跑该行业 verify → 失败页写入 `--skip` 清单 → 带 `--skip` 重跑 → 直到全绿**（v8 已实现）。
-- **dry-run 命中 ≠ 存在缺陷：必须先过「jsdom 真机模拟 + 源码兜底核验」两道**（2026-09-23 实证，若不查会白改一批线上页）：全站 dry-run 报 **36 页** `WILL_INJECT`，逐页核验后**全部为静态误报**（真机无 NaN 路径）—— ① jsdom 加载页面后清空**全部**输入控件（number/text/textarea → `''`、select → `selectedIndex=-1`）再触发事件，36 页仅 3 页命中，而这 3 页 select **无空值选项且有默认选中项** ⇒ 真机用户无法构造该状态；② 源码兜底核验（如 `hvac/fresh-air-load` 的 `num()` 把 `isNaN` 转 `null`、`fmt()` 把 null/NaN 渲染为 `'--'`）。**判定结论固化在 `scripts/output_guard_exclude.txt`（v8 默认加载，dry-run 已归零）**。另：注入验证必须用「注入 → 跑 verify → 回退 → 再跑 verify」对比锁定归因 —— 本批 3 页（`dentistry/gingival-index`、`hvac/fresh-air-load`、`tcm-chemistry/response-factor`）一一对应为 **harness 桩盲区**（headless 无真实 DOM），**不是页面缺陷**。
+- **dry-run 命中 ≠ 存在缺陷：必须先过「jsdom 真机模拟 + 源码兜底核验」两道**（2026-09-23 实证，若不查会白改一批线上页）：全站 dry-run 报 **36 页** `WILL_INJECT`，逐页核验后**全部为静态误报**（真机无 NaN 路径）—— ① jsdom 加载页面后清空**全部**输入控件（number/text/textarea → `''`、select → `selectedIndex=-1`）再触发事件，36 页仅 3 页命中，而这 3 页 select **无空值选项且有默认选中项** ⇒ 真机用户无法构造该状态；② 源码兜底核验（如 `hvac/fresh-air-load` 的 `num()` 把 `isNaN` 转 `null`、`fmt()` 把 null/NaN 渲染为 `'--'`）。**判定结论固化在 `scripts/output_guard_exclude.txt`（v8 默认加载，dry-run 已归零）**。另：注入验证归因须用「注入 → 跑 verify → 回退 → 再跑 verify」对比锁定，别凭单次输出下结论。
 
 ---
 
@@ -330,7 +330,7 @@
 
 ### 10.2 现状（实测基线）
 
-- `all_default 4 / no_inputs 10 / escape 0`；门禁 `run_gates.py` **216 项全过**、逃生项 0（判别器已检 **3273** 例 / 跳过 50）。
+- `all_default 4 / no_inputs 10 / escape 0`；门禁 `run_gates.py` **216 项全过**、逃生项 0（判别器已检 **3296** 例 / 跳过 50）。
 - A 级率 **99.2%**（A 4693 / B 32 / C 4）；术语内链 **1591 页 / 2268 条**（零死链、零自链）。
 - 弱用例口径与选批规则见 §10.3。
   - **注意：弱用例整体处于判别器盲区** —— 「注入值等于默认值」的用例被判 `usable=false` 直接跳过（§10.5）⇒ `escape=0` 只说明强用例无逃生项；每批改造后须重跑判别器确认其由「跳过」转为「已检且变红」。
@@ -403,21 +403,22 @@
 16. **「输入 textarea + 结果区」提取器类（正则抽邮箱 / URL / 日期一类）：输入回显与提取结果并存**
 ⇒ 直接锚被提取内容（`a1@toolbox.com`）测的是**回显**，清空注入后仍从 textarea 命中 ⇒ 伪锚 ✅ 锚落在**结果区独有的形态**：`text-extract-emails` 每封邮箱后跟「复制」按钮 ⇒ 锚「邮箱 + 空格 + 复制」；`text-extract-urls` 锚两段 URL 连排，原文用「与」隔开使之不连续。另 `text-split` 的「序号+段内容」锚（`3 cherry`）默认态示例里本就有 ⇒ 改用段数标签「（共 3 段）」。 （补）这类页常由 n 个 checkbox 决定抽不抽，**缺 `checkIds` 时 `extract()` 在首个 `getElementById(x).checked` 处抛错中断** ⇒ 结果区恒为初始值，画面与「无匹配」**完全一致**，极易误判成「页无功能」⇒ **注入后结果区逐字不变就先怀疑它**，须声明全部默认勾选项（`biz/text-extract-numbers`/`dates` 同形）
 
+17. **JS 读的控件 id 在 HTML 里不存在 = P0 死页（加载即 TypeError、整页无输出）**：harness `getEl()` 对未知 id **现造桩元素、永不返回 null** ⇒ 死页在 verify 里只表现为「无输出 / 只有常量锚」。判据：jsdom（`runScripts:'dangerously'`）加载页面后直接调入口函数，抛 `Cannot read properties of null` 即坐实。处置：以 `<label for=…>` 指向的 id 为准改 **HTML**（别改 JS 迁就），再扫同模板族（`grep -rl 'id="top_1"' tools/`）。另：`createElement()` 桩不回写 `textContent`→`innerHTML` ⇒ 走 `escH()`（写 textContent、读 innerHTML）的产出在桩内恒空，只锚非 escH 分支。
+
 **D. 工具与方法**
 
 | 工具 | 用途 |
 |---|---|
 | **常驻 runner（scan / dump / multi）** | `~/.workbuddy/skills/toolbox-weakcase-hardening/assets/weakcase_runner.js`（cwd 为仓库根），**每批直接调用、不要重建**。`clicks` 末尾回写结果到 `__p`（兜底不碰）⇒ FAIL 时仍读到真实注入输出；容器 id 不在内置清单时用 `dumpIds` 覆盖。|
-| **标记串探针** | 判断写入路径是否通：`clicks:["getElementById('stats').value='MARK_V'"]` + `expect:["MARK_V"]`（命中即通），区分「clicks 未生效」与「锚点错」 |
 | **「双态」核验** | 每例必须**注入态 PASS + 默认态（剥 inputs/checks/clicks）FAIL** 双跑；判别器取不到默认值的页尤其只能靠它 |
-| **逐项二分** | 定位逃生项用「逐项单独 `runCase`」，**禁用 `fullBlob.includes()` 判定**（blob 元素集合不同，会全判「无逃生」） |
-| **批量改用例** | 能用精确 `Edit` 就别用正则替换器（全数组重建会吃掉被改块的块前注释、normalize 块间空行）。`verify_*_calc.js` 有**带引号键**（`"slug":`）与**无引号键**（`slug:`）两种风格，换文件前先 `grep -c '"slug":'` 探格式 |
+| **逐项二分** | 逃生项逐项单独 `runCase` 定位，**禁用 `fullBlob.includes()`**（元素集合不同会全判「无逃生」） |
+| **批量改用例** | 优先精确 `Edit`（全数组重建会吃掉块前注释）。`verify_*_calc.js` 有**带引号键**（`"slug":`）与**无引号键**（`slug:`）两种风格，换文件前先 `grep -c '"slug":'` |
 | **页面真缺陷精查** | 见 §8.7（隔离器 `scripts/_audit_iso_small.js` + jsdom 三态复核）与 §8.11（输出守卫 v8） |
 
 **E. 待办 / 历史残留**
 
 - 全站 `verify_*_calc.js` 共 **62 条「同 slug 多份」重复条目**（`realestate` 12、`math` 14…，其中 61 条内容不同）：门禁把同页跑两遍、计数虚高，按 slug 的批量替换器会**同时改掉两份**。**暂不清理**（删条目须同步改三个基线数，属独立批次）。
-- `selfcheck_false_pass.js` 全站 `--exec` 会崩（某页脚本污染全局 `process`）：**取基线请用结构模式** `node scripts/selfcheck_false_pass.js scripts`（与门禁同口径）。
+- `selfcheck_false_pass.js` 全站 `--exec` 会崩（某页脚本污染全局 `process`）⇒ **取基线用结构模式** `node scripts/selfcheck_false_pass.js scripts`（与门禁同口径）。
 
 ### 10.6 方向1：公式-脚本一致性精查（**全量闭环** · 老板选定）
 

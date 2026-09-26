@@ -392,6 +392,58 @@ const CASES = [
     expect: ["行0: a · c · b · 行1: · b · a · c"],
     ref: "轨道围栏 depth=2：下标偶数位归入 row0（a,c,b）、奇数位归入 row1（b,a,c）⇒ 矩阵展示串 `行0: a · c · b · 行1: · b · a · c`。默认示例（不同 depth/文本）不命中。",
   },
+  {
+    slug: "it/triangle-calculator",
+    // 三边 5/6/7 的最大角为 arccos(12/60)=78.46° < 90° ⇒ 锐角三角形；
+    // 海伦面积 √(9·4·3·2)=√216≈14.697。默认态默认边 3/4/5 是直角三角形，不命中。
+    inputs: { a: "5", b: "6", c: "7" },
+    expect: ["锐角三角形", "14.697"],
+    ref: "独立复算：p=18、s=9、area=√(9×4×3×2)=14.697；最大角 arccos((25+36−49)/60)=78.46° ⇒ 锐角三角形。踩坑：注入 3/4/5 与页面默认值相同 ⇒ 逃生项，改用 5/6/7。",
+  },
+  {
+    slug: "it/time-format-converter",
+    inputs: { inTime: "1600000000" },
+    expect: ["2020-09-13T12:26:40.000Z"],
+    ref: "Unix 秒 1600000000 = 2020-09-13T12:26:40.000Z（UTC）。踩坑：默认 1700000000，注入值撞默认会逃生。",
+  },
+  {
+    slug: "it/statistical-power",
+    // 只锚「功效 = 88.54%」；原 expect 第二条「临界值 z* = 1.96」是 α=0.05 双侧常量，
+    // 默认态同样命中 ⇒ 逃生项（判据⑤静态常量），已剔除。
+    inputs: { d: "1", n: "20", alpha: "0.05", tail: "two" },
+    expect: ["功效 = 88.54%"],
+    ref: "独立复算：δ=d×√(n/2)=1×3.162=3.162，z*=1.96 ⇒ 功效=Φ(1.202)+Φ(−5.122)≈0.885 ⇒ 88.5%；默认 d=0.5/n=64 得 80.7%，不命中。",
+  },
+  {
+    slug: "it/text-truncate",
+    // 默认「省略号」select 值为 "..."；words 模式 limit=2 ⇒ "Alpha beta" + "..."。
+    inputs: { input: "Alpha beta gamma delta", limit: "2", mode: "words" },
+    expect: ["Alpha beta..."],
+    ref: "独立复算：按空白切词取前 2 个 ⇒ `Alpha beta`，附加省略号 `...`（页面省略号默认选项）⇒ `Alpha beta...`。默认态是长中文文本 + limit 20，不命中。",
+  },
+  {
+    slug: "it/text-statistics",
+    inputs: { textInput: "ab cd ab ef" },
+    expect: ["11 总字符", "4 总词数"],
+    ref: "独立复算：\"ab cd ab ef\" 共 11 个字符（含 2 个空格）、按空白切出 4 个英文词、去重 3 个 ⇒ `11 总字符` / `4 总词数`。默认态为中文长文本，不命中。",
+  },
+  {
+    slug: "it/string-obfuscator",
+    // mode 取值是 b64（不是 base64）；选错 mode 会落到空结果分支（输出 0 字符）。
+    inputs: { input: "Hi there 42", mode: "b64" },
+    expect: ["SGkgdGhlcmUgNDI="],
+    ref: "独立复算：b64(\"Hi there 42\")=\"SGkgdGhlcmUgNDI=\"（16 字符），与页面「输出 16 字符」自洽。踩坑：mode=base64 不是合法选项。",
+  },
+  {
+    slug: "it/toml-to-json",
+    // 锚空输入兜底分支。该页曾因 `document.getElementById('sort')` 取到 null（排序复选框实际 id 为 top_1）
+    // 在加载即抛 TypeError、整页无输出（jsdom 已验证，2026-09-26 修正为 id=\"sort\"）。
+    // 本例锁的是修正后的空输入分支；JSON 正文走 escH()，harness 的 createElement 桩不回写
+    // textContent→innerHTML（既有盲区），故无法锚 JSON 内容。
+    inputs: { source: "" },
+    expect: ["请输入 TOML 文本"],
+    ref: "空输入时页面写入 `请输入 TOML 文本`；默认 TOML 非空不命中。该页此前为 P0 死页（sort id 不匹配），修复后本例才有判别力。",
+  },
 ];
 
 // ---------------------------------------------------------------- DOM stub
