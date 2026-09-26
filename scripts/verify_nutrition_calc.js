@@ -92,15 +92,15 @@ const CASES = [
 },
 {
   "slug": "nutrition/estimate-2",
-  "inputs": {
-    "extraSodium": "0"
-  },
-  "expect": [
-    "1000mg"
+  "inputs": {},
+  "clicks": [
+    "getSelected=function(){return [4,10,11];};calculate();"
   ],
-  "ref": "结构性不可改造（保留 all_default，勿重复评估）：选中态用属性选择器 "
-     + "[#foodGrid .data-card[data-selected=\"1\"]]，而动态 DOM 登记表只支持 id / class / tag 过滤 ⇒ 恒空；"
-     + "只剩 extraSodium 一路，其输出为输入的直接派生（判别力不足）。（2026-09-25 实测）"
+  "expect": [
+    "钠摄入约 850 mg",
+    "相当于食盐 2.1 g"
+  ],
+  "ref": "（2026-09-25 曾判「属性选择器取选中态 ⇒ 结构性不可改造」，本批次推翻）getSelected() 是顶层函数，可整体替换（同页另一例走 [0,3,6] 分支，本例换低钠组合）。独立复算：薯片 350 + 饼干 300 + 运动饮料 200 = 850 mg ⇒ salt = 850/400 = 2.125 ⇒ toFixed(1) = 2.1 g。默认态 getSelected 返空集 ⇒ 兜底无参 calculate() 算出「钠摄入约 0 mg · 相当于食盐 0.0 g」⇒ 两串均失配（探针逐串比对确认）。旧锚「1000mg」是默认态常量、判别力 0，已弃。**注意不可同时锚「控盐优秀」**：兜底无参 `calculate()`（sodium=0）同样落该档，属 BATCH97 的 else 兜底坑，实测即逃生项。"
 },
 {
   "slug": "nutrition/food-calorie-lookup",
