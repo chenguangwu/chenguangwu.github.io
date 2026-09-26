@@ -1425,6 +1425,24 @@ const CASES = [
     expect: ["E.164 格式： +112"],
     ref: "独立复算：`112` 的国家代码为 `1`（美国/加拿大），国内号码 `12`，E.164 归一化为 `+112`。默认样例是另一个号码。",
   },
+  {
+    slug: "it/emacs-cheatsheet",
+    inputs: { searchInput: "zzz" },
+    expect: ["共 0 项"],
+    ref: "反向锚：Emacs 速查搜索无命中 ⇒ 计数归零；默认列表非空。",
+  },
+  {
+    slug: "it/kubernetes-cheatsheet",
+    inputs: { searchInput: "zzz" },
+    expect: ["共 0 项"],
+    ref: "反向锚：Kubernetes 速查搜索无命中 ⇒ 计数归零；默认列表非空。",
+  },
+  {
+    slug: "it/mongodb-cheatsheet",
+    inputs: { searchInput: "zzz" },
+    expect: ["共 0 项"],
+    ref: "反向锚：MongoDB 速查搜索无命中 ⇒ 计数归零；默认列表非空。",
+  },
 ];
 
 // ---------------------------------------------------------------- DOM stub
