@@ -155,7 +155,79 @@ const CASES = [
     "173.205"
   ],
   "ref": "切线长 T=300×tan(30°)=173.205（默认 200/45 得 82.843，注入失败即不命中）"
-}
+},
+  {
+    "slug": "surveying/bearing-to-offset",
+    "inputs": { "D": "200", "a": "120" },
+    "expect": [["-100.000"]],
+    "ref": "北向增量 ΔN = D·cos a = 200 × cos120° = 200 × (−0.5) = **−100.000** m（默认 100/30° 得 +86.603；刻意把方位角换到 120° 使 ΔN 转负）"
+  },
+  {
+    "slug": "surveying/bearing-to-offset",
+    "inputs": { "D": "200", "a": "120" },
+    "expect": [["173.205"]],
+    "ref": "东向增量 ΔE = D·sin a = 200 × sin120° = 200 × 0.866025 = **173.205** m；与上一条合成后模长恰为 200（平方和 40,000 = D²），二者互为勾股校验"
+  },
+  {
+    "slug": "surveying/horizontal-from-slope",
+    "inputs": { "S": "200", "v": "30" },
+    "expect": [["173.205"]],
+    "ref": "水平距离 H = S·cos v = 200 × cos30° = 200 × 0.866025 = **173.205** m（默认 100/10° 得 98.481）"
+  },
+  {
+    "slug": "surveying/horizontal-from-slope",
+    "inputs": { "S": "200", "v": "30" },
+    "expect": [["100.000"]],
+    "ref": "高差 Δh = S·sin v = 200 × sin30° = **100.000** m；与 H 173.205 合起来满足 sin²+cos²=1（173.205²+100² = 40,000 = S²）"
+  },
+  {
+    "slug": "surveying/circular-curve",
+    "inputs": { "R": "400", "d": "45" },
+    "expect": [["165.685"]],
+    "ref": "切线长 T = R·tan(d/2) = 400 × tan22.5° = 400 × 0.414214 = **165.685** m（默认 200/60° 得 115.470）"
+  },
+  {
+    "slug": "surveying/circular-curve",
+    "inputs": { "R": "400", "d": "45" },
+    "expect": [["314.159"]],
+    "ref": "曲线长 L = R·d(rad) = 400 × 0.785398 = **314.159** m；与 T 165.685 一条走 tan、一条走弧长，公式不同、可互判"
+  },
+  {
+    "slug": "surveying/convert-angle-slope-1",
+    "inputs": { "val": "25", "from": "pct", "to": "deg" },
+    "expect": [["14.04"]],
+    "ref": "25% ⇒ 角度 = arctan(25/100) = arctan0.25 = **14.04**°（默认 10% 得 5.71°）；同组还输出比值 1:4.000，恰为 100÷25"
+  },
+  {
+    "slug": "surveying/convert-angle-slope-1",
+    "inputs": { "val": "25", "from": "pct", "to": "deg" },
+    "expect": [["0.24498"]],
+    "ref": "弧度 = 14.0362° × π ÷ 180 = **0.24498** rad（用 atan 后的真实角换算，与直接 atan(0.25)=0.244979 一致，5 位小数可分辨）"
+  },
+  {
+    "slug": "surveying/bearing-azimuth",
+    "inputs": { "dn": "100", "de": "173.205" },
+    "expect": [["60.00"]],
+    "ref": "方位角 = arctan(ΔE/ΔN) = arctan(173.205/100) = arctan(1.73205) = **60.00**°（默认 100/100 得 45.00°）"
+  },
+  {
+    "slug": "surveying/bearing-azimuth",
+    "inputs": { "dn": "100", "de": "173.205" },
+    "expect": [["200.000"]],
+    "ref": "水平距离 = √(ΔN²+ΔE²) = √(10,000+30,000) = **200.000** m；与上一条方位角 60.00° 组合可还原出 (100, 173.205) 这个原始分量"
+  },
+  {
+    "slug": "surveying/reduced-level-bsfs",
+    "inputs": { "BM": "50", "BS": "2.35", "FS": "1.15" },
+    "expect": [["51.200"]],
+    "ref": "待定点高程 RL = 基准 BM 50 +（后视 BS 2.35 − 前视 FS 1.15）= 50 + 1.20 = **51.200** m（默认 100/1.5/1.0 得 101.000）"
+  },
+  {
+    "slug": "surveying/reduced-level-bsfs",
+    "inputs": { "BM": "50", "BS": "2.35", "FS": "1.15" },
+    "expect": [["1.200"]],
+    "ref": "高差 = BS − FS = 2.35 − 1.15 = **1.200** m，与 RL 51.200 减基准 50.000 的答案一致 ⇒ 两条锚同时锁住「一次减法」与「基准传递」两段链路"
+  }
 ];
 
 async function main() {
