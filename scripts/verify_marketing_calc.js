@@ -317,6 +317,42 @@ const CASES = [
     inputs: { followersInf: "200000", engRateInf: "2", platformFactor: "1.2", contentType: "2.5" },
     expect: ["达人层级：腰部达人", "参考报价：¥126,000 - ¥234,000", "建议报价：¥180,000"],
     ref: 'f=200000⇒cpmBase=300,腰部达人；engBonus=1+(2-2)/10=1.0；price=200×300×1.0×1.2×2.5=180000；low=126000；high=234000'
+  },
+  {
+    slug: "marketing/marketing-sales-funnel",
+    inputs: { visitors: "10000", leads: "2000", qualified: "800", opportunities: "300", customers: "120" },
+    expect: ["整体转化率：1.200%", "转化率: 20.0%"],
+    ref: 'v=10000 l=2000 q=800 o=300 c=120；整体=120/10000×100=1.200%；第二锚取本级转化率 20.0%（默认态各级 5.0/40.0/40.0/25.0，不撞车）'
+  },
+  {
+    slug: "marketing/marketing-sales-funnel",
+    inputs: { visitors: "50000", leads: "10000", qualified: "4000", opportunities: "1500", customers: "750" },
+    expect: ["整体转化率：1.500%", "转化率: 37.5%"],
+    ref: 'v=50000 l=10000 q=4000 o=1500 c=750；整体=750/50000×100=1.500%；第二锚取本级转化率 37.5%（默认态各级 5.0/40.0/40.0/25.0，不撞车）'
+  },
+  {
+    slug: "marketing/marketing-sales-funnel",
+    inputs: { visitors: "20000", leads: "5000", qualified: "2500", opportunities: "1000", customers: "400" },
+    expect: ["整体转化率：2.000%", "转化率: 50.0%"],
+    ref: 'v=20000 l=5000 q=2500 o=1000 c=400；整体=400/20000×100=2.000%；第二锚取本级转化率 50.0%（默认态各级 5.0/40.0/40.0/25.0，不撞车）'
+  },
+  {
+    slug: "marketing/marketing-sales-funnel",
+    inputs: { visitors: "8000", leads: "2400", qualified: "1200", opportunities: "600", customers: "100" },
+    expect: ["整体转化率：1.250%", "转化率: 16.7%"],
+    ref: 'v=8000 l=2400 q=1200 o=600 c=100；整体=100/8000×100=1.250%；第二锚取本级转化率 16.7%（默认态各级 5.0/40.0/40.0/25.0，不撞车）'
+  },
+  {
+    slug: "marketing/marketing-sales-funnel",
+    inputs: { visitors: "25000", leads: "6000", qualified: "3000", opportunities: "900", customers: "225" },
+    expect: ["整体转化率：0.900%", "转化率: 24.0%"],
+    ref: 'v=25000 l=6000 q=3000 o=900 c=225；整体=225/25000×100=0.900%；第二锚取本级转化率 24.0%（默认态各级 5.0/40.0/40.0/25.0，不撞车）'
+  },
+  {
+    slug: "marketing/marketing-sales-funnel",
+    inputs: { visitors: "120000", leads: "36000", qualified: "12000", opportunities: "4800", customers: "960" },
+    expect: ["整体转化率：0.800%", "转化率: 33.3%"],
+    ref: 'v=120000 l=36000 q=12000 o=4800 c=960；整体=960/120000×100=0.800%；第二锚取本级转化率 33.3%（默认态各级 5.0/40.0/40.0/25.0，不撞车）'
   }
 ];
 
