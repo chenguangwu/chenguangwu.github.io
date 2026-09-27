@@ -2640,7 +2640,98 @@ const CASES = [
     expect: ["**/*.rs.bk", "# IDE/编辑器"],
     ref: "独立复算：勾选 rust + ide ⇒ # Rust 组（target/、**/*.rs.bk）与 # IDE/编辑器 组（.idea/、.vscode/、*.swp）。"
        + "技术栈名取自重构后的 T 表 name 字段（与页面 label 文案逐字一致：Python / Node.js / Go / Rust / Java/Kotlin / .NET / C/C++ / IDE/编辑器）。默认态不命中。",
+  },  // —— BATCH284：哈希计算器多算法 / 批量 / 校验分支 + JSON 与 TSV 双向转换 ——
+  {
+    slug: "it/hash",
+    inputs: { textInput: "abc" },
+    checks: ["adler32"],
+    expect: ["Adler-32 024d0127", "024d0127"],
+    ref: "python zlib.adler32(b'abc') = 0x024d0127（Adler-32 标准向量）→ 页面渲染 Adler-32 024d0127。默认态 textInput 为空，calculateTextHashes() 直接 return，不渲染任何结果行。",
   },
+  {
+    slug: "it/hash",
+    inputs: { textInput: "abc" },
+    checks: ["crc32"],
+    expect: ["CRC32 352441c2", "352441c2"],
+    ref: "python zlib.crc32(b'abc') = 0x352441c2（CRC-32/ISO-HDLC）→ 页面渲染 CRC32 352441c2。与 it/crc-calculator 同算法但走哈希计算器的结果区，避开默认勾选集合。",
+  },
+  {
+    slug: "it/hash",
+    inputs: { textInput: "abc" },
+    checkIds: ["uppercase"],
+    checks: ["sha1"],
+    expect: ["A9993E364706816ABA3E25717850C26C9CD0D89D"],
+    ref: "python hashlib.sha1(b'abc').hexdigest() = a9993e364706816aba3e25717850c26c9cd0d89d，勾选 uppercase 后整串转大写。默认态未勾 uppercase，渲染的是同一种子的小写形态 ⇒ 不命中。",
+  },
+  {
+    slug: "it/hash",
+    inputs: { batchInput: "line1\nline2\nline3", batchAlgoSelect: "md5" },
+    checks: ["md5"],
+    expect: ["e6251bcf1a7dc3ba5e7933e325bbe605", "0c63b2a7c2c4808fb709c745630f6e29"],
+    ref: "python hashlib.md5(b'line2').hexdigest() = e6251bcf1a7dc3ba5e7933e325bbe605、b'line3' = 0c63b2a7c2c4808fb709c745630f6e29。默认 batchInput 仅单行 Hello, ToolBox!（md5=53023f…），不含这两行 ⇒ 默认态不命中。",
+  },
+  {
+    slug: "it/hash",
+    inputs: { batchInput: "line1\nline2", batchAlgoSelect: "sha1" },
+    checks: ["sha1"],
+    expect: ["3ea6cb333875e2c37caaeeb19b1f54f037df3171", "a5de119f08985c4fbdbb7c6d975f302ebf582065"],
+    ref: "python hashlib.sha1(b'line1').hexdigest() = 3ea6cb333875e2c37caaeeb19b1f54f037df3171、b'line2' = a5de119f08985c4fbdbb7c6d975f302ebf582065。批量行内哈希取自 getSelectedAlgos()，harness 下必须显式 checks 该键才存在。",
+  },
+  {
+    slug: "it/hash",
+    inputs: { batchInput: "line1\nline2", batchAlgoSelect: "crc32" },
+    checks: ["crc32"],
+    expect: ["d7d3ac2a", "4edafd90"],
+    ref: "python zlib.crc32(b'line1') = 0xd7d3ac2a、b'line2' = 0x4edafd90。纯 JS 分支不依赖 WebCrypto，与 sha1 例共同覆盖批量模式的算法切换。",
+  },
+  {
+    slug: "it/hash",
+    inputs: { verifyInput: "abc", verifyHash: "900150983cd24fb0d6963f7d28e17f72" },
+    checks: ["md5"],
+    expect: ["匹配成功", "算法：MD5"],
+    ref: "python hashlib.md5(b'abc').hexdigest() = 900150983cd24fb0d6963f7d28e17f72（RFC 1321 常见向量）→ 校验区输出「匹配成功！算法：MD5」。默认态两框为空，不渲染校验结论。",
+  },
+  {
+    slug: "it/json-to-tsv",
+    inputs: { tsvInput: "a\tb\n1\t2", t2jFormat: "compact" },
+    clicks: ["tsvToJson()"],
+    dumpIds: ["jsonOutput"],
+    expect: ["[{\"a\":\"1\",\"b\":\"2\"}]"],
+    ref: "TSV 两列（表头 a/b，数据行 1/2）→ 紧凑输出 [{\"a\":\"1\",\"b\":\"2\"}]，存在表头行时字段值一律按字符串处理。默认态 tsvInput 为空，tsvToJson() 直接 Toast 返回，jsonOutput 不更新。",
+  },
+  {
+    slug: "it/json-to-tsv",
+    inputs: { tsvInput: "a\tb\n1\t2", t2jFormat: "pretty", t2jIndent: "4" },
+    clicks: ["tsvToJson()"],
+    dumpIds: ["jsonOutput"],
+    expect: ["[ { \"a\": \"1\", \"b\": \"2\" } ]"],
+    ref: "同样数据切「格式化 + 4 空格缩进」⇒ 输出 [ { \"a\": \"1\", \"b\": \"2\" } ]。与紧凑例构成同输入下 format/indent 两选项的判别力。",
+  },
+  {
+    slug: "it/json-to-tsv",
+    inputs: { jsonInput: "[{\"n\":\"x\",\"v\":1},{\"n\":\"y\",\"v\":null,\"w\":9}]", j2tHeader: "false", j2tNull: "NULL" },
+    clicks: ["jsonToTsv()"],
+    dumpIds: ["j2tStats"],
+    expect: ["行数： 2 列数： 3 字符数： 17"],
+    ref: "第二项带 w 字段 ⇒ 键并集 n/v/w 共 3 列、2 行，缺失值按 j2tNull=NULL 渲染；结果串 x\t1\tNULL\ty\tNULL\t9 长 17 字符。默认态 jsonInput 为空，jsonToTsv() 走 !input 早退，统计区保持初始文案。",
+  },
+  {
+    slug: "it/json-to-tsv",
+    inputs: { jsonInput: "[{\"a\":\"l1\\nl2\"}]", j2tNewline: "br" },
+    clicks: ["jsonToTsv()"],
+    dumpIds: ["tsvOutput"],
+    expect: ["a l1\\nl2"],
+    ref: "值内嵌换行 + j2tNewline=br ⇒ 转义为字面两字符 \n（不换真行），输出 a l1\nl2。默认态不注入该 JSON，tsvOutput 仍是页面初始样本。",
+  },
+  {
+    slug: "it/json-to-tsv",
+    inputs: { jsonInput: "[{\"a\":\"l1\\nl2\"}]", j2tNewline: "remove" },
+    clicks: ["jsonToTsv()"],
+    dumpIds: ["tsvOutput", "j2tStats"],
+    expect: ["a l1l2", "行数： 1 列数： 1 字符数： 6"],
+    ref: "同数据切 j2tNewline=remove ⇒ 换行被直接删除，输出 a l1l2（6 字符，行数/列数均 1）。与 br 例共同覆盖换行处理的两条分支。",
+  },
+
 ];
 
 // ---------------------------------------------------------------- DOM stub
