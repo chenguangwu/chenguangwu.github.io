@@ -86,6 +86,101 @@ const CASES = [
     "前 3100 年 上下埃及统一"
   ],
   "ref": "去默认化（原 expect「2070」＝默认「中国历史」主题下夏朝建立 -2070 的渲染串，注入失败仍命中 → 逃生项）：clicks 置顶层全局 currentTheme='世界历史' 后调 renderTimeline()，timeline 渲染世界史首条「前 3100 年 上下埃及统一 政治 古埃及第一王朝建立」；默认中国历史显示「夏朝建立 ... -2070」，注入失败即不命中。"
+},
+{
+  "slug": "museum/audio-guide-timer",
+  "inputs": {
+    "exhibitCount": "20",
+    "perExhibit": "60",
+    "moveTime": "20",
+    "introTime": "30",
+    "available": "50"
+  },
+  "clicks": [
+    "calcQuick();"
+  ],
+  "expect": [
+    "26分50秒 讲解总时长",
+    "+23分10秒",
+    "150 秒"
+  ],
+  "ref": "总时长 = 20×60 + (20−1)×20 + 30 = 1200+380+30 = 1610 秒 ⇒ fmtTime 26分50秒；可用 = 50×60 = 3000 秒 ⇒ 50分0秒；时间差 = +1390 秒 ⇒ +23分10秒（充裕）；每件可用 = floor(3000/20) = 150 秒。默认态（30 件/90 秒/移动 30/开场 60/可用 90 分钟）为 1时0分30秒 / +29分30秒 / 180 秒，三条全不命中。"
+},
+{
+  "slug": "museum/audio-guide-timer",
+  "inputs": {
+    "exhibitCount": "10",
+    "perExhibit": "90",
+    "moveTime": "10",
+    "introTime": "20",
+    "available": "15"
+  },
+  "clicks": [
+    "calcQuick();"
+  ],
+  "expect": [
+    "略超时",
+    "8089 秒",
+    "减少讲解展品数至 8 件"
+  ],
+  "ref": "总时长 = 10×90 + 9×10 + 20 = 1010 秒 ⇒ 16分50秒；可用 = 15×60 = 900 秒 ⇒ 15分0秒；时间差 = −110 秒（≥−300 ⇒ 「略超时」档）；压缩建议：单件讲解 cutPer = floor((90×900 − 9×10 − 20)/10) = 8089 秒、展品数 = floor((900−20)/(90+10)) = 8 件。默认态为「时间充裕」，三条全不命中。"
+},
+{
+  "slug": "museum/audio-guide-timer",
+  "inputs": {
+    "exhibitCount": "40",
+    "perExhibit": "120",
+    "moveTime": "30",
+    "introTime": "60",
+    "available": "40"
+  },
+  "clicks": [
+    "calcQuick();"
+  ],
+  "expect": [
+    "1时40分30秒 讲解总时长",
+    "严重超时",
+    "缩短单件讲解至 7169 秒"
+  ],
+  "ref": "总时长 = 40×120 + 39×30 + 60 = 4800+1170+60 = 6030 秒 ⇒ 1时40分30秒；可用 = 2400 秒 ⇒ 40分0秒；时间差 = −3630 秒（< −300 ⇒ 「严重超时」）；每件可用 = floor(2400/40) = 60 秒；cutPer = floor((120×2400 − 39×30 − 60)/40) = 7169 秒。默认态全不命中。"
+},
+{
+  "slug": "museum/audio-guide-timer",
+  "inputs": {
+    "exhibitCount": "1",
+    "perExhibit": "50",
+    "moveTime": "30",
+    "introTime": "10",
+    "available": "10"
+  },
+  "clicks": [
+    "calcQuick();"
+  ],
+  "expect": [
+    "× 0 段 = 0 秒",
+    "600 秒",
+    "1分0秒 讲解总时长"
+  ],
+  "ref": "总时长 = 1×50 + 0（count>1 为假 ⇒ 移动 0 段）+ 10 = 60 秒 ⇒ 1分0秒；可用 = 600 秒 ⇒ 10分0秒；时间差 = +540 秒；每件可用 = floor(600/1) = 600 秒。表格里「移动时间 × 0 段 = 0 秒」是本例独有形态，默认态（29 段移动）不命中。"
+},
+{
+  "slug": "museum/audio-guide-timer",
+  "inputs": {
+    "exhibitCount": "5",
+    "perExhibit": "60",
+    "moveTime": "10",
+    "introTime": "20",
+    "available": "0"
+  },
+  "clicks": [
+    "calcQuick();"
+  ],
+  "expect": [
+    "每件可用时长 0 秒",
+    "缩短单件讲解至 0 秒",
+    "至 -1 件"
+  ],
+  "ref": "可用 = 0 秒 ⇒ 每件可用时长 0 秒、`avail>0` 为假 ⇒ avgPer = 0；时间差 = −360 秒（< −300 ⇒ 严重超时）；cutPer = floor((60×0 − 4×10 − 20)/5) = −12 ⇒ Math.max(−12,0) = 0 秒；展品数 = floor((0−20)/(60+10)) = −1 件（负数，可用时间为 0 时的边界产物，非真实场景）。本条锚页面当前实际产物，页面修正负数值后须同步更新。"
 }
 ];
 async function main() {
