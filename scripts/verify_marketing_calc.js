@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * 第 25 道门禁：marketing 分类计算正确性验证（13 个确定性数值工具）
+ * 第 25 道门禁：marketing 分类计算正确性验证（14 个确定性数值工具 / 24 个用例）
  *
  * 期望值全部由独立复算得出（ref 字段写明完整算式），不回读页面输出。
  * 输入一律避开页面默认值，确保验证的是「注入值 → 结果」而非「默认值 → 结果」。
@@ -154,7 +154,49 @@ const CASES = [
      + "毛利率 = 1−100% = 0 ⇒ breakEvenRoas = 1/0 走 else 分支取 0（`grossMargin>0?1/grossMargin:0`）"
      + " ⇒ roasOk = 1.80≥0 恒真 ⇒ 页面输出「✓ 盈利」/**「当前盈利」**，与利润为负矛盾。"
      + "本条用例锚的是页面**当前实际产物**（修复后须同步更新）。",
+  },  {
+    slug: "marketing/cpc-calculator",
+    inputs: { budget: "20000", unitPrice: "4", ctr: "2", cvr: "2.5" },
+    clicks: ["setMode('cpc');document.getElementById('budget').value='20000';document.getElementById('unitPrice').value='4';document.getElementById('ctr').value='2';document.getElementById('cvr').value='2.5';calcConvert();"],
+    expect: ['250,000', '¥80.00', '¥160.00'],
+    ref: 'CPC 模式（unitPrice 即点击单价）：点击 = 20000÷4 = 5000；展示 = 5000÷2% = **250,000**；转化 = 5000×2.5% = 125 ⇒ CPA = 20000÷125 = **¥160.00**、CPM = 20000÷(250000÷1000) = **¥80.00**。三条锚分属「展示反推」「转化率 → CPA」「展示量 → CPM」三个独立系数，默认态（¥50.00 / ¥66.67 / 200,000）全不命中。',
   },
+  {
+    slug: "marketing/cpc-calculator",
+    inputs: { unitPrice: "40", ctr: "5", cvr: "8" },
+    clicks: ["setMode('cpm');document.getElementById('unitPrice').value='40';document.getElementById('ctr').value='5';document.getElementById('cvr').value='8';calcConvert();"],
+    expect: ['250,000', '¥10.00'],
+    ref: 'CPM 模式（unitPrice 改为千次展示单价）：展示 = 10000÷40×1000 = **250,000**；点击 = 250000×5% = 12500；转化 = 12500×8% = 1000 ⇒ CPC = 10000÷12500 = ¥0.80、CPA = 10000÷1000 = **¥10.00**。本条与上一条同预算但走完全不同的反推方向，任一条口径写反都会被另一条抓到。两条教训均来自逃生项：① 首轮锚 CPA `¥50.00` —— harness 兜底无参调用把 `currentMode` 写成非 cpc 值后，另一分支恰好也算出 50；② 点击量 `12,500` —— **inputs 里的赋值在默认态同样生效**（只有模式不同），于是默认态用同一组 40/5 走 cpm 分支也会得到 12,500。',
+  },
+  {
+    slug: "marketing/cpc-calculator",
+    inputs: { budget: "15000", unitPrice: "75", ctr: "4", cvr: "5" },
+    clicks: ["setMode('cpa');document.getElementById('budget').value='15000';document.getElementById('unitPrice').value='75';document.getElementById('ctr').value='4';document.getElementById('cvr').value='5';calcConvert();"],
+    expect: ['100,000', '¥150.00', '¥75.00'],
+    ref: 'CPA 模式（unitPrice 即行动单价）：转化 = 15000÷75 = 200；点击 = 200÷5% = 4000；展示 = 4000÷4% = **100,000** ⇒ CPM = 15000÷(100000÷1000) = **¥150.00**、CPC = 15000÷4000 = ¥3.75。三模式的差异只在「哪个量由 unitPrice 直达」，本条 CPA 列恒等于输入单价 ¥75.00。',
+  },
+  {
+    slug: "marketing/cpc-calculator",
+    inputs: { totalBudget: "80000" },
+    clicks: ["document.getElementById('totalBudget').value='80000';calcBudget();"],
+    expect: ['¥34,286', '53,333', '19,048'],
+    ref: '预算分配表：总预算 80000，渠道按 ratio 分摊。微信（30%）得 80000×30/70 = 34285.71 ⇒ 千分位化后 **¥34,286**，其点击量 = 34285.71÷1.8 = **19,048**；合计点击 = 5714+19048+28571 = **53,333**。注意 harness 兜底会无参调 `addChannel()` 给渠道清单多加一条 10% 渠道（合计占比 70% 而非 100%），故本条只锚按比例缩放的量，不锚逐渠道转化量；首轮锚的合计 CPA `¥53.16` 也是逃生项——该量与总预算**无关**（转化量与预算同比例缩放），默认态同样命中。',
+  },
+  {
+    slug: "marketing/cpc-calculator",
+    inputs: { targetConv: "500", estCpa: "60", estCtr: "2.5", estCvr: "5", estPrice: "299", estMargin: "45" },
+    clicks: ["calcEstimate();"],
+    expect: ['¥37,275', '124.3%', '400.0K'],
+    ref: '预估标签页：预算 = 500×60 = **¥30,000**；收入 = 500×299 = ¥149,500；利润 = 149500×45% − 30000 = 67275 − 30000 = **¥37,275**；点击 = 500÷5% = 10000、展示 = 10000÷2.5% = 400000 ⇒ **400.0K**；ROI = 37275÷30000×100 = 124.25 ⇒ **124.3%**。默认态该页根本不执行 calcEstimate（结果区停留在 HTML 静态占位 ¥39,600 / 49.5%），三条锚全不命中。',
+  },
+  {
+    slug: "marketing/cpc-calculator",
+    inputs: { targetConv: "1000", estCpa: "120", estCtr: "2.5", estCvr: "5", estPrice: "299", estMargin: "10" },
+    clicks: ["calcEstimate();"],
+    expect: ['¥-90,100', '-75.1%', '800.0K'],
+    ref: '同式的亏本分支：预算 = 1000×120 = ¥120,000、收入 = 299,000；利润 = 299000×10% − 120000 = 29900 − 120000 = **¥-90,100**（负号与千分位同时出现）；ROI = −90100÷120000×100 = −75.083 ⇒ **−75.1%**；展示 = (1000÷5%)÷2.5% = 800000 ⇒ **800.0K**。与上一条构成同式异参对照：同一批系数，利润由其唯一变量（毛利率 45% vs 10%）决定正负。',
+  },
+
 ];
 
 async function main() {
