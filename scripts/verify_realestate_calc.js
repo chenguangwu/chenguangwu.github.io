@@ -427,6 +427,42 @@ const CASES = [
     inputs: { inv: "1000", cf: "200", rv: "100", disc: "0", yrs: "5" },
     expect: ["净现值 NPV： 100.00 万元", "现值指数 PI： 1.100", "静态回收期： 5.00 年"],
     ref: 'inv=1000 cf=200 rv=100 disc=0 yrs=5；折现率 0 分支：r=0 ⇒ pv=cf×yrs=1000、pvRv=rv=100 ⇒ NPV=100.00、PI=1.100、动态=5.00 年。刻意不锚 IRR（3.07%，200 次二分浮点边界）'
+  },
+  {
+    slug: "realestate/assessor-return",
+    inputs: { rent: "30", vacancy: "8", opex: "30", capRate: "6", method: "0", landVal: "0" },
+    expect: ["322.00", "19.32", "10.7倍", "直接资本化法适用于稳定收益型房产。毛租金倍数偏低(<15倍)，投资回报率较高。"],
+    ref: 'rent=30 vac=8 opex=30 capRate=6% method=0 land=0；有效毛收入=27.60 运营费用=8.28 NOI=19.32 V=322.00 GRM=10.7 实际收益率=6.00% 租售比=9.32%。method=0 直接资本化：grm=10.7<15 ⇒ it 追加『偏低』串（默认态无此后缀，故完整 it 串可锚）'
+  },
+  {
+    slug: "realestate/assessor-return",
+    inputs: { rent: "36", vacancy: "10", opex: "25", capRate: "6", method: "1", landVal: "80" },
+    expect: ["325.00", "24.30", "剩余法适用于开发项目，从总开发价值中扣除土地价值后得出建筑物价值。毛租金倍数偏低(<15倍)，投资回报率较高。", "土地价值 -80.00"],
+    ref: 'rent=36 vac=10 opex=25 capRate=6% method=1 land=80；有效毛收入=32.40 运营费用=8.10 NOI=24.30 V=325.00 GRM=9.0 实际收益率=7.48% 租售比=11.08%。method=1 剩余法：V=NOI/r-80；it 为『剩余法…偏低(<15倍)…』完整串；另锚表格行『土地价值 -80.00』'
+  },
+  {
+    slug: "realestate/assessor-return",
+    inputs: { rent: "20", vacancy: "0", opex: "0", capRate: "4", method: "0", landVal: "0" },
+    expect: ["500.00", "25.0倍", "20.00"],
+    ref: 'rent=20 vac=0 opex=0 capRate=4% method=0 land=0；有效毛收入=20.00 运营费用=0.00 NOI=20.00 V=500.00 GRM=25.0 实际收益率=4.00% 租售比=4.00%。grm=25.0 边界：vac=0、opex=0、capRate=4 ⇒ grm 恰为 25.0，既不>25 也不<15 ⇒ it 不追加任何说明（验证边界不误入偏低支）'
+  },
+  {
+    slug: "realestate/assessor-return",
+    inputs: { rent: "100", vacancy: "12", opex: "35", capRate: "8", method: "0", landVal: "0" },
+    expect: ["715.00", "57.20", "7.2倍"],
+    ref: 'rent=100 vac=12 opex=35 capRate=8% method=0 land=0；有效毛收入=88.00 运营费用=30.80 NOI=57.20 V=715.00 GRM=7.2 实际收益率=8.00% 租售比=13.99%。高租金 capRate=8：grm=7.2<15；数值与例① 全不同'
+  },
+  {
+    slug: "realestate/assessor-return",
+    inputs: { rent: "45", vacancy: "3", opex: "22", capRate: "4.5", method: "0", landVal: "0" },
+    expect: ["756.60", "34.05", "16.8倍"],
+    ref: 'rent=45 vac=3 opex=22 capRate=4.5% method=0 land=0；有效毛收入=43.65 运营费用=9.60 NOI=34.05 V=756.60 GRM=16.8 实际收益率=4.50% 租售比=5.95%。capRate=4.5 档，grm=16.8 落在 15~25 的『不追加说明』区间'
+  },
+  {
+    slug: "realestate/assessor-return",
+    inputs: { rent: "500", vacancy: "15", opex: "40", capRate: "7", method: "1", landVal: "1200" },
+    expect: ["2442.86", "255.00", "4.9倍", "土地价值 -1200.00"],
+    ref: 'rent=500 vac=15 opex=40 capRate=7% method=1 land=1200；有效毛收入=425.00 运营费用=170.00 NOI=255.00 V=2442.86 GRM=4.9 实际收益率=10.44% 租售比=20.47%。大数值 method=1：土地价值 1200 万元，V=NOI/0.07-1200'
   }
 ];
 
