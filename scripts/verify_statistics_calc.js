@@ -297,7 +297,49 @@ const CASES = [
     inputs: { me: "0.04", cl: "95", sigma: "0.48", p: "0.36" },
     expect: ["554"],
     ref: "z = 1.95996；n_mean = (1.95996×0.48/0.04)² = 553.17；n_prop = 1.95996²×0.36×0.64/0.04² = 553.17；两者同为 554（σ²=p(1−p) 设计）",
+  },  {
+    slug: "statistics/cohens-d",
+    inputs: {},
+    clicks: ["document.getElementById('m1').value='31';document.getElementById('m2').value='27';calcTool();"],
+    expect: ['0.8000 Cohen\'s d 大'],
+    ref: 's1=s2=5、n1=n2=20 ⇒ 合并标准差 sp = √(((20−1)×25+(20−1)×25)/38) = **5**；d = (31−27)/5 = **0.8000**。强度判读 `|d|<0.8?\'中\':\'大\'`：0.8 不满足 `<0.8` ⇒ 落 `大`，本条把「恰在边界上归上一档」钉住（若误写 `<=0.8` 会得「中」）。刻意用**数值+标签联合锚**（`0.8000 Cohen\'s d 大`）而非裸标签——「大 效应强度」单独出现会被例⑤例⑦以外的默认态之外的用例撞上，且裸标签不带被测数值。默认态 d=0.6000 中，锚不命中。',
   },
+  {
+    slug: "statistics/cohens-d",
+    inputs: {},
+    clicks: ["document.getElementById('m1').value='29.5';document.getElementById('m2').value='27';calcTool();"],
+    expect: ['0.5000 Cohen\'s d 中'],
+    ref: 'd = (29.5−27)/5 = **0.5000**；`|d|<0.5?\'小\':…` 不成立 ⇒ `中`。与上一条构成「0.5/0.8 两条边界各归上一档」的成对对照：任一条的边界比较符写反（`<` ↔ `<=`）都会被另一条抓。默认态 0.6000 中，`0.5000 Cohen\'s d 中` 不命中。',
+  },
+  {
+    slug: "statistics/cohens-d",
+    inputs: {},
+    clicks: ["document.getElementById('m1').value='28';document.getElementById('m2').value='27';calcTool();"],
+    expect: ['0.2000 Cohen\'s d 小'],
+    ref: 'd = (28−27)/5 = **0.2000**；`|d|<0.2?\'极小\':…` 不成立 ⇒ `小`。三条边界例（0.2/0.5/0.8）合起来把 `极小→小→中→大` 的四档阶梯全数钉住。默认态 0.6000 中，锚不命中。',
+  },
+  {
+    slug: "statistics/cohens-d",
+    inputs: {},
+    clicks: ["document.getElementById('m1').value='100';document.getElementById('m2').value='100';calcTool();"],
+    expect: ['0.0000 Cohen\'s d 极小'],
+    ref: '两组均值相等 ⇒ d = 0/5 = **0.0000**，`|d|<0.2` 成立 ⇒ `极小`。本条覆盖 d 恰为 0 的退化路径（分子为 0，不是 NaN），也是四档里唯一能取到「极小」的入口（其余档位都需要非零差）。`toFixed(4)` 的负零/取整分支一并覆盖。默认态 0.6000 中，锚不命中。',
+  },
+  {
+    slug: "statistics/cohens-d",
+    inputs: {},
+    clicks: ["document.getElementById('m1').value='25';document.getElementById('m2').value='30';document.getElementById('s1').value='4';document.getElementById('s2').value='4';document.getElementById('n1').value='15';document.getElementById('n2').value='15';calcTool();"],
+    expect: ['-1.2500 Cohen\'s d 大'],
+    ref: 'sp = √(((15−1)×16+(15−1)×16)/28) = **4**；d = (25−30)/4 = **−1.2500**，`toFixed(4)` 保留负号。强度按 `Math.abs(d)` 判读：|−1.25| ≥ 0.8 ⇒ `大`，本条压住「负效应量取绝对值再分档」——若漏 abs 会把 −1.25 连环判成极小/小/中（三个 `<` 全命中）。默认态 0.6000 中，锚不命中。',
+  },
+  {
+    slug: "statistics/cohens-d",
+    inputs: {},
+    clicks: ["document.getElementById('m1').value='20';document.getElementById('m2').value='15';document.getElementById('s1').value='3';document.getElementById('s2').value='7';document.getElementById('n1').value='10';document.getElementById('n2').value='30';calcTool();"],
+    expect: ['0.7953 Cohen\'s d 中'],
+    ref: '不等方差+不等样本量的加权合并：sp = √((9×9 + 29×49)/38) = √(1502/38) = √39.5263 = **6.286996**；d = 5/6.286996 = **0.795292** ⇒ `toFixed(4)` = 0.7953，|d| < 0.8 ⇒ `中`。本条压住合并方差的 `n−1` 加权（若误用 n 加权或漏 √，数值立刻偏离 0.7953）；0.7953 与 0.8 边界只差 0.005，分档错一档也会被数值锚暴露。默认态 0.6000，锚不命中。',
+  },
+
 ];
 
 // ---------------------------------------------------------------- main
