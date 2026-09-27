@@ -391,6 +391,42 @@ const CASES = [
     inputs: { supply: "800", demand: "800", stock: "9600", p0: "16000", p1: "16800" },
     expect: ["12.00 月", "5.0%", "供需基本均衡"],
     ref: 'S=800 D=800 I=9600 p0=16000 p1=16800；供需比=1.00、去化周期=12.00 月、价格环比=5.0%；else 分支供需基本均衡：sr=1、chg>0 ⇒ 四个条件全不满足'
+  },
+  {
+    slug: "realestate/estimate-analysis-2",
+    inputs: { inv: "2000", cf: "400", rv: "300", disc: "10", yrs: "8" },
+    expect: ["净现值 NPV： 273.92 万元", "现值指数 PI： 1.137", "静态回收期： 5.00 年"],
+    ref: 'inv=2000 cf=400 rv=300 disc=10 yrs=8；pv=400×(1-1.1^-8)/0.1=2133.97、pvRv=300/1.1^8=139.95、NPV=273.92；PI=2273.92/2000=1.137；静态回收期=2000/400=5.00 年；动态=7.28 年。正 NPV 基准，五参数全改'
+  },
+  {
+    slug: "realestate/estimate-analysis-2",
+    inputs: { inv: "3000", cf: "200", rv: "100", disc: "12", yrs: "10" },
+    expect: ["净现值 NPV： -1,837.76 万元", "现值指数 PI： 0.387", "净现值为负，按该折现率该项目不创造价值，但 IRR 低于折现率，财务上不可行"],
+    ref: 'inv=3000 cf=200 rv=100 disc=12 yrs=10；pv=200×5.650223=1130.04、pvRv=100/1.12^10=32.20、NPV=-1837.76；PI=0.387；IRR=-5.80% < 12% ⇒ 结论取『不创造价值…不可行』分支（默认态为正，不撞）'
+  },
+  {
+    slug: "realestate/estimate-analysis-2",
+    inputs: { inv: "100", cf: "600", rv: "10", disc: "8", yrs: "5" },
+    expect: ["净现值 NPV： 2,302.43 万元", "现值指数 PI： 24.024", "内部收益率 IRR： —"],
+    ref: 'inv=100 cf=600 rv=10 disc=8 yrs=5；IRR 无解分支：npvAt(5)=600×Σ(1/6^i)+10/6^5-100=600×0.199975+0.0013-100≈+19.99>0，与 npvAt(-0.9)>0 同号 ⇒ 二分前提 npvAt(lo)*npvAt(hi)<0 不成立 ⇒ IRR 恒为『—』（默认态 IRR=9.29%，不撞）'
+  },
+  {
+    slug: "realestate/estimate-analysis-2",
+    inputs: { inv: "1000", cf: "100", rv: "50", disc: "8", yrs: "5" },
+    expect: ["净现值 NPV： -566.70 万元", "动态回收期： 超过项目期 5 年", "未折现现金流合计： 550.00 万元"],
+    ref: 'inv=1000 cf=100 rv=50 disc=8 yrs=5；动态回收期超期分支：折现累计 5 年仅 399.27+34.03=433.30 < inv ⇒ dynPay=null ⇒ 渲染『超过项目期 5 年』；未折现=100×5+50=550.00'
+  },
+  {
+    slug: "realestate/estimate-analysis-2",
+    inputs: { inv: "800", cf: "0", rv: "600", disc: "6", yrs: "5" },
+    expect: ["净现值 NPV： -351.65 万元", "静态回收期： —", "动态回收期： 超过项目期 5 年"],
+    ref: 'inv=800 cf=0 rv=600 disc=6 yrs=5；零现金流分支：cf=0 ⇒ statPay/dynPay 均 null ⇒ 静态『—』、动态『超过项目期 5 年』；NPV=600/1.06^5-800=448.35-800=-351.65'
+  },
+  {
+    slug: "realestate/estimate-analysis-2",
+    inputs: { inv: "1000", cf: "200", rv: "100", disc: "0", yrs: "5" },
+    expect: ["净现值 NPV： 100.00 万元", "现值指数 PI： 1.100", "静态回收期： 5.00 年"],
+    ref: 'inv=1000 cf=200 rv=100 disc=0 yrs=5；折现率 0 分支：r=0 ⇒ pv=cf×yrs=1000、pvRv=rv=100 ⇒ NPV=100.00、PI=1.100、动态=5.00 年。刻意不锚 IRR（3.07%，200 次二分浮点边界）'
   }
 ];
 
