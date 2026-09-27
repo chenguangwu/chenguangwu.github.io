@@ -281,8 +281,43 @@ const CASES = [
     inputs: { followers: "30000", likes: "150", comments: "30", shares: "20", impressionsEng: "80000" },
     expect: ["总互动数：200", "互动率（按粉丝）：0.67%", "基于展示的互动率：0.25%"],
     ref: 'totalEng=150+30+20=200；按粉丝=200/30000×100=0.6667⇒0.67%；基于展示=200/80000×100=0.25%。',
+  },
+  {
+    slug: "marketing/marketing-influencer-pricing",
+    inputs: { followersInf: "5000", engRateInf: "4", platformFactor: "1.0", contentType: "1.0" },
+    expect: ["达人层级：素人/KOC", "参考报价：¥420 - ¥780", "建议报价：¥600"],
+    ref: 'f=5000<10000⇒cpmBase=100,素人/KOC；engBonus=1+(4-2)/10=1.2；price=5×100×1.2×1.0×1.0=600；low=420；high=780'
+  },
+  {
+    slug: "marketing/marketing-influencer-pricing",
+    inputs: { followersInf: "50000", engRateInf: "5", platformFactor: "1.2", contentType: "1.5" },
+    expect: ["达人层级：尾部达人", "参考报价：¥16,380 - ¥30,420", "建议报价：¥23,400"],
+    ref: 'f=50000⇒cpmBase=200,尾部达人；engBonus=1.3；price=50×200×1.3×1.2×1.5=23400；low=16380；high=30420'
+  },
+  {
+    slug: "marketing/marketing-influencer-pricing",
+    inputs: { followersInf: "300000", engRateInf: "6", platformFactor: "2.0", contentType: "2.5" },
+    expect: ["达人层级：腰部达人", "参考报价：¥441,000 - ¥819,000", "建议报价：¥630,000"],
+    ref: 'f=300000⇒cpmBase=300,腰部达人；engBonus=1.4；price=300×300×1.4×2.0×2.5=630000；low=441000；high=819000'
+  },
+  {
+    slug: "marketing/marketing-influencer-pricing",
+    inputs: { followersInf: "800000", engRateInf: "3", platformFactor: "1.5", contentType: "1.0" },
+    expect: ["参考报价：¥369,600 - ¥686,400", "建议报价：¥528,000"],
+    ref: 'f=800000⇒cpmBase=400,肩部达人分支；engBonus=1.1；price=800×400×1.1×1.5×1.0=528000；low=369600；high=686400。锚用价格串（bare 预置 500000→肩部同档，纯『达人层级：肩部达人』串会与默认态撞车逃生，故改用依赖全部输入的价格区间串）'
+  },
+  {
+    slug: "marketing/marketing-influencer-pricing",
+    inputs: { followersInf: "2000000", engRateInf: "4", platformFactor: "1.0", contentType: "1.5" },
+    expect: ["达人层级：头部达人", "参考报价：¥1,260,000 - ¥2,340,000", "建议报价：¥1,800,000"],
+    ref: 'f=2000000≥1e6⇒cpmBase=500,头部达人；engBonus=1.2；price=2000×500×1.2×1.0×1.5=1800000；low=1260000；high=2340000'
+  },
+  {
+    slug: "marketing/marketing-influencer-pricing",
+    inputs: { followersInf: "200000", engRateInf: "2", platformFactor: "1.2", contentType: "2.5" },
+    expect: ["达人层级：腰部达人", "参考报价：¥126,000 - ¥234,000", "建议报价：¥180,000"],
+    ref: 'f=200000⇒cpmBase=300,腰部达人；engBonus=1+(2-2)/10=1.0；price=200×300×1.0×1.2×2.5=180000；low=126000；high=234000'
   }
-
 ];
 
 async function main() {
