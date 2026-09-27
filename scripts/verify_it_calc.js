@@ -67,6 +67,50 @@ const CASES = [
     ref: "Base64('hello') = aGVsbG8=（RFC 4648 标准测试向量）",
   },
   {
+    slug: "it/base64-converter",
+    inputs: { input: "hello world" },
+    clicks: ["document.getElementById('urlSafe').parentElement.style={};setAlgo('base32');encodeText();"],
+    expect: ["NBSWY3DPEB3W64TMMQ======", "+118.2%"],
+    ref: "Base32 分支：'hello world' → NBSWY3DPEB3W64TMMQ======（用 '=' 补齐到 8 的倍数，输出 24 字符）；膨胀率 +118.2% = (24-11)/11",
+  },
+  {
+    slug: "it/base64-converter",
+    inputs: { input: "hello world" },
+    clicks: ["document.getElementById('urlSafe').parentElement.style={};setAlgo('base85');encodeText();"],
+    expect: ["+63.6%", "11 B"],
+    ref: "Base85 分支：4 字节一组压成 5 字符并用 <~…~> 包裹，'hello world' 得 18 字符；膨胀率 +63.6% = (18-11)/11，输入字节数 11 B",
+  },
+  {
+    slug: "it/base64-converter",
+    inputs: { input: "a?b/c+d" },
+    clicks: ["encodeText();"],
+    expect: ["YT9iL2MrZA", "+42.9%"],
+    ref: "勾选 URL-safe（非默认态）：标准码 YT9iL2MrZA== 去尾 '='、+/ 换 -_，得 YT9iL2MrZA（10 字符）；膨胀率 +42.9% = (10-7)/7",
+  },
+  {
+    slug: "it/base64-converter",
+    inputs: { input: "aGVsbG8gd29ybGQ=" },
+    clicks: ["decodeText();"],
+    expect: ["hello world", "-31.3%"],
+    ref: "解码方向：aGVsbG8gd29ybGQ= → hello world（11 字节）；膨胀率沿用页面口径 (11-16)/16 = -31.3%",
+  },
+  {
+    slug: "it/base64-converter",
+    inputs: { input: "你好，世界" },
+    clicks: ["encodeText();"],
+    expect: ["5L2g5aW977yM5LiW55WM", "15 B"],
+    ref: "多字节 UTF-8：5 个字符占 15 字节（statInSize 15 B，不是 statInLen 5），编码得 20 字符 5L2g5aW977yM5LiW55WM，膨胀率 +33.3%",
+  },
+  {
+    // 原为只覆盖「Base64 标准编码」的弱覆盖页：解码方向、base32/base85 分支、URL-safe、
+    // 多字节字节数口径、非法输入保护均无用例，此处一次补齐 6 条，全部锚在派生量上。
+    slug: "it/base64-converter",
+    inputs: { input: "!!!not-base64!!!", output: "KEEP-THIS-VALUE-0123456789" },
+    clicks: ["decodeText();"],
+    expect: ["KEEP-THIS-VALUE-0123456789", "+62.5%"],
+    ref: "非法 base64 使 atob 抛异常：decodeText 只弹 toast、不改写输出区，预设输出 KEEP-THIS-VALUE-0123456789 原样保留（statOutLen 26，膨胀率 (26-16)/16 = +62.5%）",
+  },
+  {
     slug: "it/md5",
     inputs: { textInput: "hello" },
     expect: ["5d41402abc4b2a76b9719d911017c592"],
