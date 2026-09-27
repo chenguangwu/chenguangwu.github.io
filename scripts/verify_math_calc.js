@@ -127,6 +127,49 @@ const CASES = [
     expect: ["各组之和需等于总数"],
     ref: "多项式系数要求 Σk=n；3+3+3=9≠6 时 n!/(k1!k2!k3!) 无组合意义，原实现照算得 3.33 再取整显示 3（默认 6,3,2,1 避开）",
   },
+  {
+    slug: "math/equation-solver",
+    inputs: {},
+    clicks: ["selectType('linear');document.getElementById('a').value='4';document.getElementById('b').value='8';solve();"],
+    expect: ["-2.000000", "4×(-2.0000) + 8 = 0.000000"],
+    ref: "一次方程 4x + 8 = 0 ⇒ x = −b/a = **−2.000000**；页面同时给出回代验证式 `a×(x) + b = 0.000000`（把 −b/a 代回原方程，检验式与求解式同源于一次二步运算，可手算复核）。默认组 a=2 / b=−6 ⇒ 3.000000，两条都不命中。",
+  },
+  {
+    slug: "math/equation-solver",
+    inputs: {},
+    clicks: ["selectType('linear');document.getElementById('a').value='0';document.getElementById('b').value='8';solve();"],
+    expect: ["a 不能为 0"],
+    ref: "退化分支：a = 0 时 −b/a 无定义，页面在 `if (a === 0)` 处直接短路输出「a 不能为 0」，不给 Infinity。校验点 = 该页**唯一**的一条纯短路分支（二次/三次/方程组的 a=0 各自另有提示语）；默认组 a=2 走正常解，不命中。",
+  },
+  {
+    slug: "math/equation-solver",
+    inputs: {},
+    clicks: ["selectType('quadratic');document.getElementById('a').value='2';document.getElementById('b').value='-4';document.getElementById('c').value='-6';solve();"],
+    expect: ["3.000000", "-1.000000", "(1.0000, -8.0000)"],
+    ref: "二次曲线 2x² − 4x − 6 = 0：Δ = (−4)² − 4×2×(−6) = **64** ⇒ x₁ = (4 + 8)/4 = **3.000000**、x₂ = (4 − 8)/4 = **−1.000000**；顶点 = (−b/2a, c − b²/4a) = (1.0000, −6 − 16/8) = **(1.0000, −8.0000)**。三个锚分别落在「Δ>0 两支」「顶点」，顶点那条同时复核了 `c − b²/(4a)` 的书写（不是 `c − b²/(2a)`）。默认组 1,−5,6 ⇒ Δ=1、x=5/0、顶点 (2.5000, −0.2500)，不命中。",
+  },
+  {
+    slug: "math/equation-solver",
+    inputs: {},
+    clicks: ["selectType('quadratic');document.getElementById('a').value='1';document.getElementById('b').value='2';document.getElementById('c').value='5';solve();"],
+    expect: ["Δ = -16", "-1.0000 + 2.0000i"],
+    ref: "判别式 Δ<0 分支：x² + 2x + 5 = 0 ⇒ Δ = 4 − 20 = **−16**，实部 −b/2a = **−1.0000**、虚部 √−Δ/2a = 4/2 = **2.0000** ⇒ 共轭复根 −1.0000 ± 2.0000i，页面只打印上半支（另半支由同一模板的第二行给出）。锚「Δ = −16」锁定「无实根」分支，默认组 Δ=1 不命中。",
+  },
+  {
+    slug: "math/equation-solver",
+    inputs: {},
+    clicks: ["selectType('system2');document.getElementById('a1').value='1';document.getElementById('b1').value='1';document.getElementById('c1').value='5';document.getElementById('a2').value='1';document.getElementById('b2').value='-1';document.getElementById('c2').value='1';solve();"],
+    expect: ["3.000000", "2.000000"],
+    ref: "二元一次 { x + y = 5, x − y = 1 }：系数行列式 D = a₁b₂ − a₂b₁ = −1 − 1 = **−2** ⇒ x = (c₁b₂ − c₂b₁)/D = (−5 − 1)/(−2) = **3.000000**、y = (a₁c₂ − a₂c₁)/D = (1 − 5)/(−2) = **2.000000**（克拉默法则，两条同源不同式）。默认组 2,3,8 / 1,−2,−3 ⇒ D=−7、x=2.000000、y=1.000000，本例的 3/2 不命中。",
+  },
+  {
+    slug: "math/equation-solver",
+    inputs: {},
+    clicks: ["selectType('cubic');document.getElementById('a').value='1';document.getElementById('b').value='0';document.getElementById('c').value='-7';document.getElementById('d').value='6';solve();"],
+    expect: ["3 个", "-3.000000"],
+    ref: "三次方程 x³ − 7x + 6 = 0：页面在 [−20, 20) 上以 0.5 步长扫点、每点跑 50 次牛顿迭代（f′ = 3ax² + 2bx + c），再按 0.1 邻域去重 ⇒ 报「**3 个**」实根。python 侧用因子分解独立复核 (x−1)(x−2)(x+3) = x³ − 7x + 6，根集 {−3, 1, 2} 与之一致。默认组 1,−6,11,−6 的三根含重根，根数同样为 3 但值不同 ⇒ 锚取首个根 −3.000000 以区分。",
+  },
+
 ];
 
 async function main() {
