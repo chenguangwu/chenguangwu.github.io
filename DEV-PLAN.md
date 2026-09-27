@@ -267,7 +267,7 @@
 - **三条高频真缺陷形态**：① 系数写错（`60f/p` 应为 `120f/p`）；② **量纲多乘/少乘 10**（紧度 `d×(P/10)×100` 应为 `d×P`；`kN/cm²→MPa` 漏乘 10）；③ p 值 / 概率类输出越界（`p=1.046>1`）。
 - **凡输出「物理上不可能」的值（概率 >1、转差率为负、紧度/覆盖率为负、量级差 10 倍）必查公式本身**，勿以"口径偏差"放过。
 - **deep-dive 文案（`faqs`/`examples`/`tips`）是构建产物**：必须改 **JSON 源**（`json.dumps(indent=1)+'\n'`）。若 FAQ 出现「本工具算错了…该项仅作参考」式**免责说明**，说明是已知未修缺陷，应改公式而不是留免责文案。
-- **修完页面必回头查 verify 用例**：① 用例 `expect` 可能锚在旧错误输出上；② 该页可能**根本没有用例**（缺陷漏网的直接原因，补一条）；③ 新用例的 `expect` 若在**页面默认输出**里也命中，会被门禁第 217 项判为**逃生项** —— 非默认输入必须使「默认态」不命中。
+- **修完页面必回头查 verify 用例**：① 用例 `expect` 可能锚在旧错误输出上；② 该页可能**根本没有用例**（缺陷漏网的直接原因，补一条）；③ 新用例的 `expect` 若在**页面默认输出**里也命中，会被判别器（`scripts/discriminate_check.js`）判为**逃生项** —— 非默认输入必须使「默认态」不命中。
 - **隔离器 `tagAttrs` 必须支持「裸属性」**：只认带值属性的正则会把 `<option … selected>` / `<input … checked>` 整条丢弃 → `preset` 恒落回 `opts[0]`，**全站含 `<select>` 的页默认值都被读成首项**。修法：`([a-zA-Z-]+)(?:="([^"]*)")?`，缺值补 `''`。**凡「引擎默认值与源码 `selected`/`checked` 不符」先查这一条。**
 - **deep-dive 主题错配（页面讲 A、词条写 B）是中批量改写的连带产物**：判据 = 词条 `title`/`scenarios` 与页面**当前** `<h2 data-zh>` 不是同一工具。修法：按页面**真实 `calc()` 算法**重写。
 - **隔离器桩必须补齐（否则把「未审计」伪装成「桩盲区/无输出」）**：`<textarea>` 默认文本、逐个触发器（一旦写出结果即止）、无 `calc` 命名时取「函数最多」的脚本块、`innerHTML` setter 里 parse `input`/`textarea`/`select` 注册回 `store`、以及 `MutationObserver`/`getElementsByName`/`style.setProperty`/`cloneNode`/`insertAdjacentHTML`/`toBlob`/`ctx.{setTransform,rotate,strokeRect,roundRect}` 等。**升级前的「空 OUT / 请输入数据」不能作为「页面无默认输出」的证据。**
@@ -331,7 +331,7 @@
 
 ### 10.2 现状（实测基线）
 
-- `all_default 4 / no_inputs 10 / escape 0`；门禁 `run_gates.py` **217 项全过**、逃生项 0（判别器已检 **4111** 例 / 跳过 49）。
+- `all_default 4 / no_inputs 10 / escape 0`；门禁 `run_gates.py` **217 项全过**、逃生项 0（判别器已检 **4117** 例 / 跳过 49）。
 - A 级率 **99.2%**（A 4693 / B 32 / C 4）；术语内链 **1591 页 / 2268 条**（零死链、零自链）。
 - 弱用例口径与选批规则见 §10.3。
   - **注意：弱用例整体处于判别器盲区** —— 「注入值等于默认值」的用例被判 `usable=false` 直接跳过（§10.5）⇒ `escape=0` 只说明强用例无逃生项；每批改造后须重跑判别器确认其由「跳过」转为「已检且变红」。
@@ -408,6 +408,7 @@
 18. **动态 id 不可做判别锚**：`pageDefaults()` 在 `<!-- TOOLBOX-DEEP-DIVE -->` 处截断 ⇒ 运行期生成的 id 取不到；只改它 ⇒ `usable=false` 静默跳过，顺带改可见键则变逃生项。锚须落在可见且影响输出的键（如 `forging-ratio` 改 `shape: round→rect`）。
 19. **「美化/格式化」类页易成回显伪锚**（`it/shell-script-formatter`：`getIndent()` 读 select ⇒ `parseInt(v)=NaN` ⇒ 缩进恒 0）⇒ 改走同页「压缩」路径找非回显锚（`minifyShell` 以 `; ` 连接 ⇒ `echo a; echo b`）。另：结果容器不在 DUMP_IDS 时用用例级 `dumpIds`；dump 只出常量/回显时先怀疑此因。
 20. **harness 未建模 `<select>` 默认选中项 ⇒ 桩内恒 null 的「静默死页」**：桩的 `checkedByName` 不解析 `<select>` + `<option selected>` ⇒ 读选中项 `.text` 恒 null ⇒ 页面整页无产物，只表现为「无输出 / 只有常量锚」，易误判「结构性不可注入」。判据 = 抛 `reading 'text'` 且 selector 形如 `#id option:checked`；处置见 D 段 `selectedText` 补丁（零回归）。
+21. **「模式切换 + 单 `calc()` 多分支」型页（顶层 `currentXxx` 变量 + `switchXxx(m)` 写它、`calc()` 按它分四条链算）**：兜底无参调用 `switchXxx(undefined)` 会把模式置空 ⇒ `calc()` 落到函数初值分支 ⇒ 各量全取 0 并**覆盖结果区** ⇒ 任何「归零态」输出串（`0 万保额` / `0 万 …`）在**默认态同样命中** = 逃生项（`finance/insurance-calculator` 四法皆然）。定锚只用随注入值变化的**非零**派生量；即使用例本身是边界（存量超需求 ⇒ 保额 `max(…,0)=0`），也改锚同组**其他非 0 明细行**（保费预算 / 重疾 / 负债 / 教育金）。用例 clicks 必须写 `switchXxx('别名'); calc();` 才落被测分支，否则兜底态与默认态同值。
 **D. 工具与方法**
 
 | 工具 | 用途 |

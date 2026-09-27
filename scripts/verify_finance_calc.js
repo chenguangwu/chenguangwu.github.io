@@ -836,6 +836,49 @@ const CASES = [
     ref: "反推模式：不含税 = 20,000 − 1,600 = **18,400**，税率 = 1,600 ÷ 18,400 × 100% = **8.6957%**，公式行把除数与被除数一并回显 ⇒ 可完全手算复核。默认组（10,000 / 825.69）⇒ 税率 9.0000%，两条都不同。",
   },
 
+  {
+    slug: "finance/insurance-calculator",
+    inputs: { dt_income: "36", dt_expense: "22", dt_debt: "120", dt_existing: "25" },
+    clicks: ["switchMethod('dual-ten'); calc()"],
+    expect: ["455万", "180 万保额", "360万 (年收入×10)"],
+    ref: "双十法则非默认组（年收入 36 万、负债 120 万、存量保障 25 万）：寿险保额 = max(年收入×10 + 负债 − 存量, 0) = 360 + 120 − 25 = **455 万**；重疾 = max(年收入×5, 30) = 180 万；意外 = 年收入×10 = 360 万；年保费预算 = 年收入×10% = 3.6 万。三条 expect 分别锚在 stat 卡、险种配置条、明细拆解行上，同源不同式，可一步复核。默认组（年收入 20 / 负债 80 / 存量 10）⇒ 270 / 100 / 200 万，三条都不命中。",
+  },
+  {
+    slug: "finance/insurance-calculator",
+    inputs: { dt_income: "10", dt_expense: "8", dt_debt: "0", dt_existing: "200" },
+    clicks: ["switchMethod('dual-ten'); calc()"],
+    expect: ["50 万保额", "1.0万", "100万 (年收入×10)"],
+    ref: "存量保障金反超需求：年收入×10 + 负债 = 100 + 0 < 存量 200 ⇒ 寿险保额 = max(…, 0) = 0 万；同组重疾 = max(10×5, 30) = 50 万、年保费预算 = 10×10% = 1.0 万。刻意不锚任何「0 万 / 0 万保额」串：harness 兜底阶段会以 switchMethod(undefined) 重跑 calc()，currentMethod 落空 ⇒ 四个保额量全部取初值 0 并写回结果区，该串在默认态 likewise 命中 ⇒ 逃生项。",
+  },
+  {
+    slug: "finance/insurance-calculator",
+    inputs: { ft_income: "45", ft_members: "5" },
+    clicks: ["switchMethod('four-three'); calc()"],
+    expect: ["450万", "4.5万", "投资比例 18.0万"],
+    ref: "4321 法则（年收入 45 万、家庭 5 人）：人均可支配 = 45 ÷ 5 = 9 万，重疾 = max(9×3, 30) = 30 万；寿险 = max(年收入×10, 50) = 450 万；年保费预算 = 45×10% = 4.5 万；投资 = 45×40% = 18.0 万/年、生活 13.5、储蓄 9.0。默认组（20 万 / 3 人）⇒ 200 / 2.0 / 8.0 万，三条都不命中。",
+  },
+  {
+    slug: "finance/insurance-calculator",
+    inputs: { lv_age: "35", lv_retire: "65", lv_income: "30", lv_growth: "5", lv_consume: "40", lv_discount: "6" },
+    clicks: ["switchMethod('life-value'); calc()"],
+    expect: ["446万", "工作年限 30年", "年净贡献 18.0万"],
+    ref: "生命价值法（现年 35、退休 65、年收入 30 万、收入增长 5%、个人消费 40%、贴现率 6%）：工作年限 = 65 − 35 = 30 年（页面取 Math.max(差, 1) 下限，此处不触底）；年净贡献 = 30 × (1 − 40%) = 18.0 万；生命价值 = Σ_{i=0..29} 18 × 1.05^i ÷ 1.06^{i+1}，python 独立复算 = **446 万**（取整后写回）。默认组（30 / 60 / 20 / 3% / 30% / 5%）⇒ 另一组值，三条都不命中。",
+  },
+  {
+    slug: "finance/insurance-calculator",
+    inputs: { nd_income: "25", nd_expense: "15", nd_mortgage: "150", nd_other_debt: "20", nd_education: "60", nd_parents: "40", nd_final: "15", nd_assets: "30", nd_spouse_income: "12", nd_years: "15" },
+    clicks: ["switchMethod('needs'); calc()"],
+    expect: ["生活支出缺口 45万", "家庭负债 170万", "300 万保额"],
+    ref: "需求分析法：家庭负债 = 房贷 150 + 其他负债 20 = 170 万；生活支出缺口 = max((家庭开支 15 − 配偶收入 12) × 保障年限 15, 0) = 3 × 15 = 45 万；寿险保额 = max(170 + 教育 60 + 赡养 40 + 身后费用 15 + 缺口 45 − 已有资产 30, 0) = **300 万**。默认组（20 / 12 / 80 / 10 / 50 / 30 / 10 / 20 / 10 / 20）⇒ 负债 90、缺口 40、保额 200，三条都不命中。",
+  },
+  {
+    slug: "finance/insurance-calculator",
+    inputs: { nd_income: "20", nd_expense: "12", nd_mortgage: "80", nd_other_debt: "10", nd_education: "50", nd_parents: "30", nd_final: "10", nd_assets: "500", nd_spouse_income: "10", nd_years: "20" },
+    clicks: ["switchMethod('needs'); calc()"],
+    expect: ["子女教育 50万", "生活支出缺口 40万", "赡养父母 30万"],
+    ref: "需求分析法反向上界：已有资产 500 万足以覆盖全部缺口（负债 90 + 教育 50 + 赡养 30 + 身后 10 + 缺口 (12−10)×20 = 40，合计 220 万）⇒ 寿险保额 = max(220 − 500, 0) = 0 万，但三项费用明细仍各自独立成立（50 / 40 / 30 万），可验证「保额归零 ≠ 明细被抹平」。锚全部取自明细行，不碰任何含 0 的输出。默认组（资产 20 万）⇒ 保额 200、缺口 40，明细行仍是默认口径但「子女教育 50万」等同串在双十/4321 默认组不存在（默认组根本没有这三行 ⇒ 不命中）。",
+  },
+
 ];
 
 // ---------------------------------------------------------------- main
