@@ -3157,6 +3157,46 @@ const CASES = [
     expect: ["30 B"],
     ref: "三段纯中文：stParas=3，stSize = 3×10 = 30 字节（每个汉字 3 字节、标签各 7 字节⇒每段 10 字节）。与上两条合起来覆盖「字节统计 × 块计数 × 链接/图片计数」三条派生量。默认态样例段落数不同。",
   },
+  {
+    slug: "it/password-generator",
+    inputs: {"length": "16"},
+    clicks: ["document.getElementById('lowercase').checked=true;document.getElementById('uppercase').checked=true;document.getElementById('numbers').checked=true;document.getElementById('symbols').checked=true;generatePassword();"],
+    dumpIds: ["strengthLabel"],
+    expect: ["强度：非常强 · 约 103 bit"],
+    ref: "字符池 = 26 小写 + 26 大写 + 10 数字 + 26 符号 = 88；页面熵公式 长度 × log₂(88) = 16 × 6.4594 = 103.35 ⇒ toFixed(0) 显示 103。强度分级：长度≥8/12/16 得 3 分、四类字符齐全再得 4 分 ⇒ 7 分 ⇒ 非常强。锚取整句「强度：非常强 · 约 103 bit」。默认态所有字符集开关在 harness 里都是未勾选 ⇒ 生成结果为空、不调 updateStrength，兜底无参调用才写出「强度：无 · 约 0 bit」，与本串不同。",
+  },
+  {
+    slug: "it/password-generator",
+    inputs: {"length": "8"},
+    clicks: ["document.getElementById('lowercase').checked=true;document.getElementById('uppercase').checked=true;document.getElementById('numbers').checked=true;generatePassword();"],
+    dumpIds: ["strengthLabel"],
+    expect: ["强度：中等 · 约 48 bit"],
+    ref: "8 位、未勾选特殊符号：字符池 = 26+26+10 = 62 ⇒ 8 × log₂(62) = 47.63 ⇒ 48 bit。分级：长度 8 得 1 分、三类字符各 1 分 ⇒ 4 分且长度<10 ⇒ 中等。与上一条对照，去掉符号后同样 8 位强度掉一档、熵也下降。",
+  },
+  {
+    slug: "it/password-generator",
+    inputs: {"length": "4"},
+    clicks: ["document.getElementById('lowercase').checked=true;generatePassword();"],
+    dumpIds: ["strengthLabel"],
+    expect: ["强度：弱 · 约 19 bit"],
+    ref: "最短档：字符池仅 26 ⇒ 4 × log₂(26) = 18.80 ⇒ 19 bit；长度<8 且只命中小写 ⇒ 1 分 ⇒ 弱。默认态该值不出现（见上条说明）。",
+  },
+  {
+    slug: "it/password-generator",
+    inputs: {"length": "12"},
+    clicks: ["document.getElementById('lowercase').checked=true;document.getElementById('uppercase').checked=true;document.getElementById('numbers').checked=true;document.getElementById('excludeSimilar').checked=true;generatePassword();"],
+    dumpIds: ["strengthLabel"],
+    expect: ["强度：强 · 约 70 bit"],
+    ref: "勾选「排除相似字符」后字符集被改写：小写去 o/l → 24、大写去 O/I → 24、数字去 0/1 → 8，符号未选仍为 0 ⇒ 池 56 ⇒ 12 × log₂(56) = 69.69 ⇒ 70 bit。既覆盖熵计算，也覆盖排除规则对字符池的影响（不勾选时 12 位应为 12 × log₂(62) = 71 bit）。",
+  },
+  {
+    slug: "it/password-generator",
+    inputs: {"length": "10"},
+    clicks: ["document.getElementById('lowercase').checked=true;document.getElementById('uppercase').checked=true;document.getElementById('numbers').checked=true;document.getElementById('symbols').checked=true;document.getElementById('excludeAmbiguous').checked=true;generatePassword();"],
+    dumpIds: ["strengthLabel"],
+    expect: ["强度：强 · 约 62 bit"],
+    ref: "勾选「排除歧义符号」后符号集从 26 个剔除方括号/圆括号/花括号等 12 个 ⇒ 剩 14 ⇒ 池 = 26+26+10+14 = 76 ⇒ 10 × log₂(76) = 62.48 ⇒ 62 bit。与上一条合起来把两个排除开关对字符池的扣减都纳入验证。",
+  },
 ];
 
 // ---------------------------------------------------------------- DOM stub
@@ -3524,6 +3564,9 @@ async function runCaseInner(c) {
     body: makeEl(""),
   };
   const localStorage = { getItem() { return null; }, setItem() {}, removeItem() {} };
+  // sessionStorage 桩：站内只有 it/password-generator 顶层写了 `const HISTORY_STORE = sessionStorage`，
+  // 缺该全局 ⇒ 整个脚本在求值期就抛 ReferenceError ⇒ 该页在任何用例里都是「死页」（零用例即零回归）。
+  const sessionStorage = { getItem() { return null; }, setItem() {}, removeItem() {} };
   const ToolBox = {
     setResult: (id, h) => { getEl(id).innerHTML = h; },
     toggleToolTheme() {},
@@ -3558,6 +3601,7 @@ async function runCaseInner(c) {
   const added = new Set(Object.keys(win));
   win.addEventListener = (ev, cb) => { if (/DOMContentLoaded|^load$/i.test(ev)) readyCbs.push(cb); };
   win.localStorage = localStorage;
+  win.sessionStorage = sessionStorage;
   win.location = { href: "", search: "" };
   win.navigator = navigator;
   win.document = document;
@@ -3591,10 +3635,10 @@ async function runCaseInner(c) {
   let fns;
   try {
     const compiled = new Function(
-      "document", "window", "console", "navigator", "localStorage", "ToolBox", "alert", "setTimeout", "requestAnimationFrame", "setInterval", "requestIdleCallback", "Date",
+      "document", "window", "console", "navigator", "localStorage", "sessionStorage", "ToolBox", "alert", "setTimeout", "requestAnimationFrame", "setInterval", "requestIdleCallback", "Date",
       `var __f={};\n${script}\n${expose}\n__f["__pageEval"]=function(c){return eval(String(c));};\nreturn __f;`
     );
-    fns = compiled(document, win, { log() {}, warn() {}, error() {} }, navigator, localStorage, ToolBox, () => {}, safeTimer, safeTimer, safeTimer, safeTimer, FrozenDate);
+    fns = compiled(document, win, { log() {}, warn() {}, error() {} }, navigator, localStorage, sessionStorage, ToolBox, () => {}, safeTimer, safeTimer, safeTimer, safeTimer, FrozenDate);
   } catch (e) {
     return { ok: false, why: "初始化失败: " + e.message.slice(0, 80) };
   }
