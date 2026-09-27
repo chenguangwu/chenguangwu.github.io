@@ -463,6 +463,42 @@ const CASES = [
     inputs: { rent: "500", vacancy: "15", opex: "40", capRate: "7", method: "1", landVal: "1200" },
     expect: ["2442.86", "255.00", "4.9倍", "土地价值 -1200.00"],
     ref: 'rent=500 vac=15 opex=40 capRate=7% method=1 land=1200；有效毛收入=425.00 运营费用=170.00 NOI=255.00 V=2442.86 GRM=4.9 实际收益率=10.44% 租售比=20.47%。大数值 method=1：土地价值 1200 万元，V=NOI/0.07-1200'
+  },
+  {
+    slug: "realestate/assessor-second-hand",
+    inputs: { p1: "4.2", p2: "4.6", p3: "4.0", loc: "2", floor: "2", decor: "2", orient: "0", age: "0", area: "110" },
+    expect: ["4.5227", "497.49", "4.2667", "总调整幅度 +6%"],
+    ref: 'p1=4.2 p2=4.6 p3=4.0 loc=2 floor=2 decor=2 orient=0 age=0 area=110；案例均价=4.2667 总调整=+6% 调整后单价=4.5227 评估总价=497.49。totalAdj=+6（可达最大值：loc/floor/decor 均取 +2）⇒ 颜色 success 支（≥0）'
+  },
+  {
+    slug: "realestate/assessor-second-hand",
+    inputs: { p1: "5.0", p2: "5.4", p3: "5.2", loc: "1", floor: "1", decor: "0", orient: "0", age: "0", area: "80" },
+    expect: ["5.3040", "424.32", "5.2000", "总调整幅度 +2%"],
+    ref: 'p1=5.0 p2=5.4 p3=5.2 loc=1 floor=1 decor=0 orient=0 age=0 area=80；案例均价=5.2000 总调整=+2% 调整后单价=5.3040 评估总价=424.32。totalAdj=+2 ⇒ success 支（≥0）'
+  },
+  {
+    slug: "realestate/assessor-second-hand",
+    inputs: { p1: "2.0", p2: "2.6", p3: "2.9", loc: "0", floor: "0", decor: "0", orient: "0", age: "0", area: "60" },
+    expect: ["2.5000", "150.00", "2.5000", "待估面积 60平米"],
+    ref: 'p1=2.0 p2=2.6 p3=2.9 loc=0 floor=0 decor=0 orient=0 age=0 area=60；案例均价=2.5000 总调整=0% 调整后单价=2.5000 评估总价=150.00。totalAdj=0 支：与默认同为『0%』故不可锚，改用『待估面积 60平米』（默认 90平米）'
+  },
+  {
+    slug: "realestate/assessor-second-hand",
+    inputs: { p1: "6.0", p2: "6.3", p3: "6.6", loc: "0", floor: "-3", decor: "0", orient: "0", age: "0", area: "75" },
+    expect: ["6.1110", "458.32", "6.3000", "总调整幅度 -3%"],
+    ref: 'p1=6.0 p2=6.3 p3=6.6 loc=0 floor=-3 decor=0 orient=0 age=0 area=75；案例均价=6.3000 总调整=-3% 调整后单价=6.1110 评估总价=458.32。totalAdj=-3 边界 ⇒ info 支（-3 ≥ -3，不落 warning）'
+  },
+  {
+    slug: "realestate/assessor-second-hand",
+    inputs: { p1: "7.0", p2: "7.5", p3: "8.0", loc: "-2", floor: "-3", decor: "0", orient: "0", age: "0", area: "120" },
+    expect: ["7.1250", "855.00", "7.5000", "总调整幅度 -5%"],
+    ref: 'p1=7.0 p2=7.5 p3=8.0 loc=-2 floor=-3 decor=0 orient=0 age=0 area=120；案例均价=7.5000 总调整=-5% 调整后单价=7.1250 评估总价=855.00。totalAdj=-5 ⇒ warning 支（<-3）'
+  },
+  {
+    slug: "realestate/assessor-second-hand",
+    inputs: { p1: "9.0", p2: "9.6", p3: "9.3", loc: "-2", floor: "-3", decor: "-3", orient: "-3", age: "-3", area: "100" },
+    expect: ["7.9980", "799.80", "9.3000", "总调整幅度 -14%"],
+    ref: 'p1=9.0 p2=9.6 p3=9.3 loc=-2 floor=-3 decor=-3 orient=-3 age=-3 area=100；案例均价=9.3000 总调整=-14% 调整后单价=7.9980 评估总价=799.80。totalAdj=-14（可达最小值）⇒ warning 支，验证极端负调整不越界'
   }
 ];
 
