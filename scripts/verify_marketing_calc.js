@@ -389,6 +389,42 @@ const CASES = [
     inputs: { avgCpc: "10", targetClicksDay: "30", convRate: "8", avgOrderValue: "1000" },
     expect: ["月预估收入：¥72,000", "8.00x"],
     ref: 'cpc=10 clicks=30 cr=8 aov=1000；日预算=10×30=300、月预算=9,000；日订单=30×8/100=2.4；日收入=2,400、月收入=72,000；ROAS=(8/100×1000)/10=8.00x（与点击量无关）。锚1 用全键月收入、锚2 用 ROAS，均避开默认串集'
+  },
+  {
+    slug: "marketing/marketing-ab-test-significance",
+    inputs: { visitorsA: "5000", conversionsA: "200", visitorsB: "5000", conversionsB: "270" },
+    expect: ["P值：0.0009", "相对提升：+35.00%"],
+    ref: 'vA=5000 cA=200 vB=5000 cB=270；pA=4.00% pB=5.40% z=3.3075；P值(双尾)=0.0009；相对提升=+35.00%；显著(p<0.05)。CDF 为页面同款 A&S 26.2.17 近似'
+  },
+  {
+    slug: "marketing/marketing-ab-test-significance",
+    inputs: { visitorsA: "8000", conversionsA: "240", visitorsB: "8000", conversionsB: "300" },
+    expect: ["P值：0.0086", "相对提升：+25.00%"],
+    ref: 'vA=8000 cA=240 vB=8000 cB=300；pA=3.00% pB=3.75% z=2.6267；P值(双尾)=0.0086；相对提升=+25.00%；显著(p<0.05)。CDF 为页面同款 A&S 26.2.17 近似'
+  },
+  {
+    slug: "marketing/marketing-ab-test-significance",
+    inputs: { visitorsA: "2000", conversionsA: "40", visitorsB: "2000", conversionsB: "52" },
+    expect: ["P值：0.2056", "相对提升：+30.00%", "结果尚不显著"],
+    ref: 'vA=2000 cA=40 vB=2000 cB=52；pA=2.00% pB=2.60% z=1.2657；P值(双尾)=0.2056；相对提升=+30.00%；不显著(p≥0.05)。CDF 为页面同款 A&S 26.2.17 近似'
+  },
+  {
+    slug: "marketing/marketing-ab-test-significance",
+    inputs: { visitorsA: "12000", conversionsA: "600", visitorsB: "12000", conversionsB: "660" },
+    expect: ["P值：0.0825", "相对提升：+10.00%", "结果尚不显著"],
+    ref: 'vA=12000 cA=600 vB=12000 cB=660；pA=5.00% pB=5.50% z=1.7365；P值(双尾)=0.0825；相对提升=+10.00%；不显著(p≥0.05)。CDF 为页面同款 A&S 26.2.17 近似'
+  },
+  {
+    slug: "marketing/marketing-ab-test-significance",
+    inputs: { visitorsA: "15000", conversionsA: "450", visitorsB: "15000", conversionsB: "560" },
+    expect: ["P值：0.0004", "相对提升：+24.44%"],
+    ref: 'vA=15000 cA=450 vB=15000 cB=560；pA=3.00% pB=3.73% z=3.5210；P值(双尾)=0.0004；相对提升=+24.44%；显著(p<0.05)。CDF 为页面同款 A&S 26.2.17 近似'
+  },
+  {
+    slug: "marketing/marketing-ab-test-significance",
+    inputs: { visitorsA: "6000", conversionsA: "300", visitorsB: "4000", conversionsB: "230" },
+    expect: ["P值：0.1010", "相对提升：+15.00%", "结果尚不显著"],
+    ref: 'vA=6000 cA=300 vB=4000 cB=230；pA=5.00% pB=5.75% z=1.6400；P值(双尾)=0.1010；相对提升=+15.00%；不显著(p≥0.05)。CDF 为页面同款 A&S 26.2.17 近似'
   }
 ];
 
