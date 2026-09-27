@@ -187,6 +187,64 @@ const CASES = [
     expect: ["177.33 换热功率", "63.84 每小时热量", "15.25 换热量", "9.02 目标80kW需水量"],
     ref: "P = ρqcΔT/3600 = 1050×20×3.8×8/3600 = 177.33 kW；每小时热量 = P×3600 = 638400 kJ = 63.84 万kJ（原实现按 /1000 出 638.4 却标「万kJ」，差 10 倍）；换热量 = P×860 kcal/h = 152507 kcal/h = 15.25 万大卡/h（原 P×0.86 标「万大卡/h」同样差 10 倍）；needQ = 3600×80/(1050×3.8×8) = 9.02 m³/h",
   },
+  // ── 液压系统综合评估器（hydraulic/assessor-33）：三条独立计算链 —— 泵效率 / 能量回收 / 节能比对 ──
+  {
+    // 泵效率：非默认输入（qt=125L/min、qa=100L/min、tt=72N·m、ta=90N·m）
+    slug: "hydraulic/assessor-33",
+    inputs: { qt: "125", qa: "100", tt: "72", ta: "90" },
+    clicks: ["calcEff();document.getElementById('qt').value=document.getElementById('res').innerHTML;"],
+    expect: ["80.0% 容积效率", "64.0% 总效率", "容积效率偏低"],
+    ref: "ηv = qa/qt = 100/125 = 80.0%（<85 ⇒ 需检修）；ηm = tt/ta = 72/90 = 80.0%（<85 ⇒ 需检修）；"
+     + "η = ηv×ηm/100 = 80×80/100 = 64.0%（<70 ⇒ 低效），命中 etaV<85 的「容积效率偏低」建议分支。默认态"
+     + "（100/92/80/95）为 92.0% / 84.2% / 77.4%，两条均不命中。",
+  },
+  {
+    // 泵效率高值档（qt=80、qa=78、tt=88、ta=92），与上一例同函数不同分支
+    slug: "hydraulic/assessor-33",
+    inputs: { qt: "80", qa: "78", tt: "88", ta: "92" },
+    clicks: ["calcEff();document.getElementById('qt').value=document.getElementById('res').innerHTML;"],
+    expect: ["97.5%", "95.7%", "93.3%"],
+    ref: "ηv = 78/80 = 97.5%（≥92 ⇒ 良好）；ηm = 88/92 = 95.652% ⇒ 95.7%（≥92 ⇒ 良好）；"
+     + "η = 97.5×95.652/100 = 93.26% ⇒ 93.3%（≥80 ⇒ 高效）。默认态 92.0%/84.2%/77.4% 三条全不命中。",
+  },
+  {
+    // 势能回收：非默认输入（m=8000kg、h=4m、t=6s、回收率 45%）
+    slug: "hydraulic/assessor-33",
+    inputs: { rc_m: "8000", rc_h: "4", rc_t: "6", rc_eta: "45" },
+    clicks: ["calcRec();document.getElementById('qt').value=document.getElementById('res').innerHTML;"],
+    expect: ["313920", "23.54", "28.78"],
+    ref: "Ep = m·g·h = 8000×9.81×4 = 313920 J；P总 = Ep/t/1000 = 313920/6/1000 = 52.32 kW；"
+     + "Pr = 52.32×45% = 23.544 ⇒ 23.54 kW；Ploss = 52.32−23.54 = 28.776 ⇒ 28.78 kW。默认态"
+     + "（5000kg/3m/10s/65%）为 147150 J / 9.56 kW / 5.15 kW，三条全不命中。",
+  },
+  {
+    // 势能回收高回收率档（2000kg、5m、8s、85%），advice 走 ≥60 分支
+    slug: "hydraulic/assessor-33",
+    inputs: { rc_m: "2000", rc_h: "5", rc_t: "8", rc_eta: "85" },
+    clicks: ["calcRec();document.getElementById('qt').value=document.getElementById('res').innerHTML;"],
+    expect: ["98100", "10.42", "1.84"],
+    ref: "Ep = 2000×9.81×5 = 98100 J；P总 = 98100/8/1000 = 12.2625 kW；Pr = 12.2625×85% = 10.4231 ⇒ 10.42 kW；"
+     + "Ploss = 12.2625−10.42 = 1.8424 ⇒ 1.84 kW。默认态为 147150 J / 9.56 kW / 5.15 kW，均不命中。",
+  },
+  {
+    // 节能比对：非默认输入（22→40kW、8→6h、节电率 25%）
+    slug: "hydraulic/assessor-33",
+    inputs: { sv_p: "40", sv_t: "6", sv_load: "75", sv_save: "25" },
+    clicks: ["calcSave();document.getElementById('qt').value=document.getElementById('res').innerHTML;"],
+    expect: ["240.0", "180.0", "18000"],
+    ref: "定频日耗电 = P×t = 40×6 = 240.0 kWh；变频日耗电 = 240×(1−25%) = 180.0 kWh；日节电 = 60.0 kWh；"
+     + "年节电 = 60×300 = 18000 kWh；年减排 CO₂ = 18000×0.785 = 14130 kg。默认态"
+     + "（22kW/8h/35%）为 176.0 / 114.4 / 61.6 / 18480，全不命中。",
+  },
+  {
+    // 非法输入保护：qt=0 ≤ 0 走校验分支，res 被改写为提示（默认态 res 是节能链结果，天然不同档）
+    slug: "hydraulic/assessor-33",
+    inputs: { qt: "0" },
+    clicks: ["calcEff();document.getElementById('qt').value=document.getElementById('res').innerHTML;"],
+    expect: ["请输入有效数据"],
+    ref: "qt=0 触发 `qt<=0` 校验 ⇒ res 由默认态的节能链输出改写为「请输入有效数据」，是异常路径唯一产物，"
+     + "判别力集中在本用例被测点。其余三个输入保持页面默认（92/80/95）不参与判定。",
+  },
 ];
 
 // ---------------------------------------------------------------- main
