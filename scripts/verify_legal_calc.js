@@ -152,8 +152,108 @@ const CASES = [
     "slug": "legal/jicheng-yizhu-gongzheng-yichan-fenpei",
     "inputs": { "v0": "500", "v1": "4" },
     "expect": ["125.00 万元", "50.0 万元", "25.0%"],
-    "ref": "人均=500/4=125.00万元；特留=500×0.1=50.0；占比=100/4=25.0%（默认300/3→100.00/30.0/33.3%，注入失败即不命中）"
-  }
+    "ref": "人均=500/4=125.00万元；特留=500×0.1=50.0；占比=100/4=25.0%（默认300/3→100.00/30.0/33.3%，注入失败即不命中）"},
+
+  // ── BATCH267：legal 第二批「印花税 / 继承份额 / 人身损害 / 消保三赔 / 食品安全 / 公证费 / 商标续展 / 仲裁费 / 专利年费 / 专利期限」族 ──
+  // 全部为「默认参数之外的第二组注入值」⇒ 默认态只跑原默认值、产物必变 ⇒ 双态天然成立；
+  // 锚均为一步可手算的派生量，不碰输入回显。
+  {
+    "slug": "legal/stamp-duty-legal",
+    "inputs": { "docType": "lease", "amount": "200000" },
+    "expect": ["10.00‱"],
+    "ref": "租赁合同印花税率 = 0.10‱(万分之1) × 10 = **10.00‱**；刻意把金额从默认的 100,000 抬到 200,000，使税额与税率都不再落在默认分支上"
+  },
+  {
+    "slug": "legal/stamp-duty-legal",
+    "inputs": { "docType": "lease", "amount": "200000" },
+    "expect": ["200.00"],
+    "ref": "应缴印花税 = 计税金额 200,000 × 0.10‱ = 200,000 × 0.001 = **200.00** 元；与上一条税率行同源（税额 = 金额 × 税率 ÷ 10），任一条错都会破坏这条恒等关系"
+  },
+  {
+    "slug": "legal/inheritance-share",
+    "inputs": { "estateValue": "600000", "spouse": "0", "children": "0", "father": "1", "mother": "1" },
+    "expect": ["300,000"],
+    "ref": "第一顺位继承人共 2 人（父、母；配偶 0、子女 0），遗产 600,000 ÷ 2 = **300,000** 元/人；默认口径为 300 万遗产 3 人 ⇒ 份额不同，注入失败即不命中"
+  },
+  {
+    "slug": "legal/personal-injury",
+    "inputs": { "medical": "80000", "monthlyWage": "10000", "missedDays": "60", "nursingDays": "40", "foodAllowance": "100", "hospitalDays": "20", "disabilityLevel": "0", "age": "35", "income": "0", "avgWage": "0" },
+    "expect": ["109,000"],
+    "ref": "合计 = 医疗费 80,000 + 误工 10,000÷30×60 = 20,000 + 护理 40×100 = 4,000 + 住院伙食补助 20×100 = 2,000 = **109,000** 元；默认各字段更小，换一组使每个分项都为正整数、可一步加总"
+  },
+  {
+    "slug": "legal/personal-injury",
+    "inputs": { "medical": "80000", "monthlyWage": "10000", "missedDays": "60", "nursingDays": "40", "foodAllowance": "100", "hospitalDays": "20", "disabilityLevel": "0", "age": "35", "income": "0", "avgWage": "0" },
+    "expect": ["20,000"],
+    "ref": "误工费 = 月工资 10,000 ÷ 30 × 误工 60 天 = **20,000** 元；本条只锁误工这一分项（上一条锁的是合计），两者相差 89,000 元，可互相定位错项"
+  },
+  {
+    "slug": "legal/consumer-protection",
+    "inputs": { "price": "100" },
+    "expect": ["保底500元"],
+    "ref": "三倍赔偿金 = max(价款 100 × 3 = 300, 保底 500) = **500 元（保底500元）**；默认 2000 ⇒ 三倍 6000，刻意压到 100 以命中「保底」而非「三倍」分支"
+  },
+  {
+    "slug": "legal/consumer-protection",
+    "inputs": { "price": "100" },
+    "expect": ["600"],
+    "ref": "可主张总额 = 退还货款 100 + 三倍赔偿金 500 = **600** 元；与上一条同源且相差恰为一个 price，任一条错都会破坏这个差额"
+  },
+  {
+    "slug": "legal/food-safety",
+    "inputs": { "foodPrice": "200" },
+    "expect": ["2,000"],
+    "ref": "食品安全十倍赔偿 = 价款 200 × 10 = **2,000** 元（默认 100 ⇒ 1,000，换一组使结果跨千位以避开默认输出）"
+  },
+  {
+    "slug": "legal/food-safety",
+    "inputs": { "foodPrice": "200" },
+    "expect": ["2,200"],
+    "ref": "合计 = 价款 200 + 十倍赔偿 2,000 = **2,200** 元；与上一条同源，二者相差恰为一个 foodPrice ⇒ 互相削弱"
+  },
+  {
+    "slug": "legal/notarization-fee",
+    "inputs": { "notaryType": "contract", "amount": "300000", "copies": "3", "translation": "0" },
+    "expect": ["2,040.00"],
+    "ref": "合同公证基础费 = 标的额 300,000 × 0.68% = **2,040.00** 元（默认标的额更低 ⇒ 结果必变，注入失败即不命中）"
+  },
+  {
+    "slug": "legal/notarization-fee",
+    "inputs": { "notaryType": "contract", "amount": "300000", "copies": "3", "translation": "0" },
+    "expect": ["2,080.00"],
+    "ref": "公证费合计 = 基础费 2,040.00 + 副本费 40 = **2,080.00** 元；与上一条相差恰为副本费项，任一条改动都会破坏这个差"
+  },
+  {
+    "slug": "legal/trademark-fee",
+    "inputs": { "businessType": "renewal", "classCount": "3", "applyMethod": "online" },
+    "expect": ["1,350"],
+    "ref": "商标续展官费 = 450 元/类 × 3 个类别 = **1,350** 元（默认类别数不同 ⇒ 结果必变；电子申请优惠不改变本锚）"
+  },
+  {
+    "slug": "legal/arbitration-fee",
+    "inputs": { "arbitrationOrg": "general", "amount": "600000" },
+    "expect": ["11,000.00"],
+    "ref": "一般仲裁受理费：争议金额 600,000 落入 50 万–100 万档 ⇒ **11,000.00** 元（默认金额更低 ⇒ 落低档，换档后取值必变）"
+  },
+  {
+    "slug": "legal/arbitration-fee",
+    "inputs": { "arbitrationOrg": "general", "amount": "600000" },
+    "expect": ["14,300.00"],
+    "ref": "仲裁费合计 = 受理费 11,000.00 + 处理费 3,300.00 = **14,300.00** 元；与上一条锁同一档位的两个输出行，任一条错都会破坏合计关系"
+  },
+  {
+    "slug": "legal/patent-fee-calculator",
+    "inputs": { "patentType": "invention", "feeStage": "annuity", "annuityYear": "4-6" },
+    "expect": ["1,200"],
+    "ref": "发明专利第 4–6 年年费 = **1,200** 元/年（默认档不同 ⇒ 结果必变；刻意锚 1,200 而非 500 —— 「1500-3000」这类默认区间文本里本就含 500，会构成逃生项）"
+  },
+  {
+    "slug": "legal/patent-term-calculator",
+    "inputs": { "applyDate": "2015-03-20", "patentType": "invention" },
+    "expect": ["2035年3月20日"],
+    "ref": "发明专利保护期 = 申请日 2015-03-20 起 20 年 ⇒ 终点 **2035 年 3 月 20 日**（按申请日同月同日推算；默认申请日更早 ⇒ 该串行不出现）"
+  },
+
 ];
 
 // ---------------------------------------------------------------- main
