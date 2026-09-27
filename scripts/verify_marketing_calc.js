@@ -197,6 +197,49 @@ const CASES = [
     ref: '同式的亏本分支：预算 = 1000×120 = ¥120,000、收入 = 299,000；利润 = 299000×10% − 120000 = 29900 − 120000 = **¥-90,100**（负号与千分位同时出现）；ROI = −90100÷120000×100 = −75.083 ⇒ **−75.1%**；展示 = (1000÷5%)÷2.5% = 800000 ⇒ **800.0K**。与上一条构成同式异参对照：同一批系数，利润由其唯一变量（毛利率 45% vs 10%）决定正负。',
   },
 
+  {
+    slug: "marketing/marketing-free-shipping-threshold",
+    name: "包邮门槛计算器",
+    inputs: { currentCart: "150", freeShipThreshold: "99", shippingFee: "10", avgMargin: "45" },
+    expect: ["✅ 已满足包邮条件"],
+    ref: '免费门槛：购物车 ¥150 ≥ 阈值 ¥99 ⇒ 已包邮，输出「✅ 已满足包邮条件」。',
+  },
+  {
+    slug: "marketing/marketing-free-shipping-threshold",
+    name: "包邮门槛计算器",
+    inputs: { currentCart: "50", freeShipThreshold: "99", shippingFee: "12", avgMargin: "40" },
+    expect: ["还差 ¥49.00 包邮", "建议直接支付运费¥12更划算"],
+    ref: '未包邮差额 = 99−50 = ¥49.00；凑单成本 = 49×(1−40%) = ¥29.40 ≥ 运费¥12 ⇒ 直接付运费更划算。',
+  },
+  {
+    slug: "marketing/marketing-free-shipping-threshold",
+    name: "包邮门槛计算器",
+    inputs: { currentCart: "80", freeShipThreshold: "99", shippingFee: "8", avgMargin: "50" },
+    expect: ["还差 ¥19.00 包邮", "建议直接支付运费¥8更划算"],
+    ref: '差额 = 99−80 = ¥19.00；凑单成本 = 19×50% = ¥9.50 ≥ 运费¥8 ⇒ 付运费更划算。',
+  },
+  {
+    slug: "marketing/marketing-free-shipping-threshold",
+    name: "包邮门槛计算器",
+    inputs: { currentCart: "85", freeShipThreshold: "99", shippingFee: "15", avgMargin: "30" },
+    expect: ["还差 ¥14.00 包邮", "建议凑单¥14的商品（商家成本约¥9.80，低于运费¥15）"],
+    ref: '差额 = 99−85 = ¥14.00；凑单成本 = 14×70% = ¥9.80 < 运费¥15 ⇒ 建议凑单。',
+  },
+  {
+    slug: "marketing/marketing-free-shipping-threshold",
+    name: "包邮门槛计算器",
+    inputs: { currentCart: "90", freeShipThreshold: "99", shippingFee: "25", avgMargin: "10" },
+    expect: ["还差 ¥9.00 包邮", "建议凑单¥9的商品（商家成本约¥8.10，低于运费¥25）"],
+    ref: '差额 = 99−90 = ¥9.00；凑单成本 = 9×90% = ¥8.10 < 运费¥25 ⇒ 建议凑单。',
+  },
+  {
+    slug: "marketing/marketing-free-shipping-threshold",
+    name: "包邮门槛计算器",
+    inputs: { currentCart: "30", freeShipThreshold: "50", shippingFee: "5", avgMargin: "60" },
+    expect: ["还差 ¥20.00 包邮", "建议直接支付运费¥5更划算"],
+    ref: '阈值改 ¥50：差额 = 50−30 = ¥20.00；凑单成本 = 20×40% = ¥8.00 ≥ 运费¥5 ⇒ 付运费更划算。',
+  }
+
 ];
 
 async function main() {
