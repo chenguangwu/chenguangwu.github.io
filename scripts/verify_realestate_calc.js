@@ -499,6 +499,42 @@ const CASES = [
     inputs: { p1: "9.0", p2: "9.6", p3: "9.3", loc: "-2", floor: "-3", decor: "-3", orient: "-3", age: "-3", area: "100" },
     expect: ["7.9980", "799.80", "9.3000", "总调整幅度 -14%"],
     ref: 'p1=9.0 p2=9.6 p3=9.3 loc=-2 floor=-3 decor=-3 orient=-3 age=-3 area=100；案例均价=9.3000 总调整=-14% 调整后单价=7.9980 评估总价=799.80。totalAdj=-14（可达最小值）⇒ warning 支，验证极端负调整不越界'
+  },
+  {
+    slug: "realestate/calc-assessor",
+    inputs: { area: "120", price: "25000", type: "0", method: "0", temp: "18", tempRate: "40", move: "3500", bonus: "1" },
+    expect: ["3239900", "86400", "150000", "奖励政策 按期签约奖励5%"],
+    ref: 'area=120 price=25000 type=0(住宅) method=0(货币补偿) temp=18 tempRate=40 move=3500 bonus=1(按期签约奖励5%)；房屋补偿=3000000 临时安置=86400 搬迁=3500 奖励金=150000 总额=3239900。method=0 + bonus=1(5%)：货币补偿行与默认同串故不锚，改锚『奖励政策 按期签约奖励5%』'
+  },
+  {
+    slug: "realestate/calc-assessor",
+    inputs: { area: "95", price: "18000", type: "0", method: "1", temp: "24", tempRate: "35", move: "2800", bonus: "0" },
+    expect: ["1792600", "79800", "补偿方式 产权调换(等面积)", "产权调换面积"],
+    ref: 'area=95 price=18000 type=0(住宅) method=1(产权调换(等面积)) temp=24 tempRate=35 move=2800 bonus=0(无奖励)；房屋补偿=1710000 临时安置=79800 搬迁=2800 奖励金=0 总额=1792600。method=1 产权调换：锚『补偿方式 产权调换(等面积)』（默认『货币补偿』）+ 表格行『产权调换面积』'
+  },
+  {
+    slug: "realestate/calc-assessor",
+    inputs: { area: "150", price: "22000", type: "0", method: "2", temp: "6", tempRate: "50", move: "5000", bonus: "3" },
+    expect: ["3614000", "264000", "奖励政策 签约+搬迁奖励8%", "产权调换面积"],
+    ref: 'area=150 price=22000 type=0(住宅) method=2(货币补偿+产权调换) temp=6 tempRate=50 move=5000 bonus=3(签约+搬迁奖励8%)；房屋补偿=3300000 临时安置=45000 搬迁=5000 奖励金=264000 总额=3614000。method=2 混合方式；bonus=3(8%) ⇒ 奖励金 264000 + 『签约+搬迁奖励8%』'
+  },
+  {
+    slug: "realestate/calc-assessor",
+    inputs: { area: "60", price: "45000", type: "1", method: "0", temp: "30", tempRate: "60", move: "8000", bonus: "2" },
+    expect: ["2897000", "108000", "商铺拆迁还需考虑停产停业损失补偿。", "奖励政策 按期搬迁奖励3%"],
+    ref: 'area=60 price=45000 type=1(商铺) method=0(货币补偿) temp=30 tempRate=60 move=8000 bonus=2(按期搬迁奖励3%)；房屋补偿=2700000 临时安置=108000 搬迁=8000 奖励金=81000 总额=2897000。type=1 商铺：it 切换为『商铺拆迁还需考虑停产停业损失补偿。』+ bonus=2(3%)'
+  },
+  {
+    slug: "realestate/calc-assessor",
+    inputs: { area: "200", price: "12000", type: "3", method: "1", temp: "36", tempRate: "45", move: "12000", bonus: "1" },
+    expect: ["2856000", "324000", "厂房拆迁需考虑设备搬迁和停产损失补偿。", "补偿方式 产权调换(等面积)", "产权调换面积"],
+    ref: 'area=200 price=12000 type=3(厂房) method=1(产权调换(等面积)) temp=36 tempRate=45 move=12000 bonus=1(按期签约奖励5%)；房屋补偿=2400000 临时安置=324000 搬迁=12000 奖励金=120000 总额=2856000。type=3 厂房：it 切换为『厂房拆迁需考虑设备搬迁和停产损失补偿。』+ method=1'
+  },
+  {
+    slug: "realestate/calc-assessor",
+    inputs: { area: "75", price: "36000", type: "2", method: "1", temp: "20", tempRate: "25", move: "1500", bonus: "0" },
+    expect: ["2739000", "37500", "房屋性质 办公", "补偿方式 产权调换(等面积)", "产权调换面积"],
+    ref: 'area=75 price=36000 type=2(办公) method=1(产权调换(等面积)) temp=20 tempRate=25 move=1500 bonus=0(无奖励)；房屋补偿=2700000 临时安置=37500 搬迁=1500 奖励金=0 总额=2739000。type=2 办公：锚『房屋性质 办公』（默认『住宅』）+ method=1；bonus=0 故不锚奖励金'
   }
 ];
 
