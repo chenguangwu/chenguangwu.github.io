@@ -607,6 +607,42 @@ const CASES = [
     inputs: { rebuild: "320", used: "60", durable: "40", loss: "12.5", method: "0", insured: "320" },
     expect: ["150.0%", "40.00"],
     ref: 'rebuild=320 used=60 durable=40 loss=12.5 method=0 insured=320；折旧率150.0%>100% ⇒ 实际价值=320×(1−1.5)<0 截断为0（测 av<0 分支）投保比例1.0(足额) 损失金额40.00 赔偿40.00'
+  },
+  {
+    slug: "realestate/assessor-42",
+    inputs: { area: "8", output: "4500", landComp: "10", resettle: "6", attach: "25000", crop: "1200", popul: "6" },
+    expect: ["556600", "360000", "4500元/亩×10倍×8亩"],
+    ref: 'area=8 output=4500 landComp=10倍 resettle=6倍 attach=25000 crop=1200 popul=6；土地补偿费360000 安置补助费162000 青苗9600 总额556600。30倍上限：10×8+6×6=116 < 240 ⇒ 不触发警告'
+  },
+  {
+    slug: "realestate/assessor-42",
+    inputs: { area: "2", output: "5000", landComp: "20", resettle: "15", attach: "30000", crop: "900", popul: "8" },
+    expect: ["831800", "600000", "超过30倍上限"],
+    ref: 'area=2 output=5000 landComp=20倍(最高) resettle=15倍(最高) attach=30000 crop=900 popul=8；土地补偿费200000 安置补助费600000 青苗1800 总额831800。20×2+15×8=160 > 30×2=60 ⇒ 触发30倍上限警告（默认态不触发，故该串可锚）'
+  },
+  {
+    slug: "realestate/assessor-42",
+    inputs: { area: "5", output: "4000", landComp: "10", resettle: "15", attach: "15000", crop: "1000", popul: "6" },
+    expect: ["580000", "360000", "4000元/亩×15倍×6人"],
+    ref: 'area=5 output=4000 landComp=10倍 resettle=15倍(最高) attach=15000 crop=1000 popul=6；土地补偿费200000 安置补助费360000 青苗5000 总额580000。10×5+15×6=140 < 150 ⇒ 边界附近不触发警告（与例2 同 area 量级、仅倍数不同，构成警告分支对照）'
+  },
+  {
+    slug: "realestate/assessor-42",
+    inputs: { area: "3", output: "6000", landComp: "8", resettle: "10", attach: "0", crop: "500", popul: "0" },
+    expect: ["145500", "144000", "6000元/亩×10倍×0人"],
+    ref: 'area=3 output=6000 landComp=8倍 resettle=10倍 attach=0 crop=500 popul=0；安置补助费=0（无人需安置）青苗1500 总额145500。判别：popul=0 若被当作缺省人数则总额不同'
+  },
+  {
+    slug: "realestate/assessor-42",
+    inputs: { area: "120", output: "2000", landComp: "6", resettle: "4", attach: "80000", crop: "600", popul: "30" },
+    expect: ["1832000", "1440000"],
+    ref: 'area=120 output=2000 landComp=6倍(最低) resettle=4倍(最低) attach=80000 crop=600 popul=30；土地补偿费1440000 安置补助费240000 青苗72000 总额1832000。6×120+4×30=840 < 3600 ⇒ 不触发（大面积下最低倍数仍合规）'
+  },
+  {
+    slug: "realestate/assessor-42",
+    inputs: { area: "0", output: "2000", landComp: "6", resettle: "4", attach: "0", crop: "500", popul: "3" },
+    expect: ["24000", "超过30倍上限"],
+    ref: 'area=0 output=2000 landComp=6倍 resettle=4倍 attach=0 crop=500 popul=3；土地补偿费0 青苗0 安置补助费=2000×4×3=24000 总额24000。30倍上限分母 output×30×area=0 ⇒ 只要安置费>0 即触发警告（area=0 边界，上限判断退化为恒真）'
   }
 ];
 
