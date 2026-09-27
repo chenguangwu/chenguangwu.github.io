@@ -124,6 +124,47 @@ const CASES = [
        + "注：本页标题「步幅与速度换算（步频×步长）」与实际公式（通用 v×rate×f/t 系数换算）不符，"
        + "且与 fun/step-stride 同名重复，属占位模板页，建议后续按通用模板页口径重做。",
   },
+  // ── 迷宫尺寸（偶数自增 1 的规格化）──────────────────────────
+  {
+    slug: "fun/maze-generator",
+    inputs: { mazeWidth: "30", mazeHeight: "20", cellSize: "32", algorithm: "prim" },
+    expect: ["31×21"],
+    ref: "applySettings()/generateMaze() 先做规格化：mazeW=parseInt(30)=30 为偶数 ⇒ mazeW++=31；"
+       + "mazeH=parseInt(20)=20 为偶数 ⇒ mazeH++=21；随后 #sizeVal.textContent = mazeW + '×' + mazeH = '31×21'。"
+       + "cellSize 只用于 canvas 绘图、algorithm 只选 DFS/Prim 生成，两者都不参与尺寸文本。"
+       + "默认态（15/15/24/dfs）为 '15×15'，本例不命中。",
+  },
+  {
+    slug: "fun/maze-generator",
+    inputs: { mazeWidth: "6", mazeHeight: "50", cellSize: "12", algorithm: "dfs" },
+    expect: ["7×51"],
+    ref: "同样规格化：mazeW=6 偶数 ⇒ 7；mazeH=50 偶数 ⇒ 51 ⇒ '7×51'。"
+       + "与上一例同为「偶数自增」但结果互异，可判别是否真的按奇偶分支而非硬编码。"
+       + "默认态 '15×15' 不命中。",
+  },
+
+  // ── 眨眼测试时长 ────────────────────────────────────────────
+  {
+    slug: "fun/blink-counter",
+    inputs: { duration: "120" },
+    expect: ["120"],
+    ref: "duration 下拉选中 120 ⇒ onchange 触发 updateRing()：total=parseInt('120')=120、"
+       + "remain=total=120，同步写 #tNum.textContent='120'。"
+       + "默认态 harness 下 select.value 取首个 option ⇒ 输出 30（页面 HTML 静态写死 60，init 调 updateRing 后被首项覆盖），与本例 120 不同。",
+  },
+
+  // ── 字母游戏：短词前置校验分支 ───────────────────────────────
+  {
+    slug: "fun/anagram-game",
+    inputs: { answer: "ab" },
+    clicks: ["newRound();check();"],
+    expect: ["单词至少 3 个字母"],
+    ref: "check() 第一分支：v='ab' 长度 2 < 3 ⇒ 直接写 #output 为「单词至少 3 个字母」并 return，"
+       + "与随机选中的 cur 无关 ⇒ 完全确定性。须先 newRound() 给 cur/found/score 赋初值，"
+       + "否则 `if(!v||!cur)return;` 会静默返回（实测直接调 check() 时 #output 不变）。"
+       + "默认态 #output 为 newRound() 留下的引导文案 + 「点击“开始”按钮开始」，不命中。"
+       + "（长度≥3 分支依赖随机 cur.valid，不可作断言，本例不覆盖。）",
+  },
 
 ];
 
