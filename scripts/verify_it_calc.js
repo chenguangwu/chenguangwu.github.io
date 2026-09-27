@@ -2574,6 +2574,33 @@ const CASES = [
     expect: ["HELLO WORLD", "helloWorld", "hello-world"],
     ref: "大小写转换的 11 种写法（同一输入 `Hello World` 派生）：`HELLO WORLD` 全大写、`hello world` 全小写、`helloWorld` 小驼峰、`hello-world` 短横线命名（另含 `HelloWorld`/`hello_world`/`HELLO_WORLD`/`hello.world` 等）。**同一输入、多条互不自洽但各自确定的变换行**，任一都随注入变。默认样例不同 ⇒ 不命中。",
   },
+
+  // ---- BATCH250：随机生成器族的「确定性派生行」（3 例） ----
+  // 【判据】「随机产物页」不等于不能收：只要页面同时输出**由参数决定的派生行**（计数、长度、码长），
+  // 就仍可收 —— 随机部分（随机串本体）一概不锚，只锚随注入参数变的那一行（形态唯一、可手算复算）。
+  // 🔧 复用「生成器族」（uuid / cuid / ksuid / ulid / nanoid / 短链 / lorem …）时先看这条：
+  //  它们的产物主体是随机值 ⇒ 任何人写死 expect 都会假通过；但**派生行不随机**，是这批页的唯一入口。
+  {
+    slug: "it/mac-generator",
+    inputs: { cnt: "9" },
+    clicks: ["calcTool()"],
+    expect: ["生成的 MAC 地址（9 个）"],
+    ref: "MAC 地址生成器：**计数行**随 `cnt` 变（注入 9 ⇒ `生成的 MAC 地址（9 个）`，默认 5 ⇒ 默认态不命中）。MAC 本体因 `dataGrid: rows is not iterable` 在 harness 下未渲染，计数行是该页唯一确定性产物；`oui` 前缀分支不参与本锚（计数行与 OUI 无关，属「随主参数变」的稳锚）。",
+  },
+  {
+    slug: "it/hash-id-generator",
+    inputs: { nums: "5, 6, 7" },
+    clicks: ["generate()"],
+    expect: ["HashID: JK9Q9Zxr"],
+    ref: "HashID 编码：输入序列 `5, 6, 7` 经 HashID（页面默认 salt）⇒ `JK9Q9Zxr`（**算法确定、非回显**，默认 `1, 2, 3` ⇒ `JK9A3Ww9` ⇒ 默认态不命中）。注意 `输入: [...]` 那一段是输入回显、不可锚，只锚编码结果。",
+  },
+  {
+    slug: "it/pbkdf2",
+    inputs: { keyLength: "64" },
+    clicks: ["generateSalt()"],
+    expect: ["输出长度: 64 字节 (512 位)"],
+    ref: "PBKDF2 派生参数行：`keyLength` = 64 ⇒ `输出长度: 64 字节 (512 位)`（**可手算复算**：1 字节 = 8 位；默认 32 ⇒ `32 字节 (256 位)` ⇒ 默认态不命中）。⚠️ 同页 `迭代: 100,000` 与 `算法:` 行只绑定形式参数、默认态逐字同串（逃生源，勿锚）；`盐值(Hex)` 与 `派生密钥` 行依赖随机盐值 ⇒ 同样不可锚。",
+  },
 ];
 
 // ---------------------------------------------------------------- DOM stub
