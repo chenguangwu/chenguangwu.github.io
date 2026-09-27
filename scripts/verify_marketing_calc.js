@@ -425,6 +425,42 @@ const CASES = [
     inputs: { visitorsA: "6000", conversionsA: "300", visitorsB: "4000", conversionsB: "230" },
     expect: ["P值：0.1010", "相对提升：+15.00%", "结果尚不显著"],
     ref: 'vA=6000 cA=300 vB=4000 cB=230；pA=5.00% pB=5.75% z=1.6400；P值(双尾)=0.1010；相对提升=+15.00%；不显著(p≥0.05)。CDF 为页面同款 A&S 26.2.17 近似'
+  },
+  {
+    slug: "marketing/marketing-ad-budget-allocator",
+    inputs: { totalBudget: "200000", roas1: "5", budget1Pct: "50", roas2: "3", budget2Pct: "30", roas3: "1.5", budget3Pct: "20" },
+    expect: ["¥740,000", "3.70x", "50.0%"],
+    ref: 'total=200000 r1=5 b1=50 r2=3 b2=30 r3=1.5 b3=20；比例和=100（归一化）；预算 100,000/60,000/40,000；收入 500,000/180,000/60,000；总收入=¥740,000；整体ROAS=3.70x（与 total 无关）；渠道1占比=50.0%'
+  },
+  {
+    slug: "marketing/marketing-ad-budget-allocator",
+    inputs: { totalBudget: "50000", roas1: "3", budget1Pct: "60", roas2: "2", budget2Pct: "30", roas3: "4", budget3Pct: "10" },
+    expect: ["¥140,000", "2.80x", "60.0%"],
+    ref: 'total=50000 r1=3 b1=60 r2=2 b2=30 r3=4 b3=10；比例和=100（归一化）；预算 30,000/15,000/5,000；收入 90,000/30,000/20,000；总收入=¥140,000；整体ROAS=2.80x（与 total 无关）；渠道1占比=60.0%'
+  },
+  {
+    slug: "marketing/marketing-ad-budget-allocator",
+    inputs: { totalBudget: "150000", roas1: "6", budget1Pct: "30", roas2: "2", budget2Pct: "30", roas3: "3", budget3Pct: "40" },
+    expect: ["¥540,000", "3.60x", "30.0%"],
+    ref: 'total=150000 r1=6 b1=30 r2=2 b2=30 r3=3 b3=40；比例和=100（归一化）；预算 45,000/45,000/60,000；收入 270,000/90,000/180,000；总收入=¥540,000；整体ROAS=3.60x（与 total 无关）；渠道1占比=30.0%'
+  },
+  {
+    slug: "marketing/marketing-ad-budget-allocator",
+    inputs: { totalBudget: "80000", roas1: "4.5", budget1Pct: "45", roas2: "3.5", budget2Pct: "35", roas3: "2.5", budget3Pct: "20" },
+    expect: ["¥300,000", "3.75x", "45.0%"],
+    ref: 'total=80000 r1=4.5 b1=45 r2=3.5 b2=35 r3=2.5 b3=20；比例和=100（归一化）；预算 36,000/28,000/16,000；收入 162,000/98,000/40,000；总收入=¥300,000；整体ROAS=3.75x（与 total 无关）；渠道1占比=45.0%'
+  },
+  {
+    slug: "marketing/marketing-ad-budget-allocator",
+    inputs: { totalBudget: "300000", roas1: "2", budget1Pct: "20", roas2: "5", budget2Pct: "50", roas3: "3", budget3Pct: "30" },
+    expect: ["¥1,140,000", "3.80x", "20.0%"],
+    ref: 'total=300000 r1=2 b1=20 r2=5 b2=50 r3=3 b3=30；比例和=100（归一化）；预算 60,000/150,000/90,000；收入 120,000/750,000/270,000；总收入=¥1,140,000；整体ROAS=3.80x（与 total 无关）；渠道1占比=20.0%'
+  },
+  {
+    slug: "marketing/marketing-ad-budget-allocator",
+    inputs: { totalBudget: "120000", roas1: "3.2", budget1Pct: "10", roas2: "2.8", budget2Pct: "30", roas3: "1.8", budget3Pct: "40" },
+    expect: ["¥282,000", "2.35x", "12.5%"],
+    ref: 'total=120000 r1=3.2 b1=10 r2=2.8 b2=30 r3=1.8 b3=40；比例和=80（归一化）；预算 15,000/45,000/60,000；收入 48,000/126,000/108,000；总收入=¥282,000；整体ROAS=2.35x（与 total 无关）；渠道1占比=12.5%'
   }
 ];
 
