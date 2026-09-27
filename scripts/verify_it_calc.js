@@ -2193,6 +2193,131 @@ const CASES = [
     expect: ["P = 10 × 105 / 4,845 = 0.217"],
     ref: "超几何分布：C(5,2)=10、C(15,2)=105、C(20,4)=4845（三项组合数均可手算复算）⇒ P = 10×105/4845 = **0.217**（**行间自洽**）。默认参数不同 ⇒ 不命中。",
   },
+
+  // ---- BATCH247：同页第二组参数（17 例）+ Code39 条码首批 ----
+  // 【判据】「同页加第二组参数」是覆盖率已较高时**命中率最高**的补例打法：页面默认参数只产出默认
+  // 产物，第二组注入的产物不可能在默认态出现 ⇒ **天然双态通过**，不必再做换参/删锚博弈。
+  // 前提只有两条：① 该页是纯确定性变换（不随机、不依赖 WebCrypto/canvas 解码）；② 第二组参数手算可复算。
+  // 要求：同一页的第二组必须与已有第一组**参数不同**（否则就是重复用例）。
+  {
+    slug: "it/triangle-calculator",
+    inputs: { a: "9", b: "12", c: "15" },
+    clicks: ["calcTool()"],
+    expect: ["36.000 周长", "18.000 半周长", "54.000 面积"],
+    ref: "9-12-15 直角三角形：周长 = 9+12+15 = **36.000**、半周长 = 36/2 = **18.000**、面积 = √[18×9×6×3] = √2916 = **54.000**（三量全可手算复算）。默认 3-4-5 ⇒ 不命中。",
+  },
+  {
+    slug: "it/roman-numeral-converter",
+    inputs: { number: "2024", roman: "1" },
+    clicks: ["calcTool()"],
+    expect: ["2024 = MMXXIV"],
+    ref: "罗马数字：2024 = 1000+1000+10+10+1+1+1+1 ⇒ **MMXXIV**（罗马数码表可手查核对）。默认样例数值不同 ⇒ 不命中。",
+  },
+  {
+    slug: "it/prime-checker",
+    inputs: { n: "89" },
+    clicks: ["calcTool()"],
+    expect: ["89 是质数"],
+    ref: "89 是质数（√89 < 9.5，用 2/3/5/7 试除均不整除 ⇒ 可手判）。⚠️ 该页默认 `n` 就是 **97**，注入 97 会撞默认态 ⇒ 改喂 89，与已有「91 是合数」用例形成质数/合数双向覆盖。",
+  },
+  {
+    slug: "it/standard-deviation",
+    inputs: { data: "1,2,3,4,5", dtype: "1" },
+    clicks: ["calculate()"],
+    expect: ["σ = 1.414", "平方和 SS 10", "方差 2 标准差"],
+    ref: "总体标准差：均值 x̄ = 15/5 = 3（步骤 1 自洽），偏差平方 4/1/0/1/4 ⇒ 平方和 SS = **10**（步骤 3 自洽），方差 = 10/5 = **2**、标准差 = √2 = **1.414**（步骤 4/5 自洽，可手算复算）。注：`dtype=1` 为**总体**（除以 n 而非 n−1）。",
+  },
+  {
+    slug: "it/hex-encode",
+    inputs: { input: "Ok", upper: "1", prefix: "1", sep: " " },
+    clicks: ["enc()"],
+    expect: ["4f 6b"],
+    ref: "`O`=0x4F、`k`=0x6B ⇒ `4f 6b`（**注意：勾选「大写」后输出仍是小写十六进制**，属页面既有行为，本例如实锚它）。ASCII 码表可手查核对。",
+  },
+  {
+    slug: "it/binary-encode",
+    inputs: { input: "By", sep: " " },
+    clicks: ["enc()"],
+    expect: ["01000010 01111001"],
+    ref: "`B`=0x42=01000010、`y`=0x79=01111001 ⇒ 空格分隔的两字节（ASCII 表可手查）。默认样例文本不同 ⇒ 不命中。",
+  },
+  {
+    slug: "it/base32-encode",
+    inputs: { input: "ToolBox" },
+    clicks: ["encode32()"],
+    expect: ["KRXW63CCN54A===="],
+    ref: "Base32：`ToolBox` 7 字节 ⇒ **KRXW63CCN54A====**（5 字节一组、末组补 `=` 至 8 字符；RFC 4648 字母表 A–Z + 2–7 可手查核对）。默认样例文本不同 ⇒ 不命中。",
+  },
+  {
+    slug: "it/url-encode",
+    inputs: { input: "中文 test 99", plusSpace: "" },
+    clicks: ["encodeUrl()"],
+    expect: ["%E4%B8%AD%E6%96%87%20test%2099"],
+    ref: "`encodeURIComponent` 口径：`中`=E4B8AD、`文`=E6%96%87（UTF-8 字节可手查），空格未勾「编码为 +」⇒ 仍输出 **`%20`** 而非 `+`，数字与字母原样保留（**符合 `plusSpace` 未勾选时的预期**）。",
+  },
+  {
+    slug: "it/ascii-art",
+    inputs: { input: "OK", fontGrid: "1", uppercase: "1" },
+    clicks: ["generate()"],
+    expect: ["8888 88 88 88 88 88 88 88 88 888 88 88 88 88 8888 88 88"],
+    ref: "点阵字模（6 列 × 3 行）：`O` 三行分别是 `8888` / `888` / `8888`，`K` 是 `88 88 88 88 88 / 88 88 / 88 888`… 逐字符拼接即得期望串。纯查表渲染，产物完全由输入字串决定。",
+  },
+  {
+    slug: "it/morse",
+    inputs: { input: "OK", speedVal: "120", freqVal: "600" },
+    clicks: ["convert()"],
+    expect: ["--- -.-"],
+    ref: "莫尔斯编码：`O`=`---`、`K`=`-.-`，字母间空格分隔 ⇒ `--- -.-`（国际电码表可手查）。默认样例文本不同 ⇒ 不命中。",
+  },
+  {
+    slug: "it/bitwise-calculator",
+    inputs: { a: "12", op: "AND", b: "10", bitsOut: "8" },
+    clicks: ["calc()"],
+    expect: ["结果： 8 = 0x8 = 0b1000"],
+    ref: "按位与：12 = `1100`、10 = `1010` ⇒ `1000` = **8**，十六进制与二进制形式同串给出（**三种进制同源，可手算复算**）。默认 `op` 是异或 ⇒ 不命中。",
+  },
+  {
+    slug: "it/calc-2",
+    inputs: { numInput: "1101", fromBase: "2" },
+    clicks: ["convertBase()"],
+    expect: ["十进制真值： 13", "十六进制 D"],
+    ref: "进制换算：`1101₂` = 8+4+0+1 = **13**（权重展开可手算），十六进制 = **D**。默认输入进制不同 ⇒ 不命中。",
+  },
+  {
+    slug: "it/calc-3",
+    inputs: { hexInput: "#FF0000" },
+    clicks: ["copyColorResult()"],
+    expect: ["rgb(255, 0, 0)", "hsl(0, 100%, 50%)"],
+    ref: "HEX → RGB/HSL：`#FF0000` ⇒ `rgb(255, 0, 0)`（FF=255、00=0、00=0，可手算）；HSL：最大 255/最小 0 ⇒ L = 50%、饱和度 100%、色相 0° ⇒ `hsl(0, 100%, 50%)`（**三值均可由 RGB 手算**）。",
+  },
+  {
+    slug: "it/calc-1",
+    inputs: { sizeInput: "1024", unitSelect: "MiB" },
+    clicks: ["copySizeResult()"],
+    expect: ["1,073,741,824 B", "GiB 1 二进制吉字节"],
+    ref: "二进制单位：`1024 MiB` = 1024×2²⁰ = **1,073,741,824 B**（手算复算）；派生行 `1 TiB = 0.000977`、`1 GiB = 1` 与换算表自洽。默认单位不同 ⇒ 不命中。",
+  },
+  {
+    slug: "it/vector-cross-product",
+    inputs: { a0: "2", a1: "3", a2: "4", b0: "5", b1: "6", b2: "7" },
+    clicks: ["calculate()"],
+    expect: ["cₓ = aᵧ·b_z − a_z·bᵧ = 3×7 − 4×6 = -3", "c_z = aₓ·bᵧ − aᵧ·bₓ = 2×6 − 3×5 = -3"],
+    ref: "叉积逐分量推导（可手算复算）：`cₓ = 3×7 − 4×6 = −3`、`c_z = 2×6 − 3×5 = −3`。⚠️ 该页 HTML 里 `a0` 默认即 **1**（向量 1,2,3 × 4,5,6）⇒ 首次注入同组撞默认态；此处换 2,3,4 × 5,6,7。摘要行 `A × B = (-3, 6, -3)` 在两组输入下均正确（与 BATCH243 那例的 `(-2, 4, -2)` 缺陷不同），故本例只锚逐分量行以保持口径一致。",
+  },
+  {
+    slug: "it/crontab-generator",
+    inputs: { f_min: "0", f_hour: "12", f_dom: "*", f_mon: "*", f_dow: "*" },
+    clicks: ["build()"],
+    expect: ["表达式： 0 12 * * *"],
+    ref: "Cron 字段拼接：分=0、时=12、日/月/星期=* ⇒ `0 12 * * *`（每天 12:00，标准 Cron 语法可手查）。默认字段不同 ⇒ 不命中。",
+  },
+  {
+    slug: "it/barcode-code39",
+    inputs: { data: "HELLO" },
+    clicks: ["generate()"],
+    expect: ["*HELLO*"],
+    ref: "Code39 码字：`*` 为起始/终止符、字符间以 `*` 分隔，故输出为 **`*HELLO*`**（Code39 规范：每个字符前加 `*`、字符间不加，整体首尾各一个 `*`）。这族里唯一能拿到**确定性文本产物**的条码页——同族的 `barcode-codabar/-itf/-msi` 在 harness 下 `output` 只回显原始输入（编码与绘制函数均抛 `undefined` 属性错）⇒ 不可收。注：产物虽已刷新，但 `buildCode39` 依赖 canvas 绘制会抛错，本例只锚文本码字行。",
+  },
 ];
 
 // ---------------------------------------------------------------- DOM stub
