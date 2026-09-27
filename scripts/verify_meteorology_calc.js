@@ -106,6 +106,48 @@ const CASES = [
     expect: ['AQI 29 优', 'PM2.5 20.0 μg/m³ 29', 'CO 0.00 mg/m³ 0'],
     ref: 'PM2.5 = 20 在第 1 段 [0,35] ⇒ IAQI = (50−0)/(35−0)×20 = **28.571** ⇒ AQI = round = 29（若按截断或按未取整算会得 28，本条把取整钉住）；其余五项为 0 ⇒ IAQI 恒 0，仍进表（0 不触发 `c<0`）。浓度列走 `it.c.toFixed(it.c<10?2:1)` 的小数位分档，故本条同时出现 `20.0`（≥10 一位小数）与 `CO 0.00 mg/m³`（<10 两位小数）两种形态，分档写反会被抓。默认态 AQI 100，三条锚全不命中。',
   },
+  {
+    slug: "meteorology/apparent-temperature",
+    inputs: {},
+    clicks: ["document.getElementById('T').value='20';document.getElementById('RH').value='50';document.getElementById('ws').value='0';calcTool();"],
+    expect: ['19.8 °C 体感温度 AT', '11.66 水汽压 e (hPa)', '0.2 体感温差 (°C)'],
+    ref: 'Steadman 简化：e = (50/100)×6.105×exp(17.27×20/257.7) = 3.0525×3.819876 = **11.6598** ⇒ `11.66`；AT = 20+0.33×11.6598−0.70×0−4 = **19.8477** ⇒ `19.8`；体感温差 = 20−19.8477 = **0.1523** ⇒ `0.2`。ws=0 把风速项压成 0，钉住 0.33e 与 −4.0 两个常数项。默认态（30/70/2）是 34.4 / 29.60 / −4.4，三条锚全不命中。',
+  },
+  {
+    slug: "meteorology/apparent-temperature",
+    inputs: {},
+    clicks: ["document.getElementById('T').value='35';document.getElementById('RH').value='90';document.getElementById('ws').value='1';calcTool();"],
+    expect: ['46.9 °C 体感温度 AT', '-11.9 体感温差 (°C)'],
+    ref: 'e = 0.9×6.105×exp(17.27×35/272.7) = 5.4945×9.179238 = **50.4065** ⇒ `50.41`；AT = 35+0.33×50.4065−0.7−4 = **46.9342** ⇒ `46.9`；体感温差 = 35−46.9342 = **−11.9342** ⇒ `-11.9`（负温差 = 体感比气温更热，toFixed 的负号渲染一并覆盖）。默认态全不命中。',
+  },
+  {
+    slug: "meteorology/apparent-temperature",
+    inputs: {},
+    clicks: ["document.getElementById('T').value='0';document.getElementById('RH').value='50';document.getElementById('ws').value='10';calcTool();"],
+    expect: ['-10.0 °C 体感温度 AT', '3.05 水汽压 e (hPa)', '10.0 体感温差 (°C)'],
+    ref: 'T=0 ⇒ exp(0)=1 ⇒ e = 0.5×6.105 = **3.0525** ⇒ `3.05`（指数项归一，钉住 exp 分母 237.7+T 在 T=0 时的退化）；AT = 0+1.0073−7−4 = **−9.9927** ⇒ `-10.0`；体感温差 = **9.9927** ⇒ `10.0`。大风 (ws=10) 把 −0.70×ws 项拉到 −7，与 −4.0 常数叠加成 −11，压住风速系数 0.70。默认态全不命中。',
+  },
+  {
+    slug: "meteorology/apparent-temperature",
+    inputs: {},
+    clicks: ["document.getElementById('T').value='25';document.getElementById('RH').value='0';document.getElementById('ws').value='3';calcTool();"],
+    expect: ['0.00 水汽压 e (hPa)', '18.9 °C 体感温度 AT'],
+    ref: 'RH=0 ⇒ e = 0（**0.00**），湿度项整项消失 ⇒ AT = 25−2.1−4 = **18.9**。本条是 e=0 的唯一入口（其余用例 RH 都 >0），钉住「湿度项 ×0 ⇒ AT 只剩 T−0.7ws−4」这条链；体感温差 = 6.1 不锚（避免与例⑤⑥同型）。默认态 e=29.60、AT=34.4，全不命中。',
+  },
+  {
+    slug: "meteorology/apparent-temperature",
+    inputs: {},
+    clicks: ["document.getElementById('T').value='-10';document.getElementById('RH').value='60';document.getElementById('ws').value='5';calcTool();"],
+    expect: ['-16.9 °C 体感温度 AT', '1.72 水汽压 e (hPa)'],
+    ref: '负温：exp 分母 = 237.7−10 = 227.7，指数 = −172.7/227.7 = −0.758454 ⇒ exp = 0.468375 ⇒ e = 0.6×6.105×0.468375 = **1.71609** ⇒ `1.72`；AT = −10+0.56631−3.5−4 = **−16.93369** ⇒ `-16.9`。负温下指数为负、e 变小、体感更冷，本条把「负温分支」（T 进分母 237.7+T 与分子 17.27×T 同号）钉住。默认态全不命中。',
+  },
+  {
+    slug: "meteorology/apparent-temperature",
+    inputs: {},
+    clicks: ["document.getElementById('T').value='30';document.getElementById('RH').value='70';document.getElementById('ws').value='20';calcTool();"],
+    expect: ['21.8 °C 体感温度 AT', '8.2 体感温差 (°C)'],
+    ref: '与默认态同温同湿（T=30/RH=70 ⇒ e=29.60 相同），只把 ws 2→20：AT = 30+9.768−14−4 = **21.768** ⇒ `21.8`、体感温差 = **8.2**。本条与默认态（34.4/−4.4）构成「同一组 T/RH、只改风速」的成对对照，风速系数 0.70 若写错（如 0.07 或 7.0），AT 会偏离 21.8 而被数值锚抓。刻意不锚 e（29.60 与默认态同值 ⇒ 逃生项）。默认态 AT=34.4，两条锚不命中。',
+  },
 
 ];
 
