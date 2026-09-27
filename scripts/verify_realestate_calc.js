@@ -715,6 +715,42 @@ const CASES = [
     inputs: { type: "1", revenue: "600", margin: "15", years: "5", rate: "1", tax: "25" },
     expect: ["327.61", "67.50"],
     ref: 'type=1(专利权) revenue=600 margin=15 years=5 rate=1(折现率下限) tax=25；超额利润90.00 税后67.50 系数(1%,5)=(1−1.01^−5)/0.01=4.853431 ⇒ 327.61。覆盖 rate 下限（折现率越小系数越大）'
+  },
+  {
+    slug: "realestate/assessor-45",
+    inputs: { val: "50000", market: "42000", tax: "1", stage: "1" },
+    expect: ["8000.00", "48.00", "适用税种 房产税", "2/3 当前阶段"],
+    ref: 'val=50000 market=42000 tax=1(房产税 0.6%) stage=1(异议阶段)；差额8000.00 多缴税款=8000×0.006=48.00。锚『适用税种 房产税』锁 tax select、『2/3 当前阶段』锁 stage（默认 1/3）'
+  },
+  {
+    slug: "realestate/assessor-45",
+    inputs: { val: "8000", market: "9500", tax: "2", stage: "2" },
+    expect: ["-1500.00", "-75.00", "评估偏低 差额方向", "3/3 当前阶段", "适用税率 5%"],
+    ref: 'val=8000 market=9500 tax=2(增值税 5%) stage=2(复议阶段)；差额−1500.00（评估低于市场）多缴/少缴=−1500×0.05=−75.00。覆盖 diff<0 分支（默认 diff>0）与 stage 末档'
+  },
+  {
+    slug: "realestate/assessor-45",
+    inputs: { val: "30000", market: "28000", tax: "3", stage: "0" },
+    expect: ["2000.00", "80.00", "适用税种 土地增值税"],
+    ref: 'val=30000 market=28000 tax=3(土地增值税) stage=0；差额2000.00 税款=2000×0.04=80.00。注：页面 taxRates[3]=0.04 与 select 标签『30%-60%』不一致（实现取简化值 4%），按实现复算锚定，仅留档不改页面'
+  },
+  {
+    slug: "realestate/assessor-45",
+    inputs: { val: "15000", market: "15000", tax: "0", stage: "2" },
+    expect: ["评估结果： 评估价值与市场价值一致", "3/3 当前阶段"],
+    ref: 'val=market=15000 tax=0 stage=2；差额=0 ⇒ 走第三分支『评估价值与市场价值一致，无争议』（默认态为 diff>0 分支）。0.00 系默认串 20.00 的子串故不锚数值'
+  },
+  {
+    slug: "realestate/assessor-45",
+    inputs: { val: "120000", market: "100000", tax: "0", stage: "2" },
+    expect: ["20000.00", "400.00", "评估完成后 已完成"],
+    ref: 'val=120000 market=100000 tax=0(契税 2%) stage=2；差额20000.00 税款=20000×0.02=400.00。锚『评估完成后 已完成』（stage>0 时第一阶段行状态为已完成，默认态为『当前』）'
+  },
+  {
+    slug: "realestate/assessor-45",
+    inputs: { val: "60000", market: "75000", tax: "0", stage: "1" },
+    expect: ["-15000.00", "-300.00", "评估价值低于市场价值"],
+    ref: 'val=60000 market=75000 tax=0(契税 2%) stage=1；差额−15000.00 税款=−15000×0.02=−300.00。覆盖 diff<0 + 契税组合，锚偏低提示串（默认态为『评估价值高于市场价值』串）'
   }
 ];
 
