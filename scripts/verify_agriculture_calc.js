@@ -196,7 +196,55 @@ const CASES = [
        + "默认态（60/30/35/circle/5%）为 50.8% / 3704 / 962，三条均不命中。" +
        + "注：评价词档位（部分覆盖）在默认态同值，未作锚。",
   },
-
+  // ── 六页签综合计算器（agri-calculator）：肥料 / 密度 / 农药 / 灌溉 / 油耗 ──
+  // 原为该页零用例状态（全站 scan 命中「零用例」清单）。5 条分别打在 5 条独立计算链上。
+  {
+    slug: "agriculture/agri-calculator",
+    inputs: { fert_n: "20", fert_p: "10", fert_k: "15", fert_area: "8", fert_per_mu: "30" },
+    clicks: ["calcFertilizer();"],
+    dumpIds: ["fertResult"],
+    expect: ["48.00 kg", "240.0 kg"],
+    ref: "施肥量 = 面积 × 每亩用量 = 8 × 30 = 240 kg；氮 = 240 × 20% = 48.00、磷 = 240 × 10% = 24.00、"
+       + "钾 = 240 × 15% = 36.00。默认态（15-15-15 / 10 亩 / 25 kg）为 250.0 kg / 37.50 kg，两条均不命中。",
+  },
+  {
+    slug: "agriculture/agri-calculator",
+    inputs: { plant_spacing: "40", plant_row: "60", plant_area: "5", plant_unit: "mu" },
+    clicks: ["calcDensity();"],
+    dumpIds: ["densityResult"],
+    expect: ["13,888", "2,777"],
+    ref: "按亩计：亩 = 666.67 m² ⇒ sqm = 5 × 666.67 = 3333.35；单株占地 = (40/100) × (60/100) = 0.24 m²；"
+       + "总株数 = floor(3333.35 / 0.24) = floor(13888.958) = 13888（toLocaleString 千分位 13,888）；"
+       + "每亩株数 = floor(666.67 / 0.24) = floor(2777.79) = 2777（2,777）。默认态为 44,444 / 4,444。",
+  },
+  {
+    slug: "agriculture/agri-calculator",
+    inputs: { pest_content: "20", pest_target: "2000", pest_volume: "50", pest_unit: "ppm" },
+    clicks: ["calcPesticide();"],
+    dumpIds: ["pestResult"],
+    expect: ["需量取原药： 500.00 ml(g)"],
+    ref: "ppm 档：targetPct = 2000 / 10000 = 0.2；配制药液 = 50 L = 50000 ml；"
+       + "需原药 = 0.2 × 50000 ÷ 20 = 500.00 ml。默认态（40% / 1000ppm / 30L）恰好也算出 75.00 ml ⇒ "
+       + "已换成 20% / 2000ppm / 50L 的非默认组合，判别力落在注入值上。",
+  },
+  {
+    slug: "agriculture/agri-calculator",
+    inputs: { irr_area: "20", irr_depth: "30" },
+    clicks: ["calcIrrigation();"],
+    dumpIds: ["irrResult"],
+    expect: ["总用水量： 400.2 m³"],
+    ref: "总用水 = 面积 × 深度 × 0.667 = 20 × 30 × 0.667 = 400.20000000000005 ⇒ 渲染 400.2 m³"
+       + "（约 0.40 吨；每亩 20.0 m³）。默认态 10 亩 × 50 mm 也是 333.5 ≠ 400.2。",
+  },
+  {
+    slug: "agriculture/agri-calculator",
+    inputs: { fuel_area: "80", fuel_per_mu: "2", fuel_price: "6.8" },
+    clicks: ["calcFuel();"],
+    dumpIds: ["fuelResult"],
+    expect: ["总费用： 1088.00 元"],
+    ref: "总油耗 = 80 × 2 = 160.0 L；总费用 = 160 × 6.8 = 1088.00 元；每亩费用 = 2 × 6.8 = 13.60 元。"
+       + "默认态（50 亩 / 1.5 L / 7.5 元）为 75.0 L / 562.50 元，命中不了本条。",
+  },
 ];
 
 // ---------------------------------------------------------------- main
