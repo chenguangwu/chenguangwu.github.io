@@ -366,7 +366,7 @@
 | `checkIds: ["c","u"]` | `getElementById(id).checked` 型（纯复选框量表页） |
 | `radios: { htn: "1" }` | `getElementsByName(name)` 型 |
 | `checks: ["3"]` | `querySelector('input[name=x]:checked')` 的返回值，即「哪一项被选中」；**仅在「无 inputs」分支计入 `no_inputs` 判定，不参与 `all_default`**（它可能只是 inputs 的修饰项） |
-| `clicks: ["pick(0,3)", …]` | **页面作用域 direct eval**，在 inputs 注入后、兜底前按序执行，命中即 `via="click"`；配套**用例级动态 DOM 登记**（`innerHTML` setter 按容器 id 分桶解析 `{tag,id,class}`，同容器以最后一次渲染为准）—— 以 `DYN.on` 开关隔离，仅当用例声明 `clicks`/`dynDom` 时启用，其余用例逐字节不变 |
+| `clicks: ["pick(0,3)", …]` | **页面作用域 direct eval**，inputs 后、兜底前按序执行，命中即 `via="click"` |
 | `dynDom` | 单独开启动态 DOM 登记（不注入值时用） |
 
 > `clicks` 内的状态驱动优先级：**页面顶层 `var`/`let` 绑定直接赋值 > 模拟点按钮 > 注入 DOM 选中态**（真正被 `calc()` 读取的往往是顶层状态，`grade`/`scores`/`sel`/`reviewData`/`materials`；`let` 声明的顶层数组同样可直接改元素）。**带 DOM 形参的 click 函数不算不可注入**：`selectFluor(btn,i)` / `selectStage(grade,el)` 的 `btn`/`el` 只做 `classList` 增删 ⇒ 传哑对象 `{classList:{add:function(){},remove:function(){}}}`、或直接省略（页面内 `if(el)` 判空）；内层 `querySelectorAll('.xxx').forEach` 对空数组安全。
@@ -393,7 +393,7 @@
 4. **锚点优先级 + checkbox 反向利用**：① 非兜底分支独有的文案（`if/else` 的**非 else** 路）；② 只由注入值派生、兜底无法复现的数值；③ 跨档 / 跨分支的等级词（改前先手算是否落同档）。桩内 checkbox 恒未勾 ⇒ 默认态渲染「xx缺失」并给低分 ⇒ **勾满 `checkIds` 抢「全部达标」分支做正向强锚**。
 5. **数值合法性与齐次量**：有界量（决定系数 / 概率 / p 值 / 率）越界即公式错，交付前必查 `[0,1]`；「基础分 − 扣分」式先算最小值是否越界；**输出物理不可能值必查公式本身**。比值 / 单价 / 覆盖率换值前先确认不是等比缩放。
 6. **日期与随机**：日期相关量一律不锚；禁 `Math.random` / `Date.now` 当输入。`clicks` 内改**进程级全局**（`Math`/`Date`/`Array.prototype`）**必须用完即恢复**，否则污染同进程后续用例的默认态 —— 只有双态核验抓得到。钉死随机后锚「多列连续复合串」把巧合概率压到 10⁻⁶。
-7. **默认态已全量渲染的页面，锚点要换区**：① 同引擎多段渲染（注入段 + 兜底 `loadSample()` 段）共用常量串 ⇒ 只锚注入段独有串；示例文本即逃生项，注入数据须与样本用词错开。② 「kw 空输出全量」型过滤页 ⇒ 反向注入**不存在的关键词**、锚「未找到匹配项」类空结果提示。③ 「卡片 + 详情」双区页 ⇒ 只锚详情区独有文案。④ **筛选型图鉴页（默认渲染全表）**⇒ 只锚**过滤态成立的跨行相邻串**（`office/excel-formula-reference`：注入「数字」⇒ 命中 SUM/AVERAGE/TEXT，AVERAGE 与 TEXT 过滤态紧邻、全表却隔 6 项）。**锚不得取「整条目渲染串」**（默认全量里本就连续）。**筛选入口常是「状态变量 + 按钮」双参签名，直调 `setFilter(f,btn)` 会 btn 为 undefined ⇒ 直写状态变量再重渲**（`gardening2/pruning-time`：`currentFilter='before';render();`）。
+7. **默认态已全量渲染的页面，锚点要换区**：① 多段渲染共用常量串 ⇒ 只锚注入段独有串，示例文本即逃生项；② 「kw 空输出全量」过滤页 ⇒ 反向注入不存在的关键词、锚空结果提示；③ 「卡片+详情」双区页 ⇒ 只锚详情区；④ 筛选型图鉴页（`office/excel-formula-reference`：注入「数字」⇒ 过滤态下 AVERAGE/TEXT 跨行相邻）⇒ 锚过滤态成立的跨行相邻串，不锚整条目串。**筛选入口常是「状态变量 + 按钮」双参签名**，直调 `setFilter(f,btn)` 会 btn 为 undefined ⇒ 直写状态变量再重渲。
 8. **注入与格式口径**：`select` 的 `selected` 在桩里不生效 ⇒ 默认选中项必须**显式注入**（`selfcheck` 取 JS 真实默认、`discriminate_check` 取首个 option，口径不同）。`inputs` 键若是模板串残留（`${f}` / `pri${i}`）会同时骗过两把锁（不进棘轮 + 记「正确变红」）⇒ 巡检 `verify_*_calc.js` 里形如 `${` 的键。`fmt()` 走 `toLocaleString()` 默认截 3 位小数 ⇒ 定 expect 避开被截断处。
 9. **clicks 锚「不读输入的全量函数」必误判逃生项**：判别器模拟注入失败是**清空 clicks 后跑**（含兜底遍历）。若 expect 锚 `checkAll()` 类「恒产全量」输出（如 `36/36`），兜底重调仍同值 ⇒ 判「仍 PASS」= 逃生项 ✅ 改用**具体输入态**（`toggleItem(0,0/0,1/0,2)` 勾 N 项 → `N/总数`），默认态 0 项不命中。
 10. **空结果提示不可锚两形态**：① 提示同时被兜底链复现（`selectXxx()` 无参置全局态 `undefined` ⇒ 过滤集恒空）⇒ 注入态与失败态同串，判逃生项。② 提示在**独立静态元素**内、仅切 `style.display` ⇒ 不写入结果容器 ⇒ blob 永不含该串。✅ 定锚前双态 dump 比对，只取「注入态有 / 默认态无且兜底不复现」的串。
@@ -405,8 +405,9 @@
 ⇒ 直接锚被提取内容测的是**回显**，清空注入仍命中 ⇒ 伪锚 ✅ 锚落**结果区独有形态**（`emails` 锚「邮箱+空格+复制」、`urls` 锚两段 URL 连排）。（补）这类页常由 checkbox 决定抽不抽，**缺 `checkIds` 时 `extract()` 在首个 `.checked` 处抛错中断** ⇒ 结果区恒为初始值 ⇒ **注入后结果区不变先怀疑它**，须声明全部默认勾选项
 
 17. **控件 id 不存在 = P0 死页（加载即 TypeError、整页无输出）**：harness `getEl()` 对未识别的 id 造空元素 ⇒ 页面不抛错、只读到空串 ⇒ 死页只表现为「无输出 / 只有常量锚」。判据 = 调入口函数抛 `Cannot read properties of null`；处置：改 **HTML** 的 id 并扫同族。另：`createElement()` 桩不回写 `textContent`→`innerHTML`  ⇒ 见下条。 
-18. **动态 id 不可做判别锚**：`pageDefaults()` 在 `<!-- TOOLBOX-DEEP-DIVE -->` 处截断 ⇒ `renderInputs()` 后生成的 id 取不到；只改它 ⇒ `usable=false` 静默跳过，顺带改可见键则变逃生项。锚须落在**可见且影响输出**的键（如 `forging-ratio` 改 `shape: round→rect`）。 18. **「美化/格式化」类页在 harness 内产物与输入同形（锚全成回显伪锚）**：`getIndent()` 读 select，`parseInt(v)=NaN` ⇒ `' '.repeat(NaN)` 空串 ⇒ 缩进恒 0（`it/shell-script-formatter`）⇒ 改走同页「压缩」路径找非回显锚（`minifyShell` 以 `; ` 连接 ⇒ `echo a; echo b`）。（反查 `repeat(parseInt` 即同族）。另：**结果容器不在 DUMP_IDS 时用用例级 `dumpIds`**（`it/html-entities` 的 `encoderOutput`）；dump 只出常量/回显时先怀疑此因。
- 19. **harness 未建模 `<select>` 默认选中项 ⇒ 桩内恒 null 的「静默死页」**：真机里 `qs('#x option:checked').text` 是**选中项标签**，而桩的 `checkedByName` 只解析 `input[type=radio|checkbox]` 的 `checked`、**完全不解析 `<select>` + `<option selected>`** ⇒ 恒 `null` ⇒ 页面读 `.text` 抛 `Cannot read properties of null` ⇒ **整页无产物**、只表现为「无输出 / 只有常量锚」，极易误判成「结构性不可注入」。判据 = 抛 `reading 'text'` 且 selector 形如 `#id option:checked`；处置：在 `verify_it_calc.js` 补齐 select 默认选中态与 `option.text`（新增 `selectedText`），`#容器id …:checked` 提为**精确优先**回落。**零回归**：补丁只影响「原本必定抛错的 selector」，门禁 216/216 佐证。 
+18. **动态 id 不可做判别锚**：`pageDefaults()` 在 `<!-- TOOLBOX-DEEP-DIVE -->` 处截断 ⇒ 运行期生成的 id 取不到；只改它 ⇒ `usable=false` 静默跳过，顺带改可见键则变逃生项。锚须落在可见且影响输出的键（如 `forging-ratio` 改 `shape: round→rect`）。
+19. **「美化/格式化」类页易成回显伪锚**（`it/shell-script-formatter`：`getIndent()` 读 select ⇒ `parseInt(v)=NaN` ⇒ 缩进恒 0）⇒ 改走同页「压缩」路径找非回显锚（`minifyShell` 以 `; ` 连接 ⇒ `echo a; echo b`）。另：结果容器不在 DUMP_IDS 时用用例级 `dumpIds`；dump 只出常量/回显时先怀疑此因。
+20. **harness 未建模 `<select>` 默认选中项 ⇒ 桩内恒 null 的「静默死页」**：桩的 `checkedByName` 不解析 `<select>` + `<option selected>` ⇒ 读选中项 `.text` 恒 null ⇒ 页面整页无产物，只表现为「无输出 / 只有常量锚」，易误判「结构性不可注入」。判据 = 抛 `reading 'text'` 且 selector 形如 `#id option:checked`；处置见 D 段 `selectedText` 补丁（零回归）。
 **D. 工具与方法**
 
 | 工具 | 用途 |
@@ -419,8 +420,7 @@
 
 **E. 待办 / 历史残留**
 
-- 全站 `verify_*_calc.js` 共 **62 条「同 slug 多份」重复条目**（`realestate` 34、`math` 12…，其中 61 条内容不同）：门禁把同页跑两遍、计数虚高，按 slug 的批量替换器会**同时改掉两份**。**暂不清理**（删条目须同步改三个基线数，属独立批次）。
-- `selfcheck_false_pass.js` 全站 `--exec` 会崩（某页脚本污染全局 `process`）⇒ **取基线用结构模式** `node scripts/selfcheck_false_pass.js scripts`（与门禁同口径）。
+- 全站 `verify_*_calc.js` 共 **62 条「同 slug 多份」重复条目**（`realestate` 34、`math` 12…）⇒ 去重价值低，按 §7.1 P3 顺带处理，逐例现况查各用例 `ref`。
 
 ### 10.6 方向1：公式-脚本一致性精查（**全量闭环** · 老板选定）
 
