@@ -314,7 +314,49 @@ const CASES = [
     clicks: ["calc();"],
     expect: ["日均有效购买人次： 0 人", "0.00 万元", "年销售额为 0，无法计算租售比"],
     ref: "客流置 0（其余走默认 45,000 ㎡/18%/120 元/60 元/92%）：买家数与各销售额全为 0，年租金 45,000×60×12×92% = 2,980.80 万元不受客流影响仍照常输出，但 ratio 走 null 分支显示「—」并落到「年销售额为 0，无法计算租售比」判读。刻意不锚 2,980.80 万元（该值在默认档同样出现，属默认态同值 ⇒ 逃生项）；也不锚裸串「0 人」——它是默认态「5,760 人」的子串，双态会假通过（已实测逃生）。",
+  },  {
+    slug: "realestate/shichang-bijiaofa-anlixiuzheng",
+    inputs: {},
+    clicks: ["document.getElementById('priceA').value='10000';document.getElementById('tA').value='5';document.getElementById('mA').value='-3';document.getElementById('lA').value='2';document.getElementById('pA').value='-1';document.getElementById('priceB').value='12000';document.getElementById('tB').value='0';document.getElementById('mB').value='4';document.getElementById('lB').value='0';document.getElementById('pB').value='-2';document.getElementById('priceC').value='11000';document.getElementById('tC').value='1';document.getElementById('mC').value='0';document.getElementById('lC').value='-3';document.getElementById('pC').value='0';calc();"],
+    expect: ['11,133', '10,285', '12,230', 'A 28.7%', 'C 37.1%'],
+    ref: '三案例全量修正（auto 权重）：比准价 = 成交价×(1+t%)×(1+m%)×(1+l%)×(1+p%)，故 A = 10000×1.05×0.97×1.02×0.99 = **10284.813** ⇒ 表内 `10,285`（同时是「最低比准价」）、B = 12000×1.04×0.98 = **12230.4** ⇒ `12,230`（同时是「最高比准价」）、C = 11000×1.01×0.97 = **10776.7** ⇒ `10,777`；自动权重按修正幅度倒数归一 inv = 1÷(1+Σ|修正|×5)：A 的 Σ=0.11⇒0.645161、B Σ=0.06⇒0.769231、C Σ=0.04⇒0.833333，和 2.247725 ⇒ A **28.7%** / B **34.2%** / C **37.1%**，加权 = 10284.813×0.287067+12230.4×0.342219+10776.7×0.370715 = **11133.009** ⇒ `11,133`。刻意不锚 `B 34.2%`：默认组（8500/9200/8800）的 B 权重恰也是 34.2%，属默认态同值 ⇒ 逃生项（已实测剔除）；改用 A/C 两条权重锚。默认态输出 8,927 / 31.5% / 34.2% / 34.2%，四条锚全不命中。',
   },
+  {
+    slug: "realestate/shichang-bijiaofa-anlixiuzheng",
+    inputs: {},
+    clicks: ["document.getElementById('weightMode').value='equal';document.getElementById('priceA').value='10000';document.getElementById('tA').value='5';document.getElementById('mA').value='-3';document.getElementById('lA').value='2';document.getElementById('pA').value='-1';document.getElementById('priceB').value='12000';document.getElementById('tB').value='0';document.getElementById('mB').value='4';document.getElementById('lB').value='0';document.getElementById('pB').value='-2';document.getElementById('priceC').value='11000';document.getElementById('tC').value='1';document.getElementById('mC').value='0';document.getElementById('lC').value='-3';document.getElementById('pC').value='0';calc();"],
+    expect: ['11,097', 'A 33.3%', 'C 33.3%'],
+    ref: '与上一条同输入、只把 `weightMode` 切到 equal ⇒ 权重链改为 1÷3 等权，加权 = (10284.813+12230.4+10776.7)÷3 = **11097.304** ⇒ `11,097`，三权重均 `33.3%`。三条锚各覆盖一处独立式子（加权求和式 / 等权分子式 / 权重归一分母式）：任一处写错（例如漏 ÷3 的和、或仍走 auto 的 inv 归一）都会被抓。刻意不锚「权重方式：」那句文案——harness 下 `option:checked` 不随 `.value` 赋值更新，该串恒为「自动（按案例相似度）」，与被测点解耦 ⇒ 逃生项。默认态输出 8,927，三条锚全不命中。',
+  },
+  {
+    slug: "realestate/shichang-bijiaofa-anlixiuzheng",
+    inputs: {},
+    clicks: ["document.getElementById('priceC').value='0';calc();"],
+    expect: ['8,855', '2 有效可比案例数', 'A 47.9%', 'B 52.1%'],
+    ref: '把案例 C 成交价置 0 ⇒ `cases = [A,B,C].filter(price>0)` 剔除 ⇒ 有效案例数 `2`、比准价回落到两组：A = 8500×1.02×0.98×1.01 = **8579.466** ⇒ `8,582`、B = 9200×0.99×1.01×0.99 = **9110.089** ⇒ `9,107`；权重链只在 A/B 上重算，inv A = 1÷(1+0.05×5)=0.8、B = 1÷(1+0.02×5)=0.909091，和 1.709091 ⇒ A **47.9%** / B **52.1%**，加权 = 8579.466×0.468085+9110.089×0.531915 = **8855.276** ⇒ `8,855`。顺带覆盖 `fmt(weighted,0)` 的取整与千分位。默认态是 3 组、8,927、47.9% 的那组不出现，四条锚全不命中。',
+  },
+  {
+    slug: "realestate/shichang-bijiaofa-anlixiuzheng",
+    inputs: {},
+    clicks: ["document.getElementById('priceA').value='9500';document.getElementById('tA').value='10';document.getElementById('mA').value='5';document.getElementById('lA').value='-5';document.getElementById('pA').value='0';document.getElementById('priceB').value='0';document.getElementById('priceC').value='0';calc();"],
+    expect: ['10,424', 'A 100.0%', '10,424 最高比准价', '10,424 最低比准价'],
+    ref: '只保留案例 A（B/C 成交价置 0）：比准价 = 9500×1.10×1.05×0.95 = **10423.875** ⇒ `10,424`，且因只有一组 ⇒ `Math.max`/`Math.min` 同值，卡片同时显示 `10,424 最高比准价` 与 `10,424 最低比准价`；单组时权重取 1 ⇒ `A 100.0%`。四条锚分别覆盖「请至少输入一个案例」的空集分支不会误触发、`Math.max.apply` 与 `Math.min.apply` 的单元素退化、`weights` 的 1÷1。默认态是 3 组，全不命中。',
+  },
+  {
+    slug: "realestate/shichang-bijiaofa-anlixiuzheng",
+    inputs: {},
+    clicks: ["document.getElementById('priceA').value='8000';document.getElementById('tA').value='-8';document.getElementById('mA').value='-6';document.getElementById('lA').value='-4';document.getElementById('pA').value='-2';document.getElementById('priceB').value='9000';document.getElementById('tB').value='-10';document.getElementById('priceC').value='7000';document.getElementById('mC').value='-2';calc();"],
+    expect: ['6,509', '8,100', '6,860', 'A 24.1%', 'B 32.1%', 'C 43.8%'],
+    ref: '三组全负修正（A 四项全负、B 仅交易情况 −10%、C 仅市场状况 −2%）：比准价 A = 8000×0.92×0.94×0.96×0.98 = **6508.83** ⇒ `6,509`（同时最低）、B = 9000×0.90 = **8100** ⇒ `8,100`（同时最高）、C = 7000×0.98 = **6860** ⇒ `6,860`；自动权重 Σ|A|：A 0.20⇒inv 0.5、B 0.10⇒0.666667、C 0.02⇒0.909091，和 2.075758 ⇒ A **24.1%** / B **32.1%** / C **43.8%**，加权 = **7173.66** ⇒ `7,174`（不锚，避免与例①的取整串混淆）。本条同时压住「四项连乘顺序无关」与「Σ|A| 对四项求和」两处；默认态的 8,582/9,107/9,066 与 31.5%/34.2%/34.2% 全不命中。',
+  },
+  {
+    slug: "realestate/shichang-bijiaofa-anlixiuzheng",
+    inputs: {},
+    clicks: ["document.getElementById('weightMode').value='equal';document.getElementById('priceA').value='10500';document.getElementById('tA').value='3';document.getElementById('mA').value='-2';document.getElementById('lA').value='1';document.getElementById('pA').value='0';document.getElementById('priceB').value='0';document.getElementById('priceC').value='0';calc();"],
+    expect: ['10,705', 'A 100.0%'],
+    ref: 'equal 权重 + 仅一组可比案例：比准价 = 10500×1.03×0.98×1.01 = **10704.687** ⇒ `10,705`；等权分支 `w = 1/cases.length` 在 n=1 时退化为 1，加权与比准价恒等 ⇒ `A 100.0%`。本条与例④（同样只留一组、auto 权重）互为对照：同一份成交价/修正若权重链写错（把 auto 的 inv 归一塞进去）数值仍会偏，但权重串会从 100.0% 翻成别的比例 ⇒ 被抓。默认态 3 组 8,927，两条锚全不命中。',
+  },
+
 ];
 
 // ---------------------------------------------------------------- main
