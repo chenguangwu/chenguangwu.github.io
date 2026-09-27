@@ -535,6 +535,42 @@ const CASES = [
     inputs: { area: "75", price: "36000", type: "2", method: "1", temp: "20", tempRate: "25", move: "1500", bonus: "0" },
     expect: ["2739000", "37500", "房屋性质 办公", "补偿方式 产权调换(等面积)", "产权调换面积"],
     ref: 'area=75 price=36000 type=2(办公) method=1(产权调换(等面积)) temp=20 tempRate=25 move=1500 bonus=0(无奖励)；房屋补偿=2700000 临时安置=37500 搬迁=1500 奖励金=0 总额=2739000。type=2 办公：锚『房屋性质 办公』（默认『住宅』）+ method=1；bonus=0 故不锚奖励金'
+  },
+  {
+    slug: "realestate/assessor-23",
+    inputs: { cv: "250", used: "5", durable: "40", salvage: "3", struct: "7", decor: "5", equip: "7", method: "0" },
+    expect: ["80.8%", "202.00"],
+    ref: 'cv=250 used=5 durable=40 salvage=3 struct=7 decor=5 equip=7 method=0(加权平均)；年限法87.5% 打分法74.1% 综合80.8% 评估值202.00 残值7.50'
+  },
+  {
+    slug: "realestate/assessor-23",
+    inputs: { cv: "180", used: "12", durable: "60", salvage: "4", struct: "9", decor: "9", equip: "9", method: "1" },
+    expect: ["144.00", "20.0%"],
+    ref: 'cv=180 used=12 durable=60 salvage=4 method=1(仅年限法)；成新率80.0% 评估值144.00 残值7.20 折旧率20.0%。method=1 判别：若为加权平均则 rate=(80+100)/2=90 → 162.00'
+  },
+  {
+    slug: "realestate/assessor-23",
+    inputs: { cv: "320", used: "10", durable: "50", salvage: "8", struct: "3", decor: "3", equip: "5", method: "2" },
+    expect: ["42.8%", "136.96"],
+    ref: 'cv=320 salvage=8 struct=3 decor=3 equip=5 method=2(仅打分法)；打分法=(1.8+0.6+1.0)/9*100*0.92+8=42.756 → 42.8% 评估值136.96 残值25.60'
+  },
+  {
+    slug: "realestate/assessor-23",
+    inputs: { cv: "420", used: "8", durable: "80", salvage: "20", struct: "9", decor: "9", equip: "9", method: "1" },
+    expect: ["378.00", "84.00"],
+    ref: 'cv=420 used=8 durable=80 salvage=20 method=1(仅年限法)；成新率90.0% 评估值378.00 残值84.00。高残值率20%下打分法=100% → 若误走加权平均则为95% → 399.00'
+  },
+  {
+    slug: "realestate/assessor-23",
+    inputs: { cv: "500", used: "10", durable: "50", salvage: "20", struct: "3", decor: "3", equip: "3", method: "2" },
+    expect: ["46.7%", "233.50"],
+    ref: 'cv=500 salvage=20 struct=3 decor=3 equip=3 method=2(仅打分法)；打分法=3/9*100*0.8+20=46.667 → 46.7% 评估值233.50 残值100.00（打分法下限形态）'
+  },
+  {
+    slug: "realestate/assessor-23",
+    inputs: { cv: "75", used: "45", durable: "40", salvage: "10", struct: "5", decor: "7", equip: "5", method: "0" },
+    expect: ["24.00", "68.0%"],
+    ref: 'cv=75 used=45 durable=40 salvage=10 struct=5 decor=7 equip=5 method=0；年限法=(40-45)/40<0 截断为0，打分法=(3+1.4+1)/9*100*0.9+10=64 → 综合32.0% 评估值24.00 折旧率68.0%（测 ageRate 负值截断分支）'
   }
 ];
 
