@@ -2054,6 +2054,42 @@ const CASES = [
     expect: ["91 是合数", "91 = 7 × 13"],
     ref: "91 = 7 × 13，最小质因数 7，判定为合数。默认输入通常是质数（如 97），故判定结论与分解串在默认态不出现 ⇒ 换参救回。",
   },
+  // ---- BATCH244：位运算 / 进制 / 单位换算 / 颜色 / Cron（5 例） ----
+  {
+    slug: "it/bitwise-calculator",
+    inputs: { a: "12", op: "XOR", b: "10", bitsOut: "8" },
+    clicks: ["calc()"],
+    expect: ["结果： 6 = 0x6 = 0b110"],
+    ref: "按位异或：12 ^ 10 = 0b1100 ^ 0b1010 = 0b0110 = 6，可手算逐位核对。运算符 select 的 option 真值是 `'AND'/'OR'/'XOR'/'NOT'/'SHL'/'SHR'`（不是序号）；默认 op 与默认 a/b 组合的结果与注入组不同。",
+  },
+  {
+    slug: "it/calc-2",
+    inputs: { numInput: "1010", fromBase: "2" },
+    clicks: ["convertBase()"],
+    expect: ["十进制真值： 10", "16 十六进制 A"],
+    ref: "二进制 `1010` 的真值 = 1×2³ + 0×2² + 1×2¹ + 0×2⁰ = 10；同页把同一数值分别渲染为 2 进制 1010 / 8 进制 12 / 10 进制 10 / 16 进制 A，四路输出互为交叉校验。",
+  },
+  {
+    slug: "it/calc-1",
+    inputs: { sizeInput: "2048", unitSelect: "KiB" },
+    clicks: ["copySizeResult()"],
+    expect: ["2,097,152 B", "等价于 2,048"],
+    ref: "2,048 KiB（二进制千字节）= 2048 × 1024 = 2,097,152 B，可手算复算；同页换算表同时给出 KB 2,097.152 / MB 2.097152 / GiB 0.001953，按 1024 进制整体自洽。",
+  },
+  {
+    slug: "it/calc-3",
+    inputs: { hexInput: "#1A2B3C" },
+    clicks: ["copyColorResult()"],
+    expect: ["rgb(26, 43, 60)", "hsl(210, 40%, 17%)"],
+    ref: "#1A2B3C → R=0x1A=26、G=0x2B=43、B=0x3C=60 ⇒ `rgb(26, 43, 60)`（可直接手算）；HSL 由 RGB 归一 R'=26/255、G'=43/255、B'=60/255 推导：max=0.2353、min=0.1020、L=(max+min)/2≈17%、S=(max−min)/(max+min)≈40%、H≈210° ⇒ `hsl(210, 40%, 17%)`。两个通路可互校。",
+  },
+  {
+    slug: "it/crontab-generator",
+    inputs: { f_min: "*/15", f_hour: "*", f_dom: "*", f_mon: "*", f_dow: "1" },
+    clicks: ["build()"],
+    expect: ["*/15 * * * 1"],
+    ref: "五段 Cron：分钟 `*/15`、小时 `*`、日 `*`、月 `*`、星期 `1`（周一）⇒ 输出表达式 `*/15 * * * 1`，可手算逐段拼装核对。默认态为页面自带样例，表达式串不同 ⇒ 不命中。",
+  },
 ];
 
 // ---------------------------------------------------------------- DOM stub
