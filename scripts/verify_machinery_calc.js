@@ -36,8 +36,17 @@ const CASES = [
   "expect": [
     "25.231"
   ],
-  "ref": "销钉直径 d=√(4×50×1000/(π×100))=25.231 mm（默认 20/120 得 14.567，注入失败即不命中）"
-}
+  "ref": "销钉直径 d=√(4×50×1000/(π×100))=25.231 mm（默认 20/120 得 14.567，注入失败即不命中）"},
+  { slug: "machinery/analysis-casting", inputs: {vol:"3000", area:"600", rho:"7.8", C:"2.4"}, expect: ["23400.00"], ref: "铸件重量 G = V·ρ = 3,000 × 7.8 = **23,400.00** g（默认 1,000 cm³ × 7.2 得 7,200.00）" },
+  { slug: "machinery/analysis-casting", inputs: {vol:"3000", area:"600", rho:"7.8", C:"2.4"}, expect: ["60.0"], ref: "凝固时间 t = C·M² = 2.4 × (3,000/600)² = 2.4 × 25 = **60.0** s（模数 M = 5.000 cm；默认 t = 12.5 s）" },
+  { slug: "machinery/analysis-lifespan", inputs: {rt:"5000", nf:"25", mt:"50", tv:"200"}, expect: ["200.00"], ref: "MTBF = 总运行 5,000 h ÷ 故障 25 次 = **200.00** h（默认 8,760/22 得 398.18）" },
+  { slug: "machinery/analysis-lifespan", inputs: {rt:"5000", nf:"25", mt:"50", tv:"200"}, expect: ["36.79%"], ref: "可靠度 R(200) = e^(−t/MTBF) = e^(−200/200) = **36.79%**；累计失效概率 63.21% 与之相加为 100%" },
+  { slug: "machinery/calc-gear", inputs: {module:"3", teeth:"16", pressure:"20"}, expect: ["48.0000"], ref: "分度圆 d = m·z = 3 × 16 = **48.0000** mm（默认 2×20 得 40.0000）" },
+  { slug: "machinery/calc-gear", inputs: {module:"3", teeth:"16", pressure:"20"}, expect: ["54.0000"], ref: "齿顶圆 da = d + 2hₐ = 48 + 2×1×3 = **54.0000** mm；齿根圆 df = 48 − 2×1.25×3 = 40.5000，与 da 相差恰为一个全齿高" },
+  { slug: "machinery/calc-weld", inputs: {plateThk:"10", weldSize:"8", weldLen:"200", load:"40", weldMat:"E50"}, expect: ["5.66"], ref: "角焊缝喉厚 a = 0.707 K = 0.707 × 8 = **5.66** mm（默认 6 ⇒ 4.24）" },
+  { slug: "machinery/calc-weld", inputs: {plateThk:"10", weldSize:"8", weldLen:"200", load:"40", weldMat:"E50"}, expect: ["1131.20"], ref: "有效面积 A = a·L = 5.66 × 200 = **1131.20** mm²（默认 424.20）。页面先按 0.707K 四舍五入到 5.66 再乘全长，与一步相乘 1131.37 有 0.17 的舍入差 ⇒ 锚取页面值" },
+  { slug: "machinery/thread-recognize", inputs: {diameter:"20", pitch:"2.5", threadAngle:"60"}, expect: ["10.2"], ref: "英制换算 TPI = 25.4 ÷ 螺距 2.5 = **10.2** 牙/in（默认 M10×1.5 得 16.9）" },
+  { slug: "machinery/thread-recognize", inputs: {diameter:"20", pitch:"2.5", threadAngle:"60"}, expect: ["17.294"], ref: "小径 d₁ = 外径 20 − 1.0825 × 螺距 2.5 = 20 − 2.70625 = **17.294** mm（默认 M10 得 8.376）" }
 ];
 
 async function main() {
