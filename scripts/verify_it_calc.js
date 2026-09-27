@@ -3077,6 +3077,46 @@ const CASES = [
     expect: ["secret message"],
     ref: "RSA-OAEP(SHA-256) 解密：私钥用 PKCS#8 PEM 注入，密文以 base64 注入（页面按「偶数长度且全为十六进制才当 hex、否则走 base64」分流），解密后 textContent 还原为明文 secret message。密文由 node crypto.publicEncrypt({padding: RSA_PKCS1_OAEP_PADDING, oaepHash:'sha256'}) 生成，长度 256 字节。",
   },
+  {
+    slug: "it/text-cleaner",
+    inputs: {"input-text": "the\tquick\tbrown\nfox\tjumps\n"},
+    clicks: ["document.getElementById('opt-tab2space').checked=true;executeClean();"],
+    dumpIds: ["stat-original", "stat-result", "stat-reduce", "stat-lines"],
+    expect: ["35", "+9"],
+    ref: "Tab 转空格（默认宽度 4）：3 个制表符各展开成 4 个空格 ⇒ 26 → 35 字符，减少量 26−35 = −9，页面显示为 +9；行数仍为 3。python 复算：输入 len = 26，输出 len = 26 + 3×3 = 35。统计区四个 span 是唯一不折叠空白的派生量，故锚这里。",
+  },
+  {
+    slug: "it/text-cleaner",
+    inputs: {"input-text": "a    b    c    d    e    f"},
+    clicks: ["document.getElementById('opt-space2tab').checked=true;document.getElementById('space2tab-count').value='4';executeClean();"],
+    dumpIds: ["stat-original", "stat-result", "stat-reduce", "stat-lines"],
+    expect: ["11", "-15"],
+    ref: "空格转 Tab（每 4 个空格换 1 个制表符，宽度输入框显式置 4）：5 组 4 空格 ⇒ 26 → 11 字符，减少量 26−11 = 15，页面显示 −15；行数 1。与上一条是互逆运算的强对照（同长度输入，一个变长一个变短）。",
+  },
+  {
+    slug: "it/text-cleaner",
+    inputs: {"input-text": "  alpha   beta \n\n\n  gamma    delta  \n"},
+    clicks: ["document.getElementById('opt-trim').checked=true;document.getElementById('opt-merge-spaces').checked=true;document.getElementById('opt-empty-lines').checked=true;executeClean();"],
+    dumpIds: ["stat-original", "stat-result", "stat-reduce", "stat-lines"],
+    expect: ["22", "-15"],
+    ref: "三开关叠加：逐行 trim（去掉每行首尾空格）+ 行内连续空格合并成 1 个 + 整行删除空行。输入 37 字符 / 4 行，输出 22 字符 / 2 行（alpha beta 与 gamma delta 两行），减少量 15。既有那条只测 trim+合并空格，本例额外叠加删空行与行首行尾空格。",
+  },
+  {
+    slug: "it/text-cleaner",
+    inputs: {"input-text": "  hello  world  again  "},
+    clicks: ["document.getElementById('opt-trim').checked=true;document.getElementById('opt-remove-inline-space').checked=true;executeClean();"],
+    dumpIds: ["stat-original", "stat-result", "stat-reduce"],
+    expect: ["15", "-8"],
+    ref: "去行内所有空格 + 逐行 trim：首尾空格与中间双空格一并清除 ⇒ 23 → 15 字符，减少量 8。默认态三个统计值恒 0，注入后才出现。",
+  },
+  {
+    slug: "it/text-cleaner",
+    inputs: {"input-text": "one\ntwo\nthree\nfour\nfive\n"},
+    clicks: ["document.getElementById('opt-remove-newlines').checked=true;executeClean();"],
+    dumpIds: ["stat-original", "stat-result", "stat-reduce", "stat-lines"],
+    expect: ["19", "-5", "1"],
+    ref: "删除所有换行 ⇒ 24 → 19 字符、行数降到 1（apshot 统计行数为结果串 split(换行).length）。python 复算：len('onetwothreefourfive') = 19。",
+  },
 ];
 
 // ---------------------------------------------------------------- DOM stub
