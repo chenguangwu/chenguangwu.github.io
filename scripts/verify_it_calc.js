@@ -2090,6 +2090,28 @@ const CASES = [
     expect: ["*/15 * * * 1"],
     ref: "五段 Cron：分钟 `*/15`、小时 `*`、日 `*`、月 `*`、星期 `1`（周一）⇒ 输出表达式 `*/15 * * * 1`，可手算逐段拼装核对。默认态为页面自带样例，表达式串不同 ⇒ 不命中。",
   },
+  // ---- BATCH245：URL 编码 / ASCII 图 / 莫尔斯码（3 例） ----
+  {
+    slug: "it/url-encode",
+    inputs: { input: "a=1 & b=2/张三", plusSpace: "1" },
+    clicks: ["encodeUrl()"],
+    expect: ["a%3D1%20%26%20b%3D2%2F%E5%BC%A0%E4%B8%89"],
+    ref: "encodeURIComponent 口径：`=`→%3D、`&`→%26、`/`→%2F、空格→%20（plusSpace 打开）；中文按 UTF-8 字节逐字节百分号编码，`张`=E5 BC A0、`三`=E4 B8 89。期望值可由 node 侧 `encodeURIComponent('a=1 & b=2/张三')` 独立复算，可手算核对。",
+  },
+  {
+    slug: "it/ascii-art",
+    inputs: { input: "Hi", fontGrid: "1", uppercase: "1" },
+    clicks: ["generate()"],
+    expect: ["88 88 888888 88 88 88 888888"],
+    ref: "ASCII 字模（6 列 × 3 行点阵）：`H` 的三个字形块为 `88/88/888888`，`i`（大写 I）为 `88/88/88`… 逐字符拼接后即期望串。纯查表渲染，但产物完全由输入字串决定，默认样例不同 ⇒ 不命中。",
+  },
+  {
+    slug: "it/morse",
+    inputs: { input: "SOS", speedVal: "120", freqVal: "600" },
+    clicks: ["convert()"],
+    expect: ["... --- ..."],
+    ref: "莫尔斯编码：`S`=`...`、`O`=`---`，字母间空格分隔、词间 `/` 分隔 ⇒ `... --- ...`。国际电码表可手查核对；默认样例文本不同 ⇒ 不命中。同页 `playMorse` 依赖 `window.AudioContext`（harness 无该 API），但文本转换通路不受影响。",
+  },
 ];
 
 // ---------------------------------------------------------------- DOM stub
