@@ -6,8 +6,9 @@
  * 输入一律避开页面默认值，且期望值经「假通过自检」复核不等于默认输出，杜绝假通过。
  * 排除（非数值/非确定性，stub 无验证意义）：
  *   - analysis-35/39、analysis-simulator、analysis-cost-price-5：流程/多分支文本结论，非单一数值
- *   - detector-21/23/24/55、detector-mold、resistance-2、surface-finish、pressure-casting：
+ *   - detector-21/23/24/55、detector-mold、resistance-2：
  *     选择器/评分器输出多段文本，结论随字典变动
+ *     （surface-finish / pressure-casting 原列此条，实为可注入，2026-09-27 已补用例覆盖）
  *   - recorder-9：createJob/calcSoaking 依赖 state 与参考温度联动，非纯函数
  *   - carbon-8 等 2 输入模板页：calc 依据 h1 标题关键词分支，标题依赖注入，非稳定
  *   - thread-spec / detector-55：纯静态查表/无输入
@@ -174,7 +175,13 @@ const CASES = [
     inputs: { threadType: "metric", diameter: "12", pitch: "1.75", material: "carbon",
               threadDir: "internal", batch: "single" },
     expect: ["小径 D1"],
-    ref: "内螺纹小径 D1=d−1.08253P=12−1.8944=10.106mm（默认外螺纹 → 该卡片标签为「牙底直径 d3」，与本值不重合）" }
+    ref: "内螺纹小径 D1=d−1.08253P=12−1.8944=10.106mm（默认外螺纹 → 该卡片标签为「牙底直径 d3」，与本值不重合）" },
+  { slug: "metalwork/forging-ratio", inputs: { "shape": "rect" }, expect: ["锻造比 K = 2.000", "F₁=90×80=7200mm²"], ref: " shape=矩形 ⇒ renderInputs 生成 w0=120/h0=120/w1=90/h1=80；a0=120×120=14400mm²、a1=90×80=7200mm² ⇒ K=2.000、ε=50.0%（默认圆形 d0=120/d1=70 ⇒ K=2.939、11310/3848mm²，与本值不重合；K=2<目标 3 ⇒ 未达标）" },
+  { slug: "metalwork/surface-finish", inputs: { "inType": "ra", "inVal": "0.4" }, expect: ["对应 N5 级表面", "建议加工方法： 精车/精铣/精磨"], ref: " Ra=0.4 落在 0.4→N5 区间，命中最近邻档位 ⇒ 等级与建议加工方法随 Ra 变动" },
+  { slug: "metalwork/temp-forging", inputs: { "material": "titanium", "weight": "20", "diameter": "80" }, expect: ["锻造温度范围 180 ℃", "约 14 min"], ref: " 钛合金 MAT_DATA 温度区间下限 180 ℃；加热 t=ceil(20·0.5+80·0.05)=14 min、保温 ceil(20·0.2)=4 min" },
+  { slug: "metalwork/zulinfeilvjisuan", inputs: { "value": "120000", "months": "24", "residual": "8", "rate": "6", "payType": "monthly", "mgmtFee": "2" }, expect: ["月租金 5093.00 元", "9.86%"], ref: " 残值 9600.00 → 本金 110400.00；管理费 120000·2%·2.0=4800.00；24 期、期利率 0.5000% ⇒ PMT 4892.9954，月租 5093.00；ROI 9.86%" },
+  { slug: "metalwork/pressure-casting", inputs: { "weight": "10", "wall": "1.5", "material": "zinc", "batch": "mass" }, expect: ["压力铸造(压铸) 推荐方法", "最大重量 30 kg"], ref: " 锌 + 批量 mass 命中 METHODS 首项 ⇒ 压铸；壁厚 1.5 的工艺上限重量 30 kg" },
+
 ];
 
 async function main() {
