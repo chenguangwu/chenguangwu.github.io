@@ -931,6 +931,42 @@ const CASES = [
     inputs: { inv: "2000000", rate: "10", data: "Y1,500000\nY2,-300000\nY3,800000" },
     expect: ["NPV： -1192336.59", "静态回收期： 计算期内未收回", "现金流合计： 1000000.00", "Y2 -300000.00 -247933.88", "IRR： -24.58%"],
     ref: '含负现金流期：IRR 解为负值(-24.58%)、两回收期均未收回；判定串与默认同为『不可行』故不锚'
+  },
+  {
+    slug: "realestate/analysis-24",
+    inputs: { price: "800", rate: "-5", years: "8" },
+    expect: ["未来价值（8 年后）： 530.74 万元", "累计贬值： -269.26 万元 （-33.66%）"],
+    ref: '贬值主路径：rate=-5 ⇒ 累计贬值 -269.26 万元、-33.66%（符号错则显示增值）'
+  },
+  {
+    slug: "realestate/analysis-24",
+    inputs: { price: "5000", rate: "5", years: "10" },
+    expect: ["未来价值（10 年后）： 8,144.47 万元", "累计增值： 3,144.47 万元 （62.89%）"],
+    ref: '千分位形态：future/差额均过万，验证 formatNumber 千分位与复利 1.05^10'
+  },
+  {
+    slug: "realestate/analysis-24",
+    inputs: { price: "1200", rate: "6", years: "15" },
+    expect: ["未来价值（15 年后）： 2,875.87 万元", "累计增值： 1,675.87 万元 （139.66%）"],
+    ref: '长期限复利：15 年 6% ⇒ 累计涨幅 139.66%（幂运算底数/指数写反必错）'
+  },
+  {
+    slug: "realestate/analysis-24",
+    inputs: { price: "600", rate: "-100", years: "3" },
+    expect: ["未来价值（3 年后）： 0.00 万元", "累计贬值： -600.00 万元 （-100.00%）"],
+    ref: '全损边界：rate=-100 ⇒ factor=0、未来价值归零、跌幅 -100%'
+  },
+  {
+    slug: "realestate/analysis-24",
+    inputs: { price: "2000", rate: "0", years: "10" },
+    expect: ["未来价值（10 年后）： 2,000.00 万元", "累计增值： 0.00 万元 （0.00%）"],
+    ref: 'up 判定边界：rate=0 ⇒ diff=0，diff>=0 归为『增值』（若写成 diff>0 会显示贬值）'
+  },
+  {
+    slug: "realestate/analysis-24",
+    inputs: { price: "0", rate: "3", years: "5" },
+    expect: ["请输入有效的当前总价"],
+    ref: '无效输入分支：price<=0 ⇒ 提示串，不进入计算'
   }
 ];
 
