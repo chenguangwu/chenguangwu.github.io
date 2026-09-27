@@ -2834,6 +2834,22 @@ async function runCaseInner(c) {
   const titleText = stripTags((html.match(/<title[^>]*>([\s\S]*?)<\/title>/i) || [,""])[1]);
   const labelTexts = [...html.matchAll(/<label[^>]*>([\s\S]*?)<\/label>/gi)].map((m) => stripTags(m[1]));
 
+  // 2026-09-27：<select> 的 HTML 默认选中态此前完全未建模，只建模了 input radio/checkbox。
+  // 后果：`document.querySelector('#brand option:checked').text`（真机返回选中 option，
+  // 属性 `.text` = 选项标签）在 stub 里恒为 null ⇒ 页面读 `.text` 抛
+  // "Cannot read properties of null"，整页无产物（usedcar 的 calc-73 / estimate-38 /
+  // ershouchetanpanyijiakongjianyuce 等页）。此处补齐 select 默认选中态与选项标签文本。
+  const selectedText = {};   // key -> 选中项标签文本（真机 option.text / textContent）
+  for (const m of html.matchAll(/<select[^>]*\bid\s*=\s*["']([^"']+)["'][\s\S]*?<\/select>/g)) {
+    const key = "#" + m[1];
+    const opts = [...m[0].matchAll(/<option([^>]*)>([\s\S]*?)<\/option>/g)];
+    if (!opts.length) continue;
+    const hit = opts.find((o) => /\bselected\b/i.test(o[1])) || opts[0];
+    const vl = (hit[1].match(/\bvalue\s*=\s*["']([^"']*)["']/i) || [, ""])[1];
+    (checkedByName[key] = checkedByName[key] || []).push(vl);
+    selectedText[key] = stripTags(hit[2]);
+  }
+
   const inline = inlineHandlers(html);
   const elements = {};
   const getEl = (id) => {
@@ -2898,6 +2914,13 @@ async function runCaseInner(c) {
           return { value: c.checks[0], checked: true, parentElement: { textContent: "" } };
         // 回落 HTML 默认选中态：选择器点名 name=xxx 时查该组；未点名则取首个有默认选中项的组。
         // 该组确实无默认选中（真机同样为空）⇒ 仍返回 null，保持与真机一致。
+        // 优先命中的是 `#容器id 后代:checked`（select 的 option / 容器内的选中控件）——
+        // 比「首个组」更精确，且真机里按容器定位即返回该容器选中项。
+        const idM = sel.match(/^#([A-Za-z0-9_-]+)[\s>]/);
+        if (idM && checkedByName["#" + idM[1]] && checkedByName["#" + idM[1]].length) {
+          const lbl = selectedText["#" + idM[1]] || "";
+          return { value: checkedByName["#" + idM[1]][0], text: lbl, checked: true, parentElement: { textContent: lbl } };
+        }
         const nmM = sel.match(/\[\s*name\s*=\s*["']?([^"'\]]+)/);
         if (nmM) {
           const vs = checkedByName[nmM[1]];
@@ -2922,9 +2945,11 @@ async function runCaseInner(c) {
           return c.checks.map((v) => ({ value: v, checked: true, parentElement: { textContent: "" } }));
         // 回落 HTML 默认选中态：未声明 checks 时按页面 `checked` 属性返回选中项（与真机一致）
         const nmM = sel.match(/\[\s*name\s*=\s*["']?([^"'\]]+)/);
-        const ks = nmM ? (checkedByName[nmM[1]] ? [nmM[1]] : []) : Object.keys(checkedByName);
+        const idM = sel.match(/^#([A-Za-z0-9_-]+)[\s>]/);
+        const ks = nmM ? (checkedByName[nmM[1]] ? [nmM[1]] : []) : (idM && checkedByName["#" + idM[1]] ? ["#" + idM[1]] : Object.keys(checkedByName));
         const out = [];
-        for (const k of ks) for (const v of checkedByName[k]) out.push({ value: v, checked: true, parentElement: { textContent: "" } });
+        for (const k of ks) for (const v of checkedByName[k])
+          out.push({ value: v, text: selectedText[k] || v, checked: true, parentElement: { textContent: selectedText[k] || "" } });
         return out;
       }
       // 提供真实 label 文本，部分工具据此命名输出字段
