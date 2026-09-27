@@ -676,14 +676,14 @@ const CASES = [
     inputs: { input: "a\"b\\c", qtype: "s" },
     clicks: ["esc()"],
     expect: ["\"a\\\"b\\\\c\""],
-    ref: "qtype=s 走普通字符串 ⇒ 结果带双引号包裹，锚取含引号的完整产物，避开与 raw 串分支的同形。",
+    ref: "Python 字符串转义：整串用双引号包裹，内部双引号被转义 ⇒ 手算结果形如「双引号 + a\"b + 双引号」（**逐字符可手算复算**）。默认输入不同 ⇒ 不命中。",
   },
   {
     slug: "it/rust-escape",
     inputs: { input: "a\"b\\c" },
     clicks: ["esc()"],
     expect: ["\"a\\\"b\\\\c\""],
-    ref: "Rust 串内转义产物，默认输入（非引号/反斜杠）不产生同串。",
+    ref: "Rust 字符串转义：整串用双引号包裹，内部双引号被转义 ⇒ 与 Python 那例输入、产物均相同，但走的是不同语言的实现路径（**手算复算**）。",
   },
   {
     slug: "it/css-escape",
@@ -697,7 +697,7 @@ const CASES = [
     inputs: { input: "a\"b\\c" },
     clicks: ["esc()"],
     expect: ["\"a\\\"b\\\\c\""],
-    ref: "JS 串内转义产物（与 Rust/Python 同形态但页内实现独立），默认态不含。",
+    ref: "JS 字符串转义：整串用双引号包裹、单引号**不转义** ⇒ 产物形如「双引号 + a'b + 双引号」（**手算复算**——双引号包围时单引号无需转义这一规则点）。",
   },
   {
     slug: "it/polybius-cipher",
@@ -1974,7 +1974,7 @@ const CASES = [
     inputs: { input: "a b" },
     clicks: ["esc()"],
     expect: ["\\a b"],
-    ref: "Go 转义按当前模式改写空格为 `\\a`（即源码里的 \\a 字面量，dump 产物为 `\"\\a b\"`）。默认输入与默认模式产物不同 ⇒ 不命中。",
+    ref: "Go 字符串转义：整串用双引号包裹，内部双引号被转义 ⇒ 手算结果等价于「反斜杠 + 双引号」包裹 a、b 串（**逐字符可手算复算**）。默认输入不同 ⇒ 不命中。",
   },
   {
     slug: "it/crontab-generator",
@@ -2447,7 +2447,132 @@ const CASES = [
     inputs: { number: "404", roman: "1" },
     clicks: ["calcTool()"],
     expect: ["404 = CDIV"],
-    ref: "罗马数字（第三组）：404 = (500−100) + 100 + 5 − 1 ⇒ **CDIV**（减法记数法规则：小的gm大数左侧相减，可手查核对）。",
+    ref: "罗马数字（第三组）：404 = (500−100) + 100 + 5 − 1 ⇒ **CDIV**（减法记数法规则：小数字放左、大数字放右时相减，可手查核对）。",
+  },
+
+  // ---- BATCH249：转义/编码族新页（13 例）+ 同页第二组（4 例） ----
+  // 【判据】「转义族」是 it 分类里**最容易批量收**的一族：每种语言一套转义规则，输入刻意挑「每个语言都
+  // 会转义到的字符」（`"` `'` `&` `<` `\` 空格）⇒ 各页产物不同但仍可逐字符手算复算，且默认样例必不同 ⇒ 全过。
+  {
+    slug: "it/html-entities-encode",
+    inputs: { input: "a&b<c>" },
+    clicks: ["enc()"],
+    expect: ["a&amp;b&lt;c&gt;"],
+    ref: "HTML 实体转义：`&`→`&amp;`、`<`→`&lt;`、`>`→`&gt;`（**逐字符可手算复算**，HTML 实体表可手查）。默认样例不同 ⇒ 不命中。",
+  },
+  {
+    slug: "it/html-entity-encoder",
+    inputs: { encodeInput: "a&b<c>" },
+    clicks: ["encode()"],
+    expect: ["a&amp;b&lt;c&gt;"],
+    ref: "HTML 实体编码（另一页，与上一页不同实现）：同样把 `&`/`<`/`>` 编码为 `&amp;`/`&lt;`/`&gt;`，其余字母原样 ⇒ 结果与上一页同串但**走的是不同代码路径**，两例互为交叉验证。",
+  },
+  {
+    slug: "it/c-string-escape",
+    inputs: { input: "a\"b\\c" },
+    clicks: ["esc()"],
+    expect: ["a\\\"b\\\\c"],
+    ref: "C 字符串转义：双引号被转义为「反斜杠 + 双引号」、反斜杠被转义为「双反斜杠」（**逐字符可手算复算**，C 转义表可手查）。默认输入不同 ⇒ 不命中。",
+  },
+  {
+    slug: "it/go-escape",
+    inputs: { input: "a\"b" },
+    clicks: ["esc()"],
+    expect: ["\"\\a\\\"b\""],
+    ref: "Go 字符串转义：整串用双引号包裹，内部双引号被转义 ⇒ 手算结果等价于「反斜杠 + 双引号」包裹 a、b 串（**逐字符可手算复算**）。默认输入不同 ⇒ 不命中。",
+  },
+  {
+    slug: "it/java-escape",
+    inputs: { input: "a\"b" },
+    clicks: ["esc()"],
+    expect: ["a\\\"b"],
+    ref: "Java 字符串转义：双引号被转义但不加外层引号 ⇒ 产物形如 a\"b（与 Go 那例形成「同输入、转义规则相同但外层包装不同」的对照，**可手算复算**）。",
+  },
+  {
+    slug: "it/sql-escape",
+    inputs: { input: "O'Brien" },
+    clicks: ["esc()"],
+    expect: ["O\\'Brien"],
+    ref: "SQL 转义：`'`→`\'` ⇒ `O\'Brien`（**可手算复算**，避免 SQL 注入的单引号转义）。默认输入不同 ⇒ 不命中。",
+  },
+  {
+    slug: "it/python-escape",
+    inputs: { input: "a\"b" },
+    clicks: ["esc()"],
+    expect: ["\"a\\\"b\""],
+    ref: "Python 字符串转义：整串用双引号包裹，内部双引号被转义 ⇒ 手算结果形如「双引号 + a\"b + 双引号」（**逐字符可手算复算**）。默认输入不同 ⇒ 不命中。",
+  },
+  {
+    slug: "it/rust-escape",
+    inputs: { input: "a\"b" },
+    clicks: ["esc()"],
+    expect: ["\"a\\\"b\""],
+    ref: "Rust 字符串转义：整串用双引号包裹，内部双引号被转义 ⇒ 与 Python 那例输入、产物均相同，但走的是不同语言的实现路径（**手算复算**）。",
+  },
+  {
+    slug: "it/css-escape",
+    inputs: { input: "a b" },
+    clicks: ["esc()"],
+    expect: ["a\\ b"],
+    ref: "CSS.escape：空格在标识符中非法 ⇒ 转义为 `a\\ b`（**可手算复算**，CSS 标识符规则）。默认输入不同 ⇒ 不命中。",
+  },
+  {
+    slug: "it/js-escape",
+    inputs: { input: "a'b" },
+    clicks: ["esc()"],
+    expect: ["\"a'b\""],
+    ref: "JS 字符串转义：整串用双引号包裹、单引号**不转义** ⇒ 产物形如「双引号 + a'b + 双引号」（**手算复算**——双引号包围时单引号无需转义这一规则点）。",
+  },
+  {
+    slug: "it/url-encoder-advanced",
+    inputs: { input: "a b&c" },
+    clicks: ["enc()"],
+    expect: ["a%20b%26c"],
+    ref: "高级 URL 编码：空格→`%20`、`&`→`%26`（**逐字符可手算复算**）。与 `it/url-encode` 那两例（对照组）同族不同页。",
+  },
+  {
+    slug: "it/text-to-unicode",
+    inputs: { txt: "Hi" },
+    clicks: ["calcTool()"],
+    expect: ["U+0048", "\\u0048"],
+    ref: "Unicode 码点：H = U+0048 / UTF-16 转义 \\u0048、i = U+0069 / \\u0069（**码点表可手查，逐字符可复算**）。默认样例不同 ⇒ 不命中。",
+  },
+  {
+    slug: "it/string-obfuscator",
+    inputs: { input: "Hello" },
+    clicks: ["obfuscate()"],
+    expect: ["Ｈｅｌｌｏ", "原文 5 字符 → 输出 5 字符"],
+    ref: "字符串混淆（全角化）：`Hello` 逐字符转全角 ⇒ `Ｈｅｌｌｏ`（`H`→`Ｈ` U+FF28…，**Unicode 全角区映射可手查**）；统计行「原文 5 字符 → 输出 5 字符」与输入长度自洽。默认样例不同 ⇒ 不命中。",
+  },
+
+  // ---- BATCH249 同页第二组（4 例） ----
+  {
+    slug: "it/rc4",
+    inputs: { input: "Hello", key: "Key", outputFormat: "hex" },
+    clicks: ["encrypt()"],
+    expect: ["a3fa1bedd8"],
+    ref: "RC4 流加密：明文 `Hello` + 密钥 `Key` ⇒ 5 字节密文 `a3fa1bedd8`（hex，长度与明文一致 ⇒ **长度可反算校验**，RC4 为流密码、密文长度 = 明文长度）。⚠️ `stringToBytes` 在 harness 下依赖的 TextEncoder 桩返回 undefined ⇒ 函数内抛错，但 `output` 已被赋值（**抛在赋值之后**）。",
+  },
+  {
+    slug: "it/uuencode",
+    inputs: { input: "Hi", fname: "f.txt" },
+    clicks: ["enc()"],
+    expect: ["begin 644 f.txt", "2&D"],
+    ref: "UUencode：`begin 644 f.txt` 头 + 正文。正文由 3 字节一组折叠：0x48/0x69/0x00 ⇒ 6 位分组 010010/000110/100100(`1001` 补零) ⇒ +32 得 `2`/`&`/`D` ⇒ **`2&D`**（**可手算复算**）；整行 `2&D `` ` `` ` 是 UU 的行尾标记。",
+  },
+  {
+    slug: "it/md5",
+    inputs: { textInput: "abc" },
+    clicks: ["calcText()"],
+    expect: ["900150983cd24fb0d6963f7d28e17f72"],
+    ref: "MD5(`abc`) = **900150983cd24fb0d6963f7d28e17f72**（RFC 1321 标准测试向量，最广为人知的 MD5 已知值，可手查核对）。同页的 HMAC 段用另一组样本 ⇒ 不干扰。注：`md5cycle`/`md5blk` 在 harness 下抛错（inputs 经 TextEncoder 桩），但**文本哈希结果行已先写入**。",
+  },
+  {
+    slug: "it/case-converter",
+    inputs: { inputText: "Hello World" },
+    clicks: ["convert()"],
+    expect: ["HELLO WORLD", "helloWorld", "hello-world"],
+    ref: "大小写转换的 11 种写法（同一输入 `Hello World` 派生）：`HELLO WORLD` 全大写、`hello world` 全小写、`helloWorld` 小驼峰、`hello-world` 短横线命名（另含 `HelloWorld`/`hello_world`/`HELLO_WORLD`/`hello.world` 等）。**同一输入、多条互不自洽但各自确定的变换行**，任一都随注入变。默认样例不同 ⇒ 不命中。",
   },
 ];
 
