@@ -461,6 +461,42 @@ const CASES = [
     inputs: { totalBudget: "120000", roas1: "3.2", budget1Pct: "10", roas2: "2.8", budget2Pct: "30", roas3: "1.8", budget3Pct: "40" },
     expect: ["¥282,000", "2.35x", "12.5%"],
     ref: 'total=120000 r1=3.2 b1=10 r2=2.8 b2=30 r3=1.8 b3=40；比例和=80（归一化）；预算 15,000/45,000/60,000；收入 48,000/126,000/108,000；总收入=¥282,000；整体ROAS=2.35x（与 total 无关）；渠道1占比=12.5%'
+  },
+  {
+    slug: "marketing/marketing-roi",
+    inputs: { m_cost: "21000", m_price: "199", m_impressions: "50000", m_ctr: "3", m_cvr: "4", m_repeat: "25" },
+    expect: ["-28.9%", "¥-6,075", "¥350.00"],
+    ref: 'cost=21000 price=199 imp=50000 ctr=3 cvr=4 rep=25；clicks=1500 conv=60 复购15 总单75 收入14925 利润-6075；ROI=-28.9%（负号渲染）；CPA=350.00'
+  },
+  {
+    slug: "marketing/marketing-roi",
+    inputs: { m_cost: "8100", m_price: "599", m_impressions: "200000", m_ctr: "1.5", m_cvr: "2", m_repeat: "10" },
+    expect: ["388.1%", "¥39,534", "¥2.70"],
+    ref: 'cost=8100 price=599 imp=200000 ctr=1.5 cvr=2 rep=10；clicks=3000 conv=60 复购6 总单66 收入39534 利润31434；ROI=388.1%；CPC=2.70'
+  },
+  {
+    slug: "marketing/marketing-roi",
+    inputs: { a_cost: "30000", a_revenue: "0", a_impressions: "2000", a_clicks: "20000", a_conversions: "400", a_price: "299" },
+    expect: ["3.99", "298.7%", "¥75.00"],
+    ref: 'revenue=0 ⇒ finalRevenue 走 || 回退 = conv×price=400×299=119600（覆盖回退分支）；profit=89600；ROAS=3.99；ROI=298.7%；CPA=75.00'
+  },
+  {
+    slug: "marketing/marketing-roi",
+    inputs: { a_cost: "15200", a_revenue: "45000", a_impressions: "500", a_clicks: "8000", a_conversions: "120", a_price: "150" },
+    expect: ["2.96", "¥1.90", "1.60%"],
+    ref: 'cost=15200 revenue=45000 imp=500 clicks=8000 conv=120 price=150；profit=29800；ROAS=2.96；CPC=1.90；CTR=1.60%'
+  },
+  {
+    slug: "marketing/marketing-roi",
+    inputs: { i_principal: "20000", i_annual: "8", i_years: "2" },
+    expect: ["¥23,328.00", "16.64%", "8.00%"],
+    ref: 'if 分支（i_annual=8 非空）：finalValue=20000×1.08^2=23328.00；总ROI=16.64%；年化=8.00%；收益=¥3,328.00。注：i_principal 先注入时 i_annual 为空走 else 写回，随后 i_annual/i_years 注入使最终态落在 if 分支'
+  },
+  {
+    slug: "marketing/marketing-roi",
+    inputs: { i_final: "160000" },
+    expect: ["60.00%", "16.96%", "¥60,000.00"],
+    ref: 'else 分支（仅注入 i_final=160000，i_principal=100000/i_years=3 用预置值）：finalValue=160000；总ROI=60.00%；年化=(1.6)^(1/3)-1=16.96%；收益=¥60,000.00。单键注入是刻意为之——多键会因 else 写回 i_annual 导致后续 dispatch 翻转到 if 分支'
   }
 ];
 
