@@ -339,6 +339,48 @@ const CASES = [
     expect: ['0.7953 Cohen\'s d 中'],
     ref: '不等方差+不等样本量的加权合并：sp = √((9×9 + 29×49)/38) = √(1502/38) = √39.5263 = **6.286996**；d = 5/6.286996 = **0.795292** ⇒ `toFixed(4)` = 0.7953，|d| < 0.8 ⇒ `中`。本条压住合并方差的 `n−1` 加权（若误用 n 加权或漏 √，数值立刻偏离 0.7953）；0.7953 与 0.8 边界只差 0.005，分档错一档也会被数值锚暴露。默认态 0.6000，锚不命中。',
   },
+  {
+    slug: "statistics/linear-regression",
+    inputs: {},
+    clicks: ["document.getElementById(\'x\').value=\'1,2,3,4,5\';document.getElementById(\'y\').value=\'3,5,7,9,11\';calcTool();"],
+    expect: ['1.0000 截距 a', '2.0000 斜率 b', '7.000 x=3 预测 y'],
+    ref: '完美直线 y=2x+1：x̄=3、ȳ=7，num=Σ(x−x̄)(y−ȳ)=10、den=Σ(x−x̄)²=10 ⇒ b=**2.0000**、a=7−2×3=**1.0000**、预测 y(3)=1+6=**7.000**。斜率恰为整数、截距恰为 1，任何一处 Σ 漏项/除错都会偏离；三条锚分别是「截距」「斜率」「外推」，数值+标签联合形态。默认态（1..5 / 2,4,5,4,5）是 2.2000 / 0.6000 / 4.000，全不命中。',
+  },
+  {
+    slug: "statistics/linear-regression",
+    inputs: {},
+    clicks: ["document.getElementById(\'x\').value=\'0,1,2,3\';document.getElementById(\'y\').value=\'5,3,6,2\';calcTool();"],
+    expect: ['4.9000 截距 a', '-0.6000 斜率 b', '3.100 x=3 预测 y'],
+    ref: 'x̄=1.5、ȳ=4，num=(−1.5)(1)+(−0.5)(−1)+(0.5)(2)+(1.5)(−2)=−3、den=2.25+0.25+0.25+2.25=5 ⇒ b=**−0.6000**、a=4+0.6×1.5=**4.9000**、y(3)=4.9−1.8=**3.100**。x 从 0 起排（截距不再等于首项 y 值），负斜率同时覆盖 `toFixed(4)` 的负号渲染。默认态三条全不命中。',
+  },
+  {
+    slug: "statistics/linear-regression",
+    inputs: {},
+    clicks: ["document.getElementById(\'x\').value=\'1,2,3\';document.getElementById(\'y\').value=\'2,4,6\';calcTool();"],
+    expect: ['0.0000 截距 a', '6.000 x=3 预测 y'],
+    ref: '过原点直线 y=2x：b=**2.0000**、a=4−2×2=**0.0000**（`toFixed(4)` 的零渲染）、y(3)=**6.000**。不锚 `2.0000 斜率 b`——它与例①的斜率同值（跨用例撞车无害但无判别力），改锚本条独有的截距与预测值。默认态 2.2000/0.6000/4.000，全不命中。',
+  },
+  {
+    slug: "statistics/linear-regression",
+    inputs: {},
+    clicks: ["document.getElementById(\'x\').value=\'2,4,6,8\';document.getElementById(\'y\').value=\'1,1,1,1\';calcTool();"],
+    expect: ['0.0000 斜率 b', '1.0000 截距 a'],
+    ref: '水平线：ȳ=1 恒定 ⇒ num=Σ(x−x̄)×0=0 ⇒ b=**0.0000**、a=1−0=**1.0000**、y(3)=1.000。本条覆盖「斜率恰为零」的退化路径（den≠0、num=0），与例④共同构成 0/0 守卫之外的两种零形态；若把 b 写成 num/den 时 den 用错（如 n 而非 Σ(x−x̄)²），0.0000 仍成立但例①②会先抓，本条主要钉「num=0 ⇒ 截距=ȳ」这条链。默认态 0.6000，锚不命中。',
+  },
+  {
+    slug: "statistics/linear-regression",
+    inputs: {},
+    clicks: ["document.getElementById(\'x\').value=\'5,3,1\';document.getElementById(\'y\').value=\'1,2,3\';calcTool();"],
+    expect: ['3.5000 截距 a', '-0.5000 斜率 b'],
+    ref: 'x 倒序输入（5,3,1）：x̄=3、ȳ=2，num=(2)(−1)+0+(−2)(1)=−4、den=8 ⇒ b=**−0.5000**、a=2+0.5×3=**3.5000**、y(3)=2.000。x 倒序验证 Σ(x−x̄)² 与顺序无关、num 符号由 x−x̄ 与 y−ȳ 的配对决定（若 den 误用 Σ(x−x̄) 而非平方，此处立刻为负 ⇒ NaN 守卫）。默认态全不命中。',
+  },
+  {
+    slug: "statistics/linear-regression",
+    inputs: {},
+    clicks: ["document.getElementById(\'x\').value=\'1,2,3,4\';document.getElementById(\'y\').value=\'1,2,3\';calcTool();"],
+    expect: ['1.0000 斜率 b', '3.000 x=3 预测 y'],
+    ref: 'x 4 个、y 3 个 ⇒ `n=Math.min(xa.length,ya.length)=3`，只取前三对 (1,1)(2,2)(3,3) ⇒ b=**1.0000**、a=0、y(3)=**3.000**。本条钉住 `Math.min` 截断：若页面误用 xa.length(4)，ya[3] 为 undefined ⇒ NaN ⇒ 结果区落到「⚠ 计算结果含无效值」警告，三条锚全不出现 ⇒ 被抓。默认态（两串等长）不命中。',
+  },
 
 ];
 
