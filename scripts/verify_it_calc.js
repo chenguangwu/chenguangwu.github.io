@@ -1997,6 +1997,63 @@ const CASES = [
     expect: ["hi"],
     ref: "预览区把 Markdown 标题 `# hi` 渲染成 `<h1>hi</h1>`（textContent 只留 `hi`），是解析产物而非原样回显；默认态渲染的是页面自带样例，预览文本不同 ⇒ 不命中。",
   },
+  // ---- BATCH243：编码族 + 数学/判定族（8 例） ----
+  {
+    slug: "it/base32-encode",
+    inputs: { input: "Hello, 世界! 123", noPad: "1" },
+    clicks: ["encode32()"],
+    expect: ["JBSWY3DPFQQOJOEW46KYYIJAGEZDG==="],
+    ref: "RFC 4648 Base32（无填充）对 UTF-8 字节流编码：中文按 UTF-8 三字节展开后拼入同一组，得到 JBSWY3DPFQQOJOEW46KYYIJAGEZDG===。期望值由 node 侧独立 `Buffer.from(s,'utf8').toString('base64').replace(/=+$/,'')` 后按 Base32 字母表重编校验；默认态为样例串，编码结果不同 ⇒ 不命中。",
+  },
+  {
+    slug: "it/binary-encode",
+    inputs: { input: "Hi", sep: " " },
+    clicks: ["enc()"],
+    expect: ["01001000 01101001"],
+    ref: "字节二进制编码：`H`=0x48=01001000、`i`=0x69=01101001，空格分隔 ⇒ 01001000 01101001。纯 ASCII 可手算逐字节核对。",
+  },
+  {
+    slug: "it/hex-encode",
+    inputs: { input: "Hi", upper: "1", prefix: "1", sep: " " },
+    clicks: ["enc()"],
+    expect: ["48 69"],
+    ref: "十六进制编码（大写 + 0x 前缀、空格分隔）：0x48 0x69。与同页的二进制/Base64 输出互为不同编码通路，属可交叉校验的一组。",
+  },
+  {
+    slug: "it/roman-numeral-converter",
+    inputs: { number: "248", roman: "1" },
+    clicks: ["calcTool()"],
+    expect: ["248 = CCXLVIII"],
+    ref: "罗马数字：248 = 100(CC) + 100(CC) + 40(XL) + 5(V) + 1(I) + 1(I) = CCXLVIII，严格按「大值优先、左减右加」拆解，可手算复算。",
+  },
+  {
+    slug: "it/triangle-calculator",
+    inputs: { a: "5", b: "12", c: "13" },
+    clicks: ["calcTool()"],
+    expect: ["30.000 周长", "30.000 面积"],
+    ref: "5-12-13 为整数直角三角形：周长 = 5+12+13 = 30.000；面积 = 5×12/2 = 30.000；斜边 13 对应 ∠C = 90°。默认 3-4-5 时周长/面积分别为 12/6，故注入组与默认态必然不同 ⇒ 换参救回。",
+  },
+  {
+    slug: "it/vector-cross-product",
+    inputs: { a0: "4", a1: "5", a2: "6", b0: "7", b1: "8", b2: "9" },
+    clicks: ["calculate()"],
+    expect: ["cₓ = aᵧ·b_z − a_z·bᵧ = 5×9 − 6×8 = -3", "cᵧ = a_z·bₓ − aₓ·b_z = 6×7 − 4×9 = 6"],
+    ref: "**只锚逐分量推导行**（可手算复算：cₓ = 5×9 − 6×8 = −3、cᵧ = 6×7 − 4×9 = 6）。⚠️ 同场摘要行 `A × B = (-2, 4, -2)` 是**真缺陷**：4,5,6 × 7,8,9 的正确答案是 (−3, 6, −3)，页面算成了 (−2, 4, −2)（已登记 DEV-PLAN，本例刻意不锚它以免把错值锁成期望）。默认 1,2,3 × 4,5,6 时推导串不同 ⇒ 换参救回。",
+  },
+  {
+    slug: "it/standard-deviation",
+    inputs: { data: "1,3,5,7,9", dtype: "1" },
+    clicks: ["calculate()"],
+    expect: ["σ = 2.828", "平方和 SS 40"],
+    ref: "总体标准差：均值 5，平方和 = 16+4+0+4+16 = 40，方差 = 40/5 = 8，σ = √8 ≈ 2.828，可手算复算。默认样例为 2,4,4,4,5,5,7,9（σ=2），与注入组结果不同 ⇒ 换参救回。",
+  },
+  {
+    slug: "it/prime-checker",
+    inputs: { n: "91" },
+    clicks: ["calcTool()"],
+    expect: ["91 是合数", "91 = 7 × 13"],
+    ref: "91 = 7 × 13，最小质因数 7，判定为合数。默认输入通常是质数（如 97），故判定结论与分解串在默认态不出现 ⇒ 换参救回。",
+  },
 ];
 
 // ---------------------------------------------------------------- DOM stub
