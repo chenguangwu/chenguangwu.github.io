@@ -353,6 +353,42 @@ const CASES = [
     inputs: { visitors: "120000", leads: "36000", qualified: "12000", opportunities: "4800", customers: "960" },
     expect: ["整体转化率：0.800%", "转化率: 33.3%"],
     ref: 'v=120000 l=36000 q=12000 o=4800 c=960；整体=960/120000×100=0.800%；第二锚取本级转化率 33.3%（默认态各级 5.0/40.0/40.0/25.0，不撞车）'
+  },
+  {
+    slug: "marketing/marketing-google-ads-budget",
+    inputs: { avgCpc: "2", targetClicksDay: "80", convRate: "5", avgOrderValue: "200" },
+    expect: ["月预估收入：¥24,000", "5.00x"],
+    ref: 'cpc=2 clicks=80 cr=5 aov=200；日预算=2×80=160、月预算=4,800；日订单=80×5/100=4.0；日收入=800、月收入=24,000；ROAS=(5/100×200)/2=5.00x（与点击量无关）。锚1 用全键月收入、锚2 用 ROAS，均避开默认串集'
+  },
+  {
+    slug: "marketing/marketing-google-ads-budget",
+    inputs: { avgCpc: "5", targetClicksDay: "40", convRate: "4", avgOrderValue: "600" },
+    expect: ["月预估收入：¥28,800", "4.80x"],
+    ref: 'cpc=5 clicks=40 cr=4 aov=600；日预算=5×40=200、月预算=6,000；日订单=40×4/100=1.6；日收入=960、月收入=28,800；ROAS=(4/100×600)/5=4.80x（与点击量无关）。锚1 用全键月收入、锚2 用 ROAS，均避开默认串集'
+  },
+  {
+    slug: "marketing/marketing-google-ads-budget",
+    inputs: { avgCpc: "1.5", targetClicksDay: "200", convRate: "2", avgOrderValue: "150" },
+    expect: ["月预估收入：¥18,000", "2.00x"],
+    ref: 'cpc=1.5 clicks=200 cr=2 aov=150；日预算=1.5×200=300、月预算=9,000；日订单=200×2/100=4.0；日收入=600、月收入=18,000；ROAS=(2/100×150)/1.5=2.00x（与点击量无关）。锚1 用全键月收入、锚2 用 ROAS，均避开默认串集'
+  },
+  {
+    slug: "marketing/marketing-google-ads-budget",
+    inputs: { avgCpc: "4", targetClicksDay: "120", convRate: "3", avgOrderValue: "800" },
+    expect: ["月预估收入：¥86,400", "6.00x"],
+    ref: 'cpc=4 clicks=120 cr=3 aov=800；日预算=4×120=480、月预算=14,400；日订单=120×3/100=3.6；日收入=2,880、月收入=86,400；ROAS=(3/100×800)/4=6.00x（与点击量无关）。锚1 用全键月收入、锚2 用 ROAS，均避开默认串集'
+  },
+  {
+    slug: "marketing/marketing-google-ads-budget",
+    inputs: { avgCpc: "6", targetClicksDay: "60", convRate: "5", avgOrderValue: "400" },
+    expect: ["月预估收入：¥36,000", "3.33x"],
+    ref: 'cpc=6 clicks=60 cr=5 aov=400；日预算=6×60=360、月预算=10,800；日订单=60×5/100=3.0；日收入=1,200、月收入=36,000；ROAS=(5/100×400)/6=3.33x（与点击量无关）。锚1 用全键月收入、锚2 用 ROAS，均避开默认串集'
+  },
+  {
+    slug: "marketing/marketing-google-ads-budget",
+    inputs: { avgCpc: "10", targetClicksDay: "30", convRate: "8", avgOrderValue: "1000" },
+    expect: ["月预估收入：¥72,000", "8.00x"],
+    ref: 'cpc=10 clicks=30 cr=8 aov=1000；日预算=10×30=300、月预算=9,000；日订单=30×8/100=2.4；日收入=2,400、月收入=72,000；ROAS=(8/100×1000)/10=8.00x（与点击量无关）。锚1 用全键月收入、锚2 用 ROAS，均避开默认串集'
   }
 ];
 
