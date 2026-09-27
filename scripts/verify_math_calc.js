@@ -170,6 +170,49 @@ const CASES = [
     ref: "三次方程 x³ − 7x + 6 = 0：页面在 [−20, 20) 上以 0.5 步长扫点、每点跑 50 次牛顿迭代（f′ = 3ax² + 2bx + c），再按 0.1 邻域去重 ⇒ 报「**3 个**」实根。python 侧用因子分解独立复核 (x−1)(x−2)(x+3) = x³ − 7x + 6，根集 {−3, 1, 2} 与之一致。默认组 1,−6,11,−6 的三根含重根，根数同样为 3 但值不同 ⇒ 锚取首个根 −3.000000 以区分。",
   },
 
+  {
+    slug: "math/geometry-calculator",
+    inputs: {},
+    clicks: ["selectShape('rect');document.getElementById('w').value='8';document.getElementById('h').value='5';calc();"],
+    expect: ["40.00 m²", "26.00 m", "9.43 m"],
+    ref: "矩形 8×5：面积 S = w·h = **40.00 m²**、周长 C = 2(w+h) = **26.00 m**、对角线 √(8²+5²) = √89 = **9.43 m**（三个锚分属三条独立式，其中对角线那条复核了 `Math.sqrt(w*w+h*h)` 没有被误写成各边之和）。默认组因 `defaults` 取 HTML 中同 id 的最后一个值（`h` 落在圆锥模板上是 6、`w` 是 5）⇒ 默认矩形面积恰为 30.00 m²、周长 22.00 m，与注入值不撞。",
+  },
+  {
+    slug: "math/geometry-calculator",
+    inputs: {},
+    clicks: ["selectShape('square');document.getElementById('a').value='7';calc();"],
+    expect: ["49.00 m²", "28.00 m", "9.90 m"],
+    ref: "正方形 a=7：面积 a² = **49.00 m²**、周长 4a = **28.00 m**、对角线 a√2 = **9.90 m**。同页「矩形」分支的对角线用的是 `Math.sqrt(w²+h²)`，本条换成 `a*Math.sqrt(2)`，两条同族不同式 ⇒ 任一处方写错都会被其中一条抓到。默认组（a=6）⇒ 36.00 / 24.00 / 8.49，不命中。",
+  },
+  {
+    slug: "math/geometry-calculator",
+    inputs: {},
+    clicks: ["selectShape('circle');document.getElementById('r').value='4';calc();"],
+    expect: ["50.27 m²", "25.13 m"],
+    ref: "圆 r=4：面积 π·r² = 50.2655 ⇒ **50.27 m²**、周长 2π·r = 25.1327 ⇒ **25.13 m**、直径 2r = **8.00 m**。锚取「面积」与「周长」两条同源于 π 的不同式（同时可反查 π 的取舍：若按 3.14 算会分别得 50.24 / 25.12，两条都不命中）。默认组（r=3）⇒ 28.27 / 18.85 / 6.00，不命中。",
+  },
+  {
+    slug: "math/geometry-calculator",
+    inputs: {},
+    clicks: ["selectShape('triangle');document.getElementById('a').value='6';document.getElementById('h').value='4';document.getElementById('b').value='5';document.getElementById('c').value='5';calc();"],
+    expect: ["面积 (海伦公式)", "16.00 m", "一般"],
+    ref: "三角形（底 6、高 4、腰 5、5）：两条面积口径互相验证 —— 底×高÷2 = **12.00**、海伦 s=8 时 √(8·2·3·3) = **12.00**，差值 < 1e-6·max(1,A) ⇒ 一致性判据通过、不弹告警；周长 = 6+5+5 = **16.00 m**；类型判据 `a²+b²=c²` 三式（36+25=61≠25、36+25=61≠25、25+25=50≠36）全不成立 ⇒ **一般**。默认组（a=6,h=6,b=5,c=5 ⇒ 18.00 与 6.93 矛盾）会弹告警，与本例的「不弹」形成对照。",
+  },
+  {
+    slug: "math/geometry-calculator",
+    inputs: {},
+    clicks: ["selectShape('triangle');document.getElementById('a').value='6';document.getElementById('h').value='10';document.getElementById('b').value='5';document.getElementById('c').value='5';calc();"],
+    expect: ["⚠ 底×高 与 三边不一致", "12.00 m²"],
+    ref: "三角形一致性告警分支：把高从 4 改到 10 后，底×高÷2 = **30.00** 与海伦公式 **12.00** 互相矛盾 ⇒ 页面弹「⚠ 底×高 与 三边不一致」。注意该页 `defaults` 取 HTML 中同 id 的**最后一个**出现（矩形 w=5、圆锥 h=6 ⇒ 默认态矩形面积也是 30.00 m²）⇒ 「30.00 m²」在本页默认态同样命中，**是逃生项**，本条只锚告警文案与海伦值 12.00 m²。",
+  },
+  {
+    slug: "math/geometry-calculator",
+    inputs: {},
+    clicks: ["selectShape('cone');document.getElementById('r').value='3';document.getElementById('h').value='4';document.getElementById('l').value='5';calc();"],
+    expect: ["37.70 m³", "75.40 m²", "47.12 m²"],
+    ref: "圆锥 r=3、h=4、l=5：母线理论值 √(r²+h²) = **5** ⇒ 与输入的 5 一致（容差 0.005·max(1,lTrue)）⇒ 不弹「母线与 r、h 不一致」告警；体积 1/3·π·r²·h = **37.70 m³**、表面积 π·r·(r+l) = **75.40 m²**、侧面积 π·r·l = **47.12 m²**、底面积 π·r² = **28.27 m²**。三条锚分别落在「体积 / 全表面积 / 侧面积」三个不同系数上（默认组 r=3、h=6、l=6.71 ⇒ 母线应为 6.71 恰一致，但体积 56.55、表面积 82.69、侧 63.68，都不命中）。",
+  },
+
 ];
 
 async function main() {
