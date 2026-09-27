@@ -295,6 +295,42 @@ const CASES = [
     expect: ['月工资标准： 12,345 元', '应支付月数： 3 个月', '双倍工资差额： 37,035 元'],
     ref: 'salary = 12345：months = 3（02-10/03-10/04-10 < 05-10）⇒ total = 3×12345 = **37,035**；月工资与差额两处都过 `ToolBox.formatNumber` 的千分位（12,345 / 37,035），压住格式化分支。默认态不命中。',
   },
+  {
+    slug: "legal/notarization-fee",
+    inputs: {'notaryType': 'property', 'amount': '100000', 'copies': '1', 'translation': '0'},
+    expect: ['公证费（基础）： 1,200.00'],
+    ref: 'property 受益额 100000（≤200000 且 >0）⇒ baseFee = 100000×0.012 = 1200。formatNumber(1200,2)=\'1,200.00\'。锚冒号后带空格（html 为 `公证费（基础）：<strong>…</strong> 元`，textContent 在冒号与数值间有空格）。默认态 amount 空→0→property 200，不撞。',
+  },
+  {
+    slug: "legal/notarization-fee",
+    inputs: {'notaryType': 'property', 'amount': '300000', 'copies': '1', 'translation': '0'},
+    expect: ['公证费（基础）： 3,400.00'],
+    ref: 'property 300000（>200000≤500000）⇒ 2400+(300000-200000)×0.01 = 3400，钉住第二档分段起点；注意页面默认 amount=500000（value="500000"），本例用 300000 避开默认态，否则默认即 PASS 成逃生项。',
+  },
+  {
+    slug: "legal/notarization-fee",
+    inputs: {'notaryType': 'property', 'amount': '1500000', 'copies': '1', 'translation': '0'},
+    expect: ['公证费（基础）： 12,400.00'],
+    ref: 'property 1500000（>1000000≤5000000）⇒ 9400+(1500000-1000000)×0.006 = 12400，钉住第四档。',
+  },
+  {
+    slug: "legal/notarization-fee",
+    inputs: {'notaryType': 'contract', 'amount': '300000', 'copies': '1', 'translation': '0'},
+    expect: ['公证费（基础）： 2,040.00'],
+    ref: 'contract 标的 300000（>100000≤500000）⇒ 840+(300000-100000)×0.006 = 2040，覆盖 contract 分支（与 property 分支互不重叠）。',
+  },
+  {
+    slug: "legal/notarization-fee",
+    inputs: {'notaryType': 'birth', 'amount': '0', 'copies': '1', 'translation': '0'},
+    expect: ['公证费（基础）： 80.00', '出生/生存/死亡/身份等公证'],
+    ref: 'birth 分支固定 baseFee=80（与 amount 无关），锚定值 80.00 且该分支描述串唯一，二者任一命中即判通过。',
+  },
+  {
+    slug: "legal/notarization-fee",
+    inputs: {'notaryType': 'will', 'amount': '0', 'copies': '3', 'translation': '0'},
+    expect: ['公证费（基础）： 400.00', '遗嘱公证', '副本费（2份）：40 元'],
+    ref: 'will 固定 400；copies=3 ⇒ copyFee=(3-1)×20=40、合计 440。锚 will 描述、400.00 与副本费行（40 无小数，formatNumber(40) 默认位输出 \'40\'），覆盖副本费分支。',
+  },
 
 ];
 
