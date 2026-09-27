@@ -2732,6 +2732,118 @@ const CASES = [
     ref: "同数据切 j2tNewline=remove ⇒ 换行被直接删除，输出 a l1l2（6 字符，行数/列数均 1）。与 br 例共同覆盖换行处理的两条分支。",
   },
 
+  // —— it/uuid-generator：UUID 解析器的结构化派生输出（版本号 / 变体 / 分段），
+  //    锚点均为「解析产物」而非输入回显；默认态 parseInput 为空 → parseUuid() 直接 return，无输出。——
+  {
+    slug: "it/uuid-generator",
+    inputs: { parseInput: "550e8400-e29b-41d4-a716-446655440000" },
+    clicks: ["parseUuid()"],
+    dumpIds: ["parseResult"],
+    expect: ["版本号 4 (随机数)", "变体 RFC 4122（标准）", "time_low (32位): 550e8400", "clock_seq_hi_and_res (8位): a7", "node (48位): 446655440000"],
+    ref: "RFC 4122 示例 UUID v4 的解析产物：version nibble = 4（随机数），variant nibble = 8（RFC 4122），time_low = 550e8400、clock_seq_hi_and_res = a7、node = 446655440000。默认态 parseInput 为空 → parseUuid() 首行即 return，parseResult 无内容，不命中。",
+  },
+  {
+    slug: "it/uuid-generator",
+    inputs: { parseInput: "{550E8400-E29B-41D4-A716-446655440000}" },
+    clicks: ["parseUuid()"],
+    dumpIds: ["parseResult"],
+    expect: ["标准格式 550e8400-e29b-41d4-a716-446655440000", "无分隔符 550e8400e29b41d4a716446655440000", "大写格式 550E8400-E29B-41D4-A716-446655440000"],
+    ref: "normalizeUuid() 先剥离花括号再剥横线并转小写 ⇒ 花括号 + 全大写输入被归一化为标准小写形态。三条同时断言，任一归一化环节失效即不命中。",
+  },
+  {
+    slug: "it/uuid-generator",
+    inputs: { parseInput: "550e8400e29b41d4a716446655440000" },
+    clicks: ["parseUuid()"],
+    dumpIds: ["parseResult"],
+    expect: ["标准格式 550e8400-e29b-41d4-a716-446655440000"],
+    ref: "无分隔符纯 hex（32 位）输入亦应被接受并还原为标准五段格式 —— 与上一例构成「带横线 / 不带横线」两种合法输入的判别力。",
+  },
+  {
+    slug: "it/uuid-generator",
+    inputs: { parseInput: "00000000-0000-0000-0000-000000000000" },
+    clicks: ["parseUuid()"],
+    dumpIds: ["parseResult"],
+    expect: ["版本号 0 (未知)", "变体 NCS 兼容（v0.x）", "NIL UUID 是"],
+    ref: "NIL UUID（全零）走非法分支的边缘情形：version = 0 ⇒ 未知；variant nibble = 0 < 8 ⇒ NCS 兼容（v0.x）；NIL UUID 判定为「是」。三条同现方可证明零值未被误判为无效输入。",
+  },
+  {
+    slug: "it/uuid-generator",
+    inputs: { parseInput: "cfbff0d1-9375-5685-968c-48ce8b15ae17" },
+    clicks: ["parseUuid()"],
+    dumpIds: ["parseResult"],
+    expect: ["版本号 5 (SHA-1 哈希)", "node (48位): 48ce8b15ae17"],
+    ref: "v5（SHA-1）UUID 的版本号识别，取 time_hi_and_version 高 4 位 = 5。node 段 48ce8b15ae17 同时确认字节切分正确。该值由同页 uuid-v5-generator 独立生成、并经 python uuid.uuid5 交叉核对。",
+  },
+  {
+    slug: "it/uuid-generator",
+    inputs: { parseInput: "9073926b-929f-31c2-abc9-fad77ae3e8eb" },
+    clicks: ["parseUuid()"],
+    dumpIds: ["parseResult"],
+    expect: ["版本号 3 (MD5 哈希)", "变体 RFC 4122（标准）"],
+    ref: "v3（MD5）UUID 版本识别：python uuid.uuid3(NAMESPACE_DNS, 'example.com') = 9073926b-929f-31c2-abc9-fad77ae3e8eb，version nibble = 3。与 v4/v5 例构成三档版本判别。",
+  },
+  {
+    slug: "it/uuid-generator",
+    inputs: { parseInput: "invalid!!" },
+    clicks: ["parseUuid()"],
+    dumpIds: ["parseResult"],
+    expect: ["无效的 UUID 格式"],
+    ref: "isValidUuid 正则不命中非 hex 输入 ⇒ 走拒绝分支，不输出任何分段。锚点为唯一的错误态文案，默认态同样不出现。",
+  },
+  {
+    slug: "it/uuid-generator",
+    inputs: { parseInput: "f47ac10b-58cc-4372-a567-0e02b2c3d479" },
+    clicks: ["parseUuid()"],
+    dumpIds: ["parseResult"],
+    expect: ["time_hi_and_version (16位): 4372", "clock_seq_hi_and_res (8位): a5", "node (48位): 0e02b2c3d479"],
+    ref: "常被当作 v1 示例的 UUID 实际 version nibble 为 4（4372 首字符），页面据实判为「4 (随机数)」；本例只锚分段切分（v1 取值号段），避免与版本名串重叠。",
+  },
+
+  // —— it/uuid-v5-generator：纯 JS SHA-1 派生，RFC 4122 v5 标准实现（顶层全局函数，clicks 可直接调用）——
+  {
+    slug: "it/uuid-v5-generator",
+    inputs: { ns: "6ba7b810-9dad-11d1-80b4-00c04fd430c8", name: "test.example.org" },
+    clicks: ["generate()"],
+    expect: ["test.example.org → a18100f5-ca06-5ccd-99c2-c48a12b87629"],
+    ref: "RFC 4122 标准 DNS 命名空间 + python uuid.uuid5 独立复算 = a18100f5-ca06-5ccd-99c2-c48a12b87629。默认态 name 文本框已预置 example.com（会算出 cfbff0d1…）⇒ 故本例改锚非默认名，避免与默认态同档。",
+  },
+  {
+    slug: "it/uuid-v5-generator",
+    inputs: { ns: "6ba7b811-9dad-11d1-80b4-00c04fc430c8", name: "example.com" },
+    clicks: ["generate()"],
+    expect: ["example.com → a9a1848f-0316-5e07-bf97-385c699e24fe"],
+    ref: "页面的 URL 命名空间预设末段为 00c04fc430c8（源码原值，非 RFC 的 00c04fd430c8）⇒ 派生结果须按页面实际常量复算 = a9a1848f-0316-5e07-bf97-385c699e24fe（python uuid.uuid5 逐字核对）。若误用 RFC 标准常量复算会得到 a5cf6e8e…，与页面不符。",
+  },
+  {
+    slug: "it/uuid-v5-generator",
+    inputs: { ns: "6ba7b812-9dad-11d1-80b4-00c04fc430c8", name: "example.com" },
+    clicks: ["generate()"],
+    expect: ["example.com → ab688337-55e6-5e43-85ce-ea1c3581409c"],
+    ref: "OID 命名空间预设（末段 00c04fc430c8）下 python uuid.uuid5 = ab688337-55e6-5e43-85ce-ea1c3581409c。三个非 DNS 预设构成命名空间维度的三档判别。",
+  },
+  {
+    slug: "it/uuid-v5-generator",
+    inputs: { ns: "6ba7b814-9dad-11d1-80b4-00c04fc430c8", name: "example.com" },
+    clicks: ["generate()"],
+    expect: ["example.com → 5c5ba4c5-c2d9-5adc-a758-da46719bd156"],
+    ref: "X500 命名空间预设（末段 00c04fc430c8）下 python uuid.uuid5 = 5c5ba4c5-c2d9-5adc-a758-da46719bd156。",
+  },
+  {
+    slug: "it/uuid-v5-generator",
+    inputs: { ns: "6ba7b810-9dad-11d1-80b4-00c04fd430c8", name: "example.com" },
+    clicks: ["document.getElementById('upper').checked=true;generate()"],
+    expect: ["example.com → CFBFF0D1-9375-5685-968C-48CE8B15AE17"],
+    ref: "upper 开关改在 clicks 里显式置位（harness 下 runner 的 checks 读不到 .checked）。默认态 upper 未勾选 ⇒ 输出小写 cfbff0d1…，大小写形态不同 ⇒ 双态可判别。",
+  },
+  {
+    // 默认 name 已含 example.com（与默认态同档）⇒ 本例第一行换成 test.example.org，第二行用 abc，
+    // 使「多行 → 逐行输出」这一行为只在注入态出现。
+    slug: "it/uuid-v5-generator",
+    inputs: { ns: "6ba7b810-9dad-11d1-80b4-00c04fd430c8", name: "test.example.org\nabc" },
+    clicks: ["generate()"],
+    expect: ["test.example.org → a18100f5-ca06-5ccd-99c2-c48a12b87629", "abc → 6cb8e707-0fc5-5f55-88d4-d4fed43e64a8"],
+    ref: "generate() 对 name 按空行切分后逐行派生（空行被 filter 掉）。两行结果均经 python uuid.uuid5 核对；默认态仅一行 example.com，不出现 abc → … ⇒ 有判别力。",
+  },
 ];
 
 // ---------------------------------------------------------------- DOM stub
