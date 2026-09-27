@@ -3117,6 +3117,46 @@ const CASES = [
     expect: ["19", "-5", "1"],
     ref: "删除所有换行 ⇒ 24 → 19 字符、行数降到 1（apshot 统计行数为结果串 split(换行).length）。python 复算：len('onetwothreefourfive') = 19。",
   },
+  {
+    slug: "it/rich-text-editor",
+    inputs: {"source": "<p>hello world</p>"},
+    clicks: ["applySource();"],
+    dumpIds: ["stSize", "stParas"],
+    expect: ["18 B"],
+    ref: "HTML 体积 = new Blob([editor.innerHTML]).size，即编辑区 HTML 串的 UTF-8 字节数：页面把源码注入 #source 后 applySource() 写回编辑区并 updateStats()。python 复算 len('<p>hello world</p>'.encode()) = 18。段落计数 stParas 在 harness 下只统计 p 标签（querySelectorAll 传的是逗号串，桩按首个标签匹配），本例为 1。默认态编辑区是页面自带样例，体积是另一数值且不出现 18 B。",
+  },
+  {
+    slug: "it/rich-text-editor",
+    inputs: {"source": "<p>见 <a href=\"https://a.dev\">A</a></p><p>图 <img src=\"x.png\"></p>"},
+    clicks: ["applySource();"],
+    dumpIds: ["stSize", "stParas", "stLinks", "stImgs"],
+    expect: ["68 B"],
+    ref: "同一统计兼带链接/图片计数：注入 1 个 a、1 个 img、2 个 p ⇒ stLinks=1 / stImgs=1 / stParas=2；python 复算两行 UTF-8 共 68 字节（「见」「图」各 3 字节）。锚取 68 B，默认态样例里没有该数值。",
+  },
+  {
+    slug: "it/rich-text-editor",
+    inputs: {"source": "<p>hello world</p>"},
+    clicks: ["applySource();copyHtml();"],
+    dumpIds: ["result", "stSize"],
+    expect: ["✅ 已复制 HTML 源码（18 B）"],
+    ref: "copyHtml() 取编辑区 innerHTML 走 ToolBox.copyText，并把结论写进 #result：✅ 已复制 HTML 源码（fmtSize(v.length)），此处 v.length 是 UTF-16 码元数（本例与字节数同为 18）。默认态 #result 为空 ⇒ 不命中。",
+  },
+  {
+    slug: "it/rich-text-editor",
+    inputs: {"source": "<ul><li>甲</li><li>乙</li></ul>"},
+    clicks: ["applySource();downloadHtml();"],
+    dumpIds: ["result", "stSize"],
+    expect: ["✅ 已下载 document.html（152 B）"],
+    ref: "downloadHtml() 拼固定外壳（<!DOCTYPE html> … <body> 换行）再 new Blob：固定头尾 python 复算 119 字节 + 编辑区 33 字节 = 152 ⇒ 结论行 ✅ 已下载 document.html（152 B）。默认态结论行的字节数不同 ⇒ 判别力落在注入内容上。",
+  },
+  {
+    slug: "it/rich-text-editor",
+    inputs: {"source": "<p>甲</p><p>乙</p><p>丙</p>"},
+    clicks: ["applySource();"],
+    dumpIds: ["stSize", "stParas", "stLinks"],
+    expect: ["30 B"],
+    ref: "三段纯中文：stParas=3，stSize = 3×10 = 30 字节（每个汉字 3 字节、标签各 7 字节⇒每段 10 字节）。与上两条合起来覆盖「字节统计 × 块计数 × 链接/图片计数」三条派生量。默认态样例段落数不同。",
+  },
 ];
 
 // ---------------------------------------------------------------- DOM stub
