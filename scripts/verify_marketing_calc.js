@@ -239,6 +239,49 @@ const CASES = [
     expect: ["还差 ¥20.00 包邮", "建议直接支付运费¥5更划算"],
     ref: '阈值改 ¥50：差额 = 50−30 = ¥20.00；凑单成本 = 20×40% = ¥8.00 ≥ 运费¥5 ⇒ 付运费更划算。',
   }
+,
+  {
+    slug: "marketing/marketing-engagement-rate",
+    name: "社交媒体互动率计算器",
+    inputs: { followers: "10000", likes: "300", comments: "120", shares: "60", impressionsEng: "0" },
+    expect: ["总互动数：480", "互动率（按粉丝）：4.80%"],
+    ref: 'totalEng=300+120+60=480；按粉丝互动率=480/10000×100=4.80%；impressions=0 ⇒ 无「基于展示」行。',
+  },
+  {
+    slug: "marketing/marketing-engagement-rate",
+    name: "社交媒体互动率计算器",
+    inputs: { followers: "20000", likes: "500", comments: "100", shares: "80", impressionsEng: "50000" },
+    expect: ["总互动数：680", "互动率（按粉丝）：3.40%", "基于展示的互动率：1.36%"],
+    ref: 'totalEng=500+100+80=680；按粉丝=680/20000×100=3.40%；基于展示=680/50000×100=1.36%。',
+  },
+  {
+    slug: "marketing/marketing-engagement-rate",
+    name: "社交媒体互动率计算器",
+    inputs: { followers: "1000", likes: "80", comments: "30", shares: "20", impressionsEng: "0" },
+    expect: ["总互动数：130", "互动率（按粉丝）：13.00%"],
+    ref: 'totalEng=80+30+20=130；按粉丝=130/1000×100=13.00%；impressions=0 无展示行。',
+  },
+  {
+    slug: "marketing/marketing-engagement-rate",
+    name: "社交媒体互动率计算器",
+    inputs: { followers: "5000", likes: "200", comments: "50", shares: "50", impressionsEng: "10000" },
+    expect: ["总互动数：300", "互动率（按粉丝）：6.00%", "基于展示的互动率：3.00%"],
+    ref: 'totalEng=200+50+50=300；按粉丝=300/5000×100=6.00%；基于展示=300/10000×100=3.00%。',
+  },
+  {
+    slug: "marketing/marketing-engagement-rate",
+    name: "社交媒体互动率计算器",
+    inputs: { followers: "1000000", likes: "1000", comments: "200", shares: "100", impressionsEng: "0" },
+    expect: ["总互动数：1,300", "互动率（按粉丝）：0.13%"],
+    ref: 'totalEng=1000+200+100=1300（千分位 1,300）；按粉丝=1300/1000000×100=0.13%；impressions=0 无展示行。',
+  },
+  {
+    slug: "marketing/marketing-engagement-rate",
+    name: "社交媒体互动率计算器",
+    inputs: { followers: "30000", likes: "150", comments: "30", shares: "20", impressionsEng: "80000" },
+    expect: ["总互动数：200", "互动率（按粉丝）：0.67%", "基于展示的互动率：0.25%"],
+    ref: 'totalEng=150+30+20=200；按粉丝=200/30000×100=0.6667⇒0.67%；基于展示=200/80000×100=0.25%。',
+  }
 
 ];
 
