@@ -679,6 +679,42 @@ const CASES = [
     inputs: { assets: "3000", liab: "3600", intang: "300", equity: "100", premium: "10" },
     expect: ["-660.00", "资产负债率偏高(120.0%)"],
     ref: 'assets=3000 liab=3600 intang=300 equity=100% premium=10；净资产=-600（资不抵债）整体价值=-600×1.1=-660.00 资产负债率120.0%>70 ⇒ 触发提示。覆盖负净资产形态（锚 -660.00 带负号，非默认子串）'
+  },
+  {
+    slug: "realestate/assessor-44",
+    inputs: { type: "1", revenue: "2500", margin: "8", years: "10", rate: "12", tax: "20" },
+    expect: ["904.04", "160.00", "专利权的收益期限"],
+    ref: 'type=1(专利权) revenue=2500 margin=8 years=10 rate=12 tax=20；超额利润200.00 税后160.00 年金现值系数(12%,10)=(1−1.12^−10)/0.12=5.650223 ⇒ 评估价值904.04。锚『专利权的收益期限』锁 type select（默认商标权）'
+  },
+  {
+    slug: "realestate/assessor-44",
+    inputs: { type: "4", revenue: "3000", margin: "6", years: "999", rate: "15", tax: "25" },
+    expect: ["900.00", "135.00", "评估价值=税后超额收益/资本化率"],
+    ref: 'type=4(商誉) revenue=3000 margin=6 years=999(无限期) rate=15 tax=25；超额利润180.00 税后135.00 value=135/0.15=900.00。锚『评估价值=税后超额收益/资本化率』（years>=999 分支独有；默认态是『×年金现值系数』版）'
+  },
+  {
+    slug: "realestate/assessor-44",
+    inputs: { type: "3", revenue: "5000", margin: "4", years: "20", rate: "8", tax: "15" },
+    expect: ["1669.09", "170.00", "特许经营权的收益期限"],
+    ref: 'type=3(特许经营权) revenue=5000 margin=4 years=20(长期) rate=8 tax=15；超额利润200.00 税后170.00 系数(8%,20)=(1−1.08^−20)/0.08=9.818148 ⇒ 1669.09'
+  },
+  {
+    slug: "realestate/assessor-44",
+    inputs: { type: "2", revenue: "800", margin: "12", years: "15", rate: "20", tax: "30" },
+    expect: ["314.19", "67.20", "著作权的收益期限"],
+    ref: 'type=2(著作权) revenue=800 margin=12 years=15 rate=20 tax=30；超额利润96.00 税后67.20 系数(20%,15)=(1−1.2^−15)/0.2=4.675473 ⇒ 314.19（高折现率 + 高税率组合）'
+  },
+  {
+    slug: "realestate/assessor-44",
+    inputs: { type: "0", revenue: "1200", margin: "10", years: "10", rate: "10", tax: "0" },
+    expect: ["737.35", "120.00"],
+    ref: 'type=0(商标权) revenue=1200 margin=10 years=10 rate=10 tax=0(免税边界)；超额利润120.00 税后=120.00（tax=0 ⇒ 不折税）系数(10%,10)=6.144567 ⇒ 737.35。判别：tax 若未生效则税后90 ⇒ 552.99'
+  },
+  {
+    slug: "realestate/assessor-44",
+    inputs: { type: "1", revenue: "600", margin: "15", years: "5", rate: "1", tax: "25" },
+    expect: ["327.61", "67.50"],
+    ref: 'type=1(专利权) revenue=600 margin=15 years=5 rate=1(折现率下限) tax=25；超额利润90.00 税后67.50 系数(1%,5)=(1−1.01^−5)/0.01=4.853431 ⇒ 327.61。覆盖 rate 下限（折现率越小系数越大）'
   }
 ];
 
