@@ -253,6 +253,48 @@ const CASES = [
     "expect": ["2035年3月20日"],
     "ref": "发明专利保护期 = 申请日 2015-03-20 起 20 年 ⇒ 终点 **2035 年 3 月 20 日**（按申请日同月同日推算；默认申请日更早 ⇒ 该串行不出现）"
   },
+  {
+    slug: "legal/double-wage-no-contract",
+    inputs: {},
+    clicks: ["document.getElementById('hireDate').value='2024-06-01';document.getElementById('endDate').value='2024-06-20';document.getElementById('monthlySalary').value='8000';calculate();"],
+    expect: ['工作未满一个月，不产生双倍工资差额'],
+    ref: '入职 2024-06-01、截止 2024-06-20：startOfDouble = hire+1 个月 = 2024-07-01，actualEnd(06-20) <= 07-01 ⇒ 落「未满月」卫语句分支。默认态（两日期为空）走的是「请选择入职日期和补签/离职日期」另一条卫语句，两分支文案不同 ⇒ 本锚不撞默认态。',
+  },
+  {
+    slug: "legal/double-wage-no-contract",
+    inputs: {},
+    clicks: ["document.getElementById('hireDate').value='2024-01-10';document.getElementById('endDate').value='2024-03-10';document.getElementById('monthlySalary').value='8000';calculate();"],
+    expect: ['双倍工资起算： 2024-02-10', '应支付月数： 1 个月', '双倍工资差额： 8,000 元'],
+    ref: 'startOfDouble = 2024-02-10；actualEnd = min(end, maxEnd=2025-01-10) = 2024-03-10；逐月推进 02-10 → months=1（03-10 < 03-10 不成立即停，`<` 严格比较把「恰好满整月」钉住：若误写 `<=` 会得 2）⇒ total = 1×8000 = **8,000**。起算日锚是「hire+1 个月」的唯一证据（02-10 不是任何输入回显）。默认态不命中。',
+  },
+  {
+    slug: "legal/double-wage-no-contract",
+    inputs: {},
+    clicks: ["document.getElementById('hireDate').value='2024-01-10';document.getElementById('endDate').value='2024-04-10';document.getElementById('monthlySalary').value='8000';calculate();"],
+    expect: ['计算截止日期： 2024-04-10', '双倍工资差额： 16,000 元'],
+    ref: 'end = 2024-04-10 < maxEnd ⇒ actualEnd 取 end 本身（截止日期回显输入日但带标签前缀，标签只在计算输出出现）；months = 2 ⇒ total = **16,000**。与例②构成 months=1/2 的阶梯，压住 while 循环的推进步长（setMonth 每次 +1）。默认态不命中。',
+  },
+  {
+    slug: "legal/double-wage-no-contract",
+    inputs: {},
+    clicks: ["document.getElementById('hireDate').value='2024-01-10';document.getElementById('endDate').value='2024-12-11';document.getElementById('monthlySalary').value='8000';calculate();"],
+    expect: ['计算截止日期： 2024-12-11', '应支付月数： 11 个月', '双倍工资差额： 88,000 元'],
+    ref: 'end = 2024-12-11：02-10 逐月推进到 12-10 共 11 次（2025-01-10 < 2024-12-11 不成立）⇒ months = 11，恰好触顶 `Math.min(months, 11)` 但未被截断（本条与例⑤区分：本条截止日期是输入的 end 本身）⇒ total = **88,000**。默认态不命中。',
+  },
+  {
+    slug: "legal/double-wage-no-contract",
+    inputs: {},
+    clicks: ["document.getElementById('hireDate').value='2024-01-10';document.getElementById('endDate').value='2025-06-01';document.getElementById('monthlySalary').value='8000';calculate();"],
+    expect: ['计算截止日期： 2025-01-10'],
+    ref: 'end = 2025-06-01 **晚于** maxEnd = hire+1 年 = 2025-01-10 ⇒ `actualEnd = end < maxEnd ? end : maxEnd` 取 maxEnd，计算截止日期被截断显示为 **2025-01-10**（end 本身是 2025-06-01，输入回显里没有这个日期串 ⇒ 本锚唯一钉住「超一年截断」分支）。months 仍为 11、total 88,000（与例④同值，故不锚，避免无判别力锚）。默认态不命中。',
+  },
+  {
+    slug: "legal/double-wage-no-contract",
+    inputs: {},
+    clicks: ["document.getElementById('hireDate').value='2024-01-10';document.getElementById('endDate').value='2024-05-10';document.getElementById('monthlySalary').value='12345';calculate();"],
+    expect: ['月工资标准： 12,345 元', '应支付月数： 3 个月', '双倍工资差额： 37,035 元'],
+    ref: 'salary = 12345：months = 3（02-10/03-10/04-10 < 05-10）⇒ total = 3×12345 = **37,035**；月工资与差额两处都过 `ToolBox.formatNumber` 的千分位（12,345 / 37,035），压住格式化分支。默认态不命中。',
+  },
 
 ];
 
