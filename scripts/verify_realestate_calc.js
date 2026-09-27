@@ -571,6 +571,42 @@ const CASES = [
     inputs: { cv: "75", used: "45", durable: "40", salvage: "10", struct: "5", decor: "7", equip: "5", method: "0" },
     expect: ["24.00", "68.0%"],
     ref: 'cv=75 used=45 durable=40 salvage=10 struct=5 decor=7 equip=5 method=0；年限法=(40-45)/40<0 截断为0，打分法=(3+1.4+1)/9*100*0.9+10=64 → 综合32.0% 评估值24.00 折旧率68.0%（测 ageRate 负值截断分支）'
+  },
+  {
+    slug: "realestate/assessor-40",
+    inputs: { rebuild: "300", used: "6", durable: "40", loss: "25", method: "0", insured: "360" },
+    expect: ["255.00", "75.00"],
+    ref: 'rebuild=300 used=6 durable=40 loss=25 method=0(比例赔偿) insured=360；折旧率15.0% 实际价值255.00 损失金额75.00 投保比例1.2(足额，ratio>1 取 1) 赔偿金额75.00。判别：若 ratio 未 clamp 则赔偿=75×1.2=90.00'
+  },
+  {
+    slug: "realestate/assessor-40",
+    inputs: { rebuild: "400", used: "15", durable: "60", loss: "50", method: "1", insured: "120" },
+    expect: ["300.00", "120.00", "第一危险赔偿方式下"],
+    ref: 'rebuild=400 used=15 durable=60 loss=50 method=1(第一危险) insured=120；实际价值300.00 损失金额200.00 赔偿=min(200,120)=120.00。判别：若误走比例赔偿则 200×0.3=60.00'
+  },
+  {
+    slug: "realestate/assessor-40",
+    inputs: { rebuild: "260", used: "5", durable: "25", loss: "20", method: "1", insured: "180" },
+    expect: ["208.00", "52.00"],
+    ref: 'rebuild=260 used=5 durable=25 loss=20 method=1(第一危险) insured=180；折旧率20.0% 实际价值208.00 损失金额52.00 赔偿=min(52,180)=52.00（损失<保额，全额赔付）'
+  },
+  {
+    slug: "realestate/assessor-40",
+    inputs: { rebuild: "500", used: "20", durable: "80", loss: "40", method: "0", insured: "300" },
+    expect: ["375.00", "120.00", "不足额投保(60%)"],
+    ref: 'rebuild=500 used=20 durable=80 loss=40 method=0(比例赔偿) insured=300；实际价值375.00 损失金额200.00 投保比例0.6 → 赔偿=200×0.6=120.00，附加提示『赔偿金额仅为损失的60%』'
+  },
+  {
+    slug: "realestate/assessor-40",
+    inputs: { rebuild: "180", used: "30", durable: "30", loss: "35", method: "0", insured: "90" },
+    expect: ["100.0%", "31.50"],
+    ref: 'rebuild=180 used=30 durable=30 loss=35 method=0 insured=90；折旧率100.0% ⇒ 实际价值截断为0.00（0.00 是默认串 200.00 的子串，故不锚）损失金额63.00 赔偿=63×0.5=31.50'
+  },
+  {
+    slug: "realestate/assessor-40",
+    inputs: { rebuild: "320", used: "60", durable: "40", loss: "12.5", method: "0", insured: "320" },
+    expect: ["150.0%", "40.00"],
+    ref: 'rebuild=320 used=60 durable=40 loss=12.5 method=0 insured=320；折旧率150.0%>100% ⇒ 实际价值=320×(1−1.5)<0 截断为0（测 av<0 分支）投保比例1.0(足额) 损失金额40.00 赔偿40.00'
   }
 ];
 
