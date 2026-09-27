@@ -2844,6 +2844,119 @@ const CASES = [
     expect: ["test.example.org → a18100f5-ca06-5ccd-99c2-c48a12b87629", "abc → 6cb8e707-0fc5-5f55-88d4-d4fed43e64a8"],
     ref: "generate() 对 name 按空行切分后逐行派生（空行被 filter 掉）。两行结果均经 python uuid.uuid5 核对；默认态仅一行 example.com，不出现 abc → … ⇒ 有判别力。",
   },
+  // —— it/timestamp-converter：仅「日期加减 / 日期差」两条路径在 harness 下可注入
+  //    （oninput="fromTimestamp('sec')" 的 input 事件路径在 harness 下抛错不生效，投注于 clicks 调 calculateDate/calculateDiff）。
+  //    所有日期值均经 python datetime 独立核对。 ——
+  {
+    slug: "it/timestamp-converter",
+    inputs: { calcStartDate: "2023-12-15", calcOp: "add", calcAmount: "30", calcUnit: "day" },
+    clicks: ["calculateDate()"],
+    expect: ["计算结果: 2024-01-14 00:00:00"],
+    ref: "python datetime 核对：date(2023,12,15) + timedelta(days=30) = 2024-01-14。页面输出「计算结果: 2024-01-14 00:00:00 + 时间戳」。默认态四个日期控件均空 ⇒ parseDate 返回假值，直接 toast 返回，calcResult1 无内容。",
+  },
+  {
+    slug: "it/timestamp-converter",
+    inputs: { calcStartDate: "2024-02-28", calcOp: "add", calcAmount: "1", calcUnit: "day" },
+    clicks: ["calculateDate()"],
+    expect: ["计算结果: 2024-02-29 00:00:00", "时间戳: 1709136000 秒"],
+    ref: "闰年边界：2024-02-28 + 1 天必须落到 02-29（平年会错落到 03-01）。时间戳 1709136000 = 2024-02-29T00:00:00+08:00，与页面本地时区渲染一致。",
+  },
+  {
+    slug: "it/timestamp-converter",
+    inputs: { calcStartDate: "2023-02-10", calcOp: "add", calcAmount: "1", calcUnit: "month" },
+    clicks: ["calculateDate()"],
+    expect: ["计算结果: 2023-03-10 00:00:00"],
+    ref: "跨月且跨年界（同一年内 02→03）的月份加减；python 核对 date(2023,2,10) + 1 个月（按 setMonth 语义）≈ 2023-03-10。",
+  },
+  {
+    slug: "it/timestamp-converter",
+    inputs: { calcStartDate: "2023-06-15", calcOp: "subtract", calcAmount: "1", calcUnit: "week" },
+    clicks: ["calculateDate()"],
+    expect: ["计算结果: 2023-06-08 00:00:00"],
+    ref: "减法方向（sign = -1）与「周」单位换算（amount×7）；python 核对 date(2023,6,15) - timedelta(days=7) = 2023-06-08。可选值 add 同结构已由上一例覆盖，本例专测减号方向。",
+  },
+  {
+    slug: "it/timestamp-converter",
+    inputs: { calcStartDate: "2023-12-31", calcOp: "add", calcAmount: "1", calcUnit: "day" },
+    clicks: ["calculateDate()"],
+    expect: ["计算结果: 2024-01-01 00:00:00"],
+    ref: "年界跨越：2023-12-31 + 1 天 = 2024-01-01。与「2024-02-29」例共同覆盖两条最容易出错的进位边界。",
+  },
+  {
+    slug: "it/timestamp-converter",
+    inputs: { diffStart: "2023-01-01", diffEnd: "2023-12-31" },
+    clicks: ["calculateDiff()"],
+    expect: ["相差天数: 364 天", "相差周数: 52 周"],
+    ref: "2023 非闰年全年 = 365 天 ⇒ 首尾相差 364 天（含首不含尾）。页面同时渲染「相差小时/分钟/秒」做量纲自洽校验。默认态两框为空 ⇒ 不进入渲染。",
+  },
+  {
+    slug: "it/timestamp-converter",
+    inputs: { diffStart: "2024-01-01", diffEnd: "2024-12-31" },
+    clicks: ["calculateDiff()"],
+    expect: ["相差天数: 365 天", "相差小时: 8,760 小时"],
+    ref: "闰年全年（2024-02-29 计入）⇒ 相差天数应为 365（闰多的一天已含在 366 天的日历长度里），8,760 小时 = 365×24 与天数自洽；与上一例构成闰年/平年的对照。",
+  },
+  {
+    // 跨闰年边界：2020-02-28 → 2021-03-01。手算易得 366，正确答案 367（2020 闰年多出的一天落在区间内）。
+    slug: "it/timestamp-converter",
+    inputs: { diffStart: "2020-02-28", diffEnd: "2021-03-01" },
+    clicks: ["calculateDiff()"],
+    expect: ["相差天数: 367 天", "相差年数: 约 1 年"],
+    ref: "python date(2021,3,1) - date(2020,2,28) = 367 天。本例是「闰日是否落在区间内」的判定点：区间含 2020-02-29 ⇒ +1；若页面按平年算会得 366 而暴露缺陷。",
+  },
+
+  // —— it/csv-to-json：CSV ↔ JSON 双向转换。三个开关（hasHeader/trimFields/prettyPrint）在 harness 下
+  //    读不到 .checked ⇒ 一律在 clicks 里显式置位；产物在 readonly textarea 的 value ⇒ 必须 dumpIds 回写。 ——
+  {
+    slug: "it/csv-to-json",
+    inputs: { csvInput: "a,b\n1,2" },
+    clicks: ["document.getElementById('hasHeader').checked=true;csvToJson()"],
+    dumpIds: ["jsonOutput"],
+    expect: ['[{"a":"1","b":"2"}'],
+    ref: "首行作表头 ⇒ 键取用首行列名、不再保留为一条数据。默认态 harness 下 hasHeader 读到 false（HTML 虽写死 checked 但桩读不到）⇒ 输出退化为 column1/column2 两键 ⇒ 本例与下一条构成表头开/关的强对照。",
+  },
+  {
+    slug: "it/csv-to-json",
+    inputs: { csvInput: "a,b\n1,2" },
+    clicks: ["csvToJson()"],
+    dumpIds: ["jsonOutput"],
+    expect: ['[{"column1":"a","column2":"b"},{"column1":"1","column2":"2"}'],
+    ref: "无表头时按 32 位通用列名 column1/column2 展开，且首行也作为一条数据。与上一条同输入、仅表头开关不同 ⇒ 判别力完全落在 hasHeader 上。",
+  },
+  {
+    slug: "it/csv-to-json",
+    inputs: { csvInput: "a;b;c\n1;2;3", csvDelimiter: ";" },
+    clicks: ["document.getElementById('hasHeader').checked=true;csvToJson()"],
+    dumpIds: ["jsonOutput"],
+    expect: ['[{"a":"1","b":"2","c":"3"}'],
+    ref: "分隔符切到分号后三列全部正确成键。若分隔符注入未生效（仍按逗号）则只会切出 1 列 ⇒ 输出退化为 column1。与逗号同形态的输入构成分隔符维度的判别。",
+  },
+  {
+    slug: "it/csv-to-json",
+    inputs: { csvInput: " a , b \n 1 , 2 " },
+    clicks: ["document.getElementById('trimFields').checked=false;document.getElementById('hasHeader').checked=true;csvToJson()"],
+    dumpIds: ["jsonOutput"],
+    expect: ['[{" a ":" 1 "," b ":" 2 "}'],
+    ref: "关闭 trimFields ⇒ 字段首尾空格（含表头键名）全部保留。与下一条同输入、仅 trimFields 开关不同 ⇒ 判别力落在 trimming 上。",
+  },
+  {
+    slug: "it/csv-to-json",
+    inputs: { csvInput: " a , b \n 1 , 2 " },
+    clicks: ["document.getElementById('trimFields').checked=true;document.getElementById('hasHeader').checked=true;csvToJson()"],
+    dumpIds: ["jsonOutput"],
+    expect: ['[{"a":"1","b":"2"}'],
+    ref: "开启 trimFields ⇒ 键名与值两端空格被裁掉，键变为 a/b。这是「去空格」这一行为的正向断言，与上一条互补。",
+  },
+  {
+    // ⚠ 存疑项：字段被引号包裹且内含分隔符时，页面把引号当普通字符切开，且后半段「y」丢失。
+    //   修页面后本条须同步更新。已留档上报，未擅改页面。
+    slug: "it/csv-to-json",
+    inputs: { csvInput: "a,b\n1,\"x,y\"" },
+    clicks: ["document.getElementById('hasHeader').checked=true;csvToJson()"],
+    dumpIds: ["jsonOutput"],
+    expect: ['[{"a":"1","b":"\\"x"}'],
+    ref: "默认 csvQuote 为双引号，含分隔符的字段本应整体保留为 b=\"x,y\"；页面实际切成 b='\"x' 且丢弃后半段。可能是 parseCSV 未实现引号解析，也可能是 harness 下 select.value 取空 —— 二者在 harness 内无法区分。已被 SEA 记为待查项，修复页面后此条须同步更新。",
+  },
 ];
 
 // ---------------------------------------------------------------- DOM stub
