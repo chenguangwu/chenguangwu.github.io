@@ -643,6 +643,42 @@ const CASES = [
     inputs: { area: "0", output: "2000", landComp: "6", resettle: "4", attach: "0", crop: "500", popul: "3" },
     expect: ["24000", "超过30倍上限"],
     ref: 'area=0 output=2000 landComp=6倍 resettle=4倍 attach=0 crop=500 popul=3；土地补偿费0 青苗0 安置补助费=2000×4×3=24000 总额24000。30倍上限分母 output×30×area=0 ⇒ 只要安置费>0 即触发警告（area=0 边界，上限判断退化为恒真）'
+  },
+  {
+    slug: "realestate/assessor-43",
+    inputs: { assets: "8000", liab: "2400", intang: "1200", equity: "67", premium: "15" },
+    expect: ["6440.00", "4314.80", "67%股权价值"],
+    ref: 'assets=8000 liab=2400 intang=1200 equity=67%(绝对控股) premium=15；净资产5600 整体价值=5600×1.15=6440.00 股权价值=6440×0.67=4314.80 无形资产占比15.0% 资产负债率30.0%（两提示均不触发）'
+  },
+  {
+    slug: "realestate/assessor-43",
+    inputs: { assets: "6000", liab: "1500", intang: "2400", equity: "100", premium: "-10" },
+    expect: ["4050.00", "无形资产占比较高(40.0%)"],
+    ref: 'assets=6000 liab=1500 intang=2400 equity=100% premium=-10(折价)；净资产4500 整体价值=4500×0.9=4050.00 无形资产占比40.0%>30 ⇒ 追加『建议结合收益法评估』提示。判别：premium 符号若反则 4950.00'
+  },
+  {
+    slug: "realestate/assessor-43",
+    inputs: { assets: "10000", liab: "7500", intang: "1000", equity: "34", premium: "5" },
+    expect: ["2625.00", "892.50", "资产负债率偏高(75.0%)"],
+    ref: 'assets=10000 liab=7500 intang=1000 equity=34%(否决权) premium=5；净资产2500 整体价值2625.00 股权价值=2625×0.34=892.50 资产负债率75.0%>70 ⇒ 追加『财务风险较大』提示（无形资产占比10.0% 不触发）'
+  },
+  {
+    slug: "realestate/assessor-43",
+    inputs: { assets: "5000", liab: "4000", intang: "2000", equity: "51", premium: "20" },
+    expect: ["1200.00", "612.00", "无形资产占比较高(40.0%)", "资产负债率偏高(80.0%)"],
+    ref: 'assets=5000 liab=4000 intang=2000 equity=51%(相对控股) premium=20；净资产1000 整体价值1200.00 股权价值612.00。两提示同时触发（占比40.0% 且 负债率80.0%）——覆盖『if+if 双命中』分支组合'
+  },
+  {
+    slug: "realestate/assessor-43",
+    inputs: { assets: "9000", liab: "1000", intang: "500", equity: "10", premium: "-50" },
+    expect: ["4000.00", "400.00", "10%股权价值"],
+    ref: 'assets=9000 liab=1000 intang=500 equity=10%(最小档) premium=-50(折价下限)；净资产8000 整体价值=8000×0.5=4000.00 股权价值=4000×0.1=400.00。覆盖 equity 末档 + premium 下限'
+  },
+  {
+    slug: "realestate/assessor-43",
+    inputs: { assets: "3000", liab: "3600", intang: "300", equity: "100", premium: "10" },
+    expect: ["-660.00", "资产负债率偏高(120.0%)"],
+    ref: 'assets=3000 liab=3600 intang=300 equity=100% premium=10；净资产=-600（资不抵债）整体价值=-600×1.1=-660.00 资产负债率120.0%>70 ⇒ 触发提示。覆盖负净资产形态（锚 -660.00 带负号，非默认子串）'
   }
 ];
 
