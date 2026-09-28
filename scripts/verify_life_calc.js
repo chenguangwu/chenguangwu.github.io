@@ -912,6 +912,42 @@ const CASES = [
     inputs: { inputVal: "10000" },
     expect: ["13.59621617 hp"],
     ref: '10000 W÷735.49875=13.59621617 hp（避默认态 0.001359621617 hp 含 1.359621617 hp 尾数陷阱）'
+  },
+  {
+    slug: "life/pressure-converter",
+    inputs: { inputVal: "2" },
+    expect: ["0.002 kPa"],
+    ref: 'Pa→kPa 基准 0.001'
+  },
+  {
+    slug: "life/pressure-converter",
+    inputs: { inputVal: "5000" },
+    expect: ["0.7251886887 psi"],
+    ref: 'Pa→psi 基准 6894.757293'
+  },
+  {
+    slug: "life/pressure-converter",
+    inputs: { inputVal: "5000" },
+    expect: ["0.04934616334 atm"],
+    ref: 'Pa→atm 基准 101325'
+  },
+  {
+    slug: "life/pressure-converter",
+    inputs: { inputVal: "101325" },
+    expect: ["101.325 kPa"],
+    ref: '1 atm = 101325 Pa'
+  },
+  {
+    slug: "life/pressure-converter",
+    inputs: { inputVal: "101325" },
+    expect: ["14.69594878 psi"],
+    ref: '1 atm → psi'
+  },
+  {
+    slug: "life/pressure-converter",
+    inputs: { inputVal: "6894.757293" },
+    expect: ["6.894757293 kPa"],
+    ref: '1 psi = 6894.757293 Pa'
   }
 ];
 
