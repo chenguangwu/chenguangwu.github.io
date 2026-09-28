@@ -595,6 +595,28 @@
     return null;
   }
 
+  // ---- 纯中文标点节点：字符级转换 ----
+  // 中文标点常以「孤立文本节点」出现（如 <b>加密</b>：<code>x</code> 的「：」、<code>x</code>。</p> 的「。」），
+  // 且存在组合形态（「）。」「），」…）无法用全等查表穷举 ⇒ 对「整节点仅由中文标点构成」的节点按字符映射。
+  // 判据严格（不含字母/数字/汉字），因此绝不会触碰正文文字，零误伤。
+  var PUNCT_CHAR = {
+    '：': ': ', '，': ', ', '、': ', ', '；': '; ', '。': '.',
+    '！': '!', '？': '?', '）': ')', '（': '(', '「': '"', '」': '"'
+  };
+  var PUNCT_HAS_RE = /[\u3002\uFF0C\u3001\uFF1B\uFF1A\uFF01\uFF1F\u300C\u300D\uFF08\uFF09]/;
+  var HAS_CJK_RE = /[\u4e00-\u9fff]/;
+  function convertPunct(s) {
+    // 含中文标点、且不含任何汉字 ⇒ 视为「标点载体节点」（可能夹带数字/代码，如 “=65、”“=97）。”“：”）。
+    // 含汉字的节点一律不碰，由 per-tool 字典按整句翻译。
+    if (!PUNCT_HAS_RE.test(s) || HAS_CJK_RE.test(s)) return null;
+    var out = '';
+    for (var i = 0; i < s.length; i++) {
+      var c = s.charAt(i);
+      out += PUNCT_CHAR[c] || c;
+    }
+    return out === s ? null : out;
+  }
+
   function applyEnDict(isZh) {
     restoreEn();
     if (isZh || (!EN_DICT && !EN_COMMON)) return;
@@ -627,7 +649,8 @@
       var k = raw.trim();
       if (!k) continue;
       var en = pickEn(k);
-      if (!en) continue;
+      if (!en) en = convertPunct(k);
+      if (!en || en === k) continue;
       var idx = raw.indexOf(k);
       EN_ORIG.push({ node: n, orig: raw });
       n.nodeValue = raw.slice(0, idx) + en + raw.slice(idx + k.length);

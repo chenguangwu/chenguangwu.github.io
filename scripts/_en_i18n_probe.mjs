@@ -29,6 +29,12 @@ const PENDING = path.join(STATE, 'pending');
 const WORK = path.join(STATE, 'work');
 const EN_DIR = path.join(ROOT, 'i18n', 'tools', 'en');
 const CJK = /[\u4e00-\u9fff]/;
+// 英文态残留判定口径：汉字 + 中文专属标点（全角标点、中文引号、书名号）。
+// 中文专属标点常以「孤立文本节点」形式存在（如 `<b>加密</b>：<code>x</code>` 的「：」、`<code>x</code>。</p>` 的「。」），
+// 不含汉字 ⇒ extract 不收集、per-tool 字典也覆盖不到，必须由 en/_common.json 全局映射兜底；
+// 若 check 沿用纯汉字口径就会漏报，故此处单列更宽的正则。
+const RESIDUAL_RE = /[\u4e00-\u9fff\u3002\uFF0C\u3001\uFF1B\uFF1A\uFF01\uFF1F\u300C\u300D\uFF08\uFF09]/;
+const PUNCT_ONLY = /^[\u3002\uFF0C\u3001\uFF1B\uFF1A\uFF01\uFF1F\u300C\u300D\uFF08\uFF09]+$/;
 
 // ---------- 只读一次的数据（进程内缓存） ----------
 let EN_DATA = null;
@@ -117,7 +123,7 @@ function collectCJK(w) {
   const out = [];
   for (const n of textNodes(w)) {
     const t = (n.nodeValue || '').trim();
-    if (t && CJK.test(t)) out.push(t);
+    if (t && RESIDUAL_RE.test(t)) out.push(t);
   }
   return out;
 }
@@ -209,6 +215,7 @@ async function mine(industries) {
       await settle(getPending);
       for (const r of collectCJK(w)) {
         if (/\|\s*ToolBox/.test(r)) continue;   // 相关工具卡片 SEO 名称：由 slug-en.json 机制负责，不属本层
+        if (PUNCT_ONLY.test(r)) continue;       // 纯标点节点：由 en/_common.json 统一映射，不进 per-tool 候选
         freq.set(r, (freq.get(r) || 0) + 1);
         if (!where.has(r)) where.set(r, ind + '/' + t.slug);
       }
