@@ -205,7 +205,43 @@ const CASES = [
     "440"
   ],
   "ref": "auto-restore"
-}
+},
+  {
+    slug: "music/bpm-converter",
+    inputs: { reverseMs: "600" },
+    expect: ["100.00 BPM"],
+    ref: '独立复算：反向计算 时长(ms)→BPM，四分音符 div=1，BPM=60000×1/600=100.00。注入 reverseMs=600 触发 calcReverse()，reverseResult 显示「100.00 BPM」。默认态 reverseMs=500→120.00 BPM，不命中；全页仅 reverseResult 区含「BPM」数字格式。'
+  },
+  {
+    slug: "music/bpm-converter",
+    inputs: { reverseMs: "300" },
+    expect: ["200.00 BPM"],
+    ref: '独立复算：BPM=60000/300=200.00。注入 reverseMs=300。默认态 120.00 BPM，不命中。'
+  },
+  {
+    slug: "music/bpm-converter",
+    inputs: { reverseMs: "400" },
+    expect: ["150.00 BPM"],
+    ref: '独立复算：BPM=60000/400=150.00。注入 reverseMs=400。默认态 120.00 BPM，不命中。'
+  },
+  {
+    slug: "music/bpm-converter",
+    inputs: { reverseMs: "1000" },
+    expect: ["60.00 BPM"],
+    ref: '独立复算：BPM=60000/1000=60.00。注入 reverseMs=1000。默认态 120.00 BPM，不命中。'
+  },
+  {
+    slug: "music/bpm-converter",
+    inputs: { reverseMs: "750" },
+    expect: ["80.00 BPM"],
+    ref: '独立复算：BPM=60000/750=80.00。注入 reverseMs=750。默认态 120.00 BPM，不命中。'
+  },
+  {
+    slug: "music/bpm-converter",
+    inputs: { reverseMs: "1500" },
+    expect: ["40.00 BPM"],
+    ref: '独立复算：BPM=60000/1500=40.00（达 bpm 下限 40）。注入 reverseMs=1500。默认态 120.00 BPM，不命中。'
+  }
 ];
 async function main() {
   const only = process.argv.slice(2);
