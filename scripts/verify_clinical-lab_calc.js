@@ -385,6 +385,42 @@ const CASES = [
     inputs: { pt: "50", ptNormal: "12", isi: "1" },
     expect: ["4.17 INR 国际标准化比值"],
     ref: '独立复算：INR=(50/12)^1≈4.17 ⇒ \'4.17 INR 国际标准化比值\'（状态\'高于目标\'）。默认态无 4.17。'
+  },
+  {
+    slug: "clinical-lab/blood-gas-analysis",
+    inputs: { ph: "7.25", paco2: "28", hco3: "12", pao2: "95", na: "140", cl: "100" },
+    expect: ["预期PaCO2 = 1.5×12 + 8 = 26.0 ±2 mmHg 实测PaCO2(28)在预期范围内，代偿充分，为单纯代酸。"],
+    ref: '独立复算：代酸 pH7.25/HCO3 12，Winter公式预期PaCO2=1.5×12+8=26.0，实测28在±2内→单纯代酸。锚取 Winter 公式派生串（含计算值），默认态(7.40/40/24)无代偿块、不命中。'
+  },
+  {
+    slug: "clinical-lab/blood-gas-analysis",
+    inputs: { ph: "7.32", paco2: "60", hco3: "30", pao2: "65", na: "140", cl: "100" },
+    expect: ["实测HCO3(30)符合慢性呼酸代偿。"],
+    ref: '独立复算：呼酸 pH7.32/PaCO2 60，ΔPaCO2=20，慢性预期HCO3=24+0.35×20=31.0，实测30符合慢性代偿。锚取慢性呼酸代偿结论串，默认态无。'
+  },
+  {
+    slug: "clinical-lab/blood-gas-analysis",
+    inputs: { ph: "7.50", paco2: "50", hco3: "32", pao2: "90", na: "140", cl: "100" },
+    expect: ["预期PaCO2 = 0.7×32 + 20 = 42.4 ±5 mmHg 实测PaCO2高于预期，合并呼吸性酸中毒。"],
+    ref: '独立复算：代碱 pH7.50/HCO3 32，代碱代偿预期PaCO2=0.7×32+20=42.4，实测50高于预期→合并呼酸。锚取代碱代偿派生串，默认态无。'
+  },
+  {
+    slug: "clinical-lab/blood-gas-analysis",
+    inputs: { ph: "7.50", paco2: "30", hco3: "22", pao2: "90", na: "140", cl: "100" },
+    expect: ["实测HCO3符合急性呼碱代偿。"],
+    ref: '独立复算：呼碱 pH7.50/PaCO2 30，ΔPaCO2=10，急性预期HCO3=24-0.2×10=22.0，实测22符合急性代偿。锚取急性呼碱代偿结论串，与病例6的慢性结论区分。'
+  },
+  {
+    slug: "clinical-lab/blood-gas-analysis",
+    inputs: { ph: "7.20", paco2: "50", hco3: "10", pao2: "90", na: "140", cl: "100" },
+    expect: ["HCO3低于预期，合并代谢性酸中毒。"],
+    ref: '独立复算：pH7.20/PaCO2 50→呼酸，ΔPaCO2=10，慢性预期HCO3=27.5，实测10远低于→合并代酸。锚取混合失衡结论串，默认态无。'
+  },
+  {
+    slug: "clinical-lab/blood-gas-analysis",
+    inputs: { ph: "7.45", paco2: "30", hco3: "20", pao2: "90", na: "140", cl: "100" },
+    expect: ["实测HCO3符合慢性呼碱代偿。"],
+    ref: '独立复算：pH7.45(正常)/PaCO2 30/HCO3 20→呼碱+代偿，慢性预期HCO3=24-0.5×10=19.0，实测20符合慢性代偿。锚取慢性呼碱代偿结论串，与病例4急性区分。'
   }
 ];
 async function main() {
