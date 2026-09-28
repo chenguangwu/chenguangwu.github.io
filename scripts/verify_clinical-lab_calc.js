@@ -463,6 +463,48 @@ const CASES = [
     clicks: ["calc()"],
     expect: ["0.000006"],
     ref: 'val6 毫→千 0.000006'
+  },
+  {
+    slug: "clinical-lab/convert-39",
+    inputs: { pt: "30", ctrl: "12", isi: "1.0" },
+    clicks: ["calc()"],
+    expect: ["INR = (30 / 12)^1"],
+    ref: 'PT30/对照12/ISI1 → INR=2.50 处于治疗区间'
+  },
+  {
+    slug: "clinical-lab/convert-39",
+    inputs: { pt: "36", ctrl: "12", isi: "1.0" },
+    clicks: ["calc()"],
+    expect: ["INR = (36 / 12)^1"],
+    ref: 'PT36/对照12/ISI1 → INR=3.00 处于治疗区间'
+  },
+  {
+    slug: "clinical-lab/convert-39",
+    inputs: { pt: "48", ctrl: "12", isi: "1.0" },
+    clicks: ["calc()"],
+    expect: ["INR = (48 / 12)^1"],
+    ref: 'PT48/对照12/ISI1 → INR=4.00 高于治疗区间'
+  },
+  {
+    slug: "clinical-lab/convert-39",
+    inputs: { pt: "18", ctrl: "12", isi: "1.0" },
+    clicks: ["calc()"],
+    expect: ["INR = (18 / 12)^1"],
+    ref: 'PT18/对照12/ISI1 → INR=1.50 低于治疗区间'
+  },
+  {
+    slug: "clinical-lab/convert-39",
+    inputs: { pt: "20", ctrl: "10", isi: "1.0" },
+    clicks: ["calc()"],
+    expect: ["INR = (20 / 10)^1"],
+    ref: 'PT20/对照10/ISI1 → INR=2.00 处于治疗区间'
+  },
+  {
+    slug: "clinical-lab/convert-39",
+    inputs: { pt: "40", ctrl: "20", isi: "1.5" },
+    clicks: ["calc()"],
+    expect: ["INR = (40 / 20)^1.5"],
+    ref: 'PT40/对照20/ISI1.5 → INR=2.83 处于治疗区间'
   }
 ];
 async function main() {
