@@ -505,6 +505,48 @@ const CASES = [
     clicks: ["calc()"],
     expect: ["INR = (40 / 20)^1.5"],
     ref: 'PT40/对照20/ISI1.5 → INR=2.83 处于治疗区间'
+  },
+  {
+    slug: "clinical-lab/biochemistry-ratio",
+    inputs: { alt: "40", ast: "80" },
+    clicks: ["calc()"],
+    expect: ["2.00 AST/ALT (De Ritis比值)"],
+    ref: 'ALT40/AST80 德Ritis=2.00 轻度升高'
+  },
+  {
+    slug: "clinical-lab/biochemistry-ratio",
+    inputs: { alt: "40", ast: "20" },
+    clicks: ["calc()"],
+    expect: ["0.50 AST/ALT (De Ritis比值)"],
+    ref: 'ALT40/AST20 德Ritis=0.50 偏低'
+  },
+  {
+    slug: "clinical-lab/biochemistry-ratio",
+    inputs: { alt: "30", ast: "90" },
+    clicks: ["calc()"],
+    expect: ["3.00 AST/ALT (De Ritis比值)"],
+    ref: 'ALT30/AST90 德Ritis=3.00 明显升高'
+  },
+  {
+    slug: "clinical-lab/biochemistry-ratio",
+    inputs: { alt: "50", ast: "15" },
+    clicks: ["calc()"],
+    expect: ["0.30 AST/ALT (De Ritis比值)"],
+    ref: 'ALT50/AST15 德Ritis=0.30 偏低'
+  },
+  {
+    slug: "clinical-lab/biochemistry-ratio",
+    inputs: { alt: "10", ast: "50" },
+    clicks: ["calc()"],
+    expect: ["5.00 AST/ALT (De Ritis比值)"],
+    ref: 'ALT10/AST50 德Ritis=5.00 明显升高'
+  },
+  {
+    slug: "clinical-lab/biochemistry-ratio",
+    inputs: { alt: "25", ast: "100" },
+    clicks: ["calc()"],
+    expect: ["4.00 AST/ALT (De Ritis比值)"],
+    ref: 'ALT25/AST100 德Ritis=4.00 明显升高'
   }
 ];
 async function main() {
