@@ -1128,6 +1128,42 @@ const CASES = [
     inputs: { input: "{\"arr\":[\"a\",\"b\"]}" },
     expect: ["arr: - a - b"],
     ref: 'JSON→YAML：字符串数组 [a,b] → `arr:\\n  - a\\n  - b` 折叠为 `arr: - a - b`'
+  },
+  {
+    slug: "life/analysis-74",
+    inputs: { data: "A,10,40,5\nB,20,30,10" },
+    expect: ["价格均值： 15.00"],
+    ref: '竞争分析：两竞品价格均值=(10+20)/2=15.00'
+  },
+  {
+    slug: "life/analysis-74",
+    inputs: { data: "X,100,50,0\nY,200,30,-5" },
+    expect: ["份额合计： 80.00%"],
+    ref: '竞争分析：份额合计=50+30=80.00%'
+  },
+  {
+    slug: "life/analysis-74",
+    inputs: { data: "p1,15,25,8\np2,25,35,2\np3,35,40,-1" },
+    expect: ["增速均值： +3.00%"],
+    ref: '竞争分析：增速均值=(8+2-1)/3=+3.00%'
+  },
+  {
+    slug: "life/analysis-74",
+    inputs: { data: "c1,9.9,33,8\nc2,24.6,21,-3.5" },
+    expect: ["价格均值： 17.25"],
+    ref: '竞争分析：价格均值=(9.9+24.6)/2=17.25'
+  },
+  {
+    slug: "life/analysis-74",
+    inputs: { data: "m,50,60,12\nn,70,40,-8" },
+    expect: ["份额合计： 100.00%"],
+    ref: '竞争分析：份额合计=60+40=100.00%'
+  },
+  {
+    slug: "life/analysis-74",
+    inputs: { data: "s1,1,10,1\ns2,2,20,2\ns3,3,30,3" },
+    expect: ["竞品数： 3"],
+    ref: '竞争分析：竞品数=3'
   }
 ];
 
