@@ -660,6 +660,42 @@ const CASES = [
     inputs: { inputVal: "1000" },
     expect: ["0.9478171227 BTU"],
     ref: 'base=1000J, BTU=1000/1055.05585'
+  },
+  {
+    slug: "life/frequency-converter",
+    inputs: { inputVal: "5000" },
+    expect: ["5 kHz"],
+    ref: 'base=5000Hz, kHz=5000/1000'
+  },
+  {
+    slug: "life/frequency-converter",
+    inputs: { inputVal: "2000" },
+    expect: ["2 kHz"],
+    ref: 'base=2000Hz, kHz=2000/1000'
+  },
+  {
+    slug: "life/frequency-converter",
+    inputs: { inputVal: "100000" },
+    expect: ["100 kHz"],
+    ref: 'base=100000Hz, kHz=100000/1000'
+  },
+  {
+    slug: "life/frequency-converter",
+    inputs: { inputVal: "500000" },
+    expect: ["0.5 MHz"],
+    ref: 'base=500000Hz, MHz=500000/1e6'
+  },
+  {
+    slug: "life/frequency-converter",
+    inputs: { inputVal: "2000000" },
+    expect: ["2 MHz"],
+    ref: 'base=2000000Hz, MHz=2000000/1e6'
+  },
+  {
+    slug: "life/frequency-converter",
+    inputs: { inputVal: "1500000000" },
+    expect: ["1.5 GHz"],
+    ref: 'base=1.5e9Hz, GHz=1.5e9/1e9'
   }
 ];
 
