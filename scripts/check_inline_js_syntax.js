@@ -10,7 +10,8 @@
  * 判定口径：
  *  - 只查「内联」脚本（无 src），跳过 type=module（无法用 new Function 解析）
  *    与非 JS 类型（application/ld+json、importmap 等）。
- *  - 跳过含字面 "<script" 的片段（抽取不可靠，非本门禁职责）与 TOOLBOX-API-STUB。
+ *  - 含字面 "<script" 的片段**不再跳过**（2026-09-29 修复盲区，详见下方行内注释）；
+ *    仅 TOOLBOX-API-STUB 显式豁免。
  */
 'use strict';
 const fs = require('fs');
@@ -43,7 +44,12 @@ for (const f of files) {
     if (/type\s*=\s*["']module["']/.test(attrs)) continue;
     const tm = attrs.match(/type\s*=\s*["']([^"']*)["']/);
     if (tm && !/javascript/i.test(tm[1])) continue;
-    if (/<script/i.test(code)) continue;
+    // 含字面 "<script" 的片段不再跳过（2026-09-29 修复盲区）。
+    // 旧版此行 `if (/<script/i.test(code)) continue;` 以「抽取不可靠」为由豁免，
+    // 实测会漏检真实缺陷：code-runner / html-tags / ophthalmology 两页的内联脚本
+    // 因 JS 字符串跨行或构建期注入残缺而 SyntaxError，全部被静默跳过。
+    // 正则 `<script…>(.*?)</script>` 的非贪婪行为与浏览器「script data 态遇 </script 结束」
+    // 一致（含 <\/script> 转义时不结束），故直接检查不会误报。
     if (/TOOLBOX-API-STUB/.test(code)) continue;
     checked++;
     try {

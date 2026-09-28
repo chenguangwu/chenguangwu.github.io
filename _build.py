@@ -4007,8 +4007,13 @@ def fix_tool_pages_seo(tools, target_tools=None, report=True, existing_html_path
                         _anchor = '<!-- 相关工具 -->'
                     else:
                         _anchor = '</body>'
-                    if _anchor in content:
-                        content = content.replace(_anchor, _dd_html + '\n' + _anchor, 1)
+                    # 必须取**最后一次**出现：页面内联 JS 的打印模板里常出现字面
+                    # "</body></html>"（如 astigmatism-chart / amsler-grid-test 的
+                    # 报告生成函数），它早于文档真正的 </body>；用 replace(..., 1)
+                    # 会把深度解析块插进 JS 字符串，导致整段脚本 SyntaxError。
+                    _ai = content.rfind(_anchor)
+                    if _ai != -1:
+                        content = content[:_ai] + _dd_html + '\n' + content[_ai:]
 
         # 7. 注入 critical CSS + 全站 2 级分类导航资源（幂等）。
         #    - common.css 保持阻塞，确保统一顶部搜索框不会无样式闪烁；
