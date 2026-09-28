@@ -1020,6 +1020,42 @@ const CASES = [
     inputs: { inputVal: "1000" },
     expect: ["中国港码： 318.471"],
     ref: 'v=1000 from=circ: 港码=1000/3.14=318.471'
+  },
+  {
+    slug: "life/shoe-size-converter",
+    inputs: { inputVal: "220" },
+    expect: ["中国码： 22"],
+    ref: 'v=220 from=length: 中国码=220/10=22'
+  },
+  {
+    slug: "life/shoe-size-converter",
+    inputs: { inputVal: "230" },
+    expect: ["欧盟码： 37.5"],
+    ref: 'v=230 from=length: 欧盟码=1.5×(23+2)=37.5'
+  },
+  {
+    slug: "life/shoe-size-converter",
+    inputs: { inputVal: "240" },
+    expect: ["中国码： 24"],
+    ref: 'v=240 from=length: 中国码=240/10=24'
+  },
+  {
+    slug: "life/shoe-size-converter",
+    inputs: { inputVal: "260" },
+    expect: ["欧盟码： 42"],
+    ref: 'v=260 from=length: 欧盟码=1.5×(26+2)=42'
+  },
+  {
+    slug: "life/shoe-size-converter",
+    inputs: { inputVal: "280" },
+    expect: ["美码(男)： 6.116"],
+    ref: 'v=280 from=length: 美码男=0.847×28-17.6=6.116'
+  },
+  {
+    slug: "life/shoe-size-converter",
+    inputs: { inputVal: "300" },
+    expect: ["欧盟码： 48"],
+    ref: 'v=300 from=length: 欧盟码=1.5×(30+2)=48'
   }
 ];
 
