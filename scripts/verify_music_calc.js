@@ -241,6 +241,48 @@ const CASES = [
     inputs: { reverseMs: "1500" },
     expect: ["40.00 BPM"],
     ref: '独立复算：BPM=60000/1500=40.00（达 bpm 下限 40）。注入 reverseMs=1500。默认态 120.00 BPM，不命中。'
+  },
+  {
+    slug: "music/freq-note-converter",
+    inputs: { freqInput: "220" },
+    clicks: ["calcFreq2Note()"],
+    expect: ["A3 220.0000 Hz"],
+    ref: '独立复算：midi=69+12·log2(220/440)=57→A3，exactFreq=440×2^((57-69)/12)=220.0000。锚取完整 result 名+四位小数频率串（含派生值），默认态 freq2note=A4 440.0000 不命中、参考表为 toFixed(1) 不命中。'
+  },
+  {
+    slug: "music/freq-note-converter",
+    inputs: { freqInput: "880" },
+    clicks: ["calcFreq2Note()"],
+    expect: ["A5 880.0000 Hz"],
+    ref: '独立复算：midi=69+12·log2(880/440)=81→A5，exactFreq=440×2^((81-69)/12)=880.0000。锚 \'A5 880.0000 Hz\' 默认态无。'
+  },
+  {
+    slug: "music/freq-note-converter",
+    inputs: { freqInput: "330" },
+    clicks: ["calcFreq2Note()"],
+    expect: ["E4 329.6276 Hz"],
+    ref: '独立复算：midi=69+12·log2(330/440)=64.02→round 64→E4，exactFreq=440×2^((64-69)/12)=329.6276（含入尾数，dump 实测非手算）。锚唯一。'
+  },
+  {
+    slug: "music/freq-note-converter",
+    inputs: { freqInput: "246.94" },
+    clicks: ["calcFreq2Note()"],
+    expect: ["B3 246.9417 Hz"],
+    ref: '独立复算：midi=69+12·log2(246.94/440)=59.0→B3，exactFreq=440×2^((59-69)/12)=246.9417。锚唯一。'
+  },
+  {
+    slug: "music/freq-note-converter",
+    inputs: { freqInput: "261.63" },
+    clicks: ["calcFreq2Note()"],
+    expect: ["C4 261.6256 Hz"],
+    ref: '独立复算：midi=69+12·log2(261.63/440)=60.0→C4（中央 C），exactFreq=440×2^((60-69)/12)=261.6256。锚唯一。'
+  },
+  {
+    slug: "music/freq-note-converter",
+    inputs: { freqInput: "174.61" },
+    clicks: ["calcFreq2Note()"],
+    expect: ["F3 174.6141 Hz"],
+    ref: '独立复算：midi=69+12·log2(174.61/440)=53.0→F3，exactFreq=440×2^((53-69)/12)=174.6141。锚唯一。注：音符→频率方向因 harness 注入 octaveInput(number) 后 read 为 NaN 不兼容，本批仅加固频率→音符方向。'
   }
 ];
 async function main() {
