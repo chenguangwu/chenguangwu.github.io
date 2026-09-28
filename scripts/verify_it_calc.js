@@ -837,10 +837,11 @@ const CASES = [
   },
   {
     slug: "it/html-minifier",
-    inputs: { input: "<p>a</p>\n<p>b</p>" },
+    inputs: { input: "<p>a</p>\n\n   <!-- x -->\n<p>b</p>" },
+    checkIds: ["safeMode", "removeComments", "collapseWhitespace"],
     clicks: ["minify()"],
-    expect: ["a b"],
-    ref: "标签被剥除、两个块内文本以空格相连（`a b`），非原文回显；默认示例压缩结果不同。",
+    expect: ["<p>a</p><p>b</p>", "50.0%"],
+    ref: "页面三个复选框在 HTML 里均带 checked（真机默认全勾选），而 harness 桩的 checked 恒 false ⇒ 必须用 checkIds 显式还原真机默认态，否则 minify() 三个开关全假、走「不改动」分支，输出恒等于输入。输入 32 字符：移除 <!-- x --> 后 `</p>` 与 `<p>` 之间的空白被 `>\\s+<`→`><` 折叠 ⇒ 产物 <p>a</p><p>b</p>（16 字符），压缩率 (1−16/32)×100 = 50.0%。两项期望都来自压缩计算、非输入回显（输入归一后为 `<p>a</p> <!-- x --> <p>b</p>`，与产物不同）。python 独立复算一致。",
   },
   {
     slug: "it/python-formatter",
@@ -3241,6 +3242,43 @@ const CASES = [
     expect: ["强度：强 · 约 62 bit"],
     ref: "勾选「排除歧义符号」后符号集从 26 个剔除方括号/圆括号/花括号等 12 个 ⇒ 剩 14 ⇒ 池 = 26+26+10+14 = 76 ⇒ 10 × log₂(76) = 62.48 ⇒ 62 bit。与上一条合起来把两个排除开关对字符池的扣减都纳入验证。",
   },
+
+  // ---- batch3 补充（2026-09-28）：base85-encode / base64-file / calc-10 此前无计算用例（P1 缺口） ----
+  {
+    slug: "it/base85-encode",
+    inputs: { input: "hello" },
+    clicks: ["enc();"],
+    expect: ["<~BOu!rDZ~>"],
+    ref: "默认 variant=Ascii85：'hell' 满 4 字节 → 5 字符 BOu!r；余 1 字节 'o' 走 cnt+1=2 字符 DZ；encodeAscii85 外层包 <~ ~>。独立核对 python base64.a85encode(b'hello') = b'BOu!rDZ'。默认输入为空 → 提前 return，#output 为空，不命中。",
+  },
+  {
+    slug: "it/base85-encode",
+    inputs: { input: "<~BOu!rDZ~>" },
+    clicks: ["dec();"],
+    expect: ["hello"],
+    ref: "解码方向（与上条互逆，同一实现）：<~BOu!rDZ~> → 'hello'，写入 #output.value，由 collectStrings 采集。默认输入为空时不命中。",
+  },
+  {
+    slug: "it/base64-file",
+    inputs: { b64In: "aGVsbG8=" },
+    clicks: ["b64ToText();"],
+    expect: ["已解码为文本（5 B）"],
+    ref: "base64 'aGVsbG8=' → 'hello'（RFC 4648 标准向量，5 字节）。页面 b64ToText 以 TextDecoder 解码、把文本写回 #b64In，并在 #result 输出「✅ 已解码为文本（5 B）」（fmtSize(5)）。默认 #b64In 为空 → 提前 return，不命中。",
+  },
+  {
+    slug: "it/calc-10",
+    inputs: { textInput: "hello" },
+    clicks: ["generateHashes();"],
+    expect: ["5d41402abc4b2a76b9719d911017c592"],
+    ref: "MD5('hello') = 5d41402abc4b2a76b9719d911017c592（RFC 1321 测试向量）。页面 md5() 为自带同步实现，结果表格写入 #result。默认 #textInput 为空 → 提示「请输入文本。」，不命中。",
+  },
+  {
+    slug: "it/calc-10",
+    inputs: { textInput: "abc" },
+    clicks: ["generateHashes();"],
+    expect: ["ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"],
+    ref: "SHA-256('abc') = ba7816bf…20015ad（NIST FIPS 180-4 标准向量）。走 crypto.subtle 异步路径，harness 以 await Promise.allSettled(pending) 等待落盘。与上一条的 hello 向量（SHA-256 = 2cf24dba…9824）互不命中。",
+  },
 ];
 
 // ---------------------------------------------------------------- DOM stub
@@ -3418,7 +3456,13 @@ function collectStrings(elements) {
     const v = el && el.value !== undefined && el.value !== "" ? String(el.value) : "";
     const h = el && el.innerHTML ? String(el.innerHTML) : "";
     const tc = el && el.textContent !== undefined && el.textContent !== "" ? String(el.textContent) : "";
-    for (const s of [v, h, tc]) {
+    // el.value 恒为纯文本（input/textarea 的 value 不含 HTML 标签），对它剥标签是语义错误：
+    // 结果本身就是尖括号语法时会被整块当标签吃掉 ⇒ 期望值永远匹配不上，而页面其实是对的。
+    // 实测 it/base85-encode：Ascii85 输出 <~BOu!rDZ~> 被剥成空串（字符码核对为
+    // 60,126,66,79,117,33,114,68,90,126,62，页面实现无误）。仅 innerHTML / textContent
+    // 保留剥标签 —— 只有这两者才可能含真实标签。
+    if (v && v.trim()) seen.push(v.replace(/\s+/g, " ").trim());
+    for (const s of [h, tc]) {
       if (s && s.trim()) seen.push(s.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim());
     }
   }

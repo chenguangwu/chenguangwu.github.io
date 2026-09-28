@@ -256,6 +256,13 @@
       if (el.hasAttribute('data-i18n')) continue;
       if (el.closest && el.closest('[data-i18n]')) continue;
       if (el.querySelector && el.querySelector('[data-i18n]')) continue;
+      // 守卫：含表单控件的容器不得整节点替换 —— el.textContent = tr 会连同容器内的
+      // <input>/<select>/<textarea> 一起删除，使页面 JS 读 getElementById(id).value 时抛
+      // "Cannot read properties of null"。英文态实测 7 页中招（basic-auth-generator /
+      // binomial-distribution / bluetooth-version / c-string-escape / caa-record-generator /
+      // calc-2 / calc-7），简体与繁体态不跑运行时 i18n 故不受影响。
+      // 这类容器的正文交由第三层 per-tool 字典（文本节点级替换）处理。
+      if (el.children && el.children.length && el.querySelector('input,select,textarea')) continue;
       var txt = el.textContent.trim();
       var tr = null;
       if (BODY_PHRASE_MAP.hasOwnProperty(txt)) tr = BODY_PHRASE_MAP[txt];

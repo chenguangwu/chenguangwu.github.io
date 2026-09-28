@@ -2684,7 +2684,11 @@ def sync_phrases_index():
 
 
 def compute_sw_build():
-    """按共享静态资源内容计算 SW 版本戳（纯内容驱动，保证构建幂等）。"""
+    """按共享静态资源内容计算 SW 版本戳（纯内容驱动，保证构建幂等）。
+
+    范围 = 会经 SW/CDN 缓存下发、且影响页面呈现的运行时资源：
+    css/js 全量 + json 三个索引 + i18n 英文层字典。
+    """
     h = hashlib.sha1()
     files = []
     for sub, exts in (('css', ('.css',)), ('js', ('.js',))):
@@ -2698,6 +2702,17 @@ def compute_sw_build():
         p = os.path.join(jdir, name)
         if os.path.isfile(p):
             files.append(p)
+    # 运行时 i18n 英文层（js/tool-i18n.js 第三层按需加载的 per-tool 字典与共享字典）：
+    # 它不进页面 HTML，但同样受 SW/HTTP/CDN 缓存约束 —— 若不纳入版本戳，发布后 _swv 不变，
+    # sw.js::busted() 生成的 URL 不变，CDN 会继续返回旧字典，客户端英文态停留在旧译文
+    # （2026-09-28 EN 专项实测确认此盲区）。该子树纯人工维护、非构建产物，纳入安全。
+    en_root = os.path.join(ROOT, 'i18n', 'tools', 'en')
+    if os.path.isdir(en_root):
+        for dirpath, dirnames, filenames in os.walk(en_root):
+            dirnames.sort()
+            for fn in sorted(filenames):
+                if fn.endswith('.json'):
+                    files.append(os.path.join(dirpath, fn))
     for p in files:
         try:
             with open(p, 'rb') as f:
