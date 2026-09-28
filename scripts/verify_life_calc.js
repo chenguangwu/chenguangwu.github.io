@@ -1200,6 +1200,42 @@ const CASES = [
     clicks: ["switchMode('down')", "quickSet(25)"],
     expect: ["25:00.00"],
     ref: '独立复算：目标 25 分 = 1500000ms ⇒ 25:00.00。clicks 切 down + quickSet(25)。'
+  },
+  {
+    slug: "life/clothing-size-converter",
+    inputs: { cat: "w_top", sys: "cn", inputVal: "160/84A" },
+    expect: ["中国码： 160/84A"],
+    ref: '女装上衣表查 cn=160/84A 行 → 国际 S / 美 4 / 英 6 / 欧 34；注入态输出中国码 160/84A，默认态 165/88A 不命中（仅改 inputVal 文本输入，验证文本注入通道）'
+  },
+  {
+    slug: "life/clothing-size-converter",
+    inputs: { cat: "w_top", sys: "us", inputVal: "10" },
+    expect: ["中国码： 175/96A"],
+    ref: '女装上衣表查 us=10 列对应行 → cn=175/96A（国际 XL / 美 10 / 英 12 / 欧 40）；注入态输出中国码 175/96A，默认态 cn=165/88A 不命中（验证 sys 选择系统注入通道）'
+  },
+  {
+    slug: "life/clothing-size-converter",
+    inputs: { cat: "m_top", sys: "cn", inputVal: "170/88" },
+    expect: ["中国码： 170/88"],
+    ref: '男装上衣表查 cn=170/88 行 → 国际 XL / 美 40 / 英 40 / 欧 50；注入态输出中国码 170/88（男装上衣），默认态女装上衣 165/88A 不命中（验证 cat 类别选择注入通道）'
+  },
+  {
+    slug: "life/clothing-size-converter",
+    inputs: { cat: "w_pants", sys: "eu", inputVal: "38" },
+    expect: ["中国码： 165/72A"],
+    ref: '女装裤装表查 eu=38 列对应行 → cn=165/72A（国际 M / 美 6 / 英 10）；注入态输出中国码 165/72A，默认态 165/88A 不命中（同时验证 cat 与 sys 两个 select 注入）'
+  },
+  {
+    slug: "life/clothing-size-converter",
+    inputs: { cat: "m_pants", sys: "uk", inputVal: "36" },
+    expect: ["中国码： 175/86A"],
+    ref: '男装裤装表查 uk=36 列对应行 → cn=175/86A（国际 XXL / 美 36 / 欧 50）；注入态输出中国码 175/86A，默认态 165/88A 不命中'
+  },
+  {
+    slug: "life/clothing-size-converter",
+    inputs: { cat: "m_top", sys: "eu", inputVal: "54" },
+    expect: ["中国码： 180/96"],
+    ref: '男装上衣表查 eu=54 列对应行 → cn=180/96（国际 XXXL / 美 44 / 英 44）；注入态输出中国码 180/96，默认态 165/88A 不命中'
   }
 ];
 

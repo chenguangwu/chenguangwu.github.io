@@ -270,6 +270,42 @@ const CASES = [
     expect: ["66.0", "3.5 次"],
     ref: "推荐面积 = CADR×factor = 550×0.12 = 66.0 m²；最小 = (0.12−0.03)×550 = 49.5 m²；最大 = (0.12+0.02)×550 = 77.0 m²；换气次数 = 550/(66.0×2.4) = 3.5 次/h",
   },
+  {
+    slug: "energy/convert-emission",
+    inputs: { val: "2", from: "28", to: "1" },
+    expect: ["2 28 = 56 1"],
+    ref: 'CO₂e = val×GWP_from/GWP_to = 2×28/1 = 56（CH₄ 28 → CO₂ 1，val=2）。r 经 toPrecision(12) 仍为 56，输出行 \'2 28 = 56 1\'（harness 中 selectedOptions[0].text 取选项 value）。'
+  },
+  {
+    slug: "energy/convert-emission",
+    inputs: { val: "0.5", from: "1", to: "28" },
+    expect: ["0.5 1 = 0.0178571428571 28"],
+    ref: 'CO₂e = 0.5×1/28 = 0.0178571428571（CO₂ → CH₄，val=0.5）。0.5/28 = 0.0178571428571（toPrecision(12) 后 11 位小数），输出行 \'0.5 1 = 0.0178571428571 28\'。'
+  },
+  {
+    slug: "energy/convert-emission",
+    inputs: { val: "3", from: "265", to: "1" },
+    expect: ["3 265 = 795 1"],
+    ref: 'CO₂e = 3×265/1 = 795（N₂O 265 → CO₂ 1，val=3）。输出行 \'3 265 = 795 1\'。'
+  },
+  {
+    slug: "energy/convert-emission",
+    inputs: { val: "10", from: "1", to: "265" },
+    expect: ["10 1 = 0.0377358490566 265"],
+    ref: 'CO₂e = 10×1/265 = 0.0377358490566（CO₂ → N₂O，val=10）。10/265 = 0.0377358490566（toPrecision(12) 后 13 位小数），输出行 \'10 1 = 0.0377358490566 265\'。'
+  },
+  {
+    slug: "energy/convert-emission",
+    inputs: { val: "5", from: "28", to: "265" },
+    expect: ["5 28 = 0.528301886792 265"],
+    ref: 'CO₂e = 5×28/265 = 0.528301886792（CH₄ 28 → N₂O 265，val=5）。140/265 = 0.528301886792（toPrecision(12) 后 12 位小数），输出行 \'5 28 = 0.528301886792 265\'。'
+  },
+  {
+    slug: "energy/convert-emission",
+    inputs: { val: "0.1", from: "22800", to: "1" },
+    expect: ["0.1 22800 = 2280 1"],
+    ref: 'CO₂e = 0.1×22800/1 = 2280（SF₆ 22800 → CO₂ 1，val=0.1）。2280 经 toPrecision(12) 仍为 2280，输出行 \'0.1 22800 = 2280 1\'。'
+  }
 ];
 
 async function main() {

@@ -227,6 +227,114 @@ const CASES = [
     "inputs": { "BM": "50", "BS": "2.35", "FS": "1.15" },
     "expect": [["1.200"]],
     "ref": "高差 = BS − FS = 2.35 − 1.15 = **1.200** m，与 RL 51.200 减基准 50.000 的答案一致 ⇒ 两条锚同时锁住「一次减法」与「基准传递」两段链路"
+  },
+  {
+    slug: "surveying/convert-33",
+    inputs: { val: "2" },
+    expect: ["2.000000 系数: 1"],
+    ref: '斜距换算 r=v×rate×from/to=2×1×1/1=2.000000，默认 val=1 得 1.000000，val 非默认注入'
+  },
+  {
+    slug: "surveying/convert-33",
+    inputs: { rate: "4" },
+    expect: ["4.000000 系数: 4"],
+    ref: 'r=1×4×1/1=4.000000 且系数串=4，默认 rate=1 得 1.000000 系数 1，rate 非默认'
+  },
+  {
+    slug: "surveying/convert-33",
+    inputs: { from: "0.001" },
+    expect: ["0.001000 系数: 1"],
+    ref: 'r=1×1×0.001/1=0.001000，from 选毫全站仪测距斜距（值 0.001）非默认，默认 from=1 得 1.000000'
+  },
+  {
+    slug: "surveying/convert-33",
+    inputs: { to: "0.001" },
+    expect: ["1000.000000 系数: 1"],
+    ref: 'r=1×1×1/0.001=1000.000000，to 选毫平距（值 0.001）非默认，默认 to=1 得 1.000000'
+  },
+  {
+    slug: "surveying/convert-33",
+    inputs: { val: "12.5" },
+    expect: ["12.500000 系数: 1"],
+    ref: 'r=12.5×1×1/1=12.500000，默认 1.000000，val 非默认'
+  },
+  {
+    slug: "surveying/convert-33",
+    inputs: { from: "1000", to: "0.001" },
+    expect: ["1000000.000000 系数: 1"],
+    ref: 'r=1×1×1000/0.001=1000000.000000，from 选千全站仪测距斜距、to 选毫平距均非默认，默认得 1.000000'
+  },
+  {
+    slug: "surveying/convert-46",
+    inputs: { val: "2" },
+    expect: ["2.000000 系数: 1"],
+    ref: '经纬度换算 r=v×rate×from/to=2×1×1/1=2.000000，默认 val=1 得 1.000000，val 非默认注入'
+  },
+  {
+    slug: "surveying/convert-46",
+    inputs: { rate: "4" },
+    expect: ["4.000000 系数: 4"],
+    ref: 'r=1×4×1/1=4.000000 且系数串=4，默认 rate=1 得 1.000000 系数 1，rate 非默认'
+  },
+  {
+    slug: "surveying/convert-46",
+    inputs: { from: "0.001" },
+    expect: ["0.001000 系数: 1"],
+    ref: 'r=1×1×0.001/1=0.001000，from 选毫坐标（值 0.001）非默认，默认 from=1 得 1.000000'
+  },
+  {
+    slug: "surveying/convert-46",
+    inputs: { to: "0.001" },
+    expect: ["1000.000000 系数: 1"],
+    ref: 'r=1×1×1/0.001=1000.000000，to 选毫度分秒转换（值 0.001）非默认，默认 to=1 得 1.000000'
+  },
+  {
+    slug: "surveying/convert-46",
+    inputs: { val: "12.5" },
+    expect: ["12.500000 系数: 1"],
+    ref: 'r=12.5×1×1/1=12.500000，默认 1.000000，val 非默认'
+  },
+  {
+    slug: "surveying/convert-46",
+    inputs: { from: "1000", to: "0.001" },
+    expect: ["1000000.000000 系数: 1"],
+    ref: 'r=1×1×1000/0.001=1000000.000000，from 选千坐标、to 选毫度分秒转换均非默认，默认得 1.000000'
+  },
+  {
+    slug: "surveying/coordinate-convert",
+    inputs: { lon: "116.40", lat: "39.90", zone: "3" },
+    expect: ["x = 4418598.001 m"],
+    ref: '高斯投影（CGCS2000 椭球）代入 L=116.40° B=39.90° 3度带，独立复算纵坐标 x=4418598.001 m，默认 L=116.4074 B=39.9042 得 4419060.118 m，lon 与 lat 均非默认'
+  },
+  {
+    slug: "surveying/coordinate-convert",
+    inputs: { lon: "120", lat: "30", zone: "3" },
+    expect: ["x = 3320113.398 m"],
+    ref: 'L=120° B=30° 3度带独立复算 x=3320113.398 m，默认 3度带 L=116.4074 B=39.9042 得 4419060.118 m，lon 与 lat 非默认'
+  },
+  {
+    slug: "surveying/coordinate-convert",
+    inputs: { zone: "6" },
+    expect: ["带号前置完整横坐标： 20449325"],
+    ref: 'L=116.4074 B=39.9042 改 6度带：n=floor(116.4074/6)+1=20，L0=117°，与默认 3度带（带号 39）仅带号与完整横坐标不同，独立复算带号前置完整横坐标=20449325，默认=39449325，zone 非默认'
+  },
+  {
+    slug: "surveying/coordinate-convert",
+    inputs: { lon: "110", lat: "40", zone: "6" },
+    expect: ["x = 4430008.068 m"],
+    ref: 'L=110° B=40° 6度带独立复算 x=4430008.068 m，默认 3度带得 4419060.118 m，lon/lat 与 zone 均非默认'
+  },
+  {
+    slug: "surveying/coordinate-convert",
+    inputs: { zone: "custom", cm: "120" },
+    expect: ["x = 4425075.885 m"],
+    ref: '自定义中央子午线 L0=120°，独立复算 x=4425075.885 m，默认 3度带 L0=117° 得 4419060.118 m，zone 与 cm 均非默认'
+  },
+  {
+    slug: "surveying/coordinate-convert",
+    inputs: { lon: "130", lat: "45", zone: "3" },
+    expect: ["x = 4985430.941 m"],
+    ref: 'L=130° B=45° 3度带独立复算 x=4985430.941 m，默认 3度带得 4419060.118 m，lon 与 lat 非默认'
   }
 ];
 

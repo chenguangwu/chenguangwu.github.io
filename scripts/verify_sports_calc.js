@@ -348,7 +348,114 @@ const CASES = [
        + "默认态 100/8/4/65/6/4 ⇒ ACE 8.0%、双误 4.0%、挽救 67、效率 63.5，三条锚全部失配。"
        + "「发球表现：良好」不可作锚——默认态 63.5 同样落在 ≥60 区间，等级文案与输入无关。",
   },
-
+  {
+    slug: "sports/convert-time",
+    inputs: { s: "600", b: "1800", r: "1200" },
+    expect: ["合计 3600 秒", "三项平均 1200.00 秒/项"],
+    ref: '去默认化：total=s+b+r=600+1800+1200=3600，三项平均 3600/3=1200.00，极差 1800-600=1200。默认态 1200/3600/2400=>7200，锚「合计 3600 秒」「三项平均 1200.00 秒/项」全失配，注入态命中即非恒输出（双态实证）。'
+  },
+  {
+    slug: "sports/convert-time",
+    inputs: { s: "900", b: "2700", r: "1500" },
+    expect: ["合计 5100 秒", "三项平均 1700.00 秒/项"],
+    ref: '去默认化：total=900+2700+1500=5100，三项平均 5100/3=1700.00，极差 2700-900=1800。默认态 7200 不命中，锚依赖注入值。'
+  },
+  {
+    slug: "sports/convert-time",
+    inputs: { s: "300", b: "900", r: "600" },
+    expect: ["合计 1800 秒", "三项平均 600.00 秒/项"],
+    ref: '去默认化：total=300+900+600=1800，三项平均 1800/3=600.00，极差 900-300=600。默认态 7200 不命中。'
+  },
+  {
+    slug: "sports/convert-time",
+    inputs: { s: "1500", b: "4500", r: "3000" },
+    expect: ["合计 9000 秒", "三项平均 3000.00 秒/项"],
+    ref: '去默认化：total=1500+4500+3000=9000，三项平均 9000/3=3000.00，极差 4500-1500=3000。默认态 7200 不命中。'
+  },
+  {
+    slug: "sports/convert-time",
+    inputs: { s: "45", b: "100", r: "30" },
+    expect: ["合计 175 秒", "三项平均 58.33 秒/项"],
+    ref: '去默认化：total=45+100+30=175，三项平均 175/3=58.3333=>58.33，极差 100-30=70。含小值验证边界，默认态 7200 不命中。'
+  },
+  {
+    slug: "sports/convert-time",
+    inputs: { s: "1234", b: "5678", r: "9012" },
+    expect: ["合计 15924 秒", "三项平均 5308.00 秒/项"],
+    ref: '去默认化：total=1234+5678+9012=15924，三项平均 15924/3=5308.00，极差 9012-1234=7778。非整比输入验证，默认态 7200 不命中。'
+  },
+  {
+    slug: "sports/climbing-grade-converter",
+    inputs: { "grade-input": "V0" },
+    expect: ["难度等级指数: 8 / 31", "YDS 5.10a"],
+    ref: '注入 V0：匹配 GRADE_TABLE 中 vgrade=V0 行（level 8）；难度说明落入门档（≤7 为初学者，8 属进阶），对应 YDS=5.10a、法式=5a、英式=5a、UIAA=V+。默认态为 V8（level 23、专家档、YDS 5.13d、UIAA IX），两条锚均不命中。'
+  },
+  {
+    slug: "sports/climbing-grade-converter",
+    inputs: { "grade-input": "V2" },
+    expect: ["难度等级指数: 12 / 31", "YDS 5.11a"],
+    ref: '注入 V2：匹配 vgrade=V2 行（level 12，进阶档）；对应 YDS=5.11a、法式=6a、英式=6a、UIAA=VII-。默认态 V8（level 23）不命中。'
+  },
+  {
+    slug: "sports/climbing-grade-converter",
+    inputs: { "grade-input": "V5" },
+    expect: ["难度等级指数: 18 / 31", "YDS 5.12c"],
+    ref: '注入 V5：匹配 vgrade=V5 行（level 18，高级档，≤20）；对应 YDS=5.12c、法式=7a、英式=7a、UIAA=VIII。默认态 V8（level 23）不命中。'
+  },
+  {
+    slug: "sports/climbing-grade-converter",
+    inputs: { "grade-input": "V9" },
+    expect: ["难度等级指数: 24 / 31", "YDS 5.14a"],
+    ref: '注入 V9：匹配 vgrade=V9 行（level 24，专家档，≤26）；对应 YDS=5.14a、法式=8a、英式=8a、UIAA=IX+。默认态 V8（level 23）不命中。'
+  },
+  {
+    slug: "sports/climbing-grade-converter",
+    inputs: { "grade-input": "V12" },
+    expect: ["难度等级指数: 27 / 31", "YDS 5.14d"],
+    ref: '注入 V12：匹配 vgrade=V12 行（level 27，>26 落精英/世界级档）；对应 YDS=5.14d、法式=8b+、英式=8b、UIAA=X。默认态 V8（level 23）不命中。'
+  },
+  {
+    slug: "sports/climbing-grade-converter",
+    inputs: { "grade-input": "V15" },
+    expect: ["难度等级指数: 30 / 31", "YDS 5.15c"],
+    ref: '注入 V15：匹配 vgrade=V15 行（level 30，精英/世界级档）；对应 YDS=5.15c、法式=9a、英式=9a、UIAA=XI。默认态 V8（level 23）不命中。'
+  },
+  {
+    slug: "sports/convert-29",
+    inputs: { val: "2.5", rate: "4", from: "1", to: "1" },
+    expect: ["10.000000", "系数: 4"],
+    ref: '去默认化：r = val×rate×from/to = 2.5×4×1/1 = 10，输出 10.000000；系数=4。默认态 val=1、rate=1 ⇒ r=1.000000、系数: 1，两条锚均不命中。锚系数: 4 可防 val↔rate 交换扰动（交换后系数变 2.5）。'
+  },
+  {
+    slug: "sports/convert-29",
+    inputs: { val: "120", rate: "0.3937", from: "1", to: "1" },
+    expect: ["47.244000", "系数: 0.3937"],
+    ref: '去默认化：r = 120×0.3937×1/1 = 47.244 ⇒ toFixed(6) 为 47.244000；系数=0.3937（厘米→英寸近似系数）。默认态 1.000000 / 系数: 1 不命中。'
+  },
+  {
+    slug: "sports/convert-29",
+    inputs: { val: "100", rate: "2.54", from: "1", to: "1" },
+    expect: ["254.000000", "系数: 2.54"],
+    ref: '去默认化：r = 100×2.54×1/1 = 254 ⇒ 254.000000；系数=2.54（英寸→厘米系数）。默认态不命中。'
+  },
+  {
+    slug: "sports/convert-29",
+    inputs: { val: "50", rate: "3", from: "0.001", to: "1" },
+    expect: ["0.150000", "系数: 3"],
+    ref: '去默认化：from=0.001（毫踢腿高度）⇒ r = 50×3×0.001/1 = 0.15 ⇒ 0.150000；系数=3。验证 select 注入生效（from 非默认首项）。默认态 from=1 ⇒ 1.000000 / 系数: 1 不命中。'
+  },
+  {
+    slug: "sports/convert-29",
+    inputs: { val: "2", rate: "5", from: "1000", to: "1" },
+    expect: ["10000.000000", "系数: 5"],
+    ref: '去默认化：from=1000（千踢腿高度）⇒ r = 2×5×1000/1 = 10000 ⇒ 10000.000000；系数=5。默认态不命中。'
+  },
+  {
+    slug: "sports/convert-29",
+    inputs: { val: "7.5", rate: "2", from: "1", to: "1000" },
+    expect: ["0.015000", "系数: 2"],
+    ref: '去默认化：to=1000（千柔韧度转换关系）⇒ r = 7.5×2×1/1000 = 0.015 ⇒ 0.015000；系数=2。验证 to 非默认首项注入生效。默认态不命中。'
+  }
 ];
 
 // ---------------------------------------------------------------- main

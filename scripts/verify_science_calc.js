@@ -330,7 +330,9 @@ const CASES = [
   // 互为交叉验证（如 Vout 与分压比、E 与 V），单条锚点被换值撞同值时不会连带失效；③ 遇「输入被页面
   // 材质表覆盖」的情况（heat-transfer 的 condK 注入被 getCondK() 的材质下拉回写为铜 401）不要改注入，
   // 直接锚「由页面已显示参数算出的 Q 与热流密度」——两行同源不同式（Q=kAΔT/L、q=Q/A），手算可复算。
-  // 本批弃页：`science/torque-converter`（convert() 只写 convGrid 且注入 from 下拉不生效 ⇒ 输出恒空）。
+  // 2026-09-28 补 `science/torque-converter` 6 例（此前误判弃页：实测 `inputs:{val,from}` 注入在
+  // 当前 harness 完全生效，`from` 空 select 经 `init()` 填 option 但 `.value` 不被覆盖；默认态 from
+  // 为空串致 init 阶段 convert() 抛错、blob 为空，故注入专属换算串在默认态必不命中，双态判别成立）。
   {
     slug: "science/voltage-divider-calculator",
     inputs: { vin: "12", r1: "3", r2: "9" },
@@ -637,6 +639,42 @@ const CASES = [
     clicks: ["convert()"],
     expect: ["9,000,000"],
     ref: '独立复算：9 千米(km,×1e3) → 毫米(mm,×1e-3)，result=9×1e3/1e-3=9e6=9000000 ⇒ \'9,000,000\'。fromUnit=7(km),toUnit=13(mm)。'
+  },
+  {
+    slug: "science/torque-converter",
+    inputs: { val: "20", from: "lbft" },
+    expect: ["2.711636e+1 牛·米 (N·m)"],
+    ref: '扭矩换算（val=20，源单位 lb·ft）：baseNm = 20 × 1.35581795 = 27.116359 N·m；目标 N·m 列 = baseNm / 1 = 27.116359 → toExponential(6) 得 2.711636e+1。Python 独立复算 20×1.35581795=27.116359 与页面一致。锚取跨单位（N·m）派生量而非 lb·ft 同单位回显（同单位列恒等于输入 20→2e+1 属输入回显，不锚）。默认态（无注入：from 为空串导致 init 阶段 convert() 抛错、blob 为空）不命中该串。'
+  },
+  {
+    slug: "science/torque-converter",
+    inputs: { val: "5", from: "kgfm" },
+    expect: ["4.903325e+1 牛·米 (N·m)"],
+    ref: 'val=5，源单位 kgf·m：baseNm = 5 × 9.80665 = 49.03325 N·m；N·m 列 = 49.03325 → 4.903325e+1。Python 独立复算 5×9.80665=49.03325 一致。锚跨单位（N·m）派生量。默认态 blob 为空不命中。'
+  },
+  {
+    slug: "science/torque-converter",
+    inputs: { val: "3", from: "kNm" },
+    expect: ["3.059149e+2 千克力·米 (kgf·m)"],
+    ref: 'val=3，源单位 kN·m：baseNm = 3 × 1000 = 3000 N·m；kgf·m 列 = 3000 / 9.80665 = 305.9149 → 3.059149e+2。Python 独立复算 3000/9.80665≈305.9149 一致。锚取 kgf·m 跨单位量（kN·m 同单位列恒为输入 3→3e+3 属回显，不锚）。默认态不命中。'
+  },
+  {
+    slug: "science/torque-converter",
+    inputs: { val: "100", from: "lbin" },
+    expect: ["1.129848e+1 牛·米 (N·m)"],
+    ref: 'val=100，源单位 lb·in：baseNm = 100 × 0.11298483 = 11.298483 N·m；N·m 列 = 11.298483 → 1.129848e+1。Python 独立复算 100×0.11298483=11.298483 一致。锚跨单位（N·m）派生量（lb·in 同单位列恒为输入 100→1e+2 属回显，不锚）。默认态不命中。'
+  },
+  {
+    slug: "science/torque-converter",
+    inputs: { val: "50000", from: "gfcm" },
+    expect: ["4.903325e+0 牛·米 (N·m)"],
+    ref: 'val=50000，源单位 gf·cm：baseNm = 50000 × 9.80665e-5 = 4.903325 N·m；N·m 列 = 4.903325 → 4.903325e+0。Python 独立复算 50000×0.0000980665=4.903325 一致。锚跨单位（N·m）派生量。默认态不命中。'
+  },
+  {
+    slug: "science/torque-converter",
+    inputs: { val: "1000", from: "ozfin" },
+    expect: ["7.061552e+0 牛·米 (N·m)"],
+    ref: 'val=1000，源单位 ozf·in：baseNm = 1000 × 0.0070615518 = 7.0615518 N·m；N·m 列 = 7.0615518 → 四舍五入 7.061552e+0。Python 独立复算 1000×0.0070615518=7.0615518 一致。锚跨单位（N·m）派生量（ozf·in 同单位列恒为输入 1000→1e+3 属回显，不锚）。默认态不命中。'
   }
 ];
 
