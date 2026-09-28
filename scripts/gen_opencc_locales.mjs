@@ -278,12 +278,22 @@ function rewriteSeo(html, rel, locale) {
   // 旧实现会从 hreflang 标记一直删到 </head>。构建脚本后来会在该标记
   // 之后注入导航资源（nav-menu.css / industry-info.js / nav-menu.js），因此
   // 不能把标记之后的整段 head 一起移除；只清理旧的语言标签，其他资源原样保留。
-  html = html.replace(/<!-- TOOLBOX-HREFLANG -->\s*/gi, '');
-  html = html.replace(/\s*<link\b[^>]*\bhreflang=[^>]*>\s*/gi, '\n');
-  html = html.replace(/\s*<meta\b[^>]*\bproperty=["']og:locale(?::alternate)?["'][^>]*>\s*/gi, '\n');
-  html = html.replace(/(<link\b[^>]*\brel=["']canonical["'][^>]*\bhref=["'])[^"']*(["'])/i, `$1${canonical}$2`);
-  html = html.replace(/(<meta\b[^>]*\bproperty=["']og:url["'][^>]*\bcontent=["'])[^"']*(["'])/i, `$1${canonical}$2`);
-  return html.replace(/<\/head>/i, `${localeHead(rel, locale)}</head>`);
+  //
+  // 2026-09-29 修复：以下替换原先作用于整篇 HTML，会把内联 <script> 字符串中的
+  // `<meta property="og:locale" content="'+escA(loc)+'">` 一并删成换行（造成 JS
+  // 语法错误、计算器静默失效），并把 og:url 的模板值替换成硬编码 canonical
+  // （工具输出错误）。og-meta-tag-generator 即因此中招。现限定在首个
+  // <head>…</head> 段内执行（head 段内没有会生成这些标签的内联脚本）。
+  const hm = /<head\b[^>]*>[\s\S]*?<\/head>/i.exec(html);
+  if (!hm) return html;
+  let head = hm[0];
+  head = head.replace(/<!-- TOOLBOX-HREFLANG -->\s*/gi, '');
+  head = head.replace(/\s*<link\b[^>]*\bhreflang=[^>]*>\s*/gi, '\n');
+  head = head.replace(/\s*<meta\b[^>]*\bproperty=["']og:locale(?::alternate)?["'][^>]*>\s*/gi, '\n');
+  head = head.replace(/(<link\b[^>]*\brel=["']canonical["'][^>]*\bhref=["'])[^"']*(["'])/i, `$1${canonical}$2`);
+  head = head.replace(/(<meta\b[^>]*\bproperty=["']og:url["'][^>]*\bcontent=["'])[^"']*(["'])/i, `$1${canonical}$2`);
+  head = head.replace(/<\/head>/i, `${localeHead(rel, locale)}</head>`);
+  return html.slice(0, hm.index) + head + html.slice(hm.index + hm[0].length);
 }
 
 function transformHtml(raw, rel, locale, converter) {
