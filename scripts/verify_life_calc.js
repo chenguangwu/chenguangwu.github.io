@@ -408,6 +408,42 @@ const CASES = [
     inputs: { inputVal: "10" },
     expect: ["0.3937007874 英寸"],
     ref: 'in=0.01/0.0254'
+  },
+  {
+    slug: "life/weight-converter",
+    inputs: { inputVal: "500" },
+    expect: ["0.5 克"],
+    ref: 'fromUnit 框架默认 mg；base=v*0.001；g=0.5/1'
+  },
+  {
+    slug: "life/weight-converter",
+    inputs: { inputVal: "1000" },
+    expect: ["0.002204622622 磅"],
+    ref: 'lb=1/453.59237'
+  },
+  {
+    slug: "life/weight-converter",
+    inputs: { inputVal: "200" },
+    expect: ["0.00705479239 盎司"],
+    ref: 'oz=0.2/28.349523125'
+  },
+  {
+    slug: "life/weight-converter",
+    inputs: { inputVal: "50" },
+    expect: ["0.00005 千克"],
+    ref: 'kg=0.05/1000'
+  },
+  {
+    slug: "life/weight-converter",
+    inputs: { inputVal: "10" },
+    expect: ["0.05 克拉"],
+    ref: 'ct=0.01/0.2'
+  },
+  {
+    slug: "life/weight-converter",
+    inputs: { inputVal: "5" },
+    expect: ["0.025 克拉"],
+    ref: 'ct=0.005/0.2'
   }
 ];
 
