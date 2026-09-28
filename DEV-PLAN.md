@@ -1,5 +1,7 @@
 # DEV-PLAN.md — 待处理任务清单
 
+> **⏸ 本任务文件已暂停开发**：当前主线开发在 **`en-dev-plan.md`**（英文态「内容区全量英文化」专项）。本文件仅作历史待办与规则的**备查归档**，**不再新增任务**；新任务、新规则一律写入 `en-dev-plan.md`。
+
 > **本文件只放「待处理任务」与「干活必须遵守的规则」。已完成项、批次成果、历史操作流水一律不写入** —— 归档走 `.workbuddy/memory/YYYY-MM-DD.md`；历史全量快照另存 `.workbuddy/memory/archive-devplan-full-2026-09-23.md`。
 > **⚠️ 体积红线（硬约束）**：`wc -c DEV-PLAN.md` **> 60 KB 即说明有批次流水混入，先清理再干活**。每批收尾**只允许**更新 ① §10.2 的计数行 ② §10.3 的存量数与不可注入清单 ③ §九/§7.1 的**待办增删**；**禁止把「本批处理了哪些例、逐例打法、验证过程」写进本文件**（这些一律进 memory 与 skill）。清理时先把全文快照存入 `.workbuddy/memory/archive-devplan-full-YYYY-MM-DD.md` 再删。
 > **收尾口径（老板 2026-09-21 明确）**：闭环 = 本地 build / 门禁通过 + GitHub 部署成功（Actions run success）。**不做线上产物 MD5 落盘比对、不 sleep、不轮询 API**；纯文档类改动（`*.md`、memory）不等部署。

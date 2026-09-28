@@ -265,6 +265,8 @@ _en-i18n/
     python3 _build.py                      → 生成新 SW 版本戳（§十三）
     python3 scripts/run_gates.py           → 门禁全过
     本地 commit（每 5 个 commit push 一次，或由老板手动 push）
+    ── push 之后（§九·线上生效验证）──
+    单次确认 Actions 目标 commit success → 抽 3–6 个 URL 落盘核对本批关键内容已生效
 ```
 
 **中途不换线**：单工具未达「残留 0 + 四态 0 异常」不得进入下一工具；单行业未全绿不得进入下一行业（沿用项目「分类上下文压缩」纪律，每行业收尾即固化 memory + skill）。
@@ -290,7 +292,12 @@ _en-i18n/
 - **粒度**：每完成 **1 个行业**（或累计 ≥10 个工具，取先到者）= 1 个 commit。
 - **本地累积**：commit 只到本地，**不逐批 push**；累计 **5 个 commit** 后一起 `git push origin master`，或由老板手动推送。
 - **信息格式**：`feat(i18n): EN content — <industry> (<n> tools)`。
-- **前置条件**：push 前必须 `python3 scripts/run_gates.py` 四道全过；改动仅 `i18n/tools/en/**` + `_en-i18n/**`（后者不发布）⇒ 属「会让线上变字节」，push 后确认一次 Actions 部署成功即闭环，**不做线上 MD5 比对**。
+- **前置条件**：push 前必须 `python3 scripts/run_gates.py` 全部门禁通过；改动仅 `i18n/tools/en/**` + `_en-i18n/**`（后者不发布）⇒ 属「会让线上变字节」。
+- **线上生效验证（老板 2026-09-29 明确，强制）**：push ≠ 收尾。**必须验证线上改动真的生效**，不能只看「Actions 部署成功」就下结论。口径四步：
+  1. **先单次查询 Actions** 确认本 commit 已 `success` —— 部署未完成时线上仍是旧版本，此时抽查必然得出「未生效」的假结论（2026-09-29 实测踩到：已删除的 json 仍返回旧内容，实为部署进行中）。
+  2. **抽样落盘核对**：抽 3–6 个代表性 URL（本批工具页 × 四态 + 受影响的索引/JSON），`curl -o` 落盘后核对 HTTP 码 + **本批改动的关键内容确已出现**。判「生效」以**关键内容命中**为准，不以「页面能打开」为准。
+  3. **英文态必须用真机探针**（`scripts/_en_i18n_probe.mjs --check`）：`curl` 拿到的是静态 HTML，运行时 i18n 的替换结果不在其中，直接抓 HTML 判中文残留必然误判。
+  4. **边界**：只做**抽样**。仍**不做**全量逐 URL MD5 比对、不 sleep 等 CDN 传播、不循环轮询 API（沿用 2026-09-21 收尾口径，本条是对它的补充而非废止）。
 - **可回退**：产物为纯新增 JSON，回退即 `git revert`，无页面重建风险。
 
 ---
@@ -337,6 +344,7 @@ _en-i18n/
 11. **拼写统一走美式**（2026-09-28 全批复核）：`color / optimize / customize / summarize / center / behavior`，与站点既有基调一致（`color` 28 : `colour` 0）。本批已修正 `optimising→optimizing`、`stabilises→stabilizes`、`centres→centers`、`customisable/customised→customizable/customized`、`Summarise→Summarize`、`favour→favor`（均在未 push 范围内）。
 12. **EN 字典必须进 SW 版本戳**（2026-09-28）：`_build.py::compute_sw_build()` 已纳入 `i18n/tools/en/**`。详见 §十三。
 13. **顺手修既有缺陷（强制）**（2026-09-28）：开发过程中遇到**现有工具的 bug 或功能不完整，必须一并修复**，不得以「不是本次造成的」为由忽略或留档了事。判据与处置见 §十四。
+14. **push 后必须验证线上改动生效（强制）**（2026-09-29）：**部署成功 ≠ 改动生效**。push 后须先单次确认 Actions 目标 commit `success`，再抽 3–6 个代表性 URL **落盘核对本批关键内容确已出现**（英文态用真机探针，静态 HTML 不体现运行时替换）；判「生效」看关键内容命中，不看「页面能打开」。仍不做全量 MD5、不 sleep、不轮询。详见 §九。
 
 ---
 
@@ -346,7 +354,7 @@ _en-i18n/
 - **判定**：改 EN 字典后**必须重跑 `python3 _build.py`**，令 `sw.js` 的 `BUILD` 变化 ⇒ `sw.js::busted()` 的 URL 变化 ⇒ CDN/SW 不再返回旧字典。不重跑则 `_swv` 不变、客户端可能长期停留在旧译文。
 - **幂等**：内容不变时重复构建 `BUILD` 不变（已实测两次构建一致），可安全随每批执行。
 - **`.json` 走 `sw.js` 的 `networkFirst`**，新字典发布即生效；版本戳只负责打破 CDN 层 URL 缓存。
-- 本专项所有提交都「会让线上变字节」⇒ 适用 §九 的 push 后确认部署口径。
+- 本专项所有提交都「会让线上变字节」⇒ 适用 §九 的 **push 后部署确认 + 线上生效抽查** 口径。
 
 ---
 

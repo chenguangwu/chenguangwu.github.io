@@ -116,7 +116,7 @@ GitHub Actions 会在 pull request 和推送到 `master` 时自动执行同一�
 2. 运行 `python3 scripts/run_gates.py`，确保全部门禁全部通过。
 3. 提交源文件和需要版本化的构建产物；不提交 `zh-tw/`。
 4. 推送到 `master`，等待 `ToolBox Build and Deploy` 完成门禁、artifact 上传和 Pages 部署。
-5. **Actions run 成功即算闭环**（单次查询即可）。不要 curl 拉线上产物比对 MD5、逐 URL 打 200、sleep 等待 CDN 传播或循环轮询 API；线上可用性异常由后续索引/监控任务或用户反馈暴露后再处理。
+5. **Actions run 成功 + 抽样验证线上生效**（单次查询即可）：先确认 Actions run 为 success，再抽 3–6 个代表性 URL `curl -o` 落盘核对**本批关键内容确已出现**（英文态须用真机探针 `scripts/_en_i18n_probe.mjs --check`，静态 HTML 不体现运行时替换）。仍不要做全量逐文件 MD5 比对、逐 URL 打 200、sleep 等待 CDN 传播或循环轮询 API；线上可用性异常由后续索引/监控任务或用户反馈暴露后再处理。
 6. 仅改文档或内存日志等**不进构建产物**的文件时，push 后可直接收尾，无需等待部署结果。
 7. 索引提交由用户侧定时任务管理；不要在普通开发会话自动运行 `_submit_*` 脚本。
 
