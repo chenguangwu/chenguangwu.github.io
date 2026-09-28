@@ -367,6 +367,48 @@ const CASES = [
     clicks: ["calcPCM()"],
     expect: ["PCM 原始大小: 43.95 MB"],
     ref: '192000/32/2/30s 母带30秒 43.95MB'
+  },
+  {
+    slug: "music/beat-subdivision",
+    inputs: { bpm: "60", timeSig: "4/4" },
+    clicks: ["calculate()"],
+    expect: ["拍号 4/4 | 小节时长 4.00s"],
+    ref: '60BPM/4/4 小节时长4.00s'
+  },
+  {
+    slug: "music/beat-subdivision",
+    inputs: { bpm: "60", timeSig: "3/4" },
+    clicks: ["calculate()"],
+    expect: ["拍号 3/4 | 小节时长 3.00s"],
+    ref: '60BPM/3/4 小节时长3.00s'
+  },
+  {
+    slug: "music/beat-subdivision",
+    inputs: { bpm: "240", timeSig: "4/4" },
+    clicks: ["calculate()"],
+    expect: ["拍号 4/4 | 小节时长 1.00s"],
+    ref: '240BPM/4/4 小节时长1.00s'
+  },
+  {
+    slug: "music/beat-subdivision",
+    inputs: { bpm: "90", timeSig: "2/4" },
+    clicks: ["calculate()"],
+    expect: ["拍号 2/4 | 小节时长 1.33s"],
+    ref: '90BPM/2/4 小节时长1.33s'
+  },
+  {
+    slug: "music/beat-subdivision",
+    inputs: { bpm: "75", timeSig: "6/8" },
+    clicks: ["calculate()"],
+    expect: ["拍号 6/8 | 小节时长 2.40s"],
+    ref: '75BPM/6/8 小节时长2.40s'
+  },
+  {
+    slug: "music/beat-subdivision",
+    inputs: { bpm: "100", timeSig: "3/4" },
+    clicks: ["calculate()"],
+    expect: ["拍号 3/4 | 小节时长 1.80s"],
+    ref: '100BPM/3/4 小节时长1.80s'
   }
 ];
 async function main() {
