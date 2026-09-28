@@ -1092,6 +1092,42 @@ const CASES = [
     inputs: { numInput: "3999" },
     expect: ["MMMCMXCIX"],
     ref: 'numInput=3999 → MMMCMXCIX（范围上限）'
+  },
+  {
+    slug: "life/yaml-json",
+    inputs: { input: "{\"a\":1,\"b\":2}" },
+    expect: ["a: 1 b: 2"],
+    ref: 'JSON→YAML：{a:1,b:2} → `a: 1\\nb: 2`，collectStrings 折叠换行→空格，锚 `a: 1 b: 2`（纯字符串确定性映射）'
+  },
+  {
+    slug: "life/yaml-json",
+    inputs: { input: "{\"name\":\"Tom\"}" },
+    expect: ["name: Tom"],
+    ref: 'JSON→YAML：{name:Tom} → `name: Tom`（Tom 无特殊字符不引号），锚 `name: Tom`'
+  },
+  {
+    slug: "life/yaml-json",
+    inputs: { input: "{\"list\":[1,2,3]}" },
+    expect: ["list: - 1 - 2 - 3"],
+    ref: 'JSON→YAML：数组 [1,2,3] → `list:\\n  - 1\\n  - 2\\n  - 3` 折叠为 `list: - 1 - 2 - 3`'
+  },
+  {
+    slug: "life/yaml-json",
+    inputs: { input: "{\"x\":{\"y\":true}}" },
+    expect: ["x: y: true"],
+    ref: 'JSON→YAML：嵌套对象 {x:{y:true}} → `x:\\n  y: true` 折叠为 `x: y: true`'
+  },
+  {
+    slug: "life/yaml-json",
+    inputs: { input: "{\"n\":null}" },
+    expect: ["n: null"],
+    ref: 'JSON→YAML：{n:null} → `n: null`（null 映射）'
+  },
+  {
+    slug: "life/yaml-json",
+    inputs: { input: "{\"arr\":[\"a\",\"b\"]}" },
+    expect: ["arr: - a - b"],
+    ref: 'JSON→YAML：字符串数组 [a,b] → `arr:\\n  - a\\n  - b` 折叠为 `arr: - a - b`'
   }
 ];
 
