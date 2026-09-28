@@ -3333,6 +3333,17 @@ function makeEl(val) {
       return c;
     },
     removeChild() {},
+    // 动态填充 <select>：部分页用 new Option(text,value)+select.add() 注入选项
+    // （如 travel/timezone-converter-advanced）。option 带 selected 或首个选项时，
+    // 将其 value 落到 el.value，使页面后续 `.value` 读取拿到选中值。其他页不调用
+    // el.add()，本方法对其行为零影响。
+    add(option) {
+      if (!this.options) this.options = [];
+      this.options.push(option);
+      if (option && (option.selected || this.options.length === 1)) {
+        this.value = option.value != null ? String(option.value) : "";
+      }
+    },
     insertAdjacentHTML() {},
     setAttribute() {},
     getAttribute() { return null; },
@@ -3653,6 +3664,13 @@ async function runCaseInner(c) {
   // 图表页会读 CSS 变量取色（如 healthcare/tdee-calculator 的 resolveCanvasColor），
   // 没有 getComputedStyle 会在 calc() 首行抛 "getComputedStyle is not defined"。
   win.getComputedStyle = () => ({ getPropertyValue: () => "" });
+  // 补 Option 构造器桩：new Option(text,value) 在 Node 全局不存在；部分页
+  // （travel/timezone-converter-advanced）在初始化期用它动态填充 <select>，
+  // 缺则抛 Option is not defined、整页死。仅挂本用例作用域，runCase 的
+  // finally 会清理（不泄漏到其他用例，其他页本就不引用 Option，零影响）。
+  win.Option = function (text, value) {
+    return { text: text == null ? "" : String(text), value: value == null ? "" : String(value), selected: false, label: text == null ? "" : String(text) };
+  };
 
   const names = [...script.matchAll(/^\s*(?:async\s+)?function\s+([A-Za-z_$][\w$]*)\s*\(/gm)].map((m) => m[1]);
   const PRIO = ["calcTool", "calc", "calculate", "compute", "convert", "run", "update", "render"];

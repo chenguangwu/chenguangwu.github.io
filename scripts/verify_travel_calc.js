@@ -228,6 +228,42 @@ const CASES = [
     "10月1日周四"
   ],
   "ref": "去默认化（原 expect「北京/上海」是卡片里恒显示的静态城市名标签，注入失败仍命中 → 逃生项）：注入 localTime=14:30 / localDate=2026-10-01 后 render() 走 now=new Date('2026-10-01T14:30') 分支（不再回填当天），六个默认城市卡片的日期全部由该基准日推出（北京/上海 10月1日周四、洛杉矶 9月30日周三 昨天）；默认态基于当天显示 6月15日周六，注入失败即不命中。（注：harness 环境下 toTimeString() 被桩成固定串故时刻段恒为 00:00，因此只锚日期段。）"
+  },
+{
+  "slug": "travel/timezone-converter-advanced",
+  "inputs": { "fromTz": "Asia/Shanghai", "toTz": "America/New_York", "fromTime": "2026-03-15T09:00" },
+  "expect": ["目标时区 America/New_York： 2026/03/14 北美东部夏令时间 21:00"],
+  "ref": "去默认化（推翻 BATCH377「new Option()+select.add() 动态填充、harness 缺 Option 桩 ⇒ 结构性不可注入」误判）：本批次给 harness 补 globalThis.Option 构造器 + makeEl.add() 方法，initSelects() 的 new Option()/select.add() 不再抛错、fromTz/toTz 被正确填充。注入 fromTime 置末位触发 convert() 用全输入：上海 09:00（UTC+8）→ 纽约 EDT（UTC-4）显示前一日 21:00；默认态（init 用冻结日期 setNow）日期不同，注入失败即不命中。锚取「目标时区 America/New_York： 2026/03/14 北美东部夏令时间 21:00」整串（含具体日期，与默认态冻结日期天然区分）。"
+},
+{
+  "slug": "travel/timezone-converter-advanced",
+  "inputs": { "fromTz": "Asia/Shanghai", "toTz": "Asia/Tokyo", "fromTime": "2026-03-15T09:00" },
+  "expect": ["目标时区 Asia/Tokyo： 2026/03/15 日本标准时间 10:00"],
+  "ref": "东京 UTC+9：上海 09:00 → 东京 10:00（同日）。锚含具体日期 2026/03/15，默认态冻结日期不命中。"
+},
+{
+  "slug": "travel/timezone-converter-advanced",
+  "inputs": { "fromTz": "UTC", "toTz": "Asia/Shanghai", "fromTime": "2026-03-15T00:00" },
+  "expect": ["目标时区 Asia/Shanghai： 2026/03/15 中国标准时间 08:00"],
+  "ref": "UTC 00:00 → 北京 UTC+8 08:00（同日）。锚含具体日期，默认态不命中。"
+},
+{
+  "slug": "travel/timezone-converter-advanced",
+  "inputs": { "fromTz": "Europe/London", "toTz": "America/Los_Angeles", "fromTime": "2026-07-01T12:00" },
+  "expect": ["目标时区 America/Los_Angeles： 2026/07/01 北美太平洋夏令时间 04:00"],
+  "ref": "伦敦 BST（UTC+1）12:00 → 洛杉矶 PDT（UTC-7）04:00（同日）。锚含具体日期，默认态不命中。"
+},
+{
+  "slug": "travel/timezone-converter-advanced",
+  "inputs": { "fromTz": "America/New_York", "toTz": "Europe/Paris", "fromTime": "2026-12-15T15:00" },
+  "expect": ["目标时区 Europe/Paris： 2026/12/15 中欧标准时间 21:00"],
+  "ref": "纽约 EST（UTC-5）15:00 → 巴黎 CET（UTC+1）21:00（同日，冬令时）。锚含具体日期，默认态不命中。"
+},
+{
+  "slug": "travel/timezone-converter-advanced",
+  "inputs": { "fromTz": "Asia/Dubai", "toTz": "Asia/Kolkata", "fromTime": "2026-03-15T10:00" },
+  "expect": ["目标时区 Asia/Kolkata： 2026/03/15 印度时间 11:30"],
+  "ref": "迪拜 UTC+4 10:00 → 印度 UTC+5:30 11:30（半时区，同日）。锚含具体日期，默认态不命中。"
 }
 ];
 async function main() {

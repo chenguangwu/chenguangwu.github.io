@@ -625,6 +625,12 @@ const CASES = [
     inputs: { tsh: "0.05", ft3: "10", ft4: "30", tt3: "1.5", tt4: "100", tpo: "0" },
     expect: ["原发性甲状腺功能亢进症"],
     ref: 'TSH 0.05<0.27（低）+ FT3 10>6.8、FT4 30>22（高）→ 原发甲亢（无TPO阳性）'
+  },
+  {
+    slug: "clinical-lab/thyroid-function-model",
+    inputs: { tsh: "2.0", ft3: "2.5", ft4: "16", tt3: "1.5", tt4: "100", tpo: "0" },
+    expect: ["低T3综合征(非甲状腺病态)"],
+    ref: '修复 line263 死代码后可达：TSH 2.0（正常 0.27–4.2）+ FT3 2.5<3.1（低）+ FT4 16（正常、不低）→ 非甲状腺病态综合征（euthyroid sick syndrome）。原条件 tshLow 与 line259 中枢性甲减（tshLow&&hormoneLow）重叠、永不可达，旧版此输入会误判「甲状腺功能正常」；修正为 !tshLow&&!tshHigh&&ft3Low&&!ft4Low 后分支可达。默认态（tsh 空 → analyze 提前 return）无任何结果串，注入失败即不命中。'
   }
 ];
 async function main() {
