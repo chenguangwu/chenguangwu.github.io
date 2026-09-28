@@ -86,6 +86,9 @@
     translateBodyPhrases(isZh);
     // 相关工具卡片：英文模式用 slug->en/ed 映射替换中文 SEO 描述（消除全局组件中文残留）
     translateRelatedTools(isZh);
+    // 【第三层】per-tool 全量英文字典：最后执行 ⇒ 覆盖 -body.json / 共享短语表的低质与未覆盖值
+    if (isEnglish()) loadEnDict(getIndustry(), getSlug());
+    applyEnDict(isZh);
   }
 
   function translateButtons(isZh) {
@@ -505,6 +508,132 @@
     s.onload = applyAll; s.onerror = applyAll;
     document.head.appendChild(s);
   }
+  // ================= 第三层：per-tool 全量英文字典（一工具一文件）=================
+  // 数据源：i18n/tools/en/<industry>/<slug>.json
+  //   结构：{ "slug": "<slug>", "industry": "<ind>", "map": { "<简体原文>": "<英文>" } }
+  //   索引：i18n/tools/en/<industry>/_index.json → { "tools": ["<slug>", …] }（只对已有字典的工具发请求，零 404）
+  //
+  // 设计要点：
+  //   1) 文本节点级替换（TreeWalker SHOW_TEXT）：只改文本、不动 DOM 结构，保住 deep-dive 里的
+  //      term-link 内链与嵌套标签（既有 translateBodyPhrases 用 el.textContent = tr 会整体覆盖、破坏内链）；
+  //   2) [data-zh] 元素（h2 / 首 p，构建期已把英文预渲染进静态 HTML）：以 data-zh 的中文原文为键查表；
+  //   3) 在 applyChrome 内最后执行 ⇒ 优先级高于 -body.json 与共享短语表，覆盖其低质 / 未覆盖值；
+  //   4) 中文态（zh-CN 与 zh-TW）只还原、不替换。EN_ORIG 精确回写原值 ⇒ 简 ↔ 英 任意切换无损；
+  //      繁体页是构建期静态产物（文本为繁体、不走运行时 i18n），同形文本命中则受益、
+  //      异形文本保持繁体原文（英文态不作要求），中文态一律完整还原、不破坏繁体页效果。
+  var EN_DICT = null;      // 当前工具 { 原文: 英文 }
+  var EN_KEY = null;       // '<industry>/<slug>'，防止重复加载
+  var EN_INDEX = {};       // { industry: Set<slug> | EMPTY_SET }
+  var EN_ORIG = [];        // [{node, orig}] 或 [{el, orig}]，用于精确还原
+  var EN_EMPTY_SET = { has: function () { return false; } };
+
+  // 全局通用层：i18n/tools/en/_common.json —— 全站模板句（工具简介 / 常见问题 / 参数说明 …）
+  // 单独成层的原因：这类文案在 4779 页重复出现，放进 per-tool 字典会产生数千份冗余；且它们
+  // 多为「<h4><span class="h4-icon">📝</span>工具简介</h4>」这种被内层 span 拆开的形态，
+  // 既有元素级 textContent 匹配会拼成「📝工具简介」而查不到键 —— 文本节点级匹配正好解决。
+  var EN_COMMON = null;
+  var EN_COMMON_LOADING = false;
+
+  function loadEnCommon() {
+    if (EN_COMMON || EN_COMMON_LOADING || !window.fetch) return Promise.resolve(EN_COMMON);
+    EN_COMMON_LOADING = true;
+    return fetch(sharedI18nUrl('en/_common.json'))
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (d) {
+        EN_COMMON = d || {};
+        EN_COMMON_LOADING = false;
+        if (isEnglish()) applyEnDict(false);
+        return EN_COMMON;
+      })
+      .catch(function () { EN_COMMON = {}; EN_COMMON_LOADING = false; return EN_COMMON; });
+  }
+
+  function loadEnIndex(ind) {
+    if (EN_INDEX[ind]) return Promise.resolve(EN_INDEX[ind]);
+    if (!window.fetch) { EN_INDEX[ind] = EN_EMPTY_SET; return Promise.resolve(EN_EMPTY_SET); }
+    return fetch(sharedI18nUrl('en/' + ind + '/_index.json'))
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (d) {
+        EN_INDEX[ind] = new Set((d && d.tools) || []);
+        return EN_INDEX[ind];
+      })
+      .catch(function () { EN_INDEX[ind] = EN_EMPTY_SET; return EN_EMPTY_SET; });
+  }
+
+  function loadEnDict(ind, slug) {
+    loadEnCommon();       // 全局通用层随之加载（独立于本工具是否已有字典）
+    if (!ind || !slug || !window.fetch) return;
+    var key = ind + '/' + slug;
+    if (EN_KEY === key) return;      // 已加载 / 加载中，避免重复请求
+    EN_KEY = key;
+    loadEnIndex(ind).then(function (set) {
+      if (!set || !set.has(slug)) return;
+      fetch(sharedI18nUrl('en/' + ind + '/' + slug + '.json'), { cache: 'no-cache' })
+        .then(function (r) { return r.ok ? r.json() : null; })
+        .then(function (d) {
+          if (!d || !d.map) return;
+          EN_DICT = d.map;
+          if (isEnglish()) applyChrome();   // 重跑全流程 ⇒ 第三层依旧最后落地
+        })
+        .catch(function () { /* 字典缺失：忽略，回退既有机制 */ });
+    });
+  }
+
+  function restoreEn() {
+    for (var i = 0; i < EN_ORIG.length; i++) {
+      var it = EN_ORIG[i];
+      if (it.node) { if (it.node.parentNode) it.node.nodeValue = it.orig; }
+      else if (it.el) { it.el.textContent = it.orig; }
+    }
+    EN_ORIG = [];
+  }
+
+  // 查表：per-tool 字典优先（更具体），全局通用层兜底
+  function pickEn(key) {
+    if (EN_DICT && EN_DICT[key]) return EN_DICT[key];
+    if (EN_COMMON && EN_COMMON[key]) return EN_COMMON[key];
+    return null;
+  }
+
+  function applyEnDict(isZh) {
+    restoreEn();
+    if (isZh || (!EN_DICT && !EN_COMMON)) return;
+
+    // (a) [data-zh]：英文态下静态文本已是构建期预渲染的英文，中文原文保存在 data-zh
+    var dzs = document.querySelectorAll('[data-zh]');
+    for (var i = 0; i < dzs.length; i++) {
+      if (dzs[i].children && dzs[i].children.length) continue;   // 只处理纯文本元素，不动结构
+      var zh = dzs[i].getAttribute('data-zh');
+      if (!zh) continue;
+      var tr = pickEn(zh);
+      if (!tr) continue;
+      EN_ORIG.push({ el: dzs[i], orig: dzs[i].textContent });
+      dzs[i].textContent = tr;
+    }
+
+    // (b) 可见文本节点级替换（保留 DOM 结构与内链）
+    var root = document.body || document.documentElement;
+    var NF = window.NodeFilter;
+    if (!root || !document.createTreeWalker || !NF) return;
+    var walker = document.createTreeWalker(root, NF.SHOW_TEXT, null, false);
+    var n;
+    while ((n = walker.nextNode())) {
+      var parent = n.parentNode;
+      if (!parent) continue;
+      var tag = (parent.nodeName || '').toUpperCase();
+      if (tag === 'SCRIPT' || tag === 'STYLE' || tag === 'NOSCRIPT') continue;
+      var raw = n.nodeValue;
+      if (!raw) continue;
+      var k = raw.trim();
+      if (!k) continue;
+      var en = pickEn(k);
+      if (!en) continue;
+      var idx = raw.indexOf(k);
+      EN_ORIG.push({ node: n, orig: raw });
+      n.nodeValue = raw.slice(0, idx) + en + raw.slice(idx + k.length);
+    }
+  }
+
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', boot);
   } else {
