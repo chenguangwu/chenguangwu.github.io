@@ -444,6 +444,42 @@ const CASES = [
     inputs: { inputVal: "5" },
     expect: ["0.025 克拉"],
     ref: 'ct=0.005/0.2'
+  },
+  {
+    slug: "life/volume-converter",
+    inputs: { inputVal: "5" },
+    expect: ["0.005 L"],
+    ref: 'base=5ml, L=5/1000=0.005'
+  },
+  {
+    slug: "life/volume-converter",
+    inputs: { inputVal: "10" },
+    expect: ["0.002641720524 gal"],
+    ref: 'base=10ml, gal=10/3785.411784'
+  },
+  {
+    slug: "life/volume-converter",
+    inputs: { inputVal: "100" },
+    expect: ["0.2113376419 pt"],
+    ref: 'base=100ml, pt=100/473.176473'
+  },
+  {
+    slug: "life/volume-converter",
+    inputs: { inputVal: "50" },
+    expect: ["0.05283441047 qt"],
+    ref: 'base=50ml, qt=50/946.352946'
+  },
+  {
+    slug: "life/volume-converter",
+    inputs: { inputVal: "200" },
+    expect: ["0.8453505675 cup"],
+    ref: 'base=200ml, cup=200/236.5882365'
+  },
+  {
+    slug: "life/volume-converter",
+    inputs: { inputVal: "3" },
+    expect: ["0.6086524091 tsp"],
+    ref: 'base=3ml, tsp=3/4.92892159'
   }
 ];
 
