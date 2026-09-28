@@ -732,6 +732,42 @@ const CASES = [
     inputs: { inputVal: "3" },
     expect: ["10.8 m³/h"],
     ref: 'from=L/s, v=3, m³/h=3/(1000/3600)=10.8'
+  },
+  {
+    slug: "life/data-rate-converter",
+    inputs: { inputVal: "800" },
+    expect: ["0.8 kbps"],
+    ref: 'from=bps, v=800, kbps=800/1000=0.8'
+  },
+  {
+    slug: "life/data-rate-converter",
+    inputs: { inputVal: "800" },
+    expect: ["0.0008 Mbps"],
+    ref: 'from=bps, v=800, Mbps=800/1e6=0.0008'
+  },
+  {
+    slug: "life/data-rate-converter",
+    inputs: { inputVal: "800" },
+    expect: ["8.000000e-7 Gbps"],
+    ref: 'from=bps, v=800, Gbps=800/1e9=8e-7'
+  },
+  {
+    slug: "life/data-rate-converter",
+    inputs: { inputVal: "800" },
+    expect: ["0.00009536743164 MB/s"],
+    ref: 'from=bps, v=800, MB/s=800/8/1024/1024'
+  },
+  {
+    slug: "life/data-rate-converter",
+    inputs: { inputVal: "2500" },
+    expect: ["2.5 kbps"],
+    ref: 'from=bps, v=2500, kbps=2500/1000=2.5'
+  },
+  {
+    slug: "life/data-rate-converter",
+    inputs: { inputVal: "2500" },
+    expect: ["0.0025 Mbps"],
+    ref: 'from=bps, v=2500, Mbps=2500/1e6=0.0025'
   }
 ];
 
