@@ -325,6 +325,48 @@ const CASES = [
     clicks: ["calc()"],
     expect: ["变速比 ×0.8333"],
     ref: '180s/144BPM→120BPM 变速比0.8333 提速-17% 目标时长216s'
+  },
+  {
+    slug: "music/audio-converter",
+    inputs: { sr: "8000", bd: "16", ch: "1", dur: "60" },
+    clicks: ["calcPCM()"],
+    expect: ["PCM 原始大小: 0.92 MB"],
+    ref: '8000/16/1/60s 电话级单声道 0.92MB'
+  },
+  {
+    slug: "music/audio-converter",
+    inputs: { sr: "44100", bd: "16", ch: "2", dur: "300" },
+    clicks: ["calcPCM()"],
+    expect: ["PCM 原始大小: 50.47 MB"],
+    ref: '44100/16/2/300s CD音质5分钟 50.47MB'
+  },
+  {
+    slug: "music/audio-converter",
+    inputs: { sr: "48000", bd: "24", ch: "2", dur: "120" },
+    clicks: ["calcPCM()"],
+    expect: ["PCM 原始大小: 32.96 MB"],
+    ref: '48000/24/2/120s 专业录音2分钟 32.96MB'
+  },
+  {
+    slug: "music/audio-converter",
+    inputs: { sr: "96000", bd: "16", ch: "2", dur: "60" },
+    clicks: ["calcPCM()"],
+    expect: ["PCM 原始大小: 21.97 MB"],
+    ref: '96000/16/2/60s 高清1分钟 21.97MB'
+  },
+  {
+    slug: "music/audio-converter",
+    inputs: { sr: "22050", bd: "8", ch: "1", dur: "180" },
+    clicks: ["calcPCM()"],
+    expect: ["PCM 原始大小: 3.79 MB"],
+    ref: '22050/8/1/180s AM广播单声道3分钟 3.79MB'
+  },
+  {
+    slug: "music/audio-converter",
+    inputs: { sr: "192000", bd: "32", ch: "2", dur: "30" },
+    clicks: ["calcPCM()"],
+    expect: ["PCM 原始大小: 43.95 MB"],
+    ref: '192000/32/2/30s 母带30秒 43.95MB'
   }
 ];
 async function main() {
