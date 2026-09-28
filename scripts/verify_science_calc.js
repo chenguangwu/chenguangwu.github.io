@@ -596,6 +596,48 @@ const CASES = [
     expect: ["89 是素数"],
     ref: "素数判定（n=89，√89 ≈ 9.43 ⇒ 只需试 2,3,5,7，均不整除）：判定「**是素数**」，并给出位数 2、前一个素数 89−2=**89**…（实际为向前回溯得到的 89 之前的素数 83…本例锚定的「89 是素数」只依赖试除结论，无需依赖派生值）。与 91 那条互为反向对照，两条同页共存、互不削弱。",
   },
+  {
+    slug: "science/si-unit-converter",
+    inputs: { fromValue: "5", fromUnit: "7", toUnit: "10" },
+    clicks: ["convert()"],
+    expect: ["5,000"],
+    ref: '独立复算：长度量，5 千米(km,×1e3) → 米(m,×1)，result=5×1e3/1=5000，fmt 走 toLocaleString(\'zh-CN\') 得千分位 \'5,000\'。select 的 selected 在桩不生效，fromUnit/toUnit 均显式注入索引（7=km,10=m）。默认态 fromValue=1、两 select 桩取首个 option(index 0=Ym) ⇒ result=1，不命中 \'5,000\'。'
+  },
+  {
+    slug: "science/si-unit-converter",
+    inputs: { fromValue: "3", fromUnit: "10", toUnit: "13" },
+    clicks: ["convert()"],
+    expect: ["3,000"],
+    ref: '独立复算：3 米(m,×1) → 毫米(mm,×1e-3)，result=3×1/1e-3=3000 ⇒ \'3,000\'。fromUnit=10(m),toUnit=13(mm)。'
+  },
+  {
+    slug: "science/si-unit-converter",
+    inputs: { fromValue: "2", fromUnit: "7", toUnit: "13" },
+    clicks: ["convert()"],
+    expect: ["2,000,000"],
+    ref: '独立复算：2 千米(km,×1e3) → 毫米(mm,×1e-3)，result=2×1e3/1e-3=2e6 ⇒ \'2,000,000\'。fromUnit=7(km),toUnit=13(mm)。'
+  },
+  {
+    slug: "science/si-unit-converter",
+    inputs: { fromValue: "10", fromUnit: "10", toUnit: "13" },
+    clicks: ["convert()"],
+    expect: ["10,000"],
+    ref: '独立复算：10 米(m,×1) → 毫米(mm,×1e-3)，result=10×1/1e-3=10000 ⇒ \'10,000\'。避坑：原 \'1,000\' 会被 runCase 步骤3 兜底无参调用 showPrefixTable() 的\'千\'(k,factor 1e3)命中（同 countdown 兜底副作用逃生），改用 \'10,000\' 不在词头表/导出单位表。fromUnit=10(m),toUnit=13(mm)。'
+  },
+  {
+    slug: "science/si-unit-converter",
+    inputs: { fromValue: "7", fromUnit: "7", toUnit: "12" },
+    clicks: ["convert()"],
+    expect: ["700,000"],
+    ref: '独立复算：7 千米(km,×1e3) → 厘米(cm,×1e-2)，result=7×1e3/1e-2=7e5=700000 ⇒ \'700,000\'。fromUnit=7(km),toUnit=12(cm)。'
+  },
+  {
+    slug: "science/si-unit-converter",
+    inputs: { fromValue: "9", fromUnit: "7", toUnit: "13" },
+    clicks: ["convert()"],
+    expect: ["9,000,000"],
+    ref: '独立复算：9 千米(km,×1e3) → 毫米(mm,×1e-3)，result=9×1e3/1e-3=9e6=9000000 ⇒ \'9,000,000\'。fromUnit=7(km),toUnit=13(mm)。'
+  }
 ];
 
 // ---------------------------------------------------------------- main
