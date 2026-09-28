@@ -54,20 +54,22 @@ yarn-error.log*
 # ---------- 本地开发脚本（仅根目录与 scripts/）----------
 # 只忽略这两处的 `_` 前缀脚本。
 #
-# 事实纠正（2026-09-26 线上实测）：「`_` 前缀能防发布泄漏」是错误归因。
-#    真正过滤发布的是 **GitHub Pages 平台规则**——路径任一段以 `_` 或 `.` 开头即不发布，
-#    与 .gitignore 毫无关系（部署走 upload-pages-artifact + path: .，完全不读本文件）。
-#    实测：/scripts/run_gates.py → 200，/scripts/_probe_ad_metrics.js → 404；/.workbuddy/、/.git/ → 404。
-#    ⇒ 本组规则只承担「版本控制语义」职责，别把它当发布防护依赖。
+# 事实纠正（2026-09-29 二次线上实测，覆盖 09-26 版）：以下两种说法**都是错误归因**——
+#    ①「`_` 前缀能防发布泄漏」；②「GitHub Pages 平台规则拦截 `_`/`.` 前缀路径」。
+#    真实机制：CI 由 `actions/checkout` 取仓库内容 ⇒ **未提交 / 被本文件忽略的文件在 runner 上根本不存在**，自然不上线。
+#    实测（同一次线上核对）：已入库的 /i18n/tools/en/it/_index.json（`_` 前缀）→ 200、/.gitignore（`.` 前缀）→ 200；
+#    未入库的 /_qa_gates.json、/.workbuddy/（含 Google 密钥）、/scripts/_probe_ad_metrics.js → 全 404。
+#    ⇒ 本组规则 = 「版本控制语义」＋ 事实上的「发布防护」（本项目里两者是同一件事）；**别把它当平台行为依赖**。
+#    ⇒ **安全防线 = 密钥文件不入库**；一旦 `git add` 即公开。
 #
 #  不要退回写成全局 `_*.js`：会让发布目录（js/、tools/、assets/、vendor/）里的
 #    `_` 前缀文件在 git 层也被吞掉，形成「既不上线、又不在版本控制、git status 也不提示」的双重静默。
 #  不要加 `_*.py`：`_build.py`、`_test_static.py`、`_audit_*.py` 等
 #    48 个构建/门禁脚本全靠「.py 不在忽略范围」才得以入库。
 #
-#  待办（已知暴露面，待决策）：发布排除只认 `_`/`.` 前缀，故 `scripts/` 下**非** `_` 前缀的文件
-#    （run_gates.py、apply_it.py、verify_*.js、gen_*.py …）与根目录 package.json 确实已发布上线（实测 200）。
-#    如需收敛，应在 workflow 的 artifact 上传前把 scripts/ 等移出工作区（同现有 node_modules 的 mv 做法）。
+#  已知暴露面（待决策）：已入库的非 `_` 前缀文件（`scripts/run_gates.py`、`verify_*.js`、`gen_*.py` …）
+#    与根 `package.json` 已公开可下载（实测 200）。如需收敛，应在 workflow 的 artifact 上传前
+#    把 `scripts/` 等移出工作区（同现有 `node_modules` 的 mv 做法）。
 /_*.js
 /_*.sh
 /scripts/_*.js
