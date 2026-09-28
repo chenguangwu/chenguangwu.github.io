@@ -1164,6 +1164,42 @@ const CASES = [
     inputs: { data: "s1,1,10,1\ns2,2,20,2\ns3,3,30,3" },
     expect: ["竞品数： 3"],
     ref: '竞争分析：竞品数=3'
+  },
+  {
+    slug: "life/countdown-1",
+    clicks: ["switchMode('down')", "quickSet(1)"],
+    expect: ["01:00.00"],
+    ref: '独立复算：倒计时目标 1 分 = 60000ms ⇒ format 得 MM:SS.cs = 01:00.00。clicks 在页面作用域切 down + quickSet(1) 设目标，display 显示剩余 = target（elapsed=0），不依赖当前时间。默认态（up 模式 elapsed=0）display=00:00.00，不命中。'
+  },
+  {
+    slug: "life/countdown-1",
+    clicks: ["switchMode('down')", "quickSet(3)"],
+    expect: ["03:00.00"],
+    ref: '独立复算：目标 3 分 = 180000ms ⇒ 03:00.00。clicks 切 down + quickSet(3)。'
+  },
+  {
+    slug: "life/countdown-1",
+    clicks: ["switchMode('down')", "quickSet(5)"],
+    expect: ["05:00.00"],
+    ref: '独立复算：目标 5 分 = 300000ms ⇒ 05:00.00。clicks 切 down + quickSet(5)（与默认 HTML target=300000 巧合同值，但默认态为 up 模式不显示 target，仍不命中）。'
+  },
+  {
+    slug: "life/countdown-1",
+    clicks: ["switchMode('down')", "quickSet(10)"],
+    expect: ["10:00.00"],
+    ref: '独立复算：目标 10 分 = 600000ms ⇒ 10:00.00。clicks 切 down + quickSet(10)。'
+  },
+  {
+    slug: "life/countdown-1",
+    clicks: ["switchMode('down')", "quickSet(15)"],
+    expect: ["15:00.00"],
+    ref: '独立复算：目标 15 分 = 900000ms ⇒ 15:00.00。clicks 切 down + quickSet(15)。'
+  },
+  {
+    slug: "life/countdown-1",
+    clicks: ["switchMode('down')", "quickSet(25)"],
+    expect: ["25:00.00"],
+    ref: '独立复算：目标 25 分 = 1500000ms ⇒ 25:00.00。clicks 切 down + quickSet(25)。'
   }
 ];
 
