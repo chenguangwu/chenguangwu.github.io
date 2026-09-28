@@ -21,6 +21,7 @@ import fs from 'fs';
 import path from 'path';
 import vm from 'vm';
 import { fileURLToPath } from 'url';
+import { webcrypto } from 'node:crypto';
 import { JSDOM, VirtualConsole } from 'jsdom';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
@@ -432,6 +433,42 @@ async function smoke(targets, opts) {
             w2.HTMLCanvasElement.prototype.toBlob = function (cb) { if (cb) cb(new w2.Blob([], { type: 'image/png' })); };
           } catch (e) {}
           w2.matchMedia = w2.matchMedia || (() => ({ matches: false, addListener() {}, removeListener() {}, addEventListener() {}, removeEventListener() {} }));
+          // WebCrypto / TextEncoder 能力补齐（环境限制，非页面缺陷）：
+          // jsdom 只实现 crypto.getRandomValues / randomUUID，未实现 crypto.subtle，也未提供全局 TextEncoder。
+          // 加密类页面（ECDSA/RSA/AES/PBKDF2/HMAC/JWT…）因此抛 TypeError，并把异常文本渲染进 #output，
+          // 被后面的 suspicious 正则误判为「输出异常值」。真实浏览器（HTTPS secure context）完整支持 ⇒ 此处补齐环境能力。
+          // 优先注入 Node 内置真实实现（密码学主流程可真正跑通、产出真实值），失败时退回最小可用桩（保证不抛错）。
+          try { if (typeof w2.TextEncoder === 'undefined') w2.TextEncoder = TextEncoder; } catch (e) {}
+          try { if (typeof w2.TextDecoder === 'undefined') w2.TextDecoder = TextDecoder; } catch (e) {}
+          try {
+            if (w2.crypto && !w2.crypto.subtle) {
+              let real = null;
+              try { real = webcrypto.subtle; } catch (e) {}
+              if (real) {
+                Object.defineProperty(w2.crypto, 'subtle', { value: real, configurable: true });
+              } else {
+                const buf = (n) => new ArrayBuffer(n);
+                const keyObj = (type) => ({ type, algorithm: { name: 'ECDSA' }, extractable: true, usages: [] });
+                Object.defineProperty(w2.crypto, 'subtle', {
+                  configurable: true,
+                  value: {
+                    async generateKey() { return { publicKey: keyObj('public'), privateKey: keyObj('private') }; },
+                    async importKey() { return keyObj('private'); },
+                    async exportKey() { return buf(64); },
+                    async sign() { return buf(64); },
+                    async verify() { return true; },
+                    async digest() { return buf(32); },
+                    async encrypt() { return buf(32); },
+                    async decrypt() { return buf(32); },
+                    async deriveBits() { return buf(32); },
+                    async deriveKey() { return keyObj('secret'); },
+                    async wrapKey() { return buf(32); },
+                    async unwrapKey() { return keyObj('secret'); },
+                  },
+                });
+              }
+            }
+          } catch (e) {}
           w2.fetch = (u) => {
             try {
               const clean = decodeURIComponent(String(u).split('?')[0].split('#')[0]).replace(/^\/+/, '');
