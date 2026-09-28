@@ -19,10 +19,11 @@
 - 活泼专业的视觉风格
 - AI 工具（浏览器本地推理）、工具链组合、中英双语 i18n、PWA 离线、质量分级
 
-> ⚡ **动手前必读**：文末「**§ 项目特有坑与速查**」记录了反复踩到、且无法从代码推断的坑（构建/SW 缓存、i18n 英文态、内容质量判定、无头浏览器验证）。三条最高频红线先记牢：
+> ⚡ **动手前必读**：文末「**§ 项目特有坑与速查**」记录了反复踩到、且无法从代码推断的坑（构建/SW 缓存、i18n 英文态、内容质量判定、无头浏览器验证）。四条最高频红线先记牢：
 > 1. 改任何 `css/js/json` 前必须先 `python3 _build.py`（否则 SW 旧缓存不失效）
 > 2. 凡引 `js/common.js` 的页面必须同时引 `js/i18n.js`（否则 `?lang=en-US` 整页回退中文）
-> 3. `push master` 后必须查 Actions run + 线上落盘 MD5 逐文件比对，禁止以 push 成功即收尾
+> 3. 改动英文内容字典 `i18n/tools/en/**` 后同样必须重跑 `_build.py` —— 该子树已纳入 SW 版本戳（`compute_sw_build()`），否则 `_swv` 不变、CDN 继续下发旧字典
+> 4. **收尾判定只看两条：本地 `run_gates.py` 全过 + GitHub Actions 部署成功（单次查询）**。**禁止** curl 拉线上文件比对 MD5、逐 URL 打 200、sleep 等 CDN 传播、循环轮询 API（2026-09-21 起作废旧口径；不进构建产物的改动如 `*.md` / memory 日志连部署都无需等待）
 
 ---
 
@@ -218,7 +219,8 @@ chenguangwu.github.io/
 - Actions 必须先执行 `scripts/run_gates.py` 生成 `zh-tw/` 并通过五项门禁；任何门禁失败都不得上传或发布。
 - 上传前必须移出 `node_modules`，并运行 `scripts/check_pages_artifact.py`；达到 900MiB 安全阈值时应失败，不能绕过检查。
 - `actions/upload-pages-artifact` 必须保留隐藏文件以发布 `.nojekyll`，同时不得把 `.git`、`.github` 或依赖目录打进 Pages artifact。
-- 发布完成后至少验证：简体首页 200、`/zh-tw/` 200、一个繁体工具页 200、根 sitemap 200 且包含繁体 URL。
+- **发布完成后只需单次查询确认 Actions run 为 success**（Actions 页面或 `gh run list` 一次即可）即算闭环。**禁止** curl 拉线上产物做 MD5 逐文件比对、逐 URL 打 200、sleep 等待 CDN 传播或循环轮询 API（2026-09-21 起作废旧口径）；线上可用性异常由后续索引/监控任务或用户反馈暴露后再处理。
+- 例外：**不进构建产物的改动**（`*.md`、`.workbuddy/memory/*`、门禁脚本注释等）push 后可直接收尾，连 Actions 结果都不必等待。判定口诀：**「会不会让线上页面变一个字节？会→等部署成功；不会→不等。」**
 
 ### 4.5 索引提交约定（重要）
 - **不要自动执行**索引提交（全量跑约 19 分钟，拖慢会话）
@@ -709,6 +711,10 @@ python3 -m http.server 8765
 - `i18n.js` 的 `ind_*` 键仅约 50 个而行业有 279 个 → 分类页行业名**不要用 `ind_*`**，改用构建期双语层（`i18n/industry-en.json` 全覆盖 + `.t-zh/.t-en` + CSS `html[lang]` 显隐）；双语容器为 `.cat-tool` / `.tb-bi` / `.tool-intro` / `.tool-link`，分类页正文由 `scripts/category_auto_content.py` 生成
 - 英文态排查判据（`?lang=en-US`）：① `[data-i18n]` 元素运行后仍含汉字 = 字典缺键或未加载；② 可见文本含汉字 —— **必须**用 `getClientRects().length === 0` 排除 CSS 隐藏的 `.t-zh`，否则大量误报
 - 繁体页核验必须**源页配对**（`conv(源页值)` vs 繁体页值）：直接对繁体页做转换属二次转换，`twp` 非幂等（文档→文件→檔案）会大量误报；判字形残留用 OpenCC `tw` 而非 `twp`；`data-zh` / `data-i18n-*-fb` 保留简体是运行时回退设计，不是残留
+- **英文内容区（`?lang=en-US`）走三层运行时字典，全部非构建产物**：① `js/tool-i18n-en.js`（`GEN_UI_MAP` 通用 UI + `BODY_PHRASE_MAP` 全站短语）；② `i18n/tools/<ind>-phrases.json` / `<ind>-body.json`（行业层）；③ `i18n/tools/en/<ind>/<slug>.json`（**一个工具一个文件**，优先级最高，`map` 为「简体原文 → 英文」译文），配 `_index.json` 资源守卫与 `en/_common.json` 共享层。**新增或修改第三层后必须重跑 `_build.py`**（版本戳已纳入该子树，见头部红线 3）
+- **第三层字典的匹配口径**：运行时按 `el.textContent.trim()` 查表（key 与原文都 trim）；`[data-zh]` 元素用 `el.textContent = tr`，普通文本节点用 `raw.slice(0,idx) + en + raw.slice(idx+k.length)` 保留 DOM 与内链。碎片节点的译文必须带 DOM 空白约定（`"：xxx"`、`"（…）而非"`）。孤立中文标点由运行时字符级 `convertPunct()` 兜底（判据：含中文标点且不含汉字）
+- **`translateBodyPhrases()` 禁止对含表单控件的容器做整节点 `textContent` 替换**：那会把容器内 `input`/`select`/`textarea` 一起删除，页面随后 `getElementById(id).value` 抛 `Cannot read properties of null`（英文态实测 7 页中招，简体/繁体态不跑运行时 i18n 故不受影响）。守卫条件：元素有子元素**且** `querySelector('input,select,textarea')` 非空则跳过，该段正文交第三层文本节点级替换处理
+- **英文文案统一美式拼写**（`color` / `center` / `favor` / `customize` / `summarize` / `fulfillment` / `jewelry`）。批量替换时**警惕规则自污染**：`fulfilment→fulfillment` 之后再跑 `fulfil→fulfill` 会得到三写 `fulfilllment` ⇒ 替换对须「长词优先 + 短词加否定前瞻」，扫描词表同样要写 `fulfil(?!l)`，否则美式 `fulfillment` 会被 `fulfil\w*` 误报
 
 ### 内容质量
 - **A 级硬标准**：`own_len ≥ 6000`，或 `≥ 3000 且 inputs ≥ 3`；含 `formula-box` / `canvas` / `data-viz` 直接判 A；**禁止用代码膨胀凑数**
@@ -725,6 +731,13 @@ python3 -m http.server 8765
 - 本地服务 `python3 -m http.server 8137 --directory <项目根>`（后台），用完 `pkill -f "http.server 8137"`
 - 须真触发事件（`.tb-nav-link` click 才生成 megapanel）；繁体页 `set()` 会整页跳转，`goto` 后轮询 `page.url()` 稳定后再 evaluate
 
+### verify 脚本口径（`scripts/verify_*_calc.js`）
+- **`collectStrings` 只对 `innerHTML` / `textContent` 剥 HTML 标签，`el.value` 保留原文**（2026-09-28 修正）—— `value` 恒为纯文本，对它剥标签会把尖括号形态的结果整块吞掉（`it/base85-encode` 的 `<~BOu!rDZ~>` 此前永远匹配不上，而页面本身正确）。改动该函数会波及全站用例口径，**必须重跑 `run_gates.py` 的 `selfcheck_false_pass` / `discriminate_check` 两项**确认逃生项与弱用例基线未变
+- **逃生项新判据**：`expect` 恰好等于「`inputs` 各值经剥标签 + 空白归一」的形态即逃生项（`it/html-minifier` 原 `expect:["a b"]`，而输入 `<p>a</p>` + 换行 + `<p>b</p>` 归一后正是 `a b`）⇒ 定 expect 前先把注入输入按该口径跑一遍比对
+- **HTML 里带 `checked` 的 checkbox 在桩内恒 `false`**（真机默认勾选）⇒ 必须用 `checkIds` 显式还原真机默认态，否则页面走「开关全假」分支、输出恒等于输入（`it/html-minifier` 即因此退化成回显）
+- **循环体内无任何推进语句 = 真死循环**：`it/docker-run-converter` 的 `parse()` 在 image 已赋值时不递增 `i`，遇尾参（`docker run -it --rm alpine sh`）即无限循环冻死标签页，已修。判据：循环体含 `i++` / 赋值 / `next()` 任一即安全。全站 `while` 已扫（512 处，仅此 1 例）
+- **烟测 ⚠️「点击了 N 个按钮但无输出变化」≠ 页面缺陷**：若页面在加载时就执行过同名初始化（如 `it/calc-7` 末尾直接调 `loadSample()`），再点同一按钮内容自然不变。判定真伪先看页面末尾有无直接调用
+
 ---
 
 ## 热度排序约定（2026-09-12，老板明确要求）
@@ -739,6 +752,6 @@ python3 -m http.server 8765
 - **口径**：`hot-tools.json` 的 80 个「编辑精选热门工具」（老板用多 AI 整合的排名）作为热度金字塔顶端，严格保持原序不动；其余工具由 `compute_hot()` 按「通用工具类型权重（参考热门工具类型分布：转换器/计算器/生成器/编解码/哈希/二维码/密码/时间戳…）+ 质量等级 + 可发现性 + 分类加成」给确定性热度分（模型可复现、构建幂等、不抖动）。
 - ⚠️ **后续新增工具页**：无需手动排序——`main()` 会为所有工具（含新增）计算 `hot`，自动按热度排。**禁止在任一生成函数里改回按 `name`/`file` 排序**。真实流量（51.la URL 级接口 / GSC 逐页 clicks·impressions）到位后，只需重算 `hot` 字段即可，排序逻辑无需改动。
 
-> **最后更新**：2026-09-12（新增「§ 热度排序约定」——全站分类内工具与分类本身统一按热度分 `hot` 排序，新增工具自动按热度排）
+> **最后更新**：2026-09-28（① 头部红线新增「英文内容字典 `i18n/tools/en/**` 改动也须重跑 `_build.py`」，并把收尾判定改为「本地 `run_gates.py` 全过 + Actions 部署成功」，**作废线上 MD5 逐文件比对旧口径**；② §4.2 同步该口径；③ 速查新增英文三层字典规则、`translateBodyPhrases` 容器守卫、美式拼写约定与「verify 脚本口径」节）
 > 
 > 本文件是 AI 开发本项目的权威指南，如有疑问以本文件为准。

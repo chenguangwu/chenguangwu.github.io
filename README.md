@@ -79,8 +79,8 @@ GitHub Actions 会在 pull request 和推送到 `master` 时自动执行同一�
 | `scripts/` | 批量生成、审计和开发辅助脚本 |
 | `_build.py` | 项目构建入口 |
 | `AGENTS.md` | AI Agent 开发规范 |
-| `DEV-PLAN.md` | i18n 专项开发计划 |
-| `NEXT-DEV-PLAN.md` | 非 i18n 下一阶段任务计划 |
+| `DEV-PLAN.md` | 全站优化主计划（待办与开发规则） |
+| `en-dev-plan.md` | 英文内容（EN）专项开发计划 |
 
 ## 新增工具规则
 
@@ -92,14 +92,30 @@ GitHub Actions 会在 pull request 和推送到 `master` 时自动执行同一�
 6. 新页面遵守 `AGENTS.md`、`docs/i18n-spec.md` 和 `ui/设计规范.md`。
 7. 不手工修改 `json/*.json`、`sitemap.xml` 或首页构建注入的工具统计。
 
+## 英文内容（EN）专项
+
+`?lang=en-US` 下工具页的内容区由三层运行时字典提供，全部为源码维护（非构建产物）：
+
+| 层 | 位置 | 说明 |
+|---|---|---|
+| ① 通用 UI | `js/tool-i18n-en.js` | `GEN_UI_MAP` 与 `BODY_PHRASE_MAP`，全站通用文案 |
+| ② 行业层 | `i18n/tools/<ind>-phrases.json`、`<ind>-body.json` | 按行业批量覆盖 |
+| ③ 工具层 | `i18n/tools/en/<ind>/<slug>.json` | **一个工具一个文件**，优先级最高 |
+
+- 第三层 `map` 为「简体原文 → 英文译文」，配套 `_index.json` 资源守卫与 `en/_common.json` 共享层。
+- **修改或新增第三层后必须重跑 `python3 _build.py`**：该子树已纳入 Service Worker 版本戳，否则缓存键不变、CDN 会继续下发旧字典。
+- 英文文案统一使用**美式拼写**（`color` / `center` / `favor` / `customize` 等）。
+- 每批验收包含四态烟测 —— 简体、英文、繁体、繁体英文，要求均无 JS 报错与页面异常。
+
 ## 发布流程
 
 1. 在本地 HTTP 服务中验证首页、搜索、工具页和移动端布局。
 2. 运行 `python3 scripts/run_gates.py`，确保五项门禁全部通过。
 3. 提交源文件和需要版本化的构建产物；不提交 `zh-tw/`。
 4. 推送到 `master`，等待 `ToolBox Build and Deploy` 完成门禁、artifact 上传和 Pages 部署。
-5. 在 Actions 成功后验证简体首页、`/zh-tw/`、至少一个繁体工具页及根 `sitemap.xml`。
-6. 索引提交由用户侧定时任务管理；不要在普通开发会话自动运行 `_submit_*` 脚本。
+5. **Actions run 成功即算闭环**（单次查询即可）。不要 curl 拉线上产物比对 MD5、逐 URL 打 200、sleep 等待 CDN 传播或循环轮询 API；线上可用性异常由后续索引/监控任务或用户反馈暴露后再处理。
+6. 仅改文档或内存日志等**不进构建产物**的文件时，push 后可直接收尾，无需等待部署结果。
+7. 索引提交由用户侧定时任务管理；不要在普通开发会话自动运行 `_submit_*` 脚本。
 
 ## 搜索引擎提交注意事项
 
@@ -110,6 +126,7 @@ GitHub Actions 会在 pull request 和推送到 `master` 时自动执行同一�
 ## 相关文档
 
 - [开发规范](AGENTS.md)
+- [全站优化计划](DEV-PLAN.md)
+- [英文内容专项计划](en-dev-plan.md)
 - [i18n 规范](docs/i18n-spec.md)
 - [UI 设计规范](ui/设计规范.md)
-- [下一阶段开发计划](NEXT-DEV-PLAN.md)

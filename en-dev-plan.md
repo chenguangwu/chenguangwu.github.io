@@ -354,7 +354,10 @@ _en-i18n/
 
 | 缺陷 | 现象 | 根因 | 处置 |
 |---|---|---|---|
-| **容器级 `textContent` 替换销毁表单控件** | 英文态（`?lang=en-US`）下 7 个 `it` 页面抛 `Cannot read properties of null (reading 'value')`；简体/繁体态正常 | `js/tool-i18n.js::translateBodyPhrases()` 的选择器含 `div`/`li`/`span`/`a` 等**容器**，命中整段文本时执行 `el.textContent = tr`，把容器内的 `<input>/<select>` 一并删除 | 已定位（2026-09-28）：**与 EN 字典无关**（移除字典后报错完全一致）。修法须限定为「跳过含交互控件的容器」，见 §4.2 增量改造 |
+| **容器级 `textContent` 替换销毁表单控件** | 英文态（`?lang=en-US`）下 7 个 `it` 页面抛 `Cannot read properties of null (reading 'value')`；简体/繁体态正常 | `js/tool-i18n.js::translateBodyPhrases()` 的选择器含 `div`/`li`/`span`/`a` 等**容器**，命中整段文本时执行 `el.textContent = tr`，把容器内的 `<input>/<select>` 一并删除 | **已修复（2026-09-28）**：加守卫「有子元素且 `querySelector('input,select,textarea')` 非空即跳过」。**关键判据**：与 EN 字典无关（移除字典后报错完全一致） |
+| **MD5 填充位丢失（运算符优先级）** | `it/calc-10` 的 `md5('hello')` 返回错值，而同页 SHA-256 正确 | `lWordArray[w] = lWordArray[w] \|\| 0 \| (0x80 << pos)` —— `\|\|` 优先级低于 `\|`，实际解析为 `a \|\| (0\|b)`，丢失 `0x80` 填充位 | **已修复（2026-09-28）**：改为 `(a \|\| 0) \| (0x80 << pos)`；修后 `hello`/`abc`/空串三个向量与 RFC 1321 一致。全站 `grep '\|\| 0 \|'` 仅此 1 例 |
+| **`while` 循环体不推进 ⇒ 死循环冻死标签页** | `it/docker-run-converter` 遇尾参（`docker run -it --rm alpine sh`）即无限循环 | `parse()` 中 `if(!image){image=t;i++;}` —— image 已赋值时不递增 `i` | **已修复（2026-09-28）**：拆为 `if(!image){image=t;}` + 无条件 `i++;`。全站 `while` 已扫（512 处）仅此 1 例；`it/barcode-upc` 等「同类可疑」经查为误报 |
+| **verify harness 对 `el.value` 误剥 HTML 标签** | `it/base85-encode` 的 Ascii85 期望值 `<~BOu!rDZ~>` 永远匹配不上（页面本身正确） | `scripts/verify_it_calc.js::collectStrings()` 对 `value`/`innerHTML`/`textContent` 一律 `replace(/<[^>]+>/g,' ')`；`value` 恒为纯文本，剥标签会把尖括号结果整块吞掉 | **已修复（2026-09-28）**：只对 `innerHTML`/`textContent` 剥标签。**正向副作用**：暴露出 `it/html-minifier` 的「输入回显」逃生项，已重写为真实压缩产物 + 压缩率断言 |
 
 > **判据**：英文态才触发（简体/繁体不跑运行时 i18n）；错误信息固定为 `null.value` ⇒ 优先怀疑容器被整节点替换。
 
@@ -365,7 +368,15 @@ _en-i18n/
 - **适用范围**：本专项推进中触达的任何工具页 / 公共脚本 / 构建脚本缺陷（JS 报错、控件被删、计算口径错、文案名不符实等）。
 - **修复纪律**：仍走完整闭环 —— 定位根因 → 最小改动修复 → 四态烟测 + `--check` 回归 → 写进本文件（判据→处置，不带批次流水）→ 随手记 memory。
 - **不得只做记录**：把缺陷写进「已知问题」而不修 = 违规；仅在「修复超出本专项必要范围且风险高」时才例外，且必须在当轮汇报给老板拍板。
-- **已闭环案例**：`translateBodyPhrases()` 容器级替换销毁表单控件（§十四 表首行）—— 本批定位后当场修复，7 页英文态回归 0 异常。
+- **已闭环案例**：`translateBodyPhrases()` 容器级替换销毁表单控件（§十四 表首行）—— 本批定位后当场修复，7 页英文态回归 0 异常；同批还修了 `it/calc-10` MD5 填充位丢失、`it/docker-run-converter` 死循环、verify harness 的 `value` 误剥标签（详见 §十四 表）。
+
+### 14.2 验证口径与常见误判（2026-09-28 固化）
+
+- **四态烟测的 `⚠️ 点击了 N 个按钮但无输出变化` ≠ 页面缺陷**：若页面在加载时就执行过同名初始化（如 `it/calc-7` 末尾直接调 `loadSample()`），再点同一按钮内容自然不变。**判据**：先看页面末尾有无直接调用同名函数；有则是探针盲区，不算 bug、不记缺陷。
+- **桩内 checkbox 恒 `false`，而真机默认可能勾选**：HTML 写 `<input type="checkbox" checked>` 的页面在 harness 下开关全假 ⇒ 页面走「什么都不做」分支、输出恒等于输入。**处置**：用例用 `checkIds: [...]` 显式还原真机默认态，否则该页 `expect` 极易退化成「输入回显」。
+- **逃生项新形态：`expect` 恰等于「输入经归一后的形态」**：`it/html-minifier` 原 `expect:["a b"]`，而注入值经剥标签 + 空白归一后正是 `a b` ⇒ 命中与被测点无关。**判据**：定 expect 前先把 `inputs` 各值按该口径跑一遍比对。
+- **`collectStrings` 只对 `innerHTML`/`textContent` 剥标签**（2026-09-28 起）：`el.value` 保留原文 ⇒ 含尖括号的结果（`<~BOu!rDZ~>` 等）现在可直接作为 expect。该函数波及全站用例口径，改动后必须重跑 `selfcheck_false_pass` / `discriminate_check` 确认基线未变。
+- **美式拼写批量替换的自污染坑**：`fulfilment→fulfillment` 之后再跑 `fulfil→fulfill` 会得到三写 `fulfilllment`。**处置**：替换对按「长词优先 + 短词加否定前瞻」设计；扫描词表同样要写 `fulfil(?!l)`，否则美式 `fulfillment` 会被 `fulfil\w*` 误报。改完必须复扫确认 0 残留。
 
 ---
 
