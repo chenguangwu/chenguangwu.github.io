@@ -421,6 +421,48 @@ const CASES = [
     inputs: { ph: "7.45", paco2: "30", hco3: "20", pao2: "90", na: "140", cl: "100" },
     expect: ["实测HCO3符合慢性呼碱代偿。"],
     ref: '独立复算：pH7.45(正常)/PaCO2 30/HCO3 20→呼碱+代偿，慢性预期HCO3=24-0.5×10=19.0，实测20符合慢性代偿。锚取慢性呼碱代偿结论串，与病例4急性区分。'
+  },
+  {
+    slug: "clinical-lab/convert-glucose-1",
+    inputs: { val: "7", rate: "1", from: "1", to: "1" },
+    clicks: ["calc()"],
+    expect: ["7.000000"],
+    ref: 'val7 基准→基准 7.000000'
+  },
+  {
+    slug: "clinical-lab/convert-glucose-1",
+    inputs: { val: "2", rate: "1", from: "0.001", to: "1" },
+    clicks: ["calc()"],
+    expect: ["0.002000"],
+    ref: 'val2 毫→基准 0.002000'
+  },
+  {
+    slug: "clinical-lab/convert-glucose-1",
+    inputs: { val: "3", rate: "1", from: "1000", to: "1" },
+    clicks: ["calc()"],
+    expect: ["3000.000000"],
+    ref: 'val3 千→基准 3000.000000'
+  },
+  {
+    slug: "clinical-lab/convert-glucose-1",
+    inputs: { val: "4", rate: "1", from: "1", to: "0.001" },
+    clicks: ["calc()"],
+    expect: ["4000.000000"],
+    ref: 'val4 基准→毫 4000.000000'
+  },
+  {
+    slug: "clinical-lab/convert-glucose-1",
+    inputs: { val: "5", rate: "1", from: "1", to: "1000" },
+    clicks: ["calc()"],
+    expect: ["0.005000"],
+    ref: 'val5 基准→千 0.005000'
+  },
+  {
+    slug: "clinical-lab/convert-glucose-1",
+    inputs: { val: "6", rate: "1", from: "0.001", to: "1000" },
+    clicks: ["calc()"],
+    expect: ["0.000006"],
+    ref: 'val6 毫→千 0.000006'
   }
 ];
 async function main() {
