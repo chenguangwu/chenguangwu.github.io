@@ -840,6 +840,42 @@ const CASES = [
     inputs: { inputVal: "2000" },
     expect: ["25.13274124 Oe"],
     ref: 'base=2000 A/m; Oe=base/79.5774715'
+  },
+  {
+    slug: "life/concentration-converter",
+    inputs: { inputVal: "2" },
+    expect: ["2 ppm = 2 ppm"],
+    ref: '基准行：v ppm = v ppm'
+  },
+  {
+    slug: "life/concentration-converter",
+    inputs: { inputVal: "10" },
+    expect: ["0.001 pct"],
+    ref: 'base=v ppm; pct=base/10000'
+  },
+  {
+    slug: "life/concentration-converter",
+    inputs: { inputVal: "100" },
+    expect: ["100000 ppb"],
+    ref: 'base=v ppm; ppb=base/0.001'
+  },
+  {
+    slug: "life/concentration-converter",
+    inputs: { inputVal: "500" },
+    expect: ["0.05 pct"],
+    ref: 'base=v ppm; pct=base/10000'
+  },
+  {
+    slug: "life/concentration-converter",
+    inputs: { inputVal: "1000" },
+    expect: ["1000 ppm = 1000 ppm"],
+    ref: '基准行：v ppm = v ppm（避开 1.000000e+6 科学计数法含入）'
+  },
+  {
+    slug: "life/concentration-converter",
+    inputs: { inputVal: "5000" },
+    expect: ["5.000000e+6 ppb"],
+    ref: 'base=5000 ppm; ppb=base/0.001'
   }
 ];
 
