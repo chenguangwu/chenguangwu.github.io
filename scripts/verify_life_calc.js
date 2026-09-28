@@ -588,6 +588,42 @@ const CASES = [
     inputs: { inputVal: "5" },
     expect: ["英里每时： 11.18468146 mph"],
     ref: 'base=5 m/s, mph=5/0.44704'
+  },
+  {
+    slug: "life/density-converter",
+    inputs: { inputVal: "500" },
+    expect: ["克每立方厘米： 0.5 g/cm³"],
+    ref: 'base=500 kg/m³, gcm3=500/1000'
+  },
+  {
+    slug: "life/density-converter",
+    inputs: { inputVal: "2" },
+    expect: ["克每毫升： 0.002 g/mL"],
+    ref: 'base=2 kg/m³, gmL=2/1000'
+  },
+  {
+    slug: "life/density-converter",
+    inputs: { inputVal: "100" },
+    expect: ["千克每升： 0.1 kg/L"],
+    ref: 'base=100 kg/m³, kgL=100/1000'
+  },
+  {
+    slug: "life/density-converter",
+    inputs: { inputVal: "500" },
+    expect: ["磅每立方英尺： 31.21398102 lb/ft³"],
+    ref: 'base=500 kg/m³, lbft3=500/16.018463'
+  },
+  {
+    slug: "life/density-converter",
+    inputs: { inputVal: "100" },
+    expect: ["磅每立方英寸： 0.003612729201 lb/in³"],
+    ref: 'base=100 kg/m³, lbin3=100/27679.9047'
+  },
+  {
+    slug: "life/density-converter",
+    inputs: { inputVal: "3" },
+    expect: ["克每立方厘米： 0.003 g/cm³"],
+    ref: 'base=3 kg/m³, gcm3=3/1000'
   }
 ];
 
