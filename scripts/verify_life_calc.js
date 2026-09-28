@@ -480,6 +480,42 @@ const CASES = [
     inputs: { inputVal: "3" },
     expect: ["0.6086524091 tsp"],
     ref: 'base=3ml, tsp=3/4.92892159'
+  },
+  {
+    slug: "life/area-converter",
+    inputs: { inputVal: "1000000" },
+    expect: ["10000 cm²"],
+    ref: 'base=1m², cm2=1/1e-4'
+  },
+  {
+    slug: "life/area-converter",
+    inputs: { inputVal: "5000000" },
+    expect: ["0.0075 亩"],
+    ref: 'base=5m², mu=5/666.6666667'
+  },
+  {
+    slug: "life/area-converter",
+    inputs: { inputVal: "2000000" },
+    expect: ["0.0002 ha"],
+    ref: 'base=2m², ha=2/1e4'
+  },
+  {
+    slug: "life/area-converter",
+    inputs: { inputVal: "10000000" },
+    expect: ["0.002471053815 acre"],
+    ref: 'base=10m², acre=10/4046.8564224'
+  },
+  {
+    slug: "life/area-converter",
+    inputs: { inputVal: "3000000" },
+    expect: ["32.29173125 ft²"],
+    ref: 'base=3m², ft2=3/0.09290304'
+  },
+  {
+    slug: "life/area-converter",
+    inputs: { inputVal: "1000000000" },
+    expect: ["0.001 km²"],
+    ref: 'base=1000m², km2=1000/1e6'
   }
 ];
 
