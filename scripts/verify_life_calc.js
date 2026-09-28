@@ -696,6 +696,42 @@ const CASES = [
     inputs: { inputVal: "1500000000" },
     expect: ["1.5 GHz"],
     ref: 'base=1.5e9Hz, GHz=1.5e9/1e9'
+  },
+  {
+    slug: "life/flow-rate-converter",
+    inputs: { inputVal: "2" },
+    expect: ["120 L/min"],
+    ref: 'from=L/s, v=2, L/min=2/(1/60)=120'
+  },
+  {
+    slug: "life/flow-rate-converter",
+    inputs: { inputVal: "2" },
+    expect: ["7.2 m³/h"],
+    ref: 'from=L/s, v=2, m³/h=2/(1000/3600)=7.2'
+  },
+  {
+    slug: "life/flow-rate-converter",
+    inputs: { inputVal: "2" },
+    expect: ["31.70064628 gpm"],
+    ref: 'from=L/s, v=2, gpm=2/0.0630901964'
+  },
+  {
+    slug: "life/flow-rate-converter",
+    inputs: { inputVal: "2" },
+    expect: ["4.237760008 cfm"],
+    ref: 'from=L/s, v=2, cfm=2/0.471947443'
+  },
+  {
+    slug: "life/flow-rate-converter",
+    inputs: { inputVal: "3" },
+    expect: ["180 L/min"],
+    ref: 'from=L/s, v=3, L/min=3/(1/60)=180'
+  },
+  {
+    slug: "life/flow-rate-converter",
+    inputs: { inputVal: "3" },
+    expect: ["10.8 m³/h"],
+    ref: 'from=L/s, v=3, m³/h=3/(1000/3600)=10.8'
   }
 ];
 
