@@ -516,6 +516,42 @@ const CASES = [
     inputs: { inputVal: "1000000000" },
     expect: ["0.001 km²"],
     ref: 'base=1000m², km2=1000/1e6'
+  },
+  {
+    slug: "life/time-converter",
+    inputs: { inputVal: "1000" },
+    expect: ["0.01666666667 min"],
+    ref: 'base=1s, min=1/60'
+  },
+  {
+    slug: "life/time-converter",
+    inputs: { inputVal: "60000" },
+    expect: ["0.01666666667 h"],
+    ref: 'base=60s, h=60/3600'
+  },
+  {
+    slug: "life/time-converter",
+    inputs: { inputVal: "3600000" },
+    expect: ["1 h"],
+    ref: 'base=3600s, h=3600/3600'
+  },
+  {
+    slug: "life/time-converter",
+    inputs: { inputVal: "86400000" },
+    expect: ["1 day"],
+    ref: 'base=86400s, day=86400/86400'
+  },
+  {
+    slug: "life/time-converter",
+    inputs: { inputVal: "2629800" },
+    expect: ["1 month"],
+    ref: 'base=2629.8s, month=2629.8/2629800'
+  },
+  {
+    slug: "life/time-converter",
+    inputs: { inputVal: "31557600" },
+    expect: ["0.36525 day"],
+    ref: 'base=31557.6s, day=31557.6/86400'
   }
 ];
 
