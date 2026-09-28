@@ -2267,18 +2267,22 @@ def generate_split_jsons(tools):
         size_kb = os.path.getsize(path) / 1024
         print('  %-12s %3d tools  %5.1fKB' % (ind, len(items), size_kb))
 
-    # Clear orphan industry files without deleting them. This keeps rebuilds safe
-    # on environments that reject bulk file removal while preventing deleted
-    # tools from remaining in the lazy-loaded industry indexes.
+    # 清理孤儿 industry json：优先物理删除；若环境不允许删除（如受限沙箱），
+    # 回退为清空为 []，避免重建失败。两条路径都保证已下架行业的工具不再残留在
+    # 懒加载索引里。（2026-09-29：此前只清空不删除，导致 7 个空壳长期滞留。）
     active_files = {'industry-%s.json' % ind for ind in industries}
     for filename in glob.glob(os.path.join(json_dir, 'industry-*.json')):
         base = os.path.basename(filename)
         # industry-groups.json 是 2 级分组导航产物，不在这里清理
         if base == 'industry-groups.json' or base in active_files:
             continue
-        with open(filename, 'w', encoding='utf-8') as f:
-            json.dump([], f)
-        print('  cleared orphan %s' % base)
+        try:
+            os.remove(filename)
+            print('  removed orphan %s' % base)
+        except OSError:
+            with open(filename, 'w', encoding='utf-8') as f:
+                json.dump([], f)
+            print('  cleared orphan %s' % base)
     
 
 # 全站 lastmod 映射（{url: 'YYYY-MM-DD'}），由 main() 在构建时填充为模块全局，
