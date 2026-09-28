@@ -948,6 +948,42 @@ const CASES = [
     inputs: { inputVal: "6894.757293" },
     expect: ["6.894757293 kPa"],
     ref: '1 psi = 6894.757293 Pa'
+  },
+  {
+    slug: "life/radiation-converter",
+    inputs: { inputVal: "2" },
+    expect: ["200 rad"],
+    ref: 'v=2 from=Gy: 拉德(吸收剂量)=2/0.01=200 rad'
+  },
+  {
+    slug: "life/radiation-converter",
+    inputs: { inputVal: "2" },
+    expect: ["2000 mGy"],
+    ref: 'v=2 from=Gy: 毫戈=2/0.001=2000 mGy'
+  },
+  {
+    slug: "life/radiation-converter",
+    inputs: { inputVal: "2" },
+    expect: ["2 Sv"],
+    ref: 'v=2 from=Gy: 希沃特=2/1=2 Sv (等效)'
+  },
+  {
+    slug: "life/radiation-converter",
+    inputs: { inputVal: "2" },
+    expect: ["2000 mSv"],
+    ref: 'v=2 from=Gy: 毫希=2/0.001=2000 mSv'
+  },
+  {
+    slug: "life/radiation-converter",
+    inputs: { inputVal: "2" },
+    expect: ["200 rem"],
+    ref: 'v=2 from=Gy: 雷姆=2/0.01=200 rem'
+  },
+  {
+    slug: "life/radiation-converter",
+    inputs: { inputVal: "5" },
+    expect: ["500 rad"],
+    ref: 'v=5 from=Gy: 拉德=5/0.01=500 rad'
   }
 ];
 
