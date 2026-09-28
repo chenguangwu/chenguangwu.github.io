@@ -624,6 +624,42 @@ const CASES = [
     inputs: { inputVal: "3" },
     expect: ["克每立方厘米： 0.003 g/cm³"],
     ref: 'base=3 kg/m³, gcm3=3/1000'
+  },
+  {
+    slug: "life/energy-converter",
+    inputs: { inputVal: "5000" },
+    expect: ["5 kJ"],
+    ref: 'base=5000J, kJ=5000/1000'
+  },
+  {
+    slug: "life/energy-converter",
+    inputs: { inputVal: "2000" },
+    expect: ["2 kJ"],
+    ref: 'base=2000J, kJ=2000/1000'
+  },
+  {
+    slug: "life/energy-converter",
+    inputs: { inputVal: "3600" },
+    expect: ["3.6 kJ"],
+    ref: 'base=3600J, kJ=3600/1000'
+  },
+  {
+    slug: "life/energy-converter",
+    inputs: { inputVal: "3600" },
+    expect: ["1 Wh"],
+    ref: 'base=3600J, Wh=3600/3600'
+  },
+  {
+    slug: "life/energy-converter",
+    inputs: { inputVal: "100" },
+    expect: ["23.90057361 cal"],
+    ref: 'base=100J, cal=100/4.184'
+  },
+  {
+    slug: "life/energy-converter",
+    inputs: { inputVal: "1000" },
+    expect: ["0.9478171227 BTU"],
+    ref: 'base=1000J, BTU=1000/1055.05585'
   }
 ];
 
