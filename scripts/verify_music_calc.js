@@ -283,6 +283,48 @@ const CASES = [
     clicks: ["calcFreq2Note()"],
     expect: ["F3 174.6141 Hz"],
     ref: '独立复算：midi=69+12·log2(174.61/440)=53.0→F3，exactFreq=440×2^((53-69)/12)=174.6141。锚唯一。注：音符→频率方向因 harness 注入 octaveInput(number) 后 read 为 NaN 不兼容，本批仅加固频率→音符方向。'
+  },
+  {
+    slug: "music/convert-speed",
+    inputs: { dur: "180", ob: "120", nb: "180" },
+    clicks: ["calc()"],
+    expect: ["变速比 ×1.5000"],
+    ref: '180s/120BPM→180BPM 变速比1.5000 提速50% 目标时长120s'
+  },
+  {
+    slug: "music/convert-speed",
+    inputs: { dur: "180", ob: "120", nb: "80" },
+    clicks: ["calc()"],
+    expect: ["变速比 ×0.6667"],
+    ref: '180s/120BPM→80BPM 变速比0.6667 提速-33% 目标时长270s'
+  },
+  {
+    slug: "music/convert-speed",
+    inputs: { dur: "180", ob: "100", nb: "125" },
+    clicks: ["calc()"],
+    expect: ["变速比 ×1.2500"],
+    ref: '180s/100BPM→125BPM 变速比1.2500 提速25% 目标时长144s'
+  },
+  {
+    slug: "music/convert-speed",
+    inputs: { dur: "180", ob: "200", nb: "100" },
+    clicks: ["calc()"],
+    expect: ["变速比 ×0.5000"],
+    ref: '180s/200BPM→100BPM 变速比0.5000 提速-50% 目标时长360s'
+  },
+  {
+    slug: "music/convert-speed",
+    inputs: { dur: "180", ob: "100", nb: "200" },
+    clicks: ["calc()"],
+    expect: ["变速比 ×2.0000"],
+    ref: '180s/100BPM→200BPM 变速比2.0000 提速100% 目标时长90s'
+  },
+  {
+    slug: "music/convert-speed",
+    inputs: { dur: "180", ob: "144", nb: "120" },
+    clicks: ["calc()"],
+    expect: ["变速比 ×0.8333"],
+    ref: '180s/144BPM→120BPM 变速比0.8333 提速-17% 目标时长216s'
   }
 ];
 async function main() {
