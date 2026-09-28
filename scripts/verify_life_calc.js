@@ -804,6 +804,42 @@ const CASES = [
     inputs: { inputVal: "15" },
     expect: ["km/L： 6.6666667"],
     ref: 'v=15 from=L100 → kmL=100/15'
+  },
+  {
+    slug: "life/magnet-converter",
+    inputs: { inputVal: "2" },
+    expect: ["2 Am = 2 A/m"],
+    ref: 'H 类换算：base=v*A/m; 1 Oe=79.5774715 A/m; 真空 B≈μ0H*1e4 G'
+  },
+  {
+    slug: "life/magnet-converter",
+    inputs: { inputVal: "10" },
+    expect: ["0.1256637062 Oe"],
+    ref: 'base=10 A/m; Oe=base/79.5774715'
+  },
+  {
+    slug: "life/magnet-converter",
+    inputs: { inputVal: "20" },
+    expect: ["20 Am = 20 A/m"],
+    ref: 'H 基准：v Am = v A/m'
+  },
+  {
+    slug: "life/magnet-converter",
+    inputs: { inputVal: "100" },
+    expect: ["1.256637062 Oe"],
+    ref: 'base=100 A/m; Oe=base/79.5774715'
+  },
+  {
+    slug: "life/magnet-converter",
+    inputs: { inputVal: "500" },
+    expect: ["500 Am = 500 A/m"],
+    ref: 'H 基准：v Am = v A/m'
+  },
+  {
+    slug: "life/magnet-converter",
+    inputs: { inputVal: "2000" },
+    expect: ["25.13274124 Oe"],
+    ref: 'base=2000 A/m; Oe=base/79.5774715'
   }
 ];
 
