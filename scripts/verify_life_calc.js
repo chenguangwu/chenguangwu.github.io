@@ -768,6 +768,42 @@ const CASES = [
     inputs: { inputVal: "2500" },
     expect: ["0.0025 Mbps"],
     ref: 'from=bps, v=2500, Mbps=2500/1e6=0.0025'
+  },
+  {
+    slug: "life/fuel-converter",
+    inputs: { inputVal: "8" },
+    expect: ["mpg(美)： 29.401823"],
+    ref: 'v=8 from=L100 → mpgUS=235.214583/8'
+  },
+  {
+    slug: "life/fuel-converter",
+    inputs: { inputVal: "8" },
+    expect: ["mpg(英)： 35.310117"],
+    ref: 'v=8 from=L100 → mpgUK=282.480936/8'
+  },
+  {
+    slug: "life/fuel-converter",
+    inputs: { inputVal: "8" },
+    expect: ["km/L： 12.5"],
+    ref: 'v=8 from=L100 → kmL=100/8'
+  },
+  {
+    slug: "life/fuel-converter",
+    inputs: { inputVal: "15" },
+    expect: ["mpg(美)： 15.680972"],
+    ref: 'v=15 from=L100 → mpgUS=235.214583/15'
+  },
+  {
+    slug: "life/fuel-converter",
+    inputs: { inputVal: "15" },
+    expect: ["mpg(英)： 18.832062"],
+    ref: 'v=15 from=L100 → mpgUK=282.480936/15'
+  },
+  {
+    slug: "life/fuel-converter",
+    inputs: { inputVal: "15" },
+    expect: ["km/L： 6.6666667"],
+    ref: 'v=15 from=L100 → kmL=100/15'
   }
 ];
 
