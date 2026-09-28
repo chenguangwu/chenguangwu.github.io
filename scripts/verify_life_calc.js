@@ -372,6 +372,42 @@ const CASES = [
     inputs: { inputVal: "100" },
     expect: ["1.745329252"],
     ref: 'v=100° 弧度 = 100 ÷ 57.295779513 = 1.745329252'
+  },
+  {
+    slug: "life/length-converter",
+    inputs: { inputVal: "5" },
+    expect: ["0.01640419948 英尺"],
+    ref: 'fromUnit 框架默认 mm；meters=v*0.001；锚取『实际:』后真值+单位，避开默认 v=1/mm 产物'
+  },
+  {
+    slug: "life/length-converter",
+    inputs: { inputVal: "100" },
+    expect: ["0.3280839895 英尺"],
+    ref: 'ft=0.1/0.3048'
+  },
+  {
+    slug: "life/length-converter",
+    inputs: { inputVal: "3" },
+    expect: ["0.009842519685 英尺"],
+    ref: 'ft=0.003/0.3048'
+  },
+  {
+    slug: "life/length-converter",
+    inputs: { inputVal: "0.5" },
+    expect: ["0.01968503937 英寸"],
+    ref: 'in=0.0005/0.0254'
+  },
+  {
+    slug: "life/length-converter",
+    inputs: { inputVal: "2" },
+    expect: ["0.002187226597 码"],
+    ref: 'yd=0.002/0.9144'
+  },
+  {
+    slug: "life/length-converter",
+    inputs: { inputVal: "10" },
+    expect: ["0.3937007874 英寸"],
+    ref: 'in=0.01/0.0254'
   }
 ];
 
