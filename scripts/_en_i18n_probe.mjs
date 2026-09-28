@@ -13,14 +13,15 @@
  *   node scripts/_en_i18n_probe.mjs --reindex <industry>              重建 i18n/tools/en/<ind>/_index.json
  *   node scripts/_en_i18n_probe.mjs --done <industry>/<slug>           单工具验收通过后从 pending 清单移除（逐工具记账）
  *   node scripts/_en_i18n_probe.mjs --promote <industry>              行业全绿后从 _en-i18n/industries.md 删行
+ *   node scripts/_en_i18n_probe.mjs --smoke <industry>[/<slug>] [--en] 功能烟测：页面 JS 无报错 + 主流程可运行（--en 为英文态）
  *
- * 退出码：0 = 通过；1 = 有残留 / 不一致（列出明细）。
+ * 退出码：0 = 通过；1 = 有残留 / 不一致 / 报错（列出明细）。
  */
 import fs from 'fs';
 import path from 'path';
 import vm from 'vm';
 import { fileURLToPath } from 'url';
-import { JSDOM } from 'jsdom';
+import { JSDOM, VirtualConsole } from 'jsdom';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(HERE, '..');
@@ -82,6 +83,24 @@ function probePage(htmlPath, lang) {
 }
 
 const tick = (ms = 4) => new Promise((r) => setTimeout(r, ms));
+
+// 全页快照（文本节点 + 表单控件 value）——判断「主流程是否真的产出了内容」。
+// 必须含表单 value：大量工具把结果写进 `<textarea readonly id="output">` 的 value（不在文本节点里）。
+function snapText(w) {
+  let s = '';
+  const k = w.document.createTreeWalker(w.document.body, w.NodeFilter.SHOW_TEXT, null, false);
+  let n;
+  while ((n = k.nextNode())) s += (n.nodeValue || '') + '\u0001';
+  for (const el of w.document.querySelectorAll('input, textarea, select')) s += '#' + (el.value || '') + '\u0001';
+  return s;
+}
+// 读取输出元素的值（表单控件读 value，其余读 textContent）
+function readOut(el) {
+  if (!el) return '';
+  const tag = (el.tagName || '').toUpperCase();
+  if (tag === 'TEXTAREA' || tag === 'INPUT' || tag === 'SELECT') return el.value || '';
+  return el.textContent || '';
+}
 
 async function settle(getPending, rounds = 60) {
   for (let i = 0; i < rounds; i++) {
@@ -358,6 +377,133 @@ function done(target) {
     + (data.tools.length === 0 ? '（行业已全绿，可 --promote ' + ind + '）' : ''));
 }
 
+// ---------- 模式：smoke（功能烟测：JS 无报错 + 主流程可运行） ----------
+// 与 --check 互补：--check 只看「文本是否残留中文」，本模式看「页面还跑不跑得动」。
+// 用 runScripts:'dangerously' 真实执行页面内联脚本（外部 CDN/JS 不加载，需 i18n 层时手动 eval 模拟），
+// 捕获 jsdomError / window.error / unhandledrejection，再点击主流程按钮检查输出。
+const SMOKE_BTN_SKIP = /copy|clear|reset|theme|toggle|download|share|print|save|delete|remove|upload|paste/i;
+async function smoke(targets, opts) {
+  let bad = 0;
+  let total = 0;
+  for (const target of targets) {
+    const seg = target.split('/');
+    const ind = seg[0];
+    const tools = seg[1] ? [{ slug: seg[1], file: path.join(ROOT, BASE, ind, seg[1] + '.html') }] : industryTools(ind);
+    for (const t of tools) {
+      if (!fs.existsSync(t.file)) { console.error('缺失: ' + t.file); bad++; continue; }
+      total++;
+      const errors = [];
+      const envNotes = [];
+      const vc = new VirtualConsole();
+      vc.on('jsdomError', (e) => {
+        const msg = 'jsdomError: ' + ((e && e.message) || String(e));
+        // 「Not implemented: …」= jsdom 未实现的原生 API（alert/clipboard/canvas 等），属环境限制、非页面缺陷
+        if (/Not implemented/.test(msg)) envNotes.push(msg); else errors.push(msg);
+      });
+      const dom = new JSDOM(fs.readFileSync(t.file, 'utf8'), {
+        url: 'https://toolbox.local/' + BASE + '/' + ind + '/' + t.slug + '.html?lang=' + (opts.en ? 'en-US' : 'zh-CN'),
+        runScripts: 'dangerously',
+        pretendToBeVisual: true,
+        virtualConsole: vc,
+        beforeParse(w2) {
+          w2.lucide = { createIcons() {} };
+          w2.scrollTo = () => {};
+          w2.alert = () => {};
+          w2.confirm = () => true;
+          w2.prompt = () => '';
+          try { w2.navigator.clipboard = { writeText: () => Promise.resolve(), readText: () => Promise.resolve('') }; } catch (e) {}
+          // canvas 2D 桩：jsdom 无 canvas 实现（getContext 返回 null），会让条形码/绘图类页面误报 TypeError。
+          // 真实浏览器有 canvas ⇒ 此处只补环境能力，不做逻辑替换。所有绘图方法 no-op、属性可读可写。
+          try {
+            const mkCtx = () => new Proxy({}, {
+              get(t, k) {
+                if (k === 'canvas') return { width: 300, height: 150 };
+                if (k === 'measureText') return () => ({ width: 0 });
+                if (k === 'getImageData') return (x, y, wd, ht) => ({ data: new Uint8ClampedArray(Math.max(4, wd * ht * 4)), width: wd, height: ht });
+                if (k === 'createLinearGradient' || k === 'createRadialGradient') return () => ({ addColorStop() {} });
+                if (k === 'getContextAttributes') return () => ({});
+                if (k in t) return t[k];
+                return typeof k === 'string' ? () => {} : undefined;
+              },
+              set(t, k, v) { t[k] = v; return true; },
+            });
+            w2.HTMLCanvasElement.prototype.getContext = function () { return mkCtx(); };
+            w2.HTMLCanvasElement.prototype.toDataURL = function () { return 'data:image/png;base64,'; };
+            w2.HTMLCanvasElement.prototype.toBlob = function (cb) { if (cb) cb(new w2.Blob([], { type: 'image/png' })); };
+          } catch (e) {}
+          w2.matchMedia = w2.matchMedia || (() => ({ matches: false, addListener() {}, removeListener() {}, addEventListener() {}, removeEventListener() {} }));
+          w2.fetch = (u) => {
+            try {
+              const clean = decodeURIComponent(String(u).split('?')[0].split('#')[0]).replace(/^\/+/, '');
+              const data = fs.readFileSync(path.join(ROOT, clean), 'utf8');
+              return Promise.resolve({ ok: true, status: 200, json: async () => JSON.parse(data), text: async () => data });
+            } catch (e) {
+              return Promise.resolve({ ok: false, status: 404, json: async () => null, text: async () => '' });
+            }
+          };
+          w2.addEventListener('error', (e) => errors.push('window.error: ' + ((e && (e.message || (e.error && e.error.message))) || 'unknown')));
+          w2.addEventListener('unhandledrejection', (e) => errors.push('unhandledrejection: ' + String((e && e.reason) || '')));
+        },
+      });
+      const w = dom.window;
+      await tick(30);
+      if (opts.en) {
+        try { w.__TI18N_EN = enData(); w.eval(I18N_SRC()); w.eval(TI18N_SRC()); } catch (e) { errors.push('en-eval: ' + e.message); }
+        await tick(20);
+      }
+      // 空输入补样本值：让主流程真正跑起来（只填空值，不覆盖页面预设）；
+      // 数字类输入喂纯数字（条形码/编码类对字符集敏感），其余喂混合样本。
+      let filled = 0;
+      for (const el of w.document.querySelectorAll('input:not([type=checkbox]):not([type=radio]):not([type=button]):not([type=submit]):not([type=file]):not([type=range]):not([type=color]), textarea')) {
+        if (el.disabled || el.readOnly) continue;
+        if ((el.value || '') !== '') continue;
+        const hint = ((el.getAttribute('placeholder') || '') + (el.getAttribute('aria-label') || '') + (el.getAttribute('id') || '')).toLowerCase();
+        try {
+          const numLike = /数字|number|digit|numeric/.test(hint) && !/文本|文字|字母|明文|密文|text|letter|word/.test(hint);
+          el.value = numLike ? '12345678' : 'Hello World 123';
+          el.dispatchEvent(new w.Event('input', { bubbles: true }));
+          el.dispatchEvent(new w.Event('change', { bubbles: true }));
+          filled++;
+        } catch (e) {}
+        if (filled >= 3) break;
+      }
+      const outEl = w.document.querySelector('#output, #result, .result, .tool-output, output, pre');
+      let clicked = 0;
+      let produced = false;
+      const btns = [...w.document.querySelectorAll('button[onclick]')]
+        .filter((b) => !SMOKE_BTN_SKIP.test(b.getAttribute('onclick') || ''));
+      // 逐按钮独立判定产出：连点两个按钮时，后一个（如「解码」）常会覆盖/清空前一个的产出，
+      // 若只在末尾比对终态就会误判为「无产出」。
+      for (const b of btns.slice(0, 3)) {
+        const s0 = snapText(w);
+        try { b.click(); clicked++; } catch (e) { errors.push('click: ' + e.message); }
+        await tick(35);
+        if (snapText(w) !== s0) produced = true;
+      }
+      const afterOut = readOut(outEl);
+      const suspicious = /(^|[^A-Za-z])(NaN|undefined|Infinity)($|[^A-Za-z])/.test(afterOut);
+      w.close();
+      if (errors.length || suspicious) {
+        bad++;
+        console.log('❌ ' + ind + '/' + t.slug + (opts.en ? ' [en]' : '')
+          + (errors.length ? '  报错 ' + errors.length : '') + (suspicious ? '  输出异常值' : ''));
+        for (const e of errors.slice(0, 5)) console.log('     · ' + e.slice(0, 150));
+        if (suspicious) console.log('     · 输出含 NaN/undefined/Infinity: ' + afterOut.slice(0, 100));
+      } else if (!clicked) {
+        console.log('ℹ️  ' + ind + '/' + t.slug + (opts.en ? ' [en]' : '') + ' 无主流程按钮（查询/展示类）');
+      } else if (!produced) {
+        console.log('⚠️  ' + ind + '/' + t.slug + (opts.en ? ' [en]' : '')
+          + '  点击了 ' + clicked + ' 个按钮但无输出变化'
+          + (envNotes.length ? '（jsdom 未实现 ' + envNotes.length + ' 项）' : ''));
+      } else if (envNotes.length) {
+        console.log('ℹ️  ' + ind + '/' + t.slug + (opts.en ? ' [en]' : '') + ' OK（jsdom 未实现提示 ' + envNotes.length + ' 项）');
+      }
+    }
+  }
+  console.log('\n[smoke] 共 ' + total + ' 页，异常 ' + bad + ' 页');
+  process.exitCode = bad ? 1 : 0;
+}
+
 // ---------- 模式：reindex ----------
 function reindex(ind) {
   const dir = path.join(EN_DIR, ind);
@@ -391,7 +537,7 @@ function promote(ind) {
 
 // ---------- CLI ----------
 const argv = process.argv.slice(2);
-const mode = argv.find((a) => a.startsWith('--') && a !== '--tw');
+const mode = argv.find((a) => a.startsWith('--') && a !== '--tw' && a !== '--en');
 const args = argv.filter((a) => !a.startsWith('--'));
 if (argv.indexOf('--tw') > -1) BASE = 'zh-tw/tools';   // 校验繁体构建产物（中文态还原、英文态同形受益）
 
@@ -403,6 +549,7 @@ if (argv.indexOf('--tw') > -1) BASE = 'zh-tw/tools';   // 校验繁体构建产�
     case '--extract': await extract(args[0]); break;
     case '--check': await check(args); break;
     case '--roundtrip': await roundtrip(args); break;
+    case '--smoke': await smoke(args, { en: argv.indexOf('--en') > -1 }); break;
     case '--reindex': reindex(args[0]); break;
     case '--done': done(args[0]); break;
     case '--promote': promote(args[0]); break;
