@@ -876,6 +876,42 @@ const CASES = [
     inputs: { inputVal: "5000" },
     expect: ["5.000000e+6 ppb"],
     ref: 'base=5000 ppm; ppb=base/0.001'
+  },
+  {
+    slug: "life/power-converter",
+    inputs: { inputVal: "2" },
+    expect: ["0.002 kW"],
+    ref: '1 W=0.001 kW ⇒ 2 W=2×0.001=0.002 kW'
+  },
+  {
+    slug: "life/power-converter",
+    inputs: { inputVal: "50" },
+    expect: ["0.05 kW"],
+    ref: '50 W÷1000=0.05 kW'
+  },
+  {
+    slug: "life/power-converter",
+    inputs: { inputVal: "500" },
+    expect: ["0.5 kW"],
+    ref: '500 W÷1000=0.5 kW'
+  },
+  {
+    slug: "life/power-converter",
+    inputs: { inputVal: "2000" },
+    expect: ["2 kW"],
+    ref: '2000 W÷1000=2 kW（避默认态 0.001 kW 含 1 kW 尾数陷阱）'
+  },
+  {
+    slug: "life/power-converter",
+    inputs: { inputVal: "5000" },
+    expect: ["5 kW"],
+    ref: '5000 W÷1000=5 kW'
+  },
+  {
+    slug: "life/power-converter",
+    inputs: { inputVal: "10000" },
+    expect: ["13.59621617 hp"],
+    ref: '10000 W÷735.49875=13.59621617 hp（避默认态 0.001359621617 hp 含 1.359621617 hp 尾数陷阱）'
   }
 ];
 
