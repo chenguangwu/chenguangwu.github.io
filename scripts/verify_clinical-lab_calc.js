@@ -547,6 +547,48 @@ const CASES = [
     clicks: ["calc()"],
     expect: ["4.00 AST/ALT (De Ritis比值)"],
     ref: 'ALT25/AST100 德Ritis=4.00 明显升高'
+  },
+  {
+    slug: "clinical-lab/flow-cytometry-ratio",
+    inputs: { cd4: "20", cd8: "40" },
+    clicks: ["calc()"],
+    expect: ["计算结果 0.50 CD4/CD8 比值 — 比值降低"],
+    ref: 'CD4 20%/CD8 40% 比值0.50 倒置(正常T/B/NK默认)'
+  },
+  {
+    slug: "clinical-lab/flow-cytometry-ratio",
+    inputs: { cd4: "60", cd8: "20" },
+    clicks: ["calc()"],
+    expect: ["计算结果 3.00 CD4/CD8 比值 — 比值升高"],
+    ref: 'CD4 60%/CD8 20% 比值3.00 升高'
+  },
+  {
+    slug: "clinical-lab/flow-cytometry-ratio",
+    inputs: { cd4: "30", cd8: "30" },
+    clicks: ["calc()"],
+    expect: ["计算结果 1.00 CD4/CD8 比值 — 正常范围"],
+    ref: 'CD4 30%/CD8 30% 比值1.00 正常'
+  },
+  {
+    slug: "clinical-lab/flow-cytometry-ratio",
+    inputs: { cd4: "50", cd8: "10" },
+    clicks: ["calc()"],
+    expect: ["计算结果 5.00 CD4/CD8 比值 — 比值升高"],
+    ref: 'CD4 50%/CD8 10% 比值5.00 升高'
+  },
+  {
+    slug: "clinical-lab/flow-cytometry-ratio",
+    inputs: { cd4: "10", cd8: "50" },
+    clicks: ["calc()"],
+    expect: ["计算结果 0.20 CD4/CD8 比值 — 比值降低"],
+    ref: 'CD4 10%/CD8 50% 比值0.20 重度倒置'
+  },
+  {
+    slug: "clinical-lab/flow-cytometry-ratio",
+    inputs: { cd4: "24", cd8: "12" },
+    clicks: ["calc()"],
+    expect: ["计算结果 2.00 CD4/CD8 比值 — 正常范围"],
+    ref: 'CD4 24%/CD8 12% 比值2.00 正常'
   }
 ];
 async function main() {
