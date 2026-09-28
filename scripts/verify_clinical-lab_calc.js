@@ -349,6 +349,42 @@ const CASES = [
     inputs: { val1: "12.0" },
     expect: ["平均血糖(eAG) = 16.5 mmol/L (298 mg/dL)"],
     ref: '独立复算：v=12.0 ⇒ eag_mgdl=28.7×12.0−46.7=297.7, eag_mmol=16.538⇒16.5, eag_mgdl.toFixed(0)=298（297.7 四舍五入）。完整串含 (298 mg/dL)，不误命中。'
+  },
+  {
+    slug: "clinical-lab/coagulation-inr",
+    inputs: { pt: "30", ptNormal: "12", isi: "1" },
+    expect: ["2.50 INR 国际标准化比值"],
+    ref: '独立复算：INR=(PT/PT正常)^ISI=(30/12)^1=2.5 ⇒ \'2.50 INR 国际标准化比值\'。锚取完整 result 标签串（含后缀），默认态(14.5/12/1→1.21)不命中。'
+  },
+  {
+    slug: "clinical-lab/coagulation-inr",
+    inputs: { pt: "24", ptNormal: "12", isi: "1" },
+    expect: ["2.00 INR 国际标准化比值"],
+    ref: '独立复算：INR=(24/12)^1=2.0 ⇒ \'2.00 INR 国际标准化比值\'。默认态 targetInfo 为 \'2 - 3\'（空格分隔、无小数），不与 \'2.00\' 误匹配。'
+  },
+  {
+    slug: "clinical-lab/coagulation-inr",
+    inputs: { pt: "36", ptNormal: "12", isi: "1" },
+    expect: ["3.00 INR 国际标准化比值"],
+    ref: '独立复算：INR=(36/12)^1=3.0 ⇒ \'3.00 INR 国际标准化比值\'。默认态无 3.00 串。'
+  },
+  {
+    slug: "clinical-lab/coagulation-inr",
+    inputs: { pt: "60", ptNormal: "12", isi: "1" },
+    expect: ["5.00 INR 国际标准化比值"],
+    ref: '独立复算：INR=(60/12)^1=5.0 ⇒ \'5.00 INR 国际标准化比值\'（状态变\'高于目标-出血风险增加\'）。默认态无 5.00。'
+  },
+  {
+    slug: "clinical-lab/coagulation-inr",
+    inputs: { pt: "14.5", ptNormal: "12", isi: "2" },
+    expect: ["1.46 INR 国际标准化比值"],
+    ref: '独立复算：INR=(14.5/12)^2=1.2083^2≈1.46 ⇒ \'1.46 INR 国际标准化比值\'。与默认态 isi=1 的 1.21 区分，PTA 仍 89% 但 INR 标签串唯一。'
+  },
+  {
+    slug: "clinical-lab/coagulation-inr",
+    inputs: { pt: "50", ptNormal: "12", isi: "1" },
+    expect: ["4.17 INR 国际标准化比值"],
+    ref: '独立复算：INR=(50/12)^1≈4.17 ⇒ \'4.17 INR 国际标准化比值\'（状态\'高于目标\'）。默认态无 4.17。'
   }
 ];
 async function main() {
