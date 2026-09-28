@@ -1056,6 +1056,42 @@ const CASES = [
     inputs: { inputVal: "300" },
     expect: ["欧盟码： 48"],
     ref: 'v=300 from=length: 欧盟码=1.5×(30+2)=48'
+  },
+  {
+    slug: "life/roman-numeral",
+    inputs: { numInput: "1994" },
+    expect: ["MCMXCIV"],
+    ref: 'numInput=1994 → toRoman 确定性映射 → 罗马数字 MCMXCIV（整数逻辑，无小数含入）'
+  },
+  {
+    slug: "life/roman-numeral",
+    inputs: { numInput: "1984" },
+    expect: ["MCMLXXXIV"],
+    ref: 'numInput=1984 → MCMLXXXIV'
+  },
+  {
+    slug: "life/roman-numeral",
+    inputs: { numInput: "1776" },
+    expect: ["MDCCLXXVI"],
+    ref: 'numInput=1776 → MDCCLXXVI'
+  },
+  {
+    slug: "life/roman-numeral",
+    inputs: { numInput: "1492" },
+    expect: ["MCDXCII"],
+    ref: 'numInput=1492 → MCDXCII'
+  },
+  {
+    slug: "life/roman-numeral",
+    inputs: { numInput: "2025" },
+    expect: ["MMXXV"],
+    ref: 'numInput=2025 → MMXXV（与默认 MMXXIV 仅末位不同，整串不误匹配）'
+  },
+  {
+    slug: "life/roman-numeral",
+    inputs: { numInput: "3999" },
+    expect: ["MMMCMXCIX"],
+    ref: 'numInput=3999 → MMMCMXCIX（范围上限）'
   }
 ];
 
