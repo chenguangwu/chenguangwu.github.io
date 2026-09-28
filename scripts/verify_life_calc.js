@@ -552,6 +552,42 @@ const CASES = [
     inputs: { inputVal: "31557600" },
     expect: ["0.36525 day"],
     ref: 'base=31557.6s, day=31557.6/86400'
+  },
+  {
+    slug: "life/speed-converter",
+    inputs: { inputVal: "50" },
+    expect: ["千米每时： 179.9999999 km/h"],
+    ref: 'base=50 m/s, kmh=50/0.277777778'
+  },
+  {
+    slug: "life/speed-converter",
+    inputs: { inputVal: "200" },
+    expect: ["英里每时： 447.3872584 mph"],
+    ref: 'base=200 m/s, mph=200/0.44704'
+  },
+  {
+    slug: "life/speed-converter",
+    inputs: { inputVal: "30" },
+    expect: ["节： 58.31533482 knot"],
+    ref: 'base=30 m/s, knot=30/0.514444444'
+  },
+  {
+    slug: "life/speed-converter",
+    inputs: { inputVal: "10" },
+    expect: ["马赫： 0.02938583603 Mach"],
+    ref: 'base=10 m/s, mach=10/340.3'
+  },
+  {
+    slug: "life/speed-converter",
+    inputs: { inputVal: "500" },
+    expect: ["千米每时： 1799.999999 km/h"],
+    ref: 'base=500 m/s, kmh=500/0.277777778'
+  },
+  {
+    slug: "life/speed-converter",
+    inputs: { inputVal: "5" },
+    expect: ["英里每时： 11.18468146 mph"],
+    ref: 'base=5 m/s, mph=5/0.44704'
   }
 ];
 
