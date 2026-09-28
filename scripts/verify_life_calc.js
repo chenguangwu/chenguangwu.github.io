@@ -984,6 +984,42 @@ const CASES = [
     inputs: { inputVal: "5" },
     expect: ["500 rad"],
     ref: 'v=5 from=Gy: 拉德=5/0.01=500 rad'
+  },
+  {
+    slug: "life/ring-size-converter",
+    inputs: { inputVal: "50" },
+    expect: ["中国港码： 15.9236"],
+    ref: 'v=50 from=circ: 港码=50/3.14=15.9236'
+  },
+  {
+    slug: "life/ring-size-converter",
+    inputs: { inputVal: "52" },
+    expect: ["美码： 5.70652"],
+    ref: 'v=52 from=circ: 美码=(52-36.25)/2.76=5.70652'
+  },
+  {
+    slug: "life/ring-size-converter",
+    inputs: { inputVal: "60" },
+    expect: ["英码： 9.13462"],
+    ref: 'v=60 from=circ: 英码=(60-36.25)/2.6=9.13462'
+  },
+  {
+    slug: "life/ring-size-converter",
+    inputs: { inputVal: "100" },
+    expect: ["欧码： 60"],
+    ref: 'v=100 from=circ: 欧码=100-40=60'
+  },
+  {
+    slug: "life/ring-size-converter",
+    inputs: { inputVal: "200" },
+    expect: ["直径(mm)： 63.662"],
+    ref: 'v=200 from=circ: 直径=200/π=63.662'
+  },
+  {
+    slug: "life/ring-size-converter",
+    inputs: { inputVal: "1000" },
+    expect: ["中国港码： 318.471"],
+    ref: 'v=1000 from=circ: 港码=1000/3.14=318.471'
   }
 ];
 
