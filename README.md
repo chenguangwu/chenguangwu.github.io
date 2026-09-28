@@ -1,6 +1,6 @@
 # ToolBox
 
-5000+ 个免费在线工具组成的纯前端工具百科。计算、转换、编码、文本处理、生成器、开发辅助和行业工具都在浏览器本地运行，用户数据不上传服务器。
+4700+ 个免费在线工具组成的纯前端工具百科。计算、转换、编码、文本处理、生成器、开发辅助和行业工具都在浏览器本地运行，用户数据不上传服务器。
 
 ## 项目特点
 
@@ -51,13 +51,16 @@ python3 -m http.server 8765
 python3 scripts/run_gates.py
 ```
 
-门禁包含：
+门禁包含（完整清单见 `scripts/run_gates.py`）：
 
 - `python3 _build.py`：扫描工具页面并生成索引、行业数据、站点地图和 SEO 信息。
 - `python3 _test_static.py`：检查静态页面结构、元数据和相关映射。
 - `python3 _audit_links.py --check`：检查站内死链。
 - `python3 _audit_assets.py --check`：检查局部资源、HTML 语言属性和重复 id。
-- `node scripts/verify_calc.js`：执行计算工具回归用例。
+- `node scripts/check_inline_js_syntax.js`：校验页面内联 JS 语法。
+- `node scripts/verify_calc.js`：执行计算工具回归用例（冒烟）。
+- `node scripts/verify_it_calc.js`：执行 IT 计算工具正确性用例。
+- `node scripts/selfcheck_false_pass.js scripts` / `node scripts/discriminate_check.js`：反回归门禁（禁止假门禁标记 / 校验用例判别力）。
 
 GitHub Actions 会在 pull request 和推送到 `master` 时自动执行同一套门禁。
 `master` 门禁通过后，Actions 会上传完整静态 artifact 并部署到 GitHub Pages。
@@ -110,7 +113,7 @@ GitHub Actions 会在 pull request 和推送到 `master` 时自动执行同一�
 ## 发布流程
 
 1. 在本地 HTTP 服务中验证首页、搜索、工具页和移动端布局。
-2. 运行 `python3 scripts/run_gates.py`，确保五项门禁全部通过。
+2. 运行 `python3 scripts/run_gates.py`，确保全部门禁全部通过。
 3. 提交源文件和需要版本化的构建产物；不提交 `zh-tw/`。
 4. 推送到 `master`，等待 `ToolBox Build and Deploy` 完成门禁、artifact 上传和 Pages 部署。
 5. **Actions run 成功即算闭环**（单次查询即可）。不要 curl 拉线上产物比对 MD5、逐 URL 打 200、sleep 等待 CDN 传播或循环轮询 API；线上可用性异常由后续索引/监控任务或用户反馈暴露后再处理。

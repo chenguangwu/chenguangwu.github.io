@@ -6,7 +6,7 @@
 
 ## 📋 项目概览
 
-**项目名称**：ToolBox - 5000+ 免费在线工具百科
+**项目名称**：ToolBox - 4700+ 免费在线工具百科
 
 **技术栈**：纯前端 HTML5 + CSS3 变量主题 + 原生 ES6 JavaScript + Python/Node.js 构建脚本
 
@@ -14,7 +14,7 @@
 
 **核心特性**：
 - 响应式设计（桌面 + 移动端底部Tab栏）
-- 5009 个工具，268 个子行业目录（以 `_build.py` 实时统计为准）
+- 4729 个工具，209 个子行业目录（以 `_build.py` 实时统计为准）
 - 纯前端处理，数据不上传
 - 活泼专业的视觉风格
 - AI 工具（浏览器本地推理）、工具链组合、中英双语 i18n、PWA 离线、质量分级
@@ -106,26 +106,35 @@ chenguangwu.github.io/
 ├── index.html              # 首页入口（侧边栏布局）
 ├── css/
 │   ├── style.css           # 首页样式（侧边栏布局、响应式）
-│   └── common.css          # 工具页公共样式（所有工具共用）
+│   ├── site-chrome.css     # 顶栏 / 页脚 / Tab 栏 / 回顶按钮的唯一样式源（首页与工具页共用）
+│   ├── common.css          # 工具页公共样式（所有工具共用，经 @import 引入 site-chrome.css）
+│   ├── home-categories.css # 首页分类导航样式
+│   └── nav-menu.css        # 全站 2 级分类导航样式（桌面下拉 + 移动抽屉）
 ├── js/
 │   ├── app.js              # 首页逻辑（动态加载、侧边栏交互）
 │   ├── common.js           # 工具页公共脚本（ToolBox 命名空间）
-│   ├── i18n.js             # 中英双语 i18n 引擎（首页）
+│   ├── i18n.js             # 中英双语 i18n 引擎（全站：首页 + 工具页 + 指南页共用）
+│   ├── tool-i18n.js        # 工具页内容区 i18n 运行时（依赖 i18n.js）
+│   ├── tool-i18n-en.js     # 全站通用英文层（GEN_UI_MAP + BODY_PHRASE_MAP）
+│   ├── tool-search.js      # 全站统一实时下拉搜索（顶栏 / 404 / 搜索页共用）
+│   ├── analytics.js        # 统一统计入口（百度 / Clarity / 51.la）
 │   ├── freemium.js         # Freemium：AI 工具每日限额 + 解锁（AI 工具页引入）
 │   ├── ai-core.js          # Transformers.js 纯前端 AI 共享加载器（AI 工具用）
 │   ├── chart.js            # 零依赖 Canvas 图表库（懒加载，data-viz 用）
-│   └── qrcode.js           # 二维码库（第三方，MIT）
+│   ├── qrcode.js           # 二维码库（第三方，MIT）
+│   └── ...                 # 其余模块：tool-page-runtime / tool-ux / privacy / nav-menu / metrics 等
 ├── json/
 │   ├── tools.json          # 全量工具数据（含搜索字段 al/py/pyi，搜索单一数据源）
-│   ├── industry-*.json     # 按行业拆分数据（当前 268 个，与子行业目录一一对应）
-│   ├── guides.json         # 工具页 → 使用指南映射（common.js 读取注入「📖 使用指南」）
-│   └── channel.json        # 渠道/分类配置
-├── tools/                  # 工具页面（按 268 个子行业分子目录）
+│   ├── industry-*.json     # 按行业拆分数据（与子行业目录一一对应，数量以 _build.py 实时统计为准）
+│   ├── guides.json         # 工具 ↔ 使用指南配对（_build.py 构建期读取，写入页面「📖 使用指南」入口）
+│   ├── hot-tools.json      # 热门工具清单（首页 / 404 消费）
+│   └── ...                 # 其余策展 / 审计数据（related-tools-curated 等）
+├── tools/                  # 工具页面（按子行业分子目录组织）
 │   ├── it/  finance/  design/  biz/  marketing/  science/  health/
 │   ├── life/  edu/  legal/  fun/  travel/   # ← 原始 12 个一级行业
 │   ├── ai/  encode/  eco/  photo/  statistics/  healthcare/  ...  # ← 其余细分行业
 │   └── <industry>/index.html   # 每个子行业目录下的分类落地页（构建脚本自动生成，非工具）
-├── guides/                 # 使用指南（31 篇 + index.html 指南中心）
+├── guides/                 # 使用指南页集合（含 index.html 指南中心，篇数随工具增减）
 ├── scripts/                # 开发/生成脚本（批量工具生成、SEO 审计修复、指南生成等）
 │   ├── gen_itools_t1.py / gen_itools_t2.py / gen_itools_t2b.py / gen_tiny_t1.py  # 批量工具生成器
 │   ├── gen_guides2.py      # 指南生成器
@@ -140,9 +149,9 @@ chenguangwu.github.io/
 ├── _gsc_submit_sitemap.py  # Google Sitemaps 提交（每日 15:30 crontab）
 ├── _gsc_inspect_urls.py    # Google 收录监控（每日 16:00 crontab，--limit 1900）
 ├── _gen_blank_tools.py     # 空白行业批量填充生成器（历史）
-├── _gen_guides.py          # 指南生成器（历史 20 篇，新版在 scripts/gen_guides2.py）
+├── _gen_guides.py          # 指南生成器（历史，新版在 scripts/gen_guides2.py）
 ├── _add_tools.py           # 批量工具生成脚本（历史）
-├── sitemap.xml             # 根站点地图（构建产物，简体 + 台湾繁体，当前约 11045 URL）
+├── sitemap.xml             # 根站点地图（构建产物，含简体、台湾繁体、guides/ 与 chains.html，数量随构建变化）
 ├── sitemap.html            # 可视化站点地图（构建产物）
 ├── robots.txt              # 爬虫规则
 ├── og-image.png            # 1200×630 社交分享图（全站 og:image 引用，勿删）
@@ -216,7 +225,7 @@ chenguangwu.github.io/
 
 - GitHub 仓库 `Settings → Pages → Build and deployment → Source` 必须保持为 **GitHub Actions**，禁止切回 `Deploy from a branch`。
 - `.github/workflows/quality-gates.yml` 是唯一 Pages 发布流程：pull request 只执行门禁，推送到 `master` 才构建、上传 artifact 并部署。
-- Actions 必须先执行 `scripts/run_gates.py` 生成 `zh-tw/` 并通过五项门禁；任何门禁失败都不得上传或发布。
+- Actions 必须先执行 `scripts/run_gates.py` 生成 `zh-tw/` 并通过全部门禁；任何门禁失败都不得上传或发布。
 - 上传前必须移出 `node_modules`，并运行 `scripts/check_pages_artifact.py`；达到 900MiB 安全阈值时应失败，不能绕过检查。
 - `actions/upload-pages-artifact` 必须保留隐藏文件以发布 `.nojekyll`，同时不得把 `.git`、`.github` 或依赖目录打进 Pages artifact。
 - **发布完成后只需单次查询确认 Actions run 为 success**（Actions 页面或 `gh run list` 一次即可）即算闭环。**禁止** curl 拉线上产物做 MD5 逐文件比对、逐 URL 打 200、sleep 等待 CDN 传播或循环轮询 API（2026-09-21 起作废旧口径）；线上可用性异常由后续索引/监控任务或用户反馈暴露后再处理。
@@ -260,7 +269,7 @@ chenguangwu.github.io/
 - 改名必须走项目已有的 `TOOLBOX-REDIRECT` 存根机制保留旧 URL（`_build.py` 已支持），不得直接删除造成 404。
 - 内容层面的「名不符实」缺陷（如通用统计模板占位页）**一律通过重写页面内容解决**，保留原 URL。
 
-**为什么**：站点约 7200 个 URL 已进入 sitemap 并经 IndexNow / Bing / GSC 三通道提交，改名意味着一次索引资产损失 + 一段 404 期；而重写内容是把占位页变成真工具，同时保住 URL 与排名。
+**为什么**：站点上万条 URL 已进入 sitemap 并经 IndexNow / Bing / GSC 三通道提交，改名意味着一次索引资产损失 + 一段 404 期；而重写内容是把占位页变成真工具，同时保住 URL 与排名。
 
 ---
 
@@ -273,9 +282,9 @@ chenguangwu.github.io/
 2. 从 `<meta name="toolbox">` 标签提取元数据
 3. 根据文件名和关键词自动分配功能分类（cat）和行业（industry）
 4. 生成 `json/tools.json` 全量数据
-5. 生成 `json/industry-*.json` 按行业拆分数据（当前 268 个）
+5. 生成 `json/industry-*.json` 按行业拆分数据（与子行业目录一一对应）
 6. 更新 `index.html` 中的统计数据
-8. 生成根 `sitemap.xml`（**全量 urlset**，含简体、台湾繁体、guides/ 与 chains.html，当前约 11045 URL）
+8. 生成根 `sitemap.xml`（**全量 urlset**，含简体、台湾繁体、guides/ 与 chains.html，数量随构建变化）
 9. **SEO 注入**（`fix_tool_pages_seo`，幂等）：h1、面包屑导航、BreadcrumbList + WebApplication JSON-LD、og:image/twitter:image、相关工具区
 10. 生成 `zh-tw/` 台湾繁体静态站点（本地保留调试、Git 忽略、Actions 发布）
 11. **质量分级**（`classify_quality`）：按页面独有脚本量分 A/B/C 三级
@@ -302,9 +311,9 @@ python3 _build.py
 - 放入对应行业子目录：`tools/<industry>/xxx.html`
 - ⚠️ **已上线的文件禁止因"名不符实"改名**（见 🚫 硬性约束 §7）：文件名即 URL 即 SEO 资产，内容不符就**改内容**，不要改文件名。仅分类转移遇同名冲突时才可改名，且必须保留重定向存根。
 
-### 2. 行业分类（200+ 细分行业，当前 268 个子目录）
+### 2. 行业分类（200+ 细分行业，当前 209 个子目录）
 
-> 项目已远超最初 12 个一级行业，现按 **268 个子行业目录** 组织（以 `_build.py` 实时统计为准，如 `cardiology`、`metallurgy`、`agriculture`、`automotive` 等）。`industry` 字段取值即目录名，由构建脚本从 `<meta name="toolbox">` 读取，**无需在本文穷举**——新增子行业直接新建目录即可，构建会自动生成对应 `industry-<dir>.json` 与分类落地页 `index.html`。
+> 项目已远超最初 12 个一级行业，现按 **209 个子行业目录** 组织（以 `_build.py` 实时统计为准，如 `cardiology`、`metallurgy`、`agriculture`、`automotive` 等）。`industry` 字段取值即目录名，由构建脚本从 `<meta name="toolbox">` 读取，**无需在本文穷举**——新增子行业直接新建目录即可，构建会自动生成对应 `industry-<dir>.json` 与分类落地页 `index.html`。
 
 **原始 12 个一级行业（仍是最常用的 industry 取值）：**
 
@@ -552,7 +561,7 @@ python3 -m http.server 8765
 ## 📦 发布流程
 
 1. 本地开发和测试完成
-2. 运行 `python3 scripts/run_gates.py` 确保五项门禁全部通过
+2. 运行 `python3 scripts/run_gates.py` 确保全部门禁全部通过
 3. `git add -A` 暂存所有改动（`zh-tw/` 由 Actions 构建，已忽略）
 4. `git commit -m "feat: xxx"` 提交
 5. `git push origin master` 推送到 GitHub
@@ -644,7 +653,7 @@ python3 -m http.server 8765
 
 ## 📋 todo.md 批量工具开发规则
 
-项目根目录下的 `todo.md` 是推荐工具清单（7000+ 行，数百个工具建议）。AI Agent 继续开发工具时，应遵循以下规则：
+项目维护的工具候选清单 `todo.md`（约 7000 行、数百条工具建议）用于指导后续开发 —— **该文件不入库**，本地缺失时向维护者索取。AI Agent 继续开发工具时，应遵循以下规则：
 
 ### 工作流
 
@@ -708,7 +717,7 @@ python3 -m http.server 8765
 - **凡引 `js/common.js` 的页面必须同时引 `js/i18n.js`**，否则 `?lang=en-US` 下整页回退中文；`guides/*.html` 等静态页须手动保留，幂等补注脚本 `scripts/inject_i18n_js.py`（正则须吞掉 `</script>`，否则插入标签不闭合）
 - `I18n.apply(root)` **只扫描 root 的后代、不含 root 自身** —— 给 root 自身带 `data-i18n` 的元素必须显式调 `I18n.t()`
 - `i18n.js` 以 defer 加载，**同步内联脚本早于它执行**：依赖 I18n 的渲染（如 404 的热门工具/分类）必须延后到 `DOMContentLoaded`
-- `i18n.js` 的 `ind_*` 键仅约 50 个而行业有 279 个 → 分类页行业名**不要用 `ind_*`**，改用构建期双语层（`i18n/industry-en.json` 全覆盖 + `.t-zh/.t-en` + CSS `html[lang]` 显隐）；双语容器为 `.cat-tool` / `.tb-bi` / `.tool-intro` / `.tool-link`，分类页正文由 `scripts/category_auto_content.py` 生成
+- `i18n.js` 的 `ind_*` 键仅数十个而行业有 209 个 → 分类页行业名**不要用 `ind_*`**，改用构建期双语层（`i18n/industry-en.json` 全覆盖 + `.t-zh/.t-en` + CSS `html[lang]` 显隐）；双语容器为 `.cat-tool` / `.tb-bi` / `.tool-intro` / `.tool-link`，分类页正文由 `scripts/category_auto_content.py` 生成
 - 英文态排查判据（`?lang=en-US`）：① `[data-i18n]` 元素运行后仍含汉字 = 字典缺键或未加载；② 可见文本含汉字 —— **必须**用 `getClientRects().length === 0` 排除 CSS 隐藏的 `.t-zh`，否则大量误报
 - 繁体页核验必须**源页配对**（`conv(源页值)` vs 繁体页值）：直接对繁体页做转换属二次转换，`twp` 非幂等（文档→文件→檔案）会大量误报；判字形残留用 OpenCC `tw` 而非 `twp`；`data-zh` / `data-i18n-*-fb` 保留简体是运行时回退设计，不是残留
 - **英文内容区（`?lang=en-US`）走三层运行时字典，全部非构建产物**：① `js/tool-i18n-en.js`（`GEN_UI_MAP` 通用 UI + `BODY_PHRASE_MAP` 全站短语）；② `i18n/tools/<ind>-phrases.json` / `<ind>-body.json`（行业层）；③ `i18n/tools/en/<ind>/<slug>.json`（**一个工具一个文件**，优先级最高，`map` 为「简体原文 → 英文」译文），配 `_index.json` 资源守卫与 `en/_common.json` 共享层。**新增或修改第三层后必须重跑 `_build.py`**（版本戳已纳入该子树，见头部红线 3）
