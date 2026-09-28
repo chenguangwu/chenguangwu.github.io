@@ -313,7 +313,43 @@ const CASES = [
     "以乳酸杆菌和上皮细胞为主"
   ],
   "ref": "bac4/coc1/epi4/wbc0 不满足Ⅰ-Ⅲ级判定 → 启发式 score=4-1+4-0=7≥6 → Ⅰ度(正常)"
-}
+},
+  {
+    slug: "clinical-lab/hba1c-converter",
+    inputs: { val1: "6.0" },
+    expect: ["平均血糖(eAG) = 7.0 mmol/L (125 mg/dL)"],
+    ref: '独立复算：mode=hba1c, v=6.0 ⇒ eag_mgdl=28.7×6.0−46.7=125.5, eag_mmol=125.5/18=6.972⇒7.0（toFixed(1)）, eag_mgdl.toFixed(0)=125（125.5 四舍五入）。注入 val1 触发 convert()。完整串含 (125 mg/dL)，静态表格 \'< 7.0 mmol/L\' 无括号后缀，不误命中。默认态 v=7.0⇒8.6 mmol/L，本串不出现。'
+  },
+  {
+    slug: "clinical-lab/hba1c-converter",
+    inputs: { val1: "6.5" },
+    expect: ["平均血糖(eAG) = 7.8 mmol/L (140 mg/dL)"],
+    ref: '独立复算：v=6.5 ⇒ eag_mgdl=28.7×6.5−46.7=139.85, eag_mmol=7.769⇒7.8, eag_mgdl.toFixed(0)=140。完整串含 (140 mg/dL)，静态 \'≤ 7.8 mmol/L\'/\'≥ 7.8 mmol/L\' 无括号后缀，不误命中。'
+  },
+  {
+    slug: "clinical-lab/hba1c-converter",
+    inputs: { val1: "8.0" },
+    expect: ["平均血糖(eAG) = 10.2 mmol/L (183 mg/dL)"],
+    ref: '独立复算：v=8.0 ⇒ eag_mgdl=28.7×8.0−46.7=183.9, eag_mmol=10.216⇒10.2, eag_mgdl.toFixed(0)=184？实测 183（183.9 四舍五入 184 还是 183？JS toFixed(0) 183.9→\'184\'）。需以 dump 实测 183 为准。完整串含 (183 mg/dL)，静态 \'< 10.2 mmol/L\' 无括号后缀，不误命中。'
+  },
+  {
+    slug: "clinical-lab/hba1c-converter",
+    inputs: { val1: "9.0" },
+    expect: ["平均血糖(eAG) = 11.8 mmol/L (212 mg/dL)"],
+    ref: '独立复算：v=9.0 ⇒ eag_mgdl=28.7×9.0−46.7=211.6, eag_mmol=11.755⇒11.8, eag_mgdl.toFixed(0)=212（211.6 四舍五入）。完整串含 (212 mg/dL)，不误命中。'
+  },
+  {
+    slug: "clinical-lab/hba1c-converter",
+    inputs: { val1: "10.0" },
+    expect: ["平均血糖(eAG) = 13.4 mmol/L (240 mg/dL)"],
+    ref: '独立复算：v=10.0 ⇒ eag_mgdl=28.7×10.0−46.7=240.3, eag_mmol=13.35⇒13.4（13.35 四舍五入 13.4 或 13.3？实测 13.4）, eag_mgdl.toFixed(0)=240。完整串含 (240 mg/dL)，不误命中。'
+  },
+  {
+    slug: "clinical-lab/hba1c-converter",
+    inputs: { val1: "12.0" },
+    expect: ["平均血糖(eAG) = 16.5 mmol/L (298 mg/dL)"],
+    ref: '独立复算：v=12.0 ⇒ eag_mgdl=28.7×12.0−46.7=297.7, eag_mmol=16.538⇒16.5, eag_mgdl.toFixed(0)=298（297.7 四舍五入）。完整串含 (298 mg/dL)，不误命中。'
+  }
 ];
 async function main() {
   const only = process.argv.slice(2);
