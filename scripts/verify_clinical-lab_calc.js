@@ -589,6 +589,42 @@ const CASES = [
     clicks: ["calc()"],
     expect: ["计算结果 2.00 CD4/CD8 比值 — 正常范围"],
     ref: 'CD4 24%/CD8 12% 比值2.00 正常'
+  },
+  {
+    slug: "clinical-lab/thyroid-function-model",
+    inputs: { tsh: "0.1", ft3: "5.0", ft4: "16", tt3: "1.5", tt4: "100", tpo: "0" },
+    expect: ["亚临床甲状腺功能亢进症"],
+    ref: 'TSH 0.1<0.27（低）+ FT3 5.0/FT4 16 正常 → 亚临床甲亢'
+  },
+  {
+    slug: "clinical-lab/thyroid-function-model",
+    inputs: { tsh: "25", ft3: "2.0", ft4: "6", tt3: "1.3", tt4: "66", tpo: "0" },
+    expect: ["原发性甲状腺功能减退症"],
+    ref: 'TSH 25>4.2（高）+ FT3 2.0<3.1、FT4 6<12（低）→ 原发甲减'
+  },
+  {
+    slug: "clinical-lab/thyroid-function-model",
+    inputs: { tsh: "8", ft3: "5.0", ft4: "14", tt3: "1.5", tt4: "100", tpo: "0" },
+    expect: ["亚临床甲状腺功能减退症"],
+    ref: 'TSH 8>4.2（高）+ FT3 5.0/FT4 14 正常 → 亚临床甲减'
+  },
+  {
+    slug: "clinical-lab/thyroid-function-model",
+    inputs: { tsh: "0.2", ft3: "2.0", ft4: "16", tt3: "1.3", tt4: "66", tpo: "0" },
+    expect: ["中枢性(继发性)甲减"],
+    ref: 'TSH 0.2<0.27（低）+ FT3 2.0<3.1、FT4 16 正常 → 同向下调，中枢性甲减'
+  },
+  {
+    slug: "clinical-lab/thyroid-function-model",
+    inputs: { tsh: "8", ft3: "5.0", ft4: "14", tt3: "1.5", tt4: "100", tpo: "50" },
+    expect: ["亚临床甲状腺功能减退症", "抗TPO抗体阳性(>34 IU/mL)"],
+    ref: 'TSH 8>4.2（高）+ 激素正常 → 亚临床甲减；TPOAb 50>34 → 阳性'
+  },
+  {
+    slug: "clinical-lab/thyroid-function-model",
+    inputs: { tsh: "0.05", ft3: "10", ft4: "30", tt3: "1.5", tt4: "100", tpo: "0" },
+    expect: ["原发性甲状腺功能亢进症"],
+    ref: 'TSH 0.05<0.27（低）+ FT3 10>6.8、FT4 30>22（高）→ 原发甲亢（无TPO阳性）'
   }
 ];
 async function main() {
