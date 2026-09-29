@@ -8,12 +8,16 @@ import { readFileSync, writeFileSync, mkdirSync, readdirSync } from 'fs';
 const baseUrl = process.argv[2] || 'http://127.0.0.1:8774';
 const outPath = process.argv[3] || '/tmp/en_audit/report.json';
 
-// 1. 组装页面清单
-const pages = [];
-for (const ind of readdirSync('i18n/tools/en')) {
-  let d;
-  try { d = JSON.parse(readFileSync(`i18n/tools/en/${ind}/_index.json`, 'utf8')); } catch { continue; }
-  for (const slug of d.tools || []) pages.push(`/tools/${ind}/${slug}.html`);
+// 1. 组装页面清单（argv[4] 可传指定页清单 JSON 数组，用于只审计本批改动页）
+let pages = [];
+if (process.argv[4]) {
+  pages = JSON.parse(readFileSync(process.argv[4], 'utf8'));
+} else {
+  for (const ind of readdirSync('i18n/tools/en')) {
+    let d;
+    try { d = JSON.parse(readFileSync(`i18n/tools/en/${ind}/_index.json`, 'utf8')); } catch { continue; }
+    for (const slug of d.tools || []) pages.push(`/tools/${ind}/${slug}.html`);
+  }
 }
 console.log('pages to audit:', pages.length);
 
