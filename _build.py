@@ -637,10 +637,11 @@ def _prerender_tool_body(content, entry):
             icon = mm.group(1) if mm else ''
             new_text = icon + en_title
             if 'data-zh=' not in attrs:
-                # orig 取自原始 HTML 内层，可能已含实体（如 &gt;）。运行时用
-                # textContent 还原，故须先解码一次再转义，否则浏览器读到的是
-                # &gt; 字面量（双重转义）。
-                attrs = attrs.rstrip('>') + ' data-zh="%s">' % esc_html_py(html.unescape(orig))
+                # orig 取自原始 HTML 内层，可能已含实体（如 &gt;）或真实标签（如 <strong>）。
+                # 运行时中文态用 textContent 还原 data-zh，若含标签会被当作字面量泄漏
+                # （如显示 &lt;strong&gt;），故先解码实体、剥离标签、再转义，确保 data-zh
+                # 为纯文本。首个 p 介绍段内嵌标签的视觉（粗体/等宽）丢失可接受。
+                attrs = attrs.rstrip('>') + ' data-zh="%s">' % esc_html_py(re.sub(r'<[^>]+>', '', html.unescape(orig)))
             return '%s%s%s%s' % (open_tag, attrs, esc_html_py(new_text), close)
         _sub_first_html(_parts, re.compile(r'(<h2\b)([^>]*>)([\s\S]*?)(</h2>)'), _h2)
 
@@ -652,8 +653,9 @@ def _prerender_tool_body(content, entry):
             orig = inner
             new_text = en_intro
             if 'data-zh=' not in attrs:
-                # 同 _h2：先解码已有实体再转义，避免双重转义（运行时 textContent 还原）。
-                attrs = attrs.rstrip('>') + ' data-zh="%s">' % esc_html_py(html.unescape(orig))
+                # 同 _h2：先解码实体、剥离标签、再转义，确保 data-zh 为纯文本，
+                # 避免中文态 textContent 还原时把 <strong> 等标签当作字面量泄漏。
+                attrs = attrs.rstrip('>') + ' data-zh="%s">' % esc_html_py(re.sub(r'<[^>]+>', '', html.unescape(orig)))
             return '%s%s%s%s' % (open_tag, attrs, esc_html_py(new_text), close)
         _sub_first_html(_parts, re.compile(r'(<p\b)([^>]*>)([\s\S]*?)(</p>)'), _p)
 
@@ -662,7 +664,21 @@ def _prerender_tool_body(content, entry):
         out.append(_seg)
         if _i < len(_scripts):
             out.append(_scripts[_i])
-    return ''.join(out)
+
+    # 清理所有 data-zh 属性值内「转义的真实 HTML 标签」（&lt;tag&gt;），覆盖已存在 data-zh 的页。
+    # 首写分支(L643/656)已对中文 orig 剥标签，但磁盘源 HTML 多为上次构建产物（p 已是英文、
+    # data-zh 已固定），首写分支不触发；此处统一兜底，避免中文态 textContent 还原时把
+    # <strong> 等标签当作字面量泄漏（如显示 &lt;strong&gt;）。
+    # 关键：只剥「转义标签」&lt;tag&gt;，绝不碰公式中的真实 < > 数学符号（如 data-zh 里未转义的
+    # <0.01、score>），否则会把公式伪代码当标签删掉（已踩坑：dance/tester-4.html）。
+    _KNOWN_TAG = r'(?:strong|code|b|i|em|span|table|thead|tbody|tr|td|th|div|p|ul|li|ol|a|small|sub|sup|blockquote|pre|br|hr|abbr|cite|q|s|u|mark|del|ins|kbd|samp|var|section|article|figure|figcaption|dl|dt|dd|h1|h2|h3|h4|h5|h6)'
+    def _clean_dzh(c):
+        def _rep(m):
+            val = m.group(1)
+            val = re.sub(r'&lt;/?' + _KNOWN_TAG + r'\b(?:[^&]|&quot;|&amp;|&#\d+;)*?&gt;', '', val)
+            return 'data-zh="%s"' % val
+        return re.sub(r'data-zh="([^"]*)"', _rep, c)
+    return _clean_dzh(''.join(out))
 
 def _slug_of(t):
     # 覆盖字典 key 采用「行业/basename」精确匹配，避免 calc-N 这类跨行业复用 basename 的错配。
