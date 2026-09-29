@@ -442,9 +442,26 @@ _en-i18n/
 
 **处置**：`hot-tool-enhancements.js` 监听改挂 window（附注释说明派发靶）。真机验证：英文首开 `⚡ Productivity bar / ▶ Run / ⧉ Copy result / 160 characters · 6 lines` 全生效；无刷新 中→英→中 双向即时切换。
 
+### 14.6 动态注入节点失明（2026-09-29 闭环，系统性缺陷，强制防复发）
+
+**缺陷定性**：14.5 修复后抽查 `it/cron.html` 英文态仍有 16 处中文（`✨ 试算示例`／`⬇️ 导出 TXT`／预设名 `每分钟执行·每5分钟·每天 08:00…`／nav aria-label `热门工具·我的收藏·广告 1·ToolBox 实时访问数据·回到顶部`）。排查确认**第三类独立缺陷**：`applyEnDict` 是**一次性全量扫描**（TreeWalker + querySelectorAll），**结构上看不见翻译执行之后才插入 DOM 的节点**。
+
+**根因**：大量内容由运行时 JS 注入且晚于 i18n 全流程 —— `tool-page-runtime.js` 的「复制结果/导出 TXT/试算示例」按钮、工具页内联 JS 渲染的结果标签与预设列表、后续重绘组件。即使字典里已有正确译文，一次性扫描也永远够不到它们（cron 页实测 42 处残留，含大量「字典里其实有译文」的动态节点）。
+
+**处置（已落地）**：
+1. `js/tool-i18n.js` 新增 **part (d) 动态节点增量翻译**：英文态下 `MutationObserver`（childList+subtree+attributes，attributeFilter 四项）对新增子树递归翻译，**完全复用**现有 `pickEn`/`convertPunct`/`isExcludedEl`/`EN_ORIG` 口径；
+   - 收敛性：已译节点再次进入时 `pickEn` 不命中 ⇒ 不自激循环；`dynApplying` 抑制位 + `setTimeout(0)` 解锁挡掉自身写入触发的二次回调；
+   - 正确性：译文同样入 `EN_ORIG` ⇒ 中文态与静态部分同口径逐项精确还原；`applyEnDict(isZh)` 入口处 `stopDynObserver()`。
+2. 字典补位：全站组件串 11 条入 `_common.json`（887 键）；cron 专属 28 条入 `i18n/tools/en/it/cron.json`（81 键）；两文件 CJK 扫描 0 脏译文。
+
+**真机验证**：cron 英文态残留由 42 → **3**（仅剩语言切换器内的 `Language / 语言` 与 `繁體中文`，属 §设计内排除：`isExcludedEl` 按惯例语言名用本语言显示）；注入字典已有词（如「预览」）即时变 `Preview`，证明增量通道生效；切中文完整还原；console 0 错 0 警；`csv-to-json` 抽测同为 3（同口径）。
+
+**抽样现状（用于排后续批次，非本批次范围）**：`science/ph-calculator` 2 处、`design/color-picker` 11 处、`general/calc-205` 8 处、`text/analysis-density` 20 处 —— **全部为字典缺口**（要么词条未收录，要么为无限变体如 `title="使用 #41E1D1"`），机制缺口已清零。
+
 **防复发纪律（追加，强制）**：
-- 凡组件**自带语种表**并监听 `toolbox:langchange` 的，监听靶必须 window；新增此类组件时 code review 第一查事件靶。
-- 同型缺陷修复后必须 `grep -rn "document.addEventListener('toolbox:langchange'" js/` 归零复核，把「同类穷举」固化为步骤而非自觉。
+- 站点任何 i18n 覆盖必须同时满足「静态全量 + **动态增量**」两条腿；只有一次性扫描的方案一律视为不完整。
+- 新写运行时注入组件时，文案要么自带语种表并监听 `window` 的 `toolbox:langchange`（14.5），要么依赖本 (d) 增量通道并确保**译文已入字典**——二者缺一即中文残留。
+- 验收口径升级：真机扫描必须包含**全部可见文本 + 4 类属性**，且仅允许「语言切换器」残留；静态 jsdom 探针（§14.4）天生测不到动态注入，**不得作为此项通过依据**。
 
 ---
 

@@ -660,7 +660,7 @@
 
   function applyEnDict(isZh) {
     restoreEn();
-    if (isZh || (!EN_DICT && !EN_COMMON)) return;
+    if (isZh || (!EN_DICT && !EN_COMMON)) { stopDynObserver(); return; }
 
     // (a) [data-zh]：英文态下静态文本已是构建期预渲染的英文，中文原文保存在 data-zh
     var dzs = document.querySelectorAll('[data-zh]');
@@ -717,6 +717,102 @@
         ae.setAttribute(aName, aTr);
       }
     }
+
+    // (d) 开启动态节点增量翻译：覆盖「本次全量扫描之后才插入」的内容
+    startDynObserver();
+  }
+
+  // ---- (d) 动态节点增量翻译（MutationObserver）----
+  // 站点大量内容是「翻译被执行之后才注入 DOM」的：tool-page-runtime 的「复制结果/导出 TXT/试算示例」
+  // 按钮、工具页内联 JS 渲染的结果标签与预设名、hot 组件后续重绘等。(a)(b)(c) 是一次性全量扫描，
+  // 结构上覆盖不到后插入的节点 ⇒ 英文态长期残留中文，且字典里其实有译文也白搭。
+  // 这里在英文态下对新增节点做增量翻译，复用同一套字典 / 同一套排除规则 / 同一个 EN_ORIG：
+  //   · 译好的节点再次进来时 pickEn 不命中 ⇒ 自然收敛，不会自我循环放大；
+  //   · applying 抑制位挡掉「我们自己的写入」触发的二次回调；
+  //   · 切回中文时 stopDynObserver + restoreEn 逐项精确还原，与静态还原口径一致。
+  var ATTR_KEYS_DYN = ['placeholder', 'title', 'aria-label', 'alt'];
+  var dynObs = null;
+  var dynApplying = false;
+
+  function dynTranslateNode(node) {
+    if (!node) return;
+    if (node.nodeType === 3) {
+      var parent = node.parentNode;
+      if (!parent) return;
+      var tg = (parent.nodeName || '').toUpperCase();
+      if (tg === 'SCRIPT' || tg === 'STYLE' || tg === 'NOSCRIPT') return;
+      if (isExcludedEl(parent)) return;
+      var raw = node.nodeValue;
+      if (!raw) return;
+      var key = raw.trim();
+      if (!key) return;
+      var out = pickEn(key);
+      if (!out) out = convertPunct(key);
+      if (!out || out === key) return;
+      var at = raw.indexOf(key);
+      EN_ORIG.push({ node: node, orig: raw });
+      node.nodeValue = raw.slice(0, at) + out + raw.slice(at + key.length);
+      return;
+    }
+    if (node.nodeType !== 1) return;
+    var tagName = (node.nodeName || '').toUpperCase();
+    if (tagName === 'SCRIPT' || tagName === 'STYLE' || tagName === 'NOSCRIPT') return;
+    if (isExcludedEl(node)) return;
+    for (var i = 0; i < ATTR_KEYS_DYN.length; i++) {
+      var an = ATTR_KEYS_DYN[i];
+      var av = node.getAttribute(an);
+      if (!av) continue;
+      var tv = pickEn(av.trim());
+      if (!tv || tv === av) continue;
+      EN_ORIG.push({ el: node, attr: an, orig: av });
+      node.setAttribute(an, tv);
+    }
+  }
+
+  function dynTranslateSubtree(node) {
+    if (!node) return;
+    dynTranslateNode(node);
+    if (node.nodeType === 1 && node.childNodes) {
+      // 子节点集合是 live 的，先快照再遍历，避免翻译时的写入造成索引漂移
+      var kids = Array.prototype.slice.call(node.childNodes, 0);
+      for (var i = 0; i < kids.length; i++) dynTranslateSubtree(kids[i]);
+    }
+  }
+
+  function startDynObserver() {
+    if (dynObs || typeof MutationObserver === 'undefined') return;
+    var root = document.body || document.documentElement;
+    if (!root) return;
+    dynObs = new MutationObserver(function (records) {
+      if (dynApplying || !isEnglish()) return;
+      dynApplying = true;
+      try {
+        for (var i = 0; i < records.length; i++) {
+          var rec = records[i];
+          var added = rec.addedNodes;
+          if (added && added.length) {
+            for (var j = 0; j < added.length; j++) dynTranslateSubtree(added[j]);
+          }
+          if (rec.type === 'attributes' && rec.target) dynTranslateNode(rec.target);
+        }
+      } catch (e) { /* 单个节点异常不影响整页翻译 */ }
+      // MutationObserver 回调是微任务，这里放到下一个宏任务再解锁，
+      // 确保「我们自己的写入」所产生的记录在同一抑制窗口内被跳过。
+      setTimeout(function () { dynApplying = false; }, 0);
+    });
+    dynObs.observe(root, {
+      childList: true,
+      subtree: true,
+      attributes: true,
+      attributeFilter: ATTR_KEYS_DYN
+    });
+  }
+
+  function stopDynObserver() {
+    if (!dynObs) return;
+    dynObs.disconnect();
+    dynObs = null;
+    dynApplying = false;
   }
 
   if (document.readyState === 'loading') {
