@@ -307,7 +307,9 @@
         primaryAction.click();
       }
     });
-    document.addEventListener('toolbox:langchange', (event) => {
+    // i18n.js 在 window 上派发 toolbox:langchange（Event 不冒泡），必须挂 window
+    // 才能收到；挂 document 会永远收不到事件 => 工具栏停在初始语言不切换。
+    window.addEventListener('toolbox:langchange', (event) => {
       applyLocale(event.detail && event.detail.lang);
       enhancePrimaryLabel();
     });

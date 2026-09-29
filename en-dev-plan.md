@@ -434,6 +434,18 @@ _en-i18n/
 - 探针必须模拟生产加载顺序；「先注入后执行」的便捷 mock 只能用于测字典内容，不能用于测**加载时序类 bug**。
 - 语言切换验收必须包含「**不刷新页面**连续切换 中→英→中」三步断言，不能只测首开。
 
+### 14.5 效率工具栏同病复发（2026-09-29 闭环，强制防复发）
+
+**缺陷定性**：14.4 根因二修复后，用户截图再投诉「效率工具栏整条中文（运行/复制结果/导出结果/恢复示例/清空输入/本地处理/160 字符 · 6 行）」。该栏由 `js/hot-tool-enhancements.js` 运行时注入，**自带三语 COPY 表**（zh-CN/zh-TW/en-US 全齐）——文案不缺，但第 310 行 `document.addEventListener('toolbox:langchange', ...)` **重犯 14.4 根因二的监听错靶**：i18n.js 在 window 派发且不冒泡 ⇒ 永远收不到 ⇒ 初始 `init()` 时 `currentLocale()` 读到的还是 zh-CN，之后语言切换事件又收不到，工具栏定格中文。
+
+**教训**：14.4 修复时只全局扫了 `js/*.js` 中监听 document 的脚本（当时 hot-tool-enhancements.js 的监听写在 `init()` 函数体内、缩进层级深，`grep "document.addEventListener('toolbox:langchange'"` 能命中但被人工核查遗漏）⇒ **修复一处同型 bug 后，必须用机器方式（grep/AST）穷举全部同类点并逐一处置，禁止靠肉眼抽查**。本次已全站复核：`js/*.js` 共 8 处 `toolbox:langchange` 监听，修复后 8/8 全部挂 window。
+
+**处置**：`hot-tool-enhancements.js` 监听改挂 window（附注释说明派发靶）。真机验证：英文首开 `⚡ Productivity bar / ▶ Run / ⧉ Copy result / 160 characters · 6 lines` 全生效；无刷新 中→英→中 双向即时切换。
+
+**防复发纪律（追加，强制）**：
+- 凡组件**自带语种表**并监听 `toolbox:langchange` 的，监听靶必须 window；新增此类组件时 code review 第一查事件靶。
+- 同型缺陷修复后必须 `grep -rn "document.addEventListener('toolbox:langchange'" js/` 归零复核，把「同类穷举」固化为步骤而非自觉。
+
 ---
 
 **进度台账**：`_en-i18n/industries.md` 为唯一权威（当前剩余 **207** 个行业）。每行业闭环 = `--scan` → `--extract` → 翻译写字典 → `--check` 归零 → `--done` 逐工具记账 → `--promote` 删行 → `run_gates.py` → 本地 commit。
