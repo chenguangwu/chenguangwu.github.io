@@ -132,6 +132,10 @@
     var nodes = document.querySelectorAll('label, button.btn, .toolbar .btn, select option, .json-actions .btn, .tab-btn');
     for (var i = 0; i < nodes.length; i++) {
       var el = nodes[i];
+      // 守卫：含表单控件的容器不得整节点替换 —— el.textContent = tr 会把容器内的
+      // <input>/<select>/<textarea> 一并删除（如 random-string 复选框 <label><input>是</label>），
+      // 使页面 JS 读 getElementById(id).checked 时抛 "Cannot read properties of null"。
+      if (el.children && el.children.length && el.querySelector('input,select,textarea')) continue;
       var txt = el.textContent.trim();
       if (isZh) { if (GEN_ORIG.has(el)) el.textContent = GEN_ORIG.get(el); continue; }
       var sp = stripEmojiPrefix(txt);
