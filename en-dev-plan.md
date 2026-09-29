@@ -366,6 +366,7 @@ _en-i18n/
 | **MD5 填充位丢失（运算符优先级）** | `it/calc-10` 的 `md5('hello')` 返回错值，而同页 SHA-256 正确 | `lWordArray[w] = lWordArray[w] \|\| 0 \| (0x80 << pos)` —— `\|\|` 优先级低于 `\|`，实际解析为 `a \|\| (0\|b)`，丢失 `0x80` 填充位 | **已修复（2026-09-28）**：改为 `(a \|\| 0) \| (0x80 << pos)`；修后 `hello`/`abc`/空串三个向量与 RFC 1321 一致。全站 `grep '\|\| 0 \|'` 仅此 1 例 |
 | **`while` 循环体不推进 ⇒ 死循环冻死标签页** | `it/docker-run-converter` 遇尾参（`docker run -it --rm alpine sh`）即无限循环 | `parse()` 中 `if(!image){image=t;i++;}` —— image 已赋值时不递增 `i` | **已修复（2026-09-28）**：拆为 `if(!image){image=t;}` + 无条件 `i++;`。全站 `while` 已扫（512 处）仅此 1 例；`it/barcode-upc` 等「同类可疑」经查为误报 |
 | **verify harness 对 `el.value` 误剥 HTML 标签** | `it/base85-encode` 的 Ascii85 期望值 `<~BOu!rDZ~>` 永远匹配不上（页面本身正确） | `scripts/verify_it_calc.js::collectStrings()` 对 `value`/`innerHTML`/`textContent` 一律 `replace(/<[^>]+>/g,' ')`；`value` 恒为纯文本，剥标签会把尖括号结果整块吞掉 | **已修复（2026-09-28）**：只对 `innerHTML`/`textContent` 剥标签。**正向副作用**：暴露出 `it/html-minifier` 的「输入回显」逃生项，已重写为真实压缩产物 + 压缩率断言 |
+| **运行时翻译层 + 门禁对元素属性失明（系统性）** | 英文态 `?lang=en-US` 下输入框 `placeholder`、按钮/下拉 `title`、无障碍 `aria-label`、`alt` 等属性值长期为**中文**；用户无痕实测 csv-to-json 等页「按钮/下拉框/输入框提示/切换分类处都还是中文」；旧版门禁 `--check` 却报 **0 残留**假通过 | ① `js/tool-i18n.js::applyEnDict()` 修复前只对文本节点（TreeWalker SHOW_TEXT）做 `pickEn`，`translateGenericUI`/`translateBodyPhrases` 也只处理 `textContent`，**属性从未进入翻译路径**；② 旧探针 `collectCJK` 仅统计文本节点汉字，属性汉字不在扫描/验收口径 | **已闭环（2026-09-29）**：① `applyEnDict` 末尾新增 part (c)：遍历 `[placeholder],[title],[aria-label],[alt]`，`isExcludedEl` 排除 `.lang-switcher`，属性值 `pickEn(aVal.trim())`，原文存 `EN_ORIG` 供中文态还原；② `_common.json` 全局兜底层补 **741 条属性串**（11 行业 917 含残留页），终 876 键、**0 译文含中文**，借 `pickEn`「per-tool→_common 兜底」顺序一次性全局覆盖；③ 探针改 `collectCJKFull`：**文本+属性双口径**，0 残留为通过（退出码 0）。真机验收 it/design/general/wedding/network **0 残留** |
 
 > **判据**：英文态才触发（简体/繁体不跑运行时 i18n）；错误信息固定为 `null.value` ⇒ 优先怀疑容器被整节点替换。
 
@@ -385,6 +386,25 @@ _en-i18n/
 - **逃生项新形态：`expect` 恰等于「输入经归一后的形态」**：`it/html-minifier` 原 `expect:["a b"]`，而注入值经剥标签 + 空白归一后正是 `a b` ⇒ 命中与被测点无关。**判据**：定 expect 前先把 `inputs` 各值按该口径跑一遍比对。
 - **`collectStrings` 只对 `innerHTML`/`textContent` 剥标签**（2026-09-28 起）：`el.value` 保留原文 ⇒ 含尖括号的结果（`<~BOu!rDZ~>` 等）现在可直接作为 expect。该函数波及全站用例口径，改动后必须重跑 `selfcheck_false_pass` / `discriminate_check` 确认基线未变。
 - **美式拼写批量替换的自污染坑**：`fulfilment→fulfillment` 之后再跑 `fulfil→fulfill` 会得到三写 `fulfilllment`。**处置**：替换对按「长词优先 + 短词加否定前瞻」设计；扫描词表同样要写 `fulfil(?!l)`，否则美式 `fulfillment` 会被 `fulfil\w*` 误报。改完必须复扫确认 0 残留。
+
+### 14.3 属性失明缺陷（2026-09-29 闭环，系统性，强制防复发）
+
+**缺陷定性**：运行时翻译层与门禁 `--check` **只对文本节点生效，完全不覆盖元素属性（placeholder/title/aria-label/alt）**，是全站英文态属性中文长期漏翻却门禁 0 残留的根因。非本专项引入，由用户无痕实测投诉暴露。
+
+**根因（两处独立失明）**：
+1. `js/tool-i18n.js::applyEnDict()` 修复前只对 `TreeWalker(SHOW_TEXT)` 文本节点 `pickEn`；`translateGenericUI` / `translateBodyPhrases` 同样只动 `textContent`。元素属性值从未进入翻译路径 ⇒ 即便字典有译文，属性也不会被替换。
+2. 旧探针 `collectCJK` 仅统计文本节点汉字；属性汉字不在任何扫描/验收口径 ⇒ 漏翻被判定为「0 残留」假通过，长期无人发现。
+
+**处置（已落地）**：
+- 代码：`applyEnDict()` 末尾新增 part (c) —— `querySelectorAll('[placeholder],[title],[aria-label],[alt]')`，`isExcludedEl(ae)` 排除 `.lang-switcher`，对每个属性值 `pickEn(aVal.trim())` 替换，原文 `EN_ORIG.push({el,attr,orig})` 供中文态一键还原。
+- 字典：`i18n/tools/en/_common.json` 全局兜底层批量补 **741 条属性串**（普查覆盖 it/design/finance/fun/general/life/network/science/security/text/wedding 共 11 行业、917 含残留页），终态 **876 键、0 条译文含中文**。借 `pickEn`「先 per-tool `EN_DICT`、后 `_common` 兜底」的顺序，无需逐工具建 per-tool 文件即一次性全局覆盖。
+- 门禁：`_en_i18n_probe.mjs --check/--scan` 改用 `collectCJKFull`：**文本 + 属性双口径**，属性汉字纳入扫描与验收，0 残留为通过（退出码 0）。
+- 真机验收：it(338)/design(111)/general(182)/wedding(8)/network(0) **0 残留**；finance(112)/fun(64)/life(72)/science(98)/security(10)/text(11) 残留**均为正文文本**（属独立批次整站翻译，非属性缺口）。
+
+**防复发纪律（老板 2026-09-29 明确，强制）**：
+- 抽取（`--extract`/`--scan`）、翻译写字典、门禁验收（`--check`）**必须把元素属性纳入覆盖与校验口径**，禁止再只扫文本节点。
+- UI 文案若同时出现在属性（如 `placeholder`）与文本，两份都要译；字典键以「原文原样」为准（运行时 `trim` 去首尾空白）。
+- 后续整站翻译批次（finance/fun/life/science/security/text）推进正文时，属性缺口已全局修好，只需聚焦正文文本节点；但每批 `--check` 仍须确认属性口径 0 残留。
 
 ---
 

@@ -148,6 +148,27 @@ function collectCJK(w) {
   return out;
 }
 
+// 属性残留：placeholder / title / aria-label / alt —— 与 js/tool-i18n.js 第三层 applyEnDict
+// 翻译的属性集合一致。此前的 --check 只查文本节点，对属性里的汉字完全失明，
+// 导致全站英文态输入框 placeholder、面包屑 nav aria-label 等长期漏翻却门禁 0 残留。
+// 现纳入校验：精确匹配运行时翻译的属性范围，避免误报（不含 value，表单逻辑值不翻译）。
+function collectCJKAttr(w) {
+  const out = [];
+  for (const el of w.document.querySelectorAll('[placeholder],[title],[aria-label],[alt]')) {
+    if (isExcluded({ parentNode: el })) continue;
+    for (const a of ['placeholder', 'title', 'aria-label', 'alt']) {
+      const v = el.getAttribute(a);
+      if (v && RESIDUAL_RE.test(v)) out.push(a + '="' + v + '"');
+    }
+  }
+  return out;
+}
+
+// 校验口径（文本节点 + 属性）合集，供 --check / --scan 使用
+function collectCJKFull(w) {
+  return collectCJK(w).concat(collectCJKAttr(w));
+}
+
 function collectAll(w) {
   const out = [];
   for (const n of textNodes(w)) {
@@ -205,7 +226,7 @@ async function scan(ind) {
   for (const t of tools) {
     const { w, getPending } = probePage(t.file, 'en-US');
     await settle(getPending);
-    const res = collectCJK(w);
+    const res = collectCJKFull(w);
     w.close();
     totalResidual += res.length;
     if (res.length) out.push({ slug: t.slug, residual: res.length, samples: res.slice(0, 3) });
@@ -310,7 +331,7 @@ async function check(targets) {
       total++;
       const { w, getPending } = probePage(t.file, 'en-US');
       await settle(getPending);
-      const res = collectCJK(w);
+      const res = collectCJKFull(w);
       w.close();
       if (res.length) {
         bad++;

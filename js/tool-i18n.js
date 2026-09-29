@@ -591,10 +591,22 @@
     });
   }
 
+  // 语言切换器内部（简体中文/繁體中文/English 等语言名）按惯例用本语言显示，不翻译
+  function isExcludedEl(el) {
+    var c = el;
+    while (c && c.nodeName && c.nodeName.toLowerCase() !== 'body') {
+      var cls = (c.getAttribute && c.getAttribute('class')) || '';
+      if (/(^|\s)lang-switcher(\s|$)/.test(cls)) return true;
+      c = c.parentNode;
+    }
+    return false;
+  }
+
   function restoreEn() {
     for (var i = 0; i < EN_ORIG.length; i++) {
       var it = EN_ORIG[i];
       if (it.node) { if (it.node.parentNode) it.node.nodeValue = it.orig; }
+      else if (it.el && it.attr) { if (it.el.parentNode) it.el.setAttribute(it.attr, it.orig); }
       else if (it.el) { it.el.textContent = it.orig; }
     }
     EN_ORIG = [];
@@ -666,6 +678,27 @@
       var idx = raw.indexOf(k);
       EN_ORIG.push({ node: n, orig: raw });
       n.nodeValue = raw.slice(0, idx) + en + raw.slice(idx + k.length);
+    }
+
+    // (c) 元素属性翻译（placeholder / title / aria-label / alt）：属性不是文本节点，
+    // 文本节点级替换（(b)）与 translateGenericUI（el.textContent）都碰不到，
+    // 此前全站英文态这些属性里的汉字永远不翻译（最典型：输入框 placeholder、面包屑 nav aria-label）。
+    // 与 (b) 共用同一套 per-tool 字典 + 全局 _common 兜底，精确匹配才替换 ⇒ 零误伤；
+    // 原文存入 EN_ORIG，中文态精确还原。不翻译 value（表单控件逻辑值，如分隔符 "," 不能动）。
+    var ATTR_KEYS = ['placeholder', 'title', 'aria-label', 'alt'];
+    var attrEls = document.querySelectorAll('[placeholder],[title],[aria-label],[alt]');
+    for (var ai = 0; ai < attrEls.length; ai++) {
+      var ae = attrEls[ai];
+      if (isExcludedEl(ae)) continue;
+      for (var ak = 0; ak < ATTR_KEYS.length; ak++) {
+        var aName = ATTR_KEYS[ak];
+        var aVal = ae.getAttribute(aName);
+        if (!aVal) continue;
+        var aTr = pickEn(aVal.trim());
+        if (!aTr || aTr === aVal) continue;
+        EN_ORIG.push({ el: ae, attr: aName, orig: aVal });
+        ae.setAttribute(aName, aTr);
+      }
     }
   }
 
