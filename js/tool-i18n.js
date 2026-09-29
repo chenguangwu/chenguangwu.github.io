@@ -132,10 +132,11 @@
     var nodes = document.querySelectorAll('label, button.btn, .toolbar .btn, select option, .json-actions .btn, .tab-btn');
     for (var i = 0; i < nodes.length; i++) {
       var el = nodes[i];
-      // 守卫：含表单控件的容器不得整节点替换 —— el.textContent = tr 会把容器内的
-      // <input>/<select>/<textarea> 一并删除（如 random-string 复选框 <label><input>是</label>），
-      // 使页面 JS 读 getElementById(id).checked 时抛 "Cannot read properties of null"。
-      if (el.children && el.children.length && el.querySelector('input,select,textarea')) continue;
+      // 守卫：含「表单控件」或「带 id 后代」的容器不得整节点替换 —— el.textContent = tr
+      // 会把容器内的 <input>/<select>/<textarea> 或页面按 id 引用的子容器一并删除（如
+      // random-string 复选框 <label><input>是</label>、diff 的 leftDiff/rightDiff 等），
+      // 使页面 JS 读 getElementById(id) 时抛 "Cannot read properties of null"。
+      if (el.children && el.children.length && el.querySelector('input,select,textarea,[id]')) continue;
       var txt = el.textContent.trim();
       if (isZh) { if (GEN_ORIG.has(el)) el.textContent = GEN_ORIG.get(el); continue; }
       var sp = stripEmojiPrefix(txt);
@@ -260,13 +261,13 @@
       if (el.hasAttribute('data-i18n')) continue;
       if (el.closest && el.closest('[data-i18n]')) continue;
       if (el.querySelector && el.querySelector('[data-i18n]')) continue;
-      // 守卫：含表单控件的容器不得整节点替换 —— el.textContent = tr 会连同容器内的
-      // <input>/<select>/<textarea> 一起删除，使页面 JS 读 getElementById(id).value 时抛
-      // "Cannot read properties of null"。英文态实测 7 页中招（basic-auth-generator /
-      // binomial-distribution / bluetooth-version / c-string-escape / caa-record-generator /
-      // calc-2 / calc-7），简体与繁体态不跑运行时 i18n 故不受影响。
-      // 这类容器的正文交由第三层 per-tool 字典（文本节点级替换）处理。
-      if (el.children && el.children.length && el.querySelector('input,select,textarea')) continue;
+      // 守卫：含「表单控件」或「带 id 后代」的容器不得整节点替换 —— el.textContent = tr
+      // 会连同容器内的 <input>/<select>/<textarea> 或页面 JS 按 id 引用的子容器（如 diff 的
+      // leftDiff/rightDiff/unifiedDiff）一起删除，使 getElementById(id) 返回 null 抛
+      // "Cannot read properties of null"。英文态实测 text-diff 中招：div.diff-panel 文本
+      // 「原始文本」命中短语映射，整节点替换抹掉了 leftDiff 容器。
+      // 这类容器的正文交由第三层 per-tool 字典（文本节点级替换，applyEnDict）处理，不丢译。
+      if (el.children && el.children.length && el.querySelector('input,select,textarea,[id]')) continue;
       var txt = el.textContent.trim();
       var tr = null;
       if (BODY_PHRASE_MAP.hasOwnProperty(txt)) tr = BODY_PHRASE_MAP[txt];
