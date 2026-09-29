@@ -406,6 +406,34 @@ _en-i18n/
 - UI 文案若同时出现在属性（如 `placeholder`）与文本，两份都要译；字典键以「原文原样」为准（运行时 `trim` 去首尾空白）。
 - 后续整站翻译批次（finance/fun/life/science/security/text）推进正文时，属性缺口已全局修好，只需聚焦正文文本节点；但每批 `--check` 仍须确认属性口径 0 残留。
 
+### 14.4 全局层「死快照」与语言切换事件「错靶」缺陷（2026-09-29 闭环，系统性，强制防复发）
+
+**缺陷定性**：属性缺陷（14.3）修复部署后，用户再次实测投诉「按钮/下拉/tab/placeholder 仍中文 + 切换语言页面不刷新需手动刷新」。排查发现**两个相互独立的系统性 bug**，均为既有层缺陷、非本专项引入。二者叠加造成「线上部分翻部分不翻、切换不生效」而本地探针全绿的长期假象。
+
+**根因一（全局层死快照）**：`js/tool-i18n.js` 的 IIFE 在脚本加载时对 `window.__TI18N_EN` 做一次性快照：
+`var GEN_UI_MAP = (window.__TI18N_EN && window.__TI18N_EN.GEN_UI_MAP) || {};`（BODY_PHRASE_MAP 同）。
+线上真实加载顺序：本脚本由页面静态引入先执行 → `boot()` 发现英文态缺数据 → **动态**加载 `tool-i18n-en.js`（554KB）→ 数据到达时**闭包内两个 MAP 已固化为 `{}`，永不更新** ⇒ 全局层（GEN_UI_MAP/BODY_PHRASE_MAP）整体空转。而 per-tool 字典（`EN_DICT`/`EN_COMMON`）是运行时 fetch 后赋值的活变量照常生效 ⇒ 精确形成「per-tool 命中的翻（CSV 输入/输出）、全局层负责的残留（转换/清空/复制/数据预览/逗号/引号字符/JSON 输入）」的混合残局。
+
+**根因二（事件监听错靶）**：`i18n.js::set()` 在 **window** 上 `dispatchEvent(new Event('toolbox:langchange'))`（Event 默认不冒泡、target=window），而 `tool-i18n.js` 却挂在 **document** 上监听 ⇒ 永远收不到 ⇒ `onLangChange`/`applyAll` 从不触发 ⇒ 切换语言后内容区纹丝不动，必须手动刷新（刷新后按 `?lang` 重新 boot 才生效）。
+
+**探针假绿根因（方法论缺陷）**：`probePage()` 用 `w.__TI18N_EN = enData()` **先注入数据再 eval** 脚本 ⇒ IIFE 快照时数据已在 ⇒ 全局层正常赋值 ⇒ 与线上「先脚本后数据」顺序相反，**结构上测不出根因一**。教训：**jsdom 探针的加载顺序必须与生产一致，凡「初始化快照全局对象」的代码，探针必须模拟真实的动态加载时序**。
+
+**处置（已落地，`js/tool-i18n.js` 共 5 处）**：
+1. `GEN_UI_MAP`/`BODY_PHRASE_MAP` 改空初始化 + 新增 `syncEnMaps()`（实时读 `window.__TI18N_EN`）；
+2. `init()` 与 `applyAll()` 入口首行调用 `syncEnMaps()`（覆盖 boot 动态加载完成、语言切换两条路径）；
+3. `document.addEventListener('toolbox:langchange', ...)` → `window.addEventListener(...)`（与派发目标一致，common.js 同事件同为 window 监听）。
+
+**真机验证（playwright + 本地 HTTP 服务，真实加载顺序，SW 清缓存后）**：
+- 英文首开：`Convert ->` / `Data Preview` / `Clear` / `Copy` / `Quote Character` / placeholder `Input JSON data...` 全部生效；
+- 切中文（**无刷新**）：`转换 →` / `数据预览` / `输入 JSON 数据...` 即时还原；再切英文即时切回。
+- 附带实证：**SW cache-first 旧缓存会让 reload 也拿到旧脚本**（本会话实测 reload「回退」假象）——线上用户长期看到旧问题的帮凶之一；验收必须清 SW 或无痕。
+
+**防复发纪律（强制）**：
+- IIFE 内**禁止**对 `window.X` 做初始化快照用于后续翻译逻辑；凡全局数据一律「使用时实时读」或「数据到达后显式同步」。
+- 自派发事件（`new Event(...)` 默认不冒泡）的派发方与监听方 target 必须一致（统一 **window**）；新增跨脚本事件时两边同查。
+- 探针必须模拟生产加载顺序；「先注入后执行」的便捷 mock 只能用于测字典内容，不能用于测**加载时序类 bug**。
+- 语言切换验收必须包含「**不刷新页面**连续切换 中→英→中」三步断言，不能只测首开。
+
 ---
 
 **进度台账**：`_en-i18n/industries.md` 为唯一权威（当前剩余 **207** 个行业）。每行业闭环 = `--scan` → `--extract` → 翻译写字典 → `--check` 归零 → `--done` 逐工具记账 → `--promote` 删行 → `run_gates.py` → 本地 commit。

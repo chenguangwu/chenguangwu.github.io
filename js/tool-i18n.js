@@ -120,7 +120,13 @@
   // ---- 通用 UI 词精确短语自动英文化（零 MT，基于全站真实高频短语提取）----
   // 仅精确匹配完整短语，避免误翻正文里的相同字词；覆盖 label/button/option 的确定性 UI 词。
   // 工具专属内容（公式标签/说明段落/列表）由 data-i18n + 行业字典 en-US 逐条手翻覆盖。
-  var GEN_UI_MAP = (window.__TI18N_EN && window.__TI18N_EN.GEN_UI_MAP) || {};
+  // 【致命时序 bug 修复 2026-09-29】旧写法在此处对 window.__TI18N_EN 一次性快照：
+  // 本 IIFE 由页面静态引入、先于 boot() 动态加载的 tool-i18n-en.js 执行 ⇒ 线上英文态
+  // GEN_UI_MAP / BODY_PHRASE_MAP 恒为 {}（全局层整体空转：按钮 / tab / 下拉选项 / label
+  // 全部残留中文），而 per-tool 字典是运行时 fetch 赋值的活变量照常生效 —— 形成线上
+  // 「部分翻部分不翻」而本地探针（先注入数据再执行脚本）全绿的假象。
+  // 现改为空初始化 + syncEnMaps() 实时读取（init / applyAll 两个入口都会调用）。
+  var GEN_UI_MAP = {};
   var GEN_ORIG = new WeakMap();
   // 剥离开头的 emoji/符号前缀，返回 {prefix, core}，用于按钮「emoji+中文」与 GEN_UI_MAP 核心词匹配
   function stripEmojiPrefix(s) {
@@ -153,7 +159,16 @@
   // 整节点 textContent 做精确匹配替换，避免误翻正文；未匹配的中文保留（不中英混排）。
   // 全局 boilerplate（功能特点/使用场景/常见问题/工具简介/健康类说明）一次翻译，全站共用模板页受益；
   // 行业专属短语按行业分批追加。调用前跳过 data-i18n 元素（交 I18n.apply 处理）。
-  var BODY_PHRASE_MAP = (window.__TI18N_EN && window.__TI18N_EN.BODY_PHRASE_MAP) || {};
+  var BODY_PHRASE_MAP = {};   // 实际数据由 syncEnMaps() 运行时同步（同 GEN_UI_MAP 时序 bug，见上）
+
+  // 全局层数据同步：tool-i18n-en.js 可能晚于本脚本动态加载，
+  // 每次进入翻译流程（init / applyAll）前必须重读 window.__TI18N_EN。
+  function syncEnMaps() {
+    if (window.__TI18N_EN) {
+      GEN_UI_MAP = window.__TI18N_EN.GEN_UI_MAP || {};
+      BODY_PHRASE_MAP = window.__TI18N_EN.BODY_PHRASE_MAP || {};
+    }
+  }
   // ---- 相关工具卡片：英文模式用 slug->en/ed 映射替换中文 SEO 描述 ----
   var SLUG_EN = null;
   function loadSlugEn() {
@@ -488,6 +503,7 @@
   }
 
   function init() {
+    syncEnMaps();   // tool-i18n-en.js 动态加载完成后才进入此处，必须先同步全局层词表
     if (typeof I18n.applyLangAttr === 'function') I18n.applyLangAttr();
     applyChrome();
     applyToolContent();
@@ -501,6 +517,7 @@
 
   var EN_DATA_SRC = '/js/tool-i18n-en.js';
   function applyAll() {
+    syncEnMaps();   // 语言切换事件入口同样先同步全局层词表（数据可能刚动态加载完）
     applyChrome();
     applyToolContent();
     applyToolBody();
@@ -707,5 +724,9 @@
   } else {
     boot();
   }
-  document.addEventListener('toolbox:langchange', onLangChange);
+  // 【事件目标 bug 修复 2026-09-29】i18n.js 的 set() 在 window 上 dispatch('toolbox:langchange')
+  // （Event 默认不冒泡、target 为 window），挂在 document 上的监听器永远收不到 ⇒
+  // 切换语言后 applyAll 从不触发，内容区停留原语言，用户必须手动刷新才生效（老板实测投诉）。
+  // 修复：改挂 window，与 i18n.js 的派发目标一致（common.js 同事件也是 window 监听）。
+  window.addEventListener('toolbox:langchange', onLangChange);
 })();
