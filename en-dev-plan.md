@@ -518,7 +518,7 @@ _en-i18n/
 **缺口三：`toolbox:langchange` 派发口径错配。** `js/i18n.js` 的 `set()` 只在 `window` 派发，而工具页监听器挂在 `document`（window 事件不传播到 document）⇒ 切语言时工具**动态内容永不重渲染**；且 `init()` 起初不派发 ⇒ 解析期已渲染（当时 `I18n.get()` 仍未 init）的工具内容停在默认语言。
 → 处置：`set()` 与 `init()` 均 **window + document 双通道**派发。受影响的工具形态 = 自带 `isEn()`（`I18n.get()==='en-US'`）双语模板、且渲染早于 i18n 就绪者（全站 `palette-cvd-checker`/`cvd-safe-palette`/`farnsworth-d15-test` 等）。
 
-**验证**：`_prefix.json` +20 键（1571）；assessor-manager/detector-33/-175/-194/-lifespan/tester-maintenance/temp-26/geo-distance-calculator/position-size-calculator/fraction-calculator/palette-cvd-checker 残留中文节点全部清零；同 256 页残留 594→577（`colon-start` 20→4，目标标签 14→1）；门禁 217/217。余量 100% 为 genuine OUTPUT（枚举值 `正常类：定期跟踪`、计算结论散文、YAML 样本、打字单字、切词数据）。
+**验证**：`_prefix.json` +20 键（1571）；11 个混合串/属性目标页真机探针残留**全清零**；**全量审计 report11→report13：594→576 串、256→254 脏页、目标标签残留 14→0**；门禁 217/217。init 补发派发令 `cvd-safe-palette` 重渲染而暴露其硬编码 `<th>颜色</th>`/`复制 JSON`（未走 `isEn()`）⇒ 补入该工具专属字典（574 串/253 页终值）。余量 100% 为 genuine OUTPUT 值（`Revenue: 5000万`、`Collection strategy:正常类：定期跟踪`、`Service stage:婚庆策划`、生成结论散文 `信用良好，可优惠授信。`、维护指令 `检查轴承磨损…`、打字单字、切词数据）。
 
 **防复发判据（改机制必查）**：① 属性/文本/动态三口径是否都接了前缀匹配；② 全量替换是否排在串首兜底之前；③ 任何新增的「切语言重渲染」能力，其事件是否同时覆盖 window 与 document，且初始语言就绪后有补发。
 
