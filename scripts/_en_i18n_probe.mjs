@@ -560,6 +560,32 @@ async function smoke(targets, opts) {
             w2.HTMLCanvasElement.prototype.toBlob = function (cb) { if (cb) cb(new w2.Blob([], { type: 'image/png' })); };
           } catch (e) {}
           w2.matchMedia = w2.matchMedia || (() => ({ matches: false, addListener() {}, removeListener() {}, addEventListener() {}, removeEventListener() {} }));
+          // Web Audio API 能力补齐（环境限制，非页面缺陷）：
+          // jsdom 未实现 AudioContext / webkitAudioContext，纯前端音频合成类页面（笑声音效生成器等）
+          // 因此抛 "(window.AudioContext || window.webkitAudioContext) is not a constructor"，与 i18n 无关。
+          // 真实浏览器完整支持 ⇒ 此处补齐最小可用桩（不真正发声，保证不抛错）。
+          try {
+            if (typeof w2.AudioContext === 'undefined' && typeof w2.webkitAudioContext === 'undefined') {
+              const audioParam = () => ({ value: 0, setValueAtTime() {}, linearRampToValueAtTime() {}, exponentialRampToValueAtTime() {}, setTargetAtTime() {}, cancelScheduledValues() {}, setValueCurveAtTime() {} });
+              const AudioCtxStub = function () {
+                this.currentTime = 0;
+                this.destination = {};
+                this.sampleRate = 44100;
+                this.state = 'running';
+                this.createOscillator = () => ({ frequency: audioParam(), detune: audioParam(), type: 'sine', connect() {}, disconnect() {}, start() {}, stop() {} });
+                this.createGain = () => ({ gain: audioParam(), connect() {}, disconnect() {} });
+                this.createBiquadFilter = () => ({ type: 'lowpass', frequency: audioParam(), Q: audioParam(), connect() {}, disconnect() {} });
+                this.createAnalyser = () => ({ fftSize: 2048, frequencyBinCount: 1024, connect() {}, disconnect() {}, getByteTimeDomainData() {}, getByteFrequencyData() {} });
+                this.createBuffer = () => ({ getChannelData: () => new Float32Array(8) });
+                this.createBufferSource = () => ({ buffer: null, loop: false, connect() {}, disconnect() {}, start() {}, stop() {} });
+                this.resume = () => Promise.resolve();
+                this.suspend = () => Promise.resolve();
+                this.close = () => Promise.resolve();
+              };
+              w2.AudioContext = AudioCtxStub;
+              w2.webkitAudioContext = AudioCtxStub;
+            }
+          } catch (e) {}
           // WebCrypto / TextEncoder 能力补齐（环境限制，非页面缺陷）：
           // jsdom 只实现 crypto.getRandomValues / randomUUID，未实现 crypto.subtle，也未提供全局 TextEncoder。
           // 加密类页面（ECDSA/RSA/AES/PBKDF2/HMAC/JWT…）因此抛 TypeError，并把异常文本渲染进 #output，

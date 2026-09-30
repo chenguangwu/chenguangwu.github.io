@@ -1,0 +1,390 @@
+# -*- coding: utf-8 -*-
+"""fun 行业正文英文化 batch6（最后 10 个含条目工具）。位置对齐法。"""
+import sys, os, json
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from gen_biz_apply import apply_tool
+
+IND = 'fun'
+WORK = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'work', 'fun')
+
+def build(slug, en_list):
+    path = os.path.join(WORK, slug + '.json')
+    with open(path, encoding='utf-8') as f:
+        wj = json.load(f)
+    items = wj.get('items', [])
+    if len(en_list) != len(items):
+        print('!! %s 长度不一致: en=%d items=%d' % (slug, len(en_list), len(items)))
+        sys.exit(1)
+    mp = {}
+    for it, en in zip(items, en_list):
+        z = it['zh'].strip()
+        if not en or not isinstance(en, str):
+            print('!! %s 空译文 for %r' % (slug, z))
+            sys.exit(1)
+        mp[z] = en
+    return mp
+
+# ---------------- step-stride ----------------
+G1 = build('step-stride', [
+    '🏎️ Stride & Speed Converter',
+    'Speed = cadence x stride length. Adjust cadence and stride to convert speed, pace and calorie burn in real time.',
+    "📖 View 'Cadence & Stride Speed Converter Guide'",
+    'Velocity(m/s) = cadence(steps/min) x stride(m) / 60; speed in km/h = velocity x 3.6; pace(min/km) = 60 / speed; stride is often ~0.4 to 0.45 of height, brisk-walk cadence is usually 100 to 130 steps/min; energy burn = weight(kg) x distance(km) x factor (~0.5 to 0.9 kcal/kg/km).',
+    'Stride length (m)',
+    'Weight (kg, for calorie estimate)',
+    'Cadence:',
+    'steps/min',
+    'Stride:',
+    'm',
+    'Stroll',
+    'Brisk walk',
+    'Jog',
+    'Sprint',
+    'km/h',
+    'Pace (min/km)',
+    'Cadence (steps/min)',
+    'Stride (m)',
+    'Normal walk',
+    'Mid-speed run',
+    'Sprint run',
+    'Formula: speed(m/min) = cadence(steps/min) x stride(m); pace(min/km) = 60 / speed(km/h). Calorie estimate is based on MET values, for reference only.',
+    '📚 Deep Dive: Cadence & Stride Speed Converter',
+    'Walking pace estimate',
+    'Gait analysis',
+    'Back-solve cadence from target speed',
+    'Walking speed = stride x cadence; knowing any two yields the third, for pace and gait assessment.',
+    'Stride 0.70 m, cadence 120 steps/min → speed 0.70x120 = 84 m/min = 5.04 km/h; for a target 6 km/h (100 m/min) at the same stride, cadence = 100/0.70 ~ 143 steps/min. Instant pure-frontend conversion.',
+    'How do I measure stride accurately?',
+    'Walk 10 m and divide by step count for average stride; or estimate with height x 0.415, for reference.',
+    'Is it good for running?',
+    'The formula is a general conversion; running',
+    ' cadence and stride',
+    ' are larger, but it still applies with the right inputs.',
+    "About 'Stride & Speed Converter'",
+    'Stride & Speed Converter is an online tool in the math category; per speed = cadence x stride, it converts speed, pace and calorie burn in real time, with reference tables.',
+    'Slider + input dual linkage, real-time calc',
+    'Velocity / pace / calories one-click conversion',
+    'Stroll / brisk walk / jog / sprint presets',
+    'Reference tables and formula notes',
+    'Fitness running pace planning',
+    'Steps and distance conversion',
+    'Exercise calorie estimate',
+    'Fun walking-speed measurement',
+])
+apply_tool('step-stride', '步幅与速度换算', 'Stride & Speed Converter', G1, ind=IND)
+
+# ---------------- sudoku-generator ----------------
+G2 = build('sudoku-generator', [
+    '🧩 Sudoku Generator',
+    'Generate a printable 9x9 Sudoku puzzle (locally reproducible)',
+    "📖 View 'Sudoku Generator (with Answer) Guide'",
+    'Sudoku is built by backtracking: fill 1–9 into each cell, checking no row/column/3x3 box conflict, backtracking on conflict; then remove givens by difficulty (easy keeps ~36–45, medium ~30–35, hard ~26–29), verifying uniqueness (solution count = 1) after each removal to guarantee a single answer.',
+    'Copy puzzle',
+    '📚 Deep Dive: Sudoku Generator (with Answer)',
+    'Logic training',
+    'Print puzzle sheets with answers',
+    'Casual pastime',
+    'First generate a full solution grid, then dig holes by difficulty (beginner ~40, intermediate 50, advanced 55+), and output the puzzle and answer only after confirming a unique solution.',
+    "Pick 'Intermediate' and dig 50 cells: outputs a 9x9 board with 31 givens plus the answer for checking; copy to text or print to use. Higher difficulty means fewer givens.",
+    'Is the puzzle guaranteed a unique solution?',
+    'Generation validates uniqueness; over-digging auto-recovers to stay solvable; extreme settings may relax it.',
+    'Can I export a PDF?',
+    'It generates copyable text / a printable page, pure frontend; export is done via the browser print function.',
+])
+apply_tool('sudoku-generator', '数独生成器', 'Sudoku Generator', G2, ind=IND)
+
+# ---------------- tetris ----------------
+G3 = build('tetris', [
+    '🎮 Tetris',
+    'Classic line-clearing game, with keyboard and touch controls',
+    "📖 View 'Tetris (Line Clear) Guide'",
+    'Pause (P)',
+    'Next',
+    'Lines cleared',
+    'Move',
+    'Soft drop',
+    'Space',
+    'Hard drop',
+    'Pause',
+    '📚 Deep Dive: Tetris (Line Clear)',
+    'Classic casual puzzle',
+    'Reaction and spatial-planning training',
+    'Beat the high score',
+    'Seven tetrominoes (I/O/T/S/Z/J/L) fall; rotate and move to fill a row, which clears for points; the game ends when the stack tops out. Higher level means faster drops.',
+    'Clearing 4 rows at once (a Tetris) scores 800 x (level+1); at level 3, one 4-row clear scores 3200. Score is stored locally, no network.',
+    'Is there Hold / preview?',
+    'Depends on the build; the basic version supports rotate/move and hard drop, the advanced can add hold and next-piece preview.',
+    'Does it save progress?',
+    'The high score is local; a session does not resume after interruption, pure-frontend fun.',
+    'About Tetris',
+    'Tetris is a classic puzzle game where you move and rotate falling blocks to fill rows and clear them for points. As levels rise, the drop speed increases, testing your reaction and strategy.',
+    '7 classic tetrominoes (I/O/T/S/Z/L/J)',
+    'A full row auto-clears',
+    '1 row 100 / 2 rows 300 / 3 rows 500 / 4 rows 800 points',
+    'Every 10 rows cleared levels up and speeds up',
+    'Stack reaching the top ends the game',
+    'Controls',
+    'Keyboard: arrows to move/rotate, Space to hard drop',
+    'Mobile: touch buttons',
+    'Pause: P key or pause button',
+    'Ghost piece shows the landing preview',
+])
+apply_tool('tetris', '俄罗斯方块', 'Tetris', G3, ind=IND)
+
+# ---------------- tic-tac-toe ----------------
+G4 = build('tic-tac-toe', [
+    '🎮 Tic-Tac-Toe',
+    'Tic-Tac-Toe is an online tool in the entertainment & games category. A casual game tool—pure frontend, no install, playable offline.',
+    "📖 View 'Tic-Tac-Toe (vs AI / 2P) Guide'",
+    'Game',
+    '👥 Two Players',
+    '🤖 vs AI',
+    'Easy',
+    'Medium',
+    'Hard',
+    'Player first (X)',
+    'Current turn:',
+    'Click a cell to start',
+    'X wins',
+    'O wins',
+    '↩️ Undo',
+    '🔄 Reset Score',
+    '📜 Match History',
+    'Clear history',
+    'X moves first; players take turns placing their mark in a cell',
+    'First to line up three marks wins (horizontal, vertical, or diagonal)',
+    'If all cells fill with no winner, it is a draw',
+    '🤖 AI Difficulty',
+    ': random moves, good for beginners',
+    ': some strategy, occasionally errs',
+    ': uses Minimax, a perfect player, at best a draw',
+    '💡 Winning Tips',
+    'Take the center first',
+    'Watch and block the opponent potential line',
+    'Create a double-threat so the opponent cannot defend',
+    '📚 Deep Dive: Tic-Tac-Toe (vs AI / 2P)',
+    'Casual play to pass the time',
+    'Demonstrates the Minimax game algorithm',
+    'Parent-child / teaching on turn-based decisions',
+    'On a 3x3 board players alternate; first to a line (horizontal/vertical/diagonal) wins; a full board with no line is a draw. The AI mode commonly uses Minimax to search the best move.',
+    'You play X and take center (1,1); the computer plays O in corner (0,0); you then take (2,2) to form a diagonal threat, forcing the computer to block at (0,2) or (2,0), else you complete the diagonal next. At most 9 moves decide win or draw.',
+    'Does the first player have a winning strategy?',
+    'With both optimal it is always a draw; first player taking center maximizes the no-loss chance but cannot guarantee a win.',
+    'How do I adjust AI difficulty?',
+    'Switch between random / heuristic / full Minimax search; the higher the difficulty the harder to beat, runs purely in the frontend.',
+    "About 'Tic-Tac-Toe'",
+])
+apply_tool('tic-tac-toe', '井字棋', 'Tic-Tac-Toe', G4, ind=IND)
+
+# ---------------- tongue-twister ----------------
+G5 = build('tongue-twister', [
+    '🎤 Tongue Twister',
+    'This is a pure-frontend online tool. Data is processed locally in your browser and never uploaded to a server. Calculations follow relevant domain standards and are for reference only. Tool name: Tongue Twister — an online tool in the entertainment & games category.',
+    "📖 View 'Tongue Twister Timed Reading Guide'",
+    "Click 'Start' to get a tongue twister",
+    'Challenge yourself to say it fast',
+    '📚 Deep Dive: Tongue Twister Timed Reading',
+    'Broadcast / eloquence warm-up',
+    'Pronunciation and speech-rate training',
+    'Fun challenge among friends',
+    'Randomly draw a tongue-twister text, start the timer, stop when done and record the time; redraw to compare. Difficulty is graded by phonetic similarity.',
+    "Draw the short line 'four is four, ten is ten': first 6.8s, second 5.1s, faster with practice; switch to the hard line 'red carp and green carp', first 14.2s. Timing is local only, no right/wrong judgment.",
+    'Can I add my own tongue twisters?',
+    'Currently it draws randomly from a built-in bank; copy the text to practice yourself—the tool only times and displays.',
+    'Is the timing accurate?',
+    'Uses the browser performance timer, with millisecond-level error, enough for practice.',
+    "About 'Tongue Twister'",
+    'Tongue Twister is an online tool in the entertainment & games category. A casual game tool—pure frontend, no install, playable offline.',
+])
+apply_tool('tongue-twister', '绕口令', 'Tongue Twister', G5, ind=IND)
+
+# ---------------- typing-rhythm ----------------
+G6 = build('typing-rhythm', [
+    '💾 Typing Rhythm Test',
+    'Type the sample text below character by character; the tool records each keystroke interval, analyzes your typing-rhythm stability and scores it.',
+    "📖 View 'Typing Rhythm Stability Guide'",
+    'Next passage',
+    'Clear & retest',
+    'Type here (please type the whole sentence as smoothly as possible)',
+    'Rhythm score',
+    'After you start typing, rhythm analysis shows here.',
+    '📚 Deep Dive: Typing Rhythm Stability',
+    'Self-assess typing rhythm',
+    'Touch-typing fluency training',
+    'Input efficiency observation',
+    'Type the sample text character by character, recording each key interval; use',
+    ' to gauge rhythm stability—the steadier, the higher the score.',
+    'Type 50 chars, mean interval 180 ms, std 35 ms → coefficient of variation 19.4% (steady); if uneven with std 90 ms it is 50%, flagging unstable rhythm. Score is local, no correctness judgment.',
+    'Does it only measure speed or accuracy too?',
+    'This tool focuses on rhythm (interval variation); correctness is for you to check against the text; they can be shown separately.',
+    'Is data uploaded?',
+    'No network; timing and stats are done locally.',
+    "About 'Typing Rhythm Test'",
+    'Typing Rhythm Test is an online tool in the entertainment & games category; it records each keystroke interval, analyzes typing-rhythm stability via coefficient of variation and scores it, with a rhythm waveform.',
+    'Real-time key-interval logging',
+    'Coefficient-of-variation rhythm score',
+    'Rhythm waveform visualization',
+    'Typing speed estimate (WPM)',
+    'Fun typing-rhythm self-test',
+    'Keyboard input habit analysis',
+    'Typing practice progress tracking',
+])
+apply_tool('typing-rhythm', '打字节奏感测试', 'Typing Rhythm Test', G6, ind=IND)
+
+# ---------------- wedding-banquet ----------------
+G7 = build('wedding-banquet', [
+    '🔮 Wedding Banquet Table Estimator',
+    'How many tables for the wedding? Enter guest count and table type to auto-estimate main tables and reserve tables, with common venue capacity reference.',
+    '/ Wedding Banquet Table Estimator',
+    "📖 View 'Wedding Banquet Table Estimator Guide'",
+    'Tables = ceil(guests / seats per table); total dishes = tables x dishes per table; reserve tables ~ tables x 5%',
+    'Weddings seat 10 per table (12 in some regions), rounding up for table count, plus ~5% reserve tables for last-minute guests; dishes are scaled by fixed per-table portions and meat/veg ratio—commonly 8 hot + 2 cold + 1 soup + 2 staples—with margin for the main table and taste differences.',
+    'Guest count (people)',
+    'Table type',
+    'Round 10 seats',
+    'Round 12 seats',
+    'Square 8 seats',
+    'Square 10 seats',
+    'Reserve strategy',
+    'No reserve',
+    'Reserve 1 table',
+    'Reserve 2 tables',
+    'Reserve 3 tables',
+    '📚 Deep Dive: Wedding Banquet Table Estimator',
+    'Table booking estimate: enter guest count and table type to quickly compute main and reserve tables.',
+    'Venue check: against common banquet-hall capacity, decide if a split session or hall change is needed.',
+    'Budget reference: table count directly drives the banquet budget—set the range first, then details.',
+    'How it works (table formula)',
+    'Main tables = ceil(guests / seats per table), usually 10 per table (12 for large); suggest 1 reserve table (~5%–10%) for extra guests. Common halls hold 20–40 tables.',
+    '186 guests at 10/table: main = ceil(186/10) = 19, plus 1–2 reserve → 20–21 tables; at 12/table, 186/12 ~ 15.5 → 16 tables. If the venue holds only 18, a split session or hall change is needed.',
+    'How much reserve is reasonable?',
+    'Usually 1 table or up 5%–10%; weddings often have late/combo guests, and reserve tables can be returned or turned into staff meals per hotel rules.',
+    'Do children count as a person?',
+    'Per hotel: toddlers often free or share, school-age take half a seat; confirm actual seating with the hotel when booking.',
+    'Main tables = guests / seats per table (rounded up)',
+    'Reserve: 1 table (≤200) / 2 tables (201–400) / 3 tables (>400)',
+    'Venue fee reference: standard 1500/table, mid-range 3000/table',
+    'Book by headcount +10% flexibility; final per hotel quote',
+])
+apply_tool('wedding-banquet', '婚宴桌数估算器', 'Wedding Banquet Table Estimator', G7, ind=IND)
+
+# ---------------- whack-a-mole ----------------
+G8 = build('whack-a-mole', [
+    '🔨 Whack-a-Mole',
+    'This is a pure-frontend online tool. Data is processed locally in your browser and never uploaded to a server. Calculations follow relevant domain standards and are for reference only. Tool name: Whack-a-Mole — an online tool in the entertainment & games category.',
+    "📖 View 'Whack-a-Mole (Reaction) Guide'",
+    'Score:',
+    'Missed:',
+    'Click the moles that pop up',
+    '📚 Deep Dive: Whack-a-Mole (Reaction)',
+    'Reaction training',
+    'Hand-eye coordination challenge',
+    'Parent-child interaction',
+    'Within the time limit moles pop up at random; hit for points, miss or hit empty to lose points; at the end the high score is settled.',
+    '30s round: hit 22 moles at +10 = 220, miss 5 at -5 = -25, net 195 sets a new high. Score stored locally.',
+    'Where is the high score stored?',
+    'Stored in the browser locally—no network, no upload; clearing cache resets it.',
+    'Is there a mole pattern?',
+    'Random, no pattern; difficulty adjusts frequency and time limit.',
+    "About 'Whack-a-Mole'",
+    'Whack-a-Mole is an online tool in the entertainment & games category. A casual game tool—pure frontend, no install, playable offline.',
+])
+apply_tool('whack-a-mole', '打地鼠', 'Whack-a-Mole', G8, ind=IND)
+
+# ---------------- word-scramble ----------------
+G9 = build('word-scramble', [
+    '🎲 Word Scramble Guess',
+    'Word scramble game. Letters of an English word are shuffled; within limited hints the player restores it, training vocabulary and spelling, recording score and hint use, pure-frontend offline play.',
+    "📖 View 'Word Scramble Guess Guide'",
+    'Game',
+    'Records',
+    'Word bank category',
+    '🐾 Animals',
+    '🍎 Fruits',
+    '🌍 Countries',
+    '💻 Programming',
+    '⚽ Sports',
+    'Easy (3-5)',
+    'Medium (5-7)',
+    'Hard (7-10)',
+    'Hints used:',
+    '⏭️ Skip',
+    '⏹️ End',
+    'High score:',
+    'Longest streak:',
+    'Most correct:',
+    '📜 Recent games',
+    'The system shows an English word with shuffled letters',
+    'You need to guess the correct word and type it',
+    '60-second limit; more correct answers mean a higher score',
+    'Consecutive correct answers earn a streak bonus',
+    'Base score',
+    ': word length x 10 points',
+    'Streak bonus',
+    ': streak count x 5 points',
+    'Hint penalty',
+    ': each hint used costs 5 points',
+    'Skip penalty',
+    ': skipping costs no points but resets the streak',
+    '📚 Word Bank Categories',
+    'Animals',
+    ': common animal words',
+    'Fruits',
+    ': common fruit words',
+    'Countries',
+    ': country-name words',
+    'Programming',
+    ': programming terms',
+    'Sports',
+    ': sports words',
+    '📚 Deep Dive: Word Scramble Guess',
+    'Vocabulary and spelling training',
+    'Fun English memorization',
+    'Timed challenge',
+    'Take a word from the bank and shuffle its letters; the player restores it within hints; using hints deducts points, correct answers within the time score.',
+    'Original COMPUTER scrambled to PTRECMUO; correct within 30s scores 100; after 1 hint (-20) scores 80; 5 in a row triggers a combo bonus.',
+    'Can I customize the word bank?',
+    'Currently it draws randomly from a built-in bank; copy the puzzle to practice yourself—the tool only shuffles and scores.',
+    'Does the same letters count as correct?',
+    'You must restore the original bank word (case-insensitive',
+    '), with the exact same order to be correct.',
+    "Time's up!",
+    'Best streak',
+    "About 'Word Scramble Guess'",
+    'Word Scramble Guess. A casual game tool—pure frontend, no install, playable offline.',
+])
+apply_tool('word-scramble', '单词打乱猜词', 'Word Scramble Guess', G9, ind=IND)
+
+# ---------------- zodiac-match ----------------
+G10 = build('zodiac-match', [
+    '📋 Zodiac Compatibility Index',
+    'Pick your zodiac and TA zodiac to see the compatibility index and reading (based on the four-element compatibility algorithm).',
+    "📖 View 'Zodiac Compatibility (Four Elements) Guide'",
+    'Zodiac pairing is scored by four-element affinity: Fire (Aries, Leo, Sagittarius), Earth (Taurus, Virgo, Capricorn), Air (Gemini, Libra, Aquarius), Water (Cancer, Scorpio, Pisces); same-element ~80–90 (harmonious), Fire-Air and Earth-Water ~70–85 (complementary), Fire-Water and Earth-Air ~40–60 (needs work); when mapping the score to a progress ring, circumference = 2πr and offset = circumference x (1 − score/100).',
+    'Your zodiac',
+    'TA zodiac',
+    '💕 View Match',
+    '🎲 Random Match',
+    'Select two zodiacs then click View Match',
+    '📚 Deep Dive: Zodiac Compatibility (Four Elements)',
+    'Learn how two people get along before dating / befriending',
+    'Content creation fun zodiac material',
+    'Party icebreaker',
+    'The 12 zodiacs belong to four elements (Fire: Aries/Leo/Sagittarius; Earth: Taurus/Virgo/Capricorn; Air: Gemini/Libra/Aquarius; Water: Cancer/Scorpio/Pisces). Same or complementary elements (Fire↔Air, Earth↔Water) score high; other pairs are average.',
+    'Aries(Fire) x Leo(Fire) same element → 95; Aries(Fire) x Libra(Air) complementary → 85; Aries(Fire) x Cancer(Water) normal → 65. The index is a fixed mapping, same pair always gives the same result, for entertainment only.',
+    'Are the results accurate?',
+    'Purely a fun algorithm demo with fixed mapping and no scientific or astrological basis; do not use it for important decisions.',
+    'Why are Fire and Air more compatible?',
+    'This is a convention of the four-element setting (Fire active, Air feeds flame), only an entertainment framework, with no empirical support.',
+    "About 'Zodiac Compatibility Index'",
+    'Zodiac Compatibility Index is an online tool in the entertainment & games category; based on the four elements (Fire, Earth, Air, Water) affinity algorithm it computes the compatibility index among the 12 zodiacs, with a built-in table and readings.',
+    'All 12 zodiacs paired, visualized ring index',
+    'Four-element algorithm with pair readings',
+    'Random match, full of fun',
+    'Friend party interaction',
+    'Couple fun match test',
+    'Zodiac culture interest',
+])
+apply_tool('zodiac-match', '星座配对指数', 'Zodiac Compatibility Index', G10, ind=IND)
+
+print('gen_fun_b6 done')
