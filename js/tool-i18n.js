@@ -577,6 +577,38 @@
       .catch(function () { EN_COMMON = {}; EN_COMMON_LOADING = false; return EN_COMMON; });
   }
 
+  // 前缀标签字典：i18n/tools/en/_prefix.json —— 专门收纳「固定中文标签 + 变量值」类动态结果串的
+  // 标签片段（如 "原始大小：""应用场景：""清理结果（"）。运行时对文本节点做「前缀子串替换」：
+  // 当整串精确匹配失败、但文本以某前缀键开头时，只翻译该前缀、变量值原样保留。
+  // 与 EN_COMMON 物理隔离 ⇒ 绝不会把通用词（如"分析"）拿去做前缀匹配误伤正文；前缀键一律由
+  // 我们显式收录（几乎都带结尾分隔符 ：:（，天然是"标签"形态），零误伤。
+  var EN_PREFIX = null;
+  var EN_PREFIX_LOADING = false;
+  var EN_PREFIX_KEYS = null;   // 排序后的键（长→短），用于 longestPrefixKey 快速匹配
+  function loadEnPrefix() {
+    if (EN_PREFIX || EN_PREFIX_LOADING || !window.fetch) return Promise.resolve(EN_PREFIX);
+    EN_PREFIX_LOADING = true;
+    return fetch(sharedI18nUrl('en/_prefix.json'))
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (d) {
+        EN_PREFIX = d || {};
+        EN_PREFIX_KEYS = Object.keys(EN_PREFIX).sort(function (a, b) { return b.length - a.length; });
+        EN_PREFIX_LOADING = false;
+        if (isEnglish()) applyEnDict(false);
+        return EN_PREFIX;
+      })
+      .catch(function () { EN_PREFIX = {}; EN_PREFIX_KEYS = []; EN_PREFIX_LOADING = false; return EN_PREFIX; });
+  }
+  // 返回文本最长的、可作为前缀命中的键（文本以该键开头，含"文本节点恰等于该键"的孤立标签形态）；无则 null
+  function longestPrefixKey(text) {
+    if (!EN_PREFIX_KEYS || !text) return null;
+    for (var i = 0; i < EN_PREFIX_KEYS.length; i++) {
+      var k = EN_PREFIX_KEYS[i];
+      if (text.length >= k.length && text.indexOf(k) === 0) return k;
+    }
+    return null;
+  }
+
   function loadEnIndex(ind) {
     if (EN_INDEX[ind]) return Promise.resolve(EN_INDEX[ind]);
     if (!window.fetch) { EN_INDEX[ind] = EN_EMPTY_SET; return Promise.resolve(EN_EMPTY_SET); }
@@ -591,6 +623,7 @@
 
   function loadEnDict(ind, slug) {
     loadEnCommon();       // 全局通用层随之加载（独立于本工具是否已有字典）
+    loadEnPrefix();       // 前缀标签层随之加载（覆盖"标签+变量"动态结果串）
     if (!ind || !slug || !window.fetch) return;
     var key = ind + '/' + slug;
     if (EN_KEY === key) return;      // 已加载 / 加载中，避免重复请求
@@ -689,12 +722,18 @@
       if (!raw) continue;
       var k = raw.trim();
       if (!k) continue;
+      var matchedKey = k;
       var en = pickEn(k);
+      if (!en) {
+        // 前缀子串兜底：整串精确匹配失败、但文本以某已知标签片段开头时，只译前缀、变量值保留
+        var pf = longestPrefixKey(k);
+        if (pf) { matchedKey = pf; en = EN_PREFIX[pf]; }
+      }
       if (!en) en = convertPunct(k);
       if (!en || en === k) continue;
-      var idx = raw.indexOf(k);
+      var idx = raw.indexOf(matchedKey);
       EN_ORIG.push({ node: n, orig: raw });
-      n.nodeValue = raw.slice(0, idx) + en + raw.slice(idx + k.length);
+      n.nodeValue = raw.slice(0, idx) + en + raw.slice(idx + matchedKey.length);
     }
 
     // (c) 元素属性翻译（placeholder / title / aria-label / alt）：属性不是文本节点，
@@ -746,12 +785,17 @@
       if (!raw) return;
       var key = raw.trim();
       if (!key) return;
+      var matchedKey = key;
       var out = pickEn(key);
+      if (!out) {
+        var pf = longestPrefixKey(key);
+        if (pf) { matchedKey = pf; out = EN_PREFIX[pf]; }
+      }
       if (!out) out = convertPunct(key);
       if (!out || out === key) return;
-      var at = raw.indexOf(key);
+      var at = raw.indexOf(matchedKey);
       EN_ORIG.push({ node: node, orig: raw });
-      node.nodeValue = raw.slice(0, at) + out + raw.slice(at + key.length);
+      node.nodeValue = raw.slice(0, at) + out + raw.slice(at + matchedKey.length);
       return;
     }
     if (node.nodeType !== 1) return;
