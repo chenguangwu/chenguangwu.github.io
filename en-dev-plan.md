@@ -322,10 +322,10 @@ _en-i18n/
 |---|---|---|---|
 | **M0 工具链** | ✅ 完成 | 探针脚本正式化（8 模式）+ `tool-i18n.js` 第三层改造 + `_index.json` 守卫 + `_common.json` 全局层 | 探针误报归零；框架层白名单生效 |
 | **M1 试点** | ✅ 完成 | `wedding`（8 工具）：216 条专属译文，残留 201→0 | `--check` = 0；`--roundtrip` 简/繁均 0 不一致；217 门禁全过 |
-| **M2 规模化** | 🔄 进行中 | 按 `industries.md` 顺序（工具数降序）逐行业推进，已完成 1 / 208 | 每行业收尾：promote + 门禁 + commit |
+| **M2 规模化** | 🔄 进行中 | 按 `industries.md` 顺序（工具数降序）逐行业推进，已完成 **6 / 208**（`it` → `general` → `finance` → `design` → `science` → `sports`） | 每行业收尾：promote + 门禁 + commit |
 | **M3 收尾** | ⏳ 待开始 | 逐行业 `--check` 全绿；清理被 EN 字典替代的 `-body.json` 回填项 | 专项关闭，归档 memory + skill |
 
-**建议顺序**：`wedding` 试点已打通链路；M2 按规模降序 —— `it(338) → general(182) → finance(112) → design(111) → science(98) → …`（影响面最大者优先）。
+**建议顺序**：`wedding` 试点已打通链路；M2 按规模降序 —— `it(338) → general(182) → finance(112) → design(111) → science(98) → sports(78) → life(72) → …`（影响面最大者优先；**下一行业 = `life`(72)**）。
 
 ---
 
@@ -608,6 +608,16 @@ _en-i18n/
 - **缺陷**：① `syncTitle` 增加 `_titleZh` 初始化缓存（与 `_descZh` 对齐）；② `applyChrome` 面包屑改为**无条件**写入当前语言文案；③ `RT_ORIG` 改用**卡片下标/href 为键**（抗重绘）而非元素引用；④ 运行时注入按钮的还原统一走「原文缓存」口径。
 - **硬性护栏**：改动后必须证明 **EN 态输出逐条不变**（`audit_all.mjs` 抽样「前后残留集合完全相同」）＋ 门禁 **217/217** ＋ 真机 `probe_lang_restore.mjs` 归零。
 
+### 14.14 关联卡片映射 `slug-en.json` 缺口 ＋ term-link 锚文本句中大写（2026-09-30 sports 收口登记，**判据/处置**）
+
+**判据①（关联卡片名机制）**：`.related-tool-card .rt-name` 由 `translateRelatedTools` 走 `i18n/tools/slug-en.json`（键 `industry/slug`，值 `{en, ed}`）**权威映射**；该映射**缺失时**回退 `cleanRelatedName()` 截断首个 ` - ` 之后，再由 per-tool 字典 / 行业短语层翻译。**故 per-tool 字典（最高优先）可补关联卡片名，但键必须是「截断后短形态」**（如 `抗击打部位硬度（指测）评估`），**不得用 extract 给出的长形态**（`... - 武术抗击打硬度评估工具，...`），否则永不命中。
+
+**缺口现状（全站既有，`_test_static.py::check_related_slug_map` 只计 warning 不硬失败）**：映射缺失 **153**、冗余 slug **351**（2026-09-30 实测）。sports 占 6：`analysis-spacing` / `assessor-csat` / `assessor-hardness` / `convert-13`（被 54 个 sports 页引用）/ `convert-29` / `stats-11`。
+
+**处置（本批不动，登记待办）**：经核，这 6 个 slug 的引用**全部落在 `tools/sports/` 内**（无跨行业泄露），且 per-tool 字典已在各自页兜底 ⇒ `--check sports` 归零。补 `slug-en.json` 仅把全站缺失 153→147，且属**全局文件**（触碰多行业已验证内容的风险）⇒ **不在单行业收口内做**，留待独立的「全站 slug-en 补全」批次统一评估（需老板定夺，因涉及移除/改动已上线映射）。
+
+**判据②（term-link 锚文本大写）**：内链锚文本（`<a class="term-link">中文</a>`）的文本节点由全局 `js/tool-i18n-en.js` 映射翻译（如 `百分比` → `Percentage`），**句中亦为首字母大写**（实例：`convert-47` 渲染出 `...to set the load Percentage and avoid...`）。此为**全站一致的既定行为**，非残留（探针 `--check` 归零）、非本批职责；改动属全局层风险编辑 ⇒ **保留不动**。
+
 ---
 
-**进度台账**：`_en-i18n/industries.md` 为唯一权威（当前剩余 **207** 个行业）。每行业闭环 = `--scan` → `--extract` → 翻译写字典 → `--check` 归零 → `--done` 逐工具记账 → `--promote` 删行 → `run_gates.py` → 本地 commit。
+**进度台账**：`_en-i18n/industries.md` 为唯一权威（当前剩余 **201** 个行业）。每行业闭环 = `--scan` → `--extract` → 翻译写字典 → `--check` 归零 → `--done` 逐工具记账 → `--promote` 删行 → `run_gates.py` → 本地 commit。
