@@ -24,6 +24,9 @@ def _gen_templates(name, en, display, en_display):
         '📖 查看「' + name + '使用指南」': '📖 View the "' + en + ' Guide"',
         '📚 深度解析：' + name: '📚 In-Depth: ' + en,
         '关于「' + d + '」': 'About "' + ed + '"',
+        name + '是做什么的？': 'What does ' + en + ' do?',
+        '如何使用' + name + '？': 'How do I use ' + en + '?',
+        name + '适合哪些场景？': 'What scenarios is ' + en + ' best for?',
     }
 
 
