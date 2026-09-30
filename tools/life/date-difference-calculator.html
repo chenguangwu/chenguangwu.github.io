@@ -678,35 +678,38 @@ function getNthWeekday(year, month, nth, weekday){
 }
 
 function getFestivalDate(festival, year){
-  if(festival.date.includes('nth')){
-    const [month, nth, day] = festival.date.split('-');
-    const dayNum = getNthWeekday(year, parseInt(month), parseInt(nth), parseInt(day));
-    return new Date(year, parseInt(month) - 1, dayNum);
-  }
-  if(festival.date.includes('second-sun')){
-    const month = parseInt(festival.date.split('-')[0]);
-    const day = getNthWeekday(year, month, 2, 0);
-    return new Date(year, month - 1, day);
-  }
-  if(festival.date.includes('third-sun')){
-    const month = parseInt(festival.date.split('-')[0]);
-    const day = getNthWeekday(year, month, 3, 0);
-    return new Date(year, month - 1, day);
-  }
-  if(festival.date.includes('fourth-thu')){
-    const month = parseInt(festival.date.split('-')[0]);
-    const day = getNthWeekday(year, month, 4, 4);
-    return new Date(year, month - 1, day);
+  // 节气类（solar）用 term、农历类（lunar）用标记，二者均不携带公历 date 字符串。
+  // 必须先判定，否则对 undefined 调 .includes() 会抛 TypeError（清明节缺 date 曾致整个节日列表渲染中断）。
+  if(festival.solar){
+    const term = getSolarTerm(year, festival.term);
+    if(term) return new Date(year, term.month - 1, term.day);
   }
   if(festival.lunar){
     const [lunarMonth, lunarDay] = festival.date.split('-').map(Number);
     return lunarToSolar(year, lunarMonth, lunarDay, false);
   }
-  if(festival.solar){
-    const term = getSolarTerm(year, festival.term);
-    if(term) return new Date(year, term.month - 1, term.day);
+  const dstr = festival.date || '';
+  if(dstr.includes('nth')){
+    const [month, nth, day] = dstr.split('-');
+    const dayNum = getNthWeekday(year, parseInt(month), parseInt(nth), parseInt(day));
+    return new Date(year, parseInt(month) - 1, dayNum);
   }
-  const [month, day] = festival.date.split('-').map(Number);
+  if(dstr.includes('second-sun')){
+    const month = parseInt(dstr.split('-')[0]);
+    const day = getNthWeekday(year, month, 2, 0);
+    return new Date(year, month - 1, day);
+  }
+  if(dstr.includes('third-sun')){
+    const month = parseInt(dstr.split('-')[0]);
+    const day = getNthWeekday(year, month, 3, 0);
+    return new Date(year, month - 1, day);
+  }
+  if(dstr.includes('fourth-thu')){
+    const month = parseInt(dstr.split('-')[0]);
+    const day = getNthWeekday(year, month, 4, 4);
+    return new Date(year, month - 1, day);
+  }
+  const [month, day] = dstr.split('-').map(Number);
   return new Date(year, month - 1, day);
 }
 

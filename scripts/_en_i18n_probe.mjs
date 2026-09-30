@@ -532,6 +532,10 @@ async function smoke(targets, opts) {
         beforeParse(w2) {
           w2.lucide = { createIcons() {} };
           w2.scrollTo = () => {};
+          // jsdom 未实现 Element.scrollIntoView（真实浏览器有）⇒ 结果页自动滚动类页面会误报
+          // 「scrollIntoView is not a function」，属环境限制、非页面缺陷，故补 no-op 存根。
+          try { w2.Element.prototype.scrollIntoView = () => {}; } catch (e) {}
+          try { w2.HTMLElement.prototype.scrollIntoView = () => {}; } catch (e) {}
           w2.alert = () => {};
           w2.confirm = () => true;
           w2.prompt = () => '';
