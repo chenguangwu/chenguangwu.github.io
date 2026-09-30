@@ -322,10 +322,10 @@ _en-i18n/
 |---|---|---|---|
 | **M0 工具链** | ✅ 完成 | 探针脚本正式化（8 模式）+ `tool-i18n.js` 第三层改造 + `_index.json` 守卫 + `_common.json` 全局层 | 探针误报归零；框架层白名单生效 |
 | **M1 试点** | ✅ 完成 | `wedding`（8 工具）：216 条专属译文，残留 201→0 | `--check` = 0；`--roundtrip` 简/繁均 0 不一致；217 门禁全过 |
-| **M2 规模化** | 🔄 进行中 | 按 `industries.md` 顺序（工具数降序）逐行业推进，已完成 **6 / 208**（`it` → `general` → `finance` → `design` → `science` → `sports`） | 每行业收尾：promote + 门禁 + commit |
+| **M2 规模化** | 🔄 进行中 | 按 `industries.md` 顺序（工具数降序）逐行业推进，已完成 **7 / 208**（`it` → `general` → `finance` → `design` → `science` → `sports` → `life`；另 M1 试点 `wedding`） | 每行业收尾：promote + 门禁 + commit |
 | **M3 收尾** | ⏳ 待开始 | 逐行业 `--check` 全绿；清理被 EN 字典替代的 `-body.json` 回填项 | 专项关闭，归档 memory + skill |
 
-**建议顺序**：`wedding` 试点已打通链路；M2 按规模降序 —— `it(338) → general(182) → finance(112) → design(111) → science(98) → sports(78) → life(72) → …`（影响面最大者优先；**下一行业 = `life`(72)**）。
+**建议顺序**：`wedding` 试点已打通链路；M2 按规模降序推进（影响面最大者优先）。已完成 `it(338) → general(182) → finance(112) → design(111) → science(98) → sports(78) → life(72)`；**下一行业以 `_en-i18n/industries.md` 榜首为准 = `biz`(69)**。
 
 ---
 
