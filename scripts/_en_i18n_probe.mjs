@@ -281,7 +281,11 @@ async function extract(target) {
   const [ind, slug] = target.split('/');
   const file = path.join(ROOT, 'tools', ind, slug + '.html');
   if (!fs.existsSync(file)) { console.error('工具页不存在: ' + file); process.exit(1); }
-  const { w, getPending } = probePage(file, 'en-US');
+  // 英文态抽取：collectCJK/collectCJKAttr 的「残留」口径与 --check 完全一致
+  // （运行时已处理过的节点不会残留 ⇒ 天然排除 applyChrome/chrome 层与已译项）。
+  // 注意：极少数节点已被 _common/_prefix 半翻译（变异系数→Coefficient of variation），
+  // 其 EN 残留形态≠源文，须以 zh 态源文为键 —— 由 --check 兜底暴露，再查 _dbg/zh 抽取。
+  const { w, getPending } = probePage(file, process.env.EXTRACT_LANG || 'en-US');
   await settle(getPending);
   const meta = toolMeta(ind, slug);
   const items = [];
@@ -299,6 +303,20 @@ async function extract(target) {
     if (!t || !CJK.test(t) || seen.has(t)) continue;
     seen.add(t);
     items.push({ kind: 'text', loc: locOf(n), zh: t });
+  }
+  // 属性残留（placeholder/title/aria-label/alt）——与 --check 的 collectCJKAttr 口径一致。
+  // 修复坑 9：此前 extract 只收 [data-zh] 与文本节点，属性（输入框 placeholder 等）
+  // 完全不在待译清单里，导致「按 extract 清单译完、--check 仍报残留」。
+  for (const el of w.document.querySelectorAll('[placeholder],[title],[aria-label],[alt]')) {
+    if (isExcluded({ parentNode: el })) continue;
+    for (const a of ['placeholder', 'title', 'aria-label', 'alt']) {
+      const v = el.getAttribute(a);
+      if (!v || !RESIDUAL_RE.test(v)) continue;
+      const key = a + '\u0000' + v;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      items.push({ kind: 'attr:' + a, loc: locOfEl(el) + ' [' + a + ']', zh: v });
+    }
   }
   w.close();
   fs.mkdirSync(path.join(WORK, ind), { recursive: true });
