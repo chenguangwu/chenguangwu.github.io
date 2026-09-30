@@ -21,8 +21,8 @@ def _gen_templates(zh_name, en):
     }
 
 
-def apply_tool(slug, name, en, mp, auto=True, dry=False):
-    path = 'i18n/tools/en/%s/%s.json' % (IND, slug)
+def apply_tool(slug, name, en, mp, ind=IND, auto=True, dry=False):
+    path = 'i18n/tools/en/%s/%s.json' % (ind, slug)
     os.makedirs(os.path.dirname(path), exist_ok=True)
     full = dict(_gen_templates(name, en)) if auto else {}
     full.update(mp)
@@ -48,7 +48,7 @@ def apply_tool(slug, name, en, mp, auto=True, dry=False):
         print('OK(dry) %s: %d 键' % (slug, len(full)))
         return len(full)
     cur.update(full)
-    out = {'slug': slug, 'industry': IND, 'name': name, 'map': cur}
+    out = {'slug': slug, 'industry': ind, 'name': name, 'map': cur}
     with io.open(path, 'w', encoding='utf-8') as f:
         json.dump(out, f, ensure_ascii=False, indent=1)
         f.write('\n')

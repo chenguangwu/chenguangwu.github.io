@@ -46,7 +46,8 @@ async function settle(g) {
 
 const slug = process.argv[2];
 const sel = process.argv[3] || '.deep-dive li, .deep-dive dd, .deep-dive .dd-ex-body, .deep-dive .dd-sum, .deep-dive .dd-lead, .tool-notes li';
-const { w, getPending } = render('tools/sports/' + slug + '.html', 'en-US');
+const IND = process.env.VERIFY_IND || 'sports';
+const { w, getPending } = render('tools/' + IND + '/' + slug + '.html', 'en-US');
 await settle(getPending);
 let n = 0;
 for (const el of w.document.querySelectorAll(sel)) {
