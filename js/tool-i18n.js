@@ -747,13 +747,15 @@
       var matchedKey = k;
       var en = pickEn(k);
       if (!en) {
-        // 前缀子串兜底：整串精确匹配失败、但文本以某已知标签片段开头时，只译前缀、变量值保留
-        var pf = longestPrefixKey(k);
-        if (pf) { matchedKey = pf; en = EN_PREFIX[pf]; }
+        // ① 全量替换：把串中「任意位置」的所有「标签：」片段一次译清（含串首标签 + 中间多标签的
+        //    双语混合结果串）。必须排在 longestPrefixKey 之前 —— 否则串首恰为已知标签时会走串首
+        //    单次分支，只译第一个、漏掉串中其余标签。
+        var all = replaceColonLabelsAll(k);
+        if (all) { en = all; }
         else {
-          // 标签片段在串中任意位置（双语混合结果串）：把所有「标签：」片段一次译清、变量值保留
-          var pa = replaceColonLabelsAll(k);
-          if (pa) { matchedKey = k; en = pa; }
+          // ② 非冒号前缀标签（149 条短标签）仅在串首命中
+          var pf = longestPrefixKey(k);
+          if (pf) { matchedKey = pf; en = EN_PREFIX[pf]; }
         }
       }
       if (!en) en = convertPunct(k);
@@ -780,9 +782,14 @@
         var aValT = aVal.trim();
         var aTr = pickEn(aValT);
         if (!aTr) {
-          // 属性值以已知标签片段开头（如 title="五险一金: ¥4,500.00"）：只译标签、值保留
-          var apf = longestPrefixKey(aValT);
-          if (apf) aTr = EN_PREFIX[apf];
+          // ① 全量替换「标签：」片段（title="五险一金: ¥4,500.00" 等「标签+值」），值原样保留
+          var aAll = replaceColonLabelsAll(aValT);
+          if (aAll) aTr = aAll;
+          else {
+            // ② 非冒号前缀标签仅在串首命中
+            var apf = longestPrefixKey(aValT);
+            if (apf) aTr = EN_PREFIX[apf];
+          }
         }
         if (!aTr || aTr === aVal) continue;
         EN_ORIG.push({ el: ae, attr: aName, orig: aVal });
@@ -821,11 +828,12 @@
       var matchedKey = key;
       var out = pickEn(key);
       if (!out) {
-        var pf = longestPrefixKey(key);
-        if (pf) { matchedKey = pf; out = EN_PREFIX[pf]; }
+        // 全量替换优先（含串首标签 + 中间多标签），非冒号前缀标签兜底
+        var all2 = replaceColonLabelsAll(key);
+        if (all2) { out = all2; }
         else {
-          var pa = replaceColonLabelsAll(key);
-          if (pa) { matchedKey = key; out = pa; }
+          var pf = longestPrefixKey(key);
+          if (pf) { matchedKey = pf; out = EN_PREFIX[pf]; }
         }
       }
       if (!out) out = convertPunct(key);
@@ -846,8 +854,12 @@
       var avT = av.trim();
       var tv = pickEn(avT);
       if (!tv) {
-        var avpf = longestPrefixKey(avT);
-        if (avpf) tv = EN_PREFIX[avpf];
+        var avAll = replaceColonLabelsAll(avT);
+        if (avAll) tv = avAll;
+        else {
+          var avpf = longestPrefixKey(avT);
+          if (avpf) tv = EN_PREFIX[avpf];
+        }
       }
       if (!tv || tv === av) continue;
       EN_ORIG.push({ el: node, attr: an, orig: av });

@@ -733,7 +733,10 @@ var LANG_REGISTRY = [
     apply(document);
     syncTitle();
     syncDesc();
+    // 同时在 window 与 document 上派发：工具页的语言切换监听器多挂在 document
+    // （window 上派发的事件不会传播到 document），此前切语言时工具动态内容不重渲染。
     if (window.dispatchEvent) window.dispatchEvent(new Event('toolbox:langchange'));
+    if (document.dispatchEvent) document.dispatchEvent(new Event('toolbox:langchange'));
   }
 
   function init() {
@@ -753,6 +756,11 @@ var LANG_REGISTRY = [
     // 启动站内链接前缀修正的 MutationObserver：捕获 nav-menu.js 等运行时动态注入的
     // 绝对路径站内链接(/tools/...、/chains.html)，在繁体页统一加 /zh-tw 前缀，避免点击跳回简体。
     startAnchorObserver();
+    // 初始语言就绪后派发一次 toolbox:langchange：工具页常在解析期（此刻 I18n 尚未 init、
+    // current 仍为默认值）就渲染了动态内容，若不补发则该内容停留在默认语言、与 ?lang/localStorage
+    // 指定的语言不一致。补发后工具按当前语言重渲染（window + document 双通道，覆盖两类监听口径）。
+    if (window.dispatchEvent) window.dispatchEvent(new Event('toolbox:langchange'));
+    if (document.dispatchEvent) document.dispatchEvent(new Event('toolbox:langchange'));
   }
 
   function loadRegionalPack() {
