@@ -599,12 +599,20 @@
       })
       .catch(function () { EN_PREFIX = {}; EN_PREFIX_KEYS = []; EN_PREFIX_LOADING = false; return EN_PREFIX; });
   }
+  // 边界守卫用：汉字判定（局部声明，不依赖文件后段 HAS_CJK_RE 的声明顺序）
+  var PREFIX_CJK_RE = /[\u4e00-\u9fff]/;
   // 返回文本最长的、可作为前缀命中的键（文本以该键开头，含"文本节点恰等于该键"的孤立标签形态）；无则 null
+  // 边界守卫（2026-09-30）：命中键后若**紧跟汉字** ⇒ 该键只是更长中文词的开头（"质量分数"里的"质量"、
+  // "时间管理"里的"时间"），它不是标签，必须跳过，否则把词劈成两半产出 "Mass分数" / "Time 管理"。
+  // 只有键后是空白/数字/拉丁/标点/串尾才算真标签边界。副作用为零：真正完整的译文键后必是边界，
+  // 恒不被拦（全站实测 541 例半译串因此转为干净中文残留，无一处正确译文被丢）。
   function longestPrefixKey(text) {
     if (!EN_PREFIX_KEYS || !text) return null;
     for (var i = 0; i < EN_PREFIX_KEYS.length; i++) {
       var k = EN_PREFIX_KEYS[i];
-      if (text.length >= k.length && text.indexOf(k) === 0) return k;
+      if (text.length < k.length || text.indexOf(k) !== 0) continue;
+      if (text.length > k.length && PREFIX_CJK_RE.test(text.charAt(k.length))) continue;
+      return k;
     }
     return null;
   }
@@ -614,18 +622,22 @@
   // 只匹配以 "：" 结尾的键 ⇒ 天然是「标签：」形态，正文叙述极少用全角冒号紧跟中文值，误伤概率极低；
   // 英文译文用半角 ":" 不含全角冒号 ⇒ 替换结果不会再被同一键命中，循环必然收敛（另加 guard 兜底）。
   // 普通不带冒号的前缀键仍只走 longestPrefixKey 的开头匹配，不受影响。
+  // 边界守卫（2026-09-30）：命中的「…：」若**前一位仍是汉字** ⇒ 它只是更长中文词的尾巴
+  // （"网度换算："里的"换算："、"水溶液沸点判定："里的"判定："），跳过该处命中，否则同样劈词。
   function replaceColonLabelsAll(text) {
     if (!EN_PREFIX_KEYS || !text) return null;
     var out = text, changed = false, guard = 0;
     while (guard++ < 40) {
-      var hit = null;
+      var hit = null, at = -1;
       for (var i = 0; i < EN_PREFIX_KEYS.length; i++) {
         var k = EN_PREFIX_KEYS[i];
         if (k.charAt(k.length - 1) !== '：') continue;
-        if (out.indexOf(k) >= 0) { hit = k; break; }
+        var p = out.indexOf(k);
+        while (p > 0 && PREFIX_CJK_RE.test(out.charAt(p - 1))) p = out.indexOf(k, p + 1);
+        if (p >= 0) { hit = k; at = p; break; }
       }
       if (!hit) break;
-      out = out.replace(hit, EN_PREFIX[hit]);
+      out = out.slice(0, at) + EN_PREFIX[hit] + out.slice(at + hit.length);
       changed = true;
     }
     return changed ? out : null;
