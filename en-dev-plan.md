@@ -505,6 +505,23 @@ _en-i18n/
 - 残留 **594 串 100% 为 genuine 工具 OUTPUT**：284 生成代码样本（含中文注释的 CSS/HTML，如 `/* 手机（< */`、`配合响应式断点…`、WCAG 描述）、203 计算描述（`✓ AA（正文≥4.5:1）`、`Contrast = … 按 WCAG 2.1 相对亮度`）、86 打字单字碎片（`折`/`倍`/`分词`/`试文`）、21 冒号动态（含 α/变量，刻意例外）。**安全可捕 UI 标签边界已 100% 耗尽**。
 - 结论：再无任何「标签+变量/单位」可捕串；剩余 594 全为工具 OUTPUT 内容（代码注释/计算结论/打字样本/数字转中文），**翻译属 scope fork** ——（a）逐源码改造生成逻辑才净（高成本、低价值）；（b）接受现状（OUTPUT 中文在英文态语义上本就正确）。推荐（b）。
 
+### 14.8 前缀机制三处口径缺口（2026-09-30 二次闭环，强制防复发）
+
+「14.7 边界耗尽」结论经复核**为误判**：审计里仍有 14 条「双语混合结果串」与 10 条属性中文未消，定位出三处独立口径缺口（均属机制层、非字典层）：
+
+**缺口一：属性口径零前缀匹配。** part(c)(d) 的属性翻译只做 `pickEn(aVal)` 精确匹配，未接前缀兜底 ⇒ `title="五险一金: ¥4,500.00"`、`title="文字"` 这类「标签+值」属性永远漏翻。
+→ 处置：属性路径（placeholder/title/aria-label/alt）与文本节点**共用同一套前缀匹配**；`word-frequency` 的 `title="${word}"`（被分析的数据本身，如 `文分`）确认**不可翻**，保持原样。
+
+**缺口二：同节点多标签只替一个。** 替换逻辑**每节点只替换第一个命中的键**。混合串以已知标签开头时（`资产负债率：… | 流动比率：1.8 | 收入：5000万`），`longestPrefixKey`（仅串首）先命中即返回，串中其余「标签：」全部漏替。
+→ 处置：`replaceColonLabelsAll(text)` **全量替换优先于** `longestPrefixKey`；译文用半角 `:` 不含全角冒号 ⇒ 循环必然收敛（另加 guard）。此顺序是**铁律**：全量在前、串首兜底在后，颠倒即复发。
+
+**缺口三：`toolbox:langchange` 派发口径错配。** `js/i18n.js` 的 `set()` 只在 `window` 派发，而工具页监听器挂在 `document`（window 事件不传播到 document）⇒ 切语言时工具**动态内容永不重渲染**；且 `init()` 起初不派发 ⇒ 解析期已渲染（当时 `I18n.get()` 仍未 init）的工具内容停在默认语言。
+→ 处置：`set()` 与 `init()` 均 **window + document 双通道**派发。受影响的工具形态 = 自带 `isEn()`（`I18n.get()==='en-US'`）双语模板、且渲染早于 i18n 就绪者（全站 `palette-cvd-checker`/`cvd-safe-palette`/`farnsworth-d15-test` 等）。
+
+**验证**：`_prefix.json` +20 键（1571）；assessor-manager/detector-33/-175/-194/-lifespan/tester-maintenance/temp-26/geo-distance-calculator/position-size-calculator/fraction-calculator/palette-cvd-checker 残留中文节点全部清零；同 256 页残留 594→577（`colon-start` 20→4，目标标签 14→1）；门禁 217/217。余量 100% 为 genuine OUTPUT（枚举值 `正常类：定期跟踪`、计算结论散文、YAML 样本、打字单字、切词数据）。
+
+**防复发判据（改机制必查）**：① 属性/文本/动态三口径是否都接了前缀匹配；② 全量替换是否排在串首兜底之前；③ 任何新增的「切语言重渲染」能力，其事件是否同时覆盖 window 与 document，且初始语言就绪后有补发。
+
 ---
 
 **进度台账**：`_en-i18n/industries.md` 为唯一权威（当前剩余 **207** 个行业）。每行业闭环 = `--scan` → `--extract` → 翻译写字典 → `--check` 归零 → `--done` 逐工具记账 → `--promote` 删行 → `run_gates.py` → 本地 commit。
