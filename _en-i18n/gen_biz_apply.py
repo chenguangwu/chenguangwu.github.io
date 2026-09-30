@@ -35,6 +35,8 @@ def apply_tool(slug, name, en, mp, display=None, en_display=None, ind=IND, auto=
     os.makedirs(os.path.dirname(path), exist_ok=True)
     full = dict(_gen_templates(name, en, display, en_display)) if auto else {}
     full.update(mp)
+    # 运行时以 raw.trim() 作键匹配，故字典键一律规范化为 trim 形式（首尾空白由源节点保留）
+    full = {k.strip(): v for k, v in full.items()}
     cur = {}
     if os.path.exists(path):
         cur = json.load(io.open(path, encoding='utf-8')).get('map', {})
