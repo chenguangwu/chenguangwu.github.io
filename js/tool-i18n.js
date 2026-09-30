@@ -608,6 +608,28 @@
     }
     return null;
   }
+  // 子串级前缀匹配（全量）：把文本「任意位置」出现的所有「带全角冒号：的标签键」一次性译掉。
+  // 双语混合结果串如 "Asset-liability ratio:55% | 流动比率：1.8 | 收入：5000万 | 净利润率：12%"
+  // 里多个中文标签分散在中间，单次只替一个键会漏掉其余 ⇒ 这里循环替到无可替为止，变量值原样保留。
+  // 只匹配以 "：" 结尾的键 ⇒ 天然是「标签：」形态，正文叙述极少用全角冒号紧跟中文值，误伤概率极低；
+  // 英文译文用半角 ":" 不含全角冒号 ⇒ 替换结果不会再被同一键命中，循环必然收敛（另加 guard 兜底）。
+  // 普通不带冒号的前缀键仍只走 longestPrefixKey 的开头匹配，不受影响。
+  function replaceColonLabelsAll(text) {
+    if (!EN_PREFIX_KEYS || !text) return null;
+    var out = text, changed = false, guard = 0;
+    while (guard++ < 40) {
+      var hit = null;
+      for (var i = 0; i < EN_PREFIX_KEYS.length; i++) {
+        var k = EN_PREFIX_KEYS[i];
+        if (k.charAt(k.length - 1) !== '：') continue;
+        if (out.indexOf(k) >= 0) { hit = k; break; }
+      }
+      if (!hit) break;
+      out = out.replace(hit, EN_PREFIX[hit]);
+      changed = true;
+    }
+    return changed ? out : null;
+  }
 
   function loadEnIndex(ind) {
     if (EN_INDEX[ind]) return Promise.resolve(EN_INDEX[ind]);
@@ -728,6 +750,11 @@
         // 前缀子串兜底：整串精确匹配失败、但文本以某已知标签片段开头时，只译前缀、变量值保留
         var pf = longestPrefixKey(k);
         if (pf) { matchedKey = pf; en = EN_PREFIX[pf]; }
+        else {
+          // 标签片段在串中任意位置（双语混合结果串）：把所有「标签：」片段一次译清、变量值保留
+          var pa = replaceColonLabelsAll(k);
+          if (pa) { matchedKey = k; en = pa; }
+        }
       }
       if (!en) en = convertPunct(k);
       if (!en || en === k) continue;
@@ -750,7 +777,13 @@
         var aName = ATTR_KEYS[ak];
         var aVal = ae.getAttribute(aName);
         if (!aVal) continue;
-        var aTr = pickEn(aVal.trim());
+        var aValT = aVal.trim();
+        var aTr = pickEn(aValT);
+        if (!aTr) {
+          // 属性值以已知标签片段开头（如 title="五险一金: ¥4,500.00"）：只译标签、值保留
+          var apf = longestPrefixKey(aValT);
+          if (apf) aTr = EN_PREFIX[apf];
+        }
         if (!aTr || aTr === aVal) continue;
         EN_ORIG.push({ el: ae, attr: aName, orig: aVal });
         ae.setAttribute(aName, aTr);
@@ -790,6 +823,10 @@
       if (!out) {
         var pf = longestPrefixKey(key);
         if (pf) { matchedKey = pf; out = EN_PREFIX[pf]; }
+        else {
+          var pa = replaceColonLabelsAll(key);
+          if (pa) { matchedKey = key; out = pa; }
+        }
       }
       if (!out) out = convertPunct(key);
       if (!out || out === key) return;
@@ -806,7 +843,12 @@
       var an = ATTR_KEYS_DYN[i];
       var av = node.getAttribute(an);
       if (!av) continue;
-      var tv = pickEn(av.trim());
+      var avT = av.trim();
+      var tv = pickEn(avT);
+      if (!tv) {
+        var avpf = longestPrefixKey(avT);
+        if (avpf) tv = EN_PREFIX[avpf];
+      }
       if (!tv || tv === av) continue;
       EN_ORIG.push({ el: node, attr: an, orig: av });
       node.setAttribute(an, tv);
