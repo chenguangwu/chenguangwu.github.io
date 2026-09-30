@@ -8,6 +8,7 @@
  * 用法：
  *   node scripts/_en_i18n_probe.mjs --scan <industry>                 生成 _en-i18n/pending/<ind>.json
  *   node scripts/_en_i18n_probe.mjs --extract <industry>/<slug>       输出待译明细 _en-i18n/work/<ind>/<slug>.json
+ *   node scripts/_en_i18n_probe.mjs --keysrc <industry>/<slug>        EN 残留 ↔ zh 源文按 DOM 路径配对（坑 23 半译键自查）
  *   node scripts/_en_i18n_probe.mjs --check <industry>[/<slug>]       验收：英文态残留必须为 0
  *   node scripts/_en_i18n_probe.mjs --roundtrip <industry>[/<slug>]   往返回归：zh-CN→en-US→zh-CN 文本必须逐条一致
  *   node scripts/_en_i18n_probe.mjs --reindex <industry>              重建 i18n/tools/en/<ind>/_index.json
@@ -302,7 +303,7 @@ async function extract(target) {
     const t = (n.nodeValue || '').trim();
     if (!t || !CJK.test(t) || seen.has(t)) continue;
     seen.add(t);
-    items.push({ kind: 'text', loc: locOf(n), zh: t });
+    items.push({ kind: 'text', loc: locOf(n), zh: t, path: 'T:' + nodePath(n) });
   }
   // 属性残留（placeholder/title/aria-label/alt）——与 --check 的 collectCJKAttr 口径一致。
   // 修复坑 9：此前 extract 只收 [data-zh] 与文本节点，属性（输入框 placeholder 等）
@@ -315,10 +316,24 @@ async function extract(target) {
       const key = a + '\u0000' + v;
       if (seen.has(key)) continue;
       seen.add(key);
-      items.push({ kind: 'attr:' + a, loc: locOfEl(el) + ' [' + a + ']', zh: v });
+      items.push({ kind: 'attr:' + a, loc: locOfEl(el) + ' [' + a + ']', zh: v, path: 'A:' + a + ':' + nodePath(el) });
     }
   }
   w.close();
+  // 源文配对（治坑 23）：同页再渲染 zh-CN，按 DOM 路径把每条「EN 残留」对回「中文源文」。
+  // 极少数 EN 残留是 _prefix/_common 的「半翻译形态」（`Epley 公式：`→`Epley Formula:`），
+  // 形态 ≠ 源文 ⇒ 直接当键永不命中。这里给每条 text/attr 项补 zh_src，并以 src_diff 标出差异项。
+  try {
+    const z = probePage(file, 'zh-CN');
+    await settle(z.getPending);
+    const zhMap = collectWithPaths(z.w);
+    z.w.close();
+    for (const it of items) {
+      if (!it.path) continue;                       // data-zh 项：源文已在属性里，无需配对
+      it.zh_src = zhMap.has(it.path) ? zhMap.get(it.path) : null;
+      it.src_diff = it.zh_src !== null && it.zh_src !== it.zh;
+    }
+  } catch (e) { /* zh 态渲染失败不阻断 extract，仅缺 zh_src */ }
   fs.mkdirSync(path.join(WORK, ind), { recursive: true });
   const payload = {
     industry: ind,
@@ -330,9 +345,78 @@ async function extract(target) {
     items,
   };
   fs.writeFileSync(path.join(WORK, ind, slug + '.json'), JSON.stringify(payload, null, 1) + '\n');
-  console.log('[extract] ' + ind + '/' + slug + ' (' + meta.name + '): 待译 ' + items.length + ' 条');
+  const diffs = items.filter((x) => x.src_diff);
+  console.log('[extract] ' + ind + '/' + slug + ' (' + meta.name + '): 待译 ' + items.length + ' 条'
+    + (diffs.length ? '，形态≠源文 ' + diffs.length + ' 条（须以 zh_src 为键）' : ''));
   for (const it of items.slice(0, 14)) {
     console.log('   [' + (it.kind + ' ' + it.loc).slice(0, 26).padEnd(26) + '] ' + it.zh.slice(0, 74));
+  }
+  for (const it of diffs) {
+    console.log('   ≠ EN: ' + it.zh.slice(0, 78));
+    console.log('     ZH: ' + (it.zh_src === null ? '<无对应源节点>' : it.zh_src.slice(0, 78)));
+  }
+}
+
+// ---------- 模式：keysrc（EN 残留 ↔ zh 源文 按 DOM 路径精确配对） ----------
+// 解决坑 23：极少数 EN 残留是 _prefix/_common 的「半翻译形态」（如 `Epley 公式：`→`Epley Formula:`），
+// 其形态 ≠ per-tool 字典所需的「运行时中文源文」。EN 态抽取拿到的是半译形态，直接当键永不命中。
+// 做法：同页分别渲染 EN 与 zh-CN，按「节点 DOM 路径」（自 body 起的 childNodes 下标链）配对；
+// 结构在两种语言态下一致（EN 只改文本值不改结构），故路径可精确对齐 ⇒ 直接拿到源文键。
+function nodePath(n) {
+  const parts = [];
+  let cur = n;
+  while (cur && cur.parentNode && cur.nodeName && cur.nodeName.toLowerCase() !== 'body') {
+    parts.unshift(Array.prototype.indexOf.call(cur.parentNode.childNodes, cur));
+    cur = cur.parentNode;
+  }
+  return parts.join('/');
+}
+function collectWithPaths(w) {
+  const map = new Map();
+  for (const n of textNodes(w)) {
+    const t = (n.nodeValue || '').trim();
+    if (!t) continue;
+    map.set('T:' + nodePath(n), t);
+  }
+  for (const el of w.document.querySelectorAll('[placeholder],[title],[aria-label],[alt]')) {
+    if (isExcluded({ parentNode: el })) continue;
+    for (const a of ['placeholder', 'title', 'aria-label', 'alt']) {
+      const v = (el.getAttribute(a) || '').trim();
+      if (!v) continue;
+      map.set('A:' + a + ':' + nodePath(el), v);
+    }
+  }
+  return map;
+}
+async function keysrc(target) {
+  const [ind, slug] = target.split('/');
+  const file = path.join(ROOT, BASE, ind, slug + '.html');
+  if (!fs.existsSync(file)) { console.error('工具页不存在: ' + file); process.exit(1); }
+  const en = probePage(file, 'en-US');
+  await settle(en.getPending);
+  const enMap = collectWithPaths(en.w);
+  en.w.close();
+  const zh = probePage(file, 'zh-CN');
+  await settle(zh.getPending);
+  const zhMap = collectWithPaths(zh.w);
+  zh.w.close();
+  const rows = [];
+  for (const [k, v] of enMap) {
+    if (!RESIDUAL_RE.test(v)) continue;          // 只关心 EN 态残留
+    const src = zhMap.has(k) ? zhMap.get(k) : null;
+    rows.push({ path: k, en: v, zh: src, same: src === v });
+  }
+  rows.sort((a, b) => (a.same === b.same ? 0 : (a.same ? 1 : -1)));
+  fs.mkdirSync(path.join(WORK, ind), { recursive: true });
+  fs.writeFileSync(path.join(WORK, ind, slug + '.keysrc.json'),
+    JSON.stringify({ industry: ind, slug, count: rows.length, rows }, null, 1) + '\n');
+  const diff = rows.filter((r) => !r.same).length;
+  console.log('[keysrc] ' + ind + '/' + slug + ': EN 残留 ' + rows.length
+    + ' 条，其中形态≠源文 ' + diff + ' 条（须以 zh 为键）');
+  for (const r of rows) {
+    if (r.same) continue;
+    console.log('  ≠ EN: ' + r.en.slice(0, 90));
+    console.log('    ZH: ' + (r.zh === null ? '<无对应源节点：动态插入/结构差异>' : r.zh.slice(0, 90)));
   }
 }
 
@@ -623,6 +707,7 @@ if (argv.indexOf('--tw') > -1) BASE = 'zh-tw/tools';   // 校验繁体构建产�
     case '--scan': await scan(args[0]); break;
     case '--mine': await mine(args); break;
     case '--extract': await extract(args[0]); break;
+    case '--keysrc': await keysrc(args[0]); break;
     case '--check': await check(args); break;
     case '--roundtrip': await roundtrip(args); break;
     case '--smoke': await smoke(args, { en: argv.indexOf('--en') > -1 }); break;
