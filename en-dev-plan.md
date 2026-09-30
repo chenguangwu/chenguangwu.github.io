@@ -588,6 +588,26 @@ _en-i18n/
 2. 禁止对中文标签做「字符串包含」式替换而省略词边界判断；新增任何文本替换逻辑一律复用 `PREFIX_CJK_RE` 守卫口径。
 3. 替换逻辑改动后，必跑 `_en-i18n/measure_guard.py`（静态，须断词=0）与 `_en-i18n/probe_garble.mjs`（真机，须 `adjGarble=0`）。
 
+### 14.13 「简↔英实时切换」还原路径失效 ＋ 既有 `--roundtrip` 探针 jsdom 盲区（2026-09-30 发现，**待处置**）
+
+**发现路径**：为验证 §14.12 守卫不伤中文态，新写 `_en-i18n/probe_lang_restore.mjs`（**真实 Chromium**：`?lang=en-US` 载入 → 用页面内语言下拉切回 `zh-CN` → 与「直接打开简中态」逐条比对）。40 页抽样：**39 页不一致，每页中位 20 条、合计 784 条**英文串切回中文后**不还原**。
+
+**现象（切回 zh-CN 后仍为英文）**：① 面包屑首页 `Home`（39/39 命中）；② 面包屑行业名 `🧾 Accounting` / `🌾 Agriculture`；③ 运行时注入的工具栏按钮 `📋 Copy Result`（37/39）；④ 相关工具卡片名与描述（`.rt-name` / `.rt-desc`）；⑤ 页面 `<title>`（`Current Ratio` 而非 `流动比率…`）。
+
+**根因（读码定位三处，均既有层）**：
+1. `js/i18n.js::syncTitle()` —— `else { document.title = titleEl.textContent; }` **自读自写**：EN 态写入 `document.title` 就是改 `<title>` 元素文本，切回中文时读到的已是英文 ⇒ **中文标题不可逆丢失**（与 `syncDesc()` 用 `_descZh` 缓存的口径不一致）。
+2. `js/tool-i18n.js::applyChrome()` —— 面包屑首页 `if (home.textContent.trim() === '首页' || !isZh)`：切回中文时 textContent 为 `Home` 且 `isZh` 为真 ⇒ 两条件皆假 ⇒ **跳过还原**。
+3. `js/tool-i18n.js::translateRelatedTools()` 虽有 `RT_ORIG` 还原分支，但相关工具区块若在翻译后被 `js/common.js` **重绘**，卡片是新节点 ⇒ `RT_ORIG.has(new)` 为假 ⇒ 不还原。
+
+**为何长期未被发现（口径盲区，比缺陷本身更值得记）**：既有验收探针 `scripts/_en_i18n_probe.mjs --roundtrip` 跑在 **jsdom**（`runScripts:'outside-only'`，仅 eval `i18n.js` + `tool-i18n.js`）⇒ **页面脚本（`js/common.js` 等）根本不执行**；而导航栏 / 面包屑 / 页脚 / 工具栏按钮**全部由 `js/common.js` 运行时注入** ⇒ jsdom DOM 里这些节点**压根不存在**，`collectAll()` 扫不到 ⇒ 同一页 `--roundtrip` 报「0 不一致」，真机却有 20 条/页。**结论：`--roundtrip` 只能验证静态正文往返，不能验证运行时注入的框架层**；`--check` / `--smoke` 同为 jsdom，EN 侧框架层残留同样不在其视野（一直靠真机 `audit_all.mjs` 兜底才发现）。
+
+**与 §14.12 改动无关的对照证据**：把 `js/tool-i18n.js` 换回改动前版本，同一页（`accounting/current-ratio`）的切换结果**完全相同** ⇒ 本缺陷为既有行为，非本轮引入。
+
+**建议处置（待老板确认后开工；严禁擅改已验证的 EN 侧输出）**：
+- **口径**：中文态还原验收从 jsdom 升到真机（`_en-i18n/probe_lang_restore.mjs` 常态化）；或给 `--roundtrip` 增加真实 Chromium 模式。
+- **缺陷**：① `syncTitle` 增加 `_titleZh` 初始化缓存（与 `_descZh` 对齐）；② `applyChrome` 面包屑改为**无条件**写入当前语言文案；③ `RT_ORIG` 改用**卡片下标/href 为键**（抗重绘）而非元素引用；④ 运行时注入按钮的还原统一走「原文缓存」口径。
+- **硬性护栏**：改动后必须证明 **EN 态输出逐条不变**（`audit_all.mjs` 抽样「前后残留集合完全相同」）＋ 门禁 **217/217** ＋ 真机 `probe_lang_restore.mjs` 归零。
+
 ---
 
 **进度台账**：`_en-i18n/industries.md` 为唯一权威（当前剩余 **207** 个行业）。每行业闭环 = `--scan` → `--extract` → 翻译写字典 → `--check` 归零 → `--done` 逐工具记账 → `--promote` 删行 → `run_gates.py` → 本地 commit。
