@@ -1,0 +1,422 @@
+# -*- coding: utf-8 -*-
+"""agriculture 行业正文英文化 batch1（前 10 个工具）。位置对齐法：从 work json 读取原始 zh，
+与本文件英文列表按序配对。长度一致 + 无空译文 + apply_tool 零 CJK/零中文标点校验。
+src_diff 条目（被 _prefix/_common 半译）自动改以 zh_src（中文源文）为键，规避坑 32。"""
+import sys, os, json
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from gen_biz_apply import apply_tool
+
+IND = 'agriculture'
+WORK = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'work', 'agriculture')
+
+def build(slug, en_list):
+    path = os.path.join(WORK, slug + '.json')
+    with open(path, encoding='utf-8') as f:
+        wj = json.load(f)
+    items = wj.get('items', [])
+    if len(en_list) != len(items):
+        print('!! %s 长度不一致: en=%d items=%d' % (slug, len(en_list), len(items)))
+        sys.exit(1)
+    mp = {}
+    for it, en in zip(items, en_list):
+        # 半译残留项改以中文源文为键（与运行时 restoreEn 后精确匹配一致）
+        if it.get('src_diff') and it.get('zh_src'):
+            z = it['zh_src'].strip()
+        else:
+            z = it['zh'].strip()
+        if not en or not isinstance(en, str):
+            print('!! %s 空译文 for %r' % (slug, z))
+            sys.exit(1)
+        mp[z] = en
+    return mp
+
+# ---------------- agri-calculator ----------------
+G = build('agri-calculator', [
+    '🌾 Agriculture Calculator',
+    'Covers common agricultural calculations: fertilizer blending, planting density, pesticide dilution, irrigation volume, hatching countdown, and machinery fuel use.',
+    '📖 View the "Agriculture Calculator Guide"',
+    '🧪 Fertilizer Blend',
+    '🌱 Planting Density',
+    '⚗️ Pesticide Dilution',
+    '💧 Irrigation Volume',
+    '🥚 Hatching Countdown',
+    '🚜 Machinery Fuel Use',
+    '🧪 Fertilizer Blend Calculator',
+    'Each nutrient amount = total fertilizer x (nutrient content % / 100)',
+    'Total fertilizer = area x per-mu dose; nutrient amount = total x content %; density = 1 / (plant spacing x row spacing); dilution factor = stock concentration / target concentration; irrigation volume = area x water depth; fuel use = worked area x per-mu fuel.',
+    'The combined page has 6 sub-calculators: 1) Fertilizer blend uses "total = area x per-mu dose", N/P/K each by content %; 2) Planting density converts plant footprint via spacing x row; 3) Pesticide dilution gets the dilution factor from stock/target concentration ratio, then multiplies target water for dose; 4) Irrigation water converts area x depth (mm) to volume, scaled by efficiency to gross water; 5) Hatching countdown advances 21 days daily from set date; 6) Machinery fuel uses worked area x per-mu fuel, then cost by fuel price. Sub-items are independent and shown together in one result area.',
+    'Nitrogen (N) content (%)',
+    'Phosphorus (P\u2082O\u2085) content (%)',
+    'Potassium (K\u2082O) content (%)',
+    'Fertilized area (mu)',
+    'Per-mu dose (kg/mu)',
+    '🌱 Planting Density Calculator',
+    'Plant count = area (m\u00b2) / (plant spacing (m) x row spacing (m))',
+    ', 1 mu = 666.67 m\u00b2',
+    'Plant spacing (cm)',
+    'Row spacing (cm)',
+    'Area unit',
+    'Square meters',
+    'Calculate density',
+    '⚗️ Pesticide Dilution Calculator',
+    'Stock dose = (target concentration x prepared solution volume) / stock concentration',
+    'Pesticide active ingredient content (%)',
+    'Concentration unit',
+    'Solution volume to prepare (L)',
+    'Note: wear protective gear when mixing, strictly follow the recommended concentration, and avoid phytotoxicity or excessive residue.',
+    '💧 Irrigation Water Estimate',
+    'Water use (m\u00b3) = area (mu) x irrigation depth (mm) x 0.667',
+    ', 1 mm water depth x 1 mu = 0.667 m\u00b3',
+    'Irrigation area (mu)',
+    'Irrigation depth (mm)',
+    'Reference: seedling-stage depth 10-20 mm, growth stage 30-50 mm, flowering/fruiting stage 40-60 mm.',
+    '🥚 Egg Hatching Countdown',
+    'Normal incubation period:',
+    '21 days',
+    '(chicken); after setting, each stage progresses automatically.',
+    'Recalculate',
+    '🚜 Machinery Fuel Estimate',
+    'Total fuel = worked area x per-mu fuel',
+    'Total cost = total fuel x fuel price',
+    'Worked area (mu)',
+    'Per-mu fuel (L/mu)',
+    'Reference: rotary tillage ~0.8-1.2 L/mu, sowing ~0.5-0.8 L/mu, harvesting ~1.5-2.5 L/mu.',
+    'Tool introduction & instructions',
+    'Agriculture Calculator is a multi-function online tool designed for farmers, agronomists and growers, covering six scenarios: fertilization, planting, irrigation, pest control, livestock, and machinery operation.',
+    'Fertilizer blending',
+    'Planting density',
+    'Pesticide dilution',
+    'Irrigation volume',
+    'Egg hatching countdown',
+    'Machinery fuel cost',
+    'Pure front-end, works offline',
+    'Data stays local for privacy',
+    'Field crop fertilization planning',
+    'Orchard & vegetable density planning',
+    'Pest control mixing reference',
+    'Farmland irrigation budgeting',
+    'Poultry hatching management',
+    '📚 In-Depth: Agriculture Input-Output Calculator',
+    'Estimate single-season net profit: net profit = yield x price - (seed + fertilizer + pesticide + machinery + labor) cost.',
+    'Compare different crops or varieties for',
+    'break-even point',
+    ', to support planting-structure adjustment.',
+    'With subsidy policy, calculate the actual income including direct subsidies.',
+    'Net profit of one mu of wheat',
+    'Yield 450 kg/mu at 2.6 yuan/kg gives gross 1170 yuan; costs: seed 60 + base fertilizer 120 + top dressing 80 + pesticide 40 + machinery 160 + labor 100 = 560 yuan. Net = 1170 - 560 = 610 yuan/mu. With an extra 100 yuan/mu soil-fertility protection subsidy, actual income ~ 710 yuan.',
+    'Why do the same crop profits differ greatly across years?',
+    'Yield is affected by climate and pests; prices fluctuate with market supply and demand; labor and input costs rise yearly. Use a 3-year average for trend judgment rather than a single year.',
+    'Should subsidies be included in net profit?',
+    'Subsidies are transfer income; whether to include depends on purpose. For operating estimates, list separately as "policy income" apart from operating net profit, to avoid overstating core profitability.',
+])
+apply_tool('agri-calculator', '农业计算器', 'Agriculture Calculator', G, ind=IND)
+
+# ---------------- assessor-1 ----------------
+G = build('assessor-1', [
+    '📋 Harvest Loss Rate (Machine/Manual) Assessment',
+    'Enter pre- and post-harvest crop weights to compute machine/manual harvest loss rate and assess operation quality.',
+    '📖 View the "Harvest Loss Rate (Machine/Manual) Assessment Guide"',
+    'Loss rate = (shattered + missed-cut + entrained losses) / measured recoverable total x 100%; measured recoverable total = theoretical yield - harvested amount + losses.',
+    'Sample-quadrat method measures total machine or manual harvest loss: tally shattered, missed-cut, and threshing-entrained losses, using measured recoverable total (theoretical yield - actual harvest + all losses) as denominator. Wheat and rice machine harvest loss is generally required <=2.5%-3.0%; exceeding prompts adjusting header height, drum speed, and travel speed.',
+    'Machine harvest',
+    'Theoretical yield (kg/mu)',
+    'Actual harvested amount (kg/mu)',
+    'Field shatter loss (kg/mu)',
+    'Threshing/cleaning loss (kg/mu)',
+    'Assess loss rate',
+    '📚 In-Depth: Harvest Loss Rate (Machine/Manual) Assessment',
+    'Measure combine harvester operation loss: loss rate = (shatter + missed-cut + entrained) / measured recoverable total x 100%.',
+    'Compare machine vs manual harvest loss differences to assess mechanization economy.',
+    'Lay out sampling points per national standard GB/T 8097 grain harvest loss measurement method.',
+    'Wheat machine-harvest loss measurement',
+    'Within a 2 m x 0.5 m quadrat, 18 g of shattered grain was collected; the quadrat\'s recoverable ear grain converts to 620 g, so plot loss rate = 18/620 ~ 2.9%. If multi-point field average reaches 3.0%, near the wheat machine-harvest excellent standard of <=2.5%, fine-tune header and speed.',
+    'What machine-harvest loss rate is acceptable?',
+    'Wheat and rice machine-harvest total loss generally <=2.5%-3.0% (varies by crop and model); corn grain direct harvest is slightly higher. Exceeding indicates header height, drum speed, or travel speed need adjustment.',
+    'How to lay out sampling points accurately?',
+    'Place 10-20 quadrats randomly across the field by diagonal or checkerboard method, avoiding headland turning zones; count each plot separately, avoid using a single point for the whole field.',
+    'Machine harvest loss standard <=3%, manual harvest <=2%',
+    'Field shatter loss is affected by crop variety, maturity, and weather',
+    'Machine harvest should adjust header height, speed, and cleaning airflow',
+    'Best harvest window is late waxy-ripe to early full-ripe',
+    'After harvest, dry promptly; excess moisture raises storage loss',
+    'About "Harvest Loss Rate (Machine/Manual) Assessment"',
+    'Harvest loss rate assessment tool: enter theoretical yield and actual harvest to compute total loss rate and assess field shatter and threshing/cleaning losses by category.',
+    'Two modes: machine / manual',
+    'Category loss-rate calculation',
+    'Grade against standard',
+    'Operation quality assessment',
+    'Machinery operation acceptance',
+    'Agricultural loss assessment',
+    'Harvester performance evaluation',
+    'Agricultural insurance loss adjustment',
+])
+apply_tool('assessor-1', '收获损失率（机器/人工）评估', 'Harvest Loss Rate (Machine/Manual) Assessment', G, ind=IND)
+
+# ---------------- calc-12 ----------------
+G = build('calc-12', [
+    '🌾 Irrigation Water Requirement Estimator',
+    '1 mu ~ 666.67 m\u00b2, depth in mm; efficiency = effective water / gross water.',
+    '📖 View the "Irrigation Water Requirement Estimator Guide"',
+    'Gross water (m\u00b3) = area (mu) x 666.67 x depth (mm) / 1000 / efficiency',
+    'Estimate gross and effective irrigation water from irrigated area, planned depth, and water-use efficiency.',
+    'Irrigation depth (mm)',
+    'Irrigation water-use efficiency',
+    'Drip and sprinkler efficiency typically 0.85-0.95; flood irrigation may be only 0.5-0.7',
+    '📚 In-Depth: Irrigation Water Requirement Estimator',
+    'Estimate one irrigation total from quota: V = area x quota (m\u00b3/mu).',
+    'Combined with',
+    'crop water requirement',
+    'ETc and effective rainfall, back-calculate net irrigation quota.',
+    'Used for well-irrigation withdrawal accounting and water distribution planning.',
+    'One irrigation for corn jointing stage',
+    'Area 50 mu, quota 40 m\u00b3/mu, total V = 50 x 40 = 2000 m\u00b3. If source pump flow is 50 m\u00b3/h, continuous supply for 40 hours is needed.',
+    'What is the difference between irrigation quota and total irrigation quota?',
+    'Irrigation quota is one irrigation\'s volume (m\u00b3/mu); total irrigation quota is the sum of all quotas over the whole growth period. Both are needed when designing canals and pumps.',
+    'How to account for water saved by rainfall?',
+    'Net irrigation = crop demand ETc - effective rainfall Pe. During concentrated rainy season, deduct recent rainfall before each irrigation to avoid waterlogging from over-irrigation.',
+    'About "Irrigation Water Requirement Estimator"',
+    'Quickly estimate one irrigation\'s required water from the crop irrigation schedule, easing water-source dispatch and cost accounting.',
+    'Distinguish gross and effective water',
+    'Supports efficiency for different irrigation methods',
+    'Irrigation planning',
+    'Reservoir / well supply capacity assessment',
+    'Agricultural water fee accounting',
+])
+apply_tool('calc-12', '灌溉用水量估算', 'Irrigation Water Requirement Estimator', G, ind=IND)
+
+# ---------------- calc-13 ----------------
+G = build('calc-13', [
+    '🔮 Farm Machinery Fuel Consumption Estimator',
+    'Load factor as decimal (percent / 100); specific fuel use in grams per kWh.',
+    '📖 View the "Farm Machinery Fuel Consumption Estimator Guide"',
+    'Hourly fuel (L/h) = power (kW) x load factor x specific fuel (g/kWh) / 1000 / density (kg/L)',
+    'Estimate machinery fuel use from rated power, load factor, fuel consumption rate, and operation time.',
+    'Engine power (kW)',
+    'Load factor (%)',
+    'Specific fuel use (g/kWh)',
+    'Fuel density (kg/L)',
+    'Operation time (h)',
+    'Fuel price (yuan/L, optional)',
+    'Diesel specific fuel typically 210-260 g/kWh, gasoline ~280-350 g/kWh',
+    '📚 In-Depth: Farm Machinery Fuel Consumption Estimator',
+    'Estimate operation fuel by per-mu factor: fuel = worked area x per-mu fuel (L/mu).',
+    'Compare fuel economy across models or operation methods.',
+    'Used for machinery subsidy fuel accounting and cost budgeting.',
+    'Tractor rotary tillage 100 mu',
+    'Rotary tillage ~0.9 L/mu, so 100 mu = 100 x 0.9 = 90 L. At 7.5 yuan/L diesel, fuel cost ~ 675 yuan. Heavy operations like subsoiling reach 1.5-2.0 L/mu.',
+    'What factors affect per-mu fuel use?',
+    'Soil moisture (wetter/stickier uses more), tillage depth, gear-rpm matching, tire pressure, and implement sharpness all matter. Average multiple passes on the same plot for stability.',
+    'Can fuel use directly give operation cost?',
+    'No; add labor, depreciation, and repair. Fuel is typically 30%-50% of variable machinery cost, the largest single item, so set a fuel baseline first.',
+    'About "Farm Machinery Fuel Consumption Estimator"',
+    'Estimate machinery fuel consumption and cost under different operation conditions from engine parameters.',
+    'Supports custom load factor and specific fuel',
+    'Auto-compute total fuel and cost',
+    'Tillage, sowing, harvest fuel budgeting',
+    'Machinery selection economy comparison',
+    'How to use the Farm Machinery Fuel Consumption Estimator',
+])
+apply_tool('calc-13', '农机油耗估算', 'Farm Machinery Fuel Consumption Estimator', G, ind=IND)
+
+# ---------------- calc-15 ----------------
+G = build('calc-15', [
+    '📅 Sowing Date Calculator',
+    'Back-calculate a suitable sowing date from the target harvest date and crop growth-day count, with key growth-stage references.',
+    '📖 View the "Sowing Date Calculator Guide"',
+    'Sowing date = target harvest date - crop growth days',
+    'Anchor on target harvest: sowing = target harvest - growth period. A safe sowing start date can be set as a lower bound; if the back-calculated date is earlier, prompt to delay sowing.',
+    'Target harvest date',
+    'Crop growth period (days)',
+    'Safe sowing start date (optional)',
+    'If the back-calculated date is earlier than the safe start, delay sowing or adjust the harvest target',
+    '📚 In-Depth: Sowing Date Calculator (Based on First Frost)',
+    'Back-calculate safe sowing: sowing = expected first-frost date - growth days - safety buffer (7-10 days).',
+    'Warm-loving crops (e.g. corn, soybean) avoid immaturity before first frost.',
+    'Combine with local perennial last/first frost statistics to set the window.',
+    'Summer corn safe sowing',
+    'Local average first frost Oct 15 (day 288), corn growth ~120 days, 10-day buffer. Latest sowing ~ 288 - 120 - 10 = day 158 ~ Jun 7. Later sowing risks frost damage.',
+    'How to get the growth-day count?',
+    'Use the variety certificate\'s "growth period (days)", distinguishing heat-unit zones. The same variety changes by latitude; local extension recommendations are most reliable.',
+    'Why add a buffer?',
+    'First-frost interannual variability is large; buffer offsets abnormal cooling and harvest delay. The further north and tighter the heat budget, the larger the buffer.',
+    'About "Sowing Date Calculator"',
+    'Back-calculate sowing time from harvest goals, helping growers catch the best sowing window.',
+    'Auto back-calculate sowing date',
+    'Validate safe sowing start date',
+    'Crop rotation stubble arrangement',
+    'Market-time planning',
+    'Avoid frost / high-heat windows',
+])
+apply_tool('calc-15', '播种日期计算器', 'Sowing Date Calculator', G, ind=IND)
+
+# ---------------- calc-2 ----------------
+G = build('calc-2', [
+    '🧮 Planting Density Calculator (Spacing x Row) (Agriculture)',
+    'Enter plant spacing, row spacing, and area to quickly compute theoretical density and total plants.',
+    'Plants per mu = 666.7 / (spacing m x row m), plant footprint = spacing x row. Computes theoretical density and total seedlings from spacing/row and area; pure front-end.',
+    'Plant spacing (cm)',
+    'Row spacing (cm)',
+    'Planting area (mu, optional)',
+    'Hectare',
+    'Theoretical density excludes furrows, paths, and drains; add 5%-10% to actual seed amount',
+    'Results are for reference; adjust to the variety\'s recommended density',
+    '📚 In-Depth: Planting Density Calculator (Spacing x Row)',
+    'Compute plants per mu: density = 666.7 / (spacing m x row m) plants/mu (1 mu ~ 666.7 m\u00b2).',
+    'Back-calculate a reasonable spacing/row configuration at a target density.',
+    'Used for rational dense planting of row crops like corn and cotton.',
+    'Corn 60 cm x 25 cm density',
+    'Spacing 0.25 m, row 0.60 m, footprint 0.15 m\u00b2. Density = 666.7 / 0.15 ~ 4445 plants/mu. For a 4500 target, the config is basically reasonable.',
+    'Is higher density always better?',
+    'No. Exceeding the variety\'s density tolerance causes canopy closure, lodging, and smaller ears. Stay within the recommended range (e.g. open type 3500-4000, compact type 4500-5500 plants/mu) by soil fertility.',
+    'Why the constant 666.7?',
+    '1 mu = 60 square zhang = 666.67 m\u00b2. This constant converts metric spacing directly to plants/mu, a common agronomic approximation.',
+    'About "Planting Density Calculator"',
+    'Compute theoretical density and total seedlings from crop spacing, row, and area.',
+    'Supports mu and hectare area units',
+    'Real-time density and total plants',
+    'Vegetable and fruit nursery planning',
+    'Field crop seeding-rate estimate',
+    'Greenhouse planting-density design',
+])
+apply_tool('calc-2', '种植密度计算器（株距×行距）', 'Planting Density Calculator (Spacing x Row)', G, ind=IND)
+
+# ---------------- calc-36 ----------------
+G = build('calc-36', [
+    '🌾 Crop Water Requirement (ET / Evapotranspiration) Calculator',
+    'Crop-coefficient method: ETc = Kc x ETo; estimate daily crop water need and irrigation quota.',
+    '📖 View the "Crop Water Requirement (ET) Calculator Guide"',
+    'FAO reference evapotranspiration method: crop water need ETc = Kc x ET\u2080. ET\u2080 is reference crop evapotranspiration (mm/day), Kc is the growth-stage crop coefficient; their product is daily need; multiply by area and convert by irrigation efficiency to gross irrigation. Area is in mu (666.67 m\u00b2), for irrigation quota and water-saving design.',
+    'Reference evapotranspiration ETo (mm/day)',
+    'Irrigation efficiency (%)',
+    '💡 Formula: ETc = Kc x ETo; field total water = ETc x area x 666.67 / 1000 / efficiency',
+    'ETo can be estimated from weather stations or the Penman-Monteith equation',
+    'Crop coefficient Kc varies by stage: small at seedling, large at vigorous growth',
+    'Irrigation efficiency depends on sprinkler/drip/flood method; drip usually 85%-95%',
+    '📚 In-Depth: Crop Water Requirement (ETc) Calculation',
+    'ETc = Kc x ETo: crop coefficient times reference evapotranspiration.',
+    'Use different Kc per stage (small early, large mid) and accumulate.',
+    'Used for irrigation scheduling and water-shortage early warning.',
+    'Wheat grain-filling water need',
+    'Local ETo = 5.0 mm/d, filling Kc = 1.15, so ETc = 1.15 x 5.0 = 5.75 mm/d. Over 20 days ~ 115 mm, or 76.7 m\u00b3/mu (1 mm = 0.667 m\u00b3/mu).',
+    'ETo vs ETc difference?',
+    'ETo is reference crop (grass) evapotranspiration from weather stations; ETc is a specific crop\'s actual need, obtained by multiplying Kc. Both in mm.',
+    'Where to find Kc?',
+    'FAO-56 gives reference Kc per stage for major crops; in China consult the Irrigation Experiment Code or local academy recommendations. Mulching and shading change actual Kc.',
+    'About "Crop Water Requirement (ET) Calculator"',
+    'This tool uses the FAO-recommended crop-coefficient method: ETc = Kc x ETo, helping growers estimate daily, weekly, and monthly irrigation demand.',
+    'Supports ETo, crop coefficient, area, and irrigation efficiency',
+    'Auto-converts mm and m\u00b3 for field water planning',
+    'Considers efficiency, outputs actual gross irrigation',
+    'Drip / sprinkler system water planning',
+    'Greenhouse and tunnel crop irrigation scheduling',
+    'Orchard and vegetable base water budgeting',
+    'Reference evapotranspiration ETo',
+    'Crop coefficient Kc',
+    'Planting area',
+    'Irrigation efficiency',
+])
+apply_tool('calc-36', '作物需水量（蒸腾蒸发ET）计算', 'Crop Water Requirement (ET / Evapotranspiration) Calculator', G, ind=IND)
+
+# ---------------- calc-37 ----------------
+G = build('calc-37', [
+    '🧮 Daily Light Integral (DLI) Calculator',
+    'PAR unit \u03bcmol/m\u00b2/s; 3.6/1000 converts \u03bcmol to mol over an hour integral.',
+    '📖 View the "DLI Calculator Guide"',
+    'DLI (mol/m\u00b2/day) = PAR x light hours (h) x 3.6 / 1000',
+    'Compute DLI from photosynthetically active radiation (PAR) and daily light hours.',
+    'Photosynthetic active radiation PAR (\u03bcmol/m\u00b2/s)',
+    'Daily light hours (hours)',
+    '💡 Formula: DLI (mol/m\u00b2/day) = PAR x light hours x 3.6 / 1000',
+    'PAR from a PAR meter or grow-light manual',
+    'Under natural light, sunny noon PAR often 1000-1500, cloudy ~100-300',
+    'DLI unit also written mol\u00b7m\u207b\u00b2\u00b7d\u207b\u00b9, used in greenhouse light management',
+    '📚 In-Depth: Daily Light Integral (DLI) Calculation',
+    'DLI = PPFD x light hours x 3600 / 1,000,000 (mol/m\u00b2/d).',
+    'Used for greenhouse supplemental lighting: most vegetable/fruit seedlings need 12-20 mol/m\u00b2/d.',
+    'Compare natural light against the target to decide supplement duration and intensity.',
+    'Greenhouse natural DLI assessment',
+    'Measured avg PPFD = 350 \u03bcmol/m\u00b2/s, winter effective 10 h. DLI = 350 x 10 x 3600 / 1e6 = 12.6 mol/m\u00b2/d. Below tomato\'s 20, supplement to 20, i.e. add 7.4 mol in the supplement period.',
+    'Can DLI and illuminance (lux) be directly converted?',
+    'No direct conversion; lux includes human-eye weighting, PPFD is plant-effective photosynthesis',
+    'photon flux',
+    'density (\u03bcmol/m\u00b2/s). PPFD must be measured by spectroradiometry or a dedicated quantum sensor.',
+    'Will too-high DLI burn seedlings?',
+    'Generally no seedling damage from high DLI, but strong light with high temperature causes photoinhibition. The point is the duration x intensity combo; summer shading often matters more than adding light.',
+    'About "Daily Light Integral (DLI) Calculator"',
+    'Daily Light Integral (DLI) measures the total photosynthetically active radiation a plant receives per day, usually mol/m\u00b2/day. This tool helps greenhouse growers quickly estimate DLI and judge whether light meets crop needs.',
+    'Enter PAR and light hours to get DLI',
+    'Provides common-crop suitability references',
+    'Supports supplemental and natural light scenarios',
+    'Greenhouse LED supplemental-light planning',
+    'Vegetable seedling light-environment assessment',
+    'Protected-agriculture light monitoring record',
+    'Photosynthetic active radiation PAR',
+    'Daily light hours',
+])
+apply_tool('calc-37', '光照累积量（每日光积分DLI）计算', 'Daily Light Integral (DLI) Calculator', G, ind=IND)
+
+# ---------------- calc-38 ----------------
+G = build('calc-38', [
+    '🌾 Irrigation Uniformity (Christiansen\'s Coefficient) Calculator',
+    'Enter collected water at each sampling point to compute Christiansen uniformity Cu and assess sprinkler/drip uniformity.',
+    '📖 View the "Irrigation Uniformity Calculator Guide"',
+    'Christiansen uniformity coefficient: Cu = [1 - \u03a3|xi - x\u0304| / (n x x\u0304)] x 100%. xi is each point\'s collected water, x\u0304 is the mean, n is the number of points. Cu closer to 100% means more uniform; sprinkler usually >=80%, drip >=90%; large deviation indicates uneven pipe pressure or clogged drippers, used for irrigation system acceptance and uniformity diagnosis.',
+    'Sampled water amounts (comma / space / newline separated, unit mL or mm)',
+    'Recommend at least 16 sampling points, evenly covering the area',
+    'Cu >= 85% good, 70%-85% fair, <70% check nozzle/dripper clogging or pressure',
+    '📚 In-Depth: Irrigation Uniformity (Christiansen CU)',
+    'CU = 1 - \u03a3|x_i - x\u0304| / (n x x\u0304): smaller deviation from mean means more uniform.',
+    'Evaluate sprinkler/drip water-distribution uniformity.',
+    'CU >= 0.85 excellent, 0.75-0.85 acceptable, below needs nozzle/pressure adjustment.',
+    'Sprinkler plot uniformity',
+    '9 rain gauges avg x\u0304=10 mm, sum of absolute deviations \u03a3|x_i-x\u0304|=9 mm, so CU = 1 - 9/(9x10) = 1 - 0.1 = 0.90, excellent uniformity.',
+    'Is CU the same as distribution uniformity DU?',
+    'Different. CU uses the mean of all points; DU (e.g. Christiansen variant or lower-quartile DU_lq) uses the lowest 1/4 mean, stricter and better reflecting the worst-area supply.',
+    'How to improve poor uniformity?',
+    'First check pressure balance, nozzle clogging/model mismatch, and main-branch pressure drop. Most cases are uneven pressure or nozzle wear.',
+    'About "Irrigation Uniformity (Christiansen Coefficient) Calculator"',
+    'Christiansen\'s Uniformity Coefficient (Cu) is a common metric for sprinkler, micro-spray, and drip water-distribution uniformity. This tool quickly computes Cu from field-measured point volumes and gives an evaluation.',
+    'Supports batch input of any number of sampling points',
+    'Auto-computes mean, std dev, coefficient of variation, and Cu',
+    'Grades uniformity by Cu value',
+    'Sprinkler system commissioning and acceptance',
+    'Drip-tape flow uniformity test',
+    'Farmland irrigation quality assessment',
+    'Sampled water amounts',
+])
+apply_tool('calc-38', '灌溉均匀度（克里斯琴森系数）计算', 'Irrigation Uniformity (Christiansen\'s Coefficient) Calculator', G, ind=IND)
+
+# ---------------- calc-6 ----------------
+G = build('calc-6', [
+    '🐟 Livestock Stocking Capacity Estimator',
+    'Estimate max stocking and annual off-take from house area, per-head footprint, cycle, and annual batches.',
+    '📖 View the "Livestock Stocking Capacity Estimator Guide"',
+    'Annual batches = 365 / cycle days x concurrent batches',
+    'From house area and per-head footprint, get concurrent head count (area / per-head); then convert to annual off-take by cycle and batches: annual batches = 365 / cycle x concurrent batches; total off-take = per-batch head x annual batches; used for farm capacity, feed purchase, and manure-treatment planning.',
+    'House area (m\u00b2)',
+    'Per-head footprint (m\u00b2/head)',
+    'Raising cycle (days)',
+    'Annual batches',
+    'Stocking = house area / per-head footprint; annual off-take = stocking x annual batches',
+    'Footprint varies greatly by species and growth stage; adjust to actual standards',
+    '📚 In-Depth: Livestock Stocking Capacity (Area x Density)',
+    'Stock = farm area x stocking density (head/m\u00b2 or bird/m\u00b2).',
+    'Set a reasonable density ceiling by animal welfare and pollution load.',
+    'Used for house design and manure-treatment scale matching.',
+    'Broiler floor stocking',
+    'House usable area 800 m\u00b2, recommended density 10 birds/m\u00b2 (~15 kg/m\u00b2), stocking = 800 x 10 = 8000 birds. At 12 birds/m\u00b2, stocking 9600, but also verify ventilation and manure capacity.',
+    'Can stocking density be set casually by experience?',
+    'No. Over-high density raises respiratory disease, pecking, and ammonia, and exceeds manure capacity. Determine by breed manual and local emission limits.',
+    'Are stocking and off-take the same?',
+    'No. Stocking is the count on hand at a moment; off-take is the total sold to market spec within a period. They serve different operation and statistics scopes.',
+    'About "Livestock Stocking Capacity Estimator"',
+    'Helps farms quickly estimate house capacity and annual off-take scale for production planning.',
+    'Linked stocking and off-take calculation',
+    'Supports custom cycle and batches',
+    'Pig, cattle, and sheep farm planning',
+    'Poultry house capacity assessment',
+    'Livestock project feasibility estimate',
+])
+apply_tool('calc-6', '养殖存栏量估算', 'Livestock Stocking Capacity Estimator', G, ind=IND)
+
+print('gen_agri_b1 done')
