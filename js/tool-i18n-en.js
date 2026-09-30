@@ -3907,7 +3907,7 @@ window.__TI18N_EN = {
     '靶抗原': 'Target Antigen',
     '鞣质': 'Tannin',
     '音量电平（dBFS/LUFS）计算': 'Audio Level (dBFS/LUFS) Calculation',
-    '顿号 、': 'Enumeration Comma (、)',
+    '顿号 、': 'Enumeration Comma',
     '预产期计算器（健康）': 'Due Date Calculator (Health)',
     '预产期计算器（医疗）': 'Due Date Calculator (Medical)',
     '预估剩余里程与可用月数': 'Estimated Remaining Mileage & Usable Months',
