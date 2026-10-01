@@ -1,0 +1,315 @@
+#!/usr/bin/env python3
+# gen_hematology_b3.py — hematology b3 (5 slugs): hemophilia-treatment/hlh-diagnosis/ipss-r/iron-overload/itp-risk-score
+import os, json, re, sys
+
+ROOT = os.path.dirname(os.path.abspath(__file__))
+WORK = os.path.join(ROOT, 'work', 'hematology')
+OUT = os.path.join(ROOT, '..', 'i18n', 'tools', 'en', 'hematology')
+
+CJK = re.compile(r'[\u4e00-\u9fff]')
+CNP = re.compile(r'[，。、；：！？（）「」『』]')
+
+EXTRA = {}
+
+def build(slug, en_list):
+    wj = json.load(open(os.path.join(WORK, slug + '.json'), encoding='utf-8'))
+    items = wj.get('items', [])
+    if len(en_list) != len(items):
+        print('LEN MISMATCH', slug, len(en_list), len(items)); sys.exit(1)
+    mp = {}
+    for it, en in zip(items, en_list):
+        if it.get('src_diff') and it.get('zh_src') and 'related-tool' not in it.get('loc', ''):
+            z = it['zh_src'].strip()
+        else:
+            z = it.get('zh', '').strip()
+        if CJK.search(en) or CNP.search(en):
+            print('BAD EN', slug, repr(z), repr(en)); sys.exit(1)
+        mp[z] = en
+    for z, en in EXTRA.get(slug, {}).items():
+        if CJK.search(en) or CNP.search(en):
+            print('BAD EXTRA', slug, repr(z), repr(en)); sys.exit(1)
+        mp[z] = en
+    return mp
+
+def write(slug, mp):
+    wj = json.load(open(os.path.join(WORK, slug + '.json'), encoding='utf-8'))
+    name = wj.get('exist_en') or wj.get('name') or slug
+    out = {'slug': slug, 'industry': 'hematology', 'name': name, 'map': mp}
+    os.makedirs(OUT, exist_ok=True)
+    with open(os.path.join(OUT, slug + '.json'), 'w', encoding='utf-8') as f:
+        json.dump(out, f, ensure_ascii=False, indent=1); f.write('\n')
+    print('WROTE', slug, '(+%d)' % len(mp))
+
+
+B = {}
+
+B['hemophilia-treatment'] = [
+ '💪 Hemophilia FVIII/FIX Replacement Therapy Calculator',
+ 'Calculates the coagulation factor replacement dose, dosing interval and course.',
+ 'Core formula (by input): current+Math.round(dose÷weight÷recoveryPerKg); Math.round((target.min+target.max)÷2); Math.round(dose×0.5÷10)×10',
+ 'Hemophilia FVIII/FIX Replacement Therapy Calculator',
+ '/ Hemophilia Replacement Therapy',
+ '📖 Read the "Hemophilia FVIII/FIX Replacement Therapy Calculator Usage Guide"',
+ 'FVIII (half-life 8-12 h, 1 IU/kg raises activity by 2%)',
+ 'FIX (half-life 18-24 h, 1 IU/kg raises activity by 1%)',
+ 'Current factor activity (%)',
+ 'Bleeding type / surgery',
+ 'Joint bleeding (target 30-50%)',
+ 'Muscle bleeding (target 50-80%)',
+ 'GI / urinary bleeding (target 50-80%)',
+ 'Intracranial bleeding (target 80-100%)',
+ 'Minor surgery (target 50-80%)',
+ 'Major surgery (target 80-100%)',
+ 'Prophylaxis (target trough 1-3%)',
+ 'Custom target',
+ 'Target factor activity (%)',
+ '📋 Target factor levels and course for each bleeding type',
+ 'Bleeding / surgery type',
+ 'Target activity (%)',
+ 'Course (days)',
+ 'Joint bleeding',
+ 'Muscle bleeding',
+ 'GI / urinary',
+ 'Intracranial bleeding',
+ 'Minor surgery',
+ 'Major surgery',
+ '80-100 (maintenance) → 30-50 (recovery)',
+ '📊 Dose calculation formula',
+ ': Dose (IU) = body weight (kg) × (target% - current%) × 0.5',
+ ': Dose (IU) = body weight (kg) × (target% - current%) × 1.0',
+ 'FVIII 1 IU/kg raises activity by about 2%; FIX 1 IU/kg by about 1% (rFIX about 0.8%)',
+ 'Note: the actual dose should be individualized by recovery; recovery below 66% suggests an inhibitor. Prophylaxis: FVIII 25-40 IU/kg three times weekly, FIX 40-100 IU/kg twice weekly (extended-half-life products allow less frequent dosing). For study reference only.',
+ '📚 Deep Dive: Hemophilia FVIII/FIX Replacement Therapy Calculator',
+ 'For bleeding / peri-operative care, compute the single factor dose (IU) from body weight and target activity.',
+ 'By factor',
+ 'Set the dosing interval (FVIII 8-12 h, FIX 18-24 h)',
+ 'For high doses or inhibitors, switch to bypassing agents rather than simply increasing the dose.',
+ 'Replacement dose (IU) = body weight (kg) × target difference (%) × factor (FVIII 0.5, FIX 1.0), rounded to 10 IU. Logic: 1 IU/kg FVIII raises activity ~2%, FIX ~1%; so the amount to reach target = weight × difference / rise per IU/kg. Expected peak = current + round(dose / weight / rise per IU/kg).',
+ 'Example (weight 70 kg, current 1%, joint bleeding target 40%): FVIII factor 0.5, dose = 70×(40-1)×0.5 = 1365 → rounded 1370 IU (19.6 IU/kg); expected peak = 1 + round(1370/70/2) = 1 + 10 = 11%. A single dose reaches the joint bleeding target (30-50%); dose every 8-12 h by FVIII half-life.',
+ 'Why is the FIX factor twice that of FVIII?',
+ 'Because 1 IU/kg FIX raises activity by only ~1% (FVIII ~2%), reaching the same difference needs about twice the IU/kg; FIX also has a longer half-life and different distribution, so clinically it is dosed less often.',
+ 'Is a very large dose safe?',
+ 'Not necessarily. If an inhibitor is present, increasing the factor dose is ineffective and may even sensitize; switch to bypassing agents (rFVIIa/APCC) and consider immune tolerance induction (ITI). For a single dose above 3000 IU, confirm recovery too.',
+ 'About the Hemophilia FVIII/FIX Replacement Therapy Calculator',
+ 'A hemophilia FVIII/FIX replacement dose calculator: from the bleeding type, body weight and baseline factor level it computes the coagulation factor replacement dose and dosing plan. A professional medical tool based on authoritative medical standards, for reference only.',
+]
+
+B['hlh-diagnosis'] = [
+ '🔍 Hemophagocytic Syndrome HLH-2004 Diagnostic Tool',
+ 'HLH is diagnosed when ≥5 of 8 criteria are met, or a known pathogenic gene mutation is present.',
+ '"HLH is diagnosed when ≥5 of 8 criteria are met, or a known pathogenic gene mutation is present" is computed from the input parameters and the result is output.',
+ 'Hemophagocytic Syndrome HLH-2004 Diagnostic Tool',
+ '/ HLH Diagnostic Tool',
+ '📖 Read the "Hemophagocytic Syndrome HLH-2004 Diagnostic Tool Usage Guide"',
+ '1. Fever (temperature >38.5°C, lasting >7 days)',
+ '2. Splenomegaly (≥3 cm below the costal margin)',
+ '3. Cytopenias (≥2 lineages)',
+ 'HGB <90 g/L (infants <100)',
+ '4. Hypertriglyceridemia and/or hypofibrinogenemia',
+ 'Triglycerides (mmol/L)',
+ '5. Hemophagocytosis in marrow / spleen / nodes',
+ '6. Low or absent NK-cell activity',
+ 'Low NK-cell activity (functional assay needed)',
+ '7. Elevated ferritin',
+ '8. Elevated soluble CD25 (sIL-2R)',
+ 'Known HLH pathogenic mutation (PRF1, UNC13D, STX11, STXBP2, etc.)',
+ '📋 HLH-2004 diagnostic criteria (8 items)',
+ '≥38.5°C, >7 days',
+ 'Splenomegaly',
+ '≥3 cm below costal margin',
+ 'Cytopenias (≥2 lineages)',
+ 'Hypertriglyceridemia / hypofibrinogenemia',
+ 'TG ≥3.0 mmol/L or Fib <1.5 g/L',
+ 'Hemophagocytosis',
+ 'Marrow / spleen / nodes',
+ 'NK-cell activity',
+ 'Low or absent',
+ 'HLH is diagnosed when ≥5 of 8 criteria are met, or by molecular diagnosis (pathogenic mutation).',
+ 'Primary HLH',
+ ': mostly in children, gene mutations (FHL, Chediak-Higashi, Griscelli, etc.)',
+ 'Secondary HLH',
+ ': infection-related (EBV most common), tumour-related (lymphoma), autoimmune-related (adult Still disease / MAS)',
+ 'Note: a negative hemophagocytosis does not rule out HLH (sensitivity ~60%). Ferritin above 10000 μg/L strongly suggests HLH. HLH is dangerous; start the HLH-2004 regimen immediately when suspected. For study reference only.',
+ '📚 Deep Dive: Hemophagocytic Syndrome HLH-2004 Diagnostic Tool',
+ 'With fever, hepatosplenomegaly and cytopenias, check each of the eight HLH-2004 criteria.',
+ 'Count the criteria met (≥5) or whether a known pathogenic mutation is found.',
+ 'When highly suspected but fewer than 5 criteria are met, do not wait for all to be fulfilled before starting treatment.',
+ 'HLH-2004 criteria: 8 items (① fever ≥38.5°C >7 days; ② splenomegaly; ③ ≥2-lineage cytopenias; ④ hypertriglyceridemia TG ≥3.0 or hypofibrinogenemia <1.5; ⑤ hemophagocytosis; ⑥ low NK activity; ⑦ ferritin ≥500; ⑧ sCD25 ≥2400). Meet ≥5, or find a PRF1/UNC13D pathogenic mutation, to diagnose.',
+ 'Example (biochemistry only: TG=3.5, ferritin=800, sCD25=2400, no clinical items ticked): item ④ (+), ⑦ (+), ⑧ (+) → 3 met → "suspected HLH, monitor". Another (all 8 met) → 8/8 → "HLH diagnosis met", start the HLH-2004 regimen at once.',
+ 'What does ferritin >10000 mean?',
+ 'Very high ferritin (>10000 μg/L) strongly supports HLH and severe disease, often with marked hemophagocytosis and a high cytokine storm; but it must be combined with the other criteria — a single marker cannot diagnose.',
+ 'Is a positive gene mutation with fewer than 5 criteria still HLH?',
+ 'Yes. Primary (familial) HLH is diagnosed by a known pathogenic mutation even with fewer than 5 clinical criteria (molecular diagnosis); these patients usually need allogeneic transplantation for cure.',
+ 'About the Hemophagocytic Syndrome HLH-2004 Diagnostic Tool',
+ 'A hemophagocytic syndrome HLH-2004 diagnostic tool: it assesses hemophagocytic lymphohistiocytosis from the 8 HLH-2004 criteria, including ferritin, sCD25 and NK-cell activity. A professional medical tool based on authoritative medical standards, for reference only.',
+]
+
+B['ipss-r'] = [
+ '💪 MDS IPSS-R Revised International Prognostic Scoring System',
+ 'Revised International Prognostic Scoring System, used for MDS prognosis assessment and treatment decisions',
+ 'Core formula (by input): Math.round(score×10)÷10',
+ 'Myelodysplastic Syndrome IPSS-R Scoring Tool',
+ '/ IPSS-R Scoring Tool',
+ '📖 Read the "MDS IPSS-R Revised International Prognostic Scoring System Usage Guide"',
+ 'Cytogenetic risk group',
+ 'Very good (−Y, del(11q))',
+ 'Good (normal karyotype, del(5q), del(12p), del(20q))',
+ 'Intermediate (del(7q), +8, +19, i(17q), other single clones)',
+ 'Poor (−7, inv(3)/t(3q), complex (3 abnormalities))',
+ 'Very poor (complex >3 abnormalities)',
+ 'Bone marrow blasts (%)',
+ 'Neutrophils ANC (×10⁹/L)',
+ 'Score assessment',
+ '📋 IPSS-R scoring criteria',
+ '0.5 points',
+ '1.5 points',
+ '4 points',
+ 'Cytogenetics',
+ 'Bone marrow blasts',
+ '📊 Risk groups and survival',
+ 'Risk group',
+ 'Median survival (years)',
+ 'Time to 25% AML transformation (years)',
+ 'Very low risk',
+ 'Note: IPSS-R applies to newly diagnosed primary MDS. Use with caution for therapy-related MDS and CMML. WPSS (WHO prognostic score) further refines by transfusion dependence. For clinical reference.',
+ '📚 Deep Dive: MDS IPSS-R Revised International Prognostic Scoring System',
+ 'For newly diagnosed MDS, assess risk stratification and treatment strategy by the five IPSS-R parameters.',
+ 'Karyotype scored separately (very good 0 / good 1 / intermediate 2 / poor 3 / very poor 4)',
+ 'Communicate prognosis using median survival and AML transformation time.',
+ 'IPSS-R five parameters: cytogenetics (very good 0 / good 1 / intermediate 2 / poor 3 / very poor 4), marrow blasts (≤2→0, ≤5→1, ≤10→2, >10→4), HGB (≥100→0, 80-99→1, <80→2), ANC (<0.8→0.5 else 0), PLT (≥100→0, 50-99→0.5, <50→1). Total score: ≤1.5 very low, ≤3 low, ≤4.5 intermediate, ≤6 high, >6 very high risk.',
+ 'Example (cytogenetics good=1, blasts 5%=1, HGB 85=1, ANC 0.8=0, PLT 50=0.5): total = 1+1+1+0+0.5 = 3.5 → intermediate risk (median survival ~3.0 years, 25% AML at ~3.2 years); consider hypomethylating agents or a clinical trial.',
+ 'How does IPSS-R differ from IPSS?',
+ 'IPSS-R (2012) splits cytogenetics into 5 tiers and subdivides blasts and cytopenias into more levels, giving finer risk stratification; IPSS is the older 3-tier version. IPSS-R is now preferred, with the version stated.',
+ 'How to read a score near a cut-off?',
+ 'Risk-group boundaries (e.g. 3.0, 4.5) are statistically continuous; scores near a cut-off have similar prognosis. Interpret together with age, comorbidities and transplant feasibility, not by score alone.',
+ 'About the Myelodysplastic Syndrome IPSS-R Scoring Tool',
+ 'The IPSS-R revised international prognostic scorer for myelodysplastic syndrome (MDS): it risk-stratifies by cytogenetics, marrow blasts, haemoglobin, neutrophils and platelets. A professional medical tool based on authoritative medical standards, for reference only.',
+]
+
+B['iron-overload'] = [
+ '📋 Iron Overload (Serum Ferritin) Assessor',
+ 'Assesses the degree of iron overload and guides chelation strategy.',
+ 'Core formula (by input): Math.round((ferr÷500)×10)÷10; Math.round((ferr÷500)×5)÷5; transfusions×200',
+ 'Iron Overload Serum Ferritin Assessor',
+ '/ Iron Overload Assessor',
+ '📖 Read the "Iron Overload (Serum Ferritin) Assessor Usage Guide"',
+ 'Serum ferritin (μg/L) male 15-200 / female 12-150',
+ 'Transferrin saturation TSAT (%) 20-50',
+ 'Thalassemia (transfusion-dependent)',
+ 'MDS / aplastic anaemia (transfusion-dependent)',
+ 'Severe aplastic anaemia',
+ 'Haemodialysis patient',
+ 'Transfusions per year',
+ '📋 Iron overload grading and chelation indications',
+ 'Ferritin (μg/L)',
+ 'Degree of iron overload',
+ 'Chelation therapy',
+ 'No iron overload',
+ 'No chelation needed',
+ 'Mild iron overload',
+ 'Monitor; consider chelation if transfusion-dependent',
+ 'Moderate iron overload',
+ 'Chelation recommended',
+ 'Severe iron overload',
+ 'Aggressive chelation',
+ 'Very severe iron overload',
+ 'Intensified chelation; assess cardiac / hepatic / endocrine function',
+ '📊 Chelation drug comparison',
+ 'Deferoxamine (Desferrioxamine)',
+ 'Subcutaneous / intravenous infusion pump',
+ 'Well established, needs continuous infusion 8-12 h',
+ 'Deferiprone',
+ 'Strong cardiac iron clearance, monitor ANC',
+ 'Deferasirox',
+ 'Oral, once daily',
+ 'Convenient, good adherence, most used',
+ 'Note: serum ferritin is affected by inflammation and may be falsely high in the acute phase. MRI T2* is the gold standard for cardiac and hepatic iron overload. Chelation target: ferritin <1000 μg/L (thalassaemia), <500-1000 μg/L (MDS). For study reference only.',
+ '📚 Deep Dive: Iron Overload (Serum Ferritin) Assessor',
+ 'For transfusion-dependent patients, grade iron overload by ferritin and time chelation.',
+ 'Choose the chelation plan by underlying disease (deferasirox / deferoxamine / phlebotomy).',
+ 'Estimate annual iron load to guide monitoring frequency.',
+ 'Ferritin grading: <500 none, 500-999 mild, 1000-2499 moderate, 2500-4999 severe, ≥5000 very severe. Chelation (transfusion-dependent): deferasirox 20-40 mg/kg/day (thalassaemia), start low 5-20 for MDS; hereditary haemochromatosis prefers phlebotomy. Annual iron load ≈ transfusions × 200 mg (each RBC unit holds ~200 mg iron).',
+ 'Example (ferritin=2500, thalassaemia, 12 transfusions/year): grade = severe iron overload; deferasirox dose = 2500/500 ≈ 5.0 but floored to 20 mg/kg/day (20-40 range); annual iron = 12×200 = 2400 mg, fast progression, check ferritin every 1-3 months and add cardiac MRI T2* when ≥2500.',
+ 'Does normal ferritin mean no iron overload?',
+ 'Not necessarily. Ferritin rises falsely with inflammation, liver disease or tumours; even with truly high iron load, ferritin may look "normal" during active inflammation. Check transferrin saturation (TSAT) or quantitative liver / cardiac MRI T2* when needed.',
+ 'Why is deferasirox 20-40 for thalassaemia but lower for MDS?',
+ 'MDS patients have dysplastic marrow and frequent infection/inflammation, so ferritin runs high at baseline and tolerance is poor; start low (5-20) and titrate up slowly. Thalassaemia patients are often young and tolerate well, so the standard 20-40 applies.',
+ 'About the Iron Overload (Serum Ferritin) Assessor',
+ 'An iron overload serum ferritin assessor: it evaluates the serum ferritin level, judges the degree of iron overload and guides chelation, covering iron overload management in transfusion-dependent patients such as thalassaemia, MDS and aplastic anaemia. A professional medical tool based on authoritative medical standards, for reference only.',
+]
+
+B['itp-risk-score'] = [
+ '🩸 Drug-Induced Thrombocytopenia (DITP) Risk Scoring Tool',
+ 'Based on the George criteria, assesses the causal link between thrombocytopenia and the drug.',
+ 'Drug-Induced Thrombocytopenia ITP Risk Scoring Tool',
+ '/ Drug-Induced ITP Risk Score',
+ '📖 Read the "Drug-Induced Thrombocytopenia (DITP) Risk Scoring Tool Usage Guide"',
+ 'Drug-induced thrombocytopenia causal score = timing of platelet drop after dosing (timely 3, possible 2, unsupported 1) + recovery after stopping (recovered 3, not 0) + exclusion of other causes and marrow megakaryocyte evidence (each 0-2) + positive drug antibody (2); total ≥8 definite, 5-7 probable, 3-4 possible, <3 doubtful.',
+ '1. Timing of drug use and thrombocytopenia',
+ 'PLT drop 1-14 days after dosing (+2)',
+ '14-30 days after dosing (+1)',
+ 'Before dosing or >30 days (0)',
+ '2. Platelet recovery after stopping',
+ 'PLT normal 1-7 days after stopping (+2)',
+ 'Recovered 7-14 days after stopping (+1)',
+ '>14 days or not recovered (0)',
+ '3. Exclusion of other causes',
+ 'Other causes fully excluded (+2)',
+ 'Partially excluded (+1)',
+ 'Other possible causes present (0)',
+ '4. Drug rechallenge',
+ 'PLT drops again after re-dosing (+3)',
+ 'PLT does not drop after re-dosing (0)',
+ 'Not re-dosed (+1, lower certainty)',
+ '5. Suspected drug class',
+ 'Select the suspected drug',
+ 'Heparin / LMWH (HIT)',
+ 'Quinine / quinidine',
+ 'Antibiotics (vancomycin / sulphonamides, etc.)',
+ 'Antiplatelets (tirofiban / abciximab)',
+ 'Antiepileptics (valproate / carbamazepine)',
+ 'Other drugs',
+ '📋 Common DITP causative drugs',
+ 'Anticoagulants',
+ 'Heparin',
+ 'HIT, 5-14 days after dosing, PLT drop >50%, thrombosis risk',
+ 'Antimalarials / antiarrhythmics',
+ 'Quinine, quinidine',
+ 'Classic DITP, often with bleeding',
+ 'Vancomycin, sulphonamides, rifampicin',
+ 'Immune-mediated',
+ 'Antiplatelets',
+ 'Tirofiban, abciximab, eptifibatide',
+ 'Acute (hours), GPIIb/IIIa antibody',
+ 'Diclofenac, ibuprofen',
+ 'Antiepileptics',
+ 'Valproate, carbamazepine',
+ 'Valproate may be direct suppression',
+ '📊 George criteria score levels',
+ 'Definite',
+ 'Very likely caused by this drug',
+ 'Probable',
+ 'Strongly suspected to be drug-induced',
+ 'Possible',
+ 'Drug factor cannot be excluded',
+ 'Doubtful',
+ 'Low drug likelihood',
+ 'Note: heparin-induced thrombocytopenia (HIT) needs the separate 4Ts score. Drug-dependent antibody testing can help confirm. Principle: stop the suspected drug at once and transfuse platelets if needed. For study reference only.',
+ '📚 Deep Dive: Drug-Induced Thrombocytopenia (DITP) Risk Scoring Tool',
+ 'When thrombocytopenia occurs, assess whether it is drug-induced (DITP).',
+ 'Score each of the four George causal items (timing / recovery / exclusion / rechallenge).',
+ 'For heparins, use the separate 4Ts score to assess HIT.',
+ 'George causal judgement (modified): timing, recovery after stopping, exclusion of other causes and drug rechallenge, 4 items each 0-2, max 8. ≥8 definite, 5-7 probable, 3-4 possible, <3 doubtful. A high score means the drug should be stopped permanently and the allergy recorded.',
+ 'Example (clear timing +2, PLT recovery after stop +2, other causes excluded +2, prior positive rechallenge +2): total = 8 → "Definite", stop the drug permanently. If only timing + recovery 1 each and the rest 0 → 2 → doubtful, focus on immune ITP and other causes.',
+ 'Which score for heparin?',
+ 'Heparin-induced thrombocytopenia (HIT) has its own 4Ts score (platelet drop, Timing, thrombosis, other causes) and does not use this DITP tool; even after stopping, HIT carries thrombosis risk, so switch to a non-heparin anticoagulant (argatroban / bivalirudin).',
+ 'Why does a positive rechallenge weigh most?',
+ 'A PLT drop again after re-dosing is the strongest evidence of causality (',
+ 'specificity',
+ 'high); but rechallenge is rarely done actively in clinic, mostly confirmed by history, so the first three items are relied on.',
+ 'About the Drug-Induced Thrombocytopenia ITP Risk Scoring Tool',
+ 'A drug-induced thrombocytopenia ITP risk scoring tool: it assesses whether thrombocytopenia is drug-related and analyses the probability of DITP by the five George elements. A professional medical tool based on authoritative medical standards, for reference only.',
+]
+
+for s, lst in B.items():
+    write(s, build(s, lst))
