@@ -1,0 +1,300 @@
+#!/usr/bin/env python3
+import os, json, re, sys
+ROOT = os.path.dirname(os.path.abspath(__file__))
+WORK = os.path.join(ROOT, 'work', 'rheumatology')
+OUT = os.path.join(ROOT, '..', 'i18n', 'tools', 'en', 'rheumatology')
+CJK = re.compile(r'[\u4e00-\u9fff]')
+CNP = re.compile(r'[，。、；：！？（）「」『』]')
+DISCL = "Free online tool, processed entirely in the browser, no data uploaded, your privacy and security protected."
+EXTRA = {}
+def build(slug, en_list):
+    wj = json.load(open(os.path.join(WORK, slug + '.json'), encoding='utf-8'))
+    items = wj.get('items', [])
+    if len(en_list) != len(items):
+        print('LEN MISMATCH', slug, len(en_list), len(items)); sys.exit(1)
+    mp = {}
+    for it, en in zip(items, en_list):
+        if it.get('src_diff') and it.get('zh_src') and 'related-tool' not in it.get('loc', ''):
+            z = it['zh_src'].strip()
+        else:
+            z = it.get('zh', '').strip()
+        if CJK.search(en) or CNP.search(en):
+            print('BAD EN', slug, repr(z), repr(en)); sys.exit(1)
+        mp[z] = en
+    for z, en in EXTRA.get(slug, {}).items():
+        if CJK.search(en) or CNP.search(en):
+            print('BAD EXTRA', slug, repr(z), repr(en)); sys.exit(1)
+        mp[z] = en
+    return mp
+def write(slug, mp):
+    wj = json.load(open(os.path.join(WORK, slug + '.json'), encoding='utf-8'))
+    name = wj.get('exist_en') or wj.get('name') or slug
+    out = {'slug': slug, 'industry': 'rheumatology', 'name': name, 'map': mp}
+    os.makedirs(OUT, exist_ok=True)
+    with open(os.path.join(OUT, slug + '.json'), 'w', encoding='utf-8') as f:
+        json.dump(out, f, ensure_ascii=False, indent=1); f.write('\n')
+    print('WROTE', slug, '(+%d)' % len(mp))
+def main():
+    # mctd-diagnosis (67)
+    write('mctd-diagnosis', build('mctd-diagnosis', [
+        "👥 Mixed Connective Tissue Disease (MCTD) Diagnostic Tool",
+        "Assesses MCTD diagnosis and overlap syndrome features in U1-RNP antibody-positive patients by the Alarcon-Segovia criteria",
+        "/ MCTD Diagnostic Tool",
+        "Serologic criteria",
+        "Anti-U1-RNP antibody",
+        "Low-titer positive",
+        "High-titer positive (≥1:1600)",
+        "Anti-Sm antibody",
+        "Clinical criteria — Raynaud's phenomenon",
+        "Raynaud's phenomenon (tricolor change)",
+        "Clinical criteria — SSc-like manifestations",
+        "Finger swelling/sausage digits",
+        "Sclerodactyly (digital tip sclerosis)",
+        "Esophageal dysmotility",
+        "Telangiectasia",
+        "Clinical criteria — PM/DM-like manifestations",
+        "Myositis (elevated CK/weakness)",
+        "Biopsy-proven myositis",
+        "Clinical criteria — SLE-like manifestations",
+        "Arthritis (non-erosive)",
+        "Leukopenia",
+        "Malar/discoid rash",
+        "Serositis (pleuritis/pericarditis)",
+        "Pulmonary arterial hypertension (PAH) assessment",
+        "Pulmonary hypertension (echo/right-heart catheterization)",
+        "Interstitial lung disease",
+        "📋 MCTD Alarcon-Segovia Diagnostic Criteria",
+        "Serologic criterion (required):",
+        "High-titer anti-U1-RNP positive (≥1:1600)",
+        "Clinical criteria (≥3):",
+        "Finger swelling",
+        "Synovitis (polyarticular)",
+        "Myositis (lab/biopsy proven)",
+        "Diagnosis: serologic criterion + ≥3 clinical criteria (must include synovitis or myositis)",
+        "📊 MCTD vs Other CTD Differentiation",
+        "Anti-U1-RNP",
+        "+++ (high titer)",
+        "Anti-Sm",
+        "− (negative)",
+        "+++ (specificity)",
+        "Anti-dsDNA",
+        "−/weak",
+        "Raynaud's",
+        "Sausage digits",
+        "Renal involvement",
+        "Rare/mild",
+        "+ (renal crisis)",
+        "+++ (main cause of death)",
+        "Note: MCTD is a disease with SLE/SSc/PM overlap features and high-titer anti-U1-RNP. Anti-Sm or strong anti-dsDNA favors SLE. MCTD renal involvement is rare and mild, a key differentiator from SLE. The main cause of death in MCTD is pulmonary arterial hypertension (PAH), requiring regular echocardiography and NT-proBNP screening. About 2/3 of patients eventually evolve into SLE/SSc/PM, needing long-term follow-up. Treatment is individualized by involved system. For clinical reference only.",
+        "📚 In-depth: MCTD Mixed Connective Tissue Disease Diagnosis",
+        "High-titer RNP",
+        "Raynaud/swollen fingers",
+        "Esophagus/myositis",
+        "Consistent with MCTD",
+        "High-titer anti-RNP + Raynaud's + finger swelling + esophageal dysmotility + myositis/arthritis → meets serologic+clinical criteria, consistent with MCTD, follow up for PAH.",
+        "More like SSc",
+        "Non-high-titer RNP + predominant diffuse skin sclerosis → more consistent with systemic sclerosis than MCTD.",
+        "Core criteria?",
+        "High-titer anti-U1-RNP is mandatory; overlapping SLE/SSc/PM features but mostly negative dsDNA/Sm is characteristic of MCTD.",
+        "Why monitor PAH?",
+        "MCTD can progress to pulmonary hypertension, a major prognostic determinant, requiring regular echo and right-heart assessment.",
+        "About the Mixed Connective Tissue Disease (MCTD) Diagnostic Tool",
+        "MCTD diagnostic tool assesses MCTD diagnosis in U1-RNP-positive patients and overlap features with SLE/SSc/PM by the Alarcon-Segovia or Kahn criteria. A medical professional tool based on authoritative standards, for reference only.",
+        "How to use the Mixed Connective Tissue Disease (MCTD) Diagnostic Tool",
+        "What does the Mixed Connective Tissue Disease (MCTD) Diagnostic Tool do?",
+        "How to use the Mixed Connective Tissue Disease (MCTD) Diagnostic Tool?",
+        "What scenarios is the Mixed Connective Tissue Disease (MCTD) Diagnostic Tool suitable for?",
+    ]))
+
+    # mda5-antibody (56)
+    write('mda5-antibody', build('mda5-antibody', [
+        "🦴 Dermatomyositis Anti-MDA5 Antibody Significance Assessor",
+        "Assesses clinical features and RP-ILD risk stratification in anti-MDA5 (CADM-140) antibody-positive dermatomyositis",
+        'Performs professional calculation and outputs results based on input parameters for "assessing clinical features and RP-ILD risk stratification in anti-MDA5 (CADM-140) antibody-positive dermatomyositis".',
+        "Dermatomyositis (MDA5) Antibody Significance Assessor",
+        "/ MDA5 Antibody Assessor",
+        "Antibody and baseline info",
+        "Anti-MDA5 antibody",
+        "Dermatomyositis subtype",
+        "Clinically amyopathic DM (CADM)",
+        "Classic dermatomyositis (DM)",
+        "Clinical manifestations and lab tests",
+        "Interstitial lung disease (ILD)",
+        "Rapidly progressive ILD (RP-ILD)",
+        "Skin ulcer",
+        "Gottron's papules (MCP extensor)",
+        "Palmar papules/mechanic's hands",
+        "Arthritis",
+        "Fever",
+        "Serum ferritin (ng/mL, normal <500)",
+        "CK creatine kinase (U/L, normal <200)",
+        "LDH (U/L, normal <250)",
+        "📋 Key Clinical Significance of Anti-MDA5 Antibody",
+        "Core associations",
+        ": anti-MDA5 is a hallmark antibody of clinically amyopathic DM with ILD (positivity 50-70%)",
+        ": anti-MDA5-positive patients have 50-80% RP-ILD incidence, 40-60% mortality within 6 months (Asian population)",
+        ": anti-MDA5-positive patients have significantly higher skin ulcer/perforation rates",
+        "Low muscle enzymes",
+        ": CK usually normal or mildly elevated (vs other myositis subtypes)",
+        "High ferritin",
+        ": markedly elevated serum ferritin is a poor-prognosis marker for RP-ILD",
+        "📊 MDA5+ DM Risk Stratification",
+        "RP-ILD risk",
+        "MDA5+, no ILD, ferritin normal",
+        "Glucocorticoids + immunosuppressants, regular HRCT",
+        "MDA5+, ILD present, ferritin mildly-moderately elevated",
+        "Steroids + tacrolimus/cyclophosphamide, monitor pulmonary function closely",
+        "MDA5+, progressive ILD, ferritin >1000",
+        "High-dose steroids + cyclophosphamide + JAK inhibitor, assess lung transplant",
+        "MDA5+, RP-ILD, ferritin >2000",
+        "Intensified immunosuppression + plasma exchange + tocilizumab, ICU care",
+        "Note: anti-MDA5-positive dermatomyositis is one of the critical emergencies in rheumatology; RP-ILD is the main cause of death. Treatment emphasizes early recognition and intensified immunosuppression: high-dose glucocorticoids with calcineurin inhibitors (tacrolimus/cyclosporine) and cyclophosphamide. JAK inhibitors (tofacitinib/baricitinib) and anti-IL-6 receptor (tocilizumab) can be used for refractory RP-ILD. Dynamic serum ferritin monitoring is key for prognosis. For clinical reference only.",
+        "📚 In-depth: Anti-MDA5 Dermatomyositis Assessment",
+        "Rapidly progressive ILD",
+        "Ulcer/papules",
+        "MDA5 positive + clinically amyopathic DM (CADM) + rapidly progressive ILD (rpILD) + skin ulcer/palmar papules + ferritin 1200 → high risk score, high fatal ILD risk, needs aggressive immunosuppression.",
+        "MDA5 positive + typical rash but no rpILD, CK normal → moderate risk, close pulmonary follow-up.",
+        "Why watch for rpILD?",
+        "Anti-MDA5 positive, especially CADM, readily accompanies rapidly progressive ILD, causing respiratory failure within a short time; the most critical DM subtype.",
+        "Is normal CK meaningful?",
+        "CADM may have normal muscle enzymes but severe lung injury; normal CK does not exclude high risk, judge by imaging and ferritin.",
+        "About the Dermatomyositis (MDA5) Antibody Significance Assessor",
+        "Dermatomyositis anti-MDA5 antibody significance assessor evaluates clinical features, rapidly progressive interstitial lung disease (RP-ILD) risk and prognostic stratification in MDA5-positive dermatomyositis. A medical professional tool based on authoritative standards, for reference only.",
+        "How to use the Dermatomyositis Anti-MDA5 Antibody Significance Assessor",
+        "What does the Dermatomyositis Anti-MDA5 Antibody Significance Assessor do?",
+        "How to use the Dermatomyositis Anti-MDA5 Antibody Significance Assessor?",
+        "What scenarios is the Dermatomyositis Anti-MDA5 Antibody Significance Assessor suitable for?",
+    ]))
+
+    # mrss (51)
+    write('mrss', build('mrss', [
+        "🧴 Scleroderma mRSS Skin Thickening Score",
+        "Modified Rodnan Skin Score assesses systemic sclerosis (SSc) skin involvement via skin thickness at 17 anatomical sites",
+        "Scleroderma (mRSS) Skin Thickening Score",
+        "/ mRSS Scorer",
+        "mRSS total = sum of skin thickness scores (0-3 each) at 17 sites (face, both fingers, both palms, both forearms, chest wall, abdominal wall, both thighs, both lower legs, both dorsal feet, both toes); 0 normal, 1 mild, 2 moderate, 3 severe; max 51. ≤5 mild, 6-14 moderate, 15-29 moderate-severe, ≥30 severe.",
+        "Scoring criteria:",
+        "0=normal, 1=mild thickening, 2=moderate thickening (pinchable), 3=severe thickening (not pinchable)",
+        "Face (1 site)",
+        "Upper limbs (6 sites, 3 per side)",
+        "Left fingers",
+        "Left palm",
+        "Left forearm",
+        "Right fingers",
+        "Right palm",
+        "Right forearm",
+        "Trunk (2 sites)",
+        "Anterior chest wall",
+        "Lower limbs (8 sites, 4 per side)",
+        "Left dorsal foot",
+        "Left toes",
+        "Right dorsal foot",
+        "Right toes",
+        "Calculate mRSS",
+        "📋 mRSS Scoring Notes",
+        "Palpation features",
+        "Normal skin thickness",
+        "Mild thickening",
+        "Mildly thickened skin, easily pinchable",
+        "Moderate thickening",
+        "Markedly thickened, difficult but possible to pinch",
+        "Severe thickening",
+        "Severe sclerosis, not pinchable (board-like)",
+        "📊 mRSS Clinical Significance",
+        "Likely limited SSc, monitor progression",
+        "Moderate skin involvement, assess internal organs",
+        "Moderate-severe",
+        "Diffuse SSc, active immunomodulation",
+        "Extensive skin sclerosis, poor prognosis",
+        "Note: mRSS is the gold-standard score for SSc skin involvement, total 0-51. mRSS >15-20 suggests diffuse SSc (dcSSc), associated with internal involvement (pulmonary fibrosis/renal crisis). Dynamic mRSS change monitors progression and treatment response; improvement ≥5 points (25%) is clinically meaningful. dcSSc progresses rapidly in early years (first 2-3), then may spontaneously regress. Skin score and internal involvement are not fully parallel; combine with HRCT/PFT/renal function. For clinical reference only.",
+        "📚 In-depth: mRSS Scleroderma Skin Thickening",
+        "Upper limbs/face",
+        "Total 24",
+        "17 regions 0-3: face 2 + left fingers 3 + left palm 2 + left forearm 2 + right fingers 3 + right palm 2 + right forearm 2 + chest/abdomen 2 + left thigh 1 + left calf 1 + left foot 1 + right thigh 1 + right calf 1 + right foot 1 = 24, moderate-severe skin involvement.",
+        "Mild 9",
+        "Face 1 + fingers total 4 + forearms 2 + trunk 2 = 9, mild, follow digital ulcers and pulmonary fibrosis.",
+        "Scope?",
+        "17 regions 0-3, 0 normal, 1 mild, 2 moderate, 3 severe, total 0-51; used for diffuse SSc activity and prognosis.",
+        "Regional significance?",
+        "High upper/lower limb scores suggest peripheral ischemia and digital ulcer risk; high trunk score suggests possible internal involvement.",
+        "About the Scleroderma (mRSS) Skin Thickening Score",
+        "Scleroderma mRSS (modified Rodnan) skin thickening score assesses systemic sclerosis skin involvement via skin thickness at 17 anatomical sites (0-3). A medical professional tool based on authoritative standards, for reference only.",
+    ]))
+
+    # rater-16 (33)
+    write('rater-16', build('rater-16', [
+        "📋 Systemic Lupus Erythematosus (SLEDAI) Score",
+        "SLEDAI-2K (Systemic Lupus Erythematosus Disease Activity Index), 24 weighted items, assesses SLE disease activity over the past 10 days",
+        "Clinical manifestation assessment",
+        "Check items present/new/worsened within the past 10 days; the system auto-calculates the SLEDAI-2K total by weight",
+        "Calculate SLEDAI score",
+        "📚 In-depth: SLEDAI Score (rating form)",
+        "Check item by item",
+        "Organ items",
+        "Activity stratification",
+        "Total 12",
+        "Item by item: arthritis 2 + rash 2 + proteinuria 4 + low complement 2 + rising dsDNA 2 = 12; organ items: renal 4 / skin 2 / immune 4, moderate-severe lupus activity.",
+        "No activity 0",
+        "No items checked → 0, maintenance therapy in remission.",
+        "Difference from sledai?",
+        "This page is the rating form (rater), sledai is the scale display form; both use SLEDAI-2K weights.",
+        "Highest-weight items?",
+        "Neuropsychiatric 8, renal/vasculitis 6 are heaviest, directly affecting activity grading and treatment intensity.",
+        "This tool is based on SLEDAI-2K (Systemic Lupus Erythematosus Disease Activity Index 2000), runs entirely in-browser, data is not uploaded to any server",
+        "SLEDAI-2K has 24 weighted items (8/4/2/1 points), total 0-105, assessing disease activity over the past 10 days",
+        "Disease activity grading: 0=no activity, 1-5=mild, 6-9=moderate, 10-14=moderate-severe, ≥15=severe",
+        "SLEDAI-2K ≥10 suggests active SLE, usually requiring intensified immunosuppression",
+        "About the Systemic Lupus Erythematosus (SLEDAI) Score",
+        "SLEDAI-2K (Systemic Lupus Erythematosus Disease Activity Index 2000), 24 weighted items (8/4/2/1 points), assesses SLE activity over the past 10 days, covering neuro, vascular, joint, renal, skin, serosal and hematologic systems, guiding treatment adjustment.",
+        "SLEDAI-2K standard 24-item weighted scoring",
+        "Grouped by weight (8/4/2/1 points)",
+        "Organ involvement distribution and treatment suggestions",
+        "SLE disease activity assessment",
+        "Basis for immunosuppression regimen adjustment",
+        "Lupus nephritis/neuropsychiatric lupus activity assessment",
+        "How to use the Systemic Lupus Erythematosus (SLEDAI) Score",
+        "What does the Systemic Lupus Erythematosus (SLEDAI) Score do?",
+        "How to use the Systemic Lupus Erythematosus (SLEDAI) Score?",
+        "What scenarios is the Systemic Lupus Erythematosus (SLEDAI) Score suitable for?",
+    ]))
+
+    # rater-17 (34)
+    write('rater-17', build('rater-17', [
+        "📋 Vasculitis (BVAS) Score",
+        "Birmingham Vasculitis Activity Score (BVAS v3), 9 organ-system weighted scoring, assesses systemic vasculitis activity",
+        "Active clinical manifestations",
+        "Check vasculitis-related clinical manifestations newly appearing or worsening within the past 4 weeks; the system auto-calculates the BVAS total by weight",
+        "Calculate BVAS score",
+        "📚 In-depth: BVAS Score (rating form)",
+        "System groups",
+        "Severity cap",
+        "Activity stratification",
+        "Total 18",
+        "Group check: systemic 3 + skin 3 + renal 6 + lung 4 + neuro 2 = 18 (each system capped at max); ≥15 severe, induction remission therapy.",
+        "Low 6",
+        "Total 6 (skin 3 + joint 3) → mild-moderate activity, outpatient follow-up.",
+        "Difference from bvas?",
+        "This page is the rating form (rater), bvas is the display form; both use BVAS v3 group-capping rules.",
+        "Meaning of capping?",
+        "Each system is capped at its max (e.g. renal max 6), preventing one system from over-inflating the total and better reflecting multi-system involvement.",
+        "This tool is based on the Birmingham Vasculitis Activity Score version 3 (BVAS v3), runs entirely in-browser, data is not uploaded to any server",
+        "BVAS has 9 organ systems (systemic, skin, mucosal-eye, ENT, chest, cardiovascular, abdominal, renal, neurologic), max total about 63",
+        "Each system has a maximum cap; exceeding it is scored at the cap",
+        "BVAS is used to assess activity of systemic vasculitis such as AAV (ANCA-associated vasculitis), guiding treatment decisions",
+        "About the Vasculitis (BVAS) Score",
+        "Birmingham Vasculitis Activity Score version 3 (BVAS v3) assesses vasculitis activity across 9 organ systems (systemic, skin, mucosal-eye, ENT, chest, cardiovascular, abdominal, renal, neurologic), each weighted with a cap, max total 63.",
+        "BVAS v3 standardized 9-system weighted scoring",
+        "Automatic control of each system's maximum cap",
+        "Involved system distribution and stratified treatment suggestions",
+        "ANCA-associated vasculitis activity assessment",
+        "Large-vessel/immune-complex vasculitis assessment",
+        "Immunosuppression initiation and adjustment",
+        "Vasculitis treatment efficacy and relapse monitoring",
+        "How to use the Vasculitis (BVAS) Score",
+        "What does the Vasculitis (BVAS) Score do?",
+        "How to use the Vasculitis (BVAS) Score?",
+        "What scenarios is the Vasculitis (BVAS) Score suitable for?",
+    ]))
+
+if __name__ == "__main__":
+    main()
