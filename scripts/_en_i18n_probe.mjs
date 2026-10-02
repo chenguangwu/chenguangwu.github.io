@@ -301,7 +301,11 @@ async function extract(target) {
   }
   for (const n of textNodes(w)) {
     const t = (n.nodeValue || '').trim();
-    if (!t || !CJK.test(t) || seen.has(t)) continue;
+    // 口径必须与 --check 的 collectCJK 一致（RESIDUAL_RE = 汉字 + 中文标点），不能用仅汉字的 CJK：
+    // 运行时 longestPrefixKey/_prefix 会先吃掉串首汉字（如 _prefix「自然」→「Natural」），
+    // 留下「（Medium）」这类纯全角括号尾巴 —— 它已无汉字，用 CJK 会被 extract 漏收，
+    // 但 --check 仍按 RESIDUAL_RE 报残留 ⇒ 出现「按清单译完仍残留」的缺口（2026-10-02 beauty/calc-2）。
+    if (!t || !RESIDUAL_RE.test(t) || seen.has(t)) continue;
     seen.add(t);
     items.push({ kind: 'text', loc: locOf(n), zh: t, path: 'T:' + nodePath(n) });
   }
