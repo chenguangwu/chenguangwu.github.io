@@ -1,0 +1,116 @@
+#!/usr/bin/env python3
+import os, json, re, sys
+
+ROOT = os.path.dirname(os.path.abspath(__file__))
+WORK = os.path.join(ROOT, 'work', 'ceramics')
+OUT = os.path.join(ROOT, '..', 'i18n', 'tools', 'en', 'ceramics')
+CJK = re.compile(r'[\u4e00-\u9fff]')
+CNP = re.compile(r'[，。、；：！？（）「」『』]')
+EXTRA = {}
+
+
+def build(slug, en_list):
+    wj = json.load(open(os.path.join(WORK, slug + '.json'), encoding='utf-8'))
+    items = wj.get('items', [])
+    if len(en_list) != len(items):
+        print('LEN MISMATCH', slug, len(en_list), len(items))
+        sys.exit(1)
+    mp = {}
+    for it, en in zip(items, en_list):
+        if it.get('src_diff') and it.get('zh_src') and 'related-tool' not in it.get('loc', ''):
+            z = it['zh_src'].strip()
+        else:
+            z = it.get('zh', '').strip()
+        if CJK.search(en) or CNP.search(en):
+            print('BAD EN', slug, repr(z), repr(en))
+            sys.exit(1)
+        mp[z] = en
+    for z, en in EXTRA.get(slug, {}).items():
+        if CJK.search(en) or CNP.search(en):
+            print('BAD EXTRA', slug, repr(z), repr(en))
+            sys.exit(1)
+        mp[z] = en
+    return mp
+
+
+def write(slug, mp):
+    wj = json.load(open(os.path.join(WORK, slug + '.json'), encoding='utf-8'))
+    name = wj.get('exist_en') or wj.get('name') or slug
+    out = {'slug': slug, 'industry': 'ceramics', 'name': name, 'map': mp}
+    os.makedirs(OUT, exist_ok=True)
+    with open(os.path.join(OUT, slug + '.json'), 'w', encoding='utf-8') as f:
+        json.dump(out, f, ensure_ascii=False, indent=1)
+        f.write('\n')
+    print('WROTE', slug, '(+%d)' % len(mp))
+def main():
+    # ---------------- kiln-firing (35) ----------------
+    write('kiln-firing', build('kiln-firing', [
+        "🏺 Kiln Firing Curve",
+        "View the recommended firing temperature curve by body / glaze type, including the heating rate, soak temperature and soak time, and estimate the total firing duration.",
+        "Based on the body / glaze type, gives the heating rate, soak temperature and soak time, and estimates the total firing duration (including oxidation, reduction and bisque / glaze firing stages); the principle is integration of the heating curve plus soak equilibrium. Pure front-end local calculation, data never leaves the browser.",
+        "Bisque firing",
+        "Earthenware",
+        "Stoneware",
+        "Porcelain",
+        "Glaze firing",
+        "📋 Firing Essentials",
+        "📚 Deep dive: Kiln Firing Curve",
+        "Oxidation firing curve: from room temperature to about 600°C, slowly drive out binders and water; in the glaze firing stage, raise to the soak temperature at the recommended rate, soak briefly, then cool under control.",
+        "Reduction firing (porcelain) curve: in the high-temperature range (starting at about 950-1050°C) introduce a reducing atmosphere so iron takes on a bluish tone, requiring control of the reduction timing and an oxidation hold after it ends.",
+        "Bisque and glaze firing in stages: bisque firing sets the shape at low temperature while driving out plastic, and glaze firing vitrifies at high temperature; planning the two stages separately improves the yield and the glaze surface quality.",
+        "Stoneware glaze firing curve worked example",
+        "Entering a stoneware body plus transparent glaze, the tool gives the curve: room temperature → 300°C slow ramp to remove moisture → 300-950°C at medium rate → 950-1230°C up to a 30min soak → natural cooling, total duration about 8-10h.",
+        "Why is the heating rate slow early and fast later?",
+        "In the low-temperature range the moisture and organics in the clay need a slow ramp to avoid cracking; at medium and high temperatures the body has already set its shape and the rate can be increased; near the soak the rate is controlled again so the glaze melts and gases escape evenly.",
+        "What does the soak stage do?",
+        "The soak evens out the kiln temperature, lets the glaze melt and level fully, and lets gases escape. Too long causes over-firing and deformation, too short causes glaze bubbles and orange peel. The duration depends on the shape and the kiln volume.",
+        "What does the cooling method affect?",
+        "Fast cooling can increase partial vitrification, but thick pieces risk thermal shock cracking; slow cooling favors crystal formation and stress release. Reduced porcelain needs a weak oxidation hold in the early cooling stage to avoid re-oxidation and yellowing.",
+        "The Kiln Firing Curve is an online tool for potters and studios, giving heating, soaking and cooling curves by body / glaze type and estimating the total duration, processed entirely in the browser with data calculated locally to protect privacy.",
+        "One-click conversion of ceramic parameters: shrinkage, ratio, temperature and wheel speed computed in real time",
+        "Local calculation: data never leaves the browser, protecting recipe and process secrets",
+        "Results can be copied and exported: convenient for records and refiring comparison",
+        "Fits many clay bodies and glaze formulas: earthenware, stoneware and porcelain all work",
+        "Oxidation firing curve: binder and water removal plus glaze firing soak",
+        "Reduction firing (porcelain) curve: reduction timing and oxidation hold",
+        "Bisque and glaze firing in stages: improve the yield",
+        "Heating and cooling rate planning: prevent thermal shock cracking and deformation",
+        "How to use the Kiln Firing Curve",
+        "Oxidation firing curve: from room temperature to about 600°C, slowly drive out binders and water; in the glaze firing stage, raise to the soak temperature at the recommended rate, soak briefly, then cool under control; reduction firing (porcelain) curve: in the high-temperature range (starting at about 950-1050°C) introduce a reducing atmosphere so iron takes on a bluish tone, requiring control of the reduction timing and an oxidation hold after it ends.",
+        "What does the Kiln Firing Curve tool do?",
+        "How do you use the Kiln Firing Curve?",
+        "Which scenarios suit the Kiln Firing Curve?",
+    ]))
+
+    # ---------------- wheel-speed (25) ----------------
+    write('wheel-speed', build('wheel-speed', [
+        "🔩 Potter's Wheel Speed Calculator",
+        "Recommend a potter's wheel speed from the body diameter and the throwing stage, keeping a suitable peripheral (tangential) speed to balance shaping and stability.",
+        "Speed n = peripheral speed v ÷ (π × D), where D is the body diameter (m) and v is the wheel rim peripheral speed (m/min); the peripheral speed values for each stage are opening 60 to 90, pulling 40 to 70, and closing 20 to 40 m/min; convert to rpm and round to an integer; the larger the body the lower the speed should be (centrifugal force is proportional to diameter), and when closing large pieces the speed can drop to 60 to 100 rpm to avoid centrifugal deformation.",
+        "📋 Speed reference",
+        "📚 Deep dive: Potter's Wheel Speed Calculation",
+        "Opening and centering: wet clay has high moisture and an unstable center of gravity, so a lower speed (about 60-100 rpm) centers it steadily without flinging clay off.",
+        "Pulling and shaping: once the center is stable, raise to a medium speed (about 120-200 rpm) to pull up the cylinder wall, lowering the speed moderately as the body grows taller to prevent wobbling.",
+        "Trimming and finishing: near the rim and during trimming you can slightly raise or lower the speed for fine finishing, keeping the wall even and the rim round.",
+        "Bowl pulling speed worked example",
+        "Entering an 800g clay lump and a target bowl height of 90mm, the tool suggests opening at 80 rpm to center, pulling at 150 rpm and closing at 120 rpm, and warns that when the moisture content is on the high side the whole range should drop 10%-20%.",
+        "Is wheel speed related to the clay moisture content?",
+        "Yes. Too wet clay is easily flung off, so lower the speed and drain first; too dry clay has high resistance and cracks easily, so raise the speed slightly and replenish water often. Go by a stable feel.",
+        "How do you choose the speed for different vessel shapes?",
+        "Tall slim bottles and jars need steadier, lower speeds to prevent wobbling; wide plates and dishes can be a bit faster to open up. Beginners should start slow and adjust by feel once practiced.",
+        "What speed should a beginner start from?",
+        "Start in the range of 60-100 rpm for centering and 120-180 rpm for pulling, with even force and water replenishment; practice on small pieces before scaling up.",
+        "The Potter's Wheel Speed Calculator is an online tool for potters and studios, giving a recommended wheel speed by vessel shape and stage, processed entirely in the browser with data calculated locally to protect privacy.",
+        "One-click conversion of ceramic parameters: shrinkage, ratio, temperature and wheel speed computed in real time",
+        "Local calculation: data never leaves the browser, protecting recipe and process secrets",
+        "Results can be copied and exported: convenient for records and refiring comparison",
+        "Fits many clay bodies and glaze formulas: earthenware, stoneware and porcelain all work",
+        "Opening and centering: steady low speed to center",
+        "Pulling and shaping: medium speed to raise the cylinder wall",
+        "Trimming and finishing: refine the rim and keep it round",
+        "Beginner practice: start slow to build a stable feel",
+    ]))
+
+
+if __name__ == '__main__':
+    main()
