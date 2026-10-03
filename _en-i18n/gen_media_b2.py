@@ -1,0 +1,151 @@
+#!/usr/bin/env python3
+import os, json, re, sys
+
+ROOT = os.path.dirname(os.path.abspath(__file__))
+WORK = os.path.join(ROOT, 'work', 'media')
+OUT = os.path.join(ROOT, '..', 'i18n', 'tools', 'en', 'media')
+CJK = re.compile(r'[\u4e00-\u9fff]')
+CNP = re.compile(r'[，。、；：！？（）「」『』]')
+EXTRA = {}
+
+
+def build(slug, en_list):
+    wj = json.load(open(os.path.join(WORK, slug + '.json'), encoding='utf-8'))
+    items = wj.get('items', [])
+    if len(en_list) != len(items):
+        print('LEN MISMATCH', slug, len(en_list), len(items))
+        sys.exit(1)
+    mp = {}
+    for it, en in zip(items, en_list):
+        if it.get('src_diff') and it.get('zh_src') and 'related-tool' not in it.get('loc', ''):
+            z = it['zh_src'].strip()
+        else:
+            z = it.get('zh', '').strip()
+        if CJK.search(en) or CNP.search(en):
+            print('BAD EN', slug, repr(z), repr(en))
+            sys.exit(1)
+        mp[z] = en
+    for z, en in EXTRA.get(slug, {}).items():
+        if CJK.search(en) or CNP.search(en):
+            print('BAD EXTRA', slug, repr(z), repr(en))
+            sys.exit(1)
+        mp[z] = en
+    return mp
+
+
+def write(slug, mp):
+    wj = json.load(open(os.path.join(WORK, slug + '.json'), encoding='utf-8'))
+    name = wj.get('exist_en') or wj.get('name') or slug
+    out = {'slug': slug, 'industry': 'media', 'name': name, 'map': mp}
+    os.makedirs(OUT, exist_ok=True)
+    with open(os.path.join(OUT, slug + '.json'), 'w', encoding='utf-8') as f:
+        json.dump(out, f, ensure_ascii=False, indent=1)
+        f.write('\n')
+    print('WROTE', slug, '(+%d)' % len(mp))
+def main():
+    # ---------------- index (17) ----------------
+    write('index', build('index', [
+        "📰 Media and Communication Tools",
+        "Media and Communication",
+        "Media and Communication Tools",
+        "Online headline testing tool that analyzes headline length, emotional tendency and keyword density, then gives an attractiveness score to support topic selection and optimization, running entirely in the browser.",
+        "Online sentiment analysis tool that takes text or comment data and produces sentiment tendency and word-frequency statistics, generating a situational overview for brand and PR monitoring, running entirely in the browser.",
+        "Cover design A/B testing tool that scores and evaluates multiple cover designs to help content operations pick the best one, improving click-through rate and spread.",
+        "Headline creation A/B testing tool that compares the performance of several headlines and suggests optimizations, helping copywriting pick high-CTR headlines, suited to self-media and marketing content.",
+        "Online content reading performance assessment tool that scores articles from open rate, completion rate and interaction rate to guide optimization, running entirely in the browser.",
+        "Paste step data to build a conversion funnel, or supply coordinates to generate a click heatmap for page and flow analysis, visualized entirely in the browser with no backend connection.",
+        "About \"Media and Communication Tools\"",
+        "The Media and Communication Tools collection gathers 6 free online tools covering the common calculation, conversion and lookup needs of media and communication scenarios. Whether you are a practitioner in the field, a student or an ordinary user, you will find ready-to-use utilities here. Every tool runs entirely in the browser and never uploads data to the server, so your privacy is protected.",
+        "The media and communication tools listed on this page include (a few representative tools):",
+        "These tools help you finish common media and communication tasks quickly, with no need to memorize complex formulas or do manual conversions - just enter the inputs and get the result.",
+        "Do the media and communication tools require a download or an account?",
+        "No. Every tool on this page is a pure front-end online tool: open the page and use it right away, with no software to install, no account to register, and no data uploaded.",
+        "Are the media and communication tool results accurate? Is the data safe?",
+        "The tools compute locally in your browser based on public mathematical formulas and general industry standards, so results are available instantly. All computation happens locally on your device and no data is uploaded to the server, so your privacy is fully protected.",
+    ]))
+
+    # ---------------- tester-13 (26) ----------------
+    write('tester-13', build('tester-13', [
+        "🚀 Headline (Attractiveness / Length) Test",
+        "Attractiveness / Length",
+        "📖 Read the \"Headline (Attractiveness / Length) Test User Guide\"",
+        "The headline attractiveness score accumulates by dimension: 3 points when the length falls in the platform range (WeChat 8-14 characters, Toutiao 8-18, Xiaohongshu 8-20, Douyin 8-15), plus bonus points for containing a keyword, containing a number or suspense word, and emotional intensity. Keyword density = core-word characters / total headline characters x 100%, with 20% to 40% recommended. A score of 8 or above is strong, 5 to 7 is fair, and below 5 suggests a rewrite.",
+        "Headline attractiveness test (length / emotion / keyword analysis)",
+        "Enter the headline",
+        "WeChat Official Account",
+        "Toutiao",
+        "Douyin",
+        "Target audience",
+        "Young audience",
+        "Middle-aged audience",
+        "Test Headline",
+        "📚 Deep dive: Headline (Attractiveness / Length) Test",
+        "Pre-publish self-check: enter the headline and target platform, score it on length, emotional words, numbers and tone, and preview its open-rate potential.",
+        "Platform fit: the optimal length differs by platform (WeChat 14 / Toutiao 18 / Xiaohongshu 20 / Douyin 15), and overlong headlines get truncated on mobile.",
+        "Iterative optimization: fix the flagged dimensions one by one (too long / missing emotional words / no number), moving the score from \"weak\" to \"strong\" and then to \"excellent\".",
+        "Worked example (WeChat headline \"3 habits that make you earn over 10,000 a month, the 2nd matters most\")",
+        "19 characters (>14, slightly long, 2 points), contains 1 emotional or attention word (monthly income, 2 points), contains the numbers 3 and 2 (2 points), no question or exclamation mark (0 points) -> total 6/9 = 66.7% \"medium attractiveness\". Optimization: trim to under 14 characters and add one more emotional word to reach \"strong\". Platform length thresholds: WeChat 14 / Toutiao 18 / Xiaohongshu 20 / Douyin 15.",
+        "Where do the optimal per-platform lengths come from?",
+        "They are set from empirical values for the single-column display width on mobile (WeChat 14 / Toutiao 18 / Xiaohongshu 20 / Douyin 15). Overlong headlines are truncated with an ellipsis, which reduces information completeness, so a threshold is set per platform.",
+        "Why do emotional words and numbers earn bonus points?",
+        "Concrete numbers (such as \"3\") lower cognitive cost and create a sense of certainty, while emotional or suspense words (such as \"amazing\" or \"unexpectedly\") spark curiosity; both are common traits of high-CTR headlines. But stacking too many of them (2 or more emotional words) risks clickbait.",
+        "About \"Headline (Attractiveness / Length) Test\"",
+        "Headline (Attractiveness / Length) Test. Free online tool, processed entirely in the browser, no data uploaded, your privacy and security protected.",
+        "Enter the headline to test",
+    ]))
+
+    # ---------------- tester-14 (22) ----------------
+    write('tester-14', build('tester-14', [
+        "📐 Cover (Design / A-B Test)",
+        "Design / A-B Test",
+        "📖 Read the \"Cover (Design / A-B Test) User Guide\"",
+        "Click-through rate CTR = clicks / impressions x 100%; the difference between the two versions = CTR-B - CTR-A, and the relative lift = difference / CTR-A x 100%. The winner is the one with the higher CTR, and a verdict requires a minimum sample size (at least 1000 impressions per group) plus a relative lift above 5% to count as significant. A two-proportion z-test can evaluate significance: z = (p1 - p2) / sqrt(p(1-p)(1/n1 + 1/n2)), and |z| above 1.96 is significant at the 95% confidence level.",
+        "Cover design A/B test comparison",
+        "Variant A impressions",
+        "Variant A clicks",
+        "Variant B impressions",
+        "Variant B clicks",
+        "📚 Deep dive: Cover (Design / A-B Test)",
+        "Cover A/B test: run two cover versions on the same content, record impressions and clicks for each, and compare CTR to pick the winning version.",
+        "Relative-lift verdict: look at the relative lift rather than the absolute CTR alone, to avoid misjudging a small sample as artificially high.",
+        "Significance guidance: a CTR gap of 20% is significant, 10-20% means \"some difference\" and needs more samples, and below 10% is not significant so the variant should be replaced.",
+        "Worked example (cover A 10000 impressions / 500 clicks, cover B 10000 impressions / 680 clicks)",
+        "Cover A CTR = 500/10000 x 100% = 5.00%; cover B CTR = 680/10000 x 100% = 6.80%. Difference = 6.80% - 5.00% = +1.80%; relative lift = 1.80% / 5.00% x 100% = 36.0%. Because the relative lift is >= 20%, the result is judged \"significantly different\" and variant B is recommended. The tool outputs \"variant A/B CTR -> difference -> relative lift\" and gives a significance conclusion.",
+        "How is CTR computed and what counts as good?",
+        "CTR = clicks / impressions x 100%. It varies by industry, and for feed-style covers 3-8% is normal; higher means the cover catches the eye more. Here B at 6.80% beats A at 5.00%.",
+        "Why look at relative lift rather than the absolute gap?",
+        "An absolute gap of 1.8% may be unstable with a small sample, while the relative lift (36%) reflects how much B improves on A; combined with",
+        "a significance judgment it is more reliable and avoids being misled by a small-sample outlier.",
+        "About \"Cover (Design / A-B Test)\"",
+        "Cover (Design / A-B Test). Free online tool, processed entirely in the browser, no data uploaded, your privacy and security protected.",
+    ]))
+
+    # ---------------- tester-18 (22) ----------------
+    write('tester-18', build('tester-18', [
+        "🚀 Headline (Creation / A-B Test / Optimization)",
+        "Creation / A-B Test / Optimization",
+        "📖 Read the \"Headline (Creation / A-B Test / Optimization) User Guide\"",
+        "The headline A/B test computes the click-through rate CTR = clicks / impressions x 100% for each of the two headlines; relative lift = (CTR-B - CTR-A) / CTR-A x 100%. Judge only after each group has at least 1000 impressions, and rule out time-slot and channel differences. The preferred headline should have both a higher absolute CTR and a significant relative lift (above 5%), and you should keep the wording patterns of the winner (numbers, questions, benefit points) for later headlines.",
+        "Headline A/B test and optimization comparison",
+        "Headline A impressions",
+        "Headline A clicks",
+        "Headline B impressions",
+        "Headline B clicks",
+        "Compare and Optimize",
+        "📚 Deep dive: Headline (Creation / A-B Test / Optimization)",
+        "Headline A/B test: run both headlines with the same impression count, compare CTR to pick the more-clicked version, and reduce the risk of \"picking headlines by feel\".",
+        "Copy iteration: build on the winning version by adding numbers, emotional words or suspense and test again; the tool points out that high-CTR headlines usually contain concrete numbers, emotional words and suspense.",
+        "Significance verdict: relative lift >= 20% is significant, 10-20% needs more samples, and <10% is not significant, so avoid concluding too early.",
+        "Worked example (headline A 3000 impressions / 120 clicks, headline B 3000 impressions / 210 clicks)",
+        "Headline A CTR = 120/3000 x 100% = 4.00%; headline B CTR = 210/3000 x 100% = 7.00%. Relative lift = (7.00% - 4.00%) / 4.00% x 100% = 75.0%. Because the relative lift is >= 20%, the result is judged \"significantly different\" and headline B is recommended. The tool also shows the character count and CTR of both headlines and gives optimization advice.",
+        "What should I watch out for when testing headlines?",
+        "The impression counts of the two versions should be as close as possible (both 3000 here) for comparability; with a tiny sample (tens of impressions) CTR fluctuates a lot, so accumulate enough data before judging. Relative lift is more stable than the absolute gap.",
+        "What kind of headlines get high CTR?",
+        "Experience suggests headlines with concrete numbers (such as \"3 methods\"), emotional or suspense words (such as \"amazing\" or \"unexpectedly\"), and a clear benefit get more clicks; but excessive clickbaiting gets reach limited by the platform, so you must balance attraction and authenticity.",
+        "About \"Headline (Creation / A-B Test / Optimization)\"",
+        "Headline (Creation / A-B Test / Optimization). Free online tool, processed entirely in the browser, no data uploaded, your privacy and security protected.",
+    ]))
+
+
+if __name__ == '__main__':
+    main()
