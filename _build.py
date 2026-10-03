@@ -2333,85 +2333,78 @@ def save_lastmod_map(m):
     os.replace(tmp, p)
 
 
-def _assign_dates_sequential(urls, start, end, seed=20260601):
-    """一次性把 urls（按传入顺序）铺到 [start, end] 时间轴。
-    每天配额前期偏多（权重线性递减后取 1.5 次幂强化），再加 0.5~1.5 倍随机扰动，
-    使每天数量随机、整体前期偏多。按 urls 顺序对应日期，故 sitemap 前文偏早期。
-    返回 {url: date_str}。"""
-    import random
-    from datetime import timedelta
-    if not urls:
-        return {}
-    rnd = random.Random(seed)
-    total_days = (end - start).days + 1
-    M = len(urls)
-    weights = [(1 - d / total_days) ** 1.5 for d in range(total_days)]
-    total_w = sum(weights) or 1
-    daily = [w / total_w * M for w in weights]
-    daily = [max(0.0, q * rnd.uniform(0.5, 1.5)) for q in daily]
-    s = sum(daily) or 1
-    daily = [int(round(q / s * M)) for q in daily]
-    # 修正四舍五入差额，优先补到前期以保持前期偏多
-    diff = M - sum(daily)
-    d = 0
-    while diff != 0:
-        idx = d % total_days
-        if diff > 0:
-            daily[idx] += 1
-            diff -= 1
-        elif daily[idx] > 0:
-            daily[idx] -= 1
-            diff += 1
-        d += 1
-        if d > total_days * 3:
-            break
-    date_pool = []
-    for day in range(total_days):
-        ds = (start + timedelta(days=day)).strftime('%Y-%m-%d')
-        date_pool.extend([ds] * daily[day])
-    date_pool = date_pool[:M]
-    while len(date_pool) < M:
-        date_pool.append((start + timedelta(days=total_days - 1)).strftime('%Y-%m-%d'))
-    return {urls[i]: date_pool[i] for i in range(M)}
+def _canon_sitemap_url(url):
+    """把 zh-TW 静态变体 URL 归一到 zh-CN 基准 URL。
+
+    繁体页 zh-tw/<path> 与简体页同源、同批构建，lastmod 必须与 zh-CN 一致；
+    映射表键域只有 zh-CN 形式，故查表前先剥掉 /zh-tw 前缀。
+    """
+    return re.sub(r'^https://chenguangwu\.github\.io/zh-tw(?=/|$)',
+                  'https://chenguangwu.github.io', url)
+
+
+def _local_file_for(url):
+    """sitemap URL -> 本地源文件绝对路径；无法映射返回 None。"""
+    try:
+        from urllib.parse import urlparse
+        p = urlparse(url).path
+    except Exception:
+        return None
+    if not p or p.endswith('/'):
+        p += 'index.html'
+    return os.path.join(ROOT, p.lstrip('/'))
+
+
+def _mtime_date(path):
+    """源文件最后修改日期（YYYY-MM-DD）；路径无效/不存在返回 None。"""
+    if not path:
+        return None
+    try:
+        from datetime import datetime
+        return datetime.fromtimestamp(os.path.getmtime(path)).strftime('%Y-%m-%d')
+    except OSError:
+        return None
+
+
+def _is_ci_build():
+    """CI（GitHub Actions）上 actions/checkout 会把所有文件 mtime 设为同一时刻，
+    此时「文件修改时间」无信息量，必须沿用仓库内已提交的 lastmod 映射，
+    保证线上产物与本地一致。
+    """
+    return os.environ.get('GITHUB_ACTIONS') == 'true' or os.environ.get('CI') == 'true'
 
 
 def ensure_lastmod_map(all_urls, today):
-    """构建/补全全站 lastmod 映射（持久化 sitemap_lastmod.json）。
-    - 映射文件不存在：按 all_urls 顺序一次性分配历史日期（项目起于 2026-06），写文件。
-    - 映射已存在：仅缺失的（新增）URL 用当天日期追加；已有 URL 保持原值不更新。
-    即「只干一次」历史分配，后续每次 build 不刷新已有日期，仅新增内容带当前日期。"""
+    """构建/刷新全站 lastmod 映射（持久化 sitemap_lastmod.json）。
+
+    取值来源 = 该 URL 对应源文件的文件系统 mtime：
+    - 本地构建：逐 URL 取 mtime 刷新映射并原子写回（新增页自然带真实修改日）；
+    - CI 构建：只读仓库里已提交的映射、不刷新（见 _is_ci_build 说明）。
+    每轮都裁剪孤儿键（下架 / 改名 / 孤儿化的 URL），避免历史键无限累积。
+    """
     lm = load_lastmod_map()
+    if lm and _is_ci_build():
+        return lm
     changed = False
-    if not lm:
-        from datetime import date
-        start = date(2026, 6, 1)
-        end = date.today()
-        lm = _assign_dates_sequential(all_urls, start, end)
-        changed = True
-    else:
-        for u in all_urls:
-            if u not in lm:
-                lm[u] = today
-                changed = True
-        # 裁剪孤儿键：仅保留本轮 all_urls 中的 URL，防止下架/改名后历史键无限累积
-        # （all_urls 已含根页/tools 分类首页/guides/工具页，与实际 sitemap 的 zh-CN 键域一致）
-        if all_urls:
-            keep = set(all_urls)
-            stale = [u for u in lm if u not in keep]
-            if stale:
-                for u in stale:
-                    del lm[u]
-                changed = True
+    for u in all_urls:
+        d = _mtime_date(_local_file_for(u)) or today
+        if lm.get(u) != d:
+            lm[u] = d
+            changed = True
+    # 裁剪孤儿键：仅保留本轮 all_urls 中的 URL（键域为 zh-CN 基准 URL）
+    if all_urls:
+        keep = set(all_urls)
+        for u in [k for k in lm if k not in keep]:
+            del lm[u]
+            changed = True
     if changed:
         save_lastmod_map(lm)
     return lm
 
 
 def _lastmod_for(url, today):
-    """取该 URL 在 lastmod 映射中的日期；缺失则回退当天（兜底，正常不应发生）。"""
-    if url in _LASTMOD_MAP:
-        return _LASTMOD_MAP[url]
-    return today
+    """取该 URL 的 lastmod；zh-TW 变体与 zh-CN 同源同值。缺失则回退当天（兜底）。"""
+    return _LASTMOD_MAP.get(_canon_sitemap_url(url), today)
 
 
 def generate_sitemap(tools, category_inds=None):
@@ -4573,6 +4566,8 @@ def main():
     guides_dir = os.path.join(ROOT, 'guides')
     if os.path.isdir(guides_dir):
         for fn in sorted(os.listdir(guides_dir)):
+            if fn.endswith('.en.html'):
+                continue  # 孤儿化：与 generate_sitemap() 键域保持一致，英文副本不入 lastmod 映射
             if fn.endswith('.html') and fn != 'index.html':
                 all_urls.append('https://chenguangwu.github.io/guides/%s' % fn)
     if os.path.isfile(os.path.join(ROOT, 'chains.html')):
