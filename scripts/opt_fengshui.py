@@ -118,7 +118,7 @@ EN_DESC = {
     "fengshui/birthday-analysis": "Birthday Analysis - cast your Four Pillars (BaZi) from Gregorian birth date and time of birth. For cultural reference only.",
     "fengshui/fengshui-guide": "Fengshui Guide - browse traditional feng shui essentials by scene with quick keyword search.",
     "fengshui/fengshui-calculator": "Fengshui Calculator - enter a compass bearing or house orientation to see the Bagua trigram and twenty-four mountains. Entertainment only.",
-    "fengshui/good-day-selector": "Good Day Selector - pick an activity and start date to see auspicious days from the Jian-Chu (十二建除) almanac. Cultural reference only.",
+    "fengshui/good-day-selector": "Good Day Selector - pick an activity and start date to see auspicious days from the Jian-Chu (Twelve Establish-Remove) almanac. Cultural reference only.",
 }
 EN_US_INTRO = {
     "fengshui/zodiac-lookup": "Look up your Chinese zodiac by birth year: animal, earthly branch, five-element attribute, and compatibility for marriage and friendship references.",
