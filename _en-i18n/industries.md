@@ -18,23 +18,13 @@
 
 | # | industry | 工具页 | 中文节点 | 唯一文本 | 状态 |
 |---:|---|---:|---:|---:|---|
-| 1 | `maritime` | 5 | 424 | 282 | pending |
-| 2 | `martial` | 5 | 362 | 255 | pending |
-| 3 | `medical2` | 5 | 333 | 206 | pending |
-| 4 | `pet-training` | 5 | 364 | 263 | pending |
-| 5 | `petrochem` | 5 | 355 | 230 | pending |
-| 6 | `pets` | 5 | 333 | 229 | pending |
-| 7 | `plastic` | 5 | 312 | 175 | pending |
-| 8 | `project` | 5 | 403 | 194 | pending |
-| 9 | `railway` | 5 | 124 | 80 | pending |
-| 10 | `rubber` | 5 | 311 | 174 | pending |
-| 11 | `seismology` | 5 | 306 | 195 | pending |
-| 12 | `service` | 5 | 306 | 164 | pending |
-| 13 | `shipping` | 5 | 311 | 202 | pending |
-| 14 | `stage` | 5 | 324 | 186 | pending |
-| 15 | `tunnel` | 5 | 373 | 221 | pending |
-| 16 | `woodworking` | 5 | 413 | 297 | pending |
-| 17 | `yi` | 5 | 370 | 242 | pending |
-| 18 | `photo2` | 4 | 236 | 159 | pending |
-| 19 | `stats` | 4 | 281 | 198 | pending |
+| 1 | `seismology` | 5 | 306 | 195 | pending |
+| 2 | `service` | 5 | 306 | 164 | pending |
+| 3 | `shipping` | 5 | 311 | 202 | pending |
+| 4 | `stage` | 5 | 324 | 186 | pending |
+| 5 | `tunnel` | 5 | 373 | 221 | pending |
+| 6 | `woodworking` | 5 | 413 | 297 | pending |
+| 7 | `yi` | 5 | 370 | 242 | pending |
+| 8 | `photo2` | 4 | 236 | 159 | pending |
+| 9 | `stats` | 4 | 281 | 198 | pending |
 

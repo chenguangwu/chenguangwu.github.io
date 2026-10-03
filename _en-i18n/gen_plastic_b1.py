@@ -1,0 +1,210 @@
+#!/usr/bin/env python3
+import os, json, re, sys
+
+ROOT = os.path.dirname(os.path.abspath(__file__))
+WORK = os.path.join(ROOT, 'work', 'plastic')
+OUT = os.path.join(ROOT, '..', 'i18n', 'tools', 'en', 'plastic')
+CJK = re.compile(r'[\u4e00-\u9fff]')
+CNP = re.compile(r'[，。、；：！？（）「」『』]')
+EXTRA = {}
+
+
+def build(slug, en_list):
+    wj = json.load(open(os.path.join(WORK, slug + '.json'), encoding='utf-8'))
+    items = wj.get('items', [])
+    if len(en_list) != len(items):
+        print('LEN MISMATCH', slug, len(en_list), len(items))
+        sys.exit(1)
+    mp = {}
+    for it, en in zip(items, en_list):
+        if it.get('src_diff') and it.get('zh_src') and 'related-tool' not in it.get('loc', ''):
+            z = it['zh_src'].strip()
+        else:
+            z = it.get('zh', '').strip()
+        if CJK.search(en) or CNP.search(en):
+            print('BAD EN', slug, repr(z), repr(en))
+            sys.exit(1)
+        mp[z] = en
+    for z, en in EXTRA.get(slug, {}).items():
+        if CJK.search(en) or CNP.search(en):
+            print('BAD EXTRA', slug, repr(z), repr(en))
+            sys.exit(1)
+        mp[z] = en
+    return mp
+
+
+def write(slug, mp):
+    wj = json.load(open(os.path.join(WORK, slug + '.json'), encoding='utf-8'))
+    name = wj.get('exist_en') or wj.get('name') or slug
+    out = {'slug': slug, 'industry': 'plastic', 'name': name, 'map': mp}
+    os.makedirs(OUT, exist_ok=True)
+    with open(os.path.join(OUT, slug + '.json'), 'w', encoding='utf-8') as f:
+        json.dump(out, f, ensure_ascii=False, indent=1)
+        f.write('\n')
+    print('WROTE', slug, '(+%d)' % len(mp))
+
+#!/usr/bin/env python3
+
+
+def main():
+    write('blow-molding', build('blow-molding', [
+        '🧮 Blow Molding Process Parameters',
+        'Calculate the blow-up ratio, blow pressure, wall thickness and other key blow molding parameters',
+        '"Calculate the blow-up ratio, blow pressure, wall thickness and other key blow molding parameters" — the tool runs a professional calculation from the input parameters and outputs the result.',
+        'Blow Molding Parameter Calculation',
+        '/ Blow Molding',
+        '📖 View the Blow Molding Process Parameters user guide',
+        'Blow-up ratio',
+        'Wall thickness',
+        'Blow pressure',
+        'Maximum product diameter (mm)',
+        'Parison diameter (mm)',
+        'Parison wall thickness (mm)',
+        'Product wall thickness (mm)',
+        'Product diameter (mm)',
+        'Parameter notes:',
+        'Blow-up ratio (BUR) = product diameter / parison diameter, generally taken as 2-4. Too large a blow-up ratio easily causes uneven wall thinning, while too small a ratio gives an unclear product contour.',
+        'Common blow molding materials reference',
+        '📚 In-depth analysis: Blow Molding Calculation',
+        'When designing a bottle or container blow molding process, use the blow-up ratio BUR = product diameter ÷ parison diameter to assess wall thickness uniformity (2 to 4 is the suitable range).',
+        'For wall thickness design, use product wall thickness = parison wall thickness ÷ BUR to derive the actual wall thickness and thinning ratio, avoiding blow-through or locally excessive thickness.',
+        'For equipment selection, use the film hoop-stress formula minimum blow pressure = 2 × material yield strength × wall thickness ÷ diameter to back-calculate the air compressor pressure requirement.',
+        'Bottle blow-up process calculation example',
+        'A bottle with product diameter 100 mm and parison diameter 30 mm → BUR = 100 ÷ 30 ≈ 3.33 (suitable range 2 to 4); parison wall thickness 4 mm ÷ 3.33 ≈ product wall thickness 1.20 mm, wall thinning ratio 70.0%. If the material yield strength is 30 MPa, the product wall thickness 1.2 mm and the bottle diameter 80 mm, the theoretical minimum blow pressure = 2 × 30 × 1.2 ÷ 80 = 0.90 MPa, and a 1.5 safety factor gives a recommended ≈ 1.35 MPa (about 13.5 bar).',
+        'Why is a blow-up ratio of 2 to 4 suitable?',
+        'With too large a BUR (>5) the parison is stretched too thin and the risk of uneven wall thickness and blow-through rises sharply; with too small a ratio (<2) the parison is too thick, wasting material and making it hard to blow against the mould wall. A ratio of 2 to 4 balances wall uniformity and material economy.',
+        'How is the blow pressure estimated?',
+        'From hoop-stress balance: the blow pressure P must satisfy 2 × σ_t × t / D ≤ the material yield, so the minimum P = 2 × σ_t × t / D; multiply by a safety factor of 1.5 for the recommended pressure, and convert to bar (×10) or psi (×145) for equipment selection.',
+        'About Blow Molding',
+        'A blow molding process parameter calculator: it works out the blow-up ratio, blow pressure, wall thickness and other key blow molding parameters. A business and office tool that improves work efficiency; data is processed locally to protect privacy.',
+    ]))
+
+    write('extrusion-rate', build('extrusion-rate', [
+        '🏎️ Extrusion Output Calculation',
+        'Calculate extrusion output from screw parameters and material properties',
+        'Extrusion Rate Calculation',
+        '/ Extrusion Rate',
+        '📖 View the Extrusion Output Calculation user guide',
+        'Q = π/4 × (D² - (D-2h)²) × pitch × screw speed × density × efficiency',
+        'Screw diameter (mm)',
+        'Screw speed (rpm)',
+        'Material density (g/cm³)',
+        'Screw pitch (mm)',
+        'Channel depth (mm)',
+        'Conveying efficiency (%)',
+        'Calculate output',
+        'Output Q = π/4 × (D² - (D-2h)²) × pitch × screw speed × density × efficiency. Conveying efficiency is typically 30-50%.',
+        'Common plastic density reference',
+        '📚 In-depth analysis: Extrusion Output Estimation',
+        'When scheduling an extrusion process, work out the screw channel ',
+        'from the screw diameter, channel depth, pitch and screw speed, then combine it with material density and efficiency to get the mass output (kg/h) and the daily or monthly capacity.',
+        'For equipment checks, use the output estimate to confirm whether the extruder capacity matches the order takt, avoiding insufficient capacity or long periods of low-load running.',
+        'For process commissioning, watch how the output varies linearly or non-linearly with screw speed and channel depth to locate feeding or back-flow weaknesses.',
+        'Extrusion output',
+        ' estimation example',
+        'Screw diameter 10 mm, channel depth 1 mm, pitch 5 mm, screw speed 10 rpm, density 0.92, efficiency 90%. Flow cross-section = π/4 × (10² − (10−2)²) = π/4 × 36 ≈ 28.27 mm²; displacement per revolution 28.27 × 5 ≈ 141.4 mm³; 1414 mm³ per minute, 23.6 mm³ per second; mass output = 23.6 × 0.92 × 0.90 ≈ 19.5 g/s ≈ 70.2 kg/h (a laboratory micro-unit example). On a real production line, substitute the large-screw parameters into the same formula.',
+        'Why is output approximately linear with screw speed?',
+        'Channel volumetric flow is proportional to screw speed (displacement per revolution is fixed), and mass output = volumetric flow × density × efficiency, so it is approximately linear with speed when efficiency is stable. At high speed, back-flow and shear heating lower the actual efficiency.',
+        'How is the efficiency factor chosen?',
+        'It is affected by the regrind ratio, screw back-flow, uneven feeding and shear temperature rise: use 0.85-0.95 for a new line and lower values for ageing equipment or high-viscosity materials. Calibrate against actual measurement and feed the value back in, to avoid overstating capacity.',
+        'About Extrusion Rate',
+        'A plastic extrusion output calculator: it works out the hourly extrusion output from screw diameter, screw speed and material density. A business and office tool that improves work efficiency; data is processed locally to protect privacy.',
+    ]))
+
+    write('injection-cycle', build('injection-cycle', [
+        '⏱️ Injection Molding Cycle Calculation',
+        'Calculate the time of each injection molding stage and the total cycle, and assess production efficiency',
+        'Injection Cycle Calculation',
+        '/ Injection Cycle',
+        '📖 View the Injection Molding Cycle Calculation user guide',
+        'Injection molding cycle = injection + holding + cooling + mould opening + ejection + mould closing',
+        'Time parameters for each stage',
+        'Injection time (s)',
+        'Holding time (s)',
+        'Cooling time (s)',
+        'Mould opening time (s)',
+        'Ejection time (s)',
+        'Mould closing time (s)',
+        'Number of cavities',
+        'Daily production time (h)',
+        'Yield rate (%)',
+        'Calculate cycle',
+        'Cycle notes:',
+        'Injection molding cycle = injection + holding + cooling + mould opening + ejection + mould closing. Cooling time usually accounts for 50-70% of the total cycle and is the main optimisation target.',
+        'Share of time by stage',
+        '📚 In-depth analysis: Injection Cycle and Capacity',
+        'In injection molding process planning and scheduling, add the six stages of injection + holding + cooling + mould opening + ejection + mould closing to get the total molding cycle, then work out the number of shots per hour, daily output and the number of good parts.',
+        'For bottleneck identification, use the cycle bar chart to compare the share of each stage; cooling usually accounts for most of the cycle and is the first target when shortening it.',
+        'For multi-cavity mould accounting, use unit time = total cycle ÷ number of cavities to assess capacity; more cavities make each part faster but require greater clamping force and more balanced runners.',
+        'Injection capacity calculation example',
+        'Six stage times of 2/5/15/2/1/2 seconds → total cycle 27 s; shots per hour = 3600 ÷ 27 ≈ 133.3; with a 4-cavity mould, 20 h of daily operation and a 95% yield → daily output 133.3 × 20 × 4 ≈ 10667 pieces, good parts ≈ 10133; unit time = 27 ÷ 4 = 6.75 s. If cooling drops from 15 s to 10 s the cycle shortens to 22 s and daily output rises by about 23%.',
+        'Why is cooling time usually the bottleneck?',
+        'Melt solidification inside the mould takes up most of the cycle; insufficient cooling causes ejection deformation and has to be extended. Shorten it by improving mould water channels, lowering water temperature or improving heat conduction — but over-pursuing a short cycle sacrifices appearance and dimensional stability.',
+        'How is unit cost calculated for a multi-cavity mould?',
+        'Unit time = total cycle ÷ number of cavities, so doubling the cavities halves the unit time; but more cavities need greater clamping force, better runner balance and a higher mould cost, so trade this off against yield and machine capability.',
+        'About Injection Cycle',
+        'An injection molding cycle calculator: it computes the time of each stage (injection, holding, cooling, mould opening and so on) to assess production efficiency. A business and office tool that improves work efficiency; data is processed locally to protect privacy.',
+    ]))
+
+    write('material-select', build('material-select', [
+        '⚖️ Plastic Material Selection Comparison',
+        'Compare the properties of common plastics to support material selection decisions',
+        '📖 View the Plastic Material Selection Comparison user guide',
+        'Key points for plastic selection: compare by tensile strength, heat deflection temperature, water absorption and processing method — ABS resists heat to about 80 °C, PC to about 130 °C, PP to about 100 °C and is chemically resistant, while PA has high water absorption and must be dried; match the most suitable material to the structural load, service temperature and cost, and check shrinkage against the molding process.',
+        'Filter by requirement',
+        'All materials',
+        'Transparent materials',
+        'High temperature resistance',
+        'Food grade',
+        'Corrosion resistance',
+        'Low cost',
+        'Search material name',
+        'Selection tips:',
+        'Click a performance tag to filter quickly; prices are indicative only (relative value 1-5, where 1 is lowest and 5 is highest).',
+        '📚 In-depth analysis: Plastic Material Selection',
+        'When selecting a material for a part, filter candidates from the material library by service temperature, tensile strength, weather resistance, cost and typical application (for example PEEK, PPS or LCP for high temperature resistance, TPE for soft food-grade parts).',
+        'When weighing options, narrow the range by density and processing window (melt and mould temperature), then lock in the material considering supply and compliance.',
+        'For structural reinforcement, consider glass-fibre reinforced grades (GF-reinforced PA or PP) as a balance between strength and cost, noting their anisotropy and abrasion.',
+        'Example: initial screening by operating conditions',
+        'Filtering for high temperature resistance gives candidates such as PEEK (250–300 °C, tensile strength 90–100 MPa), PPS (200–240 °C) and LCP (200–280 °C); automotive electronics structural parts usually use PPS (corrosion resistant, medium-high price), while aerospace and medical uses choose PEEK (highest temperature resistance and strength). If a soft food-grade material is needed, choose TPE (−50 to 120 °C, medium price). GF-reinforced PA or PP balances strength and low cost, suiting industrial structural parts.',
+        'How do I screen materials quickly?',
+        'First fix the material family by working temperature and load (for example look at PEEK, PPS and LCP above 200 °C, and PA, PP and ABS for room-temperature structural parts), then look at cost, supply and food or medical compliance, and finally confirm processability with the processing window (melt and mould temperature).',
+        'Why is glass-fibre reinforcement common?',
+        'Glass fibre raises tensile strength, stiffness and heat resistance and lowers shrinkage, at a lower cost than speciality engineering plastics; the price is more screw and mould wear, surface fibre show-through and anisotropy, so allow margin for shrinkage and strength direction in the design.',
+        'About Material Select',
+        'A plastic selection comparison table: it compares the physical properties, heat resistance, price range and application scenarios of common plastics. A business and office tool that improves work efficiency; data is processed locally to protect privacy.',
+        'e.g. ABS, PP, PC…',
+    ]))
+
+    write('shrinkage-calc', build('shrinkage-calc', [
+        '🧮 Plastic Molding Shrinkage Calculation',
+        'Calculate plastic molding shrinkage, or back-calculate the mould dimension from the shrinkage rate',
+        '"Calculate plastic molding shrinkage, or back-calculate the mould dimension from the shrinkage rate" — the tool runs a professional calculation from the input parameters and outputs the result.',
+        'Plastic Shrinkage Calculation',
+        '/ Shrinkage Calc',
+        '📖 View the Plastic Molding Shrinkage Calculation user guide',
+        'Calculate shrinkage',
+        'Back-calculate mould dimension',
+        'Mould dimension (mm)',
+        'Actual part dimension (mm)',
+        'Target part dimension (mm)',
+        'Shrinkage rate (%)',
+        'Shrinkage S = (mould dimension − part dimension) / mould dimension × 100%; mould dimension = part dimension / (1 − shrinkage rate).',
+        'Common plastic shrinkage reference',
+        '📚 In-depth analysis: Molding Shrinkage',
+        'In mould design, use shrinkage = (mould dimension − part dimension) / mould dimension × 100% to derive the actual shrinkage amount and shrinkage ratio of the part.',
+        'When scaling up a cavity, use mould dimension = target dimension ÷ (1 − shrinkage rate) to enlarge the cavity so the part reaches the target size after cooling out of the mould.',
+        'During trial shots, fine-tune the cavity from the measured shrinkage of the first part to compensate for material anisotropy and process variation.',
+        'Shrinkage and cavity scaling example',
+        'Mould 100 mm, part 98 mm → shrinkage = (100 − 98)/100 × 100% = 2.0%, shrinkage amount 2.0 mm, shrinkage ratio about 1:50. If the target part is 98 mm and the material shrinkage is 2%, the cavity should be enlarged to 98 ÷ (1 − 0.02) = 100.0 mm, an enlargement of 2.0 mm. If a trial shot measures only 99.4 mm (shrinkage 0.6 mm), the cavity must be enlarged accordingly.',
+        'Why is shrinkage anisotropic?',
+        'Molecular orientation in the flow direction makes longitudinal and transverse shrinkage differ, and glass-fibre reinforced grades show this more clearly because the fibres restrict shrinkage in the orientation direction. In design, take the median of the standard shrinkage range and leave margin separately by flow direction.',
+        'How do I check the cavity enlargement?',
+        'Enlarge by target dimension ÷ (1 − shrinkage rate), then substitute the shrinkage measured in trial shots to fine-tune; for high-shrinkage or easily deformed parts, leave allowance for mould correction so that a single scaling step is not excessive.',
+        'About Shrinkage Calc',
+        'A plastic molding shrinkage calculator: it computes the shrinkage from the mould dimension and the actual part dimension, and supports back-calculating the mould dimension. A business and office tool that improves work efficiency; data is processed locally to protect privacy.',
+    ]))
+
+
+if __name__ == '__main__':
+    main()
