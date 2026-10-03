@@ -1,0 +1,151 @@
+#!/usr/bin/env python3
+import os, json, re, sys
+
+ROOT = os.path.dirname(os.path.abspath(__file__))
+WORK = os.path.join(ROOT, 'work', 'urban')
+OUT = os.path.join(ROOT, '..', 'i18n', 'tools', 'en', 'urban')
+CJK = re.compile(r'[\u4e00-\u9fff]')
+CNP = re.compile(r'[，。、；：！？（）「」『』]')
+EXTRA = {}
+
+
+def build(slug, en_list):
+    wj = json.load(open(os.path.join(WORK, slug + '.json'), encoding='utf-8'))
+    items = wj.get('items', [])
+    if len(en_list) != len(items):
+        print('LEN MISMATCH', slug, len(en_list), len(items))
+        sys.exit(1)
+    mp = {}
+    for it, en in zip(items, en_list):
+        if it.get('src_diff') and it.get('zh_src') and 'related-tool' not in it.get('loc', ''):
+            z = it['zh_src'].strip()
+        else:
+            z = it.get('zh', '').strip()
+        if CJK.search(en) or CNP.search(en):
+            print('BAD EN', slug, repr(z), repr(en))
+            sys.exit(1)
+        mp[z] = en
+    for z, en in EXTRA.get(slug, {}).items():
+        if CJK.search(en) or CNP.search(en):
+            print('BAD EXTRA', slug, repr(z), repr(en))
+            sys.exit(1)
+        mp[z] = en
+    return mp
+
+
+def write(slug, mp):
+    wj = json.load(open(os.path.join(WORK, slug + '.json'), encoding='utf-8'))
+    name = wj.get('exist_en') or wj.get('name') or slug
+    out = {'slug': slug, 'industry': 'urban', 'name': name, 'map': mp}
+    os.makedirs(OUT, exist_ok=True)
+    with open(os.path.join(OUT, slug + '.json'), 'w', encoding='utf-8') as f:
+        json.dump(out, f, ensure_ascii=False, indent=1)
+        f.write('\n')
+    print('WROTE', slug, '(+%d)' % len(mp))
+def main():
+    # ---------------- building-height (56) ----------------
+    write('building-height', build('building-height', [
+        "⚙️ Building Height Limit Calculator",
+        "Daylight spacing control height, aviation height limit and floor count estimate",
+        "/ Building Height Limit",
+        "📖 Read the \"Building Height Limit Calculator User Guide\"",
+        "☀️ Daylight Spacing",
+        "✈️ Aviation Height Limit",
+        "🏗️ Floor Estimate",
+        "Daylight spacing D (m)",
+        "Latitude of the city",
+        "Harbin (45°N)",
+        "Beijing (40°N)",
+        "Zhengzhou (35°N)",
+        "Shanghai (31°N)",
+        "Guangzhou (25°N)",
+        "Haikou (22°N)",
+        "Daylight spacing coefficient",
+        "Auto (computed from latitude)",
+        "1.0 (southern standard)",
+        "1.3 (central standard)",
+        "1.5 (northern standard)",
+        "1.8 (severe cold regions)",
+        "Runway elevation H0 (m)",
+        "Distance to runway end L (m)",
+        "Takeoff/approach segment slope",
+        "1:50 (takeoff climb surface)",
+        "1:40 (approach surface)",
+        "1:67 (inner horizontal surface)",
+        "1:30 (transitional surface)",
+        "Safety clearance (m)",
+        "Planned height limit H (m)",
+        "Indoor-outdoor height difference (m)",
+        "Parapet height (m)",
+        "Allowed height",
+        "Buildable floors",
+        "Extra information",
+        "Check",
+        "H_max: maximum height allowed by daylight spacing; D: daylight spacing; L: daylight spacing coefficient",
+        "💡 The daylight spacing coefficient correlates with latitude: about 1.0 in the south, 1.2~1.3 in the central region, 1.5 in the north, and 1.8 in severe cold regions. Building height includes the indoor-outdoor height difference and the parapet.",
+        "📚 Deep dive: Building Height Limit Calculation",
+        "Tall buildings already exist to the south and the parcel to the north needs assessment: under a given",
+        "daylight spacing",
+        "D and the local spacing coefficient L, the maximum height allowed for a new building is H_max = D / L, then divide by the floor height to get the buildable floor count.",
+        "Inside an airport obstacle limitation zone, building height is governed by the aviation height limit: H_limit = runway elevation H0 + distance to runway end L × takeoff/approach slope − safety clearance; exceeding it means no construction is permitted.",
+        "Given the planned height limit, back-calculate the buildable floors: floors = height limit ÷ floor height (take the integer floor count), which is used for early massing studies of a scheme.",
+        "Daylight spacing height-limit example",
+        "A city at 30°N (auto spacing coefficient L=1.2), the daylight spacing from existing southern buildings to the site boundary is D=40 m, and the planned floor height is 3 m:\nH_max = D / L = 40 / 1.2 = 33.33 m; buildable floors = 33.33 / 3 ≈ 11.1 → take 11 floors (actual height 33.0 m).\nIf moved to a city at 45°N (L=1.8), H_max = 40 / 1.8 = 22.22 m and only 7 floors can be built. Clearly, at higher latitudes the buildable height under the same spacing is significantly lower.",
+        "Aviation height-limit example",
+        "For an airport with runway elevation H0=50 m, the parcel is L=2000 m from the runway end, the takeoff/approach segment slope is 0.015 (1.5%), and safety clearance is 10 m:\nH_limit = 50 + 2000 × 0.015 − 10 = 50 + 30 − 10 = 70 m.\nThat is, buildings on the parcel must not exceed 70 m (about 23 floors @3 m); exceeding it requires coordination with the air traffic authority or a route realignment.",
+        "What is the relation between the spacing coefficient L and latitude?",
+        "The tool has built-in stepped values: latitude ≥43° takes 1.8, ≥38° takes 1.5, ≥33° takes 1.3, ≥28° takes 1.2, and everything else takes 1.0. At high latitudes the",
+        "solar altitude angle",
+        "is low and shadows are long, so a larger spacing coefficient (a stricter height limit) is required. You can also specify L manually to override the automatic value.",
+        "Which scenarios does the aviation height limit apply to?",
+        "It applies to obstacle limitation zones around airports, military airfields and airway corridors. The height of buildings, towers, chimneys and other protrusions must not exceed H_limit. The slope in the formula comes from the published approach/departure profile of that segment, and the safety clearance is generally taken as 5–15 m.",
+        "About \"Building Height Limit Calculator\"",
+        "Building height limit calculator - daylight spacing, aviation height limit and planning control height calculation. A business office tool that improves work efficiency, with data processed locally to protect privacy.",
+    ]))
+
+    # ---------------- calc-spacing (39) ----------------
+    write('calc-spacing', build('calc-spacing', [
+        "📏 Daylight Spacing Calculator",
+        "Computes the minimum building spacing that guarantees a target sunlight duration from the solar altitude and azimuth angles, and gives hour-by-hour shadow lengths",
+        "📖 Read the \"Daylight Spacing Calculator User Guide\"",
+        "Building daylight spacing is estimated from the solar altitude angle: the noon altitude angle",
+        "(φ is latitude, δ is the solar declination; winter solstice δ≈−23.44°). The minimum spacing that guarantees sunlight for the ground floor of the rear row",
+        "D ≈ H × cot(h) + spacing correction",
+        ", and an hour-by-hour shadow length table is provided.",
+        "In China the daylight standard is commonly the Great Cold day (δ≈−20.15°) or the winter solstice, depending on the climate zone.",
+        "The results are used for preliminary scheme calculation; the final judgement is based on the local planning daylight analysis.",
+        "Building height H (m)",
+        "Latitude φ (°, north positive)",
+        "Target sunlight duration (hours)",
+        "Winter solstice",
+        "Great Cold",
+        "💡 Daylight spacing D = H × daylight spacing coefficient; coefficient = cot(solar altitude angle), taken at the edge moment of the target duration",
+        "Defaults to north latitude and due-south orientation; northern latitude is positive and southern negative, and the date can be set with the winter solstice / Great Cold shortcut buttons",
+        "The target sunlight duration is computed symmetrically about noon, and the edge moment with the lowest sun is the controlling condition",
+        "Results are theoretical estimates that ignore terrain obstruction, self-shadowing by the building and effective window height; engineering work must be rechecked per the applicable codes",
+        "📚 Deep dive: Building Daylight Spacing Calculation",
+        "In residential layout planning, to guarantee that ground-floor residents of the rear row receive the prescribed sunlight duration on the Great Cold day / winter solstice, the minimum building spacing must be back-calculated from the",
+        "solar altitude angle",
+        "as D = H / tan(edge altitude angle).",
+        "The noon shadow length of a single building = H / tan(noon solar altitude angle), used to judge the obstruction range toward adjacent sites.",
+        "Given a target sunlight duration T, take the altitude angles at the edge moments T/2 hours before and after noon, obtain the worst-case spacing, then apply a northward projection correction based on the azimuth angle.",
+        "Two-hour winter-solstice daylight spacing example",
+        "At 30°N with building height H=30 m, target sunlight T=2 h and the date set to the winter solstice (solar declination δ≈−23.44°):\nNoon solar altitude angle = 36.56°; altitude angle at the edge moment (±1 h, hour angle 15°) = 34.66°.\nMinimum daylight spacing D = 30 / tan(34.66°) = 30 / 0.692 ≈ 43.40 m, corresponding to a daylight spacing coefficient of 1.26.\nThat is, the front building must be at least about 43.4 m from the rear one, so that one hour of sunlight (2 hours in total) is guaranteed on each side of noon on the winter solstice.",
+        "How is the solar declination δ obtained?",
+        "δ varies with the date: about 0° at the spring/autumn equinox, about +23.44° at the summer solstice and about −23.44° at the winter solstice. It can be approximated by δ ≈ −23.44°·cos(2π·(N+10)/365) (N is the day of the year), or you can directly use standard astronomical values. Planning commonly uses the Great Cold day (around 20 January) as the minimum sunlight standard.",
+        "Why is an azimuth correction needed?",
+        "The simple D=H/tan(altitude angle) assumes the obstruction is due south. Real shadows shift east and west, so the northward projection = H·cos(azimuth)/tan(altitude angle) is the distance actually cast toward due north, which judges obstruction of parcels to the north more accurately.",
+        "About \"Daylight Spacing Calculator\"",
+        "Enter building height, latitude, date and target sunlight duration; the tool computes the minimum building spacing that guarantees sunlight from the solar altitude and azimuth angles, and gives an hour-by-hour shadow length table.",
+        "Sun position calculation for any date and latitude",
+        "Dual control by the noon moment and the edge moment of the target duration",
+        "Northward shadow projection with azimuth correction",
+        "Daylight spacing recheck for residential layout planning",
+        "Daylighting assessment for architectural schemes",
+        "Winter solstice / Great Cold day daylight analysis",
+        "Urban planning coursework",
+    ]))
+
+
+if __name__ == '__main__':
+    main()

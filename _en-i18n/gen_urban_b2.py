@@ -1,0 +1,144 @@
+#!/usr/bin/env python3
+import os, json, re, sys
+
+ROOT = os.path.dirname(os.path.abspath(__file__))
+WORK = os.path.join(ROOT, 'work', 'urban')
+OUT = os.path.join(ROOT, '..', 'i18n', 'tools', 'en', 'urban')
+CJK = re.compile(r'[\u4e00-\u9fff]')
+CNP = re.compile(r'[，。、；：！？（）「」『』]')
+EXTRA = {}
+
+
+def build(slug, en_list):
+    wj = json.load(open(os.path.join(WORK, slug + '.json'), encoding='utf-8'))
+    items = wj.get('items', [])
+    if len(en_list) != len(items):
+        print('LEN MISMATCH', slug, len(en_list), len(items))
+        sys.exit(1)
+    mp = {}
+    for it, en in zip(items, en_list):
+        if it.get('src_diff') and it.get('zh_src') and 'related-tool' not in it.get('loc', ''):
+            z = it['zh_src'].strip()
+        else:
+            z = it.get('zh', '').strip()
+        if CJK.search(en) or CNP.search(en):
+            print('BAD EN', slug, repr(z), repr(en))
+            sys.exit(1)
+        mp[z] = en
+    for z, en in EXTRA.get(slug, {}).items():
+        if CJK.search(en) or CNP.search(en):
+            print('BAD EXTRA', slug, repr(z), repr(en))
+            sys.exit(1)
+        mp[z] = en
+    return mp
+
+
+def write(slug, mp):
+    wj = json.load(open(os.path.join(WORK, slug + '.json'), encoding='utf-8'))
+    name = wj.get('exist_en') or wj.get('name') or slug
+    out = {'slug': slug, 'industry': 'urban', 'name': name, 'map': mp}
+    os.makedirs(OUT, exist_ok=True)
+    with open(os.path.join(OUT, slug + '.json'), 'w', encoding='utf-8') as f:
+        json.dump(out, f, ensure_ascii=False, indent=1)
+        f.write('\n')
+    print('WROTE', slug, '(+%d)' % len(mp))
+def main():
+    # ---------------- green-ratio (33) ----------------
+    write('green-ratio', build('green-ratio', [
+        "🏙️ Green Space Ratio Calculator",
+        "Green space ratio and green coverage calculation, including residential area / urban planning standard checks",
+        "📖 Read the \"Green Space Ratio Calculator User Guide\"",
+        "Total site area (m²)",
+        "Green space area (m²)",
+        "Tree canopy projected area (m²)",
+        "New residential area (≥30%)",
+        "Redevelopment of the old district (≥25%)",
+        "New urban planning (≥35%)",
+        "Existing urban planning (≥30%)",
+        "Industrial area (≥20%)",
+        "Resident population (persons)",
+        "Green space ratio",
+        "Green coverage ratio",
+        "Per-capita green space",
+        "Green space ratio = green space area ÷ total site area × 100%",
+        "Green coverage ratio = (green space area + tree canopy projection) ÷ total site area × 100%",
+        "Per-capita green space = green space area ÷ resident population",
+        "Note: the green space ratio excludes rooftop greening and vertical greening; the green coverage ratio includes the tree canopy projected area",
+        "💡 GB50180-2018 residential standard: new districts need a green space ratio ≥30% and old districts ≥25%; per-capita green space is ≥1.5 m² in new districts and ≥1.0 m² in old districts. The green coverage ratio is generally 5~10% higher than the green space ratio.",
+        "📚 Deep dive: Green Space Ratio Calculation",
+        "For residential area / community planning submission, the green space ratio = green space area ÷ total site area must be computed to judge whether the code lower limit is met (new residential areas usually ≥ 30%).",
+        "The difference between \"green space ratio\" and \"",
+        "\": the coverage ratio also counts tree canopy projection, elevated greening and so on, so its value is generally higher than the green space ratio.",
+        "Compute the per-capita green space = green space area ÷ resident population and compare it against the per-capita standard (e.g. a certain number of m² per person in new districts).",
+        "Community green space ratio example",
+        "A community with total site area 50000 m², of which 8000 m² is green space, 2000 m² is tree canopy projection, and 2000 residents:\nGreen space ratio = 8000 / 50000 × 100% = 16%;\nGreen coverage ratio = (8000 + 2000) / 50000 × 100% = 20%;\nPer-capita green space = 8000 / 2000 = 4 m² per person.\nIn this example the 16% green space ratio does not meet the ≥30% requirement for new residential areas, so centralized green space must be added or the site remediated.",
+        "What is the difference between green space ratio and green coverage ratio?",
+        "The green space ratio counts only the share of land occupied by qualifying green space (lawn, shrubs, green space under tree canopy projection, etc.); the green coverage ratio additionally includes tree canopy projection, wall greening and rooftop greening, so coverage ≥ green space ratio. Approval is based on the green space ratio.",
+        "What is the general green space ratio standard?",
+        "\"Urban Residential Area Planning and Design Standard\" GB 50180 requires a green space ratio ≥30% for new districts and ≥25% for redevelopment of old districts; per-capita public green space also has a lower limit. The local detailed implementation rules prevail.",
+        "About \"Green Space Ratio Calculator\"",
+        "Green space ratio calculator - green space ratio and green coverage calculation, including planning standard checks. A business office tool that improves work efficiency, with data processed locally to protect privacy.",
+    ]))
+
+    # ---------------- index (19) ----------------
+    write('index', build('index', [
+        "🏙️ Urban Planning Tools",
+        "Urban planning",
+        "Urban Planning Tools",
+        "Land Use Balance Calculator",
+        "Enter the area and population of the various urban land uses (residential, public facilities, roads, green space, etc.) to compute land-use proportions and per-capita indicators, and check the balance against planning standards for regulatory detailed planning and scheme comparison.",
+        "Enter the area of each green-space type, the total planned site area and the resident population to compute the green space ratio and green coverage ratio, and check compliance against residential area or urban planning standards, for use in project indicator submission.",
+        "Parking Ratio Calculator: computes parking space counts and areas from the building-type provision standard, and includes the accessible parking requirement, for planning and construction-approval checks.",
+        "Computes the minimum building spacing that guarantees a target sunlight duration from the solar altitude and azimuth angles, and gives hour-by-hour shadow lengths",
+        "Population Density Calculator",
+        "Enter the total planned site area and population size to compute population density, per-capita land use and the capacity population it can hold, and check against planning standards, for district carrying-capacity assessment and land-use intensity control.",
+        "Building Height Limit Calculator: computes the maximum allowed building height from the daylight spacing coefficient, the aviation height limit and the floor estimate, for planning and scheme checks.",
+        "About \"Urban Planning Tools\"",
+        "The Urban Planning Tools collection gathers 6 free online tools covering the common calculation, conversion and lookup needs of urban planning scenarios. Whether you are a practitioner in the field, a student or an ordinary user, you will find ready-to-use utilities here. Every tool runs entirely in the browser and never uploads data to the server, so your privacy is protected.",
+        "The urban planning tools listed on this page include (a few representative tools):",
+        "These tools help you finish common urban planning tasks quickly, with no need to memorize complex formulas or do manual conversions - just enter the inputs and get the result.",
+        "Do the urban planning tools require a download or an account?",
+        "No. Every tool on this page is a pure front-end online tool: open the page and use it right away, with no software to install, no account to register, and no data uploaded.",
+        "Are the urban planning tool results accurate? Is the data safe?",
+        "The tools compute locally in your browser based on public mathematical formulas and general industry standards, so results are available instantly. All computation happens locally on your device and no data is uploaded to the server, so your privacy is fully protected.",
+    ]))
+
+    # ---------------- land-use (32) ----------------
+    write('land-use', build('land-use', [
+        "🧮 Land Use Balance Table",
+        "Area proportions and per-capita indicators for the various urban land use types, including planning standard checks",
+        "Land Use Balance Calculator",
+        "/ Land Use Balance",
+        "📖 Read the \"Land Use Balance Table User Guide\"",
+        "Planned population (persons)",
+        "Metropolis (80~105 m² per capita)",
+        "Medium city (85~110 m² per capita)",
+        "Small city (90~115 m² per capita)",
+        "Total land use",
+        "Construction land share",
+        "📐 Land Use Classification Standard (GB50137-2011)",
+        "Residential land: 25~40%, 23~38 m² per capita",
+        "Public administration and services: 5~8%, 5~9 m² per capita",
+        "Road traffic: 10~25%, 10~25 m² per capita",
+        "Green space and squares: 10~15%, 10~15 m² per capita",
+        "Industrial land: 15~30% (industrial districts)",
+        "Per-capita construction land: metropolis 80~105, medium city 85~110, small city 90~115 m²",
+        "💡 The land use balance table is the core content of regulatory detailed planning; the proportion of each land use type must meet code requirements, and the total site area must be consistent with the per-capita land use indicators.",
+        "📚 Deep dive: Land Use Composition and Proportion Calculation",
+        "Regulatory detailed planning lists",
+        "the areas and proportions of the seven land use categories: residential (R), public administration and services (A), commercial services (B), industrial (M), roads (S), utilities (U), and green space and squares (G).",
+        "Check the per-capita construction land = total land use × 10000 ÷ planned population to judge whether it falls within the standard range for that city size.",
+        "Check category by category whether the area proportion falls within the classification standard range (e.g. residential land 25%–40%, green space 10%–15%).",
+        "Land use balance table example",
+        "Planned population 80000 persons; the seven land use areas (ha): R=300, A=80, B=60, M=100, S=150, U=20, G=120, total 830 ha:\nPer-capita construction land = 830 × 10000 / 80000 = 103.8 m² per person (metropolis standard 80–105, compliant);\nResidential land share = 300 / 830 × 100% = 36.1% (standard 25%–40%, compliant);\nGreen space share = 120 / 830 × 100% = 14.5% (standard 10%–15%, compliant).\nIf all checks pass the scheme is \"compliant\", otherwise the areas of the various land use types must be adjusted.",
+        "What do the land use codes R/A/B/M/S/U/G stand for?",
+        "R residential land, A public administration and public services, B commercial and service facilities, M industrial, S road and traffic facilities, U utilities, G green space and squares. These are the level-1 category codes of \"Standard for Classification of Urban Land Use and Planning Construction Land\" GB 50137.",
+        "What is the significance of the per-capita construction land standard?",
+        "It reflects the planned per-capita land intensity and is one of the core regulatory indicators. The standard gives ranges by city size (metropolis / medium city / small city / town / village); too low means crowding, too high means wasted land.",
+        "About \"Land Use Balance Calculator\"",
+        "Land use balance table calculator - area proportions and per-capita indicators for the various urban land use types. A business office tool that improves work efficiency, with data processed locally to protect privacy.",
+    ]))
+
+
+if __name__ == '__main__':
+    main()
