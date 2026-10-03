@@ -1,0 +1,251 @@
+#!/usr/bin/env python3
+import os, json, re, sys
+ROOT = os.path.dirname(os.path.abspath(__file__))
+WORK = os.path.join(ROOT, 'work', 'hvac')
+OUT = os.path.join(ROOT, '..', 'i18n', 'tools', 'en', 'hvac')
+CJK = re.compile(r'[\u4e00-\u9fff]')
+CNP = re.compile(r'[，。、；：！？（）「」『』]')
+DISCL = "Free online tool, processed entirely in the browser, no data uploaded, your privacy and security protected."
+EXTRA = {}
+def build(slug, en_list):
+    wj = json.load(open(os.path.join(WORK, slug + '.json'), encoding='utf-8'))
+    items = wj.get('items', [])
+    if len(en_list) != len(items):
+        print('LEN MISMATCH', slug, len(en_list), len(items)); sys.exit(1)
+    mp = {}
+    for it, en in zip(items, en_list):
+        if it.get('src_diff') and it.get('zh_src') and 'related-tool' not in it.get('loc', ''):
+            z = it['zh_src'].strip()
+        else:
+            z = it.get('zh', '').strip()
+        if CJK.search(en) or CNP.search(en):
+            print('BAD EN', slug, repr(z), repr(en)); sys.exit(1)
+        mp[z] = en
+    for z, en in EXTRA.get(slug, {}).items():
+        if CJK.search(en) or CNP.search(en):
+            print('BAD EXTRA', slug, repr(z), repr(en)); sys.exit(1)
+        mp[z] = en
+    return mp
+def write(slug, mp):
+    wj = json.load(open(os.path.join(WORK, slug + '.json'), encoding='utf-8'))
+    name = wj.get('exist_en') or wj.get('name') or slug
+    out = {'slug': slug, 'industry': 'hvac', 'name': name, 'map': mp}
+    os.makedirs(OUT, exist_ok=True)
+    with open(os.path.join(OUT, slug + '.json'), 'w', encoding='utf-8') as f:
+        json.dump(out, f, ensure_ascii=False, indent=1); f.write('\n')
+    print('WROTE', slug, '(+%d)' % len(mp))
+def main():
+    write('duct-calculator', build('duct-calculator', [
+        "❄️ Duct Size and Resistance Calculator",
+        "Per HVAC design codes, enter the airflow, velocity and duct parameters to compute the cross-sectional area, equivalent diameter, friction resistance, local resistance and total resistance.",
+        "📖 View the \"Duct Size and Resistance Calculator User Guide\"",
+        "Duct calculation is based on airflow conservation and friction/local resistance. Velocity",
+        " (Q is airflow m³/h, A is area m²); for rectangular duct A=width×height, for circular duct A=πD²/4. Friction resistance follows Darcy-Weisbach",
+        ", λ is obtained from the Reynolds number via the Colebrook equation; local resistance",
+        ". The system total resistance is the sum of the two.",
+        "Recommended velocities for low-velocity ducts: main 6–8 m/s, branch 3–5 m/s, balancing noise and energy.",
+        "Hydraulic diameter D_h = 4A / perimeter; a rectangular duct has higher resistance than a circular one of the same area.",
+        "Pure front-end calculation with no data uploaded; results are for scheme comparison, with the final design per the HVAC design manual.",
+        "Airflow Q (m³/h)",
+        "Design velocity v (m/s)",
+        "Air density ρ (kg/m³)",
+        "Duct shape",
+        "▭ Rectangular duct",
+        "○ Circular duct",
+        "Width a (mm)",
+        "Height b (mm)",
+        "Diameter D (mm)",
+        "Duct length L (m)",
+        "Local resistance coefficient Σξ",
+        "❄️ Recommended size",
+        "💡 Dynamic pressure Pv = ρv²/2; rectangular equal-velocity equivalent diameter De = 2ab/(a+b); friction coefficient λ = 0.0125 + 0.0011/√De (De in m).",
+        "📊 Calculation result",
+        "📋 Recommended velocity reference table",
+        "Per 'Design Code for Heating, Ventilation and Air Conditioning of Civil Buildings' GB 50736, common air velocities inside ducts:",
+        "Application / system",
+        "Main duct (m/s)",
+        "Branch duct (m/s)",
+        "Residential, bedroom (low-noise)",
+        "Mall, office (general low velocity)",
+        "Theater, library (quiet)",
+        "General AC (high-velocity system)",
+        "Industrial ventilation, dust removal",
+        "High-velocity industrial exhaust",
+        "Higher velocity gives a smaller duct section (saving material and space) but more noise and friction/energy; too low a velocity makes the duct bulky and capital cost high. Actual design must trade off noise, energy and cost.",
+        "① Duct cross-sectional area",
+        "F = Q / (3600 × v)  [m²]   Q is airflow (m³/h), v is velocity (m/s)",
+        "② Rectangular equal-velocity equivalent diameter",
+        "De = 2ab / (a+b)  [m]   a, b are rectangular width and height (m); for circular duct De = D",
+        "③ Friction coefficient (approx.)",
+        "λ = 0.0125 + 0.0011 / √De  (De in m)",
+        "④ Dynamic pressure",
+        "Pv = ρ × v² / 2  [Pa]   ρ is air density, 1.2 kg/m³ at standard conditions",
+        "⑤ Specific friction resistance (friction per unit length)",
+        "⑥ Friction resistance",
+        "ΔPy = Rm × L = λ × (L/De) × Pv  [Pa]   L is duct length (m)",
+        "⑦ Local resistance",
+        "ΔPj = Σξ × Pv  [Pa]   Σξ is the sum of local resistance coefficients of fittings",
+        "⑧ System total resistance",
+        "⚠️ Resistance calculation uses",
+        "actual velocity",
+        " (derived from airflow and actual cross-sectional area). When the actual area is close to the required area, actual velocity ≈ design velocity. λ is an engineering approximation, suitable for general galvanized-steel ducts; results deviate if roughness differs.",
+        "📚 In-Depth Analysis: Duct Size, Velocity and Resistance Design",
+        "Back-calculate the duct section from airflow and economic velocity, then set the rectangular dimensions.",
+        "Check whether the main and branch velocities fall in the code range (main 5–8, branch 3–5 m/s).",
+        "After a size change, recompute velocity and friction resistance to avoid exceeding noise and energy limits.",
+        "Airflow 3600 m³/h, 500×400 duct",
+        "Area = 0.5×0.4 = 0.20 m²; velocity = 3600 ÷ 0.20 ÷ 3600 = 5.0 m/s, within the reasonable main-duct velocity range.",
+        "Consequences of reducing the size",
+        "If changed to 400×320 (0.128 m²) velocity rises to 7.8 m/s, with markedly higher resistance and noise; space vs energy must be weighed.",
+        "What is a suitable velocity?",
+        "Main 5–8, branch 3–5 m/s is common, balancing noise and footprint; take the lower bound for clean or silent spaces.",
+        "How to choose rectangular vs circular?",
+        "At the same airflow a circular duct has less resistance but needs more space; rectangular is easier for ceiling routing; choose by building conditions.",
+        "About the Duct Size and Resistance Calculator",
+        "The Duct Size and Resistance Calculator is an online engineering tool for HVAC designers. Enter the airflow, velocity, duct shape and dimensions, length and local resistance coefficient, and it computes in one click the required and actual duct area, actual velocity, equal-velocity equivalent diameter, friction coefficient, dynamic pressure, specific friction resistance, friction resistance, local resistance and system total resistance, with a built-in recommended velocity table to aid duct selection and system resistance check.",
+        "Supports both rectangular and circular duct shapes",
+        "Auto-computes equal-velocity equivalent diameter De",
+        "One-click friction + local + total resistance",
+        "Built-in GB 50736 recommended velocity table",
+        "Smart velocity-reasonableness evaluation hints",
+        "Supply/return air duct selection design",
+        "Ventilation and smoke-exhaust system resistance",
+        "System resistance estimation for fan selection",
+        "Duct cross-section optimization and check",
+        "On-site construction duct verification",
+        "What does the Duct Size and Resistance Calculator do?",
+        "How to use the Duct Size and Resistance Calculator?",
+        "What scenarios is the Duct Size and Resistance Calculator for?",
+        "Airflow, cubic meters per hour",
+        "Design velocity, meters per second",
+        "Air density, default 1.2 at standard conditions",
+        "Rectangular duct width, millimeters",
+        "Rectangular duct height, millimeters",
+        "Circular duct diameter, millimeters",
+        "Duct length, meters",
+        "Sum of local resistance coefficients",
+    ]))
+
+    write('fan-selector', build('fan-selector', [
+        "🚀 Fan Selection Calculator",
+        "Enter airflow, system resistance, fan efficiency and other parameters to compute the fan shaft power, motor power and recommend a standard motor power grade.",
+        "Based on the entered parameters, the tool performs a professional calculation and outputs the fan shaft power, motor power and recommended standard motor power grade.",
+        "📖 View the \"Fan Selection Calculator User Guide\"",
+        "Airflow Q",
+        "System total resistance ΔP",
+        "Fan efficiency η",
+        "Motor efficiency",
+        "Fan speed n",
+        "Drive type",
+        "Direct drive",
+        "Belt drive",
+        "Coupling drive",
+        "Safety factor K",
+        "Recommended range 1.10–1.30; the smaller the power, the larger the value.",
+        "📋 Calculation parameters and notes",
+        "Direct-drive transmission efficiency",
+        "Belt-drive transmission efficiency",
+        "Coupling-drive transmission efficiency",
+        "Safety factor K range",
+        "Standard motor power series (kW):",
+        "In specific-speed ns calculation, airflow Q is converted to m³/s (i.e. Q÷3600) to judge the fan type: ns < 15 suits centrifugal, ns > 20 suits axial, and between the two a mixed-flow fan may be chosen.",
+        "📚 In-Depth Analysis: Selecting Fan Power from Airflow, Total Pressure and Efficiency",
+        "Pre-select the fan by the system's required airflow and working total pressure, then compute shaft power to size the motor.",
+        "Compare power and noise of different total-pressure options at the same airflow.",
+        "For VFD retrofit, recompute actual power at the operating airflow point for energy savings.",
+        "Airflow 10000 m³/h, total pressure 800 Pa, efficiency 75%",
+        "Shaft power N = 10000×800 ÷ (3600×1000×0.75) ≈ 2.96 kW, select a 3–4 kW motor with margin.",
+        "Efficiency impact",
+        "If efficiency drops from 0.75 to 0.60, power at the same condition rises to 3.70 kW; long-term low efficiency markedly raises electricity cost.",
+        "What is the difference between total and static pressure?",
+        "Total pressure = static + dynamic; selection uses the total pressure corresponding to system resistance; using only static pressure underestimates the required power.",
+        "How much margin to keep?",
+        "Generally take 1.1–1.2 times the computed shaft power, and verify starting characteristics and VFD range.",
+        "About the Fan Selection Calculator",
+        "The Fan Selection Calculator is an online HVAC engineering tool. From airflow, system total resistance, fan total-pressure efficiency, drive type and motor efficiency, it quickly computes fan shaft power, motor selection power, air power and fan specific speed, and recommends a suitable motor size from the national standard motor power series, aiding fan selection design.",
+        "One-click fan shaft and motor power",
+        "Supports direct / belt / coupling three drive types",
+        "Auto-recommends standard motor power grade",
+        "Computes fan specific speed to aid selection",
+        "Adjustable safety factor K (1.10–1.30)",
+        "Ventilation/AC system fan selection",
+        "Dust-removal exhaust system design",
+        "Industrial fan power check",
+        "Motor power grade selection",
+    ]))
+
+    write('fresh-air-load', build('fresh-air-load', [
+        "🧮 Fresh-Air Load Calculator",
+        "Compute the fresh-air total / sensible / latent heat load from psychrometric formulas, suitable for HVAC design selection",
+        "Based on the entered parameters, the tool performs a professional calculation and outputs the result using psychrometric formulas for fresh-air total / sensible / latent heat load, suitable for HVAC design selection.",
+        "📖 View the \"Fresh-Air Load Calculator User Guide\"",
+        "Scenario presets (click to select fresh-air standard)",
+        "Office",
+        "Meeting room",
+        "Mall",
+        "Restaurant",
+        "Number of people (persons)",
+        "Per-person fresh-air standard (m³/h·person)",
+        "Indoor temperature (°C)",
+        "Indoor relative humidity (%)",
+        "Outdoor temperature (°C)",
+        "Outdoor relative humidity (%)",
+        "📊 Airflow and enthalpy",
+        "Fresh-air volume G (m³/h)",
+        "Indoor enthalpy hn (kJ/kg)",
+        "Outdoor enthalpy hw (kJ/kg)",
+        "Enthalpy difference Δh (kJ/kg)",
+        "Indoor state N",
+        "Outdoor state W",
+        "⚡ Fresh-air load",
+        "Total heat load Q (kW)",
+        "Sensible heat load (kW)",
+        "Latent heat load (kW)",
+        "Sensible share",
+        "Latent share",
+        "Calculation basis: atmospheric pressure 101325 Pa, air density ρ = 1.2 kg/m³, dry-air constant-pressure specific heat cp = 1.01 kJ/(kg·°C). Positive values indicate a cooling load (cooling required), negative values indicate a heating load (heating required). Results are for reference only; defer to professional design software.",
+        "The saturated water-vapor partial pressure is estimated with the Magnus formula; the enthalpy calculation is a common engineering approximation",
+        "Air density takes the standard value 1.2 kg/m³; for high-altitude scenarios correct it to the actual density",
+        "Results are for scheme estimation and teaching reference only; for formal design use professional psychrometric software",
+        "📚 In-Depth Analysis: Verifying Fresh-Air Load by Indoor/Outdoor Enthalpy Difference",
+        "With known fresh-air volume and indoor/outdoor temperature and humidity, compute the total/sensible/latent heat load for unit selection.",
+        "Switching summer/winter conditions, compare how fresh-air load changes affect the host capacity.",
+        "Evaluate the reduction effect of a heat-recovery device on the fresh-air load.",
+        "Fresh air 2000 m³/h, indoor 26°C/50%, outdoor 35°C/60%",
+        "Outdoor enthalpy h_w≈81.8, indoor h_n≈52.8 kJ/kg; total Q = 2000×1.2×(81.8−52.8)/3600 ≈ 19.3 kW, sensible share about 60%.",
+        "Heat-recovery emission reduction",
+        "At 60% total-heat recovery efficiency, the fresh-air load drops from 19.3 to about 7.7 kW, clearly lowering host and operating cost.",
+        "How to obtain the enthalpy difference?",
+        "Obtain from indoor/outdoor temperature and humidity via",
+        "moist-air enthalpy",
+        "the psychrometric chart to get h (kJ/kg), then multiply fresh-air volume × density ÷ 3600 to get kW.",
+        "Why separate sensible and latent heat?",
+        "Sensible heat handles temperature, latent heat handles humidity; a unit's reheat and dehumidification capacity is allocated between the two, so separating them gives accurate selection.",
+        "About the Fresh-Air Load Calculator",
+        "The Fresh-Air Load Calculator is an online HVAC design tool that computes the total, sensible and latent heat load brought by fresh-air introduction based on psychrometric principles. Enter the number of people, fresh-air standard and indoor/outdoor temperature and humidity to quickly obtain the fresh-air volume, indoor/outdoor enthalpy, enthalpy difference and the three load types, with a full calculation process shown; suitable for AC scheme estimation and teaching demonstration.",
+        "Based on the psychrometric formula h=1.01t+0.001d(2500+1.84t)",
+        "Built-in fresh-air presets for office / meeting room / mall / restaurant",
+        "Auto-decomposes total, sensible and latent heat loads",
+        "Shows full calculation process and state-parameter comparison",
+        "Auto-determines cooling / heating season",
+        "Dark mode and mobile responsive adaptation",
+        "HVAC system fresh-air load estimation",
+        "AHU / fresh-air unit selection",
+        "HVAC course teaching and experiments",
+        "Building energy-efficiency scheme evaluation",
+        "Fresh-air load comparison before/after retrofit",
+        "Cooling / heating capacity demand calculation",
+        "Formula notes",
+        "Humidity ratio",
+        ": first obtain the saturated water-vapor partial pressure Pws via the Magnus formula, then the actual vapor partial pressure Pw=φ·Pws, and the humidity ratio d=0.622·Pw/(P−Pw) (g/kg dry air).",
+        "Enthalpy",
+        ": h = 1.01·t + 0.001·d·(2500+1.84·t), in kJ/kg dry air, where 1.01 is dry-air constant-pressure specific heat, 2500 is the latent heat of vaporization of water at 0°C, and 1.84 is water-vapor constant-pressure specific heat.",
+        "Fresh-air total heat load",
+        "Sensible heat load",
+        "Latent heat load",
+        ": Ql = Q − Qs (kW). Here G is fresh-air volume (m³/h), ρ is air density (1.2 kg/m³), cp is dry-air constant-pressure specific heat (1.01 kJ/kg·°C).",
+    ]))
+
+
+if __name__ == '__main__':
+    main()
