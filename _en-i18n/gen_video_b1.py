@@ -1,0 +1,154 @@
+#!/usr/bin/env python3
+import os, json, re, sys
+
+ROOT = os.path.dirname(os.path.abspath(__file__))
+WORK = os.path.join(ROOT, 'work', 'video')
+OUT = os.path.join(ROOT, '..', 'i18n', 'tools', 'en', 'video')
+CJK = re.compile(r'[\u4e00-\u9fff]')
+CNP = re.compile(r'[，。、；：！？（）「」『』]')
+EXTRA = {}
+
+
+def build(slug, en_list):
+    wj = json.load(open(os.path.join(WORK, slug + '.json'), encoding='utf-8'))
+    items = wj.get('items', [])
+    if len(en_list) != len(items):
+        print('LEN MISMATCH', slug, len(en_list), len(items))
+        sys.exit(1)
+    mp = {}
+    for it, en in zip(items, en_list):
+        if it.get('src_diff') and it.get('zh_src') and 'related-tool' not in it.get('loc', ''):
+            z = it['zh_src'].strip()
+        else:
+            z = it.get('zh', '').strip()
+        if CJK.search(en) or CNP.search(en):
+            print('BAD EN', slug, repr(z), repr(en))
+            sys.exit(1)
+        mp[z] = en
+    for z, en in EXTRA.get(slug, {}).items():
+        if CJK.search(en) or CNP.search(en):
+            print('BAD EXTRA', slug, repr(z), repr(en))
+            sys.exit(1)
+        mp[z] = en
+    return mp
+
+
+def write(slug, mp):
+    wj = json.load(open(os.path.join(WORK, slug + '.json'), encoding='utf-8'))
+    name = wj.get('exist_en') or wj.get('name') or slug
+    out = {'slug': slug, 'industry': 'video', 'name': name, 'map': mp}
+    os.makedirs(OUT, exist_ok=True)
+    with open(os.path.join(OUT, slug + '.json'), 'w', encoding='utf-8') as f:
+        json.dump(out, f, ensure_ascii=False, indent=1)
+        f.write('\n')
+    print('WROTE', slug, '(+%d)' % len(mp))
+def main():
+    # ---------------- analysis-69 (24) ----------------
+    write('analysis-69', build('analysis-69', [
+        "⚖️ Competitor (Analysis / Benchmarking / Differentiation) Research",
+        "Analysis / benchmarking / differentiation",
+        "Enter the play counts of yourself and several competitors; the tool computes the competitor mean and median as the benchmark level, derives your relative gap rate ((yourself − mean) ÷ mean × 100%), and classifies accounts into head / waist / long-tail by 1.5× and 0.7× the mean. Like rate and completion rate help judge content quality; the benchmarking conclusions are for topic selection and differentiation strategy reference only.",
+        "Your own metrics",
+        "Your own play count",
+        "Your own like rate %",
+        "Your own completion rate %",
+        "Competitor play counts (comma or newline separated, multiple allowed)",
+        "Benchmark analysis",
+        "📚 Deep dive: Competitor (Analysis / Benchmarking / Differentiation) Research",
+        "When benchmarking competitors, aggregate the key metrics of several rivals (price, monthly active users, rating, sales) and use the mean /",
+        "median to see the overall level, avoiding conclusions drawn from a single sample.",
+        "Use the",
+        "to judge how dispersed the metrics are: high dispersion means the market is clearly segmented with different medians across players; low dispersion means it is converging toward homogeneity with little room for differentiation.",
+        "Use the minimum / maximum / range to quickly locate head and long-tail samples, helping locate the blank interval for differentiation.",
+        "Worked example (8 competitors' monthly active users, unit 10 thousand: 120,150,90,200,80,160,110,95)",
+        "Data size n=8, sum=1005, mean=1005÷8≈125.6 (in 10 thousand); sorted 80,90,95,110,120,150,160,200, median=(110+120)÷2=115 (in 10 thousand); variance≈(sum of squared differences from the mean)÷8≈1484.0, standard deviation≈38.5 (in 10 thousand); range=200−80=120 (in 10 thousand). Interpretation: the mean of 125.6 is slightly higher than the median of 115, meaning the head (200) pulls the average up and the market is right-skewed; the standard deviation of 38.5 is about 30.7% of the mean, a moderate dispersion. The tool outputs each step in the order data size → sum → mean → median → min/max → range → variance → standard deviation.",
+        "Which is more reliable, the mean or the median?",
+        "The mean is sensitive to extreme values and becomes inflated when there is a very large head sample (such as 200 above); the median is unaffected by extremes and better represents the \"typical level\". This tool gives both; when outliers are obvious it is recommended to rely mainly on the median.",
+        "What does the standard deviation actually represent?",
+        "The standard deviation measures how dispersed / volatile the data is; the larger it is, the more scattered and uneven the samples. In benchmarking, a large standard deviation means big differences across players and room to find a differentiation angle; a small one means the market is converging and you must break through via operations or experience. It complements the range: the range shows the span between the two ends, the standard deviation shows the overall spread.",
+        "About \"Competitor (Analysis / Benchmarking / Differentiation) Research\"",
+        "Competitor (analysis / benchmarking / differentiation) research. A video processing tool that runs entirely in the browser, protecting your privacy.",
+        "For example: 5000,7000,6000",
+    ]))
+
+    # ---------------- index (22) ----------------
+    write('index', build('index', [
+        "🎬 Video Processing Tools",
+        "Video processing",
+        "Video Processing Tools",
+        "Video Duration Calculator",
+        "Video speed duration calculator: enter the original duration and the playback speed to compute the actual watch time, the amount saved and the timecode.",
+        "Video Format Conversion Reference",
+        "Compares the characteristics of common formats such as MP4 and MKV, gives resolution and bitrate recommendations per platform, estimates the output file size and generates the ffmpeg conversion command in one click, assisting video transcoding and compression.",
+        "Video competitor research tool: benchmarks competitor content, topics and differentiation strategy in a structured way, outputs research conclusions, and assists positioning of video creation.",
+        "Subtitle Tool",
+        "Subtitle tool: import SRT content, shift or scale the timeline in batches, and fix audio-video desynchronization.",
+        "Video Trimmer",
+        "After uploading a video, mark the start and end times of several trim segments (e.g. 00:01:30 to 00:02:45) to generate a structured trim schedule for batch cutting in editing software or for ffmpeg scripts.",
+        "Video Compression Parameters",
+        "Enter the video duration, target file size or acceptable bitrate to estimate the bitrate and recommend CRF parameters, and automatically generate the corresponding ffmpeg compression command line, for video size control and transcoding.",
+        "About \"Video Processing Tools\"",
+        "The Video Processing Tools collection gathers 6 free online tools covering the common calculation, conversion and lookup needs of video processing scenarios. Whether you are a practitioner in the field, a student or an ordinary user, you will find ready-to-use utilities here. Every tool runs entirely in the browser and never uploads data to the server, so your privacy is protected.",
+        "The video processing tools listed on this page include (a few representative tools):",
+        "These tools help you finish common video processing tasks quickly, with no need to memorize complex formulas or do manual conversions - just enter the inputs and get the result.",
+        "Do the video processing tools require a download or an account?",
+        "No. Every tool on this page is a pure front-end online tool: open the page and use it right away, with no software to install, no account to register, and no data uploaded.",
+        "Are the video processing tool results accurate? Is the data safe?",
+        "The tools compute locally in your browser based on public mathematical formulas and general industry standards, so results are available instantly. All computation happens locally on your device and no data is uploaded to the server, so your privacy is fully protected.",
+    ]))
+
+    # ---------------- subtitle-tool (48) ----------------
+    write('subtitle-tool', build('subtitle-tool', [
+        "🎬 Subtitle Timeline Adjustment",
+        "Import SRT subtitles, shift the timeline offset in batches, modify the format",
+        "\"Import SRT subtitles, shift the timeline offset in batches, modify the format\" is professionally computed from the input parameters and outputs the result.",
+        "Subtitle Tool",
+        "/ Subtitle Tool",
+        "📖 Read the \"Subtitle Timeline Adjustment Tool User Guide\"",
+        "SRT subtitle content",
+        "📝 Parse subtitles",
+        "Timeline adjustment",
+        "Global offset (milliseconds)",
+        "Speed multiplier",
+        "Shift backward only",
+        "⬇ Export SRT",
+        "⬇ Export WebVTT",
+        "Subtitle format notes",
+        "Time format",
+        "Most universal, external subtitles",
+        "HTML5 video tag",
+        "Richly styled subtitles",
+        "YouTube subtitles",
+        "Lyrics file",
+        "Common operations",
+        "Shift the whole file 2 seconds earlier",
+        ": offset = -2000 ms",
+        "Shift the whole file 2 seconds later",
+        ": offset = +2000 ms",
+        "Convert 25fps to 24fps",
+        ": speed multiplier = 25/24 = 1.0417",
+        "Convert 24fps to 25fps",
+        ": speed multiplier = 24/25 = 0.96",
+        "Subtitles are 0.5 seconds late",
+        ": offset = -500 ms",
+        "📚 Deep dive: Subtitle Timeline Adjustment",
+        "External subtitles are out of sync with the video audio track: downloaded subtitles are uniformly early or late, so use \"global offset\" to align all timelines by +N / −N milliseconds at once, with no need to edit them one by one.",
+        "Frame rate / speed conversion causes misalignment: when a source 25fps video is exported as 24fps, the timeline must be scaled proportionally (speed multiplier 25/24≈1.0417), otherwise the offset grows toward the end.",
+        "Concatenating bilingual or edited subtitles: first shift in batches to join the two timelines, then export SRT and WebVTT separately to fit external subtitles and HTML5 players.",
+        "Worked example (sample subtitle 00:00:05,000 → 00:00:08,500)",
+        "This cue has start=5000ms, end=8500ms. (1) Shift the whole file 0.5 seconds earlier: offset −500ms, multiplier 1 → start=4500ms (00:00:04,500), end=8000ms (00:00:08,000). (2) Convert 25fps to 24fps: speed multiplier 25/24≈1.0417 → start=5000×1.0417≈5208ms (00:00:05,208), end=8500×1.0417≈8854ms (00:00:08,854). (3) Combined (offset −500 + multiplier 1.0417): start≈4708ms (00:00:04,708), end≈8354ms (00:00:08,354). The tool formula is newTime = origTime × multiplier + offset(ms), scaling first and then shifting.",
+        "The difference between SRT and WebVTT",
+        "is what?",
+        "SRT separates milliseconds with a comma (HH:MM:SS,mmm), while WebVTT uses a period (HH:MM:SS.mmm) and requires a WEBVTT file header; SRT is used mainly for external subtitles, and VTT is the format natively supported by HTML5 <video>. This tool converts between them in one click, with no manual separator editing.",
+        "Why does a global offset not accumulate drift toward the end?",
+        "A global offset is a \"translation\" (the same number of milliseconds added to every cue) and does not accumulate over time; only frame rate / speed scaling (multiplier ≠ 1) stretches the timeline proportionally and produces cumulative drift. If the",
+        "video frame rate",
+        "has changed, be sure to use the speed multiplier rather than a simple offset.",
+        "About \"Subtitle Tool\"",
+        "The subtitle tool is an online tool in the video processing domain. A video processing tool that runs entirely in the browser, protecting your privacy.",
+        "Paste SRT subtitle content...\n1\n00:00:01,000 --> 00:00:04,000\nHello World",
+    ]))
+
+
+if __name__ == '__main__':
+    main()
