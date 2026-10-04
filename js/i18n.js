@@ -761,6 +761,25 @@ var LANG_REGISTRY = [
     // 指定的语言不一致。补发后工具按当前语言重渲染（window + document 双通道，覆盖两类监听口径）。
     if (window.dispatchEvent) window.dispatchEvent(new Event('toolbox:langchange'));
     if (document.dispatchEvent) document.dispatchEvent(new Event('toolbox:langchange'));
+    injectGuideI18n();
+  }
+
+  // 指南页内容区英文：仅对 /guides/ 下的指南页动态注入 js/guide-i18n.js（不污染其他页面、
+  // 不修改 3409 个指南 HTML）。guide-i18n.js 自身再按 slug 二次 guard。
+  function injectGuideI18n() {
+    try {
+      var p = location.pathname.split('/');
+      var last = p[p.length - 1] || '';
+      if (p.indexOf('guides') === -1) return;
+      if (!last.endsWith('.html')) return;
+      if (last === 'index.html' || last.endsWith('.en.html')) return;
+      if (document.getElementById('guide-i18n-script')) return;
+      var s = document.createElement('script');
+      s.src = '/js/guide-i18n.js';
+      s.defer = true;
+      s.id = 'guide-i18n-script';
+      document.head.appendChild(s);
+    } catch (e) {}
   }
 
   function loadRegionalPack() {
