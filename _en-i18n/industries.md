@@ -18,13 +18,4 @@
 
 | # | industry | 工具页 | 中文节点 | 唯一文本 | 状态 |
 |---:|---|---:|---:|---:|---|
-| 1 | `seismology` | 5 | 306 | 195 | pending |
-| 2 | `service` | 5 | 306 | 164 | pending |
-| 3 | `shipping` | 5 | 311 | 202 | pending |
-| 4 | `stage` | 5 | 324 | 186 | pending |
-| 5 | `tunnel` | 5 | 373 | 221 | pending |
-| 6 | `woodworking` | 5 | 413 | 297 | pending |
-| 7 | `yi` | 5 | 370 | 242 | pending |
-| 8 | `photo2` | 4 | 236 | 159 | pending |
-| 9 | `stats` | 4 | 281 | 198 | pending |
 
