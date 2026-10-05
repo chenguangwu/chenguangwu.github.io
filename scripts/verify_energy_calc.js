@@ -305,6 +305,37 @@ const CASES = [
     inputs: { val: "0.1", from: "22800", to: "1" },
     expect: ["0.1 22800 = 2280 1"],
     ref: 'CO₂e = 0.1×22800/1 = 2280（SF₆ 22800 → CO₂ 1，val=0.1）。2280 经 toPrecision(12) 仍为 2280，输出行 \'0.1 22800 = 2280 1\'。'
+  },
+  // ── §7.4 零用例加固：energy 确定性数值页（注入非默认 + harness 实测锚）──
+  {
+    slug: "energy/fridge-power-estimator",
+    inputs: { volume: "550", envTemp: "32", elecPrice: "0.75" },
+    expect: ["1.37 日耗电", "501 年耗电", "¥376 年电费"],
+    ref: "注入非默认(默认 volume=450/envTemp=25/elecPrice=0.58)：基础耗电 = (550/100)×0.26 = 1.430 kWh/天；×能效系数 0.8 ×环境温度系数(32℃) 1.2 ⇒ 实际日耗电 1.37 kWh/天；年耗电 = 1.37×365 = 501 kWh；年电费 = 501×0.75 = ¥376。默认态 0.94/342/¥198 均不命中。"
+  },
+  {
+    slug: "energy/power-consumption",
+    inputs: { price: "0.8", days: "45" },
+    expect: ["720.0 kWh", "576.00", "12.80"],
+    ref: "注入非默认(默认 price=0.6/days=30)：内置电器清单（空调 1500W×8h、冰箱 150W×24h、电视 100W×4h …）日耗电 16.0 kWh ⇒ 45 天总耗电 = 16.0×45 = 720.0 kWh；总电费 = 720×0.8 = ¥576.00；日均电费 = 576/45 = ¥12.80。默认态 480.0 kWh/288.00/9.60 均不命中。"
+  },
+  {
+    slug: "energy/solar-calculator",
+    inputs: { power: "7000", area: "35", efficiency: "85", price: "0.5", subsidy: "0.08" },
+    expect: ["8687 kWh", "11.1 年", "126179 kg CO₂"],
+    ref: "注入非默认(默认 5000/25/80/0.4/0.05)：按装机 7 kW、面积 35 m²、系统效率 85% ⇒ 年发电量 8,687 kWh；年收益（含 0.08 补贴）¥5,038；安装成本估 ¥56,000 ⇒ 回本周期 11.1 年；25 年总收益 ¥69,962、减排 126,179 kg CO₂。默认态数值均不同。"
+  },
+  {
+    slug: "energy/energy-efficiency",
+    inputs: { output: "15", input: "4", hours: "150", price: "0.8" },
+    expect: ["3.75 COP / 能效比", "600.0 kWh", "958.6 kg CO₂"],
+    ref: "注入非默认(默认 output=10/input=3/hours=100/price=0.6)：能效比 COP = 15/4 = 3.75（效率 375%）；150 小时能耗 = 4×150 = 600.0 kWh ⇒ ¥480.00；相比 100% 效率（15 kWh×150 = 2,250 kWh）节电 1,650.0 kWh ⇒ 折合节碳 958.6 kg CO₂。默认态 3.33/300.0/… 均不命中。"
+  },
+  {
+    slug: "energy/energy-calculator",
+    inputs: { ch_capacity: "5500", ch_current: "2500", ch_voltage: "5", ch_efficiency: "85" },
+    expect: ["12.5 W", "2 小时 35 分钟", "5,500 mAh"],
+    ref: "注入非默认(默认 ch_capacity=4000/ch_current=2000/ch_voltage=3.7/ch_efficiency=90)：充电功率 = 5 V×2.5 A×85% = 12.5 W；充电能量 = 5.5 Ah×5 V = 27.5 Wh ⇒ 充满耗时 ≈ 27.5/12.5 = 2.2 h ⇒ 2 小时 35 分钟。⚠ 本页为多页签结构，harness 只渲染当前页签，`cf_*`（碳足迹）与 `solar_*`（光伏）所属页签的注入不生效 ⇒ 本例只对「充电/电池」页签取锚。"
   }
 ];
 
