@@ -189,7 +189,7 @@
 - **但另有 191 个含 checkbox 的页面在全站任何 verify 文件中都没有用例**（`design/*` 11 页、`edu/*` 40 页、`biz/*` 文本类为主）。
 - 判定口径注意：用例块的键名**常不带引号**（`slug: "x"` / `inputs: {}` / `checkIds: [...]`），扫描脚本必须写成 `"?slug"?\s*:\s*"([^"]+)"`，否则会大量误报「无用例 / 无注入通道」（本次两次误报均源于此）。
 
-**处置**：属新线（补用例 ≠ 改弱用例），单独立批；须守 §8.1（expect 独立复算）。**已交付 869 例**（`design/*` 87 + `edu/*` 34 + `biz/*` 54 + `it/*` 322 + `finance/*` 118 + `sports/*` 6 + `life/*` 5，逐例锚点见各用例 `ref`）。**全站真实零用例重扫 = 2937 页 / 209 行业**（2026-10-05 全站 `tools/**` 比对全部 verify 文件 slug 得出；旧 3115/673/621 均作废）。已确认结构性不可注入（依赖随机生成 / DOMParser·highlight.js·canvas·qrcode·JsBarcode / 需按钮点击触发 / 纯静态参考页）的页不硬写用例，按行业探针结果留档：`agriculture` 8 页 + `it` 83 页（含 22 例已加固 NUM 类确定性计算页）已闭环；余 2826 页按可注入性逐行业探针推进（automotive/sports/fun/design/fire-rescue/legal/optical 等按零用例数降序）。
+**处置**：属新线（补用例 ≠ 改弱用例），单独立批；须守 §8.1（expect 独立复算）。**已交付 869 例**（`design/*` 87 + `edu/*` 34 + `biz/*` 54 + `it/*` 322 + `finance/*` 118 + `sports/*` 6 + `life/*` 5，逐例锚点见各用例 `ref`）。**全站真实零用例重扫 = 1136 页 / 209 行业**（2026-10-05 校正：slug 键正则须 `"?slug"?\s*:\s*"([^"]+)"` 兼容引号键，初扫漏匹配引号键文件如 verify_automotive_calc.js（58 例）致虚高到 2937，已订正）。已确认结构性不可注入（依赖随机生成 / DOMParser·highlight.js·canvas·qrcode·JsBarcode / 需按钮点击触发 / 纯静态参考页）的页不硬写用例，按行业探针结果留档：`agriculture` 8 页 + `it` 83 页（含 22 例已加固 NUM 类确定性计算页）已闭环；余 1045 页按可注入性逐行业探针推进（`fun` 53 / `design` 43 / `sports` 43 / `optical` 34 / `hydraulic` 32 等按零用例数降序）。
 
 ## 八、反模式与防复发（铁律）
 
