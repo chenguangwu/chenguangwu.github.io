@@ -77,6 +77,23 @@ const CASES = [
     inputs: { age: "40", weight: "60", ga: "16", afp: "0.6", bhCG: "2.5" },
     expect: ["1:28", "高风险"],
     ref: "先验1/100×afpLR(0.6→1.6)×hcgLR(2.5→2.2)=0.0352→1/28；≥1/270→高风险（weight/ga仅作非空校验，默认空→请完整输入，避开）" },
+  // ── §7.4 零用例加固：obstetrics 确定性数值页（注入非默认 + harness 实测锚）──
+  { slug: "obstetrics/pearl-index",
+    inputs: { preg: "5", wm: "15000" },
+    expect: ["0.40 Pearl指数", "(=1250 妇女年)", "0.4 人意外妊娠"],
+    ref: "注入非默认(默认 2/12000)：Pearl 指数 = 意外妊娠数×1200 / 使用妇女月 = 5×1200/15000 = 0.40（/100 妇女年 ⇒ 1 年失败率 0.40%，评级「极高效」）；15000 月 = 1250 妇女年。默认态 0.20/(1000 妇女年)/0.2 人 均不命中。" },
+  { slug: "obstetrics/labor-curve",
+    inputs: { dilation: "9", hours: "14" },
+    expect: ["14 h 临产时长", "9 cm 宫口扩张"],
+    ref: "注入非默认(默认 dilation=8/hours=10)：初产妇按 ACOG/WHO（活跃期 6 cm 起）⇒ 9 cm 处判定为活跃期；临产 14 h、潜伏期上限 20 h、扩张速率 ≥1 cm/h ⇒ 产程进展正常。⚠ 「活跃期」「产程进展正常」等结论文案在默认态同样成立（8 cm/10 h 也判正常）⇒ 不可作锚，只取含注入值的两串。" },
+  { slug: "obstetrics/biyun-pearlzhishu-shibailv",
+    inputs: { women: "150", months: "1800", pregnancies: "12" },
+    expect: ["0.05 Pearl 指数", "12 意外妊娠数", "150 使用人数"],
+    ref: "注入非默认(默认 100/1200/6)：按页面 Pearl 指数口径 ⇒ 0.05；并回显使用人数 150、总使用月数 1800、意外妊娠数 12。默认态 0.10/100/6 均不命中。" },
+  { slug: "obstetrics/calc-50",
+    inputs: { height: "165", weight: "78", preWeight: "62", hctBefore: "34", hctAfter: "27" },
+    expect: ["4363 估算血容量（mL）", "898 估算失血量（mL）", "20.6%"],
+    ref: "注入非默认(默认 160/70/58/36/28)：估算血容量 ≈ 4,363 mL；按分娩前后血细胞比容差（34 → 27）与体重差 ⇒ 估算失血量 ≈ 898 mL，占血容量 20.6% ⇒ PPH 分级「PPH（500~1500 mL）」。默认态 3,994 mL/… 均不命中。" }
 ];
 
 async function main() {
