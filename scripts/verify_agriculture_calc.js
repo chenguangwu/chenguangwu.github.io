@@ -393,7 +393,100 @@ const CASES = [
     slug: "agriculture/seed-germination-rate",
     inputs: { totalSeeds: "233", seedlingLen: "5", day1: "199", energyDay: "4" },
     expect: ["85.4%"],
-    ref: "注入非默认(默认 100/5/各 day/第7天)：发芽率 = 199/233×100 = 85.4%；发芽势(前4天) = 199/233×100 = 85.4% ⇒ 199.00；GI = 199/1 = 199.00；VI = 199×5 = 995.00。默认态为 100.0%/100.00/100.00，三条均不命中。"
+    ref: "注入非默认(默认 100/5/各 day/第7天)：发芽率 = 199/233×100 = 85.4%（需 totalSeeds=233 与 day1=199 同时成立；day1 动态输入失败模拟不重置，故只用比值锚，GI/VI 会泄漏）。默认态为 100.0%，本条不命中。"
+  },
+
+  // ===== §7.4 零用例加固批次：agriculture 带 select 页（工况实测取锚）=====
+  // ── 株距行距密度（每亩株数 = 6666667 ÷ 株距÷行距）────
+  {
+    slug: "agriculture/calc-2",
+    inputs: { plantSpace: "42", rowSpace: "60", areaMu: "3", unit: "ha" },
+    expect: ["2,646", "39,683", "2520.0"],
+    ref: "注入非默认(默认 30/50/1/亩)：每亩株数 = 6666667÷(42×60) = 2645.5 ⇒ 2,646 株/亩；每公顷 = 100000000÷(42×60) = 39682.5 ⇒ 39,683；单株占地 = 42×60 = 2520.0 cm²。默认态为 4,444/66,667/1500.0，三条均不命中。"
+  },
+  // ── 播种—收获窗口（无霜期 = 生长天数 + 缓冲；日期由输入推算，确定性）────
+  {
+    slug: "agriculture/calculator-calc-1",
+    inputs: { growth: "180", buffer: "15" },
+    expect: ["195"],
+    ref: "注入非默认(默认 120/10)：无霜期总天数 = 180 + 15 − 7 ≈ 188；所需安全天数 = 180 + 15 = 195。默认态为 128/130，两条均不命中（日期为输入推算，不依赖当前日期）。"
+  },
+  // ── 株行距密度（单位换算：cm → m）────
+  {
+    slug: "agriculture/calculator-calc-density",
+    inputs: { plantSpace: "0.4", rowSpace: "0.8", plantUnit: "cm", rowUnit: "cm" },
+    expect: ["31250.00", "312500000"],
+    ref: "注入非默认(默认 0.3/0.6/m)：每株占地 = 0.004×0.008 = 0.000032 m²；每平方米株数 = 1÷0.000032 = 31250.00；每亩株数 = 31250×10000 = 312500000。默认态为 5.56/37037，两条均不命中。"
+  },
+  // ── 石灰调理（pH 提升幅度 × 缓冲系数 × 面积 × 深度）────
+  {
+    slug: "agriculture/calculator-calc-soil",
+    inputs: { phCurrent: "5.0", phTarget: "6.8", area: "1500", depth: "25", soilType: "clay" },
+    expect: ["1.80", "33.75", "18.90"],
+    ref: "注入非默认(默认 5.5/6.5/1000/20/sandy)：pH 调节幅度 = 6.8−5.0 = 1.80；黏土缓冲系数高 ⇒ 碳酸钙 33.75 kg、生石灰 18.90 kg。默认态为 1.00/11.25/6.30，三条均不命中。"
+  },
+  // ── 连作障碍指数 OCI（年限/敏感/病原/土壤/管理 加权）────
+  {
+    slug: "agriculture/continuous-cropping-index",
+    inputs: { years: "5", om: "3", ph: "6.0", cropType: "tomato", pathogen: "cucumber", resistance: "tomato", disinfection: "tomato" },
+    expect: ["72", "重度障碍"],
+    ref: "注入非默认(默认 3/2/6.5/cucumber...)：番茄敏感 8/10、连作 5 年超安全年限 ⇒ OCI 72、重度障碍。默认态为 42/中度障碍，两条均不命中。"
+  },
+  // ── 轮作方案（季节 + 模式 决定年度作物序列）────
+  {
+    slug: "agriculture/crop-rotation",
+    inputs: { areaInput: "20", seasonInput: "夏", modeInput: "standard" },
+    expect: ["第 1 年 作物：大豆 → 小麦 → 白菜 → 土豆"],
+    ref: "注入 seasonInput=夏/标准：首年序列为 大豆→小麦→白菜→土豆；默认态(standard)首年为 大豆→玉米→白菜→萝卜，本条不命中（文案锚，确定性）。"
+  },
+  // ── 作物需水（ETc = Kc×ET0，扣有效降雨，按灌溉效率还原）────
+  {
+    slug: "agriculture/crop-water-requirement",
+    inputs: { kc: "1.0", et0: "6", rain: "2", days: "12", area: "15", cropSel: "3", irrEff: "3" },
+    expect: ["6.90", "19609.8", "71.0%"],
+    ref: "注入非默认(默认 1.2/5/1/10/0/0)：ETc=6.90 mm/天、日净灌溉 4.90、12天总蒸散 82.8 mm、总灌水 19609.8 m³、占比 71.0%。默认态为 5.78/.../58.0%，三条均不命中。"
+  },
+  // ── 蜂螨寄生率（螨数 ÷ 蜂数）────
+  {
+    slug: "agriculture/detector-13",
+    inputs: { bees: "500", mites: "25", method: "酒精洗涤法", season: "夏季" },
+    expect: ["5.00%"],
+    ref: "注入非默认(默认 300/9/糖粉法/春季)：寄生率 = 25÷500×100 = 5.00%，超治疗阈值 ⇒ 需治疗。默认态为 3.00%/监测，两条均不命中。"
+  },
+  // ── 棚温卷膜通风（内外温差驱动）────
+  {
+    slug: "agriculture/greenhouse-rolling-time",
+    inputs: { inTemp: "32", outTemp: "15", targetTemp: "26", humidity: "80", cropMaxTemp: "35", timePeriod: "noon", windLevel: "2" },
+    expect: ["32℃ 棚内温度", "17℃ 内外温差"],
+    ref: "注入非默认(默认 28/18/25/75/32/morning/0)：棚内 32℃、内外温差 32−15 = 17℃。默认态为 28℃/10℃，两条均不命中。"
+  },
+  // ── 温室通风量（体积 × 换气次数 ÷ 风机效率）────
+  {
+    slug: "agriculture/greenhouse-ventilation",
+    inputs: { ghLen: "60", ghWid: "12", ghHeight: "5", windSpeed: "3", fanEff: "90", airChanges: "40" },
+    expect: ["144000", "14.81", "2.1%"],
+    ref: "注入非默认(默认 50/10/4/2/85/25)：体积 = 60×12×5 = 3600 m³；所需通风量 = 3600×40 = 144000 m³/h；秒通风 = 144000÷3600 = 40.00；风口面积 = 40÷(3×0.9) = 14.81 m²；风口占地比 = 14.81÷720 = 2.1%。默认态为 20000/.../0.7%，三条均不命中。"
+  },
+  // ── 收获期预测（GDD 进度 = 当前÷需求）────
+  {
+    slug: "agriculture/harvest-date-predictor",
+    inputs: { moisture: "25", dryRate: "0.6", gdd: "1800", cropSel: "corn" },
+    expect: ["66.7%"],
+    ref: "注入非默认(默认 28/0.5/1500/wheat)：玉米需求 GDD 2700，进度 = 1800÷2700 = 66.7%；预计 24 天后达最佳含水。默认态为 55.6%/...，两条均不命中（锚取 GDD 推算值，不取当前日期）。"
+  },
+  // ── 储粮虫害风险（温/湿/水 综合指数）────
+  {
+    slug: "agriculture/storage-pest-alert",
+    inputs: { temp: "30", humidity: "80", grainMoisture: "15", storageDays: "60", grainType: "corn" },
+    expect: ["100/100"],
+    ref: "注入非默认(默认 25/65/13/30/wheat)：高温高湿高水分 ⇒ 综合风险指数 100/100、高风险。默认态为 60/中风险，两条均不命中。"
+  },
+  // ── 储粮温湿风险评估（评分模型）────
+  {
+    slug: "agriculture/temp-2",
+    inputs: { temp: "22", humidity: "70", moisture: "15", grain: "corn" },
+    expect: ["55", "22.0℃"],
+    ref: "注入非默认(默认 28/75/13.5/wheat)：粮温 22.0℃、综合风险评分 55、中风险。默认态为 28.0℃/70/高风险，两条均不命中。"
   },
 ];
 
