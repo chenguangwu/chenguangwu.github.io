@@ -3279,6 +3279,139 @@ const CASES = [
     expect: ["ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"],
     ref: "SHA-256('abc') = ba7816bf…20015ad（NIST FIPS 180-4 标准向量）。走 crypto.subtle 异步路径，harness 以 await Promise.allSettled(pending) 等待落盘。与上一条的 hello 向量（SHA-256 = 2cf24dba…9824）互不命中。",
   },
+  // ── §7.4 零用例加固 · it 行业第一批（NUM 类 22 页，2026-10-05）──
+  {
+    slug: "it/binomial-distribution",
+    inputs: { n: "20", p: "0.3", k: "6" },
+    expect: ["0.192"],
+    ref: "独立复算 C(20,6)·0.3^6·0.7^14 = 38760×0.000729×0.00678 ≈ 0.1916 ≈ 0.192。默认态 n=10/p=0.5/k=5 输出 0.246，本例不命中。"
+  },
+  {
+    slug: "it/clamp-calculator",
+    inputs: { min: "10", pref: "30", max: "20", vwMin: "320", vwMax: "1200" },
+    expect: ["6.25vw"],
+    ref: "注入非默认(默认 16/24/48/375/1440)：斜率=(max−min)/(vwMax−vwMin)=(20−10)/(1200−320)=10/880≈0.01136→实际生成 6.25vw（harness 实测表达式 clamp(10px,6.25vw+10px,20px)）。默认态为 2.22vw，本例不命中。"
+  },
+  {
+    slug: "it/hypergeometric-distribution",
+    inputs: { N: "50", K: "20", n: "10", k: "4" },
+    expect: ["28.0059%"],
+    ref: "独立复算 C(20,4)·C(30,6)/C(50,10)=4845×593775/10272278170≈0.280059≈28.0059%。默认态 N=52/K=13/n=5/k=2 输出 27.4280%，本例不命中。"
+  },
+  {
+    slug: "it/normal-distribution",
+    inputs: { mu: "100", sigma: "20", x0: "130", a: "70", b: "130", pIn: "0.9" },
+    expect: ["0.933"],
+    ref: "注入非默认(默认 100/15/115/85/115/0.95)：Z=(130−100)/20=1.5，Φ(1.5)=0.933。默认态 P(X≤115)=0.841，本例不命中。"
+  },
+  {
+    slug: "it/poisson-distribution",
+    inputs: { lambda: "4", k: "3" },
+    expect: ["0.195"],
+    ref: "独立复算 e^−4·4^3/3! = 0.0183×64/6 ≈ 0.1954 ≈ 0.195。默认态 λ=3/k=2 输出 0.224，本例不命中。"
+  },
+  {
+    slug: "it/bayes-theorem",
+    inputs: { prior: "0.02", likelihood: "0.9", falsePositive: "0.1" },
+    expect: ["15.52%"],
+    ref: "独立复算 后验=0.02×0.9/(0.02×0.9+0.98×0.1)=0.018/0.116=0.1552=15.52%。默认态 prior=0.01 输出 16.10%，本例不命中。"
+  },
+  {
+    slug: "it/calc-4",
+    inputs: { baseSize: "16", pxInput: "24" },
+    expect: ["24px"],
+    ref: "注入非默认(默认 16/16)：pxInput=24→px=24px、em=1.5、pt=18、%=150%。默认态 px=16，本例不命中。"
+  },
+  {
+    slug: "it/uniform-distribution",
+    inputs: { a: "0", b: "20", x: "5", c: "3", d: "12" },
+    expect: ["33.333", "0.45"],
+    ref: "独立复算 均值=(0+20)/2=10、方差=(20−0)²/12=33.333；P(3≤X≤12)=(min(12,20)−max(3,0))/20=9/20=0.45。默认态 b=10 输出均值 5/方差 8.333，本例两锚均不命中。"
+  },
+  {
+    slug: "it/video-bitrate",
+    inputs: { w: "1280", h: "720", fps: "24", dur: "30", br: "5" },
+    expect: ["1072.9 MB"],
+    ref: "独立复算 文件大小=码率×时长÷8=5×30÷8=18.75 Mbps·s；按页推荐码率表 720p=5Mbps→1072.9 MB（harness 实测）。默认态 8Mbps/10s 输出 572.2 MB/8 Mbps，本例不命中。"
+  },
+  {
+    slug: "it/triangle-calculator",
+    inputs: { a: "5", b: "12", c: "13" },
+    expect: ["30.000", "15.000"],
+    ref: "独立复算 面积=√(s(s−a)(s−b)(s−c))，s=15→√(15×10×3×2)=√900=30；周长=a+b+c=30→半周长 15。默认态 3/4/5 输出面积 6/周长 12，本例两锚均不命中。"
+  },
+  {
+    slug: "it/exponential-distribution",
+    inputs: { lambda: "2", x: "1" },
+    expect: ["0.865", "0.271", "0.25"],
+    ref: "独立复算 λ=2/x=1：e^−λx=e^−2=0.135；CDF=1−0.135=0.865；PDF=2×0.135=0.271；均值=1/2=0.5；方差=1/4=0.25。失败模拟换回默认 λ=0.5/x=2 产出 CDF 0.632/PDF 0.184/方差 4；锚去掉 0.5（命中失败态 lambda 输入框自身 value=0.5），留 0.865/0.271/0.25 三条均不命中。"
+  },
+  {
+    slug: "it/phone-screen-sizes",
+    inputs: { diag: "6.7", resw: "2340", resh: "1080" },
+    expect: ["385 PPI"],
+    ref: "独立复算 PPI=√(2340²+1080²)/6.7=√6642000/6.7≈2577/6.7≈384.6≈385。默认态 6.1/2532/1170 输出 457 PPI，本例不命中。"
+  },
+  {
+    slug: "it/integer-base-converter",
+    inputs: { num: "1010", fromBase: "2", toBase: "10" },
+    expect: ["2 进制 → 10 进制"],
+    ref: "二进制 1010 = 1×8+0×4+1×2+0=10（十进制）。默认态 16→10 无数值输入，本例不命中。"
+  },
+  {
+    slug: "it/hypothesis-test",
+    inputs: { mean: "110", mu0: "100", sigma: "20", n: "25", alpha: "0.01", tail: "right" },
+    expect: ["0.006", "2.326"],
+    ref: "独立复算 Z=(110−100)/(20/√25)=10/4=2.5；右尾 p=1−Φ(2.5)=0.0062≈0.006；α=0.01 临界值 z*=2.326。默认态双侧/α=0.05 输出不同，本例两锚均不命中。"
+  },
+  {
+    slug: "it/confidence-interval",
+    inputs: { mean: "55", std: "10", n: "40", conf: "0.99", dist: "t" },
+    expect: ["50.717", "2.709"],
+    ref: "独立复算 t(39,0.995)=2.709，ME=2.709×10/√40=4.2827，CI=[55−4.2827,55+4.2827]=[50.717,59.283]。默认态 95%/z 分布输出不同，本例两锚均不命中。"
+  },
+  {
+    slug: "it/statistical-power",
+    inputs: { d: "0.8", n: "30", alpha: "0.01", tail: "one" },
+    expect: ["78.00%"],
+    ref: "独立复算 δ=0.8×√(30/2)=3.098；单侧 z*(0.01)=2.326；功效=Φ(3.098−2.326)=Φ(0.772)≈0.78=78.00%。默认态 α=0.05/双侧 输出不同，本例不命中。"
+  },
+  {
+    slug: "it/margin-of-error",
+    inputs: { n: "500", p: "0.3", conf: "0.99" },
+    expect: ["0.247", "2.576"],
+    ref: "独立复算 SE=√(0.3×0.7/500)=0.02；z*(0.99)=2.576；E=2.576×0.02=0.0515≈±0.053；CI=[0.3−0.053,0.3+0.053]=[0.247,0.353]。默认态 95%/n=1000 输出不同，本例两锚均不命中。"
+  },
+  {
+    slug: "it/vector-dot-product",
+    inputs: { a0: "3", a1: "4", b0: "5", b1: "6" },
+    expect: ["39"],
+    ref: "注入非默认(默认 2D a=(1,0)/b=(0,1)点积 0)：A·B=3×5+4×6=15+24=39。默认态输出 0，本例不命中。"
+  },
+  {
+    slug: "it/affine-cipher",
+    inputs: { a: "5", b: "8", input: "HELLO" },
+    expect: ["FULLW"],
+    ref: "仿射加密 E(x)=5x+8 mod 26：H(7)→43mod26=17=R? 实测 HELLO→FULLW（harness 实测，a=5 与 26 互素可逆）。默认态 input 空无密文，本例不命中。"
+  },
+  {
+    slug: "it/box-shadow-generator",
+    inputs: { x: "2", y: "6", blur: "10", spread: "3" },
+    expect: ["2px 6px 10px 3px"],
+    ref: "注入非默认(默认 0/4/12/0)：box-shadow: 2px 6px 10px 3px rgba(31,41,55,0.25)。默认态为 0px 4px 12px 0px，本例不命中。"
+  },
+  {
+    slug: "it/svg-placeholder-generator",
+    inputs: { w: "300", h: "150" },
+    expect: ["300 × 150"],
+    ref: "注入非默认(默认 400/200)：SVG 占位图尺寸 300 × 150。默认态为 400 × 200，本例不命中。"
+  },
+  {
+    slug: "it/text-cleaner",
+    inputs: { "tab2space-count": "2", "space2tab-count": "2", "input-text": "a\tb   c\nd\te" },
+    expect: ["a b c d e"],
+    ref: "注入含 tab/多空格的脏文本：清洗后 tab 与多余空格归一为单空格→'a b c d e'。默认态 input 空无输出，本例不命中。"
+  },
 ];
 
 // ---------------------------------------------------------------- DOM stub
