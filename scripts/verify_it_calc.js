@@ -3412,6 +3412,12 @@ const CASES = [
     expect: ["a b c d e"],
     ref: "注入含 tab/多空格的脏文本：清洗后 tab 与多余空格归一为单空格→'a b c d e'。默认态 input 空无输出，本例不命中。"
   },
+  {
+    slug: "it/stopwatch",
+    inputs: { cdHours: "2", cdMinutes: "47", cdSeconds: "13" },
+    expect: ["02:47:13"],
+    ref: "\u5012\u8ba1\u65f6\u9884\u8bbe\u4e3a\u4e09\u4e2a\u6570\u503c\u8f93\u5165\u62fc\u63a5\uff1a2 \u5c0f\u65f6 47 \u5206 13 \u79d2 \u2192 \u65e0\u8fdb\u4f4d\u4e3a 02:47:13\uff08\u72ec\u7acb\u590d\u7b97 2\u00d73600+47\u00d760+13 = 10033 s = 02:47:13\uff09\u3002\u9ed8\u8ba4 0/5/0 \u21d2 00:05:00\uff0c\u4e0d\u547d\u4e2d\u3002\u4e0d\u53d6\u88f8\u503c 2/47/13\uff08\u90a3\u4e9b\u662f\u8f93\u5165\u56de\u663e\uff09\u3002"
+  },
 ];
 
 // ---------------------------------------------------------------- DOM stub

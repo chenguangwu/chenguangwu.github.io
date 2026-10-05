@@ -1237,7 +1237,13 @@ const CASES = [
     inputs: { cat: "m_top", sys: "eu", inputVal: "54" },
     expect: ["中国码： 180/96"],
     ref: '男装上衣表查 eu=54 列对应行 → cn=180/96（国际 XXXL / 美 44 / 英 44）；注入态输出中国码 180/96，默认态 165/88A 不命中'
-  }
+  },
+  {
+    slug: "life/data-unit-converter",
+    inputs: { valueInput: "7.5" },
+    expect: ["\u539f\u59cb\u503c\uff1a7.5 bit = 7.5 bit = 0.9375 B", "B \u5b57\u8282 0.9375 B", "KB Kilobyte 0.000916 KB"],
+    ref: "\u72ec\u7acb\u590d\u7b97\uff08\u4e8c\u8fdb\u5236\uff0c1 B = 1024 bit\uff09\uff1a7.5/1024 = 0.9375 B\uff1b7.5/1024^2 = 8.9407e-7 KB \u2192 toFixed(6) = 0.000916\u3002\u9ed8\u8ba4 valueInput=1 \u21d2 0.125 B / 0.000122 KB\uff0c\u4e09\u951a\u5747\u4e0d\u547d\u4e2d\u3002"
+  },
 ];
 
 // ---------------------------------------------------------------- main

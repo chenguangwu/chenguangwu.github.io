@@ -113,7 +113,7 @@
 ## 六、踩坑 / 约束备忘（环境级 / 工程级）
 
 - **deep-dive 由 `_build.py` 按 `i18n/tools/content_deepdive.json` 重建**：直接改源 html 会被覆盖。改 deep-dive / 场景 / 示例 / FAQ → 改 JSON 数据源。
-- **术语内链唯一源 = `_build.py::linkify_terms()`**（§4.1.7「SEO 与专业性」）：把 deep-dive 正文（场景 / 示例 / FAQ）里的专业名词链到站内工具页 / 指南页。术语 = 工具中文名 + 剥通用后缀的核心词（`_TERM_LINK_SUFFIXES`）+ 指南标题去「使用指南」；**目标必须存在且非 `TOOLBOX-REDIRECT` 存根**（结构性零死链）。细则：逐字符最长匹配（`first_map` 首字母索引，实测 1.3s 全量）、`TERM_LINK_MIN_LEN=3`（2 字泛词会大面积误链——「公式」曾命中 844 次）、每目标页每页只链一次、单页总上限 `TERM_LINK_MAX_PER_PAGE=6`（跨字段共享状态）、不链自身、ASCII 术语要求词边界（防 `CSS` 命中 `CSS3`）。**禁在页面手改内链**（会被构建覆盖）。
+- **术语内链唯一源 = `_build.py::linkify_terms()`**（§4.1.7）：把 deep-dive 正文里的专业名词链到站内工具页/指南页。术语 = 工具中文名 + 剥通用后缀的核心词（`_TERM_LINK_SUFFIXES`）+ 指南标题去「使用指南」；**目标必须存在且非 `TOOLBOX-REDIRECT` 存根**。细则：逐字符最长匹配、`TERM_LINK_MIN_LEN=3`（「公式」曾命中 844 次）、每目标页每页只链一次、上限 `TERM_LINK_MAX_PER_PAGE=6`、不链自身、ASCII 术语要求词边界（防 `CSS` 命中 `CSS3`）。**禁在页面手改内链**。
 - **FAQPage 结构化数据不被重建**：手动加的 JSON-LD 会保留，但注入坏 JSON 不会自动修复，须自测解析合法。
 - **繁体 `zh-tw/` 是构建产物**：勿手动改（被 `.gitignore` 忽略）；其子树不含 `js/`，引用站内 JS 必须绝对路径 `/js/x.js`。
 - **i18n 八件套**：标题/简介走 `_en_override.json` + `slug-en.json`；行业 i18n 走 `i18n/tools/<ind>.json`；凡引 `common.js` 的静态页须引 `i18n.js`。
@@ -149,7 +149,7 @@
 
 **P1 — 待办**
 
-- **harness 输入桩能力现状（2026-09-24 定型，勿再重估）**：可注入手段共 **6 种** —— `inputs`（表单控件）、`checkIds`（`getElementById(id).checked`）、`radios`（`getElementsByName`）、`checks`（`querySelector('…:checked')`，**仅在「无 inputs」分支计入弱用例判定**）、`clicks`（页面作用域 direct eval，命中即 `via="click"`，配套动态 DOM 登记）、`dynDom`。**「纯 checkbox 量表页不可注入」的旧结论已失效**。逐例打法归档在 `.workbuddy/memory/2026-09-2*.md` 与 skill `toolbox-weakcase-hardening`，**本文件不记批次流水**。
+- **harness 输入桩能力现状（2026-09-24 定型，勿再重估）**：可注入手段共 **6 种** —— `inputs`、`checkIds`、`radios`、`checks`（**仅在「无 inputs」分支计入弱用例判定**）、`clicks`（页面作用域 direct eval + 动态 DOM 登记）、`dynDom`。**「纯 checkbox 量表页不可注入」的旧结论已失效**。逐例打法见 `.workbuddy/memory/` 与 skill `toolbox-weakcase-hardening`。
 - **仍未闭环的残留（转 P3 顺带，不单独成批）**：
   - ✅ **纯 checkbox 量表页已闭环（2026-09-26 核实）**：含 `checkbox` 页 353 个，有用例的 162 个**均带注入通道**、弱用例 0；另 191 个无任何用例 ⇒ 覆盖缺口，见 §7.4。
   - ✅ **fim-scale / gingival-index 已闭环**：两例均有真实 `inputs` + 独立复算 `ref`（fim 全填 7 ⇒ 运动分 13×7=91/91、独立率 100%；gingival t16 四位点 3 / BOP 1 ⇒ GI 12/24=0.50、BOP 1/6=16.67%→17%），默认态均失配。
@@ -189,7 +189,7 @@
 - **但另有 191 个含 checkbox 的页面在全站任何 verify 文件中都没有用例**（`design/*` 11 页、`edu/*` 40 页、`biz/*` 文本类为主）。
 - 判定口径注意：用例块的键名**常不带引号**（`slug: "x"` / `inputs: {}` / `checkIds: [...]`），扫描脚本必须写成 `"?slug"?\s*:\s*"([^"]+)"`，否则会大量误报「无用例 / 无注入通道」（本次两次误报均源于此）。
 
-**处置**：属新线（补用例 ≠ 改弱用例），单独立批；须守 §8.1（expect 独立复算）。**已交付 869 例**（`design/*` 87 + `edu/*` 34 + `biz/*` 54 + `it/*` 322 + `finance/*` 118 + `sports/*` 6 + `life/*` 5，逐例锚点见各用例 `ref`）。**全站真实零用例重扫 = 1136 页 / 209 行业**（2026-10-05 校正：slug 键正则须 `"?slug"?\s*:\s*"([^"]+)"` 兼容引号键，初扫漏匹配引号键文件如 verify_automotive_calc.js（58 例）致虚高到 2937，已订正）。已确认结构性不可注入（依赖随机生成 / DOMParser·highlight.js·canvas·qrcode·JsBarcode / 需按钮点击触发 / 纯静态参考页）的页不硬写用例，按行业探针结果留档：`agriculture` 8 页 + `it` 83 页（含 22 例已加固 NUM 类确定性计算页）+ `sports` 43 页（本次加固 23 例确定性数值页，余 20 页为赛程日期依赖/游戏随机者结构性排除）+ `fishery` 31 页（本次加固 20 例确定性数值页，`tank-volume` 因长宽高输入由未展开模板占位符渲染、默认态即 NaN 而结构性排除，+ `optical` 34 页（本次加固 24 例确定性数值页，+ `securities` 22 页（本次加固 17 例确定性数值页，+ `ai` 25 页（本次加固 16 例确定性数值页，余 9 页为依赖浏览器/随机者结构性排除）+ `design` 43 页（本次加固 3 例：tester-assessor / ripple-effect / spinner-generator；余 40 页为 canvas·Image 解码依赖的生成页，探针 dump 仅输入回显或空 blob，结构性排除）+ `surveying` 16 页（本次加固 11 例确定性数值页，`area-calc` 顶点输入由 JS 动态渲染、`calc-1` 测段需按钮添加 ⇒ 结构性排除）+ `photo` 12 页（本次加固 10 例确定性数值页，余 2 页为浏览器依赖）+ `meteorology` 31 页（本次加固 8 例确定性数值页，`detector-protection` 输出仅有回显与静态检查表、无计算值 ⇒ 结构性排除）+ `hydraulic` 32 页（本次加固 8 例确定性数值页，余 24 页为动态表格/图表/canvas 依赖者结构性排除）+ `legal` 27 页（本次加固 7 例确定性数值页，余 20 页为流程文本/静态法规类结构性排除）+ `energy` 9 页（本次加固 5 例确定性数值页；`standby-power-calculator` 的电器复选框 `chk-<id>` 由 JS 动态生成、harness clicks 抓不到 ⇒ 结构性排除）+ `statistics` 10 页（本次加固 6 例确定性数值页，余 4 页为需 CSV 上传/textarea 序列类）+ `fitness` 19 页（本次加固 5 例确定性数值页；`bodyfat-caliper` 部位输入 `site_<k>` 由 JS 动态渲染 ⇒ 结构性排除）+ `general` 31 页（本次加固 6 例确定性数值页，余 25 页为文本清单/参考类）+ `obstetrics` 16 页（本次加固 4 例确定性数值页；`gdm-ogtt` 结果区为静态 deep-dive 内容、注入任何血糖值输出恒定 ⇒ 结构性排除）+ `biz` 24 页（本次加固 2 例确定性数值页 analysis-manager / analysis-47；`barcode-generator` 依赖外部编码库、`team-roster-generator` 输出仅输入回显 ⇒ 结构性排除）+ `metalwork` 19 页（本次加固 4 例确定性数值页 detector-24 / analysis-simulator / detector-23 / detector-mold）+ `realestate` 21 页（本次加固 4 例 summary-second-hand / layout-score / analysis-42 / rater-usable-layout）已闭环；`geology` 15 页加固 2 例（tester-16 岩石软化系数 / analysis-grade-ore 品位分级，`calc-1` 岩芯段长需按钮添加 ⇒ 结构性排除）、`signal` 4 页加固 3 例（mod-index-fm / mod-index-am / pll-lock-range）已闭环；`forex` 4 页 + `food-testing` 7 页的计算依赖 `ToolBox.formatNumber` / `sel.selectedOptions`（harness 不加载 `js/common.js`）⇒ 环境级不可注入，留档；`math` 4 页加固 1 例（calc-2 比例式求解 D）、`science` 27 页加固 2 例（calc-5 匀速运动解时间 / calc-4 解体积）、`aerospace` 5 页加固 1 例（delta-v-rocket 齐奥尔科夫斯基）、`finance` 13 页加固 1 例（analysis-cost-1 作业成本分配）、`marketing` 24 页加固 2 例（assessor-51 品牌资产评估 / assessor-65 活动效果评估）已闭环；余 **930** 页（2026-10-06 实扫）按可注入性逐行业探针推进。
+**处置**：属新线（补用例 ≠ 改弱用例），单独立批；须守 §8.1（expect 独立复算）。**全站真实零用例 = 922 页 / 209 行业**（2026-10-06 实扫）。扫描口径：覆盖集合的 slug 实为 **`行业/slug`** 形式（不是裸 slug，否则全站误报零覆盖）；页面需过滤 `TOOLBOX-REDIRECT` 存根。
 **⚠ 判别器口径（踩过才确认）**：`discriminate_check.js` 是**一次性把 inputs 全部换回页面 HTML 默认**（非逐键）；而 harness 判定是「expect **任一**子串命中即通过」。⇒ 凡不在静态 HTML 中的输入（如 JS 动态渲染的 `sus0..sus9`）**无法回退**，失败态 = 其余键默认 + 该键保持注入；此时必须按**该失败态**实测选锚（design/tester-assessor 的 SUS 类锚与综合评分锚在两态巧合相同，只能锚绩效明细串）。对输出无判别力的键（如 errors 四舍五入后综合不变）不予注入。**`fun` 53 页探针已坐实：50/53 为游戏或随机生成器（RAND=True），整行业结构性排除。**
 
 ## 八、反模式与防复发（铁律）
@@ -372,7 +372,7 @@
 | `clicks: ["pick(0,3)", …]` | **页面作用域 direct eval**，inputs 后、兜底前按序执行，命中即 `via="click"` |
 | `dynDom` | 单独开启动态 DOM 登记（不注入值时用） |
 
-> `clicks` 内的状态驱动优先级：**页面顶层 `var`/`let` 绑定直接赋值 > 模拟点按钮 > 注入 DOM 选中态**（真正被 `calc()` 读取的往往是顶层状态，`grade`/`scores`/`sel`/`reviewData`/`materials`；`let` 声明的顶层数组同样可直接改元素）。**带 DOM 形参的 click 函数不算不可注入**：`selectFluor(btn,i)` / `selectStage(grade,el)` 的 `btn`/`el` 只做 `classList` 增删 ⇒ 传哑对象 `{classList:{add:function(){},remove:function(){}}}`、或直接省略（页面内 `if(el)` 判空）；内层 `querySelectorAll('.xxx').forEach` 对空数组安全。
+> `clicks` 内的状态驱动优先级：**页面顶层 `var`/`let` 绑定直接赋值 > 模拟点按钮 > 注入 DOM 选中态**（真正被 `calc()` 读取的往往是顶层状态）。**带 DOM 形参的 click 函数不算不可注入**：`selectFluor(btn,i)` 的 `btn` 只做 `classList` 增删 ⇒ 传哑对象 `{classList:{add:function(){},remove:function(){}}}` 或直接省略（页面内 `if(el)` 判空）。
 
 **B. 「能不能注入」判据（静态 HTML 无 `<input|<select|<textarea` 时逐条排查）**
 
@@ -396,22 +396,21 @@
 4. **锚点优先级 + checkbox 反向利用**：① 非兜底分支独有的文案（`if/else` 的**非 else** 路）；② 只由注入值派生、兜底无法复现的数值；③ 跨档 / 跨分支的等级词（改前先手算是否落同档）。桩内 checkbox 恒未勾 ⇒ 默认态渲染「xx缺失」并给低分 ⇒ **勾满 `checkIds` 抢「全部达标」分支做正向强锚**。
 5. **数值合法性与齐次量**：有界量（决定系数 / 概率 / p 值 / 率）越界即公式错，交付前必查 `[0,1]`；「基础分 − 扣分」式先算最小值是否越界；**输出物理不可能值必查公式本身**。比值 / 单价 / 覆盖率换值前先确认不是等比缩放。
 6. **日期与随机**：日期相关量一律不锚；禁 `Math.random` / `Date.now` 当输入。`clicks` 内改**进程级全局**（`Math`/`Date`/`Array.prototype`）**必须用完即恢复**，否则污染同进程后续用例的默认态 —— 只有双态核验抓得到。钉死随机后锚「多列连续复合串」把巧合概率压到 10⁻⁶。
-7. **默认态已全量渲染的页面，锚点要换区**：① 多段渲染共用常量串 ⇒ 只锚注入段独有串，示例文本即逃生项；② 「kw 空输出全量」过滤页 ⇒ 反向注入不存在的关键词、锚空结果提示；③ 「卡片+详情」双区页 ⇒ 只锚详情区；④ 筛选型图鉴页（`office/excel-formula-reference`：注入「数字」⇒ 过滤态下 AVERAGE/TEXT 跨行相邻）⇒ 锚过滤态成立的跨行相邻串，不锚整条目串。**筛选入口常是「状态变量 + 按钮」双参签名**，直调 `setFilter(f,btn)` 会 btn 为 undefined ⇒ 直写状态变量再重渲。
+7. **默认态已全量渲染的页面，锚点要换区**：① 多段渲染共用常量串 ⇒ 只锚注入段独有串；② 「kw 空输出全量」过滤页 ⇒ 反向注入不存在的关键词、锚空结果提示；③ 「卡片+详情」双区页 ⇒ 只锚详情区；④ 筛选型图鉴页（`office/excel-formula-reference`）⇒ 锚过滤态成立的**跨行相邻串**，不锚整条目串。**筛选入口常是「状态变量 + 按钮」双参签名**，直调 `setFilter(f,btn)` 会 btn 为 undefined ⇒ 直写状态变量再重渲。
 8. **注入与格式口径**：`select` 的 `selected` 在桩里不生效 ⇒ 默认选中项必须**显式注入**（`selfcheck` 取 JS 真实默认、`discriminate_check` 取首个 option，口径不同）。`inputs` 键若是模板串残留（`${f}` / `pri${i}`）会同时骗过两把锁（不进棘轮 + 记「正确变红」）⇒ 巡检 `verify_*_calc.js` 里形如 `${` 的键。`fmt()` 走 `toLocaleString()` 默认截 3 位小数 ⇒ 定 expect 避开被截断处。
 9. **clicks 锚「不读输入的全量函数」必误判逃生项**：判别器模拟注入失败是**清空 clicks 后跑**（含兜底遍历）。若 expect 锚 `checkAll()` 类「恒产全量」输出（如 `36/36`），兜底重调仍同值 ⇒ 判「仍 PASS」= 逃生项 ✅ 改用**具体输入态**（`toggleItem(0,0/0,1/0,2)` 勾 N 项 → `N/总数`），默认态 0 项不命中。
 10. **空结果提示不可锚两形态**：① 提示同时被兜底链复现（`selectXxx()` 无参置全局态 `undefined` ⇒ 过滤集恒空）⇒ 注入态与失败态同串，判逃生项。② 提示在**独立静态元素**内、仅切 `style.display` ⇒ 不写入结果容器 ⇒ blob 永不含该串。✅ 定锚前双态 dump 比对，只取「注入态有 / 默认态无且兜底不复现」的串。
 11. **「名 + 参数」型 option 文本是逃生项**：`<select>` 的 `option.textContent` 会进 `collectStrings` ⇒ `东京（日本）UTC+9` 这类串**默认态 select 里本就存在** ✅ 只锚**随注入值变化的派生量**。「写 localStorage 再读回」链路在 harness 下**只写不读**（`getItem` 缺失 ⇒ `getTasks()` 恒 `[]`）**不可注入**（`edu/exam-study-planner`)。
 12. **调试陷阱（把「没生效」误判成 bug）**：① `verify_it_calc.js` **必须留在 `scripts/` 下**跑 —— `TOOLS_DIR` 取自 `__dirname`，拷出仓库外会整页返「文件不存在」且 `errs=[]`（看似 clicks 静默失败）。② 确认 clicks 是否真执行：用 `clicks:["throw new Error('RAN')"]`，`errs` 出现 `RAN` 即已执行。③ 带连字符的 id 在用例对象里**必须加引号**（`{ "focus-mins": "50" }`），裸写会 SyntaxError。
-13. **「textarea + 预览区」双元页（Markdown / 富文本类）**：blob 同时含**注入原文回显**（textarea 的 `value`）与**渲染产物** ⇒「渲染产物文本 ⊂ 注入原文」的锚（`bold`、`H1`）**测不到渲染**，属伪锚。✅ 只锚**渲染独有的连排串**：剥标签后**标签换成空格**，同元素内相邻 cell 连成 `甲 乙 24 36 81 90`，而原文 `| 甲 | 乙 |` 里 `甲 乙 24` 并不连续 ⇒ 天然非回显。**expect 不能写带标签形式**（写了必 FAIL）。
-15. **多行 textarea 的产出串，换行在 blob 里被归一成空格 ⇒ 锚要写 `bbb aaa ccc`，不能写 `bbb\naaa`**（首版按 `\n` 写必 FAIL，易误读成「去重没生效」）。✅ 排序/去重类工具一律锚**整段连排**（`fig pear apple`）；**极短锚（`c`）默认态示例里本就有 ⇒ 逃生项**。「换个方向再跑一遍」能给出反向串的，两个方向都写进同一 `expect` 防假通过。
-16. **「输入 textarea + 结果区」提取器类（正则抽邮箱 / URL / 日期一类）：输入回显与提取结果并存**
-⇒ 直接锚被提取内容测的是**回显**，清空注入仍命中 ⇒ 伪锚 ✅ 锚落**结果区独有形态**（`emails` 锚「邮箱+空格+复制」、`urls` 锚两段 URL 连排）。（补）这类页常由 checkbox 决定抽不抽，**缺 `checkIds` 时 `extract()` 在首个 `.checked` 处抛错中断** ⇒ 结果区恒为初始值 ⇒ **注入后结果区不变先怀疑它**，须声明全部默认勾选项
+13. **「textarea + 预览区」双元页（Markdown / 富文本类）**：blob 同时含**注入原文回显**与**渲染产物** ⇒ 渲染文本 ⊂ 原文的锚属伪锚。✅ 只锚**渲染独有的连排串**：剥标签后标签换成空格，同元素相邻 cell 连成 `甲 乙 24 36 81 90`，原文 `| 甲 | 乙 |` 里不连续 ⇒ 天然非回显。**expect 不能写带标签形式**（必 FAIL）。
+15. **多行 textarea 的产出串，换行在 blob 里被归一成空格 ⇒ 锚写 `bbb aaa ccc` 不能写 `bbb\naaa`**。✅ 排序/去重类一律锚**整段连排**；**极短锚（`c`）默认态示例里本就有 ⇒ 逃生项**。能反向重跑的，两个方向都写进同一 `expect` 防假通过。
+16. **「输入 textarea + 结果区」提取器类（正则抽邮箱/URL/日期）**：回显与提取结果并存 ⇒ 锚被提取内容即伪锚 ✅ 锚落**结果区独有形态**（邮箱+空格+复制、两段 URL 连排）。这类页常由 checkbox 决定抽不抽，**缺 `checkIds` 时 `extract()` 在首个 `.checked` 抛错中断** ⇒ 结果区恒为初始值，注入后不变先怀疑它。
 
-17. **控件 id 不存在 = P0 死页（加载即 TypeError、整页无输出）**：harness `getEl()` 对未识别的 id 造空元素 ⇒ 页面不抛错、只读到空串 ⇒ 死页只表现为「无输出 / 只有常量锚」。判据 = 调入口函数抛 `Cannot read properties of null`；处置：改 **HTML** 的 id 并扫同族。另：`createElement()` 桩不回写 `textContent`→`innerHTML`  ⇒ 见下条。 
-18. **动态 id 不可做判别锚**：`pageDefaults()` 在 `<!-- TOOLBOX-DEEP-DIVE -->` 处截断 ⇒ 运行期生成的 id 取不到；只改它 ⇒ `usable=false` 静默跳过，顺带改可见键则变逃生项。锚须落在可见且影响输出的键（如 `forging-ratio` 改 `shape: round→rect`）。
-19. **「美化/格式化」类页易成回显伪锚**（`it/shell-script-formatter`：`getIndent()` 读 select ⇒ `parseInt(v)=NaN` ⇒ 缩进恒 0）⇒ 改走同页「压缩」路径找非回显锚（`minifyShell` 以 `; ` 连接 ⇒ `echo a; echo b`）。另：结果容器不在 DUMP_IDS 时用用例级 `dumpIds`；dump 只出常量/回显时先怀疑此因。
-20. **harness 未建模 `<select>` 默认选中项 ⇒ 桩内恒 null 的「静默死页」**：桩的 `checkedByName` 不解析 `<select>` + `<option selected>` ⇒ 读选中项 `.text` 恒 null ⇒ 页面整页无产物，只表现为「无输出 / 只有常量锚」，易误判「结构性不可注入」。判据 = 抛 `reading 'text'` 且 selector 形如 `#id option:checked`；处置见 D 段 `selectedText` 补丁（零回归）。
-21. **「模式切换 + 单 `calc()` 多分支」型页（顶层 `currentXxx` 变量 + `switchXxx(m)` 写它、`calc()` 按它分四条链算）**：兜底无参调用 `switchXxx(undefined)` 会把模式置空 ⇒ `calc()` 落到函数初值分支 ⇒ 各量全取 0 并**覆盖结果区** ⇒ 任何「归零态」输出串（`0 万保额` / `0 万 …`）在**默认态同样命中** = 逃生项（`finance/insurance-calculator` 四法皆然）。定锚只用随注入值变化的**非零**派生量；即使用例本身是边界（存量超需求 ⇒ 保额 `max(…,0)=0`），也改锚同组**其他非 0 明细行**（保费预算 / 重疾 / 负债 / 教育金）。用例 clicks 必须写 `switchXxx('别名'); calc();` 才落被测分支，否则兜底态与默认态同值。
+17. **控件 id 不存在 = P0 死页（加载即 TypeError、整页无输出）**：harness `getEl()` 对未识别 id 造空元素 ⇒ 不抛错、只读到空串，表现为「无输出/只有常量锚」。判据 = 调入口抛 `Cannot read properties of null`；处置：改 **HTML** 的 id 并扫同族。另 `createElement()` 桩不回写 `textContent`→`innerHTML`。
+18. **动态 id 不可做判别锚**：`pageDefaults()` 在 `<!-- TOOLBOX-DEEP-DIVE -->` 处截断 ⇒ 运行期生成的 id 取不到；只改它 ⇒ `usable=false` 静默跳过，顺带改可见键则变逃生项。锚须落在可见且影响输出的键。
+19. **「美化/格式化」类页易成回显伪锚**（`it/shell-script-formatter`：`getIndent()` 读 select ⇒ `parseInt(v)=NaN` ⇒ 缩进恒 0）⇒ 改走同页「压缩」路径找非回显锚（`minifyShell` 以 `; ` 连接 ⇒ `echo a; echo b`）。结果容器不在 DUMP_IDS 时用用例级 `dumpIds`；dump 只出常量/回显时先怀疑此因。
+20. **harness 未建模 `<select>` 默认选中项 ⇒ 桩内恒 null 的「静默死页」**：桩 `checkedByName` 不解析 `<option selected>` ⇒ `.text` 恒 null ⇒ 整页无产物，易误判「结构性不可注入」。判据 = 抛 `reading 'text'` 且 selector 形如 `#id option:checked`；处置见 D 段 `selectedText` 补丁（零回归）。
+21. **「模式切换 + 单 `calc()` 多分支」型页（顶层 `currentXxx` + `switchXxx(m)` + `calc()` 四分支）**：兜底无参调 `switchXxx(undefined)` 置空模式 ⇒ 落初值分支、结果区被全 0 覆盖 ⇒ 任何「归零态」串（`0 万保额`）在**默认态同样命中** = 逃生项。定锚只用**随注入变化的非零**派生量（边界例也改锚同组其他非 0 明细行）；`clicks` 必须写 `switchXxx('别名'); calc();` 才落被测分支。
 **D. 工具与方法**
 
 | 工具 | 用途 |

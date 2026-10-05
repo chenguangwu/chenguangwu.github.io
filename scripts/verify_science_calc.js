@@ -690,6 +690,24 @@ const CASES = [
     expect: ["质量 m（kg） 8.0000", "体积 V（m³） 0.006400", "体积 6.4000 L"],
     ref: "注入非默认(默认 density=1000/mass=1)：以质量为目标解体积 V = m/ρ = 8/1250 = 0.0064 m³（toFixed 6 ⇒ 0.006400）⇒ 6.4000 L；密度换算 1250 kg/m³ = 1.2500 g/cm³。默认态 1/1000 = 0.001000 / 1.0000 L，三条均不命中。",
   },
+  {
+    slug: "science/resistor-color-code",
+    inputs: { revValue: "4700" },
+    expect: ["4.7 k\u03a9 \u6700\u63a5\u8fd1 E24 \u6807\u51c6\u503c\uff0c\u8272\u73af\uff1a\u9ec4 \u00b7 \u7d2b \u00b7 \u7ea2 \u00b7 \u68d5"],
+    ref: "\u53cd\u67e5\u8272\u73af\uff1a4700 \u03a9 \u4e24\u4f4d\u6709\u6548\u6570\u5b57 4/7 \u21d2 \u7b2c1\u73af\u9ec4(4)\u3001\u7b2c2\u73af\u7d2b(7)\uff1b4700/(47\u00d710)=1 \u21d2 \u4e58\u6570\u9700 100 \u21d2 \u7b2c3\u73af\u7ea2(100\u00d7)\uff1b\u7cbe\u5ea6\u9ed8\u8ba4 \u00b11% \u21d2 \u7b2c4\u73af\u68d5\u3002\u624b\u5de5\u67e5\u8868\u6838\u5bf9\uff0c\u4e0d\u4f9d\u8d56\u9875\u9762\u8f93\u51fa\u3002\u9ed8\u8ba4 revValue=10000 \u21d2 10 k\u03a9 \u68d5\u00b7\u9ed1\u00b7\u7ea2\u00b7\u68d5\uff0c\u4e0d\u547d\u4e2d\u3002"
+  },
+  {
+    slug: "science/resistor-color-code",
+    inputs: { revValue: "6800" },
+    expect: ["6.8 k\u03a9 \u6700\u63a5\u8fd1 E24 \u6807\u51c6\u503c\uff0c\u8272\u73af\uff1a\u84dd \u00b7 \u7070 \u00b7 \u7ea2 \u00b7 \u68d5"],
+    ref: "\u53cd\u67e5\u8272\u73af\uff1a6800 \u03a9 \u6709\u6548\u6570\u5b57 6/8 \u21d2 \u84dd(6)/\u7070(8)\uff1b6800/(68\u00d710)=1 \u21d2 \u4e58\u6570 100 \u21d2 \u7ea2\uff0c\u00b11% \u21d2 \u68d5\u3002\u9ed8\u8ba4 10 k\u03a9 \u8f93\u51fa\u4e0d\u542b\u6b64\u4e32\u3002"
+  },
+  {
+    slug: "science/resistor-color-code",
+    inputs: { revValue: "390" },
+    expect: ["390 \u03a9 \u6700\u63a5\u8fd1 E24 \u6807\u51c6\u503c\uff0c\u8272\u73af\uff1a\u6a59 \u00b7 \u767d \u00b7 \u68d5 \u00b7 \u68d5"],
+    ref: "\u53cd\u67e5\u8272\u73af\uff1a390 \u03a9 \u6709\u6548\u6570\u5b57 3/9 \u21d2 \u6a59(3)/\u767d(9)\uff1b390/(39\u00d710)=1 \u21d2 \u4e58\u6570 10 \u21d2 \u68d5\uff0c\u00b11% \u21d2 \u68d5\u3002\u9ed8\u8ba4 10 k\u03a9 \u8f93\u51fa\u4e0d\u542b\u6b64\u4e32\uff1b\u6ce8\u610f 390 \u03a9 \u4e0e\u88f8\u503c 390 \u4e0d\u540c\uff08\u540e\u8005\u4e3a\u8f93\u5165\u56de\u663e\uff0c\u4e0d\u4f5c\u951a\uff09\u3002"
+  },
 ];
 
 // ---------------------------------------------------------------- main
