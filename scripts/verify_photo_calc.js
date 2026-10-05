@@ -161,6 +161,67 @@ const CASES = [
     inputs: { val: "5", rate: "2", from: "0.001", to: "1000" },
     expect: ["0.000010"],
     ref: 'r = 5×2×0.001/1000 = 0.000010（from 切毫 0.001、to 切千 1000，默认 1/1→1.000000，避开）'
+  },
+  // ── §7.4 零用例加固：photo 确定性数值页（注入非默认 + harness 实测锚）──
+  {
+    slug: "photo/photo-2",
+    inputs: { focal: "85", crop: "1.6", target: "2" },
+    expect: ["136 mm", "170 mm", "0.80"],
+    ref: "注入非默认(默认 focal=50/crop=1.5/target=1)：当前等效焦距 = 85×1.6 = 136 mm；目标等效焦距 = 85×2 = 170 mm；视角变化比 = 136/170 = 0.80。默认态 75/50/1.50 均不命中。"
+  },
+  {
+    slug: "photo/golden-hour",
+    inputs: { lat: "40", decl: "15", twilightMin: "90" },
+    expect: ["13.73 h", "1.50 h"],
+    ref: "注入非默认(默认 lat=30/decl=0/twilightMin=60)：按 cos H = −tanφ·tanδ 求日出时角 ⇒ 日照时长 = 2H/15 = 13.73 h；民用晨昏时段 = 2×(额外 90 min)/60 ⇒ 黄金时刻 1.50 h。默认态 12.00 h（赤纬 0 时恒 12 h）与 2.00 h 不命中。"
+  },
+  {
+    slug: "photo/photo-5",
+    inputs: { focal: "85", aperture: "4", coc: "0.025" },
+    expect: ["72.25 m", "36.13 m", "18.06 m"],
+    ref: "注入非默认(默认 focal=35/aperture=8/coc=0.03)：超焦距 H = f²/(N·c) = 85²/(4×0.025)/1000 = 72.25 m；近界 = H/2 = 36.13 m；参考 f/16 时 H = 72.25×4/16 = 18.06 m。默认态 5.10/2.55/1.28 m 均不命中。"
+  },
+  {
+    slug: "photo/photo-9",
+    inputs: { pitch: "8", wavelength: "600", coarse: "3" },
+    expect: ["1.46 µm", "16.4 f", "5.5 f"],
+    ref: "注入非默认(默认 pitch=5/wavelength=550/coarse=2)：艾里斑直径 = 2.44λ·N ≈ 2.44×0.600×… ⇒ 1.46 µm；据此给出建议最小光圈 16.4 f、像素级极限 5.5 f（随 pixel pitch 8 µm 与波长 600 nm 变化）。默认态数值不同。"
+  },
+  {
+    slug: "photo/photo-4",
+    inputs: { focal: "35", crop: "1.5", pixels: "8000", tolerance: "8" },
+    expect: ["9.5 秒", "3.49 秒", "3.5 秒"],
+    ref: "注入非默认(默认 24/1/6000/5)：500 法则曝光时间 = 500/(35×1.5) = 9.5 秒；NPF 近似按 (35·N·P + 16·p)/(f·cos…) 口径 ⇒ 3.49 秒；建议最长时间取两者较小并含容差 8 px ⇒ 3.5 秒。默认态 20.8/9.93 等不命中。"
+  },
+  {
+    slug: "photo/photo-10",
+    inputs: { ev_total: "15", step: "3", base: "-2" },
+    expect: ["11 张", "30 EV", "-2 ±15 EV"],
+    ref: "注入非默认(默认 ev_total=12/step=2/base=0)：单侧覆盖 15 EV、步长 3 ⇒ 张数 = 2×⌈15/3⌉+1 = 11 张；实际总覆盖 = 10×3 = 30 EV；档位列表中心基值 −2、范围 ±15 EV。默认态 13 张/26 EV/0 ±12 EV 均不命中。"
+  },
+  {
+    slug: "photo/macro-magnification",
+    inputs: { focal: "105", s: "200", frame: "36" },
+    expect: ["1.11 ×", "39.8 mm"],
+    ref: "注入非默认(默认 focal=100/s=150/frame=24)：放大率 m = f/(s−f) = 105/(200−105) = 1.11×；像高 = frame×m = 36×1.11 = 39.8 mm。默认态 2.00 ×/48.0 mm 不命中。"
+  },
+  {
+    slug: "photo/exposure-value",
+    inputs: { n: "4", t: "0.25", iso: "400" },
+    expect: ["6.00", "4.00"],
+    ref: "注入非默认(默认 n=2.8/t=0.125/iso=100)：EV = log₂(N²/t) = log₂(16/0.25) = log₂64 = 6.00；换算到 ISO100 ⇒ EV@ISO100 = 6.00 − log₂(400/100) = 4.00。默认态 5.98/5.98 不命中。"
+  },
+  {
+    slug: "photo/photo-11",
+    inputs: { speed: "80", distance: "15", focal: "135" },
+    expect: ["22.22 m/s", "84.88", "0.0009 s", "1146"],
+    ref: "注入非默认(默认 50/10/100)：80 km/h = 22.22 m/s；视角移动角速度 = v/d 换算 ⇒ 84.88 °/s；推荐快门 ≪ 1/角速度 ⇒ 0.0009 s（推荐分母 1146）。默认态 13.89 m/s 与各值不命中。"
+  },
+  {
+    slug: "photo/photo-6",
+    inputs: { focal: "85", sensor_w: "24", sensor_h: "16" },
+    expect: ["16.07 °", "10.75 °", "19.26 °"],
+    ref: "注入非默认(默认 focal=50/sensor 36×24)：水平视角 = 2·arctan(w/2f) = 2·arctan(12/85) = 16.07°；垂直 = 2·arctan(8/85) = 10.75°；对角线 = 2·arctan(√(12²+8²)/85) = 19.26°。默认态 39.60°/27.99°/46.79° 均不命中。"
   }
 ];
 
