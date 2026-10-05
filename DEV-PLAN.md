@@ -189,7 +189,7 @@
 - **但另有 191 个含 checkbox 的页面在全站任何 verify 文件中都没有用例**（`design/*` 11 页、`edu/*` 40 页、`biz/*` 文本类为主）。
 - 判定口径注意：用例块的键名**常不带引号**（`slug: "x"` / `inputs: {}` / `checkIds: [...]`），扫描脚本必须写成 `"?slug"?\s*:\s*"([^"]+)"`，否则会大量误报「无用例 / 无注入通道」（本次两次误报均源于此）。
 
-**处置**：属新线（补用例 ≠ 改弱用例），单独立批；须守 §8.1（expect 独立复算）。**已交付 869 例**（`design/*` 87 + `edu/*` 34 + `biz/*` 54 + `it/*` 322 + `finance/*` 118 + `sports/*` 6 + `life/*` 5，逐例锚点见各用例 `ref`）。剩 **644** 页待补（549 非脆弱 + 95 脆弱；2026-09-28 重扫，旧 3115 作废；17 字面换算器已收口）【按 `tools/**` 真实文件数重校】`design/image-resizer`（`generate()` 首行 `if(!origImg) return` + 依赖 canvas 解码）、`edu/exam-study-planner`（localStorage 桩只写不读 ⇒ 统计分子/分母不可达）**结构性不可注入，不硬写用例**。
+**处置**：属新线（补用例 ≠ 改弱用例），单独立批；须守 §8.1（expect 独立复算）。**已交付 869 例**（`design/*` 87 + `edu/*` 34 + `biz/*` 54 + `it/*` 322 + `finance/*` 118 + `sports/*` 6 + `life/*` 5，逐例锚点见各用例 `ref`）。剩 **643** 页待补（548 非脆弱 + 95 脆弱；2026-09-28 重扫，旧 3115 作废；17 字面换算器已收口）【按 `tools/**` 真实文件数重校】`design/image-resizer`（`generate()` 首行 `if(!origImg) return` + 依赖 canvas 解码）、`edu/exam-study-planner`（localStorage 桩只写不读 ⇒ 统计分子/分母不可达）**结构性不可注入，不硬写用例**。
 
 ## 八、反模式与防复发（铁律）
 
