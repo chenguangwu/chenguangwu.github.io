@@ -2499,8 +2499,8 @@ function toolboxAdSlidesHtml(){
 function toolboxAdCarouselHtml(){
   return '<div class="ad-carousel-track">' + toolboxAdSlidesHtml() + '</div>'
     + '<div class="ad-carousel-dots">'
-    + '<button type="button" class="ad-dot is-active" aria-current="true" aria-label="广告 1"></button>'
-    + '<button type="button" class="ad-dot" aria-current="false" aria-label="广告 2"></button>'
+    + '<button type="button" class="ad-dot is-active" aria-current="true" aria-label="广告 1" data-i18n-aria="ad.dot1_aria"></button>'
+    + '<button type="button" class="ad-dot" aria-current="false" aria-label="广告 2" data-i18n-aria="ad.dot2_aria"></button>'
     + '</div>';
 }
 
@@ -3000,16 +3000,16 @@ function buildUnifiedHeader(){
       '<input type="search" name="q" id="searchInputDesktop" placeholder="搜索工具、分类或功能..." data-i18n-ph="search.placeholder" oninput="if(window.onSearchInput)onSearchInput(event)">' +
     '</form>' +
     '<div class="nav-actions">' +
-      '<button class="nav-icon-btn" onclick="ToolBox.toggleToolTheme()" title="切换主题" aria-label="切换主题" data-i18n-title="nav.theme"><span class="tb-theme-icon" style="font-size:18px">🌙</span><span class="nav-btn-label" data-i18n="nav.theme" data-i18n-fb="切换主题">切换主题</span></button>' +
-      '<button class="nav-icon-btn" onclick="if(window.showHotTools)showHotTools();else location.href=\'' + root + 'index.html#hot\'" title="热门工具" aria-label="热门工具" data-i18n-title="nav.hot">' +
+      '<button class="nav-icon-btn" onclick="ToolBox.toggleToolTheme()" title="切换主题" aria-label="切换主题" data-i18n-title="nav.theme" data-i18n-aria="nav.theme"><span class="tb-theme-icon" style="font-size:18px">🌙</span><span class="nav-btn-label" data-i18n="nav.theme" data-i18n-fb="切换主题">切换主题</span></button>' +
+      '<button class="nav-icon-btn" onclick="if(window.showHotTools)showHotTools();else location.href=\'' + root + 'index.html#hot\'" title="热门工具" aria-label="热门工具" data-i18n-title="nav.hot" data-i18n-aria="nav.hot">' +
         '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg>' +
         '<span class="nav-btn-label" data-i18n="nav.hot" data-i18n-fb="热门工具">热门工具</span>' +
       '</button>' +
-      '<button class="nav-icon-btn" onclick="if(window.showFavTools)showFavTools();else location.href=\'' + root + 'index.html#fav\'" title="我的收藏" aria-label="我的收藏" data-i18n-title="nav.fav">' +
+      '<button class="nav-icon-btn" onclick="if(window.showFavTools)showFavTools();else location.href=\'' + root + 'index.html#fav\'" title="我的收藏" aria-label="我的收藏" data-i18n-title="nav.fav" data-i18n-aria="nav.fav">' +
         '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>' +
         '<span class="nav-btn-label" data-i18n="nav.fav" data-i18n-fb="我的收藏">我的收藏</span>' +
       '</button>' +
-      '<button class="nav-icon-btn" onclick="if(window.showRecentTools)showRecentTools();else location.href=\'' + root + 'index.html#recent\'" title="最近使用" aria-label="最近使用" data-i18n-title="nav.recent">' +
+      '<button class="nav-icon-btn" onclick="if(window.showRecentTools)showRecentTools();else location.href=\'' + root + 'index.html#recent\'" title="最近使用" aria-label="最近使用" data-i18n-title="nav.recent" data-i18n-aria="nav.recent">' +
         '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/></svg>' +
         '<span class="nav-btn-label" data-i18n="nav.recent" data-i18n-fb="最近使用">最近使用</span>' +
       '</button>' +
@@ -3024,11 +3024,11 @@ function buildUnifiedHeader(){
       '<img src="/logo.svg" alt="ToolBox Logo"><span>ToolBox</span>' +
     '</div>' +
     '<div class="nav-mobile-actions">' +
-      '<button class="nav-icon-btn" onclick="if(window.openMobileSearch)openMobileSearch();else location.href=\'' + root + 'search.html\'" title="搜索工具" aria-label="搜索工具" data-i18n-title="nav.search">' +
+      '<button class="nav-icon-btn" onclick="if(window.openMobileSearch)openMobileSearch();else location.href=\'' + root + 'search.html\'" title="搜索工具" aria-label="搜索工具" data-i18n-title="nav.search" data-i18n-aria="nav.search">' +
         '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>' +
         '<span class="nav-btn-label" data-i18n="nav.search" data-i18n-fb="搜索工具">搜索工具</span>' +
       '</button>' +
-      '<button class="nav-icon-btn" onclick="ToolBox.toggleToolTheme()" title="切换主题" aria-label="切换主题" data-i18n-title="nav.theme"><span class="tb-theme-icon" style="font-size:16px">🌙</span><span class="nav-btn-label" data-i18n="nav.theme" data-i18n-fb="切换主题">切换主题</span></button>' +
+      '<button class="nav-icon-btn" onclick="ToolBox.toggleToolTheme()" title="切换主题" aria-label="切换主题" data-i18n-title="nav.theme" data-i18n-aria="nav.theme"><span class="tb-theme-icon" style="font-size:16px">🌙</span><span class="nav-btn-label" data-i18n="nav.theme" data-i18n-fb="切换主题">切换主题</span></button>' +
     '</div>';
 
   wrap.appendChild(desk);
@@ -3088,7 +3088,7 @@ function buildUnifiedFooter(){
           '</ul>' +
         '</div>' +
       '</div>' +
-      '<div id="footerLaWidget" class="footer-la-widget" aria-label="ToolBox 实时访问数据"></div>' +
+      '<div id="footerLaWidget" class="footer-la-widget" aria-label="ToolBox 实时访问数据" data-i18n-aria="foot.la_widget_aria"></div>' +
       '<div class="footer-copy" data-i18n="footer.privacy" data-i18n-fb="© 2026 ToolBox · 纯前端在线工具 · 数据不上传，安全可靠">© 2026 ToolBox · 纯前端在线工具 · 数据不上传，安全可靠</div>' +
     '</div>';
 
@@ -3121,6 +3121,7 @@ function buildUnifiedFooter(){
   jump.id = 'tbJumpTop';
   jump.className = 'jump-top';
   jump.setAttribute('aria-label', '回到顶部');
+  jump.setAttribute('data-i18n-aria', 'nav.back_top');
   jump.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m18 15-6-6-6 6"/></svg>';
 
   wrap.appendChild(footer);
@@ -3451,6 +3452,7 @@ document.addEventListener('DOMContentLoaded', enhanceNumberInputs);
     trigger.type = 'button';
     trigger.className = 'tb-time-trigger';
     trigger.setAttribute('aria-label', '选择时间');
+    trigger.setAttribute('data-i18n-aria', 'tool.pick_time');
     trigger.setAttribute('aria-haspopup', 'dialog');
     trigger.textContent = '◷';
     wrapper.appendChild(trigger);
@@ -3459,6 +3461,7 @@ document.addEventListener('DOMContentLoaded', enhanceNumberInputs);
     picker.className = 'tb-time-picker';
     picker.setAttribute('role', 'dialog');
     picker.setAttribute('aria-label', '选择时间');
+    picker.setAttribute('data-i18n-aria', 'tool.pick_time');
     var initial = readTime(input, withSeconds);
     var minuteStep = parseInt(input.getAttribute('data-minute-step') || '', 10);
     if (!minuteStep || minuteStep < 1 || minuteStep > 59 || 60 % minuteStep !== 0) minuteStep = 1;

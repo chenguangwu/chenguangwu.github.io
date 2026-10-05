@@ -242,6 +242,9 @@ def _clean_en(raw, name_en):
         return ''
     if re.match(r'^(is a|are a|helps? you|allows? you|lets you|provides? (a|an) )', clean, re.I):
         return ''
+    # 尾部全角标点归一：词典翻译会把中文句末「。」直译成 " ."（如 HMAC/Java 转义），
+    # has_cjk() 只拦汉字不拦 CJK 标点，残留会在英文态被审计判为缺陷。
+    clean = re.sub(r'[\u3000-\u303f\uff00-\uffef]+$', '', clean).rstrip()
     return clean if len(clean) >= 20 else ''
 
 

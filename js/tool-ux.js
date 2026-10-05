@@ -120,6 +120,7 @@
     bar.className = 'tool-ux-bar';
     bar.setAttribute('role', 'toolbar');
     bar.setAttribute('aria-label', '结果操作');
+    bar.setAttribute('data-i18n-aria', 'tool.result_actions');
 
     var copyBtn = document.createElement('button');
     copyBtn.type = 'button';

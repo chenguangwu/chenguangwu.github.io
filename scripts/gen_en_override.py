@@ -385,6 +385,13 @@ PLACEHOLDER_KEY = {
     ('sports', 'shuimianhuifuzhiliang'): {'en': 'Sleep Recovery Quality', 'ed': 'Assess sleep recovery quality from duration and deep-sleep ratio.'},
     ('nephrology', 'shenxiaoqiulvguolv-24h-jiganqingchu-ccr'): {'en': 'Glomerular Filtration Rate (24h Creatinine Clearance, Ccr)', 'ed': 'Estimate GFR from 24-hour creatinine clearance (Ccr).'},
     ('fire-rescue', 'zuranyangzhishupanding'): {'en': 'Limiting Oxygen Index (LOI) Grader', 'ed': 'Grade flame retardancy and burning performance from material LOI.'},
+    # fire-rescue calc-1..4：与 `fire` 行业 calc-N 同名工具，规则引擎对中文名翻译失败
+    # 导致 en 回流中文，必须人工覆盖（否则英文态标题/描述/搜索卡片均为中文）。
+    ('fire-rescue', 'calc-1'): {'en': 'Fire Hose Water Jet Reach Calculator', 'ed': 'Compute the effective reach of a fire hose water jet (solid stream).'},
+    ('fire-rescue', 'calc-2'): {'en': 'Fire Load Density Calculator', 'ed': 'Estimate fire load density from fuel mass and calorific value.'},
+    ('fire-rescue', 'calc-3'): {'en': 'Evacuation Time Calculator', 'ed': 'Estimate walking and passage evacuation time with a crowd-flow model.'},
+    ('fire-rescue', 'calc-4'): {'en': 'Fire Extinguisher Placement Calculator', 'ed': 'Compute extinguisher counts required per protected area.'},
+    ('marketing', 'xiaohongshu-counter'): {'en': 'Xiaohongshu Copy Character Counter', 'ed': 'Count characters and hashtags for Xiaohongshu (RED) post copy.'},
     ('electronics', 'pcbzukangdieceng'): {'en': 'PCB Impedance Stackup', 'ed': 'Compute PCB impedance stackup by IPC-2141 from dielectric constant.'},
     ('geology', 'sanweidizhijianmocanshu'): {'en': '3D Geological Modeling Parameters', 'ed': 'Compute 3D geological modeling params from borehole thickness, dip and ore body size.'},
     ('agriculture', 'nongjijuzuoyexiaolv-mu-xiaoshi-duibi'): {'en': 'Farm Machinery Efficiency (Mu/Hour) Comparison', 'ed': 'Compare farm-machinery work efficiency (mu per hour) by width and speed.'},

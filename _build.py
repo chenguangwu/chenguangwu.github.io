@@ -2572,7 +2572,11 @@ def generate_html_sitemap(tools):
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="robots" content="index,follow">
 <title>站点地图 - ToolBox 免费在线工具集合</title>
+<meta name="title-en" content="Sitemap - ToolBox Free Online Tools">
 <meta name="description" content="ToolBox 在线工具站点地图：按 268 个行业分类浏览全部 5000+ 免费在线工具，支持搜索与繁体中文，快速定位需要的计算器与转换器。">
+<meta name="desc-en" content="ToolBox sitemap: browse all 5000+ free online tools across 268 industry categories. Search and Traditional Chinese supported — quickly locate the calculator or converter you need.">
+<meta property="og:title" content="站点地图 - ToolBox 免费在线工具集合">
+<meta property="og:description" content="ToolBox 在线工具站点地图：按 268 个行业分类浏览全部 5000+ 免费在线工具，支持搜索与繁体中文，快速定位需要的计算器与转换器。">
 <link rel="canonical" href="https://chenguangwu.github.io/sitemap.html">
 <link rel="icon" type="image/svg+xml" href="/favicon.svg">
 <link rel="stylesheet" href="/css/site-chrome.css">
