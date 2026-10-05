@@ -678,6 +678,31 @@ const CASES = [
     ref: "与 material-color 同模板同渲染函数，空态成因与安全性一致；两例同锚但落在不同页，可互相兜住模板改动。",
   },
 
+  // ── §7.4 零用例加固：design 确定性页（注入非默认 + harness 实测锚）──
+  {
+    slug: "design/tester-assessor",
+    inputs: {
+      totalTasks: "6", successTasks: "5", avgTime: "150", expectedTime: "100",
+      helpCount: "1", satisfaction: "4",
+      sus0: "4", sus1: "4", sus2: "4", sus3: "4", sus4: "4",
+      sus5: "4", sus6: "4", sus7: "4", sus8: "4", sus9: "4"
+    },
+    expect: ["83% (5/6)", "1.50x (150s/100s)", "4/7"],
+    ref: "注入非默认(默认 5/4/120/90/2/5)：任务完成率 5/6 = 83%、完成时间比 150/100 = 1.50x、用户满意度 4/7；SUS 十题全选 4 ⇒ 偶数索引(正表述) val−1=3×5=15、奇数索引(反表述) 5−val=1×5=5 ⇒ susSum=20 ⇒ SUS=50.0。⚠ 两条排雷：① harness 判定是『expect 任一子串命中即通过』，而判别器是**一次性把 inputs 全部换回页面默认**；sus0..sus9 由 JS 动态渲染、不在静态 HTML ⇒ 无法回退 ⇒ 失败态 = 默认绩效 + 注入 SUS，实测其任务绩效综合也恰为 73、综合评分也恰为 59 ⇒ **SUS 类锚与综合评分锚在两态相同，一律不可用**，只能锚依赖绩效输入的明细串；② errors 键改 2/1 时错误率评分四舍五入后综合不变 ⇒ 对输出无判别力，不予注入。",
+  },
+  {
+    slug: "design/ripple-effect",
+    inputs: { duration: "1.5", size: "320" },
+    expect: ["animation: rippleAnim 1.5s ease-out"],
+    ref: "注入非默认(默认 duration=0.8)：生成的 CSS 关键帧动画时长取注入值 ⇒ 'animation: rippleAnim 1.5s ease-out'。默认态为 0.8s，本锚不命中。size 不参与 CSS 输出，仅作陪注入。",
+  },
+  {
+    slug: "design/spinner-generator",
+    inputs: { size: "64", speed: "2" },
+    expect: ["width: 64px", "animation: spinGen 2s linear infinite"],
+    ref: "注入非默认(默认 size=40/speed=1)： spinner 边长取注入的 64px、旋转周期取注入的 2s ⇒ 生成 CSS 含 'width: 64px' 与 'animation: spinGen 2s linear infinite'。默认态为 40px/1s，两条均不命中。",
+  },
+
 ];
 
 // ---------------------------------------------------------------- main
