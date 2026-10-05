@@ -189,7 +189,7 @@
 - **但另有 191 个含 checkbox 的页面在全站任何 verify 文件中都没有用例**（`design/*` 11 页、`edu/*` 40 页、`biz/*` 文本类为主）。
 - 判定口径注意：用例块的键名**常不带引号**（`slug: "x"` / `inputs: {}` / `checkIds: [...]`），扫描脚本必须写成 `"?slug"?\s*:\s*"([^"]+)"`，否则会大量误报「无用例 / 无注入通道」（本次两次误报均源于此）。
 
-**处置**：属新线（补用例 ≠ 改弱用例），单独立批；须守 §8.1（expect 独立复算）。**已交付 869 例**（`design/*` 87 + `edu/*` 34 + `biz/*` 54 + `it/*` 322 + `finance/*` 118 + `sports/*` 6 + `life/*` 5，逐例锚点见各用例 `ref`）。剩 **621** 页待补（526 非脆弱 + 95 脆弱；2026-09-28 重扫，旧 3115 作废；17 字面换算器已收口）【按 `tools/**` 真实文件数重校】`design/image-resizer`（`generate()` 首行 `if(!origImg) return` + 依赖 canvas 解码）、`edu/exam-study-planner`（localStorage 桩只写不读 ⇒ 统计分子/分母不可达）**结构性不可注入，不硬写用例**。
+**处置**：属新线（补用例 ≠ 改弱用例），单独立批；须守 §8.1（expect 独立复算）。**已交付 869 例**（`design/*` 87 + `edu/*` 34 + `biz/*` 54 + `it/*` 322 + `finance/*` 118 + `sports/*` 6 + `life/*` 5，逐例锚点见各用例 `ref`）。**全站真实零用例重扫 = 2937 页 / 209 行业**（2026-10-05 全站 `tools/**` 比对全部 verify 文件 slug 得出；旧 3115/673/621 均作废）。已确认结构性不可注入（依赖随机生成 / DOMParser·highlight.js·canvas·qrcode·JsBarcode / 需按钮点击触发 / 纯静态参考页）的页不硬写用例，按行业探针结果留档：`agriculture` 8 页 + `it` 83 页（含 22 例已加固 NUM 类确定性计算页）已闭环；余 2826 页按可注入性逐行业探针推进（automotive/sports/fun/design/fire-rescue/legal/optical 等按零用例数降序）。
 
 ## 八、反模式与防复发（铁律）
 
