@@ -183,7 +183,19 @@ const CASES = [
     ref: "注入非默认(默认 500/90)：指数生长拟合 W = 5.45 × e^(3.705·t/100)（初始体重 5.4 g，SGR ≈ 0.995/d）；达到 650 g 约需 129.1 天；第 120 天预测体重 464.3 g。默认态为 122.0 天 / 第 90 天 152.8 g。注意两处泄漏：拟合方程系数 5.45 与 SGR 0.995 是常数；且默认态的生长预测表第 120 行也含裸值 464.3 ⇒ 必须写成「第 120 天预测体重 464.3 g」完整串。"
   },
   {"slug": "fishery/feed-protein-fat", "inputs": {"temp": "25"}, "clicks": ["document.getElementById('species').value='cold';document.getElementById('stage').value='growout';calc();"], "expect": ["40% 蛋白质 13% 脂肪 3.08 蛋脂比 1.58 可消化能(kJ/g)", "冷水性鱼 · 成体期：蛋白 40%、脂肪 13%"], "ref": "独立复算：REQ.cold.growout = [40,14]；水温 25℃ > 20 ⇒ 冷水鱼脂肪需求修正 f = 14−1 = 13（蛋白不修正，仍 40%）。蛋脂比 = 40/13 = 3.0769 ⇒ 3.08；可消化能 = (40×16.7 + 13×37.7 + 25×16.7)/1000 = (668 + 490.1 + 417.5)/1000 = 1.5756 ⇒ 1.58 kJ/g。默认态（warm + fry + 25℃）为 38/7/5.43/1.32，两锚均不命中。select 的 species/stage 须走 clicks 赋值（桩无 option selected）。"},
-  {"slug": "fishery/feed-protein-fat", "inputs": {"temp": "14"}, "clicks": ["document.getElementById('species').value='warm';document.getElementById('stage').value='fingerling';calc();"], "expect": ["30% 蛋白质 7% 脂肪 4.29 蛋脂比 1.18 可消化能(kJ/g)", "温水性鱼 · 鱼种期：蛋白 30%、脂肪 7%"], "ref": "独立复算：REQ.warm.fingerling = [32,7]；水温 14℃ < 18 ⇒ 温水鱼蛋白需求修正 p = 32−2 = 30（脂肪不修正，仍 7%）。蛋脂比 = 30/7 = 4.2857 ⇒ 4.29；可消化能 = (30×16.7 + 7×37.7 + 417.5)/1000 = (501 + 263.9 + 417.5)/1000 = 1.1824 ⇒ 1.18 kJ/g。默认态（warm + fry + 25℃，无温度修正）为 38/7/5.43/1.32，两锚均不命中；本例与上一例互为对照，覆盖 warm 低温与 cold 高温两条修正分支。"}
+  {"slug": "fishery/feed-protein-fat", "inputs": {"temp": "14"}, "clicks": ["document.getElementById('species').value='warm';document.getElementById('stage').value='fingerling';calc();"], "expect": ["30% 蛋白质 7% 脂肪 4.29 蛋脂比 1.18 可消化能(kJ/g)", "温水性鱼 · 鱼种期：蛋白 30%、脂肪 7%"], "ref": "独立复算：REQ.warm.fingerling = [32,7]；水温 14℃ < 18 ⇒ 温水鱼蛋白需求修正 p = 32−2 = 30（脂肪不修正，仍 7%）。蛋脂比 = 30/7 = 4.2857 ⇒ 4.29；可消化能 = (30×16.7 + 7×37.7 + 417.5)/1000 = (501 + 263.9 + 417.5)/1000 = 1.1824 ⇒ 1.18 kJ/g。默认态（warm + fry + 25℃，无温度修正）为 38/7/5.43/1.32，两锚均不命中；本例与上一例互为对照，覆盖 warm 低温与 cold 高温两条修正分支。"},
+
+{
+    "slug": "fishery/calc-power",
+    "inputs": {
+      "v0": "8",
+      "v1": "12"
+    },
+    "expect": [
+      "96.00 W 功率 P = V×I"
+    ],
+    "ref": "功率 P = V × I = 12 × 8 = 96.00 W（v0 为电流 8A、v1 为电压 12V）。页面输出 '96.00 W 功率 P = V×I'。默认态其他输入不产生 96.00。"
+  }
 ];
 
 async function main() {
