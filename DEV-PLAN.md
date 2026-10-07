@@ -151,9 +151,7 @@
 
 - **harness 输入桩能力现状（2026-09-24 定型，勿再重估）**：可注入手段共 **6 种** —— `inputs`、`checkIds`、`radios`、`checks`（**仅在「无 inputs」分支计入弱用例判定**）、`clicks`（页面作用域 direct eval + 动态 DOM 登记）、`dynDom`。**「纯 checkbox 量表页不可注入」的旧结论已失效**。逐例打法见 `.workbuddy/memory/` 与 skill `toolbox-weakcase-hardening`。
 - **仍未闭环的残留（转 P3 顺带，不单独成批）**：
-  - ✅ **纯 checkbox 量表页已闭环（2026-09-26 核实）**：含 `checkbox` 页 353 个，有用例的 162 个**均带注入通道**、弱用例 0；另 191 个无任何用例 ⇒ 覆盖缺口，见 §7.4。
-  - ✅ **fim-scale / gingival-index 已闭环**：两例均有真实 `inputs` + 独立复算 `ref`（fim 全填 7 ⇒ 运动分 13×7=91/91、独立率 100%；gingival t16 四位点 3 / BOP 1 ⇒ GI 12/24=0.50、BOP 1/6=16.67%→17%），默认态均失配。
-  - ✅ **`womac` / `load-curve` 系失效引用，已删**：`tools/rehabilitation/` 下**不存在**这两个文件；`rehabilitation` 现有 18 例用例全部带注入通道。
+  - **checkbox 页覆盖缺口**：全站含 `checkbox` 页 353 个，162 个有用例的均带注入通道、弱用例 0；另 191 个无任何用例 ⇒ 见 §7.4。
 - **`metalwork/tester-19` ≤1kV 耐压分支无法构造判别用例**：该分支输出恒为常数 `3.5 kV`（与 `ratedV` 取值无关），任何 `expect` 都会在**默认态**命中 → 必被判逃生项，故**刻意不补用例**；该修复（`0.0 kV → 3.5 kV`）只能靠隔离器人工跑 + 代码评审保真，回归时注意。
 - **「多页签（mode）」页面的非默认页签分支无法被 harness 覆盖**：切页签必须带参调用 `setMode(1)`，而 harness 只无参调用候选函数 → 双样本 / 第二种模式分支永不执行，`expect` 只对默认页签有效。**复核口径**：复制页面到 `tools/<ind>/_tmp-xxx.html`，把 `let currentMode=0;` 改成 `1` → 隔离器单跑 → **立即删除副本**（勿留待提交）。
 - **永久排除（不下架）**：同名异功能 `finance/salary-after-tax` ↔ `payroll-calculator`、`ophthalmology/self-assess-2` ↔ `osdi-scale`；跨行业同名编号页（`calc-N`/`rater-N` 等 17 个 basename）经内容哈希取证均为不同工具、内容各异，非重复，不处理。
@@ -302,6 +300,14 @@
 - **`_inject_output_guard_v7.py` 的 `expr_is_safe_to_guard` 只被定义、从未在 `transform()` 里调用** —— "保守过滤"从未生效。**教训：凡"加了过滤 / 白名单 / 守卫"的改动，必须用一条反面样本证明它真的拦住了**（喂一个应被拦下的输入，确认输出不变）；否则"定义即生效"只是错觉。
 - **过滤"过宽"与"未接线"同样有害**：静态字符串含独立 NaN 词或等于 `'Infinity'` 的 RHS 全站命中 **0 处**，而模板串 / 字符串拼接 / 动态容器变量的守卫**真机上确能拦截 NaN 经插值泄漏到页面**。若跳过模板字面量 / 字符串 / method 链，反而**削弱真机防护**；v8 只跳过"纯静态字符串字面量 RHS"。
 - **守卫只应注入「数值输出页」**：对纯文本/工具页（如 `it/html-escape`、`it/code-runner`）注入含 `NaN` 文本检测的守卫会**误伤正常输出**（转义后的 JS 代码里出现 `NaN` 就被判为无效值）。**注入前先判页面是否有数值输出/`type=number` 输入。**
+
+### 8.13 i18n 键「前缀错配」会静默把键名弹给用户
+
+- **症状（真浏览器取证）**：中文态点「复制结果」→ toast 显示字面量 `toast.copy_success`（**不是 `undefined`**）。
+- **根因是前缀错配、不是键缺失**：历史生成脚本（`scripts/opt_fengshui.py` 等）页面里写 `i18nText('toast.msgNNN')`（1033 处），`I18N_MSG` 存**裸 `msgNNN`**（624 条）⇒ `resolve()` 回退链末端 `return key`，把**调用方的键字符串**渲染出来。**逐个补键是错的方向**（755 键两套字典皆无、语义未知）⇒ 走**前缀归一化回退**（剥前缀再查一次，页面与字典零改动），配套 `js/i18n.js` 导出 `I18n.has()`。
+- **英文态须单独兜底**：`en-US PACKS` 未收录这批 msgNNN（裸键数 0），不管它就会回落**中文**给英文页面。英文态且 `I18n.has(bare)` 为 false ⇒ 回英文默认文案。
+- **三个坑（各返工一轮才定位）**：① 兜底**必须放 `i18nText` 内**，不能放 `normalizeI18nKey` 末尾——后者在 `while` 剥前缀时已 `return k` 提前退出，末尾分支永不执行；② `js/common.js` **整体在 IIFE 内**，`I18N_MSG`/`normalizeI18nKey` 在 `evaluate` 里 `typeof==='undefined'` 属正常，**不可据此判"修复未生效"**；③ 语言判定用 `I18n.get()`，别用未挂 window 的 `isEnglishMode()`。
+- **验证口径**：改i18n 类必须**真浏览器点一次真实按钮**看 toast 的 `textContent`；静态 grep 与符号可见性都不能证明文案正确。
 - **harness 盲区页无法静态识别，只能试错**：正确流程是 **注入 → 跑该行业 verify → 失败页写入 `--skip` 清单 → 带 `--skip` 重跑 → 直到全绿**（v8 已实现）。
 - **dry-run 命中 ≠ 存在缺陷**：须过「jsdom 真机 + 源码兜核」两道（2026-09-23 报 36 页全为静态误报），结论固化在 `scripts/output_guard_exclude.txt`。**但 jsdom 桩会把 `:checked`/`dataset`/动态 `innerHTML` 控件页误报成除零 ⇒ 判真缺陷只能用真浏览器**（playwright-core + 本机 chromium 逐项置零）。**v8 守卫只是遮羞布，治本用 `_inject_input_guard_v9.py`**（calc 入口插 `__tbInputGuard()`，公式不改；必填判据=`type=number` 且有非空 `value`，顺序＝分母→全零，判存在用 `indexOf` 非 `in`）。
 
@@ -313,9 +319,8 @@
 
 - **未处理（疑似口径）**：`legal/calc-8`（年终奖计税）把「社保/专项附加」按**年度值**扣除、未 ×12；若语义是「月缴」则应税所得高估、税额偏低。等老板确认语义。
 - **未处理（非缺陷）**：`ai/ocr`、`ai/image-classification` 等 5 个 `<script type="module">` 页的 `own_len` 度量盲区（§7.3 结论：不改）。
-- **未处理（字段错位真缺陷）**：`chinese/chinese-radical-lookup` 的 `DATA[c]` 实为 `[部首,部首名,总笔画,字形描述,拼音,本字]`，而 `query()` 错取 `d[3]` 当读音、`d[4]` 当字形 ⇒ 输出「读音：水流」「字形：hé（河）」。修法：① 改模板对调 d[3]/d[4]（1 处）；② 改 DATA 顺序（面大）。未改页面，等定夺。
-- **未处理（P0 真缺陷 · 浏览器卡死）**：`it/docker-run-converter` 的 `parse()`：非选项且 image 已赋值时无分支自增 `i` ⇒ 镜像名后有尾参（`docker run -it … alpine sh`）即**无限循环、标签页冻死**（默认语料无尾参故难现）。修法：`while` 末尾补 `i++`。同类可疑 `it/barcode-upc`。未改页面，等定夺。
-- **站点级 `showToast(i18nText())` 显示 `undefined`（待定夺）**：`i18nText` 在 key 与 fallback 均空时 `return key` ⇒ `undefined`，`showToast` 写入 `textContent` 被 WebIDL 转字符串 `undefined`。全站 **3208 处 / 1073 页**（`copyText` 另 200 处）；空输入/复制失败分支弹 `undefined` 气泡（BATCH105 实测）。影响面大、属文案层，**未改**。建议（待拍板）：`showToast`/`copyText` 入口加「空/undefined 回落默认中文」兜底（改 `js/common.js` 1 处、页面零改动）；逐页补 `i18nText` 需改 1073 文件，不建议。
+
+> **2026-10-07 已闭环三项**：① `chinese-radical-lookup` 字段错位（模板对调 `d[3]`/`d[4]`）；② `it/docker-run-converter` 死循环（`while` 末尾无条件 `i++`）；③ 站点级 toast 键名外泄（1073 页）——根因与防复发口径见 §8.13。
 
 ---
 
