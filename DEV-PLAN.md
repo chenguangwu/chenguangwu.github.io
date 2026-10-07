@@ -114,28 +114,20 @@
 
 - **deep-dive 由 `_build.py` 按 `i18n/tools/content_deepdive.json` 重建**：直接改源 html 会被覆盖。改 deep-dive / 场景 / 示例 / FAQ → 改 JSON 数据源。
 - **术语内链唯一源 = `_build.py::linkify_terms()`**（§4.1.7）：把 deep-dive 正文里的专业名词链到站内工具页/指南页。术语 = 工具中文名 + 剥通用后缀的核心词（`_TERM_LINK_SUFFIXES`）+ 指南标题去「使用指南」；**目标必须存在且非 `TOOLBOX-REDIRECT` 存根**。细则：逐字符最长匹配、`TERM_LINK_MIN_LEN=3`（「公式」曾命中 844 次）、每目标页每页只链一次、上限 `TERM_LINK_MAX_PER_PAGE=6`、不链自身、ASCII 术语要求词边界（防 `CSS` 命中 `CSS3`）。**禁在页面手改内链**。
-- **FAQPage 结构化数据不被重建**：手动加的 JSON-LD 会保留，但注入坏 JSON 不会自动修复，须自测解析合法。
 - **繁体 `zh-tw/` 是构建产物**：勿手动改（被 `.gitignore` 忽略）；其子树不含 `js/`，引用站内 JS 必须绝对路径 `/js/x.js`。
 - **i18n 八件套**：标题/简介走 `_en_override.json` + `slug-en.json`；行业 i18n 走 `i18n/tools/<ind>.json`；凡引 `common.js` 的静态页须引 `i18n.js`。
-- **门禁**：`python3 _test_static.py` 须 0 失败 0 告警；死链与资产审计须 exit 0。
 - **计算函数名不统一**：`calcTool()` / `calc()` / `calcBelt()` 等。抽取时在整个 html 里多候选 `function <name>(` + 花括号配平，勿用 `max(scripts, key=count('calcTool'))`（会选中 stub）。依赖 select 与常量表的工具须先抽 `<select id=...>` 默认项与 `const X = {` 常量表。
-- **deep-dive JSON 格式**：仓库规范 `indent=1`，apply 脚本须 `json.dump(indent=1)`，否则全量重排成噪音 diff。
 - **英文 p 三种机制（改法不同）**：① `data-zh` —— 英文写在源 HTML，改源文件；② 裸 `<p>中文</p>` —— build 用 `<ind>-body.json` 覆盖，**必须改数据源**；③ `data-i18n` —— 由 build 注入，同样改数据源。
 - **英文态数据源三处（最易漏）**：`i18n/tools/<ind>-body.json`（title/h1/intro）、`i18n/tools/<ind>.json` 的 `en-US`（同时是 industry JSON 的 `ed` 最高优先级源）、`_en_override.json`（en/ed）。
 - **build 预渲染陷阱（最高频事故）**：`_prerender_tool_body` 用 `count=1` 命中文档**首个 `<p>`**，任何插在首个 `<p>` 前的中文 `<p>` 都会被 intro 覆盖。修法：改成 `<div>` 或补 `data-zh`。该函数**幂等**，故改数据源后必须先把页面「还原」再 build。
-- **`desc-en` meta 权威源是 build**：无需手改 meta，改 EN_MAP / 数据源即可。
-- **英文管线关键 BUG（已修，勿复现）**：`gen_en_override.py` 曾读 `t.get('i')` 而 `tools.json` 字段是 `industry` → override 全 miss。修法：`t.get('industry') or t.get('i')`。`slug_to_intro` 默认模板恰是审计判定短语，**新增默认文案须避开** `is a free online (tool|...)` / `is available directly in your browser` / `check and validate online` / `Generate results online for free` / `VERB online` 五类指纹。
+- **`slug_to_intro` 默认模板恰是审计判定短语**：新增默认文案须避开 `is a free online (tool|...)` / `is available directly in your browser` / `check and validate online` / `Generate results online for free` / `VERB online` 五类指纹（否则审计会把默认文案误判为套话）。
 - **英文副标题 p 已英文不重渲染**：`_prerender_tool_body` 对**已是英文**的副标题 `<p>` 不重渲染，故清副标题必须**直接改写 HTML p 内文**（或扩展重渲染逻辑），不能只改数据源。
-- **§8 英文态判据读的是 body 顶层 `intro`，不是 `en.intro`**：后续任何英文 intro 治理必须以顶层 `intro` 为准。
 - **指南页模板化识别**：审计判据——核心功能 ≠ 适用场景、使用步骤 ≠ 示例标题且 ≥5 条、实用技巧 ≥4 条。跨分类重名用 `--prefix`。
 - **跨分类重名 slug 的指南必须走 `--prefix`**：`guides.json` 按 basename 去重，重名会互覆。`_build.py` 靠指南页正文的**绝对 URL** 反查行业，相对路径不会建立精确映射。
 - **计算验证 DOM stub 框架六条踩坑**：① 页面多用 DOMContentLoaded，stub 须收集并执行；② 大量工具用内联 `oninput=`，须解析 HTML 属性；③ 内联 handler 在全局作用域执行，window 须指向 globalThis 且把 `new Function` 顶层函数导出到全局；④ 顶层函数枚举须含 `async function` 且 await 结果；⑤ 结果可能写 textContent 或 appendChild，采集须覆盖 value/innerHTML/textContent；⑥ 用例间须清理挂到 globalThis 的页面函数。**依赖「今天」的日期类用例不可纳入**。
-- **静态审计两处已知误报（勿报）**：无 `id="result"`、无 `data-theme` 均为**非缺陷**。
-- **deep-dive「覆盖率 ≠ 达标率」有三层套话**：分三处独立查——① `scenarios`/`faqs` 模板 ② `examples` 模板 ③ 英文名嵌入中文（`[A-Z][a-z]+ Validator` 出现在中文句里 = 代号型套话）。
 - **Python `a = b = []` 多变量共享同一 list**：写审计脚本时多列表必须逐个独立赋值；计数异常一致时先怀疑脚本。
 - **仓库体积（`.git`）维护**：`du -sh .git` > **800M** 即跑 `git repack -a -d` + `git prune-packed`（合并全 pack、**不 prune 任何不可达对象**，零工作区影响、可随时重跑）—— 参考实测 860M（29 pack）→ 662M（1 pack）。另注：仓库另有约 103M **不可达对象**（经查全是 `git stash` 残留），清理须 `git prune`（**不可恢复 → 须老板拍板**，Agent 只报数据不做）。
 - **同一逻辑在多个分类重复实现时，抽通用脚本而非复制**：新分类开工前先 `ls scripts/` 查是否有可加 `--industry` 的现成脚本（老板明确偏好复用而非复制）。
-- **formula-box 覆盖率全站已 100%**：注入脚本 `extract_formula.py` + `inject_formula_generic.py`（幂等）；锚点 = 标准副标题 `<p>`，**已有 formula-box 的文件一律跳过**；无简单赋值的 calc 诚实 fallback，**绝不写伪公式**。
 
 ---
 
@@ -152,9 +144,9 @@
 - **harness 输入桩能力现状（2026-09-24 定型，勿再重估）**：可注入手段共 **6 种** —— `inputs`、`checkIds`、`radios`、`checks`（**仅在「无 inputs」分支计入弱用例判定**）、`clicks`（页面作用域 direct eval + 动态 DOM 登记）、`dynDom`。**「纯 checkbox 量表页不可注入」的旧结论已失效**。逐例打法见 `.workbuddy/memory/` 与 skill `toolbox-weakcase-hardening`。
 - **仍未闭环的残留（转 P3 顺带，不单独成批）**：
   - **checkbox 页覆盖缺口**：全站含 `checkbox` 页 353 个，162 个有用例的均带注入通道、弱用例 0；另 191 个无任何用例 ⇒ 见 §7.4。
-- **`metalwork/tester-19` ≤1kV 耐压分支无法构造判别用例**：该分支输出恒为常数 `3.5 kV`（与 `ratedV` 取值无关），任何 `expect` 都会在**默认态**命中 → 必被判逃生项，故**刻意不补用例**；该修复（`0.0 kV → 3.5 kV`）只能靠隔离器人工跑 + 代码评审保真，回归时注意。
-- **「多页签（mode）」页面的非默认页签分支无法被 harness 覆盖**：切页签必须带参调用 `setMode(1)`，而 harness 只无参调用候选函数 → 双样本 / 第二种模式分支永不执行，`expect` 只对默认页签有效。**复核口径**：复制页面到 `tools/<ind>/_tmp-xxx.html`，把 `let currentMode=0;` 改成 `1` → 隔离器单跑 → **立即删除副本**（勿留待提交）。
-- **永久排除（不下架）**：同名异功能 `finance/salary-after-tax` ↔ `payroll-calculator`、`ophthalmology/self-assess-2` ↔ `osdi-scale`；跨行业同名编号页（`calc-N`/`rater-N` 等 17 个 basename）经内容哈希取证均为不同工具、内容各异，非重复，不处理。
+- **`metalwork/tester-19` ≤1kV 耐压分支无法构造判别用例**：该分支输出恒为 `3.5 kV`（与 `ratedV` 无关），任何 `expect` 都会在**默认态**命中 → 必被判逃生项，故**刻意不补用例**；该修复只能靠隔离器人工跑 + 代码评审保真。
+- **「多页签（mode）」页面的非默认页签分支无法被 harness 覆盖**：切页签必须带参 `setMode(1)`，而 harness 只无参调用候选函数 ⇒ 第二种模式分支永不执行。**复核口径**：复制页面到 `tools/<ind>/_tmp-xxx.html`，把 `let currentMode=0;` 改成 `1` → 隔离器单跑 → **立即删除副本**。
+- **永久排除（不下架）**：同名异功能 `finance/salary-after-tax` ↔ `payroll-calculator`、`ophthalmology/self-assess-2` ↔ `osdi-scale`；跨行业同名编号页（`calc-N`/`rater-N` 等 17 个 basename）经内容哈希取证均为不同工具，非重复。
 
 
 **P2 — 低优先级**
@@ -167,23 +159,19 @@
 >
 > **当前为空** —— 全站 209 分类已全部收口（2026-09-19 收官）。
 
-### 7.3 C→A 质量提升专项（目标：A 级率 →75%）
+### 7.3 C→A 质量提升专项（**已达成并超额，勿重开**）
 
-> **判定口径**（`_build.py:1701-1744`）：A = `rich 且 own_len≥800` / `own_len≥6000` / `own_len≥3000 且 inputs≥3`。`rich` = canvas/data-viz 或 formula-box 正文 ≥`FORMULA_BOX_MIN_TEXT`(20) 字。
-> **状态：目标已达成并超额** —— A 级率 70.0%→**99.2%**（4693/4729，build 口径）；bucket1（`own_len≥800 且非 rich`，补真实 formula-box）、bucket3 前置段（own_len 700-799 + 真实派生量）、缺陷 J/L/M 全部闭环。
-> **明确排除（度量盲区，勿强改）**：`ai/ocr`、`ai/image-classification`（及同类 `ai/*`）逻辑写在 `<script type="module">` 中，而 `own_len` 正则只匹配**裸 `<script>`** → 永远够不到 800。属**度量口径盲区、非页面缺陷**，强行补裸脚本 = 代码膨胀凑数，**不做**。若日后需修正，应改 `_build.py` 的 `own_len` 正则纳入 `type="module"`（框架改动、须单独评估；全站仅 5 页命中）。
-> **手法**：计算器补「真实公式说明面板」（含实际公式 + 一句说明，非代码膨胀）；非计算器补真实原理/参考表。
-> **复用纪律**：动手前先做全站查重（`tools.json` name 归一化相似度 + 关键词），能存根就存根（成本远低于重做）；存根须留 `TOOLBOX-REDIRECT`（保 URL 零 404，canonical 指向真工具）。
-> 逐批明细见 `.workbuddy/memory/2026-09-2*.md` 与全量快照归档。
+- **判定口径**（`_build.py:1701-1744`）：A = `rich 且 own_len≥800` / `own_len≥6000` / `own_len≥3000 且 inputs≥3`。`rich` = canvas/data-viz 或 formula-box 正文 ≥`FORMULA_BOX_MIN_TEXT`(20) 字。**现状 A 级率 99.2%**（4693/4729，build 口径）。
+- **度量盲区（勿强改）**：`ai/ocr`、`ai/image-classification` 等 5 页逻辑写在 `<script type="module">`，而 `own_len` 只匹配裸 `<script>` ⇒ 永远够不到 800。属**度量口径盲区、非页面缺陷**，补裸脚本 = 代码膨胀凑数，**不做**。若日后修正须改 `_build.py` 的 `own_len` 正则纳入 `type="module"`（框架改动、全站仅 5 页命中）。
+- **手法（供其他提升复用）**：计算器补「真实公式说明面板」（含实际公式 + 一句说明，非代码膨胀）；非计算器补真实原理/参考表。**动手前先全站查重**（`tools.json` name 归一化相似度 + 关键词），能存根就存根；存根须留 `TOOLBOX-REDIRECT`（保 URL 零 404，canonical 指向真工具）。
 
 ---
 
-### 7.4 verify 用例覆盖缺口（2026-09-26 全站核实，新线）
+### 7.4 verify 用例覆盖缺口（新线）
 
-**核实结论（勿再重估）**：checkbox 页 353 个，162 个有用例的均带注入通道、弱用例 0；另 191 个含 checkbox 的页无任何用例。**扫描口径坑**：用例块键名常不带引号，扫描正则须写 `"?slug"?\s*:\s*"([^"]+)"`，否则大量误报「无用例」（已踩两次）。
+**全站真实零用例 = 616 页 / 86 行业**（2026-10-07 重建扫描）。扫描口径：覆盖集合 slug 为 **`行业/slug`** 形式；过滤 `TOOLBOX-REDIRECT` 存根；**用例块键名常不带引号，正则须写 `"?slug"?\s*:\s*"([^"]+)"`** 否则大量误报「无用例」（已踩两次）。checkbox 页 353 个，162 个有用例的均带注入通道、弱用例 0。
 
-**处置**：属新线（补用例 ≠ 改弱用例），单独立批；须守 §8.1（expect 独立复算）。**全站真实零用例 = 616 页 / 86 行业**（2026-10-07 重建扫描）。扫描口径：覆盖集合 slug 为 **`行业/slug`** 形式；过滤 `TOOLBOX-REDIRECT` 存根。
-**⚠ 判别器口径（踩过才确认）**：`discriminate_check.js` 是**一次性把 inputs 全部换回页面 HTML 默认**（非逐键）**且保留 clicks**（⇒ 仅靠 clicks 所设状态的输出恒命中，不可作锚）；而 harness 判定是「expect **任一**子串命中即通过」。⇒ 凡不在静态 HTML 中的输入（如 JS 动态渲染的 `sus0..sus9`）**无法回退**，失败态 = 其余键默认 + 该键保持注入；此时必须按**该失败态**实测选锚（design/tester-assessor 的 SUS 类锚与综合评分锚在两态巧合相同，只能锚绩效明细串）。对输出无判别力的键（如 errors 四舍五入后综合不变）不予注入。**`fun` 53 页探针已坐实：50/53 为游戏或随机生成器（RAND=True），整行业结构性排除。**
+**⚠ 判别器口径（踩过才确认）**：`discriminate_check.js` 是**一次性把 inputs 全部换回页面 HTML 默认**（非逐键）**且保留 clicks**（⇒ 仅靠 clicks 所设状态的输出恒命中，不可作锚）；harness 判定是「expect **任一**子串命中即通过」。⇒ 凡不在静态 HTML 中的输入（如 JS 动态渲染的 `sus0..sus9`）**无法回退**，失败态 = 其余键默认 + 该键保持注入；此时必须按**该失败态**实测选锚。**`fun` 53 页已坐实：50/53 为游戏或随机生成器（RAND=True），整行业结构性排除。**
 
 ## 八、反模式与防复发（铁律）
 
@@ -298,23 +286,32 @@
 
 ### 8.13 i18n 键「前缀错配」会静默把键名弹给用户
 
-- **症状（真浏览器取证）**：中文态点「复制结果」→ toast 显示字面量 `toast.copy_success`（**不是 `undefined`**）。
-- **根因是前缀错配、不是键缺失**：历史生成脚本（`scripts/opt_fengshui.py` 等）页面里写 `i18nText('toast.msgNNN')`（1033 处），`I18N_MSG` 存**裸 `msgNNN`**（624 条）⇒ `resolve()` 回退链末端 `return key`，把**调用方的键字符串**渲染出来。**逐个补键是错的方向**（755 键两套字典皆无、语义未知）⇒ 走**前缀归一化回退**（剥前缀再查一次，页面与字典零改动），配套 `js/i18n.js` 导出 `I18n.has()`。
-- **英文态须单独兜底**：`en-US PACKS` 未收录这批 msgNNN（裸键数 0），不管它就会回落**中文**给英文页面。英文态且 `I18n.has(bare)` 为 false ⇒ 回英文默认文案。
-- **三个坑（各返工一轮才定位）**：① 兜底**必须放 `i18nText` 内**，不能放 `normalizeI18nKey` 末尾——后者在 `while` 剥前缀时已 `return k` 提前退出，末尾分支永不执行；② `js/common.js` **整体在 IIFE 内**，`I18N_MSG`/`normalizeI18nKey` 在 `evaluate` 里 `typeof==='undefined'` 属正常，**不可据此判"修复未生效"**；③ 语言判定用 `I18n.get()`，别用未挂 window 的 `isEnglishMode()`。
-- **验证口径**：改i18n 类必须**真浏览器点一次真实按钮**看 toast 的 `textContent`；静态 grep 与符号可见性都不能证明文案正确。
+- **症状（真浏览器取证）**：中文态点「复制结果」→ toast 显示字面量 `toast.copy_success`（**不是 `undefined`**）。**根因是前缀错配、不是键缺失**：页面里写 `i18nText('toast.msgNNN')`（1033 处）而 `I18N_MSG` 存**裸 `msgNNN`**（624 条）⇒ `resolve()` 回退链末端 `return key`，把**调用方的键字符串**渲染出来。**逐个补键是错方向**（755 键两套字典皆无、语义未知）⇒ 走**前缀归一化回退**（剥前缀再查，页面与字典零改动），配套 `js/i18n.js` 导出 `I18n.has()`；**英文态须单独兜底**（`en-US PACKS` 未收录 msgNNN，否则回落中文给英文页面）。
+- **三个坑（各返工一轮才定位）**：① 兜底**必须放 `i18nText` 内**，不能放 `normalizeI18nKey` 末尾——后者在 `while` 剥前缀时已 `return k` 提前退出，末尾分支永不执行；② `js/common.js` **整体在 IIFE 内**，`I18N_MSG` 在 `evaluate` 里 `typeof==='undefined'` 属正常，**不可据此判"修复未生效"**；③ 语言判定用 `I18n.get()`，别用未挂 window 的 `isEnglishMode()`。**验证口径**：改 i18n 必须**真浏览器点一次真实按钮**看 toast 的 `textContent`。排查用 `grep -roh "i18nText('[a-z][a-zA-Z0-9_.]*'" tools/ js/` 取全键与两套字典求差集。
 
-### 8.14 「卡死」判定必须用心跳，不能用 evaluate 往返超时
+### 8.14「卡死」判定必须用心跳，不能用 evaluate 往返超时
 
-- **踩坑（2026-10-07 全站扫描）**：用 `Promise.race([page.evaluate(click), timeout(1500)])` 判卡死，全站报 5 页，用「主线程心跳 + 8 次采样」复核**全部心跳每秒 +10 无阻滞** ⇒ **零真死循环**（原报警是 `evaluate` 通信延迟的假阳性）。
-- **正确判据**：点击前装 `setInterval(()=>window.__hb++, 100)`，点击后每 1s 采样、连续 8s：停摆 = 真死循环，持续前进 = 正常。**单次超时不能定罪。**
-- **两条静态伪线索（勿再采信）**：① 正则扫 `while` 报 338 处可疑，复核全是正常写法（欧几里得 `[a,b]=[b,a%b]`、日期 `hh=(hh+1)%24`、`push`）—— 死循环只能靠真浏览器 + 心跳二次确认；② 数据表「列数不一致」实为**对象字面量**按属性名取值、无下标 —— 字段错位只能靠页面语义判断（如 `chinese-radical-lookup` 的 `d[3]`/`d[4]`）。
-- **harness 盲区页无法静态识别**：流程是 **注入 → 跑该行业 verify → 失败页写入 `--skip` 清单 → 带 `--skip` 重跑 → 直到全绿**（v8 已实现）。**dry-run 命中 ≠ 存在缺陷**：须过「jsdom 真机 + 源码兜核」两道。**jsdom 桩会把 `:checked`/`dataset`/动态 `innerHTML` 控件页误报成除零 ⇒ 判真缺陷只能用真浏览器**逐项置零。**v8 守卫只是遮羞布，治本用 `_inject_input_guard_v9.py`**（calc 入口插 `__tbInputGuard()`、公式不改；必填判据=`type=number` 且有非空 `value`，顺序＝分母→全零，判存在用 `indexOf` 非 `in`）。
+- **踩坑**：`Promise.race([page.evaluate(click), timeout(1500)])` 判卡死，全站报 5 页，用「主线程心跳 + 8 次采样」复核**全部心跳每秒 +10 无阻滞** ⇒ **零真死循环**（原报警是通信延迟的假阳性）。**正确判据**：点击前装 `setInterval(()=>window.__hb++,100)`，点击后每 1s 采样连续 8s：停摆 = 真死循环。**单次超时不能定罪。**
+- **两条静态伪线索（勿采信）**：① 正则扫 `while` 报 338 处可疑，复核全是正常写法（欧几里得 `[a,b]=[b,a%b]`、日期 `hh=(hh+1)%24`、`push`）—— 死循环只能靠真浏览器 + 心跳二次确认；② 数据表「列数不一致」实为**对象字面量**按属性名取值、无下标 —— 字段错位只能靠页面语义判断（如 `chinese-radical-lookup` 的 `d[3]`/`d[4]`）。
+- **harness 盲区页无法静态识别**：**注入 → 跑该行业 verify → 失败页写入 `--skip` → 带 `--skip` 重跑 → 直到全绿**（v8）。**dry-run 命中 ≠ 存在缺陷**，须过「jsdom 真机 + 源码兜核」；**jsdom 桩会把 `:checked`/`dataset`/动态 `innerHTML` 控件页误报成除零 ⇒ 判真缺陷只能用真浏览器**。**v8 守卫只是遮羞布，治本用 `_inject_input_guard_v9.py`**（calc 入口插 `__tbInputGuard()`、公式不改；必填判据=`type=number` 且有非空 `value`，顺序＝分母→全零，判存在用 `indexOf` 非 `in`）。
 
 ### 8.15 动态扫「异常/死功能」：探针自身准确率是第一位
 
-- **六条探针纪律**（每条都对应一次全站级误报）：① 走 **HTTP**（`http.server 8899`）而非 `file://` —— 后者 `fetch` 必被 CORS 拦，每页误报 2 条 console error；② **结果区 id 不能硬编码**（实际有 `result`/`res`/`statBox`/`wrap`…），须逐级探测，否则全站 100% 误报 emptyResult；③ 点击前 `closest('header,nav,footer,[role=navigation],#search-overlay,…')` **排除页面 chrome**，否则点导航会跳走、后续检测全在错误页面，广告按钮也会挤掉真计算按钮；④ 判「**扰动输入后结果是否变化**」且扰动必须**乘性**（`v*2+1`）—— 加法（`+7.77`）在百万级数值上会被 `toFixed(2)` 舍入吞掉造成假阳性；点**文案匹配**（`/计算|试算|换算|生成/`）的按钮而非第一个控件；⑤ 排除广告/分享区输入（`analysis-46`、`report-2` 首个 text input 是**分享 URL 输入框**）；⑥ 扰动后仍无变化才判死功能。
-- **收敛标尺**：60 页样本上 **flagged 必须为 0** 才允许跑全站。本类探针曾 59/60 全误报、返工 4 次才到 0；**探针不过关就跑全站等于白跑**。
+- **两条最易踩**：① 必须走 **HTTP**（用 `ThreadingHTTPServer`，单线程 `http.server` 会被并发压垮产生假超时）而非 `file://` —— 后者 `fetch` 必被 CORS 拦，每页误报 2 条 console error；② **收敛标尺：60 页样本上 flagged 必须为 0 才允许跑全站**（本类探针曾 59/60 全误报、返工 4 次才到 0，探针不过关跑全站等于白跑）。
+- 另四条（结果区 id 不能硬编码、排除页面 chrome、乘性扰动、排除广告分享区输入）见 memory `2026-10-07.md`。
+
+### 8.16 两种「函数存在但不可见」的真缺陷（各修 1 页）
+
+- **形态一：被未闭合的函数体吞掉**。`calcTool(){…`（数组型工具生成函数）行尾只有 `{` 没有 `}`，函数体延伸到块末尾，把紧随的 `copyEmoji`/`copyLatex` 变成内部代码 ⇒ 从未注册全局。**表象极具迷惑性**：同块其他函数正常、加载期**零 pageerror**、script 语法校验**通过**（整体合法、语义错位）。`emoji-picker`（195 emoji 全渲染不出）与 `latex`（183 符号全渲染不出）**整页核心功能不可用却无任何报错**。**判据**：逐个 `function` 做花括号平衡，**体长异常（>4000）且其后还有 function 声明**即候选，再用 `typeof window.X` 复核。**修法**：在真正该闭合处补 `}`，被吞的函数定义**移回顶层**（会留重复定义，须删内部那份，且别误删相邻函数的函数头）。
+- **形态二：IIFE 包裹 + 内联 onclick**。`(function(){…})()` 内的 `function` 声明不挂全局，而 `onclick="executeSQL()"` 需要全局 ⇒ 报 `X is not defined`。同页其他函数已按 `window.X = function…` 挂载时，**只有漏掉的那几个**是真缺陷。照该页既有风格补一行挂载，**不要用 `eval`**。
+- **形态三：`onclick` 属性被 `JSON.stringify` 的双引号提前闭合**。`onclick="applyPreset(${JSON.stringify(p.colors)})"` 中 JSON 对数组/对象产出的值**本身含双引号** ⇒ 解析器在第一个 `"` 处闭合属性，`onclick` 变成 `applyPreset([` ⇒ 点任何预设抛 `SyntaxError: Unexpected end of input`。**修法：属性改用单引号包裹**。全站 17 页内联 `JSON.stringify`，但**只有传数组/对象的 5 页会出问题** ⇒ **必须真浏览器逐页编译验证**（遍历 `[onclick]` 用 `new Function` 编译，失败即坏 handler），实测 16/12/12/12 个 → 全归零。
+- **Canvas 负半径**：`radius=Math.min(cw,ch)/2-30` 而 `cv.width=ct.clientWidth`，容器未布局时 `cw` 为负 ⇒ `ctx.arc` 抛 `The radius provided (-70) is negative`。修法 `Math.max(5, …)`，已修 construction 三页。
+- **两条静态假阳性（勿采信）**：「IIFE 未挂 window」报 **293 页** —— 抽样 8 页仅 3 页真有问题；「函数体超长吞并后续」报 **530 处** —— 复核**全是正常调用**（长 `calc()` 里调 `copyResult()`）。**「函数不可见」只能用真浏览器 `typeof window.X` 定罪。**
+
+### 8.17 已知重复工具组：`pets/` 与 `pet/` 同功能双实现（待老板定夺）
+
+- **事实**：两个宠物分类并存，slug 无重叠但功能同义 —— `pets/pet-age-convert` ≡ `pet/pet-age-converter`、`pets/feeding-amount` ≡ `pet/pet-feeding-calc`、`pets/vaccine-reminder` ≈ `pet/reminder-vaccine-deworming`。**同一功能占两个 URL ⇒ SEO 关键词自相竞争**；两 `index.html` 的 `<title>` 也完全重复。全站 title 扫描（5003 页）仅此一组是真问题。
+- **不擅自合并**：`pets/` 牵连 **5 个独立 guide 页** + sitemap + `json/*` + `verify_pets_calc.js` + i18n，属影响面大的不可逆 URL 操作，须老板拍板。若决定合并：保留 `pet/`（10 > 5 工具），另一侧转 `TOOLBOX-REDIRECT` 存根**保留 URL**，同步 guide redirect 与 sitemap。
 
 ---
 
@@ -354,14 +351,14 @@
 
 **选批口径**：① 按「可注入数」降序挑批次；② **结构性不可注入的不要选**（判据 §10.5 B 组）—— 保留 `no_inputs` 并在 `ref` 写明理由；③ 每批 8–11 例，走 §10.4 六步。**结构判死的唯一依据是各用例 `ref`**。
 
-### 10.4 每批收口流程（顺带改造时六步，缺一不可）
+### 10.4 每批收口流程（六步，缺一不可）
 
 1. 改写 `scripts/verify_<cat>_calc.js`（非默认输入 + Python 独立复算 expect）
 2. 单跑 100% 通过 → `node scripts/discriminate_check.js verify_<cat>_calc.js` **0 逃生项**
 3. 被「跳过」的用例（textarea / 动态 id `q0..qN`）必须**自建同口径探针**补验「注入 PASS + 回退默认 FAIL」
-4. 更新 `scripts/falsepass_baseline.json` 与 `scripts/discriminate_baseline.json`（**只准降不准增**，按 selfcheck/discriminate 实测值同步）
-5. `python3 scripts/run_gates.py`（全量 217 项）全过 → `git commit` + push、**单次**确认部署
-6. 归档 `.workbuddy/memory/YYYY-MM-DD.md`（**批次玩法、逐例打法只写这里与 skill `toolbox-weakcase-hardening`，禁止写进本文件**；本文件只更新 §10.2 计数与 §10.3 清单），清理 `/tmp` 临时脚本
+4. 更新 `falsepass_baseline.json` 与 `discriminate_baseline.json`（**只准降不准增**，按实测值同步）
+5. `python3 scripts/run_gates.py` 全过 → `git commit` + push、**单次**确认部署
+6. 归档 memory（**批次玩法只写 memory 与 skill，禁止写进本文件**），清理 `/tmp` 临时脚本
 
 ### 10.5 harness 已知限制（选批与定 expect 前必读）
 
