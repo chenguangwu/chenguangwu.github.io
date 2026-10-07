@@ -115,7 +115,37 @@ const CASES = [
     "1500"
   ],
   "ref": "auto-restore"
-}
+},
+
+{
+    "slug": "sales/commission-calculator",
+    "inputs": {
+      "sales": "250000",
+      "fixedRate": "8"
+    },
+    "expect": [
+      "应得提成 ¥20,000.00"
+    ],
+    "ref": "提成 = 250000 × 8% = ¥20,000.00。页面输出 '应得提成 ¥20,000.00'。默认态其他输入不产生 ¥20,000.00。"
+  },
+  {
+    "slug": "sales/price-calculator",
+    "inputs": {
+      "cost": "100",
+      "fixedCost": "0",
+      "markup": "30",
+      "targetProfit": "0",
+      "volume": "1",
+      "compPrice": "0",
+      "deviation": "0",
+      "custValue": "0",
+      "captureRate": "0"
+    },
+    "expect": [
+      "建议售价 ¥130.00"
+    ],
+    "ref": "售价 = 100 × (1 + 30%) = ¥130.00。页面输出 '建议售价 ¥130.00'。默认态其他输入不产生 ¥130.00。"
+  }
 ];
 async function main() {
   const only = process.argv.slice(2);

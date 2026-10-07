@@ -530,6 +530,31 @@ const CASES = [
       "单次获客成本 CPA ¥20.00"
     ],
     "ref": "CPA = 1000 ÷ 50 = ¥20.00。页面输出 '单次获客成本 CPA ¥20.00'。默认态其他输入不产生 ¥20.00。"
+  },
+
+{
+    "slug": "marketing/marketing-cpc-calculator",
+    "inputs": {
+      "spend": "2500",
+      "clicks": "500",
+      "impressions": "10000"
+    },
+    "expect": [
+      "平均每次点击费用 ¥5.00"
+    ],
+    "ref": "CPC = 2500 ÷ 500 = ¥5.00。页面输出 '平均每次点击费用 ¥5.00'。默认态其他输入不产生 ¥5.00。"
+  },
+  {
+    "slug": "marketing/marketing-cpm-calculator",
+    "inputs": {
+      "spend": "3000",
+      "impressions": "12000",
+      "clicks": "400"
+    },
+    "expect": [
+      "CPM 千次展示成本 ¥250.00"
+    ],
+    "ref": "CPM = (3000 ÷ 12000) × 1000 = ¥250.00。页面输出 'CPM 千次展示成本 ¥250.00'。默认态其他输入不产生 ¥250.00。"
   }
 ];
 

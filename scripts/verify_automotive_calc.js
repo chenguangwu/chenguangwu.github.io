@@ -811,6 +811,39 @@ const CASES = [
     "expect": [ "SOH 80 %" ],
     "ref": "第二组参数（第一组 cca0=900/cca=510）。SOH = 实测 CCA 520 ÷ 新电池 CCA 650 = **80%**，一次除法即可复核。第一组用例锚的是差值行 +85.1，本条锚的是比值本身，两者互不削弱。",
   },
+
+{
+    "slug": "automotive/parking-fee-calculator",
+    "inputs": {
+      "firstMin": "15",
+      "firstFee": "10",
+      "unitMin": "15",
+      "unitFee": "5",
+      "parkMin": "120",
+      "cap": "50",
+      "freeMin": "0",
+      "days": "1"
+    },
+    "expect": [
+      "应付 45 元"
+    ],
+    "ref": "计费时长 120 − 免费 0 = 120 分钟；首段 15 分钟收 10 元，剩余 105 分钟 ÷ 15 = 7 单位 × 5 元 = 35 元；合计 45 元（未触封顶 50）。页面输出 '应付 45 元'。默认态参数组合不产生 45 元。"
+  },
+  {
+    "slug": "automotive/fuel-cost-calculator",
+    "inputs": {
+      "km": "100",
+      "fc": "8",
+      "price": "7.5",
+      "ppl": "0",
+      "fc2": "0",
+      "budget": "0"
+    },
+    "expect": [
+      "60 单程油费 (元)"
+    ],
+    "ref": "油费 = 100 ÷ 100 × 8 × 7.5 = ¥60.00。页面输出 '60 单程油费 (元)'。默认态其他输入不产生 60。"
+  }
 ];
 async function main() {
   const only = process.argv.slice(2);
