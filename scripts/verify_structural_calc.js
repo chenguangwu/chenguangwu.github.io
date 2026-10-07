@@ -24,6 +24,19 @@ const CASES = [
   { slug: "structural/thermal-strain", inputs: { a: "12e-6", dT: "200" }, expect: ["0.00240 热应变"], ref: "ε=αΔT=2.4e-3" },
   { slug: "structural/torsional-shear-shaft", inputs: { T: "1000", d: "0.06" }, expect: ["23.58 剪应力"], ref: "τ=16T/(πd³)" },
   { slug: "structural/von-mises-2d", inputs: { sx: "200e6", sy: "80e6", t: "50e6" }, expect: ["194.68 等效应力"], ref: "σ_vm=√(σx²-σxσy+σy²+3τ²)" },
+
+{
+    "slug": "structural/section-modulus-circle",
+    "inputs": {
+      "d": "200"
+    },
+    "expect": [
+      "785398.16 抗弯模量 S (mm³)",
+      "31415.9265 截面面积 A (mm²)",
+      "78539816.34 惯性矩 I (mm⁴)"
+    ],
+    "ref": "实心圆截面 d = 200 mm：截面面积 A = πd²/4 = π×40000/4 = 31415.9265 mm²；惯性矩 I = πd⁴/64 = π×1.6e9/64 = 78539816.34 mm⁴；抗弯模量 S = I/(d/2) = 78539816.34/100 = 785398.16 mm³。页面输出与独立复算逐项吻合。HTML 默认 d=0.1 → S=98174.77、A=0.0079，默认态不产生该组值。"
+  }
 ];
 
 async function main() {
