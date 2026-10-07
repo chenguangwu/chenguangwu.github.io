@@ -281,8 +281,62 @@ s.parentNode.insertBefore(el, s);
 </div>
 <!-- /注意事项区块 -->
 </div>
-<script>
+<script>function __tbInputGuard(_ids,_labels){
+  var __TPL='请填写「%s」后再计算。';
+  var __TPL2="<p style=\"color:var(--danger)\">⚠ 「%s」是本计算的分母，不能为 0。</p>";
+  var _vals=[],_firstBad=-1;
+  var _REQ=['fabricPrice', 'fabricUsage', 'fabricWidth', 'gsm', 'accessoryCost', 'laborCost', 'orderQty', 'profitMargin', 'wastage', 'otherCost'];
+  for(var _i=0;_i<_ids.length;_i++){
+    var _e=document.getElementById(_ids[_i]);
+    if(!_e) continue;
+    var _raw=String(_e.value==null?'':_e.value).trim();
+    var _num=parseFloat(_raw);
+    var _need=(_REQ.indexOf(_ids[_i])>=0);
+    if(_raw===''){ if(_need&&_firstBad<0)_firstBad=_i; _vals.push(NaN); continue; }
+    if(_e.type==='number'||_e.tagName==='TEXTAREA'){
+      if(_need&&isNaN(_num)){ if(_firstBad<0)_firstBad=_i; _vals.push(NaN); continue; }
+      _vals.push(_num);
+    } else _vals.push(_raw);
+  }
+  if(_firstBad>=0){
+    var _bad=_firstBad;
+    var _lbl=(_labels&&_labels[_bad])||_ids[_bad];
+    var __msg=__TPL.replace('%s',_lbl);
+    var _fe=document.getElementById(_ids[_bad]);
+    if(_fe&&_fe.classList&&_fe.classList.add)_fe.classList.add('input-error');
+    return __msg;
+  }
+  // 分母项：__D 由真浏览器逐项置零探测得出，命中即说明该输入在此页作分母
+  var __D={};
+  for(var _d=0;_d<_ids.length;_d++){
+    if(!(_ids[_d] in __D)) continue;
+    var _de=document.getElementById(_ids[_d]);
+    if(!_de) continue;
+    if(_de.classList&&_de.classList.remove)_de.classList.remove('input-error');
+    if(parseFloat(String(_de.value==null?'':_de.value).trim())===0){
+      if(_de.classList&&_de.classList.add)_de.classList.add('input-error');
+      return __TPL2.replace('%s',__D[_ids[_d]]);
+    }
+  }
+  // 全零：任何一项作分母都会得到 Infinity/NaN。页面公式本身没错，是输入无意义
+  var _nums=[];
+  for(var _z=0;_z<_vals.length;_z++){ if(typeof _vals[_z]==='number'&&!isNaN(_vals[_z])) _nums.push(_vals[_z]); }
+  if(!_nums.length) return '';
+  if(_nums.length>0){
+    var _allZero=true;
+    for(var _z2=0;_z2<_nums.length;_z2++){ if(_nums[_z2]!==0){ _allZero=false; break; } }
+    if(_allZero) return "<p style=\"color:var(--danger)\">⚠ 输入不能全为 0：至少需要一项非零数值，否则计算无意义。</p>";
+  }
+  for(var _k=0;_k<_ids.length;_k++){
+    var _e2=document.getElementById(_ids[_k]);
+    if(_e2&&_e2.classList&&_e2.classList.remove)_e2.classList.remove('input-error');
+  }
+  return '';
+}
+
+
 function calc(){
+  var __ig=__tbInputGuard(['fabricPrice', 'fabricUsage', 'fabricWidth', 'gsm', 'accessoryCost', 'laborCost', 'orderQty', 'profitMargin', 'wastage', 'otherCost'],["面料价格 (元/米)", "单件用料 (米)", "面料门幅 (cm)", "克重 (g/m²)", "辅料费 (元/件)", "加工费 (元/件)", "订单数量 (件)", "利润率 (%)", "损耗率 (%)", "其他费用 (元/件)"]);if(__ig){ToolBox.setResult("result",__ig);return;}
 const fp=+document.getElementById('fabricPrice').value||0;const fu=+document.getElementById('fabricUsage').value||0;const fw=+document.getElementById('fabricWidth').value||150;const gsm=+document.getElementById('gsm').value||0;const ac=+document.getElementById('accessoryCost').value||0;const lc=+document.getElementById('laborCost').value||0;const qty=+document.getElementById('orderQty').value||1;const pm=+document.getElementById('profitMargin').value||0;const w=+document.getElementById('wastage').value||0;const oc=+document.getElementById('otherCost').value||0;
 const fabricCostPer=fp*fu*(1+w/100);const totalCostPer=fabricCostPer+ac+lc+oc;const sellPrice=totalCostPer/(1-pm/100);const profitPer=sellPrice-totalCostPer;const totalCost=totalCostPer*qty;const totalRevenue=sellPrice*qty;const totalProfit=profitPer*qty;const fabricWeightM2=fw/100*1;const fabricWeightPer=fu*fabricWeightM2*gsm/1000;
 let html=`<div class="cost-summary"><div class="cost-big">¥${sellPrice.toFixed(2)}</div><div class="cost-label">建议零售价（利润率${pm}%）</div></div>`;

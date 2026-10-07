@@ -303,7 +303,7 @@
 - **过滤"过宽"与"未接线"同样有害**：静态字符串含独立 NaN 词或等于 `'Infinity'` 的 RHS 全站命中 **0 处**，而模板串 / 字符串拼接 / 动态容器变量的守卫**真机上确能拦截 NaN 经插值泄漏到页面**。若跳过模板字面量 / 字符串 / method 链，反而**削弱真机防护**；v8 只跳过"纯静态字符串字面量 RHS"。
 - **守卫只应注入「数值输出页」**：对纯文本/工具页（如 `it/html-escape`、`it/code-runner`）注入含 `NaN` 文本检测的守卫会**误伤正常输出**（转义后的 JS 代码里出现 `NaN` 就被判为无效值）。**注入前先判页面是否有数值输出/`type=number` 输入。**
 - **harness 盲区页无法静态识别，只能试错**：正确流程是 **注入 → 跑该行业 verify → 失败页写入 `--skip` 清单 → 带 `--skip` 重跑 → 直到全绿**（v8 已实现）。
-- **dry-run 命中 ≠ 存在缺陷**：须过「jsdom 真机模拟 + 源码兜底核验」两道（2026-09-23 实证）：dry-run 报 36 页全部静态误报 —— ① jsdom 加载后清空全部输入控件再触发事件，仅 3 页命中且 select 无空值选项 ⇒ 真机构造不出；② 源码兜底（`hvac/fresh-air-load` 的 `num()` 把 isNaN 转 null、`fmt()` 渲染 `'--'`）。**判定结论固化在 `scripts/output_guard_exclude.txt`（v8 默认加载，dry-run 已归零）**。另：注入验证归因须用「注入 → verify → 回退 → verify」对比锁定。
+- **dry-run 命中 ≠ 存在缺陷**：须过「jsdom 真机 + 源码兜核」两道（2026-09-23 报 36 页全为静态误报），结论固化在 `scripts/output_guard_exclude.txt`。**但 jsdom 桩会把 `:checked`/`dataset`/动态 `innerHTML` 控件页误报成除零 ⇒ 判真缺陷只能用真浏览器**（playwright-core + 本机 chromium 逐项置零）。**v8 守卫只是遮羞布，治本用 `_inject_input_guard_v9.py`**（calc 入口插 `__tbInputGuard()`，公式不改；必填判据=`type=number` 且有非空 `value`，顺序＝分母→全零，判存在用 `indexOf` 非 `in`）。
 
 ---
 

@@ -230,7 +230,60 @@ s.parentNode.insertBefore(el, s);
 </div>
 <!-- /注意事项区块 -->
 </div>
-<script>
+<script>function __tbInputGuard(_ids,_labels){
+  var __TPL='请填写「%s」后再计算。';
+  var __TPL2="<p style=\"color:var(--danger)\">⚠ 「%s」是本计算的分母，不能为 0。</p>";
+  var _vals=[],_firstBad=-1;
+  var _REQ=['area', 'yield', 'days', 'hours', 'laborCost', 'machineCost'];
+  for(var _i=0;_i<_ids.length;_i++){
+    var _e=document.getElementById(_ids[_i]);
+    if(!_e) continue;
+    var _raw=String(_e.value==null?'':_e.value).trim();
+    var _num=parseFloat(_raw);
+    var _need=(_REQ.indexOf(_ids[_i])>=0);
+    if(_raw===''){ if(_need&&_firstBad<0)_firstBad=_i; _vals.push(NaN); continue; }
+    if(_e.type==='number'||_e.tagName==='TEXTAREA'){
+      if(_need&&isNaN(_num)){ if(_firstBad<0)_firstBad=_i; _vals.push(NaN); continue; }
+      _vals.push(_num);
+    } else _vals.push(_raw);
+  }
+  if(_firstBad>=0){
+    var _bad=_firstBad;
+    var _lbl=(_labels&&_labels[_bad])||_ids[_bad];
+    var __msg=__TPL.replace('%s',_lbl);
+    var _fe=document.getElementById(_ids[_bad]);
+    if(_fe&&_fe.classList&&_fe.classList.add)_fe.classList.add('input-error');
+    return __msg;
+  }
+  // 分母项：__D 由真浏览器逐项置零探测得出，命中即说明该输入在此页作分母
+  var __D={"yield": "yield"};
+  for(var _d=0;_d<_ids.length;_d++){
+    if(!(_ids[_d] in __D)) continue;
+    var _de=document.getElementById(_ids[_d]);
+    if(!_de) continue;
+    if(_de.classList&&_de.classList.remove)_de.classList.remove('input-error');
+    if(parseFloat(String(_de.value==null?'':_de.value).trim())===0){
+      if(_de.classList&&_de.classList.add)_de.classList.add('input-error');
+      return __TPL2.replace('%s',__D[_ids[_d]]);
+    }
+  }
+  // 全零：任何一项作分母都会得到 Infinity/NaN。页面公式本身没错，是输入无意义
+  var _nums=[];
+  for(var _z=0;_z<_vals.length;_z++){ if(typeof _vals[_z]==='number'&&!isNaN(_vals[_z])) _nums.push(_vals[_z]); }
+  if(!_nums.length) return '';
+  if(_nums.length>0){
+    var _allZero=true;
+    for(var _z2=0;_z2<_nums.length;_z2++){ if(_nums[_z2]!==0){ _allZero=false; break; } }
+    if(_allZero) return "<p style=\"color:var(--danger)\">⚠ 输入不能全为 0：至少需要一项非零数值，否则计算无意义。</p>";
+  }
+  for(var _k=0;_k<_ids.length;_k++){
+    var _e2=document.getElementById(_ids[_k]);
+    if(_e2&&_e2.classList&&_e2.classList.remove)_e2.classList.remove('input-error');
+  }
+  return '';
+}
+
+
 var HK='harvest_history';
 var CROPS=[
 {name:'小麦',period:'6月上中旬',manual:1.5,machine:8,yield:500,moisture:'12.5%',sign:'麦壳变黄、籽粒变硬'},
@@ -245,6 +298,7 @@ function switchTab(t){document.querySelectorAll('.tab-btn').forEach(function(b,i
 function initCrops(){var h='';CROPS.forEach(function(c,i){h+='<option value="'+i+'">'+c.name+'</option>';});const __h0=h;if((typeof __h0==='number'&&!isFinite(__h0))||__h0==='Infinity'||__h0==='-Infinity'||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){$('crop').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}$('crop').innerHTML=__h0;const __h1=CROPS.map(function(c){return '<tr><td>'+c.name+'</td><td>'+c.period+'</td><td>'+c.manual+'</td><td>'+c.machine+'</td><td>'+c.sign+'</td></tr>';}).join('');if((typeof __h1==='number'&&!isFinite(__h1))||__h1==='Infinity'||__h1==='-Infinity'||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){$('cropTable').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}$('cropTable').innerHTML=__h1;$('crop').value=0;applyCrop();}
 function applyCrop(){var i=parseInt($('crop').value);var c=CROPS[i];$('yield').value=c.yield;calc();}
 function calc(){
+  var __ig=__tbInputGuard(['area', 'yield', 'days', 'hours', 'laborCost', 'machineCost'],["种植面积(亩)", "预计单产(kg/亩)", "计划天数", "每天工作小时", "人工单价(元/天)", "机械作业费(元/亩)"]);if(__ig){ToolBox.setResult("result",__ig);return;}
 var ci=parseInt($('crop').value);var c=CROPS[ci];
 var area=parseFloat($('area').value)||0,y=parseFloat($('yield').value)||0;
 var days=parseFloat($('days').value)||1,hours=parseFloat($('hours').value)||8;

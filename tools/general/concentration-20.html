@@ -143,14 +143,68 @@ s.parentNode.insertBefore(el, s);
     </div>
   </div>
 </div>
-<script>
+<script>function __tbInputGuard(_ids,_labels){
+  var __TPL='请填写「%s」后再计算。';
+  var __TPL2="<p style=\"color:var(--danger)\">⚠ 「%s」是本计算的分母，不能为 0。</p>";
+  var _vals=[],_firstBad=-1;
+  var _REQ=['vVal', 'c1', 'c2', 'cs'];
+  for(var _i=0;_i<_ids.length;_i++){
+    var _e=document.getElementById(_ids[_i]);
+    if(!_e) continue;
+    var _raw=String(_e.value==null?'':_e.value).trim();
+    var _num=parseFloat(_raw);
+    var _need=(_REQ.indexOf(_ids[_i])>=0);
+    if(_raw===''){ if(_need&&_firstBad<0)_firstBad=_i; _vals.push(NaN); continue; }
+    if(_e.type==='number'||_e.tagName==='TEXTAREA'){
+      if(_need&&isNaN(_num)){ if(_firstBad<0)_firstBad=_i; _vals.push(NaN); continue; }
+      _vals.push(_num);
+    } else _vals.push(_raw);
+  }
+  if(_firstBad>=0){
+    var _bad=_firstBad;
+    var _lbl=(_labels&&_labels[_bad])||_ids[_bad];
+    var __msg=__TPL.replace('%s',_lbl);
+    var _fe=document.getElementById(_ids[_bad]);
+    if(_fe&&_fe.classList&&_fe.classList.add)_fe.classList.add('input-error');
+    return __msg;
+  }
+  // 分母项：__D 由真浏览器逐项置零探测得出，命中即说明该输入在此页作分母
+  var __D={"c2": "c2"};
+  for(var _d=0;_d<_ids.length;_d++){
+    if(!(_ids[_d] in __D)) continue;
+    var _de=document.getElementById(_ids[_d]);
+    if(!_de) continue;
+    if(_de.classList&&_de.classList.remove)_de.classList.remove('input-error');
+    if(parseFloat(String(_de.value==null?'':_de.value).trim())===0){
+      if(_de.classList&&_de.classList.add)_de.classList.add('input-error');
+      return __TPL2.replace('%s',__D[_ids[_d]]);
+    }
+  }
+  // 全零：任何一项作分母都会得到 Infinity/NaN。页面公式本身没错，是输入无意义
+  var _nums=[];
+  for(var _z=0;_z<_vals.length;_z++){ if(typeof _vals[_z]==='number'&&!isNaN(_vals[_z])) _nums.push(_vals[_z]); }
+  if(!_nums.length) return '';
+  if(_nums.length>0){
+    var _allZero=true;
+    for(var _z2=0;_z2<_nums.length;_z2++){ if(_nums[_z2]!==0){ _allZero=false; break; } }
+    if(_allZero) return "<p style=\"color:var(--danger)\">⚠ 输入不能全为 0：至少需要一项非零数值，否则计算无意义。</p>";
+  }
+  for(var _k=0;_k<_ids.length;_k++){
+    var _e2=document.getElementById(_ids[_k]);
+    if(_e2&&_e2.classList&&_e2.classList.remove)_e2.classList.remove('input-error');
+  }
+  return '';
+}
+
+
 var lastResult='';
 var INPUT_IDS=['vVal','c1','c2','cs'];
 function num(id){var el=document.getElementById(id);var v=parseFloat(el.value);if(isNaN(v)||v<0){el.classList.add('input-error');el.setAttribute('aria-invalid','true');return NaN;}el.classList.remove('input-error');el.removeAttribute('aria-invalid');return v;}
 function getInputs(){var o={};INPUT_IDS.forEach(function(id){o[id]=document.getElementById(id).value;});return o;}
 function setInputs(o){INPUT_IDS.forEach(function(id){if(o[id]!==undefined)document.getElementById(id).value=o[id];});}
 function calc(){
-  var V=num('vVal'),c1=num('c1'),c2=num('c2'),cs=num('cs');
+    var __ig=__tbInputGuard(['vVal', 'c1', 'c2', 'cs'],["系统容量 V (L)", "当前浓度 c₁ (%)", "目标浓度 c₂ (%)", "原液浓度 cₛ (%)"]);if(__ig){ToolBox.setResult("res",__ig);return;}
+var V=num('vVal'),c1=num('c1'),c2=num('c2'),cs=num('cs');
   if(isNaN(V)||isNaN(c1)||isNaN(c2)||isNaN(cs)||V===0){
     const __h0='<div class="history-empty">请输入有效数值（系统容量需大于 0）</div>';if((typeof __h0==='number'&&!isFinite(__h0))||__h0==='Infinity'||__h0==='-Infinity'||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('res').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('res').innerHTML=__h0;lastResult='';return;
   }

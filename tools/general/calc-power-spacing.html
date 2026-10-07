@@ -163,7 +163,60 @@ s.parentNode.insertBefore(el, s);
   </div>
 </div>
 
-<script>
+<script>function __tbInputGuard(_ids,_labels){
+  var __TPL='请填写「%s」后再计算。';
+  var __TPL2="<p style=\"color:var(--danger)\">⚠ 「%s」是本计算的分母，不能为 0。</p>";
+  var _vals=[],_firstBad=-1;
+  var _REQ=['roadW', 'height', 'lux', 'power', 'efficacy', 'beamAngle', 'uf', 'mf'];
+  for(var _i=0;_i<_ids.length;_i++){
+    var _e=document.getElementById(_ids[_i]);
+    if(!_e) continue;
+    var _raw=String(_e.value==null?'':_e.value).trim();
+    var _num=parseFloat(_raw);
+    var _need=(_REQ.indexOf(_ids[_i])>=0);
+    if(_raw===''){ if(_need&&_firstBad<0)_firstBad=_i; _vals.push(NaN); continue; }
+    if(_e.type==='number'||_e.tagName==='TEXTAREA'){
+      if(_need&&isNaN(_num)){ if(_firstBad<0)_firstBad=_i; _vals.push(NaN); continue; }
+      _vals.push(_num);
+    } else _vals.push(_raw);
+  }
+  if(_firstBad>=0){
+    var _bad=_firstBad;
+    var _lbl=(_labels&&_labels[_bad])||_ids[_bad];
+    var __msg=__TPL.replace('%s',_lbl);
+    var _fe=document.getElementById(_ids[_bad]);
+    if(_fe&&_fe.classList&&_fe.classList.add)_fe.classList.add('input-error');
+    return __msg;
+  }
+  // 分母项：__D 由真浏览器逐项置零探测得出，命中即说明该输入在此页作分母
+  var __D={"power": "power", "efficacy": "efficacy", "beamAngle": "beamAngle", "uf": "uf", "mf": "mf"};
+  for(var _d=0;_d<_ids.length;_d++){
+    if(!(_ids[_d] in __D)) continue;
+    var _de=document.getElementById(_ids[_d]);
+    if(!_de) continue;
+    if(_de.classList&&_de.classList.remove)_de.classList.remove('input-error');
+    if(parseFloat(String(_de.value==null?'':_de.value).trim())===0){
+      if(_de.classList&&_de.classList.add)_de.classList.add('input-error');
+      return __TPL2.replace('%s',__D[_ids[_d]]);
+    }
+  }
+  // 全零：任何一项作分母都会得到 Infinity/NaN。页面公式本身没错，是输入无意义
+  var _nums=[];
+  for(var _z=0;_z<_vals.length;_z++){ if(typeof _vals[_z]==='number'&&!isNaN(_vals[_z])) _nums.push(_vals[_z]); }
+  if(!_nums.length) return '';
+  if(_nums.length>0){
+    var _allZero=true;
+    for(var _z2=0;_z2<_nums.length;_z2++){ if(_nums[_z2]!==0){ _allZero=false; break; } }
+    if(_allZero) return "<p style=\"color:var(--danger)\">⚠ 输入不能全为 0：至少需要一项非零数值，否则计算无意义。</p>";
+  }
+  for(var _k=0;_k<_ids.length;_k++){
+    var _e2=document.getElementById(_ids[_k]);
+    if(_e2&&_e2.classList&&_e2.classList.remove)_e2.classList.remove('input-error');
+  }
+  return '';
+}
+
+
 function num(id){ var v=parseFloat(document.getElementById(id).value); return isNaN(v)?null:v; }
 function setInvalid(el,invalid){
   if(!el)return;
@@ -171,7 +224,8 @@ function setInvalid(el,invalid){
   else{el.classList.remove('input-error');el.removeAttribute('aria-invalid');}
 }
 function calc(){
-  var W=num('roadW'),H=num('height'),E=num('lux'),P=num('power'),eff=num('efficacy');
+    var __ig=__tbInputGuard(['roadW', 'height', 'lux', 'power', 'efficacy', 'beamAngle', 'uf', 'mf'],["路面宽度 W（m）", "灯具安装高度 H（m）", "要求平均照度 E（lx）", "单灯功率 P（W）", "光效（lm/W）", "配光角度（°，全角）", "利用系数 UF", "维护系数 MF"]);if(__ig){ToolBox.setResult("res",__ig);return;}
+var W=num('roadW'),H=num('height'),E=num('lux'),P=num('power'),eff=num('efficacy');
   var beam=num('beamAngle'),uf=num('uf'),mf=num('mf');
   var n=parseFloat(document.getElementById('layout').value);
   ['roadW','height','lux','power','efficacy','beamAngle','uf','mf'].forEach(function(id){

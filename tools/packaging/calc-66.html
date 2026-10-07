@@ -150,7 +150,60 @@ s.parentNode.insertBefore(el, s);
   </div>
 </div>
 
-<script>
+<script>function __tbInputGuard(_ids,_labels){
+  var __TPL='请填写「%s」后再计算。';
+  var __TPL2="<p style=\"color:var(--danger)\">⚠ 「%s」是本计算的分母，不能为 0。</p>";
+  var _vals=[],_firstBad=-1;
+  var _REQ=['v0', 'v1', 'v2', 'v4', 'v5', 'v6'];
+  for(var _i=0;_i<_ids.length;_i++){
+    var _e=document.getElementById(_ids[_i]);
+    if(!_e) continue;
+    var _raw=String(_e.value==null?'':_e.value).trim();
+    var _num=parseFloat(_raw);
+    var _need=(_REQ.indexOf(_ids[_i])>=0);
+    if(_raw===''){ if(_need&&_firstBad<0)_firstBad=_i; _vals.push(NaN); continue; }
+    if(_e.type==='number'||_e.tagName==='TEXTAREA'){
+      if(_need&&isNaN(_num)){ if(_firstBad<0)_firstBad=_i; _vals.push(NaN); continue; }
+      _vals.push(_num);
+    } else _vals.push(_raw);
+  }
+  if(_firstBad>=0){
+    var _bad=_firstBad;
+    var _lbl=(_labels&&_labels[_bad])||_ids[_bad];
+    var __msg=__TPL.replace('%s',_lbl);
+    var _fe=document.getElementById(_ids[_bad]);
+    if(_fe&&_fe.classList&&_fe.classList.add)_fe.classList.add('input-error');
+    return __msg;
+  }
+  // 分母项：__D 由真浏览器逐项置零探测得出，命中即说明该输入在此页作分母
+  var __D={"v2": "v2", "v5": "v5", "v6": "v6"};
+  for(var _d=0;_d<_ids.length;_d++){
+    if(!(_ids[_d] in __D)) continue;
+    var _de=document.getElementById(_ids[_d]);
+    if(!_de) continue;
+    if(_de.classList&&_de.classList.remove)_de.classList.remove('input-error');
+    if(parseFloat(String(_de.value==null?'':_de.value).trim())===0){
+      if(_de.classList&&_de.classList.add)_de.classList.add('input-error');
+      return __TPL2.replace('%s',__D[_ids[_d]]);
+    }
+  }
+  // 全零：任何一项作分母都会得到 Infinity/NaN。页面公式本身没错，是输入无意义
+  var _nums=[];
+  for(var _z=0;_z<_vals.length;_z++){ if(typeof _vals[_z]==='number'&&!isNaN(_vals[_z])) _nums.push(_vals[_z]); }
+  if(!_nums.length) return '';
+  if(_nums.length>0){
+    var _allZero=true;
+    for(var _z2=0;_z2<_nums.length;_z2++){ if(_nums[_z2]!==0){ _allZero=false; break; } }
+    if(_allZero) return "<p style=\"color:var(--danger)\">⚠ 输入不能全为 0：至少需要一项非零数值，否则计算无意义。</p>";
+  }
+  for(var _k=0;_k<_ids.length;_k++){
+    var _e2=document.getElementById(_ids[_k]);
+    if(_e2&&_e2.classList&&_e2.classList.remove)_e2.classList.remove('input-error');
+  }
+  return '';
+}
+
+
 function num(id){var v=parseFloat(document.getElementById(id).value);return isNaN(v)?null:v;}
 function setInvalid(el,invalid){
   if(!el)return;
@@ -160,7 +213,8 @@ function setInvalid(el,invalid){
 var BOARDS={BC:{name:'BC 双瓦楞',ect:6500,t:0.0055},AC:{name:'AC 双瓦楞',ect:8000,t:0.0065},'3A':{name:'3A 三瓦楞',ect:11000,t:0.0090}};
 var g=9.81;
 function calc(){
-  var L=num('v0'),W=num('v1'),H=num('v2'),bt=document.getElementById('v3').value,stackH=num('v4'),K=num('v5'),wbox=num('v6');
+    var __ig=__tbInputGuard(['v0', 'v1', 'v2', 'v4', 'v5', 'v6'],["纸箱长 L（mm）", "纸箱宽 W（mm）", "纸箱高 H（mm）", "期望堆码高度（m）", "安全系数 K", "单箱毛重（kg）"]);if(__ig){ToolBox.setResult("res",__ig);return;}
+var L=num('v0'),W=num('v1'),H=num('v2'),bt=document.getElementById('v3').value,stackH=num('v4'),K=num('v5'),wbox=num('v6');
   var ids=['v0','v1','v2','v4','v5','v6'];
   ids.forEach(function(id){setInvalid(document.getElementById(id),num(id)===null||num(id)<0);});
   if([L,W,H,stackH,K,wbox].some(function(x){return x===null||x<0;})){const __h0='<p style="color:var(--danger);">请填写有效的参数</p>';if((typeof __h0==='number'&&!isFinite(__h0))||__h0==='Infinity'||__h0==='-Infinity'||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('res').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('res').innerHTML=__h0;return;}
