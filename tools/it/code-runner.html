@@ -681,11 +681,22 @@ function runCode() {
 }
 
 function executeInIframe(html, css, js) {
-  var iframe = document.getElementById('preview');
+  // 每次运行都换成全新的 iframe（= 全新 window）：
+  // ① doc.open() 只换 document 不换 window，旧示例的 setInterval / rAF 会继续跑
+  //    （切走「实时时钟」后每秒抛一次 getElementById(...) is null，控制台被刷屏）；
+  // ② 全新 window 的 console 是原生状态，从根上杜绝重复 patch 造成递归。
+  var oldFrame = document.getElementById('preview');
+  var iframe = oldFrame.cloneNode(false);
+  oldFrame.parentNode.replaceChild(iframe, oldFrame);
   var doc = iframe.contentDocument || iframe.contentWindow.document;
 
   /* Console intercept script */
+  // ⚠ 幂等守卫：doc.open() 只换 document 不换 window，第二次运行时 console.log 已是补丁版，
+  // 若再取 origLog = console.log 就会形成「补丁调自己」的无限递归
+  // （表现：控制台瞬间刷出上万行 + RangeError: Maximum call stack size exceeded）
   var consoleScript = '<script>' +
+    'if(!window.__tbConsoleHooked){' +
+    'window.__tbConsoleHooked=1;' +
     'var origLog = console.log;' +
     'var origWarn = console.warn;' +
     'var origErr = console.error;' +
@@ -707,6 +718,7 @@ function executeInIframe(html, css, js) {
     '  window.parent.postMessage({type:"console", method:"error", data:[msg + " (line:" + line + ")"]}, "*");' +
     '  return true;' +
     '};' +
+    '}' +
     '<\/script>';
 
   doc.open();
