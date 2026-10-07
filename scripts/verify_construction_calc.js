@@ -243,7 +243,22 @@ const CASES = [
     "0.807"
   ],
   "ref": "auto-restore"
-}
+},
+
+{
+    "slug": "construction/brick-calculator",
+    "inputs": {
+      "length": "15",
+      "height": "5",
+      "loss": "5",
+      "includeMortar": "1",
+      "includeLabor": "0"
+    },
+    "expect": [
+      "18.00 砌体体积(m³)"
+    ],
+    "ref": "墙面面积 = 15 × 5 = 75 m²；240 墙砌体体积 = 75 × 0.24 = 18.00 m³（与损耗、砂浆无关）。页面输出 '18.00 砌体体积(m³)'。默认态 length=10、height=3 产出 7.20，不出现 18.00。"
+  }
 ];
 async function main() {
   const only = process.argv.slice(2);
