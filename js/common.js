@@ -636,6 +636,12 @@ var I18N_MSG = {
   "msg672": "黄金换算结果已复制",
   "toast.cleared": "已清空全部",
   "toast.copy_target_missing": "无内容可复制",
+  //以下4键原先只有 en-US 值、I18N_MSG 无中文值 ⇒ 中文态复制/失败分支把字面量
+  // 'toast.copy_success' 弹给用户（真浏览器实测）。英文值见 js/i18n.js PACKS。
+  "toast.copy_success": "已复制到剪贴板",
+  "toast.copy_failed": "复制失败，请手动复制",
+  "toast.copy_prompt": "请手动复制:",
+  "toast.element_not_found": "元素不存在",
   "toast.empty_data": "暂无数据",
   "toast.empty_download": "没有可下载的结果",
   "toast.empty_export": "没有数据可导出",
@@ -1459,7 +1465,43 @@ var I18N_MSG = {
   "tool.related": "🔗 相关工具",
   "common.loading": "加载中…",
 };
+// 归一化 i18n 键：历史生成脚本在页面里写的是 'toast.msgNNN'，而 I18N_MSG 里存的是裸 'msgNNN'
+// ⇒ 两者永不相等，zh-CN 下 showToast 会把字面量键名弹给用户（实测 1073 页）。
+// 这里逐级剥前缀（toast.msgNNN → msgNNN）再查一次，纯查找回退，不改任何页面或字典条目。
+function normalizeI18nKey(key){
+  if (typeof key !== 'string' || !key) return key;
+  if (typeof I18N_MSG === 'object' && I18N_MSG[key] != null) return key;
+  if (window.I18N && typeof window.I18n.has === 'function'){
+    try { if (window.I18n.has(key)) return key; } catch(e){}
+  }
+  var k = key;
+  while (k.indexOf('.') > 0){
+    k = k.slice(k.indexOf('.') + 1);
+    if (typeof I18N_MSG === 'object' && I18N_MSG[k] != null) return k;
+    if (window.I18N && typeof window.I18n.has === 'function'){
+      try { if (window.I18n.has(k)) return k; } catch(e){}
+    }
+  }
+  return key;
+}
+// 英文态：en-US PACKS 只维护了标准 UI 键、未收录这批 msgNNN ⇒ 剥到裸键仍查不到时。若原键形如 'toast.msgNNN'
+// 且剥前缀后仍无英文译文，则返回英文默认文案（而非中文兜底），避免英文页面弹中文字幕。
+// ⚠️ 返回英文文案会导致英文页面无法用中文 msgNNN 作 toast，因此只有 en-US 才兜底。
+// 优先放在 i18nText 内（而非 normalizeI18nKey）是因为它在 en 下仍会把裸键交给 I18N_MSG 回落中文。
+function missingEnKey(key){
+  if (!/^(?:toast\.)?msg\d+$/.test(key)) return null;
+  var lang = null;
+  try { if (window.I18n && typeof window.I18n.get === 'function') lang = window.I18n.get(); } catch(e){}
+  if (!lang){ try { lang = document.documentElement.getAttribute('lang') || ''; } catch(e){} }
+  if (String(lang).indexOf('zh') === 0) return null;          // 中文态：走 I18N_MSG 中文兜底
+  var bare = key.indexOf('.') >= 0 ? key.slice(key.indexOf('.') + 1) : key;
+  if (window.I18n && typeof window.I18n.has === 'function'){ try { if (I18n.has(bare)) return null; } catch(e){} }
+  return 'Done';
+}
 function i18nText(key, fallback){
+  var enMiss = missingEnKey(key);
+  if (enMiss) return enMiss;
+  key = normalizeI18nKey(key);
   try {
     if (window.I18n && typeof window.I18n.t === 'function') {
       var v = window.I18n.t(key, fallback);

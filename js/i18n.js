@@ -621,6 +621,24 @@ var LANG_REGISTRY = [
 
   function t(key, fallback) { return resolve(key, fallback); }
 
+  // 键是否存在（沿回退链查）。供 js/common.js 的 normalizeI18nKey 做前缀归一化回退，
+  // 解决页面写 'toast.msgNNN' 而字典存裸 'msgNNN' 导致的键名外泄。
+  function has(key) {
+    var seen = {};
+    var l = current;
+    while (l && !seen[l]) {
+      seen[l] = true;
+      var pack = PACKS[l];
+      if (pack && pack.hasOwnProperty(key)) return true;
+      var reg = null;
+      for (var i = 0; i < LANG_REGISTRY.length; i++) {
+        if (LANG_REGISTRY[i].code === l) reg = LANG_REGISTRY[i];
+      }
+      l = reg ? reg.fallback : null;
+    }
+    return false;
+  }
+
   // 行业/分类 key -> 可读英文名兜底（general -> General，auto-beauty -> Auto Beauty，ai -> AI）
   var KEY_ACRONYMS = {
     it: 'IT', ai: 'AI', ui: 'UI', ux: 'UX', uiux: 'UI/UX', api: 'API', seo: 'SEO',
@@ -1004,7 +1022,7 @@ var LANG_REGISTRY = [
   }
 
   window.I18n = {
-    get: get, set: set, t: t,
+    get: get, set: set, t: t, has: has,
     indName: indName, catName: catName, assetUrl: assetUrl,
     apply: apply, applyLangAttr: applyLangAttr, mountSwitcher: mountSwitcher, init: init,
     addPack: addPack,
