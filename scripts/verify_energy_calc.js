@@ -336,6 +336,17 @@ const CASES = [
     inputs: { ch_capacity: "5500", ch_current: "2500", ch_voltage: "5", ch_efficiency: "85" },
     expect: ["12.5 W", "2 小时 35 分钟", "5,500 mAh"],
     ref: "注入非默认(默认 ch_capacity=4000/ch_current=2000/ch_voltage=3.7/ch_efficiency=90)：充电功率 = 5 V×2.5 A×85% = 12.5 W；充电能量 = 5.5 Ah×5 V = 27.5 Wh ⇒ 充满耗时 ≈ 27.5/12.5 = 2.2 h ⇒ 2 小时 35 分钟。⚠ 本页为多页签结构，harness 只渲染当前页签，`cf_*`（碳足迹）与 `solar_*`（光伏）所属页签的注入不生效 ⇒ 本例只对「充电/电池」页签取锚。"
+  },
+
+{
+    "slug": "energy/water-tds-evaluator",
+    "inputs": {
+      "tdsInput": "350"
+    },
+    "expect": [
+      "350 ppm - 净化后可用"
+    ],
+    "ref": "TDS 350 ppm 落入页面分级表300 ~ 600 ppm 区间（水质一般，不建议直接饮用）→ 评级'净化后可用'。分级区间与 WHO 饮用水水质常用 TDS 分级一致（<50 直饮级、50–100 矿泉水级、100–300 自来水级、300–600 需净化、>600 不宜直饮）。页面输出 '350 ppm - 净化后可用'。HTML 默认 tdsInput=150 → '150 ppm - 自来水级'，默认态不产生该串。"
   }
 ];
 

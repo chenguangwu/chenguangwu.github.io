@@ -235,7 +235,25 @@ const CASES = [
   {"slug": "health/child-medication-dose", "inputs": {"age": "6", "weight": "24"}, "expect": ["Clark公式（按体重 24 kg） 每次剂量： 137.1 mg （约 6.9 ml）", "Young公式（按年龄6岁）： 133.3 mg/次", "每次剂量： 120.0 ~ 240.0 mg/次", "最大日剂量： 960 mg （约 48.0 ml）"], "ref": "独立复算（ibuprofen：adultDose=400、conc=20mg/ml、unitRange=[5,10]、maxDaily=40）：Clark = 24×400/70 = 137.14 ⇒ 137.1 mg；体积 = 137.14/20 = 6.86 ⇒ 6.9 ml；Young = 6×400/(6+12) = 133.33 ⇒ 133.3；标准范围 = 5×24 ~ 10×24 = 120.0 ~ 240.0；最大日剂量 = 40×24 = 960 mg、58… 页面给 48.0 ml（960/20）。默认态（age=3、weight=15）为 85.7 mg / 4.3 ml / 64.3 mg / 75.0~150.0 / 600 mg，四锚均不命中。"},
   {"slug": "health/child-medication-dose", "inputs": {"age": "9", "weight": "31"}, "clicks": ["document.getElementById('drugSelect').value='acetaminophen';calcDose();"], "expect": ["对乙酰氨基酚（泰诺林） 规格：32mg/1ml ｜ 用药间隔：4-6小时", "每次剂量： 221.4 mg （约 6.9 ml）", "Young公式（按年龄9岁）： 214.3 mg/次", "每次剂量： 310.0 ~ 465.0 mg/次", "最大日剂量： 1860 mg （约 58.1 ml）"], "ref": "独立复算（acetaminophen：adultDose=500、conc=32mg/ml、unitRange=[10,15]、maxDaily=60）：Clark = 31×500/70 = 221.43 ⇒ 221.4 mg；体积 = 221.43/32 = 6.92 ⇒ 6.9 ml；Young = 9×500/(9+12) = 214.29 ⇒ 214.3；标准范围 = 10×31 ~ 15×31 = 310.0 ~ 465.0；最大日剂量 = 60×31 = 1860 mg、体积 1860/32 = 58.125 ⇒ 58.1 ml。切换药物须走 clicks（select 无 option selected 桩、值写在 inputs 里会被 onchange 重置），药物名锚同时验证 conc/interval 联动。默认态为布洛芬 + age3/weight15，四锚均不命中。"},
   {"slug": "health/milk-tea-calories", "inputs": {}, "checkIds": ["top_boba", "top_cheese"], "clicks": ["document.getElementById('cup').value='650';document.getElementById('tea').value='60';document.getElementById('milk').value='120';document.getElementById('sugar').value='100';calcTool();"], "expect": ["395 kcal 一杯总热量 180 kcal 茶底 + 奶类 65 kcal 糖（100% 糖度） 150 kcal 加料（boba、cheese）"], "ref": "独立复算：杯量 650ml、芝士奶盖茶底 60 + 奶精 120 ⇒ 茶底+奶类 = 180 kcal；糖热量 = round(650/100 × (100/100) × 10) = 65 kcal；加料 = 珍珠 80 + 奶盖 70 = 150 kcal；总 = 180 + 65 + 150 = 395 kcal。加料名走 el.dataset.name，桩内 dataset 不存在 ⇒ 回落 id（boba、cheese），此串本身即锚。默认态全 0（500ml/原味/无奶/无糖/无加料）为「0 kcal 一杯总热量」，四段连排串不命中。杯量/茶底/奶/糖四项 select 桩内 option selected 不生效，必须 clicks 赋值后显式调 calcTool()（页面函数名非 calc）。"},
-  {"slug": "health/milk-tea-calories", "inputs": {}, "checkIds": ["top_pudding", "top_redbean"], "clicks": ["document.getElementById('cup').value='500';document.getElementById('tea').value='30';document.getElementById('milk').value='80';document.getElementById('sugar').value='50';calcTool();"], "expect": ["245 kcal 一杯总热量 110 kcal 茶底 + 奶类 25 kcal 糖（50% 糖度） 110 kcal 加料（pudding、redbean）"], "ref": "独立复算：奶茶基底 30 + 全脂牛奶 80 = 110 kcal；糖热量 = round(500/100 × (50/100) × 10) = 25 kcal；加料 = 布丁 60 + 红豆 50 = 110 kcal；总 = 110 + 25 + 110 = 245 kcal。加料名同样回落为 id（pudding、redbean）。与上一例互为对照：更换茶底/奶/糖/加料四类输入，覆盖不同糖度与不同加料组合。默认态全 0，不命中。"}
+  {"slug": "health/milk-tea-calories", "inputs": {}, "checkIds": ["top_pudding", "top_redbean"], "clicks": ["document.getElementById('cup').value='500';document.getElementById('tea').value='30';document.getElementById('milk').value='80';document.getElementById('sugar').value='50';calcTool();"], "expect": ["245 kcal 一杯总热量 110 kcal 茶底 + 奶类 25 kcal 糖（50% 糖度） 110 kcal 加料（pudding、redbean）"], "ref": "独立复算：奶茶基底 30 + 全脂牛奶 80 = 110 kcal；糖热量 = round(500/100 × (50/100) × 10) = 25 kcal；加料 = 布丁 60 + 红豆 50 = 110 kcal；总 = 110 + 25 + 110 = 245 kcal。加料名同样回落为 id（pudding、redbean）。与上一例互为对照：更换茶底/奶/糖/加料四类输入，覆盖不同糖度与不同加料组合。默认态全 0，不命中。"},
+
+{
+    "slug": "health/premature-age-calculator",
+    "inputs": {
+      "birthDate": "2020-01-15",
+      "todayDate": "2026-06-15",
+      "eddDate": "2026-01-08",
+      "gestWeeks": "0",
+      "gestDays": "0"
+    },
+    "expect": [
+      "77.0 实际月龄（月）",
+      "5.2 矫正月龄（月）",
+      "2185 早产天数",
+      "312.1 早产周数"
+    ],
+    "ref": "出生 2020-01-15、基准日 2026-06-15 → 实际天数 = 2343 天；实际月龄 = 2343 / 30.4375 = 76.99 ≈ 77.0 月。预产期 2026-01-08 距基准日 158 天 → 早产天数 = 2343 − 158 = 2185 天；早产周数 = 2185 / 7 = 312.14 ≈ 312.1 周；矫正月龄 = 实际月龄 − 早产月数 = 77.0 − 2185/30.4375 = 77.0 − 71.8 = 5.2 月。页面输出与独立复算逐项吻合。HTML 默认无 birthDate → 不出计算结果，默认态不产生这组值。"
+  }
 ];
 
 async function main() {
