@@ -708,6 +708,17 @@ const CASES = [
     expect: ["390 \u03a9 \u6700\u63a5\u8fd1 E24 \u6807\u51c6\u503c\uff0c\u8272\u73af\uff1a\u6a59 \u00b7 \u767d \u00b7 \u68d5 \u00b7 \u68d5"],
     ref: "\u53cd\u67e5\u8272\u73af\uff1a390 \u03a9 \u6709\u6548\u6570\u5b57 3/9 \u21d2 \u6a59(3)/\u767d(9)\uff1b390/(39\u00d710)=1 \u21d2 \u4e58\u6570 10 \u21d2 \u68d5\uff0c\u00b11% \u21d2 \u68d5\u3002\u9ed8\u8ba4 10 k\u03a9 \u8f93\u51fa\u4e0d\u542b\u6b64\u4e32\uff1b\u6ce8\u610f 390 \u03a9 \u4e0e\u88f8\u503c 390 \u4e0d\u540c\uff08\u540e\u8005\u4e3a\u8f93\u5165\u56de\u663e\uff0c\u4e0d\u4f5c\u951a\uff09\u3002"
   },
+
+{
+    "slug": "science/calc-cycle",
+    "inputs": {
+      "formula": "NaCl"
+    },
+    "expect": [
+      "58.44 g/mol"
+    ],
+    "ref": "NaCl 分子量 = Na 22.99 + Cl 35.45 = 58.44 g/mol（共 2 个原子）。页面输出 '58.44 g/mol'。默认态 formula=H2O → 18.02，不出现 58.44。"
+  }
 ];
 
 // ---------------------------------------------------------------- main
