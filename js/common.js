@@ -642,6 +642,15 @@ var I18N_MSG = {
   "toast.copy_failed": "复制失败，请手动复制",
   "toast.copy_prompt": "请手动复制:",
   "toast.element_not_found": "元素不存在",
+  //以下 5 键原先也只有 en-US 值、I18N_MSG 无中文值 ⇒ 中文态重置/恢复历史/删除等
+  //高频分支把字面量键名弹给用户（实测 toast.reset x42、history_restored x29、deleted x11）。
+  "toast.reset": "已重置",
+  "toast.history_restored": "已恢复历史记录",
+  "toast.deleted": "已删除",
+  "toast.needs_calculation": "请先计算",
+  "toast.import_failed": "导入失败",
+  "tool.subscript": "下标",
+  "tool.superscript": "上标",
   "toast.empty_data": "暂无数据",
   "toast.empty_download": "没有可下载的结果",
   "toast.empty_export": "没有数据可导出",
