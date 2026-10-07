@@ -264,6 +264,118 @@ function setMode(key, btn){
   document.getElementById('groupCountWrap').style.display = key === 'groups' ? '' : 'none';
   document.getElementById('perGroupWrap').style.display = key === 'pergroup' ? '' : 'none';
 }
+
+/* ---- 随机分组核心逻辑（洗牌 + 余数平摊） ---- */
+var __rosterText = '';
+
+function escRoster(s){
+  return String(s).replace(/[&<>"]/g, function(c){
+    return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'})[c];
+  });
+}
+// Fisher-Yates 洗牌：保证每个成员落入任意组的概率相同
+function shuffleRoster(arr){
+  var a = arr.slice();
+  for (var i = a.length - 1; i > 0; i--) {
+    var j = Math.floor(Math.random() * (i + 1));
+    var t = a[i]; a[i] = a[j]; a[j] = t;
+  }
+  return a;
+}
+// 当前模式由哪个输入区可见决定（与 setMode 保持同一真源）
+function currentMode(){
+  var perWrap = document.getElementById('perGroupWrap');
+  return (perWrap && perWrap.style.display !== 'none') ? 'pergroup' : 'groups';
+}
+function generate(){
+  var box = document.getElementById('result');
+  if (!box) return;
+  var lines = (document.getElementById('names').value || '').split('\n')
+    .map(function(s){ return s.trim(); })
+    .filter(function(s){ return s.length > 0; });
+  var n = lines.length;
+  if (n === 0) {
+    __rosterText = '';
+    box.innerHTML = '<p style="color:var(--danger)">请先输入成员名单（每行一个名字）。</p>';
+    return;
+  }
+  var groups;
+  if (currentMode() === 'pergroup') {
+    var per = parseInt(document.getElementById('perGroup').value, 10);
+    if (!isFinite(per) || per < 1) {
+      __rosterText = '';
+      box.innerHTML = '<p style="color:var(--danger)">每组人数需为不小于 1 的整数。</p>';
+      return;
+    }
+    groups = Math.ceil(n / per);
+  } else {
+    groups = parseInt(document.getElementById('groupCount').value, 10);
+    if (!isFinite(groups) || groups < 1) {
+      __rosterText = '';
+      box.innerHTML = '<p style="color:var(--danger)">组数需为不小于 1 的整数。</p>';
+      return;
+    }
+    if (groups > n) {
+      __rosterText = '';
+      box.innerHTML = '<p style="color:var(--danger)">组数（' + groups + '）不能大于总人数（' + n + '）。</p>';
+      return;
+    }
+  }
+  // 余数平摊到前几组（而非塞进最后一组）⇒ 各组人数差不超过 1
+  var base = Math.floor(n / groups), rem = n % groups;
+  var pool = shuffleRoster(lines);
+  var head = '共 ' + n + ' 人 / ' + groups + ' 组（每组 ' +
+             (rem ? base + '~' + (base + 1) : base) + ' 人）';
+  var html = '<div class="result-box"><h4>' + escRoster(head) + '</h4>';
+  var txt = head + '\n';
+  var idx = 0;
+  for (var g = 0; g < groups; g++) {
+    var size = base + (g < rem ? 1 : 0);
+    var members = pool.slice(idx, idx + size);
+    idx += size;
+    html += '<div style="margin:10px 0;padding:10px 12px;border:1px solid var(--border,#eee);border-radius:8px;">'
+          + '<div style="font-weight:600;margin-bottom:6px;">第 ' + (g + 1) + ' 组（' + size + ' 人）</div>'
+          + '<div>' + members.map(escRoster).join('、') + '</div></div>';
+    txt += '第 ' + (g + 1) + ' 组（' + size + ' 人）：' + members.join('、') + '\n';
+  }
+  html += '</div>';
+  __rosterText = txt;
+  box.innerHTML = html;
+}
+function copyResult(){
+  if (!__rosterText) generate();
+  if (!__rosterText) return;
+  var v = __rosterText;
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(v).then(function(){
+      if (window.ToolBox && typeof window.ToolBox.toast === 'function') window.ToolBox.toast('已复制分组结果');
+    }, function(){ fallbackCopyRoster(v); });
+  } else {
+    fallbackCopyRoster(v);
+  }
+}
+function fallbackCopyRoster(v){
+  var ta = document.createElement('textarea');
+  ta.value = v;
+  ta.style.position = 'fixed';
+  ta.style.left = '-9999px';
+  document.body.appendChild(ta);
+  ta.select();
+  try { document.execCommand('copy'); } catch (e) {}
+  document.body.removeChild(ta);
+}
+var ROSTER_PRESETS = {
+  class: ['张伟','王芳','李娜','刘洋','陈静','杨帆','赵敏','黄磊','周杰','吴桐',
+          '徐慧','孙涛','马丽','朱琳','胡军','郭强','林峰','何静','高翔','罗雪']
+};
+function loadPreset(kind){
+  var arr = ROSTER_PRESETS[kind] || ROSTER_PRESETS.class;
+  document.getElementById('names').value = arr.join('\n');
+  generate();
+}
+// 打开即用：首次加载自动出一份结果
+if (document.readyState !== 'loading') generate();
+else document.addEventListener('DOMContentLoaded', generate);
 </script>
 </body>
 </html>
