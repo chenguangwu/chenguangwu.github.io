@@ -98,6 +98,19 @@ const CASES = [
      + "「未找到匹配项」。注入不存在的关键词 zzzz ⇒ results 为空 ⇒ 输出该提示；默认态 DATA 非空、永不出现。"
      + "原 expect「A01」即默认全量表的首行编号，典型逃生项。",
 }
+,
+{
+    "slug": "quality/ppm-calculator",
+    "inputs": {
+      "defect": "1",
+      "total": "1000000"
+    },
+    "expect": [
+      "1 / 1,000,000",
+      "1.00 PPM"
+    ],
+    "ref": "缺陷数 1 ÷ 总数 1,000,000 = 1 PPM（百万分之一）。页面输出 '1.00 PPM' 与 '1 / 1,000,000'。默认态 defect/total 为其他值，不出现该精确组合。"
+  }
 ];
 async function main() {
   const only = process.argv.slice(2);

@@ -515,6 +515,22 @@ const CASES = [
   {"slug": "marketing/email-subject-line-tester", "inputs": {"subject": "Your order #A4821 has shipped — track it in 3 clicks", "previewText": "Track your package"}, "expect": ["52 11 ✓ 完整 52字", "100 优秀 👍 标题质量良好，继续保持！", "✅ 标题长度适中（52字符） 🔢 包含数字，有助于吸引注意力 ✅ 未检测到明显垃圾邮件关键词"], "ref": "独立复算：标题 52 字符（Python len 验证）、按空白切分 11 词；10 ≤ 52 ≤ 70 ⇒ 不扣长度分（不奖不罚）、11 词 ≤ 15 不扣词数分、含数字只加分不扣、无中文垃圾词、无【】括号 ⇒ 四项均不扣分，总分 = 100 ⇒ 标签「优秀」。默认态标题「【限时优惠】夏季新品上市，全场5折起，错过等一年！」= 25 字符、含【】扣 2 分、含垃圾词（限时/优惠类）扣分 ⇒ 总分远低于 100，且「52字符」「11」「52字」三锚均不命中。预览文案由 desktopPreview/mobilePreview 双处回显，同串出现两次，注入值本身不作锚。"},
   {"slug": "marketing/email-subject-line-tester", "inputs": {"subject": "限时秒杀", "previewText": "仅今日"}, "expect": ["4 1 ✓ 完整 4字", "87 优秀 👍 标题质量良好，继续保持！", "💡 标题较短，建议提供更多信息吸引读者 ⚠️ 包含垃圾词「限时」，可能影响送达率 🚫 包含垃圾词「秒杀」，可能影响送达率"], "ref": "独立复算：标题「限时秒杀」4 字符（< 10 ⇒ 扣 5 分，并输出「标题较短」建议）、1 词；命中垃圾词表两项「限时」「秒杀」，各扣 4 分（warn 级 ⚠️ / 强拦截级 🚫 两档）；4 字无数字加分、无括号 ⇒ 总分 100 − 5 − 4 − 4 = 87。默认态 25 字符、含【】与「限时优惠」类词，总分与建议串均不同；「4 1」「4字」两锚不命中。与上一例互为对照：一条满分无扣分、一条 13 分扣分，同时覆盖「过短」与「适中」两个长度分支及两档垃圾词。"},
   {"slug": "marketing/social-media-image-sizes", "inputs": {"searchInput": "竖版封面视频"}, "clicks": ["filterSizes();"], "expect": ["未找到匹配的尺寸"], "ref": "独立判定：关键词「竖版封面视频」在页面 12 个平台 × 各类尺寸的名称/平台名/宽高/比例数据中均无任何子串命中 ⇒ 过滤后集合为空，filterSizes() 走空分支渲染「未找到匹配的尺寸」。默认态（空关键词）全量渲染 12 个平台的全部尺寸卡，blob 无该提示串；兜底无参 filterSizes() 读空 searchInput 同样渲染全量、不会复现空提示 ⇒ 非兜底产物。过滤命中的串（如搜「头像」得 11 条头像卡连排）**不可作锚**：默认态本就全量含这些串，判别器回退 searchInput 后照样命中。搜索词在输入框 value 中回显，不作锚。"}
+,
+{
+    "slug": "marketing/marketing-cpa-calculator",
+    "inputs": {
+      "totalSpend": "1000",
+      "newCustomers": "50",
+      "avgOrderValue": "200",
+      "grossMargin": "50",
+      "clicks": "500",
+      "repeatRate": "20"
+    },
+    "expect": [
+      "单次获客成本 CPA ¥20.00"
+    ],
+    "ref": "CPA = 1000 ÷ 50 = ¥20.00。页面输出 '单次获客成本 CPA ¥20.00'。默认态其他输入不产生 ¥20.00。"
+  }
 ];
 
 async function main() {
