@@ -306,12 +306,15 @@
 
 ### 8.14 「卡死」判定必须用心跳，不能用 evaluate 往返超时
 
-- **踩坑（2026-10-07 全站扫描）**：用 `Promise.race([page.evaluate(click), timeout(1500)])` 判卡死，**4937 页里报 5 页卡死，逐个用「主线程心跳（setInterval 100ms 递增）+ 连续 8 次采样」复核，全部心跳每秒 +10、无阻滞** ⇒ **零真死循环**。原「5 页卡死」是 `evaluate` 通信延迟造成的假阳性。
-- **正确判据**：点击前装 `setInterval(()=>window.__hb++, 100)`，点击后每 1s 采样一次，连续 8s：① 心跳完全停摆（`EVAL_BLOCKED`）= 真死循环；② 心跳持续前进 = 长耗时/正常。**单次超时不能定罪。**
-- **静态扫 `while` 不可用作判据**：全站正则粗筛报 338 处「可疑 while」，逐一复核全是正常写法（欧几里得算法 `[a,b]=[b,a%b]`、日期 `hh=(hh+1)%24`、数组 `push`）。**死循环只能靠真浏览器动态探测，且需心跳二次确认。**
-- **数据表「列数不一致」正则同样不可信**：`clinical-lab/blood-routine-reference` 被报「行长40/60/35 混杂」，实为**对象字面量** `{n:..., u:..., lo:...}`（按属性名取值，无下标），非数组索引错位。**字段错位只能靠页面语义判断（如 `chinese-radical-lookup` 的 `d[3]`/`d[4]`），静态列数扫描是伪线索。**
-- **harness 盲区页无法静态识别，只能试错**：正确流程是 **注入 → 跑该行业 verify → 失败页写入 `--skip` 清单 → 带 `--skip` 重跑 → 直到全绿**（v8 已实现）。
-- **dry-run 命中 ≠ 存在缺陷**：须过「jsdom 真机 + 源码兜核」两道（2026-09-23 报 36 页全为静态误报），结论固化在 `scripts/output_guard_exclude.txt`。**但 jsdom 桩会把 `:checked`/`dataset`/动态 `innerHTML` 控件页误报成除零 ⇒ 判真缺陷只能用真浏览器**（playwright-core + 本机 chromium 逐项置零）。**v8 守卫只是遮羞布，治本用 `_inject_input_guard_v9.py`**（calc 入口插 `__tbInputGuard()`，公式不改；必填判据=`type=number` 且有非空 `value`，顺序＝分母→全零，判存在用 `indexOf` 非 `in`）。
+- **踩坑（2026-10-07 全站扫描）**：用 `Promise.race([page.evaluate(click), timeout(1500)])` 判卡死，全站报 5 页，用「主线程心跳 + 8 次采样」复核**全部心跳每秒 +10 无阻滞** ⇒ **零真死循环**（原报警是 `evaluate` 通信延迟的假阳性）。
+- **正确判据**：点击前装 `setInterval(()=>window.__hb++, 100)`，点击后每 1s 采样、连续 8s：停摆 = 真死循环，持续前进 = 正常。**单次超时不能定罪。**
+- **两条静态伪线索（勿再采信）**：① 正则扫 `while` 报 338 处可疑，复核全是正常写法（欧几里得 `[a,b]=[b,a%b]`、日期 `hh=(hh+1)%24`、`push`）—— 死循环只能靠真浏览器 + 心跳二次确认；② 数据表「列数不一致」实为**对象字面量**按属性名取值、无下标 —— 字段错位只能靠页面语义判断（如 `chinese-radical-lookup` 的 `d[3]`/`d[4]`）。
+- **harness 盲区页无法静态识别**：流程是 **注入 → 跑该行业 verify → 失败页写入 `--skip` 清单 → 带 `--skip` 重跑 → 直到全绿**（v8 已实现）。**dry-run 命中 ≠ 存在缺陷**：须过「jsdom 真机 + 源码兜核」两道。**jsdom 桩会把 `:checked`/`dataset`/动态 `innerHTML` 控件页误报成除零 ⇒ 判真缺陷只能用真浏览器**逐项置零。**v8 守卫只是遮羞布，治本用 `_inject_input_guard_v9.py`**（calc 入口插 `__tbInputGuard()`、公式不改；必填判据=`type=number` 且有非空 `value`，顺序＝分母→全零，判存在用 `indexOf` 非 `in`）。
+
+### 8.15 动态扫「异常/死功能」：探针自身准确率是第一位
+
+- **六条探针纪律**（每条都对应一次全站级误报）：① 走 **HTTP**（`http.server 8899`）而非 `file://` —— 后者 `fetch` 必被 CORS 拦，每页误报 2 条 console error；② **结果区 id 不能硬编码**（实际有 `result`/`res`/`statBox`/`wrap`…），须逐级探测，否则全站 100% 误报 emptyResult；③ 点击前 `closest('header,nav,footer,[role=navigation],#search-overlay,…')` **排除页面 chrome**，否则点导航会跳走、后续检测全在错误页面，广告按钮也会挤掉真计算按钮；④ 判「**扰动输入后结果是否变化**」且扰动必须**乘性**（`v*2+1`）—— 加法（`+7.77`）在百万级数值上会被 `toFixed(2)` 舍入吞掉造成假阳性；点**文案匹配**（`/计算|试算|换算|生成/`）的按钮而非第一个控件；⑤ 排除广告/分享区输入（`analysis-46`、`report-2` 首个 text input 是**分享 URL 输入框**）；⑥ 扰动后仍无变化才判死功能。
+- **收敛标尺**：60 页样本上 **flagged 必须为 0** 才允许跑全站。本类探针曾 59/60 全误报、返工 4 次才到 0；**探针不过关就跑全站等于白跑**。
 
 ---
 
@@ -337,22 +340,19 @@
 | **P0** | 页面级真实缺陷修复（§九 清单） | A–U 已闭环；**当前无进行中批次**，§九 仅余 `ai/*` 度量盲区（评估为不改） |
 | **P1** | 按热度逐分类 §4.1 八项目标收口 | **全站 209 分类已收口**（§7.2 为空） |
 | **P2** | ✅ 工具质量分级提升（C→A） | **已达成：A 级率 70.0% → 99.2%**（§7.3） |
-| **P3** | `scripts/` 用例与基线维护（弱用例去默认化等） | **仅随 P0/P1 顺带处理**；门禁必需项（`run_gates.py` 链路）除外 |
+| **P3** | `scripts/` 用例与基线维护 | **仅随 P0/P1 顺带**；门禁必需项（`run_gates.py` 链路）除外 |
 
 ### 10.2 现状（实测基线）
 
 - `all_default 4 / no_inputs 10 / escape 0`；门禁 `run_gates.py` **217 项全过**、逃生项 0（判别器已检 **4658** 例 / 跳过 49）。
 - A 级率 **99.2%**（A 4693 / B 32 / C 4）；术语内链 **1591 页 / 2268 条**（零死链、零自链）。
-- 弱用例口径与选批规则见 §10.3。
-  - **注意：弱用例整体处于判别器盲区** —— 「注入值等于默认值」的用例被判 `usable=false` 直接跳过（§10.5）⇒ `escape=0` 只说明强用例无逃生项；每批改造后须重跑判别器确认其由「跳过」转为「已检且变红」。
+- 弱用例口径与选批规则见 §10.3。**注意：弱用例整体处于判别器盲区** —— 「注入值等于默认值」的用例被判 `usable=false` 直接跳过（§10.5）⇒ `escape=0` 只说明强用例无逃生项；每批改造后须重跑判别器确认其由「跳过」转为「已检且变红」。
 
 ### 10.3 弱用例去默认化（仅在 P0/P1 顺带时执行）
 
-**存量 14 例**（`no_inputs=10` / `all_default=4`）。**已全部有判死或注入结论并写进各用例 `ref`**（唯一源）：4 例 `all_default` 全判死；10 例 `no_inputs` 判死（判据 §10.5 B 组）。两处「顺序保持型筛选」翻案（`office/excel-formula-reference`、`gardening2/pruning-time`）均锚**过滤后跨条目相邻串**（§10.5 C.7④）。**转 P3 顺带，不单独成批**；逐批成果与逐例打法归档在 `.workbuddy/memory/2026-09-2*.md` 与 skill `toolbox-weakcase-hardening`，**本文件不再记录批次流水**。
+**存量 14 例**（`no_inputs=10` / `all_default=4`）。**已全部有判死或注入结论并写进各用例 `ref`**（唯一源）。两处「顺序保持型筛选」翻案（`office/excel-formula-reference`、`gardening2/pruning-time`）均锚**过滤后跨条目相邻串**（§10.5 C.7④）。**转 P3 顺带，不单独成批**；逐批成果与逐例打法归档在 `.workbuddy/memory/` 与 skill `toolbox-weakcase-hardening`，**本文件不再记录批次流水**。
 
-**选批口径**：① 按「可注入数」降序挑批次；② **结构性不可注入的不要选**（判据 §10.5 B 组）—— 保留 `no_inputs` 并在 `ref` 写明理由；③ 每批 8–11 例，走 §10.4 六步。
-
-**结构判死的唯一依据是各用例 `ref`**；旧清单里 19 条已被 `clicks`/`inputs` 翻案却仍标「勿重复评估」的条目（`music/sheet-music`、`dermatology/*`、`travel/aim-trainer` 等）已删除，免得后续批次跳过可行候选。
+**选批口径**：① 按「可注入数」降序挑批次；② **结构性不可注入的不要选**（判据 §10.5 B 组）—— 保留 `no_inputs` 并在 `ref` 写明理由；③ 每批 8–11 例，走 §10.4 六步。**结构判死的唯一依据是各用例 `ref`**。
 
 ### 10.4 每批收口流程（顺带改造时六步，缺一不可）
 
@@ -365,8 +365,7 @@
 
 ### 10.5 harness 已知限制（选批与定 expect 前必读）
 
-> harness = `scripts/verify_it_calc.js`。**三阶段判定**：① 覆盖 `c.inputs` 后触发 `input/change/keyup` 并**立即**查 expect（命中即 `via:"input event"`）→ ② `clicks` 注入（命中即 `via:"click"`）→ ③ 未命中才兜底**无参遍历调用候选函数**（命中即 `via:<函数名>`；`DESTRUCTIVE` 跳过 `reset|clear|restore|save|swap|history|^set[A-Z]`）。
-> `collectStrings(elements)` 收集每元素的 `value`/`innerHTML`/`textContent` 三路非空串，剥标签压缩后**换行拼成单个字符串** ⇒ `blob.includes(want)` 是**子串**匹配；**不采集 `style`**。
+> harness = `scripts/verify_it_calc.js`。**三阶段判定**：① 覆盖 `c.inputs` 后触发 `input/change/keyup` 并**立即**查 expect（命中即 `via:"input event"`）→ ② `clicks` 注入（命中即 `via:"click"`）→ ③ 未命中才兜底**无参遍历调用候选函数**（命中即 `via:<函数名>`；`DESTRUCTIVE` 跳过 `reset|clear|restore|save|swap|history|^set[A-Z]`）。`collectStrings(elements)` 收集每元素 `value`/`innerHTML`/`textContent` 三路非空串，剥标签压缩后**换行拼成单串** ⇒ `blob.includes(want)` 是**子串**匹配；**不采集 `style`**。
 
 **A. 可注入手段（6 种）**
 
@@ -379,7 +378,7 @@
 | `clicks: ["pick(0,3)", …]` | **页面作用域 direct eval**，inputs 后、兜底前按序执行，命中即 `via="click"` |
 | `dynDom` | 单独开启动态 DOM 登记（不注入值时用） |
 
-> `clicks` 内的状态驱动优先级：**页面顶层 `var`/`let` 绑定直接赋值 > 模拟点按钮 > 注入 DOM 选中态**（真正被 `calc()` 读取的往往是顶层状态）。**带 DOM 形参的 click 函数不算不可注入**：`selectFluor(btn,i)` 的 `btn` 只做 `classList` 增删 ⇒ 传哑对象 `{classList:{add:function(){},remove:function(){}}}` 或直接省略（页面内 `if(el)` 判空）。
+> `clicks` 内的状态驱动优先级：**页面顶层 `var`/`let` 绑定直接赋值 > 模拟点按钮 > 注入 DOM 选中态**（真正被 `calc()` 读取的往往是顶层状态）。**带 DOM 形参的 click 函数不算不可注入**：`selectFluor(btn,i)` 的 `btn` 只做 `classList` 增删 ⇒ 传哑对象 `{classList:{add:function(){},remove:function(){}}}` 或省略（页面内 `if(el)` 判空）。
 
 **B. 「能不能注入」判据（静态 HTML 无 `<input|<select|<textarea` 时逐条排查）**
 
@@ -432,10 +431,7 @@
 
 - 全站 `verify_*_calc.js` 共 **62 条「同 slug 多份」重复条目**（`realestate` 34、`math` 12…）⇒ 去重价值低，按 §7.1 P3 顺带处理，逐例现况查各用例 `ref`。
 
-### 10.6 方向1：公式-脚本一致性精查（**已全量闭环** · 老板选定）
+### 10.6 方向1：公式-脚本一致性精查（**已全量闭环**）
 
-- **目标**：逐页独立复算计算类页 `calc()` 输出的数学/物理正确性（§4.5 红线第一条最高频事故）。
-- **覆盖**：全站计算页的默认态与 ZERO/EMPTY 边界态已全量扫完，边界 NaN 守卫已铺开；工具与踩坑见 **§8.7 / §8.11 / §8.14**。
-- **SOP**：① 隔离器扫 DEF 态 → 筛 `NaN`/`Infinity`/越界值/`err`；② 每条 `err` 过 jsdom 三态复核，区分「桩盲区」与「真缺陷」；③确凿缺陷才改页，改完补/改用例。
-- **纪律**：确凿真缺陷前不改页面；找到即立项闭环（修 calc + 修/注册 verify 用例 + run_gates + 提交）。
+逐页独立复算 `calc()` 输出的数学/物理正确性（§4.5 红线第一条）。全站计算页默认态 + ZERO/EMPTY 边界态已扫完，边界 NaN 守卫已铺开。SOP 与工具踩坑见 **§8.7 / §8.11 / §8.14 / §8.15**。纪律：确凿真缺陷前不改页面，找到即立项闭环（修 calc + 修/注册用例 + run_gates + 提交）。
 
