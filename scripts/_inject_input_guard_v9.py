@@ -32,6 +32,7 @@ TOOLS = os.path.join(ROOT, 'tools')
 MSG_EMPTY = '<p style="color:var(--danger)">⚠ 请填写「%s」后再计算。</p>'
 MSG_ZERO = '<p style="color:var(--danger)">⚠ 输入不能全为 0：至少需要一项非零数值，否则计算无意义。</p>'
 MSG_DENOM = '<p style="color:var(--danger)">⚠ 「%s」是本计算的分母，不能为 0。</p>'
+MSG_NEG = '<p style="color:var(--danger)">⚠ 「%s」不能为负值。</p>'
 
 # 注入的校验函数名（幂等键）
 FN_NAME = '__tbInputGuard'
@@ -233,7 +234,7 @@ def label_for(body, id):
     return id
 
 
-def build_guard_js(inputs, out_id, fname, denoms=None):
+def build_guard_js(inputs, out_id, fname, denoms=None, negs=None):
     """生成校验函数 + 入口前置调用"""
     ids = [i[0] for i in inputs]
     pairs = ', '.join("'%s'" % i for i in ids)
@@ -244,10 +245,13 @@ def build_guard_js(inputs, out_id, fname, denoms=None):
     denoms = denoms or []
     dlab = json_str({d['id']: d['label'] for d in denoms})
     denom_tpl = json_str(MSG_DENOM)
+    neg_tpl = json_str(MSG_NEG)
+    nlab = json_str({n['id']: n['label'] for n in (negs or [])})
     js = f"""
 function {FN_NAME}(_ids,_labels){{
   var __TPL='请填写「%s」后再计算。';
   var __TPL2={denom_tpl};
+  var __TPL3={neg_tpl};
   var _vals=[],_firstBad=-1;
   var _REQ={req_pairs};
   for(var _i=0;_i<_ids.length;_i++){{
@@ -280,6 +284,18 @@ function {FN_NAME}(_ids,_labels){{
     if(parseFloat(String(_de.value==null?'':_de.value).trim())===0){{
       if(_de.classList&&_de.classList.add)_de.classList.add('input-error');
       return __TPL2.replace('%s',__D[_ids[_d]]);
+    }}
+  }}
+  // 负值受限项：__N 由真浏览器逐项置 -1 探测得出（质量/体积/年限/样本量等物理量）
+  var __N={nlab};
+  for(var _n=0;_n<_ids.length;_n++){{
+    if(!(_ids[_n] in __N)) continue;
+    var _ne=document.getElementById(_ids[_n]);
+    if(!_ne) continue;
+    var _nv=parseFloat(String(_ne.value==null?'':_ne.value).trim());
+    if(!isNaN(_nv)&&_nv<0){{
+      if(_ne.classList&&_ne.classList.add)_ne.classList.add('input-error');
+      return __TPL3.replace('%s',__N[_ids[_n]]);
     }}
   }}
   // 全零：任何一项作分母都会得到 Infinity/NaN。页面公式本身没错，是输入无意义
@@ -328,9 +344,10 @@ def syntax_ok(src):
     return True, ''
 
 
-def transform(html, denoms=None):
+def transform(html, denoms=None, negs=None):
     if FN_NAME in html:
-        return html, 'ALREADY'
+        # 已注入过：若同名入口函数数量 > 调用点数量，仍需补注入
+        pass
     fname, op = find_calc_entry(html)
     if not fname:
         return html, 'NO_CALC'
@@ -339,25 +356,66 @@ def transform(html, denoms=None):
     if not inputs:
         return html, 'NO_INPUT'
     out_id = find_out_id(html, cut)
-    js, call = build_guard_js(inputs, out_id, fname, denoms)
-    # 1) 在入口函数体开头（跳过空白与注释）插入校验调用
-    k = op + 1
-    n0 = len(html)
-    while k < n0:
-        c = html[k]
-        if c in ' \t\r\n':
-            k += 1
+    js, call = build_guard_js(inputs, out_id, fname, denoms, negs)
+
+    # 关键：**同名入口函数可能出现多次**（如 packaging/strength-11 有两个
+    # `function calc()`，JS 语义是后者覆盖前者 ⇒ 只注入第一个等于没注入）。
+    # 收集全部定义点，逆序插入（避免下标位移）。
+    points = []
+    for m in re.finditer(r'function\s+' + re.escape(fname) + r'\s*\([^)]*\)\s*\{', html):
+        ob = html.index('{', m.end() - 1)
+        cl = match_brace(html, ob, len(html))
+        if cl is None:
             continue
-        nc = skip_comment(html, k, n0)
-        if nc != k:
-            k = nc
+        body = html[ob:cl]
+        if not re.search(r'[-+*/%]|\bMath\.', body):
             continue
-        break
-    new = html[:k] + call + html[k:]
-    # 2) 校验器函数插到 calc 段开头（在 <script> 内、入口定义之前）
-    cut2 = new.find('<!-- TOOLBOX-DEEP-DIVE -->')
+        k = ob + 1
+        n0 = len(html)
+        while k < n0:
+            c = html[k]
+            if c in ' \t\r\n':
+                k += 1
+                continue
+            nc = skip_comment(html, k, n0)
+            if nc != k:
+                k = nc
+                continue
+            break
+        points.append(k)
+    if not points:
+        return html, 'NO_CALC'
+    # 幂等：已注入过的点（函数体开头紧邻 __tbInputGuard 调用）跳过
+    already = FN_NAME + '(['
+    todo = []
+    for k in points:
+        probe = html[k:k + 400]
+        if already in probe:
+            continue
+        todo.append(k)
+    if not todo:
+        # 已注入过。若本次带入了 denoms/negs，而已注入的 __tbInputGuard 里还没有
+        # 相应分支（var __D / var __N），说明是「后补数据」⇒ 整体重写该函数定义。
+        need_rewrite = False
+        if denoms and 'var __D=' not in html:
+            need_rewrite = True
+        if negs and 'var __N=' not in html:
+            need_rewrite = True
+        if need_rewrite:
+            mfn = re.search(r'function ' + re.escape(FN_NAME) + r'\(_ids,_labels\)\s*\{', html)
+            if mfn:
+                ob = html.index('{', mfn.end() - 1)
+                cl = match_brace(html, ob, len(html))
+                if cl:
+                    return (html[:mfn.start()] + js.strip() + html[cl:]), 'OK'
+                return html, 'NO_CALC'
+        return html, 'ALREADY'
+    for k in sorted(todo, reverse=True):
+        html = html[:k] + call + html[k:]
+
+    # 校验器函数插到 calc 段开头（在 <script> 内、入口定义之前）
     m_script = None
-    for mm in re.finditer(r'<script>([\s\S]*?)</script>', new):
+    for mm in re.finditer(r'<script>([\s\S]*?)</script>', html):
         body = mm.group(1)
         if re.search(r'function\s+' + re.escape(fname) + r'\s*\(', body) \
            or re.search(r'\.\s*' + re.escape(fname) + r'\s*=\s*(?:async\s*)?function', body) \
@@ -366,11 +424,11 @@ def transform(html, denoms=None):
                 m_script = mm
                 break
     if not m_script:
-        m_script = re.search(r'<script>([\s\S]*?)</script>', new)
+        m_script = re.search(r'<script>([\s\S]*?)</script>', html)
     if not m_script:
         return html, 'NO_CALC'
-    new = new[:m_script.start(1)] + js.lstrip('\n') + '\n' + new[m_script.start(1):]
-    return new, 'OK'
+    html = html[:m_script.start(1)] + js.lstrip('\n') + '\n' + html[m_script.start(1):]
+    return html, 'OK'
 
 
 def main():
@@ -380,6 +438,7 @@ def main():
     ap.add_argument('--dry', action='store_true')
     ap.add_argument('--skip', default='')
     ap.add_argument('--denoms', help='probe_denoms.js 产出的 JSON，提供分母项')
+    ap.add_argument('--negs', help='probe_negs.js 产出的 JSON，提供不允许为负的输入')
     a = ap.parse_args()
 
     slugs = list(a.slug)
@@ -403,6 +462,17 @@ def main():
             for rec in raw:
                 if isinstance(rec, dict) and rec.get('denoms'):
                     dmap[rec['slug']] = rec['denoms']
+    nmap = {}
+    if a.negs and os.path.exists(a.negs):
+        raw = json.loads(read(a.negs))
+        if isinstance(raw, dict):
+            for slug, ns in raw.items():
+                if ns:
+                    nmap[slug] = ns
+        else:
+            for rec in raw:
+                if isinstance(rec, dict) and rec.get('negs'):
+                    nmap[rec['slug']] = rec['negs']
     cnt = {'OK': 0, 'ALREADY': 0, 'NO_CALC': 0, 'NO_INPUT': 0, 'FAIL': 0}
     for slug in slugs:
         if slug in skip:
@@ -412,7 +482,7 @@ def main():
             print('MISS', slug)
             continue
         src = read(p)
-        new, st = transform(src, dmap.get(slug))
+        new, st = transform(src, dmap.get(slug), nmap.get(slug))
         if st == 'OK':
             ok, err = syntax_ok(new)
             if not ok:
