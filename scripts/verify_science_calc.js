@@ -719,6 +719,99 @@ const CASES = [
     ],
     "ref": "NaCl 分子量 = Na 22.99 + Cl 35.45 = 58.44 g/mol（共 2 个原子）。页面输出 '58.44 g/mol'。默认态 formula=H2O → 18.02，不出现 58.44。"
   }
+  ,
+  {
+    "slug": "science/gcd-calculator",
+    "inputs": { "nums": "8,12,20" },
+    "clicks": ["calculate()"],
+    "expect": ["GCD = 4"],
+    "ref": "独立复算：GCD(8,12)=4，GCD(4,20)=4 ⇒ 4。默认 nums=48,36,24 ⇒ 12，不出现 'GCD = 4'。"
+  },
+  {
+    "slug": "science/lcm-calculator",
+    "inputs": { "nums": "15,20,25" },
+    "clicks": ["calculate()"],
+    "expect": ["LCM = 300"],
+    "ref": "独立复算：LCM(15,20)=60，LCM(60,25)=300 ⇒ 300。默认 nums=12,18,24 ⇒ 72，不出现 300。"
+  },
+  {
+    "slug": "science/vector-calculator",
+    "inputs": { "dim": "3", "op": "dot", "a0": "1", "a1": "2", "a2": "0", "b0": "3", "b1": "4", "b2": "0" },
+    "clicks": ["calculate()"],
+    "expect": ["A · B = 11"],
+    "ref": "点积 A·B=1×3+2×4+0×0=11（dim 默认即 3D，a/b 各分量为注入值）。刻意选非默认运算 op=dot（默认 op=add）⇒ 判别器把 op 换回 add 后输出 A+B=(4,6,0)，不出现 'A · B = 11'（该页向量分量是 build() 动态生成的 id=a0/b0..，静态 HTML 无默认值，故只能靠静态 op/size 的回落来制造判别力）。"
+  },
+  {
+    "slug": "science/xianxingfangchengzuqiujie-2yuan-3yuan",
+    "inputs": { "a1": "2", "b1": "1", "c1": "5", "a2": "1", "b2": "-1", "c2": "1" },
+    "clicks": ["calc()"],
+    "expect": ["x = 2", "y = 1"],
+    "ref": "解方程组 2x+y=5, x−y=1 ⇒ x=2, y=1, det(A)=2×(−1)−1×1=−3。默认 a1=1,b1=2,a2=3 ⇒ x=1,y=2，不出现 x=2/y=1。"
+  },
+  {
+    "slug": "science/wire-gauge-converter",
+    "inputs": { "awg": "20" },
+    "clicks": ["calcAll()"],
+    "expect": ["0.8118"],
+    "ref": "AWG 20 ⇒ 线径 0.8118 mm / 31.961 mil（标准线规表）。默认 awg=24 ⇒ 0.5106 mm，不出现 0.8118。"
+  },
+  {
+    "slug": "science/science-flow-rate",
+    "inputs": { "diam": "100", "vel": "1" },
+    "clicks": ["calc()"],
+    "expect": ["7.85 L/s"],
+    "ref": "圆管 Q=A·v，A=π·(0.05m)²=0.007854 m²，v=1 ⇒ 0.007854 m³/s=7.854 L/s。默认 diam=50,vel=2 ⇒ 3.93 L/s，不出现 7.85。"
+  },
+  {
+    "slug": "science/matrix-calculator",
+    "inputs": { "size": "2", "op": "mul", "a0": "1", "a1": "2", "a2": "3", "a3": "4", "b0": "5", "b1": "6", "b2": "7", "b3": "8" },
+    "clicks": ["calculate()"],
+    "expect": ["19 22 43 50"],
+    "ref": "2×2 矩阵乘法 A=[[1,2],[3,4]]、B=[[5,6],[7,8]] ⇒ C=[[1·5+2·7,1·6+2·8],[3·5+4·7,3·6+4·8]]=[[19,22],[43,50]]，逐格输出 '19 22 43 50'。刻意选非默认 size=2×2 与 op=mul（默认 3×3、add）⇒ 判别器换回默认后输出 A+B，不出现该串（a0..b3 为 buildMatrices() 动态生成的 id，静态 HTML 无默认值）。"
+  },
+  {
+    "slug": "science/probability-calculator",
+    "inputs": { "mu": "0", "sigma": "2", "x1": "0", "x2": "2", "calcType": "between" },
+    "clicks": ["calculate()"],
+    "expect": ["34.134474%"],
+    "ref": "X~N(0,4)，P(0≤X≤2)=Φ(1)−Φ(0)=0.84134−0.5=0.34134=34.134%。默认 μ0,σ1,x1=1,x2=2 ⇒ 13.59%，不出现 34.134474%。"
+  },
+  {
+    "slug": "science/pcb-trace-width",
+    "inputs": { "current": "5", "temp": "20", "thickness": "2" },
+    "clicks": ["calc()"],
+    "expect": ["0.9079", "35.74"],
+    "ref": "IPC-2221 外层：Area=(I/(k·ΔT^b))^(1/c)，k=0.048,b=0.44,c=0.725 ⇒ Area≈98.5 mils²；width=Area/(2oz×1.378)=35.74 mils=0.9079 mm。默认 I=2,ΔT=10,1oz ⇒ 0.7814/30.76，不出现 0.9079。"
+  },
+  {
+    "slug": "science/equation-balancer",
+    "inputs": { "eqInput": "Fe + O2 = Fe2O3" },
+    "clicks": ["balance()"],
+    "expect": ["4 Fe + 3 O 2 → 2 Fe 2 O 3"],
+    "ref": "配平 Fe+O2→Fe2O3 ⇒ 4Fe+3O2→2Fe2O3（Fe 4=4, O 6=6 守恒）。默认 eqInput=H2+O2=H2O ⇒ 2H2+O2→2H2O，不出现该串。"
+  },
+  {
+    "slug": "science/rfc-validator",
+    "inputs": { "input": "ABCD900101ABC" },
+    "clicks": ["validate()"],
+    "expect": ["1990-1-1"],
+    "ref": "RFC ABCD900101ABC：首字母 ABCD，日期段 900101 ⇒ 1990-01-01，个人(Persona Física)无校验位。默认输入为空 ⇒ 无此串。"
+  },
+  {
+    "slug": "science/text-extract-phones",
+    "inputs": { "input": "13800138000 01012345678" },
+    "checkIds": ["mobile", "landline", "dedup"],
+    "clicks": ["extract()"],
+    "expect": ["13800138000", "01012345678"],
+    "ref": "手机号 1[3-9]\\d{9} 命中 13800138000；座机 0\\d{2,3}\\d{7,8} 命中 01012345678；去重后 2 个。默认输入为空 ⇒ '未找到匹配的电话号码'，不出现这两个号码。"
+  },
+  {
+    "slug": "science/tide-height-estimator",
+    "inputs": { "inputDate": "2024-06-01", "inputLat": "30", "coastType": "open", "moonPhaseMode": "manual", "moonPhase": "0" },
+    "clicks": ["calc()"],
+    "expect": ["潮差： 0.86 米"],
+    "ref": "手动月龄=0(新月/大潮)，纬度 30° 修正 0.906，开阔海岸放大 1.0x ⇒ 潮差 0.86 m。默认 moonPhaseMode=auto(按真实日期) ⇒ 不同潮差，不出现 0.86。"
+  }
 ];
 
 // ---------------------------------------------------------------- main
