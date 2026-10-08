@@ -12,13 +12,15 @@
 v10 统一根治：
   - **覆盖全部结果写出路径**：getElementById/$()/var 的 .innerHTML/.textContent/.innerText，
     以及 document.querySelector(All)().innerHTML/.textContent/.innerText。
-  - **强守卫（含 ∞ 符号）**：
-        (typeof X==='number'&&!isFinite(X)) || /\u221E|Infinity|NaN/.test(String(X))
-    既能抓 number 型 Infinity/NaN，也能抓字符串里的 ∞ / Infinity / NaN（含 "Infinity kcal"、
-    "∞ Pa"、"NaN" 等多种泄漏形态）。
+  - **强守卫（数值态 isFinite 判定 + 字符串态仅替换单词 Infinity/NaN）**：
+        typeof X==='number' ? (isFinite(X)?X:'—') : String(X).replace(/Infinity|NaN/g,'—')
+    数值态非有限 → '—'；字符串态只把单词 Infinity/NaN 令牌替换为 '—'，
+    **故意不含 ∞ 符号**：JS 把 Infinity 字符串化为单词 "Infinity"（绝不会产出 ∞ 符号），
+    ∞ 符号只来自作者有意文本（如 "∞（无穷远）" 表示远界无穷远），属合法显示必须保留，
+    盲目替换会破坏正常结果（如景深计算的对焦距离 > 超焦距时输出 ∞）。
   - **先剥离后重注（幂等）**：在工具脚本块内，先移除已存在的 v8(__h)/v9(__g) 注入守卫，
     还原为原始 `LHS=EXPR;`，再统一以 v10 守卫重注。因此重复运行稳定、且把弱/旧守卫一并升级为
-    含 ∞ 的强守卫。
+    v10 强守卫。
   - **作用域隔离**：只处理工具自身内联脚本块（含 calc/calcTool/setResult），框架 stub/运行时块
     原样保留，避免给 escHtml 等全局工具误加守卫。
   - **唯一前缀 __g**（与 v8 __h 不冲突），静态字符串字面量 RHS 跳过。
@@ -42,7 +44,7 @@ GUARD_U = "(typeof %s==='number'&&!isFinite(%s))||/\\u221E|Infinity|NaN/.test(St
 #   - 数值型：非有限 → '—'；有限 → 原值
 #   - 字符串型：仅把 ∞/Infinity/NaN 令牌替换成 '—'，其余合法内容（如 "161290"）原样保留
 # 相比 v10 的「整块替换为 WARN」，避免次级统计 NaN%（如 totalQty=0 时的校正偏差%）误杀整段结果。
-SAN_EXPR = "(typeof %s==='number'?(isFinite(%s)?%s:'—'):String(%s).replace(/\\u221E|Infinity|NaN/g,'—'))"
+SAN_EXPR = "(typeof %s==='number'?(isFinite(%s)?%s:'—'):String(%s).replace(/Infinity|NaN/g,'—'))"
 def san(hn):
     return SAN_EXPR % (hn, hn, hn, hn)
 
@@ -107,10 +109,10 @@ def find_semi_balanced(html, start):
 
 # ---------- 结果写出模式（v10 全覆盖，含 += 追加）----------
 RE_A = re.compile(r"ToolBox\.setResult\(")
-RE_B = re.compile(r"(?:(?:window\.)?document\.)?getElementById\(([^)]*)\)\.(innerHTML|textContent|innerText)\s*(\+=|=)")
-RE_C = re.compile(r"\$\s*\(\s*([\"']?)([^'\")\n]*)\1\s*\)\s*\.(innerHTML|textContent|innerText)\s*(\+=|=)")
-RE_D = re.compile(r"([A-Za-z_$][\w$]*)\.(innerHTML|textContent|innerText)\s*(\+=|=)")
-RE_Q = re.compile(r"document\.querySelector(?:All)?\(([^)]*)\)\.(innerHTML|textContent|innerText)\s*(\+=|=)")
+RE_B = re.compile(r"(?:(?:window\.)?document\.)?getElementById\(([^)]*)\)\.(innerHTML|textContent|innerText)\s*(\+=|(?![=>])=)")
+RE_C = re.compile(r"\$\s*\(\s*([\"']?)([^'\")\n]*)\1\s*\)\s*\.(innerHTML|textContent|innerText)\s*(\+=|(?![=>])=)")
+RE_D = re.compile(r"([A-Za-z_$][\w$]*)\.(innerHTML|textContent|innerText)\s*(\+=|(?![=>])=)")
+RE_Q = re.compile(r"document\.querySelector(?:All)?\(([^)]*)\)\.(innerHTML|textContent|innerText)\s*(\+=|(?![=>])=)")
 
 # 已注入守卫语句剥离（幂等还原，字符串/括号感知）
 # 旧 v8/v9/blanket 守卫都形如：
@@ -212,7 +214,7 @@ def guardable(expr):
     if not e: return False
     if is_static_string_literal(e): return False
     # 已消毒形态（RHS 为 (typeof ...).replace(/\u221E|Infinity|NaN/g,...)）跳过，保证幂等不嵌套
-    if e.startswith('(typeof') or '/\\u221E|Infinity|NaN/g' in e:
+    if e.startswith('(typeof') or '/Infinity|NaN/g' in e:
         return False
     return True
 
@@ -222,6 +224,45 @@ def inject_one(lhs, expr, warn, hn, op='='):
     if op == '+=':
         return ("const %s=%s;%s+=%s;") % (hn, expr, lhs, san(hn))
     return ("const %s=%s;%s=%s;") % (hn, expr, lhs, san(hn))
+
+def _is_unbraced_consequent(html, pos):
+    # pos 指向写出 LHS 起点（如 p.textContent）。若该写出是无花括号 if/for/while/else 的唯一语句体，
+    # 在它前面插入 `const __gN=...;` 会变成非法（`if(x) const y=...;`）。此情形须整体包进 { }。
+    j = pos - 1
+    while j >= 0 and html[j] in ' \t\r\n':
+        j -= 1
+    if j < 0:
+        return False
+    if html[j] == ')':
+        # 回到匹配 '('，其前应为关键字 if/for/while
+        depth = 0
+        k = j
+        while k >= 0:
+            c = html[k]
+            if c == ')':
+                depth += 1
+            elif c == '(':
+                depth -= 1
+            if depth == 0:
+                break
+            k -= 1
+        if k < 0 or html[k] != '(':
+            return False
+        m = k - 1
+        while m >= 0 and html[m] in ' \t\r\n':
+            m -= 1
+        tok_end = m
+        while m >= 0 and html[m].isalpha():
+            m -= 1
+        tok = html[m + 1:tok_end + 1]
+        return tok in ('if', 'for', 'while')
+    if html[j] == 'e':
+        # 无花括号 else 体：else WRITE
+        m = j
+        while m >= 0 and html[m].isalpha():
+            m -= 1
+        return html[m + 1:j + 1] == 'else'
+    return False
 
 def transform_segment(html, uid):
     # 先剥离已存在的 v10 blanket / v8 / v9 守卫（字符串/括号感知，兼容含内联样式的守卫），还原原始写出
@@ -298,6 +339,8 @@ def transform_segment(html, uid):
                 out.append(html[i:m.end()]); i = m.end(); continue
             warn = WARN_TEXT if prop in ('textContent', 'innerText') else WARN_HTML
             repl = inject_one(lhs, expr, warn, hn, op)
+            if _is_unbraced_consequent(html, pos):
+                repl = '{' + repl + '}'
             out.append(html[i:pos]); out.append(repl); i = semi + 1
             if i < n and html[i] == ';': i += 1
             changed += 1
@@ -314,6 +357,8 @@ def transform_segment(html, uid):
                 out.append(html[i:m.end()]); i = m.end(); continue
             warn = WARN_TEXT if prop in ('textContent', 'innerText') else WARN_HTML
             repl = inject_one(lhs, expr, warn, hn, op)
+            if _is_unbraced_consequent(html, pos):
+                repl = '{' + repl + '}'
             out.append(html[i:pos]); out.append(repl); i = semi + 1
             if i < n and html[i] == ';': i += 1
             changed += 1
@@ -330,6 +375,8 @@ def transform_segment(html, uid):
                 out.append(html[i:m.end()]); i = m.end(); continue
             warn = WARN_TEXT if prop in ('textContent', 'innerText') else WARN_HTML
             repl = inject_one(lhs, expr, warn, hn, op)
+            if _is_unbraced_consequent(html, pos):
+                repl = '{' + repl + '}'
             out.append(html[i:pos]); out.append(repl); i = semi + 1
             if i < n and html[i] == ';': i += 1
             changed += 1
@@ -346,6 +393,8 @@ def transform_segment(html, uid):
                 out.append(html[i:m.end()]); i = m.end(); continue
             warn = WARN_TEXT if prop in ('textContent', 'innerText') else WARN_HTML
             repl = inject_one(lhs, expr, warn, hn, op)
+            if _is_unbraced_consequent(html, pos):
+                repl = '{' + repl + '}'
             out.append(html[i:pos]); out.append(repl); i = semi + 1
             if i < n and html[i] == ';': i += 1
             changed += 1
@@ -450,13 +499,13 @@ if to_write:
     for k in range(0, len(allf), 300):
         chunk = allf[k:k + 300]
         r = subprocess.run([NODE, JSCHECK] + chunk, capture_output=True, text=True)
-    if r.returncode != 0:
-        for line in (r.stdout + r.stderr).splitlines():
-            if line.startswith('  '):
-                bn = line.strip().split(':')[0]
-                for bf in list(to_write.keys()):
-                    if bf.split('/')[-1] == bn:
-                        bad.add(bf)
+        if r.returncode != 0:
+            for line in (r.stdout + r.stderr).splitlines():
+                if line.startswith('  '):
+                    bn = line.strip().split(':')[0]
+                    for bf in list(to_write.keys()):
+                        if bf.split('/')[-1] == bn:
+                            bad.add(bf)
     for bf in bad:
         open(bf, 'w', encoding='utf-8').write(to_write[bf][0])
         injected -= 1; restored += 1
