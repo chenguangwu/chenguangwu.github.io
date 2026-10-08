@@ -423,6 +423,31 @@
     });
   }
 
+  // 【2026-10-08 全量还原】构建期把英文预渲染进静态 HTML 的不止 h2 + 首个 p：
+  // 生成器页的次级说明段（如 p.formula-desc「工作原理与说明」）同样是「静态英文 + data-zh 中文」，
+  // 此前中文态只还原 introP/fbP，其余段落被钉死成英文（老板截图：plastic/shrinkage-calc）。
+  // 全量还原所有纯文本 p[data-zh]；还原前把静态英文缓存到 el.__tbEnStatic，
+  // 供 EN 态 applyEnDict 在词典未命中时回退使用（避免 EN 态从静态英文退化为中文）。
+  // 守卫：① data-zh 含汉字（纯英文专名/公式不还原，老板口径：英文专有名词不必显示中文）；
+  //       ② 当前文本无汉字才写（简/繁静态页文本本就是中文，天然命中此守卫零写入）；
+  //       ③ 无子元素（含内链/结构的段落不能整体 textContent 覆盖，与 applyEnDict data-zh 分支同口径）。
+  //       h2 不进本扫描：公式型 h2（skipH2/isFormula）不可被整体覆盖，且主 h2 已由 ORIG.title 还原。
+  function restoreAllDataZh() {
+    var list = document.querySelectorAll('p[data-zh]');
+    for (var i = 0; i < list.length; i++) {
+      var el = list[i];
+      if (el.hasAttribute('data-i18n')) continue;
+      if (el.children && el.children.length) continue;
+      var zh = el.getAttribute('data-zh');
+      if (!zh || !/[\u4e00-\u9fff]/.test(zh)) continue;
+      var cur = el.textContent;
+      if (!cur || /[\u4e00-\u9fff]/.test(cur)) continue;
+      if (cur === zh) continue;
+      if (el.__tbEnStatic === undefined) el.__tbEnStatic = cur;
+      el.textContent = zh;
+    }
+  }
+
   function applyToolBody() {
     var ind = getIndustry(), slug = getSlug();
     if (!ind || !slug) return;
@@ -471,6 +496,8 @@
         if (ORIG[slug].fbIntro === undefined) ORIG[slug].fbIntro = fbP.getAttribute('data-zh');
         if (ORIG[slug].fbIntro != null) fbP.textContent = ORIG[slug].fbIntro;
       }
+      // 全量还原其余「静态英文 + data-zh 中文」的纯文本段落（formula-desc 等）
+      restoreAllDataZh();
       return;
     }
 
@@ -736,7 +763,8 @@
       var zh = dzs[i].getAttribute('data-zh');
       if (!zh) continue;
       var tr = pickEn(zh);
-      if (!tr) continue;
+      if (!tr) tr = dzs[i].__tbEnStatic; // 中文态还原前缓存的构建期英文，词典未命中时回退，防 EN 态退化成中文
+      if (!tr || tr === dzs[i].textContent) continue;
       EN_ORIG.push({ el: dzs[i], orig: dzs[i].textContent });
       dzs[i].textContent = tr;
     }
