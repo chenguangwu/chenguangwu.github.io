@@ -47,15 +47,15 @@ BATCH_DELAY = 3.0       # 每批之间的间隔秒数（流式，避免 Throttle
 TIMEOUT = 15            # 单个请求超时秒数
 MAX_RETRIES = 5         # 失败重试次数（含 ThrottleHost 限流长退避）
 DRY_RUN_QUOTA = 10000   # 干运行不请求 Bing，仅用于模拟当日上限
-# 不提交的路径前缀（2026-09-21 起：台湾繁体变体站点不再主动提交收录）
-EXCLUDE_PATH_PREFIXES = ('/zh-tw/',)
+# 台湾繁体变体站点的路径前缀（按日期单双号轮换提交，见 select_today_urls）
+ZH_TW_PREFIX = '/zh-tw/'
 # ================================================
 
 NS = '{http://www.sitemaps.org/schemas/sitemap/0.9}'
 
 
 def extract_urls(sitemap_path):
-    """从 sitemap.xml 提取所有URL"""
+    """从 sitemap.xml 提取所有URL（去重）"""
     if not os.path.exists(sitemap_path):
         print(f'错误: 找不到文件 {sitemap_path}')
         sys.exit(1)
@@ -65,21 +65,33 @@ def extract_urls(sitemap_path):
 
     urls = []
     seen = set()
-    excluded = 0
     for url_elem in root.findall(f'{NS}url'):
         loc = url_elem.find(f'{NS}loc')
         if loc is None or not loc.text:
             continue
         url = loc.text.strip()
-        if any(p in url for p in EXCLUDE_PATH_PREFIXES):
-            excluded += 1
-            continue
         if url.startswith(SITE_URL) and url not in seen:
             urls.append(url)
             seen.add(url)
 
-    meta = {'excluded': excluded}
-    return urls, meta
+    return urls
+
+
+def split_by_zhtw(urls):
+    """按是否台湾繁体变体分组，返回 (normal_urls, zhtw_urls)。"""
+    normal, zhtw = [], []
+    for u in urls:
+        (zhtw if ZH_TW_PREFIX in u else normal).append(u)
+    return normal, zhtw
+
+
+def select_today_urls(urls, now=None):
+    """按当日日期个位奇偶轮换提交集合：单号(日奇数)提交非繁体，双号(日偶数)提交繁体。"""
+    now = now or datetime.now()
+    singular = (now.day % 2) == 1
+    normal, zhtw = split_by_zhtw(urls)
+    target = normal if singular else zhtw
+    return target, singular, len(normal), len(zhtw)
 
 
 def resolve_order(order, now=None):
@@ -191,9 +203,10 @@ def main():
         parser.error('请设置 BING_API_KEY 环境变量')
 
     print('正在读取 sitemap.xml ...')
-    all_urls, meta = extract_urls(SITEMAP_FILE)
+    all_urls = extract_urls(SITEMAP_FILE)
+    base_urls, singular, n_normal, n_zhtw = select_today_urls(all_urls)
     direction = resolve_order(args.order)
-    ordered_urls = order_urls(all_urls, direction)
+    ordered_urls = order_urls(base_urls, direction)
 
     if args.dry_run:
         daily_quota = DRY_RUN_QUOTA
@@ -217,7 +230,9 @@ def main():
     total = len(urls)
     total_batches = (total + BATCH_SIZE - 1) // BATCH_SIZE
 
-    print(f'sitemap URL 总数(已排除台湾繁体): {len(all_urls)}，排除 zh-tw: {meta["excluded"]}')
+    today = datetime.now()
+    print(f'sitemap URL 总数(去重): {len(all_urls)}（非繁体 {n_normal}，繁体 {n_zhtw}）')
+    print(f'今日 {today.strftime("%Y-%m-%d")} 为{"单号" if singular else "双号"} → 提交{"非繁体" if singular else "台湾繁体"}URL')
     print(f'提交顺序: {direction} ({"\u4ece上往下" if direction == "forward" else "\u4ece下往上"})')
     print(f'{quota_label}: 当日 {daily_quota}，当月 {monthly_quota}')
     if args.limit > 0:

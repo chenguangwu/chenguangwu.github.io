@@ -11,6 +11,7 @@ IndexNow URL 提交脚本
 依赖: 仅需 Python 3 标准库，无需安装任何第三方包
 """
 
+import datetime
 import json
 import os
 import sys
@@ -27,15 +28,15 @@ SITEMAP_FILE = 'sitemap.xml'
 BATCH_SIZE = 10       # 每批提交的URL数量（小批次=流式模式）
 BATCH_DELAY = 1       # 每批之间的间隔秒数（避免限流）
 TIMEOUT = 15          # 单个请求超时秒数
-# 不提交的路径前缀（2026-09-21 起：台湾繁体变体站点不再主动提交收录）
-EXCLUDE_PATH_PREFIXES = ('/zh-tw/',)
+# 台湾繁体变体站点的路径前缀（按日期单双号轮换提交，见 select_today_urls）
+ZH_TW_PREFIX = '/zh-tw/'
 # ================================================
 
 NS = '{http://www.sitemaps.org/schemas/sitemap/0.9}'
 
 
 def extract_urls(sitemap_path):
-    """从 sitemap.xml 提取所有URL"""
+    """从 sitemap.xml 提取所有URL（去重）"""
     if not os.path.exists(sitemap_path):
         print(f'错误: 找不到文件 {sitemap_path}')
         sys.exit(1)
@@ -45,20 +46,33 @@ def extract_urls(sitemap_path):
 
     urls = []
     seen = set()
-    excluded = 0
     for url_elem in root.findall(f'{NS}url'):
         loc = url_elem.find(f'{NS}loc')
         if loc is None or not loc.text:
             continue
         url = loc.text.strip()
-        if any(p in url for p in EXCLUDE_PATH_PREFIXES):
-            excluded += 1
-            continue
         if url not in seen:
             urls.append(url)
             seen.add(url)
 
-    return urls, excluded
+    return urls
+
+
+def split_by_zhtw(urls):
+    """按是否台湾繁体变体分组，返回 (normal_urls, zhtw_urls)。"""
+    normal, zhtw = [], []
+    for u in urls:
+        (zhtw if ZH_TW_PREFIX in u else normal).append(u)
+    return normal, zhtw
+
+
+def select_today_urls(urls, now=None):
+    """按当日日期个位奇偶轮换提交集合：单号(日奇数)提交非繁体，双号(日偶数)提交繁体。"""
+    now = now or datetime.datetime.now()
+    singular = (now.day % 2) == 1
+    normal, zhtw = split_by_zhtw(urls)
+    target = normal if singular else zhtw
+    return target, singular, len(normal), len(zhtw)
 
 
 def submit_batch(batch):
@@ -86,14 +100,18 @@ def submit_batch(batch):
 
 
 def main():
-    # 1. 提取URL
+    # 1. 提取URL，并按当日单双号选择提交集合
     print('正在读取 sitemap.xml ...')
-    urls, excluded = extract_urls(SITEMAP_FILE)
+    all_urls = extract_urls(SITEMAP_FILE)
+    target, singular, n_normal, n_zhtw = select_today_urls(all_urls)
+    today = datetime.datetime.now()
+    urls = target
 
     total = len(urls)
     total_batches = (total + BATCH_SIZE - 1) // BATCH_SIZE
 
-    print(f'总URL数(已排除台湾繁体): {total}，排除 zh-tw: {excluded}')
+    print(f'总URL数(去重): {len(all_urls)}（非繁体 {n_normal}，繁体 {n_zhtw}）')
+    print(f'今日 {today.strftime("%Y-%m-%d")} 为{"单号" if singular else "双号"} → 提交{"非繁体" if singular else "台湾繁体"}URL（{total} 条）')
     print(f'提交模式: 流式（每批{BATCH_SIZE}个URL，间隔{BATCH_DELAY}秒）')
     print(f'总批次: {total_batches}')
     print()
