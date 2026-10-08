@@ -44,9 +44,10 @@
     var bcLinks = document.querySelectorAll('.breadcrumb a');
     if (bcLinks.length > 0) {
       var home = bcLinks[0];
-      if (home.textContent.trim() === '首页' || !isZh) {
-        home.textContent = I18n.t('bc.home', '首页');
-      }
+      // 【EN→ZH 还原修复 2026-10-08】旧条件 (text==='首页' || !isZh) 导致英文态写入 'Home'
+      // 后切回中文时（text 已是 'Home' ≠ '首页'）永不还原。I18n.t 幂等返回当前语言文案，
+      // 直接无条件写入即可双向还原。
+      home.textContent = I18n.t('bc.home', '首页');
     }
     // 面包屑：行业名（保留图标，仅替换文字）
     if (bcLinks.length > 1) {
@@ -103,19 +104,28 @@
     var btns = document.querySelectorAll('.toolbar .btn, .json-actions .btn, button.btn');
     for (var i = 0; i < btns.length; i++) {
       var b = btns[i];
+      // 【EN→ZH 还原修复 2026-10-08】旧逻辑 zh 分支靠 map[label] 反查，但 EN 态已把文案改成
+      // 英文（map 里没有英文键）⇒ 切回中文按钮永远停留英文。改用 WeakMap 记录原始中文。
+      if (isZh) { if (BT_ORIG.has(b)) b.textContent = BT_ORIG.get(b); continue; }
       var label = b.textContent.trim();
       if (map[label]) {
-        b.textContent = isZh ? label : I18n.t(map[label], label);
+        if (!BT_ORIG.has(b)) BT_ORIG.set(b, label);
+        b.textContent = I18n.t(map[label], label);
       }
     }
-    // 等待输入占位
+    // 等待输入占位（同样的问题：EN 态改写后 zh 分支的 '等待输入...' 精确匹配永不命中）
     var waits = document.querySelectorAll('.json-output');
     for (var j = 0; j < waits.length; j++) {
-      if (waits[j].textContent.trim() === '等待输入...') {
-        waits[j].textContent = isZh ? '等待输入...' : I18n.t('tool.waiting', 'Waiting for input...');
+      var w = waits[j];
+      if (isZh) { if (WAIT_ORIG.has(w)) w.textContent = WAIT_ORIG.get(w); continue; }
+      if (w.textContent.trim() === '等待输入...') {
+        WAIT_ORIG.set(w, '等待输入...');
+        w.textContent = I18n.t('tool.waiting', 'Waiting for input...');
       }
     }
   }
+  var BT_ORIG = new WeakMap();
+  var WAIT_ORIG = new WeakMap();
 
   // ---- 通用 UI 词精确短语自动英文化（零 MT，基于全站真实高频短语提取）----
   // 仅精确匹配完整短语，避免误翻正文里的相同字词；覆盖 label/button/option 的确定性 UI 词。
@@ -143,6 +153,12 @@
       // random-string 复选框 <label><input>是</label>、diff 的 leftDiff/rightDiff 等），
       // 使页面 JS 读 getElementById(id) 时抛 "Cannot read properties of null"。
       if (el.children && el.children.length && el.querySelector('input,select,textarea,[id]')) continue;
+      // 【相关卡片污染修复 2026-10-08】相关工具卡片由 translateRelatedTools 专属管辖：
+      // 本函数若先改写卡片文案，RT_ORIG 会把英文误存为「中文原文」，切回中文还原出英文。
+      if (el.closest && el.closest('.related-tools')) continue;
+      // translateButtons 已记录原文并管辖的按钮，本函数不得再触碰（否则 GEN_ORIG 会把
+      // 英文态文案存为原文，zh 还原时反向覆盖回英文）。
+      if (BT_ORIG.has(el)) continue;
       var txt = el.textContent.trim();
       if (isZh) { if (GEN_ORIG.has(el)) el.textContent = GEN_ORIG.get(el); continue; }
       var sp = stripEmojiPrefix(txt);
@@ -182,6 +198,7 @@
       });
   }
   var RT_ORIG = new WeakMap();
+  var RT_SEQ = 0;   // 语言切换代际号：丢弃切回中文后才resolve的过期英文写入（竞态守卫）
   function cleanRelatedName(rawName) {
     if (!rawName) return rawName;
     var s = String(rawName).replace(/[\r\n\t]/g, ' ').replace(/\s+/g, ' ').trim();
@@ -222,6 +239,7 @@
     return ind + '/' + slug;
   }
   function translateRelatedTools(isZh) {
+    var seq = ++RT_SEQ;
     var cards = document.querySelectorAll('.related-tool-card, .rt-item');
     var currentIndustry = getIndustry();
     for (var i = 0; i < cards.length; i++) {
@@ -233,13 +251,24 @@
           var o = RT_ORIG.get(a);
           if (rtName) rtName.textContent = o.n;
           if (rtDesc) rtDesc.textContent = o.d;
+        } else {
+          // 卡片是在英文态下由 common.js renderRelatedTools 注入的（带 data-zh-* 中文原文锚点）
+          var zn = a.getAttribute('data-zh-name');
+          var zd = a.getAttribute('data-zh-desc');
+          if (zn && rtName) rtName.textContent = zn;
+          if (zd != null && rtDesc) rtDesc.textContent = zd;
         }
         continue;
       }
       if (!RT_ORIG.has(a)) {
+        // 【原文捕获净化 2026-10-08】优先取卡片上的 data-zh-* 中文原文锚点
+        // （EN 态注入的卡片当前文本已是英文，直接捕获会把英文当成原文）；无锚点的
+        // 常规卡片当前文本必为中文（正文短语翻译已豁免 .related-tools 子树）。
+        var zn2 = a.getAttribute('data-zh-name');
+        var zd2 = a.getAttribute('data-zh-desc');
         RT_ORIG.set(a, {
-          n: rtName ? cleanRelatedName(rtName.textContent) : '',
-          d: rtDesc ? rtDesc.textContent : ''
+          n: zn2 ? zn2 : (rtName ? cleanRelatedName(rtName.textContent) : ''),
+          d: zd2 != null ? zd2 : (rtDesc ? rtDesc.textContent : '')
         });
       }
       var href = a.getAttribute('href') || '';
@@ -247,6 +276,9 @@
       if (!key) continue;
       (function (nameEl, descEl, k) {
         loadSlugEn().then(function (map) {
+          // 竞态守卫：fetch 期间用户已切回中文（或又切换过多次）⇒ 本次英文写入作废。
+          // 否则过期回调会把中文态卡片改写成英文，刷新前无法恢复（老板实测主因之一）。
+          if (seq !== RT_SEQ) return;
           var info = map[k];
           if (!info) {
             if (nameEl) nameEl.textContent = cleanRelatedName(nameEl.textContent);
@@ -276,6 +308,11 @@
       if (el.hasAttribute('data-i18n')) continue;
       if (el.closest && el.closest('[data-i18n]')) continue;
       if (el.querySelector && el.querySelector('[data-i18n]')) continue;
+      // 【相关卡片污染修复 2026-10-08】span/a 选择器会命中相关工具卡片的 .rt-name/.rt-desc，
+      // 英文态先改写卡片文案 ⇒ translateRelatedTools 随后把英文误存为「中文原文」⇒
+      // 切回中文还原出英文（老板实测：lift-to-drag-ratio 相关工具 8 卡中 5 卡残留英文）。
+      // 卡片文案统一由 translateRelatedTools + slug-en.json 专属管辖，此处一律豁免。
+      if (el.closest && el.closest('.related-tools')) continue;
       // 守卫：含「表单控件」或「带 id 后代」的容器不得整节点替换 —— el.textContent = tr
       // 会连同容器内的 <input>/<select>/<textarea> 或页面 JS 按 id 引用的子容器（如 diff 的
       // leftDiff/rightDiff/unifiedDiff）一起删除，使 getElementById(id) 返回 null 抛

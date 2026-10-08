@@ -2390,7 +2390,7 @@ function renderRelatedTools(){
           if (n === d) {
             d = '';
           }
-          return '<a class="rt-item" href="' + toolPageRootPrefix() + escHtml(t.url) + '">' +
+          return '<a class="rt-item" data-zh-name="' + escHtml(t.name || '') + '" data-zh-desc="' + escHtml(t.d || t.desc || '') + '" href="' + toolPageRootPrefix() + escHtml(t.url) + '">' +
             '<span class="rt-ico">' + escHtml(t.icon || '🛠️') + '</span>' +
             '<span class="rt-info"><span class="rt-name">' + escHtml(n) + '</span><span class="rt-desc">' + escHtml(d || '') + '</span></span></a>';
         }).join('') + '</div>';
