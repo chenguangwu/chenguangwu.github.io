@@ -3818,6 +3818,11 @@ async function runCaseInner(c) {
   const sessionStorage = { getItem() { return null; }, setItem() {}, removeItem() {} };
   const ToolBox = {
     setResult: (id, h) => { getEl(id).innerHTML = h; },
+    // 页面 TOOLBOX-API-STUB 定义了 `T.$=function(id){return document.getElementById(id);}`，
+    // harness 此前缺少该成员 ⇒ 凡用 ToolBox.$(id) 取元素/写结果的工具，会在入口首句抛
+    // TypeError ⇒ 结果区恒空、用例永远「无法验证」（表面现象是 got 只剩 input 的 value）。
+    $: (id) => getEl(id),
+    validateNumberInput: () => true,
     toggleToolTheme() {},
     escHtml: (x) => String(x == null ? "" : x),
     escapeHtml: (x) => String(x == null ? "" : x),
