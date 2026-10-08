@@ -148,6 +148,7 @@ chenguangwu.github.io/
 ├── _submit_bing_url_api.py # Bing URL 提交（每日 15:00 crontab，--yes 非交互）
 ├── _gsc_submit_sitemap.py  # Google Sitemaps 提交（每日 15:30 crontab）
 ├── _gsc_inspect_urls.py    # Google 收录监控（每日 16:00 crontab，--limit 1900）
+├── _submit_indexnow_deadlinks.py # IndexNow 死链(迁移壳)提交（删/迁 URL 后手动触发）
 ├── _gen_blank_tools.py     # 空白行业批量填充生成器（历史）
 ├── _gen_guides.py          # 指南生成器（历史，新版在 scripts/gen_guides2.py）
 ├── _add_tools.py           # 批量工具生成脚本（历史）
@@ -239,6 +240,19 @@ chenguangwu.github.io/
 - Bing 密钥必须通过 `BING_API_KEY` 环境变量注入，**禁止**把密钥写入仓库、日志、命令行参数或 crontab 命令文本。
 - `_submit_bing_url_api.py` 必须先查询当日/月度剩余额度并据此限流；额度查询失败时安全停止，不得盲目继续。
 
+### 4.6 删除 / 迁移 URL 必须提交死链（重要，红线）
+
+**凡删除工具页、或把工具迁移到新 URL（改名 / 行业转移），旧 URL 失效后，必须主动通知 IndexNow，否则搜索引擎长期保留死链、发出负面 SEO 信号。**
+
+- **适用场景**：① 直接 `git rm` 删除某工具页（真 404）；② 走 `TOOLBOX-REDIRECT` 存根机制把旧地址跳转到新地址（页面返回 200 但已 `noindex` 且移出 sitemap）。两种都算"旧 URL 不再作为正常收录页存在"，都必须通知。
+- **必须调用**：`python3 _submit_indexnow_deadlinks.py`，把受影响旧 URL 列出来提交：
+  - **真 404（直接删除）**：用默认校验即可——`python3 _submit_indexnow_deadlinks.py --file 死链列表.txt`（脚本会自动 HTTP 校验、只交确认死掉的、跳过仍存活页，防误删正常页索引）。
+  - **迁移壳（`TOOLBOX-REDIRECT` 存根，页面仍 200）**：加 `--no-verify` 强制提交——`python3 _submit_indexnow_deadlinks.py --file 死链列表.txt --no-verify`（页面仍返回 200，默认校验会误判为"存活"而跳过，故跳过校验）。
+  - 也支持 `--url https://…` 单次提交，或从 stdin 传入。
+- **时机**：在 `git commit` 之前（或随同该批删/迁改动一起）执行，确保旧 URL 的死链通知与索引更新同步发出。
+- **批量迁移工具**：先把全站 `TOOLBOX-REDIRECT` 标记的旧 URL 捞出来（简体 + `zh-tw/` 繁体，过滤已在 sitemap 收录的），生成列表再一次性提交，避免遗漏。
+- 该脚本已 commit 入库，属运维工具、被手动触发依赖，勿随意删除或改名。
+
 ### 5. 兼容性约束
 - 不要使用过于激进的新特性，确保主流浏览器（Chrome/Safari/Firefox/Edge 最近两个大版本）可用
 - CSS 优先使用变量（CSS Variables），不要硬编码颜色值
@@ -266,7 +280,7 @@ chenguangwu.github.io/
 
 - **禁止**仅因「文件名与工具标题/功能不符」而重命名文件。例：`analysis-14.html` 标题是"结核耐药分析"、内容是占位页 —— 正确做法是**把内容改成名副其实的工具**，而不是把文件改名。
 - **唯一允许改名的场景**：分类转移（行业归属错误）时，目标目录**已存在同名文件**产生冲突。此时只改**被转移的那个文件**，且必须按「下架/改名清理清单」同步 i18n 双键、`js/tool-i18n-en.js` 行级、`json/tools.json`、本地 `zh-tw/` 产物。
-- 改名必须走项目已有的 `TOOLBOX-REDIRECT` 存根机制保留旧 URL（`_build.py` 已支持），不得直接删除造成 404。
+- 改名必须走项目已有的 `TOOLBOX-REDIRECT` 存根机制保留旧 URL（`_build.py` 已支持），不得直接删除造成 404。**建好存根后，必须按 §4.6 调用 `python3 _submit_indexnow_deadlinks.py --no-verify` 把旧 URL 提交 IndexNow 通知搜索引擎**——存根页虽仍返回 200，但已 `noindex` 且移出 sitemap，属于"已迁移的旧地址"，不主动通知就会长期作为死链被收录。
 - 内容层面的「名不符实」缺陷（如通用统计模板占位页）**一律通过重写页面内容解决**，保留原 URL。
 
 **为什么**：站点上万条 URL 已进入 sitemap 并经 IndexNow / Bing / GSC 三通道提交，改名意味着一次索引资产损失 + 一段 404 期；而重写内容是把占位页变成真工具，同时保住 URL 与排名。
