@@ -702,6 +702,12 @@ const CASES = [
     expect: ["width: 64px", "animation: spinGen 2s linear infinite"],
     ref: "注入非默认(默认 size=40/speed=1)： spinner 边长取注入的 64px、旋转周期取注入的 2s ⇒ 生成 CSS 含 'width: 64px' 与 'animation: spinGen 2s linear infinite'。默认态为 40px/1s，两条均不命中。",
   },
+  {
+    slug: "design/flexbox-generator",
+    inputs: { gap: "20" },
+    expect: ["gap: 20px;"],
+    ref: "注入 gap=20（默认 12）⇒ 生成的 CSS 与预览内联 style 里都出现 `gap: 20px;`。expect 带 `gap: ` 前缀与 px 单位，而输入框 value 只是裸值 `20` ⇒ 不与输入回显冲突。默认态输出 `gap: 12px`。",
+  },
 
 ];
 

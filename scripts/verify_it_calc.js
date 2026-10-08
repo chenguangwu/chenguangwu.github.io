@@ -3428,6 +3428,104 @@ const CASES = [
       "2024-06-17 09:30"
     ],
     "ref": "注入 '30 9 * * 1-5'（工作日 09:30）；冻结基准日 2024-06-15(周六) 时，下次工作日为 06-17(周一) 09:30。页面 HTML 默认 manualInput='0 0 * * *'（每天 00:00）只产生 2024-06-16 00:00，不出现 06-17 09:30。"
+  },
+
+  {
+    "slug": "it/csv-to-yaml",
+    "inputs": { "csv": "product,price,stock\nWidget,9.90,120\nGadget,15.00,80" },
+    "expect": ["product: \"Widget\"", "stock: \"120\""],
+    "ref": "CSV→YAML：注入 3 列 2 行（首行为表头），页面产出 `- product: \"Widget\" / price: \"9.90\" / stock: \"120\"` 的映射序列——这是 CSV→YAML 的标准转写，可作独立依据。⚠️ expect 必须带 `: ` 与引号：collectStrings 会把 textarea 的 value 一并纳入，裸 `Widget` 只命中输入回显 ⇒ 零判别力。默认 CSV 为 name/age/city，不出现 product/stock。"
+  },
+  {
+    "slug": "it/yaml-to-json",
+    "inputs": { "source": "title: probe\nserver:\n  host: 127.0.0.1\n  port: 5432" },
+    "expect": ["\"title\": \"probe\"", "\"port\": 5432"],
+    "ref": "YAML→JSON：注入嵌套映射（server.host / server.port），JSON.stringify(obj, null, 2) 应产出带引号键 `\"title\": \"probe\"`，且 port 按 YAML 标量类型推断为数值 5432（不带引号）。输入原文是 `title: probe`（无引号键），故 expect 形态不在输入中。默认 YAML 样例不含 probe/5432。"
+  },
+  {
+    "slug": "it/toml-to-yaml",
+    "inputs": { "source": "app = \"probe\"\ndebug = true\n\n[db]\nhost = \"127.0.0.1\"\nport = 5432" },
+    "expect": ["debug: true", "db: host: \"127.0.0.1\""],
+    "ref": "TOML→YAML：注入布尔标量 + [db] 表。`debug = true` 在 YAML 侧写作 `debug: true`（冒号+空格，输入为等号），`[db]` 表写作 `db:` 后接缩进行 —— 两种形态均只在转换后出现。注：页面嵌套缩进 = 选择值+2（indent 默认 2 ⇒ 子层 4 空格），经 select 三档对照实验确认是页面一致的既定行为，非缺陷，故 expect 不含缩进相关的行首断。"
+  },
+  {
+    "slug": "it/xml-to-yaml",
+    "inputs": { "source": "<root><item id=\"1\">Alpha</item><item id=\"2\">Beta</item></root>" },
+    "expect": ["@id: \"1\" #text: Alpha", "@id: \"2\" #text: Beta"],
+    "ref": "XML→YAML：注入含属性的同名兄弟节点。页面约定把属性写作 `@id`、文本节点写作 `#text`，重复元素收敛为序列 `- `。这两个约定形态在输入 XML 中完全不存在（输入为 `<item id=\"1\">Alpha</item>`），因而天然排除输入回显。默认样例为不同的 XML。"
+  },
+  {
+    "slug": "it/dockerfile-generator",
+    "inputs": { "base": "python:3.12-slim", "port": "8000", "cmd": "gunicorn app:app" },
+    "expect": ["FROM python:3.12-slim", "CMD [\"gunicorn app:app\"]"],
+    "ref": "Dockerfile 生成：注入 base/port/cmd 三输入。expect 取 `FROM <base>` 与 `CMD [\"<cmd>\"]` 两种「只有模板拼接后才存在」的形态（输入框 value 分别是裸 `python:3.12-slim` 与 `gunicorn app:app`，不含 FROM / CMD []）。EXPOSE 8000 同理。默认 base=node:20-alpine、port=3000、cmd=npm start。"
+  },
+  {
+    "slug": "it/kubernetes-yaml-generator",
+    "inputs": { "name": "api", "image": "redis:7-alpine", "port": "6379", "replicas": "3" },
+    "expect": ["containerPort: 6379", "image: redis:7-alpine"],
+    "ref": "k8s 清单生成：注入 name/image/port/replicas。Deployment 的 `image: redis:7-alpine` 与 container 的 `containerPort: 6379` 是清单模板拼装后的形态（input value 为裸值，不含 `image: ` / `containerPort: ` 键名），排除输入回显。默认 web / nginx:latest / 80 / 2。"
+  },
+  {
+    "slug": "it/nginx-config-generator",
+    "inputs": { "domain": "probe.test", "root": "/srv/probe", "port": "8080" },
+    "expect": ["server_name probe.test;", "listen 8080;"],
+    "ref": "nginx 配置生成：注入 domain/root/port。server 块输出 `listen 8080;` 与 `server_name probe.test;`（nginx 指令语法，含分号），输入框 value 是裸 `8080` / `probe.test`，不含 `listen ` / `server_name ` 前缀 ⇒ 不与回显冲突。默认 example.com / /var/www/html / 80。"
+  },
+  {
+    "slug": "it/meta-tags-generator",
+    "inputs": { "title": "Probe Title", "desc": "probe description", "url": "https://probe.test/", "img": "https://probe.test/og.png" },
+    "expect": ["&lt;title&gt;Probe Title&lt;/title&gt;", "&lt;meta name=\"description\" content=\"probe description\"&gt;"],
+    "ref": "Meta 标签生成：输出经页面 escH() 做 HTML 转义，故结果区内是 `&lt;title&gt;…&lt;/title&gt;`（实体形态），而输入框 value 是未转义的 `Probe Title` ⇒ 只有带实体前缀的形态才是真输出。这道转义同时让 expect 天然免疫输入回显。"
+  },
+  {
+    "slug": "it/wifi-qr-generator",
+    "inputs": { "ssid": "ProbeAP", "pass": "probe-pass" },
+    "expect": ["WIFI:T:WPA;S:ProbeAP;P:probe-pass;;"],
+    "ref": "WiFi 配网串：按 WIFI: URI 规范拼装 `WIFI:T:<enc>;S:<ssid>;P:<pass>;;`（注入 enc 默认 WPA）。整串形态由拼接产生，输入框 value 仅为 ssid/pass 裸值。默认 ssid=MyHomeAP / pass=secret123，不出现 ProbeAP。"
+  },
+
+  {
+    "slug": "it/docker-run-converter",
+    "inputs": { "cmd": "docker run -d --name probe-web -p 9090:80 -v /srv/probe:/usr/share/nginx/html nginx:alpine" },
+    "expect": ["probe-web:", "image: nginx:alpine"],
+    "ref": "docker run → compose：注入带容器名/端口映射/卷挂载的命令，应产出 `services:` 下以容器名 `probe-web:` 为键的映射，镜像落到 `image:`。键名 `probe-web:` 与 `image: nginx:alpine` 均为 compose 拼装形态（输入是 `docker run -d --name probe-web ...`，不含 `probe-web:` 这种带冒号的 YAML 键）。默认样例为 web / 8080:80，不出现 9090 与 probe 相关串。"
+  },
+  {
+    "slug": "it/hash-identifier",
+    "inputs": { "h": "5f4dcc3b5aa765d61d8327deb882cf99" },
+    "expect": ["MD5", "128 位（32 位十六进制）"],
+    "ref": "哈希长度识别：注入 32 位十六进制串 ⇒ 判定为 MD5（128 位）。判别依据是「长度 32 ⇒ MD5」这条规则，与具体取值无关，可独立复算。输入是裸十六进制串，不含 MD5 字样 ⇒ 不命中回显。页面默认 h 是 64 位串（→ SHA-256 族），长度规则不同，故注入失败必红灯。"
+  },
+  {
+    "slug": "it/json-repair",
+    "inputs": { "src": "{'name': 'probe', 'n': 2,}" },
+    "expect": ["\"name\":\"probe\",\"n\": 2"],
+    "ref": "JSON 修复：注入单引号键/值 + 尾随逗号的非法 JSON，修复后应为双引号形式 `{\"name\":\"probe\",\"n\": 2}`（逗号被去掉）。expect 取带双引号的键，而输入是单引号 ⇒ 天然不是输入回显。⚠️ 不用 `✅ JSON 合法` 作锚：默认样例修复后同样合法，判别力为零。"
+  },
+  {
+    "slug": "it/toml-to-xml",
+    "inputs": { "source": "app = \"probe\"\n[srv]\nhost = \"127.0.0.1\"\nport = 5432" },
+    "expect": ["&lt;app&gt;probe&lt;/app&gt;"],
+    "ref": "TOML→XML：标量 `app = \"probe\"` 落到 `<app>probe</app>`，表 `[srv]` 落到 `<srv>` 父节点。expect 用实体形态 `&lt;app&gt;`（结果区经 escH 转义），输入是 TOML 的 `app = \"probe\"` ⇒ 不命中回显。默认样例为 name/port 组合，不出现 probe。"
+  },
+  {
+    "slug": "it/xml-to-toml",
+    "inputs": { "source": "<srv><host>127.0.0.1</host><port>5432</port></srv>" },
+    "expect": ["[srv]", "port = \"5432\""],
+    "ref": "XML→TOML：根元素 `<srv>` 落成 TOML 表 `[srv]`，叶子落成键值。⚠️ XML 无标量类型信息，页面保守地把 `5432` 当作字符串 ⇒ 输出 `port = \"5432\"` 带引号（对照 it/yaml-to-toml 的 `port = 5432` 无引号：YAML 有类型推断，两者都正确，不构成缺陷）。带 `port = ` 前缀的形态在输入 XML 中不存在。"
+  },
+  {
+    "slug": "it/yaml-to-toml",
+    "inputs": { "source": "srv:\n  host: 127.0.0.1\n  port: 5432" },
+    "expect": ["[srv]", "port = 5432"],
+    "ref": "YAML→TOML：嵌套映射落成 `[srv]` 表与子键；`port` 由 YAML 标量推断为数值 ⇒ 输出不带引号的 `port = 5432`（与 it/xml-to-toml 的带引号结果形成对照，差异源于源格式是否携带类型信息）。输入是 `port: 5432`，不含 `port = ` ⇒ 不与回显冲突。"
+  },
+  {
+    "slug": "it/yaml-to-xml",
+    "inputs": { "source": "srv:\n  host: 127.0.0.1\n  port: 5432" },
+    "expect": ["&lt;srv&gt;&lt;host&gt;127.0.0.1&lt;/host&gt;&lt;port&gt;5432&lt;/port&gt;&lt;/srv&gt;"],
+    "ref": "YAML→XML：同一份嵌套映射落成 `<srv><host>…</host><port>…</port></srv>`。expect 取整块实体形态（结果区经 escH 转义），输入的 YAML 原文不含尖括号 ⇒ 排除输入回显。默认样例为 note/to/from，不出现 srv/host。"
   }
 ];
 
@@ -3619,6 +3717,22 @@ function collectStrings(elements) {
   return seen.join("\n");
 }
 
+// 专供 document.createElement 返回的临时元素：建模「写 textContent → 读 innerHTML」的 HTML 转义，
+// 与真实浏览器一致（& < > 转义，引号不转义，正是 innerHTML 读回的行为）。
+function makeEscEl() {
+  const el = makeEl("");
+  let tc = "";
+  Object.defineProperty(el, "textContent", {
+    get() { return tc; },
+    set(v) {
+      tc = String(v == null ? "" : v);
+      el.innerHTML = tc.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    },
+    configurable: true,
+  });
+  return el;
+}
+
 async function runCase(c) {
   // 每个用例都会往 globalThis（当作 window）挂函数，用后清理，避免污染下一个用例
   const before = new Set(Object.keys(globalThis));
@@ -3804,7 +3918,12 @@ async function runCaseInner(c) {
       if (dyn.length) return dyn;
       return [];
     },
-    createElement: () => makeEl(""),
+    // §7.4：页面 helper `escH(s)` 的标准写法是 `document.createElement('div')` → 写 textContent
+    // → 读 innerHTML（借浏览器做 HTML 转义）。旧桩 `makeEl("")` 的 innerHTML 是普通属性、
+    // 与 textContent 无联动 ⇒ escH() 恒返回空串 ⇒ 凡用它转义正文的工具，结果区的 <pre>/<code>
+    // 正文被整块吞掉（既有盲区，见 2678 行注释）。此处只给 createElement 路径建模该联动，
+    // 不改 makeEl（id 元素的行为逐字节不变 ⇒ 既有用例不受影响）。
+    createElement: () => makeEscEl(),
     createTextNode: (t) => ({ textContent: t }),
     addEventListener(ev, cb) {
       if (/DOMContentLoaded|readystatechange|^load$/i.test(ev)) readyCbs.push(cb);
@@ -3981,6 +4100,13 @@ async function runCaseInner(c) {
     tried: ordered.slice(0, 6),
     sample: blob.slice(0, 300),
     fullBlob: blob,
+    // §7.4 dump 专用：原始 innerHTML 快照（不剥标签），用于定位「输出存在却被采集丢掉」的情况。
+    els: Object.fromEntries(
+      Object.entries(elements).map(([k, v]) => [
+        k,
+        { ih: String((v && v.innerHTML) || ""), val: String((v && v.value) ?? "") },
+      ])
+    ),
   };
 }
 
@@ -4012,8 +4138,30 @@ function extractCases(src) {
 }
 
 // ---------------------------------------------------------------- main
+// §7.4 零用例收敛辅助：`--dump <casefile>` 把候选用例的**完整输出**打成 JSON，
+// 供人工核验后回填 expect。不改既有用例的任何行为（既有用例走 CASES 分支）。
+async function dumpMain(casefile) {
+  const cases = JSON.parse(fs.readFileSync(casefile, "utf8"));
+  const out = [];
+  for (const c of cases) {
+    const r = await runCase(c);
+    out.push({
+      slug: c.slug,
+      ok: r.ok,
+      why: r.why || "",
+      via: r.via || "",
+      errs: r.errs || [],
+      tried: r.tried || [],
+      out: r.ok ? "(matched)" : (r.fullBlob || r.sample || ""),
+      els: r.els || {},
+    });
+  }
+  console.log(JSON.stringify(out, null, 1));
+}
+
 async function main() {
   const only = process.argv.slice(2);
+  if (only[0] === "--dump" && only[1]) return dumpMain(only[1]).then(() => 0);
   const cases = only.length ? CASES.filter((c) => only.some((o) => c.slug.endsWith("/" + o) || c.slug === o)) : CASES;
   let pass = 0;
   const fails = [];

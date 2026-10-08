@@ -143,6 +143,12 @@ const CASES = [
     inputs: { ascii: "200", cjk: "50", emoji: "10" },
     expect: ["390", "50.00"],
     ref: "总字节=200+50×3+10×4=390；较 ASCII 膨胀=(390/260−1)×100=50.00%（默认 100/20/5→180/44.00，避开）" },
+
+  { slug: "encode/binary-to-ascii",
+    inputs: { src: "01010000 01110010 01101111 01100010 01100101" },
+    expect: ["Probe", "共 5 个字符。"],
+    ref: "逐字节复算：0x50→P、0x72→r、0x6F→o、0x62→b、0x65→e，拼得 \"Probe\"；页面附记「共 5 个字符。」。输入的二进制串内不存在任何 ASCII 明文 ⇒ expect 不可能命中输入回显，是二进制类工具最理想的锚点形态。默认 src 是 'Hi Wo' 的编码，解码结果不是 Probe。",
+  },
 ];
 
 async function main() {
