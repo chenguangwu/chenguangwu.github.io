@@ -136,20 +136,20 @@ def find_brace(html, b):
         i += 1
     return -1
 
-def _strip_tail(tail, hn, expr, head_to_k, out, i, after):
+def _strip_tail(tail, hn, expr, after):
     # 识别守卫尾部并还原：LHS=__hN; 或 ToolBox.setResult(ID,__hN);
     # 注意：不再保留 head_to_k（即原始的 const __hN=EXPR; 声明），避免残留死声明造成重名/语法错。
+    # 返回 (还原后的语句文本, 新位置)；由调用方负责「先补前缀、再补还原语句」以保持原始顺序，
+    # 避免把 IIFE 内的写出语句误挪到 (function(){ 之前而导致变量引用越界（v10 顺序 bug，2026-10-08 坐实）。
     lm = re.match(r'\s*([^\n;=]+?)\s*=\s*' + re.escape(hn) + r'\s*;', tail)
     if lm:
         lhs = lm.group(1).strip()
-        out.append('%s=%s;' % (lhs, expr))
-        return after + lm.end()
+        return ('%s=%s;' % (lhs, expr)), after + lm.end()
     lm2 = re.match(r'\s*ToolBox\.setResult\(\s*([^,]*?)\s*,\s*' + re.escape(hn) + r'\s*\)\s*;', tail)
     if lm2:
         idlit = lm2.group(1).strip()
-        out.append('ToolBox.setResult(%s,%s);' % (idlit, expr))
-        return after + lm2.end()
-    return -1
+        return ('ToolBox.setResult(%s,%s);' % (idlit, expr)), after + lm2.end()
+    return None, -1
 
 def strip_old_guards(html):
     out = []; i = 0; n = len(html)
@@ -182,8 +182,9 @@ def strip_old_guards(html):
         block0 = html[b0:be0 + 1]
         after0 = be0 + 1
         if 'return;' in block0:
-            r = _strip_tail(html[after0:], hn, expr, html[i:k], out, i, after0)
-            if r >= 0: i = r; continue
+            txt, r = _strip_tail(html[after0:], hn, expr, after0)
+            if r >= 0:
+                out.append(html[i:j]); out.append(txt); i = r; continue
         else:
             sm = re.search(r'\belse\s*\{', html[after0:after0 + 300])
             if sm:
@@ -191,8 +192,9 @@ def strip_old_guards(html):
                 if b2 >= 0:
                     be2 = find_brace(html, b2)
                     if be2 >= 0:
-                        r = _strip_tail(html[be2 + 1:], hn, expr, html[i:k], out, i, be2 + 1)
-                        if r >= 0: i = r; continue
+                        txt2, r = _strip_tail(html[be2 + 1:], hn, expr, be2 + 1)
+                        if r >= 0:
+                            out.append(html[i:j]); out.append(txt2); i = r; continue
         out.append(html[i:semi + 1]); i = semi + 1
     return ''.join(out)
 
