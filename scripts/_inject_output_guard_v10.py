@@ -32,7 +32,7 @@ import re, glob, os, sys, subprocess
 
 ROOT = '/Users/cgw/project/cgw/chenguangwu.github.io/tools/'
 NODE = '/Users/cgw/.workbuddy/binaries/node/versions/22.22.2-6/bin/node'
-JSCHECK = '/tmp/_jscheck.js'
+JSCHECK = '/tmp/jscheck2.js'  # 与真实门禁 scripts/check_inline_js_syntax.js 同口径（new Function）
 WARN_HTML = '<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>'
 WARN_TEXT = '⚠ 计算结果含无效值，请检查输入是否为有效正数。'
 
@@ -112,15 +112,89 @@ RE_C = re.compile(r"\$\s*\(\s*([\"']?)([^'\")\n]*)\1\s*\)\s*\.(innerHTML|textCon
 RE_D = re.compile(r"([A-Za-z_$][\w$]*)\.(innerHTML|textContent|innerText)\s*(\+=|=)")
 RE_Q = re.compile(r"document\.querySelector(?:All)?\(([^)]*)\)\.(innerHTML|textContent|innerText)\s*(\+=|=)")
 
-# 已注入守卫语句，用于先剥离还原（v10b 同时支持 v10 blanket 与 v8/v9 return 两种形态）
-# v10 blanket 形态：const __gN=EXPR;if(GUARD){LHS='WARN';}else{LHS=__gN;}
-RE_STRIP_V10 = re.compile(r"const (__[hg]\d*)=([^;]*);if\(.*?\)\{.*?\}else\{([^;=]*?)=\1;\}")
-# v8/v9 形态：const __gN=EXPR;if(GUARD){...return;}LHS=__gN;
-RE_STRIP_V8 = re.compile(r"const (__[hg]\d*)=([^;]*);if\(.*?\)\{.*?return;\}([^;=]*?)=\1;")
-# setResult v10 blanket 形态：const __gN=EXPR;if(GUARD){ToolBox.setResult(ID,'WARN');}else{ToolBox.setResult(ID,__gN);}
-RE_STRIP_A_V10 = re.compile(r"const (__[hg]\d*)=([^;]*);if\(.*?\)\{.*?\}else\{ToolBox\.setResult\(([^,]*?),\1\);\}")
-# setResult v8/v9 形态：const __gN=EXPR;if(GUARD){...return;}ToolBox.setResult(IDLIT,__gN);
-RE_STRIP_A_V8 = re.compile(r"const (__[hg]\d*)=([^;]*);if\(.*?\)\{.*?return;\}ToolBox\.setResult\(([^,]*?),\1\);")
+# 已注入守卫语句剥离（幂等还原，字符串/括号感知）
+# 旧 v8/v9/blanket 守卫都形如：
+#   const __gN=EXPR; if(GUARD){...return;} LHS=__gN;          (v8/v9)
+#   const __gN=EXPR; if(GUARD){LHS='WARN';}else{LHS=__gN;}   (v10 blanket)
+#   const __gN=EXPR; if(GUARD){...return;} ToolBox.setResult(ID,__gN);   (setResult v8)
+#   const __gN=EXPR; if(GUARD){ToolBox.setResult(ID,'WARN');}else{ToolBox.setResult(ID,__gN);} (setResult v10)
+# 还原为原始 LHS=EXPR; 或 ToolBox.setResult(ID,EXPR); 再由下方统一重注 v10。
+# 必须用字符串/括号感知的解析：EXPR 内可能含 style="...;..." 等带分号的字符串，
+# 朴素 [^;]* 正则会在字符串内的分号处断裂（曾导致含内联样式的守卫无法剥离、∞ 字形漏网）。
+def find_brace(html, b):
+    depth = 0; i = b; n = len(html)
+    while i < n:
+        c = html[i]
+        if c in "'\"`": i = skip_string(html, i, n); continue
+        if c == '/':
+            nxt = skip_comment(html, i, n)
+            if nxt != i: i = nxt; continue
+        if c == '{': depth += 1
+        elif c == '}':
+            depth -= 1
+            if depth == 0: return i
+        i += 1
+    return -1
+
+def _strip_tail(tail, hn, expr, head_to_k, out, i, after):
+    # 识别守卫尾部并还原：LHS=__hN; 或 ToolBox.setResult(ID,__hN);
+    # 注意：不再保留 head_to_k（即原始的 const __hN=EXPR; 声明），避免残留死声明造成重名/语法错。
+    lm = re.match(r'\s*([^\n;=]+?)\s*=\s*' + re.escape(hn) + r'\s*;', tail)
+    if lm:
+        lhs = lm.group(1).strip()
+        out.append('%s=%s;' % (lhs, expr))
+        return after + lm.end()
+    lm2 = re.match(r'\s*ToolBox\.setResult\(\s*([^,]*?)\s*,\s*' + re.escape(hn) + r'\s*\)\s*;', tail)
+    if lm2:
+        idlit = lm2.group(1).strip()
+        out.append('ToolBox.setResult(%s,%s);' % (idlit, expr))
+        return after + lm2.end()
+    return -1
+
+def strip_old_guards(html):
+    out = []; i = 0; n = len(html)
+    while i < n:
+        j = html.find('const __', i)
+        if j < 0:
+            out.append(html[i:]); break
+        m = re.match(r'const (__(?:h|g)\d*)\s*=', html[j:])
+        if not m:
+            out.append(html[i:j + 6]); i = j + 6; continue
+        hn = m.group(1); eq = j + m.end()
+        semi = find_semi_balanced(html, eq)
+        if semi < 0:
+            out.append(html[i:j]); i = j; break
+        expr = html[eq:semi].strip()
+        k = semi + 1
+        while k < n and html[k] in ' \t\r\n': k += 1
+        if not (html[k:k + 2] == 'if' and k + 2 < n and html[k + 2] in '('):
+            out.append(html[i:semi + 1]); i = semi + 1; continue
+        cp = find_paren_str(html, k + 2)
+        if cp < 0:
+            out.append(html[i:semi + 1]); i = semi + 1; continue
+        b0 = cp + 1
+        while b0 < n and html[b0] in ' \t\r\n': b0 += 1
+        if html[b0] != '{':
+            out.append(html[i:semi + 1]); i = semi + 1; continue
+        be0 = find_brace(html, b0)
+        if be0 < 0:
+            out.append(html[i:semi + 1]); i = semi + 1; continue
+        block0 = html[b0:be0 + 1]
+        after0 = be0 + 1
+        if 'return;' in block0:
+            r = _strip_tail(html[after0:], hn, expr, html[i:k], out, i, after0)
+            if r >= 0: i = r; continue
+        else:
+            sm = re.search(r'\belse\s*\{', html[after0:after0 + 300])
+            if sm:
+                e2 = after0 + sm.start(); b2 = html.find('{', e2)
+                if b2 >= 0:
+                    be2 = find_brace(html, b2)
+                    if be2 >= 0:
+                        r = _strip_tail(html[be2 + 1:], hn, expr, html[i:k], out, i, be2 + 1)
+                        if r >= 0: i = r; continue
+        out.append(html[i:semi + 1]); i = semi + 1
+    return ''.join(out)
 
 def is_static_string_literal(expr):
     r = expr.strip()
@@ -148,11 +222,14 @@ def inject_one(lhs, expr, warn, hn, op='='):
     return ("const %s=%s;%s=%s;") % (hn, expr, lhs, san(hn))
 
 def transform_segment(html, uid):
-    # 先剥离已存在的 v10 blanket / v8 / v9 守卫，还原原始写出
-    html = RE_STRIP_V10.sub(lambda m: "%s=%s;" % (m.group(3), m.group(2)), html)
-    html = RE_STRIP_V8.sub(lambda m: "%s=%s;" % (m.group(3), m.group(2)), html)
-    html = RE_STRIP_A_V10.sub(lambda m: "ToolBox.setResult(%s,%s);" % (m.group(3), m.group(2)), html)
-    html = RE_STRIP_A_V8.sub(lambda m: "ToolBox.setResult(%s,%s);" % (m.group(3), m.group(2)), html)
+    # 先剥离已存在的 v10 blanket / v8 / v9 守卫（字符串/括号感知，兼容含内联样式的守卫），还原原始写出
+    html = strip_old_guards(html)
+    # uid 从「当前块内最大 __g/__h 编号 +1」起算，避免与已有声明重名导致 "Identifier already declared"
+    mx = 0
+    for mm in re.finditer(r'__(?:h|g)(\d+)', html):
+        try: mx = max(mx, int(mm.group(1)))
+        except Exception: pass
+    uid = max(uid, mx + 1)
     out = []; i = 0; n = len(html); changed = 0; skipped_static = 0
     while i < n:
         ma = RE_A.search(html, i)
@@ -270,7 +347,17 @@ def transform_segment(html, uid):
             out.append(html[i:pos]); out.append(repl); i = semi + 1
             if i < n and html[i] == ';': i += 1
             changed += 1
-    return ''.join(out), changed, skipped_static, uid
+    out_html = ''.join(out)
+    # 清理悬空引用：形如 .innerHTML=__X / .textContent=__X / .innerText=__X 中 __X 在本块内未声明
+    # （旧 v8 守卫剥离后残留的死代码/分支尾部写点），直接删除该赋值以避免引用未定义变量造成语法/运行错误。
+    declared = set(re.findall(r'\bconst (__(?:h|g)\d+)\b', out_html))
+    def _clean_dangling(m):
+        ref = m.group('ref')
+        return '' if ref not in declared else m.group(0)
+    out_html = re.sub(
+        r"(\.(?:innerHTML|textContent|innerText)\s*=\s*(?P<ref>__(?:h|g)\d+)\s*;?)",
+        _clean_dangling, out_html)
+    return out_html, changed, skipped_static, uid
 
 TOOL_MARK = re.compile(r"ToolBox\.setResult\(|function\s+calcTool\s*\(|function\s+calc\s*\(")
 
@@ -361,11 +448,13 @@ if to_write:
     for k in range(0, len(allf), 300):
         chunk = allf[k:k + 300]
         r = subprocess.run([NODE, JSCHECK] + chunk, capture_output=True, text=True)
-        if r.returncode != 0:
-            for line in (r.stdout + r.stderr).splitlines():
-                if line.startswith('  '):
-                    bf = line.strip().split(':')[0]
-                    if bf in to_write: bad.add(bf)
+    if r.returncode != 0:
+        for line in (r.stdout + r.stderr).splitlines():
+            if line.startswith('  '):
+                bn = line.strip().split(':')[0]
+                for bf in list(to_write.keys()):
+                    if bf.split('/')[-1] == bn:
+                        bad.add(bf)
     for bf in bad:
         open(bf, 'w', encoding='utf-8').write(to_write[bf][0])
         injected -= 1; restored += 1
