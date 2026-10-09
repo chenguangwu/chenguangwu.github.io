@@ -59,6 +59,13 @@ const CASES = [
   ],
   "ref": "顶层 var data 用 clicks 覆写三条（pending / reviewing / mastered 各一）+ filterStatus=pending（非默认「全部状态」）⇒ filtered 只剩 1 条 ⇒ 列表渲染「数学（1 题）」与题目、解析文本（独立复算：bySubject 按 filtered 分组）。默认 data 为空、filterStatus 为空 ⇒ 只渲染「暂无错题…」（0 错题总数）⇒ 三个锚点全不命中。原 expect「pending」是 fStatus 下拉的 option value 常量 ⇒ 已替换。**不锚 dueCount 与「剩 N 天」** —— 依赖运行日、日期一变即失效。注：兜底阶段无参调用 loadData() 会用桩 getItem(null) 清空 data，但 expect 在阶段 2 已判定（同 BATCH103 的 assessor-risk-8）。"
 }
+,
+{
+  "slug": "edu2/study-progress",
+  "inputs": {"targetDate":"2026-12-31","dailyHours":"6"},
+  "expect": ["2024-07-31 预计完成日", "46 天 预计还需"],
+  "ref": "注入非默认 targetDate(默认 2024-07-30→2026-12-31) 与 dailyHours(默认 4→6)：预计完成日 2024-08-22→2024-07-31（dailyHours=6 加快进度提前完成）、预计还需 68 天→46 天（剩余工时/每日时长）。页面用默认 sample 4 科目(数学/英语/专业课/政治) 数据，calc 读 targetDate/dailyHours 纯 input（不依赖 now，稳定）。**锚 now 无关的计算结果**，规避 (a) 输入回显 2026-12-31（out 开头）(b) 距目标天数 929 依赖 harness 固定 now（未来 now 基准变化即失效）。默认态不命中 2024-07-31 / 46 天。"
+}
 ];
 async function main() {
   const only = process.argv.slice(2);
