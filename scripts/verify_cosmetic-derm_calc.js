@@ -162,6 +162,44 @@ const CASES = [
     expect: ["24", "0.5"],
     ref: "肉毒素合计=12(鱼尾 d2)+10(川字 d1)+0+2(鼻背 d1)+0=24 U；"
        + "填充合计=0+0+0+0+0.5(法令 s1)=0.5 ml（默认各部位 d/s=2/0,2/2,2/0,0/0,2/2 → 总 45U 避开）" },
+
+// ── 零用例加固（2026-10-09）──────────────────────────
+  { slug: "cosmetic-derm/jiguangbochangbadian",
+    inputs: { laser: "755" },
+    expect: ["翠绿宝石激光"],
+    ref: "755nm 翠绿宝石激光（Alexandrite），靶色团黑色素、穿透 1.0-2.0mm、适应症脱毛/雀斑/文身。注入非默认(默认 532nm KTP 绿光→血红蛋白靶)，输出含'翠绿宝石激光'，默认态不出现。" },
+
+  { slug: "cosmetic-derm/laser-parameters",
+    inputs: { laserSelect: "q532", chromSelect: "melanin" },
+    expect: ["脉宽： 5-10ns"],
+    ref: "调Q 532nm(KTP)：脉宽 5-10ns、穿透 0.5-1mm、靶色团黑色素/血红蛋白。注入非默认(默认两框皆空→无激光卡片)，输出'脉宽： 5-10ns'，默认态不出现。" },
+
+  { slug: "cosmetic-derm/meso-cocktail",
+    inputs: { totalVol: "8", frequency: "2", sensitivity: "1.0", session: "5" },
+    clicks: ["document.getElementById('goal_hydrate').checked=true;document.getElementById('goal_whiten').checked=true;calc()"],
+    expect: ["中后期(第5次)"],
+    ref: "中胚层鸡尾酒：治疗目标 2 项、总量 8ml、session=5→疗程阶段'中后期(第5次)'、每2周1次。checkbox 桩内恒未勾→clicks 显式置位再 calc；注入非默认(默认 totalVol=5/session=1/无目标→'初期(第1次)')，默认态不出现'中后期(第5次)'。" },
+
+  { slug: "cosmetic-derm/mesotherapy",
+    inputs: { totalVol: "10", area: "500", depth: "1", syringe: "3" },
+    clicks: ["document.getElementById('c_ha').checked=true;document.getElementById('c_vc').checked=true;document.getElementById('c_prp').checked=true;calc()"],
+    expect: ["75.0mg"],
+    ref: "中胚层配比：HA 30%×10ml=3.00ml、含量=3.00×25mg/ml=75.0mg（PRP 同勾→HA 基底降为 30%）。checkbox 桩内恒未勾→clicks 置位；注入非默认(默认 totalVol=5→HA 37.5mg)，默认态不出现 75.0mg。" },
+
+  { slug: "cosmetic-derm/post-procedure-recovery",
+    inputs: { procedure: "peel_tca", intensity: "1.3", photo: "3" },
+    expect: ["PIH风险：高", "预计完全恢复：18.2天"],
+    ref: "术后恢复：TCA 焕肤 + 强度 1.3 + 防晒等级 photo=3→PIH 风险'高'、预计完全恢复 18.2 天。注入非默认(默认 laser_q/0.7/1→'PIH风险：低'且恢复天数更小)，默认态不出现'PIH风险：高'。" },
+
+  { slug: "cosmetic-derm/time-23",
+    inputs: { proc: "botox" },
+    expect: ["肉毒素注射"],
+    ref: "术后恢复时间表：proc=botox→项目名'肉毒素注射'(恢复约 1 天)。注入非默认(默认 proc=ipl→'强脉冲光(IPL)')，默认态不出现'肉毒素注射'。" },
+
+  { slug: "cosmetic-derm/injection",
+    inputs: { type: "ha", effect: "2" },
+    expect: ["0.8 ml"],
+    ref: "注射剂量：type=ha(玻尿酸)、鼻唇沟、effect=2(中度)→参考用量 0.8 ml。注入非默认(默认 type=botox/effect=1→以 U 计、无 '0.8 ml')，默认态不出现该串。" },
 ];
 
 async function main() {
