@@ -222,6 +222,14 @@ const CASES = [
   ],
   "ref": "预测潮差 = range×倍率 = 5×1.34 = 6.70（原断言“5.9 天”是月龄，与 range 无关 → 逃生项）"
 }
+,
+  {
+    "slug": "astronomy/sunrise-sunset",
+    "inputs": {"inputDate":"2026-06-21","inputLat":"39.9","inputLon":"116.4","inputTz":"8"},
+    "clicks": ["calc()"],
+    "expect": ["04:46 日出时间", "19:46 日落时间"],
+    "ref": "注入非默认 inputDate=2026-06-21(默认空→不计算日出日落) + lat=39.9/lon=116.4/tz=8：夏至北半球日出 04:46、日落 19:46（基于日期+经纬度+时区确定性，不依赖 now）。锚 now 无关值，规避「太阳当前高度 40.5°」等 now 相关串。默认态 inputDate 空→不计算→不命中。"
+  }
 ];
 async function main() {
   const only = process.argv.slice(2);

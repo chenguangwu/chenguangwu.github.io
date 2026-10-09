@@ -48,6 +48,29 @@ const CASES = [
   { slug: "aerospace/runway-length", inputs: { baseLength: "2600", elevation: "800", temperature: "35", slope: "1.0", headwind: "5" }, expect: ["3,359", "3,863", "29.2%"], ref: "注入非默认(默认 2000/500/30/0.5/3)：修正系数 重量 ×0.850、海拔 800m ×1.187、温度 ISA+25.2°C ×1.252、坡度 1.00% ×1.100、顶风 5.0m/s ×0.930 ⇒ 2600×连乘 = 3,359 m；含 15% 安全余量 ⇒ 3,863 m；较基准长度 +29.2%。默认态 2,467/2,837/23.4% 均不命中。" },
   // ── 零用例加固（2026-10-06）──────────────────────────
   { slug: "aerospace/delta-v-rocket", inputs: { isp: "450", m0: "800000", mf: "120000" }, expect: ["8.37", "8375"], ref: "注入非默认(默认 isp=300/m0=500000/mf=100000)：齐奥尔科夫斯基 Δv = Isp·g₀·ln(m0/mf) = 450×9.81×ln(800000/120000) = 4414.5×1.897120 = 8375.1 m/s = 8.37 km/s。Python 独立复算 8375.06 一致。默认态 4.74 km/s / 4737 m/s，两条均不命中。" },
+  {
+    slug: "aerospace/flight-time",
+    inputs: {"depDate":"2026-01-01","depTime":"08:30","arrDate":"2026-01-01","arrTime":"11:45","flightHours":"13","flightMinutes":"15","calcMode":"duration","depTz":"8","arrTz":"-5"},
+    clicks: ["calc()"],
+    expect: ["16 小时 15 分钟 实际飞行时长", "-13.0 时差 (小时)"],
+    ref: "注入 depTime=08:30(UTC+8) arrTime=11:45(UTC-5) depTz=8 arrTz=-5：UTC 差 16h15m=实际飞行时长、时差 -13.0h（基于时间+时区确定性，不依赖 now）。默认态 depDate 空→不计算→不命中。"
+  }
+,
+  {
+    slug: "aerospace/huoyun-uld-jizhuangqi-guige",
+    inputs: {"v0":"6000","v1":"4500","v2":"10","v3":"6"},
+    clicks: ["calc()"],
+    expect: ["133.3% 重量装载率", "4.00 m³ 剩余容积"],
+    ref: "注入非默认 v0=6000/v1=4500/v2=10/v3=6(默认6800/5000/11.5/8)：重量装载率、剩余容积均变（以页面实际输出 133.3%/4.00m³ 为准），默认态 136.0%/3.50m³ 不命中。锚计算结果值+单位，规避输入回显。"
+  }
+,
+  {
+    slug: "aerospace/length-temp-runway",
+    inputs: {"v0":"2000","v1":"1500","v2":"30"},
+    clicks: ["calc()"],
+    expect: ["2304 m 修正后所需长度", "2.0 °C ISA 标准温度"],
+    ref: "注入非默认 v0=2000/v1=1500/v2=30(默认1800/1000/25)：修正后所需长度 2304m、ISA 标准温度 2.0°C，默认态 1436m/3.3°C 不命中。锚计算结果值+单位，规避输入回显。"
+  }
 ];
 
 async function main() {
