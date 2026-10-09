@@ -373,6 +373,50 @@ const CASES = [
     inputs: { "ot-salary": "12000", "ot-hours": "10", "bonus-amount": "48000", "loan-principal": "200000", "loan-rate": "6", "loan-months": "24" },
     expect: ["43,410.00", "9.56%", "24,000.00 元", "224,000.00 元"],
     ref: "注入非默认(默认 ot-salary=10000/ot-hours=8/bonus=36000/loan 100000·10%·12月)：① 年终奖 48,000 元按月均 4,000 计税 ⇒ 应扣个税 4,590.00、税后到手 43,410.00、实际税负率 9.56%；② 借贷 200,000 元、6%、24 个月单利 ⇒ 利息 24,000.00 元、本息合计 224,000.00 元。⚠ 本页为多页签结构，harness 只会渲染当前页签，注入必须命中当页签的输入 id（comp-*/lit-*/breach-* 属于其它页签、注入不生效），故本例只对「加班+年终奖+借贷」页签取锚。"
+  },
+
+  // ── §7.4 零用例收敛续批：legal 新增 7 例（确定性计算器）────────────
+  {
+    slug: "legal/debt-statute-limitations",
+    inputs: { dueDate: "2023-01-01", lastDemandDate: "2024-01-01", lastPromiseDate: "", debtType: "loan" },
+    expect: ["时效届满日： 2027-01-01", "930 天"],
+    ref: "注入非默认(默认空→请选择还款日期或催款日期)：dueDate=2023-01-01、lastDemand=2024-01-01（3年时效自中断日起算）→ 时效届满日 2027-01-01、剩余 930 天。默认态无届满日/无 930 天不命中。"
+  },
+  {
+    slug: "legal/feisu-ipo-simu-binggou-yewu",
+    inputs: { v0: "2", v1: "8" },
+    expect: ["0.10 亿元服务费预估"],
+    ref: "注入非默认(默认 v0=1→0.05 亿元服务费预估)：v0=2 ⇒ 服务费预估 = v0×0.05 = 0.10 亿元。默认态 0.05 亿元服务费预估不命中 0.10。"
+  },
+  {
+    slug: "legal/legal-age",
+    inputs: { birthDate: "1990-05-15" },
+    expect: ["总天数：12,450天"],
+    ref: "注入非默认(默认 2000-01-01→总天数 8,932天)：birthDate=1990-05-15 ⇒ 总天数 12,450天（harness 固定 now，可复现）。默认态 8,932天 不命中。"
+  },
+  {
+    slug: "legal/loan-statute-limitations",
+    inputs: { dueDate: "2023-01-01", lastInstallmentDate: "", claimDate: "", lastDemandDate: "2024-01-01", lastPaymentDate: "", promiseDate: "", loanType: "normal" },
+    expect: ["诉讼时效届满日： 2026-12-31", "930天"],
+    ref: "注入非默认(默认空→请填写相关日期信息)：dueDate=2023-01-01、lastDemand=2024-01-01（中断重算3年）→ 诉讼时效届满日 2026-12-31、剩余 930天。默认态无届满日不命中。"
+  },
+  {
+    slug: "legal/social-security-base",
+    inputs: { salary: "15000", city: "上海", insType: "养老" },
+    expect: ["3600.00"],
+    ref: "注入非默认(默认 北京/10000→合计 2400.00)：salary=15000、养老 单位16%+个人8%=24% ⇒ 合计 15000×24%=3600.00。注意默认态合计行也是 2400.00，故锚 3600.00（仅 15000 档出现）。"
+  },
+  {
+    slug: "legal/statute-limitations",
+    inputs: { startDate: "2023-01-01", interruptionDate: "", limitType: "3" },
+    expect: ["届满日期： 2026-01-01", "565 天"],
+    ref: "注入非默认(默认空→请选择权利受损日期)：startDate=2023-01-01、3年普通时效 → 届满日期 2026-01-01、剩余 565 天。默认态无届满日不命中。"
+  },
+  {
+    slug: "legal/will-witness-requirements",
+    inputs: { witnessAge: "adult", capacity: "full", willType: "代书" },
+    expect: ["需要2名以上合格见证人在场见证"],
+    ref: "注入非默认(默认 自书遗嘱→『自书遗嘱无需见证人』)：willType=代书 ⇒ 需要2名以上合格见证人在场见证。默认态自书分支无此句，不命中。"
   }
 ];
 
