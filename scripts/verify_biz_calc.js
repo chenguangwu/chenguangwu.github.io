@@ -628,6 +628,13 @@ const CASES = [
     expect: ["ÅΩ fi 1 한국"],
     ref: "注入 NFC/NFKC 可区分串：Å(U+212B ANGSTROM SIGN) + Ω(U+2126 OHM SIGN) + ﬁ(U+FB01 小型连字 fi) + ①(U+2460 带圈数字一) + 한글。normalize() 依次跑 NFC/NFKC/NFD/NFKD 并输出码位长度（14/10/15）。独立复算：ﬁ 属兼容分解字素，NFC/NFKC 均分解为 f+i；① 在 NFC 下保留圆圈形态、仅 NFKC 兼容分解为普通数字 1 ⇒ NFKC 行结果为 `ÅΩ fi 1 한국`，该串为独占锚（默认样例仅 café，无兼容字素）。注：页面内联事件已按 MEMORY 记录的同名坑改为显式 window 调用，沙箱内可直接调 normalize()。",
   },
+  {
+    slug: "biz/text-keep-only",
+    inputs: {},
+    clicks: ["document.getElementById('keepDigits').checked=true;document.getElementById('keepLetters').checked=true;document.getElementById('keepChinese').checked=false;document.getElementById('keepPunc').checked=false;document.getElementById('input').value='Test2026中文!@#';keep()"],
+    expect: ["Test2026"],
+    ref: "注入非默认（默认各 keep* 全未勾 ⇒ 输出『请选择要保留的字符』）。页面读各 keep* checkbox.checked 拼合白名单，仅勾 digits+letters 时『Test2026中文!@#』保留字母数字、去中文与标点 ⇒ 产物 Test2026。clicks 在判别器回退时被清空 ⇒ 默认态不调 keep()、result 为空提示 ⇒ 不命中。不锚 input 原串（输入区恒含），只锚 result 产物。",
+  }
 ];
 
 // ---------------------------------------------------------------- main

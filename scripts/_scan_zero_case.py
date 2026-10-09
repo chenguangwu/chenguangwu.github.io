@@ -36,8 +36,8 @@ for ind in sorted(os.listdir(TOOLS)):
 
 real_tools = sorted(all_tools - stub)
 
-# ---- 2. 已覆盖 slug（键名可不带引号）----
-KEY_RE = re.compile(r'"?slug"?\s*:\s*"([^"]+)"')
+# ---- 2. 已覆盖 slug（键名与值均可带/不带引号，单双引号皆认）----
+KEY_RE = re.compile(r"""['"]?slug['"]?\s*:\s*['"]([^'"]+)['"]""")
 covered = {}
 for fn in sorted(os.listdir(SCRIPTS)):
     if not fn.endswith((".js", ".py", ".json")):
