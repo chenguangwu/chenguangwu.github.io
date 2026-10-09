@@ -450,6 +450,18 @@ const CASES = [
     inputs: { title: "项目启动会", loc: "会议室B", desc: "评审方案", start: "2026-07-01T10:00", end: "2026-07-01T11:00" },
     expect: ["SUMMARY:项目启动会", "LOCATION:会议室B", "DTSTART:20260701T020000Z"],
     ref: "注入非默认（默认无标题：输出空 ICS『BEGIN:VEVENT SUMMARY: LOCATION: ...』）。页面把事件标题/地点/起止拼入 ICS 文本 ⇒ 锚『SUMMARY:项目启动会』『LOCATION:会议室B』『DTSTART:20260701T020000Z』（start=2026-07-01T10:00 本地转 UTC+8 ⇒ 020000Z；end 11:00 ⇒ 030000Z）。三条均不在默认空态。⚠ renderQR/strHash 是 QR 渲染辅助函数，harness 第3步兜底无参调用产生 benign errs，不影响 output 主链。"
+  },
+  {
+    slug: "legal/contract-templates",
+    inputs: { search: "qqx7" },
+    expect: ["未找到匹配的合同模板"],
+    ref: "空结果路径用例（负向断言）。该页默认 search 为空 ⇒ 渲染全部合同模板卡片（租赁/劳动/买卖/服务/借款…），任何具体模板名在默认态都出现 ⇒ 正向锚必然是逃生项。注入无匹配检索词 qqx7 ⇒ 命中页面 cnt===0 分支输出『未找到匹配的合同模板』，默认态不含该串。"
+  },
+  {
+    slug: "legal/legal-reference",
+    inputs: { laborYears: "8", laborSalary: "20000", laborAvgSalary: "8000" },
+    expect: ["160,000 经济补偿金（元）", "8 补偿月数（N）", "月工资 × 8个月 = 160,000 元"],
+    ref: "注入非默认（laborYears/laborSalary/laborAvgSalary 在 HTML 中均无 value ⇒ 默认空串、输出提示/空值）。口径：协商一致解除（用人单位提出）⇒ 补偿月数 N = 工作年限 = 8；经济补偿金 = 月平均工资 × N = 20,000 × 8 = 160,000 元（未触及 3 倍社平工资封顶：20,000 < 8,000×3 = 24,000，故不按封顶与 12 年上限计）。⚠ 该页是多模块聚合页（商标分类表默认全量渲染 45 类，占满输出前半段）⇒ 锚必须落在劳动补偿模块的合成串上，裸数字（8 / 20000）会在分类表里命中。"
   }
 ];
 
