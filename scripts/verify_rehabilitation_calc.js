@@ -347,6 +347,14 @@ const CASES = [
   ],
   "ref": "auto-restore"
 }
+,
+  {
+    "slug": "rehabilitation/physiotherapy-dose",
+    "inputs": {"usArea":"20","laserPower":"100","laserArea":"5","tensTime":"20"},
+    "clicks": ["calc()"],
+    "expect": ["60 总能量(J)", "25 照射时间(秒)"],
+    "ref": "注入 usArea=20(默认空→超声波段输出「请输入治疗面积」，注入后计算总能量 60 J) + laserPower=100(默认50→激光照射时间 100→25 秒) + laserArea=5 + tensTime=20。锚计算结果(随输入变化且与默认态不同)，规避 input 回显(20/100/5/20 及 select 默认项)。"
+  }
 ];
 async function main() {
   const only = process.argv.slice(2);

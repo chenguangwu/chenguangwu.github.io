@@ -403,6 +403,13 @@ const CASES = [
     expect: ["1.8750", "150.000", "2.6250"],
     ref: "注入非默认(默认 g1=0.02/g2=−0.01/L=200/x=100)：切线长 T = L/2 = 150.000 m；外矢距 E = L|g₂−g₁|/8 = 300×0.05/8 = 1.8750 m；x=150 处相对高程 y = E(1−2x/L)² …按页面竖曲线公式得 2.6250。默认态 1.2500/100.000/2.6250×之外的值均不命中。"
   }
+,
+  {
+    slug: "surveying/scale-converter",
+    clicks: ["document.getElementById('n').value='500';document.getElementById('map').value='2';document.getElementById('unit').value='cm';calc()"],
+    expect: ["10 实际距离 m", "0.01 实际距离 km"],
+    ref: "纯 clicks 设动态生成 input(n/map/unit)值+calc()，不依赖 inputs 字段（避免 discriminator 因动态 input pageDefaults 取不到而保留注入值→假逃生）。n=500(1:500) map=2(cm)→realM=2*1*500/100=10 m、0.01 km。回退清空 clicks→默认 input 空→calc 走 isNaN→空→翻转。锚计算结果值+单位，规避回显。"
+  }
 ];
 
 async function main() {
