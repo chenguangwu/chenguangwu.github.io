@@ -118,6 +118,132 @@ const CASES = [
     expect: ["2.3562", "SE", "NW 相反风向"],
     ref: "独立复算：deg135。idx=round(135/22.5)%16=6→SE；rad=135·π/180=2.3562；opp=(6+8)%16=14→NW。默认 deg225→S。"
   },
+  {
+    slug: "meteorology/absolute-humidity",
+    inputs: {"T": "30", "RH": "50"},
+    expect: ["15.13 g/m³ 绝对湿度"],
+    ref: "独立复算：T30/RH50。e=es(30)·0.5；es(30)=6.112·exp(17.62·30/276.12)=42.46hPa；e=21.23；AH=216.7·e/(T+273.15)=216.7·21.23/303.15=15.13。默认 T25/RH60→AH13.8，不出现 15.13 g/m³。"
+  },
+  {
+    slug: "meteorology/air-aqi",
+    inputs: {"pm25": "150", "pm10": "200", "so2": "40", "no2": "60", "co": "2.5", "o3": "180"},
+    expect: ["空气质量指数 AQI 200 中度污染"],
+    ref: "独立复算：pm25=150→IAQI 200 左右（中度污染），首要污染物 PM2.5。默认 pm25=75→AQI 约 100 以下，不出现 200 中度污染。"
+  },
+  {
+    slug: "meteorology/analysis-31",
+    inputs: {"obs": "30", "norm": "25", "sd": "2", "unit": "℃"},
+    expect: ["标准化距平 σ： 2.50", "距平百分率 20.0%"],
+    ref: "独立复算：obs30/norm25/sd2。距平=5.00℃；距平百分率=5/25·100=20.0%；σ=5/2=2.50→显著偏强。默认 obs26.8/norm24.2/sd1.1→σ2.36/百分率10.7%。已剔除默认也可能命中的『显著偏强』。"
+  },
+  {
+    slug: "meteorology/analysis-tide",
+    inputs: {"z0": "3.00", "hM2": "1.50", "gM2": "30", "hS2": "0.50", "gS2": "60", "hK1": "0.40", "gK1": "150", "hO1": "0.30"},
+    expect: ["最高潮位： 5.52 m"],
+    ref: "独立复算：四分量调和分析，注入 z0=3/hM2=1.5/hS2=0.5/hK1=0.4/hO1=0.3。预报最高潮位 5.52m（默认 z0=2/hM2=1.2/hS2=0.35→最高潮位不同）。已剔除默认也可能同落的『不规则半日潮』。"
+  },
+  {
+    slug: "meteorology/apparent-temperature",
+    inputs: {"T": "35", "RH": "60", "ws": "5"},
+    expect: ["38.6 °C 体感温度 AT"],
+    ref: "独立复算：T35/RH60/ws5(Steadman)。e=es(35)·0.6；es(35)=56.6；e=34.0hPa；AT=35+0.33·34.0-0.70·5-4.0=38.6°C。默认 T30/RH70/ws2→AT≈33.6，不出现 38.6 °C 体感温度 AT。"
+  },
+  {
+    slug: "meteorology/beaufort-scale",
+    inputs: {"v": "20"},
+    expect: ["8 级 蒲福风级 大风"],
+    ref: "独立复算：v=20m/s → 蒲福风级 8 级（大风）。默认 v=10→5 级清劲风，不出现 8 级 蒲福风级 大风。"
+  },
+  {
+    slug: "meteorology/capeduiliuyouxiaoweineng",
+    inputs: {"tp": "30", "te": "15", "plfc": "800", "pel": "250"},
+    expect: ["对流有效位能 CAPE 5138.4 J/kg"],
+    ref: "独立复算：Tp30/Te15/LFC800/EL250。ΔT=15K；CAPE 5138.4 J/kg→极端不稳定。默认 Tp25/Te20→ΔT5，CAPE 远低于 5138.4，不出现该数值。"
+  },
+  {
+    slug: "meteorology/cloud-base-height",
+    inputs: {"T": "30", "Td": "15"},
+    expect: ["1875 m 估算云底高度"],
+    ref: "独立复算：ΔT=30−15=15℃；H=15×125=1875m（默认 T25/Td15→ΔT10→1250m，须用 Td=15 使 ΔT 偏离默认）。默认态不出现 1875 m。"
+  },
+  {
+    slug: "meteorology/dew-point",
+    inputs: {"T": "30", "RH": "50"},
+    expect: ["18.45 °C 露点温度 Td"],
+    ref: "独立复算：T30/RH50。γ=ln(0.5)+17.27·30/270.3=1.240；Td=237.3·1.240/15.727=18.45（Magnus）。默认 T25/RH60→Td17.3，不出现 18.45 °C 露点温度 Td。"
+  },
+  {
+    slug: "meteorology/heat-index",
+    inputs: {"temp": "38", "rh": "60", "wind": "5"},
+    expect: ["体感温度 55.0°C"],
+    ref: "独立复算：temp38/rh60。Rothfusz HI≈55.0°C（极端危险）。默认 temp32/rh70→HI≈41，不出现 55.0°C。"
+  },
+  {
+    slug: "meteorology/humidex",
+    inputs: {"T": "35", "RH": "60"},
+    expect: ["48.2 湿热指数 Humidex"],
+    ref: "独立复算：T35/RH60。e=es(35)·0.6=33.96；Humidex=35+0.5555·(33.96−10)=48.2。默认 T30/RH70→≈40，不出现 48.2。"
+  },
+  {
+    slug: "meteorology/isa-temperature",
+    inputs: {"h": "12"},
+    expect: ["-56.5 °C 标准气温 T（ISA）"],
+    ref: "独立复算：h=12km。11km 以上对流层顶恒温 −56.5℃，页面 T（ISA）=−56.5℃。默认 h=5→−17.5℃，不出现 −56.5 °C 标准气温 T（ISA）。"
+  },
+  {
+    slug: "meteorology/precipitation-calc",
+    inputs: {"amt": "30", "dur": "120", "area": "2000"},
+    expect: ["60.00 水量 m³ 60000 水量 升"],
+    ref: "独立复算：amt30mm/dur120min/area2000m²。强度=15.0mm/h；水量 m³=30·2000/1000=60.00m³（60000 升）。默认 amt18/dur60/area1000→18.00m³，不出现 60.00 水量 m³。"
+  },
+  {
+    slug: "meteorology/precipitation-rate",
+    inputs: {"mm": "25"},
+    expect: ["600.00 按 24 小时折算降水量 (mm)"],
+    ref: "独立复算：mm=25mm/h。24h 折算=25×24=600.00mm。默认 mm=12→288.00mm，不出现 600.00 按 24 小时折算降水量。"
+  },
+  {
+    slug: "meteorology/pressure-altitude",
+    inputs: {"P": "800", "P0": "1013.25"},
+    expect: ["1949 m 海拔（气压高度）"],
+    ref: "独立复算：P800/P0=0.7896；h=(1−0.7896^(1/5.255))·44330=1949m。默认 P900→约 1066m，不出现 1949 m 海拔（气压高度）。"
+  },
+  {
+    slug: "meteorology/relative-humidity",
+    inputs: {"T": "30", "Td": "20"},
+    expect: ["55.1 % 相对湿度 RH"],
+    ref: "独立复算：T30/Td20。es(30)=42.46；es(20)=23.39；RH=23.39/42.46·100=55.1%。默认 T25/Td16.7→≈60，不出现 55.1 % 相对湿度 RH。"
+  },
+  {
+    slug: "meteorology/saturation-vapor-pressure",
+    inputs: {"T": "35"},
+    expect: ["56.18 hPa 饱和水汽压 e_s"],
+    ref: "独立复算：T35。es=6.112·exp(17.62·35/276.12)=56.18hPa。默认 T25→31.67hPa，不出现 56.18 hPa 饱和水汽压 e_s。"
+  },
+  {
+    slug: "meteorology/taifengdingqiang",
+    inputs: {"pc": "920"},
+    expect: ["84.7 最大风速 (m/s)"],
+    ref: "独立复算：pc=920hPa。页面经验式得 84.7m/s（实际输出顺序为『84.7 最大风速 (m/s)』）。默认 pc=950→风速更低，不出现 84.7 最大风速。"
+  },
+  {
+    slug: "meteorology/temp-pressure",
+    inputs: {"temp": "30", "rh": "50", "pres": "1000"},
+    expect: ["1.140 空气密度 kg/m³"],
+    ref: "独立复算：temp30/rh50/pres1000hPa。es(30)=42.46；e=21.23；Tv≈304.1K；ρ=100000/(287·304.1)=1.140kg/m³。默认 temp25/rh60/pres1013.25→ρ≈1.18，不出现 1.140 空气密度。"
+  },
+  {
+    slug: "meteorology/wet-bulb-temperature",
+    inputs: {"T": "35", "RH": "40"},
+    expect: ["24.51 °C 湿球温度 T_w（Stull）"],
+    ref: "独立复算：T35/RH40（Stull 经验式）≈24.51°C。默认 T25/RH60→≈18.6，不出现 24.51 °C 湿球温度 T_w（Stull）。"
+  },
+  {
+    slug: "meteorology/wind-chill",
+    inputs: {"T": "-10", "v": "30"},
+    expect: ["-19.5 °C 风寒指数 WCT"],
+    ref: "独立复算：T=−10℃/v=30km/h。WCT≈−19.5°C。默认 T−5/v20→−9.5，不出现 −19.5 °C 风寒指数 WCT。"
+  },
 ];
 
 async function main() {
