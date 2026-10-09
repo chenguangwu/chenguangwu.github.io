@@ -3733,6 +3733,12 @@ function makeEl(val, opts) {
     // canvas 2D 上下文桩：含图表的页面（如 healthcare/tdee-calculator 的热量环形图）
     // 在 calc() 里直接 ctx.arc/fillText，缺了会抛 "getContext is not a function" 使整页无法验证。
     getContext() { return CTX2D; },
+    // canvas 导出桩：图像类页（design/initials-avatar、favicon-from-text 等）在生成后
+    // 立即 `canvas.toDataURL('image/png')` 把结果写进 <img>/下载链接，缺此 API 整页抛
+    // "toDataURL is not a function" ⇒ 生成流程中断、结果区恒空。这里返回固定的
+    // 合法 data URL（不模拟像素），既让流程跑完，也让「data:image/png;base64,」可作锚。
+    toDataURL() { return "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8DwHwAFAAH/q842iQAAAABJRU5ErkJggg=="; },
+    toBlob(cb) { if (typeof cb === "function") cb(null); },
   };
   // 让 <select> 桩支持 options / selectedIndex：页面常用 `el.options[el.selectedIndex].text`
   // 取选项标签（construction/area 等全部页面在 getParams() 里这么读），缺此属性会在 calc()
