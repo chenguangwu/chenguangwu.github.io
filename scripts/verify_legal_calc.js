@@ -432,6 +432,24 @@ const CASES = [
     clicks: ["document.getElementsByName=function(){return []};document.getElementById('keyword').value='保险箱';doSearch()"],
     expect: ["共找到 1 个分类"],
     ref: "第二个关键词用例，验证命中类确实随关键词变化（不同关键词、不同命中类）。独立复算：『保险箱』属第 6 类（金属材料）的示例项 ⇒ 同样命中 1 类。与上一例（第 4 类）合起来覆盖两条不同数据路径：若页面忽略关键词恒返回全量，两例都会渲染 45 类、计数行为 45，均判红。默认态 45 类，不命中。expect 只取计数串『共找到 1 个分类』——类别标题与示例项串在全量渲染中同样存在（查表型页面共性，见上一例 ref）。"
+  },
+  {
+    slug: "legal/calc-16",
+    inputs: { type: "2", startDate: "2020-01-15", restartDate: "", interrupted: "off" },
+    expect: ["2022-01-17", "已过 880 天"],
+    ref: "注入非默认（默认 startDate 为空：『请选择起算日期』无届满日）。时效起算日 2020-01-15、类型一般诉讼时效（3年），届满日 = 起算日 + 3年遇周末/法定顺延 ⇒ 页面输出『届满日 2022-01-17』；截至冻结当前日输出『已过 880 天』。两条均不在默认空态。⚠ 不锚 type 回显『2』与 interrupted 回显『off』（输入值恒随注入变）；addYears/daysBetween/isHoliday 是日期辅助函数，harness 第3步兜底无参调用产生 benign errs，不影响 res 主链。"
+  },
+  {
+    slug: "legal/will-template-generator",
+    inputs: { testatorName: "张三", testatorId: "31010119900101001X", testatorAddr: "上海市浦东新区", willDate: "2026-05-01", willPlace: "上海", heirList: "李四 儿子\n王五 女儿", assetList: "房产一套", witness1: "赵六", witness2: "钱七" },
+    expect: ["立遗嘱人：张三", "身份证号：31010119900101001X", "上海市浦东新区"],
+    ref: "注入非默认（默认空模板：『（请添加财产明细）』『（请添加继承人信息）』无姓名）。页面把立遗嘱人姓名/身份证/住址原样拼入遗嘱正文 ⇒ 锚『立遗嘱人：张三』『身份证号：31010119900101001X』『上海市浦东新区』，三条均不在默认空模板。不锚『上海』（willPlace 可能默认同值，回退仍命中）与遗嘱正文固定导语（所有状态共有）。"
+  },
+  {
+    slug: "legal/calendar-qr",
+    inputs: { title: "项目启动会", loc: "会议室B", desc: "评审方案", start: "2026-07-01T10:00", end: "2026-07-01T11:00" },
+    expect: ["SUMMARY:项目启动会", "LOCATION:会议室B", "DTSTART:20260701T020000Z"],
+    ref: "注入非默认（默认无标题：输出空 ICS『BEGIN:VEVENT SUMMARY: LOCATION: ...』）。页面把事件标题/地点/起止拼入 ICS 文本 ⇒ 锚『SUMMARY:项目启动会』『LOCATION:会议室B』『DTSTART:20260701T020000Z』（start=2026-07-01T10:00 本地转 UTC+8 ⇒ 020000Z；end 11:00 ⇒ 030000Z）。三条均不在默认空态。⚠ renderQR/strHash 是 QR 渲染辅助函数，harness 第3步兜底无参调用产生 benign errs，不影响 output 主链。"
   }
 ];
 
