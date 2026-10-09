@@ -417,6 +417,21 @@ const CASES = [
     inputs: { witnessAge: "adult", capacity: "full", willType: "代书" },
     expect: ["需要2名以上合格见证人在场见证"],
     ref: "注入非默认(默认 自书遗嘱→『自书遗嘱无需见证人』)：willType=代书 ⇒ 需要2名以上合格见证人在场见证。默认态自书分支无此句，不命中。"
+  },
+  // ── 零用例收敛（2026-10-09）：legal 7 页中仅本页可收敛 ──
+  {
+    slug: "legal/trademark-class-search",
+    inputs: {},
+    clicks: ["document.getElementsByName=function(){return []};document.getElementById('keyword').value='润滑剂';doSearch()"],
+    expect: ["共找到 1 个分类"],
+    ref: "注入关键词『润滑剂』。独立复算：doSearch() 遍历 45 个尼斯分类，对每类做 编号/名称/描述/示例项 四路 indexOf 匹配；『润滑剂』只出现在第 4 类（燃料油脂）的示例项列表中 ⇒ 命中 1 类，页面输出计数行『共找到 1 个分类』。默认态（关键词空）渲染全部 45 类 ⇒ 计数行为『共找到 45 个分类』，不命中。⚠ 不用『4 第4类 · 燃料油脂』或示例项串『工业用油 润滑剂 …』作锚——默认全量渲染里同样含这两串（查表型页面陷阱：期望串在全量输出中亦出现），判别器已实测报出，属逃生串；唯一带计数语义且随关键词翻转的串就是『共找到 N 个分类』。⚠ clicks 前半段 `document.getElementsByName=function(){return []}` 是必需的：页面的 getFilter() 遍历同名 radio 组，harness 的 document 桩未实现 getElementsByName ⇒ 返回 undefined 后访问 .length 抛错、搜索中断、输出停在默认全量。打桩返回空数组（等价真实页面未选过滤项时 getFilter 返回 'all' 的分支）后搜索正常。这属 harness 缺口而非页面缺陷，用例内局部打桩规避、不改 harness。"
+  },
+  {
+    slug: "legal/trademark-class-search",
+    inputs: {},
+    clicks: ["document.getElementsByName=function(){return []};document.getElementById('keyword').value='保险箱';doSearch()"],
+    expect: ["共找到 1 个分类"],
+    ref: "第二个关键词用例，验证命中类确实随关键词变化（不同关键词、不同命中类）。独立复算：『保险箱』属第 6 类（金属材料）的示例项 ⇒ 同样命中 1 类。与上一例（第 4 类）合起来覆盖两条不同数据路径：若页面忽略关键词恒返回全量，两例都会渲染 45 类、计数行为 45，均判红。默认态 45 类，不命中。expect 只取计数串『共找到 1 个分类』——类别标题与示例项串在全量渲染中同样存在（查表型页面共性，见上一例 ref）。"
   }
 ];
 
