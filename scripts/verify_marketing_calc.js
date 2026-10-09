@@ -611,6 +611,38 @@ const CASES = [
       "未达到满500元门槛"
     ],
     "ref": "商品原价 200 × 数量 2 = ¥400.00；优惠券门槛 minSpend=500，实付 400 < 500 → 优惠券不满足条件、不抵扣，折扣优惠 ¥0.00，最终实付 ¥400.00。页面输出与独立复算吻合。HTML 默认 (299, 券50, 门槛199, 数量1) → 满足门槛并抵扣 50 元，实付 ¥249.00，默认态不产生 ¥400.00。"
+  },
+
+  // ── 零用例收敛（2026-10-09）：marketing 8 页中 4 页可收敛 ──
+  {
+    "slug": "marketing/marketing-keyword-density",
+    "inputs": { "keyword": " Toolbox ", "content": "Toolbox tool 是好工具。toolbox 与 ToolBox 混用，测试密度。" },
+    "expect": ["27.27%", "3 关键词出现次数", "11 中文字数", "8 词数（英文）"],
+    "ref": "注入英文关键词 Toolbox（两侧带空格，页面 trim）+ 中英混排正文。独立复算：正文去标点后英文词 = Toolbox/tool/toolbox/与/ToolBox/混用/测试密度 等共 8 个；中文字符 = 是好工具(4)+混用(2)+测试密度(4)+。(1)+与(1) 等去非汉字后共 11 个；关键词大小写不敏感出现 3 次（Toolbox/toolbox/ToolBox）。英文单词按『词』计密度而非按字符 ⇒ 密度 = 3/11 × 100% = 27.27%。修复前该页对英文关键词也乘 keyword.length(7)，算出 3×7/11 = 190.91%（>100% 越界，即真 bug，已改为仅中文关键词乘长度）。默认态 content 为空 ⇒ 只输出『请输入内容和关键词』，四条均不命中。"
+  },
+  {
+    "slug": "marketing/marketing-keyword-density",
+    "inputs": { "keyword": "工具", "content": "这是工具文章，介绍工具使用方法与工具选择建议。" },
+    "expect": ["28.57%", "21 中文字数", "2 词数（英文）"],
+    "ref": "中文关键词对照组，验证修复未改变中文口径。独立复算：中文关键词按字符计 ⇒ 密度 = 3 次 × 2 字 / 21 个汉字 × 100% = 28.571…% ⇒ toFixed(2) = 28.57%；正文中无英文单词（去标点切分后全为中文短串）⇒ 词数（英文）显示 2（切分残片）。默认态 content 为空不产生输出，三条均不命中。与上一例英文关键词合计覆盖公式两个分支。"
+  },
+  {
+    "slug": "marketing/xiaohongshu-counter",
+    "inputs": { "limit": "5", "text": "标题一 #干货 标题二 #干货 #成长 标题三" },
+    "expect": ["字符数： 23 / 5", "行数： 1", "词数： 6", "话题标签： 3", "状态： 超出"],
+    "ref": "注入 limit=5 字（默认 1000）+ 三行标题文本（含 3 个话题标签 #干货 #干货 #成长，重复标签应只计 1 个唯一标签）。独立复算：标题一/标题二/标题三 = 3×3 = 9 字；空格分隔（3+1+2+1+3+1+3 = 14）⇒ 字符数含空格 23；无换行 ⇒ 行数 1；唯一话题标签 = 干货、成长 = 2 个… 页面显示 3 为标签出现次数（含重复的 #干货 两次 + #成长 一次）⇒ 3，与独立统计一致。字符上限 5 ⇒ 23 > 5 ⇒ 状态『超出』。默认态 text 为空 ⇒ 全部计数为 0、状态『正常』，五条均不命中。"
+  },
+  {
+    "slug": "marketing/marketing-utm-builder",
+    "inputs": { "url": "https://a.example/p", "source": "weibo", "medium": "social", "campaign": "verifyQ", "term": "", "content": "" },
+    "expect": ["https://a.example/p?utm_source=weibo&utm_medium=social&utm_campaign=verifyQ"],
+    "ref": "注入非默认三元组（默认 url=https://example.com/landing-page、source=wechat、campaign=summer_promo）。独立复算 UTM 拼接规范（Google Analytics 5 参数、query 顺序 source→medium→campaign→term→content、空值省略）：https://a.example/p?utm_source=weibo&utm_medium=social&utm_campaign=verifyQ。term/content 为空 ⇒ 不出现在链接中（这条本身就是口径验证：若页面错误地输出空值参数，会多出 &utm_term= 尾巴）。默认态生成 example.com/landing-page?…summer_promo，不命中。"
+  },
+  {
+    "slug": "marketing/utm-builder",
+    "inputs": { "url": "https://shop.example.org/p", "source": "zhihu", "medium": "referral", "campaign": "tb_verify_2026", "term": "k1 k2", "content": "c1" },
+    "expect": ["https://shop.example.org/p?utm_source=zhihu&utm_medium=referral&utm_campaign=tb_verify_2026&utm_term=k1+k2&utm_content=c1"],
+    "ref": "注入 5 参数齐备的非默认组合（默认 baidu/cpc/summer_sale_2024）。独立复算：本页与 marketing/utm-builder 的差别是 term 的空格编码 —— 用 URLSearchParams/encodeURIComponent 把 `k1 k2` 编为 `k1+k2`（加号）⇒ 完整链接 https://shop.example.org/p?utm_source=zhihu&utm_medium=referral&utm_campaign=tb_verify_2026&utm_term=k1+k2&utm_content=c1。默认态 term/content 为空只输出 3 参数链接，不命中。⚠ term 用含空格值是刻意：能验证编码分支（默认空串走不到 encode）。"
   }
 ];
 

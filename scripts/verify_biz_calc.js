@@ -585,6 +585,49 @@ const CASES = [
     expect: ["业务竞争力： 68 （中）"],
     ref: "注入非默认(默认 mGrowth=7/mSize=8/mProfit=6/mComp=5/cShare=6/cBrand=7/cTech=6/cChan=5)：注入后业务竞争力由默认 60 升为 68（中档）⇒ 战略定位『中-中』。⚠『行业吸引力： 68』在默认态同为 68（m/c 权重组合巧合），不可作锚，故只取竞争力串。",
   },
+
+  // ── 零用例收敛（2026-10-09）：biz 11 页中 6 页可收敛 ──
+  {
+    slug: "biz/fancy-text",
+    inputs: { input: "Zztop" },
+    expect: ["Ⓩⓩⓣⓞⓟ", "Zᶻᵗᵒᵖ", "Zzₜₒₚ"],
+    ref: "注入唯一词 Zztop（默认 Hello World）。页面 mapStr() 对每个字母生成 30+ 种花式变体并渲染到网格；锚取三种 Unicode 形态的独占串：① 圆圈小写 Ⓩⓩⓣⓞⓟ（U+24EA 等，ASCII 字母无此码位）② 上标 Zᶻᵗᵒᵖ（U+1DBB 等）③ 下标 Zzₜₒₚ（U+209C 等）。默认态渲染的是 Hello World 的变体，三条均不命中。renderGrid 写 innerHTML，不依赖 canvas。",
+  },
+  {
+    slug: "biz/text-extract-chinese",
+    inputs: { input: "Q7好Z文W字" },
+    clicks: ["document.getElementById('hanzi').checked=true;extract()"],
+    expect: ["好文字"],
+    ref: "注入 Q7好Z文W字（默认为中英混合长句）并勾选『仅汉字』。extract() 用 isHanzi() 逐字判定（Unicode 码点区间），独立复算：Q7 非汉字丢弃、Z 丢弃 ⇒ 保留 好 文 字 共 3 字 ⇒ 计数 3、拼接结果『好文字』。默认态输出为『世界测试我们喜欢它很好用电话邮箱』，不含『好文字』。注意：勾选走 clicks（harness 的 inputs 写 checked 不生效）。",
+  },
+  {
+    slug: "biz/text-extract-html-tags",
+    inputs: { input: "<b>x</b><i>y</i><u>z</u><s>w</s>" },
+    clicks: ["document.getElementById('onlyName').checked=true;document.getElementById('dedup').checked=true;extract()"],
+    expect: ["标签列表： b i u s", "b b i i u u s s"],
+    ref: "注入 4 个单标签片段（默认样例为 div/h2/p/a/img/br/input 的嵌套长 HTML）并勾选『仅标签名』+『去重』。独立复算：4 个开始标签各匹配一次 ⇒ 出现次数 4、去重后标签序列 b i u s（按首次出现序）⇒ 计数区 8 处、4 种；第二条 b b i i u u s s 是未去重时的逐标签列表（默认态该串为 div h2 h2 p p a a img br input div）。『标签列表： b i u s』带页面固定前缀，注入文本绝无可能凑出。",
+  },
+  {
+    slug: "biz/text-extract-numbers",
+    inputs: { input: "a 17 b 25 c 3.5" },
+    clicks: ["document.getElementById('int').checked=true;document.getElementById('decimal').checked=true;document.getElementById('sum').checked=true;extract()"],
+    expect: ["3.5 17 25", "45.5", "15.17"],
+    ref: "注入 a 17 b 25 c 3.5（默认样例为价格/百分比/IP 混合串）并勾选『整数』+『小数』+『求和』。独立复算：抽到 17、25、3.5 共 3 个 ⇒ 求和 = 17+25+3.5 = 45.5（精确十进制，非浮点误差）；均值 = 45.5/3 = 15.1666… ⇒ toFixed(2) = 15.17；数值列表按 extract 的排序规则输出为 3.5 17 25。默认态因未勾选任何类型 ⇒ finalMatches 为空 ⇒ 求和区显示短横、计数 0，三条均不命中。",
+  },
+  {
+    slug: "biz/text-remove-numbers",
+    inputs: { input: "ab77cd88ef" },
+    clicks: ["document.getElementById('removeDigits').checked=true;doRemove()"],
+    expect: ["abcdef"],
+    ref: "注入 ab77cd88ef（默认含中文/标点/特殊符号）并勾选『移除数字』。doRemove() 逐字符过滤：独立复算剔除 7、7、8、8 四个数字 ⇒ 剩 a b c d e f 共 6 字母 ⇒ 输出『abcdef』。默认态输出为『Hello World! 测试文本。@#$%^&*()』。入口是 doRemove()（页面无 extract 同名函数，故 clicks 必须用 doRemove）。",
+  },
+  {
+    slug: "biz/unicode-normalize",
+    inputs: { input: "ÅΩ ﬁ ① 한국" },
+    clicks: ["normalize()"],
+    expect: ["ÅΩ fi 1 한국"],
+    ref: "注入 NFC/NFKC 可区分串：Å(U+212B ANGSTROM SIGN) + Ω(U+2126 OHM SIGN) + ﬁ(U+FB01 小型连字 fi) + ①(U+2460 带圈数字一) + 한글。normalize() 依次跑 NFC/NFKC/NFD/NFKD 并输出码位长度（14/10/15）。独立复算：ﬁ 属兼容分解字素，NFC/NFKC 均分解为 f+i；① 在 NFC 下保留圆圈形态、仅 NFKC 兼容分解为普通数字 1 ⇒ NFKC 行结果为 `ÅΩ fi 1 한국`，该串为独占锚（默认样例仅 café，无兼容字素）。注：页面内联事件已按 MEMORY 记录的同名坑改为显式 window 调用，沙箱内可直接调 normalize()。",
+  },
 ];
 
 // ---------------------------------------------------------------- main

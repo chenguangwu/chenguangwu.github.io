@@ -721,6 +721,13 @@ const CASES = [
     expect: ["ZZPREVZZ"],
     ref: "注入唯一预览文字 ZZPREVZZ。fpText 的 input 监听器更新 state.text 后 render()，将 ZZPREVZZ 渲染进每个可见字体的预览区（escHtml 转义后仍为文本，去标签后保留）。默认态 fpText=『永和九年岁在癸丑』，不出现 ZZPREVZZ。render 纯本地 fonts 对象、不触网，确定性强。",
   },
+  // ── 零用例收敛（2026-10-09）：design 29 页中仅本页可收敛 ──
+  {
+    slug: "design/iso-noise-reference",
+    inputs: { sensor: "medium", light: "low", camera: "canon_r5", isoRange: "51200" },
+    expect: ["中画幅", "佳能 R5 全画幅 · 45MP", "8K视频", "几乎不可见，画质纯净"],
+    ref: "注入 sensor=medium（默认 phone）/ light=low（默认 bright）/ camera=canon_r5（默认 sony_a7iv）。三条均经页面 change 监听器 → onISOChange → renderISO 生效，独立复算依据页面内置噪声基准表：medium 画幅纯净上限 6400、可用上限 25600；弱光档等效 ISO = 6400×1.3 = 8320。判别锚（均与默认态零撞车）：①『中画幅』（默认渲染『手机 (1/1.3 吋)』）②『佳能 R5 全画幅 · 45MP』（默认 sony_a7iv ⇒『索尼 A7 IV 全画幅 · 33MP』）③『8K视频』（佳能 R5 独有优点，默认 A7 IV 为『对焦优秀、视频强、实时眼部对焦』）④『几乎不可见，画质纯净』（ISO 6400 在 medium+low 下评『优秀』，默认 phone+bright 评『较重』并输出『噪点明显，需要后期降噪』）。⚠️ 不用『原生ISO 100-51200』——默认 A7 IV 同为 100-51200，属逃生串（判别器已实测报出）。纯本地查表，无随机、无时间依赖。",
+  },
 
 ];
 
