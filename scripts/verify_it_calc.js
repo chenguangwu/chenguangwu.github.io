@@ -3626,6 +3626,29 @@ function dynQuery(sel) {
   return out;
 }
 
+// 构造 <option> 桩：除 value/text/label 外，还要带 dataset（data-* 属性）与 getAttribute。
+// 页面常写 `sel.selectedOptions[0].dataset.pip`（forex/lot-size 等）或
+// `sel.options[i].getAttribute('data-x')`（food-testing/allergen-cross-risk），
+// 缺这两个会抛 "Cannot read properties of undefined" / "getAttribute is not a function"
+// ⇒ 整页「初始化失败」。这里按真实浏览器语义解析 option 标签上的 data-* 与其他属性。
+function mkOpt(value, text, attrStr) {
+  const v = value != null ? String(value) : "";
+  const t = text != null ? String(text) : v;
+  const o = { value: v, text: t, label: t, selected: false, dataset: {}, _attrs: String(attrStr || "") };
+  for (const m of o._attrs.matchAll(/\bdata-([\w-]+)\s*=\s*["']([^"']*)["']/gi)) {
+    o.dataset[m[1].replace(/-([a-z])/g, (_, c) => c.toUpperCase())] = m[2];
+  }
+  o.getAttribute = function (n) {
+    if (n == null) return null;
+    const esc = String(n).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const m = o._attrs.match(new RegExp("\\b" + esc + "\\s*=\\s*[\"']([^\"']*)[\"']", "i"));
+    if (m) return m[1];
+    if (String(n) === "value") return v;
+    return null;
+  };
+  return o;
+}
+
 function makeEl(val, opts) {
   const handlers = {};
   // 懒创建的父节点桩：页面常写 `cell.parentElement.classList.add('x')`（如
@@ -3633,14 +3656,23 @@ function makeEl(val, opts) {
   // classList，整页在初始化期就抛 "Cannot read properties of undefined (reading 'add')"
   // ⇒ 恒被判「初始化失败」而无法验证。这里改成返回完整元素桩（裸对象属性的超集）。
   let _parent = null;
+  // 显式写入的 selectedIndex（见下方 selectedIndex setter）：页面常用
+  // `sel.selectedIndex = 11` 选档后再回读该值（design/exposure-triangle-calculator 的
+  // aperture/shutter/iso 三档）。这些页的 <option> 没有 value 属性，靠索引定位 ⇒
+  // 必须原样记住写入的索引，不能退化成按 value 反查（会恒回 0）。
+  let _selIdx = null;
   const el = {
     value: val === undefined ? "" : val,
     textContent: "",
-    // 与真实 <select> 对齐：页面常读 el.selectedOptions[0].text 取选项标签，
-    // 缺此属性会在 calc() 抛 "Cannot read properties of undefined" 使整页无法验证。
-    selectedOptions: [
-      { text: String(val === undefined ? "" : val), value: String(val === undefined ? "" : val), selected: true },
-    ],
+    // 与真实 <select> 对齐：页面常读 el.selectedOptions[0].text / .dataset.pip 取选项标签
+    // 与附加数据，缺此属性会在 calc() 抛 "Cannot read properties of undefined" 使整页无法验证。
+    // 用 getter 跟随当前 el.value 动态匹配（注入非默认选项后dataset 也跟着变），
+    // 原先是构造期常量数组，注入后 selectedOptions[0] 仍停在初始选项 ⇒ 读不到注入项的数据。
+    get selectedOptions() {
+      const list = el.options || [];
+      const cur = list.find((o) => String(o.value) === String(el.value));
+      return [cur || mkOpt(el.value, el.value)];
+    },
     checked: false,
     style: {},
     dataset: {},
@@ -3664,6 +3696,10 @@ function makeEl(val, opts) {
     // el.add()，本方法对其行为零影响。
     add(option) {
       if (!this.options) this.options = [];
+      // new Option(text,value) 生成的桩没有 dataset/getAttribute；补齐以免页面读
+      // `sel.options[i].dataset.x` 抛错（与 mkOpt 口径一致）。
+      if (option && typeof option.dataset !== "object") { option.dataset = {}; option._attrs = ""; }
+      if (option && typeof option.getAttribute !== "function") option.getAttribute = () => null;
       this.options.push(option);
       if (option && (option.selected || this.options.length === 1)) {
         this.value = option.value != null ? String(option.value) : "";
@@ -3699,10 +3735,18 @@ function makeEl(val, opts) {
   // 抛 "Cannot read properties of undefined" 使整页无法验证。selectedIndex 用 getter 跟随
   // 当前 value 动态匹配，保证注入非默认选项后文本也跟着变。
   if (opts && opts.length) {
-    el.options = opts.map((o) => ({ value: String(o.value), text: o.text != null ? String(o.text) : String(o.value) }));
+    el.options = opts.map((o) => mkOpt(o.value, o.text, o.attrs != null ? o.attrs : (o._attrs || "")));
     Object.defineProperty(el, "selectedIndex", {
       configurable: true,
-      get() { const i = el.options.findIndex((o) => String(o.value) === String(el.value)); return i < 0 ? 0 : i; },
+      get() {
+        if (_selIdx != null && _selIdx >= 0 && _selIdx < el.options.length) return _selIdx;
+        const i = el.options.findIndex((o) => String(o.value) === String(el.value)); return i < 0 ? 0 : i;
+      },
+      // setter（真实 DOM 语义）：写 selectedIndex 即选中该选项并原样回读。用例常用
+      // `document.getElementById('shutter').selectedIndex = 11` 选档
+      // （design/exposure-triangle-calculator 的 aperture/shutter/iso 三档，
+      // 其 <option> 都没有 value 属性 ⇒ 只能靠索引定位，回读必须原样保留写入值）。
+      set(i) { _selIdx = Number(i); const o = el.options[Number(i)]; if (o) el.value = o.value; },
     });
   }
   let _h = "";
@@ -3715,14 +3759,18 @@ function makeEl(val, opts) {
       // 页面读 `el.options[selectedIndex].text` 抛错使整页无法验证。仅在内容含
       // <option> 时解析，对非 select 元素无副作用。
       if (/<option/i.test(_h)) {
-        const opts = [..._h.matchAll(/<option[^>]*?(?:value\s*=\s*["']([^"']*)["'])?[^>]*>([\s\S]*?)<\/option>/gi)]
-          .map((m) => ({ value: m[1] != null ? m[1] : "", text: m[2].replace(/<[^>]+>/g, "").trim() }));
+        const opts = [..._h.matchAll(/<option([^>]*?)>([\s\S]*?)<\/option>/gi)]
+          .map((m) => mkOpt((m[1] || "").match(/value\s*=\s*["']([^"']*)["']/)?.[1] ?? "", m[2].replace(/<[^>]+>/g, "").trim(), m[1]));
         if (opts.length) {
           el.options = opts;
           if (!("selectedIndex" in el)) {
             Object.defineProperty(el, "selectedIndex", {
               configurable: true,
-              get() { const i = el.options.findIndex((o) => String(o.value) === String(el.value)); return i < 0 ? 0 : i; },
+              get() {
+                if (_selIdx != null && _selIdx >= 0 && _selIdx < el.options.length) return _selIdx;
+                const i = el.options.findIndex((o) => String(o.value) === String(el.value)); return i < 0 ? 0 : i;
+              },
+              set(i) { _selIdx = Number(i); const o = el.options[Number(i)]; if (o) el.value = o.value; },
             });
           }
         }
@@ -3833,8 +3881,15 @@ async function runCaseInner(c) {
   const sel = {};
   for (const m of html.matchAll(/<select[^>]*id="([^"]+)"[\s\S]*?<\/select>/g)) {
     const block = m[0];
-    sel[m[1]] = [...block.matchAll(/<option[^>]*value="([^"]*)"[^>]*>([\s\S]*?)<\/option>/g)]
-      .map((x) => ({ value: x[1], text: x[2].replace(/<[^>]+>/g, "").trim() }));
+    // 一并保留 option 标签的原始属性串（data-* 等），供 mkOpt 解析 dataset/getAttribute：
+    // 页面常从选中项的 data-* 上取业务数值（forex 的 data-pip、allergen-cross-risk 的
+    // data-score），只解析 value/text 会让这些页读不到数而恒输出占位符（「—」）。
+    sel[m[1]] = [...block.matchAll(/<option([^>]*)>([\s\S]*?)<\/option>/g)]
+      .map((x) => ({
+        value: ((x[1] || "").match(/value\s*=\s*["']([^"']*)["']/i) || [, ""])[1],
+        text: x[2].replace(/<[^>]+>/g, "").trim(),
+        attrs: x[1] || "",
+      }));
   }
 
   // 预解析 radio / checkbox 的 HTML 默认选中态（2026-09-24）：

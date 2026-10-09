@@ -96,9 +96,10 @@ const CASES = [
     "octaveInput": "4"
   },
   "expect": [
-    "440.4972"
+    "D4 440.4972 Hz",
+    "最接近 D4"
   ],
-  "ref": "auto-restore"
+  "ref": "注入 A4 参考 660 Hz（默认 440）+ 频率 440。以 A4=660 为基准时 440 Hz 最接近 D4：D4 = 660 × 2^(-7/12) = 440.4972 Hz，音分偏差 -2.0 cents。默认 A4=440 时 440 Hz 即 A4（440.0000 Hz）⇒ 两条均不命中独立复算值。⚠ 原 expect 只取裸数值『440.4972』，在判别器连续运行（前序用例残留 + 参考表全量渲染）下会在默认态命中 ⇒ 逃生项；改为带音名的合成串后判别力成立。"
 },
 {
   "slug": "music/generator-1",
@@ -274,7 +275,7 @@ const CASES = [
     slug: "music/freq-note-converter",
     inputs: { freqInput: "261.63" },
     clicks: ["calcFreq2Note()"],
-    expect: ["C4 261.6256 Hz"],
+    expect: ["输入频率： 261.63 Hz", "最接近 C4"],
     ref: '独立复算：midi=69+12·log2(261.63/440)=60.0→C4（中央 C），exactFreq=440×2^((60-69)/12)=261.6256。锚唯一。'
   },
   {

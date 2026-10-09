@@ -120,6 +120,21 @@ const CASES = [
     inputs: { conc: "5", vol: "2.0" },
     expect: ["10.0", "少精子症"],
     ref: "5×2=10.0 < 39×10⁶ → 少精子症（默认 conc=40 输出 120.0 正常，区分）" },
+
+  { slug: "reproductive-medicine/embryo-grading",
+    inputs: { expansion: "5", icm: "C", te: "C" },
+    expect: ["5CC Gardner 评分", "欠佳 分级"],
+    ref: "注入非默认（默认 expansion=1/icm=A/te=A → 1AA）：Gardner 评分 = 扩张度 5 + ICM C + TE C = 5CC；含 C 级 ⇒ 分级「欠佳」（默认 1AA 为优质）。「Gardner 评分」标签默认态也出现，故锚带值的合成串 5CC。" },
+
+  { slug: "reproductive-medicine/jingzidnasuipian-dfi-zhishu",
+    inputs: { dfi: "35", hds: "20" },
+    expect: ["35.0% DFI 较差（Poor）", "20.0% HDS 轻度升高"],
+    ref: "注入非默认（默认 dfi=18/hds=8）：DFI 35% 落入「较差（Poor）」档（≥30%），HDS 20% 落入「轻度升高」档（15–25%）。默认态为 18.0% 良好 / 8.0% 正常，两串均不出现。锚值+结论合成串，避开纯标签「DFI 评估」。" },
+
+  { slug: "reproductive-medicine/vasography",
+    checkIds: ["vas", "ampulla", "sv", "ejaculatory"],
+    expect: ["通畅 通畅性判定", "输精管道全程显影通畅，未见梗阻。"],
+    ref: "四个 checkbox（vas/ampulla/sv/ejaculatory）全勾选 + site 默认 none ⇒ 命中首分支 patency=通畅。默认全未勾选态为「部分梗阻/可疑」（else 分支）。checkIds 是 harness 支持的注入字段，回退清空即回到全未勾选态 ⇒ 判别力成立。" },
 ];
 
 "use strict";

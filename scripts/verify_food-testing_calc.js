@@ -292,6 +292,34 @@ const CASES = [
     "75000"
   ],
   "ref": "auto-restore"
+},
+{
+  "slug": "food-testing/aflatoxin-limit",
+  "inputs": { "detected": "15", "limit": "20", "foodCategory": "corn" },
+  "expect": ["食品类别「玉米及其制品」", "75 占限量比 %", "合格（接近限值）"],
+  "ref": "注入非默认（默认 detected=5.0 / foodCategory=peanut_oil）：15/20 = 75% ⇒ 未超限量但 ≥50% ⇒ 判定「合格（接近限值）」、风险等级中风险；类别切换联动更新限量与类别名。默认态 5.0/20 = 25% ⇒ 合格（远低于限值）、低风险，三串均不出现。"
+},
+{
+  "slug": "food-testing/allergen-cross-risk",
+  "inputs": {
+    "allergenType": "nut", "sharedEquip": "simultaneous", "cleaning": "none",
+    "changeover": "none", "form": "powder", "amount": "high",
+    "airborne": "high", "packaging": "open"
+  },
+  "expect": ["综合得分 39/40（98%）", "综合风险评分 39 /40", "包装隔离 4/5"],
+  "ref": "8 个 select 全部注入非默认（默认全取首项：peanut/dedicated/validated/long/liquid/trace/none/separate ⇒ 低风险低分）。因子分值取自各 option 的 data-score：过敏原类型 5、设备共用 5、清洁验证 5、切换间隔 5、物理形态 5、添加量 5、空气传播 5、包装隔离 4 ⇒ 合计 39/40（98%）⇒ 极高风险。⚠ harness 需建模 option 的 data-*（本轮已补 mkOpt 的 dataset/getAttribute），否则各因子读不到分而输出「—」，该页恒不可验证。"
+},
+{
+  "slug": "food-testing/irradiation-dose",
+  "inputs": { "organism": "listeria", "n": "100" },
+  "expect": ["所需辐照剂量 1.2 kGy", "灭活3个对数级需 1.2 kGy"],
+  "ref": "注入非默认（默认 organism=salmonella / n0=100000 / n=1）。选 organism 会联动改写 d10（单增李斯特菌 data-d10 = 0.4 kGy，沙门氏菌 0.5）⇒ 不手工注入 d10（注入也会被 onchange 覆盖，这正是真机行为）。灭活对数 = log₁₀(n0/n) = log₁₀(100000/100) = 3；所需剂量 = 0.4 × 3 = 1.2 kGy。默认态：n=1 ⇒ 对数 5、剂量 0.5×5 = 2.5 kGy，两串均不出现。"
+},
+{
+  "slug": "food-testing/packaging-migration",
+  "inputs": { "conc": "2.0", "volume": "500", "area": "6", "substance": "BPA", "simulant": "95%乙醇" },
+  "expect": ["0.16667 迁移量 mg/dm²", "判定为 超标"],
+  "ref": "注入非默认（默认 conc=0.5/volume=200/area=3/substance=DEHP/simulant=10%乙醇）。选 substance 会联动改写 sml（BPA 的 SML = 0.6 mg/kg，DEHP 为 1.5）⇒ 不手工注入 sml。迁移量 = conc×volume/area/1000 = 2.0×500/6/1000 = 0.16667 mg/dm²；食品中含量 = 0.16667×6 = 1 mg/kg > SML 0.6 ⇒ 判定超标。默认态 0.5×200/3/1000 = 0.03333、含量 0.2 < 1.5 ⇒ 判定合格，两串均不出现。"
 }
 ];
 async function main() {

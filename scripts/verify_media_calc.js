@@ -74,9 +74,9 @@ const CASES = [
     "platform": "toutiao"
   },
   "expect": [
-    "适合toutiao"
+    "适合今日头条"
   ],
-  "ref": "auto-restore"
+  "ref": "注入 platform=toutiao（默认 wechat）+ 15 字标题。页面按所选平台给字数档位建议：今日头条档判定「字数适中（15字），适合今日头条」，评分 7/9、吸引力强。默认 wechat 档下 15 字属「略长」，输出为「字数略长（15字），建议精简至14字以内」、评分 6/9 ⇒ 判别力成立。⚠ 2026-10-09 harness 修正：selectedOptions[0].text 原取 option 的 value（toutiao），现按 DOM 语义取可见文本（今日头条）⇒ expect 由『适合toutiao』改为『适合今日头条』。"
 }
 ];
 async function main() {
