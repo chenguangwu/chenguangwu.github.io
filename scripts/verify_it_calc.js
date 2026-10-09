@@ -3689,7 +3689,27 @@ function makeEl(val, opts) {
   }
   let _h = "";
   Object.defineProperty(el, "innerHTML", {
-    set(v) { _h = String(v == null ? "" : v); if (DYN.on) dynRecord(el, _h); },
+    set(v) {
+      _h = String(v == null ? "" : v);
+      if (DYN.on) dynRecord(el, _h);
+      // 动态填充 <select>：很多页用 `sel.innerHTML = '<option...>'` 注入选项
+      // （如 agriculture/crop-yield 的 initCrops）。不解析则 `el.options` 恒空，
+      // 页面读 `el.options[selectedIndex].text` 抛错使整页无法验证。仅在内容含
+      // <option> 时解析，对非 select 元素无副作用。
+      if (/<option/i.test(_h)) {
+        const opts = [..._h.matchAll(/<option[^>]*?(?:value\s*=\s*["']([^"']*)["'])?[^>]*>([\s\S]*?)<\/option>/gi)]
+          .map((m) => ({ value: m[1] != null ? m[1] : "", text: m[2].replace(/<[^>]+>/g, "").trim() }));
+        if (opts.length) {
+          el.options = opts;
+          if (!("selectedIndex" in el)) {
+            Object.defineProperty(el, "selectedIndex", {
+              configurable: true,
+              get() { const i = el.options.findIndex((o) => String(o.value) === String(el.value)); return i < 0 ? 0 : i; },
+            });
+          }
+        }
+      }
+    },
     get() { return _h; },
   });
   return el;
