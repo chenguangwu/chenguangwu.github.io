@@ -117,6 +117,12 @@ const CASES = [
     ref: "注入非默认(默认 200/18/0/1.2/30)：温差 = 22 − (−4) = 26.0 ℃；敞开式 U=10 ⇒ 热损失 = 10×320×26 = 208000 W；含 25% 余量需加热功率 260.00 kW，日耗电 6240.0 kWh。默认态三项均不同。"
   },
   {
+    slug: "fishery/breeding-cycle",
+    clicks: ["document.getElementById('tempRange').value='opt';calc()"],
+    expect: ["138 总周期(天)", "2.50% 日增长率"],
+    ref: "注入 tempRange=opt(默认 harness 抓首选项 low→TEMP_FACTOR 0.5；opt→1.0)。草鱼 growth=2.5% ⇒ dailyRate=0.025。initSize/targetSize 经 step-3 探针 onSpeciesChange 复位为 species 默认 50/1500(与 harness 默认态一致)，totalDays=log(1500/50)/log(1.025)=138；默认 low 态 log(1500/50)/log(1.0125)=274，两锚 138/2.50% 均不命中默认 274/1.25%。⚠ step-3 会调 onSpeciesChange 复位 initSize/targetSize，故本例不注入 initSize/targetSize(注入亦被覆盖)；只切 tempRange 即可判别。"
+  },
+  {
     slug: "fishery/spawning-hormone",
     inputs: { weight: "7", count: "14", temp: "21" },
     expect: ["1470", "1249.5", "583.1"],

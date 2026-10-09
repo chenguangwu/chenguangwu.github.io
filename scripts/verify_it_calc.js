@@ -18,6 +18,18 @@
 const fs = require("fs");
 const path = require("path");
 
+// §7.4 harness 缺口补丁：浏览器标准 API `btoa`/`atob` 此前未建模，导致所有 Base64 / JWT 类页面
+// （encode/calc-1·calc-2、it/calc-8 等）在 harness 下 `btoa is not defined` 全页无输出。
+// 这里补齐与浏览器一致的二进制串语义（btoa 入参为 latin1 二进制串、atob 出参亦为 latin1 二进制串），
+// 与页面惯用法 `btoa(unescape(encodeURIComponent(s)))` / `decodeURIComponent(escape(window.atob(s)))`
+// 完全对齐。win===globalThis ⇒ window.atob 同步可用。仅当全局未定义时才注入，避免覆盖宿主环境。
+if (typeof globalThis.btoa === "undefined") {
+  globalThis.btoa = (bin) => Buffer.from(String(bin), "latin1").toString("base64");
+}
+if (typeof globalThis.atob === "undefined") {
+  globalThis.atob = (b64) => Buffer.from(String(b64), "base64").toString("latin1");
+}
+
 const ROOT = path.join(__dirname, "..");
 const TOOLS_DIR = path.join(ROOT, "tools");
 
