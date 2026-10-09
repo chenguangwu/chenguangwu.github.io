@@ -611,6 +611,80 @@ const CASES = [
       "31.3 RMSSD (ms)"
     ],
     "ref": "RR 间期 800 820 780 810 790 830（6 个，5 个相邻间期）：平均 NN = (800+820+780+810+790+830)/6 = 4830/6 = 805.0 ms；平均心率 = 60000/805 = 74.53 ≈ 74.5 bpm；SDNN = 样本标准差（n−1）= √(Σ(xi−805)²/5) = √(1750/5) = √350 = 18.708 ≈ 18.7 ms；相邻差绝对值 = 20,40,30,20,40 → RMSSD = √((400+1600+900+400+1600)/5) = √(4900/5) = √980 = 31.30 ≈ 31.3 ms；相邻差>50ms 的个数 0 → pNN50 = 0.0%、NN50 = 0。页面输出与独立复算逐项吻合。HTML 默认 15 个 RR 值 → SDNN 10.6、平均 NN 806，默认态不产生该组值。"
+  },
+
+  // ── §7.4 零用例收敛续批：sports 新增 12 例（确定性计算器/计划生成器）────
+  {
+    slug: "sports/analysis-20",
+    inputs: { shots: "5,5,5,5,5,5,5,5,5,5", sys: "10.9" },
+    expect: ["平均环： 5.00", "样本标准差 SD： 0.000"],
+    ref: "注入非默认(默认 10,9,10,9,8,10,9,10,9,10→总环94/SD非零)：全 5 环 → 平均环 5.00、SD 0.000。默认态含『50.0%』（≥9.5 发数占比）会撞『50.0』，故锚 5.00/0.000。"
+  },
+  {
+    slug: "sports/assessor-risk-2",
+    inputs: { a1: "2", a2: "2", a3: "2", a4: "2" },
+    expect: ["4 高风险项数"],
+    ref: "注入非默认(默认 a1-a4=5→0 高风险项)：a1-a4=2（<3 阈值）→ 运动频率/损伤史/热身习惯/柔韧性 4 项高风险。默认态 0 高风险项不命中 4。"
+  },
+  {
+    slug: "sports/calc-length-cutting",
+    inputs: { measured: "100", width: "7.5" },
+    expect: ["117.0 所需总长 cm"],
+    ref: "注入非默认(默认 measured=25→所需总长 42.0)：100 + 2×8.5 锚点 = 117.0 cm。默认态 42.0 不命中 117.0。"
+  },
+  {
+    slug: "sports/heart-rate-1",
+    inputs: { age: "50", gender: "f", fitness: "high", primary: "gulati" },
+    expect: ["162 Gulati HRmax"],
+    ref: "注入非默认(默认 age=35→Gulati 175)：Gulati HRmax = 206−0.88×50 = 162 bpm。默认态 175 不命中 162。"
+  },
+  {
+    slug: "sports/shejiansanbubanjing",
+    inputs: { data: "2.0,1.0\n-1.0,2.0\n3.0,-1.0\n0.0,3.0\n-2.0,-2.0\n1.0,-1.0" },
+    expect: ["2.48 CEP 散布半径 cm"],
+    ref: "注入非默认坐标集：CEP 散布半径 = 2.48 cm（由 6 点离散度算出）。默认示例坐标集算出不同 CEP，不命中 2.48。"
+  },
+  {
+    slug: "sports/sleeping-bag-rating",
+    inputs: { "temp-slider": "15", "temp-input": "15", "sleeper-type": "cold" },
+    expect: ["10°C 目标下限温度"],
+    ref: "注入非默认(默认 temp=5→目标下限 0°C)：环境温度 15°C − 5°C 余量 = 目标下限 10°C。默认态 0°C 不命中 10°C（锚计算区标题，非静态温度表）。"
+  },
+  {
+    slug: "sports/sports-schedule",
+    inputs: { startDate: "2024-10-01", goal: "muscle", frequency: "4", duration: "60" },
+    expect: ["增肌力量 建议"],
+    ref: "注入非默认(默认 goal=weight_loss→减脂建议)：goal=muscle → 增肌力量 建议文案。默认态减脂建议无此句。"
+  },
+  {
+    slug: "sports/tongqibizhifenxi",
+    inputs: { data: "10,1.0\n30,2.0\n50,2.8\n70,3.5\n90,4.0\n120,4.5" },
+    expect: ["26.7 最高 VE/VO2"],
+    ref: "注入非默认 VE,VO2 序列：最高 VE/VO2 = 120/4.5 = 26.7。默认示例 105/3.9 = 26.9，不命中 26.7（邻近但不同）。"
+  },
+  {
+    slug: "sports/training-planner",
+    inputs: { level: "advanced", bodyPart: "upper", days: "5", goal: "muscle" },
+    expect: ["每周 5 天 · upper 训练 · 高级"],
+    ref: "注入非默认(默认 beginner/full/3/strength)：组合标签『每周 5 天 · upper 训练 · 高级』仅本组输入产出。默认态『每周 3 天 · full 训练 · 初级』不命中。"
+  },
+  {
+    slug: "sports/triathlon-transition",
+    inputs: { "swim-time": "25:00", "t1-time": "4:30", "bike-time": "1:10:00", "t2-time": "3:45", "run-time": "1:45:00" },
+    expect: ["3:28:15 总时间"],
+    ref: "注入非默认(mm:ss 格式，默认空→请填写)：总时长 = 1500+270+4200+225+6300 = 12495s = 3:28:15。⚠ harness 兜底环会误调 fillExample 填示例(3:43:00)，但本例 expect 在 step-2.5 经 input event 早返回命中、不进兜底；判别器清输入→空态输出『请至少填写』不含 3:28:15→正确变红。"
+  },
+  {
+    slug: "sports/xuerusuanyuzhiceding",
+    inputs: { data: "110,1.0\n130,1.5\n150,2.2\n165,3.5\n175,5.0" },
+    expect: ["144 LT 心率 (bpm)"],
+    ref: "注入非默认 hr,lactate 序列：LT（有氧阈值）插值 ≈ 144 bpm。默认示例数据阈值不同，不命中 144。注意避用『5 数据点数』（默认亦 5 点，撞车）。"
+  },
+  {
+    slug: "sports/zhangpengfangfengxishu",
+    inputs: { ttype: "four", pmat: "carbon", pcount: "4", setup: "wind" },
+    expect: ["106 最大抗风风速 km/h"],
+    ref: "注入非默认(默认 ultra/fiberglass/2/normal→不同)：四季帐·碳纤维·4根·迎风优化 → 最大抗风 106 km/h。默认态组合不同，不命中 106。"
   }
 ];
 
