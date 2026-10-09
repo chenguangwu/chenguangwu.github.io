@@ -3706,6 +3706,10 @@ function makeEl(val, opts) {
       }
     },
     insertAdjacentHTML() {},
+    // 页面常 `o1.cloneNode(true)` 复制模板节点再改属性（misc/unit-prefix 的候选行渲染），
+    // 缺此 API 整页初始化抛 "cloneNode is not a function" ⇒ 恒不可验证。
+    // 返回同构空节点即可：页面的后续赋值（value/textContent）会落在这个副本上。
+    cloneNode() { return makeEl(""); },
     setAttribute() {},
     getAttribute() { return null; },
     removeAttribute() {},
@@ -4053,6 +4057,11 @@ async function runCaseInner(c) {
     // 正文被整块吞掉（既有盲区，见 2678 行注释）。此处只给 createElement 路径建模该联动，
     // 不改 makeEl（id 元素的行为逐字节不变 ⇒ 既有用例不受影响）。
     createElement: () => makeEscEl(),
+    // SVG 类页面（accessibility/ramp-slope 等）用 createElementNS 建 svg/line/text 节点，
+    // 缺此 API 整页初始化即抛 "createElementNS is not a function" ⇒ 恒不可验证。
+    // 本桩不做真实命名空间渲染，仅提供与 createElement 同构的节点（含 classList/style/
+    // setAttribute/getBoundingClientRect），足以让页面的构图逻辑跑完、结果区正常落盘。
+    createElementNS: () => makeEscEl(),
     createTextNode: (t) => ({ textContent: t }),
     addEventListener(ev, cb) {
       if (/DOMContentLoaded|readystatechange|^load$/i.test(ev)) readyCbs.push(cb);

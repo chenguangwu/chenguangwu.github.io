@@ -200,6 +200,11 @@ const CASES = [
     inputs: { type: "ha", effect: "2" },
     expect: ["0.8 ml"],
     ref: "注射剂量：type=ha(玻尿酸)、鼻唇沟、effect=2(中度)→参考用量 0.8 ml。注入非默认(默认 type=botox/effect=1→以 U 计、无 '0.8 ml')，默认态不出现该串。" },
+
+  { slug: "cosmetic-derm/fitzpatrick-wrinkle",
+    inputs: { wrinkleGrade: "4", elastosis: "4", laxity: "9", pigment: "30" },
+    expect: ["100 重度光老化", "皱纹等级 Ⅳ级", "弹力变性 重度"],
+    "ref": "注入四项全非默认（默认 wrinkleGrade=1 / elastosis=0 / laxity=3 / pigment=10 ⇒ 总分 45、中度光老化、Ⅰ级、弹力变性『无』）。分值：皱纹 Ⅳ级 + 弹力变性重度 + 松弛 9/10 + 色素 30 ⇒ 合计 100 ⇒ 判「重度光老化」，建议升级为综合治疗方案（激光焕肤+填充+肉毒素+线雕）。三条均不在默认态。" },
 ];
 
 async function main() {

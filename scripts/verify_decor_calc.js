@@ -98,6 +98,12 @@ const CASES = [
     "44.40"
   ],
   "ref": "auto-restore"
+},
+{
+  "slug": "decor/room-illumination",
+  "inputs": { "area": "45", "lux": "300", "roomType": "kitchen" },
+  "expect": ["14 盏 建议", "14063 所需光通量(lm)", "实际照度： 161 lux"],
+  "ref": "注入 area=45（默认 20）+ roomType=kitchen（默认 living）。⚠ 选 roomType 会联动改写目标照度（厨房 150 lux）⇒ 注入的 lux=300 被覆盖，这是真机 onchange 行为，故实际按 150 lux 计算：所需光通量 = 面积×照度÷(利用系数 0.6 × 维护系数 0.8) = 45×150÷0.48 = 14062.5 ⇒ 14063 lm；单灯 12W×90 lm/W = 1080 lm ⇒ 盏数 = ⌈14063÷1080⌉ = 14；实际照度 = 14×1080×0.48÷45 = 161.28 ⇒ 161 lux。默认态（20㎡ / living 100lux）为 4 盏 / 4167 lm / 104 lux，三串均不出现。"
 }
 ];
 async function main() {
