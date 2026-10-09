@@ -3526,6 +3526,28 @@ const CASES = [
     "inputs": { "source": "srv:\n  host: 127.0.0.1\n  port: 5432" },
     "expect": ["&lt;srv&gt;&lt;host&gt;127.0.0.1&lt;/host&gt;&lt;port&gt;5432&lt;/port&gt;&lt;/srv&gt;"],
     "ref": "YAML→XML：同一份嵌套映射落成 `<srv><host>…</host><port>…</port></srv>`。expect 取整块实体形态（结果区经 escH 转义），输入的 YAML 原文不含尖括号 ⇒ 排除输入回显。默认样例为 note/to/from，不出现 srv/host。"
+  },
+  // ── §7.4 零用例收敛补录（纯前端、无 CDN/无 DOMParser 依赖，确定性文本输出）────
+  {
+    "slug": "it/ssl-info",
+    "inputs": { "calcSpeed": "1000000000000", "calcAlgo": "aes256" },
+    "clicks": ["estimate()"],
+    "expect": ["10^77.1"],
+    "ref": "注入算法 aes256、算力 1e12 ops/s。2^256 ≈ 10^77.1（密钥空间），远不可破解 ⇒ 『极度安全』。默认态算法 aes128 ⇒ 2^128 ≈ 10^38.6，不出现 10^77.1。注：页面按所选算法估算密钥空间，纯算术无随机。"
+  },
+  {
+    "slug": "it/emoji-meaning",
+    "inputs": { "searchInput": "火箭" },
+    "clicks": ["renderCategories()"],
+    "expect": ["共 1 个 Emoji"],
+    "ref": "注入搜索『火箭』。内置 emoji 字典精确匹配 1 条 ⇒ 统计行『共 1 个 Emoji』。默认态 searchInput 为空 ⇒ 渲染全部 444 个 ⇒ 『共 444 个 Emoji』，不出现『共 1 个』。注：U+1F642 等码点属静态参考表，默认全量渲染，故改用计数串作判别点（已查字典确认『火箭』唯一匹配 1 条）。纯前端无随机。"
+  },
+  {
+    "slug": "it/latex",
+    "inputs": { "q": "\\frac{1}{2}" },
+    "clicks": ["calcTool()"],
+    "expect": ["共 1 条"],
+    "ref": "注入 LaTeX 命令 \\frac{1}{2}。结果精确匹配 1 条（动能命令 \\frac{1}{2}mv^2）⇒ 统计行『共 1 条』。默认态 q 为空 ⇒ 渲染全部命令表（137 条）⇒ 『共 137 条』，不出现『共 1 条』。注：½mv² 等示例属静态参考表默认全量渲染，故改用计数串作判别点。纯前端无随机。"
   }
 ];
 

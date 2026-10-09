@@ -708,6 +708,19 @@ const CASES = [
     expect: ["gap: 20px;"],
     ref: "注入 gap=20（默认 12）⇒ 生成的 CSS 与预览内联 style 里都出现 `gap: 20px;`。expect 带 `gap: ` 前缀与 px 单位，而输入框 value 只是裸值 `20` ⇒ 不与输入回显冲突。默认态输出 `gap: 12px`。",
   },
+  {
+    slug: "design/svg-viewer",
+    inputs: { svgInput: "<svg xmlns='http://www.w3.org/2000/svg' width='20' height='20'><text x='0' y='15'>probeTB2026</text></svg>" },
+    clicks: ["generate()"],
+    expect: ["probeTB2026"],
+    ref: "注入带唯一文本标记 probeTB2026 的 SVG。generate() 将 svgInput 原文写入 preview.innerHTML，文本节点 probeTB2026 进入输出。注意：采集器会去标签，故标记必须置于 <text> 内容而非 id 属性（属性会被整块吞掉）。默认态 svgInput 为空 ⇒ 输出『请输入 SVG 代码』，不出现 probeTB2026。纯前端无随机。",
+  },
+  {
+    slug: "design/font-preview",
+    inputs: { fpText: "ZZPREVZZ" },
+    expect: ["ZZPREVZZ"],
+    ref: "注入唯一预览文字 ZZPREVZZ。fpText 的 input 监听器更新 state.text 后 render()，将 ZZPREVZZ 渲染进每个可见字体的预览区（escHtml 转义后仍为文本，去标签后保留）。默认态 fpText=『永和九年岁在癸丑』，不出现 ZZPREVZZ。render 纯本地 fonts 对象、不触网，确定性强。",
+  },
 
 ];
 

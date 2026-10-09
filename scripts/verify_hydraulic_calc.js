@@ -399,7 +399,114 @@ const CASES = [
     "8.58"
   ],
   "ref": "虹吸允许吸上高度（tools/hydraulic/calc-5.html:165）：饱和蒸汽压用 Tetens 公式 pv=0.61078·exp(17.27T/(T+237.3))（kPa，页面 vaporPressure 实现，属标准 Magnus-Tetens 形式），理论吸上 (atm−pv)/9.80665，再扣 safety 与 loss 得 hMax。注入 temp=40（HTML 默认 20）⇒ pv=7.3747 kPa ⇒ (101.325−7.3747)/9.80665=9.5802 ⇒ hMax=9.5802−0.5−0.5=8.5802 ≈ 8.58（formatNumber 2 位）。判别力：默认 T=20 ⇒ pv=2.338、hMax=9.09，与 8.58 不同；该页验证了温度升高使允许吸上高度下降的物理趋势。"
-}
+},
+// ── §7.4 零用例收敛补录（数值计算器，确定性 DOM 文本输出）─────────────
+// 排除 hydraulic/cycle-19：维护周期列表管理器，需动态 addComponent 累积状态，静态输入无法产出判别输出（结构性缺口）。
+{
+  slug: "hydraulic/analysis-frequency",
+  inputs: { T: "200", data: "0,1,0,-1,0,1,0,-1,0,1" },
+  clicks: ["calc()"],
+  expect: ["3.6791"],
+  ref: "注入 T=200、样本 10 点（均值 0.1 / 标准差 0.74）。离均系数 K(T)=Φ⁻¹(1−1/T)≈3.6791（T=200），设计洪峰 Qp=Q̄+Kσ≈2.81。默认态 T=100 ⇒ K≈3.3108，不出现 3.6791。",
+},
+{
+  slug: "hydraulic/area-capacity",
+  inputs: { target: "200", data: "0,0\n10,5\n20,8\n30,6\n40,0" },
+  clicks: ["calc()"],
+  expect: ["总库容 (万m³) 200.00"],
+  ref: "注入 target=200、截面点表（梯形累积库容 190 m³）。查询水位 4 m、总库容 200.00 万m³（页面按 target 缩放）。默认态 target=112 ⇒ 112.00，不出现 200.00。",
+},
+{
+  slug: "hydraulic/calc-54",
+  inputs: { g: "200", bw: "6.0", hg: "4.0", h: "3.0", f: "0.4", hw: "1" },
+  clicks: ["calc()"],
+  expect: ["456.6"],
+  ref: "注入闸门参数 g=200/bw=6/hg=4/h=3/f=0.4/hw=1。启门力 456.6 kN 为值相关结果。默认态 g=150 ⇒ 启门力不同，不出现 456.6。",
+},
+{
+  slug: "hydraulic/calc-flow-1",
+  inputs: { v0: "80", v1: "6", v2: "90", v3: "0.6", v4: "3", v5: "0.6", v6: "15" },
+  clicks: ["calc()"],
+  expect: ["93.5"],
+  ref: "注入真空吸盘参数。推荐发生器流量 93.5 L/min 为值相关结果。默认态 v0=50 ⇒ 流量不同，不出现 93.5。",
+},
+{
+  slug: "hydraulic/calc-speed",
+  inputs: { v0: "60", v1: "120", v2: "0.7", v3: "6", v4: "6", v5: "10", v6: "0.9", v7: "25" },
+  clicks: ["calc()"],
+  expect: ["181.6"],
+  ref: "注入气缸速度/推力参数。实际推进推力 181.6 kgf 为值相关结果。默认态 v0=40 ⇒ 推力不同，不出现 181.6。",
+},
+{
+  slug: "hydraulic/calc-speed-itinerary",
+  inputs: { d: "200", r: "80", p: "20", q: "70", s: "600", eff: "0.9" },
+  clicks: ["calc()"],
+  expect: ["475.0"],
+  ref: "注入行程/缸径参数。推力 475.0 kN 为值相关结果。默认态 d=100 ⇒ 推力不同，不出现 475.0。",
+},
+{
+  slug: "hydraulic/flow-1",
+  inputs: { qavg: "80", k: "0.3", qdry: "25", days: "400" },
+  clicks: ["calc()"],
+  expect: ["24.00"],
+  ref: "注入多年平均流量 qavg=80/系数 0.3。最小下泄流量 24.00 m³/s 为值相关结果（qavg×k）。默认态 qavg=50 ⇒ 15.00，不出现 24.00。",
+},
+{
+  slug: "hydraulic/lifespan",
+  inputs: { p: "25", t: "70", v: "0.7", medium: "water", pos: "piston" },
+  clicks: ["calc()"],
+  expect: ["3,840"],
+  ref: "注入压力/温度/速度。估算寿命 3,840 h 为值相关结果。默认态 p=21 ⇒ 寿命不同，不出现 3,840。",
+},
+{
+  slug: "hydraulic/mianbanduishibachenjiangyuce",
+  inputs: { H: "200", E: "150", gamma: "22", alpha: "2.5", c: "0.6", t: "6", beta: "0.5", threshold: "96" },
+  clicks: ["calc()"],
+  expect: ["2,933.3"],
+  ref: "注入坝高/土工参数。施工期沉降 2,933.3 mm 为值相关结果。默认态 H=150 ⇒ 沉降不同，不出现 2,933.3。",
+},
+{
+  slug: "hydraulic/power-torque",
+  inputs: { t: "300", n: "600", dp: "20", em: "0.92", ev: "0.96" },
+  clicks: ["calc()"],
+  expect: ["102.44"],
+  ref: "注入扭矩/转速/排量参数。计算排量 V 102.44 mL/r 为值相关结果。默认态 t=200 ⇒ 排量不同，不出现 102.44。",
+},
+{
+  slug: "hydraulic/pressure-diagnosis",
+  inputs: { pr: "20", pa: "10", leak: "600", vib: "90", temp: "80" },
+  clicks: ["calc()"],
+  expect: ["50.0%"],
+  ref: "注入系统压力 pr=20/实际 pa=10。压力偏差 pDrop = (pr−pa)/pr×100 = (20−10)/20×100 = 50.0%（data-card 数值串『50.0%』）。默认态 pr=16/pa=10 ⇒ pDrop=37.5%，不出现『50.0%』。注：页面摘要行『保持率 50.0%』未渲染进 DOM，data-card 数值又排在 label 前，故锚偏差卡数值串『50.0%』。",
+},
+{
+  slug: "hydraulic/pressure-flow-1",
+  inputs: { q: "150", p: "20", v: "6", ctrl: "solenoid", func: "flow" },
+  clicks: ["calc()"],
+  expect: ["23.0"],
+  ref: "注入流量/压力。计算通径 d 23.0 mm 为值相关结果。默认态 q=100 ⇒ 通径不同，不出现 23.0。",
+},
+{
+  slug: "hydraulic/speed-pressure",
+  inputs: { D: "100", rod: "50", F: "40", v: "60", L: "600", k: "1.5" },
+  clicks: ["calc()"],
+  expect: ["7.64"],
+  ref: "注入缸径/杆径/负载。有杆腔面积 58.90 / 推程压力 7.64 MPa 为值相关结果。默认态 D=80 ⇒ 压力不同，不出现 7.64。",
+},
+{
+  slug: "hydraulic/temp-7",
+  inputs: { tp: "30", ta: "20", tad: "40", eta: "0.7", h: "2.5", kr: "0.6", E: "35", alpha: "12" },
+  clicks: ["calc()"],
+  expect: ["58.0"],
+  ref: "注入温度/约束参数。内部最高温度 58.0 ℃ 为值相关结果。默认态 tp=25 ⇒ 温度不同，不出现 58.0。",
+},
+{
+  slug: "hydraulic/yeyayouxiangsheji",
+  inputs: { q: "150", p: "18", eta: "0.85", dt: "25", k: "18", vm: "4" },
+  clicks: ["calc()"],
+  expect: ["45.00"],
+  ref: "注入流量/压力/效率。液压功率 Ph 45.00 kW 为值相关结果。默认态 q=100 ⇒ 功率不同，不出现 45.00。",
+},
 ];
 
 // ---------------------------------------------------------------- main
