@@ -252,8 +252,52 @@ const CASES = [
       "2185 早产天数",
       "312.1 早产周数"
     ],
-    "ref": "出生 2020-01-15、基准日 2026-06-15 → 实际天数 = 2343 天；实际月龄 = 2343 / 30.4375 = 76.99 ≈ 77.0 月。预产期 2026-01-08 距基准日 158 天 → 早产天数 = 2343 − 158 = 2185 天；早产周数 = 2185 / 7 = 312.14 ≈ 312.1 周；矫正月龄 = 实际月龄 − 早产月数 = 77.0 − 2185/30.4375 = 77.0 − 71.8 = 5.2 月。页面输出与独立复算逐项吻合。HTML 默认无 birthDate → 不出计算结果，默认态不产生这组值。"
-  }
+      "ref": "出生 2020-01-15、基准日 2026-06-15 → 实际天数 = 2343 天；实际月龄 = 2343 / 30.4375 = 76.99 ≈ 77.0 月。预产期 2026-01-08 距基准日 158 天 → 早产天数 = 2343 − 158 = 2185 天；早产周数 = 2185 / 7 = 312.14 ≈ 312.1 周；矫正月龄 = 实际月龄 − 早产月数 = 77.0 − 2185/30.4375 = 77.0 − 71.8 = 5.2 月。页面输出与独立复算逐项吻合。HTML 默认无 birthDate → 不出计算结果，默认态不产生这组值。"
+  },
+
+  // ── §7.4 零用例收敛续批：health 确定性数值/查询页（探针实测取锚）────
+  {
+    slug: "health/blood-type-calculator",
+    inputs: { fatherType: "A", motherType: "B", pType: "O" },
+    expect: ["AB 56.3%"],
+    ref: "注入非默认(默认 fatherType=A/motherType=A/pType=A→A 93.8% O 6.3%、无 AB)：父A+母B 血型遗传组合 ⇒ AB 56.3%、A 18.8%、B 18.8%、O 6.3%。锚『AB 56.3%』仅此组合产出，默认态 A+A 无 AB 概率。"
+  },
+  {
+    slug: "health/breath-timer",
+    inputs: { inhaleTime: "6", holdTime: "4", exhaleTime: "10", hold2Time: "2", targetCycles: "3" },
+    expect: ["3个循环"],
+    ref: "注入非默认(默认 4/7/8/0/5→5个循环)：targetCycles=3 ⇒ 总结算显示『3个循环』。默认态『5个循环』不命中 3。呼吸法标签为固定文案，故仅锚循环数（经 finish 事件命中，确定性）。"
+  },
+  {
+    slug: "health/fracture-healing",
+    inputs: { filterPart: "上肢", filterAge: "middle" },
+    expect: ["愈合周期（中年）： 8-10周"],
+    ref: "注入非默认(默认 filterPart=all/filterAge=child→愈合周期（儿童）)：选 上肢+中年 ⇒ 锁骨骨折等显示『愈合周期（中年）： 8-10周』。默认态 age=child 显示『（儿童）』，锚含『中年』修饰符，默认态不命中。"
+  },
+  {
+    slug: "health/ovulation-calculator",
+    inputs: { lmp: "2024-03-10", cycle: "30", period: "6" },
+    expect: ["2024-03-26"],
+    ref: "注入非默认(默认 lmp 空→无输出)：末次月经 2024-03-10、周期 30、经期 6 ⇒ 排卵日 2024-03-26、易孕期 2024-03-21~03-27、下次月经 2024-04-09（页面按 lmp+周期偏移独立复算，与 now 无关）。默认态 lmp 空不产生任何日期串。"
+  },
+  {
+    slug: "health/pregnancy-due-date",
+    inputs: { lmpDate: "2024-03-10" },
+    expect: ["2024-12-15 预产期"],
+    ref: "注入非默认(默认 lmpDate 空→无输出)：末次月经 2024-03-10 + 280 天 ⇒ 预产期 2024-12-15（与 now 无关，纯偏移）。默认态 lmpDate 空不产生『预产期』串。"
+  },
+  {
+    slug: "health/sleep-cycle-calculator",
+    inputs: { wakeTime: "06:30", fallAsleep: "20" },
+    expect: ["06:30 起床"],
+    ref: "注入非默认(默认 wakeTime=07:00/fallAsleep=15→07:00 起床)：起床 06:30、入睡潜伏期 20 分钟 ⇒ 推荐入睡 21:10(6周期)/22:40(5周期)/00:10(4周期)。锚『06:30 起床』仅本输入产出，默认态 07:00 不命中（页面含 __tbInputGuard，typeof 判断后调用守卫，harness 可正常产出）。"
+  },
+  {
+    slug: "health/wound-healing-time",
+    inputs: { bodyPart: "forearm", woundType: "laceration", woundSize: "medium", ageGroup: "senior" },
+    expect: ["愈合时间预估 16~28"],
+    ref: "注入非默认(默认 face/abrasion/small/child→愈合时间预估 2~4)：前臂+撕裂伤+中+老年 ⇒ 预估 16~28 天（4 周）。默认态 面部擦伤小童 2~4 天，锚『愈合时间预估 16~28』不命中『2~4』。"
+  },
 ];
 
 async function main() {
