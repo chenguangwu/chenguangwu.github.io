@@ -3628,6 +3628,11 @@ function dynQuery(sel) {
 
 function makeEl(val, opts) {
   const handlers = {};
+  // 懒创建的父节点桩：页面常写 `cell.parentElement.classList.add('x')`（如
+  // mechanical/bolt-torque 的 highlightTable）。原先 parentElement 是裸对象、没有
+  // classList，整页在初始化期就抛 "Cannot read properties of undefined (reading 'add')"
+  // ⇒ 恒被判「初始化失败」而无法验证。这里改成返回完整元素桩（裸对象属性的超集）。
+  let _parent = null;
   const el = {
     value: val === undefined ? "" : val,
     textContent: "",
@@ -3682,8 +3687,9 @@ function makeEl(val, opts) {
     clientHeight: 300,
     offsetWidth: 300,
     offsetHeight: 300,
-    parentElement: { textContent: "", clientWidth: 300, clientHeight: 300, offsetWidth: 300, offsetHeight: 300, getBoundingClientRect: () => ({ width: 300, height: 300, top: 0, left: 0 }) },
-    parentNode: null,
+    get parentElement() { if (!_parent) _parent = makeEl(""); return _parent; },
+    get parentNode() { return el.parentElement; },
+    get firstElementChild() { return null; },
     // canvas 2D 上下文桩：含图表的页面（如 healthcare/tdee-calculator 的热量环形图）
     // 在 calc() 里直接 ctx.arc/fillText，缺了会抛 "getContext is not a function" 使整页无法验证。
     getContext() { return CTX2D; },

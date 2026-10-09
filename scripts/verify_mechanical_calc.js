@@ -193,6 +193,12 @@ const CASES = [
     "120.0+10.00+0.00"
   ],
   "ref": "auto-restore"
+},
+{
+  "slug": "mechanical/bolt-torque",
+  "inputs": { "diameter": "10", "mu": "0.20", "grade": "8.8" },
+  "expect": ["推荐拧紧扭矩 T = 77.4 N·m", "58.0 应力截面积 As (mm²)", "0.278 扭矩系数 K"],
+  "ref": "注入非默认(默认 d=12/μ=0.14/等级 4.8)：p 按 d≤10 取 1.5 ⇒ As = 0.7854×(10−0.9382×1.5)² = 0.7854×8.5927² = 57.99 mm²(显示 58.0)；K = 0.161+0.585×0.20 = 0.278；F = 0.75×640×57.99 = 27.84 kN；T = K·F·d/1000 = 0.278×27835×10/1000 = 77.38 ⇒ 77.4 N·m。默认态为 80.5 / 0.243 / 56.3 N·m，三项均不同。该页原被判「初始化失败」：highlightTable 走 cell.parentElement.classList.add，harness 的 parentElement 原是裸对象无 classList ⇒ 整页初始化抛错；已将 parentElement 改为完整元素桩(懒创建)。"
 }
 ];
 async function main() {

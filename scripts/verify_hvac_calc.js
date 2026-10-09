@@ -135,6 +135,12 @@ const CASES = [
     "690×1.2×1.01×8.00/3600"
   ],
   "ref": "auto-restore"
+},
+{
+  "slug": "hvac/cooling-load",
+  "inputs": { "wallArea": "25", "winArea": "10", "people": "8", "equipPower": "1500" },
+  "expect": ["8182 总冷负荷 (W)", "300 外墙 Q1 · 4%", "1994 窗户 Q2 · 27%"],
+  "ref": "注入非默认（默认 wallArea=15/winArea=6/people=5/equipPower=800）：Δt = 34−26 = 8℃；Q1 = 1.5×25×8 = 300 W；Q2 = 5.8×10×8（传热 464）+ 180×10×0.85（南向辐射 1530）= 1994 W；Q3 = 8×(60+73) = 1064 W；Q4 = 1500×0.8 = 1200 W；Q5 = 400×0.8 = 320 W；Q6 = 新风量 8×30=240 → 240×1.2×32÷3.6 = 2560 W；合计 7438×1.1 = 8182 W。默认态为 5062 W / 180 / 1196，均不同。⚠ 顺带修真页面 bug：renderResult() 引用 calc() 的局部变量 tw/tn（真实浏览器同样 ReferenceError，整页计算功能不可用），改为读 num('tw')/num('tn')。"
 }
 ];
 async function main() {
