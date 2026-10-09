@@ -886,6 +886,32 @@ const CASES = [
     expect: ["综合单位成本 = 250,000.000 ÷ 5,000.000 = 50.000 元 / 件", "250.000分摊率（元 / 单位基数）", "50.000综合单位成本（元 / 件）"],
     ref: "注入非默认(默认 total=120000/dec=2)：作业成本分配法 分摊额 = 250,000；分摊率 = 250,000 ÷ Σ基数 1,000 = 250.000 元/单位基数；综合单位成本 = 50.000 元/件。默认态 24.00（120,000 ÷ 5,000），三条均不命中。",
   },
+
+  // ── 零用例加固（2026-10-09）──────────────────────────
+  {
+    slug: "finance/currency-converter",
+    inputs: { fromAmount: "50" },
+    expect: ["6.8966"],
+    ref: "静态汇率表 USD=1、CNY=7.25；50 元 CNY→USD = 50/7.25 = 6.8966。锚点避开了「始终存在的速查表」里的 362.50（USD 50→362.50 CNY，注入失败也命中 ⇒ 假逃生项），改用随注入量变化的 6.8966。默认 fromAmount=100 → 13.7931，不命中。",
+  },
+  {
+    slug: "finance/text-reverse-words",
+    inputs: { input: "Hello World", mode: "allchar" },
+    expect: ["dlroW olleH"],
+    ref: "按 allchar 模式整体反转：Hello World → dlroW olleH。默认态（mode=space、输入为「Hello World ToolBox/中文」两行）按词反转，输出不含 dlroW olleH ⇒ 不命中。",
+  },
+  {
+    slug: "finance/futures-pnl-calculator",
+    inputs: { openPrice: "4000", closePrice: "4200", lots: "2", marginRate: "10", openFee: "25", closeFee: "35" },
+    expect: ["119,880.00", "240,000.00"],
+    ref: "沪深300乘数 300、做多：盈亏点数=(4200−4000)×1=200；盈亏=200×300×2=120,000；手续费=(25+35)×2=120 ⇒ 净盈亏 119,880.00；合约价值=4000×300×2=2,400,000；保证金=2,400,000×10%=240,000.00。默认态(3500/3550/1/12/30/30)→净额 14,940.00、保证金 126,000.00，两条均不命中。",
+  },
+  {
+    slug: "finance/gst-validator",
+    inputs: { input: "27AAPFU0939F1ZV" },
+    expect: ["✅ GST 号码有效"],
+    ref: "修复前 gstChecksum 用 const factor 却在循环里重赋值 ⇒ 所有浏览器都抛「Assignment to constant variable」整页失效；已改为 let。该号前 14 位 mod-36 校验位 = V 与末位一致 ⇒ 有效。默认态输入为空 → 「等待输入...」，不命中。",
+  },
 ];
 
 // ---------------------------------------------------------------- main
