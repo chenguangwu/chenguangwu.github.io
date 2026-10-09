@@ -3614,7 +3614,7 @@ function dynQuery(sel) {
   return out;
 }
 
-function makeEl(val) {
+function makeEl(val, opts) {
   const handlers = {};
   const el = {
     value: val === undefined ? "" : val,
@@ -3676,6 +3676,17 @@ function makeEl(val) {
     // 在 calc() 里直接 ctx.arc/fillText，缺了会抛 "getContext is not a function" 使整页无法验证。
     getContext() { return CTX2D; },
   };
+  // 让 <select> 桩支持 options / selectedIndex：页面常用 `el.options[el.selectedIndex].text`
+  // 取选项标签（construction/area 等全部页面在 getParams() 里这么读），缺此属性会在 calc()
+  // 抛 "Cannot read properties of undefined" 使整页无法验证。selectedIndex 用 getter 跟随
+  // 当前 value 动态匹配，保证注入非默认选项后文本也跟着变。
+  if (opts && opts.length) {
+    el.options = opts.map((o) => ({ value: String(o.value), text: o.text != null ? String(o.text) : String(o.value) }));
+    Object.defineProperty(el, "selectedIndex", {
+      configurable: true,
+      get() { const i = el.options.findIndex((o) => String(o.value) === String(el.value)); return i < 0 ? 0 : i; },
+    });
+  }
   let _h = "";
   Object.defineProperty(el, "innerHTML", {
     set(v) { _h = String(v == null ? "" : v); if (DYN.on) dynRecord(el, _h); },
@@ -3782,8 +3793,11 @@ async function runCaseInner(c) {
   for (const m of html.matchAll(/<textarea[^>]*id="([^"]+)"[^>]*>([\s\S]*?)<\/textarea>/g))
     defaults[m[1]] = m[2].replace(/&#10;/g, "\n").replace(/&quot;/g, '"').replace(/&amp;/g, "&");
   const sel = {};
-  for (const m of html.matchAll(/<select[^>]*id="([^"]+)"[\s\S]*?<\/select>/g))
-    sel[m[1]] = [...m[0].matchAll(/<option[^>]*value="([^"]*)"/g)].map((x) => x[1]);
+  for (const m of html.matchAll(/<select[^>]*id="([^"]+)"[\s\S]*?<\/select>/g)) {
+    const block = m[0];
+    sel[m[1]] = [...block.matchAll(/<option[^>]*value="([^"]*)"[^>]*>([\s\S]*?)<\/option>/g)]
+      .map((x) => ({ value: x[1], text: x[2].replace(/<[^>]+>/g, "").trim() }));
+  }
 
   // 预解析 radio / checkbox 的 HTML 默认选中态（2026-09-24）：
   // 真机中带 `checked` 属性的控件即处于选中态。makeEl.checked 恒 false ⇒ 页面读选中项时
@@ -3840,10 +3854,10 @@ async function runCaseInner(c) {
           ? c.inputs[id]
           : defaults[id] !== undefined
           ? defaults[id]
-          : sel[id]
-          ? sel[id][0]
+          : sel[id] && sel[id].length
+          ? sel[id][0].value
           : "";
-      elements[id] = makeEl(v);
+      elements[id] = makeEl(v, sel[id]);
       elements[id].id = id;   // 动态 DOM 登记按容器 id 分桶（同容器重渲染时覆盖，避免计数翻倍）
       // 复选框注入：makeEl 的 checked 恒为 false，页面若用 getElementById(id).checked
       // 读取勾选态（量表/评分/选项类页面的主流写法），注入 .value 完全无效 ⇒ 该类页
