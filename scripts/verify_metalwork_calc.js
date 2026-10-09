@@ -187,6 +187,56 @@ const CASES = [
   { slug: "metalwork/analysis-simulator", inputs: { vol: "300", area: "150", runner: "15", fillrate: "70", tmelt: "260", tmold: "50", teject: "120", tw: "40", thick: "4", alpha: "0.05" }, expect: ["总充填体积 345 cm³", "充填时间 4.93 s", "冷却时间（近似） 40.63 s", "流程/壁厚比 0.5,000"], ref: "注入非默认(默认 200/100/10/50/240/60/110/30/3/0.04)：型腔+流道+浇口 300+15 与射胶量填充 ⇒ 总充填体积 345 cm³；充填时间 = 345/70 = 4.93 s；冷却时间近似 40.63 s；流程/壁厚比 = (300+15+…)/4 → 0.5,000。默认态 220 cm³/4.40 s/27.51 s/0.6,667，四条均不命中。" },
   { slug: "metalwork/detector-23", inputs: { nominal: "60.000", actual: "60.034", upperTol: "0.039", lowerTol: "0.000" }, expect: ["实测偏差： +0.0340 mm", "偏差占公差带：87.2%", "极限尺寸：60.0000 ~ 60.0390 mm"], ref: "注入非默认(默认 nominal=50.000/actual=50.025)：独立复算 偏差 = 60.034−60.000 = +0.0340 mm；公差带 0.0390 ⇒ 占比 0.034/0.039 = 87.2%；极限尺寸 = 60.0000 ~ 60.0390 mm。默认态 50.025/+0.0250/64.1%/50.0000~50.0390，三条均不命中（『合格』判定与 IT4/±0.005mm 两态相同，不作锚）。" },
   { slug: "metalwork/detector-mold", inputs: { tx: "70.000", ty: "40.000", tz: "25.000", ax: "70.021", ay: "39.975", az: "25.030", tol: "0.020" }, expect: ["X轴：+0.021 mm ✗ 超差", "Z轴：+0.030 mm ✗ 超差", "空间偏差：0.0443 mm"], ref: "注入非默认(默认 50/30/20 与实测 50.015/29.988/20.022)：三轴偏差 = +0.021 / −0.025 / +0.030 mm，均超 ±0.020 ⇒ 三轴全『✗ 超差』；空间偏差 = √(0.021²+0.025²+0.030²) = 0.0443 mm > 0.020。默认态仅 Z 轴超差、空间偏差 0.0292，三条均不命中。" },
+
+  // ── §7.4 零用例收敛续批：metalwork 确定性数值页（探针实测取锚）────
+  {
+    slug: "metalwork/detector-21",
+    inputs: { material: "nonferro", defect: "surface", thickness: "20", level: "general" },
+    expect: ["渗透检测 PT（适用评分 5/5）"],
+    ref: "注入非默认(默认 material=ferro→磁粉检测 MT 5/5)：非铁磁性+表面缺陷 ⇒ 评分 PT=5、ET=4、UT=2、RT=1、MT=0 ⇒ 首选 PT（适用评分 5/5）。默认态首选为『磁粉检测 MT（适用评分 5/5）』，锚含『PT』与『5/5』连续串，默认态 PT 仅 4/5 不命中。"
+  },
+  {
+    slug: "metalwork/diandonggongju-xifen",
+    inputs: { v0: "500", v1: "1000" },
+    expect: ["500 W 功率差"],
+    ref: "注入非默认(默认 v0=800/v1=1200→400 W 功率差)：功率差 = |500−1000| = 500 W。默认态『400 W 功率差』不命中 500。v0=电钻功率、v1=角磨功率，二者互换不影响差值绝对值。"
+  },
+  {
+    slug: "metalwork/recorder-9",
+    inputs: { thickness: "100" },
+    expect: ["保温时间：200 分钟"],
+    ref: "注入非默认(默认 thickness=50→保温时间：100 分钟)：退火保温时间随厚度线性 ⇒ 100mm→200 分钟（约 3.3 小时）。默认态 50mm→100 分钟不命中 200。页面 renderReadings/drawCurve 在 harness 下读 null 报错但输出区已含 soak 信息，expect 在 input 事件早返回命中。"
+  },
+  {
+    slug: "metalwork/speed-itinerary",
+    inputs: { length: "300" },
+    expect: ["340 行程长度 (mm)"],
+    ref: "注入非默认(默认 length=200→行程长度 240 mm)：行程长度 H = L + 2×越程(20) = 300 + 40 = 340 mm。默认态 200+40=240 不命中 340。其余输入保留页面默认（vc30/碳钢/切深2/进给0.5/余量4/越程20）。"
+  },
+  {
+    slug: "metalwork/tangxue-tangdao-tanggan-jingdu-kongzhi",
+    inputs: { v0: "100", v1: "8" },
+    expect: ["0.0547 mm"],
+    ref: "注入非默认(默认 v0=50/v1=7→标准公差 IT≈0.0216 mm)：真实 calc（页内行 516 镗削专用，覆盖通用两参）孔径 D=100、IT8 系数 a₈=25 ⇒ IT≈(0.45·∛100+0.001·100)×25/1000 = (0.45×4.6416+0.1)×25/1000 = 2.1887×25/1000 = 0.0547 mm。默认态 50/7 → (0.45·3.684+0.05)×16/1000=0.0216，不命中 0.0547。"
+  },
+  {
+    slug: "metalwork/wushua-zhinengyuqingliangduibijisuanqi",
+    inputs: { v0: "60", v1: "85" },
+    expect: ["25 综合差距"],
+    ref: "注入非默认(默认 v0=90/v1=72→18 综合差距)：综合差距 = |60−85| = 25。默认态 |90−72|=18 不命中 25。v0=无刷评分、v1=轻量评分。"
+  },
+  {
+    slug: "metalwork/yuanlingongju-xifen",
+    inputs: { v0: "1000", v1: "500" },
+    expect: ["500 W 功率差"],
+    ref: "注入非默认(默认 v0=1500/v1=600→900 W 功率差)：功率差 = |1000−500| = 500 W。默认态『900 W 功率差』不命中 500。v0=割草机功率、v1=修剪机功率。"
+  },
+  {
+    slug: "metalwork/zhineng-duogongnengyunaiyongduibijisuanqi",
+    inputs: { v0: "70", v1: "90" },
+    expect: ["20 综合差距"],
+    ref: "注入非默认(默认 v0=85/v1=78→7 综合差距)：综合差距 = |70−90| = 20。默认态 |85−78|=7 不命中 20。v0=智能评分、v1=耐用评分。"
+  },
 ];
 
 async function main() {
