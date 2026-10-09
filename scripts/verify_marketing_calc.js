@@ -643,6 +643,12 @@ const CASES = [
     "inputs": { "url": "https://shop.example.org/p", "source": "zhihu", "medium": "referral", "campaign": "tb_verify_2026", "term": "k1 k2", "content": "c1" },
     "expect": ["https://shop.example.org/p?utm_source=zhihu&utm_medium=referral&utm_campaign=tb_verify_2026&utm_term=k1+k2&utm_content=c1"],
     "ref": "注入 5 参数齐备的非默认组合（默认 baidu/cpc/summer_sale_2024）。独立复算：本页与 marketing/utm-builder 的差别是 term 的空格编码 —— 用 URLSearchParams/encodeURIComponent 把 `k1 k2` 编为 `k1+k2`（加号）⇒ 完整链接 https://shop.example.org/p?utm_source=zhihu&utm_medium=referral&utm_campaign=tb_verify_2026&utm_term=k1+k2&utm_content=c1。默认态 term/content 为空只输出 3 参数链接，不命中。⚠ term 用含空格值是刻意：能验证编码分支（默认空串走不到 encode）。"
+  },
+  {
+    "slug": "marketing/marketing-chinese-hashtag-generator",
+    "inputs": { "keyword": "手机", "industry": "数码", "platform": "抖音" },
+    "expect": ["#手机", "#抖音爆款", "#短视频"],
+    "ref": "注入非默认三元组（默认 keyword=新品/industry=美妆/platform=小红书，生成 #新品 #美妆 #小红书好物 等）。页面把关键词/行业/平台拼入话题模板 ⇒ 锚 #手机（默认绝对无）、#抖音爆款（抖音平台专属，默认小红书无）、#短视频（抖音场景词，默认无）。三条均不在默认态。不锚 #数码好物（美妆→好物 默认也有『#美妆好物』，平台无关共有串）。"
   }
 ];
 
