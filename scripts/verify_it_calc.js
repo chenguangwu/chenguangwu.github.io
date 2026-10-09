@@ -3560,6 +3560,12 @@ const CASES = [
     "clicks": ["calcTool()"],
     "expect": ["共 1 条"],
     "ref": "注入 LaTeX 命令 \\frac{1}{2}。结果精确匹配 1 条（动能命令 \\frac{1}{2}mv^2）⇒ 统计行『共 1 条』。默认态 q 为空 ⇒ 渲染全部命令表（137 条）⇒ 『共 137 条』，不出现『共 1 条』。注：½mv² 等示例属静态参考表默认全量渲染，故改用计数串作判别点。纯前端无随机。"
+  },
+  {
+    "slug": "it/usb-version",
+    "inputs": { "v": "4.0", "v2": "3.0", "conn": "usba" },
+    "expect": ["40 Gbps / 5 Gbps 最大速率", "USB 4.0 vs 3.0 版本对比", "最高 240W（PD 3.1）"],
+    "ref": "注入非默认（三个 select 的 option 由 JS 填充，harness 取不到 ⇒ 页面回落到 ||'3.2' / ||'2.0' / ||'usbc'，默认态即 3.2 vs 2.0 = 20 Gbps / 480 Mbps）。⚠ 版本键是 '2.0'/'3.0'/'3.1'/'3.2'/'4.0'，不是 'usb4' 之类 —— 键不匹配时页面 info[v] 为 undefined 而静默回落到 3.2，输出与默认态完全一致 ⇒ 必须用页面源码里的键。注入 4.0 ⇒ 40 Gbps、供电『最高 240W（PD 3.1）』；v2=3.0 ⇒ 5 Gbps。默认态三串均不出现。"
   }
 ];
 
@@ -3720,6 +3726,9 @@ function makeEl(val, opts) {
     querySelectorAll(sel) { return dynQuery(sel); },
     closest() { return null; },
     focus() {},
+    // 元素滚动定位：查表/详情类页（science/periodic-table 点击元素后滚动到详情卡）
+    // 会调用，缺此 API 整页初始化即抛 "scrollIntoView is not a function" ⇒ 恒不可验证。
+    scrollIntoView() {},
     click() {},
     remove() {},
     getBoundingClientRect() { return { width: 0, height: 0, top: 0, left: 0 }; },
