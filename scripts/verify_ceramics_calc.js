@@ -39,7 +39,7 @@ const CASES = [
   "expect": [
     "1060°C"
   ],
-  "ref": "auto-restore(default)"
+  "ref": "结构性不可注入（2026-10-10 复核，原 ref 为 auto-restore(default) 未评估项）：页面唯一输入为 #search（oninput=renderTable），renderTable 按锥号/温度子串过滤 CONES 表；过滤结果恒为默认全量表的子集，且无「未找到匹配」提示、无结果计数 ⇒ 不存在「注入态有而默认态无」的正串可锚（判据：关键词过滤+空关键词输出全量型页，只能反向锚空结果提示，本页无该提示）。维持 no_inputs，断言默认全量表常量串「1060°C」（CATS 低温釉 range 与锥 01 行均含，常量）。"
 },
 {
   "slug": "ceramics/kiln-firing",

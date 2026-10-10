@@ -334,7 +334,7 @@
 
 ### 10.3 弱用例去默认化（仅在 P0/P1 顺带时执行）
 
-**存量 14 例**（`no_inputs=10` / `all_default=4`）。**已全部有判死或注入结论并写进各用例 `ref`**（唯一源）。两处「顺序保持型筛选」翻案（`office/excel-formula-reference`、`gardening2/pruning-time`）均锚**过滤后跨条目相邻串**（§10.5 C.7④）。**转 P3 顺带，不单独成批**；逐批成果与逐例打法归档在 `.workbuddy/memory/` 与 skill `toolbox-weakcase-hardening`，**本文件不再记录批次流水**。
+**存量 14 例**（`no_inputs=10` / `all_default=4`）**已全部收口（2026-10-10 补完最后 2 个 `auto-restore(default)` 漏评项 `ceramics/glaze-temp`、`image/nine-grid-cutter`，均判死保留 `no_inputs`；14 例 `ref` 齐备）**。两处「顺序保持型筛选」翻案（`office/excel-formula-reference`、`gardening2/pruning-time`）均锚**过滤后跨条目相邻串**（§10.5 C.7④）。**转 P3 顺带，不单独成批**；逐批成果与逐例打法归档在 `.workbuddy/memory/` 与 skill `toolbox-weakcase-hardening`，**本文件不再记录批次流水**。
 
 **选批口径**：① 按「可注入数」降序挑批次；② **结构性不可注入的不要选**（判据 §10.5 B 组）—— 保留 `no_inputs` 并在 `ref` 写明理由；③ 每批 8–11 例，走 §10.4 六步。**结构判死的唯一依据是各用例 `ref`**。
 

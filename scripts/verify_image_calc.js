@@ -141,7 +141,7 @@ const CASES = [
   "expect": [
     "请先上传图片"
   ],
-  "ref": "auto-restore(default)"
+  "ref": "结构性不可注入（2026-10-10 复核，原 ref 为 auto-restore(default) 未评估项）：splitAndRender() 依赖 FileReader 读取 #file 图片后 canvas 切片；harness 无文件输入/FileReader/canvas 度量 ⇒ 注入态与默认态均落到「请先上传图片」空文件提示（memory 已知缺口：File API/canvas 图片类不可收敛）。无任何随输入变化的输出。维持 no_inputs。"
 },
 {
   "slug": "image/wechat-cover-maker",
