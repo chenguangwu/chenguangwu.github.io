@@ -322,11 +322,18 @@ async function main() {
     try {
       const r = await runCase(c);
       if (r.ok) { pass++; }
-      else { fails.push(c.slug); }
+      else {
+        fails.push(c.slug);
+        console.log("❌ " + c.slug + "  " + (r.why || "no expect match"));
+        if (r.errs && r.errs.length) console.log("     errs: " + JSON.stringify(r.errs));
+        if (r.sample) console.log("     got: " + String(r.sample).slice(0, 300));
+      }
     } catch (e) {
       fails.push(c.slug);
+      console.log("❌ " + c.slug + "  THROWN: " + ((e && e.message) ? e.message : String(e)));
     }
   }
+
   console.log("==== civil calc " + pass + "/" + cases.length + " ====");
   if (fails.length) process.exit(1);
 }
