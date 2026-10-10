@@ -141,7 +141,7 @@
 
 - **harness 输入桩能力现状（2026-09-24 定型，勿再重估）**：可注入手段共 **6 种** —— `inputs`、`checkIds`、`radios`、`checks`（**仅在「无 inputs」分支计入弱用例判定**）、`clicks`（页面作用域 direct eval + 动态 DOM 登记）、`dynDom`。**「纯 checkbox 量表页不可注入」的旧结论已失效**。逐例打法见 `.workbuddy/memory/` 与 skill `toolbox-weakcase-hardening`。
 - **仍未闭环的残留（转 P3 顺带，不单独成批）**：
-  - **checkbox 页覆盖缺口**：全站含 `checkbox` 页 353 个，162 个有用例的均带注入通道、弱用例 0；另 191 个无任何用例 ⇒ 见 §7.4。
+  - **checkbox 页覆盖缺口（已收口，2026-10-10）**：原「353 含 checkbox / 162 有用例 / 191 无用例」为零用例补强**前**口径。零用例补强（inputs 字段）已覆盖 357 个含 checkbox 且有可注入输入的页；重扫真实剩余「含 checkbox/radio 且 verify 无用例」= **34 页**（26+8）。多策略探针（inputs/checkIds/radios/clicks）实测仅 `life/generator-strength` 1 页可强判别（确定种子密码串，已补，commit 17b4565a0e）；其余 33 页因按钮触发/动态渲染/CDN/DOMParser 缺口/随机非确定/输入回显弱不可收敛，记排除（逐页原因见 `.workbuddy/memory/2026-10-10.md` §B类子任务②）。142 行 checkIds 修复对纯 checkbox 勾选即算分页有效，本批 34 页无此类样本。
 - **`metalwork/tester-19` ≤1kV 耐压分支无法构造判别用例**：该分支输出恒为 `3.5 kV`（与 `ratedV` 无关），任何 `expect` 都会在**默认态**命中 → 必被判逃生项，故**刻意不补用例**；该修复只能靠隔离器人工跑 + 代码评审保真。
 - **「多页签（mode）」页面的非默认页签分支无法被 harness 覆盖**：切页签必须带参 `setMode(1)`，而 harness 只无参调用候选函数 ⇒ 第二种模式分支永不执行。**复核口径**：复制页面到 `tools/<ind>/_tmp-xxx.html`，把 `let currentMode=0;` 改成 `1` → 隔离器单跑 → **立即删除副本**。
 - **永久排除（不下架）**：同名异功能 `finance/salary-after-tax` ↔ `payroll-calculator`、`ophthalmology/self-assess-2` ↔ `osdi-scale`；跨行业同名编号页（`calc-N`/`rater-N` 等 17 个 basename）经内容哈希取证均为不同工具，非重复。
