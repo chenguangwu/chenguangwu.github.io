@@ -163,7 +163,19 @@ const CASES = [
     "1800"
   ],
   "ref": "auto-restore"
-}
+},
+  {
+    "slug": "niche/reminder-cycle-succulent",
+    "inputs": {
+      "plantName": "abc123测试",
+      "plantLastWater": "abc123测试"
+    },
+    "expect": [
+      "无植物，请先添加\nabc123测试"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"plantName\":\"abc123测试\",\"plantLastWater\":\"abc123测试\"}，输出区含「无植物，请先添加\nabc123测试」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  }
+
 ];
 async function main() {
   const only = process.argv.slice(2);

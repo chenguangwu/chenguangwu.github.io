@@ -1308,7 +1308,555 @@ const CASES = [
     "inputs": { "by": "2000", "bm": "1", "bd": "1" },
     "expect": ["出生于 2000 年 1 月 1 日"],
     "ref": "注入出生 2000-01-01（bh/bmin/bs 未传→NaN→0，birth=本地 2000-01-01 00:00:00，getHours=0 不受 TZ 影响）→ ageSub 输出「出生于 2000 年 1 月 1 日 00:00:00（...）」。默认态 by 空→isNaN→提示「请输入出生日期」，不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "life/angle-converter",
+    "inputs": {
+      "inputVal": "42",
+      "fromUnit": "rad"
+    },
+    "expect": [
+      "42\nrad\n基准： 42 rad = 2406.42274° 度： 2406.42274 ° 梯度： 2673.803044 grad 转： 6.68450761 rev"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"inputVal\":\"42\",\"fromUnit\":\"rad\"}，输出区含「42\nrad\n基准： 42 rad = 2406.42274° 度： 2406.…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "life/area-converter",
+    "inputs": {
+      "inputVal": "42",
+      "fromUnit": "cm2"
+    },
+    "expect": [
+      "m² 平方千米： 4.200000e-9 km² 亩： 0.0000063 亩 公顷： 4.200000e-7 ha 英亩"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"inputVal\":\"42\",\"fromUnit\":\"cm2\"}，输出区含「m² 平方千米： 4.200000e-9 km² 亩： 0.0000063 亩 …」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "life/assessor-target",
+    "inputs": {
+      "traffic": "42",
+      "competitors": "42",
+      "population": "42",
+      "rent": "42",
+      "shopArea": "42",
+      "visibility": "42"
+    },
+    "expect": [
+      "42\n42\n42\n42\n42\n42"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"traffic\":\"42\",\"competitors\":\"42\",\"population\":\"42\",\"rent\":\"42\",\"shopArea\":\"42\",\"visibility\":\"42\"}，输出区含「42\n42\n42\n42\n42\n42」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "life/base-convert",
+    "inputs": {
+      "input": "abc123测试",
+      "bin": "abc123测试",
+      "oct": "abc123测试",
+      "dec": "abc123测试",
+      "hex": "abc123测试",
+      "customBase": "42",
+      "custom": "abc123测试",
+      "ascii": "abc123测试",
+      "unicode": "abc123测试",
+      "text": "1\n2\n3"
+    },
+    "expect": [
+      "abc123测试\n错误\n错误\n错误\n错误\n错误\n1 2 3\n49 10 50 10 51\nU+0031 U+000A U+0032 U+000A U+0033\n42"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"abc123测试\",\"bin\":\"abc123测试\",\"oct\":\"abc123测试\",\"dec\":\"abc123测试\",\"hex\":\"abc123测试\",\"customBase\":\"42\",\"custom\":\"abc123测试\",\"ascii\":\"abc123测试\",\"unicode\":\"abc123测试\",\"text\":\"1\\n2\\n3\"}，输出区含「abc123测试\n错误\n错误\n错误\n错误\n错误\n1 2 3\n49 10 50 1…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "life/birthday-paradox",
+    "inputs": {
+      "n": "42",
+      "d": "42"
+    },
+    "expect": [
+      "生日相同的概率： 100.0000% 概率值：1.000000e+0"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"n\":\"42\",\"d\":\"42\"}，输出区含「生日相同的概率： 100.0000% 概率值：1.000000e+0」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "life/bra-size-converter",
+    "inputs": {
+      "under": "42",
+      "upper": "42"
+    },
+    "expect": [
+      " 下胸围尺码： 70 罩杯： AA 杯 国际码： 70AA 美码： 28AA"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"under\":\"42\",\"upper\":\"42\"}，输出区含「 下胸围尺码： 70 罩杯： AA 杯 国际码： 70AA 美码： 28AA」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "life/bill-splitter",
+    "inputs": {
+      "total-amount": "42",
+      "person-count": "42",
+      "tip-percent": "42",
+      "adv-tip": "42"
+    },
+    "expect": [
+      "赵六 (1份) ¥1.42 钱七 (1份) ¥1.42 孙八 (1份) ¥1.42 周九 (1份) ¥1.42 吴十 (1份) ¥1.42 郑十一 (1份) ¥1.42 王十二 (1份) ¥1.42 冯十三 (1份) ¥1.42 陈十四 ("
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"total-amount\":\"42\",\"person-count\":\"42\",\"tip-percent\":\"42\",\"adv-tip\":\"42\"}，输出区含「赵六 (1份) ¥1.42 钱七 (1份) ¥1.42 孙八 (1份) ¥1.4…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "life/clothing-size-converter",
+    "inputs": {
+      "inputVal": "abc123测试",
+      "cat": "m_top",
+      "sys": "intl"
+    },
+    "expect": [
+      "m_top\nintl\nabc123测试\n未找到匹配项 \"ABC123测试\"（intl） 可参考下表中的可选值"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"inputVal\":\"abc123测试\",\"cat\":\"m_top\",\"sys\":\"intl\"}，输出区含「m_top\nintl\nabc123测试\n未找到匹配项 \"ABC123测试\"（in…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "life/concentration-converter",
+    "inputs": {
+      "inputVal": "42",
+      "fromUnit": "ppb"
+    },
+    "expect": [
+      "42\nppb\n基准： 42 ppb = 0.042 ppm 百万分之一： 0.042 ppm 万亿分之一： 42000"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"inputVal\":\"42\",\"fromUnit\":\"ppb\"}，输出区含「42\nppb\n基准： 42 ppb = 0.042 ppm 百万分之一： 0.0…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "life/countdown-timer",
+    "inputs": {
+      "set-hours": "42",
+      "set-minutes": "42",
+      "set-seconds": "42",
+      "event-name": "abc123测试",
+      "event-date": "abc123测试",
+      "event-time": "abc123测试"
+    },
+    "expect": [
+      "⚠ 计算结果含无效值，请检查输入是否为有效正数。\n42:42:40\n42\n42\n42\nabc123测试"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"set-hours\":\"42\",\"set-minutes\":\"42\",\"set-seconds\":\"42\",\"event-name\":\"abc123测试\",\"event-date\":\"abc123测试\",\"event-time\":\"abc123测试\"}，输出区含「⚠ 计算结果含无效值，请检查输入是否为有效正数。\n42:42:40\n42\n42\n…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "life/cycle-pruning-lawn",
+    "inputs": {
+      "lawnName": "abc123测试",
+      "lawnStart": "abc123测试",
+      "logDate": "abc123测试",
+      "logNote": "abc123测试",
+      "lawnType": "warm",
+      "logType": "fertilize"
+    },
+    "expect": [
+      "24-06-15\n🌿 abc123测试 暖季型 ✂️ 修剪 正常 周期：10天 · 冷季型生长季7天/暖季型10天 上次： 未记录 下次： 2024-06-25 10天 距下次修剪 ✅ 完成 🌱 施肥 正常 周期：30天 · 冷季型春秋"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"lawnName\":\"abc123测试\",\"lawnStart\":\"abc123测试\",\"logDate\":\"abc123测试\",\"logNote\":\"abc123测试\",\"lawnType\":\"warm\",\"logType\":\"fertilize\"}，输出区含「24-06-15\n🌿 abc123测试 暖季型 ✂️ 修剪 正常 周期：10天…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "life/data-rate-converter",
+    "inputs": {
+      "inputVal": "42",
+      "fromUnit": "kbps"
+    },
+    "expect": [
+      "42\nkbps\n基准： 42 kbps = 42000 bit/s 比特每秒： 42000 "
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"inputVal\":\"42\",\"fromUnit\":\"kbps\"}，输出区含「42\nkbps\n基准： 42 kbps = 42000 bit/s 比特每秒： …」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "life/cycle-4",
+    "inputs": {
+      "supName": "abc123测试",
+      "supUnit": "abc123测试",
+      "supStock": "42",
+      "supRate": "42",
+      "supThreshold": "42",
+      "logAmount": "42",
+      "logDate": "abc123测试",
+      "supPeriod": "month"
+    },
+    "expect": [
+      "24-06-15\n1 用品总数 1 需补货 0 已耗尽 0 库存充足\n🧴 abc123测试 库存不足 当前库存： 42 abc123测试 消耗速率： 42 abc123测试/每月 补货阈值： 42 abc123测试 预计耗尽： 30 天 "
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"supName\":\"abc123测试\",\"supUnit\":\"abc123测试\",\"supStock\":\"42\",\"supRate\":\"42\",\"supThreshold\":\"42\",\"logAmount\":\"42\",\"logDate\":\"abc123测试\",\"supPeriod\":\"month\"}，输出区含「24-06-15\n1 用品总数 1 需补货 0 已耗尽 0 库存充足\n🧴 ab…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "life/daily-calorie-needs",
+    "inputs": {
+      "bmiAge": "42",
+      "bmiHeight": "42",
+      "bmiWeight": "42",
+      "bmrAge": "42",
+      "bmrHeight": "42",
+      "bmrWeight": "42",
+      "tdeeAge": "42",
+      "tdeeHeight": "42",
+      "tdeeWeight": "42",
+      "bmiGender": "female",
+      "bmrGender": "female",
+      "tdeeGender": "female"
+    },
+    "expect": [
+      "体重(kg) 1082% 体脂率估计\nfemale\n42\n42\n42\n312 千卡\n13"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"bmiAge\":\"42\",\"bmiHeight\":\"42\",\"bmiWeight\":\"42\",\"bmrAge\":\"42\",\"bmrHeight\":\"42\",\"bmrWeight\":\"42\",\"tdeeAge\":\"42\",\"tdeeHeight\":\"42\",\"tdeeWeight\":\"42\",\"bmiGender\":\"female\",\"bmrGender\":\"female\",\"tdeeGender\":\"female\"}，输出区含「体重(kg) 1082% 体脂率估计\nfemale\n42\n42\n42\n312 千…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "life/data-unit-converter",
+    "inputs": {
+      "valueInput": "42",
+      "unitSelect": "B"
+    },
+    "expect": [
+      " Exabyte 3.6429e-17 EB\n原始值：42 B = 336 bit = 42"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"valueInput\":\"42\",\"unitSelect\":\"B\"}，输出区含「 Exabyte 3.6429e-17 EB\n原始值：42 B = 336 bi…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "life/date-add-subtract",
+    "inputs": {
+      "baseTime": "abc123测试",
+      "y": "42",
+      "m": "42",
+      "d": "42",
+      "h": "42",
+      "min": "42",
+      "s": "42"
+    },
+    "expect": [
+      "abc123测试\n42\n42\n42\n42\n42\n42\n基准时间： Invalid Date 加减量： 42年 42月 42日 42时 42分 42秒 结果时间： Invalid Date Invalid Date"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"baseTime\":\"abc123测试\",\"y\":\"42\",\"m\":\"42\",\"d\":\"42\",\"h\":\"42\",\"min\":\"42\",\"s\":\"42\"}，输出区含「abc123测试\n42\n42\n42\n42\n42\n42\n基准时间： Invalid…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "life/density-converter",
+    "inputs": {
+      "inputVal": "42",
+      "fromUnit": "gcm3"
+    },
+    "expect": [
+      "42\ngcm3\n基准： 42 g/cm³ = 42000 kg/m³ 千克每立方米： 42000 kg/m³ 克每毫升： 42"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"inputVal\":\"42\",\"fromUnit\":\"gcm3\"}，输出区含「42\ngcm3\n基准： 42 g/cm³ = 42000 kg/m³ 千克每立方…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "life/date-difference-calculator",
+    "inputs": {
+      "startDate": "abc123测试",
+      "endDate": "abc123测试",
+      "baseDate": "abc123测试",
+      "addYears": "42",
+      "addMonths": "42",
+      "addWeeks": "42",
+      "addDays": "42",
+      "addsubOp": "sub"
+    },
+    "expect": [
+      "abc123测试\nabc123测试\nabc123测试\n暂无历史记录\nNaN 天\n从 abc123测试 到 abc123测试\n⚠ 计算结果含无效值，请检查输入是否为有效正数。\nsub\n42\n42\n42\n42\n1978-01-13\n周五 · 共"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"startDate\":\"abc123测试\",\"endDate\":\"abc123测试\",\"baseDate\":\"abc123测试\",\"addYears\":\"42\",\"addMonths\":\"42\",\"addWeeks\":\"42\",\"addDays\":\"42\",\"addsubOp\":\"sub\"}，输出区含「abc123测试\nabc123测试\nabc123测试\n暂无历史记录\nNaN 天\n…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "life/detector-checker-strength",
+    "inputs": {
+      "pwdInput": "abc123测试"
+    },
+    "expect": [
+      "要在多处重复使用。\n隐藏"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"pwdInput\":\"abc123测试\"}，输出区含「要在多处重复使用。\n隐藏」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "life/energy-converter",
+    "inputs": {
+      "inputVal": "42",
+      "fromUnit": "kJ"
+    },
+    "expect": [
+      "42\nkJ\n基准： 42 kJ = 42000 J 焦耳： 42000 J 卡路里： 10038.24092 cal 千卡： 10.03824092"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"inputVal\":\"42\",\"fromUnit\":\"kJ\"}，输出区含「42\nkJ\n基准： 42 kJ = 42000 J 焦耳： 42000 J 卡路…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "life/flow-rate-converter",
+    "inputs": {
+      "inputVal": "42",
+      "fromUnit": "Lmin"
+    },
+    "expect": [
+      "42\nLmin\n基准： 42 L/min = 0.7 L/s 升每秒： 0.7 L/s 立方米每时： 2.52"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"inputVal\":\"42\",\"fromUnit\":\"Lmin\"}，输出区含「42\nLmin\n基准： 42 L/min = 0.7 L/s 升每秒： 0.7 …」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "life/drinking-water-plan",
+    "inputs": {
+      "w": "42",
+      "temp": "42"
+    },
+    "expect": [
+      "l 每日饮水目标 6.6"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"w\":\"42\",\"temp\":\"42\"}，输出区含「l 每日饮水目标 6.6」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "life/frequency-converter",
+    "inputs": {
+      "inputVal": "42",
+      "fromUnit": "kHz"
+    },
+    "expect": [
+      "42\nkHz\n基准： 42 kHz = 42000 Hz 赫兹： 42000 "
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"inputVal\":\"42\",\"fromUnit\":\"kHz\"}，输出区含「42\nkHz\n基准： 42 kHz = 42000 Hz 赫兹： 42000 」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "life/fuel-converter",
+    "inputs": {
+      "inputVal": "42",
+      "fromUnit": "mpgUS"
+    },
+    "expect": [
+      "42\nmpgUS\n基准： 42 mpg(美) = 5.6003472 L/100km L/100km： 5.6003472 mpg(英)： 50.439897 km/L： 17.856036"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"inputVal\":\"42\",\"fromUnit\":\"mpgUS\"}，输出区含「42\nmpgUS\n基准： 42 mpg(美) = 5.6003472 L/100…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "life/leap-year-checker",
+    "inputs": {
+      "year": "42",
+      "range": "42"
+    },
+    "expect": [
+      " 年附近的闰年： 44、48、52、56、60、64、68、72、76、80"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"year\":\"42\",\"range\":\"42\"}，输出区含「 年附近的闰年： 44、48、52、56、60、64、68、72、76、80」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  
+  {
+    "slug": "life/length-converter",
+    "inputs": {
+      "inputVal": "42",
+      "fromUnit": "cm"
+    },
+    "expect": [
+      " → 实际: 1.377952756 英尺 45.93175853 → 实际: 0.4593175853 码 0.02609759007"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"inputVal\":\"42\",\"fromUnit\":\"cm\"}，输出区含「 → 实际: 1.377952756 英尺 45.93175853 → 实际: …」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "life/magnet-converter",
+    "inputs": {
+      "inputVal": "42",
+      "fromUnit": "Oe"
+    },
+    "expect": [
+      "强度 H 基准： 42 Oe = 3342.253803 A/m 安培每米： 3342.253803 Am"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"inputVal\":\"42\",\"fromUnit\":\"Oe\"}，输出区含「强度 H 基准： 42 Oe = 3342.253803 A/m 安培每米： 3…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "life/parking-fee",
+    "inputs": {
+      "hours": "42",
+      "rate": "42",
+      "free": "42",
+      "cap": "42"
+    },
+    "expect": [
+      "时长(h) 停放 42h，免费 42h，费率 42 元/h，封顶 42 元。"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"hours\":\"42\",\"rate\":\"42\",\"free\":\"42\",\"cap\":\"42\"}，输出区含「时长(h) 停放 42h，免费 42h，费率 42 元/h，封顶 42 元。」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "life/power-converter",
+    "inputs": {
+      "inputVal": "42",
+      "fromUnit": "kW"
+    },
+    "expect": [
+      "42\nkW\n基准： 42 kW = 42000 W 瓦特： 42000 W 兆瓦： 0.042"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"inputVal\":\"42\",\"fromUnit\":\"kW\"}，输出区含「42\nkW\n基准： 42 kW = 42000 W 瓦特： 42000 W 兆瓦…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "life/radiation-converter",
+    "inputs": {
+      "inputVal": "42",
+      "fromUnit": "rad"
+    },
+    "expect": [
+      "(吸收剂量) = 0.42 Gy 等效 戈瑞 (吸收剂量)： 0.42 Gy"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"inputVal\":\"42\",\"fromUnit\":\"rad\"}，输出区含「(吸收剂量) = 0.42 Gy 等效 戈瑞 (吸收剂量)： 0.42 Gy」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "life/pressure-converter",
+    "inputs": {
+      "inputVal": "42",
+      "fromUnit": "kPa"
+    },
+    "expect": [
+      "42\nkPa\n基准： 42 kPa = 42000 Pa 帕： 42000 "
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"inputVal\":\"42\",\"fromUnit\":\"kPa\"}，输出区含「42\nkPa\n基准： 42 kPa = 42000 Pa 帕： 42000 」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "life/percentage-calculator",
+    "inputs": {
+      "isWhatX": "42",
+      "isWhatY": "42",
+      "ofWhatPct": "42",
+      "ofWhatY": "42",
+      "incX": "42",
+      "incPct": "42",
+      "decX": "42",
+      "decPct": "42",
+      "chgOld": "42",
+      "chgNew": "42"
+    },
+    "expect": [
+      "倍\n暂无历史记录\n42\n42\n100%\n42 是 42 的 100%\n42\n42\n17.64\n42% × 42 = 17.64\n42\n42\n59.64\n42 增加 42% = 59.64（增加 17.64）\n42\n42\n24.36\n42 减"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"isWhatX\":\"42\",\"isWhatY\":\"42\",\"ofWhatPct\":\"42\",\"ofWhatY\":\"42\",\"incX\":\"42\",\"incPct\":\"42\",\"decX\":\"42\",\"decPct\":\"42\",\"chgOld\":\"42\",\"chgNew\":\"42\"}，输出区含「倍\n暂无历史记录\n42\n42\n100%\n42 是 42 的 100%\n42\n42…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "life/reminder-cycle",
+    "inputs": {
+      "applName": "abc123测试",
+      "applLastClean": "abc123测试"
+    },
+    "expect": [
+      "无家电，请先添加\nabc123测试"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"applName\":\"abc123测试\",\"applLastClean\":\"abc123测试\"}，输出区含「无家电，请先添加\nabc123测试」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "life/ring-size-converter",
+    "inputs": {
+      "inputVal": "42",
+      "inputType": "hk"
+    },
+    "expect": [
+      "基准戒指内周长： 131.88 mm （直径 41.9787 mm） 周长(mm)： 131.88 直径(mm)： 41.9787 美码： 34.6486 英码： 36.7808 欧码： 91.88"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"inputVal\":\"42\",\"inputType\":\"hk\"}，输出区含「基准戒指内周长： 131.88 mm （直径 41.9787 mm） 周长(mm…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "life/roman-numeral",
+    "inputs": {
+      "numInput": "42",
+      "romanInput": "abc123测试"
+    },
+    "expect": [
+      " + I=1 + I=1\nabc123测试\n无效\n只能包含 MDCLXVI"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"numInput\":\"42\",\"romanInput\":\"abc123测试\"}，输出区含「 + I=1 + I=1\nabc123测试\n无效\n只能包含 MDCLXVI」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "life/shoe-size-converter",
+    "inputs": {
+      "inputVal": "42",
+      "inputType": "cn"
+    },
+    "expect": [
+      "42\ncn\n基准脚长： 420 mm 脚长(mm)： 420 欧盟码： 66 美码(男)： 17.974 美码(女)： 17.174 英码： 16.974"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"inputVal\":\"42\",\"inputType\":\"cn\"}，输出区含「42\ncn\n基准脚长： 420 mm 脚长(mm)： 420 欧盟码： 66 美…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "life/time-converter",
+    "inputs": {
+      "inputVal": "42",
+      "fromUnit": "s"
+    },
+    "expect": [
+      " min 小时： 0.01166666667 h 天： 0.0004861111111 day 周： 0.00006944444444 week 月： 0.00001597079626"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"inputVal\":\"42\",\"fromUnit\":\"s\"}，输出区含「 min 小时： 0.01166666667 h 天： 0.0004861111…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "life/speed-converter",
+    "inputs": {
+      "inputVal": "42",
+      "fromUnit": "kmh"
+    },
+    "expect": [
+      "42\nkmh\n基准： 42 km/h = 11.66666668 m/s 米每秒： 11.66666668 m/s 英里每时： 26.09759009 mph 节： 22.67818578"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"inputVal\":\"42\",\"fromUnit\":\"kmh\"}，输出区含「42\nkmh\n基准： 42 km/h = 11.66666668 m/s 米每秒…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "life/volume-converter",
+    "inputs": {
+      "inputVal": "42",
+      "fromUnit": "L"
+    },
+    "expect": [
+      " pt 美夸脱： 44.3809048 qt 杯： 177.5236192 cup 汤匙： 2840.377903"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"inputVal\":\"42\",\"fromUnit\":\"L\"}，输出区含「 pt 美夸脱： 44.3809048 qt 杯： 177.5236192 cu…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "life/temperature-converter",
+    "inputs": {
+      "celsius": "42",
+      "fahrenheit": "42",
+      "kelvin": "42",
+      "rankine": "42",
+      "reaumur": "42"
+    },
+    "expect": [
+      "52.50\n126.50\n325.65\n586.17\n42"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"celsius\":\"42\",\"fahrenheit\":\"42\",\"kelvin\":\"42\",\"rankine\":\"42\",\"reaumur\":\"42\"}，输出区含「52.50\n126.50\n325.65\n586.17\n42」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "life/weight-converter",
+    "inputs": {
+      "inputVal": "42",
+      "fromUnit": "g"
+    },
+    "expect": [
+      "42\ng\n基准： 42 克 = 42 克 42000 毫克 0.042 千克 0.000042 吨 1.481506402 盎司 0.09259415012 磅 210 克拉 0.84 两 0.084 斤"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"inputVal\":\"42\",\"fromUnit\":\"g\"}，输出区含「42\ng\n基准： 42 克 = 42 克 42000 毫克 0.042 千克 0…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "life/yaml-json",
+    "inputs": {
+      "input": "1\n2\n3",
+      "output": "1\n2\n3"
+    },
+    "expect": [
+      "1 2 3\n错误: Unexpected non-whitespace character after JSON at position 2 (line 2 column 1)"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"1\\n2\\n3\",\"output\":\"1\\n2\\n3\"}，输出区含「1 2 3\n错误: Unexpected non-whitespace char…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "life/workday-calculator",
+    "inputs": {
+      "startDate": "abc123测试",
+      "endDate": "abc123测试",
+      "holidays": "1\n2\n3"
+    },
+    "expect": [
+      "abc123测试\nabc123测试\n1 2 3\n开始日期： Invalid Date 结束日期： Invalid Date 自然日总数： 0 天 工作日数： 0"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"startDate\":\"abc123测试\",\"endDate\":\"abc123测试\",\"holidays\":\"1\\n2\\n3\"}，输出区含「abc123测试\nabc123测试\n1 2 3\n开始日期： Invalid Da…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "life/world-clock",
+    "inputs": {
+      "diffTime": "abc123测试"
+    },
+    "expect": [
+      "/06/14周五\nabc123测试\n+0 小时\n⚠ 计算结果含无效值，请检查输入是否为有效正数。"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"diffTime\":\"abc123测试\"}，输出区含「/06/14周五\nabc123测试\n+0 小时\n⚠ 计算结果含无效值，请检查输入…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   }
+
 ];
 
 // ---------------------------------------------------------------- main

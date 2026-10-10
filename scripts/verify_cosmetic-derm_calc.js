@@ -210,6 +210,459 @@ const CASES = [
     checkIds: ["b_glabella", "b_frontalis", "b_crowfeet"],
     expect: ["50 总剂量(U)", "川字纹 20", "17 总注射点"],
     ref: "勾选三个部位（默认全未勾选 ⇒ 输出『请勾选需要治疗的部位』，无表格无合计）。页面按部位剂量表累加：川字纹 20U/5点（每点 4.0）、抬头纹 14U/6点（每点 2.3）、鱼尾纹(双侧) 16U/6点（每点 2.7）⇒ 总剂量 20+14+16 = 50 U、总注射点 5+6+6 = 17。checkIds 是 harness 注入字段，判别器清空后回到空勾选态 ⇒ 三条均不出现。" },
+  {
+    "slug": "cosmetic-derm/assessor-67",
+    "inputs": {
+      "pb": "42",
+      "as": "42",
+      "hg": "42",
+      "methanol": "42",
+      "tvc": "42",
+      "cosType": "special",
+      "prodType": "water"
+    },
+    "expect": [
+      " 限值 判定 铅 42 ≤10 ✗ 砷 42 ≤4 ✗ 汞 42 ≤1 ✗ 甲醇 42 ≤0.2 ✗ 菌落总数 42 ≤5"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"pb\":\"42\",\"as\":\"42\",\"hg\":\"42\",\"methanol\":\"42\",\"tvc\":\"42\",\"cosType\":\"special\",\"prodType\":\"water\"}，输出区含「 限值 判定 铅 42 ≤10 ✗ 砷 42 ≤4 ✗ 汞 42 ≤1 ✗ 甲醇…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "cosmetic-derm/chemical-peel",
+    "inputs": {
+      "concentration": "42",
+      "ph": "42",
+      "duration": "42",
+      "acidType": "lactic",
+      "sensitivity": "1.0",
+      "firstTime": "0"
+    },
+    "expect": [
+      "AHA) 酸类型 极浅层焕肤：温和去角质，无脱屑或轻微脱屑。适合日常维护和初次刷酸。 ✅ 参数在相对安全范围内。仍建议术前测试小面积皮肤反应。"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"concentration\":\"42\",\"ph\":\"42\",\"duration\":\"42\",\"acidType\":\"lactic\",\"sensitivity\":\"1.0\",\"firstTime\":\"0\"}，输出区含「AHA) 酸类型 极浅层焕肤：温和去角质，无脱屑或轻微脱屑。适合日常维护和初次刷…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "cosmetic-derm/corneometer",
+    "inputs": {
+      "forehead": "42",
+      "cheek": "42",
+      "nose": "42",
+      "hand": "42",
+      "humidity": "42",
+      "product": "1"
+    },
+    "expect": [
+      "分级 状态 前额 40 偏低 干燥 颊部 40 偏低 干燥 鼻翼 40 偏低 干燥 手背 40 偏低 干燥 ⚠️ 您标注已涂抹护肤品，测量值可能偏高，结果仅供粗略参考。建议洁面后静置15-30分钟再测量。 皮肤偏干：加强保湿，选择含透明质酸"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"forehead\":\"42\",\"cheek\":\"42\",\"nose\":\"42\",\"hand\":\"42\",\"humidity\":\"42\",\"product\":\"1\"}，输出区含「分级 状态 前额 40 偏低 干燥 颊部 40 偏低 干燥 鼻翼 40 偏低 干…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "cosmetic-derm/calc-51",
+    "inputs": {
+      "uvb": "42",
+      "uva": "42"
+    },
+    "expect": [
+      "A 等级 SPF 1.7 · 低防晒 PA (无) · 几乎没有"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"uvb\":\"42\",\"uva\":\"42\"}，输出区含「A 等级 SPF 1.7 · 低防晒 PA (无) · 几乎没有」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "cosmetic-derm/area-12",
+    "inputs": {
+      "pct": "42",
+      "diam": "42",
+      "area": "鼻翼"
+    },
+    "expect": [
+      " 毛细血管扩张 IV 级 💡 建议：弥漫性红斑，需就医排查玫瑰痤疮等病因后综合治疗\n暂无评估记录"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"pct\":\"42\",\"diam\":\"42\",\"area\":\"鼻翼\"}，输出区含「 毛细血管扩张 IV 级 💡 建议：弥漫性红斑，需就医排查玫瑰痤疮等病因后综合…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "cosmetic-derm/concentration",
+    "inputs": {
+      "conc": "42",
+      "ph": "42",
+      "acid": "bha"
+    },
+    "expect": [
+      "bha\n42\n42\n深度 剥脱深度 42.00% 游离酸浓度 100.0% 游离酸比例 深层化学剥脱 深层剥脱，需专业操作 游离酸 100.0"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"conc\":\"42\",\"ph\":\"42\",\"acid\":\"bha\"}，输出区含「bha\n42\n42\n深度 剥脱深度 42.00% 游离酸浓度 100.0% 游离…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "cosmetic-derm/cosmetic-injection",
+    "inputs": {
+      "muscleStrength": "1.0",
+      "depression": "1.0",
+      "syringe": "0.8"
+    },
+    "expect": [
+      "选需要治疗的部位\n1.0\n0.8"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"muscleStrength\":\"1.0\",\"depression\":\"1.0\",\"syringe\":\"0.8\"}，输出区含「选需要治疗的部位\n1.0\n0.8」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "cosmetic-derm/eyebag-assessment",
+    "inputs": {
+      "fatHerniation": "1",
+      "skinLaxity": "1",
+      "tearTrough": "1",
+      "edema": "1",
+      "bagType": "edema",
+      "age": "2"
+    },
+    "expect": [
+      " 等级 脂肪膨出 1/4 皮肤松弛 1/4 泪沟凹陷 1/4 水肿程度 1/3 水肿型 ：体液潴留所致，晨起重。以生活调理为主——低盐、高枕睡眠、冷敷。排除甲状腺/肾脏问题。 轻中度：玻尿酸填充泪沟+射频紧肤。脂肪型可考虑内切法。"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"fatHerniation\":\"1\",\"skinLaxity\":\"1\",\"tearTrough\":\"1\",\"edema\":\"1\",\"bagType\":\"edema\",\"age\":\"2\"}，输出区含「 等级 脂肪膨出 1/4 皮肤松弛 1/4 泪沟凹陷 1/4 水肿程度 1/3 …」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "cosmetic-derm/fitzpatrick-wrinkle",
+    "inputs": {
+      "laxity": "42",
+      "pigment": "42",
+      "wrinkleGrade": "2",
+      "elastosis": "1"
+    },
+    "expect": [
+      "素沉着）。 建议：综合治疗方案——激光焕肤+填充+肉毒素+线雕提拉。需面诊制定个体化方案。"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"laxity\":\"42\",\"pigment\":\"42\",\"wrinkleGrade\":\"2\",\"elastosis\":\"1\"}，输出区含「素沉着）。 建议：综合治疗方案——激光焕肤+填充+肉毒素+线雕提拉。需面诊制定个…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "cosmetic-derm/glogau-photoaging",
+    "inputs": {
+      "wrinkle": "2",
+      "pigment": "2",
+      "keratosis": "2",
+      "makeup": "2",
+      "age": "2",
+      "photo": "2"
+    },
+    "expect": [
+      "au 光老化分型 2.0 综合评分 Ⅱ型 对应分型 早-中度光老化：早期色素斑（雀斑/日光斑），可触及角化症，运动时出现细纹。 光型Ⅲ-Ⅳ型：可常规治疗，注意术后防晒。 建议：外用维A酸+维C，化学焕肤（果酸20-35%），IPL光子嫩肤改"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"wrinkle\":\"2\",\"pigment\":\"2\",\"keratosis\":\"2\",\"makeup\":\"2\",\"age\":\"2\",\"photo\":\"2\"}，输出区含「au 光老化分型 2.0 综合评分 Ⅱ型 对应分型 早-中度光老化：早期色素斑（…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "cosmetic-derm/laser-parameters",
+    "inputs": {
+      "laserSelect": "q532",
+      "chromSelect": "melanin"
+    },
+    "expect": [
+      "靶色团：黑色素 以下激光以该靶色团为主要作用目标： 调Q 532nm (KTP) 波长： 532nm · 脉宽： 5-10ns 靶色团： 黑色素 / 血红蛋白 穿透深度： 0.5-1mm（表皮-浅真皮） 适应症： 表浅色素斑、雀斑、日光性黑"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"laserSelect\":\"q532\",\"chromSelect\":\"melanin\"}，输出区含「靶色团：黑色素 以下激光以该靶色团为主要作用目标： 调Q 532nm (KTP)…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "cosmetic-derm/meso-cocktail",
+    "inputs": {
+      "totalVol": "42",
+      "frequency": "2",
+      "sensitivity": "1.0",
+      "session": "3"
+    },
+    "expect": [
+      "42\n2\n1.0\n3"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"totalVol\":\"42\",\"frequency\":\"2\",\"sensitivity\":\"1.0\",\"session\":\"3\"}，输出区含「42\n2\n1.0\n3」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "cosmetic-derm/injection",
+    "inputs": {
+      "type": "ha",
+      "effect": "2"
+    },
+    "expect": [
+      "ha\n鼻唇沟\n鼻唇沟唇部苹果肌鼻部下巴颞部（单侧）泪沟法令纹\n2\n0.8 推荐用量 (ml) 鼻唇沟 注射部位 中度 目标效果 玻尿酸 · 鼻唇沟"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"type\":\"ha\",\"effect\":\"2\"}，输出区含「ha\n鼻唇沟\n鼻唇沟唇部苹果肌鼻部下巴颞部（单侧）泪沟法令纹\n2\n0.8 推荐用…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "cosmetic-derm/jiguangbochangbadian",
+    "inputs": {
+      "laser": "585"
+    },
+    "expect": [
+      "深度 0.5-1.2mm 临床适应症 鲜红斑痣、血管瘤、玫瑰痤疮红血丝、疤痕红斑 注意事项 紫癜为常见反应，1-2周消退"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"laser\":\"585\"}，输出区含「深度 0.5-1.2mm 临床适应症 鲜红斑痣、血管瘤、玫瑰痤疮红血丝、疤痕红斑…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "cosmetic-derm/mesotherapy",
+    "inputs": {
+      "totalVol": "42",
+      "area": "42",
+      "depth": "1",
+      "syringe": "2"
+    },
+    "expect": [
+      "42\n42\n1\n2"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"totalVol\":\"42\",\"area\":\"42\",\"depth\":\"1\",\"syringe\":\"2\"}，输出区含「42\n42\n1\n2」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "cosmetic-derm/formula-1",
+    "inputs": {
+      "total": "42",
+      "ha": "42",
+      "vc": "42",
+      "rHa": "42",
+      "rVc": "42",
+      "rPep": "42"
+    },
+    "expect": [
+      " 合计 100% 42.00 — 1204.00 玻尿酸 33% 维生素C 33% 肽类 33%\n暂无配方记录"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"total\":\"42\",\"ha\":\"42\",\"vc\":\"42\",\"rHa\":\"42\",\"rVc\":\"42\",\"rPep\":\"42\"}，输出区含「 合计 100% 42.00 — 1204.00 玻尿酸 33% 维生素C 33…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "cosmetic-derm/maokongcudafenji",
+    "inputs": {
+      "dia": "42",
+      "area": "鼻翼两侧",
+      "type": "aging"
+    },
+    "expect": [
+      " 💡 改善建议：保持现有护肤习惯，注重保湿防晒 🔬 类型指导：老化型毛孔需刺激胶原再生，维A酸/光电紧肤有效\n暂无分级记录"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"dia\":\"42\",\"area\":\"鼻翼两侧\",\"type\":\"aging\"}，输出区含「 💡 改善建议：保持现有护肤习惯，注重保湿防晒 🔬 类型指导：老化型毛孔需刺…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "cosmetic-derm/length-spacing",
+    "inputs": {
+      "len": "42",
+      "spacing": "42",
+      "dia": "42"
+    },
+    "expect": [
+      "积占比 作用层次：深层真皮/皮下 深层重塑，适合重度瘢痕，需严格术后护理 穿透深度 33.60mm 渗透占比 78.5% 💡 建议：极深层微针，恢复期5-7天，须由医师操作并严格术后护理\n暂无计算记录"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"len\":\"42\",\"spacing\":\"42\",\"dia\":\"42\"}，输出区含「积占比 作用层次：深层真皮/皮下 深层重塑，适合重度瘢痕，需严格术后护理 穿透深…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "cosmetic-derm/microneedle",
+    "inputs": {
+      "needleLength": "42",
+      "spacing": "42",
+      "diameter": "42",
+      "passes": "42",
+      "mw": "42",
+      "concentration": "42",
+      "area": "42",
+      "purpose": "collagen"
+    },
+    "expect": [
+      "总孔体积(μL) 95% 渗透效率 推荐长度：1.0-2.5mm。胶原诱导需到达真皮中层以上。配合维A酸/维C可增强效果。间隔4-6周一次。 ⚠️ 注意： • 遍数过多（>6遍）可能导致过度损伤 预计恢复期：5-7"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"needleLength\":\"42\",\"spacing\":\"42\",\"diameter\":\"42\",\"passes\":\"42\",\"mw\":\"42\",\"concentration\":\"42\",\"area\":\"42\",\"purpose\":\"collagen\"}，输出区含「总孔体积(μL) 95% 渗透效率 推荐长度：1.0-2.5mm。胶原诱导需到达…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "cosmetic-derm/post-procedure-recovery",
+    "inputs": {
+      "procDate": "abc123测试",
+      "procedure": "laser_co2",
+      "intensity": "1.0",
+      "photo": "2"
+    },
+    "expect": [
+      "少48-72小时） ⚠️ 您的PIH（炎症后色素沉着）风险为 高 。建议术后立即开始严格防晒，并使用含维C/烟酰胺的修复产品（结痂脱落后）预防色素沉着。"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"procDate\":\"abc123测试\",\"procedure\":\"laser_co2\",\"intensity\":\"1.0\",\"photo\":\"2\"}，输出区含「少48-72小时） ⚠️ 您的PIH（炎症后色素沉着）风险为 高 。建议术后立即…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "cosmetic-derm/pore-grading",
+    "inputs": {
+      "noseTip": "1",
+      "nasalAla": "1",
+      "cheek": "1",
+      "forehead": "1",
+      "poreType": "aging",
+      "sebumLevel": "2"
+    },
+    "expect": [
+      "等级 评估 鼻头 1级 近距离可见 鼻翼 1级 近距离可见 颊部 1级 近距离可见 前额 1级 近距离可见 老化型 毛孔类型 1.0 平均等级 胶原流失导致毛孔周围支撑结构松弛。重点在抗衰——维A酸、点阵激光刺激胶原再生。 皮脂正常，综合护"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"noseTip\":\"1\",\"nasalAla\":\"1\",\"cheek\":\"1\",\"forehead\":\"1\",\"poreType\":\"aging\",\"sebumLevel\":\"2\"}，输出区含「等级 评估 鼻头 1级 近距离可见 鼻翼 1级 近距离可见 颊部 1级 近距离可…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "cosmetic-derm/rf-tightening",
+    "inputs": {
+      "temp": "42",
+      "duration": "42",
+      "interval": "42",
+      "freq": "2",
+      "sessions": "3",
+      "cooling": "0"
+    },
+    "expect": [
+      "有效范围内（42-48°C）。 轻度效果：以促进循环和肤质改善为主。紧肤效果有限，适合维护性治疗。 疗程：3次 × 间隔42周，共126周。效果预计维持 3"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"temp\":\"42\",\"duration\":\"42\",\"interval\":\"42\",\"freq\":\"2\",\"sessions\":\"3\",\"cooling\":\"0\"}，输出区含「有效范围内（42-48°C）。 轻度效果：以促进循环和肤质改善为主。紧肤效果有限…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "cosmetic-derm/pifuphceding",
+    "inputs": {
+      "ph": "42",
+      "area": "前额"
+    },
+    "expect": [
+      " 皮肤 pH 值 碱性 酸碱状态 0 屏障健康度 前额 · 碱性 pH 偏高，皮肤屏障受损风险大，易干燥敏感"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"ph\":\"42\",\"area\":\"前额\"}，输出区含「 皮肤 pH 值 碱性 酸碱状态 0 屏障健康度 前额 · 碱性 pH 偏高，皮…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "cosmetic-derm/sebumeter",
+    "inputs": {
+      "forehead": "42",
+      "nose": "42",
+      "cheek": "42",
+      "chin": "42",
+      "temp": "42",
+      "timePoint": "1"
+    },
+    "expect": [
+      "偏低 偏干/中性 环境温度 42°C，已对皮脂值进行温度校正（基准 25°C，每±1°C 约 ±1% 皮脂变化）。 干性肌肤：注重保湿修复，选择含神经酰胺、角鲨烷的滋润型产品，避免过度清洁。"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"forehead\":\"42\",\"nose\":\"42\",\"cheek\":\"42\",\"chin\":\"42\",\"temp\":\"42\",\"timePoint\":\"1\"}，输出区含「偏低 偏干/中性 环境温度 42°C，已对皮脂值进行温度校正（基准 25°C，每…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "cosmetic-derm/skin-ph",
+    "inputs": {
+      "phValue": "42",
+      "site": "cheek",
+      "postClean": "1",
+      "skincare": "1"
+    },
+    "expect": [
+      "42\n请输入有效的 pH 值 (0-14)\ncheek\n1\n1"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"phValue\":\"42\",\"site\":\"cheek\",\"postClean\":\"1\",\"skincare\":\"1\"}，输出区含「42\n请输入有效的 pH 值 (0-14)\ncheek\n1\n1」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "cosmetic-derm/spf-pa-calculator",
+    "inputs": {
+      "med": "42",
+      "outdoorTime": "42",
+      "reapply": "42",
+      "photo": "2",
+      "uvi": "5",
+      "spf": "30",
+      "pa": "2",
+      "activity": "0.7"
+    },
+    "expect": [
+      "钟 理论保护时间 1260 分钟 (21.0h) 活动校正后 882"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"med\":\"42\",\"outdoorTime\":\"42\",\"reapply\":\"42\",\"photo\":\"2\",\"uvi\":\"5\",\"spf\":\"30\",\"pa\":\"2\",\"activity\":\"0.7\"}，输出区含「钟 理论保护时间 1260 分钟 (21.0h) 活动校正后 882」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "cosmetic-derm/ratio-composition-injection",
+    "inputs": {
+      "total": "42",
+      "ha": "42",
+      "rHa": "42",
+      "rVc": "42",
+      "rGsh": "42",
+      "rOther": "42"
+    },
+    "expect": [
+      " 合计 100% 42.00 — 1333.50 玻尿酸 25% 维生素C 25% 谷胱甘肽 25% 其他 25%\n暂无配方记录"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"total\":\"42\",\"ha\":\"42\",\"rHa\":\"42\",\"rVc\":\"42\",\"rGsh\":\"42\",\"rOther\":\"42\"}，输出区含「 合计 100% 42.00 — 1333.50 玻尿酸 25% 维生素C 25…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "cosmetic-derm/telangiectasia-area",
+    "inputs": {
+      "areaPct": "42",
+      "density": "42",
+      "diameter": "42",
+      "vesselType": "venous",
+      "zone": "2",
+      "symptom": "1"
+    },
+    "expect": [
+      "42\n42\n42\nvenous\n2\n1\n100 极重度毛细血管扩张 42% 受累面积 42 密度根/cm² 42mm 血管直径 面颊中部 分布区域 小静脉扩张 ：蓝色血管，首选"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"areaPct\":\"42\",\"density\":\"42\",\"diameter\":\"42\",\"vesselType\":\"venous\",\"zone\":\"2\",\"symptom\":\"1\"}，输出区含「42\n42\n42\nvenous\n2\n1\n100 极重度毛细血管扩张 42% 受累…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "cosmetic-derm/visia-spots",
+    "inputs": {
+      "spotCount": "42",
+      "areaPct": "42",
+      "depth": "42",
+      "percentile": "42",
+      "zone": "2",
+      "spotType": "solar"
+    },
+    "expect": [
+      "42\n42\n42\n2\nsolar\n42\n100 极重度色斑 42 色斑数量 42% 面积占比 42/10 色素深度 42% 同龄百分位 日光性黑子 ：光老化所致，调Q激光或 IPL 有效，注意与恶性黑子鉴别"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"spotCount\":\"42\",\"areaPct\":\"42\",\"depth\":\"42\",\"percentile\":\"42\",\"zone\":\"2\",\"spotType\":\"solar\"}，输出区含「42\n42\n42\n2\nsolar\n42\n100 极重度色斑 42 色斑数量 42…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "cosmetic-derm/thread-lift",
+    "inputs": {
+      "insertAngle": "42",
+      "liftAngle": "42",
+      "threadLength": "42",
+      "threadCount": "42",
+      "anchorForce": "42",
+      "zone": "lowerface",
+      "threadType": "cog_bidirectional",
+      "laxity": "2"
+    },
+    "expect": [
+      "°) 提拉方向 42° (推荐 35°) 锚定区域 耳前筋膜 两端反向锯齿，中部锚定。提拉力中等，适合轻中度松弛"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"insertAngle\":\"42\",\"liftAngle\":\"42\",\"threadLength\":\"42\",\"threadCount\":\"42\",\"anchorForce\":\"42\",\"zone\":\"lowerface\",\"threadType\":\"cog_bidirectional\",\"laxity\":\"2\"}，输出区含「°) 提拉方向 42° (推荐 35°) 锚定区域 耳前筋膜 两端反向锯齿，中部…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "cosmetic-derm/temp-time-4",
+    "inputs": {
+      "temp": "42",
+      "time": "42",
+      "rftype": "bi"
+    },
+    "expect": [
+      "胶原收缩率（估） 42℃ 真皮温度 无效 紧肤效果 双极射频 · 无效 温度低于胶原变性阈值，无明显"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"temp\":\"42\",\"time\":\"42\",\"rftype\":\"bi\"}，输出区含「胶原收缩率（估） 42℃ 真皮温度 无效 紧肤效果 双极射频 · 无效 温度低于…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "cosmetic-derm/wrinkle-dynamic-static",
+    "inputs": {
+      "crow_d": "1",
+      "crow_s": "1",
+      "glab_d": "1",
+      "glab_s": "1",
+      "fore_d": "1",
+      "fore_s": "1",
+      "nas_d": "1",
+      "nas_s": "1",
+      "nl_d": "1",
+      "nl_s": "1"
+    },
+    "expect": [
+      "建议方案 鱼尾纹 1 1 混合型 肉毒6U 川字纹 1 1 混合型 肉毒10U 抬头纹 1 1 混合型 肉毒8U 鼻背纹 1 1 混合型 肉毒2U 法令纹 1 1 混合型 0.5ml填充"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"crow_d\":\"1\",\"crow_s\":\"1\",\"glab_d\":\"1\",\"glab_s\":\"1\",\"fore_d\":\"1\",\"fore_s\":\"1\",\"nas_d\":\"1\",\"nas_s\":\"1\",\"nl_d\":\"1\",\"nl_s\":\"1\"}，输出区含「建议方案 鱼尾纹 1 1 混合型 肉毒6U 川字纹 1 1 混合型 肉毒10U …」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "cosmetic-derm/time-23",
+    "inputs": {
+      "proc": "frac_nd"
+    },
+    "expect": [
+      "\ude79 术后护理：术后冰敷，3天内避免彩妆，使用医用修复面膜，严格防晒\n暂无查询记录"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"proc\":\"frac_nd\"}，输出区含「\ude79 术后护理：术后冰敷，3天内避免彩妆，使用医用修复面膜，严格防晒\n暂无查询记录」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  }
+
 ];
 
 async function main() {

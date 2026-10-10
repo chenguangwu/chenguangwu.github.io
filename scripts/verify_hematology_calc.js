@@ -353,7 +353,28 @@ const CASES = [
     "105"
   ],
   "ref": "auto-restore"
-}
+},
+  {
+    "slug": "hematology/itp-risk-score",
+    "inputs": {
+      "drug": "quinine"
+    },
+    "expect": [
+      "录于病历） 4. 必要时短期使用IVIG或糖皮质激素（重症）"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"drug\":\"quinine\"}，输出区含「录于病历） 4. 必要时短期使用IVIG或糖皮质激素（重症）」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "hematology/generator-analysis",
+    "inputs": {
+      "cnt": "42"
+    },
+    "expect": [
+      "M·min 样本 10 滞后期 3.08"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"cnt\":\"42\"}，输出区含「M·min 样本 10 滞后期 3.08」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  }
+
 ];
 async function main() {
   const only = process.argv.slice(2);

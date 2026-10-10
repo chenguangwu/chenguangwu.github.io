@@ -734,6 +734,1282 @@ const CASES = [
     expect: ["sequential"],
     ref: "注入 csMode=sequential（默认 qualitative）、csStrategy=lightness（默认 auto）。输出第2/4行变为 'sequential'/'lightness'，默认态为 'qualitative'/'auto' 完全不含 ⇒ 0 逃生。注：csCount 是 range，注入会触发页面 csCount.input 读取报错，故本例不注入 csCount；颜色序列与 ΔE 文本为固定的 6 色结果区、不随 mode 变化，仅 mode/strategy/count 文本行随输入变化，故以 mode 串作判别点。纯前端无随机。",
   },
+  {
+    "slug": "design/avatar-generator",
+    "inputs": {
+      "seed": "abc123测试",
+      "size": "42",
+      "radius": "42",
+      "c1": "abc123测试",
+      "c2": "abc123测试",
+      "avatarStyle": "block"
+    },
+    "expect": [
+      "abc123测试\n42\n42\nabc123测试\nabc123测试\nblock\n"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"seed\":\"abc123测试\",\"size\":\"42\",\"radius\":\"42\",\"c1\":\"abc123测试\",\"c2\":\"abc123测试\",\"avatarStyle\":\"block\"}，输出区含「abc123测试\n42\n42\nabc123测试\nabc123测试\nblock\n」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "design/analysis-64",
+    "inputs": {
+      "p1a": "42",
+      "p1b": "42",
+      "p2a": "42",
+      "p2b": "42",
+      "p3a": "42",
+      "p3b": "42",
+      "p4a": "42",
+      "p4b": "42",
+      "p5a": "42",
+      "p5b": "42",
+      "scale": "5",
+      "bias": "price"
+    },
+    "expect": [
+      "0 功能完整度 20% 5.0 5.0 +0.0 +0.0 使用体验 20% 5.0 5.0 +0.0 +0.0 品牌信任 10% 5.0 5.0 +0.0 +0.0"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"p1a\":\"42\",\"p1b\":\"42\",\"p2a\":\"42\",\"p2b\":\"42\",\"p3a\":\"42\",\"p3b\":\"42\",\"p4a\":\"42\",\"p4b\":\"42\",\"p5a\":\"42\",\"p5b\":\"42\",\"scale\":\"5\",\"bias\":\"price\"}，输出区含「0 功能完整度 20% 5.0 5.0 +0.0 +0.0 使用体验 20% 5…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "design/aztec-code",
+    "inputs": {
+      "text": "abc123测试",
+      "fgColor": "abc123测试",
+      "bgColor": "abc123测试",
+      "size": "42"
+    },
+    "expect": [
+      "abc123测试\nabc123测试\nabc123测试\n42"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"text\":\"abc123测试\",\"fgColor\":\"abc123测试\",\"bgColor\":\"abc123测试\",\"size\":\"42\"}，输出区含「abc123测试\nabc123测试\nabc123测试\n42」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "design/badge-generator",
+    "inputs": {
+      "text": "abc123测试",
+      "bgColor": "abc123测试",
+      "textColor": "abc123测试",
+      "radius": "42",
+      "fontSize": "42",
+      "cssOutput": "1\n2\n3",
+      "badgeStyle": "outline"
+    },
+    "expect": [
+      "ckground:transparent;color:abc123测试;border:1px solid abc123测试; }"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"text\":\"abc123测试\",\"bgColor\":\"abc123测试\",\"textColor\":\"abc123测试\",\"radius\":\"42\",\"fontSize\":\"42\",\"cssOutput\":\"1\\n2\\n3\",\"badgeStyle\":\"outline\"}，输出区含「ckground:transparent;color:abc123测试;bord…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "design/base64-to-image",
+    "inputs": {
+      "b64Input": "1\n2\n3"
+    },
+    "expect": [
+      "1 2 3"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"b64Input\":\"1\\n2\\n3\"}，输出区含「1 2 3」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "design/blueprint-grid",
+    "inputs": {
+      "bgColor": "abc123测试",
+      "majorColor": "abc123测试",
+      "minorColor": "abc123测试",
+      "majorSize": "42",
+      "minorSize": "42",
+      "cssOutput": "1\n2\n3"
+    },
+    "expect": [
+      "nd-size: 42px 42px, 42px 42px, 42px 42px, 42px 42px;"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"bgColor\":\"abc123测试\",\"majorColor\":\"abc123测试\",\"minorColor\":\"abc123测试\",\"majorSize\":\"42\",\"minorSize\":\"42\",\"cssOutput\":\"1\\n2\\n3\"}，输出区含「nd-size: 42px 42px, 42px 42px, 42px 42px…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "design/border-radius-generator",
+    "inputs": {
+      "uniform": "42",
+      "tl": "42",
+      "tr": "42",
+      "br": "42",
+      "bl": "42",
+      "cssOutput": "1\n2\n3",
+      "unit": "%"
+    },
+    "expect": [
+      "-radius: 42%;\n42"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"uniform\":\"42\",\"tl\":\"42\",\"tr\":\"42\",\"br\":\"42\",\"bl\":\"42\",\"cssOutput\":\"1\\n2\\n3\",\"unit\":\"%\"}，输出区含「-radius: 42%;\n42」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "design/button-generator",
+    "inputs": {
+      "bgColor": "abc123测试",
+      "textColor": "abc123测试",
+      "radius": "42",
+      "padX": "42",
+      "padY": "42",
+      "borderColor": "abc123测试",
+      "borderW": "42",
+      "btnText": "abc123测试",
+      "fontSize": "42",
+      "shX": "42",
+      "shY": "42",
+      "shBlur": "42",
+      "cssOutput": "1\n2\n3"
+    },
+    "expect": [
+      "abc123测试\nabc123测试\n42\n42\n42\nabc123测试\n42\nabc123测试\n42\n42\n42\n42\nabc123测试"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"bgColor\":\"abc123测试\",\"textColor\":\"abc123测试\",\"radius\":\"42\",\"padX\":\"42\",\"padY\":\"42\",\"borderColor\":\"abc123测试\",\"borderW\":\"42\",\"btnText\":\"abc123测试\",\"fontSize\":\"42\",\"shX\":\"42\",\"shY\":\"42\",\"shBlur\":\"42\",\"cssOutput\":\"1\\n2\\n3\"}，输出区含「abc123测试\nabc123测试\n42\n42\n42\nabc123测试\n42\na…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "design/breakpoint-queries",
+    "inputs": {
+      "cls": "abc123测试"
+    },
+    "expect": [
+      "40px） */ abc123测试"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"cls\":\"abc123测试\"}，输出区含「40px） */ abc123测试」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "design/card-generator",
+    "inputs": {
+      "bgColor": "abc123测试",
+      "radius": "42",
+      "shX": "42",
+      "shY": "42",
+      "shBlur": "42",
+      "pad": "42",
+      "borderColor": "abc123测试",
+      "borderW": "42",
+      "shadowColor": "abc123测试",
+      "shadowOp": "42",
+      "cssOutput": "1\n2\n3"
+    },
+    "expect": [
+      "abc123测试\n42\n42\n42\n42\n42\nabc123测试\n42\nabc123测试\n42"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"bgColor\":\"abc123测试\",\"radius\":\"42\",\"shX\":\"42\",\"shY\":\"42\",\"shBlur\":\"42\",\"pad\":\"42\",\"borderColor\":\"abc123测试\",\"borderW\":\"42\",\"shadowColor\":\"abc123测试\",\"shadowOp\":\"42\",\"cssOutput\":\"1\\n2\\n3\"}，输出区含「abc123测试\n42\n42\n42\n42\n42\nabc123测试\n42\nabc1…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "design/checker",
+    "inputs": {
+      "fgColor": "abc123测试",
+      "fgPicker": "abc123测试",
+      "bgColor": "abc123测试",
+      "bgPicker": "abc123测试"
+    },
+    "expect": [
+      "ABC123测试\nABC123测试\n色值格式无效，请输入 #RRGGBB 或 rgb(r,g,b) 格式\nABC123测试\nABC123测试"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"fgColor\":\"abc123测试\",\"fgPicker\":\"abc123测试\",\"bgColor\":\"abc123测试\",\"bgPicker\":\"abc123测试\"}，输出区含「ABC123测试\nABC123测试\n色值格式无效，请输入 #RRGGBB 或 r…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "design/color-contrast-check",
+    "inputs": {
+      "fg": "abc123测试",
+      "bg": "abc123测试"
+    },
+    "expect": [
+      "abc123测试\nabc123测试\n请输入有效的十六进制颜色（如 #333333）。"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"fg\":\"abc123测试\",\"bg\":\"abc123测试\"}，输出区含「abc123测试\nabc123测试\n请输入有效的十六进制颜色（如 #333333…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "design/checkerboard-generator",
+    "inputs": {
+      "color1": "abc123测试",
+      "color2": "abc123测试",
+      "size": "42",
+      "cssOutput": "1\n2\n3"
+    },
+    "expect": [
+      "ent 75%, abc123测试 75%, abc123测试"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"color1\":\"abc123测试\",\"color2\":\"abc123测试\",\"size\":\"42\",\"cssOutput\":\"1\\n2\\n3\"}，输出区含「ent 75%, abc123测试 75%, abc123测试」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "design/color-shade-generator",
+    "inputs": {
+      "hex": "abc123测试",
+      "steps": "42"
+    },
+    "expect": [
+      "abc123测试\n明暗梯度 ⚠️ 请输入有效的 HEX 颜色（如 #6366F1）。\n42"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"hex\":\"abc123测试\",\"steps\":\"42\"}，输出区含「abc123测试\n明暗梯度 ⚠️ 请输入有效的 HEX 颜色（如 #6366F1…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "design/colorblind-simulator",
+    "inputs": {
+      "c1Color": "abc123测试",
+      "c1Hex": "abc123测试",
+      "c1R": "42",
+      "c1G": "42",
+      "c1B": "42",
+      "c1Sev": "42",
+      "c4Fg": "abc123测试",
+      "c4FgHex": "abc123测试",
+      "c4Bg": "abc123测试",
+      "c4BgHex": "abc123测试",
+      "c5Base": "abc123测试",
+      "c5BaseHex": "abc123测试",
+      "c5Count": "42",
+      "c2Input": "1\n2\n3",
+      "c4Size": "large",
+      "c5Mode": "lightness"
+    },
+    "expect": [
+      "abc123测试\nabc123测试\n42\n42\n42\n42\nabc123测试\nabc123测试\nabc123测试\nabc123测试\nabc123测试\nabc123测试\n42\n1 2 3\nlarge\nlightness"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"c1Color\":\"abc123测试\",\"c1Hex\":\"abc123测试\",\"c1R\":\"42\",\"c1G\":\"42\",\"c1B\":\"42\",\"c1Sev\":\"42\",\"c4Fg\":\"abc123测试\",\"c4FgHex\":\"abc123测试\",\"c4Bg\":\"abc123测试\",\"c4BgHex\":\"abc123测试\",\"c5Base\":\"abc123测试\",\"c5BaseHex\":\"abc123测试\",\"c5Count\":\"42\",\"c2Input\":\"1\\n2\\n3\",\"c4Size\":\"large\",\"c5Mode\":\"lightness\"}，输出区含「abc123测试\nabc123测试\n42\n42\n42\n42\nabc123测试\na…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "design/contrast-checker",
+    "inputs": {
+      "fgColor": "abc123测试",
+      "fgHex": "abc123测试",
+      "bgColor": "abc123测试",
+      "bgHex": "abc123测试"
+    },
+    "expect": [
+      "灰背景 暖色背景\nabc123测试\nabc123测试\n1.00\n不达标"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"fgColor\":\"abc123测试\",\"fgHex\":\"abc123测试\",\"bgColor\":\"abc123测试\",\"bgHex\":\"abc123测试\"}，输出区含「灰背景 暖色背景\nabc123测试\nabc123测试\n1.00\n不达标」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "design/css-animation-generator",
+    "inputs": {
+      "duration": "42",
+      "delay": "42",
+      "bx1": "42",
+      "by1": "42",
+      "bx2": "42",
+      "by2": "42",
+      "easing": "ease",
+      "iteration": "2",
+      "direction": "reverse",
+      "fillMode": "forwards"
+    },
+    "expect": [
+      " fade-in 42s ease 42s 2 reverse forwards ; }\n42\n42\n42\n42"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"duration\":\"42\",\"delay\":\"42\",\"bx1\":\"42\",\"by1\":\"42\",\"bx2\":\"42\",\"by2\":\"42\",\"easing\":\"ease\",\"iteration\":\"2\",\"direction\":\"reverse\",\"fillMode\":\"forwards\"}，输出区含「 fade-in 42s ease 42s 2 reverse forwards…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "design/css-border-radius",
+    "inputs": {
+      "allRadius": "42",
+      "tl1": "42",
+      "tl2": "42",
+      "tr1": "42",
+      "tr2": "42",
+      "bl1": "42",
+      "bl2": "42",
+      "br1": "42",
+      "br2": "42",
+      "cssOutput": "1\n2\n3"
+    },
+    "expect": [
+      " 斜角 ☆ 波浪\n42\n42px\n42\n42\n42\n42\n42\n42\n42\n42\n42%\n42%\n42%\n42%\n42%\n42%\n42%\n42"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"allRadius\":\"42\",\"tl1\":\"42\",\"tl2\":\"42\",\"tr1\":\"42\",\"tr2\":\"42\",\"bl1\":\"42\",\"bl2\":\"42\",\"br1\":\"42\",\"br2\":\"42\",\"cssOutput\":\"1\\n2\\n3\"}，输出区含「 斜角 ☆ 波浪\n42\n42px\n42\n42\n42\n42\n42\n42\n42\n42…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "design/css-grid-generator",
+    "inputs": {
+      "cols": "42",
+      "gap": "42",
+      "containerW": "42"
+    },
+    "expect": [
+      "42\n42\n42\n列数需在 1-12 之间。"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"cols\":\"42\",\"gap\":\"42\",\"containerW\":\"42\"}，输出区含「42\n42\n42\n列数需在 1-12 之间。」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "design/css-box-shadow-generator",
+    "inputs": {
+      "offsetX": "42",
+      "offsetY": "42",
+      "blur": "42",
+      "spread": "42",
+      "opacity": "42",
+      "color": "abc123测试",
+      "colorText": "abc123测试",
+      "cssOutput": "1\n2\n3"
+    },
+    "expect": [
+      "-shadow: 42px 42px 42px 42"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"offsetX\":\"42\",\"offsetY\":\"42\",\"blur\":\"42\",\"spread\":\"42\",\"opacity\":\"42\",\"color\":\"abc123测试\",\"colorText\":\"abc123测试\",\"cssOutput\":\"1\\n2\\n3\"}，输出区含「-shadow: 42px 42px 42px 42」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "design/data-matrix",
+    "inputs": {
+      "text": "abc123测试",
+      "fgColor": "abc123测试",
+      "bgColor": "abc123测试",
+      "size": "42"
+    },
+    "expect": [
+      "abc123测试\nabc123测试\nabc123测试\n42"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"text\":\"abc123测试\",\"fgColor\":\"abc123测试\",\"bgColor\":\"abc123测试\",\"size\":\"42\"}，输出区含「abc123测试\nabc123测试\nabc123测试\n42」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "design/css-text-shadow",
+    "inputs": {
+      "customText": "abc123测试",
+      "offsetX": "42",
+      "offsetY": "42",
+      "blur": "42",
+      "color": "abc123测试",
+      "colorText": "abc123测试",
+      "opacity": "42",
+      "textColor": "abc123测试",
+      "textColorText": "abc123测试",
+      "fontSize": "42",
+      "cssOutput": "1\n2\n3"
+    },
+    "expect": [
+      "\n#000000\n42\n42px\nabc123测试\nabc123测试"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"customText\":\"abc123测试\",\"offsetX\":\"42\",\"offsetY\":\"42\",\"blur\":\"42\",\"color\":\"abc123测试\",\"colorText\":\"abc123测试\",\"opacity\":\"42\",\"textColor\":\"abc123测试\",\"textColorText\":\"abc123测试\",\"fontSize\":\"42\",\"cssOutput\":\"1\\n2\\n3\"}，输出区含「\n#000000\n42\n42px\nabc123测试\nabc123测试」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "design/depth-of-field-calculator",
+    "inputs": {
+      "focal": "42",
+      "aperture": "42",
+      "distance": "42",
+      "sensor": "1.5"
+    },
+    "expect": [
+      "1.5\n42\n42\n42\n—m ~ ∞\n—m 近点清晰 ∞ 远点清晰 4.7m 超焦距"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"focal\":\"42\",\"aperture\":\"42\",\"distance\":\"42\",\"sensor\":\"1.5\"}，输出区含「1.5\n42\n42\n42\n—m ~ ∞\n—m 近点清晰 ∞ 远点清晰 4.7m …」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "design/detector-28",
+    "inputs": {
+      "formaldehyde": "42",
+      "voc": "42",
+      "benzeneContent": "42",
+      "matType": "paint"
+    },
+    "expect": [
+      "/kg 限值要求：VOC≤120g/L 环保等级： 合格品 符合GB 18582标准，可用于室内墙面"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"formaldehyde\":\"42\",\"voc\":\"42\",\"benzeneContent\":\"42\",\"matType\":\"paint\"}，输出区含「/kg 限值要求：VOC≤120g/L 环保等级： 合格品 符合GB 18582…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "design/detector-29",
+    "inputs": {
+      "fgColor": "abc123测试",
+      "bgColor": "abc123测试",
+      "textSize": "large",
+      "targetLevel": "aaa"
+    },
+    "expect": [
+      "Over） AA\nabc123测试\nabc123测试\nlarge\naaa\n颜色格式错误，请输入正确的HEX颜色（如#1F2937）\n"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"fgColor\":\"abc123测试\",\"bgColor\":\"abc123测试\",\"textSize\":\"large\",\"targetLevel\":\"aaa\"}，输出区含「Over） AA\nabc123测试\nabc123测试\nlarge\naaa\n颜色格…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "design/dot-pattern",
+    "inputs": {
+      "bgColor": "abc123测试",
+      "dotColor": "abc123测试",
+      "dotSize": "42",
+      "spacing": "42",
+      "cssOutput": "1\n2\n3",
+      "arrangement": "offset"
+    },
+    "expect": [
+      "ckground-position: 0 0, 21px 21px;"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"bgColor\":\"abc123测试\",\"dotColor\":\"abc123测试\",\"dotSize\":\"42\",\"spacing\":\"42\",\"cssOutput\":\"1\\n2\\n3\",\"arrangement\":\"offset\"}，输出区含「ckground-position: 0 0, 21px 21px;」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "design/favicon-from-emoji",
+    "inputs": {
+      "emoji": "abc123测试",
+      "bgColor": "abc123测试",
+      "size": "42",
+      "radius": "42"
+    },
+    "expect": [
+      "abc123测试\nabc123测试\n42\n42\nabc123测试 abc123测试 abc123测试"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"emoji\":\"abc123测试\",\"bgColor\":\"abc123测试\",\"size\":\"42\",\"radius\":\"42\"}，输出区含「abc123测试\nabc123测试\n42\n42\nabc123测试 abc123测…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "design/farnsworth-d15-test",
+    "inputs": {
+      "fdSize": "42",
+      "fdShuffle": "medium",
+      "fdMode": "swap",
+      "fdLabel": "none"
+    },
+    "expect": [
+      "基准 ◀ ▶ ◀ ▶ ◀ ▶ ◀ ▶ ◀ ▶ ◀ ▶ ◀ ▶ ◀ ▶ ◀ ▶ ◀ ▶ ◀ ▶ ◀ ▶ ◀ ▶"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"fdSize\":\"42\",\"fdShuffle\":\"medium\",\"fdMode\":\"swap\",\"fdLabel\":\"none\"}，输出区含「基准 ◀ ▶ ◀ ▶ ◀ ▶ ◀ ▶ ◀ ▶ ◀ ▶ ◀ ▶ ◀ ▶ ◀ ▶ ◀…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "design/favicon-from-text",
+    "inputs": {
+      "text": "abc123测试",
+      "bgColor": "abc123测试",
+      "textColor": "abc123测试",
+      "size": "42",
+      "radius": "42"
+    },
+    "expect": [
+      "abc123测试\nabc123测试\nabc123测试\n42\n42\nabc123测试 abc123测试 abc123测试"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"text\":\"abc123测试\",\"bgColor\":\"abc123测试\",\"textColor\":\"abc123测试\",\"size\":\"42\",\"radius\":\"42\"}，输出区含「abc123测试\nabc123测试\nabc123测试\n42\n42\nabc123测…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "design/flexbox-generator",
+    "inputs": {
+      "gap": "42",
+      "dir": "row-reverse",
+      "just": "center",
+      "ali": "flex-start",
+      "wrap": "wrap"
+    },
+    "expect": [
+      "row-reverse\ncenter"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"gap\":\"42\",\"dir\":\"row-reverse\",\"just\":\"center\",\"ali\":\"flex-start\",\"wrap\":\"wrap\"}，输出区含「row-reverse\ncenter」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "design/favicon-generator",
+    "inputs": {
+      "textInput": "abc123测试",
+      "bgColor": "abc123测试",
+      "bgHex": "abc123测试",
+      "fgColor": "abc123测试",
+      "fgHex": "abc123测试",
+      "fontSize": "42",
+      "fontWeight": "bold"
+    },
+    "expect": [
+      "abc123测试\nabc123测试\nabc123测试\n42\nbold\nabc123测试"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"textInput\":\"abc123测试\",\"bgColor\":\"abc123测试\",\"bgHex\":\"abc123测试\",\"fgColor\":\"abc123测试\",\"fgHex\":\"abc123测试\",\"fontSize\":\"42\",\"fontWeight\":\"bold\"}，输出区含「abc123测试\nabc123测试\nabc123测试\n42\nbold\nabc12…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "design/font-preview",
+    "inputs": {
+      "fpSize": "42",
+      "fpSearch": "abc123测试",
+      "fpText": "1\n2\n3"
+    },
+    "expect": [
+      "1 2 3\n42\nNaNpx\nabc123测试"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"fpSize\":\"42\",\"fpSearch\":\"abc123测试\",\"fpText\":\"1\\n2\\n3\"}，输出区含「1 2 3\n42\nNaNpx\nabc123测试」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "design/focal-length-equivalent",
+    "inputs": {
+      "focal": "42",
+      "compareFocal": "42",
+      "fromSensor": "aps-c",
+      "toSensor": "aps-c"
+    },
+    "expect": [
+      "段类型 视角: 30.0° × 20.2° → 30.0° × 20.2°\n67mm 全画幅等效\n42"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"focal\":\"42\",\"compareFocal\":\"42\",\"fromSensor\":\"aps-c\",\"toSensor\":\"aps-c\"}，输出区含「段类型 视角: 30.0° × 20.2° → 30.0° × 20.2°\n67…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "design/generator-10",
+    "inputs": {
+      "cnt": "42"
+    },
+    "expect": [
+      "mation: flip-873 2.7s cubic-bezier(0.68,-0.55,0.27,1.55) 0.2s 2 normal"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"cnt\":\"42\"}，输出区含「mation: flip-873 2.7s cubic-bezier(0.68,…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "design/generator-11",
+    "inputs": {
+      "cnt": "42"
+    },
+    "expect": [
+      "(45deg, #00C9A7, #00C9A7 10.75px, #00C9A7 10.75px, #00C9A7 21.5px); } 30. 波浪"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"cnt\":\"42\"}，输出区含「(45deg, #00C9A7, #00C9A7 10.75px, #00C9A…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  
+  {
+    "slug": "design/generator-33",
+    "inputs": {
+      "total": "42",
+      "chapters": "42",
+      "minCh": "42",
+      "perDay": "42",
+      "mode": "four"
+    },
+    "expect": [
+      "00 万 字 / 21 章 转 30% 13 章 12.60 万 字 33.60 万 字 / 34 章 合 20% 8 章 8.40 万 字 42"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"total\":\"42\",\"chapters\":\"42\",\"minCh\":\"42\",\"perDay\":\"42\",\"mode\":\"four\"}，输出区含「00 万 字 / 21 章 转 30% 13 章 12.60 万 字 33.60…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "design/generator-38",
+    "inputs": {
+      "target": "abc123测试",
+      "constraint": "abc123测试",
+      "cnt": "42",
+      "task": "优化",
+      "format": "表格"
+    },
+    "expect": [
+      "家。 【任务】对「abc123测试」执行优化。 【输出格式】按表格输出 20"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"target\":\"abc123测试\",\"constraint\":\"abc123测试\",\"cnt\":\"42\",\"task\":\"优化\",\"format\":\"表格\"}，输出区含「家。 【任务】对「abc123测试」执行优化。 【输出格式】按表格输出 20」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "design/generator-34",
+    "inputs": {
+      "slides": "42",
+      "minutes": "42",
+      "points": "42",
+      "fontSize": "42",
+      "speed": "180",
+      "ratio": "1920x1200"
+    },
+    "expect": [
+      "第 4 页 正文 61.2 s 1.5 s 110 字 第 22 页 正文 61.2 s 1.5 s 110 字 第 39 页 正文 61.2 s 1.5 s 110 字 第 40 页 正文 61.2 s 1.5 s 110 字 第 41 "
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"slides\":\"42\",\"minutes\":\"42\",\"points\":\"42\",\"fontSize\":\"42\",\"speed\":\"180\",\"ratio\":\"1920x1200\"}，输出区含「第 4 页 正文 61.2 s 1.5 s 110 字 第 22 页 正文 61…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "design/generator-9",
+    "inputs": {
+      "cnt": "42"
+    },
+    "expect": [
+      "N-13 条形码 1 661910 592918 完整数字: 1661910592918 | 校验位: 8 17"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"cnt\":\"42\"}，输出区含「N-13 条形码 1 661910 592918 完整数字: 166191059…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "design/generator-7",
+    "inputs": {
+      "cnt": "42"
+    },
+    "expect": [
+      "-radius: 26px; } 16. outset"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"cnt\":\"42\"}，输出区含「-radius: 26px; } 16. outset」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "design/generator-8",
+    "inputs": {
+      "cnt": "42"
+    },
+    "expect": [
+      "le.com/q/ffzqi2oo"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"cnt\":\"42\"}，输出区含「le.com/q/ffzqi2oo」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "design/generator-6",
+    "inputs": {
+      "cnt": "42"
+    },
+    "expect": [
+      "-shadow: 7px -13px 9px 1px rgba(59, 130, 246, 0.40), -9px 7px 19px 9px rgba(245, 158, 11, 0.47), -6px 18px 26"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"cnt\":\"42\"}，输出区含「-shadow: 7px -13px 9px 1px rgba(59, 130,…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "design/gradient",
+    "inputs": {
+      "angle": "42",
+      "cssOutput": "1\n2\n3",
+      "gradientType": "radial"
+    },
+    "expect": [
+      "× 100% ×\nradial"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"angle\":\"42\",\"cssOutput\":\"1\\n2\\n3\",\"gradientType\":\"radial\"}，输出区含「× 100% ×\nradial」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "design/grid-pattern",
+    "inputs": {
+      "bgColor": "abc123测试",
+      "lineColor": "abc123测试",
+      "cellSize": "42",
+      "lineWidth": "42",
+      "cssOutput": "1\n2\n3",
+      "gridType": "dotted"
+    },
+    "expect": [
+      "abc123测试\nabc123测试\n42\n42\ndotted"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"bgColor\":\"abc123测试\",\"lineColor\":\"abc123测试\",\"cellSize\":\"42\",\"lineWidth\":\"42\",\"cssOutput\":\"1\\n2\\n3\",\"gridType\":\"dotted\"}，输出区含「abc123测试\nabc123测试\n42\n42\ndotted」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "design/glassmorphism-generator",
+    "inputs": {
+      "opacity": "42",
+      "blur": "42",
+      "radius": "42",
+      "borderOp": "42",
+      "shadow": "42",
+      "saturate": "42",
+      "bgColor": "abc123测试",
+      "bgColorText": "abc123测试",
+      "cssOutput": "1\n2\n3"
+    },
+    "expect": [
+      "玻璃 方形玻璃\n\nabc123测试\n42\n42\n42\n42\n42\n42\n0.42\n42px\n42px\n0.42\n0.42\n42%\nabc123测试"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"opacity\":\"42\",\"blur\":\"42\",\"radius\":\"42\",\"borderOp\":\"42\",\"shadow\":\"42\",\"saturate\":\"42\",\"bgColor\":\"abc123测试\",\"bgColorText\":\"abc123测试\",\"cssOutput\":\"1\\n2\\n3\"}，输出区含「玻璃 方形玻璃\n\nabc123测试\n42\n42\n42\n42\n42\n42\n0.42…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "design/gradient-from-color",
+    "inputs": {
+      "baseColor": "abc123测试",
+      "steps": "42",
+      "cssOutput": "1\n2\n3",
+      "direction": "90"
+    },
+    "expect": [
+      "gradient(90deg, #fed1cd 0%, #feada6 11%, #fd897f 22%, #fc6558 33%, #fc4131 44%, #fb1d0a 56%, #da1503 67%, #b21103 78%, #"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"baseColor\":\"abc123测试\",\"steps\":\"42\",\"cssOutput\":\"1\\n2\\n3\",\"direction\":\"90\"}，输出区含「gradient(90deg, #fed1cd 0%, #feada6 11%,…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "design/identicon-generator",
+    "inputs": {
+      "seed": "abc123测试",
+      "size": "42",
+      "bgColor": "abc123测试",
+      "blocks": "42"
+    },
+    "expect": [
+      "abc123测试\n42\nabc123测试\n42\n"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"seed\":\"abc123测试\",\"size\":\"42\",\"bgColor\":\"abc123测试\",\"blocks\":\"42\"}，输出区含「abc123测试\n42\nabc123测试\n42\n」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "design/image-dpi-converter",
+    "inputs": {
+      "w1": "42",
+      "h1": "42",
+      "dpi1": "42",
+      "w2": "42",
+      "h2": "42",
+      "dpi2": "42",
+      "w3": "42",
+      "h3": "42",
+      "diag3": "6.1"
+    },
+    "expect": [
+      "线 (mm) 1.0000 宽高比 42 × 42 像素 @ 42 DPI = 25.40 × 25.40 mm\n42\n42\n42\n694 宽度 (像素) 694 高度 (像素) 0.48 MP 总像素 1.0000 宽高比 42 × 42"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"w1\":\"42\",\"h1\":\"42\",\"dpi1\":\"42\",\"w2\":\"42\",\"h2\":\"42\",\"dpi2\":\"42\",\"w3\":\"42\",\"h3\":\"42\",\"diag3\":\"6.1\"}，输出区含「线 (mm) 1.0000 宽高比 42 × 42 像素 @ 42 DPI = …」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "design/image-cropper",
+    "inputs": {
+      "cx": "42",
+      "cy": "42",
+      "cw": "42",
+      "ch": "42"
+    },
+    "expect": [
+      "42\n42\n42\n42"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"cx\":\"42\",\"cy\":\"42\",\"cw\":\"42\",\"ch\":\"42\"}，输出区含「42\n42\n42\n42」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "design/image-resizer",
+    "inputs": {
+      "width": "42",
+      "height": "42"
+    },
+    "expect": [
+      "42\n42"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"width\":\"42\",\"height\":\"42\"}，输出区含「42\n42」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "design/image-rounded-corners",
+    "inputs": {
+      "radiusSlider": "42",
+      "tlSlider": "42",
+      "trSlider": "42",
+      "blSlider": "42",
+      "brSlider": "42",
+      "bgColor": "abc123测试",
+      "bgColorText": "abc123测试",
+      "gradColor1": "abc123测试",
+      "gradColor1Text": "abc123测试",
+      "gradColor2": "abc123测试",
+      "gradColor2Text": "abc123测试",
+      "gradDirection": "to bottom"
+    },
+    "expect": [
+      "42\nundefinedpx\n42\n42\n42\n42\n42\n42\n42\n42\nabc123测试\nabc123测试\nabc123测试\nabc123测试\nabc123测试\nabc123测试\nto bottom"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"radiusSlider\":\"42\",\"tlSlider\":\"42\",\"trSlider\":\"42\",\"blSlider\":\"42\",\"brSlider\":\"42\",\"bgColor\":\"abc123测试\",\"bgColorText\":\"abc123测试\",\"gradColor1\":\"abc123测试\",\"gradColor1Text\":\"abc123测试\",\"gradColor2\":\"abc123测试\",\"gradColor2Text\":\"abc123测试\",\"gradDirection\":\"to bottom\"}，输出区含「42\nundefinedpx\n42\n42\n42\n42\n42\n42\n42\n42\na…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "design/image-format-converter",
+    "inputs": {
+      "qualitySlider": "42",
+      "customWidth": "42",
+      "customHeight": "42",
+      "percentScale": "42"
+    },
+    "expect": [
+      "42\n42%\n42\n42\n42"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"qualitySlider\":\"42\",\"customWidth\":\"42\",\"customHeight\":\"42\",\"percentScale\":\"42\"}，输出区含「42\n42%\n42\n42\n42」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "design/image-to-ascii",
+    "inputs": {
+      "width": "42",
+      "contrast": "42",
+      "brightness": "42"
+    },
+    "expect": [
+      "42\n42\n42"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"width\":\"42\",\"contrast\":\"42\",\"brightness\":\"42\"}，输出区含「42\n42\n42」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "design/initials-avatar",
+    "inputs": {
+      "name": "abc123测试",
+      "size": "42",
+      "radius": "42",
+      "fontSize": "42",
+      "textColor": "abc123测试",
+      "bg1": "abc123测试",
+      "bg2": "abc123测试",
+      "bgStyle": "custom",
+      "letterCount": "2"
+    },
+    "expect": [
+      "abc123测试\n42\n42\n42\nabc123测试\ncustom\nabc123测试\nabc123测试\n2\n"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"name\":\"abc123测试\",\"size\":\"42\",\"radius\":\"42\",\"fontSize\":\"42\",\"textColor\":\"abc123测试\",\"bg1\":\"abc123测试\",\"bg2\":\"abc123测试\",\"bgStyle\":\"custom\",\"letterCount\":\"2\"}，输出区含「abc123测试\n42\n42\n42\nabc123测试\ncustom\nabc123…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "design/iso-noise-reference",
+    "inputs": {
+      "isoRange": "42",
+      "sensor": "m43",
+      "light": "normal",
+      "camera": "sony_a7rv"
+    },
+    "expect": [
+      "焦 ⚠️ 不足： 高感不如低像素机型、文件大 💡 总结： 高像素机型，高感表现尚可，缩图后接近低像素机型"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"isoRange\":\"42\",\"sensor\":\"m43\",\"light\":\"normal\",\"camera\":\"sony_a7rv\"}，输出区含「焦 ⚠️ 不足： 高感不如低像素机型、文件大 💡 总结： 高像素机型，高感表现…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "design/isometric-grid",
+    "inputs": {
+      "bgColor": "abc123测试",
+      "lineColor": "abc123测试",
+      "size": "42",
+      "lineWidth": "42",
+      "cssOutput": "1\n2\n3"
+    },
+    "expect": [
+      "abc123测试\nabc123测试\n42\n42"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"bgColor\":\"abc123测试\",\"lineColor\":\"abc123测试\",\"size\":\"42\",\"lineWidth\":\"42\",\"cssOutput\":\"1\\n2\\n3\"}，输出区含「abc123测试\nabc123测试\n42\n42」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "design/loading-dots",
+    "inputs": {
+      "color": "abc123测试",
+      "count": "42",
+      "size": "42",
+      "speed": "42",
+      "cssOutput": "1\n2\n3",
+      "animType": "pulse"
+    },
+    "expect": [
+      "pulse\nabc123测试\n42\n42\n42"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"color\":\"abc123测试\",\"count\":\"42\",\"size\":\"42\",\"speed\":\"42\",\"cssOutput\":\"1\\n2\\n3\",\"animType\":\"pulse\"}，输出区含「pulse\nabc123测试\n42\n42\n42」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "design/neomorphism-generator",
+    "inputs": {
+      "distance": "42",
+      "blur": "42",
+      "intensity": "42",
+      "radius": "42",
+      "bgColor": "abc123测试",
+      "bgColorText": "abc123测试",
+      "cssOutput": "1\n2\n3"
+    },
+    "expect": [
+      "-shadow: 42px 42px 42px rgba(199, 204, 211, 0.42), -42px -42px 4"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"distance\":\"42\",\"blur\":\"42\",\"intensity\":\"42\",\"radius\":\"42\",\"bgColor\":\"abc123测试\",\"bgColorText\":\"abc123测试\",\"cssOutput\":\"1\\n2\\n3\"}，输出区含「-shadow: 42px 42px 42px rgba(199, 204, 2…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "design/material-color",
+    "inputs": {
+      "searchInput": "abc123测试"
+    },
+    "expect": [
+      "abc123测试\n"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"searchInput\":\"abc123测试\"}，输出区含「abc123测试\n」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "design/palette-cvd-checker",
+    "inputs": {
+      "pcPick": "abc123测试",
+      "pcInput": "1\n2\n3",
+      "pcMetric": "e76"
+    },
+    "expect": [
+      "色盲 灰度/黑白\n尚未解析到有效颜色\ne76\n1 2 3\nabc123测试"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"pcPick\":\"abc123测试\",\"pcInput\":\"1\\n2\\n3\",\"pcMetric\":\"e76\"}，输出区含「色盲 灰度/黑白\n尚未解析到有效颜色\ne76\n1 2 3\nabc123测试」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "design/pattern-generator",
+    "inputs": {
+      "color1": "abc123测试",
+      "color2": "abc123测试",
+      "size": "42",
+      "cssOutput": "1\n2\n3"
+    },
+    "expect": [
+      "ent 75%, abc123测试 75%, abc123测试"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"color1\":\"abc123测试\",\"color2\":\"abc123测试\",\"size\":\"42\",\"cssOutput\":\"1\\n2\\n3\"}，输出区含「ent 75%, abc123测试 75%, abc123测试」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "design/photo-aspect-ratio-calculator",
+    "inputs": {
+      "w": "42",
+      "h": "42"
+    },
+    "expect": [
+      "幅 3:1 全景\n42 × 42\n1:1 最简比例 1.000:1 宽高比 0.00"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"w\":\"42\",\"h\":\"42\"}，输出区含「幅 3:1 全景\n42 × 42\n1:1 最简比例 1.000:1 宽高比 0.…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "design/particle-effect-generator",
+    "inputs": {
+      "count": "42",
+      "psize": "42",
+      "speed": "42",
+      "gravity": "42",
+      "lifetime": "42",
+      "linkDist": "42",
+      "pColor": "abc123测试",
+      "bgColor": "abc123测试"
+    },
+    "expect": [
+      "42\n42\n42\nabc123测试\nabc123测试\n42\n42\n42\n42\n42\n42\n42.00\n42\n∞\n粒子: 42 | FPS: 0"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"count\":\"42\",\"psize\":\"42\",\"speed\":\"42\",\"gravity\":\"42\",\"lifetime\":\"42\",\"linkDist\":\"42\",\"pColor\":\"abc123测试\",\"bgColor\":\"abc123测试\"}，输出区含「42\n42\n42\nabc123测试\nabc123测试\n42\n42\n42\n42\n4…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "design/photo-print-size",
+    "inputs": {
+      "pw": "42",
+      "ph": "42",
+      "dpi": "200"
+    },
+    "expect": [
+      "| 需要像素: 1599×2000 (3.2MP) A4 ⚠️ 像素不"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"pw\":\"42\",\"ph\":\"42\",\"dpi\":\"200\"}，输出区含「| 需要像素: 1599×2000 (3.2MP) A4 ⚠️ 像素不」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "design/pixel-art-generator",
+    "inputs": {
+      "gs": "42"
+    },
+    "expect": [
+      "42\n网格尺寸需在 4-24 之间。"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"gs\":\"42\"}，输出区含「42\n网格尺寸需在 4-24 之间。」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "design/pixel-art",
+    "inputs": {
+      "colorPicker": "abc123测试",
+      "colorText": "abc123测试"
+    },
+    "expect": [
+      "\nabc123测试"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"colorPicker\":\"abc123测试\",\"colorText\":\"abc123测试\"}，输出区含「\nabc123测试」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "design/progress-bar-generator",
+    "inputs": {
+      "percent": "42",
+      "height": "42",
+      "color1": "abc123测试",
+      "color2": "abc123测试",
+      "radius": "42",
+      "cssOutput": "1\n2\n3"
+    },
+    "expect": [
+      "42\n42\nabc123测试\nabc123测试\n42\n42"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"percent\":\"42\",\"height\":\"42\",\"color1\":\"abc123测试\",\"color2\":\"abc123测试\",\"radius\":\"42\",\"cssOutput\":\"1\\n2\\n3\"}，输出区含「42\n42\nabc123测试\nabc123测试\n42\n42」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "design/px-to-rem",
+    "inputs": {
+      "px": "42",
+      "root": "42"
+    },
+    "expect": [
+      "x（1rem = 42px）"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"px\":\"42\",\"root\":\"42\"}，输出区含「x（1rem = 42px）」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "design/photo-storage-calculator",
+    "inputs": {
+      "count": "42",
+      "megapixel": "20",
+      "format": "raw_uncompressed",
+      "bit": "12",
+      "cardSize": "64",
+      "video": "10"
+    },
+    "expect": [
+      "% 此卡可存储约 2,290 张照片\n572 16 GB 1,145 32 GB 2,290 64 GB 4,581 128 GB 9,162 256 GB 18,325 512 GB 36,650 1 TB 73,300"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"count\":\"42\",\"megapixel\":\"20\",\"format\":\"raw_uncompressed\",\"bit\":\"12\",\"cardSize\":\"64\",\"video\":\"10\"}，输出区含「% 此卡可存储约 2,290 张照片\n572 16 GB 1,145 32 GB…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "design/png-to-svg",
+    "inputs": {
+      "blockSize": "42",
+      "alphaTh": "42",
+      "svgCode": "1\n2\n3"
+    },
+    "expect": [
+      "42\n42\n1 2 3"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"blockSize\":\"42\",\"alphaTh\":\"42\",\"svgCode\":\"1\\n2\\n3\"}，输出区含「42\n42\n1 2 3」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "design/qr-code-styled",
+    "inputs": {
+      "text": "abc123测试",
+      "fgColor": "abc123测试",
+      "bgColor": "abc123测试",
+      "size": "42",
+      "ecLevel": "M"
+    },
+    "expect": [
+      "abc123测试\nabc123测试\nabc123测试\n42\nM"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"text\":\"abc123测试\",\"fgColor\":\"abc123测试\",\"bgColor\":\"abc123测试\",\"size\":\"42\",\"ecLevel\":\"M\"}，输出区含「abc123测试\nabc123测试\nabc123测试\n42\nM」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "design/rem-to-px",
+    "inputs": {
+      "rem": "42",
+      "root": "42"
+    },
+    "expect": [
+      "42\n42\n转换结果 42rem = 1764"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"rem\":\"42\",\"root\":\"42\"}，输出区含「42\n42\n转换结果 42rem = 1764」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "design/ripple-effect",
+    "inputs": {
+      "bgColor": "abc123测试",
+      "rippleColor": "abc123测试",
+      "duration": "42",
+      "size": "42",
+      "cssOutput": "1\n2\n3",
+      "rippleType": "pulse"
+    },
+    "expect": [
+      "pulse\nabc123测试\nabc123测试\n42\n42\n\n.pulse-dot"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"bgColor\":\"abc123测试\",\"rippleColor\":\"abc123测试\",\"duration\":\"42\",\"size\":\"42\",\"cssOutput\":\"1\\n2\\n3\",\"rippleType\":\"pulse\"}，输出区含「pulse\nabc123测试\nabc123测试\n42\n42\n\n.pulse-do…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "design/signature-pad",
+    "inputs": {
+      "strokeWidth": "42",
+      "colorPicker": "abc123测试"
+    },
+    "expect": [
+      "42\nabc123测试"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"strokeWidth\":\"42\",\"colorPicker\":\"abc123测试\"}，输出区含「42\nabc123测试」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "design/shadow-generator",
+    "inputs": {
+      "offsetX": "42",
+      "offsetY": "42",
+      "blur": "42",
+      "spread": "42",
+      "color": "abc123测试",
+      "colorText": "abc123测试",
+      "inset": "inset"
+    },
+    "expect": [
+      "-shadow: inset 42px 42px 42px 42px abc123测试"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"offsetX\":\"42\",\"offsetY\":\"42\",\"blur\":\"42\",\"spread\":\"42\",\"color\":\"abc123测试\",\"colorText\":\"abc123测试\",\"inset\":\"inset\"}，输出区含「-shadow: inset 42px 42px 42px 42px abc12…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "design/shutter-speed-calculator",
+    "inputs": {
+      "focal": "42",
+      "crop": "1.5",
+      "is": "2"
+    },
+    "expect": [
+      "42\n1.5\n2\n1/3"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"focal\":\"42\",\"crop\":\"1.5\",\"is\":\"2\"}，输出区含「42\n1.5\n2\n1/3」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "design/skeleton-loader",
+    "inputs": {
+      "baseColor": "abc123测试",
+      "highlightColor": "abc123测试",
+      "duration": "42",
+      "radius": "42",
+      "cssOutput": "1\n2\n3",
+      "skelType": "list"
+    },
+    "expect": [
+      "t(90deg, abc123测试 25%, abc123测试 37%, abc123测试"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"baseColor\":\"abc123测试\",\"highlightColor\":\"abc123测试\",\"duration\":\"42\",\"radius\":\"42\",\"cssOutput\":\"1\\n2\\n3\",\"skelType\":\"list\"}，输出区含「t(90deg, abc123测试 25%, abc123测试 37%, abc…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "design/spacing-scale",
+    "inputs": {
+      "baseSize": "42",
+      "levels": "42",
+      "cssOutput": "1\n2\n3",
+      "ratio": "1.25"
+    },
+    "expect": [
+      "--space-14: 955px; }"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"baseSize\":\"42\",\"levels\":\"42\",\"cssOutput\":\"1\\n2\\n3\",\"ratio\":\"1.25\"}，输出区含「--space-14: 955px; }」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "design/spinner-generator",
+    "inputs": {
+      "color": "abc123测试",
+      "size": "42",
+      "speed": "42",
+      "cssOutput": "1\n2\n3",
+      "spinType": "dual"
+    },
+    "expect": [
+      "px solid abc123测试; border-bottom"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"color\":\"abc123测试\",\"size\":\"42\",\"speed\":\"42\",\"cssOutput\":\"1\\n2\\n3\",\"spinType\":\"dual\"}，输出区含「px solid abc123测试; border-bottom」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "design/stripe-pattern",
+    "inputs": {
+      "color1": "abc123测试",
+      "color2": "abc123测试",
+      "angle": "42",
+      "width": "42",
+      "cssOutput": "1\n2\n3",
+      "stripeType": "dashed"
+    },
+    "expect": [
+      "radient(42deg, abc123测试, abc123测试 42px, abc123测试 42px, abc123测试 47px);"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"color1\":\"abc123测试\",\"color2\":\"abc123测试\",\"angle\":\"42\",\"width\":\"42\",\"cssOutput\":\"1\\n2\\n3\",\"stripeType\":\"dashed\"}，输出区含「radient(42deg, abc123测试, abc123测试 42px, …」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "design/spectrum-visualizer",
+    "inputs": {
+      "bars": "42",
+      "color1": "abc123测试",
+      "color2": "abc123测试",
+      "barStyle": "mirror"
+    },
+    "expect": [
+      "42\nmirror\nabc123测试\nabc123测试\n⏸ 暂停"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"bars\":\"42\",\"color1\":\"abc123测试\",\"color2\":\"abc123测试\",\"barStyle\":\"mirror\"}，输出区含「42\nmirror\nabc123测试\nabc123测试\n⏸ 暂停」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "design/svg-minifier",
+    "inputs": {
+      "svgInput": "1\n2\n3",
+      "output": "1\n2\n3"
+    },
+    "expect": [
+      "1 2 3\n1 2 3\n原始: 5 字节 → 压缩后: 5 字节 (节省 0.0% )"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"svgInput\":\"1\\n2\\n3\",\"output\":\"1\\n2\\n3\"}，输出区含「1 2 3\n1 2 3\n原始: 5 字节 → 压缩后: 5 字节 (节省 0.0…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "design/svg-to-png",
+    "inputs": {
+      "width": "42",
+      "height": "42",
+      "svgInput": "1\n2\n3"
+    },
+    "expect": [
+      "42\n42\n1 2 3"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"width\":\"42\",\"height\":\"42\",\"svgInput\":\"1\\n2\\n3\"}，输出区含「42\n42\n1 2 3」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "design/tester-assessor",
+    "inputs": {
+      "totalTasks": "42",
+      "successTasks": "42",
+      "avgTime": "42",
+      "expectedTime": "42",
+      "errors": "42",
+      "helpCount": "42",
+      "userCount": "42",
+      "satisfaction": "42",
+      "sus": "2"
+    },
+    "expect": [
+      " 完成时间比 1.00x (42s/42s) 100 操作错误率 1.0次/任务 (42次) 67 求助频率 1.0次/任务 (42次) 0 用户满意度 42/7 683"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"totalTasks\":\"42\",\"successTasks\":\"42\",\"avgTime\":\"42\",\"expectedTime\":\"42\",\"errors\":\"42\",\"helpCount\":\"42\",\"userCount\":\"42\",\"satisfaction\":\"42\",\"sus\":\"2\"}，输出区含「 完成时间比 1.00x (42s/42s) 100 操作错误率 1.0次/任务…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "design/tailwind-colors",
+    "inputs": {
+      "searchInput": "abc123测试"
+    },
+    "expect": [
+      "abc123测试\n"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"searchInput\":\"abc123测试\"}，输出区含「abc123测试\n」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "design/text-shadow-generator",
+    "inputs": {
+      "shadowColor": "abc123测试",
+      "textColor": "abc123测试",
+      "bgColor": "abc123测试",
+      "x": "42",
+      "y": "42",
+      "blur": "42",
+      "cssOutput": "1\n2\n3",
+      "preset": "hard"
+    },
+    "expect": [
+      "abc123测试\nabc123测试\nabc123测试\n42\n42\n42\nhard"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"shadowColor\":\"abc123测试\",\"textColor\":\"abc123测试\",\"bgColor\":\"abc123测试\",\"x\":\"42\",\"y\":\"42\",\"blur\":\"42\",\"cssOutput\":\"1\\n2\\n3\",\"preset\":\"hard\"}，输出区含「abc123测试\nabc123测试\nabc123测试\n42\n42\n42\nhard」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "design/toast-generator",
+    "inputs": {
+      "message": "abc123测试",
+      "radius": "42",
+      "bgColor": "abc123测试",
+      "cssOutput": "1\n2\n3",
+      "toastType": "error"
+    },
+    "expect": [
+      "error\nabc123测试\n42\n#f44336\n✕ abc123测试"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"message\":\"abc123测试\",\"radius\":\"42\",\"bgColor\":\"abc123测试\",\"cssOutput\":\"1\\n2\\n3\",\"toastType\":\"error\"}，输出区含「error\nabc123测试\n42\n#f44336\n✕ abc123测试」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "design/vh-vw",
+    "inputs": {
+      "val": "42",
+      "base": "42",
+      "mode": "px2vh"
+    },
+    "expect": [
+      "px2vh\n42\n42\n转换结果 42 → 100.0000vh 按视口高度 42px 计算"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"val\":\"42\",\"base\":\"42\",\"mode\":\"px2vh\"}，输出区含「px2vh\n42\n42\n转换结果 42 → 100.0000vh 按视口高度 4…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "design/typography-scale",
+    "inputs": {
+      "baseSize": "42",
+      "cssOutput": "1\n2\n3",
+      "ratio": "1.125",
+      "fontFamily": "Georgia, serif"
+    },
+    "expect": [
+      "42\n1.125\nGeorgia, "
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"baseSize\":\"42\",\"cssOutput\":\"1\\n2\\n3\",\"ratio\":\"1.125\",\"fontFamily\":\"Georgia, serif\"}，输出区含「42\n1.125\nGeorgia, 」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "design/waveform-visualizer",
+    "inputs": {
+      "freq": "42",
+      "amp": "42",
+      "phase": "42",
+      "color": "abc123测试",
+      "waveType": "square"
+    },
+    "expect": [
+      "square\n42\n42\n42\nabc123测试\n⏸ 暂停"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"freq\":\"42\",\"amp\":\"42\",\"phase\":\"42\",\"color\":\"abc123测试\",\"waveType\":\"square\"}，输出区含「square\n42\n42\n42\nabc123测试\n⏸ 暂停」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "design/web-audio-metronome",
+    "inputs": {
+      "bpmSlider": "42",
+      "vol": "42",
+      "beatsPer": "3",
+      "sound": "beep"
+    },
+    "expect": [
+      "3\n1 2 3\nNaN\nNaN\n42\nbeep"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"bpmSlider\":\"42\",\"vol\":\"42\",\"beatsPer\":\"3\",\"sound\":\"beep\"}，输出区含「3\n1 2 3\nNaN\nNaN\n42\nbeep」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "design/cvd-safe-palette",
+    "inputs": {
+      "csCount": "42",
+      "csMode": "sequential",
+      "csStrategy": "lightness"
+    },
+    "expect": [
+      " #0EA5E9\nsequential\n42\nlightness"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"csCount\":\"42\",\"csMode\":\"sequential\",\"csStrategy\":\"lightness\"}，输出区含「 #0EA5E9\nsequential\n42\nlightness」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  }
 
 ];
 

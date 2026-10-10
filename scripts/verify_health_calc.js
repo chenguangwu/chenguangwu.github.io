@@ -298,6 +298,488 @@ const CASES = [
     expect: ["愈合时间预估 16~28"],
     ref: "注入非默认(默认 face/abrasion/small/child→愈合时间预估 2~4)：前臂+撕裂伤+中+老年 ⇒ 预估 16~28 天（4 周）。默认态 面部擦伤小童 2~4 天，锚『愈合时间预估 16~28』不命中『2~4』。"
   },
+  {
+    "slug": "health/alcohol-units",
+    "inputs": {
+      "qty": "42",
+      "abv": "42",
+      "vol": "42",
+      "weight": "42",
+      "hours": "42",
+      "type": "3.5,500,🍺,淡啤",
+      "gender": "0.55",
+      "empty": "1.3"
+    },
+    "expect": [
+      "3.5,500,🍺,淡啤\n42\n42\n0.55\n42\n1.3\n2.634\n极危险！可能致死\n579.9g 纯酒精 41.4 标准杯 175.6h 完全代谢\n42\n42"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"qty\":\"42\",\"abv\":\"42\",\"vol\":\"42\",\"weight\":\"42\",\"hours\":\"42\",\"type\":\"3.5,500,🍺,淡啤\",\"gender\":\"0.55\",\"empty\":\"1.3\"}，输出区含「3.5,500,🍺,淡啤\n42\n42\n0.55\n42\n1.3\n2.634\n极危…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "health/blood-pressure-classifier",
+    "inputs": {
+      "sys": "42",
+      "dia": "42",
+      "age": "42",
+      "gender": "female"
+    },
+    "expect": [
+      "42\n42\n42\nfemale\n低血压\n如伴头晕请就医，注意体位变化\n血压: 42/42"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"sys\":\"42\",\"dia\":\"42\",\"age\":\"42\",\"gender\":\"female\"}，输出区含「42\n42\n42\nfemale\n低血压\n如伴头晕请就医，注意体位变化\n血压: 4…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "health/blood-sugar-converter",
+    "inputs": {
+      "mmol": "42",
+      "mgdl": "42"
+    },
+    "expect": [
+      "2.3\n41\n严重低血糖\n立即就医！\n2.3 mmol/L 41 mg/dL 2.28 换算系数"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"mmol\":\"42\",\"mgdl\":\"42\"}，输出区含「2.3\n41\n严重低血糖\n立即就医！\n2.3 mmol/L 41 mg/dL 2…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "health/body-fat-calculator",
+    "inputs": {
+      "height": "42",
+      "weight": "42",
+      "waist": "42",
+      "neck": "42",
+      "hip": "42",
+      "height2": "42",
+      "weight2": "42",
+      "age2": "42",
+      "chest": "42",
+      "abdominal": "42",
+      "thigh": "42",
+      "tricepM": "42",
+      "subscapM": "42",
+      "suprailiacM": "42",
+      "tricepF": "42",
+      "subscapF": "42",
+      "suprailiacF": "42",
+      "biaBf": "42",
+      "weight3": "42"
+    },
+    "expect": [
+      "康减脂是长期过程\n42\n42\n42\n42\n42\n42\n42\n42\n42\n42\n42\n42\n42\n42\n42"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"height\":\"42\",\"weight\":\"42\",\"waist\":\"42\",\"neck\":\"42\",\"hip\":\"42\",\"height2\":\"42\",\"weight2\":\"42\",\"age2\":\"42\",\"chest\":\"42\",\"abdominal\":\"42\",\"thigh\":\"42\",\"tricepM\":\"42\",\"subscapM\":\"42\",\"suprailiacM\":\"42\",\"tricepF\":\"42\",\"subscapF\":\"42\",\"suprailiacF\":\"42\",\"biaBf\":\"42\",\"weight3\":\"42\"}，输出区含「康减脂是长期过程\n42\n42\n42\n42\n42\n42\n42\n42\n42\n42\n4…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "health/body-surface-area",
+    "inputs": {
+      "height": "42",
+      "weight": "42",
+      "formula": "duBois"
+    },
+    "expect": [
+      "42\n42\nduBois\n0.53\n0.70\n0.53\n0.80\n238.1"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"height\":\"42\",\"weight\":\"42\",\"formula\":\"duBois\"}，输出区含「42\n42\nduBois\n0.53\n0.70\n0.53\n0.80\n238.1」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "health/blood-type-calculator",
+    "inputs": {
+      "fatherType": "B",
+      "motherType": "B",
+      "pType": "B"
+    },
+    "expect": [
+      "B\nB型 - 自由奔放者 性格特点： 乐观开朗 独立自主 创意丰富 不拘小节 行动力强 好奇心旺盛 优点： 思维活跃，敢于尝试，社交能力强 弱点： 缺乏耐心，容易三分钟热度 恋爱： 热情直接，追求浪漫，讨厌束缚 工作： 适合创意类、自由度高"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"fatherType\":\"B\",\"motherType\":\"B\",\"pType\":\"B\"}，输出区含「B\nB型 - 自由奔放者 性格特点： 乐观开朗 独立自主 创意丰富 不拘小节 行…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "health/calc-1",
+    "inputs": {
+      "weight": "42",
+      "exercise": "42",
+      "baseFactor": "42",
+      "climate": "hot"
+    },
+    "expect": [
+      "42\n42\nhot\n42\n2514"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"weight\":\"42\",\"exercise\":\"42\",\"baseFactor\":\"42\",\"climate\":\"hot\"}，输出区含「42\n42\nhot\n42\n2514」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "health/caffeine-limit",
+    "inputs": {
+      "weight": "42",
+      "drinkTime": "abc123测试",
+      "drinkAmount": "42",
+      "group": "3",
+      "halfLife": "4"
+    },
+    "expect": [
+      "g (100%) —:— 30 mg (71%) —:— 21 mg (50%) —:— 11 mg (25%) —:— 5 mg (13%) —:— 1 mg (2%)"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"weight\":\"42\",\"drinkTime\":\"abc123测试\",\"drinkAmount\":\"42\",\"group\":\"3\",\"halfLife\":\"4\"}，输出区含「g (100%) —:— 30 mg (71%) —:— 21 mg (50%)…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "health/breath-timer",
+    "inputs": {
+      "inhaleTime": "42",
+      "holdTime": "42",
+      "exhaleTime": "42",
+      "hold2Time": "42",
+      "targetCycles": "42"
+    },
+    "expect": [
+      "42\n42\n42\n42\n42"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"inhaleTime\":\"42\",\"holdTime\":\"42\",\"exhaleTime\":\"42\",\"hold2Time\":\"42\",\"targetCycles\":\"42\"}，输出区含「42\n42\n42\n42\n42」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "health/calc-2",
+    "inputs": {
+      "duration": "42",
+      "latency": "15",
+      "wakings": "15",
+      "depth": "15",
+      "alertness": "15",
+      "breathing": "-10"
+    },
+    "expect": [
+      "42\n15\n15\n15\n15\n-10\n65 一般 睡眠时长 15 分 · 入睡 15 分 · 夜醒 15 分 · 深度 15 分 · 日间 15 分 · 呼吸问题 -10 分 关注睡眠习惯，减少睡前刺激。"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"duration\":\"42\",\"latency\":\"15\",\"wakings\":\"15\",\"depth\":\"15\",\"alertness\":\"15\",\"breathing\":\"-10\"}，输出区含「42\n15\n15\n15\n15\n-10\n65 一般 睡眠时长 15 分 · 入睡 …」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "health/calc-3",
+    "inputs": {
+      "phone": "42",
+      "computer": "42",
+      "tv": "42",
+      "tablet": "42",
+      "group": "teen"
+    },
+    "expect": [
+      "h / 天 手机 42.0h 电脑 42.0h 电视 42.0h 平板 42.0h"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"phone\":\"42\",\"computer\":\"42\",\"tv\":\"42\",\"tablet\":\"42\",\"group\":\"teen\"}，输出区含「h / 天 手机 42.0h 电脑 42.0h 电视 42.0h 平板 42.0…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "health/child-bmi-calculator",
+    "inputs": {
+      "age": "42",
+      "height": "42",
+      "weight": "42"
+    },
+    "expect": [
+      "42\n42\n42\n--\n请输入数据\n--\n--\n--\n--"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"age\":\"42\",\"height\":\"42\",\"weight\":\"42\"}，输出区含「42\n42\n42\n--\n请输入数据\n--\n--\n--\n--」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "health/calorie-needs",
+    "inputs": {
+      "age": "42",
+      "height": "42",
+      "weight": "42",
+      "bodyFat": "42",
+      "speed": "42",
+      "activity": "1.375"
+    },
+    "expect": [
+      "42\n42\n42\n42\n1.375\n42\n123"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"age\":\"42\",\"height\":\"42\",\"weight\":\"42\",\"bodyFat\":\"42\",\"speed\":\"42\",\"activity\":\"1.375\"}，输出区含「42\n42\n42\n42\n1.375\n42\n123」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "health/child-height-predictor",
+    "inputs": {
+      "father": "42",
+      "mother": "42",
+      "age": "42",
+      "childHeight": "42"
+    },
+    "expect": [
+      "cm\n预测范围: 43.5 - 53.5 cm\n42 cm\n42 cm\n42.0 cm\nP3以下\n42cm\n42cm\n49cm"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"father\":\"42\",\"mother\":\"42\",\"age\":\"42\",\"childHeight\":\"42\"}，输出区含「cm\n预测范围: 43.5 - 53.5 cm\n42 cm\n42 cm\n42.0…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "health/dumbbell-weight-calculator",
+    "inputs": {
+      "targetWeight": "42",
+      "barWeight": "42",
+      "plateLimit": "2"
+    },
+    "expect": [
+      "42\n42\n2\n目标总重量需大于杠铃杆重量，无需添加配重片"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"targetWeight\":\"42\",\"barWeight\":\"42\",\"plateLimit\":\"2\"}，输出区含「42\n42\n2\n目标总重量需大于杠铃杆重量，无需添加配重片」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "health/cholesterol-ratio",
+    "inputs": {
+      "total": "42",
+      "hdl": "42",
+      "ldl": "42",
+      "tg": "42"
+    },
+    "expect": [
+      " (mg/dL)\n✅ TC/HDL比值优秀 您的动脉粥样硬化指数低，心血管疾病风险小。继续保持健康的生活方式。"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"total\":\"42\",\"hdl\":\"42\",\"ldl\":\"42\",\"tg\":\"42\"}，输出区含「 (mg/dL)\n✅ TC/HDL比值优秀 您的动脉粥样硬化指数低，心血管疾病风…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "health/fracture-healing",
+    "inputs": {
+      "filterPart": "上肢",
+      "filterAge": "young"
+    },
+    "expect": [
+      "肢 ▼ 愈合周期（青年）： 6-10"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"filterPart\":\"上肢\",\"filterAge\":\"young\"}，输出区含「肢 ▼ 愈合周期（青年）： 6-10」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "health/gfr-calculator",
+    "inputs": {
+      "age": "42",
+      "cr": "42",
+      "weight": "42",
+      "height": "42",
+      "race": "1.159",
+      "formula": "mdrd"
+    },
+    "expect": [
+      "42\n42\n1.159\nmdrd\n42\n42\n1\nG5 肾衰竭\n1 CKD-EPI 1 MDRD 立即就医！ 评估"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"age\":\"42\",\"cr\":\"42\",\"weight\":\"42\",\"height\":\"42\",\"race\":\"1.159\",\"formula\":\"mdrd\"}，输出区含「42\n42\n1.159\nmdrd\n42\n42\n1\nG5 肾衰竭\n1 CKD-EP…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "health/ibw-calculator",
+    "inputs": {
+      "height": "42",
+      "actualWeight": "42"
+    },
+    "expect": [
+      "42\n42\n-50.0 kg\n-13.2\n+92.0\n238.1\n肥胖 - 建议用ABW\n0 IBW -50kg 50 kg"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"height\":\"42\",\"actualWeight\":\"42\"}，输出区含「42\n42\n-50.0 kg\n-13.2\n+92.0\n238.1\n肥胖 - 建议…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "health/one-rep-max",
+    "inputs": {
+      "weight": "42",
+      "reps": "42"
+    },
+    "expect": [
+      "42\n42"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"weight\":\"42\",\"reps\":\"42\"}，输出区含「42\n42」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "health/insulin-dose",
+    "inputs": {
+      "currentBg": "42",
+      "targetBg": "42",
+      "icr": "42",
+      "isf": "42",
+      "carbs": "42",
+      "activeIns": "42",
+      "exercise": "0.8",
+      "insulinType": "regular"
+    },
+    "expect": [
+      "42\n42\n42\n42\n42\n42\n0.8\n0.0\n1.0U 碳水剂量 0.0U 校正剂量 42.0U 活性胰岛素\nregular"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"currentBg\":\"42\",\"targetBg\":\"42\",\"icr\":\"42\",\"isf\":\"42\",\"carbs\":\"42\",\"activeIns\":\"42\",\"exercise\":\"0.8\",\"insulinType\":\"regular\"}，输出区含「42\n42\n42\n42\n42\n42\n0.8\n0.0\n1.0U 碳水剂量 0.0U…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "health/pregnancy-weight-gain",
+    "inputs": {
+      "h": "42",
+      "w": "42",
+      "week": "42"
+    },
+    "expect": [
+      "42\n42\n42\n238.1 孕前 BMI 肥胖（BMI≥30） BMI 分类 5 ~ 9"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"h\":\"42\",\"w\":\"42\",\"week\":\"42\"}，输出区含「42\n42\n42\n238.1 孕前 BMI 肥胖（BMI≥30） BMI 分类 …」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "health/ovulation-calculator",
+    "inputs": {
+      "lmp": "abc123测试",
+      "cycle": "42",
+      "period": "42"
+    },
+    "expect": [
+      "abc123测试\n42\n42"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"lmp\":\"abc123测试\",\"cycle\":\"42\",\"period\":\"42\"}，输出区含「abc123测试\n42\n42」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "health/pace-calculator",
+    "inputs": {
+      "distPace": "42",
+      "timeHPace": "42",
+      "timeMPace": "42",
+      "timeSPace": "42",
+      "distTime": "42",
+      "paceMTime": "42",
+      "paceSTime": "42",
+      "paceMDist": "42",
+      "paceSDist": "42",
+      "timeHDist": "42",
+      "timeMDist": "42",
+      "timeSDist": "42",
+      "targetPaceM": "42",
+      "targetPaceS": "42",
+      "hrAge": "42",
+      "hrRest": "42",
+      "refPaceM": "42",
+      "refPaceS": "42"
+    },
+    "expect": [
+      "累计时间 第1K 42'42\" 42:42 42:42 第2K 42'42\" 42:42 1:25:24 第3K 42'42\" 42:42 2:08:06 第4K 42'42\" 42:42 2:50:48 第5K 42'42\" 42:42 "
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"distPace\":\"42\",\"timeHPace\":\"42\",\"timeMPace\":\"42\",\"timeSPace\":\"42\",\"distTime\":\"42\",\"paceMTime\":\"42\",\"paceSTime\":\"42\",\"paceMDist\":\"42\",\"paceSDist\":\"42\",\"timeHDist\":\"42\",\"timeMDist\":\"42\",\"timeSDist\":\"42\",\"targetPaceM\":\"42\",\"targetPaceS\":\"42\",\"hrAge\":\"42\",\"hrRest\":\"42\",\"refPaceM\":\"42\",\"refPaceS\":\"42\"}，输出区含「累计时间 第1K 42'42\" 42:42 42:42 第2K 42'42\" 4…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "health/pregnancy-due-date",
+    "inputs": {
+      "lmpDate": "abc123测试",
+      "ovulationDate": "abc123测试",
+      "ultrasoundDate": "abc123测试",
+      "ultrasoundWeek": "42",
+      "ultrasoundDay": "42",
+      "ivfDate": "abc123测试",
+      "fetalWeek": "42",
+      "bpd": "42",
+      "fl": "42",
+      "ivfDay": "5"
+    },
+    "expect": [
+      "诊检查、随时待产\n42\n42\n42\n1015006 g 估算体重 (Hadlock公式 (BPD+FL)) 1015.01 kg 公斤换算 862755-1167257"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"lmpDate\":\"abc123测试\",\"ovulationDate\":\"abc123测试\",\"ultrasoundDate\":\"abc123测试\",\"ultrasoundWeek\":\"42\",\"ultrasoundDay\":\"42\",\"ivfDate\":\"abc123测试\",\"fetalWeek\":\"42\",\"bpd\":\"42\",\"fl\":\"42\",\"ivfDay\":\"5\"}，输出区含「诊检查、随时待产\n42\n42\n42\n1015006 g 估算体重 (Hadloc…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "health/protein-needs",
+    "inputs": {
+      "weight": "42",
+      "age": "42",
+      "gender": "female",
+      "activity": "1.0",
+      "goal": "muscle",
+      "source": "0.9"
+    },
+    "expect": [
+      "42\n1.0\nmuscle\n0.9\n42\nfemale\n75\n建议范围: 34 - 105"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"weight\":\"42\",\"age\":\"42\",\"gender\":\"female\",\"activity\":\"1.0\",\"goal\":\"muscle\",\"source\":\"0.9\"}，输出区含「42\n1.0\nmuscle\n0.9\n42\nfemale\n75\n建议范围: 34 …」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "health/sleep-cycle-calculator",
+    "inputs": {
+      "wakeTime": "abc123测试",
+      "sleepTime": "abc123测试",
+      "fallAsleep": "42"
+    },
+    "expect": [
+      "abc123测试\nabc123测试\n42\n为了在 abc123测试"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"wakeTime\":\"abc123测试\",\"sleepTime\":\"abc123测试\",\"fallAsleep\":\"42\"}，输出区含「abc123测试\nabc123测试\n42\n为了在 abc123测试」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "health/safe-period-calculator",
+    "inputs": {
+      "lmp": "abc123测试",
+      "cycle": "42",
+      "period": "42"
+    },
+    "expect": [
+      "abc123测试\n42\n42\n周期 21–40 天、经期 1–10 天为常见范围，请核对输入。"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"lmp\":\"abc123测试\",\"cycle\":\"42\",\"period\":\"42\"}，输出区含「abc123测试\n42\n42\n周期 21–40 天、经期 1–10 天为常见范围…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "health/vo2-max-calculator",
+    "inputs": {
+      "cooperAge": "42",
+      "cooperDist": "42",
+      "mileAge": "42",
+      "mileMin": "42",
+      "mileSec": "42",
+      "bruceAge": "42",
+      "bruceMin": "42",
+      "bruceSec": "42",
+      "walkAge": "42",
+      "walkWeight": "42",
+      "walkMin": "42",
+      "walkSec": "42",
+      "walkHr": "42",
+      "restAge": "42",
+      "restHr": "42",
+      "restBmi": "42"
+    },
+    "expect": [
+      "42\n42\n--\n42\n42\n42\n42\n42\n42\n42\n42\n42\n42\n42\n42\n42\n42"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"cooperAge\":\"42\",\"cooperDist\":\"42\",\"mileAge\":\"42\",\"mileMin\":\"42\",\"mileSec\":\"42\",\"bruceAge\":\"42\",\"bruceMin\":\"42\",\"bruceSec\":\"42\",\"walkAge\":\"42\",\"walkWeight\":\"42\",\"walkMin\":\"42\",\"walkSec\":\"42\",\"walkHr\":\"42\",\"restAge\":\"42\",\"restHr\":\"42\",\"restBmi\":\"42\"}，输出区含「42\n42\n--\n42\n42\n42\n42\n42\n42\n42\n42\n42\n42\n4…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "health/smoking-cost-calculator",
+    "inputs": {
+      "perDay": "42",
+      "years": "42",
+      "price": "42",
+      "perPack": "16"
+    },
+    "expect": [
+      "42\n42\n42\n16\n¥110.3\n¥772\n¥3308\n¥40241\n¥1,690,132.5\n2,832,984\n7761.6"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"perDay\":\"42\",\"years\":\"42\",\"price\":\"42\",\"perPack\":\"16\"}，输出区含「42\n42\n42\n16\n¥110.3\n¥772\n¥3308\n¥40241\n¥1,…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "health/water-intake-calculator",
+    "inputs": {
+      "weight": "42",
+      "age": "42",
+      "gender": "female",
+      "activity": "1.1",
+      "weather": "1.1",
+      "special": "1.2"
+    },
+    "expect": [
+      "42\n42\nfemale\n1.1\n1.1\n1.2\n1850 ml\n7\n1650 ml\n2200 ml\n63"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"weight\":\"42\",\"age\":\"42\",\"gender\":\"female\",\"activity\":\"1.1\",\"weather\":\"1.1\",\"special\":\"1.2\"}，输出区含「42\n42\nfemale\n1.1\n1.1\n1.2\n1850 ml\n7\n1650 …」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "health/waist-hip-ratio",
+    "inputs": {
+      "waist": "42",
+      "hip": "42",
+      "height": "42",
+      "weight": "42"
+    },
+    "expect": [
+      " 💡 改善建议 高度重视，建议就医评估： • 建议进行全面体检，检查血糖、血脂、血压 • 在医生或营养师指导下制定减重计划 • 每日减少 500-750 kcal 热量摄入 • 每周 200-300 分钟中等强度运动 • 重点关注腹部脂肪"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"waist\":\"42\",\"hip\":\"42\",\"height\":\"42\",\"weight\":\"42\"}，输出区含「 💡 改善建议 高度重视，建议就医评估： • 建议进行全面体检，检查血糖、血脂…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "health/wound-healing-time",
+    "inputs": {
+      "bodyPart": "scalp",
+      "woundType": "cut",
+      "woundSize": "medium",
+      "ageGroup": "young"
+    },
+    "expect": [
+      "\ude79 愈合时间预估 6~12 预计天数 2 约周数 头皮 身体部位 切割"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"bodyPart\":\"scalp\",\"woundType\":\"cut\",\"woundSize\":\"medium\",\"ageGroup\":\"young\"}，输出区含「\ude79 愈合时间预估 6~12 预计天数 2 约周数 头皮 身体部位 切割」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  }
+
 ];
 
 async function main() {

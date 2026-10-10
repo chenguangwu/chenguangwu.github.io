@@ -194,7 +194,30 @@ const CASES = [
     "血府逐瘀汤、瓜蒌薤白半夏汤"
   ],
   "ref": "第 5 个证型「心脉痹阻」代表方剂。syndrome 卡片只渲染 name+nature（默认态含「心·心脉痹阻 实证」）⇒ 方剂串仅在 showSyndrome 的 #result 出现（原 expect 锚「心脉痹阻」即卡片名，逃生项）。"
-}
+},
+  {
+    "slug": "tcm-diagnosis/pulse-diagnosis",
+    "inputs": {
+      "searchBox": "abc123测试"
+    },
+    "expect": [
+      "abc123测试\n未找到匹配的脉象"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"searchBox\":\"abc123测试\"}，输出区含「abc123测试\n未找到匹配的脉象」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "tcm-diagnosis/ten-questions",
+    "inputs": {
+      "pName": "abc123测试",
+      "pAge": "42",
+      "pGender": "女"
+    },
+    "expect": [
+      "═════ 患者：abc123测试 性别：女 年龄：42"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"pName\":\"abc123测试\",\"pAge\":\"42\",\"pGender\":\"女\"}，输出区含「═════ 患者：abc123测试 性别：女 年龄：42」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  }
+
 ];
 async function main() {
   const only = process.argv.slice(2);

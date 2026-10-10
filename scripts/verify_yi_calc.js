@@ -33,7 +33,18 @@ const CASES = [
     "飞龙在天"
   ],
   "ref": "clicks 调 selectYao(5) 选第5爻 ⇒ renderYaoText 渲染卦1第5爻爻辞「飞龙在天」（默认只渲染初九「潜龙勿用」，已双态核验默认态无「飞龙在天」）。selectYao 内 querySelectorAll('.yao-item') 为 class 选择器、harness 支持；currentGua 由页面初始化置卦1，注入态产出正确。"
-}
+},
+  {
+    "slug": "yi/yi-divination",
+    "inputs": {
+      "question": "abc123测试"
+    },
+    "expect": [
+      "abc123测试\n🙏 再次演示\n📜 演示结果 所问:\"abc123测试\" 本卦: 山泽损 (小凶) 减损之象,需顾全大局,适当舍弃。 💡 解卦指引 小有凶险,需谨慎小心。回避风险,保守行事。 演示结果仅供参考,谨记\"命由己造,相由心生"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"question\":\"abc123测试\"}，输出区含「abc123测试\n🙏 再次演示\n📜 演示结果 所问:\"abc123测试\" 本…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  }
+
 ];
 async function main() {
   const only = process.argv.slice(2);

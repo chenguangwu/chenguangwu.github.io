@@ -27,6 +27,178 @@ const CASES = [
   { slug: "engineering/heat-transfer", inputs: {}, clicks: ["selectMode('radiation');document.getElementById('eps').value='0.6';document.getElementById('A').value='2';document.getElementById('T1K').value='600';document.getElementById('T2K').value='280';calc();"], expect: ["8399.77 W", "4200 W/m²", "1.23e+11"], ref: "辐射模式：Q=εσA(T1⁴−T2⁴)=0.6×5.67e-8×2×(1.2960e11−6.14656e9)=8399.77 W；q=Q/A=8399.7721/2=4199.886→4200 W/m²（toFixed(0) 进位）；T1⁴−T2⁴=1.2345344e11→toExponential(2)=1.23e+11。默认态是导热档，无辐射串。" },
   { slug: "engineering/heat-transfer", inputs: {}, clicks: ["selectMode('resistance');document.getElementById('k').value='0.5';document.getElementById('A').value='8';document.getElementById('L').value='0.4';document.getElementById('h1').value='12';document.getElementById('h2').value='25';document.getElementById('T1').value='25';document.getElementById('T2').value='5';calc();"], expect: ["173.29 W", "1.083 W/m²·K", "0.1154 K/W"], ref: "复合热阻模式：R1=1/(h1A)=1/96=0.0104167、Rw=L/(kA)=0.4/4=0.1000、R2=1/(h2A)=1/200=0.0050 ⇒ R总=0.1154167 K/W；Q=ΔT/R总=20/0.1154167=173.29 W；U=1/(R总·A)=1/0.9233333=1.0829→1.083 W/m²·K。" },
   { slug: "engineering/heat-transfer", inputs: {}, clicks: ["selectMode('resistance');document.getElementById('k').value='0.5';document.getElementById('A').value='8';document.getElementById('L').value='0.4';document.getElementById('h1').value='12';document.getElementById('h2').value='25';document.getElementById('T1').value='25';document.getElementById('T2').value='5';calc();"], expect: ["(9.0%)", "(86.6%)", "(4.3%)"], ref: "与本文件上一条同一组复合热阻输入，只锚热阻**占比**这一支：R1/R总=0.0104167/0.1154167=9.0%、Rw/R总=0.1000/0.1154167=86.6%、R2/R总=0.005/0.1154167=4.3%。三者之和恰为 100.0%，任一支算错都会破坏这一关系 ⇒ 互为交叉校验。" },
+  {
+    "slug": "engineering/axial-stress",
+    "inputs": {
+      "F": "42",
+      "A": "42",
+      "E": "42",
+      "L": "42"
+    },
+    "expect": [
+      " σ (MPa) 2.381e-2 线应变 ε 1000"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"F\":\"42\",\"A\":\"42\",\"E\":\"42\",\"L\":\"42\"}，输出区含「 σ (MPa) 2.381e-2 线应变 ε 1000」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "engineering/beam-calculator",
+    "inputs": {
+      "length": "42",
+      "load": "42",
+      "E": "42",
+      "I": "42",
+      "limit": "42"
+    },
+    "expect": [
+      "L³/(3EI)\n42\n42\n42\n42\n42\nL = 42"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"length\":\"42\",\"load\":\"42\",\"E\":\"42\",\"I\":\"42\",\"limit\":\"42\"}，输出区含「L³/(3EI)\n42\n42\n42\n42\n42\nL = 42」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "engineering/bolt-preload",
+    "inputs": {
+      "T": "42",
+      "d": "42",
+      "K": "42"
+    },
+    "expect": [
+      "42\n42\n42\n0.02"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"T\":\"42\",\"d\":\"42\",\"K\":\"42\"}，输出区含「42\n42\n42\n0.02」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "engineering/bending-stress",
+    "inputs": {
+      "M": "42",
+      "b": "42",
+      "h": "42"
+    },
+    "expect": [
+      " W (mm³) 3401.36"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"M\":\"42\",\"b\":\"42\",\"h\":\"42\"}，输出区含「 W (mm³) 3401.36」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "engineering/cantilever-deflection",
+    "inputs": {
+      "P": "42",
+      "L": "42",
+      "E": "42",
+      "I": "42"
+    },
+    "expect": [
+      "42\n42\n42\n42\n5880000"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"P\":\"42\",\"L\":\"42\",\"E\":\"42\",\"I\":\"42\"}，输出区含「42\n42\n42\n42\n5880000」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "engineering/material-calculator",
+    "inputs": {
+      "b": "42",
+      "h": "42",
+      "L": "42",
+      "d": "42",
+      "D": "42",
+      "t": "42",
+      "a": "42",
+      "c": "42"
+    },
+    "expect": [
+      "ndefined\n42\n42\n42\n42\n42\n42\n42\n42"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"b\":\"42\",\"h\":\"42\",\"L\":\"42\",\"d\":\"42\",\"D\":\"42\",\"t\":\"42\",\"a\":\"42\",\"c\":\"42\"}，输出区含「ndefined\n42\n42\n42\n42\n42\n42\n42\n42」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "engineering/pressure-vessel",
+    "inputs": {
+      "P": "42",
+      "D": "42",
+      "sigma": "42",
+      "phi": "42"
+    },
+    "expect": [
+      "42\n42\n42\n42\n0.50"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"P\":\"42\",\"D\":\"42\",\"sigma\":\"42\",\"phi\":\"42\"}，输出区含「42\n42\n42\n42\n0.50」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "engineering/poisson-strain",
+    "inputs": {
+      "ex": "42",
+      "nu": "42"
+    },
+    "expect": [
+      "横向应变 ε_y 42.000 泊松比 ν -3.486e+3"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"ex\":\"42\",\"nu\":\"42\"}，输出区含「横向应变 ε_y 42.000 泊松比 ν -3.486e+3」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "engineering/section-inertia",
+    "inputs": {
+      "shape": "42",
+      "b": "42",
+      "h": "42"
+    },
+    "expect": [
+      " W (mm³) 圆 I = πD⁴/64"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"shape\":\"42\",\"b\":\"42\",\"h\":\"42\"}，输出区含「 W (mm³) 圆 I = πD⁴/64」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "engineering/shaft-torsion",
+    "inputs": {
+      "T": "42",
+      "d": "42",
+      "G": "42",
+      "L": "42"
+    },
+    "expect": [
+      "42\n42\n42\n42\n305490.040"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"T\":\"42\",\"d\":\"42\",\"G\":\"42\",\"L\":\"42\"}，输出区含「42\n42\n42\n42\n305490.040」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "engineering/stress-calculator",
+    "inputs": {
+      "F": "42",
+      "A": "42",
+      "V": "42",
+      "M": "42",
+      "W": "42",
+      "T": "42",
+      "D": "42",
+      "d": "42"
+    },
+    "expect": [
+      "ndefined\n42\n42\n42\n42\n42\n42\n42\n42"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"F\":\"42\",\"A\":\"42\",\"V\":\"42\",\"M\":\"42\",\"W\":\"42\",\"T\":\"42\",\"D\":\"42\",\"d\":\"42\"}，输出区含「ndefined\n42\n42\n42\n42\n42\n42\n42\n42」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "engineering/thermal-expansion",
+    "inputs": {
+      "alpha": "42",
+      "L0": "42",
+      "dT": "42"
+    },
+    "expect": [
+      "42\n42\n42\n74.08"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"alpha\":\"42\",\"L0\":\"42\",\"dT\":\"42\"}，输出区含「42\n42\n42\n74.08」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "engineering/weld-strength",
+    "inputs": {
+      "F": "42",
+      "hf": "42",
+      "lw": "42"
+    },
+    "expect": [
+      "_e (mm²) 34.01"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"F\":\"42\",\"hf\":\"42\",\"lw\":\"42\"}，输出区含「_e (mm²) 34.01」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  }
+
 ];
 async function main() {
   const only = process.argv.slice(2);

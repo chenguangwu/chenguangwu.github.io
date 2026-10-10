@@ -146,7 +146,58 @@ const CASES = [
     "6."
   ],
   "ref": "auto-restore"
-}
+},
+  {
+    "slug": "data/generator-14",
+    "inputs": {
+      "cnt": "42"
+    },
+    "expect": [
+      "EAN-13: 7395250459689 QR数据: JiX3X0gPF4x7nhvqzhoPG2ybZX35DOVXhYPk5AHGCY5Cra2 2"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"cnt\":\"42\"}，输出区含「EAN-13: 7395250459689 QR数据: JiX3X0gPF4x7…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "data/generator-report",
+    "inputs": {
+      "cnt": "42"
+    },
+    "expect": [
+      "划 > 风险提示 7. 财务收支报表 指标：完成率 117% 环比 23% 新增 1408"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"cnt\":\"42\"}，输出区含「划 > 风险提示 7. 财务收支报表 指标：完成率 117% 环比 23% 新增…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "data/random-1",
+    "inputs": {
+      "cnt": "42"
+    },
+    "expect": [
+      "GB）： 1. #03D670 rgb(3, 214, 112) 2. #A09D12 rgb(160, 157, 18) 3. #71E300 rgb(113, 227, 0) 4. #AF4A6D rgb(175, 74, 109) 5"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"cnt\":\"42\"}，输出区含「GB）： 1. #03D670 rgb(3, 214, 112) 2. #A09…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "data/random-4",
+    "inputs": {
+      "cnt": "42"
+    },
+    "expect": [
+      " 字母 混合 1 927391 cJCNpJ sJ8HJX 2 166871 cbxXXP T16DQz 3 234826 RrnjdL MubuMB 4 144264 fHgLKK FmDPIw 5 340087 FmREJR q9con"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"cnt\":\"42\"}，输出区含「 字母 混合 1 927391 cJCNpJ sJ8HJX 2 166871 c…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "data/random-3",
+    "inputs": {
+      "cnt": "42"
+    },
+    "expect": [
+      "强密码）： 1. Wkuf9yv>cw$i8lrd 2. t!^Qk ,&7v.8w 3. K1B(mOLl|,Qix60X 4. ^EvXXCdVpq5fs[Pf 5. I2Dysu7W1:-jRt:= 6. 5;luDHxvnOc|XG"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"cnt\":\"42\"}，输出区含「强密码）： 1. Wkuf9yv>cw$i8lrd 2. t!^Qk ,&7v.…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  }
+
 ];
 async function main() {
   const only = process.argv.slice(2);

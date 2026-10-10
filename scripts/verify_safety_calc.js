@@ -125,7 +125,36 @@ const CASES = [
   ],
   "ref": "startQuiz() 用 shuffle(QUESTIONS).slice(0,15) 随机抽题 ⇒ 顶层 shuffle 直接覆写成恒等（页面函数、非进程级全局），qOrder 即 QUESTIONS 前 15 题；再逐题 choose(qOrder[i].a) 全答对、nextQ() 推进（renderQ() 会重置 answered 门控）。 finishQuiz() 落 pct=100 分支 ⇒ 「安全知识掌握优秀！」。默认态 / 兜底阶段无参调 finishQuiz 时 score=0、wrongList 空 ⇒ 落「正确率较低…」+「无错题，全部答对！」两条（后者是 else 兜底分支，同 BATCH97，刻意不锚）。旧锚「15」是题数常量，默认态必命中，判别力 0，已弃。"
 },
-  // 注：safety/stats-report-frequency 已于 2026-09-19 改为 TOOLBOX-REDIRECT 存根（重定向到同义真工具），不再是工具页，用例移除。
+  // 注：safety/stats-report-frequency 已于 2026-09-19 改为 TOOLBOX-REDIRECT 存根（重定向到同义真工具），不再是工具页，用例移除。,
+  {
+    "slug": "safety/haxijisuan",
+    "inputs": {
+      "input": "1\n2\n3",
+      "algo": "SHA-1"
+    },
+    "expect": [
+      "1 2 3\nSHA-1\n❌ Unrecognized algorithm name"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"1\\n2\\n3\",\"algo\":\"SHA-1\"}，输出区含「1 2 3\nSHA-1\n❌ Unrecognized algorithm nam…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "safety/manager",
+    "inputs": {
+      "setupPw1": "abc123测试",
+      "setupPw2": "abc123测试",
+      "unlockPw": "abc123测试",
+      "inSite": "abc123测试",
+      "inUser": "abc123测试",
+      "inPass": "abc123测试",
+      "searchQ": "abc123测试",
+      "inNotes": "1\n2\n3"
+    },
+    "expect": [
+      "!jSW&t8zhK\n强度：强\nabc123测试\n🔐 abc123测试 复制密码 删除 账号 abc123测试 复制 密码 •••••••• 显示 强度 强 1 2 3"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"setupPw1\":\"abc123测试\",\"setupPw2\":\"abc123测试\",\"unlockPw\":\"abc123测试\",\"inSite\":\"abc123测试\",\"inUser\":\"abc123测试\",\"inPass\":\"abc123测试\",\"searchQ\":\"abc123测试\",\"inNotes\":\"1\\n2\\n3\"}，输出区含「!jSW&t8zhK\n强度：强\nabc123测试\n🔐 abc123测试 复制密…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  }
+
 ];
 async function main() {
   const only = process.argv.slice(2);

@@ -634,7 +634,759 @@ const CASES = [
     clicks: ["document.getElementById('keepDigits').checked=true;document.getElementById('keepLetters').checked=true;document.getElementById('keepChinese').checked=false;document.getElementById('keepPunc').checked=false;document.getElementById('input').value='Test2026中文!@#';keep()"],
     expect: ["Test2026"],
     ref: "注入非默认（默认各 keep* 全未勾 ⇒ 输出『请选择要保留的字符』）。页面读各 keep* checkbox.checked 拼合白名单，仅勾 digits+letters 时『Test2026中文!@#』保留字母数字、去中文与标点 ⇒ 产物 Test2026。clicks 在判别器回退时被清空 ⇒ 默认态不调 keep()、result 为空提示 ⇒ 不命中。不锚 input 原串（输入区恒含），只锚 result 产物。",
+  },
+  {
+    "slug": "biz/analysis-47",
+    "inputs": {
+      "mGrowth": "42",
+      "mSize": "42",
+      "mProfit": "42",
+      "mComp": "42",
+      "cShare": "42",
+      "cBrand": "42",
+      "cTech": "42",
+      "cChan": "42"
+    },
+    "expect": [
+      "42\n42\n42\n42\n42\n42\n42\n42\n行业吸引力： 238 （高） 业务竞争力： 420 （强"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"mGrowth\":\"42\",\"mSize\":\"42\",\"mProfit\":\"42\",\"mComp\":\"42\",\"cShare\":\"42\",\"cBrand\":\"42\",\"cTech\":\"42\",\"cChan\":\"42\"}，输出区含「42\n42\n42\n42\n42\n42\n42\n42\n行业吸引力： 238 （高） 业…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "biz/assessor-49",
+    "inputs": {
+      "d1": "42",
+      "d2": "42",
+      "d3": "42",
+      "d4": "42",
+      "d5": "42",
+      "d6": "42",
+      "jobType": "tech"
+    },
+    "expect": [
+      "tech\n42\n42\n42\n42\n42\n42\n岗位类型：技术岗 专业知识：42/10 (权重30"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"d1\":\"42\",\"d2\":\"42\",\"d3\":\"42\",\"d4\":\"42\",\"d5\":\"42\",\"d6\":\"42\",\"jobType\":\"tech\"}，输出区含「tech\n42\n42\n42\n42\n42\n42\n岗位类型：技术岗 专业知识：42/…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "biz/analysis-manager",
+    "inputs": {
+      "rev": "42",
+      "cost": "42",
+      "exp": "42",
+      "np": "42",
+      "ca": "42",
+      "cl": "42",
+      "ta": "42",
+      "tl": "42"
+    },
+    "expect": [
+      "42\n42\n42\n42\n42\n42\n42\n42"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"rev\":\"42\",\"cost\":\"42\",\"exp\":\"42\",\"np\":\"42\",\"ca\":\"42\",\"cl\":\"42\",\"ta\":\"42\",\"tl\":\"42\"}，输出区含「42\n42\n42\n42\n42\n42\n42\n42」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "biz/barcode-generator",
+    "inputs": {
+      "content": "abc123测试",
+      "scale": "42",
+      "height": "42",
+      "fg": "abc123测试",
+      "bg": "abc123测试"
+    },
+    "expect": [
+      "完成，请稍候重试。\n42\n42\nabc123测试\nabc123测试"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"content\":\"abc123测试\",\"scale\":\"42\",\"height\":\"42\",\"fg\":\"abc123测试\",\"bg\":\"abc123测试\"}，输出区含「完成，请稍候重试。\n42\n42\nabc123测试\nabc123测试」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "biz/assessor-risk-8",
+    "inputs": {
+      "scene": "event"
+    },
+    "expect": [
+      " 防控措施方向： 人流管控/安检门/应急预案/医疗救护点/疏散通道"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"scene\":\"event\"}，输出区含「 防控措施方向： 人流管控/安检门/应急预案/医疗救护点/疏散通道」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "biz/char-frequency",
+    "inputs": {
+      "topN": "42",
+      "input": "1\n2\n3",
+      "ignoreCase": "1"
+    },
+    "expect": [
+      "wing top 3 1 1 (33.33%) 2 1 (33.33%) 3 1 (33.33%)\n1\n42"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"topN\":\"42\",\"input\":\"1\\n2\\n3\",\"ignoreCase\":\"1\"}，输出区含「wing top 3 1 1 (33.33%) 2 1 (33.33%) 3 1…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "biz/checker-8",
+    "inputs": {
+      "certRate": "42",
+      "trainRate": "42",
+      "uniform": "42",
+      "attendance": "42",
+      "patrol": "42",
+      "accessLog": "42",
+      "responseTime": "42",
+      "logComplete": "42",
+      "monitorCov": "42",
+      "equipOk": "42",
+      "comm": "42",
+      "csat": "42",
+      "complaintRes": "42",
+      "complaintCnt": "42"
+    },
+    "expect": [
+      "求并改进服务态度 • 月均投诉42次偏多，建议分析投诉原因并制定预防措施 总体评价： 多项指标不达标，需全面整改，必要时调整人员或管理层。"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"certRate\":\"42\",\"trainRate\":\"42\",\"uniform\":\"42\",\"attendance\":\"42\",\"patrol\":\"42\",\"accessLog\":\"42\",\"responseTime\":\"42\",\"logComplete\":\"42\",\"monitorCov\":\"42\",\"equipOk\":\"42\",\"comm\":\"42\",\"csat\":\"42\",\"complaintRes\":\"42\",\"complaintCnt\":\"42\"}，输出区含「求并改进服务态度 • 月均投诉42次偏多，建议分析投诉原因并制定预防措施 总体评…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "biz/comment-generator",
+    "inputs": {
+      "input": "1\n2\n3"
+    },
+    "expect": [
+      "1 2 3\n// 1 // 2 // 3"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"1\\n2\\n3\"}，输出区含「1 2 3\n// 1 // 2 // 3」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "biz/fullwidth-halfwidth",
+    "inputs": {
+      "input": "1\n2\n3"
+    },
+    "expect": [
+      "1 2 3\n1 2 3"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"1\\n2\\n3\"}，输出区含「1 2 3\n1 2 3」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "biz/justify-text",
+    "inputs": {
+      "width": "42",
+      "input": "1\n2\n3",
+      "mode": "left"
+    },
+    "expect": [
+      "1 2 3\n1 2 3\n42\nleft"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"width\":\"42\",\"input\":\"1\\n2\\n3\",\"mode\":\"left\"}，输出区含「1 2 3\n1 2 3\n42\nleft」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "biz/fancy-text",
+    "inputs": {
+      "input": "1\n2\n3"
+    },
+    "expect": [
+      "̥o̥ 加点 -\n1 2 3\n1 2 3\n1 2 3\n1 2 3\n1 2 3\n1 2 3\n1 2 3\n1 2 3\n1 2 3\n1 2 3\n1 2 3\n1 2 3\n1 2 3\n1 2 3"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"1\\n2\\n3\"}，输出区含「̥o̥ 加点 -\n1 2 3\n1 2 3\n1 2 3\n1 2 3\n1 2 3\n1…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "biz/markdown-quote",
+    "inputs": {
+      "input": "1\n2\n3"
+    },
+    "expect": [
+      "1 2 3\n> 1 > 2 > 3"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"1\\n2\\n3\"}，输出区含「1 2 3\n> 1 > 2 > 3」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "biz/markdown",
+    "inputs": {
+      "editor": "1\n2\n3"
+    },
+    "expect": [
+      "1 2 3\n1 2 3"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"editor\":\"1\\n2\\n3\"}，输出区含「1 2 3\n1 2 3」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "biz/meeting-cost-calculator",
+    "inputs": {
+      "duration": "42",
+      "attendees": "42",
+      "hourlyRate": "42",
+      "roomCost": "42"
+    },
+    "expect": [
+      "42\n42\n42\n42\n会议总成本 ¥1276.80 人力成本 ¥1234.80 每分钟成本 ¥30.40 人均成本 ¥30.40 总工时 29.4"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"duration\":\"42\",\"attendees\":\"42\",\"hourlyRate\":\"42\",\"roomCost\":\"42\"}，输出区含「42\n42\n42\n42\n会议总成本 ¥1276.80 人力成本 ¥1234.80…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "biz/lorem-ipsum-advanced",
+    "inputs": {
+      "count": "42",
+      "lang": "zh",
+      "classicStart": "0"
+    },
+    "expect": [
+      "42\nzh\n0\n也许而行这个而且所以然后为什么综上所述不仅比如至于例如。 他们这是而且总而言之可以因此此类之间应当那种事实上应当。 之前还是之所以所以这是通常比如由于一般这是也许各种。 之间进行而且因为之间之前那是如何虽然如此仍然不仅一下。"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"count\":\"42\",\"lang\":\"zh\",\"classicStart\":\"0\"}，输出区含「42\nzh\n0\n也许而行这个而且所以然后为什么综上所述不仅比如至于例如。 他们这…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "biz/small-caps",
+    "inputs": {
+      "input": "1\n2\n3"
+    },
+    "expect": [
+      "1 2 3\n1 2 3\n1 2 3"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"1\\n2\\n3\"}，输出区含「1 2 3\n1 2 3\n1 2 3」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "biz/name-generator",
+    "inputs": {
+      "cnCount": "42",
+      "enCount": "42",
+      "nkCount": "42",
+      "gmCount": "42",
+      "idLen": "42"
+    },
+    "expect": [
+      "🎭 蝶哒 🎭 乖糕 🎭 贝球 🎭 宝丫 🎭 妮糖 🎭 宝豆 🎭 豆丫 🎭 雪朵 🎭 圆哒 🎭\n42\n42\n煞甜兰泡球神月隼火赋雪喵鸿仙糕书棋霸喵兰川斩糖赤软魔梅果糖紫斩龙雪风小舟草律糖斩歌碎 🎮 词妞糯糯月鹿梅川琴血兰"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"cnCount\":\"42\",\"enCount\":\"42\",\"nkCount\":\"42\",\"gmCount\":\"42\",\"idLen\":\"42\"}，输出区含「🎭 蝶哒 🎭 乖糕 🎭 贝球 🎭 宝丫 🎭 妮糖 🎭 宝豆 🎭 豆…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "biz/simplified-traditional",
+    "inputs": {
+      "input": "1\n2\n3"
+    },
+    "expect": [
+      "1 2 3\n1 2 3"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"1\\n2\\n3\"}，输出区含「1 2 3\n1 2 3」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "biz/presentation-timer",
+    "inputs": {
+      "topic": "abc123测试",
+      "slideCount": "42",
+      "totalMin": "42"
+    },
+    "expect": [
+      " 10 页 01:00 11 第 11 页 01:00 12 第 12 页 01:00 13 第 13 页 01:00 14 第 14 页 01:00 15 第 15 页 01:00 16 第 16 页 01:00 17 第 17 页 01"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"topic\":\"abc123测试\",\"slideCount\":\"42\",\"totalMin\":\"42\"}，输出区含「 10 页 01:00 11 第 11 页 01:00 12 第 12 页 01…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "biz/random-script",
+    "inputs": {
+      "cnt": "42"
+    },
+    "expect": [
+      "单号或注册手机号？ 9. 升级处理 您的问题我已经记录并转交专人处理，预计24小时内与您联系。 10. 确认需求 请问您遇到的问题是否可以理解为：……？我这样理解对吗？"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"cnt\":\"42\"}，输出区含「单号或注册手机号？ 9. 升级处理 您的问题我已经记录并转交专人处理，预计24小…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "biz/strawberry-text",
+    "inputs": {
+      "input": "1\n2\n3"
+    },
+    "expect": [
+      "1 2 3\n1 2 3"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"1\\n2\\n3\"}，输出区含「1 2 3\n1 2 3」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "biz/stats-time-response",
+    "inputs": {
+      "thr": "42",
+      "times": "1\n2\n3"
+    },
+    "expect": [
+      "最短 / 最长： 1.00 秒 / 3"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"thr\":\"42\",\"times\":\"1\\n2\\n3\"}，输出区含「最短 / 最长： 1.00 秒 / 3」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "biz/summary-rater-csat",
+    "inputs": {
+      "thr": "42",
+      "data": "1\n2\n3"
+    },
+    "expect": [
+      "分 1 · 3分 1 · 4分 0 · 5分 0"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"thr\":\"42\",\"data\":\"1\\n2\\n3\"}，输出区含「分 1 · 3分 1 · 4分 0 · 5分 0」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "biz/superscript-text",
+    "inputs": {
+      "input": "1\n2\n3",
+      "mode": "auto-all"
+    },
+    "expect": [
+      "auto-all\n1 2 3\n上标: ¹ ² ³ 下标: ₁ ₂ ₃"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"1\\n2\\n3\",\"mode\":\"auto-all\"}，输出区含「auto-all\n1 2 3\n上标: ¹ ² ³ 下标: ₁ ₂ ₃」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "biz/team-roster-generator",
+    "inputs": {
+      "groupCount": "42",
+      "perGroup": "42",
+      "names": "1\n2\n3"
+    },
+    "expect": [
+      "1 组（3 人） 2、3、1\n1 2 3\n42\n42"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"groupCount\":\"42\",\"perGroup\":\"42\",\"names\":\"1\\n2\\n3\"}，输出区含「1 组（3 人） 2、3、1\n1 2 3\n42\n42」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "biz/text-case-advanced",
+    "inputs": {
+      "input": "1\n2\n3"
+    },
+    "expect": [
+      "1 2 3"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"1\\n2\\n3\"}，输出区含「1 2 3」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "biz/text-compare",
+    "inputs": {
+      "left": "1\n2\n3",
+      "right": "1\n2\n3"
+    },
+    "expect": [
+      "1 2 3\n1 2 3\n1 2 3\n1 2 3\n3\n0\n0\n100%"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"left\":\"1\\n2\\n3\",\"right\":\"1\\n2\\n3\"}，输出区含「1 2 3\n1 2 3\n1 2 3\n1 2 3\n3\n0\n0\n100%」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "biz/text-case",
+    "inputs": {
+      "input": "1\n2\n3"
+    },
+    "expect": [
+      "1 2 3\n5\n3\n3"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"1\\n2\\n3\"}，输出区含「1 2 3\n5\n3\n3」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "biz/text-box-drawing",
+    "inputs": {
+      "padX": "42",
+      "padY": "42",
+      "input": "1\n2\n3",
+      "style": "double"
+    },
+    "expect": [
+      "1 2 3\n╔═════════════════════════════════════════════════════════════════════════════════════╗ ║ ║ ║ ║ ║ ║ ║ ║ ║ ║ ║ ║ ║ "
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"padX\":\"42\",\"padY\":\"42\",\"input\":\"1\\n2\\n3\",\"style\":\"double\"}，输出区含「1 2 3\n╔═════════════════════════════════…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "biz/text-dedup",
+    "inputs": {
+      "input": "1\n2\n3"
+    },
+    "expect": [
+      "1 2 3\n1 2 3\nNaN\n0%"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"1\\n2\\n3\"}，输出区含「1 2 3\n1 2 3\nNaN\n0%」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  
+  {
+    "slug": "biz/text-extract-emails",
+    "inputs": {
+      "input": "1\n2\n3"
+    },
+    "expect": [
+      "1 2 3\n0\n0\n未找到邮箱地址"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"1\\n2\\n3\"}，输出区含「1 2 3\n0\n0\n未找到邮箱地址」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  
+  {
+    "slug": "biz/text-extract-english",
+    "inputs": {
+      "input": "1\n2\n3",
+      "mode": "words",
+      "separator": "\\n"
+    },
+    "expect": [
+      "1 2 3\nwords\n\\n\n0\n请输入文本..."
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"1\\n2\\n3\",\"mode\":\"words\",\"separator\":\"\\\\n\"}，输出区含「1 2 3\nwords\n\\n\n0\n请输入文本...」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "biz/text-extract-html-tags",
+    "inputs": {
+      "input": "1\n2\n3"
+    },
+    "expect": [
+      "1 2 3\n0\n0\n标签列表："
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"1\\n2\\n3\"}，输出区含「1 2 3\n0\n0\n标签列表：」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "biz/text-extract-numbers",
+    "inputs": {
+      "input": "1\n2\n3"
+    },
+    "expect": [
+      "1 2 3\n0\n-\n-"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"1\\n2\\n3\"}，输出区含「1 2 3\n0\n-\n-」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "biz/text-extract-ips",
+    "inputs": {
+      "input": "1\n2\n3"
+    },
+    "expect": [
+      "1 2 3\n0"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"1\\n2\\n3\"}，输出区含「1 2 3\n0」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "biz/text-filter-lines",
+    "inputs": {
+      "keyword": "abc123测试",
+      "input": "1\n2\n3"
+    },
+    "expect": [
+      "1 2 3\nabc123测试"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"keyword\":\"abc123测试\",\"input\":\"1\\n2\\n3\"}，输出区含「1 2 3\nabc123测试」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "biz/text-extract-urls",
+    "inputs": {
+      "input": "1\n2\n3",
+      "separator": ", "
+    },
+    "expect": [
+      "1 2 3\n,\n0\n（未找到 URL）"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"1\\n2\\n3\",\"separator\":\", \"}，输出区含「1 2 3\n,\n0\n（未找到 URL）」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "biz/text-extract",
+    "inputs": {
+      "input": "1\n2\n3"
+    },
+    "expect": [
+      "\udfa8 十六进制色值\n1 2 3\n无匹配项"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"1\\n2\\n3\"}，输出区含「\udfa8 十六进制色值\n1 2 3\n无匹配项」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "biz/text-keep-only",
+    "inputs": {
+      "customChars": "abc123测试",
+      "customRegex": "abc123测试",
+      "input": "1\n2\n3"
+    },
+    "expect": [
+      "1 2 3\n123\nabc123测试\nabc123测试"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"customChars\":\"abc123测试\",\"customRegex\":\"abc123测试\",\"input\":\"1\\n2\\n3\"}，输出区含「1 2 3\n123\nabc123测试\nabc123测试」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "biz/text-indent",
+    "inputs": {
+      "input": "1\n2\n3",
+      "indentChar": "4spaces",
+      "mode": "parens"
+    },
+    "expect": [
+      "1 2 3\n1 2 3\n4spaces\nparens"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"1\\n2\\n3\",\"indentChar\":\"4spaces\",\"mode\":\"parens\"}，输出区含「1 2 3\n1 2 3\n4spaces\nparens」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "biz/text-line-numbers",
+    "inputs": {
+      "start": "42",
+      "step": "42",
+      "pad": "42",
+      "input": "1\n2\n3",
+      "format": "paren"
+    },
+    "expect": [
+      "1 2 3\nparen\n42\n42\n42\n000000000000000000000000000000000000000042)1 000000000000000000000000000000000000000084)2 000000000"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"start\":\"42\",\"step\":\"42\",\"pad\":\"42\",\"input\":\"1\\n2\\n3\",\"format\":\"paren\"}，输出区含「1 2 3\nparen\n42\n42\n42\n0000000000000000000…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "biz/text-merge",
+    "inputs": {
+      "customSepValue": "abc123测试",
+      "prefix": "abc123测试",
+      "suffix": "abc123测试",
+      "input": "1\n2\n3",
+      "separator": " "
+    },
+    "expect": [
+      "1 2 3\nabc123测试\nabc123测试\nabc123测试\nabc123测试1abc123测试 abc123测试2abc123测试 abc123测试3abc123测试"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"customSepValue\":\"abc123测试\",\"prefix\":\"abc123测试\",\"suffix\":\"abc123测试\",\"input\":\"1\\n2\\n3\",\"separator\":\" \"}，输出区含「1 2 3\nabc123测试\nabc123测试\nabc123测试\nabc123测…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "biz/text-pad",
+    "inputs": {
+      "length": "42",
+      "char": "abc123测试",
+      "input": "1\n2\n3",
+      "direction": "right"
+    },
+    "expect": [
+      "1 2 3\nright\n42\nabc123测试\n1aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa 2aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa 3aaaaaaaaa"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"length\":\"42\",\"char\":\"abc123测试\",\"input\":\"1\\n2\\n3\",\"direction\":\"right\"}，输出区含「1 2 3\nright\n42\nabc123测试\n1aaaaaaaaaaaaaaa…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "biz/text-remove-duplicates-lines",
+    "inputs": {
+      "input": "1\n2\n3"
+    },
+    "expect": [
+      "1 2 3\n3\n3\n0\n0%\n1 2 3"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"1\\n2\\n3\"}，输出区含「1 2 3\n3\n3\n0\n0%\n1 2 3」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "biz/text-prefix-suffix",
+    "inputs": {
+      "prefix": "abc123测试",
+      "suffix": "abc123测试",
+      "startNum": "42",
+      "input": "1\n2\n3",
+      "numFormat": "standalone"
+    },
+    "expect": [
+      "1 2 3\nabc123测试\nabc123测试\n42\nstandalone\nabc123测试1abc123测试 abc123测试2abc123测试 abc123测试3abc123测试"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"prefix\":\"abc123测试\",\"suffix\":\"abc123测试\",\"startNum\":\"42\",\"input\":\"1\\n2\\n3\",\"numFormat\":\"standalone\"}，输出区含「1 2 3\nabc123测试\nabc123测试\n42\nstandalone\nab…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "biz/text-replace-advanced",
+    "inputs": {
+      "find": "abc123测试",
+      "replace": "abc123测试",
+      "input": "1\n2\n3"
+    },
+    "expect": [
+      "1 2 3\nabc123测试\nabc123测试\n1 2 3\n未找到匹配项"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"find\":\"abc123测试\",\"replace\":\"abc123测试\",\"input\":\"1\\n2\\n3\"}，输出区含「1 2 3\nabc123测试\nabc123测试\n1 2 3\n未找到匹配项」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "biz/text-remove-numbers",
+    "inputs": {
+      "customChars": "abc123测试",
+      "customRegex": "abc123测试",
+      "input": "1\n2\n3"
+    },
+    "expect": [
+      "1 2 3\nabc123测试\nabc123测试"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"customChars\":\"abc123测试\",\"customRegex\":\"abc123测试\",\"input\":\"1\\n2\\n3\"}，输出区含「1 2 3\nabc123测试\nabc123测试」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "biz/text-reverse-lines",
+    "inputs": {
+      "input": "1\n2\n3"
+    },
+    "expect": [
+      "1 2 3\n3 2 1"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"1\\n2\\n3\"}，输出区含「1 2 3\n3 2 1」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "biz/text-repeat",
+    "inputs": {
+      "times": "42",
+      "customSepValue": "abc123测试",
+      "input": "1\n2\n3",
+      "separator": " "
+    },
+    "expect": [
+      "1 2 3\n1 2 3 1 2 3 1 2 3 1 2 3 1 2 3 1 2 3 1 2 3 1 2 3 1 2 3 1 2 3 1 2 3 1 2 3 1 2 3 1 2 3 1 2 3 1 2 3 1 2 3 1 2 3 1 2 3 "
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"times\":\"42\",\"customSepValue\":\"abc123测试\",\"input\":\"1\\n2\\n3\",\"separator\":\" \"}，输出区含「1 2 3\n1 2 3 1 2 3 1 2 3 1 2 3 1 2 3 1 2 …」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "biz/text-reverse",
+    "inputs": {
+      "input": "1\n2\n3"
+    },
+    "expect": [
+      "1 2 3\n3 2 1"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"1\\n2\\n3\"}，输出区含「1 2 3\n3 2 1」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "biz/text-shuffle",
+    "inputs": {
+      "input": "1\n2\n3",
+      "mode": "words"
+    },
+    "expect": [
+      "1 2 3\n21 3\nwords"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"1\\n2\\n3\",\"mode\":\"words\"}，输出区含「1 2 3\n21 3\nwords」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "biz/text-sort-advanced",
+    "inputs": {
+      "input": "1\n2\n3"
+    },
+    "expect": [
+      "1 2 3\n1 2 3"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"1\\n2\\n3\"}，输出区含「1 2 3\n1 2 3」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "biz/text-split",
+    "inputs": {
+      "delimiter": "abc123测试",
+      "size": "42",
+      "input": "1\n2\n3",
+      "mode": "line"
+    },
+    "expect": [
+      "1 2 3\n1 1 2 2 3 3\nline\n（共 3 段）\nabc123测试\n42"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"delimiter\":\"abc123测试\",\"size\":\"42\",\"input\":\"1\\n2\\n3\",\"mode\":\"line\"}，输出区含「1 2 3\n1 1 2 2 3 3\nline\n（共 3 段）\nabc123测试\n…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "biz/text-to-banner",
+    "inputs": {
+      "paddingX": "42",
+      "paddingY": "42",
+      "input": "1\n2\n3",
+      "style": "star"
+    },
+    "expect": [
+      "1 2 3\n******************************************************************************************* * * * * * * * * * * * "
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"paddingX\":\"42\",\"paddingY\":\"42\",\"input\":\"1\\n2\\n3\",\"style\":\"star\"}，输出区含「1 2 3\n**********************************…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "biz/text-stats",
+    "inputs": {
+      "input": "1\n2\n3"
+    },
+    "expect": [
+      "1 2 3\n5 总字符数 3 不含空格 0 中文字数 0 英文单词 3 数字个数 3"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"1\\n2\\n3\"}，输出区含「1 2 3\n5 总字符数 3 不含空格 0 中文字数 0 英文单词 3 数字个数…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "biz/text-sort",
+    "inputs": {
+      "input": "1\n2\n3",
+      "output": "1\n2\n3"
+    },
+    "expect": [
+      "1 2 3\n1 2 3\n共 3 行 · 原 3 行"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"1\\n2\\n3\",\"output\":\"1\\n2\\n3\"}，输出区含「1 2 3\n1 2 3\n共 3 行 · 原 3 行」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "biz/text-wrap",
+    "inputs": {
+      "wrapWidth": "42",
+      "padWidth": "42",
+      "padChar": "abc123测试",
+      "alignWidth": "42",
+      "numStart": "42",
+      "numStep": "42",
+      "input": "1\n2\n3",
+      "output": "1\n2\n3",
+      "wrapBreak": "\\r\\n",
+      "numSep": ") "
+    },
+    "expect": [
+      "1 2 3\n42\n\\r\\n\n1 2 3\n1 2 3\n42\nabc123测试\n42\n42\n42\n)"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"wrapWidth\":\"42\",\"padWidth\":\"42\",\"padChar\":\"abc123测试\",\"alignWidth\":\"42\",\"numStart\":\"42\",\"numStep\":\"42\",\"input\":\"1\\n2\\n3\",\"output\":\"1\\n2\\n3\",\"wrapBreak\":\"\\\\r\\\\n\",\"numSep\":\") \"}，输出区含「1 2 3\n42\n\\r\\n\n1 2 3\n1 2 3\n42\nabc123测试\n42…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "biz/text-trim",
+    "inputs": {
+      "input": "1\n2\n3"
+    },
+    "expect": [
+      "1 2 3\n1 2 3"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"1\\n2\\n3\"}，输出区含「1 2 3\n1 2 3」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "biz/unicode-normalize",
+    "inputs": {
+      "input": "1\n2\n3"
+    },
+    "expect": [
+      "1 2 3\n1 2 3\n1 2 3\n1 2 3\n1 2 3\n5\n5\n5\n5\n5"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"1\\n2\\n3\"}，输出区含「1 2 3\n1 2 3\n1 2 3\n1 2 3\n1 2 3\n5\n5\n5\n5\n5」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "biz/text-to-slug",
+    "inputs": {
+      "input": "1\n2\n3",
+      "separator": "_",
+      "chineseMode": "remove"
+    },
+    "expect": [
+      "1 2 3\n1_2_3\n_\nremove"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"1\\n2\\n3\",\"separator\":\"_\",\"chineseMode\":\"remove\"}，输出区含「1 2 3\n1_2_3\n_\nremove」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "biz/unit-price-compare",
+    "inputs": {
+      "a_q": "42",
+      "a_u": "abc123测试",
+      "a_p": "42",
+      "b_q": "42",
+      "b_u": "abc123测试",
+      "b_p": "42"
+    },
+    "expect": [
+      "42\nabc123测试\n42\n42\nabc123测试\n42\n每克单价对比 1.00"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"a_q\":\"42\",\"a_u\":\"abc123测试\",\"a_p\":\"42\",\"b_q\":\"42\",\"b_u\":\"abc123测试\",\"b_p\":\"42\"}，输出区含「42\nabc123测试\n42\n42\nabc123测试\n42\n每克单价对比 1.0…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "biz/upside-down-text",
+    "inputs": {
+      "input": "1\n2\n3"
+    },
+    "expect": [
+      "1 2 3\nƐ ᄅ Ɩ"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"1\\n2\\n3\"}，输出区含「1 2 3\nƐ ᄅ Ɩ」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "biz/zalgo-text",
+    "inputs": {
+      "upMax": "42",
+      "midMax": "42",
+      "downMax": "42",
+      "input": "1\n2\n3",
+      "intensity": "2"
+    },
+    "expect": [
+      "1 2 3\n1̷̵͛ͦ͛͗̽͒ͯͫͯͥͪ̔ͮ̍ͫͨ̎̿̃ͣ͗̃̃̿̽͊͗̍͗̈́͒ͫͬ̀ͬ͑̄̀͟͜͠҉̨͘͘̕͡͞͝͏̸̡̢̡̛̛͔̠̱̗̼̬̥̰̟̼̞̹̦͕͓͚̠̬̹̙̰̻̝͎̞́̀̕͘͠͞͡ͅͅ 2̵̴̸̶̴̶̢̇͒̋́́̀̕͠͞͡͞͝"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"upMax\":\"42\",\"midMax\":\"42\",\"downMax\":\"42\",\"input\":\"1\\n2\\n3\",\"intensity\":\"2\"}，输出区含「1 2 3\n1͛ͦ͛͗̽͒ͯͫͯͥͪ̔ͮ̍ͫͨ̎̿̃ͣ͗̃̃̿̽͊͗̍͗̈́͒ͫͬ…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   }
+
 ];
 
 // ---------------------------------------------------------------- main

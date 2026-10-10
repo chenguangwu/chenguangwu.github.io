@@ -320,7 +320,18 @@ const CASES = [
   "inputs": { "conc": "2.0", "volume": "500", "area": "6", "substance": "BPA", "simulant": "95%乙醇" },
   "expect": ["0.16667 迁移量 mg/dm²", "判定为 超标"],
   "ref": "注入非默认（默认 conc=0.5/volume=200/area=3/substance=DEHP/simulant=10%乙醇）。选 substance 会联动改写 sml（BPA 的 SML = 0.6 mg/kg，DEHP 为 1.5）⇒ 不手工注入 sml。迁移量 = conc×volume/area/1000 = 2.0×500/6/1000 = 0.16667 mg/dm²；食品中含量 = 0.16667×6 = 1 mg/kg > SML 0.6 ⇒ 判定超标。默认态 0.5×200/3/1000 = 0.03333、含量 0.2 < 1.5 ⇒ 判定合格，两串均不出现。"
-}
+},
+  {
+    "slug": "food-testing/generator-31",
+    "inputs": {
+      "cnt": "42"
+    },
+    "expect": [
+      "0240425-L1772 16. 69025272047-B806059-20231201-L1682 17. 69038782100-B270359-20231217-L9085 18. 69054902830-B187499-2024"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"cnt\":\"42\"}，输出区含「0240425-L1772 16. 69025272047-B806059-20…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  }
+
 ];
 async function main() {
   const only = process.argv.slice(2);

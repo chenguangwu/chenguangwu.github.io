@@ -462,7 +462,492 @@ const CASES = [
     inputs: { laborYears: "8", laborSalary: "20000", laborAvgSalary: "8000" },
     expect: ["160,000 经济补偿金（元）", "8 补偿月数（N）", "月工资 × 8个月 = 160,000 元"],
     ref: "注入非默认（laborYears/laborSalary/laborAvgSalary 在 HTML 中均无 value ⇒ 默认空串、输出提示/空值）。口径：协商一致解除（用人单位提出）⇒ 补偿月数 N = 工作年限 = 8；经济补偿金 = 月平均工资 × N = 20,000 × 8 = 160,000 元（未触及 3 倍社平工资封顶：20,000 < 8,000×3 = 24,000，故不按封顶与 12 年上限计）。⚠ 该页是多模块聚合页（商标分类表默认全量渲染 45 类，占满输出前半段）⇒ 锚必须落在劳动补偿模块的合成串上，裸数字（8 / 20000）会在分类表里命中。"
+  },
+  {
+    "slug": "legal/calc-16",
+    "inputs": {
+      "startDate": "abc123测试",
+      "restartDate": "abc123测试",
+      "type": "1"
+    },
+    "expect": [
+      "abc123测试\n1\nabc123测试"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"startDate\":\"abc123测试\",\"restartDate\":\"abc123测试\",\"type\":\"1\"}，输出区含「abc123测试\n1\nabc123测试」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "legal/calc-17",
+    "inputs": {
+      "startDate": "abc123测试",
+      "ipType": "utility"
+    },
+    "expect": [
+      "自申请日起计算。\nabc123测试\n日期无效"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"startDate\":\"abc123测试\",\"ipType\":\"utility\"}，输出区含「自申请日起计算。\nabc123测试\n日期无效」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "legal/calendar-qr",
+    "inputs": {
+      "title": "abc123测试",
+      "loc": "abc123测试",
+      "start": "abc123测试",
+      "end": "abc123测试",
+      "desc": "1\n2\n3"
+    },
+    "expect": [
+      "CRIPTION:1 2 3 DTSTART:NaNNaNNaNTNaNNaN00Z DTEND:NaNNaNNaNTNaNNaN00Z"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"title\":\"abc123测试\",\"loc\":\"abc123测试\",\"start\":\"abc123测试\",\"end\":\"abc123测试\",\"desc\":\"1\\n2\\n3\"}，输出区含「CRIPTION:1 2 3 DTSTART:NaNNaNNaNTNaNNaN0…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "legal/calc-8",
+    "inputs": {
+      "bonus": "42",
+      "salary": "42",
+      "social": "42",
+      "extra": "42"
+    },
+    "expect": [
+      "纳税所得额 = ¥0 + ¥42 = ¥42 应纳税额 = ¥42"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"bonus\":\"42\",\"salary\":\"42\",\"social\":\"42\",\"extra\":\"42\"}，输出区含「纳税所得额 = ¥0 + ¥42 = ¥42 应纳税额 = ¥42」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "legal/calc-interest",
+    "inputs": {
+      "principal": "42",
+      "rate": "42",
+      "months": "42",
+      "lpr": "42",
+      "loanDate": "abc123测试",
+      "method": "equal_payment"
+    },
+    "expect": [
+      "%），受法律保护。 还款明细 期次 本期还款 本金 利息 剩余本金 1 ¥2 ¥0 ¥1 ¥42 2 ¥2 ¥0 ¥1 ¥41 3 ¥2 ¥0 ¥1 ¥41 4 ¥2 ¥1 ¥1 ¥40 5 ¥2 ¥1 ¥1 ¥40 6 ¥2 ¥1 ¥1 "
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"principal\":\"42\",\"rate\":\"42\",\"months\":\"42\",\"lpr\":\"42\",\"loanDate\":\"abc123测试\",\"method\":\"equal_payment\"}，输出区含「%），受法律保护。 还款明细 期次 本期还款 本金 利息 剩余本金 1 ¥2 ¥…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "legal/child-support",
+    "inputs": {
+      "monthlyIncome": "42",
+      "childAge": "42",
+      "livingCost": "42",
+      "customRatio": "42",
+      "specialExpense": "42",
+      "childCount": "2",
+      "paymentRatio": "0.3",
+      "specialRatio": "1"
+    },
+    "expect": [
+      "0.3\n42\n2\n42\n42\n支付方月收入： 42 元 支付比例： 30% 子女年龄：42岁，距成年还有 0 年（0"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"monthlyIncome\":\"42\",\"childAge\":\"42\",\"livingCost\":\"42\",\"customRatio\":\"42\",\"specialExpense\":\"42\",\"childCount\":\"2\",\"paymentRatio\":\"0.3\",\"specialRatio\":\"1\"}，输出区含「0.3\n42\n2\n42\n42\n支付方月收入： 42 元 支付比例： 30% 子女…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "legal/debt-statute-limitations",
+    "inputs": {
+      "dueDate": "abc123测试",
+      "lastDemandDate": "abc123测试",
+      "lastPromiseDate": "abc123测试",
+      "debtType": "iou"
+    },
+    "expect": [
+      "abc123测试\niou\nabc123测试\nabc123测试"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"dueDate\":\"abc123测试\",\"lastDemandDate\":\"abc123测试\",\"lastPromiseDate\":\"abc123测试\",\"debtType\":\"iou\"}，输出区含「abc123测试\niou\nabc123测试\nabc123测试」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "legal/contract-templates",
+    "inputs": {
+      "search": "abc123测试"
+    },
+    "expect": [
+      "借款 📋 其他\nabc123测试\n未找到匹配的合同模板"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"search\":\"abc123测试\"}，输出区含「借款 📋 其他\nabc123测试\n未找到匹配的合同模板」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "legal/court-fee",
+    "inputs": {
+      "amount": "42",
+      "caseType": "divorce"
+    },
+    "expect": [
+      "divorce\n42\n案件类型：离婚案件（50-300元，财产超20万部分0.5%） 标的金额： 42"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"amount\":\"42\",\"caseType\":\"divorce\"}，输出区含「divorce\n42\n案件类型：离婚案件（50-300元，财产超20万部分0.5…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "legal/double-wage-no-contract",
+    "inputs": {
+      "hireDate": "abc123测试",
+      "endDate": "abc123测试",
+      "monthlySalary": "42"
+    },
+    "expect": [
+      "abc123测试\nabc123测试\n42"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"hireDate\":\"abc123测试\",\"endDate\":\"abc123测试\",\"monthlySalary\":\"42\"}，输出区含「abc123测试\nabc123测试\n42」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "legal/divorce-property",
+    "inputs": {
+      "houseValue": "42",
+      "houseLoan": "42",
+      "savings": "42",
+      "carValue": "42",
+      "otherAssets": "42",
+      "jointDebt": "42",
+      "customRatio": "42",
+      "splitRatio": "0.6"
+    },
+    "expect": [
+      "产明细 房产净值：0 元（价值42 - 贷款42） 存款/理财：42 元 车辆价值：42 元 其他财产：42"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"houseValue\":\"42\",\"houseLoan\":\"42\",\"savings\":\"42\",\"carValue\":\"42\",\"otherAssets\":\"42\",\"jointDebt\":\"42\",\"customRatio\":\"42\",\"splitRatio\":\"0.6\"}，输出区含「产明细 房产净值：0 元（价值42 - 贷款42） 存款/理财：42 元 车辆价…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "legal/estimate-salary",
+    "inputs": {
+      "salary": "42",
+      "years": "42",
+      "capWage": "42"
+    },
+    "expect": [
+      "出） 应付总额 ¥1,764 经济补偿金 42 × 42个月（N=42） ¥1,764"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"salary\":\"42\",\"years\":\"42\",\"capWage\":\"42\"}，输出区含「出） 应付总额 ¥1,764 经济补偿金 42 × 42个月（N=42） ¥1,…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "legal/generator-17",
+    "inputs": {
+      "cnt": "42"
+    },
+    "expect": [
+      "约责任、争议解决 11. 服务合同 ：服务内容、服务期限、服务费用、验收标准、知识产权、保密、违约责任、终止条款 12"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"cnt\":\"42\"}，输出区含「约责任、争议解决 11. 服务合同 ：服务内容、服务期限、服务费用、验收标准、知…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "legal/feisu-ipo-simu-binggou-yewu",
+    "inputs": {
+      "v0": "42",
+      "v1": "42"
+    },
+    "expect": [
+      "2 月 周期参考 2.10"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"v0\":\"42\",\"v1\":\"42\"}，输出区含「2 月 周期参考 2.10」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "legal/ipr-damages",
+    "inputs": {
+      "baseAmount": "42",
+      "royaltyAmount": "42",
+      "reasonableExpenses": "42",
+      "ipType": "patent",
+      "calcMethod": "infringerProfit",
+      "punitiveMultiplier": "2"
+    },
+    "expect": [
+      "patent\ninfringerProfit\n42\n42\n2\n42\n权利类型： 专利权 计算方式： 按侵权人违法所得"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"baseAmount\":\"42\",\"royaltyAmount\":\"42\",\"reasonableExpenses\":\"42\",\"ipType\":\"patent\",\"calcMethod\":\"infringerProfit\",\"punitiveMultiplier\":\"2\"}，输出区含「patent\ninfringerProfit\n42\n42\n2\n42\n权利类型： …」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "legal/housing-fund-loan",
+    "inputs": {
+      "balance": "42",
+      "monthlySave": "42",
+      "saveYears": "42",
+      "housePrice": "42",
+      "age": "42",
+      "city": "上海",
+      "repayType": "equal_principal",
+      "loanYears": "10"
+    },
+    "expect": [
+      " 还款方式 等额本金 首月还款 3,668 元 末月还款 2,807 元 每月递减 7 元 利息总额 52,514 元 还款总额 388,514 元"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"balance\":\"42\",\"monthlySave\":\"42\",\"saveYears\":\"42\",\"housePrice\":\"42\",\"age\":\"42\",\"city\":\"上海\",\"repayType\":\"equal_principal\",\"loanYears\":\"10\"}，输出区含「 还款方式 等额本金 首月还款 3,668 元 末月还款 2,807 元 每月递…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "legal/labor-compensation-n1",
+    "inputs": {
+      "workYears": "42",
+      "monthlySalary": "42",
+      "salaryCap": "42",
+      "noticeGiven": "1"
+    },
+    "expect": [
+      "月 月工资基数： 42 元 N倍经济补偿： 1,764"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"workYears\":\"42\",\"monthlySalary\":\"42\",\"salaryCap\":\"42\",\"noticeGiven\":\"1\"}，输出区含「月 月工资基数： 42 元 N倍经济补偿： 1,764」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "legal/late-payment-interest",
+    "inputs": {
+      "principal": "42",
+      "dueDate": "abc123测试",
+      "endDate": "abc123测试",
+      "customRate": "42",
+      "lprRate": "42",
+      "interestType": "lpr15x"
+    },
+    "expect": [
+      "lpr15x\nabc123测试\n42\nabc123测试\n42\n42\n⚠ 计算结果含无效值，请检查输入是否为有效正数。"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"principal\":\"42\",\"dueDate\":\"abc123测试\",\"endDate\":\"abc123测试\",\"customRate\":\"42\",\"lprRate\":\"42\",\"interestType\":\"lpr15x\"}，输出区含「lpr15x\nabc123测试\n42\nabc123测试\n42\n42\n⚠ 计算结果…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "legal/labor-compensation",
+    "inputs": {
+      "workYears": "42",
+      "monthlySalary": "42",
+      "salaryCap": "42",
+      "hireDate": "abc123测试",
+      "leaveDate": "abc123测试",
+      "noticeGiven": "1"
+    },
+    "expect": [
+      "数。\n暂无历史记录\nabc123测试\nabc123测试"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"workYears\":\"42\",\"monthlySalary\":\"42\",\"salaryCap\":\"42\",\"hireDate\":\"abc123测试\",\"leaveDate\":\"abc123测试\",\"noticeGiven\":\"1\"}，输出区含「数。\n暂无历史记录\nabc123测试\nabc123测试」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "legal/lawyer-fee-reference",
+    "inputs": {
+      "amount": "42",
+      "hours": "42",
+      "baseFee": "42",
+      "riskRatio": "42",
+      "caseType": "criminal",
+      "region": "sh",
+      "stage": "second",
+      "criminalStageType": "prosecution",
+      "lawyerLevel": "mid"
+    },
+    "expect": [
+      "criminal\nsh\n42\nsecond\nprosecution\n收费参考： 5,600 - 12,000元"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"amount\":\"42\",\"hours\":\"42\",\"baseFee\":\"42\",\"riskRatio\":\"42\",\"caseType\":\"criminal\",\"region\":\"sh\",\"stage\":\"second\",\"criminalStageType\":\"prosecution\",\"lawyerLevel\":\"mid\"}，输出区含「criminal\nsh\n42\nsecond\nprosecution\n收费参考： …」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "legal/legal-age",
+    "inputs": {
+      "birthDate": "abc123测试"
+    },
+    "expect": [
+      "abc123测试\n⚠ 计算结果含无效值，请检查输入是否为有效正数。"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"birthDate\":\"abc123测试\"}，输出区含「abc123测试\n⚠ 计算结果含无效值，请检查输入是否为有效正数。」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "legal/legal-aid-eligibility",
+    "inputs": {
+      "monthlyIncome": "42",
+      "localLowIncome": "42",
+      "applicantType": "lowincome"
+    },
+    "expect": [
+      "lowincome\n42\n42\n✓ 初步判断符合法律援助申请条件 申请事项：1项 经济状况：低保户/特困人员，免予经济困难核查 下一步： 1. 携带身份证、经济困难证明（免核查人员无需提供）、案件相关材料 2. 向当地法律援助中心或拨打12"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"monthlyIncome\":\"42\",\"localLowIncome\":\"42\",\"applicantType\":\"lowincome\"}，输出区含「lowincome\n42\n42\n✓ 初步判断符合法律援助申请条件 申请事项：1项…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "legal/marriage-property-agreement",
+    "inputs": {
+      "houseValue": "42",
+      "carValue": "42",
+      "savings": "42",
+      "investments": "42",
+      "otherAssets": "42",
+      "jointDebt": "42",
+      "maleRatio": "42",
+      "femaleRatio": "42"
+    },
+    "expect": [
+      "0 可分配净资产 168.00 男方份额 42% 70.56万 女方份额 42% 70.56万 ⚠️ 分配比例合计应为100%，当前为84%"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"houseValue\":\"42\",\"carValue\":\"42\",\"savings\":\"42\",\"investments\":\"42\",\"otherAssets\":\"42\",\"jointDebt\":\"42\",\"maleRatio\":\"42\",\"femaleRatio\":\"42\"}，输出区含「0 可分配净资产 168.00 男方份额 42% 70.56万 女方份额 42%…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "legal/legal-calculator",
+    "inputs": {
+      "comp-years": "42",
+      "comp-salary": "42",
+      "comp-avg3": "42",
+      "ot-salary": "42",
+      "ot-hours": "42",
+      "ot-days": "42",
+      "loan-principal": "42",
+      "loan-rate": "42",
+      "loan-months": "42",
+      "lit-amount": "42",
+      "breach-amount": "42",
+      "breach-rate": "42",
+      "breach-fixed": "42",
+      "breach-days": "42",
+      "bonus-amount": "42",
+      "ot-type": "restday",
+      "breach-mode": "fixed"
+    },
+    "expect": [
+      "元 本息合计： 103.74 元 注意：年利率 42% 超过了一年期LPR的4倍（约14.6%），超出部分可能不受司法保护！\n42\n标的额： 42"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"comp-years\":\"42\",\"comp-salary\":\"42\",\"comp-avg3\":\"42\",\"ot-salary\":\"42\",\"ot-hours\":\"42\",\"ot-days\":\"42\",\"loan-principal\":\"42\",\"loan-rate\":\"42\",\"loan-months\":\"42\",\"lit-amount\":\"42\",\"breach-amount\":\"42\",\"breach-rate\":\"42\",\"breach-fixed\":\"42\",\"breach-days\":\"42\",\"bonus-amount\":\"42\",\"ot-type\":\"restday\",\"breach-mode\":\"fixed\"}，输出区含「元 本息合计： 103.74 元 注意：年利率 42% 超过了一年期LPR的4倍…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "legal/legal-reference",
+    "inputs": {
+      "tmSearch": "abc123测试",
+      "marriageSearch": "abc123测试",
+      "patentDate": "abc123测试",
+      "laborYears": "42",
+      "laborSalary": "42",
+      "laborAvgSalary": "42",
+      "rentMonthly": "42",
+      "patentType": "utility",
+      "laborReason": "layoff",
+      "rentPeriod": "3",
+      "rentDeposit": "2",
+      "rentPayType": "3"
+    },
+    "expect": [
+      "意\n共 25 条\nabc123测试\nutility\n42\n42\nlayoff\n42\n解除原因： 经济性裁员 42 补偿月数（N） 1,764 经济补偿金（元） 计算公式： 月工资 &times; 42个月 = 1,764 元 计算前提： 工"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"tmSearch\":\"abc123测试\",\"marriageSearch\":\"abc123测试\",\"patentDate\":\"abc123测试\",\"laborYears\":\"42\",\"laborSalary\":\"42\",\"laborAvgSalary\":\"42\",\"rentMonthly\":\"42\",\"patentType\":\"utility\",\"laborReason\":\"layoff\",\"rentPeriod\":\"3\",\"rentDeposit\":\"2\",\"rentPayType\":\"3\"}，输出区含「意\n共 25 条\nabc123测试\nutility\n42\n42\nlayoff\n4…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "legal/overtime-pay",
+    "inputs": {
+      "monthlySalary": "42",
+      "hoursPerDay": "42",
+      "weekdayHours": "42",
+      "weekendHours": "42",
+      "holidayHours": "42",
+      "weekendDays": "42",
+      "holidayDays": "42",
+      "workDays": "20.83",
+      "calcType": "days"
+    },
+    "expect": [
+      "42\n20.83\n42\ndays\n42\n42\n日工资： 2.0"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"monthlySalary\":\"42\",\"hoursPerDay\":\"42\",\"weekdayHours\":\"42\",\"weekendHours\":\"42\",\"holidayHours\":\"42\",\"weekendDays\":\"42\",\"holidayDays\":\"42\",\"workDays\":\"20.83\",\"calcType\":\"days\"}，输出区含「42\n20.83\n42\ndays\n42\n42\n日工资： 2.0」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "legal/rent-deposit",
+    "inputs": {
+      "monthlyRent": "42",
+      "otherDeduction": "42",
+      "depositMonths": "2"
+    },
+    "expect": [
+      "42\n2\n42\n押金总额： 84 元（2"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"monthlyRent\":\"42\",\"otherDeduction\":\"42\",\"depositMonths\":\"2\"}，输出区含「42\n2\n42\n押金总额： 84 元（2」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "legal/statute-limitations",
+    "inputs": {
+      "startDate": "abc123测试",
+      "interruptionDate": "abc123测试",
+      "limitType": "1"
+    },
+    "expect": [
+      "abc123测试\nabc123测试\n1"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"startDate\":\"abc123测试\",\"interruptionDate\":\"abc123测试\",\"limitType\":\"1\"}，输出区含「abc123测试\nabc123测试\n1」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "legal/severance-pay",
+    "inputs": {
+      "workYears": "42",
+      "monthlySalary": "42",
+      "salaryCap": "42",
+      "terminationType": "legal"
+    },
+    "expect": [
+      "月 月工资基数： 42 元 赔偿标准： N（合"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"workYears\":\"42\",\"monthlySalary\":\"42\",\"salaryCap\":\"42\",\"terminationType\":\"legal\"}，输出区含「月 月工资基数： 42 元 赔偿标准： N（合」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "legal/social-security-base",
+    "inputs": {
+      "salary": "42",
+      "city": "上海",
+      "insType": "医疗"
+    },
+    "expect": [
+      "人金额 养老保险 7,310 16.0% 1169.60 8.0% 584.80 医疗保险 7,310 9.5% 694.45 2.0% 146.20 失业保险 7,310 0.5% 36.55 0.5% 36.55 工伤保险 7,310 "
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"salary\":\"42\",\"city\":\"上海\",\"insType\":\"医疗\"}，输出区含「人金额 养老保险 7,310 16.0% 1169.60 8.0% 584.80…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "legal/will-witness-requirements",
+    "inputs": {
+      "witnessAge": "minor",
+      "capacity": "limited",
+      "willType": "代书"
+    },
+    "expect": [
+      "minor\nlimited\n代书\n遗嘱类型： 代书遗嘱 见证人要求： 需要2名以上合格见证人在场见证 ✗ 该见证人不符合资格要求 • 未成年人不具有完全见证能力 • 限制/无民事行为能力人不能作为见证人 💡 合格见证人建议： • 选择年满"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"witnessAge\":\"minor\",\"capacity\":\"limited\",\"willType\":\"代书\"}，输出区含「minor\nlimited\n代书\n遗嘱类型： 代书遗嘱 见证人要求： 需要2名以…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "legal/will-template-generator",
+    "inputs": {
+      "testatorName": "abc123测试",
+      "testatorId": "abc123测试",
+      "testatorAddr": "abc123测试",
+      "witness1": "abc123测试",
+      "witness2": "abc123测试",
+      "willDate": "abc123测试",
+      "willPlace": "abc123测试"
+    },
+    "expect": [
+      "024-06-15\nabc123测试\nabc123测试\nabc123测试\nabc123测试\nabc123测试\nabc123测试\n⚠ 计算结果含无效值，请检查输入是否为有效正数。"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"testatorName\":\"abc123测试\",\"testatorId\":\"abc123测试\",\"testatorAddr\":\"abc123测试\",\"witness1\":\"abc123测试\",\"witness2\":\"abc123测试\",\"willDate\":\"abc123测试\",\"willPlace\":\"abc123测试\"}，输出区含「024-06-15\nabc123测试\nabc123测试\nabc123测试\nabc…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "legal/traffic-accident-compensation",
+    "inputs": {
+      "age": "42",
+      "disposableIncome": "42",
+      "avgWage": "42",
+      "dependentExpense": "42",
+      "medicalExpense": "42",
+      "hospitalDays": "42",
+      "monthlyIncome": "42",
+      "missedDays": "42",
+      "liability": "0.7",
+      "injuryLevel": "10"
+    },
+    "expect": [
+      "算）：500 元 残疾赔偿金：84 元（20年×10%） 被扶养人生活费：42"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"age\":\"42\",\"disposableIncome\":\"42\",\"avgWage\":\"42\",\"dependentExpense\":\"42\",\"medicalExpense\":\"42\",\"hospitalDays\":\"42\",\"monthlyIncome\":\"42\",\"missedDays\":\"42\",\"liability\":\"0.7\",\"injuryLevel\":\"10\"}，输出区含「算）：500 元 残疾赔偿金：84 元（20年×10%） 被扶养人生活费：42」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "legal/work-injury-compensation",
+    "inputs": {
+      "monthlySalary": "42",
+      "avgSalary": "42",
+      "disabilityLevel": "2",
+      "terminateRelation": "1"
+    },
+    "expect": [
+      "性伤残补助金： 25 个月 × 42元 = 1,05"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"monthlySalary\":\"42\",\"avgSalary\":\"42\",\"disabilityLevel\":\"2\",\"terminateRelation\":\"1\"}，输出区含「性伤残补助金： 25 个月 × 42元 = 1,05」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   }
+
 ];
 
 // ---------------------------------------------------------------- main

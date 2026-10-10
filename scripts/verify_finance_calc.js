@@ -912,6 +912,1456 @@ const CASES = [
     expect: ["✅ GST 号码有效"],
     ref: "修复前 gstChecksum 用 const factor 却在循环里重赋值 ⇒ 所有浏览器都抛「Assignment to constant variable」整页失效；已改为 let。该号前 14 位 mod-36 校验位 = V 与末位一致 ⇒ 有效。默认态输入为空 → 「等待输入...」，不命中。",
   },
+  {
+    "slug": "finance/aadhaar-validator",
+    "inputs": {
+      "input": "abc123测试"
+    },
+    "expect": [
+      "abc123测试\n输入： abc123测试 ⚠️ Aadhaar 必须为 12 位数字（当前 3 位）"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"abc123测试\"}，输出区含「abc123测试\n输入： abc123测试 ⚠️ Aadhaar 必须为 12 …」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "finance/aba-validator",
+    "inputs": {
+      "input": "abc123测试"
+    },
+    "expect": [
+      "abc123测试\n⚠️ ABA Routing Number 必须为 9 位数字（当前 3 位）"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"abc123测试\"}，输出区含「abc123测试\n⚠️ ABA Routing Number 必须为 9 位数字…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "finance/abn-validator",
+    "inputs": {
+      "input": "abc123测试"
+    },
+    "expect": [
+      "abc123测试\n输入： abc123测试 ⚠️ ABN 必须为 11 位数字（当前 3 位）"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"abc123测试\"}，输出区含「abc123测试\n输入： abc123测试 ⚠️ ABN 必须为 11 位数字（…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "finance/amount-in-words",
+    "inputs": {
+      "money": "42"
+    },
+    "expect": [
+      "42\n中文大写： 肆拾贰元整"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"money\":\"42\"}，输出区含「42\n中文大写： 肆拾贰元整」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "finance/analysis-5",
+    "inputs": {
+      "ca": "42",
+      "inv": "42",
+      "pre": "42",
+      "cash": "42",
+      "cl": "42",
+      "tl": "42",
+      "ta": "42",
+      "dec": "42"
+    },
+    "expect": [
+      "质量需进一步核查。 所有者权益不为正（0.00 元），产权比率与权益乘数无法反映正常资本结构。 存货与预付费用之和已超过流动资产总额，请核对各明细项的填写口径。"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"ca\":\"42\",\"inv\":\"42\",\"pre\":\"42\",\"cash\":\"42\",\"cl\":\"42\",\"tl\":\"42\",\"ta\":\"42\",\"dec\":\"42\"}，输出区含「质量需进一步核查。 所有者权益不为正（0.00 元），产权比率与权益乘数无法反映…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "finance/analysis-risk",
+    "inputs": {
+      "s": "42",
+      "v": "42",
+      "f": "42",
+      "i": "42",
+      "t": "42",
+      "n": "42",
+      "dec": "42"
+    },
+    "expect": [
+      ".00% +5% 44.10 -39.90 5.00% -1.13 2.50% +10% 46.20 -37.80 10.00% -1.10 5.00% EBIT（-42.00）不足以覆盖利息（42.00），利息保障倍数 ≤ 1，财务风险极"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"s\":\"42\",\"v\":\"42\",\"f\":\"42\",\"i\":\"42\",\"t\":\"42\",\"n\":\"42\",\"dec\":\"42\"}，输出区含「.00% +5% 44.10 -39.90 5.00% -1.13 2.50% …」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "finance/assessor-manager",
+    "inputs": {
+      "debtRatio": "42",
+      "currentRatio": "42",
+      "revenue": "42",
+      "profitMargin": "42",
+      "overdue": "42",
+      "creditHistory": "42"
+    },
+    "expect": [
+      "报告 资产负债率：42% | 流动比率：42 | 收入：42万 | 净利润率：42% 逾期：42次 | 信用历史：42年 信用评分： 72"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"debtRatio\":\"42\",\"currentRatio\":\"42\",\"revenue\":\"42\",\"profitMargin\":\"42\",\"overdue\":\"42\",\"creditHistory\":\"42\"}，输出区含「报告 资产负债率：42% | 流动比率：42 | 收入：42万 | 净利润率：4…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "finance/analysis-cost-1",
+    "inputs": {
+      "total": "42",
+      "outQty": "abc123测试",
+      "dec": "42",
+      "rows": "1\n2\n3",
+      "baseName": "工时"
+    },
+    "expect": [
+      "分摊额 单位成本 对象 1 1.00 16.67% 7.00 — 对象 2 2.00 33.33% 14.00 — 对象 3 3"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"total\":\"42\",\"outQty\":\"abc123测试\",\"dec\":\"42\",\"rows\":\"1\\n2\\n3\",\"baseName\":\"工时\"}，输出区含「分摊额 单位成本 对象 1 1.00 16.67% 7.00 — 对象 2 2.…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "finance/bic-lookup",
+    "inputs": {
+      "input": "abc123测试"
+    },
+    "expect": [
+      "abc123测试\n❌ 银行代码（前 4 位）必须为大写字母"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"abc123测试\"}，输出区含「abc123测试\n❌ 银行代码（前 4 位）必须为大写字母」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "finance/cagr",
+    "inputs": {
+      "start": "42",
+      "end": "42",
+      "years": "42"
+    },
+    "expect": [
+      "GR (%) 0.0000 增长率 (小数)"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"start\":\"42\",\"end\":\"42\",\"years\":\"42\"}，输出区含「GR (%) 0.0000 增长率 (小数)」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "finance/bic-validator",
+    "inputs": {
+      "input": "abc123测试"
+    },
+    "expect": [
+      "abc123测试\n输入： ABC123测试 长度： 8 字符（8 或 11） ❌ 前 4 位必须为字母（银行代码）"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"abc123测试\"}，输出区含「abc123测试\n输入： ABC123测试 长度： 8 字符（8 或 11） ❌…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "finance/calc-2",
+    "inputs": {
+      "initial": "42",
+      "flows": "abc123测试"
+    },
+    "expect": [
+      "42\nabc123测试\n请输入现金流"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"initial\":\"42\",\"flows\":\"abc123测试\"}，输出区含「42\nabc123测试\n请输入现金流」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "finance/calc-3",
+    "inputs": {
+      "initial": "42",
+      "rate": "42",
+      "flows": "1\n2\n3"
+    },
+    "expect": [
+      "值 NPV（元） 0.0653 盈利指数 PI 3"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"initial\":\"42\",\"rate\":\"42\",\"flows\":\"1\\n2\\n3\"}，输出区含「值 NPV（元） 0.0653 盈利指数 PI 3」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "finance/capm-return",
+    "inputs": {
+      "rf": "42",
+      "beta": "42",
+      "rm": "42",
+      "obs": "42",
+      "unit": "100"
+    },
+    "expect": [
+      "00% ，α = 42.000% − 42.000% = 0.000% α 接近 0，实际收益与 CAPM 要求回报基本吻合，未发现明显的定价偏差。"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"rf\":\"42\",\"beta\":\"42\",\"rm\":\"42\",\"obs\":\"42\",\"unit\":\"100\"}，输出区含「00% ，α = 42.000% − 42.000% = 0.000% α 接近…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "finance/cnpj-validator",
+    "inputs": {
+      "input": "abc123测试"
+    },
+    "expect": [
+      "abc123测试\n输入： abc123测试 ⚠️ CNPJ 必须为 14 位数字（当前 3 位）"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"abc123测试\"}，输出区含「abc123测试\n输入： abc123测试 ⚠️ CNPJ 必须为 14 位数字…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "finance/break-even-calculator",
+    "inputs": {
+      "fc": "42",
+      "price": "42",
+      "vc": "42",
+      "qty": "42",
+      "pname": "abc123测试",
+      "taxRate": "42",
+      "chartMaxQty": "42",
+      "chartStep": "42",
+      "sensPct": "42",
+      "detailStart": "42",
+      "detailEnd": "42",
+      "detailStep": "42"
+    },
+    "expect": [
+      "00 0.00 -42.00 -0.48% 252 10,584.00 10,584.00 42.00 10,626"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"fc\":\"42\",\"price\":\"42\",\"vc\":\"42\",\"qty\":\"42\",\"pname\":\"abc123测试\",\"taxRate\":\"42\",\"chartMaxQty\":\"42\",\"chartStep\":\"42\",\"sensPct\":\"42\",\"detailStart\":\"42\",\"detailEnd\":\"42\",\"detailStep\":\"42\"}，输出区含「00 0.00 -42.00 -0.48% 252 10,584.00 10,5…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "finance/calc-4",
+    "inputs": {
+      "amount": "42",
+      "rate": "42",
+      "years": "42",
+      "type": "equal-principal"
+    },
+    "expect": [
+      "42\n42\n42\nequal-principal\n1.55 元 首月还款 413.17 还款总额（元） 371.17 总利息（元） 504"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"amount\":\"42\",\"rate\":\"42\",\"years\":\"42\",\"type\":\"equal-principal\"}，输出区含「42\n42\n42\nequal-principal\n1.55 元 首月还款 413…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "finance/calc-5",
+    "inputs": {
+      "cost": "42",
+      "value": "42",
+      "years": "42",
+      "extra": "42"
+    },
+    "expect": [
+      "0 元，最终价值 42.00 元，其他成本 42.00 元）"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"cost\":\"42\",\"value\":\"42\",\"years\":\"42\",\"extra\":\"42\"}，输出区含「0 元，最终价值 42.00 元，其他成本 42.00 元）」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "finance/bond-yield-calculator",
+    "inputs": {
+      "y-face": "42",
+      "y-coupon": "42",
+      "y-price": "42",
+      "y-years": "42",
+      "c-face": "42",
+      "c-coupon": "42",
+      "c-price": "42",
+      "h-buy": "42",
+      "h-sell": "42",
+      "h-face": "42",
+      "h-coupon": "42",
+      "h-years": "42",
+      "p-face": "42",
+      "p-coupon": "42",
+      "p-rate": "42",
+      "p-years": "42",
+      "y-freq": "2",
+      "y-type": "zero",
+      "h-freq": "2",
+      "p-freq": "2",
+      "p-type": "zero"
+    },
+    "expect": [
+      "42\n42\n42\n42\n2\nzero\n📋 详细结果\n42\n42\n42\n42\n42\n42\n42\n42\n42\n42\n42\n42\n2\n2\nzero"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"y-face\":\"42\",\"y-coupon\":\"42\",\"y-price\":\"42\",\"y-years\":\"42\",\"c-face\":\"42\",\"c-coupon\":\"42\",\"c-price\":\"42\",\"h-buy\":\"42\",\"h-sell\":\"42\",\"h-face\":\"42\",\"h-coupon\":\"42\",\"h-years\":\"42\",\"p-face\":\"42\",\"p-coupon\":\"42\",\"p-rate\":\"42\",\"p-years\":\"42\",\"y-freq\":\"2\",\"y-type\":\"zero\",\"h-freq\":\"2\",\"p-freq\":\"2\",\"p-type\":\"zero\"}，输出区含「42\n42\n42\n42\n2\nzero\n📋 详细结果\n42\n42\n42\n42\n4…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "finance/cpf-validator",
+    "inputs": {
+      "input": "abc123测试"
+    },
+    "expect": [
+      "abc123测试\n输入： abc123测试 ⚠️ CPF 必须为 11 位数字（当前 3 位）"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"abc123测试\"}，输出区含「abc123测试\n输入： abc123测试 ⚠️ CPF 必须为 11 位数字（…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "finance/credit-card-bin",
+    "inputs": {
+      "input": "abc123测试"
+    },
+    "expect": [
+      "abc123测试\n⚠️ 需要至少 6 位数字（当前 3 位）"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"abc123测试\"}，输出区含「abc123测试\n⚠️ 需要至少 6 位数字（当前 3 位）」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "finance/credit-card-luhn",
+    "inputs": {
+      "input": "abc123测试"
+    },
+    "expect": [
+      "abc123测试\n数字： 123 长度： 3 位 Luhn 校验： ❌ 未通过 ❌ Luhn 校验失败，卡号无效"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"abc123测试\"}，输出区含「abc123测试\n数字： 123 长度： 3 位 Luhn 校验： ❌ 未通过 …」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "finance/car-loan-calculator",
+    "inputs": {
+      "price": "42",
+      "downPct": "42",
+      "rate": "42",
+      "taxRate": "42",
+      "regFee": "42",
+      "vehicleTax": "42",
+      "compInsurance": "42",
+      "commInsurance": "42",
+      "years": "2",
+      "insYears": "2"
+    },
+    "expect": [
+      "42\n42\n42\n2\n1.52\n12.05\n36.41\n33.1%\n0.0万\n1 1.52 0.66 0.85 23.70 2 1.52 0.69 0.83 23.01 3 1.52 0.71 0.81 22.30 4 1.52 0.74 "
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"price\":\"42\",\"downPct\":\"42\",\"rate\":\"42\",\"taxRate\":\"42\",\"regFee\":\"42\",\"vehicleTax\":\"42\",\"compInsurance\":\"42\",\"commInsurance\":\"42\",\"years\":\"2\",\"insYears\":\"2\"}，输出区含「42\n42\n42\n2\n1.52\n12.05\n36.41\n33.1%\n0.0万\n1…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "finance/credit-card-type",
+    "inputs": {
+      "input": "abc123测试"
+    },
+    "expect": [
+      "abc123测试\n输入数字： 123 长度： 3 位 卡片类型： 未知 ❌ 无法识别的卡片类型"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"abc123测试\"}，输出区含「abc123测试\n输入数字： 123 长度： 3 位 卡片类型： 未知 ❌ 无法…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "finance/credit-card-grace-period",
+    "inputs": {
+      "amt": "42",
+      "yield": "42"
+    },
+    "expect": [
+      "长免息期资金收益（42%年化） ¥1.40"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"amt\":\"42\",\"yield\":\"42\"}，输出区含「长免息期资金收益（42%年化） ¥1.40」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  
+  {
+    "slug": "finance/curp-validator",
+    "inputs": {
+      "input": "abc123测试"
+    },
+    "expect": [
+      "abc123测试\n输入： ABC123测试 长度： 8 字符（应为 18）"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"abc123测试\"}，输出区含「abc123测试\n输入： ABC123测试 长度： 8 字符（应为 18）」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "finance/currency-lookup",
+    "inputs": {
+      "input": "abc123测试"
+    },
+    "expect": [
+      "abc123测试\nInput: abc123测试 ❌ 未找到匹配的货币 支持：ISO 4217 货币代码（如 USD、CNY、EUR）或中英文名"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"abc123测试\"}，输出区含「abc123测试\nInput: abc123测试 ❌ 未找到匹配的货币 支持：I…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "finance/credit-card-interest",
+    "inputs": {
+      "billAmount": "42",
+      "dailyRate": "42",
+      "billDay": "42",
+      "dueDay": "42",
+      "minRatio": "42",
+      "lateFeeRatio": "42",
+      "installmentFee": "42",
+      "repayType": "minimum",
+      "installmentMonths": "6"
+    },
+    "expect": [
+      "minimum\n42\n42\n42\n42\n42\n42\n6\n42\n期数 还款金额 本金 利息/手续费 滞纳金 剩余本金 第1期 546.84 17.64 529.20 0.00 24.36 第2期 317.17 10.23 306.94 0.0"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"billAmount\":\"42\",\"dailyRate\":\"42\",\"billDay\":\"42\",\"dueDay\":\"42\",\"minRatio\":\"42\",\"lateFeeRatio\":\"42\",\"installmentFee\":\"42\",\"repayType\":\"minimum\",\"installmentMonths\":\"6\"}，输出区含「minimum\n42\n42\n42\n42\n42\n42\n6\n42\n期数 还款金额 本…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "finance/currency-symbol",
+    "inputs": {
+      "searchInput": "abc123测试"
+    },
+    "expect": [
+      "\n未找到匹配的货币\nabc123测试"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"searchInput\":\"abc123测试\"}，输出区含「\n未找到匹配的货币\nabc123测试」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "finance/dea-validator",
+    "inputs": {
+      "input": "abc123测试"
+    },
+    "expect": [
+      "abc123测试\n输入： ABC123测试 长度： 8 字符（应为 9） ❌ 长度必须为 9 字符（2 字母 + 7 数字）"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"abc123测试\"}，输出区含「abc123测试\n输入： ABC123测试 长度： 8 字符（应为 9） ❌ 长…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "finance/currency-converter",
+    "inputs": {
+      "fromAmount": "42",
+      "fromSearch": "abc123测试",
+      "toAmount": "42",
+      "toSearch": "abc123测试",
+      "batchFromSearch": "abc123测试",
+      "batchToSearch": "abc123测试",
+      "quickSearch": "abc123测试",
+      "batchInput": "1\n2\n3"
+    },
+    "expect": [
+      "1379 USD\nabc123测试\n未找到货币\nabc123测试\n未找到货币\nabc123测试\n未找到货币\nabc123测试\n未找到货币\nabc123测试\n未找到货币\n1 2 3"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"fromAmount\":\"42\",\"fromSearch\":\"abc123测试\",\"toAmount\":\"42\",\"toSearch\":\"abc123测试\",\"batchFromSearch\":\"abc123测试\",\"batchToSearch\":\"abc123测试\",\"quickSearch\":\"abc123测试\",\"batchInput\":\"1\\n2\\n3\"}，输出区含「1379 USD\nabc123测试\n未找到货币\nabc123测试\n未找到货币\na…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "finance/compound-interest",
+    "inputs": {
+      "principal": "42",
+      "rate": "42",
+      "years": "42",
+      "annual": "42",
+      "freq": "2",
+      "investTime": "end"
+    },
+    "expect": [
+      "0 0.00 1 42.00 42.00 19.49 103.49 84.00 19.49 2 103.49 42.00 48.03 193.52 126.00 67.52 3 193.52 42.00 89.81 325.34 168.0"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"principal\":\"42\",\"rate\":\"42\",\"years\":\"42\",\"annual\":\"42\",\"freq\":\"2\",\"investTime\":\"end\"}，输出区含「0 0.00 1 42.00 42.00 19.49 103.49 84.00 …」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "finance/dni-validator",
+    "inputs": {
+      "input": "abc123测试"
+    },
+    "expect": [
+      "abc123测试\n输入： ABC123测试 长度： 8 字符（应为 9） ❌ 长度必须为 9 字符"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"abc123测试\"}，输出区含「abc123测试\n输入： ABC123测试 长度： 8 字符（应为 9） ❌ 长…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "finance/depreciation-calculator",
+    "inputs": {
+      "cost": "42",
+      "salvage": "42",
+      "life": "42",
+      "totalUnits": "42"
+    },
+    "expect": [
+      "42\n42\n42\n42\n请检查：原值 > 残值 ≥ 0，年限 > 0"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"cost\":\"42\",\"salvage\":\"42\",\"life\":\"42\",\"totalUnits\":\"42\"}，输出区含「42\n42\n42\n42\n请检查：原值 > 残值 ≥ 0，年限 > 0」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "finance/discount-calculator",
+    "inputs": {
+      "price": "42",
+      "finalPrice": "42",
+      "discountRate": "42",
+      "amount": "42",
+      "taxRate": "42"
+    },
+    "expect": [
+      " -- 节省金额\n42\n42\n42\n42\n42"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"price\":\"42\",\"finalPrice\":\"42\",\"discountRate\":\"42\",\"amount\":\"42\",\"taxRate\":\"42\"}，输出区含「 -- 节省金额\n42\n42\n42\n42\n42」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "finance/dns-record-info",
+    "inputs": {
+      "filterInput": "abc123测试"
+    },
+    "expect": [
+      "abc123测试\n未找到匹配的记录类型"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"filterInput\":\"abc123测试\"}，输出区含「abc123测试\n未找到匹配的记录类型」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "finance/driver-license-validator",
+    "inputs": {
+      "input": "abc123测试"
+    },
+    "expect": [
+      "abc123测试\n输入： ABC123测试 长度： 8 字符 ❌ 不匹配任何已知驾照格式 支持美国多州/加拿大/英国/德国/澳大利亚/中国"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"abc123测试\"}，输出区含「abc123测试\n输入： ABC123测试 长度： 8 字符 ❌ 不匹配任何已知…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "finance/esn-validator",
+    "inputs": {
+      "input": "abc123测试"
+    },
+    "expect": [
+      "abc123测试\n输入： ABC123测试 ❌ 格式不符。ESN HEX 应为 8 位十六进制，ESN DEC 应为 11 位十进制 提示：ESN 已被 MEID 取代，仅旧设备使用"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"abc123测试\"}，输出区含「abc123测试\n输入： ABC123测试 ❌ 格式不符。ESN HEX 应为 …」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "finance/ein-validator",
+    "inputs": {
+      "input": "abc123测试"
+    },
+    "expect": [
+      "abc123测试\n输入： abc123测试 ⚠️ EIN 必须为 9 位数字（当前 3 位）"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"abc123测试\"}，输出区含「abc123测试\n输入： abc123测试 ⚠️ EIN 必须为 9 位数字（当…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "finance/generator-report-1",
+    "inputs": {
+      "cnt": "42"
+    },
+    "expect": [
+      "资产负债表：资产 626.11，负债 258.03，所有者权益 368.08"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"cnt\":\"42\"}，输出区含「资产负债表：资产 626.11，负债 258.03，所有者权益 368.08」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "finance/futures-pnl-calculator",
+    "inputs": {
+      "openPrice": "42",
+      "closePrice": "42",
+      "lots": "42",
+      "marginRate": "42",
+      "openFee": "42",
+      "closeFee": "42"
+    },
+    "expect": [
+      "· 保证金10%\n42\n42\n42\n42\n42\n42\n盈亏金额 -3,528.00 手续费 3,528"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"openPrice\":\"42\",\"closePrice\":\"42\",\"lots\":\"42\",\"marginRate\":\"42\",\"openFee\":\"42\",\"closeFee\":\"42\"}，输出区含「· 保证金10%\n42\n42\n42\n42\n42\n42\n盈亏金额 -3,528.0…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "finance/gst-validator",
+    "inputs": {
+      "input": "abc123测试"
+    },
+    "expect": [
+      "abc123测试\n输入： ABC123测试 长度： 8 字符（应为 15） ❌ 长度必须为 15 字符"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"abc123测试\"}，输出区含「abc123测试\n输入： ABC123测试 长度： 8 字符（应为 15） ❌ …」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "finance/gstin-validator",
+    "inputs": {
+      "input": "abc123测试"
+    },
+    "expect": [
+      "abc123测试\n输入： ABC123测试 长度： 8 字符（应为 15） ❌ 长度必须为 15 字符"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"abc123测试\"}，输出区含「abc123测试\n输入： ABC123测试 长度： 8 字符（应为 15） ❌ …」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "finance/iccid-validator",
+    "inputs": {
+      "input": "abc123测试"
+    },
+    "expect": [
+      "abc123测试\n输入： abc123测试 ⚠️ ICCID 通常为 19 或 20 位数字（当前 3 位）"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"abc123测试\"}，输出区含「abc123测试\n输入： abc123测试 ⚠️ ICCID 通常为 19 或 …」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "finance/iban-validator",
+    "inputs": {
+      "ibanInput": "abc123测试"
+    },
+    "expect": [
+      "n6!n10!n\nabc123测试\n❌ 格式错误：IBAN 应以 2 位国家代码 + 2 位校验位 + BBAN 组成"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"ibanInput\":\"abc123测试\"}，输出区含「n6!n10!n\nabc123测试\n❌ 格式错误：IBAN 应以 2 位国家代码…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "finance/imei-validator",
+    "inputs": {
+      "input": "abc123测试"
+    },
+    "expect": [
+      "abc123测试\n输入： abc123测试 ⚠️ IMEI 必须为 14 或 15 位数字（当前 3 位）"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"abc123测试\"}，输出区含「abc123测试\n输入： abc123测试 ⚠️ IMEI 必须为 14 或 1…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "finance/dca-calculator",
+    "inputs": {
+      "monthly": "42",
+      "years": "42",
+      "rate": "42",
+      "initial": "42"
+    },
+    "expect": [
+      "收益率 第1年 ¥504.00 ¥546.00 ¥676.75 +¥130.75 +23.95% 第2年 ¥504.00 ¥1,050.00 ¥1,635.89 +¥455.15 +55.80% 第3年 ¥504.00 ¥1,554.00 "
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"monthly\":\"42\",\"years\":\"42\",\"rate\":\"42\",\"initial\":\"42\"}，输出区含「收益率 第1年 ¥504.00 ¥546.00 ¥676.75 +¥130.75…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "finance/ifsc-validator",
+    "inputs": {
+      "input": "abc123测试"
+    },
+    "expect": [
+      "abc123测试\n输入： ABC123测试 长度： 8 字符（应为 11） ❌ 长度必须为 11 字符"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"abc123测试\"}，输出区含「abc123测试\n输入： ABC123测试 长度： 8 字符（应为 11） ❌ …」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "finance/gold-price-calculator",
+    "inputs": {
+      "goldPrice": "42",
+      "usdRate": "42",
+      "discountRate": "42",
+      "weightInput": "42",
+      "totalInput": "42",
+      "convInput": "42",
+      "puritySel": "0.999",
+      "weightUnit": "kg",
+      "convUnit": "kg"
+    },
+    "expect": [
+      " 钱（qian） 8,400.0000 42.0000千克 = 42,000.000"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"goldPrice\":\"42\",\"usdRate\":\"42\",\"discountRate\":\"42\",\"weightInput\":\"42\",\"totalInput\":\"42\",\"convInput\":\"42\",\"puritySel\":\"0.999\",\"weightUnit\":\"kg\",\"convUnit\":\"kg\"}，输出区含「 钱（qian） 8,400.0000 42.0000千克 = 42,000.0…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "finance/imsi-validator",
+    "inputs": {
+      "input": "abc123测试"
+    },
+    "expect": [
+      "abc123测试\n输入： abc123测试 ⚠️ IMSI 通常为 15 位数字（当前 3 位）"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"abc123测试\"}，输出区含「abc123测试\n输入： abc123测试 ⚠️ IMSI 通常为 15 位数字…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "finance/insurance-calculator",
+    "inputs": {
+      "dt_income": "42",
+      "dt_expense": "42",
+      "dt_debt": "42",
+      "dt_existing": "42",
+      "ft_income": "42",
+      "ft_members": "42",
+      "lv_age": "42",
+      "lv_retire": "42",
+      "lv_income": "42",
+      "lv_growth": "42",
+      "lv_consume": "42",
+      "lv_discount": "42",
+      "nd_income": "42",
+      "nd_expense": "42",
+      "nd_mortgage": "42",
+      "nd_other_debt": "42",
+      "nd_education": "42",
+      "nd_parents": "42",
+      "nd_final": "42",
+      "nd_assets": "42",
+      "nd_spouse_income": "42",
+      "nd_years": "42"
+    },
+    "expect": [
+      "况咨询专业保险顾问\n42\n42\n42\n42\n42\n42\n42\n42\n42\n42\n42\n42\n42\n42\n42\n42\n42\n42"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"dt_income\":\"42\",\"dt_expense\":\"42\",\"dt_debt\":\"42\",\"dt_existing\":\"42\",\"ft_income\":\"42\",\"ft_members\":\"42\",\"lv_age\":\"42\",\"lv_retire\":\"42\",\"lv_income\":\"42\",\"lv_growth\":\"42\",\"lv_consume\":\"42\",\"lv_discount\":\"42\",\"nd_income\":\"42\",\"nd_expense\":\"42\",\"nd_mortgage\":\"42\",\"nd_other_debt\":\"42\",\"nd_education\":\"42\",\"nd_parents\":\"42\",\"nd_final\":\"42\",\"nd_assets\":\"42\",\"nd_spouse_income\":\"42\",\"nd_years\":\"42\"}，输出区含「况咨询专业保险顾问\n42\n42\n42\n42\n42\n42\n42\n42\n42\n42\n…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "finance/irr-calculator",
+    "inputs": {
+      "discountRate": "42",
+      "periodUnit": "month"
+    },
+    "expect": [
+      "5 ✕ T6 ✕\n42\nmonth"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"discountRate\":\"42\",\"periodUnit\":\"month\"}，输出区含「5 ✕ T6 ✕\n42\nmonth」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "finance/ird-validator",
+    "inputs": {
+      "input": "abc123测试"
+    },
+    "expect": [
+      "abc123测试\n输入： abc123测试 ⚠️ IRD 必须为 8 或 9 位数字（当前 3 位）"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"abc123测试\"}，输出区含「abc123测试\n输入： abc123测试 ⚠️ IRD 必须为 8 或 9 位…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "finance/installment-real-rate",
+    "inputs": {
+      "P": "42",
+      "n": "42",
+      "r": "42"
+    },
+    "expect": [
+      " 本期还款 1 1.00 17.64 18.64 2 1.00 17.64 18.64 3 1.00 17.64 18.64 4 1.00 17.64 18.64 5 1.00 17.64 18.64 6 1.00 17.64 18.64 "
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"P\":\"42\",\"n\":\"42\",\"r\":\"42\"}，输出区含「 本期还款 1 1.00 17.64 18.64 2 1.00 17.64 18…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "finance/investment-calculator",
+    "inputs": {
+      "initial": "42",
+      "final": "42",
+      "years": "42",
+      "additional": "42"
+    },
+    "expect": [
+      "42\n42\n42\n42\n初始投入： 42 元 追加投入： 42 元 总投入： 84 元 期末价值： 42 元 累计盈亏： -42"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"initial\":\"42\",\"final\":\"42\",\"years\":\"42\",\"additional\":\"42\"}，输出区含「42\n42\n42\n42\n初始投入： 42 元 追加投入： 42 元 总投入： 8…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "finance/inflation-calculator",
+    "inputs": {
+      "amt": "42",
+      "rate": "42",
+      "years": "42"
+    },
+    "expect": [
+      " 第18年 ¥16,298.63 ¥6,845.43 ¥23,144.06 55004.90% 第19年 ¥23,144.06 ¥9,720.50 ¥32,864.56 78148.95% 第20年 ¥32,864.56 ¥13,803.1"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"amt\":\"42\",\"rate\":\"42\",\"years\":\"42\"}，输出区含「 第18年 ¥16,298.63 ¥6,845.43 ¥23,144.06 55…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "finance/investment-roi",
+    "inputs": {
+      "cost": "42",
+      "return": "42",
+      "years": "42",
+      "discount": "42",
+      "monthly": "42",
+      "annualRate": "42",
+      "period": "42",
+      "aCost": "42",
+      "aRate": "42",
+      "aYears": "42",
+      "aAdd": "42",
+      "bCost": "42",
+      "bRate": "42",
+      "bYears": "42",
+      "bAdd": "42",
+      "unit": "month",
+      "freq": "weekly"
+    },
+    "expect": [
+      "00% 简单年化 -29.69 NPV 净现值 0.29 获利指数 PI -- 投资回收期 3.50年 持有期\n42\nweekly\n42\n42\n91,728 累计投入 223,706,593,972.23 期末终值 +223,706,502"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"cost\":\"42\",\"return\":\"42\",\"years\":\"42\",\"discount\":\"42\",\"monthly\":\"42\",\"annualRate\":\"42\",\"period\":\"42\",\"aCost\":\"42\",\"aRate\":\"42\",\"aYears\":\"42\",\"aAdd\":\"42\",\"bCost\":\"42\",\"bRate\":\"42\",\"bYears\":\"42\",\"bAdd\":\"42\",\"unit\":\"month\",\"freq\":\"weekly\"}，输出区含「00% 简单年化 -29.69 NPV 净现值 0.29 获利指数 PI -- …」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "finance/invoice-generator",
+    "inputs": {
+      "customTax": "42",
+      "s-total": "42",
+      "s-excl": "42",
+      "s-tax": "42",
+      "sp-total": "42",
+      "sp-limit": "42",
+      "cb-target": "42",
+      "cb-tolerance": "42",
+      "cb-amt1": "42",
+      "cb-amt2": "42",
+      "cb-amt3": "42",
+      "cb-amt4": "42",
+      "rv-total": "42",
+      "rv-tax": "42",
+      "rv-excl": "42",
+      "sp-method": "max",
+      "sp-type": "excl"
+    },
+    "expect": [
+      "计 ÷ (1 + 42%) = 42.00 ÷ 1.42 = ¥29.58\n42\n42\n42\n42\n42\n42\n42\n42\n42\n42\n42\nmax\nexcl"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"customTax\":\"42\",\"s-total\":\"42\",\"s-excl\":\"42\",\"s-tax\":\"42\",\"sp-total\":\"42\",\"sp-limit\":\"42\",\"cb-target\":\"42\",\"cb-tolerance\":\"42\",\"cb-amt1\":\"42\",\"cb-amt2\":\"42\",\"cb-amt3\":\"42\",\"cb-amt4\":\"42\",\"rv-total\":\"42\",\"rv-tax\":\"42\",\"rv-excl\":\"42\",\"sp-method\":\"max\",\"sp-type\":\"excl\"}，输出区含「计 ÷ (1 + 42%) = 42.00 ÷ 1.42 = ¥29.58\n42…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "finance/meid-validator",
+    "inputs": {
+      "input": "abc123测试"
+    },
+    "expect": [
+      "abc123测试\n❌ 长度不符。HEX MEID 应为 14 或 15 位，DEC MEID 应为 18 或 19 位（当前 6 位）"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"abc123测试\"}，输出区含「abc123测试\n❌ 长度不符。HEX MEID 应为 14 或 15 位，DE…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "finance/mirror-text",
+    "inputs": {
+      "input": "1\n2\n3"
+    },
+    "expect": [
+      "1 2 3\nƐ S 1\n1 2 3"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"1\\n2\\n3\"}，输出区含「1 2 3\nƐ S 1\n1 2 3」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "finance/loan-comparison",
+    "inputs": {
+      "a-principal": "42",
+      "a-rate": "42",
+      "a-months": "42",
+      "b-principal": "42",
+      "b-rate": "42",
+      "b-months": "42",
+      "c-principal": "42",
+      "c-rate": "42",
+      "c-months": "42"
+    },
+    "expect": [
+      "案 ，0.00 元\n42\n42\n42\n42\n42\n42\n42\n42\n42"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"a-principal\":\"42\",\"a-rate\":\"42\",\"a-months\":\"42\",\"b-principal\":\"42\",\"b-rate\":\"42\",\"b-months\":\"42\",\"c-principal\":\"42\",\"c-rate\":\"42\",\"c-months\":\"42\"}，输出区含「案 ，0.00 元\n42\n42\n42\n42\n42\n42\n42\n42\n42」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "finance/mortgage-prepayment",
+    "inputs": {
+      "principal": "42",
+      "rate": "42",
+      "months": "42",
+      "monthly": "42",
+      "prepay": "42",
+      "precision": "42"
+    },
+    "expect": [
+      "42\n42\n42\n42\n42\n42\n提前还款金额已覆盖本金"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"principal\":\"42\",\"rate\":\"42\",\"months\":\"42\",\"monthly\":\"42\",\"prepay\":\"42\",\"precision\":\"42\"}，输出区含「42\n42\n42\n42\n42\n42\n提前还款金额已覆盖本金」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "finance/msisdn-validator",
+    "inputs": {
+      "input": "abc123测试"
+    },
+    "expect": [
+      "abc123测试\n❌ 仅允许数字及 +、空格、连字符"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"abc123测试\"}，输出区含「abc123测试\n❌ 仅允许数字及 +、空格、连字符」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "finance/nie-validator",
+    "inputs": {
+      "input": "abc123测试"
+    },
+    "expect": [
+      "abc123测试\n输入： ABC123测试 长度： 8 字符（应为 9） ❌ 长度必须为 9 字符"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"abc123测试\"}，输出区含「abc123测试\n输入： ABC123测试 长度： 8 字符（应为 9） ❌ 长…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "finance/mortgage-calculator",
+    "inputs": {
+      "loanAmount": "42",
+      "rate": "42",
+      "downPayment": "42",
+      "years": "10"
+    },
+    "expect": [
+      "000.00\n¥1,372,887.57\n179.3万\n1 ¥14,940.73 ¥240.73 ¥14,700.00 ¥419,759.27 2 ¥14,940.73 ¥249.16 ¥14,691.57 ¥419,510.11 3 ¥1"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"loanAmount\":\"42\",\"rate\":\"42\",\"downPayment\":\"42\",\"years\":\"10\"}，输出区含「000.00\n¥1,372,887.57\n179.3万\n1 ¥14,940.73…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "finance/npi-validator",
+    "inputs": {
+      "input": "abc123测试"
+    },
+    "expect": [
+      "abc123测试\n输入： 123 ⚠️ NPI 必须为 10 位数字（当前 3 位）"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"abc123测试\"}，输出区含「abc123测试\n输入： 123 ⚠️ NPI 必须为 10 位数字（当前 3 …」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "finance/nric-validator",
+    "inputs": {
+      "input": "abc123测试"
+    },
+    "expect": [
+      "abc123测试\n输入： ABC123测试 长度： 8 字符（应为 9） ❌ 长度必须为 9 字符"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"abc123测试\"}，输出区含「abc123测试\n输入： ABC123测试 长度： 8 字符（应为 9） ❌ 长…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "finance/number-to-words-chinese",
+    "inputs": {
+      "inputVal": "abc123测试"
+    },
+    "expect": [
+      "abc123测试\n请输入有效数字"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"inputVal\":\"abc123测试\"}，输出区含「abc123测试\n请输入有效数字」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "finance/number-to-words",
+    "inputs": {
+      "inputVal": "abc123测试"
+    },
+    "expect": [
+      "abc123测试\n请输入有效数字"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"inputVal\":\"abc123测试\"}，输出区含「abc123测试\n请输入有效数字」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "finance/npv-calculator",
+    "inputs": {
+      "rate": "42",
+      "init": "42"
+    },
+    "expect": [
+      "第4期 +0 0 +8,958 折现率： 42.00% NPV ≥ 0： ✓ 可行 IRR ≥ 折现率： ✓ 可行 PI ≥ 1： ✓ 可行"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"rate\":\"42\",\"init\":\"42\"}，输出区含「第4期 +0 0 +8,958 折现率： 42.00% NPV ≥ 0： ✓ 可…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "finance/lease-payment-calculator",
+    "inputs": {
+      "pv": "42",
+      "downPct": "42",
+      "rate": "42",
+      "months": "42",
+      "fv": "42",
+      "fee": "42",
+      "type": "principal",
+      "timing": "begin"
+    },
+    "expect": [
+      "余本金 第1期 ¥0.45 ¥-0.42 ¥0.87 ¥24.78 第2期 ¥0.46 ¥-0.42 ¥0.88 ¥25.20 第3期 ¥0.48 ¥-0.42 ¥0.90 ¥25.62 第4期 ¥0.49 ¥-0.42 ¥0.91 ¥26"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"pv\":\"42\",\"downPct\":\"42\",\"rate\":\"42\",\"months\":\"42\",\"fv\":\"42\",\"fee\":\"42\",\"type\":\"principal\",\"timing\":\"begin\"}，输出区含「余本金 第1期 ¥0.45 ¥-0.42 ¥0.87 ¥24.78 第2期 ¥0…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "finance/password-generator-advanced",
+    "inputs": {
+      "len": "42",
+      "exclude": "abc123测试",
+      "count": "42"
+    },
+    "expect": [
+      "42\nabc123测试\n42"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"len\":\"42\",\"exclude\":\"abc123测试\",\"count\":\"42\"}，输出区含「42\nabc123测试\n42」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "finance/pan-validator",
+    "inputs": {
+      "input": "abc123测试"
+    },
+    "expect": [
+      "abc123测试\n输入： ABC123测试 长度： 8 字符（应为 10） ❌ 长度必须为 10 字符"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"abc123测试\"}，输出区含「abc123测试\n输入： ABC123测试 长度： 8 字符（应为 10） ❌ …」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "finance/password",
+    "inputs": {
+      "pwLen": "42",
+      "pwCount": "42"
+    },
+    "expect": [
+      "42\n42\n42"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"pwLen\":\"42\",\"pwCount\":\"42\"}，输出区含「42\n42\n42」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "finance/option-profit-calculator",
+    "inputs": {
+      "strike": "42",
+      "premium": "42",
+      "s0": "42",
+      "contracts": "42",
+      "mult": "42",
+      "fee": "42"
+    },
+    "expect": [
+      " 元 合约数量： 42 张 × 乘数 42 权利金成本： ¥74,088"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"strike\":\"42\",\"premium\":\"42\",\"s0\":\"42\",\"contracts\":\"42\",\"mult\":\"42\",\"fee\":\"42\"}，输出区含「 元 合约数量： 42 张 × 乘数 42 权利金成本： ¥74,088」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "finance/portfolio-return",
+    "inputs": {
+      "w1": "42",
+      "r1": "42",
+      "w2": "42",
+      "r2": "42"
+    },
+    "expect": [
+      "预期收益 (%) 0.84 权重合计"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"w1\":\"42\",\"r1\":\"42\",\"w2\":\"42\",\"r2\":\"42\"}，输出区含「预期收益 (%) 0.84 权重合计」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "finance/points-redemption-value",
+    "inputs": {
+      "pts": "42",
+      "val": "42",
+      "fee": "42"
+    },
+    "expect": [
+      "分兑换价值（元） 偏亏 划算程度 "
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"pts\":\"42\",\"val\":\"42\",\"fee\":\"42\"}，输出区含「分兑换价值（元） 偏亏 划算程度 」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "finance/postal-code-validator",
+    "inputs": {
+      "input": "abc123测试"
+    },
+    "expect": [
+      "abc123测试\n输入： ABC123测试 匹配的国家/格式： ✅ Hong Kong（HK）：香港无邮编系统（默认通过）"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"abc123测试\"}，输出区含「abc123测试\n输入： ABC123测试 匹配的国家/格式： ✅ Hong K…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "finance/position-size-calculator",
+    "inputs": {
+      "k-capital": "42",
+      "k-winrate": "42",
+      "k-ratio": "42",
+      "k-fraction": "42",
+      "f-capital": "42",
+      "f-percent": "42",
+      "f-price": "42",
+      "f-stop": "42",
+      "r-capital": "42",
+      "r-riskpct": "42",
+      "r-price": "42",
+      "r-stop": "42",
+      "m-initial": "42",
+      "m-multiplier": "42",
+      "m-times": "42",
+      "m-droppct": "42"
+    },
+    "expect": [
+      "42\n42\n42\n42\n42\n42\n42\n42\n42\n42\n42\n42\n42\n42\n42\n42"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"k-capital\":\"42\",\"k-winrate\":\"42\",\"k-ratio\":\"42\",\"k-fraction\":\"42\",\"f-capital\":\"42\",\"f-percent\":\"42\",\"f-price\":\"42\",\"f-stop\":\"42\",\"r-capital\":\"42\",\"r-riskpct\":\"42\",\"r-price\":\"42\",\"r-stop\":\"42\",\"m-initial\":\"42\",\"m-multiplier\":\"42\",\"m-times\":\"42\",\"m-droppct\":\"42\"}，输出区含「42\n42\n42\n42\n42\n42\n42\n42\n42\n42\n42\n42\n42\n4…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "finance/report-1",
+    "inputs": {
+      "inv": "42",
+      "pct": "42",
+      "capital": "42",
+      "retained": "42",
+      "premium": "42",
+      "profit": "42",
+      "dec": "42"
+    },
+    "expect": [
+      "少数股东损益 = 42.00 × 58% = 24.36 元 长期股权投资低于应享有份额，差额 10.92 元为 负商誉 。复核交易对价与可辨认净资产公允价值后，方可计入当期损益。"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"inv\":\"42\",\"pct\":\"42\",\"capital\":\"42\",\"retained\":\"42\",\"premium\":\"42\",\"profit\":\"42\",\"dec\":\"42\"}，输出区含「少数股东损益 = 42.00 × 58% = 24.36 元 长期股权投资低于应…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "finance/mutual-fund-calculator",
+    "inputs": {
+      "monthly": "42",
+      "years": "42",
+      "rate": "42",
+      "initial": "42",
+      "buyFee": "42",
+      "manageFee": "42",
+      "custodyFee": "42",
+      "sellFee": "42"
+    },
+    "expect": [
+      "30% 第2年 ¥504.00 ¥1,050.00 ¥396.38 ¥357.16 -62.25% 第3年 ¥504.00 ¥1,554.00 ¥492.14 ¥408.24 -68.33% 第4年 ¥504.00 ¥2,058.00 ¥5"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"monthly\":\"42\",\"years\":\"42\",\"rate\":\"42\",\"initial\":\"42\",\"buyFee\":\"42\",\"manageFee\":\"42\",\"custodyFee\":\"42\",\"sellFee\":\"42\"}，输出区含「30% 第2年 ¥504.00 ¥1,050.00 ¥396.38 ¥357.1…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "finance/rental-yield-calculator",
+    "inputs": {
+      "price": "42",
+      "area": "42",
+      "rent": "42",
+      "fee": "42",
+      "heat": "42",
+      "decor": "42",
+      "repair": "42",
+      "agency": "42",
+      "tax": "42",
+      "loanRatio": "42",
+      "loanRate": "42",
+      "loanYears": "42",
+      "rentMode": "year",
+      "loanType": "principal"
+    },
+    "expect": [
+      "成本明细 物业费 504 元 取暖费 42 元 装修折旧 42 元 维修基金 42 元 中介费 42 元 税费及其他 42 元 合计 714 元\n42\n42\n42\nprincipal"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"price\":\"42\",\"area\":\"42\",\"rent\":\"42\",\"fee\":\"42\",\"heat\":\"42\",\"decor\":\"42\",\"repair\":\"42\",\"agency\":\"42\",\"tax\":\"42\",\"loanRatio\":\"42\",\"loanRate\":\"42\",\"loanYears\":\"42\",\"rentMode\":\"year\",\"loanType\":\"principal\"}，输出区含「成本明细 物业费 504 元 取暖费 42 元 装修折旧 42 元 维修基金 4…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "finance/routing-number-validator",
+    "inputs": {
+      "input": "abc123测试"
+    },
+    "expect": [
+      "abc123测试\n⚠️ ABA Routing Number 必须为 9 位数字（当前 3 位）"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"abc123测试\"}，输出区含「abc123测试\n⚠️ ABA Routing Number 必须为 9 位数字…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "finance/payroll-calculator",
+    "inputs": {
+      "salary": "42",
+      "bonus": "42",
+      "pension": "42",
+      "medical": "42",
+      "unemployment": "42",
+      "housing": "42",
+      "base": "42",
+      "children": "42",
+      "continuing": "42",
+      "housingLoan": "42",
+      "rent": "42",
+      "elderly": "42",
+      "baby": "42",
+      "medicalBig": "42",
+      "threshold": "42",
+      "city": "beijing"
+    },
+    "expect": [
+      "计个税 第1月 ¥42.00 ¥9.45 ¥0.00 ¥32.55 ¥0.00 第2月 ¥42.00 ¥9.45 ¥0.00 ¥32.55 ¥0.00 第3月 ¥42.00 ¥9.45 ¥0.00 ¥32.55 ¥0.00 第4月 ¥42."
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"salary\":\"42\",\"bonus\":\"42\",\"pension\":\"42\",\"medical\":\"42\",\"unemployment\":\"42\",\"housing\":\"42\",\"base\":\"42\",\"children\":\"42\",\"continuing\":\"42\",\"housingLoan\":\"42\",\"rent\":\"42\",\"elderly\":\"42\",\"baby\":\"42\",\"medicalBig\":\"42\",\"threshold\":\"42\",\"city\":\"beijing\"}，输出区含「计个税 第1月 ¥42.00 ¥9.45 ¥0.00 ¥32.55 ¥0.00 …」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "finance/retirement-calculator",
+    "inputs": {
+      "age": "42",
+      "retireAge": "42",
+      "lifeAge": "42",
+      "currentSavings": "42",
+      "monthlyContribution": "42",
+      "returnRate": "42",
+      "inflation": "42",
+      "monthlyExpense": "42"
+    },
+    "expect": [
+      "42\n42\n42\n42\n42\n42\n42\n42\n年龄顺序：当前"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"age\":\"42\",\"retireAge\":\"42\",\"lifeAge\":\"42\",\"currentSavings\":\"42\",\"monthlyContribution\":\"42\",\"returnRate\":\"42\",\"inflation\":\"42\",\"monthlyExpense\":\"42\"}，输出区含「42\n42\n42\n42\n42\n42\n42\n42\n年龄顺序：当前」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "finance/salary-after-tax",
+    "inputs": {
+      "gross": "42",
+      "ins": "42",
+      "ded": "42",
+      "months": "42"
+    },
+    "expect": [
+      "42\n42\n42\n42\n42.00 应发工资 42"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"gross\":\"42\",\"ins\":\"42\",\"ded\":\"42\",\"months\":\"42\"}，输出区含「42\n42\n42\n42\n42.00 应发工资 42」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "finance/profit-margin-calculator",
+    "inputs": {
+      "revenue": "42",
+      "cogs": "42",
+      "sellingExp": "42",
+      "adminExp": "42",
+      "rdExp": "42",
+      "finExp": "42",
+      "da": "42",
+      "taxRate": "42",
+      "revRev": "42",
+      "targetMargin1": "42",
+      "expRatio1": "42",
+      "costCost": "42",
+      "targetMargin2": "42",
+      "taxRate2": "42",
+      "batchStart": "42",
+      "batchEnd": "42",
+      "batchStep": "42",
+      "batchM1": "42",
+      "batchM2": "42",
+      "batchM3": "42",
+      "batchM4": "42",
+      "dupontNI": "42",
+      "dupontRev": "42",
+      "dupontAssets": "42",
+      "dupontEquity": "42",
+      "marginType1": "operating",
+      "marginType2": "operating"
+    },
+    "expect": [
+      "目标营业成本： 6.72 元 对应毛利率： 84.00%\n42\noperating\n42\n42\n目标营业利润率： 42% 单位成本：42.00 元 假设期间费用率：25% 目标售价： 127.27 元 对应毛利率： 67.00%\n42\n42"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"revenue\":\"42\",\"cogs\":\"42\",\"sellingExp\":\"42\",\"adminExp\":\"42\",\"rdExp\":\"42\",\"finExp\":\"42\",\"da\":\"42\",\"taxRate\":\"42\",\"revRev\":\"42\",\"targetMargin1\":\"42\",\"expRatio1\":\"42\",\"costCost\":\"42\",\"targetMargin2\":\"42\",\"taxRate2\":\"42\",\"batchStart\":\"42\",\"batchEnd\":\"42\",\"batchStep\":\"42\",\"batchM1\":\"42\",\"batchM2\":\"42\",\"batchM3\":\"42\",\"batchM4\":\"42\",\"dupontNI\":\"42\",\"dupontRev\":\"42\",\"dupontAssets\":\"42\",\"dupontEquity\":\"42\",\"marginType1\":\"operating\",\"marginType2\":\"operating\"}，输出区含「目标营业成本： 6.72 元 对应毛利率： 84.00%\n42\noperatin…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "finance/sharpe-ratio",
+    "inputs": {
+      "portReturn": "42",
+      "portStd": "42",
+      "riskFree": "42",
+      "returns": "1\n2\n3",
+      "annualize": "12"
+    },
+    "expect": [
+      "准差 σ p = 0.816% 夏普比率 = -40.000 ÷ 0.816 = -48.9898 评级： 差 年化夏普比率： 年化夏普 = -48.9898 × √12 = -169.7056 评级： 差 超额收益为负，组合表现不如无风险"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"portReturn\":\"42\",\"portStd\":\"42\",\"riskFree\":\"42\",\"returns\":\"1\\n2\\n3\",\"annualize\":\"12\"}，输出区含「准差 σ p = 0.816% 夏普比率 = -40.000 ÷ 0.816 =…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "finance/sin-validator",
+    "inputs": {
+      "input": "abc123测试"
+    },
+    "expect": [
+      "abc123测试\n输入： abc123测试 ⚠️ SIN 必须为 9 位数字（当前 3 位）"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"abc123测试\"}，输出区含「abc123测试\n输入： abc123测试 ⚠️ SIN 必须为 9 位数字（当…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "finance/salary-calculator",
+    "inputs": {
+      "salary": "42",
+      "bonus": "42",
+      "baseSalary": "42",
+      "housingBase": "42",
+      "pensionRate": "42",
+      "medicalRate": "42",
+      "unemploymentRate": "42",
+      "injuryRate": "42",
+      "maternityRate": "42",
+      "housingRate": "42",
+      "childrenEdu": "42",
+      "continuingEdu": "42",
+      "housingLoan": "42",
+      "housingRent": "42",
+      "elderly": "42",
+      "infant": "42",
+      "threshold": "42",
+      "monthsPerYear": "42"
+    },
+    "expect": [
+      "42\n42\n42\n42\n42\n42\n42\n42\n42\n42\n42\n42\n42\n42\n42\n42\n42\n42\n¥-4,361.28\n¥84\n¥0\n¥4,445\n¥1.00\n¥17.64\n¥17.64\n¥17.64\n¥17.64\n¥17.64\n"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"salary\":\"42\",\"bonus\":\"42\",\"baseSalary\":\"42\",\"housingBase\":\"42\",\"pensionRate\":\"42\",\"medicalRate\":\"42\",\"unemploymentRate\":\"42\",\"injuryRate\":\"42\",\"maternityRate\":\"42\",\"housingRate\":\"42\",\"childrenEdu\":\"42\",\"continuingEdu\":\"42\",\"housingLoan\":\"42\",\"housingRent\":\"42\",\"elderly\":\"42\",\"infant\":\"42\",\"threshold\":\"42\",\"monthsPerYear\":\"42\"}，输出区含「42\n42\n42\n42\n42\n42\n42\n42\n42\n42\n42\n42\n42\n4…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "finance/sort-code-validator-validator",
+    "inputs": {
+      "input": "abc123测试"
+    },
+    "expect": [
+      "abc123测试\n输入： abc123测试 ⚠️ Sort Code 必须为 6 位数字（当前 3 位）"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"abc123测试\"}，输出区含「abc123测试\n输入： abc123测试 ⚠️ Sort Code 必须为 6…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "finance/swift-bic-validator",
+    "inputs": {
+      "input": "abc123测试"
+    },
+    "expect": [
+      "abc123测试\n输入： ABC123测试 长度： 8 字符（8 或 11） ❌ 前 4 位必须为字母（银行代码）"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"abc123测试\"}，输出区含「abc123测试\n输入： ABC123测试 长度： 8 字符（8 或 11） ❌…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "finance/simple-interest",
+    "inputs": {
+      "principal": "42",
+      "rate": "42",
+      "years": "42",
+      "mode": "annual"
+    },
+    "expect": [
+      " 年末：累计利息 229.32 元，本利和 271.32 元 第 14 年末：累计利息 246.96 元，本利和 288.96 元 第 15 年末：累计利息 264.6 元，本利和 306.6 元 第 16 年末：累计利息 282.24 元"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"principal\":\"42\",\"rate\":\"42\",\"years\":\"42\",\"mode\":\"annual\"}，输出区含「 年末：累计利息 229.32 元，本利和 271.32 元 第 14 年末：累…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "finance/stock-profit-calculator",
+    "inputs": {
+      "buyPrice": "42",
+      "buyQty": "42",
+      "sellPrice": "42",
+      "commissionRate": "42",
+      "stampRate": "42",
+      "transferRate": "42",
+      "minCommission": "42"
+    },
+    "expect": [
+      "42\n42\n42\n42\n42\n42\n42\n3245.76\n-458.64\n-3704.40\n-114.13%\n-88.200\n3704.40\n1,764.00\n740.88\n740.88\n3,245.76\n1,764.00\n740.88\n7"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"buyPrice\":\"42\",\"buyQty\":\"42\",\"sellPrice\":\"42\",\"commissionRate\":\"42\",\"stampRate\":\"42\",\"transferRate\":\"42\",\"minCommission\":\"42\"}，输出区含「42\n42\n42\n42\n42\n42\n42\n3245.76\n-458.64\n-37…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "finance/tax-bracket",
+    "inputs": {
+      "income": "42"
+    },
+    "expect": [
+      " 元 应缴税款： 1.26 元 税后所得： 40.74 元 实际税率： 3.00"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"income\":\"42\"}，输出区含「 元 应缴税款： 1.26 元 税后所得： 40.74 元 实际税率： 3.00」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "finance/tax-calculator",
+    "inputs": {
+      "salary": "42",
+      "insurance": "42",
+      "special": "42",
+      "threshold": "42"
+    },
+    "expect": [
+      "42\n42\n42\n42\n¥0.00\n¥0.00\n3%\n¥0.00\n¥0.00\n0.0%\n¥"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"salary\":\"42\",\"insurance\":\"42\",\"special\":\"42\",\"threshold\":\"42\"}，输出区含「42\n42\n42\n42\n¥0.00\n¥0.00\n3%\n¥0.00\n¥0.00\n0…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "finance/text-reverse-words",
+    "inputs": {
+      "input": "1\n2\n3",
+      "mode": "zhchar"
+    },
+    "expect": [
+      "1 2 3\n3 2 1\nzhchar"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"1\\n2\\n3\",\"mode\":\"zhchar\"}，输出区含「1 2 3\n3 2 1\nzhchar」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "finance/tin-validator",
+    "inputs": {
+      "input": "abc123测试"
+    },
+    "expect": [
+      "abc123测试\n输入： abc123测试 ⚠️ TIN 必须为 9 位数字（当前 3 位）"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"abc123测试\"}，输出区含「abc123测试\n输入： abc123测试 ⚠️ TIN 必须为 9 位数字（当…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "finance/tfn-validator",
+    "inputs": {
+      "input": "abc123测试"
+    },
+    "expect": [
+      "abc123测试\n输入： abc123测试 ⚠️ TFN 必须为 8 或 9 位数字（当前 3 位）"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"abc123测试\"}，输出区含「abc123测试\n输入： abc123测试 ⚠️ TFN 必须为 8 或 9 位…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "finance/uan-validator",
+    "inputs": {
+      "input": "abc123测试"
+    },
+    "expect": [
+      "abc123测试\n输入： abc123测试 ⚠️ UAN 必须为 12 位数字（当前 3 位）"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"abc123测试\"}，输出区含「abc123测试\n输入： abc123测试 ⚠️ UAN 必须为 12 位数字（…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "finance/vcard-qr",
+    "inputs": {
+      "fn": "abc123测试",
+      "ln": "abc123测试",
+      "tel": "abc123测试",
+      "email": "abc123测试",
+      "org": "abc123测试",
+      "title": "abc123测试",
+      "url": "abc123测试"
+    },
+    "expect": [
+      "ON:3.0 N:abc123测试;abc123测试;;; FN:abc123测试abc123测试 ORG:abc123测试 TITLE:abc123测试"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"fn\":\"abc123测试\",\"ln\":\"abc123测试\",\"tel\":\"abc123测试\",\"email\":\"abc123测试\",\"org\":\"abc123测试\",\"title\":\"abc123测试\",\"url\":\"abc123测试\"}，输出区含「ON:3.0 N:abc123测试;abc123测试;;; FN:abc123测…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "finance/vat-calculator",
+    "inputs": {
+      "customRate": "42",
+      "amount": "42",
+      "batchRate": "42",
+      "batchInput": "1\n2\n3",
+      "dir": "exclusive",
+      "batchDir": "exclusive"
+    },
+    "expect": [
+      "额 含税价 1 1.00 1.00 0.42 1.42 2 2.00 2.00 0.84 2.84 3 3.00 3.00 1.26 4.26 合计 6.00 2.52 8.52"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"customRate\":\"42\",\"amount\":\"42\",\"batchRate\":\"42\",\"batchInput\":\"1\\n2\\n3\",\"dir\":\"exclusive\",\"batchDir\":\"exclusive\"}，输出区含「额 含税价 1 1.00 1.00 0.42 1.42 2 2.00 2.00 …」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "finance/word-counter",
+    "inputs": {
+      "input": "1\n2\n3"
+    },
+    "expect": [
+      "1 2 3\n5 总字符数 3 不含空格 0 中文字符 0 英文单词 3 行数 1 段落数 1 句子数 1分钟 预计阅读时间\n📖 可读性分析 平均句长： 3.0 词/句 | 平均每词： 1.0 字符 | 难度： 简单"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"1\\n2\\n3\"}，输出区含「1 2 3\n5 总字符数 3 不含空格 0 中文字符 0 英文单词 3 行数 1…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "finance/word-frequency",
+    "inputs": {
+      "topN": "42",
+      "minLen": "42",
+      "input": "1\n2\n3",
+      "ignoreCase": "0"
+    },
+    "expect": [
+      "1 2 3\n没有符合条件的词\n0\n42\n42"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"topN\":\"42\",\"minLen\":\"42\",\"input\":\"1\\n2\\n3\",\"ignoreCase\":\"0\"}，输出区含「1 2 3\n没有符合条件的词\n0\n42\n42」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "finance/voter-id-validator",
+    "inputs": {
+      "input": "abc123测试"
+    },
+    "expect": [
+      "abc123测试\n输入： ABC123测试 长度： 8 字符（应为 10） ❌ 长度必须为 10 字符"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"abc123测试\"}，输出区含「abc123测试\n输入： ABC123测试 长度： 8 字符（应为 10） ❌ …」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "finance/word-wrap",
+    "inputs": {
+      "width": "42",
+      "input": "1\n2\n3",
+      "mode": "word"
+    },
+    "expect": [
+      "1 2 3\n1 2 3\n42\nword"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"width\":\"42\",\"input\":\"1\\n2\\n3\",\"mode\":\"word\"}，输出区含「1 2 3\n1 2 3\n42\nword」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "finance/zip-code-validator",
+    "inputs": {
+      "input": "abc123测试"
+    },
+    "expect": [
+      "abc123测试\n输入： abc123测试 ❌ 格式不符。ZIP 应为 5 位数字或 5 位-4 位格式"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"abc123测试\"}，输出区含「abc123测试\n输入： abc123测试 ❌ 格式不符。ZIP 应为 5 位数…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "finance/loan-amortization",
+    "inputs": {
+      "loanAmount": "42",
+      "annualRate": "42",
+      "loanYears": "42",
+      "balloonMonths": "42",
+      "balloonRatio": "42",
+      "prepayMonth": "42",
+      "prepayAmount": "42",
+      "repayMethod": "principal"
+    },
+    "expect": [
+      "83 第339期 0.57 0.08 0.48 13.75 第340期 0.56 0.08 0.48 13.67 第341期 0.56 0.08 0.48 13.58 第342期 0.56 0.08 0.48 13.50 第343期 0.5"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"loanAmount\":\"42\",\"annualRate\":\"42\",\"loanYears\":\"42\",\"balloonMonths\":\"42\",\"balloonRatio\":\"42\",\"prepayMonth\":\"42\",\"prepayAmount\":\"42\",\"repayMethod\":\"principal\"}，输出区含「83 第339期 0.57 0.08 0.48 13.75 第340期 0.56…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  }
+
 ];
 
 // ---------------------------------------------------------------- main

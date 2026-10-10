@@ -62,7 +62,22 @@ const CASES = [
     "23×16×16"
   ],
   "ref": "auto-restore"
-}
+},
+  {
+    "slug": "funeral/reminder-3",
+    "inputs": {
+      "sName": "abc123测试",
+      "sDate": "abc123测试",
+      "lName": "abc123测试",
+      "lYear": "42",
+      "lMonth": "2"
+    },
+    "expect": [
+      "，请在上方添加。\n⚠ 计算结果含无效值，请检查输入是否为有效正数。"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"sName\":\"abc123测试\",\"sDate\":\"abc123测试\",\"lName\":\"abc123测试\",\"lYear\":\"42\",\"lMonth\":\"2\"}，输出区含「，请在上方添加。\n⚠ 计算结果含无效值，请检查输入是否为有效正数。」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  }
+
 ];
 async function main() {
   const only = process.argv.slice(2);

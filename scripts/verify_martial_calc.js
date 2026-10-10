@@ -14,7 +14,74 @@ const CASES = [
   //     超上限扣分 (95−90)×0.5 = 2.5
   { slug: "martial/routine-timer", inputs: { "routineType": "changquan", "manualTime": "95" }, expect: ["速度比率： 84.2%", "+15.0"] },
   { slug: "martial/stance-center", inputs: {"frontRatio":"80"}, expect: ["前脚 80%"] },
-  { slug: "martial/strike-resistance", inputs: {"trainYears":"3","freq":"7"}, expect: ["硬度指数： 119"] }
+  { slug: "martial/strike-resistance", inputs: {"trainYears":"3","freq":"7"}, expect: ["硬度指数： 119"] },
+  {
+    "slug": "martial/breathing-rhythm",
+    "inputs": {
+      "breathRate": "42",
+      "actionType": "throw",
+      "inhaleRatio": "0.5",
+      "level": "1"
+    },
+    "expect": [
+      "分） 呼吸周期： 1.43 秒 （吸0.48s : 呼0.95s） 匹配指数： 34 需调整 ⚠️ 呼吸偏快 ：当前频率高于推荐范围，可能影响发力节奏。建议放慢呼吸，加深吸气"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"breathRate\":\"42\",\"actionType\":\"throw\",\"inhaleRatio\":\"0.5\",\"level\":\"1\"}，输出区含「分） 呼吸周期： 1.43 秒 （吸0.48s : 呼0.95s） 匹配指数： …」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "martial/kick-height",
+    "inputs": {
+      "height": "42",
+      "legLen": "42",
+      "kickHeight": "42",
+      "kickType": "side",
+      "level": "1"
+    },
+    "expect": [
+      " 估算踢腿角度： 41.8° 踢腿过头顶，柔韧与技术俱佳。 ✓ 出色 ：踢腿高度已达头顶以上，柔韧性优秀"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"height\":\"42\",\"legLen\":\"42\",\"kickHeight\":\"42\",\"kickType\":\"side\",\"level\":\"1\"}，输出区含「 估算踢腿角度： 41.8° 踢腿过头顶，柔韧与技术俱佳。 ✓ 出色 ：踢腿高度…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "martial/routine-timer",
+    "inputs": {
+      "standardTime": "42",
+      "tolerance": "42",
+      "manualTime": "42",
+      "routineType": "nanquan"
+    },
+    "expect": [
+      "0 超出范围扣分\nnanquan\n75"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"standardTime\":\"42\",\"tolerance\":\"42\",\"manualTime\":\"42\",\"routineType\":\"nanquan\"}，输出区含「0 超出范围扣分\nnanquan\n75」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "martial/stance-center",
+    "inputs": {
+      "stepWidth": "42",
+      "height": "42",
+      "frontRatio": "42",
+      "squatDepth": "42",
+      "duration": "42",
+      "stanceType": "bow"
+    },
+    "expect": [
+      "） 稳定性指数： 66 耐力评分： 14 需加强 ⚠️ 重心偏差较大 ：承重比与标准弓步相差23%，建议调整姿势以提升稳定性。 ⚠️ 强度较高 ：当前姿势强度大且时长较长，注意适度休息，避免关节损伤"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"stepWidth\":\"42\",\"height\":\"42\",\"frontRatio\":\"42\",\"squatDepth\":\"42\",\"duration\":\"42\",\"stanceType\":\"bow\"}，输出区含「） 稳定性指数： 66 耐力评分： 14 需加强 ⚠️ 重心偏差较大 ：承重比与…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "martial/strike-resistance",
+    "inputs": {
+      "freq": "42",
+      "trainYears": "1"
+    },
+    "expect": [
+      " -- 硬度指数\n1\n42\n90\n\n86\n\n81\n\n76\n\n83\n\n91\n\n85\n\n38"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"freq\":\"42\",\"trainYears\":\"1\"}，输出区含「 -- 硬度指数\n1\n42\n90\n\n86\n\n81\n\n76\n\n83\n\n91\n\n85…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  }
+
 ];
 async function main() {
   const only = process.argv.slice(2);

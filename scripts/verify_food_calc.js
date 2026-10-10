@@ -313,7 +313,23 @@ const CASES = [
     inputs: { variety: "2", amount: "100", totalW: "800", target: "3000" },
     expect: ["656 菜品辣度（SHU）", "品种：墨西哥椒 Jalapeño，公开参考区间 2500 至 8000 SHU（中值 5250）"],
     ref: '注入 variety=2（墨西哥椒 Jalapeño，区间2500–8000，中值5250）& amount=100 & totalW=800 & target=3000：base=5250；dish=5250×100÷800=656.25→656；ppm=5250÷15=350.0；mg=350.0×100÷1000=35.00；maxG=3000×800÷5250=457.1；dil=656.25÷3000=0.22。默认甜椒base=0→菜品辣度0、等级不辣，注入失败不命中（已 dump 实测确认）。'
+  },
+  {
+    "slug": "food/convert-20",
+    "inputs": {
+      "amount": "42",
+      "totalW": "42",
+      "shuIn": "42",
+      "target": "42",
+      "mode": "shu",
+      "variety": "1"
+    },
+    "expect": [
+      "辣度判定） 品种：自定义输入，公开参考区间 42 至 42 SHU（中值 42） 不超过目标 42"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"amount\":\"42\",\"totalW\":\"42\",\"shuIn\":\"42\",\"target\":\"42\",\"mode\":\"shu\",\"variety\":\"1\"}，输出区含「辣度判定） 品种：自定义输入，公开参考区间 42 至 42 SHU（中值 42）…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   }
+
 ];
 async function main() {
   const only = process.argv.slice(2);

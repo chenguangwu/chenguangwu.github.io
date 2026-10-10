@@ -52,7 +52,22 @@ const CASES = [
     "永_X"
   ],
   "ref": "auto-restore"
-}
+},
+  {
+    "slug": "chinese/chinese-culture",
+    "inputs": {
+      "poemSearch": "abc123测试",
+      "idiomInput": "abc123测试",
+      "strokeInput": "abc123测试",
+      "biasSearch": "abc123测试",
+      "quoteSearch": "abc123测试"
+    },
+    "expect": [
+      "abc123测试\nabc123测试\nabc123测试\nabc123测试\nabc123测试"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"poemSearch\":\"abc123测试\",\"idiomInput\":\"abc123测试\",\"strokeInput\":\"abc123测试\",\"biasSearch\":\"abc123测试\",\"quoteSearch\":\"abc123测试\"}，输出区含「abc123测试\nabc123测试\nabc123测试\nabc123测试\nabc1…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  }
+
 ];
 async function main() {
   const only = process.argv.slice(2);

@@ -141,7 +141,38 @@ const CASES = [
     "aberrant"
   ],
   "ref": "独立复算：注入的收藏表 ['aberrant'] 命中 WORDS.gre[0]，pickWord() 走 state.cat==='fav' 分支 ⇒ pool 只含该词，#word 渲染单词名、#phonetic 渲染 /æˈberənt/。注入路径复刻 .cat-btn[data-c=fav] 的真实 onclick（state.cat=b.dataset.c; pickWord()），仅把 dataset.c 换成注入的收藏表。选 gre 词条是因为默认 state.cat='cet4'：cet4 池内任一随机词都产不出该串，规避 pickWord() 的 Math.random() 导致的默认态偶发命中。"
-}
+},
+  {
+    "slug": "language/german-gender-quiz",
+    "inputs": {
+      "searchInput": "abc123测试"
+    },
+    "expect": [
+      "Wolf (狼)\nabc123测试\n0\n1\n0\n未找到包含 \"abc123测试\" 的名词。当前词库包含 184 个名词。"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"searchInput\":\"abc123测试\"}，输出区含「Wolf (狼)\nabc123测试\n0\n1\n0\n未找到包含 \"abc123测试\"…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "language/grammar-checker",
+    "inputs": {
+      "input-text": "1\n2\n3"
+    },
+    "expect": [
+      "1 2 3\n5\n0\n1\n6\n📋 发现的问题 字词 - 注意\"做/坐\"区分 1 2 3 💡 建议: 根据上下文确认 字词 - 注意\"做/坐\"区分 1 2 3 💡 建议: 根据上下文确认 字词 - 注意\"做/坐\"区分 1 2 3 💡 建"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"input-text\":\"1\\n2\\n3\"}，输出区含「1 2 3\n5\n0\n1\n6\n📋 发现的问题 字词 - 注意\"做/坐\"区分 1 …」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "language/spanish-accent-rules",
+    "inputs": {
+      "wordInput": "abc123测试"
+    },
+    "expect": [
+      "abc123测试\n分析结果: abc123测试 ab c 1 2 3 测 试 重音音节 试 (第1音节，从后数) 以辅音(非n/s)结尾，重音在末音节 总音节数 7 个音节 音节划分: ab - c - 1 - 2 - 3 - 测 - 试 "
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"wordInput\":\"abc123测试\"}，输出区含「abc123测试\n分析结果: abc123测试 ab c 1 2 3 测 试 重…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  }
+
 ];
 async function main() {
   const only = process.argv.slice(2);

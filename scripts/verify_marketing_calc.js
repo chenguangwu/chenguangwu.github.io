@@ -661,7 +661,370 @@ const CASES = [
     "inputs": { "qrSource": "线上广告", "qrCampaign": "618大促" },
     "expect": ["utm_source=%E7%BA%BF%E4%B8%8A%E5%B9%BF%E5%91%8A", "utm_campaign=618%E5%A4%A7%E4%BF%83"],
     "ref": "注入非默认（默认 qrSource=门店海报 / qrCampaign=新店开业）。页面把中文参数按 UTF-8 做 encodeURIComponent 拼进追踪链接：『线上广告』⇒ %E7%BA%BF%E4%B8%8A%E5%B9%BF%E5%91%8A，『618大促』⇒ 618%E5%A4%A7%E4%BF%83（数字不编码）。默认态对应为 %E9%97%A8%E5%BA%97%E6%B5%B7%E6%8A%A5 与 %E6%96%B0%E5%BA%97%E5%BC%80%E4%B8%9A ⇒ 两串均不出现。⚠ 锚取编码后形态而非中文原文：原文同时出现在输入框回显里（零判别力），编码串只出现在结果链接中。"
+  },
+  {
+    "slug": "marketing/assessor-51",
+    "inputs": {
+      "profit": "42",
+      "contribution": "42",
+      "strength": "42",
+      "discount": "42",
+      "years": "42",
+      "share": "42"
+    },
+    "expect": [
+      " 品牌资产价值： 2897396277万元 品牌等级： 顶级品牌 市场占有率：42"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"profit\":\"42\",\"contribution\":\"42\",\"strength\":\"42\",\"discount\":\"42\",\"years\":\"42\",\"share\":\"42\"}，输出区含「 品牌资产价值： 2897396277万元 品牌等级： 顶级品牌 市场占有率：4…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "marketing/ad-roi",
+    "inputs": {
+      "budget": "42",
+      "cpc": "42",
+      "cpm": "42",
+      "ctr": "42",
+      "cvr": "42",
+      "aov": "42",
+      "costRate": "42",
+      "fixedCost": "42"
+    },
+    "expect": [
+      " 当前 ROAS 0.42 ✗ 亏损\n当前亏损。要实现盈亏平衡，转化率需提升至 100.00% 或客单价提升至 100 元。\n42"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"budget\":\"42\",\"cpc\":\"42\",\"cpm\":\"42\",\"ctr\":\"42\",\"cvr\":\"42\",\"aov\":\"42\",\"costRate\":\"42\",\"fixedCost\":\"42\"}，输出区含「 当前 ROAS 0.42 ✗ 亏损\n当前亏损。要实现盈亏平衡，转化率需提升至 …」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "marketing/assessor-65",
+    "inputs": {
+      "targetPax": "42",
+      "actualPax": "42",
+      "budget": "42",
+      "actualCost": "42",
+      "satisfaction": "42",
+      "achieveRate": "42",
+      "eventType": "exhibition"
+    },
+    "expect": [
+      "估报告 活动类型：展览 到场率：100.0%(42/42) 预算执行率：100.0%(42/42万) 满意度：42"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"targetPax\":\"42\",\"actualPax\":\"42\",\"budget\":\"42\",\"actualCost\":\"42\",\"satisfaction\":\"42\",\"achieveRate\":\"42\",\"eventType\":\"exhibition\"}，输出区含「估报告 活动类型：展览 到场率：100.0%(42/42) 预算执行率：100.…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "marketing/calc-1",
+    "inputs": {
+      "spend": "42",
+      "revenue": "42",
+      "conversions": "42",
+      "costRate": "42"
+    },
+    "expect": [
+      "% 广告 ROI 1.00 ROAS -17.64 净利润（元） 1"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"spend\":\"42\",\"revenue\":\"42\",\"conversions\":\"42\",\"costRate\":\"42\"}，输出区含「% 广告 ROI 1.00 ROAS -17.64 净利润（元） 1」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "marketing/marketing-ab-test-significance",
+    "inputs": {
+      "visitorsA": "42",
+      "conversionsA": "42",
+      "visitorsB": "42",
+      "conversionsB": "42"
+    },
+    "expect": [
+      "42\n42\n42\n42\nA组转化率：100.00% B组转化率：100.00% 相对提升：+0.00% P值：— ⚠️ 结果尚不显著，建议继续收集数据"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"visitorsA\":\"42\",\"conversionsA\":\"42\",\"visitorsB\":\"42\",\"conversionsB\":\"42\"}，输出区含「42\n42\n42\n42\nA组转化率：100.00% B组转化率：100.00% …」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "marketing/calc-price-elasticity",
+    "inputs": {
+      "p1": "42",
+      "q1": "42",
+      "p2": "42",
+      "q2": "42"
+    },
+    "expect": [
+      " 收入变化 ΔR 0 元（0.00%） 收入不变 弹性判读： 单位弹性（|Ed|="
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"p1\":\"42\",\"q1\":\"42\",\"p2\":\"42\",\"q2\":\"42\"}，输出区含「 收入变化 ΔR 0 元（0.00%） 收入不变 弹性判读： 单位弹性（|Ed|…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "marketing/marketing-ad-budget-allocator",
+    "inputs": {
+      "totalBudget": "42",
+      "roas1": "42",
+      "budget1Pct": "42",
+      "roas2": "42",
+      "budget2Pct": "42",
+      "roas3": "42",
+      "budget3Pct": "42"
+    },
+    "expect": [
+      "42\n42\n42\n42\n42\n42\n42\n¥42 总预算 ¥1,764 预估总收入 42.00"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"totalBudget\":\"42\",\"roas1\":\"42\",\"budget1Pct\":\"42\",\"roas2\":\"42\",\"budget2Pct\":\"42\",\"roas3\":\"42\",\"budget3Pct\":\"42\"}，输出区含「42\n42\n42\n42\n42\n42\n42\n¥42 总预算 ¥1,764 预估总收…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "marketing/marketing-break-even-roas",
+    "inputs": {
+      "price": "42",
+      "margin": "42",
+      "currentRoas": "42",
+      "targetProfit": "42"
+    },
+    "expect": [
+      "最高广告成本 ¥17.64 相关指标联动 42% 毛利率 ¥18 每单毛利 优秀 当前状态"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"price\":\"42\",\"margin\":\"42\",\"currentRoas\":\"42\",\"targetProfit\":\"42\"}，输出区含「最高广告成本 ¥17.64 相关指标联动 42% 毛利率 ¥18 每单毛利 优秀…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "marketing/cpc-calculator",
+    "inputs": {
+      "budget": "42",
+      "unitPrice": "42",
+      "ctr": "42",
+      "cvr": "42",
+      "totalBudget": "42",
+      "targetConv": "42",
+      "estCpa": "42",
+      "estCtr": "42",
+      "estCvr": "42",
+      "estPrice": "42",
+      "estMargin": "42"
+    },
+    "expect": [
+      " 合计 70% ¥42 - 28 1 ¥53.16\n42\n42\n42\n42\n42\n42\n¥1,764\n¥1,764\n¥-1,023\n238\n100\n-58.0%"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"budget\":\"42\",\"unitPrice\":\"42\",\"ctr\":\"42\",\"cvr\":\"42\",\"totalBudget\":\"42\",\"targetConv\":\"42\",\"estCpa\":\"42\",\"estCtr\":\"42\",\"estCvr\":\"42\",\"estPrice\":\"42\",\"estMargin\":\"42\"}，输出区含「 合计 70% ¥42 - 28 1 ¥53.16\n42\n42\n42\n42\n42…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "marketing/marketing-discount-rate",
+    "inputs": {
+      "origPrice": "42",
+      "discountPct": "42",
+      "origPrice2": "42",
+      "salePrice2": "42",
+      "origPrice3": "42",
+      "saveAmount": "42"
+    },
+    "expect": [
+      "详细数据 原价 ¥42.00 折扣率 100.0% 折数 0.0折 折后价 ¥0.00 节省金额 ¥42.00 力度等级 超"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"origPrice\":\"42\",\"discountPct\":\"42\",\"origPrice2\":\"42\",\"salePrice2\":\"42\",\"origPrice3\":\"42\",\"saveAmount\":\"42\"}，输出区含「详细数据 原价 ¥42.00 折扣率 100.0% 折数 0.0折 折后价 ¥0…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "marketing/marketing-cac-calculator",
+    "inputs": {
+      "marketingSpend": "42",
+      "salesSpend": "42",
+      "newCustomers": "42",
+      "ltv": "42"
+    },
+    "expect": [
+      "营销端CAC ¥1 销售端CAC 21"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"marketingSpend\":\"42\",\"salesSpend\":\"42\",\"newCustomers\":\"42\",\"ltv\":\"42\"}，输出区含「营销端CAC ¥1 销售端CAC 21」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "marketing/marketing-conversion-rate-calculator",
+    "inputs": {
+      "visitors": "42",
+      "conversions": "42",
+      "totalCost": "42",
+      "avgOrder": "42"
+    },
+    "expect": [
+      "回报率 ROI +4100.0% 收入 ¥1,764 · 成本 ¥42 · 盈利 ¥1,722"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"visitors\":\"42\",\"conversions\":\"42\",\"totalCost\":\"42\",\"avgOrder\":\"42\"}，输出区含「回报率 ROI +4100.0% 收入 ¥1,764 · 成本 ¥42 · 盈利…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "marketing/marketing-churn-rate",
+    "inputs": {
+      "startCustomers": "42",
+      "endCustomers": "42",
+      "newCustomers": "42",
+      "arpu": "42"
+    },
+    "expect": [
+      "数据 期初客户数 42 新增客户数 +42 流失客户数 -42 期末客户数 42 流失率 100.00% 留存率 0"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"startCustomers\":\"42\",\"endCustomers\":\"42\",\"newCustomers\":\"42\",\"arpu\":\"42\"}，输出区含「数据 期初客户数 42 新增客户数 +42 流失客户数 -42 期末客户数 42…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "marketing/marketing-ctr-calculator",
+    "inputs": {
+      "impressions": "42",
+      "clicks": "42",
+      "cost": "42",
+      "conversions": "42"
+    },
+    "expect": [
+      "42\n42\n42\n42\n点击率 CTR 100.00% 等级：优秀 · 42次点击 / 42"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"impressions\":\"42\",\"clicks\":\"42\",\"cost\":\"42\",\"conversions\":\"42\"}，输出区含「42\n42\n42\n42\n点击率 CTR 100.00% 等级：优秀 · 42次点…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "marketing/marketing-free-shipping-threshold",
+    "inputs": {
+      "currentCart": "42",
+      "freeShipThreshold": "42",
+      "shippingFee": "42",
+      "avgMargin": "42"
+    },
+    "expect": [
+      "42\n42\n42\n42\n当前购物车：¥42.00 ✅ 已满足包邮条件"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"currentCart\":\"42\",\"freeShipThreshold\":\"42\",\"shippingFee\":\"42\",\"avgMargin\":\"42\"}，输出区含「42\n42\n42\n42\n当前购物车：¥42.00 ✅ 已满足包邮条件」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "marketing/marketing-engagement-rate",
+    "inputs": {
+      "followers": "42",
+      "likes": "42",
+      "comments": "42",
+      "shares": "42",
+      "impressionsEng": "42"
+    },
+    "expect": [
+      "基于展示的互动率：300.00% 点赞：42 / 评论：42 / 分享：42"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"followers\":\"42\",\"likes\":\"42\",\"comments\":\"42\",\"shares\":\"42\",\"impressionsEng\":\"42\"}，输出区含「基于展示的互动率：300.00% 点赞：42 / 评论：42 / 分享：42」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "marketing/marketing-google-ads-budget",
+    "inputs": {
+      "avgCpc": "42",
+      "targetClicksDay": "42",
+      "convRate": "42",
+      "avgOrderValue": "42"
+    },
+    "expect": [
+      "42\n42\n42\n42\n¥1,764 日预算 ¥52,920 月预算 17.6 日订单数 0.42"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"avgCpc\":\"42\",\"targetClicksDay\":\"42\",\"convRate\":\"42\",\"avgOrderValue\":\"42\"}，输出区含「42\n42\n42\n42\n¥1,764 日预算 ¥52,920 月预算 17.6 …」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "marketing/marketing-markup-margin",
+    "inputs": {
+      "costMarkup": "42",
+      "markupRate": "42",
+      "costMargin": "42",
+      "marginRate": "42",
+      "convMarkup": "42",
+      "convMargin": "42"
+    },
+    "expect": [
+      "润率（售价基数） 2957.75% 相关指标 42.0% 加价率 2957.7% 利润率 ¥42 单位利润 1.42"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"costMarkup\":\"42\",\"markupRate\":\"42\",\"costMargin\":\"42\",\"marginRate\":\"42\",\"convMarkup\":\"42\",\"convMargin\":\"42\"}，输出区含「润率（售价基数） 2957.75% 相关指标 42.0% 加价率 2957.7%…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "marketing/marketing-ltv-cac-ratio",
+    "inputs": {
+      "ltv": "42",
+      "cac": "42"
+    },
+    "expect": [
+      "3:1标准达成 ¥0 客户净价值 3"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"ltv\":\"42\",\"cac\":\"42\"}，输出区含「3:1标准达成 ¥0 客户净价值 3」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "marketing/marketing-influencer-pricing",
+    "inputs": {
+      "followersInf": "42",
+      "engRateInf": "42",
+      "platformFactor": "42",
+      "contentType": "42"
+    },
+    "expect": [
+      "42\n42\n42\n42\n达人层级：素人/KOC 参考报价：¥25,931 - ¥48,157 建议报价：¥37,044"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"followersInf\":\"42\",\"engRateInf\":\"42\",\"platformFactor\":\"42\",\"contentType\":\"42\"}，输出区含「42\n42\n42\n42\n达人层级：素人/KOC 参考报价：¥25,931 - ¥…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "marketing/marketing-ltv-calculator",
+    "inputs": {
+      "arvSimple": "42",
+      "freqSimple": "42",
+      "lifespanSimple": "42",
+      "marginSimple": "42",
+      "mrrDetail": "42",
+      "churnDetail": "42",
+      "marginDetail": "42",
+      "cacDetail": "42"
+    },
+    "expect": [
+      ") / 月流失率\n42\n42\n42\n42\n42\n42\n42\n42"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"arvSimple\":\"42\",\"freqSimple\":\"42\",\"lifespanSimple\":\"42\",\"marginSimple\":\"42\",\"mrrDetail\":\"42\",\"churnDetail\":\"42\",\"marginDetail\":\"42\",\"cacDetail\":\"42\"}，输出区含「) / 月流失率\n42\n42\n42\n42\n42\n42\n42\n42」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "marketing/marketing-roas-calculator",
+    "inputs": {
+      "adSpend": "42",
+      "adRevenue": "42"
+    },
+    "expect": [
+      " 广告支出回报率 1.00x 等级：较差 · 即 100% 1"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"adSpend\":\"42\",\"adRevenue\":\"42\"}，输出区含「 广告支出回报率 1.00x 等级：较差 · 即 100% 1」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "marketing/marketing-roi",
+    "inputs": {
+      "m_cost": "42",
+      "m_price": "42",
+      "m_impressions": "42",
+      "m_ctr": "42",
+      "m_cvr": "42",
+      "m_repeat": "42",
+      "a_cost": "42",
+      "a_revenue": "42",
+      "a_impressions": "42",
+      "a_clicks": "42",
+      "a_conversions": "42",
+      "a_price": "42",
+      "i_principal": "42",
+      "i_final": "42",
+      "i_years": "42",
+      "i_annual": "42"
+    },
+    "expect": [
+      " 保存记录\n曝光 42 100% 点击 18 42.0% 转化 7 42.0% 复购 3 42.0%\n42\n42\n42\n42\n42\n42\n42\n104558598.78\n42\n42"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"m_cost\":\"42\",\"m_price\":\"42\",\"m_impressions\":\"42\",\"m_ctr\":\"42\",\"m_cvr\":\"42\",\"m_repeat\":\"42\",\"a_cost\":\"42\",\"a_revenue\":\"42\",\"a_impressions\":\"42\",\"a_clicks\":\"42\",\"a_conversions\":\"42\",\"a_price\":\"42\",\"i_principal\":\"42\",\"i_final\":\"42\",\"i_years\":\"42\",\"i_annual\":\"42\"}，输出区含「 保存记录\n曝光 42 100% 点击 18 42.0% 转化 7 42.0% …」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "marketing/marketing-sales-funnel",
+    "inputs": {
+      "visitors": "42",
+      "leads": "42",
+      "qualified": "42",
+      "opportunities": "42",
+      "customers": "42"
+    },
+    "expect": [
+      "00.0% 线索 42 转化率: 100.0% 合格线索 42 转化率: 100.0% 商机 42 转化率: 10"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"visitors\":\"42\",\"leads\":\"42\",\"qualified\":\"42\",\"opportunities\":\"42\",\"customers\":\"42\"}，输出区含「00.0% 线索 42 转化率: 100.0% 合格线索 42 转化率: 100…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "marketing/price-elasticity",
+    "inputs": {
+      "p1": "42",
+      "q1": "42",
+      "p2": "42",
+      "q2": "42"
+    },
+    "expect": [
+      "性系数 PED 1,764 元 原收入 1,764 元 新收入 +0 元 (0"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"p1\":\"42\",\"q1\":\"42\",\"p2\":\"42\",\"q2\":\"42\"}，输出区含「性系数 PED 1,764 元 原收入 1,764 元 新收入 +0 元 (0」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   }
+
 ];
 
 async function main() {

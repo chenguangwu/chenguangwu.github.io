@@ -91,7 +91,19 @@ const CASES = [
     "无法识别字符"
   ],
   "ref": "auto-restore"
-}
+},
+  {
+    "slug": "misc/unit-prefix",
+    "inputs": {
+      "valueInput": "42",
+      "unitInput": "abc123测试"
+    },
+    "expect": [
+      " = 0.000042\n42\nabc123测试\nY yotta 4.200e-26 Yabc123测试 Z zetta 4.200e-23 Zabc123测试 E exa 4.200e-20 Eabc123测试 P peta 4.200e-"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"valueInput\":\"42\",\"unitInput\":\"abc123测试\"}，输出区含「 = 0.000042\n42\nabc123测试\nY yotta 4.200e-2…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  }
+
 ];
 async function main() {
   const only = process.argv.slice(2);

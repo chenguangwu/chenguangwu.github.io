@@ -118,6 +118,18 @@ const CASES = [
   ],
   "ref": "公路=800×300×0.0005=120.00元；铁路×0.00025=60.00；单位=800×0.0005=0.4000元/(t·km)（默认500/200→50.00/25.00/0.2500，注入失败即不命中）"
 },
+  {
+    "slug": "procurement/zhaobiao-gongkai-yaoqing-jingzheng-fangshi",
+    "inputs": {
+      "v0": "42",
+      "v1": "42"
+    },
+    "expect": [
+      "可 合规要求 0.4"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"v0\":\"42\",\"v1\":\"42\"}，输出区含「可 合规要求 0.4」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  }
+
 ];
 async function main() {
   const only = process.argv.slice(2);

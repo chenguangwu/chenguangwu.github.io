@@ -345,7 +345,21 @@ const CASES = [
     "-9.5"
   ],
   "ref": "auto-restore"
-}
+},
+  {
+    "slug": "ophthalmology/amsler-grid-test",
+    "inputs": {
+      "amNote": "abc123测试",
+      "amEye": "right",
+      "amGrid": "10",
+      "amBg": "dark"
+    },
+    "expect": [
+      "right\n10\ndark\nabc123测试"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"amNote\":\"abc123测试\",\"amEye\":\"right\",\"amGrid\":\"10\",\"amBg\":\"dark\"}，输出区含「right\n10\ndark\nabc123测试」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  }
+
 ];
 async function main() {
   const only = process.argv.slice(2);

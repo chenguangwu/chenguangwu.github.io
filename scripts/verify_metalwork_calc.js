@@ -237,6 +237,440 @@ const CASES = [
     expect: ["20 综合差距"],
     ref: "注入非默认(默认 v0=85/v1=78→7 综合差距)：综合差距 = |70−90| = 20。默认态 |85−78|=7 不命中 20。v0=智能评分、v1=耐用评分。"
   },
+  {
+    "slug": "metalwork/analysis-simulator",
+    "inputs": {
+      "vol": "42",
+      "area": "42",
+      "runner": "42",
+      "fillrate": "42",
+      "tmelt": "42",
+      "tmold": "42",
+      "teject": "42",
+      "tw": "42",
+      "thick": "42",
+      "alpha": "42"
+    },
+    "expect": [
+      "流程/壁厚比 0.0,238 缺陷预警 各项指标在常规区间，无明显缺陷预警"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"vol\":\"42\",\"area\":\"42\",\"runner\":\"42\",\"fillrate\":\"42\",\"tmelt\":\"42\",\"tmold\":\"42\",\"teject\":\"42\",\"tw\":\"42\",\"thick\":\"42\",\"alpha\":\"42\"}，输出区含「流程/壁厚比 0.0,238 缺陷预警 各项指标在常规区间，无明显缺陷预警」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "metalwork/cable-tray-sizing",
+    "inputs": {
+      "od": "42",
+      "cnt": "42"
+    },
+    "expect": [
+      "² 电缆总截面积 145471"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"od\":\"42\",\"cnt\":\"42\"}，输出区含「² 电缆总截面积 145471」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "metalwork/assessor-34",
+    "inputs": {
+      "duration": "42",
+      "stdDuration": "42",
+      "corrosionArea": "42",
+      "testType": "ass",
+      "coating": "zn_ni",
+      "blister": "2",
+      "rust": "1",
+      "cracking": "1",
+      "rustType": "white",
+      "reqGrade": "8"
+    },
+    "expect": [
+      "结论： 耐盐雾性能不达标，腐蚀严重，需改进表面处理工艺或更换材料。 改进建议 • 腐蚀面积过大，建议增加涂层厚度或采用多层防护体系"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"duration\":\"42\",\"stdDuration\":\"42\",\"corrosionArea\":\"42\",\"testType\":\"ass\",\"coating\":\"zn_ni\",\"blister\":\"2\",\"rust\":\"1\",\"cracking\":\"1\",\"rustType\":\"white\",\"reqGrade\":\"8\"}，输出区含「结论： 耐盐雾性能不达标，腐蚀严重，需改进表面处理工艺或更换材料。 改进建议 •…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "metalwork/calc-feed",
+    "inputs": {
+      "dia": "42",
+      "z": "42",
+      "vc": "42",
+      "fz": "42"
+    },
+    "expect": [
+      "度公式 Vf = 318 × 42 × 42 = 561498.6"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"dia\":\"42\",\"z\":\"42\",\"vc\":\"42\",\"fz\":\"42\"}，输出区含「度公式 Vf = 318 × 42 × 42 = 561498.6」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "metalwork/calc-gear-2",
+    "inputs": {
+      "module": "42",
+      "teeth": "42",
+      "vc": "42",
+      "feed": "42",
+      "method": "shape",
+      "material": "alloy"
+    },
+    "expect": [
+      " 1000 × 42 / (π × 1764.00) = 7.6"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"module\":\"42\",\"teeth\":\"42\",\"vc\":\"42\",\"feed\":\"42\",\"method\":\"shape\",\"material\":\"alloy\"}，输出区含「 1000 × 42 / (π × 1764.00) = 7.6」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "metalwork/calc-stretch",
+    "inputs": {
+      "l0": "42",
+      "l1": "42",
+      "a0": "42",
+      "a1": "42"
+    },
+    "expect": [
+      "对收缩 ΔA = 42 - 42 = 0.00"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"l0\":\"42\",\"l1\":\"42\",\"a0\":\"42\",\"a1\":\"42\"}，输出区含「对收缩 ΔA = 42 - 42 = 0.00」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "metalwork/calc-pressure-mold",
+    "inputs": {
+      "thickness": "42",
+      "shear": "42",
+      "perimeter": "42",
+      "material": "midcarbon"
+    },
+    "expect": [
+      " t × τ = 42 × 42 × 480 = 846.7"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"thickness\":\"42\",\"shear\":\"42\",\"perimeter\":\"42\",\"material\":\"midcarbon\"}，输出区含「 t × τ = 42 × 42 × 480 = 846.7」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "metalwork/detector-21",
+    "inputs": {
+      "thickness": "42",
+      "material": "nonferro",
+      "defect": "subsurface",
+      "level": "strict"
+    },
+    "expect": [
+      " 详细说明 优势 内部缺陷灵敏度高 可测厚 无辐射 可现场检测 局限 对粗糙表面敏感 需耦合剂 缺陷定性需经验 对粗晶材料困难"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"thickness\":\"42\",\"material\":\"nonferro\",\"defect\":\"subsurface\",\"level\":\"strict\"}，输出区含「 详细说明 优势 内部缺陷灵敏度高 可测厚 无辐射 可现场检测 局限 对粗糙表面…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "metalwork/detector-23",
+    "inputs": {
+      "nominal": "42",
+      "actual": "42",
+      "upperTol": "42",
+      "lowerTol": "42",
+      "measureMethod": "offline"
+    },
+    "expect": [
+      "确定度：±0.002mm 判定结果： 不合格（超差） 实测偏差+0.0000mm低于下偏差+42.0000mm，尺寸偏小42.0000mm。需调整刀具补偿或更换刀具。"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"nominal\":\"42\",\"actual\":\"42\",\"upperTol\":\"42\",\"lowerTol\":\"42\",\"measureMethod\":\"offline\"}，输出区含「确定度：±0.002mm 判定结果： 不合格（超差） 实测偏差+0.0000mm…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "metalwork/detector-24",
+    "inputs": {
+      "defLen": "42",
+      "thick": "42",
+      "defCount": "42",
+      "method": "ut"
+    },
+    "expect": [
+      "评定区内缺陷数量：42 个 评定等级： Ⅳ级（不合格） 最大反射波幅当量按GB/T 11345超声探伤评定，缺陷指示长度=42mm"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"defLen\":\"42\",\"thick\":\"42\",\"defCount\":\"42\",\"method\":\"ut\"}，输出区含「评定区内缺陷数量：42 个 评定等级： Ⅳ级（不合格） 最大反射波幅当量按GB/…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "metalwork/detector-hardness",
+    "inputs": {
+      "pulloffVal": "42",
+      "thickness": "42",
+      "stdThickness": "42",
+      "thickTolerance": "42",
+      "vickersVal": "42",
+      "nanoVal": "42",
+      "adhesionMethod": "pulloff",
+      "crosscutGrade": "1",
+      "thickMethod": "magnetic",
+      "hardnessMethod": "vickers",
+      "pencilGrade": "5B",
+      "coatingType": "zn",
+      "reqLevel": "2"
+    },
+    "expect": [
+      "pulloff\n1\n42\n42\n42\n42\nvickers\n5B\n42\n42\nzn\n2\n79"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"pulloffVal\":\"42\",\"thickness\":\"42\",\"stdThickness\":\"42\",\"thickTolerance\":\"42\",\"vickersVal\":\"42\",\"nanoVal\":\"42\",\"adhesionMethod\":\"pulloff\",\"crosscutGrade\":\"1\",\"thickMethod\":\"magnetic\",\"hardnessMethod\":\"vickers\",\"pencilGrade\":\"5B\",\"coatingType\":\"zn\",\"reqLevel\":\"2\"}，输出区含「pulloff\n1\n42\n42\n42\n42\nvickers\n5B\n42\n42\nz…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "metalwork/detector-mold",
+    "inputs": {
+      "ptName": "abc123测试",
+      "tx": "42",
+      "ty": "42",
+      "tz": "42",
+      "ax": "42",
+      "ay": "42",
+      "az": "42",
+      "tol": "42"
+    },
+    "expect": [
+      "42\n42\n42\n42\n42\n42\n42\nP2\n测量点：abc123测试"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"ptName\":\"abc123测试\",\"tx\":\"42\",\"ty\":\"42\",\"tz\":\"42\",\"ax\":\"42\",\"ay\":\"42\",\"az\":\"42\",\"tol\":\"42\"}，输出区含「42\n42\n42\n42\n42\n42\n42\nP2\n测量点：abc123测试」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "metalwork/forging-ratio",
+    "inputs": {
+      "targetRatio": "42",
+      "mode": "upset",
+      "shape": "rect"
+    },
+    "expect": [
+      "分步计算 步骤1 H₀=200mm，H₁=80mm，K=H₀/H₁=200/80 = 2.500"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"targetRatio\":\"42\",\"mode\":\"upset\",\"shape\":\"rect\"}，输出区含「分步计算 步骤1 H₀=200mm，H₁=80mm，K=H₀/H₁=200/80…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "metalwork/diandonggongju-xifen",
+    "inputs": {
+      "v0": "42",
+      "v1": "42"
+    },
+    "expect": [
+      "） 推荐机型 1.0"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"v0\":\"42\",\"v1\":\"42\"}，输出区含「） 推荐机型 1.0」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "metalwork/lifespan-1",
+    "inputs": {
+      "power": "42",
+      "capacity": "42",
+      "voltage": "42",
+      "efficiency": "42",
+      "dod": "42",
+      "batType": "lipo"
+    },
+    "expect": [
+      "续航时间 T = 0.03 / 42 = 0.00 h (0小时0分) ⚠️ 续航不足1小时，建议增大电池容量或降低功耗"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"power\":\"42\",\"capacity\":\"42\",\"voltage\":\"42\",\"efficiency\":\"42\",\"dod\":\"42\",\"batType\":\"lipo\"}，输出区含「续航时间 T = 0.03 / 42 = 0.00 h (0小时0分) ⚠️ 续…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "metalwork/pinpaijiazhipinggujisuan",
+    "inputs": {
+      "revenue": "42",
+      "profitRate": "42",
+      "multiplier": "42",
+      "yearFactor": "42",
+      "marketShare": "42",
+      "industry": "consumer"
+    },
+    "expect": [
+      "牌利润 (万元) 4.20 市场份额系数 知名品牌（1-10亿） 行业 消费品（乘数=8） 年营收 42 万元 品牌利润 42 × 42% = 18"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"revenue\":\"42\",\"profitRate\":\"42\",\"multiplier\":\"42\",\"yearFactor\":\"42\",\"marketShare\":\"42\",\"industry\":\"consumer\"}，输出区含「牌利润 (万元) 4.20 市场份额系数 知名品牌（1-10亿） 行业 消费品（…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "metalwork/pressure-casting",
+    "inputs": {
+      "weight": "42",
+      "wall": "42",
+      "material": "steel",
+      "batch": "medium"
+    },
+    "expect": [
+      "量 单件~大批量 其他可选方法 方法 精度 表面 成本 熔模铸造(失蜡) CT4-CT7 Ra 1.6-6.3μm 高"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"weight\":\"42\",\"wall\":\"42\",\"material\":\"steel\",\"batch\":\"medium\"}，输出区含「量 单件~大批量 其他可选方法 方法 精度 表面 成本 熔模铸造(失蜡) CT4…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "metalwork/recorder-9",
+    "inputs": {
+      "thickness": "42",
+      "targetTemp": "42",
+      "logTemp": "42",
+      "logNote": "abc123测试",
+      "processType": "正火"
+    },
+    "expect": [
+      "0 ℃ 最高温度 42℃\n保温时间：70 分钟（约 1.2 小时）\n目标 42℃ 92℃ -8℃"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"thickness\":\"42\",\"targetTemp\":\"42\",\"logTemp\":\"42\",\"logNote\":\"abc123测试\",\"processType\":\"正火\"}，输出区含「0 ℃ 最高温度 42℃\n保温时间：70 分钟（约 1.2 小时）\n目标 42℃…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "metalwork/sheet-bend",
+    "inputs": {
+      "thickness": "42",
+      "radius": "42",
+      "angle": "42",
+      "l1": "42",
+      "l2": "42",
+      "kfactor": "0.40"
+    },
+    "expect": [
+      "2 − BD = 42 + 42 − 21.387 = 62.613 mm 结论 42mm 板、R42mm、42"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"thickness\":\"42\",\"radius\":\"42\",\"angle\":\"42\",\"l1\":\"42\",\"l2\":\"42\",\"kfactor\":\"0.40\"}，输出区含「2 − BD = 42 + 42 − 21.387 = 62.613 mm 结论…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "metalwork/surface-finish",
+    "inputs": {
+      "inVal": "42",
+      "inType": "rz"
+    },
+    "expect": [
+      "面 火焰切割面\nrz\n42\n对应 NN10 级表面 12.5 Ra (μm) 50"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"inVal\":\"42\",\"inType\":\"rz\"}，输出区含「面 火焰切割面\nrz\n42\n对应 NN10 级表面 12.5 Ra (μm) 5…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "metalwork/resistance-2",
+    "inputs": {
+      "thickness": "42",
+      "material": "alloy",
+      "joint": "lap",
+      "plateType": "medium"
+    },
+    "expect": [
+      "42\nalloy\nlap\nmedium\n埋弧焊 推荐方法 焊剂(无气体) 保护方式 高 焊缝质量 中"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"thickness\":\"42\",\"material\":\"alloy\",\"joint\":\"lap\",\"plateType\":\"medium\"}，输出区含「42\nalloy\nlap\nmedium\n埋弧焊 推荐方法 焊剂(无气体) 保护方…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "metalwork/speed-itinerary",
+    "inputs": {
+      "length": "42",
+      "vc": "42",
+      "depth": "42",
+      "feed": "42",
+      "allowance": "42",
+      "overrun": "42",
+      "material": "alloy"
+    },
+    "expect": [
+      " 每刀进给行程数 1 往复（L/f=42/42） 总往复次数 1 × 1 = 1"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"length\":\"42\",\"vc\":\"42\",\"depth\":\"42\",\"feed\":\"42\",\"allowance\":\"42\",\"overrun\":\"42\",\"material\":\"alloy\"}，输出区含「 每刀进给行程数 1 往复（L/f=42/42） 总往复次数 1 × 1 = 1」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "metalwork/temp-forging",
+    "inputs": {
+      "weight": "42",
+      "diameter": "42",
+      "material": "midcarbon"
+    },
+    "expect": [
+      ") 锻造温度参数 常用结构钢，锻造性能良好 始锻温度 120"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"weight\":\"42\",\"diameter\":\"42\",\"material\":\"midcarbon\"}，输出区含「) 锻造温度参数 常用结构钢，锻造性能良好 始锻温度 120」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  
+  {
+    "slug": "metalwork/tester-19",
+    "inputs": {
+      "ir": "42",
+      "temp": "42",
+      "cr": "42",
+      "ratedV": "42",
+      "len": "42",
+      "cableType": "xlpe",
+      "cs": "4"
+    },
+    "expect": [
+      "间 = 5 分钟 ✗ 综合判定：不合格 — 存在不达标项目，需排查故障点并整改后复测"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"ir\":\"42\",\"temp\":\"42\",\"cr\":\"42\",\"ratedV\":\"42\",\"len\":\"42\",\"cableType\":\"xlpe\",\"cs\":\"4\"}，输出区含「间 = 5 分钟 ✗ 综合判定：不合格 — 存在不达标项目，需排查故障点并整改后…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "metalwork/thread-spec",
+    "inputs": {
+      "search": "abc123测试"
+    },
+    "expect": [
+      "abc123测试\n"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"search\":\"abc123测试\"}，输出区含「abc123测试\n」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "metalwork/welding-heat",
+    "inputs": {
+      "current": "42",
+      "voltage": "42",
+      "speed": "42",
+      "eff": "42",
+      "process": "0.80"
+    },
+    "expect": [
+      "输入 E ≈ 0.202 kJ/mm 2016 J/cm 2.02 kJ/cm 0.202"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"current\":\"42\",\"voltage\":\"42\",\"speed\":\"42\",\"eff\":\"42\",\"process\":\"0.80\"}，输出区含「输入 E ≈ 0.202 kJ/mm 2016 J/cm 2.02 kJ/cm …」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "metalwork/thread",
+    "inputs": {
+      "diameter": "42",
+      "pitch": "42",
+      "threadType": "unified",
+      "material": "alloy",
+      "threadDir": "internal",
+      "batch": "medium"
+    },
+    "expect": [
+      "8253×P = -3.466 mm 攻丝底孔 D = d - P = 0.0 mm 精度等级 6H 其他可选方法 方法 转速(rpm) 精度 适用批量 铣削螺纹(内) 273 6H 中批量 车削内螺纹 205 6H/4H 单件"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"diameter\":\"42\",\"pitch\":\"42\",\"threadType\":\"unified\",\"material\":\"alloy\",\"threadDir\":\"internal\",\"batch\":\"medium\"}，输出区含「8253×P = -3.466 mm 攻丝底孔 D = d - P = 0.0 …」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "metalwork/wushua-zhinengyuqingliangduibijisuanqi",
+    "inputs": {
+      "v0": "42",
+      "v1": "42"
+    },
+    "expect": [
+      "线优先 推荐侧重 50.0"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"v0\":\"42\",\"v1\":\"42\"}，输出区含「线优先 推荐侧重 50.0」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "metalwork/yuanlingongju-xifen",
+    "inputs": {
+      "v0": "42",
+      "v1": "42"
+    },
+    "expect": [
+      "42\n42\n0 W 功率差 修剪机（高功率·粗枝） 推荐机型 1.0"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"v0\":\"42\",\"v1\":\"42\"}，输出区含「42\n42\n0 W 功率差 修剪机（高功率·粗枝） 推荐机型 1.0」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "metalwork/zhineng-duogongnengyunaiyongduibijisuanqi",
+    "inputs": {
+      "v0": "42",
+      "v1": "42"
+    },
+    "expect": [
+      "线优先 推荐侧重 50.0"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"v0\":\"42\",\"v1\":\"42\"}，输出区含「线优先 推荐侧重 50.0」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "metalwork/zulinfeilvjisuan",
+    "inputs": {
+      "value": "42",
+      "months": "42",
+      "residual": "42",
+      "rate": "42",
+      "mgmtFee": "42",
+      "payType": "monthly_advance"
+    },
+    "expect": [
+      "率 租赁方案（原值42元 / 42个月 / 月付(期初)） 设备原值 42.00 元 残值 42 × 42% = 17.64 元 需回收本金 42 - 18 = 24.36 元 总管理费 42 × 42% × 3.5年 = 61.74 元 "
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"value\":\"42\",\"months\":\"42\",\"residual\":\"42\",\"rate\":\"42\",\"mgmtFee\":\"42\",\"payType\":\"monthly_advance\"}，输出区含「率 租赁方案（原值42元 / 42个月 / 月付(期初)） 设备原值 42.00…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  }
+
 ];
 
 async function main() {
