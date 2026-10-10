@@ -911,9 +911,9 @@ const CASES = [
       "willPlace": "abc123测试"
     },
     "expect": [
-      "024-06-15\nabc123测试\nabc123测试\nabc123测试\nabc123测试\nabc123测试\nabc123测试\n⚠ 计算结果含无效值，请检查输入是否为有效正数。"
+      "abc123测试\nabc123测试\nabc123测试\nabc123测试\nabc123测试\nabc123测试\n⚠ 计算结果含无效值，请检查输入是否为有效正数。"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"testatorName\":\"abc123测试\",\"testatorId\":\"abc123测试\",\"testatorAddr\":\"abc123测试\",\"witness1\":\"abc123测试\",\"witness2\":\"abc123测试\",\"willDate\":\"abc123测试\",\"willPlace\":\"abc123测试\"}，输出区含「024-06-15\nabc123测试\nabc123测试\nabc123测试\nabc…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"testatorName\":\"abc123测试\",\"testatorId\":\"abc123测试\",\"testatorAddr\":\"abc123测试\",\"witness1\":\"abc123测试\",\"witness2\":\"abc123测试\",\"willDate\":\"abc123测试\",\"willPlace\":\"abc123测试\"}，输出区含「abc123测试\nabc123测试\n…\n⚠ 计算结果含无效值…」。⚠ 原 expect 前缀『024-06-15』是 harness 冻结的『今天』，跨时区会偏移到 06-14 ⇒ UTC-12 下失配。已移除，锚点改为完全由注入决定的哨兵串 + 无效值提示；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
     "slug": "legal/traffic-accident-compensation",

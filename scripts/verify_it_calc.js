@@ -5085,9 +5085,9 @@ const CASES = [
       "alg": "HS384"
     },
     "expect": [
-      "6:40 PM)\n1 2 3\n1 2 3\nHS384"
+      "1 2 3\n1 2 3\nHS384"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"secret\":\"abc123测试\",\"token-input\":\"1\\n2\\n3\",\"gen-payload\":\"1\\n2\\n3\",\"gen-output\":\"1\\n2\\n3\",\"alg\":\"HS384\"}，输出区含「6:40 PM)\n1 2 3\n1 2 3\nHS384」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "自动补强（B类零用例）：注入{\"token-input\":\"1\\n2\\n3\",\"gen-payload\":\"1\\n2\\n3\",\"gen-output\":\"1\\n2\\n3\",\"alg\":\"HS384\"}等，输出区含「1 2 3\\n1 2 3\\nHS384」。⚠ 原 expect 前缀「6:40 PM)」来自过期时间的 toLocaleString() 时区格式化：本地 GMT+8 输出「3:0|6:40 PM)|」恰含该子串而通过，CI(UTC) 输出「7:06:40 AM)」则不含 ⇒ 本地绿、CI 红。已移除与时区相关的前缀，锚点落到完全由注入决定的 gen-payload/gen-output/alg（默认 alg=HS256，HS384 不出现在默认态 ⇒ 强判别、零逃生）。"
   },
   {
     "slug": "it/keyword-density",
