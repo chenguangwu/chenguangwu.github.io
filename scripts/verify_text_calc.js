@@ -42,14 +42,9 @@ const CASES = [
 },
 {
   "slug": "text/convert-7",
-  "inputs": {
-    "val": "4",
-    "rate": "1"
-  },
-  "expect": [
-    "4.000000"
-  ],
-  "ref": "auto-restore"
+  "inputs": { "text": "my_variable_name" },
+  "expect": ["camelCase: myVariableName", "PascalCase: MyVariableName", "snake_case: my_variable_name", "kebab-case: my-variable-name"],
+  "ref": "命名格式互转：my_variable_name → camelCase=myVariableName / PascalCase=MyVariableName / snake_case=my_variable_name / kebab-case=my-variable-name（默认 hello_world 得 helloWorld/HelloWorld/hello_world/hello-world，注入失败即不命中）"
 },
 {
   "slug": "text/lorem-ipsum-generator",
