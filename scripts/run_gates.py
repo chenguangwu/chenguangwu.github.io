@@ -19,6 +19,17 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 GATES = (
+    # 防复发（2026-10-11 CI 连续两批红灯的根因）：verify 用例的 expect 若锚在「环境决定」
+    # 而非「注入决定」的输出上，就会「本地全绿、CI 必红且不可复现」——
+    #   ① 浮点全展开（≥15 位有效数字）：Math.pow/exp/log 在 macOS ARM 与 Linux x86 差 1 ULP
+    #      ⇒ toString() 最短往返表示位数不同；
+    #   ② 时区格式化 AM/PM：toLocaleString() 随本地时区变；
+    #   ③ harness 冻结的「今天」字面串：随时区偏移 1 天。
+    # 纯静态源码文本扫描（不跑页面、秒级、100% 覆盖），故置于 build 之前以快速失败。
+    (
+        "expect anti-pattern",
+        ("python3", "scripts/check_expect_antipattern.py"),
+    ),
     ("build", ("python3", "_build.py")),
     ("static tests", ("python3", "_test_static.py")),
     ("dead-link audit", ("python3", "_audit_links.py", "--check")),
