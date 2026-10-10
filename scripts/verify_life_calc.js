@@ -1855,6 +1855,13 @@ const CASES = [
       "/06/14周五\nabc123测试\n+0 小时\n⚠ 计算结果含无效值，请检查输入是否为有效正数。"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"diffTime\":\"abc123测试\"}，输出区含「/06/14周五\nabc123测试\n+0 小时\n⚠ 计算结果含无效值，请检查输入…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "life/generator-strength",
+    "inputs": { "len": "42", "cnt": "42" },
+    "checkIds": ["lower", "upper", "nums", "syms", "noSim", "noAmb"],
+    "expect": ["q!XrposnW6#hod2o2eSqrunXyBWo*U*@u$Z258PssC"],
+    "ref": "B类checkbox子任务补强（life/generator-strength）：注入 len=42,cnt=42 并勾满 lower/upper/nums/syms/noSim/noAmb；harness _rngReset 固定随机种子⇒生成确定密码串「q!Xr...PssC」（转换后产物，非输入回显 42）。默认态（不声明 checkIds⇒checked=false）生成空/不同串，不含该串⇒强判别、零逃生。"
   }
 
 ];
