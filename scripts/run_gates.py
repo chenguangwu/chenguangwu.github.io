@@ -254,7 +254,6 @@ GATES = (
     ("plastic calc correctness", ("node", "scripts/verify_plastic_calc.js")),
     ("transport calc correctness", ("node", "scripts/verify_transport_calc.js")),
     ("niche calc correctness", ("node", "scripts/verify_niche_calc.js")),
-    ("pets calc correctness", ("node", "scripts/verify_pets_calc.js")),
     ("image calc correctness", ("node", "scripts/verify_image_calc.js")),
     ("research calc correctness", ("node", "scripts/verify_research_calc.js")),
     ("sales calc correctness", ("node", "scripts/verify_sales_calc.js")),

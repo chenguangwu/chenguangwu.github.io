@@ -61,21 +61,44 @@ const CASES = [
     "petAge": "6"
   },
   "expect": [
-    "60"
+    "相当于人类年龄（🐕 中型犬 6 岁）",
+    "44 岁"
   ],
-  "ref": "auto-restore"
+  "ref": "合并自 pets/pet-age-convert（去默认化：默认犬型=中型犬；6 岁 → 人类 44 岁。默认 3 岁为另一组值）"
 },
 {
   "slug": "pet/pet-feeding-calc",
   "inputs": {
-    "weight": "8",
-    "age": "2",
-    "cal100": "380"
+    "weight": "15",
+    "calDensity": "3.5"
   },
   "expect": [
-    "195g"
+    "534 RER静息能量(kcal)",
+    "244 g/天"
   ],
-  "ref": "auto-restore"
+  "ref": "合并自 pets/feeding-amount（去默认化：15kg → RER=70×15^0.75=533.5→534 kcal；×1.6÷3.5=243.9→244 g/天。默认 10kg 得 394 kcal / 180 g/天）"
+},
+{
+  "slug": "pet/grooming-guide",
+  "clicks": [
+    "setPet('dog');selectBreed('bichon');"
+  ],
+  "expect": [
+    "圆球装"
+  ],
+  "ref": "合并自 pets/grooming-guide（弱用例去默认化：原锚默认「该品种暂无造型数据」（判别力0）。clicks 经 setPet('dog')+selectBreed('bichon') 切到比熊造型，expect 锚比熊专属「圆球装」；清 clicks 兜底遍历不产出 ⇒ 零逃生项）"
+},
+{
+  "slug": "pet/kennel-space",
+  "inputs": {
+    "count": "4",
+    "days": "7"
+  },
+  "expect": [
+    "24.0 ㎡ 犬舍总面积",
+    "61.5 ㎡ 总所需面积（4只中型犬 · 7天）"
+  ],
+  "ref": "合并自 pets/kennel-space（去默认化：默认中型犬 4只/7天 → 犬舍 6×4=24.0 ㎡，活动区 15×(1+3×0.5)=37.5，总 61.5 ㎡。不可用小型犬值 16.0/36.0：零参兜底 selectSize() 会把尺寸重置为小型犬，同样产出该串 → 逃生项）"
 },
 {
   "slug": "pet/pet-medicine",
