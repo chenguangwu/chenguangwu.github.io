@@ -1762,13 +1762,6 @@ const CASES = [
     ref: "独立复算：先算括号 1+2=3，再乘 3 ⇒ 9。表达式求值类是最典型的可手算用例源（运算符优先级固定）。默认样例表达式不同。",
   },
   {
-    slug: "it/nato-alphabet",
-    inputs: { input: "AB" },
-    clicks: ["convert()"],
-    expect: ["Alpha Bravo"],
-    ref: "独立复算：NATO 音标字母表 A=Alpha、B=Bravo ⇒ `Alpha Bravo`。产物不含输入的大写字母（是别名词）⇒ 非回显。",
-  },
-  {
     slug: "it/numeronym-generator",
     inputs: { input: "Global Positioning System" },
     clicks: ["generate()"],
@@ -1963,13 +1956,6 @@ const CASES = [
     clicks: ["parse()"],
     expect: ["Google Chrome 120.0.0.0"],
     ref: "独立复算：UA 中 `Chrome/120.0.0.0` ⇒ 浏览器 Google Chrome 120.0.0.0；`Windows NT 10.0` ⇒ Windows 10/11；引擎 Blink。默认示例 UA 不同。",
-  },
-  {
-    slug: "it/regex-escape",
-    inputs: { input: "a.b*c" },
-    clicks: ["esc()"],
-    expect: ["a\\.b\\*c"],
-    ref: "正则元字符转义：`.`→`\\.`、`*`→`\\*`，其余原样。默认样例不含本串。",
   },
   {
     slug: "it/regex-visualizer",
@@ -2377,13 +2363,6 @@ const CASES = [
     ref: "叉积逐分量推导（可手算复算）：`cₓ = 3×7 − 4×6 = −3`、`c_z = 2×6 − 3×5 = −3`。⚠️ 该页 HTML 里 `a0` 默认即 **1**（向量 1,2,3 × 4,5,6）⇒ 首次注入同组撞默认态；此处换 2,3,4 × 5,6,7。摘要行 `A × B = (-3, 6, -3)` 在两组输入下均正确（与 BATCH243 那例的 `(-2, 4, -2)` 缺陷不同），故本例只锚逐分量行以保持口径一致。",
   },
   {
-    slug: "it/crontab-generator",
-    inputs: { f_min: "0", f_hour: "12", f_dom: "*", f_mon: "*", f_dow: "*" },
-    clicks: ["build()"],
-    expect: ["表达式： 0 12 * * *"],
-    ref: "Cron 字段拼接：分=0、时=12、日/月/星期=* ⇒ `0 12 * * *`（每天 12:00，标准 Cron 语法可手查）。默认字段不同 ⇒ 不命中。",
-  },
-  {
     slug: "it/barcode-code39",
     inputs: { data: "HELLO" },
     clicks: ["generate()"],
@@ -2559,13 +2538,6 @@ const CASES = [
     clicks: ["esc()"],
     expect: ["a\\\"b"],
     ref: "Java 字符串转义：双引号被转义但不加外层引号 ⇒ 产物形如 a\"b（与 Go 那例形成「同输入、转义规则相同但外层包装不同」的对照，**可手算复算**）。",
-  },
-  {
-    slug: "it/sql-escape",
-    inputs: { input: "O'Brien" },
-    clicks: ["esc()"],
-    expect: ["O\\'Brien"],
-    ref: "SQL 转义：`'`→`\'` ⇒ `O\'Brien`（**可手算复算**，避免 SQL 注入的单引号转义）。默认输入不同 ⇒ 不命中。",
   },
   {
     slug: "it/python-escape",

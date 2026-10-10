@@ -413,6 +413,6 @@
 
 **E. 待办 / 历史残留**
 
-- 全站 `verify_*_calc.js` 共 **62 条「同 slug 多份」重复条目**（`realestate` 34、`math` 12…）⇒ 去重价值低，按 §7.1 P3 顺带处理，逐例现况查各用例 `ref`。
+- **`verify_*_calc.js` 重复条目（已收口，2026-10-10）**：原「62 条同 slug 多份重复」系**过时误计**——扫描证实：跨文件重复 slug = 0；同文件内同 slug 多份共 2419 条但 `distinctNorms>1`（同工具不同输入/路径的**合法复测**，如 `math/equation-solver x7`、`it/crontab-generator x5`，删之会丢覆盖）。**真正「纯重复」（inputs+expect+注入通道逐字节相同）仅 5 条**，已删除多余份：`agriculture/estimate-area-density`(行119)、`it/sql-escape`(2564)、`it/regex-escape`(1968)、`it/nato-alphabet`(1765)、`it/crontab-generator`(2380)；保留份不变 ⇒ 总用例 7798→7793、两文件 verify 全过、判别器 0 逃生（commit 见 memory）。**结论：无残留重复须处理**，本条转为历史注释。
 
 
