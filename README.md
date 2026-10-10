@@ -83,7 +83,6 @@ GitHub Actions 会在 pull request 和推送到 `master` 时自动执行同一�
 | `_build.py` | 项目构建入口 |
 | `AGENTS.md` | AI Agent 开发规范 |
 | `DEV-PLAN.md` | 全站优化主计划（待办与开发规则） |
-| `en-dev-plan.md` | 英文内容（EN）专项开发计划 |
 
 ## 新增工具规则
 
@@ -130,6 +129,5 @@ GitHub Actions 会在 pull request 和推送到 `master` 时自动执行同一�
 
 - [开发规范](AGENTS.md)
 - [全站优化计划](DEV-PLAN.md)
-- [英文内容专项计划](en-dev-plan.md)
 - [i18n 规范](docs/i18n-spec.md)
 - [UI 设计规范](ui/设计规范.md)
