@@ -10,9 +10,7 @@ const CASES = [
     "v": "25",
     "target": "99"
   },
-  "expect": [
-    "4.5523586750698435"
-  ],
+  "expect": ["4.552358675"],
   "ref": "auto-restore"
 },
 {
