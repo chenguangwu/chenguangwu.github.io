@@ -3566,6 +3566,18 @@ const CASES = [
     "inputs": { "v": "4.0", "v2": "3.0", "conn": "usba" },
     "expect": ["40 Gbps / 5 Gbps 最大速率", "USB 4.0 vs 3.0 版本对比", "最高 240W（PD 3.1）"],
     "ref": "注入非默认（三个 select 的 option 由 JS 填充，harness 取不到 ⇒ 页面回落到 ||'3.2' / ||'2.0' / ||'usbc'，默认态即 3.2 vs 2.0 = 20 Gbps / 480 Mbps）。⚠ 版本键是 '2.0'/'3.0'/'3.1'/'3.2'/'4.0'，不是 'usb4' 之类 —— 键不匹配时页面 info[v] 为 undefined 而静默回落到 3.2，输出与默认态完全一致 ⇒ 必须用页面源码里的键。注入 4.0 ⇒ 40 Gbps、供电『最高 240W（PD 3.1）』；v2=3.0 ⇒ 5 Gbps。默认态三串均不出现。"
+  },
+  {
+    "slug": "it/json-to-xml",
+    "inputs": { "root": "zzroot999" },
+    "expect": ["zzroot999"],
+    "ref": "注入非默认根标签名 zzroot999。默认态 root='root' ⇒ 结果区首行 'root'；注入后首行变 'zzroot999'（首行即根元素名）。zzroot999 为随机串，默认态示例 JSON 任意字段均不含 ⇒ 0 逃生。纯前端确定性，无随机。"
+  },
+  {
+    "slug": "it/url-params",
+    "inputs": { "urlInput": "https://example.com/zzpath?zz=7" },
+    "expect": ["https://example.com/zzpath"],
+    "ref": "注入非默认 URL。默认态 urlInput 为 example.com/search?q=toolbox… ⇒ 基 URL 行 'https://example.com/search'；注入后基 URL 行变 'https://example.com/zzpath'，默认态完全不含该串 ⇒ 0 逃生。注：删除参数功能(delParam)在桩下报错，但 URL 拆分与基 URL 解析为纯字符串，结果可靠。纯前端无随机。"
   }
 ];
 
