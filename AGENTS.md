@@ -249,7 +249,9 @@ chenguangwu.github.io/
   - **真 404（直接删除）**：用默认校验即可——`python3 _submit_indexnow_deadlinks.py --file 死链列表.txt`（脚本会自动 HTTP 校验、只交确认死掉的、跳过仍存活页，防误删正常页索引）。
   - **迁移壳（`TOOLBOX-REDIRECT` 存根，页面仍 200）**：加 `--no-verify` 强制提交——`python3 _submit_indexnow_deadlinks.py --file 死链列表.txt --no-verify`（页面仍返回 200，默认校验会误判为"存活"而跳过，故跳过校验）。
   - 也支持 `--url https://…` 单次提交，或从 stdin 传入。
-- **时机**：在 `git commit` 之前（或随同该批删/迁改动一起）执行，确保旧 URL 的死链通知与索引更新同步发出。
+- **时机（分两种，务必区分）**：
+  - **迁移壳（`TOOLBOX-REDIRECT` 存根，页面仍 200）**：用 `--no-verify`，提交时机可在 `git commit` 之前（或随批），不依赖线上状态，目标是通知引擎来重抓发现 `noindex`。
+  - **真 404 物理删除（`git rm` 直接删页）**：**必须等线上部署成功（Actions run `success`）之后，再用默认校验提交一次死链**——`python3 _submit_indexnow_deadlinks.py --file 死链列表.txt`（不加 `--no-verify`）。**严禁在部署成功前提交**：此时线上仍跑旧部署、旧 URL 仍是 200，默认校验会误判"存活"而跳过，导致死链漏提。即规则闭环：**物理删除 → 提交并 push → 确认部署 success → 再提交一次死链（默认校验）**。
 - **批量迁移工具**：先把全站 `TOOLBOX-REDIRECT` 标记的旧 URL 捞出来（简体 + `zh-tw/` 繁体，过滤已在 sitemap 收录的），生成列表再一次性提交，避免遗漏。
 - **重定向存根保留期限（硬性）**：`TOOLBOX-REDIRECT` 存根只是**临时过渡**，最长保留 **1 个月**，到期必须物理删除（旧 URL 真正 404），**不得无限期保留**。删除前/删除时仍须按本节约提死链（此时旧 URL 已是真 404，用默认校验提交即可）。**建重定向存根的同一批次，必须**：① 同步用 `--no-verify` 把旧 URL（含 `zh-tw/` 繁体对应页）提死链；② **登记到仓库根目录 `_redirect_stubs_todo.md`**（统一维护所有待删存根的「源 URL / 目标 URL / 建存根日期 / 到期日 / 状态」），到期由维护者**主动删除**，**不依赖定时任务**，确保不漏。
 - 该脚本已 commit 入库，属运维工具、被手动触发依赖，勿随意删除或改名。
