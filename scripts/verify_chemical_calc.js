@@ -32,16 +32,15 @@ const CASES = [
   "ref": "去默认化（原 expect「系数」是静态标签，默认态必命中＝逃生项）：r = 2.5 × 1.6 × 1 / 1 = 4.000000（toFixed(6)）；系数行回显 1.6。默认 val=1/rate=1 得 1.000000 与「系数: 1」，注入失败即不命中"
 },
 {
-  "slug": "chemical/convert-density-crude",
-  "inputs": {
-    "val": "3.2",
-    "rate": "0.75"
-  },
-  "expect": [
-    "2.400000",
-    "系数: 0.75"
-  ],
-  "ref": "去默认化：r = 3.2 × 0.75 × 1 / 1 = 2.400000（toFixed(6)）；系数行回显 0.75。默认 1/1 得 1.000000 与「系数: 1」，注入失败即不命中"
+"slug": "chemical/convert-density-crude",
+"inputs": {
+"val": "30",
+"unit": "api"
+},
+"expect": [
+"876.2 kg/m³"
+],
+"ref": "复算：SG = 141.5 ÷ (30+131.5) = 0.87616 → ρ = 876.2 kg/m³（每桶 139.30 kg，判中质原油）；默认 API=35 得 849.8 ⇒ 不命中"
 },
 {
   "slug": "chemical/detector-39",

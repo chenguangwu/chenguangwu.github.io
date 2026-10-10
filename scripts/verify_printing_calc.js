@@ -46,15 +46,16 @@ const CASES = [
   "ref": "auto-restore"
 },
 {
-  "slug": "printing/convert-gsm",
-  "inputs": {
-    "val": "4",
-    "rate": "1"
-  },
-  "expect": [
-    "4.000000"
-  ],
-  "ref": "auto-restore"
+"slug": "printing/convert-gsm",
+"inputs": {
+"gsm": "157",
+"rho": "1.05",
+"thick": "0.15"
+},
+"expect": [
+"0.1495 mm"
+],
+"ref": "复算：t = 157 ÷ (1000 × 1.05) = 0.149524 mm（149.5 μm，松厚度 0.952 cm³/g）；默认 80 gsm / 0.8 得 0.1000 mm ⇒ 不命中"
 },
 {
   "slug": "printing/ink-coverage",

@@ -24,15 +24,15 @@ const CASES = [
   "ref": "auto-restore"
 },
 {
-  "slug": "astronomy/convert-15",
-  "inputs": {
-    "val": "4",
-    "rate": "1"
-  },
-  "expect": [
-    "4.000000"
-  ],
-  "ref": "auto-restore"
+"slug": "astronomy/convert-15",
+"inputs": {
+"val": "7",
+"unit": "mag"
+},
+"expect": [
+"1.995e+15 J"
+],
+"ref": "复算：E = 10^(1.5×7+4.8) = 10^15.3 = 1.995e+15 J（≈0.477 百万吨 TNT）；默认 M=6 得 6.310e+13 J ⇒ 不命中"
 },
 {
   "slug": "astronomy/convert-17",

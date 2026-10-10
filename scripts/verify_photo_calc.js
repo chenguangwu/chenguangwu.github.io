@@ -126,42 +126,6 @@ const CASES = [
     inputs: { aperture: "8", shutter: "0.008", iso: "100" },
     expect: ["阴天/明亮阴影"],
     ref: "EV100=log2(8²/0.008)=log2(8000)=12.97 ⇒ 按同站 calc-exposure-aperture 的分档应判「阴天/明亮阴影」；原实现用 ≥12→多云 的另一套分档，同一 EV 在两页结论不一致" },
-  {
-    slug: "photo/convert-focal",
-    inputs: { val: "2", rate: "3", from: "1", to: "1" },
-    expect: ["6.000000"],
-    ref: 'r = val×rate×from/to = 2×3×1/1 = 6.000000（默认 1×1×1/1=1.000000，避开；from/to 取默认镜头焦距→视场角换算）'
-  },
-  {
-    slug: "photo/convert-focal",
-    inputs: { val: "2", rate: "3", from: "0.001", to: "1" },
-    expect: ["0.006000"],
-    ref: 'r = 2×3×0.001/1 = 0.006000（from 切「毫镜头焦距」0.001，默认 1→1.000000，避开）'
-  },
-  {
-    slug: "photo/convert-focal",
-    inputs: { val: "2", rate: "3", from: "1000", to: "1" },
-    expect: ["6000.000000"],
-    ref: 'r = 2×3×1000/1 = 6000.000000（from 切「千镜头焦距」1000，默认 1→1.000000，避开）'
-  },
-  {
-    slug: "photo/convert-focal",
-    inputs: { val: "7", rate: "1", from: "1", to: "0.001" },
-    expect: ["7000.000000"],
-    ref: 'r = 7×1×1/0.001 = 7000.000000（to 切「毫视场角换算」0.001，默认 1→1.000000，避开；系数 1）'
-  },
-  {
-    slug: "photo/convert-focal",
-    inputs: { val: "2", rate: "9", from: "1", to: "1000" },
-    expect: ["0.018000"],
-    ref: 'r = 2×9×1/1000 = 0.018000（to 切「千视场角换算」1000，默认 1→1.000000，避开；系数 9）'
-  },
-  {
-    slug: "photo/convert-focal",
-    inputs: { val: "5", rate: "2", from: "0.001", to: "1000" },
-    expect: ["0.000010"],
-    ref: 'r = 5×2×0.001/1000 = 0.000010（from 切毫 0.001、to 切千 1000，默认 1/1→1.000000，避开）'
-  },
   // ── §7.4 零用例加固：photo 确定性数值页（注入非默认 + harness 实测锚）──
   {
     slug: "photo/photo-2",
@@ -248,18 +212,17 @@ const CASES = [
     "ref": "自动补强（B类零用例）：注入非默认输入{\"card\":\"42\",\"per\":\"42\",\"jpeg\":\"42\"}，输出区含「42\n42\n42\nRAW 张数： 100」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
-    "slug": "photo/convert-focal",
-    "inputs": {
-      "val": "42",
-      "rate": "42",
-      "from": "0.001",
-      "to": "0.001"
-    },
-    "expect": [
-      "42\n42\n0.001\n0.001\n1764"
-    ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"val\":\"42\",\"rate\":\"42\",\"from\":\"0.001\",\"to\":\"0.001\"}，输出区含「42\n42\n0.001\n0.001\n1764」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  "slug": "photo/convert-focal",
+  "inputs": {
+    "focal": "35",
+    "sensor": "36",
+    "fov": "54.47"
   },
+  "expect": [
+    "54.432°"
+  ],
+  "ref": "复算：FOV = 2·arctan(36 ÷ (2×35)) × 180 ÷ π = 54.432°（反解焦距 34.97 mm）；默认 50 mm 得 39.598° ⇒ 不命中"
+},
   {
     "slug": "photo/depth-of-field",
     "inputs": {

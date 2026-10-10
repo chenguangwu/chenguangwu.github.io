@@ -3,15 +3,15 @@
 const { runCase } = require("./verify_it_calc.js");
 const CASES = [
 {
-  "slug": "quality/convert-qualified-defect",
-  "inputs": {
-    "val": "4",
-    "rate": "1"
-  },
-  "expect": [
-    "4.000000"
-  ],
-  "ref": "auto-restore"
+"slug": "quality/convert-qualified-defect",
+"inputs": {
+"val": "2.5",
+"unit": "pct"
+},
+"expect": [
+"25000.00 PPM"
+],
+"ref": "重做为真实换算器后复算：2.5% × 10 000 = 25000.00 PPM（小数 0.025、千分率 25）；默认 0.35% 得 3500.00 PPM ⇒ 注入失败即不命中"
 },
 {
   "slug": "quality/ppm-calculator",

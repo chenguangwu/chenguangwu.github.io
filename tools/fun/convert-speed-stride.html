@@ -112,14 +112,12 @@ s.parentNode.insertBefore(el, s);
     <h2 data-zh="🏎️ 步幅与速度换算（步频×步长）">🏎️ Stride &amp; Speed Converter</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="步频×步长">Estimate walking or running speed from cadence and step length, or work backwards from a target speed to the cadence you need — for pacing and gait analysis.</p>
     <div class="formula-box">
-      <div class="formula-title">📐 计算公式</div>
-      <div class="formula-eq">速度 = 步频 × 步幅</div>
-      <p class="formula-desc">步频×步长</p>
-    </div>
-<div class="input-row"><div><label>输入数值</label><input type="number" id="val" value="1" step="any" oninput="calc()"></div>
-<div><label>换算系数</label><input type="number" id="rate" value="1" step="any" oninput="calc()"></div></div>
-<div class="input-row"><div><label>从</label><select id="from" onchange="calc()"><option value="1">步幅</option><option value="0.001">毫步幅</option><option value="1000">千步幅</option></select></div>
-<div><label>到</label><select id="to" onchange="calc()"><option value="1">速度换算</option><option value="0.001">毫速度换算</option><option value="1000">千速度换算</option></select></div></div>
+  <div class="formula-title">📐 工作原理与说明</div>
+  <div class="formula-eq">v(m/min) = 步幅(m) × 步频(步/min)　｜　v(km/h) = 步幅 × 步频 × 0.06　｜　配速(min/km) = 1000 ÷ v(m/min)</div>
+  <div class="formula-note">步幅 × 步频 = 速度；配速为每公里耗时，是跑步常用表达。</div>
+</div>
+<div class="input-row"><div><label>步幅（m）</label><input type="number" id="stride" value="0.75" step="any" oninput="calc()"></div><div><label>步频（步/min）</label><input type="number" id="cadence" value="160" step="any" oninput="calc()"></div></div>
+<div class="input-row"><div><label>速度（km/h）</label><input type="number" id="speed" value="7.2" step="any" oninput="calc()"></div></div>
 <div class="toolbar"><button type="button" class="btn primary" onclick="calc()">换算</button><button type="button" class="btn" onclick="copyRes()">复制</button></div>
 <div class="result-box" id="res"></div>
   </div>
@@ -171,7 +169,9 @@ s.parentNode.insertBefore(el, s);
 <!-- /注意事项区块 -->
 </div>
 <script>
-function calc(){const v=+document.getElementById("val").value||0;const rate=+document.getElementById("rate").value||1;const f=+document.getElementById("from").value;const t=+document.getElementById("to").value;const r=v*rate*f/t;const __g1=`<p style="font-size:22px;color:var(--primary);"><strong>${r.toFixed(6)}</strong></p><p style="font-size:12px;color:var(--text-muted);">系数: ${rate}</p>`;document.getElementById("res").innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));}calc();function copyRes(){ToolBox.copyText(document.getElementById("res").innerText);}
+function pace(minkm){var m=Math.floor(minkm);var s=Math.round((minkm-m)*60);if(s===60){s=0;m+=1;}return m+"′"+s+"″";}
+function calc(){var st=+document.getElementById("stride").value||0;var cad=+document.getElementById("cadence").value||0;var sp=+document.getElementById("speed").value||0;var vmin=st*cad;var vkmh=vmin*0.06;var pacev=vmin>0?1000/vmin:0;var cadNeed=st>0?sp/0.06/st:0;var stNeed=cad>0?sp/0.06/cad:0;var REF=[["散步",3,4.5],["快走",4.5,6.5],["慢跑",6.5,9],["跑步",9,12],["竞速",12,20]];var lvl="—";REF.forEach(function(r){if(vkmh>=r[1]&&vkmh<r[2]){lvl=r[0];}});if(vkmh>=20){lvl="竞速";}var stt=REF.map(function(r){var hit=(lvl===r[0])?" style='background:var(--primary-light,#eef2ff)'":"";return "<tr"+hit+"><td>"+r[0]+"</td><td>"+r[1]+" ~ "+r[2]+" km/h</td></tr>";}).join("");var h="<p style='font-size:22px;color:var(--primary);'><strong>"+vkmh.toFixed(2)+" km/h</strong></p><table style='width:100%;font-size:13px;margin-top:8px'><tr><th align=left>项目</th><th align=left>数值</th></tr><tr><td>步幅 × 步频 → 速度</td><td><strong>"+vkmh.toFixed(3)+" km/h</strong></td></tr><tr><td>合速度（m/min）</td><td><strong>"+vmin.toFixed(2)+"</strong></td></tr><tr><td>配速</td><td><strong>"+(pacev>0?pace(pacev)+" /km":"—")+"</strong></td></tr><tr><td>达 "+sp+" km/h 所需步频</td><td><strong>"+cadNeed.toFixed(1)+" 步/min</strong></td></tr><tr><td>达 "+sp+" km/h 所需步幅</td><td><strong>"+stNeed.toFixed(3)+" m</strong></td></tr><tr><td>强度分级</td><td><strong>"+lvl+"</strong></td></tr></table><p style='font-size:12px;color:var(--text-muted);margin-top:10px'>强度分级（高亮为当前所属）</p><table style='width:100%;font-size:12px'><tr><th align=left>等级</th><th align=left>速度区间</th></tr>"+stt+"</table>";document.getElementById("res").innerHTML=h;}
+function copyRes(){ToolBox.copyText(document.getElementById("res").innerText);}
 </script>
 
 <!-- SEO 介绍区块 -->
