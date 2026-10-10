@@ -141,7 +141,6 @@
 
 - **harness 输入桩能力现状（2026-09-24 定型，勿再重估）**：可注入手段共 **6 种** —— `inputs`、`checkIds`、`radios`、`checks`（**仅在「无 inputs」分支计入弱用例判定**）、`clicks`（页面作用域 direct eval + 动态 DOM 登记）、`dynDom`。**「纯 checkbox 量表页不可注入」的旧结论已失效**。逐例打法见 `.workbuddy/memory/` 与 skill `toolbox-weakcase-hardening`。
 - **仍未闭环的残留（转 P3 顺带，不单独成批）**：
-  - **checkbox 页覆盖缺口（已收口，2026-10-10）**：原「353 含 checkbox / 162 有用例 / 191 无用例」为零用例补强**前**口径。零用例补强（inputs 字段）已覆盖 357 个含 checkbox 且有可注入输入的页；重扫真实剩余「含 checkbox/radio 且 verify 无用例」= **34 页**（26+8）。多策略探针（inputs/checkIds/radios/clicks）实测仅 `life/generator-strength` 1 页可强判别（确定种子密码串，已补，commit 17b4565a0e）；其余 33 页因按钮触发/动态渲染/CDN/DOMParser 缺口/随机非确定/输入回显弱不可收敛，记排除（逐页原因见 `.workbuddy/memory/2026-10-10.md` §B类子任务②）。142 行 checkIds 修复对纯 checkbox 勾选即算分页有效，本批 34 页无此类样本。
 - **`metalwork/tester-19` ≤1kV 耐压分支无法构造判别用例**：该分支输出恒为 `3.5 kV`（与 `ratedV` 无关），任何 `expect` 都会在**默认态**命中 → 必被判逃生项，故**刻意不补用例**；该修复只能靠隔离器人工跑 + 代码评审保真。
 - **「多页签（mode）」页面的非默认页签分支无法被 harness 覆盖**：切页签必须带参 `setMode(1)`，而 harness 只无参调用候选函数 ⇒ 第二种模式分支永不执行。**复核口径**：复制页面到 `tools/<ind>/_tmp-xxx.html`，把 `let currentMode=0;` 改成 `1` → 隔离器单跑 → **立即删除副本**。
 - **永久排除（不下架）**：同名异功能 `finance/salary-after-tax` ↔ `payroll-calculator`、`ophthalmology/self-assess-2` ↔ `osdi-scale`；跨行业同名编号页（`calc-N`/`rater-N` 等 17 个 basename）经内容哈希取证均为不同工具，非重复。
@@ -311,6 +310,7 @@
 > **缺陷 A–U 已闭环**（根因进 §八，明细见 memory 2026-09-2*.md）。本节只留**未处理**项。
 
 - **未处理（疑似口径）**：`legal/calc-8`（年终奖计税）把「社保/专项附加」按**年度值**扣除、未 ×12；若语义是「月缴」则应税所得高估、税额偏低。等老板确认语义。
+- **未处理（名不符实占位换算器，30 页，2026-10-10 发现）**：全站 B 级 31 页中 **30 页**命中占位引擎指纹 `const r=v*rate*f/t`（值 × 用户手填「系数」 × 源factor/目标factor），单位 option 只有 `1/0.001/1000`（毫/千前缀），**真实换算系数不内置** ⇒ 页面零领域知识，标题承诺的跨量纲换算（地震震级↔焦耳、原油API↔密度、焦距↔视场角、经纬度↔度分秒、布/洛/维氏硬度、gsm↔厚度等）**线性比例器根本无法实现**。更严重者 `surveying/convert-33` 已显示正确公式 `平距 D=√(S²−v²), 高差 v=S·sinα` 但引擎未实现 ⇒ **公式只展示不实现**（主动误导）。同名不符实类缺陷的既定处置见 `toolbox-stat-template-redo` SOP：**按标题重做为真实计算器、保留 URL/文件名（零 SEO 风险）**，改后须独立复算 + 补 verify 用例 + 过门禁。等老板定夺是否批量开工与分批粒度。
 - **未处理（非缺陷）**：`ai/ocr`、`ai/image-classification` 等 5 个 `<script type="module">` 页的 `own_len` 度量盲区（结论：不改）。
 
 ## 十、优先级与当前主线
@@ -413,6 +413,6 @@
 
 **E. 待办 / 历史残留**
 
-- **`verify_*_calc.js` 重复条目（已收口，2026-10-10）**：原「62 条同 slug 多份重复」系**过时误计**——扫描证实：跨文件重复 slug = 0；同文件内同 slug 多份共 2419 条但 `distinctNorms>1`（同工具不同输入/路径的**合法复测**，如 `math/equation-solver x7`、`it/crontab-generator x5`，删之会丢覆盖）。**真正「纯重复」（inputs+expect+注入通道逐字节相同）仅 5 条**，已删除多余份：`agriculture/estimate-area-density`(行119)、`it/sql-escape`(2564)、`it/regex-escape`(1968)、`it/nato-alphabet`(1765)、`it/crontab-generator`(2380)；保留份不变 ⇒ 总用例 7798→7793、两文件 verify 全过、判别器 0 逃生（commit 见 memory）。**结论：无残留重复须处理**，本条转为历史注释。
+> **当前为空** —— 已收口项（重复用例清理、checkbox 覆盖缺口等）明细见 `.workbuddy/memory/2026-10-10.md`，本文件不留「已处置 N」累计。
 
 
