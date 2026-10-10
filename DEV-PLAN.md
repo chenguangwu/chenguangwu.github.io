@@ -281,6 +281,8 @@
 - **日期/时区依赖（同法排查）**：harness 冻结 `now` 保证确定性（故每天恒定），但 `new Date('<日期串>')` 按 UTC 解析、用本地分量格式化 ⇒ 输出随时区偏移 1 天；`toLocaleString()` 的 **AM/PM** 同理。**判定：同一用例在 UTC-12 与 UTC+14 下结果不一致即脆弱。**
 - **锚点须由「注入」决定、不由「时钟」决定**：改 expect 优先选 inputs 直接推出的串。**补强输入须合页面语义**（`γ<1` 别灌 42）；**哨兵串禁灌日期/数值字段**（`new Date('abc123测试')` ⇒ Invalid，页面崩且只剩回显，全站约 51 处）。
 - **行业 `main()` 必须打印失败身份**（`❌ slug / why / errs / got`）：否则 CI 只显示 `117/118`，是抓不到真凶的诊断债。已统一补齐。
+- **🔴 复验必须用 CI 的同款运行时**：CI 用 `node-version: lts/*`（现为 **Node 24**），本地 managed 是 22 ⇒ `Math.pow/exp/log` 结果差 1 ULP，`toString()` 位数随之不同（`42*Math.pow(42,42)`：Node22/23 = `6.3054993769024**56**e+69`，Node24 = `6.30549937690245**555**e+69`）。**已装 `/Users/cgw/.workbuddy/binaries/node/versions/24.11.1/bin/node`，改动 verify 用例后必须 Node22+Node24+`TZ=UTC` 三重复验。** 教训：不可凭「测了两个版本相同」推断全版本相同。
+- **🔴 天文数字用例一律换温和输入**：`42^42` / `p=42` 这类违反语义的输入产出的巨型值，**不是 1 ULP 而是整体随 Node 版本变**（`binomial-cdf` 实测 Node22 `5.075681950731849e+63` vs Node24 `5.48713341525903e+63`，差 8%）⇒ 截到 10 位也救不了。判据：expect 含 `e+2x` 及以上的天文数字，就该换输入而非调 expect。
 - **「本地过、CI 挂」排查次序**：① 纯净树复跑 ② 多时区 ③ 多 Node 版本 ④ 比对纯净树 build 产物与工作树 `tools/` ⑤ 余者即 CPU/OS 架构级 1 ULP。
 - **剩余已知脆弱 2 条**（UTC 下仍通过，留独立批次，明细见 `.workbuddy/memory/2026-10-11.md`）：`legal/patent-term-calculator`、`life/date-difference-calculator`。
 
@@ -359,70 +361,11 @@
 
 ### 10.5 harness 已知限制（选批与定 expect 前必读）
 
-> harness = `scripts/verify_it_calc.js`。**三阶段判定**：① 覆盖 `c.inputs` 后触发 `input/change/keyup` 并**立即**查 expect（命中即 `via:"input event"`）→ ② `clicks` 注入（命中即 `via:"click"`）→ ③ 未命中才兜底**无参遍历调用候选函数**（命中即 `via:<函数名>`；`DESTRUCTIVE` 跳过 `reset|clear|restore|save|swap|history|^set[A-Z]`）。`collectStrings(elements)` 收集每元素 `value`/`innerHTML`/`textContent` 三路非空串，剥标签压缩后**换行拼成单串** ⇒ `blob.includes(want)` 是**子串**匹配；**不采集 `style`**。
+> harness = `scripts/verify_it_calc.js`。**三阶段**：① 覆盖 `inputs` + 触发 `input/change/keyup` 立刻查 expect → ② 执行 `clicks` → ③ 未命中才**无参遍历调用候选函数**兜底。`collectStrings` 收每元素 `value`/`innerHTML`/`textContent`，剥标签压成**单串** ⇒ `blob.includes(want)` 是**子串**匹配。
 
-**A. 可注入手段（6 种）**
-
-| 手段 | 用法与判据 |
-|---|---|
-| `inputs` | 表单控件注入；**仅对静态 HTML 内已有 id 的控件有效**（运行期 `innerHTML` 生成的控件无效，见 B1） |
-| `checkIds: ["c","u"]` | `getElementById(id).checked` 型（纯复选框量表页） |
-| `radios: { htn: "1" }` | `getElementsByName(name)` 型 |
-| `checks: ["3"]` | `querySelector('input[name=x]:checked')` 的返回值，即「哪一项被选中」；**仅在「无 inputs」分支计入 `no_inputs` 判定，不参与 `all_default`**（它可能只是 inputs 的修饰项） |
-| `clicks: ["pick(0,3)", …]` | **页面作用域 direct eval**，inputs 后、兜底前按序执行，命中即 `via="click"` |
-| `dynDom` | 单独开启动态 DOM 登记（不注入值时用） |
-
-> `clicks` 内的状态驱动优先级：**页面顶层 `var`/`let` 绑定直接赋值 > 模拟点按钮 > 注入 DOM 选中态**（真正被 `calc()` 读取的往往是顶层状态）。**带 DOM 形参的 click 函数不算不可注入**：`selectFluor(btn,i)` 的 `btn` 只做 `classList` 增删 ⇒ 传哑对象 `{classList:{add:function(){},remove:function(){}}}` 或省略（页面内 `if(el)` 判空）。
-
-**B. 「能不能注入」判据（静态 HTML 无 `<input|<select|<textarea` 时逐条排查）**
-
-| 判据 | 结论 |
-|---|---|
-| B1 控件由运行期 `innerHTML` 生成（id 形如 `c{i}`），或**静态 `<select>` 存在但 option 由 JS 填充** | 前者写 `inputs` 会被判 `usable=false` 静默 `skip`；后者判别器取默认空串、回退 `+''=0` 落首项。两者都用 `clicks` 赋值后**显式**调 `calc()`/`compare()`（这类 select 常无 `onchange`）。**副产品**：这些键不进弱用例清单，正好靠 `clicks` 计入可检 |
-| B2 驱动语句是 class 选择器（`querySelectorAll('.'+cls)` / `'.s8'`） | 桩的 `querySelectorAll` **仅对选择器串含 `checked`** 的调用返回 `c.checks`，纯 class 选择器恒返回 `[]` ⇒ 复选框注入不了，保留 `no_inputs` |
-| B3 行由 `createElement + #rows.appendChild` 建立，靠 `querySelectorAll('#容器 .行类名')` 取值 | 桩的 `dynRecord` 只登记 `innerHTML` 字符串里解析出的标签、**不含容器 div 自身** ⇒ 选择器恒空 ⇒ 结构性不可注入（容器 `innerHTML` 里仍能看到全部表单标签，**极易误判为「行已建好」**） |
-| B4 控件位于默认 `display:none` 的 hidden / tab 面板 | **注入阶段与 `calc()` 阶段不是同一份 DOM 实例** ⇒ `inputs` 与 `clicks` 内赋值**都改不动** `calc()` 读到的值（`hvac/duct-calculator` 的 `diaD`）；只能锚由已验证可注入字段派生的量 |
-| B5 有 id 的控件注入后输出**逐字不变** | 该控件的处理函数不在 harness 实际调用链上（仅 `saveList()` 写 localStorage 时用到）⇒ 输出无关，保留 `no_inputs` 并写明 `ref` |
-| B6 纯浏览页：无 `#result`、交互仅 `classList.toggle`（不进 blob）/ 写剪贴板 | 不存在任何随输入变化的输出 ⇒ 结构性不可注入 |
-| B7 需点按钮写 localStorage、写操作对渲染零影响的页 | 同 B6（`setLastClean` 类还被 `DESTRUCTIVE` 的 `^set[A-Z]` 排除）。**例外**：若数据**读取**走 `localStorage.getItem`，可在 `clicks` 内覆写它注入数据（等价于「用户本就有数据」），已验证可行 |
-| B8 `confirm`/`prompt` 做闸门 | harness 无 `confirm` 桩 ⇒ 未填满时 `calcScore()` 抛错被兜底 catch、结果区恒空。须在 `clicks` 里预置状态绕开闸门（如把全部题目填 5） |
-| B9 `.length` 判空但入参是对象 | `render()` 写 `if(!list.length)`、而 `list` 是对象 ⇒ 恒真 ⇒ **整页功能恒定不工作**（`travel/travel-adapter-guide` 的搜索恒显示「未找到」）⇒ 属 **P0 真缺陷**，改 `if(!list\|\|!Object.keys(list).length)`。**遇「整页功能恒定不工作」先怀疑判空/类型错，别急着归类为「不可注入」** |
-
-**C. 定 expect 的硬规则**
-
-1. **锚点只依赖被测点且形态安全**：禁混入表头 / 常驻文案 / 按钮文本 / 页脚免责 / 静态 SVG 文本 / option value 等**页面常量**。`blob.includes` 是**子串**匹配 ⇒ `达标` ⊂ `未达标`，否定式结论词须锚**完整结论串**；数值须与标签绑成连续串（`18.75 最大弯矩 M (kN·m)`），否则裸数值被明细大表命中；含 `<` 的输出会被标签剥离吞掉。
-2. **双态核验 + 默认态逐串比对**：dump 注入态与默认态逐串比对，**只有「注入态有、默认态无」的串能进 expect**（防同值巧合；兜底无参 `genPassword`/`loadDefault` 会产同串结果）。`inputs` 逐字等于页面默认值 ⇒ 判别器判 `usable=false` 直接 `skipped++` ⇒ **`all_default` 例一律视为零判别力**；零影响键别写入 `inputs`。
-3. **兜底污染三则**：① 兜底无参调用候选函数会**改状态后重算**、重写结果区 ⇒ expect 避开无参函数能产出的串；② `clicks` 型 expect 必须在阶段 ② 命中，否则 **`FAIL` 的 `fullBlob` 是「兜底后」视图**（与默认态逐字相同）⇒ 不能据此判 clicks 是否生效；③ **expect 出现 `undefined` / `NaN` 字面量几乎必是兜底产物**（无参 `selectDate()` → `undefined-NaN-undefined`）⇒ 先辨段再改锚。
-4. **锚点优先级 + checkbox 反向利用**：① 非兜底分支独有的文案（`if/else` 的**非 else** 路）；② 只由注入值派生、兜底无法复现的数值；③ 跨档 / 跨分支的等级词（改前先手算是否落同档）。桩内 checkbox 恒未勾 ⇒ 默认态渲染「xx缺失」并给低分 ⇒ **勾满 `checkIds` 抢「全部达标」分支做正向强锚**。
-5. **数值合法性与齐次量**：有界量（决定系数 / 概率 / p 值 / 率）越界即公式错，交付前必查 `[0,1]`；「基础分 − 扣分」式先算最小值是否越界；**输出物理不可能值必查公式本身**。比值 / 单价 / 覆盖率换值前先确认不是等比缩放。
-6. **日期与随机**：日期相关量一律不锚；禁 `Math.random` / `Date.now` 当输入。`clicks` 内改**进程级全局**（`Math`/`Date`/`Array.prototype`）**必须用完即恢复**，否则污染同进程后续用例的默认态 —— 只有双态核验抓得到。钉死随机后锚「多列连续复合串」把巧合概率压到 10⁻⁶。
-7. **默认态已全量渲染的页面，锚点要换区**：① 多段渲染共用常量串 ⇒ 只锚注入段独有串；② 「kw 空输出全量」过滤页 ⇒ 反向注入不存在的关键词、锚空结果提示；③ 「卡片+详情」双区页 ⇒ 只锚详情区；④ 筛选型图鉴页（`office/excel-formula-reference`）⇒ 锚过滤态成立的**跨行相邻串**，不锚整条目串。**筛选入口常是「状态变量 + 按钮」双参签名**，直调 `setFilter(f,btn)` 会 btn 为 undefined ⇒ 直写状态变量再重渲。
-8. **注入与格式口径**：`select` 的 `selected` 在桩里不生效 ⇒ 默认选中项必须**显式注入**（`selfcheck` 取 JS 真实默认、`discriminate_check` 取首个 option，口径不同）。`inputs` 键若是模板串残留（`${f}` / `pri${i}`）会同时骗过两把锁（不进棘轮 + 记「正确变红」）⇒ 巡检 `verify_*_calc.js` 里形如 `${` 的键。`fmt()` 走 `toLocaleString()` 默认截 3 位小数 ⇒ 定 expect 避开被截断处。
-9. **clicks 锚「不读输入的全量函数」必误判逃生项**：判别器模拟注入失败是**清空 clicks 后跑**（含兜底遍历）。若 expect 锚 `checkAll()` 类「恒产全量」输出（如 `36/36`），兜底重调仍同值 ⇒ 判「仍 PASS」= 逃生项 ✅ 改用**具体输入态**（`toggleItem(0,0/0,1/0,2)` 勾 N 项 → `N/总数`），默认态 0 项不命中。
-10. **空结果提示不可锚两形态**：① 提示同时被兜底链复现（`selectXxx()` 无参置全局态 `undefined` ⇒ 过滤集恒空）⇒ 注入态与失败态同串，判逃生项。② 提示在**独立静态元素**内、仅切 `style.display` ⇒ 不写入结果容器 ⇒ blob 永不含该串。✅ 定锚前双态 dump 比对，只取「注入态有 / 默认态无且兜底不复现」的串。
-11. **「名 + 参数」型 option 文本是逃生项**：`<select>` 的 `option.textContent` 会进 `collectStrings` ⇒ `东京（日本）UTC+9` 这类串**默认态 select 里本就存在** ✅ 只锚**随注入值变化的派生量**。「写 localStorage 再读回」链路在 harness 下**只写不读**（`getItem` 缺失 ⇒ `getTasks()` 恒 `[]`）**不可注入**（`edu/exam-study-planner`)。
-12. **调试陷阱（把「没生效」误判成 bug）**：① `verify_it_calc.js` **必须留在 `scripts/` 下**跑 —— `TOOLS_DIR` 取自 `__dirname`，拷出仓库外会整页返「文件不存在」且 `errs=[]`（看似 clicks 静默失败）。② 确认 clicks 是否真执行：用 `clicks:["throw new Error('RAN')"]`，`errs` 出现 `RAN` 即已执行。③ 带连字符的 id 在用例对象里**必须加引号**（`{ "focus-mins": "50" }`），裸写会 SyntaxError。
-13. **「textarea + 预览区」双元页（Markdown / 富文本类）**：blob 同时含**注入原文回显**与**渲染产物** ⇒ 渲染文本 ⊂ 原文的锚属伪锚。✅ 只锚**渲染独有的连排串**：剥标签后标签换成空格，同元素相邻 cell 连成 `甲 乙 24 36 81 90`，原文 `| 甲 | 乙 |` 里不连续 ⇒ 天然非回显。**expect 不能写带标签形式**（必 FAIL）。
-15. **多行 textarea 的产出串，换行在 blob 里被归一成空格 ⇒ 锚写 `bbb aaa ccc` 不能写 `bbb\naaa`**。✅ 排序/去重类一律锚**整段连排**；**极短锚（`c`）默认态示例里本就有 ⇒ 逃生项**。能反向重跑的，两个方向都写进同一 `expect` 防假通过。
-16. **「输入 textarea + 结果区」提取器类（正则抽邮箱/URL/日期）**：回显与提取结果并存 ⇒ 锚被提取内容即伪锚 ✅ 锚落**结果区独有形态**（邮箱+空格+复制、两段 URL 连排）。这类页常由 checkbox 决定抽不抽，**缺 `checkIds` 时 `extract()` 在首个 `.checked` 抛错中断** ⇒ 结果区恒为初始值，注入后不变先怀疑它。
-
-17. **控件 id 不存在 = P0 死页（加载即 TypeError、整页无输出）**：harness `getEl()` 对未识别 id 造空元素 ⇒ 不抛错、只读到空串，表现为「无输出/只有常量锚」。判据 = 调入口抛 `Cannot read properties of null`；处置：改 **HTML** 的 id 并扫同族。另 `createElement()` 桩不回写 `textContent`→`innerHTML`。
-18. **动态 id 不可做判别锚**：`pageDefaults()` 在 `<!-- TOOLBOX-DEEP-DIVE -->` 处截断 ⇒ 运行期生成的 id 取不到；只改它 ⇒ `usable=false` 静默跳过，顺带改可见键则变逃生项。锚须落在可见且影响输出的键。
-19. **「美化/格式化」类页易成回显伪锚**（`it/shell-script-formatter`：`getIndent()` 读 select ⇒ `parseInt(v)=NaN` ⇒ 缩进恒 0）⇒ 改走同页「压缩」路径找非回显锚（`minifyShell` 以 `; ` 连接 ⇒ `echo a; echo b`）。结果容器不在 DUMP_IDS 时用用例级 `dumpIds`；dump 只出常量/回显时先怀疑此因。
-20. **harness 未建模 `<select>` 默认选中项 ⇒ 桩内恒 null 的「静默死页」**：桩 `checkedByName` 不解析 `<option selected>` ⇒ `.text` 恒 null ⇒ 整页无产物，易误判「结构性不可注入」。判据 = 抛 `reading 'text'` 且 selector 形如 `#id option:checked`；处置见 D 段 `selectedText` 补丁（零回归）。
-21. **「模式切换 + 单 `calc()` 多分支」型页（顶层 `currentXxx` + `switchXxx(m)` + `calc()` 四分支）**：兜底无参调 `switchXxx(undefined)` 置空模式 ⇒ 落初值分支、结果区被全 0 覆盖 ⇒ 任何「归零态」串（`0 万保额`）在**默认态同样命中** = 逃生项。定锚只用**随注入变化的非零**派生量（边界例也改锚同组其他非 0 明细行）；`clicks` 必须写 `switchXxx('别名'); calc();` 才落被测分支。
-**D. 工具与方法**
-
-| 工具 | 用途 |
-|---|---|
-| **常驻 runner（scan / dump / multi）** | `~/.workbuddy/skills/toolbox-weakcase-hardening/assets/weakcase_runner.js`（cwd 为仓库根），**每批直接调用、不要重建**。`clicks` 末尾回写结果到 `__p`（兜底不碰）⇒ FAIL 时仍读到真实注入输出；容器 id 不在内置清单时用 `dumpIds` 覆盖。|
-| **「双态」核验** | 每例必须**注入态 PASS + 默认态（剥 inputs/checks/clicks）FAIL** 双跑；判别器取不到默认值的页尤其只能靠它 |
-| **逐项二分** | 逃生项逐项单独 `runCase` 定位，**禁用 `fullBlob.includes()`**（元素集合不同会全判「无逃生」） |
-| **批量改用例** | 优先精确 `Edit`（全数组重建会吃掉块前注释）。`verify_*_calc.js` 有**带引号键**（`"slug":`）与**无引号键**（`slug:`）两种风格，换文件前先 `grep -c '"slug":'` |
-| **页面真缺陷精查** | 见 §8.7（隔离器 `scripts/_audit_iso_small.js` + jsdom 三态复核）与 §8.11（输出守卫 v8） |
-
-**E. 待办 / 历史残留**
-
-> **当前为空** —— 已收口项（重复用例清理、checkbox 覆盖缺口等）明细见 `.workbuddy/memory/2026-10-10.md`，本文件不留「已处置 N」累计。
+- **定 expect 五条铁律**：① 锚点只依赖被测点，禁混表头/按钮/页脚/option value 等常量（`达标` ⊂ `未达标`）；数值须与标签绑成连续串。② **双态核验**：注入态 PASS + 默认态 FAIL 双跑，`inputs` 等于默认值 ⇒ 判 `usable=false` 静默 skip（零判别力）。③ 兜底会改状态重算 ⇒ 避开无参函数能产出的串；`expect` 含 `undefined`/`NaN` 几乎必是兜底产物。④ 日期/随机一律不锚；`clicks` 改进程级全局**用完即恢复**。⑤ **判别器是清空 clicks 后跑** ⇒ 锚「恒产全量」输出（`checkAll()` 的 `36/36`）必判逃生项，改锚具体输入态。
+- **不可注入的静态判据**（B1–B9 全分支与 `clicks`/`radios`/`checkIds`/`dynDom` 六种手段用法见 **skill `toolbox-weakcase-hardening` → `references/harness-limits.md`**）：控件由运行期 `innerHTML` 生成（id 形如 `c{i}`）、驱动走纯 class 选择器、`createElement+appendChild` 建的行、控件在 `display:none` 面板内（`inputs` 与 `clicks` 都改不动）。
+- **P0 真缺陷信号**：控件 id 不存在（加载即 `Cannot read properties of null`、整页无输出）；`.length` 判空却传对象（`!list.length` 恒真 ⇒ 整页功能恒定不工作）。别急着归类为「不可注入」。
+- **工具**：常驻 runner `~/.workbuddy/skills/toolbox-weakcase-hardening/assets/weakcase_runner.js`（cwd 为仓库根，每批直接调用、不要重建）；FAIL 定位用 `runCase` 逐项二分，**禁用 `fullBlob.includes()`**。
 
 
