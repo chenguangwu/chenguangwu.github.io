@@ -281,6 +281,13 @@ const CASES = [
   ],
   "ref": "auto-restore"
 }
+,
+{
+  "slug": "nephrology/uacr",
+  "inputs": { "albumin": "30", "ucr": "10" },
+  "expect": ["26.5 UACR (mg/g)"],
+  "ref": "注入非默认白蛋白30/尿肌酐10（默认35/8.8）→ UACR=30/(8.8×0.113)=30/0.994≈26.5 mg/g（默认35.2）；26.5 为转换后数值，默认态不含，0 逃生。"
+}
 ];
 async function main() {
   const only = process.argv.slice(2);

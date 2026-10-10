@@ -108,6 +108,13 @@ const CASES = [
   ],
   "ref": "auto-restore"
 }
+,
+{
+  "slug": "elderly/wheelchair-width",
+  "inputs": { "sceneSel": "corridor", "chairSel": "electric", "useSel": "assist" },
+  "expect": ["建议走廊净宽 ≥ 1500 mm"],
+  "ref": "注入非默认场景 corridor/electric/assist（默认 door/manual/self）→ 输出段变「走廊通行 电动轮椅…建议走廊净宽 ≥ 1500 mm」；默认态为门洞 800mm，不含该串，0 逃生。"
+}
 ];
 async function main() {
   const only = process.argv.slice(2);

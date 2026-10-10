@@ -210,6 +210,13 @@ const CASES = [
   ],
   "ref": "人均学时 (45+38+20+40+12)/5=31，平均完成率 31/50=62%（原用例 via=delEmp 命中兜底删行后的破坏态 37%；默认要求 40h 得 78%）"
 }
+,
+{
+  "slug": "hr/hris-zizhuyuaiduibijisuanqi",
+  "inputs": { "v0": "50", "v1": "90" },
+  "expect": ["64.3% HRIS 权重占比"],
+  "ref": "注入非默认 v0=50/v1=90（默认70/85）→ HRIS 权重比=v1/(v0+v1)=90/140=64.3%（默认85/155=54.8%）；64.3% 默认态不含，0 逃生。"
+}
 ];
 async function main() {
   const only = process.argv.slice(2);

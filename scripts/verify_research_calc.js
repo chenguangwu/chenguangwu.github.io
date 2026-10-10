@@ -96,6 +96,13 @@ const CASES = [
   ],
   "ref": "auto-restore"
 }
+,
+{
+  "slug": "research/calc-97",
+  "inputs": { "e": "5", "N": "10000", "p": "50", "n": "400" },
+  "expect": ["264 所需样本量（满足±5%）"],
+  "ref": "注入非默认允许误差 e=5%（默认3%）→ 有限总体校正所需样本量 264（默认700）；264 为转换后数值，默认态不含，0 逃生。"
+}
 ];
 async function main() {
   const only = process.argv.slice(2);

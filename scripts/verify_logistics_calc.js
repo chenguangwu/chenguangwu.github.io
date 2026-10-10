@@ -193,6 +193,13 @@ const CASES = [
   ],
   "ref": "KPI：总500/准时450/完好480 → 准时率90.00%、完好率96.00%、综合KPI93.00%（独立复算，非默认输入）"
 }
+,
+{
+  "slug": "logistics/calc-78",
+  "inputs": { "mode": "ftl" },
+  "expect": ["运输模式 整车 FTL"],
+  "ref": "注入非默认运输模式 ftl（默认 ltl）→ 输出「运输模式 整车 FTL」；默认态为「零担 LTL」，不含该串，0 逃生。"
+}
 ];
 async function main() {
   const only = process.argv.slice(2);

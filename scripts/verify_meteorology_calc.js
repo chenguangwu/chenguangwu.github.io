@@ -244,6 +244,12 @@ const CASES = [
     expect: ["-19.5 °C 风寒指数 WCT"],
     ref: "独立复算：T=−10℃/v=30km/h。WCT≈−19.5°C。默认 T−5/v20→−9.5，不出现 −19.5 °C 风寒指数 WCT。"
   },
+{
+  "slug": "meteorology/assessor-29",
+  "inputs": { "spi_cur": "50", "spi_avg": "80", "spi_std": "40" },
+  "expect": ["SPI ≈ (50 - 80) / 40 = -0.75"],
+  "ref": "注入非默认 SPI 当前值50（默认30）→ 公式串「SPI ≈ (50 - 80) / 40 = -0.75」（默认 (30-80)/40=-1.25）；含实测值50的转换后形态，默认态不含，0 逃生。"
+}
 ];
 
 async function main() {

@@ -346,6 +346,13 @@ const CASES = [
   ],
   "ref": "auto-restore"
 }
+,
+{
+  "slug": "livestock/breeding-timing",
+  "inputs": { "animalType": "sow" },
+  "expect": ["妊娠期 约 114 天"],
+  "ref": "注入非默认动物类型 sow（默认 cow）→ 妊娠期 114 天（默认牛 280 天）；妊娠期为物种固定常数、与基准日无关，默认态不含，0 逃生。"
+}
 ];
 async function main() {
   const only = process.argv.slice(2);
