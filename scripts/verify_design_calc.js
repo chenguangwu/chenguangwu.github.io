@@ -728,6 +728,12 @@ const CASES = [
     expect: ["中画幅", "佳能 R5 全画幅 · 45MP", "8K视频", "几乎不可见，画质纯净"],
     ref: "注入 sensor=medium（默认 phone）/ light=low（默认 bright）/ camera=canon_r5（默认 sony_a7iv）。三条均经页面 change 监听器 → onISOChange → renderISO 生效，独立复算依据页面内置噪声基准表：medium 画幅纯净上限 6400、可用上限 25600；弱光档等效 ISO = 6400×1.3 = 8320。判别锚（均与默认态零撞车）：①『中画幅』（默认渲染『手机 (1/1.3 吋)』）②『佳能 R5 全画幅 · 45MP』（默认 sony_a7iv ⇒『索尼 A7 IV 全画幅 · 33MP』）③『8K视频』（佳能 R5 独有优点，默认 A7 IV 为『对焦优秀、视频强、实时眼部对焦』）④『几乎不可见，画质纯净』（ISO 6400 在 medium+low 下评『优秀』，默认 phone+bright 评『较重』并输出『噪点明显，需要后期降噪』）。⚠️ 不用『原生ISO 100-51200』——默认 A7 IV 同为 100-51200，属逃生串（判别器已实测报出）。纯本地查表，无随机、无时间依赖。",
   },
+  {
+    slug: "design/cvd-safe-palette",
+    inputs: { csMode: "sequential", csStrategy: "lightness" },
+    expect: ["sequential"],
+    ref: "注入 csMode=sequential（默认 qualitative）、csStrategy=lightness（默认 auto）。输出第2/4行变为 'sequential'/'lightness'，默认态为 'qualitative'/'auto' 完全不含 ⇒ 0 逃生。注：csCount 是 range，注入会触发页面 csCount.input 读取报错，故本例不注入 csCount；颜色序列与 ΔE 文本为固定的 6 色结果区、不随 mode 变化，仅 mode/strategy/count 文本行随输入变化，故以 mode 串作判别点。纯前端无随机。",
+  },
 
 ];
 
