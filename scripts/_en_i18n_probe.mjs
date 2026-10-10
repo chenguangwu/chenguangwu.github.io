@@ -113,6 +113,23 @@ async function settle(getPending, rounds = 60) {
     }
   }
 }
+// 稳定版 settle：pending 归零后仍可能有多轮异步字典/卡片翻译改写 DOM（fetch 完成后的
+// .then 回调才 set EN_DICT 并 applyChrome / 应用 slug-en）。若收集过早会误报残留。
+// 这里在 pending 收敛后继续轮询 collectCJKFull，直到「连续 4 轮残留不再下降」才收尾，
+// 与线上最终态一致；对无异步工作的页面（真实残留）会立即稳定返回，不影响既有绿页。
+async function settleStable(w, getPending, rounds = 240) {
+  for (let i = 0; i < rounds; i++) {
+    await tick();
+    if (getPending() === 0) { await tick(); if (getPending() === 0) break; }
+  }
+  let prev = -1, stable = 0;
+  for (let i = 0; i < rounds; i++) {
+    await tick();
+    const c = collectCJKFull(w).length;
+    if (c === prev) { if (++stable >= 4) return; }
+    else { stable = 0; prev = c; }
+  }
+}
 
 // 系统 UI 白名单：语言切换器内的语言名（简体中文 / 繁體中文 / English）是语言选择器自身，
 // 按惯例用本语言显示，不参与翻译，也不计入残留。
@@ -226,7 +243,7 @@ async function scan(ind) {
   let totalResidual = 0;
   for (const t of tools) {
     const { w, getPending } = probePage(t.file, 'en-US');
-    await settle(getPending);
+    await settleStable(w, getPending);
     const res = collectCJKFull(w);
     w.close();
     totalResidual += res.length;
@@ -254,7 +271,7 @@ async function mine(industries) {
   for (const ind of industries) {
     for (const t of industryTools(ind)) {
       const { w, getPending } = probePage(t.file, 'en-US');
-      await settle(getPending);
+      await settleStable(w, getPending);
       for (const r of collectCJK(w)) {
         if (/\|\s*ToolBox/.test(r)) continue;   // 相关工具卡片 SEO 名称：由 slug-en.json 机制负责，不属本层
         if (PUNCT_ONLY.test(r)) continue;       // 纯标点节点：由 en/_common.json 统一映射，不进 per-tool 候选
@@ -287,7 +304,7 @@ async function extract(target) {
   // 注意：极少数节点已被 _common/_prefix 半翻译（变异系数→Coefficient of variation），
   // 其 EN 残留形态≠源文，须以 zh 态源文为键 —— 由 --check 兜底暴露，再查 _dbg/zh 抽取。
   const { w, getPending } = probePage(file, process.env.EXTRACT_LANG || 'en-US');
-  await settle(getPending);
+  await settleStable(w, getPending);
   const meta = toolMeta(ind, slug);
   const items = [];
   const seen = new Set();
@@ -329,7 +346,7 @@ async function extract(target) {
   // 形态 ≠ 源文 ⇒ 直接当键永不命中。这里给每条 text/attr 项补 zh_src，并以 src_diff 标出差异项。
   try {
     const z = probePage(file, 'zh-CN');
-    await settle(z.getPending);
+    await settleStable(z.w, z.getPending);
     const zhMap = collectWithPaths(z.w);
     z.w.close();
     for (const it of items) {
@@ -397,11 +414,11 @@ async function keysrc(target) {
   const file = path.join(ROOT, BASE, ind, slug + '.html');
   if (!fs.existsSync(file)) { console.error('工具页不存在: ' + file); process.exit(1); }
   const en = probePage(file, 'en-US');
-  await settle(en.getPending);
+  await settleStable(en.w, en.getPending);
   const enMap = collectWithPaths(en.w);
   en.w.close();
   const zh = probePage(file, 'zh-CN');
-  await settle(zh.getPending);
+  await settleStable(zh.w, zh.getPending);
   const zhMap = collectWithPaths(zh.w);
   zh.w.close();
   const rows = [];
@@ -436,7 +453,7 @@ async function check(targets) {
       if (!fs.existsSync(t.file)) { console.error('缺失: ' + t.file); bad++; continue; }
       total++;
       const { w, getPending } = probePage(t.file, 'en-US');
-      await settle(getPending);
+      await settleStable(w, getPending);
       const res = collectCJKFull(w);
       w.close();
       if (res.length) {
@@ -462,13 +479,13 @@ async function roundtrip(targets) {
       if (!fs.existsSync(t.file)) { bad++; continue; }
       total++;
       const { w, getPending } = probePage(t.file, 'zh-CN');
-      await settle(getPending);
+      await settleStable(w, getPending);
       const before = collectAll(w);
       const origin = w.I18n.get();          // 简体源 = zh-CN；繁体产物 = zh-TW
       w.I18n.set('en-US', { persist: false });
-      await settle(getPending);
+      await settleStable(w, getPending);
       w.I18n.set(origin, { persist: false });   // 按页面原始语言还原（繁体页回 zh-TW）
-      await settle(getPending);
+      await settleStable(w, getPending);
       const after = collectAll(w);
       const diff = [];
       const n = Math.max(before.length, after.length);
