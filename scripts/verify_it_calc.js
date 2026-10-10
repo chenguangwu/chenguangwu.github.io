@@ -31,6 +31,21 @@ if (typeof globalThis.atob === "undefined") {
 }
 
 const ROOT = path.join(__dirname, "..");
+
+// ToolBox 早期 API 桩（/js/toolbox-stub.js）源缓存：页面已将该桩外链化（<script src>），
+// 本 harness 不加载外部脚本，故在用例上下文里显式以同内容注入，使 harness 的 window.ToolBox
+// 与生产设备一致：补全 qs/qsa/debounce/resolveCanvasColor/canvasColorWithAlpha/i18nText 等
+// 纯函数助手。否则依赖这些助手的页面（如 finance/compound-interest 等）在门禁下误报失败。
+let _toolboxStubSrc = null;
+function loadToolboxStubSrc() {
+  if (_toolboxStubSrc === null) {
+    try {
+      const p = path.join(ROOT, "js", "toolbox-stub.js");
+      _toolboxStubSrc = fs.existsSync(p) ? fs.readFileSync(p, "utf8") : "";
+    } catch (e) { _toolboxStubSrc = ""; }
+  }
+  return _toolboxStubSrc;
+}
 const TOOLS_DIR = path.join(ROOT, "tools");
 
 // ---------------------------------------------------------------- 固定基准日（根治日期漂移）
@@ -4147,6 +4162,31 @@ async function runCaseInner(c) {
   // 图表页会读 CSS 变量取色（如 healthcare/tdee-calculator 的 resolveCanvasColor），
   // 没有 getComputedStyle 会在 calc() 首行抛 "getComputedStyle is not defined"。
   win.getComputedStyle = () => ({ getPropertyValue: () => "" });
+  // 定时器桩（必须放在桩注入之前）：页面常用 setTimeout/requestAnimationFrame 做延迟渲染。
+  // 有限次「立即执行」：预算耗尽即变 no-op，既允许合法的一次性延迟/几帧渲染，又掐断无限循环。
+  // 此处定义的 safeTimer 会作为参数注入下方 ToolBox 早期桩，使桩内 debounce 复用受控定时器；
+  // 否则桩的 debounce 会调用全局 setTimeout，在用例 finally 清理 window.__tbq 之后才异步触发 calc，
+  // 导致依赖 clearInvalid 等队列函数的页面（如 hvac）抛未捕获异常、整批门禁误报失败。
+  let _timerBudget = 100;
+  const safeTimer = (f) => {
+    if (typeof f !== "function") return 0;
+    if (_timerBudget-- <= 0) return 0;
+    try { f(); } catch (e) { /* 定时器回调异常不影响主流程 */ }
+    return 0;
+  };
+  // 注入真实 ToolBox 早期 API 桩内容（页面已将其外链化，harness 不加载外部脚本）。
+  // 以 window/document/getComputedStyle/setTimeout 为参数执行同款源，使 window.ToolBox 与生产设备一致：
+  // 补全 qs/qsa/debounce/resolveCanvasColor/canvasColorWithAlpha/i18nText 等纯函数助手，
+  // 并让桩内 debounce 复用受控 safeTimer，避免异步 calc 越过用例生命周期（finally 清理 __tbq 之后才触发）。
+  // 必须在 win.getComputedStyle 设置之后执行，否则桩内 resolveCanvasColor 取到的 getComputedStyle 为 undefined。
+  const _stubSrc = loadToolboxStubSrc();
+  if (_stubSrc) {
+    try {
+      new Function("window", "document", "getComputedStyle", "setTimeout", _stubSrc)(win, document, win.getComputedStyle, safeTimer);
+    } catch (e) { /* 桩注入失败不阻断用例 */ }
+  }
+  // 防御兜底：确保队列基对象存在，避免桩未注入时队列函数抛错（正常路径下桩已初始化，此处仅兜底）。
+  if (!Array.isArray(win.__tbq)) win.__tbq = [];
   // 补 Option 构造器桩：new Option(text,value) 在 Node 全局不存在；部分页
   // （travel/timezone-converter-advanced）在初始化期用它动态填充 <select>，
   // 缺则抛 Option is not defined、整页死。仅挂本用例作用域，runCase 的
@@ -4165,17 +4205,7 @@ async function runCaseInner(c) {
     ...names.filter((n) => !PRIO.includes(n)),
   ];
 
-  // 定时器桩：页面常用 requestAnimationFrame(loop) / setTimeout(loop, n) 做动画或渲染循环。
-  // 原先传 (f)=>f() 会「立即同步」调用，循环变无限同步递归 → 几秒内吃光内存 OOM（image/gif-split
-  // 等重型页因此拖垮整批还原）。这里改成「有限次立即执行」：预算耗尽即变 no-op，既允许合法的
-  // 一次性延迟/几帧渲染，又掐断无限循环。
-  let _timerBudget = 100;
-  const safeTimer = (f) => {
-    if (typeof f !== "function") return 0;
-    if (_timerBudget-- <= 0) return 0;
-    try { f(); } catch (e) { /* 定时器回调异常不影响主流程 */ }
-    return 0;
-  };
+  // 定时器桩（safeTimer）已前移至桩注入之前定义，供 ToolBox 早期桩的 debounce 复用，此处不再重复定义。
   const expose = ordered.map((n) => `try{__f[${JSON.stringify(n)}]=typeof ${n}==='function'?${n}:null;}catch(e){}`).join("\n");
   let fns;
   try {
