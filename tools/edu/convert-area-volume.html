@@ -107,13 +107,13 @@ s.parentNode.insertBefore(el, s);
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="内置公式">Convert length, weight, temperature, area and volume units with built-in conversion formulas.</p>
 <div class="formula-box">
   <div class="formula-title">📐 工作原理与说明</div>
-  
+  <div class="formula-eq">目标值 = 原值 × 原单位系数 ÷ 目标单位系数</div>
+  <p class="formula-desc">内置长度、重量、面积、体积（公制/英制）与温度（℃/℉/K）换算系数，覆盖常用量纲。</p>
 </div>
-
-<div class="input-row"><div><label>输入数值</label><input type="number" id="val" value="1" step="any" oninput="calc()"></div>
-<div><label>换算系数</label><input type="number" id="rate" value="1" step="any" oninput="calc()"></div></div>
-<div class="input-row"><div><label>从</label><select id="from" onchange="calc()"><option value="1">长度</option><option value="0.001">毫长度</option><option value="1000">千长度</option></select></div>
-<div><label>到</label><select id="to" onchange="calc()"><option value="1">重量</option><option value="0.001">毫重量</option><option value="1000">千重量</option></select></div></div>
+<div class="input-row"><div><label>数值</label><input type="number" id="val" value="1" step="any" oninput="calc()"></div>
+<div><label>类别</label><select id="cat" onchange="fillSel();calc()"><option value="length">长度</option><option value="weight">重量</option><option value="area">面积</option><option value="volume">体积</option><option value="temp">温度</option></select></div></div>
+<div class="input-row"><div><label>原单位</label><select id="from" onchange="calc()"><option value="m">米 m</option><option value="cm">厘米 cm</option><option value="mm">毫米 mm</option><option value="km">千米 km</option><option value="ft">英尺 ft</option><option value="in">英寸 in</option><option value="mi">英里 mi</option></select></div>
+<div><label>目标单位</label><select id="to" onchange="calc()"><option value="cm">厘米 cm</option><option value="m">米 m</option><option value="mm">毫米 mm</option><option value="km">千米 km</option><option value="ft">英尺 ft</option><option value="in">英寸 in</option><option value="mi">英里 mi</option></select></div></div>
 <div class="toolbar"><button type="button" class="btn primary" onclick="calc()">换算</button><button type="button" class="btn" onclick="copyRes()">复制</button></div>
 <div class="result-box" id="res"></div>
   </div>
@@ -165,7 +165,14 @@ s.parentNode.insertBefore(el, s);
 <!-- /注意事项区块 -->
 </div>
 <script>
-function calc(){const v=+document.getElementById("val").value||0;const rate=+document.getElementById("rate").value||1;const f=+document.getElementById("from").value;const t=+document.getElementById("to").value;const r=v*rate*f/t;const __g1=`<p style="font-size:22px;color:var(--primary);"><strong>${r.toFixed(6)}</strong></p><p style="font-size:12px;color:var(--text-muted);">系数: ${rate}</p>`;document.getElementById("res").innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));}calc();function copyRes(){ToolBox.copyText(document.getElementById("res").innerText);}
+const U={length:{m:1,cm:0.01,mm:0.001,km:1000,ft:0.3048,in:0.0254,mi:1609.344},weight:{kg:1,g:0.001,t:1000,lb:0.45359237,oz:0.028349523125},area:{m2:1,cm2:0.0001,km2:1000000,ft2:0.09290304,acre:4046.8564224},volume:{m3:1,L:0.001,mL:0.000001,cm3:0.000001,gal:0.003785411784}};
+const N={length:{m:"米 m",cm:"厘米 cm",mm:"毫米 mm",km:"千米 km",ft:"英尺 ft",in:"英寸 in",mi:"英里 mi"},weight:{kg:"千克 kg",g:"克 g",t:"吨 t",lb:"磅 lb",oz:"盎司 oz"},area:{m2:"平方米 m²",cm2:"平方厘米 cm²",km2:"平方千米 km²",ft2:"平方英尺 ft²",acre:"英亩 acre"},volume:{m3:"立方米 m³",L:"升 L",mL:"毫升 mL",cm3:"立方厘米 cm³",gal:"美加仑 gal"}};
+function fillSel(){const cat=document.getElementById("cat").value;const f=document.getElementById("from"),t=document.getElementById("to");f.innerHTML="";t.innerHTML="";const u=U[cat];let i=0;for(const k in u){const o1=document.createElement("option");o1.value=k;o1.textContent=N[cat][k];f.appendChild(o1);const o2=document.createElement("option");o2.value=k;o2.textContent=N[cat][k];t.appendChild(o2);if(i===1)t.selectedIndex=1;i++;}}
+function calc(){const val=+document.getElementById("val").value||0;const cat=document.getElementById("cat").value;const f=document.getElementById("from").value;const t=document.getElementById("to").value;let out;
+if(cat==="temp"){let c;if(f==="C")c=val;else if(f==="F")c=(val-32)/1.8;else c=val-273.15;let r;if(t==="C")r=c;else if(t==="F")r=c*1.8+32;else r=c+273.15;out="结果 = "+r.toFixed(2);}
+else{out="结果 = "+(val*U[cat][f]/U[cat][t]).toFixed(4);}
+const el=document.getElementById("res");el.innerHTML='<p style="font-size:18px;color:var(--primary);white-space:pre-line;">'+out.replace(/&/g,'&amp;').replace(/</g,'&lt;')+'</p>';}
+fillSel();calc();function copyRes(){ToolBox.copyText(document.getElementById("res").innerText);}
 </script>
 
 <!-- SEO 介绍区块 -->

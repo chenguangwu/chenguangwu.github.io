@@ -47,13 +47,35 @@ const CASES = [
 {
   "slug": "pet/convert-25",
   "inputs": {
-    "val": "4",
-    "rate": "1"
+    "species": "dog",
+    "age": "5"
   },
   "expect": [
-    "4.000000"
+    "人类年龄 ≈ 36.0 岁"
   ],
-  "ref": "auto-restore"
+  "ref": "去默认化：狗 5 岁 ⇒ 24+(5−2)×4 = 36.0 岁。默认态 species=dog/age=3 ⇒ 28.0 岁，不命中。"
+},
+{
+  "slug": "pet/convert-25",
+  "inputs": {
+    "species": "dog",
+    "age": "1"
+  },
+  "expect": [
+    "人类年龄 ≈ 15.0 岁"
+  ],
+  "ref": "去默认化：狗 1 岁 ⇒ 15.0 岁。默认态不命中。"
+},
+{
+  "slug": "pet/convert-25",
+  "inputs": {
+    "species": "cat",
+    "age": "7"
+  },
+  "expect": [
+    "人类年龄 ≈ 44.0 岁"
+  ],
+  "ref": "去默认化：猫 7 岁 ⇒ 24+(7−2)×4 = 44.0 岁。默认态不命中。"
 },
 {
   "slug": "pet/pet-age-converter",

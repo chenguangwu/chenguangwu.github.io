@@ -90,13 +90,26 @@ const CASES = [
 {
   "slug": "medical/convert-time-infusion",
   "inputs": {
-    "val": "4",
-    "rate": "1"
+    "vol": "1000",
+    "df": "15",
+    "time": "60"
   },
   "expect": [
-    "4.000000"
+    "滴速 = 250.00 滴/分"
   ],
-  "ref": "auto-restore"
+  "ref": "去默认化：滴速 = vol×df/time = 1000×15/60 = 250.00 滴/分。默认态 vol=500/df=20/time=120 ⇒ 83.33 滴/分，不命中。"
+},
+{
+  "slug": "medical/convert-time-infusion",
+  "inputs": {
+    "vol": "250",
+    "df": "20",
+    "time": "100"
+  },
+  "expect": [
+    "滴速 = 50.00 滴/分"
+  ],
+  "ref": "去默认化：滴速 = 250×20/100 = 50.00 滴/分。默认态不命中。"
 },
 {
   "slug": "medical/dosage-calculator",

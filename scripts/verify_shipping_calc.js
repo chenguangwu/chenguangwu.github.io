@@ -34,13 +34,24 @@ const CASES = [
 {
   "slug": "shipping/convert-time-speed",
   "inputs": {
-    "val": "4",
-    "rate": "1"
+    "v": "15",
+    "t": "8"
   },
   "expect": [
-    "4.000000"
+    "航程 = 120.00 海里 (≈ 222.24 km)"
   ],
-  "ref": "auto-restore"
+  "ref": "去默认化：航程 = v×t = 15×8 = 120.00 海里，km = 120×1.852 = 222.24。默认态 v=10/t=5 ⇒ 50.00 海里/92.60 km 不命中。"
+},
+{
+  "slug": "shipping/convert-time-speed",
+  "inputs": {
+    "v": "20",
+    "t": "3"
+  },
+  "expect": [
+    "航程 = 60.00 海里 (≈ 111.12 km)"
+  ],
+  "ref": "去默认化：航程 = 20×3 = 60.00 海里，km = 60×1.852 = 111.12。默认态不命中。"
 },
 {
   "slug": "shipping/estimate-length",

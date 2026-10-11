@@ -57,14 +57,15 @@ const CASES = [
 },
 {
   "slug": "textile/convert-yarn",
-  "inputs": {
-    "val": "4",
-    "rate": "1"
-  },
-  "expect": [
-    "4.000000"
-  ],
-  "ref": "auto-restore"
+  "inputs": { "val": "30", "from": "ne" },
+  "expect": ["英支 Ne = 30.00", "公支 Nm = 50.80", "旦尼尔 D = 177.15", "特克斯 tex = 19.68"],
+  "ref": "英支 Ne=30 → tex=590.5/30=19.68，Nm=1000/19.68=50.80，D=9×19.68=177.15（默认 Ne=1 得 tex 590.50，注入态不重合）"
+},
+{
+  "slug": "textile/convert-yarn",
+  "inputs": { "val": "180", "from": "d" },
+  "expect": ["旦尼尔 D = 180.00", "特克斯 tex = 20.00", "公支 Nm = 50.00"],
+  "ref": "旦尼尔 D=180 → tex=20.00，Nm=50.00，Ne=29.52"
 },
 {
   "slug": "textile/cost-calculator",

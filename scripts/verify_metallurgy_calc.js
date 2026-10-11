@@ -58,14 +58,21 @@ const CASES = [
 },
 {
   "slug": "metallurgy/convert-hardness",
-  "inputs": {
-    "val": "250",
-    "rate": "2.5"
-  },
-  "expect": [
-    "625.000000"
-  ],
-  "ref": "de-default: 250×2.5×1/1=625 → 结果 625.000000（默认 1×1×1/1=1.000000）"
+  "inputs": { "val": "40", "scale": "hrc" },
+  "expect": ["HRC = 40.00", "HBW = 377.84", "HV = 396.90"],
+  "ref": "HRC=40 → HBW=0.0469·40²+4.87·40+108=377.84，HV=0.1865·40²−1.455·40+156.7=396.90（默认 HRC=30 得 HBW 296.31/HV 280.90，注入态不重合）"
+},
+{
+  "slug": "metallurgy/convert-hardness",
+  "inputs": { "val": "300", "scale": "hb" },
+  "expect": ["HBW = 300.00", "HRC = 30.48", "HV = 285.60"],
+  "ref": "HB=300 → HRC 反解二次方程 0.0469HRC²+4.87HRC−192=0 → 30.48；HV=HV(30.48)=285.60（经 HRC 枢纽保证 HB↔HV 一致）"
+},
+{
+  "slug": "metallurgy/convert-hardness",
+  "inputs": { "val": "400", "scale": "hv" },
+  "expect": ["HV = 400.00", "HRC = 40.23", "HBW = 419.11"],
+  "ref": "HV=400 → HRC 反解 0.1865HRC²−1.455HRC−243.3=0 → 40.23；HB=HV/0.9544=419.11"
 },
 {
   "slug": "metallurgy/decarburization",

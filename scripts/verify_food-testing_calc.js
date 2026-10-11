@@ -65,13 +65,41 @@ const CASES = [
 {
   "slug": "food-testing/convert-36",
   "inputs": {
-    "val": "4",
-    "rate": "1"
+    "metric": "av",
+    "v": "8",
+    "c": "0.1",
+    "m": "10"
   },
   "expect": [
-    "4.000000"
+    "酸价 AV = 4.49 mg KOH/g"
   ],
-  "ref": "auto-restore"
+  "ref": "去默认化：酸价 AV = V×c×56.1/m = 8×0.1×56.1/10 = 4.49 mg KOH/g。默认态 metric=av/V=5/c=0.1/m=10 ⇒ 2.81，不命中。"
+},
+{
+  "slug": "food-testing/convert-36",
+  "inputs": {
+    "metric": "av",
+    "v": "5",
+    "c": "0.5",
+    "m": "10"
+  },
+  "expect": [
+    "酸价 AV = 14.03 mg KOH/g"
+  ],
+  "ref": "去默认化：AV = 5×0.5×56.1/10 = 14.03 mg KOH/g。默认态不命中。"
+},
+{
+  "slug": "food-testing/convert-36",
+  "inputs": {
+    "metric": "pov",
+    "v": "5",
+    "c": "0.01",
+    "m": "10"
+  },
+  "expect": [
+    "过氧化值 POV = 5.00 meq/kg"
+  ],
+  "ref": "去默认化：POV = V×c×1000/m = 5×0.01×1000/10 = 5.00 meq/kg。默认态（AV）不命中。"
 },
 {
   "slug": "food-testing/convert-37",

@@ -47,14 +47,15 @@ const CASES = [
 },
 {
   "slug": "astronomy/convert-18",
-  "inputs": {
-    "val": "4",
-    "rate": "1"
-  },
-  "expect": [
-    "4.000000"
-  ],
-  "ref": "auto-restore"
+  "inputs": { "val": "540", "mode": "p2h" },
+  "expect": ["海拔 h = 5003.5 m"],
+  "ref": "气压 540 hPa → 海拔=44330·(1−(540/1013.25)^(1/5.255))=5003.5 m（默认 1013.25 得 0.0 m，注入态不重合）"
+},
+{
+  "slug": "astronomy/convert-18",
+  "inputs": { "val": "5360", "mode": "h2p" },
+  "expect": ["气压 P = 514.76 hPa"],
+  "ref": "海拔 5360 m → 气压=1013.25·(1−5360/44330)^5.255=514.76 hPa"
 },
 {
   "slug": "astronomy/crater-estimator",

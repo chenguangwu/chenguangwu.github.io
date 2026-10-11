@@ -88,13 +88,35 @@ const CASES = [
 {
   "slug": "clinical-nursing/convert-flow-concentration",
   "inputs": {
-    "val": "4",
-    "rate": "1"
+    "mode": "f2o",
+    "val": "5"
   },
   "expect": [
-    "4.000000"
+    "FiO2 ≈ 41.0%（流量 5 L/min）"
   ],
-  "ref": "auto-restore"
+  "ref": "去默认化：流量 5 L/min ⇒ FiO2 = 21+4×5 = 41.0%。默认态 mode=f2o/val=2 ⇒ 29.0%，不命中。"
+},
+{
+  "slug": "clinical-nursing/convert-flow-concentration",
+  "inputs": {
+    "mode": "f2o",
+    "val": "10"
+  },
+  "expect": [
+    "FiO2 ≈ 61.0%（流量 10 L/min）"
+  ],
+  "ref": "去默认化：FiO2 = 21+4×10 = 61.0%。默认态不命中。"
+},
+{
+  "slug": "clinical-nursing/convert-flow-concentration",
+  "inputs": {
+    "mode": "o2f",
+    "val": "40"
+  },
+  "expect": [
+    "氧流量 ≈ 4.75 L/min（FiO2 40%）"
+  ],
+  "ref": "去默认化：FiO2 40% ⇒ 流量 = (40−21)/4 = 4.75 L/min。默认态不命中。"
 },
 {
   "slug": "clinical-nursing/cvc-maintenance",

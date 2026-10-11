@@ -44,13 +44,32 @@ const CASES = [
 {
   "slug": "telecom/convert-24",
   "inputs": {
-    "val": "4",
-    "rate": "1"
+    "snr": "5"
   },
   "expect": [
-    "4.000000"
+    "误码率 BER ≈ 5.954e-3"
   ],
-  "ref": "auto-restore"
+  "ref": "去默认化：SNR=5dB ⇒ Eb/N0=10^0.5=3.162，BER=0.5·erfc(√3.162)=5.954e-3。默认态 snr=10 ⇒ 3.876e-6，不命中。"
+},
+{
+  "slug": "telecom/convert-24",
+  "inputs": {
+    "snr": "15"
+  },
+  "expect": [
+    "误码率 BER ≈ 9.216e-16"
+  ],
+  "ref": "去默认化：SNR=15dB ⇒ Eb/N0=10^1.5=31.62，BER=0.5·erfc(√31.62)=9.216e-16。默认态不命中。"
+},
+{
+  "slug": "telecom/convert-24",
+  "inputs": {
+    "snr": "20"
+  },
+  "expect": [
+    "误码率 BER ≈ 1.090e-45"
+  ],
+  "ref": "去默认化：SNR=20dB ⇒ Eb/N0=100，BER=0.5·erfc(10)=1.090e-45。默认态不命中。"
 },
 {
   "slug": "telecom/estimate-9",

@@ -68,14 +68,22 @@ const CASES = [
 {
   "slug": "clinical-lab/convert-glucose-1",
   "inputs": {
-    "val": "7.5",
-    "rate": "2.5"
+    "a1c": "7"
   },
   "expect": [
-    "18.750000",
-    "系数: 2.5"
+    "平均血糖 eAG = 154.2 mg/dL (≈ 8.57 mmol/L)"
   ],
-  "ref": "r=val×rate×from/to=7.5×2.5×1/1=18.75 → toFixed(6)=18.750000"
+  "ref": "去默认化：eAG(mg/dL) = 28.7×a1c−46.7 = 28.7×7−46.7 = 154.2，mmol/L = 154.2/18 = 8.57。默认态 a1c=6.5 ⇒ 139.8 mg/dL/7.77 mmol/L，不命中。"
+},
+{
+  "slug": "clinical-lab/convert-glucose-1",
+  "inputs": {
+    "a1c": "5.5"
+  },
+  "expect": [
+    "平均血糖 eAG = 111.1 mg/dL (≈ 6.17 mmol/L)"
+  ],
+  "ref": "去默认化：eAG = 28.7×5.5−46.7 = 111.1，mmol/L = 111.1/18 = 6.17。默认态不命中。"
 },
 {
   "slug": "clinical-lab/csf-analysis",
@@ -424,45 +432,39 @@ const CASES = [
   },
   {
     slug: "clinical-lab/convert-glucose-1",
-    inputs: { val: "7", rate: "1", from: "1", to: "1" },
-    clicks: ["calc()"],
-    expect: ["7.000000"],
-    ref: 'val7 基准→基准 7.000000'
+    inputs: { a1c: "9" },
+    expect: ["平均血糖 eAG = 211.6 mg/dL (≈ 11.76 mmol/L)"],
+    ref: '去默认化：eAG = 28.7×9−46.7 = 211.6，mmol/L = 211.6/18 = 11.76。默认态 a1c=6.5 ⇒ 139.8/7.77，不命中。'
   },
   {
     slug: "clinical-lab/convert-glucose-1",
-    inputs: { val: "2", rate: "1", from: "0.001", to: "1" },
-    clicks: ["calc()"],
-    expect: ["0.002000"],
-    ref: 'val2 毫→基准 0.002000'
+    inputs: { a1c: "6" },
+    expect: ["平均血糖 eAG = 125.5 mg/dL (≈ 6.97 mmol/L)"],
+    ref: '去默认化：eAG = 28.7×6−46.7 = 125.5，mmol/L = 125.5/18 = 6.97。默认态不命中。'
   },
   {
     slug: "clinical-lab/convert-glucose-1",
-    inputs: { val: "3", rate: "1", from: "1000", to: "1" },
-    clicks: ["calc()"],
-    expect: ["3000.000000"],
-    ref: 'val3 千→基准 3000.000000'
+    inputs: { a1c: "10" },
+    expect: ["平均血糖 eAG = 240.3 mg/dL (≈ 13.35 mmol/L)"],
+    ref: '去默认化：eAG = 28.7×10−46.7 = 240.3，mmol/L = 240.3/18 = 13.35。默认态不命中。'
   },
   {
     slug: "clinical-lab/convert-glucose-1",
-    inputs: { val: "4", rate: "1", from: "1", to: "0.001" },
-    clicks: ["calc()"],
-    expect: ["4000.000000"],
-    ref: 'val4 基准→毫 4000.000000'
+    inputs: { a1c: "5" },
+    expect: ["平均血糖 eAG = 96.8 mg/dL (≈ 5.38 mmol/L)"],
+    ref: '去默认化：eAG = 28.7×5−46.7 = 96.8，mmol/L = 96.8/18 = 5.38。默认态不命中。'
   },
   {
     slug: "clinical-lab/convert-glucose-1",
-    inputs: { val: "5", rate: "1", from: "1", to: "1000" },
-    clicks: ["calc()"],
-    expect: ["0.005000"],
-    ref: 'val5 基准→千 0.005000'
+    inputs: { a1c: "8" },
+    expect: ["平均血糖 eAG = 182.9 mg/dL (≈ 10.16 mmol/L)"],
+    ref: '去默认化：eAG = 28.7×8−46.7 = 182.9，mmol/L = 182.9/18 = 10.16。默认态不命中。'
   },
   {
     slug: "clinical-lab/convert-glucose-1",
-    inputs: { val: "6", rate: "1", from: "0.001", to: "1000" },
-    clicks: ["calc()"],
-    expect: ["0.000006"],
-    ref: 'val6 毫→千 0.000006'
+    inputs: { a1c: "5.8" },
+    expect: ["平均血糖 eAG = 119.8 mg/dL (≈ 6.65 mmol/L)"],
+    ref: '去默认化：eAG = 28.7×5.8−46.7 = 119.8，mmol/L = 119.8/18 = 6.65。默认态不命中。'
   },
   {
     slug: "clinical-lab/convert-39",

@@ -21,15 +21,15 @@ const CASES = [
 },
 {
   "slug": "chemical/convert-capacity-tank",
-  "inputs": {
-    "val": "2.5",
-    "rate": "1.6"
-  },
-  "expect": [
-    "4.000000",
-    "系数: 1.6"
-  ],
-  "ref": "去默认化（原 expect「系数」是静态标签，默认态必命中＝逃生项）：r = 2.5 × 1.6 × 1 / 1 = 4.000000（toFixed(6)）；系数行回显 1.6。默认 val=1/rate=1 得 1.000000 与「系数: 1」，注入失败即不命中"
+  "inputs": { "type": "vcyl", "d": "6", "w": "3", "h": "3" },
+  "expect": ["容积 V = 84.823 m³"],
+  "ref": "立式圆柱 直径 6m、液位 3m → V=π·3²·3=84.823 m³（默认 d=10/h=4 → 314.159，注入态不重合）"
+},
+{
+  "slug": "chemical/convert-capacity-tank",
+  "inputs": { "type": "box", "d": "4", "w": "3", "h": "2" },
+  "expect": ["容积 V = 24.000 m³"],
+  "ref": "长方体 长 4m×宽 3m×液位 2m → V=24.000 m³"
 },
 {
 "slug": "chemical/convert-density-crude",

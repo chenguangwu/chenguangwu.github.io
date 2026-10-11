@@ -52,9 +52,21 @@ const CASES = [
   },
   {
     slug: "edu/convert-area-volume",
-    inputs: { val: "1", rate: "1", from: "1", to: "1000" },
-    expect: ["0.001000"],
-    ref: "r=1×1×1/1000=0.001000（toFixed(6)）",
+    inputs: { val: "2", cat: "length", from: "m", to: "ft" },
+    expect: ["结果 = 6.5617"],
+    ref: "去默认化：长度换算 结果 = val×U[m]/U[ft] = 2×1/0.3048 = 6.5617。默认态 val=1/from=m/to=cm ⇒ 100.0000 不命中。"
+  },
+  {
+    slug: "edu/convert-area-volume",
+    inputs: { val: "100", cat: "length", from: "cm", to: "m" },
+    expect: ["结果 = 1.0000"],
+    ref: "去默认化：100 cm = 1 m ⇒ 100×0.01/1 = 1.0000。默认态不命中。"
+  },
+  {
+    slug: "edu/convert-area-volume",
+    inputs: { val: "1", cat: "length", from: "km", to: "mi" },
+    expect: ["结果 = 0.6214"],
+    ref: "去默认化：1 km = 1×1000/1609.344 = 0.6214 mi。默认态不命中。"
   },
   {
     slug: "edu/xml-html-css-geshihua-yiyou-kebuchong",
@@ -433,15 +445,15 @@ const CASES = [
   {
     "slug": "edu/convert-area-volume",
     "inputs": {
-      "val": "42",
-      "rate": "42",
-      "from": "0.001",
-      "to": "0.001"
+      "val": "5",
+      "cat": "length",
+      "from": "m",
+      "to": "in"
     },
     "expect": [
-      "42\n42\n0.001\n0.001\n1764"
+      "结果 = 196.8504"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"val\":\"42\",\"rate\":\"42\",\"from\":\"0.001\",\"to\":\"0.001\"}，输出区含「42\n42\n0.001\n0.001\n1764」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"val\":\"5\",\"cat\":\"length\",\"from\":\"m\",\"to\":\"in\"}，结果 = 5×1/0.0254 = 196.8504；默认态 val=1/from=m/to=cm ⇒ 100.0000 不命中 ⇒ 强判别、零逃生。"
   },
   {
     "slug": "edu/essay-word-counter",
