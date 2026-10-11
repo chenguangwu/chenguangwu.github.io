@@ -326,4 +326,12 @@
 
 ### 批次记录
 
-- 待填
+- **R2-1**（2026-10-12）：it/general/finance/design/science 846 页 1280 复扫 —— 溢出 0。挖出**新判定：桌面固定顶栏 `.nav-top` 也是 z=1000(h=68)**（此前只按移动端 `.tab-bar` 判定），故全站静态审计 5005 页弹层类选择器（overlay/modal/dropdown/popup/toast/drawer/dialog/mask…）+ fixed/absolute + z<1000，共 10 处：修 8 处（currency-dropdown 100、contract-dropdown 100、tetris pause-overlay 999、emoji-meaning detail-overlay 250/toast 400、3 页 toast 200 → 2000/3000），保留 2 处容器内遮罩（pdf-rotate z=2、palette-extractor z=10，absolute inset:0 于卡片内）。双断点 `elementFromPoint` 命中测试 8 处全部最上层。
+- **R2-2**（2026-10-12）：sports/life/biz/fun/ai/agriculture/hydraulic/automotive/realestate/legal 679 页 1280 复扫 —— 溢出 0；z 层均为已修的 2000 或装饰性 z（solitaire 卡牌）；9 页 tab「无横滚」实测 maxRight≤685 全部误报。
+- **R2-8**（2026-10-12，1280 收官）：剩余 59 分类 407 页 —— 溢出 0；6 项均为已知误报（mindmap 容器内适应按钮 z=5、pdf-rotate 容器内遮罩 z=2、cog-dot/compass-center 装饰、statistical-tests tab 实测未溢出）。**桌面 1280 全站 206 分类复扫完毕：溢出 0、弹层层级全站统一 ≥2000。**
+- **R2-9（进行中）**：768 平板断点全站复扫（媒体查询夹缝断点）。
+- **R2-7**（2026-10-12）：dyeing…woodwork 32 分类 243 页 1280 复扫 —— 溢出 0；仅 4 项已知误报（reminder-time `multiple` 多选不被 TbSelect 接管属设计行为、duct-calculator/human-benchmark tab 实测未溢出、timeline-viewer tl-dot 装饰点）。
+- **R2-6**（2026-10-12）：travel…engineering 30 分类 480 页 1280 复扫 —— 溢出 0；z 报告项全为装饰性（arrow-flow 箭头 / black-key 钢琴黑键 / th 表头）与已修的 sticky top:62 进度条（at-bar/b5-bar/hl-bar/s9-bar）；image 项为 gif-split modal z=9999（已达标）。
+- **R2-5**（2026-10-12）：rheumatology…endocrinology 26 分类 623 页 1280 复扫 —— 溢出 0；psychiatry 18 项 sticky 进度条 z=5 为页面流内 sticky（非 fixed 弹层，被 z=90 顶栏正确覆盖于其下方）属误报；pediatrics rater-27 z=1 装饰线、ent 两页 tab 实测 387/594 ≤1280 误报。
+- **R2-4**（2026-10-12）：photo/ophthalmology/materials/encode/tax/robotics/obstetrics/nuclear/metrology/geometry/acoustics/thermodynamics/signal/quantum/livestock/hematology/food-testing/economics/chemistry/structural/reproductive-medicine/electromagnetism/dentistry/clinical-nursing/textile 705 页 1280 复扫 —— 溢出 0、表格/组件/弹层 0 缺陷（clinical-nursing 报告项为已修的 z=2000）。
+- **R2-3**（2026-10-12）：marketing/surveying/meteorology/metalwork/optical/health/fire-rescue/energy/fishery/eco/machinery/geology/aerospace/math/fitness/securities/healthcare/accounting/insurance/cosmetic-derm 771 页 1280 复扫 —— 溢出 0；z 层仅装饰性（blood-pressure-classifier bp-center z=2、air-purifier-area purifier z=1）；pregnancy-due-date tab 实测 586 误报。
