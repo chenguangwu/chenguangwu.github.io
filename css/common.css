@@ -440,7 +440,7 @@ a:hover{text-decoration:underline;}
     font-size:15px;
     padding:11px 18px;
   }
-  .input-row .btn,.input-row > button{
+  .input-row > .btn,.input-row > button{
     flex:1 1 100%;
     min-width:100%;
     width:100%;
@@ -925,6 +925,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
   color:var(--text-primary);
   transition:all 0.2s;
   min-height:56px;
+  min-width:0;        /* 修复 grid 子项 min-width:auto 被超长文案撑爆导致整页横向溢出 */
 }
 .related-tool-card:hover{
   border-color:var(--primary);
@@ -940,20 +941,19 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
   flex-direction:column;
   gap:2px;
   overflow:hidden;
+  min-width:0;       /* 配合父级 min-width:0，使 .rt-name 省略号生效，防超长文案撑破卡片 */
 }
 .related-tool-card .rt-name{
   font-size:14px;
   font-weight:500;
-  white-space:nowrap;
-  overflow:hidden;
-  text-overflow:ellipsis;
+  overflow-wrap:anywhere;
+  word-break:break-word;
 }
 .related-tool-card .rt-desc{
   font-size:12px;
   color:var(--text-muted);
-  white-space:nowrap;
-  overflow:hidden;
-  text-overflow:ellipsis;
+  overflow-wrap:anywhere;
+  word-break:break-word;
 }
 
 /* === SEO: 分类聚合页 === */
@@ -991,6 +991,7 @@ html:not([lang="en-US"]) .cat-tool .t-en{display:none !important;}
   text-decoration:none;
   color:var(--text-primary);
   transition:border-color .2s,box-shadow .2s;
+  min-width:0;       /* 修复 grid item 默认 min-width:auto 被内容撑爆，导致分类落地页卡片在移动端横向溢出 */
 }
 .cat-tool:hover{border-color:rgba(255,107,53,.25);box-shadow:0 8px 20px rgba(16,24,40,.06);}
 .cat-tool .t-zh{font-weight:600;font-size:14px;line-height:1.3;}
@@ -1029,7 +1030,7 @@ html.embedded .card{border:none;box-shadow:none;}
 
 /* ===== 相关工具推荐 ===== */
 .related-tools .rt-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;}
-.related-tools .rt-item{display:flex;align-items:center;gap:8px;padding:10px 12px;background:var(--result-bg);border:1px solid var(--border);border-radius:10px;color:var(--text);text-decoration:none;font-size:13px;transition:all .18s;}
+.related-tools .rt-item{display:flex;align-items:center;gap:8px;padding:10px 12px;background:var(--result-bg);border:1px solid var(--border);border-radius:10px;color:var(--text);text-decoration:none;font-size:13px;transition:all .18s;min-width:0;}
 .related-tools .rt-item:hover{border-color:var(--primary);background:var(--bg-hover);transform:translateY(-1px);}
 .related-tools .rt-ico{font-size:16px;flex-shrink:0;}
 
@@ -1068,9 +1069,9 @@ body.dark .code-block{background:#0f0f1e;}
 .code-row code{flex:1;font-family:'SF Mono',ui-monospace,Menlo,Consolas,monospace;font-size:13px;word-break:break-all;color:var(--heading);}
 .code-row .copy-btn{flex:0 0 auto;}
 .related-tools .rt-info{display:flex;flex-direction:column;gap:2px;overflow:hidden;min-width:0;}
-.related-tools .rt-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-.related-tools .rt-desc{font-size:11px;color:var(--text-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-@media(max-width:767px){.related-tools .rt-grid{grid-template-columns:1fr 1fr;}}
+.related-tools .rt-name{font-size:13px;font-weight:500;overflow-wrap:anywhere;word-break:break-word;}
+.related-tools .rt-desc{font-size:11px;color:var(--text-muted);overflow-wrap:anywhere;word-break:break-word;}
+@media(max-width:767px){.related-tools .rt-grid{grid-template-columns:minmax(0,1fr) minmax(0,1fr);}}
 
 /* ===== 工具页 SEO 区块：使用指南 / 常见问题（原缺样式，导致末尾内容区裸排、与卡片不对齐） ===== */
 .opt-guide,.opt-faq{max-width:960px;margin:28px auto;padding:22px 26px;background:var(--card-bg);border:1px solid var(--border);border-radius:var(--radius-md);box-shadow:var(--shadow-sm);color:var(--text-secondary);}
@@ -1085,6 +1086,22 @@ body.dark .code-block{background:#0f0f1e;}
 .opt-faq dl.faq-list dt{font-weight:600;color:var(--text);font-size:14.5px;margin:14px 0 6px;padding:8px 12px;background:var(--bg-hover);border-radius:var(--radius-sm);border-left:3px solid var(--accent);line-height:1.5;}
 .opt-faq dl.faq-list dd{margin:0 0 12px 10px;padding:6px 0 10px;font-size:13.5px;line-height:1.8;color:var(--text-secondary);border-bottom:1px dashed var(--border);}
 @media(max-width:767px){.opt-guide,.opt-faq{padding:16px 18px;}.opt-guide h2,.opt-faq h2{font-size:16px;}.opt-faq dl.faq-list dd{margin-left:4px;}}
+
+/* ===== 长内容防溢出（P3 全站性修复）：深读/指南/FAQ 文本里的超长 URL、令牌、代码不可断行会撑爆移动端 ===== */
+.deep-dive p,.deep-dive li,.deep-dive dd,.deep-dive .dd-ex-body,.deep-dive .dd-ex-title,
+.opt-guide,.opt-faq,.tool-notes,.info-box,.formula-desc,.card p,
+.formula-box,.formula-box li,.formula-box p,.formula-box code,.formula-box .formula-title,.formula-box .formula-eq{overflow-wrap:anywhere;word-break:break-word;}
+code{overflow-wrap:anywhere;}
+td,th{overflow-wrap:anywhere;}
+/* .rt-name 在相关工具/公式列表等多处复用，长 SEO 串或长令牌不可断行会撑爆移动端：
+   允许长令牌断行 + flex 子项可收缩（否则省略号/截断不生效） */
+.rt-name{overflow-wrap:anywhere;min-width:0;}
+.rt-info{display:flex;flex-direction:column;min-width:0;overflow:hidden;}
+.tool-ad-card{min-width:0;}
+pre,.code-block{max-width:100%;overflow-x:auto;}
+/* 内容区图片/SVG 不超过容器宽度，避免固定宽度的占位图/图示撑破移动端 */
+.deep-dive img,.deep-dive svg,.opt-guide img,.opt-guide svg,.tool-notes img,.tool-notes svg,
+.card img,.card svg{max-width:100%;height:auto;}
 
 /* ===== B5-07 无障碍：键盘焦点可见性 ===== */
 /* 鼠标点击不显示轮廓，但键盘 Tab 聚焦时给出清晰焦点环（WCAG 2.4.7 可见焦点） */

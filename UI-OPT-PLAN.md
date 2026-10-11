@@ -37,7 +37,7 @@
 - 容器嵌套错宽（deep-dive 已统一，需复查其它嵌套区如 tool-ad、opt-guide 对齐）。
 - 悬浮元素遮挡：全站扫描 `position:fixed` 误用（参考 investment-roi 左下角 fixed 条类名冲突）。
 - 溢出：长文本/代码/表格未滚动；图片未 `max-width:100%`。
-- 🔴 **已证实全站性缺陷（2026-10-11 真机实测）**：`.related-tool-card` 相关工具卡在 375px 窄屏被 nowrap 内容撑到 640px，造成整页横向溢出（`tools/agriculture/fertilizer-calculator.html` 实测 scrollWidth 656/375，禁 JS 同样复现 ⇒ 与统一组件无关、系原有缺陷；疑似 `.related-tool-card .rt-info` 缺 `min-width:0`）。**待全局修复批次**（影响所有带相关工具的页面，修复后需 375px 真机复验多个分类）。
+- ✅ **已修复全站性缺陷（2026-10-11 批次 1）**：`.related-tool-card`/`.rt-info` 加 `min-width:0`（fertilizer-calculator 656px→375px 实证）；新版 `.related-tools .rt-item` 加 `min-width:0` + 移动端 `minmax(0,1fr)`（yaml-to-json/api-sign-generator 1581px→375px）；`.rt-name`/`.rt-info` 长串由失效的 nowrap+省略号改为换行断行（根治 scrollWidth 沿可见祖先链泄漏撑大 document——被裁剪后代的 scrollWidth 仍会计入 visible 祖先）；全站长内容断行规则（deep-dive/opt-guide/opt-faq/tool-notes/info-box/`.card p`/`.formula-box` 系/`td,th`/`code`）+ `pre,.code-block` 横向滚动 + 内容区 `img,svg max-width:100%`；`.input-row .btn` 后代选择器收窄为直接子选择器（aes-encryptor 380px→375px）；`.cat-tool`/`.tool-ad-card`/nav-menu `.tb-tool-name/.tb-tool-desc` 加 `min-width:0`+断行（分类落地页 209 首页 mega-panel 卡片 392px→375px）。**it/ 全量 339 页复扫溢出 0**。
 
 ### P4 布局 / 按钮放置不合适
 - 主操作按钮未突出；多按钮挤一行；输入与按钮不对齐。
@@ -86,7 +86,7 @@
 
 ### 【超大 >80页】（5 分类）
 
-- ⬜ `it/` —      339 页
+- ✅ `it/` —      339 页（2026-10-11 完成：全量 339 页 375px 真机扫描溢出 10→0；8 项全站性共享 CSS 修复见 P3/执行记录；桌面+移动截图验收；json-formatter「JSON 有效」功能验证）
 - ⬜ `general/` —      183 页
 - ⬜ `finance/` —      113 页
 - ⬜ `design/` —      112 页
