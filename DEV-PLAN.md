@@ -315,7 +315,7 @@
 ### 8.17 已知重复工具组：`pets/` 与 `pet/` 同功能双实现（✅ 已收口 · 2026-10-10 commit 87fb49549c）
 
 - **处置（已落地）**：保留 `pet/`（10 工具），`pets/` 5 个同义页全部转 `TOOLBOX-REDIRECT` 存根（保留 URL）：`pet-age-convert`→`pet-age-converter`、`feeding-amount`→`pet-feeding-calc`、`vaccine-reminder`→`reminder-vaccine-deworming`、`grooming-guide`、`kennel-space`。`json/industry-*.json` 已移除 pets 行业（207 行业）；`guides/`、`json/` 无 `tools/pets/` 硬引用；`sitemap.xml` 中 pets/ 出现 0 次；`verify_pets_calc.js` 已无 pets 用例。`tools/pets/index.html` 工具链接已正确指向 `../pet/*`（无断链）。
-- **残留（待定）**：`tools/pets/index.html` 仍是 12KB 真实落地页（仍 `index,follow`），但未进 sitemap、不在行业清单，等于孤儿可收录页。为彻底「消除 pets 行业」一致，建议也转 `TOOLBOX-REDIRECT` 指向 `tools/pet/index.html`（保留 URL）；属 URL 重定向，等老板确认后做。
+- **残留（已收口 · 2026-10-11）**：`tools/pets/index.html` 已转 `TOOLBOX-REDIRECT` 存根指向 `tools/pet/index.html`（保留 URL、`noindex,follow`、沿用 §8.17 同款 TTZZ 分析脚本与 meta refresh 模板）。pets 行业至此彻底消除（5 同义子页 + index 全部存根化，json 行业清单已移除 pets）。
 
 ---
 
