@@ -91,7 +91,8 @@
 - ✅ `it/` —      339 页（2026-10-11 完成：全量 339 页 375px 真机扫描溢出 10→0；8 项全站性共享 CSS 修复见 P3/执行记录；桌面+移动截图验收；json-formatter「JSON 有效」功能验证）
 - ✅ `general/` —      183 页（批次2：375px 全量扫描溢出 0；TbSelect/日期组件真机 12 项验收过；**修复 TbSelect 键盘缺陷**：开放态 ArrowDown 误选当前项→改为 wrap 层统一路由、Arrow 移动高亮、Enter 选中、搜索框按键不劫持；日期弹层年/月下拉排除增强避免搜索框嵌套）
 - ✅ `finance/` —      113 页（批次3：375px 全量扫描溢出 0、42 含表页表格无裁剪（均在滚动容器内）；**修复页内 `.tab-bar` 撞全局移动导航**（5 页改 `.page-tabs`，fixed 悬浮遮挡根治，tab 切换真机验证过）；currency-converter 公式卡移出「从」组；currency-symbol 弹窗 z-index 2000 盖过全局导航（截图验证）；TbSelect 真机验收 bond-yield/compound-interest 过（popup+键盘 选值生效））
-- ⬜ `design/` —      112 页
+- ✅ `design/` —      112 页（批次4：375px 全量扫描仅 1 页溢出；**修复 shadow-generator-advanced** `.layer-row` 无 flex-wrap 致多层控制行 428px 溢出→375；**修复 material-color / tailwind-colors 弹窗层叠**：抽屉 300→2001、遮罩 250→2000、toast 400→3000（原全部低于全局移动导航 z=1000，导航浮在抽屉/遮罩/toast 上，真机截图验证盖住）；19 含表页 right≤346 无截断；4 页 tab-btn 均在横滚容器内可达；发现 color-contrast-check 与 contrast-checker 疑似重复工具待清理专项）
+- ⬜ `science/` —       99 页
 - ⬜ `science/` —       99 页
 
 ### 【大 40-79】（20 分类）
