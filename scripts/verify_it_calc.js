@@ -18,16 +18,21 @@
 const fs = require("fs");
 const path = require("path");
 
-// §7.4 harness 缺口补丁：浏览器标准 API `btoa`/`atob` 此前未建模，导致所有 Base64 / JWT 类页面
-// （encode/calc-1·calc-2、it/calc-8 等）在 harness 下 `btoa is not defined` 全页无输出。
-// 这里补齐与浏览器一致的二进制串语义（btoa 入参为 latin1 二进制串、atob 出参亦为 latin1 二进制串），
-// 与页面惯用法 `btoa(unescape(encodeURIComponent(s)))` / `decodeURIComponent(escape(window.atob(s)))`
-// 完全对齐。win===globalThis ⇒ window.atob 同步可用。仅当全局未定义时才注入，避免覆盖宿主环境。
-if (typeof globalThis.btoa === "undefined") {
-  globalThis.btoa = (bin) => Buffer.from(String(bin), "latin1").toString("base64");
-}
-if (typeof globalThis.atob === "undefined") {
-  globalThis.atob = (b64) => Buffer.from(String(b64), "base64").toString("latin1");
+// §7.4 harness 缺口补丁：浏览器标准 API `btoa`/`atob` 二进制串语义（btoa 入参为 latin1 二进制串、
+// atob 出参亦为 latin1 二进制串），与页面惯用法 `btoa(unescape(encodeURIComponent(s)))`
+// / `decodeURIComponent(escape(window.atob(s)))` 完全对齐。win===globalThis ⇒ window.atob 同步可用。
+//
+// 为何「始终覆盖」而非「仅当全局未定义时注入」：Node 22+ 自带原生 atob/btoa，但原生实现比浏览器
+// 严格——对 base64url 解码时若填充公式多补了 `=`（部分页面 `new Array(5-(len%4)).join('=')` 在
+// len%4===0 时会误补 4 个 `=`），原生 atob 直接抛 `Invalid character`，而浏览器 atob 对尾部多余 `=`
+// 宽松忽略（线上正常）。为保证 harness 与浏览器生产行为一致（不误伤线上正常的页面），此处始终以
+// 宽松的 Buffer 版覆盖：Buffer.from(b64,'base64') 容忍尾部多余 `=` 与非常规字符，等价于浏览器语义。
+// 宽松是严格的超集，不会使任何既有用例由通过变为失败。
+{
+  const _atob = (b64) => Buffer.from(String(b64), "base64").toString("latin1");
+  const _btoa = (bin) => Buffer.from(String(bin), "latin1").toString("base64");
+  globalThis.atob = _atob;
+  globalThis.btoa = _btoa;
 }
 // MutationObserver：真浏览器用于监听 DOM 变化（本项目仅用于监听 data-theme 暗色切换重绘图），
 // 与数值计算逻辑无关。harness 无头环境不建模，页面顶层 `new MutationObserver(...)` 会 init 失败
@@ -3428,6 +3433,13 @@ const CASES = [
     inputs: { cdHours: "2", cdMinutes: "47", cdSeconds: "13" },
     expect: ["02:47:13"],
     ref: "\u5012\u8ba1\u65f6\u9884\u8bbe\u4e3a\u4e09\u4e2a\u6570\u503c\u8f93\u5165\u62fc\u63a5\uff1a2 \u5c0f\u65f6 47 \u5206 13 \u79d2 \u2192 \u65e0\u8fdb\u4f4d\u4e3a 02:47:13\uff08\u72ec\u7acb\u590d\u7b97 2\u00d73600+47\u00d760+13 = 10033 s = 02:47:13\uff09\u3002\u9ed8\u8ba4 0/5/0 \u21d2 00:05:00\uff0c\u4e0d\u547d\u4e2d\u3002\u4e0d\u53d6\u88f8\u503c 2/47/13\uff08\u90a3\u4e9b\u662f\u8f93\u5165\u56de\u663e\uff09\u3002"
+  },
+
+  {
+    slug: "it/calc-8",
+    clicks: ["document.getElementById('jwtInput').value='eyJhbGciOiJSUzUxMiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJwcm9iZS0wMDAxIiwibmFtZSI6Ilplcm9DYXNlUHJvYmUiLCJyb2xlIjoicWEifQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c';decodeJwt();"],
+    expect: ["RS512", "ZeroCaseProbe"],
+    ref: "默认 jwtInput 为空→输出「请输入 JWT 令牌。」；兜底会调 loadSampleJwt 加载样例 JWT（alg:HS256/name:ToolBox User），故 expect 必须避开 HS256/ToolBox User 这类样例也有的串。注入一段唯一特征 JWT（header {alg:RS512,typ:JWT}、payload {sub:probe-0001,name:ZeroCaseProbe,role:qa}，无 exp 避时区）→输出「算法（alg）：RS512」「name：ZeroCaseProbe」。clicks 清空（模拟注入失败）时仅样例 JWT 被加载，RS512/ZeroCaseProbe 不出现 ⇒ 正确变红。"
   },
 
 {

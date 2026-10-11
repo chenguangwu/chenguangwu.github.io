@@ -491,6 +491,13 @@ const CASES = [
     "ref": "默认 textInput 为空→输出「请输入内容。」；注入 'a b c' 走默认 encode 模式(currentMode='encode')→ encodeURIComponent('a b c')='a%20b%20c'。锚编码结果串，回退默认态(空)不命中。"
   }
 
+  ,{
+    "slug": "encode/calc-1",
+    "inputs": { "textInput": "ToolBox" },
+    "expect": ["VG9vbEJveA=="],
+    "ref": "默认 textInput 为空→输出「请输入内容。」；注入 'ToolBox' 走默认 encode 模式→ btoa(unescape(encodeURIComponent('ToolBox')))='VG9vbEJveA=='（与页面 deep-dive 示例一致）。锚 base64 串，回退默认态(空)不命中 ⇒ 强判别、零逃生。"
+  }
+
 ];
 
 async function main() {

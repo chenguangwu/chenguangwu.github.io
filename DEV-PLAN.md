@@ -161,6 +161,8 @@
 
 **全站真实零用例 = 616 页 / 86 行业**（2026-10-07 重建扫描）。扫描口径：覆盖集合 slug 为 **`行业/slug`** 形式；过滤 `TOOLBOX-REDIRECT` 存根；**用例块键名常不带引号，正则须写 `"?slug"?\s*:\s*"([^"]+)"`** 否则大量误报「无用例」（已踩两次）。checkbox 页 353 个，162 个有用例的均带注入通道、弱用例 0。
 
+**分批补强进度（确定性计算器 + radio 量表，已收口）**：B1=encode/calc-2·homa-ir·earth-curvature(3)、B2=neurology/dhi·dn4·phq9-stroke·rls-severity(4)、B3=encode/calc-1·it/calc-8(2) + **harness atob/btoa 始终宽松覆盖补丁**（修 Node24 原生严格 atob 对 URL-safe 多余 `=` 误抛 Invalid character，对齐浏览器宽松语义）。判别力 7758/0、弱用例基线 no_inputs=10/all_default=4 零新增；atob 改动零回归。**放弃候选**：it/html-to-markdown（convert() 依赖 `new DOMParser()`，harness 未建模，需完整 HTML 解析器桩，超范围）。剩余确定性计算器候选待 B4+ 续推。
+
 **⚠ 判别器口径（踩过才确认）**：`discriminate_check.js` 是**一次性把 inputs 全部换回页面 HTML 默认**（非逐键）**且保留 clicks**（⇒ 仅靠 clicks 所设状态的输出恒命中，不可作锚）；harness 判定是「expect **任一**子串命中即通过」。⇒ 凡不在静态 HTML 中的输入（如 JS 动态渲染的 `sus0..sus9`）**无法回退**，失败态 = 其余键默认 + 该键保持注入；此时必须按**该失败态**实测选锚。**`fun` 53 页已坐实：50/53 为游戏或随机生成器（RAND=True），整行业结构性排除。**
 
 ## 八、反模式与防复发（铁律）
