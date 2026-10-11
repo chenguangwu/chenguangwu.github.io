@@ -287,25 +287,25 @@
 - ✅ `manufacturing/` —        6 页
 - ✅ `logistics2/` —        6 页
 - ✅ `legal2/` —        6 页
-- ⬜ `kids/` —        6 页
-- ⬜ `glass/` —        6 页
-- ⬜ `gardening2/` —        6 页
-- ⬜ `futures/` —        6 页
-- ⬜ `forex/` —        6 页
-- ⬜ `fengshui/` —        6 页
-- ⬜ `edu2/` —        6 页
-- ⬜ `chinese/` —        6 页
-- ⬜ `chess/` —        6 页
-- ⬜ `ceramics/` —        6 页
-- ⬜ `bridge/` —        6 页
-- ⬜ `bonding/` —        6 页
-- ⬜ `audit/` —        6 页
-- ⬜ `aquaculture/` —        6 页
-- ⬜ `antiques/` —        6 页
-- ⬜ `accessibility/` —        6 页
-- ⬜ `stats/` —        5 页
-- ⬜ `photo2/` —        5 页
-- ⬜ `network/` —        1 页
+- ✅ `kids/` —        6 页
+- ✅ `glass/` —        6 页
+- ✅ `gardening2/` —        6 页
+- ✅ `futures/` —        6 页
+- ✅ `forex/` —        6 页
+- ✅ `fengshui/` —        6 页
+- ✅ `edu2/` —        6 页
+- ✅ `chinese/` —        6 页
+- ✅ `chess/` —        6 页
+- ✅ `ceramics/` —        6 页
+- ✅ `bridge/` —        6 页
+- ✅ `bonding/` —        6 页
+- ✅ `audit/` —        6 页
+- ✅ `aquaculture/` —        6 页
+- ✅ `antiques/` —        6 页
+- ✅ `accessibility/` —        6 页
+- ✅ `stats/` —        5 页
+- ✅ `photo2/` —        5 页
+- ✅ `network/` —        1 页
 
 ---
 
