@@ -193,17 +193,17 @@
 - ✅ `beauty/` —       22 页
 - ✅ `psychology/` —       21 页
 - ✅ `metallurgy/` —       21 页
-- ⬜ `forensic-medicine/` —       21 页
-- ⬜ `music/` —       20 页
-- ⬜ `language/` —       20 页
-- ⬜ `forestry/` —       20 页
-- ⬜ `electrical/` —       20 页
+- ✅ `forensic-medicine/` —       21 页
+- ✅ `music/` —       20 页
+- ✅ `language/` —       20 页
+- ✅ `forestry/` —       20 页
+- ✅ `electrical/` —       20 页
 
 ### 【小 <20】（105 分类）
 
-- ⬜ `nutrition/` —       19 页
-- ⬜ `data/` —       18 页
-- ⬜ `niche/` —       17 页
+- ✅ `nutrition/` —       19 页
+- ✅ `data/` —       18 页
+- ✅ `niche/` —       17 页
 - ⬜ `advertising/` —       17 页
 - ⬜ `welding/` —       16 页
 - ⬜ `transport/` —       16 页
