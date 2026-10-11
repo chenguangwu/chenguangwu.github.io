@@ -310,10 +310,10 @@
 - **Canvas 负半径**：`radius=Math.min(cw,ch)/2-30` 而 `cv.width=ct.clientWidth`，容器未布局时 `cw` 为负 ⇒ `ctx.arc` 抛 `The radius provided (-70) is negative`。修法 `Math.max(5, …)`，已修 construction 三页。
 - **两条静态假阳性（勿采信）**：「IIFE 未挂 window」报 **293 页** —— 抽样 8 页仅 3 页真有问题；「函数体超长吞并后续」报 **530 处** —— 复核**全是正常调用**（长 `calc()` 里调 `copyResult()`）。**「函数不可见」只能用真浏览器 `typeof window.X` 定罪。**
 
-### 8.17 已知重复工具组：`pets/` 与 `pet/` 同功能双实现（待老板定夺）
+### 8.17 已知重复工具组：`pets/` 与 `pet/` 同功能双实现（✅ 已收口 · 2026-10-10 commit 87fb49549c）
 
-- **事实**：两个宠物分类并存，slug 无重叠但功能同义 —— `pets/pet-age-convert` ≡ `pet/pet-age-converter`、`pets/feeding-amount` ≡ `pet/pet-feeding-calc`、`pets/vaccine-reminder` ≈ `pet/reminder-vaccine-deworming`。**同一功能占两个 URL ⇒ SEO 关键词自相竞争**；两 `index.html` 的 `<title>` 也完全重复。全站 title 扫描（5003 页）仅此一组是真问题。
-- **不擅自合并**：`pets/` 牵连 **5 个独立 guide 页** + sitemap + `json/*` + `verify_pets_calc.js` + i18n，属影响面大的不可逆 URL 操作，须老板拍板。若决定合并：保留 `pet/`（10 > 5 工具），另一侧转 `TOOLBOX-REDIRECT` 存根**保留 URL**，同步 guide redirect 与 sitemap。
+- **处置（已落地）**：保留 `pet/`（10 工具），`pets/` 5 个同义页全部转 `TOOLBOX-REDIRECT` 存根（保留 URL）：`pet-age-convert`→`pet-age-converter`、`feeding-amount`→`pet-feeding-calc`、`vaccine-reminder`→`reminder-vaccine-deworming`、`grooming-guide`、`kennel-space`。`json/industry-*.json` 已移除 pets 行业（207 行业）；`guides/`、`json/` 无 `tools/pets/` 硬引用；`sitemap.xml` 中 pets/ 出现 0 次；`verify_pets_calc.js` 已无 pets 用例。`tools/pets/index.html` 工具链接已正确指向 `../pet/*`（无断链）。
+- **残留（待定）**：`tools/pets/index.html` 仍是 12KB 真实落地页（仍 `index,follow`），但未进 sitemap、不在行业清单，等于孤儿可收录页。为彻底「消除 pets 行业」一致，建议也转 `TOOLBOX-REDIRECT` 指向 `tools/pet/index.html`（保留 URL）；属 URL 重定向，等老板确认后做。
 
 ---
 
