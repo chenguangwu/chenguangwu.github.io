@@ -98,7 +98,7 @@
 
 - ✅ `sports/` —       79 页（批次6：375px 全量扫描 79 页 3 溢出→0。**修复全站性缺陷**：`common.css` `.input-row label` `white-space:nowrap` + 超长中文 label 横向撑破文档（scrollWidth 406/393、元素 rect 却全 ≤375 的「文本溢出假象」），改 `white-space:normal;overflow-wrap:anywhere` 根治全站同类隐患；**修复 sports-schedule** `.week-grid` 7 列 `repeat(7,1fr)` 被 day-col min-content(61px) 顶到 463px → `minmax(54px,1fr)+overflow-x:auto` 横滑条。组件覆盖：select 全增强（仅 lang-switcher 按设计排除）、date 2 页全增强、23 含表页 0 裁剪、3 tab 页均在横滚容器、0 z-index 弹层。TbSelect 下拉 + TbDatePicker 日历真机截图验证过；桌面+移动 11 页截图审查通过）
 - ✅ `life/` —       73 页（纯验收 0 缺陷：溢出 0 / 组件增强 100% / 表格 0 裁剪 / 遮挡 0；10 页桌面+移动截图 + TbSelect/TbDatePicker 交互验证通过。批次6 的 common.css 超长 label 修复已覆盖本分类潜在隐患）
-- ⬜ `biz/` —       70 页
+- ✅ `biz/` —       70 页（纯验收 0 缺陷：溢出 0 / 组件增强 100% / 表格 0 裁剪 / 遮挡 0；10 页桌面+移动截图 + TbSelect 交互验证通过）
 - ⬜ `fun/` —       65 页
 - ⬜ `ai/` —       65 页
 - ⬜ `agriculture/` —       64 页
