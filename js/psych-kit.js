@@ -52,7 +52,8 @@
   /* ---------------- 样式 ---------------- */
   var CSS = [
     '.pk-wrap{margin:0 0 14px;}',
-    '.pk-progress{position:sticky;top:0;z-index:5;background:var(--card-bg,#fff);border:1px solid var(--border,#E5E7EB);border-radius:14px;padding:10px 12px;box-shadow:0 2px 8px rgba(0,0,0,.04);}',
+    '#pk-progress{position:sticky;top:62px;z-index:5;}',
+    '.pk-progress{background:var(--card-bg,#fff);border:1px solid var(--border,#E5E7EB);border-radius:14px;padding:10px 12px;box-shadow:0 2px 8px rgba(0,0,0,.04);}',
     '.pk-progress-head{display:flex;justify-content:space-between;align-items:center;font-size:14px;color:var(--text-secondary,#6B7280);margin-bottom:8px;}',
     '.pk-progress-head b{color:var(--text-primary,#1F2937);font-size:15px;}',
     '.pk-dots{display:flex;flex-wrap:wrap;gap:4px;}',
