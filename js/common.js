@@ -3596,6 +3596,286 @@ document.addEventListener('DOMContentLoaded', enhanceNumberInputs);
   if (global.ToolBox) global.ToolBox.enhanceTimeInput = enhanceTimeInput;
 })();
 
+// 统一组件：TbSelect（下拉）+ TbDatePicker（日期）—— 全站渐进增强
+// 范式与上方面时间选择器一致：DOMContentLoaded + MutationObserver 动态增强，不改页面源码，零回归风险。
+// verify 门禁在无头桩环境不运行 common.js，故不影响判别力。
+(function(){
+  'use strict';
+  function pad(n){ return (n < 10 ? '0' : '') + n; }
+  function parseYMD(v){
+    if (!v) return null;
+    var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(v);
+    if (!m) return null;
+    var d = new Date(+m[1], +m[2] - 1, +m[3]);
+    return isNaN(d.getTime()) ? null : d;
+  }
+  var SVG_CARET = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>';
+
+  /* ---------------- TbSelect ---------------- */
+  function enhanceSelect(sel){
+    if (!sel || sel.getAttribute('data-tb-select-enhanced')) return;
+    if (sel.tagName !== 'SELECT') return;
+    // 排除：multiple / size>1 列表、导航语言切换器（全站公共组件自带样式）、显式 opt-out
+    if (sel.multiple || (parseInt(sel.getAttribute('size') || '', 10) > 1)) return;
+    if (sel.closest && sel.closest('.lang-switcher')) return;
+    if (sel.getAttribute('data-tb-select') === 'off') return;
+    sel.setAttribute('data-tb-select-enhanced', '1');
+    var variant = sel.getAttribute('data-tb-select') || '';
+    var wrap = document.createElement('span');
+    wrap.className = 'tb-select' + (variant ? ' ' + variant : '');
+    sel.parentNode.insertBefore(wrap, sel);
+    wrap.appendChild(sel);
+
+    var trigger = document.createElement('button');
+    trigger.type = 'button';
+    trigger.className = 'tb-select-trigger';
+    trigger.setAttribute('aria-haspopup', 'listbox');
+    trigger.setAttribute('aria-expanded', 'false');
+    var valSpan = document.createElement('span');
+    valSpan.className = 'tb-select-value';
+    var caret = document.createElement('span');
+    caret.className = 'tb-select-caret';
+    caret.innerHTML = SVG_CARET;
+    trigger.appendChild(valSpan);
+    trigger.appendChild(caret);
+    wrap.appendChild(trigger);
+
+    var popup = document.createElement('div');
+    popup.className = 'tb-select-popup';
+    popup.setAttribute('role', 'listbox');
+    wrap.appendChild(popup);
+
+    function syncTrigger(){
+      var opt = sel.options[sel.selectedIndex];
+      valSpan.textContent = opt ? opt.textContent : '';
+      valSpan.className = 'tb-select-value' + (valSpan.textContent ? '' : ' tb-select-placeholder');
+    }
+    function buildOptions(filter){
+      filter = (filter || '').trim().toLowerCase();
+      popup.innerHTML = '';
+      var opts = Array.prototype.slice.call(sel.options);
+      if (opts.length > 8) {
+        var search = document.createElement('input');
+        search.type = 'text';
+        search.className = 'tb-select-search';
+        search.placeholder = '搜索选项…';
+        search.setAttribute('aria-label', '搜索选项');
+        popup.appendChild(search);
+        search.addEventListener('click', function(e){ e.stopPropagation(); });
+        search.addEventListener('input', function(){ buildOptions(search.value); });
+      }
+      var list = document.createElement('div');
+      var any = false;
+      opts.forEach(function(o, i){
+        var label = o.textContent;
+        if (filter && label.toLowerCase().indexOf(filter) < 0 && String(o.value).toLowerCase().indexOf(filter) < 0) return;
+        any = true;
+        var row = document.createElement('div');
+        row.className = 'tb-select-option' + (o.selected ? ' active' : '');
+        row.setAttribute('role', 'option');
+        row.setAttribute('aria-selected', o.selected ? 'true' : 'false');
+        row.textContent = label;
+        var check = document.createElement('span');
+        check.className = 'tb-opt-check';
+        check.textContent = '✓';
+        row.appendChild(check);
+        row.addEventListener('click', function(e){ e.stopPropagation(); choose(i); });
+        list.appendChild(row);
+      });
+      if (!any) {
+        var empty = document.createElement('div');
+        empty.className = 'tb-select-empty';
+        empty.textContent = '无匹配项';
+        list.appendChild(empty);
+      }
+      popup.appendChild(list);
+    }
+    function choose(i){
+      sel.selectedIndex = i;
+      sel.dispatchEvent(new Event('change', { bubbles: true }));
+      sel.dispatchEvent(new Event('input', { bubbles: true }));
+      syncTrigger();
+      close();
+      trigger.focus();
+    }
+    function open(){
+      if (wrap.classList.contains('open')) return;
+      buildOptions();
+      wrap.classList.add('open');
+      trigger.setAttribute('aria-expanded', 'true');
+      var s = popup.querySelector('.tb-select-search');
+      if (s) s.focus();
+    }
+    function close(){
+      wrap.classList.remove('open');
+      trigger.setAttribute('aria-expanded', 'false');
+    }
+    trigger.addEventListener('click', function(e){ e.preventDefault(); e.stopPropagation(); wrap.classList.contains('open') ? close() : open(); });
+    trigger.addEventListener('keydown', function(e){
+      if (e.key === 'ArrowDown' || e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        if (!wrap.classList.contains('open')) { open(); return; }
+        var act = popup.querySelector('.tb-select-option.active') || popup.querySelector('.tb-select-option');
+        if (act) act.click();
+      } else if (e.key === 'Escape') { close(); }
+    });
+    popup.addEventListener('keydown', function(e){
+      var act = popup.querySelector('.tb-select-option.active');
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        var nx = act ? act.nextElementSibling : popup.querySelector('.tb-select-option');
+        while (nx && !nx.classList.contains('tb-select-option')) nx = nx.nextElementSibling;
+        if (nx) { if (act) act.classList.remove('active'); nx.classList.add('active'); nx.scrollIntoView({ block: 'nearest' }); }
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        var pv = act ? act.previousElementSibling : null;
+        while (pv && !pv.classList.contains('tb-select-option')) pv = pv.previousElementSibling;
+        if (pv) { if (act) act.classList.remove('active'); pv.classList.add('active'); pv.scrollIntoView({ block: 'nearest' }); }
+      } else if (e.key === 'Enter') {
+        e.preventDefault();
+        if (act) act.click();
+      } else if (e.key === 'Escape') { close(); trigger.focus(); }
+    });
+    sel.addEventListener('change', syncTrigger);
+    syncTrigger();
+  }
+
+  /* ---------------- TbDatePicker ---------------- */
+  var DOW = ['日', '一', '二', '三', '四', '五', '六'];
+  function enhanceDate(input){
+    if (!input || input.getAttribute('data-tb-date-enhanced')) return;
+    if (input.type !== 'date') return;
+    if (input.getAttribute('data-tb-date') === 'off') return; // 显式 opt-out 保留原生
+    input.setAttribute('data-tb-date-enhanced', '1');
+    var variant = input.getAttribute('data-tb-date') || 'popup';
+    var wrap = document.createElement('span');
+    wrap.className = 'tb-date';
+    input.parentNode.insertBefore(wrap, input);
+    wrap.appendChild(input);
+    input.classList.add('tb-date-enhanced');
+    input.setAttribute('readonly', 'readonly');
+
+    var trigger = document.createElement('button');
+    trigger.type = 'button';
+    trigger.className = 'tb-date-trigger';
+    trigger.setAttribute('aria-label', '选择日期');
+    trigger.innerHTML = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>';
+    wrap.appendChild(trigger);
+
+    var popup = document.createElement('div');
+    popup.className = 'tb-date-popup';
+    popup.setAttribute('role', 'dialog');
+    popup.setAttribute('aria-label', '选择日期');
+    wrap.appendChild(popup);
+
+    var view = parseYMD(input.value) || new Date();
+    function render(){
+      var y = view.getFullYear(), m = view.getMonth();
+      var first = new Date(y, m, 1);
+      var startDow = first.getDay();
+      var days = new Date(y, m + 1, 0).getDate();
+      popup.innerHTML = '';
+      var head = document.createElement('div');
+      head.className = 'tb-date-head';
+      var prev = document.createElement('button');
+      prev.type = 'button'; prev.className = 'tb-date-nav'; prev.textContent = '‹'; prev.setAttribute('aria-label', '上个月');
+      var title = document.createElement('div');
+      title.className = 'tb-date-title';
+      var ysel = document.createElement('select'); ysel.setAttribute('aria-label', '年');
+      for (var yy = y - 10; yy <= y + 10; yy++) { var yo = document.createElement('option'); yo.value = yy; yo.textContent = yy + '年'; if (yy === y) yo.selected = true; ysel.appendChild(yo); }
+      var msel = document.createElement('select'); msel.setAttribute('aria-label', '月');
+      for (var mm = 0; mm < 12; mm++) { var mo = document.createElement('option'); mo.value = mm; mo.textContent = (mm + 1) + '月'; if (mm === m) mo.selected = true; msel.appendChild(mo); }
+      title.appendChild(ysel); title.appendChild(msel);
+      var next = document.createElement('button');
+      next.type = 'button'; next.className = 'tb-date-nav'; next.textContent = '›'; next.setAttribute('aria-label', '下个月');
+      head.appendChild(prev); head.appendChild(title); head.appendChild(next);
+      popup.appendChild(head);
+
+      var grid = document.createElement('div');
+      grid.className = 'tb-date-grid';
+      DOW.forEach(function(d){ var c = document.createElement('div'); c.className = 'tb-date-dow'; c.textContent = d; grid.appendChild(c); });
+      var today = new Date(); today.setHours(0, 0, 0, 0);
+      var sel2 = parseYMD(input.value);
+      for (var i = 0; i < startDow; i++) { var e = document.createElement('div'); e.className = 'tb-date-cell muted'; grid.appendChild(e); }
+      for (var d = 1; d <= days; d++) {
+        (function(dd){
+          var cell = document.createElement('div');
+          cell.className = 'tb-date-cell';
+          cell.textContent = dd;
+          cell.tabIndex = 0;
+          var thisDate = new Date(y, m, dd);
+          if (thisDate.getTime() === today.getTime()) cell.classList.add('today');
+          if (sel2 && thisDate.getTime() === sel2.getTime()) cell.classList.add('selected');
+          cell.addEventListener('click', function(ev){ ev.stopPropagation(); pick(y, m, dd); });
+          cell.addEventListener('keydown', function(ev){ if (ev.key === 'Enter') { ev.preventDefault(); pick(y, m, dd); } else if (ev.key === 'Escape') close(); });
+          grid.appendChild(cell);
+        })(d);
+      }
+      popup.appendChild(grid);
+
+      var foot = document.createElement('div');
+      foot.className = 'tb-date-foot';
+      var tb = document.createElement('button'); tb.type = 'button'; tb.className = 'tb-date-today-btn'; tb.textContent = '今天';
+      tb.addEventListener('click', function(ev){ ev.stopPropagation(); pick(today.getFullYear(), today.getMonth(), today.getDate()); });
+      var cb = document.createElement('button'); cb.type = 'button'; cb.className = 'tb-date-clear-btn'; cb.textContent = '清除';
+      cb.addEventListener('click', function(ev){ ev.stopPropagation(); input.value = ''; input.dispatchEvent(new Event('change', { bubbles: true })); input.dispatchEvent(new Event('input', { bubbles: true })); close(); });
+      foot.appendChild(tb); foot.appendChild(cb); popup.appendChild(foot);
+
+      ysel.addEventListener('change', function(){ view = new Date(+ysel.value, m, 1); render(); });
+      msel.addEventListener('change', function(){ view = new Date(y, +msel.value, 1); render(); });
+      prev.addEventListener('click', function(ev){ ev.stopPropagation(); view = new Date(y, m - 1, 1); render(); });
+      next.addEventListener('click', function(ev){ ev.stopPropagation(); view = new Date(y, m + 1, 1); render(); });
+    }
+    function pick(yy, mm, dd){
+      input.value = yy + '-' + pad(mm + 1) + '-' + pad(dd);
+      input.dispatchEvent(new Event('change', { bubbles: true }));
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+      close();
+      trigger.focus();
+    }
+    function open(){ if (wrap.classList.contains('open')) return; render(); wrap.classList.add('open'); }
+    function close(){ wrap.classList.remove('open'); }
+    trigger.addEventListener('click', function(e){ e.preventDefault(); e.stopPropagation(); wrap.classList.contains('open') ? close() : open(); });
+    input.addEventListener('click', function(e){ e.stopPropagation(); wrap.classList.contains('open') ? close() : open(); });
+    if (variant === 'inline') {
+      popup.style.position = 'static';
+      popup.style.display = 'block';
+      wrap.classList.add('open');
+      trigger.style.display = 'none';
+    }
+  }
+
+  /* ---------------- 全站扫描 + 动态增强 ---------------- */
+  function enhanceAll(root){
+    var scope = (root && root.querySelectorAll) ? root : document;
+    if (scope.matches && scope.matches('select')) enhanceSelect(scope);
+    if (scope.matches && scope.matches('input[type="date"]')) enhanceDate(scope);
+    scope.querySelectorAll('select').forEach(enhanceSelect);
+    scope.querySelectorAll('input[type="date"]').forEach(enhanceDate);
+  }
+  document.addEventListener('click', function(ev){
+    document.querySelectorAll('.tb-select.open,.tb-date.open').forEach(function(el){
+      if (!el.contains(ev.target)) el.classList.remove('open');
+    });
+  });
+  document.addEventListener('keydown', function(ev){
+    if (ev.key !== 'Escape') return;
+    document.querySelectorAll('.tb-select.open,.tb-date.open').forEach(function(el){ el.classList.remove('open'); });
+  });
+  function init(){
+    enhanceAll(document);
+    if (window.MutationObserver && document.body) {
+      new MutationObserver(function(records){
+        records.forEach(function(r){
+          r.addedNodes.forEach(function(node){ if (node.nodeType === 1) enhanceAll(node); });
+        });
+      }).observe(document.body, { childList: true, subtree: true });
+    }
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
+  else init();
+})();
+
 // B5-11 Ref-card 与卡片化交互元素增强（仅对存在点击行为或明确卡片语义生效）
 // 目的：卡片真实可点时，补齐可访问语义与键盘触发，减少 dead click。
 (function(){
