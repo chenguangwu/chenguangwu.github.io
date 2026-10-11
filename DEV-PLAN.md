@@ -286,7 +286,7 @@
 - **🔴 复验必须用 CI 的同款运行时**：CI 用 `node-version: lts/*`（现为 **Node 24**），本地 managed 是 22 ⇒ `Math.pow/exp/log` 结果差 1 ULP，`toString()` 位数随之不同（`42*Math.pow(42,42)`：Node22/23 = `6.3054993769024**56**e+69`，Node24 = `6.30549937690245**555**e+69`）。**已装 `/Users/cgw/.workbuddy/binaries/node/versions/24.11.1/bin/node`，改动 verify 用例后必须 Node22+Node24+`TZ=UTC` 三重复验。** 教训：不可凭「测了两个版本相同」推断全版本相同。
 - **🔴 天文数字用例一律换温和输入**：`42^42` / `p=42` 这类违反语义的输入产出的巨型值，**不是 1 ULP 而是整体随 Node 版本变**（`binomial-cdf` 实测 Node22 `5.075681950731849e+63` vs Node24 `5.48713341525903e+63`，差 8%）⇒ 截到 10 位也救不了。判据：expect 含 `e+2x` 及以上的天文数字，就该换输入而非调 expect。
 - **「本地过、CI 挂」排查次序**：① 纯净树复跑 ② 多时区 ③ 多 Node 版本 ④ 比对纯净树 build 产物与工作树 `tools/` ⑤ 余者即 CPU/OS 架构级 1 ULP。
-- **剩余已知脆弱 2 条**（UTC 下仍通过，留独立批次，明细见 `.workbuddy/memory/2026-10-11.md`）：`legal/patent-term-calculator`、`life/date-difference-calculator`。
+- **已知脆弱 2 条已收口（2026-10-11 批次）**：`legal/patent-term-calculator`、`life/date-difference-calculator` 此前 `new Date('<日期串>')` 按 UTC 解析、用本地 `getFullYear/getMonth/getDate/getDay` 格式化 ⇒ UTC 之后时区（如 America/New_York）偏移 1 天。**处置=只重锚 verify expect（不修页面）**：`legal` 改锚稳定「2035年3月」(剔「20日」)、`life` 正常用例锚「从…到…/1周0天」(剔「0年1月/7天」)、B类哨兵用例锚 diff 面板连续三行「NaN 天/从…到…/⚠告警」(剔「暂无历史记录」默认文案与「周五/共NNNNN天」本地分量)。**不修页面理由**：内联脚本被 `_build.py` 静默覆盖、受众 China/UTC 本就正确、任务范畴是「让 verify 套件跨时区稳健」非改页面逻辑。复验：UTC/Asia/Shanghai/America/New_York 三时区 legal 101/101、life 235/235 全过；判别力 0 逃生；`run_gates --skip-build` 216/216。改动仅 verify 脚本（非构建产物）⇒ 本地 commit 不 push。
 
 ### 8.13 i18n 键「前缀错配」会静默把键名弹给用户
 
