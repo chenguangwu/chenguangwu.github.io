@@ -231,6 +231,13 @@ const CASES = [
     "expect": ["04:46 日出时间", "19:46 日落时间"],
     "ref": "注入非默认 inputDate=2026-06-21(默认空→不计算日出日落) + lat=39.9/lon=116.4/tz=8：夏至北半球日出 04:46、日落 19:46（基于日期+经纬度+时区确定性，不依赖 now）。锚 now 无关值，规避「太阳当前高度 40.5°」等 now 相关串。默认态 inputDate 空→不计算→不命中。"
   }
+  ,{
+    "slug": "astronomy/earth-curvature",
+    "inputs": { "obsHeight": "10", "targetDist": "50", "targetHeight": "20" },
+    "expect": ["117.62", "11.29"],
+    "ref": "默认 obsHeight=1.7/targetDist=10/targetHeight=5(无折射)→地平线4.65km/遮挡2.24m/可见2.76m。注入 obsHeight=10/targetDist=50/targetHeight=20→地平线=3.57×√10=11.29km、遮挡=(50−11.29)²/(2×6371)×1000=117.62m(目标20m<117.62m→完全遮挡)。锚 117.62 与 11.29，均≠默认态，零逃生。"
+  }
+
 ];
 async function main() {
   const only = process.argv.slice(2);

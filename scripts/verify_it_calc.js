@@ -29,6 +29,18 @@ if (typeof globalThis.btoa === "undefined") {
 if (typeof globalThis.atob === "undefined") {
   globalThis.atob = (b64) => Buffer.from(String(b64), "base64").toString("latin1");
 }
+// MutationObserver：真浏览器用于监听 DOM 变化（本项目仅用于监听 data-theme 暗色切换重绘图），
+// 与数值计算逻辑无关。harness 无头环境不建模，页面顶层 `new MutationObserver(...)` 会 init 失败
+// （如 astronomy/earth-curvature）。提供 no-op 桩使此类页面可正常加载；observe 为 no-op，
+// 不影响计算（计算由 oninput 注入触发，不依赖 theme 变化回调）。仅当全局未定义时才注入。
+if (typeof globalThis.MutationObserver === "undefined") {
+  globalThis.MutationObserver = class {
+    constructor(cb) { this._cb = cb; }
+    observe() {}
+    disconnect() {}
+    takeRecords() { return []; }
+  };
+}
 
 const ROOT = path.join(__dirname, "..");
 
@@ -6811,6 +6823,11 @@ function makeEl(val, opts) {
       return c;
     },
     removeChild() {},
+    // 动态生成表单的页面（neurology/dhi、dn4、phq9-stroke、rls-severity 等）在 buildForm()
+    // 用 `container.parentNode.insertBefore(wrapper, container.nextSibling)` 把拼好的 radio
+    // 容器插入 DOM。本 harness 的 calc 已通过 getElementsByName 绕过 DOM 取值（无需 radio 真实存在），
+    // 故 insertBefore 只需 no-op 让 init 不抛错即可；wrapper 是否入 DOM 不影响算分。
+    insertBefore() {},
     // 动态填充 <select>：部分页用 new Option(text,value)+select.add() 注入选项
     // （如 travel/timezone-converter-advanced）。option 带 selected 或首个选项时，
     // 将其 value 落到 el.value，使页面后续 `.value` 读取拿到选中值。其他页不调用

@@ -484,6 +484,13 @@ const CASES = [
     "ref": "自动补强（B类零用例）：注入非默认输入{\"ascii\":\"42\",\"cjk\":\"42\",\"emoji\":\"42\"}，输出区含「42\n42\n42\n总字节数： 336」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   }
 
+  ,{
+    "slug": "encode/calc-2",
+    "inputs": { "textInput": "a b c" },
+    "expect": ["a%20b%20c"],
+    "ref": "默认 textInput 为空→输出「请输入内容。」；注入 'a b c' 走默认 encode 模式(currentMode='encode')→ encodeURIComponent('a b c')='a%20b%20c'。锚编码结果串，回退默认态(空)不命中。"
+  }
+
 ];
 
 async function main() {

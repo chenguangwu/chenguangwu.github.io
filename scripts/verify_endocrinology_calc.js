@@ -310,6 +310,14 @@ const CASES = [
   ],
   "ref": "fasting=1（空腹）→ 阈值 2.8；bg=2.0 < 2.8 且仅勾选 symptom → metCount=2（症状✓、血糖✓、补糖缓解✗）→ 走「!hasRelief」分支文案。注意不可断言「Whipple三联征完整」——兜底预设 loadInsulinoma()（bg1.8+两项全勾）也产出它（逃生项）。"
 }
+  ,{
+    "slug": "endocrinology/homa-ir",
+    "inputs": { "fpg": "5.5", "insulin": "12" },
+    "radios": { "population": "general" },
+    "expect": ["2.93", "120"],
+    "ref": "默认 fpg=7.2/insulin=16→HOMA-IR 5.12(严重抵抗)/HOMA-β 86。注入 fpg=5.5/insulin=12→HOMA-IR=(12×5.5)/22.5=2.93(抵抗,切点2.5)/HOMA-β=(20×12)/(5.5−3.5)=120。锚数值 2.93 与 120，均≠默认态，零逃生。"
+  }
+
 ];
 async function main() {
   const only = process.argv.slice(2);
