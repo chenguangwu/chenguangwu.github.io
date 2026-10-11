@@ -263,6 +263,13 @@ python3 _build.py
 
 **元数据提取优先级**：① `<meta name="toolbox" content="cat=xxx,industry=xxx,icon=🎯,bg=#xxx">`（最高）；② `<title>`；③ `<h2>`；④ 文件名关键词匹配（兜底）。
 
+### 热度排序（设计约定）
+
+- 全站「分类内工具」与「分类本身」统一按热度分 `hot`（整数，越大越热）排序，不再按工具名字母序。
+- `hot` 由 `_build.py` 的 `compute_hot()` 在 `main()` 统一计算并写入 `json/tools.json`，所有入口（分类页 / sitemap / mega menu / 首页 / 运行时分类页）消费。
+- 口径：`hot-tools.json` 的 80 个编辑精选热门工具作为热度金字塔顶端、严格保持原序；其余由 `compute_hot()` 按「类型权重 + 质量等级 + 可发现性 + 分类加成」给确定性热度分（模型可复现、构建幂等）。
+- 新增工具无需手动排序，`main()` 会自动为所有工具算 `hot`；真实流量（GSC 逐页 clicks/impressions）到位后只需重算 `hot` 字段，排序逻辑不变。
+
 ### 新增工具规范
 
 #### 1. 文件命名
