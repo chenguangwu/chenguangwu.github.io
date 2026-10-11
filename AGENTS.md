@@ -766,6 +766,67 @@ python3 -m http.server 8765
 
 ---
 
+## 📌 开发约束补充（2026-10-11 从 DEV-PLAN 收敛）
+
+> 本节收录从 `DEV-PLAN.md` 收敛来的长期约束（原文件已瘦身为纯任务清单 + 现状基线）。与上文「项目特有坑与速查」互补：上文是高频坑点速查，本节是按主题归类的完整铁律 / 反模式 / harness 工作口径。无进行中批次时，§「分类收口纪律」仅作规范留存。
+
+### 分类收口纪律（无进行中批次时仅作规范留存）
+- **八项目标清单**（开工任一分类须全干完才标记完成，严禁只挑简单项跳过 UI/指南/逻辑验证）：①功能真实可用 + 独立验证；②内容真实场景/示例/参考表/可视化；③页面 UI/移动端/下拉/按钮；④deep-dive 真实条目（场景≥2/示例≥1/FAQ≥2）+ 指南；⑤i18n 中/英/繁完整；⑥分类 `industry`/`cat` 无误标；⑦SEO 标题/描述/H1/外链一致 + `linkify_terms` 站内内链；⑧发布证据（构建 + 门禁 + Actions + SHA）。
+- **提交发布**：一个分类提交一次；工具多可分批每批 ≥10；push 前本地 `run_gates.py` 全过，push 后**单次**查 Actions（不 MD5 比对/不轮询）。
+- **新建页防死链**：从范本 copy 必须删掉英文版 `hreflang` 链接与 "🌐 English" 按钮（英文走 `?lang=en-US`）；不引用任何不存在的文件。
+- **指南增强克制**：指南只给「有必要的工具」加（专业度高/热门，非纯娱乐/纯文本格式转换/纯展示查询），不要全分类铺量；跨分类重名 slug 指南必须走 `--prefix`（`guides.json` 按 basename 去重重名互覆；`_build.py` 靠指南页正文绝对 URL 反查行业，相对路径不建精确映射）。
+
+### 内容质量红线
+- **公式数字必须与工具 JS 一致（最高频事故）**：deep-dive 算例写后必须 node/python 按默认输入独立复算，一致才落盘；任何数量级不符（差 10 倍）是危险信号。
+- **套话指纹清零**：`opt-guide`/`opt-faq` class 块、`FAQPage` JSON-LD 旧套话用对应清理脚本；**数量达标 ≠ 内容达标**，逐条看内容；指纹会误伤正常措辞（如「统一口径」在「先约定统计口径」语境合法），命中先判真伪。
+- **公式-脚本一致性精查**（`scripts/_audit_iso_small.js`，`_*.js` 不入库）：用预设默认 value 的隔离器直调真实 `calc()` 筛 `NaN`/`Infinity`/异常负号/荒谬量级；**harness 不预填默认 value 是主要误报源**（`selectedOptions[0]`、`getContext` 缺桩 → 误报 ERR），判读前先确认桩完整。三条高频真缺陷：①系数写错；②量纲多/少乘 10；③p 值/概率越界（>1）。凡输出物理不可能值（概率>1/转差率为负/紧度负/量级差 10 倍）必查公式本身。
+- **有界量口径自检**：凡输出有天然取值域的量（决定系数/解释方差比例/概率/p 值/覆盖率）越界即公式错（如 `d²` 当 r²）。存在性/一致性判据一律留 1% 量级容差（几何量常无理数，严格不等式必误报）。
+- **角度标签对边一致性**：∠A 对边是 a，`tan A = a/b`、`cos A = (b²+c²−a²)/(2bc)`；取退化特例手算复核（a=b 时两锐角必 45°）。「夹角」类名先用向量点积推导。
+- **同类换算页必须交叉核对**：同站多页实现同一物理量时逐页比对符号与量级（一页错一页对是极强缺陷信号）。
+- **边界探针（必跑）**：默认态全对 ≠ 边界没问题；DEF/ZERO/EMPTY（必要时 NEG）变体各跑一遍，输出出现 `NaN|Infinity|undefined` 即立项（31/56 页曾吐 NaN）。守卫落地用 `const __fin=(v)=>Number.isFinite(v)` 包裹，默认态无 NaN ⇒ 零回归可批量。
+- **个位数 expect 易被默认输出吃掉**：expect 出现一位数时换输入变两位以上或直接剔除。
+- **deep-dive 主题错配**（页面讲 A、词条写 B）是中批量改写连带产物，按页面真实 `calc()` 算法重写。
+
+### verify 脚本与判别力（铁律）
+- **假门禁**：报绿灯前确认 ①用例有真实 inputs；②expect **独立复算**（严禁取页面自身输出当期望 = 自证循环）；③随机/二进制不可派生页须登记排除，不得凑数。
+- **逃生项机制**：verify 框架「expect 任一命中即通过」；混入一个不依赖被测输入的项 ⇒ 注入失败仍 PASS = 逃生项。铁律：每项 expect 须依赖被测点，禁混表头/按钮/页脚/option value 等常量；避免超短串；改后必跑 `node scripts/discriminate_check.js <脚本>`（模拟注入失败应全红）；关键用例反向验证（改回错误实现确认真红）。
+- **弱用例改造四步**：读公式 → 选 ≠ 默认输入（避免与默认成比例）→ Python 高精度独立复算 → `runCase` 验证 `via=input event`（via 为空 = 没验证）。定位逃生项用逐项二分（禁用 `fullBlob.includes()`）。
+- **定 expect 五条铁律**：①锚点只依赖被测点，禁混常量；②双态核验（注入 PASS + 默认 FAIL），inputs=默认判 `usable=false` 静默 skip（零判别力）；③兜底会改状态重算，避开无参函数能产出的串（expect 含 `undefined`/`NaN` 几乎必是兜底产物）；④日期/随机一律不锚，`clicks` 改进程级全局用完即恢复；⑤判别器是清空 clicks 后跑 ⇒ 锚「恒产全量」输出（如 `checkAll()` 的 `36/36`）必判逃生项。
+- **浮点 expect 禁 ≥15 位有效数字**（跨平台 1 ULP：macOS ARM 与 Linux x86 常差 1 位 ⇒ 本地绿 CI 红且不可复现）：只留 ≤10 位；多数值切多条（OR 语义）而非各自截断；**天文数字（expect 含 `e+2x`）整页随 Node 版本变 ⇒ 换温和输入**（如 Bin(20,0.25,5)）。复验须用 CI 同款运行时（Node 24）+ `TZ=UTC`。**日期/时区**：`new Date('<串>')` 按 UTC 解析、用本地分量格式化 ⇒ 输出随时区偏移 1 天；锚点须由注入决定、不由时钟决定。
+- **用例文件静默失效**：`selfcheck_false_pass.js::extractCases` 不识别注释，行注释里撇号会被当字符串起始 → 括号层级错位 → `extractCases` 返回 undefined → 该文件全部用例静默消失（`checked=0`、门禁照旧全绿）。判据：**任何 verify 文件 `checked` 必须等于其用例条数**，不等即命中。
+- **过滤器/守卫「定义 ≠ 生效」**：凡加过滤/白名单/守卫须用一条反面样本证明它真拦住（喂应被拦输入确认输出不变）；守卫只应注入数值输出页（纯文本页注入 NaN 检测会误伤正常输出）。
+- **卡死判定用心跳**：`setInterval(()=>window.__hb++,100)` 点击后每 1s 采样连续 8s，停摆 = 真死循环；单次 `evaluate` 超时不能定罪。死循环只能真浏览器 + 心跳二次确认（正则扫 `while` 报 338 处复核全是正常写法）。
+- **每批收口六步**：改 `verify_*` → 单跑 100% → `discriminate_check` 0 逃生 → 被 skip 用例自建同口径探针补验 → 更新 `falsepass_baseline.json`/`discriminate_baseline.json`（**只准降不准增**）→ `run_gates.py` 全过 + commit + push + 单次查部署 + 归档 memory（批次玩法只写 memory 与 skill，禁写 DEV-PLAN）。
+- **不可注入静态判据**：控件由运行期 `innerHTML` 生成（id 形如 `c{i}`）、驱动走纯 class 选择器、`createElement+appendChild` 建的行、控件在 `display:none` 面板内（`inputs` 与 `clicks` 都改不动）。**P0 真缺陷信号**：控件 id 不存在（加载即 `Cannot read properties of null`、整页无输出）；`.length` 判空却传对象（`!list.length` 恒真 ⇒ 整页功能恒定不工作）。别急着归类为「不可注入」。
+- **harness 三阶段**：①覆盖 `inputs` + 触发 `input/change/keyup` 立刻查 expect → ②执行 `clicks` → ③未命中才无参遍历调用候选函数兜底。`collectStrings` 收每元素 `value`/`innerHTML`/`textContent` 剥标签压成**单串** ⇒ `blob.includes(want)` 是**子串**匹配。
+
+### 批量改动与构建纪律
+- **批量改页面前必 dry-run + 逐文件 diff 预览**；改完必 `grep -rIl` 全仓残留引用复核；遍历一律递归 `**/*.html`，路径按 `ind+slug` 精确构造（禁子串 glob，防 `rater-3` 误伤 `rater-30`）。
+- **同文件多处修改必须串行 Edit**：并行发多条 Edit 会出现写回竞态（工具仍报 "Successfully edited"，实际被旧快照覆盖）；改完必 `grep` 复核关键行。
+- **非确定性输入一律种子化**：禁用 `Math.random`/`Date.now` 当输入（harness 已注入 `FrozenDate` 冻结基准日 + `mulberry32` 确定性 PRNG；新增用例仍不得断言绝对日期或随机命中串）。
+- **清理「已完成」标记须同时 grep 全部变体**：`✅` 归档块 + `- [x]` 勾选 + `~~` 删除线，只认一种必漏。
+- **`json/related-tools-curated.json` 每条引用必须做存在性校验**：构建对指向不存在工具的条目只打 `WARN` 并静默丢弃该卡片；改名/迁移/重定向后必须重跑校验。该文件格式 `indent=1` 无尾换行，改它禁止整体重排。
+- **改名/迁移必须同批改 `canonical` + `og:url` 为自指新路径**（179 页曾漏改，canonical 指向永不存在的 `tool-NNN-N.html` 是 Google 明示的去索引信号）。**构建兜不住**：`_build.py` 只在缺失时新增 canonical，已有错值不纠正。同类「构建兜不住」字段清单（改名/重做必须同批改）：`<title>`/`<h1>`/`<meta name=description>`/`og:url`/`canonical`/`title-en`/`desc-en`/`h2[data-zh]`；其余（`formula-box`、deep-dive、关联卡、图标）由构建从权威源重建，改源即可传导。zh-tw 变体的 canonical/og:url 由 `scripts/gen_opencc_locales.mjs` 按路径重写（修源后重跑构建自动传导，勿手改 `zh-tw/`）。
+- **构建期文本注入必须先把 `<script>…</script>` 切出**：`_prerender_tool_body()` 曾对全文首个 `<p>…</p>` 注入英文 intro，命中 `el.innerHTML='<p …>提示</p>'` 这类 JS 字符串 → 撇号/换行未转义 → **脚本整块 SyntaxError、计算器静默失效且线上可复现**。写进 JS 字符串的文案必须转义（`'` 写 `\'`、禁裸换行）；改 `_build.py` 注入逻辑或批量改 `tools/**` 后必跑 `scripts/check_inline_js_syntax.js`（逐块 `new Function` 只做语法解析，拦住"静态/链接/资源/calc 冒烟/用例断言全过但脚本已死"的 P0）。
+
+### i18n 键与函数可见性（真缺陷形态）
+- **i18n 键前缀错配会静默把键名弹给用户**：页面写 `i18nText('toast.msgNNN')`（1033 处）而 `I18N_MSG` 存裸 `msgNNN`（624 条）⇒ `resolve()` 回退链末端 `return key` 渲染出键字符串。**逐个补键是错方向**（755 键两套字典皆无、语义未知）⇒ 走**前缀归一化回退**（剥前缀再查，页面与字典零改动），配套 `js/i18n.js` 导出 `I18n.has()`；**英文态须单独兜底**（`en-US PACKS` 未收录 `msgNNN`，否则回落中文给英文页面）。验证须**真浏览器点真实按钮**看 toast 的 `textContent`。
+- **函数存在但不可见（真缺陷三种形态）**：
+  - ①**被未闭合函数体吞掉**：数组型生成函数行尾只有 `{` 无 `}`，把紧随函数变内部代码 ⇒ 从未注册全局。表象迷惑：同块其他函数正常、加载期零 pageerror、语法校验通过。**判据**：逐 `function` 做花括号平衡，体长异常（>4000）且其后还有 function 声明即候选，再用 `typeof window.X` 复核。**修法**：补 `}`、被吞函数移回顶层（删内部那份）。
+  - ②**IIFE 包裹 + 内联 onclick**：`(function(){…})()` 内 `function` 不挂全局，而 `onclick="executeSQL()"` 需全局 ⇒ `X is not defined`。照该页既有风格补 `window.X = function…`，**不用 `eval`**。
+  - ③**onclick 属性被 `JSON.stringify` 双引号提前闭合**：`onclick="applyPreset(${JSON.stringify(p.colors)})"` 中 JSON 含双引号 ⇒ 属性在第一个 `"` 处闭合、`onclick` 变 `applyPreset([` ⇒ 点预设抛 `SyntaxError`。**修法：属性改单引号包裹**；全站 17 页内联 `JSON.stringify`，只有传数组/对象的 5 页出问题 ⇒ 必须真浏览器逐页编译验证（`new Function` 编译失败即坏 handler）。
+  - **Canvas 负半径**：`radius=Math.min(cw,ch)/2-30` 而 `cv.width=ct.clientWidth`，容器未布局时 `cw` 为负 ⇒ `ctx.arc` 抛 `The radius provided (-70) is negative`，修法 `Math.max(5,…)`。
+  - **静态假阳性勿采信**：「IIFE 未挂 window」报 293 页抽样 8 页仅 3 真问题；「函数体超长吞并」报 530 处复核全正常调用。**「函数不可见」只能用真浏览器 `typeof window.X` 定罪。**
+
+### 指南与复用 / 术语内链 / 仓库体积
+- **同一逻辑在多个分类重复实现时抽通用脚本而非复制**（老板明确偏好复用）；新分类开工前先 `ls scripts/` 查是否有可加 `--industry` 的现成脚本。
+- **术语内链唯一源 = `_build.py::linkify_terms()`**：逐字符最长匹配、`TERM_LINK_MIN_LEN=3`（「公式」曾命中 844 次）、每目标页每页只链一次、上限 `TERM_LINK_MAX_PER_PAGE=6`、不链自身、ASCII 术语要求词边界（防 `CSS` 命中 `CSS3`）；**目标须存在且非 `TOOLBOX-REDIRECT` 存根**。**禁在页面手改内链**。
+- **计算函数名不统一**（`calcTool()`/`calc()`/`calcBelt()` 等）：抽取时在整个 html 里多候选 `function <name>(` + 花括号配平，勿用 `max(scripts, key=count('calcTool'))`（会选 stub）；依赖 select 与常量表的工具须先抽 `<select id=…>` 默认项与 `const X = {` 常量表。
+- **仓库体积（`.git`）维护**：`du -sh .git` > **800M** 即 `git repack -a -d` + `git prune-packed`（合并全 pack、**不 prune 任何不可达对象**，零工作区影响、可随时重跑）—— 实测 860M（29 pack）→ 662M（1 pack）。另有约 103M **不可达对象**（`git stash` 残留），清理须 `git prune`（**不可恢复 → 须老板拍板**，Agent 只报数据不做）。
+- **Python `a = b = []` 多变量共享同一 list**：写审计脚本时多列表必须逐个独立赋值；计数异常一致时先怀疑脚本。
+
+---
+
 ## 热度排序约定（2026-09-12，老板明确要求）
 
 - **全站「分类内工具」与「分类本身」的排序统一按热度分 `hot`（整数，越大越热），不再按工具名(name) 字母序排序。**
