@@ -161,7 +161,7 @@
 
 **全站真实零用例 = 616 页 / 86 行业**（2026-10-07 重建扫描）。扫描口径：覆盖集合 slug 为 **`行业/slug`** 形式；过滤 `TOOLBOX-REDIRECT` 存根；**用例块键名常不带引号，正则须写 `"?slug"?\s*:\s*"([^"]+)"`** 否则大量误报「无用例」（已踩两次）。checkbox 页 353 个，162 个有用例的均带注入通道、弱用例 0。
 
-**分批补强进度（确定性计算器 + radio 量表，已收口）**：B1=encode/calc-2·homa-ir·earth-curvature(3)、B2=neurology/dhi·dn4·phq9-stroke·rls-severity(4)、B3=encode/calc-1·it/calc-8(2) + **harness atob/btoa 始终宽松覆盖补丁**（修 Node24 原生严格 atob 对 URL-safe 多余 `=` 误抛 Invalid character，对齐浏览器宽松语义）。判别力 7758/0、弱用例基线 no_inputs=10/all_default=4 零新增；atob 改动零回归。**放弃候选**：it/html-to-markdown（convert() 依赖 `new DOMParser()`，harness 未建模，需完整 HTML 解析器桩，超范围）。剩余确定性计算器候选待 B4+ 续推。
+剩余确定性计算器候选待 B4+ 续推（覆盖缺口扫描口径见首段）。
 
 **⚠ 判别器口径（踩过才确认）**：`discriminate_check.js` 是**一次性把 inputs 全部换回页面 HTML 默认**（非逐键）**且保留 clicks**（⇒ 仅靠 clicks 所设状态的输出恒命中，不可作锚）；harness 判定是「expect **任一**子串命中即通过」。⇒ 凡不在静态 HTML 中的输入（如 JS 动态渲染的 `sus0..sus9`）**无法回退**，失败态 = 其余键默认 + 该键保持注入；此时必须按**该失败态**实测选锚。**`fun` 53 页已坐实：50/53 为游戏或随机生成器（RAND=True），整行业结构性排除。**
 
@@ -286,7 +286,6 @@
 - **🔴 复验必须用 CI 的同款运行时**：CI 用 `node-version: lts/*`（现为 **Node 24**），本地 managed 是 22 ⇒ `Math.pow/exp/log` 结果差 1 ULP，`toString()` 位数随之不同（`42*Math.pow(42,42)`：Node22/23 = `6.3054993769024**56**e+69`，Node24 = `6.30549937690245**555**e+69`）。**已装 `/Users/cgw/.workbuddy/binaries/node/versions/24.11.1/bin/node`，改动 verify 用例后必须 Node22+Node24+`TZ=UTC` 三重复验。** 教训：不可凭「测了两个版本相同」推断全版本相同。
 - **🔴 天文数字用例一律换温和输入**：`42^42` / `p=42` 这类违反语义的输入产出的巨型值，**不是 1 ULP 而是整体随 Node 版本变**（`binomial-cdf` 实测 Node22 `5.075681950731849e+63` vs Node24 `5.48713341525903e+63`，差 8%）⇒ 截到 10 位也救不了。判据：expect 含 `e+2x` 及以上的天文数字，就该换输入而非调 expect。
 - **「本地过、CI 挂」排查次序**：① 纯净树复跑 ② 多时区 ③ 多 Node 版本 ④ 比对纯净树 build 产物与工作树 `tools/` ⑤ 余者即 CPU/OS 架构级 1 ULP。
-- **已知脆弱 2 条已收口（2026-10-11 批次）**：`legal/patent-term-calculator`、`life/date-difference-calculator` 此前 `new Date('<日期串>')` 按 UTC 解析、用本地 `getFullYear/getMonth/getDate/getDay` 格式化 ⇒ UTC 之后时区（如 America/New_York）偏移 1 天。**处置=只重锚 verify expect（不修页面）**：`legal` 改锚稳定「2035年3月」(剔「20日」)、`life` 正常用例锚「从…到…/1周0天」(剔「0年1月/7天」)、B类哨兵用例锚 diff 面板连续三行「NaN 天/从…到…/⚠告警」(剔「暂无历史记录」默认文案与「周五/共NNNNN天」本地分量)。**不修页面理由**：内联脚本被 `_build.py` 静默覆盖、受众 China/UTC 本就正确、任务范畴是「让 verify 套件跨时区稳健」非改页面逻辑。复验：UTC/Asia/Shanghai/America/New_York 三时区 legal 101/101、life 235/235 全过；判别力 0 逃生；`run_gates --skip-build` 216/216。改动仅 verify 脚本（非构建产物）⇒ 本地 commit 不 push。
 
 ### 8.13 i18n 键「前缀错配」会静默把键名弹给用户
 
@@ -311,11 +310,6 @@
 - **形态三：`onclick` 属性被 `JSON.stringify` 的双引号提前闭合**。`onclick="applyPreset(${JSON.stringify(p.colors)})"` 中 JSON 对数组/对象产出的值**本身含双引号** ⇒ 解析器在第一个 `"` 处闭合属性，`onclick` 变成 `applyPreset([` ⇒ 点任何预设抛 `SyntaxError: Unexpected end of input`。**修法：属性改用单引号包裹**。全站 17 页内联 `JSON.stringify`，但**只有传数组/对象的 5 页会出问题** ⇒ **必须真浏览器逐页编译验证**（遍历 `[onclick]` 用 `new Function` 编译，失败即坏 handler），实测 16/12/12/12 个 → 全归零。
 - **Canvas 负半径**：`radius=Math.min(cw,ch)/2-30` 而 `cv.width=ct.clientWidth`，容器未布局时 `cw` 为负 ⇒ `ctx.arc` 抛 `The radius provided (-70) is negative`。修法 `Math.max(5, …)`，已修 construction 三页。
 - **两条静态假阳性（勿采信）**：「IIFE 未挂 window」报 **293 页** —— 抽样 8 页仅 3 页真有问题；「函数体超长吞并后续」报 **530 处** —— 复核**全是正常调用**（长 `calc()` 里调 `copyResult()`）。**「函数不可见」只能用真浏览器 `typeof window.X` 定罪。**
-
-### 8.17 已知重复工具组：`pets/` 与 `pet/` 同功能双实现（✅ 已收口 · 2026-10-10 commit 87fb49549c）
-
-- **处置（已落地）**：保留 `pet/`（10 工具），`pets/` 5 个同义页全部转 `TOOLBOX-REDIRECT` 存根（保留 URL）：`pet-age-convert`→`pet-age-converter`、`feeding-amount`→`pet-feeding-calc`、`vaccine-reminder`→`reminder-vaccine-deworming`、`grooming-guide`、`kennel-space`。`json/industry-*.json` 已移除 pets 行业（207 行业）；`guides/`、`json/` 无 `tools/pets/` 硬引用；`sitemap.xml` 中 pets/ 出现 0 次；`verify_pets_calc.js` 已无 pets 用例。`tools/pets/index.html` 工具链接已正确指向 `../pet/*`（无断链）。
-- **残留（已收口 · 2026-10-11）**：`tools/pets/index.html` 已转 `TOOLBOX-REDIRECT` 存根指向 `tools/pet/index.html`（保留 URL、`noindex,follow`、沿用 §8.17 同款 TTZZ 分析脚本与 meta refresh 模板）。pets 行业至此彻底消除（5 同义子页 + index 全部存根化，json 行业清单已移除 pets）。
 
 ---
 
@@ -346,8 +340,6 @@
 - 弱用例口径与选批规则见 §10.3。**注意：弱用例整体处于判别器盲区** —— 「注入值等于默认值」的用例被判 `usable=false` 直接跳过（§10.5）⇒ `escape=0` 只说明强用例无逃生项；每批改造后须重跑判别器确认其由「跳过」转为「已检且变红」。
 
 ### 10.3 弱用例去默认化（仅在 P0/P1 顺带时执行）
-
-**存量 14 例**（`no_inputs=10` / `all_default=4`）**已全部收口（2026-10-10 补完最后 2 个 `auto-restore(default)` 漏评项 `ceramics/glaze-temp`、`image/nine-grid-cutter`，均判死保留 `no_inputs`；14 例 `ref` 齐备）**。两处「顺序保持型筛选」翻案（`office/excel-formula-reference`、`gardening2/pruning-time`）均锚**过滤后跨条目相邻串**（§10.5 C.7④）。**转 P3 顺带，不单独成批**；逐批成果与逐例打法归档在 `.workbuddy/memory/` 与 skill `toolbox-weakcase-hardening`，**本文件不再记录批次流水**。
 
 **选批口径**：① 按「可注入数」降序挑批次；② **结构性不可注入的不要选**（判据 §10.5 B 组）—— 保留 `no_inputs` 并在 `ref` 写明理由；③ 每批 8–11 例，走 §10.4 六步。**结构判死的唯一依据是各用例 `ref`**。
 
