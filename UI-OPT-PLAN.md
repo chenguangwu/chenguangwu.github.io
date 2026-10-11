@@ -102,12 +102,12 @@
 - ✅ `fun/` —       65 页（修复 2 溢出：breakout 工具栏 inline column 与 common.css 2列按钮模式冲突 → 移除 inline 改 game-side 纵向堆叠；chess-fen-viewer 棋盘 repeat(8,1fr) auto 最小值顶爆容器 → minmax(0,1fr)+移动端字号22px。其余 63 页 0 缺陷，8 游戏页真机截图验证）
 - ✅ `ai/` —       65 页
 - ✅ `agriculture/` —       64 页
-- ⬜ `hydraulic/` —       57 页
-- ⬜ `automotive/` —       56 页
-- ⬜ `realestate/` —       55 页
-- ⬜ `legal/` —       55 页
-- ⬜ `statistics/` —       52 页
-- ⬜ `edu/` —       50 页
+- ✅ `hydraulic/` —       57 页
+- ✅ `automotive/` —       56 页
+- ✅ `realestate/` —       55 页
+- 🔄 `legal/` —       55 页
+- 🔄 `statistics/` —       52 页
+- 🔄 `edu/` —       50 页
 - ⬜ `marketing/` —       47 页
 - ⬜ `surveying/` —       45 页
 - ⬜ `meteorology/` —       43 页
