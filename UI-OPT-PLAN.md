@@ -108,12 +108,12 @@
 - 🔄 `legal/` —       55 页
 - 🔄 `statistics/` —       52 页
 - 🔄 `edu/` —       50 页
-- ⬜ `marketing/` —       47 页
-- ⬜ `surveying/` —       45 页
-- ⬜ `meteorology/` —       43 页
-- ⬜ `metalwork/` —       43 页
-- ⬜ `optical/` —       42 页
-- ⬜ `health/` —       42 页
+- ✅ `marketing/` —       47 页
+- ✅ `surveying/` —       45 页
+- ✅ `meteorology/` —       43 页
+- ✅ `metalwork/` —       43 页
+- ✅ `optical/` —       42 页
+- ✅ `health/` —       42 页
 - ⬜ `fire-rescue/` —       40 页
 - ⬜ `energy/` —       40 页
 
