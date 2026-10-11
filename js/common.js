@@ -3615,9 +3615,11 @@ document.addEventListener('DOMContentLoaded', enhanceNumberInputs);
   function enhanceSelect(sel){
     if (!sel || sel.getAttribute('data-tb-select-enhanced')) return;
     if (sel.tagName !== 'SELECT') return;
-    // 排除：multiple / size>1 列表、导航语言切换器（全站公共组件自带样式）、显式 opt-out
+    // 排除：multiple / size>1 列表、导航语言切换器（全站公共组件自带样式）、
+    // 日期弹层内的年/月下拉（保持原生紧凑交互，避免搜索框/嵌套弹层）、显式 opt-out
     if (sel.multiple || (parseInt(sel.getAttribute('size') || '', 10) > 1)) return;
     if (sel.closest && sel.closest('.lang-switcher')) return;
+    if (sel.closest && sel.closest('.tb-date-popup')) return;
     if (sel.getAttribute('data-tb-select') === 'off') return;
     sel.setAttribute('data-tb-select-enhanced', '1');
     var variant = sel.getAttribute('data-tb-select') || '';
@@ -3711,30 +3713,30 @@ document.addEventListener('DOMContentLoaded', enhanceNumberInputs);
       trigger.setAttribute('aria-expanded', 'false');
     }
     trigger.addEventListener('click', function(e){ e.preventDefault(); e.stopPropagation(); wrap.classList.contains('open') ? close() : open(); });
-    trigger.addEventListener('keydown', function(e){
-      if (e.key === 'ArrowDown' || e.key === 'Enter' || e.key === ' ') {
-        e.preventDefault();
-        if (!wrap.classList.contains('open')) { open(); return; }
-        var act = popup.querySelector('.tb-select-option.active') || popup.querySelector('.tb-select-option');
-        if (act) act.click();
-      } else if (e.key === 'Escape') { close(); }
-    });
-    popup.addEventListener('keydown', function(e){
-      var act = popup.querySelector('.tb-select-option.active');
-      if (e.key === 'ArrowDown') {
-        e.preventDefault();
-        var nx = act ? act.nextElementSibling : popup.querySelector('.tb-select-option');
-        while (nx && !nx.classList.contains('tb-select-option')) nx = nx.nextElementSibling;
+    // 键盘处理挂在 wrap（trigger 与 popup 的共同父级）上：无论焦点在 trigger 还是 popup 内，
+    // 按键都会冒泡到 wrap，单一入口按开/合状态分发。修复点：开放态 ArrowDown/ArrowUp 移动高亮
+    // 而不是立即选中（旧实现在 trigger 上监听，弹层一开按 ArrowDown 就会误选当前项并关闭）。
+    wrap.addEventListener('keydown', function(e){
+      var isOpen = wrap.classList.contains('open');
+      var inSearch = !!(e.target && e.target.classList && e.target.classList.contains('tb-select-search'));
+      function firstOpt(){ return popup.querySelector('.tb-select-option'); }
+      function activeOpt(){ return popup.querySelector('.tb-select-option.active'); }
+      function move(dir){
+        var act = activeOpt();
+        var nx = dir > 0 ? (act ? act.nextElementSibling : firstOpt()) : (act ? act.previousElementSibling : null);
+        while (nx && !nx.classList.contains('tb-select-option')) nx = dir > 0 ? nx.nextElementSibling : nx.previousElementSibling;
         if (nx) { if (act) act.classList.remove('active'); nx.classList.add('active'); nx.scrollIntoView({ block: 'nearest' }); }
-      } else if (e.key === 'ArrowUp') {
-        e.preventDefault();
-        var pv = act ? act.previousElementSibling : null;
-        while (pv && !pv.classList.contains('tb-select-option')) pv = pv.previousElementSibling;
-        if (pv) { if (act) act.classList.remove('active'); pv.classList.add('active'); pv.scrollIntoView({ block: 'nearest' }); }
-      } else if (e.key === 'Enter') {
-        e.preventDefault();
-        if (act) act.click();
-      } else if (e.key === 'Escape') { close(); trigger.focus(); }
+      }
+      if (!isOpen) {
+        if (e.key === 'ArrowDown' || e.key === 'Enter' || e.key === ' ') { e.preventDefault(); open(); }
+        return;
+      }
+      if (e.key === 'ArrowDown') { e.preventDefault(); move(1); }
+      else if (e.key === 'ArrowUp') { e.preventDefault(); move(-1); }
+      else if (e.key === 'Enter') { e.preventDefault(); var a = activeOpt() || firstOpt(); if (a) a.click(); }
+      else if (e.key === 'Escape') { e.preventDefault(); close(); trigger.focus(); }
+      else if (e.key === ' ' && !inSearch) { e.preventDefault(); var a2 = activeOpt() || firstOpt(); if (a2) a2.click(); }
+      // 搜索框内其余按键（字母/退格等）不劫持，交给输入逻辑
     });
     sel.addEventListener('change', syncTrigger);
     syncTrigger();
