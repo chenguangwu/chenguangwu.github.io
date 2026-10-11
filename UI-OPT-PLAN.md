@@ -114,15 +114,15 @@
 - ✅ `metalwork/` —       43 页
 - ✅ `optical/` —       42 页
 - ✅ `health/` —       42 页
-- ⬜ `fire-rescue/` —       40 页
-- ⬜ `energy/` —       40 页
+- ✅ `fire-rescue/` —       40 页
+- ✅ `energy/` —       40 页
 
 ### 【中 20-39】（79 分类）
 
-- ⬜ `fishery/` —       39 页
-- ⬜ `eco/` —       39 页
-- ⬜ `machinery/` —       38 页
-- ⬜ `geology/` —       38 页
+- ✅ `fishery/` —       39 页
+- ✅ `eco/` —       39 页
+- ✅ `machinery/` —       38 页
+- ✅ `geology/` —       38 页
 - ⬜ `aerospace/` —       38 页
 - ⬜ `math/` —       37 页
 - ⬜ `fitness/` —       37 页
