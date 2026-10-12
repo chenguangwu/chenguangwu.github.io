@@ -134,12 +134,20 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="sePresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
-    </div>
+          <button class="btn" onclick="__seExport()">导出明细 CSV</button>
+</div>
 
     <div class="result-box" id="result"></div>
+    <div id="seDiff"></div>
+    <div id="seHist"></div>
+    <div id="seTable"></div>
+    <div id="seMatrix"></div>
+
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -265,6 +273,64 @@ function resetForm(){document.getElementById('sigma').value = '15';
       document.getElementById('n').value = '36';
       calcTool();}
 calcTool();
+
+function __seNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __seList(id){var e=document.getElementById(id);return e?TBKit.util.parseList(e.value):[];}
+
+function __seExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var sg=__seNum('sigma'), n=__seNum('n');
+    if(!isFinite(sg)||!isFinite(n)||n<=0||sg<0) return;
+    var en=TBKit.util.isEn();
+    var SE=sg/Math.sqrt(n);
+    TBKit.matrix.table('#seTable',{
+        head: en?['Item','Value','Note']:['项目','数值','说明'],
+        rows: en?[
+            ['Standard error', SE.toFixed(4), 'σ/√n'],
+            ['95% half width', (1.96*SE).toFixed(4), '1.96·SE'],
+            ['99% half width', (2.576*SE).toFixed(4), '2.576·SE'],
+            ['SE / σ', (SE/sg).toFixed(5), 'shrinks as 1/√n'],
+            ['n to halve SE', String(Math.ceil(n*4)), 'SE ∝ 1/√n']
+        ]:[
+            ['标准误 SE', SE.toFixed(4), 'σ/√n'],
+            ['95% 置信半宽', (1.96*SE).toFixed(4), '1.96·SE'],
+            ['99% 置信半宽', (2.576*SE).toFixed(4), '2.576·SE'],
+            ['SE / σ', (SE/sg).toFixed(5), '随 1/√n 收缩'],
+            ['SE 减半所需 n', String(Math.ceil(n*4)), 'SE ∝ 1/√n']
+        ]
+    });
+    var ns=[4,9,16,25,36,49,64,100,225,400,900], mrows=[];
+    ns.forEach(function(k){ var e=sg/Math.sqrt(k); mrows.push([String(k), e.toFixed(4), (1.96*e).toFixed(4), (e/sg*100).toFixed(2)+'%']); });
+    TBKit.matrix.table('#seMatrix',{
+        head: en?['n','SE','95% ±','SE as % of σ']:['样本量 n','标准误 SE','95% 半宽 ±','SE 占 σ'],
+        rows: mrows
+    });
+    TBKit.history.record({sigma:sg,n:n,se:Number(SE.toFixed(4))});
+    TBKit.util.diffBox('#seDiff',['se']);
+    TBKit.history.mount('#seHist',function(v){
+        if(v.sigma!=null)document.getElementById('sigma').value=v.sigma;
+        if(v.n!=null)document.getElementById('n').value=v.n;
+        calcTool();
+    });
+}
+function __seExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#seMatrix','standard-error.csv'); } catch (e) {}
+}
+function __sePresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#sePresets',[
+        {label:'IQ 测验 σ=15, n=36',labelEn:'IQ test σ=15, n=36',values:{sigma:15,n:36}},
+        {label:'身高 σ=8cm, n=100',labelEn:'Height σ=8cm, n=100',values:{sigma:8,n:100}},
+        {label:'小样本 σ=20, n=9',labelEn:'Small sample σ=20, n=9',values:{sigma:20,n:9}},
+        {label:'大样本 σ=15, n=900',labelEn:'Large sample σ=15, n=900',values:{sigma:15,n:900}}
+    ],function(){ calcTool(); });
+}
+
+var __tb_fn0 = calcTool;
+calcTool = function () { __tb_fn0(); try { __seExtras(); } catch (e) {} };
+calcTool();
+__sePresets();
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

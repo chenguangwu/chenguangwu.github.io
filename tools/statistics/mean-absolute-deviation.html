@@ -131,12 +131,20 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="mdPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
-    </div>
+          <button class="btn" onclick="__mdExport()">导出明细 CSV</button>
+</div>
 
     <div class="result-box" id="result"></div>
+    <div id="mdDiff"></div>
+    <div id="mdHist"></div>
+    <div id="mdTable"></div>
+    <div id="mdCmp"></div>
+
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -248,6 +256,67 @@ const raw=document.getElementById('xs').value.split(/[ ,]+/).filter(Boolean).map
 function resetForm(){document.getElementById('xs').value = '2, 4, 4, 4, 5, 5, 7, 9';
       calcTool();}
 calcTool();
+
+function __mdNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+
+function __mdExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var raw=document.getElementById('xs').value;
+    var arr=TBKit.util.parseList(raw);
+    var n=arr.length; if(!n) return;
+    var en=TBKit.util.isEn();
+    var mean=arr.reduce(function(a,b){return a+b;},0)/n;
+    var sum=arr.reduce(function(a,b){return a+Math.abs(b-mean);},0);
+    var mad=sum/n;
+    var ss=arr.reduce(function(a,b){return a+(b-mean)*(b-mean);},0);
+    var sd=n>1?Math.sqrt(ss/(n-1)):0;
+    var rows=[];
+    arr.forEach(function(v,i){
+        var dv=Math.abs(v-mean);
+        rows.push([String(i+1), String(v), (v-mean).toFixed(4), dv.toFixed(4), sum>0?(dv/sum*100).toFixed(2)+'%':'—']);
+    });
+    TBKit.matrix.table('#mdTable',{
+        head: en?['#','Value','x − x̄','|x − x̄|','Share']:['#','数值','离差','绝对离差','占 MAD 比重'],
+        rows: rows
+    });
+    TBKit.matrix.table('#mdCmp',{
+        head: en?['Item','Value','Note']:['项目','数值','说明'],
+        rows: en?[
+            ['MAD', mad.toFixed(4), 'Σ|x−x̄| / n'],
+            ['SD (n−1)', sd.toFixed(4), '√(SS/(n−1))'],
+            ['MAD / SD', (sd>0?(mad/sd).toFixed(4):'—'), 'normal data ≈ 0.798'],
+            ['Mean', mean.toFixed(4), 'x̄'],
+            ['Most deviant point', String(arr.reduce(function(a,b){return Math.abs(a-mean)>Math.abs(b-mean)?a:b;})), 'largest |x−x̄|']
+        ]:[
+            ['平均绝对偏差 MAD', mad.toFixed(4), 'Σ|x−x̄| / n'],
+            ['标准差 SD（n−1）', sd.toFixed(4), '√(SS/(n−1))'],
+            ['MAD / SD', (sd>0?(mad/sd).toFixed(4):'—'), '正态数据约 0.798'],
+            ['均值', mean.toFixed(4), 'x̄'],
+            ['离群最远的点', String(arr.reduce(function(a,b){return Math.abs(a-mean)>Math.abs(b-mean)?a:b;})), '绝对离差最大']
+        ]
+    });
+    TBKit.history.record({xs:raw,mad:Number(mad.toFixed(4))});
+    TBKit.util.diffBox('#mdDiff',['mad']);
+    TBKit.history.mount('#mdHist',function(v){ if(v.xs!=null)document.getElementById('xs').value=v.xs; calcTool(); });
+}
+function __mdExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#mdTable','mean-absolute-deviation.csv'); } catch (e) {}
+}
+function __mdPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#mdPresets',[
+        {label:'教科书例 2,4,4,4,5,5,7,9',labelEn:'Textbook 2,4,4,4,5,5,7,9',values:{xs:'2,4,4,4,5,5,7,9'}},
+        {label:'对称分布 1,2,3,4,5',labelEn:'Symmetric 1,2,3,4,5',values:{xs:'1,2,3,4,5'}},
+        {label:'含异常值 10,11,12,13,80',labelEn:'With outlier 10,11,12,13,80',values:{xs:'10,11,12,13,80'}},
+        {label:'交付时长 3,5,4,6,5,4,7,5',labelEn:'Delivery days 3,5,4,6,5,4,7,5',values:{xs:'3,5,4,6,5,4,7,5'}}
+    ],function(){ calcTool(); });
+}
+
+var __tb_fn0 = calcTool;
+calcTool = function () { __tb_fn0(); try { __mdExtras(); } catch (e) {} };
+calcTool();
+__mdPresets();
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

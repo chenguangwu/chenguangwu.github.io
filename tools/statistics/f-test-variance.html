@@ -142,12 +142,20 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="ftPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
-    </div>
+          <button class="btn" onclick="__ftExport()">导出明细 CSV</button>
+</div>
 
     <div class="result-box" id="result"></div>
+    <div id="ftDiff"></div>
+    <div id="ftHist"></div>
+    <div id="ftTable"></div>
+    <div id="ftMatrix"></div>
+
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -297,6 +305,70 @@ function resetForm(){document.getElementById('s1').value = '25';
       document.getElementById('n2').value = '18';
       calcTool();}
 calcTool();
+
+function __ftNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+
+function __ftExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var v1=__ftNum('s1'), v2=__ftNum('s2'), n1=__ftNum('n1'), n2=__ftNum('n2');
+    if(!isFinite(v1)||!isFinite(v2)||!isFinite(n1)||!isFinite(n2)||v1<=0||v2<=0||n1<2||n2<2) return;
+    var en=TBKit.util.isEn();
+    var df1=n1-1, df2=n2-1;
+    var F=v1/v2;
+    var p=TBKit.util.fP2(F,df1,df2);
+    TBKit.matrix.table('#ftTable',{
+        head: en?['Item','Value','Note']:['项目','数值','说明'],
+        rows: en?[
+            ['Variance 1', v1.toFixed(4), 's²₁'],
+            ['Variance 2', v2.toFixed(4), 's²₂'],
+            ['F ratio', F.toFixed(4), 's²₁ / s²₂'],
+            ['df1 / df2', df1+' / '+df2, 'n₁−1 / n₂−1'],
+            ['Two-sided p', p.toFixed(6), p<0.05?'variances differ':'no evidence of difference'],
+            ['SD ratio', Math.sqrt(F).toFixed(4), 's₁ / s₂']
+        ]:[
+            ['样本 1 方差', v1.toFixed(4), 's²₁'],
+            ['样本 2 方差', v2.toFixed(4), 's²₂'],
+            ['方差比 F', F.toFixed(4), 's²₁ / s²₂'],
+            ['自由度 df1 / df2', df1+' / '+df2, 'n₁−1 / n₂−1'],
+            ['双侧 p 值', p.toFixed(6), p<0.05?'方差不齐（差异显著）':'未见方差不齐'],
+            ['标准差之比', Math.sqrt(F).toFixed(4), 's₁ / s₂']
+        ]
+    });
+    var dfs=[5,10,15,20,30,60,120], mrows=[];
+    dfs.forEach(function(k){
+        var lo=0, hi=50;
+        for(var i=0;i<70;i++){ var mid=(lo+hi)/2; if(TBKit.util.fP(mid,df1,k)>0.025) lo=mid; else hi=mid; }
+        mrows.push(['df2 = '+k, ((lo+hi)/2).toFixed(3)]);
+    });
+    TBKit.matrix.table('#ftMatrix',{
+        head: en?['Denominator df','F critical (α=0.05, two-sided)']:['分母自由度 df2','F 临界值（α=0.05 双侧）'],
+        rows: mrows
+    });
+    TBKit.history.record({s1:v1,s2:v2,n1:n1,n2:n2,f:Number(F.toFixed(4))});
+    TBKit.util.diffBox('#ftDiff',['f']);
+    TBKit.history.mount('#ftHist',function(v){
+        ['s1','s2','n1','n2'].forEach(function(k){ if(v[k]!=null)document.getElementById(k).value=v[k]; });
+        calcTool();
+    });
+}
+function __ftExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#ftMatrix','f-critical.csv'); } catch (e) {}
+}
+function __ftPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#ftPresets',[
+        {label:'方差接近 25 vs 16（n=20/18）',labelEn:'Similar 25 vs 16 (n=20/18)',values:{s1:25,s2:16,n1:20,n2:18}},
+        {label:'方差悬殊 100 vs 25（n=15/15）',labelEn:'Very different 100 vs 25',values:{s1:100,s2:25,n1:15,n2:15}},
+        {label:'大样本微差 30 vs 26（n=100/100）',labelEn:'Large n 30 vs 26',values:{s1:30,s2:26,n1:100,n2:100}},
+        {label:'小样本 9 vs 4（n=6/6）',labelEn:'Small n 9 vs 4',values:{s1:9,s2:4,n1:6,n2:6}}
+    ],function(){ calcTool(); });
+}
+
+var __tb_fn0 = calcTool;
+calcTool = function () { __tb_fn0(); try { __ftExtras(); } catch (e) {} };
+calcTool();
+__ftPresets();
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

@@ -183,6 +183,17 @@
     if (!(df > 0) || !isFinite(t)) return NaN;
     return betai(df / 2, 0.5, df / (df + t * t));
   }
+  /** F 分布上尾概率 P(F > f)，df1=分子自由度 df2=分母自由度 */
+  function fP(f, df1, df2) {
+    if (!(df1 > 0) || !(df2 > 0) || !isFinite(f) || f <= 0) return NaN;
+    return betai(df2 / 2, df1 / 2, df2 / (df2 + df1 * f));
+  }
+  /** F 检验双尾 p（方差齐性 / ANOVA 常用） */
+  function fP2(f, df1, df2) {
+    var u = fP(f, df1, df2);
+    if (!isFinite(u)) return NaN;
+    return Math.min(1, 2 * Math.min(u, 1 - u));
+  }
   /** t 分布双尾临界值（二分法，α 常用 0.1/0.05/0.01） */
   function tCrit(df, alpha) {
     if (!(df > 0)) return NaN;
@@ -763,6 +774,62 @@
     return mount(host, c.svg);
   };
 
+  /**
+   * 组间区间条：每组一行，画 [mean − spread, mean + spread] 区间 + 中心均值线。
+   * 适合「两组/多组均值与离散度对比」「效应量重叠度」「组间 ± 误差界」等场景。
+   * cfg: { groups: [{label, mean, spread, color, n}], title, height, unit }
+   */
+  chart.rangeBar = function (host, cfg) {
+    cfg = cfg || {};
+    var rows = [];
+    (cfg.groups || []).forEach(function (g) {
+      var m = num(g.mean), sp = Math.abs(num(g.spread));
+      if (!isFinite(m)) return;
+      rows.push({ label: g.label || '', mean: m, spread: isFinite(sp) ? sp : 0, color: g.color, n: g.n });
+    });
+    if (!rows.length) return null;
+    var lo = Infinity, hi = -Infinity;
+    rows.forEach(function (g) { lo = Math.min(lo, g.mean - g.spread); hi = Math.max(hi, g.mean + g.spread); });
+    if (!(hi > lo)) { lo -= 1; hi += 1; }
+    var pv = (hi - lo) * 0.1; lo -= pv; hi += pv;
+    var h = cfg.height || (52 + rows.length * 46);
+    var c = canvas(host, {
+      height: h, title: cfg.title || (isEn() ? 'Group intervals' : '组间区间对比'),
+      padding: { t: 36, r: 24, b: 32, l: 92 }
+    });
+    var X = function (v) { return c.pad.l + c.iw * (v - lo) / (hi - lo); };
+    var step = c.ih / rows.length;
+    var unit = cfg.unit || '';
+    rows.forEach(function (g, i) {
+      var y = c.pad.t + step * (i + 0.5);
+      var col = g.color || PALETTE[i % PALETTE.length];
+      var x0 = X(g.mean - g.spread), x1 = X(g.mean + g.spread);
+      var barH = Math.min(28, step * 0.5);
+      c.svg.appendChild(s('rect', {
+        x: x0, y: y - barH / 2, width: Math.max(2, x1 - x0), height: barH, rx: 6,
+        fill: col, 'fill-opacity': 0.2, stroke: col, 'stroke-width': 1.5
+      }));
+      [x0, x1].forEach(function (x) {
+        c.svg.appendChild(s('line', { x1: x, y1: y - barH / 2 - 4, x2: x, y2: y + barH / 2 + 4, stroke: col, 'stroke-width': 2 }));
+      });
+      c.svg.appendChild(s('line', { x1: X(g.mean), y1: y - barH / 2 - 6, x2: X(g.mean), y2: y + barH / 2 + 6, stroke: col, 'stroke-width': 3 }));
+      var tl = s('text', { x: c.pad.l - 10, y: y + 4, 'text-anchor': 'end', 'font-size': 11, fill: 'var(--text, #111827)' });
+      tl.appendChild(document.createTextNode(g.label + (g.n ? ' (n=' + g.n + ')' : '')));
+      c.svg.appendChild(tl);
+      var tv = s('text', { x: X(g.mean), y: y - barH / 2 - 10, 'text-anchor': 'middle', 'font-size': 10, fill: 'var(--text-muted, #6B7280)' });
+      tv.appendChild(document.createTextNode(fmt(g.mean, 2) + (g.spread ? ' ± ' + fmt(g.spread, 2) : '') + unit));
+      c.svg.appendChild(tv);
+    });
+    for (var i = 0; i <= 2; i++) {
+      var v = lo + (hi - lo) * i / 2, x = X(v);
+      c.svg.appendChild(s('line', { x1: x, y1: c.pad.t + c.ih, x2: x, y2: c.pad.t + c.ih + 4, stroke: 'var(--border, #E5E7EB)', 'stroke-width': 1 }));
+      var t = s('text', { x: x, y: c.pad.t + c.ih + 17, 'text-anchor': 'middle', 'font-size': 10, fill: 'var(--text-muted, #6B7280)' });
+      t.appendChild(document.createTextNode(fmt(v, 1) + unit));
+      c.svg.appendChild(t);
+    }
+    return mount(host, c.svg);
+  };
+
   chart.histogram = function (host, cfg) {
     cfg = cfg || {};
     var data = (cfg.data || []).map(num);
@@ -1153,7 +1220,7 @@
       fmt: fmt, num: num, toast: toast, el: el, svg: s, palette: PALETTE, isEn: isEn,
       lang: function (en, zh) { return isEn() ? en : zh; },
       parseList: parseList, diffBox: diffBox, exportCsv: exp.csv, exportTable: exportTable,
-      erf: erf, normCdf: normCdf, tP2: tP2, tCrit: tCrit
+      erf: erf, normCdf: normCdf, tP2: tP2, tCrit: tCrit, fP: fP, fP2: fP2
     },
     chart: chart,
     preset: preset,

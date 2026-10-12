@@ -142,12 +142,20 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="rrPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
-    </div>
+          <button class="btn" onclick="__rrExport()">导出明细 CSV</button>
+</div>
 
     <div class="result-box" id="result"></div>
+    <div id="rrDiff"></div>
+    <div id="rrHist"></div>
+    <div id="rrTable"></div>
+    <div id="rrMatrix"></div>
+
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -263,6 +271,79 @@ function resetForm(){document.getElementById('a').value = '40';
       document.getElementById('d').value = '80';
       calcTool();}
 calcTool();
+
+function __rrNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+
+function __rrExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var a=__rrNum('a'), b=__rrNum('b'), c=__rrNum('c'), d=__rrNum('d');
+    if(!isFinite(a)||!isFinite(b)||!isFinite(c)||!isFinite(d)) return;
+    if(a<0||b<0||c<0||d<0) return;
+    if(!(a+b>0)||!(c+d>0)||!(c>0)||!(a>0)) return;
+    var en=TBKit.util.isEn();
+    var e1=a/(a+b), e0=c/(c+d);
+    var RR=e1/Math.max(e0,1e-12);
+    var se=Math.sqrt(1/a-1/(a+b)+1/c-1/(c+d));
+    var lo=Math.exp(Math.log(RR)-1.96*se), hi=Math.exp(Math.log(RR)+1.96*se);
+    var arr=e1-e0;
+    var nnt=Math.abs(arr)>1e-9?Math.ceil(1/Math.abs(arr)):0;
+    TBKit.matrix.table('#rrTable',{
+        head: en?['Item','Value','Note']:['项目','数值','说明'],
+        rows: en?[
+            ['Exposed event rate', e1.toFixed(4), (e1*100).toFixed(2)+'% = a/(a+b)'],
+            ['Unexposed event rate', e0.toFixed(4), (e0*100).toFixed(2)+'% = c/(c+d)'],
+            ['Relative risk RR', RR.toFixed(4), 'e1 / e0'],
+            ['ln(RR)', Math.log(RR).toFixed(4), 'log scale'],
+            ['SE of ln(RR)', se.toFixed(4), 'Katz formula'],
+            ['95% CI', lo.toFixed(4)+' – '+hi.toFixed(4), (lo<=1&&hi>=1)?'contains 1':'excludes 1'],
+            ['Absolute risk diff', arr.toFixed(4), (arr*100).toFixed(2)+' pp'],
+            ['NNT / NNH', String(nnt), arr>0?'NNT (harm)':'NNT (benefit)']
+        ]:[
+            ['暴露组发生率', e1.toFixed(4), (e1*100).toFixed(2)+'% = a/(a+b)'],
+            ['非暴露组发生率', e0.toFixed(4), (e0*100).toFixed(2)+'% = c/(c+d)'],
+            ['相对风险 RR', RR.toFixed(4), 'e1 / e0'],
+            ['ln(RR)', Math.log(RR).toFixed(4), '对数尺度'],
+            ['ln(RR) 标准误', se.toFixed(4), 'Katz 公式'],
+            ['95% 置信区间', lo.toFixed(4)+' – '+hi.toFixed(4), (lo<=1&&hi>=1)?'含 1（不显著）':'不含 1（显著）'],
+            ['绝对风险差 ARR', arr.toFixed(4), (arr*100).toFixed(2)+' 百分点'],
+            ['需治疗人数 NNT', String(nnt), arr>0?'NNH（致害）':'NNT（获益）']
+        ]
+    });
+    var es=[0.01,0.05,0.1,0.2,0.4], mrows=[];
+    es.forEach(function(u){
+        var row=[(u*100).toFixed(0)+'%'];
+        es.forEach(function(v){ row.push((u/Math.max(v,1e-9)).toFixed(2)); });
+        mrows.push(row);
+    });
+    TBKit.matrix.table('#rrMatrix',{
+        head: en?['Exposed ↓ / Unexposed →','1%','5%','10%','20%','40%']:['暴露组↓ / 非暴露组→','1%','5%','10%','20%','40%'],
+        rows: mrows
+    });
+    TBKit.history.record({a:a,b:b,c:c,d:d,rr:Number(RR.toFixed(4))});
+    TBKit.util.diffBox('#rrDiff',['rr']);
+    TBKit.history.mount('#rrHist',function(v){
+        ['a','b','c','d'].forEach(function(k){ if(v[k]!=null)document.getElementById(k).value=v[k]; });
+        calcTool();
+    });
+}
+function __rrExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#rrMatrix','relative-risk-grid.csv'); } catch (e) {}
+}
+function __rrPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#rrPresets',[
+        {label:'吸烟与肺癌 40/60/20/80',labelEn:'Smoking & lung cancer 40/60/20/80',values:{a:40,b:60,c:20,d:80}},
+        {label:'疫苗保护 10/90/30/70',labelEn:'Vaccine 10/90/30/70',values:{a:10,b:90,c:30,d:70}},
+        {label:'强风险 60/40/10/90',labelEn:'Strong risk 60/40/10/90',values:{a:60,b:40,c:10,d:90}},
+        {label:'无关联 30/70/30/70',labelEn:'Null 30/70/30/70',values:{a:30,b:70,c:30,d:70}}
+    ],function(){ calcTool(); });
+}
+
+var __tb_fn0 = calcTool;
+calcTool = function () { __tb_fn0(); try { __rrExtras(); } catch (e) {} };
+calcTool();
+__rrPresets();
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

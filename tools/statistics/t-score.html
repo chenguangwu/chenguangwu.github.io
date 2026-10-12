@@ -142,12 +142,19 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="tsPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
-    </div>
+          <button class="btn" onclick="__tsExport()">导出明细 CSV</button>
+</div>
 
     <div class="result-box" id="result"></div>
+    <div id="tsDiff"></div>
+    <div id="tsHist"></div>
+    <div id="tsTable"></div>
+
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -275,6 +282,69 @@ function resetForm(){document.getElementById('xbar').value = '105';
       document.getElementById('n').value = '25';
       calcTool();}
 calcTool();
+
+function __tsNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __tsList(id){var e=document.getElementById(id);return e?TBKit.util.parseList(e.value):[];}
+
+function __tsExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var xb=__tsNum('xbar'), mu=__tsNum('mu'), s=__tsNum('s'), n=__tsNum('n');
+    if(!isFinite(xb)||!isFinite(mu)||!isFinite(s)||!isFinite(n)||s<=0||n<2) return;
+    var en=TBKit.util.isEn();
+    var se=s/Math.sqrt(n), df=n-1, t=(xb-mu)/se;
+    var p=TBKit.util.tP2(t,df);
+    var tc=TBKit.util.tCrit(df,0.05);
+    var lo=xb-tc*se, hi=xb+tc*se;
+    TBKit.matrix.table('#tsTable',{
+        head: en?['Item','Value','Note']:['项目','数值','说明'],
+        rows: en?[
+            ['Sample mean', xb.toFixed(4), 'x̄'],
+            ['Hypothesised μ', mu.toFixed(4), 'H₀'],
+            ['Standard error', se.toFixed(4), 's/√n'],
+            ['t statistic', t.toFixed(4), '(x̄−μ)/SE'],
+            ['df', String(df), 'n − 1'],
+            ['Two-sided p', p.toFixed(6), p<0.05?'significant at 5%':'not significant'],
+            ['95% CI', lo.toFixed(4)+' – '+hi.toFixed(4), (mu>=lo&&mu<=hi)?'contains μ':'excludes μ'],
+            ['Cohen d', (t/Math.sqrt(n)).toFixed(4), 'd = t/√n']
+        ]:[
+            ['样本均值', xb.toFixed(4), 'x̄'],
+            ['假设均值 μ', mu.toFixed(4), 'H₀'],
+            ['标准误', se.toFixed(4), 's/√n'],
+            ['t 统计量', t.toFixed(4), '(x̄−μ)/SE'],
+            ['自由度 df', String(df), 'n − 1'],
+            ['双侧 p 值', p.toFixed(6), p<0.05?'5% 水平显著':'不显著'],
+            ['95% 置信区间', lo.toFixed(4)+' – '+hi.toFixed(4), (mu>=lo&&mu<=hi)?'含 μ':'不含 μ'],
+            ['Cohen d', (t/Math.sqrt(n)).toFixed(4), 'd = t/√n']
+        ]
+    });
+    TBKit.history.record({xbar:xb,mu:mu,s:s,n:n,t:Number(t.toFixed(4))});
+    TBKit.util.diffBox('#tsDiff',['t']);
+    TBKit.history.mount('#tsHist',function(v){
+        if(v.xbar!=null)document.getElementById('xbar').value=v.xbar;
+        if(v.mu!=null)document.getElementById('mu').value=v.mu;
+        if(v.s!=null)document.getElementById('s').value=v.s;
+        if(v.n!=null)document.getElementById('n').value=v.n;
+        calcTool();
+    });
+}
+function __tsExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#tsTable','t-score.csv'); } catch (e) {}
+}
+function __tsPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#tsPresets',[
+        {label:'显著：105 vs 100（s=10, n=25）',labelEn:'Significant 105 vs 100 (s=10, n=25)',values:{xbar:105,mu:100,s:10,n:25}},
+        {label:'不显著：102 vs 100（s=15, n=9）',labelEn:'Not significant 102 vs 100 (s=15, n=9)',values:{xbar:102,mu:100,s:15,n:9}},
+        {label:'负向：96 vs 100（s=8, n=16）',labelEn:'Negative 96 vs 100 (s=8, n=16)',values:{xbar:96,mu:100,s:8,n:16}},
+        {label:'大样本：101 vs 100（s=20, n=400）',labelEn:'Large n 101 vs 100 (s=20, n=400)',values:{xbar:101,mu:100,s:20,n:400}}
+    ],function(){ calcTool(); });
+}
+
+var __tb_fn0 = calcTool;
+calcTool = function () { __tb_fn0(); try { __tsExtras(); } catch (e) {} };
+calcTool();
+__tsPresets();
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

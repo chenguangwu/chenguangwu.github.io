@@ -128,12 +128,21 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="rsPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
-    </div>
+          <button class="btn" onclick="__rsExport()">导出明细 CSV</button>
+</div>
 
     <div class="result-box" id="result"></div>
+    <div id="rsChart" role="img" aria-label="结果可视化"></div>
+    <div id="rsDiff"></div>
+    <div id="rsHist"></div>
+    <div id="rsTable"></div>
+    <div id="rsStat"></div>
+
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -245,6 +254,69 @@ const raw=document.getElementById('xs').value.split(/[ ,]+/).filter(Boolean).map
 function resetForm(){document.getElementById('xs').value = '2, 4, 4, 4, 5, 5, 7, 9';
       calcTool();}
 calcTool();
+
+function __rsNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __rsList(id){var e=document.getElementById(id);return e?TBKit.util.parseList(e.value):[];}
+
+function __rsExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var raw=document.getElementById('xs').value;
+    var arr=TBKit.util.parseList(raw);
+    var n=arr.length; if(!n) return;
+    var en=TBKit.util.isEn();
+    var srt=arr.slice().sort(function(a,b){return a-b;});
+    var mn=srt[0], mx=srt[n-1], R=mx-mn;
+    var mean=arr.reduce(function(a,b){return a+b;},0)/n;
+    var mid=n%2?srt[(n-1)/2]:(srt[n/2-1]+srt[n/2])/2;
+    var show=srt, note='';
+    if(n>13){ show=[]; var step=(n-1)/11; for(var q=0;q<12;q++) show.push(srt[Math.round(q*step)]); note=en?' (sampled)':'（抽样显示）'; }
+    var items=show.map(function(v){ return {label:String(v), color: v===mn?'#3B82F6':(v===mx?'#EF4444':'#94A3B8')}; });
+    TBKit.chart.timeline('#rsChart',{items:items,title:(en?('Sorted axis '+mn+' → '+mx):('排序数据轴 '+mn+' → '+mx+'（极差 '+R.toFixed(2)+'）'))+note});
+    var rows=srt.map(function(v,i){ return [String(i+1), String(v), (v-mn).toFixed(4), R>0?((v-mn)/R*100).toFixed(1)+'%':'—']; });
+    TBKit.matrix.table('#rsTable',{
+        head: en?['#','Value','Gap from min','Position']:['#','数值','距最小值','极差内位置'],
+        rows: rows
+    });
+    TBKit.matrix.table('#rsStat',{
+        head: en?['Item','Value','Note']:['项目','数值','说明'],
+        rows: en?[
+            ['Minimum', String(mn), 'blue end'],
+            ['Maximum', String(mx), 'red end'],
+            ['Range R', R.toFixed(4), 'max − min'],
+            ['Mean', mean.toFixed(4), 'average'],
+            ['Median', String(mid), 'middle'],
+            ['R / mean', (mean!==0?(R/Math.abs(mean)).toFixed(4):'—'), 'relative spread']
+        ]:[
+            ['最小值', String(mn), '轴左端'],
+            ['最大值', String(mx), '轴右端'],
+            ['极差 R', R.toFixed(4), '最大值 − 最小值'],
+            ['均值', mean.toFixed(4), '算术平均'],
+            ['中位数', String(mid), '中间位置'],
+            ['极差 / 均值', (mean!==0?(R/Math.abs(mean)).toFixed(4):'—'), '相对离散度']
+        ]
+    });
+    TBKit.history.record({xs:raw,r:Number(R.toFixed(4))});
+    TBKit.util.diffBox('#rsDiff',['r']);
+    TBKit.history.mount('#rsHist',function(v){ if(v.xs!=null)document.getElementById('xs').value=v.xs; calcTool(); });
+}
+function __rsExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#rsTable','range-stat.csv'); } catch (e) {}
+}
+function __rsPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#rsPresets',[
+        {label:'教科书例 2,4,4,4,5,5,7,9',labelEn:'Textbook 2,4,4,4,5,5,7,9',values:{xs:'2,4,4,4,5,5,7,9'}},
+        {label:'气温波动 18,22,25,31,29,20',labelEn:'Temps 18,22,25,31,29,20',values:{xs:'18,22,25,31,29,20'}},
+        {label:'价格区间 99,129,159,199,259',labelEn:'Prices 99,129,159,199,259',values:{xs:'99,129,159,199,259'}},
+        {label:'含极端值 10,11,12,13,120',labelEn:'With outlier 10,11,12,13,120',values:{xs:'10,11,12,13,120'}}
+    ],function(){ calcTool(); });
+}
+
+var __tb_fn0 = calcTool;
+calcTool = function () { __tb_fn0(); try { __rsExtras(); } catch (e) {} };
+calcTool();
+__rsPresets();
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

@@ -132,12 +132,20 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="cvPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
-    </div>
+          <button class="btn" onclick="__cvExport()">导出明细 CSV</button>
+</div>
 
     <div class="result-box" id="result"></div>
+    <div id="cvDiff"></div>
+    <div id="cvHist"></div>
+    <div id="cvTable"></div>
+    <div id="cvMatrix"></div>
+
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -251,6 +259,71 @@ function resetForm(){document.getElementById('mu').value = '5';
       document.getElementById('sigma').value = '2';
       calcTool();}
 calcTool();
+
+function __cvNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+
+function __cvExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var mu=__cvNum('mu'), sg=__cvNum('sigma');
+    if(!isFinite(mu)||!isFinite(sg)||mu===0) return;
+    var en=TBKit.util.isEn();
+    var CV=Math.abs(sg/mu)*100;
+    var lvl = CV<10?(en?'very low':'极低波动'):CV<20?(en?'low':'低波动'):CV<30?(en?'moderate':'中等波动'):CV<50?(en?'high':'高波动'):(en?'very high':'极高波动');
+    TBKit.matrix.table('#cvTable',{
+        head: en?['Item','Value','Note']:['项目','数值','说明'],
+        rows: en?[
+            ['Mean μ', mu.toFixed(4), 'given'],
+            ['SD σ', sg.toFixed(4), 'given'],
+            ['CV (%)', CV.toFixed(4), 'σ/|μ|'],
+            ['CV (ratio)', (Math.abs(sg/mu)).toFixed(5), 'decimal form'],
+            ['Signal/noise', (Math.abs(mu/sg)).toFixed(4), '|μ|/σ'],
+            ['Level', lvl, 'rule of thumb']
+        ]:[
+            ['均值 μ', mu.toFixed(4), '输入'],
+            ['标准差 σ', sg.toFixed(4), '输入'],
+            ['变异系数 CV (%)', CV.toFixed(4), 'σ/|μ|'],
+            ['CV 小数形式', (Math.abs(sg/mu)).toFixed(5), '比值'],
+            ['信噪比', (Math.abs(mu/sg)).toFixed(4), '|μ|/σ'],
+            ['波动等级', lvl, '经验判据']
+        ]
+    });
+    var mrows=[
+        ['< 10%', en?'very low':'极低波动', en?'precision manufacturing':'精密制造、标准件'],
+        ['10 – 20%', en?'low':'低波动', en?'stable processes':'稳定工艺、成熟品类'],
+        ['20 – 30%', en?'moderate':'中等波动', en?'normal business metrics':'普通业务指标'],
+        ['30 – 50%', en?'high':'高波动', en?'sales, traffic':'销售额、流量'],
+        ['> 50%', en?'very high':'极高波动', en?'long tail, new products':'长尾、新品、爆款']
+    ];
+    TBKit.matrix.table('#cvMatrix',{
+        head: en?['CV range','Level','Typical case']:['CV 区间','波动等级','典型场景'],
+        rows: mrows
+    });
+    TBKit.history.record({mu:mu,sigma:sg,cv:Number(CV.toFixed(4))});
+    TBKit.util.diffBox('#cvDiff',['cv']);
+    TBKit.history.mount('#cvHist',function(v){
+        if(v.mu!=null)document.getElementById('mu').value=v.mu;
+        if(v.sigma!=null)document.getElementById('sigma').value=v.sigma;
+        calcTool();
+    });
+}
+function __cvExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#cvMatrix','cv-benchmark.csv'); } catch (e) {}
+}
+function __cvPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#cvPresets',[
+        {label:'零件尺寸 μ=50, σ=0.5',labelEn:'Part size μ=50, σ=0.5',values:{mu:50,sigma:0.5}},
+        {label:'月销售额 μ=120, σ=30',labelEn:'Monthly sales μ=120, σ=30',values:{mu:120,sigma:30}},
+        {label:'股价波动 μ=25, σ=12',labelEn:'Stock price μ=25, σ=12',values:{mu:25,sigma:12}},
+        {label:'考试分数 μ=75, σ=8',labelEn:'Exam score μ=75, σ=8',values:{mu:75,sigma:8}}
+    ],function(){ calcTool(); });
+}
+
+var __tb_fn0 = calcTool;
+calcTool = function () { __tb_fn0(); try { __cvExtras(); } catch (e) {} };
+calcTool();
+__cvPresets();
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

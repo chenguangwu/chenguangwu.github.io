@@ -164,12 +164,21 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="anPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
-    </div>
+          <button class="btn" onclick="__anExport()">导出明细 CSV</button>
+</div>
 
     <div class="result-box" id="result"></div>
+    <div id="anChart" role="img" aria-label="结果可视化"></div>
+    <div id="anDiff"></div>
+    <div id="anHist"></div>
+    <div id="anTable"></div>
+    <div id="anStat"></div>
+
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -316,6 +325,84 @@ function resetForm(){document.getElementById('m1').value = '10';
       document.getElementById('n3').value = '10';
       calcTool();}
 calcTool();
+
+function __anNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+
+function __anExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var ms=[__anNum('m1'),__anNum('m2'),__anNum('m3')];
+    var ss=[__anNum('s1'),__anNum('s2'),__anNum('s3')];
+    var ns=[__anNum('n1'),__anNum('n2'),__anNum('n3')];
+    for(var i=0;i<3;i++){ if(!isFinite(ms[i])||!isFinite(ss[i])||!isFinite(ns[i])||ns[i]<2) return; }
+    var en=TBKit.util.isEn();
+    var N=ns[0]+ns[1]+ns[2];
+    var grand=(ms[0]*ns[0]+ms[1]*ns[1]+ms[2]*ns[2])/N;
+    var ssb=0, ssw=0;
+    for(var j=0;j<3;j++){ ssb+=ns[j]*Math.pow(ms[j]-grand,2); ssw+=(ns[j]-1)*ss[j]*ss[j]; }
+    var dfB=2, dfW=N-3;
+    var msb=ssb/dfB, msw=ssw/Math.max(dfW,1);
+    var F=msw>0?msb/msw:NaN;
+    var p=TBKit.util.fP(F,dfB,dfW);
+    var eta2=(ssb+ssw)>0?ssb/(ssb+ssw):0;
+    TBKit.chart.bar('#anChart',{
+        labels: en?['Group 1','Group 2','Group 3']:['组 1','组 2','组 3'],
+        series: [{name: en?'Group mean':'组均值', data: [ms[0],ms[1],ms[2]], color:'#3B82F6'}],
+        height: 200,
+        title: en?('Group means (grand mean '+grand.toFixed(3)+')'):('三组均值对比（总均值 '+grand.toFixed(3)+'）')
+    });
+    TBKit.matrix.table('#anTable',{
+        head: en?['Source','SS','df','MS','F','p']:['来源','平方和 SS','自由度 df','均方 MS','F 值','p 值'],
+        rows: en?[
+            ['Between groups', ssb.toFixed(4), String(dfB), msb.toFixed(4), isFinite(F)?F.toFixed(4):'—', isFinite(p)?p.toFixed(6):'—'],
+            ['Within groups', ssw.toFixed(4), String(dfW), msw.toFixed(4), '—', '—'],
+            ['Total', (ssb+ssw).toFixed(4), String(N-1), '—', '—', '—']
+        ]:[
+            ['组间', ssb.toFixed(4), String(dfB), msb.toFixed(4), isFinite(F)?F.toFixed(4):'—', isFinite(p)?p.toFixed(6):'—'],
+            ['组内', ssw.toFixed(4), String(dfW), msw.toFixed(4), '—', '—'],
+            ['合计', (ssb+ssw).toFixed(4), String(N-1), '—', '—', '—']
+        ]
+    });
+    TBKit.matrix.table('#anStat',{
+        head: en?['Item','Value','Note']:['项目','数值','说明'],
+        rows: en?[
+            ['Grand mean', grand.toFixed(4), 'weighted'],
+            ['η² (eta squared)', eta2.toFixed(4), eta2>=0.14?'large':eta2>=0.06?'medium':'small'],
+            ['Conclusion', isFinite(p)&&p<0.05?'at least one group differs':'no significant difference', 'α = 0.05'],
+            ['Largest group mean', String(Math.max.apply(null,ms)), '—'],
+            ['Smallest group mean', String(Math.min.apply(null,ms)), '—']
+        ]:[
+            ['总均值', grand.toFixed(4), '按样本量加权'],
+            ['效应量 η²', eta2.toFixed(4), eta2>=0.14?'大效应':eta2>=0.06?'中效应':'小效应'],
+            ['结论', isFinite(p)&&p<0.05?'至少一组与其他组不同':'三组未见显著差异', 'α = 0.05'],
+            ['最大组均值', String(Math.max.apply(null,ms)), '—'],
+            ['最小组均值', String(Math.min.apply(null,ms)), '—']
+        ]
+    });
+    TBKit.history.record({m1:ms[0],m2:ms[1],m3:ms[2],s1:ss[0],s2:ss[1],s3:ss[2],n1:ns[0],n2:ns[1],n3:ns[2],f:Number((isFinite(F)?F:0).toFixed(4))});
+    TBKit.util.diffBox('#anDiff',['f']);
+    TBKit.history.mount('#anHist',function(v){
+        ['m1','m2','m3','s1','s2','s3','n1','n2','n3'].forEach(function(k){ if(v[k]!=null)document.getElementById(k).value=v[k]; });
+        calcTool();
+    });
+}
+function __anExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#anTable','one-way-anova.csv'); } catch (e) {}
+}
+function __anPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#anPresets',[
+        {label:'等距三组 10/12/14（s=2, n=10）',labelEn:'Evenly spaced 10/12/14 (s=2, n=10)',values:{m1:10,m2:12,m3:14,s1:2,s2:2,s3:2,n1:10,n2:10,n3:10}},
+        {label:'无差异 10/10.2/9.8（s=3, n=20）',labelEn:'No difference 10/10.2/9.8',values:{m1:10,m2:10.2,m3:9.8,s1:3,s2:3,s3:3,n1:20,n2:20,n3:20}},
+        {label:'一组突出 10/11/20（s=2, n=15）',labelEn:'One stands out 10/11/20',values:{m1:10,m2:11,m3:20,s1:2,s2:2,s3:2,n1:15,n2:15,n3:15}},
+        {label:'组内差异大 10/14/18（s=6, n=8）',labelEn:'Noisy 10/14/18 (s=6, n=8)',values:{m1:10,m2:14,m3:18,s1:6,s2:6,s3:6,n1:8,n2:8,n3:8}}
+    ],function(){ calcTool(); });
+}
+
+var __tb_fn0 = calcTool;
+calcTool = function () { __tb_fn0(); try { __anExtras(); } catch (e) {} };
+calcTool();
+__anPresets();
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

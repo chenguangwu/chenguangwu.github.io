@@ -128,12 +128,21 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="sdPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
-    </div>
+          <button class="btn" onclick="__sdExport()">导出明细 CSV</button>
+</div>
 
     <div class="result-box" id="result"></div>
+    <div id="sdChart" role="img" aria-label="结果可视化"></div>
+    <div id="sdDiff"></div>
+    <div id="sdHist"></div>
+    <div id="sdTable"></div>
+    <div id="sdStat"></div>
+
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -191,6 +200,78 @@ function calcTool(){
 function resetForm(){document.getElementById('xs').value = '2, 4, 4, 4, 5, 5, 7, 9';
       calcTool();}
 calcTool();
+
+function __sdNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __sdList(id){var e=document.getElementById(id);return e?TBKit.util.parseList(e.value):[];}
+
+function __sdExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var raw=document.getElementById('xs').value;
+    var arr=TBKit.util.parseList(raw);
+    var n=arr.length; if(n<2) return;
+    var en=TBKit.util.isEn();
+    var mean=arr.reduce(function(a,b){return a+b;},0)/n;
+    var ss=arr.reduce(function(a,b){return a+(b-mean)*(b-mean);},0);
+    var s=Math.sqrt(ss/(n-1));
+    var labels=[],pos=[],neg=[],rows=[];
+    arr.forEach(function(v,i){
+        var dv=v-mean;
+        labels.push('#'+(i+1));
+        pos.push(dv>=0?dv:0);
+        neg.push(dv<0?-dv:0);
+        rows.push([String(i+1), String(v), dv.toFixed(4), (dv*dv).toFixed(4), s>0?(dv/s).toFixed(4):'—']);
+    });
+    TBKit.chart.bar('#sdChart',{
+        labels: labels,
+        series: [
+            {name: en?'above mean':'高于均值', data: pos, color:'#10B981'},
+            {name: en?'below mean':'低于均值', data: neg, color:'#EF4444'}
+        ],
+        height: 220,
+        title: en?('Deviation from mean (x̄ = '+mean.toFixed(3)+')'):('各点相对均值的离差（x̄ = '+mean.toFixed(3)+'）')
+    });
+    TBKit.matrix.table('#sdTable',{
+        head: en?['#','Value','x − x̄','(x − x̄)²','z score']:['#','数值','离差 x − x̄','离差平方','标准分 z'],
+        rows: rows
+    });
+    TBKit.matrix.table('#sdStat',{
+        head: en?['Item','Value','Note']:['项目','数值','说明'],
+        rows: en?[
+            ['Mean', mean.toFixed(4), 'x̄'],
+            ['Sample SD s', s.toFixed(4), '√(SS/(n−1))'],
+            ['Population SD', Math.sqrt(ss/n).toFixed(4), '√(SS/n)'],
+            ['Sum of squares', ss.toFixed(4), 'SS'],
+            ['CV', (s/Math.abs(mean)).toFixed(4), 's / |mean|']
+        ]:[
+            ['均值', mean.toFixed(4), 'x̄'],
+            ['样本标准差 s', s.toFixed(4), '√(SS/(n−1))'],
+            ['总体标准差', Math.sqrt(ss/n).toFixed(4), '√(SS/n)'],
+            ['离差平方和 SS', ss.toFixed(4), 'Σ(x−x̄)²'],
+            ['变异系数 CV', (s/Math.abs(mean)).toFixed(4), 's / |均值|']
+        ]
+    });
+    TBKit.history.record({xs:raw,s:Number(s.toFixed(4))});
+    TBKit.util.diffBox('#sdDiff',['s']);
+    TBKit.history.mount('#sdHist',function(v){ if(v.xs!=null)document.getElementById('xs').value=v.xs; calcTool(); });
+}
+function __sdExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#sdTable','stddev-list.csv'); } catch (e) {}
+}
+function __sdPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#sdPresets',[
+        {label:'教科书例 2,4,4,4,5,5,7,9',labelEn:'Textbook 2,4,4,4,5,5,7,9',values:{xs:'2,4,4,4,5,5,7,9'}},
+        {label:'高度集中 50,51,52,53,54',labelEn:'Tight 50,51,52,53,54',values:{xs:'50,51,52,53,54'}},
+        {label:'两极化 10,10,90,90',labelEn:'Bimodal 10,10,90,90',values:{xs:'10,10,90,90'}},
+        {label:'含异常 5,6,7,8,60',labelEn:'With outlier 5,6,7,8,60',values:{xs:'5,6,7,8,60'}}
+    ],function(){ calcTool(); });
+}
+
+var __tb_fn0 = calcTool;
+calcTool = function () { __tb_fn0(); try { __sdExtras(); } catch (e) {} };
+calcTool();
+__sdPresets();
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

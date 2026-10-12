@@ -132,12 +132,20 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="spPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
-    </div>
+          <button class="btn" onclick="__spExport()">导出明细 CSV</button>
+</div>
 
     <div class="result-box" id="result"></div>
+    <div id="spDiff"></div>
+    <div id="spHist"></div>
+    <div id="spTable"></div>
+    <div id="spMatrix"></div>
+
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -251,6 +259,66 @@ function resetForm(){document.getElementById('p').value = '0.5';
       document.getElementById('n').value = '100';
       calcTool();}
 calcTool();
+
+function __spNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __spList(id){var e=document.getElementById(id);return e?TBKit.util.parseList(e.value):[];}
+
+function __spExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var p=__spNum('p'), n=__spNum('n');
+    if(!isFinite(p)||!isFinite(n)||n<=0||p<0||p>1) return;
+    var en=TBKit.util.isEn();
+    var SE=Math.sqrt(p*(1-p)/n);
+    TBKit.matrix.table('#spTable',{
+        head: en?['Item','Value','Note']:['项目','数值','说明'],
+        rows: en?[
+            ['Proportion p', p.toFixed(4), 'given'],
+            ['SE', SE.toFixed(6), '√(p(1−p)/n)'],
+            ['95% half width', (1.96*SE).toFixed(6), '1.96·SE'],
+            ['95% CI', Math.max(0,p-1.96*SE).toFixed(4)+' – '+Math.min(1,p+1.96*SE).toFixed(4), 'Wald interval'],
+            ['Worst-case SE', (0.5/Math.sqrt(n)).toFixed(6), 'at p = 0.5'],
+            ['n for ±3%', String(Math.ceil(p*(1-p)/0.0009)), '95% confidence']
+        ]:[
+            ['比例 p', p.toFixed(4), '输入比例'],
+            ['比例标准误 SE', SE.toFixed(6), '√(p(1−p)/n)'],
+            ['95% 置信半宽', (1.96*SE).toFixed(6), '1.96·SE'],
+            ['95% 置信区间', Math.max(0,p-1.96*SE).toFixed(4)+' – '+Math.min(1,p+1.96*SE).toFixed(4), 'Wald 区间'],
+            ['最坏情况 SE', (0.5/Math.sqrt(n)).toFixed(6), 'p=0.5 时最大'],
+            ['误差 ±3% 所需 n', String(Math.ceil(p*(1-p)/0.0009)), '95% 置信']
+        ]
+    });
+    var ns=[30,50,100,200,400,800,1600], mrows=[];
+    ns.forEach(function(k){ var e=Math.sqrt(p*(1-p)/k); mrows.push([String(k), e.toFixed(5), (1.96*e*100).toFixed(2)+'%']); });
+    TBKit.matrix.table('#spMatrix',{
+        head: en?['n','SE','95% ± (pp)']:['样本量 n','标准误 SE','95% 半宽（百分点）'],
+        rows: mrows
+    });
+    TBKit.history.record({p:p,n:n,se:Number(SE.toFixed(6))});
+    TBKit.util.diffBox('#spDiff',['se']);
+    TBKit.history.mount('#spHist',function(v){
+        if(v.p!=null)document.getElementById('p').value=v.p;
+        if(v.n!=null)document.getElementById('n').value=v.n;
+        calcTool();
+    });
+}
+function __spExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#spMatrix','standard-error-proportion.csv'); } catch (e) {}
+}
+function __spPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#spPresets',[
+        {label:'抛硬币 p=0.5, n=100',labelEn:'Coin p=0.5, n=100',values:{p:0.5,n:100}},
+        {label:'点击率 2%, n=1000',labelEn:'CTR 2%, n=1000',values:{p:0.02,n:1000}},
+        {label:'合格率 95%, n=200',labelEn:'Pass rate 95%, n=200',values:{p:0.95,n:200}},
+        {label:'罕见事件 0.5%, n=4000',labelEn:'Rare event 0.5%, n=4000',values:{p:0.005,n:4000}}
+    ],function(){ calcTool(); });
+}
+
+var __tb_fn0 = calcTool;
+calcTool = function () { __tb_fn0(); try { __spExtras(); } catch (e) {} };
+calcTool();
+__spPresets();
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

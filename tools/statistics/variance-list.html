@@ -128,12 +128,20 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="vlPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
-    </div>
+          <button class="btn" onclick="__vlExport()">导出明细 CSV</button>
+</div>
 
     <div class="result-box" id="result"></div>
+    <div id="vlDiff"></div>
+    <div id="vlHist"></div>
+    <div id="vlTable"></div>
+    <div id="vlCmp"></div>
+
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -191,6 +199,64 @@ function calcTool(){
 function resetForm(){document.getElementById('xs').value = '2, 4, 4, 4, 5, 5, 7, 9';
       calcTool();}
 calcTool();
+
+function __vlNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __vlList(id){var e=document.getElementById(id);return e?TBKit.util.parseList(e.value):[];}
+
+function __vlExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var raw=document.getElementById('xs').value;
+    var arr=TBKit.util.parseList(raw);
+    var n=arr.length; if(n<2) return;
+    var en=TBKit.util.isEn();
+    var mean=arr.reduce(function(a,b){return a+b;},0)/n;
+    var ss=arr.reduce(function(a,b){return a+(b-mean)*(b-mean);},0);
+    var sv=ss/(n-1), pv=ss/n;
+    var rows=[];
+    arr.forEach(function(v,i){
+        var dv=v-mean;
+        rows.push([String(i+1), String(v), dv.toFixed(4), (dv*dv).toFixed(4), ss>0?(dv*dv/ss*100).toFixed(2)+'%':'—']);
+    });
+    TBKit.matrix.table('#vlTable',{
+        head: en?['#','Value','x − x̄','(x − x̄)²','Share of SS']:['#','数值','离差','离差平方','占平方和'],
+        rows: rows
+    });
+    TBKit.matrix.table('#vlCmp',{
+        head: en?['Basis','Variance','SD','Note']:['口径','方差','标准差','说明'],
+        rows: en?[
+            ['Sample (÷n−1)', sv.toFixed(4), Math.sqrt(sv).toFixed(4), 'unbiased'],
+            ['Population (÷n)', pv.toFixed(4), Math.sqrt(pv).toFixed(4), 'descriptive'],
+            ['Ratio', (sv/Math.max(pv,1e-12)).toFixed(4), '—', 'n/(n−1)'],
+            ['CV', (Math.sqrt(sv)/Math.abs(mean)).toFixed(4), '—', 'SD / |mean|']
+        ]:[
+            ['样本方差（÷n−1）', sv.toFixed(4), Math.sqrt(sv).toFixed(4), '无偏估计'],
+            ['总体方差（÷n）', pv.toFixed(4), Math.sqrt(pv).toFixed(4), '描述性'],
+            ['两者之比', (sv/Math.max(pv,1e-12)).toFixed(4), '—', 'n/(n−1)'],
+            ['变异系数 CV', (Math.sqrt(sv)/Math.abs(mean)).toFixed(4), '—', '标准差 / |均值|']
+        ]
+    });
+    TBKit.history.record({xs:raw,v:Number(sv.toFixed(4))});
+    TBKit.util.diffBox('#vlDiff',['v']);
+    TBKit.history.mount('#vlHist',function(v){ if(v.xs!=null)document.getElementById('xs').value=v.xs; calcTool(); });
+}
+function __vlExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#vlTable','variance-list.csv'); } catch (e) {}
+}
+function __vlPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#vlPresets',[
+        {label:'教科书例 2,4,4,4,5,5,7,9',labelEn:'Textbook 2,4,4,4,5,5,7,9',values:{xs:'2,4,4,4,5,5,7,9'}},
+        {label:'稳定生产 100,101,99,100,102',labelEn:'Stable line 100,101,99,100,102',values:{xs:'100,101,99,100,102'}},
+        {label:'波动大 20,45,30,60,15',labelEn:'Volatile 20,45,30,60,15',values:{xs:'20,45,30,60,15'}},
+        {label:'两点 0,10',labelEn:'Two points 0,10',values:{xs:'0,10'}}
+    ],function(){ calcTool(); });
+}
+
+var __tb_fn0 = calcTool;
+calcTool = function () { __tb_fn0(); try { __vlExtras(); } catch (e) {} };
+calcTool();
+__vlPresets();
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

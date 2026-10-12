@@ -151,12 +151,20 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="cdPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
-    </div>
+          <button class="btn" onclick="__cdExport()">导出明细 CSV</button>
+</div>
 
     <div class="result-box" id="result"></div>
+    <div id="cdChart" role="img" aria-label="结果可视化"></div>
+    <div id="cdDiff"></div>
+    <div id="cdHist"></div>
+    <div id="cdTable"></div>
+
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -273,6 +281,74 @@ function resetForm(){document.getElementById('m1').value = '30';
       document.getElementById('n2').value = '20';
       calcTool();}
 calcTool();
+
+function __cdNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+
+function __cdExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var m1=__cdNum('m1'), m2=__cdNum('m2'), s1=__cdNum('s1'), s2=__cdNum('s2'), n1=__cdNum('n1'), n2=__cdNum('n2');
+    if(!isFinite(m1)||!isFinite(m2)||!isFinite(s1)||!isFinite(s2)||!isFinite(n1)||!isFinite(n2)||n1<2||n2<2) return;
+    var en=TBKit.util.isEn();
+    var sp=Math.sqrt(((n1-1)*s1*s1+(n2-1)*s2*s2)/(n1+n2-2));
+    if(!(sp>0)) return;
+    var d=(m1-m2)/sp;
+    var ad=Math.abs(d);
+    var lvl = ad<0.2?(en?'very small':'极小'):ad<0.5?(en?'small':'小'):ad<0.8?(en?'medium':'中'):(en?'large':'大');
+    var u3=TBKit.util.normCdf(d)*100;
+    var sup=TBKit.util.normCdf(d/Math.SQRT2)*100;
+    var needN=ad>0.01?Math.ceil(16/(d*d)):0;
+    TBKit.chart.rangeBar('#cdChart',{
+        groups: [
+            {label: en?'Group 1':'组 1', mean: m1, spread: s1, n: n1, color:'#3B82F6'},
+            {label: en?'Group 2':'组 2', mean: m2, spread: s2, n: n2, color:'#F59E0B'}
+        ],
+        title: en?('Group means ± SD (d = '+d.toFixed(3)+')'):('两组均值 ± 标准差（d = '+d.toFixed(3)+'）')
+    });
+    TBKit.matrix.table('#cdTable',{
+        head: en?['Item','Value','Note']:['项目','数值','说明'],
+        rows: en?[
+            ['Mean difference', (m1-m2).toFixed(4), 'x̄₁ − x̄₂'],
+            ['Pooled SD', sp.toFixed(4), 's_p'],
+            ["Cohen's d", d.toFixed(4), '(x̄₁−x̄₂)/s_p'],
+            ['Effect size', lvl, 'Cohen benchmark'],
+            ['U3 overlap', u3.toFixed(2)+'%', 'group 1 above group 2 median'],
+            ['Superiority', sup.toFixed(2)+'%', 'P(random A > random B)'],
+            ['n per group (80% power)', String(needN), 'two-sided 0.05']
+        ]:[
+            ['均值差', (m1-m2).toFixed(4), 'x̄₁ − x̄₂'],
+            ['合并标准差 s_p', sp.toFixed(4), '√(((n₁−1)s₁²+(n₂−1)s₂²)/(n₁+n₂−2))'],
+            ["Cohen's d", d.toFixed(4), '(x̄₁−x̄₂)/s_p'],
+            ['效应强度', lvl, 'Cohen 参照'],
+            ['U3 重叠度', u3.toFixed(2)+'%', '组 1 高于组 2 中位数的比例'],
+            ['优势概率', sup.toFixed(2)+'%', '随机抽 A > 随机抽 B'],
+            ['80% 功效所需每组 n', String(needN), '双侧 0.05']
+        ]
+    });
+    TBKit.history.record({m1:m1,m2:m2,s1:s1,s2:s2,n1:n1,n2:n2,d:Number(d.toFixed(4))});
+    TBKit.util.diffBox('#cdDiff',['d']);
+    TBKit.history.mount('#cdHist',function(v){
+        ['m1','m2','s1','s2','n1','n2'].forEach(function(k){ if(v[k]!=null)document.getElementById(k).value=v[k]; });
+        calcTool();
+    });
+}
+function __cdExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#cdTable','cohens-d.csv'); } catch (e) {}
+}
+function __cdPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#cdPresets',[
+        {label:'大效应 30 vs 27（s=5, n=20）',labelEn:'Large 30 vs 27 (s=5, n=20)',values:{m1:30,m2:27,s1:5,s2:5,n1:20,n2:20}},
+        {label:'中效应 105 vs 100（s=10, n=30）',labelEn:'Medium 105 vs 100 (s=10, n=30)',values:{m1:105,m2:100,s1:10,s2:10,n1:30,n2:30}},
+        {label:'小效应 51 vs 50（s=10, n=50）',labelEn:'Small 51 vs 50 (s=10, n=50)',values:{m1:51,m2:50,s1:10,s2:10,n1:50,n2:50}},
+        {label:'方差不齐 20 vs 15（s₁=4, s₂=9）',labelEn:'Unequal var 20 vs 15',values:{m1:20,m2:15,s1:4,s2:9,n1:25,n2:25}}
+    ],function(){ calcTool(); });
+}
+
+var __tb_fn0 = calcTool;
+calcTool = function () { __tb_fn0(); try { __cdExtras(); } catch (e) {} };
+calcTool();
+__cdPresets();
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
