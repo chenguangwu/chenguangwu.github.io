@@ -91,7 +91,13 @@
 - **重定向存根保留期限（硬性）**：`TOOLBOX-REDIRECT` 存根只是**临时过渡**，最长保留 **1 个月**，到期必须物理删除（旧 URL 真正 404），**不得无限期保留**。删除前/删除时仍须按本节约提死链（此时旧 URL 已是真 404，用默认校验提交即可）。**建重定向存根的同一批次，必须**：① 同步用 `--no-verify` 把旧 URL（含 `zh-tw/` 繁体对应页）提死链；② **登记到仓库根目录 `_redirect_stubs_todo.md`**（统一维护所有待删存根的「源 URL / 目标 URL / 建存根日期 / 到期日 / 状态」），到期由维护者**主动删除**，**不依赖定时任务**，确保不漏。
 - 该脚本已 commit 入库，属运维工具、被手动触发依赖，勿随意删除或改名。
 
-- **迁移后新 URL 也必须提交收录通知（含繁体）**：删除/迁移只提旧 URL 死链不够——搜索引擎只知道"旧地址没了"，未必及时发现"新地址在哪"。**真迁移（`git mv` 到新路径）的目标页，与 `TOOLBOX-REDIRECT` 存根跳转的「目标 URL」，都必须随批用 IndexNow + Bing SubmitUrlbatch 各提交一次**，让 Bing 重新发现并收录新位置，完成「旧 URL 掉收录 + 新 URL 入收录」闭环。通道：① IndexNow（`_submit_indexnow.py` 走 sitemap 全量；针对特定新 URL 直接用 `https://api.indexnow.org/IndexNow` 投递 `urlList`）；② Bing Webmaster `SubmitUrlbatch`（`_submit_bing_url_api.py`，读 sitemap 批量）。**每条 URL 都须同时生成简体 `tools/X.html` 与繁体 `zh-tw/tools/X.html` 两个变体一并提交**（key 走脚本既有配置 / 环境变量注入，禁止明文入库，见 §3 密钥纪律）。
+- **URL 维护三原则（2026-10-12 新增，覆盖并废弃旧 `newurls*.txt` 工作流）**——核心口径：**新增的加站点地图（常规 sitemap.xml）、移除的加死链地图（sitemap-deadlinks.xml）、URL 移动的两个都要维护**：
+  - **① 新增工具页（新建 / 新上线 html）** → 直接进常规 `sitemap.xml`（`_build.py` 自动生成，每日 cron 14:00/15:00 已提交 IndexNow/Bing GSC），**无需任何 `newurls*.txt`、无需手动提 Bing**。即"新增加站点地图"由构建自动完成。
+  - **② 移除工具页（删页 / 下线 / 真 404）** → 旧 URL 必须加入 `sitemap-deadlinks.xml`（死链地图，见下方"死链地图维护"），并按本节约提 IndexNow。即"移除加死链地图"。
+  - **③ URL 移动（改名 / 行业转移 / `git mv`）** → **两个都要维护**：新 URL 自动进常规 `sitemap.xml`（①），旧 URL 加入 `sitemap-deadlinks.xml`（②）。即"移动的新旧双向维护"。
+  - **废弃 `_newurls*.txt` 工作流**：历史上用手工 txt 列出新 URL 再手动提 Bing，现已冗余（常规 sitemap 已覆盖）——**禁止再生成 / 提交 `_newurls*.txt`**，存量 4 个（`_newurls_2026-10-12_all/migrations/r3/r4.txt`）已在 2026-10-12 全部 `git rm` 删除。
+- **死链地图（`sitemap-deadlinks.xml`）维护规则**：所有"移除 / 移动产生的旧 URL"都汇总进根目录 `sitemap-deadlinks.xml`（**简体 + `zh-tw/` 繁体两个变体**），**已存在的 URL 不重复加入**（提交脚本按 `loc` 去重保序）。提交死链走 `_submit_indexnow_deadlinks.py`（默认读该 XML；真 404 等部署 success 后用默认校验，重定向壳用 `--no-verify`），并已在 `robots.txt` 用 `Sitemap:` 登记供 Bing 自动发现全部死链。
+- **迁移后新 URL 收录（已由 ① 自动覆盖，无需额外手动提交）**：上条三原则①已确保新 URL 进入常规 sitemap 并被每日 cron 提交，一般无需额外手动提交；仅当需即时（不等当日 cron）推送某个新 URL 时，才对特定新 URL 走 IndexNow + Bing SubmitUrlbatch（**简体 + 繁体两个变体**），否则依赖自动 sitemap 即可。
 
 ### 5. 兼容性约束
 
