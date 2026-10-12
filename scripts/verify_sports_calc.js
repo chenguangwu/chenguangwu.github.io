@@ -241,7 +241,6 @@ const CASES = [
   // ── 马拉松分段（BATCH54：距离列原为恒空三元，半马之后整列空白）──
   {
     slug: "sports/calculator-calc-time",
-    // distance 必须显式注入：harness 的 select 桩取首个 option(5 公里)，忽略 selected 的 42.195
     inputs: { distance: "42.195", th: "3", tm: "30", ts: "0" },
     expect: ["4:59", "半程马拉松 21.098", "3:30:00"],
     ref: "总用时 12600 s ÷ 42.195 km = 298.61 s/km = 4:59/km；半程 21.0975×298.61=6300 s=1:45:00；"
@@ -596,8 +595,6 @@ const CASES = [
     expect: ["106.8"],
     ref: "注入非默认(默认 80/8/5)：Epley 变体 1RM = 92×36/(37−6) = 106.8 kg。默认态 = 80×36/(37−8) = 99.4；配速区因注入 6′00″ 而落在初级跑者档但「6′00″」本身存在于静态参考表会泄漏，故只锚 1RM。特别注意：本页 pace 三件套(h/m/s)不驱动结果，实为 conv-pace 驱动。"
   },
-  {"slug": "sports/tent-wind-rating", "inputs": {"wind-speed": "22.5"}, "expect": ["9 级 烈风 20.8-24.4 风速 (m/s) 75-88 风速 (km/h) 4级 - 高山", "帐篷要求： 高山帐，谨慎扎营"], "ref": "独立复算：22.5 m/s × 3.6 = 81 km/h，落在蒲福风级 9 级区间 75-88 km/h（20.8-24.4 m/s）⇒ 名称「烈风」、帐篷等级 4级 - 高山。默认态 wind-select=6 级（强风，三季帐）两锚均不命中；页面底部风级全表默认即含「9 烈风 20.8-24.4」，故锚必须带「4级 - 高山」与结果区独有的「帐篷要求： 高山帐，谨慎扎营」。"},
-  {"slug": "sports/tent-wind-rating", "inputs": {"wind-speed": "4.2"}, "expect": ["3 级 微风 3.4-5.4 风速 (m/s) 12-19 风速 (km/h) 1级 - 休闲", "帐篷要求： 任何帐篷"], "ref": "独立复算：4.2 m/s × 3.6 = 15.12 km/h，落在 3 级区间 12-19 km/h（3.4-5.4 m/s）⇒ 「微风」、1级 - 休闲、帐篷要求「任何帐篷」。默认态为 6 级强风，两锚均不命中。"},
 
 {
     "slug": "sports/heart-rate-2",
@@ -679,12 +676,6 @@ const CASES = [
     inputs: { data: "110,1.0\n130,1.5\n150,2.2\n165,3.5\n175,5.0" },
     expect: ["144 LT 心率 (bpm)"],
     ref: "注入非默认 hr,lactate 序列：LT（有氧阈值）插值 ≈ 144 bpm。默认示例数据阈值不同，不命中 144。注意避用『5 数据点数』（默认亦 5 点，撞车）。"
-  },
-  {
-    slug: "sports/zhangpengfangfengxishu",
-    inputs: { ttype: "four", pmat: "carbon", pcount: "4", setup: "wind" },
-    expect: ["106 最大抗风风速 km/h"],
-    ref: "注入非默认(默认 ultra/fiberglass/2/normal→不同)：四季帐·碳纤维·4根·迎风优化 → 最大抗风 106 km/h。默认态组合不同，不命中 106。"
   },
   {
     "slug": "sports/altitude-acclimatization",
@@ -1508,19 +1499,6 @@ const CASES = [
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"speed\":\"42\",\"total\":\"42\",\"win\":\"42\",\"err\":\"42\"}，输出区含「42\n42\n42\n42\n请填写有效数据（得分、失误均不能超过总次数，且得分+失误…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
-  {
-    "slug": "sports/zhangpengfangfengxishu",
-    "inputs": {
-      "ttype": "three",
-      "pmat": "al7001",
-      "pcount": "3",
-      "setup": "wind"
-    },
-    "expect": [
-      "s 防风等级：抗风良好 📌 可应对疾风/大风环境，适合三季常规露营，避免暴露山脊。 📋 配置：三季帐 · 铝合金7001 · 3根 · 迎风优化（基础抗风 50"
-    ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"ttype\":\"three\",\"pmat\":\"al7001\",\"pcount\":\"3\",\"setup\":\"wind\"}，输出区含「s 防风等级：抗风良好 📌 可应对疾风/大风环境，适合三季常规露营，避免暴露山…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
-  }
 
 ];
 

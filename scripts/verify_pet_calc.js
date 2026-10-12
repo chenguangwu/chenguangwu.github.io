@@ -153,7 +153,36 @@ const CASES = [
     "junior"
   ],
   "ref": "auto-restore"
-}
+},
+{
+  "slug": "pet/fish-tank-volume",
+  "inputs": {
+    "length": "90",
+    "width": "30",
+    "diameter": "40",
+    "frontLen": "60",
+    "backLen": "50",
+    "bowWidth": "30",
+    "height": "35",
+    "substrate": "5"
+  },
+  "expect": [
+    "19.26"
+  ],
+  "ref": "auto-restore"
+},
+
+{
+  "slug": "pet/pet-age",
+  "inputs": {
+    "petAge": "6"
+  },
+  "expect": [
+    "44岁"
+  ],
+  "ref": "auto-restore"
+},
+
 ];
 async function main() {
   const only = process.argv.slice(2);

@@ -3,18 +3,6 @@
 const { runCase } = require("./verify_it_calc.js");
 const CASES = [
 {
-  "slug": "misc2/car-residual",
-  "inputs": {
-    "price": "200000",
-    "years": "5"
-  },
-  "expect": [
-    "51.00%",
-    "¥98,000.00"
-  ],
-  "ref": "原 all_default 弱用例（price=150000/years=3 恰等于页面默认）+ expect「估算残值」是结果卡片的静态标签。默认方法 method=rule（54321 阶梯），速率表 RULE_RATES=[0.15,0.12,0.10,0.08,0.06] ⇒ years=5 时累计折旧率 = 0.15+0.12+0.10+0.08+0.06 = 0.51。改为 price=200000/years=5：累计折旧 200000×0.51 = 102,000 → 折旧率 51.00%、残值 max(200000−102000, 200000×5%) = ¥98,000.00。默认态 3 年 ⇒ 0.37 → 37.00% / ¥94,500.00（跨档）。注：life/salvage 仅在 straight/double 方法下参与计算，rule 模式下零影响，故不再注入以免造成「看似非默认」的假象"
-},
-{
   "slug": "misc2/cigarette-tar",
   "inputs": {
     "tar": "5",

@@ -861,7 +861,79 @@ const CASES = [
       "abc123测试\n12\nseal\n⚠ 计算结果含无效值，请检查输入是否为有效正数。"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"lastDate\":\"abc123测试\",\"months\":\"42\",\"project\":\"seal\"}，输出区含「abc123测试\n12\nseal\n⚠ 计算结果含无效值，请检查输入是否为有效正数…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
-  }
+  },
+  {
+    slug: "automotive/driver-license-validator",
+    inputs: { input: "DL123456789012" },
+    expect: ["不匹配任何已知驾照格式"],
+    ref: "喂入一个拼凑串 ⇒ 该页如实报「不匹配任何已知驾照格式（支持美国多州/加拿大/英国/德国/澳大利亚/中国）」。默认态为空输入 ⇒ 不命中。",
+  },
+
+  {
+    "slug": "automotive/driver-license-validator",
+    "inputs": {
+      "input": "abc123测试"
+    },
+    "expect": [
+      "abc123测试\n输入： ABC123测试 长度： 8 字符 ❌ 不匹配任何已知驾照格式 支持美国多州/加拿大/英国/德国/澳大利亚/中国"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"abc123测试\"}，输出区含「abc123测试\n输入： ABC123测试 长度： 8 字符 ❌ 不匹配任何已知…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+
+  {
+    slug: "automotive/fuel-converter",
+    inputs: { inputVal: "8" },
+    expect: ["mpg(美)： 29.401823"],
+    ref: 'v=8 from=L100 → mpgUS=235.214583/8'
+  },
+
+  {
+    slug: "automotive/fuel-converter",
+    inputs: { inputVal: "8" },
+    expect: ["mpg(英)： 35.310117"],
+    ref: 'v=8 from=L100 → mpgUK=282.480936/8'
+  },
+
+  {
+    slug: "automotive/fuel-converter",
+    inputs: { inputVal: "8" },
+    expect: ["km/L： 12.5"],
+    ref: 'v=8 from=L100 → kmL=100/8'
+  },
+
+  {
+    slug: "automotive/fuel-converter",
+    inputs: { inputVal: "15" },
+    expect: ["mpg(美)： 15.680972"],
+    ref: 'v=15 from=L100 → mpgUS=235.214583/15'
+  },
+
+  {
+    slug: "automotive/fuel-converter",
+    inputs: { inputVal: "15" },
+    expect: ["mpg(英)： 18.832062"],
+    ref: 'v=15 from=L100 → mpgUK=282.480936/15'
+  },
+
+  {
+    slug: "automotive/fuel-converter",
+    inputs: { inputVal: "15" },
+    expect: ["km/L： 6.6666667"],
+    ref: 'v=15 from=L100 → kmL=100/15'
+  },
+
+  {
+    "slug": "automotive/fuel-converter",
+    "inputs": {
+      "inputVal": "42",
+      "fromUnit": "mpgUS"
+    },
+    "expect": [
+      "42\nmpgUS\n基准： 42 mpg(美) = 5.6003472 L/100km L/100km： 5.6003472 mpg(英)： 50.439897 km/L： 17.856036"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"inputVal\":\"42\",\"fromUnit\":\"mpgUS\"}，输出区含「42\nmpgUS\n基准： 42 mpg(美) = 5.6003472 L/100…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+
 
 ];
 async function main() {

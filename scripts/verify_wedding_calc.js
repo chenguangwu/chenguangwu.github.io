@@ -81,7 +81,25 @@ const CASES = [
     "00_X"
   ],
   "ref": "auto-restore"
-}
+},
+  {
+    slug: "wedding/wedding-banquet",
+    inputs: { guests: "120", type: "round10", backup: "mid" },
+    expect: ["14 桌"],
+    ref: "主桌 ceil(120/10)=12；备桌 mid=2；合计 14 桌；到场估算 ceil(120×0.9)=108 人。"
+       + "原 expect 含「12 桌」「约 108 人」为备桌无关项（回退 backup=none 仍命中，逃生项），且「2 桌」会撞「12 桌」子串；"
+       + "收紧为仅「14 桌 合计预订桌数」（backup=none 时为 12 桌 → 失配）。",
+  },
+
+  {
+    slug: "wedding/wedding-banquet",
+    inputs: { guests: "137", type: "square8", backup: "big" },
+    expect: ["18 桌 主桌数（方桌 8 人）", "21 桌 合计预订桌数", "约 124 人 按 90% 到场率估算"],
+    ref: "type=square8 ⇒ perTable=8；主桌数=ceil(137/8)=18；按 90% 到场=ceil(137×0.9)=ceil(123.3)=124；"
+       + "backup=big ⇒ backupN=3；合计=18+3=21。默认态为 120 人/round10/none ⇒ 12 桌、约 108 人、12 桌合计，三条锚全部失配。"
+       + "（「20-40 桌」等容纳参考表为与输入无关的常量块，已回避。）",
+  },
+
 ];
 async function main() {
   const only = process.argv.slice(2);

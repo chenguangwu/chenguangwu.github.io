@@ -106,7 +106,26 @@ const CASES = [
     "🍬 甜 2 票"
   ],
   "ref": "localStorage 覆写注入（同 BATCH116 cleaning/appliance-cycle 打法）：本页记录唯一数据源是 TASTE_KEY='taste_preference_records'，renderGrid/renderStats 每次都经 loadRecords() 重读 ⇒ 覆写 localStorage.getItem 后再强制重渲染即等价「用户已投 甜×2、酸×1」，独立复算得 甜 2 票 / 酸 1 票 / 总 3 票。不走 recordTaste() 是因为 tastes 常量在另一个 <script> 块，pageEval 作用域取不到 ⇒ 调用必抛 undefined.name。旧锚「暂无记录…」是空态提示 ⇒ 判别力 0。清 clicks 后 localStorage 无记录 ⇒ 退回空态提示 ⇒ 零逃生项。"
-}
+},
+  {
+    slug: "restaurant/bbq-portion",
+    inputs: { people: "14", type: "korean", drink: "yes" },
+    clicks: ["calcTool()"],
+    expect: ["6300 g", "2800 g", "30 瓶"],
+    ref: "韩式烤肉（meatPer=450、skewerPer=0）：肉 450×14=6300 g；蔬菜 200×14=2800 g；"
+       + "主食 150×14=2100 g；含饮品 round(14×700/330)=round(29.70)=30 瓶。"
+       + "原 expect 的 72 串/2100 g/1200 g/13 瓶 即默认态（6 人中式含饮品）输出，属逐字回显默认结果、零判别力；"
+       + "且 2100 g 与默认态肉类总量同值（回退默认仍命中，会成逃生项）故不入断言。",
+  },
+
+  {
+    slug: "restaurant/hotpot-portion",
+    inputs: { people: "4", style: "meat", intensity: "normal" },
+    expect: ["1320 g", "600 g", "360 g", "320 g", "1000 ml"],
+    ref: "总量 4×600×1.0=2400 g；肉 2400×0.55=1320；蔬菜 2400×0.25=600；"
+       + "豆制品 2400×0.15=360；主食 4×80=320；汤底 4×250=1000 ml",
+  },
+
 ];
 async function main() {
   const only = process.argv.slice(2);

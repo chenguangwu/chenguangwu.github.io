@@ -67,23 +67,6 @@ const CASES = [
   "ref": "auto-restore"
 },
 {
-  "slug": "niche/fish-tank-volume",
-  "inputs": {
-    "length": "90",
-    "width": "30",
-    "diameter": "40",
-    "frontLen": "60",
-    "backLen": "50",
-    "bowWidth": "30",
-    "height": "35",
-    "substrate": "5"
-  },
-  "expect": [
-    "19.26"
-  ],
-  "ref": "auto-restore"
-},
-{
   "slug": "niche/honey-estimator",
   "inputs": {
     "hives": "15",
@@ -101,16 +84,6 @@ const CASES = [
   },
   "expect": [
     "6cm"
-  ],
-  "ref": "auto-restore"
-},
-{
-  "slug": "niche/pet-age",
-  "inputs": {
-    "petAge": "6"
-  },
-  "expect": [
-    "44岁"
   ],
   "ref": "auto-restore"
 },

@@ -38,7 +38,8 @@
 ## 二、现状基线（实测，2026-10-12）
 
 - 门禁 `scripts/run_gates.py` **217/217 全过**（含 expect anti-pattern 静态门禁）；逃生项 0；CI 最近 5 个 run 全部 success。
-- 工具 **4725** 个：**A 4725 / B 0 / C 0**，A 级率 **100%**（209 分类；全站首次全部 A 级。收尾项：P1 convert 薄页 18 页提升 + `ai` 5 页 `<script type="module">` 计入 own_len 的口径修正与真实派生功能补强）。
+- 工具 **4719** 个：**A 4719 / B 0 / C 0**，A 级率 **100%**（209 分类；全站首次全部 A 级。收尾项：P1 convert 薄页 18 页提升 + `ai` 5 页 `<script type="module">` 计入 own_len 的口径修正与真实派生功能补强）。
+- 分类错配迁移收官（2026-10-12）：16 个错配工具页迁入正确行业（含 fun 下火锅/烧烤/婚礼备餐等）+ 6 个跨分类重复副本转 `TOOLBOX-REDIRECT` 存根，同步修正 canonical/og:url/breadcrumb、en 字典、deepdive、lastmod、verify 用例与 tools.json industry；en 字典补 16 个历史缺键，`life` 目录 1 个错放副本清理。16+6 页探针 0 残留，门禁 217/217。
 - `guides/` 3410 页，社交标签仅 1 页缺（`vaccine-reminder-guide.html` 系 pets 重定向存根，到期随存根删除，**不用修**）。
 - 统计三件套已集成：百度统计 + 51.la（SDK + footer 实时挂件）+ Microsoft Clarity，统一收口 `js/analytics.js`；广告点击埋点 `js/ad_metrics.js` 六位全覆盖。
 - CRITICAL_TOOL_CSS 冗余已治理（2026-09-05：引 common.css 页面零内联副本，工具页均 20KB）。

@@ -264,7 +264,28 @@ const CASES = [
   "inputs": { "fromTz": "Asia/Dubai", "toTz": "Asia/Kolkata", "fromTime": "2026-03-15T10:00" },
   "expect": ["目标时区 Asia/Kolkata： 2026/03/15 印度时间 11:30"],
   "ref": "迪拜 UTC+4 10:00 → 印度 UTC+5:30 11:30（半时区，同日）。锚含具体日期，默认态不命中。"
-}
+},
+  {
+    slug: "travel/zhangpengfangfengxishu",
+    inputs: { ttype: "four", pmat: "carbon", pcount: "4", setup: "wind" },
+    expect: ["106 最大抗风风速 km/h"],
+    ref: "注入非默认(默认 ultra/fiberglass/2/normal→不同)：四季帐·碳纤维·4根·迎风优化 → 最大抗风 106 km/h。默认态组合不同，不命中 106。"
+  },
+
+  {
+    "slug": "travel/zhangpengfangfengxishu",
+    "inputs": {
+      "ttype": "three",
+      "pmat": "al7001",
+      "pcount": "3",
+      "setup": "wind"
+    },
+    "expect": [
+      "s 防风等级：抗风良好 📌 可应对疾风/大风环境，适合三季常规露营，避免暴露山脊。 📋 配置：三季帐 · 铝合金7001 · 3根 · 迎风优化（基础抗风 50"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"ttype\":\"three\",\"pmat\":\"al7001\",\"pcount\":\"3\",\"setup\":\"wind\"}，输出区含「s 防风等级：抗风良好 📌 可应对疾风/大风环境，适合三季常规露营，避免暴露山…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  }
+
 ];
 async function main() {
   const only = process.argv.slice(2);

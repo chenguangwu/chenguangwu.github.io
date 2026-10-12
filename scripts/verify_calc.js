@@ -26,7 +26,7 @@ const targets = [
   "electrical/wire-gauge-selector",
   // N4-02 batch 04 (electrical/steel/fun)
   "electrical/breaker-sizing", "metallurgy/steel-profile-weight",
-  "fun/hotpot-portion", "fun/bbq-portion", "fun/random-name-gen",
+  "restaurant/hotpot-portion", "restaurant/bbq-portion", "fun/random-name-gen",
   // N4-02 batch 05 (ecommerce/sales/hr)
   "ecommerce/groupon-filler", "sales/cost-price-margin",
   "hr/comp-time-calculator", "hr/annual-leave-prorate",
@@ -39,7 +39,7 @@ const targets = [
   "finance/salary-after-tax",
   "finance/credit-card-grace-period",
   // P3-1 batch 08 (finance/fun/gardening/furniture/cable)
-  "finance/points-redemption-value", "fun/wedding-banquet",
+  "finance/points-redemption-value", "wedding/wedding-banquet",
   "gardening/balcony-sunlight", "woodwork/desk-dimensions",
   "metalwork/cable-tray-sizing",
   // P3-1 batch 09 (it/design)

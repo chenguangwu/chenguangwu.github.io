@@ -772,42 +772,6 @@ const CASES = [
     ref: 'from=bps, v=2500, Mbps=2500/1e6=0.0025'
   },
   {
-    slug: "life/fuel-converter",
-    inputs: { inputVal: "8" },
-    expect: ["mpg(美)： 29.401823"],
-    ref: 'v=8 from=L100 → mpgUS=235.214583/8'
-  },
-  {
-    slug: "life/fuel-converter",
-    inputs: { inputVal: "8" },
-    expect: ["mpg(英)： 35.310117"],
-    ref: 'v=8 from=L100 → mpgUK=282.480936/8'
-  },
-  {
-    slug: "life/fuel-converter",
-    inputs: { inputVal: "8" },
-    expect: ["km/L： 12.5"],
-    ref: 'v=8 from=L100 → kmL=100/8'
-  },
-  {
-    slug: "life/fuel-converter",
-    inputs: { inputVal: "15" },
-    expect: ["mpg(美)： 15.680972"],
-    ref: 'v=15 from=L100 → mpgUS=235.214583/15'
-  },
-  {
-    slug: "life/fuel-converter",
-    inputs: { inputVal: "15" },
-    expect: ["mpg(英)： 18.832062"],
-    ref: 'v=15 from=L100 → mpgUK=282.480936/15'
-  },
-  {
-    slug: "life/fuel-converter",
-    inputs: { inputVal: "15" },
-    expect: ["km/L： 6.6666667"],
-    ref: 'v=15 from=L100 → kmL=100/15'
-  },
-  {
     slug: "life/magnet-converter",
     inputs: { inputVal: "2" },
     expect: ["2 Am = 2 A/m"],
@@ -1096,42 +1060,6 @@ const CASES = [
     ref: 'numInput=3999 → MMMCMXCIX（范围上限）'
   },
   {
-    slug: "life/yaml-json",
-    inputs: { input: "{\"a\":1,\"b\":2}" },
-    expect: ["a: 1 b: 2"],
-    ref: 'JSON→YAML：{a:1,b:2} → `a: 1\\nb: 2`，collectStrings 折叠换行→空格，锚 `a: 1 b: 2`（纯字符串确定性映射）'
-  },
-  {
-    slug: "life/yaml-json",
-    inputs: { input: "{\"name\":\"Tom\"}" },
-    expect: ["name: Tom"],
-    ref: 'JSON→YAML：{name:Tom} → `name: Tom`（Tom 无特殊字符不引号），锚 `name: Tom`'
-  },
-  {
-    slug: "life/yaml-json",
-    inputs: { input: "{\"list\":[1,2,3]}" },
-    expect: ["list: - 1 - 2 - 3"],
-    ref: 'JSON→YAML：数组 [1,2,3] → `list:\\n  - 1\\n  - 2\\n  - 3` 折叠为 `list: - 1 - 2 - 3`'
-  },
-  {
-    slug: "life/yaml-json",
-    inputs: { input: "{\"x\":{\"y\":true}}" },
-    expect: ["x: y: true"],
-    ref: 'JSON→YAML：嵌套对象 {x:{y:true}} → `x:\\n  y: true` 折叠为 `x: y: true`'
-  },
-  {
-    slug: "life/yaml-json",
-    inputs: { input: "{\"n\":null}" },
-    expect: ["n: null"],
-    ref: 'JSON→YAML：{n:null} → `n: null`（null 映射）'
-  },
-  {
-    slug: "life/yaml-json",
-    inputs: { input: "{\"arr\":[\"a\",\"b\"]}" },
-    expect: ["arr: - a - b"],
-    ref: 'JSON→YAML：字符串数组 [a,b] → `arr:\\n  - a\\n  - b` 折叠为 `arr: - a - b`'
-  },
-  {
     slug: "life/analysis-74",
     inputs: { data: "A,10,40,5\nB,20,30,10" },
     expect: ["价格均值： 15.00"],
@@ -1289,19 +1217,6 @@ const CASES = [
     "ref": "倒计时：targetDate=2030-01-01(基准 now=2024-06-15)→'目标时间：2030年1月1日 00:00 周二'。注入非默认(默认 targetDate 空→无倒计时)，默认态不出现该串；整句非输入子串(输入为 2030-01-01)。"
   },
 
-  // ── CSV↔JSON 互转（默认 csv2json 模式，无表头）──────────────
-  {
-    "slug": "life/csv-json",
-    "inputs": { "input": "a,b,c\n9,8,7" },
-    "expect": ["\"col_1\":\"9\"", "\"col_3\":\"7\""],
-    "ref": "csv→json(无表头)：首行作数据、列名 col_1/2/3 ⇒ 输出 [{\"col_1\":\"a\",\"col_2\":\"b\",\"col_3\":\"c\"},{\"col_1\":\"9\",\"col_2\":\"8\",\"col_3\":\"7\"}]；锚取仅由注入数据出现的值（默认 textarea 为 name/age/city，不出现 col_1\":\"9），注入失败即不命中。"
-  },
-  {
-    "slug": "life/csv-json",
-    "inputs": { "input": "x,y\n100,200" },
-    "expect": ["\"col_2\":\"200\""],
-    "ref": "csv→json(无表头)：第二行第二列 200 ⇒ \"col_2\":\"200\"（默认 textarea 无该值，注入失败即不命中）。"
-  },
 
   // ── 年龄计算器（注入非默认出生日，锚定 input 派生的出生串，TZ 稳定）──────────────
   {
@@ -1613,17 +1528,6 @@ const CASES = [
     "ref": "自动补强（B类零用例）：注入非默认输入{\"inputVal\":\"42\",\"fromUnit\":\"kHz\"}，输出区含「42\nkHz\n基准： 42 kHz = 42000 Hz 赫兹： 42000 」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
-    "slug": "life/fuel-converter",
-    "inputs": {
-      "inputVal": "42",
-      "fromUnit": "mpgUS"
-    },
-    "expect": [
-      "42\nmpgUS\n基准： 42 mpg(美) = 5.6003472 L/100km L/100km： 5.6003472 mpg(英)： 50.439897 km/L： 17.856036"
-    ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"inputVal\":\"42\",\"fromUnit\":\"mpgUS\"}，输出区含「42\nmpgUS\n基准： 42 mpg(美) = 5.6003472 L/100…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
-  },
-  {
     "slug": "life/leap-year-checker",
     "inputs": {
       "year": "42",
@@ -1823,17 +1727,6 @@ const CASES = [
       "42\ng\n基准： 42 克 = 42 克 42000 毫克 0.042 千克 0.000042 吨 1.481506402 盎司 0.09259415012 磅 210 克拉 0.84 两 0.084 斤"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"inputVal\":\"42\",\"fromUnit\":\"g\"}，输出区含「42\ng\n基准： 42 克 = 42 克 42000 毫克 0.042 千克 0…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
-  },
-  {
-    "slug": "life/yaml-json",
-    "inputs": {
-      "input": "1\n2\n3",
-      "output": "1\n2\n3"
-    },
-    "expect": [
-      "1 2 3\n错误: Unexpected non-whitespace character after JSON at position 2 (line 2 column 1)"
-    ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"1\\n2\\n3\",\"output\":\"1\\n2\\n3\"}，输出区含「1 2 3\n错误: Unexpected non-whitespace char…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
     "slug": "life/workday-calculator",

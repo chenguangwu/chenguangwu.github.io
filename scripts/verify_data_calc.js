@@ -196,7 +196,75 @@ const CASES = [
       "强密码）： 1. Wkuf9yv>cw$i8lrd 2. t!^Qk ,&7v.8w 3. K1B(mOLl|,Qix60X 4. ^EvXXCdVpq5fs[Pf 5. I2Dysu7W1:-jRt:= 6. 5;luDHxvnOc|XG"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"cnt\":\"42\"}，输出区含「强密码）： 1. Wkuf9yv>cw$i8lrd 2. t!^Qk ,&7v.…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
-  }
+  },
+  {
+    slug: "data/yaml-json",
+    inputs: { input: "{\"a\":1,\"b\":2}" },
+    expect: ["a: 1 b: 2"],
+    ref: 'JSON→YAML：{a:1,b:2} → `a: 1\\nb: 2`，collectStrings 折叠换行→空格，锚 `a: 1 b: 2`（纯字符串确定性映射）'
+  },
+
+  {
+    slug: "data/yaml-json",
+    inputs: { input: "{\"name\":\"Tom\"}" },
+    expect: ["name: Tom"],
+    ref: 'JSON→YAML：{name:Tom} → `name: Tom`（Tom 无特殊字符不引号），锚 `name: Tom`'
+  },
+
+  {
+    slug: "data/yaml-json",
+    inputs: { input: "{\"list\":[1,2,3]}" },
+    expect: ["list: - 1 - 2 - 3"],
+    ref: 'JSON→YAML：数组 [1,2,3] → `list:\\n  - 1\\n  - 2\\n  - 3` 折叠为 `list: - 1 - 2 - 3`'
+  },
+
+  {
+    slug: "data/yaml-json",
+    inputs: { input: "{\"x\":{\"y\":true}}" },
+    expect: ["x: y: true"],
+    ref: 'JSON→YAML：嵌套对象 {x:{y:true}} → `x:\\n  y: true` 折叠为 `x: y: true`'
+  },
+
+  {
+    slug: "data/yaml-json",
+    inputs: { input: "{\"n\":null}" },
+    expect: ["n: null"],
+    ref: 'JSON→YAML：{n:null} → `n: null`（null 映射）'
+  },
+
+  {
+    slug: "data/yaml-json",
+    inputs: { input: "{\"arr\":[\"a\",\"b\"]}" },
+    expect: ["arr: - a - b"],
+    ref: 'JSON→YAML：字符串数组 [a,b] → `arr:\\n  - a\\n  - b` 折叠为 `arr: - a - b`'
+  },
+
+  {
+    "slug": "data/csv-json",
+    "inputs": { "input": "a,b,c\n9,8,7" },
+    "expect": ["\"col_1\":\"9\"", "\"col_3\":\"7\""],
+    "ref": "csv→json(无表头)：首行作数据、列名 col_1/2/3 ⇒ 输出 [{\"col_1\":\"a\",\"col_2\":\"b\",\"col_3\":\"c\"},{\"col_1\":\"9\",\"col_2\":\"8\",\"col_3\":\"7\"}]；锚取仅由注入数据出现的值（默认 textarea 为 name/age/city，不出现 col_1\":\"9），注入失败即不命中。"
+  },
+
+  {
+    "slug": "data/csv-json",
+    "inputs": { "input": "x,y\n100,200" },
+    "expect": ["\"col_2\":\"200\""],
+    "ref": "csv→json(无表头)：第二行第二列 200 ⇒ \"col_2\":\"200\"（默认 textarea 无该值，注入失败即不命中）。"
+  },
+
+  {
+    "slug": "data/yaml-json",
+    "inputs": {
+      "input": "1\n2\n3",
+      "output": "1\n2\n3"
+    },
+    "expect": [
+      "1 2 3\n错误: Unexpected non-whitespace character after JSON at position 2 (line 2 column 1)"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"1\\n2\\n3\",\"output\":\"1\\n2\\n3\"}，输出区含「1 2 3\n错误: Unexpected non-whitespace char…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+
 
 ];
 async function main() {

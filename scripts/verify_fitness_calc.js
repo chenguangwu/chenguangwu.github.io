@@ -555,7 +555,95 @@ const CASES = [
       "力量 💡 当前 42kg × 42组 × 42次 = 74088.0kg ，使用实测"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"weight\":\"42\",\"sets\":\"42\",\"reps\":\"42\",\"onerm\":\"42\"}，输出区含「力量 💡 当前 42kg × 42组 × 42次 = 74088.0kg ，使…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
-  }
+  },
+  {
+    slug: "fitness/step-stride",
+    inputs: { cadence: "170", stride: "0.75", weight: "65" },
+    expect: ["2.13", "7.65"],
+    ref: "ms = 170×0.75/60 = 2.125 → 2.13 m/s；kmh = 2.125×3.6 = 7.65 km/h；"
+       + "每公里步数 = round(1000/0.75) = 1333 步",
+  },
+
+  {
+    slug: "fitness/pace-calculator",
+    inputs: {},
+    clicks: ["setMode('pace');document.getElementById('distPace').value='10';document.getElementById('timeMPace').value='50';calc();"],
+    expect: ['5\'00"/km', '50:00', '10.00 km', '12.0 km/h'],
+    ref: '配速模式 10 km / 0:50:00 ⇒ 配速 = 3000÷10 = **300 s** ⇒ `5\'00"/km`；完赛时间 = 10×300 = 3000 s，因不足 1 h 走 fmtTime 的 `MM:SS` 分支 ⇒ **50:00**；距离回显 **10.00 km**；速度 = 3600÷300 = **12.0 km/h**。默认组是 5 km / 0:30:00 ⇒ `6\'00"/km` / `30:00` / `5.00 km` / `10.0 km/h`，四条锚全不撞。',
+  },
+
+  {
+    slug: "fitness/pace-calculator",
+    inputs: {},
+    clicks: ["setMode('pace');setUnit('mi');document.getElementById('distPace').value='6.2';document.getElementById('timeMPace').value='50';calc();"],
+    expect: ['8\'04"/mi', '6.20 mi', '12.0 mph'],
+    ref: '切到英里后同一组输入（6.2 mi / 0:50:00）⇒ 配速 = 3000÷6.2 = 483.871 s ⇒ `8\'04"/mi`；距离回显 **6.20 mi**；速度改走英里口径 3600×1.60934÷483.871 = **12.0 mph**。本条与上一条例同输入不同单位：配速串带 `/mi`、速度带 `mph`，一旦 `setUnit` 漏改任一后缀就会被抓；默认态 unit 恒为 km，三条锚一律不命中。',
+  },
+
+  {
+    slug: "fitness/pace-calculator",
+    inputs: {},
+    clicks: ["setMode('time');document.getElementById('distTime').value='21.0975';document.getElementById('paceMTime').value='5';document.getElementById('paceSTime').value='30';calc();"],
+    expect: ['5\'30"/km', '1:56:02', '21.10 km', '10.9 km/h'],
+    ref: '时间模式 半马 21.0975 km / 5\'30" 配速：配速 = 5×60+30 = **330 s/km** ⇒ `5\'30"/km`；完赛时间 = 21.0975×330 = 6962.175 s ⇒ h=1、m=56、s=round(2.175)=2 ⇒ **1:56:02**；距离回显 **21.10 km**（21.0975 保留两位）；速度 = 3600÷330 = 10.909 ⇒ **10.9 km/h**。`fmtTime` 的「≥1 h 才带时」分支由本条唯一覆盖（例①的 3000 s 走的是 MM:SS 分支）。默认态不进 time 分支，四条锚全不命中。',
+  },
+
+  {
+    slug: "fitness/pace-calculator",
+    inputs: {},
+    clicks: ["setMode('dist');document.getElementById('timeHDist').value='0';document.getElementById('timeMDist').value='40';document.getElementById('paceMDist').value='5';calc();"],
+    expect: ['5\'00"/km', '40:00', '8.00 km', '12.0 km/h'],
+    ref: '距离模式用「配速 × 时间」反解距离：配速 5\'00" = **300 s/km**、用时 0:40:00 = **2400 s** ⇒ 距离 = 2400÷300 = **8.00 km**；时间回显 **40:00**（<1 h 的 MM:SS 分支）；速度 **12.0 km/h**。注意 `timeHDist` 的 HTML 默认值是 1，若漏清零会得 20.00 km，本条显式写 0 以排除该歧义。默认态不进 dist 分支（`5.00 km` / `10.0 km/h`），四条锚全不命中。',
+  },
+
+  {
+    slug: "fitness/pace-calculator",
+    inputs: {},
+    clicks: ["setStrategy('negative');document.getElementById('targetPaceM').value='6';document.getElementById('targetPaceS').value='0';calcSplits();"],
+    expect: ['6\'29"', '5\'31"', '合计 6\'00" 平均 30:00'],
+    ref: '分段表「负分策略」（前快后慢）：目标配速 6:00 = 360 s，negative 分支 `targetPace*(1.1-0.2*progress)`、progress=(i-0.5)/numSplits ⇒ 第 1 段 360×(1.1−0.02) = 388.8 s ⇒ **6\'29"**、末段 360×(1.1−0.18) = 331.2 s ⇒ **5\'31"**，五段合计 1800 s ⇒ 合计行 **6\'00" 平均 30:00**。三条锚分别落在「策略系数 1.1 / 0.2」「分段数取整」「合计平均」三个独立式子；even 默认组每段恒 5\'30"、合计 `5\'30" 平均 27:30`，全不命中。',
+  },
+
+  {
+    slug: "fitness/pace-calculator",
+    inputs: { hrAge: "40", hrRest: "70", refPaceM: "6", refPaceS: "20" },
+    clicks: ["calcHrPace();"],
+    expect: ['125 - 136', '169 - 180', '8\'52"/km'],
+    ref: '心率区间表：年龄 40、静息 70 ⇒ 最大心率 220−40 = 180、HRR = 180−70 = 110 ⇒ Z1 落在 round(70+110×0.5)=**125** ~ round(70+110×0.6)=**136**、Z5 落在 round(70+110×0.9)=**169** ~ round(70+110×1)=**180**；参考配速 6:20 = 380 s，Z1 乘 1.4 ⇒ 532 s ⇒ **8\'52"/km**。区间锚只依赖 `rhr+hrr*z.min` 的系数（0.5/0.6…），配速锚只依赖 `paceFactor`，两组互不牵连。默认组（30 岁 / 65 / 5\'30"）⇒ `128 - 140` / `178 - 190` / `7\'42"/km`，全不命中。',
+  },
+
+  {"slug": "fitness/running-calories", "inputs": {"weight": "72", "paceMin": "5", "paceSec": "30", "distance": "12.4"}, "expect": ["消耗热量： 900 kcal", "运动时长： 1h 8min", "跑步距离： 12.40 km", "5公里 363 kcal 28min"], "ref": "独立复算（MET 值法，pace 模式）：配速 5'30\" = 330 s/km ⇒ 速度 3600/330 = 10.909 km/h，落在 [10,11) ⇒ MET = 11.0；时长 = 330×12.4/60 = 68.2 min；热量 = 11.0×72×68.2/60 = 900.24 ⇒ round 900 kcal；脂肪 = round(900/9×10)/10 = 100.0 g；fmtTime(68.2) = 1h 8min；5 km 里程碑 = 11×72×(330×5/60)/60 = 363 kcal、耗时 27.5 min ⇒ 28min。默认态（65 kg / 6'0\" / 5 km）四锚分别为 358 kcal / 30min / 5.00 km / 5公里 358 kcal 30min，均不命中。"},
+
+  {"slug": "fitness/running-calories", "inputs": {"weight": "58", "paceMin": "4", "paceSec": "20", "distance": "21.1"}, "expect": ["消耗热量： 1193 kcal", "运动时长： 1h 31min", "跑步距离： 21.10 km", "10公里 566 kcal 43min"], "ref": "独立复算：配速 4'20\" = 260 s/km ⇒ 速度 3600/260 = 13.846 km/h ≥ 12 ⇒ MET = 13.5；时长 = 260×21.1/60 = 91.4333 min；热量 = 13.5×58×91.4333/60 = 1193.2 ⇒ 1193 kcal；脂肪 = round(1193/9×10)/10 = 132.6 g；10 km = 13.5×58×43.3333/60 = 565.9 ⇒ 566 kcal。速度 ≥14 不成立（13.846 < 14），故 MET 取 13.5 而非 16。默认态四锚均不命中。"},
+
+  {
+    "slug": "fitness/pace-calculator",
+    "inputs": {
+      "distPace": "42",
+      "timeHPace": "42",
+      "timeMPace": "42",
+      "timeSPace": "42",
+      "distTime": "42",
+      "paceMTime": "42",
+      "paceSTime": "42",
+      "paceMDist": "42",
+      "paceSDist": "42",
+      "timeHDist": "42",
+      "timeMDist": "42",
+      "timeSDist": "42",
+      "targetPaceM": "42",
+      "targetPaceS": "42",
+      "hrAge": "42",
+      "hrRest": "42",
+      "refPaceM": "42",
+      "refPaceS": "42"
+    },
+    "expect": [
+      "累计时间 第1K 42'42\" 42:42 42:42 第2K 42'42\" 42:42 1:25:24 第3K 42'42\" 42:42 2:08:06 第4K 42'42\" 42:42 2:50:48 第5K 42'42\" 42:42 "
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"distPace\":\"42\",\"timeHPace\":\"42\",\"timeMPace\":\"42\",\"timeSPace\":\"42\",\"distTime\":\"42\",\"paceMTime\":\"42\",\"paceSTime\":\"42\",\"paceMDist\":\"42\",\"paceSDist\":\"42\",\"timeHDist\":\"42\",\"timeMDist\":\"42\",\"timeSDist\":\"42\",\"targetPaceM\":\"42\",\"targetPaceS\":\"42\",\"hrAge\":\"42\",\"hrRest\":\"42\",\"refPaceM\":\"42\",\"refPaceS\":\"42\"}，输出区含「累计时间 第1K 42'42\" 42:42 42:42 第2K 42'42\" 4…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+
 
 ];
 

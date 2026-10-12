@@ -188,50 +188,7 @@ const CASES = [
     inputs: { perDay: "15", years: "8", price: "30" },
     expect: ["65,700"],
     ref: "每日 = 15÷20×30 = 22.5 元；总计 = 22.5 × 365 × 8 = 65,700 元（避开默认 20 支/10 年/25 元）",
-  },  {
-    slug: "health/pace-calculator",
-    inputs: {},
-    clicks: ["setMode('pace');document.getElementById('distPace').value='10';document.getElementById('timeMPace').value='50';calc();"],
-    expect: ['5\'00"/km', '50:00', '10.00 km', '12.0 km/h'],
-    ref: '配速模式 10 km / 0:50:00 ⇒ 配速 = 3000÷10 = **300 s** ⇒ `5\'00"/km`；完赛时间 = 10×300 = 3000 s，因不足 1 h 走 fmtTime 的 `MM:SS` 分支 ⇒ **50:00**；距离回显 **10.00 km**；速度 = 3600÷300 = **12.0 km/h**。默认组是 5 km / 0:30:00 ⇒ `6\'00"/km` / `30:00` / `5.00 km` / `10.0 km/h`，四条锚全不撞。',
   },
-  {
-    slug: "health/pace-calculator",
-    inputs: {},
-    clicks: ["setMode('pace');setUnit('mi');document.getElementById('distPace').value='6.2';document.getElementById('timeMPace').value='50';calc();"],
-    expect: ['8\'04"/mi', '6.20 mi', '12.0 mph'],
-    ref: '切到英里后同一组输入（6.2 mi / 0:50:00）⇒ 配速 = 3000÷6.2 = 483.871 s ⇒ `8\'04"/mi`；距离回显 **6.20 mi**；速度改走英里口径 3600×1.60934÷483.871 = **12.0 mph**。本条与上一条例同输入不同单位：配速串带 `/mi`、速度带 `mph`，一旦 `setUnit` 漏改任一后缀就会被抓；默认态 unit 恒为 km，三条锚一律不命中。',
-  },
-  {
-    slug: "health/pace-calculator",
-    inputs: {},
-    clicks: ["setMode('time');document.getElementById('distTime').value='21.0975';document.getElementById('paceMTime').value='5';document.getElementById('paceSTime').value='30';calc();"],
-    expect: ['5\'30"/km', '1:56:02', '21.10 km', '10.9 km/h'],
-    ref: '时间模式 半马 21.0975 km / 5\'30" 配速：配速 = 5×60+30 = **330 s/km** ⇒ `5\'30"/km`；完赛时间 = 21.0975×330 = 6962.175 s ⇒ h=1、m=56、s=round(2.175)=2 ⇒ **1:56:02**；距离回显 **21.10 km**（21.0975 保留两位）；速度 = 3600÷330 = 10.909 ⇒ **10.9 km/h**。`fmtTime` 的「≥1 h 才带时」分支由本条唯一覆盖（例①的 3000 s 走的是 MM:SS 分支）。默认态不进 time 分支，四条锚全不命中。',
-  },
-  {
-    slug: "health/pace-calculator",
-    inputs: {},
-    clicks: ["setMode('dist');document.getElementById('timeHDist').value='0';document.getElementById('timeMDist').value='40';document.getElementById('paceMDist').value='5';calc();"],
-    expect: ['5\'00"/km', '40:00', '8.00 km', '12.0 km/h'],
-    ref: '距离模式用「配速 × 时间」反解距离：配速 5\'00" = **300 s/km**、用时 0:40:00 = **2400 s** ⇒ 距离 = 2400÷300 = **8.00 km**；时间回显 **40:00**（<1 h 的 MM:SS 分支）；速度 **12.0 km/h**。注意 `timeHDist` 的 HTML 默认值是 1，若漏清零会得 20.00 km，本条显式写 0 以排除该歧义。默认态不进 dist 分支（`5.00 km` / `10.0 km/h`），四条锚全不命中。',
-  },
-  {
-    slug: "health/pace-calculator",
-    inputs: {},
-    clicks: ["setStrategy('negative');document.getElementById('targetPaceM').value='6';document.getElementById('targetPaceS').value='0';calcSplits();"],
-    expect: ['6\'29"', '5\'31"', '合计 6\'00" 平均 30:00'],
-    ref: '分段表「负分策略」（前快后慢）：目标配速 6:00 = 360 s，negative 分支 `targetPace*(1.1-0.2*progress)`、progress=(i-0.5)/numSplits ⇒ 第 1 段 360×(1.1−0.02) = 388.8 s ⇒ **6\'29"**、末段 360×(1.1−0.18) = 331.2 s ⇒ **5\'31"**，五段合计 1800 s ⇒ 合计行 **6\'00" 平均 30:00**。三条锚分别落在「策略系数 1.1 / 0.2」「分段数取整」「合计平均」三个独立式子；even 默认组每段恒 5\'30"、合计 `5\'30" 平均 27:30`，全不命中。',
-  },
-  {
-    slug: "health/pace-calculator",
-    inputs: { hrAge: "40", hrRest: "70", refPaceM: "6", refPaceS: "20" },
-    clicks: ["calcHrPace();"],
-    expect: ['125 - 136', '169 - 180', '8\'52"/km'],
-    ref: '心率区间表：年龄 40、静息 70 ⇒ 最大心率 220−40 = 180、HRR = 180−70 = 110 ⇒ Z1 落在 round(70+110×0.5)=**125** ~ round(70+110×0.6)=**136**、Z5 落在 round(70+110×0.9)=**169** ~ round(70+110×1)=**180**；参考配速 6:20 = 380 s，Z1 乘 1.4 ⇒ 532 s ⇒ **8\'52"/km**。区间锚只依赖 `rhr+hrr*z.min` 的系数（0.5/0.6…），配速锚只依赖 `paceFactor`，两组互不牵连。默认组（30 岁 / 65 / 5\'30"）⇒ `128 - 140` / `178 - 190` / `7\'42"/km`，全不命中。',
-  },
-  {"slug": "health/running-calories", "inputs": {"weight": "72", "paceMin": "5", "paceSec": "30", "distance": "12.4"}, "expect": ["消耗热量： 900 kcal", "运动时长： 1h 8min", "跑步距离： 12.40 km", "5公里 363 kcal 28min"], "ref": "独立复算（MET 值法，pace 模式）：配速 5'30\" = 330 s/km ⇒ 速度 3600/330 = 10.909 km/h，落在 [10,11) ⇒ MET = 11.0；时长 = 330×12.4/60 = 68.2 min；热量 = 11.0×72×68.2/60 = 900.24 ⇒ round 900 kcal；脂肪 = round(900/9×10)/10 = 100.0 g；fmtTime(68.2) = 1h 8min；5 km 里程碑 = 11×72×(330×5/60)/60 = 363 kcal、耗时 27.5 min ⇒ 28min。默认态（65 kg / 6'0\" / 5 km）四锚分别为 358 kcal / 30min / 5.00 km / 5公里 358 kcal 30min，均不命中。"},
-  {"slug": "health/running-calories", "inputs": {"weight": "58", "paceMin": "4", "paceSec": "20", "distance": "21.1"}, "expect": ["消耗热量： 1193 kcal", "运动时长： 1h 31min", "跑步距离： 21.10 km", "10公里 566 kcal 43min"], "ref": "独立复算：配速 4'20\" = 260 s/km ⇒ 速度 3600/260 = 13.846 km/h ≥ 12 ⇒ MET = 13.5；时长 = 260×21.1/60 = 91.4333 min；热量 = 13.5×58×91.4333/60 = 1193.2 ⇒ 1193 kcal；脂肪 = round(1193/9×10)/10 = 132.6 g；10 km = 13.5×58×43.3333/60 = 565.9 ⇒ 566 kcal。速度 ≥14 不成立（13.846 < 14），故 MET 取 13.5 而非 16。默认态四锚均不命中。"},
   {"slug": "health/child-medication-dose", "inputs": {"age": "6", "weight": "24"}, "expect": ["Clark公式（按体重 24 kg） 每次剂量： 137.1 mg （约 6.9 ml）", "Young公式（按年龄6岁）： 133.3 mg/次", "每次剂量： 120.0 ~ 240.0 mg/次", "最大日剂量： 960 mg （约 48.0 ml）"], "ref": "独立复算（ibuprofen：adultDose=400、conc=20mg/ml、unitRange=[5,10]、maxDaily=40）：Clark = 24×400/70 = 137.14 ⇒ 137.1 mg；体积 = 137.14/20 = 6.86 ⇒ 6.9 ml；Young = 6×400/(6+12) = 133.33 ⇒ 133.3；标准范围 = 5×24 ~ 10×24 = 120.0 ~ 240.0；最大日剂量 = 40×24 = 960 mg、58… 页面给 48.0 ml（960/20）。默认态（age=3、weight=15）为 85.7 mg / 4.3 ml / 64.3 mg / 75.0~150.0 / 600 mg，四锚均不命中。"},
   {"slug": "health/child-medication-dose", "inputs": {"age": "9", "weight": "31"}, "clicks": ["document.getElementById('drugSelect').value='acetaminophen';calcDose();"], "expect": ["对乙酰氨基酚（泰诺林） 规格：32mg/1ml ｜ 用药间隔：4-6小时", "每次剂量： 221.4 mg （约 6.9 ml）", "Young公式（按年龄9岁）： 214.3 mg/次", "每次剂量： 310.0 ~ 465.0 mg/次", "最大日剂量： 1860 mg （约 58.1 ml）"], "ref": "独立复算（acetaminophen：adultDose=500、conc=32mg/ml、unitRange=[10,15]、maxDaily=60）：Clark = 31×500/70 = 221.43 ⇒ 221.4 mg；体积 = 221.43/32 = 6.92 ⇒ 6.9 ml；Young = 9×500/(9+12) = 214.29 ⇒ 214.3；标准范围 = 10×31 ~ 15×31 = 310.0 ~ 465.0；最大日剂量 = 60×31 = 1860 mg、体积 1860/32 = 58.125 ⇒ 58.1 ml。切换药物须走 clicks（select 无 option selected 桩、值写在 inputs 里会被 onchange 重置），药物名锚同时验证 conc/interval 联动。默认态为布洛芬 + age3/weight15，四锚均不命中。"},
   {"slug": "health/milk-tea-calories", "inputs": {}, "checkIds": ["top_boba", "top_cheese"], "clicks": ["document.getElementById('cup').value='650';document.getElementById('tea').value='60';document.getElementById('milk').value='120';document.getElementById('sugar').value='100';calcTool();"], "expect": ["395 kcal 一杯总热量 180 kcal 茶底 + 奶类 65 kcal 糖（100% 糖度） 150 kcal 加料（boba、cheese）"], "ref": "独立复算：杯量 650ml、芝士奶盖茶底 60 + 奶精 120 ⇒ 茶底+奶类 = 180 kcal；糖热量 = round(650/100 × (100/100) × 10) = 65 kcal；加料 = 珍珠 80 + 奶盖 70 = 150 kcal；总 = 180 + 65 + 150 = 395 kcal。加料名走 el.dataset.name，桩内 dataset 不存在 ⇒ 回落 id（boba、cheese），此串本身即锚。默认态全 0（500ml/原味/无奶/无糖/无加料）为「0 kcal 一杯总热量」，四段连排串不命中。杯量/茶底/奶/糖四项 select 桩内 option selected 不生效，必须 clicks 赋值后显式调 calcTool()（页面函数名非 calc）。"},
@@ -614,33 +571,6 @@ const CASES = [
       "abc123测试\n42\n42"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"lmp\":\"abc123测试\",\"cycle\":\"42\",\"period\":\"42\"}，输出区含「abc123测试\n42\n42」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
-  },
-  {
-    "slug": "health/pace-calculator",
-    "inputs": {
-      "distPace": "42",
-      "timeHPace": "42",
-      "timeMPace": "42",
-      "timeSPace": "42",
-      "distTime": "42",
-      "paceMTime": "42",
-      "paceSTime": "42",
-      "paceMDist": "42",
-      "paceSDist": "42",
-      "timeHDist": "42",
-      "timeMDist": "42",
-      "timeSDist": "42",
-      "targetPaceM": "42",
-      "targetPaceS": "42",
-      "hrAge": "42",
-      "hrRest": "42",
-      "refPaceM": "42",
-      "refPaceS": "42"
-    },
-    "expect": [
-      "累计时间 第1K 42'42\" 42:42 42:42 第2K 42'42\" 42:42 1:25:24 第3K 42'42\" 42:42 2:08:06 第4K 42'42\" 42:42 2:50:48 第5K 42'42\" 42:42 "
-    ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"distPace\":\"42\",\"timeHPace\":\"42\",\"timeMPace\":\"42\",\"timeSPace\":\"42\",\"distTime\":\"42\",\"paceMTime\":\"42\",\"paceSTime\":\"42\",\"paceMDist\":\"42\",\"paceSDist\":\"42\",\"timeHDist\":\"42\",\"timeMDist\":\"42\",\"timeSDist\":\"42\",\"targetPaceM\":\"42\",\"targetPaceS\":\"42\",\"hrAge\":\"42\",\"hrRest\":\"42\",\"refPaceM\":\"42\",\"refPaceS\":\"42\"}，输出区含「累计时间 第1K 42'42\" 42:42 42:42 第2K 42'42\" 4…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
     "slug": "health/pregnancy-due-date",
